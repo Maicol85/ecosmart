@@ -8644,7 +8644,7 @@ function showTab(id) {
 function v(id) {
   const el = document.getElementById(id);
   if (!el) return null;
-  const n = parseFloat(el.value);
+  const n = parseFloat(el.value.replace(',', '.'));
   return isNaN(n) ? null : n;
 }
 function sv(id) {
