@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Amiloidosis Cardíaca — EcoSmart</title>
+<style>
+  :root {
+    --navy:   #0B1F3A;
+    --navy2:  #162B4D;
+    --purple: #5B2D8E;
+    --purple2:#7340AA;
+    --purple-pale:#F3EEFF;
+    --red:    #C0392B;
+    --red-pale:#FDEDEC;
+    --amber:  #D4860A;
+    --amber-pale:#FEF3DC;
+    --green:  #1A6B4A;
+    --green-pale:#E8F5EE;
+    --blue:   #1A4A8A;
+    --blue-pale:#EBF2FB;
+    --bg:     #F2F4F8;
+    --surface:#FFFFFF;
+    --border: #D0D8E8;
+    --text:   #0B1F3A;
+    --muted:  #5A6878;
+    --light:  #8FA0B0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--purple) 100%);
+    padding: 14px 20px; display:flex; align-items:center; gap:12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.3);
+  }
+  .logo { font-size:18px; font-weight:800; color:#fff; letter-spacing:-.3px; }
+  .logo span { color:#C8A0FF; }
+  .logo-sub { font-size:11px; color:rgba(255,255,255,.5); margin-left:4px; font-weight:400; }
+  .header-badge { margin-left:auto; background:rgba(255,255,255,.12); color:rgba(255,255,255,.8);
+    font-size:11px; font-weight:600; padding:4px 12px; border-radius:20px; }
+
+  /* TABS */
+  .tab-header { background:var(--navy2); display:flex; padding:0 16px; gap:2px; overflow-x:auto; }
+  .tab-btn { padding:11px 16px; font-size:12px; font-weight:600; cursor:pointer; border:none;
+    background:transparent; color:rgba(255,255,255,.5); border-bottom:3px solid transparent;
+    font-family:inherit; transition:all .15s; white-space:nowrap; }
+  .tab-btn.active { color:#fff; border-bottom-color:#C8A0FF; }
+
+  /* MAIN */
+  main { max-width:860px; margin:0 auto; padding:18px; }
+
+  /* RESULTADO PANEL */
+  .result-panel {
+    border-radius:14px; padding:20px; margin-bottom:18px;
+    display:none; box-shadow:0 4px 20px rgba(91,45,142,.2);
+  }
+  .result-panel.show { display:flex; gap:18px; align-items:flex-start; }
+  .result-panel.prob-alta { background: linear-gradient(135deg,#3D1B6E,#5B2D8E); }
+  .result-panel.prob-baja { background: linear-gradient(135deg,#0B2E1A,#1A6B4A); }
+  .result-panel.biopsia   { background: linear-gradient(135deg,#6B1A1A,#C0392B); }
+  .result-panel.intermedio{ background: linear-gradient(135deg,#3D2E08,#D4860A); }
+  .result-icon { font-size:40px; flex-shrink:0; }
+  .result-content { flex:1; }
+  .result-title { font-size:18px; font-weight:900; color:#fff; margin-bottom:6px; }
+  .result-body  { font-size:13px; color:rgba(255,255,255,.82); line-height:1.6; }
+  .result-accion{ margin-top:10px; padding:10px 14px; background:rgba(255,255,255,.12);
+    border-radius:8px; font-size:12px; color:rgba(255,255,255,.9); line-height:1.5; }
+
+  /* ETT SCORE */
+  .score-circle {
+    width:64px; height:64px; border-radius:50%; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; font-size:24px; font-weight:900;
+    border:3px solid rgba(255,255,255,.3); flex-shrink:0;
+  }
+  .score-circle .sc-label { font-size:9px; font-weight:600; opacity:.7; }
+
+  /* CARDS */
+  .card { background:var(--surface); border-radius:12px; padding:16px;
+    border:1px solid var(--border); margin-bottom:14px; }
+  .card-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px;
+    color:var(--muted); margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+  .card-title span { font-size:16px; }
+
+  /* CRITERIOS ETT */
+  .criterio-item {
+    display:flex; align-items:center; gap:12px; padding:10px 12px;
+    border:2px solid var(--border); border-radius:10px; margin-bottom:8px;
+    cursor:pointer; transition:all .15s; user-select:none;
+  }
+  .criterio-item:hover { border-color:var(--purple2); background:var(--purple-pale); }
+  .criterio-item.activo { border-color:var(--purple); background:var(--purple-pale); }
+  .criterio-check { width:20px; height:20px; border-radius:50%; border:2px solid var(--border);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:11px; }
+  .criterio-item.activo .criterio-check { background:var(--purple); border-color:var(--purple); color:#fff; }
+  .criterio-nombre { flex:1; font-size:13px; font-weight:600; }
+  .criterio-def { font-size:11px; color:var(--muted); margin-top:2px; }
+  .criterio-pts { font-size:16px; font-weight:900; color:var(--purple); min-width:32px; text-align:right; }
+
+  /* INPUTS */
+  .form-row { display:grid; gap:10px; margin-bottom:10px; }
+  .form-row.cols2 { grid-template-columns:1fr 1fr; }
+  .form-row.cols3 { grid-template-columns:1fr 1fr 1fr; }
+  @media(max-width:600px){ .form-row.cols2,.form-row.cols3{ grid-template-columns:1fr; } }
+  label { font-size:11px; font-weight:700; color:var(--muted); display:block; margin-bottom:4px;
+    text-transform:uppercase; letter-spacing:.3px; }
+  input[type=number], input[type=text], select {
+    width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:8px;
+    font-size:13px; font-family:inherit; color:var(--text); background:var(--surface); }
+  input:focus, select:focus { outline:none; border-color:var(--purple); box-shadow:0 0 0 3px rgba(91,45,142,.1); }
+
+  /* GRADO GAMMAGRAFIA */
+  .grado-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:4px; }
+  @media(max-width:500px){ .grado-grid { grid-template-columns:1fr 1fr; } }
+  .grado-item {
+    border:2px solid var(--border); border-radius:10px; padding:12px 8px;
+    text-align:center; cursor:pointer; transition:all .15s; user-select:none;
+  }
+  .grado-item:hover { border-color:var(--purple2); background:var(--purple-pale); }
+  .grado-item.selected { border-color:var(--purple); background:var(--purple-pale); }
+  .grado-num { font-size:22px; font-weight:900; }
+  .grado-0 { color:var(--green); } .grado-1 { color:var(--amber); }
+  .grado-2 { color:var(--red); }   .grado-3 { color:#8B0000; }
+  .grado-label { font-size:10px; color:var(--muted); margin-top:4px; }
+  .grado-item.selected .grado-label { color:var(--purple); font-weight:700; }
+
+  /* PROTEINAS */
+  .prot-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .prot-item {
+    border:2px solid var(--border); border-radius:10px; padding:14px;
+    cursor:pointer; transition:all .15s; user-select:none; text-align:center;
+  }
+  .prot-item:hover { border-color:var(--purple2); }
+  .prot-item.selected.negativo { border-color:var(--green); background:var(--green-pale); }
+  .prot-item.selected.anormal  { border-color:var(--red);   background:var(--red-pale); }
+  .prot-item-icon { font-size:28px; margin-bottom:4px; }
+  .prot-item-label { font-size:13px; font-weight:700; }
+  .prot-item-sub   { font-size:11px; color:var(--muted); margin-top:3px; }
+
+  /* ETT SCORE TOTAL */
+  .score-bar { height:10px; background:var(--bg); border-radius:5px; overflow:hidden; margin-top:6px; }
+  .score-fill { height:100%; border-radius:5px; transition:width .4s; }
+
+  /* ESCENARIO */
+  .escenario-box {
+    border-radius:10px; padding:14px; margin-bottom:10px;
+    border-left:4px solid;
+  }
+  .escenario-box.verde  { background:var(--green-pale);  border-color:var(--green); }
+  .escenario-box.amarillo{ background:var(--amber-pale); border-color:var(--amber); }
+  .escenario-box.rojo   { background:var(--red-pale);    border-color:var(--red); }
+  .escenario-box.morado { background:var(--purple-pale); border-color:var(--purple); }
+  .escenario-titulo { font-size:13px; font-weight:700; margin-bottom:6px; }
+  .escenario-body   { font-size:12px; line-height:1.7; color:var(--text); }
+
+  /* BUTTONS */
+  .btn { display:inline-flex; align-items:center; gap:6px; padding:9px 18px;
+    border-radius:9px; font-size:13px; font-weight:700; cursor:pointer;
+    border:none; font-family:inherit; transition:all .15s; }
+  .btn-purple { background:var(--purple); color:#fff; }
+  .btn-purple:hover { background:var(--purple2); }
+  .btn-secondary { background:var(--surface); color:var(--text); border:1px solid var(--border); }
+  .btn-green { background:var(--green); color:#fff; }
+  .btn-sm { padding:5px 12px; font-size:12px; }
+
+  /* MISC */
+  .info-box { background:var(--blue-pale); border:1px solid #B0C8E8;
+    border-radius:8px; padding:12px 14px; font-size:12px; color:var(--blue); line-height:1.6; margin-bottom:12px; }
+  .warn-box { background:var(--amber-pale); border:1px solid #E8C070;
+    border-radius:8px; padding:12px 14px; font-size:12px; color:#7A4F00; line-height:1.6; margin-bottom:12px; }
+  .badge { display:inline-flex; align-items:center; padding:2px 10px;
+    border-radius:20px; font-size:11px; font-weight:700; }
+  .badge-purple { background:var(--purple-pale); color:var(--purple); }
+  .badge-green  { background:var(--green-pale);  color:var(--green); }
+  .badge-red    { background:var(--red-pale);    color:var(--red); }
+  .badge-amber  { background:var(--amber-pale);  color:var(--amber); }
+  .divider { height:1px; background:var(--border); margin:14px 0; }
+  .flex { display:flex; } .items-center { align-items:center; }
+  .gap-8 { gap:8px; } .ml-auto { margin-left:auto; }
+  .mt-12 { margin-top:12px; } .mb-12 { margin-bottom:12px; }
+  @media print {
+    header,.tab-header,.btn,.no-print { display:none!important; }
+    .card { break-inside:avoid; } body { background:#fff; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">Eco<span>Smart</span> <span class="logo-sub">· Amiloidosis Cardíaca</span></div>
+  </div>
+  <div class="header-badge">EasyMed Suite</div>
+</header>
+
+<div class="tab-header">
+  <button class="tab-btn active" onclick="switchTab('algoritmo',this)">🔬 Algoritmo Dx</button>
+  <button class="tab-btn" onclick="switchTab('ett',this)">🫀 ETT — Score ESC</button>
+  <button class="tab-btn" onclick="switchTab('guia',this)">📖 Guía</button>
+</div>
+
+<main>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- TAB: ALGORITMO DIAGNÓSTICO                -->
+<!-- ══════════════════════════════════════════ -->
+<div id="tab-algoritmo">
+
+  <!-- Panel resultado -->
+  <div class="result-panel" id="algo-result">
+    <div class="result-icon" id="algo-icon">🔬</div>
+    <div class="result-content">
+      <div class="result-title" id="algo-title">—</div>
+      <div class="result-body"  id="algo-body">—</div>
+      <div class="result-accion" id="algo-accion"></div>
+    </div>
+  </div>
+
+  <!-- Datos del paciente -->
+  <div class="card">
+    <div class="card-title"><span>👤</span> Datos del paciente</div>
+    <div class="form-row cols3">
+      <div><label>Nombre / ID</label><input type="text" id="alg-paciente" placeholder="Opcional"></div>
+      <div><label>Edad</label><input type="number" id="alg-edad" placeholder="años" min="18" max="100"></div>
+      <div><label>Fecha</label><input type="date" id="alg-fecha"></div>
+    </div>
+    <div class="form-row cols2">
+      <div>
+        <label>Motivo de sospecha</label>
+        <select id="alg-motivo">
+          <option value="">Seleccionar...</option>
+          <option>HVI inexplicable (≥12mm)</option>
+          <option>IC con FE preservada refractaria</option>
+          <option>Síndrome del túnel carpiano bilateral</option>
+          <option>Neuropatía periférica + afectación cardíaca</option>
+          <option>Historia familiar de ATTR</option>
+          <option>Ruptura de tendón del bíceps</option>
+          <option>Estenosis aórtica de bajo gradiente</option>
+          <option>Otro</option>
+        </select>
+      </div>
+      <div>
+        <label>Score ETT ESC 2021 (si disponible)</label>
+        <input type="number" id="alg-ett-score" placeholder="0–10 puntos" min="0" max="10"
+          oninput="actualizarAlgoritmo()">
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Calculalo en la pestaña ETT →</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gammagrafía con Tc99 -->
+  <div class="card">
+    <div class="card-title"><span>☢️</span> Centellograma con Tecnecio 99 — Grado Perugini</div>
+    <div class="info-box">
+      Grados 2 y 3 tienen VPP 100% para diagnóstico de ATTR <strong>si las proteínas monoclonales son negativas</strong>.
+    </div>
+    <div class="grado-grid" id="gamma-grado-grid">
+      <div class="grado-item" onclick="selGrado(0)">
+        <div class="grado-num grado-0">0</div>
+        <div class="grado-label">No capta nada</div>
+      </div>
+      <div class="grado-item" onclick="selGrado(1)">
+        <div class="grado-num grado-1">1</div>
+        <div class="grado-label">Apenas capta</div>
+      </div>
+      <div class="grado-item" onclick="selGrado(2)">
+        <div class="grado-num grado-2">2</div>
+        <div class="grado-label">Similar al hueso</div>
+      </div>
+      <div class="grado-item" onclick="selGrado(3)">
+        <div class="grado-num grado-3">3</div>
+        <div class="grado-label">Más que el hueso</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.6">
+      <strong>Falsos positivos:</strong> amiloidosis AL, intoxicación por hidroxicloroquina, fracturas costales, calcificaciones valvulares, IAM &lt;4 semanas.<br>
+      <strong>Falsos negativos:</strong> enfermedad muy leve, adquisición retrasada o prematura.
+    </div>
+  </div>
+
+  <!-- Proteínas monoclonales -->
+  <div class="card">
+    <div class="card-title"><span>🧪</span> Proteínas monoclonales en sangre y orina</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
+      Incluye: inmunofijación sérica, inmunofijación urinaria, cadenas ligeras libres en suero (FLC). Deben ser <strong>todas negativas</strong> para confirmar ATTR sin biopsia.
+    </div>
+    <div class="prot-grid">
+      <div class="prot-item negativo" id="prot-neg" onclick="selProteinas('negativo')">
+        <div class="prot-item-icon">✅</div>
+        <div class="prot-item-label">Negativas</div>
+        <div class="prot-item-sub">Inmunofijación sérica y urinaria negativas + FLC normales</div>
+      </div>
+      <div class="prot-item anormal" id="prot-abn" onclick="selProteinas('anormal')">
+        <div class="prot-item-icon">⚠️</div>
+        <div class="prot-item-label">Al menos una anormal</div>
+        <div class="prot-item-sub">Cualquier proteína monoclonal detectada en sangre u orina</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resultado contextual -->
+  <div id="escenario-box" style="display:none"></div>
+
+  <!-- Acciones -->
+  <div class="flex gap-8 items-center mb-12 no-print" style="flex-wrap:wrap">
+    <button class="btn btn-green" onclick="window.print()">🖨 Imprimir resultado</button>
+    <button class="btn btn-secondary" onclick="resetAlgoritmo()">🔄 Nueva evaluación</button>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- TAB: ETT SCORE ESC 2021                   -->
+<!-- ══════════════════════════════════════════ -->
+<div id="tab-ett" style="display:none">
+
+  <!-- Score total -->
+  <div style="background:linear-gradient(135deg,var(--navy),var(--purple));border-radius:14px;padding:20px;margin-bottom:18px;display:flex;gap:18px;align-items:center">
+    <div style="text-align:center">
+      <div style="font-size:48px;font-weight:900;color:#fff;line-height:1" id="ett-score-num">0</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px">/ 10 pts</div>
+    </div>
+    <div style="flex:1">
+      <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:4px" id="ett-score-cat">Completá los parámetros</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.7);line-height:1.5" id="ett-score-interp">Score ≥8 + HVI ≥12mm sugiere amiloidosis cardíaca.</div>
+      <div class="score-bar" style="margin-top:10px">
+        <div class="score-fill" id="ett-score-bar" style="width:0%;background:#C8A0FF"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HVI -->
+  <div class="card">
+    <div class="card-title"><span>📏</span> Espesor del VI — Criterio indispensable</div>
+    <div class="warn-box">
+      El espesor parietal ≥12mm inexplicable es el punto de entrada al algoritmo. Sin HVI ≥12mm, el score ESC no es aplicable.
+    </div>
+    <div class="form-row cols2">
+      <div>
+        <label>Espesor septal diastólico (mm)</label>
+        <input type="number" id="ett-septo" placeholder="Ej: 14" step="0.1" min="6" max="40" oninput="calcETT()">
+      </div>
+      <div>
+        <label>Espesor pared posterior (mm)</label>
+        <input type="number" id="ett-pp" placeholder="Ej: 13" step="0.1" min="6" max="40" oninput="calcETT()">
+      </div>
+    </div>
+    <div id="ett-hvi-badge" style="font-size:12px;margin-top:4px;color:var(--muted)">—</div>
+  </div>
+
+  <!-- Criterios cualitativos -->
+  <div class="card">
+    <div class="card-title"><span>🔍</span> Criterios cualitativos ESC 2021 — deben estar presentes ≥2 de 3</div>
+    <div id="ett-cual-count" style="font-size:12px;color:var(--muted);margin-bottom:10px">0 de 3 presentes</div>
+
+    <div class="criterio-item" id="cual-1" onclick="toggleCual('cual-1','ett-cual-1')">
+      <div class="criterio-check" id="chk-cual-1">—</div>
+      <div style="flex:1">
+        <div class="criterio-nombre">Disfunción diastólica grado 2 o peor</div>
+        <div class="criterio-def">Patrón de llenado restrictivo o pseudonormal con E/A>2 o E/A 1-2 con criterios adicionales</div>
+      </div>
+      <input type="hidden" id="ett-cual-1" value="0">
+    </div>
+
+    <div class="criterio-item" id="cual-2" onclick="toggleCual('cual-2','ett-cual-2')">
+      <div class="criterio-check" id="chk-cual-2">—</div>
+      <div style="flex:1">
+        <div class="criterio-nombre">Velocidades tisulares s', e', a' &lt;5 cm/s</div>
+        <div class="criterio-def">Reducción marcada de velocidades de Doppler tisular en anillo mitral (lateral y/o septal)</div>
+      </div>
+      <input type="hidden" id="ett-cual-2" value="0">
+    </div>
+
+    <div class="criterio-item" id="cual-3" onclick="toggleCual('cual-3','ett-cual-3')">
+      <div class="criterio-check" id="chk-cual-3">—</div>
+      <div style="flex:1">
+        <div class="criterio-nombre">Disminución del SGL (valor absoluto &lt;15%)</div>
+        <div class="criterio-def">Reducción de la deformación longitudinal global del VI por debajo de -15%</div>
+      </div>
+      <input type="hidden" id="ett-cual-3" value="0">
+    </div>
+  </div>
+
+  <!-- Score cuantitativo -->
+  <div class="card">
+    <div class="card-title"><span>📊</span> Puntuación multiparamétrica — Score ESC 2021</div>
+
+    <!-- RWT -->
+    <div class="criterio-item" id="crit-rwt" onclick="toggleCrit('crit-rwt','ett-rwt',3)">
+      <div class="criterio-check" id="chk-rwt">—</div>
+      <div style="flex:1">
+        <div class="criterio-nombre">RWT &gt; 0.6</div>
+        <div class="criterio-def">Grosor relativo de pared = (2 × PP) / DDVI. Indica hipertrofia concéntrica marcada</div>
+      </div>
+      <div class="criterio-pts">+3</div>
+      <input type="hidden" id="ett-rwt" value="0">
+    </div>
+
+    <div style="margin:6px 0 10px 0">
+      <label style="margin-bottom:4px">Calcular RWT automáticamente</label>
+      <div class="form-row cols3">
+        <div>
+          <label>PP (mm)</label>
+          <input type="number" id="rwt-pp" placeholder="Ej: 13" step="0.1" oninput="calcRWT()">
+        </div>
+        <div>
+          <label>DDVI (mm)</label>
+          <input type="number" id="rwt-ddvi" placeholder="Ej: 42" step="0.1" oninput="calcRWT()">
+        </div>
+        <div>
+          <label>RWT calculado</label>
+          <input id="rwt-result" readonly style="background:#f5f7fa;font-weight:700;color:var(--purple)">
+        </div>
+      </div>
+    </div>
+
+    <!-- E/e' -->
+    <div class="criterio-item" id="crit-ee" onclick="toggleCrit('crit-ee','ett-ee',1)">
+      <div class="criterio-check" id="chk-ee">—</div>
+      <div style="flex:1">
+        <div class="criterio-nombre">E/e' &gt; 11</div>
+        <div class="criterio-def">Relación entre velocidad E mitral y e' tisular del anillo mitral (promedio)</div>
+      </div>
+      <div class="criterio-pts">+1</div>
+      <input type="hidden" id="ett-ee" value="0">
+    </div>
+    <div class="form-row cols3" style="margin:6px 0 10px 0">
+      <div><label>Velocidad E (cm/s)</label><input type="number" id="ee-e" placeholder="Ej: 90" step="1" oninput="calcEE()"></div>
+      <div><label>e' promedio (cm/s)</label><input type="number" id="ee-ep" placeholder="Ej: 5" step="0.5" oninput="calcEE()"></div>
+      <div><label>E/e' calculado</label><input id="ee-result" readonly style="background:#f5f7fa;font-weight:700;color:var(--purple)"></div>
+    </div>
+
+    <!-- TAPSE -->
+    <div class="criterio-item" id="crit-tapse" onclick="toggleCrit('crit-tapse','ett-tapse',2)">
+      <div class="criterio-check" id="chk-tapse">—</div>
+      <div style="flex:1">
+        <div class="criterio-nombre">TAPSE ≤ 19 mm</div>
+        <div class="criterio-def">Excursión sistólica del plano del anillo tricúspideo. Disfunción sistólica del VD</div>
+      </div>
+      <div class="criterio-pts">+2</div>
+      <input type="hidden" id="ett-tapse" value="0">
+    </div>
+    <div style="margin:6px 0 10px 0">
+      <label>TAPSE medido (mm)</label>
+      <input type="number" id="tapse-val" placeholder="Ej: 16" step="1" min="5" max="35" oninput="calcTAPSE()" style="max-width:200px">
+    </div>
+
+    <!-- SGL -->
+    <div class="criterio-item" id="crit-sgl" onclick="toggleCrit('crit-sgl','ett-sgl',1)">
+      <div class="criterio-check" id="chk-sgl">—</div>
+      <div style="flex:1">
+        <div class="criterio-nombre">SGL ≤ -13%</div>
+        <div class="criterio-def">Strain longitudinal global del VI. Valor absoluto ≤13% (ej: -12%, -10%). Patrón apical sparing característico de amiloidosis</div>
+      </div>
+      <div class="criterio-pts">+1</div>
+      <input type="hidden" id="ett-sgl" value="0">
+    </div>
+    <div style="margin:6px 0 10px 0">
+      <label>SGL medido (%)</label>
+      <input type="number" id="sgl-val" placeholder="Ej: -12" step="0.5" min="-25" max="0" oninput="calcSGL()" style="max-width:200px">
+    </div>
+
+    <!-- Relación ápice/base -->
+    <div class="criterio-item" id="crit-apice" onclick="toggleCrit('crit-apice','ett-apice',3)">
+      <div class="criterio-check" id="chk-apice">—</div>
+      <div style="flex:1">
+        <div class="criterio-nombre">Relación ápice/base de strain &gt; 2.9</div>
+        <div class="criterio-def">Patrón de "apical sparing": strain apical relativamente preservado vs base y segmentos medios. Hallazgo muy específico de amiloidosis cardíaca</div>
+      </div>
+      <div class="criterio-pts">+3</div>
+      <input type="hidden" id="ett-apice" value="0">
+    </div>
+    <div class="form-row cols3" style="margin:6px 0 6px 0">
+      <div><label>Strain apical (%)</label><input type="number" id="ap-apic" placeholder="Ej: -18" step="0.5" oninput="calcApice()"></div>
+      <div><label>Strain basal (%)</label><input type="number" id="ap-base" placeholder="Ej: -6" step="0.5" oninput="calcApice()"></div>
+      <div><label>Relación calculada</label><input id="ap-result" readonly style="background:#f5f7fa;font-weight:700;color:var(--purple)"></div>
+    </div>
+  </div>
+
+  <!-- Otros hallazgos ETT -->
+  <div class="card">
+    <div class="card-title"><span>🔎</span> Otros hallazgos sugestivos (no puntuados)</div>
+    <div class="form-row cols2">
+      <div>
+        <label>FEVI (%)</label>
+        <input type="number" id="ett-fevi" placeholder="Ej: 55" min="10" max="80" oninput="calcETT()">
+      </div>
+      <div>
+        <label>Patrón granular "sparkling"</label>
+        <select id="ett-sparkling" onchange="calcETT()">
+          <option value="no">No presente</option>
+          <option value="si">Presente</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row cols2">
+      <div>
+        <label>Derrame pericárdico</label>
+        <select id="ett-derrperic" onchange="calcETT()">
+          <option value="no">No</option>
+          <option value="si">Sí (mínimo o moderado)</option>
+        </select>
+      </div>
+      <div>
+        <label>Engrosamiento valvular</label>
+        <select id="ett-valvular" onchange="calcETT()">
+          <option value="no">No</option>
+          <option value="si">Sí (mitral y/o tricúspide)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Botones ETT -->
+  <div class="flex gap-8 mb-12 no-print" style="flex-wrap:wrap">
+    <button class="btn btn-purple" onclick="pasarScoreAAlgoritmo()">→ Pasar score al Algoritmo</button>
+    <button class="btn btn-green" onclick="window.print()">🖨 Imprimir ETT</button>
+    <button class="btn btn-secondary" onclick="resetETT()">🔄 Limpiar</button>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- TAB: GUÍA                                 -->
+<!-- ══════════════════════════════════════════ -->
+<div id="tab-guia" style="display:none">
+
+  <div class="card">
+    <div class="card-title"><span>🔬</span> Amiloidosis cardíaca — Conceptos clave</div>
+    <div style="font-size:13px;line-height:1.8">
+      <p style="margin-bottom:10px">La <strong>amiloidosis cardíaca</strong> es el depósito de fibrillas amiloides en el miocardio que produce una miocardiopatía infiltrativa. Existen dos tipos principales con compromiso cardíaco:</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div style="background:var(--blue-pale);border-radius:8px;padding:12px;border-left:3px solid var(--blue)">
+          <div style="font-weight:700;color:var(--blue);margin-bottom:4px">ATTR — Transtirretina</div>
+          <div style="font-size:12px;color:var(--text);line-height:1.6">
+            <strong>ATTR wt (wild-type/senil):</strong> varones >65a, sin mutación genética<br>
+            <strong>ATTR mt (hereditaria):</strong> mutaciones en el gen TTR (Val122Ile, Val30Met, etc.)<br>
+            Captación positiva en centellograma Tc99 → diagnóstico no invasivo posible
+          </div>
+        </div>
+        <div style="background:var(--red-pale);border-radius:8px;padding:12px;border-left:3px solid var(--red)">
+          <div style="font-weight:700;color:var(--red);margin-bottom:4px">AL — Cadenas ligeras</div>
+          <div style="font-size:12px;color:var(--text);line-height:1.6">
+            Gammapatía monoclonal o mieloma múltiple<br>
+            Peor pronóstico, requiere tratamiento hematológico urgente<br>
+            Centellograma puede ser positivo (falso positivo para ATTR) → siempre buscar proteínas monoclonales
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span>🗺</span> Algoritmo diagnóstico — Gillmore 2016 adaptado (tu resumen)</div>
+    <div style="display:grid;gap:8px">
+      <div class="escenario-box verde">
+        <div class="escenario-titulo">Escenario 1 — Gammagrafía sin captación + proteínas monoclonales negativas</div>
+        <div class="escenario-body">Baja probabilidad de amiloidosis cardíaca. Si persiste sospecha clínica → considerar RMC seguida de biopsia extracardiaca o BEM, ya que la gammagrafía puede ser negativa en algunas mutaciones ATTR mt y subtipos raros.</div>
+      </div>
+      <div class="escenario-box morado">
+        <div class="escenario-titulo">Escenario 2 — Gammagrafía con captación + proteínas monoclonales negativas</div>
+        <div class="escenario-body">
+          <strong>Grado 2-3:</strong> continuar con pruebas genéticas para diferenciar ATTR wt y mt. Diagnóstico de ATTR no invasivo confirmado (VPP 100%).<br>
+          <strong>Grado 1:</strong> diagnóstico no invasivo no es posible → biopsia extracardiaca o cardiaca necesaria.
+        </div>
+      </div>
+      <div class="escenario-box amarillo">
+        <div class="escenario-titulo">Escenario 3 — Gammagrafía sin captación + al menos una proteína monoclonal anormal</div>
+        <div class="escenario-body">Realizar RMC para confirmar compromiso cardíaco. Si RMC no apoya amiloidosis cardíaca → diagnóstico poco probable. Si RMC es concordante o no concluyente → biopsia para diagnóstico de AL.</div>
+      </div>
+      <div class="escenario-box rojo">
+        <div class="escenario-titulo">Escenario 4 — Gammagrafía con captación + al menos una proteína monoclonal anormal</div>
+        <div class="escenario-body">ATTR con GMSI concomitante, AL o coexistencia AL y ATTR. El diagnóstico de amiloidosis cardíaca requiere biopsia con tipificación amiloide, generalmente BEM (biopsia endomiocárdica).</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span>📋</span> Score ETT ESC 2021 — Resumen de puntuación</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="background:var(--bg)">
+          <th style="text-align:left;padding:8px 10px;border-bottom:2px solid var(--border)">Parámetro</th>
+          <th style="padding:8px 10px;border-bottom:2px solid var(--border);text-align:center">Criterio</th>
+          <th style="padding:8px 10px;border-bottom:2px solid var(--border);text-align:center">Puntos</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)">RWT</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center">&gt; 0.6</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;color:var(--purple)">3</td></tr>
+        <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)">E/e'</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center">&gt; 11</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;color:var(--purple)">1</td></tr>
+        <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)">TAPSE</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center">≤ 19 mm</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;color:var(--purple)">2</td></tr>
+        <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)">SGL</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center">≤ -13%</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;color:var(--purple)">1</td></tr>
+        <tr><td style="padding:8px 10px">Relación ápice/base</td><td style="padding:8px 10px;text-align:center">&gt; 2.9</td><td style="padding:8px 10px;text-align:center;font-weight:700;color:var(--purple)">3</td></tr>
+      </tbody>
+      <tfoot>
+        <tr style="background:var(--purple-pale)">
+          <td colspan="2" style="padding:8px 10px;font-weight:700">TOTAL MÁXIMO</td>
+          <td style="padding:8px 10px;text-align:center;font-weight:900;font-size:16px;color:var(--purple)">10</td>
+        </tr>
+      </tfoot>
+    </table>
+    <div style="margin-top:10px;font-size:12px;color:var(--muted);line-height:1.6">
+      <strong>Score ≥8 + HVI ≥12mm</strong> con depósito de amiloide cardíaco o extracardiaco → diagnóstico de amiloidosis cardíaca posible sin biopsia cardiaca.<br>
+      Los criterios cualitativos (disfunción diastólica ≥grado 2, velocidades tisulares &lt;5cm/s, SGL &lt;15%) deben estar presentes ≥2 de 3 para que el escore sea aplicable.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span>⚠️</span> Limitaciones y consideraciones</div>
+    <div class="warn-box" style="margin-bottom:0">
+      Esta calculadora es una herramienta de apoyo clínico. El diagnóstico final de amiloidosis cardíaca requiere correlación clínica completa. El centellograma con Tc99 debe interpretarse siempre junto con el perfil de proteínas monoclonales. En caso de duda, consultar con cardiología/hematología especializada.<br><br>
+      <strong>Fuentes:</strong> Gillmore JD et al. NEJM 2016 · Guías ESC Cardiomiopatías 2023 · Criteria for non-invasive diagnosis of cardiac amyloidosis · Garcia-Pavia P et al. Eur Heart J 2021.
+    </div>
+  </div>
+
+</div>
+</main>
+
+<script>
+// ══════════════════════════════════════════════════════
+// ESTADO
+// ══════════════════════════════════════════════════════
+var gradoGamma = null;
+var protMonoc  = null;
+
+// ══════════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════════
+function switchTab(id, btn) {
+  ['tab-algoritmo','tab-ett','tab-guia'].forEach(t => {
+    var el = document.getElementById(t); if(el) el.style.display='none';
+  });
+  var target = document.getElementById('tab-'+id);
+  if(target) target.style.display='block';
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+}
+
+// ══════════════════════════════════════════════════════
+// ALGORITMO DIAGNÓSTICO
+// ══════════════════════════════════════════════════════
+function selGrado(g) {
+  gradoGamma = g;
+  document.querySelectorAll('.grado-item').forEach((el,i) => {
+    el.classList.toggle('selected', i === g);
+  });
+  actualizarAlgoritmo();
+}
+
+function selProteinas(val) {
+  protMonoc = val;
+  document.getElementById('prot-neg').classList.toggle('selected', val==='negativo');
+  document.getElementById('prot-abn').classList.toggle('selected', val==='anormal');
+  actualizarAlgoritmo();
+}
+
+function actualizarAlgoritmo() {
+  var panel    = document.getElementById('algo-result');
+  var iconEl   = document.getElementById('algo-icon');
+  var titleEl  = document.getElementById('algo-title');
+  var bodyEl   = document.getElementById('algo-body');
+  var accionEl = document.getElementById('algo-accion');
+  var escenEl  = document.getElementById('escenario-box');
+  var ettScore = parseFloat(document.getElementById('alg-ett-score')?.value) || null;
+
+  if(gradoGamma === null || protMonoc === null) {
+    panel.className = 'result-panel';
+    if(escenEl) escenEl.style.display='none';
+    return;
+  }
+
+  var captaGamma = gradoGamma >= 1;
+  var captaAlta  = gradoGamma >= 2;
+  var protNeg    = protMonoc === 'negativo';
+  var ettInfo    = ettScore !== null ? ' (Score ETT: ' + ettScore + '/10)' : '';
+
+  var tipo='', icon='', titulo='', cuerpo='', accion='', clasePanel='', escenario='', claseEscenario='';
+
+  if(!captaGamma && protNeg) {
+    // ESCENARIO 1
+    tipo='E1'; icon='🟢'; clasePanel='prob-baja'; claseEscenario='verde';
+    titulo = 'Baja probabilidad de amiloidosis cardíaca';
+    cuerpo = 'Gammagrafía sin captación cardíaca y proteínas monoclonales negativas. Este escenario tiene baja probabilidad de amiloidosis cardíaca.' + ettInfo;
+    accion = '→ Si persiste la sospecha clínica: considerar RMC seguida de biopsia extracardiaca (grasa abdominal, glándulas salivales) o BEM. La gammagrafía puede ser negativa en algunas mutaciones ATTR mt y subtipos raros de amiloidosis cardíaca.';
+    escenario = 'Escenario 1 — Sin captación / Proteínas negativas';
+
+  } else if(captaGamma && protNeg) {
+    // ESCENARIO 2
+    if(captaAlta) {
+      tipo='E2A'; icon='🟣'; clasePanel='prob-alta'; claseEscenario='morado';
+      titulo = 'ATTR confirmado — Grado ' + gradoGamma + ' (VPP 100%)' + ettInfo;
+      cuerpo = 'Gammagrafía con captación cardíaca grado ' + gradoGamma + ' y proteínas monoclonales negativas. Este patrón tiene un valor predictivo positivo del 100% para ATTR. No se requiere biopsia cardiaca para confirmar el diagnóstico.';
+      accion = '→ Continuar con pruebas genéticas del gen TTR para diferenciar ATTR wild-type (senil, sin mutación) de ATTR mutante (hereditario). Derivar a consulta especializada en amiloidosis para inicio de tratamiento específico (tafamidis, patisiran u otro según disponibilidad).';
+    } else {
+      tipo='E2B'; icon='🟡'; clasePanel='intermedio'; claseEscenario='morado';
+      titulo = 'Captación grado 1 — Diagnóstico no invasivo no posible';
+      cuerpo = 'Gammagrafía con captación cardíaca grado 1 y proteínas monoclonales negativas. Con captación grado 1, el diagnóstico no invasivo de ATTR no es posible con certeza.' + ettInfo;
+      accion = '→ Biopsia extracardiaca (grasa abdominal, glándulas salivales) o biopsia endomiocárdica (BEM) necesaria para confirmar o descartar amiloidosis cardíaca y tipificar el amiloide.';
+    }
+    escenario = 'Escenario 2 — Captación cardíaca / Proteínas negativas';
+
+  } else if(!captaGamma && !protNeg) {
+    // ESCENARIO 3
+    tipo='E3'; icon='🟠'; clasePanel='intermedio'; claseEscenario='amarillo';
+    titulo = 'Sospecha de AL — Realizar RMC';
+    cuerpo = 'Gammagrafía sin captación cardíaca pero con al menos una prueba de proteínas monoclonales anormal. La captación negativa no descarta amiloidosis AL.' + ettInfo;
+    accion = '→ Realizar RMC cardíaca para confirmar o descartar compromiso cardíaco.\n• Si RMC no apoya amiloidosis cardíaca → diagnóstico poco probable.\n• Si RMC es concordante o no concluyente → biopsia (grasa abdominal, BEM) para diagnóstico de amiloidosis AL.';
+    escenario = 'Escenario 3 — Sin captación / Proteína(s) monoclonal(es) anormal(es)';
+
+  } else {
+    // ESCENARIO 4 — captaGamma && !protNeg
+    tipo='E4'; icon='🔴'; clasePanel='biopsia'; claseEscenario='rojo';
+    titulo = 'Biopsia obligatoria — Posible AL o ATTR+AL';
+    cuerpo = 'Gammagrafía con captación cardíaca ' + (captaAlta?'grado '+gradoGamma:'grado 1') + ' y al menos una proteína monoclonal anormal. Este escenario puede corresponder a: ATTR con GMSI concomitante, amiloidosis AL, o coexistencia de AL y ATTR.' + ettInfo;
+    accion = '→ El diagnóstico de amiloidosis cardíaca requiere biopsia con tipificación del amiloide, generalmente BEM (biopsia endomiocárdica). No se puede asumir ATTR sin biopsia en este contexto. Derivar urgente a hematología si se sospecha AL por implicaciones terapéuticas.';
+    escenario = 'Escenario 4 — Captación cardíaca / Proteína(s) monoclonal(es) anormal(es)';
+  }
+
+  // Actualizar panel
+  panel.className = 'result-panel show ' + clasePanel;
+  if(iconEl)  iconEl.textContent  = icon;
+  if(titleEl) titleEl.textContent = titulo;
+  if(bodyEl)  bodyEl.textContent  = cuerpo;
+  if(accionEl){ accionEl.innerHTML = accion.replace(/\n/g,'<br>'); }
+
+  // Escenario box
+  if(escenEl) {
+    escenEl.style.display='block';
+    escenEl.innerHTML = '<div class="escenario-box ' + claseEscenario + '">'
+      + '<div class="escenario-titulo">' + escenario + '</div>'
+      + '<div class="escenario-body">' + accion.replace(/\n/g,'<br>') + '</div>'
+      + '</div>';
+  }
+
+  // Pasar automáticamente score al campo del algoritmo si viene de ETT
+}
+
+function resetAlgoritmo() {
+  gradoGamma = null; protMonoc = null;
+  document.querySelectorAll('.grado-item').forEach(el => el.classList.remove('selected'));
+  document.getElementById('prot-neg').classList.remove('selected');
+  document.getElementById('prot-abn').classList.remove('selected');
+  document.getElementById('algo-result').className = 'result-panel';
+  var escenEl = document.getElementById('escenario-box');
+  if(escenEl) escenEl.style.display='none';
+  ['alg-paciente','alg-edad','alg-ett-score'].forEach(id=>{
+    var el=document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('alg-motivo').selectedIndex=0;
+}
+
+// ══════════════════════════════════════════════════════
+// ETT SCORE ESC 2021
+// ══════════════════════════════════════════════════════
+function toggleCrit(itemId, inputId, pts) {
+  var item = document.getElementById(itemId);
+  var input = document.getElementById(inputId);
+  var chk = document.getElementById('chk-' + itemId.replace('crit-',''));
+  if(!item || !input) return;
+  var activo = !item.classList.contains('activo');
+  item.classList.toggle('activo', activo);
+  input.value = activo ? pts : 0;
+  if(chk) chk.textContent = activo ? '✓' : '—';
+  calcETT();
+}
+
+function toggleCual(itemId, inputId) {
+  var item = document.getElementById(itemId);
+  var input = document.getElementById(inputId);
+  var num = itemId.replace('cual-','');
+  var chk = document.getElementById('chk-cual-' + num);
+  if(!item||!input) return;
+  var activo = !item.classList.contains('activo');
+  item.classList.toggle('activo', activo);
+  input.value = activo ? 1 : 0;
+  if(chk) chk.textContent = activo ? '✓' : '—';
+  calcETT();
+}
+
+function calcRWT() {
+  var pp   = parseFloat(document.getElementById('rwt-pp')?.value)   || 0;
+  var ddvi = parseFloat(document.getElementById('rwt-ddvi')?.value) || 0;
+  var resEl = document.getElementById('rwt-result');
+  if(!pp||!ddvi){ if(resEl) resEl.value=''; return; }
+  var rwt = (2*pp)/ddvi;
+  if(resEl) resEl.value = rwt.toFixed(2);
+  // Auto-marcar criterio
+  var crit = document.getElementById('crit-rwt');
+  var input= document.getElementById('ett-rwt');
+  var chk  = document.getElementById('chk-rwt');
+  if(crit&&input&&chk){
+    var cumple = rwt > 0.6;
+    crit.classList.toggle('activo', cumple);
+    input.value = cumple ? 3 : 0;
+    chk.textContent = cumple ? '✓' : '—';
+  }
+  calcETT();
+}
+
+function calcEE() {
+  var e  = parseFloat(document.getElementById('ee-e')?.value)  || 0;
+  var ep = parseFloat(document.getElementById('ee-ep')?.value) || 0;
+  var resEl = document.getElementById('ee-result');
+  if(!e||!ep){ if(resEl) resEl.value=''; return; }
+  var ee = e/ep;
+  if(resEl) resEl.value = ee.toFixed(1);
+  var crit=document.getElementById('crit-ee');
+  var input=document.getElementById('ett-ee');
+  var chk=document.getElementById('chk-ee');
+  if(crit&&input&&chk){
+    var cumple = ee > 11;
+    crit.classList.toggle('activo',cumple);
+    input.value = cumple ? 1 : 0;
+    chk.textContent = cumple ? '✓' : '—';
+  }
+  calcETT();
+}
+
+function calcTAPSE() {
+  var v = parseFloat(document.getElementById('tapse-val')?.value);
+  var crit=document.getElementById('crit-tapse');
+  var input=document.getElementById('ett-tapse');
+  var chk=document.getElementById('chk-tapse');
+  if(isNaN(v)){ return; }
+  if(crit&&input&&chk){
+    var cumple = v <= 19;
+    crit.classList.toggle('activo',cumple);
+    input.value = cumple ? 2 : 0;
+    chk.textContent = cumple ? '✓' : '—';
+  }
+  calcETT();
+}
+
+function calcSGL() {
+  var v = parseFloat(document.getElementById('sgl-val')?.value);
+  var crit=document.getElementById('crit-sgl');
+  var input=document.getElementById('ett-sgl');
+  var chk=document.getElementById('chk-sgl');
+  if(isNaN(v)){ return; }
+  if(crit&&input&&chk){
+    var cumple = v >= -13; // -13% o menos negativo = valor absoluto ≤13
+    crit.classList.toggle('activo',cumple);
+    input.value = cumple ? 1 : 0;
+    chk.textContent = cumple ? '✓' : '—';
+  }
+  calcETT();
+}
+
+function calcApice() {
+  var apic = parseFloat(document.getElementById('ap-apic')?.value);
+  var base = parseFloat(document.getElementById('ap-base')?.value);
+  var resEl = document.getElementById('ap-result');
+  if(isNaN(apic)||isNaN(base)||base===0){ if(resEl) resEl.value=''; return; }
+  var rel = Math.abs(apic)/Math.abs(base);
+  if(resEl) resEl.value = rel.toFixed(2);
+  var crit=document.getElementById('crit-apice');
+  var input=document.getElementById('ett-apice');
+  var chk=document.getElementById('chk-apice');
+  if(crit&&input&&chk){
+    var cumple = rel > 2.9;
+    crit.classList.toggle('activo',cumple);
+    input.value = cumple ? 3 : 0;
+    chk.textContent = cumple ? '✓' : '—';
+  }
+  calcETT();
+}
+
+function calcETT() {
+  var pts = ['ett-rwt','ett-ee','ett-tapse','ett-sgl','ett-apice']
+    .reduce((s,id)=>s+(parseFloat(document.getElementById(id)?.value)||0),0);
+
+  var septo = parseFloat(document.getElementById('ett-septo')?.value)||0;
+  var pp    = parseFloat(document.getElementById('ett-pp')?.value)||0;
+  var espesor = Math.max(septo, pp);
+  var hvi = espesor >= 12;
+
+  var cualCount = ['ett-cual-1','ett-cual-2','ett-cual-3']
+    .reduce((s,id)=>s+(parseFloat(document.getElementById(id)?.value)||0),0);
+
+  // Actualizar display
+  var numEl  = document.getElementById('ett-score-num');
+  var catEl  = document.getElementById('ett-score-cat');
+  var interpEl= document.getElementById('ett-score-interp');
+  var barEl  = document.getElementById('ett-score-bar');
+  var hviEl  = document.getElementById('ett-hvi-badge');
+  var cualEl = document.getElementById('ett-cual-count');
+
+  if(numEl) numEl.textContent = pts;
+  if(barEl) barEl.style.width = (pts/10*100) + '%';
+  if(hviEl) hviEl.innerHTML = espesor > 0
+    ? (hvi
+        ? '<span class="badge badge-purple">✅ HVI ≥12mm — Criterio presente (' + espesor.toFixed(1) + 'mm)</span>'
+        : '<span class="badge badge-green">HVI &lt;12mm — Score ESC no aplicable (' + espesor.toFixed(1) + 'mm)</span>')
+    : '—';
+  if(cualEl) cualEl.textContent = cualCount + ' de 3 criterios cualitativos presentes' + (cualCount>=2?' ✅':'');
+
+  var cat='', interp='';
+  if(pts === 0) {
+    cat='Completá los parámetros';
+    interp='Ingresá los valores del ecocardiograma para calcular el score.';
+  } else if(pts >= 8 && hvi && cualCount >= 2) {
+    cat='🟣 Score ALTO (' + pts + '/10) — Amiloidosis muy sugestiva';
+    interp='Score ≥8 + HVI ≥12mm + ≥2 criterios cualitativos. Patrón altamente sugestivo de amiloidosis cardíaca. Continuar con centellograma y proteínas monoclonales.';
+  } else if(pts >= 5 && hvi) {
+    cat='🟡 Score INTERMEDIO (' + pts + '/10)';
+    interp='Hallazgos sugestivos pero score <8 o criterios cualitativos insuficientes. Evaluar en contexto clínico. Completar estudio.';
+  } else if(hvi) {
+    cat='🟢 Score BAJO (' + pts + '/10) con HVI';
+    interp='HVI presente pero score bajo. Considerar otras causas de HVI (HTA, estenosis aórtica, miocardiopatía hipertrófica). Amiloidosis menos probable pero no descartada.';
+  } else {
+    cat='⚪ Score: ' + pts + '/10 — Sin HVI ≥12mm';
+    interp='Sin HVI ≥12mm, el algoritmo ESC 2021 no es formalmente aplicable. Score calculado como referencia.';
+  }
+
+  if(catEl) catEl.textContent = cat;
+  if(interpEl) interpEl.textContent = interp;
+}
+
+function pasarScoreAAlgoritmo() {
+  var pts = ['ett-rwt','ett-ee','ett-tapse','ett-sgl','ett-apice']
+    .reduce((s,id)=>s+(parseFloat(document.getElementById(id)?.value)||0),0);
+  var scoreEl = document.getElementById('alg-ett-score');
+  if(scoreEl) scoreEl.value = pts;
+  switchTab('algoritmo', document.querySelectorAll('.tab-btn')[0]);
+  actualizarAlgoritmo();
+}
+
+function resetETT() {
+  ['rwt-pp','rwt-ddvi','ee-e','ee-ep','tapse-val','sgl-val','ap-apic','ap-base',
+   'ett-septo','ett-pp','rwt-result','ee-result','ap-result'].forEach(id=>{
+    var el=document.getElementById(id); if(el) el.value='';
+  });
+  ['crit-rwt','crit-ee','crit-tapse','crit-sgl','crit-apice','cual-1','cual-2','cual-3'].forEach(id=>{
+    var el=document.getElementById(id); if(el) el.classList.remove('activo');
+  });
+  ['ett-rwt','ett-ee','ett-tapse','ett-sgl','ett-apice','ett-cual-1','ett-cual-2','ett-cual-3'].forEach(id=>{
+    var el=document.getElementById(id); if(el) el.value=0;
+  });
+  ['chk-rwt','chk-ee','chk-tapse','chk-sgl','chk-apice','chk-cual-1','chk-cual-2','chk-cual-3'].forEach(id=>{
+    var el=document.getElementById(id); if(el) el.textContent='—';
+  });
+  document.getElementById('ett-sparkling').selectedIndex=0;
+  document.getElementById('ett-derrperic').selectedIndex=0;
+  document.getElementById('ett-valvular').selectedIndex=0;
+  calcETT();
+}
+
+// ══════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', function() {
+  var hoy = new Date().toISOString().slice(0,10);
+  var fechaEl = document.getElementById('alg-fecha');
+  if(fechaEl) fechaEl.value = hoy;
+  calcETT();
+});
+</script>
+</body>
+</html>

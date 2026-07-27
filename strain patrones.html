@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Patrones de Strain — EcoSmart</title>
+<style>
+  :root {
+    --navy:  #0B1F3A;
+    --navy2: #162B4D;
+    --teal:  #0D7377;
+    --teal2: #14AEAD;
+    --teal-pale: #E8F7F7;
+    --red:   #C0392B;
+    --red-pale: #FDEDEC;
+    --amber: #D4860A;
+    --amber-pale: #FEF3DC;
+    --green: #1A6B4A;
+    --green-pale: #E8F5EE;
+    --blue:  #1A4A8A;
+    --blue-pale: #EBF2FB;
+    --bg:    #F2F4F8;
+    --surface: #FFFFFF;
+    --border: #D0D8E8;
+    --text:  #0B1F3A;
+    --muted: #5A6878;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); }
+
+  header {
+    background:linear-gradient(135deg,var(--navy),var(--teal));
+    padding:14px 20px; display:flex; align-items:center; gap:12px;
+    box-shadow:0 2px 12px rgba(0,0,0,.3);
+  }
+  .logo { font-size:18px; font-weight:800; color:#fff; }
+  .logo span { color:#7FFFFD; }
+  .logo-sub { font-size:11px; color:rgba(255,255,255,.5); margin-left:4px; }
+  .header-badge { margin-left:auto; background:rgba(255,255,255,.12); color:rgba(255,255,255,.8);
+    font-size:11px; font-weight:600; padding:4px 12px; border-radius:20px; }
+
+  main { max-width:960px; margin:0 auto; padding:18px; }
+
+  /* CATEGORIAS */
+  .cat-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
+  .cat-btn {
+    padding:8px 16px; border-radius:20px; font-size:12px; font-weight:700;
+    border:2px solid var(--border); background:var(--surface); cursor:pointer;
+    transition:all .15s; font-family:inherit; color:var(--muted);
+  }
+  .cat-btn:hover { border-color:var(--teal); color:var(--teal); }
+  .cat-btn.active { background:var(--navy); color:#fff; border-color:var(--navy); }
+
+  /* PATRON GRID */
+  .patron-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  @media(max-width:700px){ .patron-grid { grid-template-columns:1fr 1fr; } }
+  @media(max-width:450px){ .patron-grid { grid-template-columns:1fr; } }
+
+  .patron-card {
+    background:var(--surface); border-radius:14px; padding:14px;
+    border:2px solid var(--border); cursor:pointer; transition:all .2s;
+  }
+  .patron-card:hover { border-color:var(--teal); box-shadow:0 4px 16px rgba(13,115,119,.15); transform:translateY(-2px); }
+  .patron-card.selected { border-color:var(--teal); background:var(--teal-pale); }
+  .patron-name { font-size:13px; font-weight:700; margin-bottom:2px; }
+  .patron-sub  { font-size:11px; color:var(--muted); margin-bottom:10px; }
+  .patron-svg  { display:block; margin:0 auto; }
+
+  /* DETALLE */
+  .detalle-panel {
+    background:var(--navy); border-radius:14px; padding:20px; margin-bottom:18px;
+    display:none;
+  }
+  .detalle-panel.show { display:flex; gap:20px; align-items:flex-start; }
+  @media(max-width:600px){ .detalle-panel.show { flex-direction:column; } }
+  .detalle-title  { font-size:17px; font-weight:800; color:#fff; margin-bottom:6px; }
+  .detalle-sgl    { font-size:13px; color:rgba(255,255,255,.7); margin-bottom:8px; }
+  .detalle-patron { font-size:13px; color:rgba(255,255,255,.85); line-height:1.7; }
+  .detalle-hallazgos { margin-top:10px; padding:10px 14px;
+    background:rgba(255,255,255,.08); border-radius:8px; font-size:12px;
+    color:rgba(255,255,255,.75); line-height:1.7; }
+
+  /* LEGEND */
+  .legend { display:flex; align-items:center; gap:6px; margin:10px 0 4px; flex-wrap:wrap; }
+  .legend-item { display:flex; align-items:center; gap:4px; font-size:10px; color:var(--muted); }
+  .legend-swatch { width:14px; height:14px; border-radius:3px; flex-shrink:0; }
+
+  /* CARDS */
+  .card { background:var(--surface); border-radius:12px; padding:16px;
+    border:1px solid var(--border); margin-bottom:14px; }
+  .card-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px;
+    color:var(--muted); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+
+  /* COMPARAR */
+  .compare-panel { display:none; }
+  .compare-panel.show { display:block; }
+  .compare-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media(max-width:500px){ .compare-grid { grid-template-columns:1fr; } }
+  .compare-item { background:var(--bg); border-radius:10px; padding:12px; text-align:center; }
+  .compare-label { font-size:11px; font-weight:700; color:var(--muted); margin-bottom:6px; }
+
+  /* BOTONES */
+  .btn { display:inline-flex; align-items:center; gap:6px; padding:9px 18px;
+    border-radius:9px; font-size:13px; font-weight:700; cursor:pointer;
+    border:none; font-family:inherit; transition:all .15s; }
+  .btn-teal { background:var(--teal); color:#fff; }
+  .btn-teal:hover { background:var(--teal2); }
+  .btn-secondary { background:var(--surface); color:var(--text); border:1px solid var(--border); }
+  .btn-sm { padding:5px 12px; font-size:12px; }
+
+  .info-box { background:var(--blue-pale); border:1px solid #B0C8E8;
+    border-radius:8px; padding:12px 14px; font-size:12px; color:var(--blue); line-height:1.6; margin-bottom:12px; }
+  .badge { display:inline-flex; align-items:center; padding:2px 10px;
+    border-radius:20px; font-size:11px; font-weight:700; }
+  .badge-teal { background:var(--teal-pale); color:var(--teal); }
+  .badge-red   { background:var(--red-pale);  color:var(--red); }
+  .badge-amber { background:var(--amber-pale);color:var(--amber); }
+  .badge-green { background:var(--green-pale);color:var(--green); }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">Eco<span>Smart</span> <span class="logo-sub">· Patrones de Strain</span></div>
+  </div>
+  <div class="header-badge">EasyMed Suite</div>
+</header>
+
+<main>
+
+  <div class="card">
+    <div class="card-title"><span>ℹ️</span> Cómo usar esta herramienta</div>
+    <div class="info-box" style="margin-bottom:0">
+      Seleccioná una categoría diagnóstica y luego el patrón que más se asemeja al bull's eye que obtuviste en tu estudio. La herramienta te mostrará los hallazgos típicos, el SGL esperado y la descripción del patrón para ayudarte en la interpretación.
+    </div>
+  </div>
+
+  <!-- Leyenda de colores -->
+  <div class="card">
+    <div class="card-title"><span>🎨</span> Escala de colores — Strain longitudinal</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch" style="background:#C62828"></div>Normal</div>
+      <div class="legend-item">
+      <div class="legend-item">
+      <div class="legend-item"><div class="legend-swatch" style="background:#EF9A9A"></div>Hipocinético leve</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#E57373"></div>Hipocinético moderado</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#EF5350"></div>Hipocinético severo</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#B71C1C"></div>Acinesia/Disq (&gt;-4%)</div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px">Anterior ↑ · Septum ← · Lateral → · Inferior ↓ · Misma escala que EcoSmart</div>
+  </div>
+
+  <!-- Categorías -->
+  <div class="cat-tabs" id="cat-tabs">
+    <button class="cat-btn active" onclick="selCat('todas',this)">🔍 Todas</button>
+    <button class="cat-btn" onclick="selCat('normal',this)">✅ Normal</button>
+    <button class="cat-btn" onclick="selCat('isquemica',this)">🩸 Isquémica</button>
+    <button class="cat-btn" onclick="selCat('miocardiopatia',this)">🫀 Miocardiopatía</button>
+    <button class="cat-btn" onclick="selCat('infiltrativa',this)">🔬 Infiltrativa</button>
+    <button class="cat-btn" onclick="selCat('sobrecarga',this)">📈 Sobrecarga</button>
+  </div>
+
+  <!-- Panel detalle seleccionado -->
+  <div class="detalle-panel" id="detalle-panel">
+    <svg id="detalle-svg" width="160" height="160" class="patron-svg" style="flex-shrink:0"></svg>
+    <div style="flex:1">
+      <div class="detalle-title" id="det-title"></div>
+      <div class="detalle-sgl" id="det-sgl"></div>
+      <div class="detalle-patron" id="det-patron"></div>
+      <div class="detalle-hallazgos" id="det-hallazgos"></div>
+    </div>
+  </div>
+
+  <!-- Grid de patrones -->
+  <div class="patron-grid" id="patron-grid"></div>
+
+  <!-- Comparador -->
+  <div class="compare-panel" id="compare-panel">
+    <div class="card">
+      <div class="card-title"><span>⚖️</span> Comparación de patrones seleccionados</div>
+      <div class="compare-grid" id="compare-grid"></div>
+      <div style="margin-top:12px">
+        <button class="btn btn-secondary btn-sm" onclick="limpiarComparacion()">✕ Limpiar comparación</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ══════════════════════════════════════════════════════
+// COLORES DE STRAIN
+// ══════════════════════════════════════════════════════
+const C = {
+  N:  '#C62828', // Normal — rojo intenso (como EcoSmart)
+  H1: '#EF9A9A', // Hipocinético leve — salmón claro
+  H2: '#E57373', // Hipocinético moderado — salmón medio
+  H3: '#EF5350', // Hipocinético severo — salmón oscuro
+  AC: '#CE93D8', // Acinético — lila/violeta
+  D1: '#90CAF9', // Discinético leve — azul claro
+  D2: '#1565C0', // Discinético — azul intenso
+  GR: '#9E9E9E', // Gris — no evaluable
+};
+
+// ══════════════════════════════════════════════════════
+// DEFINICION DEL BULL'S EYE — 17 SEGMENTOS AHA
+// Orden: [Ant, AntSept, InfSept, Inf, InfLat, AntLat] × niveles
+// ── BASAL (6): seg 1-6
+// ── MEDIO  (6): seg 7-12
+// ── APICAL (4): seg 13-16
+// ── APEX   (1): seg 17
+// ══════════════════════════════════════════════════════
+
+// Función que dibuja el bull's eye dado un array de 17 colores
+// Retorna el SVG como string
+function buildBullsEyeSVG(colors, size, interactive) {
+  size = size || 140;
+  const cx = size/2, cy = size/2;
+  const anillos = [
+    { r: size*0.50, count: 6, offset: -60 }, // basal: seg1=Ant arriba, antihorario
+    { r: size*0.335,count: 6, offset: -60 }, // medio: mismo offset
+    { r: size*0.175,count: 4, offset: -45 }, // apical: seg13=Ant arriba, antihorario
+  ];
+  const apexR = size * 0.075;
+
+  let paths = '';
+  let segIdx = 0;
+
+  // 3 anillos
+  anillos.forEach((anillo, ai) => {
+    const rOuter = anillo.r;
+    const rInner = ai === 0 ? anillo.r * 0.67 : ai === 1 ? anillo.r * 0.525 : anillo.r * 0.43;
+    const step = 360 / anillo.count;
+
+    for (let i = 0; i < anillo.count; i++) {
+      // ANTIHORARIO
+      const a1 = (anillo.offset - i * step) * Math.PI / 180;
+      const a2 = (anillo.offset - (i+1) * step) * Math.PI / 180;
+
+      const x1o = cx + rOuter * Math.cos(a1), y1o = cy + rOuter * Math.sin(a1);
+      const x2o = cx + rOuter * Math.cos(a2), y2o = cy + rOuter * Math.sin(a2);
+      const x1i = cx + rInner * Math.cos(a1), y1i = cy + rInner * Math.sin(a1);
+      const x2i = cx + rInner * Math.cos(a2), y2i = cy + rInner * Math.sin(a2);
+
+      const d = `M${x1i},${y1i} L${x1o},${y1o} A${rOuter},${rOuter} 0 0,0 ${x2o},${y2o} L${x2i},${y2i} A${rInner},${rInner} 0 0,1 ${x1i},${y1i} Z`;
+
+      const fill = colors[segIdx] || C.N1;
+      const idx = segIdx;
+      const intAttr = interactive ? `class="seg-interactive" data-idx="${idx}" onclick="segClick(${idx})"` : '';
+      paths += `<path d="${d}" fill="${fill}" stroke="#fff" stroke-width="1.5" ${intAttr}/>`;
+      segIdx++;
+    }
+  });
+
+  // Apex (seg 17)
+  const apexFill = colors[16] || C.N1;
+  const intAttrApex = interactive ? `class="seg-interactive" data-idx="16" onclick="segClick(16)"` : '';
+  paths += `<circle cx="${cx}" cy="${cy}" r="${apexR}" fill="${apexFill}" stroke="#fff" stroke-width="1.5" ${intAttrApex}/>`;
+
+  // Etiquetas de orientación
+  const labels = ''; // etiquetas desactivadas
+  const _unused = interactive ? '' :
+    `<text x="${cx}" y="${8}" text-anchor="middle" font-size="${size*0.07}" fill="#5A6878" font-weight="700">A</text>
+     <text x="${cx}" y="${size-2}" text-anchor="middle" font-size="${size*0.07}" fill="#5A6878" font-weight="700">I</text>
+     <text x="${5}" y="${cy+size*0.035}" text-anchor="start" font-size="${size*0.07}" fill="#5A6878" font-weight="700">S</text>
+     <text x="${size-5}" y="${cy+size*0.035}" text-anchor="end" font-size="${size*0.07}" fill="#5A6878" font-weight="700">L</text>`;
+
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${paths}${labels}</svg>`;
+}
+
+// ══════════════════════════════════════════════════════
+// PATRONES PREDEFINIDOS
+// ══════════════════════════════════════════════════════
+// Cada patrón tiene 17 valores de color para los 17 segmentos
+// Orden: Basal [Ant, AntSept, InfSept, Inf, InfLat, AntLat]
+//        Medio [Ant, AntSept, InfSept, Inf, InfLat, AntLat]
+//        Apical [Ant, Sept, Inf, Lat]
+//        Apex [1]
+
+const PATRONES = [
+  // ──────────────────────────────────────────────
+  // ORDEN DE SEGMENTOS (girando horario desde anterior=arriba):
+  // Basal  (6): Ant(12h), AntLat(2h), InfLat(4h), Inf(6h), InfSept(8h), AntSept(10h)
+  // Medio  (6): Ant(12h), AntLat(2h), InfLat(4h), Inf(6h), InfSept(8h), AntSept(10h)
+  // Apical (4): Ant(12h), Lat(3h),    Inf(6h),     Sept(9h)
+  // Apex   (1): centro
+  //
+  // COLORES: N=normal(rojo), H1-H3=hipocinético(salmón), AC=acinético(lila), D1-D2=discinético(azul)
+  // ──────────────────────────────────────────────
+
+  // ── NORMAL ──
+  {
+    id: 'normal',
+    categoria: 'normal',
+    nombre: 'Normal',
+    sub: 'Contractilidad global preservada',
+    sgl: 'SGL típico: < -20%',
+    descripcion: 'Bull\'s eye uniforme en rojo. Contractilidad preservada en los 17 segmentos, sin alteraciones regionales.',
+    hallazgos: '→ Todos los segmentos en rojo (normal)\n→ SGL < -20%\n→ Sin alteraciones regionales\n→ Gradiente base-ápex fisiológico leve',
+    badge: 'green',
+    colores: [C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N]
+  },
+
+  // ── ISQUÉMICA ──
+  {
+    id: 'isq-da',
+    categoria: 'isquemica',
+    nombre: 'Isquemia DA',
+    sub: 'Territorio anterior y septal (arriba + izquierda)',
+    sgl: 'SGL típico: -10 a -15%',
+    descripcion: 'Compromiso de segmentos anterior y anteroseptal. En el bull\'s eye: zona superior (anterior) y lateral izquierda (septum). El resto del bull\'s eye permanece rojo (normal).',
+    hallazgos: '→ Hipo/acinesia anterior y anteroseptal (12h y 10h)\n→ Ápex frecuentemente comprometido\n→ Inferior y lateral derecha conservados\n→ ECG: ondas Q en V1-V4',
+    badge: 'red',
+    colores: [C.AC, C.H3, C.N, C.N, C.N, C.N, C.AC, C.H3, C.N, C.N, C.N, C.N, C.AC, C.H1, C.N, C.N, C.AC]
+  },
+  {
+    id: 'isq-cd',
+    categoria: 'isquemica',
+    nombre: 'Isquemia CD',
+    sub: 'Territorio inferior e inferoseptal (abajo + izquierda)',
+    sgl: 'SGL típico: -12 a -16%',
+    descripcion: 'Compromiso de segmentos inferior e inferoseptal. En el bull\'s eye: zona inferior (6h) y lateral izquierda baja (inferoseptal, 8h). Anterior y lateral derecha conservados.',
+    hallazgos: '→ Hipo/acinesia inferior e inferoseptal (6h y 8h)\n→ Anterior y lateral izquierda conservados\n→ Puede asociar compromiso VD\n→ ECG: cambios en DII, DIII, aVF',
+    badge: 'red',
+    colores: [C.N, C.N, C.H3, C.AC, C.H2, C.N, C.N, C.N, C.H3, C.AC, C.H2, C.N, C.N, C.N, C.H1, C.N, C.N]
+  },
+  {
+    id: 'isq-cx',
+    categoria: 'isquemica',
+    nombre: 'Isquemia Cx',
+    sub: 'Territorio lateral e inferolateral (derecha)',
+    sgl: 'SGL típico: -12 a -16%',
+    descripcion: 'Compromiso de segmentos lateral e inferolateral. En el bull\'s eye: zona derecha (3h-5h). Septum y anterior conservados.',
+    hallazgos: '→ Hipo/acinesia lateral e inferolateral (2h-4h)\n→ Septal y anterior conservados\n→ Cambios ECG sutiles: DI, aVL, V5-V6\n→ Más frecuente en dominancia izquierda',
+    badge: 'red',
+    colores: [C.N, C.N, C.N, C.N, C.H3, C.AC, C.N, C.N, C.N, C.N, C.H3, C.AC, C.N, C.N, C.N, C.H1, C.N]
+  },
+  {
+    id: 'isq-multivaso',
+    categoria: 'isquemica',
+    nombre: 'Multivaso / Isquémica global',
+    sub: 'Compromiso difuso sin patrón territorial claro',
+    sgl: 'SGL típico: -8 a -12%',
+    descripcion: 'Reducción difusa en múltiples territorios. Puede verse en enfermedad de 3 vasos, IAM extenso o miocardiopatía isquémica avanzada.',
+    hallazgos: '→ Compromiso difuso sin respeto de territorios\n→ Diferencial con MCD puede ser difícil\n→ FEVI generalmente reducida\n→ Coronariografía necesaria para diferenciación',
+    badge: 'red',
+    colores: [C.AC, C.H3, C.H3, C.AC, C.H3, C.H3, C.H3, C.H2, C.H2, C.H3, C.H2, C.H3, C.H3, C.H2, C.H3, C.H2, C.H3]
+  },
+
+  // ── MIOCARDIOPATIAS ──
+  {
+    id: 'mcd',
+    categoria: 'miocardiopatia',
+    nombre: 'Miocardiopatía Dilatada',
+    sub: 'Hipocinesia global uniforme',
+    sgl: 'SGL típico: -8 a -14%',
+    descripcion: 'Hipocinesia difusa y homogénea en todos los segmentos, sin predilección territorial. Patrón uniforme de reducción global.',
+    hallazgos: '→ Hipocinesia global sin patrón regional\n→ SGL reducido difusamente\n→ FEVI reducida, VI dilatado\n→ Sin historia de enfermedad coronaria obstructiva',
+    badge: 'amber',
+    colores: [C.H3, C.H3, C.H3, C.H3, C.H3, C.H3, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2]
+  },
+  {
+    id: 'mch-obst',
+    categoria: 'miocardiopatia',
+    nombre: 'MCH Obstructiva',
+    sub: 'Compromiso septal (izquierda del bull\'s eye)',
+    sgl: 'SGL típico: variable (-12 a -18%)',
+    descripcion: 'Compromiso de segmentos septales (izquierda del bull\'s eye) con lateral relativamente conservado. El strain puede estar paradójicamente reducido en el septo hipertrofiado.',
+    hallazgos: '→ Reducción strain septal (lado izquierdo, 8h-10h)\n→ Lateral y apical relativamente conservados\n→ Hipertrofia asimétrica, SAM mitral, OTSVI\n→ No confundir con patrón isquémico septal',
+    badge: 'amber',
+    colores: [C.N, C.AC, C.H3, C.N, C.N, C.N, C.N, C.H3, C.H3, C.N, C.N, C.N, C.N, C.H1, C.N, C.N, C.N]
+  },
+  {
+    id: 'mch-apical',
+    categoria: 'miocardiopatia',
+    nombre: 'MCH Apical',
+    sub: 'Acinesia apical — patrón opuesto a amiloidosis',
+    sgl: 'SGL típico: -10 a -16%',
+    descripcion: 'Variante apical con compromiso del anillo interno (apical y apex) con preservación del anillo externo (basal). Patrón OPUESTO al apical sparing de amiloidosis.',
+    hallazgos: '→ Acinesia apical y apex (anillo central del bull\'s eye)\n→ Segmentos basales y medios conservados (rojo)\n→ Patrón INVERSO al de amiloidosis\n→ ECG: ondas T negativas gigantes en V4-V6',
+    badge: 'amber',
+    colores: [C.N, C.N, C.N, C.N, C.N, C.N, C.H1, C.H1, C.H1, C.H1, C.H1, C.H1, C.AC, C.AC, C.AC, C.AC, C.AC]
+  },
+  {
+    id: 'tako',
+    categoria: 'miocardiopatia',
+    nombre: 'Takotsubo',
+    sub: 'Balonamiento apical — base hipercontráctil',
+    sgl: 'SGL típico: -8 a -12%',
+    descripcion: 'Acinesia/disquinesia apical y medio-ventricular con anillo basal conservado o hipercontráctil. La distribución no sigue ningún territorio coronario.',
+    hallazgos: '→ Disquinesia/acinesia apical y medios (centro del bull\'s eye)\n→ Basal conservado (rojo en el anillo externo)\n→ Distribución transcoronaria\n→ Mujeres posmenopáusicas, estrés físico/emocional\n→ Resolución en 4-6 semanas',
+    badge: 'amber',
+    colores: [C.N, C.N, C.N, C.N, C.N, C.N, C.D1, C.D1, C.D1, C.D1, C.D1, C.D1, C.D2, C.D2, C.D2, C.D2, C.D2]
+  },
+
+  // ── INFILTRATIVA ──
+  {
+    id: 'amiloidosis',
+    categoria: 'infiltrativa',
+    nombre: 'Amiloidosis Cardíaca',
+    sub: 'Apical sparing — bandera de Japón',
+    sgl: 'SGL típico: -10 a -15%',
+    descripcion: 'Patrón patognomónico: hipocinesia basal y media (anillo externo e intermedio) con ápex conservado (anillo central rojo). Relación ápice/base > 2.9.',
+    hallazgos: '→ Anillo externo (basal): hipocinético-acinético (salmón/lila)\n→ Anillo medio: hipocinético moderado\n→ Anillo apical y apex: conservado (rojo)\n→ Relación ápice/base strain > 2.9\n→ HVI concéntrica ≥12mm inexplicable',
+    badge: 'teal',
+    colores: [C.AC, C.AC, C.AC, C.AC, C.AC, C.AC, C.H3, C.H3, C.H3, C.H3, C.H3, C.H3, C.N, C.N, C.N, C.N, C.N]
+  },
+  {
+    id: 'sarcoidosis',
+    categoria: 'infiltrativa',
+    nombre: 'Sarcoidosis Cardíaca',
+    sub: 'Patrón parcheado no territorial',
+    sgl: 'SGL típico: variable',
+    descripcion: 'Patrón heterogéneo y parcheado que no sigue territorios coronarios. Compromiso septal basal frecuente. Mezcla de segmentos normales y comprometidos adyacentes.',
+    hallazgos: '→ Patrón parcheado, no territorial\n→ Compromiso septal basal frecuente\n→ Bloqueo AV y arritmias ventriculares\n→ PET-FDG: inflamación activa\n→ RMC: RTG parcheado subepicárdico o mesocárdico',
+    badge: 'teal',
+    colores: [C.H3, C.N, C.AC, C.N, C.H2, C.N, C.N, C.H3, C.N, C.AC, C.N, C.H2, C.AC, C.H1, C.N, C.N, C.N]
+  },
+  {
+    id: 'enf-anderson-fabry',
+    categoria: 'infiltrativa',
+    nombre: 'Enfermedad de Fabry',
+    sub: 'Compromiso posterolateral basal (derecha inferior)',
+    sgl: 'SGL típico: -12 a -16%',
+    descripcion: 'Compromiso típico del segmento inferolateral basal (lado derecho del bull\'s eye, zona 4h). HVI concéntrica o asimétrica.',
+    hallazgos: '→ Reducción strain inferolateral basal (4h)\n→ Extensión variable a otros segmentos\n→ RMC: RTG subepicárdico lateral basal\n→ Diagnóstico: alfa-galactosidasa / genética',
+    badge: 'teal',
+    colores: [C.N, C.N, C.N, C.N, C.H3, C.H1, C.N, C.N, C.N, C.N, C.H2, C.H1, C.N, C.N, C.N, C.H1, C.N]
+  },
+
+  // ── SOBRECARGA ──
+  {
+    id: 'sobrecarga-presion',
+    categoria: 'sobrecarga',
+    nombre: 'Sobrecarga de presión',
+    sub: 'HTA severa / EAo — base comprometida',
+    sgl: 'SGL típico: -14 a -18%',
+    descripcion: 'Hipocinesia preferencial en anillo basal (externo) con preservación apical. Gradiente base-ápex presente pero menos marcado que en amiloidosis.',
+    hallazgos: '→ Hipocinesia basal (anillo externo)\n→ Ápex conservado (diferencial con amiloidosis: menos marcado)\n→ HVI concéntrica con FEVI conservada\n→ Relación ápice/base <2.9 (vs >2.9 en amiloidosis)',
+    badge: 'amber',
+    colores: [C.H3, C.H3, C.H3, C.H3, C.H3, C.H3, C.H1, C.H1, C.H1, C.H1, C.H1, C.H1, C.N, C.N, C.N, C.N, C.N]
+  },
+  {
+    id: 'sobrecarga-volumen',
+    categoria: 'sobrecarga',
+    nombre: 'Sobrecarga de volumen',
+    sub: 'IM / IAo severa — strain aparentemente conservado',
+    sgl: 'SGL típico: variable',
+    descripcion: 'En insuficiencia valvular severa crónica el SGL puede estar artefactualmente conservado. La reducción subclínica precede a la caída de FEVI.',
+    hallazgos: '→ Bull\'s eye casi normal a pesar de FEVI en límite\n→ SGL <-18% indica disfunción subclínica\n→ Seguimiento serial útil para timing quirúrgico\n→ VI dilatado con función compensada',
+    badge: 'amber',
+    colores: [C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N]
+  },
+  {
+    id: 'quimioterapia',
+    categoria: 'sobrecarga',
+    nombre: 'Cardiotoxicidad / Quimioterapia',
+    sub: 'Hipocinesia global difusa temprana',
+    sgl: 'SGL típico: -14 a -18% (reducción >15% = alerta)',
+    descripcion: 'Reducción global difusa y homogénea. La caída del SGL >15% relativo es el marcador más temprano de cardiotoxicidad, antes de la caída de FEVI.',
+    hallazgos: '→ Hipocinesia global difusa (todo el bull\'s eye en salmón)\n→ Cambio >15% relativo del SGL = cardiotoxicidad\n→ FEVI puede estar aún conservada\n→ Seguimiento serial cada 3-6 meses\n→ Antraciclinas, trastuzumab, fluorouracilo',
+    badge: 'amber',
+    colores: [C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H1, C.H1, C.H1, C.H1, C.H1]
+  },
+];
+
+// ══════════════════════════════════════════════════════
+// ESTADO
+// ══════════════════════════════════════════════════════
+var catActual = 'todas';
+var patronSeleccionado = null;
+var patronesComparar = [];
+
+// ══════════════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════════════
+function selCat(cat, btn) {
+  catActual = cat;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderGrid();
+}
+
+function renderGrid() {
+  var grid = document.getElementById('patron-grid');
+  if(!grid) return;
+
+  var lista = catActual === 'todas'
+    ? PATRONES
+    : PATRONES.filter(p => p.categoria === catActual);
+
+  grid.innerHTML = lista.map(p => {
+    var svgStr = buildBullsEyeSVG(p.colores, 110, false);
+    var isSelected = patronSeleccionado && patronSeleccionado.id === p.id;
+    return '<div class="patron-card' + (isSelected?' selected':'') + '" onclick="selPatron(\'' + p.id + '\')">'
+      + '<div class="patron-name">' + p.nombre + '</div>'
+      + '<div class="patron-sub">' + p.sub + '</div>'
+      + svgStr
+      + '</div>';
+  }).join('');
+}
+
+function selPatron(id) {
+  patronSeleccionado = PATRONES.find(p => p.id === id);
+  if(!patronSeleccionado) return;
+
+  // Actualizar detalle
+  var panel = document.getElementById('detalle-panel');
+  var titleEl = document.getElementById('det-title');
+  var sglEl   = document.getElementById('det-sgl');
+  var patronEl= document.getElementById('det-patron');
+  var hallEl  = document.getElementById('det-hallazgos');
+  var svgEl   = document.getElementById('detalle-svg');
+
+  panel.className = 'detalle-panel show';
+  if(titleEl)  titleEl.textContent  = patronSeleccionado.nombre + ' — ' + patronSeleccionado.sub;
+  if(sglEl)    sglEl.textContent    = patronSeleccionado.sgl;
+  if(patronEl) patronEl.textContent = patronSeleccionado.descripcion;
+  if(hallEl)   hallEl.innerHTML     = patronSeleccionado.hallazgos.replace(/\n/g,'<br>');
+
+  if(svgEl) {
+    svgEl.outerHTML; // no funciona bien reemplazar outerHTML
+    var newSvg = buildBullsEyeSVG(patronSeleccionado.colores, 160, false);
+    var temp = document.createElement('div');
+    temp.innerHTML = newSvg;
+    var newEl = temp.firstChild;
+    newEl.id = 'detalle-svg';
+    newEl.setAttribute('width','160');
+    newEl.setAttribute('height','160');
+    newEl.className = 'patron-svg';
+    newEl.style.flexShrink = '0';
+    svgEl.replaceWith(newEl);
+  }
+
+  // Scroll al panel
+  panel.scrollIntoView({behavior:'smooth', block:'nearest'});
+
+  // Actualizar grid (marcar seleccionado)
+  renderGrid();
+}
+
+function limpiarComparacion() {
+  patronesComparar = [];
+  var cp = document.getElementById('compare-panel');
+  if(cp) cp.className = 'compare-panel';
+}
+
+// ══════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', function() {
+  renderGrid();
+});
+</script>
+</body>
+</html>
