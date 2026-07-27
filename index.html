@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ecocardiograma Doppler Color</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   :root {
     --bg: #0f1117;
@@ -245,6 +246,146 @@
   .lgal-del{position:absolute;top:-7px;right:-7px;width:17px;height:17px;border-radius:50%;border:none;background:#ef4444;color:#fff;font-size:10px;line-height:17px;cursor:pointer;padding:0;text-align:center}
   .lgal-upload{border:2px dashed var(--border);border-radius:8px;padding:14px;text-align:center;cursor:pointer;color:var(--text2);font-size:12px;margin-bottom:12px;transition:border-color .15s,color .15s}
   .lgal-upload:hover{border-color:var(--accent);color:var(--accent)}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+</script>
+<style>
+/* ── Amiloidosis Calculator ── */
+#amilo-root{--navy:#0B1F3A;--navy2:#162B4D;--purple:#5B2D8E;--purple2:#7340AA;--purple-pale:#F3EEFF;--red:#C0392B;--red-pale:#FDEDEC;--amber:#D4860A;--amber-pale:#FEF3DC;--green:#1A6B4A;--green-pale:#E8F5EE;--blue:#1A4A8A;--blue-pale:#EBF2FB;--bg:#F2F4F8;--surface:#FFFFFF;--border:#D0D8E8;--text:#0B1F3A;--muted:#5A6878;--light:#8FA0B0;font-family:system-ui,-apple-system,sans-serif;color:var(--text)}
+#amilo-root *{box-sizing:border-box;margin:0;padding:0}
+#amilo-root .amilo-tabhead{background:var(--navy2);display:flex;padding:0 16px;gap:2px;overflow-x:auto;border-radius:10px 10px 0 0}
+#amilo-root .amilo-tab{padding:11px 16px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:transparent;color:rgba(255,255,255,.5);border-bottom:3px solid transparent;font-family:inherit;transition:all .15s;white-space:nowrap}
+#amilo-root .amilo-tab.active{color:#fff;border-bottom-color:#C8A0FF}
+#amilo-root .amilo-main{max-width:860px;margin:0 auto;padding:14px 2px}
+#amilo-root .result-panel{border-radius:14px;padding:20px;margin-bottom:18px;display:none;box-shadow:0 4px 20px rgba(91,45,142,.2)}
+#amilo-root .result-panel.show{display:flex;gap:18px;align-items:flex-start}
+#amilo-root .result-panel.prob-alta{background:linear-gradient(135deg,#3D1B6E,#5B2D8E)}
+#amilo-root .result-panel.prob-baja{background:linear-gradient(135deg,#0B2E1A,#1A6B4A)}
+#amilo-root .result-panel.biopsia{background:linear-gradient(135deg,#6B1A1A,#C0392B)}
+#amilo-root .result-panel.intermedio{background:linear-gradient(135deg,#3D2E08,#D4860A)}
+#amilo-root .result-icon{font-size:40px;flex-shrink:0}
+#amilo-root .result-content{flex:1}
+#amilo-root .result-title{font-size:18px;font-weight:900;color:#fff;margin-bottom:6px}
+#amilo-root .result-body{font-size:13px;color:rgba(255,255,255,.82);line-height:1.6}
+#amilo-root .result-accion{margin-top:10px;padding:10px 14px;background:rgba(255,255,255,.12);border-radius:8px;font-size:12px;color:rgba(255,255,255,.9);line-height:1.5}
+#amilo-root .score-circle{width:64px;height:64px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:24px;font-weight:900;border:3px solid rgba(255,255,255,.3);flex-shrink:0}
+#amilo-root .score-circle .sc-label{font-size:9px;font-weight:600;opacity:.7}
+#amilo-root .card{background:var(--surface);border-radius:12px;padding:16px;border:1px solid var(--border);margin-bottom:14px}
+#amilo-root .card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+#amilo-root .card-title span{font-size:16px}
+#amilo-root .criterio-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border:2px solid var(--border);border-radius:10px;margin-bottom:8px;cursor:pointer;transition:all .15s;user-select:none}
+#amilo-root .criterio-item:hover{border-color:var(--purple2);background:var(--purple-pale)}
+#amilo-root .criterio-item.activo{border-color:var(--purple);background:var(--purple-pale)}
+#amilo-root .criterio-check{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px}
+#amilo-root .criterio-item.activo .criterio-check{background:var(--purple);border-color:var(--purple);color:#fff}
+#amilo-root .criterio-nombre{flex:1;font-size:13px;font-weight:600}
+#amilo-root .criterio-def{font-size:11px;color:var(--muted);margin-top:2px}
+#amilo-root .criterio-pts{font-size:16px;font-weight:900;color:var(--purple);min-width:32px;text-align:right}
+#amilo-root .form-row{display:grid;gap:10px;margin-bottom:10px}
+#amilo-root .form-row.cols2{grid-template-columns:1fr 1fr}
+#amilo-root .form-row.cols3{grid-template-columns:1fr 1fr 1fr}
+#amilo-root label{font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px}
+#amilo-root input[type=number],#amilo-root input[type=text],#amilo-root input[type=date],#amilo-root select{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;color:var(--text);background:var(--surface)}
+#amilo-root input:focus,#amilo-root select:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(91,45,142,.1)}
+#amilo-root .grado-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px}
+#amilo-root .grado-item{border:2px solid var(--border);border-radius:10px;padding:12px 8px;text-align:center;cursor:pointer;transition:all .15s;user-select:none}
+#amilo-root .grado-item:hover{border-color:var(--purple2);background:var(--purple-pale)}
+#amilo-root .grado-item.selected{border-color:var(--purple);background:var(--purple-pale)}
+#amilo-root .grado-num{font-size:22px;font-weight:900}
+#amilo-root .grado-0{color:var(--green)}#amilo-root .grado-1{color:var(--amber)}
+#amilo-root .grado-2{color:var(--red)}#amilo-root .grado-3{color:#8B0000}
+#amilo-root .grado-label{font-size:10px;color:var(--muted);margin-top:4px}
+#amilo-root .grado-item.selected .grado-label{color:var(--purple);font-weight:700}
+#amilo-root .prot-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#amilo-root .prot-item{border:2px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all .15s;user-select:none;text-align:center}
+#amilo-root .prot-item:hover{border-color:var(--purple2)}
+#amilo-root .prot-item.selected.negativo{border-color:var(--green);background:var(--green-pale)}
+#amilo-root .prot-item.selected.anormal{border-color:var(--red);background:var(--red-pale)}
+#amilo-root .prot-item-icon{font-size:28px;margin-bottom:4px}
+#amilo-root .prot-item-label{font-size:13px;font-weight:700}
+#amilo-root .prot-item-sub{font-size:11px;color:var(--muted);margin-top:3px}
+#amilo-root .score-bar{height:10px;background:var(--bg);border-radius:5px;overflow:hidden;margin-top:6px}
+#amilo-root .score-fill{height:100%;border-radius:5px;transition:width .4s}
+#amilo-root .escenario-box{border-radius:10px;padding:14px;margin-bottom:10px;border-left:4px solid}
+#amilo-root .escenario-box.verde{background:var(--green-pale);border-color:var(--green)}
+#amilo-root .escenario-box.amarillo{background:var(--amber-pale);border-color:var(--amber)}
+#amilo-root .escenario-box.rojo{background:var(--red-pale);border-color:var(--red)}
+#amilo-root .escenario-box.morado{background:var(--purple-pale);border-color:var(--purple)}
+#amilo-root .escenario-titulo{font-size:13px;font-weight:700;margin-bottom:6px}
+#amilo-root .escenario-body{font-size:12px;line-height:1.7;color:var(--text)}
+#amilo-root .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
+#amilo-root .btn-purple{background:var(--purple);color:#fff}
+#amilo-root .btn-purple:hover{background:var(--purple2)}
+#amilo-root .btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+#amilo-root .btn-green{background:var(--green);color:#fff}
+#amilo-root .btn-sm{padding:5px 12px;font-size:12px}
+#amilo-root .info-box{background:var(--blue-pale);border:1px solid #B0C8E8;border-radius:8px;padding:12px 14px;font-size:12px;color:var(--blue);line-height:1.6;margin-bottom:12px}
+#amilo-root .warn-box{background:var(--amber-pale);border:1px solid #E8C070;border-radius:8px;padding:12px 14px;font-size:12px;color:#7A4F00;line-height:1.6;margin-bottom:12px}
+#amilo-root .badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700}
+#amilo-root .badge-purple{background:var(--purple-pale);color:var(--purple)}
+#amilo-root .badge-green{background:var(--green-pale);color:var(--green)}
+#amilo-root .badge-red{background:var(--red-pale);color:var(--red)}
+#amilo-root .badge-amber{background:var(--amber-pale);color:var(--amber)}
+#amilo-root .divider{height:1px;background:var(--border);margin:14px 0}
+#amilo-root .flex{display:flex}#amilo-root .items-center{align-items:center}
+#amilo-root .gap-8{gap:8px}#amilo-root .ml-auto{margin-left:auto}
+#amilo-root .mt-12{margin-top:12px}#amilo-root .mb-12{margin-bottom:12px}
+@media(max-width:600px){#amilo-root .form-row.cols2,#amilo-root .form-row.cols3{grid-template-columns:1fr}}
+@media(max-width:500px){#amilo-root .grado-grid{grid-template-columns:1fr 1fr}}
+@media print{#amilo-root .amilo-tabhead,#amilo-root .btn,#amilo-root .no-print{display:none!important}#amilo-root .card{break-inside:avoid}}
+</style>
+<style>
+/* ── Strain Patrones ── */
+#sp-root{--navy:#0B1F3A;--navy2:#162B4D;--teal:#0D7377;--teal2:#14AEAD;--teal-pale:#E8F7F7;--red:#C0392B;--red-pale:#FDEDEC;--amber:#D4860A;--amber-pale:#FEF3DC;--green:#1A6B4A;--green-pale:#E8F5EE;--blue:#1A4A8A;--blue-pale:#EBF2FB;--bg:#F2F4F8;--surface:#FFFFFF;--border:#D0D8E8;--text:#0B1F3A;--muted:#5A6878;font-family:system-ui,-apple-system,sans-serif;color:var(--text)}
+#sp-root *{box-sizing:border-box;margin:0;padding:0}
+#sp-root .sp-main{max-width:960px;margin:0 auto;padding:14px 2px}
+#sp-root .cat-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+#sp-root .cat-btn{padding:8px 16px;border-radius:20px;font-size:12px;font-weight:700;border:2px solid var(--border);background:var(--surface);cursor:pointer;transition:all .15s;font-family:inherit;color:var(--muted)}
+#sp-root .cat-btn:hover{border-color:var(--teal);color:var(--teal)}
+#sp-root .cat-btn.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+#sp-root .patron-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+#sp-root .patron-card{background:var(--surface);border-radius:14px;padding:14px;border:2px solid var(--border);cursor:pointer;transition:all .2s}
+#sp-root .patron-card:hover{border-color:var(--teal);box-shadow:0 4px 16px rgba(13,115,119,.15);transform:translateY(-2px)}
+#sp-root .patron-card.selected{border-color:var(--teal);background:var(--teal-pale)}
+#sp-root .patron-name{font-size:13px;font-weight:700;margin-bottom:2px}
+#sp-root .patron-sub{font-size:11px;color:var(--muted);margin-bottom:10px}
+#sp-root .patron-svg{display:block;margin:0 auto}
+#sp-root .detalle-panel{background:var(--navy);border-radius:14px;padding:20px;margin-bottom:18px;display:none}
+#sp-root .detalle-panel.show{display:flex;gap:20px;align-items:flex-start}
+#sp-root .detalle-title{font-size:17px;font-weight:800;color:#fff;margin-bottom:6px}
+#sp-root .detalle-sgl{font-size:13px;color:rgba(255,255,255,.7);margin-bottom:8px}
+#sp-root .detalle-patron{font-size:13px;color:rgba(255,255,255,.85);line-height:1.7}
+#sp-root .detalle-hallazgos{margin-top:10px;padding:10px 14px;background:rgba(255,255,255,.08);border-radius:8px;font-size:12px;color:rgba(255,255,255,.75);line-height:1.7}
+#sp-root .legend{display:flex;align-items:center;gap:6px;margin:10px 0 4px;flex-wrap:wrap}
+#sp-root .legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--muted)}
+#sp-root .legend-swatch{width:14px;height:14px;border-radius:3px;flex-shrink:0}
+#sp-root .card{background:var(--surface);border-radius:12px;padding:16px;border:1px solid var(--border);margin-bottom:14px}
+#sp-root .card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+#sp-root .compare-panel{display:none}
+#sp-root .compare-panel.show{display:block}
+#sp-root .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+#sp-root .compare-item{background:var(--bg);border-radius:10px;padding:12px;text-align:center}
+#sp-root .compare-label{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px}
+#sp-root .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
+#sp-root .btn-teal{background:var(--teal);color:#fff}
+#sp-root .btn-teal:hover{background:var(--teal2)}
+#sp-root .btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+#sp-root .btn-sm{padding:5px 12px;font-size:12px}
+#sp-root .info-box{background:var(--blue-pale);border:1px solid #B0C8E8;border-radius:8px;padding:12px 14px;font-size:12px;color:var(--blue);line-height:1.6;margin-bottom:12px}
+#sp-root .badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700}
+#sp-root .badge-teal{background:var(--teal-pale);color:var(--teal)}
+#sp-root .badge-red{background:var(--red-pale);color:var(--red)}
+#sp-root .badge-amber{background:var(--amber-pale);color:var(--amber)}
+#sp-root .badge-green{background:var(--green-pale);color:var(--green)}
+@media(max-width:700px){#sp-root .patron-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:450px){#sp-root .patron-grid{grid-template-columns:1fr}}
+@media(max-width:600px){#sp-root .detalle-panel.show{flex-direction:column}}
+@media(max-width:500px){#sp-root .compare-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -611,12 +752,13 @@ function closeIntro() {
   <button class="tab-btn" onclick="showTab('sgl');if(window.sglOnShow)sglOnShow();">📊 SGL</button>
   <button class="tab-btn" onclick="showTab('hemodinamica')">🩸 Hemodinámica</button>
   <button class="tab-btn" onclick="showTab('ete')">🔬 ETE</button>
-  <button class="tab-btn" onclick="showTab('ee');if(window.eeOnShow)eeOnShow();">🫀 Eco Estrés</button>
   <button class="tab-btn" onclick="showTab('cardioOnco')">🎗️ Cardio-Onco</button>
   <button class="tab-btn" onclick="showTab('imagenes');if(window.imgRender)imgRender();">🖼️ Imágenes</button>
   <button class="tab-btn" onclick="showTab('calculadoras')">🧮 Calculadoras</button>
   <button class="tab-btn" onclick="showTab('fono');if(window.fcgOnShow)fcgOnShow();">🔊 Fonocardiograma</button>
   <button class="tab-btn" onclick="showTab('refs')">📚 Referencias</button>
+  <button class="tab-btn" onclick="showTab('amiloidosis')">🫀 Amiloidosis</button>
+  <button class="tab-btn" onclick="showTab('lab');if(window.labInit)labInit()">🔬 Laboratorio</button>
 </div>
 
 <!-- ═══════════════════════ TAB: DATOS PACIENTE ═══════════════════════ -->
@@ -717,9 +859,15 @@ function closeIntro() {
           <input type="text" id="centro_nombre" placeholder="Ej: Hospital Regional de Artigas" oninput="saveCentro()">
         </div>
       </div>
-      <div class="fg" style="margin-top:8px;">
-        <label>Médico solicitante</label>
-        <input type="text" id="med_solicitante" placeholder="Dr./Dra. Nombre Apellido">
+      <div class="grid-2" style="margin-top:8px;">
+        <div class="fg">
+          <label>Médico solicitante</label>
+          <input type="text" id="med_solicitante" placeholder="Dr./Dra. Nombre Apellido">
+        </div>
+        <div class="fg">
+          <label>Fecha de solicitud</label>
+          <input type="date" id="fecha_solicitud">
+        </div>
       </div>
     </div>
   </div>
@@ -794,6 +942,10 @@ function closeIntro() {
           <div class="fg">
             <label>Volumen AI (ml)</label>
             <input type="number" id="ai_vol" placeholder="ml" oninput="calcAI()">
+          </div>
+          <div class="fg">
+            <label>LARS — strain AI (%) <span style="font-weight:400;color:var(--text2);font-size:10px;">opcional — normal &gt;18%</span></label>
+            <input type="number" id="lars" step="0.1" placeholder="%" oninput="calcDiastol()">
           </div>
         </div>
         <div class="calc-box">
@@ -1017,6 +1169,7 @@ function closeIntro() {
       <div class="grid-2" style="margin-bottom:10px;">
         <div class="fg"><label>Algoritmo función diastólica</label>
           <select id="diast_algoritmo" onchange="calcDiastol()">
+            <option value="ase2025" selected>ASE 2025 (recomendado)</option>
             <option value="bse2024">BSE 2024 (descriptivo)</option>
             <option value="ase2016">ASE/EACVI 2016 (Grados I–III)</option>
           </select>
@@ -1167,12 +1320,8 @@ function closeIntro() {
           <input type="text" id="pmad_display" readonly style="color:var(--accent2);">
         </div>
       </div>
-      <!-- Fila secundaria: TVIA + PAP media -->
+      <!-- Fila secundaria: PAP media -->
       <div class="grid-4" style="margin-top:6px;">
-        <div class="fg">
-          <label>TVIA (ms) — función VD</label>
-          <input type="number" id="tvia" placeholder="ms">
-        </div>
         <div class="fg">
           <label>PAP media estimada (mmHg)</label>
           <input type="text" id="pap_med" readonly placeholder="—">
@@ -2089,6 +2238,63 @@ function closeIntro() {
       </div>
     </div>
   </div>
+
+  <!-- ═══ Patrones de Strain — Referencia (integrado en SGL) ═══ -->
+  <div style="border-top:2px solid var(--border);margin:28px 0 0"></div>
+  <div style="font-size:16px;font-weight:800;margin:16px 0 12px;color:var(--text)">📊 Patrones de Strain — Referencia</div>
+<div id="sp-root">
+<div class="sp-main">
+  <div class="card">
+    <div class="card-title"><span>ℹ️</span> Cómo usar esta herramienta</div>
+    <div class="info-box" style="margin-bottom:0">
+      Seleccioná una categoría diagnóstica y luego el patrón que más se asemeja al bull's eye que obtuviste en tu estudio. La herramienta te mostrará los hallazgos típicos, el SGL esperado y la descripción del patrón para ayudarte en la interpretación.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span>🎨</span> Escala de colores — Strain longitudinal</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch" style="background:#C62828"></div>Normal</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#EF9A9A"></div>Hipocinético leve</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#E57373"></div>Hipocinético moderado</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#EF5350"></div>Hipocinético severo</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#B71C1C"></div>Acinesia/Disq (&gt;-4%)</div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px">Anterior ↑ · Septum ← · Lateral → · Inferior ↓ · Misma escala que EcoSmart</div>
+  </div>
+
+  <div class="cat-tabs" id="cat-tabs">
+    <button class="cat-btn active" onclick="selCat('todas',this)">🔍 Todas</button>
+    <button class="cat-btn" onclick="selCat('normal',this)">✅ Normal</button>
+    <button class="cat-btn" onclick="selCat('isquemica',this)">🩸 Isquémica</button>
+    <button class="cat-btn" onclick="selCat('miocardiopatia',this)">🫀 Miocardiopatía</button>
+    <button class="cat-btn" onclick="selCat('infiltrativa',this)">🔬 Infiltrativa</button>
+    <button class="cat-btn" onclick="selCat('sobrecarga',this)">📈 Sobrecarga</button>
+  </div>
+
+  <div class="detalle-panel" id="detalle-panel">
+    <svg id="detalle-svg" width="160" height="160" class="patron-svg" style="flex-shrink:0"></svg>
+    <div style="flex:1">
+      <div class="detalle-title" id="det-title"></div>
+      <div class="detalle-sgl" id="det-sgl"></div>
+      <div class="detalle-patron" id="det-patron"></div>
+      <div class="detalle-hallazgos" id="det-hallazgos"></div>
+    </div>
+  </div>
+
+  <div class="patron-grid" id="patron-grid"></div>
+
+  <div class="compare-panel" id="compare-panel">
+    <div class="card">
+      <div class="card-title"><span>⚖️</span> Comparación de patrones seleccionados</div>
+      <div class="compare-grid" id="compare-grid"></div>
+      <div style="margin-top:12px">
+        <button class="btn btn-secondary btn-sm" onclick="limpiarComparacion()">✕ Limpiar comparación</button>
+      </div>
+    </div>
+  </div>
+</div><!-- /.sp-main -->
+</div><!-- /#sp-root -->
 </div>
 
 <!-- ═══════════════════════ TAB: ETE MITRAL ═══════════════════════ -->
@@ -5761,487 +5967,6 @@ z
 </div>
 
 <!-- ═══════════════════════ TAB: ECO ESTRÉS ═══════════════════════ -->
-<div id="tab-ee" class="tab-section">
-<style>
-  #tab-ee .ee-grid{display:grid;grid-template-columns:320px 1fr;gap:16px;}
-  @media(max-width:900px){#tab-ee .ee-grid{grid-template-columns:1fr;}}
-  #tab-ee .ee-col{display:flex;flex-direction:column;gap:14px;}
-  #tab-ee .ee-card{background:var(--bg2);border-radius:12px;border:1px solid var(--border);overflow:hidden;}
-  #tab-ee .ee-card-hdr{background:var(--bg3);color:var(--accent2);padding:10px 16px;font-size:.84rem;font-weight:700;display:flex;align-items:center;gap:8px;}
-  #tab-ee .ee-card-body{padding:14px;}
-  #tab-ee .ee-fg{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;}
-  #tab-ee .ee-fg label{font-size:.7rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;}
-  #tab-ee .ee-fg input,#tab-ee .ee-fg select,#tab-ee .ee-fg textarea{padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:.84rem;color:var(--text);font-family:inherit;outline:none;background:var(--bg3);transition:.15s;}
-  #tab-ee .ee-fg input:focus,#tab-ee .ee-fg select:focus,#tab-ee .ee-fg textarea:focus{border-color:var(--accent);}
-  #tab-ee .ee-fg textarea{resize:vertical;min-height:64px;}
-  #tab-ee .ee-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  #tab-ee .ee-tabs{display:flex;flex-wrap:wrap;border-bottom:2px solid var(--border);margin-bottom:14px;}
-  #tab-ee .ee-tab{padding:8px 14px;font-size:.78rem;font-weight:600;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-2px;transition:.15s;background:none;border-top:none;border-left:none;border-right:none;}
-  #tab-ee .ee-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
-  #tab-ee .ee-tab:hover:not(.active){color:var(--text);}
-  #tab-ee .ee-tab-content{display:none;}
-  #tab-ee .ee-tab-content.active{display:block;}
-  #tab-ee .ee-proto-step{border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;}
-  #tab-ee .ee-proto-step-hdr{background:var(--bg3);padding:8px 12px;font-size:.8rem;font-weight:700;color:var(--accent2);cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none;}
-  #tab-ee .ee-proto-step-hdr:hover{background:var(--border);}
-  #tab-ee .ee-proto-step-body{padding:10px 12px;font-size:.78rem;line-height:1.7;display:none;color:var(--text);}
-  #tab-ee .ee-proto-step-body.open{display:block;}
-  #tab-ee .ee-pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.7rem;font-weight:600;margin:2px;background:var(--bg3);color:var(--accent);}
-  #tab-ee .ee-nota{background:rgba(62,207,142,.09);border-left:3px solid var(--green);border-radius:5px;padding:6px 10px;font-size:.75rem;color:var(--green);margin-top:6px;line-height:1.5;}
-  #tab-ee .ee-warn{background:rgba(245,200,66,.09);border-left:3px solid var(--yellow);border-radius:5px;padding:6px 10px;font-size:.75rem;color:var(--yellow);margin-top:6px;line-height:1.5;}
-  #tab-ee .ee-eye-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;}
-  #tab-ee .ee-eye-legend{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
-  #tab-ee .ee-eye-leg-item{display:flex;align-items:center;gap:4px;font-size:.7rem;font-weight:600;color:var(--text);}
-  #tab-ee .ee-eye-leg-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0;}
-  #tab-ee .ee-eye-wmsi-box{background:var(--bg3);border-radius:8px;padding:10px 20px;text-align:center;width:100%;}
-  #tab-ee .ee-eye-wmsi-val{font-size:2rem;font-weight:800;color:var(--accent2);}
-  #tab-ee .ee-eye-wmsi-lbl{font-size:.7rem;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;}
-  #tab-ee .ee-eye-wmsi-cat{font-size:.8rem;font-weight:700;margin-top:3px;}
-  #tab-ee .ee-btn{padding:9px 18px;border:none;border-radius:8px;font-size:.84rem;font-weight:700;cursor:pointer;transition:.15s;font-family:inherit;}
-  #tab-ee .ee-btn-g{background:var(--green);color:#0f1117;}
-  #tab-ee .ee-btn-ghost{background:var(--bg3);color:var(--text2);border:1px solid var(--border);}
-  #tab-ee .ee-btn-ghost:hover{color:var(--accent);}
-  #tab-ee .ee-btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
-  #tab-ee .ee-result-box{border-radius:8px;padding:10px 14px;font-size:.8rem;line-height:1.6;margin-top:8px;display:none;}
-  #tab-ee .ee-result-box.show{display:block;}
-  #tab-ee .ee-rb-pos{background:rgba(240,84,84,.1);border:1px solid var(--red);color:var(--red);}
-  #tab-ee .ee-rb-neg{background:rgba(62,207,142,.1);border:1px solid var(--green);color:var(--green);}
-  #tab-ee .ee-rb-inc{background:rgba(245,158,66,.1);border:1px solid var(--orange);color:var(--orange);}
-  #tab-ee table{width:100%;border-collapse:collapse;font-size:.78rem;color:var(--text);}
-  #tab-ee th{background:var(--bg3);color:var(--accent2);padding:6px 8px;text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:.3px;}
-  #tab-ee td{padding:6px 8px;border-bottom:1px solid var(--border);}
-  #tab-ee tr:last-child td{border-bottom:none;}
-  #tab-ee .ee-mini{width:70px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:.78rem;background:var(--bg3);color:var(--text);}
-  .ee-eye-pop{position:fixed;background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.4);padding:12px 14px;z-index:2000;min-width:200px;display:none;}
-  .ee-eye-pop.open{display:block;}
-  .ee-eye-pop-title{font-size:.78rem;font-weight:700;color:var(--accent2);margin-bottom:8px;}
-  .ee-eye-pop-states{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;}
-  .ee-eye-pop-btn{padding:4px 10px;border-radius:10px;border:1.5px solid transparent;font-size:.72rem;font-weight:700;cursor:pointer;transition:.15s;}
-  .ee-eye-pop-btn.sel{transform:scale(1.08);}
-  .ee-eye-pop-close{width:100%;padding:5px;background:var(--bg3);border:none;border-radius:5px;font-size:.76rem;font-weight:700;cursor:pointer;color:var(--text2);}
-  /* Tabla protocolo Eco Estrés */
-  .ee-proto-table{width:100%;border-collapse:collapse;font-size:.74rem;min-width:820px}
-  .ee-proto-table th{background:var(--bg3);color:var(--accent2);font-weight:700;padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0}
-  .ee-proto-table td{padding:5px 8px;border-bottom:1px solid var(--border);vertical-align:top}
-  .ee-proto-table input{background:var(--bg2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:.74rem;padding:4px 6px}
-  .ee-chkrow{display:flex;flex-wrap:wrap;gap:2px 8px;margin-top:4px}
-  .ee-chk{display:inline-flex;align-items:center;gap:4px;font-size:.7rem;color:var(--text2);cursor:pointer;font-weight:600}
-  .ee-chk input{margin:0}
-  .ee-pdf-panel{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
-  @media(max-width:600px){.ee-pdf-panel{grid-template-columns:1fr}}
-</style>
-
-  <div class="card" style="margin-bottom:14px;">
-    <div class="card-body" style="text-align:center;">
-      <button class="btn btn-ghost" id="ee-incluir-pdf" onclick="eeIncluirPDF()" style="font-size:14px;padding:11px 22px;">📄 Incluir Eco Estrés en PDF</button>
-      <div style="font-size:11px;color:var(--text2);margin-top:6px;">Solo con esto activo la sección Eco Estrés (tablas, texto, bull's eyes e imágenes) aparece en el PDF.</div>
-      <div id="ee-pdf-panel" style="margin-top:12px;text-align:left"></div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-head">🫀 Eco Estrés — Protocolo ABCD-FLPR · AHA 17 segmentos · WMSI</div>
-    <div class="card-body">
-      <div class="ee-grid">
-        <!-- COLUMNA IZQUIERDA -->
-        <div class="ee-col">
-          <div class="ee-card">
-            <div class="ee-card-hdr">🧾 Datos del estudio</div>
-            <div class="ee-card-body">
-              <div class="ee-fg"><label>Indicación</label><select id="ee-p-ind">
-                <option value="">Seleccionar…</option>
-                <option>Diagnóstico de EC</option>
-                <option>Evaluación pronóstica EC conocida</option>
-                <option>Viabilidad miocárdica</option>
-                <option>Evaluación preoperatoria</option>
-                <option>Evaluación de valvulopatía</option>
-                <option>Cardiopatía isquémica — seguimiento</option>
-                <option>Otra</option>
-              </select></div>
-              <div class="ee-fg"><label>Tipo de estrés</label><select id="ee-p-estres">
-                <option value="ejercicio">Ejercicio (treadmill/bicicleta)</option>
-                <option value="dobutamina">Dobutamina</option>
-                <option value="dipiridamol">Dipiridamol</option>
-                <option value="adenosina">Adenosina</option>
-              </select></div>
-              <div style="height:1px;background:var(--border);margin:12px 0;"></div>
-              <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;">🎯 Probabilidad pre-test de EC (ESC 2019)</div>
-              <div class="ee-row2">
-                <div class="ee-fg"><label>Edad</label><input type="number" id="ee-ptp-edad" placeholder="años" oninput="ptpCad()"></div>
-                <div class="ee-fg"><label>Sexo</label><select id="ee-ptp-sexo" onchange="ptpCad()"><option value="">—</option><option value="M">Masculino</option><option value="F">Femenino</option></select></div>
-              </div>
-              <div class="ee-fg"><label>Síntomas</label><select id="ee-ptp-sint" onchange="ptpCad()">
-                <option value="">Seleccionar…</option>
-                <option value="asint">Asintomático</option>
-                <option value="atip">Dolor torácico atípico</option>
-                <option value="tip">Dolor torácico típico</option>
-              </select></div>
-              <div id="ee-ptp-res" style="font-size:.78rem;margin-top:4px;font-weight:600;"></div>
-              <div id="ee-ptp-rec" style="font-size:.74rem;margin-top:4px;color:var(--text2);line-height:1.4;"></div>
-            </div>
-          </div>
-
-          <div class="ee-card">
-            <div class="ee-card-hdr">📊 Parámetros Basales</div>
-            <div class="ee-card-body">
-              <div class="ee-row2">
-                <div class="ee-fg"><label>FC basal (lpm)</label><input type="number" id="ee-b-fc" placeholder="70"></div>
-                <div class="ee-fg"><label>PA basal (mmHg)</label><input type="text" id="ee-b-pa" placeholder="120/80"></div>
-              </div>
-              <div class="ee-row2">
-                <div class="ee-fg"><label>FC máxima alcanzada</label><input type="number" id="ee-b-fcmax" placeholder="150" oninput="eeCalcFCPct()"></div>
-                <div class="ee-fg"><label>FC máxima teórica</label><input type="number" id="ee-b-fcteo" placeholder="162" readonly></div>
-              </div>
-              <div class="ee-fg"><label>% FC máxima teórica</label>
-                <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:4px">
-                  <div id="ee-fc-pct-fill" style="height:100%;background:var(--accent);border-radius:4px;width:0%;transition:width .4s ease"></div>
-                </div>
-                <span id="ee-fc-pct-val" style="font-size:.78rem;color:var(--accent);font-weight:700;margin-top:3px">—</span>
-              </div>
-              <div class="ee-row2">
-                <div class="ee-fg"><label>PA pico (mmHg)</label><input type="text" id="ee-b-papico" placeholder="180/90"></div>
-                <div class="ee-fg"><label>MET alcanzados</label><input type="number" id="ee-b-mets" step="0.5" placeholder="8.5"></div>
-              </div>
-              <div class="ee-fg"><label>Duración del estrés (min)</label><input type="number" id="ee-b-dur" placeholder="8"></div>
-              <div class="ee-fg"><label>Motivo de suspensión</label><select id="ee-b-stop">
-                <option value="">Seleccionar…</option>
-                <option>Protocolo completado</option>
-                <option>FC objetivo alcanzada</option>
-                <option>Angina</option>
-                <option>Cambios ECG significativos</option>
-                <option>Hipotensión</option>
-                <option>Fatiga del paciente</option>
-                <option>Arritmia</option>
-                <option>Decisión médica</option>
-              </select></div>
-            </div>
-          </div>
-
-          <div class="ee-card">
-            <div class="ee-card-hdr">✅ Resultado del Estudio</div>
-            <div class="ee-card-body">
-              <div class="ee-fg"><label>Resultado</label><select id="ee-res-global" onchange="eeUpdateResult()">
-                <option value="">Seleccionar…</option>
-                <option value="neg">Negativo para isquemia</option>
-                <option value="pos">Positivo para isquemia</option>
-                <option value="inc">Indeterminado / No concluyente</option>
-                <option value="via">Viabilidad presente</option>
-                <option value="novia">Sin viabilidad</option>
-              </select></div>
-              <div id="ee-res-box" class="ee-result-box"></div>
-              <div class="ee-fg" style="margin-top:10px"><label>Comentario adicional</label><textarea id="ee-res-comment" placeholder="Observaciones clínicas…"></textarea></div>
-              <div class="ee-btn-row">
-                <button class="ee-btn ee-btn-ghost" onclick="eeResetAll()">↺ Nuevo estudio</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- COLUMNA DERECHA: tabs -->
-        <div class="ee-col">
-          <div class="ee-card">
-            <div class="ee-card-body">
-              <div class="ee-tabs">
-                <button class="ee-tab active" onclick="eeSwitchTab('protocolo',this)">📋 Protocolo ABCD-FLPR</button>
-                <button class="ee-tab" onclick="eeSwitchTab('tabla',this)">🗒️ Tabla protocolo</button>
-                <button class="ee-tab" onclick="eeSwitchTab('bullo',this)">🎯 Bull's Eye 17 seg</button>
-                <button class="ee-tab" onclick="eeSwitchTab('ecg',this)">⚡ ECG / Arritmias</button>
-                <button class="ee-tab" onclick="eeSwitchTab('cfvr',this)">🩸 CFVR / Strain</button>
-              </div>
-
-              <!-- PROTOCOLO -->
-              <div id="ee-tab-protocolo" class="ee-tab-content active">
-                <div class="ee-proto-step">
-                  <div class="ee-proto-step-hdr" onclick="eeToggleStep(this)"><span>A — Adecuación del estrés</span><span>▼</span></div>
-                  <div class="ee-proto-step-body">
-                    <div class="ee-row2" style="margin-bottom:10px">
-                      <div class="ee-fg"><label>FC objetivo (85% FC max teórica)</label><input type="text" id="ee-a-fcobj" readonly></div>
-                      <div class="ee-fg"><label>Dosis dobutamina (si aplica)</label><input type="text" id="ee-a-dosis" placeholder="40 mcg/kg/min"></div>
-                    </div>
-                    <div style="font-size:.78rem;font-weight:700;color:var(--accent);margin-bottom:6px">Criterios de adecuación:</div>
-                    <span class="ee-pill">FC ≥85% de la máxima teórica</span>
-                    <span class="ee-pill">Dobutamina ≥40 mcg/kg/min</span>
-                    <span class="ee-pill">Dipiridamol 0.84 mg/kg en 10 min</span>
-                    <span class="ee-pill">Adenosina 140 mcg/kg/min</span>
-                    <div class="ee-nota">FC máxima teórica = 220 − edad (del tab Paciente). Objetivo: ≥85% = adecuación del estrés. Con dobutamina se puede agregar atropina hasta 1mg si no alcanza FC objetivo.</div>
-                    <div class="ee-fg" style="margin-top:8px"><label>¿Estrés adecuado?</label><select id="ee-a-adec">
-                      <option value="">—</option><option value="si">Sí</option><option value="no">No — estudio subóptimo</option>
-                    </select></div>
-                  </div>
-                </div>
-
-                <div class="ee-proto-step">
-                  <div class="ee-proto-step-hdr" onclick="eeToggleStep(this)"><span>B — ECG basal y durante el estrés</span><span>▼</span></div>
-                  <div class="ee-proto-step-body">
-                    <div class="ee-fg"><label>ECG basal</label><select id="ee-b-ecg">
-                      <option value="normal">Normal</option><option value="bri">BRI</option><option value="brd">BRD</option><option value="hvi">HVI</option><option value="st">Cambios ST basales</option><option value="otro">Otro</option>
-                    </select></div>
-                    <div class="ee-fg"><label>Cambios ECG durante estrés</label><select id="ee-b-cambios">
-                      <option value="no">Sin cambios significativos</option><option value="st-dep">Depresión ST ≥1mm horizontal/descendente</option><option value="st-ele">Elevación ST ≥1mm (sin BRI/aVR)</option><option value="arritmia">Arritmia significativa</option><option value="bri-func">BRI funcional</option>
-                    </select></div>
-                    <div class="ee-fg"><label>Descripción ECG</label><textarea id="ee-b-ecg-desc" placeholder="Descripción detallada del ECG…" rows="2"></textarea></div>
-                    <div class="ee-warn">BRI durante el estrés: considerar origen funcional (FC-dependiente) vs isquémico. BRI a FC &lt;125 lpm sugiere origen isquémico (art. DA).</div>
-                  </div>
-                </div>
-
-                <div class="ee-proto-step">
-                  <div class="ee-proto-step-hdr" onclick="eeToggleStep(this)"><span>C — Contractilidad (Motilidad parietal)</span><span>▼</span></div>
-                  <div class="ee-proto-step-body">
-                    <div style="font-size:.78rem;color:var(--text2);margin-bottom:8px">Completar en el tab "Bull's Eye 17 seg" →</div>
-                    <table>
-                      <tr><th>Parámetro</th><th>Basal</th><th>Pico estrés</th><th>Recuperación</th></tr>
-                      <tr><td>Motilidad global</td><td><select id="ee-c-mot-bas" class="ee-mini" style="width:auto"><option>Normal</option><option>Hipokinesia difusa</option><option>Alterada</option></select></td><td><select id="ee-c-mot-pic" class="ee-mini" style="width:auto"><option>Normal</option><option>Hipokinesia nueva</option><option>Empeora</option><option>Mejora (viabilidad)</option></select></td><td><select id="ee-c-mot-rec" class="ee-mini" style="width:auto"><option>Normaliza</option><option>Persiste alterada</option></select></td></tr>
-                      <tr><td>FEVI estimada (%)</td><td><input type="number" id="ee-c-fevi-bas" placeholder="55" class="ee-mini"></td><td><input type="number" id="ee-c-fevi-pic" placeholder="65" class="ee-mini"></td><td><input type="number" id="ee-c-fevi-rec" placeholder="55" class="ee-mini"></td></tr>
-                      <tr><td>Dilatación VI</td><td colspan="3"><select id="ee-c-dilat" class="ee-mini" style="width:auto"><option value="no">No</option><option value="si">Sí — signo de isquemia severa</option></select></td></tr>
-                    </table>
-                    <div class="ee-nota" style="margin-top:8px">Respuesta isquémica: nueva alteración de la motilidad parietal en ≥2 segmentos adyacentes o empeoramiento de alteración preexistente. Respuesta de viabilidad: mejoría de segmentos hipoquinéticos/aquinéticos con dosis bajas de dobutamina (5-10 mcg/kg/min).</div>
-                  </div>
-                </div>
-
-                <div class="ee-proto-step">
-                  <div class="ee-proto-step-hdr" onclick="eeToggleStep(this)"><span>D — Dilatación del VI y otros signos</span><span>▼</span></div>
-                  <div class="ee-proto-step-body">
-                    <div class="ee-fg"><label>Dilatación transitoria del VI durante estrés</label><select id="ee-d-dilat">
-                      <option value="no">No presente</option><option value="si">Presente — indicador de isquemia extensa/multivaso</option>
-                    </select></div>
-                    <div class="ee-fg"><label>Respuesta de PA al estrés</label><select id="ee-d-pa">
-                      <option value="normal">Normal (↑ sistólica &gt;10mmHg)</option><option value="hipo">Hipotensión (&gt;10mmHg de caída) — signo ominoso</option><option value="insuf">Respuesta insuficiente</option><option value="hipert">Respuesta hipertensiva excesiva</option>
-                    </select></div>
-                    <div class="ee-fg"><label>Insuficiencia mitral inducida</label><select id="ee-d-im">
-                      <option value="no">No</option><option value="leve">Leve</option><option value="mod">Moderada — buscar isquemia o disfunción papilar</option><option value="sev">Severa</option>
-                    </select></div>
-                    <div class="ee-warn">Hipotensión durante el estrés = caída &gt;10mmHg de la PAS basal. Es un signo de alto riesgo que obliga a suspender el estudio inmediatamente.</div>
-                  </div>
-                </div>
-
-                <div class="ee-proto-step">
-                  <div class="ee-proto-step-hdr" onclick="eeToggleStep(this)"><span>F — Flujo coronario (CFVR)</span><span>▼</span></div>
-                  <div class="ee-proto-step-body">
-                    <div class="ee-fg"><label>CFVR (Coronary Flow Velocity Reserve)</label><input type="number" id="ee-f-cfvr" step="0.1" placeholder="2.5" oninput="eeEvalCFVR()"></div>
-                    <div id="ee-f-cfvr-res" style="font-size:.78rem;margin-top:4px;font-weight:600"></div>
-                    <div class="ee-nota">CFVR normal: ≥2.0. CFVR &lt;2.0 sugiere reserva coronaria reducida. Se mide con Doppler pulsado en la arteria DA distal con adenosina o dipiridamol. Útil en sospecha de enfermedad microvascular.</div>
-                    <div class="ee-fg" style="margin-top:8px"><label>Arteria evaluada</label><select id="ee-f-art">
-                      <option>DA (descendente anterior)</option><option>CD (coronaria derecha)</option><option>Cx (circunfleja)</option>
-                    </select></div>
-                  </div>
-                </div>
-
-                <div class="ee-proto-step">
-                  <div class="ee-proto-step-hdr" onclick="eeToggleStep(this)"><span>L — Lung B-lines (Líneas B pulmonares)</span><span>▼</span></div>
-                  <div class="ee-proto-step-body">
-                    <div class="ee-fg"><label>Líneas B basales</label><select id="ee-l-bas">
-                      <option value="0">0 — Normal</option><option value="1">1-2 por campo — Borderline</option><option value="2">≥3 por campo — Congestión</option>
-                    </select></div>
-                    <div class="ee-fg"><label>Líneas B post-estrés</label><select id="ee-l-post">
-                      <option value="0">0 — Normal</option><option value="1">1-2 por campo — Leve aumento</option><option value="2">≥3 por campo — Congestión significativa</option>
-                    </select></div>
-                    <div class="ee-fg"><label>Zonas evaluadas</label><input type="text" id="ee-l-zonas" placeholder="Ej. 4 zonas anteriores bilaterales"></div>
-                    <div class="ee-nota">Protocolo de 4 u 8 zonas. El aumento de líneas B post-estrés ≥3/campo indica hipertensión venocapilar inducida por el esfuerzo — sugiere disfunción diastólica o isquemia con falla del VI.</div>
-                  </div>
-                </div>
-
-                <div class="ee-proto-step">
-                  <div class="ee-proto-step-hdr" onclick="eeToggleStep(this)"><span>P — Presión (Estimación hemodinámica)</span><span>▼</span></div>
-                  <div class="ee-proto-step-body">
-                    <div class="ee-row2">
-                      <div class="ee-fg"><label>PSAP basal (mmHg)</label><input type="number" id="ee-p-psap-bas" placeholder="30"></div>
-                      <div class="ee-fg"><label>PSAP pico (mmHg)</label><input type="number" id="ee-p-psap-pic" placeholder="35" oninput="eeEvalPSAP()"></div>
-                    </div>
-                    <div id="ee-p-psap-res" style="font-size:.78rem;margin-top:4px;font-weight:600"></div>
-                    <div class="ee-fg"><label>Patrón de llenado diastólico basal</label><select id="ee-p-diast">
-                      <option value="normal">Normal</option><option value="gr1">Grado I — Relajación alterada</option><option value="gr2">Grado II — Pseudonormal</option><option value="gr3">Grado III — Restrictivo</option>
-                    </select></div>
-                    <div class="ee-fg"><label>E/e' basal</label><input type="number" id="ee-p-ee" step="0.1" placeholder="8.5" oninput="eeEvalEE()"></div>
-                    <div id="ee-p-ee-res" style="font-size:.78rem;margin-top:4px;font-weight:600"></div>
-                    <div class="ee-nota">PSAP pico &gt;60mmHg o aumento &gt;20mmHg sobre el basal durante estrés = HTP inducida. E/e' &gt;14 sugiere PCP elevada.</div>
-                  </div>
-                </div>
-
-                <div class="ee-proto-step">
-                  <div class="ee-proto-step-hdr" onclick="eeToggleStep(this)"><span>R — Recuperación</span><span>▼</span></div>
-                  <div class="ee-proto-step-body">
-                    <div class="ee-fg"><label>Tiempo de recuperación de la motilidad (min)</label><input type="number" id="ee-r-trecup" step="0.5" placeholder="3"></div>
-                    <div class="ee-fg"><label>FC a los 3 min de recuperación</label><input type="number" id="ee-r-fc3" placeholder="90"></div>
-                    <div class="ee-fg"><label>Síntomas en recuperación</label><select id="ee-r-sint">
-                      <option value="no">Sin síntomas</option><option value="angina">Angina</option><option value="disnea">Disnea</option><option value="arritmia">Arritmia</option>
-                    </select></div>
-                    <div class="ee-nota">La recuperación tardía (&gt;3 min) de alteraciones de la motilidad sugiere isquemia severa. La persistencia en reposo puede indicar necrosis o aturdimiento miocárdico.</div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- BULL'S EYE -->
-              <div id="ee-tab-bullo" class="ee-tab-content">
-                <div class="ee-tabs" style="margin-bottom:10px">
-                  <button class="ee-tab active" onclick="eeSwitchBullTab('basal',this)">Basal</button>
-                  <button class="ee-tab" onclick="eeSwitchBullTab('pico',this)">Pico estrés</button>
-                  <button class="ee-tab" onclick="eeSwitchBullTab('recup',this)">Recuperación</button>
-                </div>
-                <div id="ee-bull-basal" class="ee-eye-wrap">
-                  <div class="ee-eye-legend">
-                    <div class="ee-eye-leg-item"><div class="ee-eye-leg-dot" style="background:#3ecf8e"></div>Normal</div>
-                    <div class="ee-eye-leg-item"><div class="ee-eye-leg-dot" style="background:#f5c842"></div>Hipokinesia</div>
-                    <div class="ee-eye-leg-item"><div class="ee-eye-leg-dot" style="background:#f59e42"></div>Akinesia</div>
-                    <div class="ee-eye-leg-item"><div class="ee-eye-leg-dot" style="background:#8a5fd4"></div>Diskinesia</div>
-                    <div class="ee-eye-leg-item"><div class="ee-eye-leg-dot" style="background:#9aa3bc"></div>No eval.</div>
-                  </div>
-                  <div style="font-size:.72rem;color:var(--text2);text-align:center">Click = ciclar · Click derecho = editar</div>
-                  <svg id="ee-eye-svg-basal" viewBox="0 0 340 340" width="300" height="300" style="cursor:pointer;flex-shrink:0"></svg>
-                  <div class="ee-eye-wmsi-box"><div class="ee-eye-wmsi-lbl">WMSI Basal</div><div class="ee-eye-wmsi-val" id="ee-wmsi-basal">—</div><div class="ee-eye-wmsi-cat" id="ee-wmsi-basal-cat"></div></div>
-                </div>
-                <div id="ee-bull-pico" class="ee-eye-wrap" style="display:none">
-                  <div class="ee-eye-legend">
-                    <div class="ee-eye-leg-item"><div class="ee-eye-leg-dot" style="background:#3ecf8e"></div>Normal</div>
-                    <div class="ee-eye-leg-item"><div class="ee-eye-leg-dot" style="background:#f5c842"></div>Hipokinesia</div>
-                    <div class="ee-eye-leg-item"><div class="ee-eye-leg-dot" style="background:#f59e42"></div>Akinesia</div>
-                    <div class="ee-eye-leg-item"><div class="ee-eye-leg-dot" style="background:#8a5fd4"></div>Diskinesia</div>
-                    <div class="ee-eye-leg-item"><div class="ee-eye-leg-dot" style="background:#9aa3bc"></div>No eval.</div>
-                  </div>
-                  <div style="font-size:.72rem;color:var(--text2);text-align:center">Click = ciclar · Click derecho = editar</div>
-                  <svg id="ee-eye-svg-pico" viewBox="0 0 340 340" width="300" height="300" style="cursor:pointer;flex-shrink:0"></svg>
-                  <div class="ee-eye-wmsi-box"><div class="ee-eye-wmsi-lbl">WMSI Pico estrés</div><div class="ee-eye-wmsi-val" id="ee-wmsi-pico">—</div><div class="ee-eye-wmsi-cat" id="ee-wmsi-pico-cat"></div></div>
-                </div>
-                <div id="ee-bull-recup" class="ee-eye-wrap" style="display:none">
-                  <div class="ee-eye-legend">
-                    <div class="ee-eye-leg-item"><div class="ee-eye-leg-dot" style="background:#3ecf8e"></div>Normal</div>
-                    <div class="ee-eye-leg-item"><div class="ee-eye-leg-dot" style="background:#f5c842"></div>Hipokinesia</div>
-                    <div class="ee-eye-leg-item"><div class="ee-eye-leg-dot" style="background:#f59e42"></div>Akinesia</div>
-                    <div class="ee-eye-leg-item"><div class="ee-eye-leg-dot" style="background:#8a5fd4"></div>Diskinesia</div>
-                    <div class="ee-eye-leg-item"><div class="ee-eye-leg-dot" style="background:#9aa3bc"></div>No eval.</div>
-                  </div>
-                  <div style="font-size:.72rem;color:var(--text2);text-align:center">Click = ciclar · Click derecho = editar</div>
-                  <svg id="ee-eye-svg-recup" viewBox="0 0 340 340" width="300" height="300" style="cursor:pointer;flex-shrink:0"></svg>
-                  <div class="ee-eye-wmsi-box"><div class="ee-eye-wmsi-lbl">WMSI Recuperación</div><div class="ee-eye-wmsi-val" id="ee-wmsi-recup">—</div><div class="ee-eye-wmsi-cat" id="ee-wmsi-recup-cat"></div></div>
-                </div>
-                <div class="ee-btn-row" style="justify-content:center;margin-top:8px">
-                  <button class="ee-btn ee-btn-ghost" onclick="eeResetBull('basal')">↺ Reiniciar basal</button>
-                  <button class="ee-btn ee-btn-ghost" onclick="eeResetBull('pico')">↺ Reiniciar pico</button>
-                  <button class="ee-btn ee-btn-ghost" onclick="eeResetBull('recup')">↺ Reiniciar recup.</button>
-                </div>
-                <div class="ee-btn-row" style="justify-content:center;margin-top:6px;flex-wrap:wrap">
-                  <button class="btn btn-ghost" id="ee-bullpdf-basal" onclick="eeBullPdfTog('basal')" style="font-size:12px;padding:6px 12px">📄 Basal en PDF</button>
-                  <button class="btn btn-ghost" id="ee-bullpdf-pico" onclick="eeBullPdfTog('pico')" style="font-size:12px;padding:6px 12px">📄 Pico en PDF</button>
-                  <button class="btn btn-ghost" id="ee-bullpdf-recup" onclick="eeBullPdfTog('recup')" style="font-size:12px;padding:6px 12px">📄 Recup. en PDF</button>
-                </div>
-              </div>
-
-              <!-- TABLA PROTOCOLO -->
-              <div id="ee-tab-tabla" class="ee-tab-content">
-                <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
-                  <span style="font-size:.8rem;font-weight:700;color:var(--accent)">Tipo de estrés:</span>
-                  <label class="ee-chk"><input type="radio" name="ee-modo" value="ejercicio" checked onchange="eeProtoMode(this.value)"> Ejercicio</label>
-                  <label class="ee-chk"><input type="radio" name="ee-modo" value="farmaco" onchange="eeProtoMode(this.value)"> Farmacológico</label>
-                  <span id="ee-farmaco-wrap" style="display:none">
-                    <select id="ee-farmaco" onchange="eeProtoBuild()" style="width:auto"><option value="dobutamina">Dobutamina</option><option value="dipiridamol">Dipiridamol</option></select>
-                  </span>
-                  <button class="ee-btn ee-btn-ghost" onclick="eeProtoBuild()">↻ Cargar protocolo</button>
-                </div>
-                <div id="ee-proto-note" style="font-size:.74rem;color:var(--text2);margin-bottom:8px;line-height:1.4"></div>
-                <div class="ee-fg" style="margin-bottom:10px">
-                  <label>Atropina administrada</label>
-                  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-                    <label class="ee-chk"><input type="checkbox" id="ee-atropina-chk"> Sí</label>
-                    <input type="text" id="ee-atropina-dosis" placeholder="dosis (ej. 0.5–1 mg)" style="width:180px">
-                  </div>
-                </div>
-                <div id="ee-proto-table-wrap" style="overflow-x:auto"></div>
-                <div class="ee-fg" style="margin-top:14px">
-                  <label>Arritmias y hallazgos ECG globales del estudio</label>
-                  <textarea id="ee-ecg-global" rows="3" placeholder="Resumen global de arritmias y hallazgos ECG del estudio (se incluye en el PDF)…"></textarea>
-                </div>
-              </div>
-
-              <!-- ECG -->
-              <div id="ee-tab-ecg" class="ee-tab-content">
-                <div style="font-size:.8rem;font-weight:700;color:var(--accent);margin-bottom:10px">📋 Registro de ECG durante el estudio</div>
-                <table style="margin-bottom:12px">
-                  <tr><th>Etapa</th><th>FC (lpm)</th><th>Ritmo</th><th>ST</th><th>Comentario</th></tr>
-                  <tr><td>Basal</td>
-                    <td><input type="number" id="ee-ecg-fc-bas" placeholder="70" class="ee-mini" style="width:60px"></td>
-                    <td><select id="ee-ecg-rit-bas" class="ee-mini" style="width:auto"><option>Sinusal</option><option>FA</option><option>Flutter</option><option>Otro</option></select></td>
-                    <td><select id="ee-ecg-st-bas" class="ee-mini" style="width:auto"><option>Normal</option><option>Depresión</option><option>Elevación</option><option>Inespecífico</option></select></td>
-                    <td><input type="text" id="ee-ecg-com-bas" placeholder="…" class="ee-mini" style="width:100%"></td></tr>
-                  <tr><td>Pico</td>
-                    <td><input type="number" id="ee-ecg-fc-pic" placeholder="150" class="ee-mini" style="width:60px"></td>
-                    <td><select id="ee-ecg-rit-pic" class="ee-mini" style="width:auto"><option>Sinusal</option><option>FA</option><option>Flutter</option><option>TV</option><option>Otro</option></select></td>
-                    <td><select id="ee-ecg-st-pic" class="ee-mini" style="width:auto"><option>Normal</option><option>Depresión</option><option>Elevación</option><option>Inespecífico</option></select></td>
-                    <td><input type="text" id="ee-ecg-com-pic" placeholder="…" class="ee-mini" style="width:100%"></td></tr>
-                  <tr><td>Recuperación</td>
-                    <td><input type="number" id="ee-ecg-fc-rec" placeholder="80" class="ee-mini" style="width:60px"></td>
-                    <td><select id="ee-ecg-rit-rec" class="ee-mini" style="width:auto"><option>Sinusal</option><option>FA</option><option>Otro</option></select></td>
-                    <td><select id="ee-ecg-st-rec" class="ee-mini" style="width:auto"><option>Normal</option><option>Depresión persiste</option><option>Normaliza</option></select></td>
-                    <td><input type="text" id="ee-ecg-com-rec" placeholder="…" class="ee-mini" style="width:100%"></td></tr>
-                </table>
-                <div class="ee-fg"><label>Arritmias detectadas</label><textarea id="ee-ecg-arritmias" placeholder="Extrasistolia, TV no sostenida, FA paroxística…" rows="2"></textarea></div>
-                <div style="font-size:.8rem;font-weight:700;color:var(--accent);margin:14px 0 8px">🖼️ Imágenes de ECG</div>
-                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-                  <span style="font-size:12px;color:var(--text2);font-weight:600;">Cantidad de slots:</span>
-                  <div id="ee-ecg-count" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
-                </div>
-                <div id="ee-ecg-img-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px"></div>
-                <input type="file" id="ee-ecg-img-file" accept="image/jpeg,image/png,image/webp,image/*" style="display:none" onchange="eeEcgChosen(event)">
-              </div>
-
-              <!-- CFVR / STRAIN -->
-              <div id="ee-tab-cfvr" class="ee-tab-content">
-                <div style="font-size:.8rem;font-weight:700;color:var(--accent);margin-bottom:10px">🩸 Reserva de Flujo Coronario (CFVR)</div>
-                <table style="margin-bottom:12px">
-                  <tr><th>Arteria</th><th>Vel. basal (cm/s)</th><th>Vel. adenosina (cm/s)</th><th>CFVR</th><th>Interpretación</th></tr>
-                  <tr><td>DA</td>
-                    <td><input type="number" id="ee-cfvr-da-bas" placeholder="25" class="ee-mini" oninput="eeCalcCFVR('da')"></td>
-                    <td><input type="number" id="ee-cfvr-da-ade" placeholder="60" class="ee-mini" oninput="eeCalcCFVR('da')"></td>
-                    <td id="ee-cfvr-da-val" style="font-weight:700;color:var(--accent2)">—</td>
-                    <td id="ee-cfvr-da-int" style="font-size:.75rem">—</td></tr>
-                  <tr><td>CD</td>
-                    <td><input type="number" id="ee-cfvr-cd-bas" placeholder="25" class="ee-mini" oninput="eeCalcCFVR('cd')"></td>
-                    <td><input type="number" id="ee-cfvr-cd-ade" placeholder="55" class="ee-mini" oninput="eeCalcCFVR('cd')"></td>
-                    <td id="ee-cfvr-cd-val" style="font-weight:700;color:var(--accent2)">—</td>
-                    <td id="ee-cfvr-cd-int" style="font-size:.75rem">—</td></tr>
-                </table>
-                <div style="font-size:.8rem;font-weight:700;color:var(--accent);margin:14px 0 8px">📐 GLS — Strain Longitudinal Global</div>
-                <div class="ee-row2">
-                  <div class="ee-fg"><label>GLS basal (%)</label><input type="number" id="ee-gls-bas" step="0.1" placeholder="-20" oninput="eeEvalGLS()"></div>
-                  <div class="ee-fg"><label>GLS pico (%)</label><input type="number" id="ee-gls-pic" step="0.1" placeholder="-22" oninput="eeEvalGLS()"></div>
-                </div>
-                <div id="ee-gls-res" style="font-size:.78rem;margin-top:4px;font-weight:600"></div>
-                <div class="ee-nota" style="margin-top:8px">GLS normal: ≤ −20%. GLS entre −16% y −20%: zona gris. GLS &gt; −16%: disfunción sistólica subclínica. El aumento del GLS &gt;2% con el estrés es respuesta normal. Si el tab VI o SGL tienen GLS cargado, se autocompleta el basal.</div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- TEXTO NARRATIVO ECO ESTRÉS -->
-  <div class="card" style="margin-top:14px;">
-    <div class="card-head">📝 Texto narrativo — Eco Estrés</div>
-    <div class="card-body">
-      <button type="button" class="ee-btn ee-btn-ghost" onclick="generarInformeEcoEstres()" style="margin-bottom:10px;">📝 Generar texto Eco Estrés</button>
-      <div class="ee-fg"><textarea id="ee-narrativa" style="min-height:110px;" placeholder="Presioná 'Generar texto Eco Estrés' para autocompletar, o escribí libremente…"></textarea></div>
-    </div>
-  </div>
-
-  <!-- IMÁGENES DEL ECO ESTRÉS -->
-  <div class="card" style="margin-top:14px;">
-    <div class="card-head">🖼️ Imágenes del Eco Estrés</div>
-    <div class="card-body">
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-        <span style="font-size:12px;color:var(--text2);font-weight:600;">Cantidad de slots:</span>
-        <div id="ee-img-count" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
-      </div>
-      <div id="ee-img-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"></div>
-      <input type="file" id="ee-img-file" accept="image/jpeg,image/png,image/webp,image/*" style="display:none" onchange="eeImgChosen(event)">
-    </div>
-  </div>
-
-  <div class="ee-eye-pop" id="ee-eye-pop">
-    <div class="ee-eye-pop-title" id="ee-eye-pop-title">Segmento</div>
-    <div class="ee-eye-pop-states" id="ee-eye-pop-states"></div>
-    <button class="ee-eye-pop-close" onclick="eeCloseEyePop()">✓ Listo</button>
-  </div>
-</div>
 
 <script>
 (function(){
@@ -8051,6 +7776,13 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <div class="fg">
         <textarea id="en_suma" style="min-height:120px;" placeholder="Conclusión clínica..."></textarea>
       </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:10px 14px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);">
+        <input type="checkbox" id="caso_interes" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;">
+        <label for="caso_interes" style="font-size:.84rem;cursor:pointer;color:var(--text);">
+          🎓 Marcar como <strong>caso de interés</strong>
+          <span style="color:var(--text2);font-weight:400;">(ateneo / docencia / publicación)</span>
+        </label>
+      </div>
       <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn btn-primary" onclick="generarInforme()">🔄 Regenerar Informe</button>
         <button class="btn btn-green" onclick="generarPDF()">⬇️ Exportar PDF</button>
@@ -8072,6 +7804,11 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <div class="card-body">
         <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
           <input type="text" id="ig-buscar" placeholder="🔍 Buscar por nombre o documento..." oninput="filtrarInformes()" style="flex:1;">
+          <button class="btn" onclick="exportarInformesJSON()" title="Exportar todos los informes a JSON">📤 Exportar JSON</button>
+          <button class="btn" onclick="document.getElementById('ig-import-file').click()" title="Importar informes desde un archivo JSON">📥 Importar JSON</button>
+          <input type="file" id="ig-import-file" accept=".json,application/json" style="display:none" onchange="if(this.files&&this.files[0]){importarInformesJSON(this.files[0]);this.value='';}">
+          <button class="btn" onclick="document.getElementById('pdf-import-file').click()" title="Importar PDFs históricos generados por EcoSmart">📄 Importar PDFs históricos</button>
+          <input type="file" id="pdf-import-file" accept=".pdf" multiple style="display:none" onchange="if(this.files&&this.files.length){importarPDFsHistoricos(this.files);this.value='';}">
           <button class="btn btn-danger" onclick="limpiarTodosInformes()" title="Eliminar todos los informes">🗑️ Eliminar todos</button>
         </div>
         <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap;">
@@ -8081,6 +7818,75 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           <label style="font-size:12px;color:var(--text2);">Hasta</label>
           <input type="date" id="ig-fecha-hasta" onchange="filtrarInformes()" style="width:auto;">
           <button class="btn btn-ghost" onclick="limpiarFiltroFechas()" title="Mostrar todos los informes">🧹 Limpiar filtro</button>
+        </div>
+        <div class="card" style="margin-bottom:12px;">
+          <div class="card-body">
+            <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px;">
+              🔍 Filtrar informes
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
+
+              <div class="fg" style="margin:0;min-width:120px;">
+                <label style="font-size:.72rem;">FEVI</label>
+                <select id="filtro-fevi" onchange="aplicarFiltros()">
+                  <option value="">Todas</option>
+                  <option value="lt30">≤ 30%</option>
+                  <option value="lt40">≤ 40%</option>
+                  <option value="lt50">&lt; 50%</option>
+                  <option value="gte50">≥ 50%</option>
+                </select>
+              </div>
+
+              <div class="fg" style="margin:0;min-width:150px;">
+                <label style="font-size:.72rem;">Geometría VI</label>
+                <select id="filtro-geom" onchange="aplicarFiltros()">
+                  <option value="">Todas</option>
+                  <option value="normal">Normal</option>
+                  <option value="hvi-exc">HVI excéntrica</option>
+                  <option value="hvi-conc">HVI concéntrica</option>
+                  <option value="remod">Remodelado concéntrico</option>
+                </select>
+              </div>
+
+              <div class="fg" style="margin:0;min-width:150px;">
+                <label style="font-size:.72rem;">Función diastólica</label>
+                <select id="filtro-diast" onchange="aplicarFiltros()">
+                  <option value="">Todas</option>
+                  <option value="normal">Normal</option>
+                  <option value="gr1">Grado I / Relajación alterada</option>
+                  <option value="gr2">Grado II / Pseudonormal</option>
+                  <option value="gr3">Grado III / Restrictivo</option>
+                  <option value="elevada">Presión elevada</option>
+                </select>
+              </div>
+
+              <div class="fg" style="margin:0;min-width:140px;">
+                <label style="font-size:.72rem;">Valvulopatía</label>
+                <select id="filtro-valv" onchange="aplicarFiltros()">
+                  <option value="">Todas</option>
+                  <option value="ia">Insuf. aórtica</option>
+                  <option value="im">Insuf. mitral</option>
+                  <option value="ea">Estenosis aórtica</option>
+                  <option value="it">Insuf. tricúspide</option>
+                  <option value="htp">HTP</option>
+                </select>
+              </div>
+
+              <div class="fg" style="margin:0;">
+                <label style="font-size:.72rem;">Casos de interés</label>
+                <select id="filtro-interes" onchange="aplicarFiltros()">
+                  <option value="">Todos</option>
+                  <option value="si">Solo casos de interés</option>
+                </select>
+              </div>
+
+              <button class="btn btn-ghost" onclick="limpiarFiltros()" style="margin-bottom:1px;">
+                🧹 Limpiar filtros
+              </button>
+
+            </div>
+            <div id="filtro-resultado" style="font-size:.78rem;color:var(--text2);margin-top:8px;"></div>
+          </div>
         </div>
         <div id="ig-lista"></div>
         <div id="ig-vacio" style="display:none;">
@@ -8105,6 +7911,342 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 </div>
 
 <!-- MODO COMPARATIVO -->
+<div id="tab-amiloidosis" class="tab-section">
+<div id="amilo-root">
+<div class="amilo-tabhead">
+  <button class="amilo-tab active" onclick="amiloSwitchTab('ett',this)">🫀 ETT — Score ESC</button>
+  <button class="amilo-tab" onclick="amiloSwitchTab('algoritmo',this)">🔬 Algoritmo Dx</button>
+  <button class="amilo-tab" onclick="amiloSwitchTab('guia',this)">📖 Guía</button>
+</div>
+<div class="amilo-main">
+
+<!-- TAB: ALGORITMO DIAGNÓSTICO -->
+<div id="tab-algoritmo" style="display:none">
+  <div class="result-panel" id="algo-result">
+    <div class="result-icon" id="algo-icon">🔬</div>
+    <div class="result-content">
+      <div class="result-title" id="algo-title">—</div>
+      <div class="result-body"  id="algo-body">—</div>
+      <div class="result-accion" id="algo-accion"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span>🔎</span> Contexto clínico</div>
+    <div class="form-row cols2">
+      <div>
+        <label>Motivo de sospecha</label>
+        <select id="alg-motivo">
+          <option value="">Seleccionar...</option>
+          <option>HVI inexplicable (≥12mm)</option>
+          <option>IC con FE preservada refractaria</option>
+          <option>Síndrome del túnel carpiano bilateral</option>
+          <option>Neuropatía periférica + afectación cardíaca</option>
+          <option>Historia familiar de ATTR</option>
+          <option>Ruptura de tendón del bíceps</option>
+          <option>Estenosis aórtica de bajo gradiente</option>
+          <option>Otro</option>
+        </select>
+      </div>
+      <div>
+        <label>Score ETT ESC 2021 (si disponible)</label>
+        <input type="number" id="alg-ett-score" placeholder="0–10 puntos" min="0" max="10" oninput="actualizarAlgoritmo()">
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Calculalo en la pestaña ETT →</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span>☢️</span> Centellograma con Tecnecio 99 — Grado Perugini</div>
+    <div class="info-box">
+      Grados 2 y 3 tienen VPP 100% para diagnóstico de ATTR <strong>si las proteínas monoclonales son negativas</strong>.
+    </div>
+    <div class="grado-grid" id="gamma-grado-grid">
+      <div class="grado-item" onclick="selGrado(0)"><div class="grado-num grado-0">0</div><div class="grado-label">No capta nada</div></div>
+      <div class="grado-item" onclick="selGrado(1)"><div class="grado-num grado-1">1</div><div class="grado-label">Apenas capta</div></div>
+      <div class="grado-item" onclick="selGrado(2)"><div class="grado-num grado-2">2</div><div class="grado-label">Similar al hueso</div></div>
+      <div class="grado-item" onclick="selGrado(3)"><div class="grado-num grado-3">3</div><div class="grado-label">Más que el hueso</div></div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.6">
+      <strong>Falsos positivos:</strong> amiloidosis AL, intoxicación por hidroxicloroquina, fracturas costales, calcificaciones valvulares, IAM &lt;4 semanas.<br>
+      <strong>Falsos negativos:</strong> enfermedad muy leve, adquisición retrasada o prematura.
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span>🧪</span> Proteínas monoclonales en sangre y orina</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
+      Incluye: inmunofijación sérica, inmunofijación urinaria, cadenas ligeras libres en suero (FLC). Deben ser <strong>todas negativas</strong> para confirmar ATTR sin biopsia.
+    </div>
+    <div class="prot-grid">
+      <div class="prot-item negativo" id="prot-neg" onclick="selProteinas('negativo')">
+        <div class="prot-item-icon">✅</div>
+        <div class="prot-item-label">Negativas</div>
+        <div class="prot-item-sub">Inmunofijación sérica y urinaria negativas + FLC normales</div>
+      </div>
+      <div class="prot-item anormal" id="prot-abn" onclick="selProteinas('anormal')">
+        <div class="prot-item-icon">⚠️</div>
+        <div class="prot-item-label">Al menos una anormal</div>
+        <div class="prot-item-sub">Cualquier proteína monoclonal detectada en sangre u orina</div>
+      </div>
+    </div>
+  </div>
+  <div id="escenario-box" style="display:none"></div>
+  <div class="flex gap-8 items-center mb-12 no-print" style="flex-wrap:wrap">
+    <button class="btn btn-green" onclick="window.print()">🖨 Imprimir resultado</button>
+    <button class="btn btn-secondary" onclick="resetAlgoritmo()">🔄 Nueva evaluación</button>
+  </div>
+</div>
+
+<!-- TAB: ETT SCORE ESC 2021 -->
+<div id="tab-ett">
+  <div style="background:linear-gradient(135deg,var(--navy),var(--purple));border-radius:14px;padding:20px;margin-bottom:18px;display:flex;gap:18px;align-items:center">
+    <div style="text-align:center">
+      <div style="font-size:48px;font-weight:900;color:#fff;line-height:1" id="ett-score-num">0</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px">/ 10 pts</div>
+    </div>
+    <div style="flex:1">
+      <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:4px" id="ett-score-cat">Completá los parámetros</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.7);line-height:1.5" id="ett-score-interp">Score ≥8 + HVI ≥12mm sugiere amiloidosis cardíaca.</div>
+      <div class="score-bar" style="margin-top:10px"><div class="score-fill" id="ett-score-bar" style="width:0%;background:#C8A0FF"></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span>📏</span> Espesor del VI — Criterio indispensable</div>
+    <div class="warn-box">
+      El espesor parietal ≥12mm inexplicable es el punto de entrada al algoritmo. Sin HVI ≥12mm, el score ESC no es aplicable.
+    </div>
+    <div class="form-row cols2">
+      <div><label>Espesor septal diastólico (mm)</label><input type="number" id="ett-septo" placeholder="Ej: 14" step="0.1" min="6" max="40" oninput="calcETT()"></div>
+      <div><label>Espesor pared posterior (mm)</label><input type="number" id="ett-pp" placeholder="Ej: 13" step="0.1" min="6" max="40" oninput="calcETT()"></div>
+    </div>
+    <div id="ett-hvi-badge" style="font-size:12px;margin-top:4px;color:var(--muted)">—</div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span>🔍</span> Criterios cualitativos ESC 2021 — deben estar presentes ≥2 de 3</div>
+    <div id="ett-cual-count" style="font-size:12px;color:var(--muted);margin-bottom:10px">0 de 3 presentes</div>
+    <div class="criterio-item" id="cual-1" onclick="toggleCual('cual-1','ett-cual-1')">
+      <div class="criterio-check" id="chk-cual-1">—</div>
+      <div style="flex:1">
+        <div class="criterio-nombre">Disfunción diastólica grado 2 o peor</div>
+        <div class="criterio-def">Patrón de llenado restrictivo o pseudonormal con E/A>2 o E/A 1-2 con criterios adicionales</div>
+      </div>
+      <input type="hidden" id="ett-cual-1" value="0">
+    </div>
+    <div class="criterio-item" id="cual-2" onclick="toggleCual('cual-2','ett-cual-2')">
+      <div class="criterio-check" id="chk-cual-2">—</div>
+      <div style="flex:1">
+        <div class="criterio-nombre">Velocidades tisulares s', e', a' &lt;5 cm/s</div>
+        <div class="criterio-def">Reducción marcada de velocidades de Doppler tisular en anillo mitral (lateral y/o septal)</div>
+      </div>
+      <input type="hidden" id="ett-cual-2" value="0">
+    </div>
+    <div class="criterio-item" id="cual-3" onclick="toggleCual('cual-3','ett-cual-3')">
+      <div class="criterio-check" id="chk-cual-3">—</div>
+      <div style="flex:1">
+        <div class="criterio-nombre">Disminución del SGL (valor absoluto &lt;15%)</div>
+        <div class="criterio-def">Reducción de la deformación longitudinal global del VI por debajo de -15%</div>
+      </div>
+      <input type="hidden" id="ett-cual-3" value="0">
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span>📊</span> Puntuación multiparamétrica — Score ESC 2021</div>
+    <div class="criterio-item" id="crit-rwt" onclick="toggleCrit('crit-rwt','ett-rwt',3)">
+      <div class="criterio-check" id="chk-rwt">—</div>
+      <div style="flex:1">
+        <div class="criterio-nombre">RWT &gt; 0.6</div>
+        <div class="criterio-def">Grosor relativo de pared = (2 × PP) / DDVI. Indica hipertrofia concéntrica marcada</div>
+      </div>
+      <div class="criterio-pts">+3</div>
+      <input type="hidden" id="ett-rwt" value="0">
+    </div>
+    <div style="margin:6px 0 10px 0">
+      <label style="margin-bottom:4px">Calcular RWT automáticamente</label>
+      <div class="form-row cols3">
+        <div><label>PP (mm)</label><input type="number" id="rwt-pp" placeholder="Ej: 13" step="0.1" oninput="calcRWT()"></div>
+        <div><label>DDVI (mm)</label><input type="number" id="rwt-ddvi" placeholder="Ej: 42" step="0.1" oninput="calcRWT()"></div>
+        <div><label>RWT calculado</label><input id="rwt-result" readonly style="background:#f5f7fa;font-weight:700;color:var(--purple)"></div>
+      </div>
+    </div>
+    <div class="criterio-item" id="crit-ee" onclick="toggleCrit('crit-ee','ett-ee',1)">
+      <div class="criterio-check" id="chk-ee">—</div>
+      <div style="flex:1">
+        <div class="criterio-nombre">E/e' &gt; 11</div>
+        <div class="criterio-def">Relación entre velocidad E mitral y e' tisular del anillo mitral (promedio)</div>
+      </div>
+      <div class="criterio-pts">+1</div>
+      <input type="hidden" id="ett-ee" value="0">
+    </div>
+    <div class="form-row cols3" style="margin:6px 0 10px 0">
+      <div><label>Velocidad E (cm/s)</label><input type="number" id="ee-e" placeholder="Ej: 90" step="1" oninput="calcEE()"></div>
+      <div><label>e' promedio (cm/s)</label><input type="number" id="ee-ep" placeholder="Ej: 5" step="0.5" oninput="calcEE()"></div>
+      <div><label>E/e' calculado</label><input id="ee-result" readonly style="background:#f5f7fa;font-weight:700;color:var(--purple)"></div>
+    </div>
+    <div class="criterio-item" id="crit-tapse" onclick="toggleCrit('crit-tapse','ett-tapse',2)">
+      <div class="criterio-check" id="chk-tapse">—</div>
+      <div style="flex:1">
+        <div class="criterio-nombre">TAPSE ≤ 19 mm</div>
+        <div class="criterio-def">Excursión sistólica del plano del anillo tricúspideo. Disfunción sistólica del VD</div>
+      </div>
+      <div class="criterio-pts">+2</div>
+      <input type="hidden" id="ett-tapse" value="0">
+    </div>
+    <div style="margin:6px 0 10px 0">
+      <label>TAPSE medido (mm)</label>
+      <input type="number" id="tapse-val" placeholder="Ej: 16" step="1" min="5" max="35" oninput="calcTAPSE()" style="max-width:200px">
+    </div>
+    <div class="criterio-item" id="crit-sgl" onclick="toggleCrit('crit-sgl','ett-sgl',1)">
+      <div class="criterio-check" id="chk-sgl">—</div>
+      <div style="flex:1">
+        <div class="criterio-nombre">SGL ≤ -13%</div>
+        <div class="criterio-def">Strain longitudinal global del VI. Valor absoluto ≤13% (ej: -12%, -10%). Patrón apical sparing característico de amiloidosis</div>
+      </div>
+      <div class="criterio-pts">+1</div>
+      <input type="hidden" id="ett-sgl" value="0">
+    </div>
+    <div style="margin:6px 0 10px 0">
+      <label>SGL medido (%)</label>
+      <input type="number" id="sgl-val" placeholder="Ej: -12" step="0.5" min="-25" max="0" oninput="amCalcSGL()" style="max-width:200px">
+    </div>
+    <div class="criterio-item" id="crit-apice" onclick="toggleCrit('crit-apice','ett-apice',3)">
+      <div class="criterio-check" id="chk-apice">—</div>
+      <div style="flex:1">
+        <div class="criterio-nombre">Relación ápice/base de strain &gt; 2.9</div>
+        <div class="criterio-def">Patrón de "apical sparing": strain apical relativamente preservado vs base y segmentos medios. Hallazgo muy específico de amiloidosis cardíaca</div>
+      </div>
+      <div class="criterio-pts">+3</div>
+      <input type="hidden" id="ett-apice" value="0">
+    </div>
+    <div class="form-row cols3" style="margin:6px 0 6px 0">
+      <div><label>Strain apical (%)</label><input type="number" id="ap-apic" placeholder="Ej: -18" step="0.5" oninput="calcApice()"></div>
+      <div><label>Strain basal (%)</label><input type="number" id="ap-base" placeholder="Ej: -6" step="0.5" oninput="calcApice()"></div>
+      <div><label>Relación calculada</label><input id="ap-result" readonly style="background:#f5f7fa;font-weight:700;color:var(--purple)"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span>🔎</span> Otros hallazgos sugestivos (no puntuados)</div>
+    <div class="form-row cols2">
+      <div><label>FEVI (%)</label><input type="number" id="ett-fevi" placeholder="Ej: 55" min="10" max="80" oninput="calcETT()"></div>
+      <div>
+        <label>Patrón granular "sparkling"</label>
+        <select id="ett-sparkling" onchange="calcETT()"><option value="no">No presente</option><option value="si">Presente</option></select>
+      </div>
+    </div>
+    <div class="form-row cols2">
+      <div>
+        <label>Derrame pericárdico</label>
+        <select id="ett-derrperic" onchange="calcETT()"><option value="no">No</option><option value="si">Sí (mínimo o moderado)</option></select>
+      </div>
+      <div>
+        <label>Engrosamiento valvular</label>
+        <select id="ett-valvular" onchange="calcETT()"><option value="no">No</option><option value="si">Sí (mitral y/o tricúspide)</option></select>
+      </div>
+    </div>
+  </div>
+  <div class="flex gap-8 mb-12 no-print" style="flex-wrap:wrap">
+    <button class="btn btn-purple" onclick="pasarScoreAAlgoritmo()">→ Pasar score al Algoritmo</button>
+    <button class="btn btn-green" onclick="window.print()">🖨 Imprimir ETT</button>
+    <button class="btn btn-secondary" onclick="resetETT()">🔄 Limpiar</button>
+  </div>
+</div>
+
+<!-- TAB: GUÍA -->
+<div id="tab-guia" style="display:none">
+  <div class="card">
+    <div class="card-title"><span>🔬</span> Amiloidosis cardíaca — Conceptos clave</div>
+    <div style="font-size:13px;line-height:1.8">
+      <p style="margin-bottom:10px">La <strong>amiloidosis cardíaca</strong> es el depósito de fibrillas amiloides en el miocardio que produce una miocardiopatía infiltrativa. Existen dos tipos principales con compromiso cardíaco:</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div style="background:var(--blue-pale);border-radius:8px;padding:12px;border-left:3px solid var(--blue)">
+          <div style="font-weight:700;color:var(--blue);margin-bottom:4px">ATTR — Transtirretina</div>
+          <div style="font-size:12px;color:var(--text);line-height:1.6">
+            <strong>ATTR wt (wild-type/senil):</strong> varones >65a, sin mutación genética<br>
+            <strong>ATTR mt (hereditaria):</strong> mutaciones en el gen TTR (Val122Ile, Val30Met, etc.)<br>
+            Captación positiva en centellograma Tc99 → diagnóstico no invasivo posible
+          </div>
+        </div>
+        <div style="background:var(--red-pale);border-radius:8px;padding:12px;border-left:3px solid var(--red)">
+          <div style="font-weight:700;color:var(--red);margin-bottom:4px">AL — Cadenas ligeras</div>
+          <div style="font-size:12px;color:var(--text);line-height:1.6">
+            Gammapatía monoclonal o mieloma múltiple<br>
+            Peor pronóstico, requiere tratamiento hematológico urgente<br>
+            Centellograma puede ser positivo (falso positivo para ATTR) → siempre buscar proteínas monoclonales
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span>🗺</span> Algoritmo diagnóstico — Gillmore 2016 adaptado</div>
+    <div style="display:grid;gap:8px">
+      <div class="escenario-box verde">
+        <div class="escenario-titulo">Escenario 1 — Gammagrafía sin captación + proteínas monoclonales negativas</div>
+        <div class="escenario-body">Baja probabilidad de amiloidosis cardíaca. Si persiste sospecha clínica → considerar RMC seguida de biopsia extracardiaca o BEM, ya que la gammagrafía puede ser negativa en algunas mutaciones ATTR mt y subtipos raros.</div>
+      </div>
+      <div class="escenario-box morado">
+        <div class="escenario-titulo">Escenario 2 — Gammagrafía con captación + proteínas monoclonales negativas</div>
+        <div class="escenario-body">
+          <strong>Grado 2-3:</strong> continuar con pruebas genéticas para diferenciar ATTR wt y mt. Diagnóstico de ATTR no invasivo confirmado (VPP 100%).<br>
+          <strong>Grado 1:</strong> diagnóstico no invasivo no es posible → biopsia extracardiaca o cardiaca necesaria.
+        </div>
+      </div>
+      <div class="escenario-box amarillo">
+        <div class="escenario-titulo">Escenario 3 — Gammagrafía sin captación + al menos una proteína monoclonal anormal</div>
+        <div class="escenario-body">Realizar RMC para confirmar compromiso cardíaco. Si RMC no apoya amiloidosis cardíaca → diagnóstico poco probable. Si RMC es concordante o no concluyente → biopsia para diagnóstico de AL.</div>
+      </div>
+      <div class="escenario-box rojo">
+        <div class="escenario-titulo">Escenario 4 — Gammagrafía con captación + al menos una proteína monoclonal anormal</div>
+        <div class="escenario-body">ATTR con GMSI concomitante, AL o coexistencia AL y ATTR. El diagnóstico de amiloidosis cardíaca requiere biopsia con tipificación amiloide, generalmente BEM (biopsia endomiocárdica).</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span>📋</span> Score ETT ESC 2021 — Resumen de puntuación</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="background:var(--bg)">
+          <th style="text-align:left;padding:8px 10px;border-bottom:2px solid var(--border)">Parámetro</th>
+          <th style="padding:8px 10px;border-bottom:2px solid var(--border);text-align:center">Criterio</th>
+          <th style="padding:8px 10px;border-bottom:2px solid var(--border);text-align:center">Puntos</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)">RWT</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center">&gt; 0.6</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;color:var(--purple)">3</td></tr>
+        <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)">E/e'</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center">&gt; 11</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;color:var(--purple)">1</td></tr>
+        <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)">TAPSE</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center">≤ 19 mm</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;color:var(--purple)">2</td></tr>
+        <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)">SGL</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center">≤ -13%</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;color:var(--purple)">1</td></tr>
+        <tr><td style="padding:8px 10px">Relación ápice/base</td><td style="padding:8px 10px;text-align:center">&gt; 2.9</td><td style="padding:8px 10px;text-align:center;font-weight:700;color:var(--purple)">3</td></tr>
+      </tbody>
+      <tfoot>
+        <tr style="background:var(--purple-pale)"><td colspan="2" style="padding:8px 10px;font-weight:700">TOTAL MÁXIMO</td><td style="padding:8px 10px;text-align:center;font-weight:900;font-size:16px;color:var(--purple)">10</td></tr>
+      </tfoot>
+    </table>
+    <div style="margin-top:10px;font-size:12px;color:var(--muted);line-height:1.6">
+      <strong>Score ≥8 + HVI ≥12mm</strong> con depósito de amiloide cardíaco o extracardiaco → diagnóstico de amiloidosis cardíaca posible sin biopsia cardiaca.<br>
+      Los criterios cualitativos (disfunción diastólica ≥grado 2, velocidades tisulares &lt;5cm/s, SGL &lt;15%) deben estar presentes ≥2 de 3 para que el escore sea aplicable.
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span>⚠️</span> Limitaciones y consideraciones</div>
+    <div class="warn-box" style="margin-bottom:0">
+      Esta calculadora es una herramienta de apoyo clínico. El diagnóstico final de amiloidosis cardíaca requiere correlación clínica completa. El centellograma con Tc99 debe interpretarse siempre junto con el perfil de proteínas monoclonales. En caso de duda, consultar con cardiología/hematología especializada.<br><br>
+      <strong>Fuentes:</strong> Gillmore JD et al. NEJM 2016 · Guías ESC Cardiomiopatías 2023 · Garcia-Pavia P et al. Eur Heart J 2021.
+    </div>
+  </div>
+</div>
+</div><!-- /.amilo-main -->
+</div><!-- /#amilo-root -->
+</div><!-- /#tab-amiloidosis -->
+
+
+<div id="modal-pdf-import" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:600;overflow:auto;padding:20px;">
+  <div style="max-width:520px;margin:60px auto;background:var(--bg2);border-radius:14px;padding:22px;border:1px solid var(--border);">
+    <div style="font-size:15px;font-weight:700;color:var(--accent2);margin-bottom:16px;">📄 Importando PDFs históricos</div>
+    <progress id="pdf-import-progress" value="0" max="100" style="width:100%;height:14px;"></progress>
+    <div id="pdf-import-status" style="font-size:13px;color:var(--text2);margin-top:12px;line-height:1.5;">Preparando…</div>
+    <div style="text-align:right;margin-top:18px;">
+      <button id="pdf-import-close" class="btn btn-ghost" onclick="document.getElementById('modal-pdf-import').style.display='none';" style="display:none;">Cerrar</button>
+    </div>
+  </div>
+</div>
 <div id="modal-comparativo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:500;overflow:auto;padding:20px;">
   <div style="max-width:1400px;margin:0 auto;background:var(--bg2);border-radius:14px;padding:20px;border:1px solid var(--border);">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
@@ -8128,6 +8270,358 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <div style="font-size:11px;color:var(--text2);margin-top:6px;" id="comp-previo-fecha"></div>
       </div>
     </div>
+  </div>
+</div>
+
+<div id="tab-lab" class="tab-section">
+<style>
+  #tab-lab .lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:800px){#tab-lab .lab-grid{grid-template-columns:1fr;}}
+  #tab-lab .lab-card{background:var(--bg2);border-radius:12px;border:1px solid var(--border);overflow:hidden;margin-bottom:16px;}
+  #tab-lab .lab-card-hdr{background:var(--bg3);color:var(--accent2);padding:10px 16px;font-size:.84rem;font-weight:700;display:flex;align-items:center;gap:8px;}
+  #tab-lab .lab-card-body{padding:14px;}
+  #tab-lab .lab-stat{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:.84rem;}
+  #tab-lab .lab-stat:last-child{border-bottom:none;}
+  #tab-lab .lab-stat-lbl{color:var(--text2);}
+  #tab-lab .lab-stat-val{font-weight:700;color:var(--accent2);}
+  #tab-lab .lab-semaforo{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;}
+  #tab-lab .lab-verde{background:#3ecf8e;}
+  #tab-lab .lab-amarillo{background:#f5c842;}
+  #tab-lab .lab-rojo{background:#f05454;}
+  #tab-lab .lab-filtros{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
+  #tab-lab .lab-chart-wrap{width:100%;overflow-x:auto;}
+  #tab-lab .lab-bar-wrap{display:flex;flex-direction:column;gap:6px;}
+  #tab-lab .lab-bar-row{display:flex;align-items:center;gap:8px;font-size:.78rem;}
+  #tab-lab .lab-bar-lbl{width:160px;color:var(--text2);flex-shrink:0;text-align:right;}
+  #tab-lab .lab-bar-bg{flex:1;background:var(--bg3);border-radius:4px;height:18px;overflow:hidden;}
+  #tab-lab .lab-bar-fill{height:100%;border-radius:4px;background:var(--accent);transition:.4s;}
+  #tab-lab .lab-bar-pct{width:40px;font-weight:700;color:var(--accent2);}
+  #tab-lab .lab-empty{text-align:center;color:var(--text2);font-size:.84rem;padding:30px;}
+  #tab-lab .lab-table{width:100%;border-collapse:collapse;font-size:.82rem;}
+  #tab-lab .lab-table th{background:var(--bg3);color:var(--text2);padding:7px 10px;text-align:left;font-weight:600;border-bottom:1px solid var(--border);}
+  #tab-lab .lab-table td{padding:7px 10px;border-bottom:1px solid var(--border);}
+  #tab-lab .lab-table tr:last-child td{border-bottom:none;}
+  #tab-lab .lab-subtab{padding:8px 16px;font-size:.8rem;font-weight:600;cursor:pointer;color:var(--text2);border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;transition:.15s;font-family:inherit;}
+  #tab-lab .lab-subtab.active{color:var(--accent);border-bottom-color:var(--accent);}
+  #tab-lab .lab-subtab:hover:not(.active){color:var(--text);}
+  #tab-lab .lab-subpanel{display:none;}
+  #tab-lab .lab-subpanel.active{display:block;}
+  #tab-lab .lab-chart-container{position:relative;height:220px;width:100%;margin-bottom:8px;}
+</style>
+
+  <div style="display:flex;flex-wrap:wrap;border-bottom:2px solid var(--border);margin-bottom:16px;">
+    <button class="lab-subtab active" onclick="labSubTab('general',this)">📈 General</button>
+    <button class="lab-subtab" onclick="labSubTab('medicos',this)">👨‍⚕️ Por Médico</button>
+    <button class="lab-subtab" onclick="labSubTab('comparar',this)">🔀 Comparar Períodos</button>
+    <button class="lab-subtab" onclick="labSubTab('informe',this)">📄 Informe PDF</button>
+  </div>
+
+  <div id="lab-sub-general" class="lab-subpanel active">
+
+  <!-- FILTROS -->
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-body">
+      <div class="lab-filtros">
+        <div class="fg" style="margin:0;">
+          <label style="font-size:.75rem;">Período</label>
+          <select id="lab-periodo" onchange="labInit()">
+            <option value="30">Último mes</option>
+            <option value="90">Últimos 3 meses</option>
+            <option value="180">Últimos 6 meses</option>
+            <option value="365" selected>Último año</option>
+            <option value="0">Todo el tiempo</option>
+          </select>
+        </div>
+        <div class="fg" style="margin:0;">
+          <label style="font-size:.75rem;">Desde</label>
+          <input type="date" id="lab-desde" onchange="labInit()">
+        </div>
+        <div class="fg" style="margin:0;">
+          <label style="font-size:.75rem;">Hasta</label>
+          <input type="date" id="lab-hasta" onchange="labInit()">
+        </div>
+        <button class="btn btn-ghost" onclick="labExportarCSV()" style="margin-top:18px;">📊 Exportar CSV</button>
+      </div>
+      <div id="lab-resumen-header" style="font-size:.82rem;color:var(--text2);margin-top:4px;"></div>
+    </div>
+  </div>
+
+  <!-- PILAR 1: ACTIVIDAD -->
+  <div class="lab-card">
+    <div class="lab-card-hdr">📈 Actividad del Laboratorio</div>
+    <div class="lab-card-body">
+      <div class="lab-grid">
+        <div>
+          <div class="lab-stat"><span class="lab-stat-lbl">Total de estudios</span><span class="lab-stat-val" id="lab-total">—</span></div>
+          <div class="lab-stat"><span class="lab-stat-lbl">Estudios hoy</span><span class="lab-stat-val" id="lab-hoy">—</span></div>
+          <div class="lab-stat"><span class="lab-stat-lbl">Esta semana</span><span class="lab-stat-val" id="lab-semana">—</span></div>
+          <div class="lab-stat"><span class="lab-stat-lbl">Este mes</span><span class="lab-stat-val" id="lab-mes">—</span></div>
+          <div class="lab-stat"><span class="lab-stat-lbl">Promedio por día hábil</span><span class="lab-stat-val" id="lab-prom-dia">—</span></div>
+          <div class="lab-stat"><span class="lab-stat-lbl">Tiempo solicitud → estudio</span><span class="lab-stat-val" id="lab-tiempo-sol">—</span></div>
+        </div>
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Estudios por mes</div>
+          <div class="lab-chart-container">
+            <canvas id="chart-meses"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PILAR 2: PERFIL DE POBLACIÓN -->
+  <div class="lab-card">
+    <div class="lab-card-hdr">👥 Perfil de la Población</div>
+    <div class="lab-card-body">
+      <div class="lab-grid">
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Distribución FEVI</div>
+          <div class="lab-bar-wrap" id="lab-fevi-dist"></div>
+          <div style="margin-top:14px;font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Función diastólica</div>
+          <div class="lab-bar-wrap" id="lab-diast-dist"></div>
+        </div>
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Hallazgos frecuentes</div>
+          <div class="lab-bar-wrap" id="lab-hallazgos"></div>
+          <div style="margin-top:14px;">
+            <div class="lab-stat"><span class="lab-stat-lbl">Edad promedio</span><span class="lab-stat-val" id="lab-edad-prom">—</span></div>
+            <div class="lab-stat"><span class="lab-stat-lbl">% Femenino</span><span class="lab-stat-val" id="lab-pct-f">—</span></div>
+            <div class="lab-stat"><span class="lab-stat-lbl">FEVI promedio</span><span class="lab-stat-val" id="lab-fevi-prom">—</span></div>
+            <div class="lab-stat"><span class="lab-stat-lbl">GLS promedio</span><span class="lab-stat-val" id="lab-gls-prom">—</span></div>
+            <div class="lab-stat"><span class="lab-stat-lbl">PSAP promedio</span><span class="lab-stat-val" id="lab-psap-prom">—</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PILAR 3: CALIDAD DEL LABORATORIO -->
+  <div class="lab-card">
+    <div class="lab-card-hdr">✅ Calidad del Laboratorio</div>
+    <div class="lab-card-body">
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">
+        % de estudios en que cada parámetro fue medido (sobre estudios donde aplica).
+      </div>
+      <div class="lab-bar-wrap" id="lab-calidad-bars"></div>
+    </div>
+  </div>
+
+  <!-- PILAR 4: INDICADORES AUTOMÁTICOS -->
+  <div class="lab-card">
+    <div class="lab-card-hdr">⚠️ Indicadores Automáticos — Oportunidades clínicas</div>
+    <div class="lab-card-body">
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">
+        Estudios donde podrían existir brechas asistenciales o datos faltantes clave.
+      </div>
+      <table class="lab-table" id="lab-indicadores-table">
+        <thead>
+          <tr>
+            <th>Indicador</th>
+            <th>N°</th>
+            <th>%</th>
+            <th>Detalle</th>
+          </tr>
+        </thead>
+        <tbody id="lab-indicadores-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PILAR 5: DOCENCIA -->
+  <div class="lab-card">
+    <div class="lab-card-hdr">🎓 Docencia — Casos de interés</div>
+    <div class="lab-card-body">
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">
+        Estudios marcados como "caso de interés" — para ateneo, residentes o publicación.
+      </div>
+      <div id="lab-docencia-lista"></div>
+    </div>
+  </div>
+
+  </div><!-- /lab-sub-general -->
+
+<div id="lab-sub-medicos" class="lab-subpanel">
+  <div class="lab-card">
+    <div class="lab-card-hdr">👨‍⚕️ Análisis por Médico</div>
+    <div class="lab-card-body">
+      <div class="fg" style="margin-bottom:16px;">
+        <label>Seleccionar médico</label>
+        <select id="lab-med-select" onchange="labMedicoRender()">
+          <option value="">— Todos los médicos —</option>
+        </select>
+      </div>
+      <div id="lab-med-stats" class="lab-grid"></div>
+      <div style="margin-top:16px;">
+        <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">
+          Estudios por mes
+        </div>
+        <div class="lab-chart-container">
+          <canvas id="chart-med-meses"></canvas>
+        </div>
+      </div>
+      <div style="margin-top:16px;">
+        <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">
+          Calidad de completitud
+        </div>
+        <div class="lab-bar-wrap" id="lab-med-calidad"></div>
+      </div>
+      <div style="margin-top:16px;">
+        <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">
+          Comparativa entre médicos — estudios totales
+        </div>
+        <div class="lab-chart-container">
+          <canvas id="chart-med-comparativa"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="lab-sub-comparar" class="lab-subpanel">
+  <div class="lab-card">
+    <div class="lab-card-hdr">🔀 Comparar Períodos</div>
+    <div class="lab-card-body">
+      <div class="lab-grid" style="margin-bottom:16px;">
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--accent2);margin-bottom:8px;">Período A</div>
+          <div class="lab-grid">
+            <div class="fg">
+              <label>Desde</label>
+              <input type="date" id="lab-cmp-a-desde">
+            </div>
+            <div class="fg">
+              <label>Hasta</label>
+              <input type="date" id="lab-cmp-a-hasta">
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--accent2);margin-bottom:8px;">Período B</div>
+          <div class="lab-grid">
+            <div class="fg">
+              <label>Desde</label>
+              <input type="date" id="lab-cmp-b-desde">
+            </div>
+            <div class="fg">
+              <label>Hasta</label>
+              <input type="date" id="lab-cmp-b-hasta">
+            </div>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="labCompararRender()">
+        🔀 Comparar
+      </button>
+      <div id="lab-cmp-resultado" style="margin-top:16px;"></div>
+    </div>
+  </div>
+</div>
+
+<div id="lab-sub-informe" class="lab-subpanel">
+  <div class="lab-card">
+    <div class="lab-card-hdr">📄 Informe de Auditoría — Export PDF</div>
+    <div class="lab-card-body">
+      <div class="lab-grid" style="margin-bottom:16px;">
+        <div class="fg">
+          <label>Título del informe</label>
+          <input type="text" id="lab-pdf-titulo" value="Informe Anual de Auditoría — Laboratorio de Ecocardiografía">
+        </div>
+        <div class="fg">
+          <label>Institución</label>
+          <input type="text" id="lab-pdf-inst" placeholder="Hospital / Centro médico">
+        </div>
+      </div>
+      <div class="lab-grid" style="margin-bottom:16px;">
+        <div class="fg">
+          <label>Período cubierto</label>
+          <input type="text" id="lab-pdf-periodo" placeholder="Enero–Diciembre 2025">
+        </div>
+        <div class="fg">
+          <label>Responsable / Jefe de servicio</label>
+          <input type="text" id="lab-pdf-responsable" placeholder="Dr./Dra. Nombre Apellido">
+        </div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:.75rem;font-weight:700;color:var(--text2);">
+          Secciones a incluir
+        </label>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer;">
+            <input type="checkbox" id="lab-pdf-actividad" checked>
+            Actividad
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer;">
+            <input type="checkbox" id="lab-pdf-poblacion" checked>
+            Perfil de población
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer;">
+            <input type="checkbox" id="lab-pdf-calidad" checked>
+            Calidad
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer;">
+            <input type="checkbox" id="lab-pdf-indicadores" checked>
+            Indicadores automáticos
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer;">
+            <input type="checkbox" id="lab-pdf-medicos" checked>
+            Comparativa por médico
+          </label>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="labGenerarPDF()">
+        📄 Generar PDF de Auditoría
+      </button>
+      <div id="lab-pdf-preview" style="margin-top:16px;font-size:.8rem;color:var(--text2);"></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /tab-lab -->
+
+<div id="modal-evolucion" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:600;overflow:auto;padding:20px;">
+  <div style="max-width:900px;margin:0 auto;background:var(--bg2);border-radius:14px;padding:20px;border:1px solid var(--border);">
+
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <div style="font-size:15px;font-weight:700;color:var(--accent2);flex:1;">📈 Evolución longitudinal —
+        <span id="evol-nombre-titulo"></span>
+      </div>
+      <button class="btn btn-ghost" onclick="cerrarEvolucion()">
+        ✕ Cerrar
+      </button>
+    </div>
+
+    <div style="margin-bottom:14px;">
+      <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">
+        Parámetros a mostrar
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;">
+        <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer;">
+          <input type="checkbox" id="evol-fevi" checked onchange="actualizarGraficaEvol()"> FEVI
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer;">
+          <input type="checkbox" id="evol-gls" checked onchange="actualizarGraficaEvol()"> GLS
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer;">
+          <input type="checkbox" id="evol-psap" onchange="actualizarGraficaEvol()"> PSAP
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer;">
+          <input type="checkbox" id="evol-tapse" onchange="actualizarGraficaEvol()"> TAPSE
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer;">
+          <input type="checkbox" id="evol-lavi" onchange="actualizarGraficaEvol()"> LAVI
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer;">
+          <input type="checkbox" id="evol-ee" onchange="actualizarGraficaEvol()"> E/e'
+        </label>
+      </div>
+    </div>
+
+    <div style="position:relative;height:300px;margin-bottom:16px;">
+      <canvas id="chart-evolucion"></canvas>
+    </div>
+
+    <div id="evol-tabla" style="overflow-x:auto;"></div>
+
   </div>
 </div>
 
@@ -8958,6 +9452,104 @@ function calcDiastolBSE2024() {
   window._diastResult = resultado;
 }
 
+// ══ Algoritmo ASE 2025 (recomendado) ══
+// (mismos umbrales que la función provista; cableado a los ids reales de EcoSmart
+//  onda_e/onda_a/e_sep/e_lat/ai_vol→LAVI/vmax_it/lars y al render vía #dd-interp)
+function calcDiastolASE2025() {
+  const ritmo = sv('diast_ritmo');
+  const ep = v('e_sep'), el = v('e_lat');
+  const E = v('onda_e'), A = v('onda_a');
+  const ee = (ep && el) ? ((ep + el) / 2) : (ep || el || null);
+  const tr = v('vmax_it');            // velocidad TR en m/s
+  const aiVol = v('ai_vol');
+  const lars = v('lars');             // opcional
+  const bsa = getBSA();
+  const laviI = (aiVol && bsa) ? aiVol / bsa : null;
+
+  // Celdas de lectura compartidas del panel diastólico
+  if (E && A) document.getElementById('ea-val').textContent = (E / A).toFixed(2);
+  if (ee !== null) document.getElementById('eprom-val').textContent = ee.toFixed(1) + ' cm/s';
+  if (E && ee) document.getElementById('ee-val').textContent = (E / ee).toFixed(1);
+
+  const renderDiast = () => {
+    const dd = document.getElementById('dd-interp');
+    if (dd && window._diastResult) dd.innerHTML = window._diastResult.badge;
+  };
+
+  // FA — algoritmo simplificado
+  if (ritmo === 'fa') { calcDiastolBSE2024(); return; }
+
+  // ── PASO 1: e' reducida? (promedio ≤6.5 | septal ≤6 | lateral ≤7)
+  let ePrimReducida = false;
+  if (ee !== null && ee <= 6.5) ePrimReducida = true;
+  else if (ep !== null && ep <= 6) ePrimReducida = true;
+  else if (el !== null && el <= 7) ePrimReducida = true;
+
+  if (ee === null && ep === null && el === null) {
+    window._diastResult = {
+      texto: 'Completar e\' septal y/o lateral para clasificar con ASE 2025.',
+      textoSuma: '',
+      badge: badge('gray', 'Incompleto — ASE 2025'),
+      algoritmo: 'ase2025'
+    };
+    renderDiast();
+    return;
+  }
+
+  // ── PASO 2: parámetros de presión elevada (E/e'>14, LAVI>34, TR>2.8, LARS≤18)
+  let presionElevada = 0, totalParam = 0;
+  if (ee !== null && E !== null) { totalParam++; if ((E / ee) > 14) presionElevada++; }
+  if (laviI !== null)           { totalParam++; if (laviI > 34) presionElevada++; }
+  if (tr !== null)              { totalParam++; if (tr > 2.8) presionElevada++; }
+  if (lars !== null)            { totalParam++; if (lars <= 18) presionElevada++; }
+
+  // ── PASO 3: umbral según e' (reducida → 1 positivo; conservada → ≥2)
+  let cls, badgeTxt, texto, textoSuma;
+  if (totalParam === 0) {
+    cls = 'gray';
+    badgeTxt = 'Datos insuficientes — ASE 2025';
+    texto = 'Datos insuficientes para clasificar presión de llenado (ASE 2025). Completar E/e\', LAVI y/o TR.';
+    textoSuma = '';
+  } else {
+    const umbral = ePrimReducida ? 1 : 2;
+    const presionAlta = presionElevada >= umbral;
+    if (!presionAlta) {
+      cls = 'green';
+      badgeTxt = 'DD Grado I — ASE 2025';
+      texto = 'Función diastólica grado I (relajación alterada). ' +
+        (ePrimReducida ? 'e\' reducida' : 'e\' conservada') +
+        ' con presión de llenado normal (' + presionElevada + '/' + totalParam + ' parámetros positivos). ASE 2025.';
+      textoSuma = 'Disfunción diastólica grado I — presión de llenado normal (ASE 2025).';
+    } else {
+      const ea = (E && A && A > 0) ? E / A : null;
+      if (ea === null) {
+        cls = 'orange';
+        badgeTxt = 'DD — Presión elevada (ASE 2025)';
+        texto = 'Presión de llenado elevada (' + presionElevada + '/' + totalParam +
+          ' parámetros positivos). Completar cociente E/A para determinar grado. ASE 2025.';
+        textoSuma = 'Disfunción diastólica — presión de llenado elevada (ASE 2025).';
+      } else if (ea >= 2) {
+        cls = 'red';
+        badgeTxt = 'DD Grado III — ASE 2025';
+        texto = 'Disfunción diastólica grado III (patrón restrictivo). E/A ≥2 con presión de llenado ' +
+          'elevada (' + presionElevada + '/' + totalParam + ' parámetros positivos). ASE 2025.';
+        textoSuma = 'Disfunción diastólica grado III — patrón restrictivo, presión de llenado elevada (ASE 2025).';
+      } else {
+        cls = 'orange';
+        badgeTxt = 'DD Grado II — ASE 2025';
+        texto = 'Disfunción diastólica grado II (patrón pseudonormal). E/A ' + ea.toFixed(1) +
+          ' con presión de llenado elevada (' + presionElevada + '/' + totalParam +
+          ' parámetros positivos). ASE 2025.';
+        textoSuma = 'Disfunción diastólica grado II — presión de llenado elevada (ASE 2025).';
+      }
+    }
+  }
+
+  window._diastResult = { texto, textoSuma, badge: badge(cls, badgeTxt), algoritmo: 'ase2025' };
+  renderDiast();
+}
+window.calcDiastolASE2025 = calcDiastolASE2025;
+
 // ══ Algoritmo ASE/EACVI 2016 (grados I–III) ══
 function calcDiastolASE2016() {
   const e = v('onda_e'), a = v('onda_a'), esep = v('e_sep'), elat = v('e_lat');
@@ -9002,8 +9594,9 @@ window.calcDiastolASE2016 = calcDiastolASE2016;
 // Dispatcher según algoritmo + ritmo seleccionados
 window.calcDiastol = function() {
   if (typeof calcHemo === 'function') calcHemo();
-  const algo = sv('diast_algoritmo') || 'bse2024';
+  const algo = sv('diast_algoritmo') || 'ase2025';
   const ritmo = sv('diast_ritmo') || 'sinusal';
+  if (algo === 'ase2025') { calcDiastolASE2025(); return; }
   if (algo === 'ase2016') { calcDiastolASE2016(); return; }
   if (ritmo === 'fa') {
     const e = v('onda_e');
@@ -10750,6 +11343,7 @@ function limpiar() {
   document.querySelectorAll('select').forEach(el => el.selectedIndex = 0);
   // Prolapso mitral: desmarcar checkboxes, limpiar extensión, ocultar bloque
   ['vm_seg_a1','vm_seg_a2','vm_seg_a3','vm_seg_p1','vm_seg_p2','vm_seg_p3','vm_seg_ca','vm_seg_cp','vm_flail','vm_rotura_cuerdas','vm_elongacion_cuerdas','vm_calc_anular','vm_engros_valvar','vm_exceso_tejido'].forEach(id => { const el = document.getElementById(id); if (el) el.checked = false; });
+  { const _ci = document.getElementById('caso_interes'); if (_ci) _ci.checked = false; }
   { const _mm = document.getElementById('vm_prolapso_mm'); if (_mm) _mm.value = ''; }
   { const _bp = document.getElementById('bloque-prolapso-vm'); if (_bp) _bp.style.display = 'none'; }
   // Masa intracardíaca: resetear selector y ocultar bloque
@@ -12603,6 +13197,7 @@ function guardarInforme() {
   document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
     campos[el.id] = el.value;
   });
+  campos['caso_interes'] = document.getElementById('caso_interes')?.checked ? '1' : '0';
   ['med-nombre','med-matricula','med-lugar','med-especialidad','med-direccion','med-telefono'].forEach(fid => {
     const el = document.getElementById(fid);
     if (el) campos[fid] = el.textContent.trim();
@@ -12687,6 +13282,7 @@ function renderInformesGuardados() {
         <div class="ig-item-meta" style="font-size:10px;opacity:.65;margin-top:2px;">Guardado: ${fechaGuard}</div>
       </div>
       <div class="ig-item-actions" onclick="event.stopPropagation()">
+        <button onclick="verEvolucion('${inf.nombre}','${inf.ci}')" class="btn btn-ghost" style="font-size:11px;padding:4px 8px;" title="Ver evolución temporal del paciente">📈 Evolución</button>
         <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="pdfDeInformeGuardado(${inf.id})">📄 PDF</button>
         <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="editarInforme(${inf.id})">✏️ Editar</button>
         <button class="btn btn-danger" style="font-size:11px;padding:4px 10px;" onclick="eliminarInforme(${inf.id})">🗑️</button>
@@ -12721,6 +13317,791 @@ function limpiarTodosInformes() {
   toast('🗑️ Todos los informes eliminados');
   renderInformesGuardados();
 }
+
+function exportarInformesJSON() {
+  const informes = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  if (informes.length === 0) { toast('⚠️ No hay informes para exportar'); return; }
+  const fecha = new Date().toISOString().split('T')[0];
+  const blob = new Blob([JSON.stringify(informes, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ecosmart_backup_' + fecha + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('✅ ' + informes.length + ' informes exportados');
+}
+
+function importarInformesJSON(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const nuevos = JSON.parse(e.target.result);
+      if (!Array.isArray(nuevos)) { toast('❌ Archivo inválido'); return; }
+      const existentes = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+      const idsExistentes = new Set(existentes.map(i => i.id));
+      const sinDuplicados = nuevos.filter(i => !idsExistentes.has(i.id));
+      const merged = [...existentes, ...sinDuplicados];
+      localStorage.setItem('ett_informes', JSON.stringify(merged));
+      toast('✅ ' + sinDuplicados.length + ' informes importados (' + (nuevos.length - sinDuplicados.length) + ' duplicados omitidos)');
+      if (typeof renderInformes === 'function') renderInformes();
+      else if (typeof renderInformesGuardados === 'function') renderInformesGuardados();
+      else if (typeof cargarInformes === 'function') cargarInformes();
+    } catch(err) {
+      toast('❌ Error al leer el archivo JSON');
+    }
+  };
+  reader.readAsText(file);
+}
+
+async function importarPDFsHistoricos(files) {
+  const existentes = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  const idsExistentes = new Set(existentes.map(i => i.id));
+
+  // Mostrar modal
+  document.getElementById('modal-pdf-import').style.display = '';
+  const progressBar = document.getElementById('pdf-import-progress');
+  const statusEl = document.getElementById('pdf-import-status');
+
+  let importados = 0, duplicados = 0, errores = 0;
+  const nuevos = [];
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    statusEl.textContent = `Procesando ${i + 1} de ${files.length}: ${file.name}`;
+    progressBar.value = Math.round((i / files.length) * 100);
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let txt = '';
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p);
+        const content = await page.getTextContent();
+        txt += content.items.map(item => item.str).join(' ') + '\n';
+      }
+
+      // Helper: extrae texto o null
+      const ex = (patron) => {
+        const m = txt.match(patron);
+        return (m && m[1] && m[1].trim()) ? m[1].trim() : null;
+      };
+      // Helper: extrae número o null
+      const num = (patron) => {
+        const val = ex(patron);
+        return val ? parseFloat(val.replace(',', '.')) : null;
+      };
+
+      // ── DATOS PACIENTE ──
+      const nombre    = ex(/(?:Nombre|Paciente)[:\s]+([^\n\r|]{3,40})/i);
+      const ci        = ex(/(?:CI|Cédula|Doc\.?)[:\s]+([0-9.\-]{5,12})/i);
+      const edad      = num(/Edad[:\s]+(\d+)/i);
+      const peso      = num(/Peso[:\s]+([\d.,]+)\s*[Kk]/i);
+      const talla     = num(/Talla[:\s]+([\d.,]+)\s*cm/i);
+      const medico    = ex(/Dr\.?\s+([^\n\r.]{4,40})/i);
+      const matricula = ex(/(?:CJPP|Matr[íi]cula|Mat\.?)[:\s#]*([\d]+)/i);
+
+      // Normalizar fecha a YYYY-MM-DD
+      let fecha = ex(/Fecha[:\s]+(\d{1,2}\/\d{1,2}\/\d{2,4}|\d{4}-\d{2}-\d{2})/i);
+      if (fecha && fecha.includes('/')) {
+        const p = fecha.split('/');
+        if (p[2].length === 2) p[2] = '20' + p[2];
+        fecha = `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+      }
+
+      // ── AORTA (1 a 3 porciones según el caso) ──
+      const ao_sin  = num(/[Ss]eno[s]?\s*[Vv]alsalva[.\s]*([\d.,]+)/i);
+      const ao_ust  = num(/[Uu]ni[oó]n\s*[Ss]inotubular[.\s]*([\d.,]+)/i);
+      const ao_asc  = num(/[Aa]orta\s*[Aa]scendente[^.]{0,20}?([\d.,]+)\s*mm/i);
+
+      // ── AURÍCULA IZQUIERDA ──
+      const ai_diam = num(/D[-\s]?AP[:\s]*([\d.,]+)\s*mm/i);
+      const ai_area = num(/[Áá]rea[^.]{0,15}[Aa]ur[íi]cula\s*[Ii]zq[^.]{0,10}([\d.,]+)/i) ||
+                      num(/[Aa]ur[íi]cula\s*[Ii]zq[^.]{0,30}[Áá]rea[:\s]*([\d.,]+)/i);
+      const lavi    = num(/Vol(?:umen)?\s*[Íi]ndex[:\s]*([\d.,]+)\s*ml/i) ||
+                      num(/LAVI[:\s]*([\d.,]+)/i);
+
+      // ── VENTRÍCULO IZQUIERDO ──
+      const siv      = num(/SIVD[.\s]*([\d.,]+)/i);
+      const ddvi     = num(/DDVI[.\s]*([\d.,]+)/i);
+      const dsvi     = num(/DSVI[.\s]*([\d.,]+)/i);
+      const ppvi     = num(/PPVID[.\s]*([\d.,]+)/i);
+      const masa_vi  = num(/Masa[.\s]*([\d.,]+)\s*g/i);
+      const rwt      = num(/RWT[:\s]*([\d.,]+)/i);
+      const fevi     = num(/FEVI[:\s]*([\d.,]+)\s*%/i) ||
+                       num(/FEVI\s+([\d.,]+)/i);
+      const gls      = num(/GLS[:\s]*([-\d.,]+)\s*%/i) ||
+                       num(/GLS\s+([-\d.,]+)/i);
+
+      // ── VENTRÍCULO DERECHO ──
+      const tvia    = num(/TAP[.\s]*([\d.,]+)\s*ms/i);
+      const tapse   = num(/TAPSE[.\s]*([\d.,]+)\s*mm/i);
+      const vd_bas  = num(/Di[aá]m(?:etro)?\s*[Bb]asal[.\s]*([\d.,]+)\s*mm/i);
+      const s_prime = num(/[Oo]nda\s*S[.\s]*([\d.,]+)\s*cm/i);
+
+      // ── AURÍCULA DERECHA + VCI ──
+      const ad_area = num(/[Áá]rea\s*(?:AD|[Aa]ur[íi]cula\s*[Dd]erecha)[.\s]*([\d.,]+)/i);
+      const vci     = num(/VCI[.\s]*([\d.,]+)\s*mm/i);
+
+      // ── DOPPLER MITRAL ──
+      const e_mitral     = num(/[Oo]nda\s*E[.\s]*([\d.,]+)\s*cm/i);
+      const a_mitral     = num(/[Oo]nda\s*A[.\s]*([\d.,]+)\s*cm/i);
+      const e_prima_sept = num(/e['′’]\s*[Ss]eptal[.\s]*([\d.,]+)/i);
+      const e_prima_lat  = num(/e['′’]\s*[Ll]ateral[.\s]*([\d.,]+)/i);
+
+      // ── VÁLVULA AÓRTICA ──
+      const va_vmax  = num(/V[.\s]?[Mm]ax[.\s]*([\d.,]+)\s*m\/s/i);
+      const va_gmax  = num(/G[.\s]?[Mm][aá]x[.\s]*([\d.,]+)\s*mmHg/i);
+      const va_gmed  = num(/G[.\s]?[Mm]edio[.\s]*([\d.,]+)\s*mmHg/i);
+      const tsvi_vti = num(/VTI[-\s]?TSVI[.\s]*([\d.,]+)/i);
+      const vao_vti  = num(/VTI[-\s]?[Vv]ao[.\s]*([\d.,]+)/i);
+      const ava      = num(/AVA[.\s]*([\d.,]+)\s*cm2/i);
+
+      // ── VÁLVULA TRICÚSPIDE / PSAP ──
+      const vrt  = num(/V[.\s]?[Mm][aá]x\s*(?:de\s*)?IT[.\s]*([\d.,]+)\s*m\/s/i);
+      const psap = num(/PSAP[.\s]*([\d.,]+)\s*mmHg/i);
+
+      // ── INFORME Y CONCLUSIÓN ──
+      const en_suma     = ex(/(?:EN SUMA|En Suma|CONCLUSI[OÓ]N)[:\s]*([^\n]{20,})/i);
+      const informe_txt = ex(/INFORME[:\s]*\n?([\s\S]{50,600}?)(?=EN SUMA|$)/i);
+
+      // ── ARMAR campos (solo los que existen) ──
+      const campos = {};
+      const set = (k, v) => {
+        if (v !== null && v !== undefined && v !== '') campos[k] = String(v);
+      };
+      set('nombre',        nombre);
+      set('ci',            ci);
+      set('edad',          edad);
+      set('peso',          peso);
+      set('talla',         talla);
+      set('med-nombre',    medico);
+      set('med-matricula', matricula);
+      set('fecha',         fecha);
+      set('ao_sin',        ao_sin);
+      set('ao_ust',        ao_ust);
+      set('ao_asc',        ao_asc);
+      set('ai_diam',       ai_diam);
+      set('ai_area',       ai_area);
+      set('lavi',          lavi);
+      set('siv',           siv);
+      set('ddvi',          ddvi);
+      set('dsvi',          dsvi);
+      set('ppvi',          ppvi);
+      set('masa_vi',       masa_vi);
+      set('rwt',           rwt);
+      set('fevi_simpson',  fevi);
+      set('gls_global',    gls);
+      set('tvia',          tvia);
+      set('tapse',         tapse);
+      set('vd_bas',        vd_bas);
+      set('s_prime',       s_prime);
+      set('ad_area',       ad_area);
+      set('vci',           vci);
+      set('e_mitral',      e_mitral);
+      set('a_mitral',      a_mitral);
+      set('e_prima_sept',  e_prima_sept);
+      set('e_prima_lat',   e_prima_lat);
+      set('va_vmax',       va_vmax);
+      set('va_gmax',       va_gmax);
+      set('va_gmed',       va_gmed);
+      set('tsvi_vti',      tsvi_vti);
+      set('vao_vti',       vao_vti);
+      set('ava',           ava);
+      set('vrt',           vrt);
+      set('psap_calc',     psap);
+      set('en_suma',       en_suma);
+      set('informe_texto', informe_txt);
+
+      // ── ID reproducible para detectar duplicados ──
+      const idHash = (nombre + ci + fecha).toLowerCase()
+        .replace(/\s/g, '')
+        .split('')
+        .reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0);
+      const id = Math.abs(idHash) + 1000000000;
+
+      if (idsExistentes.has(id)) { duplicados++; continue; }
+
+      nuevos.push({
+        id,
+        nombre:          nombre || '—',
+        ci:              ci     || '—',
+        doc_tipo:        'CI',
+        fecha_estudio:   fecha  || '',
+        fecha_guardado:  new Date().toISOString(),
+        importado_pdf:   true,
+        archivo_origen:  file.name,
+        campos
+      });
+
+      idsExistentes.add(id);
+      importados++;
+
+    } catch(err) {
+      console.warn('Error en', file.name, err);
+      errores++;
+    }
+  }
+
+  const merged = [...existentes, ...nuevos];
+  localStorage.setItem('ett_informes', JSON.stringify(merged));
+
+  progressBar.value = 100;
+  statusEl.innerHTML =
+    `<strong>✅ Completado</strong><br>` +
+    `Importados: ${importados} | Duplicados omitidos: ${duplicados} | Errores: ${errores}`;
+  document.getElementById('pdf-import-close').style.display = '';
+
+  if (typeof renderInformes === 'function') renderInformes();
+  else if (typeof renderInformesGuardados === 'function') renderInformesGuardados();
+  else if (typeof cargarInformes === 'function') cargarInformes();
+}
+
+// ── Amiloidosis Calculator ──
+var gradoGamma = null;
+var protMonoc  = null;
+
+function amiloSwitchTab(id, btn) {
+  ['tab-algoritmo','tab-ett','tab-guia'].forEach(t => {
+    var el = document.getElementById(t); if(el) el.style.display='none';
+  });
+  var target = document.getElementById('tab-'+id);
+  if(target) target.style.display='block';
+  document.querySelectorAll('#amilo-root .amilo-tab').forEach(b => b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+}
+
+function selGrado(g) {
+  gradoGamma = g;
+  document.querySelectorAll('.grado-item').forEach((el,i) => {
+    el.classList.toggle('selected', i === g);
+  });
+  actualizarAlgoritmo();
+}
+
+function selProteinas(val) {
+  protMonoc = val;
+  document.getElementById('prot-neg').classList.toggle('selected', val==='negativo');
+  document.getElementById('prot-abn').classList.toggle('selected', val==='anormal');
+  actualizarAlgoritmo();
+}
+
+function actualizarAlgoritmo() {
+  var panel    = document.getElementById('algo-result');
+  var iconEl   = document.getElementById('algo-icon');
+  var titleEl  = document.getElementById('algo-title');
+  var bodyEl   = document.getElementById('algo-body');
+  var accionEl = document.getElementById('algo-accion');
+  var escenEl  = document.getElementById('escenario-box');
+  var ettScore = parseFloat(document.getElementById('alg-ett-score')?.value) || null;
+
+  if(gradoGamma === null || protMonoc === null) {
+    panel.className = 'result-panel';
+    if(escenEl) escenEl.style.display='none';
+    return;
+  }
+
+  var captaGamma = gradoGamma >= 1;
+  var captaAlta  = gradoGamma >= 2;
+  var protNeg    = protMonoc === 'negativo';
+  var ettInfo    = ettScore !== null ? ' (Score ETT: ' + ettScore + '/10)' : '';
+
+  var tipo='', icon='', titulo='', cuerpo='', accion='', clasePanel='', escenario='', claseEscenario='';
+
+  if(!captaGamma && protNeg) {
+    tipo='E1'; icon='🟢'; clasePanel='prob-baja'; claseEscenario='verde';
+    titulo = 'Baja probabilidad de amiloidosis cardíaca';
+    cuerpo = 'Gammagrafía sin captación cardíaca y proteínas monoclonales negativas. Este escenario tiene baja probabilidad de amiloidosis cardíaca.' + ettInfo;
+    accion = '→ Si persiste la sospecha clínica: considerar RMC seguida de biopsia extracardiaca (grasa abdominal, glándulas salivales) o BEM. La gammagrafía puede ser negativa en algunas mutaciones ATTR mt y subtipos raros de amiloidosis cardíaca.';
+    escenario = 'Escenario 1 — Sin captación / Proteínas negativas';
+  } else if(captaGamma && protNeg) {
+    if(captaAlta) {
+      tipo='E2A'; icon='🟣'; clasePanel='prob-alta'; claseEscenario='morado';
+      titulo = 'ATTR confirmado — Grado ' + gradoGamma + ' (VPP 100%)' + ettInfo;
+      cuerpo = 'Gammagrafía con captación cardíaca grado ' + gradoGamma + ' y proteínas monoclonales negativas. Este patrón tiene un valor predictivo positivo del 100% para ATTR. No se requiere biopsia cardiaca para confirmar el diagnóstico.';
+      accion = '→ Continuar con pruebas genéticas del gen TTR para diferenciar ATTR wild-type (senil, sin mutación) de ATTR mutante (hereditario). Derivar a consulta especializada en amiloidosis para inicio de tratamiento específico (tafamidis, patisiran u otro según disponibilidad).';
+    } else {
+      tipo='E2B'; icon='🟡'; clasePanel='intermedio'; claseEscenario='morado';
+      titulo = 'Captación grado 1 — Diagnóstico no invasivo no posible';
+      cuerpo = 'Gammagrafía con captación cardíaca grado 1 y proteínas monoclonales negativas. Con captación grado 1, el diagnóstico no invasivo de ATTR no es posible con certeza.' + ettInfo;
+      accion = '→ Biopsia extracardiaca (grasa abdominal, glándulas salivales) o biopsia endomiocárdica (BEM) necesaria para confirmar o descartar amiloidosis cardíaca y tipificar el amiloide.';
+    }
+    escenario = 'Escenario 2 — Captación cardíaca / Proteínas negativas';
+  } else if(!captaGamma && !protNeg) {
+    tipo='E3'; icon='🟠'; clasePanel='intermedio'; claseEscenario='amarillo';
+    titulo = 'Sospecha de AL — Realizar RMC';
+    cuerpo = 'Gammagrafía sin captación cardíaca pero con al menos una prueba de proteínas monoclonales anormal. La captación negativa no descarta amiloidosis AL.' + ettInfo;
+    accion = '→ Realizar RMC cardíaca para confirmar o descartar compromiso cardíaco.\n• Si RMC no apoya amiloidosis cardíaca → diagnóstico poco probable.\n• Si RMC es concordante o no concluyente → biopsia (grasa abdominal, BEM) para diagnóstico de amiloidosis AL.';
+    escenario = 'Escenario 3 — Sin captación / Proteína(s) monoclonal(es) anormal(es)';
+  } else {
+    tipo='E4'; icon='🔴'; clasePanel='biopsia'; claseEscenario='rojo';
+    titulo = 'Biopsia obligatoria — Posible AL o ATTR+AL';
+    cuerpo = 'Gammagrafía con captación cardíaca ' + (captaAlta?'grado '+gradoGamma:'grado 1') + ' y al menos una proteína monoclonal anormal. Este escenario puede corresponder a: ATTR con GMSI concomitante, amiloidosis AL, o coexistencia de AL y ATTR.' + ettInfo;
+    accion = '→ El diagnóstico de amiloidosis cardíaca requiere biopsia con tipificación del amiloide, generalmente BEM (biopsia endomiocárdica). No se puede asumir ATTR sin biopsia en este contexto. Derivar urgente a hematología si se sospecha AL por implicaciones terapéuticas.';
+    escenario = 'Escenario 4 — Captación cardíaca / Proteína(s) monoclonal(es) anormal(es)';
+  }
+
+  panel.className = 'result-panel show ' + clasePanel;
+  if(iconEl)  iconEl.textContent  = icon;
+  if(titleEl) titleEl.textContent = titulo;
+  if(bodyEl)  bodyEl.textContent  = cuerpo;
+  if(accionEl){ accionEl.innerHTML = accion.replace(/\n/g,'<br>'); }
+
+  if(escenEl) {
+    escenEl.style.display='block';
+    escenEl.innerHTML = '<div class="escenario-box ' + claseEscenario + '">'
+      + '<div class="escenario-titulo">' + escenario + '</div>'
+      + '<div class="escenario-body">' + accion.replace(/\n/g,'<br>') + '</div>'
+      + '</div>';
+  }
+}
+
+function resetAlgoritmo() {
+  gradoGamma = null; protMonoc = null;
+  document.querySelectorAll('.grado-item').forEach(el => el.classList.remove('selected'));
+  document.getElementById('prot-neg').classList.remove('selected');
+  document.getElementById('prot-abn').classList.remove('selected');
+  document.getElementById('algo-result').className = 'result-panel';
+  var escenEl = document.getElementById('escenario-box');
+  if(escenEl) escenEl.style.display='none';
+  ['alg-ett-score'].forEach(id=>{
+    var el=document.getElementById(id); if(el) el.value='';
+  });
+  var motivoEl=document.getElementById('alg-motivo'); if(motivoEl) motivoEl.selectedIndex=0;
+}
+
+function toggleCrit(itemId, inputId, pts) {
+  var item = document.getElementById(itemId);
+  var input = document.getElementById(inputId);
+  var chk = document.getElementById('chk-' + itemId.replace('crit-',''));
+  if(!item || !input) return;
+  var activo = !item.classList.contains('activo');
+  item.classList.toggle('activo', activo);
+  input.value = activo ? pts : 0;
+  if(chk) chk.textContent = activo ? '✓' : '—';
+  calcETT();
+}
+
+function toggleCual(itemId, inputId) {
+  var item = document.getElementById(itemId);
+  var input = document.getElementById(inputId);
+  var num = itemId.replace('cual-','');
+  var chk = document.getElementById('chk-cual-' + num);
+  if(!item||!input) return;
+  var activo = !item.classList.contains('activo');
+  item.classList.toggle('activo', activo);
+  input.value = activo ? 1 : 0;
+  if(chk) chk.textContent = activo ? '✓' : '—';
+  calcETT();
+}
+
+function calcRWT() {
+  var pp   = parseFloat(document.getElementById('rwt-pp')?.value)   || 0;
+  var ddvi = parseFloat(document.getElementById('rwt-ddvi')?.value) || 0;
+  var resEl = document.getElementById('rwt-result');
+  if(!pp||!ddvi){ if(resEl) resEl.value=''; return; }
+  var rwt = (2*pp)/ddvi;
+  if(resEl) resEl.value = rwt.toFixed(2);
+  var crit = document.getElementById('crit-rwt');
+  var input= document.getElementById('ett-rwt');
+  var chk  = document.getElementById('chk-rwt');
+  if(crit&&input&&chk){
+    var cumple = rwt > 0.6;
+    crit.classList.toggle('activo', cumple);
+    input.value = cumple ? 3 : 0;
+    chk.textContent = cumple ? '✓' : '—';
+  }
+  calcETT();
+}
+
+function calcEE() {
+  var e  = parseFloat(document.getElementById('ee-e')?.value)  || 0;
+  var ep = parseFloat(document.getElementById('ee-ep')?.value) || 0;
+  var resEl = document.getElementById('ee-result');
+  if(!e||!ep){ if(resEl) resEl.value=''; return; }
+  var ee = e/ep;
+  if(resEl) resEl.value = ee.toFixed(1);
+  var crit=document.getElementById('crit-ee');
+  var input=document.getElementById('ett-ee');
+  var chk=document.getElementById('chk-ee');
+  if(crit&&input&&chk){
+    var cumple = ee > 11;
+    crit.classList.toggle('activo',cumple);
+    input.value = cumple ? 1 : 0;
+    chk.textContent = cumple ? '✓' : '—';
+  }
+  calcETT();
+}
+
+function calcTAPSE() {
+  var val = parseFloat(document.getElementById('tapse-val')?.value);
+  var crit=document.getElementById('crit-tapse');
+  var input=document.getElementById('ett-tapse');
+  var chk=document.getElementById('chk-tapse');
+  if(isNaN(val)){ return; }
+  if(crit&&input&&chk){
+    var cumple = val <= 19;
+    crit.classList.toggle('activo',cumple);
+    input.value = cumple ? 2 : 0;
+    chk.textContent = cumple ? '✓' : '—';
+  }
+  calcETT();
+}
+
+function amCalcSGL() {
+  var val = parseFloat(document.getElementById('sgl-val')?.value);
+  var crit=document.getElementById('crit-sgl');
+  var input=document.getElementById('ett-sgl');
+  var chk=document.getElementById('chk-sgl');
+  if(isNaN(val)){ return; }
+  if(crit&&input&&chk){
+    var cumple = val >= -13;
+    crit.classList.toggle('activo',cumple);
+    input.value = cumple ? 1 : 0;
+    chk.textContent = cumple ? '✓' : '—';
+  }
+  calcETT();
+}
+
+function calcApice() {
+  var apic = parseFloat(document.getElementById('ap-apic')?.value);
+  var base = parseFloat(document.getElementById('ap-base')?.value);
+  var resEl = document.getElementById('ap-result');
+  if(isNaN(apic)||isNaN(base)||base===0){ if(resEl) resEl.value=''; return; }
+  var rel = Math.abs(apic)/Math.abs(base);
+  if(resEl) resEl.value = rel.toFixed(2);
+  var crit=document.getElementById('crit-apice');
+  var input=document.getElementById('ett-apice');
+  var chk=document.getElementById('chk-apice');
+  if(crit&&input&&chk){
+    var cumple = rel > 2.9;
+    crit.classList.toggle('activo',cumple);
+    input.value = cumple ? 3 : 0;
+    chk.textContent = cumple ? '✓' : '—';
+  }
+  calcETT();
+}
+
+function calcETT() {
+  var pts = ['ett-rwt','ett-ee','ett-tapse','ett-sgl','ett-apice']
+    .reduce((s,id)=>s+(parseFloat(document.getElementById(id)?.value)||0),0);
+
+  var septo = parseFloat(document.getElementById('ett-septo')?.value)||0;
+  var pp    = parseFloat(document.getElementById('ett-pp')?.value)||0;
+  var espesor = Math.max(septo, pp);
+  var hvi = espesor >= 12;
+
+  var cualCount = ['ett-cual-1','ett-cual-2','ett-cual-3']
+    .reduce((s,id)=>s+(parseFloat(document.getElementById(id)?.value)||0),0);
+
+  var numEl  = document.getElementById('ett-score-num');
+  var catEl  = document.getElementById('ett-score-cat');
+  var interpEl= document.getElementById('ett-score-interp');
+  var barEl  = document.getElementById('ett-score-bar');
+  var hviEl  = document.getElementById('ett-hvi-badge');
+  var cualEl = document.getElementById('ett-cual-count');
+
+  if(numEl) numEl.textContent = pts;
+  if(barEl) barEl.style.width = (pts/10*100) + '%';
+  if(hviEl) hviEl.innerHTML = espesor > 0
+    ? (hvi
+        ? '<span class="badge badge-purple">✅ HVI ≥12mm — Criterio presente (' + espesor.toFixed(1) + 'mm)</span>'
+        : '<span class="badge badge-green">HVI &lt;12mm — Score ESC no aplicable (' + espesor.toFixed(1) + 'mm)</span>')
+    : '—';
+  if(cualEl) cualEl.textContent = cualCount + ' de 3 criterios cualitativos presentes' + (cualCount>=2?' ✅':'');
+
+  var cat='', interp='';
+  if(pts === 0) {
+    cat='Completá los parámetros';
+    interp='Ingresá los valores del ecocardiograma para calcular el score.';
+  } else if(pts >= 8 && hvi && cualCount >= 2) {
+    cat='🟣 Score ALTO (' + pts + '/10) — Amiloidosis muy sugestiva';
+    interp='Score ≥8 + HVI ≥12mm + ≥2 criterios cualitativos. Patrón altamente sugestivo de amiloidosis cardíaca. Continuar con centellograma y proteínas monoclonales.';
+  } else if(pts >= 5 && hvi) {
+    cat='🟡 Score INTERMEDIO (' + pts + '/10)';
+    interp='Hallazgos sugestivos pero score <8 o criterios cualitativos insuficientes. Evaluar en contexto clínico. Completar estudio.';
+  } else if(hvi) {
+    cat='🟢 Score BAJO (' + pts + '/10) con HVI';
+    interp='HVI presente pero score bajo. Considerar otras causas de HVI (HTA, estenosis aórtica, miocardiopatía hipertrófica). Amiloidosis menos probable pero no descartada.';
+  } else {
+    cat='⚪ Score: ' + pts + '/10 — Sin HVI ≥12mm';
+    interp='Sin HVI ≥12mm, el algoritmo ESC 2021 no es formalmente aplicable. Score calculado como referencia.';
+  }
+
+  if(catEl) catEl.textContent = cat;
+  if(interpEl) interpEl.textContent = interp;
+}
+
+function pasarScoreAAlgoritmo() {
+  var pts = ['ett-rwt','ett-ee','ett-tapse','ett-sgl','ett-apice']
+    .reduce((s,id)=>s+(parseFloat(document.getElementById(id)?.value)||0),0);
+  var scoreEl = document.getElementById('alg-ett-score');
+  if(scoreEl) scoreEl.value = pts;
+  amiloSwitchTab('algoritmo', document.querySelectorAll('#amilo-root .amilo-tab')[1]);
+  actualizarAlgoritmo();
+}
+
+function resetETT() {
+  ['rwt-pp','rwt-ddvi','ee-e','ee-ep','tapse-val','sgl-val','ap-apic','ap-base',
+   'ett-septo','ett-pp','rwt-result','ee-result','ap-result'].forEach(id=>{
+    var el=document.getElementById(id); if(el) el.value='';
+  });
+  ['crit-rwt','crit-ee','crit-tapse','crit-sgl','crit-apice','cual-1','cual-2','cual-3'].forEach(id=>{
+    var el=document.getElementById(id); if(el) el.classList.remove('activo');
+  });
+  ['ett-rwt','ett-ee','ett-tapse','ett-sgl','ett-apice','ett-cual-1','ett-cual-2','ett-cual-3'].forEach(id=>{
+    var el=document.getElementById(id); if(el) el.value=0;
+  });
+  ['chk-rwt','chk-ee','chk-tapse','chk-sgl','chk-apice','chk-cual-1','chk-cual-2','chk-cual-3'].forEach(id=>{
+    var el=document.getElementById(id); if(el) el.textContent='—';
+  });
+  document.getElementById('ett-sparkling').selectedIndex=0;
+  document.getElementById('ett-derrperic').selectedIndex=0;
+  document.getElementById('ett-valvular').selectedIndex=0;
+  calcETT();
+}
+
+(function amiloInit(){
+  function run(){
+    if(typeof calcETT === 'function') calcETT();
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
+})();
+
+// ── Strain Patrones ──
+const C = {
+  N:  '#C62828', H1: '#EF9A9A', H2: '#E57373', H3: '#EF5350',
+  AC: '#CE93D8', D1: '#90CAF9', D2: '#1565C0', GR: '#9E9E9E'
+};
+
+function buildBullsEyeSVG(colors, size, interactive) {
+  size = size || 140;
+  const cx = size/2, cy = size/2;
+  const anillos = [
+    { r: size*0.50, count: 6, offset: -60 },
+    { r: size*0.335,count: 6, offset: -60 },
+    { r: size*0.175,count: 4, offset: -45 },
+  ];
+  const apexR = size * 0.075;
+  let paths = '';
+  let segIdx = 0;
+  anillos.forEach((anillo, ai) => {
+    const rOuter = anillo.r;
+    const rInner = ai === 0 ? anillo.r * 0.67 : ai === 1 ? anillo.r * 0.525 : anillo.r * 0.43;
+    const step = 360 / anillo.count;
+    for (let i = 0; i < anillo.count; i++) {
+      const a1 = (anillo.offset - i * step) * Math.PI / 180;
+      const a2 = (anillo.offset - (i+1) * step) * Math.PI / 180;
+      const x1o = cx + rOuter * Math.cos(a1), y1o = cy + rOuter * Math.sin(a1);
+      const x2o = cx + rOuter * Math.cos(a2), y2o = cy + rOuter * Math.sin(a2);
+      const x1i = cx + rInner * Math.cos(a1), y1i = cy + rInner * Math.sin(a1);
+      const x2i = cx + rInner * Math.cos(a2), y2i = cy + rInner * Math.sin(a2);
+      const d = `M${x1i},${y1i} L${x1o},${y1o} A${rOuter},${rOuter} 0 0,0 ${x2o},${y2o} L${x2i},${y2i} A${rInner},${rInner} 0 0,1 ${x1i},${y1i} Z`;
+      const fill = colors[segIdx] || C.N1;
+      const idx = segIdx;
+      const intAttr = interactive ? `class="seg-interactive" data-idx="${idx}" onclick="segClick(${idx})"` : '';
+      paths += `<path d="${d}" fill="${fill}" stroke="#fff" stroke-width="1.5" ${intAttr}/>`;
+      segIdx++;
+    }
+  });
+  const apexFill = colors[16] || C.N1;
+  const intAttrApex = interactive ? `class="seg-interactive" data-idx="16" onclick="segClick(16)"` : '';
+  paths += `<circle cx="${cx}" cy="${cy}" r="${apexR}" fill="${apexFill}" stroke="#fff" stroke-width="1.5" ${intAttrApex}/>`;
+  const labels = '';
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${paths}${labels}</svg>`;
+}
+
+const PATRONES = [
+  {
+    id: 'normal', categoria: 'normal', nombre: 'Normal',
+    sub: 'Contractilidad global preservada', sgl: 'SGL típico: < -20%',
+    descripcion: 'Bull\'s eye uniforme en rojo. Contractilidad preservada en los 17 segmentos, sin alteraciones regionales.',
+    hallazgos: '→ Todos los segmentos en rojo (normal)\n→ SGL < -20%\n→ Sin alteraciones regionales\n→ Gradiente base-ápex fisiológico leve',
+    badge: 'green',
+    colores: [C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N]
+  },
+  {
+    id: 'isq-da', categoria: 'isquemica', nombre: 'Isquemia DA',
+    sub: 'Territorio anterior y septal (arriba + izquierda)', sgl: 'SGL típico: -10 a -15%',
+    descripcion: 'Compromiso de segmentos anterior y anteroseptal. En el bull\'s eye: zona superior (anterior) y lateral izquierda (septum). El resto del bull\'s eye permanece rojo (normal).',
+    hallazgos: '→ Hipo/acinesia anterior y anteroseptal (12h y 10h)\n→ Ápex frecuentemente comprometido\n→ Inferior y lateral derecha conservados\n→ ECG: ondas Q en V1-V4',
+    badge: 'red',
+    colores: [C.AC, C.H3, C.N, C.N, C.N, C.N, C.AC, C.H3, C.N, C.N, C.N, C.N, C.AC, C.H1, C.N, C.N, C.AC]
+  },
+  {
+    id: 'isq-cd', categoria: 'isquemica', nombre: 'Isquemia CD',
+    sub: 'Territorio inferior e inferoseptal (abajo + izquierda)', sgl: 'SGL típico: -12 a -16%',
+    descripcion: 'Compromiso de segmentos inferior e inferoseptal. En el bull\'s eye: zona inferior (6h) y lateral izquierda baja (inferoseptal, 8h). Anterior y lateral derecha conservados.',
+    hallazgos: '→ Hipo/acinesia inferior e inferoseptal (6h y 8h)\n→ Anterior y lateral izquierda conservados\n→ Puede asociar compromiso VD\n→ ECG: cambios en DII, DIII, aVF',
+    badge: 'red',
+    colores: [C.N, C.N, C.H3, C.AC, C.H2, C.N, C.N, C.N, C.H3, C.AC, C.H2, C.N, C.N, C.N, C.H1, C.N, C.N]
+  },
+  {
+    id: 'isq-cx', categoria: 'isquemica', nombre: 'Isquemia Cx',
+    sub: 'Territorio lateral e inferolateral (derecha)', sgl: 'SGL típico: -12 a -16%',
+    descripcion: 'Compromiso de segmentos lateral e inferolateral. En el bull\'s eye: zona derecha (3h-5h). Septum y anterior conservados.',
+    hallazgos: '→ Hipo/acinesia lateral e inferolateral (2h-4h)\n→ Septal y anterior conservados\n→ Cambios ECG sutiles: DI, aVL, V5-V6\n→ Más frecuente en dominancia izquierda',
+    badge: 'red',
+    colores: [C.N, C.N, C.N, C.N, C.H3, C.AC, C.N, C.N, C.N, C.N, C.H3, C.AC, C.N, C.N, C.N, C.H1, C.N]
+  },
+  {
+    id: 'isq-multivaso', categoria: 'isquemica', nombre: 'Multivaso / Isquémica global',
+    sub: 'Compromiso difuso sin patrón territorial claro', sgl: 'SGL típico: -8 a -12%',
+    descripcion: 'Reducción difusa en múltiples territorios. Puede verse en enfermedad de 3 vasos, IAM extenso o miocardiopatía isquémica avanzada.',
+    hallazgos: '→ Compromiso difuso sin respeto de territorios\n→ Diferencial con MCD puede ser difícil\n→ FEVI generalmente reducida\n→ Coronariografía necesaria para diferenciación',
+    badge: 'red',
+    colores: [C.AC, C.H3, C.H3, C.AC, C.H3, C.H3, C.H3, C.H2, C.H2, C.H3, C.H2, C.H3, C.H3, C.H2, C.H3, C.H2, C.H3]
+  },
+  {
+    id: 'mcd', categoria: 'miocardiopatia', nombre: 'Miocardiopatía Dilatada',
+    sub: 'Hipocinesia global uniforme', sgl: 'SGL típico: -8 a -14%',
+    descripcion: 'Hipocinesia difusa y homogénea en todos los segmentos, sin predilección territorial. Patrón uniforme de reducción global.',
+    hallazgos: '→ Hipocinesia global sin patrón regional\n→ SGL reducido difusamente\n→ FEVI reducida, VI dilatado\n→ Sin historia de enfermedad coronaria obstructiva',
+    badge: 'amber',
+    colores: [C.H3, C.H3, C.H3, C.H3, C.H3, C.H3, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2]
+  },
+  {
+    id: 'mch-obst', categoria: 'miocardiopatia', nombre: 'MCH Obstructiva',
+    sub: 'Compromiso septal (izquierda del bull\'s eye)', sgl: 'SGL típico: variable (-12 a -18%)',
+    descripcion: 'Compromiso de segmentos septales (izquierda del bull\'s eye) con lateral relativamente conservado. El strain puede estar paradójicamente reducido en el septo hipertrofiado.',
+    hallazgos: '→ Reducción strain septal (lado izquierdo, 8h-10h)\n→ Lateral y apical relativamente conservados\n→ Hipertrofia asimétrica, SAM mitral, OTSVI\n→ No confundir con patrón isquémico septal',
+    badge: 'amber',
+    colores: [C.N, C.AC, C.H3, C.N, C.N, C.N, C.N, C.H3, C.H3, C.N, C.N, C.N, C.N, C.H1, C.N, C.N, C.N]
+  },
+  {
+    id: 'mch-apical', categoria: 'miocardiopatia', nombre: 'MCH Apical',
+    sub: 'Acinesia apical — patrón opuesto a amiloidosis', sgl: 'SGL típico: -10 a -16%',
+    descripcion: 'Variante apical con compromiso del anillo interno (apical y apex) con preservación del anillo externo (basal). Patrón OPUESTO al apical sparing de amiloidosis.',
+    hallazgos: '→ Acinesia apical y apex (anillo central del bull\'s eye)\n→ Segmentos basales y medios conservados (rojo)\n→ Patrón INVERSO al de amiloidosis\n→ ECG: ondas T negativas gigantes en V4-V6',
+    badge: 'amber',
+    colores: [C.N, C.N, C.N, C.N, C.N, C.N, C.H1, C.H1, C.H1, C.H1, C.H1, C.H1, C.AC, C.AC, C.AC, C.AC, C.AC]
+  },
+  {
+    id: 'tako', categoria: 'miocardiopatia', nombre: 'Takotsubo',
+    sub: 'Balonamiento apical — base hipercontráctil', sgl: 'SGL típico: -8 a -12%',
+    descripcion: 'Acinesia/disquinesia apical y medio-ventricular con anillo basal conservado o hipercontráctil. La distribución no sigue ningún territorio coronario.',
+    hallazgos: '→ Disquinesia/acinesia apical y medios (centro del bull\'s eye)\n→ Basal conservado (rojo en el anillo externo)\n→ Distribución transcoronaria\n→ Mujeres posmenopáusicas, estrés físico/emocional\n→ Resolución en 4-6 semanas',
+    badge: 'amber',
+    colores: [C.N, C.N, C.N, C.N, C.N, C.N, C.D1, C.D1, C.D1, C.D1, C.D1, C.D1, C.D2, C.D2, C.D2, C.D2, C.D2]
+  },
+  {
+    id: 'amiloidosis', categoria: 'infiltrativa', nombre: 'Amiloidosis Cardíaca',
+    sub: 'Apical sparing — bandera de Japón', sgl: 'SGL típico: -10 a -15%',
+    descripcion: 'Patrón patognomónico: hipocinesia basal y media (anillo externo e intermedio) con ápex conservado (anillo central rojo). Relación ápice/base > 2.9.',
+    hallazgos: '→ Anillo externo (basal): hipocinético-acinético (salmón/lila)\n→ Anillo medio: hipocinético moderado\n→ Anillo apical y apex: conservado (rojo)\n→ Relación ápice/base strain > 2.9\n→ HVI concéntrica ≥12mm inexplicable',
+    badge: 'teal',
+    colores: [C.AC, C.AC, C.AC, C.AC, C.AC, C.AC, C.H3, C.H3, C.H3, C.H3, C.H3, C.H3, C.N, C.N, C.N, C.N, C.N]
+  },
+  {
+    id: 'sarcoidosis', categoria: 'infiltrativa', nombre: 'Sarcoidosis Cardíaca',
+    sub: 'Patrón parcheado no territorial', sgl: 'SGL típico: variable',
+    descripcion: 'Patrón heterogéneo y parcheado que no sigue territorios coronarios. Compromiso septal basal frecuente. Mezcla de segmentos normales y comprometidos adyacentes.',
+    hallazgos: '→ Patrón parcheado, no territorial\n→ Compromiso septal basal frecuente\n→ Bloqueo AV y arritmias ventriculares\n→ PET-FDG: inflamación activa\n→ RMC: RTG parcheado subepicárdico o mesocárdico',
+    badge: 'teal',
+    colores: [C.H3, C.N, C.AC, C.N, C.H2, C.N, C.N, C.H3, C.N, C.AC, C.N, C.H2, C.AC, C.H1, C.N, C.N, C.N]
+  },
+  {
+    id: 'enf-anderson-fabry', categoria: 'infiltrativa', nombre: 'Enfermedad de Fabry',
+    sub: 'Compromiso posterolateral basal (derecha inferior)', sgl: 'SGL típico: -12 a -16%',
+    descripcion: 'Compromiso típico del segmento inferolateral basal (lado derecho del bull\'s eye, zona 4h). HVI concéntrica o asimétrica.',
+    hallazgos: '→ Reducción strain inferolateral basal (4h)\n→ Extensión variable a otros segmentos\n→ RMC: RTG subepicárdico lateral basal\n→ Diagnóstico: alfa-galactosidasa / genética',
+    badge: 'teal',
+    colores: [C.N, C.N, C.N, C.N, C.H3, C.H1, C.N, C.N, C.N, C.N, C.H2, C.H1, C.N, C.N, C.N, C.H1, C.N]
+  },
+  {
+    id: 'sobrecarga-presion', categoria: 'sobrecarga', nombre: 'Sobrecarga de presión',
+    sub: 'HTA severa / EAo — base comprometida', sgl: 'SGL típico: -14 a -18%',
+    descripcion: 'Hipocinesia preferencial en anillo basal (externo) con preservación apical. Gradiente base-ápex presente pero menos marcado que en amiloidosis.',
+    hallazgos: '→ Hipocinesia basal (anillo externo)\n→ Ápex conservado (diferencial con amiloidosis: menos marcado)\n→ HVI concéntrica con FEVI conservada\n→ Relación ápice/base <2.9 (vs >2.9 en amiloidosis)',
+    badge: 'amber',
+    colores: [C.H3, C.H3, C.H3, C.H3, C.H3, C.H3, C.H1, C.H1, C.H1, C.H1, C.H1, C.H1, C.N, C.N, C.N, C.N, C.N]
+  },
+  {
+    id: 'sobrecarga-volumen', categoria: 'sobrecarga', nombre: 'Sobrecarga de volumen',
+    sub: 'IM / IAo severa — strain aparentemente conservado', sgl: 'SGL típico: variable',
+    descripcion: 'En insuficiencia valvular severa crónica el SGL puede estar artefactualmente conservado. La reducción subclínica precede a la caída de FEVI.',
+    hallazgos: '→ Bull\'s eye casi normal a pesar de FEVI en límite\n→ SGL <-18% indica disfunción subclínica\n→ Seguimiento serial útil para timing quirúrgico\n→ VI dilatado con función compensada',
+    badge: 'amber',
+    colores: [C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N, C.N]
+  },
+  {
+    id: 'quimioterapia', categoria: 'sobrecarga', nombre: 'Cardiotoxicidad / Quimioterapia',
+    sub: 'Hipocinesia global difusa temprana', sgl: 'SGL típico: -14 a -18% (reducción >15% = alerta)',
+    descripcion: 'Reducción global difusa y homogénea. La caída del SGL >15% relativo es el marcador más temprano de cardiotoxicidad, antes de la caída de FEVI.',
+    hallazgos: '→ Hipocinesia global difusa (todo el bull\'s eye en salmón)\n→ Cambio >15% relativo del SGL = cardiotoxicidad\n→ FEVI puede estar aún conservada\n→ Seguimiento serial cada 3-6 meses\n→ Antraciclinas, trastuzumab, fluorouracilo',
+    badge: 'amber',
+    colores: [C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H1, C.H1, C.H1, C.H1, C.H1]
+  },
+];
+
+var catActual = 'todas';
+var patronSeleccionado = null;
+var patronesComparar = [];
+
+function selCat(cat, btn) {
+  catActual = cat;
+  document.querySelectorAll('#sp-root .cat-btn').forEach(b => b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderGrid();
+}
+
+function renderGrid() {
+  var grid = document.getElementById('patron-grid');
+  if(!grid) return;
+  var lista = catActual === 'todas'
+    ? PATRONES
+    : PATRONES.filter(p => p.categoria === catActual);
+  grid.innerHTML = lista.map(p => {
+    var svgStr = buildBullsEyeSVG(p.colores, 110, false);
+    var isSelected = patronSeleccionado && patronSeleccionado.id === p.id;
+    return '<div class="patron-card' + (isSelected?' selected':'') + '" onclick="selPatron(\'' + p.id + '\')">'
+      + '<div class="patron-name">' + p.nombre + '</div>'
+      + '<div class="patron-sub">' + p.sub + '</div>'
+      + svgStr
+      + '</div>';
+  }).join('');
+}
+
+function selPatron(id) {
+  patronSeleccionado = PATRONES.find(p => p.id === id);
+  if(!patronSeleccionado) return;
+  var panel = document.getElementById('detalle-panel');
+  var titleEl = document.getElementById('det-title');
+  var sglEl   = document.getElementById('det-sgl');
+  var patronEl= document.getElementById('det-patron');
+  var hallEl  = document.getElementById('det-hallazgos');
+  var svgEl   = document.getElementById('detalle-svg');
+  panel.className = 'detalle-panel show';
+  if(titleEl)  titleEl.textContent  = patronSeleccionado.nombre + ' — ' + patronSeleccionado.sub;
+  if(sglEl)    sglEl.textContent    = patronSeleccionado.sgl;
+  if(patronEl) patronEl.textContent = patronSeleccionado.descripcion;
+  if(hallEl)   hallEl.innerHTML     = patronSeleccionado.hallazgos.replace(/\n/g,'<br>');
+  if(svgEl) {
+    var newSvg = buildBullsEyeSVG(patronSeleccionado.colores, 160, false);
+    var temp = document.createElement('div');
+    temp.innerHTML = newSvg;
+    var newEl = temp.firstChild;
+    newEl.id = 'detalle-svg';
+    newEl.setAttribute('width','160');
+    newEl.setAttribute('height','160');
+    newEl.className = 'patron-svg';
+    newEl.style.flexShrink = '0';
+    svgEl.replaceWith(newEl);
+  }
+  panel.scrollIntoView({behavior:'smooth', block:'nearest'});
+  renderGrid();
+}
+
+function limpiarComparacion() {
+  patronesComparar = [];
+  var cp = document.getElementById('compare-panel');
+  if(cp) cp.className = 'compare-panel';
+}
+
+(function spInit(){
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderGrid);
+  else renderGrid();
+})();
 
 function volverAListaInformes() {
   document.getElementById('ig-lista-view').style.display = '';
@@ -13734,6 +15115,1070 @@ window.imgSetCount=imgSetCount; window.imgAddSlot=imgAddSlot; window.imgRender=i
 window.imgPick=imgPick; window.imgFileChosen=imgFileChosen; window.imgRemove=imgRemove;
 
 imgRender();
+
+// ══ LABORATORIO ══════════════════════════════════════════════════
+
+function labGetInformes() {
+  const todos = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  const periodo = parseInt(document.getElementById('lab-periodo')?.value || '365');
+  const desde = document.getElementById('lab-desde')?.value;
+  const hasta = document.getElementById('lab-hasta')?.value;
+  const hoy = new Date();
+
+  return todos.filter(inf => {
+    const f = inf.fecha_estudio ? new Date(inf.fecha_estudio) : null;
+    if (!f || isNaN(f)) return false;
+    if (desde && f < new Date(desde)) return false;
+    if (hasta && f > new Date(hasta + 'T23:59:59')) return false;
+    if (!desde && !hasta && periodo > 0) {
+      const limite = new Date(hoy);
+      limite.setDate(limite.getDate() - periodo);
+      if (f < limite) return false;
+    }
+    return true;
+  });
+}
+
+function labBarras(containerId, datos) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!datos.length) { el.innerHTML = '<div class="lab-empty">Sin datos</div>'; return; }
+  const max = Math.max(...datos.map(d => d.n));
+  el.innerHTML = datos.map(d => {
+    const pct = max > 0 ? Math.round((d.n / max) * 100) : 0;
+    const pctReal = d.total > 0 ? Math.round((d.n / d.total) * 100) : 0;
+    return `<div class="lab-bar-row">
+      <div class="lab-bar-lbl">${d.lbl}</div>
+      <div class="lab-bar-bg"><div class="lab-bar-fill" style="width:${pct}%;background:${d.color||'var(--accent)'}"></div></div>
+      <div class="lab-bar-pct">${d.total ? pctReal + '%' : d.n}</div>
+    </div>`;
+  }).join('');
+}
+
+function labInit() {
+  const infs = labGetInformes();
+  const n = infs.length;
+  document.getElementById('lab-resumen-header').textContent =
+    n === 0 ? 'Sin estudios en el período seleccionado.' :
+    `${n} estudio${n !== 1 ? 's' : ''} en el período seleccionado.`;
+
+  if (n === 0) {
+    ['lab-total','lab-hoy','lab-semana','lab-mes','lab-prom-dia',
+     'lab-tiempo-sol','lab-edad-prom','lab-pct-f','lab-fevi-prom',
+     'lab-gls-prom','lab-psap-prom'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '—';
+    });
+    ['lab-chart-meses','lab-fevi-dist','lab-diast-dist',
+     'lab-hallazgos','lab-calidad-bars'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '<div class="lab-empty">Sin datos</div>';
+    });
+    document.getElementById('lab-indicadores-body').innerHTML =
+      '<tr><td colspan="4" style="text-align:center;color:var(--text2);padding:20px;">Sin datos</td></tr>';
+    document.getElementById('lab-docencia-lista').innerHTML =
+      '<div class="lab-empty">Sin casos marcados</div>';
+    return;
+  }
+
+  // ── PILAR 1: ACTIVIDAD ──
+  const hoy = new Date();
+  const hoyStr = hoy.toISOString().split('T')[0];
+  const semLim = new Date(hoy); semLim.setDate(hoy.getDate() - 7);
+  const mesLim = new Date(hoy); mesLim.setDate(hoy.getDate() - 30);
+
+  document.getElementById('lab-total').textContent = n;
+  document.getElementById('lab-hoy').textContent =
+    infs.filter(i => i.fecha_estudio === hoyStr).length;
+  document.getElementById('lab-semana').textContent =
+    infs.filter(i => i.fecha_estudio && new Date(i.fecha_estudio) >= semLim).length;
+  document.getElementById('lab-mes').textContent =
+    infs.filter(i => i.fecha_estudio && new Date(i.fecha_estudio) >= mesLim).length;
+
+  // Promedio por día hábil
+  const fechas = infs.map(i => i.fecha_estudio).filter(Boolean).sort();
+  if (fechas.length >= 2) {
+    const diasTotales = Math.max(1,
+      (new Date(fechas[fechas.length-1]) - new Date(fechas[0])) / 86400000);
+    const diasHabiles = Math.round(diasTotales * 5/7);
+    document.getElementById('lab-prom-dia').textContent =
+      (n / Math.max(1, diasHabiles)).toFixed(1) + ' / día hábil';
+  } else {
+    document.getElementById('lab-prom-dia').textContent = '—';
+  }
+
+  // Tiempo solicitud → estudio
+  const tiempos = infs.filter(i => i.fecha_estudio && i.campos?.fecha_solicitud)
+    .map(i => (new Date(i.fecha_estudio) - new Date(i.campos.fecha_solicitud)) / 86400000)
+    .filter(d => d >= 0 && d < 365);
+  if (tiempos.length) {
+    const prom = tiempos.reduce((a,b) => a+b, 0) / tiempos.length;
+    document.getElementById('lab-tiempo-sol').textContent =
+      prom.toFixed(1) + ' días (n=' + tiempos.length + ')';
+  } else {
+    document.getElementById('lab-tiempo-sol').textContent = '— (sin fecha solicitud)';
+  }
+
+  // Estudios por mes (últimos 12)
+  const porMes = {};
+  infs.forEach(i => {
+    if (!i.fecha_estudio) return;
+    const mes = i.fecha_estudio.substring(0,7);
+    porMes[mes] = (porMes[mes] || 0) + 1;
+  });
+  const meses = Object.keys(porMes).sort().slice(-12);
+  labBarras('lab-chart-meses', meses.map(m => ({
+    lbl: m.replace('-', '/'),
+    n: porMes[m],
+    total: 0
+  })));
+
+  // ── PILAR 2: PERFIL DE POBLACIÓN ──
+  const numCampo = (inf, id) => {
+    const v = inf.campos?.[id];
+    return v ? parseFloat(String(v).replace(',','.')) : null;
+  };
+
+  // Distribución FEVI
+  const fevis = infs.map(i => numCampo(i,'fevi_simpson')).filter(v => v !== null);
+  const feviDist = [
+    { lbl:'≤35% (severa)', n: fevis.filter(v=>v<=35).length, total:fevis.length, color:'#f05454' },
+    { lbl:'36–49% (moderada)', n: fevis.filter(v=>v>35&&v<50).length, total:fevis.length, color:'#f5c842' },
+    { lbl:'50–54% (leve-red.)', n: fevis.filter(v=>v>=50&&v<55).length, total:fevis.length, color:'#f0a500' },
+    { lbl:'≥55% (conservada)', n: fevis.filter(v=>v>=55).length, total:fevis.length, color:'#3ecf8e' },
+  ].filter(d => d.n > 0);
+  labBarras('lab-fevi-dist', feviDist);
+
+  if (fevis.length) {
+    document.getElementById('lab-fevi-prom').textContent =
+      (fevis.reduce((a,b)=>a+b,0)/fevis.length).toFixed(1) + '% (n=' + fevis.length + ')';
+  }
+
+  // Función diastólica
+  const diastTxt = infs.map(i => (i.campos?.en_suma || '') + ' ' + (i.campos?.informe_texto || ''));
+  const diastDist = [
+    { lbl:'Relajación alterada', n: diastTxt.filter(t=>/relaja[ció]+n\s+alterada/i.test(t)).length, total:n, color:'#f5c842' },
+    { lbl:'Pseudonormal/Grado II', n: diastTxt.filter(t=>/pseudonormal|grado\s*II/i.test(t)).length, total:n, color:'#f0a500' },
+    { lbl:'Restrictivo/Grado III', n: diastTxt.filter(t=>/restrictivo|grado\s*III/i.test(t)).length, total:n, color:'#f05454' },
+    { lbl:'Presión elevada', n: diastTxt.filter(t=>/presi[oó]n\s+de\s+llenado\s+elevada/i.test(t)).length, total:n, color:'#c05454' },
+  ].filter(d => d.n > 0);
+  labBarras('lab-diast-dist', diastDist);
+
+  // Hallazgos frecuentes
+  const textos = infs.map(i => (i.campos?.en_suma||'') + ' ' + (i.campos?.informe_texto||''));
+  const hallazgos = [
+    { lbl:'HTP', patron:/hipertensi[oó]n\s+pulmonar|HTP/i },
+    { lbl:'Disfunción diastólica', patron:/disfunci[oó]n\s+diast[oó]lica/i },
+    { lbl:'Disfunción sistólica VI', patron:/disfunci[oó]n\s+sist[oó]lica|FEVI\s+[<>]?\s*[0-4]\d/i },
+    { lbl:'Insuficiencia mitral', patron:/insuficiencia\s+mitral|IM\s+(?:leve|moderada|severa)/i },
+    { lbl:'Estenosis aórtica', patron:/estenosis\s+a[oó]rtica|EAo/i },
+    { lbl:'Dilatación AI', patron:/dilataci[oó]n.{0,10}auricular|AI\s+(?:dilata|agrand)/i },
+    { lbl:'HVI', patron:/hipertrofia\s+ventricular\s+izq|HVI/i },
+    { lbl:'Derrame pericárdico', patron:/derrame\s+peric[aá]rdico/i },
+  ].map(h => ({
+    lbl: h.lbl,
+    n: textos.filter(t => h.patron.test(t)).length,
+    total: n,
+    color: 'var(--accent)'
+  })).filter(d => d.n > 0).sort((a,b) => b.n - a.n).slice(0,8);
+  labBarras('lab-hallazgos', hallazgos);
+
+  // Edad y sexo promedio
+  const edades = infs.map(i => numCampo(i,'edad')).filter(v => v !== null && v > 0 && v < 120);
+  if (edades.length)
+    document.getElementById('lab-edad-prom').textContent =
+      (edades.reduce((a,b)=>a+b,0)/edades.length).toFixed(0) + ' años (n=' + edades.length + ')';
+
+  const sexos = infs.map(i => (i.campos?.sexo||'').toLowerCase()).filter(Boolean);
+  const nF = sexos.filter(s => s.includes('f') || s.includes('mujer')).length;
+  if (sexos.length)
+    document.getElementById('lab-pct-f').textContent =
+      Math.round(nF/sexos.length*100) + '% (n=' + sexos.length + ')';
+
+  const glss = infs.map(i => numCampo(i,'gls_global')).filter(v => v !== null);
+  if (glss.length)
+    document.getElementById('lab-gls-prom').textContent =
+      (glss.reduce((a,b)=>a+b,0)/glss.length).toFixed(1) + '% (n=' + glss.length + ')';
+
+  const psaps = infs.map(i => numCampo(i,'psap_calc')).filter(v => v !== null && v > 0);
+  if (psaps.length)
+    document.getElementById('lab-psap-prom').textContent =
+      (psaps.reduce((a,b)=>a+b,0)/psaps.length).toFixed(0) + ' mmHg (n=' + psaps.length + ')';
+
+  // ── PILAR 3: CALIDAD ──
+  const calidadItems = [
+    { lbl:'FEVI medida', campo:'fevi_simpson' },
+    { lbl:'GLS medido', campo:'gls_global' },
+    { lbl:'TAPSE medido', campo:'tapse' },
+    { lbl:'LAVI calculado', campo:'lavi' },
+    { lbl:'e\' septal medida', campo:'e_prima_sept' },
+    { lbl:'E/e\' calculado', campo:'ee_prom' },
+    { lbl:'TR medida (PSAP)', campo:'vrt' },
+    { lbl:'VCI medida', campo:'vci' },
+    { lbl:'Simpson biplanar', campo:'fevi_simpson' },
+  ];
+  const calidadDatos = calidadItems.map(item => {
+    const con = infs.filter(i => {
+      const v = numCampo(i, item.campo);
+      return v !== null;
+    }).length;
+    const pct = n > 0 ? con/n : 0;
+    return {
+      lbl: item.lbl,
+      n: con,
+      total: n,
+      color: pct >= 0.8 ? '#3ecf8e' : pct >= 0.5 ? '#f5c842' : '#f05454'
+    };
+  }).sort((a,b) => b.n - a.n);
+  labBarras('lab-calidad-bars', calidadDatos);
+
+  // ── PILAR 4: INDICADORES AUTOMÁTICOS ──
+  const indicadores = [
+    {
+      lbl: 'FEVI ≤35% sin GLS documentado',
+      casos: infs.filter(i => {
+        const fevi = numCampo(i,'fevi_simpson');
+        const gls = numCampo(i,'gls_global');
+        return fevi !== null && fevi <= 35 && gls === null;
+      })
+    },
+    {
+      lbl: 'PSAP >40 mmHg sin TR medida',
+      casos: infs.filter(i => {
+        const psap = numCampo(i,'psap_calc');
+        const vrt = numCampo(i,'vrt');
+        return psap !== null && psap > 40 && vrt === null;
+      })
+    },
+    {
+      lbl: 'Disfunción sistólica sin E/e\'',
+      casos: infs.filter(i => {
+        const fevi = numCampo(i,'fevi_simpson');
+        const ee = numCampo(i,'ee_prom') || numCampo(i,'e_prima_sept');
+        return fevi !== null && fevi < 50 && ee === null;
+      })
+    },
+    {
+      lbl: 'Sin TAPSE en informe',
+      casos: infs.filter(i => numCampo(i,'tapse') === null)
+    },
+    {
+      lbl: 'Sin dimensiones VI',
+      casos: infs.filter(i => numCampo(i,'ddvi') === null)
+    },
+  ];
+
+  const tbody = document.getElementById('lab-indicadores-body');
+  tbody.innerHTML = indicadores.map(ind => {
+    const pct = n > 0 ? Math.round(ind.casos.length/n*100) : 0;
+    const cls = pct === 0 ? 'lab-verde' : pct < 20 ? 'lab-amarillo' : 'lab-rojo';
+    const nombres = ind.casos.slice(0,3).map(i=>i.nombre).join(', ');
+    const detalle = ind.casos.length > 0
+      ? nombres + (ind.casos.length > 3 ? ` y ${ind.casos.length-3} más` : '')
+      : '✅ Sin casos';
+    return `<tr>
+      <td><span class="lab-semaforo ${cls}"></span>${ind.lbl}</td>
+      <td style="font-weight:700;">${ind.casos.length}</td>
+      <td>${pct}%</td>
+      <td style="color:var(--text2);font-size:.78rem;">${detalle}</td>
+    </tr>`;
+  }).join('');
+
+  // ── PILAR 5: DOCENCIA ──
+  const docentes = infs.filter(i =>
+    i.campos?.caso_interes === '1' || i.campos?.caso_interes === 'true' ||
+    /caso\s+de\s+inter[eé]s|ateneo|residente/i.test(
+      (i.campos?.en_suma||'') + ' ' + (i.campos?.informe_texto||'')
+    )
+  );
+  const docEl = document.getElementById('lab-docencia-lista');
+  if (!docentes.length) {
+    docEl.innerHTML = '<div class="lab-empty">Sin casos marcados en el período</div>';
+  } else {
+    docEl.innerHTML = `<table class="lab-table">
+      <thead><tr><th>Paciente</th><th>Fecha</th><th>Resumen</th></tr></thead>
+      <tbody>${docentes.map(i => `<tr>
+        <td>${i.nombre}</td>
+        <td>${i.fecha_estudio||'—'}</td>
+        <td style="font-size:.78rem;color:var(--text2);">${(i.campos?.en_suma||'').substring(0,80)}${(i.campos?.en_suma||'').length>80?'…':''}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  }
+}
+
+function labExportarCSV() {
+  const infs = labGetInformes();
+  if (!infs.length) { toast('⚠️ Sin estudios para exportar'); return; }
+  const campos = ['nombre','ci','fecha_estudio','edad','sexo','fevi_simpson',
+    'gls_global','tapse','lavi','vrt','psap_calc','ddvi','siv','masa_vi',
+    'rwt','e_mitral','a_mitral','e_prima_sept','e_prima_lat','ee_prom',
+    'va_vmax','va_gmax','va_gmed','ava','ao_sin','en_suma'];
+  const header = ['id','nombre','ci','fecha_estudio',...campos.slice(3)].join(';');
+  const rows = infs.map(i => {
+    return [
+      i.id, i.nombre, i.ci, i.fecha_estudio,
+      ...campos.slice(3).map(c => {
+        const v = i.campos?.[c] || '';
+        return String(v).replace(/;/g,' ').replace(/\n/g,' ');
+      })
+    ].join(';');
+  });
+  const csv = [header, ...rows].join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ecosmart_laboratorio_' + new Date().toISOString().split('T')[0] + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('✅ CSV exportado — ' + infs.length + ' estudios');
+}
+
+window.labInit = labInit;
+window.labExportarCSV = labExportarCSV;
+
+// ── Lab subtabs ──
+function labSubTab(id, el) {
+  document.querySelectorAll('#tab-lab .lab-subtab')
+    .forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#tab-lab .lab-subpanel')
+    .forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('lab-sub-' + id).classList.add('active');
+  if (id === 'medicos') labMedicoInit();
+  if (id === 'comparar') labCompararInit();
+}
+
+// ── Helpers Chart.js ──
+function labDestroyChart(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const existing = Chart.getChart(el);
+  if (existing) existing.destroy();
+}
+
+function labChartMeses(canvasId, labels, datos, label) {
+  labDestroyChart(canvasId);
+  const el = document.getElementById(canvasId);
+  if (!el) return;
+  new Chart(el, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label,
+        data: datos,
+        backgroundColor: 'rgba(99,179,237,0.7)',
+        borderColor: 'rgba(99,179,237,1)',
+        borderWidth: 1,
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1 } }
+      }
+    }
+  });
+}
+
+function labChartBarrasH(canvasId, labels, datos, colores) {
+  labDestroyChart(canvasId);
+  const el = document.getElementById(canvasId);
+  if (!el) return;
+  new Chart(el, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: datos,
+        backgroundColor: colores || 'rgba(99,179,237,0.7)',
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
+    }
+  });
+}
+
+// ── Médico ──
+function labMedicoInit() {
+  const todos = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  const medicos = {};
+  todos.forEach(i => {
+    const m = (i.campos?.['med-nombre'] || i.campos?.['med_solicitante'] || '').trim();
+    const mat = (i.campos?.['med-matricula'] || '').trim();
+    const key = mat || m || 'Sin identificar';
+    if (key && key !== 'Sin identificar') medicos[key] = m || key;
+  });
+  const sel = document.getElementById('lab-med-select');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Todos los médicos —</option>';
+  Object.keys(medicos).sort().forEach(k => {
+    const opt = document.createElement('option');
+    opt.value = k;
+    opt.textContent = medicos[k] || k;
+    sel.appendChild(opt);
+  });
+  labMedicoRender();
+}
+
+function labMedicoRender() {
+  const sel = document.getElementById('lab-med-select');
+  const medSelec = sel?.value || '';
+  const todos = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+
+  // Agrupar por médico para comparativa
+  const porMedico = {};
+  todos.forEach(i => {
+    const mat = (i.campos?.['med-matricula'] || '').trim();
+    const nom = (i.campos?.['med-nombre'] || '').trim();
+    const key = mat || nom || 'Sin identificar';
+    if (!porMedico[key]) porMedico[key] = { nombre: nom || key, estudios: [] };
+    porMedico[key].estudios.push(i);
+  });
+
+  // Gráfica comparativa todos los médicos
+  const medKeys = Object.keys(porMedico).filter(k => k !== 'Sin identificar');
+  labChartBarrasH(
+    'chart-med-comparativa',
+    medKeys.map(k => porMedico[k].nombre || k),
+    medKeys.map(k => porMedico[k].estudios.length),
+    medKeys.map(() => 'rgba(99,179,237,0.7)')
+  );
+
+  // Filtrar estudios del médico seleccionado
+  const infs = medSelec
+    ? todos.filter(i => {
+        const mat = (i.campos?.['med-matricula'] || '').trim();
+        const nom = (i.campos?.['med-nombre'] || '').trim();
+        return (mat || nom || 'Sin identificar') === medSelec;
+      })
+    : todos;
+
+  const n = infs.length;
+  const statsEl = document.getElementById('lab-med-stats');
+  if (!statsEl) return;
+
+  const fevis = infs.map(i => parseFloat(i.campos?.fevi_simpson)).filter(v => !isNaN(v));
+  const glss  = infs.map(i => parseFloat(i.campos?.gls_global)).filter(v => !isNaN(v));
+
+  statsEl.innerHTML = `
+    <div>
+      <div class="lab-stat">
+        <span class="lab-stat-lbl">Total estudios</span>
+        <span class="lab-stat-val">${n}</span>
+      </div>
+      <div class="lab-stat">
+        <span class="lab-stat-lbl">FEVI promedio</span>
+        <span class="lab-stat-val">
+          ${fevis.length ? (fevis.reduce((a,b)=>a+b,0)/fevis.length).toFixed(1)+'%' : '—'}
+        </span>
+      </div>
+      <div class="lab-stat">
+        <span class="lab-stat-lbl">GLS promedio</span>
+        <span class="lab-stat-val">
+          ${glss.length ? (glss.reduce((a,b)=>a+b,0)/glss.length).toFixed(1)+'%' : '—'}
+        </span>
+      </div>
+    </div>
+    <div>
+      <div class="lab-stat">
+        <span class="lab-stat-lbl">Con GLS medido</span>
+        <span class="lab-stat-val">
+          ${n ? Math.round(glss.length/n*100)+'%' : '—'}
+        </span>
+      </div>
+      <div class="lab-stat">
+        <span class="lab-stat-lbl">Con TAPSE medido</span>
+        <span class="lab-stat-val">
+          ${n ? Math.round(infs.filter(i=>i.campos?.tapse).length/n*100)+'%' : '—'}
+        </span>
+      </div>
+      <div class="lab-stat">
+        <span class="lab-stat-lbl">Con LAVI calculado</span>
+        <span class="lab-stat-val">
+          ${n ? Math.round(infs.filter(i=>i.campos?.lavi).length/n*100)+'%' : '—'}
+        </span>
+      </div>
+    </div>`;
+
+  // Gráfica estudios por mes del médico seleccionado
+  const porMes = {};
+  infs.forEach(i => {
+    if (!i.fecha_estudio) return;
+    const mes = i.fecha_estudio.substring(0, 7);
+    porMes[mes] = (porMes[mes] || 0) + 1;
+  });
+  const meses = Object.keys(porMes).sort().slice(-12);
+  labChartMeses(
+    'chart-med-meses',
+    meses.map(m => m.replace('-', '/')),
+    meses.map(m => porMes[m]),
+    'Estudios por mes'
+  );
+
+  // Calidad del médico seleccionado
+  const calidadItems = [
+    { lbl: 'FEVI', campo: 'fevi_simpson' },
+    { lbl: 'GLS', campo: 'gls_global' },
+    { lbl: 'TAPSE', campo: 'tapse' },
+    { lbl: 'LAVI', campo: 'lavi' },
+    { lbl: 'e\' septal', campo: 'e_prima_sept' },
+    { lbl: 'TR/PSAP', campo: 'vrt' },
+    { lbl: 'VCI', campo: 'vci' },
+    { lbl: 'Dim. VI', campo: 'ddvi' },
+  ];
+  const calEl = document.getElementById('lab-med-calidad');
+  if (calEl && n > 0) {
+    const datos = calidadItems.map(item => {
+      const con = infs.filter(i => i.campos?.[item.campo]).length;
+      const pct = Math.round(con / n * 100);
+      return { lbl: item.lbl, n: con, total: n,
+        color: pct >= 80 ? '#3ecf8e' : pct >= 50 ? '#f5c842' : '#f05454' };
+    }).sort((a,b) => b.n - a.n);
+    labBarras('lab-med-calidad', datos);
+  }
+}
+
+// ── Comparar períodos ──
+function labCompararInit() {
+  const hoy = new Date().toISOString().split('T')[0];
+  const hace6 = new Date();
+  hace6.setMonth(hace6.getMonth() - 6);
+  const hace12 = new Date();
+  hace12.setMonth(hace12.getMonth() - 12);
+  document.getElementById('lab-cmp-a-desde').value =
+    hace12.toISOString().split('T')[0];
+  document.getElementById('lab-cmp-a-hasta').value =
+    hace6.toISOString().split('T')[0];
+  document.getElementById('lab-cmp-b-desde').value =
+    hace6.toISOString().split('T')[0];
+  document.getElementById('lab-cmp-b-hasta').value = hoy;
+}
+
+function labFiltrarPorFecha(infs, desde, hasta) {
+  return infs.filter(i => {
+    if (!i.fecha_estudio) return false;
+    const f = new Date(i.fecha_estudio);
+    if (desde && f < new Date(desde)) return false;
+    if (hasta && f > new Date(hasta + 'T23:59:59')) return false;
+    return true;
+  });
+}
+
+function labCompararRender() {
+  const todos = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  const aD = document.getElementById('lab-cmp-a-desde').value;
+  const aH = document.getElementById('lab-cmp-a-hasta').value;
+  const bD = document.getElementById('lab-cmp-b-desde').value;
+  const bH = document.getElementById('lab-cmp-b-hasta').value;
+
+  if (!aD || !aH || !bD || !bH) {
+    document.getElementById('lab-cmp-resultado').innerHTML =
+      '<div style="color:var(--text2);font-size:.84rem;">Completá los cuatro campos de fecha.</div>';
+    return;
+  }
+
+  const A = labFiltrarPorFecha(todos, aD, aH);
+  const B = labFiltrarPorFecha(todos, bD, bH);
+
+  const numCampo = (inf, id) => {
+    const v = inf.campos?.[id];
+    return v ? parseFloat(String(v).replace(',','.')) : null;
+  };
+  const prom = (arr, campo) => {
+    const vals = arr.map(i => numCampo(i, campo)).filter(v => v !== null);
+    return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '—';
+  };
+  const pct = (arr, campo) => {
+    if (!arr.length) return '—';
+    return Math.round(arr.filter(i => numCampo(i,campo) !== null).length / arr.length * 100) + '%';
+  };
+
+  const filas = [
+    { lbl: 'Total estudios', a: A.length, b: B.length, unidad: '' },
+    { lbl: 'FEVI promedio', a: prom(A,'fevi_simpson'), b: prom(B,'fevi_simpson'), unidad: '%' },
+    { lbl: 'GLS promedio', a: prom(A,'gls_global'), b: prom(B,'gls_global'), unidad: '%' },
+    { lbl: 'PSAP promedio', a: prom(A,'psap_calc'), b: prom(B,'psap_calc'), unidad: ' mmHg' },
+    { lbl: 'TAPSE promedio', a: prom(A,'tapse'), b: prom(B,'tapse'), unidad: ' mm' },
+    { lbl: '% con GLS', a: pct(A,'gls_global'), b: pct(B,'gls_global'), unidad: '' },
+    { lbl: '% con TAPSE', a: pct(A,'tapse'), b: pct(B,'tapse'), unidad: '' },
+    { lbl: '% con LAVI', a: pct(A,'lavi'), b: pct(B,'lavi'), unidad: '' },
+    { lbl: '% con TR/PSAP', a: pct(A,'vrt'), b: pct(B,'vrt'), unidad: '' },
+  ];
+
+  const delta = (a, b) => {
+    const na = parseFloat(a), nb = parseFloat(b);
+    if (isNaN(na) || isNaN(nb)) return '';
+    const d = nb - na;
+    const color = d > 0 ? '#3ecf8e' : d < 0 ? '#f05454' : 'var(--text2)';
+    return `<span style="color:${color};font-weight:700;">
+      ${d > 0 ? '+' : ''}${d.toFixed(1)}
+    </span>`;
+  };
+
+  document.getElementById('lab-cmp-resultado').innerHTML = `
+    <table class="lab-table">
+      <thead>
+        <tr>
+          <th>Indicador</th>
+          <th>Período A<br><small style="font-weight:400;color:var(--text2);">
+            ${aD} → ${aH}</small></th>
+          <th>Período B<br><small style="font-weight:400;color:var(--text2);">
+            ${bD} → ${bH}</small></th>
+          <th>Δ</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${filas.map(f => `<tr>
+          <td>${f.lbl}</td>
+          <td style="font-weight:700;">${f.a}${f.unidad}</td>
+          <td style="font-weight:700;">${f.b}${f.unidad}</td>
+          <td>${delta(f.a, f.b)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+// ── Generar PDF de auditoría ──
+async function labGenerarPDF() {
+  const infs = labGetInformes();
+  if (!infs.length) { toast('⚠️ Sin estudios en el período'); return; }
+  if (typeof window.jspdf === 'undefined' && typeof jsPDF === 'undefined') {
+    toast('❌ jsPDF no disponible'); return;
+  }
+
+  const { jsPDF: JSPDF } = window.jspdf || window;
+  const doc = new JSPDF({ unit: 'mm', format: 'a4' });
+  const titulo = document.getElementById('lab-pdf-titulo').value ||
+    'Informe de Auditoría';
+  const inst = document.getElementById('lab-pdf-inst').value || '';
+  const periodo = document.getElementById('lab-pdf-periodo').value || '';
+  const resp = document.getElementById('lab-pdf-responsable').value || '';
+
+  const W = 210, M = 15;
+  let y = 20;
+
+  // Header
+  doc.setFillColor(30, 30, 46);
+  doc.rect(0, 0, W, 40, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(14); doc.setFont(undefined, 'bold');
+  doc.text(titulo, M, 16);
+  doc.setFontSize(10); doc.setFont(undefined, 'normal');
+  if (inst) doc.text(inst, M, 24);
+  if (periodo) doc.text('Período: ' + periodo, M, 31);
+  doc.setTextColor(0, 0, 0);
+  y = 50;
+
+  const numCampo = (inf, id) => {
+    const v = inf.campos?.[id];
+    return v ? parseFloat(String(v).replace(',','.')) : null;
+  };
+  const prom = (campo) => {
+    const vals = infs.map(i => numCampo(i,campo)).filter(v => v !== null);
+    return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '—';
+  };
+
+  const addSection = (titulo) => {
+    if (y > 260) { doc.addPage(); y = 20; }
+    doc.setFillColor(240, 240, 250);
+    doc.rect(M, y, W - M*2, 8, 'F');
+    doc.setFontSize(10); doc.setFont(undefined, 'bold');
+    doc.setTextColor(50, 50, 120);
+    doc.text(titulo, M + 3, y + 5.5);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont(undefined, 'normal');
+    y += 12;
+  };
+
+  const addFila = (lbl, val) => {
+    if (y > 270) { doc.addPage(); y = 20; }
+    doc.setFontSize(9);
+    doc.text(lbl, M + 3, y);
+    doc.setFont(undefined, 'bold');
+    doc.text(String(val), M + 90, y);
+    doc.setFont(undefined, 'normal');
+    y += 6;
+  };
+
+  // Sección Actividad
+  if (document.getElementById('lab-pdf-actividad')?.checked) {
+    addSection('📈 Actividad del Laboratorio');
+    addFila('Total de estudios en el período', infs.length);
+    addFila('FEVI promedio', prom('fevi_simpson') + '%');
+    addFila('GLS promedio', prom('gls_global') + '%');
+    addFila('PSAP promedio', prom('psap_calc') + ' mmHg');
+    y += 4;
+  }
+
+  // Sección Calidad
+  if (document.getElementById('lab-pdf-calidad')?.checked) {
+    addSection('✅ Calidad del Laboratorio');
+    const n = infs.length;
+    [
+      ['FEVI medida', 'fevi_simpson'],
+      ['GLS medido', 'gls_global'],
+      ['TAPSE medido', 'tapse'],
+      ['LAVI calculado', 'lavi'],
+      ['TR medida', 'vrt'],
+      ['Dimensiones VI', 'ddvi'],
+    ].forEach(([lbl, campo]) => {
+      const con = infs.filter(i => numCampo(i,campo) !== null).length;
+      addFila(lbl, Math.round(con/n*100) + '% (' + con + '/' + n + ')');
+    });
+    y += 4;
+  }
+
+  // Firma
+  if (y > 250) { doc.addPage(); y = 20; }
+  y = Math.max(y + 10, 240);
+  doc.setFontSize(9);
+  doc.text('Responsable: ' + (resp || '___________________________'), M, y);
+  doc.text('Fecha de emisión: ' + new Date().toLocaleDateString('es-UY'), M, y + 6);
+
+  doc.save('auditoria_laboratorio_' +
+    new Date().toISOString().split('T')[0] + '.pdf');
+  toast('✅ PDF de auditoría generado');
+}
+
+// Actualizar labInit para usar Chart.js en meses
+const _labInitOrig = labInit;
+window.labInit = function() {
+  _labInitOrig();
+  // Reemplazar barras de meses por Chart.js si existe el canvas
+  const infs = labGetInformes();
+  if (!infs.length) return;
+  const porMes = {};
+  infs.forEach(i => {
+    if (!i.fecha_estudio) return;
+    const mes = i.fecha_estudio.substring(0,7);
+    porMes[mes] = (porMes[mes] || 0) + 1;
+  });
+  const meses = Object.keys(porMes).sort().slice(-12);
+  if (typeof Chart !== 'undefined') {
+    labChartMeses(
+      'chart-meses',
+      meses.map(m => m.replace('-','/')),
+      meses.map(m => porMes[m]),
+      'Estudios por mes'
+    );
+  }
+};
+
+window.labSubTab = labSubTab;
+window.labMedicoInit = labMedicoInit;
+window.labMedicoRender = labMedicoRender;
+window.labCompararInit = labCompararInit;
+window.labCompararRender = labCompararRender;
+window.labGenerarPDF = labGenerarPDF;
+
+// ── Filtros de Informes Guardados ──
+function aplicarFiltros() {
+  const filtroFevi   = document.getElementById('filtro-fevi')?.value || '';
+  const filtroGeom   = document.getElementById('filtro-geom')?.value || '';
+  const filtroDiast  = document.getElementById('filtro-diast')?.value || '';
+  const filtroValv   = document.getElementById('filtro-valv')?.value || '';
+  const filtroInt    = document.getElementById('filtro-interes')?.value || '';
+
+  const todos = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+
+  const filtrados = todos.filter(inf => {
+    const c = inf.campos || {};
+
+    // FEVI
+    if (filtroFevi) {
+      const fevi = parseFloat(c.fevi_simpson);
+      if (isNaN(fevi)) return false;
+      if (filtroFevi === 'lt30'  && fevi > 30)  return false;
+      if (filtroFevi === 'lt40'  && fevi > 40)  return false;
+      if (filtroFevi === 'lt50'  && fevi >= 50) return false;
+      if (filtroFevi === 'gte50' && fevi < 50)  return false;
+    }
+
+    // Geometría VI — busca en texto del informe y en campo geometria si existe
+    if (filtroGeom) {
+      const txt = ((c.informe_texto||'') + ' ' + (c.en_suma||'') +
+                   ' ' + (c.geom_vi||'')).toLowerCase();
+      const map = {
+        'normal':   ['geometría normal','geometria normal','sin hipertrofia'],
+        'hvi-exc':  ['hipertrofia excéntrica','hvi excéntrica','excéntrica'],
+        'hvi-conc': ['hipertrofia concéntrica','hvi concéntrica','concéntrica'],
+        'remod':    ['remodelado concéntrico','remodelado']
+      };
+      const palabras = map[filtroGeom] || [];
+      if (!palabras.some(p => txt.includes(p))) return false;
+    }
+
+    // Diastólica — busca en texto
+    if (filtroDiast) {
+      const txt = ((c.informe_texto||'') + ' ' + (c.en_suma||'')).toLowerCase();
+      const map = {
+        'normal':   ['relajación normal','función diastólica normal',
+                     'llenado normal','patron normal'],
+        'gr1':      ['grado i','grado 1','relajación alterada',
+                     'relaj alterada'],
+        'gr2':      ['grado ii','grado 2','pseudonormal'],
+        'gr3':      ['grado iii','grado 3','restrictivo'],
+        'elevada':  ['presión de llenado elevada','presion de llenado elevada']
+      };
+      const palabras = map[filtroDiast] || [];
+      if (!palabras.some(p => txt.includes(p))) return false;
+    }
+
+    // Valvulopatía — busca en texto
+    if (filtroValv) {
+      const txt = ((c.informe_texto||'') + ' ' + (c.en_suma||'')).toLowerCase();
+      const map = {
+        'ia':  ['insuficiencia aórtica','regurgitación aórtica'],
+        'im':  ['insuficiencia mitral','regurgitación mitral'],
+        'ea':  ['estenosis aórtica'],
+        'it':  ['insuficiencia tricúspide','regurgitación tricúspide'],
+        'htp': ['hipertensión pulmonar','htp','psap']
+      };
+      const palabras = map[filtroValv] || [];
+      if (!palabras.some(p => txt.includes(p))) return false;
+    }
+
+    // Caso de interés
+    if (filtroInt === 'si') {
+      if (c.caso_interes !== '1') return false;
+    }
+
+    return true;
+  });
+
+  // Actualizar contador
+  const resEl = document.getElementById('filtro-resultado');
+  const hayFiltros = filtroFevi || filtroGeom || filtroDiast ||
+                     filtroValv || filtroInt;
+  if (resEl) {
+    resEl.textContent = hayFiltros
+      ? `Mostrando ${filtrados.length} de ${todos.length} informes`
+      : '';
+  }
+
+  // Renderizar lista filtrada
+  renderizarListaFiltrada(filtrados);
+}
+
+function limpiarFiltros() {
+  ['filtro-fevi','filtro-geom','filtro-diast',
+   'filtro-valv','filtro-interes'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const resEl = document.getElementById('filtro-resultado');
+  if (resEl) resEl.textContent = '';
+  // Volver a renderizar todos
+  const todos = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  renderizarListaFiltrada(todos);
+}
+
+function renderizarListaFiltrada(lista) {
+  window._ettInformesFiltrados = lista;
+  // EcoSmart no tiene renderInformes/cargarInformes; render directo en #ig-lista
+  // reutilizando el mismo markup y handlers que renderInformesGuardados.
+  const cont  = document.getElementById('ig-lista');
+  const vacio = document.getElementById('ig-vacio');
+  if (!cont) {
+    if (typeof renderInformes === 'function') renderInformes(lista);
+    else if (typeof cargarInformes === 'function') cargarInformes(lista);
+    return;
+  }
+  if (!lista.length) {
+    cont.innerHTML = '';
+    if (vacio) vacio.style.display = 'block';
+    return;
+  }
+  if (vacio) vacio.style.display = 'none';
+  cont.innerHTML = lista.map(inf => {
+    const fechaEst   = inf.fecha_estudio ? inf.fecha_estudio.split('-').reverse().join('/') : '—';
+    const fechaGuard = new Date(inf.fecha_guardado).toLocaleString('es-UY', {
+      day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'
+    });
+    return `<div class="ig-item" onclick="verDetalleInforme(${inf.id})">
+      <div class="ig-item-info">
+        <div class="ig-item-nombre">${escHtml(inf.nombre)}</div>
+        <div class="ig-item-meta">${escHtml(inf.doc_tipo)}: ${escHtml(inf.ci)}&nbsp;&nbsp;·&nbsp;&nbsp;Estudio: ${fechaEst}</div>
+        <div class="ig-item-meta" style="font-size:10px;opacity:.65;margin-top:2px;">Guardado: ${fechaGuard}</div>
+      </div>
+      <div class="ig-item-actions" onclick="event.stopPropagation()">
+        <button onclick="verEvolucion('${inf.nombre}','${inf.ci}')" class="btn btn-ghost" style="font-size:11px;padding:4px 8px;" title="Ver evolución temporal del paciente">📈 Evolución</button>
+        <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="pdfDeInformeGuardado(${inf.id})">📄 PDF</button>
+        <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="editarInforme(${inf.id})">✏️ Editar</button>
+        <button class="btn btn-danger" style="font-size:11px;padding:4px 10px;" onclick="eliminarInforme(${inf.id})">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.aplicarFiltros = aplicarFiltros;
+window.limpiarFiltros = limpiarFiltros;
+
+// ── Evolución longitudinal del paciente ──
+let _evolDatos = [];
+
+function verEvolucion(nombre, ci) {
+  const todos = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+
+  // Buscar todos los estudios del paciente por nombre o CI
+  const estudios = todos.filter(i => {
+    const mismoCI  = ci && ci !== '—' && i.ci === ci;
+    const mismoNom = nombre && nombre !== '—' &&
+      i.nombre.toLowerCase().trim() === nombre.toLowerCase().trim();
+    return mismoCI || mismoNom;
+  }).sort((a,b) => (a.fecha_estudio||'').localeCompare(b.fecha_estudio||''));
+
+  if (!estudios.length) {
+    toast('No hay estudios guardados para este paciente');
+    return;
+  }
+
+  _evolDatos = estudios;
+  document.getElementById('evol-nombre-titulo').textContent =
+    nombre + (estudios.length > 1
+      ? ' — ' + estudios.length + ' estudios'
+      : ' — 1 estudio');
+  document.getElementById('modal-evolucion').style.display = '';
+  actualizarGraficaEvol();
+}
+
+function cerrarEvolucion() {
+  document.getElementById('modal-evolucion').style.display = 'none';
+  const existing = Chart.getChart('chart-evolucion');
+  if (existing) existing.destroy();
+}
+
+function actualizarGraficaEvol() {
+  if (!_evolDatos.length) return;
+
+  const labels = _evolDatos.map(i => i.fecha_estudio || '—');
+
+  const getVals = (campo) =>
+    _evolDatos.map(i => {
+      const v = i.campos?.[campo];
+      return v ? parseFloat(String(v).replace(',','.')) : null;
+    });
+
+  const series = [];
+  const colores = {
+    fevi:  { color: '#3ecf8e', label: 'FEVI (%)' },
+    gls:   { color: '#f05454', label: 'GLS (%)' },
+    psap:  { color: '#f5c842', label: 'PSAP (mmHg)' },
+    tapse: { color: '#63b3ed', label: 'TAPSE (mm)' },
+    lavi:  { color: '#b794f4', label: 'LAVI (ml/m²)' },
+    ee:    { color: '#f6ad55', label: "E/e'" },
+  };
+
+  const campos = {
+    fevi:  'fevi_simpson',
+    gls:   'gls_global',
+    psap:  'psap_calc',
+    tapse: 'tapse',
+    lavi:  'lavi',
+    ee:    'ee_prom',
+  };
+
+  Object.keys(colores).forEach(key => {
+    const chk = document.getElementById('evol-' + key);
+    if (!chk?.checked) return;
+    const data = getVals(campos[key]);
+    if (data.some(v => v !== null)) {
+      series.push({
+        label: colores[key].label,
+        data,
+        borderColor: colores[key].color,
+        backgroundColor: colores[key].color + '22',
+        tension: 0.3,
+        fill: false,
+        spanGaps: true,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+      });
+    }
+  });
+
+  const existing = Chart.getChart('chart-evolucion');
+  if (existing) existing.destroy();
+
+  const canvas = document.getElementById('chart-evolucion');
+  if (!canvas || !series.length) return;
+
+  new Chart(canvas, {
+    type: 'line',
+    data: { labels, datasets: series },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 11 } } },
+        tooltip: { callbacks: {
+          label: ctx => ctx.dataset.label + ': ' +
+            (ctx.parsed.y !== null ? ctx.parsed.y : '—')
+        }}
+      },
+      scales: {
+        x: { ticks: { font: { size: 10 } } },
+        y: { beginAtZero: false }
+      }
+    }
+  });
+
+  // Tabla resumen debajo del gráfico
+  const tablaEl = document.getElementById('evol-tabla');
+  const paramsCols = Object.keys(colores).filter(k => {
+    const chk = document.getElementById('evol-' + k);
+    return chk?.checked;
+  });
+
+  tablaEl.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:.78rem;margin-top:8px;">
+      <thead>
+        <tr style="background:var(--bg3);">
+          <th style="padding:6px 10px;text-align:left;border-bottom:1px solid var(--border);">Fecha</th>
+          ${paramsCols.map(k =>
+            `<th style="padding:6px 10px;text-align:center;border-bottom:1px solid var(--border);">
+              ${colores[k].label}
+            </th>`
+          ).join('')}
+          <th style="padding:6px 10px;text-align:left;border-bottom:1px solid var(--border);">Conclusión</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${_evolDatos.map(inf => `
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:6px 10px;">${inf.fecha_estudio||'—'}</td>
+            ${paramsCols.map(k => {
+              const v = inf.campos?.[campos[k]];
+              return `<td style="padding:6px 10px;text-align:center;font-weight:700;color:var(--accent2);">
+                ${v || '—'}
+              </td>`;
+            }).join('')}
+            <td style="padding:6px 10px;font-size:.72rem;color:var(--text2);max-width:200px;">
+              ${(inf.campos?.en_suma||'').substring(0,80)}
+              ${(inf.campos?.en_suma||'').length > 80 ? '…' : ''}
+            </td>
+          </tr>`
+        ).join('')}
+      </tbody>
+    </table>`;
+}
+
+window.verEvolucion = verEvolucion;
+window.cerrarEvolucion = cerrarEvolucion;
+window.actualizarGraficaEvol = actualizarGraficaEvol;
+
+// ══ FIN LABORATORIO ══════════════════════════════════════════════
 
 </script>
 
