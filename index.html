@@ -174,6 +174,22 @@
     font-weight: 600; transition: all .15s;
   }
   .tab-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  /* ══ FILAS DE TABS — jerarquía visual ══ */
+  .tabs-wrap { margin-bottom: 12px; }
+  .tabs-row { display: flex; gap: 4px; flex-wrap: wrap; }
+  .tabs-main { margin-bottom: 6px; }
+  .tabs-special { margin-bottom: 6px; padding-top: 6px; border-top: 1px solid var(--border); }
+  .tabs-tools { padding-top: 6px; border-top: 1px dashed var(--border); }
+  /* Fila 2 — patologías especiales (más pequeños, color distinto) */
+  .tab-special { font-size: 10px; padding: 4px 10px; color: var(--accent2); border-color: var(--accent2); background: var(--bg3); }
+  .tab-special.active { background: var(--accent2); color: #fff; border-color: var(--accent2); }
+  /* Fila 3 — herramientas de apoyo (jerarquía menor) */
+  .tab-tool { font-size: 10px; padding: 3px 9px; color: var(--text2); border-style: dashed; }
+  .tab-tool.active { background: var(--text2); color: var(--bg); border-style: solid; border-color: var(--text2); }
+  /* Laboratorio — botón independiente, estilo diferenciado */
+  .tabs-lab-wrap { margin: 0 0 12px; padding-top: 8px; border-top: 2px solid var(--orange); display: flex; }
+  .tab-lab { background: var(--orange); color: #fff; border: 2px solid var(--orange); font-weight: 700; padding: 6px 18px; font-size: 12px; }
+  .tab-lab.active { background: var(--orange); color: #fff; border-color: var(--text); }
   .tab-section { display: none; }
   .tab-section.active { display: block; }
   /* ══ IM PISA ══ */
@@ -742,23 +758,35 @@ function closeIntro() {
 <div class="container">
 
 <!-- TABS -->
-<div class="tabs">
-  <button class="tab-btn active" onclick="showTab('datos')">👤 Paciente</button>
-  <button class="tab-btn" onclick="showTab('ai-vi')">🫀 AI / VI</button>
-  <button class="tab-btn" onclick="showTab('vd')">➡️ VD / AD</button>
-  <button class="tab-btn" onclick="showTab('doppler')">〰️ Doppler</button>
-  <button class="tab-btn" onclick="showTab('valvulas')">🔁 Válvulas</button>
-  <button class="tab-btn" onclick="showTab('contractilidad')">🫀 Contractilidad</button>
-  <button class="tab-btn" onclick="showTab('sgl');if(window.sglOnShow)sglOnShow();">📊 SGL</button>
-  <button class="tab-btn" onclick="showTab('hemodinamica')">🩸 Hemodinámica</button>
-  <button class="tab-btn" onclick="showTab('ete')">🔬 ETE</button>
-  <button class="tab-btn" onclick="showTab('cardioOnco')">🎗️ Cardio-Onco</button>
-  <button class="tab-btn" onclick="showTab('imagenes');if(window.imgRender)imgRender();">🖼️ Imágenes</button>
-  <button class="tab-btn" onclick="showTab('calculadoras')">🧮 Calculadoras</button>
-  <button class="tab-btn" onclick="showTab('fono');if(window.fcgOnShow)fcgOnShow();">🔊 Fonocardiograma</button>
-  <button class="tab-btn" onclick="showTab('refs')">📚 Referencias</button>
-  <button class="tab-btn" onclick="showTab('amiloidosis')">🫀 Amiloidosis</button>
-  <button class="tab-btn" onclick="showTab('lab');if(window.labInit)labInit()">🔬 Laboratorio</button>
+<div class="tabs-wrap">
+  <!-- FILA 1 — Estudio principal -->
+  <div class="tabs-row tabs-main">
+    <button class="tab-btn active" onclick="showTab('datos')">👤 Paciente</button>
+    <button class="tab-btn" onclick="showTab('ai-vi')">🫀 AI / VI</button>
+    <button class="tab-btn" onclick="showTab('vd')">➡️ VD / AD</button>
+    <button class="tab-btn" onclick="showTab('doppler')">〰️ Doppler</button>
+    <button class="tab-btn" onclick="showTab('valvulas')">🔁 Válvulas</button>
+    <button class="tab-btn" onclick="showTab('contractilidad')">🫀 Contractilidad</button>
+    <button class="tab-btn" onclick="showTab('sgl');if(window.sglOnShow)sglOnShow();">📊 SGL</button>
+    <button class="tab-btn" onclick="showTab('imagenes');if(window.imgRender)imgRender();">🖼️ Imágenes</button>
+  </div>
+  <!-- FILA 2 — Patologías especiales -->
+  <div class="tabs-row tabs-special">
+    <button class="tab-btn tab-special" onclick="showTab('hemodinamica')">🩸 Hemodinámica</button>
+    <button class="tab-btn tab-special" onclick="showTab('ete')">🔬 ETE</button>
+    <button class="tab-btn tab-special" onclick="showTab('amiloidosis')">🫀 Amiloidosis</button>
+    <button class="tab-btn tab-special" onclick="showTab('cardioOnco')">🎗️ Cardio-Oncología</button>
+  </div>
+  <!-- FILA 3 — Herramientas de apoyo -->
+  <div class="tabs-row tabs-tools">
+    <button class="tab-btn tab-tool" onclick="showTab('calculadoras')">🧮 Calculadoras</button>
+    <button class="tab-btn tab-tool" onclick="showTab('fono');if(window.fcgOnShow)fcgOnShow();">🔊 Fonocardiograma</button>
+    <button class="tab-btn tab-tool" onclick="showTab('refs')">📚 Referencias</button>
+  </div>
+</div>
+<!-- LABORATORIO — botón independiente, fuera de las filas de tabs -->
+<div class="tabs-lab-wrap">
+  <button class="tab-btn tab-lab" onclick="showTab('lab');if(window.labInit)labInit()">🔬 Laboratorio</button>
 </div>
 
 <!-- ═══════════════════════ TAB: DATOS PACIENTE ═══════════════════════ -->
@@ -2035,7 +2063,7 @@ function closeIntro() {
     <div class="card-body">
 
       <p style="font-size:11px;color:var(--text2);margin-bottom:12px;">
-        Criterios ESC 2019 — Disfunción VD por sobrecarga aguda de presión (TEP/HTP aguda).
+        Orientación ecocardiográfica de disfunción VD por sobrecarga aguda de presión (TEP/HTP aguda).
         Se calculan automáticamente los valores disponibles del estudio actual.
       </p>
 
@@ -2047,18 +2075,21 @@ function closeIntro() {
       <div class="grid-2" style="margin-bottom:10px;">
         <div class="fg"><label>Signo de McConnell</label>
           <select id="tep_mcconnell" onchange="calcTEP()">
+            <option value="ne" selected>No evaluado</option>
             <option value="no">No</option>
             <option value="si">Sí — hipoquinesia pared libre VD con ápex conservado</option>
           </select>
         </div>
         <div class="fg"><label>Signo 60/60</label>
           <select id="tep_signo6060" onchange="calcTEP()">
+            <option value="ne" selected>No evaluado</option>
             <option value="no">No</option>
             <option value="si">Sí — AT pulmonar &lt;60ms + Gmax IT &lt;60 mmHg</option>
           </select>
         </div>
         <div class="fg"><label>Tabique en D (aplanamiento septal)</label>
           <select id="tep_tabique_d" onchange="calcTEP()">
+            <option value="ne" selected>No evaluado</option>
             <option value="no">No</option>
             <option value="si">Sí</option>
           </select>
@@ -2080,6 +2111,9 @@ function closeIntro() {
         <div class="calc-row"><span class="calc-lbl">Signo 60/60</span><span id="tep-6060-interp">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Tabique en D</span><span id="tep-tabiqued-interp">—</span></div>
         <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
+        <div style="font-size:10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;padding:8px 10px;margin-bottom:10px;line-height:1.5;">
+          ⚠️ Esta herramienta es orientativa. La estratificación de riesgo en TEP requiere integrar estabilidad hemodinámica, troponina, PESI/sPESI y confirmación diagnóstica. No reemplaza la clasificación ESC 2019.
+        </div>
         <div class="calc-row">
           <span class="calc-lbl" style="font-weight:700;">Score criterios VD (+/7)</span>
           <span id="tep-score" style="font-weight:700;font-size:14px;">—</span>
@@ -2089,7 +2123,7 @@ function closeIntro() {
           <span id="tep-interpretacion" style="font-weight:700;">—</span>
         </div>
         <div class="calc-row">
-          <span class="calc-lbl" style="font-weight:700;">⚠️ Estratificación ESC 2019</span>
+          <span class="calc-lbl" style="font-weight:700;">🧭 Orientación ecocardiográfica de disfunción VD en TEP</span>
           <span id="tep-estratificacion" style="font-weight:700;">—</span>
         </div>
         <div class="calc-row">
@@ -8795,6 +8829,7 @@ function calcVI() {
   }
 
   // FEVI (cortes actualizados)
+  // FEVI normal ≥50% — criterio ASE Chamber Quantification 2025
   if (fevi !== null) {
     let fi;
     if (fevi >= 50) fi = badge('green', 'Normal (≥50%)');
@@ -8931,18 +8966,22 @@ function calcHemo() {
   }
 
   // ── HTP: pre / pos / mixta (ESC 2022) ──
+  // HTP precapilar — ESC/ERS Guidelines 2022 — PAPm>20 + PAWP≤15 + RVP>2 UW
   const htpEl = document.getElementById('hemo-htp-tipo');
+  const htpNote = '<div style="font-size:10px;color:var(--text2);margin-top:4px;line-height:1.4;"> · ⚠️ Clasificación hemodinámica requiere confirmación por cateterismo derecho. Valores estimados por ecocardiografía.</div>';
   if (htpEl) {
     if (papm === null || pcp === null || rvp === null) {
-      htpEl.innerHTML = badge('gray', 'Requiere PAPm (PSAP) + PCP (E/e\') + GC');
+      htpEl.innerHTML = badge('gray', 'Requiere PAPm (PSAP) + PCP (E/e\') + GC' + (rvp === null ? ' — RVP no disponible' : ''));
     } else if (papm <= 20) {
       htpEl.innerHTML = badge('green', 'Sin HTP (PAPm ≤20 mmHg)');
-    } else if (pcp <= 15) {
-      htpEl.innerHTML = badge('red', 'HTP precapilar — PCP ≤15 + RVP ' + rvp.toFixed(1) + ' UW' + (rvp > 2 ? ' (>2)' : ''));
+    } else if (pcp <= 15 && rvp > 2) {
+      htpEl.innerHTML = badge('red', 'HTP precapilar — PAPm >20 + PCP ≤15 + RVP ' + rvp.toFixed(1) + ' UW (>2)') + htpNote;
+    } else if (pcp <= 15 && rvp <= 2) {
+      htpEl.innerHTML = badge('yellow', 'No clasificable como precapilar — PCP ≤15 pero RVP ' + rvp.toFixed(1) + ' UW (≤2). Criterio ESC/ERS 2022 exige RVP >2 UW') + htpNote;
     } else if (rvp > 2) {
-      htpEl.innerHTML = badge('red', 'HTP poscapilar combinada (mixta) — PCP >15 + RVP >2 UW');
+      htpEl.innerHTML = badge('red', 'HTP poscapilar combinada (mixta) — PCP >15 + RVP >2 UW') + htpNote;
     } else {
-      htpEl.innerHTML = badge('yellow', 'HTP poscapilar aislada — PCP >15 + RVP ≤2 UW');
+      htpEl.innerHTML = badge('yellow', 'HTP poscapilar aislada — PCP >15 + RVP ≤2 UW') + htpNote;
     }
   }
 }
@@ -8975,6 +9014,7 @@ function cxTango() {
   el.innerHTML = proj.toFixed(2) + ' cm² ' + badge(cls, sev);
 }
 
+// cxTP: índice acoplamiento VD-AP general — umbral >0.36 (población general)
 function cxTP() {
   const tapse = v('cx_tapse') !== null ? v('cx_tapse') : v('tapse');
   const psap  = v('cx_psap')  !== null ? v('cx_psap')  : v('psap_calc');
@@ -9150,6 +9190,7 @@ function toggleCard(sectionId, headEl) {
 }
 window.toggleCard = toggleCard;
 
+// calcTEP: acoplamiento en contexto TEP agudo — umbral >0.32
 function calcTEP() {
   const tapse   = v('tapse');
   const psap    = v('psap_calc');
@@ -9162,9 +9203,14 @@ function calcTEP() {
   if (!vdvi && vdBas && ddfvi) vdvi = parseFloat((vdBas / ddfvi).toFixed(2));
   if (!vdvi && v('vd_vi')) vdvi = v('vd_vi');
 
-  const mcconnell  = document.getElementById('tep_mcconnell')?.value === 'si';
-  const signo6060  = document.getElementById('tep_signo6060')?.value === 'si';
-  const tabiqued   = document.getElementById('tep_tabique_d')?.value === 'si';
+  const mcSel  = document.getElementById('tep_mcconnell')?.value;
+  const s60Sel = document.getElementById('tep_signo6060')?.value;
+  const tdSel  = document.getElementById('tep_tabique_d')?.value;
+  const mcconnell  = mcSel === 'si';
+  const signo6060  = s60Sel === 'si';
+  const tabiqued   = tdSel === 'si';
+  // CAMBIO 3: si alguno de los tres signos no fue evaluado, no se puede concluir sobre disfunción VD
+  const algunoNoEval = mcSel === 'ne' || s60Sel === 'ne' || tdSel === 'ne';
 
   let score = 0;
   const criterios = [];
@@ -9219,29 +9265,37 @@ function calcTEP() {
   // 5. McConnell
   const mcEl = document.getElementById('tep-mcconnell-interp');
   if (mcconnell) { score++; criterios.push('McConnell'); }
-  if (mcEl) mcEl.innerHTML = mcconnell
-    ? badge('red',   'Presente — altamente específico de TEP ✓')
-    : badge('green', 'Ausente');
+  if (mcEl) mcEl.innerHTML = mcSel === 'ne'
+    ? badge('gray',  'No evaluado')
+    : mcconnell ? badge('red', 'Presente — altamente específico de TEP ✓') : badge('green', 'Ausente');
 
   // 6. Signo 60/60
   const s60El = document.getElementById('tep-6060-interp');
   if (signo6060) { score++; criterios.push('60/60'); }
-  if (s60El) s60El.innerHTML = signo6060
-    ? badge('red',   'Presente ✓')
-    : badge('green', 'Ausente');
+  if (s60El) s60El.innerHTML = s60Sel === 'ne'
+    ? badge('gray',  'No evaluado')
+    : signo6060 ? badge('red', 'Presente ✓') : badge('green', 'Ausente');
 
   // 7. Tabique en D
   const tdEl = document.getElementById('tep-tabiqued-interp');
   if (tabiqued) { score++; criterios.push('Tabique D'); }
-  if (tdEl) tdEl.innerHTML = tabiqued
-    ? badge('red',   'Presente — sobrecarga de presión VD ✓')
-    : badge('green', 'Ausente');
+  if (tdEl) tdEl.innerHTML = tdSel === 'ne'
+    ? badge('gray',  'No evaluado')
+    : tabiqued ? badge('red', 'Presente — sobrecarga de presión VD ✓') : badge('green', 'Ausente');
 
   // Score final
   const total = criterios.length;
   const scoreEl = document.getElementById('tep-score');
   const interpEl = document.getElementById('tep-interpretacion');
   const estEl = document.getElementById('tep-estratificacion');
+
+  // CAMBIO 3: datos no evaluados → no emitir conclusión ni resultado tranquilizador
+  if (algunoNoEval) {
+    if (scoreEl) scoreEl.textContent = '—';
+    if (interpEl) interpEl.innerHTML = badge('yellow', 'Completá todos los criterios para obtener una orientación diagnóstica');
+    if (estEl) estEl.textContent = '—';
+    return;
+  }
 
   if (total === 0) {
     if (scoreEl) scoreEl.textContent = '—';
@@ -9262,12 +9316,12 @@ function calcTEP() {
     else interpEl.innerHTML = badge('red', 'Disfunción VD severa — alta probabilidad de TEP/HTP aguda (' + score + ' criterios)');
   }
 
-  // Estratificación ESC 2019
+  // Orientación ecocardiográfica de disfunción VD (no reemplaza la estratificación ESC 2019)
   if (estEl) {
     const tapsePsapVal = (tapse && psap) ? tapse / psap : null;
     const desacoplado = tapsePsapVal !== null && tapsePsapVal <= 0.32;
     if (score >= 4 || (score >= 2 && desacoplado)) {
-      estEl.innerHTML = badge('red', '🔴 Riesgo ALTO — disfunción VD severa, evaluar reperfusión urgente');
+      estEl.innerHTML = badge('red', '🔴 Disfunción VD significativa — correlacionar con clínica, biomarcadores y scores validados.');
     } else if (score >= 2) {
       estEl.innerHTML = badge('orange', '🟠 Riesgo INTERMEDIO-ALTO — monitorización estrecha, considerar imagen confirmatoria');
     } else if (score === 1) {
@@ -9280,6 +9334,7 @@ function calcTEP() {
 window.calcTEP = calcTEP;
 
 // ══ HTP — probabilidad ecocardiográfica (ESC 2022) ══
+// calcHTP2022: signo de desacoplamiento en HTP — umbral <0.55 (contexto HTP crónica)
 function calcHTP2022() {
   const selEl = document.getElementById('htp2022_vrt');
   const vrtSel = selEl ? selEl.value : 'auto';
@@ -11130,9 +11185,18 @@ function generarInforme() {
     let vdvi      = v('tep_vdvi');
     if (!vdvi && vdBas && ddfvi) vdvi = parseFloat((vdBas / ddfvi).toFixed(2));
 
-    const mcconnell = document.getElementById('tep_mcconnell')?.value === 'si';
-    const signo6060 = document.getElementById('tep_signo6060')?.value === 'si';
-    const tabiqued  = document.getElementById('tep_tabique_d')?.value === 'si';
+    const mcSelR  = document.getElementById('tep_mcconnell')?.value;
+    const s60SelR = document.getElementById('tep_signo6060')?.value;
+    const tdSelR  = document.getElementById('tep_tabique_d')?.value;
+    const mcconnell = mcSelR === 'si';
+    const signo6060 = s60SelR === 'si';
+    const tabiqued  = tdSelR === 'si';
+
+    // CAMBIO 3: si alguno de los tres signos no fue evaluado, no concluir en el informe
+    if (mcSelR === 'ne' || s60SelR === 'ne' || tdSelR === 'ne') {
+      inf.push('Evaluación ecocardiográfica de sobrecarga VD aguda (TEP): criterios incompletos (McConnell / signo 60-60 / tabique en D no evaluados) — no se emite orientación diagnóstica.');
+      return;
+    }
 
     // Solo incluir en informe si hay al menos 1 campo TEP completado
     const hayDatos = mcconnell || signo6060 || tabiqued || v('tep_vdvi') !== null;
@@ -11151,13 +11215,13 @@ function generarInforme() {
 
     let estratif, estratifSuma;
     if (score >= 4 || (score >= 2 && desacoplado)) {
-      estratif      = 'Riesgo ALTO — disfunción VD severa, evaluar reperfusión urgente (ESC 2019)';
-      estratifSuma  = 'TEP/sobrecarga VD: riesgo ALTO.';
+      estratif      = 'Disfunción VD significativa — correlacionar con clínica, biomarcadores y scores validados';
+      estratifSuma  = 'TEP/sobrecarga VD: disfunción VD significativa.';
     } else if (score >= 2) {
-      estratif      = 'Riesgo INTERMEDIO-ALTO — disfunción VD con ' + score + ' criterios positivos, correlacionar con clínica y biomarcadores (ESC 2019)';
-      estratifSuma  = 'TEP/sobrecarga VD: riesgo intermedio-alto (' + score + ' criterios).';
+      estratif      = 'Disfunción VD con ' + score + ' criterios positivos, correlacionar con clínica y biomarcadores';
+      estratifSuma  = 'TEP/sobrecarga VD: disfunción VD con ' + score + ' criterios.';
     } else if (score === 1) {
-      estratif      = 'Riesgo INTERMEDIO-BAJO — criterio aislado de disfunción VD, correlacionar con score de Wells y CTPA (ESC 2019)';
+      estratif      = 'Criterio aislado de disfunción VD, correlacionar con score de Wells y CTPA';
       estratifSuma  = 'TEP/sobrecarga VD: criterio aislado de disfunción VD.';
     } else {
       estratif      = 'Sin criterios ecocardiográficos de disfunción VD significativa por sobrecarga aguda de presión';
@@ -11757,7 +11821,8 @@ function generarPDFReal() {
       {lbl:'VDFVI idx', ref:'H<75 M<61 ml/m²',   val:vdfviIdx},
     ]},
     {titulo:'VI - Funcion sistolica', items:[
-      {lbl:'FEVI',      ref:'>=55%',           val:feviS},
+      // FEVI normal ≥50% — criterio ASE Chamber Quantification 2025
+      {lbl:'FEVI',      ref:'>=50%',           val:feviS},
       {lbl:'FA',        ref:'>=28%',           val:faStr},
       {lbl:'SGL',       ref:'>=-18%',          val:sglS},
       {lbl:'Vol. lat.', ref:'55-100 ml',       val:v('vol_lat')?v('vol_lat')+' ml':null},
@@ -13143,7 +13208,7 @@ window.toggleTheme = toggleTheme;
 // ══ INFORMES GUARDADOS ══
 
 function escHtml(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 function editarInforme(id) {
@@ -13282,7 +13347,7 @@ function renderInformesGuardados() {
         <div class="ig-item-meta" style="font-size:10px;opacity:.65;margin-top:2px;">Guardado: ${fechaGuard}</div>
       </div>
       <div class="ig-item-actions" onclick="event.stopPropagation()">
-        <button onclick="verEvolucion('${inf.nombre}','${inf.ci}')" class="btn btn-ghost" style="font-size:11px;padding:4px 8px;" title="Ver evolución temporal del paciente">📈 Evolución</button>
+        <button data-nombre="${escHtml(inf.nombre)}" data-ci="${escHtml(inf.ci)}" onclick="verEvolucionEl(this)" class="btn btn-ghost" style="font-size:11px;padding:4px 8px;" title="Ver evolución temporal del paciente">📈 Evolución</button>
         <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="pdfDeInformeGuardado(${inf.id})">📄 PDF</button>
         <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="editarInforme(${inf.id})">✏️ Editar</button>
         <button class="btn btn-danger" style="font-size:11px;padding:4px 10px;" onclick="eliminarInforme(${inf.id})">🗑️</button>
@@ -15241,11 +15306,11 @@ function labInit() {
 
   // Distribución FEVI
   const fevis = infs.map(i => numCampo(i,'fevi_simpson')).filter(v => v !== null);
+  // FEVI normal ≥50% — criterio ASE Chamber Quantification 2025
   const feviDist = [
     { lbl:'≤35% (severa)', n: fevis.filter(v=>v<=35).length, total:fevis.length, color:'#f05454' },
-    { lbl:'36–49% (moderada)', n: fevis.filter(v=>v>35&&v<50).length, total:fevis.length, color:'#f5c842' },
-    { lbl:'50–54% (leve-red.)', n: fevis.filter(v=>v>=50&&v<55).length, total:fevis.length, color:'#f0a500' },
-    { lbl:'≥55% (conservada)', n: fevis.filter(v=>v>=55).length, total:fevis.length, color:'#3ecf8e' },
+    { lbl:'36–49% (reducida)', n: fevis.filter(v=>v>35&&v<50).length, total:fevis.length, color:'#f5c842' },
+    { lbl:'≥50% (conservada)', n: fevis.filter(v=>v>=50).length, total:fevis.length, color:'#3ecf8e' },
   ].filter(d => d.n > 0);
   labBarras('lab-fevi-dist', feviDist);
 
@@ -16012,7 +16077,7 @@ function renderizarListaFiltrada(lista) {
         <div class="ig-item-meta" style="font-size:10px;opacity:.65;margin-top:2px;">Guardado: ${fechaGuard}</div>
       </div>
       <div class="ig-item-actions" onclick="event.stopPropagation()">
-        <button onclick="verEvolucion('${inf.nombre}','${inf.ci}')" class="btn btn-ghost" style="font-size:11px;padding:4px 8px;" title="Ver evolución temporal del paciente">📈 Evolución</button>
+        <button data-nombre="${escHtml(inf.nombre)}" data-ci="${escHtml(inf.ci)}" onclick="verEvolucionEl(this)" class="btn btn-ghost" style="font-size:11px;padding:4px 8px;" title="Ver evolución temporal del paciente">📈 Evolución</button>
         <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="pdfDeInformeGuardado(${inf.id})">📄 PDF</button>
         <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="editarInforme(${inf.id})">✏️ Editar</button>
         <button class="btn btn-danger" style="font-size:11px;padding:4px 10px;" onclick="eliminarInforme(${inf.id})">🗑️</button>
@@ -16161,11 +16226,11 @@ function actualizarGraficaEvol() {
             ${paramsCols.map(k => {
               const v = inf.campos?.[campos[k]];
               return `<td style="padding:6px 10px;text-align:center;font-weight:700;color:var(--accent2);">
-                ${v || '—'}
+                ${v ? escHtml(v) : '—'}
               </td>`;
             }).join('')}
             <td style="padding:6px 10px;font-size:.72rem;color:var(--text2);max-width:200px;">
-              ${(inf.campos?.en_suma||'').substring(0,80)}
+              ${escHtml((inf.campos?.en_suma||'').substring(0,80))}
               ${(inf.campos?.en_suma||'').length > 80 ? '…' : ''}
             </td>
           </tr>`
@@ -16175,6 +16240,9 @@ function actualizarGraficaEvol() {
 }
 
 window.verEvolucion = verEvolucion;
+// CAMBIO 4: lee nombre/CI desde data attributes (evita inyección en onclick)
+function verEvolucionEl(el){ if(el) verEvolucion(el.dataset.nombre || '', el.dataset.ci || ''); }
+window.verEvolucionEl = verEvolucionEl;
 window.cerrarEvolucion = cerrarEvolucion;
 window.actualizarGraficaEvol = actualizarGraficaEvol;
 
