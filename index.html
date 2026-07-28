@@ -13241,6 +13241,8 @@ function editarInforme(id) {
       if (!el) return;
       el.value = val;
     });
+    // Restaurar el checkbox "caso de interés" (los checkbox no se restauran por .value)
+    { const _ci = document.getElementById('caso_interes'); if (_ci) _ci.checked = (inf.campos['caso_interes'] === '1' || inf.campos['caso_interes'] === 'true'); }
     // Recalcular derivados
     if (typeof calcVI === 'function') calcVI();
     if (typeof calcAI === 'function') calcAI();
