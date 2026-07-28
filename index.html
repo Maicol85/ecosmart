@@ -13347,6 +13347,7 @@ function renderInformesGuardados() {
     const fechaGuard = new Date(inf.fecha_guardado).toLocaleString('es-UY', {
       day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'
     });
+    const esCaso = inf.campos && (inf.campos.caso_interes === '1' || inf.campos.caso_interes === 'true');
     return `<div class="ig-item" onclick="verDetalleInforme(${inf.id})">
       <div class="ig-item-info">
         <div class="ig-item-nombre">${escHtml(inf.nombre)}</div>
@@ -13354,6 +13355,7 @@ function renderInformesGuardados() {
         <div class="ig-item-meta" style="font-size:10px;opacity:.65;margin-top:2px;">Guardado: ${fechaGuard}</div>
       </div>
       <div class="ig-item-actions" onclick="event.stopPropagation()">
+        <button class="btn btn-ghost" style="font-size:15px;padding:4px 7px;line-height:1;color:${esCaso?'#f5c842':'var(--text2)'};" onclick="toggleCasoInteresGuardado(${inf.id}, this)" title="${esCaso?'Quitar de casos de interés':'Marcar como caso de interés'}">${esCaso?'⭐':'☆'}</button>
         <button data-nombre="${escHtml(inf.nombre)}" data-ci="${escHtml(inf.ci)}" onclick="verEvolucionEl(this)" class="btn btn-ghost" style="font-size:11px;padding:4px 8px;" title="Ver evolución temporal del paciente">📈 Evolución</button>
         <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="pdfDeInformeGuardado(${inf.id})">📄 PDF</button>
         <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="editarInforme(${inf.id})">✏️ Editar</button>
@@ -13362,6 +13364,25 @@ function renderInformesGuardados() {
     </div>`;
   }).join('');
 }
+
+// Alterna el estado de "caso de interés" de un informe guardado directamente en localStorage
+// y actualiza la estrella en el lugar (sin reabrir el informe). Inmediato y persistente.
+function toggleCasoInteresGuardado(id, btn) {
+  const informes = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  const inf = informes.find(i => i.id === id);
+  if (!inf) return;
+  if (!inf.campos) inf.campos = {};
+  const era = (inf.campos.caso_interes === '1' || inf.campos.caso_interes === 'true');
+  inf.campos.caso_interes = era ? '' : '1';
+  localStorage.setItem('ett_informes', JSON.stringify(informes));
+  const on = !era;
+  if (btn) {
+    btn.textContent = on ? '⭐' : '☆';
+    btn.style.color = on ? '#f5c842' : 'var(--text2)';
+    btn.title = on ? 'Quitar de casos de interés' : 'Marcar como caso de interés';
+  }
+}
+window.toggleCasoInteresGuardado = toggleCasoInteresGuardado;
 
 function filtrarInformes() { renderInformesGuardados(); }
 
@@ -15468,11 +15489,12 @@ function labInit() {
     docEl.innerHTML = '<div class="lab-empty">Sin casos marcados en el período</div>';
   } else {
     docEl.innerHTML = `<table class="lab-table">
-      <thead><tr><th>Paciente</th><th>Fecha</th><th>Resumen</th></tr></thead>
+      <thead><tr><th>Paciente</th><th>Fecha</th><th>Resumen</th><th></th></tr></thead>
       <tbody>${docentes.map(i => `<tr>
         <td>${i.nombre}</td>
         <td>${i.fecha_estudio||'—'}</td>
         <td style="font-size:.78rem;color:var(--text2);">${(i.campos?.en_suma||'').substring(0,80)}${(i.campos?.en_suma||'').length>80?'…':''}</td>
+        <td style="text-align:right;white-space:nowrap;"><button class="btn btn-ghost" style="font-size:11px;padding:3px 9px;" onclick="pdfDeInformeGuardado(${i.id})" title="Generar PDF de este informe">📄 PDF</button></td>
       </tr>`).join('')}</tbody>
     </table>`;
   }
@@ -16077,6 +16099,7 @@ function renderizarListaFiltrada(lista) {
     const fechaGuard = new Date(inf.fecha_guardado).toLocaleString('es-UY', {
       day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'
     });
+    const esCaso = inf.campos && (inf.campos.caso_interes === '1' || inf.campos.caso_interes === 'true');
     return `<div class="ig-item" onclick="verDetalleInforme(${inf.id})">
       <div class="ig-item-info">
         <div class="ig-item-nombre">${escHtml(inf.nombre)}</div>
@@ -16084,6 +16107,7 @@ function renderizarListaFiltrada(lista) {
         <div class="ig-item-meta" style="font-size:10px;opacity:.65;margin-top:2px;">Guardado: ${fechaGuard}</div>
       </div>
       <div class="ig-item-actions" onclick="event.stopPropagation()">
+        <button class="btn btn-ghost" style="font-size:15px;padding:4px 7px;line-height:1;color:${esCaso?'#f5c842':'var(--text2)'};" onclick="toggleCasoInteresGuardado(${inf.id}, this)" title="${esCaso?'Quitar de casos de interés':'Marcar como caso de interés'}">${esCaso?'⭐':'☆'}</button>
         <button data-nombre="${escHtml(inf.nombre)}" data-ci="${escHtml(inf.ci)}" onclick="verEvolucionEl(this)" class="btn btn-ghost" style="font-size:11px;padding:4px 8px;" title="Ver evolución temporal del paciente">📈 Evolución</button>
         <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="pdfDeInformeGuardado(${inf.id})">📄 PDF</button>
         <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="editarInforme(${inf.id})">✏️ Editar</button>
