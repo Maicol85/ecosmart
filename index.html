@@ -408,6 +408,13 @@
 </style>
 </head>
 <body>
+<script>
+/* Parseo numérico tolerante: acepta punto Y coma como separador decimal.
+   Reemplaza a parseFloat() en toda la app (data entry y cálculos). */
+var _origPF = parseFloat;
+function PF(x){ return _origPF(String(x==null?'':x).replace(/,/g,'.')); }
+window.PF = PF;
+</script>
 
 <!-- ══ LOGIN ══ -->
 <div id="login-overlay" style="
@@ -6181,7 +6188,7 @@ function eeUpdateWMSI(phase){
   if(valEl) valEl.textContent=wmsi;
   if(!catEl)return;
   if(wmsi==='—'){catEl.textContent='';return;}
-  const w=parseFloat(wmsi);
+  const w=PF(wmsi);
   if(w===1){catEl.textContent='Normal';catEl.style.color='var(--green)';}
   else if(w<=1.5){catEl.textContent='Disfunción leve';catEl.style.color='var(--yellow)';}
   else if(w<=2){catEl.textContent='Disfunción moderada';catEl.style.color='var(--orange)';}
@@ -8683,7 +8690,7 @@ function showTab(id) {
 function v(id) {
   const el = document.getElementById(id);
   if (!el) return null;
-  const n = parseFloat(el.value.replace(',', '.'));
+  const n = PF(el.value.replace(',', '.'));
   return isNaN(n) ? null : n;
 }
 function sv(id) {
@@ -8768,13 +8775,13 @@ function calcAI() {
 // ══ VI ══
 // Severidad de HVI por masa indexada (cortes ASE, por sexo)
 function hviSeveridad(idx, sexo) {
-  idx = parseFloat(idx);
+  idx = PF(idx);
   if (sexo === 'F') { if (idx >= 122) return 'severa'; if (idx >= 109) return 'moderada'; if (idx >= 96) return 'leve'; return null; }
   if (idx >= 149) return 'severa'; if (idx >= 132) return 'moderada'; if (idx >= 116) return 'leve'; return null;
 }
 // Interpretación de VDFVI indexado (cortes ASE, por sexo)
 function vdfviInterp(idx, sexo) {
-  idx = parseFloat(idx);
+  idx = PF(idx);
   const c = sexo === 'F' ? [61,70,80] : [74,89,100];
   if (idx > c[2]) return {txt:'severamente dilatado', cls:'red'};
   if (idx > c[1]) return {txt:'moderadamente dilatado', cls:'orange'};
@@ -9124,7 +9131,7 @@ function cxGtpSync(){
   const set = (id, val) => { const el = document.getElementById(id); if (el && el.value === '' && val != null && val !== '') el.value = val; };
   set('cx_gtp_psap', v('psap_calc'));
   let eeVal = null; const eeEl = document.getElementById('ee-val');
-  if (eeEl) { const n = parseFloat(eeEl.textContent); if (!isNaN(n)) eeVal = n; }
+  if (eeEl) { const n = PF(eeEl.textContent); if (!isNaN(n)) eeVal = n; }
   if (eeVal == null) { const e = v('onda_e'), es = v('e_sep'), el2 = v('e_lat'); if (e && es && el2) eeVal = +(e / ((es + el2) / 2)).toFixed(1); }
   set('cx_gtp_ee', eeVal);
   set('cx_gtp_vti', v('itv_tsvi'));
@@ -9205,7 +9212,7 @@ function calcTEP() {
 
   // VD/VI ratio — usar campo manual o calcular
   let vdvi = v('tep_vdvi');
-  if (!vdvi && vdBas && ddfvi) vdvi = parseFloat((vdBas / ddfvi).toFixed(2));
+  if (!vdvi && vdBas && ddfvi) vdvi = PF((vdBas / ddfvi).toFixed(2));
   if (!vdvi && v('vd_vi')) vdvi = v('vd_vi');
 
   const mcSel  = document.getElementById('tep_mcconnell')?.value;
@@ -9224,7 +9231,7 @@ function calcTEP() {
   const tapsePsapEl = document.getElementById('tep-tapse-psap');
   if (tapse && psap) {
     const idx = (tapse / psap).toFixed(3);
-    const ok  = parseFloat(idx) > 0.32;
+    const ok  = PF(idx) > 0.32;
     if (tapsePsapEl) tapsePsapEl.innerHTML = ok
       ? badge('green',  idx + ' mm/mmHg — acoplamiento conservado')
       : badge('red',    idx + ' mm/mmHg — desacoplamiento VD-AP');
@@ -9901,20 +9908,20 @@ function calcEM() {
     else                { scores.severa++;   params.push({p:`AVm(${fuente})`, sev:'severa'}); }
   };
 
-  if (avm_plan)      clasificarAVm(parseFloat(avm_plan), 'plan');
-  else if (avm_ete)  clasificarAVm(parseFloat(avm_ete),  'ETE');
+  if (avm_plan)      clasificarAVm(PF(avm_plan), 'plan');
+  else if (avm_ete)  clasificarAVm(PF(avm_ete),  'ETE');
   if (avm_cont_val)  clasificarAVm(avm_cont_val, 'cont');
   if (avm_thp_val)   clasificarAVm(avm_thp_val,  'THP');
 
   if (gmedio) {
-    const gm = parseFloat(gmedio);
+    const gm = PF(gmedio);
     if (gm < 5)       { scores.leve++;     params.push({p:'Gmedio', sev:'leve'}); }
     else if (gm <= 10){ scores.moderada++; params.push({p:'Gmedio', sev:'moderada'}); }
     else              { scores.severa++;   params.push({p:'Gmedio', sev:'severa'}); }
   }
 
   if (thp) {
-    const t = parseFloat(thp);
+    const t = PF(thp);
     if (t < 130)      { scores.leve++;     params.push({p:'THP', sev:'leve'}); }
     else if (t < 220) { scores.moderada++; params.push({p:'THP', sev:'moderada'}); }
     else              { scores.severa++;   params.push({p:'THP', sev:'severa'}); }
@@ -10019,11 +10026,11 @@ window.syncEADesdeValvulas = syncEADesdeValvulas;
 
 // EA: calcular y mostrar en el bloque detalle de Válvulas
 function calcEADetalle() {
-  const vmax   = parseFloat(document.getElementById('ea_vmax')   ? document.getElementById('ea_vmax').value   : '') || parseFloat(document.getElementById('vmax_ao')  ? document.getElementById('vmax_ao').value  : '') || null;
-  const gmedio = parseFloat(document.getElementById('ea_gmedio') ? document.getElementById('ea_gmedio').value : '') || parseFloat(document.getElementById('gmedio_ao') ? document.getElementById('gmedio_ao').value: '') || null;
-  const itsvi  = parseFloat(document.getElementById('ea_vtitsvi')? document.getElementById('ea_vtitsvi').value: '') || parseFloat(document.getElementById('itv_tsvi')  ? document.getElementById('itv_tsvi').value : '') || null;
-  const itvao  = parseFloat(document.getElementById('ea_vtiao')  ? document.getElementById('ea_vtiao').value  : '') || parseFloat(document.getElementById('itv_ao')    ? document.getElementById('itv_ao').value   : '') || null;
-  const dtsvi  = parseFloat(document.getElementById('ea_dtsvi')  ? document.getElementById('ea_dtsvi').value  : '') || parseFloat(document.getElementById('diam_tsvi') ? document.getElementById('diam_tsvi').value: '') || null;
+  const vmax   = PF(document.getElementById('ea_vmax')   ? document.getElementById('ea_vmax').value   : '') || PF(document.getElementById('vmax_ao')  ? document.getElementById('vmax_ao').value  : '') || null;
+  const gmedio = PF(document.getElementById('ea_gmedio') ? document.getElementById('ea_gmedio').value : '') || PF(document.getElementById('gmedio_ao') ? document.getElementById('gmedio_ao').value: '') || null;
+  const itsvi  = PF(document.getElementById('ea_vtitsvi')? document.getElementById('ea_vtitsvi').value: '') || PF(document.getElementById('itv_tsvi')  ? document.getElementById('itv_tsvi').value : '') || null;
+  const itvao  = PF(document.getElementById('ea_vtiao')  ? document.getElementById('ea_vtiao').value  : '') || PF(document.getElementById('itv_ao')    ? document.getElementById('itv_ao').value   : '') || null;
+  const dtsvi  = PF(document.getElementById('ea_dtsvi')  ? document.getElementById('ea_dtsvi').value  : '') || PF(document.getElementById('diam_tsvi') ? document.getElementById('diam_tsvi').value: '') || null;
   const bsa    = getBSA();
 
   // G. máximo
@@ -10159,13 +10166,13 @@ function calcAo() {
     const ava = (atsvi * itsvi / itvao).toFixed(2);
     setv('ava_cont', ava);
     let sev;
-    if (parseFloat(ava) >= 1.5) sev = badge('green', 'Sin estenosis / leve (≥1.5cm²)');
-    else if (parseFloat(ava) >= 1.0) sev = badge('yellow', 'Moderada (1.0-1.49cm²)');
+    if (PF(ava) >= 1.5) sev = badge('green', 'Sin estenosis / leve (≥1.5cm²)');
+    else if (PF(ava) >= 1.0) sev = badge('yellow', 'Moderada (1.0-1.49cm²)');
     else sev = badge('red', 'Severa (<1.0cm²)');
     document.getElementById('ea-sev').innerHTML = sev;
-    sugerirSeveridadEA(parseFloat(ava));
+    sugerirSeveridadEA(PF(ava));
     if (bsa) {
-      const avai = (parseFloat(ava) / bsa).toFixed(2);
+      const avai = (PF(ava) / bsa).toFixed(2);
       document.getElementById('ava-idx').textContent = avai + ' cm²/m²';
     }
     if (itsvi) {
@@ -10266,7 +10273,7 @@ function calcIM_ESC() {
     else if (eroa < 40) { scores.moderada++; params.push({p:'EROA',sev:'moderada'}); }
     else { scores.severa++; params.push({p:'EROA',sev:'severa'}); }
     if (itvIM) {
-      const volR = (parseFloat(eroa)/100*itvIM).toFixed(1);
+      const volR = (PF(eroa)/100*itvIM).toFixed(1);
       document.getElementById('volr-val').textContent = volR + ' ml';
       if (volR < 30) { scores.leve++; params.push({p:'Vol-R',sev:'leve'}); }
       else if (volR < 60) { scores.moderada++; params.push({p:'Vol-R',sev:'moderada'}); }
@@ -10275,7 +10282,7 @@ function calcIM_ESC() {
         const atsvi = Math.PI*((dtsvi/20)**2);
         const vsv = (atsvi*itsvi).toFixed(1);
         document.getElementById('vsvtsvi-val').textContent = vsv + ' ml';
-        const fr = (parseFloat(volR)/(parseFloat(volR)+parseFloat(vsv))*100).toFixed(0);
+        const fr = (PF(volR)/(PF(volR)+PF(vsv))*100).toFixed(0);
         document.getElementById('freg-val').textContent = fr + '%';
         if (fr < 30) { scores.leve++; params.push({p:'FR',sev:'leve'}); }
         else if (fr < 50) { scores.moderada++; params.push({p:'FR',sev:'moderada'}); }
@@ -10305,8 +10312,8 @@ function calcIM_ESC() {
     const ratio = (vtim / vtitsvi).toFixed(2);
     const ratioEl = document.getElementById('im-vti-ratio');
     if (ratioEl) ratioEl.textContent = ratio;
-    if (parseFloat(ratio) > 1.4) { scores.severa++; params.push({p:'VTI-ratio',sev:'severa'}); }
-    else if (parseFloat(ratio) > 1.0) { scores.moderada++; params.push({p:'VTI-ratio',sev:'moderada'}); }
+    if (PF(ratio) > 1.4) { scores.severa++; params.push({p:'VTI-ratio',sev:'severa'}); }
+    else if (PF(ratio) > 1.0) { scores.moderada++; params.push({p:'VTI-ratio',sev:'moderada'}); }
     else { scores.leve++; params.push({p:'VTI-ratio',sev:'leve'}); }
   }
 
@@ -10383,9 +10390,9 @@ function calcIA_ESC() {
     if (vtiIA && itsvi && dtsvi) {
       const atsvi = Math.PI*((dtsvi/20)**2);
       const vsv = atsvi*itsvi;
-      const volR = (parseFloat(eroa)/100*vtiIA).toFixed(1);
+      const volR = (PF(eroa)/100*vtiIA).toFixed(1);
       document.getElementById('ia-volr').textContent = volR + ' ml';
-      const fr = (parseFloat(volR)/(parseFloat(volR)+vsv)*100).toFixed(0);
+      const fr = (PF(volR)/(PF(volR)+vsv)*100).toFixed(0);
       document.getElementById('ia-freg').textContent = fr + '%';
       if (volR < 30) { scores.leve++; params.push({p:'Vol-R',sev:'leve'}); }
       else if (volR < 60) { scores.moderada++; params.push({p:'Vol-R',sev:'moderada'}); }
@@ -10539,7 +10546,7 @@ function calcIT_ESC() {
     else if (eroa < 40) { scores.moderada++; params.push({p:'EROA',sev:'moderada'}); }
     else { scores.severa++; params.push({p:'EROA',sev:'severa'}); }
     if (vtiIT) {
-      const volR = (parseFloat(eroa)/100*vtiIT).toFixed(1);
+      const volR = (PF(eroa)/100*vtiIT).toFixed(1);
       document.getElementById('it-volr').textContent = volR + ' ml';
       if (volR < 30) { scores.leve++; params.push({p:'Vol-R',sev:'leve'}); }
       else if (volR < 45) { scores.moderada++; params.push({p:'Vol-R',sev:'moderada'}); }
@@ -10941,9 +10948,9 @@ function generarInforme() {
     const sexo = sv('sexo');
     const hvi = (sexo === 'F' && massIdx > 95) || (sexo === 'M' && massIdx > 115) || (!sexo && massIdx > 115);
     let geom;
-    if (!hvi && parseFloat(rwt) < 0.42) geom = 'normal';
-    else if (!hvi && parseFloat(rwt) >= 0.42) geom = 'remodelado concéntrico';
-    else if (hvi && parseFloat(rwt) < 0.42) geom = 'hipertrofia excéntrica';
+    if (!hvi && PF(rwt) < 0.42) geom = 'normal';
+    else if (!hvi && PF(rwt) >= 0.42) geom = 'remodelado concéntrico';
+    else if (hvi && PF(rwt) < 0.42) geom = 'hipertrofia excéntrica';
     else geom = 'hipertrofia concéntrica';
     if (geom === 'normal') {
       inf.push('Geometría ventricular normal.');
@@ -10962,9 +10969,9 @@ function generarInforme() {
   if (ai_vol && bsa) {
     const aiIdx = (ai_vol / bsa).toFixed(1);
     let aiStr, aiSuma;
-    if (parseFloat(aiIdx) <= 34) { aiStr = 'de dimensiones normales'; aiSuma = null; }
-    else if (parseFloat(aiIdx) <= 41) { aiStr = 'levemente dilatada'; aiSuma = `AI levemente dilatada (Vol Index ${aiIdx} ml/m²).`; }
-    else if (parseFloat(aiIdx) <= 48) { aiStr = 'moderadamente dilatada'; aiSuma = `AI moderadamente dilatada (Vol Index ${aiIdx} ml/m²).`; }
+    if (PF(aiIdx) <= 34) { aiStr = 'de dimensiones normales'; aiSuma = null; }
+    else if (PF(aiIdx) <= 41) { aiStr = 'levemente dilatada'; aiSuma = `AI levemente dilatada (Vol Index ${aiIdx} ml/m²).`; }
+    else if (PF(aiIdx) <= 48) { aiStr = 'moderadamente dilatada'; aiSuma = `AI moderadamente dilatada (Vol Index ${aiIdx} ml/m²).`; }
     else { aiStr = 'severamente dilatada'; aiSuma = `AI severamente dilatada (Vol Index ${aiIdx} ml/m²).`; }
     const aiNormal = aiStr === 'de dimensiones normales';
     const cAI = `AI ${aiStr} (LAVi ${aiIdx}).`;
@@ -11151,7 +11158,7 @@ function generarInforme() {
 
   // ── HTP ──
   if (psap) {
-    const psapN = parseFloat(psap);
+    const psapN = PF(psap);
     let htpGr = null;
     if (psapN > 60) htpGr = 'severa';
     else if (psapN > 55) htpGr = 'moderada';
@@ -11188,7 +11195,7 @@ function generarInforme() {
     const vdBas   = v('vd_bas');
     const ddfvi   = v('ddfvi');
     let vdvi      = v('tep_vdvi');
-    if (!vdvi && vdBas && ddfvi) vdvi = parseFloat((vdBas / ddfvi).toFixed(2));
+    if (!vdvi && vdBas && ddfvi) vdvi = PF((vdBas / ddfvi).toFixed(2));
 
     const mcSelR  = document.getElementById('tep_mcconnell')?.value;
     const s60SelR = document.getElementById('tep_signo6060')?.value;
@@ -11216,7 +11223,7 @@ function generarInforme() {
     if (tabiqued) score++;
 
     const tapsePsapVal = (tapse && psap) ? (tapse / psap).toFixed(3) : null;
-    const desacoplado  = tapsePsapVal !== null && parseFloat(tapsePsapVal) <= 0.32;
+    const desacoplado  = tapsePsapVal !== null && PF(tapsePsapVal) <= 0.32;
 
     let estratif, estratifSuma;
     if (score >= 4 || (score >= 2 && desacoplado)) {
@@ -11709,13 +11716,13 @@ function generarPDFReal() {
   const ea     = (v('onda_e')&&v('onda_a'))?(v('onda_e')/v('onda_a')).toFixed(2):null;
   const eSep   = v('e_sep'), eLat = v('e_lat');
   const eProm  = (eSep&&eLat)?((eSep+eLat)/2).toFixed(1):(eSep?eSep.toFixed(1):eLat?eLat.toFixed(1):null);
-  const ee     = (v('onda_e')&&eProm)?(v('onda_e')/parseFloat(eProm)).toFixed(1):null;
+  const ee     = (v('onda_e')&&eProm)?(v('onda_e')/PF(eProm)).toFixed(1):null;
 
   // Aortic
   const avaC   = v('ava_cont');
   const avaIdx = (avaC&&bsa)?(avaC/bsa).toFixed(2)+' cm2/m2':null;
   const coV    = (v('diam_tsvi')&&v('itv_tsvi'))?(Math.PI*((v('diam_tsvi')/20)**2)*v('itv_tsvi')*70/1000).toFixed(1)+' L/min':null;
-  const icV    = (coV&&bsa)?(parseFloat(coV)/bsa).toFixed(2)+' L/min/m2':null;
+  const icV    = (coV&&bsa)?(PF(coV)/bsa).toFixed(2)+' L/min/m2':null;
 
   // PSAP
   const gradIT = v('vmax_it')?(4*v('vmax_it')**2).toFixed(0)+' mmHg':null;
@@ -13481,7 +13488,7 @@ async function importarPDFsHistoricos(files) {
       // Helper: extrae número o null
       const num = (patron) => {
         const val = ex(patron);
-        return val ? parseFloat(val.replace(',', '.')) : null;
+        return val ? PF(val.replace(',', '.')) : null;
       };
 
       // ── DATOS PACIENTE ──
@@ -13685,7 +13692,7 @@ function actualizarAlgoritmo() {
   var bodyEl   = document.getElementById('algo-body');
   var accionEl = document.getElementById('algo-accion');
   var escenEl  = document.getElementById('escenario-box');
-  var ettScore = parseFloat(document.getElementById('alg-ett-score')?.value) || null;
+  var ettScore = PF(document.getElementById('alg-ett-score')?.value) || null;
 
   if(gradoGamma === null || protMonoc === null) {
     panel.className = 'result-panel';
@@ -13788,8 +13795,8 @@ function toggleCual(itemId, inputId) {
 }
 
 function calcRWT() {
-  var pp   = parseFloat(document.getElementById('rwt-pp')?.value)   || 0;
-  var ddvi = parseFloat(document.getElementById('rwt-ddvi')?.value) || 0;
+  var pp   = PF(document.getElementById('rwt-pp')?.value)   || 0;
+  var ddvi = PF(document.getElementById('rwt-ddvi')?.value) || 0;
   var resEl = document.getElementById('rwt-result');
   if(!pp||!ddvi){ if(resEl) resEl.value=''; return; }
   var rwt = (2*pp)/ddvi;
@@ -13807,8 +13814,8 @@ function calcRWT() {
 }
 
 function calcEE() {
-  var e  = parseFloat(document.getElementById('ee-e')?.value)  || 0;
-  var ep = parseFloat(document.getElementById('ee-ep')?.value) || 0;
+  var e  = PF(document.getElementById('ee-e')?.value)  || 0;
+  var ep = PF(document.getElementById('ee-ep')?.value) || 0;
   var resEl = document.getElementById('ee-result');
   if(!e||!ep){ if(resEl) resEl.value=''; return; }
   var ee = e/ep;
@@ -13826,7 +13833,7 @@ function calcEE() {
 }
 
 function calcTAPSE() {
-  var val = parseFloat(document.getElementById('tapse-val')?.value);
+  var val = PF(document.getElementById('tapse-val')?.value);
   var crit=document.getElementById('crit-tapse');
   var input=document.getElementById('ett-tapse');
   var chk=document.getElementById('chk-tapse');
@@ -13841,7 +13848,7 @@ function calcTAPSE() {
 }
 
 function amCalcSGL() {
-  var val = parseFloat(document.getElementById('sgl-val')?.value);
+  var val = PF(document.getElementById('sgl-val')?.value);
   var crit=document.getElementById('crit-sgl');
   var input=document.getElementById('ett-sgl');
   var chk=document.getElementById('chk-sgl');
@@ -13856,8 +13863,8 @@ function amCalcSGL() {
 }
 
 function calcApice() {
-  var apic = parseFloat(document.getElementById('ap-apic')?.value);
-  var base = parseFloat(document.getElementById('ap-base')?.value);
+  var apic = PF(document.getElementById('ap-apic')?.value);
+  var base = PF(document.getElementById('ap-base')?.value);
   var resEl = document.getElementById('ap-result');
   if(isNaN(apic)||isNaN(base)||base===0){ if(resEl) resEl.value=''; return; }
   var rel = Math.abs(apic)/Math.abs(base);
@@ -13876,15 +13883,15 @@ function calcApice() {
 
 function calcETT() {
   var pts = ['ett-rwt','ett-ee','ett-tapse','ett-sgl','ett-apice']
-    .reduce((s,id)=>s+(parseFloat(document.getElementById(id)?.value)||0),0);
+    .reduce((s,id)=>s+(PF(document.getElementById(id)?.value)||0),0);
 
-  var septo = parseFloat(document.getElementById('ett-septo')?.value)||0;
-  var pp    = parseFloat(document.getElementById('ett-pp')?.value)||0;
+  var septo = PF(document.getElementById('ett-septo')?.value)||0;
+  var pp    = PF(document.getElementById('ett-pp')?.value)||0;
   var espesor = Math.max(septo, pp);
   var hvi = espesor >= 12;
 
   var cualCount = ['ett-cual-1','ett-cual-2','ett-cual-3']
-    .reduce((s,id)=>s+(parseFloat(document.getElementById(id)?.value)||0),0);
+    .reduce((s,id)=>s+(PF(document.getElementById(id)?.value)||0),0);
 
   var numEl  = document.getElementById('ett-score-num');
   var catEl  = document.getElementById('ett-score-cat');
@@ -13926,7 +13933,7 @@ function calcETT() {
 
 function pasarScoreAAlgoritmo() {
   var pts = ['ett-rwt','ett-ee','ett-tapse','ett-sgl','ett-apice']
-    .reduce((s,id)=>s+(parseFloat(document.getElementById(id)?.value)||0),0);
+    .reduce((s,id)=>s+(PF(document.getElementById(id)?.value)||0),0);
   var scoreEl = document.getElementById('alg-ett-score');
   if(scoreEl) scoreEl.value = pts;
   amiloSwitchTab('algoritmo', document.querySelectorAll('#amilo-root .amilo-tab')[1]);
@@ -15329,7 +15336,7 @@ function labInit() {
   // ── PILAR 2: PERFIL DE POBLACIÓN ──
   const numCampo = (inf, id) => {
     const v = inf.campos?.[id];
-    return v ? parseFloat(String(v).replace(',','.')) : null;
+    return v ? PF(String(v).replace(',','.')) : null;
   };
 
   // Distribución FEVI
@@ -15661,8 +15668,8 @@ function labMedicoRender() {
   const statsEl = document.getElementById('lab-med-stats');
   if (!statsEl) return;
 
-  const fevis = infs.map(i => parseFloat(i.campos?.fevi_simpson)).filter(v => !isNaN(v));
-  const glss  = infs.map(i => parseFloat(i.campos?.gls_global)).filter(v => !isNaN(v));
+  const fevis = infs.map(i => PF(i.campos?.fevi_simpson)).filter(v => !isNaN(v));
+  const glss  = infs.map(i => PF(i.campos?.gls_global)).filter(v => !isNaN(v));
 
   statsEl.innerHTML = `
     <div>
@@ -15786,7 +15793,7 @@ function labCompararRender() {
 
   const numCampo = (inf, id) => {
     const v = inf.campos?.[id];
-    return v ? parseFloat(String(v).replace(',','.')) : null;
+    return v ? PF(String(v).replace(',','.')) : null;
   };
   const prom = (arr, campo) => {
     const vals = arr.map(i => numCampo(i, campo)).filter(v => v !== null);
@@ -15810,7 +15817,7 @@ function labCompararRender() {
   ];
 
   const delta = (a, b) => {
-    const na = parseFloat(a), nb = parseFloat(b);
+    const na = PF(a), nb = PF(b);
     if (isNaN(na) || isNaN(nb)) return '';
     const d = nb - na;
     const color = d > 0 ? '#3ecf8e' : d < 0 ? '#f05454' : 'var(--text2)';
@@ -15875,7 +15882,7 @@ async function labGenerarPDF() {
 
   const numCampo = (inf, id) => {
     const v = inf.campos?.[id];
-    return v ? parseFloat(String(v).replace(',','.')) : null;
+    return v ? PF(String(v).replace(',','.')) : null;
   };
   const prom = (campo) => {
     const vals = infs.map(i => numCampo(i,campo)).filter(v => v !== null);
@@ -15990,7 +15997,7 @@ function aplicarFiltros() {
 
     // FEVI
     if (filtroFevi) {
-      const fevi = parseFloat(c.fevi_simpson);
+      const fevi = PF(c.fevi_simpson);
       if (isNaN(fevi)) return false;
       if (filtroFevi === 'lt30'  && fevi > 30)  return false;
       if (filtroFevi === 'lt40'  && fevi > 40)  return false;
@@ -16162,7 +16169,7 @@ function actualizarGraficaEvol() {
   const getVals = (campo) =>
     _evolDatos.map(i => {
       const v = i.campos?.[campo];
-      return v ? parseFloat(String(v).replace(',','.')) : null;
+      return v ? PF(String(v).replace(',','.')) : null;
     });
 
   const series = [];
