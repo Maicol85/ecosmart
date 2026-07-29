@@ -2263,43 +2263,35 @@ function closeIntro() {
   <div class="card">
     <div class="card-head">📊 SGL — Strain Longitudinal Global</div>
     <div class="card-body">
-      <p style="font-size:11px;color:var(--text2);margin:0 0 14px;">Tocá cada segmento para ciclar su estado. Los segmentos y el esquema de colores son idénticos a los de contractilidad segmentaria. Cargá el SGL basal y el SGL pico con sus notas.</p>
+      <p style="font-size:11px;color:var(--text2);margin:0 0 14px;">Tocá cada segmento del bull's eye para ciclar el strain según la escala General Electric (rojo = normal → azul = discinesia). 17 segmentos, sin números.</p>
       <div style="display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap;justify-content:center;">
 
-        <!-- BULL'S EYE BASAL -->
-        <div style="display:flex;flex-direction:column;gap:12px;align-items:center;background:var(--bg3);border-radius:10px;padding:12px 14px 14px;width:270px;">
-          <div style="font-size:13px;color:var(--accent2);font-weight:700;">Bull's Eye Basal</div>
-          <svg viewBox="0 0 320 320" id="sgl-svg-basal" style="width:250px;max-width:100%;"></svg>
-          <div class="fg" style="width:100%;"><label>SGL basal (%)</label><input type="number" id="sgl_gls" placeholder="%" step="0.1"></div>
-          <div class="fg" style="width:100%;"><label>Notas basal</label><textarea id="sgl_notas" placeholder="Observaciones de strain basal..." style="min-height:70px;"></textarea></div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
-            <button class="btn btn-ghost" onclick="strainReset('basal')">🧹 Limpiar</button>
-            <button class="btn btn-ghost" id="sgl-pdf-toggle-basal" onclick="toggleSglPDFBasal()">📄 Incluir en PDF</button>
-          </div>
-        </div>
-
-        <!-- TABLA DE REFERENCIA DE COLORES (idéntica a contractilidad) -->
+        <!-- REFERENCIA DE COLORES (izquierda) -->
         <div style="align-self:center;background:var(--bg3);border-radius:8px;padding:12px 16px;font-size:12px;">
-          <div style="font-size:12px;color:var(--accent2);font-weight:600;margin-bottom:8px;">Referencia de colores</div>
+          <div style="font-size:12px;color:var(--accent2);font-weight:600;margin-bottom:8px;">Referencia de colores (GE)</div>
           <div style="display:flex;flex-direction:column;gap:6px;">
-            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:3px;background:#2a2f3f;display:inline-block;border:1px solid #ccc;"></span>Normal</div>
-            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:3px;background:#d4c430;display:inline-block;"></span>Hipoquinesia</div>
-            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:3px;background:#e08a30;display:inline-block;"></span>Aquinesia</div>
-            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:3px;background:#e04545;display:inline-block;"></span>Discinesia</div>
-            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:3px;background:#8a5fd4;display:inline-block;"></span>Aneurisma</div>
+            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:3px;background:#DC2626;display:inline-block;"></span>Normal</div>
+            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:3px;background:#F87171;display:inline-block;"></span>Hipoquinesia leve</div>
+            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:3px;background:#FECACA;display:inline-block;border:1px solid #ccc;"></span>Hipoquinesia</div>
+            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:3px;background:#93C5FD;display:inline-block;"></span>Acinesia</div>
+            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:3px;background:#1D4ED8;display:inline-block;"></span>Discinesia / aneurisma</div>
           </div>
         </div>
 
-        <!-- BULL'S EYE PICO -->
-        <div style="display:flex;flex-direction:column;gap:12px;align-items:center;background:var(--bg3);border-radius:10px;padding:12px 14px 14px;width:270px;">
-          <div style="font-size:13px;color:var(--accent2);font-weight:700;">Bull's Eye Pico</div>
-          <svg viewBox="0 0 320 320" id="sgl-svg-pico" style="width:250px;max-width:100%;"></svg>
-          <div class="fg" style="width:100%;"><label>SGL pico (%)</label><input type="number" id="sgl_gls_pico" placeholder="%" step="0.1"></div>
-          <div class="fg" style="width:100%;"><label>Notas pico</label><textarea id="sgl_notas_pico" placeholder="Observaciones de strain pico..." style="min-height:70px;"></textarea></div>
+        <!-- BULL'S EYE (centro, un solo bull, sin números) -->
+        <div style="display:flex;flex-direction:column;gap:12px;align-items:center;background:var(--bg3);border-radius:10px;padding:12px 14px 14px;">
+          <div style="font-size:13px;color:var(--accent2);font-weight:700;">Bull's Eye · Strain (17 segmentos)</div>
+          <svg viewBox="0 0 320 320" id="sgl-svg-bullseye" style="width:280px;max-width:100%;"></svg>
           <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
-            <button class="btn btn-ghost" onclick="strainReset('pico')">🧹 Limpiar</button>
-            <button class="btn btn-ghost" id="sgl-pdf-toggle-pico" onclick="toggleSglPDFPico()">📄 Incluir en PDF</button>
+            <button class="btn btn-ghost" id="sgl-pdf-toggle" onclick="toggleSglPDF()">📄 Incluir en PDF</button>
+            <button class="btn btn-ghost" onclick="sglReset()">🧹 Limpiar</button>
           </div>
+        </div>
+
+        <!-- CAMPOS (derecha) -->
+        <div style="display:flex;flex-direction:column;gap:14px;min-width:230px;align-self:center;">
+          <div class="fg"><label>SGL global (%)</label><input type="number" id="sgl_gls" placeholder="%" step="0.1"></div>
+          <div class="fg"><label>Comentarios / notas de strain</label><textarea id="sgl_notas" placeholder="Observaciones de strain..." style="min-height:120px;"></textarea></div>
         </div>
 
       </div>
@@ -11461,14 +11453,11 @@ function limpiar() {
   if (typeof contrReset === 'function') contrReset();
   if (typeof sglReset === 'function') sglReset();
   if (typeof eeResetAll === 'function') eeResetAll();
-  // Reset toggles de PDF (bull's eye contractilidad y strain basal/pico)
+  // Reset toggles de PDF (bull's eye contractilidad y strain)
   localStorage.removeItem('contractilidad_incluir_pdf');
   localStorage.removeItem('sgl_incluir_pdf');
-  localStorage.removeItem('sgl_incluir_pdf_basal');
-  localStorage.removeItem('sgl_incluir_pdf_pico');
   _pdfToggleBtnState('contr-pdf-toggle', false);
-  _pdfToggleBtnState('sgl-pdf-toggle-basal', false);
-  _pdfToggleBtnState('sgl-pdf-toggle-pico', false);
+  _pdfToggleBtnState('sgl-pdf-toggle', false);
   try { localStorage.removeItem('ecosmart_autosave'); } catch(e) {}
   toast('🗑 Formulario limpiado');
 }
@@ -12236,9 +12225,8 @@ function generarPDFReal() {
   // BULL'S EYE (contractilidad / SGL) — antes de la firma
   // ════════════════════════════════════════════════════════════
   const _incContr = localStorage.getItem('contractilidad_incluir_pdf') === '1';
-  const _incBasal = localStorage.getItem('sgl_incluir_pdf_basal') === '1';
-  const _incPico  = localStorage.getItem('sgl_incluir_pdf_pico') === '1';
-  if ((_incContr || _incBasal || _incPico) && typeof bullseyeDataURL === 'function') {
+  const _incSgl   = localStorage.getItem('sgl_incluir_pdf') === '1';
+  if ((_incContr || _incSgl) && typeof bullseyeDataURL === 'function') {
     // Columnas: cada una con su bull's eye arriba y su texto debajo
     const _cols = [];
     if (_incContr) {
@@ -12254,20 +12242,18 @@ function generarPDFReal() {
         leyenda: CONTR_MOTILIDAD
       });
     }
-    const _strainCol = (which, titulo, glsId, notasId) => {
-      const _gls = (typeof sv === 'function') ? sv(glsId).trim() : '';
-      const _nt  = (typeof sv === 'function') ? sv(notasId).trim() : '';
-      const _body = [ _gls ? ('SGL ' + (which==='basal'?'basal':'pico') + ': ' + _gls + ' %') : '', _nt ].filter(Boolean).join('\n');
+    if (_incSgl) {
+      const _gls = (typeof sv === 'function') ? sv('sgl_gls').trim() : '';
+      const _nt  = (typeof sv === 'function') ? sv('sgl_notas').trim() : '';
+      const _body = [ _gls ? ('SGL global: ' + _gls + ' %') : '', _nt ].filter(Boolean).join('\n');
       _cols.push({
-        title: titulo,
-        data: bullseyeDataURL(id => (CONTR_MOTILIDAD[(strainEstado[which][id]||0)] || CONTR_MOTILIDAD[0]).color),
-        heading: _body ? ('Strain ' + (which==='basal'?'basal':'pico') + ':') : '',
+        title: 'Strain longitudinal (SGL)',
+        data: bullseyeDataURL(id => strainColor(id)),
+        heading: _body ? 'Strain longitudinal (SGL):' : '',
         body: _body,
-        leyenda: CONTR_MOTILIDAD
+        leyenda: GE_STRAIN
       });
-    };
-    if (_incBasal) _strainCol('basal', 'Strain basal', 'sgl_gls', 'sgl_notas');
-    if (_incPico)  _strainCol('pico',  'Strain pico',  'sgl_gls_pico', 'sgl_notas_pico');
+    }
     if (_cols.length) {
       checkPage(88);
       drawBar(_cols.length === 2 ? 'CONTRACTILIDAD Y STRAIN (SGL)' : _cols[0].title.toUpperCase());
@@ -14865,48 +14851,35 @@ const SGL_CUATRO = [
   {id:'anterior',centro:0},{id:'septal',centro:-90},{id:'inferior',centro:-180},{id:'lateral',centro:-270}
 ];
 
-// ══ Strain: dos bull's eye (basal / pico) con geometría y colores IDÉNTICOS a contractilidad ══
-const strainEstado = { basal:{}, pico:{} };
-function strainColor(which,id){ return CONTR_MOTILIDAD[strainEstado[which][id] || 0].color; }
-function strainAplicar(which,id){ document.querySelectorAll('[data-strainwhich="'+which+'"][data-strainid="'+id+'"]').forEach(el=> el.setAttribute('fill', strainColor(which,id))); }
-function strainAplicarTodos(which){ document.querySelectorAll('#sgl-svg-'+which+' [data-strainid]').forEach(el=> strainAplicar(which, el.getAttribute('data-strainid'))); }
-function strainCiclar(which,id){ strainEstado[which][id] = ((strainEstado[which][id] || 0) + 1) % CONTR_MOTILIDAD.length; strainAplicar(which,id); }
-window.strainReset = function(which){ Object.keys(strainEstado[which]).forEach(k=> strainEstado[which][k]=0); strainAplicarTodos(which); };
-window.sglReset = function(){ strainReset('basal'); strainReset('pico'); };   // limpia ambos (compat. limpiar-todo)
+// ══ Strain: UN SOLO bull's eye (17 seg, sin números) con escala de colores estilo General Electric ══
+const GE_STRAIN = [
+  {nombre:'Normal',                color:'#DC2626'},
+  {nombre:'Hipoquinesia leve',     color:'#F87171'},
+  {nombre:'Hipoquinesia',          color:'#FECACA'},
+  {nombre:'Acinesia',              color:'#93C5FD'},
+  {nombre:'Discinesia / aneurisma',color:'#1D4ED8'},
+];
+const strainEstado = {};
+function strainColor(id){ return (GE_STRAIN[strainEstado[id] || 0] || GE_STRAIN[0]).color; }
+function strainAplicar(id){ document.querySelectorAll('#sgl-svg-bullseye [data-strainid="'+id+'"]').forEach(el=> el.setAttribute('fill', strainColor(id))); }
+function strainAplicarTodos(){ document.querySelectorAll('#sgl-svg-bullseye [data-strainid]').forEach(el=> strainAplicar(el.getAttribute('data-strainid'))); }
+function strainCiclar(id){ strainEstado[id] = ((strainEstado[id] || 0) + 1) % GE_STRAIN.length; strainAplicar(id); }
+window.sglReset = function(){ Object.keys(strainEstado).forEach(k=> strainEstado[k]=0); strainAplicarTodos(); };
 
-function strainDibujarBull(which){
-  const svg = document.getElementById('sgl-svg-'+which);
+function sglDibujarBullseye(){
+  const svg = document.getElementById('sgl-svg-bullseye');
   if (!svg) return;
   const cx=160, cy=160, rBE=145, rBI=98, rMI=52, rAI=18;
-  const seis = [
-    {id:'anterior',centro:0,num:1},{id:'anteroseptal',centro:-60,num:2},{id:'inferoseptal',centro:-120,num:3},
-    {id:'inferior',centro:-180,num:4},{id:'inferolateral',centro:-240,num:5},{id:'anterolateral',centro:-300,num:6}
-  ];
-  const cuatro = [
-    {id:'anterior',centro:0,num:13},{id:'septal',centro:-90,num:14},{id:'inferior',centro:-180,num:15},{id:'lateral',centro:-270,num:16}
-  ];
-  const toRad = a => (a-90)*Math.PI/180;
-  const posTexto = (r,a) => [cx + r*Math.cos(toRad(a)), cy + r*Math.sin(toRad(a))];
-  const TERR = {
-    basal_anterior:'#3ea8ff', basal_anteroseptal:'#3ea8ff', mid_anterior:'#3ea8ff', mid_anteroseptal:'#3ea8ff', apical_anterior:'#3ea8ff', apical_septal:'#3ea8ff', apex:'#3ea8ff',
-    basal_inferoseptal:'#3ecf8e', basal_inferior:'#3ecf8e', mid_inferoseptal:'#3ecf8e', mid_inferior:'#3ecf8e', apical_inferior:'#3ecf8e',
-    basal_inferolateral:'#ff7ab8', basal_anterolateral:'#ff7ab8', mid_inferolateral:'#ff7ab8', mid_anterolateral:'#ff7ab8', apical_lateral:'#ff7ab8',
-  };
-  const seg = (idKey,d) => '<path class="strain-seg" data-strainwhich="'+which+'" data-strainid="'+idKey+'" style="cursor:pointer" stroke="'+(TERR[idKey]||'#cfd6e6')+'" stroke-width="3" d="'+d+'"/>';
+  const seg = (idKey,d) => '<path class="strain-seg" data-strainid="'+idKey+'" style="cursor:pointer" fill="'+GE_STRAIN[0].color+'" stroke="#cfd6e6" stroke-width="1.2" d="'+d+'"/>';
   let html='';
-  seis.forEach(w=> html += seg('basal_'+w.id, contrDescribirCuna(cx,cy,rBI,rBE,w.centro-30,w.centro+30)));
-  seis.forEach(w=> html += seg('mid_'+w.id, contrDescribirCuna(cx,cy,rMI,rBI,w.centro-30,w.centro+30)));
-  cuatro.forEach(w=> html += seg('apical_'+w.id, contrDescribirCuna(cx,cy,rAI,rMI,w.centro-45,w.centro+45)));
-  html += '<circle class="strain-seg" data-strainwhich="'+which+'" data-strainid="apex" style="cursor:pointer" stroke="'+TERR.apex+'" stroke-width="3" cx="'+cx+'" cy="'+cy+'" r="'+rAI+'"/>';
+  SGL_SEIS.forEach(w=> html += seg('basal_'+w.id, contrDescribirCuna(cx,cy,rBI,rBE,w.centro-30,w.centro+30)));
+  SGL_SEIS.forEach(w=> html += seg('mid_'+w.id, contrDescribirCuna(cx,cy,rMI,rBI,w.centro-30,w.centro+30)));
+  SGL_CUATRO.forEach(w=> html += seg('apical_'+w.id, contrDescribirCuna(cx,cy,rAI,rMI,w.centro-45,w.centro+45)));
+  html += '<circle class="strain-seg" data-strainid="apex" style="cursor:pointer" fill="'+GE_STRAIN[0].color+'" stroke="#cfd6e6" stroke-width="1.2" cx="'+cx+'" cy="'+cy+'" r="'+rAI+'"/>';
   [rBE,rBI,rMI,rAI].forEach(r=> html += '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="#cfd6e6" stroke-width="0.7" opacity="0.3" pointer-events="none"/>');
-  const rMedioBasal=(rBE+rBI)/2, rMedioMid=(rBI+rMI)/2, rMedioApical=(rMI+rAI)/2;
-  seis.forEach(w=>{ const [x,y]=posTexto(rMedioBasal,w.centro); html += '<text x="'+x+'" y="'+y+'" font-size="13" fill="#e8ecf4" text-anchor="middle" dominant-baseline="middle" pointer-events="none">'+w.num+'</text>'; });
-  seis.forEach(w=>{ const [x,y]=posTexto(rMedioMid,w.centro); html += '<text x="'+x+'" y="'+y+'" font-size="13" fill="#e8ecf4" text-anchor="middle" dominant-baseline="middle" pointer-events="none">'+(w.num+6)+'</text>'; });
-  cuatro.forEach(w=>{ const [x,y]=posTexto(rMedioApical,w.centro); html += '<text x="'+x+'" y="'+y+'" font-size="12" fill="#e8ecf4" text-anchor="middle" dominant-baseline="middle" pointer-events="none">'+w.num+'</text>'; });
-  html += '<text x="'+cx+'" y="'+cy+'" font-size="12" fill="#e8ecf4" text-anchor="middle" dominant-baseline="middle" pointer-events="none">17</text>';
   svg.innerHTML = html;
-  svg.querySelectorAll('.strain-seg').forEach(el=> el.addEventListener('click', ()=> strainCiclar(which, el.getAttribute('data-strainid'))));
-  strainAplicarTodos(which);
+  svg.querySelectorAll('.strain-seg').forEach(el=> el.addEventListener('click', ()=> strainCiclar(el.getAttribute('data-strainid'))));
+  strainAplicarTodos();
 }
 function sglSyncGLS(){
   const gls = document.getElementById('sgl_gls');
@@ -14915,10 +14888,9 @@ function sglSyncGLS(){
   if (vi && vi.value !== '' && (gls.value === '' )) gls.value = vi.value;
 }
 window.sglOnShow = function(){
-  strainDibujarBull('basal'); strainDibujarBull('pico'); sglSyncGLS();
+  sglDibujarBullseye(); sglSyncGLS();
   if (typeof _pdfToggleBtnState === 'function'){
-    _pdfToggleBtnState('sgl-pdf-toggle-basal', localStorage.getItem('sgl_incluir_pdf_basal')==='1');
-    _pdfToggleBtnState('sgl-pdf-toggle-pico',  localStorage.getItem('sgl_incluir_pdf_pico')==='1');
+    _pdfToggleBtnState('sgl-pdf-toggle', localStorage.getItem('sgl_incluir_pdf')==='1');
   }
 };
 
@@ -14941,9 +14913,8 @@ window.bullseyeDataURL = bullseyeDataURL;
 // ══ Toggles de inclusión en PDF ══
 function _pdfToggleBtnState(id, on){ const b=document.getElementById(id); if(b){ b.classList.toggle('btn-primary', on); b.classList.toggle('btn-ghost', !on); } }
 function toggleContrPDF(){ const on = localStorage.getItem('contractilidad_incluir_pdf')!=='1'; localStorage.setItem('contractilidad_incluir_pdf', on?'1':'0'); _pdfToggleBtnState('contr-pdf-toggle', on); toast(on?'📄 Bull\'s eye de contractilidad se incluirá en el PDF':'Bull\'s eye de contractilidad excluido del PDF'); }
-function toggleSglPDFBasal(){ const on = localStorage.getItem('sgl_incluir_pdf_basal')!=='1'; localStorage.setItem('sgl_incluir_pdf_basal', on?'1':'0'); _pdfToggleBtnState('sgl-pdf-toggle-basal', on); toast(on?'📄 Bull\'s eye de strain basal se incluirá en el PDF':'Bull\'s eye de strain basal excluido del PDF'); }
-function toggleSglPDFPico(){ const on = localStorage.getItem('sgl_incluir_pdf_pico')!=='1'; localStorage.setItem('sgl_incluir_pdf_pico', on?'1':'0'); _pdfToggleBtnState('sgl-pdf-toggle-pico', on); toast(on?'📄 Bull\'s eye de strain pico se incluirá en el PDF':'Bull\'s eye de strain pico excluido del PDF'); }
-window.toggleContrPDF = toggleContrPDF; window.toggleSglPDFBasal = toggleSglPDFBasal; window.toggleSglPDFPico = toggleSglPDFPico;
+function toggleSglPDF(){ const on = localStorage.getItem('sgl_incluir_pdf')!=='1'; localStorage.setItem('sgl_incluir_pdf', on?'1':'0'); _pdfToggleBtnState('sgl-pdf-toggle', on); toast(on?'📄 Bull\'s eye de strain se incluirá en el PDF':'Bull\'s eye de strain excluido del PDF'); }
+window.toggleContrPDF = toggleContrPDF; window.toggleSglPDF = toggleSglPDF;
 
 // ── Toggles genéricos de inclusión en PDF (Wilkins / Duke / GTP / Eco Estrés) ──
 function _togglePDF(key, btnId, label){ const on = localStorage.getItem(key)!=='1'; localStorage.setItem(key, on?'1':'0'); _pdfToggleBtnState(btnId, on); toast(on?('📄 '+label+' se incluirá en el PDF'):(label+' excluido del PDF')); }
@@ -15122,11 +15093,9 @@ function eteQxDataURL(){
 window.eteQxDataURL=eteQxDataURL;
 
 // Init SGL + estados de los toggles
-strainDibujarBull('basal');
-strainDibujarBull('pico');
+sglDibujarBullseye();
 _pdfToggleBtnState('contr-pdf-toggle', localStorage.getItem('contractilidad_incluir_pdf')==='1');
-_pdfToggleBtnState('sgl-pdf-toggle-basal', localStorage.getItem('sgl_incluir_pdf_basal')==='1');
-_pdfToggleBtnState('sgl-pdf-toggle-pico', localStorage.getItem('sgl_incluir_pdf_pico')==='1');
+_pdfToggleBtnState('sgl-pdf-toggle', localStorage.getItem('sgl_incluir_pdf')==='1');
 _pdfToggleBtnState('cx-wilkins-pdf', localStorage.getItem('wilkins_incluir_pdf')==='1');
 _pdfToggleBtnState('cx-duke-pdf', localStorage.getItem('duke_incluir_pdf')==='1');
 _pdfToggleBtnState('cx-gtp-pdf', localStorage.getItem('gtp_incluir_pdf')==='1');
