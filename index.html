@@ -12583,6 +12583,7 @@ function generarPDFReal() {
     doc.setPage(_p);
     fn(6.5); tc(150,150,150);
     doc.text('© 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo', 105, 292, { align:'center' });
+    fn(5.5); tc(160,160,160); doc.text('Esta herramienta es de apoyo clínico. No reemplaza el juicio médico ni constituye una recomendación diagnóstica o terapéutica. CeiboMed © 2026', 105, 295, { align:'center' });
     // QR discreto → https://ceibomed.com
     if (_qrData) {
       try {
@@ -16736,6 +16737,28 @@ function cfgToggleQr(on){ try { localStorage.setItem('ett_qr_enabled', on ? '1' 
 function cfgOnShow(){ cfgRenderModulos(); cfgLoadMed(); var q=document.getElementById('cfg-qr'); if(q) q.checked = eeQrEnabled(); }
 // Aplicar modo guardado al cargar
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', applyViewMode); else applyViewMode();
+</script>
+<script>
+/* Aviso de datos locales (primer inicio) */
+(function(){
+  var KEY="ecosmart_aviso_datos_visto";
+  function show(){
+    try{ if(localStorage.getItem(KEY)==='1') return; }catch(e){}
+    var ov=document.createElement('div');
+    ov.setAttribute('role','dialog'); ov.setAttribute('aria-modal','true'); ov.setAttribute('aria-label','Aviso sobre datos locales');
+    ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px';
+    var box=document.createElement('div');
+    box.style.cssText='background:#fff;color:#1a2a3a;max-width:440px;width:100%;border-radius:14px;padding:22px 24px;box-shadow:0 20px 60px rgba(0,0,0,.4);font-family:system-ui,Segoe UI,sans-serif';
+    box.innerHTML='<div style="font-size:15px;font-weight:700;margin-bottom:10px">Aviso importante</div><div style="font-size:13.5px;line-height:1.6;color:#374151">⚠️ Los datos se guardan localmente en este navegador. Si borrás el navegador o cambiás de dispositivo, los datos se pierden. Exportá tu backup regularmente.</div>';
+    var btn=document.createElement('button');
+    btn.type='button'; btn.textContent='Entendido';
+    btn.style.cssText='margin-top:16px;width:100%;padding:11px;background:#1565C0;color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;min-height:44px';
+    btn.onclick=function(){ try{localStorage.setItem(KEY,'1');}catch(e){} if(ov.parentNode)ov.parentNode.removeChild(ov); };
+    box.appendChild(btn); ov.appendChild(box); document.body.appendChild(ov);
+    setTimeout(function(){ try{btn.focus();}catch(e){} },40);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',show); else show();
+})();
 </script>
 </body>
 </html>
