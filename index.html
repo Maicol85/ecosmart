@@ -127,6 +127,33 @@
   input:focus, select:focus, textarea:focus {
     outline: none; border-color: var(--accent);
   }
+  /* ── A11y: touch targets ≥44px ── */
+  button, [role="button"], .btn, .tab-btn, .nav-tab, .chip,
+  .cal-cell, .seg-cell, [onclick] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  /* Excepción: el header es una barra densa secundaria — sus controles conservan
+     su tamaño compacto y no se estiran verticalmente (evita botones de 112px) */
+  header [onclick], header .btn, header button, header .hdr-pe, header .hdr-dt,
+  header .hdr-fi, header .hdr-extra-field, header [contenteditable], header .hdr-sep {
+    min-height: 0; min-width: 0; align-self: center;
+  }
+  /* Centrado vertical del contenido en los controles agrandados */
+  .btn, .tab-btn, .nav-tab, .chip {
+    display: inline-flex; align-items: center; justify-content: center;
+    white-space: nowrap;
+  }
+  /* ── A11y: foco visible sólo por teclado (mantiene outline:none al click) ── */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  input:focus-visible, select:focus-visible, textarea:focus-visible,
+  [contenteditable]:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
   input[readonly] { color: var(--accent2); font-weight: 600; }
   textarea { resize: vertical; min-height: 60px; }
   /* ══ BADGE ══ */
@@ -251,8 +278,8 @@
   }
   .hdr-ph { opacity:.38; font-style:italic; }
   .float-informe-wrap { position:fixed; right:0; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; gap:4px; z-index:200; }
-  .float-informe-btn { background:var(--accent); color:#fff; border:none; cursor:pointer; border-radius:8px 0 0 8px; padding:12px 10px; font-size:11px; font-weight:700; box-shadow:-3px 2px 10px rgba(0,0,0,0.35); transition:background .15s,padding .15s; }
-  .float-informe-btn:hover { background:var(--accent2); padding-right:14px; }
+  .float-informe-btn { background:var(--accent); color:#fff; border:none; cursor:pointer; border-radius:8px 0 0 8px; padding:12px 10px; font-size:11px; font-weight:700; box-shadow:-3px 2px 10px rgba(0,0,0,0.35); transition:background .15s,transform .15s; }
+  .float-informe-btn:hover { background:var(--accent2); transform:translateX(-4px); }
   .float-informe-btn.active { background:var(--green); color:#0f1117; }
   @media(max-width:600px){.float-informe-btn{font-size:9px;padding:8px 7px;}}
   @media(max-width:600px){.tab-lab{font-size:9px;padding:8px 7px;}}
@@ -265,6 +292,14 @@
   .lgal-del{position:absolute;top:-7px;right:-7px;width:17px;height:17px;border-radius:50%;border:none;background:#ef4444;color:#fff;font-size:10px;line-height:17px;cursor:pointer;padding:0;text-align:center}
   .lgal-upload{border:2px dashed var(--border);border-radius:8px;padding:14px;text-align:center;cursor:pointer;color:var(--text2);font-size:12px;margin-bottom:12px;transition:border-color .15s,color .15s}
   .lgal-upload:hover{border-color:var(--accent);color:var(--accent)}
+  /* ── A11y: respeta reduce-motion ── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+    }
+  }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
@@ -275,13 +310,29 @@
 </script>
 <style>
 /* ── Amiloidosis Calculator ── */
-#amilo-root{--navy:#0B1F3A;--navy2:#162B4D;--purple:#5B2D8E;--purple2:#7340AA;--purple-pale:#F3EEFF;--red:#C0392B;--red-pale:#FDEDEC;--amber:#D4860A;--amber-pale:#FEF3DC;--green:#1A6B4A;--green-pale:#E8F5EE;--blue:#1A4A8A;--blue-pale:#EBF2FB;--bg:#F2F4F8;--surface:#FFFFFF;--border:#D0D8E8;--text:#0B1F3A;--muted:#5A6878;--light:#8FA0B0;font-family:system-ui,-apple-system,sans-serif;color:var(--text)}
+/* --bg, --border, --text, --purple, --green, --red se heredan del sistema global (theme-aware) */
+#amilo-root{
+  --navy:#0B1F3A;--navy2:#162B4D;                 /* barra de tabs: chrome fijo con texto blanco, legible en ambos temas */
+  --purple2:#b79bf0;                              /* hover del acento púrpura */
+  --surface:var(--bg2);--muted:var(--text2);--light:var(--text2);
+  --blue:var(--accent);--amber:var(--orange);
+  --purple-pale:rgba(155,127,232,.16);
+  --red-pale:rgba(240,84,84,.15);
+  --amber-pale:rgba(245,158,66,.15);
+  --green-pale:rgba(62,207,142,.15);
+  --blue-pale:rgba(79,142,247,.15);
+  font-family:inherit;color:var(--text)
+}
+/* En modo día, tintes claros opacos sobre superficies blancas (aspecto original) */
+html.light-mode #amilo-root{
+  --purple-pale:#F3EEFF;--red-pale:#FDEDEC;--amber-pale:#FEF3DC;--green-pale:#E8F5EE;--blue-pale:#EBF2FB;
+}
 #amilo-root *{box-sizing:border-box;margin:0;padding:0}
 #amilo-root .amilo-tabhead{background:var(--navy2);display:flex;padding:0 16px;gap:2px;overflow-x:auto;border-radius:10px 10px 0 0}
-#amilo-root .amilo-tab{padding:11px 16px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:transparent;color:rgba(255,255,255,.5);border-bottom:3px solid transparent;font-family:inherit;transition:all .15s;white-space:nowrap}
+#amilo-root .amilo-tab{padding:11px 16px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:transparent;color:rgba(255,255,255,.72);border-bottom:3px solid transparent;font-family:inherit;transition:all .15s;white-space:nowrap}
 #amilo-root .amilo-tab.active{color:#fff;border-bottom-color:#C8A0FF}
 #amilo-root .amilo-main{max-width:860px;margin:0 auto;padding:14px 2px}
-#amilo-root .result-panel{border-radius:14px;padding:20px;margin-bottom:18px;display:none;box-shadow:0 4px 20px rgba(91,45,142,.2)}
+#amilo-root .result-panel{border-radius:14px;padding:20px;margin-bottom:18px;display:none;box-shadow:0 2px 8px rgba(0,0,0,0.18)}
 #amilo-root .result-panel.show{display:flex;gap:18px;align-items:flex-start}
 #amilo-root .result-panel.prob-alta{background:linear-gradient(135deg,#3D1B6E,#5B2D8E)}
 #amilo-root .result-panel.prob-baja{background:linear-gradient(135deg,#0B2E1A,#1A6B4A)}
@@ -329,7 +380,7 @@
 #amilo-root .prot-item-label{font-size:13px;font-weight:700}
 #amilo-root .prot-item-sub{font-size:11px;color:var(--muted);margin-top:3px}
 #amilo-root .score-bar{height:10px;background:var(--bg);border-radius:5px;overflow:hidden;margin-top:6px}
-#amilo-root .score-fill{height:100%;border-radius:5px;transition:width .4s}
+#amilo-root .score-fill{height:100%;width:100%;border-radius:5px;transform:scaleX(0);transform-origin:left;transition:transform .4s}
 #amilo-root .escenario-box{border-radius:10px;padding:14px;margin-bottom:10px;border-left:4px solid}
 #amilo-root .escenario-box.verde{background:var(--green-pale);border-color:var(--green)}
 #amilo-root .escenario-box.amarillo{background:var(--amber-pale);border-color:var(--amber)}
@@ -8064,7 +8115,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     <div style="flex:1">
       <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:4px" id="ett-score-cat">Completá los parámetros</div>
       <div style="font-size:12px;color:rgba(255,255,255,.7);line-height:1.5" id="ett-score-interp">Score ≥8 + HVI ≥12mm sugiere amiloidosis cardíaca.</div>
-      <div class="score-bar" style="margin-top:10px"><div class="score-fill" id="ett-score-bar" style="width:0%;background:#C8A0FF"></div></div>
+      <div class="score-bar" style="margin-top:10px"><div class="score-fill" id="ett-score-bar" style="transform:scaleX(0);background:#C8A0FF"></div></div>
     </div>
   </div>
   <div class="card">
@@ -13966,7 +14017,7 @@ function calcETT() {
   var cualEl = document.getElementById('ett-cual-count');
 
   if(numEl) numEl.textContent = pts;
-  if(barEl) barEl.style.width = (pts/10*100) + '%';
+  if(barEl) barEl.style.transform = 'scaleX(' + (pts/10) + ')';
   if(hviEl) hviEl.innerHTML = espesor > 0
     ? (hvi
         ? '<span class="badge badge-purple">✅ HVI ≥12mm — Criterio presente (' + espesor.toFixed(1) + 'mm)</span>'
