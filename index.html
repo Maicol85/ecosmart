@@ -544,7 +544,7 @@ window.cerrarSesion = cerrarSesion;
 <header>
   <div class="hdr-icon">🫀</div>
   <div>
-    <div class="hdr-title">Ecocardiograma Doppler Color <span id="autosave-indicator" style="color:var(--text2);font-size:11px;font-weight:400;opacity:0;transition:opacity .4s">● Guardado</span></div>
+    <h1 class="hdr-title">Ecocardiograma Doppler Color <span id="autosave-indicator" style="color:var(--text2);font-size:11px;font-weight:400;opacity:0;transition:opacity .4s">● Guardado</span></h1>
     <div class="hdr-sub">
       <!-- hidden contenteditable spans keep sv() and saveMedico() working -->
       <span id="med-nombre" contenteditable="true" onblur="saveMedico()" style="display:none;">Dr. Maicol Dos Santos</span>
@@ -855,7 +855,7 @@ function closeIntro() {
 <!-- ═══════════════════════ TAB: DATOS PACIENTE ═══════════════════════ -->
 <div id="tab-datos" class="tab-section active">
   <div class="card">
-    <div class="card-head">👤 Datos del Paciente</div>
+    <h2 class="card-head">👤 Datos del Paciente</h2>
     <div class="card-body">
       <div class="grid-4">
         <div class="fg">
@@ -971,7 +971,7 @@ function closeIntro() {
   <div class="grid-2">
 
     <div class="card">
-      <div class="card-head">🔵 Raíz Aórtica</div>
+      <h2 class="card-head">🔵 Raíz Aórtica</h2>
       <div class="card-body">
         <div class="grid-3">
           <div class="fg">
@@ -1019,7 +1019,7 @@ function closeIntro() {
     </div>
 
     <div class="card">
-      <div class="card-head">🔷 Aurícula Izquierda</div>
+      <h2 class="card-head">🔷 Aurícula Izquierda</h2>
       <div class="card-body">
         <div class="grid-3">
           <div class="fg">
@@ -1060,7 +1060,7 @@ function closeIntro() {
 
   <!-- VI -->
   <div class="card">
-    <div class="card-head">🫀 Ventrículo Izquierdo — Modo M / 2D</div>
+    <h2 class="card-head">🫀 Ventrículo Izquierdo — Modo M / 2D</h2>
     <div class="card-body">
       <div class="grid-4">
         <div class="fg">
@@ -1142,7 +1142,7 @@ function closeIntro() {
 <!-- ═══════════════════════ TAB: VD / AD ═══════════════════════ -->
 <div id="tab-vd" class="tab-section">
   <div class="card">
-    <div class="card-head">➡️ Ventrículo Derecho</div>
+    <h2 class="card-head">➡️ Ventrículo Derecho</h2>
     <div class="card-body">
       <div class="grid-3">
         <div class="fg">
@@ -1208,7 +1208,7 @@ function closeIntro() {
   </div>
 
   <div class="card">
-    <div class="card-head">🔷 Aurícula Derecha · VCI · Presión AD</div>
+    <h2 class="card-head">🔷 Aurícula Derecha · VCI · Presión AD</h2>
     <div class="card-body">
       <div class="grid-4">
         <div class="fg">
@@ -1252,7 +1252,7 @@ function closeIntro() {
 
   <!-- Doppler mitral -->
   <div class="card" style="margin-bottom:6px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('dop-mitral',this)">〰️ Doppler Mitral — Función Diastólica<span id="dop-mitral-arrow" style="float:right;transition:transform 0.2s;">▼</span></div>
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('dop-mitral',this)">〰️ Doppler Mitral — Función Diastólica<span id="dop-mitral-arrow" style="float:right;transition:transform 0.2s;">▼</span></h2>
   </div>
   <div id="dop-mitral" style="display:block;">
   <div class="card">
@@ -1318,7 +1318,7 @@ function closeIntro() {
 
   <!-- Doppler Aórtico -->
   <div class="card" style="margin-bottom:6px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('dop-aortico',this)">〰️ Doppler Aórtico — TSVI / Válvula Aórtica<span id="dop-aortico-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('dop-aortico',this)">〰️ Doppler Aórtico — TSVI / Válvula Aórtica<span id="dop-aortico-arrow" style="float:right;transition:transform 0.2s;">▶</span></h2>
   </div>
   <div id="dop-aortico" style="display:none;">
   <div class="card">
@@ -1387,7 +1387,7 @@ function closeIntro() {
 
   <!-- Doppler Tricuspídeo / PSAP -->
   <div class="card" style="margin-bottom:6px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('dop-tricusp',this)">〰️ Doppler Tricuspídeo — PSAP<span id="dop-tricusp-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('dop-tricusp',this)">〰️ Doppler Tricuspídeo — PSAP<span id="dop-tricusp-arrow" style="float:right;transition:transform 0.2s;">▶</span></h2>
   </div>
   <div id="dop-tricusp" style="display:none;">
   <div class="card">
@@ -1429,7 +1429,7 @@ function closeIntro() {
 
   <!-- Doppler Pulmonar -->
   <div class="card" style="margin-bottom:6px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('dop-pulmonar',this)">〰️ Doppler Pulmonar<span id="dop-pulmonar-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('dop-pulmonar',this)">〰️ Doppler Pulmonar<span id="dop-pulmonar-arrow" style="float:right;transition:transform 0.2s;">▶</span></h2>
   </div>
   <div id="dop-pulmonar" style="display:none;">
   <div class="card">
@@ -1484,10 +1484,10 @@ function closeIntro() {
 <div id="tab-valvulas" class="tab-section">
 
   <div class="card" style="margin-bottom:6px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('valv-mitral',this)">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('valv-mitral',this)">
       🔴 Válvula Mitral
       <span id="ete-valv-mitral-arrow" style="float:right;transition:transform 0.2s;">▶</span>
-    </div>
+    </h2>
   </div>
   <div id="ete-seccion-valv-mitral" style="display:none;">
   <div class="card">
@@ -1715,10 +1715,10 @@ function closeIntro() {
   </div>
 
   <div class="card" style="margin-bottom:6px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('valv-aortica',this)">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('valv-aortica',this)">
       🔵 Válvula Aórtica
       <span id="ete-valv-aortica-arrow" style="float:right;transition:transform 0.2s;">▶</span>
-    </div>
+    </h2>
   </div>
   <div id="ete-seccion-valv-aortica" style="display:none;">
   <div class="card">
@@ -1841,10 +1841,10 @@ function closeIntro() {
   </div>
 
   <div class="card" style="margin-bottom:6px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('valv-tricuspide',this)">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('valv-tricuspide',this)">
       🟡 Válvula Tricúspide
       <span id="ete-valv-tricuspide-arrow" style="float:right;transition:transform 0.2s;">▶</span>
-    </div>
+    </h2>
   </div>
   <div id="ete-seccion-valv-tricuspide" style="display:none;">
   <div class="card">
@@ -1908,10 +1908,10 @@ function closeIntro() {
   </div>
 
   <div class="card" style="margin-bottom:6px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('valv-pulmonar',this)">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('valv-pulmonar',this)">
       ⚪ Válvula Pulmonar
       <span id="ete-valv-pulmonar-arrow" style="float:right;transition:transform 0.2s;">▶</span>
-    </div>
+    </h2>
   </div>
   <div id="ete-seccion-valv-pulmonar" style="display:none;">
   <div class="card">
@@ -1925,10 +1925,10 @@ function closeIntro() {
   </div>
 
   <div class="card" style="margin-bottom:6px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('pericardio-masas',this)">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('pericardio-masas',this)">
       ⚪ Pericardio y Masas
       <span id="ete-pericardio-masas-arrow" style="float:right;transition:transform 0.2s;">▶</span>
-    </div>
+    </h2>
   </div>
   <div id="ete-seccion-pericardio-masas" style="display:none;">
   <div class="card">
@@ -1983,12 +1983,12 @@ function closeIntro() {
 <!-- ═══════════════════════ TAB: HEMODINÁMICA ═══════════════════════ -->
 <div id="tab-hemodinamica" class="tab-section">
   <div class="card">
-    <div class="card-head">🩸 Hemodinámica — Perfil, HTP y Sobrecarga VD</div>
+    <h2 class="card-head">🩸 Hemodinámica — Perfil, HTP y Sobrecarga VD</h2>
   </div>
 
   <!-- Hemodinámica (colapsable) -->
   <div class="card" style="margin-bottom:6px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('hemo-vi',this)">🩸 Perfil Hemodinámico — GC · IC · RVS · PCP · GTP<span id="hemo-vi-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('hemo-vi',this)">🩸 Perfil Hemodinámico — GC · IC · RVS · PCP · GTP<span id="hemo-vi-arrow" style="float:right;transition:transform 0.2s;">▶</span></h2>
   </div>
   <div id="hemo-vi" style="display:none;">
   <div class="card">
@@ -2060,10 +2060,10 @@ function closeIntro() {
   </div>
 
   <div class="card" style="margin-bottom:6px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('htp2022-seccion',this)">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('htp2022-seccion',this)">
       🫁 Valoración ecocardiográfica de HTP (ESC 2022)
       <span id="htp2022-arrow" style="float:right;transition:transform 0.2s;">▶</span>
-    </div>
+    </h2>
   </div>
   <div id="htp2022-seccion" style="display:none;">
   <div class="card">
@@ -2116,10 +2116,10 @@ function closeIntro() {
   </div>
 
   <div class="card" style="margin-bottom:6px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('tep-seccion',this)">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('tep-seccion',this)">
       🔴 Evaluación Ecocardiográfica — TEP / Sobrecarga VD Aguda
       <span id="tep-arrow" style="float:right;transition:transform 0.2s;">▶</span>
-    </div>
+    </h2>
   </div>
   <div id="tep-seccion" style="display:none;">
   <div class="card">
@@ -2201,7 +2201,7 @@ function closeIntro() {
 </div>
 <div id="tab-contractilidad" class="tab-section">
   <div class="card">
-    <div class="card-head">🫀 Contractilidad Segmentaria — 17 segmentos AHA</div>
+    <h2 class="card-head">🫀 Contractilidad Segmentaria — 17 segmentos AHA</h2>
     <div class="card-body">
       <p style="font-size:11px;color:var(--text2);margin:0 0 14px;">Tocá un segmento en cualquier vista: cicla la motilidad y se refleja en el resto de las vistas, en el bull's eye y en el informe.</p>
 
@@ -2312,7 +2312,7 @@ function closeIntro() {
 <!-- ═══════════════════════ TAB: SGL ═══════════════════════ -->
 <div id="tab-sgl" class="tab-section">
   <div class="card">
-    <div class="card-head">📊 SGL — Strain Longitudinal Global</div>
+    <h2 class="card-head">📊 SGL — Strain Longitudinal Global</h2>
     <div class="card-body">
       <p style="font-size:11px;color:var(--text2);margin:0 0 14px;">Tocá cada segmento del bull's eye para ciclar el strain según la escala General Electric (rojo = normal → azul = discinesia). 17 segmentos, sin números.</p>
       <div style="display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap;justify-content:center;">
@@ -2412,7 +2412,7 @@ function closeIntro() {
 
   <!-- TÉCNICA DEL PROCEDIMIENTO -->
   <div class="card">
-    <div class="card-head">📋 Técnica del procedimiento</div>
+    <h2 class="card-head">📋 Técnica del procedimiento</h2>
     <div class="card-body">
       <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:10px;padding:8px 10px;background:var(--bg3);border-radius:8px;cursor:pointer;">
         <input type="checkbox" id="ete_tecnica_incluir_chk" onchange="localStorage.setItem('ete_tecnica_incluir', this.checked ? '1' : '0')"> 📋 Incluir técnica en informe
@@ -2426,7 +2426,7 @@ function closeIntro() {
 
   <!-- MORFOLOGÍA Y ETIOLOGÍA -->
   <div class="card">
-    <div class="card-head">🔬 ETE — Morfología y Clasificación VM</div>
+    <h2 class="card-head">🔬 ETE — Morfología y Clasificación VM</h2>
     <div class="card-body">
       <div class="grid-3">
         <div class="fg"><label>Etiología</label>
@@ -2466,10 +2466,10 @@ function closeIntro() {
   </div>
 
   <div class="card" style="margin-bottom:8px;">
-    <div class="card-head" style="cursor:pointer; user-select:none;" onclick="toggleEteSeccion('mitral', this)">
+    <h2 class="card-head" style="cursor:pointer; user-select:none;" onclick="toggleEteSeccion('mitral', this)">
       🫀 Válvula Mitral — ETE
       <span id="ete-mitral-arrow" style="float:right; transition:transform 0.2s;">▶</span>
-    </div>
+    </h2>
   </div>
   <div id="ete-seccion-mitral" style="display:none;">
   <div class="card">
@@ -5697,10 +5697,10 @@ z
   </div>
   </div>
   <div class="card" style="margin-bottom:6px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('mediciones-mitral',this)">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('mediciones-mitral',this)">
       📏 Mediciones ETE — Válvula Mitral
       <span id="ete-mediciones-mitral-arrow" style="float:right;transition:transform 0.2s;">▶</span>
-    </div>
+    </h2>
   </div>
   <div id="ete-seccion-mediciones-mitral" style="display:none;">
   <div class="card">
@@ -5751,10 +5751,10 @@ z
   </div>
 
   <div class="card" style="margin-bottom:6px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('teer',this)">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('teer',this)">
       🎯 Criterios TEER — MitraClip / PASCAL
       <span id="ete-teer-arrow" style="float:right;transition:transform 0.2s;">▼</span>
-    </div>
+    </h2>
   </div>
   <div id="ete-seccion-teer" style="display:none;">
   <div class="card">
@@ -5873,10 +5873,10 @@ z
   </div>
 
   <div class="card" style="margin-bottom:6px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('wilkins',this)">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('wilkins',this)">
       📊 Score de Wilkins — Estenosis Mitral
       <span id="ete-wilkins-arrow" style="float:right;transition:transform 0.2s;">▼</span>
-    </div>
+    </h2>
   </div>
   <div id="ete-seccion-wilkins" style="display:none;">
   <div class="card">
@@ -5929,10 +5929,10 @@ z
   </div>
 
   <div class="card" style="margin-bottom:8px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('oai',this)">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('oai',this)">
       👂 Orejuela Izquierda — ETE
       <span id="ete-oai-arrow" style="float:right;transition:transform 0.2s;">▶</span>
-    </div>
+    </h2>
   </div>
   <div id="ete-seccion-oai" style="display:none;">
   <div class="card">
@@ -6010,10 +6010,10 @@ z
   </div>
 
   <div class="card" style="margin-bottom:8px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('aorta',this)">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('aorta',this)">
       🩸 Aorta — Aterosclerosis ETE
       <span id="ete-aorta-arrow" style="float:right;transition:transform 0.2s;">▶</span>
-    </div>
+    </h2>
   </div>
   <div id="ete-seccion-aorta" style="display:none;">
   <div class="card">
@@ -6494,12 +6494,12 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
 <!-- ═══════════════════════ TAB: CALCULADORAS ═══════════════════════ -->
 <div id="tab-calculadoras" class="tab-section">
   <div class="card">
-    <div class="card-head">🧮 Calculadoras Clínicas Ecocardiográficas</div>
+    <h2 class="card-head">🧮 Calculadoras Clínicas Ecocardiográficas</h2>
   </div>
 
   <!-- 1. AVT -->
   <div class="card" style="margin-bottom:6px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('cx-avt',this)">🧮 AVT — Área valvular por T½ (Hatle)<span id="cx-avt-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('cx-avt',this)">🧮 AVT — Área valvular por T½ (Hatle)<span id="cx-avt-arrow" style="float:right;transition:transform 0.2s;">▶</span></h2>
   </div>
   <div id="cx-avt" style="display:none;">
   <div class="card"><div class="card-body">
@@ -6514,7 +6514,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
 
   <!-- 2. TANGO -->
   <div class="card" style="margin-bottom:6px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('cx-tango',this)">🧮 Fórmula TANGO — EA bajo flujo / bajo gradiente<span id="cx-tango-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('cx-tango',this)">🧮 Fórmula TANGO — EA bajo flujo / bajo gradiente<span id="cx-tango-arrow" style="float:right;transition:transform 0.2s;">▶</span></h2>
   </div>
   <div id="cx-tango" style="display:none;">
   <div class="card"><div class="card-body">
@@ -6532,7 +6532,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
 
   <!-- 3. TAPSE/PSAP -->
   <div class="card" style="margin-bottom:6px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('cx-tp',this)">🧮 TAPSE/PSAP — Acoplamiento VD-arterial pulmonar<span id="cx-tp-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('cx-tp',this)">🧮 TAPSE/PSAP — Acoplamiento VD-arterial pulmonar<span id="cx-tp-arrow" style="float:right;transition:transform 0.2s;">▶</span></h2>
   </div>
   <div id="cx-tp" style="display:none;">
   <div class="card"><div class="card-body">
@@ -6548,7 +6548,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
 
   <!-- 4. Esfericidad -->
   <div class="card" style="margin-bottom:6px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('cx-esf',this)">🧮 Índice de esfericidad VI<span id="cx-esf-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('cx-esf',this)">🧮 Índice de esfericidad VI<span id="cx-esf-arrow" style="float:right;transition:transform 0.2s;">▶</span></h2>
   </div>
   <div id="cx-esf" style="display:none;">
   <div class="card"><div class="card-body">
@@ -6564,7 +6564,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
 
   <!-- 5. PISA / ERO -->
   <div class="card" style="margin-bottom:6px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('cx-pisa',this)">🧮 PISA / ERO — Insuficiencia mitral<span id="cx-pisa-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('cx-pisa',this)">🧮 PISA / ERO — Insuficiencia mitral<span id="cx-pisa-arrow" style="float:right;transition:transform 0.2s;">▶</span></h2>
   </div>
   <div id="cx-pisa" style="display:none;">
   <div class="card"><div class="card-body">
@@ -6583,7 +6583,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
 
   <!-- 6. Ecuación de continuidad -->
   <div class="card" style="margin-bottom:6px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('cx-cont',this)">🧮 Ecuación de continuidad — AVA<span id="cx-cont-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('cx-cont',this)">🧮 Ecuación de continuidad — AVA<span id="cx-cont-arrow" style="float:right;transition:transform 0.2s;">▶</span></h2>
   </div>
   <div id="cx-cont" style="display:none;">
   <div class="card"><div class="card-body">
@@ -6600,7 +6600,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
 
   <!-- 7. Índice de Tei (MPI) -->
   <div class="card" style="margin-bottom:6px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('cx-tei',this)">🧮 Índice de Tei (MPI) — VI y VD<span id="cx-tei-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('cx-tei',this)">🧮 Índice de Tei (MPI) — VI y VD<span id="cx-tei-arrow" style="float:right;transition:transform 0.2s;">▶</span></h2>
   </div>
   <div id="cx-tei" style="display:none;">
   <div class="card"><div class="card-body">
@@ -6625,7 +6625,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
 
   <!-- Score de Wilkins -->
   <div class="card" style="margin-bottom:6px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('cx-wilkins',this)">🧮 Score de Wilkins (Estenosis Mitral)<span id="cx-wilkins-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('cx-wilkins',this)">🧮 Score de Wilkins (Estenosis Mitral)<span id="cx-wilkins-arrow" style="float:right;transition:transform 0.2s;">▶</span></h2>
   </div>
   <div id="cx-wilkins" style="display:none;">
   <div class="card"><div class="card-body">
@@ -6664,7 +6664,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
 
   <!-- Score de Duke -->
   <div class="card" style="margin-bottom:6px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('cx-duke',this)">🧮 Score de Duke (Treadmill / Eco Estrés)<span id="cx-duke-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('cx-duke',this)">🧮 Score de Duke (Treadmill / Eco Estrés)<span id="cx-duke-arrow" style="float:right;transition:transform 0.2s;">▶</span></h2>
   </div>
   <div id="cx-duke" style="display:none;">
   <div class="card"><div class="card-body">
@@ -6686,7 +6686,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
 
   <!-- GTP y RVP -->
   <div class="card" style="margin-bottom:6px;">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('cx-gtp',this);if(window.cxGtpSync)cxGtpSync();">🧮 Gradiente Transpulmonar (GTP) y RVP<span id="cx-gtp-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('cx-gtp',this);if(window.cxGtpSync)cxGtpSync();">🧮 Gradiente Transpulmonar (GTP) y RVP<span id="cx-gtp-arrow" style="float:right;transition:transform 0.2s;">▶</span></h2>
   </div>
   <div id="cx-gtp" style="display:none;">
   <div class="card"><div class="card-body">
@@ -6778,7 +6778,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
 </style>
 
   <div class="card">
-    <div class="card-head">🔊 Fonocardiograma Interactivo <span style="font-weight:400;color:var(--text2);font-size:11px;">· Correlación con estetoscopio digital</span></div>
+    <h2 class="card-head">🔊 Fonocardiograma Interactivo <span style="font-weight:400;color:var(--text2);font-size:11px;">· Correlación con estetoscopio digital</span></h2>
     <div class="card-body">
 
       <div class="fcg-selector-label">Seleccioná una patología</div>
@@ -7129,7 +7129,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 <!-- ═══════════════════════ TAB: IMÁGENES ═══════════════════════ -->
 <div id="tab-imagenes" class="tab-section">
   <div class="card">
-    <div class="card-head">🖼️ Imágenes del estudio</div>
+    <h2 class="card-head">🖼️ Imágenes del estudio</h2>
     <div class="card-body">
       <p style="font-size:11px;color:var(--text2);margin:0 0 12px;">Cargá imágenes por archivo, cámara o pegando con Ctrl/Cmd+V. Doble click (PC) o tap prolongado (mobile) sobre una imagen para <b>ampliarla</b> (ancho completo y media página en el PDF). Reordená arrastrando (PC) o con tap-para-intercambiar (mobile). Las imágenes viven solo en esta sesión (no se guardan).</p>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
@@ -7146,16 +7146,16 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 <div id="tab-refs" class="tab-section">
 
   <div class="card">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('nativas',this)">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('nativas',this)">
       🫀 Válvulas Nativas
       <span style="float:right;">▶</span>
-    </div>
+    </h2>
     <div id="ref-nativas" style="display:none;padding:8px;">
 
       <div class="card">
-        <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('im',this)">
+        <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('im',this)">
           🔴 IM — Insuficiencia Mitral (ESC 2021) <span style="float:right;">▶</span>
-        </div>
+        </h2>
         <div id="ref-im" style="display:none;" class="card-body">
           <div style="font-size:11px;color:var(--text2);margin-bottom:8px;font-style:italic;">ESC/EACTS 2021 · EVEREST II · COAPT · RESHAPE-HF2</div>
           <table style="width:100%;border-collapse:collapse;font-size:12px;">
@@ -7186,9 +7186,9 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
 
       <div class="card">
-        <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('em',this)">
+        <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('em',this)">
           🟠 EM — Estenosis Mitral (ESC 2021) <span style="float:right;">▶</span>
-        </div>
+        </h2>
         <div id="ref-em" style="display:none;" class="card-body">
           <table style="width:100%;border-collapse:collapse;font-size:12px;">
             <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Parámetro</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Leve</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Moderada</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Severa</th></tr>
@@ -7205,9 +7205,9 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
 
       <div class="card">
-        <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('ia',this)">
+        <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('ia',this)">
           🟣 IAo — Insuficiencia Aórtica (ESC 2021) <span style="float:right;">▶</span>
-        </div>
+        </h2>
         <div id="ref-ia" style="display:none;" class="card-body">
           <table style="width:100%;border-collapse:collapse;font-size:12px;">
             <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Parámetro</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Leve</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Moderada</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Severa</th></tr>
@@ -7228,9 +7228,9 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
 
       <div class="card">
-        <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('eao',this)">
+        <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('eao',this)">
           🔵 EAo — Estenosis Aórtica y TAVI (ESC 2021) <span style="float:right;">▶</span>
-        </div>
+        </h2>
         <div id="ref-eao" style="display:none;" class="card-body">
           <table style="width:100%;border-collapse:collapse;font-size:12px;">
             <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Parámetro</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Leve</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Moderada</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Severa</th></tr>
@@ -7251,9 +7251,9 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
 
       <div class="card">
-        <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('it',this)">
+        <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('it',this)">
           🟡 IT — Insuficiencia Tricuspídea (ESC 2021) <span style="float:right;">▶</span>
-        </div>
+        </h2>
         <div id="ref-it" style="display:none;" class="card-body">
           <table style="width:100%;border-collapse:collapse;font-size:12px;">
             <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Parámetro</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Leve</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Moderada</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Severa</th></tr>
@@ -7273,16 +7273,16 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   <div class="card">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('protesicas',this)">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('protesicas',this)">
       🔧 Válvulas Protésicas
       <span style="float:right;">▶</span>
-    </div>
+    </h2>
     <div id="ref-protesicas" style="display:none;padding:8px;">
 
       <div class="card">
-        <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('pao',this)">
+        <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('pao',this)">
           🔵 Prótesis Aórtica — ESC 2021 <span style="float:right;">▶</span>
-        </div>
+        </h2>
         <div id="ref-pao" style="display:none;" class="card-body">
           <div style="font-size:11px;color:var(--text2);margin-bottom:8px;font-style:italic;">ESC 2021 · VARC-3</div>
           <table style="width:100%;border-collapse:collapse;font-size:12px;">
@@ -7300,9 +7300,9 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
 
       <div class="card">
-        <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('pm',this)">
+        <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('pm',this)">
           🔴 Prótesis Mitral — ESC 2021 <span style="float:right;">▶</span>
-        </div>
+        </h2>
         <div id="ref-pm" style="display:none;" class="card-body">
           <table style="width:100%;border-collapse:collapse;font-size:12px;">
             <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Parámetro</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Normal</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Obstrucción severa</th></tr>
@@ -7315,9 +7315,9 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
 
       <div class="card">
-        <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('trombo',this)">
+        <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('trombo',this)">
           ⚠️ Trombosis vs Pannus <span style="float:right;">▶</span>
-        </div>
+        </h2>
         <div id="ref-trombo" style="display:none;" class="card-body">
           <table style="width:100%;border-collapse:collapse;font-size:12px;">
             <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Característica</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Trombosis</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Pannus</th></tr>
@@ -7330,9 +7330,9 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
 
       <div class="card">
-        <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('viv',this)">
+        <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('viv',this)">
           🔄 Valve-in-Valve — TAVI en Bioprótesis Fallada <span style="float:right;">▶</span>
-        </div>
+        </h2>
         <div id="ref-viv" style="display:none;" class="card-body">
           <div style="font-size:12px;color:var(--text);line-height:1.8;">
             • <b>Indicación (Clase IIa):</b> Bioprótesis Ao o mitral fallada + alto riesgo quirúrgico<br>
@@ -7344,9 +7344,9 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
 
       <div class="card">
-        <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('endo',this)">
+        <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('endo',this)">
           🦠 Endocarditis Protésica (ESC 2023) <span style="float:right;">▶</span>
-        </div>
+        </h2>
         <div id="ref-endo" style="display:none;" class="card-body">
           <div style="font-size:12px;color:var(--text);line-height:1.8;">
             <b style="color:var(--accent2);">Criterios mayores eco:</b><br>
@@ -7361,10 +7361,10 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   <div class="card">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('vi',this)">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('vi',this)">
       🫀 VI — Geometría y Disfunción Diastólica (ASE 2016)
       <span style="float:right;">▶</span>
-    </div>
+    </h2>
     <div id="ref-vi" style="display:none;" class="card-body">
       <table style="width:100%;border-collapse:collapse;font-size:12px;">
         <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Geometría</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Masa indexada</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">RWT</th></tr>
@@ -7385,10 +7385,10 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   <div class="card">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('vd',this)">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('vd',this)">
       ➡️ VD — Parámetros Normales y Disfunción (ASE 2015)
       <span style="float:right;">▶</span>
-    </div>
+    </h2>
     <div id="ref-vd" style="display:none;" class="card-body">
       <table style="width:100%;border-collapse:collapse;font-size:12px;">
         <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Parámetro</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Normal</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Disfunción</th></tr>
@@ -7402,10 +7402,10 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   <div class="card">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('htp',this)">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('htp',this)">
       🫁 HTP — Hipertensión Pulmonar (ESC 2022)
       <span style="float:right;">▶</span>
-    </div>
+    </h2>
     <div id="ref-htp" style="display:none;" class="card-body">
       <table style="width:100%;border-collapse:collapse;font-size:12px;">
         <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Clasificación</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">PSAP (mmHg)</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">PAP media</th></tr>
@@ -7423,10 +7423,10 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   <div class="card">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('tep',this)">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('tep',this)">
       🔴 TEP — Criterios Ecocardiográficos y Estratificación ESC 2019
       <span style="float:right;">▶</span>
-    </div>
+    </h2>
     <div id="ref-tep" style="display:none;" class="card-body">
       <div style="font-size:12px;color:var(--text);line-height:1.8;">
         <b style="color:var(--accent2);">Criterios de disfunción VD (≥2 = disfunción significativa):</b><br>
@@ -7451,10 +7451,10 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   <div class="card">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('oai',this)">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('oai',this)">
       👂 OAI — Orejuela Izquierda y Cierre Percutáneo
       <span style="float:right;">▶</span>
-    </div>
+    </h2>
     <div id="ref-oai" style="display:none;" class="card-body">
       <div style="font-size:12px;color:var(--text);line-height:1.8;">
         <b style="color:var(--accent2);">Morfología:</b> Ala de pollo (menor riesgo) · Coliflor (mayor riesgo) · Cactus · Veleta<br>
@@ -7468,10 +7468,10 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   <div class="card">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('ao',this)">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('ao',this)">
       🩸 Aorta — Aterosclerosis y Dilatación (ESC 2024)
       <span style="float:right;">▶</span>
-    </div>
+    </h2>
     <div id="ref-ao" style="display:none;" class="card-body">
       <table style="width:100%;border-collapse:collapse;font-size:12px;">
         <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Grado</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Descripción</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Riesgo embólico</th></tr>
@@ -7489,10 +7489,10 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   <div class="card">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('pericardio',this)">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('pericardio',this)">
       💧 Derrame Pericárdico y Taponamiento (ESC 2015)
       <span style="float:right;">▶</span>
-    </div>
+    </h2>
     <div id="ref-pericardio" style="display:none;" class="card-body">
       <table style="width:100%;border-collapse:collapse;font-size:12px;">
         <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Clasificación</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Tamaño</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Separación</th></tr>
@@ -7509,10 +7509,10 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   <div class="card">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('cardiotox',this)">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('cardiotox',this)">
       🧪 Cardiotoxicidad — CTRCD (ESC Cardio-Oncología 2022)
       <span style="float:right;">▶</span>
-    </div>
+    </h2>
     <div id="ref-cardiotox" style="display:none;" class="card-body">
       <table style="width:100%;border-collapse:collapse;font-size:12px;">
         <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Tipo CTRCD</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Criterio</th></tr>
@@ -7530,10 +7530,10 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   <div class="card">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('miocard',this)">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('miocard',this)">
       🧠 Miocardiopatías — Criterios Eco Clave
       <span style="float:right;">▶</span>
-    </div>
+    </h2>
     <div id="ref-miocard" style="display:none;" class="card-body">
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:6px;">MCH — Miocardiopatía Hipertrófica</div>
       <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:10px;">
@@ -7582,10 +7582,10 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   <div class="card">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('congenitas',this)">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('congenitas',this)">
       🧬 Cardiopatías Congénitas del Adulto (ESC 2020)
       <span style="float:right;">▶</span>
-    </div>
+    </h2>
     <div id="ref-congenitas" style="display:none;" class="card-body">
       <div style="font-size:12px;color:var(--text);line-height:1.8;">
         <b style="color:var(--accent2);">CIA:</b> Qp/Qs ≥1.5 + dilatación VD → cierre · Percutáneo si ≤38mm y bordes ≥5mm<br>
@@ -7598,10 +7598,10 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 
 
   <div class="card">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('burbujas',this)">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('burbujas',this)">
       🫧 Test de Burbujas — Detección de Shunt D-I
       <span style="float:right;">▶</span>
-    </div>
+    </h2>
     <div id="ref-burbujas" style="display:none;" class="card-body">
       <div style="font-size:11px;color:var(--text2);margin-bottom:8px;font-style:italic;">Detección de shunt derecha-izquierda intracardíaco o intrapulmonar</div>
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:6px;">Técnica</div>
@@ -7637,10 +7637,10 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   <div class="card">
-    <div class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('formulas',this)">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('formulas',this)">
       📐 Fórmulas — Cálculos Ecocardiográficos y Hemodinámicos
       <span style="float:right;">▶</span>
-    </div>
+    </h2>
     <div id="ref-formulas" style="display:none;" class="card-body">
 
       <!-- 1. ANTROPOMETRÍA -->
@@ -7758,7 +7758,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 <!-- ═══════════════════════ TAB: CARDIO-ONCOLOGIA ═══════════════════════ -->
 <div id="tab-cardioOnco" class="tab-section">
 <div class="card" style="margin-bottom:8px;">
-  <div class="card-head">🎗️ Cardio-Oncología — ESC 2022 / HFA-ICOS</div>
+  <h2 class="card-head">🎗️ Cardio-Oncología — ESC 2022 / HFA-ICOS</h2>
   <div class="card-body">
 
     <!-- RIESGO BASAL -->
@@ -7864,7 +7864,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 <!-- ═══════════════════════ TAB: INFORME ═══════════════════════ -->
 <div id="tab-informe" class="tab-section">
   <div class="card">
-    <div class="card-head">📄 Informe Narrativo</div>
+    <h2 class="card-head">📄 Informe Narrativo</h2>
     <div class="card-body">
       <div class="fg" style="margin-bottom:10px;">
         <label>Estilo del informe</label>
@@ -7881,7 +7881,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
   <div class="card">
-    <div class="card-head">✅ En Suma / Conclusión</div>
+    <h2 class="card-head">✅ En Suma / Conclusión</h2>
     <div class="card-body">
       <div class="fg">
         <textarea id="en_suma" style="min-height:120px;" placeholder="Conclusión clínica..."></textarea>
@@ -7910,7 +7910,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   <!-- Lista view -->
   <div id="ig-lista-view">
     <div class="card">
-      <div class="card-head">📋 Informes Guardados</div>
+      <h2 class="card-head">📋 Informes Guardados</h2>
       <div class="card-body">
         <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
           <input type="text" id="ig-buscar" placeholder="🔍 Buscar por nombre o documento..." oninput="filtrarInformes()" style="flex:1;">
@@ -8736,7 +8736,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 </div>
 
 </div><!-- /container -->
-<div id="toast"></div>
+<div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script>
 // ══ INIT ══
@@ -8772,6 +8772,10 @@ function badge(cls, txt) {
 }
 function toast(msg) {
   const t = document.getElementById('toast');
+  // FIX A11y: errores críticos se anuncian de inmediato (assertive); el resto, polite
+  const esError = /[⚠️❌🚫]|error|incorrect|no se pudo|inválid|fall/i.test(String(msg));
+  t.setAttribute('aria-live', esError ? 'assertive' : 'polite');
+  t.setAttribute('role', esError ? 'alert' : 'status');
   t.textContent = msg;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2500);
@@ -14396,7 +14400,7 @@ function verDetalleInforme(id) {
   const medLugar  = c['med-lugar'] || '';
 
   let html = `<div class="card">
-    <div class="card-head" style="font-size:13px;">👤 ${escHtml(inf.nombre)} &mdash; ${escHtml(inf.doc_tipo)}: ${escHtml(inf.ci)}</div>
+    <h2 class="card-head" style="font-size:13px;">👤 ${escHtml(inf.nombre)} &mdash; ${escHtml(inf.doc_tipo)}: ${escHtml(inf.ci)}</h2>
     <div class="card-body">
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
         <span class="badge badge-blue">📅 Estudio: ${fechaEst}</span>
@@ -14424,7 +14428,7 @@ function verDetalleInforme(id) {
       .filter(Boolean);
     if (!items.length) return;
     html += `<div class="card ig-detalle-sec">
-      <div class="card-head">${sec.titulo}</div>
+      <h2 class="card-head">${sec.titulo}</h2>
       <div class="card-body">
         <div class="calc-box" style="margin:0;">`;
     items.forEach(it => {
@@ -14440,7 +14444,7 @@ function verDetalleInforme(id) {
   const informeTxt = c['informe_texto'];
   if (informeTxt && informeTxt.trim()) {
     html += `<div class="card ig-detalle-sec">
-      <div class="card-head">📄 Informe Narrativo</div>
+      <h2 class="card-head">📄 Informe Narrativo</h2>
       <div class="card-body">
         <div style="white-space:pre-wrap;line-height:1.7;color:var(--text);font-size:12.5px;">${escHtml(informeTxt)}</div>
       </div>
@@ -14451,7 +14455,7 @@ function verDetalleInforme(id) {
   const enSuma = c['en_suma'];
   if (enSuma && enSuma.trim()) {
     html += `<div class="card ig-detalle-sec">
-      <div class="card-head">✅ En Suma / Conclusión</div>
+      <h2 class="card-head">✅ En Suma / Conclusión</h2>
       <div class="card-body">
         <div style="white-space:pre-wrap;line-height:1.7;color:var(--text);font-size:12.5px;">${escHtml(enSuma)}</div>
       </div>
@@ -16465,6 +16469,108 @@ window.aceptarAvisoDatos = aceptarAvisoDatos;
 <script>
 function actualizarFloatBtns(){const id=(document.querySelector('.tab-section.active')||{}).id||'';document.getElementById('floatBtnInforme').classList.toggle('active',id==='tab-informe');document.getElementById('floatBtnGuardados').classList.toggle('active',id==='tab-guardados');}
 const _orig=showTab;window.showTab=function(id){_orig(id);setTimeout(actualizarFloatBtns,50);};
+</script>
+<script>
+/* ══ Capa de accesibilidad — FIX 2 (modales ARIA + foco) y FIX 4 (clickables por teclado) ══ */
+(function(){
+  'use strict';
+  var NATIVE='A,BUTTON,INPUT,SELECT,TEXTAREA,LABEL,SUMMARY';
+  function isNative(el){ return el.tagName && NATIVE.indexOf(el.tagName)!==-1; }
+  function hasInteractiveChild(el){
+    return !!el.querySelector('a[href],button,input,select,textarea,[onclick],[tabindex],[contenteditable="true"]');
+  }
+  // ── FIX 4: hace operables por teclado los <div onclick> (rol de botón + foco), sin romper HTML ──
+  function enhanceClickables(root){
+    if(!root.querySelectorAll) return;
+    var nodes=root.querySelectorAll('[onclick]');
+    for(var i=0;i<nodes.length;i++){
+      var el=nodes[i];
+      if(isNative(el) || el.hasAttribute('data-a11y') || el.isContentEditable) continue;
+      var oc=el.getAttribute('onclick')||'';
+      if(oc.indexOf('event.target===this')!==-1) continue;       // overlay: clic-afuera-para-cerrar, no es botón
+      if(hasInteractiveChild(el)){ el.setAttribute('data-a11y','skip'); continue; } // contiene controles: ellos manejan el teclado
+      el.setAttribute('data-a11y','1');
+      if(el.tabIndex<0) el.setAttribute('tabindex','0');
+      // Los headings (h2 plegables) conservan su rol de encabezado; el resto pasa a role="button"
+      if(!/^H[1-6]$/.test(el.tagName) && !el.hasAttribute('role')) el.setAttribute('role','button');
+    }
+  }
+  document.addEventListener('keydown',function(e){
+    if(e.key!=='Enter' && e.key!==' ' && e.key!=='Spacebar') return;
+    var el=document.activeElement;
+    if(!el || isNative(el) || !el.hasAttribute('onclick') || el.getAttribute('data-a11y')!=='1') return;
+    if((e.key===' '||e.key==='Spacebar') && el.getAttribute('role')!=='button') return; // Espacio solo en role=button
+    e.preventDefault(); el.click();
+  });
+
+  // ── FIX 2: modales — role="dialog", aria-modal, aria-labelledby + gestión de foco ──
+  var FOCUSABLE='a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  var lastFocus=new WeakMap();
+  function hash(s){s=String(s);var h=0;for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return Math.abs(h);}
+  function labelModal(m){
+    if(!m.hasAttribute('role')) m.setAttribute('role','dialog');
+    m.setAttribute('aria-modal','true');
+    if(!m.getAttribute('aria-labelledby') && !m.getAttribute('aria-label')){
+      var title=m.querySelector('h1,h2,h3,[style*="font-weight:700"],[style*="font-weight: 700"]');
+      if(title){ if(!title.id) title.id='a11y-mt-'+hash((m.id||'')+title.textContent); m.setAttribute('aria-labelledby',title.id); }
+    }
+  }
+  function isVisible(m){ if(!m.isConnected) return false; var s=getComputedStyle(m); return s.display!=='none' && s.visibility!=='hidden'; }
+  function openModal(m){ lastFocus.set(m,document.activeElement); labelModal(m); var f=m.querySelector(FOCUSABLE); if(f) setTimeout(function(){try{f.focus();}catch(e){}},30); }
+  function closeModal(m){ var p=lastFocus.get(m); if(p && document.contains(p)){ try{p.focus();}catch(e){} } }
+  // Trampa de Tab dentro del modal visible superior
+  document.addEventListener('keydown',function(e){
+    if(e.key!=='Tab') return;
+    var open=[].slice.call(document.querySelectorAll('[role="dialog"][aria-modal="true"]')).filter(isVisible);
+    if(!open.length) return;
+    var m=open[open.length-1];
+    var f=[].slice.call(m.querySelectorAll(FOCUSABLE)).filter(function(x){return x.offsetParent!==null;});
+    if(!f.length) return;
+    var first=f[0], last=f[f.length-1];
+    if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+  });
+  // Escape cierra el modal visible (dispara su control de cierre si existe)
+  document.addEventListener('keydown',function(e){
+    if(e.key!=='Escape') return;
+    var open=[].slice.call(document.querySelectorAll('[role="dialog"][aria-modal="true"]')).filter(isVisible);
+    if(!open.length) return;
+    var m=open[open.length-1];
+    var btn=[].slice.call(m.querySelectorAll('button,[onclick]')).find(function(b){
+      var t=(b.textContent||'')+' '+(b.getAttribute('onclick')||'');
+      return /cerrar|✕|✖|×|close|cancel|hide|ocultar/i.test(t);
+    });
+    if(btn) btn.click();
+  });
+
+  var STATIC_MODALS=['modal-pdf-import','modal-comparativo','modal-evolucion','modal-logo-gallery'];
+  function watchStatic(){
+    STATIC_MODALS.forEach(function(id){
+      var m=document.getElementById(id); if(!m) return;
+      var was=isVisible(m);
+      new MutationObserver(function(){ var v=isVisible(m); if(v&&!was)openModal(m); else if(!v&&was)closeModal(m); was=v; })
+        .observe(m,{attributes:true,attributeFilter:['style','class']});
+    });
+  }
+  function isDynamicModal(el){
+    if(el.nodeType!==1 || el.tagName!=='DIV') return false;
+    var s=el.getAttribute('style')||'';
+    return /position:\s*fixed/.test(s) && /inset:\s*0|top:\s*0/.test(s) && (el.querySelector('input,button,select,textarea')||/z-index:\s*9{3,}/.test(s));
+  }
+  var bodyObserver=new MutationObserver(function(muts){
+    muts.forEach(function(mu){
+      for(var i=0;i<mu.addedNodes.length;i++){ var n=mu.addedNodes[i]; if(n.nodeType!==1) continue; enhanceClickables(n); if(isDynamicModal(n)) openModal(n); }
+      for(var j=0;j<mu.removedNodes.length;j++){ var r=mu.removedNodes[j]; if(r.nodeType===1 && r.getAttribute && r.getAttribute('aria-modal')==='true') closeModal(r); }
+    });
+  });
+  function init(){
+    enhanceClickables(document);
+    STATIC_MODALS.forEach(function(id){ var m=document.getElementById(id); if(m) labelModal(m); });
+    watchStatic();
+    bodyObserver.observe(document.body,{childList:true,subtree:true});
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+})();
 </script>
 </body>
 </html>
