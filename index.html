@@ -13231,6 +13231,60 @@ function escHtml(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
+// ── Lectura segura de informes (FIX M1): try/catch ante storage corrupto ──
+function getInformes() {
+  try {
+    const raw = localStorage.getItem('ett_informes');
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.error('ett_informes corrupto:', e);
+    if (typeof toast === 'function') toast('⚠️ No se pudieron leer los informes guardados (datos corruptos)');
+    return [];
+  }
+}
+
+// ── Escritura segura de informes (FIX M2): manejo de cuota ──
+function guardarInformesSeguro(informes) {
+  try {
+    localStorage.setItem('ett_informes', JSON.stringify(informes));
+    return true;
+  } catch (e) {
+    console.error('Error guardando ett_informes:', e);
+    if (e && e.name === 'QuotaExceededError') {
+      toast('❌ No se pudo guardar: almacenamiento lleno. Exportá un backup y eliminá informes viejos.');
+    } else {
+      toast('❌ No se pudo guardar el estudio (error de almacenamiento).');
+    }
+    return false;
+  }
+}
+
+// ── Validación de esquema para import JSON (FIX A2) ──
+const _INF_CAMPOS_PERMITIDOS = ['id','nombre','ci','doc_tipo','fecha_estudio','fecha_guardado','campos'];
+function validarInformeImportado(inf) {
+  if (typeof inf !== 'object' || inf === null || Array.isArray(inf)) return false;
+  for (const k of Object.keys(inf)) {
+    if (!_INF_CAMPOS_PERMITIDOS.includes(k)) return false; // campo desconocido → rechazar
+  }
+  const strMax = (v, max) => typeof v === 'string' && v.length <= max;
+  if (typeof inf.id !== 'number') return false;
+  if (!strMax(inf.nombre, 200)) return false;
+  if (!strMax(inf.ci, 60)) return false;
+  if (inf.doc_tipo !== undefined && !strMax(inf.doc_tipo, 20)) return false;
+  if (inf.fecha_estudio !== undefined && !strMax(inf.fecha_estudio, 20)) return false;
+  if (inf.fecha_guardado !== undefined && !strMax(inf.fecha_guardado, 40)) return false;
+  if (inf.campos !== undefined) {
+    if (typeof inf.campos !== 'object' || inf.campos === null || Array.isArray(inf.campos)) return false;
+    for (const [ck, cv] of Object.entries(inf.campos)) {
+      if (typeof ck !== 'string' || ck.length > 60) return false;
+      if (typeof cv !== 'string' || cv.length > 20000) return false;
+    }
+  }
+  return true;
+}
+
 function editarInforme(id) {
   const informes = JSON.parse(localStorage.getItem('ett_informes') || '[]');
   const inf = informes.find(i => i.id === id);
@@ -13289,7 +13343,7 @@ function guardarInforme() {
     const el = document.getElementById(fid);
     if (el) campos[fid] = el.textContent.trim();
   });
-  const informes = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  const informes = getInformes();
   const nuevoInforme = {
     id: Date.now(),
     nombre: nombre || '—',
@@ -13318,8 +13372,7 @@ function guardarInforme() {
       ov2.remove();
       window._ettEditandoId = null;
       informes.unshift(nuevoInforme);
-      localStorage.setItem('ett_informes', JSON.stringify(informes));
-      toast('💾 Informe guardado como nuevo');
+      if (guardarInformesSeguro(informes)) toast('💾 Informe guardado como nuevo');
     };
     ov2.querySelector('#save-overwrite').onclick=()=>{
       ov2.remove();
@@ -13327,18 +13380,16 @@ function guardarInforme() {
       const idx = informes.findIndex(i => i.id === idEditando);
       if (idx >= 0) informes[idx] = { ...nuevoInforme, id: idEditando };
       else informes.unshift(nuevoInforme);
-      localStorage.setItem('ett_informes', JSON.stringify(informes));
-      toast('🔄 Informe sobreescrito correctamente');
+      if (guardarInformesSeguro(informes)) toast('🔄 Informe sobreescrito correctamente');
     };
   } else {
     informes.unshift(nuevoInforme);
-    localStorage.setItem('ett_informes', JSON.stringify(informes));
-    toast('💾 Informe guardado correctamente');
+    if (guardarInformesSeguro(informes)) toast('💾 Informe guardado correctamente');
   }
 }
 
 function renderInformesGuardados() {
-  const informes = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  const informes = getInformes();
   const lista  = document.getElementById('ig-lista');
   const vacio  = document.getElementById('ig-vacio');
   if (!lista) return;
@@ -13445,7 +13496,13 @@ function importarInformesJSON(file) {
     try {
       const nuevos = JSON.parse(e.target.result);
       if (!Array.isArray(nuevos)) { toast('❌ Archivo inválido'); return; }
-      const existentes = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+      // FIX A2: validación de esquema — rechazar el archivo completo si algún registro no valida
+      const invalido = nuevos.findIndex(inf => !validarInformeImportado(inf));
+      if (invalido !== -1) {
+        toast('❌ Archivo rechazado: el informe #' + (invalido + 1) + ' tiene un formato inválido');
+        return;
+      }
+      const existentes = getInformes();
       const idsExistentes = new Set(existentes.map(i => i.id));
       const sinDuplicados = nuevos.filter(i => !idsExistentes.has(i.id));
       const merged = [...existentes, ...sinDuplicados];
@@ -14273,7 +14330,7 @@ const _IG_SECTIONS = [
 const _IG_GRADE = ['—','Leve','Moderada','Mod-Severa','Severa'];
 
 function verDetalleInforme(id) {
-  const informes = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  const informes = getInformes();
   const inf = informes.find(i => i.id === id);
   if (!inf) return;
   document.getElementById('ig-lista-view').style.display = 'none';
@@ -15504,13 +15561,20 @@ function labInit() {
     docEl.innerHTML = `<table class="lab-table">
       <thead><tr><th>Paciente</th><th>Fecha</th><th>Resumen</th><th></th></tr></thead>
       <tbody>${docentes.map(i => `<tr>
-        <td>${i.nombre}</td>
-        <td>${i.fecha_estudio||'—'}</td>
-        <td style="font-size:.78rem;color:var(--text2);">${(i.campos?.en_suma||'').substring(0,80)}${(i.campos?.en_suma||'').length>80?'…':''}</td>
+        <td>${escHtml(i.nombre)}</td>
+        <td>${escHtml(i.fecha_estudio||'—')}</td>
+        <td style="font-size:.78rem;color:var(--text2);">${escHtml((i.campos?.en_suma||'').substring(0,80))}${(i.campos?.en_suma||'').length>80?'…':''}</td>
         <td style="text-align:right;white-space:nowrap;"><button class="btn btn-ghost" style="font-size:11px;padding:3px 9px;" onclick="pdfDeInformeGuardado(${i.id})" title="Generar PDF de este informe">📄 PDF</button></td>
       </tr>`).join('')}</tbody>
     </table>`;
   }
+}
+
+// FIX A3: neutraliza CSV/formula injection y separadores
+function _csvCell(v) {
+  let s = String(v == null ? '' : v);
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;       // prefija ' si arranca con =, +, -, @, TAB o CR
+  return s.replace(/;/g, ' ').replace(/[\n\r]/g, ' ');
 }
 
 function labExportarCSV() {
@@ -15523,11 +15587,8 @@ function labExportarCSV() {
   const header = ['id','nombre','ci','fecha_estudio',...campos.slice(3)].join(';');
   const rows = infs.map(i => {
     return [
-      i.id, i.nombre, i.ci, i.fecha_estudio,
-      ...campos.slice(3).map(c => {
-        const v = i.campos?.[c] || '';
-        return String(v).replace(/;/g,' ').replace(/\n/g,' ');
-      })
+      _csvCell(i.id), _csvCell(i.nombre), _csvCell(i.ci), _csvCell(i.fecha_estudio),
+      ...campos.slice(3).map(c => _csvCell(i.campos?.[c] || ''))
     ].join(';');
   });
   const csv = [header, ...rows].join('\n');
