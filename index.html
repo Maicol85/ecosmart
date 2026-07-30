@@ -111,6 +111,9 @@
     display: flex; align-items: center; gap: 7px;
   }
   .card-body { padding: 12px 14px; }
+  .cfg-sec-title { font-size:12px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px; }
+  .cfg-mod-item { display:flex;align-items:center;gap:9px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 11px;cursor:pointer;font-size:12.5px;color:var(--text); }
+  .cfg-mod-item input { width:auto; }
   /* ══ FORM FIELDS ══ */
   .fg { display: flex; flex-direction: column; gap: 3px; }
   label { font-size: 11px; color: var(--text2); font-weight: 500; }
@@ -633,7 +636,9 @@ window.cerrarSesion = cerrarSesion;
 <!-- ══ INTRO CARRUSEL ══ -->
 <style>
 #intro-overlay { position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:16px; }
-#intro-card { background:#181c27;border:1px solid #2a3050;border-radius:18px;width:100%;max-width:650px;height:480px;box-shadow:0 16px 64px rgba(0,0,0,0.8);display:flex;flex-direction:column;overflow:hidden; }
+#intro-card { position:relative;background:#181c27;border:1px solid #2a3050;border-radius:18px;width:100%;max-width:650px;height:480px;box-shadow:0 16px 64px rgba(0,0,0,0.8);display:flex;flex-direction:column;overflow:hidden; }
+#intro-skip { position:absolute;top:12px;right:14px;z-index:3;background:transparent;border:none;color:#9aa3bc;font-size:12px;font-weight:600;cursor:pointer;padding:5px 9px;border-radius:7px;opacity:.8;transition:opacity .15s,color .15s; }
+#intro-skip:hover { opacity:1;color:#fff; }
 .intro-viewport { flex:1;position:relative;overflow:hidden; }
 .intro-slide { position:absolute;inset:0;padding:36px 40px 20px;opacity:0;transform:translateX(40px);transition:opacity .3s ease,transform .3s ease;pointer-events:none;overflow-y:auto; }
 .intro-slide.active { opacity:1;transform:translateX(0);pointer-events:auto; }
@@ -665,6 +670,7 @@ window.cerrarSesion = cerrarSesion;
 
 <div id="intro-overlay" style="display:none">
   <div id="intro-card">
+    <button type="button" id="intro-skip" onclick="closeIntro()" title="Saltar introducción">Saltar →</button>
     <div class="intro-viewport">
 
       <!-- SLIDE 1: Bienvenida -->
@@ -831,25 +837,77 @@ function closeIntro() {
     <button class="tab-btn" onclick="showTab('contractilidad')">🫀 Contractilidad</button>
     <button class="tab-btn" onclick="showTab('sgl');if(window.sglOnShow)sglOnShow();">📊 SGL</button>
     <button class="tab-btn" onclick="showTab('imagenes');if(window.imgRender)imgRender();">🖼️ Imágenes</button>
+    <button class="tab-btn" onclick="showTab('config');if(window.cfgOnShow)cfgOnShow();">⚙️ Config</button>
   </div>
   <!-- FILA 2 — Patologías especiales -->
   <div class="tabs-row tabs-special">
-    <button class="tab-btn tab-special" onclick="showTab('hemodinamica')">🩸 Hemodinámica</button>
-    <button class="tab-btn tab-special" onclick="showTab('ete')">🔬 ETE</button>
-    <button class="tab-btn tab-special" onclick="showTab('amiloidosis')">🫀 Amiloidosis</button>
-    <button class="tab-btn tab-special" onclick="showTab('cardioOnco')">🎗️ Cardio-Oncología</button>
+    <button class="tab-btn tab-special" data-mod="hemodinamica" onclick="showTab('hemodinamica')">🩸 Hemodinámica</button>
+    <button class="tab-btn tab-special" data-mod="ete" onclick="showTab('ete')">🔬 ETE</button>
+    <button class="tab-btn tab-special" data-mod="amiloidosis" onclick="showTab('amiloidosis')">🫀 Amiloidosis</button>
+    <button class="tab-btn tab-special" data-mod="cardioOnco" onclick="showTab('cardioOnco')">🎗️ Cardio-Oncología</button>
   </div>
   <!-- FILA 3 — Herramientas de apoyo -->
   <div class="tabs-row tabs-tools">
-    <button class="tab-btn tab-tool" onclick="showTab('calculadoras')">🧮 Calculadoras</button>
-    <button class="tab-btn tab-tool" onclick="showTab('fono');if(window.fcgOnShow)fcgOnShow();">🔊 Fonocardiograma</button>
-    <button class="tab-btn tab-tool" onclick="showTab('refs')">📚 Referencias</button>
+    <button class="tab-btn tab-tool" data-mod="calculadoras" onclick="showTab('calculadoras')">🧮 Calculadoras</button>
+    <button class="tab-btn tab-tool" data-mod="fono" onclick="showTab('fono');if(window.fcgOnShow)fcgOnShow();">🔊 Fonocardiograma</button>
+    <button class="tab-btn tab-tool" data-mod="refs" onclick="showTab('refs')">📚 Referencias</button>
   </div>
 </div>
 <!-- LABORATORIO — esquina derecha de la barra de tabs, estilo azul (Informe/Guardados) -->
 <div class="tabs-lab-wrap">
-  <button class="tab-btn tab-lab" onclick="showTab('lab');if(window.labInit)labInit()">🔬 Laboratorio</button>
+  <button class="tab-btn tab-lab" data-mod="lab" onclick="showTab('lab');if(window.labInit)labInit()">🔬 Laboratorio</button>
 </div>
+</div>
+
+<!-- ═══════════════════════ TAB: CONFIGURACIÓN ═══════════════════════ -->
+<div id="tab-config" class="tab-section">
+  <div class="card">
+    <h2 class="card-head">⚙️ Configuración</h2>
+    <div class="card-body">
+
+      <!-- Institución y firma -->
+      <div style="margin-bottom:22px;">
+        <div class="cfg-sec-title">🏥 Institución y firma</div>
+        <div class="grid-2">
+          <div class="fg"><label>Nombre del médico</label><input type="text" id="cfg-med-nombre" oninput="cfgSaveMed('med-nombre',this.value)"></div>
+          <div class="fg"><label>Matrícula</label><input type="text" id="cfg-med-matricula" oninput="cfgSaveMed('med-matricula',this.value)"></div>
+          <div class="fg"><label>Especialidad</label><input type="text" id="cfg-med-especialidad" oninput="cfgSaveMed('med-especialidad',this.value)"></div>
+          <div class="fg"><label>Ciudad / Lugar</label><input type="text" id="cfg-med-lugar" oninput="cfgSaveMed('med-lugar',this.value)"></div>
+          <div class="fg"><label>Dirección del consultorio</label><input type="text" id="cfg-med-direccion" oninput="cfgSaveMed('med-direccion',this.value)"></div>
+          <div class="fg"><label>Teléfono</label><input type="text" id="cfg-med-telefono" oninput="cfgSaveMed('med-telefono',this.value)"></div>
+        </div>
+        <div style="margin-top:10px;"><button class="btn btn-ghost" onclick="firmaOpen()">✏️ Editar firma del centro</button></div>
+      </div>
+
+      <!-- Modo de visualización -->
+      <div style="margin-bottom:22px;border-top:1px solid var(--border);padding-top:16px;">
+        <div class="cfg-sec-title">🖥️ Modo de visualización</div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+          <button class="btn" id="cfg-mode-basico" onclick="cfgSetMode('basico')">Modo Básico</button>
+          <button class="btn" id="cfg-mode-avanzado" onclick="cfgSetMode('avanzado')">Modo Avanzado</button>
+        </div>
+        <div style="font-size:11.5px;color:var(--text2);margin-bottom:12px;line-height:1.5;">Básico muestra solo el estudio principal (fila 1). Avanzado suma módulos especiales y herramientas — elegí cuáles ver.</div>
+        <div id="cfg-modulos" style="display:none;"></div>
+      </div>
+
+      <!-- Exportar / Importar -->
+      <div style="margin-bottom:22px;border-top:1px solid var(--border);padding-top:16px;">
+        <div class="cfg-sec-title">💾 Exportar / Importar</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn" onclick="exportarInformesJSON()" title="Exportar todos los informes a JSON">📤 Exportar JSON</button>
+          <button class="btn" onclick="document.getElementById('ig-import-file').click()" title="Importar informes desde un archivo JSON">📥 Importar JSON</button>
+          <button class="btn" onclick="document.getElementById('pdf-import-file').click()" title="Importar PDFs históricos generados por EcoSmart">📄 Importar PDFs históricos</button>
+        </div>
+      </div>
+
+      <!-- Restablecer -->
+      <div style="border-top:1px solid var(--border);padding-top:16px;">
+        <div class="cfg-sec-title">♻️ Restablecer</div>
+        <button class="btn btn-ghost" onclick="limpiar()">🗑 Nuevo estudio</button>
+      </div>
+
+    </div>
+  </div>
 </div>
 
 <!-- ═══════════════════════ TAB: DATOS PACIENTE ═══════════════════════ -->
@@ -11578,6 +11636,30 @@ function _autosaveInit(){
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _autosaveInit);
 else _autosaveInit();
 
+// ══ QR discreto para el pie del PDF (CAMBIO 3) — matriz precalculada de https://ceibomed.com ══
+var EE_QR_ROWS = [
+"1111111001111000101111111","1000001000011101001000001","1011101010101010101011101",
+"1011101011110110001011101","1011101011011100001011101","1000001011011111001000001",
+"1111111010101010101111111","0000000010110011100000000","1011111000101111001111100",
+"0110110001011100100100010","1010101101011011111111011","0011000001011011111000001",
+"1111111010000001011010111","1010010010001100100101010","1011001011100111100111011",
+"1001000110101101111110001","1010111000001010111110100","0000000010000001100011000",
+"1111111000111000101010111","1000001011110010100011001","1011101010010001111110111",
+"1011101011001110111011111","1011101011100110100001101","1000001000101101101111001",
+"1111111010101010000111111"
+];
+function eeQrDataURL(px){
+  px = px || 120;
+  var n = EE_QR_ROWS.length, quiet = 2, total = n + quiet*2;
+  var scale = Math.max(2, Math.floor(px/total)), size = total*scale;
+  var cv = document.createElement('canvas'); cv.width = size; cv.height = size;
+  var ctx = cv.getContext('2d');
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,size,size);
+  ctx.fillStyle = '#000000';
+  for(var r=0;r<n;r++){ var row=EE_QR_ROWS[r]; for(var c=0;c<n;c++){ if(row.charAt(c)==='1') ctx.fillRect((c+quiet)*scale,(r+quiet)*scale,scale,scale); } }
+  return cv.toDataURL('image/png');
+}
+
 // ══ PDF (jsPDF) ══
 // Panel de revisión de severidades antes de generar el PDF (TAREA 3)
 function generarPDF() {
@@ -12488,10 +12570,20 @@ function generarPDFReal() {
 
   // ─── Copyright al pie de todas las páginas ───
   const _totalPag = doc.internal.getNumberOfPages();
+  let _qrData = null; try { _qrData = eeQrDataURL(140); } catch(e){ _qrData = null; }
+  const _qrSz = 12, _qrX = 210 - 8 - _qrSz, _qrY = 297 - 8 - _qrSz - 3; // esquina inferior derecha
   for (let _p = 1; _p <= _totalPag; _p++) {
     doc.setPage(_p);
     fn(6.5); tc(150,150,150);
     doc.text('© 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo', 105, 292, { align:'center' });
+    // QR discreto → https://ceibomed.com
+    if (_qrData) {
+      try {
+        doc.addImage(_qrData, 'PNG', _qrX, _qrY, _qrSz, _qrSz);
+        fn(5); tc(175,175,175);
+        doc.text('ceibomed.com', _qrX + _qrSz/2, _qrY + _qrSz + 2.6, { align:'center' });
+      } catch(e){}
+    }
   }
 
   const _nombre = (sv('nombre')||'paciente').replace(/\s+/g,'_');
@@ -16571,6 +16663,71 @@ const _orig=showTab;window.showTab=function(id){_orig(id);setTimeout(actualizarF
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
 })();
+</script>
+<script>
+/* ══ CONFIG / MODO DE VISUALIZACIÓN (CAMBIO 2) ══ */
+var EE_MODULES = [
+  {key:'hemodinamica', label:'🩸 Hemodinámica'},
+  {key:'ete',          label:'🔬 ETE'},
+  {key:'amiloidosis',  label:'🫀 Amiloidosis'},
+  {key:'cardioOnco',   label:'🎗️ Cardio-Oncología'},
+  {key:'calculadoras', label:'🧮 Calculadoras'},
+  {key:'fono',         label:'🔊 Fonocardiograma'},
+  {key:'refs',         label:'📚 Referencias'},
+  {key:'lab',          label:'🔬 Laboratorio'}
+];
+function eeGetMode(){ return localStorage.getItem('ett_view_mode') || 'avanzado'; }
+function eeGetModules(){ try { return JSON.parse(localStorage.getItem('ett_modules') || '{}'); } catch(e){ return {}; } }
+function eeModOn(k){ var m=eeGetModules(); return m[k] !== false; } // por defecto visible
+function applyViewMode(){
+  var mode=eeGetMode();
+  var special=document.querySelector('.tabs-special');
+  var tools=document.querySelector('.tabs-tools');
+  var lab=document.querySelector('.tabs-lab-wrap');
+  if(mode==='basico'){
+    if(special) special.style.display='none';
+    if(tools)   tools.style.display='none';
+    if(lab)     lab.style.display='none';
+  } else {
+    document.querySelectorAll('[data-mod]').forEach(function(btn){ btn.style.display = eeModOn(btn.getAttribute('data-mod')) ? '' : 'none'; });
+    [special,tools].forEach(function(row){ if(!row) return; var any=[].slice.call(row.querySelectorAll('[data-mod]')).some(function(b){ return b.style.display!=='none'; }); row.style.display = any ? '' : 'none'; });
+    if(lab) lab.style.display = eeModOn('lab') ? '' : 'none';
+  }
+}
+function cfgSetMode(mode){ localStorage.setItem('ett_view_mode', mode); applyViewMode(); cfgRenderModulos(); }
+function cfgToggleMod(key,on){ var m=eeGetModules(); m[key]=on; localStorage.setItem('ett_modules', JSON.stringify(m)); applyViewMode(); }
+function cfgRenderModulos(){
+  var mode=eeGetMode();
+  var bB=document.getElementById('cfg-mode-basico'), bA=document.getElementById('cfg-mode-avanzado');
+  if(bB) bB.className='btn'+(mode==='basico'?' btn-primary':' btn-ghost');
+  if(bA) bA.className='btn'+(mode==='avanzado'?' btn-primary':' btn-ghost');
+  var box=document.getElementById('cfg-modulos'); if(!box) return;
+  if(mode!=='avanzado'){ box.style.display='none'; box.innerHTML=''; return; }
+  box.style.display='block';
+  box.innerHTML='<div style="font-size:11.5px;color:var(--text2);margin-bottom:8px;">Módulos visibles (filas 2 y 3 + Laboratorio):</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;">'+
+    EE_MODULES.map(function(m){
+      return '<label class="cfg-mod-item"><input type="checkbox" '+(eeModOn(m.key)?'checked':'')+' onchange="cfgToggleMod(\''+m.key+'\',this.checked)"> '+m.label+'</label>';
+    }).join('')+'</div>';
+}
+function cfgSaveMed(id,val){
+  var el=document.getElementById(id);
+  if(el) el.textContent=val;
+  var disp=document.getElementById(id+'-disp'); // span visible en el header (nombre/matrícula/lugar)
+  if(disp) disp.textContent=val;
+  try { localStorage.setItem(id.replace(/-/g,'_'), val); } catch(e){}
+  if(typeof updateHdrExtra==='function') updateHdrExtra();
+}
+function cfgLoadMed(){
+  ['med-nombre','med-matricula','med-especialidad','med-lugar','med-direccion','med-telefono'].forEach(function(id){
+    var inp=document.getElementById('cfg-'+id); if(!inp) return;
+    var src=document.getElementById(id);
+    inp.value = (src ? src.textContent.trim() : '') || (localStorage.getItem(id.replace(/-/g,'_')) || '');
+  });
+}
+function cfgOnShow(){ cfgRenderModulos(); cfgLoadMed(); }
+// Aplicar modo guardado al cargar
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', applyViewMode); else applyViewMode();
 </script>
 </body>
 </html>
