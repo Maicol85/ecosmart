@@ -855,7 +855,7 @@ function closeIntro() {
 </div>
 <!-- LABORATORIO — esquina derecha de la barra de tabs, estilo azul (Informe/Guardados) -->
 <div class="tabs-lab-wrap">
-  <button class="tab-btn tab-lab" data-mod="lab" onclick="showTab('lab');if(window.labInit)labInit()">🔬 Laboratorio</button>
+  <button class="tab-btn tab-lab" onclick="showTab('lab');if(window.labInit)labInit()">🔬 Laboratorio</button>
 </div>
 </div>
 
@@ -888,6 +888,12 @@ function closeIntro() {
         </div>
         <div style="font-size:11.5px;color:var(--text2);margin-bottom:12px;line-height:1.5;">Básico muestra solo el estudio principal (fila 1). Avanzado suma módulos especiales y herramientas — elegí cuáles ver.</div>
         <div id="cfg-modulos" style="display:none;"></div>
+      </div>
+
+      <!-- PDF -->
+      <div style="margin-bottom:22px;border-top:1px solid var(--border);padding-top:16px;">
+        <div class="cfg-sec-title">📄 PDF</div>
+        <label class="cfg-mod-item" style="max-width:300px;"><input type="checkbox" id="cfg-qr" onchange="cfgToggleQr(this.checked)"> Incluir QR (ceibomed.com) en el PDF</label>
       </div>
 
       <!-- Exportar / Importar -->
@@ -12570,7 +12576,8 @@ function generarPDFReal() {
 
   // ─── Copyright al pie de todas las páginas ───
   const _totalPag = doc.internal.getNumberOfPages();
-  let _qrData = null; try { _qrData = eeQrDataURL(140); } catch(e){ _qrData = null; }
+  let _qrData = null;
+  if (typeof eeQrEnabled !== 'function' || eeQrEnabled()) { try { _qrData = eeQrDataURL(140); } catch(e){ _qrData = null; } }
   const _qrSz = 12, _qrX = 210 - 8 - _qrSz, _qrY = 297 - 8 - _qrSz - 3; // esquina inferior derecha
   for (let _p = 1; _p <= _totalPag; _p++) {
     doc.setPage(_p);
@@ -16673,8 +16680,7 @@ var EE_MODULES = [
   {key:'cardioOnco',   label:'🎗️ Cardio-Oncología'},
   {key:'calculadoras', label:'🧮 Calculadoras'},
   {key:'fono',         label:'🔊 Fonocardiograma'},
-  {key:'refs',         label:'📚 Referencias'},
-  {key:'lab',          label:'🔬 Laboratorio'}
+  {key:'refs',         label:'📚 Referencias'}
 ];
 function eeGetMode(){ return localStorage.getItem('ett_view_mode') || 'avanzado'; }
 function eeGetModules(){ try { return JSON.parse(localStorage.getItem('ett_modules') || '{}'); } catch(e){ return {}; } }
@@ -16691,7 +16697,7 @@ function applyViewMode(){
   } else {
     document.querySelectorAll('[data-mod]').forEach(function(btn){ btn.style.display = eeModOn(btn.getAttribute('data-mod')) ? '' : 'none'; });
     [special,tools].forEach(function(row){ if(!row) return; var any=[].slice.call(row.querySelectorAll('[data-mod]')).some(function(b){ return b.style.display!=='none'; }); row.style.display = any ? '' : 'none'; });
-    if(lab) lab.style.display = eeModOn('lab') ? '' : 'none';
+    if(lab) lab.style.display = ''; // Laboratorio: visible siempre en Modo Avanzado (CORRECCIÓN 2)
   }
 }
 function cfgSetMode(mode){ localStorage.setItem('ett_view_mode', mode); applyViewMode(); cfgRenderModulos(); }
@@ -16704,7 +16710,7 @@ function cfgRenderModulos(){
   var box=document.getElementById('cfg-modulos'); if(!box) return;
   if(mode!=='avanzado'){ box.style.display='none'; box.innerHTML=''; return; }
   box.style.display='block';
-  box.innerHTML='<div style="font-size:11.5px;color:var(--text2);margin-bottom:8px;">Módulos visibles (filas 2 y 3 + Laboratorio):</div>'+
+  box.innerHTML='<div style="font-size:11.5px;color:var(--text2);margin-bottom:8px;">Módulos visibles (filas 2 y 3). Laboratorio aparece siempre en Modo Avanzado.</div>'+
     '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;">'+
     EE_MODULES.map(function(m){
       return '<label class="cfg-mod-item"><input type="checkbox" '+(eeModOn(m.key)?'checked':'')+' onchange="cfgToggleMod(\''+m.key+'\',this.checked)"> '+m.label+'</label>';
@@ -16725,7 +16731,9 @@ function cfgLoadMed(){
     inp.value = (src ? src.textContent.trim() : '') || (localStorage.getItem(id.replace(/-/g,'_')) || '');
   });
 }
-function cfgOnShow(){ cfgRenderModulos(); cfgLoadMed(); }
+function eeQrEnabled(){ return localStorage.getItem('ett_qr_enabled') !== '0'; } // por defecto activado
+function cfgToggleQr(on){ try { localStorage.setItem('ett_qr_enabled', on ? '1' : '0'); } catch(e){} }
+function cfgOnShow(){ cfgRenderModulos(); cfgLoadMed(); var q=document.getElementById('cfg-qr'); if(q) q.checked = eeQrEnabled(); }
 // Aplicar modo guardado al cargar
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', applyViewMode); else applyViewMode();
 </script>
