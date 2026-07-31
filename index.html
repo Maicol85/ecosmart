@@ -9112,20 +9112,22 @@ function calcHemo() {
   // ── HTP: pre / pos / mixta (ESC 2022) ──
   // HTP precapilar — ESC/ERS Guidelines 2022 — PAPm>20 + PAWP≤15 + RVP>2 UW
   const htpEl = document.getElementById('hemo-htp-tipo');
-  const htpNote = '<div style="font-size:10px;color:var(--text2);margin-top:4px;line-height:1.4;"> · ⚠️ Clasificación hemodinámica requiere confirmación por cateterismo derecho. Valores estimados por ecocardiografía.</div>';
+  // FIX clínico: la clasificación pre/poscapilar es un diagnóstico hemodinámico que requiere
+  // cateterismo cardíaco derecho (RHC). Con estimaciones eco sólo se describe un "patrón compatible con".
+  const htpNote = '<div style="font-size:10px;color:var(--text2);margin-top:4px;line-height:1.4;"> · ⚠️ La clasificación pre/poscapilar requiere confirmación mediante cateterismo cardíaco derecho (ESC/ERS 2022). Valores estimados por ecocardiografía.</div>';
   if (htpEl) {
     if (papm === null || pcp === null || rvp === null) {
       htpEl.innerHTML = badge('gray', 'Requiere PAPm (PSAP) + PCP (E/e\') + GC' + (rvp === null ? ' — RVP no disponible' : ''));
     } else if (papm <= 20) {
       htpEl.innerHTML = badge('green', 'Sin HTP (PAPm ≤20 mmHg)');
     } else if (pcp <= 15 && rvp > 2) {
-      htpEl.innerHTML = badge('red', 'HTP precapilar — PAPm >20 + PCP ≤15 + RVP ' + rvp.toFixed(1) + ' UW (>2)') + htpNote;
+      htpEl.innerHTML = badge('red', 'Patrón compatible con HTP precapilar — PAPm >20 + PCP ≤15 + RVP ' + rvp.toFixed(1) + ' UW (>2)') + htpNote;
     } else if (pcp <= 15 && rvp <= 2) {
       htpEl.innerHTML = badge('yellow', 'No clasificable como precapilar — PCP ≤15 pero RVP ' + rvp.toFixed(1) + ' UW (≤2). Criterio ESC/ERS 2022 exige RVP >2 UW') + htpNote;
     } else if (rvp > 2) {
-      htpEl.innerHTML = badge('red', 'HTP poscapilar combinada (mixta) — PCP >15 + RVP >2 UW') + htpNote;
+      htpEl.innerHTML = badge('red', 'Patrón compatible con HTP poscapilar combinada (mixta) — PCP >15 + RVP >2 UW') + htpNote;
     } else {
-      htpEl.innerHTML = badge('yellow', 'HTP poscapilar aislada — PCP >15 + RVP ≤2 UW') + htpNote;
+      htpEl.innerHTML = badge('yellow', 'Patrón compatible con HTP poscapilar aislada — PCP >15 + RVP ≤2 UW') + htpNote;
     }
   }
 }
@@ -9576,12 +9578,10 @@ function calcPSAP() {
     const papMedia = (psap * 0.61 + 2).toFixed(0);
     setv('pap_med', papMedia + ' mmHg (est.)');
     if (psapEl) psapEl.textContent = psap.toFixed(0) + ' mmHg (PmAD ' + pmad + ' mmHg)';
-    let h;
-    if (psap <= 40) h = badge('green','Sin HTP (≤40mmHg)');
-    else if (psap <= 55) h = badge('yellow','HTP leve (41-55mmHg)');
-    else if (psap <= 70) h = badge('orange','HTP moderada (56-70mmHg)');
-    else h = badge('red','HTP severa (>70mmHg)');
-    if (htpEl) htpEl.innerHTML = h;
+    // FIX clínico: la HTP es un diagnóstico hemodinámico (requiere cateterismo derecho).
+    // No se clasifica en leve/moderada/severa por PSAP estimada: sólo se muestra el valor y
+    // se remite al módulo de probabilidad ecocardiográfica de HTP (ESC/ERS 2022).
+    if (htpEl) htpEl.innerHTML = badge('gray', `PSAP estimada: ${psap.toFixed(0)} mmHg — ver módulo de probabilidad ecocardiográfica de HTP (ESC/ERS 2022)`);
   } else {
     setv('psap_calc', ''); setv('pap_med', '');
     if (psapEl) psapEl.textContent = '— (requiere VCI)';
@@ -9777,10 +9777,19 @@ function calcDiastolASE2016() {
   } else if (ea > 2.0) {
     texto = 'Llenado diastólico restrictivo (Disfunción diastólica Grado III).'; textoSuma = 'Disfunción diastólica Grado III (restrictivo).'; cls = 'red'; badgeTxt = 'Grado III — ASE 2016';
   } else if (ea >= 0.8 && ea <= 2.0) {
-    if (pos >= 3)      { texto = 'Llenado diastólico restrictivo (Disfunción diastólica Grado III).'; textoSuma = 'Disfunción diastólica Grado III (restrictivo).'; cls = 'red'; badgeTxt = 'Grado III — ASE 2016'; }
-    else if (pos === 2){ texto = 'Llenado diastólico pseudonormal (Disfunción diastólica Grado II).'; textoSuma = 'Disfunción diastólica Grado II (pseudonormal).'; cls = 'orange'; badgeTxt = 'Grado II — ASE 2016'; }
-    else if (pos === 0 && disp >= 2) { texto = 'Función diastólica normal.'; textoSuma = 'Función diastólica normal.'; cls = 'green'; badgeTxt = 'Normal — ASE 2016'; }
-    else               { texto = 'Función diastólica indeterminada.'; textoSuma = 'Función diastólica indeterminada.'; cls = 'gray'; badgeTxt = 'Indeterminado — ASE 2016'; }
+    // FIX clínico ASE/EACVI 2016: el Grado III (restrictivo) requiere E/A ≥2.0.
+    // Con E/A 0.8–2.0 NUNCA se asigna Grado III. Según los 3 criterios (E/e'>14, LAVi>34, TR>2.8):
+    //   2/3 o 3/3 positivos → Grado II (pseudonormal, presiones de llenado elevadas)
+    //   1/3               → indeterminado
+    //   0/3               → Grado I (relajación alterada) si e' baja, si no normal
+    if (pos >= 2)       { texto = 'Llenado diastólico pseudonormal con presiones de llenado elevadas (Disfunción diastólica Grado II).'; textoSuma = 'Disfunción diastólica Grado II (pseudonormal, presiones elevadas).'; cls = 'orange'; badgeTxt = 'Grado II — ASE 2016'; }
+    else if (pos === 1) { texto = 'Función diastólica indeterminada (1/3 criterios de presión de llenado positivos).'; textoSuma = 'Función diastólica indeterminada.'; cls = 'gray'; badgeTxt = 'Indeterminado — ASE 2016'; }
+    else {              // pos === 0: presiones de llenado normales
+      const ePrimeBajo = (esep !== null && esep < 7) || (elat !== null && elat < 10) || (eprom !== null && eprom < 8);
+      if (ePrimeBajo)       { texto = 'Patrón de relajación alterada con presiones de llenado normales (Disfunción diastólica Grado I).'; textoSuma = 'Disfunción diastólica Grado I (relajación alterada).'; cls = 'yellow'; badgeTxt = 'Grado I — ASE 2016'; }
+      else if (disp >= 2)   { texto = 'Función diastólica normal.'; textoSuma = 'Función diastólica normal.'; cls = 'green'; badgeTxt = 'Normal — ASE 2016'; }
+      else                  { texto = 'Función diastólica indeterminada.'; textoSuma = 'Función diastólica indeterminada.'; cls = 'gray'; badgeTxt = 'Indeterminado — ASE 2016'; }
+    }
   } else {
     texto = 'Función diastólica indeterminada.'; textoSuma = 'Función diastólica indeterminada.'; cls = 'gray'; badgeTxt = 'Indeterminado — ASE 2016';
   }
@@ -10339,20 +10348,57 @@ function calcAo() {
 }
 
 // Clasificación de estenosis aórtica por Vmax (ESC 2021)
+// FIX clínico: Vmax NO debe degradar una AVA severa. Si AVA ≤1.0 cm² con Vmax/gradiente
+// no severos → EA discordante (bajo flujo/bajo gradiente); sólo se asigna grado automático
+// por Vmax cuando AVA y Vmax son concordantes.
 function clasificarEA_Vmax() {
   const vmax = v('vmax_ao');
+  const gmedio = v('gmedio_ao');
+  const ava = v('ava_cont');
   const sel = document.getElementById('ea_grado');
-  if (!sel || vmax === null) return;
-  let opcion;
-  if (vmax < 2.0) opcion = 'Sin estenosis';
-  else if (vmax < 3.0) opcion = 'Leve (Vmax 2-3 m/s)';
-  else if (vmax < 4.0) opcion = 'Moderada (Vmax 3-4 m/s)';
-  else opcion = 'Severa (Vmax >4 m/s)';
-  sel.value = opcion;
   const badgeEl = document.getElementById('ea-ava-badge');
+  if (!sel || vmax === null) return;
+
+  // Grado sugerido por Vmax (ESC 2021) — usa los value del <select> (sin/leve/moderada/severa)
+  let velVal;
+  if (vmax < 2.0) velVal = 'sin';
+  else if (vmax < 3.0) velVal = 'leve';
+  else if (vmax < 4.0) velVal = 'moderada';
+  else velVal = 'severa';
+
+  const avaSevera  = ava !== null && ava <= 1.0;
+  const velSevera  = vmax >= 4.0;
+  const gradSevero = gmedio !== null && gmedio >= 40;
+
+  // EA discordante: AVA severa por área (≤1.0) con Vmax y gradiente NO severos.
+  // No se degrada el grado: se mantiene severa (por AVA) y se marca la discordancia.
+  if (avaSevera && !velSevera && !gradSevero) {
+    sel.value = 'severa';
+    if (badgeEl) badgeEl.textContent = `EA discordante — AVA ${ava.toFixed(2)} cm² (severa) con Vmax ${vmax} m/s${gmedio !== null ? ` / grad. medio ${gmedio} mmHg` : ''} no severos. Evaluar estenosis aórtica de bajo flujo / bajo gradiente (ESC/EACVI). Grado mantenido por AVA; no se asigna grado automático por Vmax.`;
+    return;
+  }
+
+  // Con AVA disponible, sólo asignar grado por Vmax si AVA y Vmax son concordantes.
+  if (ava !== null) {
+    const avaModerada  = ava > 1.0 && ava < 1.5;
+    const avaLeveMenos = ava >= 1.5;
+    const velModerada  = vmax >= 3.0 && vmax < 4.0;
+    const velLeveMenos = vmax < 3.0;
+    const concordante =
+      (avaSevera && velSevera) ||
+      (avaModerada && velModerada) ||
+      (avaLeveMenos && velLeveMenos);
+    if (!concordante) {
+      if (badgeEl) badgeEl.textContent = `Discordancia AVA/Vmax — AVA ${ava.toFixed(2)} cm² vs Vmax ${vmax} m/s. Grado mantenido por AVA; revisar condiciones de flujo. No se asigna grado automático por Vmax.`;
+      return;
+    }
+  }
+
+  // Concordante (o sin AVA disponible): asignar grado por Vmax.
+  sel.value = velVal;
   if (badgeEl) badgeEl.textContent = vmax < 2.0
     ? `Vmax ${vmax} m/s (<2.0) — no configura estenosis (ESC 2021).`
-    : `Sugerido por Vmax aórtica ${vmax} m/s — ESC 2021. Editable manualmente.`;
+    : `Sugerido por Vmax aórtica ${vmax} m/s — ESC 2021${ava !== null ? ` (concordante con AVA ${ava.toFixed(2)} cm²)` : ''}. Editable manualmente.`;
 }
 window.clasificarEA_Vmax = clasificarEA_Vmax;
 
@@ -10360,11 +10406,12 @@ function sugerirSeveridadEA(ava) {
   const sel = document.getElementById('ea_grado');
   const badgeEl = document.getElementById('ea-ava-badge');
   if (!sel) return;
-  let opcion;
-  if (ava >= 1.5) opcion = 'Leve (Vmax 2-3 m/s)';
-  else if (ava >= 1.0) opcion = 'Moderada (Vmax 3-4 m/s)';
-  else opcion = 'Severa (Vmax >4 m/s)';
-  sel.value = opcion;
+  // Usa los value del <select> (sin/leve/moderada/severa), no el texto de la opción.
+  let val;
+  if (ava >= 1.5) val = 'leve';
+  else if (ava >= 1.0) val = 'moderada';
+  else val = 'severa';
+  sel.value = val;
   if (badgeEl) badgeEl.textContent = `Sugerido automáticamente por AVA continuidad (${ava.toFixed(2)} cm²). Podés cambiarlo manualmente si lo creés necesario.`;
 }
 window.sugerirSeveridadEA = sugerirSeveridadEA;
