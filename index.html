@@ -4,8 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ecocardiograma Doppler Color</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
 <style>
   :root {
     --bg: #0f1117;
@@ -304,13 +307,7 @@
     }
   }
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script>
-  if (typeof pdfjsLib !== 'undefined') {
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-  }
-</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer onload="pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'"></script>
 <style>
 /* ── Amiloidosis Calculator ── */
 /* --bg, --border, --text, --purple, --green, --red se heredan del sistema global (theme-aware) */
@@ -586,7 +583,7 @@ window.cerrarSesion = cerrarSesion;
   </div>
   <div id="logo-centro-wrap" onclick="logoClick(event)" title="Logo del centro (click para cargar)" style="position:relative;min-width:46px;height:40px;padding:0 6px;border:1px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;flex-shrink:0;background:var(--bg2);margin-left:12px;">
     <div id="logo-centro-ph" style="display:flex;flex-direction:column;align-items:center;line-height:1.1;color:var(--text2);font-size:9px;gap:1px;"><span style="font-size:15px;">＋</span>Logo</div>
-    <img id="logo-centro-img" style="display:none;max-width:130px;max-height:40px;object-fit:contain;" alt="logo del centro">
+    <img id="logo-centro-img" loading="lazy" style="display:none;max-width:130px;max-height:40px;object-fit:contain;" alt="logo del centro">
     <button id="logo-centro-del" type="button" onclick="logoDelete(event)" title="Quitar logo" style="display:none;position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:10px;line-height:1;cursor:pointer;padding:0;">✕</button>
   </div>
   <div class="spacer"></div>
@@ -6437,7 +6434,7 @@ function eeImgRender(){
     const cell=document.createElement('div'); cell.dataset.idx=idx;
     cell.style.cssText='position:relative;border:1.5px '+(slot?'solid':'dashed')+' var(--border);border-radius:10px;background:var(--bg3);min-height:130px;display:flex;align-items:center;justify-content:center;overflow:hidden;';
     if(slot){ cell.setAttribute('draggable','true');
-      cell.innerHTML='<img src="'+slot+'" style="max-width:100%;max-height:200px;display:block;pointer-events:none;"><button type="button" onclick="eeImgRemove(event,'+idx+')" style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1;">✕</button>';
+      cell.innerHTML='<img src="'+slot+'" loading="lazy" style="max-width:100%;max-height:200px;display:block;pointer-events:none;"><button type="button" onclick="eeImgRemove(event,'+idx+')" style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1;">✕</button>';
     } else { cell.innerHTML='<button type="button" onclick="eeImgPick('+idx+')" style="background:none;border:none;color:var(--text2);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;"><span style="font-size:28px;line-height:1;">➕</span>Agregar</button>'; }
     cell.addEventListener('dragstart',e=>{ if(eeImg[idx]) e.dataTransfer.setData('text/plain',String(idx)); });
     cell.addEventListener('dragover',e=>e.preventDefault());
@@ -6465,7 +6462,7 @@ function eeEcgRender(){
     const cell=document.createElement('div'); cell.dataset.idx=idx;
     cell.style.cssText='position:relative;border:1.5px '+(slot?'solid':'dashed')+' var(--border);border-radius:10px;background:var(--bg3);min-height:120px;display:flex;align-items:center;justify-content:center;overflow:hidden;'+(eeEcgSwap===idx?'outline:2px dashed var(--accent2);outline-offset:2px;':'');
     if(slot){ cell.setAttribute('draggable','true');
-      cell.innerHTML='<img src="'+slot+'" style="max-width:100%;max-height:190px;display:block;pointer-events:none;"><button type="button" onclick="eeEcgRemove(event,'+idx+')" style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1;">✕</button>';
+      cell.innerHTML='<img src="'+slot+'" loading="lazy" style="max-width:100%;max-height:190px;display:block;pointer-events:none;"><button type="button" onclick="eeEcgRemove(event,'+idx+')" style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1;">✕</button>';
     } else { cell.innerHTML='<button type="button" onclick="eeEcgPick('+idx+')" style="background:none;border:none;color:var(--text2);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;"><span style="font-size:28px;line-height:1;">➕</span>Agregar</button>'; }
     cell.addEventListener('dragstart',e=>{ if(eeEcg[idx]) e.dataTransfer.setData('text/plain',String(idx)); });
     cell.addEventListener('dragover',e=>e.preventDefault());
@@ -13326,7 +13323,7 @@ function logoGalleryUpload(e){const f=e.target.files&&e.target.files[0];if(!f)re
 function logoGallerySelect(id){const item=getLogoGallery().find(x=>x.id===id);if(item)setActiveLogo(item.data);}
 function logoGalleryDeleteItem(id){const gallery=getLogoGallery();const item=gallery.find(x=>x.id===id);saveLogoGallery(gallery.filter(x=>x.id!==id));const key='logo_centro_'+getCentroKey();if(item&&item.data===localStorage.getItem(key)){localStorage.removeItem(key);renderLogoCentro();}renderLogoGallery();}
 function setActiveLogo(data){const key='logo_centro_'+getCentroKey();try{localStorage.setItem(key,data);}catch(err){alert('La imagen es demasiado grande para guardarse en este dispositivo.');return;}renderLogoCentro();closeLogoGallery();toast('✅ Logo guardado para este centro');}
-function renderLogoGallery(){const gallery=getLogoGallery();const grid=document.getElementById('lgal-grid');if(!grid)return;const active=localStorage.getItem('logo_centro_'+getCentroKey())||'';if(!gallery.length){grid.innerHTML='<p style="color:var(--text2);font-size:12px;text-align:center;padding:16px 0">No hay logos guardados aún.</p>';return;}grid.innerHTML=gallery.map(it=>'<div class="lgal-item'+(it.data===active?' lgal-active':'')+'" onclick="logoGallerySelect(\''+it.id+'\')"><img src="'+it.data+'" alt="logo"><div class="lgal-name">'+(it.name.length>15?it.name.slice(0,14)+'…':it.name)+'</div><button type="button" class="lgal-del" onclick="event.stopPropagation();logoGalleryDeleteItem(\''+it.id+'\')" title="Eliminar">✕</button></div>').join('');}
+function renderLogoGallery(){const gallery=getLogoGallery();const grid=document.getElementById('lgal-grid');if(!grid)return;const active=localStorage.getItem('logo_centro_'+getCentroKey())||'';if(!gallery.length){grid.innerHTML='<p style="color:var(--text2);font-size:12px;text-align:center;padding:16px 0">No hay logos guardados aún.</p>';return;}grid.innerHTML=gallery.map(it=>'<div class="lgal-item'+(it.data===active?' lgal-active':'')+'" onclick="logoGallerySelect(\''+it.id+'\')"><img src="'+it.data+'" loading="lazy" alt="logo"><div class="lgal-name">'+(it.name.length>15?it.name.slice(0,14)+'…':it.name)+'</div><button type="button" class="lgal-del" onclick="event.stopPropagation();logoGalleryDeleteItem(\''+it.id+'\')" title="Eliminar">✕</button></div>').join('');}
 function logoDelete(e){if(e)e.stopPropagation();localStorage.removeItem('logo_centro_'+getCentroKey());renderLogoCentro();}
 function renderLogoCentro() {
   const img = document.getElementById('logo-centro-img');
@@ -14223,8 +14220,9 @@ function resetETT() {
   function run(){
     if(typeof calcETT === 'function') calcETT();
   }
-  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
-  else run();
+  function schedule(){ setTimeout(run, 0); }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', schedule);
+  else schedule();
 })();
 
 // ── Strain Patrones ──
@@ -15392,7 +15390,7 @@ function imgRender(){
     if (slot){
       cell.setAttribute('draggable','true');
       cell.innerHTML =
-        '<img src="'+slot.dataURL+'" style="max-width:100%;max-height:220px;display:block;pointer-events:none;" alt="imagen '+(idx+1)+'">'
+        '<img src="'+slot.dataURL+'" loading="lazy" style="max-width:100%;max-height:220px;display:block;pointer-events:none;" alt="imagen '+(idx+1)+'">'
         + (amp ? '<span style="position:absolute;top:6px;left:6px;background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;pointer-events:none;">AMPLIADA</span>' : '')
         + '<button type="button" title="Eliminar" onclick="imgRemove(event,'+idx+')" style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1;">✕</button>';
     } else {
