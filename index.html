@@ -481,7 +481,12 @@ window.PF = PF;
   ">
     <div style="font-size:36px;margin-bottom:12px;">🫀</div>
     <div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:4px;">EcoSmart</div>
-    <div style="font-size:13px;color:#8892a4;margin-bottom:28px;">Ecocardiograma Doppler Color</div>
+    <div style="font-size:13px;color:#8892a4;margin-bottom:8px;">Ecocardiograma Doppler Color</div>
+    <div style="font-size:13px;color:#0D9488;
+      margin-top:8px;margin-bottom:28px;font-weight:500;
+      letter-spacing:0.05em;">
+      CeiboMed
+    </div>
     <div style="position:relative;margin-bottom:12px;">
       <input id="login-pwd" type="password" placeholder="Contraseña"
         onkeydown="if(event.key==='Enter') doLogin()"
@@ -524,8 +529,7 @@ function doLogin() {
   if (pwd === 'maicolett1') {
     sessionStorage.setItem('ett_auth', '1');
     document.getElementById('login-overlay').style.display = 'none';
-    localStorage.removeItem('ett_intro_seen');
-    document.getElementById('intro-overlay').style.display = 'flex';
+    mostrarAvisoEco();
   } else {
     document.getElementById('login-err').textContent = 'Contraseña incorrecta';
     document.getElementById('login-pwd').value = '';
@@ -591,6 +595,24 @@ window.cerrarSesion = cerrarSesion;
   <div class="hdr-btns">
     <button class="btn btn-ghost" id="theme-toggle-btn" onclick="toggleTheme()" title="Cambiar modo día/noche">🌙 Noche</button>
     <button class="btn btn-ghost" onclick="limpiar()">🗑 Limpiar</button>
+    <button onclick="exportarInformesJSON()" title="Exportar informes a JSON"
+      style="background:none;
+      border:1px solid rgba(255,255,255,0.15);
+      border-radius:6px;padding:5px 10px;
+      font-size:12px;color:var(--text2,#94A3B8);
+      cursor:pointer;display:flex;
+      align-items:center;gap:4px;">
+      📤 Exportar
+    </button>
+    <button onclick="document.getElementById('ig-import-file').click()" title="Importar informes desde JSON"
+      style="background:none;
+      border:1px solid rgba(255,255,255,0.15);
+      border-radius:6px;padding:5px 10px;
+      font-size:12px;color:var(--text2,#94A3B8);
+      cursor:pointer;display:flex;
+      align-items:center;gap:4px;">
+      📥 Importar
+    </button>
     <button class="btn btn-primary" onclick="generarInforme()">📝 Generar Informe</button>
     <span style="display:inline-flex;flex-direction:column;align-items:center;gap:4px;">
       <button class="btn btn-green" onclick="generarPDF()">⬇️ PDF</button>
@@ -610,7 +632,6 @@ window.cerrarSesion = cerrarSesion;
         <option value="4">Matr + Fecha</option>
       </select>
     </span>
-    <button class="btn btn-ghost" onclick="showIntro()" title="Ayuda / Guía de uso" style="padding:6px 10px;font-size:14px;">?</button>
     <button class="btn btn-ghost" onclick="cerrarSesion()" title="Cerrar sesión">🔒 Cerrar</button>
   </div>
 </header>
@@ -631,195 +652,6 @@ window.cerrarSesion = cerrarSesion;
   </div>
 </div>
 
-<!-- ══ INTRO CARRUSEL ══ -->
-<style>
-#intro-overlay { position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:16px; }
-#intro-card { position:relative;background:#181c27;border:1px solid #2a3050;border-radius:18px;width:100%;max-width:650px;height:480px;box-shadow:0 16px 64px rgba(0,0,0,0.8);display:flex;flex-direction:column;overflow:hidden; }
-#intro-skip { position:absolute;top:12px;right:14px;z-index:3;background:transparent;border:none;color:#9aa3bc;font-size:12px;font-weight:600;cursor:pointer;padding:5px 9px;border-radius:7px;opacity:.8;transition:opacity .15s,color .15s; }
-#intro-skip:hover { opacity:1;color:#fff; }
-.intro-viewport { flex:1;position:relative;overflow:hidden; }
-.intro-slide { position:absolute;inset:0;padding:36px 40px 20px;opacity:0;transform:translateX(40px);transition:opacity .3s ease,transform .3s ease;pointer-events:none;overflow-y:auto; }
-.intro-slide.active { opacity:1;transform:translateX(0);pointer-events:auto; }
-.intro-slide.out { opacity:0;transform:translateX(-40px); }
-.intro-footer { padding:16px 32px 22px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid #2a3050;flex-shrink:0; }
-.intro-dots { display:flex;gap:8px; }
-.intro-dot { width:8px;height:8px;border-radius:50%;background:#2a3050;transition:background .25s; }
-.intro-dot.active { background:#4f8ef7; }
-.intro-nav { background:transparent;border:1px solid #2a3050;color:#9aa3bc;border-radius:8px;padding:7px 18px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s; }
-.intro-nav:hover { border-color:#4f8ef7;color:#fff; }
-.intro-nav.primary { background:#4f8ef7;border-color:#4f8ef7;color:#fff; }
-.intro-nav.primary:hover { opacity:.88; }
-.intro-nav:disabled { opacity:.3;cursor:default; }
-/* slide inner helpers */
-.intro-grid2 { display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px; }
-.intro-card-item { background:#1e2333;border:1px solid #2a3050;border-radius:10px;padding:12px 14px; }
-.intro-card-item .ic { font-size:20px;margin-bottom:6px; }
-.intro-card-item .it { font-size:13px;font-weight:700;color:#fff;margin-bottom:3px; }
-.intro-card-item .id { font-size:11.5px;color:#9aa3bc; }
-.intro-flow { display:flex;align-items:flex-start;justify-content:center;gap:0;margin-top:20px; }
-.intro-step { flex:1;text-align:center;padding:0 8px; }
-.intro-step .is-icon { font-size:28px;background:#1e2333;border:1px solid #2a3050;border-radius:12px;padding:12px;display:inline-block;margin-bottom:8px; }
-.intro-step .is-title { font-size:13px;font-weight:700;color:#fff;margin-bottom:4px; }
-.intro-step .is-desc { font-size:11px;color:#9aa3bc;line-height:1.5; }
-.intro-arrow { align-self:center;color:#4f8ef7;font-size:20px;flex-shrink:0;margin-top:-24px; }
-.intro-badges { display:flex;flex-wrap:wrap;gap:7px;margin-top:14px; }
-.intro-badge { background:#1e2333;border:1px solid #2a3050;border-radius:20px;padding:4px 11px;font-size:11.5px;color:#7ec8e3; }
-</style>
-
-<div id="intro-overlay" style="display:none">
-  <div id="intro-card">
-    <button type="button" id="intro-skip" onclick="closeIntro()" title="Saltar introducción">Saltar →</button>
-    <div class="intro-viewport">
-
-      <!-- SLIDE 1: Bienvenida -->
-      <div class="intro-slide active" id="intro-s1">
-        <div style="text-align:center;padding-top:12px;">
-          <div style="font-size:52px;margin-bottom:14px;">🫀</div>
-          <div style="font-size:26px;font-weight:800;color:#fff;margin-bottom:6px;">EcoSmart</div>
-          <div style="font-size:15px;color:#4f8ef7;font-weight:600;margin-bottom:16px;">Ecocardiograma Doppler Color</div>
-          <div style="font-size:13.5px;color:#9aa3bc;line-height:1.7;max-width:440px;margin:0 auto;">
-            Herramienta clínica para el registro, cálculo automático e informe de estudios ecocardiográficos.
-          </div>
-        </div>
-      </div>
-
-      <!-- SLIDE 2: Carga de datos -->
-      <div class="intro-slide" id="intro-s2">
-        <div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:4px;">Carga de datos del estudio</div>
-        <div style="font-size:12.5px;color:#9aa3bc;">Completá los tabs en orden para generar el informe automático</div>
-        <div class="intro-grid2">
-          <div class="intro-card-item">
-            <div class="ic">👤</div>
-            <div class="it">Paciente</div>
-            <div class="id">Datos personales, peso, talla, indicación y antecedentes</div>
-          </div>
-          <div class="intro-card-item">
-            <div class="ic">🫀</div>
-            <div class="it">AI / VI</div>
-            <div class="id">Medidas de aurícula izquierda y ventrículo izquierdo con cálculos automáticos</div>
-          </div>
-          <div class="intro-card-item">
-            <div class="ic">➡️</div>
-            <div class="it">VD / AD</div>
-            <div class="id">Ventrículo derecho, aurícula derecha, VCI y estimación de PmAD</div>
-          </div>
-          <div class="intro-card-item">
-            <div class="ic">〰️</div>
-            <div class="it">Doppler + Válvulas</div>
-            <div class="id">Flujos Doppler, gradientes, AVA por continuidad y morfología valvular</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- SLIDE 3: ETE · Informe · PDF -->
-      <div class="intro-slide" id="intro-s3">
-        <div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:4px;">ETE · Informe · PDF</div>
-        <div style="font-size:12.5px;color:#9aa3bc;">Flujo de cierre del estudio</div>
-        <div class="intro-flow">
-          <div class="intro-step">
-            <div class="is-icon">🔬</div>
-            <div class="is-title">ETE</div>
-            <div class="is-desc">Completá los datos del ecocardiograma transesofágico si corresponde: OAI, válvula mitral, aorta</div>
-          </div>
-          <div class="intro-arrow">→</div>
-          <div class="intro-step">
-            <div class="is-icon">📝</div>
-            <div class="is-title">Informe</div>
-            <div class="is-desc">Presioná "Generar Informe" para crear el texto narrativo automático con todos los hallazgos</div>
-          </div>
-          <div class="intro-arrow">→</div>
-          <div class="intro-step">
-            <div class="is-icon">⬇️</div>
-            <div class="is-title">PDF</div>
-            <div class="is-desc">Exportá el informe completo y prolijo listo para imprimir o archivar digitalmente</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- SLIDE 4: Referencias -->
-      <div class="intro-slide" id="intro-s4">
-        <div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:4px;">📚 Referencias clínicas integradas</div>
-        <div style="font-size:12.5px;color:#9aa3bc;margin-bottom:2px;">Accedé desde el tab Referencias a guías y calculadoras</div>
-        <div class="intro-badges">
-          <span class="intro-badge">Valvulopatías</span><span class="intro-badge">Wilkins</span>
-          <span class="intro-badge">TEER</span><span class="intro-badge">HCM-SCD</span>
-          <span class="intro-badge">QTc</span><span class="intro-badge">PISA mitral</span>
-          <span class="intro-badge">HTP ESC 2022</span><span class="intro-badge">Dispositivos</span>
-          <span class="intro-badge">Cardiotoxicidad</span><span class="intro-badge">Miocardiopatías</span>
-          <span class="intro-badge">Cardiopatías congénitas</span><span class="intro-badge">Aorta</span>
-          <span class="intro-badge">Pericardio</span><span class="intro-badge">ECG Rápido</span>
-        </div>
-        <div style="margin-top:18px;font-size:12px;color:#9aa3bc;line-height:1.6;border-top:1px solid #2a3050;padding-top:14px;">
-          Todas las referencias están basadas en guías <strong style="color:#cbd5e1;">ESC, ACC/AHA y ASE</strong> vigentes.
-        </div>
-      </div>
-
-      <div class="intro-slide" id="intro-s5">
-        <div style="text-align:center;padding-top:24px;">
-          <div style="font-size:56px;margin-bottom:16px;">🚀</div>
-          <div style="font-size:24px;font-weight:800;color:#fff;margin-bottom:8px;">¡Todo listo!</div>
-          <div style="font-size:15px;color:#4f8ef7;font-weight:600;margin-bottom:20px;">Comenzá tu primer estudio</div>
-          <div style="font-size:13.5px;color:#9aa3bc;line-height:1.8;max-width:420px;margin:0 auto 32px;">
-            Cada informe que generás es un paso hacia una cardiología más precisa, eficiente y moderna. Bienvenido al futuro del ecocardiograma.
-          </div>
-          <button onclick="closeIntro()" style="padding:13px 48px;background:#4f8ef7;color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Comenzar</button>
-        </div>
-      </div>
-
-    </div><!-- /viewport -->
-
-    <div class="intro-footer">
-      <button class="intro-nav" id="intro-prev" onclick="introNav(-1)" disabled>← Anterior</button>
-      <div class="intro-dots">
-        <div class="intro-dot active" id="dot-0"></div>
-        <div class="intro-dot" id="dot-1"></div>
-        <div class="intro-dot" id="dot-2"></div>
-        <div class="intro-dot" id="dot-3"></div>
-        <div class="intro-dot" id="dot-4"></div>
-      </div>
-      <button class="intro-nav primary" id="intro-next" onclick="introNav(1)">Siguiente →</button>
-    </div>
-  </div>
-</div>
-
-<script>
-var _introSlide = 0;
-var _introTotal = 5;
-function introNav(dir) {
-  var slides = document.querySelectorAll('.intro-slide');
-  var dots   = document.querySelectorAll('.intro-dot');
-  slides[_introSlide].classList.remove('active');
-  slides[_introSlide].classList.add('out');
-  setTimeout(function(){ slides[_introSlide < _introTotal ? _introSlide : 0].classList.remove('out'); }, 300);
-  _introSlide = Math.max(0, Math.min(_introTotal - 1, _introSlide + dir));
-  slides[_introSlide].classList.add('active');
-  dots.forEach(function(d,i){ d.classList.toggle('active', i === _introSlide); });
-  document.getElementById('intro-prev').disabled = _introSlide === 0;
-  var nextBtn = document.getElementById('intro-next');
-  if (_introSlide === _introTotal - 1) {
-    nextBtn.textContent = 'Comenzar ✓';
-    nextBtn.onclick = closeIntro;
-  } else {
-    nextBtn.textContent = 'Siguiente →';
-    nextBtn.onclick = function(){ introNav(1); };
-  }
-}
-function showIntro() {
-  localStorage.removeItem('ett_intro_seen');
-  _introSlide = 0;
-  document.querySelectorAll('.intro-slide').forEach(function(s){ s.classList.remove('active','out'); });
-  document.querySelectorAll('.intro-dot').forEach(function(d,i){ d.classList.toggle('active', i===0); });
-  document.getElementById('intro-s1').classList.add('active');
-  document.getElementById('intro-prev').disabled = true;
-  var nb = document.getElementById('intro-next'); nb.textContent = 'Siguiente →'; nb.onclick = function(){ introNav(1); };
-  document.getElementById('intro-overlay').style.display = 'flex';
-}
-function closeIntro() {
-  document.getElementById('intro-overlay').style.display = 'none';
-  localStorage.setItem('ett_intro_seen', '1');
-}
-</script>
-
 <div class="container">
 
 <!-- TABS -->
@@ -836,6 +668,14 @@ function closeIntro() {
     <button class="tab-btn" onclick="showTab('sgl');if(window.sglOnShow)sglOnShow();">📊 SGL</button>
     <button class="tab-btn" onclick="showTab('imagenes');if(window.imgRender)imgRender();">🖼️ Imágenes</button>
     <button class="tab-btn" onclick="showTab('config');if(window.cfgOnShow)cfgOnShow();">⚙️ Config</button>
+    <button onclick="abrirAyudaEco()" title="Ayuda"
+      style="background:none;
+      border:1px solid rgba(255,255,255,0.2);
+      border-radius:50%;width:32px;height:32px;
+      color:var(--text,#CBD5E1);cursor:pointer;
+      font-size:14px;font-weight:700;flex-shrink:0;">
+      ?
+    </button>
   </div>
   <!-- FILA 2 — Patologías especiales -->
   <div class="tabs-row tabs-special">
@@ -850,10 +690,6 @@ function closeIntro() {
     <button class="tab-btn tab-tool" data-mod="fono" onclick="showTab('fono');if(window.fcgOnShow)fcgOnShow();">🔊 Fonocardiograma</button>
     <button class="tab-btn tab-tool" data-mod="refs" onclick="showTab('refs')">📚 Referencias</button>
   </div>
-</div>
-<!-- LABORATORIO — esquina derecha de la barra de tabs, estilo azul (Informe/Guardados) -->
-<div class="tabs-lab-wrap">
-  <button class="tab-btn tab-lab" onclick="showTab('lab');if(window.labInit)labInit()">🔬 Laboratorio</button>
 </div>
 </div>
 
@@ -888,11 +724,6 @@ function closeIntro() {
         <div id="cfg-modulos" style="display:none;"></div>
       </div>
 
-      <!-- PDF -->
-      <div style="margin-bottom:22px;border-top:1px solid var(--border);padding-top:16px;">
-        <div class="cfg-sec-title">📄 PDF</div>
-        <label class="cfg-mod-item" style="max-width:300px;"><input type="checkbox" id="cfg-qr" onchange="cfgToggleQr(this.checked)"> Incluir QR (ecosmart.ceibomed.com) en el PDF</label>
-      </div>
 
       <!-- Exportar / Importar -->
       <div style="margin-bottom:22px;border-top:1px solid var(--border);padding-top:16px;">
@@ -8819,6 +8650,18 @@ function v(id) {
   const n = PF(el.value.replace(',', '.'));
   return isNaN(n) ? null : n;
 }
+// Geometría VI unificada (usada por el informe narrativo y por la tabla del PDF)
+function calcGeometriaVI(masaIdx, rwt, sexo) {
+  const esMujer = sexo === 'F' || sexo === 'Femenino' || sexo === 'f';
+  const umbralMasa = esMujer ? 95 : 115;
+  const masaNormal = masaIdx < umbralMasa;
+  if (!masaIdx || !rwt) return '—';
+  if (masaNormal && rwt < 0.42) return 'Normal';
+  if (masaNormal && rwt >= 0.42) return 'Remodelado concéntrico';
+  if (!masaNormal && rwt < 0.42) return 'Hipertrofia excéntrica';
+  return 'Hipertrofia concéntrica';
+}
+window.calcGeometriaVI = calcGeometriaVI;
 function sv(id) {
   const el = document.getElementById(id);
   if (!el) return '';
@@ -11124,15 +10967,11 @@ function generarInforme() {
     const rwt = (2*ppvi/ddfvi).toFixed(2);
     const sexo = sv('sexo');
     const hvi = (sexo === 'F' && massIdx > 95) || (sexo === 'M' && massIdx > 115) || (!sexo && massIdx > 115);
-    let geom;
-    if (!hvi && PF(rwt) < 0.42) geom = 'normal';
-    else if (!hvi && PF(rwt) >= 0.42) geom = 'remodelado concéntrico';
-    else if (hvi && PF(rwt) < 0.42) geom = 'hipertrofia excéntrica';
-    else geom = 'hipertrofia concéntrica';
-    if (geom === 'normal') {
+    const geom = calcGeometriaVI(PF(massIdx), PF(rwt), sexo);
+    if (geom === 'Normal') {
       inf.push('Geometría ventricular normal.');
     } else {
-      let geomTxt = geom;
+      let geomTxt = geom.toLowerCase();
       if (hvi) {
         const sev = (typeof hviSeveridad === 'function') ? hviSeveridad(massIdx, sexo) : null;
         if (sev) geomTxt += ` (${sev})`;
@@ -11924,8 +11763,7 @@ function generarPDFReal() {
     masaIdx = (mass/bsa).toFixed(0)+' g/m2';
     const rwt = 2*pp/dd;
     rwtStr = rwt.toFixed(2);
-    const hvi = (sexo==='F'&&mass/bsa>95)||(sexo!=='F'&&mass/bsa>115);
-    geomStr = !hvi&&rwt<0.42?'Normal':!hvi?'Remodelado concéntrico':rwt<0.42?'HVI excéntrica':'HVI concéntrica';
+    geomStr = calcGeometriaVI(mass/bsa, rwt, sexo);
   }
   const faStr  = (dd&&ds)?((dd-ds)/dd*100).toFixed(1)+'%':null;
   const feviM  = sv('fevi_met');
@@ -12168,7 +12006,7 @@ function generarPDFReal() {
   // ════════════════════════════════════════════════════════════
   // 11. VÁLVULAS — tabla 4 columnas (VM | VA | VT | VP)
   // ════════════════════════════════════════════════════════════
-  const eaReal = sv('ea_grado') && sv('ea_grado') !== 'Sin estenosis';
+  const eaReal = sv('ea_grado') && sv('ea_grado') !== 'sin' && sv('ea_grado') !== 'normal' && sv('ea_grado') !== '—' && sv('ea_grado').trim() !== '';
   drawTablaCompacta([
     {titulo:'Mitral', items:[
       {lbl:'Morf.',         ref:'', val:sv('vm_morf')||null},
@@ -12648,22 +12486,11 @@ function generarPDFReal() {
 
   // ─── Copyright al pie de todas las páginas ───
   const _totalPag = doc.internal.getNumberOfPages();
-  let _qrData = null;
-  if (typeof eeQrEnabled !== 'function' || eeQrEnabled()) { try { _qrData = eeQrDataURL(140, eeStudyUrl()); } catch(e){ _qrData = null; } }
-  const _qrSz = 12, _qrX = 210 - 8 - _qrSz, _qrY = 297 - 8 - _qrSz - 3; // esquina inferior derecha
   for (let _p = 1; _p <= _totalPag; _p++) {
     doc.setPage(_p);
     fn(6.5); tc(150,150,150);
     doc.text('© 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo', 105, 292, { align:'center' });
     fn(5.5); tc(160,160,160); doc.text('Esta herramienta es de apoyo clínico. No reemplaza el juicio médico ni constituye una recomendación diagnóstica o terapéutica. CeiboMed © 2026', 105, 295, { align:'center' });
-    // QR discreto → https://ecosmart.ceibomed.com
-    if (_qrData) {
-      try {
-        doc.addImage(_qrData, 'PNG', _qrX, _qrY, _qrSz, _qrSz);
-        fn(5); tc(175,175,175);
-        doc.text('ecosmart.ceibomed.com', _qrX + _qrSz/2, _qrY + _qrSz + 2.6, { align:'center' });
-      } catch(e){}
-    }
   }
 
   const _nombre = (sv('nombre')||'paciente').replace(/\s+/g,'_');
@@ -16669,9 +16496,22 @@ window.aceptarAvisoDatos = aceptarAvisoDatos;
   }
 })();
 </script>
-<div class="float-informe-wrap">
-  <button class="float-informe-btn" id="floatBtnInforme" onclick="showTab('informe');actualizarFloatBtns();" title="Informe narrativo">📄 Informe</button>
-  <button class="float-informe-btn" id="floatBtnGuardados" onclick="showTab('guardados');renderInformesGuardados();actualizarFloatBtns();" title="Informes guardados">📋 Guardados</button>
+<div style="position:fixed;right:16px;top:50%;
+  transform:translateY(-50%);
+  display:flex;flex-direction:column;gap:8px;
+  z-index:100;">
+  <button id="floatBtnInforme" onclick="showTab('informe');actualizarFloatBtns();" title="Informe narrativo"
+    style="background:#0369A1;color:white;border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+    📝 Informe
+  </button>
+  <button id="floatBtnGuardados" onclick="showTab('guardados');renderInformesGuardados();actualizarFloatBtns();" title="Informes guardados"
+    style="background:#0369A1;color:white;border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+    💾 Guardados
+  </button>
+  <button onclick="showTab('lab');if(window.labInit)labInit();" title="Laboratorio"
+    style="background:#0369A1;color:white;border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+    🔬 Laboratorio
+  </button>
 </div>
 <div id="modal-logo-gallery" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:600;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeLogoGallery()">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:28px 30px;max-width:460px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.55)">
@@ -16881,5 +16721,432 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',show); else show();
 })();
 </script>
+
+<!-- ══ AVISO LEGAL post-login (estilo ErgoSmart) ══ -->
+<div id="modalAvisoEco" style="display:none;
+  position:fixed;inset:0;background:rgba(0,0,0,0.85);
+  z-index:9999;align-items:center;
+  justify-content:center;padding:20px;">
+  <div style="background:#1E293B;
+    border:1px solid rgba(255,255,255,0.1);
+    border-radius:16px;padding:32px;
+    max-width:480px;width:100%;text-align:center;">
+    <div style="font-size:26px;font-weight:700;
+      color:#0D9488;margin-bottom:4px;">
+      EcoSmart
+    </div>
+    <div style="font-size:11px;letter-spacing:0.1em;
+      text-transform:uppercase;color:#64748B;
+      margin-bottom:24px;">
+      Ecocardiograma Doppler Color
+    </div>
+    <div style="text-align:left;margin-bottom:20px;">
+      <div style="font-weight:700;color:#F59E0B;
+        margin-bottom:12px;font-size:14px;">
+        ⚕️ Aviso Legal y Confidencialidad
+      </div>
+      <p style="font-size:13px;color:#CBD5E1;
+        margin-bottom:16px;line-height:1.6;">
+        Herramienta de apoyo clínico para el registro
+        y análisis ecocardiográfico.
+        <strong>No reemplaza el juicio clínico
+        del médico.</strong>
+      </p>
+      <div style="background:rgba(255,255,255,0.05);
+        border-radius:10px;padding:14px;
+        display:flex;flex-direction:column;gap:10px;
+        font-size:12px;color:#94A3B8;line-height:1.5;">
+        <div>🔒 Los datos se guardan localmente en
+          el navegador. No se transmiten a servidores
+          externos.</div>
+        <div>⚕️ Los cálculos automáticos son
+          orientativos. La interpretación clínica
+          final corresponde al médico tratante.</div>
+        <div>📋 Los desarrolladores no asumen
+          responsabilidad por decisiones médicas
+          basadas en este software.</div>
+      </div>
+    </div>
+    <button onclick="cerrarAvisoEco()"
+      style="background:#0D9488;color:white;
+      border:none;border-radius:8px;
+      padding:12px 32px;font-size:14px;
+      font-weight:600;cursor:pointer;width:100%;">
+      ✓ Entendido — Continuar
+    </button>
+    <div style="margin-top:12px;font-size:11px;
+      color:#64748B;">
+      CeiboMed · Tecnología clínica con raíces
+    </div>
+  </div>
+</div>
+
+<!-- ══ AYUDA — Manual interactivo ══ -->
+<div id="modalAyudaEco" style="display:none;
+  position:fixed;inset:0;background:rgba(0,0,0,0.8);
+  z-index:9999;align-items:center;
+  justify-content:center;padding:20px;">
+  <div style="background:#1E293B;
+    border:1px solid rgba(255,255,255,0.1);
+    border-radius:16px;width:100%;max-width:620px;
+    max-height:88vh;overflow:hidden;
+    display:flex;flex-direction:column;">
+
+    <div style="padding:18px 22px 0;display:flex;
+      justify-content:space-between;align-items:center;
+      flex-shrink:0;">
+      <div>
+        <div style="font-size:16px;font-weight:700;
+          color:#0D9488;">📖 Manual de EcoSmart</div>
+        <div style="font-size:11px;color:#64748B;
+          margin-top:2px;">
+          Ecocardiograma Doppler Color · Guía completa
+        </div>
+      </div>
+      <button onclick="cerrarAyudaEco()"
+        style="background:none;border:none;
+        color:#64748B;font-size:20px;cursor:pointer;">
+        ✕
+      </button>
+    </div>
+
+    <div id="ecoAyudaTabs" style="display:flex;
+      gap:0;padding:10px 22px 0;overflow-x:auto;
+      scrollbar-width:none;flex-shrink:0;
+      border-bottom:1px solid rgba(255,255,255,0.07);">
+    </div>
+
+    <div id="ecoAyudaContenido"
+      style="padding:18px 22px;overflow-y:auto;
+      flex:1;font-size:13px;color:#CBD5E1;
+      line-height:1.7;">
+    </div>
+  </div>
+</div>
+
+<script>
+function mostrarAvisoEco() {
+  const m = document.getElementById('modalAvisoEco');
+  if (m) m.style.display = 'flex';
+}
+function cerrarAvisoEco() {
+  const m = document.getElementById('modalAvisoEco');
+  if (m) m.style.display = 'none';
+}
+
+const ECO_AYUDA = [
+  { tab: '📋 ¿Qué es?', html: `
+    <p style="margin:0 0 10px"><strong
+      style="color:#0D9488">
+      Informes ecocardiográficos completos en
+      un solo flujo</strong></p>
+    <p style="margin:0 0 12px">EcoSmart centraliza
+    mediciones, cálculos derivados, evaluación
+    hemodinámica, análisis valvular, contractilidad
+    segmentaria, strain longitudinal global y
+    generación del informe narrativo.</p>
+    <ul style="padding-left:0;list-style:none;
+      display:flex;flex-direction:column;gap:6px;
+      margin:0 0 12px">
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Tres niveles de navegación: estudio
+        principal, patologías especiales y herramientas
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Modo Básico (flujo estándar) y Modo
+        Avanzado (módulos especiales + Laboratorio)
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Informes narrativos generados
+        automáticamente y exportables a PDF
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Seguimiento longitudinal por paciente
+        con comparación de estudios
+      </li>
+    </ul>
+    <div style="padding:9px 12px;border-radius:8px;
+      background:rgba(13,148,136,0.1);
+      border-left:3px solid #0D9488;
+      font-size:12px;color:#94A3B8;font-style:italic">
+      EcoSmart es una herramienta de apoyo clínico.
+      No sustituye el juicio médico ni las guías
+      originales.
+    </div>` },
+
+  { tab: '⚡ Inicio rápido', html: `
+    <p style="margin:0 0 10px"><strong
+      style="color:#0D9488">Flujo en 9 pasos
+    </strong></p>
+    <ol style="padding-left:18px;margin:0;
+      display:flex;flex-direction:column;gap:8px">
+      <li>Completá institución, firma y preferencias
+        en <strong>Configuración</strong></li>
+      <li>Seleccioná <strong>Nuevo estudio</strong>
+        para limpiar datos anteriores</li>
+      <li>En <strong>Paciente</strong>: fecha,
+        identificación y datos antropométricos</li>
+      <li>Ingresá mediciones en
+        <strong>AI/VI, VD/AD, Doppler y Válvulas
+        </strong></li>
+      <li>Usá <strong>Contractilidad y SGL</strong>
+        cuando correspondan</li>
+      <li>Abrí <strong>Informe</strong> y revisá
+        el texto generado</li>
+      <li>Editá si es necesario y
+        <strong>Regenerá</strong> el informe</li>
+      <li>Exportá el <strong>PDF</strong></li>
+      <li>Seleccioná <strong>Guardar Informe
+        </strong> para conservarlo</li>
+    </ol>
+    <div style="margin-top:12px;padding:9px 12px;
+      border-radius:8px;
+      background:rgba(13,148,136,0.1);
+      border-left:3px solid #0D9488;
+      font-size:12px;color:#94A3B8;font-style:italic">
+      Ingresá únicamente mediciones obtenidas en
+      el estudio. Los cálculos dependen de la
+      calidad de los datos.
+    </div>` },
+
+  { tab: '🧠 Módulos avanzados', html: `
+    <p style="margin:0 0 12px"><strong
+      style="color:#0D9488">
+      Cuatro módulos para escenarios complejos
+    </strong> — disponibles en Modo Avanzado:</p>
+    <div style="display:flex;flex-direction:column;
+      gap:10px">
+      <div style="padding:10px 12px;border-radius:8px;
+        background:rgba(13,148,136,0.08);
+        border-left:3px solid #0D9488">
+        <strong>🫀 Hemodinámica</strong><br>
+        <span style="font-size:12px;color:#94A3B8">
+        Gasto cardíaco, IC y resistencias vasculares.
+        Perfil hemodinámico — Forrester (I–IV).
+        Probabilidad de TEP (McConnell, tabique D,
+        VD/VI). HTP ESC/ERS 2022, RVP.</span>
+      </div>
+      <div style="padding:10px 12px;border-radius:8px;
+        background:rgba(124,58,237,0.08);
+        border-left:3px solid #7C3AED">
+        <strong>🧬 Amiloidosis cardíaca</strong><br>
+        <span style="font-size:12px;color:#94A3B8">
+        Score ESC 2021: bull's eye ápice/base, E/e',
+        TAPSE, SGL, RWT. Algoritmo Perugini (0–3)
+        con proteínas monoclonales. Cuatro escenarios
+        diagnósticos con probabilidad automática.
+        </span>
+      </div>
+      <div style="padding:10px 12px;border-radius:8px;
+        background:rgba(3,105,161,0.08);
+        border-left:3px solid #0369A1">
+        <strong>🔬 ETE — Transesofágico</strong><br>
+        <span style="font-size:12px;color:#94A3B8">
+        Score Wilkins automático para VBMP.
+        Esquema visual válvula mitral por festones
+        (A1/A2/A3·P1/P2/P3). Criterios TEER.
+        Orejuela izquierda, aorta torácica, FOP.
+        </span>
+      </div>
+      <div style="padding:10px 12px;border-radius:8px;
+        background:rgba(225,29,72,0.08);
+        border-left:3px solid #E11D48">
+        <strong>❤️ Cardio-Oncología</strong><br>
+        <span style="font-size:12px;color:#94A3B8">
+        Seguimiento FEVI y GLS. Detección de toxicidad
+        (caída ≥15% GLS o ≥10% FEVI). Clasificación
+        HFA-ICOS/ESC 2022. Alertas automáticas.
+        </span>
+      </div>
+    </div>` },
+
+  { tab: '🌊 Doppler y válvulas', html: `
+    <p style="margin:0 0 10px"><strong
+      style="color:#0D9488">
+      Evaluación Doppler y valvular integrada
+    </strong></p>
+    <ul style="padding-left:0;list-style:none;
+      display:flex;flex-direction:column;gap:7px;
+      margin:0 0 12px">
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Doppler mitral / función diastólica:
+        velocidades, tiempos, parámetros tisulares
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Doppler aórtico: TSVI y válvula
+        aórtica para cálculos hemodinámicos
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Doppler tricuspídeo / PSAP:
+        gradiente VD-AD y estimación de PSAP
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Válvula mitral: morfología,
+        cuantificación, PISA
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Válvula aórtica: estenosis e
+        insuficiencia con criterios de severidad
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Tricúspide, pulmonar, pericardio
+        y masas intracardíacas
+      </li>
+    </ul>
+    <div style="padding:9px 12px;border-radius:8px;
+      background:rgba(13,148,136,0.1);
+      border-left:3px solid #0D9488;
+      font-size:12px;color:#94A3B8;font-style:italic">
+      No fuerces una clasificación cuando faltan
+      variables esenciales o la señal Doppler
+      es inadecuada.
+    </div>` },
+
+  { tab: '🔬 Laboratorio', html: `
+    <p style="margin:0 0 10px"><strong
+      style="color:#0D9488">
+      Un laboratorio vivo que aprende con cada estudio
+    </strong></p>
+    <ul style="padding-left:0;list-style:none;
+      display:flex;flex-direction:column;gap:7px;
+      margin:0 0 12px">
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>📈 Actividad en tiempo real —
+        el laboratorio siempre refleja el estado
+        actual del servicio
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>🎯 Calidad asistencial — % estudios
+        con GLS, TAPSE, LAVI, EROA/PISA, FEVI
+        por Simpson
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>🔍 Indicadores de oportunidad —
+        FEVI &lt;35% sin QRS ancho, IM severa sin
+        cuantificación, HTP sin TR medida
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>📊 Perfil de la población —
+        distribución FEVI, función diastólica,
+        patologías frecuentes con gráficos
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>📄 PDF de auditoría exportable
+        para comité o acreditación
+      </li>
+    </ul>
+    <div style="padding:9px 12px;border-radius:8px;
+      background:rgba(13,148,136,0.1);
+      border-left:3px solid #0D9488;
+      font-size:12px;color:#94A3B8;font-style:italic">
+      Cada estudio guardado alimenta el laboratorio
+      automáticamente — sin intervención manual.
+    </div>` },
+
+  { tab: '📚 Referencias', html: `
+    <p style="margin:0 0 10px"><strong
+      style="color:#0D9488">
+      Biblioteca académica integrada
+    </strong></p>
+    <ul style="padding-left:0;list-style:none;
+      display:flex;flex-direction:column;gap:7px;
+      margin:0">
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Valvulopatías — criterios ASE/ESC:
+        estenosis aórtica, IM (EROA, PISA),
+        insuficiencia aórtica, tricuspídea
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Score de Wilkins — tabla completa
+        para indicación de VBMP
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>TEER — criterios de elegibilidad
+        IM primaria y secundaria
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>HCM-SCD — calculadora ESC 2014
+        riesgo muerte súbita en MCH
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>HTP — clasificación ESC/ERS 2022,
+        criterios pre/post-capilar, RVP
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Cardio-oncología — toxicidad
+        HFA-ICOS/ESC 2022
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Amiloidosis — algoritmo diagnóstico
+        completo con gammagrafía y proteínas
+        monoclonales
+      </li>
+    </ul>
+    <div style="margin-top:12px;padding:9px 12px;
+      border-radius:8px;
+      background:rgba(13,148,136,0.1);
+      border-left:3px solid #0D9488;
+      font-size:12px;color:#94A3B8;font-style:italic">
+      Ante decisiones clínicas, corroborá la
+      fuente primaria y su vigencia.
+    </div>` },
+];
+
+function abrirAyudaEco() {
+  const m = document.getElementById('modalAyudaEco');
+  if (m) { m.style.display = 'flex'; renderAyudaEco(0); }
+}
+function cerrarAyudaEco() {
+  const m = document.getElementById('modalAyudaEco');
+  if (m) m.style.display = 'none';
+}
+function renderAyudaEco(activo) {
+  const tabs = document.getElementById('ecoAyudaTabs');
+  const cont = document.getElementById('ecoAyudaContenido');
+  if (!tabs || !cont) return;
+  tabs.innerHTML = ECO_AYUDA.map((s,i) =>
+    `<button onclick="renderAyudaEco(${i})"
+      style="background:none;border:none;
+      padding:8px 13px;cursor:pointer;
+      font-size:12px;white-space:nowrap;
+      color:${i===activo?'#0D9488':'#94A3B8'};
+      font-weight:${i===activo?'600':'400'};
+      border-bottom:2px solid ${i===activo?
+        '#0D9488':'transparent'};
+      transition:all 0.15s;font-family:inherit;">
+      ${s.tab}
+    </button>`
+  ).join('');
+  cont.innerHTML = ECO_AYUDA[activo].html;
+}
+document.addEventListener('keydown', e => {
+  if (e.key==='Escape') cerrarAyudaEco();
+});
+window.mostrarAvisoEco=mostrarAvisoEco;window.cerrarAvisoEco=cerrarAvisoEco;
+window.abrirAyudaEco=abrirAyudaEco;window.cerrarAyudaEco=cerrarAyudaEco;window.renderAyudaEco=renderAyudaEco;
+</script>
+
 </body>
 </html>
