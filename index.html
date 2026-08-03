@@ -1930,6 +1930,10 @@ window.cerrarSesion = cerrarSesion;
           <span class="calc-lbl">RVP <span style="color:var(--text2);font-size:10px;">= (Vmax IT / VTI-TSVD) × 10 · Abbas (Wood)</span></span>
           <span id="hemo-rvp">—</span>
         </div>
+        <div class="calc-row">
+          <span class="calc-lbl">RVP manual <span style="color:var(--text2);font-size:10px;">override por cateterismo derecho (UW)</span></span>
+          <input type="number" id="htp-rvp" placeholder="UW" step="0.1" min="0" oninput="calcHemo()" style="max-width:90px;text-align:right;">
+        </div>
       </div>
       <div class="calc-box" style="margin-top:8px;">
         <div class="calc-row">
@@ -8644,6 +8648,14 @@ function showTab(id) {
 }
 
 // ══ HELPERS ══
+// ── Umbrales de normalidad unificados (pantalla + PDF) ──
+// ASE 2019: FEVI normal ≥50%
+// Nota: ESC usa ≥55% — se eligió ASE ≥50% para mayor sensibilidad diagnóstica
+const UMBRAL_FEVI_NORMAL = 50;   // %  (FEVI ≥50 = normal)
+const UMBRAL_TAPSE_NORMAL = 17;  // mm (TAPSE ≥17 = normal)
+window.UMBRAL_FEVI_NORMAL = UMBRAL_FEVI_NORMAL;
+window.UMBRAL_TAPSE_NORMAL = UMBRAL_TAPSE_NORMAL;
+
 function v(id) {
   const el = document.getElementById(id);
   if (!el) return null;
@@ -8817,7 +8829,7 @@ function calcVI() {
   // FEVI normal ≥50% — criterio ASE Chamber Quantification 2025
   if (fevi !== null) {
     let fi;
-    if (fevi >= 50) fi = badge('green', 'Normal (≥50%)');
+    if (fevi >= UMBRAL_FEVI_NORMAL) fi = badge('green', 'Normal (≥' + UMBRAL_FEVI_NORMAL + '%)');
     else if (fevi >= 40) fi = badge('yellow', 'Levemente reducida (40-49%)');
     else if (fevi >= 30) fi = badge('orange', 'Moderadamente reducida (30-39%)');
     else fi = badge('red', 'Severamente reducida (<30%)');
@@ -8908,8 +8920,14 @@ function calcHemo() {
 
   // ── RVP (Wood) — Abbas: (Vmax IT / VTI-TSVD) × 10 ──
   const vmaxIT = v('vmax_it'), vtiTSVD = v('vti_tsvd');
+  const rvpManual = v('htp-rvp');   // override por cateterismo derecho, si se ingresó
   let rvp = null;
-  if (vmaxIT !== null && vtiTSVD !== null && vtiTSVD > 0) {
+  if (rvpManual !== null) {
+    rvp = rvpManual;
+    let cls = rvp < 2 ? 'green' : rvp <= 3 ? 'yellow' : 'red';
+    let et  = rvp < 2 ? '<2 (normal)' : rvp <= 3 ? '2–3 (límite)' : '>3 (elevada — HTP precapilar probable)';
+    setH('hemo-rvp', rvp.toFixed(1) + ' UW (manual · cateterismo) ' + badge(cls, et));
+  } else if (vmaxIT !== null && vtiTSVD !== null && vtiTSVD > 0) {
     rvp = (vmaxIT / vtiTSVD) * 10;
     let cls = rvp < 2 ? 'green' : rvp <= 3 ? 'yellow' : 'red';
     let et  = rvp < 2 ? '<2 (normal)' : rvp <= 3 ? '2–3 (límite)' : '>3 (elevada — HTP precapilar probable)';
@@ -8957,10 +8975,14 @@ function calcHemo() {
   // cateterismo cardíaco derecho (RHC). Con estimaciones eco sólo se describe un "patrón compatible con".
   const htpNote = '<div style="font-size:10px;color:var(--text2);margin-top:4px;line-height:1.4;"> · ⚠️ La clasificación pre/poscapilar requiere confirmación mediante cateterismo cardíaco derecho (ESC/ERS 2022). Valores estimados por ecocardiografía.</div>';
   if (htpEl) {
-    if (papm === null || pcp === null || rvp === null) {
-      htpEl.innerHTML = badge('gray', 'Requiere PAPm (PSAP) + PCP (E/e\') + GC' + (rvp === null ? ' — RVP no disponible' : ''));
+    if (papm === null || pcp === null) {
+      htpEl.innerHTML = badge('gray', 'Requiere PAPm (PSAP) + PCP (E/e\')');
     } else if (papm <= 20) {
       htpEl.innerHTML = badge('green', 'Sin HTP (PAPm ≤20 mmHg)');
+    } else if (rvp === null) {
+      htpEl.innerHTML = (pcp <= 15
+        ? badge('yellow', 'HTP precapilar posible — confirmar RVP (cateterismo derecho)')
+        : badge('yellow', 'Componente poscapilar posible (PCP >15) — confirmar RVP (cateterismo derecho)')) + htpNote;
     } else if (pcp <= 15 && rvp > 2) {
       htpEl.innerHTML = badge('red', 'Patrón compatible con HTP precapilar — PAPm >20 + PCP ≤15 + RVP ' + rvp.toFixed(1) + ' UW (>2)') + htpNote;
     } else if (pcp <= 15 && rvp <= 2) {
@@ -9136,7 +9158,7 @@ function calcVD() {
     document.getElementById('vd-tam').innerHTML = t;
   }
   if (tapse) {
-    let t = tapse >= 17 ? badge('green','Normal (≥17mm)') : badge('red','Disfunción (< 17mm)');
+    let t = tapse >= UMBRAL_TAPSE_NORMAL ? badge('green','Normal (≥' + UMBRAL_TAPSE_NORMAL + 'mm)') : badge('red','Disfunción (< ' + UMBRAL_TAPSE_NORMAL + 'mm)');
     document.getElementById('tapse-interp').innerHTML = t;
   }
   if (sp) {
@@ -9230,7 +9252,7 @@ function calcTEP() {
   // 3. TAPSE
   const tapseEl = document.getElementById('tep-tapse-interp');
   if (tapse !== null) {
-    const patol = tapse < 17;
+    const patol = tapse < UMBRAL_TAPSE_NORMAL;
     if (patol) score++;
     criterios.push('TAPSE');
     if (tapseEl) tapseEl.innerHTML = patol
@@ -10929,7 +10951,7 @@ function generarInforme() {
   // ── 2. FUNCIÓN SISTÓLICA (FEVI) ──
   if (fevi !== null) {
     let feviConcepto, feviSuma, feviNarr, feviTail;
-    if (fevi >= 50) { feviConcepto = 'normal'; feviSuma = `FEVI normal (${fevi}%).`; feviNarr = 'conservada'; feviTail = ', sin evidencia de compromiso de la función sistólica global'; }
+    if (fevi >= UMBRAL_FEVI_NORMAL) { feviConcepto = 'normal'; feviSuma = `FEVI normal (${fevi}%).`; feviNarr = 'conservada'; feviTail = ', sin evidencia de compromiso de la función sistólica global'; }
     else if (fevi >= 40) { feviConcepto = 'levemente reducida'; feviSuma = `FEVI levemente reducida (${fevi}%).`; feviNarr = 'levemente reducida'; feviTail = ', compatible con disfunción sistólica leve'; }
     else if (fevi >= 30) { feviConcepto = 'moderadamente reducida'; feviSuma = `FEVI moderadamente reducida (${fevi}%).`; feviNarr = 'moderadamente reducida'; feviTail = ', compatible con disfunción sistólica moderada'; }
     else { feviConcepto = 'severamente reducida'; feviSuma = `FEVI severamente reducida (${fevi}%).`; feviNarr = 'severamente comprometida'; feviTail = ', compatible con miocardiopatía con disfunción sistólica severa'; }
@@ -11096,7 +11118,7 @@ function generarInforme() {
     const vdDilat = v('vd_bas') ? v('vd_bas') > 41 : false;
     const vdDim = v('vd_bas') ? (v('vd_bas') <= 41 ? 'de dimensiones normales' : 'dilatado') : 'de dimensiones no valoradas';
     let vdFunc, vdDisf = false;
-    const tapseOk = tapse ? tapse >= 17 : null;
+    const tapseOk = tapse ? tapse >= UMBRAL_TAPSE_NORMAL : null;
     const spOk = sp ? sp >= 10 : null;
     if (tapseOk !== false && spOk !== false) {
       vdFunc = 'función sistólica conservada';
@@ -11244,7 +11266,7 @@ function generarInforme() {
 
     let score = 0;
     if (vdvi !== null && vdvi >= 0.9) score++;
-    if (tapse !== null && tapse < 17) score++;
+    if (tapse !== null && tapse < UMBRAL_TAPSE_NORMAL) score++;
     if (psap !== null && psap > 35) score++;
     if (mcconnell) score++;
     if (signo6060) score++;
@@ -11900,7 +11922,7 @@ function generarPDFReal() {
     ]},
     {titulo:'VI - Funcion sistolica', items:[
       // FEVI normal ≥50% — criterio ASE Chamber Quantification 2025
-      {lbl:'FEVI',      ref:'>=50%',           val:feviS},
+      {lbl:'FEVI',      ref:'≥' + UMBRAL_FEVI_NORMAL + '%',           val:feviS},
       {lbl:'FA',        ref:'>=28%',           val:faStr},
       {lbl:'SGL',       ref:'>=-18%',          val:sglS},
       {lbl:'Vol. lat.', ref:'55-100 ml',       val:v('vol_lat')?v('vol_lat')+' ml':null},
@@ -11916,7 +11938,7 @@ function generarPDFReal() {
   drawTablaCompacta([
     {titulo:'Ventrículo Derecho', items:[
       {lbl:'TAP',         ref:'>105 ms',    val:v('tvia')   ?v('tvia')   +' ms'  :null},
-      {lbl:'TAPSE',       ref:'>16 mm',     val:v('tapse')  ?v('tapse')  +' mm'  :null},
+      {lbl:'TAPSE',       ref:'≥' + UMBRAL_TAPSE_NORMAL + ' mm',     val:v('tapse')  ?v('tapse')  +' mm'  :null},
       {lbl:"S'",          ref:'>9.5 cm/s',  val:v('s_prime')?v('s_prime')+' cm/s':null},
       {lbl:'Diám. basal', ref:'<42 mm',     val:v('vd_bas') ?v('vd_bas') +' mm'  :null},
       {lbl:'Diám. medio', ref:'',           val:v('vd_mid') ?v('vd_mid') +' mm'  :null},
@@ -16091,6 +16113,39 @@ async function labGenerarPDF() {
     y += 4;
   }
 
+  // Sección Perfil de la Población
+  if (document.getElementById('lab-pdf-poblacion')?.checked) {
+    addSection('👥 Perfil de la Población');
+    const N = infs.length;
+    const fevis = infs.map(i => numCampo(i,'fevi_simpson')).filter(v => v !== null);
+    if (fevis.length) {
+      addFila('FEVI ≤35% (severa)',      fevis.filter(v=>v<=35).length + '/' + fevis.length);
+      addFila('FEVI 36–49% (reducida)',  fevis.filter(v=>v>35&&v<50).length + '/' + fevis.length);
+      addFila('FEVI ≥50% (conservada)',  fevis.filter(v=>v>=50).length + '/' + fevis.length);
+    }
+    const edades = infs.map(i => numCampo(i,'edad')).filter(v => v !== null && v > 0 && v < 120);
+    if (edades.length) addFila('Edad promedio', (edades.reduce((a,b)=>a+b,0)/edades.length).toFixed(0) + ' años');
+    const sexos = infs.map(i => (i.campos?.sexo||'').toLowerCase()).filter(Boolean);
+    const nF = sexos.filter(s => s.includes('f') || s.includes('mujer')).length;
+    if (sexos.length) addFila('% Femenino', Math.round(nF/sexos.length*100) + '%');
+    addFila('GLS promedio', prom('gls_global') + '%');
+    addFila('PSAP promedio', prom('psap_calc') + ' mmHg');
+    const textos = infs.map(i => (i.campos?.en_suma||'') + ' ' + (i.campos?.informe_texto||''));
+    const hallazgos = [
+      { lbl:'HTP', patron:/hipertensi[oó]n\s+pulmonar|HTP/i },
+      { lbl:'Disfunción diastólica', patron:/disfunci[oó]n\s+diast[oó]lica/i },
+      { lbl:'Disfunción sistólica VI', patron:/disfunci[oó]n\s+sist[oó]lica|FEVI\s+[<>]?\s*[0-4]\d/i },
+      { lbl:'Insuficiencia mitral', patron:/insuficiencia\s+mitral|IM\s+(?:leve|moderada|severa)/i },
+      { lbl:'Estenosis aórtica', patron:/estenosis\s+a[oó]rtica|EAo/i },
+      { lbl:'Dilatación AI', patron:/dilataci[oó]n.{0,10}auricular|AI\s+(?:dilata|agrand)/i },
+      { lbl:'HVI', patron:/hipertrofia\s+ventricular\s+izq|HVI/i },
+      { lbl:'Derrame pericárdico', patron:/derrame\s+peric[aá]rdico/i },
+    ].map(h => ({ lbl:h.lbl, n: textos.filter(t => h.patron.test(t)).length }))
+     .filter(d => d.n > 0).sort((a,b)=>b.n-a.n).slice(0,8);
+    hallazgos.forEach(h => addFila('Hallazgo: ' + h.lbl, h.n + '/' + N));
+    y += 4;
+  }
+
   // Sección Calidad
   if (document.getElementById('lab-pdf-calidad')?.checked) {
     addSection('✅ Calidad del Laboratorio');
@@ -16106,6 +16161,39 @@ async function labGenerarPDF() {
       const con = infs.filter(i => numCampo(i,campo) !== null).length;
       addFila(lbl, Math.round(con/n*100) + '% (' + con + '/' + n + ')');
     });
+    y += 4;
+  }
+
+  // Sección Indicadores Automáticos
+  if (document.getElementById('lab-pdf-indicadores')?.checked) {
+    addSection('⚠️ Indicadores Automáticos — Oportunidades clínicas');
+    const N = infs.length;
+    const indicadores = [
+      { lbl:'FEVI ≤35% sin GLS documentado', casos: infs.filter(i => { const f=numCampo(i,'fevi_simpson'), g=numCampo(i,'gls_global'); return f!==null&&f<=35&&g===null; }) },
+      { lbl:'PSAP >40 mmHg sin TR medida', casos: infs.filter(i => { const p=numCampo(i,'psap_calc'), t=numCampo(i,'vrt'); return p!==null&&p>40&&t===null; }) },
+      { lbl:"Disfunción sistólica sin E/e'", casos: infs.filter(i => { const f=numCampo(i,'fevi_simpson'), e=numCampo(i,'ee_prom')||numCampo(i,'e_prima_sept'); return f!==null&&f<50&&e===null; }) },
+      { lbl:'Sin TAPSE en informe', casos: infs.filter(i => numCampo(i,'tapse')===null) },
+      { lbl:'Sin dimensiones VI', casos: infs.filter(i => numCampo(i,'ddvi')===null) },
+    ];
+    indicadores.forEach(ind => {
+      const pct = N > 0 ? Math.round(ind.casos.length/N*100) : 0;
+      addFila(ind.lbl, ind.casos.length + ' (' + pct + '%)');
+    });
+    y += 4;
+  }
+
+  // Sección Docencia — Casos de interés
+  if (document.getElementById('lab-pdf-medicos')?.checked) {
+    addSection('🎓 Docencia — Casos de interés');
+    const docentes = infs.filter(i =>
+      i.campos?.caso_interes === '1' || i.campos?.caso_interes === 'true' ||
+      /caso\s+de\s+inter[eé]s|ateneo|residente/i.test((i.campos?.en_suma||'') + ' ' + (i.campos?.informe_texto||''))
+    );
+    if (!docentes.length) {
+      addFila('Casos marcados en el período', '0');
+    } else {
+      docentes.forEach(i => addFila(String(i.nombre||'—').substring(0,42), i.fecha_estudio||'—'));
+    }
     y += 4;
   }
 
@@ -16171,7 +16259,7 @@ function aplicarFiltros() {
       if (isNaN(fevi)) return false;
       if (filtroFevi === 'lt30'  && fevi > 30)  return false;
       if (filtroFevi === 'lt40'  && fevi > 40)  return false;
-      if (filtroFevi === 'lt50'  && fevi >= 50) return false;
+      if (filtroFevi === 'lt50'  && fevi >= UMBRAL_FEVI_NORMAL) return false;
       if (filtroFevi === 'gte50' && fevi < 50)  return false;
     }
 
