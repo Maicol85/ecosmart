@@ -88,7 +88,7 @@
   .btn-danger { background: var(--red); color: #fff; }
   .btn-green { background: var(--green); color: #0f1117; }
   /* ══ LAYOUT ══ */
-  .container { max-width: 1200px; margin: 0 auto; padding: 16px; }
+  .container { max-width: none; margin: 0; padding: 0; }
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
   .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
@@ -228,6 +228,44 @@
   .tab-lab.active { background: var(--accent); color: #fff; border: none; }
   .tab-section { display: none; }
   .tab-section.active { display: block; }
+  /* ═══ REDISEÑO LAYOUT: header compacto + rail lateral + subtabs (estilo EcoEstrés) ═══ */
+  :root { --rail:160px; --topbar-h:56px; --teal:#0D9488; }
+  header { min-height: var(--topbar-h); flex-wrap: nowrap; }
+  .hdr-med-wrap { position:relative; display:inline-flex; flex-shrink:0; }
+  .hdr-med-panel { position:absolute; top:calc(100% + 8px); left:0; z-index:250;
+    background:var(--bg2); border:1px solid var(--border); border-radius:10px;
+    box-shadow:0 16px 44px rgba(0,0,0,.55); padding:12px 14px; min-width:340px; max-width:560px; }
+  .hdr-med-panel .hdr-sub { margin:0; }
+  .hdr-med-panel .hdr-extra { margin-top:8px; }
+  .app-shell { display:flex; align-items:flex-start; }
+  .rail { position:sticky; top:var(--topbar-h); align-self:flex-start; flex:0 0 var(--rail); width:var(--rail);
+    height:calc(100vh - var(--topbar-h)); overflow-y:auto; background:var(--bg2);
+    border-right:1px solid var(--border); display:flex; flex-direction:column; padding:10px 0; gap:2px; z-index:60; }
+  .rail .tab-btn { display:flex; align-items:center; gap:9px; width:100%; text-align:left;
+    padding:10px 14px; border:none; border-left:3px solid transparent; border-radius:0;
+    background:transparent; color:var(--text2); font-size:12.5px; font-weight:600; white-space:nowrap; }
+  .rail .tab-btn:hover { background:rgba(255,255,255,.04); color:var(--text); }
+  .rail .tab-btn.active { color:var(--teal); border-left-color:var(--teal); background:rgba(13,148,136,.12); }
+  .rail-sep { height:1px; background:var(--border); margin:8px 12px; }
+  .app-content { flex:1 1 auto; min-width:0; padding:16px; }
+  .subtabs-wrap { display:flex; flex-direction:row; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:6px; margin-bottom:12px; }
+  .subtabs-wrap .tabs-row { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; border:none; padding:0; margin:0; }
+  .subtabs-wrap .tab-btn { padding:5px 12px; font-size:11px; border:1px solid var(--border); border-radius:6px; background:transparent; color:var(--text2); }
+  .subtabs-wrap .tab-btn:hover { color:var(--text); border-color:var(--text2); }
+  .subtabs-wrap .tab-btn.active { color:var(--teal); border-color:var(--teal); background:transparent; }
+  /* Fila inferior de herramientas SIEMPRE visible (CAMBIO 3) */
+  .subtabs-wrap .tabs-tools { display:flex !important; }
+  @media(max-width:768px){
+    :root{ --rail:0px; }
+    .app-shell{ flex-direction:column; }
+    .rail{ position:static; flex-basis:auto; width:100%; height:auto; flex-direction:row; overflow-x:auto;
+      border-right:none; border-bottom:1px solid var(--border); }
+    .rail .tab-btn{ width:auto; border-left:none; border-bottom:3px solid transparent; }
+    .rail .tab-btn.active{ border-left-color:transparent; border-bottom-color:var(--teal); }
+    .rail-sep{ display:none; }
+    .subtabs-wrap{ align-items:stretch; }
+    .subtabs-wrap .tabs-row{ justify-content:flex-start; }
+  }
   /* ══ IM PISA ══ */
   .pisa-grid {
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
@@ -550,6 +588,10 @@ window.cerrarSesion = cerrarSesion;
   <div class="hdr-icon">🫀</div>
   <div>
     <h1 class="hdr-title">Ecocardiograma Doppler Color <span id="autosave-indicator" style="color:var(--text2);font-size:11px;font-weight:400;opacity:0;transition:opacity .4s">● Guardado</span></h1>
+  </div>
+  <div class="hdr-med-wrap">
+    <button type="button" class="btn btn-ghost" id="hdr-med-btn" onclick="ecoMedToggle()" aria-expanded="false" title="Datos del médico (desplegar / ocultar)">✏️ Médico</button>
+    <div id="hdr-med-panel" class="hdr-med-panel" style="display:none">
     <div class="hdr-sub">
       <!-- hidden contenteditable spans keep sv() and saveMedico() working -->
       <span id="med-nombre" contenteditable="true" onblur="saveMedico()" style="display:none;">Dr. Maicol Dos Santos</span>
@@ -584,6 +626,7 @@ window.cerrarSesion = cerrarSesion;
     </div>
     <div class="hdr-sub hdr-extra" id="hdr-extra">
       <span id="hdr-esp-item"><span id="med-especialidad" class="hdr-extra-field" contenteditable="true" data-placeholder="Especialidad" title="Click para editar especialidad" onclick="this.focus()" onblur="saveMedico()" style="cursor:pointer;border-bottom:1px dashed var(--accent2);outline:none;"></span></span><span id="hdr-sep-1" class="hdr-sep">&nbsp;·&nbsp;</span><span id="hdr-dir-item"><span id="med-direccion" class="hdr-extra-field" contenteditable="true" data-placeholder="Dirección del consultorio" title="Click para editar dirección" onclick="this.focus()" onblur="saveMedico()" style="cursor:pointer;border-bottom:1px dashed var(--accent2);outline:none;"></span></span><span id="hdr-sep-2" class="hdr-sep">&nbsp;·&nbsp;</span><span id="hdr-tel-item"><span id="med-telefono" class="hdr-extra-field" contenteditable="true" data-placeholder="Teléfono" title="Click para editar teléfono" onclick="this.focus()" onblur="saveMedico()" style="cursor:pointer;border-bottom:1px dashed var(--accent2);outline:none;"></span></span>
+    </div>
     </div>
   </div>
   <div id="logo-centro-wrap" onclick="logoClick(event)" title="Logo del centro (click para cargar)" style="position:relative;min-width:46px;height:40px;padding:0 6px;border:1px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;flex-shrink:0;background:var(--bg2);margin-left:12px;">
@@ -632,6 +675,10 @@ window.cerrarSesion = cerrarSesion;
         <option value="4">Matr + Fecha</option>
       </select>
     </span>
+    <button onclick="abrirAyudaEco()" title="Ayuda"
+      style="background:none;border:1px solid rgba(255,255,255,0.2);border-radius:50%;width:32px;height:32px;color:var(--text,#CBD5E1);cursor:pointer;font-size:14px;font-weight:700;flex-shrink:0;">
+      ?
+    </button>
     <button class="btn btn-ghost" onclick="cerrarSesion()" title="Cerrar sesión">🔒 Cerrar</button>
   </div>
 </header>
@@ -654,44 +701,37 @@ window.cerrarSesion = cerrarSesion;
 
 <div class="container">
 
-<!-- TABS -->
-<div class="tabs-outer">
-<div class="tabs-wrap">
-  <!-- FILA 1 — Estudio principal -->
-  <div class="tabs-row tabs-main">
+<!-- ═══ APP SHELL: rail lateral izquierdo + contenido ═══ -->
+<div class="app-shell">
+  <nav class="rail no-print" aria-label="Secciones del estudio">
     <button class="tab-btn active" onclick="showTab('datos')">👤 Paciente</button>
-    <button class="tab-btn" onclick="showTab('ai-vi')">🫀 AI / VI</button>
-    <button class="tab-btn" onclick="showTab('vd')">➡️ VD / AD</button>
+    <button class="tab-btn" onclick="showTab('ai-vi')">❤️ AI / VI</button>
+    <button class="tab-btn" onclick="showTab('vd')">▶️ VD / AD</button>
     <button class="tab-btn" onclick="showTab('doppler')">〰️ Doppler</button>
-    <button class="tab-btn" onclick="showTab('valvulas')">🔁 Válvulas</button>
-    <button class="tab-btn" onclick="showTab('contractilidad')">🫀 Contractilidad</button>
-    <button class="tab-btn" onclick="showTab('sgl');if(window.sglOnShow)sglOnShow();">📊 SGL</button>
+    <button class="tab-btn" onclick="showTab('valvulas')">🔲 Válvulas</button>
+    <button class="tab-btn" onclick="showTab('contractilidad')">🎯 Contractilidad</button>
+    <button class="tab-btn" onclick="showTab('sgl');if(window.sglOnShow)sglOnShow();">📐 SGL</button>
     <button class="tab-btn" onclick="showTab('imagenes');if(window.imgRender)imgRender();">🖼️ Imágenes</button>
+    <div class="rail-sep"></div>
     <button class="tab-btn" onclick="showTab('config');if(window.cfgOnShow)cfgOnShow();">⚙️ Config</button>
-    <button onclick="abrirAyudaEco()" title="Ayuda"
-      style="background:none;
-      border:1px solid rgba(255,255,255,0.2);
-      border-radius:50%;width:32px;height:32px;
-      color:var(--text,#CBD5E1);cursor:pointer;
-      font-size:14px;font-weight:700;flex-shrink:0;">
-      ?
-    </button>
-  </div>
-  <!-- FILA 2 — Patologías especiales -->
-  <div class="tabs-row tabs-special">
-    <button class="tab-btn tab-special" data-mod="hemodinamica" onclick="showTab('hemodinamica')">🩸 Hemodinámica</button>
-    <button class="tab-btn tab-special" data-mod="ete" onclick="showTab('ete')">🔬 ETE</button>
-    <button class="tab-btn tab-special" data-mod="amiloidosis" onclick="showTab('amiloidosis')">🫀 Amiloidosis</button>
-    <button class="tab-btn tab-special" data-mod="cardioOnco" onclick="showTab('cardioOnco')">🎗️ Cardio-Oncología</button>
-  </div>
-  <!-- FILA 3 — Herramientas de apoyo -->
-  <div class="tabs-row tabs-tools">
-    <button class="tab-btn tab-tool" data-mod="calculadoras" onclick="showTab('calculadoras')">🧮 Calculadoras</button>
-    <button class="tab-btn tab-tool" data-mod="fono" onclick="showTab('fono');if(window.fcgOnShow)fcgOnShow();">🔊 Fonocardiograma</button>
-    <button class="tab-btn tab-tool" data-mod="refs" onclick="showTab('refs')">📚 Referencias</button>
-  </div>
-</div>
-</div>
+  </nav>
+  <div class="app-content">
+    <!-- Subtabs arriba a la derecha: fila superior (solo Avanzado) + fila inferior (siempre) -->
+    <div class="subtabs-wrap no-print">
+      <!-- FILA SUPERIOR — Patologías especiales (visible solo en Modo Avanzado) -->
+      <div class="tabs-row tabs-special">
+        <button class="tab-btn tab-special" data-mod="hemodinamica" onclick="showTab('hemodinamica')">🫀 Hemodinámica</button>
+        <button class="tab-btn tab-special" data-mod="ete" onclick="showTab('ete')">🔬 ETE</button>
+        <button class="tab-btn tab-special" data-mod="amiloidosis" onclick="showTab('amiloidosis')">🧬 Amiloidosis</button>
+        <button class="tab-btn tab-special" data-mod="cardioOnco" onclick="showTab('cardioOnco')">❤️ Cardio-Oncología</button>
+      </div>
+      <!-- FILA INFERIOR — Herramientas de apoyo (siempre visible) -->
+      <div class="tabs-row tabs-tools">
+        <button class="tab-btn tab-tool" data-mod="calculadoras" onclick="showTab('calculadoras')">🧮 Calculadoras</button>
+        <button class="tab-btn tab-tool" data-mod="fono" onclick="showTab('fono');if(window.fcgOnShow)fcgOnShow();">🎵 Fonocardiograma</button>
+        <button class="tab-btn tab-tool" data-mod="refs" onclick="showTab('refs')">📚 Referencias</button>
+      </div>
+    </div>
 
 <!-- ═══════════════════════ TAB: CONFIGURACIÓN ═══════════════════════ -->
 <div id="tab-config" class="tab-section">
@@ -8632,6 +8672,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 </div>
 
+  </div><!-- /app-content -->
+</div><!-- /app-shell -->
 </div><!-- /container -->
 <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
@@ -16618,6 +16660,33 @@ window.aceptarAvisoDatos = aceptarAvisoDatos;
 <script>
 function actualizarFloatBtns(){const id=(document.querySelector('.tab-section.active')||{}).id||'';document.getElementById('floatBtnInforme').classList.toggle('active',id==='tab-informe');document.getElementById('floatBtnGuardados').classList.toggle('active',id==='tab-guardados');}
 const _orig=showTab;window.showTab=function(id){_orig(id);setTimeout(actualizarFloatBtns,50);};
+</script>
+<script>
+/* Header compacto: botón "✏️ Médico" despliega/oculta los datos del profesional. */
+function ecoMedToggle(){
+  var p=document.getElementById('hdr-med-panel'), b=document.getElementById('hdr-med-btn');
+  if(!p) return;
+  var show=(p.style.display==='none'||!p.style.display);
+  p.style.display=show?'block':'none';
+  if(b) b.setAttribute('aria-expanded', show?'true':'false');
+}
+window.ecoMedToggle=ecoMedToggle;
+document.addEventListener('click',function(e){
+  var w=document.querySelector('.hdr-med-wrap'), p=document.getElementById('hdr-med-panel');
+  if(!w||!p||p.style.display!=='block') return;
+  if(!w.contains(e.target)){ p.style.display='none'; var b=document.getElementById('hdr-med-btn'); if(b)b.setAttribute('aria-expanded','false'); }
+});
+/* Layout: sincroniza el alto real del header con --topbar-h para que el rail
+   lateral quede fijo justo debajo sin solaparse (solo presentación). */
+(function(){
+  var hdr=document.querySelector('header');
+  if(!hdr) return;
+  function sync(){ document.documentElement.style.setProperty('--topbar-h', hdr.offsetHeight+'px'); }
+  sync();
+  if(window.ResizeObserver){ try{ new ResizeObserver(sync).observe(hdr); }catch(e){} }
+  window.addEventListener('resize', sync);
+  window.addEventListener('load', sync);
+})();
 </script>
 <script>
 /* ══ Capa de accesibilidad — FIX 2 (modales ARIA + foco) y FIX 4 (clickables por teclado) ══ */
