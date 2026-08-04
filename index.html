@@ -83,6 +83,13 @@
   .foot-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;max-width:560px;margin:34px auto 12px;padding-top:20px;border-top:1px solid var(--border)}
   .foot-actions button{background:#0369A1;color:#fff;border:none;border-radius:8px;padding:11px 18px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.3)}
   .foot-actions button.active{background:#16a34a}
+  /* Tabs principales como dropdown en móvil (patrón responsive) */
+  .tab-select{display:none}
+  @media(max-width:768px){
+    .rail{display:none!important}
+    .tab-select{display:block;width:100%;box-sizing:border-box;margin:0 0 14px;padding:11px 40px 11px 14px;font-size:14px;font-weight:600;color:var(--text);background-color:var(--bg2);background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8"><path d="M1 1l5 5 5-5" stroke="%2394A3B8" stroke-width="2" fill="none" stroke-linecap="round"/></svg>');background-repeat:no-repeat;background-position:right 14px center;border:1px solid var(--border);border-radius:9px;-webkit-appearance:none;appearance:none;cursor:pointer;outline:none}
+    .tab-select:focus{border-color:var(--accent2,#4f8ef7)}
+  }
   @media(max-width:600px){
     header{flex-wrap:wrap;gap:8px;row-gap:6px;position:relative}
     .hdr-title{font-size:14px}
@@ -730,6 +737,8 @@ window.cerrarSesion = cerrarSesion;
     <button class="tab-btn" onclick="showTab('config');if(window.cfgOnShow)cfgOnShow();">⚙️ Config</button>
   </nav>
   <div class="app-content">
+    <!-- Dropdown de tabs principales (solo visible en móvil ≤768px; refleja el tab activo) -->
+    <select id="ecoTabSelect" class="tab-select no-print" aria-label="Sección del estudio" onchange="ecoTabPick(this.value)"></select>
     <!-- Subtabs arriba a la derecha: fila superior (solo Avanzado) + fila inferior (siempre) -->
     <div class="subtabs-wrap no-print">
       <!-- FILA SUPERIOR — Patologías especiales (visible solo en Modo Avanzado) -->
@@ -16665,6 +16674,46 @@ window.aceptarAvisoDatos = aceptarAvisoDatos;
 <script>
 function actualizarFloatBtns(){const id=(document.querySelector('.tab-section.active')||{}).id||'';document.getElementById('floatBtnInforme').classList.toggle('active',id==='tab-informe');document.getElementById('floatBtnGuardados').classList.toggle('active',id==='tab-guardados');}
 const _orig=showTab;window.showTab=function(id){_orig(id);setTimeout(actualizarFloatBtns,50);};
+</script>
+<script>
+/* Tabs principales como dropdown selector en móvil.
+   Capa de presentación: las opciones se construyen desde los .tab-btn reales y
+   al elegir una se hace .click() sobre el botón original → comportamiento idéntico
+   (incluye init especiales como sglOnShow/imgRender/cfgOnShow). El <select> refleja
+   siempre el tab activo, aunque se navegue por otro medio. No altera la lógica de tabs. */
+(function(){
+  function railBtns(){return document.querySelectorAll('.rail .tab-btn');}
+  function idOf(b){var m=(b.getAttribute('onclick')||'').match(/showTab\('([^']+)'\)/);return m?m[1]:null;}
+  function buildTabSelect(){
+    var sel=document.getElementById('ecoTabSelect');if(!sel)return;
+    sel.innerHTML='';
+    railBtns().forEach(function(b){
+      var id=idOf(b);if(!id)return;
+      var opt=document.createElement('option');
+      opt.value=id;opt.textContent=b.textContent.trim();
+      if(b.classList.contains('active'))opt.selected=true;
+      sel.appendChild(opt);
+    });
+  }
+  window.ecoTabPick=function(id){
+    var btns=railBtns();
+    for(var i=0;i<btns.length;i++){if(idOf(btns[i])===id){btns[i].click();return;}}
+  };
+  function syncTabSelect(){
+    var sel=document.getElementById('ecoTabSelect');if(!sel)return;
+    var active=document.querySelector('.rail .tab-btn.active');
+    var id=active?idOf(active):null;
+    if(id&&sel.value!==id)sel.value=id;
+  }
+  /* Wrap externo: tras cualquier showTab, reflejar el tab activo en el dropdown. */
+  if(window.showTab&&!window.showTab.__ecoSel){
+    var _prev=window.showTab;
+    var wrapped=function(id){var r=_prev.apply(this,arguments);try{var sel=document.getElementById('ecoTabSelect');if(sel&&id&&sel.value!==id)sel.value=id;}catch(e){}return r;};
+    wrapped.__ecoSel=true;window.showTab=wrapped;
+  }
+  function init(){buildTabSelect();syncTabSelect();}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
 </script>
 <script>
 /* Header compacto: botón "✏️ Médico" despliega/oculta los datos del profesional. */
