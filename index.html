@@ -634,6 +634,7 @@ window.cerrarSesion = cerrarSesion;
   </div>
   <div class="hdr-med-wrap">
     <button type="button" class="btn btn-ghost" id="hdr-med-btn" onclick="ecoMedToggle()" aria-expanded="false" title="Datos del médico (desplegar / ocultar)">✏️ Médico</button>
+    <button type="button" class="btn btn-ghost" id="hdr-centro-btn" onclick="ecoCentroBtn()" title="Centro / Institución (encabezado del informe)">🏥 Centro</button>
     <div id="hdr-med-panel" class="hdr-med-panel" style="display:none">
     <div class="hdr-sub">
       <!-- hidden contenteditable spans keep sv() and saveMedico() working -->
@@ -800,6 +801,10 @@ window.cerrarSesion = cerrarSesion;
           <div class="fg"><label>Teléfono</label><input type="text" id="cfg-med-telefono" oninput="cfgSaveMed('med-telefono',this.value)"></div>
         </div>
         <div style="margin-top:10px;"><button class="btn btn-ghost" onclick="firmaOpen()">✏️ Editar firma del centro</button></div>
+        <label style="display:flex;align-items:center;gap:9px;cursor:pointer;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+          <input type="checkbox" id="cfg-modo-inst" onchange="cfgToggleModoInstitucional(this.checked)" style="width:16px;height:16px;cursor:pointer">
+          <span style="font-size:12.5px;color:var(--text)"><b>🏛️ Modo institucional</b> — el PDF muestra sólo la institución en el encabezado (sin CeiboMed)</span>
+        </label>
       </div>
 
       <!-- Modo de visualización -->
@@ -11934,7 +11939,12 @@ function generarPDFReal() {
   fb(13); tc(255,255,255);
   doc.text('Informe Ecocardiograma Doppler Color',105,9.5,{align:'center'});
   fn(8.5); tc(200,221,245);
-  doc.text([medNombre,medMatricula,medEsp].filter(Boolean).join('  .  '),105,16.5,{align:'center'});
+  const _modoInst = localStorage.getItem('ett_modo_institucional')==='1';
+  const _medCentro = sv('med-centro') || '';
+  const _hdrLine = _modoInst
+    ? _medCentro
+    : ('CeiboMed' + (function(){ var m=[medNombre,medMatricula,medEsp].filter(Boolean).join('  ·  '); return m?('  ·  '+m):''; })());
+  doc.text(_hdrLine,105,16.5,{align:'center'});
   // Logo del centro en el vértice superior derecho (alt. máx 18mm, proporción conservada)
   try {
     const _logoData = localStorage.getItem('logo_centro_' + (localStorage.getItem('centro_tipo_activo') || 'default'));
@@ -17001,7 +17011,19 @@ function cfgLoadMed(){
 }
 function eeQrEnabled(){ return localStorage.getItem('ett_qr_enabled') !== '0'; } // por defecto activado
 function cfgToggleQr(on){ try { localStorage.setItem('ett_qr_enabled', on ? '1' : '0'); } catch(e){} }
-function cfgOnShow(){ cfgRenderModulos(); cfgLoadMed(); var q=document.getElementById('cfg-qr'); if(q) q.checked = eeQrEnabled(); }
+function cfgOnShow(){ cfgRenderModulos(); cfgLoadMed(); var q=document.getElementById('cfg-qr'); if(q) q.checked = eeQrEnabled(); var mi=document.getElementById('cfg-modo-inst'); if(mi) mi.checked=(localStorage.getItem('ett_modo_institucional')==='1'); }
+/* Botón "🏥 Centro": abre el panel del médico y edita el centro/institución (med-centro) */
+function ecoCentroBtn(){
+  var p=document.getElementById('hdr-med-panel'); if(p){ p.style.display='block'; var b=document.getElementById('hdr-med-btn'); if(b)b.setAttribute('aria-expanded','true'); }
+  if(typeof hdrEdit==='function') hdrEdit('med-centro');
+}
+window.ecoCentroBtn=ecoCentroBtn;
+/* Toggle "Modo institucional": ON → PDF con la institución; OFF → CeiboMed + médico */
+function cfgToggleModoInstitucional(on){
+  localStorage.setItem('ett_modo_institucional', on ? '1' : '0');
+  if(typeof toast==='function') toast(on ? '🏛️ Modo institucional activado' : 'Modo estándar (CeiboMed)');
+}
+window.cfgToggleModoInstitucional=cfgToggleModoInstitucional;
 // Aplicar modo guardado al cargar
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', applyViewMode); else applyViewMode();
 </script>
