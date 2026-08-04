@@ -280,6 +280,8 @@
   .subtabs-wrap .tab-btn.active { color:var(--teal); border-color:var(--teal); background:transparent; }
   /* Fila inferior de herramientas SIEMPRE visible (CAMBIO 3) */
   .subtabs-wrap .tabs-tools { display:flex !important; }
+  /* Tabs avanzadas como dropdown en móvil */
+  .eco-adv-select{display:none}
   @media(max-width:768px){
     :root{ --rail:0px; }
     .app-shell{ flex-direction:column; }
@@ -289,7 +291,9 @@
     .rail .tab-btn.active{ border-left-color:transparent; border-bottom-color:var(--teal); }
     .rail-sep{ display:none; }
     .subtabs-wrap{ align-items:stretch; }
-    .subtabs-wrap .tabs-row{ justify-content:flex-start; }
+    .subtabs-wrap .tabs-row{ display:none !important; }
+    .eco-adv-select{display:block;width:100%;box-sizing:border-box;margin:0;padding:9px 38px 9px 12px;font-size:13px;font-weight:600;color:var(--text);background-color:var(--bg2);background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8"><path d="M1 1l5 5 5-5" stroke="%2394A3B8" stroke-width="2" fill="none" stroke-linecap="round"/></svg>');background-repeat:no-repeat;background-position:right 13px center;border:1px solid var(--border);border-radius:8px;-webkit-appearance:none;appearance:none;cursor:pointer;outline:none}
+    .eco-adv-select:focus{border-color:var(--accent2,#4f8ef7)}
   }
   /* ══ IM PISA ══ */
   .pisa-grid {
@@ -475,19 +479,32 @@ html.light-mode #amilo-root{
 </style>
 <style>
 /* ── Strain Patrones ── */
-#sp-root{--navy:#0B1F3A;--navy2:#162B4D;--teal:#0D7377;--teal2:#14AEAD;--teal-pale:#E8F7F7;--red:#C0392B;--red-pale:#FDEDEC;--amber:#D4860A;--amber-pale:#FEF3DC;--green:#1A6B4A;--green-pale:#E8F5EE;--blue:#1A4A8A;--blue-pale:#EBF2FB;--bg:#F2F4F8;--surface:#FFFFFF;--border:#D0D8E8;--text:#0B1F3A;--muted:#5A6878;font-family:system-ui,-apple-system,sans-serif;color:var(--text)}
+#sp-root{--navy:#0f2942;--navy2:#162B4D;--teal:#0D9488;--teal2:#2dd4bf;--teal-pale:#0e2b2a;--red:#f87171;--red-pale:#3a1f1f;--amber:#fbbf24;--amber-pale:#3a2f16;--green:#34d399;--green-pale:#16302a;--blue:#93c5fd;--blue-pale:#16233a;--bg:#0f172a;--surface:#1e293b;--border:#334155;--text:#e2e8f0;--muted:#94a3b8;font-family:system-ui,-apple-system,sans-serif;color:var(--text)}
 #sp-root *{box-sizing:border-box;margin:0;padding:0}
 #sp-root .sp-main{max-width:960px;margin:0 auto;padding:14px 2px}
 #sp-root .cat-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
-#sp-root .cat-btn{padding:8px 16px;border-radius:20px;font-size:12px;font-weight:700;border:2px solid var(--border);background:var(--surface);cursor:pointer;transition:all .15s;font-family:inherit;color:var(--muted)}
-#sp-root .cat-btn:hover{border-color:var(--teal);color:var(--teal)}
-#sp-root .cat-btn.active{background:var(--navy);color:#fff;border-color:var(--navy)}
-#sp-root .patron-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+#sp-root .cat-btn{padding:8px 15px;border-radius:7px;font-size:12px;font-weight:700;border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:all .15s;font-family:inherit;color:var(--muted)}
+#sp-root .cat-btn:hover{border-color:var(--teal2);color:var(--teal2)}
+#sp-root .cat-btn.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+#sp-root .patron-grid{display:flex;flex-direction:column;gap:10px}
 #sp-root .patron-card{background:var(--surface);border-radius:14px;padding:14px;border:2px solid var(--border);cursor:pointer;transition:all .2s}
 #sp-root .patron-card:hover{border-color:var(--teal);box-shadow:0 4px 16px rgba(13,115,119,.15);transform:translateY(-2px)}
 #sp-root .patron-card.selected{border-color:var(--teal);background:var(--teal-pale)}
-#sp-root .patron-name{font-size:13px;font-weight:700;margin-bottom:2px}
-#sp-root .patron-sub{font-size:11px;color:var(--muted);margin-bottom:10px}
+#sp-root .patron-name{font-size:14px;font-weight:700;color:var(--text)}
+#sp-root .patron-sub{font-size:11.5px;color:var(--muted)}
+/* Acordeón de patrones (dark, coherente con la app) */
+#sp-root .patron-acc{background:var(--surface);border:1px solid var(--border);border-radius:11px;overflow:hidden;transition:border-color .15s}
+#sp-root .patron-acc.open{border-color:var(--teal)}
+#sp-root .patron-acc-head{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 16px;background:transparent;border:none;cursor:pointer;text-align:left;font-family:inherit}
+#sp-root .patron-acc-head:hover{background:rgba(45,212,191,.06)}
+#sp-root .patron-acc-tt{display:flex;flex-direction:column;gap:2px;min-width:0}
+#sp-root .patron-acc-chev{color:var(--teal2);font-size:15px;transition:transform .2s;flex-shrink:0}
+#sp-root .patron-acc.open .patron-acc-chev{transform:rotate(90deg)}
+#sp-root .patron-acc-body{display:none;padding:2px 16px 16px;gap:18px;align-items:flex-start;border-top:1px solid var(--border);margin-top:2px;padding-top:14px}
+#sp-root .patron-acc.open .patron-acc-body{display:flex}
+#sp-root .patron-acc-be{flex-shrink:0}
+#sp-root .patron-acc-info{flex:1;min-width:0}
+@media(max-width:600px){#sp-root .patron-acc-body{flex-direction:column;align-items:center}#sp-root .patron-acc-info{width:100%}}
 #sp-root .patron-svg{display:block;margin:0 auto}
 #sp-root .detalle-panel{background:var(--navy);border-radius:14px;padding:20px;margin-bottom:18px;display:none}
 #sp-root .detalle-panel.show{display:flex;gap:20px;align-items:flex-start}
@@ -495,8 +512,8 @@ html.light-mode #amilo-root{
 #sp-root .detalle-sgl{font-size:13px;color:rgba(255,255,255,.7);margin-bottom:8px}
 #sp-root .detalle-patron{font-size:13px;color:rgba(255,255,255,.85);line-height:1.7}
 #sp-root .detalle-hallazgos{margin-top:10px;padding:10px 14px;background:rgba(255,255,255,.08);border-radius:8px;font-size:12px;color:rgba(255,255,255,.75);line-height:1.7}
-#sp-root .legend{display:flex;align-items:center;gap:6px;margin:10px 0 4px;flex-wrap:wrap}
-#sp-root .legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--muted)}
+#sp-root .legend{display:flex;flex-direction:column;align-items:flex-start;gap:7px;margin:10px 0 4px}
+#sp-root .legend-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text)}
 #sp-root .legend-swatch{width:14px;height:14px;border-radius:3px;flex-shrink:0}
 #sp-root .card{background:var(--surface);border-radius:12px;padding:16px;border:1px solid var(--border);margin-bottom:14px}
 #sp-root .card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:8px}
@@ -510,7 +527,7 @@ html.light-mode #amilo-root{
 #sp-root .btn-teal:hover{background:var(--teal2)}
 #sp-root .btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}
 #sp-root .btn-sm{padding:5px 12px;font-size:12px}
-#sp-root .info-box{background:var(--blue-pale);border:1px solid #B0C8E8;border-radius:8px;padding:12px 14px;font-size:12px;color:var(--blue);line-height:1.6;margin-bottom:12px}
+#sp-root .info-box{background:#16233a;border:1px solid rgba(13,148,136,.4);border-radius:8px;padding:12px 14px;font-size:12px;color:#cbd5e1;line-height:1.6;margin-bottom:12px}
 #sp-root .badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700}
 #sp-root .badge-teal{background:var(--teal-pale);color:var(--teal)}
 #sp-root .badge-red{background:var(--red-pale);color:var(--red)}
@@ -748,6 +765,8 @@ window.cerrarSesion = cerrarSesion;
   <div class="app-content">
     <!-- Subtabs arriba a la derecha: fila superior (solo Avanzado) + fila inferior (siempre) -->
     <div class="subtabs-wrap no-print">
+      <!-- Dropdown de tabs avanzadas (solo móvil ≤768px; refleja la tab activa) -->
+      <select id="ecoAdvSelect" class="eco-adv-select no-print" aria-label="Sección avanzada" onfocus="ecoAdvBuild()" onchange="ecoAdvPick(this.value)"></select>
       <!-- FILA SUPERIOR — Patologías especiales (visible solo en Modo Avanzado) -->
       <div class="tabs-row tabs-special">
         <button class="tab-btn tab-special" data-mod="hemodinamica" onclick="showTab('hemodinamica')">🫀 Hemodinámica</button>
@@ -2331,13 +2350,13 @@ window.cerrarSesion = cerrarSesion;
   <div class="card">
     <div class="card-title"><span>🎨</span> Escala de colores — Strain longitudinal</div>
     <div class="legend">
-      <div class="legend-item"><div class="legend-swatch" style="background:#C62828"></div>Normal</div>
-      <div class="legend-item"><div class="legend-swatch" style="background:#EF9A9A"></div>Hipocinético leve</div>
-      <div class="legend-item"><div class="legend-swatch" style="background:#E57373"></div>Hipocinético moderado</div>
-      <div class="legend-item"><div class="legend-swatch" style="background:#EF5350"></div>Hipocinético severo</div>
-      <div class="legend-item"><div class="legend-swatch" style="background:#B71C1C"></div>Acinesia/Disq (&gt;-4%)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#DC2626"></div>Normal</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#F87171"></div>Hipoquinesia leve</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#FECACA;border:1px solid #64748b"></div>Hipoquinesia</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#93C5FD"></div>Acinesia</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#1D4ED8"></div>Discinesia / aneurisma</div>
     </div>
-    <div style="font-size:11px;color:var(--muted);margin-top:6px">Anterior ↑ · Septum ← · Lateral → · Inferior ↓ · Misma escala que EcoSmart</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px">Anterior ↑ · Septum ← · Lateral → · Inferior ↓ · Misma escala GE que el bull's eye principal</div>
   </div>
 
   <div class="cat-tabs" id="cat-tabs">
@@ -14237,9 +14256,12 @@ function resetETT() {
 })();
 
 // ── Strain Patrones ──
+/* Paleta GE unificada (idéntica al bull's eye principal, GE_STRAIN):
+   Normal=#DC2626 · Hipoq. leve=#F87171 · Hipoquinesia=#FECACA · Acinesia=#93C5FD · Discinesia/aneurisma=#1D4ED8.
+   Los 8 niveles previos se colapsan a los 5 estados GE conservando las zonas de cada patrón. */
 const C = {
-  N:  '#C62828', H1: '#EF9A9A', H2: '#E57373', H3: '#EF5350',
-  AC: '#CE93D8', D1: '#90CAF9', D2: '#1565C0', GR: '#9E9E9E'
+  N:  '#DC2626', H1: '#F87171', H2: '#FECACA', H3: '#FECACA',
+  AC: '#93C5FD', D1: '#1D4ED8', D2: '#1D4ED8', GR: '#9E9E9E'
 };
 
 function buildBullsEyeSVG(colors, size, interactive) {
@@ -14420,15 +14442,26 @@ function renderGrid() {
     ? PATRONES
     : PATRONES.filter(p => p.categoria === catActual);
   grid.innerHTML = lista.map(p => {
-    var svgStr = buildBullsEyeSVG(p.colores, 110, false);
-    var isSelected = patronSeleccionado && patronSeleccionado.id === p.id;
-    return '<div class="patron-card' + (isSelected?' selected':'') + '" onclick="selPatron(\'' + p.id + '\')">'
-      + '<div class="patron-name">' + p.nombre + '</div>'
-      + '<div class="patron-sub">' + p.sub + '</div>'
-      + svgStr
-      + '</div>';
+    var svgStr = buildBullsEyeSVG(p.colores, 150, false);
+    return '<div class="patron-acc" data-id="' + p.id + '">'
+      + '<button type="button" class="patron-acc-head" onclick="spToggle(this)">'
+        + '<span class="patron-acc-tt"><span class="patron-name">' + p.nombre + '</span><span class="patron-sub">' + p.sub + '</span></span>'
+        + '<span class="patron-acc-chev">▸</span>'
+      + '</button>'
+      + '<div class="patron-acc-body">'
+        + '<div class="patron-acc-be">' + svgStr + '</div>'
+        + '<div class="patron-acc-info">'
+          + '<div class="detalle-sgl">' + p.sgl + '</div>'
+          + '<div class="detalle-patron">' + p.descripcion + '</div>'
+          + '<div class="detalle-hallazgos">' + p.hallazgos.replace(/\n/g,'<br>') + '</div>'
+        + '</div>'
+      + '</div>'
+    + '</div>';
   }).join('');
 }
+/* Acordeón: expande/colapsa un patrón (cerrado por defecto). */
+function spToggle(btn){ var acc = btn.parentNode; if(acc) acc.classList.toggle('open'); }
+window.spToggle = spToggle;
 
 function selPatron(id) {
   patronSeleccionado = PATRONES.find(p => p.id === id);
@@ -16717,6 +16750,44 @@ const _orig=showTab;window.showTab=function(id){_orig(id);setTimeout(actualizarF
     wrapped.__ecoDrawer=true;window.showTab=wrapped;
   }
   function init(){buildDrawer();syncDrawerActive();}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+<script>
+/* Tabs de modo avanzado como dropdown <select> en móvil (≤768px).
+   Se construye desde los .subtabs-wrap .tab-btn visibles (respeta modo básico/
+   avanzado y módulos activos vía applyViewMode). Al elegir hace .click() sobre el
+   botón original → comportamiento idéntico (incl. fcgOnShow). No altera la lógica. */
+(function(){
+  function advBtns(){return document.querySelectorAll('.subtabs-wrap .tab-btn');}
+  function idOf(b){var m=(b.getAttribute('onclick')||'').match(/showTab\('([^']+)'\)/);return m?m[1]:null;}
+  window.ecoAdvBuild=function(){
+    var sel=document.getElementById('ecoAdvSelect');if(!sel)return;
+    var mode=(typeof eeGetMode==='function')?eeGetMode():'avanzado';
+    var prev=sel.value;
+    sel.innerHTML='<option value="" disabled'+(prev?'':' selected')+'>Sección avanzada…</option>';
+    var count=0,activeId=null;
+    advBtns().forEach(function(b){
+      if(mode==='basico')return;
+      if(b.style.display==='none')return;
+      var id=idOf(b);if(!id)return;
+      var opt=document.createElement('option');
+      opt.value=id;opt.textContent=b.textContent.trim();
+      if(b.classList.contains('active')){opt.selected=true;activeId=id;}
+      sel.appendChild(opt);count++;
+    });
+    if(activeId)sel.value=activeId;
+    sel.style.display=count?'':'none';
+  };
+  window.ecoAdvPick=function(id){
+    if(!id)return;
+    var btns=advBtns();
+    for(var i=0;i<btns.length;i++){if(idOf(btns[i])===id){btns[i].click();return;}}
+  };
+  if(window.showTab&&!window.showTab.__ecoAdv){
+    var _p=window.showTab;var w=function(id){var r=_p.apply(this,arguments);try{window.ecoAdvBuild();}catch(e){}return r;};w.__ecoAdv=true;window.showTab=w;
+  }
+  function init(){window.ecoAdvBuild();}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
