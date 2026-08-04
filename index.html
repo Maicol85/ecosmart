@@ -17475,6 +17475,34 @@ document.addEventListener('keydown', e => {
 window.mostrarAvisoEco=mostrarAvisoEco;window.cerrarAvisoEco=cerrarAvisoEco;
 window.abrirAyudaEco=abrirAyudaEco;window.cerrarAyudaEco=cerrarAyudaEco;window.renderAyudaEco=renderAyudaEco;
 </script>
+<script>
+/* ═══ Aceptar coma como separador decimal en todos los campos numéricos ═══
+   Safari/iOS rechaza la coma en type="number". Los inputs numéricos se convierten
+   a type="text" inputmode="decimal" (teclado numérico en móvil) y se normaliza
+   coma→punto en fase de captura, ANTES de que corran los oninput de cálculo.
+   Cubre inputs estáticos y los agregados dinámicamente (MutationObserver). */
+(function(){
+  function normNum(val){ return parseFloat(String(val).replace(',', '.')) || 0; }
+  window.normNum = window.normNum || normNum;
+  function conv(el){
+    if(el && el.tagName==='INPUT' && el.getAttribute('type')==='number'){
+      el.type='text'; el.setAttribute('inputmode','decimal'); el.setAttribute('pattern','[0-9]*[.,]?[0-9]*'); el.classList.add('numdec');
+    }
+  }
+  function convAll(root){ try{ (root||document).querySelectorAll('input[type="number"]').forEach(conv); }catch(_){} }
+  document.addEventListener('input', function(e){
+    var t=e.target;
+    if(t && t.classList && t.classList.contains('numdec') && typeof t.value==='string' && t.value.indexOf(',')!==-1){
+      var p=t.selectionStart; t.value=t.value.replace(/,/g,'.'); try{ t.setSelectionRange(p,p); }catch(_){}
+    }
+  }, true);
+  function start(){
+    convAll(document);
+    try{ new MutationObserver(function(muts){ for(var i=0;i<muts.length;i++){ var an=muts[i].addedNodes; if(!an)continue; for(var j=0;j<an.length;j++){ var n=an[j]; if(n.nodeType!==1)continue; conv(n); if(n.querySelectorAll)convAll(n); } } }).observe(document.documentElement,{childList:true,subtree:true}); }catch(_){}
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
+</script>
 
 </body>
 </html>
