@@ -8481,7 +8481,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           <div class="lab-bar-wrap" id="lab-hallazgos"></div>
           <div style="margin-top:14px;">
             <div class="lab-stat"><span class="lab-stat-lbl">Edad promedio</span><span class="lab-stat-val" id="lab-edad-prom">—</span></div>
-            <div class="lab-stat"><span class="lab-stat-lbl">% Femenino</span><span class="lab-stat-val" id="lab-pct-f">—</span></div>
+            <div class="lab-stat"><span class="lab-stat-lbl">Sexo (♀ / ♂)</span><span class="lab-stat-val" id="lab-pct-f">—</span></div>
             <div class="lab-stat"><span class="lab-stat-lbl">FEVI promedio</span><span class="lab-stat-val" id="lab-fevi-prom">—</span></div>
             <div class="lab-stat"><span class="lab-stat-lbl">GLS promedio</span><span class="lab-stat-val" id="lab-gls-prom">—</span></div>
             <div class="lab-stat"><span class="lab-stat-lbl">PSAP promedio</span><span class="lab-stat-val" id="lab-psap-prom">—</span></div>
@@ -15594,8 +15594,9 @@ function labInit() {
   document.getElementById('lab-mes').textContent =
     infs.filter(i => i.fecha_estudio && new Date(i.fecha_estudio) >= mesLim).length;
 
-  // Promedio por día hábil
-  const fechas = infs.map(i => i.fecha_estudio).filter(Boolean).sort();
+  // Promedio por día hábil — fecha del estudio con fallbacks (fecha_estudio · campos.fecha · fecha_guardado)
+  const fechaDe = i => i.fecha_estudio || (i.campos && i.campos.fecha) || (i.fecha_guardado ? String(i.fecha_guardado).slice(0,10) : '');
+  const fechas = infs.map(fechaDe).filter(Boolean).sort();
   if (fechas.length >= 2) {
     const diasTotales = Math.max(1,
       (new Date(fechas[fechas.length-1]) - new Date(fechas[0])) / 86400000);
@@ -15638,13 +15639,14 @@ function labInit() {
     return v ? PF(String(v).replace(',','.')) : null;
   };
 
-  // Distribución FEVI
-  const fevis = infs.map(i => numCampo(i,'fevi_simpson')).filter(v => v !== null);
-  // FEVI normal ≥50% — criterio ASE Chamber Quantification 2025
+  // Distribución FEVI — key real del input: 'fevi'
+  const fevis = infs.map(i => numCampo(i,'fevi')).filter(v => v !== null && v > 0);
+  const ft = fevis.length;
   const feviDist = [
-    { lbl:'≤35% (severa)', n: fevis.filter(v=>v<=35).length, total:fevis.length, color:'#f05454' },
-    { lbl:'36–49% (reducida)', n: fevis.filter(v=>v>35&&v<50).length, total:fevis.length, color:'#f5c842' },
-    { lbl:'≥50% (conservada)', n: fevis.filter(v=>v>=50).length, total:fevis.length, color:'#3ecf8e' },
+    { lbl:'Normal (≥50%)',                     n: fevis.filter(v=>v>=50).length,          total:ft, color:'#3ecf8e' },
+    { lbl:'Levemente reducida (40–49%)',       n: fevis.filter(v=>v>=40&&v<50).length,    total:ft, color:'#f5c842' },
+    { lbl:'Moderadamente reducida (30–39%)',   n: fevis.filter(v=>v>=30&&v<40).length,    total:ft, color:'#f0a500' },
+    { lbl:'Severamente reducida (<30%)',       n: fevis.filter(v=>v<30).length,           total:ft, color:'#f05454' },
   ].filter(d => d.n > 0);
   labBarras('lab-fevi-dist', feviDist);
 
@@ -15653,15 +15655,24 @@ function labInit() {
       (fevis.reduce((a,b)=>a+b,0)/fevis.length).toFixed(1) + '% (n=' + fevis.length + ')';
   }
 
-  // Función diastólica
-  const diastTxt = infs.map(i => (i.campos?.en_suma || '') + ' ' + (i.campos?.informe_texto || ''));
+  // Función diastólica — desglose por grado leído del resumen guardado (en_suma / informe)
+  const diastCat = { I:0, II:0, III:0, sin:0 };
+  let diastTot = 0;
+  infs.forEach(i => {
+    const t = ((i.campos && i.campos.en_suma) || '') + ' ' + ((i.campos && i.campos.informe_texto) || '');
+    if (!t.trim()) return;
+    if (/grado\s*III|restrictivo/i.test(t))                                       { diastCat.III++; diastTot++; }
+    else if (/grado\s*II\b|pseudonormal/i.test(t))                                { diastCat.II++;  diastTot++; }
+    else if (/grado\s*I\b|relajaci[oó]n\s+(alterada|prolongada)/i.test(t))        { diastCat.I++;   diastTot++; }
+    else if (/diast[oó]lica\s+normal|llenado\s+(del\s+vi\s+)?normal/i.test(t))    { diastCat.sin++; diastTot++; }
+  });
   const diastDist = [
-    { lbl:'Relajación alterada', n: diastTxt.filter(t=>/relaja[ció]+n\s+alterada/i.test(t)).length, total:n, color:'#f5c842' },
-    { lbl:'Pseudonormal/Grado II', n: diastTxt.filter(t=>/pseudonormal|grado\s*II/i.test(t)).length, total:n, color:'#f0a500' },
-    { lbl:'Restrictivo/Grado III', n: diastTxt.filter(t=>/restrictivo|grado\s*III/i.test(t)).length, total:n, color:'#f05454' },
-    { lbl:'Presión elevada', n: diastTxt.filter(t=>/presi[oó]n\s+de\s+llenado\s+elevada/i.test(t)).length, total:n, color:'#c05454' },
-  ].filter(d => d.n > 0);
-  labBarras('lab-diast-dist', diastDist);
+    { lbl:'Grado I (n='   + diastCat.I   + ')', n: diastCat.I,   total: diastTot, color:'#f5c842' },
+    { lbl:'Grado II (n='  + diastCat.II  + ')', n: diastCat.II,  total: diastTot, color:'#f0a500' },
+    { lbl:'Grado III (n=' + diastCat.III + ')', n: diastCat.III, total: diastTot, color:'#f05454' },
+    { lbl:'Sin disfunción (n=' + diastCat.sin + ')', n: diastCat.sin, total: diastTot, color:'#3ecf8e' },
+  ];
+  labBarras('lab-diast-dist', diastTot > 0 ? diastDist : []);
 
   // Hallazgos frecuentes
   const textos = infs.map(i => (i.campos?.en_suma||'') + ' ' + (i.campos?.informe_texto||''));
@@ -15688,13 +15699,19 @@ function labInit() {
     document.getElementById('lab-edad-prom').textContent =
       (edades.reduce((a,b)=>a+b,0)/edades.length).toFixed(0) + ' años (n=' + edades.length + ')';
 
-  const sexos = infs.map(i => (i.campos?.sexo||'').toLowerCase()).filter(Boolean);
-  const nF = sexos.filter(s => s.includes('f') || s.includes('mujer')).length;
-  if (sexos.length)
-    document.getElementById('lab-pct-f').textContent =
-      Math.round(nF/sexos.length*100) + '% (n=' + sexos.length + ')';
+  const sexos = infs.map(i => (i.campos?.sexo||'').toUpperCase()).filter(Boolean);
+  if (sexos.length) {
+    let nF = 0, nM = 0;
+    sexos.forEach(s => {
+      if (s[0]==='F' || s.indexOf('FEM')>=0 || s.indexOf('MUJER')>=0) nF++;
+      else if (s[0]==='M' || s.indexOf('MASC')>=0 || s.indexOf('VAR')>=0 || s.indexOf('HOMBRE')>=0) nM++;
+    });
+    const t = sexos.length;
+    document.getElementById('lab-pct-f').innerHTML =
+      '♀ ' + Math.round(nF/t*100) + '% (n=' + nF + ') &nbsp;·&nbsp; ♂ ' + Math.round(nM/t*100) + '% (n=' + nM + ')';
+  }
 
-  const glss = infs.map(i => numCampo(i,'gls_global')).filter(v => v !== null);
+  const glss = infs.map(i => numCampo(i,'sgl')).filter(v => v !== null && v !== 0);
   if (glss.length)
     document.getElementById('lab-gls-prom').textContent =
       (glss.reduce((a,b)=>a+b,0)/glss.length).toFixed(1) + '% (n=' + glss.length + ')';
@@ -15705,21 +15722,23 @@ function labInit() {
       (psaps.reduce((a,b)=>a+b,0)/psaps.length).toFixed(0) + ' mmHg (n=' + psaps.length + ')';
 
   // ── PILAR 3: CALIDAD ──
+  // Keys reales de los inputs (id del campo). LAVI y E/e' se calculan → se
+  // consideran "medidos" si están presentes sus componentes crudos.
   const calidadItems = [
-    { lbl:'FEVI medida', campo:'fevi_simpson' },
-    { lbl:'GLS medido', campo:'gls_global' },
+    { lbl:'FEVI medida', campo:'fevi' },
+    { lbl:'GLS medido', campo:'sgl' },
     { lbl:'TAPSE medido', campo:'tapse' },
-    { lbl:'LAVI calculado', campo:'lavi' },
-    { lbl:'e\' septal medida', campo:'e_prima_sept' },
-    { lbl:'E/e\' calculado', campo:'ee_prom' },
-    { lbl:'TR medida (PSAP)', campo:'vrt' },
-    { lbl:'VCI medida', campo:'vci' },
-    { lbl:'Simpson biplanar', campo:'fevi_simpson' },
+    { lbl:'LAVI calculado', fn:i => numCampo(i,'ai_vol') },
+    { lbl:'e\' septal medida', campo:'e_sep' },
+    { lbl:'E/e\' calculado', fn:i => (numCampo(i,'onda_e')!==null && (numCampo(i,'e_sep')!==null || numCampo(i,'e_lat')!==null)) ? 1 : null },
+    { lbl:'TR medida (PSAP)', campo:'vmax_it' },
+    { lbl:'VCI medida', campo:'vci_diam' },
+    { lbl:'Simpson biplanar', campo:'fevi' },
   ];
   const calidadDatos = calidadItems.map(item => {
     const con = infs.filter(i => {
-      const v = numCampo(i, item.campo);
-      return v !== null;
+      const v = item.fn ? item.fn(i) : numCampo(i, item.campo);
+      return v !== null && v !== 0;
     }).length;
     const pct = n > 0 ? con/n : 0;
     return {
