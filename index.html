@@ -16247,8 +16247,8 @@ async function labGenerarPDF() {
   if (document.getElementById('lab-pdf-actividad')?.checked) {
     addSection('📈 Actividad del Laboratorio');
     addFila('Total de estudios en el período', infs.length);
-    addFila('FEVI promedio', prom('fevi_simpson') + '%');
-    addFila('GLS promedio', prom('gls_global') + '%');
+    addFila('FEVI promedio', prom('fevi') + '%');
+    addFila('GLS promedio', prom('sgl') + '%');
     addFila('PSAP promedio', prom('psap_calc') + ' mmHg');
     y += 4;
   }
@@ -16257,7 +16257,7 @@ async function labGenerarPDF() {
   if (document.getElementById('lab-pdf-poblacion')?.checked) {
     addSection('👥 Perfil de la Población');
     const N = infs.length;
-    const fevis = infs.map(i => numCampo(i,'fevi_simpson')).filter(v => v !== null);
+    const fevis = infs.map(i => numCampo(i,'fevi')).filter(v => v !== null);
     if (fevis.length) {
       addFila('FEVI ≤35% (severa)',      fevis.filter(v=>v<=35).length + '/' + fevis.length);
       addFila('FEVI 36–49% (reducida)',  fevis.filter(v=>v>35&&v<50).length + '/' + fevis.length);
@@ -16268,7 +16268,7 @@ async function labGenerarPDF() {
     const sexos = infs.map(i => (i.campos?.sexo||'').toLowerCase()).filter(Boolean);
     const nF = sexos.filter(s => s.includes('f') || s.includes('mujer')).length;
     if (sexos.length) addFila('% Femenino', Math.round(nF/sexos.length*100) + '%');
-    addFila('GLS promedio', prom('gls_global') + '%');
+    addFila('GLS promedio', prom('sgl') + '%');
     addFila('PSAP promedio', prom('psap_calc') + ' mmHg');
     const textos = infs.map(i => (i.campos?.en_suma||'') + ' ' + (i.campos?.informe_texto||''));
     const hallazgos = [
@@ -16291,12 +16291,12 @@ async function labGenerarPDF() {
     addSection('✅ Calidad del Laboratorio');
     const n = infs.length;
     [
-      ['FEVI medida', 'fevi_simpson'],
-      ['GLS medido', 'gls_global'],
+      ['FEVI medida', 'fevi'],
+      ['GLS medido', 'sgl'],
       ['TAPSE medido', 'tapse'],
-      ['LAVI calculado', 'lavi'],
-      ['TR medida', 'vrt'],
-      ['Dimensiones VI', 'ddvi'],
+      ['LAVI calculado', 'ai_vol'],
+      ['TR medida', 'psap_calc'],
+      ['Dimensiones VI', 'ddfvi'],
     ].forEach(([lbl, campo]) => {
       const con = infs.filter(i => numCampo(i,campo) !== null).length;
       addFila(lbl, Math.round(con/n*100) + '% (' + con + '/' + n + ')');
