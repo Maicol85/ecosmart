@@ -15694,10 +15694,10 @@ function labInit() {
     { lbl:'Estenosis aórtica', patron:/estenosis\s+a[oó]rtica|EAo/i },
     { lbl:'Dilatación AI', patron:/dilataci[oó]n.{0,10}auricular|AI\s+(?:dilata|agrand)/i },
     { lbl:'HVI', patron:/hipertrofia\s+ventricular\s+izq|HVI/i },
-    { lbl:'Derrame pericárdico', patron:/derrame\s+peric[aá]rdico/i },
+    { lbl:'Derrame pericárdico', byField:i=>{var v=String((i.campos&&i.campos.pericardio)||'');return /derrame|efusi[oó]n/i.test(v) && !/sin\s+derrame|sin\s+efusi[oó]n/i.test(v);} },
   ].map(h => ({
     lbl: h.lbl,
-    n: textos.filter(t => h.patron.test(t)).length,
+    n: h.byField ? infs.filter(h.byField).length : textos.filter(t => h.patron.test(t)).length,
     total: n,
     color: 'var(--accent)'
   })).filter(d => d.n > 0).sort((a,b) => b.n - a.n).slice(0,8);
@@ -16000,8 +16000,8 @@ function labMedicoRender() {
   const statsEl = document.getElementById('lab-med-stats');
   if (!statsEl) return;
 
-  const fevis = infs.map(i => PF(i.campos?.fevi_simpson)).filter(v => !isNaN(v));
-  const glss  = infs.map(i => PF(i.campos?.gls_global)).filter(v => !isNaN(v));
+  const fevis = infs.map(i => PF(i.campos?.fevi)).filter(v => !isNaN(v));
+  const glss  = infs.map(i => PF(i.campos?.sgl)).filter(v => !isNaN(v));
 
   statsEl.innerHTML = `
     <div>
@@ -16038,7 +16038,7 @@ function labMedicoRender() {
       <div class="lab-stat">
         <span class="lab-stat-lbl">Con LAVI calculado</span>
         <span class="lab-stat-val">
-          ${n ? Math.round(infs.filter(i=>i.campos?.lavi).length/n*100)+'%' : '—'}
+          ${n ? Math.round(infs.filter(i=>i.campos?.ai_vol).length/n*100)+'%' : '—'}
         </span>
       </div>
     </div>`;
@@ -16060,14 +16060,14 @@ function labMedicoRender() {
 
   // Calidad del médico seleccionado
   const calidadItems = [
-    { lbl: 'FEVI', campo: 'fevi_simpson' },
-    { lbl: 'GLS', campo: 'gls_global' },
+    { lbl: 'FEVI', campo: 'fevi' },
+    { lbl: 'GLS', campo: 'sgl' },
     { lbl: 'TAPSE', campo: 'tapse' },
-    { lbl: 'LAVI', campo: 'lavi' },
-    { lbl: 'e\' septal', campo: 'e_prima_sept' },
-    { lbl: 'TR/PSAP', campo: 'vrt' },
-    { lbl: 'VCI', campo: 'vci' },
-    { lbl: 'Dim. VI', campo: 'ddvi' },
+    { lbl: 'LAVI', campo: 'ai_vol' },
+    { lbl: 'e\' septal', campo: 'e_sep' },
+    { lbl: 'TR/PSAP', campo: 'psap_calc' },
+    { lbl: 'VCI', campo: 'vci_diam' },
+    { lbl: 'Dim. VI', campo: 'ddfvi' },
   ];
   const calEl = document.getElementById('lab-med-calidad');
   if (calEl && n > 0) {
@@ -16138,14 +16138,14 @@ function labCompararRender() {
 
   const filas = [
     { lbl: 'Total estudios', a: A.length, b: B.length, unidad: '' },
-    { lbl: 'FEVI promedio', a: prom(A,'fevi_simpson'), b: prom(B,'fevi_simpson'), unidad: '%' },
-    { lbl: 'GLS promedio', a: prom(A,'gls_global'), b: prom(B,'gls_global'), unidad: '%' },
+    { lbl: 'FEVI promedio', a: prom(A,'fevi'), b: prom(B,'fevi'), unidad: '%' },
+    { lbl: 'GLS promedio', a: prom(A,'sgl'), b: prom(B,'sgl'), unidad: '%' },
     { lbl: 'PSAP promedio', a: prom(A,'psap_calc'), b: prom(B,'psap_calc'), unidad: ' mmHg' },
     { lbl: 'TAPSE promedio', a: prom(A,'tapse'), b: prom(B,'tapse'), unidad: ' mm' },
-    { lbl: '% con GLS', a: pct(A,'gls_global'), b: pct(B,'gls_global'), unidad: '' },
+    { lbl: '% con GLS', a: pct(A,'sgl'), b: pct(B,'sgl'), unidad: '' },
     { lbl: '% con TAPSE', a: pct(A,'tapse'), b: pct(B,'tapse'), unidad: '' },
-    { lbl: '% con LAVI', a: pct(A,'lavi'), b: pct(B,'lavi'), unidad: '' },
-    { lbl: '% con TR/PSAP', a: pct(A,'vrt'), b: pct(B,'vrt'), unidad: '' },
+    { lbl: '% con LAVI', a: pct(A,'ai_vol'), b: pct(B,'ai_vol'), unidad: '' },
+    { lbl: '% con TR/PSAP', a: pct(A,'psap_calc'), b: pct(B,'psap_calc'), unidad: '' },
   ];
 
   const delta = (a, b) => {
@@ -16279,8 +16279,8 @@ async function labGenerarPDF() {
       { lbl:'Estenosis aórtica', patron:/estenosis\s+a[oó]rtica|EAo/i },
       { lbl:'Dilatación AI', patron:/dilataci[oó]n.{0,10}auricular|AI\s+(?:dilata|agrand)/i },
       { lbl:'HVI', patron:/hipertrofia\s+ventricular\s+izq|HVI/i },
-      { lbl:'Derrame pericárdico', patron:/derrame\s+peric[aá]rdico/i },
-    ].map(h => ({ lbl:h.lbl, n: textos.filter(t => h.patron.test(t)).length }))
+      { lbl:'Derrame pericárdico', byField:i=>{var v=String((i.campos&&i.campos.pericardio)||'');return /derrame|efusi[oó]n/i.test(v) && !/sin\s+derrame|sin\s+efusi[oó]n/i.test(v);} },
+    ].map(h => ({ lbl:h.lbl, n: h.byField ? infs.filter(h.byField).length : textos.filter(t => h.patron.test(t)).length }))
      .filter(d => d.n > 0).sort((a,b)=>b.n-a.n).slice(0,8);
     hallazgos.forEach(h => addFila('Hallazgo: ' + h.lbl, h.n + '/' + N));
     y += 4;
