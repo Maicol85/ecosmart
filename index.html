@@ -12615,11 +12615,17 @@ function generarPDFReal() {
 
   // ─── Copyright al pie de todas las páginas ───
   const _totalPag = doc.internal.getNumberOfPages();
+  const _fModoInst = localStorage.getItem('ett_modo_institucional')==='1';
+  const _fInst = sv('med-centro') || '';
+  const _fCopyr = (_fModoInst && _fInst)
+    ? ('© 2026 ' + _fInst + ' · Todos los derechos reservados · Uso clínico exclusivo')
+    : '© 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo';
+  const _fDisc = 'Esta herramienta es de apoyo clínico. No reemplaza el juicio médico ni constituye una recomendación diagnóstica o terapéutica.' + (_fModoInst ? '' : ' CeiboMed © 2026');
   for (let _p = 1; _p <= _totalPag; _p++) {
     doc.setPage(_p);
     fn(6.5); tc(150,150,150);
-    doc.text('© 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo', 105, 292, { align:'center' });
-    fn(5.5); tc(160,160,160); doc.text('Esta herramienta es de apoyo clínico. No reemplaza el juicio médico ni constituye una recomendación diagnóstica o terapéutica. CeiboMed © 2026', 105, 295, { align:'center' });
+    doc.text(_fCopyr, 105, 292, { align:'center' });
+    fn(5.5); tc(160,160,160); doc.text(_fDisc, 105, 295, { align:'center' });
   }
 
   const _nombre = (sv('nombre')||'paciente').replace(/\s+/g,'_');
@@ -15765,8 +15771,8 @@ function labInit() {
     {
       lbl: 'FEVI ≤35% sin GLS documentado',
       casos: infs.filter(i => {
-        const fevi = numCampo(i,'fevi_simpson');
-        const gls = numCampo(i,'gls_global');
+        const fevi = numCampo(i,'fevi');
+        const gls = numCampo(i,'sgl');
         return fevi !== null && fevi <= 35 && gls === null;
       })
     },
@@ -15774,15 +15780,15 @@ function labInit() {
       lbl: 'PSAP >40 mmHg sin TR medida',
       casos: infs.filter(i => {
         const psap = numCampo(i,'psap_calc');
-        const vrt = numCampo(i,'vrt');
-        return psap !== null && psap > 40 && vrt === null;
+        const tr = numCampo(i,'vmax_it');
+        return psap !== null && psap > 40 && tr === null;
       })
     },
     {
       lbl: 'Disfunción sistólica sin E/e\'',
       casos: infs.filter(i => {
-        const fevi = numCampo(i,'fevi_simpson');
-        const ee = numCampo(i,'ee_prom') || numCampo(i,'e_prima_sept');
+        const fevi = numCampo(i,'fevi');
+        const ee = (numCampo(i,'onda_e') !== null && (numCampo(i,'e_sep') !== null || numCampo(i,'e_lat') !== null)) ? 1 : null;
         return fevi !== null && fevi < 50 && ee === null;
       })
     },
@@ -15792,7 +15798,7 @@ function labInit() {
     },
     {
       lbl: 'Sin dimensiones VI',
-      casos: infs.filter(i => numCampo(i,'ddvi') === null)
+      casos: infs.filter(i => numCampo(i,'ddfvi') === null)
     },
   ];
 
@@ -16309,11 +16315,11 @@ async function labGenerarPDF() {
     addSection('⚠️ Indicadores Automáticos — Oportunidades clínicas');
     const N = infs.length;
     const indicadores = [
-      { lbl:'FEVI ≤35% sin GLS documentado', casos: infs.filter(i => { const f=numCampo(i,'fevi_simpson'), g=numCampo(i,'gls_global'); return f!==null&&f<=35&&g===null; }) },
-      { lbl:'PSAP >40 mmHg sin TR medida', casos: infs.filter(i => { const p=numCampo(i,'psap_calc'), t=numCampo(i,'vrt'); return p!==null&&p>40&&t===null; }) },
-      { lbl:"Disfunción sistólica sin E/e'", casos: infs.filter(i => { const f=numCampo(i,'fevi_simpson'), e=numCampo(i,'ee_prom')||numCampo(i,'e_prima_sept'); return f!==null&&f<50&&e===null; }) },
+      { lbl:'FEVI ≤35% sin GLS documentado', casos: infs.filter(i => { const f=numCampo(i,'fevi'), g=numCampo(i,'sgl'); return f!==null&&f<=35&&g===null; }) },
+      { lbl:'PSAP >40 mmHg sin TR medida', casos: infs.filter(i => { const p=numCampo(i,'psap_calc'), t=numCampo(i,'vmax_it'); return p!==null&&p>40&&t===null; }) },
+      { lbl:"Disfunción sistólica sin E/e'", casos: infs.filter(i => { const f=numCampo(i,'fevi'), e=(numCampo(i,'onda_e')!==null&&(numCampo(i,'e_sep')!==null||numCampo(i,'e_lat')!==null))?1:null; return f!==null&&f<50&&e===null; }) },
       { lbl:'Sin TAPSE en informe', casos: infs.filter(i => numCampo(i,'tapse')===null) },
-      { lbl:'Sin dimensiones VI', casos: infs.filter(i => numCampo(i,'ddvi')===null) },
+      { lbl:'Sin dimensiones VI', casos: infs.filter(i => numCampo(i,'ddfvi')===null) },
     ];
     indicadores.forEach(ind => {
       const pct = N > 0 ? Math.round(ind.casos.length/N*100) : 0;
