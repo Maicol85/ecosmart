@@ -114,14 +114,14 @@
   .btn-green { background: var(--green); color: #0f1117; }
   /* ══ DICTADO POR VOZ — punto flotante (dicta en el campo con foco) ══ */
   .voz-dot {
-    position: fixed; right: 20px; bottom: 20px; z-index: 500;
-    width: 20px; height: 20px; border-radius: 50%;
-    background: var(--accent); border: 2px solid var(--bg2);
+    position: fixed; right: 16px; bottom: 16px; z-index: 500;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent); border: 1px solid var(--bg2);
     cursor: pointer; padding: 0; line-height: 0;
-    box-shadow: 0 2px 8px rgba(0,0,0,.45);
+    box-shadow: 0 1px 5px rgba(0,0,0,.4);
     transition: background .15s, transform .12s;
   }
-  .voz-dot:hover { transform: scale(1.15); }
+  .voz-dot:hover { transform: scale(1.2); }
   .voz-dot:focus-visible { outline: 2px solid var(--accent2); outline-offset: 2px; }
   .voz-dot.grabando {
     background: var(--red);
@@ -129,8 +129,8 @@
   }
   .voz-dot.no-sop { opacity: .4; }
   @keyframes vozDotPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(240,84,84,.55), 0 2px 8px rgba(0,0,0,.45); }
-    50% { box-shadow: 0 0 0 9px rgba(240,84,84,0), 0 2px 8px rgba(0,0,0,.45); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(240,84,84,.55), 0 1px 5px rgba(0,0,0,.4); }
+    50% { box-shadow: 0 0 0 7px rgba(240,84,84,0), 0 1px 5px rgba(0,0,0,.4); }
   }
   @media print { .voz-dot { display: none !important; } }
   /* ══ LAYOUT ══ */
@@ -11061,10 +11061,6 @@ setTimeout(initEstiloInforme, 50);
     if (ultimoCampo && document.contains(ultimoCampo)) return ultimoCampo;
     return null;
   }
-  function etiquetaDe(el) {
-    try { const l = el.closest('.fg') && el.closest('.fg').querySelector('label'); return l ? l.textContent.trim() : ''; }
-    catch (_) { return ''; }
-  }
 
   // ── Parseo de números dictados (solo para inputs type=number) ──
   const UNID = {cero:0,un:1,uno:1,una:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8,nueve:9,diez:10,once:11,doce:12,trece:13,catorce:14,quince:15,dieciseis:16,diecisiete:17,dieciocho:18,diecinueve:19,veinte:20,veintiuno:21,veintidos:22,veintitres:23,veinticuatro:24,veinticinco:25,veintiseis:26,veintisiete:27,veintiocho:28,veintinueve:29};
@@ -11101,39 +11097,70 @@ setTimeout(initEstiloInforme, 50);
     const d = dot(); if(!d) return;
     d.classList.toggle('grabando', on);
     d.setAttribute('aria-pressed', on ? 'true' : 'false');
-    d.title = on ? 'Dictando… (tocá para detener)' : 'Dictado por voz — tocá un campo y luego este punto';
+    d.title = on ? 'Grabando… (tocá para detener)' : 'Dictado por voz — tocá para grabar en el campo con foco';
   }
 
   // ── Ciclo de vida ──
-  let rec=null, activo=false, destino=null, esNum=false, base='', sep='', finalAcum='';
+  // El campo destino NO se fija al iniciar: en cada resultado se escribe en el
+  // campo que tenga el foco en ese momento. El usuario puede cambiar de campo y
+  // de tab libremente mientras graba; solo se detiene al volver a tocar el punto.
+  let rec=null, activo=false;
+  let curTarget=null, curNum=false, curBase='', curSep='', curFinal='';
+
+  function esNumero(el){
+    return !!el && el.tagName==='INPUT' && (el.getAttribute('type')||'').toLowerCase()==='number';
+  }
+  // Consolida el texto libre del campo actual (descarta parciales colgados).
+  function consolidarTexto(){
+    if(curTarget && !curNum){
+      curTarget.value = (curBase + curSep + curFinal).replace(/\s+$/, curFinal ? ' ' : '');
+      curTarget.dispatchEvent(new Event('input',{bubbles:true}));
+    }
+  }
+  // Cambia el destino: cierra el anterior (si era texto) e inicializa buffers.
+  function fijarDestino(el){
+    consolidarTexto();
+    curTarget = el;
+    curNum = esNumero(el);
+    curBase = el.value || '';
+    curSep = (curBase && !/\s$/.test(curBase)) ? ' ' : '';
+    curFinal = '';
+  }
 
   function iniciarRec(){
     rec = new SR();
     rec.lang='es-UY'; rec.continuous=true; rec.interimResults=true; rec.maxAlternatives=1;
     rec.onresult = function(ev){
+      const target = campoDestino();
+      if(!target) return;               // nada editable enfocado → se ignora
+      if(target !== curTarget) fijarDestino(target);
+
       let interim='';
       for(let i=ev.resultIndex;i<ev.results.length;i++){
         const txt = ev.results[i][0].transcript;
         if(ev.results[i].isFinal){
-          if(esNum){
-            // En campos numéricos: parsear y REEMPLAZAR con el último número.
+          if(curNum){
+            // Campo numérico: parsear y REEMPLAZAR con el último número.
             const num = extraerNumero(txt);
             if(num!==null && num!==''){
-              destino.value = num;
-              destino.dispatchEvent(new Event('input',{bubbles:true}));
-              destino.dispatchEvent(new Event('change',{bubbles:true}));
+              curTarget.value = num;
+              curTarget.dispatchEvent(new Event('input',{bubbles:true}));
+              curTarget.dispatchEvent(new Event('change',{bubbles:true}));
             }
           } else {
-            finalAcum += txt;
+            // Separar frases/segmentos con un espacio si hace falta.
+            if(curFinal && !/\s$/.test(curFinal) && !/^\s/.test(txt)) curFinal += ' ';
+            curFinal += txt;
           }
         } else {
           interim += txt;
         }
       }
       // Texto libre: reflejar final + parcial en vivo, sin pisar lo previo.
-      if(!esNum && destino){
-        destino.value = base + sep + finalAcum + interim;
-        destino.dispatchEvent(new Event('input',{bubbles:true}));
+      if(!curNum){
+        const isep = (curFinal && !/\s$/.test(curFinal) && interim && !/^\s/.test(interim)) ? ' ' : '';
+        curTarget.value = curBase + curSep + curFinal + isep + interim;
+        curTarget.dispatchEvent(new Event('input',{bubbles:true}));
       }
     };
     rec.onerror = function(ev){
@@ -11144,16 +11171,13 @@ setTimeout(initEstiloInforme, 50);
       // 'no-speech' / 'aborted' → onend reinicia (dictado continuo)
     };
     rec.onend = function(){
-      // Texto libre: consolidar (descartar parciales colgados).
-      if(!esNum && destino){
-        destino.value = (base + sep + finalAcum).replace(/\s+$/, finalAcum ? ' ' : '');
-        destino.dispatchEvent(new Event('input',{bubbles:true}));
-      }
       if(activo){
-        // Dictado continuo: Chrome corta tras silencios → reiniciar.
+        // Dictado continuo: Chrome corta tras silencios → reiniciar. El estado
+        // (campo destino y buffers) se conserva; el destino se resuelve por foco.
         try{ rec.start(); }
         catch(_){ setTimeout(()=>{ if(activo){ try{ rec.start(); }catch(e){} } }, 300); }
       } else {
+        consolidarTexto();              // al detener, cerrar el campo de texto actual
         setGrabando(false);
       }
     };
@@ -11166,10 +11190,9 @@ setTimeout(initEstiloInforme, 50);
       alert('Dictado por voz no disponible\n\nEste navegador no soporta la Web Speech API. Usá Google Chrome o Safari actualizados.');
       return;
     }
-    if(activo){                       // toggle → detener
+    if(activo){                          // toggle → detener (única forma de apagar)
       activo=false;
-      if(rec){ try{ rec.stop(); }catch(_){} }
-      setGrabando(false);
+      if(rec){ try{ rec.stop(); }catch(_){} }  // onend consolida y apaga el punto
       toast('🎤 Dictado detenido');
       return;
     }
@@ -11179,19 +11202,12 @@ setTimeout(initEstiloInforme, 50);
       alert('Dictado no disponible en este contexto\n\nLa Web Speech API solo funciona sobre https:// o localhost.\nAbrí la app desde la URL publicada para usar el micrófono.');
       return;
     }
-    destino = campoDestino();
-    if(!destino){
-      toast('👆 Tocá primero el campo donde querés dictar, luego el punto.');
-      return;
-    }
-    esNum = (destino.tagName==='INPUT' && (destino.getAttribute('type')||'').toLowerCase()==='number');
-    base = destino.value || '';
-    sep = (base && !/\s$/.test(base)) ? ' ' : '';
-    finalAcum = '';
+    // Grabación continua: queda encendida hasta el próximo toque. El texto va
+    // siempre al campo con foco; podés navegar entre tabs y campos libremente.
+    curTarget=null; curNum=false; curBase=''; curSep=''; curFinal='';
     activo = true;
     setGrabando(true);
-    const et = etiquetaDe(destino);
-    toast('🎤 Escuchando… dictá ' + (esNum ? 'el número' : 'el texto') + (et ? ' para "'+et+'"' : ''));
+    toast('🎤 Grabando… el texto va al campo que toques. Tocá el punto de nuevo para detener.');
     iniciarRec();
   };
 
