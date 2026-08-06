@@ -112,25 +112,27 @@
   .btn-ghost { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
   .btn-danger { background: var(--red); color: #fff; }
   .btn-green { background: var(--green); color: #0f1117; }
-  /* ══ DICTADO POR VOZ (Web Speech API) ══ */
-  .btn-mic {
-    background: var(--bg3); color: var(--accent2);
-    border: 1px solid var(--border); border-radius: 7px;
-    padding: 4px 10px; font-size: 13px; line-height: 1; cursor: pointer;
-    display: inline-flex; align-items: center; gap: 5px;
-    font-family: inherit; transition: background .15s, color .15s, border-color .15s;
+  /* ══ DICTADO POR VOZ — punto flotante (dicta en el campo con foco) ══ */
+  .voz-dot {
+    position: fixed; right: 20px; bottom: 20px; z-index: 500;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--accent); border: 2px solid var(--bg2);
+    cursor: pointer; padding: 0; line-height: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,.45);
+    transition: background .15s, transform .12s;
   }
-  .btn-mic:hover { border-color: var(--accent2); }
-  .btn-mic .mic-label { font-size: 11px; font-weight: 600; }
-  .btn-mic.grabando {
-    background: var(--red); color: #fff; border-color: var(--red);
-    animation: micPulse 1.2s ease-in-out infinite;
+  .voz-dot:hover { transform: scale(1.15); }
+  .voz-dot:focus-visible { outline: 2px solid var(--accent2); outline-offset: 2px; }
+  .voz-dot.grabando {
+    background: var(--red);
+    animation: vozDotPulse 1.2s ease-in-out infinite;
   }
-  @keyframes micPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(240,84,84,.5); }
-    50% { box-shadow: 0 0 0 6px rgba(240,84,84,0); }
+  .voz-dot.no-sop { opacity: .4; }
+  @keyframes vozDotPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(240,84,84,.55), 0 2px 8px rgba(0,0,0,.45); }
+    50% { box-shadow: 0 0 0 9px rgba(240,84,84,0), 0 2px 8px rgba(0,0,0,.45); }
   }
-  .btn-mic[hidden] { display: none !important; }
+  @media print { .voz-dot { display: none !important; } }
   /* ══ LAYOUT ══ */
   .container { max-width: none; margin: 0; padding: 0; }
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -7894,10 +7896,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         </div>
       </div>
       <div class="fg">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
-          <label style="margin:0;">Informe (autogenerado — editable)</label>
-          <button type="button" class="btn-mic" id="mic-informe_texto" onclick="dictadoVoz('informe_texto', this)" title="Dictar por voz (es-UY)" aria-label="Dictar informe por voz">🎤 <span class="mic-label">Dictar</span></button>
-        </div>
+        <label>Informe (autogenerado — editable)</label>
         <textarea id="informe_texto" style="min-height:200px;" placeholder="Presione 'Generar Informe' para autocompletar..."></textarea>
       </div>
     </div>
@@ -7906,9 +7905,6 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     <h2 class="card-head">✅ En Suma / Conclusión</h2>
     <div class="card-body">
       <div class="fg">
-        <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:4px;">
-          <button type="button" class="btn-mic" id="mic-en_suma" onclick="dictadoVoz('en_suma', this)" title="Dictar por voz (es-UY)" aria-label="Dictar conclusión por voz">🎤 <span class="mic-label">Dictar</span></button>
-        </div>
         <textarea id="en_suma" style="min-height:120px;" placeholder="Conclusión clínica..."></textarea>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:10px 14px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);">
@@ -11035,98 +11031,177 @@ function initEstiloInforme() {
 window.setEstiloInforme = setEstiloInforme;
 setTimeout(initEstiloInforme, 50);
 
-/* ══════════ DICTADO POR VOZ — Web Speech API nativa (Fase 1) ══════════
-   Sin LLM, sin API key. Usa SpeechRecognition del navegador (Chrome/Safari).
-   Idioma es-UY. Se detiene solo al terminar de hablar (continuous=false).
-   El texto reconocido se agrega al campo destino, respetando lo ya escrito. */
-(function initDictadoVoz() {
+/* ══════════ DICTADO POR VOZ — punto flotante (Web Speech API nativa) ══════════
+   Un único botón flotante (punto azul → rojo pulsante al grabar). Al presionarlo
+   dicta en el campo que tenga el foco en ese momento (donde está el cursor).
+   El usuario elige manualmente la tab y el campo. Sin mapeo, sin navegación.
+   Idioma es-UY. Sin LLM, sin API key. Chrome/Safari. */
+(function initVozDot() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  // Si el navegador no soporta la API, ocultar los botones de dictado.
-  if (!SR) {
-    document.querySelectorAll('.btn-mic').forEach(b => { b.hidden = true; });
-    return;
+  const dot = () => document.getElementById('voz-dot');
+
+  // ── Recordar el último campo editable enfocado ──
+  let ultimoCampo = null;
+  function esEditable(el) {
+    if (!el || el.readOnly || el.disabled) return false;
+    const tag = el.tagName;
+    if (tag === 'TEXTAREA') return true;
+    if (tag === 'INPUT') {
+      const t = (el.getAttribute('type') || 'text').toLowerCase();
+      return ['text', 'number', 'search', 'tel', ''].includes(t);
+    }
+    return !!el.isContentEditable;
+  }
+  document.addEventListener('focusin', function (ev) {
+    if (esEditable(ev.target)) ultimoCampo = ev.target;
+  });
+  function campoDestino() {
+    const a = document.activeElement;
+    if (esEditable(a)) return a;
+    if (ultimoCampo && document.contains(ultimoCampo)) return ultimoCampo;
+    return null;
+  }
+  function etiquetaDe(el) {
+    try { const l = el.closest('.fg') && el.closest('.fg').querySelector('label'); return l ? l.textContent.trim() : ''; }
+    catch (_) { return ''; }
   }
 
-  let rec = null;          // instancia activa de SpeechRecognition
-  let activoId = null;     // id del textarea que se está dictando
-  let activoBtn = null;    // botón que disparó el dictado
-
-  function resetBtn(btn) {
-    if (!btn) return;
-    btn.classList.remove('grabando');
-    const lbl = btn.querySelector('.mic-label');
-    if (lbl) lbl.textContent = 'Dictar';
-    btn.setAttribute('aria-pressed', 'false');
+  // ── Parseo de números dictados (solo para inputs type=number) ──
+  const UNID = {cero:0,un:1,uno:1,una:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8,nueve:9,diez:10,once:11,doce:12,trece:13,catorce:14,quince:15,dieciseis:16,diecisiete:17,dieciocho:18,diecinueve:19,veinte:20,veintiuno:21,veintidos:22,veintitres:23,veinticuatro:24,veinticinco:25,veintiseis:26,veintisiete:27,veintiocho:28,veintinueve:29};
+  const DEC = {treinta:30,cuarenta:40,cincuenta:50,sesenta:60,setenta:70,ochenta:80,noventa:90};
+  const CEN = {cien:100,ciento:100,doscientos:200,trescientos:300,cuatrocientos:400,quinientos:500,seiscientos:600,setecientos:700,ochocientos:800,novecientos:900};
+  function normNum(s){ return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+  function palabrasANumero(s){
+    const toks = normNum(s).replace(/[^a-z ]/g,' ').split(' ').filter(Boolean);
+    let cur=0, hubo=false, dec=null, enDec=false;
+    for(const w of toks){
+      if(w==='y') continue;
+      if(w==='coma'||w==='punto'){ enDec=true; dec=''; continue; }
+      if(w in CEN){ cur+=CEN[w]; hubo=true; continue; }
+      if(w in DEC){ cur+=DEC[w]; hubo=true; continue; }
+      if(w in UNID){ if(enDec) dec=(dec||'')+UNID[w]; else cur+=UNID[w]; hubo=true; continue; }
+      if(hubo) break;
+    }
+    if(!hubo) return null;
+    return (dec!==null && dec!=='') ? String(parseFloat(cur+'.'+dec)) : String(cur);
+  }
+  function extraerNumero(raw){
+    const t = normNum(raw)
+      .replace(/(\d)\s*[.,]\s*(\d)/g,'$1.$2')
+      .replace(/(\d)\s+coma\s+(\d)/g,'$1.$2')
+      .replace(/(\d)\s+punto\s+(\d)/g,'$1.$2')
+      .replace(/\bmenos\s+(\d)/g,'-$1');
+    const m = t.match(/-?\d+(?:\.\d+)?/);
+    if(m) return m[0];
+    return palabrasANumero(raw);
   }
 
-  function detener() {
-    if (rec) { try { rec.stop(); } catch (e) {} }
+  // ── Estado visual del punto ──
+  function setGrabando(on){
+    const d = dot(); if(!d) return;
+    d.classList.toggle('grabando', on);
+    d.setAttribute('aria-pressed', on ? 'true' : 'false');
+    d.title = on ? 'Dictando… (tocá para detener)' : 'Dictado por voz — tocá un campo y luego este punto';
   }
 
-  window.dictadoVoz = function dictadoVoz(targetId, btn) {
-    // Si ya se está grabando: un segundo clic detiene (toggle).
-    if (rec) {
-      detener();
+  // ── Ciclo de vida ──
+  let rec=null, activo=false, destino=null, esNum=false, base='', sep='', finalAcum='';
+
+  function iniciarRec(){
+    rec = new SR();
+    rec.lang='es-UY'; rec.continuous=true; rec.interimResults=true; rec.maxAlternatives=1;
+    rec.onresult = function(ev){
+      let interim='';
+      for(let i=ev.resultIndex;i<ev.results.length;i++){
+        const txt = ev.results[i][0].transcript;
+        if(ev.results[i].isFinal){
+          if(esNum){
+            // En campos numéricos: parsear y REEMPLAZAR con el último número.
+            const num = extraerNumero(txt);
+            if(num!==null && num!==''){
+              destino.value = num;
+              destino.dispatchEvent(new Event('input',{bubbles:true}));
+              destino.dispatchEvent(new Event('change',{bubbles:true}));
+            }
+          } else {
+            finalAcum += txt;
+          }
+        } else {
+          interim += txt;
+        }
+      }
+      // Texto libre: reflejar final + parcial en vivo, sin pisar lo previo.
+      if(!esNum && destino){
+        destino.value = base + sep + finalAcum + interim;
+        destino.dispatchEvent(new Event('input',{bubbles:true}));
+      }
+    };
+    rec.onerror = function(ev){
+      const e = ev.error;
+      if(e==='not-allowed' || e==='service-not-allowed'){ activo=false; setGrabando(false); toast('⚠️ Micrófono bloqueado. Habilitá el permiso del navegador.'); }
+      else if(e==='audio-capture'){ activo=false; setGrabando(false); toast('⚠️ No se detectó micrófono.'); }
+      else if(e==='network'){ activo=false; setGrabando(false); toast('⚠️ El dictado necesita conexión a internet.'); }
+      // 'no-speech' / 'aborted' → onend reinicia (dictado continuo)
+    };
+    rec.onend = function(){
+      // Texto libre: consolidar (descartar parciales colgados).
+      if(!esNum && destino){
+        destino.value = (base + sep + finalAcum).replace(/\s+$/, finalAcum ? ' ' : '');
+        destino.dispatchEvent(new Event('input',{bubbles:true}));
+      }
+      if(activo){
+        // Dictado continuo: Chrome corta tras silencios → reiniciar.
+        try{ rec.start(); }
+        catch(_){ setTimeout(()=>{ if(activo){ try{ rec.start(); }catch(e){} } }, 300); }
+      } else {
+        setGrabando(false);
+      }
+    };
+    try{ rec.start(); }catch(e){ activo=false; setGrabando(false); }
+  }
+
+  window.vozDotToggle = function(){
+    if(!SR){
+      toast('⚠️ Navegador sin soporte de dictado por voz.');
+      alert('Dictado por voz no disponible\n\nEste navegador no soporta la Web Speech API. Usá Google Chrome o Safari actualizados.');
       return;
     }
-    const ta = document.getElementById(targetId);
-    if (!ta) return;
-
-    rec = new SR();
-    rec.lang = 'es-UY';
-    rec.continuous = false;      // se detiene solo tras la pausa del hablante
-    rec.interimResults = true;   // muestra resultado parcial mientras se habla
-    rec.maxAlternatives = 1;
-
-    activoId = targetId;
-    activoBtn = btn;
-
-    // Base = texto ya presente; agregamos separador si hace falta.
-    const base = ta.value;
-    const sep = (base && !/\s$/.test(base)) ? ' ' : '';
-    let finalAcum = '';
-
-    btn.classList.add('grabando');
-    btn.setAttribute('aria-pressed', 'true');
-    const lbl = btn.querySelector('.mic-label');
-    if (lbl) lbl.textContent = 'Escuchando…';
-
-    rec.onresult = function (ev) {
-      let interim = '';
-      for (let i = ev.resultIndex; i < ev.results.length; i++) {
-        const txt = ev.results[i][0].transcript;
-        if (ev.results[i].isFinal) finalAcum += txt;
-        else interim += txt;
-      }
-      // Reflejamos final + parcial en vivo, sin pisar lo previo.
-      ta.value = base + sep + (finalAcum + interim);
-    };
-
-    rec.onerror = function (ev) {
-      if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
-        alert('No se pudo acceder al micrófono. Habilitá el permiso en el navegador para usar el dictado.');
-      }
-      // 'no-speech' / 'aborted' se ignoran silenciosamente.
-    };
-
-    rec.onend = function () {
-      // Consolidamos el texto final (descartamos parciales colgados).
-      ta.value = (base + sep + finalAcum).replace(/\s+$/, finalAcum ? ' ' : '');
-      ta.dispatchEvent(new Event('input', { bubbles: true }));
-      resetBtn(activoBtn);
-      rec = null; activoId = null; activoBtn = null;
-    };
-
-    try {
-      rec.start();
-    } catch (e) {
-      resetBtn(btn);
-      rec = null;
+    if(activo){                       // toggle → detener
+      activo=false;
+      if(rec){ try{ rec.stop(); }catch(_){} }
+      setGrabando(false);
+      toast('🎤 Dictado detenido');
+      return;
     }
+    // El micrófono exige contexto seguro (https:// o localhost). file:// lo bloquea.
+    if(!window.isSecureContext && location.protocol!=='http:'){
+      toast('⚠️ El dictado requiere abrir la app por https:// (no funciona con archivo local).');
+      alert('Dictado no disponible en este contexto\n\nLa Web Speech API solo funciona sobre https:// o localhost.\nAbrí la app desde la URL publicada para usar el micrófono.');
+      return;
+    }
+    destino = campoDestino();
+    if(!destino){
+      toast('👆 Tocá primero el campo donde querés dictar, luego el punto.');
+      return;
+    }
+    esNum = (destino.tagName==='INPUT' && (destino.getAttribute('type')||'').toLowerCase()==='number');
+    base = destino.value || '';
+    sep = (base && !/\s$/.test(base)) ? ' ' : '';
+    finalAcum = '';
+    activo = true;
+    setGrabando(true);
+    const et = etiquetaDe(destino);
+    toast('🎤 Escuchando… dictá ' + (esNum ? 'el número' : 'el texto') + (et ? ' para "'+et+'"' : ''));
+    iniciarRec();
   };
 
-  // Al cambiar de pestaña o cerrar, cortar cualquier dictado en curso.
-  window.addEventListener('beforeunload', detener);
+  // Si no hay soporte, dejar el punto visible pero atenuado.
+  function marcarSoporte(){
+    const d = dot(); if(!d) return;
+    if(!SR){ d.classList.add('no-sop'); d.title='Dictado por voz no soportado en este navegador'; }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', marcarSoporte); else marcarSoporte();
+  window.addEventListener('beforeunload', function(){ activo=false; if(rec){ try{ rec.stop(); }catch(_){} } });
 })();
 
 function generarInforme() {
@@ -17655,6 +17730,9 @@ window.abrirAyudaEco=abrirAyudaEco;window.cerrarAyudaEco=cerrarAyudaEco;window.r
 })();
 </script>
 
+
+<!-- Dictado por voz: punto flotante (dicta en el campo con foco) -->
+<button type="button" id="voz-dot" class="voz-dot" onmousedown="event.preventDefault()" onclick="vozDotToggle()" title="Dictado por voz — tocá un campo y luego este punto" aria-label="Dictado por voz" aria-pressed="false"></button>
 
 </body>
 </html>
