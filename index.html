@@ -112,6 +112,25 @@
   .btn-ghost { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
   .btn-danger { background: var(--red); color: #fff; }
   .btn-green { background: var(--green); color: #0f1117; }
+  /* ══ DICTADO POR VOZ (Web Speech API) ══ */
+  .btn-mic {
+    background: var(--bg3); color: var(--accent2);
+    border: 1px solid var(--border); border-radius: 7px;
+    padding: 4px 10px; font-size: 13px; line-height: 1; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: inherit; transition: background .15s, color .15s, border-color .15s;
+  }
+  .btn-mic:hover { border-color: var(--accent2); }
+  .btn-mic .mic-label { font-size: 11px; font-weight: 600; }
+  .btn-mic.grabando {
+    background: var(--red); color: #fff; border-color: var(--red);
+    animation: micPulse 1.2s ease-in-out infinite;
+  }
+  @keyframes micPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(240,84,84,.5); }
+    50% { box-shadow: 0 0 0 6px rgba(240,84,84,0); }
+  }
+  .btn-mic[hidden] { display: none !important; }
   /* ══ LAYOUT ══ */
   .container { max-width: none; margin: 0; padding: 0; }
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -7875,7 +7894,10 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         </div>
       </div>
       <div class="fg">
-        <label>Informe (autogenerado — editable)</label>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+          <label style="margin:0;">Informe (autogenerado — editable)</label>
+          <button type="button" class="btn-mic" id="mic-informe_texto" onclick="dictadoVoz('informe_texto', this)" title="Dictar por voz (es-UY)" aria-label="Dictar informe por voz">🎤 <span class="mic-label">Dictar</span></button>
+        </div>
         <textarea id="informe_texto" style="min-height:200px;" placeholder="Presione 'Generar Informe' para autocompletar..."></textarea>
       </div>
     </div>
@@ -7884,6 +7906,9 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     <h2 class="card-head">✅ En Suma / Conclusión</h2>
     <div class="card-body">
       <div class="fg">
+        <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:4px;">
+          <button type="button" class="btn-mic" id="mic-en_suma" onclick="dictadoVoz('en_suma', this)" title="Dictar por voz (es-UY)" aria-label="Dictar conclusión por voz">🎤 <span class="mic-label">Dictar</span></button>
+        </div>
         <textarea id="en_suma" style="min-height:120px;" placeholder="Conclusión clínica..."></textarea>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:10px 14px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);">
@@ -11009,6 +11034,100 @@ function initEstiloInforme() {
 }
 window.setEstiloInforme = setEstiloInforme;
 setTimeout(initEstiloInforme, 50);
+
+/* ══════════ DICTADO POR VOZ — Web Speech API nativa (Fase 1) ══════════
+   Sin LLM, sin API key. Usa SpeechRecognition del navegador (Chrome/Safari).
+   Idioma es-UY. Se detiene solo al terminar de hablar (continuous=false).
+   El texto reconocido se agrega al campo destino, respetando lo ya escrito. */
+(function initDictadoVoz() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  // Si el navegador no soporta la API, ocultar los botones de dictado.
+  if (!SR) {
+    document.querySelectorAll('.btn-mic').forEach(b => { b.hidden = true; });
+    return;
+  }
+
+  let rec = null;          // instancia activa de SpeechRecognition
+  let activoId = null;     // id del textarea que se está dictando
+  let activoBtn = null;    // botón que disparó el dictado
+
+  function resetBtn(btn) {
+    if (!btn) return;
+    btn.classList.remove('grabando');
+    const lbl = btn.querySelector('.mic-label');
+    if (lbl) lbl.textContent = 'Dictar';
+    btn.setAttribute('aria-pressed', 'false');
+  }
+
+  function detener() {
+    if (rec) { try { rec.stop(); } catch (e) {} }
+  }
+
+  window.dictadoVoz = function dictadoVoz(targetId, btn) {
+    // Si ya se está grabando: un segundo clic detiene (toggle).
+    if (rec) {
+      detener();
+      return;
+    }
+    const ta = document.getElementById(targetId);
+    if (!ta) return;
+
+    rec = new SR();
+    rec.lang = 'es-UY';
+    rec.continuous = false;      // se detiene solo tras la pausa del hablante
+    rec.interimResults = true;   // muestra resultado parcial mientras se habla
+    rec.maxAlternatives = 1;
+
+    activoId = targetId;
+    activoBtn = btn;
+
+    // Base = texto ya presente; agregamos separador si hace falta.
+    const base = ta.value;
+    const sep = (base && !/\s$/.test(base)) ? ' ' : '';
+    let finalAcum = '';
+
+    btn.classList.add('grabando');
+    btn.setAttribute('aria-pressed', 'true');
+    const lbl = btn.querySelector('.mic-label');
+    if (lbl) lbl.textContent = 'Escuchando…';
+
+    rec.onresult = function (ev) {
+      let interim = '';
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        const txt = ev.results[i][0].transcript;
+        if (ev.results[i].isFinal) finalAcum += txt;
+        else interim += txt;
+      }
+      // Reflejamos final + parcial en vivo, sin pisar lo previo.
+      ta.value = base + sep + (finalAcum + interim);
+    };
+
+    rec.onerror = function (ev) {
+      if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
+        alert('No se pudo acceder al micrófono. Habilitá el permiso en el navegador para usar el dictado.');
+      }
+      // 'no-speech' / 'aborted' se ignoran silenciosamente.
+    };
+
+    rec.onend = function () {
+      // Consolidamos el texto final (descartamos parciales colgados).
+      ta.value = (base + sep + finalAcum).replace(/\s+$/, finalAcum ? ' ' : '');
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+      resetBtn(activoBtn);
+      rec = null; activoId = null; activoBtn = null;
+    };
+
+    try {
+      rec.start();
+    } catch (e) {
+      resetBtn(btn);
+      rec = null;
+    }
+  };
+
+  // Al cambiar de pestaña o cerrar, cortar cualquier dictado en curso.
+  window.addEventListener('beforeunload', detener);
+})();
 
 function generarInforme() {
   const bsa = getBSA();
