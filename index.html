@@ -374,36 +374,38 @@
   .float-informe-btn { background:var(--accent); color:#fff; border:none; cursor:pointer; border-radius:8px 0 0 8px; padding:12px 10px; font-size:11px; font-weight:700; box-shadow:-3px 2px 10px rgba(0,0,0,0.35); transition:background .15s,transform .15s; }
   .float-informe-btn:hover { background:var(--accent2); transform:translateX(-4px); }
   .float-informe-btn.active { background:var(--green); color:#0f1117; }
-  /* ══ DICTADO POR VOZ FLOTANTE (Web Speech API Fase 2) ══ */
+  /* ══ DICTADO POR VOZ FLOTANTE (Web Speech API Fase 2) — botón discreto ══ */
   .voz-fab {
-    position:fixed; right:20px; bottom:20px; z-index:500;
-    width:56px; height:56px; border-radius:50%;
-    background:var(--bg2); color:var(--accent2); border:2px solid var(--accent2);
-    font-size:24px; cursor:pointer; display:flex; align-items:center; justify-content:center;
-    box-shadow:0 4px 16px rgba(0,0,0,.45);
-    transition:transform .15s, background .15s, border-color .15s, color .15s;
+    position:fixed; right:16px; bottom:16px; z-index:500;
+    display:inline-flex; align-items:center; gap:6px;
+    padding:6px 11px; border-radius:8px;
+    background:var(--bg2); color:var(--accent2); border:1px solid var(--accent2);
+    font-family:inherit; font-size:12px; font-weight:600; line-height:1; cursor:pointer;
+    box-shadow:0 3px 12px rgba(0,0,0,.4);
+    transition:background .15s, border-color .15s, color .15s, transform .1s;
   }
-  .voz-fab:hover { transform:scale(1.06); }
-  .voz-fab:active { transform:scale(.95); }
-  .voz-fab:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
+  .voz-fab:hover { transform:translateY(-1px); }
+  .voz-fab:active { transform:translateY(0); }
+  .voz-fab:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .voz-fab .voz-ico { font-size:14px; }
   .voz-fab.escuchando {
     background:var(--red); color:#fff; border-color:var(--red);
     animation:vozPulse 1.3s ease-in-out infinite;
   }
   .voz-fab.procesando { background:var(--yellow); color:#0f1117; border-color:var(--yellow); animation:none; }
-  .voz-fab.no-sop { opacity:.5; }
+  .voz-fab.no-sop { opacity:.55; }
   @keyframes vozPulse {
-    0%,100% { box-shadow:0 0 0 0 rgba(240,84,84,.5), 0 4px 16px rgba(0,0,0,.45); }
-    50% { box-shadow:0 0 0 12px rgba(240,84,84,0), 0 4px 16px rgba(0,0,0,.45); }
+    0%,100% { box-shadow:0 0 0 0 rgba(240,84,84,.45), 0 3px 12px rgba(0,0,0,.4); }
+    50% { box-shadow:0 0 0 8px rgba(240,84,84,0), 0 3px 12px rgba(0,0,0,.4); }
   }
   .voz-badge {
-    position:absolute; top:-4px; right:-4px; min-width:18px; height:18px;
-    background:var(--green); color:#0f1117; border-radius:9px;
-    font-size:10px; font-weight:700; line-height:18px; padding:0 4px; display:none;
+    min-width:16px; height:16px; background:var(--green); color:#0f1117;
+    border-radius:8px; font-size:10px; font-weight:700; line-height:16px;
+    padding:0 4px; display:none; text-align:center;
   }
-  .voz-fab.tiene-conteo .voz-badge { display:block; }
+  .voz-fab.tiene-conteo .voz-badge { display:inline-block; }
   .voz-hint {
-    position:fixed; right:20px; bottom:84px; z-index:500; max-width:260px;
+    position:fixed; right:16px; bottom:54px; z-index:500; max-width:260px;
     background:var(--bg2); color:var(--text); border:1px solid var(--border);
     border-left:3px solid var(--accent2); border-radius:8px; padding:8px 12px;
     font-size:12px; box-shadow:0 4px 16px rgba(0,0,0,.45);
@@ -416,7 +418,6 @@
     100% { box-shadow:0 0 0 0 rgba(0,0,0,0); }
   }
   .voz-flash { animation:vozFlash 1.1s ease-out; }
-  @media(max-width:600px){ .voz-fab{ right:14px; bottom:14px; width:50px; height:50px; font-size:21px; } }
   @media print { .voz-fab, .voz-hint { display:none !important; } }
   @media(max-width:600px){.float-informe-btn{font-size:9px;padding:8px 7px;}}
   @media(max-width:600px){.tab-lab{font-size:9px;padding:8px 7px;}}
@@ -17704,7 +17705,7 @@ window.abrirAyudaEco=abrirAyudaEco;window.cerrarAyudaEco=cerrarAyudaEco;window.r
 <button type="button" id="voz-fab" class="voz-fab" onclick="vozDictadoToggle()"
         title="Dictado por voz (es-UY) — reconoce abreviaturas ecocardiográficas"
         aria-label="Activar dictado por voz" aria-pressed="false">
-  🎤<span class="voz-badge" id="voz-badge">0</span>
+  <span class="voz-ico">🎤</span><span class="voz-label" id="voz-label">Dictado</span><span class="voz-badge" id="voz-badge">0</span>
 </button>
 <script>
 /* ═══════════ DICTADO POR VOZ FLOTANTE — Web Speech API nativa (Fase 2) ═══════════
@@ -17723,7 +17724,7 @@ window.abrirAyudaEco=abrirAyudaEco;window.cerrarAyudaEco=cerrarAyudaEco;window.r
     { keys:['ddfvi','diametro diastolico'], tab:'ai-vi', id:'ddfvi' },
     { keys:['dsfvi','diametro sistolico'], tab:'ai-vi', id:'dsfvi' },
     { keys:['ppvi','pared posterior'], tab:'ai-vi', id:'ppvi' },
-    { keys:['fevi','fraccion de eyeccion'], tab:'ai-vi', id:'fevi' },
+    { keys:['fevi','fe vi','febi','fraccion de eyeccion'], tab:'ai-vi', id:'fevi' },
     { keys:['sgl','strain global longitudinal','strain global'], tab:'ai-vi', id:'sgl' },
     { keys:['volumen latido','volumen de latido','vol latido'], tab:'ai-vi', id:'vol_lat' },
     { keys:['vdfvi','volumen diastolico'], tab:'ai-vi', id:'vdfvi' },
@@ -17868,16 +17869,32 @@ window.abrirAyudaEco=abrirAyudaEco;window.cerrarAyudaEco=cerrarAyudaEco;window.r
     return true;
   }
 
-  // Procesa un tramo final de transcripción: casa variables y carga valores.
-  function procesar(textoRaw){
+  // Normaliza texto + números (coma/punto decimal, "menos", separadores).
+  function prepararTexto(textoRaw){
     let t = ' ' + norm(textoRaw) + ' ';
     t = t.replace(/(\d)\s*[.,]\s*(\d)/g,'$1.$2')
          .replace(/(\d)\s+coma\s+(\d)/g,'$1.$2')
          .replace(/(\d)\s+punto\s+(\d)/g,'$1.$2')
          .replace(/\bmenos\s+(\d)/g,'-$1')
          .replace(/\s+/g,' ');
-    t = ' ' + t.trim() + ' ';
+    return ' ' + t.trim() + ' ';
+  }
 
+  // Une secuencias de letras sueltas: "f e v i" → "fevi" (siglas deletreadas
+  // por el reconocedor). Solo fusiona corridas de tokens de 1 sola letra.
+  function colapsarLetras(t){
+    const toks = t.trim().split(' ').filter(Boolean);
+    const out=[]; let buf='';
+    for(const w of toks){
+      if(/^[a-z]$/.test(w)) buf+=w;
+      else { if(buf){ out.push(buf); buf=''; } out.push(w); }
+    }
+    if(buf) out.push(buf);
+    return ' ' + out.join(' ') + ' ';
+  }
+
+  // Busca todas las variables (frase→campo) presentes en el texto normalizado.
+  function matchear(t){
     const consumed = new Array(t.length).fill(false);
     const hits = [];
     for(const {k,e} of FRASES){
@@ -17891,29 +17908,53 @@ window.abrirAyudaEco=abrirAyudaEco;window.cerrarAyudaEco=cerrarAyudaEco;window.r
       }
     }
     hits.sort((a,b)=>a.start-b.start);
+    return hits;
+  }
+
+  // Procesa un tramo final de transcripción: casa variables y carga valores.
+  function procesar(textoRaw){
+    let t = prepararTexto(textoRaw);
+    let hits = matchear(t);
+    // Fallback: si nada casó, probar uniendo letras deletreadas (siglas).
+    if(hits.length===0){
+      const t2 = colapsarLetras(t);
+      if(t2 !== t){
+        const h2 = matchear(t2);
+        if(h2.length){ t=t2; hits=h2; }
+      }
+    }
     let n=0;
     for(let h=0; h<hits.length; h++){
       const finSeg = (h+1<hits.length) ? hits[h+1].start : t.length;
       const num = extraerNumero(t.slice(hits[h].end, finSeg));
       if(num!==null && num!=='') { if(setCampo(hits[h].e, num)) n++; }
     }
+    dbg('transcripción:', JSON.stringify(textoRaw.trim()), '→', n, 'campo(s) cargado(s)');
+    // Diagnóstico: el reconocedor entendió algo pero no mapeó ninguna variable.
+    if(n===0) mostrarHint('Escuché: "' + textoRaw.trim() + '" — sin variable reconocida');
     return n;
   }
 
   // ── Ciclo de vida del reconocedor ──
-  let rec=null, activo=false, procTimer=null;
+  let rec=null, activo=false, procTimer=null, langActual='es-UY', reiniciando=false;
+
+  function dbg(){ try{ console.log('[voz]', ...arguments); }catch(_){} }
 
   function setEstado(estado){
     const fab=document.getElementById('voz-fab'); if(!fab) return;
+    const lbl=document.getElementById('voz-label');
     fab.classList.remove('escuchando','procesando');
-    if(estado==='escuchando'){ fab.classList.add('escuchando'); fab.setAttribute('aria-pressed','true'); }
-    else if(estado==='procesando'){ fab.classList.add('procesando'); }
-    else { fab.setAttribute('aria-pressed','false'); }
+    if(estado==='escuchando'){ fab.classList.add('escuchando'); fab.setAttribute('aria-pressed','true'); if(lbl) lbl.textContent='Escuchando'; }
+    else if(estado==='procesando'){ fab.classList.add('procesando'); if(lbl) lbl.textContent='Procesando'; }
+    else { fab.setAttribute('aria-pressed','false'); if(lbl) lbl.textContent='Dictado'; }
   }
 
   function iniciarRec(){
     rec = new SR();
-    rec.lang='es-UY'; rec.continuous=true; rec.interimResults=true; rec.maxAlternatives=1;
+    rec.lang=langActual; rec.continuous=true; rec.interimResults=true; rec.maxAlternatives=1;
+    rec.onstart = function(){ dbg('reconocimiento iniciado (es-UY)'); };
+    rec.onaudiostart = function(){ dbg('captura de audio activa'); };
+    rec.onspeechstart = function(){ dbg('voz detectada'); };
     rec.onresult = function(ev){
       let fin='';
       for(let i=ev.resultIndex;i<ev.results.length;i++){
@@ -17927,25 +17968,47 @@ window.abrirAyudaEco=abrirAyudaEco;window.cerrarAyudaEco=cerrarAyudaEco;window.r
       }
     };
     rec.onerror = function(ev){
-      if(ev.error==='not-allowed' || ev.error==='service-not-allowed'){
+      dbg('error:', ev.error, ev.message||'');
+      const e = ev.error;
+      if(e==='not-allowed' || e==='service-not-allowed'){
         activo=false; setEstado('inactivo');
-        toast('⚠️ Micrófono bloqueado. Habilitá el permiso del navegador.');
-      } else if(ev.error==='audio-capture'){
+        toast('⚠️ Micrófono bloqueado. Tocá el 🔒 de la barra de direcciones y permití el micrófono.');
+      } else if(e==='audio-capture'){
         activo=false; setEstado('inactivo');
-        toast('⚠️ No se detectó micrófono.');
+        toast('⚠️ No se detectó micrófono conectado.');
+      } else if(e==='network'){
+        activo=false; setEstado('inactivo');
+        toast('⚠️ El dictado necesita conexión a internet (servicio de voz del navegador).');
+      } else if(e==='language-not-supported'){
+        // reintentar con español genérico si es-UY no está disponible
+        langActual='es-ES'; reiniciando=true;
+        toast('⚠️ es-UY no disponible; reintentando con español genérico.');
+        if(rec){ try{ rec.stop(); }catch(_){} }
+        setTimeout(()=>{ reiniciando=false; if(activo) iniciarRec(); }, 250);
+      } else if(e!=='no-speech' && e!=='aborted'){
+        toast('⚠️ Dictado interrumpido: ' + e);
       }
-      // 'no-speech' / 'aborted' → onend lo reinicia
+      // 'no-speech' / 'aborted' → onend lo reinicia (dictado continuo)
     };
     rec.onend = function(){
-      if(activo){
+      dbg('reconocimiento finalizado; activo=', activo);
+      if(activo && !reiniciando){
         // Dictado continuo: Chrome corta tras silencios → reiniciar.
         try{ rec.start(); }
-        catch(_){ setTimeout(()=>{ if(activo){ try{ rec.start(); }catch(e){} } }, 300); }
-      } else {
+        catch(_){ setTimeout(()=>{ if(activo && !reiniciando){ try{ rec.start(); }catch(e){} } }, 300); }
+      } else if(!activo){
         setEstado('inactivo');
       }
     };
-    try{ rec.start(); }catch(e){/* ya en curso */}
+    try{ rec.start(); }catch(e){ dbg('start() lanzó', e && e.message); }
+  }
+  // Reasigna handlers a la instancia `rec` actual (usado tras recrear rec).
+  function iniciarRecHandlers(){
+    const prev = rec;
+    // reutiliza la lógica de iniciarRec sin volver a crear la instancia:
+    rec.onstart = prev.onstart; rec.onaudiostart = prev.onaudiostart;
+    rec.onspeechstart = prev.onspeechstart; rec.onresult = prev.onresult;
+    rec.onerror = prev.onerror; rec.onend = prev.onend;
   }
 
   window.vozDictadoToggle = function(){
@@ -17961,6 +18024,15 @@ window.abrirAyudaEco=abrirAyudaEco;window.cerrarAyudaEco=cerrarAyudaEco;window.r
       toast('🎤 Dictado detenido' + (conteo? ' — '+conteo+' campo(s) cargado(s)':''));
       return;
     }
+    // El micrófono exige contexto seguro (https:// o localhost). Con file://
+    // el navegador bloquea el acceso y el dictado nunca arranca.
+    if(!window.isSecureContext && location.protocol!=='http:'){
+      dbg('contexto inseguro:', location.protocol);
+      toast('⚠️ El dictado requiere abrir la app por https:// (no funciona con archivo local).');
+      alert('Dictado no disponible en este contexto\n\nLa Web Speech API solo funciona sobre https:// o localhost. Estás abriendo la página como "'+location.protocol+'".\n\nAbrila desde la URL publicada (GitHub Pages) para usar el micrófono.');
+      return;
+    }
+    langActual='es-UY';
     activo=true; conteo=0; actualizarBadge();
     setEstado('escuchando');
     toast('🎤 Escuchando… dictá "variable + valor" (ej: "SIV 11", "FEVI 55")');
