@@ -1,0 +1,31 @@
+name: CeiboMed Security (Semgrep)
+
+# Se ejecuta en cada push (cualquier rama) y permite corrida manual desde la pestaña Actions.
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read   # mínimo indispensable; el workflow solo lee el código
+
+jobs:
+  semgrep:
+    name: Escaneo Semgrep (reglas CeiboMed)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del repo
+        uses: actions/checkout@v4
+
+      - name: Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar Semgrep (misma versión que local)
+        run: pip install semgrep==1.172.0
+
+      - name: Escanear index.html con las reglas CeiboMed
+        run: python3 .ceibomed-security/scan.py index.html
+        # scan.py imprime el reporte y sale con código 1 si hay hallazgos ERROR.
+        # Exit 1 -> el job falla (rojo) -> GitHub envía el email de "workflow run failed".
+        # Solo los ERROR bloquean; los WARNING se listan pero pasan en verde.

@@ -1,0 +1,116 @@
+rules:
+  # ───────── XSS (equivalente p/xss, OWASP A03) ─────────
+  - id: ceibo-xss-innerhtml-concat
+    languages: [javascript]
+    severity: WARNING
+    message: >
+      innerHTML asignado con concatenacion/template de variables. Riesgo de XSS
+      si el dato proviene del usuario. Escapar con esc()/escHtml o usar textContent.
+    metadata: { category: security, owasp: "A03:2021", cwe: "CWE-79" }
+    patterns:
+      - pattern-either:
+          - pattern: $EL.innerHTML = `...${$X}...`
+          - pattern: $EL.innerHTML = $A + $B
+          - pattern: $EL.innerHTML += `...${$X}...`
+          - pattern: $EL.innerHTML += $A + $B
+  - id: ceibo-xss-insertadjacenthtml
+    languages: [javascript]
+    severity: WARNING
+    message: insertAdjacentHTML con dato dinamico - posible XSS. Validar/escapar la entrada.
+    metadata: { category: security, owasp: "A03:2021", cwe: "CWE-79" }
+    pattern: $EL.insertAdjacentHTML($POS, $HTML)
+  - id: ceibo-xss-document-write
+    languages: [javascript]
+    severity: WARNING
+    message: document.write() es un sink de XSS y esta desaconsejado.
+    metadata: { category: security, owasp: "A03:2021", cwe: "CWE-79" }
+    pattern-either:
+      - pattern: document.write(...)
+      - pattern: document.writeln(...)
+  - id: ceibo-xss-outerhtml
+    languages: [javascript]
+    severity: WARNING
+    message: outerHTML asignado con dato dinamico - posible XSS.
+    metadata: { category: security, owasp: "A03:2021", cwe: "CWE-79" }
+    patterns:
+      - pattern-either:
+          - pattern: $EL.outerHTML = `...${$X}...`
+          - pattern: $EL.outerHTML = $A + $B
+  - id: ceibo-xss-inline-event-dynamic
+    languages: [generic]
+    severity: WARNING
+    message: Atributo de evento HTML construido con datos dinámicos; usar data-* y addEventListener.
+    metadata: { category: security, owasp: "A03:2021", cwe: "CWE-79" }
+    pattern-regex: '(?i)on(?:click|change|input|submit|focus|blur|load|error|mouseover|mouseenter|mouseleave|keydown|keyup)[^\n]{0,200}(?:\\["'']["'']?\s*\+\s*[A-Za-z_$]|\$\{)'
+  - id: ceibo-xss-event-property-dynamic
+    languages: [javascript]
+    severity: WARNING
+    message: Propiedad de evento asignada dinámicamente; verificar que sea una función confiable y no código importado.
+    metadata: { category: security, owasp: "A03:2021", cwe: "CWE-79" }
+    patterns:
+      - pattern-either:
+          - pattern: $EL.onclick = $VALUE
+          - pattern: $EL.onchange = $VALUE
+          - pattern: $EL.oninput = $VALUE
+          - pattern: $EL.onsubmit = $VALUE
+          - pattern: $EL.onerror = $VALUE
+          - pattern: $EL.onload = $VALUE
+      - pattern-not: $EL.$EVENT = function (...) { ... }
+      - pattern-not: $EL.$EVENT = (...) => ...
+  - id: ceibo-xss-setattribute-event
+    languages: [javascript]
+    severity: WARNING
+    message: setAttribute crea un manejador inline dinámico; usar addEventListener.
+    metadata: { category: security, owasp: "A03:2021", cwe: "CWE-79" }
+    pattern-either:
+      - pattern: $EL.setAttribute("onclick", $VALUE)
+      - pattern: $EL.setAttribute("onchange", $VALUE)
+      - pattern: $EL.setAttribute("oninput", $VALUE)
+      - pattern: $EL.setAttribute("onsubmit", $VALUE)
+      - pattern: $EL.setAttribute("onerror", $VALUE)
+      - pattern: $EL.setAttribute("onload", $VALUE)
+  # ───────── Code injection (equivalente p/javascript, OWASP A03) ─────────
+  - id: ceibo-eval-use
+    languages: [javascript]
+    severity: ERROR
+    message: eval() ejecuta codigo arbitrario - evitar. Usar JSON.parse u otra alternativa.
+    metadata: { category: security, owasp: "A03:2021", cwe: "CWE-95" }
+    pattern: eval(...)
+  - id: ceibo-new-function
+    languages: [javascript]
+    severity: WARNING
+    message: new Function(...) equivale a eval - evitar construir codigo desde strings.
+    metadata: { category: security, owasp: "A03:2021", cwe: "CWE-95" }
+    pattern: new Function(...)
+  - id: ceibo-settimeout-string
+    languages: [javascript]
+    severity: WARNING
+    message: setTimeout/setInterval con string se evalua como codigo - pasar una funcion.
+    metadata: { category: security, cwe: "CWE-95" }
+    pattern-either:
+      - pattern: setTimeout("...", ...)
+      - pattern: setInterval("...", ...)
+  # ───────── Secrets (equivalente p/secrets, OWASP A07) ─────────
+  - id: ceibo-hardcoded-anthropic-key
+    languages: [generic]
+    severity: ERROR
+    message: Clave de API de Anthropic hardcodeada en el codigo fuente. Nunca commitear claves.
+    metadata: { category: security, owasp: "A07:2021", cwe: "CWE-798" }
+    pattern-regex: sk-ant-[A-Za-z0-9_\-]{12,}
+  - id: ceibo-hardcoded-generic-secret
+    languages: [generic]
+    severity: WARNING
+    message: Posible credencial/secreto asignado en el codigo (api key / password / token / secret).
+    metadata: { category: security, owasp: "A07:2021", cwe: "CWE-798" }
+    patterns:
+      - pattern-regex: (?i)(api[_-]?key|password|passwd|secret|token)\s*[:=]\s*["'][^"'\s]{12,}["']
+      - pattern-not-regex: (?i)(placeholder|example|your[_-]?key|xxxx|sk-ant-\.\.\.)
+  # ───────── Almacenamiento inseguro de secretos (OWASP A07) ─────────
+  - id: ceibo-secret-in-localstorage
+    languages: [generic]
+    severity: WARNING
+    message: >
+      Posible secreto (api key/token) guardado en localStorage: persiste en disco y es
+      accesible a cualquier script. Preferir sessionStorage o no persistir.
+    metadata: { category: security, owasp: "A07:2021", cwe: "CWE-522" }
+    pattern-regex: localStorage\.setItem\(\s*["'][^"']*(api[_-]?key|token|secret|password)[^"']*["']
