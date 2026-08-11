@@ -12199,25 +12199,12 @@ function generarPDFReal() {
   // ════════════════════════════════════════════════════════════
   const informeTxt = sv('informe_texto');
   if (informeTxt) {
-    checkPage(16);   // no dejar la barra INFORME huérfana al pie
     drawBar('INFORME');
     y += 2;
-    fn(7.5); tc(13,13,13);
-    // Condensar el informe narrativo en 3 párrafos cortos (re-flujo compacto A4)
-    const _oraciones = informeTxt.split(/\n+/).map(s => s.trim()).filter(Boolean);
-    const _parrafos = [];
-    if (_oraciones.length) {
-      const _nPar = Math.min(3, _oraciones.length);
-      const _chunk = Math.ceil(_oraciones.length / _nPar);
-      for (let _i = 0; _i < _oraciones.length; _i += _chunk) {
-        _parrafos.push(_oraciones.slice(_i, _i + _chunk).join(' '));
-      }
-    }
-    _parrafos.forEach(p => {
-      doc.splitTextToSize(p, pgW-4).forEach(l => { checkPage(5); doc.text(l, mL+2, y); y += 4.2; });
-      y += 1.8;   // separación entre párrafos
-    });
-    y += 1.2;
+    fn(8); tc(13,13,13);
+    const iL = doc.splitTextToSize(informeTxt, pgW-4);
+    iL.forEach(l=>{ checkPage(6); doc.text(l,mL+2,y); y+=5.5; });
+    y += 3;
   }
 
   // ════════════════════════════════════════════════════════════
@@ -12225,30 +12212,12 @@ function generarPDFReal() {
   // ════════════════════════════════════════════════════════════
   const sumaTxt = sv('en_suma');
   if (sumaTxt) {
-    checkPage(20);   // mantener la barra EN SUMA junto a sus chips (no huérfana al pie)
     drawBar('EN SUMA:');
-    y += 4;
-    // EN SUMA como chips/badges en línea horizontal (con wrap)
-    const _chips = sumaTxt.split(/\n+/).map(s => s.trim().replace(/\.+$/,'')).filter(Boolean);
-    const _chH = 5.0, _padX = 2.2, _gapX = 2, _gapY = 2;
-    let _cx = mL, _cy = y;
-    checkPage(_chH + 4);
-    _cy = y;
-    _chips.forEach(txt => {
-      fn(7);
-      const _cw = doc.getTextWidth(txt) + _padX*2;
-      if (_cx + _cw > mR) {
-        _cx = mL; _cy += _chH + _gapY;
-        if (_cy + _chH > 288) { doc.addPage(); _cy = 14; }
-      }
-      doc.setFillColor(238,242,248);
-      dc(TEMA[0],TEMA[1],TEMA[2]); doc.setLineWidth(0.3);
-      doc.roundedRect(_cx, _cy-3.6, _cw, _chH, 1.1, 1.1, 'FD');
-      fb(7); tc(TEMA[0],TEMA[1],TEMA[2]);
-      doc.text(txt, _cx + _padX, _cy);
-      _cx += _cw + _gapX;
-    });
-    y = _cy + _chH - 1.5;
+    y += 2;
+    fi(8); tc(TEMA[0],TEMA[1],TEMA[2]);
+    const sL = doc.splitTextToSize(sumaTxt, pgW-4);
+    sL.forEach(l=>{ checkPage(6); doc.text(l,mL+2,y); y+=5.5; });
+    y += 3;
   }
 
   // ════════════════════════════════════════════════════════════
@@ -15129,42 +15098,40 @@ function contrDibujarLeyenda(){
 }
 
 function contrGetLineasInforme(){
-  if (contrDifusa) return ["Se observa hipocontractilidad difusa del VI."];
-  if (contrMultiple) return ["Se observan múltiples trastornos de la contractilidad segmentaria del VI."];
-  const porMotilidad = {1:[], 2:[], 3:[], 4:[]};
-  let apexIdx = 0;
+  const lineas = [];
+  // 1) Disquinesia septal SIEMPRE primero — no debe omitirse ni quedar al final,
+  //    tampoco cuando además hay hipocontractilidad difusa o múltiples trastornos.
+  if (contrDisqSep) lineas.push("Se observa disquinesia septal.");
+  if (contrDifusa){ lineas.push("Se observa hipocontractilidad difusa del VI."); return lineas; }
+  if (contrMultiple){ lineas.push("Se observan múltiples trastornos de la contractilidad segmentaria del VI."); return lineas; }
+  // 2) Trastornos sectoriales en el ORDEN en que fueron registrados (orden de inserción
+  //    en contrEstado), agrupando los niveles de una misma cara + grado en una sola frase.
+  let apexIdx = 0, apexOrden = Infinity, orden = 0;
+  const grupos = new Map();   // clave "grado|cara" → {idx, cara, niveles[], orden del 1er registro}
   Object.entries(contrEstado).forEach(([id, idx])=>{
     if (idx === 0) return;
-    if (id === "apex"){ apexIdx = idx; return; }
-    porMotilidad[idx].push(id);
+    if (id === "apex"){ if (!apexIdx){ apexIdx = idx; apexOrden = orden; } orden++; return; }
+    const [nivel, ...resto] = id.split("_");
+    const cara = resto.join("_");
+    const clave = idx + "|" + cara;
+    if (!grupos.has(clave)) grupos.set(clave, { idx, cara, niveles: [], orden });
+    grupos.get(clave).niveles.push(nivel);
+    orden++;
   });
-  const lineas = [];
-  for (let idx=1; idx<CONTR_MOTILIDAD.length; idx++){
-    const ids = porMotilidad[idx];
-    if (!ids.length) continue;
-    const porCara = {};
-    ids.forEach(id=>{
-      const [nivel, ...resto] = id.split("_");
-      const cara = resto.join("_");
-      if(!porCara[cara]) porCara[cara] = [];
-      porCara[cara].push(nivel);
-    });
-    const frasesCara = Object.entries(porCara).map(([cara, niveles])=>{
-      const nivelesTxt = [...new Set(niveles)]
-        .sort((a,b)=> ["basal","mid","apical"].indexOf(a)-["basal","mid","apical"].indexOf(b))
-        .map(n=>CONTR_NIVEL_TEXTO[n]);
-      let nivelesStr;
-      if (nivelesTxt.length===1) nivelesStr = nivelesTxt[0];
-      else if (nivelesTxt.length===2) nivelesStr = nivelesTxt.join(" y ");
-      else nivelesStr = nivelesTxt.slice(0,-1).join(", ") + " y " + nivelesTxt.slice(-1);
-      return `cara ${CONTR_CARA_TEXTO[cara]||cara} (${nivelesStr})`;
-    });
-    lineas.push(`${CONTR_MOTILIDAD[idx].nombre}: ${frasesCara.join("; ")}.`);
-  }
-  if (apexIdx){
-    lineas.push(`${CONTR_MOTILIDAD[apexIdx].nombre}: ápex (segmento 17).`);
-  }
-  if (contrDisqSep) lineas.push("Se observa disquinesia septal.");
+  const items = [...grupos.values()];
+  if (apexIdx) items.push({ apex: true, idx: apexIdx, orden: apexOrden });
+  items.sort((a, b)=> a.orden - b.orden);   // respetar el orden de registro
+  items.forEach(g=>{
+    if (g.apex){ lineas.push(`${CONTR_MOTILIDAD[g.idx].nombre}: ápex (segmento 17).`); return; }
+    const nivelesTxt = [...new Set(g.niveles)]
+      .sort((a,b)=> ["basal","mid","apical"].indexOf(a)-["basal","mid","apical"].indexOf(b))
+      .map(n=>CONTR_NIVEL_TEXTO[n]);
+    let nivelesStr;
+    if (nivelesTxt.length===1) nivelesStr = nivelesTxt[0];
+    else if (nivelesTxt.length===2) nivelesStr = nivelesTxt.join(" y ");
+    else nivelesStr = nivelesTxt.slice(0,-1).join(", ") + " y " + nivelesTxt.slice(-1);
+    lineas.push(`${CONTR_MOTILIDAD[g.idx].nombre}: cara ${CONTR_CARA_TEXTO[g.cara]||g.cara} (${nivelesStr}).`);
+  });
   return lineas;
 }
 
