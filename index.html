@@ -11821,10 +11821,26 @@ function generarPDFReal() {
 
     const n    = secs.length;
     const cW   = pgW / n;
-    // Espaciado compacto A4: header 4.4 mm, filas 4.2 mm (padding vertical ~0.5 mm)
-    const hH   = 4.4, rH = 4.2;
+    // Espaciado compacto A4: header 4.4 mm; filas con altura dinámica (envuelven texto largo sin desbordar)
+    const hH = 4.4, lineH = 3.0, rowPad = 1.3;
     const maxR = Math.max(...secs.map(s => s.items.length));
-    const tblH = hH + maxR * rH;
+
+    // Pre-cálculo: envolver cada valor y medir cuántas líneas ocupa
+    secs.forEach(sec => sec.items.forEach(it => {
+      fb(7); it._lw = doc.getTextWidth(it.lbl);
+      it._suf = it.ref ? ' ('+it.ref+'): '+it.val : ': '+it.val;
+      fn(7); it._lines = doc.splitTextToSize(it._suf, Math.max(6, cW - 4 - it._lw));
+    }));
+    // Altura de cada fila = máx. de líneas entre las columnas de esa fila
+    const rowH = [];
+    for (let ri = 0; ri < maxR; ri++) {
+      let ml = 1;
+      secs.forEach(sec => { const it = sec.items[ri]; if (it) ml = Math.max(ml, it._lines.length); });
+      rowH[ri] = rowPad + ml * lineH;
+    }
+    const rowY = []; let acc = 0;
+    for (let ri = 0; ri < maxR; ri++) { rowY[ri] = acc; acc += rowH[ri]; }
+    const tblH = hH + acc;
 
     checkPage(tblH + 3);
 
@@ -11836,24 +11852,23 @@ function generarPDFReal() {
       doc.text(sec.titulo, sx+2, y+3.1);
     });
 
-    // ── data rows ──
+    // ── data rows (altura variable) ──
     for (let ri = 0; ri < maxR; ri++) {
-      const ry = y + hH + ri * rH;
+      const ry = y + hH + rowY[ri];
       secs.forEach((sec, si) => {
         const sx = mL + si * cW;
-        fc(255,255,255); doc.rect(sx, ry, cW, rH, 'F');
+        fc(255,255,255); doc.rect(sx, ry, cW, rowH[ri], 'F');
         const it = sec.items[ri];
         if (!it) return;
         const cx = sx + 2;
-        const maxW = cW - 4;
         // bold label
         fb(7); tc(13,13,13);
-        doc.text(it.lbl, cx, ry + 2.9);
-        const lw = doc.getTextWidth(it.lbl);
-        // normal (ref): val
+        doc.text(it.lbl, cx, ry + 2.6);
+        // normal (ref): val — línea 0 tras el label; continuación bajo el label
         fn(7); tc(30,30,30);
-        const suf = it.ref ? ' ('+it.ref+'): '+it.val : ': '+it.val;
-        doc.text(suf, cx+lw, ry+2.9, {maxWidth: maxW-lw});
+        it._lines.forEach((ln, li) => {
+          doc.text(ln, li === 0 ? cx + it._lw : cx, ry + 2.6 + li * lineH);
+        });
       });
     }
 
@@ -11866,7 +11881,7 @@ function generarPDFReal() {
     // horizontal row dividers
     dc(210,210,210); doc.setLineWidth(0.2);
     for (let ri = 1; ri < maxR; ri++) {
-      doc.line(mL, y+hH+ri*rH, mR, y+hH+ri*rH);
+      doc.line(mL, y+hH+rowY[ri], mR, y+hH+rowY[ri]);
     }
     // vertical section dividers
     if (n > 1) {
@@ -11991,21 +12006,36 @@ function generarPDFReal() {
   ].filter(r => r.some(c=>c.val));
 
   if (pRows.length) {
-    const rHp=5.0, boxH=pRows.length*rHp;
-    checkPage(boxH+4);
+    // Alturas de fila dinámicas: cada fila crece según el texto envuelto más largo (evita solapamientos)
+    const lineH = 3.4, padTop = 3.4, padBot = 1.6;
+    const rowsCalc = pRows.map(row => {
+      const colW = pgW / row.length;
+      const cells = row.map(cell => {
+        if (!cell.val) return null;
+        fb(7); const lw = doc.getTextWidth(cell.lbl + ': ');
+        fn(7.5); const lines = doc.splitTextToSize(String(cell.val), Math.max(6, colW - lw - 3));
+        return { cell, lw, lines, colW };
+      });
+      const maxLines = Math.max(1, ...cells.map(c => c ? c.lines.length : 1));
+      return { cells, rowH: padBot + maxLines * lineH };
+    });
+    const boxH = rowsCalc.reduce((a, r) => a + r.rowH, 0);
+    checkPage(boxH + 4);
     fc(255,255,255); doc.rect(mL,y,pgW,boxH,'F');
     dc(170,185,210); doc.setLineWidth(0.6); doc.rect(mL,y,pgW,boxH);
-    pRows.forEach((row,ri)=>{
-      const ry=y+ri*rHp;
-      if(ri>0){ dc(204,212,228); doc.setLineWidth(0.2); doc.line(mL+1,ry,mR-1,ry); }
-      const colW=pgW/row.length;
-      row.forEach((cell,ci)=>{
-        if(!cell.val) return;
-        const cx=mL+ci*colW+2;
-        fb(7); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(cell.lbl+': ',cx,ry+3.4);
-        const lw=doc.getTextWidth(cell.lbl+': ');
-        fn(7.5); tc(13,13,13); doc.text(String(cell.val),cx+lw,ry+3.4,{maxWidth:colW-lw-3});
+    let ry = y;
+    rowsCalc.forEach((rc, ri) => {
+      if (ri > 0) { dc(204,212,228); doc.setLineWidth(0.2); doc.line(mL+1, ry, mR-1, ry); }
+      rc.cells.forEach((c, ci) => {
+        if (!c) return;
+        const cx = mL + ci * c.colW + 2;
+        fb(7); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(c.cell.lbl + ': ', cx, ry + padTop);
+        fn(7.5); tc(13,13,13);
+        c.lines.forEach((ln, li) => {
+          doc.text(ln, li === 0 ? cx + c.lw : cx, ry + padTop + li * lineH);
+        });
       });
+      ry += rc.rowH;
     });
     y += boxH + 3;
   }
@@ -12047,7 +12077,7 @@ function generarPDFReal() {
     ]},
     {titulo:'VI - Funcion sistolica', items:[
       // FEVI normal ≥50% — criterio ASE Chamber Quantification 2025
-      {lbl:'FEVI',      ref:'≥' + UMBRAL_FEVI_NORMAL + '%',           val:feviS},
+      {lbl:'FEVI',      ref:'>=' + UMBRAL_FEVI_NORMAL + '%',           val:feviS},
       {lbl:'FA',        ref:'>=28%',           val:faStr},
       {lbl:'SGL',       ref:'>=-18%',          val:sglS},
       {lbl:'Vol. lat.', ref:'55-100 ml',       val:v('vol_lat')?v('vol_lat')+' ml':null},
@@ -12057,7 +12087,7 @@ function generarPDFReal() {
     ]},
     {titulo:'Ventrículo Derecho', items:[
       {lbl:'TAP',         ref:'>105 ms',    val:v('tvia')   ?v('tvia')   +' ms'  :null},
-      {lbl:'TAPSE',       ref:'≥' + UMBRAL_TAPSE_NORMAL + ' mm',     val:v('tapse')  ?v('tapse')  +' mm'  :null},
+      {lbl:'TAPSE',       ref:'>=' + UMBRAL_TAPSE_NORMAL + ' mm',     val:v('tapse')  ?v('tapse')  +' mm'  :null},
       {lbl:"S'",          ref:'>9.5 cm/s',  val:v('s_prime')?v('s_prime')+' cm/s':null},
       {lbl:'Diám. basal', ref:'<42 mm',     val:v('vd_bas') ?v('vd_bas') +' mm'  :null},
       {lbl:'Diám. medio', ref:'',           val:v('vd_mid') ?v('vd_mid') +' mm'  :null},
@@ -12169,6 +12199,7 @@ function generarPDFReal() {
   // ════════════════════════════════════════════════════════════
   const informeTxt = sv('informe_texto');
   if (informeTxt) {
+    checkPage(16);   // no dejar la barra INFORME huérfana al pie
     drawBar('INFORME');
     y += 2;
     fn(7.5); tc(13,13,13);
@@ -12194,6 +12225,7 @@ function generarPDFReal() {
   // ════════════════════════════════════════════════════════════
   const sumaTxt = sv('en_suma');
   if (sumaTxt) {
+    checkPage(20);   // mantener la barra EN SUMA junto a sus chips (no huérfana al pie)
     drawBar('EN SUMA:');
     y += 4;
     // EN SUMA como chips/badges en línea horizontal (con wrap)
@@ -12566,8 +12598,8 @@ function generarPDFReal() {
   // ════════════════════════════════════════════════════════════
   // 19-21. FIRMA — siempre al final de todo el PDF (después de las imágenes)
   // ════════════════════════════════════════════════════════════
-  checkPage(28);
-  y += 6;
+  checkPage(22);
+  y += 3;
   dc(180,180,180); doc.setLineWidth(0.4); doc.line(mL,y,mR,y); y += 5;
   // Firma leída desde localStorage (firma_centro_<centro activo>); fallback a valores por defecto
   let _firma = null;
