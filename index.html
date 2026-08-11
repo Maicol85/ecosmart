@@ -1468,7 +1468,14 @@ window.cerrarSesion = cerrarSesion;
       <div class="calc-box" style="margin-top:8px;">
         <div class="calc-row"><span class="calc-lbl">PAP media (IP proto-diast.)</span><span class="calc-val" id="ip-papm-row">—</span></div>
         <div class="calc-row"><span class="calc-lbl">PAP diastólica (IP tele-diast.)</span><span class="calc-val" id="ip-papd-row">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Grado IP</span><span id="ip-grado-row">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Grado IP <span style="font-weight:400;color:var(--text2);font-size:10px;">— manual: evaluación integral (densidad jet CW, tiempo de desaceleración, vena contracta)</span></span>
+          <select id="ip_grado" style="min-width:180px;">
+            <option value="">Sin insuficiencia</option>
+            <option value="IP leve (fisiológica)">IP leve (fisiológica)</option>
+            <option value="IP moderada">IP moderada</option>
+            <option value="IP severa">IP severa</option>
+          </select>
+        </div>
       </div>
     </div>
   </div>
@@ -10612,7 +10619,6 @@ function calcIP() {
 
   const papmRow  = document.getElementById('ip-papm-row');
   const papdRow  = document.getElementById('ip-papd-row');
-  const gradoRow = document.getElementById('ip-grado-row');
   const papdDisp = document.getElementById('ip_papd');
   const pmadDisp = document.getElementById('ip_pmad_display');
 
@@ -10643,16 +10649,9 @@ function calcIP() {
     if (papdRow)  papdRow.textContent = '—';
   }
 
-  // Grado IP por Vmax proto-diastólica (ESC 2021)
-  if (vmax) {
-    let grado, color;
-    if (vmax < 1.0)      { grado = 'Leve (<1.0 m/s)';          color = '#3ecf8e'; }
-    else if (vmax < 1.5) { grado = 'Moderada (1.0–1.5 m/s)';   color = '#f59e0b'; }
-    else                 { grado = 'Severa (≥1.5 m/s)';         color = 'var(--red)'; }
-    if (gradoRow) gradoRow.innerHTML = `<span style="color:${color};font-weight:700;">${grado}</span>`;
-  } else {
-    if (gradoRow) gradoRow.textContent = '—';
-  }
+  // El grado de IP se elige manualmente en el select #ip_grado (evaluación integral:
+  // densidad del jet por CW, tiempo de desaceleración, vena contracta). La Vmax
+  // telediastólica/proto-diastólica sólo alimenta las presiones (PAPm/PAPd), no el grado.
 }
 window.calcIP = calcIP;
 
@@ -14590,7 +14589,7 @@ const _IG_SECTIONS = [
   ]},
   { titulo:'🔁 Válvulas', fields:[
     {id:'im_grado',lbl:'IM grado',grades:true},{id:'ia_grado',lbl:'IA grado',grades:true},
-    {id:'it_grado',lbl:'IT grado',grades:true},{id:'ip_grado',lbl:'IP grado',grades:true},
+    {id:'it_grado',lbl:'IT grado',grades:true},{id:'ip_grado',lbl:'IP grado'},
     {id:'em_grado',lbl:'EM grado',grades:true},{id:'ea_grado',lbl:'EA grado',grades:true},
     {id:'et_grado',lbl:'ET grado',grades:true}
   ]}
