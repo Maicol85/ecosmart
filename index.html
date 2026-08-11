@@ -11029,36 +11029,42 @@ function generarInforme() {
   let inf = [];
   let suma = [];
 
-  // ── Técnica del procedimiento ETE: solo si el toggle "Incluir técnica" está activo ──
+  // Helper: capitaliza la primera letra de la oración
+  const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+
+  // Técnica del procedimiento ETE (toggle "Incluir técnica") — se agrega al final, antes de la sección ETE
   const _eteInc = localStorage.getItem('ete_tecnica_incluir') === '1';
   const _eteTecnica = (_eteInc && typeof sv === 'function') ? sv('ete_tecnica').trim() : '';
-  if (_eteTecnica) inf.push(_eteTecnica, '');
 
-  // ── 1. DIMENSIONES VI ──
-  let dimVI = null;
+  // ════════════════════════════════════════════════════════════════════
+  // INFORME NARRATIVO — 13 oraciones fijas, una por párrafo, en orden fijo
+  // ════════════════════════════════════════════════════════════════════
+
+  // Fragmentos DIMENSIONES VI (para la oración 1)
+  let dimVI = null, viFragC = '', viFragE = '', viFragN = '';
   if (ddfvi) {
     dimVI = ddfvi <= 58 ? 'de dimensiones normales' : ddfvi <= 65 ? 'levemente dilatado' : 'dilatado';
     const _vdfviN = v('vdfvi');
     const _bsaN = getBSA();
     if (dimVI === 'de dimensiones normales' && _vdfviN && _bsaN) {
       const _vidx = _vdfviN / _bsaN;
-      const _sexo = sv('sexo');
-      const _limVDF = _sexo === 'F' ? 61 : 75;
+      const _sexoVI = sv('sexo');
+      const _limVDF = _sexoVI === 'F' ? 61 : 75;
       if (_vidx > _limVDF) dimVI = 'levemente dilatado (por volumen indexado)';
     }
     const normalVI = dimVI === 'de dimensiones normales';
-    const c1 = `VI ${dimVI} (DDFVI ${ddfvi} mm).`;
-    const e1 = normalVI
-      ? `Ventrículo izquierdo de dimensiones normales (diámetro diastólico ${ddfvi} mm).`
-      : `Ventrículo izquierdo ${dimVI} con diámetro diastólico de ${ddfvi} mm.`;
-    const n1 = normalVI
-      ? `El ventrículo izquierdo presenta dimensiones dentro de límites normales, con un diámetro diastólico de ${ddfvi} mm.`
-      : `El ventrículo izquierdo se encuentra ${dimVI}, con un diámetro diastólico de ${ddfvi} mm, hallazgo que sugiere remodelado por sobrecarga de volumen o miocardiopatía dilatada.`;
-    inf.push(estiloPick(c1, e1, n1));
+    viFragC = `VI ${dimVI} (DDFVI ${ddfvi} mm)`;
+    viFragE = normalVI
+      ? `Ventrículo izquierdo de dimensiones normales (diámetro diastólico ${ddfvi} mm)`
+      : `Ventrículo izquierdo ${dimVI} con diámetro diastólico de ${ddfvi} mm`;
+    viFragN = normalVI
+      ? `El ventrículo izquierdo presenta dimensiones dentro de límites normales, con un diámetro diastólico de ${ddfvi} mm`
+      : `El ventrículo izquierdo se encuentra ${dimVI}, con un diámetro diastólico de ${ddfvi} mm, hallazgo que sugiere remodelado por sobrecarga de volumen o miocardiopatía dilatada`;
     if (!normalVI) suma.push(`VI ${dimVI}.`);
   }
 
-  // ── 2. FUNCIÓN SISTÓLICA (FEVI) ──
+  // Fragmentos FUNCIÓN SISTÓLICA / FEVI (para la oración 1)
+  let feviFragC = '', feviFragE = '', feviFragN = '';
   if (fevi !== null) {
     let feviConcepto, feviSuma, feviNarr, feviTail;
     if (fevi >= UMBRAL_FEVI_NORMAL) { feviConcepto = 'normal'; feviSuma = `FEVI normal (${fevi}%).`; feviNarr = 'conservada'; feviTail = ', sin evidencia de compromiso de la función sistólica global'; }
@@ -11066,54 +11072,68 @@ function generarInforme() {
     else if (fevi >= 30) { feviConcepto = 'moderadamente reducida'; feviSuma = `FEVI moderadamente reducida (${fevi}%).`; feviNarr = 'moderadamente reducida'; feviTail = ', compatible con disfunción sistólica moderada'; }
     else { feviConcepto = 'severamente reducida'; feviSuma = `FEVI severamente reducida (${fevi}%).`; feviNarr = 'severamente comprometida'; feviTail = ', compatible con miocardiopatía con disfunción sistólica severa'; }
     const metodo = sv('fevi_met') || 'Simpson biplano';
-    const c2 = `FEVI ${feviConcepto} (${fevi}%).`;
-    const e2 = `Función sistólica ${feviConcepto}, FEVI ${fevi}% por ${metodo}.`;
-    const n2 = `La función sistólica global se encuentra ${feviNarr}, con una fracción de eyección del ventrículo izquierdo de ${fevi}% estimada por método de ${metodo}${feviTail}.`;
-    inf.push(estiloPick(c2, e2, n2));
+    feviFragC = `FEVI ${feviConcepto} (${fevi}%)`;
+    feviFragE = `función sistólica ${feviConcepto}, FEVI ${fevi}% por ${metodo}`;
+    feviFragN = `la función sistólica global se encuentra ${feviNarr}, con una fracción de eyección del ventrículo izquierdo de ${fevi}% estimada por método de ${metodo}${feviTail}`;
     suma.push(feviSuma);
   }
 
-  // ── 3. TRASTORNOS DE LA CONTRACTILIDAD (módulo Contractilidad) ──
-  const contrLineas = (typeof contrGetLineasInforme === 'function') ? contrGetLineasInforme() : [];
-  if (contrLineas.length > 0) {
-    contrLineas.forEach(l => inf.push(l));
-    suma.push('Trastornos sectoriales descritos.');
-  } else if (fevi !== null) {
-    inf.push('Sin trastornos de la contractilidad.');
+  // ── 1) VI dimensiones + FEVI (una sola oración) ──
+  {
+    const c = [viFragC, feviFragC].filter(Boolean).join(', ');
+    const e = [viFragE, feviFragE].filter(Boolean).join(', ');
+    const n = [viFragN, feviFragN].filter(Boolean).join(', ');
+    if (c) inf.push(estiloPick(cap(c) + '.', cap(e) + '.', cap(n) + '.'));
   }
 
-  // ── 4. FUNCIÓN DIASTÓLICA (algoritmo seleccionable: BSE 2024 / ASE 2016) ──
-  if (typeof calcDiastol === 'function') calcDiastol();
-  const dRes = window._diastResult;
-  if (dRes && dRes.texto) {
-    inf.push(dRes.texto);
-    if (dRes.textoSuma) suma.push(dRes.textoSuma);
-  } else if (fevi !== null) {
-    inf.push('Función diastólica no valorada por datos insuficientes.');
-  }
-
-  // ── GEOMETRÍA / HVI ──
-  if (ddfvi && siv && ppvi && bsa) {
-    const mass = 0.8*(1.04*((ddfvi/10+siv/10+ppvi/10)**3-(ddfvi/10)**3))+0.6;
-    const massIdx = (mass/bsa).toFixed(0);
-    const rwt = (2*ppvi/ddfvi).toFixed(2);
-    const sexo = sv('sexo');
-    const hvi = (sexo === 'F' && massIdx > 95) || (sexo === 'M' && massIdx > 115) || (!sexo && massIdx > 115);
-    const geom = calcGeometriaVI(PF(massIdx), PF(rwt), sexo);
-    if (geom === 'Normal') {
-      inf.push('Geometría ventricular normal.');
-    } else {
-      let geomTxt = geom.toLowerCase();
-      if (hvi) {
-        const sev = (typeof hviSeveridad === 'function') ? hviSeveridad(massIdx, sexo) : null;
-        if (sev) geomTxt += ` (${sev})`;
+  // ── 2) Geometría ventricular + contractilidad (juntas) ──
+  {
+    let geomStr = '';
+    if (ddfvi && siv && ppvi && bsa) {
+      const mass = 0.8*(1.04*((ddfvi/10+siv/10+ppvi/10)**3-(ddfvi/10)**3))+0.6;
+      const massIdx = (mass/bsa).toFixed(0);
+      const rwt = (2*ppvi/ddfvi).toFixed(2);
+      const sexoG = sv('sexo');
+      const hvi = (sexoG === 'F' && massIdx > 95) || (sexoG === 'M' && massIdx > 115) || (!sexoG && massIdx > 115);
+      const geom = calcGeometriaVI(PF(massIdx), PF(rwt), sexoG);
+      if (geom === 'Normal') {
+        geomStr = 'Geometría ventricular normal.';
+      } else {
+        let geomTxt = geom.toLowerCase();
+        if (hvi) {
+          const sev = (typeof hviSeveridad === 'function') ? hviSeveridad(massIdx, sexoG) : null;
+          if (sev) geomTxt += ` (${sev})`;
+        }
+        geomStr = `${geomTxt.charAt(0).toUpperCase() + geomTxt.slice(1)}.`;
+        suma.push(`HVI — ${geomTxt}.`);
       }
-      inf.push(`${geomTxt.charAt(0).toUpperCase() + geomTxt.slice(1)}.`);
-      suma.push(`HVI — ${geomTxt}.`);
+    }
+    // Contractilidad: una sola oración consolidada, agrupada por severidad
+    let contrStr = '';
+    const _contrFrase = (typeof contrFraseNarrativa === 'function') ? contrFraseNarrativa() : '';
+    if (_contrFrase && _contrFrase !== 'Sin trastornos de la contractilidad.') {
+      contrStr = _contrFrase;
+      suma.push('Trastornos sectoriales descritos.');
+    } else if (fevi !== null) {
+      contrStr = 'Sin trastornos de la contractilidad.';
+    }
+    const s2 = [geomStr, contrStr].filter(Boolean).join(' ');
+    if (s2) inf.push(s2);
+  }
+
+  // ── 3) Función diastólica (algoritmo seleccionable: BSE 2024 / ASE 2016) ──
+  {
+    if (typeof calcDiastol === 'function') calcDiastol();
+    const dRes = window._diastResult;
+    if (dRes && dRes.texto) {
+      inf.push(dRes.texto);
+      if (dRes.textoSuma) suma.push(dRes.textoSuma);
+    } else if (fevi !== null) {
+      inf.push('Función diastólica no valorada por datos insuficientes.');
     }
   }
 
-  // ── AURÍCULA IZQUIERDA ──
+  // ── 4) Aurícula izquierda ──
   if (ai_vol && bsa) {
     const aiIdx = (ai_vol / bsa).toFixed(1);
     let aiStr, aiSuma;
@@ -11139,91 +11159,7 @@ function generarInforme() {
     inf.push(estiloPick('AI normal.', 'Aurícula izquierda de dimensiones normales.', 'La aurícula izquierda es de dimensiones normales.'));
   }
 
-  // Helper: frase estenosis/insuficiencia gramaticalmente correcta en los 4 casos.
-  // est / ins = fragmento (p.ej. 'estenosis moderada', 'insuficiencia leve') o null si ausente.
-  const fraseEI = (est, ins) => {
-    if (!est && !ins) return 'sin estenosis ni insuficiencia';
-    if (est && !ins)  return `con ${est}, sin insuficiencia`;
-    if (!est && ins)  return `sin estenosis, con ${ins}`;
-    const conj = /^[aeiouáéíóúAEIOU]/.test(ins) ? ' e ' : ' y ';
-    return `con ${est}${conj}${ins}`;
-  };
-
-  // ── VÁLVULA MITRAL ──
-  const vmMorf = sv('vm_morf') || 'normal';
-  const emDesc = emG && emG !== 'sin' ? emG.toLowerCase() : null;
-  {
-    const estE = emDesc ? `estenosis ${emDesc}` : (pillOn('mitral','esten') ? 'estenosis' : null);
-    const insE = (imG > 0) ? `insuficiencia ${imTxt[imG]}` : (pillOn('mitral','insuf') ? 'insuficiencia' : null);
-    const estC = emDesc ? `EM ${emDesc}` : (pillOn('mitral','esten') ? 'estenosis' : null);
-    const insC = (imG > 0) ? `IM ${imTxt[imG]}` : (pillOn('mitral','insuf') ? 'insuficiencia' : null);
-    if (emDesc) suma.push(`EM ${emDesc}.`); else if (estE) suma.push('Estenosis mitral.');
-    if (imG > 0) suma.push(`IM ${imTxt[imG]}.`); else if (insE) suma.push('Insuficiencia mitral.');
-    const cE = fraseEI(estE, insE), cC = fraseEI(estC, insC);
-    if (!estE && !insE) {
-      inf.push(estiloPick(
-        `VM normal.`,
-        `Válvula mitral de morfología ${vmMorf.toLowerCase()}, ${cE}.`,
-        `La válvula mitral presenta morfología ${vmMorf.toLowerCase()}, ${cE} significativas.`));
-    } else {
-      inf.push(estiloPick(
-        `VM ${cC}.`,
-        `Válvula mitral de morfología ${vmMorf.toLowerCase()}, ${cE}.`,
-        `La válvula mitral, de morfología ${vmMorf.toLowerCase()}, ${cE}; hallazgo de relevancia clínica que requiere seguimiento ecocardiográfico periódico y evaluación de indicación de intervención según evolución clínica.`));
-    }
-    // Detalle de prolapso / Barlow
-    if (vmMorf === 'Prolapso / EVMS' || vmMorf === 'Mixomatosa / Barlow') {
-      const _segs = [['vm_seg_a1','A1'],['vm_seg_a2','A2'],['vm_seg_a3','A3'],['vm_seg_p1','P1'],['vm_seg_p2','P2'],['vm_seg_p3','P3'],['vm_seg_ca','comisura anterior'],['vm_seg_cp','comisura posterior']]
-        .filter(s => { const el = document.getElementById(s[0]); return el && el.checked; }).map(s => s[1]);
-      const _carp = sv('vm_carpentier');
-      const _mm = (document.getElementById('vm_prolapso_mm') || {}).value || '';
-      const _hall = [['vm_flail','flail'],['vm_rotura_cuerdas','rotura de cuerdas'],['vm_elongacion_cuerdas','elongación de cuerdas'],['vm_calc_anular','calcificación anular'],['vm_engros_valvar','engrosamiento valvar >5mm'],['vm_exceso_tejido','exceso de tejido']]
-        .filter(h => { const el = document.getElementById(h[0]); return el && el.checked; }).map(h => h[1]);
-      let _fr = (vmMorf === 'Prolapso / EVMS') ? 'Prolapso mitral' : 'Enfermedad mixomatosa (Barlow)';
-      if (_segs.length) _fr += ' segmento' + (_segs.length > 1 ? 's' : '') + ' ' + _segs.join(', ');
-      if (_carp && _carp !== '—') _fr += ', mecanismo ' + _carp.replace('Tipo ', 'Carpentier ').replace(/\s*\(.*\)/, '');
-      if (_mm) _fr += ', extensión ' + _mm + 'mm';
-      if (_hall.length) { const _jy = (a) => a.reduce((ac,c,i) => i === 0 ? c : (ac + (/^[aeiouáéíóú]/i.test(c) ? ' e ' : ' y ') + c), ''); _fr += ', con ' + _jy(_hall); }
-      _fr += '.';
-      inf.push(_fr);
-    }
-  }
-
-  // ── VÁLVULA AÓRTICA ──
-  const vaMorf = sv('va_morf') || 'trivalva';
-  // FIX: comparar contra el VALUE del <select> ('sin'/'esclerosis'), no contra el texto de la opción.
-  const esclerosis = eaG === 'esclerosis';
-  const eaDesc = (eaG && eaG !== 'sin' && eaG !== 'esclerosis') ? eaG.toLowerCase() : null;
-  {
-    const estE = eaDesc ? `estenosis ${eaDesc}` : ((!esclerosis && pillOn('aortica','esten')) ? 'estenosis' : null);
-    const insE = (iaG > 0) ? `insuficiencia ${imTxt[iaG]}` : (pillOn('aortica','insuf') ? 'insuficiencia' : null);
-    const estC = eaDesc ? `EAo ${eaDesc}` : ((!esclerosis && pillOn('aortica','esten')) ? 'estenosis' : null);
-    const insC = (iaG > 0) ? `IAo ${imTxt[iaG]}` : (pillOn('aortica','insuf') ? 'insuficiencia' : null);
-    if (eaDesc) suma.push(`EAo ${eaDesc}.`); else if (estE) suma.push('Estenosis aórtica.');
-    if (iaG > 0) suma.push(`IAo ${imTxt[iaG]}.`); else if (insE) suma.push('Insuficiencia aórtica.');
-    if (esclerosis) suma.push('Esclerosis aórtica.');
-    const cE = fraseEI(estE, insE), cC = fraseEI(estC, insC);
-    if (esclerosis && !estE && !insE) {
-      // Esclerosis valvular sin estenosis significativa ni insuficiencia
-      inf.push(estiloPick(
-        `VAo con esclerosis valvular.`,
-        `Válvula aórtica ${vaMorf.toLowerCase()}, con esclerosis valvular, sin estenosis significativa ni insuficiencia.`,
-        `La válvula aórtica (${vaMorf.toLowerCase()}) presenta esclerosis valvular, sin estenosis significativa ni insuficiencia.`));
-    } else if (!estE && !insE) {
-      inf.push(estiloPick(
-        `VAo normal.`,
-        `Válvula aórtica ${vaMorf.toLowerCase()}, ${cE}.`,
-        `La válvula aórtica es ${vaMorf.toLowerCase()}, ${cE} significativas.`));
-    } else {
-      const escC = esclerosis ? 'esclerosis valvular; ' : '';
-      inf.push(estiloPick(
-        `VAo ${escC}${cC}.`,
-        `Válvula aórtica ${vaMorf.toLowerCase()}, ${escC}${cE}.`,
-        `La válvula aórtica (${vaMorf.toLowerCase()}), ${escC}${cE}; hallazgo que requiere seguimiento ecocardiográfico y valoración de indicación de intervención según evolución clínica.`));
-    }
-  }
-
-  // ── VENTRÍCULO DERECHO ──
+  // ── 5) Ventrículo derecho ──
   if (tapse || sp) {
     const vdDilat = v('vd_bas') ? v('vd_bas') > 41 : false;
     const vdDim = v('vd_bas') ? (v('vd_bas') <= 41 ? 'de dimensiones normales' : 'dilatado') : 'de dimensiones no valoradas';
@@ -11249,58 +11185,153 @@ function generarInforme() {
     inf.push(estiloPick(cVD, eVD, nVD));
   }
 
-  // ── AD ──
-  const adArea = v('ad_area');
-  if (adArea) {
-    const adStr = adArea <= 18 ? 'de dimensiones normales' : 'dilatada';
-    inf.push(`Aurícula derecha ${adStr}.`);
-  } else {
-    inf.push('Aurícula derecha no valorada.');
-  }
-
-  // ── TRICÚSPIDE / ESTENOSIS / PSAP ──
-  const etG = sv('et_grado') || '';
-  const etDesc = etG && etG !== 'Sin estenosis' ? etG.toLowerCase() : null;
-  const itTrv = v('vmax_it');          // VRT
-  const pmadV = v('pmad');             // requiere VCI
-  const tap   = v('tvia');             // TAP (ms)
-  const hayIT = itG > 0 || itTrv > 0 || pillOn('tricuspide','insuf');
-  const gradVDAD = itTrv > 0 ? (4 * itTrv * itTrv).toFixed(0) : null;
-
-  const etPill = !etDesc && pillOn('tricuspide','esten');
-  if (etDesc) suma.push(`ET ${etDesc}.`);
-  else if (etPill) suma.push('Estenosis tricuspídea.');
-  const etFrag = etDesc ? `Estenosis tricuspídea ${etDesc}. ` : (etPill ? 'Estenosis tricuspídea. ' : '');
-
-  const tapBajo = tap !== null && tap < 105;
-  if (hayIT) {
-    const itGrad = itG > 0 ? ` ${imTxt[itG]}` : '';
-    suma.push(itG > 0 ? `IT ${imTxt[itG]}.` : 'IT presente.');
-    let tricLine;
-    if (gradVDAD !== null && pmadV !== null && psap) {
-      // Con IT + con VCI
-      tricLine = `${etFrag}IT${itGrad} con gradiente VD-AD de ${gradVDAD} mmHg, PSAP estimada de ${psap} mmHg (PmAD ${pmadV} mmHg).`;
-    } else if (gradVDAD !== null) {
-      // Con IT + sin VCI (hay VRT pero no PmAD/PSAP)
-      tricLine = `${etFrag}IT${itGrad} con gradiente VD-AD de ${gradVDAD} mmHg. PSAP no calculable sin medición de VCI.`;
-    } else {
-      // IT graduada sin VRT registrada
-      tricLine = `${etFrag}Insuficiencia tricuspídea${itGrad}. Sin registro de velocidad de regurgitación que permita estimar PSAP.`;
-    }
-    if (tapBajo) tricLine += ` Se suman elementos indirectos de hipertensión pulmonar dado por TAP < 105 ms.`;
-    inf.push(tricLine);
-  } else {
-    if (tapBajo) {
-      inf.push(`${etFrag}No se obtiene valor de PSAP por ausencia de insuficiencia tricuspídea valorable. Se evidencian elementos indirectos de hipertensión pulmonar dado por TAP < 105 ms.`);
-    } else {
-      inf.push(`${etFrag}Válvula tricúspide sin insuficiencia valorable. No es posible estimar PSAP.`);
-    }
-  }
-
-  // ── VÁLVULA PULMONAR ──
-  const vpMorf = sv('vp_morf') || 'Normal';
-  const vpVmax = v('vp_vmax'), vpGmax = v('vp_gmax');
+  // ── 6) Aurícula derecha ──
   {
+    const adArea = v('ad_area');
+    if (adArea) {
+      const adStr = adArea <= 18 ? 'de dimensiones normales' : 'dilatada';
+      inf.push(`Aurícula derecha ${adStr}.`);
+    } else {
+      inf.push('Aurícula derecha no valorada.');
+    }
+  }
+
+  // Helper: frase estenosis/insuficiencia gramaticalmente correcta en los 4 casos.
+  const fraseEI = (est, ins) => {
+    if (!est && !ins) return 'sin estenosis ni insuficiencia';
+    if (est && !ins)  return `con ${est}, sin insuficiencia`;
+    if (!est && ins)  return `sin estenosis, con ${ins}`;
+    const conj = /^[aeiouáéíóúAEIOU]/.test(ins) ? ' e ' : ' y ';
+    return `con ${est}${conj}${ins}`;
+  };
+
+  // ── 7) Válvula mitral (morfología + estenosis + insuficiencia) ──
+  {
+    const vmMorf = sv('vm_morf') || 'normal';
+    const emDesc = emG && emG !== 'sin' ? emG.toLowerCase() : null;
+    const estE = emDesc ? `estenosis ${emDesc}` : (pillOn('mitral','esten') ? 'estenosis' : null);
+    const insE = (imG > 0) ? `insuficiencia ${imTxt[imG]}` : (pillOn('mitral','insuf') ? 'insuficiencia' : null);
+    const estC = emDesc ? `EM ${emDesc}` : (pillOn('mitral','esten') ? 'estenosis' : null);
+    const insC = (imG > 0) ? `IM ${imTxt[imG]}` : (pillOn('mitral','insuf') ? 'insuficiencia' : null);
+    if (emDesc) suma.push(`EM ${emDesc}.`); else if (estE) suma.push('Estenosis mitral.');
+    if (imG > 0) suma.push(`IM ${imTxt[imG]}.`); else if (insE) suma.push('Insuficiencia mitral.');
+    const cE = fraseEI(estE, insE), cC = fraseEI(estC, insC);
+    let vmSent;
+    if (!estE && !insE) {
+      vmSent = estiloPick(
+        `VM normal.`,
+        `Válvula mitral de morfología ${vmMorf.toLowerCase()}, ${cE}.`,
+        `La válvula mitral presenta morfología ${vmMorf.toLowerCase()}, ${cE} significativas.`);
+    } else {
+      vmSent = estiloPick(
+        `VM ${cC}.`,
+        `Válvula mitral de morfología ${vmMorf.toLowerCase()}, ${cE}.`,
+        `La válvula mitral, de morfología ${vmMorf.toLowerCase()}, ${cE}; hallazgo de relevancia clínica que requiere seguimiento ecocardiográfico periódico y evaluación de indicación de intervención según evolución clínica.`);
+    }
+    // Detalle de prolapso / Barlow — integrado en la MISMA oración de la mitral
+    if (vmMorf === 'Prolapso / EVMS' || vmMorf === 'Mixomatosa / Barlow') {
+      const _segs = [['vm_seg_a1','A1'],['vm_seg_a2','A2'],['vm_seg_a3','A3'],['vm_seg_p1','P1'],['vm_seg_p2','P2'],['vm_seg_p3','P3'],['vm_seg_ca','comisura anterior'],['vm_seg_cp','comisura posterior']]
+        .filter(s => { const el = document.getElementById(s[0]); return el && el.checked; }).map(s => s[1]);
+      const _carp = sv('vm_carpentier');
+      const _mm = (document.getElementById('vm_prolapso_mm') || {}).value || '';
+      const _hall = [['vm_flail','flail'],['vm_rotura_cuerdas','rotura de cuerdas'],['vm_elongacion_cuerdas','elongación de cuerdas'],['vm_calc_anular','calcificación anular'],['vm_engros_valvar','engrosamiento valvar >5mm'],['vm_exceso_tejido','exceso de tejido']]
+        .filter(h => { const el = document.getElementById(h[0]); return el && el.checked; }).map(h => h[1]);
+      let _fr = (vmMorf === 'Prolapso / EVMS') ? 'Prolapso mitral' : 'Enfermedad mixomatosa (Barlow)';
+      if (_segs.length) _fr += ' segmento' + (_segs.length > 1 ? 's' : '') + ' ' + _segs.join(', ');
+      if (_carp && _carp !== '—') _fr += ', mecanismo ' + _carp.replace('Tipo ', 'Carpentier ').replace(/\s*\(.*\)/, '');
+      if (_mm) _fr += ', extensión ' + _mm + 'mm';
+      if (_hall.length) { const _jy = (a) => a.reduce((ac,c,i) => i === 0 ? c : (ac + (/^[aeiouáéíóú]/i.test(c) ? ' e ' : ' y ') + c), ''); _fr += ', con ' + _jy(_hall); }
+      _fr += '.';
+      vmSent += ' ' + _fr;
+    }
+    inf.push(vmSent);
+  }
+
+  // ── 8) Válvula aórtica (morfología + estenosis + insuficiencia) ──
+  {
+    const vaMorf = sv('va_morf') || 'trivalva';
+    // FIX: comparar contra el VALUE del <select> ('sin'/'esclerosis'), no contra el texto de la opción.
+    const esclerosis = eaG === 'esclerosis';
+    const eaDesc = (eaG && eaG !== 'sin' && eaG !== 'esclerosis') ? eaG.toLowerCase() : null;
+    const estE = eaDesc ? `estenosis ${eaDesc}` : ((!esclerosis && pillOn('aortica','esten')) ? 'estenosis' : null);
+    const insE = (iaG > 0) ? `insuficiencia ${imTxt[iaG]}` : (pillOn('aortica','insuf') ? 'insuficiencia' : null);
+    const estC = eaDesc ? `EAo ${eaDesc}` : ((!esclerosis && pillOn('aortica','esten')) ? 'estenosis' : null);
+    const insC = (iaG > 0) ? `IAo ${imTxt[iaG]}` : (pillOn('aortica','insuf') ? 'insuficiencia' : null);
+    if (eaDesc) suma.push(`EAo ${eaDesc}.`); else if (estE) suma.push('Estenosis aórtica.');
+    if (iaG > 0) suma.push(`IAo ${imTxt[iaG]}.`); else if (insE) suma.push('Insuficiencia aórtica.');
+    if (esclerosis) suma.push('Esclerosis aórtica.');
+    const cE = fraseEI(estE, insE), cC = fraseEI(estC, insC);
+    if (esclerosis && !estE && !insE) {
+      inf.push(estiloPick(
+        `VAo con esclerosis valvular.`,
+        `Válvula aórtica ${vaMorf.toLowerCase()}, con esclerosis valvular, sin estenosis significativa ni insuficiencia.`,
+        `La válvula aórtica (${vaMorf.toLowerCase()}) presenta esclerosis valvular, sin estenosis significativa ni insuficiencia.`));
+    } else if (!estE && !insE) {
+      inf.push(estiloPick(
+        `VAo normal.`,
+        `Válvula aórtica ${vaMorf.toLowerCase()}, ${cE}.`,
+        `La válvula aórtica es ${vaMorf.toLowerCase()}, ${cE} significativas.`));
+    } else {
+      const escC = esclerosis ? 'esclerosis valvular; ' : '';
+      inf.push(estiloPick(
+        `VAo ${escC}${cC}.`,
+        `Válvula aórtica ${vaMorf.toLowerCase()}, ${escC}${cE}.`,
+        `La válvula aórtica (${vaMorf.toLowerCase()}), ${escC}${cE}; hallazgo que requiere seguimiento ecocardiográfico y valoración de indicación de intervención según evolución clínica.`));
+    }
+  }
+
+  // ── 9) Válvula tricúspide (IT + gradiente VD-AD + PSAP + PmAD) + HTP ──
+  {
+    const etG = sv('et_grado') || '';
+    const etDesc = etG && etG !== 'Sin estenosis' ? etG.toLowerCase() : null;
+    const itTrv = v('vmax_it');          // VRT
+    const pmadV = v('pmad');             // requiere VCI
+    const tap   = v('tvia');             // TAP (ms)
+    const hayIT = itG > 0 || itTrv > 0 || pillOn('tricuspide','insuf');
+    const gradVDAD = itTrv > 0 ? (4 * itTrv * itTrv).toFixed(0) : null;
+    const etPill = !etDesc && pillOn('tricuspide','esten');
+    if (etDesc) suma.push(`ET ${etDesc}.`);
+    else if (etPill) suma.push('Estenosis tricuspídea.');
+    const etFrag = etDesc ? `Estenosis tricuspídea ${etDesc}. ` : (etPill ? 'Estenosis tricuspídea. ' : '');
+    const tapBajo = tap !== null && tap < 105;
+    let tricLine;
+    if (hayIT) {
+      const itGrad = itG > 0 ? ` ${imTxt[itG]}` : '';
+      suma.push(itG > 0 ? `IT ${imTxt[itG]}.` : 'IT presente.');
+      if (gradVDAD !== null && pmadV !== null && psap) {
+        tricLine = `${etFrag}IT${itGrad} con gradiente VD-AD de ${gradVDAD} mmHg, PSAP estimada de ${psap} mmHg (PmAD ${pmadV} mmHg).`;
+      } else if (gradVDAD !== null) {
+        tricLine = `${etFrag}IT${itGrad} con gradiente VD-AD de ${gradVDAD} mmHg. PSAP no calculable sin medición de VCI.`;
+      } else {
+        tricLine = `${etFrag}Insuficiencia tricuspídea${itGrad}. Sin registro de velocidad de regurgitación que permita estimar PSAP.`;
+      }
+      if (tapBajo) tricLine += ` Se suman elementos indirectos de hipertensión pulmonar dado por TAP < 105 ms.`;
+    } else {
+      if (tapBajo) {
+        tricLine = `${etFrag}No se obtiene valor de PSAP por ausencia de insuficiencia tricuspídea valorable. Se evidencian elementos indirectos de hipertensión pulmonar dado por TAP < 105 ms.`;
+      } else {
+        tricLine = `${etFrag}Válvula tricúspide sin insuficiencia valorable. No es posible estimar PSAP.`;
+      }
+    }
+    // HTP (interpretación del PSAP) — en la misma oración, sin repetir el valor de PSAP (ya expresado arriba)
+    if (psap) {
+      const psapN = PF(psap);
+      let htpGr = null;
+      if (psapN > 60) htpGr = 'severa';
+      else if (psapN > 55) htpGr = 'moderada';
+      else if (psapN > 40) htpGr = 'leve';
+      if (htpGr) {
+        tricLine += ` Hipertensión pulmonar ${htpGr}.`;
+        suma.push(`HTP ${htpGr} (PSAP ${psap} mmHg).`);
+      }
+    }
+    inf.push(tricLine);
+  }
+
+  // ── 10) Válvula pulmonar ──
+  {
+    const vpMorf = sv('vp_morf') || 'Normal';
+    const vpVmax = v('vp_vmax'), vpGmax = v('vp_gmax');
     let datosVP = '';
     if (vpVmax) datosVP += `Vmax ${vpVmax} m/s`;
     if (vpGmax) datosVP += (vpVmax ? `, Gmax ${vpGmax} mmHg` : `Gmax ${vpGmax} mmHg`);
@@ -11316,38 +11347,87 @@ function generarInforme() {
     }
   }
 
-  // ── HTP ──
-  if (psap) {
-    const psapN = PF(psap);
-    let htpGr = null;
-    if (psapN > 60) htpGr = 'severa';
-    else if (psapN > 55) htpGr = 'moderada';
-    else if (psapN > 40) htpGr = 'leve';
-    if (htpGr) {
-      const cH = `HTP ${htpGr} (PSAP ${psap} mmHg).`;
-      const eH = `Hipertensión pulmonar ${htpGr} estimada por velocidad de IT, PSAP ${psap} mmHg.`;
-      const nH = `Se estima hipertensión pulmonar ${htpGr} con una presión sistólica de la arteria pulmonar de ${psap} mmHg calculada a partir de la velocidad pico de insuficiencia tricuspídea, hallazgo que requiere evaluación etiológica dirigida.`;
-      inf.push(estiloPick(cH, eH, nH));
-      suma.push(`HTP ${htpGr} (PSAP ${psap} mmHg).`);
+  // ── 11) VCI (diámetro + colapso + PmAD estimada) ──
+  {
+    const vci = v('vci_diam'), pmad = v('pmad'), colVCI = sv('vci_col');
+    if (vci && colVCI) {
+      const colDesc = colVCI === '>50' ? 'mayor al 50%' : 'menor al 50%';
+      inf.push(`VCI de ${vci} mm, con colapso ${colDesc} que permite estimar una PmAD de ${pmad || 5} mmHg.`);
     }
   }
 
-  // ── HTP — PROBABILIDAD ECOCARDIOGRÁFICA (ESC 2022) ──
-  if (typeof calcHTP2022 === 'function') calcHTP2022();
-  const h22 = window._htp2022;
-  const htp2022Incluir = document.getElementById('htp2022_incluir') && document.getElementById('htp2022_incluir').checked;
-  if (htp2022Incluir && h22 && (h22.vrtCat !== 'nomedible' || h22.nCat > 0)) {
-    const cats = [];
-    if (h22.catA) cats.push('ventrículos');
-    if (h22.catB) cats.push('arteria pulmonar');
-    if (h22.catC) cats.push('VCI/AD');
-    let l = `Valoración ecocardiográfica de probabilidad de hipertensión pulmonar (ESC 2022): probabilidad ${h22.prob.toLowerCase()} (${h22.vrtTxt}`;
-    l += cats.length ? `; signos adicionales en: ${cats.join(', ')}).` : '; sin signos adicionales).';
-    inf.push(l);
-    if (h22.prob === 'ALTA' || h22.prob === 'INTERMEDIA') suma.push(`HTP: probabilidad ${h22.prob.toLowerCase()} (ESC 2022).`);
+  // ── 12) Raíz de Aorta (Seno de Valsalva) ──
+  if (ao_sin) {
+    const aoStr = ao_sin <= 40 ? 'de calibre normal' : ao_sin <= 45 ? 'levemente dilatada' : 'dilatada';
+    const aoDil = ao_sin > 40;
+    const cAo = `Raíz Ao ${aoStr} (${ao_sin} mm).`;
+    const eAo = `Raíz de Aorta ${aoStr} (Seno de Valsalva ${ao_sin} mm).`;
+    const nAo = aoDil
+      ? `La raíz aórtica se encuentra ${aoStr}, con un diámetro a nivel de los senos de Valsalva de ${ao_sin} mm, hallazgo que amerita control evolutivo del calibre aórtico.`
+      : `La raíz aórtica es de calibre normal, con un diámetro a nivel de los senos de Valsalva de ${ao_sin} mm.`;
+    inf.push(estiloPick(cAo, eAo, nAo));
+    if (aoDil) suma.push(`Dilatación raíz aórtica (${ao_sin} mm).`);
+  } else {
+    inf.push(estiloPick('Raíz Ao normal.', 'Raíz de Aorta de calibre normal.', 'La raíz aórtica es de calibre normal.'));
   }
 
-  // ── TEP / DISFUNCIÓN VD AGUDA ──
+  // ── 13) Pericardio + masas (juntas) ──
+  {
+    const peri = sv('pericardio');
+    const hayMasa = sv('masa_presente') === 'Masa / imagen intracardíaca presente';
+    let s13;
+    if (hayMasa) {
+      const derrame = (!peri || peri === 'Normal, sin derrame') ? 'Sin derrame pericárdico.' : `${peri}.`;
+      if (peri && peri !== 'Normal, sin derrame') suma.push(peri + '.');
+      const _mtam = (document.getElementById('masa_tam_mm') || {}).value || '';
+      const _mf = 'Imagen intracardíaca en ' + sv('masa_cavidad') + ', ' + sv('masa_loc').toLowerCase() +
+        (_mtam ? ', ' + _mtam + 'mm' : '') + ', morfología ' + sv('masa_morf').toLowerCase() + ', ' +
+        sv('masa_movil').toLowerCase() + ', ' + sv('masa_eco').toLowerCase() +
+        '. Diagnóstico diferencial: ' + sv('masa_dx').toLowerCase() + '.';
+      const _mn = sv('masa_notas');
+      s13 = derrame + ' ' + _mf + (_mn ? ' ' + _mn : '');
+    } else {
+      if (!peri || peri === 'Normal, sin derrame') {
+        s13 = estiloPick(
+          'Sin derrame pericárdico. Sin masas.',
+          'Sin derrame pericárdico. Sin masas intracardíacas.',
+          'No se observa derrame pericárdico ni masas intracardíacas.');
+      } else {
+        s13 = estiloPick(
+          `${peri}. Sin masas.`,
+          `${peri}. Sin masas intracardíacas.`,
+          `Se observa ${peri.toLowerCase()}, sin evidencia de masas intracardíacas; hallazgo que requiere correlación clínica y control evolutivo.`);
+        suma.push(peri + '.');
+      }
+    }
+    inf.push(s13);
+  }
+
+  // ════════════════════════════════════════════════════════════════════
+  // MÓDULOS ADICIONALES (opcionales / toggles) — después de las 13 oraciones
+  // ════════════════════════════════════════════════════════════════════
+
+  // Notas extra libres
+  if (sv('otras_notas')) inf.push(sv('otras_notas'));
+
+  // HTP — probabilidad ecocardiográfica (ESC 2022) — solo si el toggle está activo
+  if (typeof calcHTP2022 === 'function') calcHTP2022();
+  {
+    const h22 = window._htp2022;
+    const htp2022Incluir = document.getElementById('htp2022_incluir') && document.getElementById('htp2022_incluir').checked;
+    if (htp2022Incluir && h22 && (h22.vrtCat !== 'nomedible' || h22.nCat > 0)) {
+      const cats = [];
+      if (h22.catA) cats.push('ventrículos');
+      if (h22.catB) cats.push('arteria pulmonar');
+      if (h22.catC) cats.push('VCI/AD');
+      let l = `Valoración ecocardiográfica de probabilidad de hipertensión pulmonar (ESC 2022): probabilidad ${h22.prob.toLowerCase()} (${h22.vrtTxt}`;
+      l += cats.length ? `; signos adicionales en: ${cats.join(', ')}).` : '; sin signos adicionales).';
+      inf.push(l);
+      if (h22.prob === 'ALTA' || h22.prob === 'INTERMEDIA') suma.push(`HTP: probabilidad ${h22.prob.toLowerCase()} (ESC 2022).`);
+    }
+  }
+
+  // TEP / disfunción VD aguda — solo si el toggle está activo
   (function() {
     if (!(document.getElementById('tep_incluir') && document.getElementById('tep_incluir').checked)) return;
     const tapse   = v('tapse');
@@ -11408,56 +11488,9 @@ function generarInforme() {
     if (estratifSuma) suma.push(estratifSuma);
   })();
 
-  // ── RAÍZ AORTA ──
-  if (ao_sin) {
-    const aoStr = ao_sin <= 40 ? 'de calibre normal' : ao_sin <= 45 ? 'levemente dilatada' : 'dilatada';
-    const aoDil = ao_sin > 40;
-    const cAo = `Raíz Ao ${aoStr} (${ao_sin} mm).`;
-    const eAo = `Raíz de Aorta ${aoStr} (Seno de Valsalva ${ao_sin} mm).`;
-    const nAo = aoDil
-      ? `La raíz aórtica se encuentra ${aoStr}, con un diámetro a nivel de los senos de Valsalva de ${ao_sin} mm, hallazgo que amerita control evolutivo del calibre aórtico.`
-      : `La raíz aórtica es de calibre normal, con un diámetro a nivel de los senos de Valsalva de ${ao_sin} mm.`;
-    inf.push(estiloPick(cAo, eAo, nAo));
-    if (aoDil) suma.push(`Dilatación raíz aórtica (${ao_sin} mm).`);
-  } else {
-    inf.push(estiloPick('Raíz Ao normal.', 'Raíz de Aorta de calibre normal.', 'La raíz aórtica es de calibre normal.'));
-  }
+  // Técnica del procedimiento ETE (toggle) — precede a la sección ETE
+  if (_eteTecnica) inf.push(_eteTecnica);
 
-  // ── VCI / PmAD ──
-  const vci = v('vci_diam'), pmad = v('pmad'), colVCI = sv('vci_col');
-  if (vci && colVCI) {
-    const colDesc = colVCI === '>50' ? 'mayor al 50%' : 'menor al 50%';
-    inf.push(`VCI de ${vci} mm, con colapso ${colDesc} que permite estimar una PmAD de ${pmad || 5} mmHg.`);
-  }
-
-  // ── PERICARDIO ──
-  const peri = sv('pericardio');
-  if (!peri || peri === 'Normal, sin derrame') {
-    inf.push(estiloPick(
-      'Sin derrame pericárdico. Sin masas.',
-      'Sin derrame pericárdico. Sin masas intracardíacas.',
-      'No se observa derrame pericárdico ni masas intracardíacas.'));
-  } else {
-    inf.push(estiloPick(
-      `${peri}. Sin masas.`,
-      `${peri}. Sin masas intracardíacas.`,
-      `Se observa ${peri.toLowerCase()}, sin evidencia de masas intracardíacas; hallazgo que requiere correlación clínica y control evolutivo.`));
-    suma.push(peri + '.');
-  }
-
-  // ── NOTAS EXTRA ──
-  if (sv('otras_notas')) inf.push(sv('otras_notas'));
-
-  // ── MASA INTRACARDÍACA ──
-  if (sv('masa_presente') === 'Masa / imagen intracardíaca presente') {
-    const _mtam = (document.getElementById('masa_tam_mm') || {}).value || '';
-    let _mf = 'Imagen intracardíaca en ' + sv('masa_cavidad') + ', ' + sv('masa_loc').toLowerCase() +
-      (_mtam ? ', ' + _mtam + 'mm' : '') + ', morfología ' + sv('masa_morf').toLowerCase() + ', ' +
-      sv('masa_movil').toLowerCase() + ', ' + sv('masa_eco').toLowerCase() +
-      '. Diagnóstico diferencial: ' + sv('masa_dx').toLowerCase() + '.';
-    inf.push(_mf);
-    const _mn = sv('masa_notas'); if (_mn) inf.push(_mn);
-  }
 
   // ── ETE ──
   (function() {
@@ -15132,6 +15165,52 @@ function contrGetLineasInforme(){
     lineas.push(`${CONTR_MOTILIDAD[g.idx].nombre}: cara ${CONTR_CARA_TEXTO[g.cara]||g.cara} (${nivelesStr}).`);
   });
   return lineas;
+}
+
+// Frase consolidada de contractilidad para el INFORME NARRATIVO (oración 2):
+// una sola oración, agrupando los trastornos segmentarios por severidad
+// (hipoquinesia → aquinesia → discinesia → aneurisma). Solo menciona las presentes.
+function contrFraseNarrativa(){
+  const joinNat = (a)=> a.length <= 1 ? (a[0] || '') : a.length === 2 ? a.join(' y ') : a.slice(0,-1).join(', ') + ' y ' + a.slice(-1);
+  const partes = [];
+  if (contrDisqSep) partes.push('Se observa disquinesia septal.');
+  if (contrDifusa){ partes.push('Se observa hipocontractilidad difusa del VI.'); return partes.join(' '); }
+  if (contrMultiple){ partes.push('Se observan múltiples trastornos de la contractilidad segmentaria del VI.'); return partes.join(' '); }
+  // Agrupar segmentos por severidad (grado) y, dentro de cada severidad, por cara
+  const porGrado = {};        // idx → { cara → [niveles] }
+  const apexPorGrado = {};    // idx → true
+  Object.entries(contrEstado).forEach(([id, idx])=>{
+    if (idx === 0) return;
+    if (id === 'apex'){ apexPorGrado[idx] = true; return; }
+    const [nivel, ...resto] = id.split('_');
+    const cara = resto.join('_');
+    if (!porGrado[idx]) porGrado[idx] = {};
+    if (!porGrado[idx][cara]) porGrado[idx][cara] = [];
+    porGrado[idx][cara].push(nivel);
+  });
+  // Fragmentos por severidad en orden fijo: 1 hipoquinesia → 4 aneurisma
+  const fragSeveridad = [];
+  for (let idx = 1; idx < CONTR_MOTILIDAD.length; idx++){
+    const caras = porGrado[idx];
+    const tieneApex = apexPorGrado[idx];
+    if (!caras && !tieneApex) continue;
+    const frasesCara = caras ? Object.keys(caras).map(cara=>{
+      const nivelesTxt = [...new Set(caras[cara])]
+        .sort((a,b)=> ['basal','mid','apical'].indexOf(a)-['basal','mid','apical'].indexOf(b))
+        .map(n=>CONTR_NIVEL_TEXTO[n]);
+      return `cara ${CONTR_CARA_TEXTO[cara]||cara} (${joinNat(nivelesTxt)})`;
+    }) : [];
+    if (tieneApex) frasesCara.push('ápex (segmento 17)');
+    fragSeveridad.push(`${CONTR_MOTILIDAD[idx].nombre.toLowerCase()} de ${joinNat(frasesCara)}`);
+  }
+  if (fragSeveridad.length === 0){
+    return partes.length ? partes.join(' ') : 'Sin trastornos de la contractilidad.';
+  }
+  const segmentalSent = fragSeveridad.length === 1
+    ? `Se observa ${fragSeveridad[0]}.`
+    : `Se observan trastornos de la contractilidad segmentaria: ${fragSeveridad.join(', ')}.`;
+  partes.push(segmentalSent);
+  return partes.join(' ');
 }
 
 function contrRenderInforme(){
