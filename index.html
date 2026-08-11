@@ -11774,7 +11774,8 @@ function generarPDFReal() {
   }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
-  const mL = 14, mR = 196, pgW = 182;
+  // Márgenes A4 ~9 mm (rediseño layout impresión) — antes 14/196
+  const mL = 9, mR = 201, pgW = 192;
   let y = 0;
 
   // ─── helpers ─────────────────────────────────────────────────
@@ -11820,7 +11821,8 @@ function generarPDFReal() {
 
     const n    = secs.length;
     const cW   = pgW / n;
-    const hH   = 5.5, rH = 5.2;
+    // Espaciado compacto A4: header 4.4 mm, filas 4.2 mm (padding vertical ~0.5 mm)
+    const hH   = 4.4, rH = 4.2;
     const maxR = Math.max(...secs.map(s => s.items.length));
     const tblH = hH + maxR * rH;
 
@@ -11831,7 +11833,7 @@ function generarPDFReal() {
       const sx = mL + si * cW;
       fc(238,238,238); doc.rect(sx, y, cW, hH, 'F');
       fb(6.5); tc(85,85,85);
-      doc.text(sec.titulo, sx+2, y+3.9);
+      doc.text(sec.titulo, sx+2, y+3.1);
     });
 
     // ── data rows ──
@@ -11846,12 +11848,12 @@ function generarPDFReal() {
         const maxW = cW - 4;
         // bold label
         fb(7); tc(13,13,13);
-        doc.text(it.lbl, cx, ry + 3.8);
+        doc.text(it.lbl, cx, ry + 2.9);
         const lw = doc.getTextWidth(it.lbl);
         // normal (ref): val
         fn(7); tc(30,30,30);
         const suf = it.ref ? ' ('+it.ref+'): '+it.val : ': '+it.val;
-        doc.text(suf, cx+lw, ry+3.8, {maxWidth: maxW-lw});
+        doc.text(suf, cx+lw, ry+2.9, {maxWidth: maxW-lw});
       });
     }
 
@@ -11874,7 +11876,8 @@ function generarPDFReal() {
         doc.line(vx, y, vx, y+tblH);
       }
     }
-    y += tblH + 2;
+    // Gap compacto entre bloques
+    y += tblH + 1.4;
   }
 
   // ─── pre-calculations ─────────────────────────────────────────
@@ -11948,11 +11951,9 @@ function generarPDFReal() {
   fb(13); tc(255,255,255);
   doc.text('Informe Ecocardiograma Doppler Color',105,9.5,{align:'center'});
   fn(8.5); tc(200,221,245);
-  const _modoInst = localStorage.getItem('ett_modo_institucional')==='1';
+  // El nombre del centro va en el header junto al título; el médico informante va sólo en la firma al pie
   const _medCentro = sv('med-centro') || '';
-  const _hdrLine = _modoInst
-    ? _medCentro
-    : ('CeiboMed' + (function(){ var m=[medNombre,medMatricula,medEsp].filter(Boolean).join('  ·  '); return m?('  ·  '+m):''; })());
+  const _hdrLine = _medCentro || centroStr || 'CeiboMed';
   doc.text(_hdrLine,105,16.5,{align:'center'});
   // Logo del centro en el vértice superior derecho (alt. máx 18mm, proporción conservada)
   try {
@@ -11970,25 +11971,27 @@ function generarPDFReal() {
   // ════════════════════════════════════════════════════════════
   // 2. DATOS PACIENTE
   // ════════════════════════════════════════════════════════════
+  // Header del paciente: 3 filas tipo tabla compacta (4 columnas c/u)
+  const rawFsol   = sv('fecha_solicitud');
+  const fechaSol  = rawFsol ? rawFsol.split('-').reverse().join('/') : null;
+  const edadSexo  = [v('edad') ? v('edad') + ' años' : '', sexoTxt].filter(Boolean).join(' · ') || null;
   const pRows = [
-    [{lbl:'Nombre',      val:sv('nombre')||null},
-     {lbl:'Edad',        val:v('edad')?v('edad')+' años':null},
-     {lbl:'Sexo',        val:sexoTxt},
-     {lbl:sv('doc_tipo')||'CI', val:sv('ci')||null},
-     {lbl:'Matr.',       val:sv('matricula')||null}],
-    [{lbl:'Talla',       val:talla?talla+' cm':null},
-     {lbl:'Peso',        val:peso?peso+' kg':null},
-     {lbl:'ASC',         val:ascV},
-     {lbl:'IMC',         val:imc}],
-    [{lbl:'Centro',      val:centroStr},
-     {lbl:'Fecha',       val:fecha},
-     {lbl:'Solicitante', val:sv('med_solicitante')||null}],
-    [{lbl:'Indicación',  val:sv('indicacion')||null}],
-    [{lbl:'Antecedentes',val:sv('antecedentes')||null}],
+    [{lbl:'Nombre',            val:sv('nombre')||null},
+     {lbl:sv('doc_tipo')||'Cédula', val:sv('ci')||null},
+     {lbl:'Edad / Sexo',       val:edadSexo},
+     {lbl:'Fecha realización', val:rawF?fecha:null}],
+    [{lbl:'Peso',  val:peso?peso+' kg':null},
+     {lbl:'Talla', val:talla?talla+' cm':null},
+     {lbl:'ASC',   val:ascV},
+     {lbl:'IMC',   val:imc}],
+    [{lbl:'Antecedentes',    val:sv('antecedentes')||null},
+     {lbl:'Indicación',      val:sv('indicacion')||null},
+     {lbl:'Solicitante',     val:sv('med_solicitante')||null},
+     {lbl:'Fecha solicitud', val:fechaSol}],
   ].filter(r => r.some(c=>c.val));
 
   if (pRows.length) {
-    const rHp=6.2, boxH=pRows.length*rHp;
+    const rHp=5.0, boxH=pRows.length*rHp;
     checkPage(boxH+4);
     fc(255,255,255); doc.rect(mL,y,pgW,boxH,'F');
     dc(170,185,210); doc.setLineWidth(0.6); doc.rect(mL,y,pgW,boxH);
@@ -11999,16 +12002,16 @@ function generarPDFReal() {
       row.forEach((cell,ci)=>{
         if(!cell.val) return;
         const cx=mL+ci*colW+2;
-        fb(7); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(cell.lbl+': ',cx,ry+4.3);
+        fb(7); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(cell.lbl+': ',cx,ry+3.4);
         const lw=doc.getTextWidth(cell.lbl+': ');
-        fn(7.5); tc(13,13,13); doc.text(String(cell.val),cx+lw,ry+4.3,{maxWidth:colW-lw-3});
+        fn(7.5); tc(13,13,13); doc.text(String(cell.val),cx+lw,ry+3.4,{maxWidth:colW-lw-3});
       });
     });
-    y += boxH + 4;
+    y += boxH + 3;
   }
 
   // ════════════════════════════════════════════════════════════
-  // 3. AORTA + AI
+  // BLOQUE 1 (3 col): Raíz de Aorta | Aurícula Izquierda | Aurícula Derecha / VCI
   // ════════════════════════════════════════════════════════════
   drawTablaCompacta([
     {titulo:'Raíz de Aorta', items:[
@@ -12023,10 +12026,16 @@ function generarPDFReal() {
       {lbl:'Volumen AI',   ref:'',           val:v('ai_vol') ?v('ai_vol') +' ml':null},
       {lbl:'Vol. indexado',ref:'<34 ml/m2', val:aiIdx},
     ]},
+    {titulo:'Aurícula Derecha / VCI', items:[
+      {lbl:'Área AD',     ref:'<18 cm2',  val:v('ad_area') ?v('ad_area') +' cm2':null},
+      {lbl:'Diám. VCI',   ref:'16-20 mm', val:v('vci_diam')?v('vci_diam')+' mm' :null},
+      {lbl:'Colapso VCI', ref:'',         val:sv('vci_col')||null},
+      {lbl:'PmAD',        ref:'',         val:v('pmad')    ?v('pmad')    +' mmHg':null},
+    ]},
   ]);
 
   // ════════════════════════════════════════════════════════════
-  // 4. VI ESTRUCTURA + FUNCIÓN
+  // BLOQUE 2 (3 col): VI Estructura | VI Función Sistólica | Ventrículo Derecho
   // ════════════════════════════════════════════════════════════
   drawTablaCompacta([
     {titulo:'VI - Estructura', items:[
@@ -12046,12 +12055,6 @@ function generarPDFReal() {
       {lbl:'RWT',       ref:'<=0.42',          val:rwtStr},
       {lbl:'Geometria', ref:'',                val:geomStr},
     ]},
-  ]);
-
-  // ════════════════════════════════════════════════════════════
-  // 5. VD + AD/VCI
-  // ════════════════════════════════════════════════════════════
-  drawTablaCompacta([
     {titulo:'Ventrículo Derecho', items:[
       {lbl:'TAP',         ref:'>105 ms',    val:v('tvia')   ?v('tvia')   +' ms'  :null},
       {lbl:'TAPSE',       ref:'≥' + UMBRAL_TAPSE_NORMAL + ' mm',     val:v('tapse')  ?v('tapse')  +' mm'  :null},
@@ -12062,21 +12065,10 @@ function generarPDFReal() {
       {lbl:'FEVD',        ref:'>=45%',       val:v('fevd')   ?v('fevd')   +'%'    :null},
       {lbl:'VD/VI',       ref:'',           val:v('vd_vi')  ?v('vd_vi')  .toFixed(2):null},
     ]},
-    {titulo:'AD / VCI', items:[
-      {lbl:'Área AD',     ref:'<18 cm2',  val:v('ad_area') ?v('ad_area') +' cm2':null},
-      {lbl:'Diám. VCI',   ref:'16-20 mm', val:v('vci_diam')?v('vci_diam')+' mm' :null},
-      {lbl:'Colapso VCI', ref:'',         val:sv('vci_col')||null},
-      {lbl:'PmAD',        ref:'',         val:v('pmad')    ?v('pmad')    +' mmHg':null},
-    ]},
   ]);
 
   // ════════════════════════════════════════════════════════════
-  // 6. BARRA DOPPLER
-  // ════════════════════════════════════════════════════════════
-  drawBar('DOPPLER');
-
-  // ════════════════════════════════════════════════════════════
-  // 7. MITRAL FLUJO | TISULAR
+  // BLOQUE 3 (3 col): Flujo Transmitral | DTI Mitral | Tricúspide / PSAP
   // ════════════════════════════════════════════════════════════
   drawTablaCompacta([
     {titulo:'VM — Flujo transmitral', items:[
@@ -12094,10 +12086,21 @@ function generarPDFReal() {
       {lbl:"e' prom.",   ref:'',         val:eProm?eProm+' cm/s':null},
       {lbl:"E/e'",       ref:'<14',      val:ee},
     ]},
+    {titulo:'Tricúspide / PSAP', items:[
+      {lbl:'V. máx IT',  ref:'',                    val:v('vmax_it')  ?v('vmax_it')  +' m/s' :null},
+      {lbl:'Grad. IT',   ref:'',                    val:gradIT},
+      {lbl:'PSAP',       ref:'<35/40/60 mmHg',      val:v('psap_calc')?v('psap_calc')+' mmHg':null},
+      {lbl:'PAP media',  ref:'',                    val:sv('pap_med')||null},
+      {lbl:'V. máx VP',  ref:'', val:v('vp_vmax')?v('vp_vmax')+' m/s' :null},
+      {lbl:'G. máx VP',  ref:'', val:v('vp_gmax')?v('vp_gmax')+' mmHg':null},
+      {lbl:'Morf. VP',   ref:'', val:(sv('vp_morf')&&sv('vp_morf')!=='Normal')?sv('vp_morf'):null},
+      {lbl:'PAPm (IP)',  ref:'', val:(()=>{const vm=v('ip_vmax'),pm=v('pmad');return vm?(4*vm*vm+(pm||0)).toFixed(0)+' mmHg':null;})()},
+      {lbl:'PAPd (IP)',  ref:'', val:(()=>{const vt=v('ip_vtd'),pm=v('pmad');return vt?(4*vt*vt+(pm||0)).toFixed(0)+' mmHg':null;})()},
+    ]},
   ]);
 
   // ════════════════════════════════════════════════════════════
-  // 8. VA GRADIENTES | CONTINUIDAD | AVA/GC/IC
+  // BLOQUE 4 (3 col): Gradientes Ao | Continuidad TSVI | AVA / GC / IC
   // ════════════════════════════════════════════════════════════
   drawTablaCompacta([
     {titulo:'VA — Gradientes', items:[
@@ -12120,33 +12123,12 @@ function generarPDFReal() {
   ]);
 
   // ════════════════════════════════════════════════════════════
-  // 9. TRICÚSPIDE / PSAP
-  // ════════════════════════════════════════════════════════════
-  drawTablaCompacta([
-    {titulo:'Tricúspide — PSAP', items:[
-      {lbl:'V. máx IT',  ref:'',                         val:v('vmax_it')  ?v('vmax_it')  +' m/s' :null},
-      {lbl:'Grad. IT',   ref:'',                         val:gradIT},
-      {lbl:'PSAP',       ref:'<35 / 40 / 60 mmHg',      val:v('psap_calc')?v('psap_calc')+' mmHg':null},
-      {lbl:'PAP media',  ref:'',                         val:sv('pap_med')||null},
-    ]},
-    {titulo:'Pulmonar', items:[
-      {lbl:'V. máx VP',  ref:'', val:v('vp_vmax')?v('vp_vmax')+' m/s' :null},
-      {lbl:'G. máx VP',  ref:'', val:v('vp_gmax')?v('vp_gmax')+' mmHg':null},
-      {lbl:'Morf. VP',   ref:'', val:(sv('vp_morf')&&sv('vp_morf')!=='Normal')?sv('vp_morf'):null},
-    ]},
-  ]);
-
-  // ════════════════════════════════════════════════════════════
-  // 10. BARRA VÁLVULAS
-  // ════════════════════════════════════════════════════════════
-  drawBar('VÁLVULAS');
-
-  // ════════════════════════════════════════════════════════════
-  // 11. VÁLVULAS — tabla 4 columnas (VM | VA | VT | VP)
+  // BLOQUE 5 (4 col): Válvula Mitral | Válvula Aórtica | Válvula Tricúspide | Otros (pericardio + raíz aorta)
   // ════════════════════════════════════════════════════════════
   const eaReal = sv('ea_grado') && sv('ea_grado') !== 'sin' && sv('ea_grado') !== 'normal' && sv('ea_grado') !== '—' && sv('ea_grado').trim() !== '';
+  const aoDesc = sv('ao_desc') || (v('ao_sin') ? (v('ao_sin') <= 40 ? 'Raiz de Aorta de calibre normal (Seno Valsalva ' + v('ao_sin') + ' mm).' : 'Raiz de Aorta dilatada (Seno Valsalva ' + v('ao_sin') + ' mm).') : null);
   drawTablaCompacta([
-    {titulo:'Mitral', items:[
+    {titulo:'Válvula Mitral', items:[
       {lbl:'Morf.',         ref:'', val:sv('vm_morf')||null},
       {lbl:'IM',            ref:'', val:imG?GT[imG]:null},
       {lbl:'VC IM',         ref:'<7mm', val:v('im_vc')?v('im_vc')+' mm':null},
@@ -12156,7 +12138,7 @@ function generarPDFReal() {
       {lbl:'AVm THP',       ref:'<=1.5', val:v('avm_thp')?v('avm_thp')+' cm2':null},
       {lbl:'Notas',         ref:'', val:sv('vm_notas')||null},
     ]},
-    {titulo:'Aortica', items:[
+    {titulo:'Válvula Aórtica', items:[
       {lbl:'Morf.',         ref:'', val:sv('va_morf')||null},
       {lbl:'EA grado',      ref:'', val:eaReal?sv('ea_grado'):null},
       {lbl:'AVA',           ref:'<1.0', val:eaReal&&avaC?avaC+' cm2':null},
@@ -12167,7 +12149,7 @@ function generarPDFReal() {
       {lbl:'PHT',           ref:'<200ms', val:v('ia_pht')?v('ia_pht')+' ms':null},
       {lbl:'Notas',         ref:'', val:sv('va_notas')||null},
     ]},
-    {titulo:'Tricuspide', items:[
+    {titulo:'Válvula Tricúspide', items:[
       {lbl:'Morf.',         ref:'', val:sv('vt_morf')||null},
       {lbl:'IT',            ref:'', val:itG?GT[itG]:null},
       {lbl:'VC IT',         ref:'<7mm', val:v('it_vc')?v('it_vc')+' mm':null},
@@ -12175,31 +12157,10 @@ function generarPDFReal() {
       {lbl:'Grad. VD-AD',   ref:'', val:v('vmax_it')?(4*v('vmax_it')*v('vmax_it')).toFixed(0)+' mmHg':null},
       {lbl:'PSAP',          ref:'<35/40/60', val:v('psap_calc')?v('psap_calc')+' mmHg':null},
     ]},
-    {titulo:'Pulmonar', items:[
-      {lbl:'Morf. VP',      ref:'', val:(sv('vp_morf')&&sv('vp_morf')!=='Normal')?sv('vp_morf'):null},
-      {lbl:'Vmax VP',       ref:'', val:v('vp_vmax')?v('vp_vmax')+' m/s':null},
-      {lbl:'G. max VP',     ref:'', val:v('vp_gmax')?v('vp_gmax')+' mmHg':null},
-      {lbl:'Vmax-PD-IP',    ref:'', val:v('ip_vmax')?v('ip_vmax')+' m/s':null},
-      {lbl:'Vmax-TD-IP',    ref:'', val:v('ip_vtd')?v('ip_vtd')+' m/s':null},
-      {lbl:'PAPm (IP)',     ref:'', val:(()=>{const vm=v('ip_vmax'),pm=v('pmad');return vm?(4*vm*vm+(pm||0)).toFixed(0)+' mmHg':null;})()},
-      {lbl:'PAPd (IP)',     ref:'', val:(()=>{const vt=v('ip_vtd'),pm=v('pmad');return vt?(4*vt*vt+(pm||0)).toFixed(0)+' mmHg':null;})()},
-    ]},
-  ]);
-
-  // ════════════════════════════════════════════════════════════
-  // 14. OTROS — Pericardio | Masas | Raíz de Aorta
-  // ════════════════════════════════════════════════════════════
-  drawBar('OTROS');
-  const aoDesc = sv('ao_desc') || (v('ao_sin') ? (v('ao_sin') <= 40 ? 'Raiz de Aorta de calibre normal (Seno Valsalva ' + v('ao_sin') + ' mm).' : 'Raiz de Aorta dilatada (Seno Valsalva ' + v('ao_sin') + ' mm).') : null);
-  drawTablaCompacta([
-    {titulo:'Pericardio', items:[
-      {lbl:'Hallazgos', ref:'', val:sv('pericardio')||null},
-    ]},
-    {titulo:'Masas / Notas', items:[
-      {lbl:'Hallazgos', ref:'', val:sv('otras_notas')||null},
-    ]},
-    {titulo:'Raiz de Aorta', items:[
-      {lbl:'Descripcion', ref:'', val:aoDesc},
+    {titulo:'Otros', items:[
+      {lbl:'Pericardio',    ref:'', val:sv('pericardio')||null},
+      {lbl:'Masas / Notas', ref:'', val:sv('otras_notas')||null},
+      {lbl:'Raíz de Aorta', ref:'', val:aoDesc},
     ]},
   ]);
 
@@ -12210,10 +12171,22 @@ function generarPDFReal() {
   if (informeTxt) {
     drawBar('INFORME');
     y += 2;
-    fn(8); tc(13,13,13);
-    const iL = doc.splitTextToSize(informeTxt, pgW-4);
-    iL.forEach(l=>{ checkPage(6); doc.text(l,mL+2,y); y+=5.5; });
-    y += 3;
+    fn(7.5); tc(13,13,13);
+    // Condensar el informe narrativo en 3 párrafos cortos (re-flujo compacto A4)
+    const _oraciones = informeTxt.split(/\n+/).map(s => s.trim()).filter(Boolean);
+    const _parrafos = [];
+    if (_oraciones.length) {
+      const _nPar = Math.min(3, _oraciones.length);
+      const _chunk = Math.ceil(_oraciones.length / _nPar);
+      for (let _i = 0; _i < _oraciones.length; _i += _chunk) {
+        _parrafos.push(_oraciones.slice(_i, _i + _chunk).join(' '));
+      }
+    }
+    _parrafos.forEach(p => {
+      doc.splitTextToSize(p, pgW-4).forEach(l => { checkPage(5); doc.text(l, mL+2, y); y += 4.2; });
+      y += 1.8;   // separación entre párrafos
+    });
+    y += 1.2;
   }
 
   // ════════════════════════════════════════════════════════════
@@ -12222,11 +12195,28 @@ function generarPDFReal() {
   const sumaTxt = sv('en_suma');
   if (sumaTxt) {
     drawBar('EN SUMA:');
-    y += 2;
-    fi(8); tc(TEMA[0],TEMA[1],TEMA[2]);
-    const sL = doc.splitTextToSize(sumaTxt, pgW-4);
-    sL.forEach(l=>{ checkPage(6); doc.text(l,mL+2,y); y+=5.5; });
-    y += 3;
+    y += 4;
+    // EN SUMA como chips/badges en línea horizontal (con wrap)
+    const _chips = sumaTxt.split(/\n+/).map(s => s.trim().replace(/\.+$/,'')).filter(Boolean);
+    const _chH = 5.0, _padX = 2.2, _gapX = 2, _gapY = 2;
+    let _cx = mL, _cy = y;
+    checkPage(_chH + 4);
+    _cy = y;
+    _chips.forEach(txt => {
+      fn(7);
+      const _cw = doc.getTextWidth(txt) + _padX*2;
+      if (_cx + _cw > mR) {
+        _cx = mL; _cy += _chH + _gapY;
+        if (_cy + _chH > 288) { doc.addPage(); _cy = 14; }
+      }
+      doc.setFillColor(238,242,248);
+      dc(TEMA[0],TEMA[1],TEMA[2]); doc.setLineWidth(0.3);
+      doc.roundedRect(_cx, _cy-3.6, _cw, _chH, 1.1, 1.1, 'FD');
+      fb(7); tc(TEMA[0],TEMA[1],TEMA[2]);
+      doc.text(txt, _cx + _padX, _cy);
+      _cx += _cw + _gapX;
+    });
+    y = _cy + _chH - 1.5;
   }
 
   // ════════════════════════════════════════════════════════════
