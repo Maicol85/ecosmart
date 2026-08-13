@@ -13994,6 +13994,58 @@ async function importarPDFsHistoricos(files) {
       // Pericardio
       const pericardio = ex(/Pericardio[:\s]*([^\n.;]{5,60})/i);
 
+      // ── DILATACIÓN AURICULAR ──
+      // AI: normal / leve / moderada / severa
+      const ai_dilat = (() => {
+        const m = en_suma_full.match(/AI\s*(levemente|moderadamente|severamente)\s*dilatada/i) ||
+                  txt.match(/[Aa]ur[íi]cula\s+[Ii]zq[^\n]{0,30}(leve|moderada|severa)mente\s+dilatada/i) ||
+                  txt.match(/[Aa]ur[íi]cula\s+[Ii]zq[^\n]{0,30}dilat[^\n]{0,20}(leve|moderada|severa)/i);
+        if (!m) return null;
+        const g = (m[1]||'').toLowerCase();
+        if (g.includes('leve')) return 'Leve';
+        if (g.includes('modera')) return 'Moderada';
+        if (g.includes('sever')) return 'Severa';
+        return null;
+      })();
+
+      // AD: normal / leve / moderada / severa
+      const ad_dilat = (() => {
+        const m = en_suma_full.match(/AD\s*(levemente|moderadamente|severamente)\s*dilatada/i) ||
+                  txt.match(/[Aa]ur[íi]cula\s+[Dd]er[^\n]{0,30}(leve|moderada|severa)mente\s+dilatada/i) ||
+                  txt.match(/[Aa]ur[íi]cula\s+[Dd]er[^\n]{0,30}dilat[^\n]{0,20}(leve|moderada|severa)/i);
+        if (!m) return null;
+        const g = (m[1]||'').toLowerCase();
+        if (g.includes('leve')) return 'Leve';
+        if (g.includes('modera')) return 'Moderada';
+        if (g.includes('sever')) return 'Severa';
+        return null;
+      })();
+
+      // ── GEOMETRÍA VI ──
+      // Normal / Remodelado concéntrico / HVI concéntrica / HVI excéntrica
+      const geom_vi = (() => {
+        const fuente = en_suma_full + ' ' + txt;
+        if (/HVI\s+exc[eé]ntrica|[Hh]ipertrofia\s+exc[eé]ntrica/i.test(fuente)) return 'HVI excéntrica';
+        if (/HVI\s+conc[eé]ntrica|[Hh]ipertrofia\s+conc[eé]ntrica/i.test(fuente)) return 'HVI concéntrica';
+        if (/[Hh]ipertrofia\s+ventricular\s+izquierda/i.test(fuente)) return 'HVI';
+        if (/[Rr]emodelado\s+conc[eé]ntrico/i.test(fuente)) return 'Remodelado concéntrico';
+        if (/[Gg]eometr[íi]a\s+normal/i.test(fuente)) return 'Normal';
+        return null;
+      })();
+
+      // ── DILATACIÓN VI ──
+      const vi_dilat = (() => {
+        const fuente = en_suma_full + ' ' + txt;
+        const m = fuente.match(/VI\s*(levemente|moderadamente|severamente)\s*dilatado/i) ||
+                  fuente.match(/[Vv]entr[íi]culo\s+[Ii]zq[^\n]{0,30}(leve|moderada|severa)mente\s+dilatado/i);
+        if (!m) return null;
+        const g = (m[1]||'').toLowerCase();
+        if (g.includes('leve')) return 'Leve';
+        if (g.includes('modera')) return 'Moderada';
+        if (g.includes('sever')) return 'Severa';
+        return null;
+      })();
+
       // ── INFORME ──
       const informe_txt = ex(/INFORME[:\s]*\n?([\s\S]{50,600}?)(?=EN SUMA|$)/i);
 
@@ -14050,6 +14102,10 @@ async function importarPDFsHistoricos(files) {
       set('vc_tricusp',    vc_tricusp);
       set('vc_aortica',    vc_aortica);
       set('pericardio',    pericardio);
+      set('ai_dilat',      ai_dilat);
+      set('ad_dilat',      ad_dilat);
+      set('geom_vi',       geom_vi);
+      set('vi_dilat',      vi_dilat);
       set('en_suma',       en_suma);
       set('informe_texto', informe_txt);
 
