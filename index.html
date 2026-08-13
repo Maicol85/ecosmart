@@ -13931,7 +13931,9 @@ async function importarPDFsHistoricos(files) {
       const e_prima_lat  = num(/e'\s*lateral\s+([\d.,]+)\s*cm/i);
 
       // ── DOPPLER AÓRTICO ──
-      const va_vmax  = num(/V\.?\s*[Mm]áx\s+([\d.,]+)\s*m\/s/i);   // → vmax_ao (dispara calcAo → G.Máx)
+      const va_vmax  = num(/V\.?\s*(?:[Mm]á|[Mm]a)x\s+([\d.,]+)\s*m\/s/i) ||
+                       num(/Vmax\s+aórt[^:]*:\s*([\d.,]+)\s*m\/s/i) ||
+                       num(/Vmax\s+ao[^:]*:\s*([\d.,]+)/i);   // → vmax_ao (dispara calcAo → G.Máx)
       const va_gmed  = num(/Grad\.\s*Medio\s+([\d.,]+)\s*mmHg/i);
       const va_gmax  = num(/Grad\.\s*M[aá]x\s+([\d.,]+)\s*mmHg/i);   // G.Máx: campo readonly calculado — no se importa al form
       const tsvi_vti = num(/VTI-TSVI\s+([\d.,]+)/i);
