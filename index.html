@@ -13958,39 +13958,43 @@ async function importarPDFsHistoricos(files) {
       const vrt  = num(/V\.\s*M[aá]x\s+IT\s+([\d.,]+)\s*m\/s/i);
       const psap = num(/PSAP\s+([\d.,]+)\s*mmHg/i);
 
-      // ── VÁLVULAS — severidad cualitativa ──
-      const exSec = (sec, p) => { const m = sec.match(p); return (m && m[1] && m[1].trim()) ? m[1].trim() : null; };
+      // ── EN SUMA (conclusión) — versión corta y extendida ──
+      const en_suma      = ex(/(?:EN SUMA|En Suma)[:\s]*([^\n]{20,})/i);
+      const en_suma_full = ex(/(?:EN SUMA|En Suma)[:\s]*([\s\S]{20,800}?)(?=Dr\.|Dra\.|CJPP|Fecha de informe|$)/i) || en_suma || '';
 
-      // Insuficiencia Mitral
-      const im_grado = exSec(secMitral, /(?:IM|Insuf[^\s]*\s*[Mm]itral|Insuficiencia\s+[Mm]itral)[:\s]*(leve|moderada|severa)/i) ||
-                       exSec(secMitral, /(?:sin\s+insuficiencia)/i) && 'Sin IM';
+      // ── VÁLVULAS — severidad desde EN SUMA ──
+      // El EN SUMA usa siglas estandarizadas: EAo/IAo/EM/IM/IT + leve/moderada/severa,
+      // o sufijo S/M/L (EAOS=severa, IMS=severa, etc.).
+      const sev = (siglas, texto) => {
+        // Primero: sigla + S/M/L al final (ej: EAOS, IMS)
+        for (const s of siglas) {
+          if (texto.match(new RegExp(s + 'S\\b', 'i'))) return 'Severa';
+          if (texto.match(new RegExp(s + 'M\\b', 'i'))) return 'Moderada';
+          if (texto.match(new RegExp(s + 'L\\b', 'i'))) return 'Leve';
+        }
+        // Segundo: sigla seguida de leve/moderada/severa
+        for (const s of siglas) {
+          const m = texto.match(new RegExp(s + '[:\\s]*(leve|moderada|severa)', 'i'));
+          if (m) return m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
+        }
+        return null;
+      };
 
-      // Estenosis Mitral
-      const em_grado = exSec(secMitral, /(?:EM|Esten[^\s]*\s*[Mm]itral|Estenosis\s+[Mm]itral)[:\s]*(leve|moderada|severa)/i);
+      const im_grado = sev(['IMS','IM'],          en_suma_full);
+      const em_grado = sev(['EMS','EM'],          en_suma_full);
+      const ia_grado = sev(['IAOS','IAo','IAO'],  en_suma_full);
+      const ea_grado = sev(['EAOS','EAo','EAO'],  en_suma_full);
+      const it_grado = sev(['ITS','IT'],          en_suma_full);
 
-      // Vena contracta Mitral
-      const vc_mitral = (() => { const m = secMitral.match(/V\.?C\.?[:\s]*([\d.,]+)\s*mm/i); return m ? parseFloat(m[1].replace(',','.')) : null; })();
-
-      // Insuficiencia Aórtica
-      const ia_grado = exSec(secAortica, /(?:IA|Insuf[^\s]*\s*[Aa]ó[rt]|Insuficiencia\s+[Aa]ó)[:\s]*(leve|moderada|severa)/i);
-
-      // Estenosis Aórtica
-      const ea_grado = exSec(secAortica, /(?:EAo|Esten[^\s]*\s*[Aa]ó[rt]|Estenosis\s+[Aa]ó)[:\s]*(leve|moderada|severa)/i);
-
-      // Insuficiencia Tricuspídea
-      const it_grado = exSec(secTricusp, /(?:IT|Insuf[^\s]*\s*[Tt]ric|Insuficiencia\s+[Tt]ric)[:\s]*(leve|moderada|severa)/i);
-
-      // Vena contracta Tricuspídea
+      // Vena contracta — desde las secciones valvulares ya extraídas arriba
+      const vc_mitral  = (() => { const m = secMitral.match(/V\.?C\.?[:\s]*([\d.,]+)\s*mm/i); return m ? parseFloat(m[1].replace(',','.')) : null; })();
+      const vc_aortica = (() => { const m = secAortica.match(/V\.?C\.?[:\s]*([\d.,]+)\s*mm/i); return m ? parseFloat(m[1].replace(',','.')) : null; })();
       const vc_tricusp = (() => { const m = secTricusp.match(/V\.?C\.?[:\s]*([\d.,]+)\s*mm/i); return m ? parseFloat(m[1].replace(',','.')) : null; })();
 
-      // Vena contracta Aórtica
-      const vc_aortica = (() => { const m = secAortica.match(/V\.?C\.?[:\s]*([\d.,]+)\s*mm/i); return m ? parseFloat(m[1].replace(',','.')) : null; })();
-
       // Pericardio
-      const pericardio = exSec(txt, /Pericardio[:\s]*([^\n.;]{5,60})/i);
+      const pericardio = ex(/Pericardio[:\s]*([^\n.;]{5,60})/i);
 
       // ── INFORME ──
-      const en_suma     = ex(/(?:EN SUMA|En Suma)[:\s]*([^\n]{20,})/i);
       const informe_txt = ex(/INFORME[:\s]*\n?([\s\S]{50,600}?)(?=EN SUMA|$)/i);
 
       // ── ARMAR campos (solo los que existen) ──
