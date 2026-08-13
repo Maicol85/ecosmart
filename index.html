@@ -14316,6 +14316,21 @@ IMPORTANTE: Solo reportá hallazgos que estén EXPLÍCITAMENTE en el documento. 
       set('masa',              datos.masa);
       set('tde',               datos.tde);
 
+      // ── Alias con IDs de formulario (opción 1) — para que el Laboratorio (que lee por id de campo) vea los importados ──
+      const MAP_INVERSO = {
+        'fevi_simpson': 'fevi',
+        'gls_global':   'sgl',
+        'ddvi':         'ddfvi',
+        'e_mitral':     'onda_e',
+        'e_prima_sept': 'e_sep',
+        'e_prima_lat':  'e_lat',
+        'vrt':          'vmax_it',
+        'lavi':         'ai_vol'
+      };
+      Object.entries(MAP_INVERSO).forEach(([canonico, formId]) => {
+        if (campos[canonico] !== undefined) campos[formId] = campos[canonico];
+      });
+
       // ── ID reproducible para detectar duplicados ──
       const idHash = ((nombre||'') + (ci||'') + (fecha||'') + file.name).toLowerCase()
         .replace(/\s/g, '')
