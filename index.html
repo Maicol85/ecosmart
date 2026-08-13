@@ -13920,9 +13920,158 @@ async function importarPDFsHistoricos(files) {
     progressBar.value = Math.round((i / files.length) * 100);
 
     try {
-      // ── CAMBIO A CLAUDE VISION: rasterizar página 1 y extraer JSON clínico ──
+      // ── PARSER HÍBRIDO: texto primero (pdf.js), Vision como fallback si el PDF es imagen ──
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let txt = '';
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const pg = await pdf.getPage(p);
+        const content = await pg.getTextContent();
+        txt += content.items.map(it => it.str).join(' ') + '\n';
+      }
+
+      let datos;
+      if (txt.length > 200) {
+        // ── PARSER DE TEXTO (formato antiguo + EcoSmart combinados) ──
+        const PF = parseFloat;
+        const ex = (p) => { const m = txt.match(p); return (m&&m[1]&&m[1].trim())?m[1].trim():null; };
+        const num = (p) => { const v=ex(p); return v?PF(v.replace(',','.')):null; };
+
+        // PACIENTE
+        const nombre    = ex(/Nombre:\s*([A-Za-záéíóúÁÉÍÓÚñÑ\s]+?)\s*CI:/i);
+        const ci        = ex(/\bCI:\s*([0-9.\-]{5,12})/i);
+        const edad      = num(/Edad:\s*(\d+)/i);
+        const fecha_raw = ex(/Fecha[:\s]+([\d]{1,2}\/[\d]{1,2}\/[\d]{2,4})/i) ||
+                          ex(/Fecha\s*realizaci[oó]n:\s*([\d\/]+)/i);
+        const talla     = num(/Talla:\s*([\d.,]+)\s*cm/i);
+        const peso      = num(/Peso:\s*([\d.,]+)/i);
+        const asc       = num(/ASC:\s*([\d.,]+)/i);
+        const medico    = ex(/(Maicol\s+Dos\s+Santos|Cecilia\s+Corbo|C\s+Corbo)/i);
+        const matricula = ex(/CJPP?\s*([\d]+)/i);
+
+        // VI
+        const siv    = num(/SIVd\s+([\d.,]+)\s*mm/i) || num(/SIV\s*\([^)]+\):\s*([\d.,]+)\s*mm/i);
+        const ddvi   = num(/DDVI\s+([\d.,]+)\s*mm/i) || num(/DDFVI[^:]*:\s*([\d.,]+)\s*mm/i);
+        const dsvi   = num(/DSVI\s+([\d.,]+)\s*mm/i) || num(/DSFVI[^:]*:\s*([\d.,]+)\s*mm/i);
+        const ppvi   = num(/PPd\s+([\d.,]+)\s*mm/i) || num(/PP\s*\([^)]+\):\s*([\d.,]+)\s*mm/i);
+        const fevi   = num(/FEVI\s+([\d.,]+)\s*%/i) || num(/FEVI[:\s]+([\d.,]+)/i);
+        const rwt    = num(/GPR\s*([\d.,]+)/i) || num(/RWT[:\s]*([\d.,]+)/i);
+        const masa   = num(/Masa\s+([\d.,]+)\s*g\/m/i);
+
+        // AI
+        const ai_diam = num(/AI DAP\s+([\d.,]+)\s*mm/i) || num(/Di[aá]m\.\s*AP[^:]*:\s*([\d.,]+)\s*mm/i);
+        const ai_area = num(/AI\s+[aá]rea\s+([\d.,]+)/i) || num(/[Áá]rea\s*AI[^:]*:\s*([\d.,]+)/i);
+        const lavi    = num(/AI\s+vol\s+([\d.,]+)\s*ml\/m/i) || num(/Vol\.?\s*indexado[^:]*:\s*([\d.,]+)/i);
+        const ai_vol_crudo = lavi ? null : num(/AI\s+vol\s+([\d.,]+)\s*ml(?!\/)/i);
+
+        // VD
+        const vd_bas  = num(/VD\s+basal\s+([\d.,]+)\s*mm/i) || num(/Di[aá]m\.\s*basal[^:]*:\s*([\d.,]+)\s*mm/i);
+        const tapse   = num(/TAPSE\s+([\d.,]+)\s*mm/i);
+        const s_prime = num(/Onda\s+S\s+([\d.,]+)\s*cm/i) || num(/S'\s*\([^)]+\):\s*([\d.,]+)\s*cm/i);
+        const tap     = num(/TAP\s+([\d.,]+)\s*ms/i);
+
+        // AD/VCI
+        const ad_area = num(/AD\s+[aá]rea\s+([\d.,]+)/i) || num(/[Áá]rea\s*AD[^:]*:\s*([\d.,]+)/i);
+        const vci     = num(/VCI\s+([\d.,]+)\s*mm/i) || num(/Di[aá]m\.\s*VCI[^:]*:\s*([\d.,]+)\s*mm/i);
+        const pmad    = num(/PmAD\s+([\d.,]+)\s*mmHg/i) || num(/PMAD\s+([\d.,]+)\s*mmHg/i);
+
+        // AORTA
+        const ao_sin  = num(/Ao\.\s*Sinusal\s+([\d.,]+)\s*mm/i) || num(/Seno\s*Valsalva[^:]*:\s*([\d.,]+)\s*mm/i) || num(/Ao\.\s*S\s+([\d.,]+)\s*mm/i);
+        const ao_ust  = num(/Ao\.\s*ST\s+([\d.,]+)\s*mm/i);
+        const ao_asc  = num(/Ao\.\s*Asc\s+([\d.,]+)\s*mm/i);
+        const tsvi_d  = num(/Diam\.\s*TSVI\s+([\d.,]+)\s*mm/i);
+
+        // DOPPLER MITRAL
+        const e_mitral     = num(/Onda\s+E\s+([\d.,]+)\s*cm/i);
+        const a_mitral     = num(/Onda\s+A\s+([\d.,]+)\s*cm/i);
+        const tde          = num(/TDA\s+([\d.,]+)\s*ms/i) || num(/TDE\s+([\d.,]+)\s*ms/i);
+        const e_prima_sept = num(/e['’ʼ]\s*septal\s+([\d.,]+)\s*cm/i);
+        const e_prima_lat  = num(/e['’ʼ]\s*lateral\s+([\d.,]+)\s*cm/i);
+        const ee_prima     = num(/E\/e['’ʼ]\s*([\d.,]+)/i);
+
+        // AÓRTICO
+        const va_vmax  = num(/V\.\s*M[aá]x\s+([\d.,]+)\s*m\/s/i);
+        const va_gmax  = num(/Grad\.\s*M[aá]x\s+([\d.,]+)\s*mmHg/i);
+        const va_gmed  = num(/Grad\.\s*Medio\s+([\d.,]+)\s*mmHg/i);
+        const tsvi_vti = num(/VTI-TSVI\s+([\d.,]+)/i);
+        const vao_vti  = num(/VTI-Vao\s+([\d.,]+)/i);
+
+        // TRICÚSPIDE
+        const vrt     = num(/V\.\s*M[aá]x\s+IT\s+([\d.,]+)\s*m\/s/i);
+        const gmax_it = num(/Grad\.\s*M[aá]x\s+IT\s+([\d.,]+)\s*mmHg/i);
+        const psap    = num(/PSAP\s+([\d.,]+)\s*mmHg/i);
+
+        // VALVULOPATÍAS desde EN SUMA y texto
+        const en_suma_full = ex(/(?:EN SUMA|En Suma)[:\s]*([\s\S]{20,800}?)(?=Dr\.|Dra\.|CJPP?|Fecha de informe|$)/i) || '';
+        const fuente = en_suma_full + ' ' + txt;
+
+        const sev = (siglas, texto) => {
+          for (const s of siglas) {
+            if (new RegExp(s+'S\\b','i').test(texto)) return 'Severa';
+            if (new RegExp(s+'M\\b','i').test(texto)) return 'Moderada';
+            if (new RegExp(s+'L\\b','i').test(texto)) return 'Leve';
+            const m = texto.match(new RegExp(s+'[:\\s]*(leve|moderada|severa)','i'));
+            if (m) return m[1].charAt(0).toUpperCase()+m[1].slice(1).toLowerCase();
+          }
+          return null;
+        };
+
+        const im_grado = sev(['IMS','IM'], fuente);
+        const em_grado = sev(['EMS','EM'], fuente);
+        const ia_grado = sev(['IAOS','IAo','IAO','Iao'], fuente);
+        const ea_grado = sev(['EAOS','EAo','EAO'], fuente);
+        const it_grado = sev(['ITS','IT'], fuente);
+
+        // GEOMETRÍA VI
+        const geom_vi = (() => {
+          if (/HVI\s+exc[eé]ntrica\s+severa/i.test(fuente)) return 'HVI excéntrica severa';
+          if (/HVI\s+exc[eé]ntrica\s+moderada/i.test(fuente)) return 'HVI excéntrica moderada';
+          if (/HVI\s+exc[eé]ntrica\s+leve/i.test(fuente)) return 'HVI excéntrica leve';
+          if (/HVI\s+exc[eé]ntrica/i.test(fuente)) return 'HVI excéntrica';
+          if (/HVI\s+conc[eé]ntrica\s+severa/i.test(fuente)) return 'HVI concéntrica severa';
+          if (/HVI\s+conc[eé]ntrica\s+moderada/i.test(fuente)) return 'HVI concéntrica moderada';
+          if (/HVI\s+conc[eé]ntrica\s+leve/i.test(fuente)) return 'HVI concéntrica leve';
+          if (/HVI\s+conc[eé]ntrica/i.test(fuente)) return 'HVI concéntrica';
+          if (/[Hh]ipertrofia\s+ventricular/i.test(fuente)) return 'HVI';
+          if (/[Rr]emodelado\s+conc[eé]ntrico/i.test(fuente)) return 'Remodelado concéntrico';
+          if (/[Gg]eometr[íi]a\s+normal/i.test(fuente)) return 'Normal';
+          return null;
+        })();
+
+        // DILATACIÓN
+        const ai_dilat = (() => {
+          if (/severamente\s+dilatada|AI\s+sever/i.test(fuente)) return 'Severa';
+          if (/moderadamente\s+dilatada.*AI|AI.*moderada/i.test(fuente)) return 'Moderada';
+          if (/levemente\s+dilatada.*AI|AI.*leve/i.test(fuente)) return 'Leve';
+          if (/auriculomegalia\s+izquierda/i.test(fuente)) return 'Leve';
+          return null;
+        })();
+
+        const htp = /HTP|hipertensi[oó]n\s+pulmonar/i.test(fuente);
+        const htp_grado = sev(['HTPS','HTP'], fuente);
+
+        const en_suma = ex(/(?:EN SUMA|En Suma)[:\s]*([^\n]{20,})/i);
+
+        datos = {
+          nombre, ci, medico, matricula, talla, peso, edad, asc, fecha: fecha_raw, sexo: null,
+          siv, ddvi, dsvi, ppvi, fevi, gls: null, rwt, masa,
+          geometria_vi: geom_vi, vi_dilat: null, vd_func: null,
+          ai_diam, ai_area, ai_vol_crudo, lavi, ai_dilat,
+          ad_area, ad_dilat: null, biauriculomegalia: null,
+          vd_bas, vd_med: null, tapse, s_prime, tap,
+          vci, vci_colapso: null, pmad,
+          ao_sin, ao_ust, ao_asc, ao_dilat: null, tsvi_diam: tsvi_d,
+          e_mitral, a_mitral, tde, ea_ratio: (e_mitral && a_mitral) ? +(e_mitral/a_mitral).toFixed(2) : null,
+          e_prima_sept, e_prima_lat, ee_prima,
+          va_vmax, va_gmax, va_gmed, tsvi_vti, vao_vti, ava: null,
+          im_grado, avm: null, vc_mitral: null, pisa_mitral: null, vr_mitral: null, ore_mitral: null, em_grado,
+          ia_grado, thp_iao: null, vc_aortica: null, vr_aortica: null, ore_aortica: null, ea_grado,
+          it_grado, vc_tricusp: null, pisa_tricusp: null, vr_tricusp: null, ore_tricusp: null,
+          vrt, gmax_it, psap, htp, htp_grado,
+          pericardio: null, en_suma, conclusion: null
+        };
+      } else {
+        // ── VISION (PDF imagen, sin capa de texto) ──
       const page = await pdf.getPage(1);
       const viewport = page.getViewport({ scale: 2.0 });
       const canvas = document.createElement('canvas');
@@ -14052,13 +14201,13 @@ IMPORTANTE: Solo reportá hallazgos que estén EXPLÍCITAMENTE en el documento. 
       if (!visionResp.ok) { console.warn('Vision API error:', visionResp.status); errores++; continue; }
       const visionData = await visionResp.json();
       const rawText = visionData.content?.[0]?.text || '{}';
-      let datos = {};
       try { datos = JSON.parse(rawText.replace(/```json|```/g, '').trim()); }
       catch (e) { console.warn('JSON parse error:', e, rawText); errores++; continue; }
+      }
 
-      // ── Mapear datos de Vision a las variables que usa el bloque set() (conserva set()/MAP_IMPORT) ──
+      // ── Mapear datos (texto o Vision) a las variables que usa el bloque set() (conserva set()/MAP_IMPORT) ──
       const nombre = datos.nombre, ci = datos.ci, medico = datos.medico, matricula = datos.matricula;
-      const talla = datos.talla, peso = datos.peso, edad = datos.edad, asc = null;
+      const talla = datos.talla, peso = datos.peso, edad = datos.edad, asc = datos.asc || null;
       let fecha = datos.fecha || '';
       if (fecha && fecha.includes('/')) {
         const p = fecha.split('/');
@@ -14162,6 +14311,8 @@ IMPORTANTE: Solo reportá hallazgos que estén EXPLÍCITAMENTE en el documento. 
       set('ao_dilat',          datos.ao_dilat);
       set('biauriculomegalia', datos.biauriculomegalia);
       set('vd_func',           datos.vd_func);
+      set('masa',              datos.masa);
+      set('tde',               datos.tde);
 
       // ── ID reproducible para detectar duplicados ──
       const idHash = ((nombre||'') + (ci||'') + (fecha||'') + file.name).toLowerCase()
