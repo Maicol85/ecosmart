@@ -13996,34 +13996,34 @@ async function importarPDFsHistoricos(files) {
 
   e_mitral: número en cm/s (onda E mitral),
   a_mitral: número en cm/s (onda A mitral),
-  ea_ratio: número decimal (E/A),
+  ea_ratio: número decimal (E/A) — dividir Onda E / Onda A si ambas están presentes,
   e_prima_sept: número en cm/s (e' septal),
   e_prima_lat: número en cm/s (e' lateral),
-  ee_prima: número decimal (E/e' promedio),
+  ee_prima: número decimal (E/e' promedio) — dividir Onda E / e' promedio si ambas están presentes,
 
   va_vmax: número en m/s (velocidad máxima aórtica, puede llamarse VA max, VAo max, V.Máx Ao),
-  va_gmax: número en mmHg (gradiente máximo aórtico, puede llamarse Gmax Ao, G.pico Ao),
+  va_gmax: número en mmHg (gradiente máximo aórtico — buscar "Grad. Máx", "G.Máx", "G.pico", "gradiente máximo aórtico"),
   va_gmed: número en mmHg (gradiente medio aórtico),
   tsvi_vti: número en cm (VTI-TSVI),
   vao_vti: número en cm (VTI-VAo),
   ava: número en cm2 (área válvula aórtica, puede llamarse AVA),
 
-  im_grado: Sin IM / Leve / Moderada / Severa / null,
+  im_grado: grado de INSUFICIENCIA MITRAL ÚNICAMENTE — Sin IM / Leve / Moderada / Severa / null. Si dice "sin insuficiencia" → null. Si no menciona la válvula → null,
   avm: número en cm2 (área válvula mitral, puede llamarse AVM),
   vc_mitral: número en mm (vena contracta mitral),
   pisa_mitral: número en cm (radio PISA mitral),
   vr_mitral: número en ml (volumen regurgitante mitral, puede llamarse VR),
   ore_mitral: número en cm2 (orificio regurgitante efectivo mitral, puede llamarse ORE, EROA),
-  em_grado: Sin EM / Leve / Moderada / Severa / null,
+  em_grado: grado de ESTENOSIS MITRAL ÚNICAMENTE — Sin EM / Leve / Moderada / Severa / null. Si dice "sin estenosis" → null. Si no menciona la válvula → null,
 
-  ia_grado: Sin IAo / Leve / Moderada / Severa / null,
+  ia_grado: grado de INSUFICIENCIA AÓRTICA ÚNICAMENTE — Sin IAo / Leve / Moderada / Severa / null. Si dice "sin insuficiencia" → null. Si no menciona la válvula → null,
   thp_iao: número en ms (tiempo de hemipresión IAo, puede llamarse THP, PHT de IAo),
   vc_aortica: número en mm (vena contracta aórtica),
   vr_aortica: número en ml (volumen regurgitante aórtico),
   ore_aortica: número en cm2 (orificio regurgitante efectivo aórtico),
-  ea_grado: Sin EAo / Leve / Moderada / Severa / null,
+  ea_grado: grado de ESTENOSIS AÓRTICA ÚNICAMENTE — Sin EAo / Leve / Moderada / Severa / null. Si dice "sin estenosis" → null. Si no menciona la válvula → null,
 
-  it_grado: Sin IT / Leve / Moderada / Severa / null,
+  it_grado: grado de INSUFICIENCIA TRICUSPÍDEA ÚNICAMENTE — Sin IT / Leve / Moderada / Severa / null. Si dice "sin insuficiencia" → null. Si no menciona la válvula → null,
   vc_tricusp: número en mm (vena contracta tricuspídea),
   pisa_tricusp: número en cm (radio PISA tricuspídea),
   vr_tricusp: número en ml (volumen regurgitante tricuspídeo),
@@ -14041,7 +14041,11 @@ async function importarPDFsHistoricos(files) {
   en_suma: texto completo del EN SUMA,
   conclusion: texto de conclusión o diagnóstico final
 }
-Si un campo no está en el documento, usá null.` }
+Si un campo no está en el documento, usá null.
+
+IMPORTANTE — VALVULOPATÍAS: insuficiencia y estenosis son patologías DISTINTAS. IM = insuficiencia mitral, EM = estenosis mitral; IAo = insuficiencia aórtica, EAo = estenosis aórtica. No las confundas. "sin insuficiencia" solo anula el grado de insuficiencia; "sin estenosis" solo anula el grado de estenosis.
+
+IMPORTANTE: Solo reportá hallazgos que estén EXPLÍCITAMENTE en el documento. Si no está escrito claramente, usá null. No inferir ni asumir patologías que no estén documentadas.` }
           ]}]
         })
       });
