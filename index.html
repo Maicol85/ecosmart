@@ -13546,6 +13546,7 @@ function editarInforme(id) {
       e_prima_lat:  'e_lat',
       tsvi_vti:     'itv_tsvi',
       vrt:          'vmax_it',
+      va_vmax:      'vmax_ao',
     };
     Object.entries(inf.campos).forEach(([k, val]) => {
       const el = document.getElementById(inf.importado_pdf ? (MAP_IMPORT[k] || k) : k);
@@ -13869,6 +13870,7 @@ async function importarPDFsHistoricos(files) {
       const matricula = ex(/CJPP\s*([\d]+)/i);
       const talla     = num(/Talla:\s*([\d.,]+)\s*cm/i);
       const peso      = num(/Peso:\s*([\d.,]+)/i);
+      const asc       = num(/ASC[:\s]*([\d.,]+)\s*m2/i);   // sup. corporal (BSA) — se recalcula desde talla+peso
 
       let fecha = ex(/Fecha\s*realizaci[oó]n:\s*([\d\/\-]+)/i) ||
                   ex(/Fecha:\s*([\d]{1,2}\/[\d]{1,2}\/[\d]{2,4})/i);
@@ -13895,7 +13897,9 @@ async function importarPDFsHistoricos(files) {
                       num(/AI DAP\s+([\d.,]+)\s*mm/i);
       const ai_area = num(/[Áá]rea\s*AI[^:]*:\s*([\d.,]+)/i) ||
                       num(/AI\s+[aá]rea\s+([\d.,]+)/i);
-      const lavi    = num(/AI\s+vol(?:\s+index(?:ado)?)?\s+([\d.,]+)/i);
+      const lavi    = num(/Vol\.?\s*indexado[^:]*:\s*([\d.,]+)\s*ml\/m/i) ||
+                      num(/AI\s+vol\s+index(?:ado)?\s+([\d.,]+)/i) ||
+                      num(/AI\s+vol\s+([\d.,]+)/i);
 
       // ── VENTRÍCULO DERECHO ──
       const vd_bas  = num(/Diám\.\s*basal[^:]*:\s*([\d.,]+)\s*mm/i) ||
@@ -13927,8 +13931,9 @@ async function importarPDFsHistoricos(files) {
       const e_prima_lat  = num(/e'\s*lateral\s+([\d.,]+)\s*cm/i);
 
       // ── DOPPLER AÓRTICO ──
+      const va_vmax  = num(/V\.?\s*[Mm]áx\s+([\d.,]+)\s*m\/s/i);   // → vmax_ao (dispara calcAo → G.Máx)
       const va_gmed  = num(/Grad\.\s*Medio\s+([\d.,]+)\s*mmHg/i);
-      const va_gmax  = num(/Grad\.\s*M[aá]x\s+([\d.,]+)\s*mmHg/i);
+      const va_gmax  = num(/Grad\.\s*M[aá]x\s+([\d.,]+)\s*mmHg/i);   // G.Máx: campo readonly calculado — no se importa al form
       const tsvi_vti = num(/VTI-TSVI\s+([\d.,]+)/i);
 
       // ── TRICÚSPIDE / PSAP ──
@@ -13949,6 +13954,7 @@ async function importarPDFsHistoricos(files) {
       set('fecha',         fecha);
       set('talla',         talla);
       set('peso',          peso);
+      set('asc',           asc);
       set('med-nombre',    medico);
       set('med-matricula', matricula);
       set('siv',           siv);
@@ -13976,6 +13982,7 @@ async function importarPDFsHistoricos(files) {
       set('a_mitral',      a_mitral);
       set('e_prima_sept',  e_prima_sept);
       set('e_prima_lat',   e_prima_lat);
+      set('va_vmax',       va_vmax);
       set('ea_gmedio',     va_gmed);
       set('ea_gmax',       va_gmax);
       set('tsvi_vti',      tsvi_vti);
