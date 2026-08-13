@@ -13843,76 +13843,71 @@ async function importarPDFsHistoricos(files) {
       };
 
       // ── DATOS PACIENTE ──
-      const nombre    = ex(/(?:Nombre|Paciente)[:\s]+([^\n\r|]{3,40})/i);
-      const ci        = ex(/(?:CI|Cédula|Doc\.?)[:\s]+([0-9.\-]{5,12})/i);
-      const edad      = num(/Edad[:\s]+(\d+)/i);
-      const peso      = num(/Peso[:\s]+([\d.,]+)\s*[Kk]/i);
-      const talla     = num(/Talla[:\s]+([\d.,]+)\s*cm/i);
-      const medico    = ex(/Dr\.?\s+([^\n\r.]{4,40})/i);
-      const matricula = ex(/(?:CJPP|Matr[íi]cula|Mat\.?)[:\s#]*([\d]+)/i);
+      const nombre    = ex(/Nombre:\s*([A-Za-záéíóúÁÉÍÓÚñÑ\s]+?)\s*CI:/i);
+      const ci        = ex(/\bCI:\s*([0-9.\-]{5,12})/i);
+      const medico    = ex(/(Maicol\s+Dos\s+Santos|Cecilia\s+Corbo)/i);
+      const matricula = ex(/CJPP\s*([\d]+)/i);
+      const talla     = num(/Talla:\s*([\d.,]+)\s*cm/i);
+      const peso      = num(/Peso:\s*([\d.,]+)/i);
 
-      // Normalizar fecha a YYYY-MM-DD
-      let fecha = ex(/Fecha[:\s]+(\d{1,2}\/\d{1,2}\/\d{2,4}|\d{4}-\d{2}-\d{2})/i);
+      let fecha = ex(/Fecha\s*realizaci[oó]n:\s*([\d\/\-]+)/i) ||
+                  ex(/Fecha:\s*([\d]{1,2}\/[\d]{1,2}\/[\d]{2,4})/i);
       if (fecha && fecha.includes('/')) {
         const p = fecha.split('/');
         if (p[2].length === 2) p[2] = '20' + p[2];
         fecha = `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
       }
 
-      // ── AORTA (1 a 3 porciones según el caso) ──
-      const ao_sin  = num(/[Ss]eno[s]?\s*[Vv]alsalva[.\s]*([\d.,]+)/i);
-      const ao_ust  = num(/[Uu]ni[oó]n\s*[Ss]inotubular[.\s]*([\d.,]+)/i);
-      const ao_asc  = num(/[Aa]orta\s*[Aa]scendente[^.]{0,20}?([\d.,]+)\s*mm/i);
+      // ── VENTRÍCULO IZQUIERDO ──
+      const siv     = num(/SIVd\s+([\d.,]+)\s*mm/i);
+      const ddvi    = num(/DDVI\s+([\d.,]+)\s*mm/i);
+      const dsvi    = num(/DSVI\s+([\d.,]+)\s*mm/i);
+      const ppvi    = num(/PPd\s+([\d.,]+)\s*mm/i);
+      const fevi    = num(/FEVI\s+([\d.,]+)\s*%/i) ||
+                      num(/FEVI[:\s]+([\d.,]+)/i);
+      const gls     = num(/GLS[:\s]*([-\d.,]+)\s*%/i);
+      const rwt     = num(/RWT[:\s]*([\d.,]+)/i);
 
       // ── AURÍCULA IZQUIERDA ──
-      const ai_diam = num(/D[-\s]?AP[:\s]*([\d.,]+)\s*mm/i);
-      const ai_area = num(/[Áá]rea[^.]{0,15}[Aa]ur[íi]cula\s*[Ii]zq[^.]{0,10}([\d.,]+)/i) ||
-                      num(/[Aa]ur[íi]cula\s*[Ii]zq[^.]{0,30}[Áá]rea[:\s]*([\d.,]+)/i);
-      const lavi    = num(/Vol(?:umen)?\s*[Íi]ndex[:\s]*([\d.,]+)\s*ml/i) ||
-                      num(/LAVI[:\s]*([\d.,]+)/i);
-
-      // ── VENTRÍCULO IZQUIERDO ──
-      const siv      = num(/SIVD[.\s]*([\d.,]+)/i);
-      const ddvi     = num(/DDVI[.\s]*([\d.,]+)/i);
-      const dsvi     = num(/DSVI[.\s]*([\d.,]+)/i);
-      const ppvi     = num(/PPVID[.\s]*([\d.,]+)/i);
-      const masa_vi  = num(/Masa[.\s]*([\d.,]+)\s*g/i);
-      const rwt      = num(/RWT[:\s]*([\d.,]+)/i);
-      const fevi     = num(/FEVI[:\s]*([\d.,]+)\s*%/i) ||
-                       num(/FEVI\s+([\d.,]+)/i);
-      const gls      = num(/GLS[:\s]*([-\d.,]+)\s*%/i) ||
-                       num(/GLS\s+([-\d.,]+)/i);
+      const ai_diam = num(/Diám\.\s*AP[^:]*:\s*([\d.,]+)\s*mm/i) ||
+                      num(/AI DAP\s+([\d.,]+)\s*mm/i);
+      const ai_area = num(/AI\s+[aá]rea\s+([\d.,]+)/i);
+      const lavi    = num(/AI\s+vol\s+([\d.,]+)/i);
 
       // ── VENTRÍCULO DERECHO ──
-      const tvia    = num(/TAP[.\s]*([\d.,]+)\s*ms/i);
-      const tapse   = num(/TAPSE[.\s]*([\d.,]+)\s*mm/i);
-      const vd_bas  = num(/Di[aá]m(?:etro)?\s*[Bb]asal[.\s]*([\d.,]+)\s*mm/i);
-      const s_prime = num(/[Oo]nda\s*S[.\s]*([\d.,]+)\s*cm/i);
+      const vd_bas  = num(/VD\s+basal\s+([\d.,]+)\s*mm/i);
+      const tapse   = num(/TAPSE\s+([\d.,]+)\s*mm/i);
+      const s_prime = num(/Onda\s+S\s+([\d.,]+)\s*cm/i);
+      const tvia    = num(/TAP\s+([\d.,]+)\s*ms/i);
 
-      // ── AURÍCULA DERECHA + VCI ──
-      const ad_area = num(/[Áá]rea\s*(?:AD|[Aa]ur[íi]cula\s*[Dd]erecha)[.\s]*([\d.,]+)/i);
-      const vci     = num(/VCI[.\s]*([\d.,]+)\s*mm/i);
+      // ── AURÍCULA DERECHA / VCI ──
+      const ad_area = num(/AD\s+[aá]rea\s+([\d.,]+)/i);
+      const vci     = num(/VCI\s+([\d.,]+)\s*mm/i);
+      const pmad    = num(/PmAD\s+([\d.,]+)\s*mmHg/i);
+
+      // ── AORTA ──
+      const ao_sin  = num(/Ao\.\s*S\s+([\d.,]+)\s*mm/i);
+      const ao_ust  = num(/Ao\.\s*ST\s+([\d.,]+)\s*mm/i);
+      const ao_asc  = num(/Ao\.\s*Asc\s+([\d.,]+)\s*mm/i);
+      const tsvi_d  = num(/Diam\.\s*TSVI\s+([\d.,]+)\s*mm/i);
 
       // ── DOPPLER MITRAL ──
-      const e_mitral     = num(/[Oo]nda\s*E[.\s]*([\d.,]+)\s*cm/i);
-      const a_mitral     = num(/[Oo]nda\s*A[.\s]*([\d.,]+)\s*cm/i);
-      const e_prima_sept = num(/e['′’]\s*[Ss]eptal[.\s]*([\d.,]+)/i);
-      const e_prima_lat  = num(/e['′’]\s*[Ll]ateral[.\s]*([\d.,]+)/i);
+      const e_mitral     = num(/Onda\s+E\s+([\d.,]+)\s*cm/i);
+      const a_mitral     = num(/Onda\s+A\s+([\d.,]+)\s*cm/i);
+      const e_prima_sept = num(/e'\s*septal\s+([\d.,]+)\s*cm/i);
+      const e_prima_lat  = num(/e'\s*lateral\s+([\d.,]+)\s*cm/i);
 
-      // ── VÁLVULA AÓRTICA ──
-      const va_vmax  = num(/V[.\s]?[Mm]ax[.\s]*([\d.,]+)\s*m\/s/i);
-      const va_gmax  = num(/G[.\s]?[Mm][aá]x[.\s]*([\d.,]+)\s*mmHg/i);
-      const va_gmed  = num(/G[.\s]?[Mm]edio[.\s]*([\d.,]+)\s*mmHg/i);
-      const tsvi_vti = num(/VTI[-\s]?TSVI[.\s]*([\d.,]+)/i);
-      const vao_vti  = num(/VTI[-\s]?[Vv]ao[.\s]*([\d.,]+)/i);
-      const ava      = num(/AVA[.\s]*([\d.,]+)\s*cm2/i);
+      // ── DOPPLER AÓRTICO ──
+      const va_gmed  = num(/Grad\.\s*Medio\s+([\d.,]+)\s*mmHg/i);
+      const va_gmax  = num(/Grad\.\s*M[aá]x\s+([\d.,]+)\s*mmHg/i);
+      const tsvi_vti = num(/VTI-TSVI\s+([\d.,]+)/i);
 
-      // ── VÁLVULA TRICÚSPIDE / PSAP ──
-      const vrt  = num(/V[.\s]?[Mm][aá]x\s*(?:de\s*)?IT[.\s]*([\d.,]+)\s*m\/s/i);
-      const psap = num(/PSAP[.\s]*([\d.,]+)\s*mmHg/i);
+      // ── TRICÚSPIDE / PSAP ──
+      const vrt  = num(/V\.\s*Max\s+IT\s+([\d.,]+)\s*m\/s/i);
+      const psap = num(/PSAP\s+([\d.,]+)\s*mmHg/i);
 
-      // ── INFORME Y CONCLUSIÓN ──
-      const en_suma     = ex(/(?:EN SUMA|En Suma|CONCLUSI[OÓ]N)[:\s]*([^\n]{20,})/i);
+      // ── INFORME ──
+      const en_suma     = ex(/(?:EN SUMA|En Suma)[:\s]*([^\n]{20,})/i);
       const informe_txt = ex(/INFORME[:\s]*\n?([\s\S]{50,600}?)(?=EN SUMA|$)/i);
 
       // ── ARMAR campos (solo los que existen) ──
@@ -13922,42 +13917,39 @@ async function importarPDFsHistoricos(files) {
       };
       set('nombre',        nombre);
       set('ci',            ci);
-      set('edad',          edad);
-      set('peso',          peso);
+      set('fecha',         fecha);
       set('talla',         talla);
+      set('peso',          peso);
       set('med-nombre',    medico);
       set('med-matricula', matricula);
-      set('fecha',         fecha);
-      set('ao_sin',        ao_sin);
-      set('ao_ust',        ao_ust);
-      set('ao_asc',        ao_asc);
-      set('ai_diam',       ai_diam);
-      set('ai_area',       ai_area);
-      set('lavi',          lavi);
       set('siv',           siv);
       set('ddvi',          ddvi);
       set('dsvi',          dsvi);
       set('ppvi',          ppvi);
-      set('masa_vi',       masa_vi);
-      set('rwt',           rwt);
       set('fevi_simpson',  fevi);
       set('gls_global',    gls);
-      set('tvia',          tvia);
-      set('tapse',         tapse);
+      set('rwt',           rwt);
+      set('ai_diam',       ai_diam);
+      set('ai_area',       ai_area);
+      set('lavi',          lavi);
       set('vd_bas',        vd_bas);
+      set('tapse',         tapse);
       set('s_prime',       s_prime);
+      set('tvia',          tvia);
       set('ad_area',       ad_area);
-      set('vci',           vci);
+      set('vci_diam',      vci);
+      set('pmad',          pmad);
+      set('ao_sin',        ao_sin);
+      set('ao_ust',        ao_ust);
+      set('ao_asc',        ao_asc);
+      set('dtsvi',         tsvi_d);
       set('e_mitral',      e_mitral);
       set('a_mitral',      a_mitral);
       set('e_prima_sept',  e_prima_sept);
       set('e_prima_lat',   e_prima_lat);
-      set('va_vmax',       va_vmax);
-      set('va_gmax',       va_gmax);
-      set('va_gmed',       va_gmed);
+      set('ea_gmedio',     va_gmed);
+      set('ea_gmax',       va_gmax);
       set('tsvi_vti',      tsvi_vti);
-      set('vao_vti',       vao_vti);
-      set('ava',           ava);
       set('vrt',           vrt);
       set('psap_calc',     psap);
       set('en_suma',       en_suma);
