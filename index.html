@@ -834,6 +834,10 @@ window.cerrarSesion = cerrarSesion;
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn" onclick="exportarInformesJSON()" title="Exportar todos los informes a JSON">📤 Exportar JSON</button>
           <button class="btn" onclick="document.getElementById('ig-import-file').click()" title="Importar informes desde un archivo JSON">📥 Importar JSON</button>
+          <button class="btn" onclick="
+            const k = prompt('API key de Anthropic (se guarda solo durante esta sesión):', sessionStorage.getItem('ecg_api_key') || '');
+            if (k !== null) { sessionStorage.setItem('ecg_api_key', k.trim()); if (typeof toast === 'function') toast('✅ API key guardada'); }
+          " title="Configurar API key para importar PDFs (Claude Vision)">⚙️ API key</button>
           <button class="btn" onclick="document.getElementById('pdf-import-file').click()" title="Importar PDFs históricos generados por EcoSmart">📄 Importar PDFs históricos</button>
         </div>
       </div>
@@ -7924,6 +7928,10 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           <button class="btn" onclick="exportarInformesJSON()" title="Exportar todos los informes a JSON">📤 Exportar JSON</button>
           <button class="btn" onclick="document.getElementById('ig-import-file').click()" title="Importar informes desde un archivo JSON">📥 Importar JSON</button>
           <input type="file" id="ig-import-file" accept=".json,application/json" style="display:none" onchange="if(this.files&&this.files[0]){importarInformesJSON(this.files[0]);this.value='';}">
+          <button class="btn" onclick="
+            const k = prompt('API key de Anthropic (se guarda solo durante esta sesión):', sessionStorage.getItem('ecg_api_key') || '');
+            if (k !== null) { sessionStorage.setItem('ecg_api_key', k.trim()); if (typeof toast === 'function') toast('✅ API key guardada'); }
+          " title="Configurar API key para importar PDFs (Claude Vision)">⚙️ API key</button>
           <button class="btn" onclick="document.getElementById('pdf-import-file').click()" title="Importar PDFs históricos generados por EcoSmart">📄 Importar PDFs históricos</button>
           <input type="file" id="pdf-import-file" accept=".pdf" multiple style="display:none" onchange="if(this.files&&this.files.length){importarPDFsHistoricos(this.files);this.value='';}">
           <button class="btn btn-danger" onclick="limpiarTodosInformes()" title="Eliminar todos los informes">🗑️ Eliminar todos</button>
@@ -8357,6 +8365,9 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 <div id="modal-pdf-import" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:600;overflow:auto;padding:20px;">
   <div style="max-width:520px;margin:60px auto;background:var(--bg2);border-radius:14px;padding:22px;border:1px solid var(--border);">
     <div style="font-size:15px;font-weight:700;color:var(--accent2);margin-bottom:16px;">📄 Importando PDFs históricos</div>
+    <div style="font-size:11.5px;color:var(--text2);background:rgba(0,0,0,.06);border-radius:8px;padding:9px 11px;margin-bottom:16px;line-height:1.45;">
+      🔒 Las imágenes se procesan en la nube (Anthropic) para extraer los datos. No se almacenan.
+    </div>
     <progress id="pdf-import-progress" value="0" max="100" style="width:100%;height:14px;"></progress>
     <div id="pdf-import-status" style="font-size:13px;color:var(--text2);margin-top:12px;line-height:1.5;">Preparando…</div>
     <div style="text-align:right;margin-top:18px;">
@@ -13593,6 +13604,10 @@ function editarInforme(id) {
       vc_mitral:    'im_vc',
       vc_tricusp:   'it_vc',
       vc_aortica:   'ia_vc',
+      vd_med:       'vd_mid',
+      vao_vti:      'itv_ao',
+      pisa_mitral:  'pisa_r',
+      pisa_tricusp: 'it_pisa_r',
     };
     // Claves de severidad cualitativa que NO se inyectan al form en importados:
     // im_grado/ia_grado/it_grado son <input hidden> con código numérico (0-4) manejado por
@@ -13905,218 +13920,158 @@ async function importarPDFsHistoricos(files) {
     progressBar.value = Math.round((i / files.length) * 100);
 
     try {
+      // ── CAMBIO A CLAUDE VISION: rasterizar página 1 y extraer JSON clínico ──
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      let txt = '';
-      for (let p = 1; p <= pdf.numPages; p++) {
-        const page = await pdf.getPage(p);
-        const content = await page.getTextContent();
-        txt += content.items.map(item => item.str).join(' ') + '\n';
-      }
+      const page = await pdf.getPage(1);
+      const viewport = page.getViewport({ scale: 2.0 });
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width; canvas.height = viewport.height;
+      const cvctx = canvas.getContext('2d');
+      await page.render({ canvasContext: cvctx, viewport }).promise;
+      const base64Image = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
 
-      // ── Dividir el texto por secciones valvulares (para vena contracta / severidad por válvula) ──
-      const secMitral   = txt.match(/V[aá]lvula\s+Mitral([\s\S]+?)(?=V[aá]lvula\s+A[oó]rtica|V[aá]lvula\s+Tric|INFORME|EN SUMA)/i)?.[1] || '';
-      const secAortica  = txt.match(/V[aá]lvula\s+A[oó]rtica([\s\S]+?)(?=V[aá]lvula\s+Tric|V[aá]lvula\s+Pulm|INFORME|EN SUMA)/i)?.[1] || '';
-      const secTricusp  = txt.match(/V[aá]lvula\s+Tric[uú]sp[^\n]*([\s\S]+?)(?=V[aá]lvula\s+Pulm|INFORME|EN SUMA)/i)?.[1] || '';
-      const secPulmonar = txt.match(/V[aá]lvula\s+Pulm[^\n]*([\s\S]+?)(?=INFORME|EN SUMA|Pericardio)/i)?.[1] || '';
+      const apiKey = sessionStorage.getItem('ecg_api_key') || '';
+      if (!apiKey) { statusEl.textContent = '❌ Falta API key. Configurala en el botón ⚙️'; errores++; continue; }
 
-      // Helper: extrae texto o null
-      const ex = (patron) => {
-        const m = txt.match(patron);
-        return (m && m[1] && m[1].trim()) ? m[1].trim() : null;
-      };
-      // Helper: extrae número o null
-      const num = (patron) => {
-        const val = ex(patron);
-        return val ? PF(val.replace(',', '.')) : null;
-      };
+      const visionResp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 2048,
+          messages: [{ role: 'user', content: [
+            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64Image } },
+            { type: 'text', text: `Extraé todos los datos de este informe de ecocardiograma y devolvé SOLO un JSON válido sin texto adicional ni backticks:
+{
+  nombre: texto completo del paciente,
+  ci: número de cédula del PACIENTE (no del médico),
+  fecha: DD/MM/YYYY,
+  edad: número,
+  sexo: M o F,
+  talla: número en cm,
+  peso: número en kg,
 
-      // ── DATOS PACIENTE ──
-      const nombre    = ex(/Nombre:\s*([A-Za-záéíóúÁÉÍÓÚñÑ\s]+?)\s*CI:/i);
-      const ci        = ex(/\bCI:\s*([0-9.\-]{5,12})/i);
-      const medico    = ex(/(Maicol\s+Dos\s+Santos|Cecilia\s+Corbo)/i);
-      const matricula = ex(/CJPP\s*([\d]+)/i);
-      const talla     = num(/Talla:\s*([\d.,]+)\s*cm/i);
-      const peso      = num(/Peso:\s*([\d.,]+)/i);
-      const asc       = num(/ASC[:\s]*([\d.,]+)\s*m2/i);   // sup. corporal (BSA) — se recalcula desde talla+peso
-      const edad      = num(/Edad[:\s]+(\d+)\s*a/i) ||
-                        num(/(\d+)\s*a[ñn]os/i);
+  siv: número en mm (puede llamarse SIVd, Septum IV),
+  ddvi: número en mm (puede llamarse DDVI, DDFVI, diám. diastólico VI),
+  dsvi: número en mm (puede llamarse DSVI, DSFVI, diám. sistólico VI),
+  ppvi: número en mm (puede llamarse PPd, PP, pared posterior),
+  fevi: número en % (puede llamarse FEVI, FE, fracción de eyección),
+  gls: número negativo en % (strain longitudinal global),
+  rwt: número decimal (puede llamarse RWT, GPR),
+  geometria_vi: exactamente uno de: Normal / Remodelado concéntrico / HVI concéntrica leve / HVI concéntrica moderada / HVI concéntrica severa / HVI excéntrica leve / HVI excéntrica moderada / HVI excéntrica severa,
+  vi_dilat: Leve / Moderada / Severa / null,
+  vd_func: Normal / Disfunción leve / Disfunción moderada / Disfunción severa / null,
 
-      let fecha = ex(/Fecha\s*realizaci[oó]n:\s*([\d\/\-]+)/i) ||
-                  ex(/Fecha:\s*([\d]{1,2}\/[\d]{1,2}\/[\d]{2,4})/i);
+  ai_diam: número en mm (diámetro AP aurícula izquierda),
+  ai_area: número en cm2,
+  ai_vol_crudo: número en ml (volumen AI sin indexar, unidad ml),
+  lavi: número en ml/m2 (volumen AI indexado, unidad ml/m2 — puede llamarse LAVI, AI vol index, Vol. indexado),
+  ai_dilat: Leve / Moderada / Severa / null (puede llamarse auriculomegalia izquierda),
+
+  ad_area: número en cm2,
+  ad_dilat: Leve / Moderada / Severa / null (puede llamarse auriculomegalia derecha),
+  biauriculomegalia: true o false,
+
+  vd_bas: número en mm (diámetro basal VD),
+  vd_med: número en mm (diámetro medio VD),
+  tapse: número en mm,
+  s_prime: número en cm/s (onda S tisular tricuspídea),
+  tap: número en ms (tiempo de aceleración pulmonar, puede llamarse TAP, TVIA, tiempo al pico),
+
+  vci: número en mm (diámetro VCI),
+  vci_colapso: mayor50 / menor50 / null,
+  pmad: número en mmHg,
+
+  ao_sin: número en mm (seno de Valsalva, puede llamarse Ao.S, Ao sinusal),
+  ao_ust: número en mm (unión sinotubular, puede llamarse Ao.ST, Ao sinotubular),
+  ao_asc: número en mm (aorta ascendente proximal, puede llamarse Ao.Asc, Ao tubular),
+  ao_dilat: true o false,
+  tsvi_diam: número en mm,
+
+  e_mitral: número en cm/s (onda E mitral),
+  a_mitral: número en cm/s (onda A mitral),
+  ea_ratio: número decimal (E/A),
+  e_prima_sept: número en cm/s (e' septal),
+  e_prima_lat: número en cm/s (e' lateral),
+  ee_prima: número decimal (E/e' promedio),
+
+  va_vmax: número en m/s (velocidad máxima aórtica, puede llamarse VA max, VAo max, V.Máx Ao),
+  va_gmax: número en mmHg (gradiente máximo aórtico, puede llamarse Gmax Ao, G.pico Ao),
+  va_gmed: número en mmHg (gradiente medio aórtico),
+  tsvi_vti: número en cm (VTI-TSVI),
+  vao_vti: número en cm (VTI-VAo),
+  ava: número en cm2 (área válvula aórtica, puede llamarse AVA),
+
+  im_grado: Sin IM / Leve / Moderada / Severa / null,
+  avm: número en cm2 (área válvula mitral, puede llamarse AVM),
+  vc_mitral: número en mm (vena contracta mitral),
+  pisa_mitral: número en cm (radio PISA mitral),
+  vr_mitral: número en ml (volumen regurgitante mitral, puede llamarse VR),
+  ore_mitral: número en cm2 (orificio regurgitante efectivo mitral, puede llamarse ORE, EROA),
+  em_grado: Sin EM / Leve / Moderada / Severa / null,
+
+  ia_grado: Sin IAo / Leve / Moderada / Severa / null,
+  thp_iao: número en ms (tiempo de hemipresión IAo, puede llamarse THP, PHT de IAo),
+  vc_aortica: número en mm (vena contracta aórtica),
+  vr_aortica: número en ml (volumen regurgitante aórtico),
+  ore_aortica: número en cm2 (orificio regurgitante efectivo aórtico),
+  ea_grado: Sin EAo / Leve / Moderada / Severa / null,
+
+  it_grado: Sin IT / Leve / Moderada / Severa / null,
+  vc_tricusp: número en mm (vena contracta tricuspídea),
+  pisa_tricusp: número en cm (radio PISA tricuspídea),
+  vr_tricusp: número en ml (volumen regurgitante tricuspídeo),
+  ore_tricusp: número en cm2 (orificio regurgitante efectivo tricuspídeo),
+
+  vrt: número en m/s (velocidad regurgitación tricuspídea, puede llamarse V.Máx IT),
+  gmax_it: número en mmHg (gradiente máximo IT),
+  psap: número en mmHg (puede llamarse PSAP, PAPs),
+  htp: true o false,
+  htp_grado: Leve / Moderada / Severa / null,
+
+  pericardio: Normal / Derrame leve / Derrame moderado / Derrame severo / null,
+  medico: nombre completo del médico firmante,
+  matricula: número de matrícula del médico,
+  en_suma: texto completo del EN SUMA,
+  conclusion: texto de conclusión o diagnóstico final
+}
+Si un campo no está en el documento, usá null.` }
+          ]}]
+        })
+      });
+      if (!visionResp.ok) { console.warn('Vision API error:', visionResp.status); errores++; continue; }
+      const visionData = await visionResp.json();
+      const rawText = visionData.content?.[0]?.text || '{}';
+      let datos = {};
+      try { datos = JSON.parse(rawText.replace(/```json|```/g, '').trim()); }
+      catch (e) { console.warn('JSON parse error:', e, rawText); errores++; continue; }
+
+      // ── Mapear datos de Vision a las variables que usa el bloque set() (conserva set()/MAP_IMPORT) ──
+      const nombre = datos.nombre, ci = datos.ci, medico = datos.medico, matricula = datos.matricula;
+      const talla = datos.talla, peso = datos.peso, edad = datos.edad, asc = null;
+      let fecha = datos.fecha || '';
       if (fecha && fecha.includes('/')) {
         const p = fecha.split('/');
-        if (p[2].length === 2) p[2] = '20' + p[2];
-        fecha = `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+        if (p.length === 3) { if (p[2].length === 2) p[2] = '20' + p[2]; fecha = `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`; }
       }
-
-      // ── VENTRÍCULO IZQUIERDO ──
-      const siv     = num(/SIV[^d<(\d]*?([\d.,]+)\s*mm/i) ||
-                      num(/SIVd\s+([\d.,]+)\s*mm/i);
-      const ddvi    = num(/DDVI\s+([\d.,]+)\s*mm/i);
-      const dsvi    = num(/DSVI\s+([\d.,]+)\s*mm/i);
-      const ppvi    = num(/PP\s*\([^)]+\):\s*([\d.,]+)\s*mm/i) ||
-                      num(/PPd\s+([\d.,]+)\s*mm/i);
-      const fevi    = num(/FEVI\s+([\d.,]+)\s*%/i) ||
-                      num(/FEVI[:\s]+([\d.,]+)/i);
-      const gls     = num(/GLS[:\s]*([-\d.,]+)\s*%/i);
-      const rwt     = num(/RWT[:\s]*([\d.,]+)/i);
-
-      // ── AURÍCULA IZQUIERDA ──
-      const ai_diam = num(/Diám\.\s*AP[^:]*:\s*([\d.,]+)\s*mm/i) ||
-                      num(/AI DAP\s+([\d.,]+)\s*mm/i);
-      const ai_area = num(/[Áá]rea\s*AI[^:]*:\s*([\d.,]+)/i) ||
-                      num(/AI\s+[aá]rea\s+([\d.,]+)/i);
-      // Vol AI indexado (ml/m²) — varias formas posibles
-      const lavi = num(/Vol\.?\s*indexado[^:]*:\s*([\d.,]+)\s*ml\/m/i) ||
-                   num(/AI\s+vol\s+index(?:ado)?\s+([\d.,]+)\s*ml\/m/i) ||
-                   (() => {
-                     // "AI vol 25 ml/m²" o "Vol AI 25 ml/m²"
-                     const m = txt.match(/(?:AI\s+vol|Vol\s+AI)[^\d]{0,10}([\d.,]+)\s*ml\/m/i);
-                     return m ? parseFloat(m[1].replace(',','.')) : null;
-                   })();
-
-      // Vol AI crudo (ml) — solo si no hay indexado; va al campo ai_vol (unidad ml)
-      const ai_vol_crudo = lavi ? null : (() => {
-        const m = txt.match(/(?:AI\s+vol|Vol\s+AI)[^\d]{0,10}([\d.,]+)\s*ml(?!\/)/i);
-        return m ? parseFloat(m[1].replace(',','.')) : null;
-      })();
-
-      // ── VENTRÍCULO DERECHO ──
-      const vd_bas  = num(/Diám\.\s*basal[^:]*:\s*([\d.,]+)\s*mm/i) ||
-                      num(/VD\s+basal\s+([\d.,]+)\s*mm/i);
-      const tapse   = num(/TAPSE\s+([\d.,]+)\s*mm/i);
-      const s_prime = num(/S'\s*\([^)]+\):\s*([\d.,]+)\s*cm/i) ||
-                      num(/Onda\s+S\s+([\d.,]+)\s*cm/i);
-      const tvia    = num(/TAP\s+([\d.,]+)\s*ms/i);
-
-      // ── AURÍCULA DERECHA / VCI ──
-      const ad_area = num(/[Áá]rea\s*AD[^:]*:\s*([\d.,]+)/i) ||
-                      num(/AD\s+[aá]rea\s+([\d.,]+)/i);
-      const vci     = num(/Diám\.\s*VCI[^:]*:\s*([\d.,]+)\s*mm/i) ||
-                      num(/VCI\s+([\d.,]+)\s*mm/i);
-      const pmad    = num(/PmAD[:\s]+([\d.,]+)\s*mmHg/i) ||
-                      num(/PmAD\s+([\d.,]+)/i);
-
-      // ── AORTA ──
-      const ao_sin  = num(/Seno\s*Valsalva[^:]*:\s*([\d.,]+)\s*mm/i) ||
-                      num(/Ao\.\s*S\s+([\d.,]+)\s*mm/i);
-      const ao_ust  = num(/Ao\.\s*ST\s+([\d.,]+)\s*mm/i);
-      const ao_asc  = num(/Ao\.\s*Asc\s+([\d.,]+)\s*mm/i);
-      const tsvi_d  = num(/Diam\.\s*TSVI\s+([\d.,]+)\s*mm/i);
-
-      // ── DOPPLER MITRAL ──
-      const e_mitral     = num(/Onda\s+E\s+([\d.,]+)\s*cm/i);
-      const a_mitral     = num(/Onda\s+A\s+([\d.,]+)\s*cm/i);
-      const e_prima_sept = num(/e['’ʼ`']\s*septal\s+([\d.,]+)\s*cm/i) ||
-                           num(/e['’ʼ`']\s*sep[^\s]*\s+([\d.,]+)/i) ||
-                           num(/septal\s+([\d.,]+)\s*cm\/s/i);
-      const e_prima_lat  = num(/e['’ʼ`']\s*lateral\s+([\d.,]+)\s*cm/i) ||
-                           num(/e['’ʼ`']\s*lat[^\s]*\s+([\d.,]+)/i) ||
-                           num(/lateral\s+([\d.,]+)\s*cm\/s/i);
-
-      // ── DOPPLER AÓRTICO ──
-      const va_vmax  = num(/V\.?\s*(?:[Mm]á|[Mm]a)x\s+([\d.,]+)\s*m\/s/i) ||
-                       num(/Vmax\s+aórt[^:]*:\s*([\d.,]+)\s*m\/s/i) ||
-                       num(/Vmax\s+ao[^:]*:\s*([\d.,]+)/i);   // → vmax_ao (dispara calcAo → G.Máx)
-      const va_gmed  = num(/Grad\.\s*Medio\s+([\d.,]+)\s*mmHg/i);
-      const va_gmax  = num(/Grad\.\s*M[aá]x\s+([\d.,]+)\s*mmHg/i);   // G.Máx: campo readonly calculado — no se importa al form
-      const tsvi_vti = num(/VTI-TSVI\s+([\d.,]+)/i);
-
-      // ── TRICÚSPIDE / PSAP ──
-      const vrt  = num(/V\.\s*M[aá]x\s+IT\s+([\d.,]+)\s*m\/s/i);
-      const psap = num(/PSAP\s+([\d.,]+)\s*mmHg/i);
-
-      // ── EN SUMA (conclusión) — versión corta y extendida ──
-      const en_suma      = ex(/(?:EN SUMA|En Suma)[:\s]*([^\n]{20,})/i);
-      const en_suma_full = ex(/(?:EN SUMA|En Suma)[:\s]*([\s\S]{20,800}?)(?=Dr\.|Dra\.|CJPP|Fecha de informe|$)/i) || en_suma || '';
-
-      // ── VÁLVULAS — severidad desde EN SUMA ──
-      // El EN SUMA usa siglas estandarizadas: EAo/IAo/EM/IM/IT + leve/moderada/severa,
-      // o sufijo S/M/L (EAOS=severa, IMS=severa, etc.).
-      const sev = (siglas, texto) => {
-        // Primero: sigla + S/M/L al final (ej: EAOS, IMS)
-        for (const s of siglas) {
-          if (texto.match(new RegExp(s + 'S\\b', 'i'))) return 'Severa';
-          if (texto.match(new RegExp(s + 'M\\b', 'i'))) return 'Moderada';
-          if (texto.match(new RegExp(s + 'L\\b', 'i'))) return 'Leve';
-        }
-        // Segundo: sigla seguida de leve/moderada/severa
-        for (const s of siglas) {
-          const m = texto.match(new RegExp(s + '[:\\s]*(leve|moderada|severa)', 'i'));
-          if (m) return m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
-        }
-        return null;
-      };
-
-      const im_grado = sev(['IMS','IM'],          en_suma_full);
-      const em_grado = sev(['EMS','EM'],          en_suma_full);
-      const ia_grado = sev(['IAOS','IAo','IAO'],  en_suma_full);
-      const ea_grado = sev(['EAOS','EAo','EAO'],  en_suma_full);
-      const it_grado = sev(['ITS','IT'],          en_suma_full);
-
-      // Vena contracta — desde las secciones valvulares ya extraídas arriba
-      const vc_mitral  = (() => { const m = secMitral.match(/V\.?C\.?[:\s]*([\d.,]+)\s*mm/i); return m ? parseFloat(m[1].replace(',','.')) : null; })();
-      const vc_aortica = (() => { const m = secAortica.match(/V\.?C\.?[:\s]*([\d.,]+)\s*mm/i); return m ? parseFloat(m[1].replace(',','.')) : null; })();
-      const vc_tricusp = (() => { const m = secTricusp.match(/V\.?C\.?[:\s]*([\d.,]+)\s*mm/i); return m ? parseFloat(m[1].replace(',','.')) : null; })();
-
-      // Pericardio
-      const pericardio = ex(/Pericardio[:\s]*([^\n.;]{5,60})/i);
-
-      // ── DILATACIÓN AURICULAR ──
-      // AI: normal / leve / moderada / severa
-      const ai_dilat = (() => {
-        const m = en_suma_full.match(/AI\s*(levemente|moderadamente|severamente)\s*dilatada/i) ||
-                  txt.match(/[Aa]ur[íi]cula\s+[Ii]zq[^\n]{0,30}(leve|moderada|severa)mente\s+dilatada/i) ||
-                  txt.match(/[Aa]ur[íi]cula\s+[Ii]zq[^\n]{0,30}dilat[^\n]{0,20}(leve|moderada|severa)/i);
-        if (!m) return null;
-        const g = (m[1]||'').toLowerCase();
-        if (g.includes('leve')) return 'Leve';
-        if (g.includes('modera')) return 'Moderada';
-        if (g.includes('sever')) return 'Severa';
-        return null;
-      })();
-
-      // AD: normal / leve / moderada / severa
-      const ad_dilat = (() => {
-        const m = en_suma_full.match(/AD\s*(levemente|moderadamente|severamente)\s*dilatada/i) ||
-                  txt.match(/[Aa]ur[íi]cula\s+[Dd]er[^\n]{0,30}(leve|moderada|severa)mente\s+dilatada/i) ||
-                  txt.match(/[Aa]ur[íi]cula\s+[Dd]er[^\n]{0,30}dilat[^\n]{0,20}(leve|moderada|severa)/i);
-        if (!m) return null;
-        const g = (m[1]||'').toLowerCase();
-        if (g.includes('leve')) return 'Leve';
-        if (g.includes('modera')) return 'Moderada';
-        if (g.includes('sever')) return 'Severa';
-        return null;
-      })();
-
-      // ── GEOMETRÍA VI ──
-      // Normal / Remodelado concéntrico / HVI concéntrica / HVI excéntrica
-      const geom_vi = (() => {
-        const fuente = en_suma_full + ' ' + txt;
-        if (/HVI\s+exc[eé]ntrica|[Hh]ipertrofia\s+exc[eé]ntrica/i.test(fuente)) return 'HVI excéntrica';
-        if (/HVI\s+conc[eé]ntrica|[Hh]ipertrofia\s+conc[eé]ntrica/i.test(fuente)) return 'HVI concéntrica';
-        if (/[Hh]ipertrofia\s+ventricular\s+izquierda/i.test(fuente)) return 'HVI';
-        if (/[Rr]emodelado\s+conc[eé]ntrico/i.test(fuente)) return 'Remodelado concéntrico';
-        if (/[Gg]eometr[íi]a\s+normal/i.test(fuente)) return 'Normal';
-        return null;
-      })();
-
-      // ── DILATACIÓN VI ──
-      const vi_dilat = (() => {
-        const fuente = en_suma_full + ' ' + txt;
-        const m = fuente.match(/VI\s*(levemente|moderadamente|severamente)\s*dilatado/i) ||
-                  fuente.match(/[Vv]entr[íi]culo\s+[Ii]zq[^\n]{0,30}(leve|moderada|severa)mente\s+dilatado/i);
-        if (!m) return null;
-        const g = (m[1]||'').toLowerCase();
-        if (g.includes('leve')) return 'Leve';
-        if (g.includes('modera')) return 'Moderada';
-        if (g.includes('sever')) return 'Severa';
-        return null;
-      })();
-
-      // ── INFORME ──
-      const informe_txt = ex(/INFORME[:\s]*\n?([\s\S]{50,600}?)(?=EN SUMA|$)/i);
+      const siv = datos.siv, ddvi = datos.ddvi, dsvi = datos.dsvi, ppvi = datos.ppvi, fevi = datos.fevi, gls = datos.gls, rwt = datos.rwt;
+      const ai_diam = datos.ai_diam, ai_area = datos.ai_area, lavi = datos.lavi, ai_vol_crudo = datos.ai_vol_crudo;
+      const vd_bas = datos.vd_bas, tapse = datos.tapse, s_prime = datos.s_prime, tvia = datos.tap;
+      const ad_area = datos.ad_area, vci = datos.vci, pmad = datos.pmad;
+      const ao_sin = datos.ao_sin, ao_ust = datos.ao_ust, ao_asc = datos.ao_asc, tsvi_d = datos.tsvi_diam;
+      const e_mitral = datos.e_mitral, a_mitral = datos.a_mitral, e_prima_sept = datos.e_prima_sept, e_prima_lat = datos.e_prima_lat;
+      const va_vmax = datos.va_vmax, va_gmed = datos.va_gmed, va_gmax = datos.va_gmax, tsvi_vti = datos.tsvi_vti;
+      const vrt = datos.vrt, psap = datos.psap;
+      const im_grado = datos.im_grado, em_grado = datos.em_grado, ia_grado = datos.ia_grado, ea_grado = datos.ea_grado, it_grado = datos.it_grado;
+      const vc_mitral = datos.vc_mitral, vc_aortica = datos.vc_aortica, vc_tricusp = datos.vc_tricusp;
+      const pericardio = datos.pericardio, ai_dilat = datos.ai_dilat, ad_dilat = datos.ad_dilat, geom_vi = datos.geometria_vi, vi_dilat = datos.vi_dilat;
+      const en_suma = datos.en_suma, informe_txt = datos.conclusion;
 
       // ── ARMAR campos (solo los que existen) ──
       const campos = {};
@@ -14179,6 +14134,30 @@ async function importarPDFsHistoricos(files) {
       set('vi_dilat',      vi_dilat);
       set('en_suma',       en_suma);
       set('informe_texto', informe_txt);
+      // ── Campos clínicos adicionales de Vision (solo campos → Analytics/detalle) ──
+      set('sexo',              datos.sexo);
+      set('vd_med',            datos.vd_med);
+      set('vci_colapso',       datos.vci_colapso);
+      set('ea_ratio',          datos.ea_ratio);
+      set('ee_prima',          datos.ee_prima);
+      set('vao_vti',           datos.vao_vti);
+      set('ava',               datos.ava);
+      set('avm',               datos.avm);
+      set('pisa_mitral',       datos.pisa_mitral);
+      set('vr_mitral',         datos.vr_mitral);
+      set('ore_mitral',        datos.ore_mitral);
+      set('thp_iao',           datos.thp_iao);
+      set('vr_aortica',        datos.vr_aortica);
+      set('ore_aortica',       datos.ore_aortica);
+      set('pisa_tricusp',      datos.pisa_tricusp);
+      set('vr_tricusp',        datos.vr_tricusp);
+      set('ore_tricusp',       datos.ore_tricusp);
+      set('gmax_it',           datos.gmax_it);
+      set('htp',               datos.htp);
+      set('htp_grado',         datos.htp_grado);
+      set('ao_dilat',          datos.ao_dilat);
+      set('biauriculomegalia', datos.biauriculomegalia);
+      set('vd_func',           datos.vd_func);
 
       // ── ID reproducible para detectar duplicados ──
       const idHash = ((nombre||'') + (ci||'') + (fecha||'') + file.name).toLowerCase()
