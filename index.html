@@ -13547,8 +13547,18 @@ function editarInforme(id) {
       tsvi_vti:     'itv_tsvi',
       vrt:          'vmax_it',
       va_vmax:      'vmax_ao',
+      vc_mitral:    'im_vc',
+      vc_tricusp:   'it_vc',
+      vc_aortica:   'ia_vc',
     };
+    // Claves de severidad cualitativa que NO se inyectan al form en importados:
+    // im_grado/ia_grado/it_grado son <input hidden> con código numérico (0-4) manejado por
+    // sincronizarGrado*(); meterles texto ("moderada") corrompería el motor de severidad y el PDF.
+    // Su valor cualitativo queda igual en campos (lo usan el detalle y el PDF). em_grado/ea_grado/
+    // pericardio son <select> reales de id homónimo → se cargan por el fallback (MAP_IMPORT[k]||k).
+    const MAP_SKIP = new Set(['im_grado', 'ia_grado', 'it_grado']);
     Object.entries(inf.campos).forEach(([k, val]) => {
+      if (inf.importado_pdf && MAP_SKIP.has(k)) return;
       const el = document.getElementById(inf.importado_pdf ? (MAP_IMPORT[k] || k) : k);
       if (!el) return;
       el.value = val;
@@ -13852,6 +13862,12 @@ async function importarPDFsHistoricos(files) {
         txt += content.items.map(item => item.str).join(' ') + '\n';
       }
 
+      // ── Dividir el texto por secciones valvulares (para vena contracta / severidad por válvula) ──
+      const secMitral   = txt.match(/V[aá]lvula\s+Mitral([\s\S]+?)(?=V[aá]lvula\s+A[oó]rtica|V[aá]lvula\s+Tric|INFORME|EN SUMA)/i)?.[1] || '';
+      const secAortica  = txt.match(/V[aá]lvula\s+A[oó]rtica([\s\S]+?)(?=V[aá]lvula\s+Tric|V[aá]lvula\s+Pulm|INFORME|EN SUMA)/i)?.[1] || '';
+      const secTricusp  = txt.match(/V[aá]lvula\s+Tric[uú]sp[^\n]*([\s\S]+?)(?=V[aá]lvula\s+Pulm|INFORME|EN SUMA)/i)?.[1] || '';
+      const secPulmonar = txt.match(/V[aá]lvula\s+Pulm[^\n]*([\s\S]+?)(?=INFORME|EN SUMA|Pericardio)/i)?.[1] || '';
+
       // Helper: extrae texto o null
       const ex = (patron) => {
         const m = txt.match(patron);
@@ -13942,6 +13958,37 @@ async function importarPDFsHistoricos(files) {
       const vrt  = num(/V\.\s*M[aá]x\s+IT\s+([\d.,]+)\s*m\/s/i);
       const psap = num(/PSAP\s+([\d.,]+)\s*mmHg/i);
 
+      // ── VÁLVULAS — severidad cualitativa ──
+      const exSec = (sec, p) => { const m = sec.match(p); return (m && m[1] && m[1].trim()) ? m[1].trim() : null; };
+
+      // Insuficiencia Mitral
+      const im_grado = exSec(secMitral, /(?:IM|Insuf[^\s]*\s*[Mm]itral|Insuficiencia\s+[Mm]itral)[:\s]*(leve|moderada|severa)/i) ||
+                       exSec(secMitral, /(?:sin\s+insuficiencia)/i) && 'Sin IM';
+
+      // Estenosis Mitral
+      const em_grado = exSec(secMitral, /(?:EM|Esten[^\s]*\s*[Mm]itral|Estenosis\s+[Mm]itral)[:\s]*(leve|moderada|severa)/i);
+
+      // Vena contracta Mitral
+      const vc_mitral = (() => { const m = secMitral.match(/V\.?C\.?[:\s]*([\d.,]+)\s*mm/i); return m ? parseFloat(m[1].replace(',','.')) : null; })();
+
+      // Insuficiencia Aórtica
+      const ia_grado = exSec(secAortica, /(?:IA|Insuf[^\s]*\s*[Aa]ó[rt]|Insuficiencia\s+[Aa]ó)[:\s]*(leve|moderada|severa)/i);
+
+      // Estenosis Aórtica
+      const ea_grado = exSec(secAortica, /(?:EAo|Esten[^\s]*\s*[Aa]ó[rt]|Estenosis\s+[Aa]ó)[:\s]*(leve|moderada|severa)/i);
+
+      // Insuficiencia Tricuspídea
+      const it_grado = exSec(secTricusp, /(?:IT|Insuf[^\s]*\s*[Tt]ric|Insuficiencia\s+[Tt]ric)[:\s]*(leve|moderada|severa)/i);
+
+      // Vena contracta Tricuspídea
+      const vc_tricusp = (() => { const m = secTricusp.match(/V\.?C\.?[:\s]*([\d.,]+)\s*mm/i); return m ? parseFloat(m[1].replace(',','.')) : null; })();
+
+      // Vena contracta Aórtica
+      const vc_aortica = (() => { const m = secAortica.match(/V\.?C\.?[:\s]*([\d.,]+)\s*mm/i); return m ? parseFloat(m[1].replace(',','.')) : null; })();
+
+      // Pericardio
+      const pericardio = exSec(txt, /Pericardio[:\s]*([^\n.;]{5,60})/i);
+
       // ── INFORME ──
       const en_suma     = ex(/(?:EN SUMA|En Suma)[:\s]*([^\n]{20,})/i);
       const informe_txt = ex(/INFORME[:\s]*\n?([\s\S]{50,600}?)(?=EN SUMA|$)/i);
@@ -13990,6 +14037,15 @@ async function importarPDFsHistoricos(files) {
       set('tsvi_vti',      tsvi_vti);
       set('vrt',           vrt);
       set('psap_calc',     psap);
+      set('im_grado',      im_grado);
+      set('em_grado',      em_grado);
+      set('vc_mitral',     vc_mitral);
+      set('ia_grado',      ia_grado);
+      set('ea_grado',      ea_grado);
+      set('it_grado',      it_grado);
+      set('vc_tricusp',    vc_tricusp);
+      set('vc_aortica',    vc_aortica);
+      set('pericardio',    pericardio);
       set('en_suma',       en_suma);
       set('informe_texto', informe_txt);
 
