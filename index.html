@@ -10727,7 +10727,7 @@ function calcIT_ESC() {
 function abrirModoComparativo() {
   const nombre = (document.getElementById('nombre')?.value || '').trim();
   if (!nombre) { toast('Ingresa el nombre del paciente primero'); return; }
-  const informes = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  const informes = getInformes();
   const previos = informes.filter(i => i.nombre.toLowerCase() === nombre.toLowerCase());
   document.getElementById('comp-nombre-paciente').textContent = nombre;
   const lista = document.getElementById('comp-lista-previos');
@@ -10766,7 +10766,7 @@ function actualizarBtnComparativo() {
   const nombre = (document.getElementById('nombre')?.value || '').trim();
   const btn = document.getElementById('btn-comparativo');
   if (!btn) return;
-  const informes = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  const informes = getInformes();
   const hay = nombre && informes.some(i => i.nombre.toLowerCase() === nombre.toLowerCase());
   btn.style.display = hay ? '' : 'none';
 }
@@ -13453,17 +13453,89 @@ function escHtml(s) {
 }
 
 // ── Lectura segura de informes (FIX M1): try/catch ante storage corrupto ──
+// ── IndexedDB para importados masivos (localStorage ~5MB no alcanza para +900 estudios) ──
+let _ecoDB = null;
+let _ecoIdbInformes = [];   // caché en memoria de los informes en IndexedDB
+let _ecoIdbHydrated = false;
+
+function initEcoDB() {
+  return new Promise((resolve, reject) => {
+    if (_ecoDB) return resolve(_ecoDB);
+    let req;
+    try { req = indexedDB.open('ecosmart_db', 1); }
+    catch (e) { return reject(e); }
+    req.onupgradeneeded = (ev) => {
+      const db = ev.target.result;
+      if (!db.objectStoreNames.contains('informes')) db.createObjectStore('informes', { keyPath: 'id' });
+    };
+    req.onsuccess = (ev) => { _ecoDB = ev.target.result; resolve(_ecoDB); };
+    req.onerror   = (ev) => reject(ev.target.error);
+  });
+}
+function ecoIdbGetAll() {
+  return new Promise((resolve) => {
+    if (!_ecoDB) return resolve([]);
+    let req;
+    try { req = _ecoDB.transaction('informes','readonly').objectStore('informes').getAll(); }
+    catch (e) { return resolve([]); }
+    req.onsuccess = () => resolve(Array.isArray(req.result) ? req.result : []);
+    req.onerror   = () => resolve([]);
+  });
+}
+function ecoIdbPut(informe) {   // put = add-or-update (no falla si el id ya existe)
+  return new Promise((resolve, reject) => {
+    if (!_ecoDB) return reject(new Error('IndexedDB no abierta'));
+    let req;
+    try { req = _ecoDB.transaction('informes','readwrite').objectStore('informes').put(informe); }
+    catch (e) { return reject(e); }
+    req.onsuccess = () => resolve();
+    req.onerror   = () => reject(req.error);
+  });
+}
+function ecoIdbDelete(id) {
+  return new Promise((resolve) => {
+    if (!_ecoDB) return resolve();
+    try { const tx = _ecoDB.transaction('informes','readwrite'); tx.objectStore('informes').delete(id); tx.oncomplete = () => resolve(); tx.onerror = () => resolve(); }
+    catch (e) { resolve(); }
+  });
+}
+function ecoIdbClear() {
+  return new Promise((resolve) => {
+    if (!_ecoDB) return resolve();
+    try { const tx = _ecoDB.transaction('informes','readwrite'); tx.objectStore('informes').clear(); tx.oncomplete = () => resolve(); tx.onerror = () => resolve(); }
+    catch (e) { resolve(); }
+  });
+}
+// Hidrata el caché desde IndexedDB al iniciar y re-renderiza la lista de Guardados
+async function hydrateEcoIdb() {
+  try {
+    await initEcoDB();
+    _ecoIdbInformes = await ecoIdbGetAll();
+  } catch (e) { console.warn('IndexedDB no disponible:', e); }
+  _ecoIdbHydrated = true;
+  if (typeof renderInformesGuardados === 'function') { try { renderInformesGuardados(); } catch(e){} }
+}
+// Hidratar el caché de IndexedDB al iniciar (para que Guardados/Analytics vean los importados)
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hydrateEcoIdb);
+else hydrateEcoIdb();
+
 function getInformes() {
+  let ls = [];
   try {
     const raw = localStorage.getItem('ett_informes');
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    const parsed = raw ? JSON.parse(raw) : [];
+    ls = Array.isArray(parsed) ? parsed : [];
   } catch (e) {
     console.error('ett_informes corrupto:', e);
     if (typeof toast === 'function') toast('⚠️ No se pudieron leer los informes guardados (datos corruptos)');
-    return [];
+    ls = [];
   }
+  // Unificar con los importados en IndexedDB. localStorage gana ante id repetido (refleja ediciones).
+  if (_ecoIdbInformes && _ecoIdbInformes.length) {
+    const ids = new Set(ls.map(i => i.id));
+    return ls.concat(_ecoIdbInformes.filter(i => !ids.has(i.id)));
+  }
+  return ls;
 }
 
 // ── Escritura segura de informes (FIX M2): manejo de cuota ──
@@ -13508,7 +13580,7 @@ function validarInformeImportado(inf) {
 }
 
 function editarInforme(id) {
-  const informes = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  const informes = getInformes();
   const inf = informes.find(i => i.id === id);
   if (!inf) { toast('⚠️ Informe no encontrado'); return; }
   const ov = document.createElement('div');
@@ -13734,12 +13806,14 @@ function renderInformesGuardados() {
 // y actualiza la estrella en el lugar (sin reabrir el informe). Inmediato y persistente.
 function toggleCasoInteresGuardado(id, btn) {
   const informes = JSON.parse(localStorage.getItem('ett_informes') || '[]');
-  const inf = informes.find(i => i.id === id);
+  let inf = informes.find(i => i.id === id), enIdb = false;
+  if (!inf) { inf = _ecoIdbInformes.find(i => i.id === id); enIdb = true; }   // estudio importado (IndexedDB)
   if (!inf) return;
   if (!inf.campos) inf.campos = {};
   const era = (inf.campos.caso_interes === '1' || inf.campos.caso_interes === 'true');
   inf.campos.caso_interes = era ? '' : '1';
-  localStorage.setItem('ett_informes', JSON.stringify(informes));
+  if (enIdb) ecoIdbPut(inf);
+  else localStorage.setItem('ett_informes', JSON.stringify(informes));
   const on = !era;
   if (btn) {
     btn.textContent = on ? '⭐' : '☆';
@@ -13763,8 +13837,12 @@ window.limpiarFiltroFechas = limpiarFiltroFechas;
 function eliminarInforme(id) {
   if (!confirm('¿Eliminar este informe guardado?')) return;
   let informes = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  const antes = informes.length;
   informes = informes.filter(i => i.id !== id);
-  localStorage.setItem('ett_informes', JSON.stringify(informes));
+  if (informes.length !== antes) localStorage.setItem('ett_informes', JSON.stringify(informes));
+  // También en IndexedDB (estudios importados)
+  ecoIdbDelete(id);
+  _ecoIdbInformes = _ecoIdbInformes.filter(i => i.id !== id);
   toast('🗑️ Informe eliminado');
   renderInformesGuardados();
 }
@@ -13772,6 +13850,8 @@ function eliminarInforme(id) {
 function limpiarTodosInformes() {
   if (!confirm('¿Eliminar TODOS los informes guardados? Esta acción no se puede deshacer.')) return;
   localStorage.removeItem('ett_informes');
+  ecoIdbClear();
+  _ecoIdbInformes = [];
   toast('🗑️ Todos los informes eliminados');
   renderInformesGuardados();
 }
@@ -13779,7 +13859,7 @@ function limpiarTodosInformes() {
 /* ── Exportar para CeiboAnalytics ── */
 function exportarEcoAnalytics() {
   let estudios;
-  try { estudios = JSON.parse(localStorage.getItem('ett_informes') || '[]'); } catch (e) { estudios = []; }
+  try { estudios = getInformes(); } catch (e) { estudios = []; }
   if (!Array.isArray(estudios)) estudios = [];
   if (estudios.length === 0) { toast('⚠️ No hay estudios para exportar'); return; }
   const payload = { app: 'ecosmart', version: '1.0', exportado: new Date().toISOString(), estudios: estudios };
@@ -13794,7 +13874,7 @@ function exportarEcoAnalytics() {
 }
 
 function exportarInformesJSON() {
-  const informes = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  const informes = getInformes();
   if (informes.length === 0) { toast('⚠️ No hay informes para exportar'); return; }
   const fecha = new Date().toISOString().split('T')[0];
   const blob = new Blob([JSON.stringify(informes, null, 2)], { type: 'application/json' });
@@ -13835,7 +13915,10 @@ function importarInformesJSON(file) {
 }
 
 async function importarPDFsHistoricos(files) {
-  const existentes = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  // Los importados masivos van a IndexedDB (localStorage ~5MB no soporta +900 estudios con campos completos)
+  try { await initEcoDB(); }
+  catch (e) { toast('❌ No se pudo abrir la base local (IndexedDB). No se importó nada.'); return; }
+  const existentes = getInformes();   // localStorage + IndexedDB (dedup entre ambos)
   const idsExistentes = new Set(existentes.map(i => i.id));
 
   // Mostrar modal
@@ -14136,7 +14219,7 @@ async function importarPDFsHistoricos(files) {
 
       if (idsExistentes.has(id)) { duplicados++; continue; }
 
-      nuevos.push({
+      const informe = {
         id,
         nombre:          nombre || '—',
         ci:              ci     || '—',
@@ -14146,7 +14229,11 @@ async function importarPDFsHistoricos(files) {
         importado_pdf:   true,
         archivo_origen:  file.name,
         campos
-      });
+      };
+      // Guardar en IndexedDB (no en localStorage) y actualizar el caché en memoria
+      await ecoIdbPut(informe);
+      _ecoIdbInformes.push(informe);
+      nuevos.push(informe);
 
       idsExistentes.add(id);
       importados++;
@@ -14156,9 +14243,6 @@ async function importarPDFsHistoricos(files) {
       errores++;
     }
   }
-
-  const merged = [...existentes, ...nuevos];
-  localStorage.setItem('ett_informes', JSON.stringify(merged));
 
   progressBar.value = 100;
   statusEl.innerHTML =
@@ -14878,8 +14962,11 @@ function verDetalleInforme(id) {
 function eliminarInformeYVolver(id) {
   if (!confirm('¿Eliminar este informe guardado?')) return;
   let informes = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  const antes = informes.length;
   informes = informes.filter(i => i.id !== id);
-  localStorage.setItem('ett_informes', JSON.stringify(informes));
+  if (informes.length !== antes) localStorage.setItem('ett_informes', JSON.stringify(informes));
+  ecoIdbDelete(id);
+  _ecoIdbInformes = _ecoIdbInformes.filter(i => i.id !== id);
   toast('🗑️ Informe eliminado');
   volverAListaInformes();
   renderInformesGuardados();
@@ -14956,7 +15043,7 @@ function initHdrEditable() {
 initHdrEditable();
 
 function pdfDeInformeGuardado(id) {
-  const informes = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  const informes = getInformes();
   const inf = informes.find(i => i.id === id);
   if (!inf) return;
   const c = inf.campos || {};
@@ -15791,7 +15878,7 @@ imgRender();
 // ══ LABORATORIO ══════════════════════════════════════════════════
 
 function labGetInformes() {
-  const todos = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  const todos = getInformes();
   const periodo = parseInt(document.getElementById('lab-periodo')?.value || '365');
   const desde = document.getElementById('lab-desde')?.value;
   const hasta = document.getElementById('lab-hasta')?.value;
@@ -16206,7 +16293,7 @@ function labChartBarrasH(canvasId, labels, datos, colores) {
 
 // ── Médico ──
 function labMedicoInit() {
-  const todos = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  const todos = getInformes();
   const medicos = {};
   todos.forEach(i => {
     const m = (i.campos?.['med-nombre'] || i.campos?.['med_solicitante'] || '').trim();
@@ -16229,7 +16316,7 @@ function labMedicoInit() {
 function labMedicoRender() {
   const sel = document.getElementById('lab-med-select');
   const medSelec = sel?.value || '';
-  const todos = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  const todos = getInformes();
 
   // Agrupar por médico para comparativa
   const porMedico = {};
@@ -16371,7 +16458,7 @@ function labFiltrarPorFecha(infs, desde, hasta) {
 }
 
 function labCompararRender() {
-  const todos = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  const todos = getInformes();
   const aD = document.getElementById('lab-cmp-a-desde').value;
   const aH = document.getElementById('lab-cmp-a-hasta').value;
   const bD = document.getElementById('lab-cmp-b-desde').value;
@@ -16651,7 +16738,7 @@ function aplicarFiltros() {
   const filtroValv   = document.getElementById('filtro-valv')?.value || '';
   const filtroInt    = document.getElementById('filtro-interes')?.value || '';
 
-  const todos = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  const todos = getInformes();
 
   const filtrados = todos.filter(inf => {
     const c = inf.campos || {};
@@ -16741,7 +16828,7 @@ function limpiarFiltros() {
   const resEl = document.getElementById('filtro-resultado');
   if (resEl) resEl.textContent = '';
   // Volver a renderizar todos
-  const todos = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  const todos = getInformes();
   renderizarListaFiltrada(todos);
 }
 
@@ -16792,7 +16879,7 @@ window.limpiarFiltros = limpiarFiltros;
 let _evolDatos = [];
 
 function verEvolucion(nombre, ci) {
-  const todos = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  const todos = getInformes();
 
   // Buscar todos los estudios del paciente por nombre o CI
   const estudios = todos.filter(i => {
