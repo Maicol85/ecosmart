@@ -13526,9 +13526,28 @@ function editarInforme(id) {
   ov.querySelector('#edit-cancel').onclick=()=>ov.remove();
   ov.querySelector('#edit-ok').onclick=()=>{
     ov.remove();
-    // Cargar campos en el formulario
-    Object.entries(inf.campos).forEach(([fid, val]) => {
-      const el = document.getElementById(fid);
+    // Cargar campos en el formulario.
+    // Los informes importados de PDF guardan claves canónicas (nombre del parser),
+    // que en varios casos NO coinciden con el id real del input del formulario.
+    // MAP_IMPORT traduce esas claves al id real; los campos calculados/readonly
+    // (rwt, ea_gmax, dsvi) se omiten a propósito: la app los recalcula.
+    const MAP_IMPORT = {
+      ddvi:         'rwt-ddvi',
+      fevi_simpson: 'fevi',
+      gls_global:   'sgl',
+      lavi:         'ai_vol',
+      ao_ust:       'ao_st',
+      ao_asc:       'ao_tub',
+      dtsvi:        'diam_tsvi',
+      e_mitral:     'onda_e',
+      a_mitral:     'onda_a',
+      e_prima_sept: 'e_sep',
+      e_prima_lat:  'e_lat',
+      tsvi_vti:     'itv_tsvi',
+      vrt:          'vmax_it',
+    };
+    Object.entries(inf.campos).forEach(([k, val]) => {
+      const el = document.getElementById(inf.importado_pdf ? (MAP_IMPORT[k] || k) : k);
       if (!el) return;
       el.value = val;
     });
