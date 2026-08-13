@@ -13538,7 +13538,7 @@ function guardarInformesSeguro(informes) {
 }
 
 // ── Validación de esquema para import JSON (FIX A2) ──
-const _INF_CAMPOS_PERMITIDOS = ['id','estudioId','nombre','ci','doc_tipo','fecha_estudio','fecha_guardado','campos'];
+const _INF_CAMPOS_PERMITIDOS = ['id','estudioId','nombre','ci','doc_tipo','fecha_estudio','fecha_guardado','campos','importado_pdf','archivo_origen'];
 function validarInformeImportado(inf) {
   if (typeof inf !== 'object' || inf === null || Array.isArray(inf)) return false;
   for (const k of Object.keys(inf)) {
@@ -13552,6 +13552,8 @@ function validarInformeImportado(inf) {
   if (inf.doc_tipo !== undefined && !strMax(inf.doc_tipo, 20)) return false;
   if (inf.fecha_estudio !== undefined && !strMax(inf.fecha_estudio, 20)) return false;
   if (inf.fecha_guardado !== undefined && !strMax(inf.fecha_guardado, 40)) return false;
+  if (inf.importado_pdf !== undefined && typeof inf.importado_pdf !== 'boolean') return false;
+  if (inf.archivo_origen !== undefined && !strMax(inf.archivo_origen, 300)) return false;
   if (inf.campos !== undefined) {
     if (typeof inf.campos !== 'object' || inf.campos === null || Array.isArray(inf.campos)) return false;
     for (const [ck, cv] of Object.entries(inf.campos)) {
