@@ -13894,7 +13894,7 @@ async function importarPDFsHistoricos(files) {
                       num(/AI DAP\s+([\d.,]+)\s*mm/i);
       const ai_area = num(/[Áá]rea\s*AI[^:]*:\s*([\d.,]+)/i) ||
                       num(/AI\s+[aá]rea\s+([\d.,]+)/i);
-      const lavi    = num(/AI\s+vol\s+([\d.,]+)/i);
+      const lavi    = num(/AI\s+vol(?:\s+index(?:ado)?)?\s+([\d.,]+)/i);
 
       // ── VENTRÍCULO DERECHO ──
       const vd_bas  = num(/Diám\.\s*basal[^:]*:\s*([\d.,]+)\s*mm/i) ||
