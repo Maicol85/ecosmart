@@ -14325,7 +14325,10 @@ IMPORTANTE: Solo reportá hallazgos que estén EXPLÍCITAMENTE en el documento. 
         'e_prima_sept': 'e_sep',
         'e_prima_lat':  'e_lat',
         'vrt':          'vmax_it',
-        'lavi':         'ai_vol'
+        'ee_prima':     'ee_prom',    // el Lab lee E/e' como 'ee_prom'
+        'masa':         'masa_vi'     // el Lab lee masa VI como 'masa_vi'
+        // lavi: sin alias — el Lab ya lo lee como 'lavi'. NO mapear a 'ai_vol' (ese es volumen crudo en ml).
+        // ea_ratio y geom_vi: el Lab no los lee por id de formulario (ea_ratio no se usa; geom_vi ya es canónico).
       };
       Object.entries(MAP_INVERSO).forEach(([canonico, formId]) => {
         if (campos[canonico] !== undefined) campos[formId] = campos[canonico];
