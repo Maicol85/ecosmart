@@ -13530,9 +13530,10 @@ function editarInforme(id) {
     // Los informes importados de PDF guardan claves canónicas (nombre del parser),
     // que en varios casos NO coinciden con el id real del input del formulario.
     // MAP_IMPORT traduce esas claves al id real; los campos calculados/readonly
-    // (rwt, ea_gmax, dsvi) se omiten a propósito: la app los recalcula.
+    // (rwt, ea_gmax) se omiten a propósito: la app los recalcula.
     const MAP_IMPORT = {
-      ddvi:         'rwt-ddvi',
+      ddvi:         'ddfvi',
+      dsvi:         'dsfvi',
       fevi_simpson: 'fevi',
       gls_global:   'sgl',
       lavi:         'ai_vol',
