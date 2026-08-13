@@ -14128,7 +14128,7 @@ async function importarPDFsHistoricos(files) {
       set('informe_texto', informe_txt);
 
       // ── ID reproducible para detectar duplicados ──
-      const idHash = (nombre + ci + fecha).toLowerCase()
+      const idHash = ((nombre||'') + (ci||'') + (fecha||'') + file.name).toLowerCase()
         .replace(/\s/g, '')
         .split('')
         .reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0);
