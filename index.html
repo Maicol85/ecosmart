@@ -13887,6 +13887,8 @@ async function importarPDFsHistoricos(files) {
       const talla     = num(/Talla:\s*([\d.,]+)\s*cm/i);
       const peso      = num(/Peso:\s*([\d.,]+)/i);
       const asc       = num(/ASC[:\s]*([\d.,]+)\s*m2/i);   // sup. corporal (BSA) — se recalcula desde talla+peso
+      const edad      = num(/Edad[:\s]+(\d+)\s*a/i) ||
+                        num(/(\d+)\s*a[ñn]os/i);
 
       let fecha = ex(/Fecha\s*realizaci[oó]n:\s*([\d\/\-]+)/i) ||
                   ex(/Fecha:\s*([\d]{1,2}\/[\d]{1,2}\/[\d]{2,4})/i);
@@ -13943,8 +13945,12 @@ async function importarPDFsHistoricos(files) {
       // ── DOPPLER MITRAL ──
       const e_mitral     = num(/Onda\s+E\s+([\d.,]+)\s*cm/i);
       const a_mitral     = num(/Onda\s+A\s+([\d.,]+)\s*cm/i);
-      const e_prima_sept = num(/e'\s*septal\s+([\d.,]+)\s*cm/i);
-      const e_prima_lat  = num(/e'\s*lateral\s+([\d.,]+)\s*cm/i);
+      const e_prima_sept = num(/e['’ʼ`']\s*septal\s+([\d.,]+)\s*cm/i) ||
+                           num(/e['’ʼ`']\s*sep[^\s]*\s+([\d.,]+)/i) ||
+                           num(/septal\s+([\d.,]+)\s*cm\/s/i);
+      const e_prima_lat  = num(/e['’ʼ`']\s*lateral\s+([\d.,]+)\s*cm/i) ||
+                           num(/e['’ʼ`']\s*lat[^\s]*\s+([\d.,]+)/i) ||
+                           num(/lateral\s+([\d.,]+)\s*cm\/s/i);
 
       // ── DOPPLER AÓRTICO ──
       const va_vmax  = num(/V\.?\s*(?:[Mm]á|[Mm]a)x\s+([\d.,]+)\s*m\/s/i) ||
@@ -14060,6 +14066,7 @@ async function importarPDFsHistoricos(files) {
       set('talla',         talla);
       set('peso',          peso);
       set('asc',           asc);
+      set('edad',          edad);
       set('med-nombre',    medico);
       set('med-matricula', matricula);
       set('siv',           siv);
