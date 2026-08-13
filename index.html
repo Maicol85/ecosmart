@@ -14346,13 +14346,26 @@ IMPORTANTE: Solo reportá hallazgos que estén EXPLÍCITAMENTE en el documento. 
 
   progressBar.value = 100;
 
-  // Guardar en chunks de localStorage (los importados van a los chunks, no a 'ett_informes')
-  const res = saveInformesChunked([...getInformesChunked(), ...nuevos]);
   let cuotaMsg = '';
-  if (!res.ok) {
-    const afuera = res.total - res.guardados;
-    cuotaMsg = `<br><span style="color:var(--danger);font-weight:700">⚠️ Almacenamiento lleno: se guardaron ${res.guardados} de ${res.total}. ${afuera} quedaron afuera. Exportá un backup y liberá espacio.</span>`;
-    importados = Math.max(0, importados - afuera);   // reflejar lo realmente persistido de esta tanda
+  if (nuevos.length > 0) {
+    // Guardar en chunks de localStorage (los importados van a los chunks, no a 'ett_informes')
+    const res = saveInformesChunked([...getInformesChunked(), ...nuevos]);
+    if (!res.ok) {
+      const afuera = res.total - res.guardados;
+      cuotaMsg = `<br><span style="color:var(--danger);font-weight:700">⚠️ Almacenamiento lleno: se guardaron ${res.guardados} de ${res.total}. ${afuera} quedaron afuera. El JSON descargado tiene TODO el lote como backup.</span>`;
+      importados = Math.max(0, importados - afuera);   // reflejar lo realmente persistido de esta tanda
+    }
+
+    // Descargar JSON con TODOS los importados del lote (backup ante el techo de localStorage)
+    const blob = new Blob([JSON.stringify(nuevos, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'eco_lote_' + new Date().toISOString().slice(0,10) + '_' + nuevos.length + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   statusEl.innerHTML =
