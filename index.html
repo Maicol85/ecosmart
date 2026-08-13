@@ -13536,7 +13536,6 @@ function editarInforme(id) {
       dsvi:         'dsfvi',
       fevi_simpson: 'fevi',
       gls_global:   'sgl',
-      lavi:         'ai_vol',
       ao_ust:       'ao_st',
       ao_asc:       'ao_tub',
       dtsvi:        'diam_tsvi',
@@ -13915,9 +13914,20 @@ async function importarPDFsHistoricos(files) {
                       num(/AI DAP\s+([\d.,]+)\s*mm/i);
       const ai_area = num(/[Áá]rea\s*AI[^:]*:\s*([\d.,]+)/i) ||
                       num(/AI\s+[aá]rea\s+([\d.,]+)/i);
-      const lavi    = num(/Vol\.?\s*indexado[^:]*:\s*([\d.,]+)\s*ml\/m/i) ||
-                      num(/AI\s+vol\s+index(?:ado)?\s+([\d.,]+)/i) ||
-                      num(/AI\s+vol\s+([\d.,]+)/i);
+      // Vol AI indexado (ml/m²) — varias formas posibles
+      const lavi = num(/Vol\.?\s*indexado[^:]*:\s*([\d.,]+)\s*ml\/m/i) ||
+                   num(/AI\s+vol\s+index(?:ado)?\s+([\d.,]+)\s*ml\/m/i) ||
+                   (() => {
+                     // "AI vol 25 ml/m²" o "Vol AI 25 ml/m²"
+                     const m = txt.match(/(?:AI\s+vol|Vol\s+AI)[^\d]{0,10}([\d.,]+)\s*ml\/m/i);
+                     return m ? parseFloat(m[1].replace(',','.')) : null;
+                   })();
+
+      // Vol AI crudo (ml) — solo si no hay indexado; va al campo ai_vol (unidad ml)
+      const ai_vol_crudo = lavi ? null : (() => {
+        const m = txt.match(/(?:AI\s+vol|Vol\s+AI)[^\d]{0,10}([\d.,]+)\s*ml(?!\/)/i);
+        return m ? parseFloat(m[1].replace(',','.')) : null;
+      })();
 
       // ── VENTRÍCULO DERECHO ──
       const vd_bas  = num(/Diám\.\s*basal[^:]*:\s*([\d.,]+)\s*mm/i) ||
@@ -14078,7 +14088,8 @@ async function importarPDFsHistoricos(files) {
       set('rwt',           rwt);
       set('ai_diam',       ai_diam);
       set('ai_area',       ai_area);
-      set('lavi',          lavi);
+      set('lavi',          lavi);            // indexado (ml/m²) — solo campos: alimenta gráfico de evolución; la app recalcula el índice desde ai_vol/BSA
+      set('ai_vol',        ai_vol_crudo);    // volumen crudo (ml) → campo ai_vol (id homónimo, carga directa)
       set('vd_bas',        vd_bas);
       set('tapse',         tapse);
       set('s_prime',       s_prime);
