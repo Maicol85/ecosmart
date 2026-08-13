@@ -13859,10 +13859,12 @@ async function importarPDFsHistoricos(files) {
       }
 
       // ── VENTRÍCULO IZQUIERDO ──
-      const siv     = num(/SIVd\s+([\d.,]+)\s*mm/i);
+      const siv     = num(/SIV[^d<(\d]*?([\d.,]+)\s*mm/i) ||
+                      num(/SIVd\s+([\d.,]+)\s*mm/i);
       const ddvi    = num(/DDVI\s+([\d.,]+)\s*mm/i);
       const dsvi    = num(/DSVI\s+([\d.,]+)\s*mm/i);
-      const ppvi    = num(/PPd\s+([\d.,]+)\s*mm/i);
+      const ppvi    = num(/PP\s*\([^)]+\):\s*([\d.,]+)\s*mm/i) ||
+                      num(/PPd\s+([\d.,]+)\s*mm/i);
       const fevi    = num(/FEVI\s+([\d.,]+)\s*%/i) ||
                       num(/FEVI[:\s]+([\d.,]+)/i);
       const gls     = num(/GLS[:\s]*([-\d.,]+)\s*%/i);
@@ -13871,22 +13873,29 @@ async function importarPDFsHistoricos(files) {
       // ── AURÍCULA IZQUIERDA ──
       const ai_diam = num(/Diám\.\s*AP[^:]*:\s*([\d.,]+)\s*mm/i) ||
                       num(/AI DAP\s+([\d.,]+)\s*mm/i);
-      const ai_area = num(/AI\s+[aá]rea\s+([\d.,]+)/i);
+      const ai_area = num(/[Áá]rea\s*AI[^:]*:\s*([\d.,]+)/i) ||
+                      num(/AI\s+[aá]rea\s+([\d.,]+)/i);
       const lavi    = num(/AI\s+vol\s+([\d.,]+)/i);
 
       // ── VENTRÍCULO DERECHO ──
-      const vd_bas  = num(/VD\s+basal\s+([\d.,]+)\s*mm/i);
+      const vd_bas  = num(/Diám\.\s*basal[^:]*:\s*([\d.,]+)\s*mm/i) ||
+                      num(/VD\s+basal\s+([\d.,]+)\s*mm/i);
       const tapse   = num(/TAPSE\s+([\d.,]+)\s*mm/i);
-      const s_prime = num(/Onda\s+S\s+([\d.,]+)\s*cm/i);
+      const s_prime = num(/S'\s*\([^)]+\):\s*([\d.,]+)\s*cm/i) ||
+                      num(/Onda\s+S\s+([\d.,]+)\s*cm/i);
       const tvia    = num(/TAP\s+([\d.,]+)\s*ms/i);
 
       // ── AURÍCULA DERECHA / VCI ──
-      const ad_area = num(/AD\s+[aá]rea\s+([\d.,]+)/i);
-      const vci     = num(/VCI\s+([\d.,]+)\s*mm/i);
-      const pmad    = num(/PmAD\s+([\d.,]+)\s*mmHg/i);
+      const ad_area = num(/[Áá]rea\s*AD[^:]*:\s*([\d.,]+)/i) ||
+                      num(/AD\s+[aá]rea\s+([\d.,]+)/i);
+      const vci     = num(/Diám\.\s*VCI[^:]*:\s*([\d.,]+)\s*mm/i) ||
+                      num(/VCI\s+([\d.,]+)\s*mm/i);
+      const pmad    = num(/PmAD[:\s]+([\d.,]+)\s*mmHg/i) ||
+                      num(/PmAD\s+([\d.,]+)/i);
 
       // ── AORTA ──
-      const ao_sin  = num(/Ao\.\s*S\s+([\d.,]+)\s*mm/i);
+      const ao_sin  = num(/Seno\s*Valsalva[^:]*:\s*([\d.,]+)\s*mm/i) ||
+                      num(/Ao\.\s*S\s+([\d.,]+)\s*mm/i);
       const ao_ust  = num(/Ao\.\s*ST\s+([\d.,]+)\s*mm/i);
       const ao_asc  = num(/Ao\.\s*Asc\s+([\d.,]+)\s*mm/i);
       const tsvi_d  = num(/Diam\.\s*TSVI\s+([\d.,]+)\s*mm/i);
@@ -13903,7 +13912,7 @@ async function importarPDFsHistoricos(files) {
       const tsvi_vti = num(/VTI-TSVI\s+([\d.,]+)/i);
 
       // ── TRICÚSPIDE / PSAP ──
-      const vrt  = num(/V\.\s*Max\s+IT\s+([\d.,]+)\s*m\/s/i);
+      const vrt  = num(/V\.\s*M[aá]x\s+IT\s+([\d.,]+)\s*m\/s/i);
       const psap = num(/PSAP\s+([\d.,]+)\s*mmHg/i);
 
       // ── INFORME ──
