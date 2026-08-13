@@ -13461,15 +13461,25 @@ let _ecoIdbHydrated = false;
 function initEcoDB() {
   return new Promise((resolve, reject) => {
     if (_ecoDB) return resolve(_ecoDB);
-    let req;
+    if (typeof indexedDB === 'undefined' || !indexedDB) {
+      return reject(new Error('IndexedDB no disponible (¿Safari en modo privado / navegación privada?)'));
+    }
+    let req, done = false;
+    const finish = (fn, arg) => { if (!done) { done = true; fn(arg); } };
+    // Safari a veces abre el open y no dispara success ni error (cuelga) → timeout de seguridad
+    const to = setTimeout(() => {
+      console.error('initEcoDB: timeout — indexedDB.open no respondió (bug conocido de Safari)');
+      finish(reject, new Error('Timeout abriendo IndexedDB'));
+    }, 8000);
     try { req = indexedDB.open('ecosmart_db', 1); }
-    catch (e) { return reject(e); }
+    catch (e) { clearTimeout(to); console.error('initEcoDB: excepción en open:', e); return finish(reject, e); }
     req.onupgradeneeded = (ev) => {
       const db = ev.target.result;
       if (!db.objectStoreNames.contains('informes')) db.createObjectStore('informes', { keyPath: 'id' });
     };
-    req.onsuccess = (ev) => { _ecoDB = ev.target.result; resolve(_ecoDB); };
-    req.onerror   = (ev) => reject(ev.target.error);
+    req.onsuccess = (ev) => { clearTimeout(to); _ecoDB = ev.target.result; finish(resolve, _ecoDB); };
+    req.onerror   = (ev) => { clearTimeout(to); console.error('initEcoDB: onerror:', ev.target.error); finish(reject, ev.target.error); };
+    req.onblocked = () => { console.warn('initEcoDB: open bloqueado (¿otra pestaña con la DB abierta?)'); };
   });
 }
 function ecoIdbGetAll() {
@@ -13485,11 +13495,12 @@ function ecoIdbGetAll() {
 function ecoIdbPut(informe) {   // put = add-or-update (no falla si el id ya existe)
   return new Promise((resolve, reject) => {
     if (!_ecoDB) return reject(new Error('IndexedDB no abierta'));
-    let req;
-    try { req = _ecoDB.transaction('informes','readwrite').objectStore('informes').put(informe); }
-    catch (e) { return reject(e); }
+    let tx, req;
+    try { tx = _ecoDB.transaction('informes','readwrite'); req = tx.objectStore('informes').put(informe); }
+    catch (e) { console.error('ecoIdbPut: excepción al crear transacción:', e); return reject(e); }
     req.onsuccess = () => resolve();
-    req.onerror   = () => reject(req.error);
+    req.onerror   = () => { console.error('ecoIdbPut: put onerror:', req.error); reject(req.error); };
+    tx.onabort    = () => { console.error('ecoIdbPut: transacción abortada:', tx.error); reject(tx.error || new Error('transacción abortada')); };
   });
 }
 function ecoIdbDelete(id) {
@@ -13915,16 +13926,27 @@ function importarInformesJSON(file) {
 }
 
 async function importarPDFsHistoricos(files) {
-  // Los importados masivos van a IndexedDB (localStorage ~5MB no soporta +900 estudios con campos completos)
-  try { await initEcoDB(); }
-  catch (e) { toast('❌ No se pudo abrir la base local (IndexedDB). No se importó nada.'); return; }
-  const existentes = getInformes();   // localStorage + IndexedDB (dedup entre ambos)
-  const idsExistentes = new Set(existentes.map(i => i.id));
-
-  // Mostrar modal
+  // Mostrar el modal PRIMERO, para que cualquier fallo de apertura de la DB sea visible acá (no un toast perdido)
   document.getElementById('modal-pdf-import').style.display = '';
   const progressBar = document.getElementById('pdf-import-progress');
   const statusEl = document.getElementById('pdf-import-status');
+  document.getElementById('pdf-import-close').style.display = 'none';
+  statusEl.textContent = 'Abriendo base local (IndexedDB)…';
+
+  // Los importados masivos van a IndexedDB (localStorage ~5MB no soporta +900 estudios con campos completos)
+  try {
+    await initEcoDB();
+  } catch (e) {
+    console.error('importarPDFsHistoricos: initEcoDB falló →', e);
+    statusEl.innerHTML = '<strong>❌ No se pudo abrir la base local (IndexedDB)</strong><br>' +
+      (e && e.message ? e.message : String(e)) +
+      '<br><span style="font-size:11px;color:var(--text2)">No se importó nada. Revisá la consola.</span>';
+    document.getElementById('pdf-import-close').style.display = '';
+    return;
+  }
+
+  const existentes = getInformes();   // localStorage + IndexedDB (dedup entre ambos)
+  const idsExistentes = new Set(existentes.map(i => i.id));
 
   let importados = 0, duplicados = 0, errores = 0;
   const nuevos = [];
