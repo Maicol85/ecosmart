@@ -144,6 +144,18 @@
   .cfg-sec-title { font-size:12px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px; }
   .chk-lab { display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text);cursor:pointer;font-weight:400;line-height:1.3; }
   .chk-lab input { width:15px;height:15px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;margin:0; }
+  /* Acordeón colapsable (Indicaciones / Antecedentes en panel Paciente) */
+  .acc { border:1px solid var(--border);border-radius:8px;background:var(--bg3);overflow:hidden; }
+  .acc-hdr { width:100%;display:flex;align-items:center;gap:8px;padding:10px 12px;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;text-align:left;font-family:inherit; }
+  .acc-hdr:hover { background:rgba(255,255,255,0.03); }
+  .acc-arrow { display:inline-block;transition:transform .25s ease;color:var(--accent);font-size:11px;flex-shrink:0; }
+  .acc.open .acc-arrow { transform:rotate(90deg); }
+  .acc-title { flex-shrink:0; }
+  .acc-sum { color:var(--text2);font-weight:400;font-size:12px;margin-left:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:55%; }
+  .acc-body { max-height:0;overflow:hidden;transition:max-height .3s ease; }
+  .acc.open .acc-body { max-height:720px; }
+  .acc-inner { padding:4px 12px 12px; }
+  .acc-grid2 { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 12px;padding-top:6px; }
   .cfg-mod-item { display:flex;align-items:center;gap:9px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 11px;cursor:pointer;font-size:12.5px;color:var(--text); }
   .cfg-mod-item input { width:auto; }
   /* ══ FORM FIELDS ══ */
@@ -910,47 +922,67 @@ window.cerrarSesion = cerrarSesion;
       </div>
 
       <div class="fg" style="margin-top:8px;">
-        <label>Indicaciones del estudio <span style="font-weight:400;color:var(--text2);font-size:10px;">(selección múltiple — alimenta el Laboratorio)</span></label>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:4px 12px;margin-top:5px;">
-          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Dolor torácico"> Dolor torácico</label>
-          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Disnea"> Disnea</label>
-          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Control HTA"> Control HTA</label>
-          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Control DM"> Control DM</label>
-          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Soplo cardíaco"> Soplo cardíaco</label>
-          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Palpitaciones / arritmia"> Palpitaciones / arritmia</label>
-          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Síncope / presíncope"> Síncope / presíncope</label>
-          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Control valvulopatía"> Control valvulopatía</label>
-          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Control miocardiopatía"> Control miocardiopatía</label>
-          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Control IC"> Control IC</label>
-          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Screening pre-quirúrgico"> Screening pre-quirúrgico</label>
-          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Cardio-oncología"> Cardio-oncología</label>
-          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Seguimiento dispositivo (MPP/CDI/CRT)"> Seguimiento dispositivo (MPP/CDI/CRT)</label>
-          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Otro" onchange="var o=document.getElementById('ind_otro');if(o)o.style.display=this.checked?'block':'none';"> Otro</label>
+        <div class="acc" id="acc-ind">
+          <button type="button" class="acc-hdr" onclick="accToggle('ind')" aria-expanded="false">
+            <span class="acc-arrow">▶</span>
+            <span class="acc-title">Indicaciones</span>
+            <span class="acc-sum" id="ind-sum">(ninguna)</span>
+          </button>
+          <div class="acc-body" onchange="_accSum('ind-chk','ind_otro','ind-sum')">
+            <div class="acc-inner">
+              <div class="acc-grid2">
+                <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Dolor torácico"> Dolor torácico</label>
+                <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Disnea"> Disnea</label>
+                <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Control HTA"> Control HTA</label>
+                <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Control DM"> Control DM</label>
+                <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Soplo cardíaco"> Soplo cardíaco</label>
+                <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Palpitaciones / arritmia"> Palpitaciones / arritmia</label>
+                <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Síncope / presíncope"> Síncope / presíncope</label>
+                <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Control valvulopatía"> Control valvulopatía</label>
+                <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Control miocardiopatía"> Control miocardiopatía</label>
+                <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Control IC"> Control IC</label>
+                <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Screening pre-quirúrgico"> Screening pre-quirúrgico</label>
+                <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Cardio-oncología"> Cardio-oncología</label>
+                <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Seguimiento dispositivo (MPP/CDI/CRT)"> Seguimiento dispositivo (MPP/CDI/CRT)</label>
+                <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Otro" onchange="var o=document.getElementById('ind_otro');if(o)o.style.display=this.checked?'block':'none';"> Otro</label>
+              </div>
+              <input type="text" id="ind_otro" placeholder="Otra indicación (especificar)..." style="display:none;margin-top:6px;width:100%;" oninput="_accSum('ind-chk','ind_otro','ind-sum')">
+            </div>
+          </div>
         </div>
-        <input type="text" id="ind_otro" placeholder="Otra indicación (especificar)..." style="display:none;margin-top:6px;">
       </div>
 
       <div class="fg" style="margin-top:8px;">
-        <label>Antecedentes (checklist) <span style="font-weight:400;color:var(--text2);font-size:10px;">(selección múltiple — alimenta el Laboratorio)</span></label>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:4px 12px;margin-top:5px;">
-          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="HTA"> HTA</label>
-          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="DM"> DM</label>
-          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Dislipemia"> Dislipemia</label>
-          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Tabaquismo"> Tabaquismo</label>
-          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="FA / flutter"> FA / flutter</label>
-          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="IC previa"> IC previa</label>
-          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Valvulopatía conocida"> Valvulopatía conocida</label>
-          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Cardiopatía isquémica / IAM previo"> Cardiopatía isquémica / IAM previo</label>
-          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="ACV / AIT"> ACV / AIT</label>
-          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="ERC"> ERC</label>
-          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="EPOC / asma"> EPOC / asma</label>
-          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Obesidad"> Obesidad</label>
-          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Hipotiroidismo"> Hipotiroidismo</label>
-          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Quimioterapia / radioterapia"> Quimioterapia / radioterapia</label>
-          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Dispositivo implantado (MPP/CDI/CRT)"> Dispositivo implantado (MPP/CDI/CRT)</label>
-          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Otro" onchange="var o=document.getElementById('ant_otro');if(o)o.style.display=this.checked?'block':'none';"> Otro</label>
+        <div class="acc" id="acc-ant">
+          <button type="button" class="acc-hdr" onclick="accToggle('ant')" aria-expanded="false">
+            <span class="acc-arrow">▶</span>
+            <span class="acc-title">Antecedentes relevantes</span>
+            <span class="acc-sum" id="ant-sum">(ninguna)</span>
+          </button>
+          <div class="acc-body" onchange="_accSum('ant-chk','ant_otro','ant-sum')">
+            <div class="acc-inner">
+              <div class="acc-grid2">
+                <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="HTA"> HTA</label>
+                <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="DM"> DM</label>
+                <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Dislipemia"> Dislipemia</label>
+                <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Tabaquismo"> Tabaquismo</label>
+                <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="FA / flutter"> FA / flutter</label>
+                <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="IC previa"> IC previa</label>
+                <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Valvulopatía conocida"> Valvulopatía conocida</label>
+                <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Cardiopatía isquémica / IAM previo"> Cardiopatía isquémica / IAM previo</label>
+                <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="ACV / AIT"> ACV / AIT</label>
+                <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="ERC"> ERC</label>
+                <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="EPOC / asma"> EPOC / asma</label>
+                <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Obesidad"> Obesidad</label>
+                <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Hipotiroidismo"> Hipotiroidismo</label>
+                <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Quimioterapia / radioterapia"> Quimioterapia / radioterapia</label>
+                <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Dispositivo implantado (MPP/CDI/CRT)"> Dispositivo implantado (MPP/CDI/CRT)</label>
+                <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Otro" onchange="var o=document.getElementById('ant_otro');if(o)o.style.display=this.checked?'block':'none';"> Otro</label>
+              </div>
+              <input type="text" id="ant_otro" placeholder="Otro antecedente (especificar)..." style="display:none;margin-top:6px;width:100%;" oninput="_accSum('ant-chk','ant_otro','ant-sum')">
+            </div>
+          </div>
         </div>
-        <input type="text" id="ant_otro" placeholder="Otro antecedente (especificar)..." style="display:none;margin-top:6px;">
       </div>
 
       <div class="grid-2" style="margin-top:8px;">
@@ -11756,10 +11788,11 @@ function limpiarCampos() {
   _pdfToggleBtnState('contr-pdf-toggle', false);
   _pdfToggleBtnState('sgl-pdf-toggle', false);
   try { localStorage.removeItem('ecosmart_autosave'); } catch(e) {}
-  // Checklists de indicaciones/antecedentes → desmarcar y ocultar "Otro"
+  // Checklists de indicaciones/antecedentes → desmarcar, ocultar "Otro" y resetear resumen
   document.querySelectorAll('.ind-chk, .ant-chk').forEach(c => { c.checked = false; });
   { const io = document.getElementById('ind_otro'); if (io) { io.value = ''; io.style.display = 'none'; } }
   { const ao = document.getElementById('ant_otro'); if (ao) { ao.value = ''; ao.style.display = 'none'; } }
+  if (typeof _accSum === 'function') { _accSum('ind-chk','ind_otro','ind-sum'); _accSum('ant-chk','ant_otro','ant-sum'); }
   toast('🗑 Formulario limpiado');
 }
 
@@ -13834,8 +13867,39 @@ function _restaurarChecklistPaciente(campos) {
   if (io) io.style.display = document.querySelector('.ind-chk[data-val="Otro"]')?.checked ? 'block' : 'none';
   const ao = document.getElementById('ant_otro');
   if (ao) ao.style.display = document.querySelector('.ant-chk[data-val="Otro"]')?.checked ? 'block' : 'none';
+  // refrescar los resúmenes de los acordeones
+  _accSum('ind-chk', 'ind_otro', 'ind-sum');
+  _accSum('ant-chk', 'ant_otro', 'ant-sum');
 }
 window._restaurarChecklistPaciente = _restaurarChecklistPaciente;
+
+// Acordeones (Indicaciones / Antecedentes) — abrir/cerrar y resumen en el encabezado
+function accToggle(id) {
+  const acc = document.getElementById('acc-' + id);
+  if (!acc) return;
+  const abierto = acc.classList.toggle('open');
+  const btn = acc.querySelector('.acc-hdr');
+  if (btn) btn.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+}
+window.accToggle = accToggle;
+
+function _accSum(cls, otroId, sumId) {
+  const el = document.getElementById(sumId);
+  if (!el) return;
+  const sel = Array.from(document.querySelectorAll('.' + cls + ':checked')).map(c => {
+    if (c.dataset.val === 'Otro') {
+      const o = document.getElementById(otroId);
+      const t = (o && o.value.trim()) ? o.value.trim() : 'Otro';
+      return t;
+    }
+    return c.dataset.val;
+  });
+  if (!sel.length) { el.textContent = '(ninguna)'; return; }
+  let s = sel.join(', ');
+  if (s.length > 40) s = s.slice(0, 40).trimEnd() + '...';
+  el.textContent = s;
+}
+window._accSum = _accSum;
 
 function guardarInforme() {
   const nombre = (document.getElementById('nombre')?.value || '').trim();
