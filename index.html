@@ -9291,7 +9291,7 @@ function calcVD() {
     document.getElementById('tapse-interp').innerHTML = t;
   }
   if (sp) {
-    let t = sp >= 10 ? badge('green','Normal (≥10 cm/s)') : badge('red','Disfunción (< 10 cm/s)');
+    let t = sp >= 9.5 ? badge('green','Normal (≥9.5 cm/s)') : badge('red','Disfunción (< 9.5 cm/s)');
     document.getElementById('sprime-interp').innerHTML = t;
   }
   // TAP — aceleración pulmonar (elemento indirecto de HTP si < 105 ms)
