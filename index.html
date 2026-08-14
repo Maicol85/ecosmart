@@ -9,6 +9,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.js" defer></script>
 <style>
   :root {
@@ -8473,7 +8474,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           <label style="font-size:.75rem;">Hasta</label>
           <input type="date" id="lab-hasta" onchange="labInit()">
         </div>
-        <button class="btn btn-ghost" onclick="labExportarCSV()" style="margin-top:18px;">📊 Exportar CSV</button>
+        <button class="btn btn-ghost" onclick="labExportarXLSX()" style="margin-top:18px;">📊 Exportar Excel</button>
       </div>
       <div id="lab-resumen-header" style="font-size:.82rem;color:var(--text2);margin-top:4px;"></div>
     </div>
@@ -16182,32 +16183,99 @@ function _csvCell(v) {
   return s.replace(/;/g, ' ').replace(/[\n\r]/g, ' ');
 }
 
-function labExportarCSV() {
+// ── Helpers de derivación para el export Excel ──
+function _labBsa(inf) { const t = _labNum(inf,'talla'), p = _labNum(inf,'peso'); return (t && p) ? Math.sqrt(t*p/3600) : null; }
+function _labArrCol(inf, key, otroKey, fallbackKey) {
+  let arr = inf.campos?.[key];
+  if (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch(e) { arr = arr ? [arr] : []; } }
+  if (Array.isArray(arr) && arr.length) {
+    const otro = inf.campos?.[otroKey];
+    return arr.map(v => (v === 'Otro' && otro) ? String(otro) : v).join(' | ');
+  }
+  return inf.campos?.[fallbackKey] || '';
+}
+function _labGradoTxt(inf, key) {
+  const raw = inf.campos?.[key];
+  if (raw === undefined || raw === null || String(raw).trim() === '') return '';
+  const s = String(raw).trim();
+  if (/^\d+$/.test(s)) return (['Ausente','Leve','Moderada','Moderada-severa','Severa'][parseInt(s,10)]) || s;
+  return s;   // ya es texto (ea_grado/em_grado o importado)
+}
+function _labSectorial(inf) {
+  const t = _labTxt(inf);
+  const m = t.match(/[^.]*(?:trastornos?\s+sectoriales?|hipoquin|aquin|disquin|hipocontractil|motilidad)[^.]*\./i);
+  return m ? m[0].trim() : '';
+}
+// Una fila del Excel: deriva TODAS las columnas desde los campos crudos del estudio
+function _labExcelRow(inf) {
+  const c = inf.campos || {};
+  const num = (...k) => _labNum(inf, ...k);
+  const rnd = (v, d) => (v === null || v === undefined || isNaN(v)) ? '' : Number(Number(v).toFixed(d));
+  const bsa = _labBsa(inf);
+  const siv = num('siv'), dd = num('ddfvi','ddvi'), ds = num('dsfvi','dsvi'), pp = num('ppvi');
+  let masaIdx = null, rwt = null;
+  if (dd && siv && pp && bsa) { const mass = 0.8*(1.04*(Math.pow(dd/10+siv/10+pp/10,3)-Math.pow(dd/10,3)))+0.6; masaIdx = mass/bsa; }
+  if (pp && dd) rwt = 2*pp/dd;
+  const vdfvi = num('vdfvi'); const vdfviIdx = (vdfvi && bsa) ? vdfvi/bsa : null;
+  const geom = (masaIdx && rwt && typeof calcGeometriaVI === 'function') ? calcGeometriaVI(Math.round(masaIdx), Number(rwt.toFixed(2)), c.sexo) : '';
+  const fa = (dd && ds) ? (dd-ds)/dd*100 : null;
+  const oe = num('onda_e','e_mitral'), oa = num('onda_a','a_mitral');
+  const ea = (oe && oa) ? oe/oa : null;
+  const es = num('e_sep','e_prima_sept'), el = num('e_lat','e_prima_lat');
+  let eprom = null; if (es !== null && el !== null) eprom = (es+el)/2; else if (es !== null) eprom = es; else if (el !== null) eprom = el;
+  const pr = num('pisa_r'), pv = num('pisa_val'), ivmax = num('im_vmax'), iitv = num('im_itv');
+  let eroa = null, volr = null;
+  if (pr && pv && ivmax) { eroa = 2*Math.PI*Math.pow(pr/10,2)*pv/ivmax*100; if (iitv) volr = eroa/100*iitv; }
+  const dts = num('diam_tsvi'), itvT = num('itv_tsvi'), itvA = num('itv_ao');
+  const ava = (dts && itvT && itvA) ? (Math.PI*Math.pow(dts/20,2))*itvT/itvA : null;
+  const vit = num('vmax_it','vrt'); const gradVDAD = vit ? 4*vit*vit : null;
+  const gd = _labDiastGrado(inf);
+  const gdTxt = { III:'Grado III', II:'Grado II', I:'Grado I', sin:'Sin disfunción' }[gd] || '';
+  return {
+    'Nombre': inf.nombre || '', 'CI': inf.ci || '', 'Edad': rnd(num('edad'),0), 'Sexo': c.sexo || '',
+    'Fecha estudio': inf.fecha_estudio || '', 'Centro / Institución': c.centro_nombre || '',
+    'Médico solicitante': c.med_solicitante || '',
+    'Motivo / Indicación': _labArrCol(inf,'indicaciones','ind_otro','indicacion'),
+    'Antecedentes': _labArrCol(inf,'antecedentes_sel','ant_otro','antecedentes'),
+    'SIV (mm)': rnd(siv,0), 'DDVI (mm)': rnd(dd,0), 'DSVI (mm)': rnd(ds,0), 'PP (mm)': rnd(pp,0),
+    'Masa VI (g/m²)': rnd(masaIdx,0), 'RWT': rnd(rwt,2), 'VDFVI idx (ml/m²)': rnd(vdfviIdx,1), 'Geometría VI': (geom === '—' ? '' : geom) || '',
+    'FEVI Simpson (%)': rnd(_labFevi(inf),0), 'FA (%)': rnd(fa,0), 'GLS (%)': rnd(_labGls(inf),1),
+    'Trastornos sectoriales': _labSectorial(inf),
+    'Onda E (cm/s)': rnd(oe,0), 'Onda A (cm/s)': rnd(oa,0), 'E/A': rnd(ea,2),
+    "e' septal (cm/s)": rnd(es,1), "e' lateral (cm/s)": rnd(el,1), "e' promedio (cm/s)": rnd(eprom,1),
+    "E/e'": rnd(_labEeProm(inf),1), 'Grado disfunción diastólica': gdTxt,
+    'Vol AI (LAVI) (ml/m²)': rnd(_labLavi(inf),1),
+    'TAPSE (mm)': rnd(num('tapse'),0), "S' (cm/s)": rnd(num('s_prime'),1), 'TAP (ms)': rnd(num('tvia'),0), 'Diám. basal VD (mm)': rnd(num('vd_bas'),0),
+    'VCI diám (mm)': rnd(num('vci_diam'),0), 'Colapso VCI': c.vci_col || '', 'PmAD (mmHg)': rnd(num('pmad'),0),
+    'Morfología mitral': c.vm_morf || '', 'IM grado': _labGradoTxt(inf,'im_grado'), 'VC IM (mm)': rnd(num('im_vc','vc_mitral'),1),
+    'EROA IM (mm²)': rnd(eroa,1), 'Vol R IM (ml)': rnd(volr,1), 'EM grado': c.em_grado || '', 'AVm (cm²)': rnd(num('avm_thp'),2),
+    'Morfología aórtica': c.va_morf || '', 'EA grado': c.ea_grado || '', 'AVA (cm²)': rnd(ava,2),
+    'V. max Ao (m/s)': rnd(num('vmax_ao','va_vmax'),2), 'G. máx Ao (mmHg)': rnd(num('gmax_calc','va_gmax'),0), 'G. medio Ao (mmHg)': rnd(num('gmedio_ao','va_gmed'),0),
+    'IAo grado': _labGradoTxt(inf,'ia_grado'), 'VC IAo (mm)': rnd(num('ia_vc','vc_aortica'),1), 'PHT IAo (ms)': rnd(num('ia_pht'),0),
+    'Morfología tricúspide': c.vt_morf || '', 'IT grado': _labGradoTxt(inf,'it_grado'), 'VC IT (mm)': rnd(num('it_vc','vc_tricusp'),1),
+    'Grad VD-AD (mmHg)': rnd(gradVDAD,0), 'PSAP (mmHg)': rnd(num('psap_calc'),0), 'PAP media (mmHg)': rnd(num('pap_med'),0),
+    'Ao sinusal (mm)': rnd(num('ao_sin'),0), 'Ao asc. proximal (mm)': rnd(num('ao_tub'),0),
+    'Pericardio': c.pericardio || '',
+    'Informe (texto completo)': c.informe_texto || '', 'EN SUMA (texto completo)': c.en_suma || '',
+  };
+}
+function labExportarXLSX() {
   const infs = labGetInformes();
   if (!infs.length) { toast('⚠️ Sin estudios para exportar'); return; }
-  const campos = ['nombre','ci','fecha_estudio','edad','sexo','fevi_simpson',
-    'gls_global','tapse','lavi','vrt','psap_calc','ddvi','siv','masa_vi',
-    'rwt','e_mitral','a_mitral','e_prima_sept','e_prima_lat','ee_prom',
-    'va_vmax','va_gmax','va_gmed','ava','ao_sin','en_suma'];
-  const header = ['id','nombre','ci','fecha_estudio',...campos.slice(3).map(c => c === 'lavi' ? 'Vol AI' : c)].join(';');
-  const rows = infs.map(i => {
-    return [
-      _csvCell(i.id), _csvCell(i.nombre), _csvCell(i.ci), _csvCell(i.fecha_estudio),
-      ...campos.slice(3).map(c => _csvCell(i.campos?.[c] || ''))
-    ].join(';');
-  });
-  const csv = [header, ...rows].join('\n');
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'ecosmart_laboratorio_' + new Date().toISOString().split('T')[0] + '.csv';
-  a.click();
-  URL.revokeObjectURL(a.href);
-  toast('✅ CSV exportado — ' + infs.length + ' estudios');
+  if (typeof XLSX === 'undefined') { toast('❌ Librería Excel (XLSX) no disponible'); return; }
+  const rows = infs.map(_labExcelRow);
+  const headers = Object.keys(rows[0]);
+  const aoa = [headers, ...rows.map(r => headers.map(h => r[h]))];
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = headers.map(h => ({ wch: Math.min(46, Math.max(10, h.length + 2)) }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Estudios');
+  XLSX.writeFile(wb, 'ecosmart_laboratorio_' + new Date().toISOString().split('T')[0] + '.xlsx');
+  toast('✅ Excel exportado — ' + infs.length + ' estudios');
 }
 
 window.labInit = labInit;
-window.labExportarCSV = labExportarCSV;
+window.labExportarXLSX = labExportarXLSX;
 
 // ── Lab subtabs ──
 function labSubTab(id, el) {
@@ -16521,6 +16589,40 @@ function labCompararRender() {
     </table>`;
 }
 
+// Renderiza una gráfica de barras horizontales en un canvas oculto y devuelve {url PNG, ar aspecto}
+function _labChartImg(labels, values, colors) {
+  return new Promise((resolve) => {
+    if (typeof Chart === 'undefined' || !labels || !labels.length) { resolve(null); return; }
+    const W = 560, H = Math.max(150, 34 + labels.length * 40);
+    const cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    cv.style.position = 'fixed'; cv.style.left = '-10000px'; cv.style.top = '0';
+    document.body.appendChild(cv);
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);   // fondo blanco (sin transparencia en el PDF)
+    const chart = new Chart(ctx, {
+      type: 'bar',
+      data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 0, barPercentage: 0.82 }] },
+      options: {
+        indexAxis: 'y', responsive: false, animation: false, layout: { padding: 8 },
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { beginAtZero: true, ticks: { precision: 0, color: '#333', font: { size: 13 } }, grid: { color: '#e5e5e5' } },
+          y: { ticks: { color: '#222', font: { size: 13 } }, grid: { display: false } }
+        }
+      }
+    });
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      let url = null;
+      try { url = cv.toDataURL('image/png'); } catch(e) { url = null; }
+      try { chart.destroy(); } catch(e) {}
+      cv.remove();
+      resolve(url ? { url, ar: H / W } : null);
+    }));
+  });
+}
+window._labChartImg = _labChartImg;
+
 // ── Generar PDF de auditoría ──
 async function labGenerarPDF() {
   const infs = labGetInformes();
@@ -16593,39 +16695,125 @@ async function labGenerarPDF() {
     y += 4;
   }
 
-  // Sección Perfil de la Población
+  // Sección Perfil de la Población + gráficas por sección (tabla izquierda | gráfica derecha)
   if (document.getElementById('lab-pdf-poblacion')?.checked) {
-    addSection('Perfil de la Población');
     const N = infs.length;
-    const fevis = infs.map(i => numCampo(i,'fevi')).filter(v => v !== null);
-    if (fevis.length) {
-      addFila('FEVI normal/conservada (>50%)',       fevis.filter(v=>v>50).length + '/' + fevis.length);
-      addFila('FEVI levemente reducida (40-50%)',    fevis.filter(v=>v>=40&&v<=50).length + '/' + fevis.length);
-      addFila('FEVI moderadamente reducida (30-40%)',fevis.filter(v=>v>=30&&v<40).length + '/' + fevis.length);
-      addFila('FEVI severamente reducida (<30%)',    fevis.filter(v=>v<30).length + '/' + fevis.length);
-      addFila('FEVI <35% - pasible dispositivos (CDI/CRT)', fevis.filter(v=>v<35).length + '/' + fevis.length);
-    }
+
+    // Título de sección + tabla (izq) + gráfica (der ~40%)
+    const addTablaChart = async (titulo, filas, chart) => {
+      if (y > 232) { doc.addPage(); y = 20; }
+      addSection(titulo);
+      const yTop = y;
+      filas.forEach(([lbl, val]) => {
+        if (y > 275) { doc.addPage(); y = 20; }
+        doc.setFontSize(9);
+        doc.text(String(lbl), M + 3, y);
+        doc.setFont(undefined, 'bold');
+        doc.text(String(val), M + 74, y);
+        doc.setFont(undefined, 'normal');
+        y += 6;
+      });
+      const yTable = y;
+      if (chart && chart.labels.length) {
+        const img = await _labChartImg(chart.labels, chart.values, chart.colors);
+        if (img) {
+          const imgW = 82, imgH = imgW * img.ar;
+          try { doc.addImage(img.url, 'PNG', M + 96, yTop - 1, imgW, imgH); } catch(e) {}
+          y = Math.max(yTable, yTop - 1 + imgH);
+        }
+      }
+      y += 5;
+    };
+    const pctOf = (nn, tot) => tot > 0 ? Math.round(nn / tot * 100) : 0;
+
+    // Perfil demográfico (texto)
+    addSection('Perfil de la Población');
     const edades = infs.map(i => numCampo(i,'edad')).filter(v => v !== null && v > 0 && v < 120);
-    if (edades.length) addFila('Edad promedio', (edades.reduce((a,b)=>a+b,0)/edades.length).toFixed(0) + ' años');
+    if (edades.length) addFila('Edad promedio', (edades.reduce((a,b)=>a+b,0)/edades.length).toFixed(0) + ' anios');
     const sexos = infs.map(i => (i.campos?.sexo||'').toLowerCase()).filter(Boolean);
     const nF = sexos.filter(s => s.includes('f') || s.includes('mujer')).length;
     if (sexos.length) addFila('% Femenino', Math.round(nF/sexos.length*100) + '%');
     addFila('GLS promedio', prom('sgl') + '%');
     addFila('PSAP promedio', prom('psap_calc') + ' mmHg');
+    y += 4;
+
+    // Distribución FEVI (colores invertidos por severidad, segun spec: <30 verde ... >50 rojo)
+    const fevis = infs.map(i => _labFevi(i)).filter(v => v !== null);
+    const ft = fevis.length;
+    const feviN = [fevis.filter(v=>v>50).length, fevis.filter(v=>v>=40&&v<=50).length, fevis.filter(v=>v>=30&&v<40).length, fevis.filter(v=>v<30).length];
+    await addTablaChart('Distribucion FEVI',
+      [['Normal/conservada (>50%)', feviN[0] + ' (' + pctOf(feviN[0],ft) + '%)'],
+       ['Levemente reducida (40-50%)', feviN[1] + ' (' + pctOf(feviN[1],ft) + '%)'],
+       ['Moderadamente reducida (30-40%)', feviN[2] + ' (' + pctOf(feviN[2],ft) + '%)'],
+       ['Severamente reducida (<30%)', feviN[3] + ' (' + pctOf(feviN[3],ft) + '%)']],
+      { labels:['Normal (>50)','Leve (40-50)','Moderada (30-40)','Severa (<30)'], values:feviN, colors:['#f05454','#f59e42','#f5c842','#3ecf8e'] });
+
+    // Funcion diastolica
+    const dg = {I:0,II:0,III:0,sin:0}; let dt=0;
+    infs.forEach(i => { const g=_labDiastGrado(i); if (g && dg[g]!==undefined){ dg[g]++; dt++; } });
+    await addTablaChart('Funcion diastolica',
+      [['Grado I', dg.I + ' (' + pctOf(dg.I,dt) + '%)'],
+       ['Grado II', dg.II + ' (' + pctOf(dg.II,dt) + '%)'],
+       ['Grado III', dg.III + ' (' + pctOf(dg.III,dt) + '%)'],
+       ['Sin disfuncion', dg.sin + ' (' + pctOf(dg.sin,dt) + '%)']],
+      { labels:['Grado I','Grado II','Grado III','Sin disf.'], values:[dg.I,dg.II,dg.III,dg.sin], colors:['#f5c842','#f59e42','#f05454','#3ecf8e'] });
+
+    // Valvulopatias (una subseccion por valvula)
+    const sevCols = ['#3ecf8e','#f5c842','#f59e42','#f05454'];
+    const valvSeccion = async (titulo, sevFn) => {
+      const b={Sin:0,Leve:0,Moderada:0,Severa:0}; let t=0;
+      infs.forEach(i => { const s=sevFn(i); if (s && b[s]!==undefined){ b[s]++; t++; } });
+      await addTablaChart(titulo,
+        [['Sin', b.Sin + ' (' + pctOf(b.Sin,t) + '%)'], ['Leve', b.Leve + ' (' + pctOf(b.Leve,t) + '%)'],
+         ['Moderada', b.Moderada + ' (' + pctOf(b.Moderada,t) + '%)'], ['Severa', b.Severa + ' (' + pctOf(b.Severa,t) + '%)']],
+        { labels:['Sin','Leve','Moderada','Severa'], values:[b.Sin,b.Leve,b.Moderada,b.Severa], colors:sevCols });
+    };
+    await valvSeccion('Valvulopatias - Insuficiencia mitral (IM)', i=>_labRegurgSev(i,'im_grado'));
+    await valvSeccion('Valvulopatias - Insuficiencia aortica (IAo)', i=>_labRegurgSev(i,'ia_grado'));
+    await valvSeccion('Valvulopatias - Insuficiencia tricuspidea (IT)', i=>_labRegurgSev(i,'it_grado'));
+    await valvSeccion('Valvulopatias - Estenosis aortica (EA)', i=>_labEstenSev(i,'ea_grado'));
+    await valvSeccion('Valvulopatias - Estenosis mitral (EM)', i=>_labEstenSev(i,'em_grado'));
+
+    // HTP (gradiente verde -> rojo)
+    const psaps = infs.map(i=>_labPsap(i)).filter(v=>v!==null&&v>0);
+    const ht = psaps.length;
+    const hN = [psaps.filter(v=>v<=35).length, psaps.filter(v=>v>35&&v<=50).length, psaps.filter(v=>v>50&&v<=70).length, psaps.filter(v=>v>70).length];
+    await addTablaChart('Hipertension pulmonar (PSAP)',
+      [['Normal (<=35)', hN[0] + ' (' + pctOf(hN[0],ht) + '%)'], ['Leve (36-50)', hN[1] + ' (' + pctOf(hN[1],ht) + '%)'],
+       ['Moderada (51-70)', hN[2] + ' (' + pctOf(hN[2],ht) + '%)'], ['Severa (>70)', hN[3] + ' (' + pctOf(hN[3],ht) + '%)']],
+      { labels:['Normal','Leve','Moderada','Severa'], values:hN, colors:['#3ecf8e','#f5c842','#f59e42','#f05454'] });
+
+    // Frecuencia de indicaciones / antecedentes (arrays)
+    const freqData = (key) => {
+      const counts={};
+      infs.forEach(i=>{ let a=i.campos?.[key]; if(typeof a==='string'){try{a=JSON.parse(a);}catch(e){a=a?[a]:[];}} if(!Array.isArray(a))return; a.forEach(v=>{const k=String(v).trim(); if(k)counts[k]=(counts[k]||0)+1;}); });
+      return Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+    };
+    const indFreq = freqData('indicaciones');
+    if (indFreq.length) await addTablaChart('Indicaciones',
+      indFreq.map(([l,cn])=>[l, cn + ' (' + pctOf(cn,N) + '%)']),
+      { labels: indFreq.map(x=>x[0]), values: indFreq.map(x=>x[1]), colors: indFreq.map(()=>'#4f8ef7') });
+    const antFreq = freqData('antecedentes_sel');
+    if (antFreq.length) await addTablaChart('Antecedentes',
+      antFreq.map(([l,cn])=>[l, cn + ' (' + pctOf(cn,N) + '%)']),
+      { labels: antFreq.map(x=>x[0]), values: antFreq.map(x=>x[1]), colors: antFreq.map(()=>'#4f8ef7') });
+
+    // Hallazgos frecuentes
     const textos = infs.map(i => (i.campos?.en_suma||'') + ' ' + (i.campos?.informe_texto||''));
     const hallazgos = [
       { lbl:'HTP', patron:/hipertensi[oó]n\s+pulmonar|HTP/i },
-      { lbl:'Disfunción diastólica', patron:/disfunci[oó]n\s+diast[oó]lica/i },
-      { lbl:'Disfunción sistólica VI', patron:/disfunci[oó]n\s+sist[oó]lica|FEVI\s+[<>]?\s*[0-4]\d/i },
+      { lbl:'Disfuncion diastolica', patron:/disfunci[oó]n\s+diast[oó]lica/i },
+      { lbl:'Disfuncion sistolica VI', patron:/disfunci[oó]n\s+sist[oó]lica|FEVI\s+[<>]?\s*[0-4]\d/i },
       { lbl:'Insuficiencia mitral', patron:/insuficiencia\s+mitral|IM\s+(?:leve|moderada|severa)/i },
-      { lbl:'Estenosis aórtica', patron:/estenosis\s+a[oó]rtica|EAo/i },
-      { lbl:'Dilatación AI', patron:/dilataci[oó]n.{0,10}auricular|AI\s+(?:dilata|agrand)/i },
+      { lbl:'Estenosis aortica', patron:/estenosis\s+a[oó]rtica|EAo/i },
+      { lbl:'Dilatacion AI', patron:/dilataci[oó]n.{0,10}auricular|AI\s+(?:dilata|agrand)/i },
       { lbl:'HVI', patron:/hipertrofia\s+ventricular\s+izq|HVI/i },
-      { lbl:'Derrame pericárdico', byField:i=>{var v=String((i.campos&&i.campos.pericardio)||'');return /derrame|efusi[oó]n/i.test(v) && !/sin\s+derrame|sin\s+efusi[oó]n/i.test(v);} },
+      { lbl:'Derrame pericardico', byField:i=>{var v=String((i.campos&&i.campos.pericardio)||'');return /derrame|efusi[oó]n/i.test(v) && !/sin\s+derrame|sin\s+efusi[oó]n/i.test(v);} },
     ].map(h => ({ lbl:h.lbl, n: h.byField ? infs.filter(h.byField).length : textos.filter(t => h.patron.test(t)).length }))
      .filter(d => d.n > 0).sort((a,b)=>b.n-a.n).slice(0,8);
-    hallazgos.forEach(h => addFila('Hallazgo: ' + h.lbl, h.n + '/' + N));
-    y += 4;
+    if (hallazgos.length) await addTablaChart('Hallazgos frecuentes',
+      hallazgos.map(h=>[h.lbl, h.n + '/' + N + ' (' + pctOf(h.n,N) + '%)']),
+      { labels: hallazgos.map(h=>h.lbl), values: hallazgos.map(h=>h.n), colors: hallazgos.map(()=>'#4f8ef7') });
   }
 
   // Sección Calidad
