@@ -11328,9 +11328,9 @@ function generarInforme() {
     if (psap) {
       const psapN = PF(psap);
       let htpGr = null;
-      if (psapN > 60) htpGr = 'severa';
-      else if (psapN > 55) htpGr = 'moderada';
-      else if (psapN > 40) htpGr = 'leve';
+      if (psapN > 70) htpGr = 'severa';
+      else if (psapN > 50) htpGr = 'moderada';
+      else if (psapN > 35) htpGr = 'leve';
       if (htpGr) {
         tricLine += ` Hipertensión pulmonar ${htpGr}.`;
         suma.push(`HTP ${htpGr} (PSAP ${psap} mmHg).`);
@@ -12162,7 +12162,7 @@ function generarPDFReal() {
     {titulo:'Tricúspide / PSAP', items:[
       {lbl:'V. máx IT',  ref:'',                    val:v('vmax_it')  ?v('vmax_it')  +' m/s' :null},
       {lbl:'Grad. IT',   ref:'',                    val:gradIT},
-      {lbl:'PSAP',       ref:'<35/40/60 mmHg',      val:v('psap_calc')?v('psap_calc')+' mmHg':null},
+      {lbl:'PSAP',       ref:'<35 / 35–50 / 50–70 / >70 mmHg',      val:v('psap_calc')?v('psap_calc')+' mmHg':null},
       {lbl:'PAP media',  ref:'',                    val:sv('pap_med')||null},
       {lbl:'V. máx VP',  ref:'', val:v('vp_vmax')?v('vp_vmax')+' m/s' :null},
       {lbl:'G. máx VP',  ref:'', val:v('vp_gmax')?v('vp_gmax')+' mmHg':null},
@@ -12187,7 +12187,7 @@ function generarPDFReal() {
       {lbl:'Ø TSVI',    ref:'', val:v('diam_tsvi')?v('diam_tsvi')+' mm':null},
     ]},
     {titulo:'AVA / GC / IC', items:[
-      {lbl:'AVA',         ref:'<1.0 cm2->sev', val:avaC?avaC+' cm2':null},
+      {lbl:'AVA',         ref:'(>1.5 / 1.0–1.5 / <1.0) cm²', val:avaC?avaC+' cm2':null},
       {lbl:'AVA idx',     ref:'<0.6 cm2/m2', val:avaIdx},
       {lbl:'Vol. sistól.',ref:'55-100 ml',    val:v('vs_calc')?v('vs_calc')+' ml':null},
       {lbl:'GC',          ref:'',             val:coV},
@@ -12204,31 +12204,31 @@ function generarPDFReal() {
     {titulo:'Válvula Mitral', items:[
       {lbl:'Morf.',         ref:'', val:sv('vm_morf')||null},
       {lbl:'IM',            ref:'', val:imG?GT[imG]:null},
-      {lbl:'VC IM',         ref:'<7mm', val:v('im_vc')?v('im_vc')+' mm':null},
-      {lbl:'EROA',          ref:'>=0.4', val:eroaS},
-      {lbl:'Vol.R',         ref:'>=60ml', val:volrS},
+      {lbl:'VC IM',         ref:'(<3 / 3–7 / ≥7) mm', val:v('im_vc')?v('im_vc')+' mm':null},
+      {lbl:'EROA',          ref:'(<20 / 20–40 / ≥40) mm²', val:eroaS},
+      {lbl:'Vol.R',         ref:'(<30 / 30–60 / ≥60) ml', val:volrS},
       {lbl:'EM grado',      ref:'', val:(sv('em_grado')&&sv('em_grado')!=='sin')?sv('em_grado'):null},
-      {lbl:'AVm THP',       ref:'<=1.5', val:v('avm_thp')?v('avm_thp')+' cm2':null},
+      {lbl:'AVm THP',       ref:'(>2.5 / 1.5–2.5 / ≤1.5) cm²', val:v('avm_thp')?v('avm_thp')+' cm2':null},
       {lbl:'Notas',         ref:'', val:sv('vm_notas')||null},
     ]},
     {titulo:'Válvula Aórtica', items:[
       {lbl:'Morf.',         ref:'', val:sv('va_morf')||null},
       {lbl:'EA grado',      ref:'', val:eaReal?sv('ea_grado'):null},
-      {lbl:'AVA',           ref:'<1.0', val:eaReal&&avaC?avaC+' cm2':null},
-      {lbl:'V. max',        ref:'>4 m/s', val:eaReal&&v('vmax_ao')?v('vmax_ao')+' m/s':null},
-      {lbl:'G. medio',      ref:'>40', val:eaReal&&v('gmedio_ao')?v('gmedio_ao')+' mmHg':null},
+      {lbl:'AVA',           ref:'(>1.5 / 1.0–1.5 / <1.0) cm²', val:eaReal&&avaC?avaC+' cm2':null},
+      {lbl:'V. max',        ref:'(<3 / 3–4 / >4) m/s', val:eaReal&&v('vmax_ao')?v('vmax_ao')+' m/s':null},
+      {lbl:'G. medio',      ref:'(<20 / 20–40 / >40) mmHg', val:eaReal&&v('gmedio_ao')?v('gmedio_ao')+' mmHg':null},
       {lbl:'IAo',           ref:'', val:iaG?GT[iaG]:null},
-      {lbl:'VC IAo',        ref:'<6mm', val:v('ia_vc')?v('ia_vc')+' mm':null},
-      {lbl:'PHT',           ref:'<200ms', val:v('ia_pht')?v('ia_pht')+' ms':null},
+      {lbl:'VC IAo',        ref:'(<3 / 3–6 / >6) mm', val:v('ia_vc')?v('ia_vc')+' mm':null},
+      {lbl:'PHT',           ref:'(>500 / 200–500 / <200) ms', val:v('ia_pht')?v('ia_pht')+' ms':null},
       {lbl:'Notas',         ref:'', val:sv('va_notas')||null},
     ]},
     {titulo:'Válvula Tricúspide', items:[
       {lbl:'Morf.',         ref:'', val:sv('vt_morf')||null},
       {lbl:'IT',            ref:'', val:itG?GT[itG]:null},
-      {lbl:'VC IT',         ref:'<7mm', val:v('it_vc')?v('it_vc')+' mm':null},
-      {lbl:'EROA IT',       ref:'>=0.4', val:v('it_eroa')?v('it_eroa')+' mm2':null},
+      {lbl:'VC IT',         ref:'(<3 / 3–7 / >7) mm', val:v('it_vc')?v('it_vc')+' mm':null},
+      {lbl:'EROA IT',       ref:'(<20 / 20–40 / ≥40) mm²', val:v('it_eroa')?v('it_eroa')+' mm2':null},
       {lbl:'Grad. VD-AD',   ref:'', val:v('vmax_it')?(4*v('vmax_it')*v('vmax_it')).toFixed(0)+' mmHg':null},
-      {lbl:'PSAP',          ref:'<35/40/60', val:v('psap_calc')?v('psap_calc')+' mmHg':null},
+      {lbl:'PSAP',          ref:'(<35 / 35–50 / 50–70 / >70) mmHg', val:v('psap_calc')?v('psap_calc')+' mmHg':null},
     ]},
     {titulo:'Otros', items:[
       {lbl:'Pericardio',    ref:'', val:sv('pericardio')||null},
