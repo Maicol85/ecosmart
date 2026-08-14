@@ -15894,10 +15894,6 @@ function _labEstenSev(inf, key) {   // ea_grado/em_grado: select sin/esclerosis/
 // Lista de los 10 indicadores automáticos (CAMBIO 5) — compartida entre vista web y PDF
 function _labIndicadoresList(infs) {
   return [
-    { lbl: 'FEVI ≤35% sin GLS documentado',
-      casos: infs.filter(i => { const f = _labFevi(i); return f !== null && f <= 35 && _labGls(i) === null; }) },
-    { lbl: 'FEVI ≤35% sin indicación de dispositivo documentada',
-      casos: infs.filter(i => { const f = _labFevi(i); return f !== null && f <= 35 && !/CDI|CRT|DAI|resincroniza|desfibrila/i.test(_labTxt(i)); }) },
     { lbl: 'HTP moderada-severa sin causa documentada',
       casos: infs.filter(i => { const p = _labPsap(i); return p !== null && p > 50 && !/HAP|TEP|EPOC|insuficiencia\s+card[ií]aca|\bIC\b|valvular|valvulopat/i.test(_labTxt(i)); }) },
     { lbl: 'Disfunción diastólica Grado III sin FEVI documentada',
