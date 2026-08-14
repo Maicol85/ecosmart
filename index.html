@@ -8570,6 +8570,16 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
+  <!-- SECCIÓN: CONTRACTILIDAD SEGMENTARIA — POBLACIÓN -->
+  <div class="lab-card">
+    <div class="lab-card-hdr">🎯 Contractilidad Segmentaria — Población</div>
+    <div class="lab-card-body">
+      <div id="lab-contr-tabla"></div>
+      <div id="lab-contr-be" style="text-align:center;margin-top:16px;"></div>
+      <div id="lab-contr-leyenda" style="margin-top:12px;"></div>
+    </div>
+  </div>
+
   <!-- SECCIÓN C: VALVULOPATÍAS -->
   <div class="lab-card">
     <div class="lab-card-hdr">🫀 Valvulopatías</div>
@@ -13790,6 +13800,7 @@ function editarInforme(id) {
     // Restaurar el checkbox "caso de interés" (los checkbox no se restauran por .value)
     { const _ci = document.getElementById('caso_interes'); if (_ci) _ci.checked = (inf.campos['caso_interes'] === '1' || inf.campos['caso_interes'] === 'true'); }
     _restaurarChecklistPaciente(inf.campos);
+    if (typeof _restaurarContractilidad === 'function') _restaurarContractilidad(inf.campos);
     // Recalcular derivados
     if (typeof calcVI === 'function') calcVI();
     if (typeof calcAI === 'function') calcAI();
@@ -13827,6 +13838,7 @@ function cargarEstudioPorId(id) {
   });
   { const _ci = document.getElementById('caso_interes'); if (_ci) _ci.checked = (inf.campos && (inf.campos['caso_interes'] === '1' || inf.campos['caso_interes'] === 'true')); }
   _restaurarChecklistPaciente(inf.campos);
+  if (typeof _restaurarContractilidad === 'function') _restaurarContractilidad(inf.campos);
   ['calcVI','calcAI','calcAorta','calcVD'].forEach(fn => { if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} } });
   window._ettEditandoId = inf.id;
   eeCurrentInformeId = inf.estudioId;
@@ -13926,6 +13938,9 @@ function guardarInforme() {
   // Checklists de indicaciones/antecedentes (arrays) — alimentan el Laboratorio
   campos['indicaciones']     = Array.from(document.querySelectorAll('.ind-chk:checked')).map(c => c.dataset.val);
   campos['antecedentes_sel'] = Array.from(document.querySelectorAll('.ant-chk:checked')).map(c => c.dataset.val);
+  // Contractilidad segmentaria (17 segmentos AHA) + flags — alimenta el Bull's Eye poblacional del Laboratorio
+  campos['contractilidad'] = JSON.stringify(contrEstado);
+  campos['contr_flags']    = JSON.stringify({ difusa: contrDifusa, multiple: contrMultiple, disqSep: contrDisqSep });
   ['med-nombre','med-matricula','med-lugar','med-especialidad','med-direccion','med-telefono'].forEach(fid => {
     const el = document.getElementById(fid);
     if (el) campos[fid] = el.textContent.trim();
@@ -14977,6 +14992,8 @@ function pdfDeInformeGuardado(id) {
     indicaciones: Array.from(document.querySelectorAll('.ind-chk:checked')).map(c => c.dataset.val),
     antecedentes_sel: Array.from(document.querySelectorAll('.ant-chk:checked')).map(c => c.dataset.val)
   };
+  // Backup de la contractilidad segmentaria del formulario actual (para restaurarla tras generar)
+  const contrBackup = { contractilidad: JSON.stringify(contrEstado), contr_flags: JSON.stringify({ difusa: contrDifusa, multiple: contrMultiple, disqSep: contrDisqSep }) };
   const ceBackup = {};
   ['med-nombre','med-matricula','med-lugar','med-especialidad','med-direccion','med-telefono'].forEach(fid => {
     const el = document.getElementById(fid);
@@ -14993,6 +15010,7 @@ function pdfDeInformeGuardado(id) {
   });
   // Restaurar los checklists del acordeón del estudio guardado (para que el PDF lea sus indicaciones/antecedentes)
   if (typeof _restaurarChecklistPaciente === 'function') _restaurarChecklistPaciente(c);
+  if (typeof _restaurarContractilidad === 'function') _restaurarContractilidad(c);
 
   // Recalculate derived display values
   if (typeof calcBSA    === 'function') calcBSA();
@@ -15022,6 +15040,7 @@ function pdfDeInformeGuardado(id) {
       if (el) el.textContent = ceBackup[fid] || '';
     });
     if (typeof _restaurarChecklistPaciente === 'function') _restaurarChecklistPaciente(chkBackup);
+    if (typeof _restaurarContractilidad === 'function') _restaurarContractilidad(contrBackup);
     window._pdfFallbackNotas = null;
     if (typeof calcBSA === 'function') calcBSA();
     if (typeof updateHdrExtra === 'function') updateHdrExtra();
@@ -15094,6 +15113,23 @@ window.toggleContrDisqSep = function(btn){
   _contrBtnState('btn-contr-disq-sep', contrDisqSep);
   contrRenderInforme();
 };
+// Restaura el estado de contractilidad segmentaria (17 segmentos + flags) desde los campos del estudio
+function _restaurarContractilidad(campos){
+  Object.keys(contrEstado).forEach(k=> delete contrEstado[k]);
+  contrDifusa = false; contrMultiple = false; contrDisqSep = false; contrSnapshot = null;
+  let segs = campos && campos.contractilidad;
+  if (typeof segs === 'string') { try { segs = JSON.parse(segs); } catch(e){ segs = null; } }
+  if (segs && typeof segs === 'object') Object.keys(segs).forEach(k=>{ contrEstado[k] = Number(segs[k]) || 0; });
+  let fl = campos && campos.contr_flags;
+  if (typeof fl === 'string') { try { fl = JSON.parse(fl); } catch(e){ fl = null; } }
+  if (fl && typeof fl === 'object') { contrDifusa = !!fl.difusa; contrMultiple = !!fl.multiple; contrDisqSep = !!fl.disqSep; }
+  _contrBtnState('btn-contr-difusa', contrDifusa);
+  _contrBtnState('btn-contr-multiple', contrMultiple);
+  _contrBtnState('btn-contr-disq-sep', contrDisqSep);
+  if (typeof contrAplicarTodos === 'function') contrAplicarTodos();
+  if (typeof contrRenderInforme === 'function') contrRenderInforme();
+}
+window._restaurarContractilidad = _restaurarContractilidad;
 
 function contrSemiancho(t, rxBase, q, bulge){
   let w = rxBase * Math.cos(t*Math.PI/2) ** q;
@@ -15970,6 +16006,7 @@ function labInit() {
       if (el) el.innerHTML = '<div class="lab-empty">Sin datos</div>';
     });
     { const _d = document.getElementById('lab-fevi-dispositivos'); if (_d) _d.textContent = ''; }
+    ['lab-contr-tabla','lab-contr-be','lab-contr-leyenda'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
     document.getElementById('lab-indicadores-body').innerHTML =
       '<tr><td colspan="4" style="text-align:center;color:var(--text2);padding:20px;">Sin datos</td></tr>';
     document.getElementById('lab-docencia-lista').innerHTML =
@@ -16224,6 +16261,8 @@ window.labVerDetalleIndicador = labVerDetalleIndicador;
 // Poblado de las secciones C–F del Perfil de Población (valvulopatías, HTP, indicaciones, antecedentes)
 function labRenderExtras(infs, n) {
   const cMap = { Sin:'#3ecf8e', Leve:'#f5c842', Moderada:'#f0a500', Severa:'#f05454' };
+  // Contractilidad segmentaria — población (entre Función diastólica y Valvulopatías)
+  _labContrRenderDash(infs);
   // SECCIÓN C — Valvulopatías (regurgitaciones + estenosis)
   const sevTable = (containerId, sevFn) => {
     const b = { Sin:0, Leve:0, Moderada:0, Severa:0 };
@@ -16791,6 +16830,116 @@ function _labPieDash(containerId, entries) {
 }
 window._labPieDash = _labPieDash;
 
+// ══ Contractilidad Segmentaria — Población ══
+const _CONTR_SEG_IDS = [
+  'basal_anterior','basal_anteroseptal','basal_inferoseptal','basal_inferior','basal_inferolateral','basal_anterolateral',
+  'mid_anterior','mid_anteroseptal','mid_inferoseptal','mid_inferior','mid_inferolateral','mid_anterolateral',
+  'apical_anterior','apical_septal','apical_inferior','apical_lateral','apex'
+];
+// Datos poblacionales de contractilidad a partir de los estudios (lee campos.contractilidad + texto)
+function _labContrPoblacion(infs) {
+  const N = infs.length;
+  const segCount = {}; _CONTR_SEG_IDS.forEach(s => segCount[s] = 0);
+  let conTrast = 0, difusa = 0, disqSep = 0;
+  infs.forEach(i => {
+    const txt = (i.campos?.en_suma || '') + ' ' + (i.campos?.informe_texto || '');
+    const esDifusa = /hipocontractilidad\s+difusa/i.test(txt);
+    const esDisq   = /disquinesia\s+septal/i.test(txt);
+    const esMult   = /m[uú]ltiples\s+trastornos/i.test(txt);
+    if (esDifusa) difusa++;
+    if (esDisq)   disqSep++;
+    let cont = i.campos?.contractilidad;
+    if (typeof cont === 'string') { try { cont = JSON.parse(cont); } catch(e) { cont = null; } }
+    let comprometido = false;
+    if (cont && typeof cont === 'object') {
+      _CONTR_SEG_IDS.forEach(s => { if (Number(cont[s]) > 0) { segCount[s]++; comprometido = true; } });
+    }
+    if (comprometido || esDifusa || esDisq || esMult) conTrast++;
+  });
+  const pctById = {};
+  _CONTR_SEG_IDS.forEach(s => pctById[s] = N > 0 ? (segCount[s] / N * 100) : 0);
+  return { N, sinTrast: N - conTrast, conTrast, difusa, disqSep, pctById };
+}
+function _contrPobColor(pct) {
+  if (pct <= 0)  return '#3a3f52';
+  if (pct <= 10) return '#f5c842';
+  if (pct <= 25) return '#f59e42';
+  if (pct <= 50) return '#f05454';
+  return '#c0392b';
+}
+// SVG poblacional del Bull's Eye (misma geometría que la app) con % dentro de cada segmento
+function _contrPobBullsEyeSVG(pctById) {
+  const cx = 160, cy = 160, rBE = 145, rBI = 98, rMI = 52, rAI = 18;
+  const seis = [
+    {id:'anterior',centro:0},{id:'anteroseptal',centro:-60},{id:'inferoseptal',centro:-120},
+    {id:'inferior',centro:-180},{id:'inferolateral',centro:-240},{id:'anterolateral',centro:-300}
+  ];
+  const cuatro = [{id:'anterior',centro:0},{id:'septal',centro:-90},{id:'inferior',centro:-180},{id:'lateral',centro:-270}];
+  const toRad = a => (a - 90) * Math.PI / 180;
+  const pos = (r, a) => [cx + r*Math.cos(toRad(a)), cy + r*Math.sin(toRad(a))];
+  const seg = (id, d) => `<path fill="${_contrPobColor(Math.round(pctById[id]||0))}" stroke="#cfd6e6" stroke-width="1.2" d="${d}"/>`;
+  const txt = (id, x, y) => {
+    const p = Math.round(pctById[id] || 0);
+    return `<text x="${x}" y="${y}" font-size="13" font-weight="${p>0?'bold':'normal'}" fill="${p>0?'#ffffff':'#9aa3bc'}" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif">${p}</text>`;
+  };
+  const rMB = (rBE+rBI)/2, rMM = (rBI+rMI)/2, rMA = (rMI+rAI)/2;
+  let h = '';
+  seis.forEach(w => h += seg('basal_'+w.id, contrDescribirCuna(cx,cy,rBI,rBE,w.centro-30,w.centro+30)));
+  seis.forEach(w => h += seg('mid_'+w.id, contrDescribirCuna(cx,cy,rMI,rBI,w.centro-30,w.centro+30)));
+  cuatro.forEach(w => h += seg('apical_'+w.id, contrDescribirCuna(cx,cy,rAI,rMI,w.centro-45,w.centro+45)));
+  h += `<circle fill="${_contrPobColor(Math.round(pctById['apex']||0))}" stroke="#cfd6e6" stroke-width="1.2" cx="${cx}" cy="${cy}" r="${rAI}"/>`;
+  [rBE,rBI,rMI,rAI].forEach(r => h += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#cfd6e6" stroke-width="0.6" opacity="0.3"/>`);
+  seis.forEach(w => { const [x,y] = pos(rMB, w.centro); h += txt('basal_'+w.id, x, y); });
+  seis.forEach(w => { const [x,y] = pos(rMM, w.centro); h += txt('mid_'+w.id, x, y); });
+  cuatro.forEach(w => { const [x,y] = pos(rMA, w.centro); h += txt('apical_'+w.id, x, y); });
+  h += txt('apex', cx, cy);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" width="320" height="320">${h}</svg>`;
+}
+const _CONTR_POB_LEYENDA = [
+  ['#3a3f52','Sin compromiso (0%)'], ['#f5c842','Bajo (1–10%)'], ['#f59e42','Moderado (11–25%)'],
+  ['#f05454','Alto (26–50%)'], ['#c0392b','Muy alto (>50%)']
+];
+// Render de la sección en el dashboard web (tabla + Bull's Eye + leyenda)
+function _labContrRenderDash(infs) {
+  const tabEl = document.getElementById('lab-contr-tabla');
+  const beEl  = document.getElementById('lab-contr-be');
+  const legEl = document.getElementById('lab-contr-leyenda');
+  if (!tabEl || !beEl || !legEl) return;
+  const d = _labContrPoblacion(infs);
+  const pr = x => d.N > 0 ? Math.round(x / d.N * 100) + '%' : '0%';
+  tabEl.innerHTML = `<table class="lab-table">
+    <thead><tr><th></th><th>n</th><th>%</th></tr></thead>
+    <tbody>
+      <tr><td>Total estudios analizados</td><td style="font-weight:700;">${d.N}</td><td>—</td></tr>
+      <tr><td>Sin trastornos sectoriales</td><td style="font-weight:700;">${d.sinTrast}</td><td>${pr(d.sinTrast)}</td></tr>
+      <tr><td>Con trastornos sectoriales</td><td style="font-weight:700;">${d.conTrast}</td><td>${pr(d.conTrast)}</td></tr>
+      <tr><td>Hipocontractilidad difusa</td><td style="font-weight:700;">${d.difusa}</td><td>${pr(d.difusa)}</td></tr>
+      <tr><td>Disquinesia septal aislada</td><td style="font-weight:700;">${d.disqSep}</td><td>${pr(d.disqSep)}</td></tr>
+    </tbody></table>`;
+  beEl.innerHTML = `<div style="font-size:.82rem;font-weight:700;color:var(--text2);margin-bottom:8px;">% pacientes con compromiso segmentario (n=${d.N} estudios)</div>
+    <div style="display:flex;justify-content:center;"><div style="width:100%;max-width:290px;">${_contrPobBullsEyeSVG(d.pctById).replace('width="320" height="320"','style="width:100%;height:auto;display:block;"')}</div></div>`;
+  legEl.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px 16px;justify-content:center;">` +
+    _CONTR_POB_LEYENDA.map(([c,l]) => `<span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text2);"><span style="width:12px;height:12px;border-radius:2px;flex-shrink:0;background:${c};"></span>${l}</span>`).join('') + `</div>`;
+}
+window._labContrRenderDash = _labContrRenderDash;
+// Rasteriza un string SVG a PNG (fondo blanco) — para el PDF
+function _svgToPng(svgStr, w, h) {
+  return new Promise((resolve) => {
+    try {
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+      const ctx = cv.getContext('2d'); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h);
+      const img = new Image();
+      img.onload = () => { try { ctx.drawImage(img, 0, 0, w, h); resolve(cv.toDataURL('image/png')); } catch(e) { resolve(null); } };
+      img.onerror = () => resolve(null);
+      img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+    } catch(e) { resolve(null); }
+  });
+}
+function _hexToRgb(hex) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return m ? [parseInt(m[1],16), parseInt(m[2],16), parseInt(m[3],16)] : [0,0,0];
+}
+
 // ── Generar PDF de auditoría ──
 async function labGenerarPDF() {
   const infs = labGetInformes();
@@ -16927,6 +17076,43 @@ async function labGenerarPDF() {
        ['Grado III', dg.III + ' (' + pctOf(dg.III,dt) + '%)'],
        ['Sin disfuncion', dg.sin + ' (' + pctOf(dg.sin,dt) + '%)']],
       { labels:['Grado I','Grado II','Grado III','Sin disf.'], values:[dg.I,dg.II,dg.III,dg.sin], colors:['#f5c842','#f0a500','#f05454','#3ecf8e'] });
+
+    // Contractilidad segmentaria — población (tabla arriba + Bull's Eye centrado ~100mm + leyenda)
+    {
+      const cp = _labContrPoblacion(infs);
+      if (y > 195) { doc.addPage(); y = 20; }
+      addSection('Contractilidad Segmentaria - Poblacion');
+      const prc = x => cp.N > 0 ? Math.round(x / cp.N * 100) + '%' : '0%';
+      addFila('Total estudios analizados', String(cp.N));
+      addFila('Sin trastornos sectoriales', cp.sinTrast + ' (' + prc(cp.sinTrast) + ')');
+      addFila('Con trastornos sectoriales', cp.conTrast + ' (' + prc(cp.conTrast) + ')');
+      addFila('Hipocontractilidad difusa', cp.difusa + ' (' + prc(cp.difusa) + ')');
+      addFila('Disquinesia septal aislada', cp.disqSep + ' (' + prc(cp.disqSep) + ')');
+      y += 3;
+      doc.setFontSize(9); doc.setFont(undefined, 'bold');
+      doc.text('% pacientes con compromiso segmentario (n=' + cp.N + ' estudios)', W / 2, y, { align: 'center' });
+      doc.setFont(undefined, 'normal');
+      y += 3;
+      const beSize = 100;
+      if (y + beSize + 16 > 285) { doc.addPage(); y = 20; }
+      const png = await _svgToPng(_contrPobBullsEyeSVG(cp.pctById), 640, 640);
+      if (png) { try { doc.addImage(png, 'PNG', (W - beSize) / 2, y, beSize, beSize); } catch(e) {} }
+      y += beSize + 5;
+      doc.setFontSize(8);
+      let lx = M;
+      _CONTR_POB_LEYENDA.forEach(([col, lbl]) => {
+        const lbl2 = lbl.replace('–', '-');
+        const wtxt = doc.getTextWidth(lbl2) + 11;
+        if (lx + wtxt > W - M) { lx = M; y += 6; }
+        const rgb = _hexToRgb(col);
+        doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+        doc.rect(lx, y - 3, 3.5, 3.5, 'F');
+        doc.setTextColor(0, 0, 0);
+        doc.text(lbl2, lx + 5, y);
+        lx += wtxt;
+      });
+      y += 8;
+    }
 
     // Valvulopatias (una subseccion por valvula)
     const sevCols = ['#3ecf8e','#f5c842','#f0a500','#f05454'];
