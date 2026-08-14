@@ -9722,7 +9722,7 @@ function calcDiastolASE2025() {
       } else if (ea >= 2) {
         cls = 'red';
         badgeTxt = 'DD Grado III — ASE 2025';
-        texto = 'Disfunción diastólica grado III (patrón restrictivo). E/A ≥2 con presión de llenado ' +
+        texto = 'Disfunción diastólica grado III (patrón restrictivo). E/A > 2 con presión de llenado ' +
           'elevada (' + presionElevada + '/' + totalParam + ' parámetros positivos). ASE 2025.';
         textoSuma = 'Disfunción diastólica grado III — patrón restrictivo, presión de llenado elevada (ASE 2025).';
       } else {
@@ -11097,8 +11097,22 @@ function generarInforme() {
     if (c) inf.push(estiloPick(cap(c) + '.', cap(e) + '.', cap(n) + '.'));
   }
 
-  // ── 2) Geometría ventricular + contractilidad (juntas) ──
+  // ── 2) Trastornos sectoriales de la motilidad ──
   {
+    let contrStr = '';
+    const _contrFrase = (typeof contrFraseNarrativa === 'function') ? contrFraseNarrativa() : '';
+    if (_contrFrase && _contrFrase !== 'Sin trastornos de la contractilidad.') {
+      contrStr = _contrFrase;
+      suma.push('Trastornos sectoriales descritos.');
+    } else if (fevi !== null) {
+      contrStr = 'No se observan trastornos sectoriales de la motilidad.';
+    }
+    if (contrStr) inf.push(contrStr);
+  }
+
+  // ── 3) Geometría ventricular + función diastólica (misma fila) ──
+  {
+    // Geometría: solo se enuncia si es anormal (si es normal, va solo la diastólica)
     let geomStr = '';
     if (ddfvi && siv && ppvi && bsa) {
       const mass = 0.8*(1.04*((ddfvi/10+siv/10+ppvi/10)**3-(ddfvi/10)**3))+0.6;
@@ -11107,9 +11121,7 @@ function generarInforme() {
       const sexoG = sv('sexo');
       const hvi = (sexoG === 'F' && massIdx > 95) || (sexoG === 'M' && massIdx > 115) || (!sexoG && massIdx > 115);
       const geom = calcGeometriaVI(PF(massIdx), PF(rwt), sexoG);
-      if (geom === 'Normal') {
-        geomStr = 'Geometría ventricular normal.';
-      } else {
+      if (geom !== 'Normal') {
         let geomTxt = geom.toLowerCase();
         if (hvi) {
           const sev = (typeof hviSeveridad === 'function') ? hviSeveridad(massIdx, sexoG) : null;
@@ -11119,29 +11131,19 @@ function generarInforme() {
         suma.push(`HVI — ${geomTxt}.`);
       }
     }
-    // Contractilidad: una sola oración consolidada, agrupada por severidad
-    let contrStr = '';
-    const _contrFrase = (typeof contrFraseNarrativa === 'function') ? contrFraseNarrativa() : '';
-    if (_contrFrase && _contrFrase !== 'Sin trastornos de la contractilidad.') {
-      contrStr = _contrFrase;
-      suma.push('Trastornos sectoriales descritos.');
-    } else if (fevi !== null) {
-      contrStr = 'Sin trastornos de la contractilidad.';
-    }
-    const s2 = [geomStr, contrStr].filter(Boolean).join(' ');
-    if (s2) inf.push(s2);
-  }
-
-  // ── 3) Función diastólica (algoritmo seleccionable: BSE 2024 / ASE 2016) ──
-  {
+    // Función diastólica (algoritmo seleccionable: ASE 2025 / BSE 2024 / ASE 2016)
+    let diastStr = '';
     if (typeof calcDiastol === 'function') calcDiastol();
     const dRes = window._diastResult;
     if (dRes && dRes.texto) {
-      inf.push(dRes.texto);
+      diastStr = dRes.texto;
       if (dRes.textoSuma) suma.push(dRes.textoSuma);
     } else if (fevi !== null) {
-      inf.push('Función diastólica no valorada por datos insuficientes.');
+      diastStr = 'Función diastólica no valorada por datos insuficientes.';
     }
+    // Geometría + diastólica en la misma oración/fila
+    const s3 = [geomStr, diastStr].filter(Boolean).join(' ');
+    if (s3) inf.push(s3);
   }
 
   // ── 4) Aurícula izquierda ──
@@ -11170,30 +11172,36 @@ function generarInforme() {
     inf.push(estiloPick('AI normal.', 'Aurícula izquierda de dimensiones normales.', 'La aurícula izquierda es de dimensiones normales.'));
   }
 
-  // ── 5) Ventrículo derecho ──
+  // ── 5) Ventrículo derecho (una sola oración combinada: tamaño + función) ──
   if (tapse || sp) {
     const vdDilat = v('vd_bas') ? v('vd_bas') > 41 : false;
-    const vdDim = v('vd_bas') ? (v('vd_bas') <= 41 ? 'de dimensiones normales' : 'dilatado') : 'de dimensiones no valoradas';
-    let vdFunc, vdDisf = false;
-    const tapseOk = tapse ? tapse >= UMBRAL_TAPSE_NORMAL : null;
-    const spOk = sp ? sp >= 10 : null;
-    if (tapseOk !== false && spOk !== false) {
-      vdFunc = 'función sistólica conservada';
+    // Disfunción sistólica VD: TAPSE < 17 mm y/o S' < 9.5 cm/s (criterios de la app)
+    const tapseBajo = tapse ? tapse < UMBRAL_TAPSE_NORMAL : false;
+    const spBajo = sp ? sp < 9.5 : false;
+    const vdDisf = tapseBajo || spBajo;
+    let vdC = '', vdN = '';   // conciso/estándar · narrativo
+    if (!vdDilat && !vdDisf) {
+      // VD normal + función sistólica normal → no se menciona el VD
+    } else if (!vdDilat && vdDisf) {
+      vdC = 'VD con disfunción sistólica';
+      vdN = 'El ventrículo derecho, de dimensiones conservadas, presenta disfunción sistólica';
+      suma.push('VD con disfunción sistólica.');
+    } else if (vdDilat && !vdDisf) {
+      vdC = 'VD dilatado con función sistólica normal';
+      vdN = 'El ventrículo derecho se encuentra dilatado, con función sistólica conservada';
+      suma.push('VD dilatado con función sistólica normal.');
     } else {
-      vdFunc = 'disfunción sistólica'; vdDisf = true;
-      suma.push('Disfunción sistólica VD.');
+      vdC = 'VD dilatado con disfunción sistólica';
+      vdN = 'El ventrículo derecho se encuentra dilatado y presenta disfunción sistólica';
+      suma.push('VD dilatado con disfunción sistólica.');
     }
-    if (vdDilat) suma.push('Ventrículo derecho dilatado.');
-    let datosVD = '';
-    if (tapse) datosVD += `TAPSE ${tapse} mm`;
-    if (sp) datosVD += (tapse ? `, S' ${sp} cm/s` : `S' ${sp} cm/s`);
-    const datosVDp = datosVD ? ` (${datosVD})` : '';
-    const cVD = `VD ${vdDim} con ${vdFunc}${datosVDp}.`;
-    const eVD = `Ventrículo derecho ${vdDim} con ${vdFunc}${datosVDp}.`;
-    const nVD = vdDisf
-      ? `El ventrículo derecho ${vdDim} presenta disfunción sistólica evidenciada por ${datosVD || 'los parámetros disponibles'} (TAPSE normal ≥17 mm), hallazgo que en el contexto clínico puede reflejar compromiso del ventrículo derecho secundario a sobrecarga de presión o miocardiopatía.`
-      : `El ventrículo derecho ${vdDim} presenta función sistólica conservada${datosVDp}.`;
-    inf.push(estiloPick(cVD, eVD, nVD));
+    if (vdC) {
+      let datosVD = '';
+      if (tapse) datosVD += `TAPSE ${tapse} mm`;
+      if (sp) datosVD += (tapse ? `, S' ${sp} cm/s` : `S' ${sp} cm/s`);
+      const datosVDp = datosVD ? ` (${datosVD})` : '';
+      inf.push(estiloPick(`${vdC}${datosVDp}.`, `${vdC}${datosVDp}.`, `${vdN}${datosVDp}.`));
+    }
   }
 
   // ── 6) Aurícula derecha ──
