@@ -912,14 +912,6 @@ window.cerrarSesion = cerrarSesion;
         </div>
       </div>
       <div class="divider"></div>
-      <div class="fg">
-        <label>Notas de indicación</label>
-        <textarea id="indicacion" placeholder="Ej: Disnea de esfuerzo, control HTA, soplo sistólico..."></textarea>
-      </div>
-      <div class="fg" style="margin-top:8px;">
-        <label>Notas de antecedentes</label>
-        <textarea id="antecedentes" placeholder="HTA, DM2, FA, prótesis valvular..."></textarea>
-      </div>
 
       <div class="fg" style="margin-top:8px;">
         <div class="acc" id="acc-ind">
@@ -12210,8 +12202,8 @@ function generarPDFReal() {
      {lbl:'Talla', val:talla?talla+' cm':null},
      {lbl:'ASC',   val:ascV},
      {lbl:'IMC',   val:imc}],
-    [{lbl:'Antecedentes',    val:sv('antecedentes')||null},
-     {lbl:'Indicación',      val:sv('indicacion')||null},
+    [{lbl:'Antecedentes',    val:(_accTexto('ant-chk','ant_otro')||null)},
+     {lbl:'Indicación',      val:(_accTexto('ind-chk','ind_otro')||null)},
      {lbl:'Solicitante',     val:sv('med_solicitante')||null},
      {lbl:'Fecha solicitud', val:fechaSol}],
   ].filter(r => r.some(c=>c.val));
@@ -13901,6 +13893,19 @@ function _accSum(cls, otroId, sumId) {
 }
 window._accSum = _accSum;
 
+// Texto COMPLETO del acordeón (items seleccionados + texto libre de "Otro"), sin truncar — para PDF/informes
+function _accTexto(cls, otroId) {
+  const sel = Array.from(document.querySelectorAll('.' + cls + ':checked')).map(c => {
+    if (c.dataset.val === 'Otro') {
+      const o = document.getElementById(otroId);
+      return (o && o.value.trim()) ? o.value.trim() : 'Otro';
+    }
+    return c.dataset.val;
+  });
+  return sel.join(', ');
+}
+window._accTexto = _accTexto;
+
 function guardarInforme() {
   const nombre = (document.getElementById('nombre')?.value || '').trim();
   const ci     = (document.getElementById('ci')?.value || '').trim();
@@ -14732,7 +14737,7 @@ const _IG_SECTIONS = [
     {id:'nombre',lbl:'Nombre'},{id:'doc_tipo',lbl:'Tipo doc.'},{id:'ci',lbl:'Documento'},
     {id:'matricula',lbl:'Matrícula'},{id:'fecha',lbl:'Fecha estudio'},
     {id:'edad',lbl:'Edad (años)'},{id:'sexo',lbl:'Sexo'},{id:'peso',lbl:'Peso (kg)'},
-    {id:'talla',lbl:'Talla (cm)'},{id:'indicacion',lbl:'Indicación'},{id:'antecedentes',lbl:'Antecedentes'},
+    {id:'talla',lbl:'Talla (cm)'},{id:'indicaciones',lbl:'Indicación',arr:'ind_otro'},{id:'antecedentes_sel',lbl:'Antecedentes',arr:'ant_otro'},
     {id:'med_solicitante',lbl:'Solicitante'}
   ]},
   { titulo:'🏥 Centro', fields:[
@@ -14819,6 +14824,13 @@ function verDetalleInforme(id) {
     const items = sec.fields
       .map(f => {
         let val = c[f.id];
+        if (f.arr) {
+          let a = val;
+          if (typeof a === 'string') { try { a = JSON.parse(a); } catch(e) { a = a ? [a] : []; } }
+          if (!Array.isArray(a)) a = [];
+          const otro = c[f.arr];
+          val = a.map(x => (x === 'Otro' && otro && String(otro).trim()) ? String(otro).trim() : x).join(', ');
+        }
         if (val === undefined || val === null || val === '') return null;
         if (f.grades) { const g = parseInt(val)||0; if (!g) return null; val = _IG_GRADE[g]||val; }
         if (f.id === 'sexo') val = val==='M'?'Masculino':val==='F'?'Femenino':val;
@@ -14956,6 +14968,11 @@ function pdfDeInformeGuardado(id) {
   // Backup current form state
   const backup = {};
   document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => { backup[el.id] = el.value; });
+  // Backup de los checklists del acordeón (checkboxes son class-based, sin id → no entran en el backup anterior)
+  const chkBackup = {
+    indicaciones: Array.from(document.querySelectorAll('.ind-chk:checked')).map(c => c.dataset.val),
+    antecedentes_sel: Array.from(document.querySelectorAll('.ant-chk:checked')).map(c => c.dataset.val)
+  };
   const ceBackup = {};
   ['med-nombre','med-matricula','med-lugar','med-especialidad','med-direccion','med-telefono'].forEach(fid => {
     const el = document.getElementById(fid);
@@ -14970,6 +14987,8 @@ function pdfDeInformeGuardado(id) {
     const el = document.getElementById(fid);
     if (el && c[fid] !== undefined) el.textContent = c[fid];
   });
+  // Restaurar los checklists del acordeón del estudio guardado (para que el PDF lea sus indicaciones/antecedentes)
+  if (typeof _restaurarChecklistPaciente === 'function') _restaurarChecklistPaciente(c);
 
   // Recalculate derived display values
   if (typeof calcBSA    === 'function') calcBSA();
@@ -14994,6 +15013,7 @@ function pdfDeInformeGuardado(id) {
       const el = document.getElementById(fid);
       if (el) el.textContent = ceBackup[fid] || '';
     });
+    if (typeof _restaurarChecklistPaciente === 'function') _restaurarChecklistPaciente(chkBackup);
     if (typeof calcBSA === 'function') calcBSA();
     if (typeof updateHdrExtra === 'function') updateHdrExtra();
   }, 600);
