@@ -7905,12 +7905,6 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           <button class="btn" onclick="exportarInformesJSON()" title="Exportar todos los informes a JSON">📤 Exportar JSON</button>
           <button class="btn" onclick="document.getElementById('ig-import-file').click()" title="Importar informes desde un archivo JSON">📥 Importar JSON</button>
           <input type="file" id="ig-import-file" accept=".json,application/json" style="display:none" onchange="if(this.files&&this.files[0]){importarInformesJSON(this.files[0]);this.value='';}">
-          <button class="btn" onclick="
-            const k = prompt('API key de Anthropic (se guarda solo durante esta sesión):', sessionStorage.getItem('ecg_api_key') || '');
-            if (k !== null) { sessionStorage.setItem('ecg_api_key', k.trim()); if (typeof toast === 'function') toast('✅ API key guardada'); }
-          " title="Configurar API key para importar PDFs (Claude Vision)">⚙️ API key</button>
-          <button class="btn" onclick="document.getElementById('pdf-import-file').click()" title="Importar PDFs históricos generados por EcoSmart">📄 Importar PDFs históricos</button>
-          <input type="file" id="pdf-import-file" accept=".pdf" multiple style="display:none" onchange="if(this.files&&this.files.length){importarPDFsHistoricos(this.files);this.value='';}">
           <button class="btn btn-danger" onclick="limpiarTodosInformes()" title="Eliminar todos los informes">🗑️ Eliminar todos</button>
         </div>
         <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap;">
@@ -13802,11 +13796,16 @@ function renderInformesGuardados() {
       day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'
     });
     const esCaso = inf.campos && (inf.campos.caso_interes === '1' || inf.campos.caso_interes === 'true');
+    const notaVal = (inf.campos && inf.campos.nota_interes) || '';
     return `<div class="ig-item" onclick="verDetalleInforme(${inf.id})">
       <div class="ig-item-info">
         <div class="ig-item-nombre">${escHtml(inf.nombre)}</div>
         <div class="ig-item-meta">${escHtml(inf.doc_tipo)}: ${escHtml(inf.ci)}&nbsp;&nbsp;·&nbsp;&nbsp;Estudio: ${fechaEst}</div>
         <div class="ig-item-meta" style="font-size:10px;opacity:.65;margin-top:2px;">Guardado: ${fechaGuard}</div>
+        <div class="ig-nota-wrap" id="ig-nota-wrap-${inf.id}" style="display:${esCaso?'flex':'none'};gap:6px;margin-top:5px;align-items:center;" onclick="event.stopPropagation()">
+          <input type="text" id="ig-nota-${inf.id}" placeholder="Motivo del caso de interés (opcional)..." value="${escHtml(notaVal)}" style="flex:1;min-width:0;font-size:11px;padding:3px 7px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);">
+          <button class="btn btn-ghost" style="font-size:10px;padding:3px 9px;white-space:nowrap;" onclick="guardarNotaInteres(${inf.id})">Guardar nota</button>
+        </div>
       </div>
       <div class="ig-item-actions" onclick="event.stopPropagation()">
         <button class="btn btn-ghost" style="font-size:15px;padding:4px 7px;line-height:1;color:${esCaso?'#f5c842':'var(--text2)'};" onclick="toggleCasoInteresGuardado(${inf.id}, this)" title="${esCaso?'Quitar de casos de interés':'Marcar como caso de interés'}">${esCaso?'⭐':'☆'}</button>
@@ -13830,6 +13829,7 @@ function toggleCasoInteresGuardado(id, btn) {
   if (!inf.campos) inf.campos = {};
   const era = (inf.campos.caso_interes === '1' || inf.campos.caso_interes === 'true');
   inf.campos.caso_interes = era ? '' : '1';
+  if (era) inf.campos.nota_interes = '';   // al desmarcar la estrella se limpia también la nota
   if (enChunks) saveInformesChunked(chunked);
   else localStorage.setItem('ett_informes', JSON.stringify(informes));
   const on = !era;
@@ -13838,8 +13838,35 @@ function toggleCasoInteresGuardado(id, btn) {
     btn.style.color = on ? '#f5c842' : 'var(--text2)';
     btn.title = on ? 'Quitar de casos de interés' : 'Marcar como caso de interés';
   }
+  // Mostrar/ocultar el campo de nota inline de esa fila
+  const wrap = document.getElementById('ig-nota-wrap-' + id);
+  if (wrap) {
+    wrap.style.display = on ? 'flex' : 'none';
+    const inp = document.getElementById('ig-nota-' + id);
+    if (!on && inp) inp.value = '';
+    else if (on && inp) inp.focus();
+  }
 }
 window.toggleCasoInteresGuardado = toggleCasoInteresGuardado;
+
+// Persiste la nota del caso de interés (campo nota_interes) del informe guardado en localStorage
+function guardarNotaInteres(id) {
+  const inp = document.getElementById('ig-nota-' + id);
+  const nota = inp ? inp.value.trim() : '';
+  const informes = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  let inf = informes.find(i => i.id === id), enChunks = false;
+  let chunked;
+  if (!inf) { chunked = getInformesChunked(); inf = chunked.find(i => i.id === id); enChunks = true; }   // estudio importado (chunks)
+  if (!inf) return;
+  if (!inf.campos) inf.campos = {};
+  inf.campos.nota_interes = nota;
+  // asegurar que el estudio quede marcado como caso de interés al guardar la nota
+  if (!(inf.campos.caso_interes === '1' || inf.campos.caso_interes === 'true')) inf.campos.caso_interes = '1';
+  if (enChunks) saveInformesChunked(chunked);
+  else localStorage.setItem('ett_informes', JSON.stringify(informes));
+  toast(nota ? '📝 Nota guardada' : '⭐ Caso de interés guardado (sin nota)');
+}
+window.guardarNotaInteres = guardarNotaInteres;
 
 function filtrarInformes() { renderInformesGuardados(); }
 
@@ -16349,7 +16376,7 @@ function labInit() {
       <tbody>${docentes.map(i => `<tr>
         <td>${escHtml(i.nombre)}</td>
         <td>${escHtml(i.fecha_estudio||'—')}</td>
-        <td style="font-size:.78rem;color:var(--text2);">${escHtml((i.campos?.en_suma||'').substring(0,80))}${(i.campos?.en_suma||'').length>80?'…':''}</td>
+        <td style="font-size:.78rem;color:var(--text2);">${(i.campos?.nota_interes||'').trim() ? escHtml(i.campos.nota_interes.trim()) : (escHtml((i.campos?.en_suma||'').substring(0,80)) + ((i.campos?.en_suma||'').length>80?'…':''))}</td>
         <td style="text-align:right;white-space:nowrap;"><button class="btn btn-ghost" style="font-size:11px;padding:3px 9px;" onclick="pdfDeInformeGuardado(${i.id})" title="Generar PDF de este informe">📄 PDF</button></td>
       </tr>`).join('')}</tbody>
     </table>`;
@@ -17026,11 +17053,16 @@ function renderizarListaFiltrada(lista) {
       day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'
     });
     const esCaso = inf.campos && (inf.campos.caso_interes === '1' || inf.campos.caso_interes === 'true');
+    const notaVal = (inf.campos && inf.campos.nota_interes) || '';
     return `<div class="ig-item" onclick="verDetalleInforme(${inf.id})">
       <div class="ig-item-info">
         <div class="ig-item-nombre">${escHtml(inf.nombre)}</div>
         <div class="ig-item-meta">${escHtml(inf.doc_tipo)}: ${escHtml(inf.ci)}&nbsp;&nbsp;·&nbsp;&nbsp;Estudio: ${fechaEst}</div>
         <div class="ig-item-meta" style="font-size:10px;opacity:.65;margin-top:2px;">Guardado: ${fechaGuard}</div>
+        <div class="ig-nota-wrap" id="ig-nota-wrap-${inf.id}" style="display:${esCaso?'flex':'none'};gap:6px;margin-top:5px;align-items:center;" onclick="event.stopPropagation()">
+          <input type="text" id="ig-nota-${inf.id}" placeholder="Motivo del caso de interés (opcional)..." value="${escHtml(notaVal)}" style="flex:1;min-width:0;font-size:11px;padding:3px 7px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);">
+          <button class="btn btn-ghost" style="font-size:10px;padding:3px 9px;white-space:nowrap;" onclick="guardarNotaInteres(${inf.id})">Guardar nota</button>
+        </div>
       </div>
       <div class="ig-item-actions" onclick="event.stopPropagation()">
         <button class="btn btn-ghost" style="font-size:15px;padding:4px 7px;line-height:1;color:${esCaso?'#f5c842':'var(--text2)'};" onclick="toggleCasoInteresGuardado(${inf.id}, this)" title="${esCaso?'Quitar de casos de interés':'Marcar como caso de interés'}">${esCaso?'⭐':'☆'}</button>
