@@ -141,6 +141,8 @@
   }
   .card-body { padding: 12px 14px; }
   .cfg-sec-title { font-size:12px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px; }
+  .chk-lab { display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text);cursor:pointer;font-weight:400;line-height:1.3; }
+  .chk-lab input { width:15px;height:15px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;margin:0; }
   .cfg-mod-item { display:flex;align-items:center;gap:9px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 11px;cursor:pointer;font-size:12.5px;color:var(--text); }
   .cfg-mod-item input { width:auto; }
   /* ══ FORM FIELDS ══ */
@@ -905,6 +907,51 @@ window.cerrarSesion = cerrarSesion;
         <label>Antecedentes relevantes</label>
         <textarea id="antecedentes" placeholder="HTA, DM2, FA, prótesis valvular..."></textarea>
       </div>
+
+      <div class="fg" style="margin-top:8px;">
+        <label>Indicaciones del estudio <span style="font-weight:400;color:var(--text2);font-size:10px;">(selección múltiple — alimenta el Laboratorio)</span></label>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:4px 12px;margin-top:5px;">
+          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Dolor torácico"> Dolor torácico</label>
+          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Disnea"> Disnea</label>
+          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Control HTA"> Control HTA</label>
+          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Control DM"> Control DM</label>
+          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Soplo cardíaco"> Soplo cardíaco</label>
+          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Palpitaciones / arritmia"> Palpitaciones / arritmia</label>
+          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Síncope / presíncope"> Síncope / presíncope</label>
+          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Control valvulopatía"> Control valvulopatía</label>
+          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Control miocardiopatía"> Control miocardiopatía</label>
+          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Control IC"> Control IC</label>
+          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Screening pre-quirúrgico"> Screening pre-quirúrgico</label>
+          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Cardio-oncología"> Cardio-oncología</label>
+          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Seguimiento dispositivo (MPP/CDI/CRT)"> Seguimiento dispositivo (MPP/CDI/CRT)</label>
+          <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Otro" onchange="var o=document.getElementById('ind_otro');if(o)o.style.display=this.checked?'block':'none';"> Otro</label>
+        </div>
+        <input type="text" id="ind_otro" placeholder="Otra indicación (especificar)..." style="display:none;margin-top:6px;">
+      </div>
+
+      <div class="fg" style="margin-top:8px;">
+        <label>Antecedentes (checklist) <span style="font-weight:400;color:var(--text2);font-size:10px;">(selección múltiple — alimenta el Laboratorio)</span></label>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:4px 12px;margin-top:5px;">
+          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="HTA"> HTA</label>
+          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="DM"> DM</label>
+          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Dislipemia"> Dislipemia</label>
+          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Tabaquismo"> Tabaquismo</label>
+          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="FA / flutter"> FA / flutter</label>
+          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="IC previa"> IC previa</label>
+          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Valvulopatía conocida"> Valvulopatía conocida</label>
+          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Cardiopatía isquémica / IAM previo"> Cardiopatía isquémica / IAM previo</label>
+          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="ACV / AIT"> ACV / AIT</label>
+          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="ERC"> ERC</label>
+          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="EPOC / asma"> EPOC / asma</label>
+          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Obesidad"> Obesidad</label>
+          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Hipotiroidismo"> Hipotiroidismo</label>
+          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Quimioterapia / radioterapia"> Quimioterapia / radioterapia</label>
+          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Dispositivo implantado (MPP/CDI/CRT)"> Dispositivo implantado (MPP/CDI/CRT)</label>
+          <label class="chk-lab"><input type="checkbox" class="ant-chk" data-val="Otro" onchange="var o=document.getElementById('ant_otro');if(o)o.style.display=this.checked?'block':'none';"> Otro</label>
+        </div>
+        <input type="text" id="ant_otro" placeholder="Otro antecedente (especificar)..." style="display:none;margin-top:6px;">
+      </div>
+
       <div class="grid-2" style="margin-top:8px;">
         <div class="fg">
           <label>Tipo de centro <span style="font-weight:400;color:var(--text2);font-size:10px;">(doble click para renombrar)</span></label>
@@ -7687,7 +7734,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px;">
         <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Parámetro</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Fórmula</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Patológico</th></tr>
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">E/e' promedio</td><td style="padding:5px 8px;font-family:monospace;">E / ((e'sep + e'lat) / 2)</td><td style="padding:5px 8px;">&gt;14</td></tr>
-        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">LAVI</td><td style="padding:5px 8px;font-family:monospace;">Vol_AI / ASC</td><td style="padding:5px 8px;">&gt;34 ml/m²</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Vol AI</td><td style="padding:5px 8px;font-family:monospace;">Vol_AI / ASC</td><td style="padding:5px 8px;">&gt;34 ml/m²</td></tr>
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">e' promedio</td><td style="padding:5px 8px;font-family:monospace;">(e'sep + e'lat) / 2</td><td style="padding:5px 8px;">≤6.5 cm/s</td></tr>
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">e' septal</td><td style="padding:5px 8px;font-family:monospace;">Tisular septal</td><td style="padding:5px 8px;">≤7 cm/s</td></tr>
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">e' lateral</td><td style="padding:5px 8px;font-family:monospace;">Tisular lateral</td><td style="padding:5px 8px;">≤10 cm/s</td></tr>
@@ -8455,29 +8502,92 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
-  <!-- PILAR 2: PERFIL DE POBLACIÓN -->
+  <!-- SECCIÓN A: PERFIL DE POBLACIÓN (demografía + hallazgos) -->
   <div class="lab-card">
     <div class="lab-card-hdr">👥 Perfil de la Población</div>
     <div class="lab-card-body">
       <div class="lab-grid">
         <div>
-          <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Distribución FEVI</div>
-          <div class="lab-bar-wrap" id="lab-fevi-dist"></div>
-          <div style="margin-top:14px;font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Función diastólica</div>
-          <div class="lab-bar-wrap" id="lab-diast-dist"></div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Datos demográficos y promedios</div>
+          <div class="lab-stat"><span class="lab-stat-lbl">Edad promedio</span><span class="lab-stat-val" id="lab-edad-prom">—</span></div>
+          <div class="lab-stat"><span class="lab-stat-lbl">Sexo (♀ / ♂)</span><span class="lab-stat-val" id="lab-pct-f">—</span></div>
+          <div class="lab-stat"><span class="lab-stat-lbl">FEVI promedio</span><span class="lab-stat-val" id="lab-fevi-prom">—</span></div>
+          <div class="lab-stat"><span class="lab-stat-lbl">GLS promedio</span><span class="lab-stat-val" id="lab-gls-prom">—</span></div>
+          <div class="lab-stat"><span class="lab-stat-lbl">PSAP promedio</span><span class="lab-stat-val" id="lab-psap-prom">—</span></div>
         </div>
         <div>
           <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Hallazgos frecuentes</div>
           <div class="lab-bar-wrap" id="lab-hallazgos"></div>
-          <div style="margin-top:14px;">
-            <div class="lab-stat"><span class="lab-stat-lbl">Edad promedio</span><span class="lab-stat-val" id="lab-edad-prom">—</span></div>
-            <div class="lab-stat"><span class="lab-stat-lbl">Sexo (♀ / ♂)</span><span class="lab-stat-val" id="lab-pct-f">—</span></div>
-            <div class="lab-stat"><span class="lab-stat-lbl">FEVI promedio</span><span class="lab-stat-val" id="lab-fevi-prom">—</span></div>
-            <div class="lab-stat"><span class="lab-stat-lbl">GLS promedio</span><span class="lab-stat-val" id="lab-gls-prom">—</span></div>
-            <div class="lab-stat"><span class="lab-stat-lbl">PSAP promedio</span><span class="lab-stat-val" id="lab-psap-prom">—</span></div>
-          </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN B: FUNCIÓN SISTÓLICA Y DIASTÓLICA -->
+  <div class="lab-card">
+    <div class="lab-card-hdr">📊 Función sistólica y diastólica</div>
+    <div class="lab-card-body">
+      <div class="lab-grid">
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Distribución FEVI</div>
+          <div class="lab-bar-wrap" id="lab-fevi-dist"></div>
+          <div id="lab-fevi-dispositivos" style="margin-top:10px;font-size:.8rem;font-weight:600;color:var(--accent2);"></div>
+        </div>
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Función diastólica por grado</div>
+          <div class="lab-bar-wrap" id="lab-diast-dist"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN C: VALVULOPATÍAS -->
+  <div class="lab-card">
+    <div class="lab-card-hdr">🫀 Valvulopatías</div>
+    <div class="lab-card-body">
+      <div class="lab-grid">
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Insuficiencia mitral</div>
+          <div class="lab-bar-wrap" id="lab-valv-im"></div>
+          <div style="margin-top:14px;font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Insuficiencia aórtica</div>
+          <div class="lab-bar-wrap" id="lab-valv-ia"></div>
+          <div style="margin-top:14px;font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Insuficiencia tricuspídea</div>
+          <div class="lab-bar-wrap" id="lab-valv-it"></div>
+        </div>
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Estenosis aórtica</div>
+          <div class="lab-bar-wrap" id="lab-esten-ea"></div>
+          <div style="margin-top:14px;font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Estenosis mitral</div>
+          <div class="lab-bar-wrap" id="lab-esten-em"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN D: HIPERTENSIÓN PULMONAR -->
+  <div class="lab-card">
+    <div class="lab-card-hdr">🫁 Hipertensión pulmonar (PSAP)</div>
+    <div class="lab-card-body">
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Normal (≤35) · Leve (36–50) · Moderada (51–70) · Severa (&gt;70) mmHg.</div>
+      <div class="lab-bar-wrap" id="lab-htp-dist"></div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN E: INDICACIONES -->
+  <div class="lab-card">
+    <div class="lab-card-hdr">📋 Indicaciones del estudio</div>
+    <div class="lab-card-body">
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Frecuencia por indicación (sobre el total de estudios del período).</div>
+      <div class="lab-bar-wrap" id="lab-indicaciones-freq"></div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN F: ANTECEDENTES -->
+  <div class="lab-card">
+    <div class="lab-card-hdr">🩺 Antecedentes</div>
+    <div class="lab-card-body">
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Frecuencia por antecedente (sobre el total de estudios del período).</div>
+      <div class="lab-bar-wrap" id="lab-antecedentes-freq"></div>
     </div>
   </div>
 
@@ -8694,7 +8804,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           <input type="checkbox" id="evol-tapse" onchange="actualizarGraficaEvol()"> TAPSE
         </label>
         <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer;">
-          <input type="checkbox" id="evol-lavi" onchange="actualizarGraficaEvol()"> LAVI
+          <input type="checkbox" id="evol-lavi" onchange="actualizarGraficaEvol()"> Vol AI
         </label>
         <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer;">
           <input type="checkbox" id="evol-ee" onchange="actualizarGraficaEvol()"> E/e'
@@ -8734,6 +8844,19 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <button class="btn btn-ghost" style="width:100%;justify-content:center;" onclick="neContinuarSinGuardar()">🗑 Continuar sin guardar</button>
       <button class="btn btn-ghost" style="width:100%;justify-content:center;" onclick="_neCerrar()">Cancelar</button>
     </div>
+  </div>
+</div>
+
+<!-- ═══ Modal: detalle de indicador automático (Laboratorio) ═══ -->
+<div id="modal-lab-detalle" role="dialog" aria-modal="true" aria-labelledby="lab-detalle-titulo"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:700;align-items:center;justify-content:center;padding:20px;"
+     onclick="if(event.target===this)document.getElementById('modal-lab-detalle').style.display='none'">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:640px;width:100%;max-height:82vh;overflow:auto;padding:20px 22px;box-shadow:0 18px 48px rgba(0,0,0,.5);">
+    <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;">
+      <h3 id="lab-detalle-titulo" style="margin:0;font-size:15px;color:var(--accent2);flex:1;">Detalle</h3>
+      <button class="btn btn-ghost" style="font-size:12px;padding:3px 10px;" onclick="document.getElementById('modal-lab-detalle').style.display='none'">✕ Cerrar</button>
+    </div>
+    <div id="lab-detalle-lista"></div>
   </div>
 </div>
 
@@ -9620,7 +9743,7 @@ function calcDiastolBSE2024() {
 
 // ══ Algoritmo ASE 2025 (recomendado) ══
 // (mismos umbrales que la función provista; cableado a los ids reales de EcoSmart
-//  onda_e/onda_a/e_sep/e_lat/ai_vol→LAVI/vmax_it/lars y al render vía #dd-interp)
+//  onda_e/onda_a/e_sep/e_lat/ai_vol→Vol AI/vmax_it/lars y al render vía #dd-interp)
 function calcDiastolASE2025() {
   const ritmo = sv('diast_ritmo');
   const ep = v('e_sep'), el = v('e_lat');
@@ -9662,7 +9785,7 @@ function calcDiastolASE2025() {
     return;
   }
 
-  // ── PASO 2: parámetros de presión elevada (E/e'>14, LAVI>34, TR>2.8, LARS≤18)
+  // ── PASO 2: parámetros de presión elevada (E/e'>14, Vol AI>34, TR>2.8, LARS≤18)
   let presionElevada = 0, totalParam = 0;
   if (ee !== null && E !== null) { totalParam++; if ((E / ee) > 14) presionElevada++; }
   if (laviI !== null)           { totalParam++; if (laviI > 34) presionElevada++; }
@@ -9674,7 +9797,7 @@ function calcDiastolASE2025() {
   if (totalParam === 0) {
     cls = 'gray';
     badgeTxt = 'Datos insuficientes — ASE 2025';
-    texto = 'Datos insuficientes para clasificar presión de llenado (ASE 2025). Completar E/e\', LAVI y/o TR.';
+    texto = 'Datos insuficientes para clasificar presión de llenado (ASE 2025). Completar E/e\', Vol AI y/o TR.';
     textoSuma = '';
   } else {
     const umbral = ePrimReducida ? 1 : 2;
@@ -9730,7 +9853,7 @@ function calcDiastolASE2016() {
   const lavi = (aiVol && bsa) ? aiVol/bsa : null;
   const ea = (e && a) ? e/a : null;
 
-  // criterios positivos entre los disponibles: E/e'>14, LAVi>34, TR Vmax>2.8
+  // criterios positivos entre los disponibles: E/e'>14, Vol AI>34, TR Vmax>2.8
   let pos = 0, disp = 0;
   if (ee !== null)   { disp++; if (ee > 14) pos++; }
   if (lavi !== null) { disp++; if (lavi > 34) pos++; }
@@ -9745,7 +9868,7 @@ function calcDiastolASE2016() {
     texto = 'Llenado diastólico restrictivo (Disfunción diastólica Grado III).'; textoSuma = 'Disfunción diastólica Grado III (restrictivo).'; cls = 'red'; badgeTxt = 'Grado III — ASE 2016';
   } else if (ea >= 0.8 && ea <= 2.0) {
     // FIX clínico ASE/EACVI 2016: el Grado III (restrictivo) requiere E/A ≥2.0.
-    // Con E/A 0.8–2.0 NUNCA se asigna Grado III. Según los 3 criterios (E/e'>14, LAVi>34, TR>2.8):
+    // Con E/A 0.8–2.0 NUNCA se asigna Grado III. Según los 3 criterios (E/e'>14, Vol AI>34, TR>2.8):
     //   2/3 o 3/3 positivos → Grado II (pseudonormal, presiones de llenado elevadas)
     //   1/3               → indeterminado
     //   0/3               → Grado I (relajación alterada) si e' baja, si no normal
@@ -9801,7 +9924,7 @@ window.calcDiastol = function() {
       textoSuma = null;
     } else if (pos >= 2) {
       cls = 'red'; badgeTxt = 'FA — Presion de llenado elevada (BSE 2024)';
-      texto = 'En contexto de fibrilacion auricular, los parametros disponibles sugieren presion de llenado del VI elevada (>= 2 criterios positivos: E/e\' >11, TR Vmax >2.8 m/s, LAVi >40 ml/m2 o TDE <160 ms). Algoritmo 3, BSE 2024.';
+      texto = 'En contexto de fibrilacion auricular, los parametros disponibles sugieren presion de llenado del VI elevada (>= 2 criterios positivos: E/e\' >11, TR Vmax >2.8 m/s, Vol AI >40 ml/m2 o TDE <160 ms). Algoritmo 3, BSE 2024.';
       textoSuma = 'FA: presion de llenado del VI elevada (BSE 2024).';
     } else {
       cls = 'green'; badgeTxt = 'FA — Presion de llenado normal (BSE 2024)';
@@ -9834,7 +9957,7 @@ function calcularBSE2024(alterada, marcadores, totalEvaluables, ee, ea, lavi) {
 
   const detalles = [];
   if (ee !== null) detalles.push(`E/e' promedio ${ee.toFixed(1)}`);
-  if (lavi !== null) detalles.push(`AI ${lavi > 34 ? 'dilatada' : 'de dimensiones normales'} (LAVi ${lavi.toFixed(1)} ml/m²)`);
+  if (lavi !== null) detalles.push(`AI ${lavi > 34 ? 'dilatada' : 'de dimensiones normales'} (Vol AI ${lavi.toFixed(1)} ml/m²)`);
 
   let texto, textoSuma, badgeC;
   if (categoria === 'normal') {
@@ -9874,7 +9997,7 @@ function calcularBSE2024_FEVIreducida(marcadores, totalEvaluables, ee, trv, lavi
   const detalles = [];
   if (ee !== null) detalles.push(`E/e' promedio ${ee.toFixed(1)}`);
   if (trv !== null) detalles.push(`Vmax IT ${trv.toFixed(1)} m/s`);
-  if (lavi !== null) detalles.push(`LAVi ${lavi.toFixed(1)} ml/m²`);
+  if (lavi !== null) detalles.push(`Vol AI ${lavi.toFixed(1)} ml/m²`);
 
   let texto, textoSuma, badgeC;
   if (categoria === 'normal') {
@@ -11130,7 +11253,7 @@ function generarInforme() {
     else if (PF(aiIdx) <= 48) { aiStr = 'moderadamente dilatada'; aiSuma = `AI moderadamente dilatada (Vol Index ${aiIdx} ml/m²).`; }
     else { aiStr = 'severamente dilatada'; aiSuma = `AI severamente dilatada (Vol Index ${aiIdx} ml/m²).`; }
     const aiNormal = aiStr === 'de dimensiones normales';
-    const cAI = `AI ${aiStr} (LAVi ${aiIdx}).`;
+    const cAI = `AI ${aiStr} (Vol AI ${aiIdx}).`;
     const eAI = `Aurícula izquierda ${aiStr} (Vol Index ${aiIdx} ml/m²).`;
     const nAI = aiNormal
       ? `La aurícula izquierda es de dimensiones normales (volumen indexado ${aiIdx} ml/m²).`
@@ -11632,6 +11755,10 @@ function limpiarCampos() {
   _pdfToggleBtnState('contr-pdf-toggle', false);
   _pdfToggleBtnState('sgl-pdf-toggle', false);
   try { localStorage.removeItem('ecosmart_autosave'); } catch(e) {}
+  // Checklists de indicaciones/antecedentes → desmarcar y ocultar "Otro"
+  document.querySelectorAll('.ind-chk, .ant-chk').forEach(c => { c.checked = false; });
+  { const io = document.getElementById('ind_otro'); if (io) { io.value = ''; io.style.display = 'none'; } }
+  { const ao = document.getElementById('ant_otro'); if (ao) { ao.value = ''; ao.style.display = 'none'; } }
   toast('🗑 Formulario limpiado');
 }
 
@@ -13632,6 +13759,7 @@ function editarInforme(id) {
     });
     // Restaurar el checkbox "caso de interés" (los checkbox no se restauran por .value)
     { const _ci = document.getElementById('caso_interes'); if (_ci) _ci.checked = (inf.campos['caso_interes'] === '1' || inf.campos['caso_interes'] === 'true'); }
+    _restaurarChecklistPaciente(inf.campos);
     // Recalcular derivados
     if (typeof calcVI === 'function') calcVI();
     if (typeof calcAI === 'function') calcAI();
@@ -13668,6 +13796,7 @@ function cargarEstudioPorId(id) {
     if (el) el.value = val;
   });
   { const _ci = document.getElementById('caso_interes'); if (_ci) _ci.checked = (inf.campos && (inf.campos['caso_interes'] === '1' || inf.campos['caso_interes'] === 'true')); }
+  _restaurarChecklistPaciente(inf.campos);
   ['calcVI','calcAI','calcAorta','calcVD'].forEach(fn => { if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} } });
   window._ettEditandoId = inf.id;
   eeCurrentInformeId = inf.estudioId;
@@ -13689,6 +13818,24 @@ window.cargarEstudioPorId = cargarEstudioPorId;
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _run); else _run();
 })();
 
+// Restaura los checklists de indicaciones/antecedentes del panel Paciente desde los arrays guardados
+function _restaurarChecklistPaciente(campos) {
+  const setChks = (cls, key) => {
+    let arr = campos && campos[key];
+    if (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch(e) { arr = arr ? [arr] : []; } }
+    if (!Array.isArray(arr)) arr = [];
+    const set = new Set(arr.map(String));
+    document.querySelectorAll('.' + cls).forEach(c => { c.checked = set.has(c.dataset.val); });
+  };
+  setChks('ind-chk', 'indicaciones');
+  setChks('ant-chk', 'antecedentes_sel');
+  const io = document.getElementById('ind_otro');
+  if (io) io.style.display = document.querySelector('.ind-chk[data-val="Otro"]')?.checked ? 'block' : 'none';
+  const ao = document.getElementById('ant_otro');
+  if (ao) ao.style.display = document.querySelector('.ant-chk[data-val="Otro"]')?.checked ? 'block' : 'none';
+}
+window._restaurarChecklistPaciente = _restaurarChecklistPaciente;
+
 function guardarInforme() {
   const nombre = (document.getElementById('nombre')?.value || '').trim();
   const ci     = (document.getElementById('ci')?.value || '').trim();
@@ -13702,6 +13849,9 @@ function guardarInforme() {
     campos[el.id] = el.value;
   });
   campos['caso_interes'] = document.getElementById('caso_interes')?.checked ? '1' : '0';
+  // Checklists de indicaciones/antecedentes (arrays) — alimentan el Laboratorio
+  campos['indicaciones']     = Array.from(document.querySelectorAll('.ind-chk:checked')).map(c => c.dataset.val);
+  campos['antecedentes_sel'] = Array.from(document.querySelectorAll('.ant-chk:checked')).map(c => c.dataset.val);
   ['med-nombre','med-matricula','med-lugar','med-especialidad','med-direccion','med-telefono'].forEach(fid => {
     const el = document.getElementById(fid);
     if (el) campos[fid] = el.textContent.trim();
@@ -15588,7 +15738,7 @@ function labGetInformes() {
   });
 }
 
-function labBarras(containerId, datos) {
+function labBarras(containerId, datos, mode) {
   const el = document.getElementById(containerId);
   if (!el) return;
   if (!datos.length) { el.innerHTML = '<div class="lab-empty">Sin datos</div>'; return; }
@@ -15596,12 +15746,116 @@ function labBarras(containerId, datos) {
   el.innerHTML = datos.map(d => {
     const pct = max > 0 ? Math.round((d.n / max) * 100) : 0;
     const pctReal = d.total > 0 ? Math.round((d.n / d.total) * 100) : 0;
+    const pctTxt = mode === 'fraction'
+      ? `${d.n}/${d.total} (${pctReal}%)`
+      : (d.total ? pctReal + '%' : d.n);
     return `<div class="lab-bar-row">
       <div class="lab-bar-lbl">${d.lbl}</div>
       <div class="lab-bar-bg"><div class="lab-bar-fill" style="width:${pct}%;background:${d.color||'var(--accent)'}"></div></div>
-      <div class="lab-bar-pct">${d.total ? pctReal + '%' : d.n}</div>
+      <div class="lab-bar-pct">${pctTxt}</div>
     </div>`;
   }).join('');
+}
+
+// ══ Helpers de Laboratorio — accesores robustos (id real del form + alias canónico de importados) ══
+function _labNum(inf, ...keys) {
+  for (const k of keys) {
+    const v = inf.campos?.[k];
+    if (v !== undefined && v !== null && String(v).trim() !== '') {
+      const num = PF(String(v).replace(',', '.'));
+      if (num !== null && !isNaN(num)) return num;
+    }
+  }
+  return null;
+}
+function _labTxt(inf) { return ((inf.campos?.en_suma || '') + ' ' + (inf.campos?.informe_texto || '')); }
+function _labFevi(inf)  { return _labNum(inf, 'fevi', 'fevi_simpson'); }
+function _labGls(inf)   { return _labNum(inf, 'sgl', 'gls_global'); }
+function _labPsap(inf)  { return _labNum(inf, 'psap_calc'); }
+function _labTapse(inf) { return _labNum(inf, 'tapse'); }
+function _labGmedAo(inf){ return _labNum(inf, 'gmedio_ao', 'va_gmed'); }
+function _labEeProm(inf) {
+  const direct = _labNum(inf, 'ee_prom');
+  if (direct !== null) return direct;
+  const e  = _labNum(inf, 'onda_e', 'e_mitral');
+  const es = _labNum(inf, 'e_sep', 'e_prima_sept');
+  const el = _labNum(inf, 'e_lat', 'e_prima_lat');
+  let eprom = null;
+  if (es !== null && el !== null) eprom = (es + el) / 2;
+  else if (es !== null) eprom = es;
+  else if (el !== null) eprom = el;
+  return (e !== null && eprom) ? e / eprom : null;
+}
+function _labLavi(inf) {   // Vol AI indexado (ml/m²)
+  const direct = _labNum(inf, 'lavi');
+  if (direct !== null) return direct;
+  const aiVol = _labNum(inf, 'ai_vol');
+  const talla = _labNum(inf, 'talla'), peso = _labNum(inf, 'peso');
+  if (aiVol !== null && talla && peso) {
+    const bsa = Math.sqrt((talla * peso) / 3600);   // Mosteller
+    if (bsa > 0) return aiVol / bsa;
+  }
+  return null;
+}
+function _labDiastGrado(inf) {   // grado desde el texto del resumen (misma heurística que la distribución)
+  const t = _labTxt(inf);
+  if (!t.trim()) return null;
+  if (/grado\s*III|restrictivo/i.test(t)) return 'III';
+  if (/grado\s*II\b|pseudonormal/i.test(t)) return 'II';
+  if (/grado\s*I\b|relajaci[oó]n\s+(alterada|prolongada)/i.test(t)) return 'I';
+  if (/diast[oó]lica\s+normal|llenado\s+(del\s+vi\s+)?normal/i.test(t)) return 'sin';
+  return null;
+}
+function _labRegurgSev(inf, key) {   // im_grado/ia_grado/it_grado: numérico 0-4 (form) o texto (importado)
+  const raw = inf.campos?.[key];
+  if (raw === undefined || raw === null || String(raw).trim() === '') return null;
+  const s = String(raw).trim().toLowerCase();
+  if (/^\d+$/.test(s)) { const nn = parseInt(s, 10); return nn === 0 ? 'Sin' : nn === 1 ? 'Leve' : (nn === 2 || nn === 3) ? 'Moderada' : 'Severa'; }
+  if (/severa/.test(s)) return 'Severa';
+  if (/moderada/.test(s)) return 'Moderada';
+  if (/leve/.test(s)) return 'Leve';
+  if (/sin|ausente|\bno\b/.test(s)) return 'Sin';
+  return null;
+}
+function _labEstenSev(inf, key) {   // ea_grado/em_grado: select sin/esclerosis/leve/moderada/severa
+  const raw = String(inf.campos?.[key] || '').trim().toLowerCase();
+  if (!raw) return null;
+  if (/severa/.test(raw)) return 'Severa';
+  if (/moderada/.test(raw)) return 'Moderada';
+  if (/leve/.test(raw)) return 'Leve';
+  if (/sin|esclerosis/.test(raw)) return 'Sin';
+  return null;
+}
+// Lista de los 10 indicadores automáticos (CAMBIO 5) — compartida entre vista web y PDF
+function _labIndicadoresList(infs) {
+  return [
+    { lbl: 'FEVI ≤35% sin GLS documentado',
+      casos: infs.filter(i => { const f = _labFevi(i); return f !== null && f <= 35 && _labGls(i) === null; }) },
+    { lbl: 'FEVI ≤35% sin indicación de dispositivo documentada',
+      casos: infs.filter(i => { const f = _labFevi(i); return f !== null && f <= 35 && !/CDI|CRT|DAI|resincroniza|desfibrila/i.test(_labTxt(i)); }) },
+    { lbl: 'HTP moderada-severa sin causa documentada',
+      casos: infs.filter(i => { const p = _labPsap(i); return p !== null && p > 50 && !/HAP|TEP|EPOC|insuficiencia\s+card[ií]aca|\bIC\b|valvular|valvulopat/i.test(_labTxt(i)); }) },
+    { lbl: 'Disfunción diastólica Grado III sin FEVI documentada',
+      casos: infs.filter(i => _labDiastGrado(i) === 'III' && _labFevi(i) === null) },
+    { lbl: 'IM o IT severa sin mención en informe',
+      casos: infs.filter(i => {
+        const imSev = _labRegurgSev(i, 'im_grado') === 'Severa';
+        const itSev = _labRegurgSev(i, 'it_grado') === 'Severa';
+        if (!imSev && !itSev) return false;
+        const t = _labTxt(i);
+        return !/severa[^.]{0,40}(mitral|tricusp)|(mitral|tricusp)[^.]{0,40}severa/i.test(t);
+      }) },
+    { lbl: 'EA moderada-severa (AVA <1.5) sin gradiente documentado',
+      casos: infs.filter(i => { const sev = _labEstenSev(i, 'ea_grado'); return (sev === 'Moderada' || sev === 'Severa') && _labGmedAo(i) === null; }) },
+    { lbl: 'TAPSE <17 sin mención de disfunción VD en informe',
+      casos: infs.filter(i => { const t = _labTapse(i); if (t === null || t >= 17) return false; return !/disfunci[oó]n[^.]{0,30}(VD|derecho)|(VD|derecho)[^.]{0,30}disfunci[oó]n/i.test(_labTxt(i)); }) },
+    { lbl: "E/e' >14 sin clasificación de disfunción diastólica",
+      casos: infs.filter(i => { const ee = _labEeProm(i); return ee !== null && ee > 14 && _labDiastGrado(i) === null; }) },
+    { lbl: 'Vol AI elevado sin función diastólica documentada',
+      casos: infs.filter(i => { const l = _labLavi(i); return l !== null && l > 34 && _labDiastGrado(i) === null; }) },
+    { lbl: 'GLS anormal (peor que -18%) con FEVI conservada',
+      casos: infs.filter(i => { const g = _labGls(i), f = _labFevi(i); return g !== null && g > -18 && f !== null && f >= 50; }) },
+  ];
 }
 
 function labInit() {
@@ -15619,10 +15873,13 @@ function labInit() {
       if (el) el.textContent = '—';
     });
     ['lab-chart-meses','lab-fevi-dist','lab-diast-dist',
-     'lab-hallazgos','lab-calidad-bars'].forEach(id => {
+     'lab-hallazgos','lab-calidad-bars','lab-valv-im','lab-valv-ia',
+     'lab-valv-it','lab-esten-ea','lab-esten-em','lab-htp-dist',
+     'lab-indicaciones-freq','lab-antecedentes-freq'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.innerHTML = '<div class="lab-empty">Sin datos</div>';
     });
+    { const _d = document.getElementById('lab-fevi-dispositivos'); if (_d) _d.textContent = ''; }
     document.getElementById('lab-indicadores-body').innerHTML =
       '<tr><td colspan="4" style="text-align:center;color:var(--text2);padding:20px;">Sin datos</td></tr>';
     document.getElementById('lab-docencia-lista').innerHTML =
@@ -15693,12 +15950,19 @@ function labInit() {
   const fevis = infs.map(i => numCampo(i,'fevi')).filter(v => v !== null && v > 0);
   const ft = fevis.length;
   const feviDist = [
-    { lbl:'Normal (≥50%)',                     n: fevis.filter(v=>v>=50).length,          total:ft, color:'#3ecf8e' },
-    { lbl:'Levemente reducida (40–49%)',       n: fevis.filter(v=>v>=40&&v<50).length,    total:ft, color:'#f5c842' },
-    { lbl:'Moderadamente reducida (30–39%)',   n: fevis.filter(v=>v>=30&&v<40).length,    total:ft, color:'#f0a500' },
+    { lbl:'Normal / conservada (>50%)',        n: fevis.filter(v=>v>50).length,           total:ft, color:'#3ecf8e' },
+    { lbl:'Levemente reducida (40–50%)',       n: fevis.filter(v=>v>=40&&v<=50).length,   total:ft, color:'#f5c842' },
+    { lbl:'Moderadamente reducida (30–40%)',   n: fevis.filter(v=>v>=30&&v<40).length,    total:ft, color:'#f0a500' },
     { lbl:'Severamente reducida (<30%)',       n: fevis.filter(v=>v<30).length,           total:ft, color:'#f05454' },
-  ].filter(d => d.n > 0);
+  ];
   labBarras('lab-fevi-dist', feviDist);
+  // Línea de elegibilidad para dispositivos (no clasifica severidad)
+  {
+    const nDisp = fevis.filter(v=>v<35).length;
+    const pctDisp = ft > 0 ? Math.round(nDisp/ft*100) : 0;
+    const dispEl = document.getElementById('lab-fevi-dispositivos');
+    if (dispEl) dispEl.textContent = `FEVI <35% — pasible de dispositivos (CDI/CRT): ${nDisp} estudios (${pctDisp}%)`;
+  }
 
   if (fevis.length) {
     document.getElementById('lab-fevi-prom').textContent =
@@ -15741,7 +16005,7 @@ function labInit() {
     total: n,
     color: 'var(--accent)'
   })).filter(d => d.n > 0).sort((a,b) => b.n - a.n).slice(0,8);
-  labBarras('lab-hallazgos', hallazgos);
+  labBarras('lab-hallazgos', hallazgos, 'fraction');
 
   // Edad y sexo promedio
   const edades = infs.map(i => numCampo(i,'edad')).filter(v => v !== null && v > 0 && v < 120);
@@ -15772,13 +16036,13 @@ function labInit() {
       (psaps.reduce((a,b)=>a+b,0)/psaps.length).toFixed(0) + ' mmHg (n=' + psaps.length + ')';
 
   // ── PILAR 3: CALIDAD ──
-  // Keys reales de los inputs (id del campo). LAVI y E/e' se calculan → se
+  // Keys reales de los inputs (id del campo). Vol AI y E/e' se calculan → se
   // consideran "medidos" si están presentes sus componentes crudos.
   const calidadItems = [
     { lbl:'FEVI medida', campo:'fevi' },
     { lbl:'GLS medido', campo:'sgl' },
     { lbl:'TAPSE medido', campo:'tapse' },
-    { lbl:'LAVI calculado', fn:i => numCampo(i,'ai_vol') },
+    { lbl:'Vol AI calculado', fn:i => numCampo(i,'ai_vol') },
     { lbl:'e\' septal medida', campo:'e_sep' },
     { lbl:'E/e\' calculado', fn:i => (numCampo(i,'onda_e')!==null && (numCampo(i,'e_sep')!==null || numCampo(i,'e_lat')!==null)) ? 1 : null },
     { lbl:'TR medida (PSAP)', campo:'vmax_it' },
@@ -15800,55 +16064,21 @@ function labInit() {
   }).sort((a,b) => b.n - a.n);
   labBarras('lab-calidad-bars', calidadDatos);
 
-  // ── PILAR 4: INDICADORES AUTOMÁTICOS ──
-  const indicadores = [
-    {
-      lbl: 'FEVI ≤35% sin GLS documentado',
-      casos: infs.filter(i => {
-        const fevi = numCampo(i,'fevi');
-        const gls = numCampo(i,'sgl');
-        return fevi !== null && fevi <= 35 && gls === null;
-      })
-    },
-    {
-      lbl: 'PSAP >40 mmHg sin TR medida',
-      casos: infs.filter(i => {
-        const psap = numCampo(i,'psap_calc');
-        const tr = numCampo(i,'vmax_it');
-        return psap !== null && psap > 40 && tr === null;
-      })
-    },
-    {
-      lbl: 'Disfunción sistólica sin E/e\'',
-      casos: infs.filter(i => {
-        const fevi = numCampo(i,'fevi');
-        const ee = (numCampo(i,'onda_e') !== null && (numCampo(i,'e_sep') !== null || numCampo(i,'e_lat') !== null)) ? 1 : null;
-        return fevi !== null && fevi < 50 && ee === null;
-      })
-    },
-    {
-      lbl: 'Sin TAPSE en informe',
-      casos: infs.filter(i => numCampo(i,'tapse') === null)
-    },
-    {
-      lbl: 'Sin dimensiones VI',
-      casos: infs.filter(i => numCampo(i,'ddfvi') === null)
-    },
-  ];
-
+  // ── PILAR 4: INDICADORES AUTOMÁTICOS (10 indicadores — CAMBIO 5) ──
+  const indicadores = _labIndicadoresList(infs);
+  window._labIndicadores = indicadores;
   const tbody = document.getElementById('lab-indicadores-body');
-  tbody.innerHTML = indicadores.map(ind => {
+  tbody.innerHTML = indicadores.map((ind, idx) => {
     const pct = n > 0 ? Math.round(ind.casos.length/n*100) : 0;
     const cls = pct === 0 ? 'lab-verde' : pct < 20 ? 'lab-amarillo' : 'lab-rojo';
-    const nombres = ind.casos.slice(0,3).map(i=>i.nombre).join(', ');
-    const detalle = ind.casos.length > 0
-      ? nombres + (ind.casos.length > 3 ? ` y ${ind.casos.length-3} más` : '')
-      : '✅ Sin casos';
+    const accion = ind.casos.length > 0
+      ? `<button class="btn btn-ghost" style="font-size:11px;padding:3px 9px;" onclick="labVerDetalleIndicador(${idx})">🔍 Detalle</button>`
+      : '<span style="color:var(--text2);font-size:.78rem;">✅ Sin casos</span>';
     return `<tr>
       <td><span class="lab-semaforo ${cls}"></span>${ind.lbl}</td>
       <td style="font-weight:700;">${ind.casos.length}</td>
       <td>${pct}%</td>
-      <td style="color:var(--text2);font-size:.78rem;">${detalle}</td>
+      <td style="text-align:right;">${accion}</td>
     </tr>`;
   }).join('');
 
@@ -15873,6 +16103,76 @@ function labInit() {
       </tr>`).join('')}</tbody>
     </table>`;
   }
+
+  // ── SECCIONES C–F del dashboard (valvulopatías, HTP, indicaciones, antecedentes) ──
+  labRenderExtras(infs, n);
+}
+
+// Detalle de un indicador automático: modal con la lista de pacientes afectados
+function labVerDetalleIndicador(idx) {
+  const ind = (window._labIndicadores || [])[idx];
+  if (!ind) return;
+  const modal = document.getElementById('modal-lab-detalle');
+  const tit = document.getElementById('lab-detalle-titulo');
+  const cont = document.getElementById('lab-detalle-lista');
+  if (tit) tit.textContent = ind.lbl + ' — ' + ind.casos.length + ' caso' + (ind.casos.length !== 1 ? 's' : '');
+  if (cont) {
+    cont.innerHTML = !ind.casos.length
+      ? '<div class="lab-empty">Sin casos</div>'
+      : `<table class="lab-table"><thead><tr><th>Paciente</th><th>Documento</th><th>Fecha</th><th></th></tr></thead><tbody>${
+          ind.casos.map(i => `<tr>
+            <td>${escHtml(i.nombre || '—')}</td>
+            <td>${escHtml(i.ci || '—')}</td>
+            <td>${escHtml(i.fecha_estudio || '—')}</td>
+            <td style="text-align:right;white-space:nowrap;"><button class="btn btn-ghost" style="font-size:11px;padding:3px 9px;" onclick="pdfDeInformeGuardado(${i.id})" title="Generar PDF de este informe">📄 PDF</button></td>
+          </tr>`).join('')}</tbody></table>`;
+  }
+  if (modal) modal.style.display = 'flex';
+}
+window.labVerDetalleIndicador = labVerDetalleIndicador;
+
+// Poblado de las secciones C–F del Perfil de Población (valvulopatías, HTP, indicaciones, antecedentes)
+function labRenderExtras(infs, n) {
+  const cMap = { Sin:'#3ecf8e', Leve:'#f5c842', Moderada:'#f0a500', Severa:'#f05454' };
+  // SECCIÓN C — Valvulopatías (regurgitaciones + estenosis)
+  const sevTable = (containerId, sevFn) => {
+    const b = { Sin:0, Leve:0, Moderada:0, Severa:0 };
+    let tot = 0;
+    infs.forEach(i => { const s = sevFn(i); if (s && b[s] !== undefined) { b[s]++; tot++; } });
+    const rows = ['Sin','Leve','Moderada','Severa'].map(k => ({ lbl:`${k} (n=${b[k]})`, n:b[k], total:tot, color:cMap[k] }));
+    labBarras(containerId, tot > 0 ? rows : []);
+  };
+  sevTable('lab-valv-im', i => _labRegurgSev(i,'im_grado'));
+  sevTable('lab-valv-ia', i => _labRegurgSev(i,'ia_grado'));
+  sevTable('lab-valv-it', i => _labRegurgSev(i,'it_grado'));
+  sevTable('lab-esten-ea', i => _labEstenSev(i,'ea_grado'));
+  sevTable('lab-esten-em', i => _labEstenSev(i,'em_grado'));
+
+  // SECCIÓN D — HTP por severidad (PSAP)
+  const psapsAll = infs.map(i => _labPsap(i)).filter(v => v !== null && v > 0);
+  const ht = psapsAll.length;
+  const htpDist = [
+    { lbl:`Normal (≤35) (n=${psapsAll.filter(v=>v<=35).length})`,       n: psapsAll.filter(v=>v<=35).length,        total:ht, color:'#3ecf8e' },
+    { lbl:`Leve (36–50) (n=${psapsAll.filter(v=>v>35&&v<=50).length})`, n: psapsAll.filter(v=>v>35&&v<=50).length,  total:ht, color:'#f5c842' },
+    { lbl:`Moderada (51–70) (n=${psapsAll.filter(v=>v>50&&v<=70).length})`, n: psapsAll.filter(v=>v>50&&v<=70).length, total:ht, color:'#f0a500' },
+    { lbl:`Severa (>70) (n=${psapsAll.filter(v=>v>70).length})`,        n: psapsAll.filter(v=>v>70).length,         total:ht, color:'#f05454' },
+  ];
+  labBarras('lab-htp-dist', ht > 0 ? htpDist : []);
+
+  // SECCIONES E/F — frecuencia por indicación y por antecedente
+  const freqArray = (containerId, key) => {
+    const counts = {};
+    infs.forEach(i => {
+      let arr = i.campos?.[key];
+      if (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch(e) { arr = arr ? [arr] : []; } }
+      if (!Array.isArray(arr)) return;
+      arr.forEach(v => { const k = String(v).trim(); if (k) counts[k] = (counts[k] || 0) + 1; });
+    });
+    const rows = Object.entries(counts).sort((a,b) => b[1]-a[1]).map(([lbl,cnt]) => ({ lbl: escHtml(lbl), n:cnt, total:n, color:'var(--accent)' }));
+    labBarras(containerId, rows, 'fraction');
+  };
+  freqArray('lab-indicaciones-freq', 'indicaciones');
+  freqArray('lab-antecedentes-freq', 'antecedentes_sel');
 }
 
 // FIX A3: neutraliza CSV/formula injection y separadores
@@ -15889,7 +16189,7 @@ function labExportarCSV() {
     'gls_global','tapse','lavi','vrt','psap_calc','ddvi','siv','masa_vi',
     'rwt','e_mitral','a_mitral','e_prima_sept','e_prima_lat','ee_prom',
     'va_vmax','va_gmax','va_gmed','ava','ao_sin','en_suma'];
-  const header = ['id','nombre','ci','fecha_estudio',...campos.slice(3)].join(';');
+  const header = ['id','nombre','ci','fecha_estudio',...campos.slice(3).map(c => c === 'lavi' ? 'Vol AI' : c)].join(';');
   const rows = infs.map(i => {
     return [
       _csvCell(i.id), _csvCell(i.nombre), _csvCell(i.ci), _csvCell(i.fecha_estudio),
@@ -16076,7 +16376,7 @@ function labMedicoRender() {
         </span>
       </div>
       <div class="lab-stat">
-        <span class="lab-stat-lbl">Con LAVI calculado</span>
+        <span class="lab-stat-lbl">Con Vol AI calculado</span>
         <span class="lab-stat-val">
           ${n ? Math.round(infs.filter(i=>i.campos?.ai_vol).length/n*100)+'%' : '—'}
         </span>
@@ -16103,7 +16403,7 @@ function labMedicoRender() {
     { lbl: 'FEVI', campo: 'fevi' },
     { lbl: 'GLS', campo: 'sgl' },
     { lbl: 'TAPSE', campo: 'tapse' },
-    { lbl: 'LAVI', campo: 'ai_vol' },
+    { lbl: 'Vol AI', campo: 'ai_vol' },
     { lbl: 'e\' septal', campo: 'e_sep' },
     { lbl: 'TR/PSAP', campo: 'psap_calc' },
     { lbl: 'VCI', campo: 'vci_diam' },
@@ -16184,7 +16484,7 @@ function labCompararRender() {
     { lbl: 'TAPSE promedio', a: prom(A,'tapse'), b: prom(B,'tapse'), unidad: ' mm' },
     { lbl: '% con GLS', a: pct(A,'sgl'), b: pct(B,'sgl'), unidad: '' },
     { lbl: '% con TAPSE', a: pct(A,'tapse'), b: pct(B,'tapse'), unidad: '' },
-    { lbl: '% con LAVI', a: pct(A,'ai_vol'), b: pct(B,'ai_vol'), unidad: '' },
+    { lbl: '% con Vol AI', a: pct(A,'ai_vol'), b: pct(B,'ai_vol'), unidad: '' },
     { lbl: '% con TR/PSAP', a: pct(A,'psap_calc'), b: pct(B,'psap_calc'), unidad: '' },
   ];
 
@@ -16285,7 +16585,7 @@ async function labGenerarPDF() {
 
   // Sección Actividad
   if (document.getElementById('lab-pdf-actividad')?.checked) {
-    addSection('📈 Actividad del Laboratorio');
+    addSection('Actividad del Laboratorio');
     addFila('Total de estudios en el período', infs.length);
     addFila('FEVI promedio', prom('fevi') + '%');
     addFila('GLS promedio', prom('sgl') + '%');
@@ -16295,13 +16595,15 @@ async function labGenerarPDF() {
 
   // Sección Perfil de la Población
   if (document.getElementById('lab-pdf-poblacion')?.checked) {
-    addSection('👥 Perfil de la Población');
+    addSection('Perfil de la Población');
     const N = infs.length;
     const fevis = infs.map(i => numCampo(i,'fevi')).filter(v => v !== null);
     if (fevis.length) {
-      addFila('FEVI ≤35% (severa)',      fevis.filter(v=>v<=35).length + '/' + fevis.length);
-      addFila('FEVI 36–49% (reducida)',  fevis.filter(v=>v>35&&v<50).length + '/' + fevis.length);
-      addFila('FEVI ≥50% (conservada)',  fevis.filter(v=>v>=50).length + '/' + fevis.length);
+      addFila('FEVI normal/conservada (>50%)',       fevis.filter(v=>v>50).length + '/' + fevis.length);
+      addFila('FEVI levemente reducida (40-50%)',    fevis.filter(v=>v>=40&&v<=50).length + '/' + fevis.length);
+      addFila('FEVI moderadamente reducida (30-40%)',fevis.filter(v=>v>=30&&v<40).length + '/' + fevis.length);
+      addFila('FEVI severamente reducida (<30%)',    fevis.filter(v=>v<30).length + '/' + fevis.length);
+      addFila('FEVI <35% - pasible dispositivos (CDI/CRT)', fevis.filter(v=>v<35).length + '/' + fevis.length);
     }
     const edades = infs.map(i => numCampo(i,'edad')).filter(v => v !== null && v > 0 && v < 120);
     if (edades.length) addFila('Edad promedio', (edades.reduce((a,b)=>a+b,0)/edades.length).toFixed(0) + ' años');
@@ -16328,13 +16630,13 @@ async function labGenerarPDF() {
 
   // Sección Calidad
   if (document.getElementById('lab-pdf-calidad')?.checked) {
-    addSection('✅ Calidad del Laboratorio');
+    addSection('Calidad del Laboratorio');
     const n = infs.length;
     [
       ['FEVI medida', 'fevi'],
       ['GLS medido', 'sgl'],
       ['TAPSE medido', 'tapse'],
-      ['LAVI calculado', 'ai_vol'],
+      ['Vol AI calculado', 'ai_vol'],
       ['TR medida', 'psap_calc'],
       ['Dimensiones VI', 'ddfvi'],
     ].forEach(([lbl, campo]) => {
@@ -16346,15 +16648,9 @@ async function labGenerarPDF() {
 
   // Sección Indicadores Automáticos
   if (document.getElementById('lab-pdf-indicadores')?.checked) {
-    addSection('⚠️ Indicadores Automáticos — Oportunidades clínicas');
+    addSection('Indicadores Automáticos — Oportunidades clínicas');
     const N = infs.length;
-    const indicadores = [
-      { lbl:'FEVI ≤35% sin GLS documentado', casos: infs.filter(i => { const f=numCampo(i,'fevi'), g=numCampo(i,'sgl'); return f!==null&&f<=35&&g===null; }) },
-      { lbl:'PSAP >40 mmHg sin TR medida', casos: infs.filter(i => { const p=numCampo(i,'psap_calc'), t=numCampo(i,'vmax_it'); return p!==null&&p>40&&t===null; }) },
-      { lbl:"Disfunción sistólica sin E/e'", casos: infs.filter(i => { const f=numCampo(i,'fevi'), e=(numCampo(i,'onda_e')!==null&&(numCampo(i,'e_sep')!==null||numCampo(i,'e_lat')!==null))?1:null; return f!==null&&f<50&&e===null; }) },
-      { lbl:'Sin TAPSE en informe', casos: infs.filter(i => numCampo(i,'tapse')===null) },
-      { lbl:'Sin dimensiones VI', casos: infs.filter(i => numCampo(i,'ddfvi')===null) },
-    ];
+    const indicadores = _labIndicadoresList(infs);
     indicadores.forEach(ind => {
       const pct = N > 0 ? Math.round(ind.casos.length/N*100) : 0;
       addFila(ind.lbl, ind.casos.length + ' (' + pct + '%)');
@@ -16364,7 +16660,7 @@ async function labGenerarPDF() {
 
   // Sección Docencia — Casos de interés
   if (document.getElementById('lab-pdf-medicos')?.checked) {
-    addSection('🎓 Docencia — Casos de interés');
+    addSection('Docencia — Casos de interés');
     const docentes = infs.filter(i =>
       i.campos?.caso_interes === '1' || i.campos?.caso_interes === 'true' ||
       /caso\s+de\s+inter[eé]s|ateneo|residente/i.test((i.campos?.en_suma||'') + ' ' + (i.campos?.informe_texto||''))
@@ -16621,7 +16917,7 @@ function actualizarGraficaEvol() {
     gls:   { color: '#f05454', label: 'GLS (%)' },
     psap:  { color: '#f5c842', label: 'PSAP (mmHg)' },
     tapse: { color: '#63b3ed', label: 'TAPSE (mm)' },
-    lavi:  { color: '#b794f4', label: 'LAVI (ml/m²)' },
+    lavi:  { color: '#b794f4', label: 'Vol AI (ml/m²)' },
     ee:    { color: '#f6ad55', label: "E/e'" },
   };
 
@@ -16965,7 +17261,7 @@ document.addEventListener('click',function(e){
     if(btn) btn.click();
   });
 
-  var STATIC_MODALS=['modal-comparativo','modal-evolucion','modal-logo-gallery'];
+  var STATIC_MODALS=['modal-comparativo','modal-evolucion','modal-logo-gallery','modal-lab-detalle'];
   function watchStatic(){
     STATIC_MODALS.forEach(function(id){
       var m=document.getElementById(id); if(!m) return;
@@ -17402,7 +17698,7 @@ const ECO_AYUDA = [
       <li style="display:flex;gap:8px">
         <span style="color:#0D9488;flex-shrink:0">
         →</span>🎯 Calidad asistencial — % estudios
-        con GLS, TAPSE, LAVI, EROA/PISA, FEVI
+        con GLS, TAPSE, Vol AI, EROA/PISA, FEVI
         por Simpson
       </li>
       <li style="display:flex;gap:8px">
