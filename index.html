@@ -16369,6 +16369,11 @@ function _labExcelRow(inf) {
     return norm === t ? 1 : 0;
   };
   const htpBin = (lo, hi) => (psapV !== null && psapV > lo && (hi === null || psapV <= hi)) ? 1 : 0;
+  // Binarias: disfunción diastólica, geometría VI y trastornos sectoriales
+  const eeDoc = _labEeProm(inf) !== null;
+  const geomS = (geom === '—' ? '' : (geom || ''));
+  const geomBin = (rx) => (geomS && rx.test(geomS)) ? 1 : 0;
+  const tsTxt = _labSectorial(inf);
   return {
     'Nombre': inf.nombre || '', 'CI': inf.ci || '', 'Edad': rnd(num('edad'),0), 'Sexo': c.sexo || '',
     'Fecha estudio': inf.fecha_estudio || '', 'Centro / Institución': c.centro_nombre || '',
@@ -16376,12 +16381,15 @@ function _labExcelRow(inf) {
     'Motivo / Indicación': _labArrCol(inf,'indicaciones','ind_otro','indicacion'),
     'Antecedentes': _labArrCol(inf,'antecedentes_sel','ant_otro','antecedentes'),
     'SIV (mm)': rnd(siv,0), 'DDVI (mm)': rnd(dd,0), 'DSVI (mm)': rnd(ds,0), 'PP (mm)': rnd(pp,0),
-    'Masa VI (g/m²)': rnd(masaIdx,0), 'RWT': rnd(rwt,2), 'VDFVI idx (ml/m²)': rnd(vdfviIdx,1), 'Geometría VI': (geom === '—' ? '' : geom) || '',
+    'Masa VI (g/m²)': rnd(masaIdx,0), 'RWT': rnd(rwt,2), 'VDFVI idx (ml/m²)': rnd(vdfviIdx,1), 'Geometría VI': geomS,
+    'Geom_Normal': geomS === 'Normal' ? 1 : 0, 'Geom_RemConcentrico': geomBin(/remodelado/i), 'Geom_HVI_Concentrica': geomBin(/conc[eé]ntrica/i), 'Geom_HVI_Excentrica': geomBin(/exc[eé]ntrica/i),
     'FEVI Simpson (%)': rnd(_labFevi(inf),0), 'FA (%)': rnd(fa,0), 'GLS (%)': rnd(_labGls(inf),1),
-    'Trastornos sectoriales': _labSectorial(inf),
+    'Trastornos sectoriales': tsTxt, 'TS_Presente': tsTxt ? 1 : 0,
     'Onda E (cm/s)': rnd(oe,0), 'Onda A (cm/s)': rnd(oa,0), 'E/A': rnd(ea,2),
     "e' septal (cm/s)": rnd(es,1), "e' lateral (cm/s)": rnd(el,1), "e' promedio (cm/s)": rnd(eprom,1),
     "E/e'": rnd(_labEeProm(inf),1), 'Grado disfunción diastólica': gdTxt,
+    'DD_I (Grado I)': gd === 'I' ? 1 : 0, 'DD_II (Grado II)': gd === 'II' ? 1 : 0, 'DD_III (Grado III)': gd === 'III' ? 1 : 0,
+    'DD_Sin (Sin disfunción)': (gd === 'sin' || (gd === null && eeDoc)) ? 1 : 0,
     'Vol AI (LAVI) (ml/m²)': rnd(_labLavi(inf),1),
     'TAPSE (mm)': rnd(num('tapse'),0), "S' (cm/s)": rnd(num('s_prime'),1), 'TAP (ms)': rnd(num('tvia'),0), 'Diám. basal VD (mm)': rnd(num('vd_bas'),0),
     'VCI diám (mm)': rnd(num('vci_diam'),0), 'Colapso VCI': c.vci_col || '', 'PmAD (mmHg)': rnd(num('pmad'),0),
@@ -16443,6 +16451,15 @@ function labExportarXLSX() {
     ['HTP_I (Leve)',      'HTP leve — PSAP 36–50 mmHg',              V],
     ['HTP_II (Moderada)', 'HTP moderada — PSAP 51–70 mmHg',          V],
     ['HTP_III (Severa)',  'HTP severa — PSAP >70 mmHg',              V],
+    ['DD_I (Grado I)',          'Disfunción diastólica Grado I presente',      V],
+    ['DD_II (Grado II)',        'Disfunción diastólica Grado II presente',     V],
+    ['DD_III (Grado III)',      'Disfunción diastólica Grado III presente',    V],
+    ['DD_Sin (Sin disfunción)', 'Función diastólica normal / sin disfunción',  V],
+    ['Geom_Normal',             'Geometría VI normal',                          V],
+    ['Geom_RemConcentrico',     'Remodelado concéntrico VI',                    V],
+    ['Geom_HVI_Concentrica',    'Hipertrofia VI concéntrica (leve/mod/severa)', V],
+    ['Geom_HVI_Excentrica',     'Hipertrofia VI excéntrica (leve/mod/severa)',  V],
+    ['TS_Presente',             'Trastornos sectoriales de la motilidad presentes', V],
   ];
   const wsLeg = XLSX.utils.aoa_to_sheet(leyenda);
   wsLeg['!cols'] = [{ wch: 22 }, { wch: 44 }, { wch: 30 }];
