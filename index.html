@@ -12202,8 +12202,8 @@ function generarPDFReal() {
      {lbl:'Talla', val:talla?talla+' cm':null},
      {lbl:'ASC',   val:ascV},
      {lbl:'IMC',   val:imc}],
-    [{lbl:'Antecedentes',    val:(_accTexto('ant-chk','ant_otro')||null)},
-     {lbl:'Indicación',      val:(_accTexto('ind-chk','ind_otro')||null)},
+    [{lbl:'Antecedentes',    val:(_accTexto('ant-chk','ant_otro') || (window._pdfFallbackNotas && window._pdfFallbackNotas.ant) || null)},
+     {lbl:'Indicación',      val:(_accTexto('ind-chk','ind_otro') || (window._pdfFallbackNotas && window._pdfFallbackNotas.ind) || null)},
      {lbl:'Solicitante',     val:sv('med_solicitante')||null},
      {lbl:'Fecha solicitud', val:fechaSol}],
   ].filter(r => r.some(c=>c.val));
@@ -15001,6 +15001,10 @@ function pdfDeInformeGuardado(id) {
   if (typeof calcIT_ESC === 'function') calcIT_ESC();
   if (typeof calcContIM === 'function') calcContIM();
 
+  // Fallback: estudios históricos (previos al acordeón) con texto libre en indicacion/antecedentes
+  // → el PDF lo usa solo si el acordeón quedó vacío
+  window._pdfFallbackNotas = { ind: String(c.indicacion || '').trim(), ant: String(c.antecedentes || '').trim() };
+
   // Generate PDF (flujo automático de informe guardado — sin modal de revisión)
   generarPDFReal();
 
@@ -15014,6 +15018,7 @@ function pdfDeInformeGuardado(id) {
       if (el) el.textContent = ceBackup[fid] || '';
     });
     if (typeof _restaurarChecklistPaciente === 'function') _restaurarChecklistPaciente(chkBackup);
+    window._pdfFallbackNotas = null;
     if (typeof calcBSA === 'function') calcBSA();
     if (typeof updateHdrExtra === 'function') updateHdrExtra();
   }, 600);
