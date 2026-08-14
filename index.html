@@ -16364,8 +16364,8 @@ function _labExcelRow(inf) {
   const psapV = num('psap_calc');
   const bin = (g, t) => {
     const s = String(g || '').toLowerCase();
-    // 'Moderada-severa' (grado 3) se cuenta como severa (III); maneja texto y numérico vía _labGradoTxt
-    const norm = /moderada-severa/.test(s) ? 'severa' : /severa/.test(s) ? 'severa' : /moderada/.test(s) ? 'moderada' : /leve/.test(s) ? 'leve' : '';
+    // 'Moderada-severa' (grado 3) se cuenta como moderada (II) — criterio conservador; maneja texto y numérico vía _labGradoTxt
+    const norm = /moderada-severa/.test(s) ? 'moderada' : /severa/.test(s) ? 'severa' : /moderada/.test(s) ? 'moderada' : /leve/.test(s) ? 'leve' : '';
     return norm === t ? 1 : 0;
   };
   const htpBin = (lo, hi) => (psapV !== null && psapV > lo && (hi === null || psapV <= hi)) ? 1 : 0;
@@ -16424,7 +16424,7 @@ function labExportarXLSX() {
   // Hoja "Leyenda" — descripción de las columnas binarias
   const V = '1 = presente · 0 = ausente';
   const leyenda = [
-    ['Columna', 'Significado', 'Valores'],
+    ['COLUMNA', 'SIGNIFICADO', 'VALORES'],
     ['IM_I (Leve)',       'Insuficiencia Mitral leve presente',      V],
     ['IM_II (Moderada)',  'Insuficiencia Mitral moderada presente',  V],
     ['IM_III (Severa)',   'Insuficiencia Mitral severa presente',    V],
@@ -16446,8 +16446,6 @@ function labExportarXLSX() {
   ];
   const wsLeg = XLSX.utils.aoa_to_sheet(leyenda);
   wsLeg['!cols'] = [{ wch: 22 }, { wch: 44 }, { wch: 30 }];
-  // Encabezado con fondo azul + texto blanco (nota: el build community de SheetJS puede no renderizar estilos)
-  ['A1', 'B1', 'C1'].forEach(a => { if (wsLeg[a]) wsLeg[a].s = { fill: { patternType: 'solid', fgColor: { rgb: '2F5496' } }, font: { color: { rgb: 'FFFFFF' }, bold: true } }; });
   XLSX.utils.book_append_sheet(wb, wsLeg, 'Leyenda');
 
   XLSX.writeFile(wb, 'ecosmart_laboratorio_' + new Date().toISOString().split('T')[0] + '.xlsx');
