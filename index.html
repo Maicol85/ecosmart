@@ -16746,7 +16746,7 @@ async function labGenerarPDF() {
        ['Levemente reducida (40-50%)', feviN[1] + ' (' + pctOf(feviN[1],ft) + '%)'],
        ['Moderadamente reducida (30-40%)', feviN[2] + ' (' + pctOf(feviN[2],ft) + '%)'],
        ['Severamente reducida (<30%)', feviN[3] + ' (' + pctOf(feviN[3],ft) + '%)']],
-      { labels:['Normal (>50)','Leve (40-50)','Moderada (30-40)','Severa (<30)'], values:feviN, colors:['#f05454','#f59e42','#f5c842','#3ecf8e'] });
+      { labels:['Normal (>50)','Leve (40-50)','Moderada (30-40)','Severa (<30)'], values:feviN, colors:['#3ecf8e','#f5c842','#f0a500','#f05454'] });
 
     // Funcion diastolica
     const dg = {I:0,II:0,III:0,sin:0}; let dt=0;
@@ -16756,10 +16756,10 @@ async function labGenerarPDF() {
        ['Grado II', dg.II + ' (' + pctOf(dg.II,dt) + '%)'],
        ['Grado III', dg.III + ' (' + pctOf(dg.III,dt) + '%)'],
        ['Sin disfuncion', dg.sin + ' (' + pctOf(dg.sin,dt) + '%)']],
-      { labels:['Grado I','Grado II','Grado III','Sin disf.'], values:[dg.I,dg.II,dg.III,dg.sin], colors:['#f5c842','#f59e42','#f05454','#3ecf8e'] });
+      { labels:['Grado I','Grado II','Grado III','Sin disf.'], values:[dg.I,dg.II,dg.III,dg.sin], colors:['#f5c842','#f0a500','#f05454','#3ecf8e'] });
 
     // Valvulopatias (una subseccion por valvula)
-    const sevCols = ['#3ecf8e','#f5c842','#f59e42','#f05454'];
+    const sevCols = ['#3ecf8e','#f5c842','#f0a500','#f05454'];
     const valvSeccion = async (titulo, sevFn) => {
       const b={Sin:0,Leve:0,Moderada:0,Severa:0}; let t=0;
       infs.forEach(i => { const s=sevFn(i); if (s && b[s]!==undefined){ b[s]++; t++; } });
@@ -16781,7 +16781,7 @@ async function labGenerarPDF() {
     await addTablaChart('Hipertension pulmonar (PSAP)',
       [['Normal (<=35)', hN[0] + ' (' + pctOf(hN[0],ht) + '%)'], ['Leve (36-50)', hN[1] + ' (' + pctOf(hN[1],ht) + '%)'],
        ['Moderada (51-70)', hN[2] + ' (' + pctOf(hN[2],ht) + '%)'], ['Severa (>70)', hN[3] + ' (' + pctOf(hN[3],ht) + '%)']],
-      { labels:['Normal','Leve','Moderada','Severa'], values:hN, colors:['#3ecf8e','#f5c842','#f59e42','#f05454'] });
+      { labels:['Normal','Leve','Moderada','Severa'], values:hN, colors:['#3ecf8e','#f5c842','#f0a500','#f05454'] });
 
     // Frecuencia de indicaciones / antecedentes (arrays)
     const freqData = (key) => {
