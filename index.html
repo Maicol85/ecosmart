@@ -682,7 +682,6 @@ window.cerrarSesion = cerrarSesion;
   <button class="hdr-burger" aria-label="Menú de acciones" onclick="document.getElementById('ecoHdrBtns').classList.toggle('open')">⋮</button>
   <div class="hdr-btns" id="ecoHdrBtns">
     <button class="btn btn-ghost" id="theme-toggle-btn" onclick="toggleTheme()" title="Cambiar modo día/noche">🌙 Noche</button>
-    <button class="btn btn-ghost" onclick="limpiar()">🗑 Limpiar</button>
     <button onclick="exportarInformesJSON()" title="Exportar informes a JSON"
       style="background:none;
       border:1px solid rgba(255,255,255,0.15);
@@ -827,26 +826,6 @@ window.cerrarSesion = cerrarSesion;
         <div id="cfg-modulos" style="display:none;"></div>
       </div>
 
-
-      <!-- Exportar / Importar -->
-      <div style="margin-bottom:22px;border-top:1px solid var(--border);padding-top:16px;">
-        <div class="cfg-sec-title">💾 Exportar / Importar</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn" onclick="exportarInformesJSON()" title="Exportar todos los informes a JSON">📤 Exportar JSON</button>
-          <button class="btn" onclick="document.getElementById('ig-import-file').click()" title="Importar informes desde un archivo JSON">📥 Importar JSON</button>
-          <button class="btn" onclick="
-            const k = prompt('API key de Anthropic (se guarda solo durante esta sesión):', sessionStorage.getItem('ecg_api_key') || '');
-            if (k !== null) { sessionStorage.setItem('ecg_api_key', k.trim()); if (typeof toast === 'function') toast('✅ API key guardada'); }
-          " title="Configurar API key para importar PDFs (Claude Vision)">⚙️ API key</button>
-          <button class="btn" onclick="document.getElementById('pdf-import-file').click()" title="Importar PDFs históricos generados por EcoSmart">📄 Importar PDFs históricos</button>
-        </div>
-      </div>
-
-      <!-- Restablecer -->
-      <div style="border-top:1px solid var(--border);padding-top:16px;">
-        <div class="cfg-sec-title">♻️ Restablecer</div>
-        <button class="btn btn-ghost" onclick="limpiar()">🗑 Nuevo estudio</button>
-      </div>
 
     </div>
   </div>
@@ -6282,7 +6261,6 @@ function eeGetWMSItext(phase){
   return {anorm, wmsi: count>0?(sum/count).toFixed(2):'—'};
 }
 function eeResetAll(){
-  if(!confirm('¿Reiniciar el estudio de Eco Estrés? Se perderán los datos de esta sección.'))return;
   document.querySelectorAll('#tab-ee input, #tab-ee select, #tab-ee textarea').forEach(el=>{
     if(el.tagName==='SELECT') el.selectedIndex=0; else el.value='';
   });
@@ -7908,7 +7886,6 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <button class="btn btn-primary" onclick="generarInforme()">🔄 Regenerar Informe</button>
         <button class="btn btn-green" onclick="generarPDF()">⬇️ Exportar PDF</button>
         <button class="btn btn-save" onclick="guardarInforme()">💾 Guardar Informe</button>
-        <button class="btn btn-ghost" onclick="limpiar()">🗑 Nuevo estudio</button>
         <button class="btn btn-ghost" onclick="abrirModoComparativo()" id="btn-comparativo">🔀 Modo comparativo</button>
       </div>
     </div>
@@ -8757,11 +8734,28 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   <div class="foot-actions">
     <button id="floatBtnInforme" onclick="showTab('informe');actualizarFloatBtns();" title="Informe narrativo">📝 Informe</button>
     <button id="floatBtnGuardados" onclick="showTab('guardados');renderInformesGuardados();actualizarFloatBtns();" title="Informes guardados">💾 Guardados</button>
+    <button onclick="nuevoEstudio()" title="Iniciar nuevo estudio">🆕 Nuevo Estudio</button>
     <button onclick="showTab('lab');if(window.labInit)labInit();" title="Laboratorio">🔬 Laboratorio</button>
   </div>
   </div><!-- /app-content -->
 </div><!-- /app-shell -->
 </div><!-- /container -->
+
+<!-- ═══ Modal: ¿Iniciar nuevo estudio? (confirmación con opción de guardar) ═══ -->
+<div id="modal-nuevo-estudio" role="dialog" aria-modal="true" aria-labelledby="ne-modal-title"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:700;align-items:center;justify-content:center;padding:20px;"
+     onclick="if(event.target===this)_neCerrar()">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:440px;width:100%;padding:22px 24px;box-shadow:0 18px 48px rgba(0,0,0,.5);">
+    <h3 id="ne-modal-title" style="margin:0 0 10px;font-size:17px;color:var(--text);">¿Iniciar nuevo estudio?</h3>
+    <p style="margin:0 0 20px;font-size:13.5px;line-height:1.55;color:var(--text2,#94A3B8);">Los datos no guardados se perderán. ¿Deseás guardar el estudio actual antes de continuar?</p>
+    <div style="display:flex;flex-direction:column;gap:9px;">
+      <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="neGuardarYContinuar()">💾 Guardar y continuar</button>
+      <button class="btn btn-ghost" style="width:100%;justify-content:center;" onclick="neContinuarSinGuardar()">🗑 Continuar sin guardar</button>
+      <button class="btn btn-ghost" style="width:100%;justify-content:center;" onclick="_neCerrar()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script>
@@ -11621,8 +11615,7 @@ function showTabById(id) {
 }
 
 // ══ LIMPIAR ══
-function limpiar() {
-  if (!confirm('¿Limpiar todos los campos para nuevo estudio?')) return;
+function limpiarCampos() {
   // Inputs (incluye readonly calculados)
   document.querySelectorAll('input[type=text], input[type=number]').forEach(el => { el.value = ''; });
   // Grados de severidad ocultos → 0
@@ -11660,6 +11653,31 @@ function limpiar() {
   try { localStorage.removeItem('ecosmart_autosave'); } catch(e) {}
   toast('🗑 Formulario limpiado');
 }
+
+// ══ Modal "Nuevo estudio" — confirmación propia (reemplaza el confirm nativo) ══
+function nuevoEstudio() {
+  const m = document.getElementById('modal-nuevo-estudio');
+  if (m) m.style.display = 'flex';
+}
+// Alias retrocompatible: cualquier llamada a limpiar() ahora abre el modal de confirmación
+function limpiar() { nuevoEstudio(); }
+function _neCerrar() {
+  const m = document.getElementById('modal-nuevo-estudio');
+  if (m) m.style.display = 'none';
+}
+function neGuardarYContinuar() {
+  _neCerrar();
+  const ok = (typeof guardarInforme === 'function') ? guardarInforme() : false;
+  if (ok) limpiarCampos();   // solo limpia si el guardado fue efectivo (evita perder datos si falta el paciente)
+}
+function neContinuarSinGuardar() {
+  _neCerrar();
+  limpiarCampos();
+}
+window.nuevoEstudio = nuevoEstudio;
+window._neCerrar = _neCerrar;
+window.neGuardarYContinuar = neGuardarYContinuar;
+window.neContinuarSinGuardar = neContinuarSinGuardar;
 
 // ══ Módulo Prolapso mitral: mostrar/ocultar panel de detalle ══
 function showProlapsoPanel(){
@@ -13696,7 +13714,7 @@ function guardarInforme() {
   const fecha  = document.getElementById('fecha')?.value || '';
   if (!nombre && !ci) {
     toast('⚠️ Ingresá nombre o documento del paciente antes de guardar');
-    return;
+    return false;
   }
   const campos = {};
   document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
@@ -13752,7 +13770,9 @@ function guardarInforme() {
   } else {
     informes.unshift(nuevoInforme);
     eeCurrentInformeId = nuevoInforme.estudioId;
-    if (guardarInformesSeguro(informes)) toast('💾 Informe guardado correctamente');
+    const _ok = guardarInformesSeguro(informes);
+    if (_ok) toast('💾 Informe guardado correctamente');
+    return _ok;
   }
 }
 
