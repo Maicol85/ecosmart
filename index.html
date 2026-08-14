@@ -16358,6 +16358,17 @@ function _labExcelRow(inf) {
   const vit = num('vmax_it','vrt'); const gradVDAD = vit ? 4*vit*vit : null;
   const gd = _labDiastGrado(inf);
   const gdTxt = { III:'Grado III', II:'Grado II', I:'Grado I', sin:'Sin disfunción' }[gd] || '';
+  // Grados valvulares (texto) + binarizador — se conserva el texto y se agregan columnas 0/1
+  const gIM = _labGradoTxt(inf,'im_grado'), gIA = _labGradoTxt(inf,'ia_grado'), gIT = _labGradoTxt(inf,'it_grado');
+  const gEA = _labGradoTxt(inf,'ea_grado'), gEM = _labGradoTxt(inf,'em_grado');
+  const psapV = num('psap_calc');
+  const bin = (g, t) => {
+    const s = String(g || '').toLowerCase();
+    // 'Moderada-severa' (grado 3) se cuenta como severa (III); maneja texto y numérico vía _labGradoTxt
+    const norm = /moderada-severa/.test(s) ? 'severa' : /severa/.test(s) ? 'severa' : /moderada/.test(s) ? 'moderada' : /leve/.test(s) ? 'leve' : '';
+    return norm === t ? 1 : 0;
+  };
+  const htpBin = (lo, hi) => (psapV !== null && psapV > lo && (hi === null || psapV <= hi)) ? 1 : 0;
   return {
     'Nombre': inf.nombre || '', 'CI': inf.ci || '', 'Edad': rnd(num('edad'),0), 'Sexo': c.sexo || '',
     'Fecha estudio': inf.fecha_estudio || '', 'Centro / Institución': c.centro_nombre || '',
@@ -16374,13 +16385,25 @@ function _labExcelRow(inf) {
     'Vol AI (LAVI) (ml/m²)': rnd(_labLavi(inf),1),
     'TAPSE (mm)': rnd(num('tapse'),0), "S' (cm/s)": rnd(num('s_prime'),1), 'TAP (ms)': rnd(num('tvia'),0), 'Diám. basal VD (mm)': rnd(num('vd_bas'),0),
     'VCI diám (mm)': rnd(num('vci_diam'),0), 'Colapso VCI': c.vci_col || '', 'PmAD (mmHg)': rnd(num('pmad'),0),
-    'Morfología mitral': c.vm_morf || '', 'IM grado': _labGradoTxt(inf,'im_grado'), 'VC IM (mm)': rnd(num('im_vc','vc_mitral'),1),
-    'EROA IM (mm²)': rnd(eroa,1), 'Vol R IM (ml)': rnd(volr,1), 'EM grado': c.em_grado || '', 'AVm (cm²)': rnd(num('avm_thp'),2),
-    'Morfología aórtica': c.va_morf || '', 'EA grado': c.ea_grado || '', 'AVA (cm²)': rnd(ava,2),
+    'Morfología mitral': c.vm_morf || '', 'IM grado': gIM,
+    'IM_I (Leve)': bin(gIM,'leve'), 'IM_II (Moderada)': bin(gIM,'moderada'), 'IM_III (Severa)': bin(gIM,'severa'),
+    'VC IM (mm)': rnd(num('im_vc','vc_mitral'),1),
+    'EROA IM (mm²)': rnd(eroa,1), 'Vol R IM (ml)': rnd(volr,1), 'EM grado': gEM,
+    'EM_I (Leve)': bin(gEM,'leve'), 'EM_II (Moderada)': bin(gEM,'moderada'), 'EM_III (Severa)': bin(gEM,'severa'),
+    'AVm (cm²)': rnd(num('avm_thp'),2),
+    'Morfología aórtica': c.va_morf || '', 'EA grado': gEA,
+    'EAo_I (Leve)': bin(gEA,'leve'), 'EAo_II (Moderada)': bin(gEA,'moderada'), 'EAo_III (Severa)': bin(gEA,'severa'),
+    'AVA (cm²)': rnd(ava,2),
     'V. max Ao (m/s)': rnd(num('vmax_ao','va_vmax'),2), 'G. máx Ao (mmHg)': rnd(num('gmax_calc','va_gmax'),0), 'G. medio Ao (mmHg)': rnd(num('gmedio_ao','va_gmed'),0),
-    'IAo grado': _labGradoTxt(inf,'ia_grado'), 'VC IAo (mm)': rnd(num('ia_vc','vc_aortica'),1), 'PHT IAo (ms)': rnd(num('ia_pht'),0),
-    'Morfología tricúspide': c.vt_morf || '', 'IT grado': _labGradoTxt(inf,'it_grado'), 'VC IT (mm)': rnd(num('it_vc','vc_tricusp'),1),
-    'Grad VD-AD (mmHg)': rnd(gradVDAD,0), 'PSAP (mmHg)': rnd(num('psap_calc'),0), 'PAP media (mmHg)': rnd(num('pap_med'),0),
+    'IAo grado': gIA,
+    'IAo_I (Leve)': bin(gIA,'leve'), 'IAo_II (Moderada)': bin(gIA,'moderada'), 'IAo_III (Severa)': bin(gIA,'severa'),
+    'VC IAo (mm)': rnd(num('ia_vc','vc_aortica'),1), 'PHT IAo (ms)': rnd(num('ia_pht'),0),
+    'Morfología tricúspide': c.vt_morf || '', 'IT grado': gIT,
+    'IT_I (Leve)': bin(gIT,'leve'), 'IT_II (Moderada)': bin(gIT,'moderada'), 'IT_III (Severa)': bin(gIT,'severa'),
+    'VC IT (mm)': rnd(num('it_vc','vc_tricusp'),1),
+    'Grad VD-AD (mmHg)': rnd(gradVDAD,0), 'PSAP (mmHg)': rnd(psapV,0),
+    'HTP_I (Leve 36-50)': htpBin(35,50), 'HTP_II (Mod. 51-70)': htpBin(50,70), 'HTP_III (Severa >70)': htpBin(70,null),
+    'PAP media (mmHg)': rnd(num('pap_med'),0),
     'Ao sinusal (mm)': rnd(num('ao_sin'),0), 'Ao asc. proximal (mm)': rnd(num('ao_tub'),0),
     'Pericardio': c.pericardio || '',
     'Informe (texto completo)': c.informe_texto || '', 'EN SUMA (texto completo)': c.en_suma || '',
@@ -16397,6 +16420,36 @@ function labExportarXLSX() {
   ws['!cols'] = headers.map(h => ({ wch: Math.min(46, Math.max(10, h.length + 2)) }));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Estudios');
+
+  // Hoja "Leyenda" — descripción de las columnas binarias
+  const V = '1 = presente · 0 = ausente';
+  const leyenda = [
+    ['Columna', 'Significado', 'Valores'],
+    ['IM_I (Leve)',       'Insuficiencia Mitral leve presente',      V],
+    ['IM_II (Moderada)',  'Insuficiencia Mitral moderada presente',  V],
+    ['IM_III (Severa)',   'Insuficiencia Mitral severa presente',    V],
+    ['IAo_I (Leve)',      'Insuficiencia Aórtica leve presente',     V],
+    ['IAo_II (Moderada)', 'Insuficiencia Aórtica moderada presente', V],
+    ['IAo_III (Severa)',  'Insuficiencia Aórtica severa presente',   V],
+    ['IT_I (Leve)',       'Insuficiencia Tricuspídea leve',          V],
+    ['IT_II (Moderada)',  'Insuficiencia Tricuspídea moderada',      V],
+    ['IT_III (Severa)',   'Insuficiencia Tricuspídea severa',        V],
+    ['EAo_I (Leve)',      'Estenosis Aórtica leve',                  V],
+    ['EAo_II (Moderada)', 'Estenosis Aórtica moderada',              V],
+    ['EAo_III (Severa)',  'Estenosis Aórtica severa',                V],
+    ['EM_I (Leve)',       'Estenosis Mitral leve',                   V],
+    ['EM_II (Moderada)',  'Estenosis Mitral moderada',               V],
+    ['EM_III (Severa)',   'Estenosis Mitral severa',                 V],
+    ['HTP_I (Leve)',      'HTP leve — PSAP 36–50 mmHg',              V],
+    ['HTP_II (Moderada)', 'HTP moderada — PSAP 51–70 mmHg',          V],
+    ['HTP_III (Severa)',  'HTP severa — PSAP >70 mmHg',              V],
+  ];
+  const wsLeg = XLSX.utils.aoa_to_sheet(leyenda);
+  wsLeg['!cols'] = [{ wch: 22 }, { wch: 44 }, { wch: 30 }];
+  // Encabezado con fondo azul + texto blanco (nota: el build community de SheetJS puede no renderizar estilos)
+  ['A1', 'B1', 'C1'].forEach(a => { if (wsLeg[a]) wsLeg[a].s = { fill: { patternType: 'solid', fgColor: { rgb: '2F5496' } }, font: { color: { rgb: 'FFFFFF' }, bold: true } }; });
+  XLSX.utils.book_append_sheet(wb, wsLeg, 'Leyenda');
+
   XLSX.writeFile(wb, 'ecosmart_laboratorio_' + new Date().toISOString().split('T')[0] + '.xlsx');
   toast('✅ Excel exportado — ' + infs.length + ' estudios');
 }
