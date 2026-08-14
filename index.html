@@ -8057,7 +8057,33 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
               </button>
 
             </div>
-            <div id="filtro-resultado" style="font-size:.78rem;color:var(--text2);margin-top:8px;"></div>
+
+            <!-- Filtros avanzados -->
+            <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px;">
+              <div style="font-size:.72rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Filtros avanzados</div>
+              <div style="display:flex;flex-wrap:wrap;gap:14px 24px;align-items:flex-start;font-size:.82rem;">
+                <div>
+                  <div style="font-weight:600;color:var(--text2);margin-bottom:5px;">FEVI (%)</div>
+                  <label class="chk-lab" style="margin-bottom:4px;"><input type="checkbox" id="adv-fevi-lt-on" onchange="aplicarFiltros()"> Menor a <input type="number" id="adv-fevi-lt" oninput="aplicarFiltros()" style="width:56px;"> %</label>
+                  <label class="chk-lab" style="margin-bottom:4px;"><input type="checkbox" id="adv-fevi-bt-on" onchange="aplicarFiltros()"> Entre <input type="number" id="adv-fevi-bt1" oninput="aplicarFiltros()" style="width:52px;"> y <input type="number" id="adv-fevi-bt2" oninput="aplicarFiltros()" style="width:52px;"> %</label>
+                  <label class="chk-lab"><input type="checkbox" id="adv-fevi-gt-on" onchange="aplicarFiltros()"> Mayor a <input type="number" id="adv-fevi-gt" oninput="aplicarFiltros()" style="width:56px;"> %</label>
+                </div>
+                <div>
+                  <div style="font-weight:600;color:var(--text2);margin-bottom:5px;">PSAP (mmHg)</div>
+                  <label class="chk-lab"><input type="checkbox" id="adv-psap-gt-on" onchange="aplicarFiltros()"> Mayor a <input type="number" id="adv-psap-gt" oninput="aplicarFiltros()" style="width:56px;"> mmHg</label>
+                </div>
+                <div>
+                  <div style="font-weight:600;color:var(--text2);margin-bottom:5px;">TAPSE (mm)</div>
+                  <label class="chk-lab"><input type="checkbox" id="adv-tapse-lt-on" onchange="aplicarFiltros()"> Menor a <input type="number" id="adv-tapse-lt" oninput="aplicarFiltros()" style="width:56px;"> mm</label>
+                </div>
+                <div>
+                  <div style="font-weight:600;color:var(--text2);margin-bottom:5px;">Valvulopatía (texto)</div>
+                  <input type="text" id="adv-valv-txt" oninput="aplicarFiltros()" placeholder="Ej: EA, EAo, IM, HTP…" style="width:190px;">
+                </div>
+              </div>
+            </div>
+
+            <div id="filtro-resultado" style="font-size:.82rem;font-weight:600;color:var(--text2);margin-top:10px;"></div>
           </div>
         </div>
         <div id="ig-lista"></div>
@@ -8527,6 +8553,14 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
             <canvas id="chart-meses"></canvas>
           </div>
         </div>
+      </div>
+      <div style="margin-top:16px;">
+        <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Tiempo de espera solicitud → estudio — distribución</div>
+        <div class="lab-grid">
+          <div id="lab-espera-tabla"></div>
+          <div class="lab-bar-wrap" id="lab-espera-dist"></div>
+        </div>
+        <div id="lab-espera-nota" style="margin-top:8px;font-size:.76rem;color:var(--text2);font-style:italic;line-height:1.5;"></div>
       </div>
     </div>
   </div>
@@ -15868,6 +15902,15 @@ function labGetInformes() {
   });
 }
 
+// Rangos de tiempo de espera (solicitud → estudio), en días — compartidos entre dashboard y PDF
+const _LAB_ESPERA_CATS = [
+  ['≤10 días',    d => d <= 10],
+  ['11–20 días',  d => d > 10 && d <= 20],
+  ['21–30 días',  d => d > 20 && d <= 30],
+  ['31–45 días',  d => d > 30 && d <= 45],
+  ['46–60 días',  d => d > 45 && d <= 60],
+  ['>60 días',    d => d > 60]
+];
 function labBarras(containerId, datos, mode) {
   const el = document.getElementById(containerId);
   if (!el) return;
@@ -16006,7 +16049,7 @@ function labInit() {
       if (el) el.innerHTML = '<div class="lab-empty">Sin datos</div>';
     });
     { const _d = document.getElementById('lab-fevi-dispositivos'); if (_d) _d.textContent = ''; }
-    ['lab-contr-tabla','lab-contr-be','lab-contr-leyenda'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
+    ['lab-contr-tabla','lab-contr-be','lab-contr-leyenda','lab-espera-tabla','lab-espera-dist','lab-espera-nota'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
     document.getElementById('lab-indicadores-body').innerHTML =
       '<tr><td colspan="4" style="text-align:center;color:var(--text2);padding:20px;">Sin datos</td></tr>';
     document.getElementById('lab-docencia-lista').innerHTML =
@@ -16051,6 +16094,20 @@ function labInit() {
       prom.toFixed(1) + ' días (n=' + tiempos.length + ')';
   } else {
     document.getElementById('lab-tiempo-sol').textContent = '— (sin fecha solicitud)';
+  }
+  // Distribución de tiempo de espera por rangos (mismos estudios que el promedio)
+  {
+    const Ne = tiempos.length;
+    const espData = _LAB_ESPERA_CATS.map(cat => ({ lbl: cat[0], n: tiempos.filter(cat[1]).length, total: Ne, color: 'var(--accent)' }));
+    const tabEl = document.getElementById('lab-espera-tabla');
+    if (tabEl) tabEl.innerHTML = Ne
+      ? `<table class="lab-table"><thead><tr><th>Rango</th><th>n</th><th>%</th></tr></thead><tbody>${espData.map(d => `<tr><td>${d.lbl}</td><td style="font-weight:700;">${d.n}</td><td>${Ne>0?Math.round(d.n/Ne*100):0}%</td></tr>`).join('')}</tbody></table>`
+      : '<div class="lab-empty">Sin datos de tiempo de espera</div>';
+    labBarras('lab-espera-dist', Ne ? espData : []);
+    const notaEl = document.getElementById('lab-espera-nota');
+    if (notaEl) notaEl.textContent = Ne
+      ? `Calculado sobre ${Ne} estudios con fecha de solicitud y fecha de estudio registradas. ${infs.length - Ne} estudios excluidos por falta de alguna de las fechas.`
+      : '';
   }
 
   // Estudios por mes (últimos 12)
@@ -17078,6 +17135,25 @@ async function labGenerarPDF() {
     addFila('FEVI promedio', prom('fevi') + '%');
     addFila('GLS promedio', prom('sgl') + '%');
     addFila('PSAP promedio', prom('psap_calc') + ' mmHg');
+    // Distribución de tiempo de espera (mismos estudios que el promedio)
+    const _tEsp = infs.filter(i => i.fecha_estudio && i.campos?.fecha_solicitud)
+      .map(i => (new Date(i.fecha_estudio) - new Date(i.campos.fecha_solicitud)) / 86400000)
+      .filter(d => d >= 0 && d < 365);
+    const _Ne = _tEsp.length;
+    if (_Ne) {
+      y += 2;
+      doc.setFont(undefined, 'bold'); doc.setFontSize(9);
+      doc.text('Tiempo de espera solicitud -> estudio (dias)', M + 3, y);
+      doc.setFont(undefined, 'normal'); y += 5;
+      const _yTop = y;
+      const _lbls = ['<=10', '11-20', '21-30', '31-45', '46-60', '>60'];
+      _LAB_ESPERA_CATS.forEach((cat, i) => { const n = _tEsp.filter(cat[1]).length; addFila(_lbls[i] + ' dias', n + ' (' + Math.round(n/_Ne*100) + '%)'); });
+      const _img = await _labChartImg(_lbls, _LAB_ESPERA_CATS.map(cat => _tEsp.filter(cat[1]).length), _LAB_ESPERA_CATS.map(() => '#4f8ef7'));
+      if (_img) { const iw = 82, ih = iw * _img.ar; try { doc.addImage(_img.url, 'PNG', M + 96, _yTop - 1, iw, ih); } catch(e) {} y = Math.max(y, _yTop - 1 + ih); }
+      doc.setFontSize(7.5); doc.setFont(undefined, 'italic'); doc.setTextColor(120, 120, 120);
+      doc.splitTextToSize('Calculado sobre ' + _Ne + ' estudios con ambas fechas registradas. ' + (infs.length - _Ne) + ' estudios excluidos por falta de alguna de las fechas.', W - M * 2).forEach(line => { if (y > 288) { doc.addPage(); y = 20; } doc.text(line, M, y); y += 3.8; });
+      doc.setFont(undefined, 'normal'); doc.setTextColor(0, 0, 0);
+    }
     y += 4;
   }
 
@@ -17343,12 +17419,51 @@ window.labCompararRender = labCompararRender;
 window.labGenerarPDF = labGenerarPDF;
 
 // ── Filtros de Informes Guardados ──
+// Normaliza texto: minúsculas, sin tildes ni espacios extra (para filtros insensibles)
+function normTxt(s){ return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim(); }
+// Detecta la valvulopatía referida por el texto libre del filtro avanzado
+function _valvCategoria(norm){
+  if(/\beao?\b|estenosis aortica/.test(norm)) return 'ea';
+  if(/\bem\b|estenosis mitral/.test(norm)) return 'em';
+  if(/\biao\b|insuficiencia aortica/.test(norm)) return 'iao';   // IAo antes que IM
+  if(/\bim\b|insuficiencia mitral/.test(norm)) return 'im';
+  if(/\bit\b|insuficiencia tricuspidea|insuf.*tricusp/.test(norm)) return 'it';
+  if(/\bhtp\b|hipertension pulmonar/.test(norm)) return 'htp';
+  return null;
+}
+// ¿El estudio tiene documentada la valvulopatía (cualquier grado)? — por campo de grado o por texto
+function _tieneValv(inf, cat){
+  const c = inf.campos || {};
+  const txt = normTxt((c.informe_texto||'') + ' ' + (c.en_suma||''));
+  const eaG = String(c.ea_grado||'').toLowerCase(), emG = String(c.em_grado||'').toLowerCase();
+  switch(cat){
+    case 'ea':  return (eaG && eaG!=='sin' && eaG!=='esclerosis') || /estenosis aortica/.test(txt);
+    case 'em':  return (emG && emG!=='sin') || /estenosis mitral/.test(txt);
+    case 'im':  { const g=_labRegurgSev(inf,'im_grado'); return (g && g!=='Sin') || /insuficiencia mitral|regurgitacion mitral/.test(txt); }
+    case 'iao': { const g=_labRegurgSev(inf,'ia_grado'); return (g && g!=='Sin') || /insuficiencia aortica|regurgitacion aortica/.test(txt); }
+    case 'it':  { const g=_labRegurgSev(inf,'it_grado'); return (g && g!=='Sin') || /insuficiencia tricuspidea|regurgitacion tricusp|insuf.*tricusp/.test(txt); }
+    case 'htp': { const p=_labPsap(inf); return (p!==null && p>35) || /hipertension pulmonar|\bhtp\b/.test(txt); }
+  }
+  return false;
+}
+
 function aplicarFiltros() {
   const filtroFevi   = document.getElementById('filtro-fevi')?.value || '';
   const filtroGeom   = document.getElementById('filtro-geom')?.value || '';
   const filtroDiast  = document.getElementById('filtro-diast')?.value || '';
   const filtroValv   = document.getElementById('filtro-valv')?.value || '';
   const filtroInt    = document.getElementById('filtro-interes')?.value || '';
+
+  // Filtros avanzados
+  const _av = id => { const v = document.getElementById(id)?.value; const n = parseFloat(String(v==null?'':v).replace(',','.')); return isNaN(n) ? null : n; };
+  const _on = id => !!document.getElementById(id)?.checked;
+  const advFeviLtOn = _on('adv-fevi-lt-on'), advFeviLt = _av('adv-fevi-lt');
+  const advFeviBtOn = _on('adv-fevi-bt-on'), advFeviBt1 = _av('adv-fevi-bt1'), advFeviBt2 = _av('adv-fevi-bt2');
+  const advFeviGtOn = _on('adv-fevi-gt-on'), advFeviGt = _av('adv-fevi-gt');
+  const advPsapGtOn = _on('adv-psap-gt-on'), advPsapGt = _av('adv-psap-gt');
+  const advTapseLtOn = _on('adv-tapse-lt-on'), advTapseLt = _av('adv-tapse-lt');
+  const advValvTxt = (document.getElementById('adv-valv-txt')?.value || '').trim();
+  const advValvNorm = normTxt(advValvTxt);
 
   const todos = getInformes();
 
@@ -17414,17 +17529,27 @@ function aplicarFiltros() {
       if (c.caso_interes !== '1') return false;
     }
 
+    // ── Filtros avanzados (acumulativos AND; usan accesores robustos fevi/psap/tapse) ──
+    if (advFeviLtOn && advFeviLt !== null) { const fv = _labFevi(inf); if (fv === null || !(fv < advFeviLt)) return false; }
+    if (advFeviBtOn && advFeviBt1 !== null && advFeviBt2 !== null) { const fv = _labFevi(inf); if (fv === null || !(fv >= advFeviBt1 && fv <= advFeviBt2)) return false; }
+    if (advFeviGtOn && advFeviGt !== null) { const fv = _labFevi(inf); if (fv === null || !(fv > advFeviGt)) return false; }
+    if (advPsapGtOn && advPsapGt !== null) { const p = _labPsap(inf); if (p === null || !(p > advPsapGt)) return false; }
+    if (advTapseLtOn && advTapseLt !== null) { const t = _labTapse(inf); if (t === null || !(t < advTapseLt)) return false; }
+    if (advValvTxt) {
+      const cat = _valvCategoria(advValvNorm);
+      if (cat) { if (!_tieneValv(inf, cat)) return false; }
+      else { const txt = normTxt((c.informe_texto||'') + ' ' + (c.en_suma||'')); if (!advValvNorm || !txt.includes(advValvNorm)) return false; }
+    }
+
     return true;
   });
 
   // Actualizar contador
   const resEl = document.getElementById('filtro-resultado');
-  const hayFiltros = filtroFevi || filtroGeom || filtroDiast ||
-                     filtroValv || filtroInt;
+  const hayFiltros = filtroFevi || filtroGeom || filtroDiast || filtroValv || filtroInt
+    || advFeviLtOn || advFeviBtOn || advFeviGtOn || advPsapGtOn || advTapseLtOn || advValvTxt;
   if (resEl) {
-    resEl.textContent = hayFiltros
-      ? `Mostrando ${filtrados.length} de ${todos.length} informes`
-      : '';
+    resEl.textContent = hayFiltros ? `${filtrados.length} estudios encontrados` : '';
   }
 
   // Renderizar lista filtrada
@@ -17433,9 +17558,16 @@ function aplicarFiltros() {
 
 function limpiarFiltros() {
   ['filtro-fevi','filtro-geom','filtro-diast',
-   'filtro-valv','filtro-interes'].forEach(id => {
+   'filtro-valv','filtro-interes',
+   'adv-fevi-lt','adv-fevi-bt1','adv-fevi-bt2','adv-fevi-gt',
+   'adv-psap-gt','adv-tapse-lt','adv-valv-txt'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
+  });
+  ['adv-fevi-lt-on','adv-fevi-bt-on','adv-fevi-gt-on',
+   'adv-psap-gt-on','adv-tapse-lt-on'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.checked = false;
   });
   const resEl = document.getElementById('filtro-resultado');
   if (resEl) resEl.textContent = '';
