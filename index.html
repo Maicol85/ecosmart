@@ -8333,19 +8333,6 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 </div><!-- /#tab-amiloidosis -->
 
 
-<div id="modal-pdf-import" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:600;overflow:auto;padding:20px;">
-  <div style="max-width:520px;margin:60px auto;background:var(--bg2);border-radius:14px;padding:22px;border:1px solid var(--border);">
-    <div style="font-size:15px;font-weight:700;color:var(--accent2);margin-bottom:16px;">📄 Importando PDFs históricos</div>
-    <div style="font-size:11.5px;color:var(--text2);background:rgba(0,0,0,.06);border-radius:8px;padding:9px 11px;margin-bottom:16px;line-height:1.45;">
-      🔒 Las imágenes se procesan en la nube (Anthropic) para extraer los datos. No se almacenan.
-    </div>
-    <progress id="pdf-import-progress" value="0" max="100" style="width:100%;height:14px;"></progress>
-    <div id="pdf-import-status" style="font-size:13px;color:var(--text2);margin-top:12px;line-height:1.5;">Preparando…</div>
-    <div style="text-align:right;margin-top:18px;">
-      <button id="pdf-import-close" class="btn btn-ghost" onclick="document.getElementById('modal-pdf-import').style.display='none';" style="display:none;">Cerrar</button>
-    </div>
-  </div>
-</div>
 <div id="modal-comparativo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:500;overflow:auto;padding:20px;">
   <div style="max-width:1400px;margin:0 auto;background:var(--bg2);border-radius:14px;padding:20px;border:1px solid var(--border);">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
@@ -16978,7 +16965,7 @@ document.addEventListener('click',function(e){
     if(btn) btn.click();
   });
 
-  var STATIC_MODALS=['modal-pdf-import','modal-comparativo','modal-evolucion','modal-logo-gallery'];
+  var STATIC_MODALS=['modal-comparativo','modal-evolucion','modal-logo-gallery'];
   function watchStatic(){
     STATIC_MODALS.forEach(function(id){
       var m=document.getElementById(id); if(!m) return;
