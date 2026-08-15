@@ -14566,46 +14566,147 @@ function exportarEcoAnalytics() {
   toast('✅ ' + estudios.length + ' estudios exportados para Analytics');
 }
 
+// ══════════════ EXPORT de estudios — modal con opciones ══════════════
+// (no toca la lógica de informes ni de laboratorio; solo filtra qué se exporta)
 function exportarInformesJSON() {
   const informes = getInformes();
-  if (informes.length === 0) { toast('⚠️ No hay informes para exportar'); return; }
+  if (!informes.length) { toast('⚠️ No hay informes para exportar'); return; }
+  document.getElementById('exp-n-todos').textContent = informes.length;
+  const rTodos = document.querySelector('input[name="exp-modo"][value="todos"]'); if (rTodos) rTodos.checked = true;
+  // selector de centros (únicos en los estudios) + "Sin centro"
+  const centros = (typeof _labCentrosUnicos === 'function') ? _labCentrosUnicos() : [];
+  const selC = document.getElementById('exp-centro');
+  if (selC) selC.innerHTML = centros.map(([norm, disp]) => '<option value="' + escHtml(norm) + '">' + escHtml(disp) + '</option>').join('') + '<option value="__none__">Sin centro identificado</option>';
+  // lista de selección manual
+  const lst = document.getElementById('exp-sel-list');
+  if (lst) lst.innerHTML = informes.map(i => {
+    const centro = (i.campos && i.campos.centro_nombre) ? i.campos.centro_nombre : '—';
+    return '<label class="eio-row"><input type="checkbox" class="exp-sel-item" value="' + escHtml(String(i.id)) + '" style="width:auto;"> ' +
+      '<span class="rn">' + escHtml(i.nombre || '—') + '</span>' +
+      '<span class="rf">' + escHtml(i.fecha_estudio || '—') + '</span>' +
+      '<span class="rc">' + escHtml(centro) + '</span></label>';
+  }).join('');
+  const selAll = document.getElementById('exp-sel-all'); if (selAll) selAll.checked = false;
+  exportModoChange();
+  document.getElementById('modal-export').classList.add('show');
+}
+function exportCerrar() { document.getElementById('modal-export').classList.remove('show'); }
+function exportModoChange() {
+  const modo = document.querySelector('input[name="exp-modo"]:checked')?.value || 'todos';
+  const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
+  show('exp-rango-box', modo === 'rango');
+  show('exp-centro-box', modo === 'centro');
+  show('exp-sel-box', modo === 'seleccion');
+  if (modo === 'rango') exportRangoCount();
+  if (modo === 'centro') exportCentroCount();
+}
+function _expFiltrados() {
+  const informes = getInformes();
+  const modo = document.querySelector('input[name="exp-modo"]:checked')?.value || 'todos';
+  if (modo === 'todos') return { list: informes, desc: 'todos' };
+  if (modo === 'rango') {
+    const d = document.getElementById('exp-desde').value, h = document.getElementById('exp-hasta').value;
+    const list = informes.filter(i => { const f = i.fecha_estudio || ''; if (!f) return false; if (d && f < d) return false; if (h && f > h) return false; return true; });
+    return { list, desc: (d || 'inicio') + '_a_' + (h || 'fin') };
+  }
+  if (modo === 'centro') {
+    const sel = document.getElementById('exp-centro'); const val = sel.value;
+    const disp = sel.selectedOptions[0]?.textContent || val;
+    const list = informes.filter(i => { const t = String((i.campos && i.campos.centro_nombre) == null ? '' : i.campos.centro_nombre).trim(); if (val === '__none__') return !t; return t.toLowerCase() === val.toLowerCase(); });
+    return { list, desc: (val === '__none__' ? 'sin_centro' : disp) };
+  }
+  const ids = new Set([...document.querySelectorAll('.exp-sel-item:checked')].map(c => c.value));
+  return { list: informes.filter(i => ids.has(String(i.id))), desc: 'seleccion' };
+}
+function exportRangoCount() { const el = document.getElementById('exp-rango-count'); if (el) el.textContent = _expFiltrados().list.length + ' estudios en el rango'; }
+function exportCentroCount() { const el = document.getElementById('exp-centro-count'); if (el) el.textContent = _expFiltrados().list.length + ' estudios en el centro'; }
+function exportSelAll(el) { document.querySelectorAll('.exp-sel-item').forEach(c => c.checked = el.checked); }
+function _sanitizeFN(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'export'; }
+function exportEjecutar() {
+  const { list, desc } = _expFiltrados();
+  if (!list.length) { toast('⚠️ No hay estudios que coincidan con la selección'); return; }
   const fecha = new Date().toISOString().split('T')[0];
-  const blob = new Blob([JSON.stringify(informes, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(list, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'ecosmart_backup_' + fecha + '.json';
+  a.download = 'ecosmart_' + fecha + '_' + _sanitizeFN(desc) + '.json';
   a.click();
   URL.revokeObjectURL(a.href);
-  toast('✅ ' + informes.length + ' informes exportados');
+  exportCerrar();
+  toast('✅ ' + list.length + ' estudios exportados');
 }
+window.exportarInformesJSON = exportarInformesJSON; window.exportCerrar = exportCerrar; window.exportModoChange = exportModoChange;
+window.exportRangoCount = exportRangoCount; window.exportCentroCount = exportCentroCount; window.exportSelAll = exportSelAll; window.exportEjecutar = exportEjecutar;
 
+// ══════════════ IMPORT de estudios — preview + manejo de duplicados ══════════════
+let _impDatos = null;   // estudios validados del archivo, en espera de confirmación
+function _dupKey(i) { return String(i.nombre || '').trim().toLowerCase() + '|' + String(i.fecha_estudio || '').trim(); }
 function importarInformesJSON(file) {
   const reader = new FileReader();
   reader.onload = function(e) {
-    try {
-      const nuevos = JSON.parse(e.target.result);
-      if (!Array.isArray(nuevos)) { toast('❌ Archivo inválido'); return; }
-      // FIX A2: validación de esquema — rechazar el archivo completo si algún registro no valida
-      const invalido = nuevos.findIndex(inf => !validarInformeImportado(inf));
-      if (invalido !== -1) {
-        toast('❌ Archivo rechazado: el informe #' + (invalido + 1) + ' tiene un formato inválido');
-        return;
-      }
-      const existentes = getInformes();
-      const idsExistentes = new Set(existentes.map(i => i.id));
-      const sinDuplicados = nuevos.filter(i => !idsExistentes.has(i.id));
-      const merged = [...existentes, ...sinDuplicados];
-      localStorage.setItem('ett_informes', JSON.stringify(merged));
-      toast('✅ ' + sinDuplicados.length + ' informes importados (' + (nuevos.length - sinDuplicados.length) + ' duplicados omitidos)');
-      if (typeof renderInformes === 'function') renderInformes();
-      else if (typeof renderInformesGuardados === 'function') renderInformesGuardados();
-      else if (typeof cargarInformes === 'function') cargarInformes();
-    } catch(err) {
-      toast('❌ Error al leer el archivo JSON');
-    }
+    let nuevos;
+    try { nuevos = JSON.parse(e.target.result); } catch(err) { toast('❌ Error al leer el archivo JSON'); return; }
+    if (!Array.isArray(nuevos)) { toast('❌ Archivo inválido'); return; }
+    const invalido = nuevos.findIndex(inf => !validarInformeImportado(inf));
+    if (invalido !== -1) { toast('❌ Archivo rechazado: el estudio #' + (invalido + 1) + ' tiene un formato inválido'); return; }
+    if (!nuevos.length) { toast('⚠️ El archivo no contiene estudios'); return; }
+    _impDatos = nuevos;
+    const existentes = getInformes();
+    const keysExist = new Set(existentes.map(_dupKey));
+    const dups = nuevos.filter(i => keysExist.has(_dupKey(i))).length;
+    document.getElementById('imp-info').innerHTML =
+      'Se encontraron <strong>' + nuevos.length + '</strong> estudios en el archivo.<br>' +
+      'Ya tenés <strong>' + existentes.length + '</strong> estudios guardados.' +
+      (dups ? '<br><span style="color:var(--warn,#e0a800);">' + dups + ' coinciden con estudios existentes (duplicados).</span>' : '<br><span style="color:var(--text2)">Sin duplicados detectados.</span>');
+    const prev = nuevos.slice(0, 10).map(i => {
+      const centro = (i.campos && i.campos.centro_nombre) ? i.campos.centro_nombre : '—';
+      const esDup = keysExist.has(_dupKey(i));
+      return '<div class="eio-row"><span class="rn">' + escHtml(i.nombre || '—') + (esDup ? ' <span class="eio-dup">DUP</span>' : '') + '</span>' +
+        '<span class="rf">' + escHtml(i.fecha_estudio || '—') + '</span><span class="rc">' + escHtml(centro) + '</span></div>';
+    }).join('');
+    const resto = nuevos.length - 10;
+    document.getElementById('imp-preview').innerHTML = prev + (resto > 0 ? '<div style="text-align:center;color:var(--text2);font-size:11px;padding:6px;">…y ' + resto + ' más</div>' : '');
+    document.querySelector('input[name="imp-dup"][value="omitir"]').checked = true;
+    document.getElementById('imp-btn').textContent = 'Importar ' + nuevos.length + ' estudios';
+    document.getElementById('modal-import').classList.add('show');
   };
   reader.readAsText(file);
 }
+function importCerrar() { document.getElementById('modal-import').classList.remove('show'); _impDatos = null; }
+function _nuevoIdUnico(usados) { let id; do { id = Date.now() + Math.floor(Math.random() * 1000000); } while (usados.has(id)); usados.add(id); return id; }
+function importEjecutar() {
+  if (!_impDatos) { importCerrar(); return; }
+  const modo = document.querySelector('input[name="imp-dup"]:checked')?.value || 'omitir';
+  let existentes = getInformes();
+  const usados = new Set(existentes.map(i => i.id));
+  const keyToIdx = new Map(); existentes.forEach((i, idx) => keyToIdx.set(_dupKey(i), idx));
+  let importados = 0, omitidos = 0, sobreescritos = 0;
+  _impDatos.forEach(inf => {
+    const k = _dupKey(inf);
+    const esDup = keyToIdx.has(k);
+    if (esDup && modo === 'omitir') { omitidos++; return; }
+    if (esDup && modo === 'sobre') {
+      const idx = keyToIdx.get(k);
+      existentes[idx] = { ...inf, id: existentes[idx].id };   // conserva el id existente (no rompe referencias)
+      sobreescritos++; return;
+    }
+    // 'todos' o no-duplicado → agregar con id único
+    let nid = inf.id;
+    if (nid == null || usados.has(nid)) nid = _nuevoIdUnico(usados); else usados.add(nid);
+    existentes.push({ ...inf, id: nid });
+    keyToIdx.set(k, existentes.length - 1);
+    importados++;
+  });
+  const ok = (typeof guardarInformesSeguro === 'function') ? guardarInformesSeguro(existentes) : (localStorage.setItem('ett_informes', JSON.stringify(existentes)), true);
+  importCerrar();
+  if (ok === false) return;
+  if (typeof renderInformesGuardados === 'function') renderInformesGuardados();
+  let msg = '✅ Importados: ' + (importados + sobreescritos);
+  if (sobreescritos) msg += ' · Sobreescritos: ' + sobreescritos;
+  if (omitidos) msg += ' · Omitidos: ' + omitidos + ' duplicados';
+  toast(msg);
+}
+window.importarInformesJSON = importarInformesJSON; window.importCerrar = importCerrar; window.importEjecutar = importEjecutar;
 
 // ── Amiloidosis Calculator ──
 var gradoGamma = null;
@@ -19608,6 +19709,76 @@ window.abrirAyudaEco=abrirAyudaEco;window.cerrarAyudaEco=cerrarAyudaEco;window.r
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
 </script>
+
+<!-- ═══════ Modales Export / Import de estudios (Guardados) ═══════ -->
+<style>
+  .eio-ov{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99998;display:none;align-items:center;justify-content:center;padding:20px;}
+  .eio-ov.show{display:flex;}
+  .eio-modal{background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:540px;width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,0.5);}
+  .eio-h{font-size:15px;font-weight:700;color:var(--accent2);padding:18px 20px 8px;}
+  .eio-b{padding:8px 20px 4px;overflow:auto;font-size:13px;color:var(--text);}
+  .eio-f{display:flex;gap:8px;justify-content:flex-end;padding:14px 20px;border-top:1px solid var(--border);margin-top:8px;}
+  .eio-opt{display:flex;align-items:center;gap:9px;padding:9px 0;cursor:pointer;color:var(--text);font-size:13px;}
+  .eio-opt input{width:auto;cursor:pointer;flex-shrink:0;}
+  .eio-sub{padding:2px 0 10px 26px;}
+  .eio-sub input[type=date]{width:auto;}
+  .eio-note{font-size:11px;color:var(--text2);margin-top:4px;}
+  .eio-list{max-height:220px;overflow:auto;border:1px solid var(--border);border-radius:8px;padding:6px;margin-top:6px;}
+  .eio-row{display:flex;align-items:center;gap:8px;padding:5px 6px;font-size:12px;border-bottom:1px solid var(--border);}
+  .eio-row:last-child{border-bottom:none;}
+  .eio-row .rn{flex:1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .eio-row .rf,.eio-row .rc{color:var(--text2);white-space:nowrap;}
+  .eio-row .rc{max-width:130px;overflow:hidden;text-overflow:ellipsis;}
+  .eio-dup{color:var(--warn,#e0a800);font-size:10px;font-weight:700;}
+</style>
+
+<div id="modal-export" class="eio-ov">
+  <div class="eio-modal">
+    <div class="eio-h">📤 Exportar estudios</div>
+    <div class="eio-b">
+      <label class="eio-opt"><input type="radio" name="exp-modo" value="todos" checked onchange="exportModoChange()"> Todos los estudios (n=<span id="exp-n-todos">0</span>)</label>
+      <label class="eio-opt"><input type="radio" name="exp-modo" value="rango" onchange="exportModoChange()"> Por rango de fechas</label>
+      <div class="eio-sub" id="exp-rango-box" style="display:none;">
+        <span style="color:var(--text2);font-size:12px;">Desde</span> <input type="date" id="exp-desde" onchange="exportRangoCount()">
+        <span style="color:var(--text2);font-size:12px;">Hasta</span> <input type="date" id="exp-hasta" onchange="exportRangoCount()">
+        <div class="eio-note" id="exp-rango-count"></div>
+      </div>
+      <label class="eio-opt"><input type="radio" name="exp-modo" value="centro" onchange="exportModoChange()"> Por centro</label>
+      <div class="eio-sub" id="exp-centro-box" style="display:none;">
+        <select id="exp-centro" onchange="exportCentroCount()" style="max-width:100%;"></select>
+        <div class="eio-note" id="exp-centro-count"></div>
+      </div>
+      <label class="eio-opt"><input type="radio" name="exp-modo" value="seleccion" onchange="exportModoChange()"> Selección manual</label>
+      <div class="eio-sub" id="exp-sel-box" style="display:none;padding-right:0;">
+        <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2);cursor:pointer;"><input type="checkbox" id="exp-sel-all" onchange="exportSelAll(this)" style="width:auto;"> Seleccionar / deseleccionar todos</label>
+        <div class="eio-list" id="exp-sel-list"></div>
+      </div>
+    </div>
+    <div class="eio-f">
+      <button class="btn btn-ghost" onclick="exportCerrar()">Cancelar</button>
+      <button class="btn btn-primary" onclick="exportEjecutar()">Exportar</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-import" class="eio-ov">
+  <div class="eio-modal">
+    <div class="eio-h">📥 Importar estudios</div>
+    <div class="eio-b">
+      <div id="imp-info" style="font-size:13px;line-height:1.6;margin-bottom:10px;"></div>
+      <div style="font-weight:600;font-size:12.5px;margin-bottom:2px;">¿Qué hacer con los duplicados? <span style="font-weight:400;color:var(--text2);font-size:11px;">(mismo nombre + misma fecha)</span></div>
+      <label class="eio-opt"><input type="radio" name="imp-dup" value="omitir" checked> Omitir duplicados <span style="color:var(--text2);font-size:11px;">(recomendado)</span></label>
+      <label class="eio-opt"><input type="radio" name="imp-dup" value="sobre"> Sobreescribir con los del archivo</label>
+      <label class="eio-opt"><input type="radio" name="imp-dup" value="todos"> Importar todos igual <span style="color:var(--text2);font-size:11px;">(puede duplicar)</span></label>
+      <div style="font-weight:600;font-size:12.5px;margin-top:12px;">Estudios en el archivo</div>
+      <div class="eio-list" id="imp-preview"></div>
+    </div>
+    <div class="eio-f">
+      <button class="btn btn-ghost" onclick="importCerrar()">Cancelar</button>
+      <button class="btn btn-primary" id="imp-btn" onclick="importEjecutar()">Importar</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
