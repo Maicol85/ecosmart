@@ -7976,28 +7976,46 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     <div class="card">
       <h2 class="card-head">📋 Informes Guardados</h2>
       <div class="card-body">
-        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
-          <input type="text" id="ig-buscar" placeholder="🔍 Buscar por nombre o documento..." oninput="filtrarInformes()" style="flex:1;">
+        <!-- Acciones de datos (no son filtros) -->
+        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
           <button class="btn" onclick="exportarInformesJSON()" title="Exportar todos los informes a JSON">📤 Exportar JSON</button>
           <button class="btn" onclick="document.getElementById('ig-import-file').click()" title="Importar informes desde un archivo JSON">📥 Importar JSON</button>
           <input type="file" id="ig-import-file" accept=".json,application/json" style="display:none" onchange="if(this.files&&this.files[0]){importarInformesJSON(this.files[0]);this.value='';}">
           <button class="btn btn-danger" onclick="limpiarTodosInformes()" title="Eliminar todos los informes">🗑️ Eliminar todos</button>
         </div>
-        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap;">
-          <span style="font-size:12px;color:var(--text2);font-weight:600;">📅 Fecha estudio:</span>
-          <label style="font-size:12px;color:var(--text2);">Desde</label>
-          <input type="date" id="ig-fecha-desde" onchange="filtrarInformes()" style="width:auto;">
-          <label style="font-size:12px;color:var(--text2);">Hasta</label>
-          <input type="date" id="ig-fecha-hasta" onchange="filtrarInformes()" style="width:auto;">
-          <button class="btn btn-ghost" onclick="limpiarFiltroFechas()" title="Mostrar todos los informes">🧹 Limpiar filtro</button>
-        </div>
-        <div class="card" style="margin-bottom:12px;">
-          <div class="card-body">
-            <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px;">
-              🔍 Filtrar informes
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
 
+        <!-- FILA COMPACTA SIEMPRE VISIBLE: buscador · fechas · casos de interés · limpiar -->
+        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;">
+          <div class="fg" style="margin:0;flex:1;min-width:180px;">
+            <label style="font-size:.72rem;">Buscar paciente</label>
+            <input type="text" id="ig-buscar" placeholder="🔍 Nombre o documento..." oninput="filtrarInformes()">
+          </div>
+          <div class="fg" style="margin:0;">
+            <label style="font-size:.72rem;">Fecha desde</label>
+            <input type="date" id="ig-fecha-desde" onchange="filtrarInformes()" style="width:auto;">
+          </div>
+          <div class="fg" style="margin:0;">
+            <label style="font-size:.72rem;">Fecha hasta</label>
+            <input type="date" id="ig-fecha-hasta" onchange="filtrarInformes()" style="width:auto;">
+          </div>
+          <div class="fg" style="margin:0;min-width:130px;">
+            <label style="font-size:.72rem;">Casos de interés</label>
+            <select id="filtro-interes" onchange="aplicarFiltros()">
+              <option value="">Todos</option>
+              <option value="si">Solo interés</option>
+            </select>
+          </div>
+          <button class="btn btn-ghost" onclick="limpiarFiltros();limpiarFiltroFechas();" style="margin-bottom:1px;">🧹 Limpiar filtros</button>
+        </div>
+
+        <!-- ACORDEÓN 1 — Filtros clínicos (colapsado por defecto) -->
+        <div style="border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden;">
+          <button type="button" onclick="igToggleAcc('ig-acc-clinicos',this)" aria-expanded="false" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--bg3);border:none;color:var(--text);font-family:inherit;font-size:.82rem;font-weight:700;padding:10px 14px;cursor:pointer;">
+            <span>🩺 Filtros clínicos</span>
+            <span class="igacc-chev" style="font-size:.7rem;">▶</span>
+          </button>
+          <div id="ig-acc-clinicos" style="display:none;padding:14px;">
+            <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;">
               <div class="fg" style="margin:0;min-width:120px;">
                 <label style="font-size:.72rem;">FEVI</label>
                 <select id="filtro-fevi" onchange="aplicarFiltros()">
@@ -8008,7 +8026,6 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
                   <option value="gte50">≥ 50%</option>
                 </select>
               </div>
-
               <div class="fg" style="margin:0;min-width:150px;">
                 <label style="font-size:.72rem;">Geometría VI</label>
                 <select id="filtro-geom" onchange="aplicarFiltros()">
@@ -8019,7 +8036,6 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
                   <option value="remod">Remodelado concéntrico</option>
                 </select>
               </div>
-
               <div class="fg" style="margin:0;min-width:150px;">
                 <label style="font-size:.72rem;">Función diastólica</label>
                 <select id="filtro-diast" onchange="aplicarFiltros()">
@@ -8031,9 +8047,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
                   <option value="elevada">Presión elevada</option>
                 </select>
               </div>
-
               <div class="fg" style="margin:0;min-width:140px;">
-                <label style="font-size:.72rem;">Valvulopatía</label>
+                <label style="font-size:.72rem;">Valvulopatía (lista)</label>
                 <select id="filtro-valv" onchange="aplicarFiltros()">
                   <option value="">Todas</option>
                   <option value="ia">Insuf. aórtica</option>
@@ -8043,49 +8058,41 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
                   <option value="htp">HTP</option>
                 </select>
               </div>
-
-              <div class="fg" style="margin:0;">
-                <label style="font-size:.72rem;">Casos de interés</label>
-                <select id="filtro-interes" onchange="aplicarFiltros()">
-                  <option value="">Todos</option>
-                  <option value="si">Solo casos de interés</option>
-                </select>
-              </div>
-
-              <button class="btn btn-ghost" onclick="limpiarFiltros()" style="margin-bottom:1px;">
-                🧹 Limpiar filtros
-              </button>
-
-            </div>
-
-            <!-- Filtros avanzados -->
-            <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px;">
-              <div style="font-size:.72rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Filtros avanzados</div>
-              <div style="display:flex;flex-wrap:wrap;gap:14px 24px;align-items:flex-start;font-size:.82rem;">
-                <div>
-                  <div style="font-weight:600;color:var(--text2);margin-bottom:5px;">FEVI (%)</div>
-                  <label class="chk-lab" style="margin-bottom:4px;"><input type="checkbox" id="adv-fevi-lt-on" onchange="aplicarFiltros()"> Menor a <input type="number" id="adv-fevi-lt" oninput="aplicarFiltros()" style="width:56px;"> %</label>
-                  <label class="chk-lab" style="margin-bottom:4px;"><input type="checkbox" id="adv-fevi-bt-on" onchange="aplicarFiltros()"> Entre <input type="number" id="adv-fevi-bt1" oninput="aplicarFiltros()" style="width:52px;"> y <input type="number" id="adv-fevi-bt2" oninput="aplicarFiltros()" style="width:52px;"> %</label>
-                  <label class="chk-lab"><input type="checkbox" id="adv-fevi-gt-on" onchange="aplicarFiltros()"> Mayor a <input type="number" id="adv-fevi-gt" oninput="aplicarFiltros()" style="width:56px;"> %</label>
-                </div>
-                <div>
-                  <div style="font-weight:600;color:var(--text2);margin-bottom:5px;">PSAP (mmHg)</div>
-                  <label class="chk-lab"><input type="checkbox" id="adv-psap-gt-on" onchange="aplicarFiltros()"> Mayor a <input type="number" id="adv-psap-gt" oninput="aplicarFiltros()" style="width:56px;"> mmHg</label>
-                </div>
-                <div>
-                  <div style="font-weight:600;color:var(--text2);margin-bottom:5px;">TAPSE (mm)</div>
-                  <label class="chk-lab"><input type="checkbox" id="adv-tapse-lt-on" onchange="aplicarFiltros()"> Menor a <input type="number" id="adv-tapse-lt" oninput="aplicarFiltros()" style="width:56px;"> mm</label>
-                </div>
-                <div>
-                  <div style="font-weight:600;color:var(--text2);margin-bottom:5px;">Valvulopatía (texto)</div>
-                  <input type="text" id="adv-valv-txt" oninput="aplicarFiltros()" placeholder="Ej: EA, EAo, IM, HTP…" style="width:190px;">
-                </div>
+              <div class="fg" style="margin:0;min-width:190px;">
+                <label style="font-size:.72rem;">Valvulopatía (texto libre)</label>
+                <input type="text" id="adv-valv-txt" oninput="aplicarFiltros()" placeholder="Ej: EA, EAo, IM, HTP…">
               </div>
             </div>
-
-            <div id="filtro-resultado" style="font-size:.82rem;font-weight:600;color:var(--text2);margin-top:10px;"></div>
           </div>
         </div>
+
+        <!-- ACORDEÓN 2 — Filtros numéricos (colapsado por defecto) -->
+        <div style="border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden;">
+          <button type="button" onclick="igToggleAcc('ig-acc-numericos',this)" aria-expanded="false" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--bg3);border:none;color:var(--text);font-family:inherit;font-size:.82rem;font-weight:700;padding:10px 14px;cursor:pointer;">
+            <span>🔢 Filtros numéricos</span>
+            <span class="igacc-chev" style="font-size:.7rem;">▶</span>
+          </button>
+          <div id="ig-acc-numericos" style="display:none;padding:14px;">
+            <div style="display:flex;flex-wrap:wrap;gap:14px 24px;align-items:flex-start;font-size:.82rem;">
+              <div>
+                <div style="font-weight:600;color:var(--text2);margin-bottom:5px;">FEVI (%)</div>
+                <label class="chk-lab" style="margin-bottom:4px;"><input type="checkbox" id="adv-fevi-lt-on" onchange="aplicarFiltros()"> Menor a <input type="number" id="adv-fevi-lt" oninput="aplicarFiltros()" style="width:56px;"> %</label>
+                <label class="chk-lab" style="margin-bottom:4px;"><input type="checkbox" id="adv-fevi-bt-on" onchange="aplicarFiltros()"> Entre <input type="number" id="adv-fevi-bt1" oninput="aplicarFiltros()" style="width:52px;"> y <input type="number" id="adv-fevi-bt2" oninput="aplicarFiltros()" style="width:52px;"> %</label>
+                <label class="chk-lab"><input type="checkbox" id="adv-fevi-gt-on" onchange="aplicarFiltros()"> Mayor a <input type="number" id="adv-fevi-gt" oninput="aplicarFiltros()" style="width:56px;"> %</label>
+              </div>
+              <div>
+                <div style="font-weight:600;color:var(--text2);margin-bottom:5px;">PSAP (mmHg)</div>
+                <label class="chk-lab"><input type="checkbox" id="adv-psap-gt-on" onchange="aplicarFiltros()"> Mayor a <input type="number" id="adv-psap-gt" oninput="aplicarFiltros()" style="width:56px;"> mmHg</label>
+              </div>
+              <div>
+                <div style="font-weight:600;color:var(--text2);margin-bottom:5px;">TAPSE (mm)</div>
+                <label class="chk-lab"><input type="checkbox" id="adv-tapse-lt-on" onchange="aplicarFiltros()"> Menor a <input type="number" id="adv-tapse-lt" oninput="aplicarFiltros()" style="width:56px;"> mm</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="filtro-resultado" style="font-size:.82rem;font-weight:600;color:var(--text2);margin:6px 0 12px;"></div>
         <div id="ig-lista"></div>
         <div id="ig-vacio" style="display:none;">
           <div class="ig-empty">
@@ -18422,6 +18429,18 @@ function limpiarFiltros() {
   const todos = getInformes();
   renderizarListaFiltrada(todos);
 }
+
+// Acordeones de filtros de Guardados — display none/block (NO max-height, evita bug Safari con checkboxes)
+function igToggleAcc(id, btn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const abrir = (el.style.display === 'none' || el.style.display === '');
+  el.style.display = abrir ? 'block' : 'none';
+  const chev = btn && btn.querySelector('.igacc-chev');
+  if (chev) chev.textContent = abrir ? '▼' : '▶';
+  if (btn) btn.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+}
+window.igToggleAcc = igToggleAcc;
 
 function renderizarListaFiltrada(lista) {
   window._ettInformesFiltrados = lista;
