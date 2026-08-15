@@ -8489,7 +8489,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   #tab-lab .lab-table th{background:var(--bg3);color:var(--text2);padding:7px 10px;text-align:left;font-weight:600;border-bottom:1px solid var(--border);}
   #tab-lab .lab-table td{padding:7px 10px;border-bottom:1px solid var(--border);}
   #tab-lab .lab-table tr:last-child td{border-bottom:none;}
-  #tab-lab .lab-subtab{padding:8px 16px;font-size:.8rem;font-weight:600;cursor:pointer;color:var(--text2);border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;transition:.15s;font-family:inherit;}
+  #tab-lab .lab-subtab{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;font-size:.8rem;font-weight:600;cursor:pointer;color:var(--text2);border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;transition:.15s;font-family:inherit;}
+  #tab-lab .lab-subtab svg{width:15px;height:15px;flex-shrink:0;stroke:currentColor;}
   #tab-lab .lab-subtab.active{color:var(--accent);border-bottom-color:var(--accent);}
   #tab-lab .lab-subtab:hover:not(.active){color:var(--text);}
   #tab-lab .lab-subpanel{display:none;}
@@ -8510,10 +8511,12 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 </style>
 
   <div style="display:flex;flex-wrap:wrap;border-bottom:2px solid var(--border);margin-bottom:16px;">
-    <button class="lab-subtab active" onclick="labSubTab('general',this)">📈 General</button>
-    <button class="lab-subtab" onclick="labSubTab('medicos',this)">👨‍⚕️ Por Médico</button>
-    <button class="lab-subtab" onclick="labSubTab('comparar',this)">🔀 Comparar Períodos</button>
-    <button class="lab-subtab" onclick="labSubTab('informe',this)">📄 Informe PDF</button>
+    <button class="lab-subtab active" onclick="labSubTab('general',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="14"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="10"/><line x1="3" y1="20" x2="21" y2="20"/></svg>General</button>
+    <button class="lab-subtab" onclick="labSubTab('mediciones',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21C12 21 4 14 4 8.5A4.5 4.5 0 0 1 12 6 4.5 4.5 0 0 1 20 8.5C20 14 12 21 12 21Z"/><path d="M6 12H9L10.5 9L13 15L14.5 12H18"/></svg>Mediciones</button>
+    <button class="lab-subtab" onclick="labSubTab('calidad',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 14l2 2 4-4"/></svg>Calidad</button>
+    <button class="lab-subtab" onclick="labSubTab('medicos',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Por médico</button>
+    <button class="lab-subtab" onclick="labSubTab('comparar',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>Comparar períodos</button>
+    <button class="lab-subtab" onclick="labSubTab('informe',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>Informe PDF</button>
   </div>
 
   <div id="lab-sub-general" class="lab-subpanel active">
@@ -8703,6 +8706,28 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
+  <!-- SECCIÓN E: INDICACIONES -->
+  <div class="lab-card">
+    <div class="lab-card-hdr">📋 Indicaciones del estudio</div>
+    <div class="lab-card-body">
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Frecuencia por indicación (sobre el total de estudios del período).</div>
+      <div class="lab-bar-wrap" id="lab-indicaciones-freq"></div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN F: ANTECEDENTES -->
+  <div class="lab-card">
+    <div class="lab-card-hdr">🩺 Antecedentes</div>
+    <div class="lab-card-body">
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Frecuencia por antecedente (sobre el total de estudios del período).</div>
+      <div class="lab-bar-wrap" id="lab-antecedentes-freq"></div>
+    </div>
+  </div>
+
+  </div><!-- /lab-sub-general -->
+
+  <div id="lab-sub-mediciones" class="lab-subpanel">
+
   <!-- SECCIÓN B: FUNCIÓN SISTÓLICA Y DIASTÓLICA -->
   <div class="lab-card">
     <div class="lab-card-hdr">📊 Función sistólica y diastólica</div>
@@ -8763,23 +8788,9 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
-  <!-- SECCIÓN E: INDICACIONES -->
-  <div class="lab-card">
-    <div class="lab-card-hdr">📋 Indicaciones del estudio</div>
-    <div class="lab-card-body">
-      <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Frecuencia por indicación (sobre el total de estudios del período).</div>
-      <div class="lab-bar-wrap" id="lab-indicaciones-freq"></div>
-    </div>
-  </div>
+  </div><!-- /lab-sub-mediciones -->
 
-  <!-- SECCIÓN F: ANTECEDENTES -->
-  <div class="lab-card">
-    <div class="lab-card-hdr">🩺 Antecedentes</div>
-    <div class="lab-card-body">
-      <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Frecuencia por antecedente (sobre el total de estudios del período).</div>
-      <div class="lab-bar-wrap" id="lab-antecedentes-freq"></div>
-    </div>
-  </div>
+  <div id="lab-sub-calidad" class="lab-subpanel">
 
   <!-- PILAR 3: CALIDAD DEL LABORATORIO -->
   <div class="lab-card">
@@ -8824,7 +8835,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
-  </div><!-- /lab-sub-general -->
+  </div><!-- /lab-sub-calidad -->
 
 <div id="lab-sub-medicos" class="lab-subpanel">
   <div class="lab-card">
@@ -17271,7 +17282,21 @@ async function _labHeartPng() {
   return cv.toDataURL('image/png');
 }
 
-// ── Generar PDF de auditoría ──
+// ── Sanitizador global de texto para jsPDF (helvetica/WinAnsi no soporta tildes ni algunos símbolos) ──
+function _labSanPDF(s) {
+  if (s === null || s === undefined) return '';
+  return String(s)
+    .replace(/[áàäâã]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i')
+    .replace(/[óòöôõ]/g, 'o').replace(/[úùüû]/g, 'u')
+    .replace(/[ÁÀÄÂÃ]/g, 'A').replace(/[ÉÈËÊ]/g, 'E').replace(/[ÍÌÏÎ]/g, 'I')
+    .replace(/[ÓÒÖÔÕ]/g, 'O').replace(/[ÚÙÜÛ]/g, 'U')
+    .replace(/ñ/g, 'n').replace(/Ñ/g, 'N').replace(/ç/g, 'c').replace(/Ç/g, 'C')
+    .replace(/≤/g, '<=').replace(/≥/g, '>=').replace(/→/g, '->').replace(/[≈]/g, '~')
+    .replace(/[–—]/g, '-').replace(/[’‘]/g, "'").replace(/[“”]/g, '"').replace(/…/g, '...');
+}
+window._labSanPDF = _labSanPDF;
+
+// ── Generar PDF de auditoría — Laboratorio Cardiovascular (profesional) ──
 async function labGenerarPDF() {
   const infs = labGetInformes();
   if (!infs.length) { toast('⚠️ Sin estudios en el período'); return; }
@@ -17281,329 +17306,476 @@ async function labGenerarPDF() {
 
   const { jsPDF: JSPDF } = window.jspdf || window;
   const doc = new JSPDF({ unit: 'mm', format: 'a4' });
-  const titulo = document.getElementById('lab-pdf-titulo').value ||
-    'Informe de Auditoría';
+  const S = _labSanPDF;
+
+  const titulo = document.getElementById('lab-pdf-titulo').value || 'Laboratorio Cardiovascular';
   const inst = document.getElementById('lab-pdf-inst').value || '';
   const periodo = document.getElementById('lab-pdf-periodo').value || '';
   const resp = document.getElementById('lab-pdf-responsable').value || '';
 
-  const W = 210, M = 15;
+  // Paleta corporativa
+  const NAVY = [26, 82, 118], BLUE = [46, 134, 193], ALT = [244, 246, 247],
+        BORD = [189, 195, 199], GRY = [127, 140, 141];
+  const W = 210, M = 15, CW = W - M * 2;   // ancho de contenido = 180
+  const CONTENT_BOTTOM = 278;
   let y = 20;
 
-  // Header
-  doc.setFillColor(30, 30, 46);
-  doc.rect(0, 0, W, 40, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(14); doc.setFont(undefined, 'bold');
-  doc.text(titulo, M, 16);
-  doc.setFontSize(10); doc.setFont(undefined, 'normal');
-  if (inst) doc.text(inst, M, 24);
-  if (periodo) doc.text('Período: ' + periodo, M, 31);
-  doc.setTextColor(0, 0, 0);
-  y = 50;
+  // ── Accesores / promedios ──
+  const numCampo = (inf, id) => {
+    const v = inf.campos?.[id];
+    if (v === undefined || v === null || String(v).trim() === '') return null;
+    const n = PF(String(v).replace(',', '.'));
+    return (n !== null && !isNaN(n)) ? n : null;
+  };
+  const avgOf = (fn, dec = 1) => {
+    const b = infs.map(fn).filter(v => v !== null && !isNaN(v));
+    return b.length ? (b.reduce((s, x) => s + x, 0) / b.length).toFixed(dec) : '—';
+  };
+  const pctOf = (nn, tot) => tot > 0 ? Math.round(nn / tot * 100) : 0;
 
-  // ── Corazón anatómico con promedios (primera página, centrado) ──
+  const edades = infs.map(i => numCampo(i, 'edad')).filter(v => v !== null && v > 0 && v < 120);
+  const edadProm = edades.length ? Math.round(edades.reduce((a, b) => a + b, 0) / edades.length) : null;
+  const feviProm = avgOf(_labFevi, 1);
+  const glsProm = avgOf(_labGls, 1);
+  const psapProm = avgOf(_labPsap, 0);
+  const laviProm = avgOf(_labLavi, 1);
+
+  // ── Primitivas de dibujo ──
+  const ensure = (h) => { if (y + h > CONTENT_BOTTOM) { doc.addPage(); y = 20; } };
+
+  const sectionTitle = (t) => {
+    ensure(13);
+    doc.setFillColor(NAVY[0], NAVY[1], NAVY[2]);
+    doc.rect(M, y, CW, 8.5, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+    doc.text(S(t), M + 3.5, y + 5.8);
+    doc.setTextColor(0, 0, 0); doc.setFont('helvetica', 'normal');
+    y += 8.5 + 4;
+  };
+
+  // Tabla: header azul + filas alternas + bordes 0.3pt
+  const drawTable = (x, colW, headers, rows) => {
+    const tW = colW.reduce((a, b) => a + b, 0);
+    const rowH = 6.4, padX = 2.1;
+    const cellBorders = (y0) => {
+      doc.setDrawColor(BORD[0], BORD[1], BORD[2]); doc.setLineWidth(0.106);
+      doc.rect(x, y0, tW, rowH);
+      let cx = x;
+      for (let i = 0; i < colW.length - 1; i++) { cx += colW[i]; doc.line(cx, y0, cx, y0 + rowH); }
+    };
+    const drawHeader = () => {
+      const y0 = y;
+      doc.setFillColor(BLUE[0], BLUE[1], BLUE[2]); doc.rect(x, y0, tW, rowH, 'F');
+      doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+      let cx = x;
+      headers.forEach((h, i) => { doc.text(S(h), cx + padX, y0 + rowH - 2.2); cx += colW[i]; });
+      cellBorders(y0);
+      doc.setTextColor(0, 0, 0); doc.setFont('helvetica', 'normal');
+      y = y0 + rowH;
+    };
+    ensure(rowH * 2);
+    drawHeader();
+    const boldLast = (rows[0] || []).length === 2;
+    rows.forEach((r, ri) => {
+      if (y + rowH > CONTENT_BOTTOM) { doc.addPage(); y = 20; drawHeader(); }
+      const y0 = y;
+      if (ri % 2 === 1) { doc.setFillColor(ALT[0], ALT[1], ALT[2]); doc.rect(x, y0, tW, rowH, 'F'); }
+      doc.setFontSize(9);
+      let cx = x;
+      r.forEach((cell, ci) => {
+        doc.setFont('helvetica', (boldLast && ci === 1) ? 'bold' : 'normal');
+        doc.text(S(String(cell)), cx + padX, y0 + rowH - 2.2, { maxWidth: Math.max(3, colW[ci] - padX * 1.6) });
+        cx += colW[ci];
+      });
+      doc.setFont('helvetica', 'normal');
+      cellBorders(y0);
+      y = y0 + rowH;
+    });
+  };
+
+  // Sección: tabla (izq 55%) + gráfica (der 40%), separación 8pt
+  const sectionChart = async (title, headers, rows, chart) => {
+    let img = null;
+    if (chart && chart.labels && chart.labels.length) {
+      img = chart.type === 'pie'
+        ? await _labPieImg(chart.labels, chart.values, chart.colors)
+        : await _labChartImg(chart.labels, chart.values, chart.colors);
+    }
+    const chartW = 72, gap = 2.8, tableW = 99;
+    const chartH = img ? chartW * img.ar : 0;
+    const tableH = (rows.length + 1) * 6.4;
+    if (y + Math.min(8.5 + 4 + Math.max(tableH, chartH), 55) > CONTENT_BOTTOM) { doc.addPage(); y = 20; }
+    sectionTitle(title);
+    const yTop = y;
+    drawTable(M, [tableW - 37, 37], headers, rows);
+    const yAfter = y;
+    if (img) {
+      try { doc.addImage(img.url, 'PNG', M + tableW + gap, yTop, chartW, chartH); } catch (e) {}
+      y = Math.max(yAfter, yTop + chartH);
+    }
+    y += 6;
+  };
+
+  const sectionTable = (title, headers, rows, widths) => {
+    const need = 8.5 + 4 + (rows.length + 1) * 6.4;
+    if (y + Math.min(need, 50) > CONTENT_BOTTOM) { doc.addPage(); y = 20; }
+    sectionTitle(title);
+    drawTable(M, widths, headers, rows);
+    y += 6;
+  };
+
+  const noteLine = (txt) => {
+    doc.setFontSize(7.5); doc.setFont('helvetica', 'italic'); doc.setTextColor(GRY[0], GRY[1], GRY[2]);
+    doc.splitTextToSize(S(txt), CW).forEach(line => {
+      if (y > CONTENT_BOTTOM) { doc.addPage(); y = 20; }
+      doc.text(line, M, y); y += 3.8;
+    });
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(0, 0, 0);
+  };
+
+  // ══════════ 1. PORTADA + BANNER KPIs ══════════
+  y = 22;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+  doc.text('LABORATORIO CARDIOVASCULAR', W / 2, y, { align: 'center' });
+  y += 8;
+  // Título configurable (si el usuario lo definió) como subtítulo descriptivo
+  const tituloDefault = 'Informe Anual de Auditoría — Laboratorio de Ecocardiografía';
+  if (titulo && titulo !== tituloDefault && titulo !== 'Laboratorio Cardiovascular') {
+    doc.setFont('helvetica', 'italic'); doc.setFontSize(10.5); doc.setTextColor(GRY[0], GRY[1], GRY[2]);
+    doc.text(S(titulo), W / 2, y, { align: 'center' }); y += 6;
+  }
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(GRY[0], GRY[1], GRY[2]);
+  if (inst) { doc.text(S(inst), W / 2, y, { align: 'center' }); y += 6; }
+  doc.setFontSize(10);
+  if (periodo) { doc.text(S('Período analizado: ' + periodo), W / 2, y, { align: 'center' }); y += 6; }
+  else { doc.text(S(new Date().toLocaleDateString('es-UY')), W / 2, y, { align: 'center' }); y += 6; }
+  // Línea decorativa azul 2px
+  doc.setDrawColor(NAVY[0], NAVY[1], NAVY[2]); doc.setLineWidth(0.7);
+  doc.line(M, y, W - M, y); y += 8;
+  // Banner KPIs
+  {
+    const kpis = [
+      ['Total estudios', String(infs.length)],
+      ['Edad prom.', edadProm !== null ? edadProm + ' a' : '—'],
+      ['FEVI prom.', feviProm !== '—' ? feviProm + '%' : '—'],
+      ['PSAP prom.', psapProm !== '—' ? psapProm + ' mmHg' : '—'],
+      ['Vol AI prom.', laviProm !== '—' ? laviProm + ' ml/m2' : '—']
+    ];
+    const bh = 16, cw = CW / kpis.length;
+    doc.setFillColor(BLUE[0], BLUE[1], BLUE[2]); doc.rect(M, y, CW, bh, 'F');
+    doc.setDrawColor(255, 255, 255); doc.setLineWidth(0.3);
+    kpis.forEach((k, i) => {
+      const cx = M + cw * i;
+      if (i > 0) doc.line(cx, y + 2, cx, y + bh - 2);
+      doc.setTextColor(230, 240, 250); doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
+      doc.text(S(k[0]), cx + cw / 2, y + 6, { align: 'center' });
+      doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+      doc.text(S(k[1]), cx + cw / 2, y + 12.5, { align: 'center' });
+    });
+    doc.setTextColor(0, 0, 0); doc.setFont('helvetica', 'normal');
+    y += bh + 8;
+  }
+
+  // ══════════ 2. CORAZÓN ANATÓMICO ══════════
   try {
-    if (typeof _labHeart === 'function') _labHeart(infs);   // refresca badges del DOM al período del PDF
+    if (typeof _labHeart === 'function') _labHeart(infs);
     const heartPng = await _labHeartPng();
     if (heartPng) {
-      doc.setFontSize(11); doc.setFont(undefined, 'bold'); doc.setTextColor(50, 50, 120);
-      doc.text('Corazón anatómico — promedios del período', W / 2, y, { align: 'center' });
-      doc.setTextColor(0, 0, 0); doc.setFont(undefined, 'normal');
-      y += 3;
-      const hSize = 80;
+      sectionTitle('Corazón anatómico — promedios del período');
+      const hSize = 100;
+      ensure(hSize + 4);
       doc.addImage(heartPng, 'PNG', (W - hSize) / 2, y, hSize, hSize);
       y += hSize + 6;
     }
   } catch (e) {}
 
-  const numCampo = (inf, id) => {
-    const v = inf.campos?.[id];
-    return v ? PF(String(v).replace(',','.')) : null;
-  };
-  const prom = (campo) => {
-    const vals = infs.map(i => numCampo(i,campo)).filter(v => v !== null);
-    return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '—';
-  };
-
-  const addSection = (titulo) => {
-    if (y > 260) { doc.addPage(); y = 20; }
-    doc.setFillColor(240, 240, 250);
-    doc.rect(M, y, W - M*2, 8, 'F');
-    doc.setFontSize(10); doc.setFont(undefined, 'bold');
-    doc.setTextColor(50, 50, 120);
-    doc.text(titulo, M + 3, y + 5.5);
-    doc.setTextColor(0, 0, 0);
-    doc.setFont(undefined, 'normal');
-    y += 12;
-  };
-
-  const addFila = (lbl, val) => {
-    if (y > 270) { doc.addPage(); y = 20; }
-    doc.setFontSize(9);
-    doc.text(lbl, M + 3, y);
-    doc.setFont(undefined, 'bold');
-    doc.text(String(val), M + 90, y);
-    doc.setFont(undefined, 'normal');
-    y += 6;
-  };
-
-  // Sección Actividad
+  // ══════════ 3. ACTIVIDAD DEL LABORATORIO ══════════
   if (document.getElementById('lab-pdf-actividad')?.checked) {
-    addSection('Actividad del Laboratorio');
-    addFila('Total de estudios en el período', infs.length);
-    addFila('FEVI promedio', prom('fevi') + '%');
-    addFila('GLS promedio', prom('sgl') + '%');
-    addFila('PSAP promedio', prom('psap_calc') + ' mmHg');
-    // Distribución de tiempo de espera (mismos estudios que el promedio)
-    const _tEsp = infs.filter(i => i.fecha_estudio && i.campos?.fecha_solicitud)
+    const porMes = {};
+    infs.forEach(i => { if (i.fecha_estudio) { const m = i.fecha_estudio.substring(0, 7); porMes[m] = (porMes[m] || 0) + 1; } });
+    const meses = Object.keys(porMes).sort().slice(-12);
+    const mesesChart = meses.length ? { labels: meses.map(m => m.replace('-', '/')), values: meses.map(m => porMes[m]), colors: meses.map(() => '#2e86c1') } : null;
+    await sectionChart('Actividad del laboratorio',
+      ['Indicador', 'Valor'],
+      [['Total de estudios en el período', String(infs.length)],
+       ['FEVI promedio', feviProm !== '—' ? feviProm + '%' : '—'],
+       ['GLS promedio', glsProm !== '—' ? glsProm + '%' : '—'],
+       ['PSAP promedio', psapProm !== '—' ? psapProm + ' mmHg' : '—']],
+      mesesChart);
+
+    // Tiempo de espera solicitud -> estudio
+    const tEsp = infs.filter(i => i.fecha_estudio && i.campos?.fecha_solicitud)
       .map(i => (new Date(i.fecha_estudio) - new Date(i.campos.fecha_solicitud)) / 86400000)
       .filter(d => d >= 0 && d < 365);
-    const _Ne = _tEsp.length;
-    if (_Ne) {
-      y += 2;
-      doc.setFont(undefined, 'bold'); doc.setFontSize(9);
-      doc.text('Tiempo de espera solicitud -> estudio (dias)', M + 3, y);
-      doc.setFont(undefined, 'normal'); y += 5;
-      const _yTop = y;
-      const _lbls = ['<=10', '11-20', '21-30', '31-45', '46-60', '>60'];
-      _LAB_ESPERA_CATS.forEach((cat, i) => { const n = _tEsp.filter(cat[1]).length; addFila(_lbls[i] + ' dias', n + ' (' + Math.round(n/_Ne*100) + '%)'); });
-      const _img = await _labChartImg(_lbls, _LAB_ESPERA_CATS.map(cat => _tEsp.filter(cat[1]).length), _LAB_ESPERA_CATS.map(() => '#4f8ef7'));
-      if (_img) { const iw = 82, ih = iw * _img.ar; try { doc.addImage(_img.url, 'PNG', M + 96, _yTop - 1, iw, ih); } catch(e) {} y = Math.max(y, _yTop - 1 + ih); }
-      doc.setFontSize(7.5); doc.setFont(undefined, 'italic'); doc.setTextColor(120, 120, 120);
-      doc.splitTextToSize('Calculado sobre ' + _Ne + ' estudios con ambas fechas registradas. ' + (infs.length - _Ne) + ' estudios excluidos por falta de alguna de las fechas.', W - M * 2).forEach(line => { if (y > 288) { doc.addPage(); y = 20; } doc.text(line, M, y); y += 3.8; });
-      doc.setFont(undefined, 'normal'); doc.setTextColor(0, 0, 0);
+    const Ne = tEsp.length;
+    if (Ne) {
+      const lbls = ['<=10', '11-20', '21-30', '31-45', '46-60', '>60'];
+      const counts = _LAB_ESPERA_CATS.map(cat => tEsp.filter(cat[1]).length);
+      await sectionChart('Tiempo de espera solicitud -> estudio (días)',
+        ['Rango (días)', 'n (%)'],
+        lbls.map((l, i) => [l, counts[i] + ' (' + Math.round(counts[i] / Ne * 100) + '%)']),
+        { labels: lbls, values: counts, colors: lbls.map(() => '#4f8ef7') });
+      noteLine('Calculado sobre ' + Ne + ' estudios con ambas fechas registradas. ' + (infs.length - Ne) + ' estudios excluidos por falta de alguna de las fechas.');
+      y += 3;
     }
-    y += 4;
   }
 
-  // Sección Perfil de la Población + gráficas por sección (tabla izquierda | gráfica derecha)
+  // ══════════ 4–15. MEDICIONES Y PERFIL (checkbox población) ══════════
   if (document.getElementById('lab-pdf-poblacion')?.checked) {
     const N = infs.length;
 
-    // Título de sección + tabla (izq) + gráfica (der ~40%)
-    const addTablaChart = async (titulo, filas, chart) => {
-      if (y > 232) { doc.addPage(); y = 20; }
-      addSection(titulo);
-      const yTop = y;
-      filas.forEach(([lbl, val]) => {
-        if (y > 275) { doc.addPage(); y = 20; }
-        doc.setFontSize(9);
-        doc.text(String(lbl), M + 3, y);
-        doc.setFont(undefined, 'bold');
-        doc.text(String(val), M + 74, y);
-        doc.setFont(undefined, 'normal');
-        y += 6;
-      });
-      const yTable = y;
-      if (chart && chart.labels.length) {
-        const img = chart.type === 'pie'
-          ? await _labPieImg(chart.labels, chart.values, chart.colors)
-          : await _labChartImg(chart.labels, chart.values, chart.colors);
-        if (img) {
-          const imgW = 82, imgH = imgW * img.ar;
-          try { doc.addImage(img.url, 'PNG', M + 96, yTop - 1, imgW, imgH); } catch(e) {}
-          y = Math.max(yTable, yTop - 1 + imgH);
-        }
-      }
-      y += 5;
-    };
-    const pctOf = (nn, tot) => tot > 0 ? Math.round(nn / tot * 100) : 0;
-
-    // Perfil demográfico (texto)
-    addSection('Perfil de la Población');
-    const edades = infs.map(i => numCampo(i,'edad')).filter(v => v !== null && v > 0 && v < 120);
-    if (edades.length) addFila('Edad promedio', (edades.reduce((a,b)=>a+b,0)/edades.length).toFixed(0) + ' anios');
-    const sexos = infs.map(i => (i.campos?.sexo||'').toLowerCase()).filter(Boolean);
+    // 4. Perfil demográfico
+    const sexos = infs.map(i => (i.campos?.sexo || '').toLowerCase()).filter(Boolean);
     const nF = sexos.filter(s => s.includes('f') || s.includes('mujer')).length;
-    if (sexos.length) addFila('% Femenino', Math.round(nF/sexos.length*100) + '%');
-    addFila('GLS promedio', prom('sgl') + '%');
-    addFila('PSAP promedio', prom('psap_calc') + ' mmHg');
-    y += 4;
+    const nM = sexos.length - nF;
+    await sectionChart('Perfil demográfico',
+      ['Indicador', 'Valor'],
+      [['Edad promedio', edadProm !== null ? edadProm + ' años' : '—'],
+       ['Sexo femenino', sexos.length ? nF + ' (' + pctOf(nF, sexos.length) + '%)' : '—'],
+       ['Sexo masculino', sexos.length ? nM + ' (' + pctOf(nM, sexos.length) + '%)' : '—'],
+       ['GLS promedio', glsProm !== '—' ? glsProm + '%' : '—']],
+      sexos.length ? { labels: ['Femenino', 'Masculino'], values: [nF, nM], colors: ['#f472b6', '#4f8ef7'], type: 'pie' } : null);
 
-    // Distribución FEVI (colores invertidos por severidad, segun spec: <30 verde ... >50 rojo)
-    const fevis = infs.map(i => _labFevi(i)).filter(v => v !== null);
+    // 5. FEVI
+    const fevis = infs.map(_labFevi).filter(v => v !== null);
     const ft = fevis.length;
-    const feviN = [fevis.filter(v=>v>50).length, fevis.filter(v=>v>=40&&v<=50).length, fevis.filter(v=>v>=30&&v<40).length, fevis.filter(v=>v<30).length];
-    await addTablaChart('Distribucion FEVI',
-      [['Normal/conservada (>50%)', feviN[0] + ' (' + pctOf(feviN[0],ft) + '%)'],
-       ['Levemente reducida (40-50%)', feviN[1] + ' (' + pctOf(feviN[1],ft) + '%)'],
-       ['Moderadamente reducida (30-40%)', feviN[2] + ' (' + pctOf(feviN[2],ft) + '%)'],
-       ['Severamente reducida (<30%)', feviN[3] + ' (' + pctOf(feviN[3],ft) + '%)']],
-      { labels:['Normal (>50)','Leve (40-50)','Moderada (30-40)','Severa (<30)'], values:feviN, colors:['#3ecf8e','#f5c842','#f0a500','#f05454'] });
+    const feviN = [fevis.filter(v => v > 50).length, fevis.filter(v => v >= 40 && v <= 50).length, fevis.filter(v => v >= 30 && v < 40).length, fevis.filter(v => v < 30).length];
+    await sectionChart('Función sistólica — FEVI',
+      ['Rango', 'n (%)'],
+      [['Normal/conservada (>50%)', feviN[0] + ' (' + pctOf(feviN[0], ft) + '%)'],
+       ['Levemente reducida (40-50%)', feviN[1] + ' (' + pctOf(feviN[1], ft) + '%)'],
+       ['Moderadamente reducida (30-40%)', feviN[2] + ' (' + pctOf(feviN[2], ft) + '%)'],
+       ['Severamente reducida (<30%)', feviN[3] + ' (' + pctOf(feviN[3], ft) + '%)']],
+      { labels: ['Normal (>50)', 'Leve (40-50)', 'Moderada (30-40)', 'Severa (<30)'], values: feviN, colors: ['#3ecf8e', '#f5c842', '#f0a500', '#f05454'] });
 
-    // Funcion diastolica
-    const dg = {I:0,II:0,III:0,sin:0}; let dt=0;
-    infs.forEach(i => { const g=_labDiastGrado(i); if (g && dg[g]!==undefined){ dg[g]++; dt++; } });
-    await addTablaChart('Funcion diastolica',
-      [['Grado I', dg.I + ' (' + pctOf(dg.I,dt) + '%)'],
-       ['Grado II', dg.II + ' (' + pctOf(dg.II,dt) + '%)'],
-       ['Grado III', dg.III + ' (' + pctOf(dg.III,dt) + '%)'],
-       ['Sin disfuncion', dg.sin + ' (' + pctOf(dg.sin,dt) + '%)']],
-      { labels:['Grado I','Grado II','Grado III','Sin disf.'], values:[dg.I,dg.II,dg.III,dg.sin], colors:['#f5c842','#f0a500','#f05454','#3ecf8e'] });
+    // 6. Función diastólica
+    const dg = { I: 0, II: 0, III: 0, sin: 0 }; let dt = 0;
+    infs.forEach(i => { const g = _labDiastGrado(i); if (g && dg[g] !== undefined) { dg[g]++; dt++; } });
+    await sectionChart('Función diastólica',
+      ['Grado', 'n (%)'],
+      [['Grado I', dg.I + ' (' + pctOf(dg.I, dt) + '%)'],
+       ['Grado II', dg.II + ' (' + pctOf(dg.II, dt) + '%)'],
+       ['Grado III', dg.III + ' (' + pctOf(dg.III, dt) + '%)'],
+       ['Sin disfunción', dg.sin + ' (' + pctOf(dg.sin, dt) + '%)']],
+      { labels: ['Grado I', 'Grado II', 'Grado III', 'Sin disf.'], values: [dg.I, dg.II, dg.III, dg.sin], colors: ['#f5c842', '#f0a500', '#f05454', '#3ecf8e'] });
 
-    // Contractilidad segmentaria — población (tabla arriba + Bull's Eye centrado ~100mm + leyenda)
+    // 7. Geometría VI
+    const _labGeom = (inf) => {
+      const t = ((inf.campos?.geom_vi || '') + ' ' + (inf.campos?.informe_texto || '') + ' ' + (inf.campos?.en_suma || '')).toLowerCase();
+      if (!t.trim()) return null;
+      if (/hipertrofia\s+conc[eé]ntrica|hvi\s+conc[eé]ntrica|conc[eé]ntrica/.test(t)) return 'conc';
+      if (/hipertrofia\s+exc[eé]ntrica|hvi\s+exc[eé]ntrica|exc[eé]ntrica/.test(t)) return 'exc';
+      if (/remodelado\s+conc[eé]ntrico|remodelado/.test(t)) return 'remod';
+      if (/geometr[ií]a\s+normal|sin\s+hipertrofia|\bnormal\b/.test(t)) return 'normal';
+      return null;
+    };
+    const gm = { normal: 0, remod: 0, conc: 0, exc: 0 }; let gmt = 0;
+    infs.forEach(i => { const g = _labGeom(i); if (g && gm[g] !== undefined) { gm[g]++; gmt++; } });
+    await sectionChart('Geometría VI',
+      ['Patrón', 'n (%)'],
+      [['Normal', gm.normal + ' (' + pctOf(gm.normal, gmt) + '%)'],
+       ['Remodelado concéntrico', gm.remod + ' (' + pctOf(gm.remod, gmt) + '%)'],
+       ['HVI concéntrica', gm.conc + ' (' + pctOf(gm.conc, gmt) + '%)'],
+       ['HVI excéntrica', gm.exc + ' (' + pctOf(gm.exc, gmt) + '%)']],
+      { labels: ['Normal', 'Remod.', 'HVI conc.', 'HVI exc.'], values: [gm.normal, gm.remod, gm.conc, gm.exc], colors: ['#3ecf8e', '#f5c842', '#f0a500', '#8a5fd4'] });
+
+    // 8. Contractilidad segmentaria + Bull's Eye
     {
       const cp = _labContrPoblacion(infs);
-      if (y > 195) { doc.addPage(); y = 20; }
-      addSection('Contractilidad Segmentaria - Poblacion');
+      if (y > 190) { doc.addPage(); y = 20; }
+      sectionTitle('Contractilidad segmentaria — población');
       const prc = x => cp.N > 0 ? Math.round(x / cp.N * 100) + '%' : '0%';
-      addFila('Total estudios analizados', String(cp.N));
-      addFila('Sin trastornos sectoriales', cp.sinTrast + ' (' + prc(cp.sinTrast) + ')');
-      addFila('Con trastornos sectoriales', cp.conTrast + ' (' + prc(cp.conTrast) + ')');
-      addFila('Hipocontractilidad difusa', cp.difusa + ' (' + prc(cp.difusa) + ')');
-      addFila('Disquinesia septal aislada', cp.disqSep + ' (' + prc(cp.disqSep) + ')');
-      y += 3;
-      doc.setFontSize(9); doc.setFont(undefined, 'bold');
-      doc.text('% pacientes con compromiso segmentario (n=' + cp.N + ' estudios)', W / 2, y, { align: 'center' });
-      doc.setFont(undefined, 'normal');
-      y += 3;
+      drawTable(M, [120, 60],
+        ['Indicador', 'n (%)'],
+        [['Total estudios analizados', String(cp.N)],
+         ['Sin trastornos sectoriales', cp.sinTrast + ' (' + prc(cp.sinTrast) + ')'],
+         ['Con trastornos sectoriales', cp.conTrast + ' (' + prc(cp.conTrast) + ')'],
+         ['Hipocontractilidad difusa', cp.difusa + ' (' + prc(cp.difusa) + ')'],
+         ['Disquinesia septal aislada', cp.disqSep + ' (' + prc(cp.disqSep) + ')']]);
+      y += 4;
+      doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+      doc.text(S('% pacientes con compromiso segmentario (n=' + cp.N + ' estudios)'), W / 2, y, { align: 'center' });
+      doc.setFont('helvetica', 'normal'); y += 3;
       const beSize = 100;
-      if (y + beSize + 16 > 285) { doc.addPage(); y = 20; }
+      if (y + beSize + 18 > CONTENT_BOTTOM) { doc.addPage(); y = 20; }
       const png = await _svgToPng(_contrPobBullsEyeSVG(cp.pctById), 640, 640);
-      if (png) { try { doc.addImage(png, 'PNG', (W - beSize) / 2, y, beSize, beSize); } catch(e) {} }
+      if (png) { try { doc.addImage(png, 'PNG', (W - beSize) / 2, y, beSize, beSize); } catch (e) {} }
       y += beSize + 5;
-      doc.setFontSize(8);
-      let lx = M;
+      doc.setFontSize(8); let lx = M;
       _CONTR_POB_LEYENDA.forEach(([col, lbl]) => {
-        const lbl2 = lbl.replace('–', '-');
+        const lbl2 = S(lbl);
         const wtxt = doc.getTextWidth(lbl2) + 11;
         if (lx + wtxt > W - M) { lx = M; y += 6; }
         const rgb = _hexToRgb(col);
-        doc.setFillColor(rgb[0], rgb[1], rgb[2]);
-        doc.rect(lx, y - 3, 3.5, 3.5, 'F');
-        doc.setTextColor(0, 0, 0);
-        doc.text(lbl2, lx + 5, y);
-        lx += wtxt;
+        doc.setFillColor(rgb[0], rgb[1], rgb[2]); doc.rect(lx, y - 3, 3.5, 3.5, 'F');
+        doc.setTextColor(0, 0, 0); doc.text(lbl2, lx + 5, y); lx += wtxt;
       });
       y += 8;
-      // Nota aclaratoria al pie de la sección
-      if (y > 272) { doc.addPage(); y = 20; }
-      doc.setFontSize(7.5);
-      doc.setFont(undefined, 'italic');
-      doc.setTextColor(120, 120, 120);
-      const _notaBE = 'Cada segmento muestra el porcentaje de estudios de la poblacion donde fue registrada alguna alteracion de la motilidad (hipoquinesia, aquinesia, disquinesia o aneurisma), sin discriminar el tipo. Escala: gris = sin compromiso (0%) - amarillo = bajo (1-10%) - celeste = moderado (11-25%) - violeta = alto (26-50%) - rojo intenso = muy alto (>50%).';
-      doc.splitTextToSize(_notaBE, W - M * 2).forEach(line => {
-        if (y > 288) { doc.addPage(); y = 20; }
-        doc.text(line, M, y); y += 3.8;
-      });
-      doc.setFont(undefined, 'normal');
-      doc.setTextColor(0, 0, 0);
+      noteLine('Cada segmento muestra el porcentaje de estudios de la población donde fue registrada alguna alteración de la motilidad (hipoquinesia, aquinesia, disquinesia o aneurisma), sin discriminar el tipo. Escala: gris = sin compromiso (0%) - amarillo = bajo (1-10%) - celeste = moderado (11-25%) - violeta = alto (26-50%) - rojo intenso = muy alto (>50%).');
       y += 4;
     }
 
-    // Valvulopatias (una subseccion por valvula)
-    const sevCols = ['#3ecf8e','#f5c842','#f0a500','#f05454'];
-    const valvSeccion = async (titulo, sevFn) => {
-      const b={Sin:0,Leve:0,Moderada:0,Severa:0}; let t=0;
-      infs.forEach(i => { const s=sevFn(i); if (s && b[s]!==undefined){ b[s]++; t++; } });
-      await addTablaChart(titulo,
-        [['Sin', b.Sin + ' (' + pctOf(b.Sin,t) + '%)'], ['Leve', b.Leve + ' (' + pctOf(b.Leve,t) + '%)'],
-         ['Moderada', b.Moderada + ' (' + pctOf(b.Moderada,t) + '%)'], ['Severa', b.Severa + ' (' + pctOf(b.Severa,t) + '%)']],
-        { labels:['Sin','Leve','Moderada','Severa'], values:[b.Sin,b.Leve,b.Moderada,b.Severa], colors:sevCols });
-    };
-    await valvSeccion('Valvulopatias - Insuficiencia mitral (IM)', i=>_labRegurgSev(i,'im_grado'));
-    await valvSeccion('Valvulopatias - Insuficiencia aortica (IAo)', i=>_labRegurgSev(i,'ia_grado'));
-    await valvSeccion('Valvulopatias - Insuficiencia tricuspidea (IT)', i=>_labRegurgSev(i,'it_grado'));
-    await valvSeccion('Valvulopatias - Estenosis aortica (EA)', i=>_labEstenSev(i,'ea_grado'));
-    await valvSeccion('Valvulopatias - Estenosis mitral (EM)', i=>_labEstenSev(i,'em_grado'));
-
-    // HTP (gradiente verde -> rojo)
-    const psaps = infs.map(i=>_labPsap(i)).filter(v=>v!==null&&v>0);
-    const ht = psaps.length;
-    const hN = [psaps.filter(v=>v<=35).length, psaps.filter(v=>v>35&&v<=50).length, psaps.filter(v=>v>50&&v<=70).length, psaps.filter(v=>v>70).length];
-    await addTablaChart('Hipertension pulmonar (PSAP)',
-      [['Normal (<=35)', hN[0] + ' (' + pctOf(hN[0],ht) + '%)'], ['Leve (36-50)', hN[1] + ' (' + pctOf(hN[1],ht) + '%)'],
-       ['Moderada (51-70)', hN[2] + ' (' + pctOf(hN[2],ht) + '%)'], ['Severa (>70)', hN[3] + ' (' + pctOf(hN[3],ht) + '%)']],
-      { labels:['Normal','Leve','Moderada','Severa'], values:hN, colors:['#3ecf8e','#f5c842','#f0a500','#f05454'] });
-
-    // Frecuencia de indicaciones / antecedentes (arrays)
-    const freqData = (key) => {
-      const counts={};
-      infs.forEach(i=>{ let a=i.campos?.[key]; if(typeof a==='string'){try{a=JSON.parse(a);}catch(e){a=a?[a]:[];}} if(!Array.isArray(a))return; a.forEach(v=>{const k=String(v).trim(); if(k)counts[k]=(counts[k]||0)+1;}); });
-      return Object.entries(counts).sort((a,b)=>b[1]-a[1]);
-    };
-    const indFreq = freqData('indicaciones');
-    if (indFreq.length) await addTablaChart('Indicaciones',
-      indFreq.map(([l,cn])=>[l, cn + ' (' + pctOf(cn,N) + '%)']),
-      { labels: indFreq.map(x=>x[0]), values: indFreq.map(x=>x[1]), colors: indFreq.map((_,i)=>_LAB_PIE_PAL[i%_LAB_PIE_PAL.length]), type:'pie' });
-    const antFreq = freqData('antecedentes_sel');
-    if (antFreq.length) await addTablaChart('Antecedentes',
-      antFreq.map(([l,cn])=>[l, cn + ' (' + pctOf(cn,N) + '%)']),
-      { labels: antFreq.map(x=>x[0]), values: antFreq.map(x=>x[1]), colors: antFreq.map((_,i)=>_LAB_PIE_PAL[i%_LAB_PIE_PAL.length]), type:'pie' });
-
-    // Hallazgos frecuentes
-    const textos = infs.map(i => (i.campos?.en_suma||'') + ' ' + (i.campos?.informe_texto||''));
-    const hallazgos = [
-      { lbl:'HTP', patron:/hipertensi[oó]n\s+pulmonar|HTP/i },
-      { lbl:'Disfuncion diastolica', patron:/disfunci[oó]n\s+diast[oó]lica/i },
-      { lbl:'Disfuncion sistolica VI', patron:/disfunci[oó]n\s+sist[oó]lica|FEVI\s+[<>]?\s*[0-4]\d/i },
-      { lbl:'Insuficiencia mitral', patron:/insuficiencia\s+mitral|IM\s+(?:leve|moderada|severa)/i },
-      { lbl:'Estenosis aortica', patron:/estenosis\s+a[oó]rtica|EAo/i },
-      { lbl:'Dilatacion AI', patron:/dilataci[oó]n.{0,10}auricular|AI\s+(?:dilata|agrand)/i },
-      { lbl:'HVI', patron:/hipertrofia\s+ventricular\s+izq|HVI/i },
-      { lbl:'Derrame pericardico', byField:i=>{var v=String((i.campos&&i.campos.pericardio)||'');return /derrame|efusi[oó]n/i.test(v) && !/sin\s+derrame|sin\s+efusi[oó]n/i.test(v);} },
-    ].map(h => ({ lbl:h.lbl, n: h.byField ? infs.filter(h.byField).length : textos.filter(t => h.patron.test(t)).length }))
-     .filter(d => d.n > 0).sort((a,b)=>b.n-a.n).slice(0,8);
-    if (hallazgos.length) await addTablaChart('Hallazgos frecuentes',
-      hallazgos.map(h=>[h.lbl, h.n + '/' + N + ' (' + pctOf(h.n,N) + '%)']),
-      { labels: hallazgos.map(h=>h.lbl), values: hallazgos.map(h=>h.n), colors: hallazgos.map(()=>'#4f8ef7') });
-  }
-
-  // Sección Calidad
-  if (document.getElementById('lab-pdf-calidad')?.checked) {
-    addSection('Calidad del Laboratorio');
-    const n = infs.length;
-    [
-      ['FEVI medida', 'fevi'],
-      ['GLS medido', 'sgl'],
-      ['TAPSE medido', 'tapse'],
-      ['Vol AI calculado', 'ai_vol'],
-      ['TR medida', 'psap_calc'],
-      ['Dimensiones VI', 'ddfvi'],
-    ].forEach(([lbl, campo]) => {
-      const con = infs.filter(i => numCampo(i,campo) !== null).length;
-      addFila(lbl, Math.round(con/n*100) + '% (' + con + '/' + n + ')');
+    // 9. Valvulopatías — resumen + detalle
+    const sevCols = ['#3ecf8e', '#f5c842', '#f0a500', '#f05454'];
+    const valveDefs = [
+      ['Insuficiencia mitral (IM)', i => _labRegurgSev(i, 'im_grado')],
+      ['Insuficiencia aórtica (IAo)', i => _labRegurgSev(i, 'ia_grado')],
+      ['Insuficiencia tricuspídea (IT)', i => _labRegurgSev(i, 'it_grado')],
+      ['Estenosis aórtica (EAo)', i => _labEstenSev(i, 'ea_grado')],
+      ['Estenosis mitral (EM)', i => _labEstenSev(i, 'em_grado')]
+    ];
+    const valveStats = valveDefs.map(([name, fn]) => {
+      const b = { Sin: 0, Leve: 0, Moderada: 0, Severa: 0 }; let t = 0;
+      infs.forEach(i => { const s = fn(i); if (s && b[s] !== undefined) { b[s]++; t++; } });
+      return { name, b, t };
     });
-    y += 4;
+    sectionTable('Valvulopatías — resumen',
+      ['Válvula', 'Sin', 'Leve', 'Moderada', 'Severa'],
+      valveStats.map(v => [v.name,
+        v.b.Sin + ' (' + pctOf(v.b.Sin, v.t) + '%)',
+        v.b.Leve + ' (' + pctOf(v.b.Leve, v.t) + '%)',
+        v.b.Moderada + ' (' + pctOf(v.b.Moderada, v.t) + '%)',
+        v.b.Severa + ' (' + pctOf(v.b.Severa, v.t) + '%)']),
+      [56, 31, 31, 31, 31]);
+    for (const v of valveStats) {
+      await sectionChart('Valvulopatías — ' + v.name,
+        ['Severidad', 'n (%)'],
+        [['Sin', v.b.Sin + ' (' + pctOf(v.b.Sin, v.t) + '%)'],
+         ['Leve', v.b.Leve + ' (' + pctOf(v.b.Leve, v.t) + '%)'],
+         ['Moderada', v.b.Moderada + ' (' + pctOf(v.b.Moderada, v.t) + '%)'],
+         ['Severa', v.b.Severa + ' (' + pctOf(v.b.Severa, v.t) + '%)']],
+        { labels: ['Sin', 'Leve', 'Moderada', 'Severa'], values: [v.b.Sin, v.b.Leve, v.b.Moderada, v.b.Severa], colors: sevCols });
+    }
+
+    // 10. HTP / PSAP
+    const psaps = infs.map(_labPsap).filter(v => v !== null && v > 0);
+    const ht = psaps.length;
+    const hN = [psaps.filter(v => v <= 35).length, psaps.filter(v => v > 35 && v <= 50).length, psaps.filter(v => v > 50 && v <= 70).length, psaps.filter(v => v > 70).length];
+    await sectionChart('Hipertensión pulmonar (PSAP)',
+      ['Rango (mmHg)', 'n (%)'],
+      [['Normal (<=35)', hN[0] + ' (' + pctOf(hN[0], ht) + '%)'],
+       ['Leve (36-50)', hN[1] + ' (' + pctOf(hN[1], ht) + '%)'],
+       ['Moderada (51-70)', hN[2] + ' (' + pctOf(hN[2], ht) + '%)'],
+       ['Severa (>70)', hN[3] + ' (' + pctOf(hN[3], ht) + '%)']],
+      { labels: ['Normal', 'Leve', 'Moderada', 'Severa'], values: hN, colors: ['#3ecf8e', '#f5c842', '#f0a500', '#f05454'] });
+
+    // 11. Vol AI
+    const lavis = infs.map(_labLavi).filter(v => v !== null && v > 0);
+    const lt = lavis.length;
+    const laviN = [lavis.filter(v => v <= 34).length, lavis.filter(v => v > 34 && v <= 41).length, lavis.filter(v => v > 41 && v <= 48).length, lavis.filter(v => v > 48).length];
+    await sectionChart('Volumen AI indexado',
+      ['Rango (ml/m2)', 'n (%)'],
+      [['Normal (<=34)', laviN[0] + ' (' + pctOf(laviN[0], lt) + '%)'],
+       ['Leve dilatación (35-41)', laviN[1] + ' (' + pctOf(laviN[1], lt) + '%)'],
+       ['Moderada (42-48)', laviN[2] + ' (' + pctOf(laviN[2], lt) + '%)'],
+       ['Severa (>48)', laviN[3] + ' (' + pctOf(laviN[3], lt) + '%)']],
+      { labels: ['Normal', 'Leve', 'Moderada', 'Severa'], values: laviN, colors: ['#3ecf8e', '#f5c842', '#f0a500', '#f05454'] });
+
+    // 12. Función VD (TAPSE)
+    const tapses = infs.map(_labTapse).filter(v => v !== null && v > 0);
+    const tt = tapses.length;
+    const tapN = [tapses.filter(v => v >= 17).length, tapses.filter(v => v >= 14 && v < 17).length, tapses.filter(v => v < 14).length];
+    await sectionChart('Función VD (TAPSE)',
+      ['Rango (mm)', 'n (%)'],
+      [['Normal (>=17)', tapN[0] + ' (' + pctOf(tapN[0], tt) + '%)'],
+       ['Levemente reducida (14-16)', tapN[1] + ' (' + pctOf(tapN[1], tt) + '%)'],
+       ['Reducida (<14)', tapN[2] + ' (' + pctOf(tapN[2], tt) + '%)']],
+      { labels: ['Normal', 'Leve', 'Reducida'], values: tapN, colors: ['#3ecf8e', '#f5c842', '#f05454'] });
+
+    // Frecuencia por array (indicaciones / antecedentes)
+    const freqData = (key) => {
+      const counts = {};
+      infs.forEach(i => { let a = i.campos?.[key]; if (typeof a === 'string') { try { a = JSON.parse(a); } catch (e) { a = a ? [a] : []; } } if (!Array.isArray(a)) return; a.forEach(v => { const k = String(v).trim(); if (k) counts[k] = (counts[k] || 0) + 1; }); });
+      return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    };
+
+    // 13. Indicaciones
+    const indFreq = freqData('indicaciones');
+    if (indFreq.length) await sectionChart('Indicaciones del estudio',
+      ['Indicación', 'n (%)'],
+      indFreq.map(([l, cn]) => [l, cn + ' (' + pctOf(cn, N) + '%)']),
+      { labels: indFreq.map(x => x[0]), values: indFreq.map(x => x[1]), colors: indFreq.map((_, i) => _LAB_PIE_PAL[i % _LAB_PIE_PAL.length]), type: 'pie' });
+
+    // 14. Antecedentes
+    const antFreq = freqData('antecedentes_sel');
+    if (antFreq.length) await sectionChart('Antecedentes',
+      ['Antecedente', 'n (%)'],
+      antFreq.map(([l, cn]) => [l, cn + ' (' + pctOf(cn, N) + '%)']),
+      { labels: antFreq.map(x => x[0]), values: antFreq.map(x => x[1]), colors: antFreq.map((_, i) => _LAB_PIE_PAL[i % _LAB_PIE_PAL.length]), type: 'pie' });
+
+    // 15. Hallazgos frecuentes
+    const textos = infs.map(i => (i.campos?.en_suma || '') + ' ' + (i.campos?.informe_texto || ''));
+    const hallazgos = [
+      { lbl: 'HTP', patron: /hipertensi[oó]n\s+pulmonar|HTP/i },
+      { lbl: 'Disfunción diastólica', patron: /disfunci[oó]n\s+diast[oó]lica/i },
+      { lbl: 'Disfunción sistólica VI', patron: /disfunci[oó]n\s+sist[oó]lica|FEVI\s+[<>]?\s*[0-4]\d/i },
+      { lbl: 'Insuficiencia mitral', patron: /insuficiencia\s+mitral|IM\s+(?:leve|moderada|severa)/i },
+      { lbl: 'Estenosis aórtica', patron: /estenosis\s+a[oó]rtica|EAo/i },
+      { lbl: 'Dilatación AI', patron: /dilataci[oó]n.{0,10}auricular|AI\s+(?:dilata|agrand)/i },
+      { lbl: 'HVI', patron: /hipertrofia\s+ventricular\s+izq|HVI/i },
+      { lbl: 'Derrame pericárdico', byField: i => { var v = String((i.campos && i.campos.pericardio) || ''); return /derrame|efusi[oó]n/i.test(v) && !/sin\s+derrame|sin\s+efusi[oó]n/i.test(v); } },
+    ].map(h => ({ lbl: h.lbl, n: h.byField ? infs.filter(h.byField).length : textos.filter(t => h.patron.test(t)).length }))
+      .filter(d => d.n > 0).sort((a, b) => b.n - a.n).slice(0, 8);
+    if (hallazgos.length) await sectionChart('Hallazgos frecuentes',
+      ['Hallazgo', 'n (%)'],
+      hallazgos.map(h => [h.lbl, h.n + '/' + N + ' (' + pctOf(h.n, N) + '%)']),
+      { labels: hallazgos.map(h => h.lbl), values: hallazgos.map(h => h.n), colors: hallazgos.map(() => '#4f8ef7') });
   }
 
-  // Sección Indicadores Automáticos
+  // ══════════ 16. CALIDAD DEL LABORATORIO ══════════
+  if (document.getElementById('lab-pdf-calidad')?.checked) {
+    const n = infs.length;
+    const campos = [['FEVI medida', 'fevi'], ['GLS medido', 'sgl'], ['TAPSE medido', 'tapse'], ['Vol AI calculado', 'ai_vol'], ['TR medida (PSAP)', 'psap_calc'], ['Dimensiones VI', 'ddfvi']];
+    const rows = campos.map(([lbl, campo]) => { const con = infs.filter(i => numCampo(i, campo) !== null).length; return [lbl, Math.round(con / n * 100) + '% (' + con + '/' + n + ')']; });
+    await sectionChart('Calidad del laboratorio — completitud de parámetros',
+      ['Parámetro', 'Completitud'], rows,
+      { labels: campos.map(c => c[0]), values: campos.map(([, campo]) => Math.round(infs.filter(i => numCampo(i, campo) !== null).length / n * 100)), colors: campos.map(() => '#2dd4bf') });
+  }
+
+  // ══════════ 17. INDICADORES AUTOMÁTICOS ══════════
   if (document.getElementById('lab-pdf-indicadores')?.checked) {
-    addSection('Indicadores Automáticos — Oportunidades clínicas');
     const N = infs.length;
     const indicadores = _labIndicadoresList(infs);
-    indicadores.forEach(ind => {
-      const pct = N > 0 ? Math.round(ind.casos.length/N*100) : 0;
-      addFila(ind.lbl, ind.casos.length + ' (' + pct + '%)');
-    });
-    y += 4;
+    sectionTable('Indicadores automáticos — oportunidades clínicas',
+      ['Indicador', 'N°', '%'],
+      indicadores.map(ind => [ind.lbl, String(ind.casos.length), (N > 0 ? Math.round(ind.casos.length / N * 100) : 0) + '%']),
+      [130, 20, 30]);
   }
 
-  // Sección Docencia — Casos de interés
+  // ══════════ 18. DOCENCIA ══════════
   if (document.getElementById('lab-pdf-medicos')?.checked) {
-    addSection('Docencia — Casos de interés');
     const docentes = infs.filter(i =>
       i.campos?.caso_interes === '1' || i.campos?.caso_interes === 'true' ||
-      /caso\s+de\s+inter[eé]s|ateneo|residente/i.test((i.campos?.en_suma||'') + ' ' + (i.campos?.informe_texto||''))
-    );
+      /caso\s+de\s+inter[eé]s|ateneo|residente/i.test((i.campos?.en_suma || '') + ' ' + (i.campos?.informe_texto || '')));
     if (!docentes.length) {
-      addFila('Casos marcados en el período', '0');
+      sectionTable('Docencia — casos de interés', ['Detalle', 'Valor'], [['Casos marcados en el período', '0']], [120, 60]);
     } else {
-      docentes.forEach(i => addFila(String(i.nombre||'—').substring(0,42), i.fecha_estudio||'—'));
+      sectionTable('Docencia — casos de interés', ['Paciente', 'Fecha del estudio'],
+        docentes.map(i => [String(i.nombre || '—').substring(0, 48), i.fecha_estudio || '—']), [120, 60]);
     }
-    y += 4;
   }
 
-  // Firma
-  if (y > 250) { doc.addPage(); y = 20; }
-  y = Math.max(y + 10, 240);
-  doc.setFontSize(9);
-  doc.text('Responsable: ' + (resp || '___________________________'), M, y);
-  doc.text('Fecha de emisión: ' + new Date().toLocaleDateString('es-UY'), M, y + 6);
+  // ── Firma ──
+  ensure(24);
+  y = Math.max(y + 6, y);
+  doc.setFontSize(9); doc.setTextColor(0, 0, 0); doc.setFont('helvetica', 'normal');
+  doc.text(S('Responsable: ' + (resp || '___________________________')), M, y + 6);
+  doc.text(S('Fecha de emisión: ' + new Date().toLocaleDateString('es-UY')), M, y + 12);
 
-  doc.save('auditoria_laboratorio_' +
-    new Date().toISOString().split('T')[0] + '.pdf');
+  // ── Pie de página en cada hoja ──
+  const totalPages = doc.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    doc.setDrawColor(GRY[0], GRY[1], GRY[2]); doc.setLineWidth(0.106);
+    doc.line(M, 285, W - M, 285);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(GRY[0], GRY[1], GRY[2]);
+    doc.text(S('Laboratorio EcoSmart · CeiboMed 2026'), M, 289);
+    doc.text(S('Página ' + p + ' de ' + totalPages), W - M, 289, { align: 'right' });
+    doc.setTextColor(0, 0, 0);
+  }
+
+  doc.save('auditoria_laboratorio_' + new Date().toISOString().split('T')[0] + '.pdf');
   toast('✅ PDF de auditoría generado');
 }
 
