@@ -654,10 +654,14 @@ window.cerrarSesion = cerrarSesion;
     <div class="hdr-sub">
       <!-- hidden contenteditable spans keep sv() and saveMedico() working -->
       <span id="med-nombre" contenteditable="true" onblur="saveMedico()" style="display:none;">Dr. Maicol Dos Santos</span>
-      <span class="hdr-ew">
+      <span class="hdr-ew" id="med-nombre-ew">
         <span id="med-nombre-disp" class="hdr-dt" onclick="hdrEdit('med-nombre')">Dr. Maicol Dos Santos</span>
         <input id="med-nombre-inp" class="hdr-fi" type="text" style="display:none">
         <button class="hdr-pe" onclick="hdrEdit('med-nombre')" title="Editar nombre">✏️</button>
+      </span>
+      <span class="hdr-ew" id="med-header-sel-wrap" style="display:none;">
+        <select id="med-header-sel" onchange="aplicarMedico(this.value)" title="Seleccionar médico" style="background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:6px;font-size:12px;padding:2px 6px;font-family:inherit;cursor:pointer;">
+        </select>
       </span>
       &nbsp;·&nbsp;
       <span id="med-matricula" contenteditable="true" onblur="saveMedico()" style="display:none;">CJPP 129296</span>
@@ -839,6 +843,19 @@ window.cerrarSesion = cerrarSesion;
           <button class="btn btn-primary" onclick="cfgAddCentro()">+ Agregar</button>
         </div>
         <div id="cfg-centros-lista"></div>
+      </div>
+
+      <!-- Médicos -->
+      <div style="margin-bottom:22px;border-top:1px solid var(--border);padding-top:16px;">
+        <div class="cfg-sec-title">👨‍⚕️ Médicos</div>
+        <p style="font-size:11.5px;color:var(--text2);margin-bottom:10px;line-height:1.5;">Definí tus médicos (máx. 5). El <strong>principal</strong> se usa por defecto; si hay más de uno, aparece un selector en el encabezado.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <input type="text" id="cfg-medico-nombre" placeholder="Nombre (Dr./Dra. …)" style="flex:2;min-width:160px;">
+          <input type="text" id="cfg-medico-matricula" placeholder="Matrícula" style="flex:1;min-width:100px;">
+          <input type="text" id="cfg-medico-especialidad" placeholder="Especialidad" style="flex:1;min-width:120px;">
+          <button class="btn btn-primary" onclick="cfgAddMedico()">+ Agregar</button>
+        </div>
+        <div id="cfg-medicos-lista"></div>
       </div>
 
       <!-- Modo de visualización -->
@@ -13935,6 +13952,112 @@ window._labCentroSeleccion=_labCentroSeleccion;
 // Arranque
 ecoInitCentros(); renderCentroField();
 
+// ══════════════════════════════════════════════════════════════
+// MÉDICOS PREDEFINIDOS — lista en Config + selector en el encabezado (sincronizado)
+// ══════════════════════════════════════════════════════════════
+const ETT_MEDICOS_KEY='ett_medicos', ETT_MED_PR_KEY='ett_medico_principal', ETT_MED_ACT_KEY='ett_medico_activo';
+function ecoGetMedicos(){ try{ const a=JSON.parse(localStorage.getItem(ETT_MEDICOS_KEY)||'[]'); return Array.isArray(a)?a.filter(m=>m&&typeof m==='object'):[]; }catch(e){ return []; } }
+function ecoSetMedicos(a){ try{ localStorage.setItem(ETT_MEDICOS_KEY, JSON.stringify(a.slice(0,5))); }catch(e){} }
+function ecoGetMedPrincipal(){ const n=parseInt(localStorage.getItem(ETT_MED_PR_KEY)); return isNaN(n)?0:n; }
+function ecoSetMedPrincipal(i){ try{ localStorage.setItem(ETT_MED_PR_KEY, String(i)); }catch(e){} }
+function ecoGetMedActivo(){ const meds=ecoGetMedicos(); if(!meds.length) return -1; const n=parseInt(localStorage.getItem(ETT_MED_ACT_KEY)); const idx=isNaN(n)?ecoGetMedPrincipal():n; return (idx>=0&&idx<meds.length)?idx:0; }
+function ecoSetMedActivo(i){ try{ localStorage.setItem(ETT_MED_ACT_KEY, String(i)); }catch(e){} }
+// Migración: si no hay lista pero hay un médico ya configurado, sembrarlo como primero
+function ecoInitMedicos(){
+  let m=ecoGetMedicos();
+  if(!m.length){
+    const g=id=>((document.getElementById(id)?.textContent)||localStorage.getItem(id.replace(/-/g,'_'))||localStorage.getItem('ett_'+id.replace(/-/g,'_'))||'').trim();
+    const nombre=g('med-nombre'), mat=g('med-matricula'), esp=g('med-especialidad');
+    if(nombre||mat){ m=[{nombre,matricula:mat,especialidad:esp}]; ecoSetMedicos(m); ecoSetMedPrincipal(0); }
+  }
+  if(m.length && ecoGetMedPrincipal()>=m.length) ecoSetMedPrincipal(0);
+}
+// Aplica un médico al encabezado (spans + disp + ambas keys) → PDF/firma/campos leen estos spans
+function _setMedField(id,val){
+  const el=document.getElementById(id); if(el) el.textContent=val||'';
+  const disp=document.getElementById(id+'-disp'); if(disp){ disp.textContent=val||''; if(val) disp.classList.remove('hdr-ph'); }
+  try{ localStorage.setItem(id.replace(/-/g,'_'), val||''); localStorage.setItem('ett_'+id.replace(/-/g,'_'), val||''); }catch(e){}
+}
+function aplicarMedico(idx){
+  idx=parseInt(idx); const m=ecoGetMedicos()[idx]; if(!m) return;
+  ecoSetMedActivo(idx);
+  _setMedField('med-nombre', m.nombre||'');
+  _setMedField('med-matricula', m.matricula||'');
+  _setMedField('med-especialidad', m.especialidad||'');
+  if(typeof updateHdrExtra==='function') updateHdrExtra();
+  renderMedHeaderSelector();
+  // reflejar en los inputs de Config (Institución y firma) si existen
+  const cn=document.getElementById('cfg-med-nombre'); if(cn) cn.value=m.nombre||'';
+  const cm=document.getElementById('cfg-med-matricula'); if(cm) cm.value=m.matricula||'';
+  const ce=document.getElementById('cfg-med-especialidad'); if(ce) ce.value=m.especialidad||'';
+}
+window.aplicarMedico=aplicarMedico;
+function renderMedHeaderSelector(){
+  const meds=ecoGetMedicos();
+  const wrap=document.getElementById('med-header-sel-wrap'), sel=document.getElementById('med-header-sel'), nomEw=document.getElementById('med-nombre-ew');
+  if(!wrap||!sel) return;
+  if(meds.length>1){
+    const act=ecoGetMedActivo();
+    sel.innerHTML=meds.map((m,i)=>'<option value="'+i+'">'+escHtml(m.nombre||('Médico '+(i+1)))+'</option>').join('');
+    sel.value=String(act>=0?act:0);
+    wrap.style.display=''; if(nomEw) nomEw.style.display='none';
+  } else {
+    wrap.style.display='none'; if(nomEw) nomEw.style.display='';
+  }
+}
+window.renderMedHeaderSelector=renderMedHeaderSelector;
+// ── Gestión de médicos en Configuración ──
+function cfgRenderMedicos(){
+  const box=document.getElementById('cfg-medicos-lista'); if(!box) return;
+  const meds=ecoGetMedicos(), pr=ecoGetMedPrincipal();
+  if(!meds.length){ box.innerHTML='<div style="font-size:12px;color:var(--text2);padding:6px 0;">No hay médicos configurados. Agregá el primero arriba.</div>'; return; }
+  box.innerHTML=meds.map((m,i)=>{
+    const isPr=i===pr;
+    const sub=[m.matricula,m.especialidad].filter(Boolean).map(escHtml).join(' · ');
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);">'+
+      '<label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;color:var(--text2);white-space:nowrap;" title="Marcar como principal"><input type="radio" name="cfg-medico-pr" '+(isPr?'checked':'')+' onchange="cfgSetMedPrincipal('+i+')" style="width:auto;cursor:pointer;">Principal</label>'+
+      '<span style="flex:1;font-size:13px;color:var(--text);"><strong>'+escHtml(m.nombre||'—')+'</strong>'+(isPr?' ★':'')+(sub?'<span style="color:var(--text2);font-size:11px;"> — '+sub+'</span>':'')+'</span>'+
+      '<button class="btn btn-ghost" style="padding:3px 9px;font-size:11px;" onclick="cfgEditMedico('+i+')" title="Editar">✏️</button>'+
+      '<button class="btn btn-ghost" style="padding:3px 9px;font-size:12px;color:var(--red,#e05656);" onclick="cfgDelMedico('+i+')" title="Eliminar">×</button>'+
+    '</div>';
+  }).join('');
+}
+function cfgAddMedico(){
+  const gn=document.getElementById('cfg-medico-nombre'), gm=document.getElementById('cfg-medico-matricula'), ge=document.getElementById('cfg-medico-especialidad');
+  const nombre=(gn?.value||'').trim(); if(!nombre){ toast('⚠️ Ingresá el nombre del médico'); return; }
+  let meds=ecoGetMedicos();
+  if(meds.length>=5){ toast('⚠️ Máximo 5 médicos'); return; }
+  meds.push({ nombre, matricula:(gm?.value||'').trim(), especialidad:(ge?.value||'').trim() });
+  ecoSetMedicos(meds);
+  if(meds.length===1){ ecoSetMedPrincipal(0); aplicarMedico(0); }
+  if(gn)gn.value=''; if(gm)gm.value=''; if(ge)ge.value='';
+  cfgRenderMedicos(); renderMedHeaderSelector();
+  toast('✅ Médico agregado');
+}
+function cfgDelMedico(i){
+  let meds=ecoGetMedicos(); if(i<0||i>=meds.length) return;
+  meds.splice(i,1); ecoSetMedicos(meds);
+  let pr=ecoGetMedPrincipal(); if(i<pr) pr--; if(pr>=meds.length) pr=0; ecoSetMedPrincipal(Math.max(0,pr));
+  ecoSetMedActivo(ecoGetMedPrincipal());
+  cfgRenderMedicos();
+  if(meds.length) aplicarMedico(ecoGetMedActivo()); else renderMedHeaderSelector();
+}
+function cfgEditMedico(i){
+  let meds=ecoGetMedicos(); if(i<0||i>=meds.length) return; const m=meds[i];
+  const nombre=prompt('Nombre del médico:', m.nombre||''); if(nombre==null) return;
+  if(!nombre.trim()){ toast('⚠️ Nombre vacío'); return; }
+  const mat=prompt('Matrícula:', m.matricula||''); if(mat==null) return;
+  const esp=prompt('Especialidad:', m.especialidad||''); if(esp==null) return;
+  meds[i]={ nombre:nombre.trim(), matricula:mat.trim(), especialidad:esp.trim() }; ecoSetMedicos(meds);
+  cfgRenderMedicos(); renderMedHeaderSelector();
+  if(ecoGetMedActivo()===i) aplicarMedico(i);
+}
+function cfgSetMedPrincipal(i){ const meds=ecoGetMedicos(); if(i<0||i>=meds.length) return; ecoSetMedPrincipal(i); cfgRenderMedicos(); }
+window.cfgAddMedico=cfgAddMedico; window.cfgDelMedico=cfgDelMedico; window.cfgEditMedico=cfgEditMedico; window.cfgSetMedPrincipal=cfgSetMedPrincipal; window.cfgRenderMedicos=cfgRenderMedicos;
+// Arranque médicos
+ecoInitMedicos();
+{ const _a=ecoGetMedActivo(); if(_a>=0) aplicarMedico(_a); else renderMedHeaderSelector(); }
+
 // ══ LOGO POR CENTRO ══
 function getCentroKey() { return localStorage.getItem('centro_tipo_activo') || 'default'; }
 function getLogoGallery(){try{return JSON.parse(localStorage.getItem('logo_gallery')||'[]');}catch(e){return[];}}
@@ -19204,8 +19327,9 @@ function cfgSaveMed(id,val){
   var el=document.getElementById(id);
   if(el) el.textContent=val;
   var disp=document.getElementById(id+'-disp'); // span visible en el header (nombre/matrícula/lugar)
-  if(disp) disp.textContent=val;
-  try { localStorage.setItem(id.replace(/-/g,'_'), val); } catch(e){}
+  if(disp){ disp.textContent=val; if(val) disp.classList.remove('hdr-ph'); }
+  // Escribir AMBAS keys: 'med_*' (loadMedico) y 'ett_med_*' (initHdrEditable la prefiere) → evita desync al recargar
+  try { localStorage.setItem(id.replace(/-/g,'_'), val); localStorage.setItem('ett_'+id.replace(/-/g,'_'), val); } catch(e){}
   if(typeof updateHdrExtra==='function') updateHdrExtra();
 }
 function cfgLoadMed(){
@@ -19217,7 +19341,7 @@ function cfgLoadMed(){
 }
 function eeQrEnabled(){ return localStorage.getItem('ett_qr_enabled') !== '0'; } // por defecto activado
 function cfgToggleQr(on){ try { localStorage.setItem('ett_qr_enabled', on ? '1' : '0'); } catch(e){} }
-function cfgOnShow(){ cfgRenderModulos(); cfgLoadMed(); if(typeof cfgRenderCentros==='function')cfgRenderCentros(); var q=document.getElementById('cfg-qr'); if(q) q.checked = eeQrEnabled(); var mi=document.getElementById('cfg-modo-inst'); if(mi) mi.checked=(localStorage.getItem('ett_modo_institucional')==='1'); }
+function cfgOnShow(){ cfgRenderModulos(); cfgLoadMed(); if(typeof cfgRenderCentros==='function')cfgRenderCentros(); if(typeof cfgRenderMedicos==='function')cfgRenderMedicos(); var q=document.getElementById('cfg-qr'); if(q) q.checked = eeQrEnabled(); var mi=document.getElementById('cfg-modo-inst'); if(mi) mi.checked=(localStorage.getItem('ett_modo_institucional')==='1'); }
 /* Botón "🏥 Centro": abre el panel del médico y edita el centro/institución (med-centro) */
 function ecoCentroBtn(){
   var p=document.getElementById('hdr-med-panel'); if(p){ p.style.display='block'; var b=document.getElementById('hdr-med-btn'); if(b)b.setAttribute('aria-expanded','true'); }
