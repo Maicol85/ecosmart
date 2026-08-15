@@ -8788,6 +8788,33 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
+  <!-- SECCIÓN G: VOLUMEN AI Y FUNCIÓN VD -->
+  <div class="lab-card">
+    <div class="lab-card-hdr">🫀 Volumen AI indexado</div>
+    <div class="lab-card-body">
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Normal (≤34) · Leve (35–41) · Moderada (42–48) · Severa (&gt;48) ml/m².</div>
+      <div class="lab-bar-wrap" id="lab-volai-dist"></div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN H: FUNCIÓN VD (TAPSE) -->
+  <div class="lab-card">
+    <div class="lab-card-hdr">🫀 Función VD (TAPSE)</div>
+    <div class="lab-card-body">
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Normal (≥17) · Levemente reducida (14–16) · Reducida (&lt;14) mm.</div>
+      <div class="lab-bar-wrap" id="lab-vd-dist"></div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN I: GEOMETRÍA VI -->
+  <div class="lab-card">
+    <div class="lab-card-hdr">📐 Geometría VI</div>
+    <div class="lab-card-body">
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Patrón geométrico del ventrículo izquierdo (según texto del informe / campo de geometría).</div>
+      <div class="lab-bar-wrap" id="lab-geom-dist"></div>
+    </div>
+  </div>
+
   </div><!-- /lab-sub-mediciones -->
 
   <div id="lab-sub-calidad" class="lab-subpanel">
@@ -16204,6 +16231,7 @@ function labInit() {
     ['lab-chart-meses','lab-fevi-dist','lab-diast-dist',
      'lab-hallazgos','lab-calidad-bars','lab-valv-im','lab-valv-ia',
      'lab-valv-it','lab-esten-ea','lab-esten-em','lab-htp-dist',
+     'lab-volai-dist','lab-vd-dist','lab-geom-dist',
      'lab-indicaciones-freq','lab-antecedentes-freq'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.innerHTML = '<div class="lab-empty">Sin datos</div>';
@@ -16504,6 +16532,47 @@ function labRenderExtras(infs, n) {
     { lbl:`Severa (>70) (n=${psapsAll.filter(v=>v>70).length})`,        n: psapsAll.filter(v=>v>70).length,         total:ht, color:'#f05454' },
   ];
   labBarras('lab-htp-dist', ht > 0 ? htpDist : []);
+
+  // SECCIÓN G — Volumen AI indexado (LAVI, ml/m²)
+  const lavisAll = infs.map(i => _labLavi(i)).filter(v => v !== null && v > 0);
+  const lt = lavisAll.length;
+  const volaiDist = [
+    { lbl:`Normal (≤34) (n=${lavisAll.filter(v=>v<=34).length})`,           n: lavisAll.filter(v=>v<=34).length,          total:lt, color:'#3ecf8e' },
+    { lbl:`Leve dilatación (35–41) (n=${lavisAll.filter(v=>v>34&&v<=41).length})`, n: lavisAll.filter(v=>v>34&&v<=41).length, total:lt, color:'#f5c842' },
+    { lbl:`Moderada (42–48) (n=${lavisAll.filter(v=>v>41&&v<=48).length})`,  n: lavisAll.filter(v=>v>41&&v<=48).length,     total:lt, color:'#f0a500' },
+    { lbl:`Severa (>48) (n=${lavisAll.filter(v=>v>48).length})`,            n: lavisAll.filter(v=>v>48).length,           total:lt, color:'#f05454' },
+  ];
+  labBarras('lab-volai-dist', lt > 0 ? volaiDist : []);
+
+  // SECCIÓN H — Función VD (TAPSE, mm)
+  const tapsesAll = infs.map(i => _labTapse(i)).filter(v => v !== null && v > 0);
+  const tt = tapsesAll.length;
+  const vdDist = [
+    { lbl:`Normal (≥17) (n=${tapsesAll.filter(v=>v>=17).length})`,               n: tapsesAll.filter(v=>v>=17).length,          total:tt, color:'#3ecf8e' },
+    { lbl:`Levemente reducida (14–16) (n=${tapsesAll.filter(v=>v>=14&&v<17).length})`, n: tapsesAll.filter(v=>v>=14&&v<17).length, total:tt, color:'#f5c842' },
+    { lbl:`Reducida (<14) (n=${tapsesAll.filter(v=>v<14).length})`,              n: tapsesAll.filter(v=>v<14).length,           total:tt, color:'#f05454' },
+  ];
+  labBarras('lab-vd-dist', tt > 0 ? vdDist : []);
+
+  // SECCIÓN I — Geometría VI (patrón, desde texto del informe / campo geom_vi)
+  const _geomCat = (inf) => {
+    const t = ((inf.campos?.geom_vi || '') + ' ' + (inf.campos?.informe_texto || '') + ' ' + (inf.campos?.en_suma || '')).toLowerCase();
+    if (!t.trim()) return null;
+    if (/hipertrofia\s+conc[eé]ntrica|hvi\s+conc[eé]ntrica|conc[eé]ntrica/.test(t)) return 'conc';
+    if (/hipertrofia\s+exc[eé]ntrica|hvi\s+exc[eé]ntrica|exc[eé]ntrica/.test(t)) return 'exc';
+    if (/remodelado\s+conc[eé]ntrico|remodelado/.test(t)) return 'remod';
+    if (/geometr[ií]a\s+normal|sin\s+hipertrofia|\bnormal\b/.test(t)) return 'normal';
+    return null;
+  };
+  const geomCat = { normal:0, remod:0, conc:0, exc:0 }; let geomTot = 0;
+  infs.forEach(i => { const g = _geomCat(i); if (g && geomCat[g] !== undefined) { geomCat[g]++; geomTot++; } });
+  const geomDist = [
+    { lbl:`Normal (n=${geomCat.normal})`,                  n: geomCat.normal, total: geomTot, color:'#3ecf8e' },
+    { lbl:`Remodelado concéntrico (n=${geomCat.remod})`,   n: geomCat.remod,  total: geomTot, color:'#f5c842' },
+    { lbl:`HVI concéntrica (n=${geomCat.conc})`,           n: geomCat.conc,   total: geomTot, color:'#f0a500' },
+    { lbl:`HVI excéntrica (n=${geomCat.exc})`,             n: geomCat.exc,    total: geomTot, color:'#8a5fd4' },
+  ];
+  labBarras('lab-geom-dist', geomTot > 0 ? geomDist : []);
 
   // SECCIONES E/F — frecuencia por indicación y por antecedente (tortas)
   const freqEntries = (key) => {
