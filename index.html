@@ -8495,6 +8495,18 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   #tab-lab .lab-subpanel{display:none;}
   #tab-lab .lab-subpanel.active{display:block;}
   #tab-lab .lab-chart-container{position:relative;height:220px;width:100%;margin-bottom:8px;}
+  /* Corazón anatómico con datos superpuestos */
+  #tab-lab .heart-lab-grid{display:grid;grid-template-columns:340px 1fr;gap:22px;align-items:start;}
+  #tab-lab .heart-wrap{position:relative;width:340px;height:458px;background:#f6f8fb;border-radius:14px;flex-shrink:0;}
+  #tab-lab .heart-wrap>svg{display:block;width:340px;height:458px;}
+  #tab-lab .heart-badge{position:absolute;color:#fff;border-radius:8px;padding:4px 10px;box-shadow:0 2px 8px rgba(0,0,0,0.3);text-align:center;line-height:1.15;z-index:2;}
+  #tab-lab .heart-badge .hb-lbl{display:block;font-size:9px;opacity:.8;white-space:nowrap;}
+  #tab-lab .heart-badge .hb-val{display:block;font-size:14px;font-weight:800;}
+  #tab-lab .heart-tbl{width:100%;border-collapse:collapse;font-size:.82rem;}
+  #tab-lab .heart-tbl th{background:var(--bg3);color:var(--text2);text-align:left;padding:7px 10px;font-weight:700;border-bottom:1px solid var(--border);}
+  #tab-lab .heart-tbl td{padding:7px 10px;border-bottom:1px solid var(--border);}
+  #tab-lab .heart-tbl td:last-child{font-weight:700;color:var(--accent2);text-align:right;white-space:nowrap;}
+  @media(max-width:768px){#tab-lab .heart-lab-grid{grid-template-columns:1fr;}#tab-lab .heart-wrap{margin:0 auto;max-width:100%;}}
 </style>
 
   <div style="display:flex;flex-wrap:wrap;border-bottom:2px solid var(--border);margin-bottom:16px;">
@@ -8581,6 +8593,109 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <div>
           <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Hallazgos frecuentes</div>
           <div class="lab-bar-wrap" id="lab-hallazgos"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN A-bis: CORAZÓN ANATÓMICO CON DATOS SUPERPUESTOS -->
+  <div class="lab-card">
+    <div class="lab-card-hdr">🫀 Corazón anatómico — promedios del período</div>
+    <div class="lab-card-body">
+      <div class="heart-lab-grid">
+        <div class="heart-wrap">
+          <svg width="340" height="458" viewBox="0 0 1502 2024" xmlns="http://www.w3.org/2000/svg" aria-label="Corazón anatómico">
+<g>
+	<path fill="#020101" d="M550.35,52h0.64c45.136,49.016,66.157,129.525,68.89,201.16c20-9.746,49.716-21.93,65.31-6.13
+		c9.458-65.072-28.51-133.195,70.35-97.75c-16.528,109.841-17.352,116.489,29.89,122.03c1.208-23.702,7.87-104.629,30.44-112.35
+		c19.033-5.201,29.12,21.015,36.66,30.54c10.384,13.165,16.516-4.677,25.06-0.97c0.88,3.17-0.53,6.11-2.56,8.48
+		c-135.99,174.95,67.346-5.688,112.83,322.13c123.95-28.365,248.879-17.092,253.12-17.12c-0.44,0.57-1.31,1.71-1.75,2.28
+		c70.897,41.021-5.221,317.022-57.93,113.51c-0.29,39.875,21.69,62.414,32.88,80.27c-59.261-22.129-119.374-32.913-180.36-27.39
+		c176.447,26.546,208.354,347.356,211.09,352.31c196.905,305.241,167.723,807.377,58.25,885.13
+		c-71.913,53.154-188.75,51.839-274.94,33.65c-49.218-11.308-318.817-32.001-569.16-205.99
+		c11.929,71.708,31.583,160.588,55.89,229.34c1.29,2.63-0.17,5.22-2.28,6.87h-3.53c-6.231-4.506-28.091-62.08-82.98-85.15
+		c-90.471-39.196-175.433,53.161-166.19,20.15c29.767-165.842,25.61-348.879,24.73-352.59
+		c-48.108-74.766-82.611-165.214-87.05-251.2c-6.586-14.754-74.486-117.938-84.65-271.81c0-58.638,4.66-115.219,39.59-177.77
+		c72.851-130.906,86.361-30.379,101.25-194.56c8.937-101.856-1.149-221.801-20.24-322.81c-1.008-6.376-9.962-19.311,4.17-35.45
+		c42.242-48.09,196.648-33.745,202.25,11.77l-0.33,0.07c-6.777-48.793-159.683-45.518-193.22-2.12
+		c-21.023,26.84,56.529,44.79,74.42,46.09c77.68,6.35,91.929-18.733,109.55-24.15c5.11-4.2,9.21-10.34,9.11-17.19l0.35,0.07
+		c0.15,7.04-3.98,13.13-8.86,17.82c0.41,1.83,1.15,3.71,0.6,5.6c-7.41,32.05-12.76,64.63-15.36,97.42
+		c5.57-11.737,24.12-104.215,146.74-157.07c6.739-3.866-2.623-126.553-29.64-162.5C522.353,102.766,458.793,101.412,550.35,52
+		 M522.46,76.47c-5.255,4.102-18.039,14.579-12.95,18.92c8.329,7.85,56.315-10.355,63.42,186.53
+		c-85.785,35.242-142.547,96.333-157.6,188.62c-11.25,56.788,18.957,238.63,60.8,305.36c19.22,21.49,33.54,47.11,43.4,74.13
+		c30.742-79.628,81.584-208.083,174.3-186.13c-19.68-31.02-34.66-65.11-43.77-100.71c0.46-0.54,1.36-1.63,1.81-2.18
+		c-9.37-22.254,27.55-73.985,58.1-75.8c22.542-0.799,76.104,105.402,85.27,126.03c50.878-45.611,120.682-74.993,186.1-90.36
+		c-0.24-3.68-0.81-7.32-1.34-10.96c-45.887-302.067-244.609-142.626-116.25-309.16c-4.32,0.3-8.94-0.2-12.3-3.2
+		c-13.765-11.788-34.669-75.522-52.57,13.25c-3.97,22.44-6.54,45.16-7.48,67.92c-55.883-5.803-61.46-13.078-42.87-125.02
+		c-61.848-21.298-56.339,2.709-56.64,47.29c0.132,32.321,3.159,52.502-5.89,53.49c-4.21,0.18-6.13-4.24-9.41-6.03
+		c-15.691-8.851-47.26,6.696-62.98,15.5c-0.61-69.932-19.146-150.708-64.03-204C540.07,64.62,531.01,70.23,522.46,76.47
+		 M241.35,342.95c22.485,121.757,34.681,290.788,2.83,413.06c84.492-41.058,171.305-33.476,205.97-15.88
+		c-42.08-116.252-63.245-228.039-26.14-397.39c-11.424,5.616-40.702,32.314-129.16,20.37C275.91,360.41,256.4,355.37,241.35,342.95
+		 M690.95,498.8c7.45-2.25,14.83-4.49,22.07-7.33C705.18,491.54,697.27,494.2,690.95,498.8 M674.16,517.14
+		c-11.05,11.63-15.65,28.02-15.87,43.76c3.53-0.88,7.07-1.69,10.66-2.29c0.63,2.58,1.12,5.2,2,7.72
+		c16.761-4.711,34.832-24.691,42.57-40.34c-2.5-7.98-5.18-15.91-7.68-23.88l-0.78-0.56C693.57,503.66,682.27,508.52,674.16,517.14
+		 M727.84,506.73c0.463,2.913,25.503,88.006,58.2,113.24c1.82-0.59,3.02-2.51,4.13-4.01
+		C773.769,576.843,739.985,523.686,727.84,506.73 M940.66,548.75c-53.403,18.535-118.106,51.941-149.76,93.71
+		c-48.372-20.556-68.609-97.824-75.41-110.06c-14.589,20.58-33.794,32.209-44.23,34.55c11.038,55.809,54.118,112.817,64.65,129.16
+		c-22.309-9.105-43.052-24.261-79.74-14.04c-143.356,39.704-168.874,426.542-159.19,450.94c8.06,16.56,18.43,32.49,32.88,44.18
+		c41.551,33.58,78.589-12.26,86.88-19.28c-43.909,49.258-83.236,41.525-116.1-10.57c-3.91-5.85-6.59-12.41-10.26-18.37
+		c0.658,12.454,3.855,68.61,8.6,80.12c25.165,69.965-24.265,186.228-44.93,205.15c3.48-12.28,8.28-24.14,12.03-36.33
+		c55.91-165.65,17.187-158.812,17.15-292.9c-0.848-68.79,8.947-147.658,27.88-216.03c-0.095-1-12.549-46.499-50.21-80.69
+		c-48.425,47.616-191.276,39.999-212.87,10.6c41.878,34.919,165.383,17.509,202.87-18.82c-61.56-48.832-142.297-40.478-210.26,1.02
+		c-0.69,5.76,1.63,11.54,5.43,15.83c-4.96-3.45-5.56-10.05-5.92-15.56c-12.203,6.423-104.723,83.698-102.94,232.65
+		c1.593,97.714,41.846,205.158,88.33,280.49c68.489,59.136,176.16,108.2,211.49,131.26c-75.881-20.258-150.04-54.099-210.05-107.89
+		c47.213,426.31,760.255,601.153,874.69,573.57c-334.165-367.627-373.847-685.993-382.39-701.36
+		c-22.814,8.242-52.449-13.899-63.07-25.14c36.353,31.059,62.063,30.197,62.25,21.54c49.317-19.615,19.299-104.552,43.67-235.53
+		c44.636-239.949,208.408-336.917,425.72-272.98c-24.395-38.577-17.89-69.561-11.32-113.02c1.33-18.61,6.76-37.72,19.4-51.88
+		C1109.78,511.95,1022.52,520.71,940.66,548.75 M1229.19,514.14c-85.354,82.509-23.692,181.118-6.35,179.76
+		C1258.59,696.712,1287.542,531.717,1229.19,514.14 M1190.01,546.87c5.71-9.98,12.06-19.56,19.06-28.66
+		C1199.93,525.43,1193.86,536.02,1190.01,546.87 M651.23,557.86l0.49,0.09c0.83-7.41,1.91-14.83,4.19-21.97
+		C652.03,542.38,649.46,550.46,651.23,557.86 M947.31,697.3c-85.292,32.219-135.551,108.18-164.75,194.89
+		c39.765-62.139,122.115-204.457,270.51-179.12c158.468,95.053,160.133,304.453,88.03,471.14c-5.34,17.65-10.67,35.95-22.27,50.68
+		c-13.248,16.873-33.059,14.539-39.06,9.39c9.979-0.315,19.472,0.86,34.06-13.44c47.611-49.616,123.425-378.437-66.11-504.65
+		c-115.076-20.463-196.394,72.077-256.44,171.75c42.659,205.353,211.373,251.322,220.88,273.14c0.65,8.61-1,17.22-2.66,25.64
+		c7.196,6.083,26.018,46.057,58.49,52.99c-22.42-0.118-45.936-27.332-59.91-44.71c-1.56,0.07-1.01,2.4-1.65,3.44
+		c-9.061,30.996-28.963,60.018-59.4,48.84c53.373,9.066,62.719-66.319,61.96-84.28c0.199-3.803-11.64-10.188-19.37-14.58
+		c-102.02-57.682-175.082-120.845-208.68-259.43c-2.489,3.806-25.089,74.793-29.65,195.99c-0.741,15.89,3.115,60.677-20.77,87.98
+		c27.194,69.781,102.16,138.687,137.89,146.4c42.753,9.497,63.739-49.986,64.39-63c0.2,0.04,0.58,0.1,0.78,0.13
+		c-24.843,113.981-111.045,67.801-181.53-23.37c25.383,45.305,108.398,190.125,190.56,318.27
+		c197.057,306.098,253.862,327.31,304.95,310.11c142.693-48.384,6.03-603.149-102.4-692.51
+		c96.489,64.454,254.604,606.255,121.04,694.18c-80.707,54.811-179.914-54.415-391.66-396.74c-41.71-67.78-82.47-136.15-121.5-205.5
+		c0.082,1.211,59.084,273.86,356.31,616.66c41.62,40.263-380.6-5.187-661-221.94c-118.95-92.069-164.527-177.812-173.45-189.69
+		c5.427,18.527,69.797,120.575,101.24,142.91c27.742,19.258,99.873,132.066,358.85,221.23
+		c112.063,38.384,372.856,103.144,489.94,70.77c63.265-17.216,77.386-44.066,89.48-68.48
+		c70.215-151.376,74.131-545.379-87.48-805.33c-2.02-3.47-4.94-6.68-5.15-10.88C1200.552,841.679,1123.718,631.293,947.31,697.3
+		 M499.49,980.28c-1.73,17.12-4.96,34.07-6.01,51.27l0.59,0.53l0.58-0.06c1.47-17.2,3.73-34.45,5.08-51.7L499.49,980.28
+		 M493.04,1033.59c-1.58,22.32-3.46,44.71-2.66,67.13l0.23-0.06c0.061-10.979,3.432-67.189,3.34-67.65
+		C493.72,1033.15,493.27,1033.44,493.04,1033.59 M295.09,1569.87c1.782,108.185-1.729,219.468-19.9,325.24
+		c82.052-46.192,165.587-41.873,219.62,35.79c-17.76-64.02-29.45-129.6-37.44-195.51
+		C457.37,1735.39,362.819,1668.348,295.09,1569.87z"/>
+	<path fill="#020101" d="M438.51,1228.56c44.327,26.042,29.16,69.485-49.51,70.74c-74.483-1.013-136.552-36.371-119.51-62.6
+		c-2.42,5.25-2.82,11.54-0.24,16.82c28.091,59.412,221.689,39.647,173.62-6.4c-31.843-30.17-129.32-50.384-172.96-11.29
+		C290.987,1204.515,388.274,1200.008,438.51,1228.56z"/>
+</g>
+</svg>
+          <div class="heart-badge" style="background:#1a5276;top:4px;left:50%;transform:translateX(-50%)"><span class="hb-lbl">Aorta (Ao sin.)</span><span class="hb-val" id="hb-ao-val">—</span></div>
+          <div class="heart-badge" style="background:#854f0b;top:75px;left:12px"><span class="hb-lbl">AD · PmAD</span><span class="hb-val" id="hb-ad-val">—</span></div>
+          <div class="heart-badge" style="background:#534ab7;top:75px;right:12px"><span class="hb-lbl">AI · Vol AI</span><span class="hb-val" id="hb-ai-val">—</span></div>
+          <div class="heart-badge" style="background:#7f77dd;top:195px;left:5px"><span class="hb-lbl">PSAP</span><span class="hb-val" id="hb-psap-val">—</span></div>
+          <div class="heart-badge" style="background:#0f6e56;top:265px;left:12px"><span class="hb-lbl">VD · TAPSE</span><span class="hb-val" id="hb-vd-val">—</span></div>
+          <div class="heart-badge" style="background:#185fa5;top:275px;right:8px"><span class="hb-lbl">VI · FEVI</span><span class="hb-val" id="hb-vi-val">—</span></div>
+        </div>
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Promedios por estructura</div>
+          <table class="heart-tbl">
+            <thead><tr><th>Estructura</th><th>Parámetro</th><th style="text-align:right">Promedio</th></tr></thead>
+            <tbody>
+              <tr><td>Aorta</td><td>Ao sinusal</td><td id="ht-ao">—</td></tr>
+              <tr><td>Aurícula derecha</td><td>PmAD</td><td id="ht-ad">—</td></tr>
+              <tr><td>Aurícula izquierda</td><td>Vol AI indexado</td><td id="ht-ai">—</td></tr>
+              <tr><td>Circulación pulmonar</td><td>PSAP</td><td id="ht-psap">—</td></tr>
+              <tr><td>Ventrículo derecho</td><td>TAPSE</td><td id="ht-vd">—</td></tr>
+              <tr><td>Ventrículo izquierdo</td><td>FEVI</td><td id="ht-vi">—</td></tr>
+            </tbody>
+          </table>
+          <div style="font-size:.72rem;color:var(--text2);margin-top:8px;font-style:italic;line-height:1.5;">Promedios calculados sobre los estudios del período con dato registrado. Sin dato → "—".</div>
         </div>
       </div>
     </div>
@@ -15983,6 +16098,24 @@ function _labLavi(inf) {   // Vol AI indexado (ml/m²)
   }
   return null;
 }
+// Corazón anatómico — promedios del período (badges superpuestos + tabla). Sin dato → "—".
+function _labHeart(infs) {
+  const prom = (vals, dec, unit) => {
+    const a = vals.filter(x => x !== null && !isNaN(x) && x > 0);
+    if (!a.length) return '—';
+    return (a.reduce((s, b) => s + b, 0) / a.length).toFixed(dec) + (unit || '');
+  };
+  const set = (id, txt) => { const e = document.getElementById(id); if (e) e.textContent = txt; };
+  const metrics = [
+    ['ao',   infs.map(i => _labNum(i, 'ao_sin')), 0, ' mm'],
+    ['ad',   infs.map(i => _labNum(i, 'pmad')),   0, ' mmHg'],
+    ['ai',   infs.map(_labLavi),                  0, ' ml/m²'],
+    ['psap', infs.map(_labPsap),                  0, ' mmHg'],
+    ['vd',   infs.map(_labTapse),                 0, ' mm'],
+    ['vi',   infs.map(_labFevi),                  0, ' %']
+  ];
+  metrics.forEach(m => { const t = prom(m[1], m[2], m[3]); set('hb-' + m[0] + '-val', t); set('ht-' + m[0], t); });
+}
 function _labDiastGrado(inf) {   // grado desde el texto del resumen (misma heurística que la distribución)
   const t = _labTxt(inf);
   if (!t.trim()) return null;
@@ -16043,6 +16176,7 @@ function _labIndicadoresList(infs) {
 function labInit() {
   const infs = labGetInformes();
   const n = infs.length;
+  _labHeart(infs);   // corazón anatómico (maneja n=0 → todos "—")
   document.getElementById('lab-resumen-header').textContent =
     n === 0 ? 'Sin estudios en el período seleccionado.' :
     `${n} estudio${n !== 1 ? 's' : ''} en el período seleccionado.`;
