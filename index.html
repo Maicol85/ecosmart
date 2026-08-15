@@ -13922,6 +13922,19 @@ function accToggle(id) {
   const abierto = acc.classList.toggle('open');
   const btn = acc.querySelector('.acc-hdr');
   if (btn) btn.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+  // FIX Safari: un contenedor con overflow:hidden animado por max-height no actualiza su
+  // área de hit-testing → los checkboxes del cuerpo se ven pero no responden al click.
+  // Al terminar de abrir liberamos el clip (overflow:visible); como el contenido no excede
+  // el max-height, esto no cambia nada visual. Al cerrar restauramos overflow para el colapso.
+  const body = acc.querySelector('.acc-body');
+  if (!body) return;
+  if (abierto) {
+    const liberar = () => { if (acc.classList.contains('open')) body.style.overflow = 'visible'; };
+    body.addEventListener('transitionend', liberar, { once: true });
+    setTimeout(liberar, 360); // respaldo si transitionend no dispara
+  } else {
+    body.style.overflow = ''; // vuelve a overflow:hidden (CSS) para animar el cierre
+  }
 }
 window.accToggle = accToggle;
 
