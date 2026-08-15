@@ -830,6 +830,17 @@ window.cerrarSesion = cerrarSesion;
         </label>
       </div>
 
+      <!-- Centros de trabajo -->
+      <div style="margin-bottom:22px;border-top:1px solid var(--border);padding-top:16px;">
+        <div class="cfg-sec-title">🏥 Centros de trabajo</div>
+        <p style="font-size:11.5px;color:var(--text2);margin-bottom:10px;line-height:1.5;">Definí tus centros (máx. 10). El centro <strong>principal</strong> se selecciona por defecto en cada estudio nuevo.</p>
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <input type="text" id="cfg-centro-nuevo" placeholder="Nombre del centro (ej: GREMEDA)" onkeydown="if(event.key==='Enter'){event.preventDefault();cfgAddCentro();}" style="flex:1;">
+          <button class="btn btn-primary" onclick="cfgAddCentro()">+ Agregar</button>
+        </div>
+        <div id="cfg-centros-lista"></div>
+      </div>
+
       <!-- Modo de visualización -->
       <div style="margin-bottom:22px;border-top:1px solid var(--border);padding-top:16px;">
         <div class="cfg-sec-title">🖥️ Modo de visualización</div>
@@ -981,29 +992,11 @@ window.cerrarSesion = cerrarSesion;
         </div>
       </div>
 
-      <div class="grid-2" style="margin-top:8px;">
-        <div class="fg">
-          <label>Tipo de centro <span style="font-weight:400;color:var(--text2);font-size:10px;">(doble click para renombrar)</span></label>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;" id="centro_tipo_opts">
-            <button type="button" class="btn btn-ghost centro-opt" id="centro_opt_1" onclick="selectCentroTipo(1)">
-              <span contenteditable="true" class="centro-label" id="centro_label_1" ondblclick="event.stopPropagation()" onblur="saveCentroLabel(1)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">Centro 1</span>
-            </button>
-            <button type="button" class="btn btn-ghost centro-opt" id="centro_opt_2" onclick="selectCentroTipo(2)">
-              <span contenteditable="true" class="centro-label" id="centro_label_2" ondblclick="event.stopPropagation()" onblur="saveCentroLabel(2)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">Centro 2</span>
-            </button>
-            <button type="button" class="btn btn-ghost centro-opt" id="centro_opt_3" onclick="selectCentroTipo(3)">
-              <span contenteditable="true" class="centro-label" id="centro_label_3" ondblclick="event.stopPropagation()" onblur="saveCentroLabel(3)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">Centro 3</span>
-            </button>
-            <button type="button" class="btn btn-ghost centro-opt" id="centro_opt_4" onclick="selectCentroTipo(4)">
-              <span contenteditable="true" class="centro-label" id="centro_label_4" ondblclick="event.stopPropagation()" onblur="saveCentroLabel(4)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">Centro 4</span>
-            </button>
-          </div>
-          <input type="hidden" id="centro_tipo">
-        </div>
-        <div class="fg">
-          <label>Centro / Institución</label>
-          <input type="text" id="centro_nombre" placeholder="Ej: Hospital Regional de Artigas" oninput="saveCentro()">
-        </div>
+      <div class="fg" style="margin-top:8px;">
+        <label>Centro / Institución</label>
+        <div id="centro-field-wrap"></div>
+        <div id="centro-field-hint" style="font-size:10px;color:var(--text2);margin-top:4px;display:none;">Configurá tus centros en Configuración →</div>
+        <input type="hidden" id="centro_tipo">
       </div>
       <div class="grid-2" style="margin-top:8px;">
         <div class="fg">
@@ -8484,6 +8477,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   #tab-lab .lab-amarillo{background:#f5c842;}
   #tab-lab .lab-rojo{background:#f05454;}
   #tab-lab .lab-filtros{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
+  #tab-lab .lab-centro-lbl{display:inline-flex;align-items:center;gap:5px;font-size:.8rem;color:var(--text);margin:0 16px 6px 0;cursor:pointer;}
+  #tab-lab .lab-centro-lbl input{width:auto;cursor:pointer;}
   #tab-lab .lab-chart-wrap{width:100%;overflow-x:auto;}
   #tab-lab .lab-bar-wrap{display:flex;flex-direction:column;gap:6px;}
   #tab-lab .lab-bar-row{display:flex;align-items:center;gap:8px;font-size:.78rem;}
@@ -8553,7 +8548,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         </div>
         <button class="btn btn-ghost" onclick="labExportarXLSX()" style="margin-top:18px;">📊 Exportar Excel</button>
       </div>
-      <div id="lab-resumen-header" style="font-size:.82rem;color:var(--text2);margin-top:4px;"></div>
+      <div id="lab-centro-filtro" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);"></div>
+      <div id="lab-resumen-header" style="font-size:.82rem;color:var(--text2);margin-top:8px;"></div>
     </div>
   </div>
 
@@ -12049,6 +12045,7 @@ function limpiarCampos() {
   ['im_grado','ia_grado','it_grado'].forEach(id => { const el = document.getElementById(id); if (el) el.value = '0'; });
   document.querySelectorAll('textarea').forEach(el => el.value = '');
   document.querySelectorAll('select').forEach(el => el.selectedIndex = 0);
+  if (typeof renderCentroField === 'function') renderCentroField('');   // nuevo estudio → centro principal por defecto
   // Prolapso mitral: desmarcar checkboxes, limpiar extensión, ocultar bloque
   ['vm_seg_a1','vm_seg_a2','vm_seg_a3','vm_seg_p1','vm_seg_p2','vm_seg_p3','vm_seg_ca','vm_seg_cp','vm_flail','vm_rotura_cuerdas','vm_elongacion_cuerdas','vm_calc_anular','vm_engros_valvar','vm_exceso_tejido'].forEach(id => { const el = document.getElementById(id); if (el) el.checked = false; });
   { const _ci = document.getElementById('caso_interes'); if (_ci) _ci.checked = false; }
@@ -13811,6 +13808,133 @@ loadCentro();
 window.selectCentroTipo = selectCentroTipo;
 window.saveCentroLabel = saveCentroLabel;
 
+// ══════════════════════════════════════════════════════════════
+// CENTROS PREDEFINIDOS — gestión en Config · select en form · filtro múltiple en Lab
+// (no toca la lógica de informes: el campo guardado sigue siendo centro_nombre)
+// ══════════════════════════════════════════════════════════════
+const ETT_CENTROS_KEY='ett_centros', ETT_CENTRO_PR_KEY='ett_centro_principal';
+function ecoGetCentros(){ try{ const a=JSON.parse(localStorage.getItem(ETT_CENTROS_KEY)||'[]'); return Array.isArray(a)?a.filter(x=>typeof x==='string'&&x.trim()).map(x=>x.trim()):[]; }catch(e){ return []; } }
+function ecoSetCentros(arr){ try{ localStorage.setItem(ETT_CENTROS_KEY, JSON.stringify(arr.slice(0,10))); }catch(e){} }
+function ecoGetCentroPrincipal(){ return (localStorage.getItem(ETT_CENTRO_PR_KEY)||'').trim(); }
+function ecoSetCentroPrincipal(n){ try{ localStorage.setItem(ETT_CENTRO_PR_KEY, (n||'').trim()); }catch(e){} }
+// Migración: si no hay centros pero hay un valor de centro previo, sembrarlo como primer centro
+function ecoInitCentros(){
+  let c=ecoGetCentros();
+  if(!c.length){
+    const prev=((localStorage.getItem('centro_nombre')||'').trim())||((localStorage.getItem('med-centro')||'').trim());
+    if(prev){ c=[prev]; ecoSetCentros(c); if(!ecoGetCentroPrincipal()) ecoSetCentroPrincipal(prev); }
+  }
+  if(c.length && !ecoGetCentroPrincipal()) ecoSetCentroPrincipal(c[0]);
+}
+// ── Campo de centro en el formulario Paciente (select o texto libre) ──
+function renderCentroField(forceVal){
+  const wrap=document.getElementById('centro-field-wrap'); if(!wrap)return;
+  const hint=document.getElementById('centro-field-hint');
+  const centros=ecoGetCentros();
+  let cur = (forceVal!=null) ? forceVal : (document.getElementById('centro_nombre')?.value || '');
+  cur = String(cur==null?'':cur).trim();
+  if(centros.length){
+    const opts=centros.slice();
+    if(cur && !opts.some(c=>c.toLowerCase()===cur.toLowerCase())) opts.push(cur);
+    let def=cur;
+    if(!def){ const pr=ecoGetCentroPrincipal(); if(pr && opts.some(c=>c.toLowerCase()===pr.toLowerCase())) def=pr; }
+    wrap.innerHTML='<select id="centro_nombre" onchange="saveCentro()"><option value="">— Sin centro —</option>'+
+      opts.map(c=>'<option value="'+escHtml(c)+'">'+escHtml(c)+'</option>').join('')+'</select>';
+    const sel=document.getElementById('centro_nombre'); if(sel) sel.value=def||'';
+    if(hint) hint.style.display='none';
+  } else {
+    wrap.innerHTML='<input type="text" id="centro_nombre" placeholder="Ej: Hospital Regional de Artigas" oninput="saveCentro()">';
+    const inp=document.getElementById('centro_nombre'); if(inp&&cur) inp.value=cur;
+    if(hint) hint.style.display='block';
+  }
+}
+window.renderCentroField=renderCentroField;
+// ── Gestión de centros en Configuración ──
+function cfgRenderCentros(){
+  const box=document.getElementById('cfg-centros-lista'); if(!box)return;
+  const centros=ecoGetCentros(), pr=ecoGetCentroPrincipal();
+  if(!centros.length){ box.innerHTML='<div style="font-size:12px;color:var(--text2);padding:6px 0;">No hay centros configurados. Agregá el primero arriba.</div>'; return; }
+  box.innerHTML=centros.map((c,i)=>{
+    const isPr = pr && c.toLowerCase()===pr.toLowerCase();
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);">'+
+      '<label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;color:var(--text2);white-space:nowrap;" title="Marcar como principal"><input type="radio" name="cfg-centro-pr" '+(isPr?'checked':'')+' onchange="cfgSetPrincipal('+i+')" style="width:auto;cursor:pointer;">Principal</label>'+
+      '<span style="flex:1;font-size:13px;color:var(--text);">'+escHtml(c)+(isPr?' ★':'')+'</span>'+
+      '<button class="btn btn-ghost" style="padding:3px 9px;font-size:11px;" onclick="cfgEditCentro('+i+')" title="Editar nombre">✏️</button>'+
+      '<button class="btn btn-ghost" style="padding:3px 9px;font-size:12px;color:var(--red,#e05656);" onclick="cfgDelCentro('+i+')" title="Eliminar">×</button>'+
+    '</div>';
+  }).join('');
+}
+function cfgAddCentro(){
+  const inp=document.getElementById('cfg-centro-nuevo'); if(!inp)return;
+  const val=(inp.value||'').trim(); if(!val){ toast('⚠️ Ingresá un nombre de centro'); return; }
+  let c=ecoGetCentros();
+  if(c.length>=10){ toast('⚠️ Máximo 10 centros'); return; }
+  if(c.some(x=>x.toLowerCase()===val.toLowerCase())){ toast('⚠️ Ese centro ya existe'); return; }
+  c.push(val); ecoSetCentros(c);
+  if(!ecoGetCentroPrincipal()) ecoSetCentroPrincipal(val);
+  inp.value=''; cfgRenderCentros(); renderCentroField();
+  toast('✅ Centro agregado');
+}
+function cfgDelCentro(i){
+  let c=ecoGetCentros(); if(i<0||i>=c.length)return;
+  const del=c[i]; c.splice(i,1); ecoSetCentros(c);
+  if(ecoGetCentroPrincipal().toLowerCase()===del.toLowerCase()) ecoSetCentroPrincipal(c[0]||'');
+  cfgRenderCentros(); renderCentroField();
+}
+function cfgEditCentro(i){
+  let c=ecoGetCentros(); if(i<0||i>=c.length)return;
+  const actual=c[i], nuevo=prompt('Editar nombre del centro:', actual);
+  if(nuevo==null)return;
+  const v=nuevo.trim(); if(!v){ toast('⚠️ Nombre vacío'); return; }
+  if(c.some((x,idx)=>idx!==i && x.toLowerCase()===v.toLowerCase())){ toast('⚠️ Ya existe un centro con ese nombre'); return; }
+  const eraPr=ecoGetCentroPrincipal().toLowerCase()===actual.toLowerCase();
+  c[i]=v; ecoSetCentros(c); if(eraPr) ecoSetCentroPrincipal(v);
+  cfgRenderCentros(); renderCentroField();
+}
+function cfgSetPrincipal(i){
+  const c=ecoGetCentros(); if(i<0||i>=c.length)return;
+  ecoSetCentroPrincipal(c[i]); cfgRenderCentros();
+}
+window.cfgAddCentro=cfgAddCentro; window.cfgDelCentro=cfgDelCentro; window.cfgEditCentro=cfgEditCentro; window.cfgSetPrincipal=cfgSetPrincipal;
+// ── Filtro múltiple por centro en el Laboratorio ──
+function _labCentrosUnicos(){
+  const map=new Map();
+  getInformes().forEach(i=>{ const t=String((i.campos&&i.campos.centro_nombre)==null?'':(i.campos.centro_nombre)).trim(); if(t){ const k=t.toLowerCase(); if(!map.has(k))map.set(k,t); } });
+  return Array.from(map.entries()).sort((a,b)=>a[1].localeCompare(b[1]));
+}
+function labRenderCentroFilter(){
+  const box=document.getElementById('lab-centro-filtro'); if(!box)return;
+  const centros=_labCentrosUnicos();
+  const prev={}; let had=false;
+  box.querySelectorAll('.lab-centro-item').forEach(c=>{ prev[c.value]=c.checked; had=true; });
+  const st=v=> had ? (prev[v]!==undefined?prev[v]:true) : true;
+  let html='<div style="font-size:.75rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Filtrar por centro</div>';
+  html+='<label class="lab-centro-lbl"><input type="checkbox" id="lab-centro-todos" onchange="labCentroTodos(this)"> <strong>Todos</strong></label>';
+  centros.forEach(([norm,disp])=>{ html+='<label class="lab-centro-lbl"><input type="checkbox" class="lab-centro-item" value="'+escHtml(norm)+'" '+(st(norm)?'checked':'')+' onchange="labCentroItemChange()"> '+escHtml(disp)+'</label>'; });
+  html+='<label class="lab-centro-lbl"><input type="checkbox" class="lab-centro-item" value="__none__" '+(st('__none__')?'checked':'')+' onchange="labCentroItemChange()"> <span style="color:var(--text2)">Sin centro identificado</span></label>';
+  box.innerHTML=html; _labCentroSyncTodos();
+}
+function _labCentroSyncTodos(){
+  const box=document.getElementById('lab-centro-filtro'); if(!box)return;
+  const items=[...box.querySelectorAll('.lab-centro-item')], todos=box.querySelector('#lab-centro-todos');
+  if(todos) todos.checked = items.length>0 && items.every(c=>c.checked);
+}
+function labCentroTodos(el){
+  const box=document.getElementById('lab-centro-filtro'); if(!box)return;
+  box.querySelectorAll('.lab-centro-item').forEach(c=>c.checked=el.checked);
+  labInit();
+}
+function labCentroItemChange(){ _labCentroSyncTodos(); labInit(); }
+window.labCentroTodos=labCentroTodos; window.labCentroItemChange=labCentroItemChange;
+function _labCentroSeleccion(){
+  const box=document.getElementById('lab-centro-filtro'); if(!box)return null;
+  const items=[...box.querySelectorAll('.lab-centro-item')]; if(!items.length)return null;
+  return { total:items.length, sel:items.filter(c=>c.checked).map(c=>c.value) };
+}
+window._labCentroSeleccion=_labCentroSeleccion;
+// Arranque
+ecoInitCentros(); renderCentroField();
+
 // ══ LOGO POR CENTRO ══
 function getCentroKey() { return localStorage.getItem('centro_tipo_activo') || 'default'; }
 function getLogoGallery(){try{return JSON.parse(localStorage.getItem('logo_gallery')||'[]');}catch(e){return[];}}
@@ -14085,6 +14209,7 @@ function editarInforme(id) {
     { const _ci = document.getElementById('caso_interes'); if (_ci) _ci.checked = (inf.campos['caso_interes'] === '1' || inf.campos['caso_interes'] === 'true'); }
     _restaurarChecklistPaciente(inf.campos);
     if (typeof _restaurarContractilidad === 'function') _restaurarContractilidad(inf.campos);
+    if (typeof renderCentroField === 'function') renderCentroField(inf.campos.centro_nombre);
     // Recalcular derivados
     if (typeof calcVI === 'function') calcVI();
     if (typeof calcAI === 'function') calcAI();
@@ -14123,6 +14248,7 @@ function cargarEstudioPorId(id) {
   { const _ci = document.getElementById('caso_interes'); if (_ci) _ci.checked = (inf.campos && (inf.campos['caso_interes'] === '1' || inf.campos['caso_interes'] === 'true')); }
   _restaurarChecklistPaciente(inf.campos);
   if (typeof _restaurarContractilidad === 'function') _restaurarContractilidad(inf.campos);
+  if (typeof renderCentroField === 'function') renderCentroField(inf.campos && inf.campos.centro_nombre);
   ['calcVI','calcAI','calcAorta','calcVD'].forEach(fn => { if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} } });
   window._ettEditandoId = inf.id;
   eeCurrentInformeId = inf.estudioId;
@@ -16151,6 +16277,15 @@ function labGetInformes() {
   const hasta = document.getElementById('lab-hasta')?.value;
   const hoy = new Date();
 
+  // Filtro múltiple por centro (checkboxes del Laboratorio). Normaliza a minúsculas/trim.
+  const _cSel = (typeof _labCentroSeleccion === 'function') ? _labCentroSeleccion() : null;
+  const _centroOk = (inf) => {
+    if (!_cSel || _cSel.sel.length >= _cSel.total) return true;   // "Todos" / sin filtro → incluir
+    const t = String((inf.campos && inf.campos.centro_nombre) == null ? '' : inf.campos.centro_nombre).trim();
+    if (!t) return _cSel.sel.includes('__none__');
+    return _cSel.sel.includes(t.toLowerCase());
+  };
+
   return todos.filter(inf => {
     const f = inf.fecha_estudio ? new Date(inf.fecha_estudio) : null;
     if (!f || isNaN(f)) return false;
@@ -16161,6 +16296,7 @@ function labGetInformes() {
       limite.setDate(limite.getDate() - periodo);
       if (f < limite) return false;
     }
+    if (!_centroOk(inf)) return false;
     return true;
   });
 }
@@ -16309,6 +16445,7 @@ function _labIndicadoresList(infs) {
 }
 
 function labInit() {
+  if (typeof labRenderCentroFilter === 'function') labRenderCentroFilter();
   const infs = labGetInformes();
   const n = infs.length;
   _labHeart(infs);   // corazón anatómico (maneja n=0 → todos "—")
@@ -18979,7 +19116,7 @@ function cfgLoadMed(){
 }
 function eeQrEnabled(){ return localStorage.getItem('ett_qr_enabled') !== '0'; } // por defecto activado
 function cfgToggleQr(on){ try { localStorage.setItem('ett_qr_enabled', on ? '1' : '0'); } catch(e){} }
-function cfgOnShow(){ cfgRenderModulos(); cfgLoadMed(); var q=document.getElementById('cfg-qr'); if(q) q.checked = eeQrEnabled(); var mi=document.getElementById('cfg-modo-inst'); if(mi) mi.checked=(localStorage.getItem('ett_modo_institucional')==='1'); }
+function cfgOnShow(){ cfgRenderModulos(); cfgLoadMed(); if(typeof cfgRenderCentros==='function')cfgRenderCentros(); var q=document.getElementById('cfg-qr'); if(q) q.checked = eeQrEnabled(); var mi=document.getElementById('cfg-modo-inst'); if(mi) mi.checked=(localStorage.getItem('ett_modo_institucional')==='1'); }
 /* Botón "🏥 Centro": abre el panel del médico y edita el centro/institución (med-centro) */
 function ecoCentroBtn(){
   var p=document.getElementById('hdr-med-panel'); if(p){ p.style.display='block'; var b=document.getElementById('hdr-med-btn'); if(b)b.setAttribute('aria-expanded','true'); }
