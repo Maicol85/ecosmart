@@ -8514,6 +8514,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     <button class="lab-subtab active" onclick="labSubTab('general',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="14"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="10"/><line x1="3" y1="20" x2="21" y2="20"/></svg>General</button>
     <button class="lab-subtab" onclick="labSubTab('mediciones',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21C12 21 4 14 4 8.5A4.5 4.5 0 0 1 12 6 4.5 4.5 0 0 1 20 8.5C20 14 12 21 12 21Z"/><path d="M6 12H9L10.5 9L13 15L14.5 12H18"/></svg>Mediciones</button>
     <button class="lab-subtab" onclick="labSubTab('calidad',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 14l2 2 4-4"/></svg>Calidad</button>
+    <button class="lab-subtab" id="lab-subtab-avanzado" onclick="labSubTab('avanzado',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>Avanzado</button>
     <button class="lab-subtab" onclick="labSubTab('medicos',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Por médico</button>
     <button class="lab-subtab" onclick="labSubTab('comparar',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>Comparar períodos</button>
     <button class="lab-subtab" onclick="labSubTab('informe',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>Informe PDF</button>
@@ -8871,6 +8872,85 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   </div><!-- /lab-sub-calidad -->
+
+  <div id="lab-sub-avanzado" class="lab-subpanel">
+    <div style="font-size:.8rem;color:var(--text2);margin-bottom:14px;line-height:1.5;">
+      Uso de los módulos especiales (Hemodinámica, TEP, Amiloidosis, Cardio-Oncología) en los estudios del período. Detectado automáticamente según los campos registrados en cada estudio.
+    </div>
+
+    <!-- Uso general del módulo avanzado -->
+    <div class="lab-card">
+      <div class="lab-card-hdr">🧩 Uso del módulo avanzado</div>
+      <div class="lab-card-body">
+        <div class="lab-grid">
+          <div>
+            <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Resumen del período</div>
+            <div id="lab-adv-resumen"></div>
+          </div>
+          <div>
+            <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Uso por módulo</div>
+            <div class="lab-bar-wrap" id="lab-adv-uso"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hemodinámica -->
+    <div class="lab-card">
+      <div class="lab-card-hdr">🩺 Hemodinámica</div>
+      <div class="lab-card-body">
+        <div class="lab-grid">
+          <div id="lab-adv-hemo-stats"></div>
+          <div>
+            <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Perfil de Forrester</div>
+            <div id="lab-adv-hemo-forr"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TEP / Sobrecarga VD -->
+    <div class="lab-card">
+      <div class="lab-card-hdr">🫁 TEP / Sobrecarga VD</div>
+      <div class="lab-card-body">
+        <div class="lab-grid">
+          <div id="lab-adv-tep-stats"></div>
+          <div>
+            <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Frecuencia de signos ecocardiográficos</div>
+            <div class="lab-bar-wrap" id="lab-adv-tep-bars"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Amiloidosis -->
+    <div class="lab-card">
+      <div class="lab-card-hdr">🧬 Amiloidosis</div>
+      <div class="lab-card-body">
+        <div class="lab-grid">
+          <div id="lab-adv-amil-stats"></div>
+          <div>
+            <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Distribución por categoría diagnóstica</div>
+            <div id="lab-adv-amil-cat"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cardio-Oncología -->
+    <div class="lab-card">
+      <div class="lab-card-hdr">🎗️ Cardio-Oncología</div>
+      <div class="lab-card-body">
+        <div class="lab-grid">
+          <div id="lab-adv-onco-stats"></div>
+          <div>
+            <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Tipo de toxicidad / fármaco</div>
+            <div class="lab-bar-wrap" id="lab-adv-onco-bars"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /lab-sub-avanzado -->
 
 <div id="lab-sub-medicos" class="lab-subpanel">
   <div class="lab-card">
@@ -16253,6 +16333,7 @@ function labInit() {
     labDestroyChart('lab-valv-chart');
     { const s = document.getElementById('lab-valv-chart-sub'); if (s) s.textContent = 'Sin datos';
       const l = document.getElementById('lab-valv-chart-leyenda'); if (l) l.innerHTML = ''; }
+    if (typeof _labAdvancedRender === 'function') _labAdvancedRender([], 0);
     return;
   }
 
@@ -16605,6 +16686,9 @@ function labRenderExtras(infs, n) {
   };
   _labPieDash('lab-indicaciones-freq', freqEntries('indicaciones'));
   _labPieDash('lab-antecedentes-freq', freqEntries('antecedentes_sel'));
+
+  // Tab Avanzado — uso de módulos especiales
+  _labAdvancedRender(infs, n);
 }
 
 // FIX A3: neutraliza CSV/formula injection y separadores
@@ -17338,6 +17422,136 @@ function _labPieDash(containerId, entries) {
   }).join('');
 }
 window._labPieDash = _labPieDash;
+
+// ══ Laboratorio — Tab Avanzado (uso de módulos especiales) ══
+function _labCampoRaw(inf, id) { const v = inf.campos ? inf.campos[id] : undefined; return (v === undefined || v === null) ? '' : String(v).trim(); }
+// Hemodinámica: usado si hemo_fc o hemo_pam tienen valor
+function _labHemoUsado(inf) { return _labCampoRaw(inf, 'hemo_fc') !== '' || _labCampoRaw(inf, 'hemo_pam') !== ''; }
+// Recomputa IC (GC/BSA) y PCP (Nagueh) desde campos → perfil Forrester I/II/III/IV o null
+function _labForrester(inf) {
+  const num = id => _labNum(inf, id);
+  const fc = num('hemo_fc'), dtsvi = num('diam_tsvi'), vti = num('itv_tsvi'), talla = num('talla'), peso = num('peso');
+  let ic = null;
+  if (fc !== null && dtsvi && vti && talla && peso) {
+    const vs = Math.PI * ((dtsvi / 10 / 2) ** 2) * vti;   // mL
+    const gc = vs * fc / 1000;                             // L/min
+    const bsa = Math.sqrt((talla * peso) / 3600);
+    if (bsa > 0) ic = gc / bsa;
+  }
+  const e = num('onda_e'), esep = num('e_sep'), elat = num('e_lat');
+  let pcp = null;
+  if (e !== null && esep !== null && elat !== null) { const ee = e / ((esep + elat) / 2); pcp = 1.24 * ee + 1.9; }
+  if (ic === null || pcp === null) return null;
+  const humedo = pcp > 15, frio = ic < 2.2;
+  if (!frio && !humedo) return 'I';    // seco-caliente
+  if (humedo && !frio)  return 'II';   // húmedo-caliente
+  if (frio && !humedo)  return 'III';  // seco-frío
+  return 'IV';                          // húmedo-frío
+}
+// TEP: usado si algún signo fue evaluado (si/no) o VD/VI cargado. Los selects tienen 'ne' = no evaluado.
+function _labTepUsado(inf) {
+  const ev = id => { const v = _labCampoRaw(inf, id); return v === 'si' || v === 'no'; };
+  return ev('tep_mcconnell') || ev('tep_signo6060') || ev('tep_tabique_d') || _labNum(inf, 'tep_vdvi') !== null;
+}
+// Amiloidosis: usado si el score ETT (alg-ett-score) está cargado
+function _labAmilUsado(inf) { return _labNum(inf, 'alg-ett-score') !== null; }
+function _labAmilCat(inf) {
+  const s = _labNum(inf, 'alg-ett-score');
+  if (s === null) return null;
+  if (s >= 8) return 'Probable (≥8)';
+  if (s >= 6) return 'Intermedio (6–7)';
+  return 'Baja (<6)';
+}
+// Cardio-onco: usado si hay fármaco onco o FEVI/GLS basal
+function _labOncoUsado(inf) { return _labCampoRaw(inf, 'co_farmaco') !== '' || _labNum(inf, 'co_fevi_basal') !== null || _labNum(inf, 'co_gls_basal') !== null; }
+
+// Render de la tab Avanzado (maneja n=0 → mensajes "Sin estudios…")
+function _labAdvancedRender(infs, n) {
+  const setHtml = (id, h) => { const e = document.getElementById(id); if (e) e.innerHTML = h; };
+  const stat = (lbl, val) => `<div class="lab-stat"><span class="lab-stat-lbl">${lbl}</span><span class="lab-stat-val">${val}</span></div>`;
+  const empty = (id, mod) => setHtml(id, `<div class="lab-empty">Sin estudios con ${mod} registrado en el período seleccionado.</div>`);
+  const pctS = x => n > 0 ? Math.round(x / n * 100) + '%' : '0%';
+  const avg = (a, dec) => a.length ? (a.reduce((x, y) => x + y, 0) / a.length).toFixed(dec) : '—';
+
+  const hemoArr = infs.filter(_labHemoUsado);
+  const tepArr  = infs.filter(_labTepUsado);
+  const amilArr = infs.filter(_labAmilUsado);
+  const oncoArr = infs.filter(_labOncoUsado);
+
+  // ── Uso general ──
+  setHtml('lab-adv-resumen',
+    stat('Total de estudios en el período', String(n)) +
+    stat('Con hemodinámica', hemoArr.length + ' (' + pctS(hemoArr.length) + ')') +
+    stat('Con evaluación TEP', tepArr.length + ' (' + pctS(tepArr.length) + ')') +
+    stat('Con amiloidosis', amilArr.length + ' (' + pctS(amilArr.length) + ')') +
+    stat('Con cardio-onco', oncoArr.length + ' (' + pctS(oncoArr.length) + ')'));
+  labBarras('lab-adv-uso', [
+    { lbl: `Hemodinámica (n=${hemoArr.length})`, n: hemoArr.length, total: n, color: '#4f8ef7' },
+    { lbl: `TEP / sobrecarga VD (n=${tepArr.length})`, n: tepArr.length, total: n, color: '#8a5fd4' },
+    { lbl: `Amiloidosis (n=${amilArr.length})`, n: amilArr.length, total: n, color: '#2dd4bf' },
+    { lbl: `Cardio-oncología (n=${oncoArr.length})`, n: oncoArr.length, total: n, color: '#f472b6' }
+  ]);
+
+  // ── Hemodinámica ──
+  if (!hemoArr.length) { empty('lab-adv-hemo-stats', 'perfil hemodinámico'); setHtml('lab-adv-hemo-forr', '<div class="lab-empty">Sin datos</div>'); }
+  else {
+    const fcs = hemoArr.map(i => _labNum(i, 'hemo_fc')).filter(v => v !== null);
+    const pams = hemoArr.map(i => _labNum(i, 'hemo_pam')).filter(v => v !== null);
+    setHtml('lab-adv-hemo-stats',
+      stat('Estudios con perfil hemodinámico', hemoArr.length + ' (' + pctS(hemoArr.length) + ')') +
+      stat('FC promedio', fcs.length ? avg(fcs, 0) + ' lpm' : '—') +
+      stat('PAM promedio', pams.length ? avg(pams, 0) + ' mmHg' : '—'));
+    const forrMap = { I: 'I — seco-caliente', II: 'II — húmedo-caliente', III: 'III — seco-frío', IV: 'IV — húmedo-frío' };
+    const forr = { 'I — seco-caliente': 0, 'II — húmedo-caliente': 0, 'III — seco-frío': 0, 'IV — húmedo-frío': 0, 'No clasificado': 0 };
+    hemoArr.forEach(i => { const f = _labForrester(i); forr[f ? forrMap[f] : 'No clasificado']++; });
+    _labPieDash('lab-adv-hemo-forr', Object.entries(forr).filter(e => e[1] > 0));
+  }
+
+  // ── TEP / Sobrecarga VD ──
+  if (!tepArr.length) { empty('lab-adv-tep-stats', 'evaluación TEP'); empty('lab-adv-tep-bars', 'evaluación TEP'); }
+  else {
+    const pos = id => tepArr.filter(i => _labCampoRaw(i, id) === 'si').length;
+    const mc = pos('tep_mcconnell'), s60 = pos('tep_signo6060'), td = pos('tep_tabique_d');
+    const vdvis = tepArr.map(i => _labNum(i, 'tep_vdvi')).filter(v => v !== null);
+    const pctT = x => tepArr.length ? Math.round(x / tepArr.length * 100) + '%' : '0%';
+    setHtml('lab-adv-tep-stats',
+      stat('Estudios con evaluación TEP', tepArr.length + ' (' + pctS(tepArr.length) + ')') +
+      stat('McConnell positivo', mc + ' (' + pctT(mc) + ')') +
+      stat('Signo 60/60 positivo', s60 + ' (' + pctT(s60) + ')') +
+      stat('Tabique en D positivo', td + ' (' + pctT(td) + ')') +
+      stat('VD/VI promedio', avg(vdvis, 2)));
+    labBarras('lab-adv-tep-bars', [
+      { lbl: `McConnell + (n=${mc})`, n: mc, total: tepArr.length, color: '#f05454' },
+      { lbl: `Signo 60/60 + (n=${s60})`, n: s60, total: tepArr.length, color: '#f0a500' },
+      { lbl: `Tabique en D + (n=${td})`, n: td, total: tepArr.length, color: '#f5c842' }
+    ]);
+  }
+
+  // ── Amiloidosis ──
+  if (!amilArr.length) { empty('lab-adv-amil-stats', 'score de amiloidosis'); setHtml('lab-adv-amil-cat', '<div class="lab-empty">Sin datos</div>'); }
+  else {
+    setHtml('lab-adv-amil-stats', stat('Estudios con score calculado', amilArr.length + ' (' + pctS(amilArr.length) + ')'));
+    const cat = {}; amilArr.forEach(i => { const c = _labAmilCat(i) || 'No clasificado'; cat[c] = (cat[c] || 0) + 1; });
+    _labPieDash('lab-adv-amil-cat', Object.entries(cat));
+  }
+
+  // ── Cardio-Oncología ──
+  if (!oncoArr.length) { empty('lab-adv-onco-stats', 'cardio-oncología'); empty('lab-adv-onco-bars', 'cardio-oncología'); }
+  else {
+    const caida = oncoArr.filter(i => { const b = _labNum(i, 'co_fevi_basal'), a = _labNum(i, 'co_fevi_actual'); return b !== null && a !== null && (b - a) >= 10; }).length;
+    const glsAn = oncoArr.filter(i => { const g = _labNum(i, 'co_gls_actual'); return g !== null && g > -18; }).length;
+    const pctO = x => oncoArr.length ? Math.round(x / oncoArr.length * 100) + '%' : '0%';
+    setHtml('lab-adv-onco-stats',
+      stat('Pacientes en seguimiento onco-cardíaco', oncoArr.length + ' (' + pctS(oncoArr.length) + ')') +
+      stat('Caída de FEVI ≥10 puntos', caida + ' (' + pctO(caida) + ')') +
+      stat('GLS anormal en control (peor que -18%)', glsAn + ' (' + pctO(glsAn) + ')'));
+    const farmMap = { antracicline: 'Antraciclinas', trastuzumab: 'Trastuzumab / anti-HER2', inmunoterapia: 'Inmunoterapia (ICI)', vegf: 'Anti-VEGF', bcr_abl: 'BCR-ABL', radioterapia: 'Radioterapia', otro: 'Otro' };
+    const farm = {}; oncoArr.forEach(i => { const f = _labCampoRaw(i, 'co_farmaco'); if (f) { const l = farmMap[f] || 'Otro'; farm[l] = (farm[l] || 0) + 1; } });
+    const fe = Object.entries(farm).sort((a, b) => b[1] - a[1]);
+    labBarras('lab-adv-onco-bars', fe.map(([l, c], idx) => ({ lbl: `${l} (n=${c})`, n: c, total: oncoArr.length, color: _LAB_PIE_PAL[idx % _LAB_PIE_PAL.length] })));
+  }
+}
+window._labAdvancedRender = _labAdvancedRender;
 
 // ══ Contractilidad Segmentaria — Población ══
 const _CONTR_SEG_IDS = [
@@ -18697,6 +18911,9 @@ function eeGetModules(){ try { return JSON.parse(localStorage.getItem('ett_modul
 function eeModOn(k){ var m=eeGetModules(); return m[k] !== false; } // por defecto visible
 function applyViewMode(){
   var mode=eeGetMode();
+  // Tab "Avanzado" del Laboratorio: solo visible en modo avanzado
+  var advTab=document.getElementById('lab-subtab-avanzado');
+  if(advTab) advTab.style.display = (mode!=='avanzado') ? 'none' : '';
   var special=document.querySelector('.tabs-special');
   var tools=document.querySelector('.tabs-tools');
   var lab=document.querySelector('.tabs-lab-wrap');
