@@ -8698,6 +8698,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           <div style="font-size:.72rem;color:var(--text2);margin-top:8px;font-style:italic;line-height:1.5;">Promedios calculados sobre los estudios del período con dato registrado. Sin dato → "—".</div>
         </div>
       </div>
+      <!-- Canvas oculto: rasteriza el corazón + badges para el PDF -->
+      <canvas id="heart-canvas" width="400" height="400" style="display:none"></canvas>
     </div>
   </div>
 
@@ -17212,6 +17214,62 @@ function _hexToRgb(hex) {
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return m ? [parseInt(m[1],16), parseInt(m[2],16), parseInt(m[3],16)] : [0,0,0];
 }
+// ── Corazón anatómico → PNG para el PDF (SVG rasterizado + 6 badges de texto encima) ──
+function _heartRoundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+function _heartBadge(ctx, b) {
+  ctx.font = 'bold 15px sans-serif'; const valW = ctx.measureText(b.val).width;
+  ctx.font = '10px sans-serif';      const lblW = ctx.measureText(b.lbl).width;
+  const w = Math.max(valW, lblW) + 18, h = 34;
+  let x = b.x; if (b.anchor === 'center') x = b.x - w / 2; else if (b.anchor === 'right') x = b.x - w;
+  const y = b.y;
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 2;
+  ctx.fillStyle = b.bg; _heartRoundRect(ctx, x, y, w, h, 8); ctx.fill(); ctx.restore();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = '10px sans-serif'; ctx.fillText(b.lbl, x + w / 2, y + 13);
+  ctx.fillStyle = '#ffffff'; ctx.font = 'bold 15px sans-serif'; ctx.fillText(b.val, x + w / 2, y + 28);
+}
+async function _labHeartPng() {
+  const svgEl = document.querySelector('#tab-lab .heart-wrap svg');
+  if (!svgEl) return null;
+  const svgStr = new XMLSerializer().serializeToString(svgEl);
+  const W = 400, H = 400;
+  const cv = document.getElementById('heart-canvas') || document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+  const heartImg = await new Promise(res => {
+    const img = new Image();
+    img.onload = () => res(img);
+    img.onerror = () => res(null);
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+  });
+  if (!heartImg) return null;
+  // dibujar el corazón manteniendo aspecto (vista 340x458), centrado en el canvas
+  const ratio = 340 / 458;
+  let dh = H * 0.98, dw = dh * ratio; if (dw > W * 0.98) { dw = W * 0.98; dh = dw / ratio; }
+  const dx = (W - dw) / 2, dy = (H - dh) / 2;
+  ctx.drawImage(heartImg, dx, dy, dw, dh);
+  // badges — mismas posiciones que la vista (px sobre 340x458), escaladas al corazón dibujado
+  const sx = px => dx + px * (dw / 340), sy = py => dy + py * (dh / 458);
+  const val = id => { const e = document.getElementById(id); return e ? e.textContent.trim() : '—'; };
+  [
+    { lbl: 'Aorta', val: val('hb-ao-val'),   bg: '#1a5276', x: sx(170),      y: sy(4),   anchor: 'center' },
+    { lbl: 'AD',    val: val('hb-ad-val'),   bg: '#854f0b', x: sx(12),       y: sy(75),  anchor: 'left' },
+    { lbl: 'AI',    val: val('hb-ai-val'),   bg: '#534ab7', x: sx(340 - 12), y: sy(75),  anchor: 'right' },
+    { lbl: 'PSAP',  val: val('hb-psap-val'), bg: '#7f77dd', x: sx(5),        y: sy(195), anchor: 'left' },
+    { lbl: 'VD',    val: val('hb-vd-val'),   bg: '#0f6e56', x: sx(12),       y: sy(265), anchor: 'left' },
+    { lbl: 'VI',    val: val('hb-vi-val'),   bg: '#185fa5', x: sx(340 - 8),  y: sy(275), anchor: 'right' }
+  ].forEach(b => _heartBadge(ctx, b));
+  return cv.toDataURL('image/png');
+}
 
 // ── Generar PDF de auditoría ──
 async function labGenerarPDF() {
@@ -17243,6 +17301,21 @@ async function labGenerarPDF() {
   if (periodo) doc.text('Período: ' + periodo, M, 31);
   doc.setTextColor(0, 0, 0);
   y = 50;
+
+  // ── Corazón anatómico con promedios (primera página, centrado) ──
+  try {
+    if (typeof _labHeart === 'function') _labHeart(infs);   // refresca badges del DOM al período del PDF
+    const heartPng = await _labHeartPng();
+    if (heartPng) {
+      doc.setFontSize(11); doc.setFont(undefined, 'bold'); doc.setTextColor(50, 50, 120);
+      doc.text('Corazón anatómico — promedios del período', W / 2, y, { align: 'center' });
+      doc.setTextColor(0, 0, 0); doc.setFont(undefined, 'normal');
+      y += 3;
+      const hSize = 80;
+      doc.addImage(heartPng, 'PNG', (W - hSize) / 2, y, hSize, hSize);
+      y += hSize + 6;
+    }
+  } catch (e) {}
 
   const numCampo = (inf, id) => {
     const v = inf.campos?.[id];
