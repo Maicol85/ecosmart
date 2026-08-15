@@ -8776,6 +8776,14 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           <div class="lab-bar-wrap" id="lab-esten-em"></div>
         </div>
       </div>
+
+      <!-- Gráfica integrada: distribución de severidad por valvulopatía -->
+      <div id="lab-valv-chart-wrap" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+        <div style="text-align:center;font-size:.85rem;font-weight:700;color:var(--text);">Distribución de severidad por valvulopatía</div>
+        <div id="lab-valv-chart-sub" style="text-align:center;font-size:.72rem;color:var(--text2);margin:3px 0 12px;"></div>
+        <div style="position:relative;height:300px;width:100%;"><canvas id="lab-valv-chart"></canvas></div>
+        <div id="lab-valv-chart-leyenda" style="margin-top:14px;"></div>
+      </div>
     </div>
   </div>
 
@@ -16242,6 +16250,9 @@ function labInit() {
       '<tr><td colspan="4" style="text-align:center;color:var(--text2);padding:20px;">Sin datos</td></tr>';
     document.getElementById('lab-docencia-lista').innerHTML =
       '<div class="lab-empty">Sin casos marcados</div>';
+    labDestroyChart('lab-valv-chart');
+    { const s = document.getElementById('lab-valv-chart-sub'); if (s) s.textContent = 'Sin datos';
+      const l = document.getElementById('lab-valv-chart-leyenda'); if (l) l.innerHTML = ''; }
     return;
   }
 
@@ -16521,6 +16532,13 @@ function labRenderExtras(infs, n) {
   sevTable('lab-valv-it', i => _labRegurgSev(i,'it_grado'));
   sevTable('lab-esten-ea', i => _labEstenSev(i,'ea_grado'));
   sevTable('lab-esten-em', i => _labEstenSev(i,'em_grado'));
+
+  // Gráfica apilada integrada de valvulopatías (debajo de las tablas)
+  _labValvBuildChart('lab-valv-chart', infs);
+  { const s = document.getElementById('lab-valv-chart-sub');
+    if (s) s.textContent = 'Solo pacientes con valvulopatía documentada — % sobre total (n=' + n + ')';
+    const l = document.getElementById('lab-valv-chart-leyenda');
+    if (l) l.innerHTML = _labValvLegendHTML(); }
 
   // SECCIÓN D — HTP por severidad (PSAP)
   const psapsAll = infs.map(i => _labPsap(i)).filter(v => v !== null && v > 0);
@@ -17108,6 +17126,143 @@ window._labChartImg = _labChartImg;
 const _LAB_PIE_PAL = ['#4f8ef7','#3ecf8e','#f5c842','#f59e42','#f05454','#8a5fd4','#2dd4bf','#f472b6','#a3e635','#38bdf8','#fb923c','#c084fc'];
 window._LAB_PIE_PAL = _LAB_PIE_PAL;
 
+// ══ Gráfica apilada de valvulopatías (dashboard + PDF) ══
+// Orden de columnas y color base por válvula (Mitral azul · Aórtica naranja · Tricuspídea verde)
+const _LAB_VALV_LABELS = ['Insuf. Mitral','Esten. Mitral','Insuf. Aórtica','Esten. Aórtica','Insuf. Tricusp.','Esten. Tricusp.'];
+const _LAB_VALV_BASE   = ['#1565c0','#1565c0','#e65100','#e65100','#2e7d32','#2e7d32'];
+function _labRgba(hex, a) {
+  const h = hex.replace('#','');
+  return `rgba(${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)},${a})`;
+}
+// Cuenta severidades (Leve/Moderada/Severa) por válvula, en el orden de _LAB_VALV_LABELS.
+// Nota: "Esten. Tricúspidea" no existe en el modelo de datos actual → siempre 0.
+function _labValvCounts(infs) {
+  const defs = [
+    i => _labRegurgSev(i, 'im_grado'),
+    i => _labEstenSev(i, 'em_grado'),
+    i => _labRegurgSev(i, 'ia_grado'),
+    i => _labEstenSev(i, 'ea_grado'),
+    i => _labRegurgSev(i, 'it_grado'),
+    () => null
+  ];
+  const counts = { Leve: [], Moderada: [], Severa: [] };
+  defs.forEach(fn => {
+    const c = { Leve: 0, Moderada: 0, Severa: 0 };
+    infs.forEach(i => { const s = fn(i); if (s && c[s] !== undefined) c[s]++; });
+    counts.Leve.push(c.Leve); counts.Moderada.push(c.Moderada); counts.Severa.push(c.Severa);
+  });
+  return { counts, N: infs.length };
+}
+// Plugin de etiquetas dentro/fuera del segmento según su alto en px
+const _LAB_VALV_DATALABELS = {
+  id: 'labValvDataLabels',
+  afterDatasetsDraw(chart) {
+    const ctx = chart.ctx;
+    const nDs = chart.data.datasets.length, nBars = chart.data.labels.length;
+    const colTop = new Array(nBars).fill(Infinity);
+    for (let d = 0; d < nDs; d++) {
+      const meta = chart.getDatasetMeta(d);
+      meta.data.forEach((el, i) => { if ((chart.data.datasets[d].data[i] || 0) > 0) colTop[i] = Math.min(colTop[i], el.y); });
+    }
+    const offAbove = new Array(nBars).fill(0);
+    ctx.save(); ctx.textAlign = 'center';
+    for (let d = 0; d < nDs; d++) {
+      const ds = chart.data.datasets[d], meta = chart.getDatasetMeta(d);
+      meta.data.forEach((el, i) => {
+        const pct = ds.data[i] || 0, n = ds._rawN ? ds._rawN[i] : 0;
+        if (!n || pct <= 0) return;
+        const h = Math.abs(el.base - el.y), xc = el.x, yc = (el.y + el.base) / 2;
+        if (h >= 22) {
+          ctx.shadowColor = 'rgba(0,0,0,0.35)'; ctx.shadowBlur = 2;
+          ctx.fillStyle = '#fff'; ctx.font = 'bold 11px sans-serif'; ctx.textBaseline = 'bottom';
+          ctx.fillText(Math.round(pct) + '%', xc, yc - 0.5);
+          ctx.font = '9px sans-serif'; ctx.textBaseline = 'top';
+          ctx.fillText('n=' + n, xc, yc + 1.5);
+          ctx.shadowBlur = 0;
+        } else if (h >= 12) {
+          ctx.shadowColor = 'rgba(0,0,0,0.35)'; ctx.shadowBlur = 2;
+          ctx.fillStyle = '#fff'; ctx.font = 'bold 10px sans-serif'; ctx.textBaseline = 'middle';
+          ctx.fillText(Math.round(pct) + '%', xc, yc);
+          ctx.shadowBlur = 0;
+        } else {
+          const top = (colTop[i] === Infinity ? el.y : colTop[i]) - 3 - offAbove[i];
+          offAbove[i] += 11;
+          ctx.fillStyle = _LAB_VALV_BASE[i]; ctx.font = 'bold 9px sans-serif'; ctx.textBaseline = 'bottom';
+          ctx.fillText('n=' + n, xc, top);
+        }
+      });
+    }
+    ctx.restore();
+  }
+};
+// Config de Chart.js compartida (opts.offscreen = render para PDF sobre fondo blanco)
+function _labValvChartCfg(infs, opts) {
+  opts = opts || {};
+  const off = !!opts.offscreen;
+  const { counts, N } = _labValvCounts(infs);
+  const OP = { Leve: 0.38, Moderada: 0.68, Severa: 1.0 };
+  const datasets = ['Leve', 'Moderada', 'Severa'].map(sev => ({
+    label: sev,
+    data: counts[sev].map(nn => N > 0 ? +(nn / N * 100).toFixed(2) : 0),
+    _rawN: counts[sev].slice(),
+    backgroundColor: _LAB_VALV_BASE.map(c => _labRgba(c, OP[sev])),
+    borderWidth: 0, stack: 'sev', categoryPercentage: 0.66, barPercentage: 0.9
+  }));
+  return {
+    type: 'bar',
+    data: { labels: _LAB_VALV_LABELS.slice(), datasets },
+    options: {
+      responsive: !off, maintainAspectRatio: off,
+      animation: false,
+      layout: { padding: { top: 24, bottom: 2, left: 4, right: 4 } },
+      plugins: { legend: { display: false }, tooltip: { enabled: !off } },
+      scales: {
+        x: { stacked: true, grid: { display: false }, ticks: { color: off ? '#333' : '#9aa4b2', font: { size: 11 } } },
+        y: { stacked: true, beginAtZero: true, grid: { color: off ? '#e5e5e5' : 'rgba(148,164,178,0.12)' }, ticks: { color: off ? '#333' : '#9aa4b2', callback: v => v + '%' } }
+      }
+    },
+    plugins: [_LAB_VALV_DATALABELS]
+  };
+}
+// Dashboard: (re)crea la gráfica en el canvas dado
+function _labValvBuildChart(canvasId, infs) {
+  const el = document.getElementById(canvasId);
+  if (!el || typeof Chart === 'undefined') return;
+  labDestroyChart(canvasId);
+  new Chart(el.getContext('2d'), _labValvChartCfg(infs, {}));
+}
+// PDF: renderiza la gráfica en un canvas oculto 700x280 (fondo blanco) → {url PNG, ar}
+async function _labValvChartPng(infs) {
+  if (typeof Chart === 'undefined') return null;
+  const W = 700, H = 280;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  cv.style.position = 'fixed'; cv.style.left = '-10000px'; cv.style.top = '0';
+  document.body.appendChild(cv);
+  const ctx = cv.getContext('2d'); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+  let chart = null, url = null;
+  try {
+    chart = new Chart(ctx, _labValvChartCfg(infs, { offscreen: true }));
+    await new Promise(r => setTimeout(r, 300));
+    url = cv.toDataURL('image/png');
+  } catch (e) { url = null; }
+  try { if (chart) chart.destroy(); } catch (e) {}
+  cv.remove();
+  return url ? { url, ar: H / W } : null;
+}
+// Leyenda manual (válvula por color + severidad por intensidad)
+function _labValvLegendHTML() {
+  const sw = (c) => `<span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${c};margin-right:5px;vertical-align:middle;"></span>`;
+  const valv = [['Mitral', '#1565c0'], ['Aórtica', '#e65100'], ['Tricuspídea', '#2e7d32']];
+  const sev = [['Leve', 0.38], ['Moderada', 0.68], ['Severa', 1.0]];
+  const r1 = valv.map(([n, c]) => `${sw(c)}<span style="font-size:.74rem;color:var(--text2);margin-right:14px;">${n}</span>`).join('');
+  const r2 = sev.map(([n, a]) => `${sw(_labRgba('#5b6b7a', a))}<span style="font-size:.74rem;color:var(--text2);margin-right:14px;">${n}</span>`).join('');
+  return `<div style="text-align:center;line-height:2;">
+    <div><span style="font-size:.7rem;font-weight:700;color:var(--text2);margin-right:8px;">Válvula:</span>${r1}</div>
+    <div><span style="font-size:.7rem;font-weight:700;color:var(--text2);margin-right:8px;">Severidad:</span>${r2}</div>
+  </div>`;
+}
+
 // Renderiza una torta (con leyenda dentro del canvas) para el PDF → devuelve {url PNG, ar}
 function _labPieImg(labels, values, colors) {
   return new Promise((resolve) => {
@@ -17685,36 +17840,53 @@ async function labGenerarPDF() {
       y += 4;
     }
 
-    // 9. Valvulopatías — resumen + detalle
-    const sevCols = ['#3ecf8e', '#f5c842', '#f0a500', '#f05454'];
-    const valveDefs = [
+    // 9. Valvulopatías — gráfica apilada (antes) + detalle en grid 2 columnas
+    const vdefs6 = [
       ['Insuficiencia mitral (IM)', i => _labRegurgSev(i, 'im_grado')],
+      ['Estenosis mitral (EM)', i => _labEstenSev(i, 'em_grado')],
       ['Insuficiencia aórtica (IAo)', i => _labRegurgSev(i, 'ia_grado')],
-      ['Insuficiencia tricuspídea (IT)', i => _labRegurgSev(i, 'it_grado')],
       ['Estenosis aórtica (EAo)', i => _labEstenSev(i, 'ea_grado')],
-      ['Estenosis mitral (EM)', i => _labEstenSev(i, 'em_grado')]
+      ['Insuficiencia tricuspídea (IT)', i => _labRegurgSev(i, 'it_grado')],
+      ['Estenosis tricuspídea (ET)', () => null]
     ];
-    const valveStats = valveDefs.map(([name, fn]) => {
+    const vstats6 = vdefs6.map(([name, fn]) => {
       const b = { Sin: 0, Leve: 0, Moderada: 0, Severa: 0 }; let t = 0;
       infs.forEach(i => { const s = fn(i); if (s && b[s] !== undefined) { b[s]++; t++; } });
       return { name, b, t };
     });
-    sectionTable('Valvulopatías — resumen',
-      ['Válvula', 'Sin', 'Leve', 'Moderada', 'Severa'],
-      valveStats.map(v => [v.name,
-        v.b.Sin + ' (' + pctOf(v.b.Sin, v.t) + '%)',
-        v.b.Leve + ' (' + pctOf(v.b.Leve, v.t) + '%)',
-        v.b.Moderada + ' (' + pctOf(v.b.Moderada, v.t) + '%)',
-        v.b.Severa + ' (' + pctOf(v.b.Severa, v.t) + '%)']),
-      [56, 31, 31, 31, 31]);
-    for (const v of valveStats) {
-      await sectionChart('Valvulopatías — ' + v.name,
-        ['Severidad', 'n (%)'],
+    // Título + subtítulo + gráfica apilada (centrada, ~170mm) ANTES de las tablas
+    if (y > 195) { doc.addPage(); y = 20; }
+    sectionTitle('Valvulopatías — distribución de severidad');
+    doc.setFontSize(8); doc.setFont('helvetica', 'italic'); doc.setTextColor(GRY[0], GRY[1], GRY[2]);
+    doc.text(S('Solo pacientes con valvulopatía documentada — % sobre total (n=' + infs.length + ')'), W / 2, y, { align: 'center' });
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(0, 0, 0); y += 4;
+    const vimg = await _labValvChartPng(infs);
+    if (vimg) {
+      const iw = 170, ih = iw * vimg.ar;
+      if (y + ih > CONTENT_BOTTOM) { doc.addPage(); y = 20; }
+      try { doc.addImage(vimg.url, 'PNG', (W - iw) / 2, y, iw, ih); } catch (e) {}
+      y += ih + 6;
+    }
+    // Tablas individuales en grid 2 columnas: IM|EM, IAo|EAo, IT|ET
+    const miniValv = (x, w, v) => {
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+      doc.text(S(v.name), x, y + 3.2); doc.setTextColor(0, 0, 0);
+      y += 5;
+      drawTable(x, [w * 0.52, w * 0.48], ['Severidad', 'n (%)'],
         [['Sin', v.b.Sin + ' (' + pctOf(v.b.Sin, v.t) + '%)'],
          ['Leve', v.b.Leve + ' (' + pctOf(v.b.Leve, v.t) + '%)'],
          ['Moderada', v.b.Moderada + ' (' + pctOf(v.b.Moderada, v.t) + '%)'],
-         ['Severa', v.b.Severa + ' (' + pctOf(v.b.Severa, v.t) + '%)']],
-        { labels: ['Sin', 'Leve', 'Moderada', 'Severa'], values: [v.b.Sin, v.b.Leve, v.b.Moderada, v.b.Severa], colors: sevCols });
+         ['Severa', v.b.Severa + ' (' + pctOf(v.b.Severa, v.t) + '%)']]);
+      return y;
+    };
+    const valvColW = 86, valvGap = 8, valvXR = M + valvColW + valvGap;
+    for (const [li, ri] of [[0, 1], [2, 3], [4, 5]]) {
+      if (y + 38 > CONTENT_BOTTOM) { doc.addPage(); y = 20; }
+      const yStart = y;
+      const yL = miniValv(M, valvColW, vstats6[li]);
+      y = yStart;
+      const yR = miniValv(valvXR, valvColW, vstats6[ri]);
+      y = Math.max(yL, yR) + 6;
     }
 
     // 10. HTP / PSAP
