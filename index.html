@@ -20289,6 +20289,26 @@ const ESQ_PATHS={"path17": "m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8
     const _sglSync=(a,b)=>{ const ea=g(a), eb=g(b); if(ea && eb && !ea.__sglSync){ ea.__sglSync=true;
       ea.addEventListener('input',()=>{ if(eb.value!==ea.value){ eb.value=ea.value; eb.dispatchEvent(new Event('input',{bubbles:true})); } }); } };
     _sglSync('sgl','sgl_gls'); _sglSync('sgl_gls','sgl');
+
+    // ── Sincronización en vivo esquema → campos del estudio ──
+    // Al cambiar un selector del esquema, se actualiza el campo destino de inmediato para que
+    // el informe, el PDF, el guardado y el Laboratorio reflejen la severidad sin depender del
+    // mapeo diferido de generarPDF. El esquema usa 4 niveles (0-3); las insuficiencias usan una
+    // escala de 5 (severa=4) → severa (esq 3) mapea al nivel 4. Estenosis usan sus <select> reales.
+    const _esqN = id => { const e=g(id); return e?(parseInt(e.value)||0):0; };
+    const _ESQ5  = [0,1,2,4];                                    // esq 0-3 → nivel 5-escala (sev=4)
+    const _ESTXT = ['sin','leve','moderada','severa'];           // em/ea_grado (value= en minúscula)
+    const _ETTXT = ['Sin estenosis','Leve','Moderada','Severa']; // et_grado (opciones con texto)
+    const _setDisp = (el,val) => { if(!el||val==null) return; el.value=String(val); el.dispatchEvent(new Event('change',{bubbles:true})); el.dispatchEvent(new Event('input',{bubbles:true})); };
+    const _onEsq = (esqId, cb) => { const e=g(esqId); if(e && !e.__esqSyncCampo){ e.__esqSyncCampo=true; e.addEventListener('change', cb); } };
+    // Insuficiencias → *_sev_final (visible, dispara sincronizarGrado*) o el hidden *_grado si no existe
+    _onEsq('esq-im',  ()=>{ const s=g('im_sev_final'); _setDisp(s||g('im_grado'), _ESQ5[_esqN('esq-im')]); });
+    _onEsq('esq-iao', ()=>{ const s=g('ia_sev_final'); _setDisp(s||g('ia_grado'), _ESQ5[_esqN('esq-iao')]); });
+    _onEsq('esq-it',  ()=>{ _setDisp(g('it_grado'), _ESQ5[_esqN('esq-it')]); });
+    // Estenosis → <select> em/ea/et_grado
+    _onEsq('esq-em',  ()=>{ _setDisp(g('em_grado'), _ESTXT[_esqN('esq-em')]); });
+    _onEsq('esq-eao', ()=>{ _setDisp(g('ea_grado'), _ESTXT[_esqN('esq-eao')]); });
+    _onEsq('esq-et',  ()=>{ _setDisp(g('et_grado'), _ETTXT[_esqN('esq-et')]); });
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initEsq); else initEsq();
 })();
