@@ -11578,11 +11578,20 @@ function generarInforme() {
   const ai_vol = v('ai_vol'), ai_diam = v('ai_diam');
   const ao_sin = v('ao_sin');
   const psap = v('psap_calc');
-  const imG = parseInt(sv('im_grado')) || 0;
-  const iaG = parseInt(sv('ia_grado')) || 0;
-  const itG = parseInt(sv('it_grado')) || 0;
-  const emG = sv('em_grado') || '';
-  const eaG = sv('ea_grado') || '';
+  // Severidades: si el Esquema válvulas tiene el selector con valor >0, ESE manda (fuente del
+  // médico); si está en 0, se usa el campo principal (no se pisan datos de la pestaña Válvulas).
+  // El esquema usa 4 niveles (0-3: ausente/leve/moderada/severa); el narrativo usa imTxt de 5
+  // niveles → severa (esq 3) mapea al índice 4.
+  const _esqN = id => { const e = document.getElementById(id); return e ? (parseInt(e.value) || 0) : 0; };
+  const _esqTo5 = [0, 1, 2, 4];              // esq 0-3 → índice de imTxt (5 niveles)
+  const _esqEstTxt = ['', 'leve', 'moderada', 'severa'];   // esq 1-3 → texto de estenosis
+  const _imE = _esqN('esq-im'), _iaE = _esqN('esq-iao'), _itE = _esqN('esq-it');
+  const _emE = _esqN('esq-em'), _eaE = _esqN('esq-eao');
+  const imG = _imE > 0 ? _esqTo5[_imE] : (parseInt(sv('im_grado')) || 0);
+  const iaG = _iaE > 0 ? _esqTo5[_iaE] : (parseInt(sv('ia_grado')) || 0);
+  const itG = _itE > 0 ? _esqTo5[_itE] : (parseInt(sv('it_grado')) || 0);
+  const emG = _emE > 0 ? _esqEstTxt[_emE] : (sv('em_grado') || '');
+  const eaG = _eaE > 0 ? _esqEstTxt[_eaE] : (sv('ea_grado') || '');
   const imTxt = ['ausente','leve','moderada','moderada-severa','severa'];
 
   let inf = [];
@@ -11852,8 +11861,9 @@ function generarInforme() {
 
   // ── 9) Válvula tricúspide (IT + gradiente VD-AD + PSAP + PmAD) + HTP ──
   {
-    const etG = sv('et_grado') || '';
-    const etDesc = etG && etG !== 'Sin estenosis' ? etG.toLowerCase() : null;
+    const _etE = _esqN('esq-et');
+    const etG = _etE > 0 ? _esqEstTxt[_etE] : (sv('et_grado') || '');
+    const etDesc = etG && etG !== 'Sin estenosis' && etG !== 'sin' ? etG.toLowerCase() : null;
     const itTrv = v('vmax_it');          // VRT
     const pmadV = v('pmad');             // requiere VCI
     const tap   = v('tvia');             // TAP (ms)
@@ -12360,7 +12370,10 @@ async function generarPDF() {
     const SEVTXT = {0:'sin',1:'leve',2:'moderada',3:'severa'};
     const val = id => { const e = document.getElementById(id); return e ? e.value : null; };
     const setV = (id,v) => { const e = document.getElementById(id); if (e && v!=null) e.value = v; };
-    setV('im_grado', val('esq-im')); setV('ia_grado', val('esq-iao')); setV('it_grado', val('esq-it'));
+    // El esquema usa 4 niveles (0-3); im/ia/it_grado usan 5 (GT: severa=índice 4) → severa (esq 3) → 4.
+    const ESQ5 = [0,1,2,4];
+    const esq5 = id => String(ESQ5[parseInt(val(id)||'0',10)]);
+    setV('im_grado', esq5('esq-im')); setV('ia_grado', esq5('esq-iao')); setV('it_grado', esq5('esq-it'));
     setV('em_grado', SEVTXT[parseInt(val('esq-em')||'0',10)]);
     setV('ea_grado', SEVTXT[parseInt(val('esq-eao')||'0',10)]);
     // et_grado tiene opciones con texto (sin value="") → mapear a su texto exacto, no a SEVTXT
@@ -20178,7 +20191,7 @@ const ESQ_PATHS={"path17": "m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8
   }
   function drawLabels(gEl){
     while(gEl.firstChild)gEl.removeChild(gEl.firstChild);
-    const fevi=gv('fevi'); if(fevi!=='')addLabel(gEl,115,130,'FEVI',fevi+' %');
+    const fevi=gv('fevi'); if(fevi!=='')addLabel(gEl,118,110,'FEVI',fevi+' %');
     const tapse=gv('tapse'); if(tapse!=='')addLabel(gEl,75,110,'TAPSE',tapse+' mm');
     const adArea=gv('ad_area'); if(adArea!=='')addLabel(gEl,66,220,'AD área',adArea+' cm²');
     const ai=aiLabel(); if(ai)addLabel(gEl,113,222,ai.name,ai.val);
