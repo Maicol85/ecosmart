@@ -391,9 +391,21 @@
   }
 
 
-/* ═══ Esquema de válvulas ═══ */
-#tab-esquema-valvulas .esq-grid{display:grid;grid-template-columns:110px 1fr 240px;gap:14px;align-items:start;}
-#tab-esquema-valvulas .esq-legend{display:flex;flex-direction:column;gap:14px;font-size:11px;}
+/* ═══ Severidad válvulas ═══ */
+/* Layout 2 columnas: tabla de severidades (izq) + SVG del corazón al 70% (der) */
+#tab-esquema-valvulas .sev-grid{display:grid;grid-template-columns:1fr 178px;gap:20px;align-items:start;}
+#tab-esquema-valvulas .sev-left{min-width:0;}
+#tab-esquema-valvulas .sev-right{display:flex;flex-direction:column;align-items:center;gap:12px;}
+#tab-esquema-valvulas .sev-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+#tab-esquema-valvulas .sev-table th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);font-weight:700;padding:4px 8px;border-bottom:1px solid var(--border);}
+#tab-esquema-valvulas .sev-table th:last-child{width:130px;}
+#tab-esquema-valvulas .sev-table td{padding:5px 8px;border-bottom:1px solid var(--border);vertical-align:middle;}
+#tab-esquema-valvulas .sev-table tr.sev-sec td{font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);padding:12px 8px 3px;border-bottom:none;}
+#tab-esquema-valvulas .sev-table tr.sev-dim{opacity:.32;}
+#tab-esquema-valvulas .sev-sigla{font-weight:700;color:var(--text);white-space:nowrap;}
+#tab-esquema-valvulas .sev-dop{color:var(--text2);white-space:nowrap;font-variant-numeric:tabular-nums;}
+#tab-esquema-valvulas .sev-sel{width:100%;font-size:12px;padding:3px 6px;}
+#tab-esquema-valvulas .esq-legend{display:flex;flex-direction:column;gap:10px;font-size:11px;width:100%;}
 #tab-esquema-valvulas .esq-leg-block .esq-leg-ttl{font-weight:700;font-size:11px;margin-bottom:3px;color:var(--text);}
 #tab-esquema-valvulas .esq-bar{height:14px;border-radius:4px;border:1px solid var(--border);}
 #tab-esquema-valvulas .esq-leg-lbls{display:flex;justify-content:space-between;font-size:9.5px;color:var(--text2);margin-top:2px;}
@@ -405,7 +417,7 @@
 #tab-esquema-valvulas .esq-svg-box{width:fit-content;height:fit-content;overflow:visible;line-height:0;}
 /* SVG inline: height:auto + overflow:visible (los <svg> traen overflow:hidden por UA) + aspect-ratio
    para que la altura se derive del viewBox (140x235) sin caja fija */
-#tab-esquema-valvulas #esq-svg{display:block;width:100%;max-width:220px;height:auto;aspect-ratio:140/235;overflow:visible;}
+#tab-esquema-valvulas #esq-svg{display:block;width:100%;max-width:154px;height:auto;aspect-ratio:140/235;overflow:visible;}
 #tab-esquema-valvulas .esq-btns{display:flex;gap:8px;margin-top:8px;}
 #tab-esquema-valvulas .esq-btns button{font-size:12px;padding:6px 12px;flex:1;}
 #tab-esquema-valvulas #esq-pdf-toggle.active{background:#1a7a4a;border-color:#1a7a4a;color:#fff;}
@@ -415,9 +427,9 @@
 #tab-esquema-valvulas .esq-table .esq-row label{font-weight:600;color:var(--text2);min-width:34px;}
 #tab-esquema-valvulas .esq-table select{font-size:11px;padding:3px 6px;flex:1;}
 #tab-esquema-valvulas .esq-table .esq-sep{height:1px;background:var(--border);margin:3px 0;}
-/* Mobile <768px: apilar en una columna → leyenda, corazón, y luego selectores + notas + botones */
+/* Mobile <768px: apilar en una columna → tabla arriba, corazón + leyenda abajo */
 @media (max-width:768px){
-  #tab-esquema-valvulas .esq-grid{grid-template-columns:1fr;}
+  #tab-esquema-valvulas .sev-grid{grid-template-columns:1fr;}
   #tab-esquema-valvulas .esq-center{padding-top:16px;}
 }
 /* Fix 4: letras negras en acordeones del tab SGL */
@@ -819,7 +831,7 @@ window.cerrarSesion = cerrarSesion;
     <button class="tab-btn" onclick="showTab('vd')">▶️ VD / AD</button>
     <button class="tab-btn" onclick="showTab('doppler')">〰️ Doppler</button>
     <button class="tab-btn" onclick="showTab('valvulas')">🔲 Válvulas</button>
-    <button class="tab-btn" onclick="showTab('esquema-valvulas');if(window.esqValvOnShow)esqValvOnShow();">🫀 Esquema válvulas</button>
+    <button class="tab-btn" onclick="showTab('esquema-valvulas');if(window.esqValvOnShow)esqValvOnShow();">🫀 Severidad válvulas</button>
     <button class="tab-btn" onclick="showTab('contractilidad')">🎯 Contractilidad</button>
     <button class="tab-btn" onclick="showTab('sgl');if(window.sglOnShow)sglOnShow();">📐 SGL</button>
     <button class="tab-btn" onclick="showTab('imagenes');if(window.imgRender)imgRender();">🖼️ Imágenes</button>
@@ -2090,24 +2102,29 @@ window.cerrarSesion = cerrarSesion;
 
 <!-- ═══════════════════════ TAB: HEMODINÁMICA ═══════════════════════ -->
 <div id="tab-esquema-valvulas" class="tab-section">
-  <h2 style="display:flex;align-items:center;gap:8px;">🫀 Esquema de válvulas</h2>
-  <p style="font-size:12px;color:var(--text2);margin:-4px 0 12px;">Diagrama A5C con las severidades valvulares del estudio. Los datos se toman de las otras secciones al entrar; podés ajustarlos acá para el diagrama y el PDF.</p>
-  <div class="esq-grid">
-    <div class="esq-legend">
-      <div class="esq-leg-block"><div class="esq-leg-ttl">IT / IM</div><div class="esq-bar" style="background:linear-gradient(90deg,#1a237e,#90caf9)"></div><div class="esq-leg-lbls"><span>Leve</span><span>Severo</span></div></div>
-      <div class="esq-leg-block"><div class="esq-leg-ttl">IAo</div><div class="esq-bar" style="background:linear-gradient(90deg,#7f0000,#ffcdd2)"></div><div class="esq-leg-lbls"><span>Leve</span><span>Severo</span></div></div>
-      <div class="esq-leg-block"><div class="esq-leg-ttl">Estenosis</div>
-        <svg viewBox="0 0 60 14" style="width:100%;height:14px;border:1px solid var(--border);border-radius:4px;background:#fff">
-          <defs>
-            <pattern id="lg-pts" width="4" height="4" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.5" fill="#333"/></pattern>
-            <pattern id="lg-ray" width="4" height="4" patternUnits="userSpaceOnUse"><line x1="0" y1="2" x2="4" y2="2" stroke="#333" stroke-width="0.5"/></pattern>
-            <pattern id="lg-grid" width="4" height="4" patternUnits="userSpaceOnUse"><line x1="0" y1="2" x2="4" y2="2" stroke="#333" stroke-width="0.5"/><line x1="2" y1="0" x2="2" y2="4" stroke="#333" stroke-width="0.5"/></pattern>
-          </defs>
-          <rect x="0" y="0" width="20" height="14" fill="url(#lg-pts)"/><rect x="20" y="0" width="20" height="14" fill="url(#lg-ray)"/><rect x="40" y="0" width="20" height="14" fill="url(#lg-grid)"/>
-        </svg>
-        <div class="esq-leg-lbls"><span>Leve</span><span>Severo</span></div></div>
+  <h2 style="display:flex;align-items:center;gap:8px;">🫀 Severidad válvulas</h2>
+  <p style="font-size:12px;color:var(--text2);margin:-4px 0 12px;">Severidad de cada válvula con su dato Doppler (sincronizado con lo cargado). El valor se autocompleta según criterios ASE/ESC y es editable. Las filas sin dato Doppler cargado aparecen atenuadas.</p>
+  <div class="sev-grid">
+    <div class="sev-left">
+      <table class="sev-table">
+        <thead><tr><th>Válvula</th><th>Doppler</th><th>Severidad</th></tr></thead>
+        <tbody>
+          <tr class="sev-sec"><td colspan="3">Insuficiencias</td></tr>
+          <tr id="sev-row-im"><td class="sev-sigla">IM</td><td class="sev-dop" id="dop-im">—</td><td><select id="esq-im" class="sev-sel"><option value="0">Ausente</option><option value="1">Leve</option><option value="2">Moderada</option><option value="3">Severa</option></select></td></tr>
+          <tr id="sev-row-iao"><td class="sev-sigla">IAo</td><td class="sev-dop" id="dop-iao">—</td><td><select id="esq-iao" class="sev-sel"><option value="0">Ausente</option><option value="1">Leve</option><option value="2">Moderada</option><option value="3">Severa</option></select></td></tr>
+          <tr id="sev-row-it"><td class="sev-sigla">IT</td><td class="sev-dop" id="dop-it">—</td><td><select id="esq-it" class="sev-sel"><option value="0">Ausente</option><option value="1">Leve</option><option value="2">Moderada</option><option value="3">Severa</option></select></td></tr>
+          <tr id="sev-row-ip"><td class="sev-sigla">IP</td><td class="sev-dop" id="dop-ip">—</td><td><select id="esq-ip" class="sev-sel"><option value="0">Ausente</option><option value="1">Leve</option><option value="2">Moderada</option><option value="3">Severa</option></select></td></tr>
+          <tr class="sev-sec"><td colspan="3">Estenosis</td></tr>
+          <tr id="sev-row-eao"><td class="sev-sigla">EAo</td><td class="sev-dop" id="dop-eao">—</td><td><select id="esq-eao" class="sev-sel"><option value="0">Ausente</option><option value="1">Leve</option><option value="2">Moderada</option><option value="3">Severa</option></select></td></tr>
+          <tr id="sev-row-em"><td class="sev-sigla">EM</td><td class="sev-dop" id="dop-em">—</td><td><select id="esq-em" class="sev-sel"><option value="0">Ausente</option><option value="1">Leve</option><option value="2">Moderada</option><option value="3">Severa</option></select></td></tr>
+          <tr id="sev-row-et"><td class="sev-sigla">ET</td><td class="sev-dop" id="dop-et">—</td><td><select id="esq-et" class="sev-sel"><option value="0">Ausente</option><option value="1">Leve</option><option value="2">Moderada</option><option value="3">Severa</option></select></td></tr>
+          <tr id="sev-row-vp"><td class="sev-sigla">VP</td><td class="sev-dop" id="dop-vp">—</td><td><select id="esq-vp" class="sev-sel"><option>Normal</option><option>Insuficiencia leve (fisiológica)</option><option>Estenosis leve</option><option>Estenosis moderada/severa</option></select></td></tr>
+        </tbody>
+      </table>
+      <textarea id="esq-notas" placeholder="Notas de severidad valvular..." style="width:100%;margin-top:10px;min-height:52px;font-size:12px;resize:vertical;" oninput="if(window.esqRender)esqRender();"></textarea>
     </div>
-    <div class="esq-center">
+    <div class="sev-right">
+      <div class="esq-center">
       <div class="esq-svg-box">
       <svg id="esq-svg" viewBox="30 55 140 235" xmlns="http://www.w3.org/2000/svg" aria-label="Esquema de valvulas">
   <defs>
@@ -2126,22 +2143,21 @@ window.cerrarSesion = cerrarSesion;
   <g id="esq-labels"></g>
 </svg>
       </div>
-    </div>
-    <div class="esq-table">
-      <div style="font-weight:700;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;">Insuficiencias</div>
-      <div class="esq-row"><label>IT</label><select id="esq-it"><option value="0">0 · ausente</option><option value="1">1 · leve</option><option value="2">2 · moderada</option><option value="3">3 · severa</option></select></div>
-      <div class="esq-row"><label>IAo</label><select id="esq-iao"><option value="0">0 · ausente</option><option value="1">1 · leve</option><option value="2">2 · moderada</option><option value="3">3 · severa</option></select></div>
-      <div class="esq-row"><label>IM</label><select id="esq-im"><option value="0">0 · ausente</option><option value="1">1 · leve</option><option value="2">2 · moderada</option><option value="3">3 · severa</option></select></div>
-      <div class="esq-sep"></div>
-      <div style="font-weight:700;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;">Estenosis</div>
-      <div class="esq-row"><label>ET</label><select id="esq-et"><option value="0">0 · ausente</option><option value="1">1 · leve</option><option value="2">2 · moderada</option><option value="3">3 · severa</option></select></div>
-      <div class="esq-row"><label>EAo</label><select id="esq-eao"><option value="0">0 · ausente</option><option value="1">1 · leve</option><option value="2">2 · moderada</option><option value="3">3 · severa</option></select></div>
-      <div class="esq-row"><label>EM</label><select id="esq-em"><option value="0">0 · ausente</option><option value="1">1 · leve</option><option value="2">2 · moderada</option><option value="3">3 · severa</option></select></div>
-      <div class="esq-sep"></div>
-      <div class="esq-row"><label>VP</label><select id="esq-vp"><option>Normal</option><option>Insuficiencia leve (fisiológica)</option><option>Estenosis leve</option><option>Estenosis moderada/severa</option></select></div>
-      <div class="esq-sep"></div>
-      <textarea id="esq-notas" placeholder="Notas del esquema valvular..." oninput="if(window.esqRender)esqRender();"></textarea>
-      <div class="esq-btns"><button class="btn btn-ghost" onclick="esqLimpiar()">✕ Limpiar</button><button class="btn btn-ghost" id="esq-pdf-toggle" onclick="esqTogglePDF()">📄 Incluir en PDF</button></div>
+      </div>
+      <div class="esq-legend">
+        <div class="esq-leg-block"><div class="esq-leg-ttl">IT / IM</div><div class="esq-bar" style="background:linear-gradient(90deg,#1a237e,#90caf9)"></div><div class="esq-leg-lbls"><span>Leve</span><span>Severo</span></div></div>
+        <div class="esq-leg-block"><div class="esq-leg-ttl">IAo</div><div class="esq-bar" style="background:linear-gradient(90deg,#7f0000,#ffcdd2)"></div><div class="esq-leg-lbls"><span>Leve</span><span>Severo</span></div></div>
+        <div class="esq-leg-block"><div class="esq-leg-ttl">Estenosis</div>
+          <svg viewBox="0 0 60 14" style="width:100%;height:14px;border:1px solid var(--border);border-radius:4px;background:#fff">
+            <defs>
+              <pattern id="lg-pts" width="4" height="4" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.5" fill="#333"/></pattern>
+              <pattern id="lg-ray" width="4" height="4" patternUnits="userSpaceOnUse"><line x1="0" y1="2" x2="4" y2="2" stroke="#333" stroke-width="0.5"/></pattern>
+              <pattern id="lg-grid" width="4" height="4" patternUnits="userSpaceOnUse"><line x1="0" y1="2" x2="4" y2="2" stroke="#333" stroke-width="0.5"/><line x1="2" y1="0" x2="2" y2="4" stroke="#333" stroke-width="0.5"/></pattern>
+            </defs>
+            <rect x="0" y="0" width="20" height="14" fill="url(#lg-pts)"/><rect x="20" y="0" width="20" height="14" fill="url(#lg-ray)"/><rect x="40" y="0" width="20" height="14" fill="url(#lg-grid)"/>
+          </svg>
+          <div class="esq-leg-lbls"><span>Leve</span><span>Severo</span></div></div>
+      </div>
     </div>
   </div>
 </div>
@@ -20215,9 +20231,25 @@ const ESQ_PATHS={"path17": "m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8
   }
   function selIntSafe(id){const e=g(id);if(!e)return 0;const v=parseInt(String(e.value||'0'),10);return isNaN(v)?0:v;}
 
+  // Columna "Doppler" de la tabla de severidad: muestra el dato calculado de cada válvula
+  // (sincronizado con lo cargado) y atenúa la fila si no hay dato. [key, campo, etiqueta, unidad]
+  const ESQ_DOP=[['im','im_vc','VC','mm'],['iao','ia_vc','VC','mm'],['it','it_vc','VC','mm'],['ip','ip_vmax','Vmáx','m/s'],
+    ['eao','vmax_ao','Vmáx','m/s'],['em','avm_thp','AVm','cm²'],['et','et_gmedio','Grad','mmHg'],['vp','vp_vmax','Vmáx','m/s']];
+  function esqUpdateDoppler(){
+    ESQ_DOP.forEach(([key,fld,lbl,unit])=>{
+      const src=g(fld); const val=src?String(src.value||'').trim():'';
+      const dop=g('dop-'+key); const row=g('sev-row-'+key);
+      if(dop) dop.textContent = (val!=='') ? (lbl+' '+val+' '+unit) : '—';
+      if(row) row.classList.toggle('sev-dim', val==='');
+    });
+  }
+  window.esqUpdateDoppler=esqUpdateDoppler;
+
   window.esqValvOnShow=function(){
     if(!window.esqValvVisitada){ try{syncFromEstudio();}catch(e){} }
     window.esqValvVisitada=true;
+    window.esqValvEnPDF=true;            // sin botón toggle: al revisar la tab, se incluye en el PDF
+    try{ esqUpdateDoppler(); }catch(e){}
     esqRender();
   };
   window.esqLimpiar=function(){
@@ -20284,6 +20316,9 @@ const ESQ_PATHS={"path17": "m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8
     ['fevi','tapse','ad_area','ai_vol','ai_area','peso','talla'].forEach(id=>{
       const e=g(id); if(e && !e.__esqLbl){ e.__esqLbl=true; e.addEventListener('input',()=>{ if(g('esq-svg'))esqRender(); }); }
     });
+    // Columna Doppler en vivo: al cambiar un dato Doppler fuente, refrescar la tabla de severidad.
+    ESQ_DOP.forEach(([,fld])=>{ const e=g(fld); if(e && !e.__esqDop){ e.__esqDop=true; e.addEventListener('input',()=>{ if(g('dop-im'))esqUpdateDoppler(); }); } });
+    esqUpdateDoppler();
     // Sincronizar #sgl (tab AI/VI) ↔ #sgl_gls (tab SGL): mismo dato en dos campos.
     // El guard (valores distintos) evita el bucle de re-disparo entre ambos listeners.
     const _sglSync=(a,b)=>{ const ea=g(a), eb=g(b); if(ea && eb && !ea.__sglSync){ ea.__sglSync=true;
