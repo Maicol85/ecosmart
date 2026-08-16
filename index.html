@@ -10714,6 +10714,7 @@ window.sincronizarGradoIA = sincronizarGradoIA;
 
 // Llamada desde calcIM_ESC para auto-completar im_sev_final
 function autoCompletarSevIM(gradoVal) {
+  if (window.esqSevManual && window.esqSevManual.im) return;   // pill fijada por el médico → no pisar
   const sel = document.getElementById('im_sev_final');
   if (sel) { sel.value = gradoVal; sincronizarGradoIM(); }
 }
@@ -10721,6 +10722,7 @@ window.autoCompletarSevIM = autoCompletarSevIM;
 
 // Llamada desde calcIA_ESC para auto-completar ia_sev_final
 function autoCompletarSevIA(gradoVal) {
+  if (window.esqSevManual && window.esqSevManual.ia) return;   // pill fijada por el médico → no pisar
   const sel = document.getElementById('ia_sev_final');
   if (sel) { sel.value = gradoVal; sincronizarGradoIA(); }
 }
@@ -11100,9 +11102,10 @@ function calcIM_ESC() {
     sevBadge = badge('yellow','Moderada — evaluar integrado'); gradoVal = '2';
   }
   document.getElementById('im-sev').innerHTML = sevBadge;
-  document.getElementById('im_grado').value = gradoVal;
-  // Auto-completar selector confirmado
-  if (typeof autoCompletarSevIM === 'function') autoCompletarSevIM(gradoVal);
+  if (!(window.esqSevManual && window.esqSevManual.im)) {   // pill fijada por el médico → no pisar
+    document.getElementById('im_grado').value = gradoVal;
+    if (typeof autoCompletarSevIM === 'function') autoCompletarSevIM(gradoVal);
+  }
   const sevs = [...new Set(params.map(p=>p.sev))];
   document.getElementById('im-discordancia').textContent = sevs.length > 1 ? '⚠️ Parámetros discordantes: ' + params.map(p=>`${p.p}:${p.sev}`).join(', ') : '';
 }
@@ -11186,9 +11189,10 @@ function calcIA_ESC() {
     sevBadge = badge('yellow','Moderada — evaluar integrado'); gradoVal = '2';
   }
   document.getElementById('ia-sev').innerHTML = sevBadge;
-  document.getElementById('ia_grado').value = gradoVal;
-  // Auto-completar selector confirmado
-  if (typeof autoCompletarSevIA === 'function') autoCompletarSevIA(gradoVal);
+  if (!(window.esqSevManual && window.esqSevManual.ia)) {   // pill fijada por el médico → no pisar
+    document.getElementById('ia_grado').value = gradoVal;
+    if (typeof autoCompletarSevIA === 'function') autoCompletarSevIA(gradoVal);
+  }
   const sevs = [...new Set(params.map(p=>p.sev))];
   document.getElementById('ia-discordancia').textContent = sevs.length > 1 ? '⚠️ Discordancia: ' + params.map(p=>`${p.p}:${p.sev}`).join(', ') : '';
 }
@@ -11329,7 +11333,7 @@ function calcIT_ESC() {
     sevBadge = badge('yellow','Moderada — evaluar integrado'); gradoVal = '2';
   }
   document.getElementById('it-sev').innerHTML = sevBadge;
-  document.getElementById('it_grado').value = gradoVal;
+  if (!(window.esqSevManual && window.esqSevManual.it)) document.getElementById('it_grado').value = gradoVal;   // pill fijada → no pisar
   const sevs = [...new Set(params.map(p=>p.sev))];
   document.getElementById('it-discordancia').textContent = sevs.length > 1 ? '⚠️ Discordancia: ' + params.map(p=>`${p.p}:${p.sev}`).join(', ') : '';
 }
@@ -12235,6 +12239,9 @@ function showTabById(id) {
 
 // ══ LIMPIAR ══
 function limpiarCampos() {
+  // Nuevo estudio: resetear los flags de severidad fijada manualmente (las pills vuelven a autocalcularse)
+  window.esqSevManual = {};
+  if (window.esqPills) try { esqPills.refresh(); } catch(e) {}
   // Inputs (incluye readonly calculados)
   document.querySelectorAll('input[type=text], input[type=number]').forEach(el => { el.value = ''; });
   // Grados de severidad ocultos → 0
@@ -14614,6 +14621,10 @@ function editarInforme(id) {
     _restaurarChecklistPaciente(inf.campos);
     if (typeof _restaurarContractilidad === 'function') _restaurarContractilidad(inf.campos);
     if (typeof renderCentroField === 'function') renderCentroField(inf.campos.centro_nombre);
+    // Cargar un estudio inicia una sesión nueva: resetear flags de severidad manual (las pills
+    // se pre-pueblan con lo cargado y vuelven a poder autocalcularse si se editan los datos Doppler)
+    window.esqSevManual = {};
+    if (window.esqPills) try { esqPills.refresh(); } catch(e) {}
     // Recalcular derivados
     if (typeof calcVI === 'function') calcVI();
     if (typeof calcAI === 'function') calcAI();
@@ -20386,6 +20397,7 @@ const ESQ_PATHS={"path17": "m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8
    la pill muestra 4 (Ausente/Leve/Moderada/Severa; mod-severa=3 y severa=4 se muestran "Severa").
    Al elegir → escribe el campo (vía *_sev_final si existe, para disparar el cálculo) → va al informe.
    refresh() se re-dibuja ante cambios de Doppler (llamado desde la delegación de la tab Válvulas). */
+window.esqSevManual = window.esqSevManual || {};   // {im,ia,it,em,ea,et:true} = fijada manualmente por el médico
 window.esqPills=(function(){
   const g=id=>document.getElementById(id);
   const VALVES={ mitral:{ins:'im_grado',est:'em_grado'}, aortica:{ins:'ia_grado',est:'ea_grado'}, tricuspide:{ins:'it_grado',est:'et_grado'} };
@@ -20401,6 +20413,7 @@ window.esqPills=(function(){
   }
   function setLevel(field,isIns,level){
     const e=g(field); if(!e) return;
+    window.esqSevManual[field.replace('_grado','')] = true;   // el médico eligió → fuente de verdad final, protegida del recálculo
     if(isIns){ const grado=INS_GRADO[level]; const sev=g(field.replace('_grado','_sev_final'));
       if(sev){ sev.value=String(grado); sev.dispatchEvent(new Event('change',{bubbles:true})); }
       else { e.value=String(grado); e.dispatchEvent(new Event('change',{bubbles:true})); e.dispatchEvent(new Event('input',{bubbles:true})); } }
