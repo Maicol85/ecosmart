@@ -2096,7 +2096,7 @@ window.cerrarSesion = cerrarSesion;
         <div class="esq-leg-lbls"><span>Leve</span><span>Severo</span></div></div>
     </div>
     <div class="esq-center">
-      <svg id="esq-svg" viewBox="30 55 140 225" xmlns="http://www.w3.org/2000/svg" aria-label="Esquema de valvulas">
+      <svg id="esq-svg" viewBox="30 55 140 210" xmlns="http://www.w3.org/2000/svg" aria-label="Esquema de valvulas">
   <defs>
     <pattern id="esq-pts" width="4" height="4" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.5" fill="#333"/></pattern>
     <pattern id="esq-ray" width="4" height="4" patternUnits="userSpaceOnUse"><line x1="0" y1="2" x2="4" y2="2" stroke="#333" stroke-width="0.45"/></pattern>
@@ -13139,7 +13139,7 @@ function generarPDFReal() {
   // Layout: 0 eyes → centrado; 1 eye → al lado del bull's eye (mitad c/u); 2 eyes → debajo.
   // ════════════════════════════════════════════════════════════
   if (_esqOn) {
-    const _ratio = 225 / 140;   // viewBox 140x225 → alto/ancho
+    const _ratio = 210 / 140;   // viewBox 140x210 → alto/ancho
     // Dibuja leyenda (izq) + corazón (der) dentro de (x, top, availW); devuelve la y inferior.
     const _drawEsq = (x, top, availW) => {
       const _legW = 24;
