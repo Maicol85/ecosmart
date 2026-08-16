@@ -2096,7 +2096,7 @@ window.cerrarSesion = cerrarSesion;
         <div class="esq-leg-lbls"><span>Leve</span><span>Severo</span></div></div>
     </div>
     <div class="esq-center">
-      <svg id="esq-svg" viewBox="30 60 140 210" xmlns="http://www.w3.org/2000/svg" aria-label="Esquema de valvulas">
+      <svg id="esq-svg" viewBox="30 55 140 225" xmlns="http://www.w3.org/2000/svg" aria-label="Esquema de valvulas">
   <defs>
     <pattern id="esq-pts" width="4" height="4" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.5" fill="#333"/></pattern>
     <pattern id="esq-ray" width="4" height="4" patternUnits="userSpaceOnUse"><line x1="0" y1="2" x2="4" y2="2" stroke="#333" stroke-width="0.45"/></pattern>
@@ -12346,10 +12346,11 @@ async function generarPDF() {
     setV('em_grado', SEVTXT[parseInt(val('esq-em')||'0',10)]);
     setV('ea_grado', SEVTXT[parseInt(val('esq-eao')||'0',10)]);
     setV('vp_morf', val('esq-vp'));
-    // Pre-rasterizar el esquema (rasterizado del SVG es async; el PDF es sync) para incluirlo
+    // Pre-rasterizar el esquema (rasterizado del SVG es async; el PDF es sync) para incluirlo.
+    // Re-render primero para que #esq-estenosis / #esq-jets / #esq-labels estén al día.
     window._esqPdfPng = null;
     if (window.esqValvEnPDF && typeof esqSvgToPng === 'function') {
-      try { window._esqPdfPng = await esqSvgToPng(6); } catch(e) { window._esqPdfPng = null; }
+      try { if (typeof esqRender === 'function') esqRender(); window._esqPdfPng = await esqSvgToPng(6); } catch(e) { window._esqPdfPng = null; }
     }
     generarPDFReal();
     return;
@@ -13048,6 +13049,11 @@ function generarPDFReal() {
   // ════════════════════════════════════════════════════════════
   const _incContr = localStorage.getItem('contractilidad_incluir_pdf') === '1';
   const _incSgl   = localStorage.getItem('sgl_incluir_pdf') === '1';
+  // Esquema válvulas en PDF y layout lado-a-lado (esquema + 1 bull's eye)
+  const _esqOn = !!(window.esqValvEnPDF && window._esqPdfPng);
+  const _nEyes = (_incContr ? 1 : 0) + (_incSgl ? 1 : 0);
+  const _esqSide = _esqOn && _nEyes === 1;
+  window.__esqRow = null;   // {rowTop, eyeBottom} para el layout lado-a-lado
   if ((_incContr || _incSgl) && typeof bullseyeDataURL === 'function') {
     // Columnas: cada una con su bull's eye arriba y su texto debajo
     const _cols = [];
@@ -13081,7 +13087,8 @@ function generarPDFReal() {
       drawBar(_cols.length === 2 ? 'CONTRACTILIDAD Y STRAIN (SGL)' : _cols[0].title.toUpperCase());
       y += 3;
       const _n = _cols.length, _gap = 10;
-      const _colW = (pgW - (_n - 1) * _gap) / _n;   // mismo ancho para ambas columnas
+      // Con esquema al lado (1 bull's eye), el eye ocupa la mitad izquierda
+      const _colW = _esqSide ? (pgW - _gap) / 2 : (pgW - (_n - 1) * _gap) / _n;
       const _sz = Math.min(_colW, 54);              // bull's eye cuadrado, centrado en su columna
       const _startY = y;
       const _bottoms = _cols.map((col, i) => {
@@ -13122,35 +13129,49 @@ function generarPDFReal() {
         }
         return _cy;
       });
-      y = Math.max.apply(null, _bottoms) + 4;
+      if (_esqSide) { window.__esqRow = { rowTop: _startY, eyeBottom: Math.max.apply(null, _bottoms) }; y = _startY; }
+      else { y = Math.max.apply(null, _bottoms) + 4; }
     }
   }
 
   // ════════════════════════════════════════════════════════════
   // ESQUEMA DE VÁLVULAS — leyenda + corazón + notas (antes de la firma)
-  // Layout según nº de bull's eyes: 0 → centrado; 1-2 → debajo de los bull's eyes, centrado.
+  // Layout: 0 eyes → centrado; 1 eye → al lado del bull's eye (mitad c/u); 2 eyes → debajo.
   // ════════════════════════════════════════════════════════════
-  if (window.esqValvEnPDF && window._esqPdfPng) {
-    checkPage(102);
-    drawBar('ESQUEMA DE VÁLVULAS');
-    y += 3;
-    const _ratio = 210 / 140;                 // viewBox 140x210 → alto/ancho
-    const _nEyes = (_incContr ? 1 : 0) + (_incSgl ? 1 : 0);
-    let _iw = _nEyes >= 1 ? 60 : 72;
-    let _ih = _iw * _ratio;
-    if (_ih > 150) { _ih = 150; _iw = _ih / _ratio; }
-    const _legW = 26, _blockW = _legW + 6 + _iw, _x0 = mL + (pgW - _blockW) / 2, _yTop = y;
-    // Leyenda (barras degradé)
-    let _ly = _yTop + 2;
-    const _barGrad = (yy, c0, c1) => { for (let i = 0; i < 12; i++) { const t = i / 11; doc.setFillColor(Math.round(c0[0]+(c1[0]-c0[0])*t), Math.round(c0[1]+(c1[1]-c0[1])*t), Math.round(c0[2]+(c1[2]-c0[2])*t)); doc.rect(_x0 + i*(_legW/12), yy, _legW/12 + 0.3, 3.2, 'F'); } };
-    fb(7); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text('IT / IM', _x0, _ly); _ly += 3;
-    _barGrad(_ly, [26,35,126], [144,202,249]); _ly += 3.2; fn(6); tc(90,90,90); doc.text('Leve', _x0, _ly+2.6); doc.text('Severo', _x0+_legW, _ly+2.6, {align:'right'}); _ly += 8;
-    fb(7); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text('IAo', _x0, _ly); _ly += 3;
-    _barGrad(_ly, [127,0,0], [255,205,210]); _ly += 3.2; fn(6); tc(90,90,90); doc.text('Leve', _x0, _ly+2.6); doc.text('Severo', _x0+_legW, _ly+2.6, {align:'right'});
-    // Corazón (imagen rasterizada del SVG)
-    try { doc.addImage(window._esqPdfPng, 'PNG', _x0 + _legW + 6, _yTop, _iw, _ih); } catch(e) {}
-    y = _yTop + Math.max(_ih, 30) + 5;
-    // Notas del esquema
+  if (_esqOn) {
+    const _ratio = 225 / 140;   // viewBox 140x225 → alto/ancho
+    // Dibuja leyenda (izq) + corazón (der) dentro de (x, top, availW); devuelve la y inferior.
+    const _drawEsq = (x, top, availW) => {
+      const _legW = 24;
+      let _iw = Math.min(50, availW - _legW - 6);   // corazón <= ~50mm (≈200px)
+      if (_iw < 30) _iw = 30;
+      let _ih = _iw * _ratio;
+      if (_ih > 116) { _ih = 116; _iw = _ih / _ratio; }
+      const _bg = (yy, c0, c1) => { for (let i = 0; i < 12; i++) { const t = i/11; doc.setFillColor(Math.round(c0[0]+(c1[0]-c0[0])*t), Math.round(c0[1]+(c1[1]-c0[1])*t), Math.round(c0[2]+(c1[2]-c0[2])*t)); doc.rect(x + i*(_legW/12), yy, _legW/12 + 0.3, 3, 'F'); } };
+      let _ly = top + 3;
+      fb(6.5); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text('IT / IM', x, _ly); _ly += 2.6;
+      _bg(_ly, [26,35,126], [144,202,249]); _ly += 3; fn(5.5); tc(90,90,90); doc.text('Leve', x, _ly+2.4); doc.text('Severo', x+_legW, _ly+2.4, {align:'right'}); _ly += 7;
+      fb(6.5); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text('IAo', x, _ly); _ly += 2.6;
+      _bg(_ly, [127,0,0], [255,205,210]); _ly += 3; fn(5.5); tc(90,90,90); doc.text('Leve', x, _ly+2.4); doc.text('Severo', x+_legW, _ly+2.4, {align:'right'});
+      try { doc.addImage(window._esqPdfPng, 'PNG', x + _legW + 6, top, _iw, _ih); } catch(e) {}
+      return top + Math.max(_ih, (_ly + 4) - top);
+    };
+    if (_esqSide && window.__esqRow) {
+      // ── 1 bull's eye: esquema en la mitad derecha, mismo alto/top que el eye ──
+      const _gap = 10, _halfW = (pgW - _gap) / 2, _rx = mL + _halfW + _gap, _top = window.__esqRow.rowTop;
+      fb(7.5); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text('Esquema de válvulas', _rx + _halfW/2, _top, { align:'center' });
+      const _b = _drawEsq(_rx, _top + 2, _halfW);
+      y = Math.max(window.__esqRow.eyeBottom, _b) + 5;
+    } else {
+      // ── 0 ó 2 bull's eyes: bloque propio, centrado, debajo ──
+      checkPage(90);
+      drawBar('ESQUEMA DE VÁLVULAS');
+      y += 3;
+      const _blockW = 24 + 6 + 50, _x0 = mL + (pgW - _blockW) / 2;
+      const _b = _drawEsq(_x0, y, _blockW + 4);
+      y = _b + 5;
+    }
+    // Notas (siempre debajo, ancho completo)
     let _notas = ((document.getElementById('esq-notas')||{}).value || '').trim();
     if (_notas) {
       _notas = _notas.replace(/≤/g,'<=').replace(/≥/g,'>=').replace(/→/g,'->').replace(/[–—]/g,'-');
