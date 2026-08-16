@@ -399,9 +399,13 @@
 #tab-esquema-valvulas .esq-leg-lbls{display:flex;justify-content:space-between;font-size:9.5px;color:var(--text2);margin-top:2px;}
 /* padding-top baja el corazón dentro de la columna; overflow visible en toda la cadena */
 #tab-esquema-valvulas .esq-center{display:flex;flex-direction:column;align-items:center;overflow:visible;padding-top:40px;}
-/* SVG inline: height:auto + overflow:visible (los <svg> traen overflow:hidden por UA y recortan la
-   punta en Safari) + aspect-ratio para que la altura se derive del viewBox (140x235) sin caja fija */
-#tab-esquema-valvulas #esq-svg{display:block;width:100%;max-width:220px;height:auto;aspect-ratio:140/235;overflow:visible;background:var(--bg2);border:1px solid var(--border);border-radius:10px;}
+/* La caja con borde/fondo va en un <div> normal (.esq-svg-box), NO en el <svg>: Safari pinta el
+   fondo/borde del <svg> con aspect-ratio a una altura distinta de su rect y recorta la punta. Un div
+   con fit-content abarca la altura real del SVG. */
+#tab-esquema-valvulas .esq-svg-box{width:fit-content;height:fit-content;overflow:visible;background:var(--bg2);border:1px solid var(--border);border-radius:10px;line-height:0;}
+/* SVG inline: height:auto + overflow:visible (los <svg> traen overflow:hidden por UA) + aspect-ratio
+   para que la altura se derive del viewBox (140x235) sin caja fija */
+#tab-esquema-valvulas #esq-svg{display:block;width:100%;max-width:220px;height:auto;aspect-ratio:140/235;overflow:visible;}
 #tab-esquema-valvulas .esq-btns{display:flex;gap:8px;margin-top:8px;}
 #tab-esquema-valvulas .esq-btns button{font-size:12px;padding:6px 12px;flex:1;}
 #tab-esquema-valvulas #esq-pdf-toggle.active{background:#1a7a4a;border-color:#1a7a4a;color:#fff;}
@@ -2099,6 +2103,7 @@ window.cerrarSesion = cerrarSesion;
         <div class="esq-leg-lbls"><span>Leve</span><span>Severo</span></div></div>
     </div>
     <div class="esq-center">
+      <div class="esq-svg-box">
       <svg id="esq-svg" viewBox="30 55 140 235" xmlns="http://www.w3.org/2000/svg" aria-label="Esquema de valvulas">
   <defs>
     <pattern id="esq-pts" width="4" height="4" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.5" fill="#333"/></pattern>
@@ -2115,6 +2120,7 @@ window.cerrarSesion = cerrarSesion;
   <text x="126" y="175" font-size="6" font-weight="700" fill="#333" text-anchor="middle">VM</text>
   <g id="esq-labels"></g>
 </svg>
+      </div>
     </div>
     <div class="esq-table">
       <div style="font-weight:700;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;">Insuficiencias</div>
