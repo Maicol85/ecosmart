@@ -397,8 +397,10 @@
 #tab-esquema-valvulas .esq-leg-block .esq-leg-ttl{font-weight:700;font-size:11px;margin-bottom:3px;color:var(--text);}
 #tab-esquema-valvulas .esq-bar{height:14px;border-radius:4px;border:1px solid var(--border);}
 #tab-esquema-valvulas .esq-leg-lbls{display:flex;justify-content:space-between;font-size:9.5px;color:var(--text2);margin-top:2px;}
-#tab-esquema-valvulas .esq-center{display:flex;flex-direction:column;align-items:center;}
-#tab-esquema-valvulas #esq-svg{width:100%;max-width:220px;height:auto;margin-top:28px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;}
+#tab-esquema-valvulas .esq-center{display:flex;flex-direction:column;align-items:center;overflow:visible;}
+/* SVG inline: overflow:visible (los <svg> traen overflow:hidden por UA y recortan la punta en Safari)
+   + aspect-ratio para que la altura se derive del viewBox (Safari no siempre respeta height:auto) */
+#tab-esquema-valvulas #esq-svg{display:block;width:100%;max-width:220px;height:auto;aspect-ratio:140/210;overflow:visible;margin-top:28px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;}
 #tab-esquema-valvulas .esq-btns{display:flex;gap:8px;margin-top:10px;}
 #tab-esquema-valvulas .esq-btns button{font-size:12px;padding:6px 12px;}
 #tab-esquema-valvulas #esq-pdf-toggle.active{background:#1a7a4a;border-color:#1a7a4a;color:#fff;}
