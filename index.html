@@ -8708,6 +8708,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   <div style="display:flex;flex-wrap:wrap;border-bottom:2px solid var(--border);margin-bottom:16px;">
     <button class="lab-subtab active" onclick="labSubTab('general',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="14"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="10"/><line x1="3" y1="20" x2="21" y2="20"/></svg>General</button>
     <button class="lab-subtab" onclick="labSubTab('mediciones',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21C12 21 4 14 4 8.5A4.5 4.5 0 0 1 12 6 4.5 4.5 0 0 1 20 8.5C20 14 12 21 12 21Z"/><path d="M6 12H9L10.5 9L13 15L14.5 12H18"/></svg>Mediciones</button>
+    <button class="lab-subtab" onclick="labSubTab('asociaciones',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>Asociaciones</button>
     <button class="lab-subtab" onclick="labSubTab('calidad',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 14l2 2 4-4"/></svg>Calidad</button>
     <button class="lab-subtab" id="lab-subtab-avanzado" onclick="labSubTab('avanzado',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>Avanzado</button>
     <button class="lab-subtab" onclick="labSubTab('medicos',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Por médico</button>
@@ -9020,7 +9021,39 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
+  <!-- SECCIÓN: ESTADÍSTICA DESCRIPTIVA -->
+  <div class="lab-card">
+    <div class="lab-card-hdr">📈 Estadística descriptiva</div>
+    <div class="lab-card-body">
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Resumen por variable continua (todos los estudios guardados). N&lt;5 → datos insuficientes.</div>
+      <div id="lab-desc-stats" style="overflow-x:auto;"></div>
+    </div>
+  </div>
+
   </div><!-- /lab-sub-mediciones -->
+
+  <!-- ═══ SUBTAB: ASOCIACIONES ═══ -->
+  <div id="lab-sub-asociaciones" class="lab-subpanel">
+    <div class="lab-card">
+      <div class="lab-card-hdr">📊 Asociaciones estadísticas</div>
+      <div class="lab-card-body">
+        <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Test elegido automáticamente según el tipo de variables. Semáforo: 🟢 significativo con N suficiente · 🟡 significativo pero N bajo · ⚫ no significativo. Cálculo en JS puro sobre los estudios guardados.</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:14px;">
+          <div class="fg" style="margin:0;min-width:130px;"><label style="font-size:.72rem;">Significancia</label>
+            <select id="asoc-f-sig" onchange="if(window.labAsociacionesRender)labAsociacionesRender()"><option value="all">Todos</option><option value="05">p&lt;0.05</option><option value="01">p&lt;0.01</option></select></div>
+          <div class="fg" style="margin:0;min-width:120px;"><label style="font-size:.72rem;">N mínimo</label>
+            <select id="asoc-f-n" onchange="if(window.labAsociacionesRender)labAsociacionesRender()"><option value="0">Todos</option><option value="15">≥15</option><option value="30">≥30</option></select></div>
+          <div class="fg" style="margin:0;min-width:170px;"><label style="font-size:.72rem;">Categoría</label>
+            <select id="asoc-f-cat" onchange="if(window.labAsociacionesRender)labAsociacionesRender()"><option value="all">Todas</option><option value="Función sistólica">Función sistólica</option><option value="Diastólica">Diastólica</option><option value="HTP y VD">HTP y VD</option><option value="Geometría">Geometría</option><option value="Aurícula">Aurícula</option></select></div>
+          <div style="display:flex;gap:8px;margin-left:auto;">
+            <button class="btn btn-ghost" onclick="if(window.labAsociacionesExportPDF)labAsociacionesExportPDF()" style="font-size:12px;">📄 PDF</button>
+            <button class="btn btn-ghost" onclick="if(window.labAsociacionesExportXLSX)labAsociacionesExportXLSX()" style="font-size:12px;">📊 Excel</button>
+          </div>
+        </div>
+        <div id="lab-asoc-tabla" style="overflow-x:auto;"></div>
+      </div>
+    </div>
+  </div>
 
   <div id="lab-sub-calidad" class="lab-subpanel">
 
@@ -17581,7 +17614,212 @@ function labSubTab(id, el) {
   document.getElementById('lab-sub-' + id).classList.add('active');
   if (id === 'medicos') labMedicoInit();
   if (id === 'comparar') labCompararInit();
+  if (id === 'mediciones' && typeof labRenderDesc === 'function') labRenderDesc();
+  if (id === 'asociaciones' && typeof labAsociacionesInit === 'function') labAsociacionesInit();
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// Estadística del Laboratorio — descriptiva + asociaciones (todo en JS puro)
+// ══════════════════════════════════════════════════════════════════════════
+(function(){
+  const informes = () => (typeof getInformes === 'function' ? getInformes() : []);
+  const NUM = (inf, keys) => { const c = inf.campos || {}; for (const k of keys){ const v = c[k]; if (v!=null && String(v).trim()!==''){ const f = parseFloat(String(v).replace(',','.')); if (!isNaN(f)) return f; } } return null; };
+  const BSA = inf => { const p=NUM(inf,['peso']), t=NUM(inf,['talla']); return (p&&t)?Math.sqrt(p*t/3600):null; };
+  const EEPROM = inf => { const E=NUM(inf,['onda_e','e_mitral']), es=NUM(inf,['e_sep','e_prima_sept']), el=NUM(inf,['e_lat','e_prima_lat']); let ep=(es!=null&&el!=null)?(es+el)/2:(es!=null?es:el); return (E!=null&&ep)?E/ep:NUM(inf,['ee_prom']); };
+  const LAVI = inf => { const d=NUM(inf,['lavi']); if(d!=null)return d; const av=NUM(inf,['ai_vol']), b=BSA(inf); return (av&&b)?av/b:null; };
+  const MASAI = inf => { const dd=NUM(inf,['ddfvi','ddvi']), s=NUM(inf,['siv']), pp=NUM(inf,['ppvi']), b=BSA(inf); if(!(dd&&s&&pp&&b))return null; const m=0.8*(1.04*(Math.pow(dd/10+s/10+pp/10,3)-Math.pow(dd/10,3)))+0.6; return m/b; };
+
+  const VARS = {
+    fevi:{lbl:'FEVI (%)', get:i=>NUM(i,['fevi','fevi_simpson'])},
+    ee:{lbl:"E/e' (ratio)", get:EEPROM},
+    lavi:{lbl:'Vol AI indexado (ml/m²)', get:LAVI},
+    psap:{lbl:'PSAP (mmHg)', get:i=>NUM(i,['psap_calc','psap'])},
+    tapse:{lbl:'TAPSE (mm)', get:i=>NUM(i,['tapse'])},
+    masa:{lbl:'Masa VI indexada (g/m²)', get:MASAI},
+    ddvi:{lbl:'DDVI (mm)', get:i=>NUM(i,['ddfvi','ddvi'])},
+    siv:{lbl:'Septum (mm)', get:i=>NUM(i,['siv'])},
+    pp:{lbl:'PP (mm)', get:i=>NUM(i,['ppvi'])},
+    sprime:{lbl:"Onda S' (cm/s)", get:i=>NUM(i,['s_prime'])},
+    edad:{lbl:'Edad', get:i=>NUM(i,['edad'])},
+  };
+  // categóricas / dicotómicas
+  const YN = v => v==null?null:(v?'Sí':'No');
+  const antec = (inf,re) => { const a=inf.campos&&inf.campos.antecedentes_sel; return Array.isArray(a)?(a.some(s=>re.test(String(s)))?1:0):null; };
+  const HTA=i=>antec(i,/^HTA$/i), DM=i=>antec(i,/^DM$/i), FA=i=>antec(i,/FA|flutter/i);
+  const SEXO=inf=>{ const s=String((inf.campos&&inf.campos.sexo)||'').toLowerCase(); if(/^f|femen|mujer/.test(s))return 'F'; if(/^m|mascul|var|hombre/.test(s))return 'M'; return null; };
+  const FEVICAT=inf=>{ const f=VARS.fevi.get(inf); return f==null?null:(f>=50?'≥50':(f>=40?'40-49':'<40')); };
+  const HTP=inf=>{ const p=VARS.psap.get(inf); return p==null?null:(p>35?1:0); };
+  const VALVSIG=inf=>{ const c=inf.campos||{}; let known=false,sig=false; ['im_grado','ia_grado','it_grado','ea_grado','em_grado','et_grado'].forEach(k=>{ const v=c[k]; if(v!=null&&String(v).trim()!==''){ known=true; const s=String(v).toLowerCase(),n=parseInt(v); if(/severa|moderada/.test(s)||(!isNaN(n)&&n>=2))sig=true; } }); return known?(sig?1:0):null; };
+  const DIAST=inf=>{ const t=(((inf.campos&&inf.campos.en_suma)||'')+' '+((inf.campos&&inf.campos.informe_texto)||'')).toLowerCase(); if(/grado iii|restrictiv/.test(t))return 'III'; if(/grado ii|pseudonormal/.test(t))return 'II'; if(/grado i\b|relajaci/.test(t))return 'I'; if(/sin disfunci|llenado normal|diast[óo]lica normal/.test(t))return 'Normal'; return null; };
+  const GEOM=inf=>{ const masa=MASAI(inf), dd=NUM(inf,['ddfvi','ddvi']), pp=NUM(inf,['ppvi']); if(masa==null||!dd||!pp)return null; const rwt=2*pp/dd, sexo=SEXO(inf); const hvi=(sexo==='F'&&masa>95)||(sexo!=='F'&&masa>115); if(!hvi&&rwt<0.42)return 'Normal'; if(!hvi&&rwt>=0.42)return 'Remodelado conc.'; if(hvi&&rwt<0.42)return 'HVI excéntrica'; return 'HVI concéntrica'; };
+
+  // ── Distribuciones (p-values en JS puro) ──
+  const erf = x => { const s=x<0?-1:1; x=Math.abs(x); const t=1/(1+0.3275911*x); const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x); return s*y; };
+  const normCdf = z => 0.5*(1+erf(z/Math.SQRT2));
+  const gln = x => { const c=[76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,0.1208650973866179e-2,-0.5395239384953e-5]; let y=x,tmp=x+5.5; tmp-=(x+0.5)*Math.log(tmp); let ser=1.000000000190015; for(let j=0;j<6;j++){y++;ser+=c[j]/y;} return -tmp+Math.log(2.5066282746310005*ser/x); };
+  const gammaP = (a,x) => { if(x<=0)return 0; if(x<a+1){ let ap=a,sum=1/a,del=sum; for(let i=0;i<300;i++){ ap++; del*=x/ap; sum+=del; if(Math.abs(del)<Math.abs(sum)*1e-13)break; } return sum*Math.exp(-x+a*Math.log(x)-gln(a)); } let b=x+1-a,c=1e300,d=1/b,h=d; for(let i=1;i<300;i++){ const an=-i*(i-a); b+=2; d=an*d+b; if(Math.abs(d)<1e-300)d=1e-300; c=b+an/c; if(Math.abs(c)<1e-300)c=1e-300; d=1/d; const del=d*c; h*=del; if(Math.abs(del-1)<1e-13)break; } return 1-Math.exp(-x+a*Math.log(x)-gln(a))*h; };
+  const chi2p = (x,k) => x<=0?1:1-gammaP(k/2,x/2);
+  const betacf = (a,b,x) => { const FP=1e-300; let qab=a+b,qap=a+1,qam=a-1,c=1,d=1-qab*x/qap; if(Math.abs(d)<FP)d=FP; d=1/d; let h=d; for(let m=1;m<=300;m++){ const m2=2*m; let aa=m*(b-m)*x/((qam+m2)*(a+m2)); d=1+aa*d; if(Math.abs(d)<FP)d=FP; c=1+aa/c; if(Math.abs(c)<FP)c=FP; d=1/d; h*=d*c; aa=-(a+m)*(qab+m)*x/((a+m2)*(qap+m2)); d=1+aa*d; if(Math.abs(d)<FP)d=FP; c=1+aa/c; if(Math.abs(c)<FP)c=FP; d=1/d; const del=d*c; h*=del; if(Math.abs(del-1)<1e-12)break; } return h; };
+  const betai = (a,b,x) => { if(x<=0)return 0; if(x>=1)return 1; const bt=Math.exp(gln(a+b)-gln(a)-gln(b)+a*Math.log(x)+b*Math.log(1-x)); return x<(a+1)/(a+b+2)?bt*betacf(a,b,x)/a:1-bt*betacf(b,a,1-x)/b; };
+  const tp2 = (t,df) => betai(df/2,0.5,df/(df+t*t));  // p 2-colas para |t|
+  const ranks = arr => { const idx=arr.map((v,i)=>[v,i]).sort((a,b)=>a[0]-b[0]); const r=new Array(arr.length); let i=0; while(i<idx.length){ let j=i; while(j+1<idx.length&&idx[j+1][0]===idx[i][0])j++; const avg=(i+j)/2+1; for(let k=i;k<=j;k++)r[idx[k][1]]=avg; i=j+1; } return r; };
+
+  const spearman = pairs => { const n=pairs.length; if(n<3)return null; const rx=ranks(pairs.map(p=>p[0])), ry=ranks(pairs.map(p=>p[1])); const mx=rx.reduce((a,b)=>a+b,0)/n, my=ry.reduce((a,b)=>a+b,0)/n; let sxy=0,sxx=0,syy=0; for(let i=0;i<n;i++){ const dx=rx[i]-mx,dy=ry[i]-my; sxy+=dx*dy; sxx+=dx*dx; syy+=dy*dy; } if(sxx===0||syy===0)return {rho:0,p:1,n}; const rho=sxy/Math.sqrt(sxx*syy); const df=n-2; const t=rho*Math.sqrt(df/Math.max(1e-12,1-rho*rho)); return {rho,p:tp2(t,df),n}; };
+  const mannwhitney = (g1,g2) => { const n1=g1.length,n2=g2.length,N=n1+n2; if(n1<1||n2<1)return null; const all=g1.map(v=>[v,0]).concat(g2.map(v=>[v,1])); const r=ranks(all.map(a=>a[0])); let R1=0; for(let i=0;i<N;i++)if(all[i][1]===0)R1+=r[i]; const U1=R1-n1*(n1+1)/2, U2=n1*n2-U1, U=Math.min(U1,U2); const mU=n1*n2/2; const sv=all.map(a=>a[0]).sort((a,b)=>a-b); let tie=0,i=0; while(i<N){ let j=i; while(j+1<N&&sv[j+1]===sv[i])j++; const t=j-i+1; if(t>1)tie+=t*t*t-t; i=j+1; } const sU=Math.sqrt((n1*n2/12)*((N+1)-tie/(N*(N-1)||1))); if(sU===0)return {U,p:1,n1,n2}; const z=(Math.abs(U-mU)-0.5)/sU; return {U,p:Math.max(0,Math.min(1,2*(1-normCdf(z)))),n1,n2}; };
+  const chi2test = rows => { const R=rows.length, C=rows[0].length; const rt=rows.map(r=>r.reduce((a,b)=>a+b,0)); const ct=[]; for(let c=0;c<C;c++){let s=0;for(let r=0;r<R;r++)s+=rows[r][c];ct.push(s);} const N=rt.reduce((a,b)=>a+b,0); if(N===0)return null; let chi2=0,minE=Infinity; for(let r=0;r<R;r++)for(let c=0;c<C;c++){ const e=rt[r]*ct[c]/N; if(e>0){minE=Math.min(minE,e); chi2+=(rows[r][c]-e)*(rows[r][c]-e)/e;} } const df=(R-1)*(C-1); if(df<1)return null; return {chi2,p:chi2p(chi2,df),df,N,minE}; };
+
+  const sigLight = (p, ok) => p==null?'⚫':(p<0.05?(ok?'🟢':'🟡'):'⚫');
+
+  // ── Definición de asociaciones ──
+  const ASSOC = [
+    {cat:'Función sistólica', lbl:'FEVI – PSAP', t:'sp', a:'fevi', b:'psap'},
+    {cat:'Función sistólica', lbl:"FEVI – E/e'", t:'sp', a:'fevi', b:'ee'},
+    {cat:'Función sistólica', lbl:'FEVI – TAPSE', t:'sp', a:'fevi', b:'tapse'},
+    {cat:'Función sistólica', lbl:'FEVI – Vol AI idx', t:'sp', a:'fevi', b:'lavi'},
+    {cat:'Función sistólica', lbl:'FEVI categórica → HTA', t:'chi', ca:FEVICAT, cb:i=>YN(HTA(i))},
+    {cat:'Función sistólica', lbl:'FEVI categórica → DM', t:'chi', ca:FEVICAT, cb:i=>YN(DM(i))},
+    {cat:'Función sistólica', lbl:'FEVI categórica → FA', t:'chi', ca:FEVICAT, cb:i=>YN(FA(i))},
+    {cat:'Diastólica', lbl:"E/e' – edad", t:'sp', a:'ee', b:'edad'},
+    {cat:'Diastólica', lbl:"E/e' – Vol AI idx", t:'sp', a:'ee', b:'lavi'},
+    {cat:'Diastólica', lbl:"E/e' – PSAP", t:'sp', a:'ee', b:'psap'},
+    {cat:'Diastólica', lbl:'Grado diastólico → HTA', t:'chi', ca:DIAST, cb:i=>YN(HTA(i))},
+    {cat:'Diastólica', lbl:'Grado diastólico → DM', t:'chi', ca:DIAST, cb:i=>YN(DM(i))},
+    {cat:'Diastólica', lbl:'Grado diastólico → FA', t:'chi', ca:DIAST, cb:i=>YN(FA(i))},
+    {cat:'Diastólica', lbl:'Patrón diastólico → sexo', t:'chi', ca:DIAST, cb:SEXO},
+    {cat:'HTP y VD', lbl:'PSAP – TAPSE', t:'sp', a:'psap', b:'tapse'},
+    {cat:'HTP y VD', lbl:'PSAP – Vol AI idx', t:'sp', a:'psap', b:'lavi'},
+    {cat:'HTP y VD', lbl:'TAPSE – FEVI', t:'sp', a:'tapse', b:'fevi'},
+    {cat:'HTP y VD', lbl:'HTP → valvulopatía sig.', t:'chi', ca:i=>YN(HTP(i)), cb:i=>YN(VALVSIG(i))},
+    {cat:'HTP y VD', lbl:'HTP → FA', t:'chi', ca:i=>YN(HTP(i)), cb:i=>YN(FA(i))},
+    {cat:'Geometría', lbl:'Geometría VI → HTA', t:'chi', ca:GEOM, cb:i=>YN(HTA(i))},
+    {cat:'Geometría', lbl:'Geometría VI → DM', t:'chi', ca:GEOM, cb:i=>YN(DM(i))},
+    {cat:'Geometría', lbl:'Geometría VI → sexo', t:'chi', ca:GEOM, cb:SEXO},
+    {cat:'Geometría', lbl:'Masa VI idx – edad', t:'sp', a:'masa', b:'edad'},
+    {cat:'Geometría', lbl:'Masa VI idx – PSAP', t:'sp', a:'masa', b:'psap'},
+    {cat:'Aurícula', lbl:'Vol AI idx – edad', t:'sp', a:'lavi', b:'edad'},
+    {cat:'Aurícula', lbl:'Vol AI idx → FA', t:'mw', a:'lavi', g:FA},
+    {cat:'Aurícula', lbl:'Vol AI idx → HTA', t:'mw', a:'lavi', g:HTA},
+    {cat:'Aurícula', lbl:'Vol AI idx → DM', t:'mw', a:'lavi', g:DM},
+  ];
+
+  function runOne(def, infs){
+    const base = {cat:def.cat, lbl:def.lbl};
+    if (def.t==='sp'){
+      const ga=VARS[def.a].get, gb=VARS[def.b].get, pairs=[];
+      infs.forEach(i=>{ const x=ga(i),y=gb(i); if(x!=null&&y!=null&&!isNaN(x)&&!isNaN(y))pairs.push([x,y]); });
+      const r=spearman(pairs);
+      if(!r)return {...base, n:pairs.length, method:'Spearman', stat:'—', p:null, sig:'⚫'};
+      const ok=r.n>=15;
+      return {...base, n:r.n, method:'Spearman', stat:'ρ='+r.rho.toFixed(2), p:r.p, sig:sigLight(r.p,ok)};
+    }
+    if (def.t==='mw'){
+      const ga=VARS[def.a].get, g1=[],g2=[];
+      infs.forEach(i=>{ const x=ga(i),grp=def.g(i); if(x!=null&&!isNaN(x)&&grp!=null){ (grp?g1:g2).push(x); } });
+      const r=mannwhitney(g1,g2);
+      if(!r)return {...base, n:g1.length+g2.length, method:'Mann-Whitney', stat:'—', p:null, sig:'⚫'};
+      const ok=r.n1>=8&&r.n2>=8;
+      return {...base, n:r.n1+r.n2, method:'Mann-Whitney U', stat:'U='+r.U+' ('+r.n1+'/'+r.n2+')', p:r.p, sig:sigLight(r.p,ok)};
+    }
+    // chi
+    const data=[];
+    infs.forEach(i=>{ const av=def.ca(i), bv=def.cb(i); if(av!=null&&bv!=null)data.push([String(av),String(bv)]); });
+    if(!data.length)return {...base, n:0, method:'Chi²', stat:'—', p:null, sig:'⚫'};
+    const aV=[...new Set(data.map(d=>d[0]))], bV=[...new Set(data.map(d=>d[1]))];
+    const table=aV.map(a=>bV.map(b=>data.filter(d=>d[0]===a&&d[1]===b).length));
+    const r=chi2test(table);
+    if(!r)return {...base, n:data.length, method:'Chi²', stat:'—', p:null, sig:'⚫'};
+    const ok=r.N>=20&&r.minE>=5;
+    return {...base, n:r.N, method:'Chi²', stat:'χ²='+r.chi2.toFixed(2)+(r.minE<5?' ⚠fe<5':''), p:r.p, sig:sigLight(r.p,ok), warnFe:r.minE<5};
+  }
+
+  function computeAll(){ const infs=informes(); return ASSOC.map(d=>runOne(d,infs)); }
+  const pTxt = p => p==null?'—':(p<0.001?'<0.001':p.toFixed(3));
+
+  // ── Descriptiva ──
+  const desc = arr => { arr=arr.filter(v=>v!=null&&!isNaN(v)).sort((a,b)=>a-b); const n=arr.length; if(!n)return {n:0}; const mean=arr.reduce((a,b)=>a+b,0)/n; const q=p=>{ const idx=(n-1)*p, lo=Math.floor(idx), hi=Math.ceil(idx); return lo===hi?arr[lo]:arr[lo]+(arr[hi]-arr[lo])*(idx-lo); }; const sd=n>1?Math.sqrt(arr.reduce((a,b)=>a+(b-mean)*(b-mean),0)/(n-1)):0; return {n, mean, median:q(0.5), sd, p25:q(0.25), p75:q(0.75), min:arr[0], max:arr[n-1]}; };
+  const f1 = v => (v==null?'—':(Math.round(v*10)/10).toString());
+
+  window.labRenderDesc = function(){
+    const host=document.getElementById('lab-desc-stats'); if(!host)return;
+    const infs=informes();
+    const order=['fevi','ee','lavi','psap','tapse','masa','ddvi','siv','pp','sprime'];
+    let rows='';
+    order.forEach(k=>{ const g=VARS[k].get; const d=desc(infs.map(g));
+      if(d.n<5){ rows+='<tr><td style="padding:5px 8px;font-weight:600;">'+VARS[k].lbl+'</td><td style="padding:5px 8px;text-align:center;">'+d.n+'</td><td colspan="7" style="padding:5px 8px;color:var(--text2);font-style:italic;">Datos insuficientes (N&lt;5)</td></tr>'; }
+      else { rows+='<tr><td style="padding:5px 8px;font-weight:600;white-space:nowrap;">'+VARS[k].lbl+'</td><td style="padding:5px 8px;text-align:center;">'+d.n+'</td><td style="padding:5px 8px;text-align:right;">'+f1(d.mean)+'</td><td style="padding:5px 8px;text-align:right;">'+f1(d.median)+'</td><td style="padding:5px 8px;text-align:right;">'+f1(d.sd)+'</td><td style="padding:5px 8px;text-align:right;">'+f1(d.p25)+'</td><td style="padding:5px 8px;text-align:right;">'+f1(d.p75)+'</td><td style="padding:5px 8px;text-align:right;">'+f1(d.min)+'</td><td style="padding:5px 8px;text-align:right;">'+f1(d.max)+'</td></tr>'; }
+    });
+    host.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:12px;">'+
+      '<thead><tr style="font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);border-bottom:1px solid var(--border);">'+
+      '<th style="padding:5px 8px;text-align:left;">Variable</th><th style="padding:5px 8px;">N</th><th style="padding:5px 8px;text-align:right;">Media</th><th style="padding:5px 8px;text-align:right;">Mediana</th><th style="padding:5px 8px;text-align:right;">DS</th><th style="padding:5px 8px;text-align:right;">P25</th><th style="padding:5px 8px;text-align:right;">P75</th><th style="padding:5px 8px;text-align:right;">Mín</th><th style="padding:5px 8px;text-align:right;">Máx</th></tr></thead>'+
+      '<tbody>'+rows.replace(/<tr>/g,'<tr style="border-bottom:1px solid var(--border);">')+'</tbody></table>';
+  };
+
+  // ── Asociaciones: render + filtros ──
+  function filtered(){
+    const res=computeAll();
+    const fs=(document.getElementById('asoc-f-sig')||{}).value||'all';
+    const fn=parseInt((document.getElementById('asoc-f-n')||{}).value||'0');
+    const fc=(document.getElementById('asoc-f-cat')||{}).value||'all';
+    return res.filter(r=>{
+      if(fs==='05' && !(r.p!=null&&r.p<0.05))return false;
+      if(fs==='01' && !(r.p!=null&&r.p<0.01))return false;
+      if(fn && r.n<fn)return false;
+      if(fc!=='all' && r.cat!==fc)return false;
+      return true;
+    });
+  }
+  window.labAsociacionesRender = function(){
+    const host=document.getElementById('lab-asoc-tabla'); if(!host)return;
+    const rows=filtered();
+    if(!rows.length){ host.innerHTML='<div style="padding:16px;color:var(--text2);text-align:center;">Sin asociaciones que cumplan los filtros (o pocos estudios guardados).</div>'; return; }
+    let body='';
+    rows.forEach(r=>{ body+='<tr style="border-bottom:1px solid var(--border);">'+
+      '<td style="padding:5px 8px;">'+r.cat+'</td>'+
+      '<td style="padding:5px 8px;font-weight:600;white-space:nowrap;">'+r.lbl+'</td>'+
+      '<td style="padding:5px 8px;text-align:center;">'+r.n+'</td>'+
+      '<td style="padding:5px 8px;white-space:nowrap;">'+r.method+'</td>'+
+      '<td style="padding:5px 8px;white-space:nowrap;">'+r.stat+'</td>'+
+      '<td style="padding:5px 8px;text-align:right;">'+pTxt(r.p)+'</td>'+
+      '<td style="padding:5px 8px;text-align:center;font-size:14px;">'+r.sig+'</td></tr>'; });
+    host.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:12px;">'+
+      '<thead><tr style="font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);border-bottom:1px solid var(--border);">'+
+      '<th style="padding:5px 8px;text-align:left;">Categoría</th><th style="padding:5px 8px;text-align:left;">Asociación</th><th style="padding:5px 8px;">N</th><th style="padding:5px 8px;text-align:left;">Método</th><th style="padding:5px 8px;text-align:left;">Estadístico</th><th style="padding:5px 8px;text-align:right;">p</th><th style="padding:5px 8px;">Sig.</th></tr></thead>'+
+      '<tbody>'+body+'</tbody></table>';
+  };
+  window.labAsociacionesInit = function(){ if(window.labRenderDesc)labRenderDesc(); labAsociacionesRender(); };
+
+  // ── Exportaciones ──
+  window.labAsociacionesExportXLSX = function(){
+    if(typeof XLSX==='undefined'){ if(typeof toast==='function')toast('❌ Excel (XLSX) no disponible'); return; }
+    const rows=filtered(); if(!rows.length){ if(typeof toast==='function')toast('⚠️ Sin filas para exportar'); return; }
+    const headers=['Categoría','Asociación','N','Método','Estadístico','p','Significativo'];
+    const aoa=[headers, ...rows.map(r=>[r.cat,r.lbl,r.n,r.method,r.stat,pTxt(r.p), r.sig==='🟢'?'Sí':(r.sig==='🟡'?'Sí (N bajo)':'No')])];
+    const ws=XLSX.utils.aoa_to_sheet(aoa); ws['!cols']=headers.map(h=>({wch:Math.max(12,h.length+2)}));
+    const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Asociaciones');
+    XLSX.writeFile(wb,'ecosmart_asociaciones.xlsx');
+    if(typeof toast==='function')toast('✅ Excel exportado — '+rows.length+' asociaciones');
+  };
+  window.labAsociacionesExportPDF = function(){
+    if(typeof window.jspdf==='undefined'){ if(typeof toast==='function')toast('❌ PDF (jsPDF) no disponible'); return; }
+    const rows=filtered(); if(!rows.length){ if(typeof toast==='function')toast('⚠️ Sin filas para exportar'); return; }
+    const { jsPDF }=window.jspdf; const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+    const mL=10; let y=16;
+    doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(26,58,92); doc.text('EcoSmart — Asociaciones estadísticas',mL,y); y+=6;
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(90,90,90);
+    doc.text('Semáforo: Verde = significativo (p<0.05) con N suficiente · Amarillo = significativo pero N bajo · Negro = no significativo.',mL,y); y+=7;
+    const cols=[['Categoría',34],['Asociación',72],['N',12],['Método',34],['Estadístico',42],['p',20],['Sig.',18]];
+    const drawHead=()=>{ doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(26,58,92); let x=mL; cols.forEach(c=>{ doc.text(c[0],x,y); x+=c[1]; }); y+=1.5; doc.setDrawColor(200,200,200); doc.line(mL,y,mL+cols.reduce((a,c)=>a+c[1],0),y); y+=4; };
+    drawHead();
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(30,30,30);
+    rows.forEach(r=>{ if(y>195){ doc.addPage(); y=16; drawHead(); doc.setFont('helvetica','normal'); doc.setTextColor(30,30,30); }
+      const sigTxt=r.sig==='🟢'?'SI':(r.sig==='🟡'?'si*':'no');
+      const vals=[r.cat,r.lbl,String(r.n),r.method,r.stat.replace(/[χ²ρ→⚠]/g,m=>({'χ':'X','²':'2','ρ':'r','→':'->','⚠':'!'}[m]||m)),pTxt(r.p),sigTxt];
+      let x=mL; vals.forEach((v,i)=>{ doc.text(String(v).substring(0,cols[i][1]/1.7),x,y); x+=cols[i][1]; }); y+=5;
+    });
+    doc.save('ecosmart_asociaciones.pdf');
+    if(typeof toast==='function')toast('✅ PDF exportado — '+rows.length+' asociaciones');
+  };
+})();
 
 // ── Helpers Chart.js ──
 function labDestroyChart(id) {
