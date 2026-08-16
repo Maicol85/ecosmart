@@ -12438,6 +12438,7 @@ function generarPDFReal() {
   let y = 0;
 
   // ─── helpers ─────────────────────────────────────────────────
+  const _cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;   // "moderada" → "Moderada"
   function checkPage(n){ if(y+(n||12)>284){ doc.addPage(); y=12; } }
   function fb(sz){ doc.setFont('helvetica','bold');       doc.setFontSize(sz||7);   }
   function fn(sz){ doc.setFont('helvetica','normal');     doc.setFontSize(sz||7);   }
@@ -12823,13 +12824,13 @@ function generarPDFReal() {
       {lbl:'VC IM',         ref:'(<3 / 3–7 / ≥7) mm', val:v('im_vc')?v('im_vc')+' mm':null},
       {lbl:'EROA',          ref:'(<20 / 20–40 / ≥40) mm²', val:eroaS},
       {lbl:'Vol.R',         ref:'(<30 / 30–60 / ≥60) ml', val:volrS},
-      {lbl:'EM grado',      ref:'', val:(sv('em_grado')&&sv('em_grado')!=='sin')?sv('em_grado'):null},
+      {lbl:'EM grado',      ref:'', val:(sv('em_grado')&&sv('em_grado')!=='sin')?_cap(sv('em_grado')):null},
       {lbl:'AVm THP',       ref:'(>2.5 / 1.5–2.5 / ≤1.5) cm²', val:v('avm_thp')?v('avm_thp')+' cm2':null},
       {lbl:'Notas',         ref:'', val:sv('vm_notas')||null},
     ]},
     {titulo:'Válvula Aórtica', items:[
       {lbl:'Morf.',         ref:'', val:sv('va_morf')||null},
-      {lbl:'EA grado',      ref:'', val:eaReal?sv('ea_grado'):null},
+      {lbl:'EA grado',      ref:'', val:eaReal?_cap(sv('ea_grado')):null},
       {lbl:'AVA',           ref:'(>1.5 / 1.0–1.5 / <1.0) cm²', val:eaReal&&avaC?avaC+' cm2':null},
       {lbl:'V. max',        ref:'(<3 / 3–4 / >4) m/s', val:eaReal&&v('vmax_ao')?v('vmax_ao')+' m/s':null},
       {lbl:'G. medio',      ref:'(<20 / 20–40 / >40) mmHg', val:eaReal&&v('gmedio_ao')?v('gmedio_ao')+' mmHg':null},
@@ -20163,7 +20164,7 @@ const ESQ_PATHS={"path17": "m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8
   }
   function drawLabels(gEl){
     while(gEl.firstChild)gEl.removeChild(gEl.firstChild);
-    const fevi=gv('fevi'); if(fevi!=='')addLabel(gEl,105,110,'FEVI',fevi+' %');
+    const fevi=gv('fevi'); if(fevi!=='')addLabel(gEl,108,118,'FEVI',fevi+' %');
     const tapse=gv('tapse'); if(tapse!=='')addLabel(gEl,75,110,'TAPSE',tapse+' mm');
     const adArea=gv('ad_area'); if(adArea!=='')addLabel(gEl,66,220,'AD área',adArea+' cm²');
     const ai=aiLabel(); if(ai)addLabel(gEl,113,222,ai.name,ai.val);
@@ -20230,13 +20231,15 @@ const ESQ_PATHS={"path17": "m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8
         }
         // Clon: se le cambia el viewBox (+ width/height intrínsecos) sin tocar el SVG visible.
         // Los <defs> (patrones esq-pts/ray/grid) van dentro del SVG → se clonan y rasterizan OK.
+        const w=Math.round(vw*sc), h=Math.round(vh*sc);
         const clone=svg.cloneNode(true);
         clone.setAttribute('viewBox', vx+' '+vy+' '+vw+' '+vh);
-        clone.setAttribute('width', vw);
-        clone.setAttribute('height', vh);
+        // width/height EN PÍXELES reales (no user-units): los <pattern patternUnits="userSpaceOnUse">
+        // necesitan dimensiones px explícitas para rasterizar nítido y consistente (Safari).
+        clone.setAttribute('width', w);
+        clone.setAttribute('height', h);
         window._esqPdfRatio = vh/vw;   // relación real usada → el PDF la respeta (sin distorsión)
         const s=new XMLSerializer().serializeToString(clone);
-        const w=Math.round(vw*sc), h=Math.round(vh*sc);
         const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
         const ctx=cv.getContext('2d'); ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,w,h);
         const img=new Image();
