@@ -13158,7 +13158,7 @@ function generarPDFReal() {
   // Layout: 0 eyes → centrado; 1 eye → al lado del bull's eye (mitad c/u); 2 eyes → debajo.
   // ════════════════════════════════════════════════════════════
   if (_esqOn) {
-    const _ratio = 235 / 140;   // viewBox 140x235 → alto/ancho
+    const _ratio = window._esqPdfRatio || (235 / 140);   // relación real del raster (bbox+margen)
     // Dibuja leyenda (izq) + corazón (der) dentro de (x, top, availW); devuelve la y inferior.
     const _drawEsq = (x, top, availW) => {
       const _legW = 24;
@@ -20213,9 +20213,30 @@ const ESQ_PATHS={"path17": "m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8
     return new Promise(res=>{
       const svg=g('esq-svg'); if(!svg){res(null);return;}
       try{
-        const s=new XMLSerializer().serializeToString(svg);
-        const vb=svg.getAttribute('viewBox').split(/\s+/).map(Number);
-        const w=Math.round((vb[2])*(scale||6)), h=Math.round((vb[3])*(scale||6));
+        const sc=scale||6;
+        // viewBox de rasterizado calculado desde el bbox REAL del contenido (corazón + jets +
+        // estenosis + labels), NO desde el viewBox declarado. El declarado recorta la base arriba
+        // (contenido empieza en y≈43.5, sobre el top 55) y deja 15% vacío abajo. El bbox+margen
+        // encuadra TODO el dibujo, punta incluida, sin espacio muerto. Fallback estático (contorno
+        // medido) si getBBox no está disponible (p.ej. la tab oculta al generar el PDF).
+        let bb=null; try{ bb=svg.getBBox(); }catch(e){ bb=null; }
+        const pad=6;
+        let vx,vy,vw,vh;
+        if(bb && bb.width>1 && bb.height>1){
+          vx=bb.x-pad; vy=bb.y-pad; vw=bb.width+pad*2; vh=bb.height+pad*2;
+        }else{
+          // contorno medido: x[43.5,155.6] y[43.5,254.5] + margen
+          vx=37; vy=37; vw=126; vh=224;
+        }
+        // Clon: se le cambia el viewBox (+ width/height intrínsecos) sin tocar el SVG visible.
+        // Los <defs> (patrones esq-pts/ray/grid) van dentro del SVG → se clonan y rasterizan OK.
+        const clone=svg.cloneNode(true);
+        clone.setAttribute('viewBox', vx+' '+vy+' '+vw+' '+vh);
+        clone.setAttribute('width', vw);
+        clone.setAttribute('height', vh);
+        window._esqPdfRatio = vh/vw;   // relación real usada → el PDF la respeta (sin distorsión)
+        const s=new XMLSerializer().serializeToString(clone);
+        const w=Math.round(vw*sc), h=Math.round(vh*sc);
         const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
         const ctx=cv.getContext('2d'); ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,w,h);
         const img=new Image();
