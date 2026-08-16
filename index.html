@@ -20392,13 +20392,17 @@ const ESQ_PATHS={"path17": "m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8
     return [arr.join(', '), (pc.ind_otro||'').trim()].filter(Boolean).join(', ') || '—';
   }
 
-  function mostrarModalEvolucion(prev){
+  // prevs: array de estudios previos ordenados por fecha DESC (más reciente primero).
+  // startIdx: índice inicial (0 = más reciente, default). Navegación entre estudios si hay >1.
+  function mostrarModalEvolucion(prevs, startIdx){
     if(document.getElementById('evol-modal-overlay')) return;
-    const pc = prev.campos || {};
-    const curSrc  = id => { const e=document.getElementById(id); return e ? e.value : ''; };
-    const prevSrc = id => (pc[id]!=null ? pc[id] : '');
+    if(!Array.isArray(prevs)) prevs = prevs ? [prevs] : [];
+    if(!prevs.length){ if(typeof generarInforme==='function') generarInforme(); return; }
+    let idx = (typeof startIdx==='number' && startIdx>=0 && startIdx<prevs.length) ? startIdx : 0;
 
-    // Cabecera
+    const curSrc = id => { const e=document.getElementById(id); return e ? e.value : ''; };
+    const fAct   = (function(){ const f=curSrc('fecha'); return f ? f.split('-').reverse().join('/') : '—'; })();
+
     const cab = (titulo, nombre, ci, fecha, peso, talla, indic) =>
       '<div style="flex:1;min-width:0;background:var(--bg3,#0f172a);border:1px solid var(--border);border-radius:8px;padding:8px 10px;">'+
         '<div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--accent2,#2dd4bf);margin-bottom:4px;">'+esc(titulo)+'</div>'+
@@ -20408,41 +20412,63 @@ const ESQ_PATHS={"path17": "m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8
           '<span style="color:var(--text2)">Indic.:</span> '+esc(indic)+'</div>'+
       '</div>';
 
-    const fPrev = prev.fecha_estudio ? String(prev.fecha_estudio).split('-').reverse().join('/') : (pc.fecha||'—');
-    const fAct  = (function(){ const f=curSrc('fecha'); return f ? f.split('-').reverse().join('/') : '—'; })();
-    const cabecera =
-      '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">'+
-        cab('Estudio previo', prev.nombre||pc.nombre, prev.ci, fPrev, pc.peso, pc.talla, indicacionPrevia(pc))+
-        cab('Estudio actual', curSrc('nombre'), curSrc('ci'), fAct, curSrc('peso'), curSrc('talla'), indicacionActual())+
-      '</div>';
+    // Construye el contenido (navegación + cabecera + tabla + informe previo) para el índice actual.
+    function contenido(){
+      const total = prevs.length;
+      const prev = prevs[idx];
+      const pc = prev.campos || {};
+      const prevSrc = id => (pc[id]!=null ? pc[id] : '');
+      const fPrev = prev.fecha_estudio ? String(prev.fecha_estudio).split('-').reverse().join('/') : (pc.fecha||'—');
 
-    // Tabla comparativa
-    let filas='';
-    ROWS.forEach(row=>{
-      const pv=rowVal(row, prevSrc), av=rowVal(row, curSrc), dl=deltaCell(row, pv, av);
-      filas +=
-        '<tr style="border-top:1px solid var(--border);">'+
-          '<td style="padding:4px 8px;color:var(--text2);white-space:nowrap;">'+esc(row.lbl)+'</td>'+
-          '<td style="padding:4px 8px;text-align:right;color:var(--text);">'+esc(pv.txt)+'</td>'+
-          '<td style="padding:4px 8px;text-align:right;color:var(--text);font-weight:600;">'+esc(av.txt)+'</td>'+
-          '<td style="padding:4px 8px;text-align:right;font-weight:700;color:'+dl.c+';white-space:nowrap;">'+esc(dl.txt)+'</td>'+
-        '</tr>';
-    });
-    const tabla =
-      '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px;">'+
-        '<thead><tr style="font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);">'+
-          '<th style="padding:4px 8px;text-align:left;">Parámetro</th>'+
-          '<th style="padding:4px 8px;text-align:right;">Previo</th>'+
-          '<th style="padding:4px 8px;text-align:right;">Actual</th>'+
-          '<th style="padding:4px 8px;text-align:right;">Δ</th>'+
-        '</tr></thead><tbody>'+filas+'</tbody></table>';
+      // Navegación (solo si hay >1). idx 0 = más reciente → número mostrado = total-idx
+      // (1 = más viejo … total = más reciente). ← va a más viejo (idx++), → a más reciente (idx--).
+      const num = total - idx;
+      const navBtn = (id, dis, title, ch) =>
+        '<button id="'+id+'" '+(dis?'disabled':'')+' title="'+title+'" style="background:var(--bg3,#0f172a);'+
+        'border:1px solid var(--border);border-radius:6px;color:'+(dis?'var(--text2)':'var(--text)')+';font-size:15px;'+
+        'line-height:1;width:28px;height:24px;cursor:'+(dis?'default':'pointer')+';opacity:'+(dis?'.4':'1')+';">'+ch+'</button>';
+      const nav = total>1
+        ? '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'+
+            navBtn('evol-older', idx>=total-1, 'Estudio anterior (más viejo)', '←')+
+            '<span style="font-size:12px;font-weight:600;color:var(--text2);">Estudio '+num+' de '+total+'</span>'+
+            navBtn('evol-newer', idx<=0, 'Estudio siguiente (más reciente)', '→')+
+          '</div>'
+        : '';
 
-    // Informe previo (máximo 3 líneas)
-    const infPrev = (pc.informe_texto||'').trim();
-    const bloqueInf = infPrev
-      ? '<div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--accent2,#2dd4bf);margin-bottom:4px;">Informe previo</div>'+
-        '<div style="font-size:12px;color:var(--text2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">'+esc(infPrev)+'</div>'
-      : '';
+      const cabecera =
+        '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">'+
+          cab('Estudio previo', prev.nombre||pc.nombre, prev.ci, fPrev, pc.peso, pc.talla, indicacionPrevia(pc))+
+          cab('Estudio actual', curSrc('nombre'), curSrc('ci'), fAct, curSrc('peso'), curSrc('talla'), indicacionActual())+
+        '</div>';
+
+      let filas='';
+      ROWS.forEach(row=>{
+        const pv=rowVal(row, prevSrc), av=rowVal(row, curSrc), dl=deltaCell(row, pv, av);
+        filas +=
+          '<tr style="border-top:1px solid var(--border);">'+
+            '<td style="padding:4px 8px;color:var(--text2);white-space:nowrap;">'+esc(row.lbl)+'</td>'+
+            '<td style="padding:4px 8px;text-align:right;color:var(--text);">'+esc(pv.txt)+'</td>'+
+            '<td style="padding:4px 8px;text-align:right;color:var(--text);font-weight:600;">'+esc(av.txt)+'</td>'+
+            '<td style="padding:4px 8px;text-align:right;font-weight:700;color:'+dl.c+';white-space:nowrap;">'+esc(dl.txt)+'</td>'+
+          '</tr>';
+      });
+      const tabla =
+        '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px;">'+
+          '<thead><tr style="font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);">'+
+            '<th style="padding:4px 8px;text-align:left;">Parámetro</th>'+
+            '<th style="padding:4px 8px;text-align:right;">Previo</th>'+
+            '<th style="padding:4px 8px;text-align:right;">Actual</th>'+
+            '<th style="padding:4px 8px;text-align:right;">Δ</th>'+
+          '</tr></thead><tbody>'+filas+'</tbody></table>';
+
+      const infPrev = (pc.informe_texto||'').trim();
+      const bloqueInf = infPrev
+        ? '<div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--accent2,#2dd4bf);margin-bottom:4px;">Informe previo</div>'+
+          '<div style="font-size:12px;color:var(--text2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">'+esc(infPrev)+'</div>'
+        : '';
+
+      return nav + cabecera + tabla + bloqueInf;
+    }
 
     const ov=document.createElement('div');
     ov.id='evol-modal-overlay';
@@ -20452,23 +20478,42 @@ const ESQ_PATHS={"path17": "m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8
         '<button id="evol-close" title="Cerrar" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:20px;line-height:1;color:var(--text2);cursor:pointer;">✕</button>'+
         '<div style="font-size:15px;font-weight:700;color:var(--accent2,#2dd4bf);margin:0 0 4px;">📈 Evolución respecto al estudio previo</div>'+
         '<p style="font-size:11px;color:var(--text2);margin:0 0 12px;">Comparación informativa (solo lectura). Al cerrar se genera el informe.</p>'+
-        cabecera + tabla + bloqueInf +
+        '<div id="evol-body"></div>'+
       '</div>';
     document.body.appendChild(ov);
+
+    const body = ov.querySelector('#evol-body');
+    const older = () => { if(idx < prevs.length-1){ idx++; render(); } };   // más viejo
+    const newer = () => { if(idx > 0){ idx--; render(); } };                // más reciente
+    function render(){
+      body.innerHTML = contenido();
+      const bO = body.querySelector('#evol-older'), bN = body.querySelector('#evol-newer');
+      if(bO) bO.addEventListener('click', older);
+      if(bN) bN.addEventListener('click', newer);
+    }
+    render();
+
     const cerrar = () => { if(ov.parentNode) ov.parentNode.removeChild(ov); document.removeEventListener('keydown', onKey); if(typeof generarInforme==='function') generarInforme(); };
-    const onKey = e => { if(e.key==='Escape') cerrar(); };
+    const onKey = e => {
+      if(e.key==='Escape') cerrar();
+      else if(e.key==='ArrowLeft')  older();
+      else if(e.key==='ArrowRight') newer();
+    };
     ov.querySelector('#evol-close').addEventListener('click', cerrar);
     document.addEventListener('keydown', onKey);
   }
   window.mostrarModalEvolucion = mostrarModalEvolucion;
 
-  // Wrapper del botón "Generar Informe": muestra el modal si hay estudio previo con la misma CI.
+  // Wrapper del botón "Generar Informe": muestra el modal con TODOS los estudios previos de la
+  // misma CI, ordenados por fecha descendente (más reciente primero, mostrado por defecto).
   window.generarInformeConEvolucion = function(){
     try{
       const ci = ((document.getElementById('ci')||{}).value || '').trim();
       if(ci && typeof getInformes==='function'){
-        const prev = getInformes().find(i => (String(i.ci||'').trim()===ci) && i.id !== window._ettEditandoId);
-        if(prev){ mostrarModalEvolucion(prev); return; }
+        const prevs = getInformes()
+          .filter(i => (String(i.ci||'').trim()===ci) && i.id !== window._ettEditandoId)
+          .sort((a,b) => String(b.fecha_estudio||b.fecha_guardado||'').localeCompare(String(a.fecha_estudio||a.fecha_guardado||'')));
+        if(prevs.length){ mostrarModalEvolucion(prevs, 0); return; }
       }
     }catch(e){ /* ante cualquier error, generar directo */ }
     if(typeof generarInforme==='function') generarInforme();
