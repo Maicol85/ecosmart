@@ -391,6 +391,35 @@
   }
 
 
+/* ═══ Tab Válvulas — 2 columnas: contenido (izq) + corazón A5C sticky al 70% (der) ═══ */
+#tab-valvulas .valv-layout{display:flex;gap:16px;align-items:flex-start;}
+#tab-valvulas .valv-left{flex:1;min-width:0;}
+#tab-valvulas .valv-right{width:170px;flex:0 0 170px;}
+#tab-valvulas .valv-right #valv-svg-host{position:sticky;top:12px;display:flex;justify-content:center;}
+#tab-valvulas .valv-right #esq-svg{display:block;width:100%;max-width:154px;height:auto;aspect-ratio:140/235;overflow:visible;}
+/* Achicar variables de la columna izquierda: más datos en menos espacio, sin perder legibilidad */
+#tab-valvulas .valv-left label{font-size:.78rem;}
+#tab-valvulas .valv-left input,#tab-valvulas .valv-left select,#tab-valvulas .valv-left textarea{font-size:.78rem;padding:5px;}
+/* Pills de severidad (Insuficiencia / Estenosis) por válvula */
+#tab-valvulas .sev-pills{display:flex;gap:8px;margin:2px 0 12px;}
+#tab-valvulas .sev-pill{flex:1;position:relative;}
+#tab-valvulas .sev-pill-btn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:.76rem;font-weight:600;padding:5px 10px;border-radius:999px;border:1px solid var(--border);background:var(--bg3,#0f172a);color:var(--text);cursor:pointer;}
+#tab-valvulas .sev-pill-btn .sev-dot{width:8px;height:8px;border-radius:50%;flex:0 0 8px;background:currentColor;}
+#tab-valvulas .sev-pill-btn .sev-cae{font-size:.6rem;opacity:.7;}
+#tab-valvulas .sev-pill-menu{display:none;position:absolute;z-index:20;left:0;right:0;top:calc(100% + 3px);background:var(--bg2);border:1px solid var(--border);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.4);overflow:hidden;}
+#tab-valvulas .sev-pill.open .sev-pill-menu{display:block;}
+#tab-valvulas .sev-pill-menu button{display:block;width:100%;text-align:left;font-size:.76rem;padding:6px 12px;border:none;background:none;color:var(--text);cursor:pointer;}
+#tab-valvulas .sev-pill-menu button:hover{background:var(--bg3,#1e293b);}
+/* colores de severidad (texto = color según nivel) */
+#tab-valvulas .sev-lvl0{color:var(--text2);}
+#tab-valvulas .sev-lvl1{color:#16a34a;}
+#tab-valvulas .sev-lvl2{color:#ca8a04;}
+#tab-valvulas .sev-lvl3{color:#dc2626;}
+html.light-mode #tab-valvulas .sev-lvl1{color:#166534;}
+html.light-mode #tab-valvulas .sev-lvl2{color:#78350f;}
+html.light-mode #tab-valvulas .sev-lvl3{color:#7f1d1d;}
+@media (max-width:768px){ #tab-valvulas .valv-layout{flex-direction:column;} #tab-valvulas .valv-right{width:100%;flex:none;} }
+
 /* ═══ Severidad válvulas ═══ */
 /* Layout 2 columnas: tabla de severidades (izq) + SVG del corazón al 70% (der) */
 #tab-esquema-valvulas .sev-grid{display:grid;grid-template-columns:1fr 178px;gap:20px;align-items:start;}
@@ -831,7 +860,6 @@ window.cerrarSesion = cerrarSesion;
     <button class="tab-btn" onclick="showTab('vd')">▶️ VD / AD</button>
     <button class="tab-btn" onclick="showTab('doppler')">〰️ Doppler</button>
     <button class="tab-btn" onclick="showTab('valvulas')">🔲 Válvulas</button>
-    <button class="tab-btn" onclick="showTab('esquema-valvulas');if(window.esqValvOnShow)esqValvOnShow();">🫀 Severidad válvulas</button>
     <button class="tab-btn" onclick="showTab('contractilidad')">🎯 Contractilidad</button>
     <button class="tab-btn" onclick="showTab('sgl');if(window.sglOnShow)sglOnShow();">📐 SGL</button>
     <button class="tab-btn" onclick="showTab('imagenes');if(window.imgRender)imgRender();">🖼️ Imágenes</button>
@@ -1602,6 +1630,8 @@ window.cerrarSesion = cerrarSesion;
 
 <!-- ═══════════════════════ TAB: VÁLVULAS ═══════════════════════ -->
 <div id="tab-valvulas" class="tab-section">
+  <div class="valv-layout">
+  <div class="valv-left">
 
   <div class="card" style="margin-bottom:6px;">
     <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('valv-mitral',this)">
@@ -1616,6 +1646,7 @@ window.cerrarSesion = cerrarSesion;
         <button type="button" class="btn btn-ghost valv-pill" id="pill-insuf-mitral" onclick="toggleValvPill('mitral','insuf')">Insuficiencia</button>
         <button type="button" class="btn btn-ghost valv-pill" id="pill-esten-mitral" onclick="toggleValvPill('mitral','esten')">Estenosis</button>
       </div>
+      <div class="sev-pills" id="sevpills-mitral"></div>
       <div class="grid-2" style="margin-bottom:8px;">
         <div class="fg"><label>Morfología VM</label>
           <select id="vm_morf" onchange="showProlapsoPanel()"><option>Normal</option><option>Mixomatosa / Barlow</option><option>Calcificada</option><option>Reumática</option><option>Prolapso / EVMS</option><option>Prótesis</option></select>
@@ -1847,6 +1878,7 @@ window.cerrarSesion = cerrarSesion;
         <button type="button" class="btn btn-ghost valv-pill" id="pill-insuf-aortica" onclick="toggleValvPill('aortica','insuf')">Insuficiencia</button>
         <button type="button" class="btn btn-ghost valv-pill" id="pill-esten-aortica" onclick="toggleValvPill('aortica','esten')">Estenosis</button>
       </div>
+      <div class="sev-pills" id="sevpills-aortica"></div>
       <div class="grid-2" style="margin-bottom:8px;">
         <div class="fg"><label>Morfología VA</label>
           <select id="va_morf"><option>Trivalva normal</option><option>Bicúspide</option><option>Calcificada</option><option>Reumática</option><option>Prótesis</option></select>
@@ -1973,6 +2005,7 @@ window.cerrarSesion = cerrarSesion;
         <button type="button" class="btn btn-ghost valv-pill" id="pill-insuf-tricuspide" onclick="toggleValvPill('tricuspide','insuf')">Insuficiencia</button>
         <button type="button" class="btn btn-ghost valv-pill" id="pill-esten-tricuspide" onclick="toggleValvPill('tricuspide','esten')">Estenosis</button>
       </div>
+      <div class="sev-pills" id="sevpills-tricuspide"></div>
       <div class="grid-2" style="margin-bottom:8px;">
         <div class="fg"><label>Morfología VT</label>
           <select id="vt_morf"><option>Normal</option><option>Mixomatosa</option><option>Reumática</option><option>Prótesis</option></select>
@@ -2098,6 +2131,9 @@ window.cerrarSesion = cerrarSesion;
   </div>
   </div>
 
+  </div><!-- /.valv-left -->
+  <aside class="valv-right"><div id="valv-svg-host"></div></aside>
+  </div><!-- /.valv-layout -->
 </div>
 
 <!-- ═══════════════════════ TAB: HEMODINÁMICA ═══════════════════════ -->
@@ -9336,8 +9372,8 @@ function showTab(id) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + id).classList.add('active');
   if (typeof event !== 'undefined' && event && event.target) event.target.classList.add('active');
-  // Esquema de válvulas: sincroniza y (re)dibuja el diagrama al mostrar la tab (rail, drawer o programático)
-  if (id === 'esquema-valvulas' && typeof esqValvOnShow === 'function') esqValvOnShow();
+  // Al mostrar la tab Válvulas, (re)dibujar el corazón A5C (ahora vive en su columna derecha)
+  if (id === 'valvulas' && typeof esqRender === 'function') esqRender();
 }
 
 // ══ HELPERS ══
@@ -20163,19 +20199,26 @@ const ESQ_PATHS={"path17": "m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8
   function selInt(id){const e=g(id);return e?parseInt(e.value||'0',10)||0:0;}
   // mapea texto de estenosis (em_grado/ea_grado) a 0-3 (esclerosis -> 0)
   function textToSev(t){t=String(t||'').toLowerCase();if(/severa/.test(t))return 3;if(/moderada/.test(t))return 2;if(/leve/.test(t))return 1;return 0;}
+  // Severidad 0-3 del campo fuente de verdad (sin depender de selectores esq-*):
+  //  insuficiencias im/ia/it_grado son 0-4 → 0-3 vía [0,1,2,3,3]; estenosis em/ea/et_grado texto → textToSev
+  const _INS5to4=[0,1,2,3,3];
+  function sevOf(id){
+    if(/^(im|ia|it)_grado$/.test(id)) return _INS5to4[selInt(id)]||0;
+    return textToSev(gv(id));
+  }
   function mkPath(dstr,attrs){const p=document.createElementNS(NS,'path');p.setAttribute('d',dstr);for(const k in attrs)p.setAttribute(k,attrs[k]);return p;}
   function mkText(x,y,txt,size,weight,fill){const t=document.createElementNS(NS,'text');t.setAttribute('x',x);t.setAttribute('y',y);t.setAttribute('font-size',size);t.setAttribute('font-weight',weight);t.setAttribute('fill',fill);t.setAttribute('text-anchor','middle');t.textContent=txt;return t;}
 
   // Valvas de estenosis por válvula: ET->VT(113,114) EAo->VA(115,116) EM->VM(117,118)
-  const ESTEN=[['esq-et',['path113','path114']],['esq-eao',['path115','path116']],['esq-em',['path117','path118']]];
+  const ESTEN=[['et_grado',['path113','path114']],['ea_grado',['path115','path116']],['em_grado',['path117','path118']]];
   const PAT={1:'url(#esq-pts)',2:'url(#esq-ray)',3:'url(#esq-grid)'};
-  // Jets de insuficiencia: [selectId, [pathLeve,pathMod,pathSev], colorMap]
-  const JETS=[['esq-it',['path17','path18','path19'],BLUE],['esq-iao',['path20','path21','path22'],RED],['esq-im',['path23','path24','path25'],BLUE]];
+  // Jets de insuficiencia: [campoGrado, [pathLeve,pathMod,pathSev], colorMap]
+  const JETS=[['it_grado',['path17','path18','path19'],BLUE],['ia_grado',['path20','path21','path22'],RED],['im_grado',['path23','path24','path25'],BLUE]];
 
   function drawEstenosis(gEl){
     while(gEl.firstChild)gEl.removeChild(gEl.firstChild);
     ESTEN.forEach(([sid,paths])=>{
-      const sev=selInt(sid); if(sev<1)return;
+      const sev=sevOf(sid); if(sev<1)return;
       paths.forEach(pk=>{
         gEl.appendChild(mkPath(ESQ_PATHS[pk],{fill:'white'}));
         gEl.appendChild(mkPath(ESQ_PATHS[pk],{fill:PAT[sev]}));
@@ -20186,7 +20229,7 @@ const ESQ_PATHS={"path17": "m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8
   function drawJets(gEl){
     while(gEl.firstChild)gEl.removeChild(gEl.firstChild);
     JETS.forEach(([sid,paths,col])=>{
-      const sev=selInt(sid); if(sev<1)return;
+      const sev=sevOf(sid); if(sev<1)return;
       gEl.appendChild(mkPath(ESQ_PATHS[paths[sev-1]],{fill:col[sev],'fill-opacity':'0.9'}));
     });
   }
@@ -20224,7 +20267,7 @@ const ESQ_PATHS={"path17": "m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8
   // tab Válvulas). Guard: SOLO si el selector está en 0 (ausente) y la fuente indica severidad,
   // para no pisar un cambio manual del médico. Insuficiencias: *_grado es 0-4 (5 niveles) y el
   // selector 0-3 → mod-severa(3) y severa(4) mapean ambos a severa(3). Estenosis: texto → 0-3.
-  const _INS5to4=[0,1,2,3,3];
+  // (_INS5to4 ya está declarado arriba, junto a sevOf)
   function esqPrePoblar(){
     const set=(esqId,v)=>{ const e=g(esqId); if(!e) return; if((parseInt(e.value)||0)!==0) return; if(v>0) e.value=String(v); };
     set('esq-im',  _INS5to4[selIntSafe('im_grado')]||0);
@@ -20317,42 +20360,72 @@ const ESQ_PATHS={"path17": "m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8
   };
   // Listeners: cambios en la tabla -> re-render; inputs fuente -> labels en vivo
   function initEsq(){
-    const tab=g('tab-esquema-valvulas'); if(tab && !tab.__esqInit){ tab.__esqInit=true;
-      tab.addEventListener('change',e=>{ if(e.target && e.target.tagName==='SELECT') esqRender(); });
+    // Relocalizar el corazón SVG a la columna derecha de la tab Válvulas y remover la vieja tab.
+    const svg=g('esq-svg'), host=g('valv-svg-host'), oldTab=g('tab-esquema-valvulas');
+    if(svg && host && svg.parentNode!==host) host.appendChild(svg);
+    if(oldTab && oldTab.parentNode) oldTab.parentNode.removeChild(oldTab);
+    // El corazón se dibuja desde los campos fuente (im/ia/it_grado, em/ea/et_grado). Refrescar ante
+    // cualquier cambio en la tab Válvulas (delegación) — tras un tick, para que los oninput/calc corran.
+    const vtab=g('tab-valvulas');
+    if(vtab && !vtab.__esqW){ vtab.__esqW=true;
+      const refresh=()=>setTimeout(()=>{ if(g('esq-svg')){ esqRender(); if(window.esqPills)esqPills.refresh(); } },0);
+      vtab.addEventListener('input',refresh); vtab.addEventListener('change',refresh);
     }
-    ['fevi','tapse','ad_area','ai_vol','ai_area','peso','talla'].forEach(id=>{
-      const e=g(id); if(e && !e.__esqLbl){ e.__esqLbl=true; e.addEventListener('input',()=>{ if(g('esq-svg'))esqRender(); }); }
-    });
-    // Columna Doppler en vivo: al cambiar un dato Doppler fuente, refrescar la tabla de severidad.
-    ESQ_DOP.forEach(([,fld])=>{ const e=g(fld); if(e && !e.__esqDop){ e.__esqDop=true; e.addEventListener('input',()=>{ if(g('dop-im'))esqUpdateDoppler(); }); } });
-    esqUpdateDoppler();
+    esqRender();
     // Sincronizar #sgl (tab AI/VI) ↔ #sgl_gls (tab SGL): mismo dato en dos campos.
     // El guard (valores distintos) evita el bucle de re-disparo entre ambos listeners.
     const _sglSync=(a,b)=>{ const ea=g(a), eb=g(b); if(ea && eb && !ea.__sglSync){ ea.__sglSync=true;
       ea.addEventListener('input',()=>{ if(eb.value!==ea.value){ eb.value=ea.value; eb.dispatchEvent(new Event('input',{bubbles:true})); } }); } };
     _sglSync('sgl','sgl_gls'); _sglSync('sgl_gls','sgl');
-
-    // ── Sincronización en vivo esquema → campos del estudio ──
-    // Al cambiar un selector del esquema, se actualiza el campo destino de inmediato para que
-    // el informe, el PDF, el guardado y el Laboratorio reflejen la severidad sin depender del
-    // mapeo diferido de generarPDF. El esquema usa 4 niveles (0-3); las insuficiencias usan una
-    // escala de 5 (severa=4) → severa (esq 3) mapea al nivel 4. Estenosis usan sus <select> reales.
-    const _esqN = id => { const e=g(id); return e?(parseInt(e.value)||0):0; };
-    const _ESQ5  = [0,1,2,4];                                    // esq 0-3 → nivel 5-escala (sev=4)
-    const _ESTXT = ['sin','leve','moderada','severa'];           // em/ea_grado (value= en minúscula)
-    const _ETTXT = ['Sin estenosis','Leve','Moderada','Severa']; // et_grado (opciones con texto)
-    const _setDisp = (el,val) => { if(!el||val==null) return; el.value=String(val); el.dispatchEvent(new Event('change',{bubbles:true})); el.dispatchEvent(new Event('input',{bubbles:true})); };
-    const _onEsq = (esqId, cb) => { const e=g(esqId); if(e && !e.__esqSyncCampo){ e.__esqSyncCampo=true; e.addEventListener('change', cb); } };
-    // Insuficiencias → *_sev_final (visible, dispara sincronizarGrado*) o el hidden *_grado si no existe
-    _onEsq('esq-im',  ()=>{ const s=g('im_sev_final'); _setDisp(s||g('im_grado'), _ESQ5[_esqN('esq-im')]); });
-    _onEsq('esq-iao', ()=>{ const s=g('ia_sev_final'); _setDisp(s||g('ia_grado'), _ESQ5[_esqN('esq-iao')]); });
-    _onEsq('esq-it',  ()=>{ _setDisp(g('it_grado'), _ESQ5[_esqN('esq-it')]); });
-    // Estenosis → <select> em/ea/et_grado
-    _onEsq('esq-em',  ()=>{ _setDisp(g('em_grado'), _ESTXT[_esqN('esq-em')]); });
-    _onEsq('esq-eao', ()=>{ _setDisp(g('ea_grado'), _ESTXT[_esqN('esq-eao')]); });
-    _onEsq('esq-et',  ()=>{ _setDisp(g('et_grado'), _ETTXT[_esqN('esq-et')]); });
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initEsq); else initEsq();
+})();
+
+/* ══ Pills de severidad (Insuficiencia / Estenosis) por válvula ══
+   Leen/escriben el campo fuente de verdad (*_grado). Insuficiencias usan 5 niveles (severa=4) →
+   la pill muestra 4 (Ausente/Leve/Moderada/Severa; mod-severa=3 y severa=4 se muestran "Severa").
+   Al elegir → escribe el campo (vía *_sev_final si existe, para disparar el cálculo) → va al informe.
+   refresh() se re-dibuja ante cambios de Doppler (llamado desde la delegación de la tab Válvulas). */
+window.esqPills=(function(){
+  const g=id=>document.getElementById(id);
+  const VALVES={ mitral:{ins:'im_grado',est:'em_grado'}, aortica:{ins:'ia_grado',est:'ea_grado'}, tricuspide:{ins:'it_grado',est:'et_grado'} };
+  const INS_TXT=['Ausente','Leve','Moderada','Severa'];
+  const EST_TXT=['Sin est.','Leve','Moderada','Severa'];
+  const INS_GRADO=[0,1,2,4];                                  // nivel pill 0-3 → *_grado (severa=4)
+  const EST_LC=['sin','leve','moderada','severa'];            // em/ea_grado (value=)
+  const EST_ET=['Sin estenosis','Leve','Moderada','Severa']; // et_grado (texto de opción)
+  function levelOf(field){
+    const e=g(field); if(!e) return 0;
+    if(/^(im|ia|it)_grado$/.test(field)){ const v=parseInt(e.value)||0; return v<=0?0:(v>=3?3:v); }
+    const t=String(e.value||'').toLowerCase(); if(/severa/.test(t))return 3; if(/moderada/.test(t))return 2; if(/leve/.test(t))return 1; return 0;
+  }
+  function setLevel(field,isIns,level){
+    const e=g(field); if(!e) return;
+    if(isIns){ const grado=INS_GRADO[level]; const sev=g(field.replace('_grado','_sev_final'));
+      if(sev){ sev.value=String(grado); sev.dispatchEvent(new Event('change',{bubbles:true})); }
+      else { e.value=String(grado); e.dispatchEvent(new Event('change',{bubbles:true})); e.dispatchEvent(new Event('input',{bubbles:true})); } }
+    else { e.value=(field==='et_grado'?EST_ET:EST_LC)[level]; e.dispatchEvent(new Event('change',{bubbles:true})); e.dispatchEvent(new Event('input',{bubbles:true})); }
+  }
+  function closeAll(){ document.querySelectorAll('#tab-valvulas .sev-pill.open').forEach(p=>p.classList.remove('open')); }
+  function mkPill(field,isIns,lbl){
+    const lvl=levelOf(field), txt=(isIns?INS_TXT:EST_TXT)[lvl];
+    const pill=document.createElement('div'); pill.className='sev-pill';
+    const btn=document.createElement('button'); btn.type='button'; btn.className='sev-pill-btn sev-lvl'+lvl;
+    btn.innerHTML='<span class="sev-dot"></span><span>'+lbl+': '+txt+'</span><span class="sev-cae">▾</span>';
+    const menu=document.createElement('div'); menu.className='sev-pill-menu';
+    (isIns?INS_TXT:EST_TXT).forEach((ot,i)=>{ const ob=document.createElement('button'); ob.type='button'; ob.className='sev-lvl'+i; ob.textContent=ot;
+      ob.addEventListener('click',ev=>{ ev.stopPropagation(); setLevel(field,isIns,i); pill.classList.remove('open'); render(); if(window.esqRender)esqRender(); });
+      menu.appendChild(ob); });
+    btn.addEventListener('click',ev=>{ ev.stopPropagation(); const was=pill.classList.contains('open'); closeAll(); if(!was)pill.classList.add('open'); });
+    pill.appendChild(btn); pill.appendChild(menu); return pill;
+  }
+  function render(){
+    Object.keys(VALVES).forEach(v=>{ const host=g('sevpills-'+v); if(!host) return; const cfg=VALVES[v];
+      host.innerHTML=''; host.appendChild(mkPill(cfg.ins,true,'Insuf')); host.appendChild(mkPill(cfg.est,false,'Esten')); });
+  }
+  document.addEventListener('click',closeAll);
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',render); else render();
+  return { render, refresh: render };
 })();
 
 </script>
