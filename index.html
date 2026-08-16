@@ -398,11 +398,11 @@
 #tab-esquema-valvulas .esq-bar{height:14px;border-radius:4px;border:1px solid var(--border);}
 #tab-esquema-valvulas .esq-leg-lbls{display:flex;justify-content:space-between;font-size:9.5px;color:var(--text2);margin-top:2px;}
 #tab-esquema-valvulas .esq-center{display:flex;flex-direction:column;align-items:center;}
-#tab-esquema-valvulas #esq-svg{width:100%;max-width:260px;height:auto;background:var(--bg2);border:1px solid var(--border);border-radius:10px;}
+#tab-esquema-valvulas #esq-svg{width:100%;max-width:220px;height:auto;margin-top:28px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;}
 #tab-esquema-valvulas .esq-btns{display:flex;gap:8px;margin-top:10px;}
 #tab-esquema-valvulas .esq-btns button{font-size:12px;padding:6px 12px;}
 #tab-esquema-valvulas #esq-pdf-toggle.active{background:#1a7a4a;border-color:#1a7a4a;color:#fff;}
-#tab-esquema-valvulas #esq-notas{width:100%;max-width:260px;margin-top:10px;min-height:60px;font-size:12px;}
+#tab-esquema-valvulas #esq-notas{width:100%;max-width:220px;margin-top:10px;min-height:60px;font-size:12px;}
 #tab-esquema-valvulas .esq-table{display:flex;flex-direction:column;gap:6px;font-size:11.5px;}
 #tab-esquema-valvulas .esq-table .esq-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
 #tab-esquema-valvulas .esq-table .esq-row label{font-weight:600;color:var(--text2);min-width:34px;}
@@ -13143,10 +13143,10 @@ function generarPDFReal() {
     // Dibuja leyenda (izq) + corazón (der) dentro de (x, top, availW); devuelve la y inferior.
     const _drawEsq = (x, top, availW) => {
       const _legW = 24;
-      let _iw = Math.min(50, availW - _legW - 6);   // corazón <= ~50mm (≈200px)
-      if (_iw < 30) _iw = 30;
+      let _iw = Math.min(42, availW - _legW - 6);   // corazón <= ~42mm (≈160px)
+      if (_iw < 26) _iw = 26;
       let _ih = _iw * _ratio;
-      if (_ih > 116) { _ih = 116; _iw = _ih / _ratio; }
+      if (_ih > 100) { _ih = 100; _iw = _ih / _ratio; }
       const _bg = (yy, c0, c1) => { for (let i = 0; i < 12; i++) { const t = i/11; doc.setFillColor(Math.round(c0[0]+(c1[0]-c0[0])*t), Math.round(c0[1]+(c1[1]-c0[1])*t), Math.round(c0[2]+(c1[2]-c0[2])*t)); doc.rect(x + i*(_legW/12), yy, _legW/12 + 0.3, 3, 'F'); } };
       let _ly = top + 3;
       fb(6.5); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text('IT / IM', x, _ly); _ly += 2.6;
@@ -13167,7 +13167,7 @@ function generarPDFReal() {
       checkPage(90);
       drawBar('ESQUEMA DE VÁLVULAS');
       y += 3;
-      const _blockW = 24 + 6 + 50, _x0 = mL + (pgW - _blockW) / 2;
+      const _blockW = 24 + 6 + 42, _x0 = mL + (pgW - _blockW) / 2;
       const _b = _drawEsq(_x0, y, _blockW + 4);
       y = _b + 5;
     }
