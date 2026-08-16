@@ -155,6 +155,14 @@
   .acc-body { max-height:0;overflow:hidden;transition:max-height .3s ease; }
   .acc.open .acc-body { max-height:720px; }
   .acc-inner { padding:4px 12px 12px; }
+  /* Acordeón de sección (tabs Paciente/AI-VI/VD-AD/Contractilidad/SGL): header + body colapsable */
+  .sacc .sacc-hdr { width:100%;display:flex;align-items:center;gap:8px;padding:12px 14px;background:none;border:none;color:var(--text);font-size:15px;font-weight:800;cursor:pointer;text-align:left;font-family:inherit;line-height:1.3; }
+  .sacc .sacc-hdr:hover { background:rgba(255,255,255,0.03); }
+  .sacc .sacc-arrow { display:inline-block;transition:transform .25s ease;color:var(--accent);font-size:12px;flex-shrink:0; }
+  .sacc.open .sacc-arrow { transform:rotate(90deg); }
+  /* padding vertical 0 al colapsar (si no, el padding de .card-body deja un sliver visible con max-height:0) */
+  .sacc .sacc-body { max-height:0;overflow:hidden;transition:max-height .3s ease;padding-top:0;padding-bottom:0; }
+  .sacc.open .sacc-body { padding-top:12px;padding-bottom:12px; }
   .acc-grid2 { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 12px;padding-top:6px; }
   .cfg-mod-item { display:flex;align-items:center;gap:9px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 11px;cursor:pointer;font-size:12.5px;color:var(--text); }
   .cfg-mod-item input { width:auto; }
@@ -950,9 +958,9 @@ window.cerrarSesion = cerrarSesion;
 
 <!-- ═══════════════════════ TAB: DATOS PACIENTE ═══════════════════════ -->
 <div id="tab-datos" class="tab-section active">
-  <div class="card">
-    <h2 class="card-head">👤 Datos del Paciente</h2>
-    <div class="card-body">
+  <div class="card sacc" id="sacc-pac">
+    <button type="button" class="sacc-hdr" onclick="secToggle('pac')" aria-expanded="false"><span class="sacc-arrow">▶</span>📋 Datos del paciente</button>
+    <div class="card-body sacc-body">
       <div class="grid-4">
         <div class="fg">
           <label>Fecha</label>
@@ -1106,12 +1114,12 @@ window.cerrarSesion = cerrarSesion;
 <!-- ═══════════════════════ TAB: AI / VI ═══════════════════════ -->
 <div id="tab-ai-vi" class="tab-section">
 
-  <!-- Raíz Aórtica / AI -->
-  <div class="grid-2">
+  <!-- Aorta torácica / AI -->
+  <div class="grid-2" style="align-items:start">
 
-    <div class="card">
-      <h2 class="card-head">🔵 Raíz Aórtica</h2>
-      <div class="card-body">
+    <div class="card sacc" id="sacc-aorta">
+      <button type="button" class="sacc-hdr" onclick="secToggle('aorta')" aria-expanded="false"><span class="sacc-arrow">▶</span>🫀 Aorta torácica</button>
+      <div class="card-body sacc-body">
         <div class="grid-3">
           <div class="fg">
             <label>Ao sinusal (mm)</label>
@@ -1157,9 +1165,9 @@ window.cerrarSesion = cerrarSesion;
       </div>
     </div>
 
-    <div class="card">
-      <h2 class="card-head">🔷 Aurícula Izquierda</h2>
-      <div class="card-body">
+    <div class="card sacc" id="sacc-ai">
+      <button type="button" class="sacc-hdr" onclick="secToggle('ai')" aria-expanded="false"><span class="sacc-arrow">▶</span>🫀 Aurícula izquierda</button>
+      <div class="card-body sacc-body">
         <div class="grid-3">
           <div class="fg">
             <label>Diámetro AP (mm)</label>
@@ -1198,9 +1206,9 @@ window.cerrarSesion = cerrarSesion;
   </div>
 
   <!-- VI -->
-  <div class="card">
-    <h2 class="card-head">🫀 Ventrículo Izquierdo — Modo M / 2D</h2>
-    <div class="card-body">
+  <div class="card sacc" id="sacc-vi">
+    <button type="button" class="sacc-hdr" onclick="secToggle('vi')" aria-expanded="false"><span class="sacc-arrow">▶</span>🫀 Ventrículo izquierdo</button>
+    <div class="card-body sacc-body">
       <div class="grid-4">
         <div class="fg">
           <label>SIV (mm)</label>
@@ -1280,9 +1288,9 @@ window.cerrarSesion = cerrarSesion;
 
 <!-- ═══════════════════════ TAB: VD / AD ═══════════════════════ -->
 <div id="tab-vd" class="tab-section">
-  <div class="card">
-    <h2 class="card-head">➡️ Ventrículo Derecho</h2>
-    <div class="card-body">
+  <div class="card sacc" id="sacc-vd">
+    <button type="button" class="sacc-hdr" onclick="secToggle('vd')" aria-expanded="false"><span class="sacc-arrow">▶</span>🫀 Ventrículo derecho</button>
+    <div class="card-body sacc-body">
       <div class="grid-3">
         <div class="fg">
           <label>TAP (ms)</label>
@@ -1346,9 +1354,9 @@ window.cerrarSesion = cerrarSesion;
     </div>
   </div>
 
-  <div class="card">
-    <h2 class="card-head">🔷 Aurícula Derecha · VCI · Presión AD</h2>
-    <div class="card-body">
+  <div class="card sacc" id="sacc-ad">
+    <button type="button" class="sacc-hdr" onclick="secToggle('ad')" aria-expanded="false"><span class="sacc-arrow">▶</span>🫀 Aurícula derecha y VCI</button>
+    <div class="card-body sacc-body">
       <div class="grid-4">
         <div class="fg">
           <label>AD área (cm²)</label>
@@ -2415,9 +2423,9 @@ window.cerrarSesion = cerrarSesion;
   </div>
 </div>
 <div id="tab-contractilidad" class="tab-section">
-  <div class="card">
-    <h2 class="card-head">🫀 Contractilidad Segmentaria — 17 segmentos AHA</h2>
-    <div class="card-body">
+  <div class="card sacc" id="sacc-contr">
+    <button type="button" class="sacc-hdr" onclick="secToggle('contr')" aria-expanded="false"><span class="sacc-arrow">▶</span>🎯 Contractilidad segmentaria</button>
+    <div class="card-body sacc-body">
       <p style="font-size:11px;color:var(--text2);margin:0 0 14px;">Tocá un segmento en cualquier vista: cicla la motilidad y se refleja en el resto de las vistas, en el bull's eye y en el informe.</p>
 
       <div style="display:flex;align-items:flex-start;gap:18px;justify-content:center;margin-bottom:14px;flex-wrap:wrap;">
@@ -2526,9 +2534,9 @@ window.cerrarSesion = cerrarSesion;
 
 <!-- ═══════════════════════ TAB: SGL ═══════════════════════ -->
 <div id="tab-sgl" class="tab-section">
-  <div class="card">
-    <h2 class="card-head">📊 SGL — Strain Longitudinal Global</h2>
-    <div class="card-body">
+  <div class="card sacc" id="sacc-sgl">
+    <button type="button" class="sacc-hdr" onclick="secToggle('sgl')" aria-expanded="false"><span class="sacc-arrow">▶</span>📊 Strain Longitudinal Global (SGL)</button>
+    <div class="card-body sacc-body">
       <p style="font-size:11px;color:var(--text2);margin:0 0 14px;">Tocá cada segmento del bull's eye para ciclar el strain según la escala General Electric (rojo = normal → azul = discinesia). 17 segmentos, sin números.</p>
       <div style="display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap;justify-content:center;">
 
@@ -9368,6 +9376,8 @@ function showTab(id) {
   if (typeof event !== 'undefined' && event && event.target) event.target.classList.add('active');
   // Al mostrar la tab Válvulas, (re)dibujar el corazón A5C (ahora vive en su columna derecha)
   if (id === 'valvulas' && typeof esqRender === 'function') esqRender();
+  // Abrir automáticamente los acordeones de sección que ya tengan datos cargados
+  if (typeof secAutoOpen === 'function') secAutoOpen('tab-' + id);
 }
 
 // ══ HELPERS ══
@@ -11990,15 +12000,15 @@ function generarInforme() {
   if (ao_sin) {
     const aoStr = ao_sin <= 40 ? 'de calibre normal' : ao_sin <= 45 ? 'levemente dilatada' : 'dilatada';
     const aoDil = ao_sin > 40;
-    const cAo = `Raíz Ao ${aoStr} (${ao_sin} mm).`;
-    const eAo = `Raíz de Aorta ${aoStr} (Seno de Valsalva ${ao_sin} mm).`;
+    const cAo = `Aorta torácica ${aoStr} (${ao_sin} mm).`;
+    const eAo = `Aorta torácica ${aoStr} (Seno de Valsalva ${ao_sin} mm).`;
     const nAo = aoDil
       ? `La raíz aórtica se encuentra ${aoStr}, con un diámetro a nivel de los senos de Valsalva de ${ao_sin} mm, hallazgo que amerita control evolutivo del calibre aórtico.`
       : `La raíz aórtica es de calibre normal, con un diámetro a nivel de los senos de Valsalva de ${ao_sin} mm.`;
     inf.push(estiloPick(cAo, eAo, nAo));
     if (aoDil) suma.push(`Dilatación raíz aórtica (${ao_sin} mm).`);
   } else {
-    inf.push(estiloPick('Raíz Ao normal.', 'Raíz de Aorta de calibre normal.', 'La raíz aórtica es de calibre normal.'));
+    inf.push(estiloPick('Aorta torácica normal.', 'Aorta torácica de calibre normal.', 'La aorta torácica es de calibre normal.'));
   }
 
   // ── 13) Pericardio + masas (juntas) ──
@@ -12773,7 +12783,7 @@ function generarPDFReal() {
   // BLOQUE 1 (3 col): Raíz de Aorta | Aurícula Izquierda | Aurícula Derecha / VCI
   // ════════════════════════════════════════════════════════════
   drawTablaCompacta([
-    {titulo:'Raíz de Aorta', items:[
+    {titulo:'Aorta torácica', items:[
       {lbl:'Seno Valsalva',     ref:'<=40 mm', val:v('ao_sin') ?v('ao_sin') +' mm':null},
       {lbl:'Unión sinotubular', ref:'<=33 mm', val:v('ao_st')  ?v('ao_st')  +' mm':null},
       {lbl:'Ao asc. proximal',  ref:'<=36 mm', val:v('ao_tub') ?v('ao_tub') +' mm':null},
@@ -12920,7 +12930,7 @@ function generarPDFReal() {
     {titulo:'Otros', items:[
       {lbl:'Pericardio',    ref:'', val:sv('pericardio')||null},
       {lbl:'Masas / Notas', ref:'', val:sv('otras_notas')||null},
-      {lbl:'Raíz de Aorta', ref:'', val:aoDesc},
+      {lbl:'Aorta torácica', ref:'', val:aoDesc},
     ]},
   ]);
 
@@ -14722,6 +14732,43 @@ function accToggle(id) {
   }
 }
 window.accToggle = accToggle;
+
+// ── Acordeón de sección (tabs Paciente/AI-VI/VD-AD/Contractilidad/SGL) ──
+// Anima con max-height medido (scrollHeight) → suave con contenido de cualquier tamaño; al terminar
+// libera max-height:none + overflow:visible (sin recorte y sin el bug de hit-test de Safari).
+function secToggle(id) {
+  const acc = document.getElementById('sacc-' + id); if (!acc) return;
+  const body = acc.querySelector('.sacc-body'); if (!body) return;
+  const open = acc.classList.toggle('open');
+  const hdr = acc.querySelector('.sacc-hdr'); if (hdr) hdr.setAttribute('aria-expanded', open ? 'true' : 'false');
+  if (open) {
+    body.style.overflow = 'hidden'; body.style.maxHeight = body.scrollHeight + 'px';
+    const done = () => { if (acc.classList.contains('open')) { body.style.maxHeight = 'none'; body.style.overflow = 'visible'; } };
+    body.addEventListener('transitionend', done, { once: true }); setTimeout(done, 350);
+  } else {
+    body.style.overflow = 'hidden'; body.style.maxHeight = body.scrollHeight + 'px';
+    void body.offsetHeight; body.style.maxHeight = '0';
+  }
+}
+window.secToggle = secToggle;
+// Abre (sin animación) los acordeones de una tab que ya tengan datos cargados, para no ocultarlos.
+function secAutoOpen(tabId) {
+  const tab = document.getElementById(tabId); if (!tab) return;
+  tab.querySelectorAll('.sacc').forEach(acc => {
+    if (acc.classList.contains('open')) return;
+    const has = Array.from(acc.querySelectorAll('.sacc-body input, .sacc-body select, .sacc-body textarea')).some(el => {
+      if (el.type === 'checkbox' || el.type === 'radio') return el.checked;
+      if (el.tagName === 'SELECT') return el.selectedIndex > 0;
+      return String(el.value || '').trim() !== '';
+    });
+    if (has) {
+      acc.classList.add('open');
+      const b = acc.querySelector('.sacc-body'); if (b) { b.style.maxHeight = 'none'; b.style.overflow = 'visible'; }
+      const h = acc.querySelector('.sacc-hdr'); if (h) h.setAttribute('aria-expanded', 'true');
+    }
+  });
+}
+window.secAutoOpen = secAutoOpen;
 
 function _accSum(cls, otroId, sumId) {
   const el = document.getElementById(sumId);
