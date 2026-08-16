@@ -402,7 +402,7 @@
 /* La caja con borde/fondo va en un <div> normal (.esq-svg-box), NO en el <svg>: Safari pinta el
    fondo/borde del <svg> con aspect-ratio a una altura distinta de su rect y recorta la punta. Un div
    con fit-content abarca la altura real del SVG. */
-#tab-esquema-valvulas .esq-svg-box{width:fit-content;height:fit-content;overflow:visible;background:var(--bg2);border:1px solid var(--border);border-radius:10px;line-height:0;}
+#tab-esquema-valvulas .esq-svg-box{width:fit-content;height:fit-content;overflow:visible;line-height:0;}
 /* SVG inline: height:auto + overflow:visible (los <svg> traen overflow:hidden por UA) + aspect-ratio
    para que la altura se derive del viewBox (140x235) sin caja fija */
 #tab-esquema-valvulas #esq-svg{display:block;width:100%;max-width:220px;height:auto;aspect-ratio:140/235;overflow:visible;}
