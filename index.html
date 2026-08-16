@@ -397,14 +397,15 @@
 #tab-esquema-valvulas .esq-leg-block .esq-leg-ttl{font-weight:700;font-size:11px;margin-bottom:3px;color:var(--text);}
 #tab-esquema-valvulas .esq-bar{height:14px;border-radius:4px;border:1px solid var(--border);}
 #tab-esquema-valvulas .esq-leg-lbls{display:flex;justify-content:space-between;font-size:9.5px;color:var(--text2);margin-top:2px;}
-#tab-esquema-valvulas .esq-center{display:flex;flex-direction:column;align-items:center;overflow:visible;}
-/* SVG inline: overflow:visible (los <svg> traen overflow:hidden por UA y recortan la punta en Safari)
-   + aspect-ratio para que la altura se derive del viewBox (Safari no siempre respeta height:auto) */
-#tab-esquema-valvulas #esq-svg{display:block;width:100%;max-width:220px;height:auto;aspect-ratio:140/210;overflow:visible;margin-top:28px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;}
-#tab-esquema-valvulas .esq-btns{display:flex;gap:8px;margin-top:10px;}
-#tab-esquema-valvulas .esq-btns button{font-size:12px;padding:6px 12px;}
+/* padding-top baja el corazón dentro de la columna; overflow visible en toda la cadena */
+#tab-esquema-valvulas .esq-center{display:flex;flex-direction:column;align-items:center;overflow:visible;padding-top:40px;}
+/* SVG inline: height:auto + overflow:visible (los <svg> traen overflow:hidden por UA y recortan la
+   punta en Safari) + aspect-ratio para que la altura se derive del viewBox (140x235) sin caja fija */
+#tab-esquema-valvulas #esq-svg{display:block;width:100%;max-width:220px;height:auto;aspect-ratio:140/235;overflow:visible;background:var(--bg2);border:1px solid var(--border);border-radius:10px;}
+#tab-esquema-valvulas .esq-btns{display:flex;gap:8px;margin-top:8px;}
+#tab-esquema-valvulas .esq-btns button{font-size:12px;padding:6px 12px;flex:1;}
 #tab-esquema-valvulas #esq-pdf-toggle.active{background:#1a7a4a;border-color:#1a7a4a;color:#fff;}
-#tab-esquema-valvulas #esq-notas{width:100%;max-width:220px;margin-top:10px;min-height:60px;font-size:12px;}
+#tab-esquema-valvulas #esq-notas{width:100%;margin-top:6px;min-height:56px;font-size:12px;resize:vertical;}
 #tab-esquema-valvulas .esq-table{display:flex;flex-direction:column;gap:6px;font-size:11.5px;}
 #tab-esquema-valvulas .esq-table .esq-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
 #tab-esquema-valvulas .esq-table .esq-row label{font-weight:600;color:var(--text2);min-width:34px;}
@@ -2098,7 +2099,7 @@ window.cerrarSesion = cerrarSesion;
         <div class="esq-leg-lbls"><span>Leve</span><span>Severo</span></div></div>
     </div>
     <div class="esq-center">
-      <svg id="esq-svg" viewBox="30 55 140 210" xmlns="http://www.w3.org/2000/svg" aria-label="Esquema de valvulas">
+      <svg id="esq-svg" viewBox="30 55 140 235" xmlns="http://www.w3.org/2000/svg" aria-label="Esquema de valvulas">
   <defs>
     <pattern id="esq-pts" width="4" height="4" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.5" fill="#333"/></pattern>
     <pattern id="esq-ray" width="4" height="4" patternUnits="userSpaceOnUse"><line x1="0" y1="2" x2="4" y2="2" stroke="#333" stroke-width="0.45"/></pattern>
@@ -2114,8 +2115,6 @@ window.cerrarSesion = cerrarSesion;
   <text x="126" y="175" font-size="6" font-weight="700" fill="#333" text-anchor="middle">VM</text>
   <g id="esq-labels"></g>
 </svg>
-      <div class="esq-btns"><button class="btn btn-ghost" onclick="esqLimpiar()">✕ Limpiar</button><button class="btn btn-ghost" id="esq-pdf-toggle" onclick="esqTogglePDF()">📄 Incluir en PDF</button></div>
-      <textarea id="esq-notas" placeholder="Notas del esquema valvular..." oninput="if(window.esqRender)esqRender();"></textarea>
     </div>
     <div class="esq-table">
       <div style="font-weight:700;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;">Insuficiencias</div>
@@ -2129,6 +2128,9 @@ window.cerrarSesion = cerrarSesion;
       <div class="esq-row"><label>EM</label><select id="esq-em"><option value="0">0 · ausente</option><option value="1">1 · leve</option><option value="2">2 · moderada</option><option value="3">3 · severa</option></select></div>
       <div class="esq-sep"></div>
       <div class="esq-row"><label>VP</label><select id="esq-vp"><option>Normal</option><option>Insuficiencia leve (fisiológica)</option><option>Estenosis leve</option><option>Estenosis moderada/severa</option></select></div>
+      <div class="esq-sep"></div>
+      <textarea id="esq-notas" placeholder="Notas del esquema valvular..." oninput="if(window.esqRender)esqRender();"></textarea>
+      <div class="esq-btns"><button class="btn btn-ghost" onclick="esqLimpiar()">✕ Limpiar</button><button class="btn btn-ghost" id="esq-pdf-toggle" onclick="esqTogglePDF()">📄 Incluir en PDF</button></div>
     </div>
   </div>
 </div>
@@ -13141,7 +13143,7 @@ function generarPDFReal() {
   // Layout: 0 eyes → centrado; 1 eye → al lado del bull's eye (mitad c/u); 2 eyes → debajo.
   // ════════════════════════════════════════════════════════════
   if (_esqOn) {
-    const _ratio = 210 / 140;   // viewBox 140x210 → alto/ancho
+    const _ratio = 235 / 140;   // viewBox 140x235 → alto/ancho
     // Dibuja leyenda (izq) + corazón (der) dentro de (x, top, availW); devuelve la y inferior.
     const _drawEsq = (x, top, availW) => {
       const _legW = 24;
