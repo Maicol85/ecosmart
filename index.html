@@ -11623,18 +11623,21 @@ function generarInforme() {
   }
 
   // Fragmentos FUNCIÓN SISTÓLICA / FEVI (para la oración 1)
+  // SGL: mismo dato en #sgl (AI/VI) y #sgl_gls (SGL) → tomar el que tenga valor. Va junto a la FEVI.
+  const _sglV = (sv('sgl') || '').trim() || (sv('sgl_gls') || '').trim();
   let feviFragC = '', feviFragE = '', feviFragN = '';
   if (fevi !== null) {
     let feviConcepto, feviSuma, feviNarr, feviTail;
-    if (fevi >= UMBRAL_FEVI_NORMAL) { feviConcepto = 'normal'; feviSuma = `FEVI normal (${fevi}%).`; feviNarr = 'conservada'; feviTail = ', sin evidencia de compromiso de la función sistólica global'; }
-    else if (fevi >= 40) { feviConcepto = 'levemente reducida'; feviSuma = `FEVI levemente reducida (${fevi}%).`; feviNarr = 'levemente reducida'; feviTail = ', compatible con disfunción sistólica leve'; }
-    else if (fevi >= 30) { feviConcepto = 'moderadamente reducida'; feviSuma = `FEVI moderadamente reducida (${fevi}%).`; feviNarr = 'moderadamente reducida'; feviTail = ', compatible con disfunción sistólica moderada'; }
-    else { feviConcepto = 'severamente reducida'; feviSuma = `FEVI severamente reducida (${fevi}%).`; feviNarr = 'severamente comprometida'; feviTail = ', compatible con miocardiopatía con disfunción sistólica severa'; }
+    if (fevi >= UMBRAL_FEVI_NORMAL) { feviConcepto = 'normal'; feviSuma = `FEVI normal (${fevi}%)`; feviNarr = 'conservada'; feviTail = ', sin evidencia de compromiso de la función sistólica global'; }
+    else if (fevi >= 40) { feviConcepto = 'levemente reducida'; feviSuma = `FEVI levemente reducida (${fevi}%)`; feviNarr = 'levemente reducida'; feviTail = ', compatible con disfunción sistólica leve'; }
+    else if (fevi >= 30) { feviConcepto = 'moderadamente reducida'; feviSuma = `FEVI moderadamente reducida (${fevi}%)`; feviNarr = 'moderadamente reducida'; feviTail = ', compatible con disfunción sistólica moderada'; }
+    else { feviConcepto = 'severamente reducida'; feviSuma = `FEVI severamente reducida (${fevi}%)`; feviNarr = 'severamente comprometida'; feviTail = ', compatible con miocardiopatía con disfunción sistólica severa'; }
     const metodo = sv('fevi_met') || 'Simpson biplano';
-    feviFragC = `FEVI ${feviConcepto} (${fevi}%)`;
-    feviFragE = `función sistólica ${feviConcepto}, FEVI ${fevi}% por ${metodo}`;
-    feviFragN = `la función sistólica global se encuentra ${feviNarr}, con una fracción de eyección del ventrículo izquierdo de ${fevi}% estimada por método de ${metodo}${feviTail}`;
-    suma.push(feviSuma);
+    const _sglFrag = _sglV ? ` con SGL ${_sglV}%` : '';
+    feviFragC = `FEVI ${feviConcepto} (${fevi}%)${_sglFrag}`;
+    feviFragE = `función sistólica ${feviConcepto}, FEVI ${fevi}% por ${metodo}${_sglV ? `, SGL ${_sglV}%` : ''}`;
+    feviFragN = `la función sistólica global se encuentra ${feviNarr}, con una fracción de eyección del ventrículo izquierdo de ${fevi}% estimada por método de ${metodo}${_sglV ? ` y un strain longitudinal global de ${_sglV}%` : ''}${feviTail}`;
+    suma.push(feviSuma + (_sglV ? ` con SGL ${_sglV}%` : '') + '.');
   }
 
   // ── 1) VI dimensiones + FEVI (una sola oración) ──
@@ -13176,30 +13179,41 @@ function generarPDFReal() {
       try { doc.addImage(window._esqPdfPng, 'PNG', x + _legW + 6, top, _iw, _ih); } catch(e) {}
       return top + Math.max(_ih, (_ly + 4) - top);
     };
+    // ── Texto: alteraciones valvulares (desde los campos ya mapeados del esquema) + nota libre ──
+    const _vGT = ['', 'leve', 'moderada', 'moderada-severa', 'severa'];
+    const _vIns = (id, n) => { const gr = parseInt(sv(id)) || 0; return gr > 0 ? `insuficiencia ${n} ${_vGT[gr]}` : null; };
+    const _vEst = (id, n, none) => { const t = (sv(id) || '').trim().toLowerCase(); return (t && t !== none && t !== 'esclerosis') ? `estenosis ${n} ${t}` : null; };
+    const _vFr = [ _vIns('im_grado','mitral'), _vIns('ia_grado','aórtica'), _vIns('it_grado','tricuspídea'),
+                   _vEst('em_grado','mitral','sin'), _vEst('ea_grado','aórtica','sin'), _vEst('et_grado','tricuspídea','sin estenosis') ].filter(Boolean);
+    const _valvTxt = _vFr.length ? ('Se observa ' + (_vFr.length > 1 ? _vFr.slice(0,-1).join(', ') + ' y ' + _vFr[_vFr.length-1] : _vFr[0]) + '.') : '';
+    let _notas = ((document.getElementById('esq-notas')||{}).value || '').trim();
+    if (_notas) _notas = _notas.replace(/≤/g,'<=').replace(/≥/g,'>=').replace(/→/g,'->').replace(/[–—]/g,'-');
+    // Bloque de texto: alteraciones (arriba) + nota (abajo). centered → alineado y centrado en el ancho.
+    const _drawEsqTxt = (x, top, w, centered) => {
+      let _ty = top; const _al = centered ? {align:'center'} : undefined; const _tx = centered ? x + w/2 : x;
+      const _hd = t => { checkPage(10); fb(8); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(t, _tx, _ty, _al); _ty += 4.5; };
+      const _par = txt => { fn(8.5); tc(30,30,30); doc.splitTextToSize(txt, w).forEach(ln => { checkPage(6); doc.text(ln, _tx, _ty, _al); _ty += 4.5; }); _ty += 1.5; };
+      if (_valvTxt) { _hd('Alteraciones valvulares'); _par(_valvTxt); }
+      if (_notas)   { _hd('Nota del esquema valvular'); _par(_notas); }
+      return _ty;
+    };
     if (_esqSide && window.__esqRow) {
-      // ── 1 bull's eye: esquema en la mitad derecha, mismo alto/top que el eye ──
+      // ── 1 bull's eye: esquema en la mitad derecha; su texto va DEBAJO del esquema (misma mitad),
+      //     no debajo de la contractilidad (que está en la mitad izquierda) ──
       const _gap = 10, _halfW = (pgW - _gap) / 2, _rx = mL + _halfW + _gap, _top = window.__esqRow.rowTop;
       fb(7.5); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text('Esquema de válvulas', _rx + _halfW/2, _top, { align:'center' });
       const _b = _drawEsq(_rx, _top + 2, _halfW);
-      y = Math.max(window.__esqRow.eyeBottom, _b) + 5;
+      const _tb = (_valvTxt || _notas) ? _drawEsqTxt(_rx, _b + 3, _halfW, false) : _b;
+      y = Math.max(window.__esqRow.eyeBottom, _tb) + 5;
     } else {
-      // ── 0 ó 2 bull's eyes: bloque propio, centrado, debajo ──
+      // ── 0 ó 2 bull's eyes: bloque propio centrado; con 3 diagramas el texto va centrado debajo ──
       checkPage(90);
       drawBar('ESQUEMA DE VÁLVULAS');
       y += 3;
       const _blockW = 24 + 6 + 42, _x0 = mL + (pgW - _blockW) / 2;
       const _b = _drawEsq(_x0, y, _blockW + 4);
-      y = _b + 5;
-    }
-    // Notas (siempre debajo, ancho completo)
-    let _notas = ((document.getElementById('esq-notas')||{}).value || '').trim();
-    if (_notas) {
-      _notas = _notas.replace(/≤/g,'<=').replace(/≥/g,'>=').replace(/→/g,'->').replace(/[–—]/g,'-');
-      checkPage(20);
-      fb(8); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text('Notas del esquema valvular', mL, y); y += 5;
-      fn(8.5); tc(30,30,30);
-      doc.splitTextToSize(_notas, pgW).forEach(ln => { checkPage(6); doc.text(ln, mL, y); y += 4.5; });
-      y += 3;
+      y = _b + 3;
+      if (_valvTxt || _notas) y = _drawEsqTxt(mL, y + 2, pgW, true) + 3;
     }
   }
 
@@ -20164,7 +20178,7 @@ const ESQ_PATHS={"path17": "m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8
   }
   function drawLabels(gEl){
     while(gEl.firstChild)gEl.removeChild(gEl.firstChild);
-    const fevi=gv('fevi'); if(fevi!=='')addLabel(gEl,108,118,'FEVI',fevi+' %');
+    const fevi=gv('fevi'); if(fevi!=='')addLabel(gEl,115,130,'FEVI',fevi+' %');
     const tapse=gv('tapse'); if(tapse!=='')addLabel(gEl,75,110,'TAPSE',tapse+' mm');
     const adArea=gv('ad_area'); if(adArea!=='')addLabel(gEl,66,220,'AD área',adArea+' cm²');
     const ai=aiLabel(); if(ai)addLabel(gEl,113,222,ai.name,ai.val);
@@ -20257,6 +20271,11 @@ const ESQ_PATHS={"path17": "m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8
     ['fevi','tapse','ad_area','ai_vol','ai_area','peso','talla'].forEach(id=>{
       const e=g(id); if(e && !e.__esqLbl){ e.__esqLbl=true; e.addEventListener('input',()=>{ if(g('esq-svg'))esqRender(); }); }
     });
+    // Sincronizar #sgl (tab AI/VI) ↔ #sgl_gls (tab SGL): mismo dato en dos campos.
+    // El guard (valores distintos) evita el bucle de re-disparo entre ambos listeners.
+    const _sglSync=(a,b)=>{ const ea=g(a), eb=g(b); if(ea && eb && !ea.__sglSync){ ea.__sglSync=true;
+      ea.addEventListener('input',()=>{ if(eb.value!==ea.value){ eb.value=ea.value; eb.dispatchEvent(new Event('input',{bubbles:true})); } }); } };
+    _sglSync('sgl','sgl_gls'); _sglSync('sgl_gls','sgl');
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initEsq); else initEsq();
 })();
