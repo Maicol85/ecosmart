@@ -20163,8 +20163,8 @@ const ESQ_PATHS={"path17": "m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8
   }
   function drawLabels(gEl){
     while(gEl.firstChild)gEl.removeChild(gEl.firstChild);
-    const fevi=gv('fevi'); if(fevi!=='')addLabel(gEl,95,115,'FEVI',fevi+' %');
-    const tapse=gv('tapse'); if(tapse!=='')addLabel(gEl,58,148,'TAPSE',tapse+' mm');
+    const fevi=gv('fevi'); if(fevi!=='')addLabel(gEl,105,110,'FEVI',fevi+' %');
+    const tapse=gv('tapse'); if(tapse!=='')addLabel(gEl,75,110,'TAPSE',tapse+' mm');
     const adArea=gv('ad_area'); if(adArea!=='')addLabel(gEl,66,220,'AD área',adArea+' cm²');
     const ai=aiLabel(); if(ai)addLabel(gEl,113,222,ai.name,ai.val);
   }
