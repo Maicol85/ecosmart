@@ -2514,7 +2514,7 @@ window.cerrarSesion = cerrarSesion;
 <div class="sp-main">
   <!-- ACORDEÓN 1 — Cómo usar esta herramienta (colapsado por defecto) -->
   <div style="border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden;">
-    <button type="button" onclick="igToggleAcc('sp-acc-uso',this)" aria-expanded="false" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--bg3);border:none;color:var(--text);font-family:inherit;font-size:14px;font-weight:700;padding:12px 16px;cursor:pointer;">
+    <button type="button" onclick="igToggleAcc('sp-acc-uso',this)" aria-expanded="false" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--surface);border:none;color:var(--text)!important;font-family:inherit;font-size:14px;font-weight:700;padding:12px 16px;cursor:pointer;">
       <span>ℹ️ Cómo usar esta herramienta</span>
       <span class="igacc-chev" style="font-size:.8rem;">▶</span>
     </button>
@@ -2542,7 +2542,7 @@ window.cerrarSesion = cerrarSesion;
 
   <!-- ACORDEÓN 2 — Patrones (colapsado por defecto) -->
   <div style="border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden;">
-    <button type="button" onclick="igToggleAcc('sp-acc-patrones',this)" aria-expanded="false" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--bg3);border:none;color:var(--text);font-family:inherit;font-size:14px;font-weight:700;padding:12px 16px;cursor:pointer;">
+    <button type="button" onclick="igToggleAcc('sp-acc-patrones',this)" aria-expanded="false" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--surface);border:none;color:var(--text)!important;font-family:inherit;font-size:14px;font-weight:700;padding:12px 16px;cursor:pointer;">
       <span>📊 Patrones</span>
       <span class="igacc-chev" style="font-size:.8rem;">▼</span>
     </button>
@@ -12349,6 +12349,9 @@ async function generarPDF() {
     setV('im_grado', val('esq-im')); setV('ia_grado', val('esq-iao')); setV('it_grado', val('esq-it'));
     setV('em_grado', SEVTXT[parseInt(val('esq-em')||'0',10)]);
     setV('ea_grado', SEVTXT[parseInt(val('esq-eao')||'0',10)]);
+    // et_grado tiene opciones con texto (sin value="") → mapear a su texto exacto, no a SEVTXT
+    const ETTXT = {0:'Sin estenosis',1:'Leve',2:'Moderada',3:'Severa'};
+    setV('et_grado', ETTXT[parseInt(val('esq-et')||'0',10)]);
     setV('vp_morf', val('esq-vp'));
     // Pre-rasterizar el esquema (rasterizado del SVG es async; el PDF es sync) para incluirlo.
     // Re-render primero para que #esq-estenosis / #esq-jets / #esq-labels estén al día.
@@ -12827,6 +12830,7 @@ function generarPDFReal() {
     {titulo:'Válvula Tricúspide', items:[
       {lbl:'Morf.',         ref:'', val:sv('vt_morf')||null},
       {lbl:'IT',            ref:'', val:itG?GT[itG]:null},
+      {lbl:'ET grado',      ref:'', val:(sv('et_grado')&&sv('et_grado')!=='Sin estenosis')?sv('et_grado'):null},
       {lbl:'VC IT',         ref:'(<3 / 3–7 / >7) mm', val:v('it_vc')?v('it_vc')+' mm':null},
       {lbl:'EROA IT',       ref:'(<20 / 20–40 / ≥40) mm²', val:v('it_eroa')?v('it_eroa')+' mm2':null},
       {lbl:'Grad. VD-AD',   ref:'', val:v('vmax_it')?(4*v('vmax_it')*v('vmax_it')).toFixed(0)+' mmHg':null},
@@ -20148,8 +20152,8 @@ const ESQ_PATHS={"path17": "m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8
   }
   function drawLabels(gEl){
     while(gEl.firstChild)gEl.removeChild(gEl.firstChild);
-    const fevi=gv('fevi'); if(fevi!=='')addLabel(gEl,109,85,'FEVI',fevi+' %');
-    const tapse=gv('tapse'); if(tapse!=='')addLabel(gEl,47,148,'TAPSE',tapse+' mm');
+    const fevi=gv('fevi'); if(fevi!=='')addLabel(gEl,95,120,'FEVI',fevi+' %');
+    const tapse=gv('tapse'); if(tapse!=='')addLabel(gEl,58,148,'TAPSE',tapse+' mm');
     const adArea=gv('ad_area'); if(adArea!=='')addLabel(gEl,66,220,'AD área',adArea+' cm²');
     const ai=aiLabel(); if(ai)addLabel(gEl,113,222,ai.name,ai.val);
   }
