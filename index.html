@@ -391,24 +391,23 @@
   }
 
 
-/* ═══ Tab Válvulas — 2 columnas: contenido (izq) + corazón A5C sticky al 70% (der) ═══ */
-#tab-valvulas .valv-layout{display:flex;gap:16px;align-items:flex-start;}
-#tab-valvulas .valv-left{flex:1;min-width:0;}
-#tab-valvulas .valv-right{width:170px;flex:0 0 170px;}
-#tab-valvulas .valv-right #valv-svg-host{position:sticky;top:12px;display:flex;justify-content:center;}
-#tab-valvulas .valv-right #esq-svg{display:block;width:100%;max-width:154px;height:auto;aspect-ratio:140/235;overflow:visible;}
-/* Achicar variables de la columna izquierda: más datos en menos espacio, sin perder legibilidad */
-#tab-valvulas .valv-left label{font-size:.78rem;}
-#tab-valvulas .valv-left input,#tab-valvulas .valv-left select,#tab-valvulas .valv-left textarea{font-size:.78rem;padding:5px;}
-/* Pills de severidad (Insuficiencia / Estenosis) por válvula */
-#tab-valvulas .sev-pills{display:flex;gap:8px;margin:2px 0 12px;}
-#tab-valvulas .sev-pill{flex:1;position:relative;}
-#tab-valvulas .sev-pill-btn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:.76rem;font-weight:600;padding:5px 10px;border-radius:999px;border:1px solid var(--border);background:var(--bg3,#0f172a);color:var(--text);cursor:pointer;}
-#tab-valvulas .sev-pill-btn .sev-dot{width:8px;height:8px;border-radius:50%;flex:0 0 8px;background:currentColor;}
-#tab-valvulas .sev-pill-btn .sev-cae{font-size:.6rem;opacity:.7;}
-#tab-valvulas .sev-pill-menu{display:none;position:absolute;z-index:20;left:0;right:0;top:calc(100% + 3px);background:var(--bg2);border:1px solid var(--border);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.4);overflow:hidden;}
+/* ═══ Tab Válvulas — pills de severidad bajo los botones Insuf/Estenosis ═══ */
+/* Botones Insuficiencia/Estenosis a 50/50 para que las pills alineen exacto debajo */
+#tab-valvulas .valv-pill{flex:1;justify-content:center;}
+/* Achicar variables: más datos en menos espacio, sin perder legibilidad */
+#tab-valvulas label{font-size:.78rem;}
+#tab-valvulas input,#tab-valvulas select,#tab-valvulas textarea{font-size:.78rem;padding:5px;}
+/* Fila de pills: mismo display:flex y gap que los botones de arriba; align-start para el acordeón */
+#tab-valvulas .sev-pills{display:flex;gap:8px;margin:0 0 12px;align-items:flex-start;}
+#tab-valvulas .sev-pill{flex:1;min-width:0;}
+/* Pill fina: mismo ancho que el botón de arriba (50%), altura mínima (override del min-height:44px global) */
+#tab-valvulas .sev-pill-btn{width:100%;min-height:0;min-width:0;line-height:1.3;white-space:nowrap;display:flex;align-items:center;justify-content:center;gap:5px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg3,#0f172a);color:var(--text);cursor:pointer;}
+#tab-valvulas .sev-pill-btn .sev-dot{width:7px;height:7px;border-radius:50%;flex:0 0 7px;background:currentColor;}
+#tab-valvulas .sev-pill-btn .sev-cae{font-size:9px;opacity:.7;}
+/* Acordeón EN FLUJO (display:block) — empuja el contenido de abajo, nunca position:absolute */
+#tab-valvulas .sev-pill-menu{display:none;margin-top:3px;background:var(--bg2);border:1px solid var(--border);border-radius:7px;overflow:hidden;}
 #tab-valvulas .sev-pill.open .sev-pill-menu{display:block;}
-#tab-valvulas .sev-pill-menu button{display:block;width:100%;text-align:left;font-size:.76rem;padding:6px 12px;border:none;background:none;color:var(--text);cursor:pointer;}
+#tab-valvulas .sev-pill-menu button{display:block;width:100%;min-height:0;min-width:0;text-align:left;font-size:12px;padding:6px 12px;border:none;background:none;color:var(--text);cursor:pointer;}
 #tab-valvulas .sev-pill-menu button:hover{background:var(--bg3,#1e293b);}
 /* colores de severidad (texto = color según nivel) */
 #tab-valvulas .sev-lvl0{color:var(--text2);}
@@ -418,7 +417,6 @@
 html.light-mode #tab-valvulas .sev-lvl1{color:#166534;}
 html.light-mode #tab-valvulas .sev-lvl2{color:#78350f;}
 html.light-mode #tab-valvulas .sev-lvl3{color:#7f1d1d;}
-@media (max-width:768px){ #tab-valvulas .valv-layout{flex-direction:column;} #tab-valvulas .valv-right{width:100%;flex:none;} }
 
 /* ═══ Severidad válvulas ═══ */
 /* Layout 2 columnas: tabla de severidades (izq) + SVG del corazón al 70% (der) */
@@ -1630,8 +1628,6 @@ window.cerrarSesion = cerrarSesion;
 
 <!-- ═══════════════════════ TAB: VÁLVULAS ═══════════════════════ -->
 <div id="tab-valvulas" class="tab-section">
-  <div class="valv-layout">
-  <div class="valv-left">
 
   <div class="card" style="margin-bottom:6px;">
     <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('valv-mitral',this)">
@@ -2131,9 +2127,7 @@ window.cerrarSesion = cerrarSesion;
   </div>
   </div>
 
-  </div><!-- /.valv-left -->
-  <aside class="valv-right"><div id="valv-svg-host"></div></aside>
-  </div><!-- /.valv-layout -->
+
 </div>
 
 <!-- ═══════════════════════ TAB: HEMODINÁMICA ═══════════════════════ -->
@@ -20424,7 +20418,8 @@ window.esqPills=(function(){
     const lvl=levelOf(field), txt=(isIns?INS_TXT:EST_TXT)[lvl];
     const pill=document.createElement('div'); pill.className='sev-pill';
     const btn=document.createElement('button'); btn.type='button'; btn.className='sev-pill-btn sev-lvl'+lvl;
-    btn.innerHTML='<span class="sev-dot"></span><span>'+lbl+': '+txt+'</span><span class="sev-cae">▾</span>';
+    // Sin prefijo Insuf/Esten: el botón de arriba ya lo indica. Muestra "· <severidad> ▾" (ej. estudio)
+    btn.innerHTML='<span class="sev-dot"></span><span>'+txt+'</span><span class="sev-cae">▾</span>';
     const menu=document.createElement('div'); menu.className='sev-pill-menu';
     (isIns?INS_TXT:EST_TXT).forEach((ot,i)=>{ const ob=document.createElement('button'); ob.type='button'; ob.className='sev-lvl'+i; ob.textContent=ot;
       ob.addEventListener('click',ev=>{ ev.stopPropagation(); setLevel(field,isIns,i); pill.classList.remove('open'); render(); if(window.esqRender)esqRender(); });
