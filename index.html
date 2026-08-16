@@ -2077,7 +2077,7 @@ window.cerrarSesion = cerrarSesion;
 </div>
 
 <!-- ═══════════════════════ TAB: HEMODINÁMICA ═══════════════════════ -->
-<div id="tab-esquema-valvulas" class="tab-section" style="display:none;">
+<div id="tab-esquema-valvulas" class="tab-section">
   <h2 style="display:flex;align-items:center;gap:8px;">🫀 Esquema de válvulas</h2>
   <p style="font-size:12px;color:var(--text2);margin:-4px 0 12px;">Diagrama A5C con las severidades valvulares del estudio. Los datos se toman de las otras secciones al entrar; podés ajustarlos acá para el diagrama y el PDF.</p>
   <div class="esq-grid">
@@ -9304,7 +9304,9 @@ function showTab(id) {
   document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + id).classList.add('active');
-  event.target.classList.add('active');
+  if (typeof event !== 'undefined' && event && event.target) event.target.classList.add('active');
+  // Esquema de válvulas: sincroniza y (re)dibuja el diagrama al mostrar la tab (rail, drawer o programático)
+  if (id === 'esquema-valvulas' && typeof esqValvOnShow === 'function') esqValvOnShow();
 }
 
 // ══ HELPERS ══
