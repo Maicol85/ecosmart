@@ -20219,17 +20219,23 @@ const ESQ_PATHS={"path17": "m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8
   }
   window.esqRender=esqRender;
 
-  function syncFromEstudio(){
-    const setSel=(id,v)=>{const e=g(id);if(e)e.value=String(v);};
-    setSel('esq-it', selIntSafe('it_grado'));
-    setSel('esq-iao', selIntSafe('ia_grado'));
-    setSel('esq-im', selIntSafe('im_grado'));
-    setSel('esq-em', textToSev(gv('em_grado')));
-    setSel('esq-eao', textToSev(gv('ea_grado')));
-    // ET (estenosis tricuspide): sin fuente en el estudio -> 0
-    const vp=g('vp_morf'), evp=g('esq-vp'); if(vp&&evp)evp.value=vp.value;
-  }
   function selIntSafe(id){const e=g(id);if(!e)return 0;const v=parseInt(String(e.value||'0'),10);return isNaN(v)?0:v;}
+  // Pre-puebla los selectores de la tabla desde los campos fuente de verdad (los que calcula la
+  // tab Válvulas). Guard: SOLO si el selector está en 0 (ausente) y la fuente indica severidad,
+  // para no pisar un cambio manual del médico. Insuficiencias: *_grado es 0-4 (5 niveles) y el
+  // selector 0-3 → mod-severa(3) y severa(4) mapean ambos a severa(3). Estenosis: texto → 0-3.
+  const _INS5to4=[0,1,2,3,3];
+  function esqPrePoblar(){
+    const set=(esqId,v)=>{ const e=g(esqId); if(!e) return; if((parseInt(e.value)||0)!==0) return; if(v>0) e.value=String(v); };
+    set('esq-im',  _INS5to4[selIntSafe('im_grado')]||0);
+    set('esq-iao', _INS5to4[selIntSafe('ia_grado')]||0);
+    set('esq-it',  _INS5to4[selIntSafe('it_grado')]||0);
+    set('esq-em',  textToSev(gv('em_grado')));    // 'sin'→0 'leve'→1 'moderada'→2 'severa'→3
+    set('esq-eao', textToSev(gv('ea_grado')));    // 'esclerosis'→0
+    set('esq-et',  textToSev(gv('et_grado')));    // 'Sin estenosis'→0 (textToSev minúsculiza)
+    const vp=g('vp_morf'), evp=g('esq-vp'); if(vp&&evp && evp.selectedIndex===0 && vp.value) evp.value=vp.value;
+  }
+  window.esqPrePoblar=esqPrePoblar;
 
   // Columna "Doppler" de la tabla de severidad: muestra el dato calculado de cada válvula
   // (sincronizado con lo cargado) y atenúa la fila si no hay dato. [key, campo, etiqueta, unidad]
@@ -20246,7 +20252,7 @@ const ESQ_PATHS={"path17": "m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8
   window.esqUpdateDoppler=esqUpdateDoppler;
 
   window.esqValvOnShow=function(){
-    if(!window.esqValvVisitada){ try{syncFromEstudio();}catch(e){} }
+    try{ esqPrePoblar(); }catch(e){}     // cada vez que se abre: pre-poblar desde la fuente (con guard)
     window.esqValvVisitada=true;
     window.esqValvEnPDF=false;           // el SVG del corazón NUNCA va al PDF (las severidades sí,
                                          // vía los campos sincronizados y el narrativo — esqValvVisitada)
