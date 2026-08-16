@@ -20248,7 +20248,8 @@ const ESQ_PATHS={"path17": "m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8
   window.esqValvOnShow=function(){
     if(!window.esqValvVisitada){ try{syncFromEstudio();}catch(e){} }
     window.esqValvVisitada=true;
-    window.esqValvEnPDF=true;            // sin botón toggle: al revisar la tab, se incluye en el PDF
+    window.esqValvEnPDF=false;           // el SVG del corazón NUNCA va al PDF (las severidades sí,
+                                         // vía los campos sincronizados y el narrativo — esqValvVisitada)
     try{ esqUpdateDoppler(); }catch(e){}
     esqRender();
   };
