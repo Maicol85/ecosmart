@@ -763,7 +763,7 @@ window.cerrarSesion = cerrarSesion;
       align-items:center;gap:4px;">
       📤 Exportar para Analytics
     </button>
-    <button class="btn btn-primary" onclick="generarInforme()">📝 Generar Informe</button>
+    <button class="btn btn-primary" onclick="generarInformeConEvolucion()">📝 Generar Informe</button>
     <span style="display:inline-flex;flex-direction:column;align-items:center;gap:4px;">
       <button class="btn btn-green" onclick="generarPDF()">⬇️ PDF</button>
       <span style="display:inline-flex;gap:4px;" title="Color del PDF">
@@ -8081,7 +8081,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         </label>
       </div>
       <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
-        <button class="btn btn-primary" onclick="generarInforme()">🔄 Regenerar Informe</button>
+        <button class="btn btn-primary" onclick="generarInformeConEvolucion()">🔄 Regenerar Informe</button>
         <button class="btn btn-green" onclick="generarPDF()">⬇️ Exportar PDF</button>
         <button class="btn btn-save" onclick="guardarInforme()">💾 Guardar Informe</button>
         <button class="btn btn-ghost" onclick="abrirModoComparativo()" id="btn-comparativo">🔀 Modo comparativo</button>
@@ -20280,6 +20280,167 @@ const ESQ_PATHS={"path17": "m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initEsq); else initEsq();
 })();
 
+</script>
+<script>
+/* ══ Modal comparativo de evolución (antes de generar el informe) ══
+   Si existe un estudio previo guardado con la misma CI (#ci), muestra un modal
+   informativo (solo lectura) comparando previo vs actual. Al cerrar (X) genera el informe.
+   Si no hay previo, genera directo. */
+(function(){
+  const VERDE='#16a34a', ROJO='#dc2626', GRIS='#94a3b8';
+  const esc = s => (typeof escHtml==='function') ? escHtml(s) : String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const num = x => { const f=parseFloat(String(x==null?'':x).replace(',','.')); return isNaN(f)?null:f; };
+  const fmt = x => (Math.round(x*10)/10).toString();
+  const bsaOf = src => { const p=num(src('peso')), t=num(src('talla')); return (p&&t)?Math.sqrt(p*t/3600):null; };
+  const GRTXT = ['ausente','leve','moderada','moderada-severa','severa'];
+
+  // Función diastólica simplificada (ASE 2016: E/e'>14, TR>2.8 m/s, LAVI>34) — misma regla para ambos
+  function diastGrade(src){
+    const ep=num(src('e_sep')), el=num(src('e_lat')), E=num(src('onda_e'));
+    const eprom=(ep&&el)?(ep+el)/2:(ep||el||null);
+    const ee=(E&&eprom)?E/eprom:null;
+    const tr=num(src('vmax_it'));
+    const b=bsaOf(src), avol=num(src('ai_vol')); const lavi=(avol&&b)?avol/b:null;
+    let pos=0, tot=0;
+    if(ee!=null){tot++; if(ee>14)pos++;}
+    if(tr!=null){tot++; if(tr>2.8)pos++;}
+    if(lavi!=null){tot++; if(lavi>34)pos++;}
+    if(tot<2) return null;
+    if(pos>=2) return 'Presiones elevadas';
+    if(pos===1) return 'Indeterminada';
+    return 'Normal';
+  }
+
+  const ROWS = [
+    {k:'fevi', lbl:'FEVI', u:'%', dir:'up'},
+    {k:'sgl', alt:'sgl_gls', lbl:'SGL', u:'%', dir:'down'},
+    {k:'tapse', lbl:'TAPSE', u:'mm', dir:'up'},
+    {k:'s_prime', lbl:"Onda S'", u:'cm/s', dir:'up'},
+    {k:'siv', lbl:'Septum (SIV)', u:'mm', dir:'down'},
+    {k:'ddfvi', lbl:'DDVI', u:'mm', dir:'down'},
+    {k:'ppvi', lbl:'PPd', u:'mm', dir:'down'},
+    {k:'ai_area', lbl:'AI área', u:'cm²', dir:'down'},
+    {calc:'lavi', lbl:'Vol AI index', u:'ml/m²', dir:'down'},
+    {k:'ad_area', lbl:'AD área', u:'cm²', dir:'down'},
+    {calc:'ea', lbl:'Onda E/A', u:'', dir:'none'},
+    {calc:'ee', lbl:"E/e' promedio", u:'', dir:'down'},
+    {calc:'diast', lbl:'Función diastólica', dir:'none', cat:true},
+    {ins:'im_grado', lbl:'IM', dir:'down'},
+    {ins:'ia_grado', lbl:'IAo', dir:'down'},
+    {ins:'it_grado', lbl:'IT', dir:'down'},
+    {k:'psap_calc', lbl:'PSAP estimada', u:'mmHg', dir:'down'},
+  ];
+
+  function rowVal(row, src){
+    if(row.ins){ const g=parseInt(src(row.ins))||0; return {num:g, txt:g>0?GRTXT[g]:'ausente'}; }
+    if(row.calc==='lavi'){ const b=bsaOf(src), a=num(src('ai_vol')); const v=(a&&b)?a/b:null; return {num:v, txt:v==null?'—':fmt(v)+' ml/m²'}; }
+    if(row.calc==='ea'){ const E=num(src('onda_e')),A=num(src('onda_a')); const v=(E&&A)?E/A:null; return {num:v, txt:v==null?'—':fmt(v)}; }
+    if(row.calc==='ee'){ const E=num(src('onda_e')),ep=num(src('e_sep')),el=num(src('e_lat')); const em=(ep&&el)?(ep+el)/2:(ep||el||null); const v=(E&&em)?E/em:null; return {num:v, txt:v==null?'—':fmt(v)}; }
+    if(row.calc==='diast'){ const gg=diastGrade(src); return {num:null, txt:gg||'—'}; }
+    let v=num(src(row.k)); if(v==null && row.alt) v=num(src(row.alt));
+    return {num:v, txt:v==null?'—':(fmt(v)+(row.u?(' '+row.u):''))};
+  }
+
+  function deltaCell(row, pv, av){
+    if(row.cat || row.dir==='none' || pv.num==null || av.num==null) return {txt:'—', c:GRIS};
+    const d = av.num - pv.num;
+    if(Math.abs(d) < 1e-9) return {txt:'—', c:GRIS};
+    const mejor = row.dir==='up' ? d>0 : d<0;
+    return {txt:(d>0?'↑ +':'↓ ')+fmt(d)+(row.u?(' '+row.u):''), c: mejor?VERDE:ROJO};
+  }
+
+  function indicacionActual(){
+    const ch = Array.from(document.querySelectorAll('.ind-chk:checked')).map(c=>c.dataset.val);
+    const otro = (document.getElementById('ind_otro')||{}).value || '';
+    return [ch.join(', '), otro.trim()].filter(Boolean).join(', ') || '—';
+  }
+  function indicacionPrevia(pc){
+    const arr = Array.isArray(pc.indicaciones) ? pc.indicaciones : [];
+    return [arr.join(', '), (pc.ind_otro||'').trim()].filter(Boolean).join(', ') || '—';
+  }
+
+  function mostrarModalEvolucion(prev){
+    if(document.getElementById('evol-modal-overlay')) return;
+    const pc = prev.campos || {};
+    const curSrc  = id => { const e=document.getElementById(id); return e ? e.value : ''; };
+    const prevSrc = id => (pc[id]!=null ? pc[id] : '');
+
+    // Cabecera
+    const cab = (titulo, nombre, ci, fecha, peso, talla, indic) =>
+      '<div style="flex:1;min-width:0;background:var(--bg3,#0f172a);border:1px solid var(--border);border-radius:8px;padding:8px 10px;">'+
+        '<div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--accent2,#2dd4bf);margin-bottom:4px;">'+esc(titulo)+'</div>'+
+        '<div style="font-size:12px;color:var(--text);font-weight:600;">'+esc(nombre||'—')+'</div>'+
+        '<div style="font-size:11px;color:var(--text2);line-height:1.7;">CI '+esc(ci||'—')+' · '+esc(fecha||'—')+'<br>'+
+          esc(peso||'—')+' kg · '+esc(talla||'—')+' cm<br>'+
+          '<span style="color:var(--text2)">Indic.:</span> '+esc(indic)+'</div>'+
+      '</div>';
+
+    const fPrev = prev.fecha_estudio ? String(prev.fecha_estudio).split('-').reverse().join('/') : (pc.fecha||'—');
+    const fAct  = (function(){ const f=curSrc('fecha'); return f ? f.split('-').reverse().join('/') : '—'; })();
+    const cabecera =
+      '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">'+
+        cab('Estudio previo', prev.nombre||pc.nombre, prev.ci, fPrev, pc.peso, pc.talla, indicacionPrevia(pc))+
+        cab('Estudio actual', curSrc('nombre'), curSrc('ci'), fAct, curSrc('peso'), curSrc('talla'), indicacionActual())+
+      '</div>';
+
+    // Tabla comparativa
+    let filas='';
+    ROWS.forEach(row=>{
+      const pv=rowVal(row, prevSrc), av=rowVal(row, curSrc), dl=deltaCell(row, pv, av);
+      filas +=
+        '<tr style="border-top:1px solid var(--border);">'+
+          '<td style="padding:4px 8px;color:var(--text2);white-space:nowrap;">'+esc(row.lbl)+'</td>'+
+          '<td style="padding:4px 8px;text-align:right;color:var(--text);">'+esc(pv.txt)+'</td>'+
+          '<td style="padding:4px 8px;text-align:right;color:var(--text);font-weight:600;">'+esc(av.txt)+'</td>'+
+          '<td style="padding:4px 8px;text-align:right;font-weight:700;color:'+dl.c+';white-space:nowrap;">'+esc(dl.txt)+'</td>'+
+        '</tr>';
+    });
+    const tabla =
+      '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px;">'+
+        '<thead><tr style="font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);">'+
+          '<th style="padding:4px 8px;text-align:left;">Parámetro</th>'+
+          '<th style="padding:4px 8px;text-align:right;">Previo</th>'+
+          '<th style="padding:4px 8px;text-align:right;">Actual</th>'+
+          '<th style="padding:4px 8px;text-align:right;">Δ</th>'+
+        '</tr></thead><tbody>'+filas+'</tbody></table>';
+
+    // Informe previo (máximo 3 líneas)
+    const infPrev = (pc.informe_texto||'').trim();
+    const bloqueInf = infPrev
+      ? '<div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--accent2,#2dd4bf);margin-bottom:4px;">Informe previo</div>'+
+        '<div style="font-size:12px;color:var(--text2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">'+esc(infPrev)+'</div>'
+      : '';
+
+    const ov=document.createElement('div');
+    ov.id='evol-modal-overlay';
+    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px;';
+    ov.innerHTML=
+      '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:640px;width:100%;max-height:90vh;overflow:auto;padding:18px 20px;box-shadow:0 10px 40px rgba(0,0,0,0.5);position:relative;">'+
+        '<button id="evol-close" title="Cerrar" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:20px;line-height:1;color:var(--text2);cursor:pointer;">✕</button>'+
+        '<div style="font-size:15px;font-weight:700;color:var(--accent2,#2dd4bf);margin:0 0 4px;">📈 Evolución respecto al estudio previo</div>'+
+        '<p style="font-size:11px;color:var(--text2);margin:0 0 12px;">Comparación informativa (solo lectura). Al cerrar se genera el informe.</p>'+
+        cabecera + tabla + bloqueInf +
+      '</div>';
+    document.body.appendChild(ov);
+    const cerrar = () => { if(ov.parentNode) ov.parentNode.removeChild(ov); document.removeEventListener('keydown', onKey); if(typeof generarInforme==='function') generarInforme(); };
+    const onKey = e => { if(e.key==='Escape') cerrar(); };
+    ov.querySelector('#evol-close').addEventListener('click', cerrar);
+    document.addEventListener('keydown', onKey);
+  }
+  window.mostrarModalEvolucion = mostrarModalEvolucion;
+
+  // Wrapper del botón "Generar Informe": muestra el modal si hay estudio previo con la misma CI.
+  window.generarInformeConEvolucion = function(){
+    try{
+      const ci = ((document.getElementById('ci')||{}).value || '').trim();
+      if(ci && typeof getInformes==='function'){
+        const prev = getInformes().find(i => (String(i.ci||'').trim()===ci) && i.id !== window._ettEditandoId);
+        if(prev){ mostrarModalEvolucion(prev); return; }
+      }
+    }catch(e){ /* ante cualquier error, generar directo */ }
+    if(typeof generarInforme==='function') generarInforme();
+  };
+})();
 </script>
 </body>
 </html>
