@@ -959,7 +959,7 @@ window.cerrarSesion = cerrarSesion;
 <!-- ═══════════════════════ TAB: DATOS PACIENTE ═══════════════════════ -->
 <div id="tab-datos" class="tab-section active">
   <div class="card sacc" id="sacc-pac">
-    <button type="button" class="sacc-hdr" onclick="secToggle('pac')" aria-expanded="false"><span class="sacc-arrow">▶</span>📋 Datos del paciente</button>
+    <button type="button" class="sacc-hdr" onclick="secToggle('pac')" aria-expanded="false"><span class="sacc-arrow">▶</span>Datos del paciente</button>
     <div class="card-body sacc-body">
       <div class="grid-4">
         <div class="fg">
@@ -1021,9 +1021,12 @@ window.cerrarSesion = cerrarSesion;
           <span class="calc-val" id="imc-val">— kg/m²</span>
         </div>
       </div>
-      <div class="divider"></div>
+    </div>
+  </div>
 
-      <div class="fg" style="margin-top:8px;">
+  <div class="card sacc" id="sacc-ind">
+    <button type="button" class="sacc-hdr" onclick="secToggle('ind')" aria-expanded="false"><span class="sacc-arrow">▶</span>Indicaciones</button>
+    <div class="card-body sacc-body">
         <div class="acc" id="acc-ind">
           <button type="button" class="acc-hdr" onclick="accToggle('ind')" aria-expanded="false">
             <span class="acc-arrow">▶</span>
@@ -1054,9 +1057,12 @@ window.cerrarSesion = cerrarSesion;
             </div>
           </div>
         </div>
-      </div>
+    </div>
+  </div>
 
-      <div class="fg" style="margin-top:8px;">
+  <div class="card sacc" id="sacc-ant">
+    <button type="button" class="sacc-hdr" onclick="secToggle('ant')" aria-expanded="false"><span class="sacc-arrow">▶</span>Antecedentes</button>
+    <div class="card-body sacc-body">
         <div class="acc" id="acc-ant">
           <button type="button" class="acc-hdr" onclick="accToggle('ant')" aria-expanded="false">
             <span class="acc-arrow">▶</span>
@@ -1089,8 +1095,12 @@ window.cerrarSesion = cerrarSesion;
             </div>
           </div>
         </div>
-      </div>
+    </div>
+  </div>
 
+  <div class="card sacc" id="sacc-centro">
+    <button type="button" class="sacc-hdr" onclick="secToggle('centro')" aria-expanded="false"><span class="sacc-arrow">▶</span>Centro / Médico solicitante</button>
+    <div class="card-body sacc-body">
       <div class="fg" style="margin-top:8px;">
         <label>Centro / Institución</label>
         <div id="centro-field-wrap"></div>
@@ -1118,7 +1128,7 @@ window.cerrarSesion = cerrarSesion;
   <div class="grid-2" style="align-items:start">
 
     <div class="card sacc" id="sacc-aorta">
-      <button type="button" class="sacc-hdr" onclick="secToggle('aorta')" aria-expanded="false"><span class="sacc-arrow">▶</span>🫀 Aorta torácica</button>
+      <button type="button" class="sacc-hdr" onclick="secToggle('aorta')" aria-expanded="false"><span class="sacc-arrow">▶</span>Aorta torácica</button>
       <div class="card-body sacc-body">
         <div class="grid-3">
           <div class="fg">
@@ -1166,7 +1176,7 @@ window.cerrarSesion = cerrarSesion;
     </div>
 
     <div class="card sacc" id="sacc-ai">
-      <button type="button" class="sacc-hdr" onclick="secToggle('ai')" aria-expanded="false"><span class="sacc-arrow">▶</span>🫀 Aurícula izquierda</button>
+      <button type="button" class="sacc-hdr" onclick="secToggle('ai')" aria-expanded="false"><span class="sacc-arrow">▶</span>Aurícula izquierda</button>
       <div class="card-body sacc-body">
         <div class="grid-3">
           <div class="fg">
@@ -1207,7 +1217,7 @@ window.cerrarSesion = cerrarSesion;
 
   <!-- VI -->
   <div class="card sacc" id="sacc-vi">
-    <button type="button" class="sacc-hdr" onclick="secToggle('vi')" aria-expanded="false"><span class="sacc-arrow">▶</span>🫀 Ventrículo izquierdo</button>
+    <button type="button" class="sacc-hdr" onclick="secToggle('vi')" aria-expanded="false"><span class="sacc-arrow">▶</span>Ventrículo izquierdo</button>
     <div class="card-body sacc-body">
       <div class="grid-4">
         <div class="fg">
@@ -1289,7 +1299,7 @@ window.cerrarSesion = cerrarSesion;
 <!-- ═══════════════════════ TAB: VD / AD ═══════════════════════ -->
 <div id="tab-vd" class="tab-section">
   <div class="card sacc" id="sacc-vd">
-    <button type="button" class="sacc-hdr" onclick="secToggle('vd')" aria-expanded="false"><span class="sacc-arrow">▶</span>🫀 Ventrículo derecho</button>
+    <button type="button" class="sacc-hdr" onclick="secToggle('vd')" aria-expanded="false"><span class="sacc-arrow">▶</span>Ventrículo derecho</button>
     <div class="card-body sacc-body">
       <div class="grid-3">
         <div class="fg">
@@ -1355,7 +1365,7 @@ window.cerrarSesion = cerrarSesion;
   </div>
 
   <div class="card sacc" id="sacc-ad">
-    <button type="button" class="sacc-hdr" onclick="secToggle('ad')" aria-expanded="false"><span class="sacc-arrow">▶</span>🫀 Aurícula derecha y VCI</button>
+    <button type="button" class="sacc-hdr" onclick="secToggle('ad')" aria-expanded="false"><span class="sacc-arrow">▶</span>Aurícula derecha y VCI</button>
     <div class="card-body sacc-body">
       <div class="grid-4">
         <div class="fg">
@@ -2424,7 +2434,7 @@ window.cerrarSesion = cerrarSesion;
 </div>
 <div id="tab-contractilidad" class="tab-section">
   <div class="card sacc" id="sacc-contr">
-    <button type="button" class="sacc-hdr" onclick="secToggle('contr')" aria-expanded="false"><span class="sacc-arrow">▶</span>🎯 Contractilidad segmentaria</button>
+    <button type="button" class="sacc-hdr" onclick="secToggle('contr')" aria-expanded="false"><span class="sacc-arrow">▶</span>Contractilidad segmentaria</button>
     <div class="card-body sacc-body">
       <p style="font-size:11px;color:var(--text2);margin:0 0 14px;">Tocá un segmento en cualquier vista: cicla la motilidad y se refleja en el resto de las vistas, en el bull's eye y en el informe.</p>
 
@@ -2535,7 +2545,7 @@ window.cerrarSesion = cerrarSesion;
 <!-- ═══════════════════════ TAB: SGL ═══════════════════════ -->
 <div id="tab-sgl" class="tab-section">
   <div class="card sacc" id="sacc-sgl">
-    <button type="button" class="sacc-hdr" onclick="secToggle('sgl')" aria-expanded="false"><span class="sacc-arrow">▶</span>📊 Strain Longitudinal Global (SGL)</button>
+    <button type="button" class="sacc-hdr" onclick="secToggle('sgl')" aria-expanded="false"><span class="sacc-arrow">▶</span>Strain Longitudinal Global (SGL)</button>
     <div class="card-body sacc-body">
       <p style="font-size:11px;color:var(--text2);margin:0 0 14px;">Tocá cada segmento del bull's eye para ciclar el strain según la escala General Electric (rojo = normal → azul = discinesia). 17 segmentos, sin números.</p>
       <div style="display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap;justify-content:center;">
