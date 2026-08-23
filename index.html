@@ -80,6 +80,14 @@
   header .spacer { flex: 1; }
   .hdr-btns { display: flex; gap: 8px; }
   .hdr-burger{display:none;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:7px;font-size:18px;line-height:1;padding:5px 11px;cursor:pointer;flex-shrink:0}
+  /* Acceso directo al PDF en el header móvil (en PC el botón vive en el menú ⋮).
+     El background lo pisa setPdfColor() con el color de PDF guardado; el valor de acá
+     es el fallback por si el JS todavía no corrió. */
+  #hdr-pdf-quick{display:none;background:#1a3a5c}
+  /* Disparadores de los acordeones de filtros en Guardados: más chicos y de otro color que
+     los botones de acción (Exportar/Importar/Eliminar), para no confundirlos con ellos. */
+  .ig-filtro-btn{display:inline-flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:11px;font-weight:600;padding:4px 10px;border-radius:7px;cursor:pointer;white-space:nowrap}
+  .ig-filtro-btn:hover{border-color:var(--accent)}
   /* Botones de acción al pie del contenido (patrón UltraSmart) */
   .foot-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;max-width:560px;margin:34px auto 12px;padding-top:20px;border-top:1px solid var(--border)}
   .foot-actions button{background:#0369A1;color:#fff;border:none;border-radius:8px;padding:11px 18px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.3)}
@@ -94,6 +102,9 @@
     .rail{display:none!important}
     .eco-tabsburger{display:inline-flex;align-items:center;order:-1}
     .hdr-burger{display:inline-flex;align-items:center;margin-left:auto}
+    #hdr-pdf-quick{display:inline-flex;align-items:center;gap:4px;color:#fff;border:none;border-radius:7px;padding:6px 10px;font-size:13px;font-weight:600;cursor:pointer;flex-shrink:0;transition:background .2s;margin-left:auto}
+    /* Con el botón PDF presente, el que se pega a la derecha es él; el burger queda a su lado. */
+    #hdr-pdf-quick ~ .hdr-burger{margin-left:0}
     #ecoHdrBtns{display:none;position:absolute;top:100%;right:6px;flex-direction:column;align-items:stretch;gap:6px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px;box-shadow:0 12px 34px rgba(0,0,0,.45);z-index:300;min-width:214px;max-height:78vh;overflow:auto}
     #ecoHdrBtns.open{display:flex}
     .eco-drawer{display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;width:252px;max-width:82vw;background:var(--bg2);border-right:1px solid var(--border);z-index:400;transform:translateX(-100%);transition:transform .25s;overflow-y:auto;padding:14px 0}
@@ -163,6 +174,33 @@
   /* padding vertical 0 al colapsar (si no, el padding de .card-body deja un sliver visible con max-height:0) */
   .sacc .sacc-body { max-height:0;overflow:hidden;transition:max-height .3s ease;padding-top:0;padding-bottom:0; }
   .sacc.open .sacc-body { padding-top:12px;padding-bottom:12px; }
+  /* PC (>=768px): los acordeones de Paciente/AI-VI/VD-AD/Contractilidad/SGL quedan siempre
+     expandidos, ignorando la clase .open y los estilos inline que deja secToggle() (de ahí los
+     !important). overflow:visible es obligatorio: con overflow:hidden Safari rompe el hit-test
+     de los controles del body. Doppler y Válvulas no tienen .sacc, no les aplica.
+     El header se mantiene visible como título de sección, pero deja de ser interactivo. */
+  @media (min-width: 768px) {
+    #tab-datos .sacc .sacc-body,
+    #tab-ai-vi .sacc .sacc-body,
+    #tab-vd .sacc .sacc-body,
+    #tab-contractilidad .sacc .sacc-body,
+    #tab-sgl .sacc .sacc-body { max-height:none !important;overflow:visible !important;padding-top:12px;padding-bottom:12px;transition:none; }
+    #tab-datos .sacc .sacc-hdr,
+    #tab-ai-vi .sacc .sacc-hdr,
+    #tab-vd .sacc .sacc-hdr,
+    #tab-contractilidad .sacc .sacc-hdr,
+    #tab-sgl .sacc .sacc-hdr { cursor:default;pointer-events:none; }
+    #tab-datos .sacc .sacc-hdr:hover,
+    #tab-ai-vi .sacc .sacc-hdr:hover,
+    #tab-vd .sacc .sacc-hdr:hover,
+    #tab-contractilidad .sacc .sacc-hdr:hover,
+    #tab-sgl .sacc .sacc-hdr:hover { background:none; }
+    #tab-datos .sacc .sacc-arrow,
+    #tab-ai-vi .sacc .sacc-arrow,
+    #tab-vd .sacc .sacc-arrow,
+    #tab-contractilidad .sacc .sacc-arrow,
+    #tab-sgl .sacc .sacc-arrow { display:none; }
+  }
   .acc-grid2 { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 12px;padding-top:6px; }
   .cfg-mod-item { display:flex;align-items:center;gap:9px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 11px;cursor:pointer;font-size:12.5px;color:var(--text); }
   .cfg-mod-item input { width:auto; }
@@ -780,6 +818,7 @@ window.cerrarSesion = cerrarSesion;
     <button id="logo-centro-del" type="button" onclick="logoDelete(event)" title="Quitar logo" style="display:none;position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:10px;line-height:1;cursor:pointer;padding:0;">✕</button>
   </div>
   <div class="spacer"></div>
+  <button id="hdr-pdf-quick" onclick="generarPDF()" title="Generar PDF" aria-label="Generar PDF">⬇️ PDF</button>
   <button class="hdr-burger" aria-label="Menú de acciones" onclick="document.getElementById('ecoHdrBtns').classList.toggle('open')">⋮</button>
   <div class="hdr-btns" id="ecoHdrBtns">
     <button class="btn btn-ghost" id="theme-toggle-btn" onclick="toggleTheme()" title="Cambiar modo día/noche">🌙 Noche</button>
@@ -2574,7 +2613,7 @@ window.cerrarSesion = cerrarSesion;
 
         <!-- CAMPOS (derecha) -->
         <div style="display:flex;flex-direction:column;gap:14px;min-width:230px;align-self:center;">
-          <div class="fg"><label>SGL global (%)</label><input type="number" id="sgl_gls" placeholder="%" step="0.1"></div>
+          <div class="fg"><label>SGL global (%)</label><input type="number" id="sgl_gls" placeholder="%" step="0.1" oninput="const s=document.getElementById('sgl'); if(s&&s.value!==this.value)s.value=this.value; calcSGL();"></div>
           <div class="fg"><label>Comentarios / notas de strain</label><textarea id="sgl_notas" placeholder="Observaciones de strain..." style="min-height:120px;"></textarea></div>
         </div>
 
@@ -8162,12 +8201,19 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     <div class="card">
       <h2 class="card-head">📋 Informes Guardados</h2>
       <div class="card-body">
-        <!-- Acciones de datos (no son filtros) -->
-        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
-          <button class="btn" onclick="exportarInformesJSON()" title="Exportar todos los informes a JSON">📤 Exportar JSON</button>
-          <button class="btn" onclick="document.getElementById('ig-import-file').click()" title="Importar informes desde un archivo JSON">📥 Importar JSON</button>
-          <input type="file" id="ig-import-file" accept=".json,application/json" style="display:none" onchange="if(this.files&&this.files[0]){importarInformesJSON(this.files[0]);this.value='';}">
-          <button class="btn btn-danger" onclick="limpiarTodosInformes()" title="Eliminar todos los informes">🗑️ Eliminar todos</button>
+        <!-- Fila: disparadores de filtros (izquierda) · acciones de datos (derecha) -->
+        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap;justify-content:space-between;">
+          <!-- Abren los acordeones de filtros, que siguen más abajo (misma igToggleAcc que antes) -->
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <button type="button" class="ig-filtro-btn" onclick="igToggleAcc('ig-acc-clinicos',this)" aria-expanded="false" aria-controls="ig-acc-clinicos" title="Mostrar/ocultar filtros clínicos">🩺 Filtros clínicos <span class="igacc-chev" style="font-size:.65rem;">▶</span></button>
+            <button type="button" class="ig-filtro-btn" onclick="igToggleAcc('ig-acc-numericos',this)" aria-expanded="false" aria-controls="ig-acc-numericos" title="Mostrar/ocultar filtros numéricos">🔢 Filtros numéricos <span class="igacc-chev" style="font-size:.65rem;">▶</span></button>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <button class="btn" onclick="exportarInformesJSON()" title="Exportar todos los informes a JSON">📤 Exportar JSON</button>
+            <button class="btn" onclick="document.getElementById('ig-import-file').click()" title="Importar informes desde un archivo JSON">📥 Importar JSON</button>
+            <input type="file" id="ig-import-file" accept=".json,application/json" style="display:none" onchange="if(this.files&&this.files[0]){importarInformesJSON(this.files[0]);this.value='';}">
+            <button class="btn btn-danger" onclick="limpiarTodosInformes()" title="Eliminar todos los informes">🗑️ Eliminar todos</button>
+          </div>
         </div>
 
         <!-- FILA COMPACTA SIEMPRE VISIBLE: buscador · fechas · casos de interés · limpiar -->
@@ -8194,13 +8240,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           <button class="btn btn-ghost" onclick="limpiarFiltros();limpiarFiltroFechas();" style="margin-bottom:1px;">🧹 Limpiar filtros</button>
         </div>
 
-        <!-- ACORDEÓN 1 — Filtros clínicos (colapsado por defecto) -->
-        <div style="border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden;">
-          <button type="button" onclick="igToggleAcc('ig-acc-clinicos',this)" aria-expanded="false" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--bg3);border:none;color:var(--text);font-family:inherit;font-size:.82rem;font-weight:700;padding:10px 14px;cursor:pointer;">
-            <span>🩺 Filtros clínicos</span>
-            <span class="igacc-chev" style="font-size:.7rem;">▶</span>
-          </button>
-          <div id="ig-acc-clinicos" style="display:none;padding:14px;">
+        <!-- ACORDEÓN 1 — Filtros clínicos (colapsado por defecto; lo abre el botón de la fila de arriba) -->
+        <div id="ig-acc-clinicos" style="display:none;padding:14px;border:1px solid var(--border);border-radius:8px;margin-bottom:10px;">
             <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;">
               <div class="fg" style="margin:0;min-width:120px;">
                 <label style="font-size:.72rem;">FEVI</label>
@@ -8250,15 +8291,9 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- ACORDEÓN 2 — Filtros numéricos (colapsado por defecto) -->
-        <div style="border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden;">
-          <button type="button" onclick="igToggleAcc('ig-acc-numericos',this)" aria-expanded="false" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--bg3);border:none;color:var(--text);font-family:inherit;font-size:.82rem;font-weight:700;padding:10px 14px;cursor:pointer;">
-            <span>🔢 Filtros numéricos</span>
-            <span class="igacc-chev" style="font-size:.7rem;">▶</span>
-          </button>
-          <div id="ig-acc-numericos" style="display:none;padding:14px;">
+        <!-- ACORDEÓN 2 — Filtros numéricos (colapsado por defecto; lo abre el botón de la fila de arriba) -->
+        <div id="ig-acc-numericos" style="display:none;padding:14px;border:1px solid var(--border);border-radius:8px;margin-bottom:10px;">
             <div style="display:flex;flex-wrap:wrap;gap:14px 24px;align-items:flex-start;font-size:.82rem;">
               <div>
                 <div style="font-weight:600;color:var(--text2);margin-bottom:5px;">FEVI (%)</div>
@@ -8276,7 +8311,6 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
               </div>
             </div>
           </div>
-        </div>
 
         <div id="filtro-resultado" style="font-size:.82rem;font-weight:600;color:var(--text2);margin:6px 0 12px;"></div>
         <div id="ig-lista"></div>
@@ -9438,15 +9472,21 @@ function v(id) {
   const n = PF(el.value.replace(',', '.'));
   return isNaN(n) ? null : n;
 }
-// Geometría VI unificada (usada por el informe narrativo y por la tabla del PDF)
+// Geometría VI unificada — ÚNICA FUENTE DE VERDAD.
+// La usan el informe narrativo, la tabla del PDF, el badge en pantalla y el export del Laboratorio.
+// Normaliza masa y RWT a la precisión que se IMPRIME en el informe (masa entera, RWT 2 decimales):
+// sin esto, un llamador que pasa el valor crudo y otro que pasa el redondeado clasifican distinto
+// cerca del umbral (ej. RWT 0.4151 -> crudo "Normal" vs redondeado 0.42 "Remodelado concéntrico"),
+// que era el origen de que la tabla y el narrativo se contradijeran.
 function calcGeometriaVI(masaIdx, rwt, sexo) {
-  const esMujer = sexo === 'F' || sexo === 'Femenino' || sexo === 'f';
-  const umbralMasa = esMujer ? 95 : 115;
-  const masaNormal = masaIdx < umbralMasa;
-  if (!masaIdx || !rwt) return '—';
-  if (masaNormal && rwt < 0.42) return 'Normal';
-  if (masaNormal && rwt >= 0.42) return 'Remodelado concéntrico';
-  if (!masaNormal && rwt < 0.42) return 'Hipertrofia excéntrica';
+  const m = Math.round(PF(masaIdx));
+  const r = Math.round(PF(rwt) * 100) / 100;
+  if (!m || !r || isNaN(m) || isNaN(r)) return '—';
+  const esMujer = String(sexo || '').charAt(0).toUpperCase() === 'F';
+  const masaNormal = m < (esMujer ? 95 : 115);
+  if (masaNormal && r < 0.42) return 'Normal';
+  if (masaNormal) return 'Remodelado concéntrico';
+  if (r < 0.42) return 'Hipertrofia excéntrica';
   return 'Hipertrofia concéntrica';
 }
 window.calcGeometriaVI = calcGeometriaVI;
@@ -9577,14 +9617,21 @@ function calcVI() {
       const rwt = (2 * pp / dd).toFixed(2);
       document.getElementById('rwt-val').textContent = rwt;
       const massIdx = bsa ? (mass / bsa) : null;
-      const hvi2 = massIdx && ((sexo === 'F' && massIdx > 95) || (sexo !== 'F' && massIdx > 115));
-      let geomTxt, geomCls;
-      if (!hvi2 && rwt < 0.42) { geomTxt = 'Geometría normal'; geomCls = 'green'; }
-      else if (!hvi2 && rwt >= 0.42) { geomTxt = 'Remodelado concéntrico'; geomCls = 'yellow'; }
-      else if (hvi2 && rwt < 0.42) { geomTxt = 'HVI excéntrica'; geomCls = 'orange'; }
-      else { geomTxt = 'HVI concéntrica'; geomCls = 'red'; }
-      if (hvi2) { const sev = hviSeveridad(massIdx, sexo); if (sev) geomTxt += ` (${sev})`; }
-      document.getElementById('geom-val').innerHTML = badge(geomCls, geomTxt);
+      // El patrón lo decide calcGeometriaVI() (fuente única); acá solo se mapea a label/color.
+      const geomPat = calcGeometriaVI(massIdx, rwt, sexo);
+      const GEOM_UI = {
+        'Normal':                  ['Geometría normal',       'green'],
+        'Remodelado concéntrico':  ['Remodelado concéntrico', 'yellow'],
+        'Hipertrofia excéntrica':  ['HVI excéntrica',         'orange'],
+        'Hipertrofia concéntrica': ['HVI concéntrica',        'red'],
+      };
+      if (GEOM_UI[geomPat]) {
+        let [geomTxt, geomCls] = GEOM_UI[geomPat];
+        if (geomPat.startsWith('Hipertrofia')) { const sev = hviSeveridad(massIdx, sexo); if (sev) geomTxt += ` (${sev})`; }
+        document.getElementById('geom-val').innerHTML = badge(geomCls, geomTxt);
+      } else {
+        document.getElementById('geom-val').textContent = '—';
+      }
     }
   }
 
@@ -9617,6 +9664,12 @@ function calcVI() {
 
 // ══ SGL ══
 function calcSGL() {
+  // Sincronización bidireccional: #sgl (tab AI/VI) ←→ #sgl_gls (tab SGL).
+  // Va antes del return temprano para que vaciar un campo también vacíe el otro.
+  const sglIn = document.getElementById('sgl');
+  const sglGls = document.getElementById('sgl_gls');
+  if (sglIn && sglGls && sglGls.value !== sglIn.value) sglGls.value = sglIn.value;
+
   const sgl = v('sgl');
   if (!sgl) return;
   const sglAbs = Math.abs(sgl);
@@ -11782,9 +11835,10 @@ function generarInforme() {
       const massIdx = (mass/bsa).toFixed(0);
       const rwt = (2*ppvi/ddfvi).toFixed(2);
       const sexoG = sv('sexo');
-      const hvi = (sexoG === 'F' && massIdx > 95) || (sexoG === 'M' && massIdx > 115) || (!sexoG && massIdx > 115);
       const geom = calcGeometriaVI(PF(massIdx), PF(rwt), sexoG);
-      if (geom !== 'Normal') {
+      // La condición de HVI se deriva del patrón devuelto por la fuente única, no de un umbral aparte.
+      const hvi = geom.startsWith('Hipertrofia');
+      if (geom !== 'Normal' && geom !== '—') {
         let geomTxt = geom.toLowerCase();
         if (hvi) {
           const sev = (typeof hviSeveridad === 'function') ? hviSeveridad(massIdx, sexoG) : null;
@@ -12750,7 +12804,9 @@ function generarPDFReal() {
   fn(8.5); tc(200,221,245);
   // El nombre del centro va en el header junto al título; el médico informante va sólo en la firma al pie
   const _medCentro = sv('med-centro') || '';
-  const _hdrLine = _medCentro || centroStr || 'CeiboMed';
+  // En modo institucional el encabezado nunca cae al fallback 'CeiboMed': o va la institución o va vacío.
+  const _hdrModoInst = localStorage.getItem('ett_modo_institucional')==='1';
+  const _hdrLine = _medCentro || centroStr || (_hdrModoInst ? '' : 'CeiboMed');
   doc.text(_hdrLine,105,16.5,{align:'center'});
   // Logo del centro en el vértice superior derecho (alt. máx 18mm, proporción conservada)
   try {
@@ -13417,16 +13473,15 @@ function generarPDFReal() {
   // ════════════════════════════════════════════════════════════
   // 19-21. FIRMA — siempre al final de todo el PDF (después de las imágenes)
   // ════════════════════════════════════════════════════════════
-  checkPage(22);
-  y += 3;
-  dc(180,180,180); doc.setLineWidth(0.4); doc.line(mL,y,mR,y); y += 5;
   // Firma leída desde localStorage (firma_centro_<centro activo>); fallback a valores por defecto
   let _firma = null;
   try { _firma = JSON.parse(localStorage.getItem('firma_centro_' + (localStorage.getItem('centro_tipo_activo') || 'default')) || 'null'); } catch (_e) { _firma = null; }
-  if (_firma && _firma.nombre && _firma.cjpp) {
-    // Recolecta los campos opcionales activos — soporta ambas estructuras:
-    //  a) array: opcionales:[{label, valor, on?}]   b) objeto: {esp:{on,val}, dir:{on,val}, ...}
-    const _opts = [];
+  const _firmaPropia = !!(_firma && _firma.nombre && _firma.cjpp);
+  // Recolecta los campos opcionales activos — soporta ambas estructuras:
+  //  a) array: opcionales:[{label, valor, on?}]   b) objeto: {esp:{on,val}, dir:{on,val}, ...}
+  // Se recolecta ANTES de checkPage para poder medir el alto real (ver _firmaH abajo).
+  const _opts = [];
+  if (_firmaPropia) {
     const _arr = _firma.opcionales || _firma.opciones || _firma.campos || _firma.extras || _firma.optionals;
     if (Array.isArray(_arr)) {
       _arr.forEach(it => {
@@ -13448,6 +13503,25 @@ function generarPDFReal() {
         if (o && typeof o === 'object' && o.on && o.val != null && String(o.val).trim()) _opts.push(String(o.val).trim());
       });
     }
+  }
+  // Alto real de la firma (mm), en vez del checkPage(22) fijo anterior: con varios opcionales
+  // activos la firma supera los 22mm y saltaba a una página nueva sin necesidad.
+  let _firmaH = 3 + 5;                        // separador superior + espacio hasta el nombre
+  if (_firmaPropia) {
+    _firmaH += 5 + 4;                         // nombre + CJPP
+    _firmaH += _opts.length * 3.8;            // un renglón por opcional activo
+  } else {
+    _firmaH += 5 + 4;                         // nombre + matrícula
+    if (medEsp) _firmaH += 4;
+    if (medDir) _firmaH += 3.8;
+    if (medTel) _firmaH += 3.8;
+  }
+  _firmaH += 5;                               // línea "Fecha de informe"
+  _firmaH += 4;                               // margen de seguridad
+  checkPage(_firmaH);
+  y += 3;
+  dc(180,180,180); doc.setLineWidth(0.4); doc.line(mL,y,mR,y); y += 5;
+  if (_firmaPropia) {
     // Nombre en negrita, CJPP debajo, y cada opcional activo debajo (estilo actual: alineado a la derecha)
     fi(9.5); tc(0,0,0); doc.text(String(_firma.nombre) + '.', mR, y, {align:'right'}); y += 5;
     fn(8);   tc(0,0,0); doc.text(String(_firma.cjpp), mR, y, {align:'right'}); y += 4;
@@ -13960,6 +14034,11 @@ function setPdfColor(idx) {
     sw.style.border = on ? '3px solid #ffffff' : '1px solid rgba(255,255,255,0.25)';
     sw.style.boxShadow = on ? '0 0 0 1px rgba(0,0,0,0.45)' : 'none';
   });
+  // El acceso directo del header móvil sigue el color de PDF elegido.
+  // initPdfColor() llama a setPdfColor() al arrancar, así que toma el color guardado.
+  const PDF_BTN_COLORS = { '1':'#1a3a5c', '2':'#1a5c3a', '3':'#4a1a7a', '4':'#7B2D42' };
+  const quickBtn = document.getElementById('hdr-pdf-quick');
+  if (quickBtn) quickBtn.style.background = PDF_BTN_COLORS[String(idx)] || PDF_BTN_COLORS['1'];
 }
 function initPdfColor() {
   let saved = '1';
@@ -17158,9 +17237,9 @@ function labInit() {
   const fevis = infs.map(i => numCampo(i,'fevi')).filter(v => v !== null && v > 0);
   const ft = fevis.length;
   const feviDist = [
-    { lbl:'Normal / conservada (>50%)',        n: fevis.filter(v=>v>50).length,           total:ft, color:'#3ecf8e' },
-    { lbl:'Levemente reducida (40–50%)',       n: fevis.filter(v=>v>=40&&v<=50).length,   total:ft, color:'#f5c842' },
-    { lbl:'Moderadamente reducida (30–40%)',   n: fevis.filter(v=>v>=30&&v<40).length,    total:ft, color:'#f0a500' },
+    { lbl:'Normal / conservada (≥50%)',        n: fevis.filter(v=>v>=50).length,          total:ft, color:'#3ecf8e' },
+    { lbl:'Levemente reducida (40–49%)',       n: fevis.filter(v=>v>=40&&v<50).length,    total:ft, color:'#f5c842' },
+    { lbl:'Moderadamente reducida (30–39%)',   n: fevis.filter(v=>v>=30&&v<40).length,    total:ft, color:'#f0a500' },
     { lbl:'Severamente reducida (<30%)',       n: fevis.filter(v=>v<30).length,           total:ft, color:'#f05454' },
   ];
   labBarras('lab-fevi-dist', feviDist);
@@ -18927,14 +19006,14 @@ async function labGenerarPDF() {
     // 5. FEVI
     const fevis = infs.map(_labFevi).filter(v => v !== null);
     const ft = fevis.length;
-    const feviN = [fevis.filter(v => v > 50).length, fevis.filter(v => v >= 40 && v <= 50).length, fevis.filter(v => v >= 30 && v < 40).length, fevis.filter(v => v < 30).length];
+    const feviN = [fevis.filter(v => v >= 50).length, fevis.filter(v => v >= 40 && v < 50).length, fevis.filter(v => v >= 30 && v < 40).length, fevis.filter(v => v < 30).length];
     await sectionChart('Función sistólica — FEVI',
       ['Rango', 'n (%)'],
-      [['Normal/conservada (>50%)', feviN[0] + ' (' + pctOf(feviN[0], ft) + '%)'],
-       ['Levemente reducida (40-50%)', feviN[1] + ' (' + pctOf(feviN[1], ft) + '%)'],
-       ['Moderadamente reducida (30-40%)', feviN[2] + ' (' + pctOf(feviN[2], ft) + '%)'],
+      [['Normal/conservada (≥50%)', feviN[0] + ' (' + pctOf(feviN[0], ft) + '%)'],
+       ['Levemente reducida (40-49%)', feviN[1] + ' (' + pctOf(feviN[1], ft) + '%)'],
+       ['Moderadamente reducida (30-39%)', feviN[2] + ' (' + pctOf(feviN[2], ft) + '%)'],
        ['Severamente reducida (<30%)', feviN[3] + ' (' + pctOf(feviN[3], ft) + '%)']],
-      { labels: ['Normal (>50)', 'Leve (40-50)', 'Moderada (30-40)', 'Severa (<30)'], values: feviN, colors: ['#3ecf8e', '#f5c842', '#f0a500', '#f05454'] });
+      { labels: ['Normal (≥50)', 'Leve (40-49)', 'Moderada (30-39)', 'Severa (<30)'], values: feviN, colors: ['#3ecf8e', '#f5c842', '#f0a500', '#f05454'] });
 
     // 6. Función diastólica
     const dg = { I: 0, II: 0, III: 0, sin: 0 }; let dt = 0;
@@ -19168,13 +19247,19 @@ async function labGenerarPDF() {
   doc.text(S('Fecha de emisión: ' + new Date().toLocaleDateString('es-UY')), M, y + 12);
 
   // ── Pie de página en cada hoja ──
+  // En modo institucional se reemplaza CeiboMed por la institución (o se omite si no hay nombre).
+  const _labModoInst = localStorage.getItem('ett_modo_institucional')==='1';
+  const _labInst = ((typeof sv === 'function' ? sv('med-centro') : '') || '').trim();
+  const _labPie = _labModoInst
+    ? ('Laboratorio EcoSmart' + (_labInst ? ' · ' + _labInst : '') + ' 2026')
+    : 'Laboratorio EcoSmart · CeiboMed 2026';
   const totalPages = doc.getNumberOfPages();
   for (let p = 1; p <= totalPages; p++) {
     doc.setPage(p);
     doc.setDrawColor(GRY[0], GRY[1], GRY[2]); doc.setLineWidth(0.106);
     doc.line(M, 285, W - M, 285);
     doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(GRY[0], GRY[1], GRY[2]);
-    doc.text(S('Laboratorio EcoSmart · CeiboMed 2026'), M, 289);
+    doc.text(S(_labPie), M, 289);
     doc.text(S('Página ' + p + ' de ' + totalPages), W - M, 289, { align: 'right' });
     doc.setTextColor(0, 0, 0);
   }
