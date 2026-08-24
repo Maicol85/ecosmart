@@ -89,7 +89,7 @@
   .ig-filtro-btn{display:inline-flex;align-items:center;gap:5px;background:#3a3f52;border:1px solid #4a5068;color:var(--text2);font-family:inherit;font-size:11px;font-weight:600;padding:4px 10px;border-radius:7px;cursor:pointer;white-space:nowrap}
   .ig-filtro-btn:hover{border-color:var(--accent)}
   /* Paneles desplegables de esos filtros: mismo gris que el botón que los abre. */
-  .ig-acc-panel{background:#3a3f52;border:1px solid #4a5068;border-radius:0 0 8px 8px}
+  .ig-acc-panel{background:#3a3f52;border:1px solid #4a5068;border-radius:8px}
   html.light-mode .ig-filtro-btn{background:#e8eaf0;border-color:#cdd0da;color:#5b6478}
   html.light-mode .ig-acc-panel{background:#e8eaf0;border-color:#cdd0da}
   /* Botones de acción al pie del contenido (patrón UltraSmart) */
@@ -1097,10 +1097,10 @@ window.cerrarSesion = cerrarSesion;
     </div>
   </div>
 
-  <div class="card sacc" id="sacc-ind">
-    <button type="button" class="sacc-hdr" onclick="secToggle('ind')" aria-expanded="false"><span class="sacc-arrow">▶</span>Indicaciones</button>
-    <div class="card-body sacc-body">
-        <div class="acc" id="acc-ind">
+  <!-- Un solo acordeón por sección: antes un .sacc envolvía a este .acc, los dos con el
+       mismo título y los dos clickeables. Queda el .acc porque conserva el resumen
+       (.acc-sum) y sigue siendo colapsable en PC (el .sacc se forzaba abierto). -->
+  <div class="acc" id="acc-ind" style="margin-bottom:12px;">
           <button type="button" class="acc-hdr" onclick="accToggle('ind')" aria-expanded="false">
             <span class="acc-arrow">▶</span>
             <span class="acc-title">Indicaciones</span>
@@ -1120,7 +1120,6 @@ window.cerrarSesion = cerrarSesion;
                 <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Control valvulopatía"> Control valvulopatía</label>
                 <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Control miocardiopatía"> Control miocardiopatía</label>
                 <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Control IC"> Control IC</label>
-                <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Screening pre-quirúrgico"> Screening pre-quirúrgico</label>
                 <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Cardio-oncología"> Cardio-oncología</label>
                 <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Seguimiento dispositivo (MPP/CDI/CRT)"> Seguimiento dispositivo (MPP/CDI/CRT)</label>
                 <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Control cirugía cardíaca"> Control cirugía cardíaca</label>
@@ -1132,13 +1131,8 @@ window.cerrarSesion = cerrarSesion;
             </div>
           </div>
         </div>
-    </div>
-  </div>
 
-  <div class="card sacc" id="sacc-ant">
-    <button type="button" class="sacc-hdr" onclick="secToggle('ant')" aria-expanded="false"><span class="sacc-arrow">▶</span>Antecedentes</button>
-    <div class="card-body sacc-body">
-        <div class="acc" id="acc-ant">
+  <div class="acc" id="acc-ant" style="margin-bottom:12px;">
           <button type="button" class="acc-hdr" onclick="accToggle('ant')" aria-expanded="false">
             <span class="acc-arrow">▶</span>
             <span class="acc-title">Antecedentes relevantes</span>
@@ -1170,8 +1164,6 @@ window.cerrarSesion = cerrarSesion;
             </div>
           </div>
         </div>
-    </div>
-  </div>
 
   <div class="card sacc" id="sacc-centro">
     <button type="button" class="sacc-hdr" onclick="secToggle('centro')" aria-expanded="false"><span class="sacc-arrow">▶</span>Centro / Médico solicitante</button>
