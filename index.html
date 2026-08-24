@@ -20314,11 +20314,19 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
           Ecocardiograma Doppler Color · Guía completa
         </div>
       </div>
-      <button onclick="cerrarAyudaEco()"
-        style="background:none;border:none;
-        color:#64748B;font-size:20px;cursor:pointer;">
-        ✕
-      </button>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+        <button onclick="generarManualPDF()" title="Descargar el manual en PDF"
+          style="background:rgba(13,148,136,0.12);border:1px solid #0D9488;
+          color:#0D9488;font-size:12px;font-weight:600;cursor:pointer;
+          border-radius:8px;padding:7px 12px;white-space:nowrap;font-family:inherit;">
+          📄 Descargar PDF
+        </button>
+        <button onclick="cerrarAyudaEco()"
+          style="background:none;border:none;
+          color:#64748B;font-size:20px;cursor:pointer;">
+          ✕
+        </button>
+      </div>
     </div>
 
     <div id="ecoAyudaTabs" style="display:flex;
@@ -20422,7 +20430,27 @@ const ECO_AYUDA = [
       Ingresá únicamente mediciones obtenidas en
       el estudio. Los cálculos dependen de la
       calidad de los datos.
-    </div>` },
+    </div>
+    <p style="margin:14px 0 8px"><strong
+      style="color:#0D9488">💾 Exportar e Importar</strong></p>
+    <ul style="padding-left:0;list-style:none;
+      display:flex;flex-direction:column;gap:7px;margin:0">
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Exportar JSON desde Guardados →
+        guardar en pendrive o Mac
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Importar JSON acepta archivos de
+        cualquier navegador
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Exportar después de cada sesión
+        para no perder datos
+      </li>
+    </ul>` },
 
   { tab: '🧠 Módulos avanzados', html: `
     <p style="margin:0 0 12px"><strong
@@ -20473,6 +20501,32 @@ const ECO_AYUDA = [
         HFA-ICOS/ESC 2022. Alertas automáticas.
         </span>
       </div>
+      <div style="padding:10px 12px;border-radius:8px;
+        background:rgba(13,148,136,0.08);
+        border-left:3px solid #0D9488">
+        <strong>🧮 Calculadoras — Herramientas de apoyo</strong><br>
+        <span style="font-size:12px;color:#94A3B8">
+        PISA/ERO para IM, Score Wilkins, AVA por ecuación
+        de continuidad, HCM Risk-SCD, QTc y otras.
+        </span>
+      </div>
+      <div style="padding:10px 12px;border-radius:8px;
+        background:rgba(124,58,237,0.08);
+        border-left:3px solid #7C3AED">
+        <strong>🎵 Fonocardiograma — Apoyo para la auscultación</strong><br>
+        <span style="font-size:12px;color:#94A3B8">
+        Patrones gráficos de los principales soplos con
+        posición, irradiación, carácter y claves diagnósticas.
+        </span>
+      </div>
+      <div style="padding:10px 12px;border-radius:8px;
+        background:rgba(3,105,161,0.08);
+        border-left:3px solid #0369A1">
+        <strong>📚 Referencias — Biblioteca de valores normales</strong><br>
+        <span style="font-size:12px;color:#94A3B8">
+        Tablas ASE 2015, ESC 2021/2022/2025, AHA/ACC 2024.
+        </span>
+      </div>
     </div>` },
 
   { tab: '🌊 Doppler y válvulas', html: `
@@ -20514,6 +20568,65 @@ const ECO_AYUDA = [
         y masas intracardíacas
       </li>
     </ul>
+    <p style="margin:14px 0 8px"><strong
+      style="color:#0D9488">Función diastólica —
+      elegí el algoritmo que corresponde</strong></p>
+    <div style="display:flex;flex-direction:column;gap:10px;
+      margin-bottom:12px">
+      <div style="padding:10px 12px;border-radius:8px;
+        background:rgba(13,148,136,0.08);
+        border-left:3px solid #0D9488">
+        <strong>ASE 2025</strong> (predeterminado)<br>
+        <span style="font-size:12px;color:#94A3B8">
+        e' reducida + 4 parámetros de presión elevada
+        (E/e' &gt;14, LAVI &gt;34, TR &gt;2.8 m/s, LARS ≤18%).
+        Con e' reducida basta 1 parámetro; con e' normal
+        se necesitan 2. Clasifica Grado I/II/III.
+        </span>
+      </div>
+      <div style="padding:10px 12px;border-radius:8px;
+        background:rgba(3,105,161,0.08);
+        border-left:3px solid #0369A1">
+        <strong>BSE 2024</strong><br>
+        <span style="font-size:12px;color:#94A3B8">
+        Algoritmo descriptivo.</span>
+      </div>
+      <div style="padding:10px 12px;border-radius:8px;
+        background:rgba(124,58,237,0.08);
+        border-left:3px solid #7C3AED">
+        <strong>Clásico 2016</strong><br>
+        <span style="font-size:12px;color:#94A3B8">
+        Clasificación I/II/III clásica.</span>
+      </div>
+    </div>
+    <p style="margin:14px 0 8px"><strong
+      style="color:#0D9488">Botones de válvulas —
+      cómo usar</strong></p>
+    <ul style="padding-left:0;list-style:none;
+      display:flex;flex-direction:column;gap:7px;
+      margin:0 0 12px">
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Tocar <strong>Insuficiencia</strong> o
+        <strong>Estenosis</strong> → botón celeste,
+        aparece en el informe sin grado
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Tocar <strong>🟡 Severidad ▼</strong> →
+        elegir Leve / Moderada / Severa
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>El grado elegido manualmente siempre
+        prevalece sobre el cálculo automático
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Tocar nuevamente el botón → se apaga,
+        desaparece del informe
+      </li>
+    </ul>
     <div style="padding:9px 12px;border-radius:8px;
       background:rgba(13,148,136,0.1);
       border-left:3px solid #0D9488;
@@ -20528,37 +20641,79 @@ const ECO_AYUDA = [
       style="color:#0D9488">
       Un laboratorio vivo que aprende con cada estudio
     </strong></p>
+    <p style="margin:0 0 8px;font-weight:600">Secciones del Laboratorio:</p>
     <ul style="padding-left:0;list-style:none;
       display:flex;flex-direction:column;gap:7px;
       margin:0 0 12px">
       <li style="display:flex;gap:8px">
         <span style="color:#0D9488;flex-shrink:0">
-        →</span>📈 Actividad en tiempo real —
-        el laboratorio siempre refleja el estado
-        actual del servicio
+        →</span>Dashboard — corazón anatómico con promedios del período
       </li>
       <li style="display:flex;gap:8px">
         <span style="color:#0D9488;flex-shrink:0">
-        →</span>🎯 Calidad asistencial — % estudios
-        con GLS, TAPSE, Vol AI, EROA/PISA, FEVI
-        por Simpson
+        →</span>Indicaciones y Antecedentes — frecuencias de tu población
       </li>
       <li style="display:flex;gap:8px">
         <span style="color:#0D9488;flex-shrink:0">
-        →</span>🔍 Indicadores de oportunidad —
-        FEVI &lt;35% sin QRS ancho, IM severa sin
-        cuantificación, HTP sin TR medida
+        →</span>Hallazgos frecuentes — disfunción sistólica y diastólica
       </li>
       <li style="display:flex;gap:8px">
         <span style="color:#0D9488;flex-shrink:0">
-        →</span>📊 Perfil de la población —
-        distribución FEVI, función diastólica,
-        patologías frecuentes con gráficos
+        →</span>Función sistólica FEVI — distribución en 4 rangos (≥50%, 40-49%, 30-39%, &lt;30%)
       </li>
       <li style="display:flex;gap:8px">
         <span style="color:#0D9488;flex-shrink:0">
-        →</span>📄 PDF de auditoría exportable
-        para comité o acreditación
+        →</span>Función diastólica — distribución por grado
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Geometría VI — Normal, Remodelado, HVI conc./exc.
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Contractilidad — bull's eye poblacional de 17 segmentos
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Valvulopatías — distribución de severidades por válvula
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Calidad del Laboratorio — % estudios con cada parámetro
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Indicadores automáticos — oportunidades clínicas detectadas
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Docencia — casos de interés marcados con ⭐
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Estadísticas — media, mediana, DS, percentiles
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Asociaciones estadísticas — ver el botón ℹ️ en esa sección
+      </li>
+    </ul>
+    <p style="margin:0 0 8px"><strong
+      style="color:#0D9488">PDF de Auditoría</strong></p>
+    <ul style="padding-left:0;list-style:none;
+      display:flex;flex-direction:column;gap:7px;
+      margin:0 0 12px">
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Exportable desde subtab 'Informe PDF'
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Incluye todas las secciones en orden clínico
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Útil para comités de calidad y acreditaciones
       </li>
     </ul>
     <div style="padding:9px 12px;border-radius:8px;
@@ -20614,6 +20769,21 @@ const ECO_AYUDA = [
         completo con gammagrafía y proteínas
         monoclonales
       </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Función diastólica — algoritmos
+        ASE 2025, BSE 2024, Clásico 2016
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Contractilidad segmentaria —
+        17 segmentos AHA
+      </li>
+      <li style="display:flex;gap:8px">
+        <span style="color:#0D9488;flex-shrink:0">
+        →</span>Strain longitudinal global —
+        valores normales
+      </li>
     </ul>
     <div style="margin-top:12px;padding:9px 12px;
       border-radius:8px;
@@ -20657,6 +20827,120 @@ document.addEventListener('keydown', e => {
 });
 window.mostrarAvisoEco=mostrarAvisoEco;window.cerrarAvisoEco=cerrarAvisoEco;
 window.abrirAyudaEco=abrirAyudaEco;window.cerrarAyudaEco=cerrarAyudaEco;window.renderAyudaEco=renderAyudaEco;
+
+/* ══ Manual en PDF ══
+   El texto sale del MISMO ECO_AYUDA que ve el modal, convertido a texto plano: así el PDF
+   no queda desfasado si mañana se edita una tab. No se vuelca HTML al PDF.
+   La helvetica de jsPDF (WinAnsi) no tiene flechas, ≥/≤ ni emoji: se transliteran o se
+   quitan, si no salen como caracteres basura. */
+function _manualTexto(html) {
+  const VIN = '';                    // marca de vineta (control char, no imprimible)
+  const tmp = document.createElement('div');
+  tmp.innerHTML = String(html)
+    // el HTML del modal viene indentado: sin colapsar, esos saltos separan la marca de
+    // vineta del texto y las vinetas salen vacias
+    .replace(/\s+/g, ' ')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '\n' + VIN)
+    .replace(/<\/(p|div|li|ol|ul|h[1-6])>/gi, '\n');
+  return tmp.textContent.split('\n')
+    .map(l => l.replace(/\s+/g, ' ').trim())
+    // las vinetas del modal ya arrancan con "→": se saca para no duplicar el marcador
+    .map(l => l.startsWith(VIN) ? '- ' + l.slice(1).replace(/^[→\s]+/, '').trim() : l)
+    .filter(l => l && l !== '-')
+    .join('\n');
+}
+function _pdfSafe(s) {
+  return String(s)
+    .replace(/[→⟶▼]/g, m => m === '▼' ? '' : '->').replace(/←/g, '<-')
+    .replace(/≥/g, '>=').replace(/≤/g, '<=').replace(/[•·]/g, '-')
+    // Catch-all: fuera lo que helvetica/WinAnsi no puede dibujar (emoji, simbolos sueltos
+    // como ℹ, flechas residuales). Se dejan pasar los tipograficos que WinAnsi si tiene:
+    // guiones – —, comillas curvas y el euro.
+    .replace(/[^\x00-\xFF\u2013\u2014\u2018\u2019\u201C\u201D\u20AC]/g, '')
+    .replace(/[ \t]{2,}/g, ' ').trim();
+}
+function generarManualPDF() {
+  if (typeof window.jspdf === 'undefined') { if (typeof toast === 'function') toast('❌ La biblioteca PDF está cargando, intentá en un momento'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const W = 210, H = 297, M = 18, CW = W - M * 2;
+  const TEAL = [13, 148, 136], GRIS = [110, 118, 129];
+  const PIE = 'EcoSmart - CeiboMed (c) 2026 - Uso clinico exclusivo';
+  let y = 0;
+
+  const pie = () => {
+    const n = doc.internal.getNumberOfPages();
+    for (let p = 1; p <= n; p++) {
+      doc.setPage(p);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+      doc.setTextColor(GRIS[0], GRIS[1], GRIS[2]);
+      doc.text(PIE, W / 2, H - 10, { align: 'center' });
+      if (p > 1) doc.text(String(p - 1), W - M, H - 10, { align: 'right' });
+    }
+  };
+  const salto = (alto) => { if (y + alto > H - 20) { doc.addPage(); y = M + 4; } };
+
+  // ── Portada ──
+  doc.setFillColor(TEAL[0], TEAL[1], TEAL[2]);
+  doc.rect(0, 0, W, 62, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(26);
+  doc.text('Manual de EcoSmart', W / 2, 32, { align: 'center' });
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(13);
+  doc.text('CeiboMed 2026', W / 2, 44, { align: 'center' });
+  doc.setTextColor(60, 60, 60); doc.setFontSize(11);
+  doc.text('Ecocardiograma Doppler Color - Guia completa', W / 2, 80, { align: 'center' });
+  doc.setFontSize(9); doc.setTextColor(GRIS[0], GRIS[1], GRIS[2]);
+  doc.splitTextToSize(
+    'Herramienta de apoyo clinico para el registro y analisis ecocardiografico. ' +
+    'No reemplaza el juicio clinico del medico tratante.', CW - 30)
+    .forEach((ln, i) => doc.text(ln, W / 2, 92 + i * 5, { align: 'center' }));
+
+  // ── Una sección por tab ──
+  ECO_AYUDA.forEach((sec, i) => {
+    doc.addPage(); y = M + 4;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(15);
+    doc.setTextColor(TEAL[0], TEAL[1], TEAL[2]);
+    doc.text(_pdfSafe(sec.tab) || ('Seccion ' + (i + 1)), M, y);
+    y += 3;
+    doc.setDrawColor(TEAL[0], TEAL[1], TEAL[2]); doc.setLineWidth(0.5);
+    doc.line(M, y, M + CW, y);
+    y += 8;
+    _manualTexto(sec.html).split('\n').forEach(linea => {
+      const txt = _pdfSafe(linea);
+      if (!txt) return;
+      const vinieta = txt.startsWith('- ');
+      const cuerpo = vinieta ? txt.slice(2) : txt;
+      // Subtítulo de bloque: renglón corto, sin viñeta y que no cierra oración. El "no termina
+      // en punto" evita que un cuerpo breve ("Algoritmo descriptivo.") salga como encabezado.
+      const subt = !vinieta && cuerpo.length < 62 && !/[.]$/.test(cuerpo);
+      doc.setFont('helvetica', subt ? 'bold' : 'normal');
+      doc.setFontSize(subt ? 11 : 10);
+      doc.setTextColor(subt ? 40 : 55, subt ? 40 : 55, subt ? 40 : 55);
+      const sangria = vinieta ? 6 : 0;
+      const lineas = doc.splitTextToSize(cuerpo, CW - sangria);
+      salto(lineas.length * 5 + 3);
+      if (subt) y += 2;
+      lineas.forEach((ln, k) => {
+        salto(6);
+        if (vinieta && k === 0) {
+          doc.setTextColor(TEAL[0], TEAL[1], TEAL[2]);
+          doc.text('-', M, y);
+          doc.setTextColor(55, 55, 55);
+        }
+        doc.text(ln, M + sangria, y);
+        y += 5;
+      });
+      y += subt ? 1.5 : 1;
+    });
+  });
+
+  pie();
+  doc.save('Manual_EcoSmart_2026.pdf');
+  if (typeof toast === 'function') toast('📄 Manual descargado');
+}
+window.generarManualPDF = generarManualPDF;
 </script>
 <script>
 /* ═══ Aceptar coma como separador decimal en todos los campos numéricos ═══
