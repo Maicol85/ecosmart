@@ -8753,6 +8753,24 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     #tab-lab .lab-2col > .lab-card{width:100%;}
   }
   #tab-lab .lab-card-hdr{background:var(--bg3);color:var(--accent2);padding:10px 16px;font-size:.84rem;font-weight:700;display:flex;align-items:center;gap:8px;}
+  /* Botón ℹ️ de ayuda del header. El área táctil se mantiene en 44x44 (regla global de
+     accesibilidad) pero el círculo visible es el <span> de 26px, así que se ve chico
+     sin romper el touch target. */
+  #tab-lab .asoc-info-btn{background:none;border:none;padding:0;margin:-9px 0 -9px auto;width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+  #tab-lab .asoc-info-btn > span{width:26px;height:26px;border-radius:50%;border:1px solid var(--border);color:var(--text2);background:transparent;display:inline-flex;align-items:center;justify-content:center;font-size:13px;line-height:1;transition:border-color .2s,color .2s;}
+  #tab-lab .asoc-info-btn:hover > span{border-color:var(--accent);color:var(--accent);}
+  #tab-lab .asoc-info-btn[aria-expanded="true"] > span{border-color:var(--accent);color:var(--accent);}
+  /* El padding va en el hijo: animar el padding del contenedor deja un sliver al colapsar. */
+  #tab-lab .asoc-info{max-height:0;opacity:0;overflow:hidden;transition:max-height .3s ease,opacity .25s ease;}
+  /* 800px es holgado a propósito: el contenido mide ~390px en pantalla ancha y ~540px a
+     300px de ancho. El tope solo define el final de la transición, así que sobrar no cuesta
+     nada y evita que se recorte con zoom o fuentes de sistema más grandes. */
+  #tab-lab .asoc-info.open{max-height:800px;opacity:1;}
+  #tab-lab .asoc-info-inner{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:12px;line-height:1.55;color:var(--text);margin-bottom:12px;}
+  #tab-lab .asoc-info-inner b{color:var(--accent2);}
+  #tab-lab .asoc-info-inner .ai-sec{margin-bottom:9px;}
+  #tab-lab .asoc-info-inner .ai-sec:last-child{margin-bottom:0;}
+  #tab-lab .asoc-info-inner .ai-nota{color:var(--text2);border-top:1px solid var(--border);padding-top:9px;margin-top:9px;}
   #tab-lab .lab-card-body{padding:14px;}
   #tab-lab .lab-stat{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:.84rem;}
   #tab-lab .lab-stat:last-child{border-bottom:none;}
@@ -9129,8 +9147,35 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   <!-- ═══ SUBTAB: ASOCIACIONES ═══ -->
   <div id="lab-sub-asociaciones" class="lab-subpanel">
     <div class="lab-card">
-      <div class="lab-card-hdr">📊 Asociaciones estadísticas</div>
+      <div class="lab-card-hdr">📊 Asociaciones estadísticas
+        <button type="button" class="asoc-info-btn" id="asoc-info-btn" onclick="asocInfoToggle()"
+                aria-expanded="false" aria-controls="asoc-info" title="Cómo leer esta tabla"
+                aria-label="Cómo leer esta tabla"><span>ℹ️</span></button>
+      </div>
       <div class="lab-card-body">
+        <div class="asoc-info" id="asoc-info">
+          <div class="asoc-info-inner">
+            <div class="ai-sec"><b>📊 Cómo leer esta tabla</b></div>
+            <div class="ai-sec"><b>Dirección</b><br>
+              ↑↑ ambas variables suben juntas<br>
+              ↑↓ una sube cuando la otra baja<br>
+              → sin dirección lineal (variables categóricas)</div>
+            <div class="ai-sec"><b>Fuerza</b> — qué tan intensa es la relación<br>
+              Débil (coef. &lt;0.3) · Moderada (0.3–0.6) · Fuerte (&gt;0.6)</div>
+            <div class="ai-sec"><b>p (valor p)</b> — si la asociación es real o producto del azar<br>
+              p &lt;0.05 = estadísticamente significativa</div>
+            <div class="ai-sec"><b>Semáforo</b><br>
+              🟢 significativa con N suficiente<br>
+              🟡 significativa pero N bajo<br>
+              ⚫ no significativa</div>
+            <div class="ai-sec"><b>Cómo analizarlo</b> — mirá primero el semáforo. Si es 🟢 o 🟡,
+              fijate en la Fuerza: una asociación Fuerte con p&lt;0.001 es la más valiosa
+              clínicamente. Una asociación Débil aunque sea significativa puede no tener
+              relevancia práctica.</div>
+            <div class="ai-nota">⚠️ Estas asociaciones describen tu población. No reemplazan el
+              juicio clínico ni establecen causalidad.</div>
+          </div>
+        </div>
         <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Test elegido automáticamente según el tipo de variables. Semáforo: 🟢 significativo con N suficiente · 🟡 significativo pero N bajo · ⚫ no significativo. Cálculo en JS puro sobre los estudios guardados.</div>
         <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:14px;">
           <div class="fg" style="margin:0;min-width:130px;"><label style="font-size:.72rem;">Significancia</label>
@@ -17883,7 +17928,7 @@ function labSubTab(id, el) {
       if(!r)return {...base, n:pairs.length, method:'Spearman', stat:'—', p:null, sig:'⚫', dir:'—', fuerza:'—', interp:''};
       const ok=r.n>=15;
       // El "Estadístico" muestra el coeficiente ρ (no el t de la prueba): es lo que se interpreta.
-      return {...base, n:r.n, method:'Spearman', stat:'ρ='+r.rho.toFixed(2), p:r.p, sig:sigLight(r.p,ok),
+      return {...base, n:r.n, method:'Spearman', stat:'Spearman='+r.rho.toFixed(2), p:r.p, sig:sigLight(r.p,ok),
               coef:r.rho, dir:dirTxt(r.rho,true), fuerza:fuerzaTxt(r.rho), interp:interpTxt(def.lbl,r.rho)};
     }
     if (def.t==='mw'){
@@ -17909,7 +17954,7 @@ function labSubTab(id, el) {
     // V de Cramér = √(χ² / (N · min(R-1,C-1))) — fuerza de asociación entre categóricas.
     const V=(r.N>0&&r.k>0)?Math.sqrt(r.chi2/(r.N*r.k)):null;
     return {...base, n:r.N, method:'Chi²',
-            stat:'χ²='+r.chi2.toFixed(2)+(V!=null?'  V='+V.toFixed(2):'')+(r.minE<5?' ⚠fe<5':''),
+            stat:'Chi2='+r.chi2.toFixed(2)+(V!=null?'  V='+V.toFixed(2):'')+(r.minE<5?' ⚠fe<5':''),
             p:r.p, sig:sigLight(r.p,ok), warnFe:r.minE<5,
             coef:V, dir:dirTxt(null,false), fuerza:fuerzaTxt(V), interp:''};
   }
@@ -19638,6 +19683,16 @@ function igToggleAcc(id, btn) {
   if (btn) btn.setAttribute('aria-expanded', abrir ? 'true' : 'false');
 }
 window.igToggleAcc = igToggleAcc;
+
+// Mini card "Cómo leer esta tabla" del subtab Asociaciones (inline, no modal).
+function asocInfoToggle() {
+  const card = document.getElementById('asoc-info');
+  const btn  = document.getElementById('asoc-info-btn');
+  if (!card) return;
+  const abierto = card.classList.toggle('open');
+  if (btn) btn.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+}
+window.asocInfoToggle = asocInfoToggle;
 
 function renderizarListaFiltrada(lista) {
   window._ettInformesFiltrados = lista;
