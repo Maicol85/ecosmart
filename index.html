@@ -490,47 +490,6 @@ html.light-mode #tab-valvulas .sev-lvl1{color:#166534;}
 html.light-mode #tab-valvulas .sev-lvl2{color:#78350f;}
 html.light-mode #tab-valvulas .sev-lvl3{color:#7f1d1d;}
 
-/* ═══ Severidad válvulas ═══ */
-/* Layout 2 columnas: tabla de severidades (izq) + SVG del corazón al 70% (der) */
-#tab-esquema-valvulas .sev-grid{display:grid;grid-template-columns:1fr 178px;gap:20px;align-items:start;}
-#tab-esquema-valvulas .sev-left{min-width:0;}
-#tab-esquema-valvulas .sev-right{display:flex;flex-direction:column;align-items:center;gap:12px;}
-#tab-esquema-valvulas .sev-table{width:100%;border-collapse:collapse;font-size:12.5px;}
-#tab-esquema-valvulas .sev-table th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);font-weight:700;padding:4px 8px;border-bottom:1px solid var(--border);}
-#tab-esquema-valvulas .sev-table th:last-child{width:130px;}
-#tab-esquema-valvulas .sev-table td{padding:5px 8px;border-bottom:1px solid var(--border);vertical-align:middle;}
-#tab-esquema-valvulas .sev-table tr.sev-sec td{font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);padding:12px 8px 3px;border-bottom:none;}
-#tab-esquema-valvulas .sev-table tr.sev-dim{opacity:.32;}
-#tab-esquema-valvulas .sev-sigla{font-weight:700;color:var(--text);white-space:nowrap;}
-#tab-esquema-valvulas .sev-dop{color:var(--text2);white-space:nowrap;font-variant-numeric:tabular-nums;}
-#tab-esquema-valvulas .sev-sel{width:100%;font-size:12px;padding:3px 6px;}
-#tab-esquema-valvulas .esq-legend{display:flex;flex-direction:column;gap:10px;font-size:11px;width:100%;}
-#tab-esquema-valvulas .esq-leg-block .esq-leg-ttl{font-weight:700;font-size:11px;margin-bottom:3px;color:var(--text);}
-#tab-esquema-valvulas .esq-bar{height:14px;border-radius:4px;border:1px solid var(--border);}
-#tab-esquema-valvulas .esq-leg-lbls{display:flex;justify-content:space-between;font-size:9.5px;color:var(--text2);margin-top:2px;}
-/* padding-top baja el corazón dentro de la columna; overflow visible en toda la cadena */
-#tab-esquema-valvulas .esq-center{display:flex;flex-direction:column;align-items:center;overflow:visible;padding-top:40px;}
-/* La caja con borde/fondo va en un <div> normal (.esq-svg-box), NO en el <svg>: Safari pinta el
-   fondo/borde del <svg> con aspect-ratio a una altura distinta de su rect y recorta la punta. Un div
-   con fit-content abarca la altura real del SVG. */
-#tab-esquema-valvulas .esq-svg-box{width:fit-content;height:fit-content;overflow:visible;line-height:0;}
-/* SVG inline: height:auto + overflow:visible (los <svg> traen overflow:hidden por UA) + aspect-ratio
-   para que la altura se derive del viewBox (140x235) sin caja fija */
-#tab-esquema-valvulas #esq-svg{display:block;width:100%;max-width:154px;height:auto;aspect-ratio:140/235;overflow:visible;}
-#tab-esquema-valvulas .esq-btns{display:flex;gap:8px;margin-top:8px;}
-#tab-esquema-valvulas .esq-btns button{font-size:12px;padding:6px 12px;flex:1;}
-#tab-esquema-valvulas #esq-pdf-toggle.active{background:#1a7a4a;border-color:#1a7a4a;color:#fff;}
-#tab-esquema-valvulas #esq-notas{width:100%;margin-top:6px;min-height:56px;font-size:12px;resize:vertical;}
-#tab-esquema-valvulas .esq-table{display:flex;flex-direction:column;gap:6px;font-size:11.5px;}
-#tab-esquema-valvulas .esq-table .esq-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
-#tab-esquema-valvulas .esq-table .esq-row label{font-weight:600;color:var(--text2);min-width:34px;}
-#tab-esquema-valvulas .esq-table select{font-size:11px;padding:3px 6px;flex:1;}
-#tab-esquema-valvulas .esq-table .esq-sep{height:1px;background:var(--border);margin:3px 0;}
-/* Mobile <768px: apilar en una columna → tabla arriba, corazón + leyenda abajo */
-@media (max-width:768px){
-  #tab-esquema-valvulas .sev-grid{grid-template-columns:1fr;}
-  #tab-esquema-valvulas .esq-center{padding-top:16px;}
-}
 /* Fix 4: letras negras en acordeones del tab SGL */
 #tab-sgl .card-head{color:var(--text)!important;}
 #tab-sgl details summary{color:var(--text)!important;}
@@ -2239,66 +2198,6 @@ window.cerrarSesion = cerrarSesion;
 </div>
 
 <!-- ═══════════════════════ TAB: HEMODINÁMICA ═══════════════════════ -->
-<div id="tab-esquema-valvulas" class="tab-section">
-  <h2 style="display:flex;align-items:center;gap:8px;">🫀 Severidad válvulas</h2>
-  <p style="font-size:12px;color:var(--text2);margin:-4px 0 12px;">Severidad de cada válvula con su dato Doppler (sincronizado con lo cargado). El valor se autocompleta según criterios ASE/ESC y es editable. Las filas sin dato Doppler cargado aparecen atenuadas.</p>
-  <div class="sev-grid">
-    <div class="sev-left">
-      <table class="sev-table">
-        <thead><tr><th>Válvula</th><th>Doppler</th><th>Severidad</th></tr></thead>
-        <tbody>
-          <tr class="sev-sec"><td colspan="3">Insuficiencias</td></tr>
-          <tr id="sev-row-im"><td class="sev-sigla">IM</td><td class="sev-dop" id="dop-im">—</td><td><select id="esq-im" class="sev-sel"><option value="0">Ausente</option><option value="1">Leve</option><option value="2">Moderada</option><option value="3">Severa</option></select></td></tr>
-          <tr id="sev-row-iao"><td class="sev-sigla">IAo</td><td class="sev-dop" id="dop-iao">—</td><td><select id="esq-iao" class="sev-sel"><option value="0">Ausente</option><option value="1">Leve</option><option value="2">Moderada</option><option value="3">Severa</option></select></td></tr>
-          <tr id="sev-row-it"><td class="sev-sigla">IT</td><td class="sev-dop" id="dop-it">—</td><td><select id="esq-it" class="sev-sel"><option value="0">Ausente</option><option value="1">Leve</option><option value="2">Moderada</option><option value="3">Severa</option></select></td></tr>
-          <tr id="sev-row-ip"><td class="sev-sigla">IP</td><td class="sev-dop" id="dop-ip">—</td><td><select id="esq-ip" class="sev-sel"><option value="0">Ausente</option><option value="1">Leve</option><option value="2">Moderada</option><option value="3">Severa</option></select></td></tr>
-          <tr class="sev-sec"><td colspan="3">Estenosis</td></tr>
-          <tr id="sev-row-eao"><td class="sev-sigla">EAo</td><td class="sev-dop" id="dop-eao">—</td><td><select id="esq-eao" class="sev-sel"><option value="0">Ausente</option><option value="1">Leve</option><option value="2">Moderada</option><option value="3">Severa</option></select></td></tr>
-          <tr id="sev-row-em"><td class="sev-sigla">EM</td><td class="sev-dop" id="dop-em">—</td><td><select id="esq-em" class="sev-sel"><option value="0">Ausente</option><option value="1">Leve</option><option value="2">Moderada</option><option value="3">Severa</option></select></td></tr>
-          <tr id="sev-row-et"><td class="sev-sigla">ET</td><td class="sev-dop" id="dop-et">—</td><td><select id="esq-et" class="sev-sel"><option value="0">Ausente</option><option value="1">Leve</option><option value="2">Moderada</option><option value="3">Severa</option></select></td></tr>
-          <tr id="sev-row-vp"><td class="sev-sigla">VP</td><td class="sev-dop" id="dop-vp">—</td><td><select id="esq-vp" class="sev-sel"><option>Normal</option><option>Insuficiencia leve (fisiológica)</option><option>Estenosis leve</option><option>Estenosis moderada/severa</option></select></td></tr>
-        </tbody>
-      </table>
-      <textarea id="esq-notas" placeholder="Notas de severidad valvular..." style="width:100%;margin-top:10px;min-height:52px;font-size:12px;resize:vertical;" oninput="if(window.esqRender)esqRender();"></textarea>
-    </div>
-    <div class="sev-right">
-      <div class="esq-center">
-      <div class="esq-svg-box">
-      <svg id="esq-svg" viewBox="30 55 140 235" xmlns="http://www.w3.org/2000/svg" aria-label="Esquema de valvulas">
-  <defs>
-    <pattern id="esq-pts" width="4" height="4" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.5" fill="#333"/></pattern>
-    <pattern id="esq-ray" width="4" height="4" patternUnits="userSpaceOnUse"><line x1="0" y1="2" x2="4" y2="2" stroke="#333" stroke-width="0.45"/></pattern>
-    <pattern id="esq-grid" width="4" height="4" patternUnits="userSpaceOnUse"><line x1="0" y1="2" x2="4" y2="2" stroke="#333" stroke-width="0.45"/><line x1="2" y1="0" x2="2" y2="4" stroke="#333" stroke-width="0.45"/></pattern>
-  </defs>
-  <path d="m 44.176658,176.70664 v -24.39607 l 0.659355,-16.48383 6.593531,-28.35218 7.912237,-21.0993 9.230945,-24.396065 11.209004,-13.187063 14.505768,-4.615474 21.099302,-0.659352 9.8903,10.549649 8.57158,11.209004 9.8903,20.439949 7.91224,25.714772 3.29677,27.69283 0.65935,27.69283 v 19.7806 l -1.97806,32.96765 -15.16512,30.33025 -20.43995,3.95611 h -15.16512 l -3.296767,-2.63741 -11.868356,2.63741 -11.209004,0.65936 -13.846415,-5.93418 -7.912238,-9.8903 -5.934178,-8.57159 -5.274826,-14.50577 0.659352,-17.80253 z" fill="white" stroke="#ccc" stroke-width="0.7"/>
-  <path d="m 52.748251,174.72858 v -24.39607 l 5.274826,-25.71477 9.890296,-30.989595 9.890297,-22.418008 11.868357,-11.209001 3.956118,13.846416 1.318705,32.308298 -4.615471,30.9896 -1.97806,19.12124 -1.978059,15.16512 -10.549649,9.8903 -6.593533,-19.12124 -3.296764,7.25288 3.296764,13.18707 5.274826,13.18706 3.956119,5.27482 4.615471,1.31871 12.527711,2.63741 2.637411,9.8903 -3.296766,20.43995 -5.934178,7.91224 -11.868357,3.95611 -15.16512,-7.91223 -6.593533,-11.86836 -3.956118,-13.84642 -0.659353,-15.16512 1.97806,-12.52771 4.615471,-3.29676 3.956118,-4.61547 1.318708,-5.93418 0.659352,-4.61548 -1.97806,-8.57159 h -2.637411 l -1.978059,9.23095 z" fill="white" stroke="#555" stroke-width="0.5"/>
-  <path d="m 85.715908,178.02535 -7.912238,5.27482 -1.978059,7.91224 3.296764,5.27482 5.274826,2.63741 5.934178,0.65936 5.934178,-3.29677 6.593533,-6.59353 3.95612,-5.93418 -1.97806,-5.27482 -3.95612,1.31871 -4.615473,7.25288 -3.296767,3.95612 -3.296763,-0.65936 1.318704,-4.61547 6.593533,-7.91223 2.637416,-3.95612 3.95611,-1.97806 2.63742,1.97806 v 0 3.29676 h 1.97806 l 1.3187,5.93418 3.29677,-2.63741 6.59353,-8.57159 4.61547,-3.95612 v 5.27482 l -7.91224,10.54965 -12.52771,9.8903 -4.615467,7.25288 4.615467,13.18707 -1.3187,13.18706 -1.97806,14.50577 11.209,6.59353 21.0993,-7.25288 11.86836,-21.75866 2.63741,-26.37412 -7.91224,-13.18706 -6.59353,-6.59354 -5.27482,-5.27482 5.93417,0.65935 6.59354,5.27483 5.27482,7.25288 0.65935,0.65935 0.65936,2.63742 h 1.3187 l 0.65936,-16.48383 -1.97806,-23.73672 -1.97806,-25.71477 -6.59353,-22.418003 -9.8903,-22.418005 -13.84642,-18.46189 -6.59353,-1.318707 -7.91223,7.252885 -1.318711,17.143183 2.637411,25.055417 -3.296764,24.39607 -2.637411,29.01154 -3.296767,12.5277 -1.519044,2.07909 -0.358855,6.63882 v 3.94741 l -0.358854,2.69142 -2.870843,3.58855 -0.358854,-3.58855 0.717709,-3.2297 0.179427,-3.76798 0.17943,-3.76798 v -0.53828 z" fill="white" stroke="#555" stroke-width="0.5"/>
-  <g id="esq-estenosis"></g>
-  <g id="esq-jets"></g>
-  <text x="63" y="206" font-size="6" font-weight="700" fill="#333" text-anchor="middle">VT</text>
-  <text x="97" y="192" font-size="6" font-weight="700" fill="#333" text-anchor="middle">VA</text>
-  <text x="126" y="175" font-size="6" font-weight="700" fill="#333" text-anchor="middle">VM</text>
-  <g id="esq-labels"></g>
-</svg>
-      </div>
-      </div>
-      <div class="esq-legend">
-        <div class="esq-leg-block"><div class="esq-leg-ttl">IT / IM</div><div class="esq-bar" style="background:linear-gradient(90deg,#1a237e,#90caf9)"></div><div class="esq-leg-lbls"><span>Leve</span><span>Severo</span></div></div>
-        <div class="esq-leg-block"><div class="esq-leg-ttl">IAo</div><div class="esq-bar" style="background:linear-gradient(90deg,#7f0000,#ffcdd2)"></div><div class="esq-leg-lbls"><span>Leve</span><span>Severo</span></div></div>
-        <div class="esq-leg-block"><div class="esq-leg-ttl">Estenosis</div>
-          <svg viewBox="0 0 60 14" style="width:100%;height:14px;border:1px solid var(--border);border-radius:4px;background:#fff">
-            <defs>
-              <pattern id="lg-pts" width="4" height="4" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.5" fill="#333"/></pattern>
-              <pattern id="lg-ray" width="4" height="4" patternUnits="userSpaceOnUse"><line x1="0" y1="2" x2="4" y2="2" stroke="#333" stroke-width="0.5"/></pattern>
-              <pattern id="lg-grid" width="4" height="4" patternUnits="userSpaceOnUse"><line x1="0" y1="2" x2="4" y2="2" stroke="#333" stroke-width="0.5"/><line x1="2" y1="0" x2="2" y2="4" stroke="#333" stroke-width="0.5"/></pattern>
-            </defs>
-            <rect x="0" y="0" width="20" height="14" fill="url(#lg-pts)"/><rect x="20" y="0" width="20" height="14" fill="url(#lg-ray)"/><rect x="40" y="0" width="20" height="14" fill="url(#lg-grid)"/>
-          </svg>
-          <div class="esq-leg-lbls"><span>Leve</span><span>Severo</span></div></div>
-      </div>
-    </div>
-  </div>
-</div>
 
 <div id="tab-hemodinamica" class="tab-section">
   <div class="card">
@@ -8756,8 +8655,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   /* Botón ℹ️ de ayuda del header. El área táctil se mantiene en 44x44 (regla global de
      accesibilidad) pero el círculo visible es el <span> de 26px, así que se ve chico
      sin romper el touch target. */
-  #tab-lab .asoc-info-btn{background:none;border:none;padding:0;margin:-9px 0 -9px auto;width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
-  #tab-lab .asoc-info-btn > span{width:26px;height:26px;border-radius:50%;border:1px solid var(--border);color:var(--text2);background:transparent;display:inline-flex;align-items:center;justify-content:center;font-size:13px;line-height:1;transition:border-color .2s,color .2s;}
+  #tab-lab .asoc-info-btn{background:none;border:none;padding:0;margin:-9px 0 -9px auto;min-height:44px;display:inline-flex;align-items:center;cursor:pointer;flex-shrink:0;}
+  #tab-lab .asoc-info-btn > span{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:14px;color:var(--text2);background:transparent;padding:5px 12px;font-size:11.5px;font-weight:600;line-height:1.2;white-space:nowrap;transition:border-color .2s,color .2s;}
   #tab-lab .asoc-info-btn:hover > span{border-color:var(--accent);color:var(--accent);}
   #tab-lab .asoc-info-btn[aria-expanded="true"] > span{border-color:var(--accent);color:var(--accent);}
   /* El padding va en el hijo: animar el padding del contenedor deja un sliver al colapsar. */
@@ -9150,7 +9049,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <div class="lab-card-hdr">📊 Asociaciones estadísticas
         <button type="button" class="asoc-info-btn" id="asoc-info-btn" onclick="asocInfoToggle()"
                 aria-expanded="false" aria-controls="asoc-info" title="Cómo leer esta tabla"
-                aria-label="Cómo leer esta tabla"><span>ℹ️</span></button>
+                aria-label="¿Cómo leer esta tabla?"><span>ℹ️ ¿Cómo leer esta tabla?</span></button>
       </div>
       <div class="lab-card-body">
         <div class="asoc-info" id="asoc-info">
@@ -9556,8 +9455,6 @@ function showTab(id) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + id).classList.add('active');
   if (typeof event !== 'undefined' && event && event.target) event.target.classList.add('active');
-  // Al mostrar la tab Válvulas, (re)dibujar el corazón A5C (ahora vive en su columna derecha)
-  if (id === 'valvulas' && typeof esqRender === 'function') esqRender();
   // Abrir automáticamente los acordeones de sección que ya tengan datos cargados
   if (typeof secAutoOpen === 'function') secAutoOpen('tab-' + id);
 }
@@ -11839,20 +11736,13 @@ function generarInforme() {
   const ai_vol = v('ai_vol'), ai_diam = v('ai_diam');
   const ao_sin = v('ao_sin');
   const psap = v('psap_calc');
-  // Severidades: si el Esquema válvulas tiene el selector con valor >0, ESE manda (fuente del
-  // médico); si está en 0, se usa el campo principal (no se pisan datos de la pestaña Válvulas).
-  // El esquema usa 4 niveles (0-3: ausente/leve/moderada/severa); el narrativo usa imTxt de 5
-  // niveles → severa (esq 3) mapea al índice 4.
-  const _esqN = id => { const e = document.getElementById(id); return e ? (parseInt(e.value) || 0) : 0; };
-  const _esqTo5 = [0, 1, 2, 4];              // esq 0-3 → índice de imTxt (5 niveles)
-  const _esqEstTxt = ['', 'leve', 'moderada', 'severa'];   // esq 1-3 → texto de estenosis
-  const _imE = _esqN('esq-im'), _iaE = _esqN('esq-iao'), _itE = _esqN('esq-it');
-  const _emE = _esqN('esq-em'), _eaE = _esqN('esq-eao');
-  const imG = _imE > 0 ? _esqTo5[_imE] : (parseInt(sv('im_grado')) || 0);
-  const iaG = _iaE > 0 ? _esqTo5[_iaE] : (parseInt(sv('ia_grado')) || 0);
-  const itG = _itE > 0 ? _esqTo5[_itE] : (parseInt(sv('it_grado')) || 0);
-  const emG = _emE > 0 ? _esqEstTxt[_emE] : (sv('em_grado') || '');
-  const eaG = _eaE > 0 ? _esqEstTxt[_eaE] : (sv('ea_grado') || '');
+  // Severidades desde los campos de la tab Válvulas (lo que fijan las pills o el médico).
+  // Antes había un override desde los selectores del Esquema válvulas; ese módulo se eliminó.
+  const imG = parseInt(sv('im_grado')) || 0;
+  const iaG = parseInt(sv('ia_grado')) || 0;
+  const itG = parseInt(sv('it_grado')) || 0;
+  const emG = sv('em_grado') || '';
+  const eaG = sv('ea_grado') || '';
   const imTxt = ['ausente','leve','moderada','moderada-severa','severa'];
 
   let inf = [];
@@ -12487,13 +12377,6 @@ function limpiarCampos() {
   localStorage.removeItem('sgl_incluir_pdf');
   _pdfToggleBtnState('contr-pdf-toggle', false);
   _pdfToggleBtnState('sgl-pdf-toggle', false);
-  // Reset esquema de válvulas (flag de PDF, selectores, toggle, notas y grupos SVG)
-  window.esqValvEnPDF = false;
-  ['esq-it','esq-iao','esq-im','esq-et','esq-eao','esq-em'].forEach(id => { const e = document.getElementById(id); if (e) e.value = '0'; });
-  { const _vp = document.getElementById('esq-vp'); if (_vp) _vp.selectedIndex = 0; }
-  { const _n = document.getElementById('esq-notas'); if (_n) _n.value = ''; }
-  { const _et = document.getElementById('esq-pdf-toggle'); if (_et) _et.classList.remove('active'); }
-  ['esq-jets','esq-estenosis','esq-labels'].forEach(id => { const gEl = document.getElementById(id); if (gEl) while (gEl.firstChild) gEl.removeChild(gEl.firstChild); });
   try { localStorage.removeItem('ecosmart_autosave'); } catch(e) {}
   // Checklists de indicaciones/antecedentes → desmarcar, ocultar "Otro" y resetear resumen
   document.querySelectorAll('.ind-chk, .ant-chk').forEach(c => { c.checked = false; });
@@ -12639,15 +12522,6 @@ function eeQrDataURL(px, url){
 let valvSevConfirmada = false;
 window.valvSevReset = function(){ valvSevConfirmada = false; };
 
-// Pre-rasteriza el esquema para el PDF (el rasterizado del SVG es async y el PDF es sync).
-// El gate real es esqValvEnPDF; sin él no hay imagen que rasterizar.
-async function _pdfPreRasterEsquema() {
-  window._esqPdfPng = null;
-  if (window.esqValvEnPDF && typeof esqSvgToPng === 'function') {
-    try { if (typeof esqRender === 'function') esqRender(); window._esqPdfPng = await esqSvgToPng(6); } catch(e) { window._esqPdfPng = null; }
-  }
-}
-
 // Muestra la card de revisión y llama onConfirm() sólo si el médico confirma.
 // Lee los valores actuales de los selectores de Válvulas y, al confirmar, los reescribe
 // ahí mismo: lo que se corrige en la card queda en la tab Válvulas, no sólo en el informe.
@@ -12709,16 +12583,14 @@ function mostrarCardSeveridadValvular(onConfirm) {
 }
 window.mostrarCardSeveridadValvular = mostrarCardSeveridadValvular;
 
-async function generarPDF() {
+function generarPDF() {
   if (document.getElementById('pdf-review-overlay')) return;
   if (valvSevConfirmada) {          // ya se confirmó en este estudio (por Guardar o por un PDF previo)
-    await _pdfPreRasterEsquema();
     generarPDFReal();
     return;
   }
-  mostrarCardSeveridadValvular(async () => {
+  mostrarCardSeveridadValvular(() => {
     valvSevConfirmada = true;
-    await _pdfPreRasterEsquema();
     generarPDFReal();
   });
 }
@@ -13369,11 +13241,6 @@ function generarPDFReal() {
   // ════════════════════════════════════════════════════════════
   const _incContr = localStorage.getItem('contractilidad_incluir_pdf') === '1';
   const _incSgl   = localStorage.getItem('sgl_incluir_pdf') === '1';
-  // Esquema válvulas en PDF y layout lado-a-lado (esquema + 1 bull's eye)
-  const _esqOn = !!(window.esqValvEnPDF && window._esqPdfPng);
-  const _nEyes = (_incContr ? 1 : 0) + (_incSgl ? 1 : 0);
-  const _esqSide = _esqOn && _nEyes === 1;
-  window.__esqRow = null;   // {rowTop, eyeBottom} para el layout lado-a-lado
   if ((_incContr || _incSgl) && typeof bullseyeDataURL === 'function') {
     // Columnas: cada una con su bull's eye arriba y su texto debajo
     const _cols = [];
@@ -13407,8 +13274,7 @@ function generarPDFReal() {
       drawBar(_cols.length === 2 ? 'CONTRACTILIDAD Y STRAIN (SGL)' : _cols[0].title.toUpperCase());
       y += 3;
       const _n = _cols.length, _gap = 10;
-      // Con esquema al lado (1 bull's eye), el eye ocupa la mitad izquierda
-      const _colW = _esqSide ? (pgW - _gap) / 2 : (pgW - (_n - 1) * _gap) / _n;
+      const _colW = (pgW - (_n - 1) * _gap) / _n;
       const _sz = Math.min(_colW, 54);              // bull's eye cuadrado, centrado en su columna
       const _startY = y;
       const _bottoms = _cols.map((col, i) => {
@@ -13449,70 +13315,10 @@ function generarPDFReal() {
         }
         return _cy;
       });
-      if (_esqSide) { window.__esqRow = { rowTop: _startY, eyeBottom: Math.max.apply(null, _bottoms) }; y = _startY; }
-      else { y = Math.max.apply(null, _bottoms) + 4; }
+      y = Math.max.apply(null, _bottoms) + 4;
     }
   }
 
-  // ════════════════════════════════════════════════════════════
-  // ESQUEMA DE VÁLVULAS — leyenda + corazón + notas (antes de la firma)
-  // Layout: 0 eyes → centrado; 1 eye → al lado del bull's eye (mitad c/u); 2 eyes → debajo.
-  // ════════════════════════════════════════════════════════════
-  if (_esqOn) {
-    const _ratio = window._esqPdfRatio || (235 / 140);   // relación real del raster (bbox+margen)
-    // Dibuja leyenda (izq) + corazón (der) dentro de (x, top, availW); devuelve la y inferior.
-    const _drawEsq = (x, top, availW) => {
-      const _legW = 24;
-      let _iw = Math.min(42, availW - _legW - 6);   // corazón <= ~42mm (≈160px)
-      if (_iw < 26) _iw = 26;
-      let _ih = _iw * _ratio;
-      if (_ih > 100) { _ih = 100; _iw = _ih / _ratio; }
-      const _bg = (yy, c0, c1) => { for (let i = 0; i < 12; i++) { const t = i/11; doc.setFillColor(Math.round(c0[0]+(c1[0]-c0[0])*t), Math.round(c0[1]+(c1[1]-c0[1])*t), Math.round(c0[2]+(c1[2]-c0[2])*t)); doc.rect(x + i*(_legW/12), yy, _legW/12 + 0.3, 3, 'F'); } };
-      let _ly = top + 3;
-      fb(6.5); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text('IT / IM', x, _ly); _ly += 2.6;
-      _bg(_ly, [26,35,126], [144,202,249]); _ly += 3; fn(5.5); tc(90,90,90); doc.text('Leve', x, _ly+2.4); doc.text('Severo', x+_legW, _ly+2.4, {align:'right'}); _ly += 7;
-      fb(6.5); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text('IAo', x, _ly); _ly += 2.6;
-      _bg(_ly, [127,0,0], [255,205,210]); _ly += 3; fn(5.5); tc(90,90,90); doc.text('Leve', x, _ly+2.4); doc.text('Severo', x+_legW, _ly+2.4, {align:'right'});
-      try { doc.addImage(window._esqPdfPng, 'PNG', x + _legW + 6, top, _iw, _ih); } catch(e) {}
-      return top + Math.max(_ih, (_ly + 4) - top);
-    };
-    // ── Texto: alteraciones valvulares (desde los campos ya mapeados del esquema) + nota libre ──
-    const _vGT = ['', 'leve', 'moderada', 'moderada-severa', 'severa'];
-    const _vIns = (id, n) => { const gr = parseInt(sv(id)) || 0; return gr > 0 ? `insuficiencia ${n} ${_vGT[gr]}` : null; };
-    const _vEst = (id, n, none) => { const t = (sv(id) || '').trim().toLowerCase(); return (t && t !== none && t !== 'esclerosis') ? `estenosis ${n} ${t}` : null; };
-    const _vFr = [ _vIns('im_grado','mitral'), _vIns('ia_grado','aórtica'), _vIns('it_grado','tricuspídea'),
-                   _vEst('em_grado','mitral','sin'), _vEst('ea_grado','aórtica','sin'), _vEst('et_grado','tricuspídea','sin estenosis') ].filter(Boolean);
-    const _valvTxt = _vFr.length ? ('Se observa ' + (_vFr.length > 1 ? _vFr.slice(0,-1).join(', ') + ' y ' + _vFr[_vFr.length-1] : _vFr[0]) + '.') : '';
-    let _notas = ((document.getElementById('esq-notas')||{}).value || '').trim();
-    if (_notas) _notas = _notas.replace(/≤/g,'<=').replace(/≥/g,'>=').replace(/→/g,'->').replace(/[–—]/g,'-');
-    // Bloque de texto: alteraciones (arriba) + nota (abajo). centered → alineado y centrado en el ancho.
-    const _drawEsqTxt = (x, top, w, centered) => {
-      let _ty = top; const _al = centered ? {align:'center'} : undefined; const _tx = centered ? x + w/2 : x;
-      const _hd = t => { checkPage(10); fb(8); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(t, _tx, _ty, _al); _ty += 4.5; };
-      const _par = txt => { fn(8.5); tc(30,30,30); doc.splitTextToSize(txt, w).forEach(ln => { checkPage(6); doc.text(ln, _tx, _ty, _al); _ty += 4.5; }); _ty += 1.5; };
-      if (_valvTxt) { _hd('Alteraciones valvulares'); _par(_valvTxt); }
-      if (_notas)   { _hd('Nota del esquema valvular'); _par(_notas); }
-      return _ty;
-    };
-    if (_esqSide && window.__esqRow) {
-      // ── 1 bull's eye: esquema en la mitad derecha; su texto va DEBAJO del esquema (misma mitad),
-      //     no debajo de la contractilidad (que está en la mitad izquierda) ──
-      const _gap = 10, _halfW = (pgW - _gap) / 2, _rx = mL + _halfW + _gap, _top = window.__esqRow.rowTop;
-      fb(7.5); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text('Esquema de válvulas', _rx + _halfW/2, _top, { align:'center' });
-      const _b = _drawEsq(_rx, _top + 2, _halfW);
-      const _tb = (_valvTxt || _notas) ? _drawEsqTxt(_rx, _b + 3, _halfW, false) : _b;
-      y = Math.max(window.__esqRow.eyeBottom, _tb) + 5;
-    } else {
-      // ── 0 ó 2 bull's eyes: bloque propio centrado; con 3 diagramas el texto va centrado debajo ──
-      checkPage(90);
-      drawBar('ESQUEMA DE VÁLVULAS');
-      y += 3;
-      const _blockW = 24 + 6 + 42, _x0 = mL + (pgW - _blockW) / 2;
-      const _b = _drawEsq(_x0, y, _blockW + 4);
-      y = _b + 3;
-      if (_valvTxt || _notas) y = _drawEsqTxt(mL, y + 2, pgW, true) + 3;
-    }
-  }
 
   // ════════════════════════════════════════════════════════════
   // VISTA QUIRÚRGICA — VÁLVULA MITRAL (ETE) — antes de la firma
@@ -19939,39 +19745,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
 </footer>
 
-<!-- Aviso de uso de datos (una sola vez) -->
-<div id="dataconsent-overlay" style="position:fixed;inset:0;z-index:10000;background:linear-gradient(160deg,var(--bg) 0%,var(--bg2) 100%);display:none;align-items:center;justify-content:center;padding:16px;overflow-y:auto;">
-  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:22px;max-width:460px;width:100%;max-height:92vh;overflow-y:auto;padding:34px 30px 28px;box-shadow:0 24px 70px rgba(0,0,0,0.45);text-align:center;">
-    <div style="font-size:60px;line-height:1;margin-bottom:12px;">🫀</div>
-    <div style="font-size:34px;font-weight:800;color:var(--accent2);letter-spacing:0.5px;">EcoSmart</div>
-    <div style="font-size:14px;color:var(--text2);margin-top:4px;">Ecocardiograma Doppler Color</div>
-    <div style="height:1px;background:var(--border);margin:18px auto;max-width:220px;"></div>
-    <div style="font-size:12px;color:var(--text2);">Dr. M. D. S. y col.</div>
-    <div style="height:20px;"></div>
-    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px 18px;text-align:left;margin-bottom:22px;">
-      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">🔒 Aviso de uso de datos</div>
-      <div style="font-size:12.5px;color:var(--text2);line-height:1.65;">EcoSmart almacena datos clínicos localmente en este dispositivo. El usuario es responsable del uso, confidencialidad y respaldo de la información ingresada. Los desarrolladores no asumen responsabilidad por pérdida, uso indebido o divulgación de datos clínicos.</div>
-    </div>
-    <button type="button" class="btn btn-green" style="width:100%;padding:12px;font-size:15px;font-weight:700;" onclick="aceptarAvisoDatos()">Entendido y acepto</button>
-  </div>
-</div>
-
-<script>
-function aceptarAvisoDatos(){
-  try { localStorage.setItem('ecosmart_data_consent','1'); } catch(e){}
-  var el = document.getElementById('dataconsent-overlay');
-  if (el) el.style.display = 'none';
-}
-window.aceptarAvisoDatos = aceptarAvisoDatos;
-(function(){
-  var accepted = false;
-  try { accepted = localStorage.getItem('ecosmart_data_consent') === '1'; } catch(e){}
-  if (!accepted) {
-    var el = document.getElementById('dataconsent-overlay');
-    if (el) el.style.display = 'flex';
-  }
-})();
-</script>
+<!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
+     login y su contenido ya está cubierto por el aviso legal post-login (#modalAvisoEco). -->
 <!-- Botones de acción reubicados al pie del contenido principal (.app-content) -->
 
 <div id="modal-logo-gallery" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:600;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeLogoGallery()">
@@ -20279,28 +20054,9 @@ window.cfgToggleModoInstitucional=cfgToggleModoInstitucional;
 // Aplicar modo guardado al cargar
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', applyViewMode); else applyViewMode();
 </script>
-<script>
-/* Aviso de datos locales (primer inicio) */
-(function(){
-  var KEY="ecosmart_aviso_datos_visto";
-  function show(){
-    try{ if(localStorage.getItem(KEY)==='1') return; }catch(e){}
-    var ov=document.createElement('div');
-    ov.setAttribute('role','dialog'); ov.setAttribute('aria-modal','true'); ov.setAttribute('aria-label','Aviso sobre datos locales');
-    ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px';
-    var box=document.createElement('div');
-    box.style.cssText='background:#fff;color:#1a2a3a;max-width:440px;width:100%;border-radius:14px;padding:22px 24px;box-shadow:0 20px 60px rgba(0,0,0,.4);font-family:\'Inter\',\'Segoe UI\',system-ui,sans-serif';
-    box.innerHTML='<div style="font-size:15px;font-weight:700;margin-bottom:10px">Aviso importante</div><div style="font-size:13.5px;line-height:1.6;color:#374151">⚠️ Los datos se guardan localmente en este navegador. Si borrás el navegador o cambiás de dispositivo, los datos se pierden. Exportá tu backup regularmente.</div>';
-    var btn=document.createElement('button');
-    btn.type='button'; btn.textContent='Entendido';
-    btn.style.cssText='margin-top:16px;width:100%;padding:11px;background:#1565C0;color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;min-height:44px';
-    btn.onclick=function(){ try{localStorage.setItem(KEY,'1');}catch(e){} if(ov.parentNode)ov.parentNode.removeChild(ov); };
-    box.appendChild(btn); ov.appendChild(box); document.body.appendChild(ov);
-    setTimeout(function(){ try{btn.focus();}catch(e){} },40);
-  }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',show); else show();
-})();
-</script>
+<!-- El modal "Aviso importante" (clave ecosmart_aviso_datos_visto) se eliminó: se construía
+     por JS al cargar, o sea ANTES del login, y decía lo mismo que el punto 🔒 del aviso legal
+     post-login. Queda un solo aviso, el de abajo. -->
 
 <!-- ══ AVISO LEGAL post-login (estilo ErgoSmart) ══ -->
 <div id="modalAvisoEco" style="display:none;
@@ -20827,192 +20583,6 @@ window.abrirAyudaEco=abrirAyudaEco;window.cerrarAyudaEco=cerrarAyudaEco;window.r
 </div>
 
 <script>
-const ESQ_PATHS={"path17": "m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8.77033 1.252905,3.34108 2.505811,0.83527 2.50581,-0.83527 2.088174,-2.92344 -0.835271,-8.3527 -0.417634,-6.68216 -1.67054,-7.51743 z", "path18": "m 63.898152,168.72453 7.099795,24.64047 1.670539,17.54067 1.67054,8.3527 -4.593984,4.17635 -5.84689,1.67054 -4.593984,-3.34109 -4.17635,-7.93506 v -11.27614 l 0.417634,-8.77034 3.758716,-9.18797 z", "path19": "m 64.315786,171.23034 14.617227,39.25769 2.923444,17.54067 -0.835271,11.69378 -10.440873,2.50581 -9.187971,-9.6056 -8.770335,-14.61723 -2.088173,-15.03486 3.341079,-17.12303 z", "path20": "m 89.373886,181.67122 6.264524,-17.54067 6.68216,-3.75872 2.92344,0.41764 -0.83526,3.75871 -5.429259,8.77034 -8.3527,12.52905 z", "path21": "m 89.79152,178.74777 6.682161,-15.45249 2.088176,-9.18797 4.593983,-15.87013 4.59399,-4.17635 4.17635,2.08817 3.34107,8.77034 -0.83526,11.27614 -10.85851,13.78196 -9.60561,9.18797 z", "path22": "m 89.373886,178.74777 6.264524,-12.94668 3.341081,-9.18797 1.252909,-10.44088 0.41763,-17.54066 4.59398,-13.78196 10.44088,-7.93507 8.3527,8.77034 1.2529,15.4525 -6.68215,22.13465 -14.61723,17.54067 z", "path23": "m 125.29049,170.39507 -2.5058,10.85851 0.83526,6.26453 4.17635,3.75871 4.59399,-4.59398 -0.83527,-7.0998 -2.50581,-7.93506 z", "path24": "m 126.12576,168.72453 -7.51742,17.95831 v 10.85851 l 2.5058,10.02324 6.68216,3.34108 6.68216,-5.84689 4.17635,-10.02324 -2.08817,-10.02324 -5.01162,-7.51743 z", "path25": "m 125.70813,169.14217 -6.68216,15.45249 -4.59398,12.94669 -0.41764,19.62884 9.6056,9.18797 -1.67054,12.52905 1.67054,4.59399 10.02324,-3.34109 6.68216,-14.61722 4.17635,-9.18797 2.50581,-14.19959 -0.83527,-10.44087 -6.68216,-12.52905 z", "path113": "m 75.534109,180.32015 c 0,-0.26714 0.267142,-0.80142 0,-0.80142 -0.267142,0 0.160285,1.01514 0,0.80142 -0.342368,-0.45649 -0.369319,-1.08141 -0.601067,-1.60284 -0.101857,-0.22918 -0.288076,-0.3758 -0.400712,-0.60107 -0.05974,-0.11947 0.09445,-0.30626 0,-0.40071 -0.04722,-0.0472 -0.15313,0.0472 -0.200355,0 -0.09445,-0.0944 0.09445,-0.30626 0,-0.40071 -0.04722,-0.0472 -0.153131,0.0472 -0.200356,0 -0.100177,-0.10018 0.100179,-0.50089 0,-0.60107 -0.04722,-0.0472 -0.15313,0.0472 -0.200356,0 -0.09445,-0.0944 0.05974,-0.28124 0,-0.40071 -0.04224,-0.0845 -0.158118,-0.11588 -0.200356,-0.20036 -0.05974,-0.11947 0.09445,-0.30626 0,-0.40071 -0.04722,-0.0472 -0.15313,0.0472 -0.200355,0 -0.09262,-0.0926 0.06048,-0.48009 0,-0.60106 -0.04224,-0.0845 -0.158118,-0.11588 -0.200356,-0.20036 -0.08014,-0.16029 0.08014,-0.44078 0,-0.60107 -0.431961,-0.86392 -0.407228,-1.61588 -0.801423,-2.40427 -0.08341,-0.16681 0.127087,-0.67433 0,-0.80142 -0.04722,-0.0472 -0.15313,0.0472 -0.200356,0 -0.100176,-0.10018 0.10018,-0.50089 0,-0.60107 -0.04722,-0.0472 -0.15313,0.0472 -0.200355,0 -0.09212,-0.0921 -0.32193,-0.64386 -0.400712,-0.80142 -0.05974,-0.11947 0.09445,-0.30626 0,-0.40071 -0.04722,-0.0472 -0.15313,0.0472 -0.200356,0 -0.100176,-0.10018 0.10018,-0.50089 0,-0.60107 -0.04722,-0.0472 -0.15313,0.0472 -0.200355,0 -0.09445,-0.0944 0.05974,-0.28124 0,-0.40071 -0.116695,-0.23339 -0.284017,-0.36768 -0.400712,-0.60107 -0.05974,-0.11947 0.09445,-0.30626 0,-0.40071 -0.04722,-0.0472 -0.15313,0.0472 -0.200355,0 -0.12236,-0.12236 -0.09848,-1.39909 -0.200356,-1.60284 -0.04224,-0.0845 -0.158118,-0.11588 -0.200356,-0.20036 -0.05974,-0.11947 0.09445,-0.30626 0,-0.40071 -0.04722,-0.0472 -0.15313,0.0472 -0.200356,0 -0.133569,-0.13357 0.13357,-0.66785 0,-0.80142 -0.267142,-0.26715 -0.200355,0.33392 -0.200355,-0.20036 0,-0.32735 -0.25843,-0.71722 -0.400712,-1.00178 -0.121748,-0.24349 -0.04553,-0.84695 -0.200356,-1.00178 -0.100176,-0.10017 -0.300532,-0.10017 -0.400711,-0.20035 -0.04722,-0.0472 0.06679,-0.20036 0,-0.20036 -0.0016,0 -0.09904,0.90047 -0.200356,1.00178 -0.04722,0.0472 -0.15313,-0.0472 -0.200355,0 -0.09445,0.0944 0.09445,0.30626 0,0.40071 -0.04722,0.0472 -0.153131,-0.0472 -0.200356,0 -0.08396,0.084 -0.139642,0.47964 -0.200356,0.60107 -0.1461,0.2922 -0.320514,0.32051 -0.400711,0.40071 -0.100177,0.10018 0.100179,0.50089 0,0.60107 -0.04722,0.0472 -0.153131,-0.0472 -0.200356,0 -0.09445,0.0944 0.05974,0.28124 0,0.40071 -0.144635,0.28927 -0.256074,0.51215 -0.400712,0.80142 -0.09624,0.19248 -0.133328,0.93476 -0.200355,1.00178 -0.04722,0.0472 -0.153131,-0.0472 -0.200356,0 -0.100177,0.10018 0.100179,0.50089 0,0.60107 -0.04722,0.0472 -0.15313,-0.0472 -0.200356,0 -0.09445,0.0944 0.09445,0.30626 0,0.40071 -0.04722,0.0472 -0.15313,-0.0472 -0.200355,0 -0.09445,0.0944 0.09445,0.30626 0,0.40071 -0.04722,0.0472 -0.153131,-0.0472 -0.200356,0 -0.0081,0.008 -0.303895,2.10037 -0.200356,2.20391 0.04723,0.0472 0.153133,-0.0472 0.200356,0 0.100179,0.10018 -0.100177,0.50089 0,0.60107 0.04722,0.0472 0.153133,-0.0472 0.200356,0 0.09445,0.0944 -0.09445,0.30626 0,0.40071 0.04722,0.0472 0.153132,-0.0472 0.200355,0 0.09445,0.0944 -0.05974,0.28124 0,0.40071 0.04224,0.0845 0.158118,0.11588 0.200356,0.20036 0.05974,0.11947 -0.09445,0.30626 0,0.40071 0.04722,0.0472 0.153133,-0.0472 0.200356,0 0.09262,0.0926 -0.06048,0.4801 0,0.60107 0.04224,0.0845 0.158117,0.11588 0.200355,0.20035 0.08341,0.16682 -0.127087,0.67434 0,0.80143 0.04723,0.0472 0.153133,-0.0472 0.200356,0 0.05304,0.053 0,0.51856 0,0.60106 0,0.44131 0.200356,0.28548 0.200356,0.60107 0,0.12227 -0.07806,0.72336 0,0.80142 0.04722,0.0472 0.153133,-0.0472 0.200356,0 0.166962,0.16697 -0.166963,0.83482 0,1.00178 0.04722,0.0472 0.153132,-0.0472 0.200355,0 0.273601,0.2736 -0.07324,1.5296 0.200356,1.8032 0.04723,0.0472 0.153133,-0.0472 0.200356,0 0.122925,0.12293 0.137737,1.54023 0.200356,1.60285 0.04722,0.0472 0.153132,-0.0472 0.200355,0 0.100179,0.10018 -0.100176,0.50089 0,0.60107 0.04723,0.0472 0.153133,-0.0472 0.200356,0 0.100179,0.10018 -0.100177,0.50089 0,0.60106 0.04722,0.0472 0.153133,-0.0472 0.200356,0 0.09445,0.0944 -0.09445,0.30627 0,0.40072 0.04722,0.0472 0.153133,-0.0472 0.200355,0 0.09445,0.0944 -0.09445,0.30626 0,0.40071 0.04723,0.0472 0.153133,-0.0472 0.200356,0 0.187148,0.18714 0.213564,0.81463 0.400712,1.00178 0.04722,0.0472 0.153132,-0.0472 0.200355,0 0.233749,0.23374 -0.03339,0.96838 0.200356,1.20213 0.291563,0.29156 0.776295,-0.57594 0.801423,-0.60107 0.04722,-0.0472 0.153133,0.0472 0.200356,0 0.09618,-0.0962 0.276521,-0.67723 0.400711,-0.80142 0.04723,-0.0472 0.153133,0.0472 0.200356,0 0.04722,-0.0472 -0.04722,-0.15313 0,-0.20036 0.04722,-0.0472 0.140621,0.0299 0.200356,0 0.400711,-0.20035 0.601067,-0.80142 1.001778,-1.00177 0.05974,-0.0299 0.153133,0.0472 0.200356,0 0.04722,-0.0472 -0.04722,-0.15313 0,-0.20036 0.06679,-0.0668 0.534281,-0.13357 0.601067,-0.20036 0.04723,-0.0472 -0.04722,-0.15313 0,-0.20035 0.04723,-0.0472 0.153133,0.0472 0.200356,0 0.04722,-0.0472 0,-0.13357 0,-0.20036 0.467497,-0.33392 0.934992,-0.66785 1.40249,-1.00178 z", "path114": "m 52.4932,174.30948 c 0.13357,-0.26714 0.667854,-0.66785 0.400712,-0.80142 -0.267142,-0.13357 -0.579914,1.04036 -0.400712,0.80142 1.053563,0.47044 0.556006,-1.48014 1.202135,-1.8032 0.05974,-0.0299 0.15313,0.0472 0.200355,0 0.06679,-0.0668 0.13357,-0.53428 0.200356,-0.60107 0.04723,-0.0472 0.15313,0.0472 0.200356,0 0.04722,-0.0472 -0.02987,-0.14062 0,-0.20035 0.08448,-0.16896 0.316235,-0.23176 0.400711,-0.40071 0.02987,-0.0597 -0.04723,-0.15313 0,-0.20036 0.10018,-0.10018 0.300535,-0.10018 0.400712,-0.20036 0.200356,-0.20035 0,-0.80142 0.200356,-1.00177 0.04722,-0.0472 0.15313,0.0472 0.200355,0 0.09445,-0.0944 -0.09445,-0.30627 0,-0.40072 0.04723,-0.0472 0.153131,0.0472 0.200356,0 0.09445,-0.0944 -0.09445,-0.30626 0,-0.40071 0.04722,-0.0472 0.15313,0.0472 0.200356,0 0.09445,-0.0945 -0.09445,-0.30626 0,-0.40071 0.100179,-0.10017 0.300535,-0.10017 0.400711,-0.20035 0.09445,-0.0944 -0.09445,-0.30627 0,-0.40072 0.04723,-0.0472 0.15313,0.0472 0.200356,0 0.197615,-0.19761 0.05434,-0.85576 0.200356,-1.00177 0.04722,-0.0472 0.15313,0.0472 0.200355,0 0.166963,-0.16697 -0.166962,-0.83482 0,-1.00178 0.04723,-0.0472 0.153131,0.0472 0.200356,0 0.09262,-0.0926 -0.06048,-0.4801 0,-0.60107 0.04224,-0.0845 0.158118,-0.11588 0.200356,-0.20036 0.08341,-0.16681 -0.127087,-0.67433 0,-0.80142 0.04722,-0.0472 0.15313,0.0472 0.200356,0 0.133569,-0.13357 -0.13357,-0.66785 0,-0.80142 0.04722,-0.0472 0.15313,0.0472 0.200355,0 0.159917,-0.15992 -0.1051,-0.79158 0,-1.00178 0.04224,-0.0845 0.158118,-0.11588 0.200356,-0.20036 0.213712,-0.42742 -0.213712,-1.17542 0,-1.60284 0.04224,-0.0845 0.158118,-0.11588 0.200356,-0.20036 0.1051,-0.2102 -0.159917,-0.84186 0,-1.00178 0.04722,-0.0472 0.15313,0.0472 0.200355,0 0.09445,-0.0944 -0.09445,-0.30626 0,-0.40071 0.04723,-0.0472 0.153131,0.0472 0.200356,0 0.09445,-0.0944 -0.09445,-0.30626 0,-0.40071 0.100179,-0.10018 0.300535,-0.10018 0.400712,-0.20035 0.04722,-0.0472 -0.04723,-0.15313 0,-0.20036 0.09445,-0.0944 0.306263,0.0944 0.400711,0 0.04723,-0.0472 -0.04722,-0.15313 0,-0.20036 0.05802,-0.058 1.344472,-0.058 1.40249,0 0.04723,0.0472 0,0.13357 0,0.20036 0.06679,0 0.153133,-0.0472 0.200356,0 0.09445,0.0944 -0.09445,0.30626 0,0.40071 0.04722,0.0472 0.153133,-0.0472 0.200356,0 0.200355,0.20036 -0.200356,1.00178 0,1.20214 0.186605,0.1866 0.200355,-0.0157 0.200355,0.40071 0,0.0825 -0.05304,0.54803 0,0.60106 0.04723,0.0472 0.153133,-0.0472 0.200356,0 0.100179,0.10018 -0.100176,0.50089 0,0.60107 0.04723,0.0472 0.153133,-0.0472 0.200356,0 0.133569,0.13357 -0.13357,0.66785 0,0.80142 0.04722,0.0472 0.153133,-0.0472 0.200356,0 0.166962,0.16697 -0.166963,0.83482 0,1.00178 0.04722,0.0472 0.153132,-0.0472 0.200355,0 0.05304,0.053 0,0.51857 0,0.60107 0,0.53428 -0.06679,-0.0668 0.200356,0.20036 0.13357,0.13357 -0.13357,0.66785 0,0.80142 0.04722,0.0472 0.153133,-0.0472 0.200356,0 0.166962,0.16696 -0.166963,0.83481 0,1.00178 0.04722,0.0472 0.153133,-0.0472 0.200355,0 0.04806,0.0481 0,3.97706 0,4.40782 0,0.25483 0.162198,1.44065 0,1.60285 -0.04722,0.0472 -0.15313,-0.0472 -0.200355,0 -0.09445,0.0944 0.09445,0.30626 0,0.40071 -0.04722,0.0472 -0.153131,-0.0472 -0.200356,0 -0.187148,0.18715 -0.213564,0.81463 -0.400711,1.00178 -0.04722,0.0472 -0.153131,-0.0472 -0.200356,0 -0.09445,0.0944 0.09445,0.30626 0,0.40071 -0.04722,0.0472 -0.15313,-0.0472 -0.200356,0 -0.09445,0.0944 0.09445,0.30626 0,0.40071 -0.04722,0.0472 -0.15313,-0.0472 -0.200356,0 -0.09445,0.0944 0.09445,0.30627 0,0.40071 -0.04722,0.0472 -0.15313,-0.0472 -0.200355,0 -0.09445,0.0944 0.09445,0.30627 0,0.40072 -0.04722,0.0472 -0.153131,-0.0472 -0.200356,0 -0.09445,0.0944 0.09445,0.30626 0,0.40071 -0.04722,0.0472 -0.15313,-0.0472 -0.200356,0 -0.166962,0.16696 -0.03339,0.63446 -0.200356,0.80142 -0.04722,0.0472 -0.15313,-0.0472 -0.200355,0 -0.06679,0.0668 -0.13357,0.53428 -0.200356,0.60107 -0.100177,0.10018 -0.300532,0.10018 -0.400711,0.20035 -0.06679,0.0668 -0.13357,0.53428 -0.200356,0.60107 -0.04722,0.0472 -0.15313,-0.0472 -0.200356,0 -0.06679,0.0668 -0.13357,0.53428 -0.200356,0.60107 -0.01085,0.0108 -0.590211,0.38985 -0.601067,0.40071 -0.12419,0.12419 -0.304535,0.70525 -0.400711,0.80142 -0.100177,0.10018 -0.300533,0.10018 -0.400712,0.20036 -0.04723,0.0472 0.02987,0.14062 0,0.20035 -0.08448,0.16896 -0.316232,0.23176 -0.400711,0.40071 -0.02987,0.0597 0.04722,0.15314 0,0.20036 -0.04723,0.0472 -0.15313,-0.0472 -0.200356,0 -0.04723,0.0472 0.04723,0.15313 0,0.20036 -0.04723,0.0472 -0.15313,-0.0472 -0.200356,0 -0.04723,0.0472 0.04723,0.15313 0,0.20035 -0.04723,0.0472 -0.15313,-0.0472 -0.200355,0 -0.06679,0.0668 -0.13357,0.53428 -0.200356,0.60107 -0.100177,0.10018 -0.300532,0.10018 -0.400712,0.20035 -0.06679,0.0668 -0.133569,0.53429 -0.200355,0.60107 -0.04723,0.0472 -0.153131,-0.0472 -0.200356,0 -0.09445,0.0944 0.09445,0.30626 0,0.40071 -0.04722,0.0472 -0.15313,-0.0472 -0.200356,0 -0.06679,0.0668 -0.133569,0.53428 -0.200355,0.60107 -0.04723,0.0472 -0.153131,-0.0472 -0.200356,0 -0.09445,0.0944 0.09445,0.30626 0,0.40071 -0.04723,0.0472 -0.15313,-0.0472 -0.200356,0 -0.132217,0.13222 -0.283049,0.64241 -0.601067,0.80142 -0.05974,0.0299 -0.15313,-0.0472 -0.200356,0 -0.04723,0.0472 0.04723,0.15314 0,0.20036 -0.13135,0.13135 -0.701045,0.1 -0.801423,0.20036 -0.04723,0.0472 0.04723,0.15313 0,0.20035 -0.09445,0.0944 -0.306263,-0.0944 -0.400711,0 -0.04061,0.0406 -0.304144,0.69764 -0.601067,0.40071 -0.09445,-0.0945 0.09445,-0.30626 0,-0.40071 -0.04723,-0.0472 -0.153131,0.0472 -0.200356,0 -0.02148,-0.0215 0,-1.99097 0,-2.20391 0,-0.35693 -0.03728,-3.76948 0,-3.80676 0.04722,-0.0472 0.15313,0.0472 0.200356,0 0.166962,-0.16696 -0.166963,-0.83482 0,-1.00178 0.04722,-0.0472 0.15313,0.0472 0.200355,0 0.200356,-0.20035 -0.200355,-1.00178 0,-1.20213 0.04723,-0.0472 0.153131,0.0472 0.200356,0 0.101354,-0.10136 -0.155816,-2.29285 -0.200356,-2.60463 z", "path115": "m 87.355097,173.10735 c 0,0.26714 -0.267142,0.80142 0,0.80142 0.267142,0 0,-1.06856 0,-0.80142 0,1.46927 0,2.93855 0,4.40782 0,0.43077 0.04806,4.35977 0,4.40783 -0.04722,0.0472 -0.15313,-0.0472 -0.200356,0 -0.166963,0.16696 0.166963,0.83482 0,1.00178 -0.04722,0.0472 -0.15313,-0.0472 -0.200356,0 -0.166962,0.16696 0.166963,0.83481 0,1.00178 -0.04722,0.0472 -0.15313,-0.0472 -0.200355,0 -0.05762,0.0576 -0.174213,3.40604 0.400711,3.40604 0.150106,0 0.857012,0.54548 1.001779,0.40072 0.07134,-0.0713 0.193307,-0.59402 0.200355,-0.60107 0.04723,-0.0472 0.153133,0.0472 0.200356,0 0.09445,-0.0944 -0.09445,-0.30626 0,-0.40071 0.04723,-0.0472 0.153133,0.0472 0.200356,0 0.09445,-0.0944 -0.09445,-0.30627 0,-0.40071 0.100179,-0.10018 0.300535,-0.10018 0.400711,-0.20036 0.06679,-0.0668 0.13357,-0.53428 0.200356,-0.60107 0.04723,-0.0472 0.153133,0.0472 0.200356,0 0.09445,-0.0945 -0.09445,-0.30626 0,-0.40071 0.04722,-0.0472 0.153133,0.0472 0.200356,0 0.09445,-0.0944 -0.09445,-0.30626 0,-0.40071 0.04722,-0.0472 0.153132,0.0472 0.200355,0 0.09445,-0.0944 -0.05974,-0.28124 0,-0.40071 0.04224,-0.0845 0.158118,-0.11588 0.200356,-0.20036 0.264448,-0.52889 -0.211643,-4.59689 0,-4.80853 0.04722,-0.0472 0.153133,0.0472 0.200356,0 0.133569,-0.13357 -0.13357,-0.66786 0,-0.80143 0.04722,-0.0472 0.153133,0.0472 0.200355,0 0.03907,-0.0391 0,-3.25435 0,-3.6064 0,-0.19 -0.120994,-1.08114 0,-1.20214 0.186606,-0.1866 0.200356,0.0157 0.200356,-0.40071 0,-0.23287 0.02416,-2.3801 0,-2.40427 -0.04943,-0.0494 -1.152705,-0.0494 -1.202134,0 -0.100177,0.10018 -0.100177,0.30054 -0.200356,0.40072 -0.09445,0.0944 -0.306263,-0.0944 -0.400711,0 -0.04722,0.0472 0.04722,0.15313 0,0.20035 -0.08996,0.09 -0.760992,0.14376 -0.801423,0.20036 -0.312963,0.43815 -0.534281,0.93499 -0.801423,1.40249 z", "path116": "m 103.98462,171.90521 c -0.26714,0.0668 -0.86821,-0.0668 -0.80142,0.20036 0.0668,0.26714 1.04771,-0.3235 0.80142,-0.20036 -0.53428,0.20036 -1.06856,0.40071 -1.60284,0.60107 -0.0668,0.0668 -0.11588,0.15812 -0.20036,0.20036 -0.0597,0.0299 -0.15313,-0.0472 -0.20036,0 -0.0472,0.0472 0.0472,0.15313 0,0.20035 -0.0472,0.0472 -0.14062,-0.0299 -0.20035,0 -0.24043,0.12022 -0.36064,0.48086 -0.60107,0.60107 -0.0597,0.0299 -0.15313,-0.0472 -0.20035,0 -0.0472,0.0472 0.0472,0.15313 0,0.20035 -0.16156,0.16156 -1.059954,0.45889 -1.202138,0.60107 -0.09445,0.0944 0.09445,0.30627 0,0.40071 -0.04722,0.0472 -0.15313,-0.0472 -0.200356,0 -0.06679,0.0668 -0.133569,0.53428 -0.200356,0.60107 -0.04722,0.0472 -0.15313,-0.0472 -0.200355,0 -0.06679,0.0668 -0.13357,0.53428 -0.200356,0.60107 -0.04722,0.0472 -0.15313,-0.0472 -0.200356,0 -0.166962,0.16696 -0.03339,0.63446 -0.200355,0.80142 -0.04722,0.0472 -0.153131,-0.0472 -0.200356,0 -0.09445,0.0944 0.09445,0.30626 0,0.40071 -0.04722,0.0472 -0.15313,-0.0472 -0.200356,0 -0.09445,0.0944 0.09445,0.30627 0,0.40071 -0.04722,0.0472 -0.15313,-0.0472 -0.200356,0 -0.119078,0.11908 -0.117819,0.23564 -0.200355,0.40072 -0.08448,0.16895 -0.316233,0.23175 -0.400712,0.40071 -0.02987,0.0597 0.04723,0.15313 0,0.20035 -0.04722,0.0472 -0.15313,-0.0472 -0.200356,0 -0.04722,0.0472 0.04723,0.15314 0,0.20036 -0.04722,0.0472 -0.15313,-0.0472 -0.200355,0 -0.04722,0.0472 0.04722,0.15313 0,0.20035 -0.04722,0.0472 -0.153131,-0.0472 -0.200356,0 -0.04722,0.0472 0.04722,0.15314 0,0.20036 -0.04722,0.0472 -0.15313,-0.0472 -0.200356,0 -0.04722,0.0472 0.04723,0.15313 0,0.20036 -0.04722,0.0472 -0.15313,-0.0472 -0.200355,0 -0.04722,0.0472 0.04722,0.15313 0,0.20035 -0.04722,0.0472 -0.153131,-0.0472 -0.200356,0 -0.04722,0.0472 0.04722,0.15313 0,0.20036 -0.04722,0.0472 -0.15313,-0.0472 -0.200356,0 -0.04722,0.0472 0.04723,0.15313 0,0.20035 -0.414544,0.41455 0.01619,-0.63347 -0.400711,0.20036 -0.02421,0.0484 -0.494179,0.74798 -0.601068,0.80142 -0.05974,0.0299 -0.15313,-0.0472 -0.200355,0 -0.116126,0.11613 -0.284586,0.6853 -0.400712,0.80142 -0.04722,0.0472 -0.14062,-0.0299 -0.200355,0 -0.833832,0.41692 0.214188,-0.0138 -0.200356,0.40072 -0.01085,0.0108 -0.590212,0.38985 -0.601067,0.40071 -0.06679,0.0668 -0.13357,0.53428 -0.200356,0.60106 -0.04722,0.0472 -0.15313,-0.0472 -0.200356,0 -0.06679,0.0668 -0.133569,0.53429 -0.200356,0.60107 -0.100176,0.10018 -0.300532,0.10018 -0.400711,0.20036 -0.06679,0.0668 -0.13357,0.53428 -0.200356,0.60106 -0.01085,0.0108 -0.590211,0.38986 -0.601067,0.40072 -0.06679,0.0668 -0.13357,0.53428 -0.200356,0.60106 -0.04722,0.0472 -0.15313,-0.0472 -0.200355,0 -0.09618,0.0962 -0.276522,0.67724 -0.400712,0.80143 -0.0802,0.0802 -0.254608,0.1085 -0.400711,0.40071 -0.134305,0.26861 -0.04776,1.24989 -0.200356,1.40249 -0.04722,0.0472 -0.15313,-0.0472 -0.200356,0 -0.09262,0.0926 0.06048,0.48009 0,0.60106 -0.04224,0.0845 -0.158117,0.11588 -0.200355,0.20036 -0.06048,0.12097 0.09262,0.50845 0,0.60107 -0.186606,0.1866 -0.200356,-0.0157 -0.200356,0.40071 0,0.45015 0.193516,0.59765 0.601067,0.80142 0.345244,0.17262 2.119127,0 2.604624,0 0.0825,0 0.548032,0.053 0.601068,0 0.04722,-0.0472 -0.04722,-0.15313 0,-0.20035 0.04722,-0.0472 0.153133,0.0472 0.200355,0 0.04723,-0.0472 -0.04722,-0.15313 0,-0.20036 0.0802,-0.0802 0.254612,-0.10851 0.400712,-0.40071 0.05974,-0.11947 -0.09445,-0.30626 0,-0.40071 0.04722,-0.0472 0.153133,0.0472 0.200356,0 0.06679,-0.0668 0.133569,-0.53428 0.200355,-0.60107 0.100179,-0.10018 0.300535,-0.10018 0.400712,-0.20036 0.09445,-0.0944 -0.09445,-0.30626 0,-0.40071 0.100179,-0.10017 0.300535,-0.10017 0.400711,-0.20035 0.06679,-0.0668 0.13357,-0.53428 0.200356,-0.60107 0.414544,-0.41454 -0.01622,0.63348 0.400711,-0.20036 0.02987,-0.0597 -0.04722,-0.15313 0,-0.20035 0.04723,-0.0472 0.153133,0.0472 0.200356,0 0.116126,-0.11613 0.284586,-0.6853 0.400712,-0.80142 0.04722,-0.0472 0.14062,0.0299 0.200355,0 0.833832,-0.41692 -0.214188,0.0138 0.200356,-0.40072 0.01085,-0.0108 0.590211,-0.38985 0.601067,-0.40071 0.04723,-0.0472 -0.02987,-0.14062 0,-0.20035 0.08448,-0.16896 0.316235,-0.23176 0.400712,-0.40071 0.02987,-0.0597 -0.04722,-0.15313 0,-0.20036 0.04722,-0.0472 0.153132,0.0472 0.200355,0 0.116126,-0.11613 0.284586,-0.6853 0.400712,-0.80142 0.01085,-0.0109 0.590211,-0.38986 0.601067,-0.40071 0.04722,-0.0472 -0.04722,-0.15313 0,-0.20036 0.04722,-0.0472 0.153133,0.0472 0.200356,0 0.116125,-0.11613 0.284586,-0.6853 0.400711,-0.80142 0.04723,-0.0472 0.153133,0.0472 0.200356,0 0.01638,-0.0164 0.785048,-1.18576 0.801418,-1.20214 0.0472,-0.0472 0.15314,0.0472 0.20036,0 0.0944,-0.0944 -0.0945,-0.30626 0,-0.40071 0.10018,-0.10018 0.30054,-0.10018 0.40071,-0.20035 0.0668,-0.0668 0.13357,-0.53429 0.20036,-0.60107 0.0472,-0.0472 0.15313,0.0472 0.20035,0 0.12419,-0.12419 0.30454,-0.70525 0.40071,-0.80142 0.0472,-0.0472 0.15314,0.0472 0.20036,0 0.0668,-0.0668 0.13357,-0.53429 0.20036,-0.60107 0.0713,-0.0713 0.59401,-0.19331 0.60106,-0.20036 0.0472,-0.0472 -0.0472,-0.15313 0,-0.20035 0.0945,-0.0944 0.30627,0.0944 0.40071,0 0.0472,-0.0472 -0.0472,-0.15313 0,-0.20036 0.0944,-0.0944 0.30627,0.0944 0.40072,0 0.0472,-0.0472 -0.0472,-0.15313 0,-0.20035 0.0944,-0.0944 0.30626,0.0944 0.40071,0 0.0472,-0.0472 -0.0472,-0.15313 0,-0.20036 0.20035,-0.20036 0.80142,0 1.00178,-0.20036 0.0472,-0.0472 -0.0472,-0.15313 0,-0.20035 0.0944,-0.0944 0.30626,0.0944 0.40071,0 0.0472,-0.0472 -0.0472,-0.15313 0,-0.20036 0.0945,-0.0944 0.30626,0.0944 0.40071,0 0.0472,-0.0472 -0.0472,-0.15313 0,-0.20035 0.41454,-0.41455 -0.0162,0.63347 0.40071,-0.20036 0.0299,-0.0597 -0.0472,-0.15313 0,-0.20035 0.0472,-0.0472 0.15313,0.0472 0.20036,0 0.0944,-0.0944 -0.0945,-0.30627 0,-0.40072 0.0472,-0.0472 0.15313,0.0472 0.20035,0 0.16696,-0.16696 -0.16696,-0.83481 0,-1.00177 0.0472,-0.0472 0.15314,0.0472 0.20036,0 0.0945,-0.0944 0,-0.26715 0,-0.40072 0,-0.45939 0.0997,-0.95192 -0.40071,-1.20213 -0.0597,-0.0299 -0.15313,0.0472 -0.20036,0 -0.0802,-0.0802 -0.10851,-0.25461 -0.40071,-0.40071 -0.11947,-0.0597 -0.30626,0.0944 -0.40071,0 -0.0472,-0.0472 0.0472,-0.15313 0,-0.20036 -0.0472,-0.0472 -0.14372,0.0354 -0.20036,0 -0.48718,-0.30449 -0.93499,-0.66785 -1.40249,-1.00178 z", "path117": "m 110.19565,182.52407 c 0.26714,-0.13357 0.93499,-0.13357 0.80142,-0.40071 -0.13357,-0.26715 -1.04036,0.57991 -0.80142,0.40071 0.50404,-0.37803 1.05208,-0.6958 1.60285,-1.00178 0.0584,-0.0324 0.15313,0.0472 0.20035,0 0.0108,-0.0109 0.38986,-0.59021 0.40071,-0.60107 0.0945,-0.0944 0.30627,0.0944 0.40071,0 0.0472,-0.0472 -0.0472,-0.15313 0,-0.20035 0.0945,-0.0944 0.30627,0.0944 0.40072,0 0.0472,-0.0472 -0.0472,-0.15313 0,-0.20036 0.0668,-0.0668 0.53428,-0.13357 0.60106,-0.20036 0.0472,-0.0472 -0.0299,-0.14062 0,-0.20035 0.41692,-0.83383 -0.0138,0.21419 0.40071,-0.20036 0.0472,-0.0472 -0.0472,-0.15313 0,-0.20035 0.0472,-0.0472 0.15314,0.0472 0.20036,0 0.0472,-0.0472 -0.0299,-0.14062 0,-0.20036 0.0845,-0.16895 0.31624,-0.23176 0.40071,-0.40071 0.0607,-0.12143 0.1164,-0.51711 0.20036,-0.60107 0.0472,-0.0472 0.15313,0.0472 0.20035,0 0.0472,-0.0472 -0.0472,-0.15313 0,-0.20035 0.0472,-0.0472 0.15314,0.0472 0.20036,0 0.0109,-0.0109 0.38985,-0.59021 0.40071,-0.60107 0.10018,-0.10018 0.30053,-0.10018 0.40071,-0.20036 0.0668,-0.0668 0.13357,-0.53428 0.20036,-0.60106 0.10018,-0.10018 0.30053,-0.10018 0.40071,-0.20036 0.0668,-0.0668 0.13357,-0.53428 0.20035,-0.60107 0.0109,-0.0108 0.59022,-0.38985 0.60107,-0.40071 0.11613,-0.11612 0.28459,-0.6853 0.40071,-0.80142 0.10018,-0.10018 0.30054,-0.10018 0.40071,-0.20036 0.0472,-0.0472 -0.0299,-0.14062 0,-0.20035 0.16029,-0.32057 0.64114,-0.48086 0.80143,-0.80143 0.0607,-0.12142 0.1164,-0.5171 0.20035,-0.60106 0.0472,-0.0472 0.15314,0.0472 0.20036,0 0.18428,-0.18428 0.22891,-0.65817 0.40071,-1.00178 0.0845,-0.16896 0.31624,-0.23176 0.40071,-0.40071 0.0299,-0.0597 -0.0472,-0.15313 0,-0.20036 0.0472,-0.0472 0.15313,0.0472 0.20036,0 0.0472,-0.0472 -0.0472,-0.15313 0,-0.20035 0.0472,-0.0472 0.15313,0.0472 0.20035,0 0.0472,-0.0472 -0.0299,-0.14062 0,-0.20036 0.13418,-0.26835 0.47798,-0.27762 0.60107,-0.40071 0.0472,-0.0472 -0.0472,-0.15313 0,-0.20036 0.0472,-0.0472 0.15313,0.0472 0.20036,0 0.0472,-0.0472 -0.0472,-0.15313 0,-0.20035 0.0472,-0.0472 0.15313,0.0472 0.20035,0 0.0472,-0.0472 -0.0472,-0.15313 0,-0.20036 0.0472,-0.0472 0.15313,0.0472 0.20036,0 0.0472,-0.0472 -0.0299,-0.14062 0,-0.20035 0.41691,-0.83384 -0.0138,0.21418 0.40071,-0.20036 0.0472,-0.0472 -0.0472,-0.15313 0,-0.20036 0.0472,-0.0472 0.15313,0.0472 0.20035,0 0.0472,-0.0472 -0.0472,-0.15313 0,-0.20035 0.0472,-0.0472 0.15314,0.0472 0.20036,0 0.0472,-0.0472 -0.0472,-0.15313 0,-0.20036 0.0472,-0.0472 0.15313,0.0472 0.20036,0 0.11907,-0.11908 0.11782,-0.23563 0.20035,-0.40071 0.14419,-0.28838 1.13019,-1.47443 1.60285,-1.00178 0.0344,0.0344 0,2.89321 0,3.20569 0,0.12227 0.0781,0.72336 0,0.80143 -0.0472,0.0472 -0.15313,-0.0472 -0.20036,0 -0.0945,0.0944 0.0597,0.28124 0,0.40071 -0.0845,0.16895 -0.31623,0.23176 -0.40071,0.40071 -0.0825,0.16507 -0.0813,0.28163 -0.20036,0.40071 -0.0472,0.0472 -0.15313,-0.0472 -0.20035,0 -0.0944,0.0944 0.0944,0.30627 0,0.40071 -0.10018,0.10018 -0.30053,0.10018 -0.40071,0.20036 -0.0472,0.0472 0.0472,0.15313 0,0.20035 -0.0472,0.0472 -0.15313,-0.0472 -0.20036,0 -0.0472,0.0472 0.0472,0.15314 0,0.20036 -0.0472,0.0472 -0.15313,-0.0472 -0.20035,0 -0.0472,0.0472 0.0472,0.15313 0,0.20036 -0.0472,0.0472 -0.15313,-0.0472 -0.20036,0 -0.0945,0.0944 0.0944,0.30626 0,0.40071 -0.0472,0.0472 -0.15313,-0.0472 -0.20036,0 -0.0944,0.0944 0.0597,0.28124 0,0.40071 -0.1461,0.2922 -0.32051,0.32052 -0.40071,0.40071 -0.0944,0.0944 0.0945,0.30626 0,0.40071 -0.0472,0.0472 -0.15313,-0.0472 -0.20035,0 -0.0944,0.0944 0.0945,0.30627 0,0.40071 -0.0472,0.0472 -0.15313,-0.0472 -0.20036,0 -0.0945,0.0944 0.0944,0.30627 0,0.40072 -0.0472,0.0472 -0.15313,-0.0472 -0.20035,0 -0.0945,0.0944 0.0944,0.30626 0,0.40071 -0.0472,0.0472 -0.15313,-0.0472 -0.20036,0 -0.0945,0.0944 0.0944,0.30626 0,0.40071 -0.0472,0.0472 -0.15313,-0.0472 -0.20036,0 -0.0944,0.0944 0.0944,0.30626 0,0.40071 -0.0472,0.0472 -0.15313,-0.0472 -0.20035,0 -0.0944,0.0944 0.0944,0.30626 0,0.40071 -0.0472,0.0472 -0.15313,-0.0472 -0.20036,0 -0.0944,0.0944 0.0945,0.30626 0,0.40071 -0.10017,0.10018 -0.30053,0.10018 -0.40071,0.20036 -0.0472,0.0472 0.0299,0.14062 0,0.20035 -0.20035,0.40072 -0.80142,0.60107 -1.00178,1.00178 -0.0299,0.0597 0.0472,0.15314 0,0.20036 -0.0472,0.0472 -0.15313,-0.0472 -0.20035,0 -0.10018,0.10018 -0.10018,0.30053 -0.20036,0.40071 -0.0472,0.0472 -0.15313,-0.0472 -0.20035,0 -0.41455,0.41454 0.63347,-0.0162 -0.20036,0.40071 -0.0597,0.0299 -0.15313,-0.0472 -0.20036,0 -0.0472,0.0472 0.0472,0.15313 0,0.20036 -0.0472,0.0472 -0.15313,-0.0472 -0.20035,0 -0.41455,0.41454 0.63347,-0.0162 -0.20036,0.40071 -0.0597,0.0299 -0.15313,-0.0472 -0.20035,0 -0.41455,0.41454 0.63347,-0.0162 -0.20036,0.40071 -0.0597,0.0299 -0.15313,-0.0472 -0.20035,0 -0.10585,0.10584 -0.49523,0.89593 -0.60107,1.00178 -0.0472,0.0472 -0.14062,-0.0299 -0.20036,0 -0.83383,0.41692 0.21419,-0.0138 -0.20035,0.40071 -0.10018,0.10018 -0.30054,0.10018 -0.40071,0.20036 -0.1783,0.17829 -0.30761,0.85504 -0.60107,1.00177 -0.16507,0.0825 -0.28163,0.0813 -0.40071,0.20036 -0.0472,0.0472 0.0472,0.15313 0,0.20036 -0.0668,0.0668 -0.53428,0.13357 -0.60107,0.20035 -0.10018,0.10018 -0.10018,0.30054 -0.20036,0.40071 -0.0944,0.0944 -0.30626,-0.0945 -0.40071,0 -0.10017,0.10018 -0.10017,0.30054 -0.20035,0.40071 -0.10585,0.10585 -0.89594,0.49523 -1.00178,0.60107 -0.0472,0.0472 0.0472,0.15313 0,0.20036 -0.0472,0.0472 -0.15313,-0.0472 -0.20036,0 -0.41454,0.41454 0.63348,-0.0162 -0.20035,0.40071 -0.0597,0.0299 -0.15313,-0.0472 -0.20036,0 -0.41454,0.41454 0.63348,-0.0162 -0.20035,0.40071 -0.0597,0.0299 -0.15313,-0.0472 -0.20036,0 -0.0668,0.0668 -0.13357,0.53428 -0.20036,0.60107 -0.0108,0.0109 -0.59021,0.38985 -0.60106,0.40071 -0.0472,0.0472 0.0472,0.15313 0,0.20035 -0.0944,0.0944 -0.30627,-0.0944 -0.40071,0 -0.0406,0.0406 -0.30415,0.69764 -0.60107,0.40072 -0.0781,-0.0781 0,-0.67916 0,-0.80143 0,-0.67597 -0.23284,-2.94037 0,-3.40604 0.32184,-0.64369 0.29425,-1.65903 0.40071,-2.40427 z", "path118": "m 144.05577,187.3326 c -0.0668,-0.26713 0.0668,-0.8682 -0.20036,-0.80142 -0.26714,0.0668 0.36558,1.02171 0.20036,0.80142 -3.19476,-4.25968 -0.27961,-0.43812 -0.80143,-2.00355 -0.0597,-0.17921 -0.31623,-0.23176 -0.40071,-0.40071 -0.0605,-0.12097 0.0926,-0.50845 0,-0.60107 -0.0472,-0.0472 -0.15313,0.0472 -0.20035,0 -0.18715,-0.18715 -0.21357,-0.81463 -0.40071,-1.00178 -0.0472,-0.0472 -0.15313,0.0472 -0.20036,0 -0.0668,-0.0668 -0.13357,-0.53428 -0.20036,-0.60107 -0.0472,-0.0472 -0.15313,0.0472 -0.20035,0 -0.10038,-0.10037 -0.069,-0.67007 -0.20036,-0.80142 -0.0472,-0.0472 -0.15313,0.0472 -0.20035,0 -0.0944,-0.0944 0.0944,-0.30626 0,-0.40071 -0.0472,-0.0472 -0.15313,0.0472 -0.20036,0 -0.0713,-0.0713 -0.19331,-0.59402 -0.20035,-0.60107 -0.0802,-0.0802 -0.25461,-0.10851 -0.40072,-0.40071 -0.0825,-0.16507 -0.0813,-0.28163 -0.20035,-0.40071 -0.0472,-0.0472 -0.15313,0.0472 -0.20036,0 -0.0945,-0.0944 0.0944,-0.30626 0,-0.40071 -0.0472,-0.0472 -0.15313,0.0472 -0.20035,0 -0.0472,-0.0472 0.0299,-0.14062 0,-0.20036 -0.0968,-0.19363 -0.60779,-0.70461 -0.80143,-0.80142 -0.0597,-0.0299 -0.15313,0.0472 -0.20035,0 -0.0472,-0.0472 0.0472,-0.15313 0,-0.20036 -0.0944,-0.0944 -0.30626,0.0944 -0.40071,0 -0.10018,-0.10017 -0.10018,-0.30053 -0.20036,-0.40071 -0.0668,-0.0668 -0.53428,-0.13357 -0.60107,-0.20035 -0.0521,-0.0521 -0.51213,-0.91285 -0.60106,-1.00178 -0.10018,-0.10018 -0.30054,-0.10018 -0.40071,-0.20036 -0.10018,-0.10018 -0.10018,-0.30053 -0.20036,-0.40071 -0.0472,-0.0472 -0.15313,0.0472 -0.20036,0 -0.0472,-0.0472 0.0472,-0.15313 0,-0.20036 -0.0472,-0.0472 -0.15313,0.0472 -0.20035,0 -0.41455,-0.41454 0.63347,0.0162 -0.20036,-0.40071 -0.0597,-0.0299 -0.15313,0.0472 -0.20035,0 -0.0109,-0.0109 -0.38986,-0.59021 -0.40071,-0.60106 -0.11613,-0.11613 -0.6853,-0.28459 -0.80143,-0.40072 -0.10017,-0.10017 -0.10017,-0.30053 -0.20035,-0.40071 -0.0668,-0.0668 -0.53428,-0.13357 -0.60107,-0.20035 -0.0435,-0.0435 -0.16129,-0.38118 -0.20036,-0.40072 -0.11947,-0.0597 -0.28124,0.0597 -0.40071,0 -0.0391,-0.0195 -0.15688,-0.35723 -0.20035,-0.40071 -0.0668,-0.0668 -0.53428,-0.13357 -0.60107,-0.20035 -0.0521,-0.0521 -0.51214,-0.91285 -0.60107,-1.00178 -0.0472,-0.0472 -0.14062,0.0299 -0.20035,0 -0.83384,-0.41692 0.21418,0.0138 -0.20036,-0.40071 -0.10018,-0.10018 -0.30053,-0.10018 -0.40071,-0.20036 -0.10018,-0.10017 -0.10018,-0.30053 -0.20036,-0.40071 -0.0472,-0.0472 -0.15313,0.0472 -0.20035,0 -0.11613,-0.11613 -0.28459,-0.6853 -0.40071,-0.80142 -0.10018,-0.10018 -0.30054,-0.10018 -0.40071,-0.20036 -0.41455,-0.41454 0.63347,0.0162 -0.20036,-0.40071 -0.0597,-0.0299 -0.15313,0.0472 -0.20036,0 -0.0668,-0.0668 -0.13357,-0.53428 -0.20035,-0.60107 -0.10018,-0.10017 -0.30053,-0.10017 -0.40071,-0.20035 -0.10018,-0.10018 -0.10018,-0.30053 -0.20036,-0.40071 -0.0472,-0.0472 -0.15313,0.0472 -0.20035,0 -0.0472,-0.0472 0.0472,-0.15313 0,-0.20036 -0.0108,-0.0109 -0.59022,-0.38985 -0.60107,-0.40071 -0.0944,-0.0944 0.0945,-0.30626 0,-0.40071 -0.0472,-0.0472 -0.15313,0.0472 -0.20036,0 -0.22527,-0.22527 0.86507,-0.26871 1.00178,-0.20036 0.45385,0.22692 0.94865,0.17379 1.40249,0.40071 0.32057,0.16029 0.88157,-0.16028 1.20214,0 0.0845,0.0422 0.11587,0.15812 0.20035,0.20036 0.12097,0.0605 0.50845,-0.0926 0.60107,0 0.0472,0.0472 -0.0472,0.15313 0,0.20035 0.10018,0.10018 0.50089,-0.10017 0.60107,0 0.0472,0.0472 -0.0472,0.15314 0,0.20036 0.13356,0.13357 0.66785,-0.13357 0.80142,0 0.0472,0.0472 -0.0472,0.15313 0,0.20036 0.10018,0.10018 0.50089,-0.10018 0.60107,0 0.0472,0.0472 -0.0472,0.15313 0,0.20035 0.0944,0.0944 0.30626,-0.0944 0.40071,0 0.0472,0.0472 -0.0472,0.15313 0,0.20036 0.0668,0.0668 0.53428,0.13357 0.60106,0.20035 0.0108,0.0108 0.38986,0.59021 0.40072,0.60107 0.0472,0.0472 0.15313,-0.0472 0.20035,0 0.0472,0.0472 -0.0472,0.15313 0,0.20036 0.10018,0.10018 0.30054,0.10018 0.40071,0.20035 0.13222,0.13222 0.28305,0.64242 0.60107,0.80142 0.0597,0.0299 0.15313,-0.0472 0.20036,0 0.0472,0.0472 -0.0472,0.15314 0,0.20036 0.0944,0.0944 0.30626,-0.0944 0.40071,0 0.0472,0.0472 -0.0472,0.15313 0,0.20036 0.0668,0.0668 0.53428,0.13357 0.60106,0.20035 0.10018,0.10018 0.10018,0.30054 0.20036,0.40071 0.11613,0.11613 0.6853,0.28459 0.80142,0.40071 0.0472,0.0472 -0.0472,0.15314 0,0.20036 0.0472,0.0472 0.14062,-0.0299 0.20036,0 0.83383,0.41692 -0.21419,-0.0138 0.20035,0.40071 0.0472,0.0472 0.14063,-0.0299 0.20036,0 0.37091,0.18546 0.647,0.62404 1.00178,0.80142 0.83383,0.41692 -0.21419,-0.0138 0.20035,0.40072 0.0472,0.0472 0.15314,-0.0472 0.20036,0 0.0472,0.0472 -0.0299,0.14062 0,0.20035 0.41692,0.83383 -0.0138,-0.21419 0.40071,0.20036 0.0109,0.0109 0.38986,0.59021 0.40071,0.60107 0.0108,0.0108 0.59021,0.38985 0.60107,0.40071 0.0668,0.0668 0.13357,0.53428 0.20036,0.60106 0.10018,0.10018 0.30053,0.10018 0.40071,0.20036 0.11612,0.11613 0.28458,0.6853 0.40071,0.80142 0.0472,0.0472 0.15313,-0.0472 0.20035,0 0.0665,0.0665 0.34157,0.68312 0.40072,0.80143 0.41691,0.83383 -0.0138,-0.21419 0.40071,0.20035 0.0668,0.0668 0.13357,0.53428 0.20035,0.60107 0.0472,0.0472 0.15314,-0.0472 0.20036,0 0.0668,0.0668 0.13357,0.53428 0.20035,0.60107 0.0472,0.0472 0.15314,-0.0472 0.20036,0 0.0668,0.0668 0.13357,0.53428 0.20036,0.60106 0.0472,0.0472 0.15313,-0.0472 0.20035,0 0.20036,0.20036 0,0.80143 0.20036,1.00178 0.10018,0.10018 0.30053,0.10018 0.40071,0.20036 0.10018,0.10018 -0.10018,0.50089 0,0.60106 0.0472,0.0472 0.15313,-0.0472 0.20035,0 0.0944,0.0944 -0.0944,0.30627 0,0.40072 0.0472,0.0472 0.15314,-0.0472 0.20036,0 0.10018,0.10017 -0.10018,0.50089 0,0.60106 0.0472,0.0472 0.15313,-0.0472 0.20036,0 0.0944,0.0944 -0.0944,0.30627 0,0.40071 0.0472,0.0472 0.15313,-0.0472 0.20035,0 0.10018,0.10018 -0.10017,0.50089 0,0.60107 0.0865,0.0865 0.36647,0.0685 0.20036,0.40071 -0.18538,0.37076 -0.64941,0.89811 -0.80143,1.20214 -0.11935,0.23872 -0.21977,0.82084 -0.40071,1.00178 -0.0472,0.0472 -0.15313,-0.0472 -0.20035,0 -0.0944,0.0944 0.11597,0.33444 0,0.40071 -0.44161,0.25234 -0.93499,0.40071 -1.40249,0.60106 z"};
-/* ═══ Esquema de válvulas — lógica de render, sync y PDF ═══ */
-(function(){
-  const BLUE={1:'#1a237e',2:'#1565c0',3:'#90caf9'};
-  const RED ={1:'#7f0000',2:'#b71c1c',3:'#ffcdd2'};
-  const SEV_TXT={0:'sin',1:'leve',2:'moderada',3:'severa'};
-  const NS='http://www.w3.org/2000/svg';
-  const g=id=>document.getElementById(id);
-  const gv=id=>{const e=g(id);return e?String(e.value||'').trim():'';};
-  const gnum=id=>{const e=g(id);if(!e)return null;const v=parseFloat(String(e.value).replace(',','.'));return isNaN(v)?null:v;};
-  function selInt(id){const e=g(id);return e?parseInt(e.value||'0',10)||0:0;}
-  // mapea texto de estenosis (em_grado/ea_grado) a 0-3 (esclerosis -> 0)
-  function textToSev(t){t=String(t||'').toLowerCase();if(/severa/.test(t))return 3;if(/moderada/.test(t))return 2;if(/leve/.test(t))return 1;return 0;}
-  // Severidad 0-3 del campo fuente de verdad (sin depender de selectores esq-*):
-  //  insuficiencias im/ia/it_grado son 0-4 → 0-3 vía [0,1,2,3,3]; estenosis em/ea/et_grado texto → textToSev
-  const _INS5to4=[0,1,2,3,3];
-  function sevOf(id){
-    if(/^(im|ia|it)_grado$/.test(id)) return _INS5to4[selInt(id)]||0;
-    return textToSev(gv(id));
-  }
-  function mkPath(dstr,attrs){const p=document.createElementNS(NS,'path');p.setAttribute('d',dstr);for(const k in attrs)p.setAttribute(k,attrs[k]);return p;}
-  function mkText(x,y,txt,size,weight,fill){const t=document.createElementNS(NS,'text');t.setAttribute('x',x);t.setAttribute('y',y);t.setAttribute('font-size',size);t.setAttribute('font-weight',weight);t.setAttribute('fill',fill);t.setAttribute('text-anchor','middle');t.textContent=txt;return t;}
-
-  // Valvas de estenosis por válvula: ET->VT(113,114) EAo->VA(115,116) EM->VM(117,118)
-  const ESTEN=[['et_grado',['path113','path114']],['ea_grado',['path115','path116']],['em_grado',['path117','path118']]];
-  const PAT={1:'url(#esq-pts)',2:'url(#esq-ray)',3:'url(#esq-grid)'};
-  // Jets de insuficiencia: [campoGrado, [pathLeve,pathMod,pathSev], colorMap]
-  const JETS=[['it_grado',['path17','path18','path19'],BLUE],['ia_grado',['path20','path21','path22'],RED],['im_grado',['path23','path24','path25'],BLUE]];
-
-  function drawEstenosis(gEl){
-    while(gEl.firstChild)gEl.removeChild(gEl.firstChild);
-    ESTEN.forEach(([sid,paths])=>{
-      const sev=sevOf(sid); if(sev<1)return;
-      paths.forEach(pk=>{
-        gEl.appendChild(mkPath(ESQ_PATHS[pk],{fill:'white'}));
-        gEl.appendChild(mkPath(ESQ_PATHS[pk],{fill:PAT[sev]}));
-        gEl.appendChild(mkPath(ESQ_PATHS[pk],{fill:'none',stroke:'#333','stroke-width':'0.5'}));
-      });
-    });
-  }
-  function drawJets(gEl){
-    while(gEl.firstChild)gEl.removeChild(gEl.firstChild);
-    JETS.forEach(([sid,paths,col])=>{
-      const sev=sevOf(sid); if(sev<1)return;
-      gEl.appendChild(mkPath(ESQ_PATHS[paths[sev-1]],{fill:col[sev],'fill-opacity':'0.9'}));
-    });
-  }
-  function addLabel(gEl,x,y,name,val){
-    if(val===null||val===undefined||val==='')return;
-    gEl.appendChild(mkText(x,y,name,'5','500','#444'));
-    gEl.appendChild(mkText(x,y+6,val,'6','700','#111'));
-  }
-  function aiLabel(){
-    // Vol AI (ml) + Vol AI indexado (span #ai-idx). Si hay ambos -> "AI vol Index" ml/m²
-    const aiVol=gv('ai_vol');
-    const idxEl=g('ai-idx'); const idxTxt=idxEl?String(idxEl.textContent||'').trim():'';
-    const idxHasVal=/\d/.test(idxTxt) && !/^\s*(—|-)\s*$/.test(idxTxt);
-    if(aiVol!=='' && idxHasVal){ return {name:'AI vol Index', val:idxTxt}; }
-    const aiArea=gv('ai_area');
-    if(aiArea!==''){ return {name:'AI área', val:aiArea+' cm²'}; }
-    return null;
-  }
-  function drawLabels(gEl){
-    while(gEl.firstChild)gEl.removeChild(gEl.firstChild);
-    const fevi=gv('fevi'); if(fevi!=='')addLabel(gEl,118,110,'FEVI',fevi+' %');
-    const tapse=gv('tapse'); if(tapse!=='')addLabel(gEl,75,110,'TAPSE',tapse+' mm');
-    const adArea=gv('ad_area'); if(adArea!=='')addLabel(gEl,66,220,'AD área',adArea+' cm²');
-    const ai=aiLabel(); if(ai)addLabel(gEl,113,222,ai.name,ai.val);
-  }
-  function esqRender(){
-    const est=g('esq-estenosis'),jet=g('esq-jets'),lab=g('esq-labels');
-    if(!est)return;
-    drawEstenosis(est); drawJets(jet); drawLabels(lab);
-  }
-  window.esqRender=esqRender;
-
-  function selIntSafe(id){const e=g(id);if(!e)return 0;const v=parseInt(String(e.value||'0'),10);return isNaN(v)?0:v;}
-  // Pre-puebla los selectores de la tabla desde los campos fuente de verdad (los que calcula la
-  // tab Válvulas). Guard: SOLO si el selector está en 0 (ausente) y la fuente indica severidad,
-  // para no pisar un cambio manual del médico. Insuficiencias: *_grado es 0-4 (5 niveles) y el
-  // selector 0-3 → mod-severa(3) y severa(4) mapean ambos a severa(3). Estenosis: texto → 0-3.
-  // (_INS5to4 ya está declarado arriba, junto a sevOf)
-  function esqPrePoblar(){
-    const set=(esqId,v)=>{ const e=g(esqId); if(!e) return; if((parseInt(e.value)||0)!==0) return; if(v>0) e.value=String(v); };
-    set('esq-im',  _INS5to4[selIntSafe('im_grado')]||0);
-    set('esq-iao', _INS5to4[selIntSafe('ia_grado')]||0);
-    set('esq-it',  _INS5to4[selIntSafe('it_grado')]||0);
-    set('esq-em',  textToSev(gv('em_grado')));    // 'sin'→0 'leve'→1 'moderada'→2 'severa'→3
-    set('esq-eao', textToSev(gv('ea_grado')));    // 'esclerosis'→0
-    set('esq-et',  textToSev(gv('et_grado')));    // 'Sin estenosis'→0 (textToSev minúsculiza)
-    const vp=g('vp_morf'), evp=g('esq-vp'); if(vp&&evp && evp.selectedIndex===0 && vp.value) evp.value=vp.value;
-  }
-  window.esqPrePoblar=esqPrePoblar;
-
-  // Columna "Doppler" de la tabla de severidad: muestra el dato calculado de cada válvula
-  // (sincronizado con lo cargado) y atenúa la fila si no hay dato. [key, campo, etiqueta, unidad]
-  const ESQ_DOP=[['im','im_vc','VC','mm'],['iao','ia_vc','VC','mm'],['it','it_vc','VC','mm'],['ip','ip_vmax','Vmáx','m/s'],
-    ['eao','vmax_ao','Vmáx','m/s'],['em','avm_thp','AVm','cm²'],['et','et_gmedio','Grad','mmHg'],['vp','vp_vmax','Vmáx','m/s']];
-  function esqUpdateDoppler(){
-    ESQ_DOP.forEach(([key,fld,lbl,unit])=>{
-      const src=g(fld); const val=src?String(src.value||'').trim():'';
-      const dop=g('dop-'+key); const row=g('sev-row-'+key);
-      if(dop) dop.textContent = (val!=='') ? (lbl+' '+val+' '+unit) : '—';
-      if(row) row.classList.toggle('sev-dim', val==='');
-    });
-  }
-  window.esqUpdateDoppler=esqUpdateDoppler;
-
-  // esqValvOnShow se eliminó: era el handler de la tab "Esquema válvulas", que initEsq()
-  // remueve del DOM al fusionarla dentro de Válvulas. Quedó sin llamador y sin selects
-  // que leer. Con ella se fue el flag esqValvVisitada, que nunca llegaba a true.
-  window.esqLimpiar=function(){
-    ['esq-it','esq-iao','esq-im','esq-et','esq-eao','esq-em'].forEach(id=>{const e=g(id);if(e)e.value='0';});
-    const vp=g('esq-vp'); if(vp)vp.selectedIndex=0;
-    esqRender();
-  };
-  window.esqTogglePDF=function(){
-    window.esqValvEnPDF=!window.esqValvEnPDF;
-    const b=g('esq-pdf-toggle'); if(b)b.classList.toggle('active',window.esqValvEnPDF);
-    if(typeof toast==='function')toast(window.esqValvEnPDF?'📄 Esquema de válvulas se incluirá en el PDF':'Esquema de válvulas excluido del PDF');
-  };
-  // Lee las severidades del esquema (para el PDF / informe)
-  window.esqGetSeveridades=function(){
-    return {it:selIntSafe('esq-it'),iao:selIntSafe('esq-iao'),im:selIntSafe('esq-im'),
-      et:selIntSafe('esq-et'),eao:selIntSafe('esq-eao'),em:selIntSafe('esq-em'),
-      vp:(g('esq-vp')?g('esq-vp').value:'Normal'), notas:gv('esq-notas')};
-  };
-  // Rasteriza el SVG del esquema a PNG (para el PDF)
-  window.esqSvgToPng=function(scale){
-    return new Promise(res=>{
-      const svg=g('esq-svg'); if(!svg){res(null);return;}
-      try{
-        const sc=scale||6;
-        // viewBox de rasterizado calculado desde el bbox REAL del contenido (corazón + jets +
-        // estenosis + labels), NO desde el viewBox declarado. El declarado recorta la base arriba
-        // (contenido empieza en y≈43.5, sobre el top 55) y deja 15% vacío abajo. El bbox+margen
-        // encuadra TODO el dibujo, punta incluida, sin espacio muerto. Fallback estático (contorno
-        // medido) si getBBox no está disponible (p.ej. la tab oculta al generar el PDF).
-        let bb=null; try{ bb=svg.getBBox(); }catch(e){ bb=null; }
-        const pad=6;
-        let vx,vy,vw,vh;
-        if(bb && bb.width>1 && bb.height>1){
-          vx=bb.x-pad; vy=bb.y-pad; vw=bb.width+pad*2; vh=bb.height+pad*2;
-        }else{
-          // contorno medido: x[43.5,155.6] y[43.5,254.5] + margen
-          vx=37; vy=37; vw=126; vh=224;
-        }
-        // Clon: se le cambia el viewBox (+ width/height intrínsecos) sin tocar el SVG visible.
-        // Los <defs> (patrones esq-pts/ray/grid) van dentro del SVG → se clonan y rasterizan OK.
-        const w=Math.round(vw*sc), h=Math.round(vh*sc);
-        const clone=svg.cloneNode(true);
-        clone.setAttribute('viewBox', vx+' '+vy+' '+vw+' '+vh);
-        // width/height EN PÍXELES reales (no user-units): los <pattern patternUnits="userSpaceOnUse">
-        // necesitan dimensiones px explícitas para rasterizar nítido y consistente (Safari).
-        clone.setAttribute('width', w);
-        clone.setAttribute('height', h);
-        window._esqPdfRatio = vh/vw;   // relación real usada → el PDF la respeta (sin distorsión)
-        const s=new XMLSerializer().serializeToString(clone);
-        const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
-        const ctx=cv.getContext('2d'); ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,w,h);
-        const img=new Image();
-        img.onload=()=>{try{ctx.drawImage(img,0,0,w,h);res(cv.toDataURL('image/png'));}catch(e){res(null);}};
-        img.onerror=()=>res(null);
-        img.src='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(s)));
-      }catch(e){res(null);}
-    });
-  };
-  // Listeners: cambios en la tabla -> re-render; inputs fuente -> labels en vivo
-  function initEsq(){
-    // Relocalizar el corazón SVG a la columna derecha de la tab Válvulas y remover la vieja tab.
-    const svg=g('esq-svg'), host=g('valv-svg-host'), oldTab=g('tab-esquema-valvulas');
-    if(svg && host && svg.parentNode!==host) host.appendChild(svg);
-    if(oldTab && oldTab.parentNode) oldTab.parentNode.removeChild(oldTab);
-    // El corazón se dibuja desde los campos fuente (im/ia/it_grado, em/ea/et_grado). Refrescar ante
-    // cualquier cambio en la tab Válvulas (delegación) — tras un tick, para que los oninput/calc corran.
-    const vtab=g('tab-valvulas');
-    if(vtab && !vtab.__esqW){ vtab.__esqW=true;
-      const refresh=()=>setTimeout(()=>{ if(g('esq-svg')){ esqRender(); if(window.esqPills)esqPills.refresh(); } },0);
-      vtab.addEventListener('input',refresh); vtab.addEventListener('change',refresh);
-    }
-    esqRender();
-    // La sincronización #sgl ↔ #sgl_gls vivía acá y se eliminó por duplicada: ya la hacen
-    // calcSGL() (que copia #sgl -> #sgl_gls) y el oninput de #sgl_gls (que copia al revés).
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initEsq); else initEsq();
-})();
 
 /* ══ Pills de severidad (Insuficiencia / Estenosis) por válvula ══
    Leen/escriben el campo fuente de verdad (*_grado). Insuficiencias usan 5 niveles (severa=4) →
@@ -21050,7 +20620,7 @@ window.esqPills=(function(){
     btn.innerHTML='<span class="sev-dot"></span><span>'+txt+'</span><span class="sev-cae">▾</span>';
     const menu=document.createElement('div'); menu.className='sev-pill-menu';
     (isIns?INS_TXT:EST_TXT).forEach((ot,i)=>{ const ob=document.createElement('button'); ob.type='button'; ob.className='sev-lvl'+i; ob.textContent=ot;
-      ob.addEventListener('click',ev=>{ ev.stopPropagation(); setLevel(field,isIns,i); pill.classList.remove('open'); render(); if(window.esqRender)esqRender(); });
+      ob.addEventListener('click',ev=>{ ev.stopPropagation(); setLevel(field,isIns,i); pill.classList.remove('open'); render(); });
       menu.appendChild(ob); });
     btn.addEventListener('click',ev=>{ ev.stopPropagation(); const was=pill.classList.contains('open'); closeAll(); if(!was)pill.classList.add('open'); });
     pill.appendChild(btn); pill.appendChild(menu); return pill;
