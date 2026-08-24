@@ -6,6 +6,11 @@
 <title>Ecocardiograma Doppler Color</title>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Eje variable (wght@400..700) en vez de instancias estáticas 400;500;600;700: con las
+     estáticas, font-weight:450 caería a la cara 400 y la regla de >=1400px no haría nada. -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
@@ -48,7 +53,7 @@
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
     font-size: 13px;
     min-height: 100vh;
   }
@@ -684,7 +689,9 @@ html.light-mode #amilo-root{
    El ancho del rail se toca vía la variable --rail: .rail usa flex:0 0 var(--rail),
    así que pisar solo `width` no alcanzaría (el flex-basis seguiría en 160px). */
 @media (min-width: 1400px) {
-  body { font-size: 14px; }
+  /* font-weight base algo mayor: en pantallas grandes Inter a 400 se ve lavada.
+     Solo el peso base — los font-weight puntuales (títulos, badges, botones) no se tocan. */
+  body { font-size: 14px; font-weight: 450; }
   :root { --rail: 176px; }
   input[type=text], input[type=number], input[type=date], select, textarea { font-size: 13.5px; padding: 6px 10px; }
   /* .card no tiene padding propio (lo ponen .card-head y .card-body, y .card-head es una
@@ -698,7 +705,7 @@ html.light-mode #amilo-root{
   .rail .tab-btn { font-size: 13.5px; }
 }
 @media (min-width: 1920px) {
-  body { font-size: 15px; }
+  body { font-size: 15px; font-weight: 500; }
   :root { --rail: 190px; }
   input[type=text], input[type=number], input[type=date], select, textarea { font-size: 14px; }
   .card-head { padding: 11px 20px; }
