@@ -20833,23 +20833,6 @@ window.abrirAyudaEco=abrirAyudaEco;window.cerrarAyudaEco=cerrarAyudaEco;window.r
    no queda desfasado si mañana se edita una tab. No se vuelca HTML al PDF.
    La helvetica de jsPDF (WinAnsi) no tiene flechas, ≥/≤ ni emoji: se transliteran o se
    quitan, si no salen como caracteres basura. */
-function _manualTexto(html) {
-  const VIN = '';                    // marca de vineta (control char, no imprimible)
-  const tmp = document.createElement('div');
-  tmp.innerHTML = String(html)
-    // el HTML del modal viene indentado: sin colapsar, esos saltos separan la marca de
-    // vineta del texto y las vinetas salen vacias
-    .replace(/\s+/g, ' ')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<li[^>]*>/gi, '\n' + VIN)
-    .replace(/<\/(p|div|li|ol|ul|h[1-6])>/gi, '\n');
-  return tmp.textContent.split('\n')
-    .map(l => l.replace(/\s+/g, ' ').trim())
-    // las vinetas del modal ya arrancan con "→": se saca para no duplicar el marcador
-    .map(l => l.startsWith(VIN) ? '- ' + l.slice(1).replace(/^[→\s]+/, '').trim() : l)
-    .filter(l => l && l !== '-')
-    .join('\n');
-}
 function _pdfSafe(s) {
   return String(s)
     .replace(/[→⟶▼]/g, m => m === '▼' ? '' : '->').replace(/←/g, '<-')
@@ -20860,83 +20843,219 @@ function _pdfSafe(s) {
     .replace(/[^\x00-\xFF\u2013\u2014\u2018\u2019\u201C\u201D\u20AC]/g, '')
     .replace(/[ \t]{2,}/g, ' ').trim();
 }
+
+const MANUAL_SECCIONES = [
+  { t: `1. ¿Qué es EcoSmart?`, p: [
+    `EcoSmart es una aplicación web de ecocardiografía Doppler Color desarrollada dentro de la suite CeiboMed. Permite cargar los datos de un estudio de ecocardiograma, generar un informe narrativo estructurado, exportarlo en PDF y acumular una base de datos de estudios para análisis estadístico y auditoría del laboratorio cardiovascular.`,
+    `EcoSmart es una herramienta de apoyo clínico. No reemplaza el juicio médico ni constituye una recomendación diagnóstica o terapéutica. El médico es responsable de interpretar los resultados y tomar decisiones clínicas.`,
+    `Requiere conexión a internet para funcionar. Los datos se almacenan localmente en el navegador (localStorage). Es fundamental exportar backups regularmente para evitar pérdida de información.`,
+  ]},
+  { t: `2. Login y aviso legal`, p: [
+    `Al abrir EcoSmart aparece la pantalla de login. Ingresá la contraseña y presioná Ingresar o Enter. Después del login aparece un aviso legal con tres puntos: confidencialidad de datos del paciente, apoyo clínico sin reemplazar el criterio médico, y responsabilidad del médico en la interpretación final.`,
+  ]},
+  { t: `3. El encabezado`, p: [
+    `El encabezado está siempre visible.`,
+    `Botones izquierda: Médico (editar nombre, matrícula y centro), Centro (seleccionar institución), Logo (cargar imagen de la institución para el PDF).`,
+    `Botones derecha: Noche/Día (modo oscuro/claro), Exportar (backup JSON), Importar (restaurar desde JSON), Exportar para Analytics, Generar Informe, PDF (genera el informe en PDF — en móvil visible directamente en el encabezado), swatches de color del PDF (azul, verde, violeta, bordo), botón de ayuda, Cerrar sesión.`,
+  ]},
+  { t: `4. Configuración`, p: [
+    `Accedé desde la columna izquierda tocando Config.`,
+    `Institución y firma: Nombre del médico, Matrícula, Especialidad, Ciudad/Lugar, Dirección del consultorio, Teléfono. Esta información aparece en la firma del PDF.`,
+    `Centros de trabajo: hasta 10 centros. Elegí el principal para que aparezca por defecto.`,
+    `Médicos: registrá varios médicos. Al seleccionar uno, sus datos se cargan en encabezado y firma.`,
+    `Modo institucional: cuando está activo, el PDF lleva el nombre de tu institución en encabezado y pie en lugar del branding de CeiboMed.`,
+    `Módulos avanzados: activá o desactivá Hemodinámica, ETE, Amiloidosis, Cardio-Oncología desde aquí.`,
+  ]},
+  { t: `5. Tab Paciente`, p: [
+    `Datos del paciente: Fecha, Nombre completo, Edad, Sexo (importante para valores de referencia), Tipo y Número de documento, Matrícula, Peso (kg) y Talla (cm) — usados para calcular ASC (Mosteller) e IMC automáticamente.`,
+    `Indicaciones del estudio: Control, Control IC, Disnea, Dolor torácico, Preoperatorio, Evaluación valvular, Seguimiento IC y más. Usar campo libre Otro si ninguna corresponde.`,
+    `Antecedentes relevantes: HTA, DM, Dislipemia, Tabaquismo, IC previa, Cardiopatía isquémica/IAM previo, FA, Obesidad, ERC y más.`,
+    `Centro/Médico solicitante: Centro/Institución (de la lista configurada), Médico solicitante, Fecha de solicitud.`,
+  ]},
+  { t: `6. Tab AI/VI`, p: [
+    `Raíz aórtica: aorta sinusal, sinotubular, tubular, TSVI, cayado, aorta torácica. Los valores se interpretan automáticamente con badges de color.`,
+    `Aurícula izquierda: Diámetro AI, Área AI, Volumen AI, LARS (strain de AI, opcional — normal >18%, reducido <=18%, no afecta el algoritmo diastólico si no se carga).`,
+    `El LAVI se calcula automáticamente si se ingresaron peso y talla.`,
+    `Ventrículo izquierdo: SIV, DDFVI, DSFVI, PPd, FEVI (umbral normalidad >=50% según ASE 2025), método de medición, SGL (sincronizado con tab SGL), VDFVI.`,
+    `Geometría VI calculada automáticamente: Normal (masa normal + RWT <0.42), Remodelado concéntrico (masa normal + RWT >=0.42), Hipertrofia excéntrica (masa aumentada + RWT <0.42), Hipertrofia concéntrica (masa aumentada + RWT >=0.42).`,
+  ]},
+  { t: `7. Tab VD/AD`, p: [
+    `Ventrículo derecho: TAPSE (normal >=17mm), S' tricuspídeo, dimensiones VD, FEVD, VTI TSVD, relación VD/VI, TAP.`,
+    `Aurícula derecha y VCI: Área AD, Diámetro VCI, Colapso VCI (>50% o <50%).`,
+    `La PmAD y la PSAP se calculan automáticamente desde Vmax IT y VCI. HTP clasificada según ESC/ERS 2022: Normal <=35, Leve 36-50, Moderada 51-70, Severa >70 mmHg. HTP precapilar requiere RVP >2 UW (cateterismo derecho).`,
+  ]},
+  { t: `8. Tab Doppler`, p: [
+    `Selector de algoritmo diastólico: ASE 2025 (predeterminado), BSE 2024, Clásico 2016.`,
+    `Parámetros Doppler mitral: Onda E, Onda A, E' septal, E' lateral, TDE, TRIV, THP mitral, Ritmo (sinusal o FA).`,
+    `Algoritmo ASE 2025: Paso 1 - e' reducida (promedio <=6.5, septal <=6, lateral <=7). Paso 2 - parámetros de presión elevada: E/e' >14, LAVI >34, TR >2.8 m/s, LARS <=18%. Paso 3 - con e' reducida basta 1 parámetro; con e' normal se necesitan 2. Paso 4 - Grado I (E/A <=0.8 sin presiones elevadas), Grado II (E/A 0.8-2 con >=2 parámetros), Grado III (E/A >=2 con >=2 parámetros).`,
+    `Doppler aórtico: Vmax, gradiente máximo (automático), gradiente medio, VTI TSVI y VTI Ao para AVA.`,
+  ]},
+  { t: `9. Tab Válvulas`, p: [
+    `Cada válvula tiene botones Insuficiencia y Estenosis, cada uno con sub-botón amarillo Severidad.`,
+    `Cómo usar: (1) Sin tocar - botones en gris, nada en el informe. (2) Tocar Insuficiencia o Estenosis - botón celeste, aparece en el informe sin grado. (3) Tocar el sub-botón Severidad - elegir Leve/Moderada/Severa; botón celeste completo, informe con grado. (4) Tocar nuevamente - todo se apaga, desaparece del informe.`,
+    `Regla: lo que el médico elige manualmente siempre prevalece sobre el cálculo automático.`,
+    `Válvula Mitral: IM con vena contracta, EROA, volumen regurgitante, PISA. EM con AVm por THP, planimetría, ecuación de continuidad, Score Wilkins. Morfología: Normal, Mixomatosa/Barlow, Calcificada, Reumática, Prolapso/EVMS, Prótesis.`,
+    `Válvula Aórtica: IAo con vena contracta, jet en TSVI, THP, Vmax telediastólica. EAo con Vmax, gradiente medio, AVA. Clasificación: Esclerosis/Leve (Vmax 2-3 m/s)/Moderada (3-4 m/s)/Severa (>=4 m/s).`,
+    `Válvula Tricúspide: IT con densidad CW, vena contracta, PISA, Vmax IT (para PSAP). ET con gradiente medio.`,
+    `Válvula Pulmonar: selector único — Normal/Insuficiencia leve fisiológica/Estenosis leve/Estenosis moderada-severa.`,
+    `Pericardio y Masas: selector de derrame (Normal/Mínimo/Leve 5-10mm/Moderado 10-20mm/Severo >20mm/Engrosamiento-calcificación). Panel de masa estructurada si se detecta imagen intracardíaca.`,
+  ]},
+  { t: `10. Tab Contractilidad`, p: [
+    `Modelo de 17 segmentos AHA. Tres vistas: A4C, A2C, A3C.`,
+    `Tocar 1 vez: Hipocinesia (amarillo). 2 veces: Acinesia (naranja). 3 veces: Discinesia (rojo). 4 veces: Aneurisma (violeta).`,
+    `Botones de patrón global: disquinesia septal, hipocontractilidad difusa, múltiples trastornos sectoriales. Botón Incluir bull's eye en PDF agrega el diagrama al informe.`,
+  ]},
+  { t: `11. Tab SGL`, p: [
+    `Strain longitudinal global. Campo SGL global (%) sincronizado con el campo SGL de tab AI/VI. Bull's eye de 17 segmentos con escala de colores estándar.`,
+    `En el informe: FEVI X% con SGL -Y%. Botón Incluir en PDF agrega el bull's eye al informe.`,
+  ]},
+  { t: `12. Tab Imágenes`, p: [
+    `Hasta 2/4/6/8/10 slots de imagen. Las imágenes se incluyen automáticamente en el PDF si están cargadas.`,
+  ]},
+  { t: `13. Módulos especiales`, p: [
+    `Hemodinámica: gasto cardíaco, IC, resistencias. Perfil de Forrester (I-IV). TEP orientación ecocardiográfica VD. HTP ESC/ERS 2022 con RVP.`,
+    `Amiloidosis: Score ESC 2021 (RWT, E/e', TAPSE, SGL, relación ápice/base). Algoritmo gammagrafía Tc99m de Perugini (0-3) con proteínas monoclonales. Cuatro escenarios diagnósticos.`,
+    `ETE: Score Wilkins automático. Esquema válvula mitral por festones (A1/A2/A3, P1/P2/P3). Criterios TEER. Orejuela izquierda, FOP.`,
+    `Cardio-Oncología: seguimiento FEVI y SGL. Detección cardiotoxicidad (caída >=15% GLS o >=10% FEVI). HFA-ICOS/ESC 2022. El estudio pre-quimio queda como basal fijo.`,
+  ]},
+  { t: `14. Herramientas de apoyo`, p: [
+    `Calculadoras: PISA/ERO para IM, Score Wilkins, AVA por ecuación de continuidad, HCM Risk-SCD, QTc y otras.`,
+    `Fonocardiograma: patrones gráficos de soplos con posición, irradiación, carácter y claves diagnósticas.`,
+    `Referencias: tablas de valores normales ASE 2015, ESC 2021/2022/2025, AHA/ACC 2024.`,
+  ]},
+  { t: `15. Generar Informe`, p: [
+    `Botón Generar Informe crea el informe narrativo automáticamente. Estilos: Conciso, Estándar (predeterminado), Narrativo. El informe incluye FEVI+SGL, función diastólica con grado, cámaras derechas, aorta, aurícula izquierda, válvulas, contractilidad, pericardio, En Suma.`,
+    `Modal comparativo: si existe estudio previo del mismo paciente (misma CI), aparece tabla comparativa con delta de parámetros principales.`,
+    `Guardar Informe: antes de guardar aparece la card de confirmación de severidad valvular (una sola vez por estudio). Si hay estudio duplicado, pregunta si sobreescribir o guardar como nuevo.`,
+  ]},
+  { t: `16. PDF del informe clínico`, p: [
+    `Botón PDF (verde en el encabezado). Antes de generar, card de confirmación de severidades valvulares.`,
+    `Contenido: encabezado con institución y logo, datos del paciente, tabla de datos cuantificados, informe narrativo, En Suma, bull's eye (si se eligió incluir), imágenes adjuntas, firma del médico, fecha, pie legal.`,
+    `Colores disponibles: azul (predeterminado), verde, violeta, bordo. Formato del nombre de archivo: configurable (Nombre+Fecha, Nombre+Doc+Fecha, etc.).`,
+    `Modo institucional en PDF: encabezado y pie con nombre de la institución, sin mención a CeiboMed.`,
+  ]},
+  { t: `17. Guardados`, p: [
+    `Buscar y filtrar: por nombre/documento, rango de fechas, casos de interés, filtros clínicos (FEVI, geometría VI, función diastólica, valvulopatía), filtros numéricos.`,
+    `Por estudio: marcar como caso de interés (estrella), generar PDF, editar (carga en formulario), eliminar.`,
+    `Gestión: Exportar JSON (backup), Importar JSON, Eliminar todos.`,
+  ]},
+  { t: `18. Exportar e Importar`, p: [
+    `Exportar: en Guardados tocar Exportar JSON. El archivo se descarga con todos los estudios. Guardar en pendrive o Mac. Recomendación: exportar después de cada sesión.`,
+    `Importar: tocar Importar JSON, seleccionar el archivo. Vista previa con cantidad de estudios y duplicados. Opciones: Omitir duplicados (recomendado), Sobreescribir, Importar todos. Compatible con cualquier navegador (Chrome, Edge, Safari, Firefox).`,
+    `Flujo entre dispositivos: exportar en PC del trabajo -> copiar al pendrive -> importar en Mac.`,
+  ]},
+  { t: `19. Laboratorio`, p: [
+    `Accedé desde el botón Laboratorio en la barra inferior. Analiza automáticamente todos los estudios guardados.`,
+    `Secciones: Dashboard (corazón anatómico con promedios), Indicaciones y Antecedentes (en paralelo, tabla + torta), Hallazgos frecuentes, Perfil demográfico, Función sistólica FEVI (4 rangos: >=50%/40-49%/30-39%/<30%), Función diastólica (por grado), Geometría VI, Contractilidad (bull's eye poblacional 17 segmentos), Valvulopatías (severidades por válvula), Función VD (TAPSE), HTP/PSAP, Volumen AI indexado, Calidad del Laboratorio (% estudios con cada parámetro medido), Indicadores automáticos (oportunidades clínicas), Docencia (casos de interés marcados con estrella), Estadísticas (media, mediana, DS, percentiles), Asociaciones estadísticas.`,
+    `Filtros: por médico, por centro, por período.`,
+  ]},
+  { t: `20. Asociaciones estadísticas`, p: [
+    `La tabla analiza pares de variables buscando relaciones estadísticas. Columnas: Categoría, Asociación, Interpretación (frase clínica automática), N, Método, Dirección (flechas arriba-arriba = ambas suben juntas; arriba-abajo = una sube cuando la otra baja; flecha = sin dirección lineal), Fuerza (Débil/Moderada/Fuerte), Estadístico, p, Semáforo (verde = significativa con N suficiente, amarillo = significativa N bajo, gris = no significativa).`,
+    `Cómo leer: mirar primero el semáforo. Si es verde o amarillo, ver la Fuerza. Una asociación Fuerte con p<0.001 es la más valiosa. Una Débil aunque significativa puede no tener relevancia práctica. Estas asociaciones describen tu población — no establecen causalidad.`,
+  ]},
+  { t: `21. PDF de Auditoría`, p: [
+    `Generarlo: en Laboratorio, subtab Informe PDF, completar institución y médico responsable, tocar Generar PDF de Auditoría.`,
+    `Orden del PDF: Resumen ejecutivo (corazón anatómico + promedios), Indicaciones + Antecedentes (dos columnas), Hallazgos frecuentes, Perfil demográfico, Función sistólica, Función diastólica, Geometría VI, Contractilidad, Valvulopatías, Función VD, HTP/PSAP, Volumen AI, Calidad del laboratorio, Indicadores automáticos, Docencia/Casos de interés.`,
+    `Útil para: reuniones de equipo, acreditaciones, presentación de actividad institucional, identificación de áreas de mejora.`,
+  ]},
+  { t: `22. Referencias clínicas`, p: [
+    `La biblioteca de referencias incluye: valvulopatías (ASE/ESC), Score Wilkins, TEER, HCM-SCD, HTP ESC/ERS 2022, Cardio-Oncología HFA-ICOS/ESC 2022, Amiloidosis, función diastólica (ASE 2025/BSE 2024/Clásico 2016), contractilidad segmentaria 17 segmentos AHA, strain longitudinal global.`,
+    `Las referencias clínicas se actualizan con cada versión de EcoSmart para reflejar las guías más recientes. Ante decisiones clínicas importantes, corroborar siempre la fuente primaria y su vigencia.`,
+  ]},
+  { t: `23. Contacto y soporte`, p: [
+    `Para consultas, soporte técnico o sugerencias:`,
+    `soporte@ceibomed.com — soporte técnico y consultas de uso`,
+    `sugerencias@ceibomed.com — feedback y mejoras`,
+    `pagos@ceibomed.com — suscripciones y facturación`,
+    `contacto@ceibomed.com — consultas generales`,
+    `Horario de atención: lunes a viernes 9 a 18hs Uruguay.`,
+    `Tiempo de respuesta: 48 horas hábiles.`,
+    `Más información en: ceibomed.com`,
+  ]},
+];
+
+/* ══ Manual completo en PDF ══
+   El contenido vive en MANUAL_SECCIONES (23 secciones) y es independiente de ECO_AYUDA:
+   el modal muestra un resumen navegable, el PDF es el manual extenso.
+   Todo texto pasa por _pdfSafe(): la helvetica de jsPDF (WinAnsi) no dibuja flechas,
+   ≥/≤ ni emoji, así que se transliteran o se quitan antes de escribir. */
 function generarManualPDF() {
   if (typeof window.jspdf === 'undefined') { if (typeof toast === 'function') toast('❌ La biblioteca PDF está cargando, intentá en un momento'); return; }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const W = 210, H = 297, M = 18, CW = W - M * 2;
-  const TEAL = [13, 148, 136], GRIS = [110, 118, 129];
+  const TEAL = [13, 148, 136], GRIS = [110, 118, 129], TXT = [55, 55, 55];
+  const LH = 5.3;                     // 10pt con interlineado 1.5
+  const BOTTOM = H - 18;
   const PIE = 'EcoSmart - CeiboMed (c) 2026 - Uso clinico exclusivo';
   let y = 0;
 
-  const pie = () => {
-    const n = doc.internal.getNumberOfPages();
-    for (let p = 1; p <= n; p++) {
-      doc.setPage(p);
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
-      doc.setTextColor(GRIS[0], GRIS[1], GRIS[2]);
-      doc.text(PIE, W / 2, H - 10, { align: 'center' });
-      if (p > 1) doc.text(String(p - 1), W - M, H - 10, { align: 'right' });
+  const nuevaPag = () => { doc.addPage(); y = M + 4; };
+  const sitio = (alto) => { if (y + alto > BOTTOM) nuevaPag(); };
+
+  // Párrafo. Si arranca con una etiqueta corta tipo "Cosa: ...", la etiqueta va en negrita
+  // en su propio renglón — así el manual se puede barrer con la vista.
+  const parrafo = (txt) => {
+    let cuerpo = _pdfSafe(txt);
+    if (!cuerpo) return;
+    const m = cuerpo.match(/^([^:.]{3,46}):\s+(.*)$/s);
+    if (m) {
+      sitio(LH * 2);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+      doc.setTextColor(35, 35, 35);
+      doc.text(m[1], M, y); y += LH;
+      // al separar la etiqueta, el cuerpo arranca en minúscula ("Regla: lo que...")
+      cuerpo = m[2].charAt(0).toUpperCase() + m[2].slice(1);
     }
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+    doc.setTextColor(TXT[0], TXT[1], TXT[2]);
+    doc.splitTextToSize(cuerpo, CW).forEach(ln => { sitio(LH); doc.text(ln, M, y); y += LH; });
+    y += 2.4;
   };
-  const salto = (alto) => { if (y + alto > H - 20) { doc.addPage(); y = M + 4; } };
 
   // ── Portada ──
   doc.setFillColor(TEAL[0], TEAL[1], TEAL[2]);
-  doc.rect(0, 0, W, 62, 'F');
+  doc.rect(0, 0, W, 66, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(26);
-  doc.text('Manual de EcoSmart', W / 2, 32, { align: 'center' });
+  doc.text('Manual de EcoSmart', W / 2, 34, { align: 'center' });
   doc.setFont('helvetica', 'normal'); doc.setFontSize(13);
-  doc.text('CeiboMed 2026', W / 2, 44, { align: 'center' });
-  doc.setTextColor(60, 60, 60); doc.setFontSize(11);
-  doc.text('Ecocardiograma Doppler Color - Guia completa', W / 2, 80, { align: 'center' });
-  doc.setFontSize(9); doc.setTextColor(GRIS[0], GRIS[1], GRIS[2]);
-  doc.splitTextToSize(
-    'Herramienta de apoyo clinico para el registro y analisis ecocardiografico. ' +
-    'No reemplaza el juicio clinico del medico tratante.', CW - 30)
-    .forEach((ln, i) => doc.text(ln, W / 2, 92 + i * 5, { align: 'center' }));
+  doc.text('CeiboMed 2026', W / 2, 47, { align: 'center' });
+  doc.setTextColor(60, 60, 60); doc.setFontSize(12);
+  doc.text('Ecocardiograma Doppler Color - Guia completa', W / 2, 86, { align: 'center' });
+  doc.setFontSize(9.5); doc.setTextColor(GRIS[0], GRIS[1], GRIS[2]);
+  doc.splitTextToSize(_pdfSafe(
+    'Herramienta de apoyo clínico para el registro y análisis ecocardiográfico. ' +
+    'No reemplaza el juicio médico ni constituye una recomendación diagnóstica o terapéutica.'), CW - 24)
+    .forEach((ln, i) => doc.text(ln, W / 2, 100 + i * 5, { align: 'center' }));
+  doc.setFontSize(9);
+  doc.text(_pdfSafe(MANUAL_SECCIONES.length + ' secciones'), W / 2, 122, { align: 'center' });
 
-  // ── Una sección por tab ──
-  ECO_AYUDA.forEach((sec, i) => {
-    doc.addPage(); y = M + 4;
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(15);
+  // ── Secciones ──
+  nuevaPag();
+  MANUAL_SECCIONES.forEach((sec, i) => {
+    // que el título no quede colgado al pie: pedir lugar para él y un par de renglones
+    if (i > 0) { y += 3; sitio(LH * 4 + 12); }
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(13.5);
     doc.setTextColor(TEAL[0], TEAL[1], TEAL[2]);
-    doc.text(_pdfSafe(sec.tab) || ('Seccion ' + (i + 1)), M, y);
-    y += 3;
-    doc.setDrawColor(TEAL[0], TEAL[1], TEAL[2]); doc.setLineWidth(0.5);
+    doc.text(_pdfSafe(sec.t), M, y);
+    y += 2.6;
+    doc.setDrawColor(TEAL[0], TEAL[1], TEAL[2]); doc.setLineWidth(0.4);
     doc.line(M, y, M + CW, y);
-    y += 8;
-    _manualTexto(sec.html).split('\n').forEach(linea => {
-      const txt = _pdfSafe(linea);
-      if (!txt) return;
-      const vinieta = txt.startsWith('- ');
-      const cuerpo = vinieta ? txt.slice(2) : txt;
-      // Subtítulo de bloque: renglón corto, sin viñeta y que no cierra oración. El "no termina
-      // en punto" evita que un cuerpo breve ("Algoritmo descriptivo.") salga como encabezado.
-      const subt = !vinieta && cuerpo.length < 62 && !/[.]$/.test(cuerpo);
-      doc.setFont('helvetica', subt ? 'bold' : 'normal');
-      doc.setFontSize(subt ? 11 : 10);
-      doc.setTextColor(subt ? 40 : 55, subt ? 40 : 55, subt ? 40 : 55);
-      const sangria = vinieta ? 6 : 0;
-      const lineas = doc.splitTextToSize(cuerpo, CW - sangria);
-      salto(lineas.length * 5 + 3);
-      if (subt) y += 2;
-      lineas.forEach((ln, k) => {
-        salto(6);
-        if (vinieta && k === 0) {
-          doc.setTextColor(TEAL[0], TEAL[1], TEAL[2]);
-          doc.text('-', M, y);
-          doc.setTextColor(55, 55, 55);
-        }
-        doc.text(ln, M + sangria, y);
-        y += 5;
-      });
-      y += subt ? 1.5 : 1;
-    });
+    y += 7;
+    sec.p.forEach(parrafo);
   });
 
-  pie();
+  // ── Pie en todas las páginas ──
+  const total = doc.internal.getNumberOfPages();
+  for (let pg = 1; pg <= total; pg++) {
+    doc.setPage(pg);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+    doc.setTextColor(GRIS[0], GRIS[1], GRIS[2]);
+    doc.text(PIE, W / 2, H - 10, { align: 'center' });
+    if (pg > 1) doc.text(String(pg - 1), W - M, H - 10, { align: 'right' });
+  }
+
   doc.save('Manual_EcoSmart_2026.pdf');
   if (typeof toast === 'function') toast('📄 Manual descargado');
 }
