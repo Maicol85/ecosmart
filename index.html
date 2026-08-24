@@ -64,6 +64,10 @@
     color: var(--text);
     font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
     font-size: 13px;
+    /* Peso base global (no solo en pantallas grandes): Inter a 400 se lee lavada.
+       Los font-weight puntuales (card-head 700, sacc-hdr 800, tab-btn 600, label 500,
+       badges, botones) mandan sobre este valor. */
+    font-weight: 500;
     min-height: 100vh;
   }
   /* ══ HEADER ══ */
@@ -231,6 +235,10 @@
     color: var(--text);
     border-radius: 6px;
     padding: 5px 8px;
+    /* Los controles de formulario NO heredan font-family ni font-weight: sin esto usan la
+       fuente del navegador (Arial) y quedaban fuera de la tipografía de la app. */
+    font-family: inherit;
+    font-weight: inherit;
     font-size: 12px;
     width: 100%;
     transition: border-color .15s;
@@ -698,9 +706,8 @@ html.light-mode #amilo-root{
    El ancho del rail se toca vía la variable --rail: .rail usa flex:0 0 var(--rail),
    así que pisar solo `width` no alcanzaría (el flex-basis seguiría en 160px). */
 @media (min-width: 1400px) {
-  /* font-weight base algo mayor: en pantallas grandes Inter a 400 se ve lavada.
-     Solo el peso base — los font-weight puntuales (títulos, badges, botones) no se tocan. */
-  body { font-size: 14px; font-weight: 450; }
+  /* El peso base ya es 500 global (ver regla de body), así que acá solo escala el tamaño. */
+  body { font-size: 14px; }
   :root { --rail: 176px; }
   input[type=text], input[type=number], input[type=date], select, textarea { font-size: 13.5px; padding: 6px 10px; }
   /* .card no tiene padding propio (lo ponen .card-head y .card-body, y .card-head es una
@@ -714,7 +721,7 @@ html.light-mode #amilo-root{
   .rail .tab-btn { font-size: 13.5px; }
 }
 @media (min-width: 1920px) {
-  body { font-size: 15px; font-weight: 500; }
+  body { font-size: 15px; }
   :root { --rail: 190px; }
   input[type=text], input[type=number], input[type=date], select, textarea { font-size: 14px; }
   .card-head { padding: 11px 20px; }
