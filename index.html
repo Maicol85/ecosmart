@@ -469,8 +469,25 @@
 /* Achicar variables: más datos en menos espacio, sin perder legibilidad */
 #tab-valvulas label{font-size:.78rem;}
 #tab-valvulas input,#tab-valvulas select,#tab-valvulas textarea{font-size:.78rem;padding:5px;}
-/* Fila de pills: mismo display:flex y gap que los botones de arriba; align-start para el acordeón */
-#tab-valvulas .sev-pills{display:flex;gap:8px;margin:0 0 12px;align-items:flex-start;}
+/* ── Botón de válvula con severidad integrada ──
+   Cada válvula tiene [Insuficiencia][🟡 Severidad ▼] y [Estenosis][🟡 Severidad ▼].
+   El wrap es relative porque el dropdown se posiciona absolute sobre él.
+   min-height:0 en el sub-botón: override del min-height:44px global, igual que .sev-pill-btn. */
+#tab-valvulas .valv-btn-wrap{position:relative;display:flex;align-items:stretch;gap:6px;flex:1;min-width:0;}
+#tab-valvulas .valv-btn-wrap .valv-pill{flex:1;min-width:0;}
+#tab-valvulas .valv-sev-btn{font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid #b45309;background:#fef3c7;color:#92400e;cursor:pointer;white-space:nowrap;flex-shrink:0;min-height:0;min-width:0;font-family:inherit;font-weight:600;align-self:center;}
+#tab-valvulas .valv-sev-btn:hover{filter:brightness(.96);}
+/* Con severidad elegida, el sub-botón toma el color del nivel (el principal queda celeste) */
+#tab-valvulas .valv-sev-btn.nivel1{background:#dcfce7;border-color:#16a34a;color:#166534;}
+#tab-valvulas .valv-sev-btn.nivel2{background:#fef3c7;border-color:#ca8a04;color:#78350f;}
+#tab-valvulas .valv-sev-btn.nivel3{background:#fee2e2;border-color:#dc2626;color:#7f1d1d;}
+#tab-valvulas .valv-sev-menu{display:none;position:absolute;top:100%;right:0;z-index:60;margin-top:4px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:4px;min-width:170px;max-width:260px;box-shadow:0 10px 28px rgba(0,0,0,.45);}
+#tab-valvulas .valv-sev-menu.open{display:block;}
+#tab-valvulas .valv-sev-menu button{display:block;width:100%;min-height:0;min-width:0;text-align:left;font-size:12px;padding:7px 10px;background:none;border:none;color:var(--text);cursor:pointer;border-radius:6px;font-family:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#tab-valvulas .valv-sev-menu button:hover{background:var(--bg3);}
+/* La fila separada de pills se reemplazó por el sub-botón integrado. Se mantiene en el DOM
+   (oculta) porque esqPills la sigue poblando y comparte el flag esqSevManual. */
+#tab-valvulas .sev-pills{display:none;}
 #tab-valvulas .sev-pill{flex:1;min-width:0;}
 /* Pill fina: mismo ancho que el botón de arriba (50%), altura mínima (override del min-height:44px global) */
 #tab-valvulas .sev-pill-btn{width:100%;min-height:0;min-width:0;line-height:1.3;white-space:nowrap;display:flex;align-items:center;justify-content:center;gap:5px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg3,#0f172a);color:var(--text);cursor:pointer;}
@@ -1706,8 +1723,16 @@ window.cerrarSesion = cerrarSesion;
   <div class="card">
     <div class="card-body">
       <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <button type="button" class="btn btn-ghost valv-pill" id="pill-insuf-mitral" onclick="toggleValvPill('mitral','insuf')">Insuficiencia</button>
-        <button type="button" class="btn btn-ghost valv-pill" id="pill-esten-mitral" onclick="toggleValvPill('mitral','esten')">Estenosis</button>
+        <div class="valv-btn-wrap">
+          <button type="button" class="btn btn-ghost valv-pill" id="pill-insuf-mitral" onclick="toggleValvPill('mitral','insuf')">Insuficiencia</button>
+          <button type="button" class="valv-sev-btn" id="sevbtn-insuf-mitral" onclick="valvSevMenu('insuf','mitral',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
+          <div class="valv-sev-menu" id="sevmenu-insuf-mitral" role="menu"></div>
+        </div>
+        <div class="valv-btn-wrap">
+          <button type="button" class="btn btn-ghost valv-pill" id="pill-esten-mitral" onclick="toggleValvPill('mitral','esten')">Estenosis</button>
+          <button type="button" class="valv-sev-btn" id="sevbtn-esten-mitral" onclick="valvSevMenu('esten','mitral',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
+          <div class="valv-sev-menu" id="sevmenu-esten-mitral" role="menu"></div>
+        </div>
       </div>
       <div class="sev-pills" id="sevpills-mitral"></div>
       <div class="grid-2" style="margin-bottom:8px;">
@@ -1938,8 +1963,16 @@ window.cerrarSesion = cerrarSesion;
   <div class="card">
     <div class="card-body">
       <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <button type="button" class="btn btn-ghost valv-pill" id="pill-insuf-aortica" onclick="toggleValvPill('aortica','insuf')">Insuficiencia</button>
-        <button type="button" class="btn btn-ghost valv-pill" id="pill-esten-aortica" onclick="toggleValvPill('aortica','esten')">Estenosis</button>
+        <div class="valv-btn-wrap">
+          <button type="button" class="btn btn-ghost valv-pill" id="pill-insuf-aortica" onclick="toggleValvPill('aortica','insuf')">Insuficiencia</button>
+          <button type="button" class="valv-sev-btn" id="sevbtn-insuf-aortica" onclick="valvSevMenu('insuf','aortica',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
+          <div class="valv-sev-menu" id="sevmenu-insuf-aortica" role="menu"></div>
+        </div>
+        <div class="valv-btn-wrap">
+          <button type="button" class="btn btn-ghost valv-pill" id="pill-esten-aortica" onclick="toggleValvPill('aortica','esten')">Estenosis</button>
+          <button type="button" class="valv-sev-btn" id="sevbtn-esten-aortica" onclick="valvSevMenu('esten','aortica',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
+          <div class="valv-sev-menu" id="sevmenu-esten-aortica" role="menu"></div>
+        </div>
       </div>
       <div class="sev-pills" id="sevpills-aortica"></div>
       <div class="grid-2" style="margin-bottom:8px;">
@@ -2065,8 +2098,16 @@ window.cerrarSesion = cerrarSesion;
   <div class="card">
     <div class="card-body">
       <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <button type="button" class="btn btn-ghost valv-pill" id="pill-insuf-tricuspide" onclick="toggleValvPill('tricuspide','insuf')">Insuficiencia</button>
-        <button type="button" class="btn btn-ghost valv-pill" id="pill-esten-tricuspide" onclick="toggleValvPill('tricuspide','esten')">Estenosis</button>
+        <div class="valv-btn-wrap">
+          <button type="button" class="btn btn-ghost valv-pill" id="pill-insuf-tricuspide" onclick="toggleValvPill('tricuspide','insuf')">Insuficiencia</button>
+          <button type="button" class="valv-sev-btn" id="sevbtn-insuf-tricuspide" onclick="valvSevMenu('insuf','tricuspide',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
+          <div class="valv-sev-menu" id="sevmenu-insuf-tricuspide" role="menu"></div>
+        </div>
+        <div class="valv-btn-wrap">
+          <button type="button" class="btn btn-ghost valv-pill" id="pill-esten-tricuspide" onclick="toggleValvPill('tricuspide','esten')">Estenosis</button>
+          <button type="button" class="valv-sev-btn" id="sevbtn-esten-tricuspide" onclick="valvSevMenu('esten','tricuspide',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
+          <div class="valv-sev-menu" id="sevmenu-esten-tricuspide" role="menu"></div>
+        </div>
       </div>
       <div class="sev-pills" id="sevpills-tricuspide"></div>
       <div class="grid-2" style="margin-bottom:8px;">
@@ -12015,8 +12056,7 @@ function generarInforme() {
 
   // ── 9) Válvula tricúspide (IT + gradiente VD-AD + PSAP + PmAD) + HTP ──
   {
-    const _etE = _esqN('esq-et');
-    const etG = _etE > 0 ? _esqEstTxt[_etE] : (sv('et_grado') || '');
+    const etG = sv('et_grado') || '';
     const etDesc = etG && etG !== 'Sin estenosis' && etG !== 'sin' ? etG.toLowerCase() : null;
     const itTrv = v('vmax_it');          // VRT
     const pmadV = v('pmad');             // requiere VCI
@@ -12363,6 +12403,7 @@ function limpiarCampos() {
   document.querySelectorAll('[id$="-badge"]').forEach(el => el.textContent = '');
   // Válvulas: pills a estado neutro + ocultar bloques desplegados + limpiar preferencia
   document.querySelectorAll('.valv-pill').forEach(b => { b.classList.remove('btn-primary'); b.classList.add('btn-ghost'); });
+  if (window.valvSev) window.valvSev.refrescarTodo();   // sub-botones de severidad → "🟡 Severidad ▼"
   document.querySelectorAll('[id^="bloque-insuf-"], [id^="bloque-esten-"]').forEach(el => el.style.display = 'none');
   ['mitral','aortica','tricuspide'].forEach(vv => ['insuf','esten'].forEach(t => { try { localStorage.removeItem('valv-pill-' + t + '-' + vv); } catch(e){} }));
   // Fecha e índices antropométricos
@@ -13908,6 +13949,8 @@ function toggleValvPill(valvula, tipo) {
   if (activo) {
     pill.classList.remove('btn-primary'); pill.classList.add('btn-ghost');
     bloque.style.display = 'none';
+    // Apagar la válvula limpia su severidad: el informe se arma desde el campo, no desde el botón.
+    if (window.valvSev) window.valvSev.limpiar(tipo, valvula);
     // Ocultar bloque detalle EM si corresponde
     if (valvula === 'mitral' && tipo === 'esten') {
       const det = document.getElementById('bloque-em-detalle');
@@ -13946,6 +13989,133 @@ function cargarValvPills() {
   });
 }
 window.toggleValvPill = toggleValvPill;
+
+/* ══ Severidad integrada en el botón de válvula ══
+   Cada botón (Insuficiencia/Estenosis) lleva a su derecha un sub-botón con dropdown.
+   Elegir una severidad la escribe en el campo fuente (im/ia/it_grado o em/ea/et_grado),
+   enciende el botón principal si estaba apagado y marca esqSevManual: eso hace que lo
+   elegido a mano gane sobre el autocálculo (los calc* consultan ese flag antes de pisar).
+   Apagar el botón principal limpia la severidad — si no, seguiría saliendo en el informe,
+   que se arma desde el campo y no desde el estado del botón. */
+window.valvSev = (function(){
+  const g = id => document.getElementById(id);
+  const CAMPO = {
+    insuf: { mitral:'im_grado', aortica:'ia_grado', tricuspide:'it_grado' },
+    esten: { mitral:'em_grado', aortica:'ea_grado', tricuspide:'et_grado' }
+  };
+  // Insuficiencias: im/ia/it_grado usan 5 niveles y "severa" es el 4.
+  const INSUF_OPTS = [{v:'1',t:'Leve'},{v:'2',t:'Moderada'},{v:'4',t:'Severa'}];
+  const INSUF_TXT  = ['','Leve','Moderada','Mod-severa','Severa'];
+  const nivelDe = t => { const s = String(t||'').toLowerCase();
+    if (/severa/.test(s)) return 3; if (/moderada/.test(s)) return 2;
+    if (/leve|esclerosis/.test(s)) return 1; return 0; };
+  // Etiqueta corta para el sub-botón (los <option> de estenosis traen el criterio entre paréntesis)
+  const corto = t => { const m = String(t||'').match(/severa|moderada|leve|esclerosis/i);
+    if (!m) return String(t||''); const w = m[0].toLowerCase();
+    return w.charAt(0).toUpperCase() + w.slice(1); };
+
+  // Estenosis: las opciones salen del propio <select> (así respeta "Esclerosis" de EAo y los
+  // textos de cada válvula). Se saltea la primera, que es "Sin estenosis" = apagado.
+  function opciones(tipo, valv){
+    if (tipo === 'insuf') return INSUF_OPTS.slice();
+    const sel = g(CAMPO.esten[valv]);
+    return sel ? Array.from(sel.options).slice(1).map(o => ({ v:o.value, t:o.textContent.trim() })) : [];
+  }
+
+  function cerrarMenus(){
+    document.querySelectorAll('#tab-valvulas .valv-sev-menu.open').forEach(m => {
+      m.classList.remove('open');
+      const b = g(m.id.replace('sevmenu-','sevbtn-'));
+      if (b) b.setAttribute('aria-expanded','false');
+    });
+  }
+
+  function menu(tipo, valv, ev){
+    if (ev) ev.stopPropagation();
+    const m = g('sevmenu-' + tipo + '-' + valv); if (!m) return;
+    const yaAbierto = m.classList.contains('open');
+    cerrarMenus();
+    if (yaAbierto) return;
+    m.innerHTML = '';
+    opciones(tipo, valv).forEach(o => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = o.t; b.setAttribute('role','menuitem');
+      b.addEventListener('click', e => { e.stopPropagation(); cerrarMenus(); aplicar(tipo, valv, o.v); });
+      m.appendChild(b);
+    });
+    m.classList.add('open');
+    const btn = g('sevbtn-' + tipo + '-' + valv);
+    if (btn) btn.setAttribute('aria-expanded','true');
+  }
+
+  function aplicar(tipo, valv, valor){
+    const campo = CAMPO[tipo][valv], el = g(campo);
+    if (!el) return;
+    window.esqSevManual = window.esqSevManual || {};
+    window.esqSevManual[campo.replace('_grado','')] = true;   // manual gana sobre el autocálculo
+    if (tipo === 'insuf') {
+      // IM e IAo pasan por su selector "severidad confirmada", que sincroniza el hidden.
+      const fin = g(campo.replace('_grado','_sev_final'));
+      if (fin) { fin.value = valor; fin.dispatchEvent(new Event('change',{bubbles:true})); }
+      else { el.value = valor; }
+    } else {
+      el.value = valor;
+    }
+    el.dispatchEvent(new Event('change',{bubbles:true}));
+    el.dispatchEvent(new Event('input',{bubbles:true}));
+    const pill = g('pill-' + tipo + '-' + valv);
+    if (pill && !pill.classList.contains('btn-primary')) toggleValvPill(valv, tipo);
+    refrescar(tipo, valv);
+  }
+
+  // Apagar el botón principal: vuelve a "sin severidad" y sale del informe.
+  function limpiar(tipo, valv){
+    const campo = CAMPO[tipo][valv], el = g(campo);
+    if (el) {
+      if (tipo === 'insuf') {
+        const fin = g(campo.replace('_grado','_sev_final'));
+        if (fin) fin.value = '0';
+        el.value = '0';
+      } else {
+        el.selectedIndex = 0;
+      }
+      el.dispatchEvent(new Event('change',{bubbles:true}));
+      el.dispatchEvent(new Event('input',{bubbles:true}));
+    }
+    if (window.esqSevManual) delete window.esqSevManual[campo.replace('_grado','')];
+    refrescar(tipo, valv);
+  }
+
+  // Refleja en el sub-botón lo que hay en el campo (venga de acá o del autocálculo).
+  function refrescar(tipo, valv){
+    const btn = g('sevbtn-' + tipo + '-' + valv); if (!btn) return;
+    const el = g(CAMPO[tipo][valv]);
+    let txt = '', niv = 0;
+    if (el) {
+      if (tipo === 'insuf') {
+        const n = parseInt(el.value) || 0;
+        if (n > 0) { txt = INSUF_TXT[n] || 'Severa'; niv = n >= 4 ? 3 : (n === 3 ? 3 : n); }
+      } else {
+        const v = String(el.value || '');
+        if (v && !/^sin/i.test(v)) { txt = corto(v); niv = nivelDe(v); }
+      }
+    }
+    btn.classList.remove('nivel1','nivel2','nivel3');
+    if (txt) { btn.textContent = txt + ' ▼'; btn.classList.add('nivel' + niv); }
+    else { btn.textContent = '🟡 Severidad ▼'; }
+  }
+
+  function refrescarTodo(){
+    ['mitral','aortica','tricuspide'].forEach(v => ['insuf','esten'].forEach(t => refrescar(t, v)));
+  }
+
+  document.addEventListener('click', cerrarMenus);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', refrescarTodo);
+  else refrescarTodo();
+  return { menu, aplicar, limpiar, refrescar, refrescarTodo };
+})();
+window.valvSevMenu = (tipo, valv, ev) => window.valvSev.menu(tipo, valv, ev);
+
 // ¿Está activo el pill de insuficiencia/estenosis de una válvula? (para reflejar en el informe)
 function pillOn(valvula, tipo) {
   const b = document.getElementById('pill-' + tipo + '-' + valvula);
