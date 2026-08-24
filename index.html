@@ -12447,6 +12447,8 @@ function showTabById(id) {
 
 // ══ LIMPIAR ══
 function limpiarCampos() {
+  // Nuevo estudio: la card de severidades vuelve a pedirse en la próxima acción
+  valvSevConfirmada = false;
   // Nuevo estudio: resetear los flags de severidad fijada manualmente (las pills vuelven a autocalcularse)
   window.esqSevManual = {};
   if (window.esqPills) try { esqPills.refresh(); } catch(e) {}
@@ -12515,8 +12517,11 @@ function _neCerrar() {
 }
 function neGuardarYContinuar() {
   _neCerrar();
-  const ok = (typeof guardarInforme === 'function') ? guardarInforme() : false;
-  if (ok) limpiarCampos();   // solo limpia si el guardado fue efectivo (evita perder datos si falta el paciente)
+  if (typeof guardarInforme !== 'function') return;
+  // Vía callback: el guardado puede quedar esperando la card de severidades, y en ese caso
+  // el valor de retorno todavía es false. Sólo se limpia cuando el guardado fue efectivo
+  // (evita perder datos si falta el paciente o si se cancela la card).
+  guardarInforme(ok => { if (ok) limpiarCampos(); });
 }
 function neContinuarSinGuardar() {
   _neCerrar();
@@ -12629,33 +12634,52 @@ function eeQrDataURL(px, url){
 
 // ══ PDF (jsPDF) ══
 // Panel de revisión de severidades antes de generar el PDF (TAREA 3)
-async function generarPDF() {
-  if (document.getElementById('pdf-review-overlay')) return;
-  // Si el médico ya pasó por la tab "Esquema válvulas", esos selectores son la fuente
-  // de severidades → se aplican a los campos del estudio y se saltea el modal de revisión.
-  if (window.esqValvVisitada) {
-    const SEVTXT = {0:'sin',1:'leve',2:'moderada',3:'severa'};
-    const val = id => { const e = document.getElementById(id); return e ? e.value : null; };
-    const setV = (id,v) => { const e = document.getElementById(id); if (e && v!=null) e.value = v; };
-    // El esquema usa 4 niveles (0-3); im/ia/it_grado usan 5 (GT: severa=índice 4) → severa (esq 3) → 4.
-    const ESQ5 = [0,1,2,4];
-    const esq5 = id => String(ESQ5[parseInt(val(id)||'0',10)]);
-    setV('im_grado', esq5('esq-im')); setV('ia_grado', esq5('esq-iao')); setV('it_grado', esq5('esq-it'));
-    setV('em_grado', SEVTXT[parseInt(val('esq-em')||'0',10)]);
-    setV('ea_grado', SEVTXT[parseInt(val('esq-eao')||'0',10)]);
-    // et_grado tiene opciones con texto (sin value="") → mapear a su texto exacto, no a SEVTXT
-    const ETTXT = {0:'Sin estenosis',1:'Leve',2:'Moderada',3:'Severa'};
-    setV('et_grado', ETTXT[parseInt(val('esq-et')||'0',10)]);
-    setV('vp_morf', val('esq-vp'));
-    // Pre-rasterizar el esquema (rasterizado del SVG es async; el PDF es sync) para incluirlo.
-    // Re-render primero para que #esq-estenosis / #esq-jets / #esq-labels estén al día.
-    window._esqPdfPng = null;
-    if (window.esqValvEnPDF && typeof esqSvgToPng === 'function') {
-      try { if (typeof esqRender === 'function') esqRender(); window._esqPdfPng = await esqSvgToPng(6); } catch(e) { window._esqPdfPng = null; }
-    }
-    generarPDFReal();
-    return;
+// ── Severidades valvulares: card de confirmación única por estudio ──
+// Se muestra una sola vez por estudio, en la primera acción que la requiera
+// (Guardar informe o exportar PDF). "Generar informe" NO la dispara.
+let valvSevConfirmada = false;
+window.valvSevReset = function(){ valvSevConfirmada = false; };
+
+// Los selectores de la tab "Esquema válvulas" son entrada manual del médico: cuando pasó
+// por esa tab, mandan sobre los selectores de Válvulas.
+function _esqAplicarSeveridades() {
+  // La vieja tab "Esquema válvulas" se fusionó dentro de Válvulas: initEsq() la remueve del
+  // DOM, así que estos selects ya no existen y hoy esta rama no se alcanza (esqValvVisitada
+  // nunca pasa a true porque esqValvOnShow quedó sin llamador). El guard es defensivo: sin él,
+  // mapear desde elementos nulos pondría TODAS las severidades en 0/'sin' en silencio.
+  if (!document.getElementById('esq-im')) return;
+  const SEVTXT = {0:'sin',1:'leve',2:'moderada',3:'severa'};
+  const val = id => { const e = document.getElementById(id); return e ? e.value : null; };
+  const setV = (id,v) => { const e = document.getElementById(id); if (e && v!=null) e.value = v; };
+  // El esquema usa 4 niveles (0-3); im/ia/it_grado usan 5 (GT: severa=índice 4) → severa (esq 3) → 4.
+  const ESQ5 = [0,1,2,4];
+  const esq5 = id => String(ESQ5[parseInt(val(id)||'0',10)]);
+  setV('im_grado', esq5('esq-im')); setV('ia_grado', esq5('esq-iao')); setV('it_grado', esq5('esq-it'));
+  setV('em_grado', SEVTXT[parseInt(val('esq-em')||'0',10)]);
+  setV('ea_grado', SEVTXT[parseInt(val('esq-eao')||'0',10)]);
+  // et_grado tiene opciones con texto (sin value="") → mapear a su texto exacto, no a SEVTXT
+  const ETTXT = {0:'Sin estenosis',1:'Leve',2:'Moderada',3:'Severa'};
+  setV('et_grado', ETTXT[parseInt(val('esq-et')||'0',10)]);
+  setV('vp_morf', val('esq-vp'));
+}
+
+// Pre-rasteriza el esquema para el PDF (el rasterizado del SVG es async y el PDF es sync).
+async function _pdfPreRasterEsquema() {
+  if (!window.esqValvVisitada) return;
+  window._esqPdfPng = null;
+  if (window.esqValvEnPDF && typeof esqSvgToPng === 'function') {
+    try { if (typeof esqRender === 'function') esqRender(); window._esqPdfPng = await esqSvgToPng(6); } catch(e) { window._esqPdfPng = null; }
   }
+}
+
+// Muestra la card de revisión y llama onConfirm() sólo si el médico confirma.
+// Lee los valores actuales de los selectores de Válvulas y, al confirmar, los reescribe
+// ahí mismo: lo que se corrige en la card queda en la tab Válvulas, no sólo en el informe.
+// Si el médico ya cargó las severidades en la tab "Esquema válvulas", esas mandan y la
+// card se saltea (mismo comportamiento que tenía el PDF antes de este cambio).
+function mostrarCardSeveridadValvular(onConfirm) {
+  if (document.getElementById('pdf-review-overlay')) return;
+  if (window.esqValvVisitada) { _esqAplicarSeveridades(); if (onConfirm) onConfirm(); return; }
   const GTX = ['ausente','leve','moderada','moderada-severa','severa'];
   const imG = parseInt(sv('im_grado')) || 0;
   const iaG = parseInt(sv('ia_grado')) || 0;
@@ -12666,46 +12690,64 @@ async function generarPDF() {
     if (!el) return '<span style="color:var(--text2);">—</span>';
     return `<select data-target="${id}" style="width:100%;">${el.innerHTML}</select>`;
   };
+  const CLONADOS = ['em_grado','ea_grado','et_grado','vp_morf'];
   const ov = document.createElement('div');
   ov.id = 'pdf-review-overlay';
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
   ov.innerHTML =
     '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:520px;width:100%;max-height:85vh;overflow:auto;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,0.5);">' +
       '<div style="font-size:15px;font-weight:700;color:var(--accent2);margin-bottom:4px;">📋 Revisión de severidades — Válvulas</div>' +
-      '<p style="font-size:11px;color:var(--text2);margin:0 0 14px;">Verificá y corregí si hace falta las severidades que irán en la tabla del PDF. Sólo al confirmar se genera el PDF.</p>' +
+      '<p style="font-size:11px;color:var(--text2);margin:0 0 14px;">Verificá y corregí si hace falta las severidades del estudio. Lo que confirmes acá queda cargado en la tab Válvulas.</p>' +
       '<div class="grid-2" style="gap:10px;">' +
         '<div class="fg"><label>IM — Insuficiencia mitral</label><select id="rev-im">' + optsInsuf(imG) + '</select></div>' +
         '<div class="fg"><label>EM — Estenosis mitral</label>' + cloneSel('em_grado') + '</div>' +
         '<div class="fg"><label>IAo — Insuficiencia aórtica</label><select id="rev-ia">' + optsInsuf(iaG) + '</select></div>' +
         '<div class="fg"><label>EAo — Estenosis aórtica</label>' + cloneSel('ea_grado') + '</div>' +
         '<div class="fg"><label>IT — Insuficiencia tricuspídea</label><select id="rev-it">' + optsInsuf(itG) + '</select></div>' +
+        '<div class="fg"><label>ET — Estenosis tricuspídea</label>' + cloneSel('et_grado') + '</div>' +
         '<div class="fg"><label>Válvula pulmonar</label>' + cloneSel('vp_morf') + '</div>' +
       '</div>' +
       '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px;">' +
         '<button class="btn btn-ghost" id="rev-cancel">Cancelar</button>' +
-        '<button class="btn btn-green" id="rev-confirm">✓ Confirmar y generar PDF</button>' +
+        '<button class="btn btn-green" id="rev-confirm">✓ Confirmar</button>' +
       '</div>' +
     '</div>';
   document.body.appendChild(ov);
-  // Prefijar valores de los selects clonados
-  ['em_grado','ea_grado','vp_morf'].forEach(id => {
+  // Prefijar los selects clonados con el valor actual de la tab Válvulas
+  CLONADOS.forEach(id => {
     const src = document.getElementById(id);
     const dst = ov.querySelector('select[data-target="' + id + '"]');
     if (src && dst) dst.value = src.value;
   });
+  // Cancelar (botón o click fuera) NO confirma: no se guarda ni se genera el PDF.
   ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
   ov.querySelector('#rev-cancel').onclick = () => ov.remove();
   ov.querySelector('#rev-confirm').onclick = () => {
     const setGrade = (hid, rev) => { const el = document.getElementById(hid), r = ov.querySelector('#' + rev); if (el && r) el.value = r.value; };
     setGrade('im_grado','rev-im'); setGrade('ia_grado','rev-ia'); setGrade('it_grado','rev-it');
-    ['em_grado','ea_grado','vp_morf'].forEach(id => {
+    CLONADOS.forEach(id => {
       const dst = document.getElementById(id);
       const src = ov.querySelector('select[data-target="' + id + '"]');
       if (dst && src) dst.value = src.value;
     });
     ov.remove();
-    generarPDFReal();
+    if (onConfirm) onConfirm();
   };
+}
+window.mostrarCardSeveridadValvular = mostrarCardSeveridadValvular;
+
+async function generarPDF() {
+  if (document.getElementById('pdf-review-overlay')) return;
+  if (valvSevConfirmada) {          // ya se confirmó en este estudio (por Guardar o por un PDF previo)
+    await _pdfPreRasterEsquema();
+    generarPDFReal();
+    return;
+  }
+  mostrarCardSeveridadValvular(async () => {
+    valvSevConfirmada = true;
+    await _pdfPreRasterEsquema();
+    generarPDFReal();
+  });
 }
 window.generarPDF = generarPDF;
 
@@ -14856,6 +14898,7 @@ function editarInforme(id) {
     if (typeof renderCentroField === 'function') renderCentroField(inf.campos.centro_nombre);
     // Cargar un estudio inicia una sesión nueva: resetear flags de severidad manual (las pills
     // se pre-pueblan con lo cargado y vuelven a poder autocalcularse si se editan los datos Doppler)
+    valvSevConfirmada = false;   // el estudio cargado vuelve a pedir confirmación de severidades
     window.esqSevManual = {};
     if (window.esqPills) try { esqPills.refresh(); } catch(e) {}
     // Recalcular derivados
@@ -14896,6 +14939,7 @@ function cargarEstudioPorId(id) {
   { const _ci = document.getElementById('caso_interes'); if (_ci) _ci.checked = (inf.campos && (inf.campos['caso_interes'] === '1' || inf.campos['caso_interes'] === 'true')); }
   _restaurarChecklistPaciente(inf.campos);
   if (typeof _restaurarContractilidad === 'function') _restaurarContractilidad(inf.campos);
+  valvSevConfirmada = false;   // estudio cargado por URL/QR: vuelve a pedir confirmación
   if (typeof renderCentroField === 'function') renderCentroField(inf.campos && inf.campos.centro_nombre);
   ['calcVI','calcAI','calcAorta','calcVD'].forEach(fn => { if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} } });
   window._ettEditandoId = inf.id;
@@ -15030,13 +15074,22 @@ function _accTexto(cls, otroId) {
 }
 window._accTexto = _accTexto;
 
-function guardarInforme() {
+// onDone(ok) es opcional: hace falta porque el guardado puede quedar en espera de la card
+// de severidades y entonces el `return` ya no refleja el resultado (ver gate más abajo).
+function guardarInforme(onDone) {
   const nombre = (document.getElementById('nombre')?.value || '').trim();
   const ci     = (document.getElementById('ci')?.value || '').trim();
   const fecha  = document.getElementById('fecha')?.value || '';
   if (!nombre && !ci) {
     toast('⚠️ Ingresá nombre o documento del paciente antes de guardar');
     return false;
+  }
+  // Gate de severidades valvulares, una sola vez por estudio.
+  // Va ANTES de capturar `campos`: la captura de abajo congela los valores de los selectores,
+  // así que confirmar la card después guardaría las severidades viejas.
+  if (!valvSevConfirmada) {
+    mostrarCardSeveridadValvular(() => { valvSevConfirmada = true; guardarInforme(onDone); });
+    return false;   // el guardado real ocurre al confirmar la card
   }
   const campos = {};
   document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
@@ -15084,7 +15137,9 @@ function guardarInforme() {
       window._ettEditandoId = null;
       informes.unshift(nuevoInforme);
       eeCurrentInformeId = nuevoInforme.estudioId;
-      if (guardarInformesSeguro(informes)) toast('💾 Informe guardado como nuevo');
+      const _okN = guardarInformesSeguro(informes);
+      if (_okN) toast('💾 Informe guardado como nuevo');
+      if (onDone) onDone(_okN);
     };
     ov2.querySelector('#save-overwrite').onclick=()=>{
       ov2.remove();
@@ -15093,13 +15148,16 @@ function guardarInforme() {
       if (idx >= 0) informes[idx] = { ...nuevoInforme, id: idEditando, estudioId: informes[idx].estudioId || nuevoInforme.estudioId };
       else informes.unshift(nuevoInforme);
       eeCurrentInformeId = (idx >= 0) ? informes[idx].estudioId : nuevoInforme.estudioId;
-      if (guardarInformesSeguro(informes)) toast('🔄 Informe sobreescrito correctamente');
+      const _okO = guardarInformesSeguro(informes);
+      if (_okO) toast('🔄 Informe sobreescrito correctamente');
+      if (onDone) onDone(_okO);
     };
   } else {
     informes.unshift(nuevoInforme);
     eeCurrentInformeId = nuevoInforme.estudioId;
     const _ok = guardarInformesSeguro(informes);
     if (_ok) toast('💾 Informe guardado correctamente');
+    if (onDone) onDone(_ok);
     return _ok;
   }
 }
