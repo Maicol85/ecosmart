@@ -96,7 +96,12 @@
     content: attr(data-placeholder); opacity: 0.4; pointer-events: none; font-style: italic;
   }
   header .spacer { flex: 1; }
-  .hdr-btns { display: flex; gap: 8px; }
+  /* flex-wrap: header es flex-wrap:nowrap, así que cuando esta fila de acciones no entraba
+     (~1100px) se desbordaba y generaba scroll horizontal. Envolviendo dentro de su propio
+     bloque, los botones se acomodan en varias líneas en vez de salirse de la pantalla.
+     Sin min-width:0 a propósito: con min-width:auto el piso del bloque es su ancho de
+     contenido mínimo, así que sólo se reacomoda cuando de verdad no entra. */
+  .hdr-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
   .hdr-burger{display:none;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:7px;font-size:18px;line-height:1;padding:5px 11px;cursor:pointer;flex-shrink:0}
   /* Acceso directo al PDF en el header móvil (en PC el botón vive en el menú ⋮).
      El background lo pisa setPdfColor() con el color de PDF guardado; el valor de acá
@@ -471,11 +476,11 @@
 #tab-valvulas input,#tab-valvulas select,#tab-valvulas textarea{font-size:.78rem;padding:5px;}
 /* ── Botón de válvula con severidad integrada ──
    Cada válvula tiene [Insuficiencia][🟡 Severidad ▼] y [Estenosis][🟡 Severidad ▼].
-   El wrap es relative porque el dropdown se posiciona absolute sobre él.
-   min-height:0 en el sub-botón: override del min-height:44px global, igual que .sev-pill-btn. */
+   El wrap es relative porque el dropdown se posiciona absolute sobre él. */
 #tab-valvulas .valv-btn-wrap{position:relative;display:flex;align-items:stretch;gap:6px;flex:1;min-width:0;}
 #tab-valvulas .valv-btn-wrap .valv-pill{flex:1;min-width:0;}
-#tab-valvulas .valv-sev-btn{font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid #b45309;background:#fef3c7;color:#92400e;cursor:pointer;white-space:nowrap;flex-shrink:0;min-height:0;min-width:0;font-family:inherit;font-weight:600;align-self:center;}
+/* min-height:44px = mínimo táctil (acá NO se hace el override a 0 que usan las viejas pills) */
+#tab-valvulas .valv-sev-btn{font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid #b45309;background:#fef3c7;color:#92400e;cursor:pointer;white-space:nowrap;flex-shrink:0;min-height:44px;min-width:44px;display:inline-flex;align-items:center;justify-content:center;font-family:inherit;font-weight:600;align-self:center;}
 #tab-valvulas .valv-sev-btn:hover{filter:brightness(.96);}
 /* Con severidad elegida, el sub-botón toma el color del nivel (el principal queda celeste) */
 #tab-valvulas .valv-sev-btn.nivel1{background:#dcfce7;border-color:#16a34a;color:#166534;}
