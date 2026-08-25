@@ -423,8 +423,24 @@
   .ig-item:hover { border-color: var(--accent); background: #1a2040; }
   .ig-item-info { flex: 1; min-width: 0; }
   .ig-item-nombre { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+  /* Caso de interés: el nombre acompaña a la estrella dorada */
+  .ig-item-nombre.ig-fav { color: #f5c842; }
   .ig-item-meta { font-size: 11px; color: var(--text2); }
-  .ig-item-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .ig-item-actions { display: flex; gap: 4px; flex-shrink: 0; }
+  /* Botones de acción compactos (antes 11px / 4px 10px inline en cada botón) */
+  .ig-btn { font-size: 10px; padding: 3px 7px; line-height: 1.4; }
+  .ig-btn-star { font-size: 13px; padding: 3px 5px; line-height: 1; }
+  /* El mínimo táctil global de 44px (regla A11y de arriba) los mantenía del mismo
+     tamaño por más que se bajara fuente y padding. Se libera SÓLO con mouse:
+     en celular/tablet siguen teniendo los 44px que exige el estándar. */
+  @media (pointer: fine) {
+    /* El contenedor también entra en la regla global por su atributo [onclick]:
+       se lleva los 44px y los botones se estiran para llenarlo. Por eso hay que
+       liberarlo a él y centrar, además de bajar el mínimo de cada botón. */
+    .ig-item-actions { min-height: 0; align-items: center; }
+    .ig-item-actions .ig-btn { min-height: 26px; min-width: 0; }
+    .ig-item-actions .ig-btn-star { min-height: 26px; min-width: 26px; }
+  }
   .ig-empty { text-align: center; padding: 40px 20px; color: var(--text2); }
   .ig-empty-icon { font-size: 48px; margin-bottom: 12px; }
   .ig-empty-txt { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
@@ -15290,33 +15306,35 @@ function renderInformesGuardados() {
     return;
   }
   vacio.style.display = 'none';
-  lista.innerHTML = filtrados.map(inf => {
-    const fechaEst  = inf.fecha_estudio ? inf.fecha_estudio.split('-').reverse().join('/') : '—';
-    const fechaGuard = new Date(inf.fecha_guardado).toLocaleString('es-UY', {
-      day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'
-    });
-    const esCaso = inf.campos && (inf.campos.caso_interes === '1' || inf.campos.caso_interes === 'true');
-    const notaVal = (inf.campos && inf.campos.nota_interes) || '';
-    return `<div class="ig-item" onclick="verDetalleInforme(${inf.id})">
+  lista.innerHTML = filtrados.map(igItemHTML).join('');
+}
+
+// Markup de una tarjeta de estudio guardado. ÚNICO lugar donde vive: lo usan
+// renderInformesGuardados() y renderizarListaFiltrada() (el Laboratorio). Antes
+// estaba duplicado y cualquier cambio de diseño se aplicaba a una sola vista.
+function igItemHTML(inf) {
+  const fechaEst = inf.fecha_estudio ? inf.fecha_estudio.split('-').reverse().join('/') : '—';
+  const esCaso   = inf.campos && (inf.campos.caso_interes === '1' || inf.campos.caso_interes === 'true');
+  const notaVal  = (inf.campos && inf.campos.nota_interes) || '';
+  return `<div class="ig-item" onclick="verDetalleInforme(${inf.id})">
       <div class="ig-item-info">
-        <div class="ig-item-nombre">${escHtml(inf.nombre)}</div>
-        <div class="ig-item-meta">${escHtml(inf.doc_tipo)}: ${escHtml(inf.ci)}&nbsp;&nbsp;·&nbsp;&nbsp;Estudio: ${fechaEst}</div>
-        <div class="ig-item-meta" style="font-size:10px;opacity:.65;margin-top:2px;">Guardado: ${fechaGuard}</div>
+        <div class="ig-item-nombre${esCaso ? ' ig-fav' : ''}">${escHtml(inf.nombre)}</div>
+        <div class="ig-item-meta">${escHtml(inf.doc_tipo)}: ${escHtml(inf.ci)} · ${fechaEst}</div>
         <div class="ig-nota-wrap" id="ig-nota-wrap-${inf.id}" style="display:${esCaso?'flex':'none'};gap:6px;margin-top:5px;align-items:center;" onclick="event.stopPropagation()">
           <input type="text" id="ig-nota-${inf.id}" placeholder="Motivo del caso de interés (opcional)..." value="${escHtml(notaVal)}" style="flex:1;min-width:0;font-size:11px;padding:3px 7px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);">
           <button class="btn btn-ghost" style="font-size:10px;padding:3px 9px;white-space:nowrap;" onclick="guardarNotaInteres(${inf.id})">Guardar nota</button>
         </div>
       </div>
       <div class="ig-item-actions" onclick="event.stopPropagation()">
-        <button class="btn btn-ghost" style="font-size:15px;padding:4px 7px;line-height:1;color:${esCaso?'#f5c842':'var(--text2)'};" onclick="toggleCasoInteresGuardado(${inf.id}, this)" title="${esCaso?'Quitar de casos de interés':'Marcar como caso de interés'}">${esCaso?'⭐':'☆'}</button>
-        <button data-nombre="${escHtml(inf.nombre)}" data-ci="${escHtml(inf.ci)}" onclick="verEvolucionEl(this)" class="btn btn-ghost" style="font-size:11px;padding:4px 8px;" title="Ver evolución temporal del paciente">📈 Evolución</button>
-        <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="pdfDeInformeGuardado(${inf.id})">📄 PDF</button>
-        <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="editarInforme(${inf.id})">✏️ Editar</button>
-        <button class="btn btn-danger" style="font-size:11px;padding:4px 10px;" onclick="eliminarInforme(${inf.id})">🗑️</button>
+        <button class="btn btn-ghost ig-btn ig-btn-star" style="color:${esCaso?'#f5c842':'var(--text2)'};" onclick="toggleCasoInteresGuardado(${inf.id}, this)" title="${esCaso?'Quitar de casos de interés':'Marcar como caso de interés'}">${esCaso?'⭐':'☆'}</button>
+        <button data-nombre="${escHtml(inf.nombre)}" data-ci="${escHtml(inf.ci)}" onclick="verEvolucionEl(this)" class="btn btn-ghost ig-btn" title="Ver evolución temporal del paciente">📈 Evolución</button>
+        <button class="btn btn-ghost ig-btn" onclick="pdfDeInformeGuardado(${inf.id})">📄 PDF</button>
+        <button class="btn btn-ghost ig-btn" onclick="editarInforme(${inf.id})">✏️ Editar</button>
+        <button class="btn btn-danger ig-btn" onclick="eliminarInforme(${inf.id})">🗑️</button>
       </div>
     </div>`;
-  }).join('');
 }
+window.igItemHTML = igItemHTML;
 
 // Alterna el estado de "caso de interés" de un informe guardado directamente en localStorage
 // y actualiza la estrella en el lugar (sin reabrir el informe). Inmediato y persistente.
@@ -15337,6 +15355,11 @@ function toggleCasoInteresGuardado(id, btn) {
     btn.textContent = on ? '⭐' : '☆';
     btn.style.color = on ? '#f5c842' : 'var(--text2)';
     btn.title = on ? 'Quitar de casos de interés' : 'Marcar como caso de interés';
+    // El nombre acompaña a la estrella (dorado). Se actualiza acá porque la lista
+    // no se re-renderiza al tildar: sólo se toca la fila en el lugar.
+    const card = btn.closest('.ig-item');
+    const nom  = card && card.querySelector('.ig-item-nombre');
+    if (nom) nom.classList.toggle('ig-fav', on);
   }
   // Mostrar/ocultar el campo de nota inline de esa fila
   const wrap = document.getElementById('ig-nota-wrap-' + id);
@@ -19881,32 +19904,7 @@ function renderizarListaFiltrada(lista) {
     return;
   }
   if (vacio) vacio.style.display = 'none';
-  cont.innerHTML = lista.map(inf => {
-    const fechaEst   = inf.fecha_estudio ? inf.fecha_estudio.split('-').reverse().join('/') : '—';
-    const fechaGuard = new Date(inf.fecha_guardado).toLocaleString('es-UY', {
-      day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'
-    });
-    const esCaso = inf.campos && (inf.campos.caso_interes === '1' || inf.campos.caso_interes === 'true');
-    const notaVal = (inf.campos && inf.campos.nota_interes) || '';
-    return `<div class="ig-item" onclick="verDetalleInforme(${inf.id})">
-      <div class="ig-item-info">
-        <div class="ig-item-nombre">${escHtml(inf.nombre)}</div>
-        <div class="ig-item-meta">${escHtml(inf.doc_tipo)}: ${escHtml(inf.ci)}&nbsp;&nbsp;·&nbsp;&nbsp;Estudio: ${fechaEst}</div>
-        <div class="ig-item-meta" style="font-size:10px;opacity:.65;margin-top:2px;">Guardado: ${fechaGuard}</div>
-        <div class="ig-nota-wrap" id="ig-nota-wrap-${inf.id}" style="display:${esCaso?'flex':'none'};gap:6px;margin-top:5px;align-items:center;" onclick="event.stopPropagation()">
-          <input type="text" id="ig-nota-${inf.id}" placeholder="Motivo del caso de interés (opcional)..." value="${escHtml(notaVal)}" style="flex:1;min-width:0;font-size:11px;padding:3px 7px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);">
-          <button class="btn btn-ghost" style="font-size:10px;padding:3px 9px;white-space:nowrap;" onclick="guardarNotaInteres(${inf.id})">Guardar nota</button>
-        </div>
-      </div>
-      <div class="ig-item-actions" onclick="event.stopPropagation()">
-        <button class="btn btn-ghost" style="font-size:15px;padding:4px 7px;line-height:1;color:${esCaso?'#f5c842':'var(--text2)'};" onclick="toggleCasoInteresGuardado(${inf.id}, this)" title="${esCaso?'Quitar de casos de interés':'Marcar como caso de interés'}">${esCaso?'⭐':'☆'}</button>
-        <button data-nombre="${escHtml(inf.nombre)}" data-ci="${escHtml(inf.ci)}" onclick="verEvolucionEl(this)" class="btn btn-ghost" style="font-size:11px;padding:4px 8px;" title="Ver evolución temporal del paciente">📈 Evolución</button>
-        <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="pdfDeInformeGuardado(${inf.id})">📄 PDF</button>
-        <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="editarInforme(${inf.id})">✏️ Editar</button>
-        <button class="btn btn-danger" style="font-size:11px;padding:4px 10px;" onclick="eliminarInforme(${inf.id})">🗑️</button>
-      </div>
-    </div>`;
-  }).join('');
+  cont.innerHTML = lista.map(igItemHTML).join('');   // mismo markup que Guardados
 }
 
 window.aplicarFiltros = aplicarFiltros;
