@@ -180,6 +180,11 @@
   }
   .card-body { padding: 12px 14px; }
   .cfg-sec-title { font-size:12px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px; }
+  /* Campo opcional de "Institución y firma": checkbox de inclusión + input, igual que el panel de Firma del centro */
+  .cfg-opt-row { display:flex; align-items:center; gap:8px; }
+  .cfg-opt-row input[type=checkbox] { width:16px;height:16px;flex:none;cursor:pointer;margin:0; }
+  .cfg-opt-row input[type=text] { flex:1;min-width:0; }
+  .cfg-opt-row input[type=text]:disabled { opacity:.5; }
   .chk-lab { display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text);cursor:pointer;font-weight:400;line-height:1.3; }
   .chk-lab input { width:15px;height:15px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;margin:0; }
   /* Acordeón colapsable (Indicaciones / Antecedentes en panel Paciente) */
@@ -924,6 +929,7 @@ window.cerrarSesion = cerrarSesion;
   <div class="fg" style="margin-bottom:10px;"><label style="font-size:11px;">CJPP *</label><input type="text" id="firma-cjpp" placeholder="CJPP ..." style="width:100%;"></div>
   <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Campos opcionales (marcar para incluir)</div>
   <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><input type="checkbox" id="firma-esp-on" title="Incluir especialidad"><input type="text" id="firma-esp" placeholder="Especialidad" style="flex:1;"></div>
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><input type="checkbox" id="firma-lugar-on" title="Incluir ciudad/lugar"><input type="text" id="firma-lugar" placeholder="Ciudad / Lugar" style="flex:1;"></div>
   <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><input type="checkbox" id="firma-dir-on" title="Incluir dirección"><input type="text" id="firma-dir" placeholder="Dirección" style="flex:1;"></div>
   <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><input type="checkbox" id="firma-tel-on" title="Incluir teléfono"><input type="text" id="firma-tel" placeholder="Teléfono" style="flex:1;"></div>
   <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;"><input type="checkbox" id="firma-email-on" title="Incluir email"><input type="text" id="firma-email" placeholder="Email" style="flex:1;"></div>
@@ -981,11 +987,12 @@ window.cerrarSesion = cerrarSesion;
         <div class="grid-2">
           <div class="fg"><label>Nombre del médico</label><input type="text" id="cfg-med-nombre" oninput="cfgSaveMed('med-nombre',this.value)"></div>
           <div class="fg"><label>Matrícula</label><input type="text" id="cfg-med-matricula" oninput="cfgSaveMed('med-matricula',this.value)"></div>
-          <div class="fg"><label>Especialidad</label><input type="text" id="cfg-med-especialidad" oninput="cfgSaveMed('med-especialidad',this.value)"></div>
-          <div class="fg"><label>Ciudad / Lugar</label><input type="text" id="cfg-med-lugar" oninput="cfgSaveMed('med-lugar',this.value)"></div>
-          <div class="fg"><label>Dirección del consultorio</label><input type="text" id="cfg-med-direccion" oninput="cfgSaveMed('med-direccion',this.value)"></div>
-          <div class="fg"><label>Teléfono</label><input type="text" id="cfg-med-telefono" oninput="cfgSaveMed('med-telefono',this.value)"></div>
+          <div class="fg"><label>Especialidad</label><div class="cfg-opt-row"><input type="checkbox" id="cfg-med-especialidad-on" onchange="cfgToggleOpt('esp',this.checked)" title="Incluir en el PDF"><input type="text" id="cfg-med-especialidad" oninput="cfgSaveOpt('esp',this.value)"></div></div>
+          <div class="fg"><label>Ciudad / Lugar</label><div class="cfg-opt-row"><input type="checkbox" id="cfg-med-lugar-on" onchange="cfgToggleOpt('lugar',this.checked)" title="Incluir en el PDF"><input type="text" id="cfg-med-lugar" oninput="cfgSaveOpt('lugar',this.value)"></div></div>
+          <div class="fg"><label>Dirección del consultorio</label><div class="cfg-opt-row"><input type="checkbox" id="cfg-med-direccion-on" onchange="cfgToggleOpt('dir',this.checked)" title="Incluir en el PDF"><input type="text" id="cfg-med-direccion" oninput="cfgSaveOpt('dir',this.value)"></div></div>
+          <div class="fg"><label>Teléfono</label><div class="cfg-opt-row"><input type="checkbox" id="cfg-med-telefono-on" onchange="cfgToggleOpt('tel',this.checked)" title="Incluir en el PDF"><input type="text" id="cfg-med-telefono" oninput="cfgSaveOpt('tel',this.value)"></div></div>
         </div>
+        <p style="font-size:11px;color:var(--text2);margin-top:2px;">Sólo los campos marcados salen en el PDF. Desmarcar no borra lo escrito.</p>
         <div style="margin-top:10px;"><button class="btn btn-ghost" onclick="firmaOpen()">✏️ Editar firma del centro</button></div>
         <label style="display:flex;align-items:center;gap:9px;cursor:pointer;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
           <input type="checkbox" id="cfg-modo-inst" onchange="cfgToggleModoInstitucional(this.checked)" style="width:16px;height:16px;cursor:pointer">
@@ -12655,7 +12662,9 @@ function generarPDFReal() {
 
   // ─── helpers ─────────────────────────────────────────────────
   const _cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;   // "moderada" → "Moderada"
-  function checkPage(n){ if(y+(n||12)>284){ doc.addPage(); y=12; } }
+  // 281 y no 284: los últimos mm de la hoja quedan reservados para la banda de
+  // pie (firma fija + copyright), que se dibuja con coordenadas absolutas.
+  function checkPage(n){ if(y+(n||12)>281){ doc.addPage(); y=12; } }
   function fb(sz){ doc.setFont('helvetica','bold');       doc.setFontSize(sz||7);   }
   function fn(sz){ doc.setFont('helvetica','normal');     doc.setFontSize(sz||7);   }
   function fi(sz){ doc.setFont('helvetica','bolditalic'); doc.setFontSize(sz||8);   }
@@ -13410,7 +13419,9 @@ function generarPDFReal() {
   if (typeof imgSlots !== 'undefined') {
     const _loaded = imgSlots.filter(s => s && s.dataURL);
     if (_loaded.length) {
-      const _gap = 6, _half = (pgW - _gap) / 2, _top = 18, _bot = 285;
+      // _bot = 281, igual que checkPage: la firma del pie se dibuja en 285.5 y con
+      // el 285 anterior una imagen que llegaba al fondo quedaba tapada por el nombre.
+      const _gap = 6, _half = (pgW - _gap) / 2, _top = 18, _bot = 281;
       const _halfH = (_bot - _top) / 2;   // altura de media página (para ampliadas)
       let _iy, _ampOnPage = 0;            // ampliadas colocadas en la página actual (0/1/2)
       const _imgPage = () => { doc.addPage(); fc(TEMA[0],TEMA[1],TEMA[2]); doc.rect(0,0,210,12,'F'); fb(11); tc(255,255,255); doc.text('Imágenes del estudio', 105, 8, {align:'center'}); _iy = _top; _ampOnPage = 0; };
@@ -13453,7 +13464,7 @@ function generarPDFReal() {
   const _firmaPropia = !!(_firma && _firma.nombre && _firma.cjpp);
   // Recolecta los campos opcionales activos — soporta ambas estructuras:
   //  a) array: opcionales:[{label, valor, on?}]   b) objeto: {esp:{on,val}, dir:{on,val}, ...}
-  // Se recolecta ANTES de checkPage para poder medir el alto real (ver _firmaH abajo).
+  // Alimentan la línea de datos de la firma (ver _firmaSub abajo).
   const _opts = [];
   if (_firmaPropia) {
     const _arr = _firma.opcionales || _firma.opciones || _firma.campos || _firma.extras || _firma.optionals;
@@ -13478,40 +13489,45 @@ function generarPDFReal() {
       });
     }
   }
-  // Alto real de la firma (mm), en vez del checkPage(22) fijo anterior: con varios opcionales
-  // activos la firma supera los 22mm y saltaba a una página nueva sin necesidad.
-  let _firmaH = 3 + 5;                        // separador superior + espacio hasta el nombre
+  // La firma NO consume flujo: no usa `y` ni checkPage. Sólo se arman acá los
+  // textos y se dibujan con coordenadas absolutas en el pie de cada página,
+  // junto al copyright (ver el bucle más abajo). Antes iba inline y, cuando el
+  // contenido no entraba justo, empujaba el informe a una segunda hoja de más.
+  let _firmaNombre, _firmaDatos;
   if (_firmaPropia) {
-    _firmaH += 5 + 4;                         // nombre + CJPP
-    _firmaH += _opts.length * 3.8;            // un renglón por opcional activo
+    _firmaNombre = String(_firma.nombre) + '.';
+    _firmaDatos  = [String(_firma.cjpp)].concat(_opts);
   } else {
-    _firmaH += 5 + 4;                         // nombre + matrícula
-    if (medEsp) _firmaH += 4;
-    if (medDir) _firmaH += 3.8;
-    if (medTel) _firmaH += 3.8;
+    _firmaNombre = (medNombre || 'Dr Maicol Dos Santos') + '.';
+    _firmaDatos  = [medEsp, medMatricula || 'CJPP 129296', medDir, medTel];
   }
-  _firmaH += 5;                               // línea "Fecha de informe"
-  _firmaH += 4;                               // margen de seguridad
-  checkPage(_firmaH);
-  y += 3;
-  dc(180,180,180); doc.setLineWidth(0.4); doc.line(mL,y,mR,y); y += 5;
-  if (_firmaPropia) {
-    // Nombre en negrita, CJPP debajo, y cada opcional activo debajo (estilo actual: alineado a la derecha)
-    fi(9.5); tc(0,0,0); doc.text(String(_firma.nombre) + '.', mR, y, {align:'right'}); y += 5;
-    fn(8);   tc(0,0,0); doc.text(String(_firma.cjpp), mR, y, {align:'right'}); y += 4;
-    fn(7.5); tc(90,90,90);
-    _opts.forEach(line => { doc.text(line, mR, y, {align:'right'}); y += 3.8; });
-  } else {
-    fi(9.5); tc(0,0,0); doc.text((medNombre || 'Dr Maicol Dos Santos') + '.', mR, y, {align:'right'}); y += 5;
-    if(medEsp){ fn(7.5);tc(90,90,90);doc.text(medEsp,mR,y,{align:'right'});y+=4; }
-    fn(8); tc(0,0,0); doc.text(medMatricula || 'CJPP 129296', mR, y, {align:'right'}); y += 4;
-    if(medDir){ fn(7.5);tc(90,90,90);doc.text(medDir,mR,y,{align:'right'});y+=3.8; }
-    if(medTel){ fn(7.5);tc(90,90,90);doc.text(medTel,mR,y,{align:'right'});y+=3.8; }
-  }
-  fn(7); tc(120,120,120);
-  doc.text('Fecha de informe: '+fecha+'  .  '+medLugar,mR,y,{align:'right'});
+  // El lugar se conserva: viajaba en la misma línea que la fecha de informe y
+  // no figura en ninguna otra parte del PDF. Lo que se quitó es sólo la fecha,
+  // que ya está en el encabezado como "Fecha realización".
+  _firmaDatos.push(medLugar);
+  // Sin dedup el lugar salía DOS veces cuando hay firma propia: _opts ya lo trae
+  // desde el objeto firma (clave 'lugar') y medLugar es ese mismo dato vía header.
+  const _yaVisto = Object.create(null);
+  const _firmaSub = _firmaDatos
+    .filter(s => s != null && String(s).trim())
+    .map(s => String(s).trim())
+    .filter(s => { const k = s.toLowerCase(); if (_yaVisto[k]) return false; _yaVisto[k] = 1; return true; })
+    .join('  ·  ');
 
-  // ─── Copyright al pie de todas las páginas ───
+  // Con dirección + email + teléfono la línea de datos supera el ancho útil y jsPDF
+  // no la corta: se salía de la hoja. Se achica la tipografía hasta que entre en UN
+  // renglón (envolverla la hacía chocar con el nombre, que va 2.8mm arriba).
+  let _subSize = 6.2, _subL = [];
+  if (_firmaSub) {
+    [6.2, 5.6, 5.0, 4.6].forEach(sz => {
+      if (_subL.length === 1) return;
+      fn(sz); _subSize = sz; _subL = doc.splitTextToSize(_firmaSub, pgW);
+    });
+  }
+  const _subTop  = 288.3 - (Math.max(_subL.length, 1) - 1) * 2.9;  // 1ra línea del sub
+  const _nombreY = _subTop - 3.2;                                   // nombre siempre encima
+
+  // ─── Firma + copyright al pie de todas las páginas ───
   const _totalPag = doc.internal.getNumberOfPages();
   const _fModoInst = localStorage.getItem('ett_modo_institucional')==='1';
   const _fInst = sv('med-centro') || '';
@@ -13519,8 +13535,16 @@ function generarPDFReal() {
     ? ('© 2026 ' + _fInst + ' · Todos los derechos reservados · Uso clínico exclusivo')
     : '© 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo';
   const _fDisc = 'Esta herramienta es de apoyo clínico. No reemplaza el juicio médico ni constituye una recomendación diagnóstica o terapéutica.' + (_fModoInst ? '' : ' CeiboMed © 2026');
+  // Banda de pie (A4 = 297 mm de alto): firma 285.5/288.3, copyright 292, disclaimer 295.
+  // checkPage corta el contenido en 281, así que quedan ~4 mm libres antes de la firma.
   for (let _p = 1; _p <= _totalPag; _p++) {
     doc.setPage(_p);
+    fi(7.5); tc(0,0,0);
+    doc.text(_firmaNombre, mR, _nombreY, { align:'right' });
+    if (_firmaSub) {
+      fn(_subSize); tc(90,90,90);
+      _subL.forEach((l, i) => doc.text(l, mR, _subTop + i * 2.9, { align:'right' }));
+    }
     fn(6.5); tc(150,150,150);
     doc.text(_fCopyr, 105, 292, { align:'center' });
     fn(5.5); tc(160,160,160); doc.text(_fDisc, 105, 295, { align:'center' });
@@ -14294,6 +14318,9 @@ function saveMedico() {
     if (el) localStorage.setItem(id.replace(/-/g,'_'), el.textContent);
   });
   updateHdrExtra();
+  // Lo editado inline vuelve al objeto firma (fuente de verdad de los checkboxes).
+  // true = edición deliberada: puede marcar y también vaciar/desmarcar.
+  if (typeof firmaAdoptFromHeader === 'function') firmaAdoptFromHeader(true);
 }
 ['med-nombre','med-matricula','med-lugar','med-especialidad','med-direccion','med-telefono'].forEach(id => {
   const el = document.getElementById(id);
@@ -14506,7 +14533,9 @@ function aplicarMedico(idx){
   // reflejar en los inputs de Config (Institución y firma) si existen
   const cn=document.getElementById('cfg-med-nombre'); if(cn) cn.value=m.nombre||'';
   const cm=document.getElementById('cfg-med-matricula'); if(cm) cm.value=m.matricula||'';
-  const ce=document.getElementById('cfg-med-especialidad'); if(ce) ce.value=m.especialidad||'';
+  // La especialidad del médico elegido entra al objeto firma (y de ahí al checkbox
+  // de Config y del panel de Firma); si no, el próximo guardado la pisaría.
+  if(typeof firmaAdoptFromHeader==='function') firmaAdoptFromHeader();
 }
 window.aplicarMedico=aplicarMedico;
 function renderMedHeaderSelector(){
@@ -14603,33 +14632,111 @@ window.logoClick = logoClick; window.logoFileChosen = function(){}; window.logoD
 function firmaKey() { return 'firma_centro_' + getCentroKey(); }
 function firmaRead() { try { return JSON.parse(localStorage.getItem(firmaKey()) || 'null'); } catch (e) { return null; } }
 
+// Campos opcionales con checkbox. Única fuente de verdad = el objeto firma_centro_<centro>.
+// Los dos paneles (Config → Institución y firma, y el panel Firma del centro) son vistas
+// de este mismo objeto; por eso quedan sincronizados.
+// OJO: función y no `const`. En el arranque loadCentro() → selectCentroTipo() →
+// firmaLoad() corre ANTES de llegar a esta línea; con un const, la referencia caía
+// en zona muerta temporal, tiraba ReferenceError y cortaba el resto del script.
+// Una declaración de función se hoistea y es segura ante cualquier orden de carga.
+var _firmaOptsCache = null;
+function firmaOpts() {
+  return _firmaOptsCache || (_firmaOptsCache = [
+    { k:'esp',   med:'med-especialidad', cfg:'cfg-med-especialidad', pan:'firma-esp'   },
+    { k:'lugar', med:'med-lugar',        cfg:'cfg-med-lugar',        pan:'firma-lugar' },
+    { k:'dir',   med:'med-direccion',    cfg:'cfg-med-direccion',    pan:'firma-dir'   },
+    { k:'tel',   med:'med-telefono',     cfg:'cfg-med-telefono',     pan:'firma-tel'   }
+  ]);
+}
+function firmaPh() { return { 'med-lugar':'Ciudad/Lugar...' }; }
+
+// Valor que hoy tiene un campo del médico en el header (span o localStorage).
+function _firmaCur(id) {
+  const el = document.getElementById(id);
+  const txt = el ? (el.textContent || '') : '';
+  return (txt || localStorage.getItem(id.replace(/-/g, '_')) || '').trim();
+}
+
+// Normaliza la firma guardada y MIGRA las viejas: si a un opcional le falta la clave
+// (ej. 'lugar', que no existía), se siembra con lo que ya está en el header y marcado,
+// para no borrar datos que el usuario venía usando.
+function firmaState() {
+  const f = Object.assign({}, firmaRead() || {});
+  if (!f.nombre) f.nombre = _firmaCur('med-nombre');
+  if (!f.cjpp)   f.cjpp   = _firmaCur('med-matricula');
+  firmaOpts().forEach(o => {
+    if (!f[o.k] || typeof f[o.k] !== 'object') {
+      const v = _firmaCur(o.med);
+      f[o.k] = { on: !!v, val: v };
+    }
+  });
+  if (!f.email || typeof f.email !== 'object') f.email = { on:false, val:'' };
+  return f;
+}
+
+// Persiste + vuelca al header/PDF + refresca los dos paneles. Todo cambio pasa por acá.
+function firmaWrite(f) {
+  try { localStorage.setItem(firmaKey(), JSON.stringify(f)); } catch (e) {}
+  firmaSyncToHeader(f);
+  firmaRefreshUI(f);
+}
+
+// Refleja el estado en los controles de AMBOS paneles (el que no disparó el cambio incluido).
+function firmaRefreshUI(f) {
+  f = f || firmaState();
+  const _act = document.activeElement;
+  const set = (id, prop, v) => {
+    const el = document.getElementById(id); if (!el) return;
+    // NO pisar el input que se está tipeando: reasignar .value manda el caret al
+    // final y, como cfgSaveOpt guarda con trim() en cada tecla, se comía el
+    // espacio recién escrito ("Medicina Interna" quedaba "MedicinaInterna").
+    if (el === _act && prop === 'value') return;
+    el[prop] = v;
+  };
+  firmaOpts().forEach(o => {
+    const st = f[o.k] || { on:false, val:'' };
+    set(o.cfg, 'value', st.val || '');
+    set(o.cfg + '-on', 'checked', !!st.on);
+    set(o.pan, 'value', st.val || '');
+    set(o.pan + '-on', 'checked', !!st.on);
+  });
+  set('firma-nombre', 'value', f.nombre || '');
+  set('firma-cjpp',   'value', f.cjpp   || '');
+  set('firma-email',    'value',   (f.email && f.email.val) || '');
+  set('firma-email-on', 'checked', !!(f.email && f.email.on));
+  set('cfg-med-nombre',    'value', f.nombre || '');
+  set('cfg-med-matricula', 'value', f.cjpp   || '');
+}
+window.firmaRefreshUI = firmaRefreshUI;
+
+// Handlers del panel de Config (los del panel de Firma pasan por firmaGuardar)
+function cfgToggleOpt(k, on) {
+  const f = firmaState();
+  if (!f[k]) f[k] = { on:false, val:'' };
+  f[k].on = !!on;
+  firmaWrite(f);
+}
+function cfgSaveOpt(k, val) {
+  const f = firmaState();
+  if (!f[k]) f[k] = { on:false, val:'' };
+  f[k].val = (val || '').trim();
+  // Escribir texto en un campo desmarcado no lo activa solo: el checkbox manda.
+  firmaWrite(f);
+}
+window.cfgToggleOpt = cfgToggleOpt; window.cfgSaveOpt = cfgSaveOpt;
+
 function firmaOpen() { firmaPopulatePanel(); const p = document.getElementById('firma-panel'); if (p) p.style.display = 'block'; }
 function firmaCerrar() { const p = document.getElementById('firma-panel'); if (p) p.style.display = 'none'; }
 
-function firmaPopulatePanel() {
-  const f = firmaRead() || {
-    nombre: sv('med-nombre'), cjpp: sv('med-matricula'),
-    esp: { on: !!sv('med-especialidad'), val: sv('med-especialidad') },
-    dir: { on: !!sv('med-direccion'),    val: sv('med-direccion') },
-    tel: { on: !!sv('med-telefono'),     val: sv('med-telefono') },
-    email: { on: false, val: '' }
-  };
-  const setV = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
-  setV('firma-nombre', f.nombre); setV('firma-cjpp', f.cjpp);
-  const setOpt = (k, onId, valId) => { const o = f[k] || { on: false, val: '' }; const c = document.getElementById(onId); if (c) c.checked = !!o.on; setV(valId, o.val); };
-  setOpt('esp', 'firma-esp-on', 'firma-esp');
-  setOpt('dir', 'firma-dir-on', 'firma-dir');
-  setOpt('tel', 'firma-tel-on', 'firma-tel');
-  setOpt('email', 'firma-email-on', 'firma-email');
-}
+function firmaPopulatePanel() { firmaRefreshUI(firmaState()); }
 function firmaGuardar() {
   const nombre = (document.getElementById('firma-nombre').value || '').trim();
   const cjpp   = (document.getElementById('firma-cjpp').value || '').trim();
   if (!nombre || !cjpp) { alert('Nombre y CJPP son obligatorios.'); return; }
   const opt = (onId, valId) => ({ on: !!document.getElementById(onId).checked, val: (document.getElementById(valId).value || '').trim() });
-  const f = { nombre, cjpp, esp: opt('firma-esp-on', 'firma-esp'), dir: opt('firma-dir-on', 'firma-dir'), tel: opt('firma-tel-on', 'firma-tel'), email: opt('firma-email-on', 'firma-email') };
-  localStorage.setItem(firmaKey(), JSON.stringify(f));
-  firmaSyncToHeader(f);
+  const f = { nombre, cjpp, email: opt('firma-email-on', 'firma-email') };
+  firmaOpts().forEach(o => { f[o.k] = opt(o.pan + '-on', o.pan); });
+  firmaWrite(f);            // persiste + header/PDF + refresca el panel de Config
   firmaCerrar();
   toast('✅ Firma guardada para este centro');
 }
@@ -14638,21 +14745,63 @@ function firmaSyncToHeader(f) {
   const put = (id, val) => {
     const el = document.getElementById(id); if (el) el.textContent = val || '';
     localStorage.setItem(id.replace(/-/g, '_'), val || '');
+    localStorage.setItem('ett_' + id.replace(/-/g, '_'), val || '');
     const disp = document.getElementById(id + '-disp');
-    if (disp && val) { disp.textContent = val; disp.classList.remove('hdr-ph'); localStorage.setItem('ett_' + id.replace(/-/g, '_'), val); }
+    if (!disp) return;
+    // Con valor: se muestra. Sin valor (campo desmarcado): hay que LIMPIAR el span
+    // visible, si no el header seguiría mostrando el dato viejo ya quitado del PDF.
+    if (val) { disp.textContent = val; disp.classList.remove('hdr-ph'); }
+    else     { disp.textContent = firmaPh()[id] || ''; disp.classList.add('hdr-ph'); }
   };
   put('med-nombre', f.nombre);
   put('med-matricula', f.cjpp);
-  put('med-especialidad', f.esp && f.esp.on ? f.esp.val : '');
-  put('med-direccion',    f.dir && f.dir.on ? f.dir.val : '');
-  put('med-telefono',     f.tel && f.tel.on ? f.tel.val : '');
+  // Un opcional sin tilde se vuelca vacío: así desaparece del header y del PDF,
+  // pero su texto sigue guardado en el objeto firma y vuelve al re-marcarlo.
+  firmaOpts().forEach(o => { const st = f[o.k]; put(o.med, st && st.on ? st.val : ''); });
   if (typeof updateHdrExtra === 'function') updateHdrExtra();
 }
+
+// El header también se puede editar inline (spans contenteditable y hdrEdit). Eso escribe
+// en med-*, no en el objeto firma, así que hay que traerlo de vuelta o se pierde al
+// próximo guardado. Si escribieron en un campo destildado, se entiende que lo quieren: se tilda.
+// `explicito` = lo editó una persona en el header (blur de un span, o hdrEdit).
+// Sin ese flag el llamado es programático (p.ej. aplicarMedico estampa la
+// especialidad del médico elegido) y NO debe tocar los tildes: si el usuario
+// destildó Especialidad, aplicar un médico se la volvía a marcar sola.
+function firmaAdoptFromHeader(explicito) {
+  const f = firmaState();
+  let cambio = false;
+  firmaOpts().forEach(o => {
+    const v = _firmaCur(o.med), st = f[o.k];
+    if (!explicito) {
+      // Refresca el texto de un campo YA activo. Nunca marca, desmarca ni vacía:
+      // un med-* vacío acá es ambiguo (campo destildado vs. blanqueo de otro flujo)
+      // y copiarlo borraba el texto guardado del usuario.
+      if (st.on && v && st.val !== v) { st.val = v; cambio = true; }
+      return;
+    }
+    // Edición deliberada: el header manda, incluido vaciarlo para quitarlo del PDF.
+    if (v) {
+      if (st.val !== v) { st.val = v; cambio = true; }
+      if (!st.on)       { st.on = true; cambio = true; }
+    } else if (st.on)   { st.on = false; cambio = true; }
+  });
+  const n = _firmaCur('med-nombre'), c = _firmaCur('med-matricula');
+  if (n && f.nombre !== n) { f.nombre = n; cambio = true; }
+  if (c && f.cjpp   !== c) { f.cjpp   = c; cambio = true; }
+  if (!cambio) return;
+  try { localStorage.setItem(firmaKey(), JSON.stringify(f)); } catch (e) {}
+  firmaRefreshUI(f);        // sin volver a tocar el header: ya tiene los valores
+}
+window.firmaAdoptFromHeader = firmaAdoptFromHeader;
 function firmaLoad() {
-  const f = firmaRead();
-  if (f) firmaSyncToHeader(f);
-  const p = document.getElementById('firma-panel');
-  if (p && p.style.display === 'block') firmaPopulatePanel();
+  const prev = firmaRead();
+  const f = firmaState();           // normaliza y migra las firmas viejas (sin 'lugar')
+  firmaSyncToHeader(f);
+  // Sólo se persiste si YA había una firma para este centro: así la migración queda
+  // guardada, pero no se inventa una firma para un centro que nunca se configuró.
+  if (prev) { try { localStorage.setItem(firmaKey(), JSON.stringify(f)); } catch (e) {} }
+  firmaRefreshUI(f);
 }
 window.firmaOpen = firmaOpen; window.firmaCerrar = firmaCerrar; window.firmaGuardar = firmaGuardar;
 
@@ -16145,7 +16294,8 @@ function hdrEdit(field) {
   inp.select();
 
   const LABELS = {'med-nombre':'Nombre','med-matricula':'Matrícula','med-lugar':'Ciudad','med-centro':'Centro'};
-  const PH     = {'med-centro':'Centro/Institución...'};
+  // med-lugar entra por FIRMA_PH: sin entrada acá, vaciarlo dejaba el span oculto con el valor viejo.
+  const PH     = Object.assign({'med-centro':'Centro/Institución...'}, (typeof firmaPh === 'function' ? firmaPh() : {}));
 
   function save() {
     inp.onblur    = null;
@@ -16167,6 +16317,9 @@ function hdrEdit(field) {
       localStorage.setItem(field.replace(/-/g,'_'), val);
     }
     if (val && LABELS[field]) toast('✅ ' + LABELS[field] + ' guardado');
+    // Lo editado inline vuelve al objeto firma (fuente de verdad de los checkboxes).
+    // true = edición deliberada: vaciar la ciudad acá la saca del PDF.
+    if (field !== 'med-centro' && typeof firmaAdoptFromHeader === 'function') firmaAdoptFromHeader(true);
   }
 
   inp.onblur    = save;
@@ -20205,11 +20358,15 @@ function cfgSaveMed(id,val){
   if(typeof updateHdrExtra==='function') updateHdrExtra();
 }
 function cfgLoadMed(){
-  ['med-nombre','med-matricula','med-especialidad','med-lugar','med-direccion','med-telefono'].forEach(function(id){
+  // Nombre y matrícula siguen viniendo del header (no tienen checkbox).
+  ['med-nombre','med-matricula'].forEach(function(id){
     var inp=document.getElementById('cfg-'+id); if(!inp) return;
     var src=document.getElementById(id);
     inp.value = (src ? src.textContent.trim() : '') || (localStorage.getItem(id.replace(/-/g,'_')) || '');
   });
+  // Los opcionales salen del objeto firma, NO del header: ahí el texto de un campo
+  // destildado está vacío a propósito, y se perdería lo que el usuario escribió.
+  if (typeof firmaRefreshUI === 'function') firmaRefreshUI();
 }
 function eeQrEnabled(){ return localStorage.getItem('ett_qr_enabled') !== '0'; } // por defecto activado
 function cfgToggleQr(on){ try { localStorage.setItem('ett_qr_enabled', on ? '1' : '0'); } catch(e){} }
