@@ -180,6 +180,15 @@
   }
   .card-body { padding: 12px 14px; }
   .cfg-sec-title { font-size:12px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px; }
+  /* ETT Avanzado: vista formateada del bloque. Las líneas '## algo' salen como
+     subtítulos, igual que en el PDF, en vez de mostrar los ## crudos. */
+  .am-prev { background:var(--bg3); border:1px solid var(--border); border-radius:8px;
+             padding:12px 14px; font-size:12.5px; line-height:1.55; color:var(--text); }
+  .am-prev .am-sub { font-weight:700; color:var(--accent2); margin:10px 0 3px; letter-spacing:.01em; }
+  .am-prev .am-sub:first-child { margin-top:0; }
+  .am-prev .am-li  { color:var(--text); margin:1px 0; }
+  .am-prev .am-vacio { color:var(--text2); font-style:italic; }
+  .am-edit-tog { font-size:11px; padding:3px 9px; font-weight:600; }
   /* Campo opcional de "Institución y firma": checkbox de inclusión + input, igual que el panel de Firma del centro */
   .cfg-opt-row { display:flex; align-items:center; gap:8px; }
   .cfg-opt-row input[type=checkbox] { width:16px;height:16px;flex:none;cursor:pointer;margin:0; }
@@ -8220,16 +8229,26 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;font-weight:600;" onclick="amiloRetirar()">✕ Retirar del informe</button>
     </h2>
     <div class="card-body">
+      <!-- Cada bloque muestra la vista formateada (lo que va al PDF) y esconde
+           el textarea hasta que se toca "Editar". Así no se ven los ## crudos. -->
       <div class="fg" id="amilo-ett-wrap" style="display:none;">
-        <label>Score ETT ESC 2021 — editable</label>
-        <textarea id="amilo_ett_txt" style="min-height:190px;"></textarea>
+        <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <span>Score ETT ESC 2021</span>
+          <button type="button" class="btn btn-ghost am-edit-tog" onclick="amiloEditar('ett')" id="amilo-ett-btn">✏️ Editar</button>
+        </label>
+        <div class="am-prev" id="amilo_ett_prev"></div>
+        <textarea id="amilo_ett_txt" style="min-height:190px;display:none;" oninput="amiloPreview('ett')"></textarea>
       </div>
       <div class="fg" id="amilo-alg-wrap" style="display:none;">
-        <label>Algoritmo diagnóstico — editable</label>
-        <textarea id="amilo_alg_txt" style="min-height:130px;"></textarea>
+        <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <span>Algoritmo diagnóstico</span>
+          <button type="button" class="btn btn-ghost am-edit-tog" onclick="amiloEditar('alg')" id="amilo-alg-btn">✏️ Editar</button>
+        </label>
+        <div class="am-prev" id="amilo_alg_prev"></div>
+        <textarea id="amilo_alg_txt" style="min-height:130px;display:none;" oninput="amiloPreview('alg')"></textarea>
       </div>
       <p style="font-size:11px;color:var(--text2);margin:0;line-height:1.5;">
-        Sale en una hoja aparte del PDF, después del En Suma. Las líneas que empiezan con <b>##</b> se imprimen como subtítulos.
+        Sale en una hoja aparte del PDF, después del En Suma. Al editar, las líneas que empiezan con <b>##</b> son los subtítulos.
       </p>
     </div>
   </div>
@@ -8457,7 +8476,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
   <div id="escenario-box" style="display:none"></div>
   <div class="flex gap-8 items-center mb-12 no-print" style="flex-wrap:wrap">
-    <button class="btn btn-green" onclick="window.print()">🖨 Imprimir resultado</button>
+    <button class="btn btn-green" onclick="amiloImprimirPDF('algoritmo')">🖨 Imprimir resultado</button>
     <button class="btn btn-primary" onclick="amiloIntegrar('algoritmo')">📎 Integrar al informe</button>
     <button class="btn btn-secondary" onclick="resetAlgoritmo()">🔄 Nueva evaluación</button>
   </div>
@@ -8611,7 +8630,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
   <div class="flex gap-8 mb-12 no-print" style="flex-wrap:wrap">
     <button class="btn btn-purple" onclick="pasarScoreAAlgoritmo()">→ Pasar score al Algoritmo</button>
-    <button class="btn btn-green" onclick="window.print()">🖨 Imprimir resultado</button>
+    <button class="btn btn-green" onclick="amiloImprimirPDF('ett')">🖨 Imprimir resultado</button>
     <button class="btn btn-primary" onclick="amiloIntegrar('ett')">📎 Integrar al informe</button>
     <button class="btn btn-secondary" onclick="resetETT()">🔄 Limpiar</button>
   </div>
@@ -13546,64 +13565,11 @@ function generarPDFReal() {
   const _amDatos = (typeof amiloEnInforme === 'function') ? amiloEnInforme() : null;
   if (_amDatos) {
     const _amSecs = [];
-    if (_amDatos.ett) _amSecs.push({ tit: 'ETT AVANZADO — SCORE ESC 2021', txt: _amDatos.ett });
-    if (_amDatos.alg) _amSecs.push({ tit: 'ALGORITMO DIAGNÓSTICO DE AMILOIDOSIS', txt: _amDatos.alg });
-
-    // jsPDF con helvetica/WinAnsi DESCARTA en silencio el guión largo (— y –) y
-    // destroza ≥ ≤ → ±. Se sanea acá, en el dibujado, porque el textarea es
-    // editable y el médico puede escribir cualquiera de esos caracteres.
-    const _amSan = s => String(s == null ? '' : s)
-      .replace(/[—–−]/g, '-')
-      .replace(/≥/g, '>=').replace(/≤/g, '<=')
-      .replace(/→/g, '->').replace(/±/g, '+/-')
-      .replace(/[‘’]/g, "'").replace(/[“”]/g, '"')
-      .replace(/…/g, '...')
-      .replace(/[^\x20-\xFF]/g, '');            // resto fuera de WinAnsi (emojis)
-
-    const _amY0 = 20, _amYFin = _yMax;          // franja útil de la hoja
-    // Arma el plan de dibujo a un tamaño dado y devuelve el alto total.
-    const _amPlan = sz => {
-      const H = sz * 0.48;                       // interlineado proporcional
-      const filas = [];
-      let alto = 0;
-      _amSecs.forEach((sec, i) => {
-        if (i) alto += H * 1.2;
-        filas.push({ t: 'bar', txt: _amSan(sec.tit) }); alto += 8.5 + 1.5;
-        sec.txt.split('\n').forEach(raw => {
-          const l = _amSan(raw).trim();
-          if (!l) return;
-          if (l.indexOf('##') === 0) {
-            filas.push({ t: 'sub', txt: l.replace(/^##\s*/, '') });
-            alto += H + 1.6;
-          } else {
-            fn(sz);
-            doc.splitTextToSize(l, pgW - 4).forEach(w => { filas.push({ t: 'txt', txt: w }); alto += H; });
-          }
-        });
-      });
-      return { filas, alto, H };
-    };
-    let _amSz = 9, _p = _amPlan(9);
-    [9, 8.5, 8, 7.5, 7, 6.5, 6].some(sz => {
-      _amSz = sz; _p = _amPlan(sz);
-      return _p.alto <= (_amYFin - _amY0);
-    });
-
+    if (_amDatos.ett) _amSecs.push({ tit: 'ETT AVANZADO - SCORE ESC 2021',        txt: _amDatos.ett });
+    if (_amDatos.alg) _amSecs.push({ tit: 'ALGORITMO DIAGNOSTICO DE AMILOIDOSIS', txt: _amDatos.alg });
     doc.addPage();
-    y = _amY0;
-    _p.filas.forEach(f => {
-      if (f.t === 'bar') {
-        fc(TEMA[0], TEMA[1], TEMA[2]); doc.rect(mL, y, pgW, 7, 'F');
-        fb(8.5); tc(255, 255, 255); doc.text(f.txt, mL + 5, y + 5);
-        y += 8.5 + 1.5;
-      } else if (f.t === 'sub') {
-        fb(_amSz); tc(TEMA[0], TEMA[1], TEMA[2]);
-        doc.text(f.txt, mL, y); y += _p.H + 1.6;
-      } else {
-        fn(_amSz); tc(30, 30, 30);
-        doc.text(f.txt, mL + 2, y); y += _p.H;
-      }
-    });
+    // Mismo dibujado que usan los botones "Imprimir resultado" de cada pestaña.
+    y = amiloDibujarSecciones(doc, _amSecs, { mL, pgW, tema: TEMA, yIni: 20, yFin: _yMax });
   }
 
   // ════════════════════════════════════════════════════════════
@@ -15968,6 +15934,42 @@ function amiloTextoAlgoritmo() {
 // "editado a mano" y no pisar las correcciones del médico al reintegrar.
 var _amiloUltimo = { ett: '', alg: '' };
 
+// ── Vista formateada del bloque ───────────────────────────────────
+// El textarea es la fuente de verdad (guarda el '##' que entiende el PDF), pero
+// no se muestra: se ve esta vista, con los subtítulos ya resueltos. Se edita con
+// el botón "Editar", que revela el textarea.
+function amiloPreview(k) {
+  const ta   = document.getElementById(k === 'ett' ? 'amilo_ett_txt'  : 'amilo_alg_txt');
+  const prev = document.getElementById(k === 'ett' ? 'amilo_ett_prev' : 'amilo_alg_prev');
+  if (!ta || !prev) return;
+  const lineas = String(ta.value || '').split('\n').map(l => l.trim()).filter(Boolean);
+  if (!lineas.length) { prev.innerHTML = '<div class="am-vacio">Sin contenido.</div>'; return; }
+  prev.innerHTML = lineas.map(l => l.indexOf('##') === 0
+    ? '<div class="am-sub">' + escHtml(l.replace(/^##\s*/, '')) + '</div>'
+    : '<div class="am-li">'  + escHtml(l) + '</div>'
+  ).join('');
+}
+window.amiloPreview = amiloPreview;
+
+// Alterna entre la vista formateada y el textarea de edición.
+function amiloEditar(k) {
+  const ta   = document.getElementById(k === 'ett' ? 'amilo_ett_txt'  : 'amilo_alg_txt');
+  const prev = document.getElementById(k === 'ett' ? 'amilo_ett_prev' : 'amilo_alg_prev');
+  const btn  = document.getElementById(k === 'ett' ? 'amilo-ett-btn'  : 'amilo-alg-btn');
+  if (!ta || !prev) return;
+  const editando = ta.style.display !== 'none';
+  if (editando) {                       // guardar: volver a la vista
+    amiloPreview(k);
+    ta.style.display = 'none'; prev.style.display = '';
+    if (btn) btn.textContent = '✏️ Editar';
+  } else {
+    prev.style.display = 'none'; ta.style.display = '';
+    if (btn) btn.textContent = '✓ Listo';
+    ta.focus();
+  }
+}
+window.amiloEditar = amiloEditar;
+
 // Integra Score y/o Algoritmo. Regenera desde los valores actuales de la
 // calculadora, SALVO que el texto tenga ediciones manuales: en ese caso se
 // respeta lo escrito y sólo se vuelve a mostrar la card.
@@ -15984,6 +15986,7 @@ function amiloIntegrar(cual) {
     ta.value = nuevo;
     _amiloUltimo[k] = nuevo;
   }
+  amiloPreview(k);                       // refrescar la vista formateada
   wrap.style.display = '';
   card.style.display = '';
   if (typeof showTab === 'function') showTab('informe');
@@ -15999,6 +16002,111 @@ function amiloRetirar() {
   if (typeof toast === 'function') toast('El bloque ETT Avanzado ya no sale en el informe');
 }
 window.amiloRetirar = amiloRetirar;
+
+// ══════════════════════════════════════════════════════════════════
+// DIBUJADO PDF DEL BLOQUE — único lugar, lo usan el informe y los
+// botones "Imprimir resultado" de las dos pestañas.
+// ══════════════════════════════════════════════════════════════════
+// jsPDF con helvetica/WinAnsi DESCARTA en silencio el guión largo (— y –) y
+// destroza ≥ ≤ → ±. Se sanea al dibujar, no al generar, porque el texto es
+// editable y el médico puede escribir cualquiera de esos caracteres.
+function amiloSanPDF(s) {
+  return String(s == null ? '' : s)
+    .replace(/[—–−]/g, '-')
+    .replace(/≥/g, '>=').replace(/≤/g, '<=')
+    .replace(/→/g, '->').replace(/±/g, '+/-')
+    .replace(/[‘’]/g, "'").replace(/[“”]/g, '"')
+    .replace(/…/g, '...')
+    .replace(/[^\x20-\xFF]/g, '');              // resto fuera de WinAnsi (emojis)
+}
+
+// Dibuja [{tit, txt}] entre yIni e yFin achicando la letra hasta que entren.
+// Las líneas '## algo' del texto salen como subtítulos. Devuelve la y final.
+function amiloDibujarSecciones(doc, secs, g) {
+  const mL = g.mL, pgW = g.pgW, T = g.tema;
+  const fb = sz => { doc.setFont('helvetica','bold');   doc.setFontSize(sz); };
+  const fn = sz => { doc.setFont('helvetica','normal'); doc.setFontSize(sz); };
+
+  const plan = sz => {
+    const H = sz * 0.48;                        // interlineado proporcional
+    const filas = []; let alto = 0;
+    secs.forEach((sec, i) => {
+      if (i) alto += H * 1.2;
+      filas.push({ t:'bar', txt: amiloSanPDF(sec.tit) }); alto += 8.5 + 1.5;
+      String(sec.txt || '').split('\n').forEach(raw => {
+        const l = amiloSanPDF(raw).trim();
+        if (!l) return;
+        if (l.indexOf('##') === 0) { filas.push({ t:'sub', txt: l.replace(/^##\s*/,'') }); alto += H + 1.6; }
+        else { fn(sz); doc.splitTextToSize(l, pgW - 4).forEach(w => { filas.push({ t:'txt', txt:w }); alto += H; }); }
+      });
+    });
+    return { filas, alto, H };
+  };
+  let sz = 9, p = plan(9);
+  [9, 8.5, 8, 7.5, 7, 6.5, 6].some(s => { sz = s; p = plan(s); return p.alto <= (g.yFin - g.yIni); });
+
+  let y = g.yIni;
+  p.filas.forEach(f => {
+    if (f.t === 'bar') {
+      doc.setFillColor(T[0],T[1],T[2]); doc.rect(mL, y, pgW, 7, 'F');
+      fb(8.5); doc.setTextColor(255,255,255); doc.text(f.txt, mL + 5, y + 5);
+      y += 8.5 + 1.5;
+    } else if (f.t === 'sub') {
+      fb(sz); doc.setTextColor(T[0],T[1],T[2]);
+      doc.text(f.txt, mL, y); y += p.H + 1.6;
+    } else {
+      fn(sz); doc.setTextColor(30,30,30);
+      doc.text(f.txt, mL + 2, y); y += p.H;
+    }
+  });
+  return y;
+}
+window.amiloDibujarSecciones = amiloDibujarSecciones;
+
+// "Imprimir resultado" de cada pestaña: PDF propio con jsPDF, mismo diseño que
+// el bloque del informe. NO usa window.print() (capturaba la interfaz entera).
+function amiloImprimirPDF(cual) {
+  if (typeof window.jspdf === 'undefined') { alert('La biblioteca PDF está cargando, intentá en un momento.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const mL = 9, pgW = 192;
+  const TEMA_PDF = { '1':[26,58,92], '2':[26,92,58], '3':[74,26,122], '4':[123,45,66] };
+  const T = TEMA_PDF[String(localStorage.getItem('pdf_color') || '1')] || TEMA_PDF['1'];
+
+  const esETT = (cual === 'ett');
+  // Si el bloque ya está integrado al informe se imprime ESE texto, que puede
+  // tener correcciones del médico. Si no, se genera desde la calculadora.
+  const _enInf = (typeof amiloEnInforme === 'function') ? amiloEnInforme() : null;
+  const secs = [ esETT
+    ? { tit:'ETT AVANZADO - SCORE ESC 2021',        txt: (_enInf && _enInf.ett) || amiloTextoETT() }
+    : { tit:'ALGORITMO DIAGNOSTICO DE AMILOIDOSIS', txt: (_enInf && _enInf.alg) || amiloTextoAlgoritmo() } ];
+
+  // Encabezado con los datos del paciente, igual que el informe
+  doc.setFillColor(T[0],T[1],T[2]); doc.rect(0, 0, 210, 22, 'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(255,255,255);
+  doc.text(esETT ? 'Score ETT ESC 2021 - Amiloidosis cardiaca' : 'Algoritmo diagnostico de amiloidosis', 105, 9, { align:'center' });
+  const _s = id => { const e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; };
+  const _f = _s('fecha') ? _s('fecha').split('-').reverse().join('/') : '';
+  doc.setFont('helvetica','normal'); doc.setFontSize(8);
+  doc.text(amiloSanPDF([_s('nombre'), _s('ci') ? (_s('doc_tipo') || 'CI') + ': ' + _s('ci') : '', _f].filter(Boolean).join('  ·  ')), 105, 16, { align:'center' });
+
+  amiloDibujarSecciones(doc, secs, { mL, pgW, tema:T, yIni:30, yFin:281 });
+
+  // Pie: firma y disclaimer, coherente con el informe
+  const med = id => { const e = document.getElementById(id); return e ? String(e.textContent || '').trim() : ''; };
+  doc.setFont('helvetica','bolditalic'); doc.setFontSize(7.5); doc.setTextColor(0,0,0);
+  doc.text(amiloSanPDF((med('med-nombre') || 'Dr Maicol Dos Santos') + '.'), 201, 285.5, { align:'right' });
+  const sub = [med('med-matricula') || 'CJPP 129296', med('med-especialidad'), med('med-lugar')].filter(Boolean).join('  ·  ');
+  doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(90,90,90);
+  doc.text(amiloSanPDF(sub), 201, 288.3, { align:'right' });
+  doc.setFontSize(5.5); doc.setTextColor(160,160,160);
+  doc.text('Esta herramienta es de apoyo clinico. No reemplaza el juicio medico ni constituye una recomendacion diagnostica o terapeutica. CeiboMed 2026', 105, 295, { align:'center' });
+
+  const nom = (_s('nombre') || 'paciente').replace(/\s+/g,'_');
+  doc.save((esETT ? 'ETT_Score_Amiloidosis_' : 'Algoritmo_Amiloidosis_') + nom + '_' + (_s('fecha') || 'hoy') + '.pdf');
+  if (typeof toast === 'function') toast('📄 PDF generado');
+}
+window.amiloImprimirPDF = amiloImprimirPDF;
 
 // ¿Hay que imprimirlo? Sólo si la card está visible y tiene contenido.
 function amiloEnInforme() {
