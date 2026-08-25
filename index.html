@@ -15085,20 +15085,25 @@ const CeiboStore = (function () {
     });
   }
 
-  // Persiste la caché. Con IndexedDB devuelve true en el acto (la caché ya está
-  // actualizada) y, si la escritura async falla, cae a localStorage para no
-  // perder el dato y avisa. Sin IndexedDB escribe localStorage y devuelve el
-  // resultado real.
+  // Persiste la caché y devuelve una PROMESA con el resultado REAL.
+  // Antes devolvía true en el acto porque la escritura a IndexedDB es asíncrona,
+  // y entonces el llamador cantaba "✅ guardado" sin saber si había funcionado.
+  // Además, si nada pudo persistirse, el error lo avisa la propia capa: así
+  // ninguna ruta de guardado puede fallar en silencio.
   function _persistir() {
     const local = _local, chunk = _chunk;
-    if (!_db) return _lsGuardar(local, chunk);
-    _idbGuardar(local, chunk).then(ok => {
-      if (ok) return;
-      console.error('IndexedDB rechazó la escritura; se respalda en localStorage');
-      _lsGuardar(local, chunk);
-      if (typeof toast === 'function') toast('⚠️ Se guardó en el respaldo local (IndexedDB no respondió).');
+    if (!_db) return Promise.resolve(_avisar(_lsGuardar(local, chunk)));
+    return _idbGuardar(local, chunk).then(ok => {
+      if (ok) return true;
+      console.error('IndexedDB rechazó la escritura; se intenta el respaldo en localStorage');
+      const back = _lsGuardar(local, chunk);
+      if (back && typeof toast === 'function') toast('⚠️ Guardado en el respaldo local (IndexedDB no respondió).');
+      return _avisar(back);
     });
-    return true;
+  }
+  function _avisar(ok) {
+    if (!ok && typeof toast === 'function') toast('❌ Error al guardar');
+    return ok;
   }
 
   // Arranque. La caché se llena PRIMERO desde localStorage de forma síncrona,
@@ -15160,18 +15165,17 @@ window.CeiboStore = CeiboStore;
 const CHUNK_SIZE = 50;
 const CHUNK_KEY  = 'ett_informes_chunk_';
 
-// Los cuatro primitivos siguen teniendo la MISMA firma y siguen siendo
-// síncronos: leen y escriben la caché de CeiboStore, que es la que se encarga
-// de persistir en IndexedDB (o en localStorage si no está disponible).
+// Las LECTURAS siguen siendo síncronas (leen la caché de CeiboStore).
+// Las ESCRITURAS devuelven una PROMESA con el resultado real: la escritura a
+// IndexedDB es asíncrona y no se puede confirmar un guardado en el acto.
 function getInformesChunked() {
   return CeiboStore.getChunk().slice();
 }
 
-// Devuelve {ok, guardados, total} como antes, para no romper a quien lo lea.
+// Promesa de {ok, guardados, total}, con la misma forma de antes.
 function saveInformesChunked(informes) {
   const arr = Array.isArray(informes) ? informes : [];
-  const ok = CeiboStore.setChunk(arr) !== false;
-  return { ok, guardados: ok ? arr.length : 0, total: arr.length };
+  return CeiboStore.setChunk(arr).then(ok => ({ ok, guardados: ok ? arr.length : 0, total: arr.length }));
 }
 
 function getInformes() {
@@ -15183,8 +15187,11 @@ function getInformes() {
 }
 
 // ── Escritura segura de informes (FIX M2): manejo de cuota ──
+// PROMESA<boolean>: resuelve true sólo si el dato quedó realmente persistido
+// (en IndexedDB o en el respaldo de localStorage). Los llamadores tienen que
+// esperar este resultado antes de cantar éxito.
 function guardarInformesSeguro(informes) {
-  return CeiboStore.setLocal(Array.isArray(informes) ? informes : []) !== false;
+  return CeiboStore.setLocal(Array.isArray(informes) ? informes : []);
 }
 
 // ── Validación de esquema para import JSON (FIX A2) ──
@@ -15519,9 +15526,10 @@ function guardarInforme(onDone) {
       window._ettEditandoId = null;
       informes.unshift(nuevoInforme);
       eeCurrentInformeId = nuevoInforme.estudioId;
-      const _okN = guardarInformesSeguro(informes);
-      if (_okN) toast('💾 Informe guardado como nuevo');
-      if (onDone) onDone(_okN);
+      guardarInformesSeguro(informes).then(_okN => {
+        if (_okN) toast('💾 Informe guardado como nuevo');   // el error lo avisa CeiboStore
+        if (onDone) onDone(_okN);
+      });
     };
     ov2.querySelector('#save-overwrite').onclick=()=>{
       ov2.remove();
@@ -15530,17 +15538,19 @@ function guardarInforme(onDone) {
       if (idx >= 0) informes[idx] = { ...nuevoInforme, id: idEditando, estudioId: informes[idx].estudioId || nuevoInforme.estudioId };
       else informes.unshift(nuevoInforme);
       eeCurrentInformeId = (idx >= 0) ? informes[idx].estudioId : nuevoInforme.estudioId;
-      const _okO = guardarInformesSeguro(informes);
-      if (_okO) toast('🔄 Informe sobreescrito correctamente');
-      if (onDone) onDone(_okO);
+      guardarInformesSeguro(informes).then(_okO => {
+        if (_okO) toast('🔄 Informe sobreescrito correctamente');
+        if (onDone) onDone(_okO);
+      });
     };
   } else {
     informes.unshift(nuevoInforme);
     eeCurrentInformeId = nuevoInforme.estudioId;
-    const _ok = guardarInformesSeguro(informes);
-    if (_ok) toast('💾 Informe guardado correctamente');
-    if (onDone) onDone(_ok);
-    return _ok;
+    return guardarInformesSeguro(informes).then(_ok => {
+      if (_ok) toast('💾 Informe guardado correctamente');
+      if (onDone) onDone(_ok);
+      return _ok;
+    });
   }
 }
 
@@ -15806,7 +15816,7 @@ function importarInformesJSON(file) {
 }
 function importCerrar() { document.getElementById('modal-import').classList.remove('show'); _impDatos = null; }
 function _nuevoIdUnico(usados) { let id; do { id = Date.now() + Math.floor(Math.random() * 1000000); } while (usados.has(id)); usados.add(id); return id; }
-function importEjecutar() {
+async function importEjecutar() {
   if (!_impDatos) { importCerrar(); return; }
   const modo = document.querySelector('input[name="imp-dup"]:checked')?.value || 'omitir';
   let existentes = getInformes();
@@ -15829,8 +15839,9 @@ function importEjecutar() {
     keyToIdx.set(k, existentes.length - 1);
     importados++;
   });
-  const ok = (typeof guardarInformesSeguro === 'function') ? guardarInformesSeguro(existentes) : (CeiboStore.setLocal(existentes), true);
+  const _pImp = (typeof guardarInformesSeguro === 'function') ? guardarInformesSeguro(existentes) : CeiboStore.setLocal(existentes);
   importCerrar();
+  const ok = await _pImp;              // no anunciar la importación sin confirmarla
   if (ok === false) return;
   if (typeof renderInformesGuardados === 'function') renderInformesGuardados();
   let msg = '✅ Importados: ' + (importados + sobreescritos);
