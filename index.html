@@ -14862,78 +14862,235 @@ function escHtml(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// ALMACENAMIENTO DE INFORMES — IndexedDB con respaldo a localStorage
+// ══════════════════════════════════════════════════════════════════════
+// Por qué híbrido y no IndexedDB a secas: estas apps también se abren con
+// doble clic sobre el archivo (file://), y ahí Chrome y Safari pueden negar
+// IndexedDB. Si fuera la única vía, la app se quedaría SIN PODER GUARDAR.
+// Con respaldo, en file:// sigue funcionando exactamente como antes.
+//
+// La caché en memoria (_local/_chunk) es la que sirve las lecturas, que
+// siguen siendo SÍNCRONAS: así los ~57 puntos que llaman a getInformes()
+// no cambian y no hay que volver asíncrona media app.
+//
+// La base `ceibomed` es COMPARTIDA por la suite: CeiboMed Analytics lee los
+// estudios de las otras apps y EcoEstrés importa el eco basal de EcoSmart.
+// Por eso cada registro lleva su `app` y el store se crea igual desde
+// cualquiera de ellas.
+const CeiboStore = (function () {
+  const DB_NAME = 'ceibomed', DB_VER = 1, STORE = 'informes', APP = 'eco';
+  const LS_MAIN = 'ett_informes', LS_CHUNK = 'ett_informes_chunk_';
+  let _db = null;                    // IDBDatabase, o null si no hay IndexedDB
+  let _local = [], _chunk = [];      // caché en memoria (lecturas síncronas)
+  let _lista = false;
+
+  // ── localStorage (fuente inicial y respaldo) ──
+  function _lsLocal() {
+    try { const r = localStorage.getItem(LS_MAIN); const p = r ? JSON.parse(r) : []; return Array.isArray(p) ? p : []; }
+    catch (e) { console.error('ett_informes corrupto:', e); return []; }
+  }
+  function _lsChunks() {
+    const all = []; let i = 0;
+    while (true) {
+      const c = localStorage.getItem(LS_CHUNK + i);
+      if (c === null) break;
+      try { const a = JSON.parse(c); if (Array.isArray(a)) all.push(...a); }
+      catch (e) { console.error('chunk corrupto:', LS_CHUNK + i, e); }
+      i++;
+    }
+    return all;
+  }
+  function _lsBorrar() {
+    try {
+      localStorage.removeItem(LS_MAIN);
+      let i = 0; while (localStorage.getItem(LS_CHUNK + i) !== null) { localStorage.removeItem(LS_CHUNK + i); i++; }
+    } catch (e) { console.error('No se pudo limpiar localStorage:', e); }
+  }
+  // Escritura a localStorage con el chunking de siempre (respaldo y modo file://)
+  function _lsGuardar(local, chunk) {
+    let ok = true;
+    try { localStorage.setItem(LS_MAIN, JSON.stringify(local)); }
+    catch (e) { console.error('Error guardando ett_informes:', e); ok = false; _avisoCuota(e); }
+    let i = 0; while (localStorage.getItem(LS_CHUNK + i) !== null) { localStorage.removeItem(LS_CHUNK + i); i++; }
+    let idx = 0;
+    for (let j = 0; j < chunk.length; j += 50) {
+      try { localStorage.setItem(LS_CHUNK + idx, JSON.stringify(chunk.slice(j, j + 50))); idx++; }
+      catch (e) { console.error('sin espacio en chunk', idx, e); ok = false; _avisoCuota(e); break; }
+    }
+    return ok;
+  }
+  function _avisoCuota(e) {
+    if (typeof toast !== 'function') return;
+    if (e && e.name === 'QuotaExceededError') toast('❌ Almacenamiento lleno. Exportá un backup y eliminá informes viejos.');
+    else toast('❌ No se pudo guardar el estudio (error de almacenamiento).');
+  }
+
+  // ── IndexedDB ──
+  function _abrir() {
+    return new Promise(resolve => {
+      let listo = false;
+      const fin = v => { if (!listo) { listo = true; resolve(v); } };
+      let req;
+      try {
+        if (!window.indexedDB) return fin(null);
+        req = indexedDB.open(DB_NAME, DB_VER);       // en file:// puede tirar acá
+      } catch (e) { return fin(null); }
+      req.onupgradeneeded = ev => {
+        const db = ev.target.result;
+        if (!db.objectStoreNames.contains(STORE)) {
+          const os = db.createObjectStore(STORE, { keyPath: '_pk' });
+          os.createIndex('app', 'app', { unique: false });
+        }
+      };
+      req.onsuccess = () => fin(req.result);
+      req.onerror   = () => fin(null);
+      req.onblocked = () => fin(null);
+      setTimeout(() => fin(null), 3000);             // no colgar el arranque
+    });
+  }
+  function _idbLeer() {
+    return new Promise(resolve => {
+      if (!_db) return resolve(null);
+      try {
+        const tx = _db.transaction(STORE, 'readonly');
+        const req = tx.objectStore(STORE).index('app').getAll(APP);
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror   = () => resolve(null);
+      } catch (e) { resolve(null); }
+    });
+  }
+  const _pk = (b, d, i) => APP + ':' + b + ':' + (d && d.id != null ? d.id : 'i' + i);
+  function _idbGuardar(local, chunk) {
+    return new Promise(resolve => {
+      if (!_db) return resolve(false);
+      const nuevos = []
+        .concat(local.map((d, i) => ({ _pk: _pk('L', d, i), app: APP, bucket: 'local', data: d })))
+        .concat(chunk.map((d, i) => ({ _pk: _pk('C', d, i), app: APP, bucket: 'chunk', data: d })));
+      const vivas = new Set(nuevos.map(r => r._pk));
+      try {
+        // Las claves viejas se juntan primero y se borran POR CLAVE dentro de la
+        // misma transacción que los put: así no hay carrera entre un cursor de
+        // borrado y las escrituras nuevas.
+        const txR = _db.transaction(STORE, 'readonly');
+        const kr = txR.objectStore(STORE).index('app').getAllKeys(APP);
+        kr.onerror = () => resolve(false);
+        kr.onsuccess = () => {
+          const aBorrar = (kr.result || []).filter(k => !vivas.has(k));
+          try {
+            const tx = _db.transaction(STORE, 'readwrite');
+            const os = tx.objectStore(STORE);
+            aBorrar.forEach(k => os.delete(k));
+            nuevos.forEach(r => os.put(r));
+            tx.oncomplete = () => resolve(true);
+            tx.onerror    = () => resolve(false);
+            tx.onabort    = () => resolve(false);
+          } catch (e) { resolve(false); }
+        };
+      } catch (e) { resolve(false); }
+    });
+  }
+
+  // Persiste la caché. Con IndexedDB devuelve true en el acto (la caché ya está
+  // actualizada) y, si la escritura async falla, cae a localStorage para no
+  // perder el dato y avisa. Sin IndexedDB escribe localStorage y devuelve el
+  // resultado real.
+  function _persistir() {
+    const local = _local, chunk = _chunk;
+    if (!_db) return _lsGuardar(local, chunk);
+    _idbGuardar(local, chunk).then(ok => {
+      if (ok) return;
+      console.error('IndexedDB rechazó la escritura; se respalda en localStorage');
+      _lsGuardar(local, chunk);
+      if (typeof toast === 'function') toast('⚠️ Se guardó en el respaldo local (IndexedDB no respondió).');
+    });
+    return true;
+  }
+
+  // Arranque. La caché se llena PRIMERO desde localStorage de forma síncrona,
+  // así nunca hay una ventana en la que getInformes() devuelva vacío y un
+  // guardado pise los datos. Después se reconcilia con IndexedDB.
+  _local = _lsLocal(); _chunk = _lsChunks();
+
+  const ready = (async function () {
+    _db = await _abrir();
+    if (!_db) { _lista = true; return { modo: 'localStorage', motivo: 'IndexedDB no disponible' }; }
+
+    const enIDB = await _idbLeer();
+    if (enIDB === null) { _db = null; _lista = true; return { modo: 'localStorage', motivo: 'IndexedDB ilegible' }; }
+
+    if (enIDB.length) {                                   // ya migrado
+      _local = enIDB.filter(r => r.bucket === 'local').map(r => r.data);
+      _chunk = enIDB.filter(r => r.bucket === 'chunk').map(r => r.data);
+      const restos = _lsLocal().length + _lsChunks().length;
+      if (restos) _lsBorrar();                            // sobras de una migración cortada
+      _lista = true;
+      return { modo: 'indexedDB', estudios: _local.length + _chunk.length };
+    }
+
+    const lsL = _lsLocal(), lsC = _lsChunks();
+    if (!lsL.length && !lsC.length) { _lista = true; return { modo: 'indexedDB', estudios: 0 }; }
+
+    // ── MIGRACIÓN: escribir, VERIFICAR y recién entonces limpiar localStorage ──
+    const ok = await _idbGuardar(lsL, lsC);
+    const verif = ok ? await _idbLeer() : null;
+    const esperados = new Set([].concat(lsL.map((d, i) => _pk('L', d, i)), lsC.map((d, i) => _pk('C', d, i))));
+    const migrado = !!(ok && verif && verif.length === esperados.size && verif.every(r => esperados.has(r._pk)));
+    if (migrado) {
+      _lsBorrar();                                        // sólo con la copia confirmada
+      _lista = true;
+      return { modo: 'indexedDB', migrados: esperados.size };
+    }
+    // Falló algo: localStorage queda INTACTO y se sigue usando.
+    console.error('Migración a IndexedDB fallida; se conserva localStorage');
+    _db = null; _lista = true;
+    return { modo: 'localStorage', motivo: 'migración fallida' };
+  })();
+
+  return {
+    ready,
+    lista:  () => _lista,
+    modo:   () => (_db ? 'indexedDB' : 'localStorage'),
+    getLocal: () => _local,
+    getChunk: () => _chunk,
+    setLocal(arr) { _local = Array.isArray(arr) ? arr.slice() : []; return _persistir(); },
+    setChunk(arr) { _chunk = Array.isArray(arr) ? arr.slice() : []; return _persistir(); }
+  };
+})();
+window.CeiboStore = CeiboStore;
+
 // ── Lectura segura de informes (FIX M1): try/catch ante storage corrupto ──
-// ── Almacenamiento por chunks en localStorage (IndexedDB no está disponible en Safari file://) ──
-// Nota: chunking NO sube el techo de cuota del origen (~5MB); solo evita el setItem gigante único
-// y permite guardar parcial + reportar si se llena (no falla en silencio).
+// El chunking se mantiene como concepto (dos baldes: propios e importados)
+// porque varias funciones distinguen dónde vive cada estudio. Con IndexedDB
+// ya no hace falta partir por cuota, pero sí conservar esa separación.
 const CHUNK_SIZE = 50;
 const CHUNK_KEY  = 'ett_informes_chunk_';
 
+// Los cuatro primitivos siguen teniendo la MISMA firma y siguen siendo
+// síncronos: leen y escriben la caché de CeiboStore, que es la que se encarga
+// de persistir en IndexedDB (o en localStorage si no está disponible).
 function getInformesChunked() {
-  const all = [];
-  let i = 0;
-  while (true) {
-    const chunk = localStorage.getItem(CHUNK_KEY + i);
-    if (chunk === null) break;
-    try { const arr = JSON.parse(chunk); if (Array.isArray(arr)) all.push(...arr); }
-    catch (e) { console.error('chunk corrupto:', CHUNK_KEY + i, e); }
-    i++;
-  }
-  return all;
+  return CeiboStore.getChunk().slice();
 }
 
-// Guarda el array completo en chunks de 50. Devuelve {ok, guardados, total}.
-// Maneja QuotaExceededError: conserva lo que entró y reporta cuántos quedaron afuera.
+// Devuelve {ok, guardados, total} como antes, para no romper a quien lo lea.
 function saveInformesChunked(informes) {
-  let i = 0;                                             // limpiar chunks anteriores
-  while (localStorage.getItem(CHUNK_KEY + i) !== null) { localStorage.removeItem(CHUNK_KEY + i); i++; }
-  let guardados = 0, chunkIdx = 0;
-  for (let j = 0; j < informes.length; j += CHUNK_SIZE) {
-    const chunk = informes.slice(j, j + CHUNK_SIZE);
-    try {
-      localStorage.setItem(CHUNK_KEY + chunkIdx, JSON.stringify(chunk));
-      guardados += chunk.length;
-      chunkIdx++;
-    } catch (e) {
-      console.error('saveInformesChunked: sin espacio en chunk', chunkIdx, e);
-      return { ok: false, guardados, total: informes.length };
-    }
-  }
-  return { ok: true, guardados, total: informes.length };
+  const arr = Array.isArray(informes) ? informes : [];
+  const ok = CeiboStore.setChunk(arr) !== false;
+  return { ok, guardados: ok ? arr.length : 0, total: arr.length };
 }
 
 function getInformes() {
-  let local = [];
-  try {
-    const raw = localStorage.getItem('ett_informes');
-    const parsed = raw ? JSON.parse(raw) : [];
-    local = Array.isArray(parsed) ? parsed : [];
-  } catch (e) {
-    console.error('ett_informes corrupto:', e);
-    if (typeof toast === 'function') toast('⚠️ No se pudieron leer los informes guardados (datos corruptos)');
-    local = [];
-  }
-  // Unificar con los importados (chunks). Dedup por id, local gana (refleja ediciones sobre normales).
+  // Unificar propios + importados. Dedup por id, local gana (refleja ediciones).
   const map = new Map();
-  getInformesChunked().forEach(inf => map.set(inf.id, inf));
-  local.forEach(inf => map.set(inf.id, inf));
+  CeiboStore.getChunk().forEach(inf => { if (inf) map.set(inf.id, inf); });
+  CeiboStore.getLocal().forEach(inf => { if (inf) map.set(inf.id, inf); });
   return Array.from(map.values());
 }
 
 // ── Escritura segura de informes (FIX M2): manejo de cuota ──
 function guardarInformesSeguro(informes) {
-  try {
-    localStorage.setItem('ett_informes', JSON.stringify(informes));
-    return true;
-  } catch (e) {
-    console.error('Error guardando ett_informes:', e);
-    if (e && e.name === 'QuotaExceededError') {
-      toast('❌ No se pudo guardar: almacenamiento lleno. Exportá un backup y eliminá informes viejos.');
-    } else {
-      toast('❌ No se pudo guardar el estudio (error de almacenamiento).');
-    }
-    return false;
-  }
+  return CeiboStore.setLocal(Array.isArray(informes) ? informes : []) !== false;
 }
 
 // ── Validación de esquema para import JSON (FIX A2) ──
@@ -15346,7 +15503,7 @@ window.igItemHTML = igItemHTML;
 // Alterna el estado de "caso de interés" de un informe guardado directamente en localStorage
 // y actualiza la estrella en el lugar (sin reabrir el informe). Inmediato y persistente.
 function toggleCasoInteresGuardado(id, btn) {
-  const informes = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  const informes = CeiboStore.getLocal().slice();
   let inf = informes.find(i => i.id === id), enChunks = false;
   let chunked;
   if (!inf) { chunked = getInformesChunked(); inf = chunked.find(i => i.id === id); enChunks = true; }   // estudio importado (chunks)
@@ -15356,7 +15513,7 @@ function toggleCasoInteresGuardado(id, btn) {
   inf.campos.caso_interes = era ? '' : '1';
   if (era) inf.campos.nota_interes = '';   // al desmarcar la estrella se limpia también la nota
   if (enChunks) saveInformesChunked(chunked);
-  else localStorage.setItem('ett_informes', JSON.stringify(informes));
+  else CeiboStore.setLocal(informes);
   const on = !era;
   if (btn) {
     btn.textContent = on ? '⭐' : '☆';
@@ -15383,7 +15540,7 @@ window.toggleCasoInteresGuardado = toggleCasoInteresGuardado;
 function guardarNotaInteres(id) {
   const inp = document.getElementById('ig-nota-' + id);
   const nota = inp ? inp.value.trim() : '';
-  const informes = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  const informes = CeiboStore.getLocal().slice();
   let inf = informes.find(i => i.id === id), enChunks = false;
   let chunked;
   if (!inf) { chunked = getInformesChunked(); inf = chunked.find(i => i.id === id); enChunks = true; }   // estudio importado (chunks)
@@ -15393,7 +15550,7 @@ function guardarNotaInteres(id) {
   // asegurar que el estudio quede marcado como caso de interés al guardar la nota
   if (!(inf.campos.caso_interes === '1' || inf.campos.caso_interes === 'true')) inf.campos.caso_interes = '1';
   if (enChunks) saveInformesChunked(chunked);
-  else localStorage.setItem('ett_informes', JSON.stringify(informes));
+  else CeiboStore.setLocal(informes);
   toast(nota ? '📝 Nota guardada' : '⭐ Caso de interés guardado (sin nota)');
 }
 window.guardarNotaInteres = guardarNotaInteres;
@@ -15411,10 +15568,10 @@ window.limpiarFiltroFechas = limpiarFiltroFechas;
 
 function eliminarInforme(id) {
   if (!confirm('¿Eliminar este informe guardado?')) return;
-  let informes = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  let informes = CeiboStore.getLocal().slice();
   const antes = informes.length;
   informes = informes.filter(i => i.id !== id);
-  if (informes.length !== antes) localStorage.setItem('ett_informes', JSON.stringify(informes));
+  if (informes.length !== antes) CeiboStore.setLocal(informes);
   // También en los chunks (estudios importados)
   const chunked = getInformesChunked();
   if (chunked.some(i => i.id === id)) saveInformesChunked(chunked.filter(i => i.id !== id));
@@ -15424,7 +15581,7 @@ function eliminarInforme(id) {
 
 function limpiarTodosInformes() {
   if (!confirm('¿Eliminar TODOS los informes guardados? Esta acción no se puede deshacer.')) return;
-  localStorage.removeItem('ett_informes');
+  CeiboStore.setLocal([]);
   saveInformesChunked([]);   // borra todos los chunks
   toast('🗑️ Todos los informes eliminados');
   renderInformesGuardados();
@@ -15578,7 +15735,7 @@ function importEjecutar() {
     keyToIdx.set(k, existentes.length - 1);
     importados++;
   });
-  const ok = (typeof guardarInformesSeguro === 'function') ? guardarInformesSeguro(existentes) : (localStorage.setItem('ett_informes', JSON.stringify(existentes)), true);
+  const ok = (typeof guardarInformesSeguro === 'function') ? guardarInformesSeguro(existentes) : (CeiboStore.setLocal(existentes), true);
   importCerrar();
   if (ok === false) return;
   if (typeof renderInformesGuardados === 'function') renderInformesGuardados();
@@ -16302,10 +16459,10 @@ function verDetalleInforme(id) {
 
 function eliminarInformeYVolver(id) {
   if (!confirm('¿Eliminar este informe guardado?')) return;
-  let informes = JSON.parse(localStorage.getItem('ett_informes') || '[]');
+  let informes = CeiboStore.getLocal().slice();
   const antes = informes.length;
   informes = informes.filter(i => i.id !== id);
-  if (informes.length !== antes) localStorage.setItem('ett_informes', JSON.stringify(informes));
+  if (informes.length !== antes) CeiboStore.setLocal(informes);
   const chunked = getInformesChunked();
   if (chunked.some(i => i.id === id)) saveInformesChunked(chunked.filter(i => i.id !== id));
   toast('🗑️ Informe eliminado');
