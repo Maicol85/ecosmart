@@ -12683,9 +12683,12 @@ function generarPDFReal() {
 
   // ─── helpers ─────────────────────────────────────────────────
   const _cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;   // "moderada" → "Moderada"
-  // 281 y no 284: los últimos mm de la hoja quedan reservados para la banda de
-  // pie (firma fija + copyright), que se dibuja con coordenadas absolutas.
-  function checkPage(n){ if(y+(n||12)>281){ doc.addPage(); y=12; } }
+  // Límite inferior del contenido. Es VARIABLE: lo fija el bloque de firma de
+  // más abajo según cuántas filas tenga realmente, para reservar el espacio justo.
+  // `var` a propósito (no `const`): checkPage se define acá arriba y se llama
+  // después, y un const en zona muerta temporal cortaría el script.
+  var _yMax = 284;
+  function checkPage(n){ if(y+(n||12)>_yMax){ doc.addPage(); y=12; } }
   function fb(sz){ doc.setFont('helvetica','bold');       doc.setFontSize(sz||7);   }
   function fn(sz){ doc.setFont('helvetica','normal');     doc.setFontSize(sz||7);   }
   function fi(sz){ doc.setFont('helvetica','bolditalic'); doc.setFontSize(sz||8);   }
@@ -12705,6 +12708,81 @@ function generarPDFReal() {
   const medLugar     = sv('med-lugar');
   const medDir       = sv('med-direccion');
   const medTel       = sv('med-telefono');
+
+  // ════════════════════════════════════════════════════════════
+  // FIRMA DEL PIE — se arma ACÁ ARRIBA, antes de maquetar el contenido.
+  // ════════════════════════════════════════════════════════════
+  // Va fija en coordenadas absolutas al pie de TODAS las páginas, así que hay
+  // que saber cuánto mide antes de empezar: se le reserva exactamente el alto
+  // de las filas que existen y ni un mm más. Reservar de más haría que el
+  // informe salte a una hoja nueva por culpa de la firma —justo lo que no debe
+  // pasar—; reservar de menos la haría chocar con el contenido.
+  // Filas: 1) nombre · 2) matrícula · especialidad · 3) dirección · ciudad/país
+  //        4) teléfono · 5) email.  Las vacías no se generan y no ocupan lugar.
+  const _firmaFilas = [];
+  {
+    let _f = null;
+    try { _f = JSON.parse(localStorage.getItem('firma_centro_' + (localStorage.getItem('centro_tipo_activo') || 'default')) || 'null'); } catch (_e) { _f = null; }
+    const _propia = !!(_f && _f.nombre && _f.cjpp);
+    const T = s => (s == null ? '' : String(s).trim());
+
+    let _nom, _num, _esp = '', _dir = '', _lug = '', _tel = '', _mail = '';
+    const _sueltos = [];   // firmas legacy (`opcionales` en array): sin semántica por campo
+
+    if (_propia) {
+      _nom = T(_f.nombre); _num = T(_f.cjpp);
+      const _arr = _f.opcionales || _f.opciones || _f.campos || _f.extras || _f.optionals;
+      if (Array.isArray(_arr)) {
+        _arr.forEach(it => {
+          if (!it) return;
+          const on = (it.on == null && it.activo == null) ? true : !!(it.on || it.activo);
+          const v  = T(it.valor != null ? it.valor : (it.value != null ? it.value : it.val));
+          if (on && v) _sueltos.push(v);
+        });
+      } else {
+        // Sólo los campos con el checkbox marcado (.on)
+        const g = k => (_f[k] && _f[k].on ? T(_f[k].val) : '');
+        _esp = g('esp'); _dir = g('dir'); _lug = g('lugar'); _tel = g('tel'); _mail = g('email');
+      }
+    } else {
+      // Sin firma propia: firmaSyncToHeader ya deja vacíos en med-* los campos
+      // destildados, así que leer el header respeta igual los checkboxes.
+      _nom = T(medNombre) || 'Dr Maicol Dos Santos';
+      _num = T(medMatricula) || 'CJPP 129296';
+      _esp = T(medEsp); _dir = T(medDir); _lug = T(medLugar); _tel = T(medTel);
+    }
+
+    const _unir = a => a.filter(Boolean).join('  ·  ');
+    const _datos = _sueltos.length
+      ? [_num].concat(_sueltos)                                   // legacy: una por fila
+      : [_unir([_num, _esp]), _unir([_dir, _lug]), _tel, _mail];
+
+    _firmaFilas.push({ txt: _nom + '.', sz: 7.2, esNombre: true });
+    _datos.filter(Boolean).forEach(t => _firmaFilas.push({ txt: t, sz: 6.0, esNombre: false }));
+
+    // Cada fila entra en UNA línea: si no, se le achica la tipografía. Envolver
+    // haría que las filas se pisen entre sí (van a 2.75 mm de distancia).
+    _firmaFilas.forEach(fila => {
+      const escalas = [fila.sz, fila.sz - 0.5, fila.sz - 1, fila.sz - 1.4, fila.sz - 1.8];
+      for (let i = 0; i < escalas.length; i++) {
+        fila.sz = escalas[i];
+        doc.setFont('helvetica', fila.esNombre ? 'bolditalic' : 'normal');
+        doc.setFontSize(fila.sz);
+        if (doc.getTextWidth(fila.txt) <= pgW) break;
+      }
+    });
+
+    // Geometría: la última fila apoya en 289.2 (2.8 mm por encima del copyright
+    // de 292) y el bloque crece hacia ARRIBA.
+    const _H = 2.75, _GAP = 3.2, _BASE = 289.2;
+    const _nDatos = _firmaFilas.length - 1;
+    const _y1Dato = _BASE - Math.max(_nDatos - 1, 0) * _H;
+    _firmaFilas[0].y = _nDatos ? _y1Dato - _GAP : _BASE;
+    for (let i = 1; i < _firmaFilas.length; i++) _firmaFilas[i].y = _y1Dato + (i - 1) * _H;
+
+    // Reserva justa: tope visual del nombre + un respiro de 1.5 mm.
+    _yMax = Math.min(284, _firmaFilas[0].y - 2.0 - 1.5);
+  }
 
   // ─── drawBar ──────────────────────────────────────────────────
   function drawBar(txt) {
@@ -13440,9 +13518,10 @@ function generarPDFReal() {
   if (typeof imgSlots !== 'undefined') {
     const _loaded = imgSlots.filter(s => s && s.dataURL);
     if (_loaded.length) {
-      // _bot = 281, igual que checkPage: la firma del pie se dibuja en 285.5 y con
-      // el 285 anterior una imagen que llegaba al fondo quedaba tapada por el nombre.
-      const _gap = 6, _half = (pgW - _gap) / 2, _top = 18, _bot = 281;
+      // _bot usa el MISMO presupuesto dinámico que checkPage: la banda de firma
+      // cambia de alto según cuántas filas tenga, y con un valor fijo una imagen
+      // que llegaba al fondo quedaba tapada por el nombre del firmante.
+      const _gap = 6, _half = (pgW - _gap) / 2, _top = 18, _bot = _yMax;
       const _halfH = (_bot - _top) / 2;   // altura de media página (para ampliadas)
       let _iy, _ampOnPage = 0;            // ampliadas colocadas en la página actual (0/1/2)
       const _imgPage = () => { doc.addPage(); fc(TEMA[0],TEMA[1],TEMA[2]); doc.rect(0,0,210,12,'F'); fb(11); tc(255,255,255); doc.text('Imágenes del estudio', 105, 8, {align:'center'}); _iy = _top; _ampOnPage = 0; };
@@ -13476,79 +13555,8 @@ function generarPDFReal() {
     }
   }
 
-  // ════════════════════════════════════════════════════════════
-  // 19-21. FIRMA — siempre al final de todo el PDF (después de las imágenes)
-  // ════════════════════════════════════════════════════════════
-  // Firma leída desde localStorage (firma_centro_<centro activo>); fallback a valores por defecto
-  let _firma = null;
-  try { _firma = JSON.parse(localStorage.getItem('firma_centro_' + (localStorage.getItem('centro_tipo_activo') || 'default')) || 'null'); } catch (_e) { _firma = null; }
-  const _firmaPropia = !!(_firma && _firma.nombre && _firma.cjpp);
-  // Recolecta los campos opcionales activos — soporta ambas estructuras:
-  //  a) array: opcionales:[{label, valor, on?}]   b) objeto: {esp:{on,val}, dir:{on,val}, ...}
-  // Alimentan la línea de datos de la firma (ver _firmaSub abajo).
-  const _opts = [];
-  if (_firmaPropia) {
-    const _arr = _firma.opcionales || _firma.opciones || _firma.campos || _firma.extras || _firma.optionals;
-    if (Array.isArray(_arr)) {
-      _arr.forEach(it => {
-        if (!it) return;
-        const activo = (it.on == null && it.activo == null) ? true : !!(it.on || it.activo);
-        const val = (it.valor != null ? it.valor : (it.value != null ? it.value : it.val));
-        if (activo && val != null && String(val).trim()) _opts.push(String(val).trim());
-      });
-    } else {
-      const known = ['nombre','cjpp'];
-      ['esp','dir','tel','email'].forEach(k => {
-        known.push(k);
-        const o = _firma[k];
-        if (o && o.on && o.val != null && String(o.val).trim()) _opts.push(String(o.val).trim());
-      });
-      Object.keys(_firma).forEach(k => {
-        if (known.indexOf(k) !== -1) return;
-        const o = _firma[k];
-        if (o && typeof o === 'object' && o.on && o.val != null && String(o.val).trim()) _opts.push(String(o.val).trim());
-      });
-    }
-  }
-  // La firma NO consume flujo: no usa `y` ni checkPage. Sólo se arman acá los
-  // textos y se dibujan con coordenadas absolutas en el pie de cada página,
-  // junto al copyright (ver el bucle más abajo). Antes iba inline y, cuando el
-  // contenido no entraba justo, empujaba el informe a una segunda hoja de más.
-  let _firmaNombre, _firmaDatos;
-  if (_firmaPropia) {
-    _firmaNombre = String(_firma.nombre) + '.';
-    _firmaDatos  = [String(_firma.cjpp)].concat(_opts);
-  } else {
-    _firmaNombre = (medNombre || 'Dr Maicol Dos Santos') + '.';
-    _firmaDatos  = [medEsp, medMatricula || 'CJPP 129296', medDir, medTel];
-  }
-  // El lugar se conserva: viajaba en la misma línea que la fecha de informe y
-  // no figura en ninguna otra parte del PDF. Lo que se quitó es sólo la fecha,
-  // que ya está en el encabezado como "Fecha realización".
-  _firmaDatos.push(medLugar);
-  // Sin dedup el lugar salía DOS veces cuando hay firma propia: _opts ya lo trae
-  // desde el objeto firma (clave 'lugar') y medLugar es ese mismo dato vía header.
-  const _yaVisto = Object.create(null);
-  const _firmaSub = _firmaDatos
-    .filter(s => s != null && String(s).trim())
-    .map(s => String(s).trim())
-    .filter(s => { const k = s.toLowerCase(); if (_yaVisto[k]) return false; _yaVisto[k] = 1; return true; })
-    .join('  ·  ');
-
-  // Con dirección + email + teléfono la línea de datos supera el ancho útil y jsPDF
-  // no la corta: se salía de la hoja. Se achica la tipografía hasta que entre en UN
-  // renglón (envolverla la hacía chocar con el nombre, que va 2.8mm arriba).
-  let _subSize = 6.2, _subL = [];
-  if (_firmaSub) {
-    [6.2, 5.6, 5.0, 4.6].forEach(sz => {
-      if (_subL.length === 1) return;
-      fn(sz); _subSize = sz; _subL = doc.splitTextToSize(_firmaSub, pgW);
-    });
-  }
-  const _subTop  = 288.3 - (Math.max(_subL.length, 1) - 1) * 2.9;  // 1ra línea del sub
-  const _nombreY = _subTop - 3.2;                                   // nombre siempre encima
-
   // ─── Firma + copyright al pie de todas las páginas ───
+  // (las filas de la firma y su geometría se calcularon al inicio de la función)
   const _totalPag = doc.internal.getNumberOfPages();
   const _fModoInst = localStorage.getItem('ett_modo_institucional')==='1';
   const _fInst = sv('med-centro') || '';
@@ -13556,16 +13564,15 @@ function generarPDFReal() {
     ? ('© 2026 ' + _fInst + ' · Todos los derechos reservados · Uso clínico exclusivo')
     : '© 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo';
   const _fDisc = 'Esta herramienta es de apoyo clínico. No reemplaza el juicio médico ni constituye una recomendación diagnóstica o terapéutica.' + (_fModoInst ? '' : ' CeiboMed © 2026');
-  // Banda de pie (A4 = 297 mm de alto): firma 285.5/288.3, copyright 292, disclaimer 295.
-  // checkPage corta el contenido en 281, así que quedan ~4 mm libres antes de la firma.
+  // Banda de pie (A4 = 297 mm): filas de firma alineadas a la derecha, apoyando
+  // en 289.2 y creciendo hacia arriba; copyright 292; disclaimer 295.
   for (let _p = 1; _p <= _totalPag; _p++) {
     doc.setPage(_p);
-    fi(7.5); tc(0,0,0);
-    doc.text(_firmaNombre, mR, _nombreY, { align:'right' });
-    if (_firmaSub) {
-      fn(_subSize); tc(90,90,90);
-      _subL.forEach((l, i) => doc.text(l, mR, _subTop + i * 2.9, { align:'right' }));
-    }
+    _firmaFilas.forEach(fila => {
+      if (fila.esNombre) { fi(fila.sz); tc(0,0,0); }
+      else               { fn(fila.sz); tc(90,90,90); }
+      doc.text(fila.txt, mR, fila.y, { align:'right' });
+    });
     fn(6.5); tc(150,150,150);
     doc.text(_fCopyr, 105, 292, { align:'center' });
     fn(5.5); tc(160,160,160); doc.text(_fDisc, 105, 295, { align:'center' });
