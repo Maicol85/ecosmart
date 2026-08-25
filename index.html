@@ -11946,19 +11946,24 @@ function generarInforme() {
     const tapseBajo = tapse ? tapse < UMBRAL_TAPSE_NORMAL : false;
     const spBajo = sp ? sp < 9.5 : false;
     const vdDisf = tapseBajo || spBajo;
-    let vdC = '', vdN = '';   // conciso/estándar · narrativo
+    // conciso (sigla) · estándar (nombre completo, frase compacta) · narrativo (prosa),
+    // misma escala que AI / válvula pulmonar / aorta. El "En suma" mantiene la sigla.
+    let vdC = '', vdE = '', vdN = '';
     if (!vdDilat && !vdDisf) {
       // VD normal + función sistólica normal → no se menciona el VD
     } else if (!vdDilat && vdDisf) {
       vdC = 'VD con disfunción sistólica';
+      vdE = 'Ventrículo derecho con disfunción sistólica';
       vdN = 'El ventrículo derecho, de dimensiones conservadas, presenta disfunción sistólica';
       suma.push('VD con disfunción sistólica.');
     } else if (vdDilat && !vdDisf) {
       vdC = 'VD dilatado con función sistólica normal';
+      vdE = 'Ventrículo derecho dilatado con función sistólica normal';
       vdN = 'El ventrículo derecho se encuentra dilatado, con función sistólica conservada';
       suma.push('VD dilatado con función sistólica normal.');
     } else {
       vdC = 'VD dilatado con disfunción sistólica';
+      vdE = 'Ventrículo derecho dilatado con disfunción sistólica';
       vdN = 'El ventrículo derecho se encuentra dilatado y presenta disfunción sistólica';
       suma.push('VD dilatado con disfunción sistólica.');
     }
@@ -11967,7 +11972,7 @@ function generarInforme() {
       if (tapse) datosVD += `TAPSE ${tapse} mm`;
       if (sp) datosVD += (tapse ? `, S' ${sp} cm/s` : `S' ${sp} cm/s`);
       const datosVDp = datosVD ? ` (${datosVD})` : '';
-      inf.push(estiloPick(`${vdC}${datosVDp}.`, `${vdC}${datosVDp}.`, `${vdN}${datosVDp}.`));
+      inf.push(estiloPick(`${vdC}${datosVDp}.`, `${vdE}${datosVDp}.`, `${vdN}${datosVDp}.`));
     }
   }
 
