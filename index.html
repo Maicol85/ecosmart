@@ -2353,7 +2353,7 @@ window.cerrarSesion = cerrarSesion;
         </div>
       </div>
       <div style="text-align:center;margin-top:12px;">
-        <button class="btn btn-ghost" id="hemo-pdf-toggle" onclick="hemoIncluirPDF()">📄 Incluir perfil hemodinámico en PDF</button>
+        <button class="btn btn-primary" onclick="amiloIntegrar('hemo')">📎 Integrar al informe</button>
       </div>
     </div>
   </div>
@@ -2373,6 +2373,9 @@ window.cerrarSesion = cerrarSesion;
       <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:12px;padding:8px 10px;background:var(--bg3);border-radius:8px;cursor:pointer;">
         <input type="checkbox" id="htp2022_incluir" onchange="if(document.getElementById('informe_texto')&&document.getElementById('informe_texto').value.trim())generarInforme();"> 📝 Incluir probabilidad de HTP en informe
       </label>
+      <div style="margin:-6px 0 12px;">
+        <button type="button" class="btn btn-primary" onclick="amiloIntegrar('htp')">📎 Integrar al informe</button>
+      </div>
 
       <!-- Paso 1 -->
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 6px;">Paso 1 — Velocidad de regurgitación tricuspídea (VRT)</div>
@@ -2433,6 +2436,9 @@ window.cerrarSesion = cerrarSesion;
       <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:12px;padding:8px 10px;background:var(--bg3);border-radius:8px;cursor:pointer;">
         <input type="checkbox" id="tep_incluir" onchange="if(document.getElementById('informe_texto')&&document.getElementById('informe_texto').value.trim())generarInforme();"> 📝 Incluir probabilidad de TEP en informe
       </label>
+      <div style="margin:-6px 0 12px;">
+        <button type="button" class="btn btn-primary" onclick="amiloIntegrar('tep')">📎 Integrar al informe</button>
+      </div>
 
       <!-- Campos nuevos -->
       <div class="grid-2" style="margin-bottom:10px;">
@@ -8220,33 +8226,16 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
-  <!-- ═══ ETT AVANZADO — se integra desde la tab Amiloidosis ═══ -->
-  <!-- Oculta hasta que se toca "Integrar al informe". "Retirar" sólo la esconde:
-       el texto queda en los textarea, así al reintegrar los datos reaparecen. -->
+  <!-- ═══ ETT AVANZADO — módulos integrados desde Amiloidosis y Hemodinámica ═══ -->
+  <!-- Oculta hasta que se integra algún módulo. Cada uno tiene su propio
+       "Retirar", que sólo lo esconde: el texto queda guardado y al reintegrar
+       los datos reaparecen. La card se oculta sola al retirar el último. -->
   <div class="card" id="amilo-card" style="display:none;">
-    <h2 class="card-head" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-      <span>🧬 ETT Avanzado</span>
-      <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;font-weight:600;" onclick="amiloRetirar()">✕ Retirar del informe</button>
-    </h2>
+    <h2 class="card-head"><span>🧬 ETT Avanzado</span></h2>
     <div class="card-body">
-      <!-- Cada bloque muestra la vista formateada (lo que va al PDF) y esconde
-           el textarea hasta que se toca "Editar". Así no se ven los ## crudos. -->
-      <div class="fg" id="amilo-ett-wrap" style="display:none;">
-        <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-          <span>Score ETT ESC 2021</span>
-          <button type="button" class="btn btn-ghost am-edit-tog" onclick="amiloEditar('ett')" id="amilo-ett-btn">✏️ Editar</button>
-        </label>
-        <div class="am-prev" id="amilo_ett_prev"></div>
-        <textarea id="amilo_ett_txt" style="min-height:190px;display:none;" oninput="amiloPreview('ett')"></textarea>
-      </div>
-      <div class="fg" id="amilo-alg-wrap" style="display:none;">
-        <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-          <span>Algoritmo diagnóstico</span>
-          <button type="button" class="btn btn-ghost am-edit-tog" onclick="amiloEditar('alg')" id="amilo-alg-btn">✏️ Editar</button>
-        </label>
-        <div class="am-prev" id="amilo_alg_prev"></div>
-        <textarea id="amilo_alg_txt" style="min-height:130px;display:none;" oninput="amiloPreview('alg')"></textarea>
-      </div>
+      <!-- Los bloques los arma amiloBuildCard() a partir de AM_SECS: cada módulo
+           tiene su vista formateada, su botón Editar y su Retirar individual. -->
+      <div id="amilo-body"></div>
       <p style="font-size:11px;color:var(--text2);margin:0;line-height:1.5;">
         Sale en una hoja aparte del PDF, después del En Suma. Al editar, las líneas que empiezan con <b>##</b> son los subtítulos.
       </p>
@@ -13281,7 +13270,9 @@ function generarPDFReal() {
       y += 2;
     }
   }
-  if (localStorage.getItem('hemo_incluir_pdf') === '1') {
+  // Si el perfil ya se integró al bloque ETT Avanzado no se repite acá.
+  const _hemoYaInt = (typeof amiloEnInforme === 'function') && (amiloEnInforme() || []).some(d => d.k === 'hemo');
+  if (localStorage.getItem('hemo_incluir_pdf') === '1' && !_hemoYaInt) {
     const _hrows = [
       ['Perfil de Forrester','hemo-forrester'], ['Perfil hemodinámico','hemo-perfil'], ['HTP (pre/pos/mixta)','hemo-htp-tipo'],
       ['Gasto cardíaco (GC)','hemo-gc'], ['Índice cardíaco (IC)','hemo-ic'], ['RVS','hemo-rvs'],
@@ -13563,10 +13554,8 @@ function generarPDFReal() {
   // Requisito: Score y Algoritmo juntos tienen que entrar en UNA sola A4, así que
   // primero se mide y se elige el cuerpo de letra que hace que quepan.
   const _amDatos = (typeof amiloEnInforme === 'function') ? amiloEnInforme() : null;
-  if (_amDatos) {
-    const _amSecs = [];
-    if (_amDatos.ett) _amSecs.push({ tit: 'ETT AVANZADO - SCORE ESC 2021',        txt: _amDatos.ett });
-    if (_amDatos.alg) _amSecs.push({ tit: 'ALGORITMO DIAGNOSTICO DE AMILOIDOSIS', txt: _amDatos.alg });
+  if (_amDatos && _amDatos.length) {
+    const _amSecs = _amDatos.map(d => ({ tit: d.tit, txt: d.txt }));
     doc.addPage();
     // Mismo dibujado que usan los botones "Imprimir resultado" de cada pestaña.
     y = amiloDibujarSecciones(doc, _amSecs, { mL, pgW, tema: TEMA, yIni: 20, yFin: _yMax });
@@ -15930,17 +15919,121 @@ function amiloTextoAlgoritmo() {
   return L.join('\n');
 }
 
+// ── Módulos de Hemodinámica ───────────────────────────────────────
+// Leen los resultados YA calculados en pantalla (textContent de los spans),
+// que es la misma fuente que ve el médico, y los vuelcan al formato '##'.
+function _amTxt(id) { const e = document.getElementById(id); const t = e ? String(e.textContent || '').trim() : ''; return (t && t !== '—') ? t : ''; }
+function _amChk(id) { const e = document.getElementById(id); return !!(e && e.checked); }
+
+function amiloTextoHemo() {
+  const L = [], par = [
+    ['Gasto cardíaco (GC)', 'hemo-gc'], ['Índice cardíaco (IC)', 'hemo-ic'],
+    ['Resistencia vascular sistémica (RVS)', 'hemo-rvs'], ['Presión capilar pulmonar (PCP)', 'hemo-pcp'],
+    ['Gradiente transpulmonar (GTP)', 'hemo-gtp'], ['Resistencia vascular pulmonar (RVP)', 'hemo-rvp']
+  ];
+  L.push('## Parámetros calculados');
+  const hay = par.filter(p => _amTxt(p[1]));
+  if (hay.length) hay.forEach(p => L.push(p[0] + ': ' + _amTxt(p[1])));
+  else L.push('Sin parámetros calculados: faltan datos de entrada.');
+
+  L.push('## Perfiles');
+  const f = _amTxt('hemo-forrester'), pf = _amTxt('hemo-perfil'), ht = _amTxt('hemo-htp-tipo');
+  L.push('Perfil de Forrester: ' + (f || 'no determinable'));
+  L.push('Perfil hemodinámico: ' + (pf || 'no determinable'));
+  L.push('HTP pre / pos / mixta: ' + (ht || 'no determinable'));
+  return L.join('\n');
+}
+
+function amiloTextoHTP() {
+  const L = [];
+  L.push('## Velocidad de regurgitación tricuspídea');
+  L.push('VRT considerada: ' + (_amTxt('htp2022-vrt-interp') || 'no ingresada'));
+
+  L.push('## Signos adicionales por categoría');
+  L.push('A · Ventrículos: ' + (_amTxt('htp2022-catA') || 'sin datos'));
+  if (_amChk('htp2022_a3')) L.push('  - Aplanamiento septal (IEVI > 1.1)');
+  L.push('B · Arteria pulmonar: ' + (_amTxt('htp2022-catB') || 'sin datos'));
+  if (_amChk('htp2022_b1muesca')) L.push('  - Muesca mesosistólica del flujo pulmonar');
+  if (_amChk('htp2022_b2'))       L.push('  - Regurgitación pulmonar diastólica > 2.2 m/s');
+  if (_amChk('htp2022_b3'))       L.push('  - Diámetro AP > Ao o AP > 25 mm');
+  L.push('C · VCI / AD: ' + (_amTxt('htp2022-catC') || 'sin datos'));
+
+  L.push('## Probabilidad ESC 2022');
+  L.push(_amTxt('htp2022-prob') || 'No determinable con los datos cargados.');
+  return L.join('\n');
+}
+
+function amiloTextoTEP() {
+  const L = [], idx = [
+    ['TAPSE/PSAP (acoplamiento VD-AP)', 'tep-tapse-psap'], ['Relación VD/VI', 'tep-vdvi-interp'],
+    ['TAPSE — función sistólica VD', 'tep-tapse-interp'], ['PSAP estimada', 'tep-psap-interp']
+  ];
+  const crit = [
+    ['Signo de McConnell', 'tep-mcconnell-interp'], ['Signo 60/60', 'tep-6060-interp'],
+    ['Tabique en D', 'tep-tabiqued-interp']
+  ];
+  L.push('## Índices y score');
+  idx.filter(p => _amTxt(p[1])).forEach(p => L.push(p[0] + ': ' + _amTxt(p[1])));
+  // El span ya trae su propio formato ("4/4 criterios positivos"): no se le
+  // agrega "/7" o queda "4/4 criterios positivos / 7".
+  L.push('Score de criterios VD: ' + (_amTxt('tep-score') || 'no calculado'));
+
+  L.push('## Criterios de sobrecarga del VD');
+  const c = crit.filter(p => _amTxt(p[1]));
+  if (c.length) c.forEach(p => L.push(p[0] + ': ' + _amTxt(p[1])));
+  else L.push('Sin criterios evaluados.');
+
+  L.push('## Interpretación');
+  L.push('Interpretación: ' + (_amTxt('tep-interpretacion') || 'no determinable'));
+  const est = _amTxt('tep-estratificacion'); if (est) L.push('Orientación de disfunción VD: ' + est);
+  const ac  = _amTxt('tep-acoplamiento');    if (ac)  L.push('TAPSE/PSAP: ' + ac);
+  return L.join('\n');
+}
+
+// ── Catálogo de módulos del bloque ETT Avanzado ───────────────────
+// Un solo lugar define el orden (Amiloidosis primero, después Hemodinámica),
+// las etiquetas de la card y los títulos de sección del PDF.
+function amiloSecs() {
+  return [
+    { k:'ett',  lbl:'Score ETT ESC 2021',              tit:'ETT AVANZADO - SCORE ESC 2021',            gen:amiloTextoETT },
+    { k:'alg',  lbl:'Algoritmo diagnóstico',           tit:'ALGORITMO DIAGNOSTICO DE AMILOIDOSIS',     gen:amiloTextoAlgoritmo },
+    { k:'hemo', lbl:'Perfil hemodinámico',             tit:'PERFIL HEMODINAMICO',                      gen:amiloTextoHemo },
+    { k:'htp',  lbl:'Probabilidad de HTP (ESC 2022)',  tit:'PROBABILIDAD DE HTP - ESC 2022',           gen:amiloTextoHTP },
+    { k:'tep',  lbl:'Probabilidad de TEP',             tit:'PROBABILIDAD DE TEP / SOBRECARGA VD',      gen:amiloTextoTEP }
+  ];
+}
+window.amiloSecs = amiloSecs;
+
+// Arma los bloques de la card una sola vez.
+function amiloBuildCard() {
+  const host = document.getElementById('amilo-body');
+  if (!host || host.dataset.listo === '1') return;
+  host.innerHTML = amiloSecs().map(s => ''
+    + '<div class="fg" id="am-wrap-' + s.k + '" style="display:none;">'
+    +   '<label style="display:flex;align-items:center;justify-content:space-between;gap:10px;">'
+    +     '<span>' + escHtml(s.lbl) + '</span>'
+    +     '<span style="display:flex;gap:6px;">'
+    +       '<button type="button" class="btn btn-ghost am-edit-tog" id="am-btn-' + s.k + '" onclick="amiloEditar(\'' + s.k + '\')">✏️ Editar</button>'
+    +       '<button type="button" class="btn btn-ghost am-edit-tog" onclick="amiloRetirar(\'' + s.k + '\')">✕ Retirar</button>'
+    +     '</span>'
+    +   '</label>'
+    +   '<div class="am-prev" id="am-prev-' + s.k + '"></div>'
+    +   '<textarea id="am-txt-' + s.k + '" style="min-height:150px;display:none;" oninput="amiloPreview(\'' + s.k + '\')"></textarea>'
+    + '</div>').join('');
+  host.dataset.listo = '1';
+}
+window.amiloBuildCard = amiloBuildCard;
+
 // Recuerda el último texto generado por la app, para distinguir "sin tocar" de
 // "editado a mano" y no pisar las correcciones del médico al reintegrar.
-var _amiloUltimo = { ett: '', alg: '' };
+var _amiloUltimo = {};
 
 // ── Vista formateada del bloque ───────────────────────────────────
 // El textarea es la fuente de verdad (guarda el '##' que entiende el PDF), pero
 // no se muestra: se ve esta vista, con los subtítulos ya resueltos. Se edita con
 // el botón "Editar", que revela el textarea.
 function amiloPreview(k) {
-  const ta   = document.getElementById(k === 'ett' ? 'amilo_ett_txt'  : 'amilo_alg_txt');
-  const prev = document.getElementById(k === 'ett' ? 'amilo_ett_prev' : 'amilo_alg_prev');
+  const ta = document.getElementById('am-txt-' + k), prev = document.getElementById('am-prev-' + k);
   if (!ta || !prev) return;
   const lineas = String(ta.value || '').split('\n').map(l => l.trim()).filter(Boolean);
   if (!lineas.length) { prev.innerHTML = '<div class="am-vacio">Sin contenido.</div>'; return; }
@@ -15953,12 +16046,10 @@ window.amiloPreview = amiloPreview;
 
 // Alterna entre la vista formateada y el textarea de edición.
 function amiloEditar(k) {
-  const ta   = document.getElementById(k === 'ett' ? 'amilo_ett_txt'  : 'amilo_alg_txt');
-  const prev = document.getElementById(k === 'ett' ? 'amilo_ett_prev' : 'amilo_alg_prev');
-  const btn  = document.getElementById(k === 'ett' ? 'amilo-ett-btn'  : 'amilo-alg-btn');
+  const ta = document.getElementById('am-txt-' + k), prev = document.getElementById('am-prev-' + k);
+  const btn = document.getElementById('am-btn-' + k);
   if (!ta || !prev) return;
-  const editando = ta.style.display !== 'none';
-  if (editando) {                       // guardar: volver a la vista
+  if (ta.style.display !== 'none') {          // guardar: volver a la vista
     amiloPreview(k);
     ta.style.display = 'none'; prev.style.display = '';
     if (btn) btn.textContent = '✏️ Editar';
@@ -15970,36 +16061,41 @@ function amiloEditar(k) {
 }
 window.amiloEditar = amiloEditar;
 
-// Integra Score y/o Algoritmo. Regenera desde los valores actuales de la
-// calculadora, SALVO que el texto tenga ediciones manuales: en ese caso se
-// respeta lo escrito y sólo se vuelve a mostrar la card.
-function amiloIntegrar(cual) {
+// Integra un módulo. Regenera desde su calculadora, SALVO que el texto tenga
+// ediciones manuales: en ese caso se respeta lo escrito y sólo se vuelve a
+// mostrar el bloque.
+function amiloIntegrar(k) {
+  amiloBuildCard();
   const card = document.getElementById('amilo-card');
-  if (!card) return;
-  const k    = (cual === 'ett') ? 'ett' : 'alg';
-  const ta   = document.getElementById(k === 'ett' ? 'amilo_ett_txt' : 'amilo_alg_txt');
-  const wrap = document.getElementById(k === 'ett' ? 'amilo-ett-wrap' : 'amilo-alg-wrap');
+  const sec  = amiloSecs().find(x => x.k === k);
+  const ta   = document.getElementById('am-txt-' + k);
+  const wrap = document.getElementById('am-wrap-' + k);
+  if (!card || !sec || !ta || !wrap) return;
   const actual = String(ta.value || '').trim();
-  const editado = actual !== '' && actual !== _amiloUltimo[k];
-  if (!editado) {
-    const nuevo = (k === 'ett') ? amiloTextoETT() : amiloTextoAlgoritmo();
-    ta.value = nuevo;
-    _amiloUltimo[k] = nuevo;
+  if (actual === '' || actual === (_amiloUltimo[k] || '')) {
+    const nuevo = sec.gen();
+    ta.value = nuevo; _amiloUltimo[k] = nuevo;
   }
-  amiloPreview(k);                       // refrescar la vista formateada
+  amiloPreview(k);
   wrap.style.display = '';
   card.style.display = '';
   if (typeof showTab === 'function') showTab('informe');
   card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  if (typeof toast === 'function') toast('📎 ' + (cual === 'ett' ? 'Score ETT' : 'Algoritmo') + ' integrado al informe');
+  if (typeof toast === 'function') toast('📎 ' + sec.lbl + ' integrado al informe');
 }
 window.amiloIntegrar = amiloIntegrar;
 
-// Oculta la card SIN borrar los textarea: al reintegrar, los datos vuelven.
-function amiloRetirar() {
-  const card = document.getElementById('amilo-card');
-  if (card) card.style.display = 'none';
-  if (typeof toast === 'function') toast('El bloque ETT Avanzado ya no sale en el informe');
+// Retira UN módulo sin borrar su texto. Si no queda ninguno, esconde la card.
+function amiloRetirar(k) {
+  const wrap = document.getElementById('am-wrap-' + k);
+  if (wrap) wrap.style.display = 'none';
+  const queda = amiloSecs().some(s => {
+    const w = document.getElementById('am-wrap-' + s.k);
+    return w && w.style.display !== 'none';
+  });
+  if (!queda) { const c = document.getElementById('amilo-card'); if (c) c.style.display = 'none'; }
+  const sec = amiloSecs().find(x => x.k === k);
+  if (typeof toast === 'function') toast((sec ? sec.lbl : 'El bloque') + ' ya no sale en el informe');
 }
 window.amiloRetirar = amiloRetirar;
 
@@ -16076,10 +16172,11 @@ function amiloImprimirPDF(cual) {
   const esETT = (cual === 'ett');
   // Si el bloque ya está integrado al informe se imprime ESE texto, que puede
   // tener correcciones del médico. Si no, se genera desde la calculadora.
-  const _enInf = (typeof amiloEnInforme === 'function') ? amiloEnInforme() : null;
-  const secs = [ esETT
-    ? { tit:'ETT AVANZADO - SCORE ESC 2021',        txt: (_enInf && _enInf.ett) || amiloTextoETT() }
-    : { tit:'ALGORITMO DIAGNOSTICO DE AMILOIDOSIS', txt: (_enInf && _enInf.alg) || amiloTextoAlgoritmo() } ];
+  const _enInf = (typeof amiloEnInforme === 'function') ? (amiloEnInforme() || []) : [];
+  const _k = esETT ? 'ett' : 'alg';
+  const _yaInt = _enInf.find(d => d.k === _k);
+  const _sec = amiloSecs().find(x => x.k === _k);
+  const secs = [{ tit: _sec.tit, txt: (_yaInt && _yaInt.txt) || _sec.gen() }];
 
   // Encabezado con los datos del paciente, igual que el informe
   doc.setFillColor(T[0],T[1],T[2]); doc.rect(0, 0, 210, 22, 'F');
@@ -16108,13 +16205,19 @@ function amiloImprimirPDF(cual) {
 }
 window.amiloImprimirPDF = amiloImprimirPDF;
 
-// ¿Hay que imprimirlo? Sólo si la card está visible y tiene contenido.
+// Módulos que hay que imprimir, EN ORDEN (Amiloidosis y después Hemodinámica).
+// Devuelve [{k, tit, txt}] o null si la card está oculta o vacía.
 function amiloEnInforme() {
   const card = document.getElementById('amilo-card');
   if (!card || card.style.display === 'none') return null;
-  const ett = (document.getElementById('amilo-ett-wrap')?.style.display !== 'none') ? _amV('amilo_ett_txt') : '';
-  const alg = (document.getElementById('amilo-alg-wrap')?.style.display !== 'none') ? _amV('amilo_alg_txt') : '';
-  return (ett || alg) ? { ett, alg } : null;
+  const out = [];
+  amiloSecs().forEach(s => {
+    const w = document.getElementById('am-wrap-' + s.k);
+    if (!w || w.style.display === 'none') return;
+    const txt = _amV('am-txt-' + s.k);
+    if (txt) out.push({ k: s.k, tit: s.tit, txt: txt });
+  });
+  return out.length ? out : null;
 }
 window.amiloEnInforme = amiloEnInforme;
 
