@@ -994,6 +994,7 @@ window.cerrarSesion = cerrarSesion;
         <button class="tab-btn tab-special" data-mod="ete" onclick="showTab('ete')">🔬 ETE</button>
         <button class="tab-btn tab-special" data-mod="amiloidosis" onclick="showTab('amiloidosis')">🧬 Amiloidosis</button>
         <button class="tab-btn tab-special" data-mod="cardioOnco" onclick="showTab('cardioOnco')">❤️ Cardio-Oncología</button>
+        <button class="tab-btn tab-special" data-mod="pulmonar" onclick="showTab('pulmonar')">🫁 Eco Pulmonar</button>
       </div>
       <!-- FILA INFERIOR — Herramientas de apoyo (siempre visible) -->
       <div class="tabs-row tabs-tools">
@@ -2275,7 +2276,177 @@ window.cerrarSesion = cerrarSesion;
   </div>
   </div>
 
+  <!-- ═══ ECOGRAFÍA PULMONAR — módulo básico ═══ -->
+  <!-- Sólo genera texto si hay hallazgos positivos. Si se integra el módulo
+       avanzado (tab Eco Pulmonar), este se omite del informe automáticamente. -->
+  <div class="card" style="margin-bottom:6px;">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('pulmonar',this)">
+      🫁 Ecografía Pulmonar
+      <span id="ete-pulmonar-arrow" style="float:right;transition:transform 0.2s;">▶</span>
+    </h2>
+  </div>
+  <div id="ete-seccion-pulmonar" style="display:none;">
+  <div class="card">
+    <div class="card-body">
+      <p style="font-size:11px;color:var(--text2);margin-bottom:10px;">Hallazgos básicos. Si no se completa nada, no aparece en el informe.</p>
+      <div class="grid-3">
+        <div class="fg"><label>Derrame pleural</label>
+          <select id="pul_derrame" onchange="pulBasicoUI()">
+            <option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg" id="pul-derrame-tam-wrap" style="display:none;"><label>Tamaño</label>
+          <select id="pul_derrame_tam">
+            <option value="mínimo">Mínimo</option><option value="moderado">Moderado</option><option value="severo">Severo</option>
+          </select>
+        </div>
+        <div class="fg" id="pul-derrame-balik-wrap" style="display:none;"><label>Balik (cm)</label>
+          <input type="number" id="pul_balik" step="0.1" placeholder="cm">
+        </div>
+      </div>
+      <div class="grid-3" style="margin-top:8px;">
+        <div class="fg"><label>Líneas B</label>
+          <select id="pul_lineasb" onchange="pulBasicoUI()">
+            <option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg" id="pul-lineasb-pat-wrap" style="display:none;"><label>Patrón</label>
+          <select id="pul_lineasb_pat">
+            <option value="focal">Focal</option><option value="difuso">Difuso</option>
+          </select>
+        </div>
+        <div class="fg"><label>Consolidación</label>
+          <select id="pul_consolidacion">
+            <option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
 
+</div>
+
+<!-- ═══════════════════════ TAB: ECO PULMONAR (avanzado) ═══════════════════════ -->
+<div id="tab-pulmonar" class="tab-section">
+  <div class="card" style="margin-bottom:8px;">
+    <h2 class="card-head">🫁 Ecografía Pulmonar — evaluación avanzada</h2>
+    <div class="card-body">
+      <p style="font-size:11px;color:var(--text2);margin-bottom:12px;">
+        Al integrar este módulo, la sección básica de Ecografía Pulmonar se omite del informe para no duplicar los hallazgos.
+      </p>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">🔍 Pleura y líneas A</div>
+      <div class="grid-3" style="margin-bottom:12px;">
+        <div class="fg"><label>Deslizamiento pleural</label>
+          <select id="pua_desliz" onchange="pulAvUI()">
+            <option value="presente">Presente</option>
+            <option value="reducido">Reducido</option>
+            <option value="abolido">Abolido</option>
+          </select>
+        </div>
+        <div class="fg"><label>Lateralidad del deslizamiento</label>
+          <select id="pua_desliz_lado">
+            <option value="bilateral">Bilateral</option>
+            <option value="derecho">Derecho</option>
+            <option value="izquierdo">Izquierdo</option>
+          </select>
+        </div>
+        <div class="fg"><label>Líneas A</label>
+          <select id="pua_lineasa" onchange="pulAvUI()">
+            <option value="presentes">Presentes</option>
+            <option value="ausentes">Ausentes</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">💧 Líneas B</div>
+      <div class="grid-2" style="margin-bottom:8px;">
+        <div class="fg"><label>Líneas B</label>
+          <select id="pua_lineasb" onchange="pulAvUI()">
+            <option value="ausentes">Ausentes</option>
+            <option value="presentes">Presentes</option>
+          </select>
+        </div>
+        <div class="fg" id="pua-lb-cant-wrap" style="display:none;"><label>Cantidad</label>
+          <select id="pua_lineasb_cant" onchange="pulAvUI()">
+            <option value="focal">Focal (aisladas)</option>
+            <option value="multiples">Múltiples (≥3 por espacio)</option>
+            <option value="coalescentes">Coalescentes</option>
+          </select>
+        </div>
+      </div>
+      <div id="pua-lb-zonas-wrap" style="display:none;margin-bottom:12px;">
+        <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:4px;">Distribución por zonas</div>
+        <div class="grid-2">
+          <div>
+            <div style="font-size:11px;color:var(--text2);margin-bottom:2px;">Hemitórax derecho</div>
+            <label style="display:flex;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="pua_z_ant_d" onchange="pulAvUI()"> Anterior</label>
+            <label style="display:flex;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="pua_z_lat_d" onchange="pulAvUI()"> Lateral</label>
+            <label style="display:flex;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="pua_z_bas_d" onchange="pulAvUI()"> Basal</label>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text2);margin-bottom:2px;">Hemitórax izquierdo</div>
+            <label style="display:flex;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="pua_z_ant_i" onchange="pulAvUI()"> Anterior</label>
+            <label style="display:flex;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="pua_z_lat_i" onchange="pulAvUI()"> Lateral</label>
+            <label style="display:flex;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="pua_z_bas_i" onchange="pulAvUI()"> Basal</label>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">🌊 Derrame pleural</div>
+      <div class="grid-4" style="margin-bottom:12px;">
+        <div class="fg"><label>Derrame</label>
+          <select id="pua_derrame" onchange="pulAvUI()">
+            <option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg pua-der" style="display:none;"><label>Tipo</label>
+          <select id="pua_derrame_tipo" onchange="pulAvUI()">
+            <option value="libre">Libre</option><option value="tabicado">Tabicado</option>
+          </select>
+        </div>
+        <div class="fg pua-der" style="display:none;"><label>Balik (cm)</label>
+          <input type="number" id="pua_balik" step="0.1" placeholder="cm" oninput="pulAvUI()">
+        </div>
+        <div class="fg pua-der" style="display:none;"><label>Lateralidad</label>
+          <select id="pua_derrame_lado" onchange="pulAvUI()">
+            <option value="unilateral derecho">Unilateral derecho</option>
+            <option value="unilateral izquierdo">Unilateral izquierdo</option>
+            <option value="bilateral">Bilateral</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">🫁 Consolidación</div>
+      <div class="grid-2" style="margin-bottom:12px;">
+        <div class="fg"><label>Consolidación</label>
+          <select id="pua_consol" onchange="pulAvUI()">
+            <option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg" id="pua-consol-bronco-wrap" style="display:none;"><label>Broncograma</label>
+          <select id="pua_consol_bronco" onchange="pulAvUI()">
+            <option value="con">Con broncograma aéreo</option>
+            <option value="sin">Sin broncograma</option>
+            <option value="fluido">Broncograma fluido</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="calc-box" style="margin-bottom:12px;">
+        <div class="calc-row">
+          <span class="calc-lbl" style="font-weight:700;">🧭 Patrón global</span>
+          <span id="pua-patron" style="font-weight:700;">—</span>
+        </div>
+        <div class="calc-row"><span class="calc-lbl">Interpretación</span><span id="pua-patron-interp" style="font-size:11px;">—</span></div>
+      </div>
+
+      <div style="text-align:center;">
+        <button type="button" class="btn btn-primary" onclick="amiloIntegrar('pulm')">📎 Integrar al informe</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ═══════════════════════ TAB: HEMODINÁMICA ═══════════════════════ -->
@@ -12256,6 +12427,23 @@ function generarInforme() {
     inf.push(s13);
   }
 
+  // ── 13b) Ecografía pulmonar (módulo básico) ──
+  // Sólo si hay hallazgos positivos. Si el módulo avanzado está integrado al
+  // bloque ETT Avanzado, este se omite para no duplicar los mismos hallazgos.
+  if (typeof pulBasicoHayDatos === 'function' && pulBasicoHayDatos()
+      && !(typeof pulAvanzadoIntegrado === 'function' && pulAvanzadoIntegrado())) {
+    const _pb = pulBasicoTexto();
+    if (_pb.frases.length) inf.push(_pb.frases.join(' '));
+    _pb.suma.forEach(x => suma.push(x));
+  }
+
+  // ── 13c) Ecografía pulmonar (módulo avanzado) → sólo al En Suma ──
+  // El detalle va en la hoja de ETT Avanzado; acá se agregan las conclusiones.
+  if (typeof pulAvanzadoIntegrado === 'function' && pulAvanzadoIntegrado()
+      && typeof pulAvSuma === 'function') {
+    pulAvSuma().forEach(x => suma.push(x));
+  }
+
   // ════════════════════════════════════════════════════════════════════
   // MÓDULOS ADICIONALES (opcionales / toggles) — después de las 13 oraciones
   // ════════════════════════════════════════════════════════════════════
@@ -16147,6 +16335,150 @@ function amiloTextoCardioOnco() {
   return L.join('\n');
 }
 
+// ══════════════════════════════════════════════════════════════════
+// ECOGRAFÍA PULMONAR
+// ══════════════════════════════════════════════════════════════════
+// Muestra/oculta los campos dependientes del módulo BÁSICO.
+function pulBasicoUI() {
+  const on = (id, v) => { const e = document.getElementById(id); if (e) e.style.display = v ? '' : 'none'; };
+  const der = _amV('pul_derrame') === 'si';
+  on('pul-derrame-tam-wrap', der); on('pul-derrame-balik-wrap', der);
+  on('pul-lineasb-pat-wrap', _amV('pul_lineasb') === 'si');
+}
+window.pulBasicoUI = pulBasicoUI;
+
+// ¿Hay algo cargado en el módulo básico? Si no, no se escribe nada en el informe.
+function pulBasicoHayDatos() {
+  return _amV('pul_derrame') === 'si' || _amV('pul_lineasb') === 'si' || _amV('pul_consolidacion') === 'si';
+}
+
+// Devuelve {frases:[], suma:[]} del módulo básico.
+function pulBasicoTexto() {
+  const frases = [], suma = [];
+  if (_amV('pul_derrame') === 'si') {
+    const tam = _amV('pul_derrame_tam') || 'mínimo', bk = _amV('pul_balik');
+    frases.push('Derrame pleural ' + tam + (bk ? ' (Balik ' + bk + ' cm)' : '') + '.');
+    suma.push('Derrame pleural ' + tam + (bk ? ' ' + bk + ' cm (Balik)' : '') + '.');
+  }
+  if (_amV('pul_lineasb') === 'si') {
+    const pat = _amV('pul_lineasb_pat') || 'focal';
+    // "distribución" es femenino: difusa / focal, no "difuso".
+    frases.push('Líneas B de distribución ' + (pat === 'difuso' ? 'difusa' : 'focal') + '.');
+    suma.push(pat === 'difuso' ? 'Edema pulmonar intersticial.' : 'Líneas B focales.');
+  }
+  if (_amV('pul_consolidacion') === 'si') {
+    frases.push('Consolidación pulmonar.');
+    suma.push('Consolidación pulmonar.');
+  }
+  return { frases, suma };
+}
+window.pulBasicoTexto = pulBasicoTexto;
+window.pulBasicoHayDatos = pulBasicoHayDatos;
+
+// ── Módulo AVANZADO ──
+function pulAvZonas() {
+  const Z = [['pua_z_ant_d','anterior derecha'],['pua_z_lat_d','lateral derecha'],['pua_z_bas_d','basal derecha'],
+             ['pua_z_ant_i','anterior izquierda'],['pua_z_lat_i','lateral izquierda'],['pua_z_bas_i','basal izquierda']];
+  return Z.filter(z => _amChk(z[0])).map(z => z[1]);
+}
+
+// Patrón global: se deduce de los hallazgos, no se elige a mano.
+function pulAvPatron() {
+  const desliz = _amV('pua_desliz'), lineasA = _amV('pua_lineasa');
+  const lb = _amV('pua_lineasb'), cant = _amV('pua_lineasb_cant');
+  const consol = _amV('pua_consol') === 'si';
+  // El neumotórax manda: deslizamiento abolido con líneas A y sin líneas B.
+  if (desliz === 'abolido' && lineasA === 'presentes' && lb === 'ausentes')
+    return { p:'Neumotórax probable', i:'Deslizamiento pleural abolido con líneas A conservadas y ausencia de líneas B. Confirmar con punto pulmón.' };
+  if (consol)
+    return { p:'Consolidación', i:'Consolidación pulmonar; correlacionar con clínica e historia (neumonía, atelectasia, infarto).' };
+  if (lb === 'presentes' && cant === 'coalescentes')
+    return { p:'Edema alveolar', i:'Líneas B coalescentes ("pulmón blanco"): compromiso alveolar.' };
+  if (lb === 'presentes' && (cant === 'multiples'))
+    return { p:'Síndrome intersticial', i:'Líneas B múltiples (≥3 por espacio): síndrome intersticial, compatible con edema pulmonar intersticial.' };
+  if (lb === 'presentes' && cant === 'focal')
+    return { p:'Líneas B focales', i:'Líneas B aisladas: hallazgo focal, puede ser inespecífico.' };
+  return { p:'Normal', i:'Deslizamiento pleural conservado con patrón A predominante.' };
+}
+
+function pulAvUI() {
+  const on = (id, v) => { const e = document.getElementById(id); if (e) e.style.display = v ? '' : 'none'; };
+  const lbOn = _amV('pua_lineasb') === 'presentes';
+  on('pua-lb-cant-wrap', lbOn); on('pua-lb-zonas-wrap', lbOn);
+  document.querySelectorAll('.pua-der').forEach(e => { e.style.display = (_amV('pua_derrame') === 'si') ? '' : 'none'; });
+  on('pua-consol-bronco-wrap', _amV('pua_consol') === 'si');
+  const r = pulAvPatron();
+  const p = document.getElementById('pua-patron'), i = document.getElementById('pua-patron-interp');
+  if (p) p.textContent = r.p;
+  if (i) i.textContent = r.i;
+}
+window.pulAvUI = pulAvUI;
+
+// Texto del módulo avanzado para la card / PDF.
+function amiloTextoPulmonar() {
+  const L = [];
+  L.push('## Pleura y líneas A');
+  const dz = _amV('pua_desliz') || 'presente';
+  L.push('Deslizamiento pleural | ' + dz + ' (' + (_amV('pua_desliz_lado') || 'bilateral') + ')');
+  L.push('Líneas A | ' + (_amV('pua_lineasa') || 'presentes'));
+
+  L.push('## Líneas B');
+  if (_amV('pua_lineasb') === 'presentes') {
+    const cant = _amV('pua_lineasb_cant') || 'focal';
+    const CANT = { focal:'focales (aisladas)', multiples:'múltiples (>=3 por espacio)', coalescentes:'coalescentes' };
+    L.push('Presencia | presentes');
+    L.push('Cantidad | ' + (CANT[cant] || cant));
+    const z = pulAvZonas();
+    L.push('Distribución | ' + (z.length ? z.join(', ') : 'no especificada'));
+  } else L.push('Presencia | ausentes');
+
+  L.push('## Derrame pleural');
+  if (_amV('pua_derrame') === 'si') {
+    const bk = _amV('pua_balik');
+    L.push('Presencia | presente');
+    L.push('Tipo | ' + (_amV('pua_derrame_tipo') || 'libre'));
+    L.push('Lateralidad | ' + (_amV('pua_derrame_lado') || 'bilateral'));
+    if (bk) L.push('Balik | ' + bk + ' cm');
+  } else L.push('Presencia | ausente');
+
+  L.push('## Consolidación');
+  if (_amV('pua_consol') === 'si') {
+    const B = { con:'con broncograma aéreo', sin:'sin broncograma', fluido:'broncograma fluido' };
+    L.push('Presencia | presente');
+    L.push('Broncograma | ' + (B[_amV('pua_consol_bronco')] || 'no especificado'));
+  } else L.push('Presencia | ausente');
+
+  const r = pulAvPatron();
+  L.push('## Patrón global');
+  L.push('Patrón | ' + r.p);
+  L.push(r.i);
+  return L.join('\n');
+}
+
+// Conclusiones del avanzado para el En Suma.
+function pulAvSuma() {
+  const s = [], r = pulAvPatron();
+  if (r.p === 'Síndrome intersticial') s.push('Edema pulmonar intersticial.');
+  else if (r.p === 'Edema alveolar')   s.push('Edema alveolar.');
+  else if (r.p === 'Neumotórax probable') s.push('Neumotórax probable.');
+  if (_amV('pua_consol') === 'si') {
+    const b = _amV('pua_consol_bronco');
+    s.push('Consolidación pulmonar ' + (b === 'con' ? 'con broncograma aéreo' : b === 'fluido' ? 'con broncograma fluido' : 'sin broncograma') + '.');
+  }
+  if (_amV('pua_derrame') === 'si') {
+    const bk = _amV('pua_balik'), lado = _amV('pua_derrame_lado') || 'bilateral';
+    s.push('Derrame pleural ' + lado + (bk ? ' ' + bk + ' cm (Balik)' : '') + '.');
+  }
+  return s;
+}
+window.pulAvSuma = pulAvSuma;
+
+// ¿Está integrado el módulo avanzado? Sirve para la exclusión mutua.
+function pulAvanzadoIntegrado() {
+  return (typeof amiloEnInforme === 'function') && (amiloEnInforme() || []).some(d => d.k === 'pulm');
+}
+window.pulAvanzadoIntegrado = pulAvanzadoIntegrado;
+
 // ── Catálogo de módulos del bloque ETT Avanzado ───────────────────
 // Un solo lugar define el orden (Amiloidosis primero, después Hemodinámica),
 // las etiquetas de la card y los títulos de sección del PDF.
@@ -16161,7 +16493,8 @@ function amiloSecs() {
     { k:'wilk', lbl:'Score de Wilkins',                tit:'SCORE DE WILKINS - ESTENOSIS MITRAL',      gen:amiloTextoWilkins },
     { k:'oai',  lbl:'Mediciones OAI',                  tit:'OREJUELA IZQUIERDA - MEDICIONES ETE',      gen:amiloTextoOAI },
     { k:'aoete',lbl:'Mediciones Aorta (ETE)',          tit:'AORTA TORACICA - MEDICIONES ETE',          gen:amiloTextoAortaETE },
-    { k:'conco',lbl:'Cardio-Oncología',                tit:'CARDIO-ONCOLOGIA - ESC 2022 / HFA-ICOS',   gen:amiloTextoCardioOnco }
+    { k:'conco',lbl:'Cardio-Oncología',                tit:'CARDIO-ONCOLOGIA - ESC 2022 / HFA-ICOS',   gen:amiloTextoCardioOnco },
+    { k:'pulm', lbl:'Eco Pulmonar (avanzado)',         tit:'ECOGRAFIA PULMONAR - EVALUACION AVANZADA', gen:amiloTextoPulmonar }
   ];
 }
 window.amiloSecs = amiloSecs;
