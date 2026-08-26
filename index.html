@@ -19947,6 +19947,13 @@ function _labIndicadoresList(infs) {
 
 function labInit() {
   if (typeof labRenderCentroFilter === 'function') labRenderCentroFilter();
+  /* Las asociaciones ahora respetan el filtro de período/centro, así que hay que
+     recalcularlas cuando cambia; si no, quedaban mostrando el corte anterior. */
+  if (typeof labAsociacionesRender === 'function' &&
+      document.getElementById('lab-sub-asociaciones')) {
+    try { labAsociacionesRender(); if (typeof labRenderDesc === 'function') labRenderDesc(); }
+    catch (e) { console.error('[lab] no se pudieron recalcular las asociaciones', e); }
+  }
   const infs = labGetInformes();
   const n = infs.length;
   _labHeart(infs);   // corazón anatómico (maneja n=0 → todos "—")
@@ -20523,7 +20530,12 @@ function labSubTab(id, el) {
 // Estadística del Laboratorio — descriptiva + asociaciones (todo en JS puro)
 // ══════════════════════════════════════════════════════════════════════════
 (function(){
-  const informes = () => (typeof getInformes === 'function' ? getInformes() : []);
+  /* Misma población que el resto de la pestaña Laboratorio: labGetInformes() aplica el
+     filtro de período y de centro. Con getInformes() (toda la base) el usuario elegía
+     "últimos 30 días" y las asociaciones seguían corriendo sobre el histórico completo,
+     así que el N de acá no cerraba con el del encabezado ni con el de las descriptivas. */
+  const informes = () => (typeof labGetInformes === 'function' ? labGetInformes()
+                        : (typeof getInformes === 'function' ? getInformes() : []));
   const NUM = (inf, keys) => { const c = inf.campos || {}; for (const k of keys){ const v = c[k]; if (v!=null && String(v).trim()!==''){ const f = parseFloat(String(v).replace(',','.')); if (!isNaN(f)) return f; } } return null; };
   const BSA = inf => { const p=NUM(inf,['peso']), t=NUM(inf,['talla']); return (p&&t)?Math.sqrt(p*t/3600):null; };
   const EEPROM = inf => { const E=NUM(inf,['onda_e','e_mitral']), es=NUM(inf,['e_sep','e_prima_sept']), el=NUM(inf,['e_lat','e_prima_lat']); let ep=(es!=null&&el!=null)?(es+el)/2:(es!=null?es:el); return (E!=null&&ep)?E/ep:NUM(inf,['ee_prom']); };
@@ -20601,6 +20613,14 @@ function labSubTab(id, el) {
     return (coef>0 ? e.pos : e.neg) || '';
   };
 
+  /* Orden de lectura de las categóricas. Cada conjunto cerrado aparece acá en su orden
+     clínico; como la comparación es siempre dentro de una misma variable, no importa
+     cómo queden posicionados unos conjuntos respecto de otros. */
+  const ORD = ['Sí','No','≥50','40-49','<40','Normal','I','II','III',
+               'Remodelado conc.','HVI excéntrica','HVI concéntrica','F','M'];
+  const ordCmp = (x,y) => { const a=ORD.indexOf(x), b=ORD.indexOf(y);
+    return (a<0?999:a)-(b<0?999:b) || String(x).localeCompare(String(y)); };
+
   // ── Definición de asociaciones ──
   const ASSOC = [
     {cat:'Función sistólica', lbl:'FEVI – PSAP', t:'sp', a:'fevi', b:'psap'},
@@ -20608,30 +20628,30 @@ function labSubTab(id, el) {
     {cat:'Función sistólica', lbl:'FEVI – TAPSE', t:'sp', a:'fevi', b:'tapse'},
     {cat:'Función sistólica', lbl:'FEVI – Vol AI idx', t:'sp', a:'fevi', b:'lavi'},
     {cat:'Función sistólica', lbl:'FEVI – edad', t:'sp', a:'fevi', b:'edad'},
-    {cat:'Función sistólica', lbl:'FEVI categórica → HTA', t:'chi', ca:FEVICAT, cb:i=>YN(HTA(i))},
-    {cat:'Función sistólica', lbl:'FEVI categórica → DM', t:'chi', ca:FEVICAT, cb:i=>YN(DM(i))},
-    {cat:'Función sistólica', lbl:'FEVI categórica → FA', t:'chi', ca:FEVICAT, cb:i=>YN(FA(i))},
+    {cat:'Función sistólica', lbl:'FEVI categórica → HTA', t:'chi', ca:FEVICAT, cb:i=>YN(HTA(i)), al:'FEVI', bl:'HTA'},
+    {cat:'Función sistólica', lbl:'FEVI categórica → DM', t:'chi', ca:FEVICAT, cb:i=>YN(DM(i)), al:'FEVI', bl:'DM'},
+    {cat:'Función sistólica', lbl:'FEVI categórica → FA', t:'chi', ca:FEVICAT, cb:i=>YN(FA(i)), al:'FEVI', bl:'FA / flutter'},
     {cat:'Diastólica', lbl:"E/e' – edad", t:'sp', a:'ee', b:'edad'},
     {cat:'Diastólica', lbl:"E/e' – Vol AI idx", t:'sp', a:'ee', b:'lavi'},
     {cat:'Diastólica', lbl:"E/e' – PSAP", t:'sp', a:'ee', b:'psap'},
-    {cat:'Diastólica', lbl:'Grado diastólico → HTA', t:'chi', ca:DIAST, cb:i=>YN(HTA(i))},
-    {cat:'Diastólica', lbl:'Grado diastólico → DM', t:'chi', ca:DIAST, cb:i=>YN(DM(i))},
-    {cat:'Diastólica', lbl:'Grado diastólico → FA', t:'chi', ca:DIAST, cb:i=>YN(FA(i))},
-    {cat:'Diastólica', lbl:'Patrón diastólico → sexo', t:'chi', ca:DIAST, cb:SEXO},
+    {cat:'Diastólica', lbl:'Grado diastólico → HTA', t:'chi', ca:DIAST, cb:i=>YN(HTA(i)), al:'Grado diastólico', bl:'HTA'},
+    {cat:'Diastólica', lbl:'Grado diastólico → DM', t:'chi', ca:DIAST, cb:i=>YN(DM(i)), al:'Grado diastólico', bl:'DM'},
+    {cat:'Diastólica', lbl:'Grado diastólico → FA', t:'chi', ca:DIAST, cb:i=>YN(FA(i)), al:'Grado diastólico', bl:'FA / flutter'},
+    {cat:'Diastólica', lbl:'Patrón diastólico → sexo', t:'chi', ca:DIAST, cb:SEXO, al:'Grado diastólico', bl:'Sexo'},
     {cat:'HTP y VD', lbl:'PSAP – TAPSE', t:'sp', a:'psap', b:'tapse'},
     {cat:'HTP y VD', lbl:'PSAP – Vol AI idx', t:'sp', a:'psap', b:'lavi'},
     {cat:'HTP y VD', lbl:'TAPSE – FEVI', t:'sp', a:'tapse', b:'fevi'},
-    {cat:'HTP y VD', lbl:'HTP → valvulopatía sig.', t:'chi', ca:i=>YN(HTP(i)), cb:i=>YN(VALVSIG(i))},
-    {cat:'HTP y VD', lbl:'HTP → FA', t:'chi', ca:i=>YN(HTP(i)), cb:i=>YN(FA(i))},
-    {cat:'Geometría', lbl:'Geometría VI → HTA', t:'chi', ca:GEOM, cb:i=>YN(HTA(i))},
-    {cat:'Geometría', lbl:'Geometría VI → DM', t:'chi', ca:GEOM, cb:i=>YN(DM(i))},
-    {cat:'Geometría', lbl:'Geometría VI → sexo', t:'chi', ca:GEOM, cb:SEXO},
+    {cat:'HTP y VD', lbl:'HTP → valvulopatía sig.', t:'chi', ca:i=>YN(HTP(i)), cb:i=>YN(VALVSIG(i)), al:'HTP (PSAP>35)', bl:'Valvulopatía significativa'},
+    {cat:'HTP y VD', lbl:'HTP → FA', t:'chi', ca:i=>YN(HTP(i)), cb:i=>YN(FA(i)), al:'HTP (PSAP>35)', bl:'FA / flutter'},
+    {cat:'Geometría', lbl:'Geometría VI → HTA', t:'chi', ca:GEOM, cb:i=>YN(HTA(i)), al:'Geometría VI', bl:'HTA'},
+    {cat:'Geometría', lbl:'Geometría VI → DM', t:'chi', ca:GEOM, cb:i=>YN(DM(i)), al:'Geometría VI', bl:'DM'},
+    {cat:'Geometría', lbl:'Geometría VI → sexo', t:'chi', ca:GEOM, cb:SEXO, al:'Geometría VI', bl:'Sexo'},
     {cat:'Geometría', lbl:'Masa VI idx – edad', t:'sp', a:'masa', b:'edad'},
     {cat:'Geometría', lbl:'Masa VI idx – PSAP', t:'sp', a:'masa', b:'psap'},
     {cat:'Aurícula', lbl:'Vol AI idx – edad', t:'sp', a:'lavi', b:'edad'},
-    {cat:'Aurícula', lbl:'Vol AI idx → FA', t:'mw', a:'lavi', g:FA},
-    {cat:'Aurícula', lbl:'Vol AI idx → HTA', t:'mw', a:'lavi', g:HTA},
-    {cat:'Aurícula', lbl:'Vol AI idx → DM', t:'mw', a:'lavi', g:DM},
+    {cat:'Aurícula', lbl:'Vol AI idx → FA', t:'mw', a:'lavi', g:FA, gl:'FA / flutter'},
+    {cat:'Aurícula', lbl:'Vol AI idx → HTA', t:'mw', a:'lavi', g:HTA, gl:'HTA'},
+    {cat:'Aurícula', lbl:'Vol AI idx → DM', t:'mw', a:'lavi', g:DM, gl:'DM'},
   ];
 
   function runOne(def, infs){
@@ -20644,7 +20664,8 @@ function labSubTab(id, el) {
       const ok=r.n>=15;
       // El "Estadístico" muestra el coeficiente ρ (no el t de la prueba): es lo que se interpreta.
       return {...base, n:r.n, method:'Spearman', stat:'Spearman='+r.rho.toFixed(2), p:r.p, sig:sigLight(r.p,ok),
-              coef:r.rho, dir:dirTxt(r.rho,true), fuerza:fuerzaTxt(r.rho), interp:interpTxt(def.lbl,r.rho)};
+              coef:r.rho, dir:dirTxt(r.rho,true), fuerza:fuerzaTxt(r.rho), interp:interpTxt(def.lbl,r.rho),
+              det:{t:'sp', pairs, xl:VARS[def.a].lbl, yl:VARS[def.b].lbl, rho:r.rho}};
     }
     if (def.t==='mw'){
       const ga=VARS[def.a].get, g1=[],g2=[];
@@ -20655,13 +20676,18 @@ function labSubTab(id, el) {
       // Tamaño de efecto r = z/√N (comparación entre grupos: no tiene dirección lineal).
       const N=r.n1+r.n2, ef=N>0?Math.abs(r.z||0)/Math.sqrt(N):null;
       return {...base, n:N, method:'Mann-Whitney U', stat:'U='+r.U+' ('+r.n1+'/'+r.n2+')', p:r.p, sig:sigLight(r.p,ok),
-              coef:ef, dir:dirTxt(null,false), fuerza:fuerzaTxt(ef), interp:''};
+              coef:ef, dir:dirTxt(null,false), fuerza:fuerzaTxt(ef), interp:'',
+              det:{t:'mw', g1, g2, vl:VARS[def.a].lbl, gl:def.gl||'el grupo'}};
     }
     // chi
     const data=[];
     infs.forEach(i=>{ const av=def.ca(i), bv=def.cb(i); if(av!=null&&bv!=null)data.push([String(av),String(bv)]); });
     if(!data.length)return {...base, n:0, method:'Chi²', stat:'—', p:null, sig:'⚫', dir:'—', fuerza:'—', interp:''};
-    const aV=[...new Set(data.map(d=>d[0]))], bV=[...new Set(data.map(d=>d[1]))];
+    /* Orden fijo: un Set preserva el orden de primera aparición, así que la tabla salía
+       según qué paciente se cargó primero ("II, Normal, I, III"), y la columna Sí caía a
+       veces primero y a veces segunda. El p no cambia (Chi² es invariante a permutación),
+       pero la tabla se vuelve ilegible al lado de otra. */
+    const aV=[...new Set(data.map(d=>d[0]))].sort(ordCmp), bV=[...new Set(data.map(d=>d[1]))].sort(ordCmp);
     const table=aV.map(a=>bV.map(b=>data.filter(d=>d[0]===a&&d[1]===b).length));
     const r=chi2test(table);
     if(!r)return {...base, n:data.length, method:'Chi²', stat:'—', p:null, sig:'⚫', dir:'—', fuerza:'—', interp:''};
@@ -20671,7 +20697,8 @@ function labSubTab(id, el) {
     return {...base, n:r.N, method:'Chi²',
             stat:'Chi2='+r.chi2.toFixed(2)+(V!=null?'  V='+V.toFixed(2):'')+(r.minE<5?' ⚠fe<5':''),
             p:r.p, sig:sigLight(r.p,ok), warnFe:r.minE<5,
-            coef:V, dir:dirTxt(null,false), fuerza:fuerzaTxt(V), interp:''};
+            coef:V, dir:dirTxt(null,false), fuerza:fuerzaTxt(V), interp:'',
+            det:{t:'chi', aV, bV, table, al:def.al||'', bl:def.bl||'', minE:r.minE}};
   }
 
   function computeAll(){ const infs=informes(); return ASSOC.map(d=>runOne(d,infs)); }
@@ -20710,15 +20737,180 @@ function labSubTab(id, el) {
       return true;
     });
   }
+  /* ── Tablas de contingencia / detalle por asociación ──
+     Muestra los datos reales que produjeron cada resultado, para que el número no haya
+     que creerlo: se recalcula en el momento desde los estudios ya cargados (viaja en
+     `det`, armado por runOne con la misma muestra que usó el test — no se recuenta acá
+     por separado, porque es la forma más fácil de terminar con una tabla y un p que
+     describen poblaciones distintas).
+     Las etiquetas de categoría hoy salen de conjuntos cerrados calculados ('Sí'/'No',
+     'HVI concéntrica'...), no de texto libre del paciente, pero igual se escapan: si
+     mañana algún accessor pasa a leer un campo libre, esto ya no es una vía de XSS. */
+  const _pct = (x,tot) => tot>0 ? (Math.round(1000*x/tot)/10).toFixed(1)+'%' : '—';
+  // Recibe HTML ya compuesto, no texto: el nombre lo dice para que nadie le pase
+  // una variable sin escapar creyendo que este helper escapa.
+  const _notaHTML = html => '<div style="margin-top:8px;padding:8px 10px;background:var(--bg2);'+
+    'border-left:3px solid var(--accent);border-radius:4px;font-size:11px;line-height:1.5;'+
+    'color:var(--text2);">'+html+'</div>';
+
+  function detChi(d){
+    const R=d.aV.length, C=d.bV.length;
+    const rt=d.table.map(r=>r.reduce((a,b)=>a+b,0));
+    const ct=[]; for(let c=0;c<C;c++){ let t=0; for(let r=0;r<R;r++)t+=d.table[r][c]; ct.push(t); }
+    const N=rt.reduce((a,b)=>a+b,0);
+    const th='padding:4px 8px;font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);';
+    let h='<table style="border-collapse:collapse;font-size:12px;margin-top:4px;">'+
+      '<thead><tr><th style="'+th+'text-align:left;">'+escHtml(d.al)+'</th>'+
+      d.bV.map(b=>'<th style="'+th+'text-align:center;">'+escHtml(d.bl)+': '+escHtml(b)+'</th>').join('')+
+      '<th style="'+th+'text-align:center;">Total</th></tr></thead><tbody>';
+    d.aV.forEach((a,ri)=>{
+      h+='<tr style="border-top:1px solid var(--border);">'+
+         '<td style="padding:5px 8px;font-weight:600;white-space:nowrap;">'+escHtml(a)+'</td>'+
+         d.table[ri].map(v=>'<td style="padding:5px 8px;text-align:center;">'+v+
+            '<div style="font-size:10px;color:var(--text2);">'+_pct(v,rt[ri])+'</div></td>').join('')+
+         '<td style="padding:5px 8px;text-align:center;font-weight:600;">'+rt[ri]+'</td></tr>';
+    });
+    h+='<tr style="border-top:2px solid var(--border);font-weight:600;">'+
+       '<td style="padding:5px 8px;">Total</td>'+
+       ct.map(v=>'<td style="padding:5px 8px;text-align:center;">'+v+'</td>').join('')+
+       '<td style="padding:5px 8px;text-align:center;">'+N+'</td></tr></tbody></table>';
+    let nota='Cada celda muestra cuántos estudios de tu laboratorio tienen esa combinación. '+
+      'El porcentaje es <b>sobre la fila</b>: de los que están en esa categoría de '+escHtml(d.al)+
+      ', qué proporción tiene cada valor de '+escHtml(d.bl)+'. Total analizado: N='+N+'.';
+    if(d.minE<5) nota+=' <b>Ojo:</b> alguna casilla tiene una frecuencia esperada menor a 5, '+
+      'condición en la que el Chi² pierde validez — conviene confirmarlo con un test exacto de Fisher.';
+    return h+_notaHTML(nota);
+  }
+
+  function detMW(d){
+    const A=desc(d.g1), B=desc(d.g2);
+    const th='padding:4px 8px;font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);';
+    const fila=(nom,x)=>'<tr style="border-top:1px solid var(--border);">'+
+      '<td style="padding:5px 8px;font-weight:600;white-space:nowrap;">'+escHtml(nom)+'</td>'+
+      '<td style="padding:5px 8px;text-align:right;">'+(x.n?f1(x.median):'—')+'</td>'+
+      '<td style="padding:5px 8px;text-align:right;white-space:nowrap;">'+(x.n?(f1(x.p25)+'–'+f1(x.p75)):'—')+'</td>'+
+      '<td style="padding:5px 8px;text-align:center;">'+x.n+'</td></tr>';
+    const h='<table style="border-collapse:collapse;font-size:12px;margin-top:4px;">'+
+      '<thead><tr><th style="'+th+'text-align:left;">'+escHtml(d.vl)+'</th>'+
+      '<th style="'+th+'text-align:right;">Mediana</th><th style="'+th+'text-align:right;">P25–P75</th>'+
+      '<th style="'+th+'text-align:center;">N</th></tr></thead><tbody>'+
+      fila('Con '+d.gl, A)+fila('Sin '+d.gl, B)+'</tbody></table>';
+    return h+_notaHTML('Compara el valor típico de '+escHtml(d.vl)+' entre quienes tienen y no tienen '+
+      escHtml(d.gl)+'. Se usa la <b>mediana</b> y no la media porque la prueba compara rangos, '+
+      'no promedios. El P25–P75 es el rango donde cae la mitad central de cada grupo: si los dos '+
+      'rangos se superponen mucho, la diferencia es chica aunque el p sea significativo.');
+  }
+
+  function detSP(d){
+    const xs=d.pairs.map(p=>p[0]), ys=d.pairs.map(p=>p[1]);
+    const A=desc(xs), B=desc(ys);
+    const th='padding:4px 8px;font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);';
+    /* Media y DS porque es lo que se pidió, pero además mediana e IQR: Spearman trabaja
+       sobre rangos, así que si se eligió por datos no normales el promedio es el resumen
+       equivocado — y el panel de Mann-Whitney, al lado, ya muestra mediana. */
+    const fila=(nom,x)=>'<tr style="border-top:1px solid var(--border);">'+
+      '<td style="padding:5px 8px;font-weight:600;white-space:nowrap;">'+escHtml(nom)+'</td>'+
+      '<td style="padding:5px 8px;text-align:right;">'+(x.n?f1(x.mean):'—')+'</td>'+
+      '<td style="padding:5px 8px;text-align:right;">'+(x.n?f1(x.sd):'—')+'</td>'+
+      '<td style="padding:5px 8px;text-align:right;">'+(x.n?f1(x.median):'—')+'</td>'+
+      '<td style="padding:5px 8px;text-align:right;white-space:nowrap;">'+(x.n?(f1(x.p25)+'–'+f1(x.p75)):'—')+'</td></tr>';
+    return '<table style="border-collapse:collapse;font-size:12px;margin-top:4px;">'+
+      '<thead><tr><th style="'+th+'text-align:left;">Variable</th>'+
+      '<th style="'+th+'text-align:right;">Media</th><th style="'+th+'text-align:right;">DS</th>'+
+      '<th style="'+th+'text-align:right;">Mediana</th><th style="'+th+'text-align:right;">P25–P75</th>'+
+      '</tr></thead><tbody>'+fila(d.xl,A)+fila(d.yl,B)+'</tbody></table>'+
+      '<div style="height:230px;margin-top:10px;" data-sc="1"><canvas></canvas></div>'+
+      _notaHTML('Cada punto es un estudio con las dos medidas cargadas (N='+d.pairs.length+'). '+
+        'Si ves una nube sin forma, no hay relación; si los puntos siguen una pendiente, la hay.');
+  }
+
+  /* La recta es por mínimos cuadrados sobre los valores crudos, pero el test es de
+     Spearman, sobre rangos. Con un outlier de mucho leverage —acá son campos numéricos
+     libres: un PSAP tipeado 800, una edad 199— el signo de la recta puede salir al revés
+     que ρ, y entonces la fila diría "a menor FEVI, mayor PSAP" mientras el gráfico de
+     abajo dibuja una recta subiendo. Justo el panel que existe para no tener que creerle
+     al número terminaría desmintiéndolo. Por eso sólo se dibuja si el signo coincide, y
+     se rotula como lo que es. */
+  function detSPChart(cont, d, sig){
+    const el=cont && cont.querySelector('[data-sc] canvas');
+    if(!el) return;
+    if(typeof Chart==='undefined'){
+      const box=cont.querySelector('[data-sc]');
+      if(box) box.innerHTML='<div style="height:100%;display:flex;align-items:center;'+
+        'justify-content:center;color:var(--text2);font-size:11px;text-align:center;">'+
+        'Gráfico no disponible (no cargó Chart.js).<br>Las medidas de la tabla de arriba son correctas igual.</div>';
+      return;
+    }
+    const pts=d.pairs.map(p=>({x:p[0],y:p[1]}));
+    const ds=[{label:'Estudios', data:pts, backgroundColor:'rgba(37,99,235,.55)', pointRadius:3.5}];
+    let conRecta=false;
+    if(sig && pts.length>=3){
+      const n=pts.length, mx=pts.reduce((a,q)=>a+q.x,0)/n, my=pts.reduce((a,q)=>a+q.y,0)/n;
+      let sxy=0,sxx=0; pts.forEach(q=>{ sxy+=(q.x-mx)*(q.y-my); sxx+=(q.x-mx)*(q.x-mx); });
+      const b=sxx>0?sxy/sxx:null;
+      if(b!=null && b!==0 && d.rho!=null && Math.sign(b)===Math.sign(d.rho)){
+        const a=my-b*mx;
+        const x0=Math.min(...pts.map(q=>q.x)), x1=Math.max(...pts.map(q=>q.x));
+        ds.push({label:'Tendencia (mínimos cuadrados)', type:'line', data:[{x:x0,y:a+b*x0},{x:x1,y:a+b*x1}],
+                 borderColor:'rgba(220,38,38,.85)', borderWidth:2, pointRadius:0, fill:false});
+        conRecta=true;
+      }
+    }
+    new Chart(el,{ type:'scatter', data:{datasets:ds},
+      options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:conRecta, labels:{boxWidth:12, font:{size:10}}}},
+        scales:{ x:{title:{display:true,text:d.xl,font:{size:10}},ticks:{font:{size:10}}},
+                 y:{title:{display:true,text:d.yl,font:{size:10}},ticks:{font:{size:10}}} } } });
+  }
+
+  function detalleHTML(r, idx){
+    if(!r.det) return '<div style="color:var(--text2);font-size:12px;">Sin datos suficientes para mostrar el detalle de esta asociación.</div>';
+    if(r.det.t==='chi') return detChi(r.det);
+    if(r.det.t==='mw')  return detMW(r.det);
+    return detSP(r.det);
+  }
+
+  // Guarda las filas del último render para que el acordeón lea el mismo cálculo que se
+  // mostró, en vez de recomputar y arriesgar que el detalle no coincida con la fila.
+  let _asocRows = [];
+
+  function asocToggle(tr, idx){
+    const sig=tr.nextElementSibling;
+    if(sig && sig.classList.contains('asoc-det')){
+      const cv=sig.querySelector('canvas'); if(cv && typeof Chart!=='undefined'){ const c=Chart.getChart(cv); if(c)c.destroy(); }
+      sig.remove(); tr.setAttribute('aria-expanded','false');
+      const ch=tr.querySelector('.asoc-chev'); if(ch)ch.textContent='▸';
+      return;
+    }
+    const r=_asocRows[idx]; if(!r) return;
+    const det=document.createElement('tr');
+    det.className='asoc-det';
+    det.innerHTML='<td colspan="10" style="padding:12px 16px;background:var(--bg2);">'+detalleHTML(r,idx)+'</td>';
+    tr.parentNode.insertBefore(det, tr.nextSibling);
+    tr.setAttribute('aria-expanded','true');
+    const ch=tr.querySelector('.asoc-chev'); if(ch)ch.textContent='▾';
+    if(r.det && r.det.t==='sp') detSPChart(det, r.det, r.p!=null && r.p<0.05);
+  }
+
   window.labAsociacionesRender = function(){
     const host=document.getElementById('lab-asoc-tabla'); if(!host)return;
+    /* Los scatter abiertos hay que destruirlos ANTES de pisar el innerHTML: al sacar el
+       canvas del DOM, Chart.js sigue guardando la instancia en su registro con sus datos
+       y sus listeners, así que cada cambio de filtro dejaba un chart huérfano acumulándose. */
+    host.querySelectorAll('tr.asoc-det canvas').forEach(cv=>{
+      if(typeof Chart!=='undefined'){ const c=Chart.getChart(cv); if(c)c.destroy(); }
+    });
     const rows=filtered();
+    // Se asigna acá y no después del innerHTML: si la rama vacía sale antes, _asocRows
+    // quedaba con las filas del render anterior y el índice apuntaba a otra asociación.
+    _asocRows = rows;
     if(!rows.length){ host.innerHTML='<div style="padding:16px;color:var(--text2);text-align:center;">Sin asociaciones que cumplan los filtros (o pocos estudios guardados).</div>'; return; }
     // Todos los valores son constantes internas (etiquetas y números calculados), no hay
     // texto de paciente, por eso se puede componer con innerHTML sin escapar.
     let body='';
-    rows.forEach(r=>{ body+='<tr style="border-bottom:1px solid var(--border);">'+
-      '<td style="padding:5px 8px;">'+r.cat+'</td>'+
+    rows.forEach((r,ri)=>{ body+='<tr class="asoc-fila" data-ri="'+ri+'" tabindex="0" aria-expanded="false"'+
+      ' style="border-bottom:1px solid var(--border);cursor:pointer;">'+
+      '<td style="padding:5px 8px;"><span class="asoc-chev" style="display:inline-block;width:12px;color:var(--text2);">▸</span> '+r.cat+'</td>'+
       '<td style="padding:5px 8px;font-weight:600;white-space:nowrap;">'+r.lbl+'</td>'+
       '<td style="padding:5px 8px;color:var(--text2);font-size:11px;line-height:1.35;min-width:180px;"'+
         (r.interp?' title="'+r.interp.replace(/"/g,'&quot;')+'"':'')+'>'+(r.interp||'')+'</td>'+
@@ -20739,6 +20931,12 @@ function labSubTab(id, el) {
       '<th style="padding:5px 8px;">Fuerza</th><th style="padding:5px 8px;text-align:left;">Estadístico</th>'+
       '<th style="padding:5px 8px;text-align:right;">p</th><th style="padding:5px 8px;">Sig.</th></tr></thead>'+
       '<tbody>'+body+'</tbody></table>';
+    host.querySelectorAll('tr.asoc-fila').forEach(tr=>{
+      const idx=parseInt(tr.dataset.ri,10);
+      tr.addEventListener('click',()=>asocToggle(tr,idx));
+      // Teclado: la fila es un control, así que tiene que abrirse sin mouse.
+      tr.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); asocToggle(tr,idx); } });
+    });
   };
   window.labAsociacionesInit = function(){ if(window.labRenderDesc)labRenderDesc(); labAsociacionesRender(); };
 
