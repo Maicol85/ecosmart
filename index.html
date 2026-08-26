@@ -1386,11 +1386,15 @@ window.cerrarSesion = cerrarSesion;
         </div>
         <div class="fg">
           <label>FEVI método</label>
-          <select id="fevi_met">
+          <select id="fevi_met" onchange="feviRangoUI();if(typeof calcVI==='function')calcVI();">
             <option>Simpson biplano</option>
             <option>Teicholz</option>
             <option>Visual</option>
           </select>
+        </div>
+        <div class="fg" id="fevi-hasta-wrap" style="display:none;">
+          <label>FEVI hasta (%) <span style="font-weight:400;color:var(--text2);font-size:10px;">rango visual</span></label>
+          <input type="number" id="fevi_hasta" placeholder="ej. 50" oninput="if(typeof calcVI==='function')calcVI();">
         </div>
         <div class="fg">
           <label>SGL (%, negativo)</label>
@@ -9738,37 +9742,40 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </button>
     </div>
 
-    <div style="margin-bottom:14px;">
+    <div id="evol-tabla" style="overflow-x:auto;"></div>
+
+    <!-- Evolución temporal: va DEBAJO de la tabla de deltas. Se oculta entera
+         si hay un solo estudio, porque una línea de un punto no dice nada. -->
+    <div id="evol-gráfico-wrap" style="margin-top:18px;">
       <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">
-        Parámetros a mostrar
+        Evolución temporal
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:10px;">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
         <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer;">
           <input type="checkbox" id="evol-fevi" checked onchange="actualizarGraficaEvol()"> FEVI
         </label>
         <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer;">
-          <input type="checkbox" id="evol-gls" checked onchange="actualizarGraficaEvol()"> GLS
+          <input type="checkbox" id="evol-sgl" checked onchange="actualizarGraficaEvol()"> SGL
         </label>
         <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer;">
-          <input type="checkbox" id="evol-psap" onchange="actualizarGraficaEvol()"> PSAP
+          <input type="checkbox" id="evol-tapse" checked onchange="actualizarGraficaEvol()"> TAPSE
         </label>
         <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer;">
-          <input type="checkbox" id="evol-tapse" onchange="actualizarGraficaEvol()"> TAPSE
+          <input type="checkbox" id="evol-ee" checked onchange="actualizarGraficaEvol()"> E/e'
         </label>
         <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer;">
-          <input type="checkbox" id="evol-lavi" onchange="actualizarGraficaEvol()"> Vol AI
+          <input type="checkbox" id="evol-ddvi" onchange="actualizarGraficaEvol()"> DDVI
         </label>
         <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer;">
-          <input type="checkbox" id="evol-ee" onchange="actualizarGraficaEvol()"> E/e'
+          <input type="checkbox" id="evol-lavi" onchange="actualizarGraficaEvol()"> LAVI
         </label>
       </div>
+      <div style="position:relative;height:320px;">
+        <canvas id="chart-evolucion"></canvas>
+      </div>
+      <p id="evol-aviso" style="font-size:11px;color:var(--text2);margin:8px 0 0;line-height:1.5;"></p>
     </div>
 
-    <div style="position:relative;height:300px;margin-bottom:16px;">
-      <canvas id="chart-evolucion"></canvas>
-    </div>
-
-    <div id="evol-tabla" style="overflow-x:auto;"></div>
 
   </div>
 </div>
@@ -11110,6 +11117,29 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') diastAlgoCer
   const hs = document.getElementById('hfapeff-seccion');
   if (hs && hs.style.display !== 'none' && typeof hfapeffRender === 'function') hfapeffRender();
 }));
+
+// ── FEVI por estimación visual: se informa el RANGO, no sólo el piso ──
+// Con método Visual y "FEVI hasta" cargado devuelve "45-50%"; en cualquier otro
+// caso, el valor único de siempre. La clasificación (normal / levemente
+// reducida / etc.) sigue usando el valor inferior, que es el conservador.
+function feviRangoTexto(feviBase) {
+  const val = (feviBase !== undefined && feviBase !== null) ? feviBase : v('fevi');
+  if (val === null || val === undefined || isNaN(val)) return '';
+  const met = (sv('fevi_met') || '').toLowerCase();
+  const hasta = v('fevi_hasta');
+  if (met.indexOf('visual') === 0 && hasta !== null && !isNaN(hasta) && hasta > val) {
+    return val + '-' + hasta + '%';
+  }
+  return val + '%';
+}
+window.feviRangoTexto = feviRangoTexto;
+
+// Muestra el campo del límite superior sólo con estimación visual.
+function feviRangoUI() {
+  const w = document.getElementById('fevi-hasta-wrap');
+  if (w) w.style.display = ((sv('fevi_met') || '').toLowerCase().indexOf('visual') === 0) ? '' : 'none';
+}
+window.feviRangoUI = feviRangoUI;
 
 // ══ Algoritmo ASE 2025 (recomendado) ══
 // (mismos umbrales que la función provista; cableado a los ids reales de EcoSmart
@@ -12554,15 +12584,18 @@ function generarInforme() {
   let feviFragC = '', feviFragE = '', feviFragN = '';
   if (fevi !== null) {
     let feviConcepto, feviSuma, feviNarr, feviTail;
-    if (fevi >= UMBRAL_FEVI_NORMAL) { feviConcepto = 'normal'; feviSuma = `FEVI normal (${fevi}%)`; feviNarr = 'conservada'; feviTail = ', sin evidencia de compromiso de la función sistólica global'; }
-    else if (fevi >= 40) { feviConcepto = 'levemente reducida'; feviSuma = `FEVI levemente reducida (${fevi}%)`; feviNarr = 'levemente reducida'; feviTail = ', compatible con disfunción sistólica leve'; }
-    else if (fevi >= 30) { feviConcepto = 'moderadamente reducida'; feviSuma = `FEVI moderadamente reducida (${fevi}%)`; feviNarr = 'moderadamente reducida'; feviTail = ', compatible con disfunción sistólica moderada'; }
-    else { feviConcepto = 'severamente reducida'; feviSuma = `FEVI severamente reducida (${fevi}%)`; feviNarr = 'severamente comprometida'; feviTail = ', compatible con miocardiopatía con disfunción sistólica severa'; }
+    if (fevi >= UMBRAL_FEVI_NORMAL) { feviConcepto = 'normal'; feviSuma = `FEVI normal (${feviRangoTexto(fevi)})`; feviNarr = 'conservada'; feviTail = ', sin evidencia de compromiso de la función sistólica global'; }
+    else if (fevi >= 40) { feviConcepto = 'levemente reducida'; feviSuma = `FEVI levemente reducida (${feviRangoTexto(fevi)})`; feviNarr = 'levemente reducida'; feviTail = ', compatible con disfunción sistólica leve'; }
+    else if (fevi >= 30) { feviConcepto = 'moderadamente reducida'; feviSuma = `FEVI moderadamente reducida (${feviRangoTexto(fevi)})`; feviNarr = 'moderadamente reducida'; feviTail = ', compatible con disfunción sistólica moderada'; }
+    else { feviConcepto = 'severamente reducida'; feviSuma = `FEVI severamente reducida (${feviRangoTexto(fevi)})`; feviNarr = 'severamente comprometida'; feviTail = ', compatible con miocardiopatía con disfunción sistólica severa'; }
     const metodo = sv('fevi_met') || 'Simpson biplano';
+    // Con estimación visual y límite superior cargado se informa el RANGO
+    // completo. La clasificación usa el valor inferior, que es el conservador.
+    const feviTxt = feviRangoTexto(fevi);
     const _sglFrag = _sglV ? ` con SGL ${_sglV}%` : '';
-    feviFragC = `FEVI ${feviConcepto} (${fevi}%)${_sglFrag}`;
-    feviFragE = `función sistólica ${feviConcepto}, FEVI ${fevi}% por ${metodo}${_sglV ? `, SGL ${_sglV}%` : ''}`;
-    feviFragN = `la función sistólica global se encuentra ${feviNarr}, con una fracción de eyección del ventrículo izquierdo de ${fevi}% estimada por método de ${metodo}${_sglV ? ` y un strain longitudinal global de ${_sglV}%` : ''}${feviTail}`;
+    feviFragC = `FEVI ${feviConcepto} (${feviTxt})${_sglFrag}`;
+    feviFragE = `función sistólica ${feviConcepto}, FEVI ${feviTxt} por ${metodo}${_sglV ? `, SGL ${_sglV}%` : ''}`;
+    feviFragN = `la función sistólica global se encuentra ${feviNarr}, con una fracción de eyección del ventrículo izquierdo de ${feviTxt} estimada por método de ${metodo}${_sglV ? ` y un strain longitudinal global de ${_sglV}%` : ''}${feviTail}`;
     suma.push(feviSuma + (_sglV ? ` con SGL ${_sglV}%` : '') + '.');
   }
 
@@ -13622,7 +13655,8 @@ function generarPDFReal() {
   }
   const faStr  = (dd&&ds)?((dd-ds)/dd*100).toFixed(1)+'%':null;
   const feviM  = sv('fevi_met');
-  const feviS  = v('fevi')?v('fevi')+'%'+(feviM?' ('+feviM+')':''):null;
+  // Con estimación visual muestra el rango completo (feviRangoTexto), no el piso.
+  const feviS  = v('fevi')?feviRangoTexto(v('fevi'))+(feviM?' ('+feviM+')':''):null;
   const sglN   = v('sgl');
   const sglS   = sglN?sglN+'%  —  '+(Math.abs(sglN)>=20?'Normal':Math.abs(sglN)>=16?'Zona gris':'Anormal'):null;
 
@@ -13957,20 +13991,8 @@ function generarPDFReal() {
       y += 2;
     }
   }
-  // Si el perfil ya se integró al bloque ETT Avanzado no se repite acá.
-  const _hemoYaInt = (typeof amiloEnInforme === 'function') && (amiloEnInforme() || []).some(d => d.k === 'hemo');
-  if (localStorage.getItem('hemo_incluir_pdf') === '1' && !_hemoYaInt) {
-    const _hrows = [
-      ['Perfil de Forrester','hemo-forrester'], ['Perfil hemodinámico','hemo-perfil'], ['HTP (pre/pos/mixta)','hemo-htp-tipo'],
-      ['Gasto cardíaco (GC)','hemo-gc'], ['Índice cardíaco (IC)','hemo-ic'], ['RVS','hemo-rvs'],
-      ['PCP','hemo-pcp'], ['GTP','hemo-gtp'], ['RVP','hemo-rvp']
-    ].map(r => [r[0], _cxtx(r[1])]).filter(r => r[1] && r[1] !== '—' && !r[1].startsWith('Requiere'));
-    if (_hrows.length) {
-      checkPage(12 + _hrows.length * 5); drawBar('PERFIL HEMODINÁMICO'); y += 3;
-      _hrows.forEach(r => { checkPage(6); fb(7.5); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(r[0] + ': ', mL + 2, y); const _lw = doc.getTextWidth(r[0] + ': '); fn(8); tc(30,30,30); doc.text(r[1], mL + 2 + _lw, y, { maxWidth: pgW - _lw - 6 }); y += 5; });
-      y += 2;
-    }
-  }
+  // El perfil hemodinámico NO se dibuja acá: vive exclusivamente en el bloque
+  // ETT Avanzado, vía el botón "Integrar al informe" de la tab Hemodinámica.
 
   // ════════════════════════════════════════════════════════════
   // ECO ESTRÉS (si el toggle está activo y hay datos) — después del EN SUMA, antes de las imágenes del ETT
@@ -18656,9 +18678,8 @@ function cxWilkinsPDF(){ _togglePDF('wilkins_incluir_pdf','cx-wilkins-pdf','Scor
 function cxDukePDF(){ _togglePDF('duke_incluir_pdf','cx-duke-pdf','Score de Duke'); }
 function cxGtpPDF(){ _togglePDF('gtp_incluir_pdf','cx-gtp-pdf','GTP/RVP'); }
 function eeIncluirPDF(){ _togglePDF('ecoestres_incluir_pdf','ee-incluir-pdf','Eco Estrés'); }
-function hemoIncluirPDF(){ _togglePDF('hemo_incluir_pdf','hemo-pdf-toggle','Perfil hemodinámico'); }
 function eteQxIncluirPDF(){ _togglePDF('mitral_qx_incluir_pdf','ete-qx-pdf','Vista quirúrgica mitral'); }
-window.cxWilkinsPDF=cxWilkinsPDF; window.cxDukePDF=cxDukePDF; window.cxGtpPDF=cxGtpPDF; window.eeIncluirPDF=eeIncluirPDF; window.hemoIncluirPDF=hemoIncluirPDF; window.eteQxIncluirPDF=eteQxIncluirPDF;
+window.cxWilkinsPDF=cxWilkinsPDF; window.cxDukePDF=cxDukePDF; window.cxGtpPDF=cxGtpPDF; window.eeIncluirPDF=eeIncluirPDF; window.eteQxIncluirPDF=eteQxIncluirPDF;
 
 // ══════════ Eco Estrés · Tabla de protocolo + toggles PDF por sección ══════════
 var EE_PROTO={
@@ -18834,7 +18855,6 @@ _pdfToggleBtnState('cx-wilkins-pdf', localStorage.getItem('wilkins_incluir_pdf')
 _pdfToggleBtnState('cx-duke-pdf', localStorage.getItem('duke_incluir_pdf')==='1');
 _pdfToggleBtnState('cx-gtp-pdf', localStorage.getItem('gtp_incluir_pdf')==='1');
 _pdfToggleBtnState('ee-incluir-pdf', localStorage.getItem('ecoestres_incluir_pdf')==='1');
-_pdfToggleBtnState('hemo-pdf-toggle', localStorage.getItem('hemo_incluir_pdf')==='1');
 _pdfToggleBtnState('ete-qx-pdf', localStorage.getItem('mitral_qx_incluir_pdf')==='1');
 if (typeof cxWilkins === 'function') cxWilkins();
 
@@ -21654,119 +21674,82 @@ function cerrarEvolucion() {
 }
 
 function actualizarGraficaEvol() {
-  if (!_evolDatos.length) return;
+  const wrap = document.getElementById('evol-gráfico-wrap');
+  const aviso = document.getElementById('evol-aviso');
+  const canvas = document.getElementById('chart-evolucion');
+  const prev = (typeof Chart !== 'undefined') ? Chart.getChart('chart-evolucion') : null;
+  if (prev) prev.destroy();
+  if (!wrap || !canvas) return;
 
-  const labels = _evolDatos.map(i => i.fecha_estudio || '—');
+  // Con un solo estudio no hay evolución que mostrar.
+  if (!_evolDatos.length || _evolDatos.length < 2) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
 
-  const getVals = (campo) =>
-    _evolDatos.map(i => {
-      const v = i.campos?.[campo];
-      return v ? PF(String(v).replace(',','.')) : null;
-    });
+  // Los estudios guardan `campos` con los IDs del formulario. LAVI y E/e' no se
+  // guardan calculados: se derivan acá de Vol AI + ASC y de E / e' promedio.
+  const num = (c, id) => { const x = c && c[id]; if (x === undefined || x === null || x === '') return null;
+    const n = PF(String(x).replace(',', '.')); return (n === null || isNaN(n)) ? null : n; };
+  const serie = fn => _evolDatos.map(i => { try { return fn(i.campos || {}); } catch (e) { return null; } });
 
-  const series = [];
-  const colores = {
-    fevi:  { color: '#3ecf8e', label: 'FEVI (%)' },
-    gls:   { color: '#f05454', label: 'GLS (%)' },
-    psap:  { color: '#f5c842', label: 'PSAP (mmHg)' },
-    tapse: { color: '#63b3ed', label: 'TAPSE (mm)' },
-    lavi:  { color: '#b794f4', label: 'Vol AI (ml/m²)' },
-    ee:    { color: '#f6ad55', label: "E/e'" },
+  const PAR = {
+    fevi:  { lbl:'FEVI (%)',      color:'#3ecf8e', ref:50,  get:c => num(c,'fevi') },
+    sgl:   { lbl:'SGL (%)',       color:'#f05454', ref:-20, get:c => num(c,'sgl') },
+    tapse: { lbl:'TAPSE (mm)',    color:'#63b3ed', ref:17,  get:c => num(c,'tapse') },
+    ee:    { lbl:"E/e' promedio", color:'#f6ad55', ref:14,  get:c => {
+              const e = num(c,'onda_e'), s2 = num(c,'e_sep'), l = num(c,'e_lat');
+              const ep = (s2 && l) ? (s2 + l) / 2 : (s2 || l);
+              return (e && ep) ? +(e / ep).toFixed(1) : null; } },
+    ddvi:  { lbl:'DDVI (mm)',     color:'#a0aec0', ref:58,  get:c => num(c,'ddfvi') },
+    lavi:  { lbl:'LAVI (ml/m²)',  color:'#b794f4', ref:34,  get:c => {
+              const vol = num(c,'ai_vol'), pe = num(c,'peso'), ta = num(c,'talla');
+              if (!vol || !pe || !ta) return null;
+              const bsa = 0.007184 * Math.pow(ta, 0.725) * Math.pow(pe, 0.425);
+              return bsa ? +(vol / bsa).toFixed(1) : null; } }
   };
 
-  const campos = {
-    fevi:  'fevi_simpson',
-    gls:   'gls_global',
-    psap:  'psap_calc',
-    tapse: 'tapse',
-    lavi:  'lavi',
-    ee:    'ee_prom',
-  };
+  const labels = _evolDatos.map(i => (i.fecha_estudio || '—').split('-').reverse().join('/'));
+  const series = [], omitidos = [];
 
-  Object.keys(colores).forEach(key => {
-    const chk = document.getElementById('evol-' + key);
-    if (!chk?.checked) return;
-    const data = getVals(campos[key]);
-    if (data.some(v => v !== null)) {
-      series.push({
-        label: colores[key].label,
-        data,
-        borderColor: colores[key].color,
-        backgroundColor: colores[key].color + '22',
-        tension: 0.3,
-        fill: false,
-        spanGaps: true,
-        pointRadius: 5,
-        pointHoverRadius: 7,
-      });
-    }
+  Object.keys(PAR).forEach(k2 => {
+    const chk = document.getElementById('evol-' + k2);
+    if (!chk || !chk.checked) return;
+    const P = PAR[k2];
+    const data = serie(P.get);
+    const conDato = data.filter(x => x !== null).length;
+    // Menos de 2 puntos no dibuja línea: no hay evolución posible.
+    if (conDato < 2) { if (conDato) omitidos.push(P.lbl); return; }
+    series.push({ label:P.lbl, data, borderColor:P.color, backgroundColor:P.color + '22',
+                  tension:0.3, fill:false, spanGaps:true, pointRadius:4, pointHoverRadius:7, borderWidth:2 });
+    // Línea punteada de referencia normal, del mismo color y sin puntos.
+    series.push({ label:P.lbl + ' — referencia (' + P.ref + ')', data: labels.map(() => P.ref),
+                  borderColor:P.color, borderDash:[5,4], borderWidth:1, pointRadius:0,
+                  fill:false, tension:0, _esRef:true });
   });
 
-  const existing = Chart.getChart('chart-evolucion');
-  if (existing) existing.destroy();
+  if (aviso) aviso.textContent = omitidos.length
+    ? 'Sin graficar por tener un solo dato: ' + omitidos.join(', ') + '. Hacen falta al menos 2 estudios con ese parámetro.'
+    : '';
 
-  const canvas = document.getElementById('chart-evolucion');
-  if (!canvas || !series.length) return;
+  if (!series.length) return;
 
   new Chart(canvas, {
     type: 'line',
     data: { labels, datasets: series },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode:'index', intersect:false },
       plugins: {
-        legend: { position: 'top', labels: { font: { size: 11 } } },
-        tooltip: { callbacks: {
-          label: ctx => ctx.dataset.label + ': ' +
-            (ctx.parsed.y !== null ? ctx.parsed.y : '—')
-        }}
+        legend: { labels: { boxWidth: 12, font: { size: 11 },
+          filter: it => !/referencia/.test(it.text) } },      // las de referencia no ensucian la leyenda
+        tooltip: { filter: it => !(it.dataset && it.dataset._esRef) }
       },
       scales: {
         x: { ticks: { font: { size: 10 } } },
-        y: { beginAtZero: false }
+        y: { ticks: { font: { size: 10 } } }
       }
     }
   });
 
-  // Tabla resumen debajo del gráfico
-  const tablaEl = document.getElementById('evol-tabla');
-  const paramsCols = Object.keys(colores).filter(k => {
-    const chk = document.getElementById('evol-' + k);
-    return chk?.checked;
-  });
-
-  tablaEl.innerHTML = `
-    <table style="width:100%;border-collapse:collapse;font-size:.78rem;margin-top:8px;">
-      <thead>
-        <tr style="background:var(--bg3);">
-          <th style="padding:6px 10px;text-align:left;border-bottom:1px solid var(--border);">Fecha</th>
-          ${paramsCols.map(k =>
-            `<th style="padding:6px 10px;text-align:center;border-bottom:1px solid var(--border);">
-              ${colores[k].label}
-            </th>`
-          ).join('')}
-          <th style="padding:6px 10px;text-align:left;border-bottom:1px solid var(--border);">Conclusión</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${_evolDatos.map(inf => `
-          <tr style="border-bottom:1px solid var(--border);">
-            <td style="padding:6px 10px;">${inf.fecha_estudio||'—'}</td>
-            ${paramsCols.map(k => {
-              const v = inf.campos?.[campos[k]];
-              return `<td style="padding:6px 10px;text-align:center;font-weight:700;color:var(--accent2);">
-                ${v ? escHtml(v) : '—'}
-              </td>`;
-            }).join('')}
-            <td style="padding:6px 10px;font-size:.72rem;color:var(--text2);max-width:200px;">
-              ${escHtml((inf.campos?.en_suma||'').substring(0,80))}
-              ${(inf.campos?.en_suma||'').length > 80 ? '…' : ''}
-            </td>
-          </tr>`
-        ).join('')}
-      </tbody>
-    </table>`;
 }
 
 window.verEvolucion = verEvolucion;
