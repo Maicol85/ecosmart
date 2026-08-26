@@ -23223,14 +23223,14 @@ const MANUAL_SECCIONES = [
   ]},
   { t: `3. El encabezado`, p: [
     `El encabezado está siempre visible.`,
-    `Botones izquierda: Médico (editar nombre, matrícula y centro), Centro (seleccionar institución), Logo (cargar imagen de la institución para el PDF).`,
+    `Botones izquierda: Médico (muestra el nombre del médico activo; al tocar abre Configuración), Centro (muestra el centro principal configurado; al tocar abre Configuración), Logo (cargar imagen de la institución para el PDF). Si no hay datos configurados, los botones muestran el texto genérico "Médico" y "Centro".`,
     `Botones derecha: Noche/Día (modo oscuro/claro), Exportar (backup JSON), Importar (restaurar desde JSON), Exportar para Analytics, Generar Informe, PDF (genera el informe en PDF — en móvil visible directamente en el encabezado), swatches de color del PDF (azul, verde, violeta, bordo), botón de ayuda, Cerrar sesión.`,
   ]},
   { t: `4. Configuración`, p: [
     `Accedé desde la columna izquierda tocando Config.`,
-    `Institución y firma: Nombre del médico, Matrícula, Especialidad, Ciudad/Lugar, Dirección del consultorio, Teléfono. Esta información aparece en la firma del PDF.`,
+    `Institución y firma: Especialidad, Ciudad/Lugar, Dirección del consultorio, Teléfono. Esta información aparece en la firma del PDF junto con los datos del médico activo.`,
     `Centros de trabajo: hasta 10 centros. Elegí el principal para que aparezca por defecto.`,
-    `Médicos: registrá varios médicos. Al seleccionar uno, sus datos se cargan en encabezado y firma.`,
+    `Médicos: registrá varios médicos con nombre, matrícula y especialidad. Marcá uno como Principal para que aparezca en el encabezado y firme el PDF. Al agregar el primer médico queda como Principal automáticamente.`,
     `Modo institucional: cuando está activo, el PDF lleva el nombre de tu institución en encabezado y pie en lugar del branding de CeiboMed.`,
     `Módulos avanzados: activá o desactivá Hemodinámica, ETE, Amiloidosis, Cardio-Oncología desde aquí.`,
   ]},
@@ -23339,6 +23339,7 @@ const MANUAL_SECCIONES = [
     `Accedé desde el botón Laboratorio en la barra inferior. Analiza automáticamente todos los estudios guardados.`,
     `Secciones: Dashboard (corazón anatómico con promedios), Indicaciones y Antecedentes (en paralelo, tabla + torta), Hallazgos frecuentes, Perfil demográfico, Función sistólica FEVI (4 rangos: >=50%/40-49%/30-39%/<30%), Función diastólica (por grado), Geometría VI, Contractilidad (bull's eye poblacional 17 segmentos), Valvulopatías (severidades por válvula), Función VD (TAPSE), HTP/PSAP, Volumen AI indexado, Calidad del Laboratorio (% estudios con cada parámetro medido), Indicadores automáticos (oportunidades clínicas), Docencia (casos de interés marcados con estrella), Estadísticas (media, mediana, DS, percentiles), Asociaciones estadísticas.`,
     `Filtros: por médico, por centro, por período.`,
+    `Nota importante — Edición manual del informe y estadística del Laboratorio: EcoSmart permite editar libremente el texto del informe generado automáticamente. Sin embargo, las modificaciones manuales sobre el informe narrativo no retroalimentan los datos estructurados del Laboratorio. El Laboratorio siempre toma los valores calculados por la aplicación (parámetros ecocardiográficos, clasificación diastólica, trastornos sectoriales, etc.), independientemente de lo que figure en el texto del informe firmado. Si el criterio clínico difiere del cálculo automático, se recomienda también ajustar los parámetros en la interfaz estructurada para mantener coherencia entre informe y Laboratorio.`,
   ]},
   { t: `24. Asociaciones estadísticas`, p: [
     `La tabla analiza pares de variables buscando relaciones estadísticas. Columnas: Categoría, Asociación, Interpretación (frase clínica automática), N, Método, Dirección (flechas arriba-arriba = ambas suben juntas; arriba-abajo = una sube cuando la otra baja; flecha = sin dirección lineal), Fuerza (Débil/Moderada/Fuerte), Estadístico, p, Semáforo (verde = significativa con N suficiente, amarillo = significativa N bajo, gris = no significativa).`,
