@@ -1089,9 +1089,11 @@ window.cerrarSesion = cerrarSesion;
       <!-- Institución y firma -->
       <div style="margin-bottom:22px;">
         <div class="cfg-sec-title">🏥 Institución y firma</div>
+        <!-- Nombre y matrícula NO van acá: eran una segunda fuente de verdad que se
+             pisaba con la lista de "👨‍⚕️ Médicos" de más abajo (marcar Principal los
+             revertía). Ahora se editan sólo ahí, con el ✏️ de cada fila. -->
+        <p style="font-size:11.5px;color:var(--text2);margin:-4px 0 10px;line-height:1.5;">El <strong>nombre</strong> y la <strong>matrícula</strong> que firman el informe salen del médico marcado como <strong>Principal</strong> en 👨‍⚕️ Médicos (más abajo).</p>
         <div class="grid-2">
-          <div class="fg"><label>Nombre del médico</label><input type="text" id="cfg-med-nombre" oninput="cfgSaveMed('med-nombre',this.value)"></div>
-          <div class="fg"><label>Matrícula</label><input type="text" id="cfg-med-matricula" oninput="cfgSaveMed('med-matricula',this.value)"></div>
           <div class="fg"><label>Especialidad</label><div class="cfg-opt-row"><input type="checkbox" id="cfg-med-especialidad-on" onchange="cfgToggleOpt('esp',this.checked)" title="Incluir en el PDF"><input type="text" id="cfg-med-especialidad" oninput="cfgSaveOpt('esp',this.value)"></div></div>
           <div class="fg"><label>Ciudad / Lugar</label><div class="cfg-opt-row"><input type="checkbox" id="cfg-med-lugar-on" onchange="cfgToggleOpt('lugar',this.checked)" title="Incluir en el PDF"><input type="text" id="cfg-med-lugar" oninput="cfgSaveOpt('lugar',this.value)"></div></div>
           <div class="fg"><label>Dirección del consultorio</label><div class="cfg-opt-row"><input type="checkbox" id="cfg-med-direccion-on" onchange="cfgToggleOpt('dir',this.checked)" title="Incluir en el PDF"><input type="text" id="cfg-med-direccion" oninput="cfgSaveOpt('dir',this.value)"></div></div>
@@ -1119,7 +1121,7 @@ window.cerrarSesion = cerrarSesion;
       <!-- Médicos -->
       <div style="margin-bottom:22px;border-top:1px solid var(--border);padding-top:16px;">
         <div class="cfg-sec-title">👨‍⚕️ Médicos</div>
-        <p style="font-size:11.5px;color:var(--text2);margin-bottom:10px;line-height:1.5;">Definí tus médicos (máx. 5). El <strong>principal</strong> se usa por defecto; si hay más de uno, aparece un selector en el encabezado.</p>
+        <p style="font-size:11.5px;color:var(--text2);margin-bottom:10px;line-height:1.5;">Definí tus médicos (máx. 5). El que marques como <strong>Principal</strong> es el que firma el informe y el que se muestra en el encabezado. Para cambiar de médico, marcá otro como Principal.</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
           <input type="text" id="cfg-medico-nombre" placeholder="Nombre (Dr./Dra. …)" style="flex:2;min-width:160px;">
           <input type="text" id="cfg-medico-matricula" placeholder="Matrícula" style="flex:1;min-width:100px;">
@@ -13565,7 +13567,15 @@ function generarPDFReal() {
     const _sueltos = [];   // firmas legacy (`opcionales` en array): sin semántica por campo
 
     if (_propia) {
-      _nom = T(_f.nombre); _num = T(_f.cjpp);
+      // Quién firma lo decide SIEMPRE el médico Principal, no el objeto firma. La
+      // firma es per-centro y quedaba con el nombre viejo: si se borraba al médico
+      // o se cambiaba de Principal, la pantalla decía una cosa y el PDF salía
+      // firmado por otra. Del objeto firma se toman sólo los datos del CENTRO
+      // (dirección, ciudad, teléfono, email), que sí dependen de la institución.
+      const _pr = (typeof ecoGetMedicos === 'function') ? ecoGetMedicos() : [];
+      const _md = _pr.length ? (_pr[(typeof ecoGetMedPrincipal === 'function') ? ecoGetMedPrincipal() : 0] || _pr[0]) : null;
+      _nom = _md ? T(_md.nombre) : '';
+      _num = _md ? T(_md.matricula) : '';
       const _arr = _f.opcionales || _f.opciones || _f.campos || _f.extras || _f.optionals;
       if (Array.isArray(_arr)) {
         _arr.forEach(it => {
@@ -15395,7 +15405,10 @@ function ecoGetMedicos(){ try{ const a=JSON.parse(localStorage.getItem(ETT_MEDIC
 function ecoSetMedicos(a){ try{ localStorage.setItem(ETT_MEDICOS_KEY, JSON.stringify(a.slice(0,5))); }catch(e){} }
 function ecoGetMedPrincipal(){ const n=parseInt(localStorage.getItem(ETT_MED_PR_KEY)); return isNaN(n)?0:n; }
 function ecoSetMedPrincipal(i){ try{ localStorage.setItem(ETT_MED_PR_KEY, String(i)); }catch(e){} }
-function ecoGetMedActivo(){ const meds=ecoGetMedicos(); if(!meds.length) return -1; const n=parseInt(localStorage.getItem(ETT_MED_ACT_KEY)); const idx=isNaN(n)?ecoGetMedPrincipal():n; return (idx>=0&&idx<meds.length)?idx:0; }
+// Activo = Principal, siempre. Antes existía un "activo" aparte (ETT_MED_ACT_KEY)
+// que movía el selector rápido del header; al retirarse ese selector, tener dos
+// nociones sólo permitía que el que firma no fuera el que decís que es el principal.
+function ecoGetMedActivo(){ const meds=ecoGetMedicos(); if(!meds.length) return -1; const idx=ecoGetMedPrincipal(); return (idx>=0&&idx<meds.length)?idx:0; }
 function ecoSetMedActivo(i){ try{ localStorage.setItem(ETT_MED_ACT_KEY, String(i)); }catch(e){} }
 // Migración: si no hay lista pero hay un médico ya configurado, sembrarlo como primero
 function ecoInitMedicos(){
@@ -15418,11 +15431,13 @@ function _setMedField(id,val){
 // muestran lo que hay guardado en ⚙️ Config y, al tocarlos, llevan ahí. La única
 // fuente de verdad es Configuración; el header es un espejo.
 function hdrMedicoNombre(){
-  // El span med-nombre es lo que ya leen el PDF y la firma: mismo dato, sin desync.
-  const el=document.getElementById('med-nombre');
-  const v=el?String(el.textContent||'').trim():'';
-  if(v) return v;
-  try{ return (localStorage.getItem('med_nombre')||localStorage.getItem('ett_med_nombre')||'').trim(); }catch(e){ return ''; }
+  // Siempre el médico marcado como Principal en la lista: única fuente de verdad.
+  // Sin lista no hay médico configurado (ecoInitMedicos ya migró los datos viejos),
+  // así que el header muestra el genérico y el PDF sale sin firmar.
+  const meds=(typeof ecoGetMedicos==='function')?ecoGetMedicos():[];
+  if(!meds.length) return '';
+  const m=meds[(typeof ecoGetMedPrincipal==='function')?ecoGetMedPrincipal():0]||meds[0];
+  return ((m&&m.nombre)||'').trim();
 }
 function hdrCentroNombre(){
   // Prioridad al centro principal de Config; si todavía no hay lista, se cae al
@@ -15434,21 +15449,58 @@ function hdrCentroNombre(){
   if(v) return v;
   try{ return (localStorage.getItem('centro_nombre')||'').trim(); }catch(e){ return ''; }
 }
+// En pantallas angostas el nombre completo no entra y la elipsis corta por donde
+// cae ("Dr. Maicol Dos San…"). Se abrevia: varias palabras → iniciales
+// ("Dr. Maicol Dos Santos" → "M.D.S."), una sola → sus primeras 3 letras
+// ("Gremeda" → "Gre"), que distinguen mejor que una inicial suelta.
+// El nombre completo sigue estando en el title, así que no se pierde información.
+function hdrAbrev(txt){
+  let s=String(txt||'').trim();
+  if(!s) return '';
+  s=s.replace(/^(dr|dra|doc|doctor|doctora|lic|prof)\.?\s+/i,'');       // el título no aporta inicial
+  const p=s.split(/\s+/).filter(w=>w&&!/^(de|del|la|las|los|el|y)$/i.test(w));  // conectores fuera
+  if(!p.length) return '';
+  if(p.length===1) return p[0].slice(0,3);
+  return p.map(w=>w[0].toUpperCase()).join('.')+'.';
+}
+var _hdrMQAngosto=null;
+function hdrEsAngosto(){
+  if(!_hdrMQAngosto&&window.matchMedia) _hdrMQAngosto=window.matchMedia('(max-width: 600px)');
+  return _hdrMQAngosto?_hdrMQAngosto.matches:(window.innerWidth<=600);
+}
 function hdrSyncIdentidad(){
+  const corto=hdrEsAngosto();
   const med=document.getElementById('hdr-med-btn');
   if(med){
     const n=hdrMedicoNombre();
-    med.textContent='🩺 '+(n||'Médico');
+    med.textContent='🩺 '+(n?(corto?hdrAbrev(n):n):'Médico');
     med.title=n?(n+' — editar en ⚙️ Config'):'Sin médico configurado — tocá para configurarlo';
   }
   const cen=document.getElementById('hdr-centro-btn');
   if(cen){
     const c=hdrCentroNombre();
-    cen.textContent='🏥 '+(c||'Centro');
+    cen.textContent='🏥 '+(c?(corto?hdrAbrev(c):c):'Centro');
     cen.title=c?(c+' — editar en ⚙️ Config'):'Sin centro configurado — tocá para configurarlo';
   }
 }
 window.hdrSyncIdentidad=hdrSyncIdentidad;
+// Repinta SÓLO al cruzar el breakpoint (nombre completo ⇄ iniciales). La guarda por
+// estado previo la hace idempotente: la llama el ResizeObserver del header, y sin
+// ella reescribir el texto del botón podría realimentar al observer.
+var _hdrAngostoPrev=null;
+function hdrSyncSiCambioAncho(){
+  const a=hdrEsAngosto();
+  if(a===_hdrAngostoPrev) return;
+  _hdrAngostoPrev=a;
+  hdrSyncIdentidad();
+}
+window.hdrSyncSiCambioAncho=hdrSyncSiCambioAncho;
+// matchMedia cubre el caso real (rotar el celular, redimensionar la ventana).
+if(window.matchMedia){
+  const _mqH=window.matchMedia('(max-width: 600px)');
+  if(_mqH.addEventListener) _mqH.addEventListener('change',hdrSyncSiCambioAncho);
+  else if(_mqH.addListener) _mqH.addListener(hdrSyncSiCambioAncho);
+}
 // Abre la tab Configuración. No usa showTab() porque ésa marca como activo el
 // event.target, y acá el que dispara es un botón del header, no el del rail.
 function hdrIrAConfig(){
@@ -15469,9 +15521,6 @@ function aplicarMedico(idx){
   _setMedField('med-especialidad', m.especialidad||'');
   if(typeof updateHdrExtra==='function') updateHdrExtra();
   renderMedHeaderSelector();
-  // reflejar en los inputs de Config (Institución y firma) si existen
-  const cn=document.getElementById('cfg-med-nombre'); if(cn) cn.value=m.nombre||'';
-  const cm=document.getElementById('cfg-med-matricula'); if(cm) cm.value=m.matricula||'';
   // La especialidad del médico elegido entra al objeto firma (y de ahí al checkbox
   // de Config y del panel de Firma); si no, el próximo guardado la pisaría.
   if(typeof firmaAdoptFromHeader==='function') firmaAdoptFromHeader();
@@ -15528,7 +15577,14 @@ function cfgDelMedico(i){
   let pr=ecoGetMedPrincipal(); if(i<pr) pr--; if(pr>=meds.length) pr=0; ecoSetMedPrincipal(Math.max(0,pr));
   ecoSetMedActivo(ecoGetMedPrincipal());
   cfgRenderMedicos();
-  if(meds.length) aplicarMedico(ecoGetMedActivo()); else renderMedHeaderSelector();
+  if(meds.length) aplicarMedico(ecoGetMedActivo());
+  else {
+    // Se borró el último: hay que vaciar los spans que alimentan el PDF y la firma.
+    // Si no, el informe seguiría saliendo firmado por un médico que ya no existe.
+    _setMedField('med-nombre',''); _setMedField('med-matricula',''); _setMedField('med-especialidad','');
+    if(typeof updateHdrExtra==='function') updateHdrExtra();
+    renderMedHeaderSelector(); hdrSyncIdentidad();
+  }
 }
 function cfgEditMedico(i){
   let meds=ecoGetMedicos(); if(i<0||i>=meds.length) return; const m=meds[i];
@@ -15652,8 +15708,8 @@ function firmaRefreshUI(f) {
   set('firma-cjpp',   'value', f.cjpp   || '');
   set('firma-email',    'value',   (f.email && f.email.val) || '');
   set('firma-email-on', 'checked', !!(f.email && f.email.on));
-  set('cfg-med-nombre',    'value', f.nombre || '');
-  set('cfg-med-matricula', 'value', f.cjpp   || '');
+  // cfg-med-nombre / cfg-med-matricula ya no existen: nombre y matrícula salen del
+  // médico Principal de la lista, no de un campo suelto de Config.
 }
 window.firmaRefreshUI = firmaRefreshUI;
 
@@ -17487,11 +17543,14 @@ function amiloImprimirPDF(cual) {
   // Pie: firma y disclaimer, coherente con el informe
   const med = id => { const e = document.getElementById(id); return e ? String(e.textContent || '').trim() : ''; };
   doc.setFont('helvetica','bolditalic'); doc.setFontSize(7.5); doc.setTextColor(0,0,0);
-  // Sin fallback hardcodeado (mismo criterio que la firma del informe): no se firma
-  // con el nombre ni la matrícula de otro médico.
-  const _mNom = med('med-nombre');
+  // Nombre y matrícula del médico Principal, igual que la firma del informe: el span
+  // puede traer el nombre viejo de la firma del centro. Sin fallback hardcodeado.
+  const _pr = (typeof ecoGetMedicos === 'function') ? ecoGetMedicos() : [];
+  const _md = _pr.length ? (_pr[(typeof ecoGetMedPrincipal === 'function') ? ecoGetMedPrincipal() : 0] || _pr[0]) : null;
+  const _mNom = _md ? String(_md.nombre || '').trim() : '';
+  const _mMat = _md ? String(_md.matricula || '').trim() : '';
   doc.text(amiloSanPDF(_mNom ? _mNom + '.' : '[Medico no configurado - ver Config]'), 201, 285.5, { align:'right' });
-  const sub = [med('med-matricula'), med('med-especialidad'), med('med-lugar')].filter(Boolean).join('  ·  ');
+  const sub = [_mMat, med('med-especialidad'), med('med-lugar')].filter(Boolean).join('  ·  ');
   doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(90,90,90);
   doc.text(amiloSanPDF(sub), 201, 288.3, { align:'right' });
   doc.setFontSize(5.5); doc.setTextColor(160,160,160);
@@ -22094,7 +22153,11 @@ document.addEventListener('click',function(e){
 (function(){
   var hdr=document.querySelector('header');
   if(!hdr) return;
-  function sync(){ document.documentElement.style.setProperty('--topbar-h', hdr.offsetHeight+'px'); }
+  function sync(){
+    document.documentElement.style.setProperty('--topbar-h', hdr.offsetHeight+'px');
+    // Mismo disparo para los botones Médico/Centro: en angosto van con iniciales.
+    if(typeof hdrSyncSiCambioAncho==='function') hdrSyncSiCambioAncho();
+  }
   sync();
   if(window.ResizeObserver){ try{ new ResizeObserver(sync).observe(hdr); }catch(e){} }
   window.addEventListener('resize', sync);
@@ -22251,23 +22314,10 @@ function cfgRenderModulos(){
       return '<label class="cfg-mod-item"><input type="checkbox" '+(eeModOn(m.key)?'checked':'')+' onchange="cfgToggleMod(\''+m.key+'\',this.checked)"> '+m.label+'</label>';
     }).join('')+'</div>';
 }
-function cfgSaveMed(id,val){
-  var el=document.getElementById(id);
-  if(el) el.textContent=val;
-  var disp=document.getElementById(id+'-disp'); // span visible en el header (nombre/matrícula/lugar)
-  if(disp){ disp.textContent=val; if(val) disp.classList.remove('hdr-ph'); }
-  // Escribir AMBAS keys: 'med_*' (loadMedico) y 'ett_med_*' (initHdrEditable la prefiere) → evita desync al recargar
-  try { localStorage.setItem(id.replace(/-/g,'_'), val); localStorage.setItem('ett_'+id.replace(/-/g,'_'), val); } catch(e){}
-  if(typeof updateHdrExtra==='function') updateHdrExtra();
-  if(typeof hdrSyncIdentidad==='function') hdrSyncIdentidad();  // el header sigue lo que se tipea en Config
-}
+/* cfgSaveMed() se eliminó junto con los campos sueltos "Nombre del médico" y
+   "Matrícula" de Config: era la segunda fuente de verdad que competía con la lista
+   de médicos. Nombre y matrícula se editan ahora sólo en 👨‍⚕️ Médicos. */
 function cfgLoadMed(){
-  // Nombre y matrícula siguen viniendo del header (no tienen checkbox).
-  ['med-nombre','med-matricula'].forEach(function(id){
-    var inp=document.getElementById('cfg-'+id); if(!inp) return;
-    var src=document.getElementById(id);
-    inp.value = (src ? src.textContent.trim() : '') || (localStorage.getItem(id.replace(/-/g,'_')) || '');
-  });
   // Los opcionales salen del objeto firma, NO del header: ahí el texto de un campo
   // destildado está vacío a propósito, y se perdería lo que el usuario escribió.
   if (typeof firmaRefreshUI === 'function') firmaRefreshUI();
