@@ -17051,7 +17051,13 @@ function amiloTextoETT() {
   ];
   ITEMS.forEach(it => {
     const on = _amOn(it[0]), val = _amV(it[3]);
-    L.push(it[1] + (val ? ' (medido: ' + val + ')' : '') + ' — ' + (on ? 'presente, +' + it[2] : 'ausente, 0') + ' pts');
+    // Una marca manual le gana al cálculo, así que puede quedar un criterio "presente"
+    // con una medición que no alcanza el umbral. Hay que decirlo: si no, el informe
+    // afirma algo que su propio número contradice, sin explicación.
+    const crit = document.getElementById('crit-' + it[0].replace('ett-',''));
+    const manual = !!(crit && crit.dataset.origen === 'manual');
+    L.push(it[1] + (val ? ' (medido: ' + val + ')' : '') + ' — ' + (on ? 'presente, +' + it[2] : 'ausente, 0') + ' pts'
+      + (on && manual ? (val ? ' (marcado por criterio clinico; la medicion no surge del calculo)' : ' (marcado por criterio clinico, sin valor numerico)') : ''));
   });
   L.push('Total: ' + pts + ' / 10 puntos');
 
@@ -17991,10 +17997,75 @@ function toggleCrit(itemId, inputId, pts) {
   item.classList.toggle('activo', activo);
   input.value = activo ? pts : 0;
   if(chk) chk.textContent = activo ? '✓' : '—';
+  // Queda registrado que la marca la puso una persona: a partir de acá el cálculo
+  // automático no la toca. Al destildar se borra el origen y el cálculo recupera el
+  // mando, pero recién en el próximo cambio del campo numérico: no se recalcula acá
+  // a propósito, porque con un valor que cumple volvería a marcarlo en el acto y
+  // haría imposible destildarlo.
+  if (activo) item.dataset.origen = 'manual'; else delete item.dataset.origen;
+  amMarcaTitulo(itemId.replace('crit-',''));
   // Marcarlo a mano también resuelve el criterio: se cierra el acordeón si estaba abierto.
   var k = itemId.replace('crit-','');
   if (activo && document.getElementById('calc-' + k)) amCalcToggle(k, false);
   calcETT();
+}
+
+// ══ ORIGEN DE LA MARCA DE CADA CRITERIO ══
+// data-origen distingue quién marcó el criterio: 'auto' lo puso el cálculo a partir
+// del valor numérico, 'manual' lo puso el médico clickeando la fila, y sin atributo
+// es que no está marcado. Hace falta porque al borrar el número había que decidir si
+// se desmarca: si la marca venía del cálculo ya no hay dato que la respalde, pero si
+// la puso el médico —porque tiene el dato en otro lado— tiene que sobrevivir.
+function amAplicarCalc(k, cumple, pts) {
+  var crit  = document.getElementById('crit-' + k);
+  var input = document.getElementById('ett-' + k);
+  var chk   = document.getElementById('chk-' + k);
+  if (!crit || !input || !chk) return;
+  if (crit.dataset.origen === 'manual') { amMarcaTitulo(k); return; }  // a mano: el cálculo no lo pisa
+  crit.classList.toggle('activo', cumple);
+  input.value = cumple ? pts : 0;
+  chk.textContent = cumple ? '✓' : '—';
+  if (cumple) crit.dataset.origen = 'auto'; else delete crit.dataset.origen;
+  amMarcaTitulo(k);
+}
+
+// La regla "lo manual le gana al cálculo" es invisible si las dos marcas se ven igual:
+// el médico no puede prever cuáles se van a actualizar solas. El tooltip lo dice, y
+// avisa cuando una marca manual quedó contradicha por su propia medición.
+function amMarcaTitulo(k) {
+  var crit = document.getElementById('crit-' + k), chk = document.getElementById('chk-' + k);
+  if (!crit || !chk) return;
+  var o = crit.dataset.origen;
+  if (o === 'manual') {
+    var val = (typeof amCalcLabel === 'function') ? amCalcLabel(k) : 'Calcular';
+    var marcado = crit.classList.contains('activo');
+    chk.title = 'Marcado a mano — el cálculo automático no lo modifica. Tocá la fila para destildarlo.';
+    if (marcado && val !== 'Calcular') chk.title += ' Valor cargado: ' + val + '.';
+  } else if (o === 'auto') {
+    chk.title = 'Marcado automáticamente por el valor cargado. Si borrás el valor, se destilda solo.';
+  } else {
+    chk.title = 'Sin marcar. Tocá la fila para marcarlo a mano, o usá Calcular.';
+  }
+}
+window.amMarcaTitulo = amMarcaTitulo;
+
+// Se borró o quedó inválido el valor numérico. Se protege SÓLO la marca manual, no la
+// ausencia de atributo: al reabrir un informe guardado los puntos vuelven por el hidden
+// pero data-origen no se persiste (es estado del DOM), así que un criterio restaurado
+// queda sin atributo. Con `!== 'auto'` esos criterios quedaban blindados y borrar el
+// número no los desmarcaba — o sea, el bug original sobrevivía en el flujo más común,
+// que es abrir un estudio guardado para corregirlo. Desmarcar algo ya desmarcado es
+// inocuo, así que la guarda correcta es la explícita.
+function amCalcSinDato(k) {
+  var crit = document.getElementById('crit-' + k);
+  if (!crit || crit.dataset.origen === 'manual') return;
+  var input = document.getElementById('ett-' + k);
+  var chk   = document.getElementById('chk-' + k);
+  crit.classList.remove('activo');
+  if (input) input.value = 0;
+  if (chk) chk.textContent = '—';
+  delete crit.dataset.origen;
+  amMarcaTitulo(k);
 }
 
 function toggleCual(itemId, inputId) {
@@ -18014,18 +18085,10 @@ function calcRWT() {
   var pp   = PF(document.getElementById('rwt-pp')?.value)   || 0;
   var ddvi = PF(document.getElementById('rwt-ddvi')?.value) || 0;
   var resEl = document.getElementById('rwt-result');
-  if(!pp||!ddvi){ if(resEl) resEl.value=''; return; }
+  if(!pp||!ddvi){ if(resEl) resEl.value=''; amCalcSinDato('rwt'); calcETT(); return; }
   var rwt = (2*pp)/ddvi;
   if(resEl) resEl.value = rwt.toFixed(2);
-  var crit = document.getElementById('crit-rwt');
-  var input= document.getElementById('ett-rwt');
-  var chk  = document.getElementById('chk-rwt');
-  if(crit&&input&&chk){
-    var cumple = rwt > 0.6;
-    crit.classList.toggle('activo', cumple);
-    input.value = cumple ? 3 : 0;
-    chk.textContent = cumple ? '✓' : '—';
-  }
+  amAplicarCalc('rwt', rwt > 0.6, 3);
   calcETT();
 }
 
@@ -18033,48 +18096,24 @@ function calcEE() {
   var e  = PF(document.getElementById('ee-e')?.value)  || 0;
   var ep = PF(document.getElementById('ee-ep')?.value) || 0;
   var resEl = document.getElementById('ee-result');
-  if(!e||!ep){ if(resEl) resEl.value=''; return; }
+  if(!e||!ep){ if(resEl) resEl.value=''; amCalcSinDato('ee'); calcETT(); return; }
   var ee = e/ep;
   if(resEl) resEl.value = ee.toFixed(1);
-  var crit=document.getElementById('crit-ee');
-  var input=document.getElementById('ett-ee');
-  var chk=document.getElementById('chk-ee');
-  if(crit&&input&&chk){
-    var cumple = ee > 11;
-    crit.classList.toggle('activo',cumple);
-    input.value = cumple ? 1 : 0;
-    chk.textContent = cumple ? '✓' : '—';
-  }
+  amAplicarCalc('ee', ee > 11, 1);
   calcETT();
 }
 
 function calcTAPSE() {
   var val = PF(document.getElementById('tapse-val')?.value);
-  var crit=document.getElementById('crit-tapse');
-  var input=document.getElementById('ett-tapse');
-  var chk=document.getElementById('chk-tapse');
-  if(isNaN(val)){ return; }
-  if(crit&&input&&chk){
-    var cumple = val <= 19;
-    crit.classList.toggle('activo',cumple);
-    input.value = cumple ? 2 : 0;
-    chk.textContent = cumple ? '✓' : '—';
-  }
+  if(isNaN(val)){ amCalcSinDato('tapse'); calcETT(); return; }
+  amAplicarCalc('tapse', val <= 19, 2);
   calcETT();
 }
 
 function amCalcSGL() {
   var val = PF(document.getElementById('sgl-val')?.value);
-  var crit=document.getElementById('crit-sgl');
-  var input=document.getElementById('ett-sgl');
-  var chk=document.getElementById('chk-sgl');
-  if(isNaN(val)){ return; }
-  if(crit&&input&&chk){
-    var cumple = val >= -13;
-    crit.classList.toggle('activo',cumple);
-    input.value = cumple ? 1 : 0;
-    chk.textContent = cumple ? '✓' : '—';
-  }
+  if(isNaN(val)){ amCalcSinDato('sgl'); calcETT(); return; }
+  amAplicarCalc('sgl', val >= -13, 1);
   calcETT();
 }
 
@@ -18082,18 +18121,10 @@ function calcApice() {
   var apic = PF(document.getElementById('ap-apic')?.value);
   var base = PF(document.getElementById('ap-base')?.value);
   var resEl = document.getElementById('ap-result');
-  if(isNaN(apic)||isNaN(base)||base===0){ if(resEl) resEl.value=''; return; }
+  if(isNaN(apic)||isNaN(base)||base===0){ if(resEl) resEl.value=''; amCalcSinDato('apice'); calcETT(); return; }
   var rel = Math.abs(apic)/Math.abs(base);
   if(resEl) resEl.value = rel.toFixed(2);
-  var crit=document.getElementById('crit-apice');
-  var input=document.getElementById('ett-apice');
-  var chk=document.getElementById('chk-apice');
-  if(crit&&input&&chk){
-    var cumple = rel > 2.9;
-    crit.classList.toggle('activo',cumple);
-    input.value = cumple ? 3 : 0;
-    chk.textContent = cumple ? '✓' : '—';
-  }
+  amAplicarCalc('apice', rel > 2.9, 3);
   calcETT();
 }
 
@@ -18163,7 +18194,9 @@ function resetETT() {
     var el=document.getElementById(id); if(el) el.value='';
   });
   ['crit-rwt','crit-ee','crit-tapse','crit-sgl','crit-apice','cual-1','cual-2','cual-3'].forEach(id=>{
-    var el=document.getElementById(id); if(el) el.classList.remove('activo');
+    var el=document.getElementById(id); if(!el) return;
+    el.classList.remove('activo');
+    delete el.dataset.origen;   // sin esto, una marca manual del paciente anterior seguiría bloqueando el cálculo
   });
   ['ett-rwt','ett-ee','ett-tapse','ett-sgl','ett-apice','ett-cual-1','ett-cual-2','ett-cual-3'].forEach(id=>{
     var el=document.getElementById(id); if(el) el.value=0;
@@ -18174,14 +18207,17 @@ function resetETT() {
   document.getElementById('ett-sparkling').selectedIndex=0;
   document.getElementById('ett-derrperic').selectedIndex=0;
   document.getElementById('ett-valvular').selectedIndex=0;
-  // Los acordeones de cálculo vuelven a colapsarse: sin datos no hay nada que mostrar.
-  if (typeof amCalcIds === 'function') amCalcIds().forEach(k => amCalcToggle(k, false));
+  // Los acordeones de cálculo vuelven a colapsarse: sin datos no hay nada que mostrar,
+  // y los tooltips del tilde vuelven a decir "sin marcar".
+  if (typeof amCalcIds === 'function') amCalcIds().forEach(k => { amCalcToggle(k, false); amMarcaTitulo(k); });
   calcETT();
 }
 
 (function amiloInit(){
   function run(){
     if(typeof calcETT === 'function') calcETT();
+    // Tooltips del tilde desde el arranque, sin esperar a que el médico toque algo.
+    if(typeof amCalcIds === 'function' && typeof amMarcaTitulo === 'function') amCalcIds().forEach(amMarcaTitulo);
   }
   function schedule(){ setTimeout(run, 0); }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', schedule);
