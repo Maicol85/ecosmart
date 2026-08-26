@@ -423,7 +423,15 @@
   .tab-section.active { display: block; }
   /* ═══ REDISEÑO LAYOUT: header compacto + rail lateral + subtabs (estilo EcoEstrés) ═══ */
   :root { --rail:160px; --topbar-h:56px; --teal:#0D9488; }
-  header { min-height: var(--topbar-h); flex-wrap: nowrap; }
+  /* flex-wrap:nowrap es SÓLO del layout de escritorio, donde el header es una barra de
+     una línea y quien envuelve es el bloque .hdr-btns. Declarado suelto pisaba al
+     header{flex-wrap:wrap} del media query de ≤768px, que está más arriba en la hoja:
+     misma especificidad, gana el último. En móvil el header entonces no envolvía y
+     necesitaba ~513px, así que el botón ⬇️ PDF y el menú ⋮ quedaban fuera de pantalla.
+     Se acota por min-width en vez de re-declarar wrap más abajo, para que la intención
+     quede escrita y no dependa del orden de las reglas. */
+  header { min-height: var(--topbar-h); }
+  @media (min-width: 769px) { header { flex-wrap: nowrap; } }
   .hdr-med-wrap { position:relative; display:inline-flex; flex-shrink:0; }
   /* Los estilos de .hdr-med-panel se eliminaron con el panel. */
   .app-shell { display:flex; align-items:flex-start; }
