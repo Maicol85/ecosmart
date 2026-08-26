@@ -191,6 +191,12 @@
   .am-prev .am-kv { display:flex; gap:10px; margin:1px 0; }
   .am-prev .am-kv .k { flex:0 0 52%; color:var(--text2); }
   .am-prev .am-kv .v { font-weight:600; color:var(--text); }
+  /* Acordeón por módulo: sólo afecta la pantalla, el PDF sale siempre completo */
+  .am-head { display:flex; align-items:center; justify-content:space-between; gap:10px; cursor:pointer; user-select:none; }
+  .am-head .am-tit { display:flex; align-items:center; gap:6px; font-weight:600; }
+  .am-head .am-arrow { transition:transform .18s; font-size:11px; color:var(--text2); }
+  .am-wrap.cerrado .am-arrow { transform:rotate(-90deg); }
+  .am-wrap.cerrado .am-cuerpo { display:none; }
   .am-edit-tog { font-size:11px; padding:3px 9px; font-weight:600; }
   /* Campo opcional de "Institución y firma": checkbox de inclusión + input, igual que el panel de Firma del centro */
   .cfg-opt-row { display:flex; align-items:center; gap:8px; }
@@ -16484,7 +16490,7 @@ window.pulAvanzadoIntegrado = pulAvanzadoIntegrado;
 // las etiquetas de la card y los títulos de sección del PDF.
 function amiloSecs() {
   return [
-    { k:'ett',  lbl:'Score ETT ESC 2021',              tit:'ETT AVANZADO - SCORE ESC 2021',            gen:amiloTextoETT },
+    { k:'ett',  lbl:'Score ETT ESC 2021',              tit:'SCORE DE PROBABILIDAD DE AMILOIDOSIS CARDÍACA — ESC 2021',            gen:amiloTextoETT },
     { k:'alg',  lbl:'Algoritmo diagnóstico',           tit:'ALGORITMO DIAGNOSTICO DE AMILOIDOSIS',     gen:amiloTextoAlgoritmo },
     { k:'hemo', lbl:'Perfil hemodinámico',             tit:'PERFIL HEMODINAMICO',                      gen:amiloTextoHemo },
     { k:'htp',  lbl:'Probabilidad de HTP (ESC 2022)',  tit:'PROBABILIDAD DE HTP - ESC 2022',           gen:amiloTextoHTP },
@@ -16504,20 +16510,31 @@ function amiloBuildCard() {
   const host = document.getElementById('amilo-body');
   if (!host || host.dataset.listo === '1') return;
   host.innerHTML = amiloSecs().map(s => ''
-    + '<div class="fg" id="am-wrap-' + s.k + '" style="display:none;">'
-    +   '<label style="display:flex;align-items:center;justify-content:space-between;gap:10px;">'
-    +     '<span>' + escHtml(s.lbl) + '</span>'
+    + '<div class="fg am-wrap" id="am-wrap-' + s.k + '" style="display:none;">'
+    +   '<div class="am-head" onclick="amiloToggle(\'' + s.k + '\', event)">'
+    +     '<span class="am-tit"><span class="am-arrow">▼</span>' + escHtml(s.lbl) + '</span>'
     +     '<span style="display:flex;gap:6px;">'
-    +       '<button type="button" class="btn btn-ghost am-edit-tog" id="am-btn-' + s.k + '" onclick="amiloEditar(\'' + s.k + '\')">✏️ Editar</button>'
-    +       '<button type="button" class="btn btn-ghost am-edit-tog" onclick="amiloRetirar(\'' + s.k + '\')">✕ Retirar</button>'
+    +       '<button type="button" class="btn btn-ghost am-edit-tog" id="am-btn-' + s.k + '" onclick="event.stopPropagation();amiloEditar(\'' + s.k + '\')">✏️ Editar</button>'
+    +       '<button type="button" class="btn btn-ghost am-edit-tog" onclick="event.stopPropagation();amiloRetirar(\'' + s.k + '\')">✕ Retirar</button>'
     +     '</span>'
-    +   '</label>'
-    +   '<div class="am-prev" id="am-prev-' + s.k + '"></div>'
-    +   '<textarea id="am-txt-' + s.k + '" style="min-height:150px;display:none;" oninput="amiloPreview(\'' + s.k + '\')"></textarea>'
+    +   '</div>'
+    +   '<div class="am-cuerpo">'
+    +     '<div class="am-prev" id="am-prev-' + s.k + '"></div>'
+    +     '<textarea id="am-txt-' + s.k + '" style="min-height:150px;display:none;" oninput="amiloPreview(\'' + s.k + '\')"></textarea>'
+    +   '</div>'
     + '</div>').join('');
   host.dataset.listo = '1';
 }
 window.amiloBuildCard = amiloBuildCard;
+
+// Acordeón: expande o contrae un módulo. Sólo cambia lo que se ve en pantalla;
+// el PDF lee el textarea, así que sale completo aunque esté contraído.
+function amiloToggle(k, ev) {
+  if (ev && ev.target && ev.target.closest && ev.target.closest('button')) return;  // no al tocar Editar/Retirar
+  const w = document.getElementById('am-wrap-' + k);
+  if (w) w.classList.toggle('cerrado');
+}
+window.amiloToggle = amiloToggle;
 
 // Recuerda el último texto generado por la app, para distinguir "sin tocar" de
 // "editado a mano" y no pisar las correcciones del médico al reintegrar.
@@ -16577,8 +16594,8 @@ function amiloIntegrar(k) {
   amiloPreview(k);
   wrap.style.display = '';
   card.style.display = '';
-  if (typeof showTab === 'function') showTab('informe');
-  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // Integra en silencio: NO navega a la tab Informe ni hace scroll, para no
+  // sacar al operador de donde está trabajando (igual que el Bull's Eye).
   if (typeof toast === 'function') toast('📎 ' + sec.lbl + ' integrado al informe');
 }
 window.amiloIntegrar = amiloIntegrar;
@@ -16604,14 +16621,25 @@ window.amiloRetirar = amiloRetirar;
 // jsPDF con helvetica/WinAnsi DESCARTA en silencio el guión largo (— y –) y
 // destroza ≥ ≤ → ±. Se sanea al dibujar, no al generar, porque el texto es
 // editable y el médico puede escribir cualquiera de esos caracteres.
+const _AM_SUP = { '⁰':'0','¹':'1','²':'2','³':'3','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9','⁻':'-','⁺':'+' };
 function amiloSanPDF(s) {
   return String(s == null ? '' : s)
-    .replace(/[—–−]/g, '-')
-    .replace(/≥/g, '>=').replace(/≤/g, '<=')
-    .replace(/→/g, '->').replace(/±/g, '+/-')
+    // Superíndices: se TRANSLITERAN, no se borran. Borrarlos dejaba unidades
+    // mal escritas —"dinas·s·cm⁻⁵" quedaba como "dinas·s·cm"—, que en un
+    // informe clínico es peor que un símbolo feo.
+    .replace(/⁻([⁰¹²³⁴⁵⁶⁷⁸⁹]+)/g, (m, d) => '^-' + d.replace(/./g, c => _AM_SUP[c] || ''))
+    .replace(/[⁰⁴⁵⁶⁷⁸⁹]+/g,       m      => '^'  + m.replace(/./g, c => _AM_SUP[c] || ''))
+    .replace(/[—–−‑]/g, '-')
+    .replace(/≥/g, '>=').replace(/≤/g, '<=').replace(/≈/g, '~')
+    .replace(/→/g, '->').replace(/←/g, '<-').replace(/±/g, '+/-')
+    .replace(/×/g, 'x').replace(/÷/g, '/')
+    .replace(/Δ/g, 'delta').replace(/α/g, 'alfa').replace(/β/g, 'beta').replace(/μ/g, 'u')
     .replace(/[‘’]/g, "'").replace(/[“”]/g, '"')
     .replace(/…/g, '...')
-    .replace(/[^\x20-\xFF]/g, '');              // resto fuera de WinAnsi (emojis)
+    .replace(/[^\x20-\xFF]/g, '')               // resto fuera de WinAnsi (emojis, ✓, ⚠)
+    .replace(/[ \t]{2,}/g, ' ')                 // dobles espacios que dejan los borrados
+    .replace(/\s+([.,;:)])/g, '$1')
+    .trim();
 }
 
 // Dibuja [{tit, txt}] entre yIni e yFin achicando la letra hasta que entren.
@@ -16632,8 +16660,16 @@ function amiloDibujarSecciones(doc, secs, g) {
         if (!l) return;
         if (l.indexOf('##') === 0) { filas.push({ t:'sub', txt: l.replace(/^##\s*/,'') }); alto += H + 1.6; }
         else if (l.indexOf(' | ') > 0) {                 // fila de tabla: etiqueta | valor
+          // Se parten AMBAS columnas y la fila mide lo que mida la más alta.
+          // Antes se pasaba maxWidth a doc.text(): el texto se envolvía pero la
+          // y avanzaba una sola línea, así que la fila siguiente se escribía
+          // encima y el renglón parecía cortado a la mitad.
           const par = l.split(' | ');
-          filas.push({ t:'kv', a: par[0].trim(), b: par.slice(1).join(' | ').trim() }); alto += H;
+          fn(sz);
+          const la = doc.splitTextToSize(par[0].trim(), pgW * 0.50 - 4);
+          const lb = doc.splitTextToSize(par.slice(1).join(' | ').trim(), pgW * 0.46);
+          const n  = Math.max(la.length, lb.length);
+          filas.push({ t:'kv', a: la, b: lb, n: n }); alto += H * n;
         }
         else { fn(sz); doc.splitTextToSize(l, pgW - 4).forEach(w => { filas.push({ t:'txt', txt:w }); alto += H; }); }
       });
@@ -16649,7 +16685,7 @@ function amiloDibujarSecciones(doc, secs, g) {
   let y = g.yIni;
   p.filas.forEach((f, i) => {
     if (!cabe) {
-      const altoFila = (f.t === 'bar') ? 10 : p.H + (f.t === 'sub' ? 1.6 : 0);
+      const altoFila = (f.t === 'bar') ? 10 : (f.t === 'kv' ? p.H * f.n : p.H + (f.t === 'sub' ? 1.6 : 0));
       // Un título de sección no queda huérfano al pie: se corta antes.
       const necesita = (f.t === 'bar') ? altoFila + p.H * 2 : altoFila;
       if (y + necesita > g.yFin) y = salto();
@@ -16663,9 +16699,9 @@ function amiloDibujarSecciones(doc, secs, g) {
       doc.text(f.txt, mL, y); y += p.H + 1.6;
     } else if (f.t === 'kv') {
       const xVal = mL + pgW * 0.52;
-      fn(sz); doc.setTextColor(90,90,90);  doc.text(f.a, mL + 2, y, { maxWidth: pgW * 0.50 - 4 });
-      fn(sz); doc.setTextColor(20,20,20);  doc.text(f.b, xVal, y, { maxWidth: pgW * 0.46 });
-      y += p.H;
+      fn(sz); doc.setTextColor(90,90,90);  f.a.forEach((t,i2) => doc.text(t, mL + 2, y + i2 * p.H));
+      fn(sz); doc.setTextColor(20,20,20);  f.b.forEach((t,i2) => doc.text(t, xVal,   y + i2 * p.H));
+      y += p.H * f.n;
     } else {
       fn(sz); doc.setTextColor(30,30,30);
       doc.text(f.txt, mL + 2, y); y += p.H;
