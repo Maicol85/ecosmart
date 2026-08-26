@@ -2306,8 +2306,8 @@ window.cerrarSesion = cerrarSesion;
             <option value="mínimo">Mínimo</option><option value="moderado">Moderado</option><option value="severo">Severo</option>
           </select>
         </div>
-        <div class="fg" id="pul-derrame-balik-wrap" style="display:none;"><label>Balik (cm)</label>
-          <input type="number" id="pul_balik" step="0.1" placeholder="cm">
+        <div class="fg" id="pul-derrame-balik-wrap" style="display:none;"><label>Balik (mm)</label>
+          <input type="number" id="pul_balik" step="1" placeholder="mm">
         </div>
       </div>
       <div class="grid-3" style="margin-top:8px;">
@@ -2412,8 +2412,8 @@ window.cerrarSesion = cerrarSesion;
             <option value="libre">Libre</option><option value="tabicado">Tabicado</option>
           </select>
         </div>
-        <div class="fg pua-der" style="display:none;"><label>Balik (cm)</label>
-          <input type="number" id="pua_balik" step="0.1" placeholder="cm" oninput="pulAvUI()">
+        <div class="fg pua-der" style="display:none;"><label>Balik (mm)</label>
+          <input type="number" id="pua_balik" step="1" placeholder="mm" oninput="pulAvUI()">
         </div>
         <div class="fg pua-der" style="display:none;"><label>Lateralidad</label>
           <select id="pua_derrame_lado" onchange="pulAvUI()">
@@ -12536,7 +12536,7 @@ function generarInforme() {
   })();
 
   // Técnica del procedimiento ETE (toggle) — precede a la sección ETE
-  if (_eteTecnica) inf.push(_eteTecnica);
+  // La técnica del ETE ya no va en el cuerpo: encabeza su propia hoja (ver abajo).
 
 
   // ── ETE ──
@@ -13760,12 +13760,28 @@ function generarPDFReal() {
   // Se dibuja con jsPDF desde el texto de la card (no se captura la pantalla).
   // Requisito: Score y Algoritmo juntos tienen que entrar en UNA sola A4, así que
   // primero se mide y se elige el cuerpo de letra que hace que quepan.
-  const _amDatos = (typeof amiloEnInforme === 'function') ? amiloEnInforme() : null;
-  if (_amDatos && _amDatos.length) {
-    const _amSecs = _amDatos.map(d => ({ tit: d.tit, txt: d.txt }));
+  const _amDatos = (typeof amiloEnInforme === 'function') ? (amiloEnInforme() || []) : [];
+  // Los módulos del ETE van a SU PROPIA hoja; el resto queda en ETT Avanzado.
+  const _amEtt = _amDatos.filter(d => d.grupo !== 'ete').map(d => ({ tit: d.tit, txt: d.txt }));
+  const _amEte = _amDatos.filter(d => d.grupo === 'ete').map(d => ({ tit: d.tit, txt: d.txt }));
+  if (_amEtt.length) {
     doc.addPage();
     // Mismo dibujado que usan los botones "Imprimir resultado" de cada pestaña.
-    y = amiloDibujarSecciones(doc, _amSecs, { mL, pgW, tema: TEMA, yIni: 20, yFin: _yMax });
+    y = amiloDibujarSecciones(doc, _amEtt, { mL, pgW, tema: TEMA, yIni: 20, yFin: _yMax });
+  }
+
+  // ── HOJA DEL ECOCARDIOGRAMA TRANSESOFÁGICO ──
+  // Encabeza el texto de técnica y sedación, y siguen las mediciones y módulos.
+  // La técnica se lee acá: la variable de generarInforme() es de otra función.
+  const _eteTecnica = (localStorage.getItem('ete_tecnica_incluir') === '1') ? sv('ete_tecnica').trim() : '';
+  if (_eteTecnica || _amEte.length) {
+    const _secsEte = [];
+    if (_eteTecnica) _secsEte.push({ tit: 'TECNICA Y SEDACION', txt: _eteTecnica });
+    _amEte.forEach(x => _secsEte.push(x));
+    doc.addPage();
+    y = amiloDibujarSecciones(doc, _secsEte, {
+      mL, pgW, tema: TEMA, yIni: 20, yFin: _yMax, titPagina: 'ECOCARDIOGRAMA TRANSESOFÁGICO'
+    });
   }
 
   // ════════════════════════════════════════════════════════════
@@ -16362,9 +16378,12 @@ function pulBasicoHayDatos() {
 function pulBasicoTexto() {
   const frases = [], suma = [];
   if (_amV('pul_derrame') === 'si') {
-    const tam = _amV('pul_derrame_tam') || 'mínimo', bk = _amV('pul_balik');
-    frases.push('Derrame pleural ' + tam + (bk ? ' (Balik ' + bk + ' cm)' : '') + '.');
-    suma.push('Derrame pleural ' + tam + (bk ? ' ' + bk + ' cm (Balik)' : '') + '.');
+    const tam = _amV('pul_derrame_tam') || 'mínimo';
+    // Balik en mm; el volumen aproximado es mm x 20 en ml.
+    const bk = PF(_amV('pul_balik'));
+    const det = (bk && !isNaN(bk)) ? ' (Balik ' + bk + ' mm, aproximadamente ' + Math.round(bk * 20) + ' ml)' : '';
+    frases.push('Derrame pleural ' + tam + det + '.');
+    suma.push('Derrame pleural ' + tam + det + '.');
   }
   if (_amV('pul_lineasb') === 'si') {
     const pat = _amV('pul_lineasb_pat') || 'focal';
@@ -16421,43 +16440,53 @@ function pulAvUI() {
 window.pulAvUI = pulAvUI;
 
 // Texto del módulo avanzado para la card / PDF.
+// NARRATIVO: una oración por hallazgo, en líneas separadas y en orden clínico
+// (pleura, líneas A, líneas B, derrame, consolidación). Nada de tablas: se lee
+// como un informe, no como una planilla.
 function amiloTextoPulmonar() {
   const L = [];
-  L.push('## Pleura y líneas A');
   const dz = _amV('pua_desliz') || 'presente';
-  L.push('Deslizamiento pleural | ' + dz + ' (' + (_amV('pua_desliz_lado') || 'bilateral') + ')');
-  L.push('Líneas A | ' + (_amV('pua_lineasa') || 'presentes'));
+  const lado = _amV('pua_desliz_lado') || 'bilateral';
+  const ladoTxt = lado === 'bilateral' ? 'en ambos hemitórax' : 'en el hemitórax ' + lado;
+  L.push(dz === 'presente'
+    ? 'Deslizamiento pleural conservado ' + ladoTxt + '.'
+    : 'Deslizamiento pleural ' + dz + ' ' + ladoTxt + '.');
 
-  L.push('## Líneas B');
+  L.push(_amV('pua_lineasa') === 'ausentes'
+    ? 'Líneas A ausentes.'
+    : 'Líneas A presentes, con patrón pleural de aireación conservada.');
+
   if (_amV('pua_lineasb') === 'presentes') {
     const cant = _amV('pua_lineasb_cant') || 'focal';
-    const CANT = { focal:'focales (aisladas)', multiples:'múltiples (>=3 por espacio)', coalescentes:'coalescentes' };
-    L.push('Presencia | presentes');
-    L.push('Cantidad | ' + (CANT[cant] || cant));
+    const CANT = { focal:'aisladas', multiples:'múltiples (3 o más por espacio intercostal)', coalescentes:'coalescentes' };
     const z = pulAvZonas();
-    L.push('Distribución | ' + (z.length ? z.join(', ') : 'no especificada'));
-  } else L.push('Presencia | ausentes');
+    L.push('Líneas B ' + (CANT[cant] || cant) +
+      (z.length ? ', de distribución ' + (z.length >= 5 ? 'difusa' : z.join(', ')) : '') + '.');
+  } else {
+    L.push('Sin líneas B.');
+  }
 
-  L.push('## Derrame pleural');
   if (_amV('pua_derrame') === 'si') {
-    const bk = _amV('pua_balik');
-    L.push('Presencia | presente');
-    L.push('Tipo | ' + (_amV('pua_derrame_tipo') || 'libre'));
-    L.push('Lateralidad | ' + (_amV('pua_derrame_lado') || 'bilateral'));
-    if (bk) L.push('Balik | ' + bk + ' cm');
-  } else L.push('Presencia | ausente');
+    const bk = PF(_amV('pua_balik'));
+    const tipo = _amV('pua_derrame_tipo') || 'libre';
+    const dl = _amV('pua_derrame_lado') || 'bilateral';
+    const vol = (bk && !isNaN(bk)) ? ', con una separación pleural (Balik) de ' + bk +
+                ' mm, que corresponde a un volumen aproximado de ' + Math.round(bk * 20) + ' ml' : '';
+    L.push('Derrame pleural ' + dl + ', de aspecto ' + tipo + vol + '.');
+  } else {
+    L.push('Sin derrame pleural.');
+  }
 
-  L.push('## Consolidación');
   if (_amV('pua_consol') === 'si') {
-    const B = { con:'con broncograma aéreo', sin:'sin broncograma', fluido:'broncograma fluido' };
-    L.push('Presencia | presente');
-    L.push('Broncograma | ' + (B[_amV('pua_consol_bronco')] || 'no especificado'));
-  } else L.push('Presencia | ausente');
+    const B = { con:'con broncograma aéreo', sin:'sin broncograma', fluido:'con broncograma fluido' };
+    L.push('Consolidación pulmonar ' + (B[_amV('pua_consol_bronco')] || 'sin broncograma especificado') + '.');
+  } else {
+    L.push('Sin consolidaciones.');
+  }
 
   const r = pulAvPatron();
-  L.push('## Patrón global');
-  L.push('Patrón | ' + r.p);
-  L.push(r.i);
+  L.push('## En suma');
+  L.push('Patrón global: ' + r.p + '. ' + r.i);
   return L.join('\n');
 }
 
@@ -16472,8 +16501,9 @@ function pulAvSuma() {
     s.push('Consolidación pulmonar ' + (b === 'con' ? 'con broncograma aéreo' : b === 'fluido' ? 'con broncograma fluido' : 'sin broncograma') + '.');
   }
   if (_amV('pua_derrame') === 'si') {
-    const bk = _amV('pua_balik'), lado = _amV('pua_derrame_lado') || 'bilateral';
-    s.push('Derrame pleural ' + lado + (bk ? ' ' + bk + ' cm (Balik)' : '') + '.');
+    const bk = PF(_amV('pua_balik')), lado = _amV('pua_derrame_lado') || 'bilateral';
+    const det = (bk && !isNaN(bk)) ? ' (Balik ' + bk + ' mm, aproximadamente ' + Math.round(bk * 20) + ' ml)' : '';
+    s.push('Derrame pleural ' + lado + det + '.');
   }
   return s;
 }
@@ -16495,10 +16525,10 @@ function amiloSecs() {
     { k:'hemo', lbl:'Perfil hemodinámico',             tit:'PERFIL HEMODINAMICO',                      gen:amiloTextoHemo },
     { k:'htp',  lbl:'Probabilidad de HTP (ESC 2022)',  tit:'PROBABILIDAD DE HTP - ESC 2022',           gen:amiloTextoHTP },
     { k:'tep',  lbl:'Probabilidad de TEP',             tit:'PROBABILIDAD DE TEP / SOBRECARGA VD',      gen:amiloTextoTEP },
-    { k:'etem', lbl:'Mediciones ETE — Válvula mitral', tit:'MEDICIONES ETE - VALVULA MITRAL',          gen:amiloTextoEteMitral },
-    { k:'wilk', lbl:'Score de Wilkins',                tit:'SCORE DE WILKINS - ESTENOSIS MITRAL',      gen:amiloTextoWilkins },
-    { k:'oai',  lbl:'Mediciones OAI',                  tit:'OREJUELA IZQUIERDA - MEDICIONES ETE',      gen:amiloTextoOAI },
-    { k:'aoete',lbl:'Mediciones Aorta (ETE)',          tit:'AORTA TORACICA - MEDICIONES ETE',          gen:amiloTextoAortaETE },
+    { k:'etem', lbl:'Mediciones ETE — Válvula mitral', tit:'MEDICIONES - VALVULA MITRAL',               gen:amiloTextoEteMitral, grupo:'ete' },
+    { k:'wilk', lbl:'Score de Wilkins',                tit:'SCORE DE WILKINS - ESTENOSIS MITRAL',      gen:amiloTextoWilkins, grupo:'ete' },
+    { k:'oai',  lbl:'Mediciones OAI',                  tit:'OREJUELA IZQUIERDA',                       gen:amiloTextoOAI, grupo:'ete' },
+    { k:'aoete',lbl:'Mediciones Aorta (ETE)',          tit:'AORTA TORACICA',                           gen:amiloTextoAortaETE, grupo:'ete' },
     { k:'conco',lbl:'Cardio-Oncología',                tit:'CARDIO-ONCOLOGIA - ESC 2022 / HFA-ICOS',   gen:amiloTextoCardioOnco },
     { k:'pulm', lbl:'Eco Pulmonar (avanzado)',         tit:'ECOGRAFIA PULMONAR - EVALUACION AVANZADA', gen:amiloTextoPulmonar }
   ];
@@ -16535,6 +16565,16 @@ function amiloToggle(k, ev) {
   if (w) w.classList.toggle('cerrado');
 }
 window.amiloToggle = amiloToggle;
+
+// Integrar o retirar cambia lo que corresponde escribir en el informe (por
+// ejemplo la exclusión mutua de Eco Pulmonar). Si el informe ya estaba
+// generado hay que rehacerlo, si no queda el texto viejo. Misma convención que
+// los checkboxes de HTP/TEP.
+function amiloRefrescarInforme() {
+  const ta = document.getElementById('informe_texto');
+  if (ta && String(ta.value || '').trim() && typeof generarInforme === 'function') generarInforme();
+}
+window.amiloRefrescarInforme = amiloRefrescarInforme;
 
 // Recuerda el último texto generado por la app, para distinguir "sin tocar" de
 // "editado a mano" y no pisar las correcciones del médico al reintegrar.
@@ -16596,6 +16636,7 @@ function amiloIntegrar(k) {
   card.style.display = '';
   // Integra en silencio: NO navega a la tab Informe ni hace scroll, para no
   // sacar al operador de donde está trabajando (igual que el Bull's Eye).
+  amiloRefrescarInforme();
   if (typeof toast === 'function') toast('📎 ' + sec.lbl + ' integrado al informe');
 }
 window.amiloIntegrar = amiloIntegrar;
@@ -16609,6 +16650,7 @@ function amiloRetirar(k) {
     return w && w.style.display !== 'none';
   });
   if (!queda) { const c = document.getElementById('amilo-card'); if (c) c.style.display = 'none'; }
+  amiloRefrescarInforme();
   const sec = amiloSecs().find(x => x.k === k);
   if (typeof toast === 'function') toast((sec ? sec.lbl : 'El bloque') + ' ya no sale en el informe');
 }
@@ -16681,8 +16723,17 @@ function amiloDibujarSecciones(doc, secs, g) {
 
   // Si ni al mínimo entra en una hoja (pasa al integrar muchos módulos), el
   // bloque sigue en hojas nuevas en vez de escribir encima de la firma y el pie.
-  const salto = () => { doc.addPage(); return g.yIni; };
+  const salto = () => { doc.addPage(); banner(); return g.yIni; };
   let y = g.yIni;
+  // Banner de página (lo usa la hoja del ETE). Se dibuja acá y no antes para
+  // que también aparezca si el bloque arranca por un salto de página.
+  const banner = () => {
+    if (!g.titPagina) return;
+    doc.setFillColor(T[0],T[1],T[2]); doc.rect(0, 0, 210, 12, 'F');
+    fb(11); doc.setTextColor(255,255,255);
+    doc.text(amiloSanPDF(g.titPagina), 105, 8, { align:'center' });
+  };
+  banner();
   p.filas.forEach((f, i) => {
     if (!cabe) {
       const altoFila = (f.t === 'bar') ? 10 : (f.t === 'kv' ? p.H * f.n : p.H + (f.t === 'sub' ? 1.6 : 0));
@@ -16767,7 +16818,7 @@ function amiloEnInforme() {
     const w = document.getElementById('am-wrap-' + s.k);
     if (!w || w.style.display === 'none') return;
     const txt = _amV('am-txt-' + s.k);
-    if (txt) out.push({ k: s.k, tit: s.tit, txt: txt });
+    if (txt) out.push({ k: s.k, tit: s.tit, txt: txt, grupo: s.grupo || 'ett' });
   });
   return out.length ? out : null;
 }
