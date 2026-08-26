@@ -1221,6 +1221,7 @@ window.cerrarSesion = cerrarSesion;
                 <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Control"> Control</label>
                 <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Dolor torácico"> Dolor torácico</label>
                 <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Disnea"> Disnea</label>
+                <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Edemas de MMII"> Edemas de MMII</label>
                 <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Control HTA"> Control HTA</label>
                 <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Control DM"> Control DM</label>
                 <label class="chk-lab"><input type="checkbox" class="ind-chk" data-val="Soplo cardíaco"> Soplo cardíaco</label>
@@ -12873,7 +12874,9 @@ function generarInforme() {
 
   // ── 3) Geometría ventricular + función diastólica (misma fila) ──
   {
-    // Geometría: solo se enuncia si es anormal (si es normal, va solo la diastólica)
+    // La geometría se enuncia SIEMPRE que haya datos para calcularla, incluida la normal:
+    // que no dijera nada dejaba al lector sin saber si se evaluó o si no se pudo. Al En
+    // Suma sigue yendo sólo lo patológico, porque la geometría normal no es un hallazgo.
     let geomStr = '';
     if (ddfvi && siv && ppvi && bsa) {
       const mass = 0.8*(1.04*((ddfvi/10+siv/10+ppvi/10)**3-(ddfvi/10)**3))+0.6;
@@ -12883,7 +12886,10 @@ function generarInforme() {
       const geom = calcGeometriaVI(PF(massIdx), PF(rwt), sexoG);
       // La condición de HVI se deriva del patrón devuelto por la fuente única, no de un umbral aparte.
       const hvi = geom.startsWith('Hipertrofia');
-      if (geom !== 'Normal' && geom !== '—') {
+      if (geom === 'Normal') {
+        // Sólo al informe narrativo, nunca al En Suma.
+        geomStr = 'Geometría normal.';
+      } else if (geom !== '—') {
         let geomTxt = geom.toLowerCase();
         if (hvi) {
           const sev = (typeof hviSeveridad === 'function') ? hviSeveridad(massIdx, sexoG) : null;
@@ -12891,7 +12897,7 @@ function generarInforme() {
         }
         geomStr = `${geomTxt.charAt(0).toUpperCase() + geomTxt.slice(1)}.`;
         // El prefijo "HVI —" solo corresponde si de verdad hay hipertrofia: el remodelado
-        // concéntrico NO es HVI y se enuncia sin prefijo. "Normal" ya quedó excluido arriba.
+        // concéntrico NO es HVI y se enuncia sin prefijo.
         suma.push(hvi ? `HVI — ${geomTxt}.` : geomStr);
       }
     }
@@ -13101,6 +13107,11 @@ function generarInforme() {
         tricLine = `${etFrag}Válvula tricúspide sin insuficiencia valorable. No es posible estimar PSAP.`;
       }
     }
+    // Al En Suma sólo cuando NO se pudo estimar la PSAP: ahí el TAP es el único indicio
+    // de HTP y sin esta línea el resumen decía "sin alteraciones significativas" pese a
+    // que el informe narrativo describía el hallazgo. Con PSAP estimada sería redundante,
+    // porque más abajo ya se resume el grado de HTP a partir de ese valor.
+    if (tapBajo && !psap) suma.push('Elementos indirectos de hipertensión pulmonar (TAP < 105 ms), sin PSAP estimable.');
     // HTP (interpretación del PSAP) — en la misma oración, sin repetir el valor de PSAP (ya expresado arriba)
     if (psap) {
       const psapN = PF(psap);
@@ -13446,6 +13457,11 @@ function limpiarCampos() {
   if (window.valvSev) window.valvSev.refrescarTodo();   // sub-botones de severidad → "🟡 Severidad ▼"
   document.querySelectorAll('[id^="bloque-insuf-"], [id^="bloque-esten-"]').forEach(el => el.style.display = 'none');
   ['mitral','aortica','tricuspide'].forEach(vv => ['insuf','esten'].forEach(t => { try { localStorage.removeItem('valv-pill-' + t + '-' + vv); } catch(e){} }));
+  // Fechas del estudio que NO son la del estudio en sí. El barrido de arriba sólo toca
+  // input[type=text] y [type=number], así que estas sobrevivían con el valor del
+  // paciente anterior. Se limpian por id y no por [type=date] a propósito: ese selector
+  // también agarraría los filtros de Guardados, Laboratorio y exportación.
+  ['fecha_solicitud','co_seg_fecha'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   // Fecha e índices antropométricos
   document.getElementById('fecha').value = new Date().toISOString().split('T')[0];
   document.getElementById('bsa-val').textContent = '— m²';
@@ -14640,7 +14656,10 @@ function generarPDFReal() {
   // (las filas de la firma y su geometría se calcularon al inicio de la función)
   const _totalPag = doc.internal.getNumberOfPages();
   const _fModoInst = localStorage.getItem('ett_modo_institucional')==='1';
-  const _fInst = sv('med-centro') || '';
+  // Misma resolución que el encabezado (_hdrLine): sólo miraba med-centro, que quedó
+  // vacío al pasar los centros a ⚙️ Config, así que el pie caía siempre al copyright de
+  // CeiboMed aunque el modo institucional estuviera activo.
+  const _fInst = sv('med-centro') || centroStr || (typeof hdrCentroNombre === 'function' ? hdrCentroNombre() : '') || '';
   const _fCopyr = (_fModoInst && _fInst)
     ? ('© 2026 ' + _fInst + ' · Todos los derechos reservados · Uso clínico exclusivo')
     : '© 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo';
