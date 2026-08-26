@@ -192,6 +192,25 @@
   .am-prev .am-kv .k { flex:0 0 52%; color:var(--text2); }
   .am-prev .am-kv .v { font-weight:600; color:var(--text); }
   /* Acordeón por módulo: sólo afecta la pantalla, el PDF sale siempre completo */
+  /* Card del algoritmo diastólico */
+  .da-paso { font-size:11px; font-weight:700; color:var(--accent2); text-transform:uppercase;
+             letter-spacing:.04em; margin:12px 0 5px; }
+  .da-paso:first-child { margin-top:0; }
+  .da-row { display:flex; align-items:baseline; gap:8px; padding:5px 8px; border-radius:6px;
+            margin:3px 0; background:var(--bg3); border:1px solid var(--border); font-size:12px; }
+  .da-ico { flex:none; width:14px; text-align:center; font-weight:700; }
+  .da-crit { flex:1; min-width:0; }
+  .da-val { flex:none; font-weight:700; font-variant-numeric:tabular-nums; }
+  .da-ok   { border-color:rgba(34,197,94,.45); }
+  .da-ok   .da-ico, .da-ok .da-val   { color:#22c55e; }
+  .da-bad  { border-color:rgba(239,68,68,.45); }
+  .da-bad  .da-ico, .da-bad .da-val  { color:#ef4444; }
+  .da-na   { opacity:.62; }
+  .da-na   .da-ico, .da-na .da-val   { color:var(--text2); }
+  .da-nota { font-size:11px; color:var(--text2); line-height:1.5; margin:6px 0 0; }
+  .da-res  { margin-top:12px; padding:10px 12px; border-radius:8px; background:var(--bg3);
+             border:1px solid var(--border); font-size:12px; line-height:1.55; }
+  .da-res b { color:var(--accent2); }
   .am-head { display:flex; align-items:center; justify-content:space-between; gap:10px; cursor:pointer; user-select:none; }
   .am-head .am-tit { display:flex; align-items:center; gap:6px; font-weight:600; }
   .am-head .am-arrow { transition:transform .18s; font-size:11px; color:var(--text2); }
@@ -957,6 +976,18 @@ window.cerrarSesion = cerrarSesion;
 <nav class="eco-drawer" id="ecoDrawer" aria-label="Secciones del estudio"></nav>
 
 <!-- Panel de firma por centro -->
+<!-- Card flotante del algoritmo diastólico (se llena desde diastAlgoRender) -->
+<div id="diast-algo-overlay" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.55);" onclick="if(event.target===this)diastAlgoCerrar();">
+  <div id="diast-algo-card" role="dialog" aria-label="Algoritmo diastólico"
+       style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:560px;max-width:calc(100vw - 24px);max-height:calc(100vh - 48px);overflow:auto;background:var(--bg2);border:1px solid var(--border);border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.6);">
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg2);z-index:1;">
+      <span id="diast-algo-titulo" style="flex:1;font-weight:700;font-size:13px;color:var(--accent2);">Algoritmo diastólico</span>
+      <button type="button" class="btn btn-ghost" style="font-size:12px;padding:3px 10px;font-weight:700;" onclick="diastAlgoCerrar()">✕</button>
+    </div>
+    <div id="diast-algo-cuerpo" style="padding:12px 14px;"></div>
+  </div>
+</div>
+
 <div id="firma-panel" style="display:none;position:fixed;top:64px;left:16px;z-index:250;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;box-shadow:0 12px 40px rgba(0,0,0,0.5);width:330px;max-width:calc(100vw - 32px);">
   <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--text);">🖊️ Firma del centro</div>
   <div class="fg" style="margin-bottom:8px;"><label style="font-size:11px;">Nombre *</label><input type="text" id="firma-nombre" placeholder="Dr. ..." style="width:100%;"></div>
@@ -1522,7 +1553,12 @@ window.cerrarSesion = cerrarSesion;
 
   <!-- Doppler mitral -->
   <div class="card" style="margin-bottom:6px;">
-    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('dop-mitral',this)">〰️ Doppler Mitral — Función Diastólica<span id="dop-mitral-arrow" style="float:right;transition:transform 0.2s;">▼</span></h2>
+    <h2 class="card-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;" onclick="toggleCard('dop-mitral',this)">
+      <span style="flex:1;">〰️ Doppler Mitral — Función Diastólica</span>
+      <button type="button" class="btn btn-ghost" style="font-size:11px;padding:3px 9px;font-weight:600;flex:none;"
+              onclick="event.stopPropagation();diastAlgoAbrir();" title="Ver el algoritmo diastólico con los valores del paciente">🧭 Algoritmo</button>
+      <span id="dop-mitral-arrow" style="transition:transform 0.2s;flex:none;">▼</span>
+    </h2>
   </div>
   <div id="dop-mitral" style="display:block;">
   <div class="card">
@@ -10636,6 +10672,181 @@ function calcDiastolBSE2024() {
   window._bse2024 = resultado;
   window._diastResult = resultado;
 }
+
+// ══════════════════════════════════════════════════════════════════
+// CARD DEL ALGORITMO DIASTÓLICO
+// ══════════════════════════════════════════════════════════════════
+// Muestra los criterios del algoritmo elegido con el valor real del paciente
+// al lado de cada umbral. El color indica si el criterio SE CUMPLE:
+// rojo ✗ = criterio positivo (patológico) · verde ✓ = no se cumple (normal)
+// · gris = el dato no fue ingresado. Es sólo lectura: no cambia el informe.
+function _daNum(id) { const n = v(id); return (n === null || n === undefined || isNaN(n)) ? null : n; }
+function _daLAVI() { const av = _daNum('ai_vol'), b = getBSA(); return (av && b) ? av / b : null; }
+function _daEprom() {
+  const s = _daNum('e_sep'), l = _daNum('e_lat');
+  if (s && l) return (s + l) / 2;
+  return s || l || null;
+}
+function _daEE() { const e = _daNum('onda_e'), ep = _daEprom(); return (e && ep) ? e / ep : null; }
+
+// Una fila del algoritmo. `cumple` true = criterio positivo (rojo).
+function _daFila(criterio, valor, unidad, cumple, dec) {
+  // Ojo: hay criterios cuyo valor es TEXTO ("sep 5 / lat 7"). Chequear sólo con
+  // isNaN los daba por faltantes y los pintaba en gris aunque estuvieran cargados.
+  const hay = (typeof valor === 'number') ? !isNaN(valor)
+            : (valor !== null && valor !== undefined && String(valor).trim() !== '');
+  const cls = !hay ? 'da-na' : (cumple ? 'da-bad' : 'da-ok');
+  const ico = !hay ? '–' : (cumple ? '✗' : '✓');
+  const txt = hay ? (typeof valor === 'number' ? valor.toFixed(dec == null ? 1 : dec) : valor) + (unidad ? ' ' + unidad : '')
+                  : 'sin dato';
+  return '<div class="da-row ' + cls + '"><span class="da-ico">' + ico + '</span>'
+       + '<span class="da-crit">' + escHtml(criterio) + '</span>'
+       + '<span class="da-val">' + escHtml(txt) + '</span></div>';
+}
+
+// Criterios de presión de llenado comunes a los tres algoritmos.
+function _daCriteriosLAP() {
+  const ee = _daEE(), it = _daNum('vmax_it'), lavi = _daLAVI();
+  return {
+    ee:   { val: ee,   cumple: ee   !== null && ee   > 14  },
+    it:   { val: it,   cumple: it   !== null && it   > 2.8 },
+    lavi: { val: lavi, cumple: lavi !== null && lavi > 34  }
+  };
+}
+function _daContar(cs) {
+  let pos = 0, eval_ = 0;
+  cs.forEach(c => { if (c.val !== null) { eval_++; if (c.cumple) pos++; } });
+  return { pos, eval: eval_ };
+}
+
+function diastAlgoRender() {
+  const algo = (document.getElementById('diast_algoritmo') || {}).value || 'ase2025';
+  const tit = { ase2025:'Algoritmo ASE 2025', bse2024:'Algoritmo BSE 2024', ase2016:'Algoritmo ASE/EACVI 2016' }[algo];
+  const tEl = document.getElementById('diast-algo-titulo'); if (tEl) tEl.textContent = tit;
+  const host = document.getElementById('diast-algo-cuerpo'); if (!host) return;
+
+  const L = _daCriteriosLAP();
+  const lars = _daNum('lars'), edad = _daNum('edad');
+  const esep = _daNum('e_sep'), elat = _daNum('e_lat');
+  const e = _daNum('onda_e'), a = _daNum('onda_a');
+  const ea = (e && a) ? e / a : null;
+  const tda = _daNum('tde');
+  let h = '';
+
+  if (algo === 'ase2025') {
+    // Paso 1: umbral de e' septal según edad
+    const umbral = (edad !== null && edad >= 75) ? 5 : 7;
+    const reducida = esep !== null && esep < umbral;
+    h += '<div class="da-paso">Paso 1 — Relajación (e\' septal)</div>';
+    h += _daFila('e\' septal < ' + umbral + ' cm/s' + (edad !== null && edad >= 75 ? ' (edad ≥ 75)' : ''), esep, 'cm/s', reducida);
+    h += '<p class="da-nota">' + (esep === null ? 'Sin e\' septal no se puede iniciar el algoritmo.'
+      : reducida ? 'Relajación reducida: alcanza <b>1</b> criterio adicional para diagnosticar disfunción diastólica.'
+                 : 'Relajación conservada: hacen falta <b>2</b> criterios adicionales.') + '</p>';
+
+    h += '<div class="da-paso">Criterios de presión de llenado</div>';
+    h += _daFila('E/e\' promedio > 14', L.ee.val, '', L.ee.cumple);
+    h += _daFila('Velocidad IT > 2.8 m/s (PSAP > 35 mmHg)', L.it.val, 'm/s', L.it.cumple);
+    h += _daFila('LAVI > 34 ml/m²', L.lavi.val, 'ml/m²', L.lavi.cumple);
+    const c = _daContar([L.ee, L.it, L.lavi]);
+    h += '<div class="da-paso">Criterio secundario</div>';
+    h += _daFila('LARS < 18 % (usar si hay 2 criterios primarios)', lars, '%', lars !== null && lars < 18);
+
+    let res;
+    if (esep === null || c.eval === 0) res = 'Datos insuficientes para clasificar.';
+    else {
+      const need = reducida ? 1 : 2;
+      const dd = c.pos >= need;
+      let grado = 'Normal';
+      if (dd) {
+        if (ea !== null && ea >= 2 && (tda === null || tda <= 160)) grado = 'Grado 3 — LAP muy elevada';
+        else if (reducida && c.pos >= need) grado = (ea !== null && ea >= 0.8 && ea < 2) ? 'Grado 2 — LAP elevada' : 'Grado 2 — LAP elevada';
+      } else if (reducida) grado = 'Grado 1 — e\' reducida, LAP normal';
+      res = '<b>' + grado + '</b> · ' + c.pos + ' de ' + c.eval + ' criterios positivos'
+          + (reducida ? ' (relajación reducida, se exige 1)' : ' (relajación conservada, se exigen 2)') + '.';
+    }
+    h += '<div class="da-res">' + res + '</div>';
+
+  } else if (algo === 'bse2024') {
+    h += '<div class="da-paso">Criterios principales</div>';
+    h += _daFila('E/e\' promedio > 14', L.ee.val, '', L.ee.cumple);
+    h += _daFila('LAVI > 34 ml/m²', L.lavi.val, 'ml/m²', L.lavi.cumple);
+    h += _daFila('Velocidad IT > 2.8 m/s', L.it.val, 'm/s', L.it.cumple);
+    const c = _daContar([L.ee, L.lavi, L.it]);
+
+    let lap, detalle = '';
+    if (c.eval === 0) lap = 'Indeterminado (sin datos)';
+    else if (c.pos === 0) lap = 'LAP normal';
+    else if (c.pos === c.eval && c.eval === 3) lap = 'LAP elevada';
+    else {
+      lap = 'Indeterminado';
+      h += '<div class="da-paso">Desempate por LARS</div>';
+      h += _daFila('LARS < 18 % (LAP elevada)', lars, '%', lars !== null && lars < 18);
+      if (lars !== null) detalle = lars < 18 ? ' → LARS < 18 %: LAP elevada.'
+                        : lars < 30 ? ' → LARS 18–29 %: zona gris.' : ' → LARS ≥ 30 %: LAP normal.';
+    }
+    const ritmo = (document.getElementById('diast_ritmo') || {}).value;
+    const fevi = _daNum('fevi');
+    const via = ritmo === 'fa' ? 'C — fibrilación auricular'
+              : (fevi !== null && fevi < 50) ? 'B — FEVI reducida o miocardiopatía' : 'A — FEVI normal';
+    h += '<p class="da-nota">Vía aplicada: <b>' + via + '</b>.</p>';
+    h += '<div class="da-res"><b>' + lap + '</b> · ' + c.pos + ' de ' + c.eval + ' criterios positivos.' + detalle + '</div>';
+
+  } else {
+    // ASE/EACVI 2016 — atajos por E/A primero
+    h += '<div class="da-paso">Paso 1 — Atajos por relación E/A</div>';
+    h += _daFila('E/A < 0.8 con E < 50 cm/s → Grado 1 directo', ea, '', ea !== null && ea < 0.8 && e !== null && e < 50, 2);
+    h += _daFila('E/A ≥ 2 → Grado 3 directo', ea, '', ea !== null && ea >= 2, 2);
+
+    h += '<div class="da-paso">Paso 2 — Parámetros de presión de llenado</div>';
+    const eprimaBaja = (esep !== null && esep < 7) || (elat !== null && elat < 10);
+    const eprimaVal = (esep !== null || elat !== null)
+      ? ('sep ' + (esep !== null ? esep : '—') + ' / lat ' + (elat !== null ? elat : '—')) : null;
+    h += _daFila('E/e\' promedio > 14', L.ee.val, '', L.ee.cumple);
+    h += _daFila('e\' septal < 7 o lateral < 10 cm/s', eprimaVal, 'cm/s', eprimaBaja);
+    h += _daFila('Velocidad IT > 2.8 m/s', L.it.val, 'm/s', L.it.cumple);
+    h += _daFila('LAVI > 34 ml/m²', L.lavi.val, 'ml/m²', L.lavi.cumple);
+
+    const eprimaCrit = { val: eprimaVal, cumple: eprimaBaja };
+    const c = _daContar([L.ee, eprimaCrit, L.it, L.lavi]);
+    let res;
+    if (ea !== null && ea < 0.8 && e !== null && e < 50) res = '<b>Grado 1</b> por atajo (E/A < 0.8 con E < 50 cm/s): LAP normal.';
+    else if (ea !== null && ea >= 2) res = '<b>Grado 3</b> por atajo (E/A ≥ 2)' + (tda !== null && tda < 160 ? ', TDA < 160 ms' : '') + ': LAP muy elevada.';
+    else if (c.eval === 0) res = 'Datos insuficientes para clasificar.';
+    else {
+      const frac = c.pos / c.eval;
+      const lap = frac < 0.5 ? 'LAP normal' : frac === 0.5 ? 'Indeterminado' : 'LAP elevada';
+      const grado = frac < 0.5 ? (eprimaBaja ? 'Grado 1 — e\' reducida, LAP normal' : 'Normal')
+                  : frac === 0.5 ? 'Indeterminado'
+                  : 'Grado 2 — LAP elevada' + (ea !== null && ea >= 0.8 && ea < 2 ? ' (E/A pseudonormal)' : '');
+      res = '<b>' + grado + '</b> · ' + c.pos + ' de ' + c.eval + ' positivos (' + Math.round(frac * 100) + ' %) → ' + lap + '.';
+    }
+    h += '<div class="da-res">' + res + '</div>';
+  }
+
+  h += '<p class="da-nota">Resultado parcial calculado con los datos disponibles. Los criterios en gris no se ingresaron y no se cuentan.</p>';
+  host.innerHTML = h;
+}
+window.diastAlgoRender = diastAlgoRender;
+
+function diastAlgoAbrir() {
+  diastAlgoRender();
+  const ov = document.getElementById('diast-algo-overlay');
+  if (ov) ov.style.display = 'block';
+}
+function diastAlgoCerrar() {
+  const ov = document.getElementById('diast-algo-overlay');
+  if (ov) ov.style.display = 'none';
+}
+window.diastAlgoAbrir = diastAlgoAbrir; window.diastAlgoCerrar = diastAlgoCerrar;
+document.addEventListener('keydown', e => { if (e.key === 'Escape') diastAlgoCerrar(); });
+
+// Tiempo real: si la card está abierta, cualquier cambio en el estudio la
+// vuelve a pintar. Se engancha a nivel documento para no tener que tocar el
+// oninput de cada campo del que lee.
+['input','change'].forEach(ev => document.addEventListener(ev, () => {
+  const ov = document.getElementById('diast-algo-overlay');
+  if (ov && ov.style.display !== 'none') diastAlgoRender();
+}));
 
 // ══ Algoritmo ASE 2025 (recomendado) ══
 // (mismos umbrales que la función provista; cableado a los ids reales de EcoSmart
