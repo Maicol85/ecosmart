@@ -176,6 +176,13 @@
   /* Botones "Integrar al informe" — un solo estilo para los de toda la app.
      Gris = el módulo NO está en el informe; verde con tilde = sí lo está.
      El estado lo pinta amiloSyncBotones() leyendo am-wrap-<k>. */
+  /* Checkboxes del dominio humoral del HFA-PEFF. Cuando el valor numérico está
+     cargado el tilde lo calcula la app y va deshabilitado: se atenúa para que se
+     vea que es un resultado, no algo que el médico eligió. */
+  .hf-hum-chk { display:flex; align-items:center; gap:7px; font-size:11.5px; cursor:pointer; padding:3px 0; line-height:1.35; }
+  .hf-hum-chk input { width:auto; flex-shrink:0; cursor:pointer; }
+  .hf-hum-chk input:disabled { cursor:default; }
+  .hf-hum-chk.auto { opacity:.72; cursor:default; }
   .btn-integrar { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
   .btn-integrar.integrado { background: var(--green); color: #0f1117; border-color: var(--green); }
   /* ══ LAYOUT ══ */
@@ -418,11 +425,7 @@
   :root { --rail:160px; --topbar-h:56px; --teal:#0D9488; }
   header { min-height: var(--topbar-h); flex-wrap: nowrap; }
   .hdr-med-wrap { position:relative; display:inline-flex; flex-shrink:0; }
-  .hdr-med-panel { position:absolute; top:calc(100% + 8px); left:0; z-index:250;
-    background:var(--bg2); border:1px solid var(--border); border-radius:10px;
-    box-shadow:0 16px 44px rgba(0,0,0,.55); padding:12px 14px; min-width:340px; max-width:560px; }
-  .hdr-med-panel .hdr-sub { margin:0; }
-  .hdr-med-panel .hdr-extra { margin-top:8px; }
+  /* Los estilos de .hdr-med-panel se eliminaron con el panel. */
   .app-shell { display:flex; align-items:flex-start; }
   .rail { position:sticky; top:var(--topbar-h); align-self:flex-start; flex:0 0 var(--rail); width:var(--rail);
     height:calc(100vh - var(--topbar-h)); overflow-y:auto; background:var(--bg2);
@@ -901,49 +904,22 @@ window.cerrarSesion = cerrarSesion;
          escribe hdrSyncIdentidad(); acá va el genérico por si el JS no corre. -->
     <button type="button" class="btn btn-ghost" id="hdr-med-btn" onclick="hdrIrAConfig()" title="Médico del informe — configurar en ⚙️ Config">🩺 Médico</button>
     <button type="button" class="btn btn-ghost" id="hdr-centro-btn" onclick="hdrIrAConfig()" title="Centro / Institución — configurar en ⚙️ Config">🏥 Centro</button>
-    <div id="hdr-med-panel" class="hdr-med-panel" style="display:none">
-    <div class="hdr-sub">
-      <!-- hidden contenteditable spans keep sv() and saveMedico() working -->
-      <!-- Vacíos a propósito: son el valor de fábrica de una instalación limpia, no
-           datos de nadie. loadMedico() los rellena desde localStorage cuando existe,
-           así que quien ya tenía su médico guardado no pierde nada. -->
-      <span id="med-nombre" contenteditable="true" onblur="saveMedico()" style="display:none;"></span>
-      <span class="hdr-ew" id="med-nombre-ew">
-        <span id="med-nombre-disp" class="hdr-dt" onclick="hdrEdit('med-nombre')"></span>
-        <input id="med-nombre-inp" class="hdr-fi" type="text" style="display:none">
-        <button class="hdr-pe" onclick="hdrEdit('med-nombre')" title="Editar nombre">✏️</button>
-      </span>
-      <span class="hdr-ew" id="med-header-sel-wrap" style="display:none;">
-        <select id="med-header-sel" onchange="aplicarMedico(this.value)" title="Seleccionar médico" style="background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:6px;font-size:12px;padding:2px 6px;font-family:inherit;cursor:pointer;">
-        </select>
-      </span>
-      &nbsp;·&nbsp;
-      <span id="med-matricula" contenteditable="true" onblur="saveMedico()" style="display:none;"></span>
-      <span class="hdr-ew">
-        <span id="med-matricula-disp" class="hdr-dt" onclick="hdrEdit('med-matricula')"></span>
-        <input id="med-matricula-inp" class="hdr-fi" type="text" style="display:none">
-        <button class="hdr-pe" onclick="hdrEdit('med-matricula')" title="Editar matrícula">✏️</button>
-      </span>
-      &nbsp;·&nbsp;
-      <span id="med-lugar" contenteditable="true" onblur="saveMedico()" style="display:none;"></span>
-      <span class="hdr-ew">
-        <span id="med-lugar-disp" class="hdr-dt" onclick="hdrEdit('med-lugar')"></span>
-        <input id="med-lugar-inp" class="hdr-fi" type="text" style="display:none">
-        <button class="hdr-pe" onclick="hdrEdit('med-lugar')" title="Editar ciudad/lugar">✏️</button>
-      </span>
-      &nbsp;·&nbsp;
-      <span id="med-centro" contenteditable="true" onblur="saveMedico()" style="display:none;"></span>
-      <span class="hdr-ew">
-        <span id="med-centro-disp" class="hdr-dt hdr-ph" onclick="hdrEdit('med-centro')">Centro/Institución...</span>
-        <input id="med-centro-inp" class="hdr-fi" type="text" style="display:none">
-        <button class="hdr-pe" onclick="hdrEdit('med-centro')" title="Editar centro/institución">✏️</button>
-      </span>
-      &nbsp;·&nbsp;
-      <button type="button" class="hdr-pe" onclick="firmaOpen()" title="Editar firma del centro" style="font-size:11px;">✏️ Firma</button>
-    </div>
-    <div class="hdr-sub hdr-extra" id="hdr-extra">
-      <span id="hdr-esp-item"><span id="med-especialidad" class="hdr-extra-field" contenteditable="true" data-placeholder="Especialidad" title="Click para editar especialidad" onclick="this.focus()" onblur="saveMedico()" style="cursor:pointer;border-bottom:1px dashed var(--accent2);outline:none;"></span></span><span id="hdr-sep-1" class="hdr-sep">&nbsp;·&nbsp;</span><span id="hdr-dir-item"><span id="med-direccion" class="hdr-extra-field" contenteditable="true" data-placeholder="Dirección del consultorio" title="Click para editar dirección" onclick="this.focus()" onblur="saveMedico()" style="cursor:pointer;border-bottom:1px dashed var(--accent2);outline:none;"></span></span><span id="hdr-sep-2" class="hdr-sep">&nbsp;·&nbsp;</span><span id="hdr-tel-item"><span id="med-telefono" class="hdr-extra-field" contenteditable="true" data-placeholder="Teléfono" title="Click para editar teléfono" onclick="this.focus()" onblur="saveMedico()" style="cursor:pointer;border-bottom:1px dashed var(--accent2);outline:none;"></span></span>
-    </div>
+    <!-- Depósito de datos del médico y del centro. NO es UI: el panel editable que
+         vivía acá se retiró (todo se edita en ⚙️ Config), pero estos spans siguen
+         siendo la fuente que leen generarPDFReal(), amiloImprimirPDF(), la firma
+         del centro y sv(). Se mantienen ocultos y vacíos por defecto: los rellenan
+         aplicarMedico(), loadMedico() y firmaSyncToHeader() desde lo configurado. -->
+    <!-- OJO con el contenteditable: NO es para editar (el contenedor está oculto).
+         sv() sólo devuelve textContent si el elemento es contenteditable; para un
+         span común devuelve el.value, o sea ''. Sacarlo deja al PDF sin médico. -->
+    <div id="hdr-med-datos" hidden>
+      <span id="med-nombre" contenteditable="true"></span>
+      <span id="med-matricula" contenteditable="true"></span>
+      <span id="med-lugar" contenteditable="true"></span>
+      <span id="med-centro" contenteditable="true"></span>
+      <span id="med-especialidad" contenteditable="true"></span>
+      <span id="med-direccion" contenteditable="true"></span>
+      <span id="med-telefono" contenteditable="true"></span>
     </div>
   </div>
   <div id="logo-centro-wrap" onclick="logoClick(event)" title="Logo del centro (click para cargar)" style="position:relative;min-width:46px;height:40px;padding:0 6px;border:1px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;flex-shrink:0;background:var(--bg2);margin-left:12px;">
@@ -1028,8 +1004,11 @@ window.cerrarSesion = cerrarSesion;
 
 <div id="firma-panel" style="display:none;position:fixed;top:64px;left:16px;z-index:250;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;box-shadow:0 12px 40px rgba(0,0,0,0.5);width:330px;max-width:calc(100vw - 32px);">
   <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--text);">🖊️ Firma del centro</div>
-  <div class="fg" style="margin-bottom:8px;"><label style="font-size:11px;">Nombre *</label><input type="text" id="firma-nombre" placeholder="Dr. ..." style="width:100%;"></div>
-  <div class="fg" style="margin-bottom:10px;"><label style="font-size:11px;">CJPP *</label><input type="text" id="firma-cjpp" placeholder="CJPP ..." style="width:100%;"></div>
+  <!-- Sólo lectura: quién firma lo define el médico Principal de ⚙️ Config → Médicos.
+       Antes eran editables pero el PDF ya no los usaba, así que sólo confundían. -->
+  <div class="fg" style="margin-bottom:8px;"><label style="font-size:11px;">Nombre</label><input type="text" id="firma-nombre" readonly tabindex="-1" placeholder="— sin médico configurado —" style="width:100%;opacity:.7;cursor:not-allowed;"></div>
+  <div class="fg" style="margin-bottom:4px;"><label style="font-size:11px;">Matrícula</label><input type="text" id="firma-cjpp" readonly tabindex="-1" placeholder="— sin médico configurado —" style="width:100%;opacity:.7;cursor:not-allowed;"></div>
+  <div style="font-size:10px;color:var(--text2);margin-bottom:10px;line-height:1.4;">Se toman del médico marcado como <strong>Principal</strong> en ⚙️ Config → Médicos.</div>
   <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Campos opcionales (marcar para incluir)</div>
   <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><input type="checkbox" id="firma-esp-on" title="Incluir especialidad"><input type="text" id="firma-esp" placeholder="Especialidad" style="flex:1;"></div>
   <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><input type="checkbox" id="firma-lugar-on" title="Incluir ciudad/lugar"><input type="text" id="firma-lugar" placeholder="Ciudad / Lugar" style="flex:1;"></div>
@@ -2787,7 +2766,7 @@ window.cerrarSesion = cerrarSesion;
       </p>
       <div class="grid-4" style="margin-bottom:12px;">
         <div class="fg"><label>Ritmo</label>
-          <select id="hf_ritmo" onchange="hfapeffRender()">
+          <select id="hf_ritmo" onchange="hfRitmoCambio()">
             <option value="rs">Ritmo sinusal</option>
             <option value="fa">Fibrilación auricular</option>
           </select>
@@ -2800,6 +2779,19 @@ window.cerrarSesion = cerrarSesion;
         </div>
         <div class="fg"><label>GLS (%) <span style="font-weight:400;color:var(--text2);font-size:10px;">si no está en SGL</span></label>
           <input type="number" id="hf_gls" step="0.1" placeholder="%" oninput="hfapeffRender()">
+        </div>
+      </div>
+      <!-- Dominio humoral: si hay valor numérico, estos tildes los calcula la app y
+           quedan bloqueados; si el médico no tiene el valor, los marca a mano y suman
+           igual. Las etiquetas las reescribe hfHumUI() según el ritmo elegido. -->
+      <div id="hf-hum-manual" style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:12px;">
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:2px;">Dominio humoral — criterios</div>
+        <div id="hf-hum-modo" style="font-size:10.5px;color:var(--text2);margin-bottom:8px;line-height:1.4;"></div>
+        <div class="grid-2" style="gap:4px 12px;">
+          <label class="hf-hum-chk"><input type="checkbox" class="hf-hum-input" id="hf_nt_may" onchange="hfapeffRender()"><span id="hf_nt_may_lbl"></span></label>
+          <label class="hf-hum-chk"><input type="checkbox" class="hf-hum-input" id="hf_bnp_may" onchange="hfapeffRender()"><span id="hf_bnp_may_lbl"></span></label>
+          <label class="hf-hum-chk"><input type="checkbox" class="hf-hum-input" id="hf_nt_men" onchange="hfapeffRender()"><span id="hf_nt_men_lbl"></span></label>
+          <label class="hf-hum-chk"><input type="checkbox" class="hf-hum-input" id="hf_bnp_men" onchange="hfapeffRender()"><span id="hf_bnp_men_lbl"></span></label>
         </div>
       </div>
       <div id="hfapeff-detalle"></div>
@@ -10773,6 +10765,30 @@ function calcDiastolBSE2024() {
 // Un dominio SIN datos no suma ni resta: se informa aparte, para no dar por
 // negativo lo que en realidad no se midió.
 function _hfN(id) { const n = v(id); return (n === null || n === undefined || isNaN(n)) ? null : n; }
+function _hfChk(id) { const e = document.getElementById(id); return !!(e && e.checked); }
+
+// ── Umbrales del dominio humoral (Pieske et al., ESC/HFA 2019) ─────
+// Un solo lugar define número, notación y texto, así que la etiqueta que ve el
+// médico, el criterio que evalúa la app y lo que sale en el informe no pueden
+// desalinearse. Los umbrales de FA son más altos que los de ritmo sinusal.
+// Notación: los MAYORES son > estricto (no >=). Con >= el valor exacto del umbral
+// caería a la vez en el mayor y en el menor, que se solapan por diseño en la tabla.
+// El límite inferior del menor en FA es 375 (no 365): 365 es una errata muy repetida
+// en la literatura secundaria. Los cortes de FA son exactamente 3x los de sinusal
+// (35→105, 80→240, 220→660, 125→375); 365 es el único que rompe ese patrón.
+function hfUmbrales(fa) {
+  const ntMay = fa ? 660 : 220, ntMenLo = fa ? 375 : 125;
+  const bnMay = fa ? 240 : 80,  bnMenLo = fa ? 105 : 35;
+  const cr = (txt, test) => ({ txt, test });
+  return {
+    fa: !!fa,
+    ntMay: cr('NT-proBNP > ' + ntMay + ' pg/ml',                 x => x !== null && x >  ntMay),
+    bnMay: cr('BNP > ' + bnMay + ' pg/ml',                       x => x !== null && x >  bnMay),
+    ntMen: cr('NT-proBNP ' + ntMenLo + '-' + ntMay + ' pg/ml',   x => x !== null && x >= ntMenLo && x <= ntMay),
+    bnMen: cr('BNP ' + bnMenLo + '-' + bnMay + ' pg/ml',         x => x !== null && x >= bnMenLo && x <= bnMay)
+  };
+}
+window.hfUmbrales = hfUmbrales;
 
 function hfapeffDatos() {
   const bsa = getBSA();
@@ -10798,6 +10814,9 @@ function hfapeffDatos() {
     pared: (siv !== null || pp !== null) ? Math.max(siv || 0, pp || 0) : null,
     imvi, rwt, gls: (gls !== null) ? Math.abs(gls) : null,
     ntprobnp: _hfN('hf_ntprobnp'), bnp: _hfN('hf_bnp'),
+    // Tildes manuales del dominio humoral (para laboratorio sin el número exacto).
+    chk: { ntMay:_hfChk('hf_nt_may'), ntMen:_hfChk('hf_nt_men'),
+           bnMay:_hfChk('hf_bnp_may'), bnMen:_hfChk('hf_bnp_men') },
     ritmo: (document.getElementById('hf_ritmo') || {}).value
            || ((document.getElementById('diast_ritmo') || {}).value === 'fa' ? 'fa' : 'rs')
   };
@@ -10842,14 +10861,20 @@ function hfapeffScore(soloEco) {
     _hfC('Grosor de pared VI >= 12 mm',                      d.pared !== null, d.pared >= 12)
   ]);
 
-  const uNtMay = fa ? 660 : 220, uNtMenLo = fa ? 365 : 125;
-  const uBnMay = fa ? 240 : 80,  uBnMenLo = fa ? 105 : 35;
+  // Los criterios humorales admiten dos vías: el valor numérico, o el tilde manual
+  // para cuando el médico tiene el laboratorio informado pero no el número exacto.
+  // Si hay número, manda el número (el tilde se calcula y se bloquea en la UI).
+  const U = hfUmbrales(fa);
+  const _hum1 = (txt, val, enRango, chk) => {
+    const hayNum = val !== null;
+    return { txt, dato: hayNum || chk, ok: hayNum ? !!enRango : !!chk, auto: hayNum };
+  };
   const hum = _hfDom([
-    _hfC('NT-proBNP > ' + uNtMay + ' pg/ml', d.ntprobnp !== null, d.ntprobnp > uNtMay),
-    _hfC('BNP > ' + uBnMay + ' pg/ml',       d.bnp !== null,      d.bnp > uBnMay)
+    _hum1(U.ntMay.txt, d.ntprobnp, U.ntMay.test(d.ntprobnp), d.chk.ntMay),
+    _hum1(U.bnMay.txt, d.bnp,      U.bnMay.test(d.bnp),      d.chk.bnMay)
   ], [
-    _hfC('NT-proBNP ' + uNtMenLo + '-' + uNtMay + ' pg/ml', d.ntprobnp !== null, d.ntprobnp >= uNtMenLo && d.ntprobnp <= uNtMay),
-    _hfC('BNP ' + uBnMenLo + '-' + uBnMay + ' pg/ml',       d.bnp !== null,      d.bnp >= uBnMenLo && d.bnp <= uBnMay)
+    _hum1(U.ntMen.txt, d.ntprobnp, U.ntMen.test(d.ntprobnp), d.chk.ntMen),
+    _hum1(U.bnMen.txt, d.bnp,      U.bnMen.test(d.bnp),      d.chk.bnMen)
   ]);
 
   const total = func.pts + morf.pts + (soloEco ? 0 : hum.pts);
@@ -10915,7 +10940,88 @@ function hfapeffLineaEco() {
 window.hfapeffLineaEco = hfapeffLineaEco;
 
 // ── Desglose visual en la calculadora ──
+// Sincroniza el bloque de checkboxes humorales: reescribe las etiquetas con los
+// umbrales del ritmo elegido y, si hay valor numérico cargado, calcula el tilde y
+// lo bloquea (para que no pueda contradecir al número). Sin número queda manual.
+// Ids de los tildes humorales, en un solo lugar: los necesitan limpiar/guardar/
+// restaurar, y cada punto que se olvide deja puntaje fabricado en el score.
+function hfHumIds() { return ['hf_nt_may','hf_bnp_may','hf_nt_men','hf_bnp_men']; }
+window.hfHumIds = hfHumIds;
+
+// Deja los cuatro en cero, incluido el rastro de cuáles habían sido automáticos.
+function hfHumReset() {
+  hfHumIds().forEach(id => {
+    const cb = document.getElementById(id); if (!cb) return;
+    cb.checked = false; cb.disabled = false; delete cb.dataset.auto;
+  });
+  if (typeof hfHumUI === 'function') hfHumUI();
+}
+window.hfHumReset = hfHumReset;
+
+// Único punto que significa de verdad "el médico cambió el ritmo": lo llama el
+// selector hf_ritmo y nada más. Los umbrales de FA son ~3x los de sinusal, así que
+// un tilde manual puesto con los umbrales viejos pasaría a afirmar un criterio
+// distinto del que el médico vio; se suelta y se avisa, en vez de re-etiquetarlo.
+function hfRitmoCambio() {
+  const nt = _hfN('hf_ntprobnp'), bn = _hfN('hf_bnp');
+  let soltados = 0;
+  // "Manual" se decide por el DATO, no por cb.disabled: ese atributo se recalcula
+  // más abajo en hfHumUI() y en este momento todavía refleja al paciente anterior.
+  [['hf_nt_may',nt],['hf_nt_men',nt],['hf_bnp_may',bn],['hf_bnp_men',bn]].forEach(par => {
+    const cb = document.getElementById(par[0]);
+    if (cb && par[1] === null && cb.checked) { cb.checked = false; soltados++; }
+  });
+  if (soltados && typeof toast === 'function') {
+    toast('⚠️ Cambió el ritmo: se destildaron los criterios humorales marcados a mano (los umbrales son otros)');
+  }
+  hfapeffRender();
+}
+window.hfRitmoCambio = hfRitmoCambio;
+
+function hfHumUI() {
+  const box = document.getElementById('hf-hum-manual'); if (!box) return;
+  const fa  = (document.getElementById('hf_ritmo') || {}).value === 'fa';
+  const U   = hfUmbrales(fa);
+  // La detección de "cambió el ritmo" NO va acá: hfHumUI() se llama desde cinco
+  // contextos (entre ellos la carga de un informe guardado) y ponerla acá borraba
+  // los tildes que se acababan de restaurar del paciente. Vive en hfRitmoCambio().
+  const nt  = _hfN('hf_ntprobnp'), bn = _hfN('hf_bnp');
+  const filas = [
+    { id:'hf_nt_may',  u:U.ntMay, val:nt }, { id:'hf_bnp_may', u:U.bnMay, val:bn },
+    { id:'hf_nt_men',  u:U.ntMen, val:nt }, { id:'hf_bnp_men', u:U.bnMen, val:bn }
+  ];
+  filas.forEach(f => {
+    const cb  = document.getElementById(f.id);
+    const lbl = document.getElementById(f.id + '_lbl');
+    if (!cb || !lbl) return;
+    const auto = f.val !== null;
+    lbl.textContent = f.u.txt + (f.id.indexOf('_may') > 0 ? '  (mayor · 2 pts)' : '  (menor · 1 pt)');
+    if (auto) {
+      cb.checked = !!f.u.test(f.val);
+      cb.dataset.auto = '1';
+    } else if (cb.dataset.auto === '1') {
+      // Venía calculado y se borró el valor: hay que destildarlo. Si no, el tilde
+      // sobrevivía como si el médico lo hubiera marcado y sumaba puntos sin dato.
+      cb.checked = false;
+      delete cb.dataset.auto;
+    }
+    cb.disabled = auto;
+    cb.title = auto ? 'Calculado desde el valor cargado (' + f.val + ' pg/ml)'
+                    : 'Marcalo si el laboratorio lo cumple y no tenés el valor exacto';
+    if (cb.parentElement) cb.parentElement.classList.toggle('auto', auto);
+  });
+  const modo = document.getElementById('hf-hum-modo');
+  if (modo) {
+    const hayNum = nt !== null || bn !== null;
+    modo.textContent = 'Umbrales de ' + (fa ? 'fibrilación auricular' : 'ritmo sinusal') + '. '
+      + (hayNum ? 'Los tildes del péptido cargado los calcula la app; el otro podés marcarlo a mano.'
+                : 'Sin valores numéricos: marcá a mano lo que informe el laboratorio.');
+  }
+}
+window.hfHumUI = hfHumUI;
+
 function hfapeffRender() {
+  hfHumUI();                      // antes de puntuar: deja los tildes coherentes con los números
   const host = document.getElementById('hfapeff-detalle');
   if (!host) return;
   const r = hfapeffScore(false);
@@ -10984,7 +11090,10 @@ function amiloTextoHFAPEFF() {
 
   L.push('## Criterios cumplidos');
   const cumplidos = [].concat(r.func.todos, r.morf.todos, r.hum.todos).filter(c => c.ok);
-  if (cumplidos.length) cumplidos.forEach(c => L.push('- ' + c.txt + ' (' + c.tipo + ')'));
+  // Un criterio humoral tildado a mano (sin valor numérico) se marca como tal: quien
+  // lea el informe tiene que poder distinguirlo de uno calculado sobre un péptido.
+  if (cumplidos.length) cumplidos.forEach(c => L.push('- ' + c.txt + ' (' + c.tipo
+    + (c.auto === false ? ', referido sin valor numerico' : '') + ')'));
   else L.push('Ningún criterio cumplido con los datos disponibles.');
 
   L.push('## Conclusión');
@@ -13281,6 +13390,11 @@ function limpiarCampos() {
   { const io = document.getElementById('ind_otro'); if (io) { io.value = ''; io.style.display = 'none'; } }
   { const ao = document.getElementById('ant_otro'); if (ao) { ao.value = ''; ao.style.display = 'none'; } }
   if (typeof _accSum === 'function') { _accSum('ind-chk','ind_otro','ind-sum'); _accSum('ant-chk','ant_otro','ant-sum'); }
+  // Criterios humorales del HFA-PEFF marcados a mano: se limpian por clase, no por
+  // lista de ids. El barrido general de arriba no los toca (no son text/number), y
+  // hfHumUI() conserva los manuales a propósito — correcto dentro de un estudio,
+  // pero entre pacientes dejaba puntos del anterior en el score del nuevo.
+  hfHumReset();
   // Módulos de ETT Avanzado: el bucle de arriba vacía los am-txt-*, pero los bloques
   // seguían VISIBLES, así que el paciente nuevo arrancaba con los módulos del anterior
   // integrados (botones en verde) y su vista previa todavía en pantalla. Peor aún: con
@@ -15400,18 +15514,20 @@ ecoInitCentros(); renderCentroField();
 // ══════════════════════════════════════════════════════════════
 // MÉDICOS PREDEFINIDOS — lista en Config + selector en el encabezado (sincronizado)
 // ══════════════════════════════════════════════════════════════
-const ETT_MEDICOS_KEY='ett_medicos', ETT_MED_PR_KEY='ett_medico_principal', ETT_MED_ACT_KEY='ett_medico_activo';
+const ETT_MEDICOS_KEY='ett_medicos', ETT_MED_PR_KEY='ett_medico_principal';
 function ecoGetMedicos(){ try{ const a=JSON.parse(localStorage.getItem(ETT_MEDICOS_KEY)||'[]'); return Array.isArray(a)?a.filter(m=>m&&typeof m==='object'):[]; }catch(e){ return []; } }
 function ecoSetMedicos(a){ try{ localStorage.setItem(ETT_MEDICOS_KEY, JSON.stringify(a.slice(0,5))); }catch(e){} }
 function ecoGetMedPrincipal(){ const n=parseInt(localStorage.getItem(ETT_MED_PR_KEY)); return isNaN(n)?0:n; }
 function ecoSetMedPrincipal(i){ try{ localStorage.setItem(ETT_MED_PR_KEY, String(i)); }catch(e){} }
-// Activo = Principal, siempre. Antes existía un "activo" aparte (ETT_MED_ACT_KEY)
+// Activo = Principal, siempre. Existió un "activo" aparte (clave ett_medico_activo)
 // que movía el selector rápido del header; al retirarse ese selector, tener dos
 // nociones sólo permitía que el que firma no fuera el que decís que es el principal.
 function ecoGetMedActivo(){ const meds=ecoGetMedicos(); if(!meds.length) return -1; const idx=ecoGetMedPrincipal(); return (idx>=0&&idx<meds.length)?idx:0; }
-function ecoSetMedActivo(i){ try{ localStorage.setItem(ETT_MED_ACT_KEY, String(i)); }catch(e){} }
 // Migración: si no hay lista pero hay un médico ya configurado, sembrarlo como primero
 function ecoInitMedicos(){
+  // Limpieza de instalaciones viejas: la clave ya no se lee y dejarla ahí invita a
+  // que alguien la vuelva a tomar como autoritativa.
+  try{ localStorage.removeItem('ett_medico_activo'); }catch(e){}
   let m=ecoGetMedicos();
   if(!m.length){
     const g=id=>((document.getElementById(id)?.textContent)||localStorage.getItem(id.replace(/-/g,'_'))||localStorage.getItem('ett_'+id.replace(/-/g,'_'))||'').trim();
@@ -15515,32 +15631,18 @@ window.hdrIrAConfig=hdrIrAConfig;
 
 function aplicarMedico(idx){
   idx=parseInt(idx); const m=ecoGetMedicos()[idx]; if(!m) return;
-  ecoSetMedActivo(idx);
   _setMedField('med-nombre', m.nombre||'');
   _setMedField('med-matricula', m.matricula||'');
   _setMedField('med-especialidad', m.especialidad||'');
   if(typeof updateHdrExtra==='function') updateHdrExtra();
-  renderMedHeaderSelector();
   // La especialidad del médico elegido entra al objeto firma (y de ahí al checkbox
   // de Config y del panel de Firma); si no, el próximo guardado la pisaría.
   if(typeof firmaAdoptFromHeader==='function') firmaAdoptFromHeader();
   hdrSyncIdentidad();
 }
 window.aplicarMedico=aplicarMedico;
-function renderMedHeaderSelector(){
-  const meds=ecoGetMedicos();
-  const wrap=document.getElementById('med-header-sel-wrap'), sel=document.getElementById('med-header-sel'), nomEw=document.getElementById('med-nombre-ew');
-  if(!wrap||!sel) return;
-  if(meds.length>1){
-    const act=ecoGetMedActivo();
-    sel.innerHTML=meds.map((m,i)=>'<option value="'+i+'">'+escHtml(m.nombre||('Médico '+(i+1)))+'</option>').join('');
-    sel.value=String(act>=0?act:0);
-    wrap.style.display=''; if(nomEw) nomEw.style.display='none';
-  } else {
-    wrap.style.display='none'; if(nomEw) nomEw.style.display='';
-  }
-}
-window.renderMedHeaderSelector=renderMedHeaderSelector;
+/* renderMedHeaderSelector() se eliminó junto con el panel del header: poblaba un
+   <select> de médicos que ya no se muestra (el Principal es el único selector). */
 // ── Gestión de médicos en Configuración ──
 function cfgRenderMedicos(){
   // Ídem centros: toda mutación de la lista de médicos vuelve a pasar por acá.
@@ -15568,14 +15670,13 @@ function cfgAddMedico(){
   ecoSetMedicos(meds);
   if(meds.length===1){ ecoSetMedPrincipal(0); aplicarMedico(0); }
   if(gn)gn.value=''; if(gm)gm.value=''; if(ge)ge.value='';
-  cfgRenderMedicos(); renderMedHeaderSelector();
+  cfgRenderMedicos();
   toast('✅ Médico agregado');
 }
 function cfgDelMedico(i){
   let meds=ecoGetMedicos(); if(i<0||i>=meds.length) return;
   meds.splice(i,1); ecoSetMedicos(meds);
   let pr=ecoGetMedPrincipal(); if(i<pr) pr--; if(pr>=meds.length) pr=0; ecoSetMedPrincipal(Math.max(0,pr));
-  ecoSetMedActivo(ecoGetMedPrincipal());
   cfgRenderMedicos();
   if(meds.length) aplicarMedico(ecoGetMedActivo());
   else {
@@ -15583,7 +15684,7 @@ function cfgDelMedico(i){
     // Si no, el informe seguiría saliendo firmado por un médico que ya no existe.
     _setMedField('med-nombre',''); _setMedField('med-matricula',''); _setMedField('med-especialidad','');
     if(typeof updateHdrExtra==='function') updateHdrExtra();
-    renderMedHeaderSelector(); hdrSyncIdentidad();
+    hdrSyncIdentidad();
   }
 }
 function cfgEditMedico(i){
@@ -15593,7 +15694,7 @@ function cfgEditMedico(i){
   const mat=prompt('Matrícula:', m.matricula||''); if(mat==null) return;
   const esp=prompt('Especialidad:', m.especialidad||''); if(esp==null) return;
   meds[i]={ nombre:nombre.trim(), matricula:mat.trim(), especialidad:esp.trim() }; ecoSetMedicos(meds);
-  cfgRenderMedicos(); renderMedHeaderSelector();
+  cfgRenderMedicos();
   if(ecoGetMedActivo()===i) aplicarMedico(i);
 }
 // Marcar "Principal" también ACTIVA ese médico. El selector rápido del header se
@@ -15603,7 +15704,7 @@ function cfgSetMedPrincipal(i){ const meds=ecoGetMedicos(); if(i<0||i>=meds.leng
 window.cfgAddMedico=cfgAddMedico; window.cfgDelMedico=cfgDelMedico; window.cfgEditMedico=cfgEditMedico; window.cfgSetMedPrincipal=cfgSetMedPrincipal; window.cfgRenderMedicos=cfgRenderMedicos;
 // Arranque médicos
 ecoInitMedicos();
-{ const _a=ecoGetMedActivo(); if(_a>=0) aplicarMedico(_a); else renderMedHeaderSelector(); }
+{ const _a=ecoGetMedActivo(); if(_a>=0) aplicarMedico(_a); }
 // Estado inicial de los botones Médico/Centro del header (cubre el caso sin
 // médicos cargados, donde aplicarMedico() no llega a correr).
 hdrSyncIdentidad();
@@ -15634,6 +15735,15 @@ window.logoClick = logoClick; window.logoFileChosen = function(){}; window.logoD
 
 // ══ FIRMA POR CENTRO ══
 function firmaKey() { return 'firma_centro_' + getCentroKey(); }
+// El médico que firma: siempre el Principal de la lista. Un solo lugar para que el
+// panel de firma, el informe y el PDF no puedan discrepar.
+function _firmaMedPrincipal() {
+  const meds = (typeof ecoGetMedicos === 'function') ? ecoGetMedicos() : [];
+  if (!meds.length) return null;
+  const i = (typeof ecoGetMedPrincipal === 'function') ? ecoGetMedPrincipal() : 0;
+  return meds[i] || meds[0] || null;
+}
+window._firmaMedPrincipal = _firmaMedPrincipal;
 function firmaRead() { try { return JSON.parse(localStorage.getItem(firmaKey()) || 'null'); } catch (e) { return null; } }
 
 // Campos opcionales con checkbox. Única fuente de verdad = el objeto firma_centro_<centro>.
@@ -15704,8 +15814,11 @@ function firmaRefreshUI(f) {
     set(o.pan, 'value', st.val || '');
     set(o.pan + '-on', 'checked', !!st.on);
   });
-  set('firma-nombre', 'value', f.nombre || '');
-  set('firma-cjpp',   'value', f.cjpp   || '');
+  // Nombre y matrícula se muestran desde el médico Principal, que es quien firma de
+  // verdad. Leerlos de f.* mostraría el valor viejo guardado para este centro.
+  { const _m = _firmaMedPrincipal();
+    set('firma-nombre', 'value', _m ? (_m.nombre || '') : '');
+    set('firma-cjpp',   'value', _m ? (_m.matricula || '') : ''); }
   set('firma-email',    'value',   (f.email && f.email.val) || '');
   set('firma-email-on', 'checked', !!(f.email && f.email.on));
   // cfg-med-nombre / cfg-med-matricula ya no existen: nombre y matrícula salen del
@@ -15734,9 +15847,16 @@ function firmaCerrar() { const p = document.getElementById('firma-panel'); if (p
 
 function firmaPopulatePanel() { firmaRefreshUI(firmaState()); }
 function firmaGuardar() {
-  const nombre = (document.getElementById('firma-nombre').value || '').trim();
-  const cjpp   = (document.getElementById('firma-cjpp').value || '').trim();
-  if (!nombre || !cjpp) { alert('Nombre y CJPP son obligatorios.'); return; }
+  // Nombre y matrícula NO se leen del panel (son sólo lectura): salen del médico
+  // Principal, que es de donde los toma el PDF. Se siguen guardando en el objeto
+  // firma porque generarPDFReal() los usa para saber si hay firma propia del centro.
+  const _m = _firmaMedPrincipal();
+  const nombre = _m ? String(_m.nombre || '').trim() : '';
+  const cjpp   = _m ? String(_m.matricula || '').trim() : '';
+  if (!nombre || !cjpp) {
+    alert('Falta el médico que firma.\n\nCargalo en ⚙️ Config → Médicos y marcalo como Principal (necesita nombre y matrícula).');
+    return;
+  }
   const opt = (onId, valId) => ({ on: !!document.getElementById(onId).checked, val: (document.getElementById(valId).value || '').trim() });
   const f = { nombre, cjpp, email: opt('firma-email-on', 'firma-email') };
   firmaOpts().forEach(o => { f[o.k] = opt(o.pan + '-on', o.pan); });
@@ -16251,6 +16371,22 @@ function _restaurarChecklistPaciente(campos) {
   // refrescar los resúmenes de los acordeones
   _accSum('ind-chk', 'ind_otro', 'ind-sum');
   _accSum('ant-chk', 'ant_otro', 'ant-sum');
+  // Criterios humorales del HFA-PEFF: van por acá porque este es el único punto por
+  // el que pasan los tres caminos de carga (editar, cargar por id y PDF de guardado).
+  // Sin esto el .checked quedaba como lo dejó el paciente anterior: guardarInforme()
+  // serializa con .value, que en un checkbox es "on" esté tildado o no.
+  if (typeof hfHumIds === 'function') {
+    hfHumIds().forEach(id => {
+      const cb = document.getElementById(id); if (!cb) return;
+      const val = campos && campos[id];
+      cb.checked = (val === '1' || val === 1 || val === true);
+      // Se limpian AMBOS rastros del paciente anterior: hfHumUI() los recalcula según
+      // el péptido del informe recién cargado.
+      cb.disabled = false;
+      delete cb.dataset.auto;
+    });
+    if (typeof hfHumUI === 'function') hfHumUI();
+  }
 }
 window._restaurarChecklistPaciente = _restaurarChecklistPaciente;
 
@@ -16367,6 +16503,11 @@ function guardarInforme(onDone) {
     campos[el.id] = el.value;
   });
   campos['caso_interes'] = document.getElementById('caso_interes')?.checked ? '1' : '0';
+  // Criterios humorales del HFA-PEFF: el bucle de arriba los guarda con .value, que
+  // en un checkbox vale "on" siempre. Hay que persistir .checked como '1'/'0'.
+  if (typeof hfHumIds === 'function') {
+    hfHumIds().forEach(id => { campos[id] = document.getElementById(id)?.checked ? '1' : '0'; });
+  }
   // Checklists de indicaciones/antecedentes (arrays) — alimentan el Laboratorio
   campos['indicaciones']     = Array.from(document.querySelectorAll('.ind-chk:checked')).map(c => c.dataset.val);
   campos['antecedentes_sel'] = Array.from(document.querySelectorAll('.ant-chk:checked')).map(c => c.dataset.val);
@@ -18288,76 +18429,19 @@ function eliminarInformeYVolver(id) {
   renderInformesGuardados();
 }
 
-// ══ HDR INLINE EDIT ══
-
-function hdrEdit(field) {
-  const disp   = document.getElementById(field + '-disp');
-  const inp    = document.getElementById(field + '-inp');
-  const hidden = document.getElementById(field);
-  if (!disp || !inp) return;
-  if (inp.style.display !== 'none') { inp.focus(); return; }
-
-  inp.value = hidden ? hidden.textContent.trim() : '';
-  disp.style.display = 'none';
-  inp.style.display  = 'inline';
-  inp.focus();
-  inp.select();
-
-  const LABELS = {'med-nombre':'Nombre','med-matricula':'Matrícula','med-lugar':'Ciudad','med-centro':'Centro'};
-  // med-lugar entra por FIRMA_PH: sin entrada acá, vaciarlo dejaba el span oculto con el valor viejo.
-  const PH     = Object.assign({'med-centro':'Centro/Institución...'}, (typeof firmaPh === 'function' ? firmaPh() : {}));
-
-  function save() {
-    inp.onblur    = null;
-    inp.onkeydown = null;
-    const val = inp.value.trim();
-    inp.style.display  = 'none';
-    disp.style.display = '';
-    if (val) {
-      disp.textContent = val;
-      disp.classList.remove('hdr-ph');
-      if (hidden) hidden.textContent = val;
-    } else if (PH[field]) {
-      disp.textContent = PH[field];
-      disp.classList.add('hdr-ph');
-      if (hidden) hidden.textContent = '';
-    }
-    localStorage.setItem('ett_' + field.replace(/-/g,'_'), val);
-    if (field !== 'med-centro') {
-      localStorage.setItem(field.replace(/-/g,'_'), val);
-    }
-    if (val && LABELS[field]) toast('✅ ' + LABELS[field] + ' guardado');
-    // Lo editado inline vuelve al objeto firma (fuente de verdad de los checkboxes).
-    // true = edición deliberada: vaciar la ciudad acá la saca del PDF.
-    if (field !== 'med-centro' && typeof firmaAdoptFromHeader === 'function') firmaAdoptFromHeader(true);
-  }
-
-  inp.onblur    = save;
-  inp.onkeydown = function(e) {
-    if (e.key === 'Enter')  { e.preventDefault(); inp.blur(); }
-    if (e.key === 'Escape') { inp.onblur=null; inp.style.display='none'; disp.style.display=''; }
-  };
-}
+// ══ RESTAURACIÓN DE LOS DATOS DEL HEADER ══
+// hdrEdit() se eliminó junto con el panel editable del header: la edición vive en
+// ⚙️ Config. Queda sólo la restauración al arrancar.
 
 function initHdrEditable() {
   ['med-nombre','med-matricula','med-lugar','med-centro'].forEach(function(field) {
     const lsKey  = 'ett_' + field.replace(/-/g,'_');
     const hidden = document.getElementById(field);
-    const disp   = document.getElementById(field + '-disp');
-    if (!disp) return;
+    if (!hidden) return;                 // antes salía por falta del span -disp, que ya no existe
     const stored = localStorage.getItem(lsKey);
-    // Prefer new 'ett_*' key; fall back to what loadMedico() loaded into the hidden span
-    const val    = (stored !== null && stored !== '') ? stored
-                 : (hidden ? hidden.textContent.trim() : '');
-    const PH = {'med-centro':'Centro/Institución...'};
-    if (val) {
-      disp.textContent = val;
-      disp.classList.remove('hdr-ph');
-      if (hidden) hidden.textContent = val;
-    } else if (PH[field]) {
-      disp.textContent = PH[field];
-      disp.classList.add('hdr-ph');
-    }
+    // Prefiere la clave nueva 'ett_*'; si no, lo que loadMedico() dejó en el span.
+    const val    = (stored !== null && stored !== '') ? stored : hidden.textContent.trim();
+    if (val) hidden.textContent = val;
   });
 }
 initHdrEditable();
@@ -18376,6 +18460,12 @@ function pdfDeInformeGuardado(id) {
     indicaciones: Array.from(document.querySelectorAll('.ind-chk:checked')).map(c => c.dataset.val),
     antecedentes_sel: Array.from(document.querySelectorAll('.ant-chk:checked')).map(c => c.dataset.val)
   };
+  // Criterios humorales del HFA-PEFF: el backup de arriba los guarda con .value, que
+  // en un checkbox vale "on" siempre. Sin esto, imprimir el PDF de un informe viejo
+  // volvía con los cuatro en cero y le borraba los tildes al paciente en pantalla.
+  if (typeof hfHumIds === 'function') {
+    hfHumIds().forEach(id => { chkBackup[id] = document.getElementById(id)?.checked ? '1' : '0'; });
+  }
   // Backup de la contractilidad segmentaria del formulario actual (para restaurarla tras generar)
   const contrBackup = { contractilidad: JSON.stringify(contrEstado), contr_flags: JSON.stringify({ difusa: contrDifusa, multiple: contrMultiple, disqSep: contrDisqSep }) };
   const ceBackup = {};
@@ -22143,11 +22233,8 @@ function ecoMedToggle(){
   if(typeof hdrIrAConfig==='function') hdrIrAConfig();
 }
 window.ecoMedToggle=ecoMedToggle;
-document.addEventListener('click',function(e){
-  var w=document.querySelector('.hdr-med-wrap'), p=document.getElementById('hdr-med-panel');
-  if(!w||!p||p.style.display!=='block') return;
-  if(!w.contains(e.target)){ p.style.display='none'; var b=document.getElementById('hdr-med-btn'); if(b)b.setAttribute('aria-expanded','false'); }
-});
+/* Se retiró el listener de click-afuera que cerraba hdr-med-panel: ese panel ya no
+   existe, así que sólo corría en cada click de la app para no hacer nada. */
 /* Layout: sincroniza el alto real del header con --topbar-h para que el rail
    lateral quede fijo justo debajo sin solaparse (solo presentación). */
 (function(){
