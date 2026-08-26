@@ -8154,6 +8154,10 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
     <div id="co-toxicidad-resultado" class="calc-box" style="margin-bottom:14px;"></div>
 
+    <div style="text-align:center;margin-bottom:14px;">
+      <button type="button" class="btn btn-primary" onclick="amiloIntegrar('conco')">📎 Integrar al informe</button>
+    </div>
+
     <div class="divider"></div>
 
     <!-- SEGUIMIENTO LONGITUDINAL -->
@@ -16082,6 +16086,67 @@ function amiloTextoAortaETE() {
   return L.join('\n');
 }
 
+// ── Cardio-Oncología ──────────────────────────────────────────────
+// Lee los resultados ya calculados (calc-row del contenedor) en vez de repetir
+// la lógica clínica, que vive en calcCardioOnco().
+function _amRows(contId) {
+  const c = document.getElementById(contId);
+  if (!c) return [];
+  return Array.prototype.map.call(c.querySelectorAll('.calc-row'), r => {
+    const l = r.querySelector('.calc-lbl');
+    const sp = r.querySelectorAll('span');
+    const v = sp.length ? sp[sp.length - 1] : null;
+    return { k: l ? l.textContent.trim() : '', v: (v && v !== l) ? v.textContent.trim() : '' };
+  }).filter(p => p.k || p.v);
+}
+
+function amiloTextoCardioOnco() {
+  const L = [];
+  const num = id => { const n = PF(_amV(id)); return (n === null || isNaN(n)) ? null : n; };
+
+  L.push('## Riesgo cardiovascular basal');
+  const farm = _amSelTxt('co_farmaco'), rcv = _amSelTxt('co_riesgo_cv');
+  if (farm) L.push('Fármaco oncológico | ' + farm);
+  const dosis = num('co_dosis_antrac'); if (dosis !== null) L.push('Dosis acumulada de antraciclinas | ' + dosis + ' mg/m2');
+  const edad = num('co_edad'); if (edad !== null) L.push('Edad | ' + edad + ' años');
+  if (rcv) L.push('Riesgo CV previo | ' + rcv);
+  const rr = _amRows('co-riesgo-resultado');
+  // Las filas sin valor (avisos, p.ej. la dosis acumulada en zona de riesgo) van
+  // como línea suelta: con ' | ' vacío quedaba una columna colgada y el
+  // separador a la vista.
+  if (rr.length) rr.forEach(p => L.push(p.v ? ((p.k || 'Clasificación') + ' | ' + p.v) : p.k));
+  else L.push('Clasificación de riesgo | no calculada');
+
+  L.push('## Función ventricular');
+  const fb = num('co_fevi_basal'), fa = num('co_fevi_actual');
+  L.push('FEVI basal | '  + (fb !== null ? fb + ' %' : 'no ingresada'));
+  L.push('FEVI actual | ' + (fa !== null ? fa + ' %' : 'no ingresada'));
+  if (fb !== null && fa !== null) L.push('Caída de FEVI | ' + (fb - fa).toFixed(1) + ' pp');
+  const gb = num('co_gls_basal'), ga = num('co_gls_actual');
+  L.push('GLS basal | '  + (gb !== null ? gb + ' %' : 'no ingresado'));
+  L.push('GLS actual | ' + (ga !== null ? ga + ' %' : 'no ingresado'));
+  if (gb !== null && ga !== null && Math.abs(gb) > 0)
+    L.push('Caída relativa de GLS | ' + (((Math.abs(gb) - Math.abs(ga)) / Math.abs(gb)) * 100).toFixed(1) + ' %');
+
+  L.push('## Marcadores');
+  L.push('Troponina | ' + (_amV('co_troponi') === 'si' ? 'elevada' : 'no elevada'));
+
+  // Los criterios vienen unidos por " | " desde calcCardioOnco(), que es el
+  // mismo separador que usan las filas de tabla: se parten en líneas sueltas.
+  const tr = _amRows('co-toxicidad-resultado');
+  const estado = (tr.find(p => /cardiotoxicidad/i.test(p.k)) || {}).v || '';
+  const caida  = (tr.find(p => /Ca[ií]da FEVI/i.test(p.k)) || {}).v || '';
+  const crit = estado ? estado.split(' | ').map(x => x.trim()).filter(Boolean) : [];
+  L.push('## Criterios de cardiotoxicidad (CTRCD)');
+  if (crit.length && !/^Sin toxicidad/i.test(crit[0])) crit.forEach(c => L.push('- ' + c));
+  else L.push('No se cumplen criterios de cardiotoxicidad con los datos actuales.');
+
+  L.push('## Conclusión');
+  L.push(estado ? ('Estado de cardiotoxicidad: ' + (crit.length > 1 ? crit.join('; ') : estado)) : 'No determinable con los datos cargados.');
+  if (caida) L.push('Caída de FEVI registrada: ' + caida);
+  return L.join('\n');
+}
+
 // ── Catálogo de módulos del bloque ETT Avanzado ───────────────────
 // Un solo lugar define el orden (Amiloidosis primero, después Hemodinámica),
 // las etiquetas de la card y los títulos de sección del PDF.
@@ -16095,7 +16160,8 @@ function amiloSecs() {
     { k:'etem', lbl:'Mediciones ETE — Válvula mitral', tit:'MEDICIONES ETE - VALVULA MITRAL',          gen:amiloTextoEteMitral },
     { k:'wilk', lbl:'Score de Wilkins',                tit:'SCORE DE WILKINS - ESTENOSIS MITRAL',      gen:amiloTextoWilkins },
     { k:'oai',  lbl:'Mediciones OAI',                  tit:'OREJUELA IZQUIERDA - MEDICIONES ETE',      gen:amiloTextoOAI },
-    { k:'aoete',lbl:'Mediciones Aorta (ETE)',          tit:'AORTA TORACICA - MEDICIONES ETE',          gen:amiloTextoAortaETE }
+    { k:'aoete',lbl:'Mediciones Aorta (ETE)',          tit:'AORTA TORACICA - MEDICIONES ETE',          gen:amiloTextoAortaETE },
+    { k:'conco',lbl:'Cardio-Oncología',                tit:'CARDIO-ONCOLOGIA - ESC 2022 / HFA-ICOS',   gen:amiloTextoCardioOnco }
   ];
 }
 window.amiloSecs = amiloSecs;
