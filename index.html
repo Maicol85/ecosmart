@@ -13541,7 +13541,17 @@ function _autosaveShowInd(){
   clearTimeout(_autosaveIndTimer);
   _autosaveIndTimer = setTimeout(function(){ el.style.opacity = '0'; }, 2000);
 }
+// Mientras el formulario está pisado con OTRO estudio (reimpresión de un guardado), el
+// autosave tiene que callarse: si no, persiste los datos del estudio ajeno como borrador
+// del paciente en curso, y en la próxima carga con formulario vacío _autosaveRestore()
+// se los repone como si fueran suyos.
+var _autosaveSuspendido = false;
+function autosaveSuspender(){ _autosaveSuspendido = true; clearTimeout(_autosaveTimer); }
+function autosaveReanudar(){ _autosaveSuspendido = false; clearTimeout(_autosaveTimer); autoSave(); }
+window.autosaveSuspender = autosaveSuspender; window.autosaveReanudar = autosaveReanudar;
+
 function autoSave(){
+  if (_autosaveSuspendido) return;
   try{
     var data = {};
     document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function(el){
@@ -18853,6 +18863,14 @@ function pdfDeInformeGuardado(id) {
     if (el) ceBackup[fid] = el.textContent;
   });
 
+  // Desde acá el formulario queda pisado con OTRO estudio: se silencia el autosave y se
+  // descarta el que hubiera quedado encolado, que podía vencer justo en el medio y
+  // guardar los datos ajenos como borrador de este paciente. Va después de los backups
+  // (que sólo leen el DOM) y dentro de un try, para que ningún error deje el autosave
+  // suspendido en silencio por el resto de la sesión.
+  if (typeof autosaveSuspender === 'function') autosaveSuspender();
+  try {
+
   // Fill form with saved data
   document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
     if (c[el.id] !== undefined) el.value = c[el.id];
@@ -18884,13 +18902,20 @@ function pdfDeInformeGuardado(id) {
   window._pdfFallbackNotas = { ind: String(c.indicacion || '').trim(), ant: String(c.antecedentes || '').trim() };
 
   // Generate PDF (flujo automático de informe guardado — sin modal de revisión)
-  // try/finally: si generarPDFReal tira, el restore igual se agenda. Sin esto el
-  // formulario quedaba con los datos del OTRO estudio —incluida la card de ETT
-  // Avanzado visible con su texto— que es justo lo que el snapshot viene a evitar.
-  try { generarPDFReal(); } finally {
+  generarPDFReal();
+
+  // El finally cubre TODO lo de arriba, no sólo generarPDFReal: si tira el llenado o
+  // cualquier recálculo, el formulario ya quedó con los datos del otro estudio y hay
+  // que restaurarlo igual. Sin esto quedaba pisado —incluida la card de ETT Avanzado
+  // con el texto ajeno— que es justo lo que el snapshot viene a evitar.
+  } finally {
 
   // Restore form state
   setTimeout(() => {
+   // try/finally: si algo de la restauración tira, el autosave tiene que reanudarse
+   // igual. Si no, quedaría suspendido en silencio por el resto de la sesión y el
+   // médico perdería el borrador de todo lo que cargue después.
+   try {
     document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
       if (backup[el.id] !== undefined) el.value = backup[el.id];
     });
@@ -18905,6 +18930,12 @@ function pdfDeInformeGuardado(id) {
     window._pdfFallbackNotas = null;
     if (typeof calcBSA === 'function') calcBSA();
     if (typeof updateHdrExtra === 'function') updateHdrExtra();
+   } finally {
+    // Recién acá el formulario volvió a ser el del paciente en curso: se reanuda el
+    // autosave y se guarda una vez, para que el borrador quede con SUS datos y no con
+    // los que hubiera dejado un autosave anterior a la reimpresión.
+    if (typeof autosaveReanudar === 'function') autosaveReanudar();
+   }
   }, 600);
   }
 }
