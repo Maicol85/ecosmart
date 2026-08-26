@@ -1617,6 +1617,8 @@ window.cerrarSesion = cerrarSesion;
         <div class="calc-row"><span class="calc-lbl">e' promedio</span><span class="calc-val" id="eprom-val">—</span></div>
         <div class="calc-row"><span class="calc-lbl">E/e' promedio</span><span class="calc-val" id="ee-val">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Función diastólica</span><span id="dd-interp">—</span></div>
+        <!-- Sólo aparece si los dos dominios de eco tienen datos y suman >= 2 -->
+        <div class="calc-row" id="hfapeff-eco-row" style="display:none;"><span class="calc-lbl">HFA-PEFF (eco)</span><span id="hfapeff-eco">—</span></div>
       </div>
     </div>
   </div>
@@ -2720,6 +2722,45 @@ window.cerrarSesion = cerrarSesion;
     </div>
   </div>
   </div>
+
+  <!-- ═══ SCORE HFA-PEFF (ESC/HFA 2019) ═══ -->
+  <div class="card" style="margin-bottom:6px;">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('hfapeff-seccion',this);hfapeffRender();">
+      🫀 Score HFA-PEFF — HFpEF (ESC/HFA 2019)
+      <span id="hfapeff-seccion-arrow" style="float:right;transition:transform 0.2s;">▶</span>
+    </h2>
+  </div>
+  <div id="hfapeff-seccion" style="display:none;">
+  <div class="card">
+    <div class="card-body">
+      <p style="font-size:11px;color:var(--text2);margin-bottom:12px;">
+        Los datos ecocardiográficos se toman del estudio. Sólo hay que completar los péptidos y, si no está cargado, el GLS.
+      </p>
+      <div class="grid-4" style="margin-bottom:12px;">
+        <div class="fg"><label>Ritmo</label>
+          <select id="hf_ritmo" onchange="hfapeffRender()">
+            <option value="rs">Ritmo sinusal</option>
+            <option value="fa">Fibrilación auricular</option>
+          </select>
+        </div>
+        <div class="fg"><label>NT-proBNP (pg/ml)</label>
+          <input type="number" id="hf_ntprobnp" step="1" placeholder="pg/ml" oninput="hfapeffRender()">
+        </div>
+        <div class="fg"><label>BNP (pg/ml)</label>
+          <input type="number" id="hf_bnp" step="1" placeholder="pg/ml" oninput="hfapeffRender()">
+        </div>
+        <div class="fg"><label>GLS (%) <span style="font-weight:400;color:var(--text2);font-size:10px;">si no está en SGL</span></label>
+          <input type="number" id="hf_gls" step="0.1" placeholder="%" oninput="hfapeffRender()">
+        </div>
+      </div>
+      <div id="hfapeff-detalle"></div>
+      <div style="text-align:center;margin-top:12px;">
+        <button type="button" class="btn btn-primary" onclick="amiloIntegrar('hfpeff')">📎 Integrar al informe</button>
+      </div>
+    </div>
+  </div>
+  </div>
+
 </div>
 <div id="tab-contractilidad" class="tab-section">
   <div class="card sacc" id="sacc-contr">
@@ -10674,6 +10715,224 @@ function calcDiastolBSE2024() {
 }
 
 // ══════════════════════════════════════════════════════════════════
+// SCORE HFA-PEFF (Pieske et al., ESC/HFA 2019)
+// ══════════════════════════════════════════════════════════════════
+// Tres dominios de 2 puntos: mayor presente = 2, sólo menor = 1, ninguno = 0.
+// Un dominio SIN datos no suma ni resta: se informa aparte, para no dar por
+// negativo lo que en realidad no se midió.
+function _hfN(id) { const n = v(id); return (n === null || n === undefined || isNaN(n)) ? null : n; }
+
+function hfapeffDatos() {
+  const bsa = getBSA();
+  const dd = _hfN('ddfvi'), siv = _hfN('siv'), pp = _hfN('ppvi');
+  let imvi = null, rwt = null;
+  if (dd && siv && pp && bsa) {
+    const masa = 0.8 * (1.04 * (Math.pow(dd/10 + siv/10 + pp/10, 3) - Math.pow(dd/10, 3))) + 0.6;
+    imvi = masa / bsa;
+  }
+  if (dd && pp) rwt = 2 * pp / dd;
+  const esep = _hfN('e_sep'), elat = _hfN('e_lat');
+  const eprom = (esep && elat) ? (esep + elat) / 2 : (esep || elat || null);
+  const e = _hfN('onda_e');
+  const aiVol = _hfN('ai_vol');
+  // El GLS del score puede venir del campo propio o del SGL del estudio.
+  const glsProp = _hfN('hf_gls');
+  const gls = (glsProp !== null) ? glsProp : _hfN('sgl');
+  return {
+    edad: _hfN('edad'), sexo: (sv('sexo') || '').toUpperCase(),
+    esep, elat, ee: (e && eprom) ? e / eprom : null,
+    it: _hfN('vmax_it'),
+    lavi: (aiVol && bsa) ? aiVol / bsa : null,
+    pared: (siv !== null || pp !== null) ? Math.max(siv || 0, pp || 0) : null,
+    imvi, rwt, gls: (gls !== null) ? Math.abs(gls) : null,
+    ntprobnp: _hfN('hf_ntprobnp'), bnp: _hfN('hf_bnp'),
+    ritmo: (document.getElementById('hf_ritmo') || {}).value
+           || ((document.getElementById('diast_ritmo') || {}).value === 'fa' ? 'fa' : 'rs')
+  };
+}
+
+// Devuelve {pts, mayor:[], menor:[], hayDatos} de un dominio.
+function _hfDom(mayores, menores) {
+  const my = mayores.filter(c => c.ok), mn = menores.filter(c => c.ok);
+  const hayDatos = mayores.concat(menores).some(c => c.dato);
+  return { pts: my.length ? 2 : (mn.length ? 1 : 0), mayor: my, menor: mn, hayDatos,
+           todos: mayores.map(c => ({ ...c, tipo:'mayor' })).concat(menores.map(c => ({ ...c, tipo:'menor' }))) };
+}
+const _hfC = (txt, dato, ok) => ({ txt, dato, ok: !!(dato && ok) });
+
+function hfapeffScore(soloEco) {
+  const d = hfapeffDatos();
+  const viejo = d.edad !== null && d.edad >= 75;
+  const uSep = viejo ? 5 : 7, uLat = viejo ? 7 : 10;
+  const fa = d.ritmo === 'fa';
+  const M = (d.sexo || '').indexOf('M') === 0 && (d.sexo || '') !== 'F';
+
+  const func = _hfDom([
+    _hfC("e' septal < " + uSep + " cm/s",  d.esep !== null, d.esep < uSep),
+    _hfC("e' lateral < " + uLat + " cm/s", d.elat !== null, d.elat < uLat),
+    _hfC("E/e' promedio >= 15",            d.ee !== null,   d.ee >= 15),
+    _hfC('Velocidad IT > 2.8 m/s',         d.it !== null,   d.it > 2.8)
+  ], [
+    _hfC("E/e' promedio 9-14",             d.ee !== null,   d.ee >= 9 && d.ee <= 14),
+    _hfC('GLS < 16 %',                     d.gls !== null,  d.gls < 16)
+  ]);
+
+  const uLaviMay = fa ? 40 : 34, uLaviMenLo = fa ? 34 : 29, uLaviMenHi = fa ? 40 : 34;
+  const uImviMay = M ? 149 : 122, uImviMen = M ? 115 : 95;
+  const morf = _hfDom([
+    _hfC('LAVI > ' + uLaviMay + ' ml/m2' + (fa ? ' (FA)' : ''), d.lavi !== null, d.lavi > uLaviMay),
+    _hfC('IMVI > ' + uImviMay + ' g/m2 con RWT > 0.42',
+         d.imvi !== null && d.rwt !== null, d.imvi > uImviMay && d.rwt > 0.42)
+  ], [
+    _hfC('LAVI ' + uLaviMenLo + '-' + uLaviMenHi + ' ml/m2', d.lavi !== null, d.lavi >= uLaviMenLo && d.lavi <= uLaviMenHi),
+    _hfC('IMVI > ' + uImviMen + ' g/m2',                     d.imvi !== null, d.imvi > uImviMen),
+    _hfC('RWT > 0.42',                                       d.rwt !== null,  d.rwt > 0.42),
+    _hfC('Grosor de pared VI >= 12 mm',                      d.pared !== null, d.pared >= 12)
+  ]);
+
+  const uNtMay = fa ? 660 : 220, uNtMenLo = fa ? 365 : 125;
+  const uBnMay = fa ? 240 : 80,  uBnMenLo = fa ? 105 : 35;
+  const hum = _hfDom([
+    _hfC('NT-proBNP > ' + uNtMay + ' pg/ml', d.ntprobnp !== null, d.ntprobnp > uNtMay),
+    _hfC('BNP > ' + uBnMay + ' pg/ml',       d.bnp !== null,      d.bnp > uBnMay)
+  ], [
+    _hfC('NT-proBNP ' + uNtMenLo + '-' + uNtMay + ' pg/ml', d.ntprobnp !== null, d.ntprobnp >= uNtMenLo && d.ntprobnp <= uNtMay),
+    _hfC('BNP ' + uBnMenLo + '-' + uBnMay + ' pg/ml',       d.bnp !== null,      d.bnp >= uBnMenLo && d.bnp <= uBnMay)
+  ]);
+
+  const total = func.pts + morf.pts + (soloEco ? 0 : hum.pts);
+  const max = soloEco ? 4 : 6;
+  return { d, func, morf, hum, total, max, soloEco: !!soloEco, fa,
+           interp: hfapeffInterp(total), completo: func.hayDatos && morf.hayDatos && (soloEco || hum.hayDatos) };
+}
+
+function hfapeffInterp(t) {
+  if (t <= 1) return { nivel:'baja',        txt:'HFpEF poco probable' };
+  if (t <= 4) return { nivel:'intermedia',  txt:'Probabilidad intermedia' };
+  return             { nivel:'alta',        txt:'HFpEF confirmado' };
+}
+
+// Conclusión para el informe / En Suma.
+function hfapeffConclusion(r) {
+  const p = 'Score HFA-PEFF ' + r.total + '/6 — ';
+  if (r.total <= 1) return p + 'probabilidad baja de HFpEF. Investigar causas alternativas de disnea.';
+  if (r.total <= 4) return p + 'probabilidad intermedia de HFpEF. Se recomienda ecocardiografía de esfuerzo y/o cateterismo cardíaco derecho para confirmación diagnóstica.';
+  return p + 'probabilidad alta de HFpEF. Hallazgos compatibles con diagnóstico de insuficiencia cardíaca con fracción de eyección preservada (ESC/HFA 2019).';
+}
+window.hfapeffScore = hfapeffScore; window.hfapeffConclusion = hfapeffConclusion;
+
+// ── Línea informativa en la tabla del Doppler (sólo con datos de eco) ──
+function hfapeffLineaEco() {
+  const el = document.getElementById('hfapeff-eco-row');
+  const val = document.getElementById('hfapeff-eco');
+  if (!el || !val) return;
+  const r = hfapeffScore(true);
+  // Sin los dos dominios de eco cargados no se muestra nada: un score parcial
+  // sobre datos ausentes induciría a error.
+  if (!r.func.hayDatos || !r.morf.hayDatos || r.total <= 1) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  // Con eco sola el techo son 4 puntos (2 funcional + 2 morfológico): nunca se
+  // llega a 5 sin péptidos. Por eso el corte de "probable" es 4/4, no 5.
+  if (r.total >= 4) {
+    val.innerHTML = badge('red', '4/4 en eco — HFpEF probable') +
+      ' <button type="button" class="btn btn-ghost" style="font-size:10px;padding:2px 8px;margin-left:6px;"' +
+      ' onclick="hfapeffIr()">confirmar con péptidos →</button>';
+  } else {
+    val.innerHTML = badge('yellow', r.total + ' pts eco') +
+      ' <button type="button" class="btn btn-ghost" style="font-size:10px;padding:2px 8px;margin-left:6px;"' +
+      ' onclick="hfapeffIr()">completar péptidos →</button>';
+  }
+}
+window.hfapeffLineaEco = hfapeffLineaEco;
+
+// ── Desglose visual en la calculadora ──
+function hfapeffRender() {
+  const host = document.getElementById('hfapeff-detalle');
+  if (!host) return;
+  const r = hfapeffScore(false);
+  const val = (x, u, d) => (x === null || x === undefined) ? 'sin dato'
+    : (typeof x === 'number' ? x.toFixed(d == null ? 1 : d) : x) + (u ? ' ' + u : '');
+
+  const dom = (nombre, o, medidos) => {
+    let h = '<div class="da-paso">' + nombre + ' — ' + o.pts + ' / 2 pts'
+          + (o.hayDatos ? '' : ' <span style="font-weight:400;text-transform:none;">(sin datos)</span>') + '</div>';
+    h += medidos.map(m => '<div class="da-row ' + (m.v === null ? 'da-na' : '') + '">'
+        + '<span class="da-crit">' + escHtml(m.k) + '</span>'
+        + '<span class="da-val">' + escHtml(val(m.v, m.u, m.d)) + '</span></div>').join('');
+    h += o.todos.map(c => {
+      const cls = !c.dato ? 'da-na' : (c.ok ? 'da-bad' : 'da-ok');
+      const ico = !c.dato ? '–' : (c.ok ? '✗' : '✓');
+      return '<div class="da-row ' + cls + '"><span class="da-ico">' + ico + '</span>'
+           + '<span class="da-crit">' + escHtml(c.txt) + '</span>'
+           + '<span class="da-val">' + (c.tipo === 'mayor' ? 'mayor' : 'menor') + '</span></div>';
+    }).join('');
+    return h;
+  };
+
+  const d = r.d;
+  let h = dom('Dominio funcional', r.func, [
+    { k:"e' septal", v:d.esep, u:'cm/s' }, { k:"e' lateral", v:d.elat, u:'cm/s' },
+    { k:"E/e' promedio", v:d.ee, u:'' },   { k:'Velocidad IT', v:d.it, u:'m/s' },
+    { k:'GLS', v:d.gls, u:'%' }
+  ]);
+  h += dom('Dominio morfológico', r.morf, [
+    { k:'LAVI', v:d.lavi, u:'ml/m²' }, { k:'IMVI', v:d.imvi, u:'g/m²', d:0 },
+    { k:'RWT', v:d.rwt, u:'', d:2 },   { k:'Grosor de pared VI', v:d.pared, u:'mm' }
+  ]);
+  h += dom('Dominio humoral (' + (r.fa ? 'FA' : 'ritmo sinusal') + ')', r.hum, [
+    { k:'NT-proBNP', v:d.ntprobnp, u:'pg/ml', d:0 }, { k:'BNP', v:d.bnp, u:'pg/ml', d:0 }
+  ]);
+
+  const col = r.total <= 1 ? 'green' : (r.total <= 4 ? 'yellow' : 'red');
+  h += '<div class="da-res">' + badge(col, 'HFA-PEFF ' + r.total + ' / 6') + ' <b>' + r.interp.txt + '</b><br>'
+     + escHtml(hfapeffConclusion(r))
+     + (r.completo ? '' : '<br><span style="color:var(--text2);">Faltan datos en algún dominio: el puntaje es parcial.</span>')
+     + '</div>';
+  host.innerHTML = h;
+}
+window.hfapeffRender = hfapeffRender;
+
+// Texto del módulo para la card ETT Avanzado / PDF.
+function amiloTextoHFAPEFF() {
+  const r = hfapeffScore(false), d = r.d;
+  const L = [];
+  const fila = (k, x, u, dec) => L.push(k + ' | ' + ((x === null || x === undefined) ? 'sin dato'
+    : (typeof x === 'number' ? x.toFixed(dec == null ? 1 : dec) : x) + (u ? ' ' + u : '')));
+
+  L.push('## Puntaje');
+  L.push('Score HFA-PEFF | ' + r.total + ' / 6');
+  L.push('Dominio funcional | ' + r.func.pts + ' / 2');
+  L.push('Dominio morfológico | ' + r.morf.pts + ' / 2');
+  L.push('Dominio humoral (' + (r.fa ? 'FA' : 'ritmo sinusal') + ') | ' + r.hum.pts + ' / 2');
+
+  L.push('## Valores del paciente');
+  fila("e' septal", d.esep, 'cm/s'); fila("e' lateral", d.elat, 'cm/s');
+  fila("E/e' promedio", d.ee, ''); fila('Velocidad IT', d.it, 'm/s');
+  fila('LAVI', d.lavi, 'ml/m2'); fila('IMVI', d.imvi, 'g/m2', 0);
+  fila('RWT', d.rwt, '', 2); fila('Grosor de pared VI', d.pared, 'mm');
+  fila('GLS', d.gls, '%');
+  fila('NT-proBNP', d.ntprobnp, 'pg/ml', 0); fila('BNP', d.bnp, 'pg/ml', 0);
+
+  L.push('## Criterios cumplidos');
+  const cumplidos = [].concat(r.func.todos, r.morf.todos, r.hum.todos).filter(c => c.ok);
+  if (cumplidos.length) cumplidos.forEach(c => L.push('- ' + c.txt + ' (' + c.tipo + ')'));
+  else L.push('Ningún criterio cumplido con los datos disponibles.');
+
+  L.push('## Conclusión');
+  L.push(hfapeffConclusion(r));
+  if (!r.completo) L.push('Puntaje parcial: falta completar algún dominio.');
+  return L.join('\n');
+}
+
+function hfapeffIr() {
+  if (typeof showTab === 'function') showTab('hemodinamica');
+  const s = document.getElementById('hfapeff-seccion');
+  if (s) { s.style.display = ''; setTimeout(() => s.scrollIntoView({ behavior:'smooth', block:'center' }), 60); }
+  hfapeffRender();
+}
+window.hfapeffIr = hfapeffIr;
+
+// ══════════════════════════════════════════════════════════════════
 // CARD DEL ALGORITMO DIASTÓLICO
 // ══════════════════════════════════════════════════════════════════
 // Muestra los criterios del algoritmo elegido con el valor real del paciente
@@ -10846,6 +11105,10 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') diastAlgoCer
 ['input','change'].forEach(ev => document.addEventListener(ev, () => {
   const ov = document.getElementById('diast-algo-overlay');
   if (ov && ov.style.display !== 'none') diastAlgoRender();
+  // La línea HFA-PEFF de la tabla del Doppler y la calculadora siguen al estudio.
+  if (typeof hfapeffLineaEco === 'function') hfapeffLineaEco();
+  const hs = document.getElementById('hfapeff-seccion');
+  if (hs && hs.style.display !== 'none' && typeof hfapeffRender === 'function') hfapeffRender();
 }));
 
 // ══ Algoritmo ASE 2025 (recomendado) ══
@@ -12652,6 +12915,12 @@ function generarInforme() {
     const _pb = pulBasicoTexto();
     if (_pb.frases.length) inf.push(_pb.frases.join(' '));
     _pb.suma.forEach(x => suma.push(x));
+  }
+
+  // ── 13d) HFA-PEFF → conclusión al En Suma si el módulo está integrado ──
+  if (typeof amiloEnInforme === 'function' && typeof hfapeffScore === 'function'
+      && (amiloEnInforme() || []).some(x => x.k === 'hfpeff')) {
+    suma.push(hfapeffConclusion(hfapeffScore(false)));
   }
 
   // ── 13c) Ecografía pulmonar (módulo avanzado) → sólo al En Suma ──
@@ -16734,6 +17003,7 @@ function amiloSecs() {
     { k:'ett',  lbl:'Score ETT ESC 2021',              tit:'SCORE DE PROBABILIDAD DE AMILOIDOSIS CARDÍACA — ESC 2021',            gen:amiloTextoETT },
     { k:'alg',  lbl:'Algoritmo diagnóstico',           tit:'ALGORITMO DIAGNOSTICO DE AMILOIDOSIS',     gen:amiloTextoAlgoritmo },
     { k:'hemo', lbl:'Perfil hemodinámico',             tit:'PERFIL HEMODINAMICO',                      gen:amiloTextoHemo },
+    { k:'hfpeff',lbl:'Score HFA-PEFF (HFpEF)',         tit:'SCORE HFA-PEFF - HFpEF (ESC/HFA 2019)',    gen:amiloTextoHFAPEFF },
     { k:'htp',  lbl:'Probabilidad de HTP (ESC 2022)',  tit:'PROBABILIDAD DE HTP - ESC 2022',           gen:amiloTextoHTP },
     { k:'tep',  lbl:'Probabilidad de TEP',             tit:'PROBABILIDAD DE TEP / SOBRECARGA VD',      gen:amiloTextoTEP },
     { k:'etem', lbl:'Mediciones ETE — Válvula mitral', tit:'MEDICIONES - VALVULA MITRAL',               gen:amiloTextoEteMitral, grupo:'ete' },
