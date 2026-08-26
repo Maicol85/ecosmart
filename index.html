@@ -448,7 +448,13 @@
   .eco-adv-select{display:none}
   @media(max-width:768px){
     :root{ --rail:0px; }
-    .app-shell{ flex-direction:column; }
+    /* align-items:stretch es imprescindible junto al flex-direction:column. El valor
+       heredado (flex-start, definido arriba para el layout de escritorio) pasa a regir
+       el eje HORIZONTAL al girar la dirección, así que .app-content se dimensionaba a
+       su contenido (~464px) en vez de al ancho de pantalla: en un celular de 328px todo
+       el contenido quedaba corrido hacia la derecha y lo último de cada fila —el botón
+       "Calcular" del score, la columna de puntos— caía fuera de la pantalla. */
+    .app-shell{ flex-direction:column; align-items:stretch; }
     .rail{ position:static; flex-basis:auto; width:100%; height:auto; flex-direction:row; overflow-x:auto;
       border-right:none; border-bottom:1px solid var(--border); }
     .rail .tab-btn{ width:auto; border-left:none; border-bottom:3px solid transparent; }
