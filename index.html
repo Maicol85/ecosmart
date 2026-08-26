@@ -1596,7 +1596,7 @@ window.cerrarSesion = cerrarSesion;
           </select>
         </div>
         <div class="fg"><label>Ritmo</label>
-          <select id="diast_ritmo" onchange="calcDiastol()">
+          <select id="diast_ritmo" onchange="calcDiastol();hfRitmoCambio()">
             <option value="sinusal">Ritmo sinusal</option>
             <option value="fa">Fibrilación auricular</option>
           </select>
@@ -2767,6 +2767,7 @@ window.cerrarSesion = cerrarSesion;
       <div class="grid-4" style="margin-bottom:12px;">
         <div class="fg"><label>Ritmo</label>
           <select id="hf_ritmo" onchange="hfRitmoCambio()">
+            <option value="auto">Automático (según Diastólica)</option>
             <option value="rs">Ritmo sinusal</option>
             <option value="fa">Fibrilación auricular</option>
           </select>
@@ -10817,8 +10818,10 @@ function hfapeffDatos() {
     // Tildes manuales del dominio humoral (para laboratorio sin el número exacto).
     chk: { ntMay:_hfChk('hf_nt_may'), ntMen:_hfChk('hf_nt_men'),
            bnMay:_hfChk('hf_bnp_may'), bnMen:_hfChk('hf_bnp_men') },
-    ritmo: (document.getElementById('hf_ritmo') || {}).value
-           || ((document.getElementById('diast_ritmo') || {}).value === 'fa' ? 'fa' : 'rs')
+    // El viejo fallback a diast_ritmo era código muerto: hf_ritmo es un <select> y
+    // siempre tiene valor, así que nunca se evaluaba y el score ignoraba la FA de la
+    // tab Diastólica. Ahora lo resuelve hfRitmoEfectivo(), que con 'auto' la lee.
+    ritmo: hfRitmoEfectivo()
   };
 }
 
@@ -10950,6 +10953,11 @@ window.hfHumIds = hfHumIds;
 
 // Deja los cuatro en cero, incluido el rastro de cuáles habían sido automáticos.
 function hfHumReset() {
+  _hfRitmoPrevFA = null;           // paciente nuevo: sin ritmo previo contra el cual comparar
+  // Explícito, no por selectedIndex: limpiarCampos() deja los <select> en el índice 0 y
+  // eso sólo da 'auto' mientras esa opción sea la primera. Si alguien reordena la lista,
+  // cada estudio nuevo arrancaría con un ritmo fijado a mano y desconectado de Diastólica.
+  { const h = document.getElementById('hf_ritmo'); if (h) h.value = 'auto'; }
   hfHumIds().forEach(id => {
     const cb = document.getElementById(id); if (!cb) return;
     cb.checked = false; cb.disabled = false; delete cb.dataset.auto;
@@ -10958,11 +10966,36 @@ function hfHumReset() {
 }
 window.hfHumReset = hfHumReset;
 
-// Único punto que significa de verdad "el médico cambió el ritmo": lo llama el
-// selector hf_ritmo y nada más. Los umbrales de FA son ~3x los de sinusal, así que
-// un tilde manual puesto con los umbrales viejos pasaría a afirmar un criterio
-// distinto del que el médico vio; se suelta y se avisa, en vez de re-etiquetarlo.
+// Ritmo efectivo del score. El ritmo del paciente se documenta en la tab Diastólica;
+// tenerlo cargado dos veces y sin relación hacía que un paciente en FA se puntuara
+// con los umbrales de sinusal, que son ~3x más bajos: con NT-proBNP 400 salía
+// criterio mayor (2 pts) en vez de menor (1 pt), suficiente para mover el score de
+// "intermedia" a "HFpEF confirmado".
+// Se DERIVA en vez de espejarse. Un primer intento copiaba diast_ritmo a hf_ritmo y
+// recordaba en una variable si el médico lo había tocado a mano; esa variable era
+// estado de sesión, no del paciente: no se reseteaba al cargar otro estudio (la
+// elección de un paciente afectaba el puntaje del siguiente) ni se guardaba con el
+// informe (al reabrirlo, una FA elegida a mano se revertía sola a sinusal y
+// sobre-puntuaba). Acá la intención ES el valor del <select>, que se guarda y se
+// restaura con el estudio como cualquier otro campo, sin estado paralelo.
+// OJO: diast_ritmo usa 'sinusal'/'fa' y hf_ritmo usa 'auto'/'rs'/'fa'.
+function hfRitmoEfectivo() {
+  const h = document.getElementById('hf_ritmo');
+  const v = h ? h.value : 'auto';
+  if (v === 'rs' || v === 'fa') return v;        // el médico lo fijó a mano
+  const d = document.getElementById('diast_ritmo');
+  return (d && d.value === 'fa') ? 'fa' : 'rs';  // automático: manda Diastólica
+}
+window.hfRitmoEfectivo = hfRitmoEfectivo;
+
+// Lo llaman los onchange de hf_ritmo Y de diast_ritmo: los dos son acciones del
+// médico que pueden mover el ritmo efectivo y, con él, los umbrales. Un tilde manual
+// puesto con los umbrales viejos pasaría a afirmar un criterio distinto del que el
+// médico vio; se suelta y se avisa, en vez de re-etiquetarlo en silencio.
 function hfRitmoCambio() {
+  const faAhora = hfRitmoEfectivo() === 'fa';
+  const cambio  = (_hfRitmoPrevFA !== null && _hfRitmoPrevFA !== faAhora);
+  if (!cambio) { hfapeffRender(); return; }
   const nt = _hfN('hf_ntprobnp'), bn = _hfN('hf_bnp');
   let soltados = 0;
   // "Manual" se decide por el DATO, no por cb.disabled: ese atributo se recalcula
@@ -10978,9 +11011,15 @@ function hfRitmoCambio() {
 }
 window.hfRitmoCambio = hfRitmoCambio;
 
+// Último ritmo efectivo pintado. Lo actualiza hfHumUI() al final, así que después de
+// cargar un estudio ya refleja el ritmo de ESE paciente y el destildado de
+// hfRitmoCambio() no se dispara contra el ritmo del anterior. Con `var` a propósito:
+// hfHumReset() la asigna antes de esta línea y un const/let ahí cortaría el script.
+var _hfRitmoPrevFA = null;
+
 function hfHumUI() {
   const box = document.getElementById('hf-hum-manual'); if (!box) return;
-  const fa  = (document.getElementById('hf_ritmo') || {}).value === 'fa';
+  const fa  = hfRitmoEfectivo() === 'fa';
   const U   = hfUmbrales(fa);
   // La detección de "cambió el ritmo" NO va acá: hfHumUI() se llama desde cinco
   // contextos (entre ellos la carga de un informe guardado) y ponerla acá borraba
@@ -11013,10 +11052,21 @@ function hfHumUI() {
   const modo = document.getElementById('hf-hum-modo');
   if (modo) {
     const hayNum = nt !== null || bn !== null;
-    modo.textContent = 'Umbrales de ' + (fa ? 'fibrilación auricular' : 'ritmo sinusal') + '. '
+    const auto = (document.getElementById('hf_ritmo') || {}).value === 'auto';
+    const dFA = (document.getElementById('diast_ritmo') || {}).value === 'fa';
+    // Si el ritmo está fijado a mano y contradice al del estudio, hay que decirlo: en
+    // informes viejos ese valor no lo eligió nadie, era el default de un <select> que
+    // el médico pudo no haber visto, y de él dependen todos los umbrales del score.
+    const discrepa = !auto && (dFA !== fa);
+    modo.textContent = 'Umbrales de ' + (fa ? 'fibrilación auricular' : 'ritmo sinusal')
+      + (auto ? ' (tomado de la tab Diastólica)' : ' (fijado a mano en este score)') + '. '
+      + (discrepa ? '⚠️ La tab Diastólica dice ' + (dFA ? 'fibrilación auricular' : 'ritmo sinusal')
+                    + ': revisá cuál corresponde o poné el selector en Automático. ' : '')
       + (hayNum ? 'Los tildes del péptido cargado los calcula la app; el otro podés marcarlo a mano.'
                 : 'Sin valores numéricos: marcá a mano lo que informe el laboratorio.');
+    modo.style.color = discrepa ? 'var(--yellow, #e0a800)' : '';
   }
+  _hfRitmoPrevFA = fa;   // referencia para detectar el próximo cambio de ritmo
 }
 window.hfHumUI = hfHumUI;
 
@@ -13491,6 +13541,12 @@ function _autosaveRestore(){
     else if (val != null) el.value = val;
   });
   if (typeof showProlapsoPanel === 'function') showProlapsoPanel();
+  // El autosave repone los tildes humorales, pero es el único camino de restauración
+  // que no pasa por _restaurarChecklistPaciente(). Sin esto, _hfRitmoPrevFA quedaba en
+  // null tras una recarga y el primer cambio de ritmo NO soltaba los tildes: quedaban
+  // afirmando los umbrales viejos (los de FA son ~3x más altos) y el score sobraba
+  // un punto, justo la dirección que empuja hacia "HFpEF confirmado".
+  if (typeof hfHumUI === 'function') hfHumUI();
 }
 function _autosaveInit(){
   _autosaveRestore();
@@ -16394,6 +16450,14 @@ function _restaurarChecklistPaciente(campos) {
   // el que pasan los tres caminos de carga (editar, cargar por id y PDF de guardado).
   // Sin esto el .checked quedaba como lo dejó el paciente anterior: guardarInforme()
   // serializa con .value, que en un checkbox es "on" esté tildado o no.
+  // Los tres caminos de carga sólo pisan las claves PRESENTES en campos. Si el informe
+  // no trae hf_ritmo (importados de PDF, o guardados antes de que el campo existiera),
+  // quedaba el del paciente anterior y su estudio se puntuaba con esos umbrales. Volver
+  // a 'auto' lo devuelve a depender de la Diastólica de ESTE paciente.
+  {
+    const hr = document.getElementById('hf_ritmo');
+    if (hr && !(campos && Object.prototype.hasOwnProperty.call(campos, 'hf_ritmo'))) hr.value = 'auto';
+  }
   if (typeof hfHumIds === 'function') {
     hfHumIds().forEach(id => {
       const cb = document.getElementById(id); if (!cb) return;
