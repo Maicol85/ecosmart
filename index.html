@@ -7,10 +7,25 @@
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.js" defer></script>
+<!-- Subresource Integrity (SRI): sin el atributo `integrity` el navegador ejecuta
+     lo que sea que devuelva el CDN. Si cdnjs se compromete o alguien secuestra el
+     DNS, ese script corre con acceso total a los datos de pacientes de esta app.
+     Los hashes son sha512 y coinciden con los publicados por la API de cdnjs.
+     `crossorigin="anonymous"` es obligatorio para que SRI se verifique.
+     Al subir una versión de cualquier librería hay que recalcular su hash:
+       curl -s <url> | openssl dgst -sha512 -binary | openssl base64 -A -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer
+        integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer
+        integrity="sha512-CQBWl4fJHWbryGE+Pc7UAxWMUMNMWzWxF4SQo9CgkJIN1kx6djDQZjh3Y8SZ1d+6I+1zze6Z7kHXO7q3UyZAWw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer
+        integrity="sha512-r22gChDnGvBylk90+2e/ycr3RVrDi8DIOkIGNhJlKfuyQM4tIRAI062MaV8sfjQKYVGjOBaZBOA87z+IhZE9DA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.js" defer
+        integrity="sha512-6WOG76AXc8rlgtGYLGhDg7lIzZG2Cc+VrSamvgpeBYgxauGuoMua6uKll4OsZ0JvVSt12lRX/9uCmXzkt3/wfg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <style>
   /* Inter self-hosteada (subset latin de Google Fonts v20, fuente variable 100..900).
      Ruta relativa a propósito: con '/fonts/...' la fuente no carga si el index.html se
@@ -575,7 +590,13 @@ html.light-mode #tab-valvulas .sev-lvl3{color:#7f1d1d;}
 #tab-sgl details summary{color:var(--text)!important;}
 
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer onload="pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'"></script>
+<!-- El worker de pdf.js se carga por workerSrc, no por <script>, así que no admite
+     el atributo integrity. Su hash sha512 verificado contra cdnjs es:
+     sha512-BbrZ76UNZq5BhH7LL7pn9A4TKQpQeNCHOo65/akfelcIBbcVvYWOFQKPXIrykE3qZxYjmDX573oa4Ywsc7rpTw== -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer
+        integrity="sha512-q+4liFwdPC/bNdhUpZx6aXDx/h77yEQtn4I1slHydcbZK34nLaR3cAeYSJshoxIOq3mjEf7xJE8YWIUHMn+oCQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"
+        onload="pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'"></script>
 <style>
 /* ── Amiloidosis Calculator ── */
 /* --bg, --border, --text, --purple, --green, --red se heredan del sistema global (theme-aware) */
@@ -2357,7 +2378,7 @@ window.cerrarSesion = cerrarSesion;
           </select>
         </div>
         <div class="fg" id="pul-derrame-balik-wrap" style="display:none;"><label>Balik (mm)</label>
-          <input type="number" id="pul_balik" step="1" placeholder="mm">
+          <input type="number" id="pul_balik" step="1" min="1" max="120" placeholder="mm">
         </div>
       </div>
       <div class="grid-3" style="margin-top:8px;">
@@ -2463,7 +2484,7 @@ window.cerrarSesion = cerrarSesion;
           </select>
         </div>
         <div class="fg pua-der" style="display:none;"><label>Balik (mm)</label>
-          <input type="number" id="pua_balik" step="1" placeholder="mm" oninput="pulAvUI()">
+          <input type="number" id="pua_balik" step="1" min="1" max="120" placeholder="mm" oninput="pulAvUI()">
         </div>
         <div class="fg pua-der" style="display:none;"><label>Lateralidad</label>
           <select id="pua_derrame_lado" onchange="pulAvUI()">
@@ -10829,7 +10850,24 @@ function hfapeffInterp(t) {
 
 // Conclusión para el informe / En Suma.
 function hfapeffConclusion(r) {
-  const p = 'Score HFA-PEFF ' + r.total + '/6 — ';
+  const p = 'Score HFA-PEFF ' + r.total + '/' + (r.max || 6) + ' — ';
+  // Un dominio sin medir suma 0 exactamente igual que uno medido y negativo. Sin
+  // este control, un score incompleto salía como "probabilidad baja de HFpEF", es
+  // decir un descarte diagnóstico fabricado por ausencia de datos — y esa frase va
+  // al En Suma y se imprime en el PDF que se lleva el paciente. El patrón correcto
+  // ya existía en hfapeffLineaEco(), que se oculta si falta un dominio.
+  if (!r.completo) {
+    const faltan = [];
+    if (!r.func.hayDatos) faltan.push('funcional');
+    if (!r.morf.hayDatos) faltan.push('morfológico');
+    if (!r.soloEco && !r.hum.hayDatos) faltan.push('humoral (péptidos natriuréticos)');
+    const nota = 'puntaje parcial: sin datos del dominio ' + faltan.join(' ni ') + '. ';
+    // Nunca afirmar probabilidad baja con dominios sin evaluar: es la dirección
+    // peligrosa, porque se lee como exclusión diagnóstica.
+    if (r.total <= 1) return p + nota + 'No permite descartar ni confirmar HFpEF; completar los datos faltantes.';
+    if (r.total <= 4) return p + nota + 'Probabilidad intermedia con los datos disponibles. Se recomienda completar el score y, según resultado, ecocardiografía de esfuerzo y/o cateterismo cardíaco derecho.';
+    return p + nota + 'Hallazgos compatibles con HFpEF con los datos disponibles (ESC/HFA 2019).';
+  }
   if (r.total <= 1) return p + 'probabilidad baja de HFpEF. Investigar causas alternativas de disnea.';
   if (r.total <= 4) return p + 'probabilidad intermedia de HFpEF. Se recomienda ecocardiografía de esfuerzo y/o cateterismo cardíaco derecho para confirmación diagnóstica.';
   return p + 'probabilidad alta de HFpEF. Hallazgos compatibles con diagnóstico de insuficiencia cardíaca con fracción de eyección preservada (ESC/HFA 2019).';
@@ -11032,8 +11070,14 @@ function diastAlgoRender() {
       const dd = c.pos >= need;
       let grado = 'Normal';
       if (dd) {
-        if (ea !== null && ea >= 2 && (tda === null || tda <= 160)) grado = 'Grado 3 — LAP muy elevada';
-        else if (reducida && c.pos >= need) grado = (ea !== null && ea >= 0.8 && ea < 2) ? 'Grado 2 — LAP elevada' : 'Grado 2 — LAP elevada';
+        // Lo que separa Grado 2 de Grado 3 es la presión de llenado, no el paso 1.
+        // La asignación de Grado 2 estaba anidada dentro de `reducida`, así que con
+        // relajación CONSERVADA y los criterios de presión positivos no entraba por
+        // ninguna rama y el resultado salía como "Normal · 3 de 3 criterios
+        // positivos" — contradictorio en la misma frase.
+        grado = (ea !== null && ea >= 2 && (tda === null || tda <= 160))
+          ? 'Grado 3 — LAP muy elevada'
+          : 'Grado 2 — LAP elevada';
       } else if (reducida) grado = 'Grado 1 — e\' reducida, LAP normal';
       res = '<b>' + grado + '</b> · ' + c.pos + ' de ' + c.eval + ' criterios positivos'
           + (reducida ? ' (relajación reducida, se exige 1)' : ' (relajación conservada, se exigen 2)') + '.';
@@ -16880,6 +16924,17 @@ function pulBasicoUI() {
 window.pulBasicoUI = pulBasicoUI;
 
 // ¿Hay algo cargado en el módulo básico? Si no, no se escribe nada en el informe.
+// Detalle Balik compartido por el módulo básico y el avanzado. Rango plausible
+// 1-120 mm (≈20-2400 ml); fuera de eso el número casi seguro es un error de tipeo
+// y se prefiere no imprimir estimación antes que imprimir un volumen imposible.
+// Es `function` y no `const` a propósito: se usa desde funciones que corren antes
+// de esta línea y un const en zona muerta temporal cortaría el script entero.
+function _balikDet(bk) {
+  if (bk === null || bk === undefined || isNaN(bk) || bk <= 0) return '';
+  if (bk > 120) return ' (Balik ' + bk + ' mm — valor fuera de rango, verificar)';
+  return ' (Balik ' + bk + ' mm, aproximadamente ' + Math.round(bk * 20) + ' ml)';
+}
+
 function pulBasicoHayDatos() {
   return _amV('pul_derrame') === 'si' || _amV('pul_lineasb') === 'si' || _amV('pul_consolidacion') === 'si';
 }
@@ -16891,7 +16946,10 @@ function pulBasicoTexto() {
     const tam = _amV('pul_derrame_tam') || 'mínimo';
     // Balik en mm; el volumen aproximado es mm x 20 en ml.
     const bk = PF(_amV('pul_balik'));
-    const det = (bk && !isNaN(bk)) ? ' (Balik ' + bk + ' mm, aproximadamente ' + Math.round(bk * 20) + ' ml)' : '';
+    // El valor se multiplica por 20, así que un error de tipeo se amplifica y sale
+    // impreso: 200 en vez de 20 daba "4000 ml". Fuera de rango plausible se omite
+    // la estimación en vez de imprimir un volumen imposible.
+    const det = _balikDet(bk);
     frases.push('Derrame pleural ' + tam + det + '.');
     suma.push('Derrame pleural ' + tam + det + '.');
   }
@@ -17012,7 +17070,7 @@ function pulAvSuma() {
   }
   if (_amV('pua_derrame') === 'si') {
     const bk = PF(_amV('pua_balik')), lado = _amV('pua_derrame_lado') || 'bilateral';
-    const det = (bk && !isNaN(bk)) ? ' (Balik ' + bk + ' mm, aproximadamente ' + Math.round(bk * 20) + ' ml)' : '';
+    const det = _balikDet(bk);
     s.push('Derrame pleural ' + lado + det + '.');
   }
   return s;
