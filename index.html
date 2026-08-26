@@ -21693,39 +21693,38 @@ function actualizarGraficaEvol() {
   if (!_evolDatos.length || _evolDatos.length < 2) { wrap.style.display = 'none'; return; }
   wrap.style.display = '';
 
-  // Los estudios guardan `campos` con los IDs del formulario. LAVI y E/e' no se
-  // guardan calculados: se derivan acá de Vol AI + ASC y de E / e' promedio.
-  const num = (c, id) => { const x = c && c[id]; if (x === undefined || x === null || x === '') return null;
-    const n = PF(String(x).replace(',', '.')); return (n === null || isNaN(n)) ? null : n; };
-  const serie = fn => _evolDatos.map(i => { try { return fn(i.campos || {}); } catch (e) { return null; } });
+  // Los estudios NO usan un único juego de claves: los guardados desde el
+  // formulario usan el id real del input (fevi, sgl, ddfvi) y los importados de
+  // PDF usan la clave canónica del parser (fevi_simpson, gls_global, ddvi…).
+  // Por eso se leen con los accesores _lab* del Laboratorio, que ya contemplan
+  // ambos alias y derivan E/e' y LAVI igual que el resto de la app (BSA
+  // Mosteller). Leer sólo los ids del formulario dejaba el gráfico vacío para
+  // todo estudio importado.
+  const r1 = v => (v === null || v === undefined || isNaN(v)) ? null : +v.toFixed(1);
+  const serie = fn => _evolDatos.map(i => { try { return r1(fn(i)); } catch (e) { return null; } });
 
   const PAR = {
-    fevi:  { lbl:'FEVI (%)',      color:'#3ecf8e', ref:50,  get:c => num(c,'fevi') },
-    sgl:   { lbl:'SGL (%)',       color:'#f05454', ref:-20, get:c => num(c,'sgl') },
-    tapse: { lbl:'TAPSE (mm)',    color:'#63b3ed', ref:17,  get:c => num(c,'tapse') },
-    ee:    { lbl:"E/e' promedio", color:'#f6ad55', ref:14,  get:c => {
-              const e = num(c,'onda_e'), s2 = num(c,'e_sep'), l = num(c,'e_lat');
-              const ep = (s2 && l) ? (s2 + l) / 2 : (s2 || l);
-              return (e && ep) ? +(e / ep).toFixed(1) : null; } },
-    ddvi:  { lbl:'DDVI (mm)',     color:'#a0aec0', ref:58,  get:c => num(c,'ddfvi') },
-    lavi:  { lbl:'LAVI (ml/m²)',  color:'#b794f4', ref:34,  get:c => {
-              const vol = num(c,'ai_vol'), pe = num(c,'peso'), ta = num(c,'talla');
-              if (!vol || !pe || !ta) return null;
-              const bsa = 0.007184 * Math.pow(ta, 0.725) * Math.pow(pe, 0.425);
-              return bsa ? +(vol / bsa).toFixed(1) : null; } }
+    fevi:  { lbl:'FEVI (%)',      color:'#3ecf8e', ref:50,  get:_labFevi },
+    sgl:   { lbl:'SGL (%)',       color:'#f05454', ref:-20, get:_labGls },
+    tapse: { lbl:'TAPSE (mm)',    color:'#63b3ed', ref:17,  get:_labTapse },
+    ee:    { lbl:"E/e' promedio", color:'#f6ad55', ref:14,  get:_labEeProm },
+    ddvi:  { lbl:'DDVI (mm)',     color:'#a0aec0', ref:58,  get:i => _labNum(i,'ddfvi','ddvi') },
+    lavi:  { lbl:'LAVI (ml/m²)',  color:'#b794f4', ref:34,  get:_labLavi }
   };
 
   const labels = _evolDatos.map(i => (i.fecha_estudio || '—').split('-').reverse().join('/'));
-  const series = [], omitidos = [];
+  const series = [], omitidos = [], sinDato = [];
+  let marcados = 0;
 
   Object.keys(PAR).forEach(k2 => {
     const chk = document.getElementById('evol-' + k2);
     if (!chk || !chk.checked) return;
+    marcados++;
     const P = PAR[k2];
     const data = serie(P.get);
     const conDato = data.filter(x => x !== null).length;
     // Menos de 2 puntos no dibuja línea: no hay evolución posible.
-    if (conDato < 2) { if (conDato) omitidos.push(P.lbl); return; }
+    if (conDato < 2) { (conDato ? omitidos : sinDato).push(P.lbl); return; }
     series.push({ label:P.lbl, data, borderColor:P.color, backgroundColor:P.color + '22',
                   tension:0.3, fill:false, spanGaps:true, pointRadius:4, pointHoverRadius:7, borderWidth:2 });
     // Línea punteada de referencia normal, del mismo color y sin puntos.
@@ -21734,9 +21733,27 @@ function actualizarGraficaEvol() {
                   fill:false, tension:0, _esRef:true });
   });
 
-  if (aviso) aviso.textContent = omitidos.length
-    ? 'Sin graficar por tener un solo dato: ' + omitidos.join(', ') + '. Hacen falta al menos 2 estudios con ese parámetro.'
-    : '';
+  // El gráfico vacío nunca debe quedar mudo: si no se pudo dibujar nada hay que
+  // decir por qué (antes se salía en silencio y parecía que la función fallaba).
+  if (aviso) {
+    const partes = [];
+    if (omitidos.length) partes.push('Con un solo dato, sin línea posible: ' + omitidos.join(', ') + '.');
+    if (sinDato.length)  partes.push('Sin ningún valor en estos ' + _evolDatos.length + ' estudios: ' + sinDato.join(', ') + '.');
+    if (!series.length) {
+      partes.unshift(marcados
+        ? '⚠️ No hay nada para graficar todavía.'
+        : '⚠️ No hay ningún parámetro tildado: marcá al menos uno de arriba.');
+      if (marcados) partes.push('Se grafica un parámetro cuando al menos 2 estudios lo tienen cargado.');
+    }
+    aviso.textContent = partes.join(' ');
+  }
+
+  if (window._evolDebug) {
+    console.log('[evol] estudios:', _evolDatos.length, '| tildados:', marcados,
+                '| series:', series.length / 2, '| sin dato:', sinDato, '| 1 solo dato:', omitidos);
+    console.log('[evol] claves del 1er estudio:', Object.keys(_evolDatos[0].campos || {}).join(', ') || '(campos vacío)');
+    Object.keys(PAR).forEach(k2 => console.log('   ', PAR[k2].lbl, '→', JSON.stringify(serie(PAR[k2].get))));
+  }
 
   if (!series.length) return;
 
