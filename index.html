@@ -22145,8 +22145,9 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
         display:flex;flex-direction:column;gap:10px;
         font-size:12px;color:#94A3B8;line-height:1.5;">
         <div>🔒 Los datos se guardan localmente en
-          el navegador. No se transmiten a servidores
-          externos.</div>
+          el navegador (IndexedDB). No se transmiten
+          a servidores externos. Exportá backups
+          regularmente.</div>
         <div>⚕️ Los cálculos automáticos son
           orientativos. La interpretación clínica
           final corresponde al médico tratante.</div>
@@ -22725,7 +22726,7 @@ const MANUAL_SECCIONES = [
   { t: `1. ¿Qué es EcoSmart?`, p: [
     `EcoSmart es una aplicación web de ecocardiografía Doppler Color desarrollada dentro de la suite CeiboMed. Permite cargar los datos de un estudio de ecocardiograma, generar un informe narrativo estructurado, exportarlo en PDF y acumular una base de datos de estudios para análisis estadístico y auditoría del laboratorio cardiovascular.`,
     `EcoSmart es una herramienta de apoyo clínico. No reemplaza el juicio médico ni constituye una recomendación diagnóstica o terapéutica. El médico es responsable de interpretar los resultados y tomar decisiones clínicas.`,
-    `Requiere conexión a internet para funcionar. Los datos se almacenan localmente en el navegador (localStorage). Es fundamental exportar backups regularmente para evitar pérdida de información.`,
+    `Requiere conexión a internet para funcionar. Los datos se almacenan localmente en el navegador (IndexedDB), con mayor capacidad y estabilidad que el almacenamiento tradicional. Es fundamental exportar backups regularmente para evitar pérdida de información.`,
   ]},
   { t: `2. Login y aviso legal`, p: [
     `Al abrir EcoSmart aparece la pantalla de login. Ingresá la contraseña y presioná Ingresar o Enter. Después del login aparece un aviso legal con tres puntos: confidencialidad de datos del paciente, apoyo clínico sin reemplazar el criterio médico, y responsabilidad del médico en la interpretación final.`,
@@ -22789,57 +22790,80 @@ const MANUAL_SECCIONES = [
   { t: `12. Tab Imágenes`, p: [
     `Hasta 2/4/6/8/10 slots de imagen. Las imágenes se incluyen automáticamente en el PDF si están cargadas.`,
   ]},
-  { t: `13. Módulos especiales`, p: [
+  { t: `13. Tab Otros`, p: [
+    `Tab nueva después de SGL que agrupa Pericardio/Masas y Ecografía Pulmonar básica.`,
+    `Pericardio permite registrar derrame y cuantificarlo. Masas permite documentar imágenes intracardíacas.`,
+    `Eco Pulmonar básica registra deslizamiento pleural, líneas B con patrón y distribución, derrame pleural con cuantificación Balik en mm (volumen aproximado = mm x 20), y consolidación.`,
+  ]},
+  { t: `14. HFA-PEFF Score`, p: [
+    `Score diagnóstico de HFpEF (Pieske et al. ESC/HFA 2019). Se calcula automáticamente en dos niveles: una línea informativa en la tabla de Doppler que muestra los puntos ecocardiográficos disponibles, y una calculadora completa en Hemodinámica donde se agregan péptidos natriuréticos y ritmo (RS/FA).`,
+    `Puntaje máximo 6 (2 pts por dominio: funcional, morfológico, humoral). Interpretación: 0-1 poco probable, 2-4 intermedio, 5-6 HFpEF confirmado.`,
+    `Se puede integrar al ETT Avanzado.`,
+  ]},
+  { t: `15. Algoritmo diastólico interactivo`, p: [
+    `En la fila DOPPLER MITRAL - FUNCIÓN DIASTÓLICA hay un botón de brújula que despliega una card con el algoritmo diastólico seleccionado (ASE 2025, BSE 2024 o ASE/EACVI 2016).`,
+    `La card muestra los criterios del algoritmo con los valores reales del paciente coloreados en tiempo real: rojo si el criterio es positivo, verde si es normal, gris si no hay dato. Se actualiza automáticamente al modificar cualquier campo.`,
+    `Es solo de consulta, no genera texto en el informe.`,
+  ]},
+  { t: `16. Modo comparativo y evolución temporal`, p: [
+    `Al generar el informe de un paciente con estudios previos guardados, aparece automáticamente el modal de evolución longitudinal. Muestra los estudios previos del mismo CI ordenados por fecha.`,
+    `Incluye un gráfico de evolución temporal con FEVI, SGL, TAPSE, E/e', DDVI y LAVI, con líneas de referencia normal para cada parámetro. Los parámetros se pueden mostrar u ocultar con checkboxes.`,
+  ]},
+  { t: `17. Módulos especiales / ETT Avanzado`, p: [
     `Hemodinámica: gasto cardíaco, IC, resistencias. Perfil de Forrester (I-IV). TEP orientación ecocardiográfica VD. HTP ESC/ERS 2022 con RVP.`,
     `Amiloidosis: Score ESC 2021 (RWT, E/e', TAPSE, SGL, relación ápice/base). Algoritmo gammagrafía Tc99m de Perugini (0-3) con proteínas monoclonales. Cuatro escenarios diagnósticos.`,
     `ETE: Score Wilkins automático. Esquema válvula mitral por festones (A1/A2/A3, P1/P2/P3). Criterios TEER. Orejuela izquierda, FOP.`,
     `Cardio-Oncología: seguimiento FEVI y SGL. Detección cardiotoxicidad (caída >=15% GLS o >=10% FEVI). HFA-ICOS/ESC 2022. El estudio pre-quimio queda como basal fijo.`,
+    `El card ETT Avanzado aparece en el informe cuando se integran módulos avanzados. Actualmente soporta 11 módulos: Score de Amiloidosis ESC 2021, Algoritmo diagnóstico de Amiloidosis, Perfil hemodinámico, Probabilidad de HTP (ESC 2022), Probabilidad de TEP, Mediciones ETE Válvula Mitral, Score de Wilkins, Mediciones OAI, Mediciones Aorta, Cardio-Oncología (CTRCD), Ecografía Pulmonar avanzada.`,
+    `Cada módulo tiene botón Integrar al informe en su tab correspondiente y botón Retirar individual en la card. En el PDF aparece en hoja separada después del En Suma. Los módulos ETE aparecen en hoja propia titulada ECOCARDIOGRAMA TRANSESOFÁGICO.`,
   ]},
-  { t: `14. Herramientas de apoyo`, p: [
+  { t: `18. Herramientas de apoyo`, p: [
     `Calculadoras: PISA/ERO para IM, Score Wilkins, AVA por ecuación de continuidad, HCM Risk-SCD, QTc y otras.`,
     `Fonocardiograma: patrones gráficos de soplos con posición, irradiación, carácter y claves diagnósticas.`,
     `Referencias: tablas de valores normales ASE 2015, ESC 2021/2022/2025, AHA/ACC 2024.`,
   ]},
-  { t: `15. Generar Informe`, p: [
+  { t: `19. Generar Informe`, p: [
     `Botón Generar Informe crea el informe narrativo automáticamente. Estilos: Conciso, Estándar (predeterminado), Narrativo. El informe incluye FEVI+SGL, función diastólica con grado, cámaras derechas, aorta, aurícula izquierda, válvulas, contractilidad, pericardio, En Suma.`,
     `Modal comparativo: si existe estudio previo del mismo paciente (misma CI), aparece tabla comparativa con delta de parámetros principales.`,
     `Guardar Informe: antes de guardar aparece la card de confirmación de severidad valvular (una sola vez por estudio). Si hay estudio duplicado, pregunta si sobreescribir o guardar como nuevo.`,
   ]},
-  { t: `16. PDF del informe clínico`, p: [
+  { t: `20. PDF del informe clínico`, p: [
     `Botón PDF (verde en el encabezado). Antes de generar, card de confirmación de severidades valvulares.`,
     `Contenido: encabezado con institución y logo, datos del paciente, tabla de datos cuantificados, informe narrativo, En Suma, bull's eye (si se eligió incluir), imágenes adjuntas, firma del médico, fecha, pie legal.`,
     `Colores disponibles: azul (predeterminado), verde, violeta, bordo. Formato del nombre de archivo: configurable (Nombre+Fecha, Nombre+Doc+Fecha, etc.).`,
     `Modo institucional en PDF: encabezado y pie con nombre de la institución, sin mención a CeiboMed.`,
   ]},
-  { t: `17. Guardados`, p: [
+  { t: `21. Guardados`, p: [
     `Buscar y filtrar: por nombre/documento, rango de fechas, casos de interés, filtros clínicos (FEVI, geometría VI, función diastólica, valvulopatía), filtros numéricos.`,
     `Por estudio: marcar como caso de interés (estrella), generar PDF, editar (carga en formulario), eliminar.`,
     `Gestión: Exportar JSON (backup), Importar JSON, Eliminar todos.`,
+    `Los estudios guardados ahora se muestran en tarjetas compactas con nombre, CI y fecha en una sola línea. Los favoritos muestran el nombre en dorado. La card usa acordeón por módulo en el ETT Avanzado.`,
   ]},
-  { t: `18. Exportar e Importar`, p: [
+  { t: `22. Exportar e Importar`, p: [
+    `Los datos se almacenan en IndexedDB con mayor capacidad que localStorage. Exportar JSON genera un backup completo. Importar restaura desde ese backup. Se recomienda exportar regularmente como respaldo externo.`,
     `Exportar: en Guardados tocar Exportar JSON. El archivo se descarga con todos los estudios. Guardar en pendrive o Mac. Recomendación: exportar después de cada sesión.`,
     `Importar: tocar Importar JSON, seleccionar el archivo. Vista previa con cantidad de estudios y duplicados. Opciones: Omitir duplicados (recomendado), Sobreescribir, Importar todos. Compatible con cualquier navegador (Chrome, Edge, Safari, Firefox).`,
     `Flujo entre dispositivos: exportar en PC del trabajo -> copiar al pendrive -> importar en Mac.`,
   ]},
-  { t: `19. Laboratorio`, p: [
+  { t: `23. Laboratorio`, p: [
     `Accedé desde el botón Laboratorio en la barra inferior. Analiza automáticamente todos los estudios guardados.`,
     `Secciones: Dashboard (corazón anatómico con promedios), Indicaciones y Antecedentes (en paralelo, tabla + torta), Hallazgos frecuentes, Perfil demográfico, Función sistólica FEVI (4 rangos: >=50%/40-49%/30-39%/<30%), Función diastólica (por grado), Geometría VI, Contractilidad (bull's eye poblacional 17 segmentos), Valvulopatías (severidades por válvula), Función VD (TAPSE), HTP/PSAP, Volumen AI indexado, Calidad del Laboratorio (% estudios con cada parámetro medido), Indicadores automáticos (oportunidades clínicas), Docencia (casos de interés marcados con estrella), Estadísticas (media, mediana, DS, percentiles), Asociaciones estadísticas.`,
     `Filtros: por médico, por centro, por período.`,
   ]},
-  { t: `20. Asociaciones estadísticas`, p: [
+  { t: `24. Asociaciones estadísticas`, p: [
     `La tabla analiza pares de variables buscando relaciones estadísticas. Columnas: Categoría, Asociación, Interpretación (frase clínica automática), N, Método, Dirección (flechas arriba-arriba = ambas suben juntas; arriba-abajo = una sube cuando la otra baja; flecha = sin dirección lineal), Fuerza (Débil/Moderada/Fuerte), Estadístico, p, Semáforo (verde = significativa con N suficiente, amarillo = significativa N bajo, gris = no significativa).`,
     `Cómo leer: mirar primero el semáforo. Si es verde o amarillo, ver la Fuerza. Una asociación Fuerte con p<0.001 es la más valiosa. Una Débil aunque significativa puede no tener relevancia práctica. Estas asociaciones describen tu población — no establecen causalidad.`,
   ]},
-  { t: `21. PDF de Auditoría`, p: [
+  { t: `25. PDF de Auditoría`, p: [
     `Generarlo: en Laboratorio, subtab Informe PDF, completar institución y médico responsable, tocar Generar PDF de Auditoría.`,
     `Orden del PDF: Resumen ejecutivo (corazón anatómico + promedios), Indicaciones + Antecedentes (dos columnas), Hallazgos frecuentes, Perfil demográfico, Función sistólica, Función diastólica, Geometría VI, Contractilidad, Valvulopatías, Función VD, HTP/PSAP, Volumen AI, Calidad del laboratorio, Indicadores automáticos, Docencia/Casos de interés.`,
     `Útil para: reuniones de equipo, acreditaciones, presentación de actividad institucional, identificación de áreas de mejora.`,
   ]},
-  { t: `22. Referencias clínicas`, p: [
+  { t: `26. Referencias clínicas`, p: [
     `La biblioteca de referencias incluye: valvulopatías (ASE/ESC), Score Wilkins, TEER, HCM-SCD, HTP ESC/ERS 2022, Cardio-Oncología HFA-ICOS/ESC 2022, Amiloidosis, función diastólica (ASE 2025/BSE 2024/Clásico 2016), contractilidad segmentaria 17 segmentos AHA, strain longitudinal global.`,
     `Las referencias clínicas se actualizan con cada versión de EcoSmart para reflejar las guías más recientes. Ante decisiones clínicas importantes, corroborar siempre la fuente primaria y su vigencia.`,
   ]},
-  { t: `23. Contacto y soporte`, p: [
+  { t: `27. Contacto y soporte`, p: [
     `Para consultas, soporte técnico o sugerencias:`,
     `soporte@ceibomed.com — soporte técnico y consultas de uso`,
     `sugerencias@ceibomed.com — feedback y mejoras`,
@@ -22852,7 +22876,7 @@ const MANUAL_SECCIONES = [
 ];
 
 /* ══ Manual completo en PDF ══
-   El contenido vive en MANUAL_SECCIONES (23 secciones) y es independiente de ECO_AYUDA:
+   El contenido vive en MANUAL_SECCIONES (27 secciones) y es independiente de ECO_AYUDA:
    el modal muestra un resumen navegable, el PDF es el manual extenso.
    Todo texto pasa por _pdfSafe(): la helvetica de jsPDF (WinAnsi) no dibuja flechas,
    ≥/≤ ni emoji, así que se transliteran o se quitan antes de escribir. */
