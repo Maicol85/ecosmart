@@ -16198,6 +16198,10 @@ function guardarInformesSeguro(informes) {
 
 // ── Validación de esquema para import JSON (FIX A2) ──
 const _INF_CAMPOS_PERMITIDOS = ['id','estudioId','nombre','ci','doc_tipo','fecha_estudio','fecha_guardado','campos','importado_pdf','archivo_origen'];
+// Únicas claves de `campos` que guardarInforme() escribe como array (los checklists
+// del panel Paciente). El resto es string; contractilidad/contr_flags van con
+// JSON.stringify, así que también son strings.
+const _INF_CAMPOS_ARRAY = new Set(['indicaciones','antecedentes_sel']);
 function validarInformeImportado(inf) {
   if (typeof inf !== 'object' || inf === null || Array.isArray(inf)) return false;
   for (const k of Object.keys(inf)) {
@@ -16217,6 +16221,21 @@ function validarInformeImportado(inf) {
     if (typeof inf.campos !== 'object' || inf.campos === null || Array.isArray(inf.campos)) return false;
     for (const [ck, cv] of Object.entries(inf.campos)) {
       if (typeof ck !== 'string' || ck.length > 60) return false;
+      // Los checklists del panel Paciente (indicaciones, antecedentes_sel) se guardan
+      // como ARRAY de strings, no como string: exigir string acá rechazaba todo estudio
+      // creado desde el formulario, o sea que exportar y reimportar nunca funcionaba.
+      // Se aceptan arrays de strings, acotados, en vez de cambiar el formato guardado
+      // (el Laboratorio los lee con Array.isArray y stringificarlos lo rompería).
+      // SÓLO en esas dos claves: el resto de la app da por sentado que campos[x] es un
+      // string y hace .trim()/.substring() sin chequear. Un array en, por ejemplo,
+      // en_suma pasaba la validación y después tiraba TypeError al pintar el
+      // Laboratorio, que quedaba a medio renderizar cada vez que se abría.
+      if (Array.isArray(cv)) {
+        if (!_INF_CAMPOS_ARRAY.has(ck)) return false;
+        if (cv.length > 200) return false;
+        if (!cv.every(x => typeof x === 'string' && x.length <= 500)) return false;
+        continue;
+      }
       if (typeof cv !== 'string' || cv.length > 20000) return false;
     }
   }
