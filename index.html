@@ -8551,6 +8551,10 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   <!-- Oculta hasta que se integra algún módulo. Cada uno tiene su propio
        "Retirar", que sólo lo esconde: el texto queda guardado y al reintegrar
        los datos reaparecen. La card se oculta sola al retirar el último. -->
+  <!-- Qué módulos están integrados, persistido con el estudio. Antes se deducía de
+       "el textarea tiene texto", pero amiloRetirar() conserva el texto a propósito:
+       un módulo retirado del informe firmado reaparecía al reabrirlo o reimprimirlo. -->
+  <input type="hidden" id="am-integrados" value="">
   <div class="card" id="amilo-card" style="display:none;">
     <h2 class="card-head"><span>🧬 ETT Avanzado</span></h2>
     <div class="card-body">
@@ -8854,7 +8858,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
       <button type="button" class="crit-calc-btn" id="calcbtn-rwt" onclick="event.stopPropagation();amCalcToggle('rwt')">Calcular ▾</button>
       <div class="criterio-pts">+3</div>
-      <input type="hidden" id="ett-rwt" value="0">
+      <input type="hidden" id="ett-rwt" value="0"><input type="hidden" id="ett-rwt-orig" value="">
     </div>
     <div class="crit-calc" id="calc-rwt" hidden>
       <div class="form-row cols3">
@@ -8871,7 +8875,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
       <button type="button" class="crit-calc-btn" id="calcbtn-ee" onclick="event.stopPropagation();amCalcToggle('ee')">Calcular ▾</button>
       <div class="criterio-pts">+1</div>
-      <input type="hidden" id="ett-ee" value="0">
+      <input type="hidden" id="ett-ee" value="0"><input type="hidden" id="ett-ee-orig" value="">
     </div>
     <div class="crit-calc" id="calc-ee" hidden>
       <div class="form-row cols3">
@@ -8888,7 +8892,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
       <button type="button" class="crit-calc-btn" id="calcbtn-tapse" onclick="event.stopPropagation();amCalcToggle('tapse')">Calcular ▾</button>
       <div class="criterio-pts">+2</div>
-      <input type="hidden" id="ett-tapse" value="0">
+      <input type="hidden" id="ett-tapse" value="0"><input type="hidden" id="ett-tapse-orig" value="">
     </div>
     <div class="crit-calc" id="calc-tapse" hidden>
       <label>TAPSE medido (mm)</label>
@@ -8902,7 +8906,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
       <button type="button" class="crit-calc-btn" id="calcbtn-sgl" onclick="event.stopPropagation();amCalcToggle('sgl')">Calcular ▾</button>
       <div class="criterio-pts">+1</div>
-      <input type="hidden" id="ett-sgl" value="0">
+      <input type="hidden" id="ett-sgl" value="0"><input type="hidden" id="ett-sgl-orig" value="">
     </div>
     <div class="crit-calc" id="calc-sgl" hidden>
       <label>SGL medido (%)</label>
@@ -8916,7 +8920,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
       <button type="button" class="crit-calc-btn" id="calcbtn-apice" onclick="event.stopPropagation();amCalcToggle('apice')">Calcular ▾</button>
       <div class="criterio-pts">+3</div>
-      <input type="hidden" id="ett-apice" value="0">
+      <input type="hidden" id="ett-apice" value="0"><input type="hidden" id="ett-apice-orig" value="">
     </div>
     <div class="crit-calc" id="calc-apice" hidden>
       <div class="form-row cols3">
@@ -13572,6 +13576,9 @@ function _autosaveRestore(){
   // afirmando los umbrales viejos (los de FA son ~3x más altos) y el score sobraba
   // un punto, justo la dirección que empuja hacia "HFpEF confirmado".
   if (typeof hfHumUI === 'function') hfHumUI();
+  // Ídem para el Score Amiloidosis: sin esto, tras una recarga los puntos vuelven pero
+  // las filas se ven sin tildar y el origen de cada marca se pierde.
+  if (typeof amETTSyncDesdeHidden === 'function') amETTSyncDesdeHidden();
 }
 function _autosaveInit(){
   _autosaveRestore();
@@ -16386,6 +16393,7 @@ function editarInforme(id) {
     { const _ci = document.getElementById('caso_interes'); if (_ci) _ci.checked = (inf.campos['caso_interes'] === '1' || inf.campos['caso_interes'] === 'true'); }
     _restaurarChecklistPaciente(inf.campos);
     if (typeof _restaurarContractilidad === 'function') _restaurarContractilidad(inf.campos);
+    if (typeof amiloRestaurarDesdeCampos === 'function') amiloRestaurarDesdeCampos(inf.campos);
     if (typeof renderCentroField === 'function') renderCentroField(inf.campos.centro_nombre);
     // Cargar un estudio inicia una sesión nueva: resetear flags de severidad manual (las pills
     // se pre-pueblan con lo cargado y vuelven a poder autocalcularse si se editan los datos Doppler)
@@ -16430,6 +16438,7 @@ function cargarEstudioPorId(id) {
   { const _ci = document.getElementById('caso_interes'); if (_ci) _ci.checked = (inf.campos && (inf.campos['caso_interes'] === '1' || inf.campos['caso_interes'] === 'true')); }
   _restaurarChecklistPaciente(inf.campos);
   if (typeof _restaurarContractilidad === 'function') _restaurarContractilidad(inf.campos);
+  if (typeof amiloRestaurarDesdeCampos === 'function') amiloRestaurarDesdeCampos(inf.campos);
   valvSevConfirmada = false;   // estudio cargado por URL/QR: vuelve a pedir confirmación
   if (typeof renderCentroField === 'function') renderCentroField(inf.campos && inf.campos.centro_nombre);
   ['calcVI','calcAI','calcAorta','calcVD'].forEach(fn => { if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} } });
@@ -16495,6 +16504,9 @@ function _restaurarChecklistPaciente(campos) {
     });
     if (typeof hfHumUI === 'function') hfHumUI();
   }
+  // Score Amiloidosis: repinta filas, tildes y origen desde los hidden de puntos, que
+  // en este punto ya fueron repuestos por el bucle de campos de cada camino de carga.
+  if (typeof amETTSyncDesdeHidden === 'function') amETTSyncDesdeHidden();
 }
 window._restaurarChecklistPaciente = _restaurarChecklistPaciente;
 
@@ -17570,6 +17582,13 @@ function amiloSyncBotones() {
     b.classList.toggle('integrado', on);
     b.textContent = on ? '✓ Integrado al informe' : '📎 Integrar al informe';
   });
+  // Punto único por el que pasan integrar, retirar y restaurar: se aprovecha para
+  // dejar por escrito qué módulos están integrados, que es lo que se guarda con el
+  // estudio y decide qué se imprime al reabrirlo.
+  const li = document.getElementById('am-integrados');
+  if (li && typeof amiloSecs === 'function') {
+    li.value = amiloSecs().filter(s => amiloIntegrado(s.k)).map(s => s.k).join(',');
+  }
 }
 window.amiloSyncBotones = amiloSyncBotones;
 
@@ -17642,6 +17661,71 @@ function amiloIntegrar(k) {
   if (typeof toast === 'function') toast('📎 ' + sec.lbl + ' integrado al informe');
 }
 window.amiloIntegrar = amiloIntegrar;
+
+// ══ RESTAURACIÓN DEL BLOQUE ETT AVANZADO DE UN ESTUDIO GUARDADO ══
+// amiloBuildCard() sólo corría desde amiloIntegrar(), así que en una carga limpia los
+// <textarea am-txt-*> ni existían: el bucle de campos no tenía dónde reponer el texto
+// guardado, amiloEnInforme() devolvía null y el PDF reimpreso salía SIN la sección de
+// ETT Avanzado, en silencio. Acá se construye la card primero y después se repone.
+// reimpresion=true → se está regenerando el PDF de un informe firmado: el texto queda
+// congelado tal cual se guardó. false (editar / cargar por QR) → el estudio se abre
+// para modificarlo, así que el texto restaurado se marca como "generado por la app"
+// (_amiloUltimo) y un reintegro puede regenerarlo con los datos corregidos. Sin esto
+// el bloque quedaba congelado para siempre y el PDF salía con el score viejo mientras
+// el resto del informe reflejaba los datos nuevos.
+function amiloRestaurarDesdeCampos(campos, reimpresion) {
+  if (typeof amiloBuildCard !== 'function') return;
+  amiloBuildCard();
+  // Qué módulos estaban integrados: la lista guardada manda. El heurístico de "tiene
+  // texto" queda sólo para informes viejos, que no la tienen; ese heurístico es el que
+  // hacía reaparecer un módulo retirado, porque Retirar conserva el texto.
+  var lista = campos ? campos['am-integrados'] : null;
+  var set = (typeof lista === 'string') ? new Set(String(lista).split(',').filter(Boolean)) : null;
+  var hayAlguno = false;
+  amiloSecs().forEach(function (s) {
+    var ta = document.getElementById('am-txt-' + s.k);
+    var w  = document.getElementById('am-wrap-' + s.k);
+    if (!ta || !w) return;
+    var txt = campos ? campos['am-txt-' + s.k] : null;
+    ta.value = (typeof txt === 'string') ? txt : '';
+    if (!reimpresion) _amiloUltimo[s.k] = ta.value;
+    var tiene = set ? set.has(s.k) : (String(ta.value).trim() !== '');
+    w.style.display = tiene ? '' : 'none';
+    if (tiene) { hayAlguno = true; amiloPreview(s.k); }
+  });
+  var card = document.getElementById('amilo-card');
+  if (card) card.style.display = hayAlguno ? '' : 'none';
+  if (typeof amiloSyncBotones === 'function') amiloSyncBotones();
+}
+window.amiloRestaurarDesdeCampos = amiloRestaurarDesdeCampos;
+
+// Foto de qué módulos están integrados. El backup genérico de pdfDeInformeGuardado
+// cubre los textarea, pero no la visibilidad de cada wrap, que es justo lo que decide
+// qué se imprime. Sin esto, reimprimir un guardado le dejaba al paciente en pantalla
+// el bloque del otro estudio.
+function amiloSnapshot() {
+  var s = { card: false, vis: {} };
+  var card = document.getElementById('amilo-card');
+  s.card = !!(card && card.style.display !== 'none');
+  amiloSecs().forEach(function (x) {
+    var w = document.getElementById('am-wrap-' + x.k);
+    s.vis[x.k] = !!(w && w.style.display !== 'none');
+  });
+  return s;
+}
+function amiloSnapshotRestore(s) {
+  if (!s) return;
+  amiloSecs().forEach(function (x) {
+    var w = document.getElementById('am-wrap-' + x.k);
+    if (!w) return;
+    w.style.display = s.vis[x.k] ? '' : 'none';
+    if (s.vis[x.k]) amiloPreview(x.k);
+  });
+  var card = document.getElementById('amilo-card');
+  if (card) card.style.display = s.card ? '' : 'none';
+  if (typeof amiloSyncBotones === 'function') amiloSyncBotones();
+}
+window.amiloSnapshot = amiloSnapshot; window.amiloSnapshotRestore = amiloSnapshotRestore;
 
 // Retira UN módulo sin borrar su texto. Si no queda ninguno, esconde la card.
 function amiloRetirar(k) {
@@ -17937,14 +18021,91 @@ function resetAlgoritmo() {
 // acordeón que se abre con "Calcular" sólo si el médico los necesita. Qué campos mira
 // cada criterio para saber si ya está resuelto: los de resultado calculado (res) o,
 // cuando el criterio es de una sola medida, el input directo.
+// `ok` es el mismo umbral que aplica cada función de cálculo. Está acá para poder
+// deducir el origen de una marca al restaurar un estudio (ver amETTSyncDesdeHidden).
+// `calc` reproduce la fórmula de cada función de cálculo y `ok` su umbral. Se usan al
+// reconstruir un estudio viejo que no trae el origen persistido.
 var _AM_CALC = {
-  rwt:   { res:'rwt-result', ins:['rwt-pp','rwt-ddvi'] },
-  ee:    { res:'ee-result',  ins:['ee-e','ee-ep'] },
-  tapse: { res:null,         ins:['tapse-val'] },
-  sgl:   { res:null,         ins:['sgl-val'] },
-  apice: { res:'ap-result',  ins:['ap-apic','ap-base'] }
+  rwt:   { res:'rwt-result', ins:['rwt-pp','rwt-ddvi'], ok:function(v){ return v >  0.6; }, calc:function(a,b){ return b ? (2*a)/b : null; } },
+  ee:    { res:'ee-result',  ins:['ee-e','ee-ep'],      ok:function(v){ return v >  11;  }, calc:function(a,b){ return b ? a/b : null; } },
+  tapse: { res:null,         ins:['tapse-val'],         ok:function(v){ return v <= 19;  } },
+  sgl:   { res:null,         ins:['sgl-val'],           ok:function(v){ return v >= -13; } },
+  apice: { res:'ap-result',  ins:['ap-apic','ap-base'], ok:function(v){ return v >  2.9; }, calc:function(a,b){ return b ? Math.abs(a)/Math.abs(b) : null; } }
 };
 function amCalcIds() { return Object.keys(_AM_CALC); }
+
+// Valor con el que se evalúa el criterio. Se RECOMPUTA desde los campos crudos en vez
+// de leer el campo de resultado: ese guarda el valor redondeado (toFixed), y un RWT de
+// 0.6045 se leía como 0.60, o sea del lado equivocado del umbral 0.6. Eso deducía mal
+// el origen, congelaba el criterio y metía en el informe una frase falsa sobre él.
+function amETTValor(k) {
+  var c = _AM_CALC[k]; if (!c) return null;
+  if (!c.calc) {
+    var e = document.getElementById(c.ins[0]);
+    var v = e ? PF(e.value) : NaN;
+    return isNaN(v) ? null : v;
+  }
+  var a = PF((document.getElementById(c.ins[0]) || {}).value);
+  var b = PF((document.getElementById(c.ins[1]) || {}).value);
+  if (isNaN(a) || isNaN(b)) return null;
+  var r = c.calc(a, b);
+  return (r === null || isNaN(r)) ? null : r;
+}
+
+// El origen se PERSISTE en un hidden por criterio (lo captura y repone el mismo bucle
+// de campos que el resto del estudio). Deducirlo del número era frágil: se equivocaba
+// por redondeo, no podía representar una marca manual que además cumple el umbral, y
+// al reimprimir un guardado le recalculaba el origen al paciente que estaba en pantalla.
+function amOrigenSet(k, v) {
+  var crit = document.getElementById('crit-' + k);
+  var hid  = document.getElementById('ett-' + k + '-orig');
+  if (crit) { if (v) crit.dataset.origen = v; else delete crit.dataset.origen; }
+  if (hid) hid.value = v || '';
+}
+
+// Reconstruye el estado VISIBLE del score desde los <input type="hidden"> de puntos,
+// que es lo único que viaja con el estudio guardado. Sin esto, al abrir un informe los
+// puntos volvían pero las filas se veían sin tildar, y como data-origen tampoco se
+// persiste, borrar un valor ya no desmarcaba nada.
+function amETTSyncDesdeHidden() {
+  if (typeof amCalcIds !== 'function') return;
+  amCalcIds().forEach(function (k) {
+    var crit = document.getElementById('crit-' + k);
+    var hid  = document.getElementById('ett-' + k);
+    var chk  = document.getElementById('chk-' + k);
+    if (!crit || !hid || !chk) return;
+    var marcado = (PF(hid.value) || 0) > 0;
+    crit.classList.toggle('activo', marcado);
+    chk.textContent = marcado ? '✓' : '—';
+    if (!marcado) amOrigenSet(k, '');
+    else {
+      // El origen persistido manda. Sólo se deduce en informes viejos, que no lo traen:
+      // el cálculo nunca marca un criterio cuyo valor no cumple el umbral ni marca sin
+      // valor, así que en esos dos casos la marca sólo puede haberla puesto una persona.
+      var hidO = document.getElementById('ett-' + k + '-orig');
+      var guardado = hidO ? String(hidO.value || '').trim() : '';
+      if (guardado === 'auto' || guardado === 'manual') { crit.dataset.origen = guardado; }
+      else {
+        var v = amETTValor(k);
+        amOrigenSet(k, (v !== null && _AM_CALC[k].ok(v)) ? 'auto' : 'manual');
+      }
+    }
+    amMarcaTitulo(k);
+    amCalcToggle(k, false);   // colapsa y deja el botón con el valor cargado
+  });
+  // Criterios cualitativos: mismo problema de estado visual, sin origen que deducir.
+  [1, 2, 3].forEach(function (n) {
+    var it  = document.getElementById('cual-' + n);
+    var hid = document.getElementById('ett-cual-' + n);
+    var chk = document.getElementById('chk-cual-' + n);
+    if (!it || !hid || !chk) return;
+    var on = (PF(hid.value) || 0) > 0;
+    it.classList.toggle('activo', on);
+    chk.textContent = on ? '✓' : '—';
+  });
+  if (typeof calcETT === 'function') calcETT();
+}
+window.amETTSyncDesdeHidden = amETTSyncDesdeHidden;
 
 // Etiqueta del botón. Con el acordeón cerrado y un valor cargado muestra EL VALOR, no
 // "Calcular": si no, una medición que contradice la marca queda invisible mientras el
@@ -18002,8 +18163,9 @@ function toggleCrit(itemId, inputId, pts) {
   // mando, pero recién en el próximo cambio del campo numérico: no se recalcula acá
   // a propósito, porque con un valor que cumple volvería a marcarlo en el acto y
   // haría imposible destildarlo.
-  if (activo) item.dataset.origen = 'manual'; else delete item.dataset.origen;
-  amMarcaTitulo(itemId.replace('crit-',''));
+  var _k0 = itemId.replace('crit-','');
+  amOrigenSet(_k0, activo ? 'manual' : '');
+  amMarcaTitulo(_k0);
   // Marcarlo a mano también resuelve el criterio: se cierra el acordeón si estaba abierto.
   var k = itemId.replace('crit-','');
   if (activo && document.getElementById('calc-' + k)) amCalcToggle(k, false);
@@ -18025,7 +18187,7 @@ function amAplicarCalc(k, cumple, pts) {
   crit.classList.toggle('activo', cumple);
   input.value = cumple ? pts : 0;
   chk.textContent = cumple ? '✓' : '—';
-  if (cumple) crit.dataset.origen = 'auto'; else delete crit.dataset.origen;
+  amOrigenSet(k, cumple ? 'auto' : '');
   amMarcaTitulo(k);
 }
 
@@ -18064,7 +18226,7 @@ function amCalcSinDato(k) {
   crit.classList.remove('activo');
   if (input) input.value = 0;
   if (chk) chk.textContent = '—';
-  delete crit.dataset.origen;
+  amOrigenSet(k, '');
   amMarcaTitulo(k);
 }
 
@@ -18196,7 +18358,9 @@ function resetETT() {
   ['crit-rwt','crit-ee','crit-tapse','crit-sgl','crit-apice','cual-1','cual-2','cual-3'].forEach(id=>{
     var el=document.getElementById(id); if(!el) return;
     el.classList.remove('activo');
-    delete el.dataset.origen;   // sin esto, una marca manual del paciente anterior seguiría bloqueando el cálculo
+    // Sin esto, una marca manual del paciente anterior seguiría bloqueando el cálculo.
+    delete el.dataset.origen;
+    var _o=document.getElementById('ett-'+id.replace('crit-','')+'-orig'); if(_o) _o.value='';
   });
   ['ett-rwt','ett-ee','ett-tapse','ett-sgl','ett-apice','ett-cual-1','ett-cual-2','ett-cual-3'].forEach(id=>{
     var el=document.getElementById(id); if(el) el.value=0;
@@ -18658,6 +18822,11 @@ function pdfDeInformeGuardado(id) {
   if (!inf) return;
   const c = inf.campos || {};
 
+  // La card de ETT Avanzado se construye ANTES del backup: si no existe, sus textarea
+  // no entran en el backup ni pueden recibir el texto del estudio guardado.
+  if (typeof amiloBuildCard === 'function') amiloBuildCard();
+  const amiloBackup = (typeof amiloSnapshot === 'function') ? amiloSnapshot() : null;
+
   // Backup current form state
   const backup = {};
   document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => { backup[el.id] = el.value; });
@@ -18672,6 +18841,10 @@ function pdfDeInformeGuardado(id) {
   if (typeof hfHumIds === 'function') {
     hfHumIds().forEach(id => { chkBackup[id] = document.getElementById(id)?.checked ? '1' : '0'; });
   }
+  // _restaurarChecklistPaciente devuelve hf_ritmo a 'auto' cuando la clave no está, y
+  // en la fase de restauración se lo llama con chkBackup: sin esta línea, reimprimir un
+  // guardado le borraba al paciente en pantalla el ritmo que hubiera fijado a mano.
+  { const _hr = document.getElementById('hf_ritmo'); if (_hr) chkBackup['hf_ritmo'] = _hr.value; }
   // Backup de la contractilidad segmentaria del formulario actual (para restaurarla tras generar)
   const contrBackup = { contractilidad: JSON.stringify(contrEstado), contr_flags: JSON.stringify({ difusa: contrDifusa, multiple: contrMultiple, disqSep: contrDisqSep }) };
   const ceBackup = {};
@@ -18691,6 +18864,9 @@ function pdfDeInformeGuardado(id) {
   // Restaurar los checklists del acordeón del estudio guardado (para que el PDF lea sus indicaciones/antecedentes)
   if (typeof _restaurarChecklistPaciente === 'function') _restaurarChecklistPaciente(c);
   if (typeof _restaurarContractilidad === 'function') _restaurarContractilidad(c);
+  // Bloque de ETT Avanzado del estudio guardado: sin esto el PDF reimpreso salía sin
+  // esa sección, o peor, con la del paciente que estuviera en pantalla.
+  if (typeof amiloRestaurarDesdeCampos === 'function') amiloRestaurarDesdeCampos(c, true);
 
   // Recalculate derived display values
   if (typeof calcBSA    === 'function') calcBSA();
@@ -18708,7 +18884,10 @@ function pdfDeInformeGuardado(id) {
   window._pdfFallbackNotas = { ind: String(c.indicacion || '').trim(), ant: String(c.antecedentes || '').trim() };
 
   // Generate PDF (flujo automático de informe guardado — sin modal de revisión)
-  generarPDFReal();
+  // try/finally: si generarPDFReal tira, el restore igual se agenda. Sin esto el
+  // formulario quedaba con los datos del OTRO estudio —incluida la card de ETT
+  // Avanzado visible con su texto— que es justo lo que el snapshot viene a evitar.
+  try { generarPDFReal(); } finally {
 
   // Restore form state
   setTimeout(() => {
@@ -18721,10 +18900,13 @@ function pdfDeInformeGuardado(id) {
     });
     if (typeof _restaurarChecklistPaciente === 'function') _restaurarChecklistPaciente(chkBackup);
     if (typeof _restaurarContractilidad === 'function') _restaurarContractilidad(contrBackup);
+    // El bucle de arriba ya repuso los textarea; falta qué módulos estaban integrados.
+    if (typeof amiloSnapshotRestore === 'function') amiloSnapshotRestore(amiloBackup);
     window._pdfFallbackNotas = null;
     if (typeof calcBSA === 'function') calcBSA();
     if (typeof updateHdrExtra === 'function') updateHdrExtra();
   }, 600);
+  }
 }
 
 // ══════════════ CONTRACTILIDAD SEGMENTARIA — 17 SEGMENTOS ══════════════
