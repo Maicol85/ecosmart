@@ -117,6 +117,13 @@
      Sin min-width:0 a propósito: con min-width:auto el piso del bloque es su ancho de
      contenido mínimo, así que sólo se reacomoda cuando de verdad no entra. */
   .hdr-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  /* Identidad (Médico / Centro): la etiqueta pasó a ser el nombre configurado, o sea
+     de largo variable. Se acota con elipsis para que un "Sanatorio Americano de
+     Montevideo" no empuje el resto del header fuera de la pantalla. */
+  #hdr-med-btn, #hdr-centro-btn {
+    max-width: 30ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  @media (max-width: 900px) { #hdr-med-btn, #hdr-centro-btn { max-width: 13ch; } }
   .hdr-burger{display:none;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:7px;font-size:18px;line-height:1;padding:5px 11px;cursor:pointer;flex-shrink:0}
   /* Acceso directo al PDF en el header móvil (en PC el botón vive en el menú ⋮).
      El background lo pisa setPdfColor() con el color de PDF guardado; el valor de acá
@@ -166,6 +173,11 @@
   .btn-ghost { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
   .btn-danger { background: var(--red); color: #fff; }
   .btn-green { background: var(--green); color: #0f1117; }
+  /* Botones "Integrar al informe" — un solo estilo para los de toda la app.
+     Gris = el módulo NO está en el informe; verde con tilde = sí lo está.
+     El estado lo pinta amiloSyncBotones() leyendo am-wrap-<k>. */
+  .btn-integrar { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
+  .btn-integrar.integrado { background: var(--green); color: #0f1117; border-color: var(--green); }
   /* ══ LAYOUT ══ */
   .container { max-width: none; margin: 0; padding: 0; }
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -885,14 +897,19 @@ window.cerrarSesion = cerrarSesion;
     <h1 class="hdr-title">Ecocardiograma Doppler Color <span id="autosave-indicator" style="color:var(--text2);font-size:11px;font-weight:400;opacity:0;transition:opacity .4s">● Guardado</span></h1>
   </div>
   <div class="hdr-med-wrap">
-    <button type="button" class="btn btn-ghost" id="hdr-med-btn" onclick="ecoMedToggle()" aria-expanded="false" title="Datos del médico (desplegar / ocultar)">✏️ Médico</button>
-    <button type="button" class="btn btn-ghost" id="hdr-centro-btn" onclick="ecoCentroBtn()" title="Centro / Institución (encabezado del informe)">🏥 Centro</button>
+    <!-- Sólo lectura: muestran lo configurado y llevan a ⚙️ Config. El texto lo
+         escribe hdrSyncIdentidad(); acá va el genérico por si el JS no corre. -->
+    <button type="button" class="btn btn-ghost" id="hdr-med-btn" onclick="hdrIrAConfig()" title="Médico del informe — configurar en ⚙️ Config">🩺 Médico</button>
+    <button type="button" class="btn btn-ghost" id="hdr-centro-btn" onclick="hdrIrAConfig()" title="Centro / Institución — configurar en ⚙️ Config">🏥 Centro</button>
     <div id="hdr-med-panel" class="hdr-med-panel" style="display:none">
     <div class="hdr-sub">
       <!-- hidden contenteditable spans keep sv() and saveMedico() working -->
-      <span id="med-nombre" contenteditable="true" onblur="saveMedico()" style="display:none;">Dr. Maicol Dos Santos</span>
+      <!-- Vacíos a propósito: son el valor de fábrica de una instalación limpia, no
+           datos de nadie. loadMedico() los rellena desde localStorage cuando existe,
+           así que quien ya tenía su médico guardado no pierde nada. -->
+      <span id="med-nombre" contenteditable="true" onblur="saveMedico()" style="display:none;"></span>
       <span class="hdr-ew" id="med-nombre-ew">
-        <span id="med-nombre-disp" class="hdr-dt" onclick="hdrEdit('med-nombre')">Dr. Maicol Dos Santos</span>
+        <span id="med-nombre-disp" class="hdr-dt" onclick="hdrEdit('med-nombre')"></span>
         <input id="med-nombre-inp" class="hdr-fi" type="text" style="display:none">
         <button class="hdr-pe" onclick="hdrEdit('med-nombre')" title="Editar nombre">✏️</button>
       </span>
@@ -901,16 +918,16 @@ window.cerrarSesion = cerrarSesion;
         </select>
       </span>
       &nbsp;·&nbsp;
-      <span id="med-matricula" contenteditable="true" onblur="saveMedico()" style="display:none;">CJPP 129296</span>
+      <span id="med-matricula" contenteditable="true" onblur="saveMedico()" style="display:none;"></span>
       <span class="hdr-ew">
-        <span id="med-matricula-disp" class="hdr-dt" onclick="hdrEdit('med-matricula')">CJPP 129296</span>
+        <span id="med-matricula-disp" class="hdr-dt" onclick="hdrEdit('med-matricula')"></span>
         <input id="med-matricula-inp" class="hdr-fi" type="text" style="display:none">
         <button class="hdr-pe" onclick="hdrEdit('med-matricula')" title="Editar matrícula">✏️</button>
       </span>
       &nbsp;·&nbsp;
-      <span id="med-lugar" contenteditable="true" onblur="saveMedico()" style="display:none;">Artigas, Uruguay</span>
+      <span id="med-lugar" contenteditable="true" onblur="saveMedico()" style="display:none;"></span>
       <span class="hdr-ew">
-        <span id="med-lugar-disp" class="hdr-dt" onclick="hdrEdit('med-lugar')">Artigas, Uruguay</span>
+        <span id="med-lugar-disp" class="hdr-dt" onclick="hdrEdit('med-lugar')"></span>
         <input id="med-lugar-inp" class="hdr-fi" type="text" style="display:none">
         <button class="hdr-pe" onclick="hdrEdit('med-lugar')" title="Editar ciudad/lugar">✏️</button>
       </span>
@@ -2520,7 +2537,7 @@ window.cerrarSesion = cerrarSesion;
       </div>
 
       <div style="text-align:center;">
-        <button type="button" class="btn btn-primary" onclick="amiloIntegrar('pulm')">📎 Integrar al informe</button>
+        <button type="button" class="btn btn-integrar" data-am-k="pulm" onclick="amiloIntegrar('pulm')">📎 Integrar al informe</button>
       </div>
     </div>
   </div>
@@ -2529,9 +2546,8 @@ window.cerrarSesion = cerrarSesion;
 <!-- ═══════════════════════ TAB: HEMODINÁMICA ═══════════════════════ -->
 
 <div id="tab-hemodinamica" class="tab-section">
-  <div class="card">
-    <h2 class="card-head">🩸 Hemodinámica — Perfil, HTP y Sobrecarga VD</h2>
-  </div>
+  <!-- Sin título de sección: la tab ya se llama Hemodinámica y el encabezado
+       sólo repetía los nombres de los cuatro acordeones de abajo. -->
 
   <!-- Hemodinámica (colapsable) -->
   <div class="card" style="margin-bottom:6px;">
@@ -2604,7 +2620,7 @@ window.cerrarSesion = cerrarSesion;
         </div>
       </div>
       <div style="text-align:center;margin-top:12px;">
-        <button class="btn btn-primary" onclick="amiloIntegrar('hemo')">📎 Integrar al informe</button>
+        <button class="btn btn-integrar" data-am-k="hemo" onclick="amiloIntegrar('hemo')">📎 Integrar al informe</button>
       </div>
     </div>
   </div>
@@ -2621,11 +2637,10 @@ window.cerrarSesion = cerrarSesion;
     <div class="card-body">
       <p style="font-size:11px;color:var(--text2);margin-bottom:12px;">Probabilidad de HTP según VRT + signos ecocardiográficos en 3 categorías (ESC/ERS 2022). Los signos derivables de datos ya ingresados se toman automáticamente.</p>
 
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:12px;padding:8px 10px;background:var(--bg3);border-radius:8px;cursor:pointer;">
-        <input type="checkbox" id="htp2022_incluir" onchange="if(document.getElementById('informe_texto')&&document.getElementById('informe_texto').value.trim())generarInforme();"> 📝 Incluir probabilidad de HTP en informe
-      </label>
-      <div style="margin:-6px 0 12px;">
-        <button type="button" class="btn btn-primary" onclick="amiloIntegrar('htp')">📎 Integrar al informe</button>
+      <!-- El checkbox "Incluir probabilidad de HTP en informe" se eliminó: ahora
+           la conclusión de HTP en el informe la decide este mismo botón. -->
+      <div style="margin:0 0 12px;">
+        <button type="button" class="btn btn-integrar" data-am-k="htp" onclick="amiloIntegrar('htp')">📎 Integrar al informe</button>
       </div>
 
       <!-- Paso 1 -->
@@ -2684,11 +2699,10 @@ window.cerrarSesion = cerrarSesion;
         Se calculan automáticamente los valores disponibles del estudio actual.
       </p>
 
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:12px;padding:8px 10px;background:var(--bg3);border-radius:8px;cursor:pointer;">
-        <input type="checkbox" id="tep_incluir" onchange="if(document.getElementById('informe_texto')&&document.getElementById('informe_texto').value.trim())generarInforme();"> 📝 Incluir probabilidad de TEP en informe
-      </label>
-      <div style="margin:-6px 0 12px;">
-        <button type="button" class="btn btn-primary" onclick="amiloIntegrar('tep')">📎 Integrar al informe</button>
+      <!-- El checkbox "Incluir probabilidad de TEP en informe" se eliminó: ahora
+           la conclusión de TEP en el informe la decide este mismo botón. -->
+      <div style="margin:0 0 12px;">
+        <button type="button" class="btn btn-integrar" data-am-k="tep" onclick="amiloIntegrar('tep')">📎 Integrar al informe</button>
       </div>
 
       <!-- Campos nuevos -->
@@ -2788,7 +2802,7 @@ window.cerrarSesion = cerrarSesion;
       </div>
       <div id="hfapeff-detalle"></div>
       <div style="text-align:center;margin-top:12px;">
-        <button type="button" class="btn btn-primary" onclick="amiloIntegrar('hfpeff')">📎 Integrar al informe</button>
+        <button type="button" class="btn btn-integrar" data-am-k="hfpeff" onclick="amiloIntegrar('hfpeff')">📎 Integrar al informe</button>
       </div>
     </div>
   </div>
@@ -6362,7 +6376,7 @@ z
         </div>
       </div>
       <div style="text-align:center;margin-top:10px;">
-        <button type="button" class="btn btn-primary" onclick="amiloIntegrar('etem')">📎 Integrar al informe</button>
+        <button type="button" class="btn btn-integrar" data-am-k="etem" onclick="amiloIntegrar('etem')">📎 Integrar al informe</button>
       </div>
     </div>
   </div>
@@ -6542,7 +6556,7 @@ z
         <div class="calc-row"><span class="calc-lbl">Score de Wilkins total (/16)</span><span class="calc-val" id="wilkins-total">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Interpretación</span><span id="wilkins-interp">—</span></div>
       </div>
-      <div style="text-align:center;margin-top:10px;"><button type="button" class="btn btn-primary" onclick="amiloIntegrar('wilk')">📎 Integrar al informe</button></div>
+      <div style="text-align:center;margin-top:10px;"><button type="button" class="btn btn-integrar" data-am-k="wilk" onclick="amiloIntegrar('wilk')">📎 Integrar al informe</button></div>
     </div>
   </div>
   </div>
@@ -6624,7 +6638,7 @@ z
       <div class="fg" style="margin-top:8px;"><label>Notas OAI</label>
         <textarea id="oai_notas" placeholder="Observaciones adicionales..."></textarea>
       </div>
-      <div style="text-align:center;margin-top:10px;"><button type="button" class="btn btn-primary" onclick="amiloIntegrar('oai')">📎 Integrar al informe</button></div>
+      <div style="text-align:center;margin-top:10px;"><button type="button" class="btn btn-integrar" data-am-k="oai" onclick="amiloIntegrar('oai')">📎 Integrar al informe</button></div>
     </div>
   </div>
   </div>
@@ -6690,7 +6704,7 @@ z
       <div class="fg" style="margin-top:8px;"><label>Notas aorta ETE</label>
         <textarea id="ao_ete_notas" placeholder="Localización exacta, extensión, relación con ostiums coronarios..."></textarea>
       </div>
-      <div style="text-align:center;margin-top:10px;"><button type="button" class="btn btn-primary" onclick="amiloIntegrar('aoete')">📎 Integrar al informe</button></div>
+      <div style="text-align:center;margin-top:10px;"><button type="button" class="btn btn-integrar" data-am-k="aoete" onclick="amiloIntegrar('aoete')">📎 Integrar al informe</button></div>
     </div>
   </div>
   </div>
@@ -8442,7 +8456,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     <div id="co-toxicidad-resultado" class="calc-box" style="margin-bottom:14px;"></div>
 
     <div style="text-align:center;margin-bottom:14px;">
-      <button type="button" class="btn btn-primary" onclick="amiloIntegrar('conco')">📎 Integrar al informe</button>
+      <button type="button" class="btn btn-integrar" data-am-k="conco" onclick="amiloIntegrar('conco')">📎 Integrar al informe</button>
     </div>
 
     <div class="divider"></div>
@@ -8766,7 +8780,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   <div id="escenario-box" style="display:none"></div>
   <div class="flex gap-8 items-center mb-12 no-print" style="flex-wrap:wrap">
     <button class="btn btn-green" onclick="amiloImprimirPDF('algoritmo')">🖨 Imprimir resultado</button>
-    <button class="btn btn-primary" onclick="amiloIntegrar('alg')">📎 Integrar al informe</button>
+    <button class="btn btn-integrar" data-am-k="alg" onclick="amiloIntegrar('alg')">📎 Integrar al informe</button>
     <button class="btn btn-secondary" onclick="resetAlgoritmo()">🔄 Nueva evaluación</button>
   </div>
 </div>
@@ -8920,7 +8934,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   <div class="flex gap-8 mb-12 no-print" style="flex-wrap:wrap">
     <button class="btn btn-purple" onclick="pasarScoreAAlgoritmo()">→ Pasar score al Algoritmo</button>
     <button class="btn btn-green" onclick="amiloImprimirPDF('ett')">🖨 Imprimir resultado</button>
-    <button class="btn btn-primary" onclick="amiloIntegrar('ett')">📎 Integrar al informe</button>
+    <button class="btn btn-integrar" data-am-k="ett" onclick="amiloIntegrar('ett')">📎 Integrar al informe</button>
     <button class="btn btn-secondary" onclick="resetETT()">🔄 Limpiar</button>
   </div>
 </div>
@@ -13026,7 +13040,9 @@ function generarInforme() {
   if (typeof calcHTP2022 === 'function') calcHTP2022();
   {
     const h22 = window._htp2022;
-    const htp2022Incluir = document.getElementById('htp2022_incluir') && document.getElementById('htp2022_incluir').checked;
+    // Antes lo decidía el checkbox htp2022_incluir; ahora manda el botón
+    // "Integrar al informe" del módulo, que es la única perilla de HTP.
+    const htp2022Incluir = typeof amiloIntegrado === 'function' && amiloIntegrado('htp');
     if (htp2022Incluir && h22 && (h22.vrtCat !== 'nomedible' || h22.nCat > 0)) {
       const cats = [];
       if (h22.catA) cats.push('ventrículos');
@@ -13041,7 +13057,8 @@ function generarInforme() {
 
   // TEP / disfunción VD aguda — solo si el toggle está activo
   (function() {
-    if (!(document.getElementById('tep_incluir') && document.getElementById('tep_incluir').checked)) return;
+    // Ídem HTP: la perilla es el botón "Integrar al informe" del módulo TEP.
+    if (!(typeof amiloIntegrado === 'function' && amiloIntegrado('tep'))) return;
     const tapse   = v('tapse');
     const psap    = v('psap_calc');
     const vdBas   = v('vd_bas');
@@ -13262,6 +13279,19 @@ function limpiarCampos() {
   { const io = document.getElementById('ind_otro'); if (io) { io.value = ''; io.style.display = 'none'; } }
   { const ao = document.getElementById('ant_otro'); if (ao) { ao.value = ''; ao.style.display = 'none'; } }
   if (typeof _accSum === 'function') { _accSum('ind-chk','ind_otro','ind-sum'); _accSum('ant-chk','ant_otro','ant-sum'); }
+  // Módulos de ETT Avanzado: el bucle de arriba vacía los am-txt-*, pero los bloques
+  // seguían VISIBLES, así que el paciente nuevo arrancaba con los módulos del anterior
+  // integrados (botones en verde) y su vista previa todavía en pantalla. Peor aún: con
+  // HTP/TEP integrados, la conclusión entraba sola al informe apenas hubiera datos.
+  if (typeof amiloSecs === 'function') {
+    amiloSecs().forEach(s => {
+      const w = document.getElementById('am-wrap-' + s.k); if (w) w.style.display = 'none';
+      const p = document.getElementById('am-prev-' + s.k); if (p) p.innerHTML = '';
+    });
+    const _ac = document.getElementById('amilo-card'); if (_ac) _ac.style.display = 'none';
+    if (typeof _amiloUltimo === 'object') for (const k in _amiloUltimo) delete _amiloUltimo[k];
+    if (typeof amiloSyncBotones === 'function') amiloSyncBotones();
+  }
   toast('🗑 Formulario limpiado');
 }
 
@@ -13552,8 +13582,11 @@ function generarPDFReal() {
     } else {
       // Sin firma propia: firmaSyncToHeader ya deja vacíos en med-* los campos
       // destildados, así que leer el header respeta igual los checkboxes.
-      _nom = T(medNombre) || 'Dr Maicol Dos Santos';
-      _num = T(medMatricula) || 'CJPP 129296';
+      // Sin fallback hardcodeado a propósito: firmar el informe de otro médico con
+      // un nombre y una matrícula reales que no son los suyos es peor que no firmarlo.
+      // Si está vacío, más abajo se estampa el aviso de médico sin configurar.
+      _nom = T(medNombre);
+      _num = T(medMatricula);
       _esp = T(medEsp); _dir = T(medDir); _lug = T(medLugar); _tel = T(medTel);
     }
 
@@ -13562,7 +13595,7 @@ function generarPDFReal() {
       ? [_num].concat(_sueltos)                                   // legacy: una por fila
       : [_unir([_num, _esp]), _unir([_dir, _lug]), _tel, _mail];
 
-    _firmaFilas.push({ txt: _nom + '.', sz: 7.2, esNombre: true });
+    _firmaFilas.push({ txt: _nom ? _nom + '.' : '[Médico no configurado — ver ⚙️ Config]', sz: 7.2, esNombre: true });
     _datos.filter(Boolean).forEach(t => _firmaFilas.push({ txt: t, sz: 6.0, esNombre: false }));
 
     // Cada fila entra en UNA línea: si no, se le achica la tipografía. Envolver
@@ -15175,6 +15208,7 @@ function saveMedico() {
   // Lo editado inline vuelve al objeto firma (fuente de verdad de los checkboxes).
   // true = edición deliberada: puede marcar y también vaciar/desmarcar.
   if (typeof firmaAdoptFromHeader === 'function') firmaAdoptFromHeader(true);
+  if (typeof hdrSyncIdentidad === 'function') hdrSyncIdentidad();
 }
 ['med-nombre','med-matricula','med-lugar','med-especialidad','med-direccion','med-telefono'].forEach(id => {
   const el = document.getElementById(id);
@@ -15266,6 +15300,9 @@ function renderCentroField(forceVal){
 window.renderCentroField=renderCentroField;
 // ── Gestión de centros en Configuración ──
 function cfgRenderCentros(){
+  // Punto único: agregar/editar/borrar centro y cambiar el principal pasan todos
+  // por acá, así el botón del header se entera de cualquiera de esos cambios.
+  hdrSyncIdentidad();
   const box=document.getElementById('cfg-centros-lista'); if(!box)return;
   const centros=ecoGetCentros(), pr=ecoGetCentroPrincipal();
   if(!centros.length){ box.innerHTML='<div style="font-size:12px;color:var(--text2);padding:6px 0;">No hay centros configurados. Agregá el primero arriba.</div>'; return; }
@@ -15376,6 +15413,54 @@ function _setMedField(id,val){
   const disp=document.getElementById(id+'-disp'); if(disp){ disp.textContent=val||''; if(val) disp.classList.remove('hdr-ph'); }
   try{ localStorage.setItem(id.replace(/-/g,'_'), val||''); localStorage.setItem('ett_'+id.replace(/-/g,'_'), val||''); }catch(e){}
 }
+// ══ IDENTIDAD EN EL HEADER — sólo lectura ══
+// Los botones "Médico" y "Centro" del header dejaron de ser editores inline:
+// muestran lo que hay guardado en ⚙️ Config y, al tocarlos, llevan ahí. La única
+// fuente de verdad es Configuración; el header es un espejo.
+function hdrMedicoNombre(){
+  // El span med-nombre es lo que ya leen el PDF y la firma: mismo dato, sin desync.
+  const el=document.getElementById('med-nombre');
+  const v=el?String(el.textContent||'').trim():'';
+  if(v) return v;
+  try{ return (localStorage.getItem('med_nombre')||localStorage.getItem('ett_med_nombre')||'').trim(); }catch(e){ return ''; }
+}
+function hdrCentroNombre(){
+  // Prioridad al centro principal de Config; si todavía no hay lista, se cae al
+  // campo institución del header (instalaciones viejas, pre-lista de centros).
+  let v=(typeof ecoGetCentroPrincipal==='function')?ecoGetCentroPrincipal():'';
+  if(v) return v;
+  const el=document.getElementById('med-centro');
+  v=el?String(el.textContent||'').trim():'';
+  if(v) return v;
+  try{ return (localStorage.getItem('centro_nombre')||'').trim(); }catch(e){ return ''; }
+}
+function hdrSyncIdentidad(){
+  const med=document.getElementById('hdr-med-btn');
+  if(med){
+    const n=hdrMedicoNombre();
+    med.textContent='🩺 '+(n||'Médico');
+    med.title=n?(n+' — editar en ⚙️ Config'):'Sin médico configurado — tocá para configurarlo';
+  }
+  const cen=document.getElementById('hdr-centro-btn');
+  if(cen){
+    const c=hdrCentroNombre();
+    cen.textContent='🏥 '+(c||'Centro');
+    cen.title=c?(c+' — editar en ⚙️ Config'):'Sin centro configurado — tocá para configurarlo';
+  }
+}
+window.hdrSyncIdentidad=hdrSyncIdentidad;
+// Abre la tab Configuración. No usa showTab() porque ésa marca como activo el
+// event.target, y acá el que dispara es un botón del header, no el del rail.
+function hdrIrAConfig(){
+  document.querySelectorAll('.tab-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  const sec=document.getElementById('tab-config'); if(sec) sec.classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b=>{ if(b.textContent.indexOf('Config')!==-1) b.classList.add('active'); });
+  if(typeof cfgOnShow==='function') cfgOnShow();
+  window.scrollTo(0,0);
+}
+window.hdrIrAConfig=hdrIrAConfig;
+
 function aplicarMedico(idx){
   idx=parseInt(idx); const m=ecoGetMedicos()[idx]; if(!m) return;
   ecoSetMedActivo(idx);
@@ -15390,6 +15475,7 @@ function aplicarMedico(idx){
   // La especialidad del médico elegido entra al objeto firma (y de ahí al checkbox
   // de Config y del panel de Firma); si no, el próximo guardado la pisaría.
   if(typeof firmaAdoptFromHeader==='function') firmaAdoptFromHeader();
+  hdrSyncIdentidad();
 }
 window.aplicarMedico=aplicarMedico;
 function renderMedHeaderSelector(){
@@ -15408,6 +15494,8 @@ function renderMedHeaderSelector(){
 window.renderMedHeaderSelector=renderMedHeaderSelector;
 // ── Gestión de médicos en Configuración ──
 function cfgRenderMedicos(){
+  // Ídem centros: toda mutación de la lista de médicos vuelve a pasar por acá.
+  hdrSyncIdentidad();
   const box=document.getElementById('cfg-medicos-lista'); if(!box) return;
   const meds=ecoGetMedicos(), pr=ecoGetMedPrincipal();
   if(!meds.length){ box.innerHTML='<div style="font-size:12px;color:var(--text2);padding:6px 0;">No hay médicos configurados. Agregá el primero arriba.</div>'; return; }
@@ -15452,11 +15540,17 @@ function cfgEditMedico(i){
   cfgRenderMedicos(); renderMedHeaderSelector();
   if(ecoGetMedActivo()===i) aplicarMedico(i);
 }
-function cfgSetMedPrincipal(i){ const meds=ecoGetMedicos(); if(i<0||i>=meds.length) return; ecoSetMedPrincipal(i); cfgRenderMedicos(); }
+// Marcar "Principal" también ACTIVA ese médico. El selector rápido del header se
+// retiró al volverlo sólo lectura, así que éste pasó a ser el único lugar donde
+// se elige quién firma; si sólo guardara el default, no habría forma de cambiarlo.
+function cfgSetMedPrincipal(i){ const meds=ecoGetMedicos(); if(i<0||i>=meds.length) return; ecoSetMedPrincipal(i); aplicarMedico(i); cfgRenderMedicos(); }
 window.cfgAddMedico=cfgAddMedico; window.cfgDelMedico=cfgDelMedico; window.cfgEditMedico=cfgEditMedico; window.cfgSetMedPrincipal=cfgSetMedPrincipal; window.cfgRenderMedicos=cfgRenderMedicos;
 // Arranque médicos
 ecoInitMedicos();
 { const _a=ecoGetMedActivo(); if(_a>=0) aplicarMedico(_a); else renderMedHeaderSelector(); }
+// Estado inicial de los botones Médico/Centro del header (cubre el caso sin
+// médicos cargados, donde aplicarMedico() no llega a correr).
+hdrSyncIdentidad();
 
 // ══ LOGO POR CENTRO ══
 function getCentroKey() { return localStorage.getItem('centro_tipo_activo') || 'default'; }
@@ -17136,14 +17230,37 @@ function amiloToggle(k, ev) {
 window.amiloToggle = amiloToggle;
 
 // Integrar o retirar cambia lo que corresponde escribir en el informe (por
-// ejemplo la exclusión mutua de Eco Pulmonar). Si el informe ya estaba
-// generado hay que rehacerlo, si no queda el texto viejo. Misma convención que
-// los checkboxes de HTP/TEP.
+// ejemplo la exclusión mutua de Eco Pulmonar, o las conclusiones de HTP y TEP).
+// Si el informe ya estaba generado hay que rehacerlo, si no queda el texto viejo.
 function amiloRefrescarInforme() {
   const ta = document.getElementById('informe_texto');
   if (ta && String(ta.value || '').trim() && typeof generarInforme === 'function') generarInforme();
 }
 window.amiloRefrescarInforme = amiloRefrescarInforme;
+
+// ── Estado de integración: una sola fuente de verdad ──────────────
+// Un módulo está "en el informe" si su bloque de la card está visible.
+// OJO: amiloEnInforme() (la que arma el PDF) exige ADEMÁS que el texto no esté
+// vacío. O sea que si el médico borra a mano todo el contenido de un bloque con
+// "✏️ Editar", el botón sigue verde pero ese bloque no se imprime. Pendiente de
+// unificar en un solo predicado.
+function amiloIntegrado(k) {
+  const w = document.getElementById('am-wrap-' + k);
+  return !!(w && w.style.display !== 'none');
+}
+window.amiloIntegrado = amiloIntegrado;
+
+// Repinta TODOS los botones "Integrar al informe" de la app de una sola pasada,
+// estén en la tab que estén: gris = no integrado, verde con tilde = integrado.
+// Se buscan por clase (.btn-integrar), no por texto, para no depender del copy.
+function amiloSyncBotones() {
+  document.querySelectorAll('.btn-integrar[data-am-k]').forEach(b => {
+    const on = amiloIntegrado(b.dataset.amK);
+    b.classList.toggle('integrado', on);
+    b.textContent = on ? '✓ Integrado al informe' : '📎 Integrar al informe';
+  });
+}
+window.amiloSyncBotones = amiloSyncBotones;
 
 // Recuerda el último texto generado por la app, para distinguir "sin tocar" de
 // "editado a mano" y no pisar las correcciones del médico al reintegrar.
@@ -17190,6 +17307,10 @@ window.amiloEditar = amiloEditar;
 // mostrar el bloque.
 function amiloIntegrar(k) {
   amiloBuildCard();
+  // El botón es un toggle: si el módulo ya está integrado, este mismo clic lo
+  // retira (y deja el botón en gris). Evita tener que ir a buscar el "✕ Retirar"
+  // de la card estando parado en la calculadora.
+  if (amiloIntegrado(k)) { amiloRetirar(k); return; }
   const card = document.getElementById('amilo-card');
   const sec  = amiloSecs().find(x => x.k === k);
   const ta   = document.getElementById('am-txt-' + k);
@@ -17203,6 +17324,7 @@ function amiloIntegrar(k) {
   amiloPreview(k);
   wrap.style.display = '';
   card.style.display = '';
+  amiloSyncBotones();
   // Integra en silencio: NO navega a la tab Informe ni hace scroll, para no
   // sacar al operador de donde está trabajando (igual que el Bull's Eye).
   amiloRefrescarInforme();
@@ -17219,6 +17341,7 @@ function amiloRetirar(k) {
     return w && w.style.display !== 'none';
   });
   if (!queda) { const c = document.getElementById('amilo-card'); if (c) c.style.display = 'none'; }
+  amiloSyncBotones();
   amiloRefrescarInforme();
   const sec = amiloSecs().find(x => x.k === k);
   if (typeof toast === 'function') toast((sec ? sec.lbl : 'El bloque') + ' ya no sale en el informe');
@@ -17364,8 +17487,11 @@ function amiloImprimirPDF(cual) {
   // Pie: firma y disclaimer, coherente con el informe
   const med = id => { const e = document.getElementById(id); return e ? String(e.textContent || '').trim() : ''; };
   doc.setFont('helvetica','bolditalic'); doc.setFontSize(7.5); doc.setTextColor(0,0,0);
-  doc.text(amiloSanPDF((med('med-nombre') || 'Dr Maicol Dos Santos') + '.'), 201, 285.5, { align:'right' });
-  const sub = [med('med-matricula') || 'CJPP 129296', med('med-especialidad'), med('med-lugar')].filter(Boolean).join('  ·  ');
+  // Sin fallback hardcodeado (mismo criterio que la firma del informe): no se firma
+  // con el nombre ni la matrícula de otro médico.
+  const _mNom = med('med-nombre');
+  doc.text(amiloSanPDF(_mNom ? _mNom + '.' : '[Medico no configurado - ver Config]'), 201, 285.5, { align:'right' });
+  const sub = [med('med-matricula'), med('med-especialidad'), med('med-lugar')].filter(Boolean).join('  ·  ');
   doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(90,90,90);
   doc.text(amiloSanPDF(sub), 201, 288.3, { align:'right' });
   doc.setFontSize(5.5); doc.setTextColor(160,160,160);
@@ -21950,13 +22076,12 @@ const _orig=showTab;window.showTab=function(id){_orig(id);setTimeout(actualizarF
 })();
 </script>
 <script>
-/* Header compacto: botón "✏️ Médico" despliega/oculta los datos del profesional. */
+/* El panel inline de edición del header quedó retirado: los datos del médico se
+   editan en ⚙️ Config. El panel sigue en el DOM porque sus spans (med-nombre,
+   med-matricula, med-especialidad…) son los que leen el PDF y la firma, pero ya
+   no se muestra. Se mantiene la función por si algún llamado viejo la alcanza. */
 function ecoMedToggle(){
-  var p=document.getElementById('hdr-med-panel'), b=document.getElementById('hdr-med-btn');
-  if(!p) return;
-  var show=(p.style.display==='none'||!p.style.display);
-  p.style.display=show?'block':'none';
-  if(b) b.setAttribute('aria-expanded', show?'true':'false');
+  if(typeof hdrIrAConfig==='function') hdrIrAConfig();
 }
 window.ecoMedToggle=ecoMedToggle;
 document.addEventListener('click',function(e){
@@ -22134,6 +22259,7 @@ function cfgSaveMed(id,val){
   // Escribir AMBAS keys: 'med_*' (loadMedico) y 'ett_med_*' (initHdrEditable la prefiere) → evita desync al recargar
   try { localStorage.setItem(id.replace(/-/g,'_'), val); localStorage.setItem('ett_'+id.replace(/-/g,'_'), val); } catch(e){}
   if(typeof updateHdrExtra==='function') updateHdrExtra();
+  if(typeof hdrSyncIdentidad==='function') hdrSyncIdentidad();  // el header sigue lo que se tipea en Config
 }
 function cfgLoadMed(){
   // Nombre y matrícula siguen viniendo del header (no tienen checkbox).
@@ -22149,10 +22275,9 @@ function cfgLoadMed(){
 function eeQrEnabled(){ return localStorage.getItem('ett_qr_enabled') !== '0'; } // por defecto activado
 function cfgToggleQr(on){ try { localStorage.setItem('ett_qr_enabled', on ? '1' : '0'); } catch(e){} }
 function cfgOnShow(){ cfgRenderModulos(); cfgLoadMed(); if(typeof cfgRenderCentros==='function')cfgRenderCentros(); if(typeof cfgRenderMedicos==='function')cfgRenderMedicos(); var q=document.getElementById('cfg-qr'); if(q) q.checked = eeQrEnabled(); var mi=document.getElementById('cfg-modo-inst'); if(mi) mi.checked=(localStorage.getItem('ett_modo_institucional')==='1'); }
-/* Botón "🏥 Centro": abre el panel del médico y edita el centro/institución (med-centro) */
+/* Botón "🏥 Centro": ya no edita inline — los centros se gestionan en ⚙️ Config. */
 function ecoCentroBtn(){
-  var p=document.getElementById('hdr-med-panel'); if(p){ p.style.display='block'; var b=document.getElementById('hdr-med-btn'); if(b)b.setAttribute('aria-expanded','true'); }
-  if(typeof hdrEdit==='function') hdrEdit('med-centro');
+  if(typeof hdrIrAConfig==='function') hdrIrAConfig();
 }
 window.ecoCentroBtn=ecoCentroBtn;
 /* Toggle "Modo institucional": ON → PDF con la institución; OFF → CeiboMed + médico */
