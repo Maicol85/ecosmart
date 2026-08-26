@@ -188,6 +188,9 @@
   .am-prev .am-sub:first-child { margin-top:0; }
   .am-prev .am-li  { color:var(--text); margin:1px 0; }
   .am-prev .am-vacio { color:var(--text2); font-style:italic; }
+  .am-prev .am-kv { display:flex; gap:10px; margin:1px 0; }
+  .am-prev .am-kv .k { flex:0 0 52%; color:var(--text2); }
+  .am-prev .am-kv .v { font-weight:600; color:var(--text); }
   .am-edit-tog { font-size:11px; padding:3px 9px; font-weight:600; }
   /* Campo opcional de "Institución y firma": checkbox de inclusión + input, igual que el panel de Firma del centro */
   .cfg-opt-row { display:flex; align-items:center; gap:8px; }
@@ -6071,6 +6074,9 @@ z
           <span id="ete-reparabilidad" style="font-weight:700;">—</span>
         </div>
       </div>
+      <div style="text-align:center;margin-top:10px;">
+        <button type="button" class="btn btn-primary" onclick="amiloIntegrar('etem')">📎 Integrar al informe</button>
+      </div>
     </div>
   </div>
   </div>
@@ -6249,6 +6255,7 @@ z
         <div class="calc-row"><span class="calc-lbl">Score de Wilkins total (/16)</span><span class="calc-val" id="wilkins-total">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Interpretación</span><span id="wilkins-interp">—</span></div>
       </div>
+      <div style="text-align:center;margin-top:10px;"><button type="button" class="btn btn-primary" onclick="amiloIntegrar('wilk')">📎 Integrar al informe</button></div>
     </div>
   </div>
   </div>
@@ -6330,6 +6337,7 @@ z
       <div class="fg" style="margin-top:8px;"><label>Notas OAI</label>
         <textarea id="oai_notas" placeholder="Observaciones adicionales..."></textarea>
       </div>
+      <div style="text-align:center;margin-top:10px;"><button type="button" class="btn btn-primary" onclick="amiloIntegrar('oai')">📎 Integrar al informe</button></div>
     </div>
   </div>
   </div>
@@ -6395,6 +6403,7 @@ z
       <div class="fg" style="margin-top:8px;"><label>Notas aorta ETE</label>
         <textarea id="ao_ete_notas" placeholder="Localización exacta, extensión, relación con ostiums coronarios..."></textarea>
       </div>
+      <div style="text-align:center;margin-top:10px;"><button type="button" class="btn btn-primary" onclick="amiloIntegrar('aoete')">📎 Integrar al informe</button></div>
     </div>
   </div>
   </div>
@@ -8466,7 +8475,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   <div id="escenario-box" style="display:none"></div>
   <div class="flex gap-8 items-center mb-12 no-print" style="flex-wrap:wrap">
     <button class="btn btn-green" onclick="amiloImprimirPDF('algoritmo')">🖨 Imprimir resultado</button>
-    <button class="btn btn-primary" onclick="amiloIntegrar('algoritmo')">📎 Integrar al informe</button>
+    <button class="btn btn-primary" onclick="amiloIntegrar('alg')">📎 Integrar al informe</button>
     <button class="btn btn-secondary" onclick="resetAlgoritmo()">🔄 Nueva evaluación</button>
   </div>
 </div>
@@ -15990,6 +15999,89 @@ function amiloTextoTEP() {
   return L.join('\n');
 }
 
+// ── Módulos del ETE ───────────────────────────────────────────────
+// Las filas 'etiqueta | valor' se dibujan como tabla de dos columnas, tanto en
+// la card como en el PDF.
+function _amFila(lbl, id, uni) { const v = _amV(id); return v ? (lbl + ' | ' + v + (uni ? ' ' + uni : '')) : null; }
+
+function amiloTextoEteMitral() {
+  const L = ['## Mediciones de la válvula mitral'];
+  const filas = [
+    _amFila('Longitud velo anterior',  'ete_lva', 'mm'),
+    _amFila('Longitud velo posterior', 'ete_lvp', 'mm'),
+    _amFila('Diámetro anular',         'ete_diam_anular', 'mm'),
+    _amFila('Área por planimetría',    'ete_area_mitral', 'cm2'),
+    _amFila('Altura de tenting',       'ete_altura_tenting', 'mm'),
+    _amFila('Área de tenting',         'ete_area_tenting', 'cm2'),
+    _amFila('Ángulo del velo posterior','ete_angulo_vp', 'grados'),
+    _amFila('Profundidad de coaptación','ete_prof_coapt', 'mm')
+  ].filter(Boolean);
+  if (filas.length) filas.forEach(f => L.push(f));
+  else L.push('Sin mediciones cargadas.');
+  return L.join('\n');
+}
+
+function amiloTextoWilkins() {
+  const L = ['## Puntaje total'];
+  L.push('Score de Wilkins | ' + (_amTxt('wilkins-total') || 'no calculado'));
+  const interp = _amTxt('wilkins-interp'); if (interp) L.push('Interpretación | ' + interp);
+  L.push('## Desglose por criterio');
+  const crit = [
+    ['Movilidad valvular',      'wilkins_movilidad'],
+    ['Engrosamiento valvular',  'wilkins_engrosamiento'],
+    ['Calcificación',           'wilkins_calcificacion'],
+    ['Compromiso subvalvular',  'wilkins_subvalvular']
+  ];
+  const hay = crit.filter(c => _amV(c[1]));
+  if (hay.length) hay.forEach(c => L.push(c[0] + ' | ' + _amV(c[1]) + ' / 4'));
+  else L.push('Sin criterios puntuados.');
+  return L.join('\n');
+}
+
+function amiloTextoOAI() {
+  const L = ['## Mediciones de la orejuela izquierda'];
+  const filas = [
+    _amSelTxt('oai_morfologia') ? 'Morfología | ' + _amSelTxt('oai_morfologia') : null,
+    _amFila('Velocidad de vaciado', 'oai_vel_vac', 'cm/s'),
+    _amFila('Diámetro del ostium',  'oai_ostium_diam', 'mm'),
+    _amFila('Profundidad',          'oai_profundidad', 'mm')
+  ].filter(Boolean);
+  if (filas.length) filas.forEach(f => L.push(f));
+  else L.push('Sin mediciones cargadas.');
+
+  L.push('## Hallazgos');
+  const tr = _amSelTxt('oai_trombo'), sec = _amSelTxt('oai_sec'), ti = _amTxt('oai-trombo-interp');
+  L.push('Trombo | ' + (tr || 'no evaluado'));
+  if (sec) L.push('Contraste espontáneo | ' + sec);
+  if (ti) L.push('Interpretación | ' + ti);
+  const notas = _amV('oai_notas'); if (notas) L.push(notas);
+  return L.join('\n');
+}
+
+function amiloTextoAortaETE() {
+  const L = ['## Aorta torácica por ETE'];
+  const filas = [
+    _amSelTxt('ao_segmento')        ? 'Segmento evaluado | ' + _amSelTxt('ao_segmento') : null,
+    _amSelTxt('ao_grado_atero')     ? 'Clasificación de aterosclerosis | ' + _amSelTxt('ao_grado_atero') : null,
+    _amFila('Grosor máximo de placa', 'ao_grosor_placa', 'mm'),
+    _amSelTxt('ao_movilidad_placa') ? 'Movilidad de la placa | ' + _amSelTxt('ao_movilidad_placa') : null,
+    _amSelTxt('ao_ulceracion')      ? 'Ulceración | ' + _amSelTxt('ao_ulceracion') : null,
+    _amSelTxt('ao_calcificacion')   ? 'Calcificación | ' + _amSelTxt('ao_calcificacion') : null
+  ].filter(Boolean);
+  if (filas.length) filas.forEach(f => L.push(f));
+  else L.push('Sin mediciones cargadas.');
+
+  const d = _amTxt('ao-atero-desc'), r = _amTxt('ao-riesgo-embol'), rec = _amTxt('ao-recomendacion');
+  if (d || r || rec) {
+    L.push('## Valoración');
+    if (d)   L.push('Descripción | ' + d);
+    if (r)   L.push('Riesgo embólico | ' + r);
+    if (rec) L.push(rec);
+  }
+  const notas = _amV('ao_ete_notas'); if (notas) L.push(notas);
+  return L.join('\n');
+}
+
 // ── Catálogo de módulos del bloque ETT Avanzado ───────────────────
 // Un solo lugar define el orden (Amiloidosis primero, después Hemodinámica),
 // las etiquetas de la card y los títulos de sección del PDF.
@@ -15999,7 +16091,11 @@ function amiloSecs() {
     { k:'alg',  lbl:'Algoritmo diagnóstico',           tit:'ALGORITMO DIAGNOSTICO DE AMILOIDOSIS',     gen:amiloTextoAlgoritmo },
     { k:'hemo', lbl:'Perfil hemodinámico',             tit:'PERFIL HEMODINAMICO',                      gen:amiloTextoHemo },
     { k:'htp',  lbl:'Probabilidad de HTP (ESC 2022)',  tit:'PROBABILIDAD DE HTP - ESC 2022',           gen:amiloTextoHTP },
-    { k:'tep',  lbl:'Probabilidad de TEP',             tit:'PROBABILIDAD DE TEP / SOBRECARGA VD',      gen:amiloTextoTEP }
+    { k:'tep',  lbl:'Probabilidad de TEP',             tit:'PROBABILIDAD DE TEP / SOBRECARGA VD',      gen:amiloTextoTEP },
+    { k:'etem', lbl:'Mediciones ETE — Válvula mitral', tit:'MEDICIONES ETE - VALVULA MITRAL',          gen:amiloTextoEteMitral },
+    { k:'wilk', lbl:'Score de Wilkins',                tit:'SCORE DE WILKINS - ESTENOSIS MITRAL',      gen:amiloTextoWilkins },
+    { k:'oai',  lbl:'Mediciones OAI',                  tit:'OREJUELA IZQUIERDA - MEDICIONES ETE',      gen:amiloTextoOAI },
+    { k:'aoete',lbl:'Mediciones Aorta (ETE)',          tit:'AORTA TORACICA - MEDICIONES ETE',          gen:amiloTextoAortaETE }
   ];
 }
 window.amiloSecs = amiloSecs;
@@ -16039,7 +16135,10 @@ function amiloPreview(k) {
   if (!lineas.length) { prev.innerHTML = '<div class="am-vacio">Sin contenido.</div>'; return; }
   prev.innerHTML = lineas.map(l => l.indexOf('##') === 0
     ? '<div class="am-sub">' + escHtml(l.replace(/^##\s*/, '')) + '</div>'
-    : '<div class="am-li">'  + escHtml(l) + '</div>'
+    : (l.indexOf(' | ') > 0
+        ? '<div class="am-kv"><span class="k">' + escHtml(l.split(' | ')[0].trim()) + '</span>'
+          + '<span class="v">' + escHtml(l.split(' | ').slice(1).join(' | ').trim()) + '</span></div>'
+        : '<div class="am-li">' + escHtml(l) + '</div>')
   ).join('');
 }
 window.amiloPreview = amiloPreview;
@@ -16133,16 +16232,29 @@ function amiloDibujarSecciones(doc, secs, g) {
         const l = amiloSanPDF(raw).trim();
         if (!l) return;
         if (l.indexOf('##') === 0) { filas.push({ t:'sub', txt: l.replace(/^##\s*/,'') }); alto += H + 1.6; }
+        else if (l.indexOf(' | ') > 0) {                 // fila de tabla: etiqueta | valor
+          const par = l.split(' | ');
+          filas.push({ t:'kv', a: par[0].trim(), b: par.slice(1).join(' | ').trim() }); alto += H;
+        }
         else { fn(sz); doc.splitTextToSize(l, pgW - 4).forEach(w => { filas.push({ t:'txt', txt:w }); alto += H; }); }
       });
     });
     return { filas, alto, H };
   };
   let sz = 9, p = plan(9);
-  [9, 8.5, 8, 7.5, 7, 6.5, 6].some(s => { sz = s; p = plan(s); return p.alto <= (g.yFin - g.yIni); });
+  const cabe = [9, 8.5, 8, 7.5, 7, 6.5, 6].some(s => { sz = s; p = plan(s); return p.alto <= (g.yFin - g.yIni); });
 
+  // Si ni al mínimo entra en una hoja (pasa al integrar muchos módulos), el
+  // bloque sigue en hojas nuevas en vez de escribir encima de la firma y el pie.
+  const salto = () => { doc.addPage(); return g.yIni; };
   let y = g.yIni;
-  p.filas.forEach(f => {
+  p.filas.forEach((f, i) => {
+    if (!cabe) {
+      const altoFila = (f.t === 'bar') ? 10 : p.H + (f.t === 'sub' ? 1.6 : 0);
+      // Un título de sección no queda huérfano al pie: se corta antes.
+      const necesita = (f.t === 'bar') ? altoFila + p.H * 2 : altoFila;
+      if (y + necesita > g.yFin) y = salto();
+    }
     if (f.t === 'bar') {
       doc.setFillColor(T[0],T[1],T[2]); doc.rect(mL, y, pgW, 7, 'F');
       fb(8.5); doc.setTextColor(255,255,255); doc.text(f.txt, mL + 5, y + 5);
@@ -16150,6 +16262,11 @@ function amiloDibujarSecciones(doc, secs, g) {
     } else if (f.t === 'sub') {
       fb(sz); doc.setTextColor(T[0],T[1],T[2]);
       doc.text(f.txt, mL, y); y += p.H + 1.6;
+    } else if (f.t === 'kv') {
+      const xVal = mL + pgW * 0.52;
+      fn(sz); doc.setTextColor(90,90,90);  doc.text(f.a, mL + 2, y, { maxWidth: pgW * 0.50 - 4 });
+      fn(sz); doc.setTextColor(20,20,20);  doc.text(f.b, xVal, y, { maxWidth: pgW * 0.46 });
+      y += p.H;
     } else {
       fn(sz); doc.setTextColor(30,30,30);
       doc.text(f.txt, mL + 2, y); y += p.H;
