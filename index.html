@@ -414,6 +414,13 @@
   /* Fila 3 — herramientas de apoyo (jerarquía menor) */
   .tab-tool { font-size: 10px; padding: 3px 9px; color: var(--text2); border-style: dashed; }
   .tab-tool.active { background: var(--text2); color: var(--bg); border-style: solid; border-color: var(--text2); }
+  .ig-mes{
+    display:flex; align-items:center; gap:8px;
+    margin:16px 0 8px; font-size:.78rem; font-weight:700; letter-spacing:.03em;
+    color:var(--accent2, #4da3ff); text-transform:none;
+  }
+  .ig-mes:first-child{ margin-top:4px; }
+  .ig-num{ color:var(--text2); font-weight:600; font-variant-numeric:tabular-nums; }
   /* Laboratorio — mismo estilo azul que Informe/Guardados, en la esquina derecha */
   .tabs-lab-wrap { flex-shrink: 0; display: flex; align-items: center; }
   .tab-lab { background: var(--accent); color: #fff; border: none; cursor: pointer; border-radius: 8px 0 0 8px; padding: 12px 10px; font-size: 11px; font-weight: 700; box-shadow: -3px 2px 10px rgba(0,0,0,0.35); transition: background .15s; }
@@ -8610,7 +8617,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;">
           <div class="fg" style="margin:0;flex:1;min-width:180px;">
             <label style="font-size:.72rem;">Buscar paciente</label>
-            <input type="text" id="ig-buscar" placeholder="🔍 Nombre o documento..." oninput="filtrarInformes()">
+            <input type="text" id="ig-buscar" placeholder="🔍 Nombre o documento..." oninput="igBuscarDebounce()">
           </div>
           <div class="fg" style="margin:0;">
             <label style="font-size:.72rem;">Fecha desde</label>
@@ -8619,6 +8626,19 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           <div class="fg" style="margin:0;">
             <label style="font-size:.72rem;">Fecha hasta</label>
             <input type="date" id="ig-fecha-hasta" onchange="filtrarInformes()" style="width:auto;">
+          </div>
+          <div class="fg" style="margin:0;min-width:170px;">
+            <label style="font-size:.72rem;">Antecedente / diagnóstico</label>
+            <select id="ig-filtro-antec" onchange="aplicarFiltros()">
+              <option value="">Todos</option>
+              <option value="coronaria">Cardiopatía isquémica / IAM previo</option>
+              <option value="ic">Insuficiencia cardíaca</option>
+              <option value="valv">Valvulopatía conocida</option>
+              <option value="fa">Fibrilación auricular</option>
+              <option value="hta">HTA</option>
+              <option value="dm">DM</option>
+              <option value="interes">Casos de interés ⭐</option>
+            </select>
           </div>
           <div class="fg" style="margin:0;min-width:130px;">
             <label style="font-size:.72rem;">Casos de interés</label>
@@ -8629,6 +8649,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           </div>
           <button class="btn btn-ghost" onclick="limpiarFiltros();limpiarFiltroFechas();" style="margin-bottom:1px;">🧹 Limpiar filtros</button>
         </div>
+        <div id="ig-contador" style="font-size:.82rem;color:var(--text2);margin:-4px 0 10px;"></div>
 
         <!-- ACORDEÓN 1 — Filtros clínicos (colapsado por defecto; lo abre el botón de la fila de arriba) -->
         <div id="ig-acc-clinicos" class="ig-acc-panel" style="display:none;padding:14px;margin-bottom:10px;">
@@ -16740,40 +16761,150 @@ function guardarInforme(onDone) {
   }
 }
 
-function renderInformesGuardados() {
-  const informes = getInformes();
-  const lista  = document.getElementById('ig-lista');
-  const vacio  = document.getElementById('ig-vacio');
-  if (!lista) return;
-  const term = (document.getElementById('ig-buscar')?.value || '').toLowerCase().trim();
+/* ── Filtros de Guardados ──
+   Antes había DOS pipelines que escribían en la misma lista: el buscador y las fechas
+   iban por renderInformesGuardados(), y los filtros clínicos por aplicarFiltros(). Cada
+   uno partía de getInformes() completo, así que no se combinaban: escribir en el buscador
+   descartaba el filtro clínico activo y viceversa, sin que nada lo indicara. Ahora hay un
+   solo lugar que decide qué se muestra, y las dos entradas lo llaman. */
+const IG_ANTEC = {
+  coronaria:{ lbl:'Cardiopatía isquémica / IAM previo', re:/isqu[eé]mic|\biam\b|infarto|by-?pass|\bcrm\b|stent|\batc\b|enfermedad coronaria/i },
+  ic:       { lbl:'Insuficiencia cardíaca',             re:/\bicc?\b|insuf\w*\s*card/i },
+  valv:     { lbl:'Valvulopatía conocida',              re:/valvulopat|pr[oó]tesis valvular/i },
+  fa:       { lbl:'Fibrilación auricular',              re:/\bfa\b|flutter|fibrilaci/i },
+  /* "hipertensi" a secas también matchea hipertensión PULMONAR, que es otra entidad. */
+  hta:      { lbl:'HTA',                                re:/\bhta\b|hipertensi[óo]n\s+arterial/i },
+  dm:       { lbl:'DM',                                 re:/\bdm\b|diabet/i }
+};
+
+function igEsCaso(inf){
+  const c = inf.campos || {};
+  return c.caso_interes === '1' || c.caso_interes === 'true';
+}
+
+/* Se busca en el checklist y, si el estudio es viejo y no lo tiene, en los campos de
+   ANTECEDENTES escritos a mano.
+
+   Deliberadamente NO se mira informe_texto ni en_suma: ahí están los hallazgos del
+   estudio, no los antecedentes del paciente, y el texto está lleno de negaciones y de
+   frases autogeneradas. "sin valvulopatías significativas" —lo que escribe un eco normal—
+   daba positivo en el filtro de valvulopatía, invirtiendo el significado; y la app emite
+   "probabilidad de hipertensión pulmonar" incluso cuando la probabilidad es BAJA, así que
+   un estudio que descarta HTP entraba en el filtro de HTA. Justo sobre los estudios
+   viejos, que son el motivo del fallback. */
+function igTieneAntec(inf, clave){
+  if (clave === 'interes') return igEsCaso(inf);
+  const def = IG_ANTEC[clave]; if (!def) return true;
+  const c = inf.campos || {};
+  const arr = Array.isArray(c.antecedentes_sel) ? c.antecedentes_sel : [];
+  // "Otro" guarda su texto aparte: sin esto, un antecedente escrito ahí es invisible.
+  const libre = String(c.ant_otro || '') + ' ' + String(c.antecedentes || '');
+  if (arr.length) return arr.some(x => def.re.test(String(x))) || def.re.test(libre);
+  return libre.trim() ? def.re.test(libre) : false;
+}
+
+// Única fuente de la lista visible. `base` permite reusarla desde aplicarFiltros(), que
+// ya viene con los filtros clínicos aplicados.
+function igFiltrar(base){
+  let out = (base == null) ? getInformes() : base;   // [] es válido: significa "ninguno"
+  const term  = (document.getElementById('ig-buscar')?.value || '').toLowerCase().trim();
   const desde = document.getElementById('ig-fecha-desde')?.value || '';
   const hasta = document.getElementById('ig-fecha-hasta')?.value || '';
-  let filtrados = term
-    ? informes.filter(i => i.nombre.toLowerCase().includes(term) || i.ci.toLowerCase().includes(term))
-    : informes;
-  // Filtro por rango de fecha de estudio (YYYY-MM-DD, comparación lexicográfica)
-  if (desde) filtrados = filtrados.filter(i => i.fecha_estudio && i.fecha_estudio >= desde);
-  if (hasta) filtrados = filtrados.filter(i => i.fecha_estudio && i.fecha_estudio <= hasta);
+  const antec = document.getElementById('ig-filtro-antec')?.value || '';
+  if (term)  out = out.filter(i => String(i.nombre||'').toLowerCase().includes(term)
+                                || String(i.ci||'').toLowerCase().includes(term));
+  if (desde) out = out.filter(i => i.fecha_estudio && i.fecha_estudio >= desde);
+  if (hasta) out = out.filter(i => i.fecha_estudio && i.fecha_estudio <= hasta);
+  if (antec) out = out.filter(i => igTieneAntec(i, antec));
+  return out;
+}
+
+const IG_MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function igMesLbl(fecha){
+  if (!fecha) return 'Sin fecha';
+  const m = /^(\d{4})-(\d{2})/.exec(fecha);
+  if (!m) return 'Sin fecha';
+  const nom = IG_MESES[parseInt(m[2],10)-1] || '';
+  return nom ? (nom[0].toUpperCase()+nom.slice(1)+' '+m[1]) : 'Sin fecha';
+}
+
+/* Numera y agrupa por mes. El número es la posición del estudio en el TOTAL guardado
+   —del más nuevo al más viejo— y no en la lista filtrada: así "#312" identifica siempre
+   al mismo estudio, cambien o no los filtros. */
+/* Orden descendente por fecha de estudio, desempatando por fecha_guardado (que sí tiene
+   hora): sin el desempate, los estudios del mismo día quedaban en orden de inserción y
+   dentro del grupo la numeración salía al revés de lo que sugiere la lista.
+   Comparación de strings en vez de localeCompare: las fechas son ISO, ordenan bien, y
+   localeCompare es ICU —con 500 estudios son miles de llamadas por tecla del buscador. */
+function igCmpFecha(a,b){
+  const fa=String(a.fecha_estudio||''), fb=String(b.fecha_estudio||'');
+  if (fa!==fb) return fa<fb ? 1 : -1;
+  const ga=String(a.fecha_guardado||''), gb=String(b.fecha_guardado||'');
+  return ga===gb ? 0 : (ga<gb ? 1 : -1);
+}
+
+function igPintar(filtrados){
+  const lista = document.getElementById('ig-lista');
+  const vacio = document.getElementById('ig-vacio');
+  const cont  = document.getElementById('ig-contador');
+  if (!lista) return;
+  const todos = getInformes();
+  const orden = todos.slice().sort(igCmpFecha);
+  const nro = new Map();
+  orden.forEach((inf,i) => nro.set(inf.id, orden.length - i));
+
+  if (cont) cont.textContent = todos.length
+    ? ('Mostrando ' + filtrados.length + ' de ' + todos.length + ' estudio' + (todos.length===1?'':'s'))
+    : '';
+
   if (!filtrados.length) {
-    lista.innerHTML = '';
-    vacio.style.display = 'block';
+    if (todos.length) {
+      /* Hay estudios, sólo que ninguno coincide. El cartel genérico dice "No hay informes
+         guardados", que en una app sin servidor se lee como pérdida de datos. */
+      if (vacio) vacio.style.display = 'none';
+      lista.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text2);">'+
+        'Ningún estudio coincide con los filtros activos.<br>'+
+        '<button class="btn btn-ghost" style="margin-top:10px;" onclick="limpiarFiltros()">🧹 Limpiar filtros</button></div>';
+    } else {
+      lista.innerHTML = '';
+      if (vacio) vacio.style.display = 'block';
+    }
     return;
   }
-  vacio.style.display = 'none';
-  lista.innerHTML = filtrados.map(igItemHTML).join('');
+  if (vacio) vacio.style.display = 'none';
+
+  const vis = filtrados.slice().sort(igCmpFecha);
+  const grupos = [];
+  vis.forEach(inf => {
+    const k = igMesLbl(inf.fecha_estudio);
+    if (!grupos.length || grupos[grupos.length-1].k !== k) grupos.push({k, items:[]});
+    grupos[grupos.length-1].items.push(inf);
+  });
+  lista.innerHTML = grupos.map(g =>
+    '<div class="ig-mes">── ' + escHtml(g.k) + ' (' + g.items.length + ' estudio' + (g.items.length===1?'':'s') + ') ──</div>' +
+    g.items.map(inf => igItemHTML(inf, nro.get(inf.id))).join('')
+  ).join('');
+}
+
+function renderInformesGuardados() {
+  igPintar(igFiltrar(null));
 }
 
 // Markup de una tarjeta de estudio guardado. ÚNICO lugar donde vive: lo usan
 // renderInformesGuardados() y renderizarListaFiltrada() (el Laboratorio). Antes
 // estaba duplicado y cualquier cambio de diseño se aplicaba a una sola vista.
-function igItemHTML(inf) {
+function igItemHTML(inf, nro) {
   const fechaEst = inf.fecha_estudio ? inf.fecha_estudio.split('-').reverse().join('/') : '—';
+  /* Ordinal, no identificador: es la posición en el total y cambia si se borra, se importa
+     o se carga un estudio con fecha anterior. Por eso se rotula "N.º" y no "#", que invita
+     a anotarlo como si fuera un ID estable. */
+  const num = (nro!=null) ? ('<span class="ig-num" title="Posición en el total de estudios guardados; cambia si se agregan o se borran estudios">'+nro+'.º</span> · ') : '';
   const esCaso   = inf.campos && (inf.campos.caso_interes === '1' || inf.campos.caso_interes === 'true');
   const notaVal  = (inf.campos && inf.campos.nota_interes) || '';
   return `<div class="ig-item" onclick="verDetalleInforme(${inf.id})">
       <div class="ig-item-info">
-        <div class="ig-item-nombre${esCaso ? ' ig-fav' : ''}">${escHtml(inf.nombre)}</div>
-        <div class="ig-item-meta">${escHtml(inf.doc_tipo)}: ${escHtml(inf.ci)} · ${fechaEst}</div>
+        <div class="ig-item-nombre${esCaso ? ' ig-fav' : ''}">${num}${escHtml(inf.nombre)} · <span style="font-weight:400;color:var(--text2);">${escHtml(fechaEst)}</span></div>
+        <div class="ig-item-meta">${escHtml(inf.doc_tipo)}: ${escHtml(inf.ci)} · ${escHtml(fechaEst)}</div>
         <div class="ig-nota-wrap" id="ig-nota-wrap-${inf.id}" style="display:${esCaso?'flex':'none'};gap:6px;margin-top:5px;align-items:center;" onclick="event.stopPropagation()">
           <input type="text" id="ig-nota-${inf.id}" placeholder="Motivo del caso de interés (opcional)..." value="${escHtml(notaVal)}" style="flex:1;min-width:0;font-size:11px;padding:3px 7px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);">
           <button class="btn btn-ghost" style="font-size:10px;padding:3px 9px;white-space:nowrap;" onclick="guardarNotaInteres(${inf.id})">Guardar nota</button>
@@ -16845,7 +16976,18 @@ function guardarNotaInteres(id) {
 }
 window.guardarNotaInteres = guardarNotaInteres;
 
-function filtrarInformes() { renderInformesGuardados(); }
+/* Pasa por aplicarFiltros() cuando los filtros clínicos existen, para que escribir en el
+   buscador no descarte lo que el médico ya había filtrado. */
+/* Sin debounce cada tecla rehace la lista entera: con cientos de estudios eso es
+   reconstruir miles de nodos por pulsación, y en tablet se encolan las teclas. */
+let _igBuscarT=null;
+function igBuscarDebounce(){ clearTimeout(_igBuscarT); _igBuscarT=setTimeout(filtrarInformes,180); }
+window.igBuscarDebounce = igBuscarDebounce;
+
+function filtrarInformes() {
+  if (typeof aplicarFiltros === 'function' && document.getElementById('filtro-fevi')) aplicarFiltros();
+  else renderInformesGuardados();
+}
 
 function limpiarFiltroFechas() {
   const d = document.getElementById('ig-fecha-desde');
@@ -22535,7 +22677,9 @@ function aplicarFiltros() {
 
     // Caso de interés
     if (filtroInt === 'si') {
-      if (c.caso_interes !== '1') return false;
+      // igEsCaso acepta '1' y 'true'; acá se excluía 'true', así que un estudio marcado
+      // mostraba la estrella y pasaba el filtro nuevo, pero éste lo descartaba.
+      if (!igEsCaso(inf)) return false;
     }
 
     // ── Filtros avanzados (acumulativos AND; usan accesores robustos fevi/psap/tapse) ──
@@ -22553,21 +22697,20 @@ function aplicarFiltros() {
     return true;
   });
 
-  // Actualizar contador
+  /* El contador de esta fila queda vacío: #ig-contador ya informa "Mostrando N de M"
+     sobre lo que realmente se pinta. Mantener los dos daba dos números distintos en
+     pantalla, porque éste se calculaba antes de aplicar buscador, fechas y antecedente. */
   const resEl = document.getElementById('filtro-resultado');
-  const hayFiltros = filtroFevi || filtroGeom || filtroDiast || filtroValv || filtroInt
-    || advFeviLtOn || advFeviBtOn || advFeviGtOn || advPsapGtOn || advTapseLtOn || advValvTxt;
-  if (resEl) {
-    resEl.textContent = hayFiltros ? `${filtrados.length} estudios encontrados` : '';
-  }
+  if (resEl) resEl.textContent = '';
 
-  // Renderizar lista filtrada
-  renderizarListaFiltrada(filtrados);
+  // Encadenar con buscador, fechas y antecedente: antes cada ruta renderizaba por su
+  // cuenta desde getInformes() y los filtros se pisaban entre sí.
+  renderizarListaFiltrada(igFiltrar(filtrados));
 }
 
 function limpiarFiltros() {
   ['filtro-fevi','filtro-geom','filtro-diast',
-   'filtro-valv','filtro-interes',
+   'filtro-valv','filtro-interes','ig-filtro-antec',
    'adv-fevi-lt','adv-fevi-bt1','adv-fevi-bt2','adv-fevi-gt',
    'adv-psap-gt','adv-tapse-lt','adv-valv-txt'].forEach(id => {
     const el = document.getElementById(id);
@@ -22580,9 +22723,12 @@ function limpiarFiltros() {
   });
   const resEl = document.getElementById('filtro-resultado');
   if (resEl) resEl.textContent = '';
-  // Volver a renderizar todos
-  const todos = getInformes();
-  renderizarListaFiltrada(todos);
+  /* Limpiar de verdad: el buscador y las fechas también, y renderizar por el pipeline
+     único. Antes esto partía de getInformes() y no tocaba #ig-buscar, así que el botón
+     "Limpiar filtros" dejaba la lista filtrada por el texto y además producía un segundo
+     render al correr limpiarFiltroFechas(). */
+  ['ig-buscar','ig-fecha-desde','ig-fecha-hasta'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
+  aplicarFiltros();
 }
 
 // Acordeones de filtros de Guardados — display none/block (NO max-height, evita bug Safari con checkboxes)
@@ -22609,6 +22755,8 @@ window.asocInfoToggle = asocInfoToggle;
 
 function renderizarListaFiltrada(lista) {
   window._ettInformesFiltrados = lista;
+  // Una sola función pinta: agrupa por mes, numera y actualiza el contador.
+  if (document.getElementById('ig-lista')) { igPintar(lista); return; }
   // EcoSmart no tiene renderInformes/cargarInformes; render directo en #ig-lista
   // reutilizando el mismo markup y handlers que renderInformesGuardados.
   const cont  = document.getElementById('ig-lista');
@@ -22624,7 +22772,9 @@ function renderizarListaFiltrada(lista) {
     return;
   }
   if (vacio) vacio.style.display = 'none';
-  cont.innerHTML = lista.map(igItemHTML).join('');   // mismo markup que Guardados
+  // map() pasa el índice como 2.º argumento, que igItemHTML interpreta como número de
+  // estudio: sin el wrapper saldrían numerados #0, #1, #2…
+  cont.innerHTML = lista.map(i => igItemHTML(i)).join('');   // mismo markup que Guardados
 }
 
 window.aplicarFiltros = aplicarFiltros;
