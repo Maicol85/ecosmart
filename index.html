@@ -414,12 +414,23 @@
   /* Fila 3 — herramientas de apoyo (jerarquía menor) */
   .tab-tool { font-size: 10px; padding: 3px 9px; color: var(--text2); border-style: dashed; }
   .tab-tool.active { background: var(--text2); color: var(--bg); border-style: solid; border-color: var(--text2); }
+  /* Encabezado de mes = control de plegado. Es <button> y no <div> para que funcione con
+     teclado y para que el lector de pantalla lo anuncie con su estado (aria-expanded). */
   .ig-mes{
-    display:flex; align-items:center; gap:8px;
+    display:flex; align-items:center; gap:8px; width:100%;
+    background:none; border:none; padding:0; font-family:inherit; cursor:pointer;
     margin:16px 0 8px; font-size:.78rem; font-weight:700; letter-spacing:.03em;
-    color:var(--accent2, #4da3ff); text-transform:none;
+    color:var(--accent2, #4da3ff); text-transform:none; text-align:left;
   }
-  .ig-mes:first-child{ margin-top:4px; }
+  .ig-mes:hover{ color:#7cc0ff; }
+  .ig-mes-grupo:first-child .ig-mes{ margin-top:4px; }
+  .ig-mes-chev{ display:inline-block; font-size:.7rem; transition:transform .18s; flex-shrink:0; }
+  .ig-mes-txt{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* display:none y NO overflow+max-height: en Safari eso rompe el hit-test y los botones
+     de las filas dejan de responder al primer toque. */
+  .ig-mes-grupo.cerrado .ig-mes-items{ display:none; }
+  .ig-mes-grupo.cerrado .ig-mes-chev{ transform:rotate(-90deg); }
+  @media (prefers-reduced-motion: reduce){ .ig-mes-chev{ transition:none; } }
   .ig-num{ color:var(--text2); font-weight:600; font-variant-numeric:tabular-nums; }
   /* Laboratorio — mismo estilo azul que Informe/Guardados, en la esquina derecha */
   .tabs-lab-wrap { flex-shrink: 0; display: flex; align-items: center; }
@@ -16974,17 +16985,50 @@ function igPintar(filtrados){
   if (vacio) vacio.style.display = 'none';
 
   const vis = filtrados.slice().sort(igCmpFecha);
-  const grupos = [];
+  /* Se agrupa por etiqueta y no por adyacencia. igMesLbl devuelve 'Sin fecha' tanto para
+     una fecha ausente como para una mal formada, y el orden es por string: una fecha basura
+     como "abc" ordena ANTES que las ISO y una vacía va al final, así que quedaban DOS grupos
+     no contiguos con la misma etiqueta — y con la misma clave de plegado, de modo que cerrar
+     uno cerraba el otro en el próximo re-render. Con un Map hay un grupo por etiqueta y la
+     clave es única. El Map preserva el orden de primera aparición, así que para las fechas
+     bien formadas el resultado es idéntico al anterior. */
+  const mapa = new Map();
   vis.forEach(inf => {
     const k = igMesLbl(inf.fecha_estudio);
-    if (!grupos.length || grupos[grupos.length-1].k !== k) grupos.push({k, items:[]});
-    grupos[grupos.length-1].items.push(inf);
+    if (!mapa.has(k)) mapa.set(k, {k, items:[]});
+    mapa.get(k).items.push(inf);
   });
-  lista.innerHTML = grupos.map(g =>
-    '<div class="ig-mes">── ' + escHtml(g.k) + ' (' + g.items.length + ' estudio' + (g.items.length===1?'':'s') + ') ──</div>' +
-    g.items.map(inf => igItemHTML(inf, nro.get(inf.id))).join('')
-  ).join('');
+  const grupos = [...mapa.values()];
+  /* El encabezado es un <button> y no un <div>: así se opera con Enter/Espacio y el lector
+     de pantalla lo anuncia como control con su estado. Los estudios pasan a ser HIJOS del
+     grupo — antes eran hermanos del encabezado, así que no había nada que plegar.
+     El plegado usa display:none y NO overflow+max-height: en Safari eso rompe el hit-test
+     y los botones de adentro dejan de responder. */
+  lista.innerHTML = grupos.map(g => {
+    const k = escHtml(g.k);
+    const cerrado = igMesesCerrados.has(g.k);
+    const n = g.items.length;
+    return '<div class="ig-mes-grupo' + (cerrado ? ' cerrado' : '') + '" data-mes="' + k + '">' +
+      '<button type="button" class="ig-mes" onclick="igMesToggle(this)" aria-expanded="' + (!cerrado) + '">' +
+        '<span class="ig-mes-chev" aria-hidden="true">▾</span>' +
+        '<span class="ig-mes-txt">── ' + k + ' (' + n + ' estudio' + (n===1?'':'s') + ') ──</span>' +
+      '</button>' +
+      '<div class="ig-mes-items">' + g.items.map(inf => igItemHTML(inf, nro.get(inf.id))).join('') + '</div>' +
+    '</div>';
+  }).join('');
 }
+
+/* Fuera de igPintar a propósito: buscar, filtrar o borrar un estudio rehacen el innerHTML
+   completo, y si el estado viviera en el DOM se perdería con cada tecla del buscador. */
+const igMesesCerrados = new Set();
+function igMesToggle(btn) {
+  const grupo = btn.closest('.ig-mes-grupo'); if (!grupo) return;
+  const mes = grupo.dataset.mes;
+  const cerrado = grupo.classList.toggle('cerrado');
+  btn.setAttribute('aria-expanded', String(!cerrado));
+  if (cerrado) igMesesCerrados.add(mes); else igMesesCerrados.delete(mes);
+}
+window.igMesToggle = igMesToggle;
 
 function renderInformesGuardados() {
   igPintar(igFiltrar(null));
