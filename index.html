@@ -500,34 +500,91 @@
     .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
     .col-span-2, .col-span-3, .col-span-4 { grid-column: span 1; }
   }
-  /* ══ INFORMES GUARDADOS ══ */
+  /* ══ INFORMES GUARDADOS — una línea por estudio ══
+     Antes cada estudio era una tarjeta de dos renglones (nombre + documento/CI). Con
+     cientos de estudios eso son metros de scroll para leer una lista. Ahora es una fila:
+     N.º · Nombre · fecha, y a la derecha ☆ y las acciones en letra chica.
+     El documento pasa al `title` de la fila: se sigue necesitando para distinguir dos
+     homónimos, pero no en todo momento — y está en el detalle, a un clic. */
   .ig-item {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border);
-    background: var(--bg3); margin-bottom: 8px; cursor: pointer;
+    display: flex; align-items: center;
+    padding: 6px 10px; border-radius: 7px; border: 1px solid var(--border);
+    background: var(--bg3); margin-bottom: 3px; cursor: pointer;
     transition: border-color .15s, background .15s;
-    gap: 10px;
+    gap: 8px; min-height: 0;
   }
   .ig-item:hover { border-color: var(--accent); background: #1a2040; }
-  .ig-item-info { flex: 1; min-width: 0; }
-  .ig-item-nombre { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+  /* Se envuelve sólo cuando aparece la nota del caso de interés, que es una segunda fila
+     opcional; el resto del tiempo la fila es una y sola. */
+  .ig-item.ig-con-nota { flex-wrap: wrap; }
+  .ig-item-info { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px; }
+  .ig-item-nombre {
+    font-size: 13px; font-weight: 700; color: var(--text); margin: 0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+  }
   /* Caso de interés: el nombre acompaña a la estrella dorada */
   .ig-item-nombre.ig-fav { color: #f5c842; }
-  .ig-item-meta { font-size: 11px; color: var(--text2); }
-  .ig-item-actions { display: flex; gap: 4px; flex-shrink: 0; }
-  /* Botones de acción compactos (antes 11px / 4px 10px inline en cada botón) */
-  .ig-btn { font-size: 10px; padding: 3px 7px; line-height: 1.4; }
-  .ig-btn-star { font-size: 13px; padding: 3px 5px; line-height: 1; }
-  /* El mínimo táctil global de 44px (regla A11y de arriba) los mantenía del mismo
-     tamaño por más que se bajara fuente y padding. Se libera SÓLO con mouse:
-     en celular/tablet siguen teniendo los 44px que exige el estándar. */
+  .ig-item-fecha { font-size: 11.5px; color: var(--text2); font-weight: 400; white-space: nowrap; flex-shrink: 0; }
+  /* flex-shrink:0 — si falta espacio se recorta el nombre, nunca el documento: el nombre
+     se completa con el title y el CI es el que desambigua. */
+  .ig-item-ci { font-size: 11.5px; color: var(--text2); font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0; }
+  /* El documento se queda en la línea también en móvil: ni se oculta (en táctil no hay
+     `title`, y es lo único que separa dos homónimos) ni baja a un segundo renglón, que
+     duplicaría la altura de la lista. Lo que cede es el NOMBRE, que trunca con ellipsis y
+     se completa en el detalle; el documento y la fecha van con flex-shrink:0. */
+  @media (max-width: 420px) {
+    .ig-item { padding: 6px 8px; gap: 6px; }
+    .ig-item-nombre { font-size: 12.5px; }
+    .ig-item-ci, .ig-item-fecha { font-size: 10.5px; }
+  }
+  .ig-item-actions { display: flex; gap: 2px; flex-shrink: 0; align-items: center; }
+  .ig-btn { font-size: 11px; padding: 2px 6px; line-height: 1.3; }
+  .ig-btn-star { font-size: 14px; padding: 2px 4px; line-height: 1; }
+  .ig-sep { color: var(--text2); opacity: .45; font-size: 10px; }
+  .ig-mas { display: none; }
+  .ig-nota-wrap { flex-basis: 100%; }
   @media (pointer: fine) {
     /* El contenedor también entra en la regla global por su atributo [onclick]:
        se lleva los 44px y los botones se estiran para llenarlo. Por eso hay que
        liberarlo a él y centrar, además de bajar el mínimo de cada botón. */
-    .ig-item-actions { min-height: 0; align-items: center; }
-    .ig-item-actions .ig-btn { min-height: 26px; min-width: 0; }
-    .ig-item-actions .ig-btn-star { min-height: 26px; min-width: 26px; }
+    .ig-item, .ig-item-actions { min-height: 0; align-items: center; }
+    .ig-item-actions .ig-btn { min-height: 22px; min-width: 0; }
+    .ig-item-actions .ig-btn-star { min-height: 22px; min-width: 22px; }
+  }
+  /* ── Móvil: las acciones no entran al lado del nombre, así que se pliegan tras ···
+       En vez de achicarlas por debajo del mínimo táctil, se ocultan y se despliegan
+       en una segunda fila donde sí pueden tener sus 44px. ── */
+  @media (max-width: 640px) {
+    .ig-item-actions .ig-btn:not(.ig-btn-star):not(.ig-mas),
+    .ig-item-actions .ig-sep { display: none; }
+    .ig-mas { display: inline-flex; font-size: 15px; padding: 2px 8px; line-height: 1; color: var(--text2); }
+    .ig-item.ig-abierto { flex-wrap: wrap; }
+    .ig-item.ig-abierto .ig-item-actions .ig-btn,
+    .ig-item.ig-abierto .ig-item-actions .ig-sep { display: inline-flex; }
+    .ig-item.ig-abierto .ig-item-actions {
+      flex-basis: 100%; justify-content: flex-end; flex-wrap: wrap;
+      gap: 6px; margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--border);
+    }
+    .ig-item.ig-abierto .ig-item-actions .ig-btn { min-height: 44px; padding: 0 12px; font-size: 12px; }
+    .ig-item.ig-abierto .ig-item-actions .ig-sep { display: none; }
+  }
+  /* ══ Tabla de asociaciones — responsive ══
+     Diez columnas no entran en un celular ni con scroll horizontal cómodo. Bajo 600px se
+     dejan las cuatro que deciden la lectura —Asociación, N, p y Sig.— y el resto se ve
+     al desplegar la fila, que ya trae el detalle completo con su gráfica. El contenedor
+     conserva overflow-x por si el nombre de una asociación es largo. */
+  .asoc-aviso-movil, .asoc-det-movil { display: none; }
+  @media (max-width: 600px) {
+    #lab-asoc-tabla .asoc-c-sec { display: none; }
+    .asoc-det-movil {
+      display: block; margin-bottom: 12px; padding-bottom: 8px;
+      font-size: 12px; line-height: 1.45; border-bottom: 1px solid var(--border);
+    }
+    #lab-asoc-tabla table { font-size: 12.5px; }
+    .asoc-aviso-movil {
+      display: block; margin-top: 8px; padding: 8px 10px; font-size: 11.5px; line-height: 1.45;
+      color: var(--text2); background: var(--bg2); border-left: 3px solid var(--border); border-radius: 0 6px 6px 0;
+    }
   }
   .ig-empty { text-align: center; padding: 40px 20px; color: var(--text2); }
   .ig-empty-icon { font-size: 48px; margin-bottom: 12px; }
@@ -13789,9 +13846,21 @@ function generarPDFReal() {
   // después, y un const en zona muerta temporal cortaría el script.
   var _yMax = 284;
   function checkPage(n){ if(y+(n||12)>_yMax){ doc.addPage(); y=12; } }
-  function fb(sz){ doc.setFont('helvetica','bold');       doc.setFontSize(sz||7);   }
-  function fn(sz){ doc.setFont('helvetica','normal');     doc.setFontSize(sz||7);   }
-  function fi(sz){ doc.setFont('helvetica','bolditalic'); doc.setFontSize(sz||8);   }
+  /* Escala única de legibilidad. El informe se leía a 7 pt de base, que impreso es chico
+     y en pantalla obliga a hacer zoom. Se aplica acá, en los tres helpers, en vez de tocar
+     los ~40 setFontSize sueltos: así ningún tamaño queda sin escalar y la proporción entre
+     títulos, cuerpo y notas al pie se mantiene.
+     El bloque de firma usa doc.setFontSize() directo en su bucle de ajuste, pero mide con
+     _FS aplicado para que lo medido y lo dibujado coincidan.
+     Salvedad: las hojas de ETT avanzado y transesofágico (amiloDibujarSecciones) definen
+     sus PROPIOS fb/fn sin escalar, así que salen al tamaño anterior. Quedan pendientes: son
+     otra función y tienen su propia geometría.
+     Los interlineados de las grillas se subieron en la misma proporción; sin eso las
+     líneas dentro de una celda quedaban casi tocándose. */
+  const _FS = 1.15;
+  function fb(sz){ doc.setFont('helvetica','bold');       doc.setFontSize((sz||7)*_FS);   }
+  function fn(sz){ doc.setFont('helvetica','normal');     doc.setFontSize((sz||7)*_FS);   }
+  function fi(sz){ doc.setFont('helvetica','bolditalic'); doc.setFontSize((sz||8)*_FS);   }
   function tc(r,g,b){ doc.setTextColor(r,g,b); }
   function fc(r,g,b){ doc.setFillColor(r,g,b); }
   function dc(r,g,b){ doc.setDrawColor(r,g,b); }
@@ -13878,7 +13947,11 @@ function generarPDFReal() {
       for (let i = 0; i < escalas.length; i++) {
         fila.sz = escalas[i];
         doc.setFont('helvetica', fila.esNombre ? 'bolditalic' : 'normal');
-        doc.setFontSize(fila.sz);
+        /* Se MIDE al mismo tamaño al que se DIBUJA. El dibujado usa fi()/fn(), que aplican
+           _FS, así que medir sin escalar validaba que la fila entra a S y la estampaba a
+           1,15·S. Como va alineada a la derecha contra mR, el excedente se iba por la
+           izquierda y le comía el principio a la dirección del centro. */
+        doc.setFontSize(fila.sz * _FS);
         if (doc.getTextWidth(fila.txt) <= pgW) break;
       }
     });
@@ -13917,7 +13990,7 @@ function generarPDFReal() {
     const n    = secs.length;
     const cW   = pgW / n;
     // Espaciado compacto A4: header 4.4 mm; filas con altura dinámica (envuelven texto largo sin desbordar)
-    const hH = 4.4, lineH = 3.0, rowPad = 1.3;
+    const hH = 5.1, lineH = 3.5, rowPad = 1.5;
     const maxR = Math.max(...secs.map(s => s.items.length));
 
     // Pre-cálculo: envolver cada valor y medir cuántas líneas ocupa
@@ -13962,7 +14035,7 @@ function generarPDFReal() {
         // normal (ref): val — línea 0 tras el label; continuación bajo el label
         fn(7); tc(30,30,30);
         it._lines.forEach((ln, li) => {
-          doc.text(ln, li === 0 ? cx + it._lw : cx, ry + 2.6 + li * lineH);
+          doc.text(ln, li === 0 ? cx + it._lw : cx, ry + 3.0 + li * lineH);
         });
       });
     }
@@ -14105,7 +14178,7 @@ function generarPDFReal() {
 
   if (pRows.length) {
     // Alturas de fila dinámicas: cada fila crece según el texto envuelto más largo (evita solapamientos)
-    const lineH = 3.4, padTop = 3.4, padBot = 1.6;
+    const lineH = 3.9, padTop = 3.9, padBot = 1.8;
     const rowsCalc = pRows.map(row => {
       const colW = pgW / row.length;
       const cells = row.map(cell => {
@@ -14336,7 +14409,14 @@ function generarPDFReal() {
         ['Total', (_wmov + _weng + _wcal + _wsub) + '/16']
       ];
       checkPage(12 + _wrows.length * 5); drawBar('SCORE DE WILKINS'); y += 3;
-      _wrows.forEach(r => { checkPage(6); fb(7.5); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(r[0] + ': ', mL + 2, y); const _lw = doc.getTextWidth(r[0] + ': '); fn(8); tc(30,30,30); doc.text(r[1], mL + 2 + _lw, y, { maxWidth: pgW - _lw - 6 }); y += 5; });
+      /* maxWidth NO trunca: parte el texto y dibuja las líneas hacia abajo, pero el
+         llamador avanzaba y += 5 como si hubiera sido una sola. Con la fuente escalada
+         más cadenas cruzan el umbral y la segunda línea se pisa con la fila siguiente.
+         Se mide con splitTextToSize y se avanza por línea. */
+      _wrows.forEach(r => { checkPage(6); fb(7.5); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(r[0] + ': ', mL + 2, y); const _lw = doc.getTextWidth(r[0] + ': '); fn(8); tc(30,30,30);
+        const _ln = doc.splitTextToSize(String(r[1]), pgW - _lw - 6);
+        _ln.forEach((l, i) => { if (i) checkPage(5); doc.text(l, i ? mL + 2 : mL + 2 + _lw, y); if (i < _ln.length - 1) y += 4.2; });
+        y += 5; });
       y += 2;
     }
   }
@@ -14345,7 +14425,10 @@ function generarPDFReal() {
       .map(r => [r[0], _cxtx(r[1])]).filter(r => r[1] && r[1] !== '—');
     if (_grows.length) {
       checkPage(10 + _grows.length * 5); drawBar('GRADIENTE TRANSPULMONAR (GTP) / RVP'); y += 3;
-      _grows.forEach(r => { checkPage(6); fb(7.5); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(r[0] + ': ', mL + 2, y); const _lw = doc.getTextWidth(r[0] + ': '); fn(8); tc(30,30,30); doc.text(r[1], mL + 2 + _lw, y, { maxWidth: pgW - _lw - 6 }); y += 5; });
+      _grows.forEach(r => { checkPage(6); fb(7.5); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(r[0] + ': ', mL + 2, y); const _lw = doc.getTextWidth(r[0] + ': '); fn(8); tc(30,30,30);
+        const _ln = doc.splitTextToSize(String(r[1]), pgW - _lw - 6);
+        _ln.forEach((l, i) => { if (i) checkPage(5); doc.text(l, i ? mL + 2 : mL + 2 + _lw, y); if (i < _ln.length - 1) y += 4.2; });
+        y += 5; });
       y += 2;
     }
   }
@@ -14364,12 +14447,18 @@ function generarPDFReal() {
       const colW = pgW / 2;
       for (let r = 0; r < items.length; r += 2) {
         checkPage(6);
+        /* La fila avanza según la celda MÁS ALTA. Antes avanzaba 5 fijo y una celda de
+           dos líneas se pisaba con la fila de abajo. */
+        let _maxL = 1;
         for (let cix = 0; cix < 2 && r + cix < items.length; cix++) {
           const it = items[r + cix], x = mL + cix * colW;
           fb(7.5); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(it[0] + ': ', x, y);
-          const lw = doc.getTextWidth(it[0] + ': '); fn(8); tc(30,30,30); doc.text(String(it[1]), x + lw, y, { maxWidth: colW - lw - 3 });
+          const lw = doc.getTextWidth(it[0] + ': '); fn(8); tc(30,30,30);
+          const _ln = doc.splitTextToSize(String(it[1]), colW - lw - 3);
+          _ln.forEach((l, i) => doc.text(l, i ? x : x + lw, y + i * 4.2));
+          if (_ln.length > _maxL) _maxL = _ln.length;
         }
-        y += 5;
+        y += 5 + (_maxL - 1) * 4.2;
       }
       y += 1;
     };
@@ -14426,7 +14515,9 @@ function generarPDFReal() {
           if (r.sin) bits.push('Sínt: ' + r.sin);
           checkPage(6); fb(7.5); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(r.et + ': ', mL + 2, y);
           const _lw = doc.getTextWidth(r.et + ': '); fn(7.5); tc(30,30,30);
-          doc.text(bits.join(' · '), mL + 2 + _lw, y, { maxWidth: pgW - _lw - 6 }); y += 5;
+          const _lnE = doc.splitTextToSize(bits.join(' · '), pgW - _lw - 6);
+          _lnE.forEach((l, i) => { if (i) checkPage(5); doc.text(l, i ? mL + 2 : mL + 2 + _lw, y); if (i < _lnE.length - 1) y += 4.2; });
+          y += 5;
         });
         const _atrC = document.getElementById('ee-atropina-chk');
         if (_atrC && _atrC.checked) { checkPage(5); fn(7.5); tc(30,30,30); doc.text('Atropina administrada: sí ' + (_eev('ee-atropina-dosis') || ''), mL + 2, y); y += 5; }
@@ -14461,13 +14552,13 @@ function generarPDFReal() {
     // (d) Texto narrativo (conclusión)
     if (_eeOn('conclusion')) {
       const _eeNarr = _eev('ee-narrativa').trim();
-      if (_eeNarr) { _eeSub('Descripción'); fn(8); tc(0,0,0); doc.splitTextToSize(_eeNarr, pgW - 4).forEach(l => { checkPage(6); doc.text(l, mL + 2, y); y += 4.5; }); y += 2; }
+      if (_eeNarr) { _eeSub('Descripción'); fn(8); tc(0,0,0); doc.splitTextToSize(_eeNarr, pgW - 4).forEach(l => { checkPage(7); doc.text(l, mL + 2, y); y += 5.2; }); y += 2; }
     }
 
     // (d2) ECG / arritmias — resumen global del estudio
     if (_eeOn('ecg')) {
       const _eeEcgG = _eev('ee-ecg-global').trim();
-      if (_eeEcgG) { _eeSub('ECG / arritmias — resumen global'); fn(8); tc(0,0,0); doc.splitTextToSize(_eeEcgG, pgW - 4).forEach(l => { checkPage(6); doc.text(l, mL + 2, y); y += 4.5; }); y += 2; }
+      if (_eeEcgG) { _eeSub('ECG / arritmias — resumen global'); fn(8); tc(0,0,0); doc.splitTextToSize(_eeEcgG, pgW - 4).forEach(l => { checkPage(7); doc.text(l, mL + 2, y); y += 5.2; }); y += 2; }
     }
 
     // (e) Bull's eyes en fila horizontal — cada fase con su toggle
@@ -14565,9 +14656,18 @@ function generarPDFReal() {
         doc.addImage(col.data, 'PNG', _imgX, _imgY, _szImg, _szImg);
         _cy = _imgY + _szImg + 5;
         if (col.body) {
-          fb(7.5); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(col.heading, _cx0, _cy); _cy += 4.5;
+          fb(7.5); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(col.heading, _cx0, _cy); _cy += 5.2;
           fn(8); tc(30,30,30);
-          doc.splitTextToSize(col.body, _colW).forEach(ln => { doc.text(ln, _cx0, _cy); _cy += 4.2; });
+          /* El checkPage(88) de arriba presupuesta la diana y deja ~9 mm para el cuerpo.
+             Un post-IAM con varios territorios emite una frase por grupo y necesita 40-60:
+             sin tope, el sobrante se dibujaba encima de la firma y, pasados los 297 mm,
+             fuera del MediaBox — el visor lo recorta sin avisar y el informe sale firmado
+             SIN los hallazgos de motilidad, que es lo más accionable del estudio.
+             Se corta acá: lo que no entra pasa a la hoja siguiente. */
+          doc.splitTextToSize(col.body, _colW).forEach(ln => {
+            if (_cy > _yMax) { doc.addPage(); _cy = 14; fn(8); tc(30,30,30); }
+            doc.text(ln, _cx0, _cy); _cy += 4.8;
+          });
         }
         return _cy;
       });
@@ -16901,25 +17001,46 @@ function igItemHTML(inf, nro) {
   const num = (nro!=null) ? ('<span class="ig-num" title="Posición en el total de estudios guardados; cambia si se agregan o se borran estudios">'+nro+'.º</span> · ') : '';
   const esCaso   = inf.campos && (inf.campos.caso_interes === '1' || inf.campos.caso_interes === 'true');
   const notaVal  = (inf.campos && inf.campos.nota_interes) || '';
-  return `<div class="ig-item" onclick="verDetalleInforme(${inf.id})">
+  /* El documento va en el title de la fila y ya no en un segundo renglón: sigue siendo el
+     dato que distingue dos homónimos, pero no hace falta tenerlo a la vista siempre.
+     Está además en el detalle, a un clic. */
+  const tit = `${inf.doc_tipo || 'Doc'}: ${inf.ci || '—'} · ${fechaEst}`;
+  const sep = '<span class="ig-sep">·</span>';
+  /* El documento va como TEXTO en la fila, no sólo en el title. Tres razones concretas:
+     el buscador filtra por CI y sin verlo dos homónimos son indistinguibles; `title` no
+     existe en pantalla táctil; y "Evolución" agrupa por nombre cuando no hay CI, así que
+     ver dos documentos distintos en la lista es la única señal previa de que la serie
+     longitudinal puede estar mezclando dos personas. Se trunca el NOMBRE, no el CI. */
+  return `<div class="ig-item${esCaso ? ' ig-con-nota' : ''}" onclick="verDetalleInforme(${inf.id})" title="${escHtml(tit)}">
       <div class="ig-item-info">
-        <div class="ig-item-nombre${esCaso ? ' ig-fav' : ''}">${num}${escHtml(inf.nombre)} · <span style="font-weight:400;color:var(--text2);">${escHtml(fechaEst)}</span></div>
-        <div class="ig-item-meta">${escHtml(inf.doc_tipo)}: ${escHtml(inf.ci)} · ${escHtml(fechaEst)}</div>
-        <div class="ig-nota-wrap" id="ig-nota-wrap-${inf.id}" style="display:${esCaso?'flex':'none'};gap:6px;margin-top:5px;align-items:center;" onclick="event.stopPropagation()">
-          <input type="text" id="ig-nota-${inf.id}" placeholder="Motivo del caso de interés (opcional)..." value="${escHtml(notaVal)}" style="flex:1;min-width:0;font-size:11px;padding:3px 7px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);">
-          <button class="btn btn-ghost" style="font-size:10px;padding:3px 9px;white-space:nowrap;" onclick="guardarNotaInteres(${inf.id})">Guardar nota</button>
-        </div>
+        <span class="ig-item-nombre${esCaso ? ' ig-fav' : ''}">${num}${escHtml(inf.nombre)}</span>
+        <span class="ig-item-ci">· ${escHtml(inf.ci || '—')}</span>
+        <span class="ig-item-fecha">· ${escHtml(fechaEst)}</span>
       </div>
       <div class="ig-item-actions" onclick="event.stopPropagation()">
-        <button class="btn btn-ghost ig-btn ig-btn-star" style="color:${esCaso?'#f5c842':'var(--text2)'};" onclick="toggleCasoInteresGuardado(${inf.id}, this)" title="${esCaso?'Quitar de casos de interés':'Marcar como caso de interés'}">${esCaso?'⭐':'☆'}</button>
-        <button data-nombre="${escHtml(inf.nombre)}" data-ci="${escHtml(inf.ci)}" onclick="verEvolucionEl(this)" class="btn btn-ghost ig-btn" title="Ver evolución temporal del paciente">📈 Evolución</button>
-        <button class="btn btn-ghost ig-btn" onclick="pdfDeInformeGuardado(${inf.id})">📄 PDF</button>
-        <button class="btn btn-ghost ig-btn" onclick="editarInforme(${inf.id})">✏️ Editar</button>
-        <button class="btn btn-danger ig-btn" onclick="eliminarInforme(${inf.id})">🗑️</button>
+        <button class="btn btn-ghost ig-btn ig-btn-star" style="color:${esCaso?'#f5c842':'var(--text2)'};" onclick="toggleCasoInteresGuardado(${inf.id}, this)" title="${esCaso?'Quitar de casos de interés':'Marcar como caso de interés'}" aria-label="${esCaso?'Quitar de casos de interés':'Marcar como caso de interés'}">${esCaso?'⭐':'☆'}</button>
+        <button data-nombre="${escHtml(inf.nombre)}" data-ci="${escHtml(inf.ci)}" onclick="verEvolucionEl(this)" class="btn btn-ghost ig-btn" title="Ver evolución temporal del paciente">Evol</button>${sep}
+        <button class="btn btn-ghost ig-btn" onclick="pdfDeInformeGuardado(${inf.id})" title="Generar PDF del estudio">PDF</button>${sep}
+        <button class="btn btn-ghost ig-btn" onclick="editarInforme(${inf.id})" title="Editar el estudio">Editar</button>${sep}
+        <button class="btn btn-danger ig-btn" onclick="eliminarInforme(${inf.id})" title="Eliminar el estudio" aria-label="Eliminar el estudio">🗑️</button>
+        <button class="btn btn-ghost ig-btn ig-mas" onclick="igMas(this)" title="Más acciones" aria-label="Más acciones" aria-expanded="false">···</button>
+      </div>
+      <div class="ig-nota-wrap" id="ig-nota-wrap-${inf.id}" style="display:${esCaso?'flex':'none'};gap:6px;margin-top:5px;align-items:center;" onclick="event.stopPropagation()">
+        <input type="text" id="ig-nota-${inf.id}" placeholder="Motivo del caso de interés (opcional)..." value="${escHtml(notaVal)}" style="flex:1;min-width:0;font-size:11px;padding:3px 7px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);">
+        <button class="btn btn-ghost" style="font-size:10px;padding:3px 9px;white-space:nowrap;" onclick="guardarNotaInteres(${inf.id})">Guardar nota</button>
       </div>
     </div>`;
 }
 window.igItemHTML = igItemHTML;
+
+/* En móvil las acciones se pliegan tras ···. Se despliegan en una segunda fila donde
+   sí entran con los 44px táctiles, en vez de achicarlas por debajo del mínimo. */
+function igMas(btn){
+  const fila = btn.closest('.ig-item'); if(!fila) return;
+  const abierto = fila.classList.toggle('ig-abierto');
+  btn.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+}
+window.igMas = igMas;
 
 // Alterna el estado de "caso de interés" de un informe guardado directamente en localStorage
 // y actualiza la estrella en el lugar (sin reabrir el informe). Inmediato y persistente.
@@ -16950,6 +17071,8 @@ function toggleCasoInteresGuardado(id, btn) {
   const wrap = document.getElementById('ig-nota-wrap-' + id);
   if (wrap) {
     wrap.style.display = on ? 'flex' : 'none';
+    const filaN = wrap.closest('.ig-item');
+    if(filaN) filaN.classList.toggle('ig-con-nota', on);
     const inp = document.getElementById('ig-nota-' + id);
     if (!on && inp) inp.value = '';
     else if (on && inp) inp.focus();
@@ -21005,11 +21128,29 @@ function labSubTab(id, el) {
                  y:{title:{display:true,text:d.yl,font:{size:10}},ticks:{font:{size:10}}} } } });
   }
 
+  /* Las seis columnas que el móvil oculta se reponen acá arriba del detalle. Sin esto el
+     aviso de la tabla prometía que al tocar la fila se veían y no era cierto: se veía la
+     gráfica, que es otra cosa. Sólo aparece bajo 600px; en escritorio esas columnas ya
+     están en la fila y repetirlas sería ruido. */
+  function detResumenMovil(r){
+    const filas=[['Categoría',r.cat],['Interpretación',r.interp],['Método',r.method],
+                 ['Dirección',r.dir],['Fuerza',r.fuerza],['Estadístico',r.stat]]
+      /* Se dejan pasar los '—': la fila de escritorio los muestra, así que descartarlos acá
+         hacía que en el celular no se pudiera distinguir "esta asociación no tiene dirección"
+         de "la app no me la muestra" — justo después de que el aviso prometiera mostrarla. */
+      .filter(f=>f[1]!=null && f[1]!=='');
+    if(!filas.length) return '';
+    return '<div class="asoc-det-movil">'+filas.map(f=>
+      '<div style="display:flex;gap:8px;padding:3px 0;border-bottom:1px dashed var(--border);">'+
+      '<b style="min-width:96px;color:var(--text2);font-weight:600;">'+f[0]+'</b>'+
+      '<span style="flex:1;min-width:0;">'+f[1]+'</span></div>').join('')+'</div>';
+  }
   function detalleHTML(r, idx){
-    if(!r.det) return '<div style="color:var(--text2);font-size:12px;">Sin datos suficientes para mostrar el detalle de esta asociación.</div>';
-    if(r.det.t==='chi') return detChi(r.det);
-    if(r.det.t==='mw')  return detMW(r.det);
-    return detSP(r.det);
+    const movil = detResumenMovil(r);
+    if(!r.det) return movil+'<div style="color:var(--text2);font-size:12px;">Sin datos suficientes para mostrar la gráfica de esta asociación.</div>';
+    if(r.det.t==='chi') return movil+detChi(r.det);
+    if(r.det.t==='mw')  return movil+detMW(r.det);
+    return movil+detSP(r.det);
   }
 
   // Guarda las filas del último render para que el acordeón lea el mismo cálculo que se
@@ -21052,27 +21193,34 @@ function labSubTab(id, el) {
     let body='';
     rows.forEach((r,ri)=>{ body+='<tr class="asoc-fila" data-ri="'+ri+'" tabindex="0" aria-expanded="false"'+
       ' style="border-bottom:1px solid var(--border);cursor:pointer;">'+
-      '<td style="padding:5px 8px;"><span class="asoc-chev" style="display:inline-block;width:12px;color:var(--text2);">▸</span> '+r.cat+'</td>'+
-      '<td style="padding:5px 8px;font-weight:600;white-space:nowrap;">'+r.lbl+'</td>'+
-      '<td style="padding:5px 8px;color:var(--text2);font-size:11px;line-height:1.35;min-width:180px;"'+
+      /* El chevron vive en la celda de Asociación y no en la de Categoría: Categoría se
+         oculta en móvil, y con ella se iba la única señal de que la fila se despliega. */
+      '<td class="asoc-c-sec" style="padding:5px 8px;">'+r.cat+'</td>'+
+      '<td style="padding:5px 8px;font-weight:600;white-space:nowrap;"><span class="asoc-chev" style="display:inline-block;width:12px;color:var(--text2);">▸</span> '+r.lbl+'</td>'+
+      '<td class="asoc-c-sec" style="padding:5px 8px;color:var(--text2);font-size:11px;line-height:1.35;min-width:180px;"'+
         (r.interp?' title="'+r.interp.replace(/"/g,'&quot;')+'"':'')+'>'+(r.interp||'')+'</td>'+
       '<td style="padding:5px 8px;text-align:center;">'+r.n+'</td>'+
-      '<td style="padding:5px 8px;white-space:nowrap;">'+r.method+'</td>'+
-      '<td style="padding:5px 8px;text-align:center;font-size:14px;" title="'+
+      '<td class="asoc-c-sec" style="padding:5px 8px;white-space:nowrap;">'+r.method+'</td>'+
+      '<td class="asoc-c-sec" style="padding:5px 8px;text-align:center;font-size:14px;" title="'+
         (r.dir==='↑↑'?'Ambas variables suben juntas':(r.dir==='↑↓'?'Una sube y la otra baja':'Asociación sin dirección lineal'))+
         '">'+(r.dir||'—')+'</td>'+
-      '<td style="padding:5px 8px;text-align:center;">'+(r.fuerza||'—')+'</td>'+
-      '<td style="padding:5px 8px;white-space:nowrap;">'+r.stat+'</td>'+
+      '<td class="asoc-c-sec" style="padding:5px 8px;text-align:center;">'+(r.fuerza||'—')+'</td>'+
+      '<td class="asoc-c-sec" style="padding:5px 8px;white-space:nowrap;">'+r.stat+'</td>'+
       '<td style="padding:5px 8px;text-align:right;">'+pTxt(r.p)+'</td>'+
       '<td style="padding:5px 8px;text-align:center;font-size:14px;">'+r.sig+'</td></tr>'; });
     host.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:12px;">'+
       '<thead><tr style="font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);border-bottom:1px solid var(--border);">'+
-      '<th style="padding:5px 8px;text-align:left;">Categoría</th><th style="padding:5px 8px;text-align:left;">Asociación</th>'+
-      '<th style="padding:5px 8px;text-align:left;">Interpretación</th><th style="padding:5px 8px;">N</th>'+
-      '<th style="padding:5px 8px;text-align:left;">Método</th><th style="padding:5px 8px;">Dirección</th>'+
-      '<th style="padding:5px 8px;">Fuerza</th><th style="padding:5px 8px;text-align:left;">Estadístico</th>'+
+      '<th class="asoc-c-sec" style="padding:5px 8px;text-align:left;">Categoría</th><th style="padding:5px 8px;text-align:left;">Asociación</th>'+
+      '<th class="asoc-c-sec" style="padding:5px 8px;text-align:left;">Interpretación</th><th style="padding:5px 8px;">N</th>'+
+      '<th class="asoc-c-sec" style="padding:5px 8px;text-align:left;">Método</th><th class="asoc-c-sec" style="padding:5px 8px;">Dirección</th>'+
+      '<th class="asoc-c-sec" style="padding:5px 8px;">Fuerza</th><th class="asoc-c-sec" style="padding:5px 8px;text-align:left;">Estadístico</th>'+
       '<th style="padding:5px 8px;text-align:right;">p</th><th style="padding:5px 8px;">Sig.</th></tr></thead>'+
-      '<tbody>'+body+'</tbody></table>';
+      '<tbody>'+body+'</tbody></table>'+
+      /* En móvil quedan cuatro columnas y las otras seis se ven al tocar la fila. Se dice,
+         porque una tabla que en el celular tiene menos columnas que en la compu parece
+         incompleta si nada explica dónde fue lo que falta. */
+      '<div class="asoc-aviso-movil">En pantalla chica se muestran Asociación, N, p y Sig. '+
+      'Tocá cualquier fila para ver categoría, interpretación, método, dirección, fuerza y el estadístico completo.</div>';
     host.querySelectorAll('tr.asoc-fila').forEach(tr=>{
       const idx=parseInt(tr.dataset.ri,10);
       tr.addEventListener('click',()=>asocToggle(tr,idx));
@@ -22787,12 +22935,22 @@ function verEvolucion(nombre, ci) {
   const todos = getInformes();
 
   // Buscar todos los estudios del paciente por nombre o CI
+  /* Era `mismoCI || mismoNom`: dos pacientes distintos con el mismo nombre y documentos
+     diferentes entraban los dos a la misma serie longitudinal, y el gráfico mostraba una
+     caída de FEVI que en realidad era el cambio de persona. Cuando hay documento, manda el
+     documento; el nombre queda sólo como respaldo para los estudios que no lo tienen. */
+  const hayCI = ci && ci !== '—';
   const estudios = todos.filter(i => {
-    const mismoCI  = ci && ci !== '—' && i.ci === ci;
-    const mismoNom = nombre && nombre !== '—' &&
+    if (hayCI) return i.ci === ci;
+    return nombre && nombre !== '—' &&
       i.nombre.toLowerCase().trim() === nombre.toLowerCase().trim();
-    return mismoCI || mismoNom;
   }).sort((a,b) => (a.fecha_estudio||'').localeCompare(b.fecha_estudio||''));
+  /* Sin documento se agrupa por nombre y eso puede juntar homónimos: se avisa en vez de
+     dibujar la serie como si fuera una sola persona. */
+  if (!hayCI) {
+    const docs = new Set(estudios.map(e => e.ci).filter(c => c && c !== '—'));
+    if (docs.size > 1) toast('⚠️ Hay estudios con documentos distintos bajo este nombre — la evolución puede mezclar pacientes');
+  }
 
   if (!estudios.length) {
     toast('No hay estudios guardados para este paciente');
@@ -22801,7 +22959,7 @@ function verEvolucion(nombre, ci) {
 
   _evolDatos = estudios;
   document.getElementById('evol-nombre-titulo').textContent =
-    nombre + (estudios.length > 1
+    nombre + (hayCI ? ' (' + ci + ')' : '') + (estudios.length > 1
       ? ' — ' + estudios.length + ' estudios'
       : ' — 1 estudio');
   document.getElementById('modal-evolucion').style.display = '';
