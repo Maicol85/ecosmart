@@ -144,6 +144,17 @@
   /* ── Estándar encabezado móvil: ≡ tabs · título · ⋮ acciones (≤768px) ── */
   .eco-tabsburger{display:none;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:7px;font-size:19px;line-height:1;padding:5px 11px;cursor:pointer;flex-shrink:0}
   .eco-drawer,.eco-drawer-ov{display:none}
+  /* Overlay INVISIBLE, no un listener en document: con un listener, el primer toque
+     cierra el menú Y activa lo que haya debajo —en un celular el dedo cae sobre la lista
+     de estudios y abre un informe que nadie pidió—.
+     z-index 99, NO 299: el <header> es position:relative con z-index:100, así que crea
+     contexto de apilamiento y el z-index:300 del menú es interno a él. Con el overlay en
+     299 quedaba por ENCIMA del header entero y se comía los toques del propio menú, o
+     sea que era imposible elegir una acción. En 99 tapa todo el contenido normal y deja
+     el header por arriba, que es lo único que tiene que seguir siendo tocable.
+     La regla vive fuera del @media a propósito, pero el .open se apaga adentro: ver el
+     comentario del media query. */
+  #ecoHdrOv{display:none;position:fixed;inset:0;z-index:99;background:transparent;}
   @media(max-width:768px){
     header{flex-wrap:wrap;gap:8px;row-gap:6px;position:relative}
     .hdr-title{font-size:14px}
@@ -156,6 +167,13 @@
     #hdr-pdf-quick ~ .hdr-burger{margin-left:0}
     #ecoHdrBtns{display:none;position:absolute;top:100%;right:6px;flex-direction:column;align-items:stretch;gap:6px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px;box-shadow:0 12px 34px rgba(0,0,0,.45);z-index:300;min-width:214px;max-height:78vh;overflow:auto}
     #ecoHdrBtns.open{display:flex}
+    /* El .open del overlay SÓLO existe acá dentro, como el del drawer. El menú ⋮ es de
+       móvil: al ensanchar —rotar una tablet— la barra vuelve a su forma normal y se ve
+       igual que siempre, así que nada avisaría de que "hay un menú abierto"; con la
+       regla global, el overlay quedaba tapando toda la app y comiéndose un toque, que
+       podía ser el de un antecedente o el de Guardar informe. */
+    #ecoHdrOv.open{display:block}
+
     .eco-drawer{display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;width:252px;max-width:82vw;background:var(--bg2);border-right:1px solid var(--border);z-index:400;transform:translateX(-100%);transition:transform .25s;overflow-y:auto;padding:14px 0}
     .eco-drawer.open{transform:translateX(0)}
     .eco-drawer button{background:transparent;border:none;color:var(--text);text-align:left;font-size:14px;font-weight:600;padding:12px 18px;cursor:pointer;display:flex;align-items:center;gap:10px;white-space:nowrap;border-left:3px solid transparent}
@@ -525,9 +543,32 @@
     gap: 8px; min-height: 0;
   }
   .ig-item:hover { border-color: var(--accent); background: #1a2040; }
-  /* Se envuelve sólo cuando aparece la nota del caso de interés, que es una segunda fila
-     opcional; el resto del tiempo la fila es una y sola. */
-  .ig-item.ig-con-nota { flex-wrap: wrap; }
+  /* La nota del caso de interés YA NO vive en la fila. Estaba como un input visible que
+     agregaba un segundo renglón, así que los estudios marcados medían casi el doble que
+     el resto y la lista compacta perdía su única virtud: poder barrerla de un vistazo.
+     Ahora la fila es siempre una sola línea y la nota se lee en un popover. */
+  .ig-nota-ind {
+    min-height: 22px; min-width: 22px; padding: 0 3px; font-size: 12px; line-height: 1;
+    color: #f5c842; flex-shrink: 0;
+  }
+  .ig-nota-ind.sin-nota { color: var(--text2); font-size: 10px; }
+  #ig-nota-pop {
+    display: none; position: fixed; z-index: 320; width: 262px; max-width: calc(100vw - 24px);
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px; box-shadow: 0 12px 34px rgba(0,0,0,.45);
+  }
+  #ig-nota-pop.open { display: block; }
+  #ig-nota-pop textarea {
+    width: 100%; box-sizing: border-box; min-height: 62px; resize: vertical;
+    font-family: inherit; font-size: 12px; line-height: 1.45; padding: 6px 8px;
+    background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; color: var(--text);
+  }
+  #ig-nota-pop .np-acc { display: flex; gap: 6px; justify-content: flex-end; margin-top: 8px; }
+  #ig-nota-pop .np-acc button { font-size: 11.5px; padding: 5px 11px; min-height: 32px; }
+  /* Mismo overlay invisible del menú ⋮ y por la misma razón: que el toque de afuera
+     cierre y no active lo que haya debajo —en esta lista, abrir un informe—. */
+  #ig-nota-ov { display: none; position: fixed; inset: 0; z-index: 319; background: transparent; }
+  #ig-nota-ov.open { display: block; }
   .ig-item-info { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px; }
   .ig-item-nombre {
     font-size: 13px; font-weight: 700; color: var(--text); margin: 0;
@@ -553,20 +594,19 @@
   .ig-btn-star { font-size: 14px; padding: 2px 4px; line-height: 1; }
   .ig-sep { color: var(--text2); opacity: .45; font-size: 10px; }
   .ig-mas { display: none; }
-  .ig-nota-wrap { flex-basis: 100%; }
   @media (pointer: fine) {
     /* El contenedor también entra en la regla global por su atributo [onclick]:
        se lleva los 44px y los botones se estiran para llenarlo. Por eso hay que
        liberarlo a él y centrar, además de bajar el mínimo de cada botón. */
     .ig-item, .ig-item-actions { min-height: 0; align-items: center; }
     .ig-item-actions .ig-btn { min-height: 22px; min-width: 0; }
-    .ig-item-actions .ig-btn-star { min-height: 22px; min-width: 22px; }
+    .ig-item-actions .ig-btn-star, .ig-item-actions .ig-nota-ind { min-height: 22px; min-width: 22px; }
   }
   /* ── Móvil: las acciones no entran al lado del nombre, así que se pliegan tras ···
        En vez de achicarlas por debajo del mínimo táctil, se ocultan y se despliegan
        en una segunda fila donde sí pueden tener sus 44px. ── */
   @media (max-width: 640px) {
-    .ig-item-actions .ig-btn:not(.ig-btn-star):not(.ig-mas),
+    .ig-item-actions .ig-btn:not(.ig-btn-star):not(.ig-mas):not(.ig-nota-ind),
     .ig-item-actions .ig-sep { display: none; }
     .ig-mas { display: inline-flex; font-size: 15px; padding: 2px 8px; line-height: 1; color: var(--text2); }
     .ig-item.ig-abierto { flex-wrap: wrap; }
@@ -1030,7 +1070,7 @@ window.cerrarSesion = cerrarSesion;
   </div>
   <div class="spacer"></div>
   <button id="hdr-pdf-quick" onclick="generarPDF()" title="Generar PDF" aria-label="Generar PDF">⬇️ PDF</button>
-  <button class="hdr-burger" aria-label="Menú de acciones" onclick="document.getElementById('ecoHdrBtns').classList.toggle('open')">⋮</button>
+  <button class="hdr-burger" id="ecoHdrBurger" aria-label="Menú de acciones" aria-haspopup="true" aria-expanded="false" aria-controls="ecoHdrBtns" onclick="ecoHdrToggle()">⋮</button>
   <div class="hdr-btns" id="ecoHdrBtns">
     <button class="btn btn-ghost" id="theme-toggle-btn" onclick="toggleTheme()" title="Cambiar modo día/noche">🌙 Noche</button>
     <button onclick="exportarInformesJSON()" title="Exportar informes a JSON"
@@ -1086,6 +1126,11 @@ window.cerrarSesion = cerrarSesion;
     <button class="btn btn-ghost" onclick="cerrarSesion()" title="Cerrar sesión">🔒 Cerrar</button>
   </div>
 </header>
+<!-- Overlay del menú ⋮ del encabezado. Va acá y NO dentro del <header>: ahí el bloque
+     contenedor del fixed no era el viewport y el overlay quedaba con altura 0 —o sea
+     invisible Y sin superficie que tocar—, que es exactamente el bug que venía a
+     arreglar, sólo que además indetectable a simple vista. Medido: 375×812. -->
+<div id="ecoHdrOv" onclick="ecoHdrCerrar()"></div>
 <!-- Drawer de tabs (≡, solo móvil ≤768px) -->
 <div class="eco-drawer-ov" id="ecoDrawerOv" onclick="ecoDrawerClose()"></div>
 <nav class="eco-drawer" id="ecoDrawer" aria-label="Secciones del estudio"></nav>
@@ -9991,6 +10036,12 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 // ══ INIT ══
 document.getElementById('fecha').value = new Date().toISOString().split('T')[0];
 
+/* Escala del cuerpo de letra de TODOS los PDF. Una sola constante: la usan los helpers
+   de generarPDFReal y los de amiloDibujarSecciones, que son funciones distintas. Con el
+   valor duplicado, las hojas de ETT avanzado y transesofágico salían al tamaño viejo
+   dentro del mismo informe firmado. */
+const PDF_FS = 1.15;
+
 // ══ TABS ══
 function showTab(id) {
   document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
@@ -13863,12 +13914,12 @@ function generarPDFReal() {
      títulos, cuerpo y notas al pie se mantiene.
      El bloque de firma usa doc.setFontSize() directo en su bucle de ajuste, pero mide con
      _FS aplicado para que lo medido y lo dibujado coincidan.
-     Salvedad: las hojas de ETT avanzado y transesofágico (amiloDibujarSecciones) definen
-     sus PROPIOS fb/fn sin escalar, así que salen al tamaño anterior. Quedan pendientes: son
-     otra función y tienen su propia geometría.
+     Las hojas de ETT avanzado y transesofágico (amiloDibujarSecciones) usan la MISMA
+     constante PDF_FS y ya están escaladas. No volver a multiplicar ahí: sería 1,15² =
+     1,32 sobre un informe firmado.
      Los interlineados de las grillas se subieron en la misma proporción; sin eso las
      líneas dentro de una celda quedaban casi tocándose. */
-  const _FS = 1.15;
+  const _FS = PDF_FS;
   function fb(sz){ doc.setFont('helvetica','bold');       doc.setFontSize((sz||7)*_FS);   }
   function fn(sz){ doc.setFont('helvetica','normal');     doc.setFontSize((sz||7)*_FS);   }
   function fi(sz){ doc.setFont('helvetica','bolditalic'); doc.setFontSize((sz||8)*_FS);   }
@@ -14738,7 +14789,11 @@ function generarPDFReal() {
   if (_amEtt.length) {
     doc.addPage();
     // Mismo dibujado que usan los botones "Imprimir resultado" de cada pestaña.
-    y = amiloDibujarSecciones(doc, _amEtt, { mL, pgW, tema: TEMA, yIni: 20, yFin: _yMax });
+    /* titPagina también acá: la hoja del ETE ya lo pasaba y por eso sus continuaciones
+       llevan banner; ésta no, así que una segunda hoja de ETT avanzado salía sin nada que
+       la identificara. */
+    y = amiloDibujarSecciones(doc, _amEtt, { mL, pgW, tema: TEMA, yIni: 20, yFin: _yMax,
+      titPagina: 'ECOCARDIOGRAMA TRANSTORACICO - ESTUDIO AVANZADO' });
   }
 
   // ── HOJA DEL ECOCARDIOGRAMA TRANSESOFÁGICO ──
@@ -16959,6 +17014,15 @@ function igPintar(filtrados){
   const vacio = document.getElementById('ig-vacio');
   const cont  = document.getElementById('ig-contador');
   if (!lista) return;
+  /* La lista se rehace ENTERA con innerHTML: buscar, filtrar, borrar, importar o plegar
+     un mes. El popover de la nota cuelga del <body> y la fila desplegada vive en el
+     markup que se está por tirar, así que sin esto el popover quedaba flotando en
+     coordenadas absolutas sobre OTRA fila —el médico escribía la nota mirando el nombre
+     que tenía debajo y se guardaba en otro paciente— y el ··· dejaba su aria-expanded
+     colgado. Se cierran los dos antes de reconstruir; igNotaCerrar persiste lo escrito
+     si había cambios, así que no se pierde nada. */
+  if (typeof igNotaCerrar === 'function') igNotaCerrar();
+  if (typeof igCerrarMas === 'function') igCerrarMas(null);
   const todos = getInformes();
   const orden = todos.slice().sort(igCmpFecha);
   const nro = new Map();
@@ -17055,7 +17119,7 @@ function igItemHTML(inf, nro) {
      existe en pantalla táctil; y "Evolución" agrupa por nombre cuando no hay CI, así que
      ver dos documentos distintos en la lista es la única señal previa de que la serie
      longitudinal puede estar mezclando dos personas. Se trunca el NOMBRE, no el CI. */
-  return `<div class="ig-item${esCaso ? ' ig-con-nota' : ''}" onclick="verDetalleInforme(${inf.id})" title="${escHtml(tit)}">
+  return `<div class="ig-item" onclick="verDetalleInforme(${inf.id})" title="${escHtml(tit)}">
       <div class="ig-item-info">
         <span class="ig-item-nombre${esCaso ? ' ig-fav' : ''}">${num}${escHtml(inf.nombre)}</span>
         <span class="ig-item-ci">· ${escHtml(inf.ci || '—')}</span>
@@ -17063,15 +17127,12 @@ function igItemHTML(inf, nro) {
       </div>
       <div class="ig-item-actions" onclick="event.stopPropagation()">
         <button class="btn btn-ghost ig-btn ig-btn-star" style="color:${esCaso?'#f5c842':'var(--text2)'};" onclick="toggleCasoInteresGuardado(${inf.id}, this)" title="${esCaso?'Quitar de casos de interés':'Marcar como caso de interés'}" aria-label="${esCaso?'Quitar de casos de interés':'Marcar como caso de interés'}">${esCaso?'⭐':'☆'}</button>
+        <button class="btn btn-ghost ig-btn ig-nota-ind${notaVal?'':' sin-nota'}" id="ig-nota-ind-${inf.id}" style="display:${esCaso?'inline-flex':'none'};" onclick="igNotaPop(${inf.id}, this)" aria-haspopup="dialog" aria-expanded="false" title="${notaVal?'Ver o editar la nota del caso':'Agregar una nota al caso'}" aria-label="${notaVal?'Ver o editar la nota del caso':'Agregar una nota al caso'}">${notaVal?'📝':'●'}</button>
         <button data-nombre="${escHtml(inf.nombre)}" data-ci="${escHtml(inf.ci)}" onclick="verEvolucionEl(this)" class="btn btn-ghost ig-btn" title="Ver evolución temporal del paciente">Evol</button>${sep}
         <button class="btn btn-ghost ig-btn" onclick="pdfDeInformeGuardado(${inf.id})" title="Generar PDF del estudio">PDF</button>${sep}
         <button class="btn btn-ghost ig-btn" onclick="editarInforme(${inf.id})" title="Editar el estudio">Editar</button>${sep}
         <button class="btn btn-danger ig-btn" onclick="eliminarInforme(${inf.id})" title="Eliminar el estudio" aria-label="Eliminar el estudio">🗑️</button>
         <button class="btn btn-ghost ig-btn ig-mas" onclick="igMas(this)" title="Más acciones" aria-label="Más acciones" aria-expanded="false">···</button>
-      </div>
-      <div class="ig-nota-wrap" id="ig-nota-wrap-${inf.id}" style="display:${esCaso?'flex':'none'};gap:6px;margin-top:5px;align-items:center;" onclick="event.stopPropagation()">
-        <input type="text" id="ig-nota-${inf.id}" placeholder="Motivo del caso de interés (opcional)..." value="${escHtml(notaVal)}" style="flex:1;min-width:0;font-size:11px;padding:3px 7px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);">
-        <button class="btn btn-ghost" style="font-size:10px;padding:3px 9px;white-space:nowrap;" onclick="guardarNotaInteres(${inf.id})">Guardar nota</button>
       </div>
     </div>`;
 }
@@ -17079,12 +17140,34 @@ window.igItemHTML = igItemHTML;
 
 /* En móvil las acciones se pliegan tras ···. Se despliegan en una segunda fila donde
    sí entran con los 44px táctiles, en vez de achicarlas por debajo del mínimo. */
+/* Cierra las filas desplegadas. `salvo` deja abierta la que se acaba de tocar. */
+function igCerrarMas(salvo){
+  document.querySelectorAll('.ig-item.ig-abierto').forEach(f=>{
+    if(f===salvo) return;
+    f.classList.remove('ig-abierto');
+    const b=f.querySelector('.ig-mas'); if(b) b.setAttribute('aria-expanded','false');
+  });
+}
+window.igCerrarMas = igCerrarMas;
 function igMas(btn){
   const fila = btn.closest('.ig-item'); if(!fila) return;
+  /* Una sola fila abierta a la vez: con varias, la lista queda con alturas dispares y
+     se pierde de vista cuál es la que se estaba operando. */
+  igCerrarMas(fila);
   const abierto = fila.classList.toggle('ig-abierto');
   btn.setAttribute('aria-expanded', abierto ? 'true' : 'false');
 }
 window.igMas = igMas;
+/* Acá NO va un overlay: este menú no flota, expande la propia fila dentro de la lista,
+   y una capa a pantalla completa bloquearía el scroll del listado. Con un listener
+   delegado alcanza, y es lo que ya hacen los menús de severidad de la pestaña de
+   válvulas. Se registra una sola vez, en captura, para que corra aunque la fila detenga
+   la propagación. */
+document.addEventListener('click', e=>{
+  if(e.target.closest('.ig-item.ig-abierto')) return;   // clic DENTRO de la fila abierta
+  igCerrarMas(null);
+}, true);
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') igCerrarMas(null); });
 
 // Alterna el estado de "caso de interés" de un informe guardado directamente en localStorage
 // y actualiza la estrella en el lugar (sin reabrir el informe). Inmediato y persistente.
@@ -17097,7 +17180,13 @@ function toggleCasoInteresGuardado(id, btn) {
   if (!inf.campos) inf.campos = {};
   const era = (inf.campos.caso_interes === '1' || inf.campos.caso_interes === 'true');
   inf.campos.caso_interes = era ? '' : '1';
-  if (era) inf.campos.nota_interes = '';   // al desmarcar la estrella se limpia también la nota
+  /* Desmarcar la estrella CONSERVA la nota. Antes la borraba, y mientras el texto vivía
+     en un input a la vista de la fila esa pérdida se veía; ahora la nota está detrás del
+     popover y los dos únicos botones que quedan en móvil —⭐ y 📝— están pegados, así que
+     un dedo que apunta al 📝 y le pega a la ⭐ destruía un párrafo de razonamiento
+     clínico sin decir nada y sin deshacer. La nota queda guardada y reaparece si se
+     vuelve a marcar; sólo se muestra en casos marcados, y el tablero de Docencia filtra
+     por caso_interes, así que una nota latente no se cuela en ningún lado. */
   if (enChunks) saveInformesChunked(chunked);
   else CeiboStore.setLocal(informes);
   const on = !era;
@@ -17111,37 +17200,168 @@ function toggleCasoInteresGuardado(id, btn) {
     const nom  = card && card.querySelector('.ig-item-nombre');
     if (nom) nom.classList.toggle('ig-fav', on);
   }
-  // Mostrar/ocultar el campo de nota inline de esa fila
-  const wrap = document.getElementById('ig-nota-wrap-' + id);
-  if (wrap) {
-    wrap.style.display = on ? 'flex' : 'none';
-    const filaN = wrap.closest('.ig-item');
-    if(filaN) filaN.classList.toggle('ig-con-nota', on);
-    const inp = document.getElementById('ig-nota-' + id);
-    if (!on && inp) inp.value = '';
-    else if (on && inp) inp.focus();
+  /* El indicador de nota acompaña a la estrella. Al MARCAR se abre el popover para
+     escribir la nota en el momento, que es el flujo que tenía el input inline; al
+     desmarcar se esconde y se cierra el popover si era el de esta fila. */
+  const ind = document.getElementById('ig-nota-ind-' + id);
+  if (ind) {
+    ind.style.display = on ? 'inline-flex' : 'none';
+    if (!on) { igNotaCerrar(id, true); }
+    else {
+      /* El glifo se recalcula al MARCAR y no sólo al guardar: ahora que desmarcar
+         conserva la nota, volver a marcar un estudio que ya la tenía dejaba el ● de
+         "sin nota" sobre un texto que sí estaba, o sea escondiéndolo. */
+      const _n = (typeof igNotaLeer === 'function') ? igNotaLeer(id) : '';
+      ind.textContent = _n ? '📝' : '●';
+      ind.classList.toggle('sin-nota', !_n);
+      const _t = _n ? 'Ver o editar la nota del caso' : 'Agregar una nota al caso';
+      ind.title = _t; ind.setAttribute('aria-label', _t);
+      igNotaPop(id, ind);
+    }
   }
 }
 window.toggleCasoInteresGuardado = toggleCasoInteresGuardado;
 
 // Persiste la nota del caso de interés (campo nota_interes) del informe guardado en localStorage
 function guardarNotaInteres(id) {
-  const inp = document.getElementById('ig-nota-' + id);
+  const inp = document.getElementById('ig-nota-pop-txt');
   const nota = inp ? inp.value.trim() : '';
   const informes = CeiboStore.getLocal().slice();
   let inf = informes.find(i => i.id === id), enChunks = false;
   let chunked;
   if (!inf) { chunked = getInformesChunked(); inf = chunked.find(i => i.id === id); enChunks = true; }   // estudio importado (chunks)
-  if (!inf) return;
+  /* El estudio pudo borrarse mientras el popover estaba abierto. Antes se salía en
+     silencio: el médico apretaba Guardar, el popover seguía ahí y la nota se perdía sin
+     una palabra. */
+  if (!inf) { igNotaCerrar(id, true); toast('⚠️ Ese estudio ya no existe'); return; }
   if (!inf.campos) inf.campos = {};
   inf.campos.nota_interes = nota;
   // asegurar que el estudio quede marcado como caso de interés al guardar la nota
   if (!(inf.campos.caso_interes === '1' || inf.campos.caso_interes === 'true')) inf.campos.caso_interes = '1';
-  if (enChunks) saveInformesChunked(chunked);
-  else CeiboStore.setLocal(informes);
-  toast(nota ? '📝 Nota guardada' : '⭐ Caso de interés guardado (sin nota)');
+  /* CeiboStore.setLocal devuelve una PROMESA que resuelve true sólo si el dato quedó
+     realmente persistido, y su propio comentario pide esperarla antes de cantar éxito.
+     Sin esto el toast decía "Nota guardada" y el error aparecía después, pisándolo. */
+  const _p = enChunks ? saveInformesChunked(chunked) : CeiboStore.setLocal(informes);
+  /* El indicador refleja si HAY nota o no. Sin esto quedaba el ● de "sin nota" sobre un
+     estudio que acaba de recibir una, y al revés al borrarla: el glifo es la única
+     señal de que hay algo que leer, así que mentir ahí esconde la nota entera. */
+  const ind = document.getElementById('ig-nota-ind-' + id);
+  if (ind) {
+    ind.style.display = 'inline-flex';
+    ind.textContent = nota ? '📝' : '●';
+    ind.classList.toggle('sin-nota', !nota);
+    const t = nota ? 'Ver o editar la nota del caso' : 'Agregar una nota al caso';
+    ind.title = t; ind.setAttribute('aria-label', t);
+  }
+  igNotaCerrar(id, true);
+  Promise.resolve(_p).then(ok => {
+    if (ok === false) return;   // CeiboStore ya avisó el fallo con su propio toast
+    toast(nota ? '📝 Nota guardada' : '⭐ Caso de interés guardado (sin nota)');
+  });
 }
 window.guardarNotaInteres = guardarNotaInteres;
+
+/* ══ Popover de la nota del caso de interés ══
+   Un solo nodo reutilizado y no uno por fila: con cientos de estudios, un popover por
+   informe son cientos de textareas en el DOM que además habría que rearmar en cada
+   render de la lista. */
+let _igNotaId = null;
+function igNotaNodo(){
+  let pop = document.getElementById('ig-nota-pop');
+  if (pop) return pop;
+  const ov = document.createElement('div');
+  ov.id = 'ig-nota-ov';
+  ov.addEventListener('click', () => igNotaCerrar());
+  document.body.appendChild(ov);
+  pop = document.createElement('div');
+  pop.id = 'ig-nota-pop';
+  pop.setAttribute('role','dialog');
+  pop.setAttribute('aria-modal','true');
+  pop.setAttribute('aria-label','Nota del caso de interés');
+  pop.innerHTML =
+    '<textarea id="ig-nota-pop-txt" maxlength="400" placeholder="Motivo del caso de interés (opcional)..."></textarea>' +
+    '<div class="np-acc">' +
+      '<button type="button" class="btn btn-ghost" id="ig-nota-pop-cancel">Cerrar</button>' +
+      '<button type="button" class="btn btn-primary" id="ig-nota-pop-ok">Guardar</button>' +
+    '</div>';
+  // El popover cuelga del body, así que el clic no pasa por .ig-item: sin esto, tocar
+  // dentro del textarea abriría el detalle del informe.
+  pop.addEventListener('click', e => e.stopPropagation());
+  document.body.appendChild(pop);
+  pop.querySelector('#ig-nota-pop-cancel').addEventListener('click', () => igNotaCerrar());
+  pop.querySelector('#ig-nota-pop-ok').addEventListener('click', () => { if(_igNotaId!=null) guardarNotaInteres(_igNotaId); });
+  return pop;
+}
+function igNotaLeer(id){
+  let inf = CeiboStore.getLocal().find(i => i.id === id);
+  if (!inf) { try { inf = getInformesChunked().find(i => i.id === id); } catch(e){} }
+  return (inf && inf.campos && inf.campos.nota_interes) || '';
+}
+function igNotaPop(id, btn){
+  const pop = igNotaNodo(), ov = document.getElementById('ig-nota-ov');
+  if (_igNotaId === id && pop.classList.contains('open')) { igNotaCerrar(); return; }
+  igNotaCerrar();
+  _igNotaId = id;
+  pop.querySelector('#ig-nota-pop-txt').value = igNotaLeer(id);
+  pop.classList.add('open'); if (ov) ov.classList.add('open');
+  if (btn) btn.setAttribute('aria-expanded','true');
+  /* Se posiciona DESPUÉS de mostrarlo: con display:none el rect es todo ceros y el
+     popover quedaba pegado arriba a la izquierda. Se ancla al indicador y se corrige
+     contra los dos bordes, que en un celular de 375px es la mitad de las veces. */
+  igNotaUbicar();
+  const ta = pop.querySelector('#ig-nota-pop-txt');
+  if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+}
+/* Coordenadas de VIEWPORT: el popover es position:fixed igual que su overlay, así que
+   los dos se quedan quietos aunque el documento scrollee por debajo. */
+function igNotaUbicar(){
+  const pop = document.getElementById('ig-nota-pop');
+  const btn = _igNotaId!=null ? document.getElementById('ig-nota-ind-' + _igNotaId) : null;
+  if (!pop || !btn || !pop.classList.contains('open')) return;
+  const r = btn.getBoundingClientRect();
+  const w = pop.offsetWidth, h = pop.offsetHeight;
+  const vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
+  let x = Math.max(8, Math.min(r.right - w, vw - w - 8));
+  // Si abajo no entra, se abre hacia arriba en vez de empujar el scroll de la página.
+  let y = (r.bottom + 6 + h) <= vh ? r.bottom + 6 : r.top - h - 6;
+  /* Se acota a la franja VISIBLE y no sólo a "no menos de 8": si el indicador quedó
+     fuera de la pantalla —la lista es larga y la fila está debajo del pliegue—, abrir
+     hacia arriba desde ahí dejaba el popover también fuera, o sea abierto y sin nada
+     que mirar. */
+  y = Math.max(8, Math.min(y, vh - h - 8));
+  pop.style.left = x + 'px';
+  pop.style.top  = y + 'px';
+}
+/* `soloSi`: cerrar únicamente si el popover abierto es el de ESE estudio.
+   `yaGuardado`: lo llama guardarNotaInteres, que ya persistió.
+   Cualquier otro camino de cierre —tocar afuera, Escape, el botón Cerrar— GUARDA lo
+   escrito si cambió. Una nota es texto de bajo riesgo: perder un párrafo de razonamiento
+   clínico porque el dedo cayó fuera del recuadro es peor que guardarlo de más. */
+function igNotaCerrar(soloSi, yaGuardado){
+  if (soloSi != null && _igNotaId !== soloSi) return;
+  const pop = document.getElementById('ig-nota-pop'), ov = document.getElementById('ig-nota-ov');
+  const id = _igNotaId;
+  if (!yaGuardado && id != null && pop && pop.classList.contains('open')) {
+    const ta = pop.querySelector('#ig-nota-pop-txt');
+    if (ta && ta.value.trim() !== igNotaLeer(id).trim()) { guardarNotaInteres(id); return; }
+  }
+  if (pop) pop.classList.remove('open');
+  if (ov) ov.classList.remove('open');
+  if (id != null) {
+    const b = document.getElementById('ig-nota-ind-' + id);
+    // Devolver el foco: al cerrar caía en <body>, o sea al principio de una lista de
+    // cientos de estudios para quien navega por teclado o con lector de pantalla.
+    if (b) { b.setAttribute('aria-expanded','false'); if (document.body.contains(b)) { try{ b.focus({preventScroll:true}); }catch(e){ b.focus(); } } }
+  }
+  _igNotaId = null;
+}
+window.igNotaPop = igNotaPop;
+window.igNotaCerrar = igNotaCerrar;
+document.addEventListener('keydown', e => { if (e.key === 'Escape') igNotaCerrar(); });
+/* Reposicionar y NO cerrar. En táctil, el teclado virtual redimensiona el viewport, así
+   que `focus()` al abrir disparaba un resize y el popover se cerraba en el mismo gesto
+   en que se abría: la nota era imposible de escribir en un celular. */
+window.addEventListener('resize', () => igNotaUbicar());
 
 /* Pasa por aplicarFiltros() cuando los filtros clínicos existen, para que escribir en el
    buscador no descarte lo que el médico ya había filtrado. */
@@ -18125,13 +18345,23 @@ function amiloSanPDF(s) {
 
 // Dibuja [{tit, txt}] entre yIni e yFin achicando la letra hasta que entren.
 // Las líneas '## algo' del texto salen como subtítulos. Devuelve la y final.
+/* Escala de cuerpo del PDF. Vive acá arriba y no dentro de generarPDFReal porque estas
+   hojas —ETT avanzado y transesofágico— la necesitan y son otra función: salían al
+   tamaño viejo DENTRO del mismo informe firmado, así que el médico veía dos cuerpos de
+   letra distintos en un documento y ninguna de las dos hojas parecía la equivocada. */
 function amiloDibujarSecciones(doc, secs, g) {
   const mL = g.mL, pgW = g.pgW, T = g.tema;
-  const fb = sz => { doc.setFont('helvetica','bold');   doc.setFontSize(sz); };
-  const fn = sz => { doc.setFont('helvetica','normal'); doc.setFontSize(sz); };
+  /* La escala se aplica DENTRO de fb/fn, que son los mismos que usa plan() para medir
+     con splitTextToSize: así lo medido y lo dibujado son el mismo tamaño. Escalar sólo
+     al dibujar es el bug que ya nos mordió en el autoajuste de la firma —validaba que
+     la fila entra a S y la estampaba a 1,15·S—. */
+  const fb = sz => { doc.setFont('helvetica','bold');   doc.setFontSize(sz * PDF_FS); };
+  const fn = sz => { doc.setFont('helvetica','normal'); doc.setFontSize(sz * PDF_FS); };
 
   const plan = sz => {
-    const H = sz * 0.48;                        // interlineado proporcional
+    /* El interlineado también escala. Con H sin escalar, las líneas se dibujarían a
+       1,15 del cuerpo con el paso del cuerpo original y se pisarían entre sí. */
+    const H = sz * 0.48 * PDF_FS;               // interlineado proporcional
     const filas = []; let alto = 0;
     secs.forEach((sec, i) => {
       if (i) alto += H * 1.2;
@@ -18172,8 +18402,19 @@ function amiloDibujarSecciones(doc, secs, g) {
     fb(11); doc.setTextColor(255,255,255);
     doc.text(amiloSanPDF(g.titPagina), 105, 8, { align:'center' });
   };
-  banner();
+  /* `bannerSoloContinuacion`: la hoja del ETE arranca en una página en blanco y quiere
+     su banner desde la primera; amiloImprimirPDF ya dibujó SU encabezado (franja 0-22
+     con el título y los datos del paciente), así que ahí el banner de la primera página
+     se le montaría encima. Sólo lo necesita en las hojas de continuación. */
+  if (!g.bannerSoloContinuacion) banner();
+  /* El hueco entre secciones se DIBUJA además de medirse. plan() lo sumaba (H*1.2) y el
+     bucle no lo aplicaba: era conservador —nunca desbordaba— pero el autoajuste elegía
+     un cuerpo más chico del necesario, y el aire que el código creía reservar no existía
+     en la hoja. Es la misma función cuyo comentario sostiene que medir y dibujar tienen
+     que coincidir. */
+  let _secPrev = null;
   p.filas.forEach((f, i) => {
+    if (f.t === 'bar') { if (_secPrev !== null) y += p.H * 1.2; _secPrev = i; }
     if (!cabe) {
       const altoFila = (f.t === 'bar') ? 10 : (f.t === 'kv' ? p.H * f.n : p.H + (f.t === 'sub' ? 1.6 : 0));
       // Un título de sección no queda huérfano al pie: se corta antes.
@@ -18229,23 +18470,40 @@ function amiloImprimirPDF(cual) {
   doc.setFont('helvetica','normal'); doc.setFontSize(8);
   doc.text(amiloSanPDF([_s('nombre'), _s('ci') ? (_s('doc_tipo') || 'CI') + ': ' + _s('ci') : '', _f].filter(Boolean).join('  ·  ')), 105, 16, { align:'center' });
 
-  amiloDibujarSecciones(doc, secs, { mL, pgW, tema:T, yIni:30, yFin:281 });
+  /* titPagina: amiloDibujarSecciones abre hojas nuevas cuando el módulo no entra, y el
+     encabezado con nombre, documento y fecha se dibuja UNA sola vez antes de llamarla.
+     Sin esto, la hoja 2 salía firmada, con disclaimer y sin ningún dato del paciente: una
+     página imposible de atribuir si se separa del taco. Era teórico y la escala de letra
+     lo volvió alcanzable (el umbral bajó de ~87 a ~74 líneas). */
+  amiloDibujarSecciones(doc, secs, { mL, pgW, tema:T, yIni:30, yFin:281, bannerSoloContinuacion: true,
+    titPagina: amiloSanPDF([_s('nombre'), _s('ci') ? (_s('doc_tipo') || 'CI') + ': ' + _s('ci') : '', _f].filter(Boolean).join('  ·  ')) || 'Continuacion' });
 
-  // Pie: firma y disclaimer, coherente con el informe
+  /* Pie: firma y disclaimer, coherente con el informe. Va en TODAS las páginas.
+     amiloDibujarSecciones agrega hojas cuando el módulo no entra en una, y el pie se
+     escribía sobre la página vigente al terminar: o sea sólo la última. Un informe de
+     dos hojas salía con la primera SIN firma y sin el disclaimer médico-legal, que es
+     justo la hoja que alguien imprime y adjunta. Era preexistente —hacían falta unas 87
+     líneas—, pero la escala de letra baja ese umbral a ~74, así que pasa de rareza a
+     alcanzable. Verificado con 74, 80 y 120 líneas: las dos hojas firmadas. */
   const med = id => { const e = document.getElementById(id); return e ? String(e.textContent || '').trim() : ''; };
-  doc.setFont('helvetica','bolditalic'); doc.setFontSize(7.5); doc.setTextColor(0,0,0);
   // Nombre y matrícula del médico Principal, igual que la firma del informe: el span
   // puede traer el nombre viejo de la firma del centro. Sin fallback hardcodeado.
   const _pr = (typeof ecoGetMedicos === 'function') ? ecoGetMedicos() : [];
   const _md = _pr.length ? (_pr[(typeof ecoGetMedPrincipal === 'function') ? ecoGetMedPrincipal() : 0] || _pr[0]) : null;
   const _mNom = _md ? String(_md.nombre || '').trim() : '';
   const _mMat = _md ? String(_md.matricula || '').trim() : '';
-  doc.text(amiloSanPDF(_mNom ? _mNom + '.' : '[Medico no configurado - ver Config]'), 201, 285.5, { align:'right' });
   const sub = [_mMat, med('med-especialidad'), med('med-lugar')].filter(Boolean).join('  ·  ');
-  doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(90,90,90);
-  doc.text(amiloSanPDF(sub), 201, 288.3, { align:'right' });
-  doc.setFontSize(5.5); doc.setTextColor(160,160,160);
-  doc.text('Esta herramienta es de apoyo clinico. No reemplaza el juicio medico ni constituye una recomendacion diagnostica o terapeutica. CeiboMed 2026', 105, 295, { align:'center' });
+  const _nPags = doc.internal.getNumberOfPages();
+  for (let _i = 1; _i <= _nPags; _i++) {
+    doc.setPage(_i);
+    doc.setFont('helvetica','bolditalic'); doc.setFontSize(7.5); doc.setTextColor(0,0,0);
+    doc.text(amiloSanPDF(_mNom ? _mNom + '.' : '[Medico no configurado - ver Config]'), 201, 285.5, { align:'right' });
+    doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(90,90,90);
+    doc.text(amiloSanPDF(sub), 201, 288.3, { align:'right' });
+    doc.setFontSize(5.5); doc.setTextColor(160,160,160);
+    doc.text('Esta herramienta es de apoyo clinico. No reemplaza el juicio medico ni constituye una recomendacion diagnostica o terapeutica. CeiboMed 2026', 105, 295, { align:'center' });
+    if (_nPags > 1) doc.text('pag. ' + _i + '/' + _nPags, 9, 295);
+  }
 
   const nom = (_s('nombre') || 'paciente').replace(/\s+/g,'_');
   doc.save((esETT ? 'ETT_Score_Amiloidosis_' : 'Algoritmo_Amiloidosis_') + nom + '_' + (_s('fecha') || 'hoy') + '.pdf');
@@ -23174,6 +23432,42 @@ const _orig=showTab;window.showTab=function(id){_orig(id);setTimeout(actualizarF
   }
   window.ecoDrawerToggle=function(){var d=document.getElementById('ecoDrawer'),o=document.getElementById('ecoDrawerOv');if(d)d.classList.toggle('open');if(o)o.classList.toggle('open');};
   window.ecoDrawerClose=function(){var d=document.getElementById('ecoDrawer'),o=document.getElementById('ecoDrawerOv');if(d)d.classList.remove('open');if(o)o.classList.remove('open');};
+
+  /* ── Menú ⋮ del encabezado ──
+     El overlay, el menú y el aria-expanded se mueven JUNTOS: separados, cualquier
+     camino que cerrara el menú sin tocar el overlay dejaba una capa invisible sobre
+     toda la pantalla comiéndose los toques, que es peor que el bug original. */
+  function ecoHdrSet(abrir){
+    var m=document.getElementById('ecoHdrBtns'), o=document.getElementById('ecoHdrOv'), b=document.getElementById('ecoHdrBurger');
+    if(!m) return;
+    m.classList.toggle('open', abrir);
+    if(o) o.classList.toggle('open', abrir);
+    if(b) b.setAttribute('aria-expanded', abrir?'true':'false');
+  }
+  window.ecoHdrCerrar=function(){ ecoHdrSet(false); };
+  window.ecoHdrToggle=function(){
+    var m=document.getElementById('ecoHdrBtns');
+    ecoHdrSet(!(m && m.classList.contains('open')));
+  };
+  /* Elegir una acción también cierra: si no, el menú tapa el resultado de lo que se
+     acaba de pedir —el toast, el diálogo de guardado, el visor del PDF—. */
+  (function(){
+    var m=document.getElementById('ecoHdrBtns');
+    if(m) m.addEventListener('click', function(e){ if(e.target.closest('button')) ecoHdrCerrar(); });
+    /* El overlay no cubre el header (ver el CSS), así que un toque en el resto de la
+       barra —el botón PDF, el logo— no lo cerraría. Se cierra acá, salvo en el propio
+       burger, que ya alterna. */
+    var h=document.querySelector('header');
+    if(h) h.addEventListener('click', function(e){
+      if(e.target.closest('#ecoHdrBtns') || e.target.closest('#ecoHdrBurger')) return;
+      ecoHdrCerrar();
+    });
+  })();
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') ecoHdrCerrar(); });
+  /* Rotar la tablet saca el menú de su media query: el CSS ya apaga el overlay, pero el
+     estado en clases quedaría abierto y volvería a aparecer al rotar de vuelta. */
+  window.addEventListener('resize', function(){ ecoHdrCerrar(); });
+
   function syncDrawerActive(){
     var d=document.getElementById('ecoDrawer');if(!d)return;
     var active=document.querySelector('.rail .tab-btn.active');var id=active?idOf(active):null;
