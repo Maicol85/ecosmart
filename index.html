@@ -21199,6 +21199,40 @@ const LAB_XLS_MAP = [
    pierde. Lo mismo con 'Ausente' en em_grado, cuyos values son sin/leve/moderada/severa.
    Cada entrada acepta el value crudo, la etiqueta visible y las variantes razonables, y
    SIEMPRE devuelve el value. */
+/* ══ Columnas 0/1 de severidad valvular ══
+   El Excel del Laboratorio publica CADA grado como su propia columna binaria además de
+   la columna de texto. El importador lee las dos formas:
+     · la de texto ("IM grado") gana, porque es la única que distingue moderada-severa;
+     · las binarias sirven de respaldo para las planillas armadas a mano y para los
+       archivos viejos.
+   `bin()` del export colapsa el código 3 (Moderada-severa) en la columna "Moderada", así
+   que reconstruir desde las binarias devuelve 2 y no 3. Por eso NO se reemplazó la
+   columna de texto por las binarias: hacerlo bajaría de grado una severidad en un
+   registro clínico sin que nada lo indicara. El export tampoco la reemplaza — tiene las
+   dos, y la plantilla ahora también.
+   Los alias cubren las variantes cortas (IM_I, EA_leve) para que una planilla escrita a
+   mano no se rechace por el paréntesis del nombre canónico. */
+const LAB_XLS_BIN = [
+  { dest:'im_grado', num:true,  cols:[['IM_I (Leve)','IM_I','IM_leve'],
+                                      ['IM_II (Moderada)','IM_II','IM_moderada'],
+                                      ['IM_III (Severa)','IM_III','IM_severa']] },
+  { dest:'ia_grado', num:true,  cols:[['IAo_I (Leve)','IAo_I','IAo_leve','IA_leve'],
+                                      ['IAo_II (Moderada)','IAo_II','IAo_moderada','IA_moderada'],
+                                      ['IAo_III (Severa)','IAo_III','IAo_severa','IA_severa']] },
+  { dest:'it_grado', num:true,  cols:[['IT_I (Leve)','IT_I','IT_leve'],
+                                      ['IT_II (Moderada)','IT_II','IT_moderada'],
+                                      ['IT_III (Severa)','IT_III','IT_severa']] },
+  { dest:'ea_grado', num:false, cols:[['EAo_I (Leve)','EAo_I','EA_leve','EAo_leve'],
+                                      ['EAo_II (Moderada)','EAo_II','EA_moderada','EAo_moderada'],
+                                      ['EAo_III (Severa)','EAo_III','EA_severa','EAo_severa']] },
+  { dest:'em_grado', num:false, cols:[['EM_I (Leve)','EM_I','EM_leve'],
+                                      ['EM_II (Moderada)','EM_II','EM_moderada'],
+                                      ['EM_III (Severa)','EM_III','EM_severa']] },
+];
+// im/ia/it son <input hidden> con código numérico; em/ea son <select> con texto.
+const LAB_XLS_BIN_VAL = { num:['1','2','4'], txt:['leve','moderada','severa'] };
+const LAB_XLS_BIN_NADA = { num:'0', txt:'sin' };
+
 const LAB_XLS_VOCAB = {
   // Las claves van en MINÚSCULA: la búsqueda normaliza a minúscula antes de comparar, y
   // con 'M'/'F' en mayúscula el valor que exporta la propia app no matcheaba su vocabulario.
@@ -21301,7 +21335,15 @@ function _labXlsLista(campo, v) {
 /* ── Plantilla ── */
 function labPlantillaXLSX() {
   if (typeof XLSX === 'undefined') { toast('❌ Librería Excel (XLSX) no disponible'); return; }
-  const cols = LAB_XLS_MAP.map(m => m[0]);
+  /* Las binarias se intercalan DESPUÉS de su columna de texto, igual que en el Excel del
+     Laboratorio: la plantilla y el export tienen que verse iguales o el médico que copia
+     de uno al otro se pierde. */
+  const cols = [];
+  LAB_XLS_MAP.forEach(m => {
+    cols.push(m[0]);
+    const grp = LAB_XLS_BIN.find(g => g.dest === m[1]);
+    if (grp) grp.cols.forEach(alias => cols.push(alias[0]));
+  });
   const ejemplo = {
     'Nombre': LAB_XLS_EJEMPLO, 'CI': '1.234.567-8', 'Fecha estudio': '2026-03-15', 'Edad': 64, 'Sexo': 'M',
     'Centro / Institución': 'Hospital de ejemplo', 'Médico solicitante': 'Dr. Ejemplo',
@@ -21321,6 +21363,17 @@ function labPlantillaXLSX() {
     'Pericardio': 'Normal, sin derrame',
     'Informe (texto completo)': 'Texto libre del informe.', 'EN SUMA (texto completo)': 'Conclusión del estudio.',
   };
+  /* La fila de ejemplo escribe las binarias coherentes con el grado de texto de arriba:
+     una plantilla que se contradiga a sí misma enseñaría a mandar IM grado=1 con
+     IM_II (Moderada)=1, que el importador rechaza. */
+  LAB_XLS_BIN.forEach(grp => {
+    const colTxt = (LAB_XLS_MAP.find(m => m[1] === grp.dest) || [])[0];
+    const v = colTxt ? ejemplo[colTxt] : undefined;
+    const cual = grp.num
+      ? ({ '1':0, '2':1, '3':1, '4':2 })[String(v)]
+      : ({ leve:0, moderada:1, severa:2 })[String(v).toLowerCase()];
+    grp.cols.forEach((alias, i) => { ejemplo[alias[0]] = (cual === i) ? 1 : 0; });
+  });
   const aoa = [cols, cols.map(c => ejemplo[c] !== undefined ? ejemplo[c] : '')];
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws['!cols'] = cols.map(h => ({ wch: Math.min(40, Math.max(12, h.length + 2)) }));
@@ -21359,6 +21412,25 @@ function labPlantillaXLSX() {
     ['efecto: al abrir el estudio volvería a mostrar el valor calculado.'],
     ['Para cambiar la masa VI, cargá SIV, DDVI y PP. Para el E/e’, Onda E y e’ septal/lateral.'],
     [''],
+    ['SEVERIDAD VALVULAR: DOS FORMAS, ELEGÍ UNA'],
+    ['Cada válvula tiene una columna de TEXTO ("IM grado") y tres columnas 0/1'],
+    ['("IM_I (Leve)", "IM_II (Moderada)", "IM_III (Severa)"), igual que el Excel que'],
+    ['exporta el Laboratorio. Podés llenar cualquiera de las dos: si ponés algo en la de'],
+    ['texto, esa manda; si la dejás vacía, se leen las tres binarias.'],
+    ['Las tres en 0 significa "sin insuficiencia / sin estenosis". Dos en 1 se rechaza:'],
+    ['una válvula tiene un solo grado.'],
+    ['Ojo: la forma binaria NO distingue "Moderada-severa" —el Excel del Laboratorio la'],
+    ['publica dentro de la columna Moderada—, así que si tu estudio tiene ese grado'],
+    ['cargalo por la columna de TEXTO para no bajarlo a Moderada.'],
+    [''],
+    ['GEOMETRÍA DEL VI (Geom_Normal, Geom_RemConcentrico, …)'],
+    ['Esas columnas están en el Excel que exporta el Laboratorio pero NO se pueden'],
+    ['importar, y por eso no están acá: la app no guarda la geometría en ningún campo.'],
+    ['La calcula en cada pantalla a partir de la masa VI indexada, el RWT y el sexo, o sea'],
+    ['de SIV, DDVI, PP, talla, peso y sexo. Para cambiar la geometría de un estudio hay'],
+    ['que corregir esas seis columnas; escribir un 1 en Geom_HVI_Concentrica no tendría'],
+    ['ningún efecto, la app volvería a mostrar lo que le dan las medidas.'],
+    [''],
     ['COLUMNAS'],
     ['COLUMNA', 'QUÉ ES', 'VALORES QUE ACEPTA', 'EJEMPLO'],
   ];
@@ -21372,9 +21444,13 @@ function labPlantillaXLSX() {
     'IM grado':'Insuficiencia mitral', 'EM grado':'Estenosis mitral', 'EA grado':'Estenosis aórtica',
     'IAo grado':'Insuficiencia aórtica', 'IT grado':'Insuficiencia tricuspídea',
   };
+  const _ej = c => (ejemplo[c] === undefined || ejemplo[c] === '') ? '' : String(ejemplo[c]);
   LAB_XLS_MAP.forEach(([col, dest, tipo]) => {
-    inst.push([col, AYUDA[col] || col.replace(/\s*\([^)]*\)\s*$/,''), tipoDe(dest, tipo),
-               ejemplo[col] === undefined || ejemplo[col] === '' ? '' : String(ejemplo[col])]);
+    inst.push([col, AYUDA[col] || col.replace(/\s*\([^)]*\)\s*$/,''), tipoDe(dest, tipo), _ej(col)]);
+    const grp = LAB_XLS_BIN.find(g => g.dest === dest);
+    if (grp) grp.cols.forEach(alias => inst.push([
+      alias[0], 'Alternativa 0/1 a «' + col + '»' + (alias.length>1 ? ' (también acepta: ' + alias.slice(1).join(', ') + ')' : ''),
+      '1 = presente · 0 = ausente · vacío = no se usa', _ej(alias[0])]));
   });
   const wsI = XLSX.utils.aoa_to_sheet(inst);
   wsI['!cols'] = [{wch:26},{wch:46},{wch:44},{wch:24}];
@@ -21475,6 +21551,33 @@ function labImportarXLSX(file) {
         if (dest.charAt(0) === '@') inf[dest.slice(1)] = v;
         else inf.campos[dest] = v;
       });
+      /* Severidad por columnas 0/1, sólo si la columna de TEXTO no dijo nada: es la única
+         que distingue moderada-severa, así que gana ella. Tres binarias en 1 a la vez es
+         un error del archivo —una válvula no puede ser leve y severa— y se rechaza en vez
+         de elegir una. Todas en 0 significa ausente, pero sólo si alguna celda traía un
+         valor: si las tres están vacías es que la planilla no las usa. */
+      LAB_XLS_BIN.forEach(grp => {
+        if (inf.campos[grp.dest] !== undefined) return;   // ya vino por la columna de texto
+        let algunaCargada = false, marcados = [];
+        grp.cols.forEach((alias, idx) => {
+          const col = alias.map(a2 => porNorm.get(normCab(a2))).find(Boolean);
+          if (!col) return;
+          const bruto = row[col];
+          if (bruto === null || bruto === undefined || String(bruto).trim() === '') return;
+          const t = String(bruto).trim().toLowerCase();
+          if (t === '1' || t === 'si' || t === 'sí' || t === 'x' || t === 'true') { algunaCargada = true; marcados.push(idx); }
+          else if (t === '0' || t === 'no' || t === 'false') { algunaCargada = true; }
+          else errs.push('«' + alias[0] + '»: "' + String(bruto).slice(0,20) + '" no es 0 ni 1');
+        });
+        if (!algunaCargada) return;
+        if (marcados.length > 1) {
+          errs.push(marcados.map(i2 => '«' + grp.cols[i2][0] + '»').join(' y ') + ' están las dos en 1: una válvula tiene un solo grado');
+          return;
+        }
+        const tabla = grp.num ? LAB_XLS_BIN_VAL.num : LAB_XLS_BIN_VAL.txt;
+        inf.campos[grp.dest] = marcados.length ? tabla[marcados[0]] : (grp.num ? LAB_XLS_BIN_NADA.num : LAB_XLS_BIN_NADA.txt);
+      });
+
       /* La identidad va TAMBIÉN dentro de `campos`. guardarInforme la guarda en los dos
          lados —el bucle de inputs captura #nombre, #ci y #fecha— y editarInforme repuebla
          el formulario iterando `inf.campos`, sin limpiarlo antes. Sin estas tres claves,
@@ -21519,6 +21622,11 @@ function labImportarXLSX(file) {
 
     if (!ok.length && !errores.length) { toast('⚠️ No hay filas con datos para importar'); return; }
     const usadas = new Set(conocidas.map(c => c[0]));
+    // Las binarias de severidad las lee el bloque de arriba, no LAB_XLS_MAP: sin esto el
+    // modal las anunciaba como "columnas que no corresponden a un campo editable".
+    LAB_XLS_BIN.forEach(g => g.cols.forEach(alias => alias.forEach(a3 => {
+      const c = porNorm.get(normCab(a3)); if (c) usadas.add(c);
+    })));
     _labImpDatos = { filas:ok, errores, ejemplos, hoja:nom,
                      ignoradas: cabeceras.filter(c => !usadas.has(c) && String(c).trim() !== '') };
     labImpRender();
