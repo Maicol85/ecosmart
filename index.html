@@ -137,6 +137,31 @@
   .ig-acc-panel{background:#3a3f52;border:1px solid #4a5068;border-radius:8px}
   html.light-mode .ig-filtro-btn{background:#e8eaf0;border-color:#cdd0da;color:#5b6478}
   html.light-mode .ig-acc-panel{background:#e8eaf0;border-color:#cdd0da}
+  /* ── Desplegables de datos (Exportar ▾ / Importar ▾) en Guardados ──
+     Discretos a propósito: son la puerta a operaciones que reescriben la base
+     (importar) o la sacan del equipo (exportar), y estaban repartidos entre el menú ⋮
+     del encabezado, esta barra y el Laboratorio. Acá quedan los cuatro formatos juntos
+     y a la misma altura, que es lo que permite compararlos antes de elegir. */
+  .igio-wrap{position:relative;display:inline-block}
+  .igio-btn{display:inline-flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-family:inherit;font-size:11px;font-weight:600;padding:4px 10px;border-radius:7px;cursor:pointer;white-space:nowrap;min-height:30px}
+  .igio-btn:hover{border-color:var(--accent)}
+  .igio-btn[aria-expanded="true"]{border-color:var(--accent);color:var(--text)}
+  .igio-chev{font-size:.6rem;transition:transform .15s}
+  .igio-btn[aria-expanded="true"] .igio-chev{transform:rotate(180deg)}
+  .igio-menu{display:none;position:absolute;top:calc(100% + 5px);right:0;z-index:120;width:250px;max-width:calc(100vw - 24px);
+    background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:5px;
+    box-shadow:0 10px 28px rgba(0,0,0,.42)}
+  .igio-menu.open{display:block}
+  .igio-op{display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);
+    font-family:inherit;font-size:12px;padding:9px 10px;border-radius:6px;cursor:pointer;line-height:1.25}
+  .igio-op:hover{background:var(--bg3)}
+  .igio-op small{display:block;color:var(--text2);font-size:10px;font-weight:400;margin-top:2px}
+  .igio-sep{height:1px;background:var(--border);margin:4px 6px}
+  /* Capa invisible que cierra al tocar afuera. Sin ella el menú se queda abierto tapando
+     la lista de estudios en celular, donde no hay Escape ni "clic afuera" evidente. */
+  #igio-ov{display:none;position:fixed;inset:0;z-index:119;background:transparent}
+  #igio-ov.open{display:block}
+  html.light-mode .igio-menu{box-shadow:0 10px 28px rgba(0,0,0,.18)}
   /* Botones de acción al pie del contenido (patrón UltraSmart) */
   .foot-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;max-width:560px;margin:34px auto 12px;padding-top:20px;border-top:1px solid var(--border)}
   .foot-actions button{background:#0369A1;color:#fff;border:none;border-radius:8px;padding:11px 18px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.3)}
@@ -8719,9 +8744,11 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
             <button type="button" class="ig-filtro-btn" onclick="igToggleAcc('ig-acc-numericos',this)" aria-expanded="false" aria-controls="ig-acc-numericos" title="Mostrar/ocultar filtros numéricos">🔢 Filtros numéricos <span class="igacc-chev" style="font-size:.65rem;">▶</span></button>
           </div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <button class="btn" onclick="exportarInformesJSON()" title="Exportar todos los informes a JSON">📤 Exportar JSON</button>
-            <button class="btn" onclick="document.getElementById('ig-import-file').click()" title="Importar informes desde un archivo JSON">📥 Importar JSON</button>
+            <!-- Exportar/Importar bajaron a la fila del contador, junto a "Mostrando N de M".
+                 Los inputs de archivo se quedan acá, ocultos: los dispara el menú. -->
             <input type="file" id="ig-import-file" accept=".json,application/json" style="display:none" onchange="if(this.files&&this.files[0]){importarInformesJSON(this.files[0]);this.value='';}">
+            <input type="file" id="lab-import-xlsx" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none" onchange="if(this.files&&this.files[0]){labImportarXLSX(this.files[0]);this.value='';}">
+            <input type="file" id="ig-import-dcm" accept=".dcm,.DCM,application/dicom" multiple style="display:none" onchange="if(this.files&&this.files.length){dcmImportarSR(this.files);this.value='';}">
             <button class="btn btn-danger" onclick="limpiarTodosInformes()" title="Eliminar todos los informes">🗑️ Eliminar todos</button>
           </div>
         </div>
@@ -8762,7 +8789,35 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           </div>
           <button class="btn btn-ghost" onclick="limpiarFiltros();limpiarFiltroFechas();" style="margin-bottom:1px;">🧹 Limpiar filtros</button>
         </div>
-        <div id="ig-contador" style="font-size:.82rem;color:var(--text2);margin:-4px 0 10px;"></div>
+        <!-- Contador + desplegables de datos, en la misma fila -->
+        <div style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:-4px 0 10px;">
+          <div id="ig-contador" style="font-size:.82rem;color:var(--text2);"></div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <div class="igio-wrap">
+              <button type="button" class="igio-btn" id="igio-btn-exp" aria-haspopup="true" aria-expanded="false" aria-controls="igio-menu-exp"
+                      onclick="igIOToggle('exp')" title="Exportar estudios">📤 Exportar <span class="igio-chev">▾</span></button>
+              <div class="igio-menu" id="igio-menu-exp" role="menu">
+                <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();exportarInformesJSON()">📋 JSON<small>Backup completo — todos los campos de cada estudio</small></button>
+                <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();labExportarXLSX()">📊 Excel<small id="igio-exp-xlsx-sub">Datos del laboratorio</small></button>
+                <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();dcmExportarSR()">🏥 DICOM SR<small id="igio-exp-dcm-sub">Estudio del formulario, para PACS</small></button>
+                <div class="igio-sep"></div>
+                <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();exportarEcoAnalytics()">📈 Para Analytics<small>Abrir después en CeiboAnalytics</small></button>
+              </div>
+            </div>
+            <div class="igio-wrap">
+              <button type="button" class="igio-btn" id="igio-btn-imp" aria-haspopup="true" aria-expanded="false" aria-controls="igio-menu-imp"
+                      onclick="igIOToggle('imp')" title="Importar estudios">📥 Importar <span class="igio-chev">▾</span></button>
+              <div class="igio-menu" id="igio-menu-imp" role="menu">
+                <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();document.getElementById('ig-import-file').click()">📋 JSON<small>Backup exportado por EcoSmart</small></button>
+                <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();document.getElementById('lab-import-xlsx').click()">📊 Excel<small>Planilla con las columnas de la plantilla</small></button>
+                <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();document.getElementById('ig-import-dcm').click()">🏥 DICOM SR<small>Archivos .dcm del ecógrafo</small></button>
+                <div class="igio-sep"></div>
+                <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();labPlantillaXLSX()">📋 Descargar plantilla Excel<small>Excel vacío con las columnas correctas, una fila de ejemplo y una hoja de instrucciones</small></button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="igio-ov" onclick="igIOCerrar()"></div>
 
         <!-- ACORDEÓN 1 — Filtros clínicos (colapsado por defecto; lo abre el botón de la fila de arriba) -->
         <div id="ig-acc-clinicos" class="ig-acc-panel" style="display:none;padding:14px;margin-bottom:10px;">
@@ -9334,10 +9389,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           <label style="font-size:.75rem;">Hasta</label>
           <input type="date" id="lab-hasta" onchange="labInit()">
         </div>
-        <button class="btn btn-ghost" onclick="labExportarXLSX()" style="margin-top:18px;">📊 Exportar Excel</button>
-        <button class="btn btn-ghost" onclick="labPlantillaXLSX()" style="margin-top:18px;" title="Descargar un Excel vacío con las columnas y una fila de ejemplo">📋 Plantilla Excel</button>
-        <button class="btn btn-ghost" onclick="document.getElementById('lab-import-xlsx').click()" style="margin-top:18px;" title="Cargar estudios desde un archivo .xlsx o .xls">📥 Importar Excel</button>
-        <input type="file" id="lab-import-xlsx" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none" onchange="if(this.files&&this.files[0]){labImportarXLSX(this.files[0]);this.value='';}">
+        <!-- Exportar/Importar/Plantilla Excel se mudaron a los desplegables de Guardados,
+             con el resto de los formatos. El input de archivo también vive allá. -->
       </div>
       <div id="lab-centro-filtro" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);"></div>
       <div id="lab-resumen-header" style="font-size:.82rem;color:var(--text2);margin-top:8px;"></div>
@@ -10043,7 +10096,15 @@ document.getElementById('fecha').value = new Date().toISOString().split('T')[0];
    de generarPDFReal y los de amiloDibujarSecciones, que son funciones distintas. Con el
    valor duplicado, las hojas de ETT avanzado y transesofágico salían al tamaño viejo
    dentro del mismo informe firmado. */
-const PDF_FS = 1.15;
+const PDF_FS = 1.07;
+
+/* Escala CONGELADA en 1,15 para el "En suma" y el bloque de firma. NO es un duplicado
+   olvidado de PDF_FS y NO hay que "sincronizarla" con él: es el punto de la constante.
+   El cuerpo del informe bajó a 1,07 para ganar renglones y que un estudio con motilidad
+   segmentaria y valvulopatías entre en una hoja; la conclusión y la firma son lo que
+   se lee de reojo y lo que da fe de quién firmó, así que se dejan al tamaño anterior.
+   Si algún día se vuelve a tocar PDF_FS, esta NO acompaña salvo decisión explícita. */
+const PDF_FS_FIJO = 1.15;
 
 // ══ TABS ══
 function showTab(id) {
@@ -13926,6 +13987,11 @@ function generarPDFReal() {
   function fb(sz){ doc.setFont('helvetica','bold');       doc.setFontSize((sz||7)*_FS);   }
   function fn(sz){ doc.setFont('helvetica','normal');     doc.setFontSize((sz||7)*_FS);   }
   function fi(sz){ doc.setFont('helvetica','bolditalic'); doc.setFontSize((sz||8)*_FS);   }
+  /* Los dos de abajo escalan con PDF_FS_FIJO en vez de _FS: son el "En suma" y las filas
+     de la firma, que quedan al tamaño de antes aunque el cuerpo del informe se achique. */
+  const _FSF = PDF_FS_FIJO;
+  function fnf(sz){ doc.setFont('helvetica','normal');     doc.setFontSize((sz||7)*_FSF); }
+  function fif(sz){ doc.setFont('helvetica','bolditalic'); doc.setFontSize((sz||8)*_FSF); }
   function tc(r,g,b){ doc.setTextColor(r,g,b); }
   function fc(r,g,b){ doc.setFillColor(r,g,b); }
   function dc(r,g,b){ doc.setDrawColor(r,g,b); }
@@ -13995,6 +14061,19 @@ function generarPDFReal() {
       _nom = T(medNombre);
       _num = T(medMatricula);
       _esp = T(medEsp); _dir = T(medDir); _lug = T(medLugar); _tel = T(medTel);
+      /* Respaldo en el médico Principal cuando el span quedó vacío. NO es el "fallback
+         hardcodeado" que advierte el comentario de arriba —eso sería estampar un nombre
+         fijo—: es exactamente la misma fuente que ya usa amiloImprimirPDF para firmar las
+         hojas de ETT avanzado y ETE.
+         Sin esto había DOS respuestas distintas a "¿hay médico?" en la misma sesión: el
+         informe miraba el span y el anexo miraba ecoGetMedicos(). Basta con que la
+         sincronización del span falle —ecoSetMedicos se traga el error de cuota— para que
+         el informe salga con renglones en blanco y la hoja grapada atrás salga firmada,
+         mismo paciente y mismo taco. */
+      if (!_nom) {
+        const _p = (typeof _firmaMedPrincipal === 'function') ? _firmaMedPrincipal() : null;
+        if (_p) { _nom = T(_p.nombre); if (!_num) _num = T(_p.matricula); }
+      }
     }
 
     const _unir = a => a.filter(Boolean).join('  ·  ');
@@ -14002,8 +14081,23 @@ function generarPDFReal() {
       ? [_num].concat(_sueltos)                                   // legacy: una por fila
       : [_unir([_num, _esp]), _unir([_dir, _lug]), _tel, _mail];
 
-    _firmaFilas.push({ txt: _nom ? _nom + '.' : '[Médico no configurado — ver ⚙️ Config]', sz: 7.2, esNombre: true });
-    _datos.filter(Boolean).forEach(t => _firmaFilas.push({ txt: t, sz: 6.0, esNombre: false }));
+    /* Sin médico configurado el pie deja de ser una firma y pasa a ser un formulario:
+       dos renglones para completar de puño y letra. El aviso anterior («[Médico no
+       configurado — ver ⚙️ Config]») era una nota para el que usa la app impresa en un
+       papel que se le entrega al paciente y se archiva en la historia: no le decía nada
+       a quien lo lee y dejaba el informe sin manera de firmarlo.
+       Los dos renglones llevan la MISMA cantidad de guiones bajos: como van alineados
+       a la derecha contra mR, los tramos de línea quedan exactamente uno debajo del
+       otro y sólo cambia dónde empieza la etiqueta. */
+    const _sinMedico = !_nom;
+    const _LINEA = '_'.repeat(44);
+    if (_sinMedico) {
+      _firmaFilas.push({ txt: 'Médico: ' + _LINEA, sz: 7.2, esNombre: false, manual: true });
+      _firmaFilas.push({ txt: 'Firma: '  + _LINEA, sz: 7.2, esNombre: false, manual: true });
+    } else {
+      _firmaFilas.push({ txt: _nom + '.', sz: 7.2, esNombre: true });
+      _datos.filter(Boolean).forEach(t => _firmaFilas.push({ txt: t, sz: 6.0, esNombre: false }));
+    }
 
     // Cada fila entra en UNA línea: si no, se le achica la tipografía. Envolver
     // haría que las filas se pisen entre sí (van a 2.75 mm de distancia).
@@ -14012,25 +14106,44 @@ function generarPDFReal() {
       for (let i = 0; i < escalas.length; i++) {
         fila.sz = escalas[i];
         doc.setFont('helvetica', fila.esNombre ? 'bolditalic' : 'normal');
-        /* Se MIDE al mismo tamaño al que se DIBUJA. El dibujado usa fi()/fn(), que aplican
-           _FS, así que medir sin escalar validaba que la fila entra a S y la estampaba a
-           1,15·S. Como va alineada a la derecha contra mR, el excedente se iba por la
-           izquierda y le comía el principio a la dirección del centro. */
-        doc.setFontSize(fila.sz * _FS);
+        /* Se MIDE al mismo tamaño al que se DIBUJA. El dibujado usa fif()/fnf(), que
+           aplican _FSF, así que medir sin escalar validaba que la fila entra a S y la
+           estampaba a 1,15·S. Como va alineada a la derecha contra mR, el excedente se
+           iba por la izquierda y le comía el principio a la dirección del centro.
+           _FSF y no _FS: la firma no acompañó la bajada de cuerpo del informe. */
+        doc.setFontSize(fila.sz * _FSF);
         if (doc.getTextWidth(fila.txt) <= pgW) break;
       }
     });
 
-    // Geometría: la última fila apoya en 289.2 (2.8 mm por encima del copyright
-    // de 292) y el bloque crece hacia ARRIBA.
-    const _H = 2.75, _GAP = 3.2, _BASE = 289.2;
-    const _nDatos = _firmaFilas.length - 1;
-    const _y1Dato = _BASE - Math.max(_nDatos - 1, 0) * _H;
-    _firmaFilas[0].y = _nDatos ? _y1Dato - _GAP : _BASE;
-    for (let i = 1; i < _firmaFilas.length; i++) _firmaFilas[i].y = _y1Dato + (i - 1) * _H;
+    if (_sinMedico) {
+      /* Geometría propia: en un renglón para completar a mano lo que importa es el hueco
+         ARRIBA de la línea, no la distancia entre etiquetas. Con los 2,75 mm de la firma
+         normal no entra ni el nombre ni una rúbrica. 9 mm por renglón es lo que se puede
+         dar sin comerle más de 3 mm de texto al informe.
+         288,2 y no 289,2: el guión bajo a 8,28 pt baja hasta ~0,37 mm por debajo de su
+         línea de base y el copyright de 292 sube ~1,8 mm por encima de la suya, así que
+         apoyando en 289,2 quedaban a 0,6 mm — impresos se leen pegados, y una rúbrica que
+         cruce el renglón cae encima del copyright. Subirlo no cuesta nada: entre _yMax y
+         el tope del primer renglón sobran 9 mm.
+         NO se agregan acá las filas del centro (dirección, teléfono, correo): irían justo
+         en el hueco donde hay que escribir el nombre, y el centro ya está impreso en el
+         encabezado de la hoja (_hdrLine). */
+      _firmaFilas[0].y = 279.2;   // Médico: ____
+      _firmaFilas[1].y = 288.2;   // Firma:  ____
+      _yMax = Math.min(284, 279.2 - 9);
+    } else {
+      // Geometría: la última fila apoya en 289.2 (2.8 mm por encima del copyright
+      // de 292) y el bloque crece hacia ARRIBA.
+      const _H = 2.75, _GAP = 3.2, _BASE = 289.2;
+      const _nDatos = _firmaFilas.length - 1;
+      const _y1Dato = _BASE - Math.max(_nDatos - 1, 0) * _H;
+      _firmaFilas[0].y = _nDatos ? _y1Dato - _GAP : _BASE;
+      for (let i = 1; i < _firmaFilas.length; i++) _firmaFilas[i].y = _y1Dato + (i - 1) * _H;
 
-    // Reserva justa: tope visual del nombre + un respiro de 1.5 mm.
-    _yMax = Math.min(284, _firmaFilas[0].y - 2.0 - 1.5);
+      // Reserva justa: tope visual del nombre + un respiro de 1.5 mm.
+      _yMax = Math.min(284, _firmaFilas[0].y - 2.0 - 1.5);
+    }
   }
 
   // ─── drawBar ──────────────────────────────────────────────────
@@ -14451,7 +14564,10 @@ function generarPDFReal() {
   if (sumaTxt) {
     drawBar('EN SUMA:');
     y += 2;
-    fi(8); tc(TEMA[0],TEMA[1],TEMA[2]);
+    /* fif y no fi: la conclusión se queda en el cuerpo de letra anterior (8 · 1,15).
+       La barra "EN SUMA:" sí acompaña al resto, para que todos los encabezados de
+       sección midan igual. */
+    fif(8); tc(TEMA[0],TEMA[1],TEMA[2]);
     const sL = doc.splitTextToSize(sumaTxt, pgW-4);
     sL.forEach(l=>{ checkPage(6); doc.text(l,mL+2,y); y+=5.5; });
     y += 3;
@@ -14873,8 +14989,10 @@ function generarPDFReal() {
   for (let _p = 1; _p <= _totalPag; _p++) {
     doc.setPage(_p);
     _firmaFilas.forEach(fila => {
-      if (fila.esNombre) { fi(fila.sz); tc(0,0,0); }
-      else               { fn(fila.sz); tc(90,90,90); }
+      // fif/fnf y no fi/fn: el pie se dibuja al mismo cuerpo al que se midió arriba.
+      if (fila.esNombre)   { fif(fila.sz); tc(0,0,0); }
+      else if (fila.manual){ fnf(fila.sz); tc(40,40,40); }   // renglón para completar: tiene que fotocopiarse
+      else                 { fnf(fila.sz); tc(90,90,90); }
       doc.text(fila.txt, mR, fila.y, { align:'right' });
     });
     fn(6.5); tc(150,150,150);
@@ -18522,7 +18640,20 @@ function amiloImprimirPDF(cual) {
      Sin esto, la hoja 2 salía firmada, con disclaimer y sin ningún dato del paciente: una
      página imposible de atribuir si se separa del taco. Era teórico y la escala de letra
      lo volvió alcanzable (el umbral bajó de ~87 a ~74 líneas). */
-  amiloDibujarSecciones(doc, secs, { mL, pgW, tema:T, yIni:30, yFin:281, bannerSoloContinuacion: true,
+  /* El médico se resuelve ACÁ, antes de paginar, y no junto al pie: sin médico
+     configurado el pie deja de ser una línea de firma y pasa a ser dos renglones para
+     completar a mano, que ocupan ~11 mm más. Con yFin clavado en 281 esos renglones se
+     dibujaban encima de la última línea del módulo. */
+  const med = id => { const e = document.getElementById(id); return e ? String(e.textContent || '').trim() : ''; };
+  // Nombre y matrícula del médico Principal, igual que la firma del informe: el span
+  // puede traer el nombre viejo de la firma del centro. Sin fallback hardcodeado.
+  const _pr = (typeof ecoGetMedicos === 'function') ? ecoGetMedicos() : [];
+  const _md = _pr.length ? (_pr[(typeof ecoGetMedPrincipal === 'function') ? ecoGetMedPrincipal() : 0] || _pr[0]) : null;
+  const _mNom = _md ? String(_md.nombre || '').trim() : '';
+  const _mMat = _md ? String(_md.matricula || '').trim() : '';
+  const _sinMed = !_mNom;
+
+  amiloDibujarSecciones(doc, secs, { mL, pgW, tema:T, yIni:30, yFin: _sinMed ? 270 : 281, bannerSoloContinuacion: true,
     titPagina: amiloSanPDF([_s('nombre'), _s('ci') ? (_s('doc_tipo') || 'CI') + ': ' + _s('ci') : '', _f].filter(Boolean).join('  ·  ')) || 'Continuacion' });
 
   /* Pie: firma y disclaimer, coherente con el informe. Va en TODAS las páginas.
@@ -18532,22 +18663,28 @@ function amiloImprimirPDF(cual) {
      justo la hoja que alguien imprime y adjunta. Era preexistente —hacían falta unas 87
      líneas—, pero la escala de letra baja ese umbral a ~74, así que pasa de rareza a
      alcanzable. Verificado con 74, 80 y 120 líneas: las dos hojas firmadas. */
-  const med = id => { const e = document.getElementById(id); return e ? String(e.textContent || '').trim() : ''; };
-  // Nombre y matrícula del médico Principal, igual que la firma del informe: el span
-  // puede traer el nombre viejo de la firma del centro. Sin fallback hardcodeado.
-  const _pr = (typeof ecoGetMedicos === 'function') ? ecoGetMedicos() : [];
-  const _md = _pr.length ? (_pr[(typeof ecoGetMedPrincipal === 'function') ? ecoGetMedPrincipal() : 0] || _pr[0]) : null;
-  const _mNom = _md ? String(_md.nombre || '').trim() : '';
-  const _mMat = _md ? String(_md.matricula || '').trim() : '';
   const sub = [_mMat, med('med-especialidad'), med('med-lugar')].filter(Boolean).join('  ·  ');
+  const _LIN = '_'.repeat(44);
   const _nPags = doc.internal.getNumberOfPages();
   for (let _i = 1; _i <= _nPags; _i++) {
     doc.setPage(_i);
-    doc.setFont('helvetica','bolditalic'); doc.setFontSize(7.5); doc.setTextColor(0,0,0);
-    doc.text(amiloSanPDF(_mNom ? _mNom + '.' : '[Medico no configurado - ver Config]'), 201, 285.5, { align:'right' });
-    doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(90,90,90);
-    doc.text(amiloSanPDF(sub), 201, 288.3, { align:'right' });
-    doc.setFontSize(5.5); doc.setTextColor(160,160,160);
+    if (_sinMed) {
+      /* Mismos dos renglones que el informe principal, para que la hoja de ETT avanzado
+         se firme igual que la que va grapada adelante. Sin `sub`: la especialidad y el
+         lugar son del médico, y acá no hay médico al que atribuírselos. */
+      /* Mismo cuerpo (7,2 · PDF_FS_FIJO = 8,28 pt) y mismo apoyo que el informe principal:
+         las dos hojas van grapadas y con 7,5 pt planos los renglones salían de distinto
+         tamaño en el mismo taco. */
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.2 * PDF_FS_FIJO); doc.setTextColor(40,40,40);
+      doc.text('Medico: ' + _LIN, 201, 279.2, { align:'right' });
+      doc.text('Firma: '  + _LIN, 201, 288.2, { align:'right' });
+    } else {
+      doc.setFont('helvetica','bolditalic'); doc.setFontSize(7.5); doc.setTextColor(0,0,0);
+      doc.text(amiloSanPDF(_mNom + '.'), 201, 285.5, { align:'right' });
+      doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(90,90,90);
+      doc.text(amiloSanPDF(sub), 201, 288.3, { align:'right' });
+    }
+    doc.setFont('helvetica','normal'); doc.setFontSize(5.5); doc.setTextColor(160,160,160);
     doc.text('Esta herramienta es de apoyo clinico. No reemplaza el juicio medico ni constituye una recomendacion diagnostica o terapeutica. CeiboMed 2026', 105, 295, { align:'center' });
     if (_nPags > 1) doc.text('pag. ' + _i + '/' + _nPags, 9, 295);
   }
@@ -21775,6 +21912,1002 @@ window.labImpEjecutar = labImpEjecutar;
 window.labInit = labInit;
 window.labExportarXLSX = labExportarXLSX;
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   DICOM SR — lectura y escritura de informes de ecocardiografía (TID 5300)
+
+   POR QUÉ ESTÁ ESCRITO A MANO Y NO CON dcmjs
+   dcmjs no está publicado en cdnjs, que es el único CDN del que esta app carga
+   scripts y el único con una API pública para cotejar el hash SRI contra una
+   segunda fuente. Traerlo de otro CDN significaba un origen nuevo en el que
+   confiar y 709 KB. Y no ahorraba tanto: dcmjs no tiene constructor de TID 5300,
+   así que el árbol SR había que armarlo a mano igual — sólo aportaba el códec de
+   bytes, que para un SR (sin píxeles, sin sintaxis comprimidas) son estas ~200
+   líneas.
+
+   QUÉ SINTAXIS DE TRANSFERENCIA SE SOPORTAN
+   Explicit VR Little Endian, Implicit VR Little Endian y Explicit VR Big Endian.
+   Cualquier otra (los JPEG comprimidos) se RECHAZA con su nombre a la vista, en
+   vez de leerse a medias: un SR no lleva píxeles, así que si el archivo viene
+   comprimido es que no es un SR.
+
+   LA TRAMPA DE LAS UNIDADES
+   DICOM mide las distancias en CENTÍMETROS y EcoSmart en MILÍMETROS; las
+   velocidades son cm/s en el estándar y m/s en varios campos de esta app. Un
+   SIV de 1,1 cm entrando como 1,1 mm, o una Vmax IT de 280 cm/s entrando como
+   280 m/s, no da error: da un informe firmado con un número imposible que nadie
+   revisa porque lo escribió una máquina. Por eso la conversión NO sale de una
+   tabla fija: se lee la unidad UCUM que declara CADA medición en el archivo y se
+   convierte según ESA. Si la unidad falta o no se reconoce, el campo NO se
+   importa y aparece en la lista de descartados con el motivo.
+
+   QUÉ NO SE IMPORTA, A PROPÓSITO
+   · Los campos calculados de EcoSmart (psap_calc, gmax_calc, em_gmax, el E/e').
+     Son readonly y los reescribe la propia app en el próximo render: escribirles
+     un número daba un valor que se veía en pantalla y desaparecía al guardar.
+     En su lugar se importan las mediciones que los ALIMENTAN (Vmax IT, onda E,
+     e' septal y lateral) y EcoSmart calcula, que es donde el cálculo se ve.
+   · La PSAP no tiene código en el estándar — ni en CID 12300 ni en CID 12210.
+     No se inventa uno: se importa la Vmax de insuficiencia tricuspídea.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Diccionario mínimo. Hace falta sí o sí para Implicit VR LE, donde el archivo no
+   trae el VR y hay que sacarlo de acá. Sólo los tags que este módulo usa. */
+const DCM_DIC = {
+  '00020000':'UL','00020001':'OB','00020002':'UI','00020003':'UI','00020010':'UI',
+  '00020012':'UI','00020013':'SH','00020016':'AE',
+  '00080005':'CS','00080012':'DA','00080013':'TM','00080016':'UI','00080018':'UI',
+  '00080020':'DA','00080021':'DA','00080023':'DA','00080030':'TM','00080031':'TM',
+  '00080033':'TM','00080050':'SH','00080060':'CS','00080070':'LO','00080090':'PN',
+  '00081030':'LO','0008103E':'LO','00081090':'LO',
+  '00100010':'PN','00100020':'LO','00100030':'DA','00100040':'CS','00101010':'AS',
+  '00181000':'LO','00181020':'LO',
+  '0020000D':'UI','0020000E':'UI','00200010':'SH','00200011':'IS','00200013':'IS',
+  '00080100':'SH','00080102':'SH','00080103':'SH','00080104':'LO',
+  '00080119':'UC','00080120':'UR','0040A301':'SQ',
+  '0040A010':'CS','0040A040':'CS','0040A043':'SQ','0040A050':'CS','0040A073':'SQ',
+  '0040A075':'PN','0040A123':'PN','0040A160':'UT','0040A168':'SQ','0040A16A':'ST',
+  '0040A300':'SQ','0040A30A':'DS','0040A491':'CS','0040A493':'CS','0040A730':'SQ',
+  '004008EA':'SQ','0040A027':'LO','0040A032':'DT','0040A120':'DT','0040A121':'DA',
+  '0040A122':'TM','0040A124':'UI','0040A170':'SQ','0040A180':'US','0040A195':'SQ',
+  'FFFEE000':'NONE','FFFEE00D':'NONE','FFFEE0DD':'NONE'
+};
+/* VR de longitud larga: 2 bytes reservados + longitud de 32 bits. */
+const DCM_VR_LARGO = { OB:1, OW:1, OF:1, OD:1, OL:1, OV:1, SQ:1, UT:1, UR:1, UC:1, UN:1 };
+/* VR cuyo valor es texto (el resto se deja como bytes crudos). */
+const DCM_VR_TEXTO = { AE:1, AS:1, CS:1, DA:1, DS:1, DT:1, IS:1, LO:1, LT:1, PN:1,
+                       SH:1, ST:1, TM:1, UC:1, UI:1, UR:1, UT:1 };
+
+const DCM_TS = {
+  '1.2.840.10008.1.2':   { nom:'Implicit VR Little Endian',  explicito:false, le:true  },
+  '1.2.840.10008.1.2.1': { nom:'Explicit VR Little Endian',  explicito:true,  le:true  },
+  '1.2.840.10008.1.2.2': { nom:'Explicit VR Big Endian',     explicito:true,  le:false }
+};
+const DCM_SOP_COMPREHENSIVE = '1.2.840.10008.5.1.4.1.1.88.33';
+const DCM_UID_IMPL = '1.2.826.0.1.3680043.10.1337.1';   // placeholder de implementación
+
+function _dcmTag(g, e) {
+  return (('0000' + g.toString(16)).slice(-4) + ('0000' + e.toString(16)).slice(-4)).toUpperCase();
+}
+function _dcmTxt(bytes) {
+  /* Los SR de ecógrafo vienen en ISO-IR 100 (latin1) o en UTF-8. Se decodifica como UTF-8
+     con fatal:true —que TIRA si los bytes no son UTF-8 válido— y recién ahí se cae a
+     latin1. Con fatal:false no habría excepción: los bytes latin1 saldrían con U+FFFD y
+     "Pérez" se guardaría como "P�rez" en la base, sin que nada avise. */
+  let s;
+  try {
+    s = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch (e) {
+    s = new TextDecoder('iso-8859-1').decode(bytes);
+  }
+  return s.replace(/\0+$/, '').trim();
+}
+
+/* Lee un dataset entre [ini, fin). Devuelve { TAG: {vr, val, items} }.
+
+   `ctx` es UN objeto compartido por toda la lectura del archivo (se pasa el mismo hacia
+   adentro de las secuencias). `ctx.truncado` queda en true si el recorrido se abandonó a
+   mitad de camino. Todas las salidas por `break` de acá abajo devuelven lo acumulado hasta
+   ese punto, y sin esta marca nada distinguía una lectura completa de una cortada: un
+   archivo partido al medio mostraba una vista previa de 6 mediciones, prolija, sin ningún
+   indicio de que había otras 12 que no se leyeron. El médico tilda las 6 y cree que
+   importó el estudio entero.
+
+   `soloGrupo` va aparte y NO dentro de ctx justamente porque no se hereda: corta el
+   barrido en el primer tag de otro grupo y lo usa sólo el meta header. */
+function _dcmDataset(dv, ini, fin, explicito, le, ctx, soloGrupo) {
+  ctx = ctx || {};
+  const out = {};
+  const cortar = () => { ctx.truncado = true; };
+  let p = ini;
+  while (p + 8 <= fin) {
+    const g = dv.getUint16(p, le), e = dv.getUint16(p + 2, le);
+    const tag = _dcmTag(g, e);
+    if (soloGrupo !== undefined && g !== soloGrupo) break;   // fin del grupo pedido
+    p += 4;
+    if (tag === 'FFFEE00D' || tag === 'FFFEE0DD') { p += 4; break; }  // delimitadores
+    let vr, len;
+    /* Los elementos del grupo 0002 van SIEMPRE en Explicit VR LE, aunque el resto
+       del dataset sea implícito: el meta header es el que DICE cuál es la sintaxis,
+       así que no puede depender de ella. */
+    const exp = explicito || g === 0x0002;
+    const lit = (g === 0x0002) ? true : le;
+    /* Los límites se chequean ANTES de cada lectura y no sólo al entrar al ciclo: la
+       cabecera de un VR largo ocupa 12 bytes, no 8, así que el `p + 8 <= fin` de arriba
+       no alcanza. Sin esto, un archivo truncado justo en una cabecera larga salía por
+       una excepción del motor —«Offset is outside the bounds of the DataView»— que
+       terminaba en pantalla tal cual, sin decir que el archivo está cortado. */
+    if (exp) {
+      if (p + 2 > fin) { cortar(); break; }
+      vr = String.fromCharCode(dv.getUint8(p), dv.getUint8(p + 1));
+      p += 2;
+      if (DCM_VR_LARGO[vr]) { if (p + 6 > fin) { cortar(); break; } p += 2; len = dv.getUint32(p, lit); p += 4; }
+      else { if (p + 2 > fin) { cortar(); break; } len = dv.getUint16(p, lit); p += 2; }
+    } else {
+      vr = DCM_DIC[tag] || 'UN';
+      if (p + 4 > fin) { cortar(); break; }
+      len = dv.getUint32(p, lit); p += 4;
+    }
+    if (vr === 'SQ' || (len === 0xFFFFFFFF && vr === 'UN')) {
+      const r = _dcmSecuencia(dv, p, len, fin, explicito, le, ctx);
+      out[tag] = { vr:'SQ', items: r.items };
+      p = r.fin;
+      continue;
+    }
+    if (len === 0xFFFFFFFF) { cortar(); break; }      // longitud indefinida fuera de SQ: no soportado
+    if (p + len > fin) { cortar(); break; }           // archivo truncado
+    const bytes = new Uint8Array(dv.buffer, dv.byteOffset + p, len);
+    let val;
+    if (DCM_VR_TEXTO[vr]) val = _dcmTxt(bytes);
+    else if (vr === 'US') val = len >= 2 ? dv.getUint16(p, lit) : null;
+    else if (vr === 'UL') val = len >= 4 ? dv.getUint32(p, lit) : null;
+    else if (vr === 'FD') val = len >= 8 ? dv.getFloat64(p, lit) : null;
+    else if (vr === 'FL') val = len >= 4 ? dv.getFloat32(p, lit) : null;
+    else val = bytes;
+    out[tag] = { vr, val };
+    p += len + (len % 2);                             // los elementos van a byte par
+  }
+  return out;
+}
+
+function _dcmSecuencia(dv, p, len, finPadre, explicito, le, ctx) {
+  ctx = ctx || {};
+  const items = [];
+  // La secuencia declara más de lo que queda: se recorta y se marca como cortada.
+  if (len !== 0xFFFFFFFF && p + len > finPadre) ctx.truncado = true;
+  const fin = (len === 0xFFFFFFFF) ? finPadre : Math.min(p + len, finPadre);
+  while (p + 8 <= fin) {
+    const g = dv.getUint16(p, le), e = dv.getUint16(p + 2, le);
+    const tag = _dcmTag(g, e);
+    const iLen = dv.getUint32(p + 4, le);
+    p += 8;
+    if (tag === 'FFFEE0DD') return { items, fin: p };            // fin de secuencia
+    if (tag !== 'FFFEE000') return { items, fin: p - 8 };        // no es un item: salir
+    if (iLen !== 0xFFFFFFFF && p + iLen > fin) ctx.truncado = true;
+    const iFin = (iLen === 0xFFFFFFFF) ? fin : Math.min(p + iLen, fin);
+    // El MISMO ctx hacia adentro: un item cortado marca cortado el archivo entero.
+    items.push(_dcmDataset(dv, p, iFin, explicito, le, ctx));
+    if (iLen === 0xFFFFFFFF) {
+      // Item de longitud indefinida: _dcmDataset paró en FFFEE00D, hay que buscarlo.
+      let q = p;
+      while (q + 8 <= fin) {
+        if (dv.getUint16(q, le) === 0xFFFE && dv.getUint16(q + 2, le) === 0xE00D) { q += 8; break; }
+        q++;
+      }
+      p = q;
+    } else p = iFin;
+  }
+  return { items, fin: p };
+}
+
+/* Abre un archivo P10. Lanza Error con un motivo legible si no se puede. */
+function _dcmLeerP10(buffer) {
+  const dv = new DataView(buffer);
+  if (buffer.byteLength < 140) throw new Error('el archivo es demasiado corto para ser un DICOM');
+  const magia = String.fromCharCode(dv.getUint8(128), dv.getUint8(129), dv.getUint8(130), dv.getUint8(131));
+  if (magia !== 'DICM') throw new Error('no tiene la marca «DICM» — no es un archivo DICOM Parte 10');
+  /* `soloGrupo: 0x0002` corta el barrido en cuanto aparece un tag fuera del grupo 0002.
+     Antes se le pasaba buffer.byteLength y seguía de largo, releyendo TODO el dataset como
+     Explicit VR LE: en un archivo implícito o big endian eso es caminar sobre basura, y si
+     algún byte suelto decodificaba como (0002,0010) o (0002,0000) pisaba la sintaxis de
+     transferencia o la longitud reales — y el `iniDs` calculado caía en el medio del
+     dataset. Además era una pasada completa de más por archivo, con `multiple` activado en
+     el input y carpetas de PACS llenas de .dcm de imagen. */
+  const ctx = { truncado: false };
+  const meta = _dcmDataset(dv, 132, buffer.byteLength, true, true, {}, 0x0002);
+  const tsUid = meta['00020010'] ? String(meta['00020010'].val) : '';
+  const ts = DCM_TS[tsUid];
+  if (!ts) throw new Error('sintaxis de transferencia no soportada (' + (tsUid || 'ausente') + '). ' +
+                           'Este lector abre Explicit/Implicit VR Little Endian y Explicit VR Big Endian');
+  /* Dónde termina el meta header: 132 + 12 (cabecera del propio GroupLength) + su valor.
+     Se lee del archivo y no se estima, porque a partir de ahí cambia la codificación. */
+  const gl = meta['00020000'] ? meta['00020000'].val : null;
+  if (typeof gl !== 'number') throw new Error('el meta header no declara su longitud (0002,0000)');
+  const iniDs = 132 + 12 + gl;
+  if (iniDs >= buffer.byteLength) throw new Error('la longitud del meta header (' + gl + ' bytes) apunta más allá del final del archivo');
+  const ds = _dcmDataset(dv, iniDs, buffer.byteLength, ts.explicito, ts.le, ctx);
+  return { meta, ds, ts, tsUid, truncado: !!ctx.truncado };
+}
+
+/* ── Acceso al árbol de contenido SR ── */
+const _dcmV  = (ds, tag) => (ds && ds[tag] && ds[tag].val !== undefined) ? ds[tag].val : '';
+const _dcmSQ = (ds, tag) => (ds && ds[tag] && ds[tag].items) ? ds[tag].items : [];
+function _dcmCodigo(ds, tag) {
+  const it = _dcmSQ(ds, tag)[0];
+  if (!it) return null;
+  /* (0008,0119) LongCodeValue y (0008,0120) URNCodeValue son las alternativas a
+     (0008,0100) cuando el código no entra en 16 caracteres — cada vez más frecuentes con
+     SNOMED. Sin leerlas, esas mediciones caían en «no declara código de concepto», un
+     motivo que describe mal el problema y manda a buscar el error donde no está. */
+  const v = String(_dcmV(it, '00080100') || _dcmV(it, '00080119') || _dcmV(it, '00080120'));
+  return { v, e: String(_dcmV(it, '00080102')), m: String(_dcmV(it, '00080104')) };
+}
+/* Recorre ContentSequence en profundidad y devuelve todos los NUM con su contexto. */
+function _dcmRecorrer(nodo, prof, salida) {
+  if (prof > 24) return salida;                        // corta ciclos de un archivo malformado
+  _dcmSQ(nodo, '0040A730').forEach(hijo => {
+    const vt = String(_dcmV(hijo, '0040A040'));
+    if (vt === 'NUM') {
+      const mv = _dcmSQ(hijo, '0040A300')[0];
+      if (mv) {
+        const n = parseFloat(String(_dcmV(mv, '0040A30A')).replace(',', '.'));
+        salida.push({
+          concepto: _dcmCodigo(hijo, '0040A043'),
+          valor: isFinite(n) ? n : null,
+          unidad: _dcmCodigo(mv, '004008EA'),
+          /* (0040,A301) NumericValueQualifier es la forma que tiene el estándar de decir
+             "no se midió" / "no es un número". Varios equipos mandan el calificador Y un
+             0 de relleno en (0040,A30A): sin leerlo, ese 0 pasaba todos los controles
+             —isFinite(0) es true— y se guardaba como TAPSE 0 mm o FEVI 0%, que no es un
+             dato faltante sino un dato patológico inventado. */
+          calificador: _dcmCodigo(mv, '0040A301'),
+          /* Los modificadores que cambian el SIGNIFICADO del número. Se guardan
+             enteros para poder mostrarlos y para rechazar los indexados. */
+          mods: _dcmSQ(hijo, '0040A730').filter(m => String(_dcmV(m, '0040A040')) === 'CODE')
+                  .map(m => ({ nombre: _dcmCodigo(m, '0040A043'), valor: _dcmCodigo(m, '0040A168') }))
+        });
+      }
+    }
+    _dcmRecorrer(hijo, prof + 1, salida);
+  });
+  return salida;
+}
+
+/* ── Mapa de códigos → campos de EcoSmart ──
+   Cada código fue verificado contra PS3.16 (CID 12300 «Core Echo Measurement» para
+   la familia moderna, CID 12201/12202/12207/12222 para la heredada de TID 5200).
+   `ucum` lista las unidades ACEPTADAS con su factor hacia la unidad de EcoSmart;
+   una unidad que no esté en la lista descarta la medición en vez de suponerla.
+
+   Los códigos van con su método porque en CID 12300 el método está DENTRO del
+   código: 79991-6 es «biplano (MOD)» —lo que en la literatura se llama Simpson
+   biplano— y 77891-0 es Teichholz. No son intercambiables y el orden de esta lista
+   es el orden de preferencia cuando el archivo trae varios. */
+const DCM_MAPA = [
+  { campo:'fevi',    etiq:'FEVI',                  ucum:{ '%':1 },
+    cods:[['79991-6','biplano (método de discos)'],['79990-8','3D'],['79992-4','plano único 2C'],
+          ['79993-2','plano único 4C'],['77891-0','Teichholz 2D'],['18049-7','Teichholz MM'],
+          ['18043-0','sin método declarado (TID 5200)']] },
+  /* Las tres medidas lineales del VI existen en CID 12300 por DUPLICADO, una versión 2D
+     y una modo M, y EcoSmart no registra con cuál se midió: el formulario tiene un solo
+     campo «SIV (mm)». Se elige 2D en las dos direcciones —importar y exportar— por dos
+     razones: es lo que recomiendan ASE/EACVI para la cuantificación de cavidades, y
+     sobre todo porque si el orden de preferencia al importar no coincide con el código
+     que emite el exportador, exportar y reimportar deja de ser la identidad.
+     Ojo con 80031-8 y 80032-6: en la tabla del estándar los dos imprimen EXACTAMENTE el
+     mismo Code Meaning y sólo se distinguen por el Code Value (el primero es modo M y el
+     segundo 2D, según LOINC). Comparar por el texto del código los confunde. */
+  { campo:'siv',     etiq:'SIV (septo, diástole)', ucum:{ 'cm':10, 'mm':1 },
+    cods:[['79969-2','2D'],['79968-4','modo M'],['18154-5','sin método declarado (TID 5200)']] },
+  { campo:'ddfvi',   etiq:'DDFVI',                 ucum:{ 'cm':10, 'mm':1 },
+    cods:[['80007-8','2D'],['80008-6','modo M'],['29436-3','sin método declarado (TID 5200)']] },
+  { campo:'ppvi',    etiq:'PPVI (pared posterior)',ucum:{ 'cm':10, 'mm':1 },
+    cods:[['80032-6','2D'],['80031-8','modo M'],['18152-9','sin método declarado (TID 5200)']] },
+  { campo:'tapse',   etiq:'TAPSE',                 ucum:{ 'cm':10, 'mm':1 },
+    cods:[['77903-3','']] },
+  { campo:'ai_vol',  etiq:'Volumen AI',            ucum:{ 'ml':1 },
+    cods:[['79983-3','biplano (método de discos)'],['79981-7','biplano área-longitud'],
+          ['79985-8','plano único 2C'],['79986-6','plano único 4C']] },
+  { campo:'onda_e',  etiq:'Onda E mitral',         ucum:{ 'cm/s':1, 'm/s':100 },
+    cods:[['80070-6',''],['18037-2','TID 5200']] },
+  { campo:'onda_a',  etiq:'Onda A mitral',         ucum:{ 'cm/s':1, 'm/s':100 },
+    cods:[['80066-4',''],['17978-8','TID 5200']] },
+  { campo:'e_sep',   etiq:"e' septal",             ucum:{ 'cm/s':1, 'm/s':100 },
+    cods:[['79911-4','']] },
+  { campo:'e_lat',   etiq:"e' lateral",            ucum:{ 'cm/s':1, 'm/s':100 },
+    cods:[['80054-0','']] },
+  { campo:'tde',     etiq:'TDE (desaceleración E)',ucum:{ 'ms':1 },
+    cods:[['78191-4',''],['399354002','TID 5200']] },
+  /* Vmax de INSUFICIENCIA tricuspídea, no de flujo anterógrado: 79927-0 y 79939-5 son
+     el flujo que ATRAVIESA la válvula y darían una presión pulmonar equivocada. */
+  { campo:'vmax_it', etiq:'Vmax insuficiencia tricuspídea', ucum:{ 'cm/s':0.01, 'm/s':1 },
+    cods:[['79921-3','']], psap:true },
+  { campo:'vmax_ao', etiq:'Vmax aórtica',          ucum:{ 'cm/s':0.01, 'm/s':1 },
+    cods:[['79964-3',''],['20355-4','TID 5200']] },
+  { campo:'gmedio_ao', etiq:'Gradiente medio aórtico', ucum:{ 'mm[Hg]':1 },
+    cods:[['79962-7','']] },
+  { campo:'em_gmedio', etiq:'Gradiente medio mitral',  ucum:{ 'mm[Hg]':1 },
+    cods:[['80073-0','']] },
+  { campo:'ao_sin',  etiq:'Ao sinusal (raíz aórtica)', ucum:{ 'cm':10, 'mm':1 },
+    cods:[['79953-6','']] },
+  { campo:'ao_st',   etiq:'Ao sinotubular',        ucum:{ 'cm':10, 'mm':1 },
+    cods:[['79955-1','']] },
+  { campo:'ao_tub',  etiq:'Ao tubular (ascendente)',ucum:{ 'cm':10, 'mm':1 },
+    cods:[['79966-8','']] }
+];
+const _dcmPorCodigo = (() => {
+  const m = new Map();
+  DCM_MAPA.forEach(d => d.cods.forEach(([cod, met], i) => {
+    if (!m.has(cod)) m.set(cod, { def:d, metodo:met, pref:i });
+  }));
+  return m;
+})();
+
+/* Modificadores que invalidan o califican la lectura directa del número. */
+const DCM_MOD_TIPO  = '125306';         // (125306, DCM) "Measurement Type"
+const DCM_TIPO_INDEXADO = '125313';     // (125313, DCM) "Indexed"
+const DCM_TIPO_RATIO    = '118586006';  // (118586006, SCT) "Ratio"
+const DCM_MOD_DERIV = '121401';         // (121401, DCM) "Derivation"
+const DCM_DERIV_MEDIA = '373098007';    // (373098007, SCT) "Mean"
+
+/* Ventanas de plausibilidad, en las unidades de EcoSmart. NO son rangos de normalidad ni
+   pretenden opinar sobre el paciente: son deliberadamente anchas y sólo atrapan errores
+   de codificación de orden de magnitud —un equipo que declara `cm` y manda milímetros,
+   un 0 de relleno, un signo negativo—. Un valor afuera de su ventana no llegó por una
+   enfermedad, llegó por un error de transporte, así que se descarta con el motivo a la
+   vista en vez de entrar destildado: destildado sigue siendo un click de distancia. */
+const DCM_RANGO = {
+  fevi:[5,90], siv:[3,35], ddfvi:[20,100], ppvi:[3,35], tapse:[3,40], ai_vol:[5,400],
+  onda_e:[10,250], onda_a:[5,250], e_sep:[1,30], e_lat:[1,35], tde:[40,500],
+  vmax_it:[0.5,8], vmax_ao:[0.5,8], gmedio_ao:[1,150], em_gmedio:[1,60],
+  ao_sin:[10,90], ao_st:[10,80], ao_tub:[10,90]
+};
+
+/* ── Conversión de nombres, en UN solo lugar para las dos direcciones ──
+
+   EcoSmart escribe «Apellido, Nombre» (así lo dice el placeholder del campo) y DICOM usa
+   PN con componentes separados por ^, siendo el PRIMERO el apellido.
+
+   Esto estuvo mal y el ida y vuelta lo tapaba: el exportador tomaba la ÚLTIMA palabra
+   como apellido, así que «Pérez García, Juan» salía como PN «Juan^Pérez García,» —
+   apellido "Juan"—, y el importador hacía la inversa, con lo cual exportar y reimportar
+   devolvía el texto original intacto. El error sólo se veía desde afuera: un PACS indexa
+   por apellido, y todos los estudios quedaban archivados bajo el nombre de pila. Que dos
+   funciones se equivoquen de forma simétrica no es una prueba de que estén bien.
+
+   Sin coma no se inventa el corte: el nombre entero va al componente de apellido, que es
+   la salida habitual para un nombre que no se sabe partir. Es preferible a adivinar. */
+function _dcmPNdesdeApp(s) {
+  const t = _dcmSan(s);
+  if (!t) return '';
+  const i = t.indexOf(',');
+  if (i < 0) return t;                                    // todo al componente de apellido
+  const ape = t.slice(0, i).trim(), nom = t.slice(i + 1).trim();
+  return nom ? (ape + '^' + nom) : ape;
+}
+function _dcmPNaApp(pn) {
+  const p = String(pn == null ? '' : pn).split('^').map(x => x.trim());
+  const ape = p[0] || '';
+  const nom = p.slice(1, 3).filter(Boolean).join(' ');    // nombre + segundo nombre
+  /* Se devuelve en la convención de la app —«Apellido, Nombre»— y no en la inversa:
+     _dupKeys compara contra lo que el médico tipeó a mano. Devolviendo "Ana Rodríguez"
+     donde el formulario guarda "Rodríguez, Ana", el mismo paciente y la misma fecha
+     generaban dos claves distintas y el estudio entraba duplicado. */
+  return (nom ? (ape + ', ' + nom) : ape).replace(/\s+/g, ' ').trim();
+}
+
+/* ── Datos del paciente y del estudio ── */
+function _dcmPaciente(ds) {
+  const da = String(_dcmV(ds, '00080020') || _dcmV(ds, '00080023') || '').trim();   // StudyDate → ContentDate
+  const fecha = /^\d{8}$/.test(da) ? da.slice(0,4) + '-' + da.slice(4,6) + '-' + da.slice(6,8) : '';
+  return {
+    nombre: _dcmPNaApp(_dcmV(ds, '00100010')),
+    /* (0010,0020) PatientID se LEE para mostrarlo, pero NO se guarda como `ci`. En un
+       ecógrafo de hospital es el número de historia clínica de esa institución, no una
+       cédula. Guardándolo en `ci` entra en la clave primaria de _dupKeys igual que un
+       documento real: un número de historia que coincida con la cédula de otro paciente
+       en la misma fecha hacía que "Actualizar" pisara el nombre y el documento del
+       paciente equivocado y le fusionara adentro las mediciones de este estudio.
+       Sin `ci`, la deduplicación cae a nombre+fecha, que es lo mismo que hace la app con
+       cualquier estudio sin documento. */
+    idInstitucional: String(_dcmV(ds, '00100020')).trim(),
+    sexo: String(_dcmV(ds, '00100040')).trim(),
+    fecha_estudio: fecha,
+    modalidad: String(_dcmV(ds, '00080060')).trim(),
+    equipo: [String(_dcmV(ds,'00080070')), String(_dcmV(ds,'00081090'))].filter(Boolean).join(' '),
+    sop: String(_dcmV(ds, '00080016')).trim()
+  };
+}
+
+/* Convierte un NUM leído a un campo de EcoSmart, o explica por qué no se puede. */
+function _dcmMapear(num) {
+  const c = num.concepto;
+  if (!c || !c.v) return { ok:false, motivo:'la medición no declara código de concepto' };
+  const hit = _dcmPorCodigo.get(c.v);
+  if (!hit) return { ok:false, motivo:'código sin equivalente en EcoSmart', cod:c };
+  if (num.calificador && num.calificador.v) {
+    return { ok:false, cod:c,
+      motivo:'el archivo la marca como no medida (' + (num.calificador.m || num.calificador.v) + ')' };
+  }
+  if (num.valor === null) return { ok:false, motivo:'el valor no es numérico', cod:c };
+  /* (125306) "Measurement Type" = Indexed / Ratio: el número está dividido por la
+     superficie corporal. En TID 5200 el código del concepto es EL MISMO que el del
+     valor absoluto, así que sin mirar este modificador un volumen indexado de 34
+     ml/m² se guardaba como un volumen de 34 ml — casi la mitad del real. */
+  const tipo = num.mods.find(m => m.nombre && m.nombre.v === DCM_MOD_TIPO);
+  if (tipo && tipo.valor && (tipo.valor.v === DCM_TIPO_INDEXADO || tipo.valor.v === DCM_TIPO_RATIO)) {
+    return { ok:false, motivo:'viene indexado por superficie corporal (' + (tipo.valor.m || tipo.valor.v) + ')', cod:c };
+  }
+  const u = num.unidad ? String(num.unidad.v) : '';
+  if (!u) return { ok:false, motivo:'la medición no declara unidad', cod:c };
+  const factor = hit.def.ucum[u];
+  if (factor === undefined) {
+    return { ok:false, cod:c,
+      motivo:'unidad «' + u + '» inesperada para ' + hit.def.etiq + ' (se esperaba ' + Object.keys(hit.def.ucum).join(' o ') + ')' };
+  }
+  const conv = num.valor * factor;
+  if (!isFinite(conv)) return { ok:false, motivo:'el valor convertido no es finito', cod:c };
+  const rg = DCM_RANGO[hit.def.campo];
+  if (rg && (conv < rg[0] || conv > rg[1])) {
+    return { ok:false, cod:c,
+      motivo: hit.def.etiq + ' = ' + _dcmRed(conv) + ' queda fuera de lo posible (' +
+              rg[0] + '–' + rg[1] + '): el archivo declara «' + u + '» pero el número no lo parece' };
+  }
+  /* (121401) "Derivation": el mismo código y la misma unidad pueden venir como mínimo,
+     máximo, media o desvío estándar de varios ciclos. Si el equipo manda FEVI(mín),
+     FEVI(máx) y FEVI(media) con el código 79991-6, para el mapeo son tres veces la misma
+     medición. La media y la ausencia de derivación se aceptan; cualquier otra entra
+     DESTILDADA y con el término del archivo a la vista, porque no hay forma de saber
+     desde acá si el médico quiere la peor o el promedio. */
+  const der = num.mods.find(m => m.nombre && m.nombre.v === DCM_MOD_DERIV);
+  const derTxt = (der && der.valor && der.valor.v !== DCM_DERIV_MEDIA)
+    ? (der.valor.m || der.valor.v) : '';
+  return { ok:true, campo:hit.def.campo, etiq:hit.def.etiq, metodo:hit.metodo, pref:hit.pref,
+           cod:c, unidadOrig:u, valorOrig:num.valor, valor:conv,
+           derivacion:derTxt, dudoso: !!hit.def.psap || !!derTxt };
+}
+
+/* Redondeo de presentación: sin esto un 1.1 cm × 10 sale 11.000000000000002. */
+function _dcmRed(x) {
+  const r = Math.round(x * 1000) / 1000;
+  return String(r);
+}
+
+let _dcmDatos = null;   // { estudios:[{pac, filas, descartes, archivo}] }
+
+async function dcmImportarSR(fileList) {
+  const files = [...fileList];
+  const estudios = [], fallos = [];
+  for (const f of files) {
+    let buf;
+    try { buf = await f.arrayBuffer(); }
+    catch (e) { fallos.push({ archivo:f.name, motivo:'no se pudo leer el archivo' }); continue; }
+    let p;
+    try { p = _dcmLeerP10(buf); }
+    catch (e) { fallos.push({ archivo:f.name, motivo:e.message }); continue; }
+    const pac = _dcmPaciente(p.ds);
+    if (pac.modalidad && pac.modalidad !== 'SR') {
+      fallos.push({ archivo:f.name, motivo:'la modalidad es «' + pac.modalidad + '», no SR — este importador lee informes estructurados, no imágenes' });
+      continue;
+    }
+    const nums = _dcmRecorrer(p.ds, 0, []);
+    if (!nums.length) {
+      fallos.push({ archivo:f.name, motivo:'el informe no contiene ninguna medición numérica (NUM)' });
+      continue;
+    }
+    const descartes = [], mapeadas = [];
+    nums.forEach(n => {
+      const r = _dcmMapear(n);
+      if (!r.ok) descartes.push({ cod:r.cod, motivo:r.motivo, valor:n.valor, unidad:n.unidad ? n.unidad.v : '' });
+      else mapeadas.push(r);
+    });
+    /* Un eco trae la MISMA medición varias veces: por método, por ciclo cardíaco y por
+       repetición. Se elige por orden de preferencia del método (el de DCM_MAPA) y, a
+       igual método, la primera. Las demás NO se tiran en silencio: se muestran en un
+       desplegable, porque "el archivo decía FEVI 48 y la app puso 52" con las dos
+       cifras a la vista es revisable, y sin ellas no. */
+    const mejor = new Map();
+    mapeadas.forEach(r => {
+      const prev = mejor.get(r.campo);
+      if (!prev || r.pref < prev.pref) mejor.set(r.campo, r);
+    });
+    const elegidas = [...mejor.values()];
+    const repetidas = mapeadas.filter(r => !elegidas.includes(r));
+    /* EMPATE: dos mediciones del MISMO código, con la misma derivación y valores
+       distintos. Pasa con los estudios por etapas (reposo / dosis baja / pico /
+       recuperación), que repiten el código una vez por etapa, y con las series por
+       ciclo. Antes ganaba la primera en orden de bytes, en silencio: de un eco de
+       estrés se importaba la FEVI de reposo como si fuera "la" FEVI.
+       No hay forma de elegir bien desde acá, así que no se elige: entra destildada y
+       se dice cuántas había. El orden de bytes no es un criterio clínico. */
+    elegidas.forEach(r => {
+      const iguales = mapeadas.filter(o => o.campo === r.campo && o.pref === r.pref &&
+                                           (o.derivacion || '') === (r.derivacion || ''));
+      if (iguales.length > 1 && new Set(iguales.map(o => _dcmRed(o.valor))).size > 1) {
+        r.empate = iguales.length;
+        r.dudoso = true;
+      }
+      r.usar = !r.dudoso;                                 // los dudosos entran destildados
+    });
+    /* Qué hay YA guardado para este paciente y fecha. Se resuelve acá y no al confirmar,
+       porque «Actualizar (fusiona campos)» pisa cada clave que trae el SR: si el
+       cardiólogo ya midió y escribió FEVI 55, el archivo del ecógrafo la reemplaza por 48
+       sin que nada lo muestre y sin deshacer. Teniendo el valor guardado a mano, la vista
+       previa puede decir «55 → 48» y dejar esa fila destildada. */
+    let previo = null;
+    try {
+      const key = new Set(_dupKeys({ nombre:pac.nombre, ci:'', fecha_estudio:pac.fecha_estudio }));
+      previo = (getInformes() || []).find(i => _dupKeys(i).some(k => key.has(k))) || null;
+    } catch (e) { previo = null; }
+    if (previo && previo.campos) {
+      elegidas.forEach(r => {
+        const v = previo.campos[r.campo];
+        if (v !== undefined && v !== '' && String(v) !== _dcmRed(r.valor)) {
+          r.pisa = String(v);
+          r.usar = false;                                 // no se pisa nada sin un tilde a mano
+        }
+      });
+    }
+    estudios.push({ archivo:f.name, pac, filas:elegidas, repetidas, descartes,
+                    ts:p.ts.nom, truncado:!!p.truncado, previo:!!previo });
+  }
+  if (!estudios.length) {
+    const det = fallos.map(f => '· ' + f.archivo + ': ' + f.motivo).join('\n');
+    alert('No se pudo importar ningún archivo.\n\n' + (det || 'Sin detalle.'));
+    return;
+  }
+  _dcmDatos = { estudios, fallos };
+  _dcmRenderPreview();
+}
+
+function _dcmRenderPreview() {
+  const d = _dcmDatos;
+  let ov = document.getElementById('dcm-imp-ov');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'dcm-imp-ov';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.6);display:flex;' +
+                       'align-items:center;justify-content:center;padding:14px;';
+    document.body.appendChild(ov);
+  }
+  const E = (typeof escHtml === 'function') ? escHtml : (s => String(s == null ? '' : s));
+  const bloque = (est, ie) => {
+    const fs = est.filas.map((r, i) => {
+      const met = r.metodo ? ' <span style="color:var(--text2);">· ' + E(r.metodo) + '</span>' : '';
+      const conv = (r.unidadOrig !== '' && _dcmRed(r.valorOrig) !== _dcmRed(r.valor))
+        ? '<div style="font-size:10px;color:var(--text2);">' + E(_dcmRed(r.valorOrig) + ' ' + r.unidadOrig) + ' → convertido</div>' : '';
+      const amb = t => '<div style="font-size:10px;color:#f59e0b;margin-top:2px;">⚠️ ' + t + '</div>';
+      let av = '';
+      if (r.campo === 'vmax_it') av += amb('El estándar no tiene código para la PSAP. Esto es la Vmax de la insuficiencia tricuspídea: EcoSmart calcula la PSAP a partir de ella y de la VCI. Revisá que sea el jet regurgitante.');
+      if (r.derivacion)         av += amb('El archivo la declara como <b>' + E(r.derivacion) + '</b> de varias medidas, no como la medición. Elegí vos si va.');
+      if (r.empate)             av += amb('El archivo trae <b>' + r.empate + '</b> valores distintos con este mismo código —típico de un eco de estrés, uno por etapa— y no hay forma de saber cuál corresponde. Se muestra el primero; los otros están más abajo.');
+      if (r.pisa)               av += amb('Este estudio ya tiene <b>' + E(r.pisa) + '</b> guardado en ese campo. Tildarlo con «Actualizar» lo reemplaza y no hay deshacer.');
+      const val = r.pisa
+        ? '<span style="color:var(--text2);text-decoration:line-through;">' + E(r.pisa) + '</span> → ' + E(_dcmRed(r.valor))
+        : E(_dcmRed(r.valor));
+      return '<tr>' +
+        '<td style="padding:5px 6px;vertical-align:top;"><input type="checkbox" data-e="' + ie + '" data-i="' + i + '" class="dcm-chk"' + (r.usar ? ' checked' : '') + '></td>' +
+        '<td style="padding:5px 6px;vertical-align:top;font-size:11px;color:var(--text2);white-space:nowrap;">' + E(r.cod.v) + '<br><span style="font-size:9px;">' + E(r.cod.e) + '</span></td>' +
+        '<td style="padding:5px 6px;vertical-align:top;">' + E(r.etiq) + met + av + conv + '</td>' +
+        '<td style="padding:5px 6px;vertical-align:top;text-align:right;font-weight:700;white-space:nowrap;">' + val + '</td>' +
+        '<td style="padding:5px 6px;vertical-align:top;font-size:11px;color:var(--text2);white-space:nowrap;">' + E(r.campo) + '</td>' +
+      '</tr>';
+    }).join('');
+    const desc = est.descartes.length
+      ? '<details style="margin-top:8px;"><summary style="cursor:pointer;font-size:12px;color:var(--text2);">' +
+        est.descartes.length + ' medición(es) leída(s) y NO importada(s) — ver motivo</summary>' +
+        '<ul style="margin:6px 0 0 18px;font-size:11px;color:var(--text2);line-height:1.5;">' +
+        est.descartes.slice(0, 60).map(x => '<li>' + (x.cod ? '<code>' + E(x.cod.v) + '</code> ' + E(x.cod.m || '') + ' — ' : '') +
+          E(x.motivo) + (x.valor != null ? ' (' + E(_dcmRed(x.valor) + ' ' + (x.unidad || '')) + ')' : '') + '</li>').join('') +
+        (est.descartes.length > 60 ? '<li>… y ' + (est.descartes.length - 60) + ' más</li>' : '') +
+        '</ul></details>' : '';
+    const rep = est.repetidas.length
+      ? '<details style="margin-top:6px;"><summary style="cursor:pointer;font-size:12px;color:var(--text2);">' +
+        est.repetidas.length + ' valor(es) alternativo(s) del mismo parámetro — no se usan</summary>' +
+        '<ul style="margin:6px 0 0 18px;font-size:11px;color:var(--text2);line-height:1.5;">' +
+        est.repetidas.slice(0, 40).map(x => '<li><code>' + E(x.cod.v) + '</code> ' + E(x.etiq) +
+          (x.metodo ? ' (' + E(x.metodo) + ')' : '') +
+          (x.derivacion ? ' · ' + E(x.derivacion) : '') +
+          ' = ' + E(_dcmRed(x.valor)) + '</li>').join('') +
+        (est.repetidas.length > 40 ? '<li>… y ' + (est.repetidas.length - 40) + ' más</li>' : '') +
+        '</ul></details>' : '';
+    return '<div style="border:1px solid var(--border);border-radius:9px;padding:10px;margin-bottom:10px;">' +
+      '<div style="font-weight:700;font-size:13px;">' + E(est.pac.nombre || '(sin nombre)') + '</div>' +
+      '<div style="font-size:11px;color:var(--text2);margin-bottom:8px;">' +
+        E(est.pac.fecha_estudio || 'sin fecha') + (est.pac.equipo ? '  ·  ' + E(est.pac.equipo) : '') +
+        '  ·  ' + E(est.archivo) + '  ·  ' + E(est.ts) + '</div>' +
+      (est.truncado ? '<div style="font-size:11px;color:#fca5a5;background:rgba(127,29,29,.22);border:1px solid #7f1d1d;border-radius:7px;padding:6px 8px;margin-bottom:6px;">🔴 <b>El archivo se cortó antes del final.</b> Lo que aparece abajo es lo que se alcanzó a leer; puede haber mediciones que no se leyeron y que no figuran ni siquiera como descartadas. Conviene volver a exportarlo del ecógrafo antes de usarlo.</div>' : '') +
+      (est.pac.fecha_estudio ? '' : '<div style="font-size:11px;color:#f59e0b;margin-bottom:6px;">⚠️ Sin fecha de estudio: la deduplicación por documento+fecha no puede funcionar y el estudio no va a aparecer en el Laboratorio, que filtra por fecha.</div>') +
+      (est.pac.idInstitucional ? '<div style="font-size:11px;color:var(--text2);margin-bottom:6px;">El archivo trae el identificador <b>' + E(est.pac.idInstitucional) + '</b> (0010,0020). No se importa como documento: en un ecógrafo de hospital es el número de historia clínica de esa institución, no una cédula, y usarlo como documento haría que se cruce con el de otro paciente. Si corresponde, cargalo a mano.</div>' : '') +
+      (est.previo ? '<div style="font-size:11px;color:var(--text2);margin-bottom:6px;">Ya existe un estudio guardado de este paciente en esta fecha. Los campos que lo pisarían están destildados y marcados.</div>' : '') +
+      '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+        '<tr style="color:var(--text2);font-size:10px;text-align:left;"><th></th><th>Código</th><th>Medición</th><th style="text-align:right;">Valor</th><th>Campo</th></tr>' +
+        fs + '</table>' + rep + desc + '</div>';
+  };
+  const fallos = d.fallos.length
+    ? '<div style="border:1px solid #7f1d1d;background:rgba(127,29,29,.18);border-radius:9px;padding:9px;margin-bottom:10px;font-size:12px;">' +
+      '<b>' + d.fallos.length + ' archivo(s) no se pudieron abrir</b><ul style="margin:5px 0 0 18px;line-height:1.5;">' +
+      d.fallos.map(f => '<li>' + E(f.archivo) + ': ' + E(f.motivo) + '</li>').join('') + '</ul></div>' : '';
+
+  ov.innerHTML =
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:820px;width:100%;' +
+    'max-height:90vh;overflow:auto;padding:16px;">' +
+      '<h3 style="margin:0 0 4px;font-size:15px;">🏥 Importar DICOM SR</h3>' +
+      '<div style="font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.5;">' +
+        'Sólo se escribe lo que esté tildado. Las unidades se convierten según la unidad UCUM que declara ' +
+        'cada medición en el archivo, no según una tabla fija. Los campos calculados de EcoSmart ' +
+        '(PSAP, gradiente máximo, E/e\') no se importan: se importan las mediciones que los alimentan y ' +
+        'la app los recalcula.</div>' +
+      fallos +
+      d.estudios.map(bloque).join('') +
+      '<div style="margin:10px 0;font-size:12px;">Si el paciente y la fecha ya existen: ' +
+        '<label style="margin-right:10px;"><input type="radio" name="dcm-dup" value="omitir" checked style="width:auto;"> Omitir</label>' +
+        '<label><input type="radio" name="dcm-dup" value="actualizar" style="width:auto;"> Actualizar (fusiona campos)</label></div>' +
+      '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
+        '<button type="button" class="btn btn-ghost" id="dcm-imp-cancel">Cancelar</button>' +
+        '<button type="button" class="btn btn-primary" id="dcm-imp-ok">Importar seleccionados</button>' +
+      '</div>' +
+    '</div>';
+  ov.style.display = 'flex';
+  ov.querySelector('#dcm-imp-cancel').onclick = dcmImpCerrar;
+  ov.querySelector('#dcm-imp-ok').onclick = dcmImpEjecutar;
+  ov.querySelectorAll('.dcm-chk').forEach(c => {
+    c.onchange = () => { _dcmDatos.estudios[+c.dataset.e].filas[+c.dataset.i].usar = c.checked; };
+  });
+}
+function dcmImpCerrar() {
+  const ov = document.getElementById('dcm-imp-ov');
+  if (ov) ov.style.display = 'none';
+  _dcmDatos = null;
+}
+
+async function dcmImpEjecutar() {
+  const d = _dcmDatos; if (!d) return;
+  const modo = document.querySelector('input[name="dcm-dup"]:checked')?.value || 'omitir';
+  const nuevosInf = [];
+  let noReconocidos = 0;
+  d.estudios.forEach(est => {
+    noReconocidos += est.descartes.length;
+    const usadas = est.filas.filter(r => r.usar);
+    if (!usadas.length) return;
+    const cs = {};
+    usadas.forEach(r => { cs[r.campo] = _dcmRed(r.valor); });
+    nuevosInf.push({ id:0, nombre:est.pac.nombre, ci:'', doc_tipo:'CI',
+                     fecha_estudio:est.pac.fecha_estudio, campos:cs });
+  });
+  if (!nuevosInf.length) { toast('⚠️ No hay ninguna medición tildada'); return; }
+
+  /* Misma deduplicación que el importador JSON y que el de Excel: _dupKeys (documento+
+     fecha, con respaldo por nombre+fecha). Si cada vía comparara distinto, mezclar dos
+     de ellas duplicaría los estudios. */
+  let existentes = getInformes();
+  const usados = new Set(existentes.map(i => i.id));
+  const keyToIdx = new Map();
+  existentes.forEach((i, idx) => _dupKeys(i).forEach(k => { if (!keyToIdx.has(k)) keyToIdx.set(k, idx); }));
+  const buscar = inf => { for (const k of _dupKeys(inf)) if (keyToIdx.has(k)) return keyToIdx.get(k); return -1; };
+  let nuevos = 0, actualizados = 0, omitidos = 0, campos = 0;
+
+  nuevosInf.forEach(inf => {
+    const idx = buscar(inf);
+    if (idx >= 0) {
+      /* El conteo de campos va DESPUÉS de decidir si el estudio se escribe. Contándolo
+         antes, un archivo repetido en modo «omitir» anunciaba "18 campos importados ·
+         0 nuevos · 1 omitido": el número grande decía que entraron 18 y no entró
+         ninguno. El que lee el toast se queda con la primera cifra. */
+      if (modo !== 'actualizar') { omitidos++; return; }
+      campos += Object.keys(inf.campos).length;
+      const prev = existentes[idx];
+      // Fusión, no reemplazo: el SR trae ~15 campos y un estudio cargado a mano tiene cientos.
+      const merged = { ...prev, campos:{ ...(prev.campos||{}), ...inf.campos } };
+      if (inf.nombre) merged.nombre = inf.nombre;
+      if (inf.ci) merged.ci = inf.ci;
+      existentes[idx] = merged;
+      actualizados++;
+      return;
+    }
+    campos += Object.keys(inf.campos).length;
+    const nid = _nuevoIdUnico(usados);
+    const nuevo = { ...inf, id:nid,
+                    estudioId: Date.now().toString(36) + Math.random().toString(36).substr(2,5),
+                    fecha_guardado: new Date().toISOString() };
+    existentes.push(nuevo);
+    _dupKeys(nuevo).forEach(k => { if (!keyToIdx.has(k)) keyToIdx.set(k, existentes.length - 1); });
+    nuevos++;
+  });
+
+  const _p = (typeof guardarInformesSeguro === 'function') ? guardarInformesSeguro(existentes) : CeiboStore.setLocal(existentes);
+  dcmImpCerrar();
+  const ok = await _p;
+  if (ok === false) return;                       // guardarInformesSeguro ya avisó de la cuota
+  if (typeof renderInformesGuardados === 'function') renderInformesGuardados();
+  if (typeof labInit === 'function') labInit();
+  toast('✅ ' + campos + ' campos importados · ' + noReconocidos + ' campos no reconocidos · ' +
+        nuevos + ' estudio(s) nuevo(s)' +
+        (actualizados ? ' · ' + actualizados + ' actualizado(s)' : '') +
+        (omitidos ? ' · ' + omitidos + ' omitido(s) por duplicado' : ''));
+}
+
+/* ══════════════ ESCRITURA — TID 5300 Simplified Echo Procedure Report ══════════════ */
+
+/* UID irrepetible sin raíz registrada. 2.25 es el arco que la ISO/ITU reserva para
+   UUID: 2.25.<el UUID como entero decimal>. Es la salida estándar cuando no se tiene
+   un prefijo propio; inventar uno bajo la raíz de otro fabricante sí sería incorrecto. */
+function _dcmUID() {
+  const b = new Uint8Array(16);
+  (window.crypto || window.msCrypto).getRandomValues(b);
+  let n = 0n;
+  for (let i = 0; i < 16; i++) n = (n << 8n) | BigInt(b[i]);
+  return '2.25.' + n.toString();
+}
+function _dcmDA(d) { return d.getFullYear() + ('0'+(d.getMonth()+1)).slice(-2) + ('0'+d.getDate()).slice(-2); }
+function _dcmTM(d) { return ('0'+d.getHours()).slice(-2) + ('0'+d.getMinutes()).slice(-2) + ('0'+d.getSeconds()).slice(-2); }
+
+/* Los VR de texto son de repertorio limitado y esta app escribe con SpecificCharacterSet
+   ISO_IR 192 (UTF-8), así que los acentos van bien. Lo que NO puede ir son los caracteres
+   de control y el backslash, que en DICOM es el separador de multiplicidad: un apellido
+   con "\" partiría el valor en dos. */
+function _dcmSan(s) {
+  return String(s == null ? '' : s).replace(/[\\\x00-\x1f\x7f]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function _dcmEsc(vr, valor) {
+  // Devuelve los bytes del valor, ya rellenados a longitud par.
+  let bytes;
+  if (valor instanceof Uint8Array) bytes = valor;
+  else {
+    const s = String(valor);
+    bytes = new TextEncoder().encode(s);
+  }
+  if (bytes.length % 2) {
+    // UI se rellena con NUL; el resto de los VR de texto, con espacio.
+    const pad = (vr === 'UI') ? 0x00 : 0x20;
+    const b2 = new Uint8Array(bytes.length + 1);
+    b2.set(bytes); b2[bytes.length] = pad;
+    bytes = b2;
+  }
+  return bytes;
+}
+
+/* Serializa un elemento en Explicit VR Little Endian. */
+function _dcmElem(tagHex, vr, valor) {
+  const g = parseInt(tagHex.slice(0,4), 16), e = parseInt(tagHex.slice(4,8), 16);
+  const cuerpo = _dcmEsc(vr, valor);
+  const largo = !!DCM_VR_LARGO[vr];
+  /* Los VR cortos llevan la longitud en 16 bits. Sin este control, un valor de más de
+     64 KB la escribía dada la vuelta (setUint16 trunca sin avisar) y el archivo salía
+     corrupto pero con extensión .dcm: el PACS lo rechaza o —peor— lo lee hasta donde
+     puede. Preferible fallar acá, con el tag a la vista. */
+  if (!largo && cuerpo.length > 0xFFFF) {
+    throw new Error('El valor del elemento (' + tagHex.slice(0,4) + ',' + tagHex.slice(4) +
+                    ') mide ' + cuerpo.length + ' bytes y no entra en un VR ' + vr);
+  }
+  const cab = new Uint8Array(largo ? 12 : 8);
+  const dv = new DataView(cab.buffer);
+  dv.setUint16(0, g, true); dv.setUint16(2, e, true);
+  cab[4] = vr.charCodeAt(0); cab[5] = vr.charCodeAt(1);
+  if (largo) { dv.setUint16(6, 0, true); dv.setUint32(8, cuerpo.length, true); }
+  else dv.setUint16(6, cuerpo.length, true);
+  return [cab, cuerpo];
+}
+/* Serializa una lista [tag, vr, valor] ORDENADA por tag. PS3.5 §7.4 exige orden creciente
+   dentro del dataset. Este lector es un barrido lineal y no se entera, pero un PACS
+   estricto rechaza el archivo entero; y con la lista escrita a mano el orden se rompía
+   cada vez que alguien agregaba un elemento en el lugar "lógico" en vez del numérico.
+   `vr === 'SQ'` delega en _dcmSeq. */
+function _dcmOrden(lista) {
+  return _dcmConcat(lista
+    .slice()
+    .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+    .map(([tag, vr, val]) => vr === 'SQ' ? _dcmSeq(tag, val) : _dcmElem(tag, vr, val)));
+}
+function _dcmConcat(trozos) {
+  const planos = [];
+  (function aplanar(x){ x.forEach(y => Array.isArray(y) ? aplanar(y) : planos.push(y)); })(trozos);
+  const total = planos.reduce((a, b) => a + b.length, 0);
+  const out = new Uint8Array(total);
+  let p = 0; planos.forEach(b => { out.set(b, p); p += b.length; });
+  return out;
+}
+/* Secuencia de longitud definida con items de longitud definida. Es la codificación
+   más interoperable: los PACS viejos que tropiezan con las longitudes indefinidas la
+   leen igual. */
+function _dcmSeq(tagHex, items) {
+  const cuerpos = items.map(it => {
+    const d = _dcmConcat(it);
+    const cab = new Uint8Array(8);
+    const dv = new DataView(cab.buffer);
+    dv.setUint16(0, 0xFFFE, true); dv.setUint16(2, 0xE000, true); dv.setUint32(4, d.length, true);
+    return [cab, d];
+  });
+  const cuerpo = _dcmConcat(cuerpos);
+  const g = parseInt(tagHex.slice(0,4), 16), e = parseInt(tagHex.slice(4,8), 16);
+  const cab = new Uint8Array(12);
+  const dv = new DataView(cab.buffer);
+  dv.setUint16(0, g, true); dv.setUint16(2, e, true);
+  cab[4] = 0x53; cab[5] = 0x51;                 // 'SQ'
+  dv.setUint16(6, 0, true); dv.setUint32(8, cuerpo.length, true);
+  return [cab, cuerpo];
+}
+/* Item de código (CodeValue / CodingSchemeDesignator / CodeMeaning). */
+function _dcmCod(v, e, m) {
+  return [ _dcmElem('00080100','SH', v), _dcmElem('00080102','SH', e), _dcmElem('00080104','LO', _dcmSan(m)) ];
+}
+/* Content item NUM de TID 5301 (pre-coordinado: el código ya lleva sitio y método). */
+function _dcmNum(cod, esq, sig, valor, ucum, ucumTxt) {
+  return [
+    _dcmElem('0040A010','CS','CONTAINS'),
+    _dcmElem('0040A040','CS','NUM'),
+    _dcmSeq('0040A043', [ _dcmCod(cod, esq, sig) ]),
+    _dcmSeq('0040A300', [[
+      _dcmElem('0040A30A','DS', String(valor)),
+      _dcmSeq('004008EA', [ _dcmCod(ucum, 'UCUM', ucumTxt) ])
+    ]])
+  ];
+}
+
+/* Qué se exporta. Cada entrada: campo del formulario → código pre-coordinado + unidad
+   DICOM + factor desde la unidad de EcoSmart. Es la MISMA tabla verificada que usa el
+   importador, recorrida al revés; el primer código de cada `cods` es el que se emite. */
+const DCM_EXPORT = [
+  { campo:'fevi',      cod:'79991-6', u:'%',      ut:'%',    f:1 },
+  { campo:'siv',       cod:'79969-2', u:'cm',     ut:'cm',   f:0.1 },
+  { campo:'ddfvi',     cod:'80007-8', u:'cm',     ut:'cm',   f:0.1 },
+  { campo:'ppvi',      cod:'80032-6', u:'cm',     ut:'cm',   f:0.1 },
+  { campo:'tapse',     cod:'77903-3', u:'cm',     ut:'cm',   f:0.1 },
+  { campo:'ai_vol',    cod:'79983-3', u:'ml',     ut:'ml',   f:1 },
+  { campo:'onda_e',    cod:'80070-6', u:'cm/s',   ut:'cm/s', f:1 },
+  { campo:'onda_a',    cod:'80066-4', u:'cm/s',   ut:'cm/s', f:1 },
+  { campo:'e_sep',     cod:'79911-4', u:'cm/s',   ut:'cm/s', f:1 },
+  { campo:'e_lat',     cod:'80054-0', u:'cm/s',   ut:'cm/s', f:1 },
+  { campo:'tde',       cod:'78191-4', u:'ms',     ut:'ms',   f:1 },
+  { campo:'vmax_it',   cod:'79921-3', u:'cm/s',   ut:'cm/s', f:100 },
+  { campo:'vmax_ao',   cod:'79964-3', u:'cm/s',   ut:'cm/s', f:100 },
+  { campo:'gmedio_ao', cod:'79962-7', u:'mm[Hg]', ut:'mmHg', f:1 },
+  { campo:'em_gmedio', cod:'80073-0', u:'mm[Hg]', ut:'mmHg', f:1 },
+  { campo:'ao_sin',    cod:'79953-6', u:'cm',     ut:'cm',   f:0.1 },
+  { campo:'ao_st',     cod:'79955-1', u:'cm',     ut:'cm',   f:0.1 },
+  { campo:'ao_tub',    cod:'79966-8', u:'cm',     ut:'cm',   f:0.1 }
+];
+
+/* Envoltorio: la construcción del archivo puede lanzar (_dcmElem rechaza un valor que no
+   entra en un VR corto). Sin esto la excepción se escapaba del onclick del menú y no
+   pasaba NADA — ni descarga, ni toast, ni error visible—, que desde afuera se lee como
+   "el botón no anda". */
+function dcmExportarSR() {
+  try { _dcmExportarSR(); }
+  catch (e) { toast('❌ No se pudo generar el DICOM SR: ' + (e && e.message ? e.message : e)); }
+}
+function _dcmExportarSR() {
+  const gv = id => { const el = document.getElementById(id); return el ? String(el.value || '').trim() : ''; };
+  const nombre = gv('nombre');
+  const fecha  = gv('fecha');
+  /* `fecha` viene pre-cargada con la de hoy al arrancar, así que exigir "nombre O fecha"
+     nunca frenaba nada: se pide el NOMBRE, que es lo que identifica el estudio en el PACS
+     y lo único que distingue un formulario cargado de uno vacío. */
+  if (!nombre) { toast('⚠️ Cargá el nombre del paciente antes de exportar a DICOM'); return; }
+
+  const meds = [];
+  DCM_EXPORT.forEach(d => {
+    const raw = gv(d.campo);
+    if (raw === '') return;
+    const n = parseFloat(raw.replace(',', '.'));
+    if (!isFinite(n)) return;
+    const v = n * d.f;
+    meds.push(_dcmNum(d.cod, 'LN', _dcmEtiquetaCampo(d.campo), Math.round(v * 10000) / 10000, d.u, d.ut));
+  });
+  if (!meds.length) { toast('⚠️ El estudio no tiene ninguna medición exportable a DICOM SR'); return; }
+
+  /* Sin documento en el archivo, por pedido explícito: un .dcm circula por el PACS y
+     por correo, y el nombre + la fecha ya identifican el estudio para el que lo pidió.
+     PatientID va vacío y no ausente: es Tipo 2, tiene que estar presente. */
+  const ahora = new Date();
+  const fechaDA = /^\d{4}-\d{2}-\d{2}$/.test(fecha) ? fecha.replace(/-/g, '') : _dcmDA(ahora);
+  const pnDicom = _dcmPNdesdeApp(nombre);
+
+  // Médico Principal, igual que la firma del PDF. Si no hay, va vacío (Tipo 2).
+  const _pr = (typeof ecoGetMedicos === 'function') ? ecoGetMedicos() : [];
+  const _md = _pr.length ? (_pr[(typeof ecoGetMedPrincipal === 'function') ? ecoGetMedPrincipal() : 0] || _pr[0]) : null;
+  const medico = _md ? _dcmSan(_md.nombre) : '';
+
+  const sopInst = _dcmUID(), studyUID = _dcmUID(), seriesUID = _dcmUID();
+
+  /* Contexto de observación (TID 1002): quién firma va ACÁ, como content item con
+     concepto (121008, DCM) "Person Observer Name". NO en (0008,0090)
+     ReferringPhysicianName, que es quién PIDIÓ el estudio: poniendo al cardiólogo que
+     informa en el campo del que deriva, la lista de trabajo del PACS le atribuye a sí
+     mismo la derivación. (0008,0090) queda vacío —es Tipo 2, tiene que estar presente—
+     porque la app no registra al médico derivante. */
+  const contenido = [];
+  if (medico) contenido.push([
+    _dcmElem('0040A010','CS','HAS OBS CONTEXT'),
+    _dcmElem('0040A040','CS','PNAME'),
+    _dcmSeq('0040A043', [ _dcmCod('121008','DCM','Person Observer Name') ]),
+    _dcmElem('0040A123','PN', _dcmPNdesdeApp(medico))
+  ]);
+  // (125301, DCM) Pre-coordinated Measurements — TID 5301
+  contenido.push([
+    _dcmElem('0040A010','CS','CONTAINS'),
+    _dcmElem('0040A040','CS','CONTAINER'),
+    _dcmSeq('0040A043', [ _dcmCod('125301','DCM','Pre-coordinated Measurements') ]),
+    _dcmElem('0040A050','CS','SEPARATE'),
+    _dcmSeq('0040A730', meds)
+  ]);
+
+  /* Los elementos se declaran acá y se ORDENAN por tag antes de serializar (ver
+     _dcmOrden). PS3.5 §7.4 exige orden creciente de tag en el dataset; este lector es un
+     barrido lineal y no se entera, pero un PACS estricto rechaza el archivo entero. Con
+     la lista desordenada a mano el orden se rompía cada vez que alguien agregaba un
+     elemento en el lugar "lógico" en vez del numérico — ya pasaba con ContentDate. */
+  const ds = _dcmOrden([
+    ['00080005','CS','ISO_IR 192'],                       // UTF-8
+    ['00080012','DA', _dcmDA(ahora)],
+    ['00080013','TM', _dcmTM(ahora)],
+    ['00080016','UI', DCM_SOP_COMPREHENSIVE],
+    ['00080018','UI', sopInst],
+    ['00080020','DA', fechaDA],
+    ['00080023','DA', fechaDA],
+    ['00080030','TM','000000'],
+    ['00080033','TM','000000'],
+    ['00080050','SH',''],                                 // AccessionNumber (Tipo 2)
+    ['00080060','CS','SR'],
+    ['00080070','LO','CeiboMed'],
+    ['00080090','PN',''],                                 // ReferringPhysicianName (Tipo 2, sin dato)
+    ['0008103E','LO','Informe de ecocardiograma'],
+    ['00081090','LO','EcoSmart'],
+    ['00100010','PN', pnDicom],
+    ['00100020','LO',''],                                 // sin documento, a propósito
+    ['00100030','DA',''],
+    ['00100040','CS', gv('sexo') === 'M' ? 'M' : (gv('sexo') === 'F' ? 'F' : '')],
+    ['00181020','LO','EcoSmart'],
+    ['0020000D','UI', studyUID],
+    ['0020000E','UI', seriesUID],
+    ['00200010','SH',''],                                 // StudyID (Tipo 2)
+    ['00200011','IS','1'],
+    ['00200013','IS','1'],
+    /* PARTIAL y UNVERIFIED, no COMPLETE/VERIFIED. Este archivo lo produce una app de
+       escritorio a partir de un formulario, no el ecógrafo, y no lleva la verificación
+       de un observador identificado. Declararlo verificado sería afirmar en el archivo
+       algo que no ocurrió. */
+    ['0040A491','CS','PARTIAL'],
+    ['0040A493','CS','UNVERIFIED'],
+    // ── Árbol de contenido: TID 5300 ──
+    ['0040A040','CS','CONTAINER'],
+    ['0040A043','SQ', [ _dcmCod('125200','DCM','Adult Echocardiography Procedure Report') ]],
+    ['0040A050','CS','SEPARATE'],
+    ['0040A730','SQ', contenido]
+  ]);
+
+  // ── File Meta Information (siempre Explicit VR LE) ──
+  const metaSinLong = _dcmConcat([
+    _dcmElem('00020001','OB', new Uint8Array([0,1])),
+    _dcmElem('00020002','UI', DCM_SOP_COMPREHENSIVE),
+    _dcmElem('00020003','UI', sopInst),
+    _dcmElem('00020010','UI','1.2.840.10008.1.2.1'),              // Explicit VR Little Endian
+    _dcmElem('00020012','UI', DCM_UID_IMPL),
+    _dcmElem('00020013','SH','EcoSmart')
+  ]);
+  const meta = _dcmConcat([ _dcmElem('00020000','UL', new Uint8Array(new Uint32Array([metaSinLong.length]).buffer)), metaSinLong ]);
+
+  const preambulo = new Uint8Array(132);
+  preambulo[128] = 0x44; preambulo[129] = 0x49; preambulo[130] = 0x43; preambulo[131] = 0x4D;  // "DICM"
+  const archivo = _dcmConcat([ preambulo, meta, ds ]);
+
+  const blob = new Blob([archivo], { type:'application/dicom' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ETT_SR_' + (_dcmSan(nombre) || 'paciente').replace(/\s+/g,'_') + '_' + (fecha || _dcmDA(ahora)) + '.dcm';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('✅ DICOM SR generado — ' + meds.length + ' mediciones');
+}
+function _dcmEtiquetaCampo(campo) {
+  const d = DCM_MAPA.find(x => x.campo === campo);
+  return d ? d.etiq : campo;
+}
+
+window.dcmImportarSR = dcmImportarSR;
+window.dcmExportarSR = dcmExportarSR;
+window.dcmImpCerrar  = dcmImpCerrar;
+
 // ── Lab subtabs ──
 function labSubTab(id, el) {
   document.querySelectorAll('#tab-lab .lab-subtab')
@@ -23888,6 +25021,109 @@ function igToggleAcc(id, btn) {
   if (btn) btn.setAttribute('aria-expanded', abrir ? 'true' : 'false');
 }
 window.igToggleAcc = igToggleAcc;
+
+/* ══════════ Desplegables 📤 Exportar ▾ / 📥 Importar ▾ de Guardados ══════════ */
+function igIOCerrar() {
+  ['exp','imp'].forEach(k => {
+    const m = document.getElementById('igio-menu-' + k);
+    const b = document.getElementById('igio-btn-' + k);
+    if (m) m.classList.remove('open');
+    if (b) b.setAttribute('aria-expanded','false');
+  });
+  const ov = document.getElementById('igio-ov');
+  if (ov) ov.classList.remove('open');
+}
+function igIOToggle(cual) {
+  const m = document.getElementById('igio-menu-' + cual);
+  if (!m) return;
+  const abrir = !m.classList.contains('open');
+  igIOCerrar();                       // los dos menús nunca abiertos a la vez
+  if (!abrir) return;
+  if (cual === 'exp') { igIOSubXLSX(); igIOSubDCM(); }
+  m.classList.add('open');
+  const b = document.getElementById('igio-btn-' + cual);
+  if (b) b.setAttribute('aria-expanded','true');
+  const ov = document.getElementById('igio-ov');
+  if (ov) ov.classList.add('open');
+  igIOEncuadrar(m);
+}
+/* El menú cuelga alineado a la DERECHA del botón, que es lo correcto mientras la fila
+   del contador no se parte. En celular sí se parte: los dos botones caen a un renglón
+   propio pegados a la izquierda, y anclado a la derecha el panel arrancaba en x=-128 —
+   la mitad de las opciones fuera de la pantalla, sin scroll horizontal que las alcance.
+   Se corrige MIDIENDO en vez de adivinando con un breakpoint: el desborde depende de si
+   la fila se partió, no del ancho de la ventana.
+   Y se corrige DESPLAZANDO, no cambiando de ancla: a 375 px el menú de Importar no entra
+   ni anclado a la derecha (se iba a x=-31) ni a la izquierda (llegaba a 378). Deslizarlo
+   lo justo siempre tiene solución mientras el panel sea más angosto que la pantalla, que
+   es lo que garantiza el max-width del CSS. */
+function igIOEncuadrar(m) {
+  m.style.transform = '';
+  const M = 8;
+  /* clientWidth y no innerWidth: innerWidth incluye la barra de desplazamiento y el
+     layout no, así que en escritorio el borde derecho quedaba unos 7 px por debajo de
+     ella. */
+  const W = document.documentElement.clientWidth || window.innerWidth;
+  const r = m.getBoundingClientRect();
+  let dx = 0;
+  if (r.left < M) dx = M - r.left;
+  else if (r.right > W - M) dx = (W - M) - r.right;
+  if (dx) m.style.transform = 'translateX(' + Math.round(dx) + 'px)';
+}
+/* Rotar el celular con el menú abierto cambia si la fila se parte o no, y el translateX
+   calculado para el ancho anterior deja el panel corrido o medio afuera. Se cierra, que
+   es lo mismo que hace el menú ⋮ del encabezado por la misma razón. */
+window.addEventListener('resize', () => { if (document.querySelector('.igio-menu.open')) igIOCerrar(); });
+/* El "Excel — datos del laboratorio" NO exporta lo que se está viendo: exporta lo que
+   pasa los filtros del LABORATORIO (labGetInformes), cuyo período arranca en "Último
+   año". Mientras el botón vivía dentro del Laboratorio ese recorte estaba a la vista, al
+   lado de los selectores que lo producen. Acá no.
+
+   La comparación se hace contra igFiltrar(null) —lo que muestra el contador que está a
+   20 cm a la izquierda, en la misma fila— y NO contra getInformes(). Comparar contra el
+   total era peor que no avisar: filtrando Guardados a 14 estudios de 2023, labGetInformes
+   devolvía los 120 del último año, 120 === 120 daba "sin diferencias" y el subtítulo
+   salía en gris diciendo "120 estudios". El médico se llevaba un Excel de 120 sin
+   NINGUNO de los 14 que tenía en pantalla, con un cartel que lo tranquilizaba. */
+function igIOSubXLSX() {
+  const sub = document.getElementById('igio-exp-xlsx-sub');
+  if (!sub) return;
+  let pantalla = [], excel = [];
+  try { pantalla = igFiltrar(null) || []; } catch (e) { pantalla = []; }
+  try { excel = labGetInformes() || []; } catch (e) { excel = []; }
+  const idsExcel = new Set(excel.map(i => i.id));
+  const faltan = pantalla.filter(i => !idsExcel.has(i.id)).length;
+  const plural = n => n + ' estudio' + (n === 1 ? '' : 's');
+
+  if (faltan === 0 && excel.length === pantalla.length) {
+    sub.textContent = 'Datos del laboratorio — ' + plural(excel.length);
+    sub.style.color = '';
+    return;
+  }
+  const per = document.getElementById('lab-periodo');
+  const periodo = per && per.selectedOptions[0] ? per.selectedOptions[0].text : '';
+  sub.textContent = plural(excel.length) + ' — usa los filtros del Laboratorio' +
+    (periodo ? ' (' + periodo + ')' : '') + ', no los de esta pantalla' +
+    (faltan ? '. Quedan afuera ' + faltan + ' de los ' + pantalla.length + ' que ves' : '');
+  sub.style.color = 'var(--amber, #f59e0b)';
+}
+/* Las otras tres opciones de Exportar leen la BASE de estudios; DICOM SR lee el
+   FORMULARIO que está cargado. Parado en Guardados con la lista filtrada por un paciente
+   y otro todavía abierto en el formulario, el .dcm sale con el del formulario. Decirlo
+   («Estudio del formulario») no alcanza: lo que despeja la duda es el nombre. */
+function igIOSubDCM() {
+  const sub = document.getElementById('igio-exp-dcm-sub');
+  if (!sub) return;
+  const n = (document.getElementById('nombre')?.value || '').trim();
+  const f = (document.getElementById('fecha')?.value || '').trim();
+  sub.textContent = n
+    ? ('Del formulario abierto: ' + n + (f ? ' · ' + f.split('-').reverse().join('/') : '') + ' — para PACS')
+    : 'El formulario no tiene paciente cargado';
+  sub.style.color = n ? '' : 'var(--amber, #f59e0b)';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') igIOCerrar(); });
+window.igIOToggle = igIOToggle;
+window.igIOCerrar = igIOCerrar;
 
 // Mini card "Cómo leer esta tabla" del subtab Asociaciones (inline, no modal).
 function asocInfoToggle() {
