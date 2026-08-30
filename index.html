@@ -9335,6 +9335,9 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           <input type="date" id="lab-hasta" onchange="labInit()">
         </div>
         <button class="btn btn-ghost" onclick="labExportarXLSX()" style="margin-top:18px;">📊 Exportar Excel</button>
+        <button class="btn btn-ghost" onclick="labPlantillaXLSX()" style="margin-top:18px;" title="Descargar un Excel vacío con las columnas y una fila de ejemplo">📋 Plantilla Excel</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('lab-import-xlsx').click()" style="margin-top:18px;" title="Cargar estudios desde un archivo .xlsx o .xls">📥 Importar Excel</button>
+        <input type="file" id="lab-import-xlsx" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none" onchange="if(this.files&&this.files[0]){labImportarXLSX(this.files[0]);this.value='';}">
       </div>
       <div id="lab-centro-filtro" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);"></div>
       <div id="lab-resumen-header" style="font-size:.82rem;color:var(--text2);margin-top:8px;"></div>
@@ -16613,6 +16616,15 @@ function editarInforme(id) {
     // Su valor cualitativo queda igual en campos (lo usan el detalle y el PDF). em_grado/ea_grado/
     // pericardio son <select> reales de id homónimo → se cargan por el fallback (MAP_IMPORT[k]||k).
     const MAP_SKIP = new Set(['im_grado', 'ia_grado', 'it_grado']);
+    /* Se LIMPIA el formulario antes de cargar. Este bucle sólo pisa las claves que el
+       estudio trae, así que lo que no trae se quedaba con el valor del paciente anterior:
+       abrir un estudio con pocos campos —los importados desde Excel tienen ~50 contra
+       varios cientos de uno cargado a mano— mostraba su nombre y su FEVI junto al DDVI,
+       la talla, el peso y las notas del paciente que se estaba editando antes, y
+       "Sobreescribir informe original" guardaba esa mezcla como un informe firmable.
+       Verificado: sin esto, abrir un importado dejaba en pantalla el otras_notas del
+       estudio anterior. */
+    if (typeof limpiarCampos === 'function') { try { limpiarCampos(); } catch (e) { console.error('[editarInforme] no se pudo limpiar el formulario', e); } }
     Object.entries(inf.campos).forEach(([k, val]) => {
       if (inf.importado_pdf && MAP_SKIP.has(k)) return;
       const el = document.getElementById(inf.importado_pdf ? (MAP_IMPORT[k] || k) : k);
@@ -16870,7 +16882,13 @@ function guardarInforme(onDone) {
   });
   const informes = getInformes();
   const nuevoInforme = {
-    id: Date.now(),
+    /* Id único contra los que ya existen. _nuevoIdUnico (que usan los importadores)
+       reparte ids hasta ~16 minutos hacia adelante del reloj, así que un Date.now() pelado
+       puede chocar con uno recién importado — y getInformes deduplica por id con un Map,
+       o sea que uno de los dos estudios deja de existir para la app. */
+    id: (typeof _nuevoIdUnico === 'function')
+          ? _nuevoIdUnico(new Set(informes.map(i => i.id)))
+          : Date.now(),
     estudioId: Date.now().toString(36) + Math.random().toString(36).substr(2,5),  // ID único para QR / carga por URL
     nombre: nombre || '—',
     ci: ci || '—',
@@ -17497,7 +17515,36 @@ window.exportRangoCount = exportRangoCount; window.exportCentroCount = exportCen
 
 // ══════════════ IMPORT de estudios — preview + manejo de duplicados ══════════════
 let _impDatos = null;   // estudios validados del archivo, en espera de confirmación
-function _dupKey(i) { return String(i.nombre || '').trim().toLowerCase() + '|' + String(i.fecha_estudio || '').trim(); }
+/* Todas las claves con las que un estudio puede reconocerse: la fuerte (documento) y la
+   de respaldo (nombre). Buscar sólo por la que el registro entrante tiene deja dos
+   espacios de claves incomparables: si la planilla viene sin CI —la plantilla admite
+   nombre O documento— cada estudio ya guardado con CI se volvía a agregar, y el modal
+   anunciaba "48 nuevas y 0 que ya existen", un conteo plausible y falso. */
+function _dupKeys(i) {
+  const f = String(i.fecha_estudio || '').trim();
+  const ci = String(i.ci || '').trim().replace(/[.\-\s]/g, '');
+  const nom = String(i.nombre || '').trim().toLowerCase();
+  const ks = [];
+  if (ci) ks.push('D:' + ci.toLowerCase() + '|' + f);
+  if (nom) ks.push('N:' + nom + '|' + f);
+  return ks;
+}
+/* Identidad de un estudio para deduplicar. La usan el importador JSON y el de Excel:
+   tiene que ser LA MISMA en los dos o mezclar las dos vías duplica.
+
+   Documento + fecha cuando el registro trae documento; si no, nombre + fecha. Antes era
+   sólo nombre + fecha, y dos pacientes distintos con el mismo apellido estudiados el
+   mismo día contaban como el mismo estudio: uno pisaba al otro al importar. Es el mismo
+   riesgo de homónimos que ya nos mordió en la evolución longitudinal.
+
+   El `id` NO entra en la clave: se reasigna al insertar cuando colisiona (ver
+   _nuevoIdUnico), y el Excel que exporta el Laboratorio ni siquiera lo lleva. */
+function _dupKey(i) {
+  const f = String(i.fecha_estudio || '').trim();
+  const ci = String(i.ci || '').trim().replace(/[.\-\s]/g, '');
+  if (ci) return 'D:' + ci.toLowerCase() + '|' + f;
+  return 'N:' + String(i.nombre || '').trim().toLowerCase() + '|' + f;
+}
 function importarInformesJSON(file) {
   const reader = new FileReader();
   reader.onload = function(e) {
@@ -21075,6 +21122,547 @@ function labExportarXLSX() {
   XLSX.writeFile(wb, 'ecosmart_laboratorio_' + new Date().toISOString().split('T')[0] + '.xlsx');
   toast('✅ Excel exportado — ' + infs.length + ' estudios');
 }
+
+/* ══════════════ PLANTILLA E IMPORTACIÓN DESDE EXCEL ══════════════
+
+   _labExcelRow() es una proyección DERIVADA y de una sola dirección: de sus ~100
+   columnas, la mayoría se calculan al exportar (masa VI, RWT, geometría, E/A, e'
+   promedio, E/e', EROA, AVA, gradiente VD-AD, FA, y todas las binarias IM_*, DD_*,
+   HTP_*, Geom_*, TS_Presente). La app guarda `siv`, `ddfvi`, `ppvi`… y las recalcula al
+   mostrarlas.
+
+   Por eso el importador SÓLO lee las columnas que corresponden a un campo realmente
+   guardado. Importar "Masa VI" sería escribir un número que la app va a pisar con el
+   suyo en el próximo render: el médico vería un valor distinto del que cargó y nada se
+   lo explicaría. Las derivadas se ignoran y la hoja de Instrucciones dice cuáles son y
+   por qué.
+
+   Cada destino es el PRIMER id que lee su accesor (`fevi`, no `fevi_simpson`), que es
+   además el del formulario: escribir en el segundo dejaría el valor invisible para la
+   app si el estudio ya traía el primero. */
+const LAB_XLS_MAP = [
+  // [columna del Excel, destino, tipo]  ·  destino '@x' = campo de primer nivel
+  ['Nombre',                 '@nombre',        'txt'],
+  ['CI',                     '@ci',            'txt'],
+  ['Fecha estudio',          '@fecha_estudio', 'fecha'],
+  ['Edad',                   'edad',           'num'],
+  ['Sexo',                   'sexo',           'vocab'],
+  ['Centro / Institución',   'centro_nombre',  'txt'],
+  ['Médico solicitante',     'med_solicitante','txt'],
+  ['Motivo / Indicación',    'indicaciones',   'lista'],
+  ['Antecedentes',           'antecedentes_sel','lista'],
+  ['SIV (mm)',               'siv',            'num'],
+  ['DDVI (mm)',              'ddfvi',          'num'],
+  ['DSVI (mm)',              'dsfvi',          'num'],
+  ['PP (mm)',                'ppvi',           'num'],
+  ['FEVI Simpson (%)',       'fevi',           'num'],
+  ['GLS (%)',                'sgl',            'num'],
+  ['Onda E (cm/s)',          'onda_e',         'num'],
+  ['Onda A (cm/s)',          'onda_a',         'num'],
+  ["e' septal (cm/s)",       'e_sep',          'num'],
+  ["e' lateral (cm/s)",      'e_lat',          'num'],
+  ['TAPSE (mm)',             'tapse',          'num'],
+  ["S' (cm/s)",              's_prime',        'num'],
+  ['TAP (ms)',               'tvia',           'num'],
+  ['Diám. basal VD (mm)',    'vd_bas',         'num'],
+  ['VCI diám (mm)',          'vci_diam',       'num'],
+  ['Colapso VCI',            'vci_col',        'vocab'],
+  ['PmAD (mmHg)',            'pmad',           'num'],
+  ['Morfología mitral',      'vm_morf',        'opcion'],
+  ['IM grado',               'im_grado',       'vocab'],
+  ['VC IM (mm)',             'im_vc',          'num'],
+  ['EM grado',               'em_grado',       'vocab'],
+  ['AVm (cm²)',              'avm_thp',        'num'],
+  ['Morfología aórtica',     'va_morf',        'opcion'],
+  ['EA grado',               'ea_grado',       'vocab'],
+  ['V. max Ao (m/s)',        'vmax_ao',        'num'],
+  ['G. máx Ao (mmHg)',       'gmax_calc',      'num'],
+  ['G. medio Ao (mmHg)',     'gmedio_ao',      'num'],
+  ['IAo grado',              'ia_grado',       'vocab'],
+  ['VC IAo (mm)',            'ia_vc',          'num'],
+  ['PHT IAo (ms)',           'ia_pht',         'num'],
+  ['Morfología tricúspide',  'vt_morf',        'opcion'],
+  ['IT grado',               'it_grado',       'vocab'],
+  ['VC IT (mm)',             'it_vc',          'num'],
+  ['PSAP (mmHg)',            'psap_calc',      'num'],
+  ['PAP media (mmHg)',       'pap_med',        'num'],
+  ['Ao sinusal (mm)',        'ao_sin',         'num'],
+  ['Ao asc. proximal (mm)',  'ao_tub',         'num'],
+  ['Pericardio',             'pericardio',     'opcion'],
+  ['Informe (texto completo)','informe_texto', 'txt'],
+  ['EN SUMA (texto completo)','en_suma',       'txt'],
+];
+/* Vocabularios: el importador tiene que emitir EXACTAMENTE el token que el control del
+   formulario acepta, no una palabra linda para humanos. Escribir 'Masculino' en un
+   <select> cuyos values son 'M'/'F' deja el select en selectedIndex=-1 y value='': calcVI
+   pasa a usar los cortes masculinos de HVI para una mujer, y al re-guardar el sexo se
+   pierde. Lo mismo con 'Ausente' en em_grado, cuyos values son sin/leve/moderada/severa.
+   Cada entrada acepta el value crudo, la etiqueta visible y las variantes razonables, y
+   SIEMPRE devuelve el value. */
+const LAB_XLS_VOCAB = {
+  // Las claves van en MINÚSCULA: la búsqueda normaliza a minúscula antes de comparar, y
+  // con 'M'/'F' en mayúscula el valor que exporta la propia app no matcheaba su vocabulario.
+  sexo: { m:'M', masculino:'M', masc:'M', h:'M', hombre:'M', varon:'M',
+          f:'F', femenino:'F', fem:'F', muj:'F', mujer:'F' },
+  vci_col: { '>50':'>50', 'mayor 50':'>50', 'colapsa':'>50', '<50':'<50', 'menor 50':'<50', 'no colapsa':'<50' },
+  em_grado: { sin:'sin', 'sin estenosis':'sin', ausente:'sin', no:'sin', '0':'sin',
+              leve:'leve', '1':'leve', moderada:'moderada', moderado:'moderada', '2':'moderada',
+              'moderada-severa':'moderada', '3':'moderada', severa:'severa', severo:'severa', '4':'severa' },
+  ea_grado: { sin:'sin', 'sin estenosis':'sin', ausente:'sin', no:'sin', '0':'sin',
+              esclerosis:'esclerosis', 'esclerosis aortica':'esclerosis',
+              leve:'leve', '1':'leve', moderada:'moderada', moderado:'moderada', '2':'moderada',
+              'moderada-severa':'moderada', '3':'moderada', severa:'severa', severo:'severa', '4':'severa' },
+  /* im/ia/it_grado son <input type="hidden"> con CÓDIGO NUMÉRICO 0-4 que maneja
+     sincronizarGrado*(). El propio código advierte que meterles texto «corromperia el
+     motor de severidad y el PDF», y su guarda (MAP_SKIP) sólo actúa sobre estudios
+     marcados como importados de PDF, así que no cubre esta vía: hay que emitir el
+     número. */
+  _grado04: { '0':'0', ausente:'0', sin:'0', no:'0', normal:'0',
+              '1':'1', leve:'1', '2':'2', moderada:'2', moderado:'2',
+              '3':'3', 'moderada-severa':'3', 'moderada severa':'3',
+              '4':'4', severa:'4', severo:'4' },
+};
+LAB_XLS_VOCAB.im_grado = LAB_XLS_VOCAB.ia_grado = LAB_XLS_VOCAB.it_grado = LAB_XLS_VOCAB._grado04;
+// Etiquetas para la fila de ejemplo y la ayuda: se derivan del vocabulario, no se escriben
+// a mano, para que un ejemplo no pueda enseñar un valor que el importador rechaza.
+const LAB_XLS_OPCIONES = {
+  sexo:'M (masculino) · F (femenino)',
+  vci_col:'>50 · <50',
+  em_grado:'sin · leve · moderada · severa',
+  ea_grado:'sin · esclerosis · leve · moderada · severa',
+  im_grado:'0 ausente · 1 leve · 2 moderada · 3 moderada-severa · 4 severa',
+};
+LAB_XLS_OPCIONES.ia_grado = LAB_XLS_OPCIONES.it_grado = LAB_XLS_OPCIONES.im_grado;
+// Selects de texto libre acotado: se acepta cualquier opción de la lista, tal cual.
+const LAB_XLS_LISTAS = {
+  vm_morf: ['Normal','Mixomatosa / Barlow','Calcificada','Reumática','Prolapso / EVMS','Prótesis'],
+  va_morf: ['Trivalva normal','Bicúspide','Calcificada','Reumática','Prótesis'],
+  vt_morf: ['Normal','Mixomatosa','Reumática','Prótesis'],
+  pericardio: ['Normal, sin derrame','Derrame mínimo','Derrame leve (5-10mm)','Derrame moderado (10-20mm)','Derrame severo (>20mm)','Engrosamiento / calcificación'],
+};
+// Marca de la fila de ejemplo de la plantilla. Se busca en el Nombre y NUNCA se importa.
+const LAB_XLS_EJEMPLO = '*** FILA DE EJEMPLO — BORRAR ANTES DE IMPORTAR ***';
+
+const _labXlsNorm = x => String(x == null ? '' : x).trim().toLowerCase()
+  .normalize('NFD').replace(/[\u0300-\u036F]/g,'').replace(/\s+/g,' ');
+
+/* Un número y nada más. Antes se limpiaba con una regex que dejaba pasar cualquier cosa
+   que empezara con dígitos: "60-65" daba 60, "<1.5" daba 1.5 —perdiendo el «menor que»,
+   que en un área valvular cambia la severidad— y "1.234,5" daba 1.234, tres órdenes de
+   magnitud abajo. Todo eso entraba como fila válida. */
+function _labXlsNum(v) {
+  if (v === null || v === undefined || String(v).trim() === '') return null;
+  if (typeof v === 'number') return isFinite(v) ? v : NaN;
+  const t = String(v).trim().replace(/\s/g,'');
+  if (!/^-?\d+(?:[.,]\d+)?$/.test(t)) return NaN;
+  const n = parseFloat(t.replace(',', '.'));
+  return isNaN(n) ? NaN : n;
+}
+/* Fecha: acepta ISO, DD/MM/AAAA y el serial de Excel, y VALIDA que exista. Sin validar,
+   un archivo hecho en un Excel en inglés entrega "3/15/2026" y se guardaba como
+   "2026-15-03": labGetInformes hace new Date(fecha) y descarta lo que no parsea, así que
+   el estudio quedaba guardado e INVISIBLE en todo el Laboratorio. */
+function _labXlsFecha(v) {
+  if (v === null || v === undefined || String(v).trim() === '') return '';
+  const arma = (y, m, d) => {
+    if (!(y >= 1900 && y <= 2200 && m >= 1 && m <= 12 && d >= 1 && d <= 31)) return null;
+    const dt = new Date(y, m - 1, d);
+    if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== d) return null;   // 31 de febrero
+    return y + '-' + String(m).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+  };
+  if (v instanceof Date && !isNaN(v)) return arma(v.getFullYear(), v.getMonth()+1, v.getDate());
+  if (typeof v === 'number' && isFinite(v)) {
+    const d = new Date(Date.UTC(1899, 11, 30) + v * 86400000);   // serial de Excel
+    return isNaN(d) ? null : arma(d.getUTCFullYear(), d.getUTCMonth()+1, d.getUTCDate());
+  }
+  const t = String(v).trim();
+  let m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:\D|$)/);
+  if (m) return arma(+m[1], +m[2], +m[3]);
+  m = t.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\D|$)/);
+  if (m) return arma(+m[3], +m[2], +m[1]);   // DD/MM/AAAA
+  return null;
+}
+// Resuelve contra el vocabulario del campo. Devuelve el value del control, o null.
+function _labXlsVocab(campo, v) {
+  const voc = LAB_XLS_VOCAB[campo]; if (!voc) return null;
+  const n = _labXlsNorm(v); if (!n) return '';
+  if (Object.prototype.hasOwnProperty.call(voc, n)) return voc[n];
+  // El export puede traer la etiqueta larga del <option> ("Leve (AVm >2.5 cm²)").
+  const corta = n.split('(')[0].trim();
+  return Object.prototype.hasOwnProperty.call(voc, corta) ? voc[corta] : null;
+}
+function _labXlsLista(campo, v) {
+  const ops = LAB_XLS_LISTAS[campo]; if (!ops) return null;
+  const n = _labXlsNorm(v); if (!n) return '';
+  const hit = ops.find(o => _labXlsNorm(o) === n);
+  return hit || null;
+}
+
+/* ── Plantilla ── */
+function labPlantillaXLSX() {
+  if (typeof XLSX === 'undefined') { toast('❌ Librería Excel (XLSX) no disponible'); return; }
+  const cols = LAB_XLS_MAP.map(m => m[0]);
+  const ejemplo = {
+    'Nombre': LAB_XLS_EJEMPLO, 'CI': '1.234.567-8', 'Fecha estudio': '2026-03-15', 'Edad': 64, 'Sexo': 'M',
+    'Centro / Institución': 'Hospital de ejemplo', 'Médico solicitante': 'Dr. Ejemplo',
+    'Motivo / Indicación': 'Disnea | Control', 'Antecedentes': 'HTA | Diabetes',
+    'SIV (mm)': 11, 'DDVI (mm)': 48, 'DSVI (mm)': 32, 'PP (mm)': 10,
+    'FEVI Simpson (%)': 58, 'GLS (%)': -18.5,
+    'Onda E (cm/s)': 78, 'Onda A (cm/s)': 62, "e' septal (cm/s)": 7.5, "e' lateral (cm/s)": 9.5,
+    'TAPSE (mm)': 21, "S' (cm/s)": 12, 'TAP (ms)': 95, 'Diám. basal VD (mm)': 34,
+    'VCI diám (mm)': 17, 'Colapso VCI': '>50', 'PmAD (mmHg)': 3,
+    'Morfología mitral': 'Normal', 'IM grado': 1, 'VC IM (mm)': 2.5,
+    'EM grado': 'sin', 'AVm (cm²)': 4.2,
+    'Morfología aórtica': 'Trivalva normal', 'EA grado': 'sin',
+    'V. max Ao (m/s)': 1.3, 'G. máx Ao (mmHg)': 7, 'G. medio Ao (mmHg)': 4,
+    'IAo grado': 0, 'VC IAo (mm)': '', 'PHT IAo (ms)': '',
+    'Morfología tricúspide': 'Normal', 'IT grado': 1, 'VC IT (mm)': 2,
+    'PSAP (mmHg)': 28, 'PAP media (mmHg)': 16, 'Ao sinusal (mm)': 34, 'Ao asc. proximal (mm)': 32,
+    'Pericardio': 'Normal, sin derrame',
+    'Informe (texto completo)': 'Texto libre del informe.', 'EN SUMA (texto completo)': 'Conclusión del estudio.',
+  };
+  const aoa = [cols, cols.map(c => ejemplo[c] !== undefined ? ejemplo[c] : '')];
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = cols.map(h => ({ wch: Math.min(40, Math.max(12, h.length + 2)) }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Estudios');
+
+  /* Los valores aceptados salen del MISMO vocabulario que valida el importador. Escritos
+     a mano, la ayuda enseñaba "Ausente" para un campo cuyo <select> sólo acepta "sin", y
+     el médico copiaba el formato de la plantilla para que se lo rechazaran. */
+  const TIPO = { txt:'Texto libre', num:'Número (sólo el número, sin rangos ni < >)', fecha:'Fecha AAAA-MM-DD',
+                 lista:'Varios valores separados por " | "' };
+  const tipoDe = (dest, tipo) => LAB_XLS_OPCIONES[dest]
+    || (LAB_XLS_LISTAS[dest] ? LAB_XLS_LISTAS[dest].join(' · ') : null)
+    || TIPO[tipo] || '';
+  const inst = [
+    ['CÓMO USAR ESTA PLANTILLA'],
+    [''],
+    ['1. Borrá la fila de ejemplo (la que dice "' + LAB_XLS_EJEMPLO + '" en Nombre).'],
+    ['   Si la dejás, el importador la saltea igual, pero conviene borrarla.'],
+    ['2. Cargá un estudio por fila. Las columnas vacías se dejan sin cargar, no se borran.'],
+    ['3. Obligatorio: Nombre (o CI) y Fecha estudio. Sin eso la fila no se puede identificar.'],
+    ['4. Guardá el archivo como .xlsx y usá el botón "📥 Importar Excel" del Laboratorio.'],
+    [''],
+    ['CÓMO SE EVITAN LOS DUPLICADOS'],
+    ['Un estudio se identifica por DOCUMENTO + FECHA. Si la fila no trae documento, por'],
+    ['NOMBRE + FECHA. Es la misma regla que usa la importación por JSON, así que podés'],
+    ['mezclar las dos vías sin que se dupliquen los estudios.'],
+    ['Si el estudio ya existe, elegís al importar si se actualiza o se deja como está.'],
+    [''],
+    ['COLUMNAS QUE NO SE IMPORTAN'],
+    ['El Excel que exporta el Laboratorio tiene columnas CALCULADAS que esta plantilla no'],
+    ['incluye: Masa VI, RWT, VDFVI idx, Geometría VI, FA, E/A, e’ promedio, E/e’,'],
+    ['Grado de disfunción diastólica, Vol AI (LAVI), EROA, Vol R, AVA, Grad VD-AD,'],
+    ['Trastornos sectoriales y todas las binarias (IM_I, DD_II, HTP_III, Geom_*, TS_*).'],
+    ['La app las calcula sola desde las medidas de abajo, así que editarlas no tendría'],
+    ['efecto: al abrir el estudio volvería a mostrar el valor calculado.'],
+    ['Para cambiar la masa VI, cargá SIV, DDVI y PP. Para el E/e’, Onda E y e’ septal/lateral.'],
+    [''],
+    ['COLUMNAS'],
+    ['COLUMNA', 'QUÉ ES', 'VALORES QUE ACEPTA', 'EJEMPLO'],
+  ];
+  const AYUDA = {
+    'Nombre':'Nombre del paciente', 'CI':'Documento (cédula). Se compara sin puntos ni guiones',
+    'Fecha estudio':'Fecha en que se hizo el estudio', 'Edad':'Edad en años',
+    'Sexo':'Sexo del paciente', 'Centro / Institución':'Dónde se hizo el estudio',
+    'Médico solicitante':'Quién lo pidió',
+    'Motivo / Indicación':'Motivo del estudio', 'Antecedentes':'Antecedentes del paciente',
+    'FEVI Simpson (%)':'Fracción de eyección por Simpson', 'GLS (%)':'Strain longitudinal global (negativo)',
+    'IM grado':'Insuficiencia mitral', 'EM grado':'Estenosis mitral', 'EA grado':'Estenosis aórtica',
+    'IAo grado':'Insuficiencia aórtica', 'IT grado':'Insuficiencia tricuspídea',
+  };
+  LAB_XLS_MAP.forEach(([col, dest, tipo]) => {
+    inst.push([col, AYUDA[col] || col.replace(/\s*\([^)]*\)\s*$/,''), tipoDe(dest, tipo),
+               ejemplo[col] === undefined || ejemplo[col] === '' ? '' : String(ejemplo[col])]);
+  });
+  const wsI = XLSX.utils.aoa_to_sheet(inst);
+  wsI['!cols'] = [{wch:26},{wch:46},{wch:44},{wch:24}];
+  XLSX.utils.book_append_sheet(wb, wsI, 'Instrucciones');
+  XLSX.writeFile(wb, 'ecosmart_plantilla_laboratorio.xlsx');
+  toast('✅ Plantilla descargada');
+}
+
+/* ── Importación ── */
+let _labImpDatos = null;   // { filas:[{inf,fila,dup}], errores:[], total }
+
+function labImportarXLSX(file) {
+  if (typeof XLSX === 'undefined') { toast('❌ Librería Excel (XLSX) no disponible'); return; }
+  const reader = new FileReader();
+  reader.onerror = () => toast('❌ No se pudo leer el archivo');
+  reader.onload = e => {
+    let wb;
+    try { wb = XLSX.read(new Uint8Array(e.target.result), { type:'array', cellDates:true }); }
+    catch (err) { toast('❌ El archivo no se pudo abrir como Excel'); return; }
+    /* Se busca la hoja "Estudios" por NOMBRE y no la primera: la plantilla y el export
+       traen también "Instrucciones" y "Leyenda", y si el usuario reordena las pestañas
+       la primera podría ser la de ayuda — se importarían sus filas de texto como
+       estudios. */
+    const nom = wb.SheetNames.find(n => /estudios/i.test(n)) || wb.SheetNames[0];
+    const ws = wb.Sheets[nom];
+    if (!ws) { toast('❌ El archivo no tiene ninguna hoja'); return; }
+    const filas = XLSX.utils.sheet_to_json(ws, { defval:'', raw:false, blankrows:false });
+    if (!filas.length) { toast('⚠️ La hoja «' + nom + '» no tiene filas'); return; }
+    /* Tope explícito. El parseo es síncrono en el hilo principal: con un archivo enorme
+       —o con un rango inflado— la pestaña se congela sin spinner y el médico recarga a
+       mitad. Mejor preguntar que quedarse mudo. */
+    if (filas.length > 1000 && !confirm('El archivo tiene ' + filas.length + ' filas. Procesarlo puede tardar y la pantalla va a quedar sin responder unos segundos.\n\n¿Continuar?')) return;
+
+    /* Los encabezados se comparan NORMALIZADOS: "CI " con un espacio de más no matcheaba
+       y la columna se descartaba en silencio — y perder justo la de CI degrada la
+       deduplicación a nombre+fecha y duplica media base. Se guarda el mapeo real para
+       leer cada fila por su clave original. */
+    const cabeceras = Object.keys(filas[0]);
+    const normCab = h => String(h).trim().replace(/\s+/g,' ').toLowerCase();
+    const porNorm = new Map(); cabeceras.forEach(h => { if(!porNorm.has(normCab(h))) porNorm.set(normCab(h), h); });
+    const conocidas = LAB_XLS_MAP.filter(m => porNorm.has(normCab(m[0])))
+      .map(m => [porNorm.get(normCab(m[0])), m[1], m[2], m[0]]);
+    if (!conocidas.length) {
+      toast('❌ Ninguna columna reconocida — usá el botón «📋 Plantilla Excel»'); return;
+    }
+    const existentes = getInformes();
+    /* Índice por TODAS las claves de cada estudio guardado, no sólo por la suya fuerte:
+       así una fila sin CI encuentra igual al estudio que sí lo tiene. `repetidosPrevios`
+       marca las identidades que YA están duplicadas en el almacenamiento —la app deja
+       guardar dos veces el mismo paciente y fecha con "Guardar como nuevo"—, donde
+       actualizar tocaría una sola y la otra quedaría con datos viejos sin decirlo. */
+    const keysExist = new Map(), repetidosPrevios = new Set();
+    existentes.forEach((e, idx) => _dupKeys(e).forEach(k => {
+      if (keysExist.has(k)) repetidosPrevios.add(k); else keysExist.set(k, idx);
+    }));
+    const buscaExist = inf => { for (const k of _dupKeys(inf)) if (keysExist.has(k)) return k; return null; };
+    const ok = [], errores = [], vistasEnArchivo = new Map();
+    let ejemplos = 0;
+
+    filas.forEach((row, i) => {
+      const nFila = i + 2;   // +1 por el encabezado, +1 porque las filas de Excel arrancan en 1
+      const nombre = String(row['Nombre'] == null ? '' : row['Nombre']).trim();
+      // La fila de ejemplo de la plantilla nunca entra, esté donde esté.
+      if (nombre.indexOf('FILA DE EJEMPLO') >= 0 || nombre === LAB_XLS_EJEMPLO) { ejemplos++; return; }
+      // Fila completamente vacía: se ignora sin ruido (Excel deja filas fantasma).
+      if (conocidas.every(([c]) => String(row[c] == null ? '' : row[c]).trim() === '')) return;
+
+      const errs = [];
+      const inf = { id: 0, nombre:'', ci:'', doc_tipo:'CI', fecha_estudio:'', campos:{} };
+      conocidas.forEach(([colReal, dest, tipo, col]) => {
+        const row_ = row; const _c = colReal;
+        const bruto = row_[_c];
+        const vacio = bruto === null || bruto === undefined || String(bruto).trim() === '';
+        let v;
+        if (tipo === 'num') {
+          if (vacio) return;
+          v = _labXlsNum(bruto);
+          if (isNaN(v)) { errs.push('«' + col + '»: "' + String(bruto).slice(0,20) + '" no es un número'); return; }
+          v = String(v);
+        } else if (tipo === 'fecha') {
+          v = _labXlsFecha(bruto);
+          if (v === null) { errs.push('«' + col + '»: "' + String(bruto).slice(0,20) + '" no es una fecha (usá AAAA-MM-DD)'); return; }
+        } else if (tipo === 'vocab') {
+          if (vacio) return;
+          v = _labXlsVocab(dest, bruto);
+          if (v === null) { errs.push('«' + col + '»: "' + String(bruto).slice(0,20) + '" no es un valor válido (' + (LAB_XLS_OPCIONES[dest] || '') + ')'); return; }
+        } else if (tipo === 'opcion') {
+          if (vacio) return;
+          v = _labXlsLista(dest, bruto);
+          if (v === null) { errs.push('«' + col + '»: "' + String(bruto).slice(0,20) + '" no está en la lista (' + (LAB_XLS_LISTAS[dest]||[]).join(' · ') + ')'); return; }
+        } else if (tipo === 'lista') {
+          if (vacio) return;
+          v = String(bruto).split(/\s*\|\s*/).map(x => x.trim()).filter(Boolean);
+        } else {
+          if (vacio) return;
+          v = String(bruto).trim();
+        }
+        if (dest.charAt(0) === '@') inf[dest.slice(1)] = v;
+        else inf.campos[dest] = v;
+      });
+      /* La identidad va TAMBIÉN dentro de `campos`. guardarInforme la guarda en los dos
+         lados —el bucle de inputs captura #nombre, #ci y #fecha— y editarInforme repuebla
+         el formulario iterando `inf.campos`, sin limpiarlo antes. Sin estas tres claves,
+         abrir un estudio importado mostraba sus medidas con el nombre, la cédula y la
+         fecha del paciente que se había editado antes, y "Sobreescribir" lo guardaba así:
+         dos pacientes fusionados en un informe firmable. */
+      if (inf.nombre) inf.campos.nombre = inf.nombre;
+      if (inf.ci) inf.campos.ci = inf.ci;
+      if (inf.fecha_estudio) inf.campos.fecha = inf.fecha_estudio;
+
+      // Sólo si la columna vino vacía: si trajo algo que no se pudo interpretar, el error
+      // de formato de arriba ya lo dice y repetirlo confunde sobre qué hay que corregir.
+      if (!inf.fecha_estudio && !errs.some(x => x.indexOf('Fecha estudio') >= 0)) errs.push('falta «Fecha estudio»');
+      if (!inf.nombre && !inf.ci) errs.push('falta «Nombre» y «CI»: sin uno de los dos el estudio no se puede identificar');
+      /* El MISMO validador que usa la importación por JSON. Sin esto, una celda de Excel
+         —que admite 32.767 caracteres— podía crear un estudio que después hace que
+         validarInformeImportado rechace el BACKUP JSON ENTERO: el respaldo existe, tiene
+         todo, y no hay forma de restaurarlo desde la interfaz. */
+      if (!errs.length && typeof validarInformeImportado === 'function' && !validarInformeImportado(inf)) {
+        errs.push('algún campo excede el largo permitido (revisá los textos de Informe y EN SUMA)');
+      }
+      if (errs.length) { errores.push({ fila:nFila, nombre: nombre || '(sin nombre)', errs }); return; }
+
+      /* Dos filas del MISMO archivo con la misma identidad: la segunda pisaría a la
+         primera al guardar y una se perdería sin decirlo. Se marca como error de fila
+         para que el médico decida cuál va. */
+      const mias = _dupKeys(inf);
+      const choque = mias.find(k => vistasEnArchivo.has(k));
+      if (choque) {
+        errores.push({ fila:nFila, nombre: nombre || inf.ci, errs:['repite la identidad de la fila ' + vistasEnArchivo.get(choque)] });
+        return;
+      }
+      mias.forEach(k => vistasEnArchivo.set(k, nFila));
+      const kExist = buscaExist(inf);
+      if (kExist && repetidosPrevios.has(kExist)) {
+        errores.push({ fila:nFila, nombre: nombre || inf.ci,
+          errs:['ya hay MÁS DE UN estudio guardado con esta identidad: actualizar tocaría sólo uno. Resolvelo en Guardados antes de importar'] });
+        return;
+      }
+      ok.push({ inf, fila:nFila, dup:!!kExist });
+    });
+
+    if (!ok.length && !errores.length) { toast('⚠️ No hay filas con datos para importar'); return; }
+    const usadas = new Set(conocidas.map(c => c[0]));
+    _labImpDatos = { filas:ok, errores, ejemplos, hoja:nom,
+                     ignoradas: cabeceras.filter(c => !usadas.has(c) && String(c).trim() !== '') };
+    labImpRender();
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function labImpRender() {
+  const d = _labImpDatos; if (!d) return;
+  const dups = d.filas.filter(f => f.dup).length;
+  const nuevos = d.filas.length - dups;
+  const host = document.getElementById('lab-imp-modal');
+  const errHTML = d.errores.length
+    ? '<div style="margin-top:12px;padding:10px 12px;background:rgba(220,53,69,.10);border-left:3px solid var(--red,#dc3545);border-radius:6px;max-height:190px;overflow:auto">' +
+      '<div style="font-size:12.5px;font-weight:700;color:var(--red,#dc3545);margin-bottom:6px">' + d.errores.length +
+      ' fila' + (d.errores.length===1?'':'s') + ' con errores — no se ' + (d.errores.length===1?'va a importar':'van a importar') + '</div>' +
+      d.errores.slice(0,40).map(e => '<div style="font-size:11.5px;line-height:1.5;margin-bottom:3px"><b>Fila ' + e.fila + '</b> (' +
+        escHtml(e.nombre) + '): ' + escHtml(e.errs.join(' · ')) + '</div>').join('') +
+      (d.errores.length > 40 ? '<div style="font-size:11px;color:var(--text2)">…y ' + (d.errores.length-40) + ' más</div>' : '') +
+      '</div>'
+    : '';
+  host.innerHTML =
+    '<div class="eio-modal" style="max-width:620px;padding:18px" onclick="event.stopPropagation()">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">' +
+        '<div style="font-size:15px;font-weight:700">📥 Importar desde Excel</div>' +
+        '<button class="btn btn-ghost" onclick="labImpCerrar()" style="padding:2px 9px">✕</button></div>' +
+      '<div style="font-size:12.5px;color:var(--text2);margin-top:8px;line-height:1.6">' +
+        'Hoja <b>«' + escHtml(d.hoja) + '»</b> · <b>' + d.filas.length + '</b> fila' + (d.filas.length===1?'':'s') + ' válida' + (d.filas.length===1?'':'s') + ': ' +
+        '<b>' + nuevos + '</b> nueva' + (nuevos===1?'':'s') + ' y <b>' + dups + '</b> que ya ' + (dups===1?'existe':'existen') + '.' +
+        (d.ejemplos ? '<br>Se salteó la fila de ejemplo de la plantilla.' : '') +
+        (d.ignoradas.length ? '<br>Se ' + (d.ignoradas.length===1?'ignoró 1 columna':('ignoraron ' + d.ignoradas.length + ' columnas')) +
+          ' que no ' + (d.ignoradas.length===1?'corresponde':'corresponden') + ' a un campo editable: <span style="color:var(--text2)">' +
+          escHtml(d.ignoradas.slice(0,8).join(', ')) + (d.ignoradas.length>8?', …':'') + '</span>' : '') +
+      '</div>' +
+      errHTML +
+      /* Vista previa de filas, como la del importador JSON. Confirmar 300 filas sin haber
+         visto un solo nombre es lo que deja pasar un archivo con las columnas corridas o
+         una fecha interpretada al revés. */
+      (d.filas.length ? '<div style="margin-top:12px;font-size:12px">' +
+        '<div style="font-weight:600;margin-bottom:4px">Primeras filas</div>' +
+        '<div style="max-height:150px;overflow:auto;border:1px solid var(--border);border-radius:6px;padding:6px">' +
+        d.filas.slice(0,10).map(f => '<div style="display:flex;gap:8px;padding:2px 0;border-bottom:1px solid var(--border)">' +
+          '<span style="color:var(--text2);min-width:38px">F' + f.fila + '</span>' +
+          '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(f.inf.nombre || '(sin nombre)') +
+            (f.dup ? ' <span style="color:var(--warn,#e0a800);font-weight:700">YA EXISTE</span>' : '') + '</span>' +
+          '<span style="color:var(--text2);white-space:nowrap">' + escHtml(f.inf.ci || '—') + '</span>' +
+          '<span style="color:var(--text2);white-space:nowrap">' + escHtml(f.inf.fecha_estudio) + '</span></div>').join('') +
+        (d.filas.length > 10 ? '<div style="text-align:center;color:var(--text2);padding:3px">…y ' + (d.filas.length-10) + ' más</div>' : '') +
+        '</div></div>' : '') +
+      (dups ? '<div style="margin-top:12px;font-size:12.5px">' +
+        '<div style="font-weight:600;margin-bottom:5px">Con ' + (dups===1 ? 'el estudio que ya existe' : ('los ' + dups + ' que ya existen')) + ':</div>' +
+        '<label style="display:flex;gap:7px;align-items:center;margin-bottom:4px;cursor:pointer"><input type="radio" name="lab-imp-dup" value="omitir" checked onchange="labImpBoton()"> Dejarlos como están (recomendado)</label>' +
+        '<label style="display:flex;gap:7px;align-items:center;cursor:pointer"><input type="radio" name="lab-imp-dup" value="actualizar" onchange="labImpBoton()"> Actualizarlos con los datos del Excel</label>' +
+        '</div>' : '') +
+      '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap">' +
+        '<button class="btn btn-ghost" onclick="labImpCerrar()">Cancelar</button>' +
+        (d.filas.length ? '<button class="btn btn-primary" id="lab-imp-btn" onclick="labImpEjecutar()"></button>' : '') +
+      '</div>' +
+    '</div>';
+  host.classList.add('show');
+  labImpBoton();
+}
+/* La etiqueta refleja el MODO: con 9 de 12 filas duplicadas y el radio en "dejarlos como
+   están", el botón decía "Importar 12 filas" y el toast después informaba 3. */
+function labImpBoton() {
+  const d = _labImpDatos, b = document.getElementById('lab-imp-btn');
+  if (!d || !b) return;
+  const modo = document.querySelector('input[name="lab-imp-dup"]:checked')?.value || 'omitir';
+  const dups = d.filas.filter(f => f.dup).length;
+  const n = modo === 'actualizar' ? d.filas.length : d.filas.length - dups;
+  b.textContent = n === 0 ? 'No hay nada para escribir' : ('Escribir ' + n + (n===1 ? ' estudio' : ' estudios'));
+  b.disabled = n === 0;
+}
+window.labImpBoton = labImpBoton;
+function labImpCerrar() {
+  const h = document.getElementById('lab-imp-modal');
+  if (h) { h.classList.remove('show'); h.innerHTML = ''; }
+  _labImpDatos = null;
+}
+
+async function labImpEjecutar() {
+  const d = _labImpDatos; if (!d || !d.filas.length) { labImpCerrar(); return; }
+  const modo = document.querySelector('input[name="lab-imp-dup"]:checked')?.value || 'omitir';
+  let existentes = getInformes();
+  const usados = new Set(existentes.map(i => i.id));
+  const keyToIdx = new Map();
+  existentes.forEach((i, idx) => _dupKeys(i).forEach(k => { if (!keyToIdx.has(k)) keyToIdx.set(k, idx); }));
+  const buscar = inf => { for (const k of _dupKeys(inf)) if (keyToIdx.has(k)) return keyToIdx.get(k); return -1; };
+  let nuevos = 0, actualizados = 0, sinCambios = 0;
+  const tocados = new Set();   // ids escritos en esta importación, para el aviso de período
+
+  d.filas.forEach(({ inf }) => {
+    const idx = buscar(inf);
+    if (idx >= 0) {
+      if (modo !== 'actualizar') { sinCambios++; return; }
+      const prev = existentes[idx];
+      /* Se FUSIONAN los campos en vez de reemplazar el estudio: el Excel sólo trae las
+         columnas editables, así que un reemplazo borraría todo lo que la app guarda y
+         la plantilla no incluye —el bull's eye, las imágenes, el strain por segmento—.
+         Y se conserva el id, que puede estar referenciado. */
+      const merged = { ...prev, campos: { ...(prev.campos||{}), ...inf.campos } };
+      if (inf.nombre) merged.nombre = inf.nombre;
+      if (inf.ci) merged.ci = inf.ci;
+      if (inf.fecha_estudio) merged.fecha_estudio = inf.fecha_estudio;
+      if (JSON.stringify(merged) === JSON.stringify(prev)) { sinCambios++; return; }
+      existentes[idx] = merged;
+      tocados.add(merged.id);
+      actualizados++;
+      return;
+    }
+    const nid = _nuevoIdUnico(usados);
+    const nuevo = { ...inf, id: nid, estudioId: Date.now().toString(36) + Math.random().toString(36).substr(2,5),
+                    fecha_guardado: new Date().toISOString() };
+    existentes.push(nuevo);
+    tocados.add(nid);
+    _dupKeys(nuevo).forEach(k => { if (!keyToIdx.has(k)) keyToIdx.set(k, existentes.length - 1); });
+    nuevos++;
+  });
+
+  const total = existentes.length;
+  const _p = (typeof guardarInformesSeguro === 'function') ? guardarInformesSeguro(existentes) : CeiboStore.setLocal(existentes);
+  labImpCerrar();
+  const ok = await _p;                    // no anunciar la importación sin confirmarla
+  if (ok === false) return;
+  if (typeof renderInformesGuardados === 'function') renderInformesGuardados();
+  if (typeof labInit === 'function') labInit();
+  /* El Laboratorio filtra por período (365 días por defecto). Importar un histórico viejo
+     dejaba el toast diciendo "214 nuevos" y la pantalla sin moverse un número, sin nada
+     que conectara las dos cosas. */
+  let fuera = 0;
+  try {
+    const enLab = new Set(labGetInformes().map(i => i.id));
+    fuera = d.filas.filter(f => f.inf && f.inf.fecha_estudio).length
+      ? existentes.filter(e => tocados.has(e.id) && !enLab.has(e.id)).length : 0;
+  } catch (e) {}
+  toast('✅ ' + nuevos + ' nuevo' + (nuevos===1?'':'s') + ' · ' + actualizados + ' actualizado' + (actualizados===1?'':'s') +
+        ' · ' + sinCambios + ' sin cambios · Total: ' + total +
+        (fuera ? ' · ' + fuera + (fuera===1?' queda':' quedan') + ' fuera del período que muestra el Laboratorio' : ''));
+}
+
+window.labPlantillaXLSX = labPlantillaXLSX;
+window.labImportarXLSX = labImportarXLSX;
+window.labImpCerrar = labImpCerrar;
+window.labImpEjecutar = labImpEjecutar;
 
 window.labInit = labInit;
 window.labExportarXLSX = labExportarXLSX;
@@ -24659,12 +25247,15 @@ window.generarManualPDF = generarManualPDF;
   </div>
 </div>
 
+<!-- Importación desde Excel del Laboratorio. Reusa .eio-ov/.eio-modal del importador
+     JSON para no inventar un segundo lenguaje de modal; el cuerpo lo arma labImpRender. -->
+<div id="lab-imp-modal" class="eio-ov" onclick="if(event.target===this)labImpCerrar()"></div>
 <div id="modal-import" class="eio-ov">
   <div class="eio-modal">
     <div class="eio-h">📥 Importar estudios</div>
     <div class="eio-b">
       <div id="imp-info" style="font-size:13px;line-height:1.6;margin-bottom:10px;"></div>
-      <div style="font-weight:600;font-size:12.5px;margin-bottom:2px;">¿Qué hacer con los duplicados? <span style="font-weight:400;color:var(--text2);font-size:11px;">(mismo nombre + misma fecha)</span></div>
+      <div style="font-weight:600;font-size:12.5px;margin-bottom:2px;">¿Qué hacer con los duplicados? <span style="font-weight:400;color:var(--text2);font-size:11px;">(mismo documento + misma fecha; sin documento, mismo nombre + misma fecha)</span></div>
       <label class="eio-opt"><input type="radio" name="imp-dup" value="omitir" checked> Omitir duplicados <span style="color:var(--text2);font-size:11px;">(recomendado)</span></label>
       <label class="eio-opt"><input type="radio" name="imp-dup" value="sobre"> Sobreescribir con los del archivo</label>
       <label class="eio-opt"><input type="radio" name="imp-dup" value="todos"> Importar todos igual <span style="color:var(--text2);font-size:11px;">(puede duplicar)</span></label>
