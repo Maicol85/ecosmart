@@ -1151,10 +1151,14 @@ window.cerrarSesion = cerrarSesion;
     <button class="btn btn-ghost" onclick="cerrarSesion()" title="Cerrar sesión">🔒 Cerrar</button>
   </div>
 </header>
-<!-- Overlay del menú ⋮ del encabezado. Va acá y NO dentro del <header>: ahí el bloque
-     contenedor del fixed no era el viewport y el overlay quedaba con altura 0 —o sea
-     invisible Y sin superficie que tocar—, que es exactamente el bug que venía a
-     arreglar, sólo que además indetectable a simple vista. Medido: 375×812. -->
+<!-- Overlay del menú ⋮ del encabezado. Va acá y NO dentro del <header>.
+     El motivo NO es el tamaño: el header no tiene transform ni filter ni backdrop-filter,
+     así que un position:fixed adentro seguiría midiendo el viewport entero (medido:
+     375×812, ningún ancestro crea bloque contenedor). El motivo es el APILAMIENTO: el
+     header va posicionado con z-index:100 y por eso crea contexto propio; un overlay
+     adentro quedaría dentro de ese contexto y taparía al propio burger y a los botones
+     «Médico» y «Centro», que van con z-index auto. O sea que sería imposible cerrar el
+     menú, y de paso abrirlo. -->
 <div id="ecoHdrOv" onclick="ecoHdrCerrar()"></div>
 <!-- Drawer de tabs (≡, solo móvil ≤768px) -->
 <div class="eco-drawer-ov" id="ecoDrawerOv" onclick="ecoDrawerClose()"></div>
@@ -25396,9 +25400,25 @@ const _orig=showTab;window.showTab=function(id){_orig(id);setTimeout(actualizarF
     });
   })();
   document.addEventListener('keydown', function(e){ if(e.key==='Escape') ecoHdrCerrar(); });
+  /* En móvil el header es position:relative —lo pisa la media query—, así que el menú es
+     absolute respecto de él y SCROLLEA, mientras el overlay fixed se queda. Sin esto,
+     arrastrar el dedo con el menú abierto deja una capa invisible sobre una app que se ve
+     perfectamente normal, que es el mismo modo de falla que el overlay vino a evitar.
+     Medido a 375px: con 700px de scroll el menú quedaba en top:-583 y el burger TAMBIÉN
+     fuera de pantalla, o sea sin siquiera la salida de emergencia de tocar la barra. */
+  window.addEventListener('scroll', function(){ ecoHdrCerrar(); }, { passive: true });
   /* Rotar la tablet saca el menú de su media query: el CSS ya apaga el overlay, pero el
-     estado en clases quedaría abierto y volvería a aparecer al rotar de vuelta. */
-  window.addEventListener('resize', function(){ ecoHdrCerrar(); });
+     estado en clases quedaría abierto y volvería a aparecer al rotar de vuelta.
+     Se escucha el CAMBIO DE LA MEDIA QUERY y no `resize`: en Android, subir o bajar el
+     teclado virtual emite resize sin que cambie el ancho. Con `resize` a secas, tocar ⋮
+     mientras se estaba escribiendo abría el menú y el teclado, al bajar por el propio
+     toque, lo cerraba de inmediato: el botón parecía muerto y sólo a veces, cuando venías
+     de tipear, que es lo peor para diagnosticarlo. */
+  if (window.matchMedia) {
+    var _ecoMq = window.matchMedia('(max-width:768px)');
+    if (_ecoMq.addEventListener) _ecoMq.addEventListener('change', ecoHdrCerrar);
+    else if (_ecoMq.addListener) _ecoMq.addListener(ecoHdrCerrar);   // Safari < 14
+  }
 
   function syncDrawerActive(){
     var d=document.getElementById('ecoDrawer');if(!d)return;
