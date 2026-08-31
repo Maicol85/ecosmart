@@ -483,6 +483,24 @@
   .tab-lab.active { background: var(--accent); color: #fff; border: none; }
   .tab-section { display: none; }
   .tab-section.active { display: block; }
+  /* ═══ Manual de uso (modal de ayuda) ═══
+     Los recuadros llevan además un prefijo de texto al pasar al PDF ("[ATENCION]", "[CONSEJO]"),
+     porque el manual impreso se lee sin color: el borde de la izquierda no sobrevive. */
+  .mSub { color:#0D9488; font-weight:700; margin:14px 0 6px; font-size:13px; }
+  .mSub:first-child { margin-top:0; }
+  .mP { margin:0 0 10px; }
+  .mUl { padding-left:0; list-style:none; display:flex; flex-direction:column; gap:6px; margin:0 0 12px; }
+  .mUl li { display:flex; gap:8px; }
+  .mUl li::before { content:'→'; color:#0D9488; flex-shrink:0; }
+  .mOl { padding-left:18px; margin:0 0 12px; display:flex; flex-direction:column; gap:7px; }
+  .mBox { padding:9px 12px; border-radius:8px; font-size:12px; margin:0 0 10px; line-height:1.6; }
+  .mAviso { background:rgba(239,68,68,0.10); border-left:3px solid #EF4444; color:#FCA5A5; }
+  .mTip { background:rgba(13,148,136,0.10); border-left:3px solid #0D9488; color:#94A3B8; }
+  .mCaso { background:rgba(59,130,246,0.10); border-left:3px solid #3B82F6; color:#93C5FD; }
+  .mTbl { width:100%; border-collapse:collapse; font-size:12px; margin:0 0 12px; }
+  .mTbl th, .mTbl td { border:1px solid rgba(255,255,255,0.10); padding:5px 8px; text-align:left; vertical-align:top; }
+  .mTbl th { color:#0D9488; font-weight:600; }
+  .mKbd { background:rgba(255,255,255,0.08); border-radius:4px; padding:1px 6px; font-size:11px; white-space:nowrap; }
   /* ═══ REDISEÑO LAYOUT: header compacto + rail lateral + subtabs (estilo EcoEstrés) ═══ */
   :root { --rail:160px; --topbar-h:56px; --teal:#0D9488; }
   /* flex-wrap:nowrap es SÓLO del layout de escritorio, donde el header es una barra de
@@ -19892,6 +19910,14 @@ function pdfDeInformeGuardado(id) {
   if (typeof amiloBuildCard === 'function') amiloBuildCard();
   const amiloBackup = (typeof amiloSnapshot === 'function') ? amiloSnapshot() : null;
 
+  /* Las imágenes NO se persisten con el estudio (viven sólo en la sesión), pero
+     generarPDFReal() lee el imgSlots VIVO. Sin vaciarlo, reimprimir un guardado mientras
+     hay otro paciente abierto producía un informe firmado con las IMÁGENES DE OTRO
+     PACIENTE. El PDF de un guardado sale sin imágenes, que es lo correcto: no hay ninguna
+     imagen asociada a ese estudio. Mismo criterio que el snapshot de ETT Avanzado. */
+  const imgBackup = (typeof imgSlots !== 'undefined') ? imgSlots.slice() : null;
+  if (imgBackup) imgSlots.length = 0;
+
   // Backup current form state
   const backup = {};
   document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => { backup[el.id] = el.value; });
@@ -19971,6 +19997,7 @@ function pdfDeInformeGuardado(id) {
    // igual. Si no, quedaría suspendido en silencio por el resto de la sesión y el
    // médico perdería el borrador de todo lo que cargue después.
    try {
+    if (imgBackup) { imgSlots.length = 0; imgBackup.forEach(x => imgSlots.push(x)); if (typeof imgRender === 'function') imgRender(); }
     document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
       if (backup[el.id] !== undefined) el.value = backup[el.id];
     });
@@ -26111,446 +26138,278 @@ function cerrarAvisoEco() {
   if (m) m.style.display = 'none';
 }
 
+/* ══ MANUAL DE USO ══
+   FUENTE ÚNICA. El modal renderiza este HTML y el PDF lo aplana a texto: hay un solo manual
+   mostrado de dos maneras. Antes eran dos arrays independientes (este y MANUAL_SECCIONES) y
+   divergieron: una sección decía que Pericardio vivía en Válvulas y otra que vivía en Otros,
+   las dos en el mismo manual. Si agregás una sección, va acá y sale en los dos lados.
+   El HTML es contenido autorado en este archivo: no entra nada del estudio ni del paciente.
+   Si alguna sección pasa a componerse con datos cargados, hay que escaparla con escapeHtml(). */
 const ECO_AYUDA = [
-  { tab: '📋 ¿Qué es?', html: `
-    <p style="margin:0 0 10px"><strong
-      style="color:#0D9488">
-      Informes ecocardiográficos completos en
-      un solo flujo</strong></p>
-    <p style="margin:0 0 12px">EcoSmart centraliza
-    mediciones, cálculos derivados, evaluación
-    hemodinámica, análisis valvular, contractilidad
-    segmentaria, strain longitudinal global y
-    generación del informe narrativo.</p>
-    <ul style="padding-left:0;list-style:none;
-      display:flex;flex-direction:column;gap:6px;
-      margin:0 0 12px">
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Tres niveles de navegación: estudio
-        principal, patologías especiales y herramientas
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Modo Básico (flujo estándar) y Modo
-        Avanzado (módulos especiales + Laboratorio)
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Informes narrativos generados
-        automáticamente y exportables a PDF
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Seguimiento longitudinal por paciente
-        con comparación de estudios
-      </li>
-    </ul>
-    <div style="padding:9px 12px;border-radius:8px;
-      background:rgba(13,148,136,0.1);
-      border-left:3px solid #0D9488;
-      font-size:12px;color:#94A3B8;font-style:italic">
-      EcoSmart es una herramienta de apoyo clínico.
-      No sustituye el juicio médico ni las guías
-      originales.
-    </div>` },
 
-  { tab: '⚡ Inicio rápido', html: `
-    <p style="margin:0 0 10px"><strong
-      style="color:#0D9488">Flujo en 9 pasos
-    </strong></p>
-    <ol style="padding-left:18px;margin:0;
-      display:flex;flex-direction:column;gap:8px">
-      <li>Completá institución, firma y preferencias
-        en <strong>Configuración</strong></li>
-      <li>Seleccioná <strong>Nuevo estudio</strong>
-        para limpiar datos anteriores</li>
-      <li>En <strong>Paciente</strong>: fecha,
-        identificación y datos antropométricos</li>
-      <li>Ingresá mediciones en
-        <strong>AI/VI, VD/AD, Doppler y Válvulas
-        </strong></li>
-      <li>Usá <strong>Contractilidad y SGL</strong>
-        cuando correspondan</li>
-      <li>Abrí <strong>Informe</strong> y revisá
-        el texto generado</li>
-      <li>Editá si es necesario y
-        <strong>Regenerá</strong> el informe</li>
-      <li>Exportá el <strong>PDF</strong></li>
-      <li>Seleccioná <strong>Guardar Informe
-        </strong> para conservarlo</li>
-    </ol>
-    <div style="margin-top:12px;padding:9px 12px;
-      border-radius:8px;
-      background:rgba(13,148,136,0.1);
-      border-left:3px solid #0D9488;
-      font-size:12px;color:#94A3B8;font-style:italic">
-      Ingresá únicamente mediciones obtenidas en
-      el estudio. Los cálculos dependen de la
-      calidad de los datos.
-    </div>
-    <p style="margin:14px 0 8px"><strong
-      style="color:#0D9488">💾 Exportar e Importar</strong></p>
-    <ul style="padding-left:0;list-style:none;
-      display:flex;flex-direction:column;gap:7px;margin:0">
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Exportar JSON desde Guardados →
-        guardar en pendrive o Mac
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Importar JSON acepta archivos de
-        cualquier navegador
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Exportar después de cada sesión
-        para no perder datos
-      </li>
-    </ul>` },
+ { tab: '📋 ¿Qué es?', html: `
+  <p class="mP"><strong style="color:#0D9488">Informes de ecocardiograma completos, en un solo flujo.</strong></p>
+  <p class="mP">EcoSmart toma las mediciones del estudio, calcula lo que se puede calcular, redacta el informe narrativo solo y lo exporta en PDF. Además acumula los estudios en este dispositivo para poder revisarlos, compararlos y sacar estadísticas del laboratorio.</p>
+  <div class="mSub">Cómo está organizada la pantalla</div>
+  <ul class="mUl">
+    <li><b>Rail izquierdo</b> — el estudio en sí: Paciente, AI/VI, VD/AD, Doppler, Válvulas, Contractilidad, SGL, Otros, Imágenes, y Config abajo. Siempre visible.</li>
+    <li><b>Fila de arriba a la derecha</b> — patologías especiales: Hemodinámica, ETE, Amiloidosis, Cardio-Oncología, Eco Pulmonar. Sólo en Modo Avanzado.</li>
+    <li><b>Segunda fila</b> — herramientas: Calculadoras, Fonocardiograma, Referencias. También sólo en Modo Avanzado.</li>
+    <li><b>Barra de abajo</b> — Informe, Guardados, Nuevo Estudio y Laboratorio. Siempre visibles, en los dos modos.</li>
+  </ul>
+  <div class="mBox mTip"><b>Consejo.</b> Si no encontrás «Generar Informe», está en el menú <span class="mKbd">⋮</span> del encabezado, no en el rail. También lo tenés como «🔄 Regenerar Informe» dentro de la pestaña Informe.</div>
+  <div class="mSub">Dónde viven los datos</div>
+  <p class="mP">Todo queda en este dispositivo. Los estudios guardados van a la base del navegador (IndexedDB), con respaldo automático en el almacenamiento simple si esa base no está disponible. El borrador del estudio que estás cargando y toda la configuración —médicos, centros, logo, firma— van siempre al almacenamiento simple. <b>Nada se envía a ningún servidor.</b></p>
+  <div class="mBox mAviso"><b>Atención.</b> Si borrás los datos de navegación del navegador, se pierde todo. Exportá un backup JSON con regularidad: es la única copia que vas a tener.</div>
+  <div class="mSub">Qué necesita internet</div>
+  <p class="mP">Cargar la app la primera vez, exportar a PDF, exportar o importar Excel, y ver los gráficos. Cargar datos, calcular y generar el informe funcionan sin conexión.</p>
+  <div class="mBox mAviso"><b>Lo que NO es.</b> EcoSmart es una herramienta de apoyo. No reemplaza el juicio clínico, ni el informe de un ecocardiografista, ni las guías originales. Los cálculos y las conclusiones son orientativos: cruzan lo que vos cargaste y sugieren un patrón. La interpretación final y la responsabilidad son del médico.</div>` },
 
-  { tab: '🧠 Módulos avanzados', html: `
-    <p style="margin:0 0 12px"><strong
-      style="color:#0D9488">
-      Cuatro módulos para escenarios complejos
-    </strong> — disponibles en Modo Avanzado:</p>
-    <div style="display:flex;flex-direction:column;
-      gap:10px">
-      <div style="padding:10px 12px;border-radius:8px;
-        background:rgba(13,148,136,0.08);
-        border-left:3px solid #0D9488">
-        <strong>🫀 Hemodinámica</strong><br>
-        <span style="font-size:12px;color:#94A3B8">
-        Gasto cardíaco, IC y resistencias vasculares.
-        Perfil hemodinámico — Forrester (I–IV).
-        Probabilidad de TEP (McConnell, tabique D,
-        VD/VI). HTP ESC/ERS 2022, RVP.</span>
-      </div>
-      <div style="padding:10px 12px;border-radius:8px;
-        background:rgba(124,58,237,0.08);
-        border-left:3px solid #7C3AED">
-        <strong>🧬 Amiloidosis cardíaca</strong><br>
-        <span style="font-size:12px;color:#94A3B8">
-        Score ESC 2021: bull's eye ápice/base, E/e',
-        TAPSE, SGL, RWT. Algoritmo Perugini (0–3)
-        con proteínas monoclonales. Cuatro escenarios
-        diagnósticos con probabilidad automática.
-        </span>
-      </div>
-      <div style="padding:10px 12px;border-radius:8px;
-        background:rgba(3,105,161,0.08);
-        border-left:3px solid #0369A1">
-        <strong>🔬 ETE — Transesofágico</strong><br>
-        <span style="font-size:12px;color:#94A3B8">
-        Score Wilkins automático para VBMP.
-        Esquema visual válvula mitral por festones
-        (A1/A2/A3·P1/P2/P3). Criterios TEER.
-        Orejuela izquierda, aorta torácica, FOP.
-        </span>
-      </div>
-      <div style="padding:10px 12px;border-radius:8px;
-        background:rgba(225,29,72,0.08);
-        border-left:3px solid #E11D48">
-        <strong>❤️ Cardio-Oncología</strong><br>
-        <span style="font-size:12px;color:#94A3B8">
-        Seguimiento FEVI y GLS. Detección de toxicidad
-        (caída ≥15% GLS o ≥10% FEVI). Clasificación
-        HFA-ICOS/ESC 2022. Alertas automáticas.
-        </span>
-      </div>
-      <div style="padding:10px 12px;border-radius:8px;
-        background:rgba(13,148,136,0.08);
-        border-left:3px solid #0D9488">
-        <strong>🧮 Calculadoras — Herramientas de apoyo</strong><br>
-        <span style="font-size:12px;color:#94A3B8">
-        PISA/ERO para IM, Score Wilkins, AVA por ecuación
-        de continuidad, HCM Risk-SCD, QTc y otras.
-        </span>
-      </div>
-      <div style="padding:10px 12px;border-radius:8px;
-        background:rgba(124,58,237,0.08);
-        border-left:3px solid #7C3AED">
-        <strong>🎵 Fonocardiograma — Apoyo para la auscultación</strong><br>
-        <span style="font-size:12px;color:#94A3B8">
-        Patrones gráficos de los principales soplos con
-        posición, irradiación, carácter y claves diagnósticas.
-        </span>
-      </div>
-      <div style="padding:10px 12px;border-radius:8px;
-        background:rgba(3,105,161,0.08);
-        border-left:3px solid #0369A1">
-        <strong>📚 Referencias — Biblioteca de valores normales</strong><br>
-        <span style="font-size:12px;color:#94A3B8">
-        Tablas ASE 2015, ESC 2021/2022/2025, AHA/ACC 2024.
-        </span>
-      </div>
-    </div>` },
+ { tab: '⚡ Inicio rápido', html: `
+  <p class="mP"><strong style="color:#0D9488">Tu primer informe, en cinco pasos.</strong></p>
+  <ol class="mOl">
+    <li><b>Entrá y aceptá el aviso.</b> Contraseña, Enter, y el aviso legal de tres puntos.</li>
+    <li><b>Cargá el paciente.</b> Pestaña <b>👤 Paciente</b>: nombre, documento, fecha del estudio, edad y sexo. Peso y talla calculan la superficie corporal, que es el denominador de todos los índices — sin eso no salen ni el LAVI ni la masa VI indexada.</li>
+    <li><b>Medí.</b> Recorré las pestañas del rail y cargá lo que hayas medido. Los cálculos derivados salen solos. No hace falta completar todo: lo que dejes vacío no aparece en el informe.</li>
+    <li><b>Generá el informe.</b> Menú <span class="mKbd">⋮</span> → <b>📝 Generar Informe</b>. Se escribe solo, en párrafos, y abajo el «EN SUMA» con lo anormal. Los dos son editables.</li>
+    <li><b>Exportá y guardá.</b> <b>⬇️ PDF</b> para el informe firmado, y <b>💾 Guardar</b> para que el estudio quede en la base y puedas compararlo después.</li>
+  </ol>
+  <div class="mBox mCaso"><b>Ejemplo.</b> Paciente de 68 años derivado por disnea. Cargás datos del paciente, DDVI/SIV/PP y FEVI en AI/VI, onda E y A y los e' en Doppler, y el grado de insuficiencia mitral en Válvulas. Generás: el informe describe cada apartado y el EN SUMA dice «Hipertrofia ventricular izquierda concéntrica. Disfunción diastólica grado II. Insuficiencia mitral moderada.» Exportás el PDF y guardás.</div>
+  <div class="mBox mTip"><b>Consejo.</b> El indicador <b>● Guardado</b> del encabezado es el autoguardado del borrador, no del estudio. Que diga «Guardado» no significa que el estudio esté en la base: para eso hay que tocar Guardar.</div>` },
 
-  { tab: '🌊 Doppler y válvulas', html: `
-    <p style="margin:0 0 10px"><strong
-      style="color:#0D9488">
-      Evaluación Doppler y valvular integrada
-    </strong></p>
-    <ul style="padding-left:0;list-style:none;
-      display:flex;flex-direction:column;gap:7px;
-      margin:0 0 12px">
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Doppler mitral / función diastólica:
-        velocidades, tiempos, parámetros tisulares
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Doppler aórtico: TSVI y válvula
-        aórtica para cálculos hemodinámicos
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Doppler tricuspídeo / PSAP:
-        gradiente VD-AD y estimación de PSAP
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Válvula mitral: morfología,
-        cuantificación, PISA
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Válvula aórtica: estenosis e
-        insuficiencia con criterios de severidad
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Tricúspide, pulmonar, pericardio
-        y masas intracardíacas
-      </li>
-    </ul>
-    <p style="margin:14px 0 8px"><strong
-      style="color:#0D9488">Función diastólica —
-      elegí el algoritmo que corresponde</strong></p>
-    <div style="display:flex;flex-direction:column;gap:10px;
-      margin-bottom:12px">
-      <div style="padding:10px 12px;border-radius:8px;
-        background:rgba(13,148,136,0.08);
-        border-left:3px solid #0D9488">
-        <strong>ASE 2025</strong> (predeterminado)<br>
-        <span style="font-size:12px;color:#94A3B8">
-        e' reducida + 4 parámetros de presión elevada
-        (E/e' &gt;14, LAVI &gt;34, TR &gt;2.8 m/s, LARS ≤18%).
-        Con e' reducida basta 1 parámetro; con e' normal
-        se necesitan 2. Clasifica Grado I/II/III.
-        </span>
-      </div>
-      <div style="padding:10px 12px;border-radius:8px;
-        background:rgba(3,105,161,0.08);
-        border-left:3px solid #0369A1">
-        <strong>BSE 2024</strong><br>
-        <span style="font-size:12px;color:#94A3B8">
-        Algoritmo descriptivo.</span>
-      </div>
-      <div style="padding:10px 12px;border-radius:8px;
-        background:rgba(124,58,237,0.08);
-        border-left:3px solid #7C3AED">
-        <strong>Clásico 2016</strong><br>
-        <span style="font-size:12px;color:#94A3B8">
-        Clasificación I/II/III clásica.</span>
-      </div>
-    </div>
-    <p style="margin:14px 0 8px"><strong
-      style="color:#0D9488">Botones de válvulas —
-      cómo usar</strong></p>
-    <ul style="padding-left:0;list-style:none;
-      display:flex;flex-direction:column;gap:7px;
-      margin:0 0 12px">
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Tocar <strong>Insuficiencia</strong> o
-        <strong>Estenosis</strong> → botón celeste,
-        aparece en el informe sin grado
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Tocar <strong>🟡 Severidad ▼</strong> →
-        elegir Leve / Moderada / Severa
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>El grado elegido manualmente siempre
-        prevalece sobre el cálculo automático
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Tocar nuevamente el botón → se apaga,
-        desaparece del informe
-      </li>
-    </ul>
-    <div style="padding:9px 12px;border-radius:8px;
-      background:rgba(13,148,136,0.1);
-      border-left:3px solid #0D9488;
-      font-size:12px;color:#94A3B8;font-style:italic">
-      No fuerces una clasificación cuando faltan
-      variables esenciales o la señal Doppler
-      es inadecuada.
-    </div>` },
+ { tab: '🗂️ Pestañas del estudio', html: `
+  <p class="mP">Las nueve pestañas del rail izquierdo, en orden.</p>
+  <div class="mSub">👤 Paciente</div>
+  <p class="mP">Nombre, documento, fecha del estudio, edad, sexo, peso y talla. La superficie corporal sale por Mosteller. Abajo, el centro y el médico solicitante, y los listados de indicación del estudio y antecedentes — que después sirven para filtrar en Guardados y en el Laboratorio.</p>
+  <div class="mSub">❤️ AI / VI</div>
+  <p class="mP">Aorta torácica en sus cuatro niveles, aurícula izquierda (con volumen y LAVI automático), y ventrículo izquierdo: SIV, DDVI, DSVI, pared posterior, volúmenes y FEVI. La app calcula sola la masa VI indexada, el espesor parietal relativo y con eso la <b>geometría</b> (normal, remodelado concéntrico, hipertrofia concéntrica o excéntrica). FEVI normal ≥ 50 %.</p>
+  <div class="mSub">▶️ VD / AD</div>
+  <p class="mP">Ventrículo derecho (diámetro basal, TAPSE, onda S', TAP) y aurícula derecha con la VCI. TAPSE normal ≥ 17 mm. El diámetro y el colapso de la VCI estiman la presión de aurícula derecha, y <b>el diámetro es además el prerequisito del VEXUS</b>.</p>
+  <div class="mSub">〰️ Doppler</div>
+  <p class="mP">Cuatro tarjetas plegables: mitral (función diastólica), aórtico, tricuspídeo (PSAP) y pulmonar. Ver la sección «Doppler y válvulas» de este manual.</p>
+  <div class="mSub">🔲 Válvulas</div>
+  <p class="mP">Las cuatro válvulas, cada una con su morfología y sus grados de insuficiencia y estenosis.</p>
+  <div class="mSub">🎯 Contractilidad</div>
+  <p class="mP">Modelo de 17 segmentos. Cada clic sobre un segmento avanza al siguiente estado: normal → hipoquinesia → aquinesia → disquinesia. Hay botones de patrón global para llenar todo de una. El bull's eye se puede incluir en el PDF con su casilla.</p>
+  <div class="mSub">📐 SGL</div>
+  <p class="mP">Strain longitudinal global, sincronizado con el campo de AI/VI. Tiene su propia casilla «Incluir en PDF».</p>
+  <div class="mSub">🗂️ Otros</div>
+  <p class="mP">Pericardio y masas, y la ecografía pulmonar básica (líneas B, derrame con el método de Balik, consolidación).</p>
+  <div class="mBox mTip"><b>Consejo.</b> Pericardio y la eco pulmonar básica vivían antes en Válvulas. Si venís de una versión anterior y no los encontrás, están acá.</div>
+  <div class="mSub">🖼️ Imágenes</div>
+  <p class="mP">Se cargan desde archivo, desde la cámara o pegando con <span class="mKbd">Ctrl+V</span>. Podés tener 2, 4, 6, 8 o 10 espacios, y agregar más con el botón <b>＋</b>. Todas las cargadas entran al PDF, al final, en hojas aparte.</p>
+  <div class="mBox mAviso"><b>Atención — las imágenes no se guardan.</b> Viven sólo mientras el estudio está abierto. Si guardás el estudio, cerrás y después generás el PDF desde Guardados, ese PDF <b>sale sin imágenes</b>. Si las necesitás en el documento, exportá el PDF antes de cerrar el estudio.</div>` },
 
-  { tab: '🔬 Laboratorio', html: `
-    <p style="margin:0 0 10px"><strong
-      style="color:#0D9488">
-      Un laboratorio vivo que aprende con cada estudio
-    </strong></p>
-    <p style="margin:0 0 8px;font-weight:600">Secciones del Laboratorio:</p>
-    <ul style="padding-left:0;list-style:none;
-      display:flex;flex-direction:column;gap:7px;
-      margin:0 0 12px">
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Dashboard — corazón anatómico con promedios del período
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Indicaciones y Antecedentes — frecuencias de tu población
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Hallazgos frecuentes — disfunción sistólica y diastólica
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Función sistólica FEVI — distribución en 4 rangos (≥50%, 40-49%, 30-39%, &lt;30%)
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Función diastólica — distribución por grado
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Geometría VI — Normal, Remodelado, HVI conc./exc.
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Contractilidad — bull's eye poblacional de 17 segmentos
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Valvulopatías — distribución de severidades por válvula
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Calidad del Laboratorio — % estudios con cada parámetro
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Indicadores automáticos — oportunidades clínicas detectadas
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Docencia — casos de interés marcados con ⭐
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Estadísticas — media, mediana, DS, percentiles
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Asociaciones estadísticas — ver el botón ℹ️ en esa sección
-      </li>
-    </ul>
-    <p style="margin:0 0 8px"><strong
-      style="color:#0D9488">PDF de Auditoría</strong></p>
-    <ul style="padding-left:0;list-style:none;
-      display:flex;flex-direction:column;gap:7px;
-      margin:0 0 12px">
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Exportable desde subtab 'Informe PDF'
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Incluye todas las secciones en orden clínico
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Útil para comités de calidad y acreditaciones
-      </li>
-    </ul>
-    <div style="padding:9px 12px;border-radius:8px;
-      background:rgba(13,148,136,0.1);
-      border-left:3px solid #0D9488;
-      font-size:12px;color:#94A3B8;font-style:italic">
-      Cada estudio guardado alimenta el laboratorio
-      automáticamente — sin intervención manual.
-    </div>` },
+ { tab: '🌊 Doppler y válvulas', html: `
+  <div class="mSub">Función diastólica</div>
+  <p class="mP">En la tarjeta mitral cargás onda E, onda A, TDE y los e' septal y lateral. Con el botón <b>🧭 Algoritmo</b> se abre el algoritmo interactivo, que es sólo de consulta: no escribe nada en el estudio.</p>
+  <p class="mP">Hay tres algoritmos a elegir: <b>ASE 2025 (recomendado)</b>, <b>BSE 2024 (descriptivo)</b> y <b>ASE/EACVI 2016 (Grados I–III)</b>.</p>
+  <p class="mP">El ASE 2025 mira presiones de llenado con cuatro parámetros: E/e' > 14, LAVI > 34 ml/m², velocidad de insuficiencia tricuspídea > 2,8 m/s y strain auricular (LARS) ≤ 18 %. Normalmente hacen falta <b>dos</b> para hablar de presiones elevadas; si el e' está reducido, <b>alcanza con uno</b>. El LARS es opcional: si no lo cargás, no cuenta en contra.</p>
+  <div class="mBox mAviso"><b>Atención — fibrilación auricular.</b> Si el ritmo es FA, la app deja de aplicar el algoritmo que elegiste y pasa automáticamente al BSE 2024, porque en FA no hay onda A. El resultado va a decir «(BSE 2024)» aunque el selector siga mostrando ASE 2025. No es un error.</div>
+  <div class="mSub">PSAP e hipertensión pulmonar</div>
+  <p class="mP">La PSAP se estima desde la velocidad máxima de la insuficiencia tricuspídea más la presión de aurícula derecha.</p>
+  <div class="mBox mAviso"><b>La app no gradúa la HTP por PSAP, a propósito.</b> Muestra el valor estimado y nada más. La hipertensión pulmonar es un diagnóstico hemodinámico que se establece por cateterismo derecho; clasificarla en leve/moderada/severa por una PSAP estimada es incorrecto. Para estimar probabilidad ecocardiográfica está el módulo <b>HTP ESC/ERS 2022</b> en Hemodinámica, que cruza la velocidad de IT con los signos A, B y C.</div>
+  <div class="mSub">Válvulas</div>
+  <p class="mP">Cada válvula tiene dos pastillas independientes, <b>Insuficiencia</b> y <b>Estenosis</b>, más un desplegable <b>🟡 Severidad ▼</b>. Podés cargar las dos a la vez en una misma válvula.</p>
+  <p class="mP">Lo que cargues a mano tiene prioridad sobre lo que la app calcule: si escribís un grado, ése es el que va al informe.</p>
+  <div class="mBox mCaso"><b>Ejemplo.</b> Estenosis aórtica: cargás velocidad máxima 4,3 m/s y gradiente medio 48 mmHg. La app calcula el gradiente máximo y, si además cargaste el TSVI y la VTI, el área por ecuación de continuidad. En Válvulas marcás la severidad y eso es lo que va al EN SUMA.</div>
+  <div class="mBox mTip"><b>Consejo.</b> El score de Wilkins no se carga en Válvulas: se calcula en <b>Calculadoras</b> o en el módulo <b>ETE</b>. En Válvulas sólo está el campo del área por Wilkins para anotar el resultado.</div>` },
 
-  { tab: '📚 Referencias', html: `
-    <p style="margin:0 0 10px"><strong
-      style="color:#0D9488">
-      Biblioteca académica integrada
-    </strong></p>
-    <ul style="padding-left:0;list-style:none;
-      display:flex;flex-direction:column;gap:7px;
-      margin:0">
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Valvulopatías — criterios ASE/ESC:
-        estenosis aórtica, IM (EROA, PISA),
-        insuficiencia aórtica, tricuspídea
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Score de Wilkins — tabla completa
-        para indicación de VBMP
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>TEER — criterios de elegibilidad
-        IM primaria y secundaria
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>HCM-SCD — calculadora ESC 2014
-        riesgo muerte súbita en MCH
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>HTP — clasificación ESC/ERS 2022,
-        criterios pre/post-capilar, RVP
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Cardio-oncología — toxicidad
-        HFA-ICOS/ESC 2022
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Amiloidosis — algoritmo diagnóstico
-        completo con gammagrafía y proteínas
-        monoclonales
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Función diastólica — algoritmos
-        ASE 2025, BSE 2024, Clásico 2016
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Contractilidad segmentaria —
-        17 segmentos AHA
-      </li>
-      <li style="display:flex;gap:8px">
-        <span style="color:#0D9488;flex-shrink:0">
-        →</span>Strain longitudinal global —
-        valores normales
-      </li>
-    </ul>
-    <div style="margin-top:12px;padding:9px 12px;
-      border-radius:8px;
-      background:rgba(13,148,136,0.1);
-      border-left:3px solid #0D9488;
-      font-size:12px;color:#94A3B8;font-style:italic">
-      Ante decisiones clínicas, corroborá la
-      fuente primaria y su vigencia.
-    </div>` },
+ { tab: '🧠 Módulos avanzados', html: `
+  <p class="mP">Cinco módulos de patología y tres herramientas, todos en <b>Modo Avanzado</b>. Se prenden y apagan en Config, salvo Eco Pulmonar, que está siempre.</p>
+  <div class="mSub">🫀 Hemodinámica</div>
+  <p class="mP">Perfil hemodinámico completo (gasto cardíaco, índice cardíaco, resistencias, presión capilar, perfil de Forrester), probabilidad de HTP según ESC/ERS 2022, score de TEP sobre 7 (McConnell, signo 60/60, tabique en D, relación VD/VI), <b>VEXUS</b> y el score <b>HFA-PEFF</b> para insuficiencia cardíaca con fracción preservada (tres dominios de hasta 2 puntos, máximo 6: 0-1 descarta, 5-6 confirma).</p>
+  <div class="mSub">🔬 ETE</div>
+  <p class="mP">Transesofágico: técnica, morfología mitral con clasificación de Carpentier, criterios de elegibilidad para TEER (MitraClip/PASCAL), score de Wilkins sobre 16, orejuela izquierda para cierre percutáneo y aorta. Sale en <b>hoja propia</b> del PDF.</p>
+  <div class="mSub">🧬 Amiloidosis</div>
+  <p class="mP">Tres solapas: score ETT según ESC 2021 sobre 10 puntos, algoritmo diagnóstico (incluye Perugini y proteínas monoclonales) y una guía de lectura.</p>
+  <div class="mSub">❤️ Cardio-Oncología</div>
+  <p class="mP">Riesgo basal HFA-ICOS antes de empezar el tratamiento, y evaluación de cardiotoxicidad según ESC 2022 durante el seguimiento: caída de FEVI, caída relativa del strain ≥ 15 % y troponina.</p>
+  <div class="mBox mAviso"><b>Atención — la caída de FEVI son puntos porcentuales.</b> El criterio es una caída ≥ 10 <b>puntos</b> respecto del basal (de 60 % a 50 %), no una caída del 10 % relativo. La del strain sí es relativa.</div>
+  <div class="mBox mAviso"><b>Atención — el seguimiento longitudinal es una sola lista, sin paciente.</b> La tabla y el gráfico de seguimiento de Cardio-Oncología no distinguen de qué paciente es cada punto, y no se limpian al empezar un estudio nuevo. Si hacés varios pacientes oncológicos, los puntos se van a mezclar. Usalo por ahora como una libreta de un solo paciente, y borrala antes de pasar al siguiente.</div>
+  <div class="mSub">🫁 Eco Pulmonar</div>
+  <p class="mP">Versión extendida de la eco pulmonar: pleura, líneas B por zonas, derrame por Balik y consolidación, con un patrón global (normal, líneas B focales, síndrome intersticial, edema alveolar, neumotórax probable, consolidación). Al integrarlo al informe reemplaza a la eco pulmonar básica de la pestaña Otros, para no duplicar.</p>
+  <div class="mSub">🧮 Calculadoras · 🎵 Fonocardiograma · 📚 Referencias</div>
+  <p class="mP">Calculadoras disponibles: AVT por Hatle, TANGO, TAPSE/PSAP, índice de esfericidad, PISA/ERO, área aórtica por ecuación de continuidad, índice de Tei, score de Wilkins, score de Duke y GTP/RVP.</p>
+  <p class="mP">El Fonocardiograma es didáctico: dibuja un fonocardiograma sintético según la valvulopatía y la severidad que elijas. <b>No usa el micrófono, no graba nada y no aporta al informe.</b></p>
+  <div class="mSub">Cómo entran al informe</div>
+  <p class="mP">Todos —salvo el Fonocardiograma— tienen un botón <b>📎 Integrar al informe</b>. Lo integrado aparece en la tarjeta <b>🧬 ETT Avanzado</b> de la pestaña Informe, con botones para editarlo o retirarlo, y sale en <b>hoja aparte del PDF</b>, después del EN SUMA.</p>
+  <div class="mBox mTip"><b>Consejo.</b> Sólo Hemodinámica (por VEXUS y HFA-PEFF) y Eco Pulmonar suman líneas al EN SUMA. ETE, Amiloidosis y Cardio-Oncología aportan su hoja pero no modifican el resumen.</div>` },
+
+ { tab: '🩺 VEXUS', html: `
+  <p class="mP"><strong style="color:#0D9488">Grado de congestión venosa sistémica.</strong> Responde «¿este paciente está congestivo?», no «¿va a responder a fluidos?». Sirve para decidir descongestión.</p>
+  <p class="mP">Está en <b>🫀 Hemodinámica</b>, en la tarjeta <b>🩺 VEXUS — Congestión venosa sistémica</b>, que arranca plegada: tocá el encabezado para abrirla.</p>
+  <div class="mSub">El prerequisito: la VCI</div>
+  <p class="mP">El score usa el diámetro de VCI que cargaste en <b>▶️ VD / AD</b> → «Aurícula derecha y VCI». <b>No hay un segundo campo:</b> si lo hubiera, el informe podría decir un diámetro y el score estar calculado sobre otro. Si todavía no lo cargaste, la tarjeta te lo pide y no calcula.</p>
+  <div class="mSub">Los tres vasos</div>
+  <table class="mTbl"><tr><th>Vena</th><th>Normal</th><th>Leve</th><th>Severo</th></tr>
+  <tr><td>Suprahepática</td><td>S &gt; D</td><td>S &lt; D</td><td>flujo sistólico reverso</td></tr>
+  <tr><td>Porta</td><td>pulsatilidad &lt; 30 %</td><td>30-49 %</td><td>≥ 50 % o flujo reverso</td></tr>
+  <tr><td>Intrarrenal</td><td>flujo continuo</td><td>bifásico discontinuo</td><td>monofásico discontinuo</td></tr></table>
+  <div class="mSub">La regla</div>
+  <p class="mP">Beaubien-Souligny <i>et al.</i>, Ultrasound J 2020;12(1):16. El grado lo decide <b>cuántos</b> vasos están severos, <b>no cuál es el peor</b>:</p>
+  <table class="mTbl"><tr><th>Grado</th><th>Criterio</th><th>Qué significa</th></tr>
+  <tr><td><b>0</b></td><td>VCI &lt; 20 mm</td><td>Sin congestión significativa. Presión venosa central probablemente normal.</td></tr>
+  <tr><td><b>1</b></td><td>VCI ≥ 20 mm, ningún vaso severo</td><td>Congestión leve. Monitorizar; vigilar el balance.</td></tr>
+  <tr><td><b>2</b></td><td>VCI ≥ 20 mm, <b>un</b> vaso severo</td><td>Congestión moderada. Evaluar descongestión. Riesgo de injuria renal aguda aumentado.</td></tr>
+  <tr><td><b>3</b></td><td>VCI ≥ 20 mm, <b>dos o más</b> severos</td><td>Congestión severa. Alta asociación con AKI. Considerar descongestión activa.</td></tr></table>
+  <div class="mBox mAviso"><b>El error más común: graduar por el vaso peor.</b> Un solo vaso severo es <b>grado 2</b>, no 3. El grado 3 es el que carga la asociación fuerte con injuria renal aguda y el que dispara la recomendación de descongestión activa: inflarlo un grado lleva a diureticar a quien no corresponde.</div>
+  <div class="mBox mTip"><b>Con VCI &lt; 20 mm el grado es 0 aunque los vasos estén alterados.</b> Aun así conviene cargar al menos un vaso, para que quede constancia de que se aplicó el protocolo. Si no evaluás ninguno, <b>no se informa VEXUS, ni siquiera 0</b>: escribir «VEXUS 0» afirma que se hizo el protocolo venoso.</div>
+  <div class="mBox mCaso"><b>Ejemplo.</b> Paciente con insuficiencia cardíaca descompensada y creatinina en ascenso. VCI 24 mm, suprahepática con reverso sistólico, porta con pulsatilidad del 55 %, intrarrenal continua. Dos vasos severos → <b>VEXUS 3</b>. El informe lo dice y el EN SUMA agrega «Congestión venosa severa — VEXUS 3».</div>
+  <div class="mBox mAviso"><b>Los confusores importan.</b> El patrón venoso se altera <b>sin</b> que haya congestión en: insuficiencia tricuspídea severa (da reverso sistólico suprahepático con presiones de llenado bajas), cirrosis o hipertensión portal (la porta deja de ser fiable) y personas delgadas sanas (pulsatilidad portal aumentada). La fibrilación auricular y la ventilación mecánica también modifican los patrones. Este aviso está en pantalla, junto a la tarjeta, pero <b>no viaja al PDF</b>: si informás un VEXUS en un paciente con alguno de estos cuadros, aclaralo a mano en el texto.</div>` },
+
+ { tab: '📝 Informe', html: `
+  <div class="mSub">Cómo se genera</div>
+  <p class="mP">Menú <span class="mKbd">⋮</span> → <b>📝 Generar Informe</b>, o <b>🔄 Regenerar Informe</b> dentro de la pestaña Informe. La app recorre lo cargado y escribe trece párrafos en orden fijo, uno por apartado.</p>
+  <p class="mP">Si el paciente ya tiene estudios guardados con el mismo documento, antes de generar se abre <b>📈 Evolución respecto al estudio previo</b>: una tabla con el valor previo, el actual y la diferencia, y flechas de color. Es sólo de lectura; al cerrarla se genera el informe.</p>
+  <div class="mSub">El EN SUMA</div>
+  <p class="mP">Se arma en paralelo y <b>sólo recoge lo anormal</b>: función y geometría del VI, disfunción diastólica, aurícula izquierda, VD, cada valvulopatía con su grado, PSAP, VEXUS, dilatación de raíz aórtica, pericardio, HFA-PEFF y eco pulmonar. Si no hay nada anormal, escribe «Estudio sin alteraciones estructurales ni funcionales significativas.»</p>
+  <div class="mSub">Estilo</div>
+  <p class="mP">Tres pastillas: <b>📋 Conciso</b>, <b>📄 Estándar</b> (el que viene por defecto) y <b>📖 Narrativo</b>.</p>
+  <div class="mSub">Editar el texto</div>
+  <p class="mP">Los dos cuadros —informe y EN SUMA— son editables. Escribí lo que quieras.</p>
+  <div class="mBox mAviso"><b>Atención — lo que reescribe tu edición.</b> El texto editado a mano se pisa entero, sin preguntar, cuando: tocás Regenerar, cambiás el estilo, cambiás un selector de VEXUS, o integrás o retirás un módulo. Guardar el estudio <b>sí</b> conserva lo editado, y volver a abrirlo desde Guardados lo restaura tal cual. Regla práctica: editá al final, y si tenés que volver a tocar algo, guardá antes.</div>
+  <div class="mSub">Modo comparativo</div>
+  <p class="mP">El botón <b>🔀 Modo comparativo</b> aparece sólo si hay un estudio guardado con el mismo nombre. Pone lado a lado el informe actual y el texto del estudio previo que elijas. Compara <b>texto</b>; para comparar números está la tabla de evolución y el botón <b>Evol</b> de Guardados.</p>
+  <div class="mBox mTip"><b>Consejo.</b> El checkbox <b>🎓 Marcar como caso de interés</b> de esta pestaña es el mismo que la estrella de Guardados. Marcalo acá y después lo filtrás allá.</div>` },
+
+ { tab: '⬇️ PDF', html: `
+  <p class="mP">Tres botones, la misma función: <b>⬇️ PDF</b> en el encabezado, <b>⬇️ PDF</b> en el menú <span class="mKbd">⋮</span> y <b>⬇️ Exportar PDF</b> en la pestaña Informe. Desde Guardados, el botón <b>PDF</b> de cada fila.</p>
+  <div class="mSub">Qué incluye, en orden</div>
+  <ul class="mUl">
+    <li>Encabezado con banda de color, logo si cargaste uno, y datos del paciente.</li>
+    <li>Cinco bloques de tablas: aorta/AI/AD-VCI · VI y VD · Doppler transmitral, DTI y tricuspídeo · gradientes aórticos y área · las válvulas mitral, aórtica y tricúspide, y Otros.</li>
+    <li><b>INFORME</b> y <b>EN SUMA</b>, tal como quedaron en la pestaña Informe.</li>
+    <li>Opcionales según lo que hayas tildado: Wilkins, GTP/RVP, eco estrés, score de Duke, contractilidad con bull's eye, SGL, vista quirúrgica mitral.</li>
+    <li>Hoja aparte de <b>estudio avanzado</b> con los módulos integrados, y hoja aparte de <b>ETE</b> si lo usaste.</li>
+    <li>Hojas de <b>imágenes</b> al final.</li>
+    <li>Firma y disclaimer legal, en todas las páginas.</li>
+  </ul>
+  <div class="mBox mAviso"><b>Dos cosas no están donde uno las busca.</b> La <b>válvula pulmonar</b> no tiene columna propia en el bloque de válvulas: sus velocidades y su morfología salen dentro de la columna «Tricúspide / PSAP», y la morfología sólo si es distinta de «Normal». Y el <b>score de Duke</b> está anidado dentro del bloque de eco estrés: si tildás Duke pero no incluís el eco estrés, no sale nunca.</div>
+  <div class="mSub">La firma</div>
+  <p class="mP">Es texto, no una firma dibujada. El nombre y la matrícula salen del médico marcado como <b>Principal</b> en Config. Especialidad, ciudad, dirección y teléfono salen sólo si tildaste «Incluir en el PDF» en cada uno, en Config.</p>
+  <p class="mP">El <b>email</b> es aparte: se carga y se tilda en el panel <b>✏️ Editar firma del centro</b>, dentro del bloque «Institución y firma» de Config.</p>
+  <div class="mBox mAviso"><b>Si no hay médico configurado, el PDF sale igual</b> — con dos renglones en blanco para completar a mano. No avisa ni bloquea. Configurá el médico antes de entregar un informe.</div>
+  <div class="mSub">Apariencia</div>
+  <p class="mP">Cuatro colores junto al botón PDF: azul (por defecto), verde, violeta y bordó. El desplegable de abajo elige cómo se llama el archivo, entre cinco formatos.</p>
+  <div class="mBox mAviso"><b>El logo en SVG no funciona.</b> Se descarta sin avisar y el PDF sale sin logo. Usá PNG o JPG.</div>
+  <p class="mP">Con <b>🏛️ Modo institucional</b> tildado en Config, el PDF saca «CeiboMed» del pie —copyright y disclaimer— y también del encabezado cuando no hay centro cargado. Si ya tenés un centro configurado, su nombre aparece en el encabezado con el modo prendido o apagado.</p>
+  <div class="mBox mAviso"><b>Las imágenes no sobreviven al guardado.</b> Viven sólo mientras el estudio está abierto, así que un PDF generado desde <b>Guardados sale sin imágenes</b> — es lo correcto, porque no hay ninguna imagen asociada a ese estudio. Si las querés en el documento, exportá el PDF antes de cerrar.</div>
+  <div class="mBox mTip"><b>Consejo.</b> El PDF que se genera desde Guardados no pasa por la tarjeta de confirmación de severidades valvulares. Si querés revisarlas, abrí el estudio con <b>Editar</b> y exportá desde ahí.</div>` },
+
+ { tab: '💾 Guardados', html: `
+  <p class="mP">Todos los estudios guardados en este dispositivo, del más reciente al más viejo.</p>
+  <div class="mSub">Acordeón por mes</div>
+  <p class="mP">Se agrupan por mes, con una cabecera del tipo «── Agosto 2026 (3 estudios) ──» y un chevron para plegar. Todos los meses arrancan abiertos.</p>
+  <div class="mBox mTip"><b>Consejo.</b> El plegado no se recuerda: buscar, filtrar o borrar vuelve a abrir todos los meses. Es cosmético, no perdés nada.</div>
+  <div class="mSub">Buscar y filtrar</div>
+  <ul class="mUl">
+    <li><b>Buscador</b> por nombre o documento, en vivo.</li>
+    <li><b>Fecha desde / hasta</b>, y desplegables de <b>antecedente o diagnóstico</b> y de <b>casos de interés</b>.</li>
+    <li><b>🩺 Filtros clínicos</b> (plegado): FEVI, geometría, función diastólica, valvulopatía.</li>
+    <li><b>🔢 Filtros numéricos</b> (plegado): FEVI menor que / entre / mayor que, PSAP mayor que, TAPSE menor que.</li>
+    <li><b>🧹 Limpiar filtros</b> deja todo como estaba.</li>
+  </ul>
+  <div class="mSub">Casos de interés y notas</div>
+  <p class="mP">La estrella <b>☆ / ⭐</b> de cada fila marca el estudio como caso de interés. Una vez marcado aparece un indicador de <b>nota</b>: <b>📝</b> si ya tiene una, <b>●</b> si no. Se abre un cuadrito con hasta 400 caracteres para anotar por qué te interesó el caso.</p>
+  <div class="mBox mCaso"><b>Ejemplo.</b> Encontrás una miocardiopatía no compactada. Marcás la estrella, escribís en la nota «no compactada — ateneo de octubre», y después la filtrás con «Casos de interés → Solo interés» cuando prepares la presentación.</div>
+  <div class="mSub">Botones de cada estudio</div>
+  <p class="mP"><b>Evol</b> abre el gráfico de evolución longitudinal del paciente (FEVI, SGL, TAPSE, E/e', DDVI y LAVI, con casillas para mostrar u ocultar cada curva). <b>PDF</b> genera el informe. <b>Editar</b> lo vuelve a abrir en el formulario. <b>🗑️</b> lo borra. En móvil, <b>···</b> despliega el resto.</p>
+  <div class="mBox mTip"><b>Consejo.</b> El botón <b>Evol</b> es el único acceso al gráfico longitudinal. El modal que aparece al generar el informe es otra cosa: una tabla de diferencias contra el estudio previo, sin gráfico.</div>` },
+
+ { tab: '🔬 Laboratorio', html: `
+  <p class="mP">Estadísticas de todos los estudios guardados. Es la vista de auditoría del laboratorio, no del paciente. Botón <b>🔬 Laboratorio</b> en la barra de abajo.</p>
+  <div class="mSub">Filtros</div>
+  <p class="mP">Período (último mes, 3 meses, 6 meses, <b>último año — el que viene puesto</b>, o todo el tiempo), fechas desde/hasta y filtro por centro.</p>
+  <div class="mBox mAviso"><b>Atención.</b> El período por defecto es de un año. Si te faltan estudios viejos en las estadísticas, no es que no estén: es el filtro. Poné «Todo el tiempo».</div>
+  <div class="mSub">Qué calcula</div>
+  <ul class="mUl">
+    <li><b>Actividad</b> — total, hoy, semana, mes, promedio por día hábil, demora entre solicitud y estudio, estudios por mes.</li>
+    <li><b>Perfil poblacional</b> — edad media, distribución por sexo, medias de FEVI, GLS y PSAP.</li>
+    <li><b>Distribuciones</b> con N y porcentaje: FEVI, disfunción diastólica por grado, VEXUS 0-3, cada valvulopatía por severidad, PSAP, volumen de AI indexado, TAPSE y geometría del VI.</li>
+    <li><b>Completitud</b> por parámetro, con semáforo: verde ≥ 80 %, amarillo ≥ 50 %, rojo por debajo. Sirve para ver qué se está midiendo poco.</li>
+    <li><b>Estadística descriptiva</b> de diez variables (N, media, mediana, desvío, percentiles, mínimo y máximo). Se oculta si hay menos de 5 casos.</li>
+    <li><b>Asociaciones</b> — elige el test solo (Spearman, Mann-Whitney o Chi²) y muestra N, método, estadístico, p, dirección y fuerza.</li>
+    <li><b>Comparar períodos</b> y <b>análisis por médico</b>.</li>
+  </ul>
+  <div class="mSub">Exportar</div>
+  <p class="mP">La solapa <b>Informe PDF</b> genera un <b>PDF de auditoría</b> con cinco bloques seleccionables por casilla: actividad, población, calidad, indicadores y médicos. Sólo salen los que dejes tildados. La solapa Asociaciones tiene sus propios botones de PDF y Excel.</p>
+  <div class="mBox mTip"><b>Consejo — para CeiboAnalytics.</b> El botón <b>📈 Para Analytics</b> (en el menú Exportar de Guardados, o en el <span class="mKbd">⋮</span> del encabezado) genera un JSON pensado para abrir en CeiboAnalytics. <b>Exporta todos los estudios, sin aplicar los filtros del Laboratorio y sin anonimizar</b>: el archivo lleva nombre y documento de cada paciente. Tratalo como lo que es, una base con datos identificables.</div>` },
+
+ { tab: '🔄 Importar / Exportar', html: `
+  <p class="mP">Todo vive en dos menús desplegables de la pestaña <b>💾 Guardados</b>: <b>📤 Exportar ▾</b> y <b>📥 Importar ▾</b>, con cuatro opciones cada uno.</p>
+  <div class="mSub">Cuál usar</div>
+  <table class="mTbl"><tr><th>Formato</th><th>Para qué sirve</th></tr>
+  <tr><td><b>📦 JSON</b></td><td><b>Backup y restauración.</b> Es el único formato completo: se lleva todo y lo devuelve todo. Es el que tenés que usar para no perder los estudios.</td></tr>
+  <tr><td><b>📊 Excel</b></td><td>Mirar los datos en una planilla, corregir a mano o cargar estudios en lote. <b>No es un backup.</b></td></tr>
+  <tr><td><b>🏥 DICOM SR</b></td><td>Intercambio con el ecógrafo y el PACS. Trae mediciones numéricas, nada más.</td></tr>
+  <tr><td><b>📈 Para Analytics</b></td><td>Abrir después en CeiboAnalytics.</td></tr></table>
+  <div class="mBox mAviso"><b>Sólo el JSON es un backup.</b> El Excel se lleva 94 columnas pero vuelve a entrar con 52: los campos calculados, la superficie corporal, el ETE, el strain por segmento y las imágenes no vuelven. Reconstruir la base desde el Excel <b>pierde datos</b>.</div>
+  <div class="mSub">Excel</div>
+  <p class="mP">Empezá siempre por <b>📋 Descargar plantilla Excel</b>, que está dentro del menú <b>Importar</b> (no del de exportar). Trae las columnas correctas, una fila de ejemplo y una hoja de instrucciones.</p>
+  <div class="mBox mAviso"><b>Borrá la fila de ejemplo antes de importar.</b> Viene marcada con «*** FILA DE EJEMPLO — BORRAR ANTES DE IMPORTAR ***». La app la saltea sola, pero es más claro sacarla.</div>
+  <p class="mP">Al importar hay una vista previa: cuántas filas son válidas, cuáles ya existen, las que tienen error con el motivo, y las primeras diez para revisar. Elegís si los repetidos se dejan como están o se actualizan, y recién ahí escribe.</p>
+  <div class="mBox mAviso"><b>El Excel que exportás no es lo que ves en Guardados.</b> Usa los filtros del <b>Laboratorio</b>, cuyo período por defecto es de un año. El propio menú te avisa en ámbar cuántos estudios quedan afuera.</div>
+  <div class="mSub">DICOM SR</div>
+  <p class="mP">Importa archivos <b>.dcm</b> de informe estructurado del ecógrafo — podés seleccionar varios de una — y trae 18 mediciones: FEVI, septo, DDFVI, pared posterior, TAPSE, volumen de AI, ondas E y A, e' septal y lateral, TDE, velocidad de IT, velocidad y gradientes aórticos, gradiente medio mitral y los tres diámetros de aorta.</p>
+  <p class="mP">Hay vista previa con una casilla por medición: <b>sólo se escribe lo que dejes tildado</b>. Vienen destildadas las dudosas — la velocidad de insuficiencia tricuspídea, las que pisarían un valor ya cargado y las que tienen valores en conflicto.</p>
+  <div class="mBox mAviso"><b>El documento del paciente no se importa.</b> En un ecógrafo de hospital ese campo suele ser el número de historia clínica, no la cédula, así que la app lo muestra pero no lo guarda: cargalo a mano. Como consecuencia, los duplicados se detectan por nombre + fecha.</div>
+  <div class="mBox mTip"><b>Consejo.</b> El DICOM SR que <b>exportás</b> sale del <b>formulario abierto</b>, no de la lista de Guardados. Se marca como parcial y no verificado a propósito: lo generó una aplicación de escritorio, no el ecógrafo.</div>
+  <div class="mSub">Duplicados</div>
+  <p class="mP">Las tres vías usan el mismo criterio: <b>documento + fecha</b> del estudio, y si no hay documento, <b>nombre + fecha</b>.</p>` },
+
+ { tab: '⚙️ Configuración', html: `
+  <p class="mP">Pestaña <b>⚙️ Config</b>, abajo del rail izquierdo. Cuatro bloques.</p>
+  <div class="mSub">🏥 Institución y firma</div>
+  <p class="mP">Especialidad, ciudad, dirección y teléfono, cada uno con su casilla «Incluir en el PDF». El nombre y la matrícula <b>no se editan acá</b>: salen del médico Principal. También está acá el <b>🏛️ Modo institucional</b>.</p>
+  <p class="mP">El botón <b>✏️ Editar firma del centro</b> abre un panel con los mismos campos opcionales más el <b>email</b>, que es el único que no está en la pantalla de Config.</p>
+  <div class="mSub">🏥 Centros de trabajo</div>
+  <p class="mP">Hasta <b>10</b> centros. El que marques como principal viene preseleccionado en cada estudio nuevo.</p>
+  <div class="mSub">👨‍⚕️ Médicos</div>
+  <p class="mP">Hasta <b>5</b> médicos, con nombre, matrícula y especialidad. El marcado como <b>Principal</b> es el que firma el PDF y el que aparece en el encabezado. El primero que cargues queda como principal automáticamente.</p>
+  <div class="mSub">🖥️ Modo de visualización</div>
+  <p class="mP"><b>Modo Básico</b> esconde las dos filas de arriba a la derecha: los cinco módulos de patología y las tres herramientas. <b>Modo Avanzado</b> (el que viene por defecto) las muestra, y agrega la solapa «Avanzado» del Laboratorio.</p>
+  <div class="mBox mTip"><b>El rail izquierdo, el Informe, los Guardados y el Laboratorio están siempre</b>, en los dos modos. El modo sólo cambia qué módulos ves.</div>
+  <div class="mBox mAviso"><b>Pasar a Modo Básico no borra lo cargado.</b> Si completaste un módulo avanzado y después cambiás a Básico, el módulo desaparece de la pantalla pero <b>sus datos siguen entrando al informe y al PDF</b>. Si querés sacarlo del informe, usá «Retirar» en la tarjeta ETT Avanzado.</div>
+  <p class="mP">En Modo Avanzado aparecen las casillas para prender y apagar cada módulo: Hemodinámica, ETE, Amiloidosis, Cardio-Oncología, Calculadoras, Fonocardiograma y Referencias.</p>
+  <div class="mBox mTip"><b>Eco Pulmonar no tiene casilla</b> — está siempre disponible en Modo Avanzado.</div>
+  <div class="mSub">El logo</div>
+  <p class="mP">No está en Config: se carga desde el recuadro <b>＋ Logo</b> del encabezado, que abre una <b>galería</b> de logos ya subidos. Elegís uno o subís uno nuevo. La asignación es <b>por centro</b>; la galería es común a todos.</p>
+  <div class="mBox mAviso"><b>La ✕ del encabezado no borra el logo.</b> Sólo lo desasigna de este centro: la imagen sigue en la galería. Para borrarla de verdad, usá la ✕ de su miniatura dentro de la galería.</div>
+  <div class="mBox mAviso"><b>El logo sólo se puede cargar desde la computadora.</b> En celular y tablet el recuadro <b>＋ Logo</b> no se muestra, y no hay otra forma de cargarlo ni de quitarlo.</div>` },
+
+ { tab: '❓ Preguntas frecuentes', html: `
+  <p class="mP"><b>Generé el PDF desde Guardados y salió sin las imágenes.</b> Es así: las imágenes viven sólo mientras el estudio está abierto, no se guardan con él. Exportá el PDF antes de cerrar el estudio.</p>
+  <p class="mP"><b>Edité el informe y se borró lo que escribí.</b> Regenerar, cambiar el estilo, tocar un selector de VEXUS o integrar un módulo reescriben el texto entero. Editá al final, y guardá el estudio: al reabrirlo desde Guardados, tu edición vuelve intacta.</p>
+  <p class="mP"><b>El PDF salió sin firma.</b> No hay ningún médico marcado como Principal en Config. El PDF se genera igual, con renglones en blanco.</p>
+  <p class="mP"><b>Cargué el logo y no aparece.</b> Si es un SVG, se descarta sin avisar. Convertilo a PNG o JPG.</p>
+  <p class="mP"><b>El Laboratorio no muestra estudios viejos.</b> El período por defecto es el último año. Cambialo a «Todo el tiempo».</p>
+  <p class="mP"><b>Exporté a Excel y faltan estudios.</b> El Excel usa los filtros del Laboratorio, no los de Guardados. El menú te avisa en ámbar cuántos quedan afuera.</p>
+  <p class="mP"><b>Importé un Excel y algunos valores no entraron.</b> Los campos que la app calcula sola —presión de AD, área mitral, gradiente máximo aórtico, PSAP— se recalculan y pisan lo que traiga la planilla. Cargá las mediciones que los alimentan, no el resultado.</p>
+  <p class="mP"><b>El algoritmo diastólico dice «BSE 2024» y yo elegí ASE 2025.</b> El paciente está en fibrilación auricular: sin onda A el ASE 2025 no se puede aplicar, así que la app cambia sola.</p>
+  <p class="mP"><b>¿Por qué no me clasifica la hipertensión pulmonar en leve, moderada o severa?</b> Porque no corresponde hacerlo con una PSAP estimada. Usá el módulo de probabilidad de HTP ESC/ERS 2022 en Hemodinámica.</p>
+  <p class="mP"><b>Cargué el VEXUS y no aparece en el informe.</b> Falta el diámetro de VCI (se carga en VD/AD) o no evaluaste ninguno de los tres vasos. Sin al menos un vaso no se informa, ni siquiera grado 0.</p>
+  <p class="mP"><b>La tabla de seguimiento de Cardio-Oncología mezcla pacientes.</b> Es una única lista que no distingue por paciente y no se limpia al empezar un estudio nuevo. Borrala antes de pasar al siguiente.</p>
+  <p class="mP"><b>Desapareció la pestaña de Hemodinámica (o de ETE, o de Amiloidosis).</b> Estás en Modo Básico, o la casilla del módulo está apagada en Config.</p>
+  <p class="mP"><b>No encuentro «Generar Informe».</b> Está en el menú <span class="mKbd">⋮</span> del encabezado, no en el rail izquierdo.</p>
+  <p class="mP"><b>¿Se pierden los estudios si cierro el navegador?</b> No: quedan en este dispositivo. Se pierden si borrás los datos de navegación. Exportá un backup JSON.</p>` },
+
+ { tab: '📚 Referencias', html: `
+  <p class="mP">La app trae una biblioteca de referencias en <b>📚 Referencias</b> (Modo Avanzado). Los criterios que aplican los cálculos vienen de:</p>
+  <ul class="mUl">
+    <li><b>Cuantificación de cámaras</b> — ASE/EACVI 2015.</li>
+    <li><b>Función diastólica</b> — ASE 2025 (por defecto), BSE 2024 y ASE/EACVI 2016.</li>
+    <li><b>Valvulopatías</b> — ESC/EACTS 2021 y ASE.</li>
+    <li><b>Hipertensión pulmonar</b> — ESC/ERS 2022, probabilidad ecocardiográfica.</li>
+    <li><b>HFA-PEFF</b> — ESC 2019.</li>
+    <li><b>Amiloidosis cardíaca</b> — ESC 2021; algoritmo de Gillmore 2016.</li>
+    <li><b>Cardio-Oncología</b> — ESC 2022 y riesgo basal HFA-ICOS.</li>
+    <li><b>VEXUS</b> — Beaubien-Souligny <i>et al.</i>, Ultrasound J 2020;12(1):16.</li>
+    <li><b>Derrame pleural</b> — método de Balik.</li>
+  </ul>
+  <div class="mBox mTip">La biblioteca incluye además fichas de consulta que no alimentan ningún cálculo, como la calculadora HCM Risk-SCD para muerte súbita en miocardiopatía hipertrófica y los criterios de TEER.</div>
+  <div class="mBox mAviso">Las guías se actualizan. Verificá contra la fuente original antes de tomar una decisión clínica basada en un umbral de esta app.</div>` }
+
 ];
 
 function abrirAyudaEco() {
@@ -26587,14 +26446,21 @@ window.mostrarAvisoEco=mostrarAvisoEco;window.cerrarAvisoEco=cerrarAvisoEco;
 window.abrirAyudaEco=abrirAyudaEco;window.cerrarAyudaEco=cerrarAyudaEco;window.renderAyudaEco=renderAyudaEco;
 
 /* ══ Manual en PDF ══
-   El texto sale del MISMO ECO_AYUDA que ve el modal, convertido a texto plano: así el PDF
-   no queda desfasado si mañana se edita una tab. No se vuelca HTML al PDF.
-   La helvetica de jsPDF (WinAnsi) no tiene flechas, ≥/≤ ni emoji: se transliteran o se
-   quitan, si no salen como caracteres basura. */
+   El texto sale del MISMO ECO_AYUDA que ve el modal, aplanado a texto plano. Esto es cierto
+   desde que se unificaron los dos manuales: antes el comentario lo afirmaba pero el PDF salía
+   de un array aparte, y los dos textos se contradecían entre sí.
+   La helvetica de jsPDF (WinAnsi) no tiene flechas, ≥/≤ ni emoji, y basta UN carácter fuera
+   del juego para que la CADENA ENTERA pase a UTF-16 y salga ilegible: se transliteran o se
+   quitan. Si agregás un símbolo nuevo al manual, agregalo también acá — y comprobalo
+   descargando el PDF, no leyendo este comentario. */
 function _pdfSafe(s) {
   return String(s)
     .replace(/[→⟶▼]/g, m => m === '▼' ? '' : '->').replace(/←/g, '<-')
     .replace(/≥/g, '>=').replace(/≤/g, '<=').replace(/[•·]/g, '-')
+    /* Glifos que el manual usa para NOMBRAR un control. Sin esto el catch-all los borra y la
+       frase pierde el sujeto: «el menú ⋮ del encabezado» quedaba «el menú del encabezado». */
+    .replace(/⋮/g, '(tres puntos)').replace(/＋/g, '+').replace(/[⭐☆]/g, '*')
+    .replace(/●/g, '-').replace(/✕/g, 'X').replace(/[▾▸]/g, '')
     // Catch-all: fuera lo que helvetica/WinAnsi no puede dibujar (emoji, simbolos sueltos
     // como ℹ, flechas residuales). Se dejan pasar los tipograficos que WinAnsi si tiene:
     // guiones – —, comillas curvas y el euro.
@@ -26602,167 +26468,59 @@ function _pdfSafe(s) {
     .replace(/[ \t]{2,}/g, ' ').trim();
 }
 
-const MANUAL_SECCIONES = [
-  { t: `1. ¿Qué es EcoSmart?`, p: [
-    `EcoSmart es una aplicación web de ecocardiografía Doppler Color desarrollada dentro de la suite CeiboMed. Permite cargar los datos de un estudio de ecocardiograma, generar un informe narrativo estructurado, exportarlo en PDF y acumular una base de datos de estudios para análisis estadístico y auditoría del laboratorio cardiovascular.`,
-    `EcoSmart es una herramienta de apoyo clínico. No reemplaza el juicio médico ni constituye una recomendación diagnóstica o terapéutica. El médico es responsable de interpretar los resultados y tomar decisiones clínicas.`,
-    `Requiere conexión a internet para funcionar. Los datos se almacenan localmente en el navegador (IndexedDB), con mayor capacidad y estabilidad que el almacenamiento tradicional. Es fundamental exportar backups regularmente para evitar pérdida de información.`,
-  ]},
-  { t: `2. Login y aviso legal`, p: [
-    `Al abrir EcoSmart aparece la pantalla de login. Ingresá la contraseña y presioná Ingresar o Enter. Después del login aparece un aviso legal con tres puntos: confidencialidad de datos del paciente, apoyo clínico sin reemplazar el criterio médico, y responsabilidad del médico en la interpretación final.`,
-  ]},
-  { t: `3. El encabezado`, p: [
-    `El encabezado está siempre visible.`,
-    `Botones izquierda: Médico (muestra el nombre del médico activo; al tocar abre Configuración), Centro (muestra el centro principal configurado; al tocar abre Configuración), Logo (cargar imagen de la institución para el PDF). Si no hay datos configurados, los botones muestran el texto genérico "Médico" y "Centro".`,
-    `Botones derecha: Noche/Día (modo oscuro/claro), Exportar (backup JSON), Importar (restaurar desde JSON), Exportar para Analytics, Generar Informe, PDF (genera el informe en PDF — en móvil visible directamente en el encabezado), swatches de color del PDF (azul, verde, violeta, bordo), botón de ayuda, Cerrar sesión.`,
-  ]},
-  { t: `4. Configuración`, p: [
-    `Accedé desde la columna izquierda tocando Config.`,
-    `Institución y firma: Especialidad, Ciudad/Lugar, Dirección del consultorio, Teléfono. Esta información aparece en la firma del PDF junto con los datos del médico activo.`,
-    `Centros de trabajo: hasta 10 centros. Elegí el principal para que aparezca por defecto.`,
-    `Médicos: registrá varios médicos con nombre, matrícula y especialidad. Marcá uno como Principal para que aparezca en el encabezado y firme el PDF. Al agregar el primer médico queda como Principal automáticamente.`,
-    `Modo institucional: cuando está activo, el PDF lleva el nombre de tu institución en encabezado y pie en lugar del branding de CeiboMed.`,
-    `Módulos avanzados: activá o desactivá Hemodinámica, ETE, Amiloidosis, Cardio-Oncología desde aquí.`,
-  ]},
-  { t: `5. Tab Paciente`, p: [
-    `Datos del paciente: Fecha, Nombre completo, Edad, Sexo (importante para valores de referencia), Tipo y Número de documento, Matrícula, Peso (kg) y Talla (cm) — usados para calcular ASC (Mosteller) e IMC automáticamente.`,
-    `Indicaciones del estudio: Control, Control IC, Disnea, Dolor torácico, Preoperatorio, Evaluación valvular, Seguimiento IC y más. Usar campo libre Otro si ninguna corresponde.`,
-    `Antecedentes relevantes: HTA, DM, Dislipemia, Tabaquismo, IC previa, Cardiopatía isquémica/IAM previo, FA, Obesidad, ERC y más.`,
-    `Centro/Médico solicitante: Centro/Institución (de la lista configurada), Médico solicitante, Fecha de solicitud.`,
-  ]},
-  { t: `6. Tab AI/VI`, p: [
-    `Raíz aórtica: aorta sinusal, sinotubular, tubular, TSVI, cayado, aorta torácica. Los valores se interpretan automáticamente con badges de color.`,
-    `Aurícula izquierda: Diámetro AI, Área AI, Volumen AI, LARS (strain de AI, opcional — normal >18%, reducido <=18%, no afecta el algoritmo diastólico si no se carga).`,
-    `El LAVI se calcula automáticamente si se ingresaron peso y talla.`,
-    `Ventrículo izquierdo: SIV, DDFVI, DSFVI, PPd, FEVI (umbral normalidad >=50% según ASE 2025), método de medición, SGL (sincronizado con tab SGL), VDFVI.`,
-    `Geometría VI calculada automáticamente: Normal (masa normal + RWT <0.42), Remodelado concéntrico (masa normal + RWT >=0.42), Hipertrofia excéntrica (masa aumentada + RWT <0.42), Hipertrofia concéntrica (masa aumentada + RWT >=0.42).`,
-  ]},
-  { t: `7. Tab VD/AD`, p: [
-    `Ventrículo derecho: TAPSE (normal >=17mm), S' tricuspídeo, dimensiones VD, FEVD, VTI TSVD, relación VD/VI, TAP.`,
-    `Aurícula derecha y VCI: Área AD, Diámetro VCI, Colapso VCI (>50% o <50%).`,
-    `La PmAD y la PSAP se calculan automáticamente desde Vmax IT y VCI. HTP clasificada según ESC/ERS 2022: Normal <=35, Leve 36-50, Moderada 51-70, Severa >70 mmHg. HTP precapilar requiere RVP >2 UW (cateterismo derecho).`,
-  ]},
-  { t: `8. Tab Doppler`, p: [
-    `Selector de algoritmo diastólico: ASE 2025 (predeterminado), BSE 2024, Clásico 2016.`,
-    `Parámetros Doppler mitral: Onda E, Onda A, E' septal, E' lateral, TDE, TRIV, THP mitral, Ritmo (sinusal o FA).`,
-    `Algoritmo ASE 2025: Paso 1 - e' reducida (promedio <=6.5, septal <=6, lateral <=7). Paso 2 - parámetros de presión elevada: E/e' >14, LAVI >34, TR >2.8 m/s, LARS <=18%. Paso 3 - con e' reducida basta 1 parámetro; con e' normal se necesitan 2. Paso 4 - Grado I (E/A <=0.8 sin presiones elevadas), Grado II (E/A 0.8-2 con >=2 parámetros), Grado III (E/A >=2 con >=2 parámetros).`,
-    `Doppler aórtico: Vmax, gradiente máximo (automático), gradiente medio, VTI TSVI y VTI Ao para AVA.`,
-  ]},
-  { t: `9. Tab Válvulas`, p: [
-    `Cada válvula tiene botones Insuficiencia y Estenosis, cada uno con sub-botón amarillo Severidad.`,
-    `Cómo usar: (1) Sin tocar - botones en gris, nada en el informe. (2) Tocar Insuficiencia o Estenosis - botón celeste, aparece en el informe sin grado. (3) Tocar el sub-botón Severidad - elegir Leve/Moderada/Severa; botón celeste completo, informe con grado. (4) Tocar nuevamente - todo se apaga, desaparece del informe.`,
-    `Regla: lo que el médico elige manualmente siempre prevalece sobre el cálculo automático.`,
-    `Válvula Mitral: IM con vena contracta, EROA, volumen regurgitante, PISA. EM con AVm por THP, planimetría, ecuación de continuidad, Score Wilkins. Morfología: Normal, Mixomatosa/Barlow, Calcificada, Reumática, Prolapso/EVMS, Prótesis.`,
-    `Válvula Aórtica: IAo con vena contracta, jet en TSVI, THP, Vmax telediastólica. EAo con Vmax, gradiente medio, AVA. Clasificación: Esclerosis/Leve (Vmax 2-3 m/s)/Moderada (3-4 m/s)/Severa (>=4 m/s).`,
-    `Válvula Tricúspide: IT con densidad CW, vena contracta, PISA, Vmax IT (para PSAP). ET con gradiente medio.`,
-    `Válvula Pulmonar: selector único — Normal/Insuficiencia leve fisiológica/Estenosis leve/Estenosis moderada-severa.`,
-    `Pericardio y Masas: selector de derrame (Normal/Mínimo/Leve 5-10mm/Moderado 10-20mm/Severo >20mm/Engrosamiento-calcificación). Panel de masa estructurada si se detecta imagen intracardíaca.`,
-  ]},
-  { t: `10. Tab Contractilidad`, p: [
-    `Modelo de 17 segmentos AHA. Tres vistas: A4C, A2C, A3C.`,
-    `Tocar 1 vez: Hipocinesia (amarillo). 2 veces: Acinesia (naranja). 3 veces: Discinesia (rojo). 4 veces: Aneurisma (violeta).`,
-    `Botones de patrón global: disquinesia septal, hipocontractilidad difusa, múltiples trastornos sectoriales. Botón Incluir bull's eye en PDF agrega el diagrama al informe.`,
-  ]},
-  { t: `11. Tab SGL`, p: [
-    `Strain longitudinal global. Campo SGL global (%) sincronizado con el campo SGL de tab AI/VI. Bull's eye de 17 segmentos con escala de colores estándar.`,
-    `En el informe: FEVI X% con SGL -Y%. Botón Incluir en PDF agrega el bull's eye al informe.`,
-  ]},
-  { t: `12. Tab Otros`, p: [
-    `Tab nueva después de SGL que agrupa Pericardio/Masas y Ecografía Pulmonar básica.`,
-    `Pericardio permite registrar derrame y cuantificarlo. Masas permite documentar imágenes intracardíacas.`,
-    `Eco Pulmonar básica registra deslizamiento pleural, líneas B con patrón y distribución, derrame pleural con cuantificación Balik en mm (volumen aproximado = mm x 20), y consolidación.`,
-  ]},
-  { t: `13. Tab Imágenes`, p: [
-    `Hasta 2/4/6/8/10 slots de imagen. Las imágenes se incluyen automáticamente en el PDF si están cargadas.`,
-  ]},
-  { t: `14. HFA-PEFF Score`, p: [
-    `Score diagnóstico de HFpEF (Pieske et al. ESC/HFA 2019). Se calcula automáticamente en dos niveles: una línea informativa en la tabla de Doppler que muestra los puntos ecocardiográficos disponibles, y una calculadora completa en Hemodinámica donde se agregan péptidos natriuréticos y ritmo (RS/FA).`,
-    `Puntaje máximo 6 (2 pts por dominio: funcional, morfológico, humoral). Interpretación: 0-1 poco probable, 2-4 intermedio, 5-6 HFpEF confirmado.`,
-    `Se puede integrar al ETT Avanzado.`,
-  ]},
-  { t: `15. Algoritmo diastólico interactivo`, p: [
-    `En la fila DOPPLER MITRAL - FUNCIÓN DIASTÓLICA hay un botón de brújula que despliega una card con el algoritmo diastólico seleccionado (ASE 2025, BSE 2024 o ASE/EACVI 2016).`,
-    `La card muestra los criterios del algoritmo con los valores reales del paciente coloreados en tiempo real: rojo si el criterio es positivo, verde si es normal, gris si no hay dato. Se actualiza automáticamente al modificar cualquier campo.`,
-    `Es solo de consulta, no genera texto en el informe.`,
-  ]},
-  { t: `16. Modo comparativo y evolución temporal`, p: [
-    `Al generar el informe de un paciente con estudios previos guardados, aparece automáticamente el modal de evolución longitudinal. Muestra los estudios previos del mismo CI ordenados por fecha.`,
-    `Incluye un gráfico de evolución temporal con FEVI, SGL, TAPSE, E/e', DDVI y LAVI, con líneas de referencia normal para cada parámetro. Los parámetros se pueden mostrar u ocultar con checkboxes.`,
-  ]},
-  { t: `17. Módulos especiales / ETT Avanzado`, p: [
-    `Hemodinámica: gasto cardíaco, IC, resistencias. Perfil de Forrester (I-IV). TEP orientación ecocardiográfica VD. HTP ESC/ERS 2022 con RVP.`,
-    `Amiloidosis: Score ESC 2021 (RWT, E/e', TAPSE, SGL, relación ápice/base). Algoritmo gammagrafía Tc99m de Perugini (0-3) con proteínas monoclonales. Cuatro escenarios diagnósticos.`,
-    `ETE: Score Wilkins automático. Esquema válvula mitral por festones (A1/A2/A3, P1/P2/P3). Criterios TEER. Orejuela izquierda, FOP.`,
-    `Cardio-Oncología: seguimiento FEVI y SGL. Detección cardiotoxicidad (caída >=15% GLS o >=10% FEVI). HFA-ICOS/ESC 2022. El estudio pre-quimio queda como basal fijo.`,
-    `El card ETT Avanzado aparece en el informe cuando se integran módulos avanzados. Actualmente soporta 11 módulos: Score de Amiloidosis ESC 2021, Algoritmo diagnóstico de Amiloidosis, Perfil hemodinámico, Probabilidad de HTP (ESC 2022), Probabilidad de TEP, Mediciones ETE Válvula Mitral, Score de Wilkins, Mediciones OAI, Mediciones Aorta, Cardio-Oncología (CTRCD), Ecografía Pulmonar avanzada.`,
-    `Cada módulo tiene botón Integrar al informe en su tab correspondiente y botón Retirar individual en la card. En el PDF aparece en hoja separada después del En Suma. Los módulos ETE aparecen en hoja propia titulada ECOCARDIOGRAMA TRANSESOFÁGICO.`,
-  ]},
-  { t: `18. Herramientas de apoyo`, p: [
-    `Calculadoras: PISA/ERO para IM, Score Wilkins, AVA por ecuación de continuidad, HCM Risk-SCD, QTc y otras.`,
-    `Fonocardiograma: patrones gráficos de soplos con posición, irradiación, carácter y claves diagnósticas.`,
-    `Referencias: tablas de valores normales ASE 2015, ESC 2021/2022/2025, AHA/ACC 2024.`,
-  ]},
-  { t: `19. Generar Informe`, p: [
-    `Botón Generar Informe crea el informe narrativo automáticamente. Estilos: Conciso, Estándar (predeterminado), Narrativo. El informe incluye FEVI+SGL, función diastólica con grado, cámaras derechas, aorta, aurícula izquierda, válvulas, contractilidad, pericardio, En Suma.`,
-    `Modal comparativo: si existe estudio previo del mismo paciente (misma CI), aparece tabla comparativa con delta de parámetros principales.`,
-    `Guardar Informe: antes de guardar aparece la card de confirmación de severidad valvular (una sola vez por estudio). Si hay estudio duplicado, pregunta si sobreescribir o guardar como nuevo.`,
-  ]},
-  { t: `20. PDF del informe clínico`, p: [
-    `Botón PDF (verde en el encabezado). Antes de generar, card de confirmación de severidades valvulares.`,
-    `Contenido: encabezado con institución y logo, datos del paciente, tabla de datos cuantificados, informe narrativo, En Suma, bull's eye (si se eligió incluir), imágenes adjuntas, firma del médico, fecha, pie legal.`,
-    `Colores disponibles: azul (predeterminado), verde, violeta, bordo. Formato del nombre de archivo: configurable (Nombre+Fecha, Nombre+Doc+Fecha, etc.).`,
-    `Modo institucional en PDF: encabezado y pie con nombre de la institución, sin mención a CeiboMed.`,
-  ]},
-  { t: `21. Guardados`, p: [
-    `Buscar y filtrar: por nombre/documento, rango de fechas, casos de interés, filtros clínicos (FEVI, geometría VI, función diastólica, valvulopatía), filtros numéricos.`,
-    `Por estudio: marcar como caso de interés (estrella), generar PDF, editar (carga en formulario), eliminar.`,
-    `Gestión: Exportar JSON (backup), Importar JSON, Eliminar todos.`,
-    `Los estudios guardados ahora se muestran en tarjetas compactas con nombre, CI y fecha en una sola línea. Los favoritos muestran el nombre en dorado. La card usa acordeón por módulo en el ETT Avanzado.`,
-  ]},
-  { t: `22. Exportar e Importar`, p: [
-    `Los datos se almacenan en IndexedDB con mayor capacidad que localStorage. Exportar JSON genera un backup completo. Importar restaura desde ese backup. Se recomienda exportar regularmente como respaldo externo.`,
-    `Exportar: en Guardados tocar Exportar JSON. El archivo se descarga con todos los estudios. Guardar en pendrive o Mac. Recomendación: exportar después de cada sesión.`,
-    `Importar: tocar Importar JSON, seleccionar el archivo. Vista previa con cantidad de estudios y duplicados. Opciones: Omitir duplicados (recomendado), Sobreescribir, Importar todos. Compatible con cualquier navegador (Chrome, Edge, Safari, Firefox).`,
-    `Flujo entre dispositivos: exportar en PC del trabajo -> copiar al pendrive -> importar en Mac.`,
-  ]},
-  { t: `23. Laboratorio`, p: [
-    `Accedé desde el botón Laboratorio en la barra inferior. Analiza automáticamente todos los estudios guardados.`,
-    `Secciones: Dashboard (corazón anatómico con promedios), Indicaciones y Antecedentes (en paralelo, tabla + torta), Hallazgos frecuentes, Perfil demográfico, Función sistólica FEVI (4 rangos: >=50%/40-49%/30-39%/<30%), Función diastólica (por grado), Geometría VI, Contractilidad (bull's eye poblacional 17 segmentos), Valvulopatías (severidades por válvula), Función VD (TAPSE), HTP/PSAP, Volumen AI indexado, Calidad del Laboratorio (% estudios con cada parámetro medido), Indicadores automáticos (oportunidades clínicas), Docencia (casos de interés marcados con estrella), Estadísticas (media, mediana, DS, percentiles), Asociaciones estadísticas.`,
-    `Filtros: por médico, por centro, por período.`,
-    `Nota importante — Edición manual del informe y estadística del Laboratorio: EcoSmart permite editar libremente el texto del informe generado automáticamente. Sin embargo, las modificaciones manuales sobre el informe narrativo no retroalimentan los datos estructurados del Laboratorio. El Laboratorio siempre toma los valores calculados por la aplicación (parámetros ecocardiográficos, clasificación diastólica, trastornos sectoriales, etc.), independientemente de lo que figure en el texto del informe firmado. Si el criterio clínico difiere del cálculo automático, se recomienda también ajustar los parámetros en la interfaz estructurada para mantener coherencia entre informe y Laboratorio.`,
-  ]},
-  { t: `24. Asociaciones estadísticas`, p: [
-    `La tabla analiza pares de variables buscando relaciones estadísticas. Columnas: Categoría, Asociación, Interpretación (frase clínica automática), N, Método, Dirección (flechas arriba-arriba = ambas suben juntas; arriba-abajo = una sube cuando la otra baja; flecha = sin dirección lineal), Fuerza (Débil/Moderada/Fuerte), Estadístico, p, Semáforo (verde = significativa con N suficiente, amarillo = significativa N bajo, gris = no significativa).`,
-    `Cómo leer: mirar primero el semáforo. Si es verde o amarillo, ver la Fuerza. Una asociación Fuerte con p<0.001 es la más valiosa. Una Débil aunque significativa puede no tener relevancia práctica. Estas asociaciones describen tu población — no establecen causalidad.`,
-  ]},
-  { t: `25. PDF de Auditoría`, p: [
-    `Generarlo: en Laboratorio, subtab Informe PDF, completar institución y médico responsable, tocar Generar PDF de Auditoría.`,
-    `Orden del PDF: Resumen ejecutivo (corazón anatómico + promedios), Indicaciones + Antecedentes (dos columnas), Hallazgos frecuentes, Perfil demográfico, Función sistólica, Función diastólica, Geometría VI, Contractilidad, Valvulopatías, Función VD, HTP/PSAP, Volumen AI, Calidad del laboratorio, Indicadores automáticos, Docencia/Casos de interés.`,
-    `Útil para: reuniones de equipo, acreditaciones, presentación de actividad institucional, identificación de áreas de mejora.`,
-  ]},
-  { t: `26. Referencias clínicas`, p: [
-    `La biblioteca de referencias incluye: valvulopatías (ASE/ESC), Score Wilkins, TEER, HCM-SCD, HTP ESC/ERS 2022, Cardio-Oncología HFA-ICOS/ESC 2022, Amiloidosis, función diastólica (ASE 2025/BSE 2024/Clásico 2016), contractilidad segmentaria 17 segmentos AHA, strain longitudinal global.`,
-    `Las referencias clínicas se actualizan con cada versión de EcoSmart para reflejar las guías más recientes. Ante decisiones clínicas importantes, corroborar siempre la fuente primaria y su vigencia.`,
-  ]},
-  { t: `27. Contacto y soporte`, p: [
-    `Para consultas, soporte técnico o sugerencias:`,
-    `soporte@ceibomed.com — soporte técnico y consultas de uso`,
-    `sugerencias@ceibomed.com — feedback y mejoras`,
-    `pagos@ceibomed.com — suscripciones y facturación`,
-    `contacto@ceibomed.com — consultas generales`,
-    `Horario de atención: lunes a viernes 9 a 18hs Uruguay.`,
-    `Tiempo de respuesta: 48 horas hábiles.`,
-    `Más información en: ceibomed.com`,
-  ]},
-];
+/* Aplana el HTML autorado de una sección de ECO_AYUDA a una lista de párrafos de texto,
+   para el manual en PDF. Reemplaza a MANUAL_SECCIONES, que era un segundo manual escrito a
+   mano en paralelo: los dos textos se contradecían (uno decía que Pericardio estaba en
+   Válvulas y el otro que estaba en Otros) y el de VEXUS/DICOM/Excel no existía en ninguno.
+   Un solo manual, dos presentaciones.
+   Los recuadros llevan prefijo porque el PDF se lee sin color: el borde de la izquierda que
+   distingue un aviso de un consejo no sobrevive a la impresión. */
+function _manualAplanar(html) {
+  return String(html)
+    /* Se toleran atributos y orden de clases: con igualdad literal de cadena, agregarle un id
+       al div dejaba de matchear y el recuadro perdía su prefijo Y su salto, fusionándose con
+       el párrafo anterior. En pantalla se seguía viendo bien, así que sólo se notaría
+       descargando el PDF y leyéndolo entero. */
+    .replace(/<div[^>]*\bclass="[^"]*\bmAviso\b[^"]*"[^>]*>/g, '\n\nATENCION: ')
+    .replace(/<div[^>]*\bclass="[^"]*\bmTip\b[^"]*"[^>]*>/g, '\n\nCONSEJO: ')
+    .replace(/<div[^>]*\bclass="[^"]*\bmCaso\b[^"]*"[^>]*>/g, '\n\nEJEMPLO: ')
+    .replace(/<div[^>]*\bclass="[^"]*\bmSub\b[^"]*"[^>]*>/g, '\n\n')
+    /* Las listas numeradas se resuelven por BLOQUE y antes que nada: los .replace corren en
+       secuencia sobre la cadena entera, así que para cuando se procesan los <li> sueltos ya
+       no hay forma de saber a qué lista pertenece cada uno. Aplanados a guiones, «cinco
+       pasos» quedaba seguido de cinco viñetas sin orden. */
+    .replace(/<ol\b[^>]*>([\s\S]*?)<\/ol>/g, (_, dentro) => {
+      let k = 0;
+      return '\n\n' + dentro.replace(/<li>/g, () => '\n\n' + (++k) + '. ') + '\n\n';
+    })
+    .replace(/<li>/g, '\n\n- ')
+    .replace(/<\/tr>/g, '\n\n')
+    .replace(/<\/t[hd]>\s*<t[hd][^>]*>/g, '  |  ')
+    /* ul/ol/table CIERRAN con salto. Sin esto el último <li> queda pegado al párrafo
+       siguiente y el párrafo absorbido se imprime como si fuera parte de la viñeta. */
+    .replace(/<\/(p|div|h\d|ul|ol|table)>/g, '\n\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&aacute;/g, 'á').replace(/&amp;/g, '&')
+    .split('\n\n')
+    .map(t => t.replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+}
+
 
 /* ══ Manual completo en PDF ══
-   El contenido vive en MANUAL_SECCIONES (27 secciones) y es independiente de ECO_AYUDA:
-   el modal muestra un resumen navegable, el PDF es el manual extenso.
+   El contenido sale de ECO_AYUDA —el mismo que ve el modal— aplanado con _manualAplanar().
    Todo texto pasa por _pdfSafe(): la helvetica de jsPDF (WinAnsi) no dibuja flechas,
    ≥/≤ ni emoji, así que se transliteran o se quitan antes de escribir. */
 function generarManualPDF() {
   if (typeof window.jspdf === 'undefined') { if (typeof toast === 'function') toast('❌ La biblioteca PDF está cargando, intentá en un momento'); return; }
+  /* El único guard que había era el de la librería ausente. Cualquier otra falla —un save()
+     que lanza en un WebView sin createObjectURL— dejaba el botón mudo y sin aviso, que es
+     justo lo que el manual le enseña al usuario a leer como «problema de conexión». */
+  try { _manualPDFArmar(); }
+  catch (e) { if (typeof toast === 'function') toast('❌ No se pudo generar el manual'); }
+}
+function _manualPDFArmar() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const W = 210, H = 297, M = 18, CW = W - M * 2;
@@ -26811,21 +26569,30 @@ function generarManualPDF() {
     'No reemplaza el juicio médico ni constituye una recomendación diagnóstica o terapéutica.'), CW - 24)
     .forEach((ln, i) => doc.text(ln, W / 2, 100 + i * 5, { align: 'center' }));
   doc.setFontSize(9);
-  doc.text(_pdfSafe(MANUAL_SECCIONES.length + ' secciones'), W / 2, 122, { align: 'center' });
+  doc.text(_pdfSafe(ECO_AYUDA.length + ' secciones'), W / 2, 122, { align: 'center' });
+
+  // ── Índice ──
+  nuevaPag();
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(13.5);
+  doc.setTextColor(TEAL[0], TEAL[1], TEAL[2]);
+  doc.text('Contenido', M, y); y += 8;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+  doc.setTextColor(TXT[0], TXT[1], TXT[2]);
+  ECO_AYUDA.forEach((sec, i) => { sitio(LH); doc.text(_pdfSafe((i + 1) + '. ' + sec.tab), M + 3, y); y += LH; });
 
   // ── Secciones ──
   nuevaPag();
-  MANUAL_SECCIONES.forEach((sec, i) => {
+  ECO_AYUDA.forEach((sec, i) => {
     // que el título no quede colgado al pie: pedir lugar para él y un par de renglones
     if (i > 0) { y += 3; sitio(LH * 4 + 12); }
     doc.setFont('helvetica', 'bold'); doc.setFontSize(13.5);
     doc.setTextColor(TEAL[0], TEAL[1], TEAL[2]);
-    doc.text(_pdfSafe(sec.t), M, y);
+    doc.text(_pdfSafe((i + 1) + '. ' + sec.tab), M, y);
     y += 2.6;
     doc.setDrawColor(TEAL[0], TEAL[1], TEAL[2]); doc.setLineWidth(0.4);
     doc.line(M, y, M + CW, y);
     y += 7;
-    sec.p.forEach(parrafo);
+    _manualAplanar(sec.html).forEach(parrafo);
   });
 
   // ── Pie en todas las páginas ──
