@@ -406,6 +406,7 @@
   }
   .badge-green { background: #1a3d2e; color: var(--green); }
   .badge-yellow { background: #3a2e0a; color: var(--yellow); }
+  .badge-orange { background: #3a2410; color: var(--orange); }
   .badge-red { background: #3d1515; color: var(--red); }
   .badge-blue { background: #0d2040; color: var(--accent); }
   .badge-gray { background: var(--bg3); color: var(--text2); }
@@ -1718,11 +1719,11 @@ window.cerrarSesion = cerrarSesion;
         </div>
         <div class="fg">
           <label>VCI diámetro (mm)</label>
-          <input type="number" id="vci_diam" placeholder="mm" oninput="calcPmAD()">
+          <input type="number" id="vci_diam" placeholder="mm" oninput="calcPmAD()" onchange="vexusRefrescarInforme()">
         </div>
         <div class="fg">
           <label>Colapso VCI</label>
-          <select id="vci_col" onchange="calcPmAD()">
+          <select id="vci_col" onchange="calcPmAD();vexusRefrescarInforme()">
             <option value="">—</option>
             <option value=">50">&gt;50%</option>
             <option value="<50">&lt;50%</option>
@@ -2920,6 +2921,81 @@ window.cerrarSesion = cerrarSesion;
         <div class="calc-row">
           <span class="calc-lbl" style="font-weight:700;">📐 TAPSE/PSAP</span>
           <span id="tep-acoplamiento" style="font-weight:700;">—</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  </div>
+
+  <!-- ═══ VEXUS — Venous Excess Ultrasound (Beaubien-Souligny, Ultrasound J 2020) ═══ -->
+  <div class="card" style="margin-bottom:6px;">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('vexus-seccion',this);calcVEXUS();">
+      🩺 VEXUS — Congestión venosa sistémica
+      <span id="vexus-seccion-arrow" style="float:right;transition:transform 0.2s;">▶</span>
+    </h2>
+  </div>
+  <div id="vexus-seccion" style="display:none;">
+  <div class="card">
+    <div class="card-body">
+
+      <!-- Prerequisito: la VCI NO se vuelve a pedir acá. Se lee la de la sección VCI
+           (#vci_diam) para que no haya dos campos con la misma medida: si difirieran, el
+           informe podría decir un diámetro y el score estar calculado sobre otro. -->
+      <div class="calc-box" style="margin-bottom:10px;">
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;">PREREQUISITO — DIÁMETRO DE VCI</div>
+        <div class="calc-row">
+          <span class="calc-lbl">VCI (tomada de la sección VCI)</span>
+          <span id="vexus-vci" style="font-weight:700;">—</span>
+        </div>
+        <div id="vexus-vci-aviso" style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;"></div>
+      </div>
+
+      <div class="grid-3">
+        <div class="fg"><label>Vena suprahepática</label>
+          <select id="vexus_sh" onchange="calcVEXUSyRefrescar()">
+            <option value="" selected>No evaluada</option>
+            <option value="0">Normal — S &gt; D</option>
+            <option value="1">Anormal leve — S &lt; D</option>
+            <option value="2">Anormal severo — flujo sistólico reverso</option>
+          </select>
+        </div>
+        <div class="fg"><label>Vena porta</label>
+          <select id="vexus_pv" onchange="calcVEXUSyRefrescar()">
+            <option value="" selected>No evaluada</option>
+            <option value="0">Normal — pulsatilidad &lt; 30%</option>
+            <option value="1">Anormal leve — 30-49%</option>
+            <option value="2">Anormal severo — ≥ 50% o flujo reverso</option>
+          </select>
+        </div>
+        <div class="fg"><label>Vena intrarrenal</label>
+          <select id="vexus_ir" onchange="calcVEXUSyRefrescar()">
+            <option value="" selected>No evaluada</option>
+            <option value="0">Normal — flujo continuo</option>
+            <option value="1">Anormal leve — bifásico discontinuo</option>
+            <option value="2">Anormal severo — monofásico discontinuo (solo diastólico)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="calc-box">
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;">SCORE E INTERPRETACIÓN</div>
+        <div class="calc-row">
+          <span class="calc-lbl" style="font-weight:700;">Score VEXUS</span>
+          <span id="vexus-score" style="font-weight:700;font-size:14px;">—</span>
+        </div>
+        <div class="calc-row">
+          <span class="calc-lbl">Vasos con patrón severo</span>
+          <span id="vexus-severos">—</span>
+        </div>
+        <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
+        <div id="vexus-interp" style="font-size:12px;line-height:1.6;color:var(--text);"></div>
+        <div style="font-size:10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;padding:8px 10px;margin-top:10px;line-height:1.5;">
+          ⚠️ Los hallazgos VEXUS deben integrarse siempre con la clínica del paciente. No reemplaza el juicio médico.
+          El patrón venoso se altera <b>sin</b> que haya congestión en varias situaciones: insuficiencia tricuspídea severa
+          (da reverso sistólico suprahepático con presiones de llenado bajas), cirrosis o hipertensión portal
+          (la porta deja de ser fiable), y pulsatilidad portal aumentada en personas delgadas sanas.
+          Graduación de Beaubien-Souligny <i>et al.</i>, Ultrasound J 2020;12(1):16.
         </div>
       </div>
 
@@ -9595,6 +9671,11 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Función diastólica por grado</div>
           <div class="lab-bar-wrap" id="lab-diast-dist"></div>
         </div>
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Congestión venosa (VEXUS)</div>
+          <div class="lab-bar-wrap" id="lab-vexus-dist"></div>
+          <div id="lab-vexus-n" style="margin-top:8px;font-size:.75rem;color:var(--text2);"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -10884,6 +10965,9 @@ function calcPmAD() {
     setv('pmad', '');
     if (pmadInterp) pmadInterp.textContent = '—';
     calcPSAP();
+    /* El VEXUS depende del diámetro, NO del colapso: sin este llamado, editar la VCI con el
+       colapso todavía sin elegir dejaba el score y el aviso del paciente anterior en pantalla. */
+    calcVEXUS();
     return;
   }
   let pmad, interp;
@@ -10894,7 +10978,141 @@ function calcPmAD() {
   setv('pmad', pmad);
   if (pmadInterp) pmadInterp.textContent = interp;
   calcPSAP();
+  calcVEXUS();   // el score depende del diámetro de VCI que se acaba de cambiar
 }
+
+/* ══ VEXUS — Venous Excess Ultrasound ══
+   Graduación de Beaubien-Souligny et al., Ultrasound J 2020;12(1):16:
+
+     0 — VCI < 20 mm
+     1 — VCI ≥ 20 mm y NINGÚN vaso severo (cualquier combinación de normal o leve)
+     2 — VCI ≥ 20 mm y EXACTAMENTE UN vaso severo
+     3 — VCI ≥ 20 mm y DOS O MÁS vasos severos
+
+   El grado lo decide CUÁNTOS vasos están severos, no cuál es el peor. Un solo vaso severo
+   es grado 2, no 3: el 3 es el que carga la asociación fuerte con injuria renal aguda
+   (LR+ 6,37 en la cohorte original de cirugía cardíaca) y el que dispara la recomendación
+   de descongestión activa. Graduarlo por el peor vaso lo inflaría un grado y llevaría a
+   sugerir diuréticos o ultrafiltración sobre un score que no corresponde.
+
+   Los tres vasos tienen tres categorías (normal / leve / severo). No existe un nivel
+   "moderado" intermedio en el protocolo. */
+const VEXUS_VASOS = [
+  { id: 'vexus_sh', lbl: 'suprahepática' },
+  { id: 'vexus_pv', lbl: 'porta' },
+  { id: 'vexus_ir', lbl: 'intrarrenal' }
+];
+const VEXUS_INTERP = {
+  0: 'Sin congestión venosa sistémica significativa. Presión venosa central probablemente normal.',
+  1: 'Congestión venosa leve. Monitorizar evolución. Considerar balance hídrico.',
+  2: 'Congestión venosa moderada. Evaluar necesidad de descongestión. Riesgo de injuria renal aguda aumentado.',
+  3: 'Congestión venosa severa. Alta asociación con injuria renal aguda (AKI). Considerar descongestión activa — diuréticos o ultrafiltración según contexto clínico. Reevaluar con tratamiento.'
+};
+const VEXUS_COLOR = { 0: 'green', 1: 'yellow', 2: 'orange', 3: 'red' };
+
+/* LA REGLA, en un solo lugar. Es una función PURA: recibe el diámetro y los tres valores
+   crudos de los selectores, sin tocar el DOM. La llaman la pantalla (leyendo el formulario)
+   y el Laboratorio (leyendo cada estudio guardado). Si el Laboratorio reimplementara la
+   graduación, una divergencia haría que la auditoría informara un grado distinto del que
+   dice el informe firmado del mismo paciente, y nada avisaría.
+
+   El score NO se guarda como campo derivado: se recalcula siempre desde los cuatro datos
+   crudos, que sí se guardan. Un derivado almacenado quedaría congelado con la versión de la
+   regla que corría el día que se guardó. */
+function vexusGrado(diam, sh, pv, ir) {
+  const d = (diam === '' || diam === null || diam === undefined) ? null : parseFloat(String(diam).replace(',', '.'));
+  if (d === null || isNaN(d)) return null;                      // sin VCI medida no hay score
+  const crudos = [sh, pv, ir];
+  const severos = [], evaluadosLbl = [];
+  VEXUS_VASOS.forEach((vaso, i) => {
+    const raw = (crudos[i] === null || crudos[i] === undefined) ? '' : String(crudos[i]).trim();
+    if (raw === '') return;                                     // no evaluada
+    evaluadosLbl.push(vaso.lbl);
+    if (raw === '2') severos.push(vaso.lbl);
+  });
+  /* SIN NINGÚN VASO EVALUADO NO HAY SCORE, ni siquiera 0.
+     El protocolo gradúa 0 con sólo la VCI < 20 mm, y es correcto como graduación. Pero
+     escribir "VEXUS 0" en un informe afirma que se aplicó el protocolo venoso, y la mayoría
+     de los ecos tienen la VCI medida y ninguna vena mirada: todos los estudios históricos
+     habrían pasado a informar "VEXUS 0 — sin congestión venosa significativa" sin que nadie
+     hubiera puesto el Doppler en una vena. Es el mismo razonamiento que impide informar
+     grado 1 por no haber mirado, aplicado también al 0. */
+  if (!evaluadosLbl.length) return { score: null, severos: [], evaluados: 0, vciDiam: d };
+  /* La VCI manda: con < 20 mm el grado es 0 aunque los tres vasos estén severos. Los valores
+     de los vasos se conservan y se muestran —son hallazgos reales, y esconderlos haría que
+     una corrección posterior del diámetro resucitara un VEXUS 3 que nadie volvió a mirar. */
+  if (d < 20) return { score: 0, severos, evaluados: evaluadosLbl.length, vciDiam: d };
+  return {
+    score: severos.length === 0 ? 1 : severos.length === 1 ? 2 : 3,
+    severos, evaluados: evaluadosLbl.length, vciDiam: d
+  };
+}
+window.vexusGrado = vexusGrado;
+
+/* Estado del score leído del formulario en pantalla. */
+function vexusEstado() {
+  return vexusGrado(v('vci_diam'), sv('vexus_sh'), sv('vexus_pv'), sv('vexus_ir'));
+}
+
+function calcVEXUS() {
+  const set  = (id, txt)  => { const e = document.getElementById(id); if (e) e.textContent = txt; };
+  const setH = (id, html) => { const e = document.getElementById(id); if (e) e.innerHTML  = html; };
+  const st = vexusEstado();
+  const diam = v('vci_diam');
+
+  set('vexus-vci', diam === null ? '—' : diam + ' mm');
+  const aviso = document.getElementById('vexus-vci-aviso');
+  if (aviso) {
+    if (diam === null) aviso.innerHTML = 'Cargá el <b>diámetro de VCI</b> en la sección VCI para poder calcular el score.';
+    else if (diam < 20) aviso.innerHTML = 'VCI &lt; 20 mm → el grado es <b>0</b> aunque los vasos estén alterados. Cargá al menos un vaso para dejar constancia de que se aplicó el protocolo.';
+    else aviso.innerHTML = 'VCI ≥ 20 mm → el grado lo define <b>cuántos</b> vasos están severos: uno → 2, dos o más → 3.';
+  }
+  /* Los selectores NO se deshabilitan con VCI < 20 mm. Deshabilitarlos parecía prolijo pero
+     dejaba los valores cargados escondidos: corregir después el diámetro a 21 mm resucitaba
+     un VEXUS 3 sobre tres vasos que nadie había vuelto a mirar. Y el estado disabled sólo lo
+     escribía esta función, así que sobrevivía a «Nuevo estudio» y podía dejar al paciente
+     siguiente con los tres selectores bloqueados en gris. */
+
+  if (!st || st.score === null) {
+    setH('vexus-score', '—');
+    set('vexus-severos', '—');
+    setH('vexus-interp', (st && st.score === null)
+      ? '<span style="color:var(--text2)">Falta evaluar al menos uno de los tres vasos. Sin ninguno no se informa VEXUS, ni siquiera 0: «VEXUS 0» afirma que se aplicó el protocolo venoso.</span>'
+      : '');
+    return;
+  }
+  setH('vexus-score', badge(VEXUS_COLOR[st.score], 'VEXUS ' + st.score));
+  set('vexus-severos', st.severos.length
+    ? (st.severos.length + ' de ' + st.evaluados + ' evaluado' + (st.evaluados === 1 ? '' : 's') + ' — ' + st.severos.join(', ')
+       + (st.score === 0 ? ' (no cuentan: VCI < 20 mm)' : ''))
+    : 'ninguno de ' + st.evaluados + ' evaluado' + (st.evaluados === 1 ? '' : 's'));
+  setH('vexus-interp', VEXUS_INTERP[st.score]
+    + (st.score >= 1 && st.evaluados < 3
+        ? '<div style="margin-top:6px;color:var(--orange);font-size:11px">⚠️ Sólo se evaluaron '
+          + st.evaluados + ' de los 3 vasos: el grado podría subir si se completan los restantes.</div>'
+        : ''));
+}
+
+/* Si el informe YA estaba generado, hay que rehacerlo: si no, queda el texto viejo.
+   Sin esto, completar el VEXUS DESPUÉS de generar el informe dejaba la pantalla diciendo
+   «VEXUS 3» y el informe —y por lo tanto el PDF firmado— sin mencionarlo. Y al revés:
+   retractar un vaso dejaba en el informe una congestión que la pantalla ya no afirmaba.
+
+   NO se llama desde calcVEXUS(): calcVEXUS corre en el `oninput` de #vci_diam, o sea una vez
+   por tecla, y regenerar el informe ahí sacaba el foco del campo y truncaba el número —
+   medido: tipear "24" dejaba la VCI en 2 mm, que después alimenta PmAD, PSAP y el propio
+   VEXUS—. El refresco va colgado de los `onchange`, que disparan al confirmar el valor. */
+function vexusRefrescarInforme() {
+  const ta = document.getElementById('informe_texto');
+  if (ta && String(ta.value || '').trim() && typeof generarInforme === 'function') generarInforme({silencioso:true});
+}
+window.vexusRefrescarInforme = vexusRefrescarInforme;
+
+/* Lo que usan los controles: repinta y, si corresponde, rehace el informe. */
+function calcVEXUSyRefrescar() { calcVEXUS(); vexusRefrescarInforme(); }
+window.calcVEXUSyRefrescar = calcVEXUSyRefrescar;
+window.calcVEXUS = calcVEXUS;
+window.vexusEstado = vexusEstado;
 
 // ══ PSAP ══
 function calcPSAP() {
@@ -12996,7 +13214,13 @@ function initEstiloInforme() {
 window.setEstiloInforme = setEstiloInforme;
 setTimeout(initEstiloInforme, 50);
 
-function generarInforme() {
+/* `opts.silencioso` lo usan los refrescos automáticos (VEXUS, amiloidosis): reescriben el
+   texto porque cambió un dato que el informe menciona, pero NO son una acción que el médico
+   haya pedido. Sin esto, cada refresco saltaba a la pestaña Informe y cantaba un toast
+   "✅ Informe generado" que nadie pidió; enganchado a un oninput numérico, además sacaba el
+   foco del campo que se estaba tipeando y truncaba el número a la primera tecla. */
+function generarInforme(opts) {
+  const _silencioso = !!(opts && opts.silencioso);
   const bsa = getBSA();
   const fevi = v('fevi');
   const ddfvi = v('ddfvi'), dsfvi = v('dsfvi'), siv = v('siv'), ppvi = v('ppvi');
@@ -13377,6 +13601,30 @@ function generarInforme() {
     }
   }
 
+  // ── 11b) VEXUS (congestión venosa sistémica) ──
+  // Sólo entra al informe si el score es calculable: sin VCI medida, o con VCI dilatada y
+  // ningún vaso evaluado, no se escribe nada. Un "VEXUS 1" por no haber mirado sería afirmar
+  // que se buscó congestión y no había.
+  {
+    const vx = (typeof vexusEstado === 'function') ? vexusEstado() : null;
+    if (vx && vx.score !== null) {
+      /* El detalle dice siempre CUÁNTOS vasos se evaluaron, también cuando hay severos.
+         Decir "1 de 3 vasos con patrón severo" se lee como que se miraron los tres y sólo
+         uno estaba mal; si en realidad se miró uno solo, el grado real podría ser 3 y el
+         lector del informe no tiene cómo saberlo. */
+      const nEv = vx.evaluados + (vx.evaluados === 1 ? ' vaso evaluado' : ' vasos evaluados');
+      const detalle = vx.severos.length
+        ? vx.severos.length + ' severo' + (vx.severos.length === 1 ? '' : 's') + ' de ' + nEv + ': ' + vx.severos.join(', ')
+          + (vx.score === 0 ? '; VCI < 20 mm' : '')
+        : 'sin patrón severo en ' + nEv + (vx.score === 0 ? '; VCI < 20 mm' : '');
+      inf.push(`VEXUS ${vx.score} (${detalle}): ${VEXUS_INTERP[vx.score]}`
+        + (vx.evaluados < 3 ? ` Se evaluaron ${vx.evaluados} de los 3 vasos del protocolo.` : ''));
+      if (vx.score >= 2) {
+        suma.push(`Congestión venosa ${vx.score === 2 ? 'moderada' : 'severa'} — VEXUS ${vx.score}.`);
+      }
+    }
+  }
+
   // ── 12) Raíz de Aorta (Seno de Valsalva) ──
   if (ao_sin) {
     const aoStr = ao_sin <= 40 ? 'de calibre normal' : ao_sin <= 45 ? 'levemente dilatada' : 'dilatada';
@@ -13636,8 +13884,7 @@ function generarInforme() {
   if (suma.length === 0) suma.push('Estudio sin alteraciones estructurales ni funcionales significativas.');
   document.getElementById('en_suma').value = suma.filter(Boolean).join('\n');
 
-  toast('✅ Informe generado');
-  showTabById('informe');
+  if (!_silencioso) { toast('✅ Informe generado'); showTabById('informe'); }
 }
 
 function showTabById(id) {
@@ -13725,6 +13972,11 @@ function limpiarCampos() {
     if (typeof _amiloUltimo === 'object') for (const k in _amiloUltimo) delete _amiloUltimo[k];
     if (typeof amiloSyncBotones === 'function') amiloSyncBotones();
   }
+  /* VEXUS: el barrido genérico de .calc-row alcanza al score y a los vasos severos, pero
+     #vexus-interp y #vexus-vci-aviso son hijos directos del .calc-box y no los toca nadie.
+     Sin esto, el paciente nuevo arrancaba con «Congestión venosa severa… considerar
+     descongestión activa» del paciente anterior debajo de un score vacío. */
+  if (typeof calcVEXUS === 'function') calcVEXUS();
   toast('🗑 Formulario limpiado');
 }
 
@@ -13827,6 +14079,9 @@ function _autosaveRestore(){
   // Ídem para el Score Amiloidosis: sin esto, tras una recarga los puntos vuelven pero
   // las filas se ven sin tildar y el origen de cada marca se pierde.
   if (typeof amETTSyncDesdeHidden === 'function') amETTSyncDesdeHidden();
+  // Ídem VEXUS: los selectores vuelven con su valor, pero el score y la habilitación de
+  // los tres vasos se pintan por JS y quedarían en blanco tras recargar.
+  if (typeof calcVEXUS === 'function') calcVEXUS();
 }
 function _autosaveInit(){
   _autosaveRestore();
@@ -14414,6 +14669,15 @@ function generarPDFReal() {
       {lbl:'Diám. VCI',   ref:'16-20 mm', val:v('vci_diam')?v('vci_diam')+' mm' :null},
       {lbl:'Colapso VCI', ref:'',         val:sv('vci_col')||null},
       {lbl:'PmAD',        ref:'',         val:v('pmad')    ?v('pmad')    +' mmHg':null},
+      /* VEXUS con el detalle de en qué se basó: "VEXUS 2" a secas obliga a confiar en que
+         quien lo cargó usó la regla correcta. Con "(1/3 severo)" el que lee el informe puede
+         reconstruirlo. Si no es calculable, la fila no aparece. */
+      {lbl:'VEXUS',       ref:'0-3',      val:(()=>{
+        const vx = (typeof vexusEstado === 'function') ? vexusEstado() : null;
+        if (!vx || vx.score === null) return null;
+        return vx.score + ' (' + vx.severos.length + '/' + vx.evaluados + ' severo'
+          + (vx.severos.length === 1 ? '' : 's') + (vx.evaluados < 3 ? ', ' + vx.evaluados + '/3 vasos' : '') + ')';
+      })()},
     ]},
   ]);
 
@@ -16769,6 +17033,9 @@ function editarInforme(id) {
     if (typeof calcAI === 'function') calcAI();
     if (typeof calcAorta === 'function') calcAorta();
     if (typeof calcVD === 'function') calcVD();
+    /* VEXUS: sin esto el acordeón queda mostrando el score del estudio anterior, porque el
+       badge y la interpretación viven en spans que nada reescribe al cargar los campos. */
+    if (typeof calcVEXUS === 'function') calcVEXUS();
     // Guardar id del informe siendo editado
     window._ettEditandoId = id;
     eeCurrentInformeId = inf.estudioId || null;   // el QR del PDF apuntará a este estudio
@@ -16805,7 +17072,7 @@ function cargarEstudioPorId(id) {
   if (typeof amiloRestaurarDesdeCampos === 'function') amiloRestaurarDesdeCampos(inf.campos);
   valvSevConfirmada = false;   // estudio cargado por URL/QR: vuelve a pedir confirmación
   if (typeof renderCentroField === 'function') renderCentroField(inf.campos && inf.campos.centro_nombre);
-  ['calcVI','calcAI','calcAorta','calcVD'].forEach(fn => { if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} } });
+  ['calcVI','calcAI','calcAorta','calcVD','calcVEXUS'].forEach(fn => { if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} } });
   window._ettEditandoId = inf.id;
   eeCurrentInformeId = inf.estudioId;
   // showTab() depende de la variable global 'event'; al invocarse sin un click (init por URL) la carga
@@ -18298,7 +18565,7 @@ window.amiloToggle = amiloToggle;
 // Si el informe ya estaba generado hay que rehacerlo, si no queda el texto viejo.
 function amiloRefrescarInforme() {
   const ta = document.getElementById('informe_texto');
-  if (ta && String(ta.value || '').trim() && typeof generarInforme === 'function') generarInforme();
+  if (ta && String(ta.value || '').trim() && typeof generarInforme === 'function') generarInforme({silencioso:true});
 }
 window.amiloRefrescarInforme = amiloRefrescarInforme;
 
@@ -20859,6 +21126,27 @@ function labInit() {
   ];
   labBarras('lab-diast-dist', diastTot > 0 ? diastDist : []);
 
+  /* VEXUS — se RECALCULA por estudio con la misma función que usa el informe, en vez de
+     leer un grado guardado. Así la auditoría no puede contradecir al informe firmado. */
+  const vexCat = [0, 0, 0, 0];
+  let vexTot = 0;
+  infs.forEach(i => {
+    const c = i.campos || {};
+    const g = (typeof vexusGrado === 'function')
+      ? vexusGrado(c.vci_diam, c.vexus_sh, c.vexus_pv, c.vexus_ir) : null;
+    if (g && g.score !== null) { vexCat[g.score]++; vexTot++; }
+  });
+  labBarras('lab-vexus-dist', vexTot > 0 ? [
+    { lbl:'VEXUS 0 (n=' + vexCat[0] + ')', n: vexCat[0], total: vexTot, color:'#3ecf8e' },
+    { lbl:'VEXUS 1 (n=' + vexCat[1] + ')', n: vexCat[1], total: vexTot, color:'#f5c842' },
+    { lbl:'VEXUS 2 (n=' + vexCat[2] + ')', n: vexCat[2], total: vexTot, color:'#f59e42' },
+    { lbl:'VEXUS 3 (n=' + vexCat[3] + ')', n: vexCat[3], total: vexTot, color:'#f05454' },
+  ] : []);
+  const vexN = document.getElementById('lab-vexus-n');
+  if (vexN) vexN.textContent = vexTot
+    ? vexTot + ' de ' + n + ' estudios con VEXUS evaluable'
+    : 'Ningún estudio del período tiene VEXUS evaluable.';
+
   // Hallazgos frecuentes
   const textos = infs.map(i => (i.campos?.en_suma||'') + ' ' + (i.campos?.informe_texto||''));
   const hallazgos = [
@@ -21188,6 +21476,7 @@ function _labExcelRow(inf) {
     'Vol AI (LAVI) (ml/m²)': rnd(_labLavi(inf),1),
     'TAPSE (mm)': rnd(num('tapse'),0), "S' (cm/s)": rnd(num('s_prime'),1), 'TAP (ms)': rnd(num('tvia'),0), 'Diám. basal VD (mm)': rnd(num('vd_bas'),0),
     'VCI diám (mm)': rnd(num('vci_diam'),0), 'Colapso VCI': c.vci_col || '', 'PmAD (mmHg)': rnd(num('pmad'),0),
+    'VEXUS suprahepática': c.vexus_sh || '', 'VEXUS porta': c.vexus_pv || '', 'VEXUS intrarrenal': c.vexus_ir || '',
     'Morfología mitral': c.vm_morf || '', 'IM grado': gIM,
     'IM_I (Leve)': bin(gIM,'leve'), 'IM_II (Moderada)': bin(gIM,'moderada'), 'IM_III (Severa)': bin(gIM,'severa'),
     'VC IM (mm)': rnd(num('im_vc','vc_mitral'),1),
@@ -21309,6 +21598,12 @@ const LAB_XLS_MAP = [
   ['VCI diám (mm)',          'vci_diam',       'num'],
   ['Colapso VCI',            'vci_col',        'vocab'],
   ['PmAD (mmHg)',            'pmad',           'num'],
+  /* VEXUS: se exportan los tres vasos CRUDOS (0/1/2), no el grado. El grado es derivado y
+     se recalcula con vexusGrado() donde haga falta; exportarlo dejaría un número que puede
+     contradecir a sus propios insumos si alguien edita una celda en la planilla. */
+  ['VEXUS suprahepática',    'vexus_sh',       'vocab'],
+  ['VEXUS porta',            'vexus_pv',       'vocab'],
+  ['VEXUS intrarrenal',      'vexus_ir',       'vocab'],
   ['Morfología mitral',      'vm_morf',        'opcion'],
   ['IM grado',               'im_grado',       'vocab'],
   ['VC IM (mm)',             'im_vc',          'num'],
@@ -21380,6 +21675,20 @@ const LAB_XLS_VOCAB = {
   sexo: { m:'M', masculino:'M', masc:'M', h:'M', hombre:'M', varon:'M',
           f:'F', femenino:'F', fem:'F', muj:'F', mujer:'F' },
   vci_col: { '>50':'>50', 'mayor 50':'>50', 'colapsa':'>50', '<50':'<50', 'menor 50':'<50', 'no colapsa':'<50' },
+  /* Los tres vasos del VEXUS guardan el CÓDIGO 0/1/2 del <select>. Sin estas entradas,
+     _labXlsVocab devolvía null para todo valor no vacío y el importador descartaba la fila
+     completa —nombre, FEVI, el estudio entero—: una planilla de 200 estudios con VEXUS
+     cargado no importaba ninguno. Se aceptan también las etiquetas legibles, porque quien
+     arma la planilla a mano escribe «severo», no «2». */
+  vexus_sh: { '0':'0', normal:'0', 's>d':'0',
+              '1':'1', leve:'1', 'anormal leve':'1', 's<d':'1',
+              '2':'2', severo:'2', severa:'2', 'anormal severo':'2', 'reverso sistolico':'2' },
+  vexus_pv: { '0':'0', normal:'0', '<30':'0',
+              '1':'1', leve:'1', 'anormal leve':'1', '30-49':'1', '30-50':'1',
+              '2':'2', severo:'2', severa:'2', 'anormal severo':'2', '>=50':'2', 'reverso':'2' },
+  vexus_ir: { '0':'0', normal:'0', continuo:'0',
+              '1':'1', leve:'1', 'anormal leve':'1', bifasico:'1',
+              '2':'2', severo:'2', severa:'2', 'anormal severo':'2', monofasico:'2' },
   em_grado: { sin:'sin', 'sin estenosis':'sin', ausente:'sin', no:'sin', '0':'sin',
               leve:'leve', '1':'leve', moderada:'moderada', moderado:'moderada', '2':'moderada',
               'moderada-severa':'moderada', '3':'moderada', severa:'severa', severo:'severa', '4':'severa' },
@@ -21406,6 +21715,9 @@ const LAB_XLS_OPCIONES = {
   em_grado:'sin · leve · moderada · severa',
   ea_grado:'sin · esclerosis · leve · moderada · severa',
   im_grado:'0 ausente · 1 leve · 2 moderada · 3 moderada-severa · 4 severa',
+  vexus_sh:'0 normal (S>D) · 1 leve (S<D) · 2 severo (reverso sistólico)',
+  vexus_pv:'0 normal (<30%) · 1 leve (30-49%) · 2 severo (≥50% o reverso)',
+  vexus_ir:'0 normal (continuo) · 1 leve (bifásico) · 2 severo (monofásico)',
 };
 LAB_XLS_OPCIONES.ia_grado = LAB_XLS_OPCIONES.it_grado = LAB_XLS_OPCIONES.im_grado;
 // Selects de texto libre acotado: se acepta cualquier opción de la lista, tal cual.
