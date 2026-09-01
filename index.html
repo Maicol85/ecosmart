@@ -13834,13 +13834,61 @@ function generarInforme(opts) {
        importación marca esqSevManual.ea— y el informe firmado quedaba con «sin estenosis
        significativa» seguido de «el grado de estenosis aórtica se sostiene por el área
        valvular», dos frases consecutivas que se contradicen. */
-    const _eaFijadoAMano = !!(window.esqSevManual && window.esqSevManual.ea);
-    const _eaDiscordante = eaG === 'severa' && !_eaFijadoAMano
+    /* La salvedad NO depende de quién puso el grado: el AVA y el gradiente son igual de
+       discordantes lo haya asignado el autocálculo o una persona. Antes se suprimía con
+       esqSevManual.ea, que se enciende con cualquier toque de la pastilla —incluido confirmar
+       «Severa», que es el gesto natural después de leer el badge— y que además VIAJA con el
+       estudio, así que un importado o un reabierto producía un informe menos seguro que el
+       original y sin aviso. Lo que el guard evitaba —la salvedad sobre grados moderada o
+       «sin»— ya lo cubre `eaG === 'severa'`. */
+    const _eaDiscordante = eaG === 'severa'
       && avaEsSevera(_avaC) && _vmaxA !== null
       && !(_vmaxA >= 4.0) && !(_gmedA !== null && _gmedA >= 40);
-    if (eaDesc) suma.push(`EAo ${eaDesc}.`); else if (estE) suma.push('Estenosis aórtica.');
+    /* Con discordancia NO se emite «EAo severa.» por separado: quien lea o copie sólo esa
+       línea se lleva una severidad afirmada de plano que el párrafo siguiente pide confirmar,
+       y el buscador del Laboratorio grepea el EN SUMA por palabras de severidad, así que
+       contaba el estudio como severa sin el matiz. La línea única va más abajo. */
+    if (!_eaDiscordante) {
+      if (eaDesc) suma.push(`EAo ${eaDesc}.`); else if (estE) suma.push('Estenosis aórtica.');
+    }
+    /* La salvedad se ramifica por FEVI: el bajo flujo / bajo gradiente CLÁSICO (FEVI
+       reducida) y el PARADÓJICO (FEVI conservada) son dos entidades distintas, con estudio
+       confirmatorio distinto —eco de estrés con dobutamina para diferenciar severa real de
+       pseudosevera en el clásico; volumen sistólico indexado y score de calcio en el
+       paradójico— y pronóstico distinto. Antes el texto era el mismo para los dos y ofrecía
+       las dos opciones sin decidir, pidiéndole al médico que «revise la fracción de eyección»
+       cuando la app ya la tiene cargada. */
+    /* Con estimación visual por rango, feviRangoTexto imprime el rango completo pero la rama
+       se elegía con el piso: «Con FEVI reducida (45-55%)» decidía la entidad, el estudio
+       confirmatorio y el pronóstico sobre un rango cuya mitad superior es normal. Si el rango
+       cruza el umbral, no se elige: se pide cuantificar. */
+    const _feviHasta = v('fevi_hasta');
+    const _feviCruzaUmbral = (sv('fevi_met') || '').toLowerCase().indexOf('visual') === 0
+      && _feviHasta !== null && _feviHasta > fevi
+      && fevi < UMBRAL_FEVI_NORMAL && _feviHasta >= UMBRAL_FEVI_NORMAL;
+    const _eaFeviCargada = fevi !== null && fevi !== undefined && !isNaN(fevi) && !_feviCruzaUmbral;
+    const _eaFeviReducida = _eaFeviCargada && fevi < UMBRAL_FEVI_NORMAL;
+    /* Volumen sistólico indexado: la app YA lo tiene. vs_calc se calcula en el mismo bloque
+       que ava_cont, así que si hay discordancia por área, hay VS. Sin esto el texto le pedía
+       al médico «calcular el volumen sistólico indexado» —el número que la app tenía dos
+       pestañas más allá—, que es el mismo defecto que esta ramificación vino a corregir.
+       Y sin VSi no se puede afirmar «paradójica»: esa forma exige VSi < 35 ml/m², no sólo
+       FEVI conservada. Con flujo normal el escenario es otro y la conducta es la opuesta. */
+    const _vsC = v('vs_calc');
+    const _svi = (_vsC !== null && bsa) ? (_vsC / bsa) : null;
+    const _sviBajo = _svi !== null && _svi < 35;
     if (_eaDiscordante) {
-      suma.push('Estenosis aórtica discordante — evaluar bajo flujo / bajo gradiente antes de indicar intervención.');
+      /* Guion corto, no raya em: el EN SUMA se dibuja en generarPDFReal, la única ruta de PDF
+         sin saneador, y la helvetica WinAnsi de jsPDF descarta la raya en silencio. */
+      /* Sin VSi calculable no se puede decir «con flujo normal»: eso es una afirmación sobre
+         un dato que no se tiene. El cuerpo ya dice que faltan peso y talla; el EN SUMA decía
+         «con flujo normal» y se contradecía con él en el mismo informe. */
+      const _formaTxt = !_eaFeviCargada ? 'forma a definir'
+        : (_eaFeviReducida ? 'forma clásica'
+          : (_svi === null ? 'forma a definir: falta el volumen sistólico indexado'
+            : (_sviBajo ? 'forma paradójica' : 'con flujo normal, severidad dudosa')));
+      suma.push('EAo severa por área valvular con gradiente no severo (' + _formaTxt
+        + ') - severidad a confirmar antes de indicar intervención.');
     }
     if (iaG > 0) suma.push(`IAo ${imTxt[iaG]}.`); else if (insE) suma.push('Insuficiencia aórtica.');
     if (esclerosis) suma.push('Esclerosis aórtica.');
@@ -13863,12 +13911,49 @@ function generarInforme(opts) {
         `La válvula aórtica (${vaMorf.toLowerCase()}), ${escC}${cE}; hallazgo que requiere seguimiento ecocardiográfico y valoración de indicación de intervención según evolución clínica.`));
     }
     if (_eaDiscordante) {
-      inf.push(`El grado de estenosis aórtica se sostiene por el área valvular (AVA ${_avaC.toFixed(2)} cm²) `
+      const _eaBase = `El grado de estenosis aórtica se sostiene por el área valvular (AVA ${_avaC.toFixed(2)} cm²) `
         + `mientras la velocidad máxima (${_vmaxA} m/s)${_gmedA !== null ? ` y el gradiente medio (${_gmedA} mmHg)` : ''} `
-        + 'no alcanzan criterio de severidad. Antes de tomarlo como estenosis aórtica severa hay que evaluar '
-        + 'el escenario de bajo flujo / bajo gradiente (ESC/EACVI): revisar volumen sistólico indexado, '
-        + 'fracción de eyección y condiciones de carga, y considerar eco de estrés con dobutamina o score '
-        + 'de calcio por TC si corresponde.');
+        + 'no alcanzan criterio de severidad. ';
+      /* «a descartar en primer término», no «es»: el umbral de 50 % es un acantilado de un
+         punto sobre una medición cuya reproducibilidad inter-observador es de ±5-10, y la
+         rama decide entidad, estudio confirmatorio y pronóstico. */
+      const _sviTxt = _svi !== null ? ` El volumen sistólico indexado calculado es ${_svi.toFixed(0)} ml/m².` : '';
+      const _cercaDelBorde = (_eaFeviCargada && fevi >= 45 && fevi < 55)
+        ? ' La proximidad al umbral de 50 % obliga a confirmar la fracción de eyección por método cuantitativo (Simpson biplano) antes de encaminar el estudio confirmatorio.' : '';
+      if (_eaFeviReducida) {
+        inf.push(_eaBase
+          + `Con FEVI reducida (${feviRangoTexto(fevi)}), el escenario a descartar en primer término es estenosis aórtica `
+          + 'de bajo flujo / bajo gradiente clásica.' + _sviTxt
+          + ' Se recomienda eco de estrés con dobutamina para diferenciar estenosis aórtica severa real de '
+          + 'pseudosevera (reserva de flujo positiva vs negativa).' + _cercaDelBorde);
+      } else if (_eaFeviCargada && _sviBajo) {
+        inf.push(_eaBase
+          + `Con FEVI conservada (${feviRangoTexto(fevi)}) y volumen sistólico indexado bajo (${_svi.toFixed(0)} ml/m²), `
+          + 'el escenario a descartar en primer término es estenosis aórtica de bajo flujo / bajo gradiente paradójica. '
+          + 'Se recomienda score de calcio valvular por TC para confirmar severidad real.' + _cercaDelBorde);
+      } else if (_eaFeviCargada && _svi !== null) {
+        /* FEVI conservada con flujo NORMAL: no es bajo flujo / bajo gradiente paradójico, y la
+           lectura es la opuesta —severidad dudosa, con frecuencia moderada o error de medición
+           del TSVI—. Afirmar «paradójica» acá encaminaba hacia score de calcio e intervención
+           sobre una entidad que el paciente no tiene. */
+        inf.push(_eaBase
+          + `Con FEVI conservada (${feviRangoTexto(fevi)}) y volumen sistólico indexado normal (${_svi.toFixed(0)} ml/m²) `
+          + 'no se configura un bajo flujo / bajo gradiente paradójico. En este escenario la severidad es dudosa y '
+          + 'con frecuencia corresponde a estenosis moderada o a un error de medición: revisar el diámetro del tracto '
+          + 'de salida y el trazado de las integrales velocidad-tiempo antes de considerar intervención.' + _cercaDelBorde);
+      } else if (_eaFeviCargada) {
+        inf.push(_eaBase
+          + `Con FEVI conservada (${feviRangoTexto(fevi)}), el escenario a descartar en primer término es estenosis `
+          + 'aórtica de bajo flujo / bajo gradiente paradójica, que requiere volumen sistólico indexado < 35 ml/m². '
+          + 'Faltan peso y talla para calcularlo. Considerar además score de calcio valvular por TC.' + _cercaDelBorde);
+      } else {
+        /* Sin FEVI cargada no se puede decir cuál de los dos escenarios es, y afirmarlo sería
+           inventar. Se mantiene el texto neutro y se pide el dato que falta. */
+        inf.push(_eaBase
+          + 'Antes de tomarlo como estenosis aórtica severa hay que evaluar el escenario de bajo flujo / bajo '
+          + 'gradiente (ESC/EACVI). Falta la fracción de eyección para orientar si se trata de la forma clásica '
+          + '(FEVI reducida) o paradójica (FEVI conservada), que se confirman de manera distinta.');
+      }
     }
   }
 
