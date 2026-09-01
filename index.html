@@ -6859,7 +6859,12 @@ z
           </select>
         </div>
         <div class="fg"><label>Trombo OAI</label>
+          <!-- La primera opción es vacía A PROPÓSITO. Con «No» seleccionado de fábrica,
+               cargar sólo la velocidad de vaciamiento hacía que el informe afirmara
+               «Orejuela izquierda sin trombo» sin que nadie hubiera mirado la orejuela — y
+               esa frase, en un ETE, es el alta para cardiovertir. Ahora hay que decirlo. -->
           <select id="oai_trombo" onchange="calcOAI()">
+            <option value="">— no evaluado —</option>
             <option value="no">No</option>
             <option value="sospecha">Sospecha</option>
             <option value="si">Sí — confirmado</option>
@@ -7543,24 +7548,28 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
   <div class="card"><div class="card-body">
     <div class="grid-2">
       <div class="fg"><label>Movilidad valvular</label><select id="cx_wilk_mov" onchange="cxWilkins()">
+        <option value="">— sin puntuar —</option>
         <option value="1">1 — Alta movilidad, solo puntas restringidas</option>
         <option value="2">2 — Base y porción media con movilidad normal</option>
         <option value="3">3 — Válvula avanza en diástole desde la base</option>
         <option value="4">4 — Mínima o nula movilidad</option>
       </select></div>
       <div class="fg"><label>Engrosamiento valvular</label><select id="cx_wilk_eng" onchange="cxWilkins()">
+        <option value="">— sin puntuar —</option>
         <option value="1">1 — Normal (4-5 mm)</option>
         <option value="2">2 — Bordes engrosados (5-8 mm)</option>
         <option value="3">3 — Engrosamiento de toda la valva</option>
         <option value="4">4 — Engrosamiento severo (&gt;8-10 mm)</option>
       </select></div>
       <div class="fg"><label>Calcificación</label><select id="cx_wilk_cal" onchange="cxWilkins()">
+        <option value="">— sin puntuar —</option>
         <option value="1">1 — Área única de brillo aumentado</option>
         <option value="2">2 — Áreas dispersas en bordes</option>
         <option value="3">3 — Brillo que se extiende al cuerpo</option>
         <option value="4">4 — Calcificación extensa de todo el tejido</option>
       </select></div>
       <div class="fg"><label>Compromiso subvalvular</label><select id="cx_wilk_sub" onchange="cxWilkins()">
+        <option value="">— sin puntuar —</option>
         <option value="1">1 — Mínimo engrosamiento subvalvular</option>
         <option value="2">2 — Engrosamiento hasta 1/3 proximal de cuerdas</option>
         <option value="3">3 — Engrosamiento hasta tercio distal</option>
@@ -8320,14 +8329,25 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </h2>
     <div id="ref-htp" style="display:none;" class="card-body">
       <table style="width:100%;border-collapse:collapse;font-size:12px;">
-        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Clasificación</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">PSAP (mmHg)</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">PAP media</th></tr>
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">Normal</td><td style="padding:5px 8px;text-align:center;">≤40</td><td style="padding:5px 8px;text-align:center;">&lt;20 mmHg</td></tr>
-        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:#f5c842;">HTP leve</td><td style="padding:5px 8px;text-align:center;color:#f5c842;">41–55</td><td style="padding:5px 8px;text-align:center;color:#f5c842;">21–30</td></tr>
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:#f59e42;">HTP moderada</td><td style="padding:5px 8px;text-align:center;color:#f59e42;">56–70</td><td style="padding:5px 8px;text-align:center;color:#f59e42;">31–40</td></tr>
-        <tr><td style="padding:5px 8px;color:#f05454;font-weight:700;">HTP severa</td><td style="padding:5px 8px;text-align:center;color:#f05454;font-weight:700;">&gt;70</td><td style="padding:5px 8px;text-align:center;color:#f05454;font-weight:700;">&gt;40</td></tr>
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Definición hemodinámica (ESC/ERS 2022)</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">PAP media</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">RVP</th></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">Sin hipertensión pulmonar</td><td style="padding:5px 8px;text-align:center;">≤20 mmHg</td><td style="padding:5px 8px;text-align:center;">—</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">Hipertensión pulmonar</td><td style="padding:5px 8px;text-align:center;">&gt;20 mmHg</td><td style="padding:5px 8px;text-align:center;">—</td></tr>
+        <tr><td style="padding:5px 8px;">HP precapilar</td><td style="padding:5px 8px;text-align:center;">&gt;20 mmHg</td><td style="padding:5px 8px;text-align:center;">&gt;2 UW (con PCP ≤15)</td></tr>
       </table>
+      <!-- Esta tarjeta clasificaba «HTP leve / moderada / severa» por PSAP estimada, con
+           umbrales (≤40 / 41-55 / 56-70) que además no coincidían con ninguno de los otros
+           cuatro lugares de la app. Contradecía la decisión de calcPSAP —no graduar por
+           PSAP— y era la tabla que el médico tiene a un clic mientras lee el informe. -->
+      <div style="margin-top:10px;font-size:12px;color:var(--text2);background:var(--bg3);border-left:3px solid var(--orange);border-radius:6px;padding:8px 10px;line-height:1.6;">
+        ⚠️ <b>La PSAP estimada no clasifica la hipertensión pulmonar.</b> Es un diagnóstico
+        hemodinámico y requiere cateterismo cardíaco derecho. Por ecocardiografía se estima
+        una <b>probabilidad</b> (baja / intermedia / alta) cruzando la velocidad de
+        insuficiencia tricuspídea con los signos A, B y C — está en el módulo de
+        <b>Hemodinámica</b>. Una PSAP &gt; 35 mmHg es el disparador para mirar esa probabilidad,
+        no un grado de severidad.
+      </div>
       <div style="margin-top:10px;font-size:12px;color:var(--text);line-height:1.8;">
-        <b style="color:var(--accent2);">Nueva definición ESC 2022:</b> PAP media &gt;20mmHg + RVP &gt;2 WU<br>
+        <b style="color:var(--accent2);">Definición ESC 2022:</b> PAP media &gt;20mmHg + RVP &gt;2 WU<br>
         • Grupo 1: HAP idiopática/hereditaria · Grupo 2: Cardiopatía izquierda (más frecuente)<br>
         • Grupo 3: Enfermedad pulmonar · Grupo 4: HTECP · Grupo 5: Mixto
       </div>
@@ -9756,7 +9776,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   <div class="lab-card">
     <div class="lab-card-hdr">🫁 Hipertensión pulmonar (PSAP)</div>
     <div class="lab-card-body">
-      <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Normal (≤35) · Leve (36–50) · Moderada (51–70) · Severa (&gt;70) mmHg.</div>
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Distribución por rango de PSAP estimada (mmHg). No son grados de hipertensión pulmonar: la PSAP estimada no la clasifica.</div>
       <div class="lab-bar-wrap" id="lab-htp-dist"></div>
     </div>
   </div>
@@ -10248,6 +10268,14 @@ function showTab(id) {
 // Nota: ESC usa ≥55% — se eligió ASE ≥50% para mayor sensibilidad diagnóstica
 const UMBRAL_FEVI_NORMAL = 50;   // %  (FEVI ≥50 = normal)
 const UMBRAL_TAPSE_NORMAL = 17;  // mm (TAPSE ≥17 = normal)
+/* PSAP por encima de la cual conviene mirar la probabilidad ecocardiográfica de HTP.
+   NO es un umbral de gravedad: la app no gradúa la hipertensión pulmonar por la PSAP
+   estimada, porque es un diagnóstico hemodinámico (cateterismo derecho, ESC/ERS 2022).
+   Existía repetido en cinco lugares con TRES juegos de números distintos —Referencias
+   decía normal ≤40, el Laboratorio ≤35, y el informe tenía su propia cascada—, así que
+   una PSAP de 38 era «normal» en una pantalla y «HTP leve» en el informe firmado. */
+const UMBRAL_PSAP_ELEVADA = 35;  // mmHg
+window.UMBRAL_PSAP_ELEVADA = UMBRAL_PSAP_ELEVADA;
 window.UMBRAL_FEVI_NORMAL = UMBRAL_FEVI_NORMAL;
 window.UMBRAL_TAPSE_NORMAL = UMBRAL_TAPSE_NORMAL;
 
@@ -10716,8 +10744,17 @@ window.cxPisa = cxPisa; window.cxCont = cxCont; window.cxTei = cxTei;
 // ── Score de Wilkins ──
 function cxWilkins(){
   const s = id => { const el = document.getElementById(id); return el ? (parseInt(el.value) || 0) : 0; };
-  const total = s('cx_wilk_mov') + s('cx_wilk_eng') + s('cx_wilk_cal') + s('cx_wilk_sub');
   const el = document.getElementById('cx-wilkins-total'); if (!el) return;
+  /* Sin ningún criterio puntuado se escribe «—», que es lo que el bloque del PDF descarta.
+     Los cuatro selects arrancaban en «1» y esta función no tenía salida por «—»: con el
+     formulario intacto daba total 4 → «4/16 favorable para valvuloplastia percutánea», un
+     veredicto fabricado sobre una válvula que nadie miró. Sólo estaba dormido porque
+     limpiarCampos dejaba el span en «—»; recalcular al reimprimir un guardado lo despertaba
+     y además contaminaba la sesión del paciente abierto. */
+  const _crudos = ['cx_wilk_mov','cx_wilk_eng','cx_wilk_cal','cx_wilk_sub']
+    .map(id => (document.getElementById(id) || {}).value || '');
+  if (_crudos.every(x => x === '')) { el.textContent = '—'; return; }
+  const total = s('cx_wilk_mov') + s('cx_wilk_eng') + s('cx_wilk_cal') + s('cx_wilk_sub');
   let cls, txt;
   if (total <= 8) { cls = 'green'; txt = 'favorable para valvuloplastia percutánea'; }
   else if (total <= 11) { cls = 'yellow'; txt = 'resultado intermedio'; }
@@ -10877,11 +10914,11 @@ function calcTEP() {
   // 4. PSAP
   const psapEl = document.getElementById('tep-psap-interp');
   if (psap !== null) {
-    const patol = psap > 35;
+    const patol = psap > UMBRAL_PSAP_ELEVADA;
     if (patol) score++;
     criterios.push('PSAP');
     if (psapEl) psapEl.innerHTML = patol
-      ? badge('red',    'PSAP ' + psap + ' mmHg — elevada (>35 mmHg) ✓')
+      ? badge('red',    'PSAP ' + psap + ' mmHg — elevada (>' + UMBRAL_PSAP_ELEVADA + ' mmHg) ✓')
       : badge('green',  'PSAP ' + psap + ' mmHg — normal');
   } else if (psapEl) psapEl.textContent = '—';
 
@@ -13762,7 +13799,7 @@ function generarInforme(opts) {
        los umbrales de la tarjeta de Referencias de la propia app (normal <=40).
        La probabilidad ecocardiográfica se estima en el módulo ESC/ERS 2022 de Hemodinámica,
        que cruza la velocidad de IT con los signos A, B y C, y ése sí entra al informe. */
-    if (psap && PF(psap) > 35) {
+    if (psap && PF(psap) > UMBRAL_PSAP_ELEVADA) {
       tricLine += ' Ver estimación de probabilidad ecocardiográfica de hipertensión pulmonar (ESC/ERS 2022);'
         + ' la PSAP estimada por ecocardiografía no clasifica la hipertensión pulmonar por sí sola.';
     }
@@ -13976,7 +14013,7 @@ function generarInforme(opts) {
     let score = 0;
     if (vdvi !== null && vdvi >= 0.9) score++;
     if (tapse !== null && tapse < UMBRAL_TAPSE_NORMAL) score++;
-    if (psap !== null && psap > 35) score++;
+    if (psap !== null && psap > UMBRAL_PSAP_ELEVADA) score++;
     if (mcconnell) score++;
     if (signo6060) score++;
     if (tabiqued) score++;
@@ -14045,12 +14082,21 @@ function generarInforme(opts) {
     const oTrombo = sv('oai_trombo');
     const oVel    = v('oai_vel_vac');
     const oSec    = sv('oai_sec');
-    const hasOAI  = oVel !== null || (oSec && oSec !== '') || oTrombo === 'sospecha' || oTrombo === 'si';
+    /* Cualquier respuesta explícita sobre el trombo cuenta, incluido «No». Antes se excluía
+       porque «no» era el valor de fábrica y significaba «nadie contestó»; ahora eso lo dice
+       la opción vacía, y un ETE que documenta sólo «Trombo: No» —el caso típico previo a
+       cardioversión— se quedaba sin una sola línea sobre la orejuela en el informe, mientras
+       la hoja del ETE del mismo PDF sí lo decía. */
+    const hasOAI  = oVel !== null || (oSec && oSec !== '') || (oTrombo && oTrombo !== '');
     if (hasOAI) {
       let s;
       if (oTrombo === 'si')       s = 'Orejuela izquierda con trombo confirmado.';
       else if (oTrombo === 'sospecha') s = 'Orejuela izquierda con sospecha de trombo — se sugiere TC cardíaca para confirmación.';
-      else                             s = 'Orejuela izquierda sin trombo.';
+      else if (oTrombo === 'no')       s = 'Orejuela izquierda sin trombo.';
+      /* Sin respuesta explícita NO se afirma la ausencia de trombo: se dice que no se
+         evaluó. La hoja del ETE del mismo PDF ya imprimía «Trombo | no evaluado» para este
+         mismo estado, así que las dos páginas del informe se contradecían entre sí. */
+      else                             s = 'Orejuela izquierda: presencia de trombo no evaluada.';
       if (oVel !== null) {
         const vi = oVel >= 40 ? 'normal' : oVel >= 20 ? 'estasis leve' : 'estasis severa';
         s += ' Velocidad de vaciamiento ' + oVel + ' cm/s (' + vi + ').';
@@ -14538,6 +14584,24 @@ function generarPDFReal() {
       const _md = _pr.length ? (_pr[(typeof ecoGetMedPrincipal === 'function') ? ecoGetMedPrincipal() : 0] || _pr[0]) : null;
       _nom = _md ? T(_md.nombre) : '';
       _num = _md ? T(_md.matricula) : '';
+      /* EXCEPCIÓN: al REIMPRIMIR un estudio guardado firma quien lo hizo, no el Principal de
+         hoy. El razonamiento de arriba vale para un informe que se está emitiendo ahora; para
+         uno viejo es al revés. Medido: con el Principal cambiado a otro médico, el PDF de un
+         estudio ajeno salía con su nombre y su matrícula sobre hallazgos que nunca vio.
+         guardarInforme() ya persiste med-nombre y med-matricula, y pdfDeInformeGuardado los
+         repone en esos spans antes de imprimir: acá se les da prioridad. */
+      if (window._pdfReimpresion) {
+        /* Se toma lo que traiga el estudio, INCLUSO SI VIENE VACÍO. Antes el `if (_rn)`
+           dejaba pasar al Principal de hoy cuando el guardado no traía médico —toda la base
+           anterior a que guardarInforme lo persistiera—, que es exactamente el caso que este
+           bloque viene a evitar. Vacío hace que más abajo se estampe el aviso de médico sin
+           configurar y los dos renglones para completar a mano: preferible a firmar con el
+           nombre y la matrícula de alguien que no vio el estudio.
+           La especialidad también se descarta: es del médico, no del centro. */
+        _nom = T((document.getElementById('med-nombre') || {}).textContent);
+        _num = T((document.getElementById('med-matricula') || {}).textContent);
+        _esp = '';
+      }
       const _arr = _f.opcionales || _f.opciones || _f.campos || _f.extras || _f.optionals;
       if (Array.isArray(_arr)) {
         _arr.forEach(it => {
@@ -15276,7 +15340,13 @@ function generarPDFReal() {
   // BULL'S EYE (contractilidad / SGL) — antes de la firma
   // ════════════════════════════════════════════════════════════
   const _incContr = localStorage.getItem('contractilidad_incluir_pdf') === '1';
-  const _incSgl   = localStorage.getItem('sgl_incluir_pdf') === '1';
+  /* Además del toggle se exige que HAYA strain cargado. Un estudio viejo no tiene
+     `strain_sgl` guardado, así que _restaurarStrain lo deja vacío y strainColor devuelve
+     «Normal» para los 17 segmentos: el PDF salía con un bull's eye entero verde al lado del
+     «SGL global: -12 %» que sí venía del guardado. Vacío no es normal, es no evaluado. */
+  const _incSgl   = localStorage.getItem('sgl_incluir_pdf') === '1'
+                    && typeof strainEstado === 'object'
+                    && Object.keys(strainEstado).some(k => (strainEstado[k] || 0) > 0);
   if ((_incContr || _incSgl) && typeof bullseyeDataURL === 'function') {
     // Columnas: cada una con su bull's eye arriba y su texto debajo
     const _cols = [];
@@ -16145,13 +16215,18 @@ function calcOAI() {
   const diam = v('oai_ostium_diam');
   const prof = v('oai_profundidad');
 
+  /* Los tres bloques limpian su span cuando el campo vuelve a vacío. Sin el `else`, cambiar
+     «Sí — confirmado» por «— no evaluado —» dejaba el badge rojo colgado, y la hoja del ETE
+     salía diciendo «Trombo | no evaluado» junto a «Interpretación | Confirmado —
+     contraindicación cardioversión». La opción vacía nueva hizo alcanzable ese camino. */
+  const _oaiSet = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
   if (vel) {
     let vi;
     if (vel >= 40) vi = badge('green', `${vel} cm/s — normal`);
     else if (vel >= 20) vi = badge('yellow', `${vel} cm/s — estasis leve`);
     else vi = badge('red', `${vel} cm/s — estasis severa, alto riesgo`);
-    document.getElementById('oai-vel-interp').innerHTML = vi;
-  }
+    _oaiSet('oai-vel-interp', vi);
+  } else _oaiSet('oai-vel-interp', '—');
 
   if (sec) {
     const secMap = {
@@ -16160,8 +16235,8 @@ function calcOAI() {
       moderado: badge('orange','Moderado — alto riesgo tromboembólico'),
       severo: badge('red','Severo (barro) — muy alto riesgo')
     };
-    document.getElementById('oai-sec-interp').innerHTML = secMap[sec] || '—';
-  }
+    _oaiSet('oai-sec-interp', secMap[sec] || '—');
+  } else _oaiSet('oai-sec-interp', '—');
 
   if (trombo) {
     const tromboMap = {
@@ -16169,8 +16244,8 @@ function calcOAI() {
       sospecha: badge('yellow','Sospecha — repetir ETE / TC'),
       si: badge('red','Confirmado — contraindicación cardioversión')
     };
-    document.getElementById('oai-trombo-interp').innerHTML = tromboMap[trombo] || '—';
-  }
+    _oaiSet('oai-trombo-interp', tromboMap[trombo] || '—');
+  } else _oaiSet('oai-trombo-interp', '—');
 
   const notas = [];
   let apto = true;
@@ -16223,12 +16298,17 @@ function calcAteroAo() {
     '5': badge('red','Muy alto — embolia')
   };
 
+  /* Estas frases salen de UN desplegable y en el PDF caían como oración suelta dentro de la
+     hoja del ETE, o sea que se leían como indicación del médico que firma —incluida una
+     instrucción de técnica quirúrgica dirigida a un tercero—. Se emiten prefijadas como lo
+     que son: una orientación derivada del grado ecográfico, a integrar con el resto. El
+     prefijo viaja con el texto para que no dependa de la maquetación de la pantalla. */
   const recomendaciones = {
-    '1': 'Sin intervención específica requerida.',
-    '2': 'Control factores de riesgo cardiovascular.',
-    '3': 'Considerar antiagregación. Precaución en procedimientos con manipulación aórtica.',
-    '4': 'Anticoagulación a considerar. Contraindicación relativa para clampaje aórtico. Informar al cirujano.',
-    '5': 'Alto riesgo embólico. Contraindicación para clampaje aórtico. Considerar anticoagulación. Técnica quirúrgica sin clampaje si aplica.'
+    '1': 'Orientación según grado ecográfico: sin intervención específica requerida.',
+    '2': 'Orientación según grado ecográfico: control de factores de riesgo cardiovascular.',
+    '3': 'Orientación según grado ecográfico: considerar antiagregación; precaución en procedimientos con manipulación aórtica. A integrar con la clínica.',
+    '4': 'Orientación según grado ecográfico: el ateroma de grado alto se asocia a mayor riesgo embólico y suele considerarse contraindicación relativa para el clampaje aórtico. Decisión del equipo tratante; comunicar el hallazgo al cirujano.',
+    '5': 'Orientación según grado ecográfico: el ateroma móvil o de grado muy alto se asocia a alto riesgo embólico y suele considerarse contraindicación para el clampaje aórtico, con técnicas sin clampaje como alternativa. La conducta —anticoagulación, estrategia quirúrgica— la define el equipo tratante.'
   };
 
   if (grado) {
@@ -16245,6 +16325,12 @@ function calcAteroAo() {
       }
       recEl.textContent = rec;
     }
+  } else {
+    /* Sin grado no queda texto viejo: la recomendación es ahora más larga y más asertiva,
+       así que dejarla colgada tras volver a vacío es peor que antes. */
+    ['ao-atero-desc','ao-riesgo-embol','ao-recomendacion'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.textContent = '—';
+    });
   }
 }
 
@@ -17263,6 +17349,7 @@ function editarInforme(id) {
     { const _ci = document.getElementById('caso_interes'); if (_ci) _ci.checked = (inf.campos['caso_interes'] === '1' || inf.campos['caso_interes'] === 'true'); }
     _restaurarChecklistPaciente(inf.campos);
     if (typeof _restaurarContractilidad === 'function') _restaurarContractilidad(inf.campos);
+    if (typeof _restaurarStrain === 'function') _restaurarStrain(inf.campos);
     if (typeof amiloRestaurarDesdeCampos === 'function') amiloRestaurarDesdeCampos(inf.campos);
     if (typeof renderCentroField === 'function') renderCentroField(inf.campos.centro_nombre);
     // Cargar un estudio inicia una sesión nueva: resetear flags de severidad manual (las pills
@@ -17315,6 +17402,7 @@ function cargarEstudioPorId(id) {
   { const _ci = document.getElementById('caso_interes'); if (_ci) _ci.checked = (inf.campos && (inf.campos['caso_interes'] === '1' || inf.campos['caso_interes'] === 'true')); }
   _restaurarChecklistPaciente(inf.campos);
   if (typeof _restaurarContractilidad === 'function') _restaurarContractilidad(inf.campos);
+  if (typeof _restaurarStrain === 'function') _restaurarStrain(inf.campos);
   if (typeof amiloRestaurarDesdeCampos === 'function') amiloRestaurarDesdeCampos(inf.campos);
   valvSevConfirmada = false;   // estudio cargado por URL/QR: vuelve a pedir confirmación
   if (typeof renderCentroField === 'function') renderCentroField(inf.campos && inf.campos.centro_nombre);
@@ -17514,6 +17602,11 @@ function guardarInforme(onDone) {
   campos['antecedentes_sel'] = Array.from(document.querySelectorAll('.ant-chk:checked')).map(c => c.dataset.val);
   // Contractilidad segmentaria (17 segmentos AHA) + flags — alimenta el Bull's Eye poblacional del Laboratorio
   campos['contractilidad'] = JSON.stringify(contrEstado);
+  /* El strain por segmento vivía SÓLO en memoria: no se guardaba con el estudio y no se
+     respaldaba al reimprimir, así que el bull's eye del SGL salía con los colores del
+     paciente que estuviera abierto mientras el número de GLS y las notas venían del
+     guardado. La combinación más engañosa posible. Mismo tratamiento que contrEstado. */
+  campos['strain_sgl'] = JSON.stringify(strainEstado);
   campos['contr_flags']    = JSON.stringify({ difusa: contrDifusa, multiple: contrMultiple, disqSep: contrDisqSep });
   ['med-nombre','med-matricula','med-lugar','med-especialidad','med-direccion','med-telefono'].forEach(fid => {
     const el = document.getElementById(fid);
@@ -20177,6 +20270,7 @@ function pdfDeInformeGuardado(id) {
   { const _hr = document.getElementById('hf_ritmo'); if (_hr) chkBackup['hf_ritmo'] = _hr.value; }
   // Backup de la contractilidad segmentaria del formulario actual (para restaurarla tras generar)
   const contrBackup = { contractilidad: JSON.stringify(contrEstado), contr_flags: JSON.stringify({ difusa: contrDifusa, multiple: contrMultiple, disqSep: contrDisqSep }) };
+  const strainBackup = { strain_sgl: JSON.stringify(strainEstado) };
   const ceBackup = {};
   ['med-nombre','med-matricula','med-lugar','med-especialidad','med-direccion','med-telefono'].forEach(fid => {
     const el = document.getElementById(fid);
@@ -20195,17 +20289,32 @@ function pdfDeInformeGuardado(id) {
   document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
     if (c[el.id] !== undefined) el.value = c[el.id];
   });
+  /* Se escribe SIEMPRE, con '' cuando el estudio no trae la clave. Con la asignación
+     condicional, un guardado sin médico —toda la base anterior a que guardarInforme lo
+     persistiera— dejaba en el encabezado al médico del paciente que estuviera en pantalla, y
+     el PDF reimpreso salía firmado por él. Que el estudio no registre médico significa que
+     no lo tiene, no que se herede el de al lado. */
   ['med-nombre','med-matricula','med-lugar','med-especialidad','med-direccion','med-telefono'].forEach(fid => {
     const el = document.getElementById(fid);
-    if (el && c[fid] !== undefined) el.textContent = c[fid];
+    if (el) el.textContent = (c[fid] !== undefined ? c[fid] : '');
   });
   // Restaurar los checklists del acordeón del estudio guardado (para que el PDF lea sus indicaciones/antecedentes)
   if (typeof _restaurarChecklistPaciente === 'function') _restaurarChecklistPaciente(c);
   if (typeof _restaurarContractilidad === 'function') _restaurarContractilidad(c);
+  if (typeof _restaurarStrain === 'function') _restaurarStrain(c);
   // Bloque de ETT Avanzado del estudio guardado: sin esto el PDF reimpreso salía sin
   // esa sección, o peor, con la del paciente que estuviera en pantalla.
   if (typeof amiloRestaurarDesdeCampos === 'function') amiloRestaurarDesdeCampos(c, true);
 
+  /* Las tarjetas de Cálculos (Wilkins, Duke, GTP/RVP) el PDF las lee por textContent de sus
+     spans, no de inputs, así que el backup genérico no las alcanza y NO estaban en esta
+     lista: reimprimir un guardado salía con los números hemodinámicos del paciente que
+     estuviera abierto. Medido: el PDF de un paciente traía PAPm 44,7 · PCP 35,7 · GTP 9,0
+     de otro. Recalcularlas alcanza porque las tres escriben «—» cuando faltan los insumos,
+     y los bloques del PDF descartan «—». */
+  if (typeof cxWilkins  === 'function') cxWilkins();
+  if (typeof cxDuke     === 'function') cxDuke();
+  if (typeof cxGTP      === 'function') cxGTP();
   // Recalculate derived display values
   if (typeof calcBSA    === 'function') calcBSA();
   if (typeof calcVD     === 'function') calcVD();
@@ -20222,7 +20331,10 @@ function pdfDeInformeGuardado(id) {
   window._pdfFallbackNotas = { ind: String(c.indicacion || '').trim(), ant: String(c.antecedentes || '').trim() };
 
   // Generate PDF (flujo automático de informe guardado — sin modal de revisión)
-  generarPDFReal();
+  /* La bandera le dice a la firma que esto es una REIMPRESIÓN: manda el médico del estudio,
+     no el Principal de hoy. Se apaga en el finally, que cubre también el camino de error. */
+  window._pdfReimpresion = true;
+  try { generarPDFReal(); } finally { window._pdfReimpresion = false; }
 
   // El finally cubre TODO lo de arriba, no sólo generarPDFReal: si tira el llenado o
   // cualquier recálculo, el formulario ya quedó con los datos del otro estudio y hay
@@ -20248,10 +20360,19 @@ function pdfDeInformeGuardado(id) {
     });
     if (typeof _restaurarChecklistPaciente === 'function') _restaurarChecklistPaciente(chkBackup);
     if (typeof _restaurarContractilidad === 'function') _restaurarContractilidad(contrBackup);
+    if (typeof _restaurarStrain === 'function') _restaurarStrain(strainBackup);
     // El bucle de arriba ya repuso los textarea; falta qué módulos estaban integrados.
     if (typeof amiloSnapshotRestore === 'function') amiloSnapshotRestore(amiloBackup);
     window._pdfFallbackNotas = null;
     if (typeof calcBSA === 'function') calcBSA();
+    /* Las tarjetas de Cálculos se recalculan también al VOLVER: sus resultados viven en
+       spans, no en inputs, así que el bucle de arriba repone los datos de entrada pero deja
+       los resultados con lo último que escribió la reimpresión —o en «—», si el estudio
+       reimpreso no tenía esos datos—. El médico volvía a su paciente y encontraba la tarjeta
+       de GTP/RVP vacía sin haber tocado nada. */
+    if (typeof cxWilkins === 'function') cxWilkins();
+    if (typeof cxDuke === 'function') cxDuke();
+    if (typeof cxGTP === 'function') cxGTP();
     if (typeof updateHdrExtra === 'function') updateHdrExtra();
    } finally {
     // Recién acá el formulario volvió a ser el del paciente en curso: se reanuda el
@@ -20330,6 +20451,14 @@ window.toggleContrDisqSep = function(btn){
   contrRenderInforme();
 };
 // Restaura el estado de contractilidad segmentaria (17 segmentos + flags) desde los campos del estudio
+function _restaurarStrain(campos){
+  Object.keys(strainEstado).forEach(k=> delete strainEstado[k]);
+  let segs = campos && campos.strain_sgl;
+  if (typeof segs === 'string') { try { segs = JSON.parse(segs); } catch(e){ segs = null; } }
+  if (segs && typeof segs === 'object') Object.keys(segs).forEach(k=>{ strainEstado[k] = Number(segs[k]) || 0; });
+  if (typeof strainAplicarTodos === 'function') strainAplicarTodos();
+}
+window._restaurarStrain = _restaurarStrain;
 function _restaurarContractilidad(campos){
   Object.keys(contrEstado).forEach(k=> delete contrEstado[k]);
   contrDifusa = false; contrMultiple = false; contrDisqSep = false; contrSnapshot = null;
@@ -21216,7 +21345,10 @@ function _labEstenSev(inf, key) {   // ea_grado/em_grado: select sin/esclerosis/
 // Lista de los 10 indicadores automáticos (CAMBIO 5) — compartida entre vista web y PDF
 function _labIndicadoresList(infs) {
   return [
-    { lbl: 'HTP moderada-severa sin causa documentada',
+    /* Rótulo por rango, no por grado: era el único indicador que seguía clasificando la HTP
+       desde una PSAP estimada, contra lo que hacen ya el informe, la tarjeta de Referencias,
+       la distribución en pantalla y el PDF de auditoría. */
+    { lbl: 'PSAP estimada >50 mmHg sin causa documentada',
       casos: infs.filter(i => { const p = _labPsap(i); return p !== null && p > 50 && !/HAP|TEP|EPOC|insuficiencia\s+card[ií]aca|\bIC\b|valvular|valvulopat/i.test(_labTxt(i)); }) },
     { lbl: 'Disfunción diastólica Grado III sin FEVI documentada',
       casos: infs.filter(i => _labDiastGrado(i) === 'III' && _labFevi(i) === null) },
@@ -21594,10 +21726,13 @@ function labRenderExtras(infs, n) {
   const psapsAll = infs.map(i => _labPsap(i)).filter(v => v !== null && v > 0);
   const ht = psapsAll.length;
   const htpDist = [
-    { lbl:`Normal (≤35) (n=${psapsAll.filter(v=>v<=35).length})`,       n: psapsAll.filter(v=>v<=35).length,        total:ht, color:'#3ecf8e' },
-    { lbl:`Leve (36–50) (n=${psapsAll.filter(v=>v>35&&v<=50).length})`, n: psapsAll.filter(v=>v>35&&v<=50).length,  total:ht, color:'#f5c842' },
-    { lbl:`Moderada (51–70) (n=${psapsAll.filter(v=>v>50&&v<=70).length})`, n: psapsAll.filter(v=>v>50&&v<=70).length, total:ht, color:'#f0a500' },
-    { lbl:`Severa (>70) (n=${psapsAll.filter(v=>v>70).length})`,        n: psapsAll.filter(v=>v>70).length,         total:ht, color:'#f05454' },
+    /* Rangos de PSAP, NO grados de hipertensión pulmonar: la app no gradúa la HTP por PSAP
+       estimada (ver UMBRAL_PSAP_ELEVADA). Rotularlos «Leve / Moderada / Severa» era enseñar
+       desde el panel de estadística la clasificación que el informe se niega a hacer. */
+    { lbl:`≤${UMBRAL_PSAP_ELEVADA} mmHg (n=${psapsAll.filter(v=>v<=UMBRAL_PSAP_ELEVADA).length})`, n: psapsAll.filter(v=>v<=UMBRAL_PSAP_ELEVADA).length, total:ht, color:'#3ecf8e' },
+    { lbl:`${UMBRAL_PSAP_ELEVADA+1}–50 mmHg (n=${psapsAll.filter(v=>v>UMBRAL_PSAP_ELEVADA&&v<=50).length})`, n: psapsAll.filter(v=>v>UMBRAL_PSAP_ELEVADA&&v<=50).length, total:ht, color:'#f5c842' },
+    { lbl:`51–70 mmHg (n=${psapsAll.filter(v=>v>50&&v<=70).length})`, n: psapsAll.filter(v=>v>50&&v<=70).length, total:ht, color:'#f0a500' },
+    { lbl:`>70 mmHg (n=${psapsAll.filter(v=>v>70).length})`,        n: psapsAll.filter(v=>v>70).length,         total:ht, color:'#f05454' },
   ];
   labBarras('lab-htp-dist', ht > 0 ? htpDist : []);
 
@@ -21768,7 +21903,12 @@ function _labExcelRow(inf) {
     'IT_I (Leve)': bin(gIT,'leve'), 'IT_II (Moderada)': bin(gIT,'moderada'), 'IT_III (Severa)': bin(gIT,'severa'),
     'VC IT (mm)': rnd(num('it_vc','vc_tricusp'),1),
     'Grad VD-AD (mmHg)': rnd(gradVDAD,0), 'PSAP (mmHg)': rnd(psapV,0),
-    'HTP_I (Leve 36-50)': htpBin(35,50), 'HTP_II (Mod. 51-70)': htpBin(50,70), 'HTP_III (Severa >70)': htpBin(70,null),
+    /* Rangos, no grados, y con la constante: era el ÚNICO lugar que seguía diciendo «Leve /
+       Moderada / Severa» sobre una PSAP estimada, y el que más lejos viaja —el nombre de la
+       columna es el nombre de la variable al abrir la planilla en R o en Analytics—. El 35
+       hardcodeado acá era justo lo que la constante venía a evitar. Ninguna HTP_* se
+       reimporta, así que renombrarlas no rompe el importador. */
+    [`PSAP_${UMBRAL_PSAP_ELEVADA+1}_50`]: htpBin(UMBRAL_PSAP_ELEVADA,50), 'PSAP_51_70': htpBin(50,70), 'PSAP_71_mas': htpBin(70,null),
     'PAP media (mmHg)': rnd(num('pap_med'),0),
     'Ao sinusal (mm)': rnd(num('ao_sin'),0), 'Ao asc. proximal (mm)': rnd(num('ao_tub'),0),
     'Pericardio': c.pericardio || '',
@@ -21806,9 +21946,13 @@ function labExportarXLSX() {
     ['EM_I (Leve)',       'Estenosis Mitral leve',                   V],
     ['EM_II (Moderada)',  'Estenosis Mitral moderada',               V],
     ['EM_III (Severa)',   'Estenosis Mitral severa',                 V],
-    ['HTP_I (Leve)',      'HTP leve — PSAP 36–50 mmHg',              V],
-    ['HTP_II (Moderada)', 'HTP moderada — PSAP 51–70 mmHg',          V],
-    ['HTP_III (Severa)',  'HTP severa — PSAP >70 mmHg',              V],
+    /* Rangos de PSAP, no grados: la app no clasifica la HTP por PSAP estimada. Los nombres
+       de columna se conservan por compatibilidad con las planillas ya exportadas —son
+       columnas de sólo exportación, nada las reimporta—, pero la leyenda deja de afirmar
+       un grado que el informe no emite. */
+    [`PSAP_${UMBRAL_PSAP_ELEVADA+1}_50`, `PSAP estimada ${UMBRAL_PSAP_ELEVADA+1}–50 mmHg (rango, no grado de HTP)`, V],
+    ['PSAP_51_70',        'PSAP estimada 51–70 mmHg (rango, no grado de HTP)',  V],
+    ['PSAP_71_mas',       'PSAP estimada >70 mmHg (rango, no grado de HTP)',    V],
     ['DD_I (Grado I)',          'Disfunción diastólica Grado I presente',      V],
     ['DD_II (Grado II)',        'Disfunción diastólica Grado II presente',     V],
     ['DD_III (Grado III)',      'Disfunción diastólica Grado III presente',    V],
@@ -25422,14 +25566,17 @@ async function labGenerarPDF() {
     // 11. HTP / PSAP
     const psaps = infs.map(_labPsap).filter(v => v !== null && v > 0);
     const ht = psaps.length;
-    const hN = [psaps.filter(v => v <= 35).length, psaps.filter(v => v > 35 && v <= 50).length, psaps.filter(v => v > 50 && v <= 70).length, psaps.filter(v => v > 70).length];
-    await sectionChart('Hipertensión pulmonar (PSAP)',
+    /* Rangos de PSAP, no grados de HTP — mismo criterio que la distribución en pantalla y
+       que el informe: la app no clasifica la hipertensión pulmonar por PSAP estimada. */
+    const _uP = (typeof UMBRAL_PSAP_ELEVADA !== 'undefined') ? UMBRAL_PSAP_ELEVADA : 35;
+    const hN = [psaps.filter(v => v <= _uP).length, psaps.filter(v => v > _uP && v <= 50).length, psaps.filter(v => v > 50 && v <= 70).length, psaps.filter(v => v > 70).length];
+    await sectionChart('Distribución de PSAP estimada',
       ['Rango (mmHg)', 'n (%)'],
-      [['Normal (<=35)', hN[0] + ' (' + pctOf(hN[0], ht) + '%)'],
-       ['Leve (36-50)', hN[1] + ' (' + pctOf(hN[1], ht) + '%)'],
-       ['Moderada (51-70)', hN[2] + ' (' + pctOf(hN[2], ht) + '%)'],
-       ['Severa (>70)', hN[3] + ' (' + pctOf(hN[3], ht) + '%)']],
-      { labels: ['Normal', 'Leve', 'Moderada', 'Severa'], values: hN, colors: ['#3ecf8e', '#f5c842', '#f0a500', '#f05454'] });
+      [['<=' + _uP, hN[0] + ' (' + pctOf(hN[0], ht) + '%)'],
+       [(_uP + 1) + '-50', hN[1] + ' (' + pctOf(hN[1], ht) + '%)'],
+       ['51-70', hN[2] + ' (' + pctOf(hN[2], ht) + '%)'],
+       ['>70', hN[3] + ' (' + pctOf(hN[3], ht) + '%)']],
+      { labels: ['<=' + _uP, (_uP + 1) + '-50', '51-70', '>70'], values: hN, colors: ['#3ecf8e', '#f5c842', '#f0a500', '#f05454'] });
 
     // 12. Vol AI
     const lavis = infs.map(_labLavi).filter(v => v !== null && v > 0);
