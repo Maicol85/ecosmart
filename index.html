@@ -8695,11 +8695,20 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 <!-- ═══════════════════════ TAB: CARDIO-ONCOLOGIA ═══════════════════════ -->
 <div id="tab-cardioOnco" class="tab-section">
 <div class="card" style="margin-bottom:8px;">
-  <h2 class="card-head">🎗️ Cardio-Oncología — ESC 2022 / HFA-ICOS</h2>
+  <h2 class="card-head">🎗️ Cardio-Oncología — ESC 2022</h2>
   <div class="card-body">
 
     <!-- RIESGO BASAL -->
-    <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">📊 Riesgo Cardiovascular Basal (HFA-ICOS)</div>
+    <!-- ECOS-07: ya no se rotula «HFA-ICOS». Lo que suma este bloque son puntos genéricos
+         (riesgo CV, edad, FEVI, dosis de antraciclina) con cortes propios; HFA-ICOS son
+         tablas ESPECÍFICAS por tipo de tratamiento y no existe un score único universal con
+         estos cortes. Llamarlo HFA-ICOS le prestaba a un cálculo orientativo la autoridad de
+         una herramienta validada, y eso baja al PDF firmado. -->
+    <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">📊 Riesgo Cardiovascular Basal estimado</div>
+    <div style="font-size:11px;color:var(--text2);background:var(--section-head);border-left:3px solid var(--accent2);padding:8px 10px;border-radius:0 6px 6px 0;margin-bottom:10px;">
+      Este score es <b>orientativo</b>. Para la herramienta HFA-ICOS completa específica por tratamiento,
+      consultar ESC 2022 Cardio-Oncology Guidelines (tabla 4).
+    </div>
     <div class="grid-3" style="margin-bottom:10px;">
       <div class="fg"><label>Farmaco oncologico</label>
         <select id="co_farmaco" onchange="calcCardioOnco()">
@@ -11113,13 +11122,22 @@ function calcHTP2022() {
   const selEl = document.getElementById('htp2022_vrt');
   const vrtSel = selEl ? selEl.value : 'auto';
   const vit = v('vmax_it');
+  /* ECOS-08: la categoría que se deriva de la IT medida se calcula SIEMPRE, no sólo en modo
+     automático, para poder contrastarla con la que el usuario eligió a mano. Sin esto, elegir
+     «< 2.8 m/s» con una IT medida de 3,6 bajaba la probabilidad de ALTA a BAJA y el informe
+     firmado no dejaba rastro de que el dato medido decía otra cosa. */
+  const vrtAuto = (vit === null) ? null
+    : (vit < 2.8 ? 'baja' : (vit <= 3.4 ? 'media' : 'alta'));
   let vrtCat;
   if (vrtSel === 'auto') {
-    if (vit === null) vrtCat = 'nomedible';
-    else if (vit < 2.8) vrtCat = 'baja';
-    else if (vit <= 3.4) vrtCat = 'media';
-    else vrtCat = 'alta';
+    vrtCat = (vrtAuto === null) ? 'nomedible' : vrtAuto;
   } else vrtCat = vrtSel;
+  const VRT_LBL = { baja:'baja (< 2.8 m/s)', media:'media (2.8–3.4 m/s)', alta:'alta (> 3.4 m/s)' };
+  const vrtDiscrepa = (vrtSel !== 'auto' && vrtAuto !== null && vrtAuto !== vrtCat);
+  const vrtAviso = vrtDiscrepa
+    ? '⚠️ Categoría de VRT seleccionada manualmente. La VRT medida (' + vit + ' m/s) corresponde a categoría ' +
+      (VRT_LBL[vrtAuto] || vrtAuto) + '. Verificar.'
+    : '';
 
   const chk = id => { const el = document.getElementById(id); return el ? el.checked : false; };
   const vdBas = v('vd_bas'), vdvi = v('vd_vi'), tap = v('tvia');
@@ -11140,12 +11158,21 @@ function calcHTP2022() {
 
   const vrtTxt = {baja:'VRT < 2.8 m/s', media:'VRT 2.8–3.4 m/s', alta:'VRT > 3.4 m/s', nomedible:'VRT no medible'}[vrtCat];
   const set = (id, html) => { const e = document.getElementById(id); if (e) e.innerHTML = html; };
-  set('htp2022-vrt-interp', vrtTxt + (vrtSel === 'auto' && vit !== null ? ` (IT ${vit} m/s)` : ''));
+  /* El aviso se cuelga del MISMO nodo que ya baja al PDF (`_amTxt('htp2022-vrt-interp')` en
+     el generador del informe), así que aparece en pantalla y en el informe sin tocar dos
+     lugares — y no puede quedar en uno solo si mañana alguien cambia el otro. */
+  /* El separador « · » va explícito: _amTxt lee este nodo con textContent para el PDF y pega
+     el <div> anidado al texto anterior sin espacio. Hoy quedaba legible sólo porque el aviso
+     empieza con un emoji que el saneador convierte en un blanco — si mañana cambia el texto,
+     las dos frases salen pegadas en el informe. */
+  const _esc = s => (typeof escHtml === 'function') ? escHtml(String(s)) : String(s);
+  set('htp2022-vrt-interp', _esc(vrtTxt) + (vrtSel === 'auto' && vit !== null ? ` (IT ${_esc(vit)} m/s)` : '') +
+    (vrtDiscrepa ? ` · <div style="margin-top:4px;color:var(--red);font-size:11px;font-weight:600;">${_esc(vrtAviso)}</div>` : ''));
   set('htp2022-catA', catA ? badge('yellow','signo presente') : '—');
   set('htp2022-catB', catB ? badge('yellow','signo presente') : '—');
   set('htp2022-catC', catC ? badge('yellow','signo presente') : '—');
   set('htp2022-prob', badge(cls, 'Probabilidad ' + prob));
-  window._htp2022 = { vrtCat, vrtTxt, catA, catB, catC, nCat, prob };
+  window._htp2022 = { vrtCat, vrtTxt, catA, catB, catC, nCat, prob, vrtDiscrepa, vrtAviso, vrtAuto, vit };
 }
 window.calcHTP2022 = calcHTP2022;
 
@@ -12076,45 +12103,106 @@ function calcDiastolASE2025() {
   if (tr !== null)              { totalParam++; if (tr > 2.8) presionElevada++; }
   if (lars !== null)            { totalParam++; if (lars <= 18) presionElevada++; }
 
-  // ── PASO 3: umbral según e' (reducida → 1 positivo; conservada → ≥2)
+  // ── PASO 3: umbral según e' (reducida → ≥1 positivo de al menos 2 EVALUADOS; conservada → ≥2)
   let cls, badgeTxt, texto, textoSuma;
+  const ea = (E !== null && A !== null && A > 0) ? E / A : null;
+  const nPar = ' (' + presionElevada + '/' + totalParam + ' parámetros positivos)';
   if (totalParam === 0) {
     cls = 'gray';
     badgeTxt = 'Datos insuficientes — ASE 2025';
     texto = 'Datos insuficientes para clasificar presión de llenado (ASE 2025). Completar E/e\', Vol AI y/o TR.';
     textoSuma = '';
+  } else if (totalParam < 2) {
+    /* ECOS-03 (B): ASE 2025 pide al menos DOS parámetros evaluados. Con uno solo, ese único
+       dato decidía por sí mismo la presión de llenado —y de ahí salía un grado al informe
+       firmado— sin ninguna segunda medición que lo respaldara.
+       La guarda vale para las DOS ramas de e', no sólo para la reducida. Con e' conservada el
+       umbral es ≥2 positivos, así que con un único parámetro evaluado la condición NUNCA se
+       cumple y el estudio salía «Función diastólica normal» en verde aunque ese único
+       parámetro fuera POSITIVO: el texto llegaba a decir «presión de llenado normal (1/1
+       parámetros positivos)», que se contradice dentro de la misma línea. */
+    cls = 'gray';
+    badgeTxt = 'Indeterminado — ASE 2025';
+    texto = 'Presión de llenado no clasificable: ASE 2025 requiere al menos 2 de los 4 ' +
+      'parámetros evaluados (E/e\', Vol AI indexado, TR, LARS) y aquí sólo hay 1' + nPar +
+      '. Completar otro parámetro para clasificar. ASE 2025.';
+    textoSuma = '';
   } else {
     const umbral = ePrimReducida ? 1 : 2;
     const presionAlta = presionElevada >= umbral;
+    /* ECOS-03 (C): la graduación pasa a exigir E/A, que antes no se miraba en la rama de
+       presión normal. Dos consecuencias del código viejo:
+         · e' CONSERVADA con presión normal salía «DD Grado I». Eso no es una disfunción:
+           es una función diastólica normal, y se estaba rotulando de enfermo a un estudio sano.
+         · e' reducida con presión normal salía Grado I con cualquier E/A, cuando el grado I
+           es el patrón de relajación alterada y pide E/A ≤0,8.
+       Lo que no cumple los criterios de ninguno de los tres grados queda INDETERMINADO, que
+       es un resultado legítimo del algoritmo y no un agujero. */
     if (!presionAlta) {
-      cls = 'green';
-      badgeTxt = 'DD Grado I — ASE 2025';
-      texto = 'Función diastólica grado I (relajación alterada). ' +
-        (ePrimReducida ? 'e\' reducida' : 'e\' conservada') +
-        ' con presión de llenado normal (' + presionElevada + '/' + totalParam + ' parámetros positivos). ASE 2025.';
-      textoSuma = 'Disfunción diastólica grado I — presión de llenado normal (ASE 2025).';
-    } else {
-      const ea = (E && A && A > 0) ? E / A : null;
-      if (ea === null) {
-        cls = 'orange';
-        badgeTxt = 'DD — Presión elevada (ASE 2025)';
-        texto = 'Presión de llenado elevada (' + presionElevada + '/' + totalParam +
-          ' parámetros positivos). Completar cociente E/A para determinar grado. ASE 2025.';
-        textoSuma = 'Disfunción diastólica — presión de llenado elevada (ASE 2025).';
-      } else if (ea >= 2) {
-        cls = 'red';
-        badgeTxt = 'DD Grado III — ASE 2025';
-        texto = 'Disfunción diastólica grado III (patrón restrictivo). E/A > 2 con presión de llenado ' +
-          'elevada (' + presionElevada + '/' + totalParam + ' parámetros positivos). ASE 2025.';
-        textoSuma = 'Disfunción diastólica grado III — patrón restrictivo, presión de llenado elevada (ASE 2025).';
+      if (presionElevada > 0) {
+        /* «Normal» sólo con CERO parámetros positivos. Con e' conservada el umbral es 2, así
+           que 1 de 2 o 1 de 3 quedaba por debajo del umbral y salía rotulado normal en verde
+           mientras el texto imprimía el positivo al lado. Un parámetro de presión elevada
+           colgando no es una función diastólica normal: es un estudio no concluyente. */
+        cls = 'gray';
+        badgeTxt = 'Indeterminado — ASE 2025';
+        texto = 'Presión de llenado no concluyente: ' + (ePrimReducida ? 'e\' reducida' : 'e\' conservada') +
+          ' con ' + nPar.trim().replace(/^\(|\)$/g, '') + ', por debajo del umbral de ' + umbral +
+          ' para afirmar presión elevada pero sin ser todos negativos. Grado indeterminado. ASE 2025.';
+        textoSuma = '';
+      } else if (!ePrimReducida) {
+        cls = 'green';
+        badgeTxt = 'Función diastólica normal — ASE 2025';
+        texto = 'Función diastólica normal: e\' conservada con presión de llenado normal' + nPar + '. ASE 2025.';
+        textoSuma = '';
+      } else if (ea !== null && ea <= 0.8) {
+        cls = 'yellow';
+        badgeTxt = 'DD Grado I — ASE 2025';
+        texto = 'Disfunción diastólica grado I (relajación alterada). e\' reducida, E/A ' + ea.toFixed(2) +
+          ' (≤0,80) y presión de llenado normal' + nPar + '. ASE 2025.';
+        textoSuma = 'Disfunción diastólica grado I — relajación alterada con presión de llenado normal (ASE 2025).';
       } else {
-        cls = 'orange';
-        badgeTxt = 'DD Grado II — ASE 2025';
-        texto = 'Disfunción diastólica grado II (patrón pseudonormal). E/A ' + ea.toFixed(1) +
-          ' con presión de llenado elevada (' + presionElevada + '/' + totalParam +
-          ' parámetros positivos). ASE 2025.';
-        textoSuma = 'Disfunción diastólica grado II — presión de llenado elevada (ASE 2025).';
+        cls = 'gray';
+        badgeTxt = 'Indeterminado — ASE 2025';
+        texto = 'e\' reducida con presión de llenado normal' + nPar + ', pero ' +
+          (ea === null ? 'sin cociente E/A no se puede confirmar el grado I, que requiere E/A ≤0,80'
+                       : 'el cociente E/A (' + ea.toFixed(2) + ') es mayor a 0,80, así que no cumple criterio de grado I') +
+          '. Grado indeterminado. ASE 2025.';
+        textoSuma = '';
       }
+    } else if (ea === null) {
+      cls = 'orange';
+      badgeTxt = 'DD — Presión elevada (ASE 2025)';
+      texto = 'Presión de llenado elevada' + nPar +
+        '. Completar cociente E/A para determinar grado. ASE 2025.';
+      textoSuma = 'Disfunción diastólica — presión de llenado elevada (ASE 2025).';
+    } else if (ea >= 2 && ePrimReducida) {
+      cls = 'red';
+      badgeTxt = 'DD Grado III — ASE 2025';
+      /* Sin campo de Valsalva en la app no se puede separar IIIa (revierte) de IIIb (no
+         revierte), así que se informa el grado III y se nombra el dato que falta en vez de
+         elegir un subtipo al azar. */
+      texto = 'Disfunción diastólica grado III (patrón restrictivo). e\' reducida, E/A ' + ea.toFixed(2) +
+        ' (≥2,00) y presión de llenado elevada' + nPar +
+        '. La distinción entre IIIa (reversible con Valsalva) y IIIb (fija) requiere la maniobra de Valsalva, no registrada. ASE 2025.';
+      textoSuma = 'Disfunción diastólica grado III — patrón restrictivo, presión de llenado elevada (ASE 2025).';
+    } else if (ea >= 0.8 && ea < 2) {
+      cls = 'orange';
+      badgeTxt = 'DD Grado II — ASE 2025';
+      texto = 'Disfunción diastólica grado II (patrón pseudonormal). E/A ' + ea.toFixed(2) +
+        ' (0,80–2,00) con presión de llenado elevada' + nPar + '. ASE 2025.';
+      textoSuma = 'Disfunción diastólica grado II — presión de llenado elevada (ASE 2025).';
+    } else {
+      /* E/A ≥2 con e' CONSERVADA no es grado III: es el patrón del corazón joven y sano, donde
+         un llenado precoz dominante convive con relajación normal. Rotularlo restrictivo sería
+         el error más grave de esta rama. Y E/A <0,8 con presión elevada es una combinación
+         internamente contradictoria que tampoco se fuerza a un grado. */
+      cls = 'gray';
+      badgeTxt = 'Indeterminado — ASE 2025';
+      texto = 'Presión de llenado elevada' + nPar + ' con E/A ' + ea.toFixed(2) + ' y ' +
+        (ePrimReducida ? 'e\' reducida' : 'e\' conservada') +
+        ': la combinación no cumple criterios de grado I, II ni III. Grado indeterminado — correlacionar con clínica. ASE 2025.';
+      textoSuma = '';
     }
   }
 
@@ -12585,24 +12673,70 @@ function calcEADetalle() {
 
   // Severidad EA integrada (Vmax primario, AVA confirma)
   const sevEl = document.getElementById('ea-det-sev');
-  const sel   = document.getElementById('ea_grado');
+  /* Un grado fijado a mano —o traído por una importación— gana sobre el autocálculo, igual
+     que en clasificarEA_Vmax y sugerirSeveridadEA. Esta función NO tenía la guarda y es la
+     que corre última (syncEADesdeValvulas → calcAo → clasificarEA_Vmax → calcEADetalle), así
+     que pisaba lo que las otras dos respetaban: confirmar «Severa» en la pastilla y después
+     tocar un decimal del ITV devolvía el grado al valor de la Vmax sin avisar, y elegir
+     «Esclerosis» se perdía en el primer recálculo con Vmax <2,0 — con lo cual la esclerosis
+     aórtica desaparecía del informe firmado.
+     Se blindan sólo las ESCRITURAS: los textos de pantalla se siguen actualizando, porque el
+     badge es lo único que muestra sobre qué números se calculó. */
+  const _eaManual = !!(window.esqSevManual && window.esqSevManual.ea);
+  const sel   = _eaManual ? null : document.getElementById('ea_grado');
   let sev = null, color = null, gradoStr = null;
+  // Se resetea al entrar: se asignaba en un solo camino y las salidas por «sin vmax» dejaban
+  // el valor del cálculo anterior, o sea el del paciente anterior.
+  window._eaBajoGradiente = null;
   if (vmax) {
     if (vmax < 2.0)      { sev='Sin estenosis';  color='var(--text2)';  gradoStr='sin'; }
     else if (vmax < 3.0) { sev='Leve';           color='#3ecf8e';       gradoStr='leve'; }
     else if (vmax < 4.0) { sev='Moderada';       color='#f59e0b';       gradoStr='moderada'; }
     else                 { sev='Severa';          color='var(--red)';    gradoStr='severa'; }
     // Confirmar con AVA si disponible
+    /* ECOS-12: el caso central del bajo gradiente —AVA <1.0 con Vmax 3.0–3.9 o gradiente
+       medio <40— no estaba en ninguna de las dos discordancias que se miraban acá, así que
+       salía «Moderada» a secas.
+       Y era peor que una alerta faltante: esta función ESCRIBE ea_grado, y el párrafo de
+       bajo flujo / bajo gradiente que el informe ya tiene escrito está condicionado a que el
+       grado sea «severa» (_eaDiscordante). Al degradar a moderada, calcEADetalle apagaba ese
+       párrafo entero en el PDF firmado. Además contradecía a clasificarEA_Vmax, que con los
+       MISMOS datos mantiene «severa» a propósito y lo dice en su comentario: cuál de las dos
+       ganaba dependía de cuál corriera última.
+       Se alinea con clasificarEA_Vmax: el AVA severa no se degrada por una Vmax moderada. */
+    let eaAdvBajoGrad = '';
     if (ava) {
-      if (ava >= 1.5 && gradoStr === 'severa') { sev += ' ⚠️ AVA no concuerda'; color='#f59e0b'; }
+      const gradNoSevero = (gmedio === null) || (gmedio < 40);
+      /* El predicado es el MISMO que usa clasificarEA_Vmax (AVA severa + Vmax <4,0 + gradiente
+         no severo), sin piso de 3,0. Con el piso, un AVA de 0,85 con Vmax 2,7 no entraba acá,
+         caía en la rama de «AVA no concuerda» de más abajo y terminaba escribiendo grado
+         'leve' — apagando el párrafo de bajo flujo del informe, que exige grado 'severa'.
+         O sea: el mismo modo de falla que ECOS-12 vino a cerrar, corrido a la banda de
+         Vmax <3,0. Dos predicados distintos para la misma pregunta clínica siempre terminan
+         discrepando en la banda que nadie probó. */
+      if (avaEsSevera(ava) && vmax < 4.0 && gradNoSevero) {
+        eaAdvBajoGrad = '⚠️ Posible estenosis aórtica de bajo gradiente: AVA <1.0 cm² con Vmax/gradiente ' +
+          'en rango moderado. Considerar flujo, AVAi, DVI y contexto clínico para clasificación definitiva.';
+        sev = 'Severa por AVA ⚠️ bajo gradiente';
+        color = 'var(--red)';
+        gradoStr = 'severa';
+      } else if (ava >= 1.5 && gradoStr === 'severa') { sev += ' ⚠️ AVA no concuerda'; color='#f59e0b'; }
       else if (avaEsSevera(ava) && gradoStr === 'leve') { sev += ' ⚠️ AVA no concuerda'; color='#f59e0b'; }
     }
-    if (sevEl) sevEl.innerHTML = `<span style="color:${color};font-weight:700;">${sev}</span>`;
+    if (sevEl) sevEl.innerHTML = `<span style="color:${color};font-weight:700;">${sev}</span>` +
+      (eaAdvBajoGrad ? `<div style="margin-top:4px;color:var(--red);font-size:11px;font-weight:600;">${eaAdvBajoGrad}</div>` : '');
     if (sel && gradoStr) sel.value = gradoStr;
     const badge = document.getElementById('ea-ava-badge');
-    if (badge) badge.textContent = ava ? `Vmax ${vmax} m/s · AVA ${ava.toFixed(2)} cm² — ESC 2021.` : `Sugerido por Vmax ${vmax} m/s — ESC 2021. Editable manualmente.`;
+    if (badge) badge.textContent = eaAdvBajoGrad
+      ? `AVA ${ava.toFixed(2)} cm² (severa) con Vmax ${vmax} m/s${gmedio !== null ? ` / grad. medio ${gmedio} mmHg` : ''} no severos — estenosis aórtica de bajo gradiente. Grado mantenido por AVA.`
+      : (ava ? `Vmax ${vmax} m/s · AVA ${ava.toFixed(2)} cm² — ESC 2021.` : `Sugerido por Vmax ${vmax} m/s — ESC 2021. Editable manualmente.`);
+    window._eaBajoGradiente = eaAdvBajoGrad || null;
   } else if (ava) {
-    if (ava >= 1.5)      { sev='Sin estenosis / leve'; color='#3ecf8e'; gradoStr='leve'; }
+    /* `gradoStr='sin'` y no 'leve': la pantalla decía «Sin estenosis / leve» pero lo que
+       bajaba al <select> —y de ahí al informe firmado y al buscador del Laboratorio, que
+       grepea el EN SUMA por palabras de severidad— era «EAo leve.» sobre una válvula con
+       área normal. clasificarEA_Vmax usa 'sin' para el mismo caso. */
+    if (ava >= 1.5)      { sev='Sin estenosis / leve'; color='#3ecf8e'; gradoStr='sin'; }
     else if (avaEsModerada(ava)) { sev='Moderada';       color='#f59e0b'; gradoStr='moderada'; }
     else                 { sev='Severa';                color='var(--red)'; gradoStr='severa'; }
     if (sevEl) sevEl.innerHTML = `<span style="color:${color};font-weight:700;">${sev}</span>`;
@@ -13284,13 +13418,21 @@ function calcCardioOnco() {
 
   var resRiesgo = document.getElementById('co-riesgo-resultado');
   if (resRiesgo) {
-    resRiesgo.innerHTML = '<div class="calc-row"><span class="calc-lbl">Riesgo CV basal (HFA-ICOS)</span><span>' + badge(riesgoCls, riesgoTxt + ' (' + puntos + ' pts)') + '</span></div>';
+    /* ECOS-07: el rótulo viaja al PDF vía _amRows('co-riesgo-resultado'), así que el nombre
+       se corrige acá y llega solo al informe firmado. La salvedad va como fila propia para
+       que también baje al PDF y no quede sólo en la pantalla. */
+    resRiesgo.innerHTML = '<div class="calc-row"><span class="calc-lbl">Riesgo CV basal estimado</span><span>' + badge(riesgoCls, riesgoTxt + ' (' + puntos + ' pts)') + '</span></div>' +
+      '<div class="calc-row"><span class="calc-lbl">Salvedad</span><span class="calc-val" style="font-weight:400;">Score orientativo. Para la herramienta HFA-ICOS completa especifica por tratamiento, consultar ESC 2022 Cardio-Oncology Guidelines (tabla 4).</span></div>';
     if (dosis && dosis >= 360) resRiesgo.innerHTML += '<div class="calc-row"><span class="calc-lbl" style="color:var(--red);">⚠️ Dosis acumulada de antraciclinas en zona de alto riesgo (&gt;=360 mg/m2)</span></div>';
   }
 
   // Toxicidad actual
   var alertas = [];
   var toxCls = 'green';
+  /* «Sin toxicidad detectada» en verde sólo si SE MIDIÓ algo. Con el módulo integrado al
+     informe y ningún dato de seguimiento cargado, el default emitía esa afirmación
+     tranquilizadora sobre cero mediciones y bajaba al PDF firmado. Es el mismo defecto que
+     ya se cerró para el caso «FEVI actual sin basal», un paso más arriba. */
   var toxTxt = 'Sin toxicidad detectada';
 
   /* Graduación de CTRCD según ESC 2022, la misma tabla que la app muestra en Referencias:
@@ -13310,44 +13452,104 @@ function calcCardioOnco() {
       toxCls = feviActual < 40 ? 'red' : 'orange';
     }
   }
+  /* GLS y troponina se calculan ANTES de la cascada de FEVI: en ESC 2022 no son hallazgos
+     sueltos sino CRITERIO de dos grados de CTRCD —la leve y la moderada con caída <10 pp—,
+     así que la cascada los necesita para decidir. Antes se evaluaban después y sólo servían
+     para agregar una línea suelta, por eso los dos grados que dependen de ellos no existían. */
+  var glsCaidaRel = (glsBasal && glsActual && Math.abs(glsBasal) > 0)
+    ? (Math.abs(glsBasal) - Math.abs(glsActual)) / Math.abs(glsBasal) * 100 : null;
+  var glsAlterado  = glsCaidaRel !== null && glsCaidaRel >= 15;
+  var tropoElevada = (troponi === 'si');
+  var glsTxt   = glsAlterado ? 'caida relativa de GLS ' + glsCaidaRel.toFixed(1) + '%' : '';
+  var tropoTxt = tropoElevada ? 'troponina elevada' : '';
+  var critMenor = [glsTxt, tropoTxt].filter(Boolean).join(' y ');
+  /* Si la cascada ya usó el GLS o la troponina COMO criterio de un grado, no se vuelven a
+     listar abajo como hallazgo aislado: el informe firmado decía «CTRCD LEVE» y dos campos
+     más allá «toxicidad subclinica» sobre el mismo GLS. */
+  var critConsumido = false;
+
   if (feviBasal && feviActual) {
     var caida = feviBasal - feviActual;
-    /* La rama de <40 exige descenso, igual que las otras dos. Sin eso, una miocardiopatía
-       previa con FEVI 35 estable que arranca quimioterapia salía rotulada «cardiotoxicidad
-       SEVERA» sin haberse movido — el mismo defecto que esta función vino a corregir, corrido
-       de 50 a 40. Y se imprime el valor, que la rama vieja omitía. */
-    if (feviActual < 40 && caida >= 10) {
-      alertas.push('FEVI ' + feviActual + '% con caida de ' + caida.toFixed(1) + ' pp — cardiotoxicidad SEVERA (ESC 2022)'); toxCls = 'red';
+    /* ECOS-04: la severa es «nueva FEVI <40%», sin exigir 10 pp de caída. Pedir además el
+       descenso dejaba sin rotular a un basal de 45 que cae a 38 —7 pp— que es exactamente la
+       CTRCD severa de la guía. Lo que sí se conserva es la exigencia de que la reducción sea
+       NUEVA (basal ≥40): una miocardiopatía previa con FEVI 35 estable que arranca
+       quimioterapia no «cayó» a ningún lado y no puede salir rotulada severa. */
+    if (feviActual < 40 && feviBasal >= 40) {
+      alertas.push('FEVI ' + feviActual + '% (nueva reduccion por debajo de 40, desde ' + feviBasal +
+        '%; caida ' + caida.toFixed(1) + ' pp) — cardiotoxicidad SEVERA (ESC 2022)');
+      toxCls = 'red'; critConsumido = true;
+    } else if (feviActual < 40 && caida >= 10) {
+      /* FEVI ya <40 en el basal: no es una reducción NUEVA a <40, pero un descenso de 10 pp
+         sobre una disfunción previa tampoco es un no-evento. Se informa sin rotular grado. */
+      alertas.push('FEVI ' + feviActual + '% con caida de ' + caida.toFixed(1) + ' pp sobre un basal ya por debajo de 40 (' +
+        feviBasal + '%) — empeoramiento significativo sobre disfuncion previa; no configura la reduccion NUEVA a <40 que define la CTRCD severa. Valorar en contexto');
+      toxCls = 'red'; critConsumido = true;
     } else if (feviActual < 40) {
       alertas.push('FEVI ' + feviActual + '% (por debajo de 40) sin descenso significativo respecto del basal — no cumple criterio de CTRCD por descenso; valorar en contexto');
       if (toxCls !== 'red') toxCls = 'orange';
     } else if (feviActual < 50 && caida >= 10) {
       alertas.push('FEVI ' + feviActual + '% con caida de ' + caida.toFixed(1) + ' pp — cardiotoxicidad MODERADA (ESC 2022)');
+      critConsumido = true;
       if (toxCls !== 'red') toxCls = 'orange';   // la tabla de Referencias usa naranja para moderada
+    } else if (feviActual < 50 && caida > 0 && (glsAlterado || tropoElevada)) {
+      /* ECOS-05: la moderada con FEVI 40–49 y caída <10 pp existe cuando hay GLS relativo
+         >15% o troponina nueva elevada. Sin esta rama, ese paciente caía en el texto de abajo
+         —«no cumple criterio de CTRCD»— que es lo contrario de lo que dice la guía.
+         `caida > 0` es obligatorio: la CTRCD es una REDUCCIÓN nueva. Sin esa condición, un
+         basal de 42 que MEJORA a 48 con GLS alterado salía «cardiotoxicidad MODERADA» con
+         una caída impresa de −6,0 pp, y el grado de CTRCD es lo que decide si se suspende
+         la quimioterapia. */
+      alertas.push('FEVI ' + feviActual + '% (40-49) con caida de ' + caida.toFixed(1) + ' pp y ' + critMenor +
+        ' — cardiotoxicidad MODERADA (ESC 2022)');
+      critConsumido = true;
+      if (toxCls !== 'red') toxCls = 'orange';
     } else if (feviActual < 50) {
-      /* Por debajo de 50 pero sin caída documentada respecto del basal: no es un grado de
-         CTRCD, que se define por el DESCENSO. Se informa el hallazgo sin rotularlo. */
-      alertas.push('FEVI ' + feviActual + '% (por debajo de 50) sin caida significativa respecto del basal — no cumple criterio de CTRCD por descenso; valorar en contexto');
+      /* Por debajo de 50 pero sin caída documentada respecto del basal y sin GLS ni troponina
+         alterados: no es un grado de CTRCD. Se informa el hallazgo sin rotularlo. */
+      alertas.push('FEVI ' + feviActual + '% (por debajo de 50) sin caida significativa respecto del basal y sin GLS ni troponina alterados — no cumple criterio de CTRCD; valorar en contexto');
+      if (toxCls !== 'red') toxCls = 'orange';
+    } else if (glsAlterado || tropoElevada) {
+      /* ECOS-06: la CTRCD leve asintomática de ESC 2022 es FEVI ≥50% con caída relativa de
+         GLS >15% y/o biomarcadores nuevos elevados. NO la define la caída de 10 pp —una caída
+         de 12 pp que deja la FEVI en 55 no es una categoría de CTRCD— ni los síntomas, que
+         pertenecen a la categoría sintomática y que esta app no registra: por eso el texto
+         viejo («LEVE si hay sintomas o biomarcadores») delegaba en el lector un criterio que
+         el propio dato cargado ya permitía resolver. */
+      alertas.push('FEVI ' + feviActual + '% (>=50) con ' + critMenor + ' — cardiotoxicidad LEVE asintomatica (ESC 2022)');
+      critConsumido = true;
       if (toxCls !== 'red') toxCls = 'orange';
     } else if (caida >= 10) {
-      alertas.push('Caida FEVI ' + caida.toFixed(1) + ' pp con FEVI >= 50% — cardiotoxicidad LEVE si hay sintomas o biomarcadores elevados (ESC 2022)');
+      alertas.push('Caida FEVI ' + caida.toFixed(1) + ' pp con FEVI >= 50% (' + feviActual +
+        '%) sin caida de GLS >15% ni biomarcadores elevados — no configura CTRCD leve (ESC 2022); vigilancia estrecha');
       if (toxCls !== 'red') toxCls = 'orange';
     } else if (caida >= 5) {
       alertas.push('Caida FEVI ' + caida.toFixed(1) + ' pp — por debajo del umbral de CTRCD; vigilancia estrecha');
       if (toxCls !== 'red') toxCls = 'orange';
     }
+  } else if (glsAlterado || tropoElevada) {
+    /* Sin par de FEVI no se puede graduar, pero GLS y troponina siguen siendo hallazgos. */
+    alertas.push(critMenor.charAt(0).toUpperCase() + critMenor.slice(1) +
+      ' — sin par de FEVI basal/actual no se puede graduar la CTRCD; valorar en contexto');
+    critConsumido = true;
+    if (toxCls !== 'red') toxCls = 'yellow';
   }
 
-  if (glsBasal && glsActual) {
-    var glsBasalAbs = Math.abs(glsBasal);
-    var glsActualAbs = Math.abs(glsActual);
-    var caida_gls = (glsBasalAbs - glsActualAbs) / glsBasalAbs * 100;
-    if (caida_gls >= 15) { alertas.push('Caida GLS relativa >= 15% — toxicidad sublininica'); if (toxCls !== 'red') toxCls = 'yellow'; }
+  if (glsAlterado && !critConsumido) {
+    alertas.push('Caida GLS relativa ' + glsCaidaRel.toFixed(1) + '% (>= 15%) — toxicidad subclinica');
+    /* `=== 'green'` y no `!== 'red'`: con la segunda, agregar un hallazgo ANORMAL bajaba el
+       semáforo de naranja a amarillo, o sea que más evidencia de daño daba un color más
+       tranquilo. Igual que la línea de troponina de abajo, que ya lo hacía bien. */
+    if (toxCls === 'green') toxCls = 'yellow';
   }
 
-  if (troponi === 'si') { alertas.push('Troponina elevada — marcador de dano miocardico'); if (toxCls === 'green') toxCls = 'yellow'; }
+  if (tropoElevada && !critConsumido) { alertas.push('Troponina elevada — marcador de dano miocardico'); if (toxCls === 'green') toxCls = 'yellow'; }
 
   if (alertas.length > 0) toxTxt = alertas.join(' | ');
+  else if (!feviActual && !glsActual && troponi !== 'si') {
+    toxTxt = 'No evaluable — sin FEVI actual, GLS ni troponina cargados';
+    toxCls = 'gray';
+  }
 
   var resTox = document.getElementById('co-toxicidad-resultado');
   if (resTox) {
@@ -14212,7 +14414,11 @@ function generarInforme(opts) {
     // Antes lo decidía el checkbox htp2022_incluir; ahora manda el botón
     // "Integrar al informe" del módulo, que es la única perilla de HTP.
     const htp2022Incluir = typeof amiloIntegrado === 'function' && amiloIntegrado('htp');
-    if (htp2022Incluir && h22 && (h22.vrtCat !== 'nomedible' || h22.nCat > 0)) {
+    /* `|| h22.vrtDiscrepa`: eligiendo «No medible» a mano con una IT de 3,8 cargada y sin
+       signos adicionales, la puerta era falsa y el cuerpo del informe quedaba mudo sobre la
+       HTP — justo el caso donde más hace falta decir que el dato medido contradice a la
+       categoría elegida. */
+    if (htp2022Incluir && h22 && (h22.vrtCat !== 'nomedible' || h22.nCat > 0 || h22.vrtDiscrepa)) {
       const cats = [];
       if (h22.catA) cats.push('ventrículos');
       if (h22.catB) cats.push('arteria pulmonar');
@@ -14220,6 +14426,15 @@ function generarInforme(opts) {
       let l = `Valoración ecocardiográfica de probabilidad de hipertensión pulmonar (ESC 2022): probabilidad ${h22.prob.toLowerCase()} (${h22.vrtTxt}`;
       l += cats.length ? `; signos adicionales en: ${cats.join(', ')}).` : '; sin signos adicionales).';
       inf.push(l);
+      /* ECOS-08: la salvedad va en el CUERPO del informe y no sólo en la fila de datos del
+         módulo, porque la probabilidad de HTP que se acaba de afirmar arriba se calculó con
+         la categoría elegida a mano y no con la medida. Quien lee el párrafo tiene que ver
+         ahí mismo que el dato medido dice otra cosa. */
+      if (h22.vrtDiscrepa) {
+        inf.push(`Salvedad: la categoría de velocidad de regurgitación tricuspídea se fijó manualmente. ` +
+          `La VRT medida (${h22.vit} m/s) corresponde a categoría ${h22.vrtAuto}, distinta de la considerada ` +
+          `para el cálculo. Verificar antes de tomar la probabilidad estimada como definitiva.`);
+      }
       if (h22.prob === 'ALTA' || h22.prob === 'INTERMEDIA') suma.push(`HTP: probabilidad ${h22.prob.toLowerCase()} (ESC 2022).`);
     }
   }
@@ -19305,7 +19520,7 @@ function amiloSecs() {
     { k:'wilk', lbl:'Score de Wilkins',                tit:'SCORE DE WILKINS - ESTENOSIS MITRAL',      gen:amiloTextoWilkins, grupo:'ete' },
     { k:'oai',  lbl:'Mediciones OAI',                  tit:'OREJUELA IZQUIERDA',                       gen:amiloTextoOAI, grupo:'ete' },
     { k:'aoete',lbl:'Mediciones Aorta (ETE)',          tit:'AORTA TORACICA',                           gen:amiloTextoAortaETE, grupo:'ete' },
-    { k:'conco',lbl:'Cardio-Oncología',                tit:'CARDIO-ONCOLOGIA - ESC 2022 / HFA-ICOS',   gen:amiloTextoCardioOnco },
+    { k:'conco',lbl:'Cardio-Oncología',                tit:'CARDIO-ONCOLOGIA - ESC 2022',   gen:amiloTextoCardioOnco },
     { k:'pulm', lbl:'Eco Pulmonar (avanzado)',         tit:'ECOGRAFIA PULMONAR - EVALUACION AVANZADA', gen:amiloTextoPulmonar }
   ];
 }
@@ -27307,7 +27522,10 @@ const ECO_AYUDA = [
   <div class="mSub">🧬 Amiloidosis</div>
   <p class="mP">Tres solapas: score ETT según ESC 2021 sobre 10 puntos, algoritmo diagnóstico (incluye Perugini y proteínas monoclonales) y una guía de lectura.</p>
   <div class="mSub">❤️ Cardio-Oncología</div>
-  <p class="mP">Riesgo basal HFA-ICOS antes de empezar el tratamiento, y evaluación de cardiotoxicidad según ESC 2022 durante el seguimiento: caída de FEVI, caída relativa del strain ≥ 15 % y troponina.</p>
+  <!-- ECOS-07: el Manual seguía atribuyéndole el score a HFA-ICOS después de que el módulo
+       dejó de hacerlo. Quien consulta el Manual antes de firmar leía que el puntaje está
+       validado, que es exactamente la atribución que la corrección vino a sacar. -->
+  <p class="mP">Riesgo CV basal estimado antes de empezar el tratamiento (orientativo; para la herramienta HFA-ICOS completa específica por tratamiento, ESC 2022 tabla 4), y evaluación de cardiotoxicidad según ESC 2022 durante el seguimiento: caída de FEVI, caída relativa del strain ≥ 15 % y troponina.</p>
   <div class="mBox mAviso"><b>Atención — la caída de FEVI son puntos porcentuales.</b> El criterio es una caída ≥ 10 <b>puntos</b> respecto del basal (de 60 % a 50 %), no una caída del 10 % relativo. La del strain sí es relativa.</div>
   <div class="mBox mTip"><b>El seguimiento va por paciente.</b> Cada control queda asociado al documento del paciente que tengas cargado —o al nombre, si no cargaste documento—, así que al abrir otro paciente ves el suyo y no el del anterior. Por eso hay que <b>cargar el paciente antes</b> de agregar un control: sin nombre ni documento, la app no lo guarda y te avisa.</div>
   <div class="mSub">🫁 Eco Pulmonar</div>
@@ -27487,7 +27705,7 @@ const ECO_AYUDA = [
     <li><b>Hipertensión pulmonar</b> — ESC/ERS 2022, probabilidad ecocardiográfica.</li>
     <li><b>HFA-PEFF</b> — ESC 2019.</li>
     <li><b>Amiloidosis cardíaca</b> — ESC 2021; algoritmo de Gillmore 2016.</li>
-    <li><b>Cardio-Oncología</b> — ESC 2022 y riesgo basal HFA-ICOS.</li>
+    <li><b>Cardio-Oncología</b> — ESC 2022 y riesgo CV basal estimado (orientativo; HFA-ICOS completo en ESC 2022, tabla 4).</li>
     <li><b>VEXUS</b> — Beaubien-Souligny <i>et al.</i>, Ultrasound J 2020;12(1):16.</li>
     <li><b>Derrame pleural</b> — método de Balik.</li>
   </ul>
