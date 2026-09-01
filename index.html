@@ -26,6 +26,17 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.js" defer
         integrity="sha512-6WOG76AXc8rlgtGYLGhDg7lIzZG2Cc+VrSamvgpeBYgxauGuoMua6uKll4OsZ0JvVSt12lRX/9uCmXzkt3/wfg=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!-- PptxGenJS — exportación del estudio guardado a PowerPoint.
+     OJO: NO está en cdnjs (su API responde «Library not found»), así que este es el único
+     script de la app servido por jsDelivr. Y el archivo se llama `pptxgen.bundle.js`, no
+     `bundled`. Con la URL de cdnjs que parecía la correcta, la respuesta era una página 404
+     de 146 bytes: el <script> habría fallado en silencio y el botón no habría funcionado
+     nunca, con el aspecto de un problema de conexión.
+     Hash verificado dos veces contra el archivo real descargado (477.529 bytes, contiene
+     «PptxGenJS»); no sale de ninguna API que pudiera estar devolviendo un error. -->
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js" defer
+        integrity="sha512-8NcFQMWu9bGlcmr2SQtRzKt11fE9Rd0Nare36GcU9B4a5RHnav3VH3B+sLSBSfLerkGYNo+In07MJuaBnCa6GA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <style>
   /* Inter self-hosteada (subset latin de Google Fonts v20, fuente variable 100..900).
      Ruta relativa a propósito: con '/fonts/...' la fuente no carga si el index.html se
@@ -21938,6 +21949,7 @@ function verDetalleInforme(id) {
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-green" onclick="pdfDeInformeGuardado(${id})">📄 Ver PDF</button>
         <button class="btn btn-danger" onclick="eliminarInformeYVolver(${id})">🗑️ Eliminar informe</button>
+        <button class="btn" style="background:#334155;border-color:#475569;color:#E6EDF3;" onclick="generarPPT(${id})" title="Exportar este estudio a PowerPoint">📊 PPT</button>
       </div>
     </div>
   </div>`;
@@ -22047,18 +22059,478 @@ var _pdfGuardadoEnCurso = false;
    backup del estudio ajeno y, al restaurar, dejaba al paciente reemplazado y sin imágenes,
    persistido como su propio borrador. */
 var _pdfRestauracionPendiente = false;
-function pdfDeInformeGuardado(id) {
-  if (_pdfGuardadoEnCurso) { if (typeof toast === 'function') toast('⏳ Esperá a que termine el PDF anterior'); return; }
+/* `accion` permite reusar TODA la maquinaria de abajo con otro emisor (hoy, el PPT). Es la
+   única forma correcta de exportar un estudio guardado: los flags que deciden qué módulos
+   se incluyen viven en el DOM (`amiloIntegrado` lee am-wrap-<k>.style.display), no en el
+   objeto guardado, así que hay que cargar el estudio en el formulario para leerlos. Y este
+   camino ya tiene resueltas —una por una, cada una documentada acá abajo— las fugas entre
+   pacientes de las imágenes, de esqSevManual, del snapshot de ETT Avanzado y de los
+   checklists. Un segundo camino paralelo las reintroduciría todas. */
+/* ══════════════════════════════════════════════════════════════════════════
+   EXPORTACIÓN A POWERPOINT — tema oscuro CeiboMed
+   ══════════════════════════════════════════════════════════════════════════ */
+const PPT_C = { bg:'0D1117', teal:'0D9488', rojo:'E11D48', txt:'E6EDF3',
+                txt2:'8B949E', fila1:'161B22', fila2:'1C2333', vacio:'484F58' };
+const PPT_FONT = 'Arial';
+
+/* Todo lo que entra al PPT pasa por acá. PptxGenJS escribe XML: un `&`, un `<` o un `>` en
+   el nombre del paciente o en una nota rompe el archivo o se cuela como marcado. La librería
+   escapa por su cuenta, pero se sanea igual en el borde —mismo criterio que pdfSafe— y se
+   recortan los caracteres de control, que sí producen un .pptx que PowerPoint declara
+   corrupto sin decir por qué. */
+function _pptTxt(x){
+  if (x == null) return '';
+  /* Escapes \u..., NO los caracteres de control literales: un NUL o un \x0b crudos en el
+     HTML los sustituye el parser antes de que el JS los vea, y el regex queda roto — con
+     eso se cae el bloque <script> ENTERO y sin error visible en consola. */
+  return String(x).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').trim();
+}
+const _pptNum = id => { const n = (typeof v === 'function') ? v(id) : null; return (n==null||!isFinite(n)) ? null : n; };
+const _pptSel = id => { const e = document.getElementById(id); if(!e) return '';
+  return (e.tagName==='SELECT' && e.selectedIndex>0) ? _pptTxt(e.options[e.selectedIndex].text) : _pptTxt(e.value); };
+/* Lee un span de resultado. `.calc-val` cuando existe, y NO el textContent del contenedor:
+   los `calc-box` de la app llevan la etiqueta y el valor como hijos, así que el textContent
+   crudo devolvía «Estado cardiotoxicidadFEVI 42% con caida…» — la etiqueta pegada al dato. */
+const _pptSpan = id => {
+  const e = document.getElementById(id);
+  /* El aviso NO es decorativo: `_pptSpan` devuelve '' cuando el id no existe, `fila()`
+     descarta lo vacío y `tabla()` no dibuja si no quedó ninguna fila — o sea que un id mal
+     escrito produce una diapositiva con título, pie y NADA en el medio, sin un solo error.
+     Así salió la de Amiloidosis entera, con 5 ids inventados, y así había salido antes la
+     de Eco Pulmonar. Sin este warn el próximo id equivocado tampoco se nota. */
+  if (!e) { console.warn('[ppt] id inexistente:', id); return ''; }
+  const val = e.querySelector('.calc-val, .badge');
+  const t = _pptTxt((val ? val.textContent : e.textContent));
+  return (t === '—' || t === '-') ? '' : t;
+};
+
+function generarPPT(id){
+  if (typeof PptxGenJS === 'undefined') {
+    /* Mensaje distinto del de writeFile: si el <script> no cargó puede ser el CDN caído o
+       un SRI viejo tras subir de versión, y «problema de conexión» manda a buscar donde no es. */
+    if (typeof toast === 'function') toast('❌ La librería de PowerPoint no cargó (CDN o integridad del script). Verificar conexión a internet.');
+    return;
+  }
+  const inf = (typeof getInformes === 'function' ? getInformes() : []).find(i => i.id === id);
+  if (!inf) { if (typeof toast === 'function') toast('❌ No se encontró ese estudio guardado'); return; }
+  /* El informe narrativo es lo que da sentido a la mitad de las diapositivas; sin él el PPT
+     sale a medias y no se entiende por qué. Se avisa antes de generar nada. */
+  const _txtInf = _pptTxt((inf.campos && inf.campos.informe_texto) || '');
+  if (!_txtInf) {
+    if (typeof toast === 'function') toast('⚠️ Este estudio no tiene informe generado. Generá el informe antes de exportar.');
+    return;
+  }
+  // Se carga el estudio en el formulario y se restaura después: ver la nota de abajo.
+  pdfDeInformeGuardado(id, _pptDesdeFormulario, 'PPT');
+}
+window.generarPPT = generarPPT;
+
+function _pptDesdeFormulario(inf){
+  const P = new PptxGenJS();
+  P.layout = 'LAYOUT_16x9';                      // 25,4 × 14,29 cm
+  const W = 10, H = 5.63;                        // pulgadas, que es la unidad de PptxGenJS
+  const c = (inf && inf.campos) || {};
+
+  const centro = _pptTxt(c['centro_nombre'] || c['med-lugar'] || '');
+  const medico = _pptTxt(c['med-nombre'] || '');
+  const pie = [centro, medico, '© 2026 CeiboMed'].filter(Boolean).join(' · ');
+
+  const nueva = () => { const s = P.addSlide(); s.background = { color: PPT_C.bg }; return s; };
+  /* El disclaimer va en TODAS las diapositivas, igual que en el PDF. Es material que se
+     proyecta ante colegas, y el PDF ya tuvo el bug de una hoja sin la salvedad. */
+  const DISC_PPT = 'Esta herramienta es de apoyo clínico. No reemplaza el juicio médico ni constituye una recomendación diagnóstica o terapéutica.';
+  const conPie = s => {
+    s.addShape(P.ShapeType.line, { x:0.4, y:H-0.62, w:W-0.8, h:0, line:{ color:PPT_C.teal, width:1 } });
+    s.addText(pie, { x:0.4, y:H-0.56, w:W-0.8, h:0.22, fontSize:11, color:PPT_C.txt2, fontFace:PPT_FONT });
+    s.addText(DISC_PPT, { x:0.4, y:H-0.34, w:W-0.8, h:0.2, fontSize:7, color:PPT_C.txt2, fontFace:PPT_FONT });
+  };
+  const titulo = (s, t, color) => {
+    s.addText(_pptTxt(t), { x:0.5, y:0.3, w:W-1, h:0.5, fontSize:24, bold:true,
+      color: color || PPT_C.teal, fontFace:PPT_FONT });
+    s.addShape(P.ShapeType.line, { x:0.5, y:0.85, w:W-1, h:0, line:{ color: color || PPT_C.teal, width:1 } });
+  };
+  /* Tabla con el estilo de la paleta. Los subtítulos de grupo van como fila sin fondo, que
+     es lo que pidió el diseño, y se saltean si el grupo quedó sin ninguna fila con valor —
+     si no, el PPT muestra encabezados de secciones vacías. */
+  const tabla = (s, filas, y, alto) => {
+    if (!filas.length) return;
+    const rows = [[
+      { text:'Parámetro', options:{ fill:PPT_C.teal, color:'FFFFFF', bold:true, fontSize:12, fontFace:PPT_FONT } },
+      { text:'Valor',     options:{ fill:PPT_C.teal, color:'FFFFFF', bold:true, fontSize:12, fontFace:PPT_FONT } }
+    ]];
+    let i = 0;
+    filas.forEach(f => {
+      if (f.grupo) {
+        rows.push([{ text:_pptTxt(f.grupo).toUpperCase(), options:{ colspan:2, color:PPT_C.txt2, fontSize:10, bold:true, fontFace:PPT_FONT } }]);
+      } else {
+        const fill = (i++ % 2) ? PPT_C.fila2 : PPT_C.fila1;
+        rows.push([
+          { text:_pptTxt(f.k), options:{ fill, color:PPT_C.txt, fontSize:12, fontFace:PPT_FONT } },
+          { text:_pptTxt(f.v), options:{ fill, color:PPT_C.txt, fontSize:12, fontFace:PPT_FONT } }
+        ]);
+      }
+    });
+    s.addTable(rows, { x:0.5, y:y||1.05, w:W-1, h:alto||undefined, colW:[(W-1)*0.55,(W-1)*0.45],
+      border:{ type:'none' }, autoPage:false, fontFace:PPT_FONT });
+  };
+  /* Sólo entra la fila si hay valor: `omitir vacíos` es lo que evita una tabla de guiones. */
+  const fila = (arr, k, val, suf) => { const t=_pptTxt(val); if(t) arr.push({k, v:t + (suf||'')}); };
+  const grupo = (arr, nombre, antes) => { if (arr.length > antes) arr.splice(antes, 0, { grupo:nombre }); };
+
+  // ══ 1 · Encabezado ══
+  {
+    const s = nueva();
+    s.addShape(P.ShapeType.rect, { x:0, y:0, w:W, h:1.18, fill:{ color:PPT_C.teal } });
+    s.addText('Ecocardiograma Doppler Color', { x:0, y:0, w:W, h:1.18, fontSize:28, bold:true,
+      color:'FFFFFF', align:'center', valign:'middle', fontFace:PPT_FONT });
+    s.addText(_pptTxt(inf.nombre).toUpperCase(), { x:0.5, y:1.42, w:W-1, h:0.6, fontSize:32,
+      bold:true, color:'FFFFFF', fontFace:PPT_FONT });
+    const dTipo = _pptTxt(inf.doc_tipo || 'CI');
+    const edad = _pptTxt(c.edad), sexo = _pptSel('sexo') || _pptTxt(c.sexo);
+    const l1 = [ (inf.ci ? dTipo+' '+_pptTxt(inf.ci) : ''), (edad ? edad+' años' : ''), sexo ].filter(Boolean).join('  ·  ');
+    const fEst = inf.fecha_estudio ? _pptTxt(inf.fecha_estudio).split('-').reverse().join('/') : '';
+    const meta = [];
+    if (l1) meta.push(l1);
+    if (fEst) meta.push('Fecha del estudio: ' + fEst);
+    if (_pptTxt(c.indicacion)) meta.push('Indicación: ' + _pptTxt(c.indicacion));
+    if (_pptTxt(c.antecedentes)) meta.push('Antecedentes: ' + _pptTxt(c.antecedentes));
+    s.addText(meta.join('\n'), { x:0.5, y:2.15, w:W-1, h:2.4, fontSize:13, color:PPT_C.txt2,
+      fontFace:PPT_FONT, lineSpacingMultiple:1.4, valign:'top' });
+    conPie(s);
+  }
+
+  // ══ 2 · Mediciones principales ══
+  {
+    const s = nueva();
+    titulo(s, 'Parámetros ecocardiográficos');
+    const F = [];
+    let n = F.length;
+    fila(F,'FEVI', _pptNum('fevi'), ' %');
+    fila(F,'DDVI', _pptNum('ddfvi'), ' mm');
+    fila(F,'SIV',  _pptNum('siv'), ' mm');
+    fila(F,'PP',   _pptNum('ppvi'), ' mm');
+    fila(F,'Masa VI indexada', _pptSpan('devereux-val'));
+    fila(F,'Geometría', _pptSpan('geom-val'));
+    grupo(F,'Ventrículo izquierdo', n);
+    n = F.length;
+    fila(F,'TAPSE', _pptNum('tapse'), ' mm');
+    fila(F,"S' lateral tricuspídeo", _pptNum('s_prime'), ' cm/s');
+    fila(F,'DDVD basal', _pptNum('vd_bas'), ' mm');
+    fila(F,'Área AD', _pptNum('ad_area'), ' cm²');
+    grupo(F,'Ventrículo derecho / aurícula derecha', n);
+    n = F.length;
+    fila(F,'Onda E', _pptNum('onda_e'), ' cm/s');
+    fila(F,'Onda A', _pptNum('onda_a'), ' cm/s');
+    fila(F,'E/A', _pptSpan('ea-val'));
+    fila(F,"e' septal", _pptNum('e_sep'), ' cm/s');
+    fila(F,"e' lateral", _pptNum('e_lat'), ' cm/s');
+    fila(F,"E/e'", _pptSpan('ee-val'));
+    fila(F,'Función diastólica', _pptSpan('dd-interp'));
+    grupo(F,'Doppler mitral / función diastólica', n);
+    n = F.length;
+    fila(F,'Seno de Valsalva', _pptNum('ao_sin'), ' mm');
+    fila(F,'Volumen AI', _pptNum('ai_vol'), ' ml');
+    fila(F,'Vol. AI indexado', _pptSpan('ai-idx'));
+    grupo(F,'Aorta / aurícula izquierda', n);
+    n = F.length;
+    [['im_grado','Insuficiencia mitral'],['em_grado','Estenosis mitral'],
+     ['ia_grado','Insuficiencia aórtica'],['ea_grado','Estenosis aórtica'],
+     ['it_grado','Insuficiencia tricuspídea'],['et_grado','Estenosis tricuspídea']]
+      .forEach(p => fila(F, p[1], _pptSel(p[0])));
+    grupo(F,'Válvulas', n);
+    n = F.length;
+    fila(F,'PSAP estimada', _pptNum('psap_calc'), ' mmHg');
+    fila(F,'PmAD', _pptNum('pmad'), ' mmHg');
+    grupo(F,'Presión pulmonar', n);
+    tabla(s, F, 1.05, H-1.85);
+    conPie(s);
+  }
+
+  // ══ 3 · Contractilidad + strain (sólo con alteración o GLS cargado) ══
+  {
+    const gls = _pptNum('sgl');
+    let hayAlterado = false;
+    try {
+      /* `contrEstado` es un const de nivel superior: vive en el entorno léxico global y NO
+         se cuelga de window, así que `window.contrEstado` era undefined y esto daba SIEMPRE
+         false — un estudio con aquinesia documentada pero sin GLS exportaba el PPT sin la
+         diapositiva de contractilidad. Y el estado son índices de CONTR_MOTILIDAD (0 =
+         normal), nunca los strings 'normal'/'n' que comparaba antes. */
+      const e = (typeof contrEstado !== 'undefined') ? contrEstado : {};
+      hayAlterado = Object.keys(e).some(k => Number(e[k]) > 0);
+    } catch (err) {}
+    if (hayAlterado || gls != null) {
+      const s = nueva();
+      titulo(s, 'Contractilidad segmentaria — 17 segmentos AHA');
+      /* bullseyeDataURL EXIGE getColor: sin el argumento tiraba TypeError en su primera
+         línea útil, el catch se lo tragaba y la diapositiva salía con el 40% izquierdo en
+         blanco y una línea vertical suelta, sin error en consola. Misma llamada que usa el
+         PDF. Y el catch ya no es mudo. */
+      let img = null;
+      try {
+        img = (typeof bullseyeDataURL === 'function')
+          ? bullseyeDataURL(id => (CONTR_MOTILIDAD[(contrEstado[id] || 0)] || CONTR_MOTILIDAD[0]).color)
+          : null;
+      } catch (err) { console.error('[ppt/bullseye]', err); img = null; }
+      // La línea separadora sólo si hay imagen que separar.
+      if (img) {
+        s.addImage({ data:img, x:0.5, y:1.15, w:3.6, h:3.6 });
+        s.addShape(P.ShapeType.line, { x:4.45, y:1.15, w:0, h:3.6, line:{ color:PPT_C.teal, width:1 } });
+      }
+      let y = 1.25;
+      if (gls != null) {
+        s.addText('GLS', { x:4.75, y, w:W-5.25, h:0.3, fontSize:14, color:PPT_C.teal, fontFace:PPT_FONT }); y += 0.32;
+        s.addText(String(gls) + ' %', { x:4.75, y, w:W-5.25, h:0.7, fontSize:36, bold:true, color:'FFFFFF', fontFace:PPT_FONT }); y += 0.72;
+        s.addText('Referencia normal < −18 %', { x:4.75, y, w:W-5.25, h:0.3, fontSize:12, color:PPT_C.txt2, fontFace:PPT_FONT }); y += 0.45;
+      }
+      /* No se informa WMSI: en esta app sólo se calcula dentro de Eco Estrés (ee-wmsi-<fase>)
+         y no existe un WMSI del estudio basal. La fila pedía un id que no existe en ningún
+         lado, así que salía siempre vacía. */
+      /* contr-texto-informe es un <div> con varios <p>: leído con textContent los párrafos
+         salen pegados sin separador, que es el mismo defecto del calc-box. Se unen con \n. */
+      const _resumen = (() => {
+        const d = document.getElementById('contr-texto-informe');
+        if (!d) return '';
+        const ps = [...d.querySelectorAll('p')].map(x => _pptTxt(x.textContent)).filter(Boolean);
+        return ps.length ? ps.join('\n') : _pptTxt(d.textContent);
+      })();
+      const extra = [_pptSpan('sgl-interp'), _resumen].filter(Boolean).join('\n');
+      if (extra) s.addText(extra, { x:4.75, y, w:W-5.25, h:H-y-0.8, fontSize:13, color:PPT_C.txt2, fontFace:PPT_FONT, valign:'top' });
+      conPie(s);
+    }
+  }
+
+  const integrado = k => (typeof amiloIntegrado === 'function') && amiloIntegrado(k);
+
+  // ══ ETE ══
+  {
+    const eteKs = ['etem','wilk','oai','aoete'];
+    const hayEte = eteKs.some(integrado);
+    const chkTec = document.getElementById('ete_tecnica_incluir_chk');
+    const chkMor = document.getElementById('ete_morfo_incluir_chk');
+    const chkShu = document.getElementById('ete_shunt_incluir_chk');
+    const chkTav = document.getElementById('ete_tavi_incluir_chk');
+    const hayShunt = !!(chkShu && chkShu.checked), hayTavi = !!(chkTav && chkTav.checked);
+    if (hayEte || (chkTec && chkTec.checked) || (chkMor && chkMor.checked) || hayShunt || hayTavi) {
+      const s = nueva();
+      titulo(s, 'ETE — Ecocardiograma Transesofágico');
+      const F = [];
+      if (chkTec && chkTec.checked) {
+        const t = (typeof eteTecnicaTexto === 'function') ? eteTecnicaTexto() : '';
+        fila(F,'Técnica y sedación', t);
+      }
+      if (chkMor && chkMor.checked) {
+        fila(F,'Etiología', _pptSel('ete_etiologia'));
+        fila(F,'Carpentier', _pptSel('ete_carpentier'));
+        fila(F,'Mecanismo', _pptSel('ete_mecanismo'));
+      }
+      let n = F.length;
+      fila(F,'Score de Wilkins', _pptSpan('wilkins-total'));
+      fila(F,'Área valvular por planimetría', _pptNum('ete_area_mitral'), ' cm²');
+      grupo(F,'Válvula mitral', n);
+      n = F.length;
+      fila(F,'Trombo en orejuela', _pptSel('oai_trombo'));
+      fila(F,'Velocidad de vaciado', _pptNum('oai_vel_vac'), ' cm/s');
+      grupo(F,'Orejuela izquierda', n);
+      n = F.length;
+      fila(F,'Aterosclerosis aórtica', _pptSel('ao_grado_atero'));
+      fila(F,'Grosor máximo de placa', _pptNum('ao_grosor_placa'), ' mm');
+      grupo(F,'Aorta torácica', n);
+      if (hayShunt) {
+        n = F.length;
+        fila(F,'Tipo de CIA', _pptSel('ete_cia_tipo'));
+        fila(F,'Tamaño máximo CIA', _pptNum('ete_cia_tam_max'), ' mm');
+        fila(F,'Borde mínimo', _pptSpan('ete-cia-borde-min'));
+        fila(F,'Tipo de CIV', _pptSel('ete_civ_tipo'));
+        fila(F,'Tamaño CIV', _pptNum('ete_civ_tam'), ' mm');
+        fila(F,'Qp/Qs', _pptSpan('ete-shunt-qpqs'));
+        fila(F,'DDVI indexado', _pptSpan('ete-shunt-ddvii'));
+        fila(F,'PAPs por IT', _pptSpan('ete-cia-paps-it'));
+        grupo(F,'CIA / CIV', n);
+      }
+      if (hayTavi) {
+        n = F.length;
+        fila(F,'Morfología valvular nativa', _pptSel('ete_tavi_morf'));
+        fila(F,'Diámetro anular', _pptNum('ete_tavi_anillo_diam'), ' mm');
+        fila(F,'Área anular', _pptNum('ete_tavi_anillo_area'), ' cm²');
+        fila(F,'Prótesis', [_pptSel('ete_tavi_pro_tipo'), _pptTxt(c['ete_tavi_pro_marca'])].filter(Boolean).join(' · '));
+        fila(F,'Tamaño de prótesis', _pptNum('ete_tavi_pro_tam'), ' mm');
+        fila(F,'Gradiente medio', _pptNum('ete_tavi_gmedio'), ' mmHg');
+        const r = (typeof eteTaviRPV === 'function') ? eteTaviRPV() : null;
+        if (r) fila(F,'Regurgitación paravalvular', r.sev);
+        const hs = (typeof eteEpcHoras === 'function') ? eteEpcHoras() : [];
+        if (hs.length) fila(F,'Jet paravalvular', 'hora ' + hs.join(', '));
+        grupo(F,'TAVI', n);
+      }
+      tabla(s, F, 1.05, H-1.85);
+      conPie(s);
+    }
+  }
+
+  // ══ Amiloidosis ══
+  if (integrado('ett')) {
+    const s = nueva();
+    titulo(s, 'Evaluación de Amiloidosis Cardíaca — ESC 2021');
+    /* Los cinco criterios del score NO tienen un span por criterio: el módulo los redacta en
+       su propio texto (am-txt-ett), que es lo que imprime el PDF. Se usa esa fuente en vez de
+       una tabla de ids inventados — el primer intento pedía am-rwt/am-ee/am-tapse/am-gls/
+       am-apbs, ninguno de los cuales existe, y la diapositiva salía con título, pie y nada. */
+    const F = [];
+    fila(F,'Puntaje total', _pptSpan('ett-score-num'));
+    fila(F,'Interpretación', _pptSpan('ett-score-interp'));
+    tabla(s, F, 1.05, 0.9);
+    const detalle = _pptTxt((document.getElementById('am-txt-ett') || {}).value || '');
+    if (detalle) s.addText(detalle, { x:0.5, y:2.15, w:W-1, h:H-2.9, fontSize:13,
+      color:PPT_C.txt, fontFace:PPT_FONT, lineSpacingMultiple:1.35, valign:'top' });
+    conPie(s);
+  }
+
+  // ══ Cardio-Oncología ══
+  if (integrado('conco')) {
+    const s = nueva();
+    titulo(s, 'Cardio-Oncología — Seguimiento de Toxicidad ESC 2022');
+    const F = [];
+    const fb=_pptNum('co_fevi_basal'), fa=_pptNum('co_fevi_actual');
+    const gb=_pptNum('co_gls_basal'),  ga=_pptNum('co_gls_actual');
+    fila(F,'FEVI basal', fb, ' %'); fila(F,'FEVI actual', fa, ' %');
+    if (fb!=null && fa!=null) fila(F,'Caída de FEVI', (fb-fa).toFixed(1), ' pp');
+    fila(F,'GLS basal', gb, ' %'); fila(F,'GLS actual', ga, ' %');
+    if (gb!=null && ga!=null && Math.abs(gb)>0)
+      fila(F,'Caída relativa de GLS', (((Math.abs(gb)-Math.abs(ga))/Math.abs(gb))*100).toFixed(1), ' %');
+    fila(F,'Troponina', _pptSel('co_troponi'));
+    fila(F,'Riesgo CV basal estimado', _pptSpan('co-riesgo-resultado'));
+    tabla(s, F, 1.05, H-2.35);
+    const est = _pptSpan('co-toxicidad-resultado');
+    if (est) s.addText(est, { x:0.5, y:H-1.2, w:W-1, h:0.55, fontSize:14, color:PPT_C.txt, fontFace:PPT_FONT, valign:'top' });
+    conPie(s);
+  }
+
+  // ══ Eco pulmonar ══
+  /* Se usa el TEXTO que genera el propio módulo (am-txt-pulm), no una tabla de campos
+     elegidos a mano: los ids del módulo son `pua_*` y una lista escrita acá se desincroniza
+     en cuanto se agrega un campo — de hecho el primer intento leía `pulm_*`, que no existe,
+     y la diapositiva salía vacía. Ese textarea es además lo que imprime el PDF, o sea la
+     misma fuente, y viaja en `campos`. */
+  if (integrado('pulm')) {
+    const s = nueva();
+    titulo(s, 'Ecografía Pulmonar');
+    const t = _pptTxt((document.getElementById('am-txt-pulm') || {}).value || '');
+    if (t) s.addText(t, { x:0.5, y:1.1, w:W-1, h:H-1.85, fontSize:14, color:PPT_C.txt,
+      fontFace:PPT_FONT, lineSpacingMultiple:1.4, valign:'top' });
+    conPie(s);
+  }
+
+  // ══ Hemodinámica ══
+  if (integrado('hemo')) {
+    const s = nueva();
+    titulo(s, 'Perfil Hemodinámico');
+    const F = [];
+    fila(F,'Perfil de Forrester', _pptSpan('hemo-forrester'));
+    fila(F,'Perfil hemodinámico', _pptSpan('hemo-perfil'));
+    fila(F,'Gasto cardíaco', _pptSpan('hemo-gc'));
+    fila(F,'Índice cardíaco', _pptSpan('hemo-ic'));
+    fila(F,'Volumen sistólico', _pptSpan('vs-val'));
+    fila(F,'RVS', _pptSpan('hemo-rvs'));
+    fila(F,'PCP estimada', _pptSpan('hemo-pcp'));
+    fila(F,'GTP', _pptSpan('hemo-gtp'));
+    fila(F,'RVP', _pptSpan('hemo-rvp'));
+    tabla(s, F, 1.05, H-2.15);
+    /* La salvedad va DENTRO del bloque y no en el pie general: PCP, GTP y RVP derivan de una
+       PCP estimada por Doppler, y en una tabla de dos columnas son indistinguibles de una
+       medición. Mismo criterio que el bloque equivalente del PDF. */
+    if (_pptSpan('hemo-pcp')) {
+      s.addText(PCP_DISCLAIMER + ' El GTP y la RVP derivan de ella y arrastran la misma limitación.',
+        { x:0.5, y:H-1.05, w:W-1, h:0.35, fontSize:9, color:PPT_C.txt2, fontFace:PPT_FONT });
+    }
+    conPie(s);
+  }
+
+  // ══ Informe narrativo (se parte si no entra) ══
+  {
+    const texto = _pptTxt(c.informe_texto || '');
+    if (texto) {
+      /* El corte se hace por PÁRRAFOS y con un presupuesto de caracteres, no por altura: la
+         altura real depende de la fuente que tenga PowerPoint, y una diapositiva desbordada
+         recorta el texto en silencio. Es el mismo criterio con el que el PDF pagina. */
+      const LIM = 1500, partes = [];
+      let acc = '';
+      texto.split(/\n+/).forEach(p => {
+        if (acc && (acc.length + p.length + 1) > LIM) { partes.push(acc); acc = p; }
+        else acc = acc ? (acc + '\n' + p) : p;
+      });
+      if (acc) partes.push(acc);
+      /* Sin slice(0,4): ese techo cortaba el informe a ~6000 caracteres sin puntos
+         suspensivos ni aviso, y un ETE completo lo pasa. Si hace falta más de una
+         diapositiva se dice, para que el médico sepa que hay continuación. */
+      if (partes.length > 1 && typeof toast === 'function')
+        toast('El informe se dividió en ' + partes.length + ' diapositivas');
+      partes.forEach((parte, i) => {
+        const s = nueva();
+        titulo(s, i === 0 ? 'Informe' : 'Informe (cont.)');
+        s.addText(parte, { x:0.5, y:1.1, w:W-1, h:H-1.85, fontSize:14, color:PPT_C.txt,
+          fontFace:PPT_FONT, lineSpacingMultiple:1.4, valign:'top' });
+        conPie(s);
+      });
+    }
+  }
+
+  // ══ En Suma ══
+  {
+    const suma = _pptTxt(c.en_suma || '');
+    if (suma) {
+      const s = nueva();
+      s.addText('En Suma', { x:0.5, y:0.35, w:W-1, h:0.6, fontSize:28, bold:true, color:PPT_C.rojo, fontFace:PPT_FONT });
+      s.addShape(P.ShapeType.line, { x:0.5, y:1.0, w:W-1, h:0, line:{ color:PPT_C.rojo, width:2 } });
+      s.addText(suma, { x:0.7, y:1.25, w:W-1.4, h:H-2.45, fontSize:20, color:PPT_C.txt,
+        fontFace:PPT_FONT, valign:'middle', lineSpacingMultiple:1.3 });
+      s.addShape(P.ShapeType.line, { x:0.7, y:H-1.0, w:W-1.4, h:0, line:{ color:PPT_C.rojo, width:1 } });
+      conPie(s);
+    }
+  }
+
+  // ══ Hoja en blanco para el médico (sin pie, por diseño) ══
+  {
+    const s = nueva();
+    s.addText('Notas / Imágenes adicionales', { x:0.5, y:2.4, w:W-1, h:0.6, fontSize:16,
+      color:PPT_C.vacio, align:'center', fontFace:PPT_FONT });
+    conPie(s);   // también acá: una hoja del set sin la salvedad es una hoja que circula sola
+  }
+
+  /* Nombre del archivo saneado: el apellido y el documento vienen del paciente y van a un
+     nombre de archivo. Sin esto, un `/` o un `:` en el nombre produce una descarga con el
+     nombre truncado o un archivo que el sistema rechaza. */
+  const _slug = x => _pptTxt(x).normalize('NFD').replace(/[\u0300-\u036F]/g,'')
+    .replace(/[^A-Za-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,40) || 'SD';
+  /* .trim() ANTES del split: con un espacio inicial en el nombre el token 0 era '' y el
+     archivo salía «EcoSmart_SD_…». Y se agrega el id del estudio: dos estudios del mismo
+     paciente en la misma fecha —basal y control el mismo día, habitual en cardio-onco—
+     producían el mismo nombre y quedaban como «archivo (1).pptx», sin forma de saber cuál
+     era cuál. */
+  const apellido = _slug(String(inf.nombre||'').trim().split(/[ ,]+/)[0]);
+  const nombreArch = 'EcoSmart_' + apellido + '_' + _slug(inf.ci) + '_' +
+    _slug(inf.fecha_estudio || new Date().toISOString().slice(0,10)) +
+    '_' + String(inf.id).slice(-6) + '.pptx';
+
+  P.writeFile({ fileName: nombreArch })
+    .then(() => { if (typeof toast === 'function') toast('✅ PPT generado'); })
+    .catch(e => { console.error('[generarPPT]', e);
+      if (typeof toast === 'function') toast('❌ No se pudo generar el PPT. Verificar conexión a internet.'); });
+}
+window._pptDesdeFormulario = _pptDesdeFormulario;
+
+function pdfDeInformeGuardado(id, accion, etiqueta) {
+  const _lbl = etiqueta || 'PDF';
+  if (_pdfGuardadoEnCurso) { if (typeof toast === 'function') toast('⏳ Esperá a que termine la exportación anterior'); return; }
   _pdfGuardadoEnCurso = true;
-  try { _pdfDeInformeGuardadoArmar(id); }
+  try { _pdfDeInformeGuardadoArmar(id, accion); }
   catch (e) {
     console.error('[pdfDeInformeGuardado]', e);
     // Sólo si no quedó una restauración en vuelo: ésa libera el guard en su propio finally.
     if (!_pdfRestauracionPendiente) _pdfGuardadoEnCurso = false;
-    if (typeof toast === 'function') toast('❌ No se pudo generar el PDF de este estudio');
+    if (typeof toast === 'function') toast('❌ No se pudo generar el ' + _lbl + ' de este estudio');
   }
 }
-function _pdfDeInformeGuardadoArmar(id) {
+function _pdfDeInformeGuardadoArmar(id, accion) {
   const informes = getInformes();
   const inf = informes.find(i => i.id === id);
   /* Salida temprana con aviso: era un `return` pelado, o sea el mismo botón mudo que el
@@ -22191,6 +22663,18 @@ function _pdfDeInformeGuardadoArmar(id) {
   if (typeof calcIA_ESC === 'function') calcIA_ESC();
   if (typeof calcIT_ESC === 'function') calcIT_ESC();
   if (typeof calcContIM === 'function') calcContIM();
+  /* Estos cinco faltaban y son los ÚNICOS que escriben devereux-val/geom-val, ai-idx,
+     vs-val, sgl-interp, todos los hemo-* (calcVI arrastra calcHemo) y los dos calc-box de
+     Cardio-Oncología. Asignar `.value` en el bucle de arriba NO dispara los oninput, así que
+     esos spans se quedaban con el cálculo del paciente que está en pantalla — es el mismo
+     defecto que la nota de arriba dice haber cerrado para Wilkins/Duke/GTP, en los módulos
+     que esta lista no cubría porque el PDF no los leía. El PPT sí los lee. */
+  if (typeof calcVI     === 'function') calcVI();     // arrastra calcHemo()
+  if (typeof calcAI     === 'function') calcAI();
+  if (typeof calcAo     === 'function') calcAo();
+  if (typeof calcSGL    === 'function') calcSGL();
+  if (typeof calcCardioOnco === 'function') calcCardioOnco();
+  ['eteShuntSync','eteTaviSync'].forEach(function(f){ if (typeof window[f] === 'function') { try { window[f](); } catch(e){} } });
 
   // Fallback: estudios históricos (previos al acordeón) con texto libre en indicacion/antecedentes
   // → el PDF lo usa solo si el acordeón quedó vacío
@@ -22200,7 +22684,12 @@ function _pdfDeInformeGuardadoArmar(id) {
   /* La bandera le dice a la firma que esto es una REIMPRESIÓN: manda el médico del estudio,
      no el Principal de hoy. Se apaga en el finally, que cubre también el camino de error. */
   window._pdfReimpresion = true;
-  try { generarPDFReal(); } finally { window._pdfReimpresion = false; }
+  /* El emisor por defecto sigue siendo el PDF; `accion` recibe el informe ya cargado en el
+     formulario, así que puede leer los flags de módulo, el bull's eye y los derivados igual
+     que generarPDFReal. Lo que devuelva se ignora: la restauración del finally NO espera, y
+     un emisor asíncrono tiene que haber leído todo lo que necesita antes de retornar. */
+  try { (typeof accion === 'function' ? accion : generarPDFReal)(inf); }
+  finally { window._pdfReimpresion = false; }
 
   // El finally cubre TODO lo de arriba, no sólo generarPDFReal: si tira el llenado o
   // cualquier recálculo, el formulario ya quedó con los datos del otro estudio y hay
@@ -22248,6 +22737,14 @@ function _pdfDeInformeGuardadoArmar(id) {
     if (typeof cxWilkins === 'function') cxWilkins();
     if (typeof cxDuke === 'function') cxDuke();
     if (typeof cxGTP === 'function') cxGTP();
+    // Simétrico a la lista de carga: sin esto el médico vuelve a su paciente con las
+    // tarjetas de Hemodinámica, Cardio-Oncología y del shunt ETE en «—» o con lo del otro.
+    if (typeof calcVI === 'function') calcVI();
+    if (typeof calcAI === 'function') calcAI();
+    if (typeof calcAo === 'function') calcAo();
+    if (typeof calcSGL === 'function') calcSGL();
+    if (typeof calcCardioOnco === 'function') calcCardioOnco();
+    ['eteShuntSync','eteTaviSync','eteEpcRefrescar'].forEach(function(f){ if (typeof window[f] === 'function') { try { window[f](); } catch(e){} } });
     if (typeof updateHdrExtra === 'function') updateHdrExtra();
    } catch (e) {
     /* La restauración corre en otra tarea: su excepción NO la ve el try/catch del wrapper,
