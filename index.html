@@ -2253,6 +2253,11 @@ window.cerrarSesion = cerrarSesion;
         <textarea id="vm_notas" placeholder="Ej: prolapso P2, mecanismo Carpentier..."></textarea>
       </div>
       <input type="hidden" id="im_grado" value="0">
+      <!-- Espejo persistente de window.esqSevManual. Es un input con id, así que lo guarda y
+           lo restaura la misma maquinaria genérica que el resto del formulario. Sin esto, la
+           marca de «grado fijado a mano» se perdía al guardar: al reabrir el estudio,
+           cualquier recálculo pisaba en silencio una severidad que el médico había puesto. -->
+      <input type="hidden" id="sev_manual" value="">
     </div>
   </div>
   </div>
@@ -7375,7 +7380,15 @@ function eeHasData(){
   const g=id=>{ const el=document.getElementById(id); return el&&el.value&&String(el.value).trim(); };
   if(g('ee-res-global')||g('ee-b-mets')||g('ee-b-fcmax')||g('ee-gls-bas')||g('ee-narrativa')) return true;
   if(['basal','pico','recup'].some(p=>eeBull[p].some(s=>s>0&&s!==4))) return true;
-  if(eeImg.some(s=>s)||eeEcg.length) return true;
+  /* `.some(Boolean)`, NO `.length`. eeEcg arranca en [null,null] y eeEcgEnsure lo mantiene
+     en >=2, así que `eeEcg.length` era verdadero SIEMPRE y esta función devolvía true con
+     todo vacío. Medido: con la bandera ecoestres_incluir_pdf en '1' —que quedó guardada en
+     cualquier navegador que usara la build donde el módulo tenía interfaz— el PDF imprimía
+     una sección «ECO ESTRÉS» con los tres bull's eyes y los 17 segmentos en NORMAL, sobre un
+     estudio donde no se hizo ningún eco estrés. Un informe firmado afirmando motilidad
+     normal en pico de un test que no existió.
+     La interfaz de este módulo fue retirada; el JS queda inerte por si se restaura. */
+  if(eeImg.some(Boolean)||eeEcg.some(Boolean)) return true;
   return false;
 }
 
@@ -10217,6 +10230,16 @@ function showTab(id) {
   if (typeof event !== 'undefined' && event && event.target) event.target.classList.add('active');
   // Abrir automáticamente los acordeones de sección que ya tengan datos cargados
   if (typeof secAutoOpen === 'function') secAutoOpen('tab-' + id);
+  /* El seguimiento de Cardio-Oncología está indexado por paciente, así que hay que
+     repintarlo cada vez que se entra: dibujado una sola vez al arrancar, al cambiar de
+     paciente seguía mostrando los controles del anterior. */
+  if (id === 'cardioOnco' && typeof renderSeguimientoLista === 'function') {
+    /* Antes de pintar: si los controles se cargaron con el nombre y después se completó la
+       cédula, se reubican bajo la clave del documento. Si no, quedarían en una clave que la
+       interfaz ya no consulta y el seguimiento parecería vacío. */
+    if (typeof _coMigrarNombreACedula === 'function') { try { _coMigrarNombreACedula(); } catch (e) {} }
+    renderSeguimientoLista();
+  }
 }
 
 // ══ HELPERS ══
@@ -12143,6 +12166,10 @@ function sugerirSeveridadEM(avm) {
   const sel = document.getElementById('em_grado');
   const badgeEl = document.getElementById('em-thp-badge');
   if (!sel) return;
+  /* Grado fijado a mano —o traído por una importación— gana sobre el autocálculo, igual
+     que en calcIM_ESC/calcIA_ESC/calcIT_ESC. Sin esto, tocar cualquier campo del Doppler
+     aórtico cambiaba el <select> de «Severa» a lo que diera la Vmax, sin avisar. */
+  if (window.esqSevManual && window.esqSevManual.em) return;
   let opcion;
   if (avm > 2.5) opcion = 'leve';
   else if (avm > 1.5) opcion = 'moderada';
@@ -12560,6 +12587,10 @@ function clasificarEA_Vmax() {
   const sel = document.getElementById('ea_grado');
   const badgeEl = document.getElementById('ea-ava-badge');
   if (!sel || vmax === null) return;
+  /* Grado fijado a mano —o traído por una importación— gana sobre el autocálculo, igual
+     que en calcIM_ESC/calcIA_ESC/calcIT_ESC. Sin esto, tocar cualquier campo del Doppler
+     aórtico cambiaba el <select> de «Severa» a lo que diera la Vmax, sin avisar. */
+  if (window.esqSevManual && window.esqSevManual.ea) return;
 
   // Grado sugerido por Vmax (ESC 2021) — usa los value del <select> (sin/leve/moderada/severa)
   let velVal;
@@ -12608,6 +12639,10 @@ function sugerirSeveridadEA(ava) {
   const sel = document.getElementById('ea_grado');
   const badgeEl = document.getElementById('ea-ava-badge');
   if (!sel) return;
+  /* Grado fijado a mano —o traído por una importación— gana sobre el autocálculo, igual
+     que en calcIM_ESC/calcIA_ESC/calcIT_ESC. Sin esto, tocar cualquier campo del Doppler
+     aórtico cambiaba el <select> de «Severa» a lo que diera la Vmax, sin avisar. */
+  if (window.esqSevManual && window.esqSevManual.ea) return;
   // Usa los value del <select> (sin/leve/moderada/severa), no el texto de la opción.
   let val;
   if (ava >= 1.5) val = 'leve';
@@ -12995,7 +13030,67 @@ function actualizarBtnComparativo() {
 }
 
 // ══ CARDIO-ONCOLOGIA ══
-var coSeguimiento = JSON.parse(localStorage.getItem('co_seguimiento') || '[]');
+/* Seguimiento longitudinal de Cardio-Oncología, indexado POR PACIENTE.
+   Antes era una sola lista plana en localStorage, sin identificador de paciente y sin
+   limpiarse al empezar un estudio nuevo: los controles de todos los pacientes oncológicos
+   se acumulaban en la misma tabla y en el mismo gráfico, y nada lo indicaba en pantalla.
+   La clave es el PACIENTE, no el estudio: un seguimiento longitudinal tiene que sobrevivir
+   entre estudios del mismo paciente, que es justamente para lo que sirve. Por eso no reusa
+   _dupKeys(), que lleva la fecha del estudio adentro. */
+function _coNombreKey() {
+  /* Se normalizan los acentos, igual que el resto de las comparaciones por nombre de la app:
+     «Juan Pérez» y «Juan Perez» son el mismo paciente. */
+  const nom = String((document.getElementById('nombre') || {}).value || '')
+    .trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036F]/g, '').replace(/\s+/g, ' ');
+  return nom ? 'N:' + nom : null;
+}
+function _coPacienteKey() {
+  const ci = String((document.getElementById('ci') || {}).value || '').trim().replace(/[.\-\s]/g, '');
+  if (ci) return 'D:' + ci.toLowerCase();
+  return _coNombreKey();
+}
+/* El flujo real es: se escribe el nombre, se cargan controles, y DESPUÉS se completa la
+   cédula. En ese momento la clave pasa de `N:nombre` a `D:cedula` y los controles quedaban
+   en una clave que la interfaz ya no consulta: la tabla decía «Sin registros» y el
+   seguimiento —lo único que aporta este módulo— desaparecía sin aviso. Se migran solos. */
+function _coMigrarNombreACedula() {
+  const ciRaw = String((document.getElementById('ci') || {}).value || '').trim().replace(/[.\-\s]/g, '');
+  const kCi = ciRaw ? 'D:' + ciRaw.toLowerCase() : null;
+  const kNom = _coNombreKey();
+  if (!kCi || !kNom) return;
+  const todo = _coLeerTodo();
+  if (!Array.isArray(todo[kNom]) || !todo[kNom].length) return;
+  todo[kCi] = (Array.isArray(todo[kCi]) ? todo[kCi] : []).concat(todo[kNom]);
+  todo[kCi].sort(function (a, b) { return String(a.fecha).localeCompare(String(b.fecha)); });
+  delete todo[kNom];
+  _coGuardarTodo(todo);
+}
+function _coLeerTodo() {
+  let raw;
+  try { raw = JSON.parse(localStorage.getItem('co_seguimiento') || '{}'); }
+  catch (e) { return {}; }
+  /* Migración del formato viejo (array plano). NO se atribuyen a nadie: pueden ser de
+     varios pacientes mezclados y adjudicarlos al que esté abierto sería inventar datos.
+     Van a una bolsa aparte que la interfaz muestra como «sin paciente asignado». */
+  if (Array.isArray(raw)) {
+    const mig = raw.length ? { '__sin_paciente__': raw } : {};
+    try { localStorage.setItem('co_seguimiento', JSON.stringify(mig)); } catch (e) {}
+    return mig;
+  }
+  return (raw && typeof raw === 'object') ? raw : {};
+}
+function _coGuardarTodo(todo) {
+  /* Con la cuota llena, un setItem pelado tiraba y abortaba agregarPuntoSeguimiento ANTES de
+     limpiar los campos y del toast: el control no se guardaba, no había error, y los campos
+     quedaban llenos como si nada. Se reintentaba y se volvía a perder. */
+  try { localStorage.setItem('co_seguimiento', JSON.stringify(todo)); return true; }
+  catch (e) { if (typeof toast === 'function') toast('⚠️ No se pudo guardar el seguimiento: almacenamiento lleno'); return false; }
+}
+function _coPuntos() {
+  const k = _coPacienteKey(); if (!k) return [];
+  const v = _coLeerTodo()[k];
+  return Array.isArray(v) ? v : [];   // un valor no-array en storage no debe tirar
+}
 
 function calcCardioOnco() {
   var feviBasal = v('co_fevi_basal');
@@ -13032,11 +13127,49 @@ function calcCardioOnco() {
   var toxCls = 'green';
   var toxTxt = 'Sin toxicidad detectada';
 
+  /* Graduación de CTRCD según ESC 2022, la misma tabla que la app muestra en Referencias:
+     severa FEVI <40 · moderada FEVI 40-49 con caída >=10 pp · leve FEVI >=50 con caída >=10 pp.
+     Antes decía «severa» con cualquier FEVI < 50, sin mirar la caída: una FEVI de 45 salía
+     severa cuando la guía y la propia tabla de la app dicen moderada, y una FEVI estable de
+     48 de toda la vida quedaba rotulada severa sin haberse movido. El grado de CTRCD es lo
+     que decide suspender o continuar el tratamiento oncológico. */
+  /* Sin FEVI basal NO se puede establecer CTRCD, que se define por el DESCENSO — pero
+     tampoco se puede decir que no hay toxicidad. Antes todo el bloque colgaba de
+     `if (feviBasal && feviActual)`, así que una FEVI actual de 28% sin basal cargado dejaba
+     el estado en verde «Sin toxicidad detectada», y eso salía al PDF firmado. Una afirmación
+     tranquilizadora y falsa es lo peor que puede tener un informe. */
+  if (!feviBasal && feviActual) {
+    if (feviActual < 50) {
+      alertas.push('FEVI ' + feviActual + '% — sin FEVI basal cargada no se puede establecer CTRCD, que se define por el descenso. Valorar en contexto y recuperar el estudio basal.');
+      toxCls = feviActual < 40 ? 'red' : 'orange';
+    }
+  }
   if (feviBasal && feviActual) {
     var caida = feviBasal - feviActual;
-    if (feviActual < 50) { alertas.push('FEVI < 50% — cardiotoxicidad severa'); toxCls = 'red'; }
-    else if (caida >= 10) { alertas.push('Caida FEVI >= 10pp — cardiotoxicidad significativa'); toxCls = 'red'; }
-    else if (caida >= 5) { alertas.push('Caida FEVI 5-10pp — vigilancia estrecha'); if (toxCls !== 'red') toxCls = 'orange'; }
+    /* La rama de <40 exige descenso, igual que las otras dos. Sin eso, una miocardiopatía
+       previa con FEVI 35 estable que arranca quimioterapia salía rotulada «cardiotoxicidad
+       SEVERA» sin haberse movido — el mismo defecto que esta función vino a corregir, corrido
+       de 50 a 40. Y se imprime el valor, que la rama vieja omitía. */
+    if (feviActual < 40 && caida >= 10) {
+      alertas.push('FEVI ' + feviActual + '% con caida de ' + caida.toFixed(1) + ' pp — cardiotoxicidad SEVERA (ESC 2022)'); toxCls = 'red';
+    } else if (feviActual < 40) {
+      alertas.push('FEVI ' + feviActual + '% (por debajo de 40) sin descenso significativo respecto del basal — no cumple criterio de CTRCD por descenso; valorar en contexto');
+      if (toxCls !== 'red') toxCls = 'orange';
+    } else if (feviActual < 50 && caida >= 10) {
+      alertas.push('FEVI ' + feviActual + '% con caida de ' + caida.toFixed(1) + ' pp — cardiotoxicidad MODERADA (ESC 2022)');
+      if (toxCls !== 'red') toxCls = 'orange';   // la tabla de Referencias usa naranja para moderada
+    } else if (feviActual < 50) {
+      /* Por debajo de 50 pero sin caída documentada respecto del basal: no es un grado de
+         CTRCD, que se define por el DESCENSO. Se informa el hallazgo sin rotularlo. */
+      alertas.push('FEVI ' + feviActual + '% (por debajo de 50) sin caida significativa respecto del basal — no cumple criterio de CTRCD por descenso; valorar en contexto');
+      if (toxCls !== 'red') toxCls = 'orange';
+    } else if (caida >= 10) {
+      alertas.push('Caida FEVI ' + caida.toFixed(1) + ' pp con FEVI >= 50% — cardiotoxicidad LEVE si hay sintomas o biomarcadores elevados (ESC 2022)');
+      if (toxCls !== 'red') toxCls = 'orange';
+    } else if (caida >= 5) {
+      alertas.push('Caida FEVI ' + caida.toFixed(1) + ' pp — por debajo del umbral de CTRCD; vigilancia estrecha');
+      if (toxCls !== 'red') toxCls = 'orange';
+    }
   }
 
   if (glsBasal && glsActual) {
@@ -13064,9 +13197,12 @@ function agregarPuntoSeguimiento() {
   var gls = v('co_seg_gls');
   var nota = document.getElementById('co_seg_nota')?.value || '';
   if (!fecha) { toast('Ingresa la fecha del control'); return; }
-  coSeguimiento.push({ fecha, fevi, gls, nota });
-  coSeguimiento.sort(function(a,b){ return a.fecha.localeCompare(b.fecha); });
-  localStorage.setItem('co_seguimiento', JSON.stringify(coSeguimiento));
+  const _k = _coPacienteKey();
+  if (!_k) { toast('⚠️ Cargá el nombre o el documento del paciente antes de agregar un control'); return; }
+  const _todo = _coLeerTodo();
+  _todo[_k] = (_todo[_k] || []).concat([{ fecha, fevi, gls, nota }]);
+  _todo[_k].sort(function(a,b){ return a.fecha.localeCompare(b.fecha); });
+  _coGuardarTodo(_todo);
   document.getElementById('co_seg_fecha').value = '';
   document.getElementById('co_seg_fevi').value = '';
   document.getElementById('co_seg_gls').value = '';
@@ -13078,15 +13214,28 @@ function agregarPuntoSeguimiento() {
 function renderSeguimientoLista() {
   var lista = document.getElementById('co-seguimiento-lista');
   if (!lista) return;
-  if (coSeguimiento.length === 0) { lista.innerHTML = '<div style="font-size:12px;color:var(--text2);padding:8px;">Sin registros de seguimiento aun.</div>'; return; }
-  var html = '<table style="width:100%;border-collapse:collapse;font-size:12px;">';
+  var _k = _coPacienteKey();
+  var _todo = _coLeerTodo();
+  var coSeguimiento = _k ? (_todo[_k] || []) : [];
+  var _huerf = (_todo['__sin_paciente__'] || []).length;
+  /* Aviso de los registros del formato viejo: existen, no se borran, pero no se sabe de
+     quién son. Se ofrece adoptarlos explícitamente o descartarlos, nunca en silencio. */
+  var _avisoH = _huerf ? '<div style="font-size:11px;color:var(--orange);background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;padding:7px 9px;margin-bottom:8px;line-height:1.5;">'
+      + '⚠️ Hay ' + _huerf + ' control' + (_huerf===1?'':'es') + ' guardado' + (_huerf===1?'':'s') + ' antes de que el seguimiento se separara por paciente, así que no se sabe a quién pertenecen. '
+      + (_k ? '<button class="btn" style="padding:2px 8px;font-size:10px;margin-left:4px;" onclick="coAdoptarHuerfanos()">Son de este paciente</button>' : 'Abrí un paciente para poder asignarlos. ')
+      + '<button class="btn btn-danger" style="padding:2px 8px;font-size:10px;margin-left:4px;" onclick="coDescartarHuerfanos()">Descartar</button></div>' : '';
+  if (!_k) { lista.innerHTML = _avisoH + '<div style="font-size:12px;color:var(--text2);padding:8px;">Cargá el nombre o el documento del paciente para ver su seguimiento.</div>'; return; }
+  if (coSeguimiento.length === 0) { lista.innerHTML = _avisoH + '<div style="font-size:12px;color:var(--text2);padding:8px;">Sin registros de seguimiento aun para este paciente.</div>'; return; }
+  var _quien = String((document.getElementById('nombre')||{}).value || '').trim();
+  var html = _avisoH + '<div style="font-size:11px;color:var(--text2);margin-bottom:6px;">Seguimiento de <b>' + escHtml(_quien || 'este paciente') + '</b> — ' + coSeguimiento.length + ' control' + (coSeguimiento.length===1?'':'es') + '.</div>';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:12px;">';
   html += '<tr style="background:var(--section-head);"><th style="padding:5px 8px;text-align:left;color:var(--accent2);">Fecha</th><th style="padding:5px 8px;text-align:center;color:var(--accent2);">FEVI%</th><th style="padding:5px 8px;text-align:center;color:var(--accent2);">GLS%</th><th style="padding:5px 8px;text-align:left;color:var(--accent2);">Nota</th><th style="padding:5px 8px;"></th></tr>';
   coSeguimiento.forEach(function(p, i) {
     html += '<tr style="border-bottom:1px solid var(--border);' + (i%2===1?'background:var(--bg3);':'') + '">';
     html += '<td style="padding:5px 8px;">' + p.fecha + '</td>';
     html += '<td style="padding:5px 8px;text-align:center;font-weight:700;color:' + (p.fevi && p.fevi < 50 ? 'var(--red)' : p.fevi && p.fevi < 54 ? 'var(--orange)' : 'var(--green)') + ';">' + (p.fevi !== null ? p.fevi + '%' : '—') + '</td>';
     html += '<td style="padding:5px 8px;text-align:center;">' + (p.gls !== null ? p.gls + '%' : '—') + '</td>';
-    html += '<td style="padding:5px 8px;">' + (p.nota || '—') + '</td>';
+    html += '<td style="padding:5px 8px;">' + escHtml(p.nota || '—') + '</td>';
     html += '<td style="padding:5px 8px;"><button class="btn btn-danger" style="padding:2px 8px;font-size:10px;" onclick="eliminarPuntoSeg(' + i + ')">✕</button></td>';
     html += '</tr>';
   });
@@ -13095,12 +13244,40 @@ function renderSeguimientoLista() {
 }
 
 function eliminarPuntoSeg(idx) {
-  coSeguimiento.splice(idx, 1);
-  localStorage.setItem('co_seguimiento', JSON.stringify(coSeguimiento));
+  const k = _coPacienteKey(); if (!k) return;
+  const todo = _coLeerTodo();
+  if (!todo[k]) return;
+  todo[k].splice(idx, 1);
+  if (!todo[k].length) delete todo[k];
+  _coGuardarTodo(todo);
   renderSeguimientoLista();
+  if (typeof renderGraficoSeguimiento === 'function') renderGraficoSeguimiento();
 }
+/* Los registros huérfanos del formato viejo: adoptarlos o descartarlos, siempre a pedido. */
+function coAdoptarHuerfanos() {
+  const k = _coPacienteKey(); if (!k) return;
+  const todo = _coLeerTodo(); const h = todo['__sin_paciente__'] || [];
+  if (!h.length) return;
+  if (!confirm('¿Asignar ' + h.length + ' control(es) sin paciente a este paciente? Si eran de otro, van a quedar mal atribuidos.')) return;
+  todo[k] = (todo[k] || []).concat(h);
+  todo[k].sort(function(a,b){ return String(a.fecha).localeCompare(String(b.fecha)); });
+  delete todo['__sin_paciente__'];
+  _coGuardarTodo(todo);
+  renderSeguimientoLista();
+  if (typeof renderGraficoSeguimiento === 'function') renderGraficoSeguimiento();
+}
+function coDescartarHuerfanos() {
+  const todo = _coLeerTodo(); const h = todo['__sin_paciente__'] || [];
+  if (!h.length) return;
+  if (!confirm('¿Borrar ' + h.length + ' control(es) sin paciente asignado? No se puede deshacer.')) return;
+  delete todo['__sin_paciente__'];
+  _coGuardarTodo(todo);
+  renderSeguimientoLista();
+  if (typeof renderGraficoSeguimiento === 'function') renderGraficoSeguimiento();
+}
+window.coAdoptarHuerfanos = coAdoptarHuerfanos; window.coDescartarHuerfanos = coDescartarHuerfanos;
 
-renderSeguimientoLista();
+try { renderSeguimientoLista(); } catch (e) { /* no puede tumbar el resto del script */ }
 
 // ══ CONTINUIDAD IM ══
 function calcContIM() {
@@ -13577,16 +13754,17 @@ function generarInforme(opts) {
     // porque más abajo ya se resume el grado de HTP a partir de ese valor.
     if (tapBajo && !psap) suma.push('Elementos indirectos de hipertensión pulmonar (TAP < 105 ms), sin PSAP estimable.');
     // HTP (interpretación del PSAP) — en la misma oración, sin repetir el valor de PSAP (ya expresado arriba)
-    if (psap) {
-      const psapN = PF(psap);
-      let htpGr = null;
-      if (psapN > 70) htpGr = 'severa';
-      else if (psapN > 50) htpGr = 'moderada';
-      else if (psapN > 35) htpGr = 'leve';
-      if (htpGr) {
-        tricLine += ` Hipertensión pulmonar ${htpGr}.`;
-        suma.push(`HTP ${htpGr} (PSAP ${psap} mmHg).`);
-      }
+    /* NO se gradúa la HTP por la PSAP estimada, y es deliberado: la hipertensión pulmonar
+       es un diagnóstico hemodinámico que se establece por cateterismo derecho. Es la misma
+       decisión que ya había tomado calcPSAP() —que por eso muestra el valor sin clasificarlo—
+       pero el informe la contradecía: la pantalla decía «44 mmHg» y el PDF firmado decía
+       «Hipertensión pulmonar leve», con una cascada >70/>50/>35 que además no coincidía con
+       los umbrales de la tarjeta de Referencias de la propia app (normal <=40).
+       La probabilidad ecocardiográfica se estima en el módulo ESC/ERS 2022 de Hemodinámica,
+       que cruza la velocidad de IT con los signos A, B y C, y ése sí entra al informe. */
+    if (psap && PF(psap) > 35) {
+      tricLine += ' Ver estimación de probabilidad ecocardiográfica de hipertensión pulmonar (ESC/ERS 2022);'
+        + ' la PSAP estimada por ecocardiografía no clasifica la hipertensión pulmonar por sí sola.';
     }
     inf.push(tricLine);
   }
@@ -13639,6 +13817,34 @@ function generarInforme(opts) {
         + (vx.evaluados < 3 ? ` Se evaluaron ${vx.evaluados} de los 3 vasos del protocolo.` : ''));
       if (vx.score >= 2) {
         suma.push(`Congestión venosa ${vx.score === 2 ? 'moderada' : 'severa'} — VEXUS ${vx.score}.`);
+      }
+      /* CONFUSORES. El aviso vivía sólo en la tarjeta de pantalla, así que el PDF firmado
+         decía «considerar descongestión activa — diuréticos o ultrafiltración» sin ninguna
+         salvedad. Los patrones venosos se alteran SIN congestión, y el que lee el informe no
+         tiene la pantalla delante. Va sólo con score >= 1: los confusores producen falsos
+         POSITIVOS, así que sobre un VEXUS 0 no aportan nada. */
+      if (vx.score >= 1) {
+        const sev = vx.severos || [];
+        const conf = [];
+        /* Primero lo que la app puede COMPROBAR en este paciente, no la advertencia
+           genérica: si hay IT moderada-severa o severa cargada y la suprahepática es el
+           vaso severo, ese patrón puede ser de la insuficiencia y no de congestión. Es el
+           mismo criterio que las líneas «Revisar»: cruzar lo cargado en dos pestañas. */
+        if (itG >= 3 && sev.indexOf('suprahepática') >= 0) {
+          conf.push(`este paciente tiene insuficiencia tricuspídea ${imTxt[itG]} registrada, `
+            + 'que por sí sola produce reverso sistólico suprahepático con presiones de llenado '
+            + 'bajas: el patrón de la vena suprahepática puede no reflejar congestión');
+        }
+        if (sev.indexOf('porta') >= 0) {
+          conf.push('la pulsatilidad portal deja de ser fiable en cirrosis o hipertensión portal, '
+            + 'y está aumentada en personas delgadas sanas');
+        }
+        if (conf.length) {
+          inf.push('Salvedad sobre el VEXUS: ' + conf.join('; ') + '.');
+        }
+        inf.push('El grado VEXUS debe integrarse con la clínica. Los patrones venosos también se '
+          + 'alteran, sin que haya congestión, en fibrilación auricular y en ventilación mecánica. '
+          + 'Graduación de Beaubien-Souligny et al., Ultrasound J 2020;12(1):16.');
       }
     }
   }
@@ -13919,6 +14125,7 @@ function limpiarCampos() {
   valvSevConfirmada = false;
   // Nuevo estudio: resetear los flags de severidad fijada manualmente (las pills vuelven a autocalcularse)
   window.esqSevManual = {};
+  if (typeof _sevManualSync === 'function') _sevManualSync();
   if (window.esqPills) try { esqPills.refresh(); } catch(e) {}
   // Inputs (incluye readonly calculados)
   document.querySelectorAll('input[type=text], input[type=number]').forEach(el => { el.value = ''; });
@@ -13956,9 +14163,24 @@ function limpiarCampos() {
   if (typeof contrReset === 'function') contrReset();
   if (typeof sglReset === 'function') sglReset();
   if (typeof eeResetAll === 'function') eeResetAll();
-  // Reset toggles de PDF (bull's eye contractilidad y strain)
-  localStorage.removeItem('contractilidad_incluir_pdf');
-  localStorage.removeItem('sgl_incluir_pdf');
+  /* Segmentos del ETE. Vivían en localStorage GLOBAL (`ete_seg_A1`…`ete_seg_P3`) y se
+     repintaban en cada carga de página, así que un flail de P2 marcado en un paciente
+     aparecía en el diagrama de todos los siguientes —y en su PDF, bajo «VÁLVULA MITRAL —
+     VISTA QUIRÚRGICA»—. Medido: tras «Nuevo Estudio» la pantalla seguía diciendo
+     «🔴 Hallazgos: P2: Flail». La función ya existía y hacía lo correcto; no la llamaba nadie
+     salvo un botón manual. */
+  if (typeof eteLimpiarSegmentos === 'function') eteLimpiarSegmentos();
+  /* La tabla de Cardio-Oncología está indexada por paciente pero no se repinta sola: con
+     «Nuevo Estudio» estando en esa pestaña, seguía mostrando «Seguimiento de <paciente
+     anterior> — 3 controles» sobre un formulario ya vacío. */
+  if (typeof renderSeguimientoLista === 'function') { try { renderSeguimientoLista(); } catch (e) {} }
+  /* Se limpian SÓLO los toggles sin guarda de contenido: los que imprimen algo aunque no
+     haya datos de este estudio. Los demás (contractilidad, SGL, Wilkins, GTP, Duke, eco
+     estrés) son una PREFERENCIA de formato del médico —se encienden con un botón que promete
+     persistencia— y ya se auto-limitan porque su bloque del PDF comprueba que haya datos.
+     Borrarlos todos obligaba a reactivar el bull's eye en cada paciente, y olvidarse
+     significaba un PDF sin él y sin ningún aviso. */
+  ['mitral_qx_incluir_pdf','ete_tecnica_incluir'].forEach(k => localStorage.removeItem(k));
   _pdfToggleBtnState('contr-pdf-toggle', false);
   _pdfToggleBtnState('sgl-pdf-toggle', false);
   try { localStorage.removeItem('ecosmart_autosave'); } catch(e) {}
@@ -15818,6 +16040,7 @@ window.valvSev = (function(){
     if (!el) return;
     window.esqSevManual = window.esqSevManual || {};
     window.esqSevManual[campo.replace('_grado','')] = true;   // manual gana sobre el autocálculo
+    if (typeof _sevManualSync === 'function') _sevManualSync();
     if (tipo === 'insuf') {
       // IM e IAo pasan por su selector "severidad confirmada", que sincroniza el hidden.
       const fin = g(campo.replace('_grado','_sev_final'));
@@ -15848,6 +16071,7 @@ window.valvSev = (function(){
       el.dispatchEvent(new Event('input',{bubbles:true}));
     }
     if (window.esqSevManual) delete window.esqSevManual[campo.replace('_grado','')];
+    if (typeof _sevManualSync === 'function') _sevManualSync();   // simétrico con aplicar()
     refrescar(tipo, valv);
   }
 
@@ -17044,7 +17268,11 @@ function editarInforme(id) {
     // Cargar un estudio inicia una sesión nueva: resetear flags de severidad manual (las pills
     // se pre-pueblan con lo cargado y vuelven a poder autocalcularse si se editan los datos Doppler)
     valvSevConfirmada = false;   // el estudio cargado vuelve a pedir confirmación de severidades
-    window.esqSevManual = {};
+    /* Se RESTAURA desde el estudio, no se borra. Borrarla dejaba que el primer recálculo
+       pisara una severidad que el médico había fijado a mano (o que vino de una importación),
+       y el informe salía diciendo «sin insuficiencia» sobre una válvula severa. */
+    if (typeof _sevManualRestaurar === 'function') _sevManualRestaurar();
+    else window.esqSevManual = {};
     if (window.esqPills) try { esqPills.refresh(); } catch(e) {}
     // Recalcular derivados
     if (typeof calcVI === 'function') calcVI();
@@ -17253,6 +17481,10 @@ window._accTexto = _accTexto;
 // onDone(ok) es opcional: hace falta porque el guardado puede quedar en espera de la card
 // de severidades y entonces el `return` ya no refleja el resultado (ver gate más abajo).
 function guardarInforme(onDone) {
+  /* El espejo se sincroniza justo antes de capturar el formulario: la marca de severidad
+     fijada a mano vive en window y viaja con el estudio por el input oculto `sev_manual`.
+     Si algún camino la modificó sin sincronizar, acá se pone al día. */
+  if (typeof _sevManualSync === 'function') _sevManualSync();
   const nombre = (document.getElementById('nombre')?.value || '').trim();
   const ci     = (document.getElementById('ci')?.value || '').trim();
   const fecha  = document.getElementById('fecha')?.value || '';
@@ -19910,6 +20142,13 @@ function pdfDeInformeGuardado(id) {
   if (typeof amiloBuildCard === 'function') amiloBuildCard();
   const amiloBackup = (typeof amiloSnapshot === 'function') ? amiloSnapshot() : null;
 
+  /* La marca de severidad fijada a mano se respalda y se restaura igual que el resto: sin
+     esto, reimprimir un guardado corría calcIM_ESC/calcIA_ESC/calcIT_ESC con el esqSevManual
+     de la SESIÓN (vacío tras un «Nuevo Estudio», o el del otro paciente abierto) y pisaba el
+     grado del estudio. Con sólo la onda E cargada —que es columna del Excel— un estudio
+     documentado como IM severa salía del PDF firmado como IM leve, sin que la pantalla
+     cambiara nada porque el finally restaura el formulario. */
+  const sevManualBackup = JSON.stringify(window.esqSevManual || {});
   /* Las imágenes NO se persisten con el estudio (viven sólo en la sesión), pero
      generarPDFReal() lee el imgSlots VIVO. Sin vaciarlo, reimprimir un guardado mientras
      hay otro paciente abierto producía un informe firmado con las IMÁGENES DE OTRO
@@ -19997,6 +20236,8 @@ function pdfDeInformeGuardado(id) {
    // igual. Si no, quedaría suspendido en silencio por el resto de la sesión y el
    // médico perdería el borrador de todo lo que cargue después.
    try {
+    try { window.esqSevManual = JSON.parse(sevManualBackup) || {}; } catch (e) { window.esqSevManual = {}; }
+    if (typeof _sevManualSync === 'function') _sevManualSync();
     if (imgBackup) { imgSlots.length = 0; imgBackup.forEach(x => imgSlots.push(x)); if (typeof imgRender === 'function') imgRender(); }
     document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
       if (backup[el.id] !== undefined) el.value = backup[el.id];
@@ -20696,6 +20937,12 @@ _pdfToggleBtnState('sgl-pdf-toggle', localStorage.getItem('sgl_incluir_pdf')==='
 _pdfToggleBtnState('cx-wilkins-pdf', localStorage.getItem('wilkins_incluir_pdf')==='1');
 _pdfToggleBtnState('cx-duke-pdf', localStorage.getItem('duke_incluir_pdf')==='1');
 _pdfToggleBtnState('cx-gtp-pdf', localStorage.getItem('gtp_incluir_pdf')==='1');
+/* El botón que encendía esta bandera ya no existe (la pestaña de Eco Estrés se retiró), así
+   que quien la tenga en '1' de una build anterior no tiene forma de apagarla. Se borra al
+   arrancar: sin interfaz que la encienda, una bandera encendida sólo puede hacer daño. */
+if (localStorage.getItem('ecoestres_incluir_pdf') !== null && !document.getElementById('ee-incluir-pdf')) {
+  localStorage.removeItem('ecoestres_incluir_pdf');
+}
 _pdfToggleBtnState('ee-incluir-pdf', localStorage.getItem('ecoestres_incluir_pdf')==='1');
 _pdfToggleBtnState('ete-qx-pdf', localStorage.getItem('mitral_qx_incluir_pdf')==='1');
 if (typeof cxWilkins === 'function') cxWilkins();
@@ -21597,6 +21844,83 @@ function labExportarXLSX() {
    Cada destino es el PRIMER id que lee su accesor (`fevi`, no `fevi_simpson`), que es
    además el del formulario: escribir en el segundo dejaría el valor invisible para la
    app si el estudio ya traía el primero. */
+/* Campos que la app CALCULA y que por lo tanto no se importan, sólo se exportan.
+   Escribirles un número lo dejaba a la vista un instante y desaparecía en el siguiente
+   render, cuando la app recalcula: el médico corregía una PSAP en la planilla, la
+   importaba, la veía en pantalla y al guardar volvía el valor viejo, sin ningún aviso.
+   Es la misma regla que ya aplica el importador DICOM y por el mismo motivo; ahí está
+   documentada en el bloque de cabecera de ese módulo.
+   La detección es en RUNTIME por el atributo readonly, no una lista fija: así un campo
+   que se vuelva calculado mañana queda protegido solo. La lista de abajo es el piso
+   mínimo, por si el input todavía no existe en el DOM al momento de importar.
+
+   LOS GRADOS VALVULARES NO VAN ACÁ, y el motivo importa. Son calculados —los reescriben
+   calcIM_ESC/calcIA_ESC/calcIT_ESC/calcEM/calcAo— pero también son EL HALLAZGO: bloquearlos
+   se probó y era peor que el defecto que venía a corregir. Medido: un Excel con «IM grado =
+   Severa» y «EA grado = Severa» quedaba guardado sin ningún grado, y al abrirlo el informe
+   firmado decía «Válvula mitral de morfología normal, sin estenosis ni insuficiencia» y
+   «Estudio sin alteraciones estructurales ni funcionales significativas».
+   La solución correcta no es no importarlos: es importarlos y marcarlos como fijados a mano
+   —el mecanismo esqSevManual que ya usa la pastilla de severidad—, para que el autocálculo
+   no los pise. Ver _sevManualEnCampos(). */
+const LAB_XLS_SOLO_EXPORT = new Set(['pmad', 'avm_thp', 'gmax_calc', 'psap_calc', 'pap_med']);
+
+/* ── Severidad valvular fijada a mano ──
+   `window.esqSevManual` marca qué grados NO debe pisar el autocálculo. Vivía sólo en memoria,
+   así que se perdía al guardar: el médico fijaba «IM severa», guardaba, reabría, y el primer
+   recálculo la degradaba sin decir nada. Ahora se espeja en el input oculto `sev_manual`, que
+   viaja con el estudio como cualquier otro campo. */
+function _sevManualSync() {
+  const el = document.getElementById('sev_manual');
+  if (el) el.value = JSON.stringify(window.esqSevManual || {});
+}
+function _sevManualRestaurar() {
+  const el = document.getElementById('sev_manual');
+  let v = {};
+  try { v = JSON.parse((el && el.value) || '{}') || {}; } catch (e) { v = {}; }
+  window.esqSevManual = (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
+}
+/* Marca como manuales los grados que traiga una importación. Un grado importado es un
+   hallazgo que alguien escribió, no una estimación: tiene la misma jerarquía que el que se
+   fija con la pastilla. Sin esto, importar «IM severa» y abrir el estudio daba «sin
+   insuficiencia» en el informe firmado, porque el motor recalculaba sobre insumos ausentes. */
+function _sevManualDesdeCampos(campos) {
+  const m = {};
+  if (!campos) return m;
+  /* Un «0» / «sin» documentado se marca IGUAL que un «severa»: escribir «IM ausente» en la
+     planilla es un hallazgo, no una ausencia de dato. Sin esto, el primer recálculo lo subía
+     de grado —con onda E 90 y nada más, calcIM_ESC escribe «leve»— y el informe firmado
+     afirmaba una insuficiencia que el estudio original decía que no existía. Una afirmación
+     falsa es peor que una omisión.
+     La columna vacía no llega hasta acá: el importador no escribe la clave si no vino dato,
+     así que «clave ausente» ya significa «no se cargó». */
+  ['im', 'ia', 'it', 'em', 'ea'].forEach(k => {
+    const v = campos[k + '_grado'];
+    if (v !== undefined && v !== null && String(v) !== '') m[k] = true;
+  });
+  return m;
+}
+/* Escribe la marca DENTRO de campos, para que viaje con el estudio guardado. Escribirla sólo
+   en window no alcanzaba: el importador no abre el formulario, así que la marca se perdía
+   antes de que alguien la usara. */
+function _sevManualEnCampos(campos) {
+  if (!campos) return campos;
+  const m = _sevManualDesdeCampos(campos);
+  /* Se respeta la que ya venga (una fusión no debe degradar una severidad ya fijada). */
+  let prev = {};
+  try { prev = JSON.parse(campos.sev_manual || '{}') || {}; } catch (e) { prev = {}; }
+  const fin = Object.assign({}, prev, m);
+  if (Object.keys(fin).length) campos.sev_manual = JSON.stringify(fin);
+  return campos;
+}
+window._sevManualDesdeCampos = _sevManualDesdeCampos; window._sevManualEnCampos = _sevManualEnCampos;
+window._sevManualSync = _sevManualSync; window._sevManualRestaurar = _sevManualRestaurar;
+function _labXlsEsCalculado(dest) {
+  if (LAB_XLS_SOLO_EXPORT.has(dest)) return true;
+  const el = document.getElementById(dest);
+  return !!(el && el.hasAttribute('readonly'));
+}
+
 const LAB_XLS_MAP = [
   // [columna del Excel, destino, tipo]  ·  destino '@x' = campo de primer nivel
   ['Nombre',                 '@nombre',        'txt'],
@@ -21875,7 +22199,7 @@ function labPlantillaXLSX() {
     ['   Si la dejás, el importador la saltea igual, pero conviene borrarla.'],
     ['2. Cargá un estudio por fila. Las columnas vacías se dejan sin cargar, no se borran.'],
     ['3. Obligatorio: Nombre (o CI) y Fecha estudio. Sin eso la fila no se puede identificar.'],
-    ['4. Guardá el archivo como .xlsx y usá el botón "📥 Importar Excel" del Laboratorio.'],
+    ['4. Guardá el archivo como .xlsx y, en la pestaña Guardados, usá "📥 Importar" > "Excel".'],
     [''],
     ['CÓMO SE EVITAN LOS DUPLICADOS'],
     ['Un estudio se identifica por DOCUMENTO + FECHA. Si la fila no trae documento, por'],
@@ -21907,9 +22231,16 @@ function labPlantillaXLSX() {
     ['Esas columnas están en el Excel que exporta el Laboratorio pero NO se pueden'],
     ['importar, y por eso no están acá: la app no guarda la geometría en ningún campo.'],
     ['La calcula en cada pantalla a partir de la masa VI indexada, el RWT y el sexo, o sea'],
-    ['de SIV, DDVI, PP, talla, peso y sexo. Para cambiar la geometría de un estudio hay'],
-    ['que corregir esas seis columnas; escribir un 1 en Geom_HVI_Concentrica no tendría'],
-    ['ningún efecto, la app volvería a mostrar lo que le dan las medidas.'],
+    ['de SIV, DDVI, PP, talla, peso y sexo. De esos, en esta planilla están SIV, DDVI, PP'],
+    ['y Sexo; la talla y el peso NO son columnas, así que desde el Excel no se puede'],
+    ['cambiar la superficie corporal. Escribir un 1 en Geom_HVI_Concentrica no tendría'],
+    ['ningún efecto: la app vuelve a mostrar lo que le dan las medidas.'],
+    [''],
+    ['VALORES QUE LA APP CALCULA (no se importan)'],
+    ['PmAD, AVm, G. máx Ao, PSAP y PAP media salen de otras mediciones. Se exportan para'],
+    ['el análisis, pero al importar se ignoran y se vuelven a calcular: escribirlos dejaba'],
+    ['un número que se veía un instante y desaparecía al guardar. Para cambiarlos, corregí'],
+    ['las mediciones que los alimentan (VCI y colapso, PHT mitral, V. max Ao, V. max IT).'],
     [''],
     ['COLUMNAS'],
     ['COLUMNA', 'QUÉ ES', 'VALORES QUE ACEPTA', 'EJEMPLO'],
@@ -21971,10 +22302,15 @@ function labImportarXLSX(file) {
     const cabeceras = Object.keys(filas[0]);
     const normCab = h => String(h).trim().replace(/\s+/g,' ').toLowerCase();
     const porNorm = new Map(); cabeceras.forEach(h => { if(!porNorm.has(normCab(h))) porNorm.set(normCab(h), h); });
-    const conocidas = LAB_XLS_MAP.filter(m => porNorm.has(normCab(m[0])))
+    const _presentes = LAB_XLS_MAP.filter(m => porNorm.has(normCab(m[0])));
+    /* Los calculados se apartan ANTES de leer las filas. No se descartan en silencio: se
+       listan en la vista previa con el motivo, porque la columna existe en el Excel que la
+       propia app exporta y el médico razonablemente espera que vuelva a entrar. */
+    const calculadas = _presentes.filter(m => _labXlsEsCalculado(m[1])).map(m => m[0]);
+    const conocidas = _presentes.filter(m => !_labXlsEsCalculado(m[1]))
       .map(m => [porNorm.get(normCab(m[0])), m[1], m[2], m[0]]);
     if (!conocidas.length) {
-      toast('❌ Ninguna columna reconocida — usá el botón «📋 Plantilla Excel»'); return;
+      toast('❌ Ninguna columna reconocida — usá «📥 Importar» > «📋 Descargar plantilla Excel»'); return;
     }
     const existentes = getInformes();
     /* Índice por TODAS las claves de cada estudio guardado, no sólo por la suya fuerte:
@@ -22102,12 +22438,15 @@ function labImportarXLSX(file) {
 
     if (!ok.length && !errores.length) { toast('⚠️ No hay filas con datos para importar'); return; }
     const usadas = new Set(conocidas.map(c => c[0]));
+    // Las calculadas ya se explican en su propio renglón: sin esto aparecían además en
+    // «columnas que no corresponden a un campo editable», que sugiere que no se reconocen.
+    calculadas.forEach(col => { const c = porNorm.get(normCab(col)); if (c) usadas.add(c); });
     // Las binarias de severidad las lee el bloque de arriba, no LAB_XLS_MAP: sin esto el
     // modal las anunciaba como "columnas que no corresponden a un campo editable".
     LAB_XLS_BIN.forEach(g => g.cols.forEach(alias => alias.forEach(a3 => {
       const c = porNorm.get(normCab(a3)); if (c) usadas.add(c);
     })));
-    _labImpDatos = { filas:ok, errores, ejemplos, hoja:nom,
+    _labImpDatos = { filas:ok, errores, ejemplos, hoja:nom, calculadas,
                      ignoradas: cabeceras.filter(c => !usadas.has(c) && String(c).trim() !== '') };
     labImpRender();
   };
@@ -22140,6 +22479,14 @@ function labImpRender() {
         (d.ignoradas.length ? '<br>Se ' + (d.ignoradas.length===1?'ignoró 1 columna':('ignoraron ' + d.ignoradas.length + ' columnas')) +
           ' que no ' + (d.ignoradas.length===1?'corresponde':'corresponden') + ' a un campo editable: <span style="color:var(--text2)">' +
           escHtml(d.ignoradas.slice(0,8).join(', ')) + (d.ignoradas.length>8?', …':'') + '</span>' : '') +
+        /* Se dice explícitamente, y en ámbar: la columna viene en el Excel que exporta la
+           propia app, así que el médico espera que vuelva a entrar. Callarlo dejaba que
+           corrigiera una PSAP en la planilla y creyera que se importó. */
+        ((d.calculadas && d.calculadas.length) ? '<br><span style="color:var(--orange)">' +
+          (d.calculadas.length===1 ? '1 columna es un valor que la app calcula sola, así que no se importa'
+                                   : d.calculadas.length + ' columnas son valores que la app calcula sola, así que no se importan') +
+          ': <b>' + escHtml(d.calculadas.join(', ')) + '</b>. Se exportan para el análisis, pero se recalculan ' +
+          'desde las mediciones que los alimentan. Para cambiarlos, corregí esas mediciones.</span>' : '') +
       '</div>' +
       errHTML +
       /* Vista previa de filas, como la del importador JSON. Confirmar 300 filas sin haber
@@ -22207,7 +22554,7 @@ async function labImpEjecutar() {
          columnas editables, así que un reemplazo borraría todo lo que la app guarda y
          la plantilla no incluye —el bull's eye, las imágenes, el strain por segmento—.
          Y se conserva el id, que puede estar referenciado. */
-      const merged = { ...prev, campos: { ...(prev.campos||{}), ...inf.campos } };
+      const merged = { ...prev, campos: _sevManualEnCampos({ ...(prev.campos||{}), ...inf.campos }) };
       if (inf.nombre) merged.nombre = inf.nombre;
       if (inf.ci) merged.ci = inf.ci;
       if (inf.fecha_estudio) merged.fecha_estudio = inf.fecha_estudio;
@@ -22218,6 +22565,7 @@ async function labImpEjecutar() {
       return;
     }
     const nid = _nuevoIdUnico(usados);
+    _sevManualEnCampos(inf.campos);
     const nuevo = { ...inf, id: nid, estudioId: Date.now().toString(36) + Math.random().toString(36).substr(2,5),
                     fecha_guardado: new Date().toISOString() };
     existentes.push(nuevo);
@@ -26226,7 +26574,7 @@ const ECO_AYUDA = [
   <div class="mSub">❤️ Cardio-Oncología</div>
   <p class="mP">Riesgo basal HFA-ICOS antes de empezar el tratamiento, y evaluación de cardiotoxicidad según ESC 2022 durante el seguimiento: caída de FEVI, caída relativa del strain ≥ 15 % y troponina.</p>
   <div class="mBox mAviso"><b>Atención — la caída de FEVI son puntos porcentuales.</b> El criterio es una caída ≥ 10 <b>puntos</b> respecto del basal (de 60 % a 50 %), no una caída del 10 % relativo. La del strain sí es relativa.</div>
-  <div class="mBox mAviso"><b>Atención — el seguimiento longitudinal es una sola lista, sin paciente.</b> La tabla y el gráfico de seguimiento de Cardio-Oncología no distinguen de qué paciente es cada punto, y no se limpian al empezar un estudio nuevo. Si hacés varios pacientes oncológicos, los puntos se van a mezclar. Usalo por ahora como una libreta de un solo paciente, y borrala antes de pasar al siguiente.</div>
+  <div class="mBox mTip"><b>El seguimiento va por paciente.</b> Cada control queda asociado al documento del paciente que tengas cargado —o al nombre, si no cargaste documento—, así que al abrir otro paciente ves el suyo y no el del anterior. Por eso hay que <b>cargar el paciente antes</b> de agregar un control: sin nombre ni documento, la app no lo guarda y te avisa.</div>
   <div class="mSub">🫁 Eco Pulmonar</div>
   <p class="mP">Versión extendida de la eco pulmonar: pleura, líneas B por zonas, derrame por Balik y consolidación, con un patrón global (normal, líneas B focales, síndrome intersticial, edema alveolar, neumotórax probable, consolidación). Al integrarlo al informe reemplaza a la eco pulmonar básica de la pestaña Otros, para no duplicar.</p>
   <div class="mSub">🧮 Calculadoras · 🎵 Fonocardiograma · 📚 Referencias</div>
@@ -26344,7 +26692,8 @@ const ECO_AYUDA = [
   <tr><td><b>📊 Excel</b></td><td>Mirar los datos en una planilla, corregir a mano o cargar estudios en lote. <b>No es un backup.</b></td></tr>
   <tr><td><b>🏥 DICOM SR</b></td><td>Intercambio con el ecógrafo y el PACS. Trae mediciones numéricas, nada más.</td></tr>
   <tr><td><b>📈 Para Analytics</b></td><td>Abrir después en CeiboAnalytics.</td></tr></table>
-  <div class="mBox mAviso"><b>Sólo el JSON es un backup.</b> El Excel se lleva 94 columnas pero vuelve a entrar con 52: los campos calculados, la superficie corporal, el ETE, el strain por segmento y las imágenes no vuelven. Reconstruir la base desde el Excel <b>pierde datos</b>.</div>
+  <div class="mBox mAviso"><b>Sólo el JSON es un backup.</b> El Excel se lleva 94 columnas pero vuelve a entrar con menos: los campos calculados, la superficie corporal, el ETE, el strain por segmento y las imágenes no vuelven. Reconstruir la base desde el Excel <b>pierde datos</b>.</div>
+  <div class="mBox mTip"><b>Los valores que la app calcula no se importan.</b> PmAD, área mitral, gradiente máximo aórtico, PSAP y PAP media salen del Excel para que puedas analizarlos, pero al importar se ignoran —la vista previa los nombra— porque la app los recalcula y pisaría lo que escribas. Para cambiarlos, corregí las mediciones que los alimentan.</div>
   <div class="mSub">Excel</div>
   <p class="mP">Empezá siempre por <b>📋 Descargar plantilla Excel</b>, que está dentro del menú <b>Importar</b> (no del de exportar). Trae las columnas correctas, una fila de ejemplo y una hoja de instrucciones.</p>
   <div class="mBox mAviso"><b>Borrá la fila de ejemplo antes de importar.</b> Viene marcada con «*** FILA DE EJEMPLO — BORRAR ANTES DE IMPORTAR ***». La app la saltea sola, pero es más claro sacarla.</div>
@@ -26385,11 +26734,11 @@ const ECO_AYUDA = [
   <p class="mP"><b>Cargué el logo y no aparece.</b> Si es un SVG, se descarta sin avisar. Convertilo a PNG o JPG.</p>
   <p class="mP"><b>El Laboratorio no muestra estudios viejos.</b> El período por defecto es el último año. Cambialo a «Todo el tiempo».</p>
   <p class="mP"><b>Exporté a Excel y faltan estudios.</b> El Excel usa los filtros del Laboratorio, no los de Guardados. El menú te avisa en ámbar cuántos quedan afuera.</p>
-  <p class="mP"><b>Importé un Excel y algunos valores no entraron.</b> Los campos que la app calcula sola —presión de AD, área mitral, gradiente máximo aórtico, PSAP— se recalculan y pisan lo que traiga la planilla. Cargá las mediciones que los alimentan, no el resultado.</p>
+  <p class="mP"><b>Importé un Excel y algunos valores no entraron.</b> Los campos que la app calcula sola —PmAD, área mitral, gradiente máximo aórtico, PSAP y PAP media— no se importan: se recalculan desde las mediciones que los alimentan. La vista previa te los lista en ámbar antes de confirmar. Corregí esas mediciones (VCI y colapso, PHT mitral, V. max Ao, V. max IT), no el resultado.</p>
   <p class="mP"><b>El algoritmo diastólico dice «BSE 2024» y yo elegí ASE 2025.</b> El paciente está en fibrilación auricular: sin onda A el ASE 2025 no se puede aplicar, así que la app cambia sola.</p>
   <p class="mP"><b>¿Por qué no me clasifica la hipertensión pulmonar en leve, moderada o severa?</b> Porque no corresponde hacerlo con una PSAP estimada. Usá el módulo de probabilidad de HTP ESC/ERS 2022 en Hemodinámica.</p>
   <p class="mP"><b>Cargué el VEXUS y no aparece en el informe.</b> Falta el diámetro de VCI (se carga en VD/AD) o no evaluaste ninguno de los tres vasos. Sin al menos un vaso no se informa, ni siquiera grado 0.</p>
-  <p class="mP"><b>La tabla de seguimiento de Cardio-Oncología mezcla pacientes.</b> Es una única lista que no distingue por paciente y no se limpia al empezar un estudio nuevo. Borrala antes de pasar al siguiente.</p>
+  <p class="mP"><b>No veo el seguimiento de Cardio-Oncología que había cargado.</b> Ahora cada control queda guardado con su paciente. Si venís de una versión anterior, los controles viejos no tienen paciente asignado: la pestaña te los muestra con un aviso y dos botones, para asignarlos al paciente abierto o descartarlos. Y si el formulario no tiene nombre ni documento, no se puede agregar un control.</p>
   <p class="mP"><b>Desapareció la pestaña de Hemodinámica (o de ETE, o de Amiloidosis).</b> Estás en Modo Básico, o la casilla del módulo está apagada en Config.</p>
   <p class="mP"><b>No encuentro «Generar Informe».</b> Está en el menú <span class="mKbd">⋮</span> del encabezado, no en el rail izquierdo.</p>
   <p class="mP"><b>¿Se pierden los estudios si cierro el navegador?</b> No: quedan en este dispositivo. Se pierden si borrás los datos de navegación. Exportá un backup JSON.</p>` },
