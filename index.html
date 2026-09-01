@@ -3327,9 +3327,20 @@ window.cerrarSesion = cerrarSesion;
   </div>
   <script>(function(){var t=document.getElementById('ete_tecnica');if(t){var s=localStorage.getItem('ete_tecnica_texto');if(s!==null)t.value=s;}var c=document.getElementById('ete_tecnica_incluir_chk');if(c)c.checked=localStorage.getItem('ete_tecnica_incluir')==='1';})();</script>
 
-  <!-- MORFOLOGÍA Y ETIOLOGÍA -->
+  <!-- MORFOLOGÍA Y ETIOLOGÍA — acordeón colapsado + toggle de inclusión en informe -->
+  <div class="card" style="margin-bottom:8px;">
+    <div class="card-body" style="padding-bottom:0;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:10px;padding:8px 10px;background:var(--bg3);border-radius:8px;cursor:pointer;">
+        <input type="checkbox" id="ete_morfo_incluir_chk" onchange="localStorage.setItem('ete_morfo_incluir', this.checked ? '1' : '0')"> 🔬 Incluir morfología en informe
+      </label>
+    </div>
+    <h2 class="card-head" style="cursor:pointer; user-select:none;" onclick="toggleEteSeccion('morfo', this)">
+      🔬 ETE — Morfología y Clasificación VM
+      <span id="ete-morfo-arrow" style="float:right; transition:transform 0.2s;">▶</span>
+    </h2>
+  </div>
+  <div id="ete-seccion-morfo" style="display:none;">
   <div class="card">
-    <h2 class="card-head">🔬 ETE — Morfología y Clasificación VM</h2>
     <div class="card-body">
       <div class="grid-3">
         <div class="fg"><label>Etiología</label>
@@ -3367,6 +3378,8 @@ window.cerrarSesion = cerrarSesion;
       </div>
     </div>
   </div>
+  </div><!-- /#ete-seccion-morfo -->
+  <script>(function(){var c=document.getElementById('ete_morfo_incluir_chk');if(c)c.checked=localStorage.getItem('ete_morfo_incluir')==='1';})();</script>
 
   <div class="card" style="margin-bottom:8px;">
     <h2 class="card-head" style="cursor:pointer; user-select:none;" onclick="toggleEteSeccion('mitral', this)">
@@ -13808,9 +13821,10 @@ function generarInforme(opts) {
   // Helper: capitaliza la primera letra de la oración
   const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 
-  // Técnica del procedimiento ETE (toggle "Incluir técnica") — se agrega al final, antes de la sección ETE
-  const _eteInc = localStorage.getItem('ete_tecnica_incluir') === '1';
-  const _eteTecnica = (_eteInc && typeof sv === 'function') ? sv('ete_tecnica').trim() : '';
+  /* La técnica del ETE NO se arma acá. Estas dos variables se calculaban y no las usaba
+     nadie: quien leyera esta función creía que el texto de técnica entraba al narrativo, y
+     no entra. La dibuja generarPDFReal directamente, con su barra propia, antes del bloque
+     INFORME del PDF. */
 
   // ════════════════════════════════════════════════════════════════════
   // INFORME NARRATIVO — 13 oraciones fijas, una por párrafo, en orden fijo
@@ -14501,8 +14515,8 @@ function generarInforme(opts) {
     if (estratifSuma) suma.push(estratifSuma);
   })();
 
-  // Técnica del procedimiento ETE (toggle) — precede a la sección ETE
-  // La técnica del ETE ya no va en el cuerpo: encabeza su propia hoja (ver abajo).
+  // Técnica del procedimiento ETE (toggle) — la dibuja el PDF, antes del bloque INFORME.
+  // Ya no encabeza la hoja aparte del ETE: esa hoja quedó sólo con mediciones y módulos.
 
 
   // ── ETE ──
@@ -14510,12 +14524,29 @@ function generarInforme(opts) {
     const etePars = [];
 
     // 1. Válvula mitral ETE
-    const carp = sv('ete_carpentier');
-    const mec  = sv('ete_mecanismo');
+    /* La sección «Morfología y Clasificación VM» pasa a ser opcional, con el mismo toggle
+       que la técnica. Gatea SÓLO sus tres campos (etiología, Carpentier, mecanismo): el
+       score de Wilkins y el área por planimetría comparten la oración pero NO son morfología
+       —viven en Calculadoras y en Mediciones— y tienen que seguir saliendo como hasta ahora.
+       Apagar la oración entera habría borrado del informe un score que el médico cargó en
+       otra pestaña sin haber tocado este botón. */
+    const _morfoInc = localStorage.getItem('ete_morfo_incluir') === '1';
+    const etio = _morfoInc ? sv('ete_etiologia')  : '';
+    const carp = _morfoInc ? sv('ete_carpentier') : '';
+    const mec  = _morfoInc ? sv('ete_mecanismo')  : '';
     const wEl  = document.getElementById('wilkins-total');
     const wN   = wEl ? parseInt(wEl.textContent) : NaN;
     const avmE = v('ete_area_mitral');
-    if (carp || (!isNaN(wN) && wN > 0) || avmE) {
+    if (etio || carp || (!isNaN(wN) && wN > 0) || avmE) {
+      const etioMap = {
+        barlow:'degenerativa (enfermedad de Barlow)',
+        dfe:'degenerativa por deficiencia fibroelástica',
+        reumatica:'reumática',
+        funcional_isq:'funcional isquémica',
+        funcional_aur:'funcional auricular',
+        endocarditis:'endocarditis',
+        congenita:'congénita'
+      };
       const carpMap = {
         'I':    'Tipo I (movimiento normal)',
         'II':   'Tipo II (prolapso / movimiento excesivo)',
@@ -14528,6 +14559,7 @@ function generarInforme(opts) {
         dilatacion_anular:'dilatación anular', tethering:'tethering'
       };
       let s = 'ETE — Válvula mitral';
+      if (etio) s += ' de etiología ' + (etioMap[etio] || etio);
       if (carp) s += ' con mecanismo Carpentier ' + (carpMap[carp] || carp);
       if (mec)  s += ', mecanismo predominante: ' + (mecMap[mec] || mec);
       /* El sufijo «(parcial)» que agrega calcWilkins lo descartaba parseInt, así que un score
@@ -14692,7 +14724,20 @@ function limpiarCampos() {
      persistencia— y ya se auto-limitan porque su bloque del PDF comprueba que haya datos.
      Borrarlos todos obligaba a reactivar el bull's eye en cada paciente, y olvidarse
      significaba un PDF sin él y sin ningún aviso. */
-  ['mitral_qx_incluir_pdf','ete_tecnica_incluir'].forEach(k => localStorage.removeItem(k));
+  /* `ete_tecnica_texto` se borra junto con el toggle. limpiarCampos() vacía todos los
+     textarea, así que el campo QUEDABA vacío en pantalla, pero la clave sobrevivía en
+     localStorage y el script de arranque la restaura en la próxima carga: la técnica del
+     paciente anterior reaparecía sola al recargar. Es la misma fuga entre pacientes que ya
+     tuvieron los segmentos del ETE. */
+  ['mitral_qx_incluir_pdf','ete_tecnica_incluir','ete_morfo_incluir','ete_tecnica_texto']
+    .forEach(k => localStorage.removeItem(k));
+  /* Borrar la clave NO desmarca la casilla: el <input> conserva su estado hasta que se
+     recargue la página, así que tras «Nuevo Estudio» los dos toggles seguían tildados
+     mientras el storage decía lo contrario. El médico veía «Incluir técnica en informe»
+     marcado y el PDF salía sin la técnica. Se desmarcan explícitamente. */
+  ['ete_tecnica_incluir_chk','ete_morfo_incluir_chk'].forEach(id => {
+    const c = document.getElementById(id); if (c) c.checked = false;
+  });
   _pdfToggleBtnState('contr-pdf-toggle', false);
   _pdfToggleBtnState('sgl-pdf-toggle', false);
   try { localStorage.removeItem('ecosmart_autosave'); } catch(e) {}
@@ -15644,6 +15689,26 @@ function generarPDFReal() {
   ]);
 
   // ════════════════════════════════════════════════════════════
+  // TECNICA ETE Y SEDACION — antes del informe narrativo
+  // ════════════════════════════════════════════════════════════
+  /* Estaba al final, en la hoja aparte del ETE, después de todo el informe. La técnica y la
+     sedación describen CÓMO se hizo el estudio, así que se leen antes de lo que el estudio
+     encontró, no tres hojas después.
+     Va saneado con amiloSanPDF: este texto lo escribe el médico a mano y generarPDFReal es la
+     única ruta de PDF sin saneador — un solo carácter fuera de WinAnsi (un «≥», una comilla
+     curva pegada de otro lado) convierte la CADENA ENTERA a UTF-16 y sale ilegible. En la
+     hoja del ETE lo saneaba amiloDibujarSecciones; acá hay que hacerlo en el borde. */
+  const _eteTecnica = (localStorage.getItem('ete_tecnica_incluir') === '1') ? sv('ete_tecnica').trim() : '';
+  if (_eteTecnica) {
+    const _etSan = (typeof amiloSanPDF === 'function') ? amiloSanPDF(_eteTecnica) : _eteTecnica;
+    drawBar('TECNICA Y SEDACION');
+    y += 2;
+    fn(8); tc(13,13,13);
+    doc.splitTextToSize(_etSan, pgW-4).forEach(l => { checkPage(6); doc.text(l, mL+2, y); y += 5.5; });
+    y += 3;
+  }
+
+  // ════════════════════════════════════════════════════════════
   // 15-16. INFORME
   // ════════════════════════════════════════════════════════════
   const informeTxt = sv('informe_texto');
@@ -16065,12 +16130,10 @@ function generarPDFReal() {
   }
 
   // ── HOJA DEL ECOCARDIOGRAMA TRANSESOFÁGICO ──
-  // Encabeza el texto de técnica y sedación, y siguen las mediciones y módulos.
-  // La técnica se lee acá: la variable de generarInforme() es de otra función.
-  const _eteTecnica = (localStorage.getItem('ete_tecnica_incluir') === '1') ? sv('ete_tecnica').trim() : '';
-  if (_eteTecnica || _amEte.length) {
+  // Las mediciones y módulos del ETE. La técnica y sedación ya NO va acá: se movió al cuerpo
+  // del informe, antes del narrativo. Sin esa sección, esta hoja existe sólo si hay módulos.
+  if (_amEte.length) {
     const _secsEte = [];
-    if (_eteTecnica) _secsEte.push({ tit: 'TECNICA Y SEDACION', txt: _eteTecnica });
     _amEte.forEach(x => _secsEte.push(x));
     doc.addPage();
     y = amiloDibujarSecciones(doc, _secsEte, {
