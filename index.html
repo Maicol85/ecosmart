@@ -10290,6 +10290,30 @@ window.UMBRAL_PSAP_ELEVADA = UMBRAL_PSAP_ELEVADA;
    El texto de la fórmula y el disclaimer viven acá para que las etiquetas no se separen del
    cálculo: es lo que pasó con los umbrales de HTP, que terminaron en cinco lugares con tres
    juegos de números. */
+/* Área valvular aórtica: severa es AVA < 1.0 cm² (ESC/EACVI). El corte estaba escrito en
+   cuatro lugares y uno usaba `<= 1.0`, así que un AVA de 1.00 exacto caía de los dos lados a
+   la vez: la pantalla mostraba «Moderada (1.0-1.49cm²)» y «AVA 1.00 cm² (severa)» al mismo
+   tiempo, y el informe firmado decía severa. El AVA se guarda con toFixed(2), o sea que
+   «1.00» es un valor alcanzable, no teórico. */
+const AVA_SEVERA_MAX = 1.0;   // AVA < 1.0 → severa;  1.0 ≤ AVA < 1.5 → moderada
+/* Mismo endurecimiento que pcpNagueh, y por el mismo motivo: `isNaN('')` es false, así que
+   la versión anterior devolvía TRUE —severa— ante un campo vacío. Y `isNaN('0,95')` es true,
+   o sea que con coma decimal devolvía false. Fallaba abierta con vacío y cerrada con coma:
+   exactamente al revés de lo seguro. */
+function avaEsSevera(ava) {
+  const n = (typeof ava === 'number') ? ava : parseFloat(String(ava == null ? '' : ava).replace(',', '.'));
+  return isFinite(n) && n > 0 && n < AVA_SEVERA_MAX;
+}
+window.AVA_SEVERA_MAX = AVA_SEVERA_MAX; window.avaEsSevera = avaEsSevera;
+
+/* Resistencia vascular pulmonar: el corte de ESC/ERS 2022 para el componente precapilar es
+   >2 UW. La app lo aplicaba en la clasificación pre/pos/mixta pero los badges usaban el
+   umbral pre-2022 de >3 con una banda «2–3 (límite)» en el medio, así que un mismo paciente
+   con RVP 2,5 veía «límite» en amarillo en una tarjeta y «HTP precapilar» en rojo en otra —y
+   el que sale al PDF es el de la tarjeta de Cálculos, el del umbral viejo—. */
+const RVP_ELEVADA_UW = 2;
+window.RVP_ELEVADA_UW = RVP_ELEVADA_UW;
+
 const PCP_COEF_A = 1.24, PCP_COEF_B = 1.9;
 const PCP_FORMULA_TXT = "1.24 × (E/e') + 1.9";
 /* Guion CORTO a propósito: generarPDFReal es la única ruta de PDF sin saneador, y la
@@ -10598,13 +10622,18 @@ function calcHemo() {
   let rvp = null;
   if (rvpManual !== null) {
     rvp = rvpManual;
-    let cls = rvp < 2 ? 'green' : rvp <= 3 ? 'yellow' : 'red';
-    let et  = rvp < 2 ? '<2 (normal)' : rvp <= 3 ? '2–3 (límite)' : '>3 (elevada — HTP precapilar probable)';
+    let cls = rvp <= RVP_ELEVADA_UW ? 'green' : 'red';
+    let et  = rvp <= RVP_ELEVADA_UW ? ('<=' + RVP_ELEVADA_UW + ' UW - normal') : ('>' + RVP_ELEVADA_UW + ' UW - elevada (criterio ESC/ERS 2022 de componente precapilar)');
     setH('hemo-rvp', rvp.toFixed(1) + ' UW (manual · cateterismo) ' + badge(cls, et));
   } else if (vmaxIT !== null && vtiTSVD !== null && vtiTSVD > 0) {
     rvp = (vmaxIT / vtiTSVD) * 10;
-    let cls = rvp < 2 ? 'green' : rvp <= 3 ? 'yellow' : 'red';
-    let et  = rvp < 2 ? '<2 (normal)' : rvp <= 3 ? '2–3 (límite)' : '>3 (elevada — HTP precapilar probable)';
+    /* Se conserva la banda intermedia SÓLO en la rama de Abbas: es una estimación Doppler,
+       y una RVP de 2,1 por Abbas no merece el mismo rojo que una de 6,0 por cateterismo.
+       El umbral de decisión sigue siendo el de ESC/ERS 2022. */
+    let cls = rvp <= RVP_ELEVADA_UW ? 'green' : (rvp <= 3 ? 'yellow' : 'red');
+    let et  = rvp <= RVP_ELEVADA_UW ? ('<=' + RVP_ELEVADA_UW + ' UW - normal')
+            : (rvp <= 3 ? ('>' + RVP_ELEVADA_UW + ' UW - elevada por estimacion Doppler (Abbas); confirmar por cateterismo')
+                        : ('>' + RVP_ELEVADA_UW + ' UW - elevada (criterio ESC/ERS 2022)'));
     setH('hemo-rvp', rvp.toFixed(1) + ' UW ' + badge(cls, et));
   } else setH('hemo-rvp', '—');
 
@@ -10657,11 +10686,11 @@ function calcHemo() {
       htpEl.innerHTML = (pcp <= 15
         ? badge('yellow', 'HTP precapilar posible — confirmar RVP (cateterismo derecho)')
         : badge('yellow', 'Componente poscapilar posible (PCP >15) — confirmar RVP (cateterismo derecho)')) + htpNote;
-    } else if (pcp <= 15 && rvp > 2) {
+    } else if (pcp <= 15 && rvp > RVP_ELEVADA_UW) {
       htpEl.innerHTML = badge('red', 'Patrón compatible con HTP precapilar — PAPm >20 + PCP ≤15 + RVP ' + rvp.toFixed(1) + ' UW (>2)') + htpNote;
     } else if (pcp <= 15 && rvp <= 2) {
       htpEl.innerHTML = badge('yellow', 'No clasificable como precapilar — PCP ≤15 pero RVP ' + rvp.toFixed(1) + ' UW (≤2). Criterio ESC/ERS 2022 exige RVP >2 UW') + htpNote;
-    } else if (rvp > 2) {
+    } else if (rvp > RVP_ELEVADA_UW) {
       htpEl.innerHTML = badge('red', 'Patrón compatible con HTP poscapilar combinada (mixta) — PCP >15 + RVP >2 UW') + htpNote;
     } else {
       htpEl.innerHTML = badge('yellow', 'Patrón compatible con HTP poscapilar aislada — PCP >15 + RVP ≤2 UW') + htpNote;
@@ -10854,7 +10883,13 @@ function cxGTP(){
   if (dtsvi != null && vti != null) { vs = 0.785 * Math.pow(dtsvi / 10, 2) * vti; set('cx-gtp-vs', vs.toFixed(0) + ' ml'); } else set('cx-gtp-vs', '—');
   if (vs != null && fc != null) { gc = vs * fc / 1000; set('cx-gtp-gc', gc.toFixed(2) + ' L/min'); } else set('cx-gtp-gc', '—');
   if (gtp != null) { setH('cx-gtp-gtp', gtp.toFixed(1) + ' mmHg ' + badge(gtp >= 12 ? 'orange' : 'green', gtp >= 12 ? '≥12 — componente precapilar' : '<12')); } else setH('cx-gtp-gtp', '—');
-  if (gtp != null && gc != null && gc > 0) { const rvp = gtp / gc; setH('cx-gtp-rvp', rvp.toFixed(1) + ' UW ' + badge(rvp > 3 ? 'red' : rvp > 2 ? 'yellow' : 'green', rvp > 3 ? '>3 — HTP vascular' : (rvp > 2 ? '2–3' : '≤2 normal'))); } else setH('cx-gtp-rvp', '—');
+  /* Mismo umbral que calcHemo y que la clasificación pre/pos/mixta: >2 UW (ESC/ERS 2022).
+     Decía «>3 — HTP vascular» con una banda «2–3» intermedia, o sea el criterio pre-2022, y
+     es el badge que sale al PDF firmado. */
+  if (gtp != null && gc != null && gc > 0) { const rvp = gtp / gc;
+    setH('cx-gtp-rvp', rvp.toFixed(1) + ' UW ' + badge(rvp > RVP_ELEVADA_UW ? 'red' : 'green',
+      rvp > RVP_ELEVADA_UW ? ('>' + RVP_ELEVADA_UW + ' UW - elevada (ESC/ERS 2022)') : ('<=' + RVP_ELEVADA_UW + ' UW - normal')));
+  } else setH('cx-gtp-rvp', '—');
 }
 window.cxWilkins = cxWilkins; window.cxDuke = cxDuke; window.cxGTP = cxGTP; window.cxGtpSync = cxGtpSync;
 
@@ -12693,11 +12728,11 @@ function clasificarEA_Vmax() {
   else if (vmax < 4.0) velVal = 'moderada';
   else velVal = 'severa';
 
-  const avaSevera  = ava !== null && ava <= 1.0;
+  const avaSevera  = avaEsSevera(ava);
   const velSevera  = vmax >= 4.0;
   const gradSevero = gmedio !== null && gmedio >= 40;
 
-  // EA discordante: AVA severa por área (≤1.0) con Vmax y gradiente NO severos.
+  // EA discordante: AVA severa por área (<1.0) con Vmax y gradiente NO severos.
   // No se degrada el grado: se mantiene severa (por AVA) y se marca la discordancia.
   if (avaSevera && !velSevera && !gradSevero) {
     sel.value = 'severa';
@@ -12707,7 +12742,7 @@ function clasificarEA_Vmax() {
 
   // Con AVA disponible, sólo asignar grado por Vmax si AVA y Vmax son concordantes.
   if (ava !== null) {
-    const avaModerada  = ava > 1.0 && ava < 1.5;
+    const avaModerada  = ava >= AVA_SEVERA_MAX && ava < 1.5;
     const avaLeveMenos = ava >= 1.5;
     const velModerada  = vmax >= 3.0 && vmax < 4.0;
     const velLeveMenos = vmax < 3.0;
@@ -13801,7 +13836,7 @@ function generarInforme(opts) {
        valvular», dos frases consecutivas que se contradicen. */
     const _eaFijadoAMano = !!(window.esqSevManual && window.esqSevManual.ea);
     const _eaDiscordante = eaG === 'severa' && !_eaFijadoAMano
-      && _avaC !== null && _avaC <= 1.0 && _vmaxA !== null
+      && avaEsSevera(_avaC) && _vmaxA !== null
       && !(_vmaxA >= 4.0) && !(_gmedA !== null && _gmedA >= 40);
     if (eaDesc) suma.push(`EAo ${eaDesc}.`); else if (estE) suma.push('Estenosis aórtica.');
     if (_eaDiscordante) {
@@ -15238,7 +15273,17 @@ function generarPDFReal() {
   // ════════════════════════════════════════════════════════════
   // SCORES ADICIONALES (después del EN SUMA): Wilkins, GTP/RVP
   // ════════════════════════════════════════════════════════════
-  const _cxtx = id => { const el = document.getElementById(id); return el ? (el.textContent || '').trim() : ''; };
+  /* SANEADO. Esta función lee textContent de la pantalla y lo dibuja en generarPDFReal, que
+     es la única ruta de PDF sin saneador. Un solo carácter fuera de WinAnsi convierte la
+     CADENA ENTERA a UTF-16 y sale ilegible. Medido con el badge nuevo de RVP: «1.5 UW ≤2 UW
+     — normal» salía como bytes intercalados con nulos. Se saneá acá, en el borde, y no
+     cazando símbolos uno por uno en cada badge — que es la trampa en la que ya se cayó dos
+     veces con el ⚠ y con el ≥. */
+  const _cxtx = id => {
+    const el = document.getElementById(id);
+    const t = el ? (el.textContent || '').trim() : '';
+    return (typeof amiloSanPDF === 'function') ? amiloSanPDF(t) : t;
+  };
   if (localStorage.getItem('wilkins_incluir_pdf') === '1') {
     const _wt = _cxtx('cx-wilkins-total');
     /* El guard de parcialidad estaba SÓLO en pantalla: el bloque reconstruía las filas por su
@@ -15296,7 +15341,8 @@ function generarPDFReal() {
          una PCP que no aparece por ningún lado. */
       if (_hayPCP) {
         checkPage(9); fn(7); tc(110,110,110);
-        doc.splitTextToSize(PCP_DISCLAIMER + ' El GTP y la RVP de este bloque derivan de ella y arrastran la misma limitación.', pgW - 4)
+        doc.splitTextToSize(PCP_DISCLAIMER + ' El GTP y la RVP de este bloque derivan de ella y arrastran la misma limitación.'
+          + ' La clasificación pre / poscapilar de la hipertensión pulmonar es hemodinámica y requiere cateterismo cardíaco derecho (ESC/ERS 2022).', pgW - 4)
           .forEach(l => { checkPage(4); doc.text(l, mL + 2, y); y += 3.6; });
       }
       y += 2;
@@ -17720,6 +17766,13 @@ function guardarInforme(onDone) {
   document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
     campos[el.id] = el.value;
   });
+  /* En un checkbox `.value` es el atributo («on»), NO el estado marcado, así que el bucle de
+     arriba guardaba «on» tildado o no. El flail, la rotura de cuerdas y los segmentos del
+     prolapso salían en el PDF del día pero NO quedaban en el estudio: al reabrirlo el
+     hallazgo desaparecía, y el documento firmado y el registro guardado decían cosas
+     distintas sin que nada lo avisara. `caso_interes` y los humorales del HFA-PEFF ya tenían
+     su tratamiento especial abajo; esto cubre a todos los demás. */
+  document.querySelectorAll('input[type=checkbox][id]').forEach(el => { campos[el.id + '__chk'] = el.checked ? '1' : '0'; });
   campos['caso_interes'] = document.getElementById('caso_interes')?.checked ? '1' : '0';
   // Criterios humorales del HFA-PEFF: el bucle de arriba los guarda con .value, que
   // en un checkbox vale "on" siempre. Hay que persistir .checked como '1'/'0'.
@@ -19166,6 +19219,10 @@ window.amiloIntegrar = amiloIntegrar;
 // el resto del informe reflejaba los datos nuevos.
 function amiloRestaurarDesdeCampos(campos, reimpresion) {
   if (typeof amiloBuildCard !== 'function') return;
+  /* Acá, y no en cada llamador: los tres caminos que restauran un estudio —editarInforme,
+     cargarEstudioPorId y la reimpresión— pasan por esta función, así que la migración de la
+     salvedad de amiloidosis se aplica una sola vez y no puede olvidarse en uno de ellos. */
+  if (typeof _amiloMigrarSalvedad === 'function') { try { campos = _amiloMigrarSalvedad(campos) || campos; } catch (e) {} }
   amiloBuildCard();
   // Qué módulos estaban integrados: la lista guardada manda. El heurístico de "tiene
   // texto" queda sólo para informes viejos, que no la tienen; ese heurístico es el que
@@ -20398,6 +20455,8 @@ function pdfDeInformeGuardado(id) {
   // Backup current form state
   const backup = {};
   document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => { backup[el.id] = el.value; });
+  const chkEstado = {};
+  document.querySelectorAll('input[type=checkbox][id]').forEach(el => { chkEstado[el.id] = el.checked; });
   // Backup de los checklists del acordeón (checkboxes son class-based, sin id → no entran en el backup anterior)
   const chkBackup = {
     indicaciones: Array.from(document.querySelectorAll('.ind-chk:checked')).map(c => c.dataset.val),
@@ -20431,8 +20490,28 @@ function pdfDeInformeGuardado(id) {
   try {
 
   // Fill form with saved data
+  /* Se escribe SIEMPRE, con '' cuando el estudio no trae la clave. Con la asignación
+     condicional, todo campo ausente conservaba el del paciente ABIERTO: los estudios
+     importados por Excel o DICOM construyen `campos` desde cero y nunca incluyen cx_wilk_*
+     ni cx_gtp_*, así que reimprimir uno producía un PDF a su nombre con el score de Wilkins
+     y la hemodinámica del otro paciente. Medido: «IMPORTADO» salía con 12/16 desfavorable y
+     el bloque GTP/RVP ajenos. Los estudios guardados por la app sí traen todas las claves,
+     porque guardarInforme captura todos los input/select/textarea por id.
+     Se exceptúan los campos de CONFIGURACIÓN —no son del estudio— y el tema del PDF. */
+  /* Prefijos de campos que NO son del estudio: configuración, filtros y controles de UI.
+     `centro-tipo` estaba con guion y el id real es `centro_tipo`, así que se vaciaba y el
+     encabezado del PDF perdía el prefijo del centro. */
+  const _noVaciar = /^(cfg-|firma-|lab-|ig-|med-|logo|lgal-|tema|pdf-|filtro-|adv-|asoc-|exp-|alg-|ett-|rwt-|ee-|ap-|rev-|login-|fcg-|centro_tipo$|ecoAdvSelect$)/;
   document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
-    if (c[el.id] !== undefined) el.value = c[el.id];
+    if (_noVaciar.test(el.id)) { if (c[el.id] !== undefined) el.value = c[el.id]; return; }
+    /* `.checked`, no `.value`: la rama anterior escribía «on» sobre «on» y no tocaba el
+       estado, así que los checkboxes conservaban los del paciente ABIERTO. */
+    if (el.type === 'checkbox' || el.type === 'radio') { el.checked = (c[el.id + '__chk'] === '1'); return; }
+    /* Un <select> sin opción vacía queda en selectedIndex -1 con value='': la app usa la
+       opción 0 como default (limpiarCampos hace selectedIndex = 0), y dejarlo en -1 hace que
+       el algoritmo diastólico lea '' y asuma ritmo sinusal sin mostrar nada en pantalla. */
+    if (el.tagName === 'SELECT') { if (c[el.id] !== undefined) el.value = c[el.id]; else el.selectedIndex = 0; return; }
+    el.value = (c[el.id] !== undefined ? c[el.id] : '');
   });
   /* Se escribe SIEMPRE, con '' cuando el estudio no trae la clave. Con la asignación
      condicional, un guardado sin médico —toda la base anterior a que guardarInforme lo
@@ -20498,6 +20577,10 @@ function pdfDeInformeGuardado(id) {
     if (imgBackup) { imgSlots.length = 0; imgBackup.forEach(x => imgSlots.push(x)); if (typeof imgRender === 'function') imgRender(); }
     document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
       if (backup[el.id] !== undefined) el.value = backup[el.id];
+    });
+    // Simétrico con el llenado: sin esto el paciente en pantalla perdía sus tildes.
+    document.querySelectorAll('input[type=checkbox][id]').forEach(el => {
+      if (chkEstado[el.id] !== undefined) el.checked = chkEstado[el.id];
     });
     ['med-nombre','med-matricula','med-lugar','med-especialidad','med-direccion','med-telefono'].forEach(fid => {
       const el = document.getElementById(fid);
@@ -20596,6 +20679,31 @@ window.toggleContrDisqSep = function(btn){
   contrRenderInforme();
 };
 // Restaura el estado de contractilidad segmentaria (17 segmentos + flags) desde los campos del estudio
+/* Migración de lectura del bloque de amiloidosis. La salvedad de falsos positivos se agregó
+   al escenario «ATTR confirmado — VPP 100%», pero el texto viaja PERSISTIDO en el estudio
+   (`am-txt-alg`), así que los guardados de antes conservan la versión que afirmaba «no se
+   requiere biopsia cardiaca» sin ninguno de los confusores —entre ellos la propia
+   amiloidosis AL, que es lo que ese escenario pretende excluir—. Se completa al restaurar:
+   no se reescribe el texto del médico, se le anexa lo que falta. */
+const AMILO_SALVEDAD_ATTR = 'Salvedad: la captación puede ser un falso positivo en amiloidosis AL, '
+  + 'intoxicación por hidroxicloroquina, fracturas costales, calcificaciones valvulares e infarto de '
+  + 'miocardio de menos de 4 semanas. Integrar con la clínica.';
+function _amiloMigrarSalvedad(campos) {
+  if (!campos) return campos;
+  const t = campos['am-txt-alg'];
+  if (typeof t !== 'string' || !t) return campos;
+  const afirmaVPP = /VPP\s*100|no se requiere biopsia/i.test(t);
+  const yaTiene   = /falso positivo|hidroxicloroquina/i.test(t);
+  /* Se devuelve una COPIA. Mutar `campos` tocaba el objeto del estudio archivado por
+     referencia —getInformes lo entrega vivo y setLocal hace un slice superficial—, así que
+     la próxima escritura al almacén persistía el texto modificado en disco: el médico volvía
+     a abrir su informe y encontraba un párrafo que no escribió. Y en la reimpresión rompía
+     la promesa de imprimir el documento tal como se firmó. */
+  if (!afirmaVPP || yaTiene) return campos;
+  return Object.assign({}, campos, { 'am-txt-alg': t.trimEnd() + '\n' + AMILO_SALVEDAD_ATTR });
+}
+window._amiloMigrarSalvedad = _amiloMigrarSalvedad;
+
 function _restaurarStrain(campos){
   Object.keys(strainEstado).forEach(k=> delete strainEstado[k]);
   let segs = campos && campos.strain_sgl;
