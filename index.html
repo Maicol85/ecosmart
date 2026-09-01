@@ -3321,11 +3321,20 @@ window.cerrarSesion = cerrarSesion;
         <input type="checkbox" id="ete_tecnica_incluir_chk" onchange="localStorage.setItem('ete_tecnica_incluir', this.checked ? '1' : '0')"> 📋 Incluir técnica en informe
       </label>
       <div class="fg">
-        <textarea id="ete_tecnica" style="min-height:96px;" oninput="localStorage.setItem('ete_tecnica_texto', this.value)" placeholder="Técnica del estudio transesofágico...">Estudio realizado previo firma de consentimiento informado. Con ___ horas de ayuno. Monitorizado con electrocardiograma y saturometría de pulso. Se administró ___ (fármaco/sedación). Procedimiento sin incidentes.</textarea>
+        <!-- ECOS-11: ya no se persiste en localStorage. El texto lleva los huecos rellenados
+             con datos del paciente («___ horas de ayuno», «se administró ___»), así que es
+             dato del estudio y no una preferencia: guardarlo hacía que reapareciera al
+             recargar la app, encima del paciente siguiente. El campo arranca siempre con
+             esta plantilla en blanco. -->
+        <textarea id="ete_tecnica" style="min-height:96px;" placeholder="Técnica del estudio transesofágico...">Estudio realizado previo firma de consentimiento informado. Con ___ horas de ayuno. Monitorizado con electrocardiograma y saturometría de pulso. Se administró ___ (fármaco/sedación). Procedimiento sin incidentes.</textarea>
       </div>
     </div>
   </div>
-  <script>(function(){var t=document.getElementById('ete_tecnica');if(t){var s=localStorage.getItem('ete_tecnica_texto');if(s!==null)t.value=s;}var c=document.getElementById('ete_tecnica_incluir_chk');if(c)c.checked=localStorage.getItem('ete_tecnica_incluir')==='1';})();</script>
+  <!-- Se restaura el TOGGLE (es una preferencia de formato) pero ya no el texto: la
+       restauración del texto era incondicional y pisaba la plantilla con lo escrito para
+       el paciente anterior. Se borra además la clave vieja, para que un navegador que ya
+       la tenga guardada de una versión anterior no la arrastre. -->
+  <script>(function(){try{localStorage.removeItem('ete_tecnica_texto');}catch(e){}var c=document.getElementById('ete_tecnica_incluir_chk');if(c)c.checked=localStorage.getItem('ete_tecnica_incluir')==='1';})();</script>
 
   <!-- MORFOLOGÍA Y ETIOLOGÍA — acordeón colapsado + toggle de inclusión en informe -->
   <div class="card" style="margin-bottom:8px;">
@@ -10886,7 +10895,19 @@ function cxDuke(){
   const angEl = document.getElementById('cx_duke_ang'); const ang = angEl ? (parseInt(angEl.value) || 0) : 0;
   const el = document.getElementById('cx-duke-total'); if (!el) return;
   if (min === null) { el.textContent = '—'; return; }
-  const score = min - 5 * (st || 0) - 4 * ang;
+  /* Guarda de parcialidad, la misma que cxWilkins. La depresión del ST ausente entraba al
+     score como 0 —`st || 0`— y un estudio con sólo el tiempo de ejercicio cargado salía
+     «riesgo bajo (mortalidad <1%/año)»: una afirmación PRONÓSTICA construida sobre un campo
+     que el médico no llenó. Se distingue vacío de cero: 0 mm de depresión es una respuesta
+     legítima, `null` es un dato que falta.
+     Importa más desde que el bloque del PDF depende sólo de su propio toggle: antes esta ruta
+     estaba tapada por la doble condición de Eco Estrés. */
+  if (st === null) {
+    el.innerHTML = (min - 4 * ang).toFixed(1) + ' ' +
+      badge('gray', 'parcial — falta la depresión del ST; sin interpretación');
+    return;
+  }
+  const score = min - 5 * st - 4 * ang;
   let cls, txt;
   if (score >= 5) { cls = 'green'; txt = 'riesgo bajo (mortalidad <1%/año)'; }
   else if (score >= -10) { cls = 'yellow'; txt = 'riesgo intermedio'; }
@@ -14675,7 +14696,12 @@ function limpiarCampos() {
   document.querySelectorAll('input[type=text], input[type=number]').forEach(el => { el.value = ''; });
   // Grados de severidad ocultos → 0
   ['im_grado','ia_grado','it_grado'].forEach(id => { const el = document.getElementById(id); if (el) el.value = '0'; });
-  document.querySelectorAll('textarea').forEach(el => el.value = '');
+  /* `defaultValue` y no '': para todos los textarea del archivo el valor por defecto es la
+     cadena vacía, así que no cambia nada — salvo en #ete_tecnica, que es el único con
+     plantilla en el HTML. Sin esto, el segundo ETE del día encontraba el campo vacío y la
+     mención al consentimiento informado y al ayuno —contenido médico-legal— dependía de que
+     el médico se acordara de tipearla. */
+  document.querySelectorAll('textarea').forEach(el => el.value = el.defaultValue);
   document.querySelectorAll('select').forEach(el => el.selectedIndex = 0);
   if (typeof renderCentroField === 'function') renderCentroField('');   // nuevo estudio → centro principal por defecto
   // Prolapso mitral: desmarcar checkboxes, limpiar extensión, ocultar bloque
@@ -14844,6 +14870,15 @@ function autoSave(){
     document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function(el){
       var t = el.type;
       if (t === 'file' || t === 'button' || t === 'submit') return;
+      /* ECOS-11: la técnica del ETE queda FUERA del autosave. Se le sacó su propia clave de
+         localStorage porque lleva datos del paciente (horas de ayuno, fármaco y dosis
+         administrados), pero seguía persistiéndose acá —bajo otra clave y al lado del nombre
+         y la cédula—, así que el objetivo del arreglo no se cumplía: se había mudado.
+         Hoy no reaparecía en el paciente siguiente sólo porque _autosaveRestore() está
+         inutilizado (ver la nota de esa función); el día que eso se arregle, la fuga volvía
+         por esta puerta y con el texto completo. El texto sí se guarda DENTRO del estudio,
+         que es donde corresponde: guardarInforme lo captura en `campos`. */
+      if (el.id === 'ete_tecnica') return;
       data[el.id] = (t === 'checkbox' || t === 'radio') ? !!el.checked : el.value;
     });
     localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(data));
@@ -15423,7 +15458,9 @@ function generarPDFReal() {
   // Logo del centro en el vértice superior derecho, proporción conservada y ajustado a la banda
   try {
     const _logoData = localStorage.getItem('logo_centro_' + (localStorage.getItem('centro_tipo_activo') || 'default'));
-    if (_logoData) {
+    /* Última puerta antes del informe FIRMADO: se comprueba que sea una imagen embebida y no
+       lo que haya quedado en la clave. El try/catch de abajo queda como red secundaria. */
+    if (_logoData && (typeof LOGO_DATA_OK !== 'function' || LOGO_DATA_OK(_logoData))) {
       const _lp = doc.getImageProperties(_logoData);
       /* Escala con la banda: era 18 mm fijos apoyados en y=2, o sea 20 mm de alto en una
          banda que ahora mide 16,5 — se salía por abajo y pisaba los datos del paciente.
@@ -15821,6 +15858,27 @@ function generarPDFReal() {
       y += 2;
     }
   }
+  /* ECOS-10 — SCORE DE DUKE.
+     Vivía DENTRO del bloque de Eco Estrés, que además de su propio toggle exige
+     eeHasData(). O sea que el botón «Incluir en PDF» del Duke no alcanzaba: si Eco Estrés
+     no estaba incluido —o no tenía datos cargados— el score desaparecía del PDF sin ningún
+     aviso, con su botón encendido en pantalla. El Duke se calcula desde una ergometría en
+     cinta y no necesita que haya un eco estrés en el estudio.
+     Va acá, junto a Wilkins y GTP/RVP, que son los otros scores con toggle propio: misma
+     condición (toggle activo + dato no vacío) y mismo formato. */
+  if (localStorage.getItem('duke_incluir_pdf') === '1') {
+    const _dk = _cxtx('cx-duke-total');
+    /* Un score parcial NO baja al PDF, igual que en Wilkins: el texto no es «—», así que
+       _cxVacio no lo filtra, y saldría un número bajo la barra «SCORE DE DUKE» sin la
+       palabra «parcial» que lo califica en pantalla. */
+    if (!_cxVacio(_dk) && !/parcial/i.test(_dk)) {
+      checkPage(14); drawBar('SCORE DE DUKE (treadmill: min - 5xST - 4xangina)'); y += 3;
+      fn(8); tc(30,30,30);
+      doc.splitTextToSize(_dk, pgW - 4).forEach(l => { checkPage(6); doc.text(l, mL + 2, y); y += 5; });
+      y += 2;
+    }
+  }
+
   // El perfil hemodinámico NO se dibuja acá: vive exclusivamente en el bloque
   // ETT Avanzado, vía el botón "Integrar al informe" de la tab Hemodinámica.
 
@@ -15932,11 +15990,9 @@ function generarPDFReal() {
       }
     }
 
-    // Score de Duke (si su toggle está activo)
-    if (localStorage.getItem('duke_incluir_pdf') === '1') {
-      const _dk = _cxtx('cx-duke-total');
-      if (!_cxVacio(_dk)) { _eeSub('Score de Duke'); checkPage(6); fn(8); tc(30,30,30); doc.text(_dk, mL + 2, y); y += 6; }
-    }
+    // El Score de Duke ya NO se dibuja acá: se movió al bloque de scores adicionales
+    // (junto a Wilkins y GTP/RVP), donde depende sólo de su propio toggle. Dejarlo también
+    // en esta rama lo imprimiría dos veces cuando Eco Estrés sí está incluido.
 
     // (d) Texto narrativo (conclusión)
     if (_eeOn('conclusion')) {
@@ -17404,23 +17460,81 @@ hdrSyncIdentidad();
 
 // ══ LOGO POR CENTRO ══
 function getCentroKey() { return localStorage.getItem('centro_tipo_activo') || 'default'; }
+/* Se declara ANTES de todas las funciones que lo usan y no al lado de renderLogoGallery:
+   un const usado desde una función declarada más arriba funciona sólo mientras nadie llame
+   a esa función durante la inicialización del módulo, y esa trampa de TDZ ya cortó un
+   script entero en este archivo. */
+const LOGO_DATA_OK = d => typeof d === 'string' && /^data:image\/(png|jpeg|jpg|gif|webp|svg\+xml);base64,/i.test(d);
 function getLogoGallery(){try{return JSON.parse(localStorage.getItem('logo_gallery')||'[]');}catch(e){return[];}}
 function saveLogoGallery(arr){try{localStorage.setItem('logo_gallery',JSON.stringify(arr));return true;}catch(e){return false;}}
 function openLogoGallery(){renderLogoGallery();document.getElementById('modal-logo-gallery').style.display='flex';}
 function closeLogoGallery(){document.getElementById('modal-logo-gallery').style.display='none';}
 function logoClick(e){if(e&&e.target&&e.target.id==='logo-centro-del')return;openLogoGallery();}
-function logoGalleryUpload(e){const f=e.target.files&&e.target.files[0];if(!f)return;const reader=new FileReader();reader.onload=function(){const gallery=getLogoGallery();gallery.push({id:String(Date.now()),name:f.name,data:reader.result});if(!saveLogoGallery(gallery)){alert('La imagen es demasiado grande para guardarse en este dispositivo.');return;}setActiveLogo(reader.result);};reader.readAsDataURL(f);e.target.value='';}
+/* Se valida en el INGRESO además de en el pintado: si sólo se filtrara al dibujar, el dato
+   inválido igual quedaría guardado en localStorage y viajaría en los backups JSON. El
+   `accept` del <input file> es una sugerencia del selector, no una garantía. */
+function logoGalleryUpload(e){const f=e.target.files&&e.target.files[0];if(!f)return;const reader=new FileReader();reader.onload=function(){if(!LOGO_DATA_OK(reader.result)){alert('El archivo no es una imagen válida (PNG, JPG, GIF, WEBP o SVG). No se guardó.');return;}const gallery=getLogoGallery();gallery.push({id:String(Date.now()),name:f.name,data:reader.result});if(!saveLogoGallery(gallery)){alert('La imagen es demasiado grande para guardarse en este dispositivo.');return;}setActiveLogo(reader.result);};reader.readAsDataURL(f);e.target.value='';}
 function logoGallerySelect(id){const item=getLogoGallery().find(x=>x.id===id);if(item)setActiveLogo(item.data);}
 function logoGalleryDeleteItem(id){const gallery=getLogoGallery();const item=gallery.find(x=>x.id===id);saveLogoGallery(gallery.filter(x=>x.id!==id));const key='logo_centro_'+getCentroKey();if(item&&item.data===localStorage.getItem(key)){localStorage.removeItem(key);renderLogoCentro();}renderLogoGallery();}
-function setActiveLogo(data){const key='logo_centro_'+getCentroKey();try{localStorage.setItem(key,data);}catch(err){alert('La imagen es demasiado grande para guardarse en este dispositivo.');return;}renderLogoCentro();closeLogoGallery();toast('✅ Logo guardado para este centro');}
-function renderLogoGallery(){const gallery=getLogoGallery();const grid=document.getElementById('lgal-grid');if(!grid)return;const active=localStorage.getItem('logo_centro_'+getCentroKey())||'';if(!gallery.length){grid.innerHTML='<p style="color:var(--text2);font-size:12px;text-align:center;padding:16px 0">No hay logos guardados aún.</p>';return;}grid.innerHTML=gallery.map(it=>'<div class="lgal-item'+(it.data===active?' lgal-active':'')+'" onclick="logoGallerySelect(\''+it.id+'\')"><img src="'+it.data+'" loading="lazy" alt="logo"><div class="lgal-name">'+(it.name.length>15?it.name.slice(0,14)+'…':it.name)+'</div><button type="button" class="lgal-del" onclick="event.stopPropagation();logoGalleryDeleteItem(\''+it.id+'\')" title="Eliminar">✕</button></div>').join('');}
+/* El logo activo se lee en renderLogoCentro (img.src) y en el PDF (doc.addImage): es la
+   última puerta antes de que un dato arbitrario llegue al informe firmado. */
+function setActiveLogo(data){if(!LOGO_DATA_OK(data)){alert('Ese logo no es una imagen válida y no se aplicó.');return;}const key='logo_centro_'+getCentroKey();try{localStorage.setItem(key,data);}catch(err){alert('La imagen es demasiado grande para guardarse en este dispositivo.');return;}renderLogoCentro();closeLogoGallery();toast('✅ Logo guardado para este centro');}
+/* ECOS-09 — la galería se pintaba con innerHTML concatenando TRES valores sin escapar:
+   `it.name` (el nombre del archivo que subió el usuario), `it.data` (la data URL, dentro
+   de un atributo src entre comillas) e `it.id` (dentro de un onclick entre comillas
+   simples). Un archivo llamado `x" onerror="alert(1)".png` cierra el atributo y ejecuta;
+   y como la galería vive en localStorage, el payload queda ALMACENADO y se re-ejecuta en
+   cada apertura del modal.
+   `it.data` no se escapa: se VALIDA. Escapar una URL sirve para que no rompa el atributo,
+   pero no impide que apunte a cualquier cosa; el único uso legítimo acá es una imagen
+   embebida, así que lo que no empiece con `data:image/` no se dibuja. */
+function renderLogoGallery(){
+  const gallery=getLogoGallery();
+  const grid=document.getElementById('lgal-grid');
+  if(!grid)return;
+  const active=localStorage.getItem('logo_centro_'+getCentroKey())||'';
+  if(!gallery.length){grid.innerHTML='<p style="color:var(--text2);font-size:12px;text-align:center;padding:16px 0">No hay logos guardados aún.</p>';return;}
+  /* Los inválidos se separan y se CUENTAN en un aviso, en vez de desaparecer en silencio:
+     un logo que el médico ve guardado y que no se dibuja sin explicación se lee como un
+     bug de la app, no como una entrada descartada. */
+  /* El `id` se valida además de escaparse. El escapado NO alcanza en ese sitio: viaja por
+     DOS parsers —el de atributos HTML y después el de JS del onclick—, y el primero
+     des-escapa `&quot;` antes de que el segundo vea la cadena, así que un id como
+     `x");alert(1);//` cierra la llamada y ejecuta. `escHtml` no toca `(`, `)`, `;` ni `\`.
+     La app genera los id con String(Date.now()), o sea sólo dígitos: cualquier otra cosa
+     viene de un localStorage manipulado y no se dibuja. Con eso el contexto JS queda
+     cerrado por construcción y no por confiar en el escapado. */
+  const validos = gallery.filter(it => LOGO_DATA_OK(it && it.data) && /^\d+$/.test(String(it && it.id)));
+  const descartados = gallery.length - validos.length;
+  let html = validos.map(it=>{
+    const nom = String(it.name == null ? '' : it.name);
+    const corto = nom.length>15 ? nom.slice(0,14)+'…' : nom;
+    return '<div class="lgal-item'+(it.data===active?' lgal-active':'')+
+      '" onclick="logoGallerySelect(&quot;'+escHtml(it.id)+'&quot;)">'+
+      '<img src="'+escHtml(it.data)+'" loading="lazy" alt="logo">'+
+      '<div class="lgal-name" title="'+escHtml(nom)+'">'+escHtml(corto)+'</div>'+
+      '<button type="button" class="lgal-del" onclick="event.stopPropagation();logoGalleryDeleteItem(&quot;'+escHtml(it.id)+'&quot;)" title="Eliminar">✕</button></div>';
+  }).join('');
+  if(descartados) html += '<p style="color:var(--red);font-size:11px;text-align:center;padding:10px 0;grid-column:1/-1;">'+
+    '⚠️ '+descartados+' logo(s) guardado(s) no son una imagen válida y no se muestran. Volvé a subirlos.</p>';
+  if(!validos.length && descartados) html = '<p style="color:var(--red);font-size:12px;text-align:center;padding:16px 0">'+
+    '⚠️ Ninguno de los '+descartados+' logos guardados es una imagen válida. Volvé a subirlos.</p>';
+  grid.innerHTML = html;
+}
 function logoDelete(e){if(e)e.stopPropagation();localStorage.removeItem('logo_centro_'+getCentroKey());renderLogoCentro();}
 function renderLogoCentro() {
   const img = document.getElementById('logo-centro-img');
   const ph  = document.getElementById('logo-centro-ph');
   const del = document.getElementById('logo-centro-del');
   if (!img || !ph || !del) return;
-  const data = localStorage.getItem('logo_centro_' + getCentroKey());
+  const key = 'logo_centro_' + getCentroKey();
+  let data = localStorage.getItem(key);
+  /* Se revalida al PINTAR y no sólo al guardar: setActiveLogo no vuelve a correr sobre lo ya
+     almacenado, así que un valor guardado por una versión anterior al arreglo nunca se
+     revisaba. Una URL externa ahí dentro dispara una petición saliente en cada carga de una
+     app clínica, y este archivo no tiene CSP que la frene. Si no es una imagen embebida, se
+     descarta la clave en vez de arrastrarla. */
+  if (data && !LOGO_DATA_OK(data)) { try { localStorage.removeItem(key); } catch (e) {} data = null; }
   if (data) { img.src = data; img.style.display = 'block'; ph.style.display = 'none'; del.style.display = 'block'; }
   else { img.removeAttribute('src'); img.style.display = 'none'; ph.style.display = 'flex'; del.style.display = 'none'; }
 }
