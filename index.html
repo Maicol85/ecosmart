@@ -2791,6 +2791,10 @@ window.cerrarSesion = cerrarSesion;
           <span class="calc-lbl" style="font-weight:700;">🧭 Perfil de Forrester <span style="font-weight:400;color:var(--text2);font-size:10px;">(IC + PCP)</span></span>
           <span id="hemo-forrester">—</span>
         </div>
+        <!-- Ojo: en ESTA tarjeta la RVP NO deriva de la PCP —sale de Abbas o del override por
+             cateterismo—, así que el disclaimer no puede decir que sí. En la tarjeta de
+             Cálculos es al revés: allí la RVP es GTP/GC y sí depende de la PCP. -->
+        <div style="font-size:10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;padding:7px 9px;margin-top:8px;line-height:1.5;">⚠️ <b>PCP estimada — valor orientativo, no reemplaza medición invasiva.</b> Derivada de E/e&#39; por la fórmula de Nagueh (1.24 × (E/e&#39;) + 1.9). El GTP y el perfil de Forrester se calculan a partir de ella y arrastran la misma limitación. La RVP de esta tarjeta se estima por Abbas o se ingresa por cateterismo: no depende de la PCP.</div>
         <div class="calc-row">
           <span class="calc-lbl" style="font-weight:700;">🩺 Perfil hemodinámico</span>
           <span id="hemo-perfil">—</span>
@@ -7625,6 +7629,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       <div class="calc-row"><span class="calc-lbl">GC <span style="color:var(--text2);font-size:10px;">= VS×FC/1000</span></span><span class="calc-val" id="cx-gtp-gc">—</span></div>
       <div class="calc-row"><span class="calc-lbl">GTP <span style="color:var(--text2);font-size:10px;">= PAPm−PCP</span></span><span id="cx-gtp-gtp">—</span></div>
       <div class="calc-row"><span class="calc-lbl">RVP <span style="color:var(--text2);font-size:10px;">= GTP/GC (Wood)</span></span><span id="cx-gtp-rvp">—</span></div>
+      <div style="font-size:10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;padding:7px 9px;margin-top:8px;line-height:1.5;">⚠️ <b>PCP estimada — valor orientativo, no reemplaza medición invasiva.</b> Derivada de E/e&#39; por la fórmula de Nagueh (1.24 × (E/e&#39;) + 1.9). El GTP y la RVP se calculan a partir de ella, así que arrastran la misma limitación.</div>
     </div>
     <div style="text-align:center;margin-top:10px;"><button class="btn btn-ghost" id="cx-gtp-pdf" onclick="cxGtpPDF()">📄 Incluir en PDF</button></div>
   </div></div>
@@ -8647,7 +8652,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 6px;">🏥 Hemodinámica y Presión de Capilar Pulmonar</div>
       <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px;">
         <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Nombre</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Fórmula</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Normal</th></tr>
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">PCP — Nagueh</td><td style="padding:5px 8px;font-family:monospace;">1.9 + (1.24 × E/e')</td><td style="padding:5px 8px;">≤15 mmHg</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">PCP — Nagueh</td><td style="padding:5px 8px;font-family:monospace;">1.24 × (E/e') + 1.9</td><td style="padding:5px 8px;">≤15 mmHg <span style="color:var(--text2);font-size:10px;">(estimada — orientativa)</span></td></tr>
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Gradiente Transpulmonar (GTP)</td><td style="padding:5px 8px;font-family:monospace;">PAPm − PCP</td><td style="padding:5px 8px;">&lt;12 mmHg</td></tr>
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">RVP (dinas)</td><td style="padding:5px 8px;font-family:monospace;">(PAPm − PCP) / GC × 80</td><td style="padding:5px 8px;">&lt;120 dinas·s·cm⁻⁵</td></tr>
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">RVP — Unidades Wood</td><td style="padding:5px 8px;font-family:monospace;">(PAPm − PCP) / GC</td><td style="padding:5px 8px;">&lt;1.5–2.0 UW</td></tr>
@@ -10276,6 +10281,33 @@ const UMBRAL_TAPSE_NORMAL = 17;  // mm (TAPSE ≥17 = normal)
    una PSAP de 38 era «normal» en una pantalla y «HTP leve» en el informe firmado. */
 const UMBRAL_PSAP_ELEVADA = 35;  // mmHg
 window.UMBRAL_PSAP_ELEVADA = UMBRAL_PSAP_ELEVADA;
+
+/* ── Presión capilar pulmonar estimada ──
+   UNA sola fórmula en toda la app: Nagueh, PCP = 1.24 × E/e' + 1.9. Convivían dos juegos de
+   coeficientes —la calculadora de GTP usaba 1.9 × E/e' + 1.5 bajo la misma atribución— y con
+   E/e' 18 la diferencia eran 11,5 mmHg, que se propagan al GTP y a la RVP y voltean los
+   veredictos «componente precapilar» y «HTP vascular».
+   El texto de la fórmula y el disclaimer viven acá para que las etiquetas no se separen del
+   cálculo: es lo que pasó con los umbrales de HTP, que terminaron en cinco lugares con tres
+   juegos de números. */
+const PCP_COEF_A = 1.24, PCP_COEF_B = 1.9;
+const PCP_FORMULA_TXT = "1.24 × (E/e') + 1.9";
+/* Guion CORTO a propósito: generarPDFReal es la única ruta de PDF sin saneador, y la
+   helvetica WinAnsi de jsPDF descarta la raya em en silencio. Con «—» el informe firmado
+   salía «PCP estimada valor orientativo», mientras la hoja de ETT Avanzado —que sí se
+   sanea— mostraba el guion: el mismo disclaimer distinto en dos páginas del mismo PDF. */
+const PCP_DISCLAIMER = 'PCP estimada - valor orientativo, no reemplaza medición invasiva.';
+/* Rechaza lo que no sea un número finito y positivo. `isNaN('')` e `isNaN(false)` son false,
+   así que la versión anterior devolvía 1.9 mmHg ante un campo vacío en vez de null — y una
+   PCP de 1.9 da Forrester «seco» y un GTP alto, o sea un veredicto de HTP precapilar salido
+   de la nada. La función está publicada en window como la API de PCP de la app y la forma
+   natural de llamarla en este archivo es con un `.value`. */
+function pcpNagueh(ee) {
+  const n = (typeof ee === 'number') ? ee : parseFloat(ee);
+  return (!isFinite(n) || n <= 0) ? null : PCP_COEF_A * n + PCP_COEF_B;
+}
+window.PCP_FORMULA_TXT = PCP_FORMULA_TXT; window.PCP_DISCLAIMER = PCP_DISCLAIMER;
+window.pcpNagueh = pcpNagueh;
 window.UMBRAL_FEVI_NORMAL = UMBRAL_FEVI_NORMAL;
 window.UMBRAL_TAPSE_NORMAL = UMBRAL_TAPSE_NORMAL;
 
@@ -10552,7 +10584,7 @@ function calcHemo() {
 
   // ── PCP (Nagueh) ──
   let pcp = null;
-  if (ee !== null) { pcp = 1.24 * ee + 1.9; set('hemo-pcp', pcp.toFixed(1) + ' mmHg (E/e\' ' + ee.toFixed(1) + ')'); }
+  if (ee !== null) { pcp = pcpNagueh(ee); set('hemo-pcp', pcp.toFixed(1) + ' mmHg (E/e\' ' + ee.toFixed(1) + ')'); }
   else set('hemo-pcp', '—');
 
   // ── Gradiente transpulmonar ──
@@ -10817,7 +10849,7 @@ function cxGTP(){
      lugar. Con E/e' 18 daba 35,7 en vez de 24,2 mmHg, y esos 11,5 mmHg se propagan al GTP
      (PAPm − PCP) y a la RVP (GTP / GC), o sea que voltean el veredicto «componente
      precapilar» y «HTP vascular» que este bloque imprime en el PDF. */
-  if (ee != null) { pcp = 1.24 * ee + 1.9; set('cx-gtp-pcp', pcp.toFixed(1) + ' mmHg'); } else set('cx-gtp-pcp', '—');
+  if (ee != null) { pcp = pcpNagueh(ee); set('cx-gtp-pcp', pcp.toFixed(1) + ' mmHg'); } else set('cx-gtp-pcp', '—');
   if (papm != null && pcp != null) gtp = papm - pcp;
   if (dtsvi != null && vti != null) { vs = 0.785 * Math.pow(dtsvi / 10, 2) * vti; set('cx-gtp-vs', vs.toFixed(0) + ' ml'); } else set('cx-gtp-vs', '—');
   if (vs != null && fc != null) { gc = vs * fc / 1000; set('cx-gtp-gc', gc.toFixed(2) + ' L/min'); } else set('cx-gtp-gc', '—');
@@ -15240,14 +15272,33 @@ function generarPDFReal() {
     }
   }
   if (localStorage.getItem('gtp_incluir_pdf') === '1') {
-    const _grows = [['PAPm (Chemla)','cx-gtp-papm'],['PCP (Nagueh)','cx-gtp-pcp'],['GTP','cx-gtp-gtp'],['VS','cx-gtp-vs'],['GC','cx-gtp-gc'],['RVP','cx-gtp-rvp']]
+    /* La etiqueta lleva la fórmula: un PDF reimpreso hoy da otros números que uno emitido
+       antes de unificarla, y sin la fórmula a la vista nada permite distinguirlos. */
+    const _grows = [['PAPm (Chemla)','cx-gtp-papm'],['PCP (Nagueh ' + PCP_FORMULA_TXT + ')','cx-gtp-pcp'],['GTP','cx-gtp-gtp'],['VS','cx-gtp-vs'],['GC','cx-gtp-gc'],['RVP','cx-gtp-rvp']]
       .map(r => [r[0], _cxtx(r[1])]).filter(r => r[1] && r[1] !== '—');
+    const _hayPCP = _grows.some(r => /^PCP/.test(r[0]));
     if (_grows.length) {
-      checkPage(10 + _grows.length * 5); drawBar('GRADIENTE TRANSPULMONAR (GTP) / RVP'); y += 3;
+      /* La reserva incluye el disclaimer: con la de antes (10 + filas×5) el bloque consumía
+         más de lo pedido y el checkPage del disclaimer metía un salto de página, así que la
+         salvedad aterrizaba sola arriba de la hoja siguiente, separada de los badges
+         «componente precapilar» y «HTP vascular» que califica. */
+      checkPage(13 + _grows.length * 5 + (_hayPCP ? 10 : 0)); drawBar('GRADIENTE TRANSPULMONAR (GTP) / RVP'); y += 3;
       _grows.forEach(r => { checkPage(6); fb(7.5); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(r[0] + ': ', mL + 2, y); const _lw = doc.getTextWidth(r[0] + ': '); fn(8); tc(30,30,30);
         const _ln = doc.splitTextToSize(String(r[1]), pgW - _lw - 6);
         _ln.forEach((l, i) => { if (i) checkPage(5); doc.text(l, i ? mL + 2 : mL + 2 + _lw, y); if (i < _ln.length - 1) y += 4.2; });
         y += 5; });
+      /* La salvedad va DENTRO del bloque, no en el disclaimer general del pie: éste imprime
+         «componente precapilar» y «HTP vascular», que son afirmaciones hemodinámicas
+         derivadas de una PCP estimada por Doppler. El disclaimer genérico de 5,5 pt del pie
+         no desactiva una conclusión de ese tipo. */
+      /* Sólo si la fila de PCP sobrevivió al filtro: sin E/e' cargado, PCP/GTP/RVP salen «—»
+         y se descartan, pero PAPm/VS/GC sobreviven — y el bloque quedaba con la salvedad de
+         una PCP que no aparece por ningún lado. */
+      if (_hayPCP) {
+        checkPage(9); fn(7); tc(110,110,110);
+        doc.splitTextToSize(PCP_DISCLAIMER + ' El GTP y la RVP de este bloque derivan de ella y arrastran la misma limitación.', pgW - 4)
+          .forEach(l => { checkPage(4); doc.text(l, mL + 2, y); y += 3.6; });
+      }
       y += 2;
     }
   }
@@ -18564,6 +18615,14 @@ function amiloTextoHemo() {
   L.push('Perfil de Forrester: ' + (f || 'no determinable'));
   L.push('Perfil hemodinámico: ' + (pf || 'no determinable'));
   L.push('HTP pre / pos / mixta: ' + (ht || 'no determinable'));
+  /* Este bloque se integra al informe y sale en la hoja de ETT Avanzado del PDF. El perfil
+     de Forrester y la clasificación pre/pos/mixta se apoyan en la PCP, que acá es una
+     estimación por Doppler: la salvedad viaja con el texto, no se queda en la tarjeta. */
+  if (_amTxt('hemo-pcp')) {
+    L.push('## Salvedad');
+    L.push((typeof PCP_DISCLAIMER !== 'undefined' ? PCP_DISCLAIMER : 'PCP estimada - valor orientativo, no reemplaza medición invasiva.')
+      + ' El perfil de Forrester y el GTP derivan de ella. La RVP de este módulo se estima por Abbas o se ingresa por cateterismo. La clasificación pre / pos / mixta de la hipertensión pulmonar requiere cateterismo cardíaco derecho.');
+  }
   return L.join('\n');
 }
 
@@ -24894,7 +24953,12 @@ function _labForrester(inf) {
   }
   const e = num('onda_e'), esep = num('e_sep'), elat = num('e_lat');
   let pcp = null;
-  if (e !== null && esep !== null && elat !== null) { const ee = e / ((esep + elat) / 2); pcp = 1.24 * ee + 1.9; }
+  /* Truthiness, no `!== null`: _labNum devuelve 0 para un campo con «0», y con los dos e' en
+     cero el E/e' daba Infinity y el estudio se clasificaba «húmedo» en el gráfico del
+     Laboratorio sin ningún aviso. El fallback con los coeficientes escritos a mano se quitó:
+     era inalcanzable —pcpNagueh está hoisted, lo que estaba en zona muerta eran las
+     constantes— y volvía a duplicar el número que esta unificación vino a eliminar. */
+  if (e && esep && elat) { pcp = pcpNagueh(e / ((esep + elat) / 2)); }
   if (ic === null || pcp === null) return null;
   const humedo = pcp > 15, frio = ic < 2.2;
   if (!frio && !humedo) return 'I';    // seco-caliente
