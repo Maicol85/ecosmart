@@ -3313,28 +3313,85 @@ window.cerrarSesion = cerrarSesion;
 <!-- ═══════════════════════ TAB: ETE MITRAL ═══════════════════════ -->
 <div id="tab-ete" class="tab-section">
 
-  <!-- TÉCNICA DEL PROCEDIMIENTO -->
-  <div class="card">
-    <h2 class="card-head">📋 Técnica del procedimiento</h2>
-    <div class="card-body">
+  <!-- TÉCNICA DEL PROCEDIMIENTO — acordeón colapsado + toggle de inclusión, mismo patrón
+       que Morfología y Clasificación VM: el checkbox queda FUERA del contenido colapsable
+       para que se vea siempre, incluso con el acordeón cerrado. -->
+  <div class="card" style="margin-bottom:8px;">
+    <div class="card-body" style="padding-bottom:0;">
       <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:10px;padding:8px 10px;background:var(--bg3);border-radius:8px;cursor:pointer;">
         <input type="checkbox" id="ete_tecnica_incluir_chk" onchange="localStorage.setItem('ete_tecnica_incluir', this.checked ? '1' : '0')"> 📋 Incluir técnica en informe
       </label>
+    </div>
+    <h2 class="card-head" style="cursor:pointer; user-select:none;" onclick="toggleEteSeccion('tecnica', this)">
+      📋 Técnica del procedimiento
+      <span id="ete-tecnica-arrow" style="float:right; transition:transform 0.2s;">▶</span>
+    </h2>
+  </div>
+  <div id="ete-seccion-tecnica" style="display:none;">
+  <div class="card">
+    <div class="card-body">
       <div class="fg">
-        <!-- ECOS-11: ya no se persiste en localStorage. El texto lleva los huecos rellenados
-             con datos del paciente («___ horas de ayuno», «se administró ___»), así que es
-             dato del estudio y no una preferencia: guardarlo hacía que reapareciera al
-             recargar la app, encima del paciente siguiente. El campo arranca siempre con
-             esta plantilla en blanco. -->
-        <textarea id="ete_tecnica" style="min-height:96px;" placeholder="Técnica del estudio transesofágico...">Estudio realizado previo firma de consentimiento informado. Con ___ horas de ayuno. Monitorizado con electrocardiograma y saturometría de pulso. Se administró ___ (fármaco/sedación). Procedimiento sin incidentes.</textarea>
+        <!-- La plantilla va como PLACEHOLDER y no como contenido del textarea. Dos razones:
+             (1) ECOS-11 — el texto lleva datos del paciente (ayuno, fármaco, dosis), así que
+             no se persiste en localStorage; sólo se guarda lo que el médico escribe, y eso
+             viaja dentro del estudio.
+             (2) Un textarea con contenido por defecto tiene value ≠ '' desde que carga la
+             página, y eso era lo que dejaba muerta la restauración del autosave de TODA la
+             app. Como placeholder, el value arranca vacío y deja de bloquearla.
+             Si el médico no escribe nada, el informe usa igual este texto: la constante
+             ETE_TECNICA_PLANTILLA de abajo lo lee del propio atributo, para que no haya dos
+             copias del texto que puedan divergir. -->
+        <textarea id="ete_tecnica" style="min-height:96px;" placeholder="Estudio realizado previo firma de consentimiento informado. Con 8 horas de ayuno. Monitorizado con electrocardiograma y saturometría de pulso. Se administró [fármaco/dosis]. Procedimiento sin incidentes. Mantiene estabilidad hemodinámica y respiratoria."></textarea>
+        <button type="button" class="btn btn-ghost" style="font-size:11px;margin-top:6px;" onclick="eteUsarPlantilla()">📋 Usar plantilla</button>
+        <div class="hint" style="font-size:10.5px;color:var(--text2);margin-top:4px;">
+          El texto gris es sólo una sugerencia: al informe baja únicamente lo que esté escrito acá.
+        </div>
       </div>
     </div>
   </div>
+  </div><!-- /#ete-seccion-tecnica -->
   <!-- Se restaura el TOGGLE (es una preferencia de formato) pero ya no el texto: la
        restauración del texto era incondicional y pisaba la plantilla con lo escrito para
        el paciente anterior. Se borra además la clave vieja, para que un navegador que ya
        la tenga guardada de una versión anterior no la arrastre. -->
-  <script>(function(){try{localStorage.removeItem('ete_tecnica_texto');}catch(e){}var c=document.getElementById('ete_tecnica_incluir_chk');if(c)c.checked=localStorage.getItem('ete_tecnica_incluir')==='1';})();</script>
+  <script>
+  (function(){try{localStorage.removeItem('ete_tecnica_texto');}catch(e){}var c=document.getElementById('ete_tecnica_incluir_chk');if(c)c.checked=localStorage.getItem('ete_tecnica_incluir')==='1';})();
+
+  /* Texto de técnica que va al informe: lo que escribió el médico, y si no escribió nada,
+     la plantilla. La plantilla se lee del ATRIBUTO placeholder y no de una constante
+     duplicada acá: con dos copias, la que se edita es la del HTML y el informe sigue
+     emitiendo la vieja sin que nada lo señale. */
+  /* SIN fallback al placeholder. El toggle «Incluir técnica» es una preferencia global que
+     sobrevive a la recarga y no se ata al estudio: con el fallback, tildarlo una vez para un
+     ETE hacía que el ETT de rutina del día siguiente saliera firmado diciendo «previo firma
+     de consentimiento informado, con 8 horas de ayuno, se administró [fármaco/dosis]» —
+     invisible en pantalla, porque el campo está vacío y el acordeón cerrado. Contenido
+     médico-legal fabricado sobre un estudio que nunca lo tuvo.
+     Al informe baja SÓLO lo escrito, que además queda guardado en `campos` y por lo tanto la
+     reimpresión reproduce el original en vez de reconstruirlo desde el HTML de hoy. La
+     plantilla se vuelca con el botón «Usar plantilla», o sea con un gesto del médico. */
+  function eteTecnicaTexto(){
+    var el = document.getElementById('ete_tecnica');
+    return el ? (el.value || '').trim() : '';
+  }
+  function eteUsarPlantilla(){
+    var el = document.getElementById('ete_tecnica');
+    if (!el) return;
+    if ((el.value || '').trim() && !confirm('Ya escribiste texto en la técnica. ¿Reemplazarlo por la plantilla?')) return;
+    el.value = el.placeholder || '';
+    el.dispatchEvent(new Event('input', {bubbles:true}));
+    el.focus();
+    if (typeof toast === 'function') toast('Plantilla cargada — completá los campos entre corchetes');
+  }
+  window.eteUsarPlantilla = eteUsarPlantilla;
+  /* Huecos sin completar. Cubre los corchetes de la plantilla («[fármaco/dosis]») y también
+     las rayas que suele dejar quien se arma la suya («___ mg»). Es lo que permite avisar
+     antes de que un token de plantilla quede impreso y firmado como si fuera el dato. */
+  function eteTecnicaHuecos(txt){
+    return String(txt == null ? '' : txt).match(/\[[^\]\n]{1,60}\]|_{3,}/g) || [];
+  }
+  window.eteTecnicaTexto = eteTecnicaTexto; window.eteTecnicaHuecos = eteTecnicaHuecos;
+  </script>
 
   <!-- MORFOLOGÍA Y ETIOLOGÍA — acordeón colapsado + toggle de inclusión en informe -->
   <div class="card" style="margin-bottom:8px;">
@@ -14696,11 +14753,10 @@ function limpiarCampos() {
   document.querySelectorAll('input[type=text], input[type=number]').forEach(el => { el.value = ''; });
   // Grados de severidad ocultos → 0
   ['im_grado','ia_grado','it_grado'].forEach(id => { const el = document.getElementById(id); if (el) el.value = '0'; });
-  /* `defaultValue` y no '': para todos los textarea del archivo el valor por defecto es la
-     cadena vacía, así que no cambia nada — salvo en #ete_tecnica, que es el único con
-     plantilla en el HTML. Sin esto, el segundo ETE del día encontraba el campo vacío y la
-     mención al consentimiento informado y al ayuno —contenido médico-legal— dependía de que
-     el médico se acordara de tipearla. */
+  /* `defaultValue` y no '': hoy todos los textarea tienen '' por defecto —la plantilla del
+     ETE pasó a ser `placeholder`—, así que no cambia nada, pero deja el reset alineado con
+     la guarda de _autosaveRestore, que también compara contra defaultValue. Si mañana algún
+     textarea vuelve a traer contenido en el HTML, las dos se comportan igual solas. */
   document.querySelectorAll('textarea').forEach(el => el.value = el.defaultValue);
   document.querySelectorAll('select').forEach(el => el.selectedIndex = 0);
   if (typeof renderCentroField === 'function') renderCentroField('');   // nuevo estudio → centro principal por defecto
@@ -14859,6 +14915,14 @@ function _autosaveShowInd(){
 // del paciente en curso, y en la próxima carga con formulario vacío _autosaveRestore()
 // se los repone como si fueran suyos.
 var _autosaveSuspendido = false;
+/* El borrador se descarta al GUARDAR el estudio, no sólo con «Nuevo Estudio». Sin esto: el
+   médico termina el paciente A, guarda, cierra la pestaña —nunca aprieta «Nuevo Estudio»
+   porque ya terminó—, y a la mañana siguiente la app le repone el borrador completo de A
+   sobre el formulario en blanco. Escribe el nombre de B encima y el resto de las mediciones
+   son de A. Mientras la restauración estuvo muerta esto era inofensivo; al arreglarla pasó a
+   ser el camino normal. */
+function _autosaveDescartar(){ clearTimeout(_autosaveTimer); try{ localStorage.removeItem(AUTOSAVE_KEY); }catch(e){} }
+window._autosaveDescartar = _autosaveDescartar;
 function autosaveSuspender(){ _autosaveSuspendido = true; clearTimeout(_autosaveTimer); }
 function autosaveReanudar(){ _autosaveSuspendido = false; clearTimeout(_autosaveTimer); autoSave(); }
 window.autosaveSuspender = autosaveSuspender; window.autosaveReanudar = autosaveReanudar;
@@ -14889,9 +14953,34 @@ function _autoSaveDebounced(){ clearTimeout(_autosaveTimer); _autosaveTimer = se
 function _autosaveRestore(){
   var raw; try{ raw = localStorage.getItem(AUTOSAVE_KEY); }catch(e){ return; }
   if (!raw) return;
+  /* NO se restaura cuando la URL pide un estudio concreto (?estudio=..., el QR de un informe
+     firmado). Los dos corren en DOMContentLoaded y éste se registra ANTES, así que reponía el
+     borrador del paciente anterior sobre el formulario vacío y después cargarEstudioPorId
+     escribía encima sólo las claves que ese estudio trae —los importados traen unas 50 contra
+     varios cientos—. El resultado era la identidad del estudio del enlace con las mediciones
+     del paciente anterior: la misma mezcla que editarInforme ya cierra llamando a
+     limpiarCampos(), reabierta por otra puerta y justo en el camino que usa un colega
+     escaneando un QR. Mientras la restauración estuvo muerta esto no podía pasar. */
+  try {
+    if (new URLSearchParams(location.search).get('estudio')) return;
+  } catch (e) {}
+  /* «Vacío» = todo campo sigue en su valor por defecto, no = todo campo es cadena vacía.
+     Con la comparación contra '' bastaba UN campo con contenido inicial para que la
+     restauración no corriera nunca, y había cuatro: ete_tecnica y lab-pdf-titulo traen
+     texto en el HTML, y firma-nombre / firma-cjpp los llena aplicarMedico() al arrancar.
+     O sea que autoSave() guardaba cada 1,5 s y prendía el indicador «guardado», pero el
+     borrador no volvía JAMÁS: si se cerraba la pestaña a mitad de un estudio se perdía
+     todo, con la app habiendo prometido lo contrario en cada tecla.
+
+     Los readonly se excluyen aparte: firma-nombre y firma-cjpp no tienen atributo value
+     —su defaultValue es ''— y los completa la configuración del médico, no el estudio, así
+     que su contenido no dice nada sobre si este formulario está empezado. Sin esa
+     exclusión, comparar contra defaultValue no alcanzaba y la restauración seguía muerta
+     en cualquier equipo con un médico configurado. */
   var empty = true;
   document.querySelectorAll('input[type=text], input[type=number], textarea').forEach(function(el){
-    if (el.id && String(el.value || '').trim() !== '') empty = false;
+    if (!el.id || el.readOnly || el.disabled) return;
+    if (el.value !== el.defaultValue) empty = false;
   });
   if (!empty) return;
   var data; try{ data = JSON.parse(raw); }catch(e){ return; }
@@ -14914,6 +15003,34 @@ function _autosaveRestore(){
   // Ídem VEXUS: los selectores vuelven con su valor, pero el score y la habilitación de
   // los tres vasos se pintan por JS y quedarían en blanco tras recargar.
   if (typeof calcVEXUS === 'function') calcVEXUS();
+  /* Recálculo de derivados, la misma secuencia que ya corren editarInforme y la reimpresión.
+     Faltaba acá porque esta restauración estuvo inutilizada desde siempre y nadie la
+     endureció: reponer los `value` sin disparar eventos deja los SPANS —que es de donde lee
+     el emisor del PDF, no de los inputs— con el contenido anterior o en «—».
+     Medido en las otras dos rutas y documentado en sus comentarios: sin calcWilkins() el
+     score queda en «—» y se BORRA el aviso de contraindicación por trombo en orejuela; sin
+     los calc* de cámaras, el EROA y el volumen regurgitante salen vacíos y sus bloques
+     desaparecen del informe; sin _sevManualRestaurar() el primer recálculo pisa una
+     severidad fijada a mano. */
+  try {
+    if (typeof _sevManualRestaurar === 'function') _sevManualRestaurar();
+    if (window.esqPills) { try { esqPills.refresh(); } catch (e) {} }
+    ['calcBSA','calcVI','calcAI','calcAorta','calcVD','calcDiastol','calcPSAP','calcPmAD',
+     'calcIM_ESC','calcIA_ESC','calcIT_ESC','calcContIM','calcAo','calcEADetalle',
+     'calcWilkins','cxWilkins','cxDuke','cxGtpSync','showMasaPanel','calcHTP2022',
+     'calcCardioOnco','updateHdrExtra'].forEach(function(fn){
+      if (typeof window[fn] === 'function') { try { window[fn](); } catch (e) { console.warn('[autosave] '+fn, e); } }
+    });
+  } catch (e) { console.warn('[autosave] recálculo de derivados', e); }
+  /* El borrador restaurado se anuncia. Una reposición SILENCIOSA de datos clínicos es
+     indistinguible de un formulario en blanco para quien acaba de abrir la app, y el
+     paciente al que pertenecen esos datos no es necesariamente el que tiene delante. */
+  if (typeof toast === 'function') {
+    var _qn = (data && data.nombre) ? String(data.nombre).trim() : '';
+    setTimeout(function(){
+      toast('📝 Se restauró un borrador sin guardar' + (_qn ? ' de ' + _qn : '') + ' — «Nuevo Estudio» lo descarta');
+    }, 400);
+  }
 }
 function _autosaveInit(){
   _autosaveRestore();
@@ -15460,6 +15577,13 @@ function generarPDFReal() {
     const _logoData = localStorage.getItem('logo_centro_' + (localStorage.getItem('centro_tipo_activo') || 'default'));
     /* Última puerta antes del informe FIRMADO: se comprueba que sea una imagen embebida y no
        lo que haya quedado en la clave. El try/catch de abajo queda como red secundaria. */
+    /* El aviso va en el `else`, no sólo en el catch: un logo descartado por el predicado
+       —el caso que motivó todo esto, un SVG guardado por una versión anterior— no llega al
+       catch, lo filtra este if. Sin el else, el logo institucional desaparecía de todos los
+       informes del centro exactamente igual de callado que antes. */
+    if (_logoData && typeof LOGO_DATA_OK === 'function' && !LOGO_DATA_OK(_logoData)) {
+      if (typeof toast === 'function') toast('⚠️ El logo guardado de este centro no es una imagen compatible con el PDF — volvé a subirlo en JPG o PNG');
+    }
     if (_logoData && (typeof LOGO_DATA_OK !== 'function' || LOGO_DATA_OK(_logoData))) {
       const _lp = doc.getImageProperties(_logoData);
       /* Escala con la banda: era 18 mm fijos apoyados en y=2, o sea 20 mm de alto en una
@@ -15476,7 +15600,14 @@ function generarPDFReal() {
       if (_lw > _lwMax) { _lh = _lh * (_lwMax / _lw); _lw = _lwMax; }
       doc.addImage(_logoData, _lp.fileType || undefined, 210 - _lw - 6, 2 + (_lhBanda - _lh) / 2, _lw, _lh);
     }
-  } catch (_e) { /* formato no soportado (p. ej. SVG) — se omite en el PDF */ }
+  } catch (_e) {
+    /* El catch documentaba el agujero en vez de cerrarlo: cuando jsPDF no puede dibujar el
+       logo, TODOS los informes de ese centro salen sin identidad institucional y nadie se
+       entera. Se avisa. El SVG ya no llega hasta acá (se rechaza en la subida), así que si
+       este aviso aparece es por un formato que hay que revisar. */
+    console.warn('[PDF] no se pudo dibujar el logo del centro:', _e);
+    if (typeof toast === 'function') toast('⚠️ El logo del centro no se pudo incluir en el PDF — revisá el formato (usá JPG o PNG)');
+  }
   dc(91,155,213); doc.setLineWidth(1.2); doc.line(0,hdrH,210,hdrH);
   y = hdrH + 4;
 
@@ -15735,9 +15866,34 @@ function generarPDFReal() {
      única ruta de PDF sin saneador — un solo carácter fuera de WinAnsi (un «≥», una comilla
      curva pegada de otro lado) convierte la CADENA ENTERA a UTF-16 y sale ilegible. En la
      hoja del ETE lo saneaba amiloDibujarSecciones; acá hay que hacerlo en el borde. */
-  const _eteTecnica = (localStorage.getItem('ete_tecnica_incluir') === '1') ? sv('ete_tecnica').trim() : '';
+  /* eteTecnicaTexto() y no sv('ete_tecnica'): la plantilla vive en el placeholder, así que
+     con el campo vacío sv() devuelve '' y la sección no salía pese a estar tildada. */
+  /* La inclusión se lee del CHECKBOX y no de localStorage: el checkbox viaja dentro del
+     estudio (`campos`) y la reimpresión lo repone, mientras que la clave de localStorage es
+     una preferencia global de la sesión. Con la clave, reimprimir un estudio guardado salía
+     sin la sección que el PDF original SÍ tenía —o al revés—: dos documentos del mismo
+     estudio con contenido médico-legal distinto y sin ninguna señal. */
+  const _eteChk = document.getElementById('ete_tecnica_incluir_chk');
+  const _eteInc = _eteChk ? _eteChk.checked : (localStorage.getItem('ete_tecnica_incluir') === '1');
+  const _eteTecnica = _eteInc
+    ? (typeof eteTecnicaTexto === 'function' ? eteTecnicaTexto() : sv('ete_tecnica').trim()) : '';
   if (_eteTecnica) {
-    const _etSan = (typeof amiloSanPDF === 'function') ? amiloSanPDF(_eteTecnica) : _eteTecnica;
+    /* Aviso NO bloqueante: si quedaron huecos de plantilla sin completar, se imprimen igual
+       —el médico decide— pero no en silencio. Un informe firmado que dice «Se administró
+       [fármaco/dosis]» es un hueco de formulario presentado como el dato del procedimiento,
+       el mismo defecto que ya salió una vez con «Completá todos los criterios» impreso como
+       interpretación del estudio. */
+    const _huecos = (typeof eteTecnicaHuecos === 'function') ? eteTecnicaHuecos(_eteTecnica) : [];
+    if (_huecos.length && typeof toast === 'function') {
+      toast('⚠️ La técnica del ETE tiene ' + _huecos.length + ' campo(s) sin completar: ' +
+        _huecos.slice(0, 3).join(' · ') + ' — se imprimen tal cual');
+    }
+    /* Se saneá LÍNEA POR LÍNEA, igual que amiloDibujarSecciones. amiloSanPDF borra todo lo
+       que esté fuera de \x20-\xFF, y ahí caen \n y \r: saneando el bloque entero, un médico
+       que escribía la técnica en dos párrafos obtenía «...sin incidentes.Mantiene estabilidad»
+       pegado en el informe firmado. splitTextToSize sí sabe manejar los saltos. */
+    const _etSan = (typeof amiloSanPDF === 'function')
+      ? _eteTecnica.split('\n').map(amiloSanPDF).join('\n') : _eteTecnica;
     drawBar('TECNICA Y SEDACION');
     y += 2;
     fn(8); tc(13,13,13);
@@ -16703,7 +16859,11 @@ function toggleEteSeccion(id, headEl) {
   if (!sec) return;
   const visible = sec.style.display !== 'none';
   sec.style.display = visible ? 'none' : 'block';
-  if (arrow) arrow.style.transform = visible ? 'rotate(-90deg)' : 'rotate(0deg)';
+  /* La flecha estaba invertida: cerrada quedaba en rotate(-90deg) —apuntando hacia ARRIBA— y
+     abierta volvía a ▶, o sea igual que el estado inicial cerrado. El afford de «hay algo
+     adentro» decía lo contrario de lo que pasaba, y en estas secciones gobierna el acceso a
+     campos que deciden contenido impreso. Cerrada ▶ (sin rotar), abierta ▼ (90° horario). */
+  if (arrow) arrow.style.transform = visible ? 'rotate(0deg)' : 'rotate(90deg)';
 }
 
 function toggleValvPill(valvula, tipo) {
@@ -17464,7 +17624,13 @@ function getCentroKey() { return localStorage.getItem('centro_tipo_activo') || '
    un const usado desde una función declarada más arriba funciona sólo mientras nadie llame
    a esa función durante la inicialización del módulo, y esa trampa de TDZ ya cortó un
    script entero en este archivo. */
-const LOGO_DATA_OK = d => typeof d === 'string' && /^data:image\/(png|jpeg|jpg|gif|webp|svg\+xml);base64,/i.test(d);
+/* Sin `svg+xml`: jsPDF no lo dibuja. Aceptarlo hacía que el logo se viera perfecto en la
+   pantalla y en el header de la app, con su «✅ Logo guardado», y desapareciera de TODOS los
+   informes firmados de ese centro sin un solo aviso — el catch del PDF se tragaba el error.
+   Al sacarlo del predicado, un SVG guardado por una versión anterior también se descarta al
+   pintar, en vez de arrastrarse. */
+const LOGO_DATA_OK = d => typeof d === 'string' && /^data:image\/(png|jpeg|jpg|gif|webp);base64,/i.test(d);
+const LOGO_ES_SVG = f => !!f && (f.type === 'image/svg+xml' || /\.svg$/i.test(f.name || ''));
 function getLogoGallery(){try{return JSON.parse(localStorage.getItem('logo_gallery')||'[]');}catch(e){return[];}}
 function saveLogoGallery(arr){try{localStorage.setItem('logo_gallery',JSON.stringify(arr));return true;}catch(e){return false;}}
 function openLogoGallery(){renderLogoGallery();document.getElementById('modal-logo-gallery').style.display='flex';}
@@ -17473,7 +17639,12 @@ function logoClick(e){if(e&&e.target&&e.target.id==='logo-centro-del')return;ope
 /* Se valida en el INGRESO además de en el pintado: si sólo se filtrara al dibujar, el dato
    inválido igual quedaría guardado en localStorage y viajaría en los backups JSON. El
    `accept` del <input file> es una sugerencia del selector, no una garantía. */
-function logoGalleryUpload(e){const f=e.target.files&&e.target.files[0];if(!f)return;const reader=new FileReader();reader.onload=function(){if(!LOGO_DATA_OK(reader.result)){alert('El archivo no es una imagen válida (PNG, JPG, GIF, WEBP o SVG). No se guardó.');return;}const gallery=getLogoGallery();gallery.push({id:String(Date.now()),name:f.name,data:reader.result});if(!saveLogoGallery(gallery)){alert('La imagen es demasiado grande para guardarse en este dispositivo.');return;}setActiveLogo(reader.result);};reader.readAsDataURL(f);e.target.value='';}
+function logoGalleryUpload(e){const f=e.target.files&&e.target.files[0];if(!f)return;
+  /* El SVG se detecta ANTES de leer el archivo y se dice por qué: es el formato natural de
+     un logotipo de clínica, así que el médico lo va a intentar, y el rechazo tiene que
+     explicar qué hacer en vez de sonar a archivo corrupto. No se guarda. */
+  if(LOGO_ES_SVG(f)){alert('Los logos en formato SVG no son compatibles con el PDF. Por favor usá una imagen en formato JPG o PNG.');e.target.value='';return;}
+  const reader=new FileReader();reader.onload=function(){if(!LOGO_DATA_OK(reader.result)){alert('El archivo no es una imagen válida. Usá JPG, PNG o WEBP. No se guardó.');return;}const gallery=getLogoGallery();gallery.push({id:String(Date.now()),name:f.name,data:reader.result});if(!saveLogoGallery(gallery)){alert('La imagen es demasiado grande para guardarse en este dispositivo.');return;}setActiveLogo(reader.result);};reader.readAsDataURL(f);e.target.value='';}
 function logoGallerySelect(id){const item=getLogoGallery().find(x=>x.id===id);if(item)setActiveLogo(item.data);}
 function logoGalleryDeleteItem(id){const gallery=getLogoGallery();const item=gallery.find(x=>x.id===id);saveLogoGallery(gallery.filter(x=>x.id!==id));const key='logo_centro_'+getCentroKey();if(item&&item.data===localStorage.getItem(key)){localStorage.removeItem(key);renderLogoCentro();}renderLogoGallery();}
 /* El logo activo se lee en renderLogoCentro (img.src) y en el PDF (doc.addImage): es la
@@ -18436,7 +18607,7 @@ function guardarInforme(onDone) {
       informes.unshift(nuevoInforme);
       eeCurrentInformeId = nuevoInforme.estudioId;
       guardarInformesSeguro(informes).then(_okN => {
-        if (_okN) toast('💾 Informe guardado como nuevo');   // el error lo avisa CeiboStore
+        if (_okN) { toast('💾 Informe guardado como nuevo'); _autosaveDescartar(); }   // el error lo avisa CeiboStore
         if (onDone) onDone(_okN);
       });
     };
@@ -18448,7 +18619,7 @@ function guardarInforme(onDone) {
       else informes.unshift(nuevoInforme);
       eeCurrentInformeId = (idx >= 0) ? informes[idx].estudioId : nuevoInforme.estudioId;
       guardarInformesSeguro(informes).then(_okO => {
-        if (_okO) toast('🔄 Informe sobreescrito correctamente');
+        if (_okO) { toast('🔄 Informe sobreescrito correctamente'); _autosaveDescartar(); }
         if (onDone) onDone(_okO);
       });
     };
@@ -18456,7 +18627,7 @@ function guardarInforme(onDone) {
     informes.unshift(nuevoInforme);
     eeCurrentInformeId = nuevoInforme.estudioId;
     return guardarInformesSeguro(informes).then(_ok => {
-      if (_ok) toast('💾 Informe guardado correctamente');
+      if (_ok) { toast('💾 Informe guardado correctamente'); _autosaveDescartar(); }
       if (onDone) onDone(_ok);
       return _ok;
     });
@@ -27148,7 +27319,10 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
       <div style="font-weight:600">Subir nuevo logo</div>
       <div style="font-size:10px;margin-top:3px;opacity:.7">JPG · PNG · SVG · WebP</div>
     </div>
-    <input type="file" id="lgal-file" accept="image/jpeg,image/png,image/svg+xml,image/webp" style="display:none" onchange="logoGalleryUpload(event)">
+    <!-- Sin image/svg+xml: jsPDF no lo dibuja. El selector deja de ofrecerlo, y si igual
+         llega uno (arrastrando el archivo, o con el filtro en «todos»), logoGalleryUpload
+         lo rechaza con el motivo. El accept es una sugerencia del diálogo, no una garantía. -->
+    <input type="file" id="lgal-file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="logoGalleryUpload(event)">
     <div style="font-size:11px;color:var(--text2);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Logos guardados</div>
     <div class="lgal-grid" id="lgal-grid"></div>
     <div style="display:flex;justify-content:flex-end;margin-top:16px"><button class="btn btn-ghost" onclick="closeLogoGallery()">Cerrar</button></div>
