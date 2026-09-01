@@ -7067,6 +7067,300 @@ z
   </div>
   </div>
 
+  <!-- ═══ CIA / CIV — CARDIOPATÍA CONGÉNITA CON SHUNT ═══
+       Los toggles de inclusión de estas dos secciones NO usan localStorage: se leen del
+       propio checkbox, que guardarInforme captura en `campos` y la reimpresión repone. Las
+       secciones viejas leen una clave global y por eso un estudio reimpreso podía salir sin
+       una sección que el PDF original sí tenía; acá se evita de entrada. -->
+  <div class="card" style="margin-bottom:8px;">
+    <div class="card-body" style="padding-bottom:0;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:10px;padding:8px 10px;background:var(--bg3);border-radius:8px;cursor:pointer;">
+        <input type="checkbox" id="ete_shunt_incluir_chk"> 🫀 Incluir CIA/CIV en informe
+      </label>
+    </div>
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('shunt',this);eteShuntSync();">
+      🫀 CIA / CIV — Cardiopatía congénita con shunt
+      <span id="ete-shunt-arrow" style="float:right;transition:transform 0.2s;">▶</span>
+    </h2>
+  </div>
+  <div id="ete-seccion-shunt" style="display:none;">
+  <div class="card"><div class="card-body">
+
+    <div class="subtabs-wrap" style="justify-content:flex-start;margin-bottom:12px;">
+      <div class="tabs-row">
+        <button type="button" class="tab-btn active" id="ete-shunt-tab-cia" onclick="eteShuntTab('cia')">CIA</button>
+        <button type="button" class="tab-btn" id="ete-shunt-tab-civ" onclick="eteShuntTab('civ')">CIV</button>
+      </div>
+    </div>
+
+    <!-- ── CIA ── -->
+    <div id="ete-shunt-pane-cia">
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">Tipo y tamaño</div>
+      <div class="grid-3">
+        <div class="fg"><label>Tipo de CIA</label>
+          <select id="ete_cia_tipo" onchange="eteShuntSync()">
+            <option value="">—</option>
+            <option value="secundum">Ostium secundum</option>
+            <option value="primum">Ostium primum</option>
+            <option value="sv_vcs">Seno venoso VCS</option>
+            <option value="sv_vci">Seno venoso VCI</option>
+            <option value="seno_coronario">Seno coronario</option>
+          </select>
+        </div>
+        <div class="fg"><label>Tamaño máximo (mm)</label><input type="number" id="ete_cia_tam_max" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+        <div class="fg"><label>Tamaño mínimo (mm)</label><input type="number" id="ete_cia_tam_min" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Bordes</div>
+      <div class="tablewrap">
+      <table class="tbl" style="width:100%;font-size:12px;">
+        <thead><tr>
+          <th style="text-align:left;">Borde</th><th style="text-align:left;">Ventana ETE</th><th style="text-align:right;">Medida (mm)</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>Aórtico (superoanterior)</td><td style="color:var(--text2);">30–45°</td>
+              <td style="text-align:right;"><input type="number" id="ete_cia_borde_ao" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
+          <tr><td>AV / Mitral (inferoanterior)</td><td style="color:var(--text2);">0°</td>
+              <td style="text-align:right;"><input type="number" id="ete_cia_borde_av" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
+          <tr><td>VCS (superoposterior)</td><td style="color:var(--text2);">90° bicava</td>
+              <td style="text-align:right;"><input type="number" id="ete_cia_borde_vcs" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
+          <tr><td>VCI (inferoposterior)</td><td style="color:var(--text2);">90° bicava</td>
+              <td style="text-align:right;"><input type="number" id="ete_cia_borde_vci" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
+          <tr><td>Posterior</td><td style="color:var(--text2);">0°</td>
+              <td style="text-align:right;"><input type="number" id="ete_cia_borde_post" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <div id="ete-cia-borde-min-box" class="calc-box" style="margin-top:8px;display:none;">
+        <div class="calc-row"><span class="calc-lbl">Borde mínimo</span><span id="ete-cia-borde-min">—</span></div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Shunt</div>
+      <div class="grid-2">
+        <div class="fg"><label>Dirección</label>
+          <select id="ete_cia_dir" onchange="eteShuntSync()">
+            <option value="">—</option>
+            <option value="id">Izquierda → derecha</option>
+            <option value="di">Derecha → izquierda</option>
+            <option value="bi">Bidireccional</option>
+          </select>
+        </div>
+        <div class="fg"><label>Velocidad pico del jet (m/s)</label><input type="number" id="ete_cia_vel" step="0.1" placeholder="m/s" oninput="eteShuntSync()"></div>
+      </div>
+      <!-- No se deriva PAPs del jet interauricular: esa fórmula (PAS − 4V²) es la del CIV,
+           donde la velocidad refleja el gradiente VI–VD. En una CIA el gradiente es AI–AD y
+           da números sin sentido (PAS 120 con V 1,2 → «PAPs 114»). La PAPs de la CIA se
+           informa por IT, que ya viene calculada más abajo. -->
+      <div class="calc-box" style="margin-top:8px;">
+        <div class="calc-row"><span class="calc-lbl">PAPs por IT (del estudio)</span><span id="ete-cia-paps-it" class="calc-val">—</span></div>
+      </div>
+    </div>
+
+    <!-- ── CIV ── -->
+    <div id="ete-shunt-pane-civ" style="display:none;">
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">Tipo y tamaño</div>
+      <div class="grid-3">
+        <div class="fg"><label>Tipo de CIV</label>
+          <select id="ete_civ_tipo" onchange="eteShuntSync()">
+            <option value="">—</option>
+            <option value="perimembranosa">Perimembranosa</option>
+            <option value="muscular">Muscular</option>
+            <option value="infundibular">Infundibular</option>
+            <option value="inlet">Inlet</option>
+          </select>
+        </div>
+        <div class="fg"><label>Tamaño máximo (mm)</label><input type="number" id="ete_civ_tam" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+        <div class="fg"><label>Vista ETE</label><input type="text" id="ete_civ_vista" placeholder="Ej: 4C 0°, eje corto 45°" oninput="eteShuntSync()"></div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Gradiente y presión pulmonar</div>
+      <div class="grid-2">
+        <div class="fg"><label>Velocidad pico del jet CIV (m/s)</label><input type="number" id="ete_civ_vel" step="0.1" placeholder="m/s" oninput="eteShuntSync()"></div>
+        <div class="fg"><label>PA sistémica (mmHg)</label><input type="number" id="ete_civ_pas" step="1" placeholder="mmHg" oninput="eteShuntSync()"></div>
+      </div>
+      <div class="calc-box" style="margin-top:8px;">
+        <div class="calc-row"><span class="calc-lbl">PAPs estimada por CIV (PAS − 4V²)</span><span id="ete-civ-paps" class="calc-val">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">PAPs por IT (del estudio)</span><span id="ete-civ-paps-it" class="calc-val">—</span></div>
+      </div>
+    </div>
+
+    <!-- ── Comunes a CIA y CIV ──
+         Qp/Qs y DDVI indexado se cargan UNA vez y valen para las dos pestañas: el Qp/Qs es
+         una propiedad del shunt y el DDVIi del paciente, ninguno de los dos es específico de
+         CIA o CIV. Con dos juegos de campos, un paciente con ambos defectos podía terminar
+         informando dos Qp/Qs distintos. -->
+    <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;border-top:1px solid var(--border);padding-top:12px;">
+      Qp/Qs y DDVI indexado <span style="font-weight:400;color:var(--text2);font-size:11px;">— comunes a CIA y CIV</span>
+    </div>
+    <div class="grid-4">
+      <div class="fg"><label>Ø TSVI (mm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
+        <input type="text" id="ete_shunt_tsvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+      <div class="fg"><label>VTI TSVI (cm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
+        <input type="text" id="ete_shunt_vtitsvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+      <div class="fg"><label>Ø TSVD (mm)</label><input type="number" id="ete_shunt_tsvd" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+      <div class="fg"><label>VTI TSVD (cm)</label><input type="number" id="ete_shunt_vti_tsvd" step="0.1" placeholder="cm" oninput="eteShuntSync()"></div>
+    </div>
+    <div class="calc-box" style="margin-top:8px;">
+      <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Qp/Qs</span><span id="ete-shunt-qpqs">—</span></div>
+      <div class="calc-row"><span class="calc-lbl">Interpretación</span><span id="ete-shunt-qpqs-interp" style="font-size:11px;color:var(--text2);">—</span></div>
+    </div>
+    <div class="grid-3" style="margin-top:10px;">
+      <div class="fg"><label>DDVI (mm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
+        <input type="text" id="ete_shunt_ddvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+      <div class="fg"><label>ASC (m²) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
+        <input type="text" id="ete_shunt_asc_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+      <div class="fg"><label>DDVI indexado</label>
+        <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+          <span id="ete-shunt-ddvii" class="calc-val">—</span></div></div>
+        <div style="font-size:10px;color:var(--text2);margin-top:3px;">Normal &lt; 32 mm/m²</div>
+      </div>
+    </div>
+  </div></div>
+  </div><!-- /#ete-seccion-shunt -->
+
+  <!-- ═══ TAVI — EVALUACIÓN ECOCARDIOGRÁFICA ═══ -->
+  <div class="card" style="margin-bottom:8px;">
+    <div class="card-body" style="padding-bottom:0;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:10px;padding:8px 10px;background:var(--bg3);border-radius:8px;cursor:pointer;">
+        <input type="checkbox" id="ete_tavi_incluir_chk"> 🫀 Incluir TAVI en informe
+      </label>
+    </div>
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('tavi',this);eteTaviSync();">
+      🫀 TAVI — Evaluación ecocardiográfica
+      <span id="ete-tavi-arrow" style="float:right;transition:transform 0.2s;">▶</span>
+    </h2>
+  </div>
+  <div id="ete-seccion-tavi" style="display:none;">
+  <div class="card"><div class="card-body">
+
+    <div class="subtabs-wrap" style="justify-content:flex-start;margin-bottom:12px;">
+      <div class="tabs-row">
+        <button type="button" class="tab-btn active" id="ete-tavi-tab-pre" onclick="eteTaviTab('pre')">Pre-TAVI</button>
+        <button type="button" class="tab-btn" id="ete-tavi-tab-post" onclick="eteTaviTab('post')">Post-TAVI</button>
+      </div>
+    </div>
+
+    <!-- ── PRE-TAVI ── -->
+    <div id="ete-tavi-pane-pre">
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">Válvula aórtica nativa</div>
+      <div class="grid-3">
+        <div class="fg"><label>Morfología</label>
+          <select id="ete_tavi_morf" onchange="eteTaviSync()">
+            <option value="">—</option><option value="tricuspide">Tricúspide</option>
+            <option value="bicuspide">Bicúspide</option><option value="cuadricuspide">Cuadricúspide</option>
+          </select></div>
+        <div class="fg"><label>Calcificación</label>
+          <select id="ete_tavi_calc" onchange="eteTaviSync()">
+            <option value="">—</option><option value="leve">Leve</option>
+            <option value="moderada">Moderada</option><option value="severa">Severa</option>
+          </select></div>
+        <div class="fg"><label>Distribución</label>
+          <select id="ete_tavi_distrib" onchange="eteTaviSync()">
+            <option value="">—</option><option value="simetrica">Simétrica</option><option value="asimetrica">Asimétrica</option>
+          </select></div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Anillo aórtico</div>
+      <div class="grid-3">
+        <div class="fg"><label>Diámetro anular (ETE 120–140°) (mm)</label><input type="number" id="ete_tavi_anillo_diam" step="0.1" placeholder="mm" oninput="eteTaviSync()"></div>
+        <div class="fg"><label>Área anular (cm²)</label><input type="number" id="ete_tavi_anillo_area" step="0.01" placeholder="cm²" oninput="eteTaviSync()"></div>
+        <div class="fg"><label>Perímetro (mm)</label><input type="number" id="ete_tavi_anillo_perim" step="0.1" placeholder="mm" oninput="eteTaviSync()"></div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Raíz aórtica</div>
+      <div class="grid-3">
+        <!-- Sin la leyenda «del estudio»: nada autocompleta este campo, y prometerlo hacía
+             que se dejara vacío esperando un valor que nunca llega — en un sizing pre-TAVI
+             el diámetro de la raíz no es opcional. -->
+        <div class="fg"><label>Seno de Valsalva (mm)</label>
+          <input type="number" id="ete_tavi_valsalva" step="0.1" placeholder="mm" oninput="eteTaviSync()"></div>
+        <div class="fg"><label>Unión sinotubular (mm)</label><input type="number" id="ete_tavi_ust" step="0.1" placeholder="mm" oninput="eteTaviSync()"></div>
+        <div class="fg"><label>Aorta ascendente proximal (mm)</label><input type="number" id="ete_tavi_ao_asc" step="0.1" placeholder="mm" oninput="eteTaviSync()"></div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Distancia de las coronarias al anillo</div>
+      <div class="grid-2">
+        <div class="fg"><label>Coronaria izquierda (mm)</label><input type="number" id="ete_tavi_cor_izq" step="0.1" placeholder="mm" oninput="eteTaviSync()"></div>
+        <div class="fg"><label>Coronaria derecha (mm)</label><input type="number" id="ete_tavi_cor_der" step="0.1" placeholder="mm" oninput="eteTaviSync()"></div>
+      </div>
+    </div>
+
+    <!-- ── POST-TAVI ── -->
+    <div id="ete-tavi-pane-post" style="display:none;">
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">Prótesis</div>
+      <div class="grid-4">
+        <div class="fg"><label>Tipo</label>
+          <select id="ete_tavi_pro_tipo" onchange="eteTaviSync()">
+            <option value="">—</option><option value="balon">Balón expandible</option><option value="auto">Auto expandible</option>
+          </select></div>
+        <div class="fg"><label>Marca / modelo</label><input type="text" id="ete_tavi_pro_marca" placeholder="Ej: Sapien 3" oninput="eteTaviSync()"></div>
+        <div class="fg"><label>Tamaño (mm)</label><input type="number" id="ete_tavi_pro_tam" step="0.1" placeholder="mm" oninput="eteTaviSync()"></div>
+        <div class="fg"><label>Posición</label>
+          <select id="ete_tavi_pro_pos" onchange="eteTaviSync()">
+            <option value="">—</option><option value="correcta">Correcta</option><option value="alta">Alta</option>
+            <option value="baja">Baja</option><option value="muy_baja">Muy baja</option>
+          </select></div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Gradientes post-TAVI</div>
+      <div class="grid-4">
+        <div class="fg"><label>Vmax (m/s)</label><input type="number" id="ete_tavi_vmax" step="0.1" placeholder="m/s" oninput="eteTaviSync()"></div>
+        <div class="fg"><label>G. medio (mmHg)</label><input type="number" id="ete_tavi_gmedio" step="0.1" placeholder="mmHg" oninput="eteTaviSync()"></div>
+        <div class="fg"><label>AVA continuidad (cm²)</label><input type="number" id="ete_tavi_ava" step="0.01" placeholder="cm²" oninput="eteTaviSync()"></div>
+        <div class="fg"><label>AVAi (cm²/m²)</label><input type="number" id="ete_tavi_avai" step="0.01" placeholder="cm²/m²" oninput="eteTaviSync()"></div>
+      </div>
+      <div class="grid-4" style="margin-top:6px;">
+        <div class="fg"><label>DVI</label><input type="number" id="ete_tavi_dvi" step="0.01" placeholder="—" oninput="eteTaviSync()"></div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Regurgitación paravalvular <span style="font-weight:400;color:var(--text2);font-size:11px;">— ASE/EACVI 2019 + VARC-3</span></div>
+      <div class="grid-4">
+        <div class="fg"><label>Ancho vena contracta (cm)</label><input type="number" id="ete_tavi_vc_ancho" step="0.01" placeholder="cm" oninput="eteTaviSync()"></div>
+        <div class="fg"><label>Área vena contracta (cm²)</label><input type="number" id="ete_tavi_vc_area" step="0.01" placeholder="cm² (2D/3D)" oninput="eteTaviSync()"></div>
+        <div class="fg"><label>PHT (ms)</label><input type="number" id="ete_tavi_pht" step="1" placeholder="ms" oninput="eteTaviSync()"></div>
+        <div class="fg"><label>Flujo reverso diastólico Ao desc.</label>
+          <select id="ete_tavi_flujo_rev" onchange="eteTaviSync()">
+            <option value="">—</option><option value="ausente">Ausente</option>
+            <option value="proto">Proto-diastólico corto</option><option value="holo">Holodiastólico</option>
+          </select></div>
+      </div>
+      <div class="grid-2" id="ete-tavi-veltele-wrap" style="margin-top:6px;display:none;">
+        <div class="fg"><label>Velocidad tele-diastólica aorta abdominal (cm/s)</label>
+          <input type="number" id="ete_tavi_vel_tele" step="1" placeholder="cm/s" oninput="eteTaviSync()"></div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Localización del jet — EPC (eje paraesternal corto)</div>
+      <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;">
+        <div>
+          <canvas id="ete-tavi-epc" width="340" height="340" style="max-width:100%;cursor:pointer;touch-action:manipulation;"></canvas>
+          <div style="font-size:11px;color:var(--text2);margin-top:4px;">Tocá los segmentos donde se ve el jet.</div>
+          <div id="ete-tavi-jet-txt" style="font-size:12px;font-weight:700;color:var(--accent2);margin-top:4px;">Sin jet marcado</div>
+          <!-- Las horas viajan DENTRO del estudio (input con id ⇒ lo captura guardarInforme
+               en `campos` y el autosave), no en una clave global de localStorage: la
+               localización del jet es un hallazgo de ESTE paciente, y una clave global es el
+               patrón que ya hizo aparecer los segmentos del ETE de un paciente en el
+               diagrama y el PDF de todos los siguientes. -->
+          <input type="hidden" id="ete_tavi_jet_horas" value="">
+        </div>
+        <div style="flex:1;min-width:220px;">
+          <div class="fg"><label>Extensión circunferencial total (%)</label>
+            <input type="number" id="ete_tavi_ext_circ" step="1" placeholder="%" oninput="eteTaviSync()">
+            <div id="ete-tavi-ext-sug" style="font-size:11px;color:var(--text2);margin-top:4px;"></div>
+          </div>
+          <div class="calc-box" style="margin-top:10px;">
+            <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Severidad estimada (VARC-3)</span><span id="ete-tavi-rpv-sev">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">Criterio que decide</span><span id="ete-tavi-rpv-motivo" style="font-size:11px;color:var(--text2);">—</span></div>
+          </div>
+          <div style="font-size:10.5px;color:var(--text2);margin-top:6px;line-height:1.5;">
+            Clasificación orientativa según los parámetros disponibles. La integración clínica es del médico tratante.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div></div>
+  </div><!-- /#ete-seccion-tavi -->
+
 </div>
 
 <!-- ═══════════════════════ TAB: ECO ESTRÉS ═══════════════════════ -->
@@ -14710,6 +15004,171 @@ function generarInforme(opts) {
         : ('Aorta torácica: ' + aoDesc + '.'));
     }
 
+    /* 5. CIA / CIV — sólo si el checkbox está tildado. Se lee el CHECKBOX y no una clave de
+       localStorage: así viaja dentro del estudio (guardarInforme lo captura en `campos`) y
+       la reimpresión reproduce exactamente lo que se firmó. */
+    (function(){
+      const chk=document.getElementById('ete_shunt_incluir_chk');
+      if(!chk || !chk.checked) return;
+      if(typeof eteShuntSync==='function') { try{ eteShuntSync(); }catch(e){} }
+      const q  = (typeof eteQpQs==='function') ? eteQpQs() : null;
+      const di = (typeof eteDDVIi==='function') ? eteDDVIi() : null;
+      const paps = v('psap_calc');
+      /* MISMO f1 guardado que usa la pantalla. El de acá no tenía isFinite, y como el script
+         de arranque convierte los type=number en type=text no hay validación del navegador:
+         escribir «1e999» dejaba la tarjeta mostrando «—» y el informe firmado imprimiendo
+         «CIV perimembranosa, Infinity mm». Dos helpers homónimos que divergían justo en la
+         copia que se firma. */
+      const f1 = n => (n==null||!isFinite(n)) ? null : String(Math.round(n*10)/10);
+
+      // ── CIA ──
+      /* «Qp/Qs global» y no «Qp/Qs» a secas: con CIA y CIV a la vez el mismo cociente se
+         imprime en los dos párrafos, y sin el adjetivo se lee como si cada defecto tuviera
+         ese valor. Y la PAPs de la CIA se nombra POR IT, que es de donde sale: en una
+         cardiopatía con shunt, PAPs por IT y PAPs por jet de CIV no son intercambiables. */
+      const cTipo=sv('ete_cia_tipo'), cMax=v('ete_cia_tam_max'), cMin=v('ete_cia_tam_min');
+      const bm=(typeof eteCiaBordeMin==='function')?eteCiaBordeMin():null;
+      const cDir=sv('ete_cia_dir'), cVel=v('ete_cia_vel');
+      let emitido = false;
+      if(cTipo||cMax!=null||cMin!=null||bm||cDir){
+        const p=[];
+        p.push('CIA' + (cTipo ? ' tipo '+(CIA_TIPO_TXT[cTipo]||cTipo) : ''));
+        if(f1(cMax) && f1(cMin)) p.push('Tamaño '+f1(cMax)+' × '+f1(cMin)+' mm');
+        else if(f1(cMax)) p.push('Tamaño máximo '+f1(cMax)+' mm');
+        else if(f1(cMin)) p.push('Tamaño mínimo '+f1(cMin)+' mm');
+        if(bm && f1(bm.mm)) p.push('Borde mínimo '+f1(bm.mm)+' mm ('+bm.nombre+')');
+        if(cDir) p.push('Shunt de '+(CIA_DIR_TXT[cDir]||cDir));
+        if(f1(cVel)) p.push('Velocidad pico del jet '+f1(cVel)+' m/s');
+        if(q!=null) p.push('Qp/Qs global '+q.toFixed(2));
+        if(f1(di)) p.push('DDVI indexado '+f1(di)+' mm/m²');
+        if(f1(paps)) p.push('PAPs por IT '+f1(paps)+' mmHg');
+        etePars.push(p.join('. ')+'.'); emitido = true;
+      }
+
+      // ── CIV ──
+      const vTipo=sv('ete_civ_tipo'), vTam=v('ete_civ_tam'), vVista=(sv('ete_civ_vista')||'').trim();
+      const vVel=v('ete_civ_vel'), vPas=v('ete_civ_pas');
+      if(vTipo||vTam!=null||vVel!=null||vVista){
+        const p=[];
+        p.push('CIV'+(vTipo ? ' '+(CIV_TIPO_TXT[vTipo]||vTipo) : '')+(f1(vTam) ? ', '+f1(vTam)+' mm' : ''));
+        if(vVista) p.push('Visualizada en '+vVista);
+        if(f1(vVel)) p.push('Gradiente pico '+f1(4*vVel*vVel)+' mmHg (V '+f1(vVel)+' m/s)');
+        if(q!=null) p.push('Qp/Qs global '+q.toFixed(2));
+        if(f1(di)) p.push('DDVI indexado '+f1(di)+' mm/m²');
+        // Mismo rango de plausibilidad que la pantalla: una PAPs negativa o menor a 5 no se informa.
+        let pc = (vVel!=null && vPas!=null) ? (vPas - 4*vVel*vVel) : null;
+        if(pc!=null && isFinite(pc) && pc>=5 && pc<=150) p.push('PAPs estimada por CIV '+f1(pc)+' mmHg');
+        else if(f1(paps)) p.push('PAPs por IT '+f1(paps)+' mmHg');
+        etePars.push(p.join('. ')+'.'); emitido = true;
+      }
+
+      /* El EN SUMA sólo habla del shunt si el CUERPO describió alguno: con el checkbox
+         tildado y sólo el TSVD cargado, la conclusión afirmaba «Qp/Qs 1.90 — shunt moderado,
+         considerar cierre» sobre un informe que no menciona ningún defecto. */
+      if(q!=null && emitido) suma.push('Qp/Qs '+q.toFixed(2)+'. '+eteQpQsInterp(q)+'.');
+    })();
+
+    /* 6. TAVI — ídem, gateado por su propio checkbox. */
+    (function(){
+      const chk=document.getElementById('ete_tavi_incluir_chk');
+      if(!chk || !chk.checked) return;
+      if(typeof eteTaviSync==='function') { try{ eteTaviSync(); }catch(e){} }
+      const f1 = n => (n==null||!isFinite(n)) ? null : String(Math.round(n*10)/10);
+
+      // ── Pre-TAVI ──
+      const morf=sv('ete_tavi_morf'), cal=sv('ete_tavi_calc'), dis=sv('ete_tavi_distrib');
+      const anD=v('ete_tavi_anillo_diam'), anA=v('ete_tavi_anillo_area'), anP=v('ete_tavi_anillo_perim');
+      const val=v('ete_tavi_valsalva'), ust=v('ete_tavi_ust'), aoA=v('ete_tavi_ao_asc');
+      const cIz=v('ete_tavi_cor_izq'), cDe=v('ete_tavi_cor_der');
+      /* La guarda incluye TODOS los campos que el bloque sabe imprimir. Antes miraba sólo
+         morf/cal/anD/val/cIz, así que quien cargaba únicamente área anular y perímetro —que
+         es justo el sizing con el que se elige el tamaño de la prótesis— no obtenía ningún
+         párrafo pre-TAVI: los números quedaban guardados y ausentes del informe, sin aviso. */
+      if(morf||cal||dis||anD!=null||anA!=null||anP!=null||val!=null||ust!=null||aoA!=null||cIz!=null||cDe!=null){
+        const p=[];
+        if(morf||cal||dis){
+          let s='Válvula aórtica'+(morf?' '+(TAVI_TXT.morf[morf]||morf):'');
+          if(cal) s+=', calcificación '+(TAVI_TXT.calc[cal]||cal);
+          if(dis) s+=', '+(TAVI_TXT.distrib[dis]||dis);
+          p.push(s);
+        }
+        if(f1(anD)||f1(anA)||f1(anP)){
+          const det=[];
+          if(f1(anA)) det.push('área '+f1(anA)+' cm²');
+          if(f1(anP)) det.push('perímetro '+f1(anP)+' mm');
+          p.push('Anillo aórtico'+(f1(anD)?' '+f1(anD)+' mm':'')+(det.length?' ('+det.join(', ')+')':''));
+        }
+        const raiz=[];
+        if(f1(val)) raiz.push('seno de Valsalva '+f1(val)+' mm');
+        if(f1(ust)) raiz.push('unión sinotubular '+f1(ust)+' mm');
+        if(f1(aoA)) raiz.push('aorta ascendente proximal '+f1(aoA)+' mm');
+        if(raiz.length) p.push(raiz.join(', ').replace(/^./,c=>c.toUpperCase()));
+        const cor=[];
+        if(f1(cIz)) cor.push('coronaria izquierda '+f1(cIz)+' mm');
+        if(f1(cDe)) cor.push('coronaria derecha '+f1(cDe)+' mm');
+        if(cor.length) p.push('Distancia al anillo: '+cor.join(', '));
+        if(p.length) etePars.push(p.join('. ')+'.');
+      }
+
+      // ── Post-TAVI ──
+      const pTipo=sv('ete_tavi_pro_tipo'), pMarca=(sv('ete_tavi_pro_marca')||'').trim();
+      const pTam=v('ete_tavi_pro_tam'), pPos=sv('ete_tavi_pro_pos');
+      const vmax=v('ete_tavi_vmax'), gm=v('ete_tavi_gmedio'), ava=v('ete_tavi_ava');
+      const avai=v('ete_tavi_avai'), dvi=v('ete_tavi_dvi');
+      const pht=v('ete_tavi_pht'), flujo=sv('ete_tavi_flujo_rev'), ext=v('ete_tavi_ext_circ');
+      const horas=(typeof eteEpcHoras==='function')?eteEpcHoras():[];
+      const rpv=(typeof eteTaviRPV==='function')?eteTaviRPV():null;
+      /* El párrafo POST exige evidencia de PRÓTESIS. Antes bastaba con que existiera `rpv`,
+         y rpv se construye también con el PHT solo — que es un parámetro de la insuficiencia
+         aórtica NATIVA, natural de anotar en un PRE-TAVI. Con el checkbox tildado y ese único
+         dato, el informe firmado afirmaba «Insuficiencia paravalvular moderada» y el EN SUMA
+         «TAVI. RPV moderada.» en un paciente sin prótesis implantada. */
+      const hayProtesis = !!(pTipo || pMarca || pTam!=null || pPos);
+      if(hayProtesis){
+        const p=[];
+        {
+          let s='Prótesis'+(pTipo?' '+(TAVI_TXT.tipo[pTipo]||pTipo):'');
+          if(pMarca) s+=' '+pMarca;
+          if(f1(pTam)) s+=' de '+f1(pTam)+' mm';
+          if(pPos) s+=', en posición '+(TAVI_TXT.pos[pPos]||pPos);
+          p.push(s);
+        }
+        const gr=[];
+        if(f1(gm))   gr.push('gradiente medio '+f1(gm)+' mmHg');
+        if(f1(vmax)) gr.push('Vmax '+f1(vmax)+' m/s');
+        if(f1(ava))  gr.push('AVA '+f1(ava)+' cm²');
+        // AVAi y DVI son los dos parámetros con los que se define el mismatch prótesis-paciente:
+        // estaban en el formulario y no se leían en ningún lado.
+        if(f1(avai)) gr.push('AVA indexada '+f1(avai)+' cm²/m²');
+        if(f1(dvi))  gr.push('DVI '+f1(dvi));
+        if(gr.length) p.push(gr.join(', ').replace(/^./,c=>c.toUpperCase()));
+        if(rpv){
+          let s='Insuficiencia paravalvular '+rpv.sev.toLowerCase();
+          if(horas.length) s+=', jet localizado en hora '+horas.join(', ');
+          if(f1(ext)) s+=', extensión circunferencial '+f1(ext)+'%';
+          p.push(s);
+        } else if(horas.length){
+          /* Las horas se informan aunque no alcance para graduar: el widget es lo más visible
+             de la sección y, sin esto, marcar el jet y no transcribir el porcentaje a mano
+             hacía desaparecer ese trabajo del informe sin ningún aviso. */
+          p.push('Jet paravalvular localizado en hora '+horas.join(', ')+
+            (f1(ext)?', extensión circunferencial '+f1(ext)+'%':''));
+        }
+        if(f1(pht)) p.push('PHT '+f1(pht)+' ms');
+        if(flujo) p.push('Flujo reverso diastólico en aorta descendente '+(TAVI_TXT.flujo[flujo]||flujo));
+        etePars.push(p.join('. ')+'.');
+      }
+
+      if(hayProtesis){
+        const s=[];
+        s.push('TAVI'+(pTipo?' '+(TAVI_TXT.tipo[pTipo]||pTipo):''));
+        if(f1(gm)) s.push('gradiente medio '+f1(gm)+' mmHg');
+        let l=s.join(', ')+'.';
+        if(rpv) l+=' RPV '+rpv.sev.toLowerCase()+'.';
+        suma.push(l);
+      }
+    })();
+
     if (etePars.length) inf.push('', ...etePars);
   })();
 
@@ -14820,6 +15279,10 @@ function limpiarCampos() {
   ['ete_tecnica_incluir_chk','ete_morfo_incluir_chk'].forEach(id => {
     const c = document.getElementById(id); if (c) c.checked = false;
   });
+  /* CIA/CIV y TAVI: los inputs y selects los limpia el barrido de arriba, pero el bitmap del
+     canvas EPC, el hidden con las horas del jet, los dos checkboxes de inclusión y los
+     sub-tabs viven fuera de él y quedaban con lo del paciente anterior. */
+  if (typeof eteShuntTaviReset === 'function') { try { eteShuntTaviReset(); } catch (e) {} }
   _pdfToggleBtnState('contr-pdf-toggle', false);
   _pdfToggleBtnState('sgl-pdf-toggle', false);
   try { localStorage.removeItem('ecosmart_autosave'); } catch(e) {}
@@ -15018,7 +15481,7 @@ function _autosaveRestore(){
     ['calcBSA','calcVI','calcAI','calcAorta','calcVD','calcDiastol','calcPSAP','calcPmAD',
      'calcIM_ESC','calcIA_ESC','calcIT_ESC','calcContIM','calcAo','calcEADetalle',
      'calcWilkins','cxWilkins','cxDuke','cxGtpSync','showMasaPanel','calcHTP2022',
-     'calcCardioOnco','updateHdrExtra'].forEach(function(fn){
+     'calcCardioOnco','updateHdrExtra','eteShuntSync','eteTaviSync','eteEpcRefrescar'].forEach(function(fn){
       if (typeof window[fn] === 'function') { try { window[fn](); } catch (e) { console.warn('[autosave] '+fn, e); } }
     });
   } catch (e) { console.warn('[autosave] recálculo de derivados', e); }
@@ -16866,6 +17329,308 @@ function toggleEteSeccion(id, headEl) {
   if (arrow) arrow.style.transform = visible ? 'rotate(0deg)' : 'rotate(90deg)';
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   CIA / CIV — shunt congénito
+   ══════════════════════════════════════════════════════════════════════════ */
+const _CIA_BORDES = [
+  ['ete_cia_borde_ao','aórtico'], ['ete_cia_borde_av','AV/mitral'],
+  ['ete_cia_borde_vcs','VCS'],    ['ete_cia_borde_vci','VCI'],
+  ['ete_cia_borde_post','posterior']
+];
+const CIA_TIPO_TXT = { secundum:'ostium secundum', primum:'ostium primum',
+  sv_vcs:'seno venoso de vena cava superior', sv_vci:'seno venoso de vena cava inferior',
+  seno_coronario:'seno coronario' };
+const CIA_DIR_TXT = { id:'izquierda a derecha', di:'derecha a izquierda', bi:'bidireccional' };
+const CIV_TIPO_TXT = { perimembranosa:'perimembranosa', muscular:'muscular',
+  infundibular:'infundibular', inlet:'de tracto de entrada (inlet)' };
+
+function eteShuntTab(cual){
+  const cia = cual === 'cia';
+  const p1=document.getElementById('ete-shunt-pane-cia'), p2=document.getElementById('ete-shunt-pane-civ');
+  if(p1) p1.style.display = cia ? '' : 'none';
+  if(p2) p2.style.display = cia ? 'none' : '';
+  const b1=document.getElementById('ete-shunt-tab-cia'), b2=document.getElementById('ete-shunt-tab-civ');
+  if(b1) b1.classList.toggle('active', cia);
+  if(b2) b2.classList.toggle('active', !cia);
+  eteShuntSync();
+}
+window.eteShuntTab = eteShuntTab;
+
+/* Borde mínimo: el menor de los que SE INGRESARON. Devuelve también cuál es, porque el
+   informe lo nombra — «borde mínimo 4 mm» sin decir cuál no orienta el cierre percutáneo. */
+function eteCiaBordeMin(){
+  let min=null, nom='';
+  _CIA_BORDES.forEach(function(b){
+    const val = v(b[0]);
+    if(val!=null && isFinite(val) && (min===null || val<min)){ min=val; nom=b[1]; }
+  });
+  return min===null ? null : {mm:min, nombre:nom};
+}
+/* Qp/Qs = (TSVD² · VTI_TSVD) / (TSVI² · VTI_TSVI). Los diámetros van en mm y las VTI en cm
+   en los DOS términos, así que las unidades se cancelan y el cociente es adimensional.
+   Devuelve null —nunca NaN ni Infinity— si falta un dato o si el denominador es 0: un
+   «Qp/Qs Infinity» impreso en un informe firmado es peor que un guion. */
+function eteQpQs(){
+  const dI = v('diam_tsvi'), vI = v('itv_tsvi');
+  const dD = v('ete_shunt_tsvd'), vD = v('ete_shunt_vti_tsvd');
+  if(dI==null||vI==null||dD==null||vD==null) return null;
+  const den = dI*dI*vI;
+  if(!(den>0)) return null;
+  const q = (dD*dD*vD)/den;
+  if(!isFinite(q) || q<0) return null;
+  /* Control de plausibilidad. Las unidades se cancelan solas, pero nada impide cargar el
+     TSVD en cm (2,5 en vez de 25): el cociente cae unas 100 veces y un shunt de 2,4 se
+     informa como 0,024 → «shunt pequeño, conducta conservadora». Fuera de 0,2–10 no hay
+     Qp/Qs fisiológico posible, así que es un error de carga y no se informa un número. */
+  if(q < 0.2 || q > 10) return null;
+  return q;
+}
+/* La banda de abajo NO empieza en 0: un Qp/Qs < 1 significa flujo pulmonar MENOR que el
+   sistémico, o sea shunt neto de derecha a izquierda (fisiología de Eisenmenger), que es
+   justo donde el cierre está contraindicado. Sin esta cota, un 0,62 caía en `q < 1.5` y el
+   informe firmado decía «shunt pequeño — conducta conservadora» sobre el peor escenario, y
+   se contradecía con el propio cuerpo si el médico había marcado dirección derecha→izquierda.
+   Y la banda alta ya no dice «cierre indicado»: esa es una indicación terapéutica y sale de
+   un solo cociente, sin mirar sobrecarga de VD ni resistencia pulmonar. */
+function eteQpQsInterp(q){
+  if(q==null) return '';
+  if(q < 1) return 'Qp/Qs < 1: flujo neto de derecha a izquierda — no aplica la graduación por magnitud; descartar hipertensión pulmonar / fisiología de Eisenmenger';
+  if(q < 1.5) return 'Shunt pequeño — conducta conservadora';
+  if(q <= 2.0) return 'Shunt moderado — considerar cierre';
+  return 'Shunt significativo — evaluar cierre según sobrecarga de VD y resistencia pulmonar';
+}
+function eteDDVIi(){
+  const d = v('ddfvi'), asc = (typeof getBSA==='function') ? getBSA() : null;
+  if(d==null || !asc || !(asc>0)) return null;
+  const r = d/asc;
+  return isFinite(r) ? r : null;
+}
+function eteShuntSync(){
+  const txt = (id,val)=>{ const e=document.getElementById(id); if(e) e.textContent = val; };
+  const ro  = (id,val)=>{ const e=document.getElementById(id); if(e) e.value = val; };
+  const f1 = n => (n==null||!isFinite(n)) ? '—' : String(Math.round(n*10)/10);
+
+  // Espejos de solo lectura de campos que ya viven en el estudio
+  const dI=v('diam_tsvi'), vI=v('itv_tsvi'), dd=v('ddfvi');
+  const asc=(typeof getBSA==='function')?getBSA():null, paps=v('psap_calc');
+  ro('ete_shunt_tsvi_ro',    dI!=null ? dI+' mm' : '');
+  ro('ete_shunt_vtitsvi_ro', vI!=null ? vI+' cm' : '');
+  ro('ete_shunt_ddvi_ro',    dd!=null ? dd+' mm' : '');
+  ro('ete_shunt_asc_ro',     asc ? (Math.round(asc*100)/100)+' m²' : '');
+  const papsTxt = paps!=null ? f1(paps)+' mmHg' : '—';
+  txt('ete-cia-paps-it', papsTxt); txt('ete-civ-paps-it', papsTxt);
+
+  // Borde mínimo — la caja se oculta entera si no se ingresó ninguno
+  const bm = eteCiaBordeMin();
+  const box = document.getElementById('ete-cia-borde-min-box');
+  if(box) box.style.display = bm ? '' : 'none';
+  if(bm) txt('ete-cia-borde-min', f1(bm.mm)+' mm ('+bm.nombre+')');
+
+  const q = eteQpQs();
+  txt('ete-shunt-qpqs', q==null ? '—' : q.toFixed(2));
+  txt('ete-shunt-qpqs-interp', q==null ? '—' : eteQpQsInterp(q));
+
+  const di = eteDDVIi();
+  txt('ete-shunt-ddvii', di==null ? '—' : f1(di)+' mm/m²');
+
+  // PAPs por CIV (PAS − 4V²): sólo con los dos datos, y sólo en CIV.
+  /* Rango de plausibilidad, no sólo isFinite: PAS 120 con un jet de 6 m/s da −24, y el
+     informe firmado salía con «PAPs estimada por CIV −24 mmHg». Peor que el negativo obvio
+     es la franja 0–5, que se lee como presión pulmonar normal y puede desescalar la
+     conducta. Fuera de rango se muestra el motivo, no el número. */
+  const vC=v('ete_civ_vel'), pas=v('ete_civ_pas');
+  let papsCiv=null, papsCivMsg='—';
+  if(vC!=null && pas!=null){
+    const r = pas - 4*vC*vC;
+    if(isFinite(r) && r>=5 && r<=150) papsCiv=r;
+    else papsCivMsg='fuera de rango — revisar velocidad del jet o PA sistémica';
+  }
+  txt('ete-civ-paps', papsCiv==null ? papsCivMsg : f1(papsCiv)+' mmHg');
+}
+window.eteShuntSync = eteShuntSync;
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TAVI — pre/post y regurgitación paravalvular
+   ══════════════════════════════════════════════════════════════════════════ */
+const TAVI_TXT = {
+  morf:{tricuspide:'tricúspide',bicuspide:'bicúspide',cuadricuspide:'cuadricúspide'},
+  calc:{leve:'leve',moderada:'moderada',severa:'severa'},
+  distrib:{simetrica:'distribución simétrica',asimetrica:'distribución asimétrica'},
+  tipo:{balon:'balón expandible',auto:'auto expandible'},
+  pos:{correcta:'correcta',alta:'alta',baja:'baja',muy_baja:'muy baja'},
+  flujo:{ausente:'ausente',proto:'proto-diastólico corto',holo:'holodiastólico'}
+};
+function eteTaviTab(cual){
+  const pre = cual === 'pre';
+  const p1=document.getElementById('ete-tavi-pane-pre'), p2=document.getElementById('ete-tavi-pane-post');
+  if(p1) p1.style.display = pre ? '' : 'none';
+  if(p2) p2.style.display = pre ? 'none' : '';
+  const b1=document.getElementById('ete-tavi-tab-pre'), b2=document.getElementById('ete-tavi-tab-post');
+  if(b1) b1.classList.toggle('active', pre);
+  if(b2) b2.classList.toggle('active', !pre);
+  eteTaviSync();
+}
+window.eteTaviTab = eteTaviTab;
+
+/* Severidad VARC-3 — GANA EL CRITERIO MÁS SEVERO.
+   Los cortes publicados se solapan: una extensión de 5% con vena contracta de 0,7 cm cumple
+   a la vez la banda trivial y la severa. Hace falta una regla determinista, así que se
+   evalúa severa → moderada → trivial/leve y manda el peor parámetro presente. Es el enfoque
+   integrador habitual y falla hacia el lado seguro, que en una insuficiencia paravalvular es
+   NO sub-graduarla. Se informa qué parámetro decidió, para que el criterio sea auditable y
+   no una caja negra. «Trivial» exige los TRES en banda trivial; con menos, «Leve». */
+function eteTaviRPV(){
+  const ext=v('ete_tavi_ext_circ'), vc=v('ete_tavi_vc_ancho'), vcA=v('ete_tavi_vc_area');
+  const pht=v('ete_tavi_pht');
+  const flujo=sv('ete_tavi_flujo_rev'), velT=v('ete_tavi_vel_tele');
+  const holoSevero = (flujo==='holo' && velT!=null && velT>=20);
+  if(ext==null && vc==null && vcA==null && pht==null && !holoSevero) return null;
+  const sev=[], mod=[], triv=[];
+  if(ext!=null) (ext>=30?sev:(ext>=10?mod:triv)).push('extensión '+ext+'%');
+  if(vc!=null)  (vc>0.6?sev:(vc>=0.3?mod:triv)).push('vena contracta '+vc+' cm');
+  /* El área de vena contracta también gradúa: es la medida 3D recomendada, y quien la mide
+     en vez del ancho se quedaba sin severidad y sin línea de RPV en el informe. */
+  if(vcA!=null) (vcA>=0.30?sev:(vcA>=0.10?mod:triv)).push('área de vena contracta '+vcA+' cm²');
+  if(pht!=null) (pht<200?sev:(pht<=500?mod:triv)).push('PHT '+pht+' ms');
+  if(holoSevero) sev.push('flujo holodiastólico con velocidad tele-diastólica '+velT+' cm/s');
+  if(sev.length) return {sev:'Severa',   cls:'red',    motivo:sev.join(' · ')};
+  if(mod.length) return {sev:'Moderada', cls:'orange', motivo:mod.join(' · ')};
+  if(triv.length>=3) return {sev:'Trivial', cls:'green', motivo:triv.join(' · ')};
+  return {sev:'Leve', cls:'yellow',
+          motivo:triv.join(' · ')+' — faltan parámetros para descartar mayor severidad'};
+}
+function eteTaviSync(){
+  const txt=(id,val)=>{ const e=document.getElementById(id); if(e) e.textContent=val; };
+  // La velocidad tele-diastólica sólo aplica al patrón holodiastólico
+  const wrap=document.getElementById('ete-tavi-veltele-wrap');
+  if(wrap) wrap.style.display = (sv('ete_tavi_flujo_rev')==='holo') ? '' : 'none';
+
+  // Sugerencia de extensión desde las horas marcadas (cada hora = 30°/360° = 8,3%)
+  const horas=eteEpcHoras();
+  const sug=document.getElementById('ete-tavi-ext-sug');
+  if(sug) sug.textContent = horas.length
+    ? ('Sugerido por el widget: '+(Math.round(horas.length*8.3*10)/10)+'% ('+horas.length+' hora'+(horas.length>1?'s':'')+' × 8,3%)')
+    : '';
+
+  const r = eteTaviRPV();
+  const el=document.getElementById('ete-tavi-rpv-sev');
+  if(el) el.innerHTML = r ? badge(r.cls, r.sev)
+    : '<span style="color:var(--text2);font-size:11px;">Completar parámetros para clasificación automática</span>';
+  txt('ete-tavi-rpv-motivo', r ? r.motivo : '—');
+}
+window.eteTaviSync = eteTaviSync;
+
+/* ── Widget EPC (eje paraesternal corto) — reloj de 12 horas ── */
+const EPC_CX=170, EPC_CY=170, EPC_ROUT=138, EPC_RIN=100;
+const epcLabelNum  = h => ((h+11)%12)+1;
+const epcCenterDeg = h => h*30-90;
+const _epcRad = d => d*Math.PI/180;
+function eteEpcHoras(){
+  const el=document.getElementById('ete_tavi_jet_horas');
+  if(!el || !el.value) return [];
+  /* Se deduplica: con un «3,3,3» —de un importado o de un JSON editado a mano— la sugerencia
+     decía «24,9% (3 horas)» dibujando UN solo segmento, el informe imprimía «hora 3, 3, 3» y
+     el splice del click sacaba una sola ocurrencia, así que el segmento no se apagaba. */
+  return String(el.value).split(',').map(function(x){ return parseInt(x,10); })
+    .filter(function(n,i,a){ return !isNaN(n) && n>=1 && n<=12 && a.indexOf(n)===i; });
+}
+function eteEpcSet(arr){
+  const el=document.getElementById('ete_tavi_jet_horas');
+  if(el) el.value = arr.join(',');
+  const t=document.getElementById('ete-tavi-jet-txt');
+  if(t) t.textContent = arr.length ? ('Jet en hora: '+arr.join(', ')) : 'Sin jet marcado';
+}
+function eteEpcDibujar(){
+  const cv=document.getElementById('ete-tavi-epc');
+  if(!cv || !cv.getContext) return;
+  const ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,340,340);
+  const sel=eteEpcHoras();
+  for(let h=0; h<12; h++){
+    const a0=_epcRad(epcCenterDeg(h)-15), a1=_epcRad(epcCenterDeg(h)+15);
+    ctx.beginPath();
+    ctx.arc(EPC_CX,EPC_CY,EPC_ROUT,a0,a1);
+    ctx.arc(EPC_CX,EPC_CY,EPC_RIN,a1,a0,true);
+    ctx.closePath();
+    ctx.fillStyle = sel.indexOf(epcLabelNum(h))>=0 ? 'rgba(230,130,0,0.9)' : 'rgba(255,240,180,0.85)';
+    ctx.fill();
+    ctx.strokeStyle='rgba(120,110,80,0.55)'; ctx.lineWidth=1; ctx.stroke();
+    const rm=(EPC_ROUT+EPC_RIN)/2, am=_epcRad(epcCenterDeg(h));
+    ctx.fillStyle='#000'; ctx.font='bold 15px system-ui,-apple-system,sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(String(epcLabelNum(h)), EPC_CX+rm*Math.cos(am), EPC_CY+rm*Math.sin(am));
+  }
+  // Las tres comisuras de la válvula aórtica (signo de Mercedes)
+  ctx.strokeStyle='rgba(140,140,140,0.95)'; ctx.lineWidth=3;
+  [6,10,2].forEach(function(h){
+    const a=_epcRad(epcCenterDeg(h));
+    ctx.beginPath(); ctx.moveTo(EPC_CX,EPC_CY);
+    ctx.lineTo(EPC_CX+EPC_RIN*Math.cos(a), EPC_CY+EPC_RIN*Math.sin(a)); ctx.stroke();
+  });
+  ctx.beginPath(); ctx.arc(EPC_CX,EPC_CY,EPC_RIN,0,Math.PI*2);
+  ctx.strokeStyle='rgba(140,140,140,0.95)'; ctx.lineWidth=2; ctx.stroke();
+  ctx.fillStyle='#8a8a8a'; ctx.font='bold 12px system-ui,-apple-system,sans-serif';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('VD',170,11);  ctx.fillText('AI',170,329);
+  ctx.fillText('AP',323,170); ctx.fillText('AD',17,170);
+}
+function eteEpcClick(ev){
+  const cv=document.getElementById('ete-tavi-epc'); if(!cv) return;
+  const r=cv.getBoundingClientRect();
+  if(!r.width || !r.height) return;
+  /* El canvas se escala con max-width:100%, así que el click se convierte a coordenadas
+     internas: sin esto, en pantalla angosta se marcaba un segmento distinto del tocado. */
+  const x=(ev.clientX-r.left)*(cv.width/r.width), y=(ev.clientY-r.top)*(cv.height/r.height);
+  const dx=x-EPC_CX, dy=y-EPC_CY, d=Math.sqrt(dx*dx+dy*dy);
+  if(d<EPC_RIN || d>EPC_ROUT) return;
+  let h=Math.round((Math.atan2(dy,dx)*180/Math.PI + 90)/30);
+  h=((h%12)+12)%12;
+  const n=epcLabelNum(h), sel=eteEpcHoras(), i=sel.indexOf(n);
+  if(i>=0) sel.splice(i,1); else sel.push(n);
+  sel.sort(function(a,b){ return a-b; });
+  eteEpcSet(sel); eteEpcDibujar(); eteTaviSync();
+}
+/* Repintado tras restaurar un estudio o un borrador: el hidden vuelve con su valor, pero el
+   canvas es un bitmap y se queda con el dibujo anterior —o en blanco—. */
+function eteEpcRefrescar(){ eteEpcSet(eteEpcHoras()); eteEpcDibujar(); }
+window.eteEpcRefrescar = eteEpcRefrescar;
+
+/* Reset de las dos secciones nuevas para «Nuevo Estudio». Los campos con id los limpia
+   limpiarCampos (inputs y selects); acá se restaura lo que vive fuera de eso: el bitmap del
+   canvas, el hidden de las horas, los checkboxes de inclusión y los sub-tabs. */
+/* Repone los checkboxes de inclusión desde el estudio guardado. Los dos caminos de carga
+   —editarInforme y cargarEstudioPorId— sólo hacían `el.value = val`, y en un checkbox eso no
+   toca `.checked`; encima editarInforme llama antes a limpiarCampos, que los deja en false.
+   Resultado: reabrir un estudio TAVI, tocar un campo y regenerar hacía DESAPARECER la
+   sección del informe sin ningún aviso, y «Sobreescribir» persistía la pérdida.
+   A las secciones viejas no les pasaba porque espejan el estado en localStorage; éstas son
+   las primeras que dependen sólo del checkbox, así que son las primeras que lo destapan. */
+function _restaurarChkInclusion(campos){
+  if(!campos) return;
+  document.querySelectorAll('input[type=checkbox][id]').forEach(function(el){
+    const k = el.id + '__chk';
+    if(campos[k] !== undefined) el.checked = (campos[k] === '1' || campos[k] === true || campos[k] === 'true');
+  });
+}
+window._restaurarChkInclusion = _restaurarChkInclusion;
+
+function eteShuntTaviReset(){
+  ['ete_shunt_incluir_chk','ete_tavi_incluir_chk'].forEach(function(id){
+    const c=document.getElementById(id); if(c) c.checked=false;
+  });
+  const jh=document.getElementById('ete_tavi_jet_horas'); if(jh) jh.value='';
+  try{ eteEpcSet([]); eteEpcDibujar(); }catch(e){}
+  try{ eteShuntTab('cia'); eteTaviTab('pre'); }catch(e){}
+  try{ eteShuntSync(); eteTaviSync(); }catch(e){}
+}
+window.eteShuntTaviReset = eteShuntTaviReset;
+
+document.addEventListener('DOMContentLoaded', function(){
+  const cv=document.getElementById('ete-tavi-epc');
+  if(cv){ cv.addEventListener('click', eteEpcClick); eteEpcRefrescar(); }
+  try{ eteShuntSync(); eteTaviSync(); }catch(e){}
+});
+
 function toggleValvPill(valvula, tipo) {
   const pill = document.getElementById('pill-' + tipo + '-' + valvula);
   const bloque = document.getElementById('bloque-' + tipo + '-' + valvula);
@@ -18290,6 +19055,7 @@ function editarInforme(id) {
     });
     // Restaurar el checkbox "caso de interés" (los checkbox no se restauran por .value)
     { const _ci = document.getElementById('caso_interes'); if (_ci) _ci.checked = (inf.campos['caso_interes'] === '1' || inf.campos['caso_interes'] === 'true'); }
+    if (typeof _restaurarChkInclusion === 'function') _restaurarChkInclusion(inf.campos);
     _restaurarChecklistPaciente(inf.campos);
     if (typeof _restaurarContractilidad === 'function') _restaurarContractilidad(inf.campos);
     if (typeof _restaurarStrain === 'function') _restaurarStrain(inf.campos);
@@ -18318,6 +19084,12 @@ function editarInforme(id) {
     /* VEXUS: sin esto el acordeón queda mostrando el score del estudio anterior, porque el
        badge y la interpretación viven en spans que nada reescribe al cargar los campos. */
     if (typeof calcVEXUS === 'function') calcVEXUS();
+    /* CIA/CIV y TAVI: los espejos de solo lectura, el Qp/Qs, la severidad de RPV y el bitmap
+       del canvas EPC se pintan por JS. Sin esto, un estudio reabierto mostraba los campos
+       poblados pero el diagrama en blanco, «Sin jet marcado» y el Qp/Qs en «—». */
+    ['eteShuntSync','eteTaviSync','eteEpcRefrescar'].forEach(function(fn){
+      if (typeof window[fn] === 'function') { try { window[fn](); } catch (e) {} }
+    });
     // Guardar id del informe siendo editado
     window._ettEditandoId = id;
     eeCurrentInformeId = inf.estudioId || null;   // el QR del PDF apuntará a este estudio
@@ -18349,6 +19121,7 @@ function cargarEstudioPorId(id) {
     if (el) el.value = val;
   });
   { const _ci = document.getElementById('caso_interes'); if (_ci) _ci.checked = (inf.campos && (inf.campos['caso_interes'] === '1' || inf.campos['caso_interes'] === 'true')); }
+  if (typeof _restaurarChkInclusion === 'function') _restaurarChkInclusion(inf.campos);
   _restaurarChecklistPaciente(inf.campos);
   if (typeof _restaurarContractilidad === 'function') _restaurarContractilidad(inf.campos);
   if (typeof _restaurarStrain === 'function') _restaurarStrain(inf.campos);
@@ -18356,7 +19129,8 @@ function cargarEstudioPorId(id) {
   if (typeof amiloRestaurarDesdeCampos === 'function') amiloRestaurarDesdeCampos(inf.campos);
   valvSevConfirmada = false;   // estudio cargado por URL/QR: vuelve a pedir confirmación
   if (typeof renderCentroField === 'function') renderCentroField(inf.campos && inf.campos.centro_nombre);
-  ['calcVI','calcAI','calcAorta','calcVD','calcVEXUS'].forEach(fn => { if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} } });
+  ['calcVI','calcAI','calcAorta','calcVD','calcVEXUS',
+   'eteShuntSync','eteTaviSync','eteEpcRefrescar'].forEach(fn => { if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} } });
   window._ettEditandoId = inf.id;
   eeCurrentInformeId = inf.estudioId;
   // showTab() depende de la variable global 'event'; al invocarse sin un click (init por URL) la carga
