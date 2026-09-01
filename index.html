@@ -7620,7 +7620,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     </div>
     <div class="calc-box" style="margin-top:8px;">
       <div class="calc-row"><span class="calc-lbl">PAPm <span style="color:var(--text2);font-size:10px;">= 0.61×PSAP+2 (Chemla)</span></span><span class="calc-val" id="cx-gtp-papm">—</span></div>
-      <div class="calc-row"><span class="calc-lbl">PCP <span style="color:var(--text2);font-size:10px;">= 1.9×E/e'+1.5 (Nagueh)</span></span><span class="calc-val" id="cx-gtp-pcp">—</span></div>
+      <div class="calc-row"><span class="calc-lbl">PCP <span style="color:var(--text2);font-size:10px;">= 1.24 × (E/e') + 1.9 (Nagueh)</span></span><span class="calc-val" id="cx-gtp-pcp">—</span></div>
       <div class="calc-row"><span class="calc-lbl">VS <span style="color:var(--text2);font-size:10px;">= 0.785×(Ø/10)²×VTI</span></span><span class="calc-val" id="cx-gtp-vs">—</span></div>
       <div class="calc-row"><span class="calc-lbl">GC <span style="color:var(--text2);font-size:10px;">= VS×FC/1000</span></span><span class="calc-val" id="cx-gtp-gc">—</span></div>
       <div class="calc-row"><span class="calc-lbl">GTP <span style="color:var(--text2);font-size:10px;">= PAPm−PCP</span></span><span id="cx-gtp-gtp">—</span></div>
@@ -10754,7 +10754,26 @@ function cxWilkins(){
   const _crudos = ['cx_wilk_mov','cx_wilk_eng','cx_wilk_cal','cx_wilk_sub']
     .map(id => (document.getElementById(id) || {}).value || '');
   if (_crudos.every(x => x === '')) { el.textContent = '—'; return; }
+  /* Los cuatro exactamente en «1» se tratan como NO puntuado. Hasta este commit la primera
+     opción de los cuatro selects era value="1", y guardarInforme persiste todos los select
+     por id, así que TODO estudio guardado antes de hoy lleva 1/1/1/1 haya abierto alguien la
+     tarjeta o no: al reimprimirlo salía «4/16 — favorable para valvuloplastia percutánea».
+     No hay forma de distinguirlo de un 4/16 real, y el 4/16 real es una válvula prácticamente
+     indemne, que no es la que se está puntuando para valvuloplastia. Entre pedir que se
+     reingrese un score raro y firmar un veredicto que nadie escribió, se pide reingresarlo. */
+  if (_crudos.every(x => x === '1')) {
+    el.innerHTML = badge('gray', 'sin puntuar — reingresá los cuatro criterios');
+    return;
+  }
   const total = s('cx_wilk_mov') + s('cx_wilk_eng') + s('cx_wilk_cal') + s('cx_wilk_sub');
+  /* Con menos de los cuatro criterios el total está incompleto y sesgado hacia abajo, o sea
+     hacia «favorable para valvuloplastia». Se muestra el parcial pero no se interpreta —
+     mismo criterio que el Wilkins del módulo ETE. */
+  const _puntuados = _crudos.filter(x => x !== '').length;
+  if (_puntuados < 4) {
+    el.innerHTML = total + '/16 ' + badge('gray', `parcial — ${_puntuados} de 4 criterios; sin interpretación`);
+    return;
+  }
   let cls, txt;
   if (total <= 8) { cls = 'green'; txt = 'favorable para valvuloplastia percutánea'; }
   else if (total <= 11) { cls = 'yellow'; txt = 'resultado intermedio'; }
@@ -10792,7 +10811,13 @@ function cxGTP(){
   const setH = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
   let papm = null, pcp = null, gtp = null, vs = null, gc = null;
   if (psap != null) { papm = 0.61 * psap + 2; set('cx-gtp-papm', papm.toFixed(1) + ' mmHg'); } else set('cx-gtp-papm', '—');
-  if (ee != null) { pcp = 1.9 * ee + 1.5; set('cx-gtp-pcp', pcp.toFixed(1) + ' mmHg'); } else set('cx-gtp-pcp', '—');
+  /* Nagueh: PCP = 1.24 × E/e' + 1.9. Acá estaba invertido —1.9 × E/e' + 1.5— bajo la misma
+     atribución, mientras la tarjeta de Hemodinámica, la tabla de Referencias y calcHemo
+     usaban la correcta. No era una convención distinta: eran los coeficientes cambiados de
+     lugar. Con E/e' 18 daba 35,7 en vez de 24,2 mmHg, y esos 11,5 mmHg se propagan al GTP
+     (PAPm − PCP) y a la RVP (GTP / GC), o sea que voltean el veredicto «componente
+     precapilar» y «HTP vascular» que este bloque imprime en el PDF. */
+  if (ee != null) { pcp = 1.24 * ee + 1.9; set('cx-gtp-pcp', pcp.toFixed(1) + ' mmHg'); } else set('cx-gtp-pcp', '—');
   if (papm != null && pcp != null) gtp = papm - pcp;
   if (dtsvi != null && vti != null) { vs = 0.785 * Math.pow(dtsvi / 10, 2) * vti; set('cx-gtp-vs', vs.toFixed(0) + ' ml'); } else set('cx-gtp-vs', '—');
   if (vs != null && fc != null) { gc = vs * fc / 1000; set('cx-gtp-gc', gc.toFixed(2) + ' L/min'); } else set('cx-gtp-gc', '—');
@@ -13729,7 +13754,27 @@ function generarInforme(opts) {
     const insE = (iaG > 0) ? `insuficiencia ${imTxt[iaG]}` : (pillOn('aortica','insuf') ? 'insuficiencia' : null);
     const estC = eaDesc ? `EAo ${eaDesc}` : ((!esclerosis && pillOn('aortica','esten')) ? 'estenosis' : null);
     const insC = (iaG > 0) ? `IAo ${imTxt[iaG]}` : (pillOn('aortica','insuf') ? 'insuficiencia' : null);
+    /* DISCORDANCIA AVA / gradiente. El motor ya la detecta —mantiene el grado por área y
+       escribe la explicación en el badge de pantalla— pero nada la llevaba al informe: el
+       PDF firmado decía «estenosis severa» y «EAo severa.» a secas, con el añadido de
+       «valoración de indicación de intervención», sobre un grado que el propio código marcó
+       como pendiente de estudiar el bajo flujo. Se recalcula acá desde los mismos datos en
+       vez de leer el badge: el texto del informe no puede depender de la pantalla. */
+    const _avaC = v('ava_cont'), _vmaxA = v('vmax_ao'), _gmedA = v('gmedio_ao');
+    /* Las MISMAS condiciones que clasificarEA_Vmax, incluida su guarda de severidad fijada a
+       mano, y además se exige que el grado consignado sea severa. Sin eso, la salvedad salía
+       sobre grados moderada / leve / sin —el caso de todo estudio importado, porque la
+       importación marca esqSevManual.ea— y el informe firmado quedaba con «sin estenosis
+       significativa» seguido de «el grado de estenosis aórtica se sostiene por el área
+       valvular», dos frases consecutivas que se contradicen. */
+    const _eaFijadoAMano = !!(window.esqSevManual && window.esqSevManual.ea);
+    const _eaDiscordante = eaG === 'severa' && !_eaFijadoAMano
+      && _avaC !== null && _avaC <= 1.0 && _vmaxA !== null
+      && !(_vmaxA >= 4.0) && !(_gmedA !== null && _gmedA >= 40);
     if (eaDesc) suma.push(`EAo ${eaDesc}.`); else if (estE) suma.push('Estenosis aórtica.');
+    if (_eaDiscordante) {
+      suma.push('Estenosis aórtica discordante — evaluar bajo flujo / bajo gradiente antes de indicar intervención.');
+    }
     if (iaG > 0) suma.push(`IAo ${imTxt[iaG]}.`); else if (insE) suma.push('Insuficiencia aórtica.');
     if (esclerosis) suma.push('Esclerosis aórtica.');
     const cE = fraseEI(estE, insE), cC = fraseEI(estC, insC);
@@ -13749,6 +13794,14 @@ function generarInforme(opts) {
         `VAo ${escC}${cC}.`,
         `Válvula aórtica ${vaMorf.toLowerCase()}, ${escC}${cE}.`,
         `La válvula aórtica (${vaMorf.toLowerCase()}), ${escC}${cE}; hallazgo que requiere seguimiento ecocardiográfico y valoración de indicación de intervención según evolución clínica.`));
+    }
+    if (_eaDiscordante) {
+      inf.push(`El grado de estenosis aórtica se sostiene por el área valvular (AVA ${_avaC.toFixed(2)} cm²) `
+        + `mientras la velocidad máxima (${_vmaxA} m/s)${_gmedA !== null ? ` y el gradiente medio (${_gmedA} mmHg)` : ''} `
+        + 'no alcanzan criterio de severidad. Antes de tomarlo como estenosis aórtica severa hay que evaluar '
+        + 'el escenario de bajo flujo / bajo gradiente (ESC/EACVI): revisar volumen sistólico indexado, '
+        + 'fracción de eyección y condiciones de carga, y considerar eco de estrés con dobutamina o score '
+        + 'de calcio por TC si corresponde.');
     }
   }
 
@@ -14073,7 +14126,12 @@ function generarInforme(opts) {
       let s = 'ETE — Válvula mitral';
       if (carp) s += ' con mecanismo Carpentier ' + (carpMap[carp] || carp);
       if (mec)  s += ', mecanismo predominante: ' + (mecMap[mec] || mec);
-      if (!isNaN(wN) && wN > 0) s += '. Score de Wilkins ' + wN + '/16';
+      /* El sufijo «(parcial)» que agrega calcWilkins lo descartaba parseInt, así que un score
+       de 2 de 4 criterios entraba al informe como «Score de Wilkins 6/16», un número dentro
+       de la banda favorable presentado como completo. */
+    const _wParcial = wEl && /parcial/i.test(wEl.textContent);
+    if (!isNaN(wN) && wN > 0 && !_wParcial) s += '. Score de Wilkins ' + wN + '/16';
+    else if (_wParcial) s += '. Score de Wilkins incompleto — no interpretable';
       if (avmE) s += '. Área valvular por planimetría ' + avmE + ' cm²';
       etePars.push(s + '.');
     }
@@ -15151,7 +15209,15 @@ function generarPDFReal() {
   const _cxtx = id => { const el = document.getElementById(id); return el ? (el.textContent || '').trim() : ''; };
   if (localStorage.getItem('wilkins_incluir_pdf') === '1') {
     const _wt = _cxtx('cx-wilkins-total');
-    if (_wt && _wt !== '—') {
+    /* El guard de parcialidad estaba SÓLO en pantalla: el bloque reconstruía las filas por su
+       cuenta, así que un score de 2 de 4 criterios salía como «Movilidad 3/4 · Engrosamiento
+       0/4 · … · Total 6/16», sin la palabra «parcial», con ceros que no existen en la escala
+       de Wilkins (1-4) y con un total dentro de la banda que la propia app enseña como
+       «≤8 → favorable para valvuloplastia percutánea». */
+    const _wcrudos = ['cx_wilk_mov','cx_wilk_eng','cx_wilk_cal','cx_wilk_sub']
+      .map(id => (document.getElementById(id) || {}).value || '');
+    const _wCompleto = _wcrudos.every(x => x !== '') && !_wcrudos.every(x => x === '1');
+    if (_wt && _wt !== '—' && _wCompleto) {
       const _wv = id => { const el = document.getElementById(id); return el ? (parseInt(el.value) || 0) : 0; };
       const _wmov = _wv('cx_wilk_mov'), _weng = _wv('cx_wilk_eng'), _wcal = _wv('cx_wilk_cal'), _wsub = _wv('cx_wilk_sub');
       const _wrows = [
@@ -15689,14 +15755,26 @@ function calcWilkins() {
   const e = parseInt(sv('wilkins_engrosamiento')) || 0;
   const c = parseInt(sv('wilkins_calcificacion')) || 0;
   const s = parseInt(sv('wilkins_subvalvular')) || 0;
-  if (!m && !e && !c && !s) return;
+  const totEl = document.getElementById('wilkins-total');
+  const intEl = document.getElementById('wilkins-interp');
+  const puntuados = [m, e, c, s].filter(x => x > 0).length;
+  if (!puntuados) { if (totEl) totEl.textContent = '—'; if (intEl) intEl.innerHTML = '—'; return; }
   const total = m + e + c + s;
-  document.getElementById('wilkins-total').textContent = total + ' / 16';
+  /* El score de Wilkins es la SUMA de los cuatro criterios: con menos de cuatro puntuados el
+     total está incompleto y sesgado hacia abajo, o sea hacia «favorable», que es el veredicto
+     que habilita una valvuloplastia percutánea. Con un solo criterio en 2 salía «Score 2 —
+     Favorable para valvuloplastia percutánea». Se muestra el parcial pero NO se interpreta. */
+  if (puntuados < 4) {
+    if (totEl) totEl.textContent = total + ' / 16 (parcial)';
+    if (intEl) intEl.innerHTML = badge('gray', `Score incompleto — ${puntuados} de 4 criterios puntuados. No se interpreta: faltan criterios y el total quedaría sesgado a favorable.`);
+    return;
+  }
+  if (totEl) totEl.textContent = total + ' / 16';
   let interp;
   if (total <= 8) interp = badge('green', `Score ${total} — Favorable para valvuloplastia percutánea`);
   else if (total <= 11) interp = badge('yellow', `Score ${total} — Resultado subóptimo probable`);
   else interp = badge('red', `Score ${total} — No favorable para valvuloplastia`);
-  document.getElementById('wilkins-interp').innerHTML = interp;
+  if (intEl) intEl.innerHTML = interp;
 }
 
 function calcTEER() {
@@ -18568,7 +18646,10 @@ function amiloTextoWilkins() {
     ['Calcificación',           'wilkins_calcificacion'],
     ['Compromiso subvalvular',  'wilkins_subvalvular']
   ];
-  const hay = crit.filter(c => _amV(c[1]));
+  /* `_amV` devuelve el string del value, y «0» como string es truthy: los criterios sin
+     puntuar pasaban el filtro y el desglose listaba «Engrosamiento 0/4» contradiciendo el
+     «2 de 4 criterios» de la línea de arriba, en el mismo bloque del informe. */
+  const hay = crit.filter(c => (PF(_amV(c[1])) || 0) > 0);
   if (hay.length) hay.forEach(c => L.push(c[0] + ' | ' + _amV(c[1]) + ' / 4'));
   else L.push('Sin criterios puntuados.');
   return L.join('\n');
@@ -19365,14 +19446,19 @@ function actualizarAlgoritmo() {
   if(!captaGamma && protNeg) {
     tipo='E1'; icon='🟢'; clasePanel='prob-baja'; claseEscenario='verde';
     titulo = 'Baja probabilidad de amiloidosis cardíaca';
-    cuerpo = 'Gammagrafía sin captación cardíaca y proteínas monoclonales negativas. Este escenario tiene baja probabilidad de amiloidosis cardíaca.' + ettInfo;
+    cuerpo = 'Gammagrafía sin captación cardíaca y proteínas monoclonales negativas. Este escenario tiene baja probabilidad de amiloidosis cardíaca, aunque no la descarta: la gammagrafía puede ser negativa en enfermedad leve, en algunas mutaciones ATTR y con adquisición prematura o retrasada.' + ettInfo;
     accion = '→ Si persiste la sospecha clínica: considerar RMC seguida de biopsia extracardiaca (grasa abdominal, glándulas salivales) o BEM. La gammagrafía puede ser negativa en algunas mutaciones ATTR mt y subtipos raros de amiloidosis cardíaca.';
     escenario = 'Escenario 1 — Sin captación / Proteínas negativas';
   } else if(captaGamma && protNeg) {
     if(captaAlta) {
       tipo='E2A'; icon='🟣'; clasePanel='prob-alta'; claseEscenario='morado';
       titulo = 'ATTR confirmado — Grado ' + gradoGamma + ' (VPP 100%)' + ettInfo;
-      cuerpo = 'Gammagrafía con captación cardíaca grado ' + gradoGamma + ' y proteínas monoclonales negativas. Este patrón tiene un valor predictivo positivo del 100% para ATTR. No se requiere biopsia cardiaca para confirmar el diagnóstico.';
+      /* La salvedad viaja DENTRO del cuerpo, no en un div de pantalla: este texto se emite al
+         informe y al PDF, y salía afirmando «VPP 100%, no se requiere biopsia» sin ninguno de
+         los falsos positivos que la app lista tres centímetros más arriba —entre ellos la
+         propia amiloidosis AL, que es justo el diagnóstico que este escenario excluye—. */
+      cuerpo = 'Gammagrafía con captación cardíaca grado ' + gradoGamma + ' y proteínas monoclonales negativas. Este patrón tiene un valor predictivo positivo del 100% para ATTR, y con las proteínas monoclonales correctamente descartadas (inmunofijación en suero y orina más cadenas ligeras libres) no se requiere biopsia cardíaca. '
+        + 'Salvedad: la captación puede ser un falso positivo en amiloidosis AL, intoxicación por hidroxicloroquina, fracturas costales, calcificaciones valvulares e infarto de miocardio de menos de 4 semanas. Integrar con la clínica.';
       accion = '→ Continuar con pruebas genéticas del gen TTR para diferenciar ATTR wild-type (senil, sin mutación) de ATTR mutante (hereditario). Derivar a consulta especializada en amiloidosis para inicio de tratamiento específico (tafamidis, patisiran u otro según disponibilidad).';
     } else {
       tipo='E2B'; icon='🟡'; clasePanel='intermedio'; claseEscenario='morado';
