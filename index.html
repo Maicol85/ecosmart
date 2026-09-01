@@ -10301,9 +10301,25 @@ const AVA_SEVERA_MAX = 1.0;   // AVA < 1.0 → severa;  1.0 ≤ AVA < 1.5 → mo
    o sea que con coma decimal devolvía false. Fallaba abierta con vacío y cerrada con coma:
    exactamente al revés de lo seguro. */
 function avaEsSevera(ava) {
-  const n = (typeof ava === 'number') ? ava : parseFloat(String(ava == null ? '' : ava).replace(',', '.'));
-  return isFinite(n) && n > 0 && n < AVA_SEVERA_MAX;
+  const n = _avaNum(ava);
+  return n !== null && n < AVA_SEVERA_MAX;
 }
+/* `!avaEsSevera(x)` NO es «moderada». avaEsSevera falla CERRADO a propósito —devuelve false
+   ante null, NaN, 0 y negativos— y al negarlo ese fail-closed se volvía fail-open con salida
+   por defecto «moderada». Medido: un diám. de TSVI tipeado 0,5 en vez de 5 da AVA «0.00»,
+   y sugerirSeveridadEA —que ESCRIBE ea_grado— dejaba el informe firmado diciendo «estenosis
+   moderada» sobre un área valvular de 0,00 cm². Cada banda tiene su predicado, y un AVA no
+   positivo no cae en ninguna. */
+function _avaNum(ava) {
+  const n = (typeof ava === 'number') ? ava : parseFloat(String(ava == null ? '' : ava).replace(',', '.'));
+  return (isFinite(n) && n > 0) ? n : null;
+}
+function avaEsModerada(ava) {
+  const n = _avaNum(ava);
+  return n !== null && n >= AVA_SEVERA_MAX && n < 1.5;
+}
+function avaEsValida(ava) { return _avaNum(ava) !== null; }
+window.avaEsModerada = avaEsModerada; window.avaEsValida = avaEsValida;
 window.AVA_SEVERA_MAX = AVA_SEVERA_MAX; window.avaEsSevera = avaEsSevera;
 
 /* Resistencia vascular pulmonar: el corte de ESC/ERS 2022 para el componente precapilar es
@@ -10781,7 +10797,7 @@ function cxCont() {
   const ava = (Math.PI * ((d / 10 / 2) ** 2) * vtitsvi) / vtiao;   // DTSVI mm → cm
   let cls, txt;
   if (ava >= 1.5) { cls = 'green'; txt = 'Sin/leve (≥1.5)'; }
-  else if (ava >= 1.0) { cls = 'yellow'; txt = 'Moderada (1.0–1.49)'; }
+  else if (avaEsModerada(ava)) { cls = 'yellow'; txt = 'Moderada (' + AVA_SEVERA_MAX.toFixed(1) + '–1.49)'; }
   else { cls = 'red'; txt = 'Severa (<1.0)'; }
   el.innerHTML = ava.toFixed(2) + ' cm² ' + badge(cls, txt);
 }
@@ -12573,7 +12589,7 @@ function calcEADetalle() {
     // Confirmar con AVA si disponible
     if (ava) {
       if (ava >= 1.5 && gradoStr === 'severa') { sev += ' ⚠️ AVA no concuerda'; color='#f59e0b'; }
-      else if (ava < 1.0 && gradoStr === 'leve') { sev += ' ⚠️ AVA no concuerda'; color='#f59e0b'; }
+      else if (avaEsSevera(ava) && gradoStr === 'leve') { sev += ' ⚠️ AVA no concuerda'; color='#f59e0b'; }
     }
     if (sevEl) sevEl.innerHTML = `<span style="color:${color};font-weight:700;">${sev}</span>`;
     if (sel && gradoStr) sel.value = gradoStr;
@@ -12581,7 +12597,7 @@ function calcEADetalle() {
     if (badge) badge.textContent = ava ? `Vmax ${vmax} m/s · AVA ${ava.toFixed(2)} cm² — ESC 2021.` : `Sugerido por Vmax ${vmax} m/s — ESC 2021. Editable manualmente.`;
   } else if (ava) {
     if (ava >= 1.5)      { sev='Sin estenosis / leve'; color='#3ecf8e'; gradoStr='leve'; }
-    else if (ava >= 1.0) { sev='Moderada';              color='#f59e0b'; gradoStr='moderada'; }
+    else if (avaEsModerada(ava)) { sev='Moderada';       color='#f59e0b'; gradoStr='moderada'; }
     else                 { sev='Severa';                color='var(--red)'; gradoStr='severa'; }
     if (sevEl) sevEl.innerHTML = `<span style="color:${color};font-weight:700;">${sev}</span>`;
     if (sel && gradoStr) sel.value = gradoStr;
@@ -12666,7 +12682,7 @@ function calcAo() {
     setv('ava_cont', ava);
     let sev;
     if (PF(ava) >= 1.5) sev = badge('green', 'Sin estenosis / leve (≥1.5cm²)');
-    else if (PF(ava) >= 1.0) sev = badge('yellow', 'Moderada (1.0-1.49cm²)');
+    else if (avaEsModerada(PF(ava))) sev = badge('yellow', 'Moderada (' + AVA_SEVERA_MAX.toFixed(1) + '-1.49cm²)');
     else sev = badge('red', 'Severa (<1.0cm²)');
     document.getElementById('ea-sev').innerHTML = sev;
     sugerirSeveridadEA(PF(ava));
@@ -12706,7 +12722,7 @@ function calcAo() {
 }
 
 // Clasificación de estenosis aórtica por Vmax (ESC 2021)
-// FIX clínico: Vmax NO debe degradar una AVA severa. Si AVA ≤1.0 cm² con Vmax/gradiente
+// FIX clínico: Vmax NO debe degradar una AVA severa. Si AVA < AVA_SEVERA_MAX con Vmax/gradiente
 // no severos → EA discordante (bajo flujo/bajo gradiente); sólo se asigna grado automático
 // por Vmax cuando AVA y Vmax son concordantes.
 function clasificarEA_Vmax() {
@@ -12732,7 +12748,7 @@ function clasificarEA_Vmax() {
   const velSevera  = vmax >= 4.0;
   const gradSevero = gmedio !== null && gmedio >= 40;
 
-  // EA discordante: AVA severa por área (<1.0) con Vmax y gradiente NO severos.
+  // EA discordante: AVA severa por área (< AVA_SEVERA_MAX) con Vmax y gradiente NO severos.
   // No se degrada el grado: se mantiene severa (por AVA) y se marca la discordancia.
   if (avaSevera && !velSevera && !gradSevero) {
     sel.value = 'severa';
@@ -12768,6 +12784,9 @@ function sugerirSeveridadEA(ava) {
   const sel = document.getElementById('ea_grado');
   const badgeEl = document.getElementById('ea-ava-badge');
   if (!sel) return;
+  /* Un AVA no positivo no sugiere NADA: esta función escribe ea_grado, que es lo que baja al
+     informe firmado. Está además exportada a window tomando un número crudo. */
+  if (!avaEsValida(ava)) { if (badgeEl) badgeEl.textContent = ''; return; }
   /* Grado fijado a mano —o traído por una importación— gana sobre el autocálculo, igual
      que en calcIM_ESC/calcIA_ESC/calcIT_ESC. Sin esto, tocar cualquier campo del Doppler
      aórtico cambiaba el <select> de «Severa» a lo que diera la Vmax, sin avisar. */
@@ -12775,7 +12794,7 @@ function sugerirSeveridadEA(ava) {
   // Usa los value del <select> (sin/leve/moderada/severa), no el texto de la opción.
   let val;
   if (ava >= 1.5) val = 'leve';
-  else if (ava >= 1.0) val = 'moderada';
+  else if (avaEsModerada(ava)) val = 'moderada';
   else val = 'severa';
   sel.value = val;
   if (badgeEl) badgeEl.textContent = `Sugerido automáticamente por AVA continuidad (${ava.toFixed(2)} cm²). Podés cambiarlo manualmente si lo creés necesario.`;
@@ -16007,18 +16026,24 @@ function calcWilkins() {
   const totEl = document.getElementById('wilkins-total');
   const intEl = document.getElementById('wilkins-interp');
   const puntuados = [m, e, c, s].filter(x => x > 0).length;
-  if (!puntuados) { if (totEl) totEl.textContent = '—'; if (intEl) intEl.innerHTML = '—'; return; }
+  if (!puntuados) { if (totEl) totEl.textContent = '—'; if (intEl) { intEl.innerHTML = '—'; intEl.dataset.banda = ''; } return; }
   const total = m + e + c + s;
   /* El score de Wilkins es la SUMA de los cuatro criterios: con menos de cuatro puntuados el
      total está incompleto y sesgado hacia abajo, o sea hacia «favorable», que es el veredicto
      que habilita una valvuloplastia percutánea. Con un solo criterio en 2 salía «Score 2 —
      Favorable para valvuloplastia percutánea». Se muestra el parcial pero NO se interpreta. */
   if (puntuados < 4) {
+    if (intEl) intEl.dataset.banda = 'incompleto';
     if (totEl) totEl.textContent = total + ' / 16 (parcial)';
     if (intEl) intEl.innerHTML = badge('gray', `Score incompleto — ${puntuados} de 4 criterios puntuados. No se interpreta: faltan criterios y el total quedaría sesgado a favorable.`);
     return;
   }
   if (totEl) totEl.textContent = total + ' / 16';
+  /* La banda queda EXPLÍCITA en el dataset. Decidirla parseando el texto del badge hacía que
+     /[Ff]avorable/ matcheara dentro de «…el total quedaría sesgado a favorable», que es la
+     frase del score INCOMPLETO: el informe firmado sumaba una salvedad y una contraindicación
+     sobre un score que la app declara no interpretable. */
+  if (intEl) intEl.dataset.banda = (total <= 8) ? 'favorable' : (total <= 11 ? 'suboptimo' : 'nofavorable');
   let interp;
   if (total <= 8) interp = badge('green', `Score ${total} — Favorable para valvuloplastia percutánea`);
   else if (total <= 11) interp = badge('yellow', `Score ${total} — Resultado subóptimo probable`);
@@ -16601,6 +16626,12 @@ function calcOAI() {
     el.innerHTML = badge('gray','Completar mediciones');
   }
   if (notasEl) notasEl.innerHTML = notas.join('<br>');
+  /* Si el módulo de Wilkins ya está integrado, se regenera: el cruce con el trombo se
+     evaluaba una sola vez, al apretar «Integrar», y en la pantalla del ETE la tarjeta de
+     Wilkins va ANTES que la de la orejuela — o sea que en el orden natural de trabajo
+     (puntuar la mitral, integrar, y recién después mirar la orejuela) el aviso de
+     contraindicación absoluta nunca aparecía. */
+  if (typeof amiloRefrescarSiIntacto === 'function') amiloRefrescarSiIntacto('wilk');
 }
 
 // ══ ATEROSCLEROSIS AÓRTICA ══
@@ -18874,6 +18905,13 @@ function amiloTextoTEP() {
   L.push('Interpretación: ' + (_amTxt('tep-interpretacion') || 'no determinable'));
   const est = _amTxt('tep-estratificacion'); if (est) L.push('Orientación de disfunción VD: ' + est);
   const ac  = _amTxt('tep-acoplamiento');    if (ac)  L.push('TAPSE/PSAP: ' + ac);
+  /* La salvedad va DESPUÉS del veredicto que califica —«Riesgo INTERMEDIO-ALTO», que es
+     vocabulario de clase de riesgo ESC 2019 salido de una ecocardiografía sola— y no antes,
+     separada por un subtítulo. Y sólo si hubo evaluación: un descargo sobre algo que no se
+     midió se lee, en un informe, como que la pregunta sí se consideró. */
+  if (_amTxt('tep-score') || _amTxt('tep-interpretacion') || est) {
+    L.push('Salvedad | Estos hallazgos son orientativos y NO reemplazan la estratificación de riesgo del tromboembolismo pulmonar, que exige integrar estabilidad hemodinámica, troponina, PESI/sPESI y confirmación diagnóstica por imagen (ESC 2019). Ningún signo ecocardiográfico es patognomónico de TEP: el signo de McConnell puede verse en el infarto de ventrículo derecho.');
+  }
   return L.join('\n');
 }
 
@@ -18903,6 +18941,29 @@ function amiloTextoWilkins() {
   const L = ['## Puntaje total'];
   L.push('Score de Wilkins | ' + (_amTxt('wilkins-total') || 'no calculado'));
   const interp = _amTxt('wilkins-interp'); if (interp) L.push('Interpretación | ' + interp);
+  /* CRUCE con la orejuela. El trombo en la orejuela izquierda es contraindicación ABSOLUTA
+     para la valvuloplastia mitral percutánea, y las dos cosas se cargan en la misma pestaña:
+     el informe podía decir «Trombo | Sí - confirmado» en una sección y «Score 8 - Favorable
+     para valvuloplastia percutánea» en la siguiente, sin conectarlas. Es la contradicción
+     dentro de un mismo documento firmado que el resto del módulo se cuida de evitar. */
+  const _wTrombo = (function () { const el = document.getElementById('oai_trombo'); return el ? el.value : ''; })();
+  const _wBanda = (document.getElementById('wilkins-interp') || {}).dataset
+    ? (document.getElementById('wilkins-interp').dataset.banda || '') : '';
+  const _wHayScore = !!_amTxt('wilkins-total') && _wBanda && _wBanda !== 'incompleto';
+  /* El trombo NO se condiciona a la banda del score: es contraindicación ABSOLUTA, y atarla
+     a «favorable» dejaba sin aviso la franja 9-11 —«resultado subóptimo probable»—, que es
+     justo donde la valvuloplastia se sigue discutiendo caso por caso. El propio texto dice
+     «con independencia del score» y dependía del score. */
+  if (_wHayScore && _wTrombo === 'si') {
+    L.push('ATENCION | Se registró trombo en la orejuela izquierda: contraindicación absoluta para valvuloplastia mitral percutánea, con independencia del score de Wilkins.');
+  } else if (_wHayScore && _wTrombo === 'sospecha') {
+    L.push('ATENCION | Hay sospecha de trombo en la orejuela izquierda: descartarlo antes de considerar valvuloplastia mitral percutánea.');
+  }
+  /* La salvedad anatómica va donde el score deja la puerta abierta al procedimiento, o sea
+     favorable y subóptimo. El score es ANATÓMICO: describe la válvula, no lo indica. */
+  if (_wBanda === 'favorable' || _wBanda === 'suboptimo') {
+    L.push('Salvedad | El score de Wilkins evalúa la anatomía valvular y no constituye por sí solo indicación de valvuloplastia: no puntúa la calcificación comisural ni el grado de insuficiencia mitral, y la decisión requiere integrar la clínica, la anatomía de la orejuela y la evaluación del equipo tratante.');
+  }
   L.push('## Desglose por criterio');
   const crit = [
     ['Movilidad valvular',      'wilkins_movilidad'],
@@ -19291,6 +19352,26 @@ window.amiloSyncBotones = amiloSyncBotones;
 // Recuerda el último texto generado por la app, para distinguir "sin tocar" de
 // "editado a mano" y no pisar las correcciones del médico al reintegrar.
 var _amiloUltimo = {};
+/* Regenera un módulo YA integrado y que el médico no editó a mano. Hace falta porque el
+   texto de cada módulo se congela en el textarea al apretar «Integrar» y nada lo vuelve a
+   calcular: el cruce Wilkins × trombo de orejuela quedaba evaluado con el valor que había
+   en ese instante, y como en la pantalla del ETE la tarjeta de Wilkins va ANTES que la de
+   la orejuela, el orden natural —puntuar la mitral, integrar, y recién después mirar la
+   orejuela— dejaba el aviso siempre en falso. El predicado de «sin tocar» es el mismo que
+   usa amiloIntegrar, así que no pisa una corrección del médico. */
+function amiloRefrescarSiIntacto(k) {
+  try {
+    if (typeof amiloIntegrado !== 'function' || !amiloIntegrado(k)) return;
+    const sec = amiloSecs().find(x => x.k === k);
+    const ta  = document.getElementById('am-txt-' + k);
+    if (!sec || !ta) return;
+    if (String(ta.value || '').trim() !== String(_amiloUltimo[k] || '').trim()) return;  // editado a mano
+    const nuevo = sec.gen();
+    ta.value = nuevo; _amiloUltimo[k] = nuevo;
+    if (typeof amiloPreview === 'function') amiloPreview(k);
+  } catch (e) { /* nunca puede tumbar el cálculo que lo llamó */ }
+}
+window.amiloRefrescarSiIntacto = amiloRefrescarSiIntacto;
 
 // ── Vista formateada del bloque ───────────────────────────────────
 // El textarea es la fuente de verdad (guarda el '##' que entiende el PDF), pero
@@ -20578,10 +20659,34 @@ function initHdrEditable() {
 }
 initHdrEditable();
 
+/* Wrapper con try/catch. El cuerpo tiene un `finally` interno que restaura el formulario,
+   pero la excepción seguía propagándose fuera sin catch ni aviso: el médico tocaba 📄 PDF y
+   NO pasaba absolutamente nada —ni PDF, ni error visible—. Un botón mudo se lee como «la app
+   no responde», no como «algo falló». */
+/* El guard de reentrada NO es opcional: la restauración del formulario es diferida 600 ms, y
+   el toast de error es justo el estímulo que produce el segundo clic. Con dos invocaciones
+   solapadas, la segunda toma su backup del DOM ya pisado con el estudio de la primera y al
+   restaurar deja al paciente en pantalla reemplazado por el otro estudio —que el autosave
+   persiste acto seguido como su borrador—. Se libera en el finally del setTimeout, no acá,
+   porque acá la restauración todavía no ocurrió. */
+var _pdfGuardadoEnCurso = false;
 function pdfDeInformeGuardado(id) {
+  if (_pdfGuardadoEnCurso) { if (typeof toast === 'function') toast('⏳ Esperá a que termine el PDF anterior'); return; }
+  _pdfGuardadoEnCurso = true;
+  try { _pdfDeInformeGuardadoArmar(id); }
+  catch (e) {
+    console.error('[pdfDeInformeGuardado]', e);
+    _pdfGuardadoEnCurso = false;
+    if (typeof toast === 'function') toast('❌ No se pudo generar el PDF de este estudio');
+  }
+}
+function _pdfDeInformeGuardadoArmar(id) {
   const informes = getInformes();
   const inf = informes.find(i => i.id === id);
-  if (!inf) return;
+  /* Salida temprana con aviso: era un `return` pelado, o sea el mismo botón mudo que el
+     try/catch dice haber resuelto — y es el camino más probable (almacén vacío por cuota,
+     JSON ilegible, estudio borrado en otra pestaña). */
+  if (!inf) { _pdfGuardadoEnCurso = false; if (typeof toast === 'function') toast('❌ No se encontró ese estudio guardado'); return; }
   const c = inf.campos || {};
 
   // La card de ETT Avanzado se construye ANTES del backup: si no existe, sus textarea
@@ -20602,7 +20707,6 @@ function pdfDeInformeGuardado(id) {
      PACIENTE. El PDF de un guardado sale sin imágenes, que es lo correcto: no hay ninguna
      imagen asociada a ese estudio. Mismo criterio que el snapshot de ETT Avanzado. */
   const imgBackup = (typeof imgSlots !== 'undefined') ? imgSlots.slice() : null;
-  if (imgBackup) imgSlots.length = 0;
 
   // Backup current form state
   const backup = {};
@@ -20638,8 +20742,16 @@ function pdfDeInformeGuardado(id) {
   // guardar los datos ajenos como borrador de este paciente. Va después de los backups
   // (que sólo leen el DOM) y dentro de un try, para que ningún error deje el autosave
   // suspendido en silencio por el resto de la sesión.
-  if (typeof autosaveSuspender === 'function') autosaveSuspender();
+  /* El try abre ACÁ: TODAS las lecturas de respaldo quedaron arriba —son inocuas— y a partir
+     de esta línea empieza lo destructivo. Abría después de vaciar imgSlots, así que entre el
+     vaciado y el try había una ventana en la que una excepción se llevaba el backup con el
+     frame y las imágenes del paciente, que no se persisten en ningún lado, se perdían para
+     siempre. Y los respaldos NO pueden declararse dentro del try: `finally` es un bloque
+     hermano y no ve sus `const` —medido, tiraba «imgBackup is not defined» en la
+     restauración de cada reimpresión exitosa—. */
   try {
+  if (imgBackup) imgSlots.length = 0;
+  if (typeof autosaveSuspender === 'function') autosaveSuspender();
 
   // Fill form with saved data
   /* Se escribe SIEMPRE, con '' cuando el estudio no trae la clave. Con la asignación
@@ -20754,10 +20866,18 @@ function pdfDeInformeGuardado(id) {
     if (typeof cxDuke === 'function') cxDuke();
     if (typeof cxGTP === 'function') cxGTP();
     if (typeof updateHdrExtra === 'function') updateHdrExtra();
+   } catch (e) {
+    /* La restauración corre en otra tarea: su excepción NO la ve el try/catch del wrapper,
+       que ya retornó. Y el finally reanuda el autosave igual, así que un formulario a medio
+       restaurar —mitad paciente en curso, mitad estudio reimpreso— se persiste como borrador
+       sin que nadie se entere. Que el médico lo sepa es más importante que el PDF. */
+    console.error('[pdfDeInformeGuardado/restaurar]', e);
+    if (typeof toast === 'function') toast('⚠️ El formulario puede no haber vuelto a su estado — revisalo antes de guardar');
    } finally {
     // Recién acá el formulario volvió a ser el del paciente en curso: se reanuda el
     // autosave y se guarda una vez, para que el borrador quede con SUS datos y no con
     // los que hubiera dejado un autosave anterior a la reimpresión.
+    _pdfGuardadoEnCurso = false;
     if (typeof autosaveReanudar === 'function') autosaveReanudar();
    }
   }, 600);
