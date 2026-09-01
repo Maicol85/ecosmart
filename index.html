@@ -10798,7 +10798,8 @@ function cxCont() {
   let cls, txt;
   if (ava >= 1.5) { cls = 'green'; txt = 'Sin/leve (≥1.5)'; }
   else if (avaEsModerada(ava)) { cls = 'yellow'; txt = 'Moderada (' + AVA_SEVERA_MAX.toFixed(1) + '–1.49)'; }
-  else { cls = 'red'; txt = 'Severa (<1.0)'; }
+  else if (avaEsSevera(ava)) { cls = 'red'; txt = 'Severa (<' + AVA_SEVERA_MAX.toFixed(1) + ')'; }
+  else { cls = 'gray'; txt = 'no valuable — revisá los insumos'; }   // ver nota en calcAo
   el.innerHTML = ava.toFixed(2) + ' cm² ' + badge(cls, txt);
 }
 
@@ -11060,14 +11061,14 @@ function calcTEP() {
   // CAMBIO 3: datos no evaluados → no emitir conclusión ni resultado tranquilizador
   if (algunoNoEval) {
     if (scoreEl) scoreEl.textContent = '—';
-    if (interpEl) interpEl.innerHTML = badge('yellow', 'Completá todos los criterios para obtener una orientación diagnóstica');
+    if (interpEl) { interpEl.dataset.estado = ''; interpEl.innerHTML = badge('yellow', 'Completá todos los criterios para obtener una orientación diagnóstica'); }
     if (estEl) estEl.textContent = '—';
     return;
   }
 
   if (total === 0) {
     if (scoreEl) scoreEl.textContent = '—';
-    if (interpEl) interpEl.textContent = 'Completar campos para calcular';
+    if (interpEl) { interpEl.dataset.estado = ''; interpEl.textContent = 'Completar campos para calcular'; }
     if (estEl) estEl.textContent = '—';
     return;
   }
@@ -11078,6 +11079,11 @@ function calcTEP() {
 
   // Interpretación
   if (interpEl) {
+    /* Estado explícito: los dos caminos «sin resultado» escriben TEXTO real («Completá todos
+       los criterios…»), no «—», así que preguntarle al span si tiene algo daba siempre que
+       sí. La salvedad ESC 2019 se emitía sobre una evaluación inexistente, y el informe
+       firmado llevaba una instrucción de interfaz como interpretación. */
+    interpEl.dataset.estado = 'valido';
     if (score === 0) interpEl.innerHTML = badge('green', 'Sin criterios de disfunción VD significativa');
     else if (score === 1) interpEl.innerHTML = badge('yellow', 'Criterio aislado — bajo valor diagnóstico individual');
     else if (score >= 2 && score <= 3) interpEl.innerHTML = badge('orange', 'Disfunción VD moderada — compatible con sobrecarga aguda de presión');
@@ -12683,7 +12689,12 @@ function calcAo() {
     let sev;
     if (PF(ava) >= 1.5) sev = badge('green', 'Sin estenosis / leve (≥1.5cm²)');
     else if (avaEsModerada(PF(ava))) sev = badge('yellow', 'Moderada (' + AVA_SEVERA_MAX.toFixed(1) + '-1.49cm²)');
-    else sev = badge('red', 'Severa (<1.0cm²)');
+    else if (avaEsSevera(PF(ava))) sev = badge('red', 'Severa (<' + AVA_SEVERA_MAX.toFixed(1) + 'cm²)');
+    /* El `else` incondicional mandaba a «Severa» todo AVA <= 0: con un TSVI tipeado 0,5 el
+       badge salía rojo «Severa» al lado de un AVA de 0.00, mientras sugerirSeveridadEA —dos
+       líneas más abajo— se abstenía correctamente. Las dos mitades del mismo cálculo,
+       contiguas en pantalla, diciendo cosas distintas. */
+    else sev = badge('gray', 'AVA no valuable — revisá diámetro TSVI, ITV-TSVI e ITV-Ao');
     document.getElementById('ea-sev').innerHTML = sev;
     sugerirSeveridadEA(PF(ava));
     if (bsa) {
@@ -12786,7 +12797,14 @@ function sugerirSeveridadEA(ava) {
   if (!sel) return;
   /* Un AVA no positivo no sugiere NADA: esta función escribe ea_grado, que es lo que baja al
      informe firmado. Está además exportada a window tomando un número crudo. */
-  if (!avaEsValida(ava)) { if (badgeEl) badgeEl.textContent = ''; return; }
+  /* Se DICE que no se actualizó, en vez de borrar el badge: el badge era lo único que
+     indicaba que el grado venía de una sugerencia automática y sobre qué número. Sin él, un
+     grado rancio de una medición anterior queda en el <select> pareciendo una decisión del
+     médico — y ese campo baja al informe firmado. */
+  if (!avaEsValida(ava)) {
+    if (badgeEl) badgeEl.textContent = 'AVA no valuable — el grado NO se actualizó automáticamente; revisá la severidad aórtica antes de firmar.';
+    return;
+  }
   /* Grado fijado a mano —o traído por una importación— gana sobre el autocálculo, igual
      que en calcIM_ESC/calcIA_ESC/calcIT_ESC. Sin esto, tocar cualquier campo del Doppler
      aórtico cambiaba el <select> de «Severa» a lo que diera la Vmax, sin avisar. */
@@ -14401,6 +14419,10 @@ function limpiarCampos() {
   // Nuevo estudio: resetear los flags de severidad fijada manualmente (las pills vuelven a autocalcularse)
   window.esqSevManual = {};
   if (typeof _sevManualSync === 'function') _sevManualSync();
+  /* El dataset.banda de Wilkins tiene vida más larga que el texto del que salió:
+     limpiarCampos resetea los spans a «—» pero no los atributos, así que la banda del
+     paciente anterior sobrevivía y la salvedad se emitía sobre un score inexistente. */
+  if (typeof calcWilkins === 'function') { try { calcWilkins(); } catch (e) {} }
   if (window.esqPills) try { esqPills.refresh(); } catch(e) {}
   // Inputs (incluye readonly calculados)
   document.querySelectorAll('input[type=text], input[type=number]').forEach(el => { el.value = ''; });
@@ -17708,6 +17730,12 @@ function editarInforme(id) {
     _restaurarChecklistPaciente(inf.campos);
     if (typeof _restaurarContractilidad === 'function') _restaurarContractilidad(inf.campos);
     if (typeof _restaurarStrain === 'function') _restaurarStrain(inf.campos);
+    /* calcWilkins() SÓLO lo llaman los onchange de sus cuatro selects, y repoblarlos con
+       `el.value = ...` no dispara eventos: al reabrir un estudio el total quedaba en «—» y
+       la banda del dataset, rancia. Con eso, el refresco que dispara calcOAI reescribía el
+       bloque guardado como «Score de Wilkins | no calculado» y BORRABA el aviso de
+       contraindicación por trombo, justo al cargarlo. */
+    if (typeof calcWilkins === 'function') calcWilkins();
     if (typeof amiloRestaurarDesdeCampos === 'function') amiloRestaurarDesdeCampos(inf.campos);
     if (typeof renderCentroField === 'function') renderCentroField(inf.campos.centro_nombre);
     // Cargar un estudio inicia una sesión nueva: resetear flags de severidad manual (las pills
@@ -17761,6 +17789,7 @@ function cargarEstudioPorId(id) {
   _restaurarChecklistPaciente(inf.campos);
   if (typeof _restaurarContractilidad === 'function') _restaurarContractilidad(inf.campos);
   if (typeof _restaurarStrain === 'function') _restaurarStrain(inf.campos);
+  if (typeof calcWilkins === 'function') calcWilkins();   // ver nota en editarInforme
   if (typeof amiloRestaurarDesdeCampos === 'function') amiloRestaurarDesdeCampos(inf.campos);
   valvSevConfirmada = false;   // estudio cargado por URL/QR: vuelve a pedir confirmación
   if (typeof renderCentroField === 'function') renderCentroField(inf.campos && inf.campos.centro_nombre);
@@ -18902,14 +18931,18 @@ function amiloTextoTEP() {
   else L.push('Sin criterios evaluados.');
 
   L.push('## Interpretación');
-  L.push('Interpretación: ' + (_amTxt('tep-interpretacion') || 'no determinable'));
+  /* Sin evaluación válida NO se imprime el texto del span: son literalmente instrucciones de
+     interfaz («Completá todos los criterios para obtener una orientación diagnóstica») que en
+     el informe firmado se leen como la interpretación del estudio. */
+  const _tepValido = ((document.getElementById('tep-interpretacion') || {}).dataset || {}).estado === 'valido';
+  L.push('Interpretación: ' + (_tepValido ? _amTxt('tep-interpretacion') : 'no determinable'));
   const est = _amTxt('tep-estratificacion'); if (est) L.push('Orientación de disfunción VD: ' + est);
   const ac  = _amTxt('tep-acoplamiento');    if (ac)  L.push('TAPSE/PSAP: ' + ac);
   /* La salvedad va DESPUÉS del veredicto que califica —«Riesgo INTERMEDIO-ALTO», que es
      vocabulario de clase de riesgo ESC 2019 salido de una ecocardiografía sola— y no antes,
      separada por un subtítulo. Y sólo si hubo evaluación: un descargo sobre algo que no se
      midió se lee, en un informe, como que la pregunta sí se consideró. */
-  if (_amTxt('tep-score') || _amTxt('tep-interpretacion') || est) {
+  if (_tepValido) {
     L.push('Salvedad | Estos hallazgos son orientativos y NO reemplazan la estratificación de riesgo del tromboembolismo pulmonar, que exige integrar estabilidad hemodinámica, troponina, PESI/sPESI y confirmación diagnóstica por imagen (ESC 2019). Ningún signo ecocardiográfico es patognomónico de TEP: el signo de McConnell puede verse en el infarto de ventrículo derecho.');
   }
   return L.join('\n');
@@ -18961,7 +18994,7 @@ function amiloTextoWilkins() {
   }
   /* La salvedad anatómica va donde el score deja la puerta abierta al procedimiento, o sea
      favorable y subóptimo. El score es ANATÓMICO: describe la válvula, no lo indica. */
-  if (_wBanda === 'favorable' || _wBanda === 'suboptimo') {
+  if (_wHayScore && (_wBanda === 'favorable' || _wBanda === 'suboptimo')) {
     L.push('Salvedad | El score de Wilkins evalúa la anatomía valvular y no constituye por sí solo indicación de valvuloplastia: no puntúa la calcificación comisural ni el grado de insuficiencia mitral, y la decisión requiere integrar la clínica, la anatomía de la orejuela y la evaluación del equipo tratante.');
   }
   L.push('## Desglose por criterio');
@@ -20670,13 +20703,21 @@ initHdrEditable();
    persiste acto seguido como su borrador—. Se libera en el finally del setTimeout, no acá,
    porque acá la restauración todavía no ocurrió. */
 var _pdfGuardadoEnCurso = false;
+/* Se marca cuando el finally interno ya agendó el setTimeout de restauración. Sin esto, el
+   catch del wrapper liberaba el guard en el acto —contradiciendo el comentario de arriba— y
+   quedaban 600 ms con el formulario pisado por el estudio ajeno, imgSlots vacío y el autosave
+   suspendido, mientras el toast de error invitaba al segundo clic. Ese segundo clic tomaba su
+   backup del estudio ajeno y, al restaurar, dejaba al paciente reemplazado y sin imágenes,
+   persistido como su propio borrador. */
+var _pdfRestauracionPendiente = false;
 function pdfDeInformeGuardado(id) {
   if (_pdfGuardadoEnCurso) { if (typeof toast === 'function') toast('⏳ Esperá a que termine el PDF anterior'); return; }
   _pdfGuardadoEnCurso = true;
   try { _pdfDeInformeGuardadoArmar(id); }
   catch (e) {
     console.error('[pdfDeInformeGuardado]', e);
-    _pdfGuardadoEnCurso = false;
+    // Sólo si no quedó una restauración en vuelo: ésa libera el guard en su propio finally.
+    if (!_pdfRestauracionPendiente) _pdfGuardadoEnCurso = false;
     if (typeof toast === 'function') toast('❌ No se pudo generar el PDF de este estudio');
   }
 }
@@ -20831,14 +20872,19 @@ function _pdfDeInformeGuardadoArmar(id) {
   } finally {
 
   // Restore form state
+  _pdfRestauracionPendiente = true;
+  let _restauracionFallo = false;
   setTimeout(() => {
    // try/finally: si algo de la restauración tira, el autosave tiene que reanudarse
    // igual. Si no, quedaría suspendido en silencio por el resto de la sesión y el
    // médico perdería el borrador de todo lo que cargue después.
    try {
+    /* Las imágenes van PRIMERO: son el único estado de toda esta función que no se puede
+       recuperar de ningún lado. Si algo tira antes —un JSON.parse, un _sevManualSync— se
+       perdían para siempre. */
+    if (imgBackup) { imgSlots.length = 0; imgBackup.forEach(x => imgSlots.push(x)); if (typeof imgRender === 'function') imgRender(); }
     try { window.esqSevManual = JSON.parse(sevManualBackup) || {}; } catch (e) { window.esqSevManual = {}; }
     if (typeof _sevManualSync === 'function') _sevManualSync();
-    if (imgBackup) { imgSlots.length = 0; imgBackup.forEach(x => imgSlots.push(x)); if (typeof imgRender === 'function') imgRender(); }
     document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
       if (backup[el.id] !== undefined) el.value = backup[el.id];
     });
@@ -20871,6 +20917,7 @@ function _pdfDeInformeGuardadoArmar(id) {
        que ya retornó. Y el finally reanuda el autosave igual, así que un formulario a medio
        restaurar —mitad paciente en curso, mitad estudio reimpreso— se persiste como borrador
        sin que nadie se entere. Que el médico lo sepa es más importante que el PDF. */
+    _restauracionFallo = true;
     console.error('[pdfDeInformeGuardado/restaurar]', e);
     if (typeof toast === 'function') toast('⚠️ El formulario puede no haber vuelto a su estado — revisalo antes de guardar');
    } finally {
@@ -20878,7 +20925,18 @@ function _pdfDeInformeGuardadoArmar(id) {
     // autosave y se guarda una vez, para que el borrador quede con SUS datos y no con
     // los que hubiera dejado un autosave anterior a la reimpresión.
     _pdfGuardadoEnCurso = false;
-    if (typeof autosaveReanudar === 'function') autosaveReanudar();
+    _pdfRestauracionPendiente = false;
+    /* `_pdfFallbackNotas` se limpiaba DENTRO del try: si la restauración fallaba a mitad,
+       quedaba apuntando a la indicación y los antecedentes del estudio ajeno, y el siguiente
+       PDF del paciente en curso salía con ellos. */
+    window._pdfFallbackNotas = null;
+    /* Tras un fallo de restauración NO se guarda: autosaveReanudar() persiste en el acto, y
+       lo que hay en pantalla es una mezcla de dos pacientes. Se descarta el borrador en vez
+       de dejar que _autosaveRestore lo reponga en la próxima carga. */
+    if (_restauracionFallo) {
+      try { localStorage.removeItem('ecosmart_autosave'); } catch (e2) {}
+      if (typeof _autosaveSuspendido !== 'undefined') _autosaveSuspendido = false;
+    } else if (typeof autosaveReanudar === 'function') autosaveReanudar();
    }
   }, 600);
   }
