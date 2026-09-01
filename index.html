@@ -14920,12 +14920,23 @@ function generarPDFReal() {
   }
 
   // ─── drawBar ──────────────────────────────────────────────────
+  /* Alto de la barra derivado del cuerpo de letra, no fijo. A 8,5 · PDF_FS = 9,1 pt la
+     mayúscula mide ~2,3 mm; con la barra de 7 mm y la línea base en +5 quedaban 2,7 mm
+     arriba y 2,0 abajo — asimétrico y sobrado. Con 1,4 mm de aire a cada lado la barra baja
+     a ~5,1 mm y el texto queda centrado de verdad. Son ~2,4 mm menos por barra, y en un
+     informe con INFORME, EN SUMA y dos scores adicionales eso es casi un centímetro. */
+  const _BAR_PAD = 1.4;
+  const _BAR_CAP = 8.5 * _FS * 0.72 * 0.3528;   // alto de mayúscula en mm
+  const _BAR_H   = _BAR_CAP + _BAR_PAD * 2;
+  /* La reserva incluye la PRIMERA LÍNEA de lo que viene después (2 mm de separación + 6 de
+     renglón): con reservar sólo la barra, «EN SUMA:» podía quedar solo al pie de la hoja y la
+     conclusión firmada empezar en la página siguiente. */
   function drawBar(txt) {
-    y += 1.5; checkPage(10);
-    fc(TEMA[0],TEMA[1],TEMA[2]); doc.rect(mL,y,pgW,7,'F');
+    y += 1.2; checkPage(_BAR_H + 1.2 + 8);
+    fc(TEMA[0],TEMA[1],TEMA[2]); doc.rect(mL, y, pgW, _BAR_H, 'F');
     fb(8.5); tc(255,255,255);
-    doc.text(txt, mL+5, y+5);
-    y += 8.5;
+    doc.text(txt, mL+5, y + _BAR_PAD + _BAR_CAP);
+    y += _BAR_H + 1.2;
   }
 
   // ─── drawTablaCompacta ────────────────────────────────────────
@@ -14944,6 +14955,16 @@ function generarPDFReal() {
     const hH = 5.1, lineH = 3.5, rowPad = 1.5;
     const maxR = Math.max(...secs.map(s => s.items.length));
 
+    /* SANEADO en el borde. Las referencias de severidad llevan «≥», «≤» y la raya corta
+       («(<3 / 3–7 / ≥7) mm») y esta tabla dibuja con doc.text directo: un solo carácter
+       fuera de WinAnsi pasa la CADENA ENTERA a UTF-16. Medido: la referencia de la vena
+       contracta de IM salía como bytes intercalados con nulos, o sea los umbrales de
+       severidad valvular ILEGIBLES en todos los PDF firmados. Se saneá acá, en el único
+       punto por donde pasan las tres partes de cada celda, y no cazando símbolos uno por
+       uno en las decenas de literales de los cinco bloques. */
+    const _tSan = t => (typeof amiloSanPDF === 'function') ? amiloSanPDF(String(t == null ? '' : t)) : String(t == null ? '' : t);
+    secs.forEach(sec => { sec.titulo = _tSan(sec.titulo);
+      sec.items.forEach(it => { it.lbl = _tSan(it.lbl); it.ref = _tSan(it.ref); it.val = _tSan(it.val); }); });
     // Pre-cálculo: envolver cada valor y medir cuántas líneas ocupa
     secs.forEach(sec => sec.items.forEach(it => {
       fb(7); it._lw = doc.getTextWidth(it.lbl);
@@ -15077,29 +15098,45 @@ function generarPDFReal() {
   // ════════════════════════════════════════════════════════════
   // 1. ENCABEZADO
   // ════════════════════════════════════════════════════════════
-  const hdrH = 22;
-  fc(TEMA[0],TEMA[1],TEMA[2]); doc.rect(0,0,210,hdrH,'F');
-  // ECG trace (blended ~35% opacity: #31547b)
-  dc(49,84,123); doc.setLineWidth(0.6);
-  const ecg=[[0,14],[20,14],[28,14],[30,6],[32,22],[34,6],[36,14],[50,14],[52,11],[54,14],[70,14],[72,11],[74,14],[210,14]];
-  for(let i=1;i<ecg.length;i++) doc.line(ecg[i-1][0],ecg[i-1][1],ecg[i][0],ecg[i][1]);
-  fb(13); tc(255,255,255);
-  doc.text('Informe Ecocardiograma Doppler Color',105,9.5,{align:'center'});
-  fn(8.5); tc(200,221,245);
   // El nombre del centro va en el header junto al título; el médico informante va sólo en la firma al pie
   const _medCentro = sv('med-centro') || '';
   // En modo institucional el encabezado nunca cae al fallback 'CeiboMed': o va la institución o va vacío.
   const _hdrModoInst = localStorage.getItem('ett_modo_institucional')==='1';
   const _hdrLine = _medCentro || centroStr || (_hdrModoInst ? '' : 'CeiboMed');
-  doc.text(_hdrLine,105,16.5,{align:'center'});
-  // Logo del centro en el vértice superior derecho (alt. máx 18mm, proporción conservada)
+  /* Alto derivado del contenido, no fijo en 22. Con el título a 13 · PDF_FS (mayúscula
+     ~3,5 mm) y el subtítulo a 8,5 (~2,3 mm), 22 mm dejaban 6 mm muertos arriba y casi 5
+     abajo. Con 3,5 de aire superior y ~2,5 inferior alcanzan 16,5 — y 11,5 si no hay
+     segunda línea, que es el caso del modo institucional sin centro cargado. */
+  const _hdrDos = !!_hdrLine;
+  const hdrH = _hdrDos ? 16.5 : 11.5;
+  fc(TEMA[0],TEMA[1],TEMA[2]); doc.rect(0,0,210,hdrH,'F');
+  /* El trazo de ECG estaba en coordenadas absolutas para una banda de 22 mm: con la banda
+     más baja, la espiga de la R (y=22) caía fuera. Se escala con la altura. */
+  dc(49,84,123); doc.setLineWidth(0.6);
+  const _kEcg = hdrH / 22;
+  const ecg=[[0,14],[20,14],[28,14],[30,6],[32,22],[34,6],[36,14],[50,14],[52,11],[54,14],[70,14],[72,11],[74,14],[210,14]];
+  for(let i=1;i<ecg.length;i++) doc.line(ecg[i-1][0],ecg[i-1][1]*_kEcg,ecg[i][0],ecg[i][1]*_kEcg);
+  fb(13); tc(255,255,255);
+  doc.text('Informe Ecocardiograma Doppler Color',105, _hdrDos ? 7.0 : 7.6, {align:'center'});
+  if (_hdrDos) { fn(8.5); tc(200,221,245); doc.text(_hdrLine,105,12.9,{align:'center'}); }
+  // Logo del centro en el vértice superior derecho, proporción conservada y ajustado a la banda
   try {
     const _logoData = localStorage.getItem('logo_centro_' + (localStorage.getItem('centro_tipo_activo') || 'default'));
     if (_logoData) {
       const _lp = doc.getImageProperties(_logoData);
-      const _lh = 18;
-      const _lw = (_lp.width && _lp.height) ? _lh * (_lp.width / _lp.height) : _lh;
-      doc.addImage(_logoData, _lp.fileType || undefined, 210 - _lw - 6, 2, _lw, _lh);
+      /* Escala con la banda: era 18 mm fijos apoyados en y=2, o sea 20 mm de alto en una
+         banda que ahora mide 16,5 — se salía por abajo y pisaba los datos del paciente.
+         Y TOPE DE ANCHO: el alto salía de la banda pero el ancho era libre, así que un
+         logotipo apaisado (relación > 4:1, la forma habitual de un wordmark de clínica)
+         se comía hasta la mitad del título y el nombre del centro, porque además se
+         dibujaba DESPUÉS del texto. Con 40 mm el borde izquierdo del logo queda en 164 y
+         el título centrado llega a ~154: no se tocan. */
+      const _lhBanda = hdrH - 4;
+      const _lwMax = 40;
+      let _lh = _lhBanda;
+      let _lw = (_lp.width && _lp.height) ? _lh * (_lp.width / _lp.height) : _lh;
+      if (_lw > _lwMax) { _lh = _lh * (_lwMax / _lw); _lw = _lwMax; }
+      doc.addImage(_logoData, _lp.fileType || undefined, 210 - _lw - 6, 2 + (_lhBanda - _lh) / 2, _lw, _lh);
     }
   } catch (_e) { /* formato no soportado (p. ej. SVG) — se omite en el PDF */ }
   dc(91,155,213); doc.setLineWidth(1.2); doc.line(0,hdrH,210,hdrH);
@@ -15166,11 +15203,14 @@ function generarPDFReal() {
   // BLOQUE 1 (3 col): Raíz de Aorta | Aurícula Izquierda | Aurícula Derecha / VCI
   // ════════════════════════════════════════════════════════════
   drawTablaCompacta([
+    /* Etiquetas abreviadas: la columna es angosta y «Unión sinotubular» sola se llevaba
+       media fila, forzando el envoltorio del valor a una segunda línea. El valor de
+       referencia al lado desambigua qué es cada una. */
     {titulo:'Aorta torácica', items:[
-      {lbl:'Seno Valsalva',     ref:'<=40 mm', val:v('ao_sin') ?v('ao_sin') +' mm':null},
-      {lbl:'Unión sinotubular', ref:'<=33 mm', val:v('ao_st')  ?v('ao_st')  +' mm':null},
-      {lbl:'Ao asc. proximal',  ref:'<=36 mm', val:v('ao_tub') ?v('ao_tub') +' mm':null},
-      {lbl:'Ø TSVI',            ref:'',        val:v('diam_tsvi_ao')?v('diam_tsvi_ao')+' mm':null},
+      {lbl:'SV',      ref:'<=40 mm', val:v('ao_sin') ?v('ao_sin') +' mm':null},
+      {lbl:'ST',      ref:'<=33 mm', val:v('ao_st')  ?v('ao_st')  +' mm':null},
+      {lbl:'Ao asc',  ref:'<=36 mm', val:v('ao_tub') ?v('ao_tub') +' mm':null},
+      {lbl:'Ø TSVI',  ref:'',        val:v('diam_tsvi_ao')?v('diam_tsvi_ao')+' mm':null},
     ]},
     {titulo:'Aurícula Izquierda', items:[
       {lbl:'Diám. AP',     ref:'<40 mm',    val:v('ai_diam')?v('ai_diam')+' mm':null},
@@ -15287,7 +15327,28 @@ function generarPDFReal() {
   // BLOQUE 5 (4 col): Válvula Mitral | Válvula Aórtica | Válvula Tricúspide | Otros (pericardio + raíz aorta)
   // ════════════════════════════════════════════════════════════
   const eaReal = sv('ea_grado') && sv('ea_grado') !== 'sin' && sv('ea_grado') !== 'normal' && sv('ea_grado') !== '—' && sv('ea_grado').trim() !== '';
-  const aoDesc = sv('ao_desc') || (v('ao_sin') ? (v('ao_sin') <= 40 ? 'Raiz de Aorta de calibre normal (Seno Valsalva ' + v('ao_sin') + ' mm).' : 'Raiz de Aorta dilatada (Seno Valsalva ' + v('ao_sin') + ' mm).') : null);
+  /* Antes: «Raiz de Aorta de calibre normal (Seno Valsalva 34 mm).» — una oración entera
+     para un dato que el informe narrativo ya dice con las mismas palabras, y que además
+     repetía el seno de Valsalva que la tabla del Bloque 1 ya lista. Ahora sólo los valores
+     efectivamente cargados, abreviados, y la palabra «dilatada» únicamente cuando lo está:
+     «de calibre normal» es relleno, «dilatada» es un hallazgo. */
+  const aoDesc = (function () {
+    /* Cada segmento tiene su umbral y se marca por separado. Con un flag global sobre el
+       seno de Valsalva, una aorta ascendente de 48 mm (ref <=36) salía sin la palabra
+       «dilatada» — y en una celda sin valores de referencia esa ausencia se lee como
+       afirmación de normalidad. Se marca el segmento con un asterisco y se aclara al pie.
+       Etiquetas expandidas y no «SV»/«ST»: acá NO va el valor de referencia al lado que las
+       desambigüe, y en cardiología «SV» es volumen sistólico y «ST» el segmento del ECG. */
+    const segs = [['ao_sin','Valsalva',40], ['ao_st','Sinotub.',33], ['ao_tub','Ao asc',36]];
+    const partes = []; let algunoDilatado = false;
+    segs.forEach(([k, lbl, ref]) => {
+      const x = v(k); if (!x) return;
+      const dil = x > ref; if (dil) algunoDilatado = true;
+      partes.push(lbl + ' ' + x + (dil ? '*' : ''));
+    });
+    if (!partes.length) return null;
+    return partes.join(' · ') + ' mm' + (algunoDilatado ? ' (* dilatado)' : '');
+  })();
   drawTablaCompacta([
     {titulo:'Válvula Mitral', items:[
       {lbl:'Morf.',         ref:'', val:sv('vm_morf')||null},
@@ -15336,7 +15397,8 @@ function generarPDFReal() {
     fn(8); tc(13,13,13);
     const iL = doc.splitTextToSize(informeTxt, pgW-4);
     iL.forEach(l=>{ checkPage(6); doc.text(l,mL+2,y); y+=5.5; });
-    y += 3;
+    /* Sin cola: la barra del EN SUMA ya trae su propio aire (1,2 mm). Antes se sumaban 3 mm
+       de acá + 1,5 de la barra = 4,5 mm de blanco entre el final del informe y el título. */
   }
 
   // ════════════════════════════════════════════════════════════
@@ -15369,6 +15431,11 @@ function generarPDFReal() {
     const t = el ? (el.textContent || '').trim() : '';
     return (typeof amiloSanPDF === 'function') ? amiloSanPDF(t) : t;
   };
+  /* «Vacío» es cualquiera de las dos rayas: la app escribe «—» en los spans, pero _cxtx los
+     saneá y amiloSanPDF la convierte en «-». Los filtros que comparaban sólo contra «—»
+     dejaron de reconocer el hueco y los bloques sin datos se imprimían llenos de guiones,
+     empujando el informe a una segunda hoja. */
+  const _cxVacio = t => !t || t === '—' || t === '-';
   if (localStorage.getItem('wilkins_incluir_pdf') === '1') {
     const _wt = _cxtx('cx-wilkins-total');
     /* El guard de parcialidad estaba SÓLO en pantalla: el bloque reconstruía las filas por su
@@ -15379,7 +15446,7 @@ function generarPDFReal() {
     const _wcrudos = ['cx_wilk_mov','cx_wilk_eng','cx_wilk_cal','cx_wilk_sub']
       .map(id => (document.getElementById(id) || {}).value || '');
     const _wCompleto = _wcrudos.every(x => x !== '') && !_wcrudos.every(x => x === '1');
-    if (_wt && _wt !== '—' && _wCompleto) {
+    if (!_cxVacio(_wt) && _wCompleto) {
       const _wv = id => { const el = document.getElementById(id); return el ? (parseInt(el.value) || 0) : 0; };
       const _wmov = _wv('cx_wilk_mov'), _weng = _wv('cx_wilk_eng'), _wcal = _wv('cx_wilk_cal'), _wsub = _wv('cx_wilk_sub');
       const _wrows = [
@@ -15389,7 +15456,7 @@ function generarPDFReal() {
         ['Engrosamiento subvalvar', _wsub + '/4'],
         ['Total', (_wmov + _weng + _wcal + _wsub) + '/16']
       ];
-      checkPage(12 + _wrows.length * 5); drawBar('SCORE DE WILKINS'); y += 3;
+      checkPage(8 + _wrows.length * 5); drawBar('SCORE DE WILKINS'); y += 3;
       /* maxWidth NO trunca: parte el texto y dibuja las líneas hacia abajo, pero el
          llamador avanzaba y += 5 como si hubiera sido una sola. Con la fuente escalada
          más cadenas cruzan el umbral y la segunda línea se pisa con la fila siguiente.
@@ -15405,14 +15472,14 @@ function generarPDFReal() {
     /* La etiqueta lleva la fórmula: un PDF reimpreso hoy da otros números que uno emitido
        antes de unificarla, y sin la fórmula a la vista nada permite distinguirlos. */
     const _grows = [['PAPm (Chemla)','cx-gtp-papm'],['PCP (Nagueh ' + PCP_FORMULA_TXT + ')','cx-gtp-pcp'],['GTP','cx-gtp-gtp'],['VS','cx-gtp-vs'],['GC','cx-gtp-gc'],['RVP','cx-gtp-rvp']]
-      .map(r => [r[0], _cxtx(r[1])]).filter(r => r[1] && r[1] !== '—');
+      .map(r => [r[0], _cxtx(r[1])]).filter(r => !_cxVacio(r[1]));
     const _hayPCP = _grows.some(r => /^PCP/.test(r[0]));
     if (_grows.length) {
       /* La reserva incluye el disclaimer: con la de antes (10 + filas×5) el bloque consumía
          más de lo pedido y el checkPage del disclaimer metía un salto de página, así que la
          salvedad aterrizaba sola arriba de la hoja siguiente, separada de los badges
          «componente precapilar» y «HTP vascular» que califica. */
-      checkPage(13 + _grows.length * 5 + (_hayPCP ? 10 : 0)); drawBar('GRADIENTE TRANSPULMONAR (GTP) / RVP'); y += 3;
+      checkPage(9 + _grows.length * 5 + (_hayPCP ? 10 : 0)); drawBar('GRADIENTE TRANSPULMONAR (GTP) / RVP'); y += 3;
       _grows.forEach(r => { checkPage(6); fb(7.5); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(r[0] + ': ', mL + 2, y); const _lw = doc.getTextWidth(r[0] + ': '); fn(8); tc(30,30,30);
         const _ln = doc.splitTextToSize(String(r[1]), pgW - _lw - 6);
         _ln.forEach((l, i) => { if (i) checkPage(5); doc.text(l, i ? mL + 2 : mL + 2 + _lw, y); if (i < _ln.length - 1) y += 4.2; });
@@ -15444,7 +15511,7 @@ function generarPDFReal() {
     const _eeselT = id => { const el = document.getElementById(id); return (el && el.value !== '') ? el.options[el.selectedIndex].text : ''; };
     const _eeSub = t => { checkPage(8); fb(8); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(t, mL, y); y += 5; };
     const _eeKV = pairs => {
-      const items = pairs.filter(p => p[1] != null && String(p[1]).trim() !== '' && String(p[1]).trim() !== '—');
+      const items = pairs.filter(p => !_cxVacio(String(p[1] == null ? '' : p[1]).trim()));
       const colW = pgW / 2;
       for (let r = 0; r < items.length; r += 2) {
         checkPage(6);
@@ -15547,7 +15614,7 @@ function generarPDFReal() {
     // Score de Duke (si su toggle está activo)
     if (localStorage.getItem('duke_incluir_pdf') === '1') {
       const _dk = _cxtx('cx-duke-total');
-      if (_dk && _dk !== '—') { _eeSub('Score de Duke'); checkPage(6); fn(8); tc(30,30,30); doc.text(_dk, mL + 2, y); y += 6; }
+      if (!_cxVacio(_dk)) { _eeSub('Score de Duke'); checkPage(6); fn(8); tc(30,30,30); doc.text(_dk, mL + 2, y); y += 6; }
     }
 
     // (d) Texto narrativo (conclusión)
