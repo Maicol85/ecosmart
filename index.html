@@ -15353,9 +15353,13 @@ function limpiarCampos() {
   /* Se limpian SÓLO los toggles sin guarda de contenido: los que imprimen algo aunque no
      haya datos de este estudio. Los demás (contractilidad, SGL, Wilkins, GTP, Duke, eco
      estrés) son una PREFERENCIA de formato del médico —se encienden con un botón que promete
-     persistencia— y ya se auto-limitan porque su bloque del PDF comprueba que haya datos.
+     persistencia— y se auto-limitan porque su bloque del PDF comprueba que haya datos.
      Borrarlos todos obligaba a reactivar el bull's eye en cada paciente, y olvidarse
-     significaba un PDF sin él y sin ningún aviso. */
+     significaba un PDF sin él y sin ningún aviso.
+     Ojo: hasta 2026-09-02 esto era falso para CONTRACTILIDAD —su bloque miraba sólo el
+     toggle—, así que el toggle prendido del paciente anterior metía un bull's eye entero
+     verde en el PDF firmado del siguiente. Lo cierra contrHayDatos(). Si mañana se agrega
+     otro toggle a esta lista, la guarda de contenido hay que escribirla; no viene sola. */
   /* `ete_tecnica_texto` se borra junto con el toggle. limpiarCampos() vacía todos los
      textarea, así que el campo QUEDABA vacío en pantalla, pero la clave sobrevivía en
      localStorage y el script de arranque la restaura en la próxima carga: la técnica del
@@ -16742,7 +16746,13 @@ function generarPDFReal() {
   // ════════════════════════════════════════════════════════════
   // BULL'S EYE (contractilidad / SGL) — antes de la firma
   // ════════════════════════════════════════════════════════════
-  const _incContr = localStorage.getItem('contractilidad_incluir_pdf') === '1';
+  /* Además del toggle se exige que HAYA contractilidad evaluada, por el mismo motivo que el
+     strain de abajo. El toggle es una preferencia GLOBAL que «Nuevo Estudio» no apaga a
+     propósito, así que quedaba prendido del paciente anterior y el PDF firmado del siguiente
+     —sin contractilidad evaluada— salía con un bull's eye entero verde. El comentario de
+     limpiarCampos aseguraba que este bloque comprobaba que hubiera datos; ahora lo hace. */
+  const _incContr = localStorage.getItem('contractilidad_incluir_pdf') === '1'
+                    && typeof contrHayDatos === 'function' && contrHayDatos();
   /* Además del toggle se exige que HAYA strain cargado. Un estudio viejo no tiene
      `strain_sgl` guardado, así que _restaurarStrain lo deja vacío y strainColor devuelve
      «Normal» para los 17 segmentos: el PDF salía con un bull's eye entero verde al lado del
@@ -22401,6 +22411,11 @@ function _pptDesdeFormulario(inf, tema){
   P.layout = 'LAYOUT_16x9';                      // 25,4 × 14,29 cm
   const W = 10, H = 5.63;                        // pulgadas, que es la unidad de PptxGenJS
   const c = (inf && inf.campos) || {};
+  /* Los avisos de maquetación se ENCOLAN y se emiten después de writeFile. toast() escribe
+     sobre un único elemento que se oculta a los 2500 ms, así que un aviso lanzado durante la
+     generación lo tapaba el «✅ PPT generado» de un segundo después: el único mecanismo que
+     tenía el médico para enterarse de que algo se dibuja fuera del marco no llegaba a leerse. */
+  const _pptAvisos = [];
 
   const centro = _pptTxt(c['centro_nombre'] || c['med-lugar'] || '');
   const medico = _pptTxt(c['med-nombre'] || '');
@@ -22457,8 +22472,7 @@ function _pptDesdeFormulario(inf, tema){
     }
     /* Ni con lo más chico entra. No se calla: PowerPoint dibujaría la tabla por debajo del
        borde y la diapositiva se ve completa hasta que se proyecta. */
-    if (typeof toast === 'function')
-      toast('⚠️ Hay demasiadas mediciones para una diapositiva — revisá «Parámetros ecocardiográficos» antes de presentar');
+    _pptAvisos.push('⚠️ Hay demasiadas mediciones para una diapositiva — revisá «Parámetros ecocardiográficos» antes de presentar');
     return { fs:9, pad:1 };
   };
   const tabla = (s, filas, y, alto, x, ancho, estilo) => {
@@ -22640,46 +22654,171 @@ function _pptDesdeFormulario(inf, tema){
          false — un estudio con aquinesia documentada pero sin GLS exportaba el PPT sin la
          diapositiva de contractilidad. Y el estado son índices de CONTR_MOTILIDAD (0 =
          normal), nunca los strings 'normal'/'n' que comparaba antes. */
-      const e = (typeof contrEstado !== 'undefined') ? contrEstado : {};
-      hayAlterado = Object.keys(e).some(k => Number(e[k]) > 0);
+      hayAlterado = (typeof contrHayDatos === 'function') && contrHayDatos();
     } catch (err) {}
     if (hayAlterado || gls != null) {
+      /* El bull's eye de SGL sólo se dibuja si el médico PINTÓ segmentos. `strainEstado`
+         vacío hace que strainColor devuelva «Normal» para los 17, así que un estudio con
+         GLS cargado pero sin strain segmentario habría salido con un bull's eye entero del
+         color de «Normal» al lado del número: vacío no es normal, es no evaluado. Es el
+         mismo criterio de DATOS que usa el PDF; lo que el PPT NO mira son los toggles
+         `sgl_incluir_pdf` / `contractilidad_incluir_pdf`, que son preferencias globales de
+         la sesión y no viajan con el estudio —usarlas como compuerta acá importaría esa
+         fuga entre pacientes—. La diapositiva se decide por lo que el estudio contiene. */
+      let haySgl = false;
+      try {
+        haySgl = (typeof strainEstado === 'object' && strainEstado)
+                 && Object.keys(strainEstado).some(k => (strainEstado[k] || 0) > 0);
+      } catch (err) {}
+
       const s = nueva();
-      titulo(s, 'Contractilidad segmentaria — 17 segmentos AHA');
+      /* El título nombra lo que la diapositiva MUESTRA. Derivarlo sólo de `haySgl` la
+         titulaba «Contractilidad y Strain» sobre una diapositiva sin contractilidad. */
+      titulo(s, (haySgl && hayAlterado) ? 'Contractilidad y Strain Longitudinal (SGL)'
+                : haySgl                ? 'Strain Longitudinal (SGL) — 17 segmentos AHA'
+                : hayAlterado           ? 'Contractilidad segmentaria — 17 segmentos AHA'
+                                        : 'Strain longitudinal global (SGL)');
+
       /* bullseyeDataURL EXIGE getColor: sin el argumento tiraba TypeError en su primera
          línea útil, el catch se lo tragaba y la diapositiva salía con el 40% izquierdo en
-         blanco y una línea vertical suelta, sin error en consola. Misma llamada que usa el
-         PDF. Y el catch ya no es mudo. */
-      let img = null;
-      try {
-        img = (typeof bullseyeDataURL === 'function')
-          ? bullseyeDataURL(id => (CONTR_MOTILIDAD[(contrEstado[id] || 0)] || CONTR_MOTILIDAD[0]).color)
-          : null;
-      } catch (err) { console.error('[ppt/bullseye]', err); img = null; }
-      // La línea separadora sólo si hay imagen que separar.
-      if (img) {
-        s.addImage({ data:img, x:0.5, y:1.15, w:3.6, h:3.6 });
-        s.addShape(P.ShapeType.line, { x:4.45, y:1.15, w:0, h:3.6, line:{ color:PPT_C.teal, width:1 } });
-      }
-      let y = 1.25;
-      if (gls != null) {
-        s.addText('GLS', { x:4.75, y, w:W-5.25, h:0.3, fontSize:14, color:PPT_C.teal, fontFace:PPT_FONT }); y += 0.32;
-        s.addText(String(gls) + ' %', { x:4.75, y, w:W-5.25, h:0.7, fontSize:36, bold:true, color:'FFFFFF', fontFace:PPT_FONT }); y += 0.72;
-        s.addText('Referencia normal < −18 %', { x:4.75, y, w:W-5.25, h:0.3, fontSize:12, color:PPT_C.txt2, fontFace:PPT_FONT }); y += 0.45;
-      }
-      /* No se informa WMSI: en esta app sólo se calcula dentro de Eco Estrés (ee-wmsi-<fase>)
-         y no existe un WMSI del estudio basal. La fila pedía un id que no existe en ningún
-         lado, así que salía siempre vacía. */
-      /* contr-texto-informe es un <div> con varios <p>: leído con textContent los párrafos
-         salen pegados sin separador, que es el mismo defecto del calc-box. Se unen con \n. */
-      const _resumen = (() => {
-        const d = document.getElementById('contr-texto-informe');
-        if (!d) return '';
-        const ps = [...d.querySelectorAll('p')].map(x => _pptTxt(x.textContent)).filter(Boolean);
-        return ps.length ? ps.join('\n') : _pptTxt(d.textContent);
+         blanco y una línea vertical suelta, sin error en consola. Es el MISMO renderer que
+         usa el PDF para las dos escalas —dibuja los 17 segmentos a canvas y devuelve el
+         PNG—, así que el bull's eye de strain sale de acá y no de serializar el <svg> de la
+         pantalla: una segunda ruta de dibujo se pudre sin que se note. Y el catch ya no es mudo. */
+      const _be = (getColor, quien) => {
+        try {
+          return (typeof bullseyeDataURL === 'function') ? bullseyeDataURL(getColor) : null;
+        } catch (err) { console.error('[ppt/bullseye]', quien, err); return null; }
+      };
+      const imgContr = _be(id => (CONTR_MOTILIDAD[(contrEstado[id] || 0)] || CONTR_MOTILIDAD[0]).color, 'contractilidad');
+
+      /* Referencia de colores. Cada fila es un cuadradito del color real de la escala más su
+         nombre: proyectado, un bull's eye sin leyenda obliga a explicar de memoria qué es
+         cada tono. Devuelve la y de abajo para que el llamador siga apilando. */
+      const _leyenda = (arr, x, y0, w) => {
+        let yy = y0;
+        arr.forEach(m => {
+          s.addShape(P.ShapeType.rect, { x, y:yy + 0.015, w:0.13, h:0.13,
+            fill:{ color: String(m.color).replace('#','') }, line:{ color:'888888', width:0.5 } });
+          s.addText(_pptTxt(m.nombre), { x:x + 0.19, y:yy, w:w - 0.19, h:0.16, fontSize:9,
+            color:PPT_C.txt2, fontFace:PPT_FONT, valign:'middle' });
+          yy += 0.17;
+        });
+        return yy;
+      };
+
+      /* Hallazgos de motilidad por contrGetLineasInforme() y no raspando el <div>
+         contr-texto-informe: es la función de la que sale el texto del PDF, así que la
+         diapositiva y el informe firmado no pueden decir cosas distintas. */
+      const _motilidad = (() => {
+        try {
+          if (typeof contrRenderInforme === 'function') contrRenderInforme();
+          const ls = (typeof contrGetLineasInforme === 'function') ? contrGetLineasInforme() : [];
+          return ls.map(_pptTxt).filter(Boolean).join('\n');
+        } catch (err) { console.error('[ppt/motilidad]', err); return ''; }
       })();
-      const extra = [_pptSpan('sgl-interp'), _resumen].filter(Boolean).join('\n');
-      if (extra) s.addText(extra, { x:4.75, y, w:W-5.25, h:H-y-0.8, fontSize:13, color:PPT_C.txt2, fontFace:PPT_FONT, valign:'top' });
+
+      if (haySgl) {
+        /* Se arma la lista de columnas y se dibuja lo que TIENE datos, igual que hace el PDF
+           con su array `_cols`. Dibujar la de contractilidad siempre producía, en el caso
+           habitual —GLS y strain cargados, contractilidad segmentaria nunca puntuada—, un
+           bull's eye 17/17 del color «Normal» bajo el título «Contractilidad segmentaria» y
+           con la leyenda nombrando cada color: proyectado se lee como contractilidad normal
+           documentada. La leyenda, que es nueva, es justamente lo que convirtió un círculo
+           verde ambiguo en una afirmación explícita. */
+        const cw = (W - 1.15) / 2, xI = 0.5, xD = 0.5 + cw + 0.15;
+        const yTit = 0.95, yTope = H - 0.72;
+        const _glsTxt = (typeof sv === 'function') ? String(sv('sgl_gls') || '').trim() : '';
+        const _notas  = (typeof sv === 'function') ? String(sv('sgl_notas') || '').trim() : '';
+        const _cuerpoSgl = [
+          _glsTxt ? ('SGL global: ' + _pptTxt(_glsTxt) + ' %') : (gls != null ? ('SGL global: ' + gls + ' %') : ''),
+          _pptTxt(_notas)
+        ].filter(Boolean).join('\n');
+
+        /* El bull's eye y el cuerpo de letra se ajustan al texto que haya. Con tamaño fijo,
+           a partir de seis segmentos pintados los hallazgos de motilidad se pasaban del
+           borde inferior: PowerPoint no recorta ni encoge, dibuja por debajo y tapa el pie
+           con la salvedad —la diapositiva se ve entera hasta que se proyecta—. La imagen es
+           lo que cede primero porque el texto es el dato. */
+        /* -0,2" por los insets que PowerPoint aplica a cada lado del cuadro, y 0,58 en vez de
+           0,52 porque el corte real es por PALABRA y agrega líneas que el ceil por carácter
+           no ve. Los dos sesgos empujaban al mismo lado —subestimar— y el margen hasta el
+           filete del pie es de una décima de pulgada: una línea de más ya lo consume. */
+        const _cpl    = (w, fs) => Math.max(10, Math.floor((w - 0.2) * 72 / (fs * 0.58)));
+        const _lineas = (t, w, fs) => t ? String(t).split('\n')
+          .reduce((a, pp) => a + Math.max(1, Math.ceil(pp.length / _cpl(w, fs))), 0) : 0;
+        const cols = [];
+        if (hayAlterado) cols.push({ tit:'Contractilidad segmentaria', esc:CONTR_MOTILIDAD,
+                                     img:imgContr, cuerpo:_motilidad, quien:'los hallazgos de motilidad' });
+        cols.push({ tit:'Strain longitudinal (SGL)', esc:GE_STRAIN,
+                    img:_be(id => strainColor(id), 'strain'), cuerpo:_cuerpoSgl, quien:'las notas de strain' });
+        // Con una sola columna se usa el ancho completo; con dos, media diapositiva cada una.
+        const _n = cols.length, _cw = (_n === 2) ? cw : (W - 1);
+        const _xs = (_n === 2) ? [xI, xD] : [0.5];
+        /* yLeg sale del MÁXIMO de las dos escalas, no de una: las dos tienen 5 filas hoy,
+           pero GE_STRAIN es una escala clínica editable y con una fila más la sexta caía
+           debajo de donde arranca el bull's eye de la otra columna. */
+        const _filas = Math.max.apply(null, cols.map(c => c.esc.length));
+        const yLeg = yTit + 0.26 + _filas * 0.17;
+        let ySz = 1.0, fsTxt = 8;
+        const _cabe = ([sz, fs]) => {
+          const alto = Math.max.apply(null, cols.map(c => _lineas(c.cuerpo, _cw, fs))) * (fs * 1.2 / 72);
+          return (yLeg + 0.06 + sz + 0.1 + alto) <= yTope;
+        };
+        const _op = [[1.85,10],[1.65,10],[1.5,9],[1.3,9],[1.15,8],[1.0,8]].find(_cabe);
+        if (_op) { ySz = _op[0]; fsTxt = _op[1]; }
+        else {
+          /* No entra ni con la imagen chica y 8 pt. Se nombra la columna que NO entra —antes
+             el aviso decía siempre «hallazgos de motilidad» aunque el texto largo fuera la
+             nota de strain, y mandaba a revisar la pestaña equivocada— y se encola en vez de
+             emitirse ya: toast() sobrescribe un único elemento, así que el «✅ PPT generado»
+             de writeFile lo tapaba antes de que nadie llegara a leerlo. */
+          const _peor = cols.slice().sort((a, b) =>
+            _lineas(b.cuerpo, _cw, 8) - _lineas(a.cuerpo, _cw, 8))[0];
+          _pptAvisos.push('⚠️ No entran ' + _peor.quien + ' en la diapositiva de contractilidad — revisala antes de presentar');
+        }
+
+        cols.forEach((c, i) => {
+          const x = _xs[i];
+          s.addText(c.tit, { x, y:yTit, w:_cw, h:0.22, fontSize:12, bold:true,
+            color:PPT_C.teal, fontFace:PPT_FONT });
+          _leyenda(c.esc, x, yTit + 0.26, _cw);
+          if (c.img) s.addImage({ data:c.img, x: x + (_cw - ySz) / 2, y: yLeg + 0.06, w:ySz, h:ySz });
+          const yTxt = yLeg + 0.06 + (c.img ? ySz : 0) + 0.1;
+          if (c.cuerpo) s.addText(c.cuerpo, { x, y:yTxt, w:_cw, h: Math.max(0.2, yTope - yTxt),
+            fontSize:fsTxt, color:PPT_C.txt, fontFace:PPT_FONT, valign:'top' });
+        });
+      } else {
+        /* ── Una sola columna: bull's eye de contractilidad y, al costado, el GLS ──
+           El bull's eye va SÓLO si hay contractilidad evaluada. Con la diapositiva abierta
+           por el GLS y sin ningún segmento puntuado —que es el caso más común, porque el
+           GLS se carga en la pestaña AI/VI y puntuar los 17 segmentos es un módulo aparte—
+           se dibujaba el bull's eye entero del color «Normal»: una afirmación de motilidad
+           normal en 17 segmentos que nadie miró. Sin él la diapositiva queda como lo que
+           realmente es, el GLS global y su interpretación. */
+        if (hayAlterado && imgContr) {
+          s.addImage({ data:imgContr, x:0.5, y:1.15, w:3.6, h:3.6 });
+          s.addShape(P.ShapeType.line, { x:4.45, y:1.15, w:0, h:3.6, line:{ color:PPT_C.teal, width:1 } });
+        }
+        /* Sin leyenda de colores en esta rama: no entra. El bull's eye ocupa de 1,15 a 4,75 y
+           el filete del pie está en 5,01, así que las cinco filas caían encima del pie y las
+           dos últimas quedaban fuera de la diapositiva. La leyenda va sólo en el layout de
+           dos columnas, que es donde hay lugar. */
+        // Sin bull's eye a la izquierda el bloque del GLS ocupa la diapositiva entera.
+        const _xG = (hayAlterado && imgContr) ? 4.75 : 0.5;
+        const _wG = W - _xG - 0.5;
+        let y = 1.25;
+        if (gls != null) {
+          s.addText('GLS', { x:_xG, y, w:_wG, h:0.3, fontSize:14, color:PPT_C.teal, fontFace:PPT_FONT }); y += 0.32;
+          s.addText(String(gls) + ' %', { x:_xG, y, w:_wG, h:0.7, fontSize:36, bold:true, color:PPT_C.txt, fontFace:PPT_FONT }); y += 0.72;
+          s.addText('Referencia normal < −18 %', { x:_xG, y, w:_wG, h:0.3, fontSize:12, color:PPT_C.txt2, fontFace:PPT_FONT }); y += 0.45;
+        }
+        /* No se informa WMSI: en esta app sólo se calcula dentro de Eco Estrés (ee-wmsi-<fase>)
+           y no existe un WMSI del estudio basal. La fila pedía un id que no existe en ningún
+           lado, así que salía siempre vacía. */
+        const extra = [_pptSpan('sgl-interp'), _motilidad].filter(Boolean).join('\n');
+        if (extra) s.addText(extra, { x:_xG, y, w:_wG, h:H-y-0.8, fontSize:13, color:PPT_C.txt2, fontFace:PPT_FONT, valign:'top' });
+      }
       conPie(s);
     }
   }
@@ -22867,13 +23006,13 @@ function _pptDesdeFormulario(inf, tema){
         else { acc = acc ? (acc + '\n' + p) : p; accL += l; }
       });
       if (acc) partes.push(acc);
-      if (partes.some(x => _lineasDe(x) > _lineasCaben) && typeof toast === 'function')
-        toast('⚠️ Hay un párrafo del informe que no entra en una diapositiva — revisá el PPT antes de presentar');
+      if (partes.some(x => _lineasDe(x) > _lineasCaben))
+        _pptAvisos.push('⚠️ Hay un párrafo del informe que no entra en una diapositiva — revisá el PPT antes de presentar');
       /* Sin slice(0,4): ese techo cortaba el informe a ~6000 caracteres sin puntos
          suspensivos ni aviso, y un ETE completo lo pasa. Si hace falta más de una
          diapositiva se dice, para que el médico sepa que hay continuación. */
-      if (partes.length > 1 && typeof toast === 'function')
-        toast('El informe se dividió en ' + partes.length + ' diapositivas');
+      if (partes.length > 1)
+        _pptAvisos.push('El informe se dividió en ' + partes.length + ' diapositivas');
       partes.forEach((parte, i) => {
         const s = nueva();
         titulo(s, i === 0 ? 'Informe' : 'Informe (cont.)');
@@ -22925,7 +23064,14 @@ function _pptDesdeFormulario(inf, tema){
     '_' + String(inf.id).slice(-6) + '.pptx';
 
   P.writeFile({ fileName: nombreArch })
-    .then(() => { if (typeof toast === 'function') toast('✅ PPT generado'); })
+    .then(() => {
+      if (typeof toast !== 'function') return;
+      /* Los avisos ganan sobre el ✅: si algo puede haber quedado fuera del marco, eso es lo
+         que el médico tiene que leer. Se muestran de a uno y el ✅ queda para el final. */
+      if (!_pptAvisos.length) { toast('✅ PPT generado'); return; }
+      _pptAvisos.forEach((m, i) => setTimeout(() => toast(m), i * 2700));
+      setTimeout(() => toast('✅ PPT generado — con avisos'), _pptAvisos.length * 2700);
+    })
     .catch(e => { console.error('[generarPPT]', e);
       if (typeof toast === 'function') toast('❌ No se pudo generar el PPT. Verificar conexión a internet.'); });
 }
@@ -23225,6 +23371,20 @@ function contrAplicarTodos(){
   document.querySelectorAll("[data-contrseg]").forEach(el=> contrAplicar(el.getAttribute("data-contrseg")));
 }
 let contrDifusa = false, contrMultiple = false, contrDisqSep = false, contrSnapshot = null;
+/* ¿Hay contractilidad EVALUADA? `contrEstado` vacío hace que contrColorActual devuelva
+   CONTR_MOTILIDAD[0] —«Normal»— para los 17 segmentos, así que un bull's eye entero verde
+   es indistinguible de un estudio donde nadie puntuó nada: vacío no es normal, es no
+   evaluado. Mismo criterio que ya aplica el strain. Se miran también los tres flags porque
+   «hipocontractilidad difusa» y «disquinesia septal» son hallazgos sin segmento pintado, y
+   mirando sólo los segmentos el informe los perdía. Es UNA función y la usan el PDF y el
+   PPT: dos copias de este predicado se separan y nadie se entera. */
+function contrHayDatos(){
+  try {
+    if (contrDifusa || contrMultiple || contrDisqSep) return true;
+    return Object.keys(contrEstado).some(k => Number(contrEstado[k]) > 0);
+  } catch (e) { return false; }
+}
+window.contrHayDatos = contrHayDatos;
 function _contrBtnState(id, on){ const b = document.getElementById(id); if (b){ b.classList.toggle('btn-primary', on); b.classList.toggle('btn-ghost', !on); } }
 window.contrReset = function(){
   Object.keys(contrEstado).forEach(k=> contrEstado[k]=0);
