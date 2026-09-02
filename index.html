@@ -22168,8 +22168,19 @@ var _pdfRestauracionPendiente = false;
 /* ══════════════════════════════════════════════════════════════════════════
    EXPORTACIÓN A POWERPOINT — tema oscuro CeiboMed
    ══════════════════════════════════════════════════════════════════════════ */
-const PPT_C = { bg:'0D1117', teal:'0D9488', rojo:'E11D48', txt:'E6EDF3',
-                txt2:'8B949E', fila1:'161B22', fila2:'1C2333', vacio:'484F58' };
+/* Tres paletas. `teal` es el color de acento de cada tema —no necesariamente teal— y
+   `hdrTxt` existe porque el tema azul lleva header claro con texto oscuro, así que el
+   blanco fijo de antes quedaba ilegible. */
+const PPT_TEMAS = {
+  dark:  { nombre:'🌑 Dark CeiboMed', bg:'0D1117', teal:'0D9488', rojo:'E11D48', txt:'E6EDF3',
+           txt2:'8B949E', fila1:'161B22', fila2:'1C2333', vacio:'484F58', hdrTxt:'FFFFFF', sumaTxt:'E6EDF3' },
+  claro: { nombre:'⬜ Clínico claro', bg:'FFFFFF', teal:'0D9488', rojo:'E11D48', txt:'111111',
+           txt2:'555555', fila1:'F8F8F8', fila2:'FFFFFF', vacio:'AAAAAA', hdrTxt:'FFFFFF', sumaTxt:'111111' },
+  azul:  { nombre:'🔵 Azul institucional', bg:'0F172A', teal:'38BDF8', rojo:'38BDF8', txt:'F1F5F9',
+           txt2:'94A3B8', fila1:'1E293B', fila2:'162032', vacio:'475569', hdrTxt:'0F172A', sumaTxt:'F1F5F9' }
+};
+const PPT_TEMA_KEY = 'ecosmart_ppt_tema';
+const PPT_C = PPT_TEMAS.dark;   // se usa fuera de la generación (nada hoy); dentro se resuelve por tema
 const PPT_FONT = 'Arial';
 
 /* Todo lo que entra al PPT pasa por acá. PptxGenJS escribe XML: un `&`, un `<` o un `>` en
@@ -22184,7 +22195,15 @@ function _pptTxt(x){
      eso se cae el bloque <script> ENTERO y sin error visible en consola. */
   return String(x).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').trim();
 }
-const _pptNum = id => { const n = (typeof v === 'function') ? v(id) : null; return (n==null||!isFinite(n)) ? null : n; };
+/* El warn por id inexistente es el mismo de _pptSpan y por el mismo motivo: v() devuelve
+   null para un id que no existe, fila() descarta lo nulo y la fila desaparece de la
+   diapositiva sin un solo error. Esta sesión escribió 'tda' donde el campo se llama 'tde'
+   y el TDE simplemente no salía; nada lo habría delatado. */
+const _pptNum = id => {
+  if (!document.getElementById(id)) { console.warn('[ppt] id inexistente:', id); return null; }
+  const n = (typeof v === 'function') ? v(id) : null;
+  return (n==null||!isFinite(n)) ? null : n;
+};
 const _pptSel = id => { const e = document.getElementById(id); if(!e) return '';
   return (e.tagName==='SELECT' && e.selectedIndex>0) ? _pptTxt(e.options[e.selectedIndex].text) : _pptTxt(e.value); };
 /* Lee un span de resultado. `.calc-val` cuando existe, y NO el textContent del contenedor:
@@ -22219,12 +22238,96 @@ function generarPPT(id){
     if (typeof toast === 'function') toast('⚠️ Este estudio no tiene informe generado. Generá el informe antes de exportar.');
     return;
   }
-  // Se carga el estudio en el formulario y se restaura después: ver la nota de abajo.
-  pdfDeInformeGuardado(id, _pptDesdeFormulario, 'PPT');
+  /* Selector de tema antes de generar. Se pregunta siempre pero se preselecciona el último
+     usado, así que quien ya eligió confirma con un clic. */
+  _pptElegirTema(tema => {
+    // Se carga el estudio en el formulario y se restaura después: ver la nota de abajo.
+    pdfDeInformeGuardado(id, inf2 => _pptDesdeFormulario(inf2, tema), 'PPT');
+  });
 }
 window.generarPPT = generarPPT;
 
-function _pptDesdeFormulario(inf){
+/* Modal de selección de tema. Se construye con createElement y se asignan los colores por
+   propiedad de style —nunca por innerHTML ni por cadena de CSS armada— para que ni siquiera
+   exista la ruta por la que un valor podría escaparse a HTML. Los nombres van por textContent. */
+let _pptTemaAbierto = false;
+function _pptElegirTema(cb){
+  // Doble clic en «📊 PPT» apilaba dos overlays; elegir en cada uno generaba dos archivos.
+  if (_pptTemaAbierto) return;
+  _pptTemaAbierto = true;
+  /* `previo` es null cuando todavía no se eligió ninguno: sin esa distinción el modal
+     rotulaba «último usado» al tema por defecto la primera vez, afirmando un uso que no
+     ocurrió. Se preselecciona dark igual, pero sin decir que viene de algún lado. */
+  let previo = null;
+  /* hasOwnProperty y no `PPT_TEMAS[v]`: con 'constructor' o 'toString' el lookup devuelve
+     una función heredada de Object.prototype, que es truthy. */
+  const _esTema = k => typeof k === 'string' && Object.prototype.hasOwnProperty.call(PPT_TEMAS, k);
+  try { const v = localStorage.getItem(PPT_TEMA_KEY); if (_esTema(v)) previo = v; } catch(e){}
+  const guardado = previo || 'dark';
+
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  const caja = document.createElement('div');
+  caja.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:420px;width:100%;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,0.5);';
+  const h1 = document.createElement('div');
+  h1.style.cssText = 'font-size:15px;font-weight:700;color:var(--accent2);margin-bottom:6px;';
+  h1.textContent = '🎨 Tema de la presentación';
+  const sub = document.createElement('p');
+  sub.style.cssText = 'font-size:12px;color:var(--text2);margin:0 0 14px;';
+  sub.textContent = 'Elegí la paleta con la que se va a generar el PowerPoint.';
+  caja.appendChild(h1); caja.appendChild(sub);
+
+  const cerrar = () => { _pptTemaAbierto = false; document.removeEventListener('keydown', onEsc); ov.remove(); };
+  const onEsc = ev => { if (ev.key === 'Escape') cerrar(); };
+
+  Object.keys(PPT_TEMAS).forEach(k => {
+    const t = PPT_TEMAS[k];
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.style.cssText = 'display:flex;align-items:center;gap:10px;width:100%;text-align:left;' +
+      'background:var(--bg);border:2px solid ' + (k === guardado ? 'var(--accent2)' : 'var(--border)') +
+      ';border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer;color:var(--text);font-size:13px;';
+    // Muestra de colores: recuadro con el fondo del tema y dos puntos con acento y texto.
+    const sw = document.createElement('span');
+    sw.style.width = '44px'; sw.style.height = '28px'; sw.style.borderRadius = '5px';
+    sw.style.display = 'inline-flex'; sw.style.alignItems = 'center';
+    sw.style.justifyContent = 'center'; sw.style.gap = '3px'; sw.style.flex = '0 0 auto';
+    sw.style.border = '1px solid rgba(128,128,128,.5)';
+    sw.style.backgroundColor = '#' + t.bg;
+    [t.teal, t.txt].forEach(col => {
+      const p2 = document.createElement('span');
+      p2.style.width = '8px'; p2.style.height = '8px'; p2.style.borderRadius = '50%';
+      p2.style.backgroundColor = '#' + col;
+      sw.appendChild(p2);
+    });
+    const nom = document.createElement('span');
+    nom.textContent = t.nombre + (k === previo ? '  ·  último usado' : '');
+    b.appendChild(sw); b.appendChild(nom);
+    b.onclick = () => {
+      try { localStorage.setItem(PPT_TEMA_KEY, k); } catch(e){}   // preferencia, no dato clínico
+      cerrar();
+      cb(k);
+    };
+    caja.appendChild(b);
+  });
+
+  const pie2 = document.createElement('div');
+  pie2.style.cssText = 'display:flex;justify-content:flex-end;margin-top:6px;';
+  const canc = document.createElement('button');
+  canc.type = 'button'; canc.className = 'btn btn-ghost'; canc.textContent = 'Cancelar';
+  canc.onclick = cerrar;
+  pie2.appendChild(canc); caja.appendChild(pie2);
+
+  ov.appendChild(caja);
+  ov.addEventListener('click', ev => { if (ev.target === ov) cerrar(); });
+  document.addEventListener('keydown', onEsc);
+  document.body.appendChild(ov);
+}
+
+function _pptDesdeFormulario(inf, tema){
+  /* PPT_C local sombrea al global: todo el cuerpo de la función sigue escrito contra
+     PPT_C y no hubo que tocar una sola referencia para soportar los tres temas. */
+  const PPT_C = Object.prototype.hasOwnProperty.call(PPT_TEMAS, tema) ? PPT_TEMAS[tema] : PPT_TEMAS.dark;
   const P = new PptxGenJS();
   P.layout = 'LAYOUT_16x9';                      // 25,4 × 14,29 cm
   const W = 10, H = 5.63;                        // pulgadas, que es la unidad de PptxGenJS
@@ -22251,25 +22354,70 @@ function _pptDesdeFormulario(inf){
   /* Tabla con el estilo de la paleta. Los subtítulos de grupo van como fila sin fondo, que
      es lo que pidió el diseño, y se saltean si el grupo quedó sin ninguna fila con valor —
      si no, el PPT muestra encabezados de secciones vacías. */
-  const tabla = (s, filas, y, alto) => {
+  /* Alto de una fila en pulgadas: cuerpo de letra por el interlineado del renderer, más los
+     dos márgenes. Es una ESTIMACIÓN, y por eso `_pptFsQueEntra` deja un margen de holgura:
+     PowerPoint no recorta ni encoge una tabla que se pasa del borde inferior —la dibuja por
+     debajo y la diapositiva se ve entera hasta que se proyecta—, así que el error tiene que
+     caer del lado de sobrar espacio. */
+  /* `margin` de PptxGenJS es [arriba, derecha, abajo, izquierda] —verificado en el fuente
+     de 3.12.0: marT=a[0], marR=a[1], marB=a[2], marL=a[3]—. La primera versión de esto
+     escribía [2,pad,2,pad], o sea metía el pad en los márgenes HORIZONTALES mientras el
+     modelo lo contaba como vertical: bajar el pad no ganaba una décima de altura pero el
+     cálculo creía que sí, y a 9 pt la tabla salía media pulgada por debajo del borde. */
+  const _altoFila  = (fs, pad) => (fs * 1.2 + 2 * pad) / 72;
+  const _altoGrupo = () => (9 * 1.2 + 3) / 72;          // margin:[2,2,1,2] → vertical 2+1
+  /* Elige el cuerpo de letra más grande con el que entran `nDatos` filas y `nGrupos`
+     subtítulos en `disp` pulgadas. Fijarlo en 11 pt hacía que un estudio completo —quince
+     mediciones en la columna izquierda— se dibujara fuera de la diapositiva. */
+  /* Cuenta LÍNEAS, no filas: «Hipertrofia concéntrica (severa)» no entra en los 1,86" de
+     la columna de valores y ocupa dos renglones. Con el conteo por filas el modelo se
+     quedaba corto justo en los estudios más cargados, que son los que menos margen tienen.
+     Los caracteres por línea se derivan del ancho real de cada columna. */
+  const _lineasFila = (f, fs, wK, wV) => {
+    const cpl = w => Math.max(6, Math.floor(w * 72 / (fs * 0.52)));   // ~0,52 em de ancho medio
+    return Math.max(Math.ceil(String(f.k).length / cpl(wK)),
+                    Math.ceil(String(f.v).length / cpl(wV)));
+  };
+  const _pptFsQueEntra = (arrs, disp, ancho) => {
+    const wK = ancho * 0.58, wV = ancho * 0.42;
+    const opciones = [[11,3],[11,2],[10,2],[10,1.5],[9,1.5],[9,1]];
+    for (const [fs, pad] of opciones) {
+      const alto = Math.max.apply(null, arrs.map(arr => arr.reduce((a, f) =>
+        a + (f.grupo ? _altoGrupo() : _lineasFila(f, fs, wK, wV) * _altoFila(fs, pad)), 0)));
+      if (alto <= disp) return { fs, pad };
+    }
+    /* Ni con lo más chico entra. No se calla: PowerPoint dibujaría la tabla por debajo del
+       borde y la diapositiva se ve completa hasta que se proyecta. */
+    if (typeof toast === 'function')
+      toast('⚠️ Hay demasiadas mediciones para una diapositiva — revisá «Parámetros ecocardiográficos» antes de presentar');
+    return { fs:9, pad:1 };
+  };
+  const tabla = (s, filas, y, alto, x, ancho, estilo) => {
     if (!filas.length) return;
-    const rows = [[
-      { text:'Parámetro', options:{ fill:PPT_C.teal, color:'FFFFFF', bold:true, fontSize:12, fontFace:PPT_FONT } },
-      { text:'Valor',     options:{ fill:PPT_C.teal, color:'FFFFFF', bold:true, fontSize:12, fontFace:PPT_FONT } }
-    ]];
+    const _fs  = (estilo && estilo.fs !== undefined) ? estilo.fs : 11;
+    const _pad = (estilo && estilo.pad !== undefined) ? estilo.pad : 3;
+    const rows = [];
+    /* La cabecera «Parámetro | Valor» se omite en el modo de dos columnas: repetida al lado
+       de sí misma no informa nada y cuesta una fila de las que faltan. */
+    if (!(estilo && estilo.sinCabecera)) rows.push([
+      { text:'Parámetro', options:{ fill:PPT_C.teal, color:PPT_C.hdrTxt, bold:true, fontSize:_fs, fontFace:PPT_FONT } },
+      { text:'Valor',     options:{ fill:PPT_C.teal, color:PPT_C.hdrTxt, bold:true, fontSize:_fs, fontFace:PPT_FONT } }
+    ]);
     let i = 0;
     filas.forEach(f => {
       if (f.grupo) {
-        rows.push([{ text:_pptTxt(f.grupo).toUpperCase(), options:{ colspan:2, color:PPT_C.txt2, fontSize:10, bold:true, fontFace:PPT_FONT } }]);
+        rows.push([{ text:_pptTxt(f.grupo).toUpperCase(), options:{ colspan:2, color:PPT_C.txt2, fontSize:9, bold:true, fontFace:PPT_FONT, margin:[2,2,1,2] } }]);
       } else {
         const fill = (i++ % 2) ? PPT_C.fila2 : PPT_C.fila1;
         rows.push([
-          { text:_pptTxt(f.k), options:{ fill, color:PPT_C.txt, fontSize:12, fontFace:PPT_FONT } },
-          { text:_pptTxt(f.v), options:{ fill, color:PPT_C.txt, fontSize:12, fontFace:PPT_FONT } }
+          { text:_pptTxt(f.k), options:{ fill, color:PPT_C.txt, fontSize:_fs, fontFace:PPT_FONT, margin:[_pad,3,_pad,3] } },
+          { text:_pptTxt(f.v), options:{ fill, color:PPT_C.txt, fontSize:_fs, fontFace:PPT_FONT, margin:[_pad,3,_pad,3] } }
         ]);
       }
     });
-    s.addTable(rows, { x:0.5, y:y||1.05, w:W-1, h:alto||undefined, colW:[(W-1)*0.55,(W-1)*0.45],
+    const _x = (x !== undefined) ? x : 0.5;
+    const _w = (ancho !== undefined) ? ancho : (W - 1);
+    s.addTable(rows, { x:_x, y:y||1.05, w:_w, h:alto||undefined, colW:[_w*0.58,_w*0.42],
       border:{ type:'none' }, autoPage:false, fontFace:PPT_FONT });
   };
   /* Sólo entra la fila si hay valor: `omitir vacíos` es lo que evita una tabla de guiones. */
@@ -22302,46 +22450,86 @@ function _pptDesdeFormulario(inf){
   {
     const s = nueva();
     titulo(s, 'Parámetros ecocardiográficos');
-    const F = [];
-    let n = F.length;
-    fila(F,'FEVI', _pptNum('fevi'), ' %');
-    fila(F,'DDVI', _pptNum('ddfvi'), ' mm');
-    fila(F,'SIV',  _pptNum('siv'), ' mm');
-    fila(F,'PP',   _pptNum('ppvi'), ' mm');
-    fila(F,'Masa VI indexada', _pptSpan('devereux-val'));
-    fila(F,'Geometría', _pptSpan('geom-val'));
-    grupo(F,'Ventrículo izquierdo', n);
-    n = F.length;
-    fila(F,'TAPSE', _pptNum('tapse'), ' mm');
-    fila(F,"S' lateral tricuspídeo", _pptNum('s_prime'), ' cm/s');
-    fila(F,'DDVD basal', _pptNum('vd_bas'), ' mm');
-    fila(F,'Área AD', _pptNum('ad_area'), ' cm²');
-    grupo(F,'Ventrículo derecho / aurícula derecha', n);
-    n = F.length;
-    fila(F,'Onda E', _pptNum('onda_e'), ' cm/s');
-    fila(F,'Onda A', _pptNum('onda_a'), ' cm/s');
-    fila(F,'E/A', _pptSpan('ea-val'));
-    fila(F,"e' septal", _pptNum('e_sep'), ' cm/s');
-    fila(F,"e' lateral", _pptNum('e_lat'), ' cm/s');
-    fila(F,"E/e'", _pptSpan('ee-val'));
-    fila(F,'Función diastólica', _pptSpan('dd-interp'));
-    grupo(F,'Doppler mitral / función diastólica', n);
-    n = F.length;
-    fila(F,'Seno de Valsalva', _pptNum('ao_sin'), ' mm');
-    fila(F,'Volumen AI', _pptNum('ai_vol'), ' ml');
-    fila(F,'Vol. AI indexado', _pptSpan('ai-idx'));
-    grupo(F,'Aorta / aurícula izquierda', n);
-    n = F.length;
-    [['im_grado','Insuficiencia mitral'],['em_grado','Estenosis mitral'],
-     ['ia_grado','Insuficiencia aórtica'],['ea_grado','Estenosis aórtica'],
-     ['it_grado','Insuficiencia tricuspídea'],['et_grado','Estenosis tricuspídea']]
-      .forEach(p => fila(F, p[1], _pptSel(p[0])));
-    grupo(F,'Válvulas', n);
-    n = F.length;
-    fila(F,'PSAP estimada', _pptNum('psap_calc'), ' mmHg');
-    fila(F,'PmAD', _pptNum('pmad'), ' mmHg');
-    grupo(F,'Presión pulmonar', n);
-    tabla(s, F, 1.05, H-1.85);
+    /* DOS columnas en la misma diapositiva. Con una sola tabla larga los grupos de abajo
+       —presión pulmonar, aorta— caían fuera del área visible y PowerPoint los recorta sin
+       decir nada: la diapositiva se veía completa y le faltaban filas. */
+    const IZQ = [], DER = [];
+    let n = IZQ.length;
+    fila(IZQ,'FEVI', _pptNum('fevi'), ' %');
+    fila(IZQ,'DDVI', _pptNum('ddfvi'), ' mm');
+    fila(IZQ,'SIV',  _pptNum('siv'), ' mm');
+    fila(IZQ,'PP',   _pptNum('ppvi'), ' mm');
+    fila(IZQ,'Masa VI indexada', _pptSpan('devereux-val'));
+    fila(IZQ,'Geometría', _pptSpan('geom-val'));
+    fila(IZQ,'GLS', _pptNum('sgl'), ' %');
+    grupo(IZQ,'Ventrículo izquierdo', n);
+    n = IZQ.length;
+    fila(IZQ,'Onda E', _pptNum('onda_e'), ' cm/s');
+    fila(IZQ,'Onda A', _pptNum('onda_a'), ' cm/s');
+    fila(IZQ,'E/A', _pptSpan('ea-val'));
+    fila(IZQ,'TDE', _pptNum('tde'), ' ms');
+    fila(IZQ,"e' septal", _pptNum('e_sep'), ' cm/s');
+    fila(IZQ,"e' lateral", _pptNum('e_lat'), ' cm/s');
+    fila(IZQ,"E/e'", _pptSpan('ee-val'));
+    fila(IZQ,'Función diastólica', _pptSpan('dd-interp'));
+    grupo(IZQ,'Doppler / función diastólica', n);
+
+    n = DER.length;
+    fila(DER,'TAPSE', _pptNum('tapse'), ' mm');
+    fila(DER,"S' tricuspídeo", _pptNum('s_prime'), ' cm/s');
+    fila(DER,'DDVD basal', _pptNum('vd_bas'), ' mm');
+    fila(DER,'Área AD', _pptNum('ad_area'), ' cm²');
+    fila(DER,'PSAP estimada', _pptNum('psap_calc'), ' mmHg');
+    fila(DER,'PmAD', _pptNum('pmad'), ' mmHg');
+    grupo(DER,'Ventrículo derecho / AD', n);
+    n = DER.length;
+    fila(DER,'Seno de Valsalva', _pptNum('ao_sin'), ' mm');
+    fila(DER,'Volumen AI', _pptNum('ai_vol'), ' ml');
+    fila(DER,'Vol. AI indexado', _pptSpan('ai-idx'));
+    grupo(DER,'Aorta / aurícula izquierda', n);
+
+    const _colW = (W - 1.15) / 2;
+    /* 0,90 es lo más arriba posible: la línea del título va en y=0,85. Y la franja de
+       válvulas no puede bajar de H-1,01 porque su segunda línea llega a 4,99 y el filete
+       del pie está en H-0,62 = 5,01. Entre esas dos cotas hay 3,71 pulgadas y no más. */
+    const _yTab = 0.90, _yValv = H - 1.01;
+    /* Un solo cuerpo de letra para las dos columnas: se evalúan las dos juntas y manda la
+       más alta. Si cada una eligiera el suyo, la izquierda saldría a 10 pt y la derecha a 11
+       y parecerían dos tablas de estudios distintos. */
+    const _est = _pptFsQueEntra([IZQ, DER], _yValv - _yTab, _colW);
+    _est.sinCabecera = true;
+    tabla(s, IZQ, _yTab, undefined, 0.5, _colW, _est);
+    tabla(s, DER, _yTab, undefined, 0.5 + _colW + 0.15, _colW, _est);
+
+    /* Válvulas en una franja horizontal debajo: son seis valores cortos y como filas de
+       tabla ocupaban un tercio de la diapositiva para decir «sin» seis veces. */
+    /* im/ia/it_grado son <input type="hidden"> con el CÓDIGO 0-4, así que _pptSel devuelve
+       «0» y la franja decía «IM: 0» —que en una diapositiva proyectada se lee como una
+       medición, no como «ausente»—. Se traduce con la misma escala que usa el Laboratorio. */
+    const _ESC04 = ['ausente','leve','moderada','moderada-severa','severa'];
+    const _valv = [['im_grado','IM'],['ea_grado','EAo'],['ia_grado','IAo'],
+                   ['it_grado','IT'],['em_grado','EM'],['et_grado','ET']]
+      .map(pp => {
+        let t = _pptSel(pp[0]);
+        if (/^\d+$/.test(t)) {
+          /* `_ESC04[n] || ''` con un código fuera de escala devolvía '' y `.filter(Boolean)`
+             sacaba la válvula de la franja: la diapositiva quedaba enumerando cinco válvulas
+             y la sexta simplemente no estaba, sin error. */
+          const _g = parseInt(t, 10);
+          if (!(_g >= 0 && _g <= 4)) { console.warn('[ppt] grado fuera de escala', pp[0], t); return pp[1] + ': ?'; }
+          t = _ESC04[_g];
+        }
+        t = t.replace(/\s*\([^)]*\)\s*$/,'').trim().toLowerCase();   // «leve (vmax 2-3 m/s)» → «leve»
+        if (t === 'ausente' || t === 'sin estenosis') t = 'sin';       // una sola palabra para «no hay»
+        return t ? (pp[1] + ': ' + t) : '';
+      })
+      .filter(Boolean);
+    if (_valv.length) {
+      s.addText('VÁLVULAS', { x:0.5, y:_yValv, w:W-1, h:0.15, fontSize:9, bold:true,
+        color:PPT_C.txt2, fontFace:PPT_FONT });
+      s.addText(_valv.join('   |   '), { x:0.5, y:_yValv+0.15, w:W-1, h:0.22, fontSize:11,
+        color:PPT_C.txt, fontFace:PPT_FONT });
+    }
     conPie(s);
   }
 
@@ -22548,16 +22736,42 @@ function _pptDesdeFormulario(inf){
   {
     const texto = _pptTxt(c.informe_texto || '');
     if (texto) {
-      /* El corte se hace por PÁRRAFOS y con un presupuesto de caracteres, no por altura: la
-         altura real depende de la fuente que tenga PowerPoint, y una diapositiva desbordada
-         recorta el texto en silencio. Es el mismo criterio con el que el PDF pagina. */
-      const LIM = 1500, partes = [];
-      let acc = '';
-      texto.split(/\n+/).forEach(p => {
-        if (acc && (acc.length + p.length + 1) > LIM) { partes.push(acc); acc = p; }
-        else acc = acc ? (acc + '\n' + p) : p;
+      /* El presupuesto se cuenta en LÍNEAS, no en caracteres. Con un tope de caracteres la
+         cuenta ignora que cada párrafo empieza en línea nueva: ocho párrafos cortos ocupan
+         ocho líneas y el tope los daba por «entra de sobra». Y una diapositiva desbordada no
+         se recorta ni se encoge —PowerPoint dibuja el texto fuera del marco y la falta
+         aparece recién al proyectar—, así que el error tiene que caer del lado de partir de
+         más. `_PPT_CPL` es una estimación de ancho medio de carácter para 10 pt en 9
+         pulgadas; se queda corta a propósito. */
+      const _PPT_FS_INF = 10, _PPT_LS_INF = 1.2;
+      const _PPT_CPL = 105;
+      const _lineasCaben = Math.floor((H - 1.75) / (_PPT_FS_INF * _PPT_LS_INF / 72));
+      const _lineasDe = t => Math.max(1, Math.ceil(t.length / _PPT_CPL));
+      /* Un párrafo SOLO más largo que una diapositiva no se podía partir: entraba entero en
+         su propia parte y PowerPoint lo dibujaba por debajo del marco, tapando el pie con la
+         salvedad. Se parte por oraciones antes de acumular; el corte cae en un punto, que es
+         donde el médico lo haría. Si ni una oración entra, se deja igual —cortar a mitad de
+         una frase en un informe firmado es peor que una diapositiva apretada— pero se avisa. */
+      const _porOraciones = t => {
+        if (_lineasDe(t) <= _lineasCaben) return [t];
+        const out = []; let cur = '';
+        t.split(/(?<=[.;])\s+/).forEach(o => {
+          if (cur && _lineasDe(cur + ' ' + o) > _lineasCaben) { out.push(cur); cur = o; }
+          else cur = cur ? (cur + ' ' + o) : o;
+        });
+        if (cur) out.push(cur);
+        return out;
+      };
+      const partes = [];
+      let acc = '', accL = 0;
+      texto.split(/\n+/).flatMap(_porOraciones).forEach(p => {
+        const l = _lineasDe(p);
+        if (acc && (accL + l) > _lineasCaben) { partes.push(acc); acc = p; accL = l; }
+        else { acc = acc ? (acc + '\n' + p) : p; accL += l; }
       });
       if (acc) partes.push(acc);
+      if (partes.some(x => _lineasDe(x) > _lineasCaben) && typeof toast === 'function')
+        toast('⚠️ Hay un párrafo del informe que no entra en una diapositiva — revisá el PPT antes de presentar');
       /* Sin slice(0,4): ese techo cortaba el informe a ~6000 caracteres sin puntos
          suspensivos ni aviso, y un ETE completo lo pasa. Si hace falta más de una
          diapositiva se dice, para que el médico sepa que hay continuación. */
@@ -22566,8 +22780,11 @@ function _pptDesdeFormulario(inf){
       partes.forEach((parte, i) => {
         const s = nueva();
         titulo(s, i === 0 ? 'Informe' : 'Informe (cont.)');
-        s.addText(parte, { x:0.5, y:1.1, w:W-1, h:H-1.85, fontSize:14, color:PPT_C.txt,
-          fontFace:PPT_FONT, lineSpacingMultiple:1.4, valign:'top' });
+        /* 10 pt / 1,2: a 14 pt y 1,4 entraban 16 líneas por diapositiva y un informe de
+           rutina ya necesitaba tres. Las constantes son las mismas que alimentan el cálculo
+           de arriba —si se cambia el cuerpo de letra acá y no allá, el corte queda mintiendo. */
+        s.addText(parte, { x:0.5, y:1.05, w:W-1, h:H-1.75, fontSize:_PPT_FS_INF, color:PPT_C.txt,
+          fontFace:PPT_FONT, lineSpacingMultiple:_PPT_LS_INF, valign:'top' });
         conPie(s);
       });
     }
@@ -24468,6 +24685,12 @@ function _labExcelRow(inf) {
     'TAVI RPV vena contracta (cm)': rnd(num('ete_tavi_vc_ancho'),2),
     'TAVI RPV PHT (ms)': rnd(num('ete_tavi_pht'),0),
     'TAVI jet (horas)': String(c.ete_tavi_jet_horas || ''),
+    /* Los dos checkboxes de «Integrar al informe». Sin estas columnas el ida y vuelta
+       recuperaba las mediciones pero NO el permiso para imprimirlas: el estudio reimportado
+       tenía la prótesis cargada y el informe firmado no la mencionaba, lo que se lee como un
+       olvido del médico y no como una pérdida de la planilla. */
+    'Incluir CIA/CIV en informe': c['ete_shunt_incluir_chk__chk'] === '1' ? 1 : 0,
+    'Incluir TAVI en informe':    c['ete_tavi_incluir_chk__chk']  === '1' ? 1 : 0,
     'Informe (texto completo)': c.informe_texto || '', 'EN SUMA (texto completo)': c.en_suma || '',
   };
 }
@@ -24475,7 +24698,20 @@ function labExportarXLSX() {
   const infs = labGetInformes();
   if (!infs.length) { toast('⚠️ Sin estudios para exportar'); return; }
   if (typeof XLSX === 'undefined') { toast('❌ Librería Excel (XLSX) no disponible'); return; }
-  const rows = infs.map(_labExcelRow);
+  // Se pregunta SIEMPRE y no se guarda la elección: la decisión depende de a dónde va el
+  // archivo esta vez, no de a dónde fue la anterior.
+  _labPreguntarAnonimo(anon => _labExportarXLSXReal(infs, anon));
+}
+
+/* Sustitución del nombre. Se aplica sobre la fila YA construida y sobre TODAS: si se
+   filtrara por «tiene nombre» o se saltearan las vacías quedarían filas con nombre real
+   mezcladas con anónimas, que es la peor de las dos opciones —parece anonimizado—. */
+function _labExportarXLSXReal(infs, anon) {
+  const rows = infs.map(_labExcelRow).map(r => {
+    if (!anon) return r;
+    r['Nombre'] = 'Paciente anónimo';
+    return r;
+  });
   const headers = Object.keys(rows[0]);
   const aoa = [headers, ...rows.map(r => headers.map(h => r[h]))];
   const ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -24523,8 +24759,40 @@ function labExportarXLSX() {
   wsLeg['!cols'] = [{ wch: 22 }, { wch: 44 }, { wch: 30 }];
   XLSX.utils.book_append_sheet(wb, wsLeg, 'Leyenda');
 
-  XLSX.writeFile(wb, 'ecosmart_laboratorio_' + new Date().toISOString().split('T')[0] + '.xlsx');
-  toast('✅ Excel exportado — ' + infs.length + ' estudios');
+  XLSX.writeFile(wb, 'ecosmart_laboratorio' + (anon ? '_sin_nombres' : '') + '_' +
+    new Date().toISOString().split('T')[0] + '.xlsx');
+  toast('✅ Excel exportado — ' + infs.length + ' estudios' + (anon ? ' (sin nombres)' : ''));
+}
+
+/* Modal de anonimización. La advertencia es el punto del modal, no un detalle: reemplazar
+   el nombre y llamarlo «anonimizado» es peor que no hacer nada, porque la CI identifica al
+   paciente sola y el texto del informe suele nombrarlo. Quien elige la opción tiene que
+   leer qué NO se va. */
+function _labPreguntarAnonimo(cb) {
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  ov.innerHTML =
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:460px;width:100%;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,0.5);">' +
+      '<div style="font-size:15px;font-weight:700;color:var(--accent2);margin-bottom:8px;">📊 Exportar a Excel</div>' +
+      '<p style="font-size:12px;color:var(--text2);margin:0 0 12px;">¿Incluir el nombre de los pacientes en la planilla?</p>' +
+      '<div style="background:rgba(225,29,72,.12);border:1px solid rgba(225,29,72,.45);border-radius:8px;padding:10px 12px;margin:0 0 16px;">' +
+        '<div style="font-size:12px;font-weight:700;color:#e11d48;margin-bottom:4px;">⚠️ Quitar el nombre NO anonimiza el archivo</div>' +
+        '<div style="font-size:11.5px;color:var(--text2);line-height:1.5;">Se reemplaza únicamente la columna <b>Nombre</b>: <b>todo lo demás queda como está</b>. Entre otras cosas siguen la <b>CI</b> —que identifica a la persona por sí sola—, la fecha del estudio, el médico, el centro, los antecedentes y el texto completo del informe y del EN SUMA, que suelen nombrar al paciente. Tratá el archivo como dato clínico identificable en los dos casos.</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">' +
+        '<button id="anon-cancel" class="btn btn-ghost">Cancelar</button>' +
+        '<button id="anon-si" class="btn btn-ghost">Sin nombres</button>' +
+        '<button id="anon-no" class="btn btn-green">Con nombres</button>' +
+      '</div>' +
+    '</div>';
+  const cerrar = () => { document.removeEventListener('keydown', onEsc); ov.remove(); };
+  const onEsc = ev => { if (ev.key === 'Escape') cerrar(); };
+  document.body.appendChild(ov);
+  ov.querySelector('#anon-cancel').onclick = cerrar;
+  ov.querySelector('#anon-si').onclick = () => { cerrar(); cb(true); };
+  ov.querySelector('#anon-no').onclick = () => { cerrar(); cb(false); };
+  ov.addEventListener('click', ev => { if (ev.target === ov) cerrar(); });
+  document.addEventListener('keydown', onEsc);
 }
 
 /* ══════════════ PLANTILLA E IMPORTACIÓN DESDE EXCEL ══════════════
@@ -24676,6 +24944,42 @@ const LAB_XLS_MAP = [
   ['Ao sinusal (mm)',        'ao_sin',         'num'],
   ['Ao asc. proximal (mm)',  'ao_tub',         'num'],
   ['Pericardio',             'pericardio',     'opcion'],
+  /* ══ CIA/CIV y TAVI ══
+     El Excel ya exportaba estas 22 columnas desde la sesión anterior, pero el importador no
+     las conocía: la planilla iba y volvía y el shunt y la prótesis se perdían en el camino,
+     sin un solo mensaje. Van con vocabulario INVERSO porque el export publica la etiqueta
+     legible ('Ostium secundum') y el <select> acepta el token ('secundum'): escribir la
+     etiqueta en el select lo deja en selectedIndex=-1 con value='', o sea el campo vacío
+     igual que antes pero además pisando lo que hubiera.
+     NO se reimportan 'CIA borde mínimo (mm)' ni 'Qp/Qs': son derivados. El borde mínimo es
+     el Math.min de cinco bordes que no se exportan —meterlo en uno de los cinco sería
+     inventar en cuál se midió— y el Qp/Qs se recalcula desde TSVI/TSVD, que sí se importan. */
+  ['CIA tipo',                   'ete_cia_tipo',        'vocab'],
+  ['CIA tamaño máx (mm)',        'ete_cia_tam_max',     'num'],
+  ['CIA tamaño mín (mm)',        'ete_cia_tam_min',     'num'],
+  ['CIA dirección shunt',        'ete_cia_dir',         'vocab'],
+  ['CIV tipo',                   'ete_civ_tipo',        'vocab'],
+  ['CIV tamaño (mm)',            'ete_civ_tam',         'num'],
+  ['Ø TSVD (mm)',                'tsvd_diametro',       'num'],
+  ['VTI TSVD (cm)',              'vti_tsvd',            'num'],
+  ['Ø TSVI (mm)',                'diam_tsvi',           'num'],
+  ['VTI TSVI (cm)',              'itv_tsvi',            'num'],
+  ['TAVI prótesis tipo',         'ete_tavi_pro_tipo',   'vocab'],
+  ['TAVI prótesis marca',        'ete_tavi_pro_marca',  'txt'],
+  ['TAVI prótesis tamaño (mm)',  'ete_tavi_pro_tam',    'num'],
+  ['TAVI posición',              'ete_tavi_pro_pos',    'vocab'],
+  ['TAVI anillo Ø (mm)',         'ete_tavi_anillo_diam','num'],
+  ['TAVI anillo área (cm²)',     'ete_tavi_anillo_area','num'],
+  ['TAVI G. medio (mmHg)',       'ete_tavi_gmedio',     'num'],
+  ['TAVI Vmax (m/s)',            'ete_tavi_vmax',       'num'],
+  ['TAVI AVA (cm²)',             'ete_tavi_ava',        'num'],
+  ['TAVI AVAi (cm²/m²)',         'ete_tavi_avai',       'num'],
+  ['TAVI RPV extensión (%)',     'ete_tavi_ext_circ',   'num'],
+  ['TAVI RPV vena contracta (cm)','ete_tavi_vc_ancho',  'num'],
+  ['TAVI RPV PHT (ms)',          'ete_tavi_pht',        'num'],
+  ['TAVI jet (horas)',           'ete_tavi_jet_horas',  'horas'],
+  ['Incluir CIA/CIV en informe', 'ete_shunt_incluir_chk__chk', 'chk'],
+  ['Incluir TAVI en informe',    'ete_tavi_incluir_chk__chk',  'chk'],
   ['Informe (texto completo)','informe_texto', 'txt'],
   ['EN SUMA (texto completo)','en_suma',       'txt'],
 ];
@@ -24756,6 +25060,31 @@ const LAB_XLS_VOCAB = {
               '1':'1', leve:'1', '2':'2', moderada:'2', moderado:'2',
               '3':'3', 'moderada-severa':'3', 'moderada severa':'3',
               '4':'4', severa:'4', severo:'4' },
+  /* CIA/CIV y TAVI. La clave es lo que puede venir en la celda —el token crudo, la
+     etiqueta que exporta la app, y la variante que escribiría alguien a mano— y el valor
+     es SIEMPRE el token del <select>. La dirección del shunt lleva las dos escrituras: el
+     export publica 'Izquierda a derecha' pero la etiqueta que se ve en el formulario —y que
+     alguien va a copiar— es 'Izquierda → derecha', y _labXlsNorm no toca el carácter '→'. */
+  ete_cia_tipo: { secundum:'secundum', 'ostium secundum':'secundum', 'os':'secundum',
+                  primum:'primum', 'ostium primum':'primum', 'op':'primum',
+                  sv_vcs:'sv_vcs', 'seno venoso vcs':'sv_vcs', 'seno venoso (vcs)':'sv_vcs',
+                  sv_vci:'sv_vci', 'seno venoso vci':'sv_vci', 'seno venoso (vci)':'sv_vci',
+                  seno_coronario:'seno_coronario', 'seno coronario':'seno_coronario' },
+  ete_cia_dir: { id:'id', 'izquierda a derecha':'id', 'izquierda > derecha':'id',
+                 'izquierda \u2192 derecha':'id', 'i-d':'id', 'i>d':'id',
+                 di:'di', 'derecha a izquierda':'di', 'derecha > izquierda':'di',
+                 'derecha \u2192 izquierda':'di', 'd-i':'di', 'd>i':'di',
+                 bi:'bi', bidireccional:'bi', 'bi-direccional':'bi' },
+  ete_civ_tipo: { perimembranosa:'perimembranosa', perimembranoso:'perimembranosa', membranosa:'perimembranosa',
+                  muscular:'muscular', trabecular:'muscular',
+                  infundibular:'infundibular', subarterial:'infundibular', 'doblemente comprometida':'infundibular',
+                  inlet:'inlet', 'de entrada':'inlet', 'canal av':'inlet' },
+  ete_tavi_pro_tipo: { balon:'balon', 'balon expandible':'balon', 'expandible por balon':'balon', beh:'balon',
+                       auto:'auto', 'auto expandible':'auto', autoexpandible:'auto', seh:'auto' },
+  ete_tavi_pro_pos: { correcta:'correcta', normal:'correcta', adecuada:'correcta',
+                      alta:'alta', 'implante alto':'alta',
+                      baja:'baja', 'implante bajo':'baja',
+                      muy_baja:'muy_baja', 'muy baja':'muy_baja', 'muy profunda':'muy_baja' },
 };
 LAB_XLS_VOCAB.im_grado = LAB_XLS_VOCAB.ia_grado = LAB_XLS_VOCAB.it_grado = LAB_XLS_VOCAB._grado04;
 // Etiquetas para la fila de ejemplo y la ayuda: se derivan del vocabulario, no se escriben
@@ -24769,6 +25098,11 @@ const LAB_XLS_OPCIONES = {
   vexus_sh:'0 normal (S>D) · 1 leve (S<D) · 2 severo (reverso sistólico)',
   vexus_pv:'0 normal (<30%) · 1 leve (30-49%) · 2 severo (≥50% o reverso)',
   vexus_ir:'0 normal (continuo) · 1 leve (bifásico) · 2 severo (monofásico)',
+  ete_cia_tipo:'Ostium secundum · Ostium primum · Seno venoso VCS · Seno venoso VCI · Seno coronario',
+  ete_cia_dir:'Izquierda a derecha · Derecha a izquierda · Bidireccional',
+  ete_civ_tipo:'Perimembranosa · Muscular · Infundibular · Inlet',
+  ete_tavi_pro_tipo:'Balón expandible · Auto expandible',
+  ete_tavi_pro_pos:'Correcta · Alta · Baja · Muy baja',
 };
 LAB_XLS_OPCIONES.ia_grado = LAB_XLS_OPCIONES.it_grado = LAB_XLS_OPCIONES.im_grado;
 // Selects de texto libre acotado: se acepta cualquier opción de la lista, tal cual.
@@ -24777,6 +25111,11 @@ const LAB_XLS_LISTAS = {
   va_morf: ['Trivalva normal','Bicúspide','Calcificada','Reumática','Prótesis'],
   vt_morf: ['Normal','Mixomatosa','Reumática','Prótesis'],
   pericardio: ['Normal, sin derrame','Derrame mínimo','Derrame leve (5-10mm)','Derrame moderado (10-20mm)','Derrame severo (>20mm)','Engrosamiento / calcificación'],
+};
+/* Topes de largo para el texto libre. Sólo para los campos que se imprimen dentro de una
+   línea del informe; `informe_texto` y `en_suma` no figuran a propósito. */
+const LAB_XLS_MAX_TXT = {
+  ete_tavi_pro_marca: 80, centro_nombre: 120, med_solicitante: 120,
 };
 // Marca de la fila de ejemplo de la plantilla. Se busca en el Nombre y NUNCA se importa.
 const LAB_XLS_EJEMPLO = '*** FILA DE EJEMPLO — BORRAR ANTES DE IMPORTAR ***';
@@ -24888,7 +25227,9 @@ function labPlantillaXLSX() {
      a mano, la ayuda enseñaba "Ausente" para un campo cuyo <select> sólo acepta "sin", y
      el médico copiaba el formato de la plantilla para que se lo rechazaran. */
   const TIPO = { txt:'Texto libre', num:'Número (sólo el número, sin rangos ni < >)', fecha:'Fecha AAAA-MM-DD',
-                 lista:'Varios valores separados por " | "' };
+                 lista:'Varios valores separados por " | "',
+                 horas:'Horas del reloj 1-12 separadas por coma (ej. 3,4,5)',
+                 chk:'1 = sí (se imprime en el informe) · 0 = no' };
   const tipoDe = (dest, tipo) => LAB_XLS_OPCIONES[dest]
     || (LAB_XLS_LISTAS[dest] ? LAB_XLS_LISTAS[dest].join(' · ') : null)
     || TIPO[tipo] || '';
@@ -25060,12 +25401,56 @@ function labImportarXLSX(file) {
         } else if (tipo === 'lista') {
           if (vacio) return;
           v = String(bruto).split(/\s*\|\s*/).map(x => x.trim()).filter(Boolean);
+        } else if (tipo === 'chk') {
+          /* Casilla de inclusión: se guarda como '1'/'0', que es lo que espera
+             _restaurarChkInclusion. Vacío no es 0 — es «la planilla no trae la columna» y lo
+             resuelve la derivación de más abajo. */
+          if (vacio) return;
+          const _s = String(bruto).trim().toLowerCase();
+          if (['1','si','sí','true','x','verdadero'].indexOf(_s) >= 0) v = '1';
+          else if (['0','no','false','','falso'].indexOf(_s) >= 0) v = '0';
+          else { errs.push('«' + col + '»: "' + String(bruto).slice(0,20) + '" no es Sí/No (usá 1 o 0)'); return; }
+        } else if (tipo === 'horas') {
+          /* Reloj del EPC: lista de horas 1-12. eteEpcHoras() ya filtra y deduplica al
+             dibujar, pero eso sanea el RENDER, no el dato: sin validar acá, un "13,abc"
+             queda guardado en el estudio y el informe imprime la cadena cruda. Se rechaza
+             la fila entera en vez de quedarse con la parte que se entendió: media lista de
+             horas es un jet paravalvular en otro lado. */
+          if (vacio) return;
+          const _hs = String(bruto).split(/[,;\s]+/).filter(Boolean);
+          /* Se valida cada token ENTERO con una regex, no con parseInt: parseInt('3abc') da 3
+             y '11-12' da 11, así que la celda pasaba el control y se guardaba media lista —
+             que es un jet paravalvular en otra ubicación— justo cuando el comentario decía
+             que se rechazaba la fila. */
+          if (_hs.some(x => !/^(?:[1-9]|1[0-2])$/.test(x))) {
+            errs.push('«' + col + '»: "' + String(bruto).slice(0,20) + '" no es una lista de horas 1-12 (ej. 3,4,5)'); return;
+          }
+          const _ok = _hs.map(Number);
+          v = _ok.filter((n,ix,a2) => a2.indexOf(n) === ix).join(',');
         } else {
           if (vacio) return;
-          v = String(bruto).trim();
+          /* Los caracteres de control se sacan en el borde: una celda de Excel admite 32.767
+             caracteres y el único techo era el de 20.000 de validarInformeImportado, así que
+             una marca de prótesis con saltos de línea rompía la maquetación del PDF firmado
+             sin un solo aviso. Los textos que SÍ tienen que ser largos —informe y EN SUMA—
+             no llevan tope de largo, sólo el saneo. */
+          v = String(bruto).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').trim();
+          const _max = LAB_XLS_MAX_TXT[dest];
+          if (_max && v.length > _max) {
+            errs.push('«' + col + '»: son ' + v.length + ' caracteres y el máximo es ' + _max); return;
+          }
         }
         if (dest.charAt(0) === '@') inf[dest.slice(1)] = v;
         else inf.campos[dest] = v;
+      });
+      /* Si la planilla no trae la columna de inclusión —las hechas a mano y las exportadas
+         antes de que existiera— se deduce del dato: quien cargó una prótesis o un shunt en la
+         fila lo quiere en el informe. Es una deducción, no un dato, así que sólo actúa cuando
+         la columna está AUSENTE; un 0 explícito manda. */
+      [['ete_shunt_incluir_chk__chk', /^(ete_cia_|ete_civ_|tsvd_diametro|vti_tsvd)/],
+       ['ete_tavi_incluir_chk__chk',  /^ete_tavi_/]].forEach(([flag, rx]) => {
+        if (inf.campos[flag] !== undefined) return;
+        if (Object.keys(inf.campos).some(k => rx.test(k))) inf.campos[flag] = '1';
       });
       /* Severidad por columnas 0/1, sólo si la columna de TEXTO no dijo nada: es la única
          que distingue moderada-severa, así que gana ella. Tres binarias en 1 a la vez es
