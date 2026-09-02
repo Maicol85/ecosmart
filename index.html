@@ -230,7 +230,9 @@
   .btn-green { background: var(--green); color: #0f1117; }
   /* Botones "Integrar al informe" — un solo estilo para los de toda la app.
      Gris = el módulo NO está en el informe; verde con tilde = sí lo está.
-     El estado lo pinta amiloSyncBotones() leyendo am-wrap-<k>. */
+     Hay DOS pintores, según de dónde salga el estado: amiloSyncBotones() para los
+     [data-am-k] (lee am-wrap-<k>) y eteInclSync() para los [data-ete-chk] de las cuatro
+     secciones del ETE (lee el checkbox oculto). Los selectores son disjuntos. */
   /* Checkboxes del dominio humoral del HFA-PEFF. Cuando el valor numérico está
      cargado el tilde lo calcula la app y va deshabilitado: se atenúa para que se
      vea que es un resultado, no algo que el médico eligió. */
@@ -240,6 +242,12 @@
   .hf-hum-chk.auto { opacity:.72; cursor:default; }
   .btn-integrar { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
   .btn-integrar.integrado { background: var(--green); color: #0f1117; border-color: var(--green); }
+  /* Marca de «esta sección baja al informe» en el encabezado del acordeón. El botón que la
+     gobierna vive DENTRO del cuerpo colapsable, así que con la sección cerrada no se veía
+     nada — y en técnica y morfología la inclusión es una preferencia que sobrevive al
+     cambio de paciente. La marca no es interactiva: informa, no decide. */
+  .incl-badge { font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:999px;
+                background: var(--green); color:#0f1117; flex:0 0 auto; white-space:nowrap; }
   /* ══ LAYOUT ══ */
   .container { max-width: none; margin: 0; padding: 0; }
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -3334,17 +3342,15 @@ window.cerrarSesion = cerrarSesion;
 <!-- ═══════════════════════ TAB: ETE MITRAL ═══════════════════════ -->
 <div id="tab-ete" class="tab-section">
 
-  <!-- TÉCNICA DEL PROCEDIMIENTO — acordeón colapsado + toggle de inclusión, mismo patrón
-       que Morfología y Clasificación VM: el checkbox queda FUERA del contenido colapsable
-       para que se vea siempre, incluso con el acordeón cerrado. -->
+  <!-- TÉCNICA DEL PROCEDIMIENTO — acordeón colapsado + botón «Integrar al informe» al pie
+       del contenido, mismo patrón que el Score de Wilkins. El estado sigue siendo un
+       <input type=checkbox> oculto (lo capturan guardarInforme y la reimpresión); el botón
+       es la piel y el badge del encabezado lo repite para que se vea con la sección cerrada. -->
   <div class="card" style="margin-bottom:8px;">
     <h2 class="card-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;"
         onclick="toggleEteSeccion('tecnica',this)">
-      <label style="display:flex;align-items:center;justify-content:center;margin:0;cursor:pointer;flex:0 0 auto;min-width:44px;min-height:44px;" title="Incluir técnica en informe" onclick="event.stopPropagation();">
-        <input type="checkbox" id="ete_tecnica_incluir_chk" onchange="localStorage.setItem('ete_tecnica_incluir', this.checked ? '1' : '0')" aria-label="Incluir técnica en informe" onclick="event.stopPropagation();" style="margin:0;cursor:pointer;">
-        <span class="sr-only">Incluir técnica en informe</span>
-      </label>
       <span style="flex:1;">📋 Técnica del procedimiento</span>
+      <span id="ete_tecnica_badge" class="incl-badge" hidden>📎 en el informe</span>
       <span id="ete-tecnica-arrow" style="transition:transform 0.2s;flex:0 0 auto;">▶</span>
     </h2>
   </div>
@@ -3368,6 +3374,13 @@ window.cerrarSesion = cerrarSesion;
           El texto gris es sólo una sugerencia: al informe baja únicamente lo que esté escrito acá.
         </div>
       </div>
+      <div style="text-align:center;margin-top:10px;">
+        <!-- El checkbox sigue siendo el estado; el botón es la piel. Oculto y no la
+             pantalla entera: guardarInforme lo captura por `input[type=checkbox][id]`. -->
+        <input type="checkbox" id="ete_tecnica_incluir_chk" onchange="localStorage.setItem('ete_tecnica_incluir', this.checked ? '1' : '0')" style="display:none;" tabindex="-1" aria-hidden="true">
+        <button type="button" class="btn btn-integrar" data-ete-chk="ete_tecnica_incluir_chk" aria-pressed="false"
+                onclick="eteInclToggle('ete_tecnica_incluir_chk')">📎 Integrar al informe</button>
+      </div>
     </div>
   </div>
   </div><!-- /#ete-seccion-tecnica -->
@@ -3376,7 +3389,11 @@ window.cerrarSesion = cerrarSesion;
        el paciente anterior. Se borra además la clave vieja, para que un navegador que ya
        la tenga guardada de una versión anterior no la arrastre. -->
   <script>
-  (function(){try{localStorage.removeItem('ete_tecnica_texto');}catch(e){}var c=document.getElementById('ete_tecnica_incluir_chk');if(c)c.checked=localStorage.getItem('ete_tecnica_incluir')==='1';})();
+  /* Se pinta el botón ACÁ y no sólo en el DOMContentLoaded de más abajo: si algún script
+     intermedio tira, ese listener no llega a registrarse y el botón queda gris sobre una
+     casilla tildada —el PDF sale con la técnica y el botón dijo que no—. La falta de
+     repintado tiene que doler en el momento, no resolverse al estado que miente. */
+  (function(){try{localStorage.removeItem('ete_tecnica_texto');}catch(e){}var c=document.getElementById('ete_tecnica_incluir_chk');if(!c)return;c.checked=localStorage.getItem('ete_tecnica_incluir')==='1';var b=document.querySelector('.btn-integrar[data-ete-chk="ete_tecnica_incluir_chk"]');if(b){b.classList.toggle('integrado',c.checked);b.setAttribute('aria-pressed',c.checked?'true':'false');b.textContent=c.checked?'✓ Integrado al informe':'📎 Integrar al informe';}})();
 
   /* Texto de técnica que va al informe: lo que escribió el médico, y si no escribió nada,
      la plantilla. La plantilla se lee del ATRIBUTO placeholder y no de una constante
@@ -3418,11 +3435,8 @@ window.cerrarSesion = cerrarSesion;
   <div class="card" style="margin-bottom:8px;">
     <h2 class="card-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;"
         onclick="toggleEteSeccion('morfo',this)">
-      <label style="display:flex;align-items:center;justify-content:center;margin:0;cursor:pointer;flex:0 0 auto;min-width:44px;min-height:44px;" title="Incluir morfología en informe" onclick="event.stopPropagation();">
-        <input type="checkbox" id="ete_morfo_incluir_chk" onchange="localStorage.setItem('ete_morfo_incluir', this.checked ? '1' : '0')" aria-label="Incluir morfología en informe" onclick="event.stopPropagation();" style="margin:0;cursor:pointer;">
-        <span class="sr-only">Incluir morfología en informe</span>
-      </label>
       <span style="flex:1;">🔬 ETE — Morfología y Clasificación VM</span>
+      <span id="ete_morfo_badge" class="incl-badge" hidden>📎 en el informe</span>
       <span id="ete-morfo-arrow" style="transition:transform 0.2s;flex:0 0 auto;">▶</span>
     </h2>
   </div>
@@ -3463,10 +3477,17 @@ window.cerrarSesion = cerrarSesion;
           </select>
         </div>
       </div>
+      <div style="text-align:center;margin-top:10px;">
+        <!-- El checkbox sigue siendo el estado; el botón es la piel. Oculto y no la
+             pantalla entera: guardarInforme lo captura por `input[type=checkbox][id]`. -->
+        <input type="checkbox" id="ete_morfo_incluir_chk" onchange="localStorage.setItem('ete_morfo_incluir', this.checked ? '1' : '0')" style="display:none;" tabindex="-1" aria-hidden="true">
+        <button type="button" class="btn btn-integrar" data-ete-chk="ete_morfo_incluir_chk" aria-pressed="false"
+                onclick="eteInclToggle('ete_morfo_incluir_chk')">📎 Integrar al informe</button>
+      </div>
     </div>
   </div>
   </div><!-- /#ete-seccion-morfo -->
-  <script>(function(){var c=document.getElementById('ete_morfo_incluir_chk');if(c)c.checked=localStorage.getItem('ete_morfo_incluir')==='1';})();</script>
+  <script>(function(){var c=document.getElementById('ete_morfo_incluir_chk');if(!c)return;c.checked=localStorage.getItem('ete_morfo_incluir')==='1';var b=document.querySelector('.btn-integrar[data-ete-chk="ete_morfo_incluir_chk"]');if(b){b.classList.toggle('integrado',c.checked);b.setAttribute('aria-pressed',c.checked?'true':'false');b.textContent=c.checked?'✓ Integrado al informe':'📎 Integrar al informe';}})();</script>
 
   <div class="card" style="margin-bottom:8px;">
     <h2 class="card-head" style="cursor:pointer; user-select:none;" onclick="toggleEteSeccion('mitral', this)">
@@ -7089,21 +7110,15 @@ z
   </div>
 
   <!-- ═══ CIA / CIV — CARDIOPATÍA CONGÉNITA CON SHUNT ═══
-       Los toggles de inclusión de estas dos secciones NO usan localStorage: se leen del
-       propio checkbox, que guardarInforme captura en `campos` y la reimpresión repone. Las
+       El toggle de inclusión de esta sección NO usa localStorage: se lee del propio
+       checkbox, que guardarInforme captura en `campos` y la reimpresión repone. Las
        secciones viejas leen una clave global y por eso un estudio reimpreso podía salir sin
        una sección que el PDF original sí tenía; acá se evita de entrada. -->
   <div class="card" style="margin-bottom:8px;">
     <h2 class="card-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;"
         onclick="toggleEteSeccion('shunt',this);eteShuntSync();">
-      <!-- El checkbox va DENTRO del encabezado, en la misma fila que el título y la flecha.
-           stopPropagation en el click: sin eso, tildar la casilla abría o cerraba el
-           acordeón de paso, porque el click burbujea hasta el onclick del <h2>. -->
-      <label style="display:flex;align-items:center;justify-content:center;margin:0;cursor:pointer;flex:0 0 auto;min-width:44px;min-height:44px;" title="Incluir CIA/CIV en informe" onclick="event.stopPropagation();">
-        <input type="checkbox" id="ete_shunt_incluir_chk" aria-label="Incluir CIA/CIV en informe" onclick="event.stopPropagation();" style="margin:0;cursor:pointer;">
-        <span class="sr-only">Incluir CIA/CIV en informe</span>
-      </label>
       <span style="flex:1;">🫀 CIA / CIV — Cardiopatía congénita con shunt</span>
+      <span id="ete_shunt_badge" class="incl-badge" hidden>📎 en el informe</span>
       <span id="ete-shunt-arrow" style="transition:transform 0.2s;flex:0 0 auto;">▶</span>
     </h2>
   </div>
@@ -7249,6 +7264,13 @@ z
         <div style="font-size:10px;color:var(--text2);margin-top:3px;">Normal &lt; 32 mm/m²</div>
       </div>
     </div>
+    <div style="text-align:center;margin-top:10px;">
+      <!-- El checkbox sigue siendo el estado; el botón es la piel. Oculto y no
+           eliminado: guardarInforme lo captura por `input[type=checkbox][id]`. -->
+      <input type="checkbox" id="ete_shunt_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+      <button type="button" class="btn btn-integrar" data-ete-chk="ete_shunt_incluir_chk" aria-pressed="false"
+              onclick="eteInclToggle('ete_shunt_incluir_chk')">📎 Integrar al informe</button>
+    </div>
   </div></div>
   </div><!-- /#ete-seccion-shunt -->
 
@@ -7256,14 +7278,8 @@ z
   <div class="card" style="margin-bottom:8px;">
     <h2 class="card-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;"
         onclick="toggleEteSeccion('tavi',this);eteTaviSync();">
-      <!-- El checkbox va DENTRO del encabezado, en la misma fila que el título y la flecha.
-           stopPropagation en el click: sin eso, tildar la casilla abría o cerraba el
-           acordeón de paso, porque el click burbujea hasta el onclick del <h2>. -->
-      <label style="display:flex;align-items:center;justify-content:center;margin:0;cursor:pointer;flex:0 0 auto;min-width:44px;min-height:44px;" title="Incluir TAVI en informe" onclick="event.stopPropagation();">
-        <input type="checkbox" id="ete_tavi_incluir_chk" aria-label="Incluir TAVI en informe" onclick="event.stopPropagation();" style="margin:0;cursor:pointer;">
-        <span class="sr-only">Incluir TAVI en informe</span>
-      </label>
       <span style="flex:1;">🫀 TAVI — Evaluación ecocardiográfica</span>
+      <span id="ete_tavi_badge" class="incl-badge" hidden>📎 en el informe</span>
       <span id="ete-tavi-arrow" style="transition:transform 0.2s;flex:0 0 auto;">▶</span>
     </h2>
   </div>
@@ -7395,6 +7411,13 @@ z
       </div>
     </div>
 
+    <div style="text-align:center;margin-top:10px;">
+      <!-- El checkbox sigue siendo el estado; el botón es la piel. Oculto y no
+           eliminado: guardarInforme lo captura por `input[type=checkbox][id]`. -->
+      <input type="checkbox" id="ete_tavi_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+      <button type="button" class="btn btn-integrar" data-ete-chk="ete_tavi_incluir_chk" aria-pressed="false"
+              onclick="eteInclToggle('ete_tavi_incluir_chk')">📎 Integrar al informe</button>
+    </div>
   </div></div>
   </div><!-- /#ete-seccion-tavi -->
 
@@ -15347,6 +15370,7 @@ function limpiarCampos() {
   ['ete_tecnica_incluir_chk','ete_morfo_incluir_chk'].forEach(id => {
     const c = document.getElementById(id); if (c) c.checked = false;
   });
+  if (typeof eteInclSync === 'function') { try { eteInclSync(); } catch(e){} }
   /* CIA/CIV y TAVI: los inputs y selects los limpia el barrido de arriba, pero el bitmap del
      canvas EPC, el hidden con las horas del jet, los dos checkboxes de inclusión y los
      sub-tabs viven fuera de él y quedaban con lo del paciente anterior. */
@@ -17720,8 +17744,48 @@ function _restaurarChkInclusion(campos){
     const k = el.id + '__chk';
     if(campos[k] !== undefined) el.checked = (campos[k] === '1' || campos[k] === true || campos[k] === 'true');
   });
+  // Sin esto el estudio quedaba integrado pero el botón seguía gris: el médico leía
+  // «no está en el informe» sobre una sección que sí iba a imprimirse.
+  if (typeof eteInclSync === 'function') { try { eteInclSync(); } catch(e){} }
 }
 window._restaurarChkInclusion = _restaurarChkInclusion;
+
+/* ══ Botones «Integrar al informe» de las cuatro secciones del ETE ══
+   Reemplazan a los checkboxes que vivían dentro del <h2>. El ESTADO sigue siendo el
+   <input type=checkbox>, ahora oculto: es lo que captura guardarInforme —que recorre
+   `input[type=checkbox][id]` y guarda `<id>__chk`—, lo que repone _restaurarChkInclusion,
+   lo que leen las compuertas del informe y del PPT, y lo que exporta e importa el Excel.
+   Cambiar el estado a una propiedad nueva habría dejado a los seis consumidores leyendo un
+   checkbox que ya nadie mueve, sin un solo error. El botón es sólo la piel. */
+const ETE_INCL_LBL = {
+  ete_tecnica_incluir_chk: 'Técnica del procedimiento',
+  ete_morfo_incluir_chk:   'Morfología y clasificación VM',
+  ete_shunt_incluir_chk:   'CIA / CIV',
+  ete_tavi_incluir_chk:    'TAVI'
+};
+function eteInclSync(){
+  document.querySelectorAll('.btn-integrar[data-ete-chk]').forEach(function(b){
+    const c = document.getElementById(b.dataset.eteChk);
+    const on = !!(c && c.checked);
+    b.classList.toggle('integrado', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.textContent = on ? '✓ Integrado al informe' : '📎 Integrar al informe';
+    const bdg = document.getElementById(b.dataset.eteChk.replace('_incluir_chk','') + '_badge');
+    if (bdg) bdg.hidden = !on;
+  });
+}
+function eteInclToggle(id){
+  const c = document.getElementById(id); if (!c) return;
+  c.checked = !c.checked;
+  /* El evento se despacha a mano: asignar .checked no dispara onchange, y de ese atributo
+     cuelga la preferencia de sesión en localStorage de técnica y morfología. */
+  c.dispatchEvent(new Event('change', { bubbles:true }));
+  eteInclSync();
+  const lbl = ETE_INCL_LBL[id] || 'La sección';
+  if (typeof toast === 'function')
+    toast(c.checked ? ('📎 ' + lbl + ' se integra al informe') : (lbl + ' excluida del informe'));
+}
+window.eteInclSync = eteInclSync; window.eteInclToggle = eteInclToggle;
 
 function eteShuntTaviReset(){
   ['ete_shunt_incluir_chk','ete_tavi_incluir_chk'].forEach(function(id){
@@ -17731,6 +17795,7 @@ function eteShuntTaviReset(){
   try{ eteEpcSet([]); eteEpcDibujar(); }catch(e){}
   try{ eteShuntTab('cia'); eteTaviTab('pre'); }catch(e){}
   try{ eteShuntSync(); eteTaviSync(); }catch(e){}
+  try{ eteInclSync(); }catch(e){}
 }
 window.eteShuntTaviReset = eteShuntTaviReset;
 
@@ -17738,6 +17803,10 @@ document.addEventListener('DOMContentLoaded', function(){
   const cv=document.getElementById('ete-tavi-epc');
   if(cv){ cv.addEventListener('click', eteEpcClick); eteEpcRefrescar(); }
   try{ eteShuntSync(); eteTaviSync(); }catch(e){}
+  /* Técnica y morfología reponen su casilla desde localStorage en un <script> inline del
+     <body>, que corre antes de que exista eteInclSync: sin este repintado los dos botones
+     arrancaban en gris sobre una casilla tildada. */
+  try{ eteInclSync(); }catch(e){}
 });
 
 function toggleValvPill(valvula, tipo) {
@@ -22502,34 +22571,62 @@ function _pptDesdeFormulario(inf, tema){
     tabla(s, DER, _yTab, undefined, 0.5 + _colW + 0.15, _colW, _est);
 
     /* Válvulas en una franja horizontal debajo: son seis valores cortos y como filas de
-       tabla ocupaban un tercio de la diapositiva para decir «sin» seis veces. */
-    /* im/ia/it_grado son <input type="hidden"> con el CÓDIGO 0-4, así que _pptSel devuelve
-       «0» y la franja decía «IM: 0» —que en una diapositiva proyectada se lee como una
-       medición, no como «ausente»—. Se traduce con la misma escala que usa el Laboratorio. */
+       tabla ocupaban un tercio de la diapositiva. Se nombran SÓLO las que tienen hallazgo:
+       enumerar «IM: sin | EAo: sin | IAo: sin …» gastaba la línea entera en decir seis veces
+       que no hay nada, y las dos que sí importaban quedaban perdidas en el medio.
+       im/ia/it_grado son <input type="hidden"> con el CÓDIGO 0-4, así que _pptSel devuelve
+       «0» y la franja decía «IM: 0» —que proyectado se lee como una medición y no como
+       «ausente»—. Se traduce con la misma escala que usa el Laboratorio. */
     const _ESC04 = ['ausente','leve','moderada','moderada-severa','severa'];
-    const _valv = [['im_grado','IM'],['ea_grado','EAo'],['ia_grado','IAo'],
-                   ['it_grado','IT'],['em_grado','EM'],['et_grado','ET']]
-      .map(pp => {
-        let t = _pptSel(pp[0]);
-        if (/^\d+$/.test(t)) {
-          /* `_ESC04[n] || ''` con un código fuera de escala devolvía '' y `.filter(Boolean)`
-             sacaba la válvula de la franja: la diapositiva quedaba enumerando cinco válvulas
-             y la sexta simplemente no estaba, sin error. */
-          const _g = parseInt(t, 10);
-          if (!(_g >= 0 && _g <= 4)) { console.warn('[ppt] grado fuera de escala', pp[0], t); return pp[1] + ': ?'; }
-          t = _ESC04[_g];
+    /* Predicado POSITIVO de «no hay nada». Escrito al revés —«todo lo que no sea patológico
+       es normal»— cualquier valor nuevo o mal escrito caería en normal y la diapositiva
+       afirmaría ausencia de enfermedad sobre algo que no supo leer. Acá lo que no reconoce
+       cae en hallazgo, que se imprime y se ve. */
+    const _VALV_SIN = ['sin','ausente','no','normal','sin estenosis','sin insuficiencia','—','-'];
+    const _hallazgos = [];
+    [['im_grado','IM'],['ea_grado','EAo'],['ia_grado','IAo'],
+     ['it_grado','IT'],['em_grado','EM'],['et_grado','ET']].forEach(pp => {
+      let t = _pptSel(pp[0]);
+      if (/^\d+$/.test(t)) {
+        /* Un código fuera de escala NO se descarta: descartarlo dejaba la franja enumerando
+           cinco válvulas y la sexta ausente, sin error y sin diferencia visible con «esa
+           válvula está normal». */
+        const _g = parseInt(t, 10);
+        if (!(_g >= 0 && _g <= 4)) {
+          console.warn('[ppt] grado fuera de escala', pp[0], t);
+          _hallazgos.push(pp[1] + ': sin clasificar'); return;
         }
-        t = t.replace(/\s*\([^)]*\)\s*$/,'').trim().toLowerCase();   // «leve (vmax 2-3 m/s)» → «leve»
-        if (t === 'ausente' || t === 'sin estenosis') t = 'sin';       // una sola palabra para «no hay»
-        return t ? (pp[1] + ': ' + t) : '';
-      })
-      .filter(Boolean);
-    if (_valv.length) {
-      s.addText('VÁLVULAS', { x:0.5, y:_yValv, w:W-1, h:0.15, fontSize:9, bold:true,
-        color:PPT_C.txt2, fontFace:PPT_FONT });
-      s.addText(_valv.join('   |   '), { x:0.5, y:_yValv+0.15, w:W-1, h:0.22, fontSize:11,
-        color:PPT_C.txt, fontFace:PPT_FONT });
-    }
+        t = _ESC04[_g];
+      }
+      t = t.replace(/\s*\([^)]*\)\s*$/,'').trim().toLowerCase();   // «leve (vmax 2-3 m/s)» → «leve»
+      /* Vacío sólo con un <select> en selectedIndex -1, o sea un valor guardado que no
+         corresponde a ninguna opción —un JSON importado a mano con «Moderada» en vez de
+         «moderada»—. Descartarlo era peor que mostrarlo: la válvula desaparecía de la franja
+         y, si el resto estaba normal, la diapositiva pasaba a decir «sin alteraciones» sobre
+         un estudio que tenía una estenosis registrada. */
+      if (!t) {
+        const _el = document.getElementById(pp[0]);
+        if (_el && _el.tagName === 'SELECT' && _el.selectedIndex < 0) {
+          console.warn('[ppt] valor fuera del vocabulario', pp[0], _el.value);
+          _hallazgos.push(pp[1] + ': sin clasificar');
+        }
+        return;
+      }
+      if (_VALV_SIN.indexOf(t) >= 0) return;                         // sin hallazgo
+      _hallazgos.push(pp[1] + ': ' + t);
+    });
+    /* Se dice «sin alteraciones» sin exigir que alguien haya interrogado las válvulas, y es
+       deliberado: es LA MISMA convención del EN SUMA, que con el formulario vacío escribe
+       «Estudio sin alteraciones estructurales ni funcionales significativas». La versión
+       anterior de esto llevaba un gate de «al menos una evaluada» que no filtraba nada —los
+       tres hidden arrancan en «0» y los tres selects en «sin», así que las seis contaban
+       siempre como evaluadas— y encima el comentario aseguraba que protegía. Un resguardo
+       que no resguarda es peor que ninguno: tapa el problema en la próxima lectura. */
+    s.addText('VÁLVULAS', { x:0.5, y:_yValv, w:W-1, h:0.15, fontSize:9, bold:true,
+      color:PPT_C.txt2, fontFace:PPT_FONT });
+    s.addText(_hallazgos.length ? _hallazgos.join('   |   ') : 'Sin alteraciones significativas',
+      { x:0.5, y:_yValv+0.15, w:W-1, h:0.22, fontSize:11,
+        color: _hallazgos.length ? PPT_C.txt : PPT_C.txt2, fontFace:PPT_FONT });
     conPie(s);
   }
 
@@ -22990,7 +23087,11 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
   if (typeof calcAo     === 'function') calcAo();
   if (typeof calcSGL    === 'function') calcSGL();
   if (typeof calcCardioOnco === 'function') calcCardioOnco();
-  ['eteShuntSync','eteTaviSync'].forEach(function(f){ if (typeof window[f] === 'function') { try { window[f](); } catch(e){} } });
+  /* eteInclSync incluido: esta función asigna los cuatro `.checked` de inclusión del ETE
+     directamente (arriba, en el barrido de campos) y era la única ruta que los movía sin
+     repintar. Si la restauración falla a mitad, el médico revisa la pestaña ETE y ve los
+     botones del paciente en curso sobre las casillas del estudio reimpreso. */
+  ['eteShuntSync','eteTaviSync','eteInclSync'].forEach(function(f){ if (typeof window[f] === 'function') { try { window[f](); } catch(e){} } });
 
   // Fallback: estudios históricos (previos al acordeón) con texto libre en indicacion/antecedentes
   // → el PDF lo usa solo si el acordeón quedó vacío
@@ -23060,7 +23161,7 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
     if (typeof calcAo === 'function') calcAo();
     if (typeof calcSGL === 'function') calcSGL();
     if (typeof calcCardioOnco === 'function') calcCardioOnco();
-    ['eteShuntSync','eteTaviSync','eteEpcRefrescar'].forEach(function(f){ if (typeof window[f] === 'function') { try { window[f](); } catch(e){} } });
+    ['eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync'].forEach(function(f){ if (typeof window[f] === 'function') { try { window[f](); } catch(e){} } });
     if (typeof updateHdrExtra === 'function') updateHdrExtra();
    } catch (e) {
     /* La restauración corre en otra tarea: su excepción NO la ve el try/catch del wrapper,
@@ -29774,7 +29875,7 @@ const ECO_AYUDA = [
   <div class="mBox mTip"><b>Consejo.</b> Sólo Hemodinámica (por VEXUS y HFA-PEFF) y Eco Pulmonar suman líneas al EN SUMA. ETE, Amiloidosis y Cardio-Oncología aportan su hoja pero no modifican el resumen.</div>` },
 
  { tab: '🫀 ETE: CIA / CIV', html: `
-  <p class="mP"><strong style="color:#0D9488">Comunicación interauricular e interventricular.</strong> Está dentro del módulo <b>ETE</b>, después de Aorta, como acordeón plegado. Se abre tocando el encabezado; el <b>checkbox de la izquierda del título</b> es el que decide si baja al informe, y es independiente de abrir o cerrar la sección.</p>
+  <p class="mP"><strong style="color:#0D9488">Comunicación interauricular e interventricular.</strong> Está dentro del módulo <b>ETE</b>, después de Aorta, como acordeón plegado. Se abre tocando el encabezado; adentro, al pie de la sección, el botón <b>📎 Integrar al informe</b> es el que decide si baja al informe. Cuando está integrada, el encabezado muestra la marca <b>📎 en el informe</b>, así que se ve también con la sección cerrada.</p>
   <div class="mSub">CIA</div>
   <p class="mP">Elegí el <b>tipo</b> (ostium secundum, ostium primum, seno venoso de VCS o de VCI, seno coronario) y cargá el tamaño máximo y mínimo del defecto.</p>
   <p class="mP">La tabla de <b>bordes</b> tiene los cinco rodetes con la ventana ETE donde se mide cada uno: aórtico (30-45°), AV/mitral (0°), VCS y VCI (90° bicava) y posterior (0°). No hace falta cargarlos todos: la app calcula el <b>borde mínimo</b> con los que hayas ingresado y <b>dice cuál es</b>, que es lo que orienta la viabilidad del cierre percutáneo.</p>
@@ -29788,10 +29889,10 @@ const ECO_AYUDA = [
   <p class="mP">El <b>DDVI indexado</b> se calcula solo con el DDVI y la superficie corporal que ya tiene el estudio. Referencia: normal por debajo de 32 mm/m².</p>
   <div class="mBox mTip"><b>Si cargás el TSVD en centímetros por error</b> (2,4 en vez de 24), el cociente se hunde unas cien veces. La app no informa un Qp/Qs fuera del rango 0,2-10 y, en vez del guion, escribe que está fuera de rango y que revises las unidades.</div>
   <div class="mSub">En el informe</div>
-  <p class="mP">Con el checkbox tildado, el informe suma una oración por defecto con tipo, tamaño, borde mínimo, dirección del shunt, Qp/Qs y DDVI indexado, y el <b>EN SUMA</b> agrega el Qp/Qs con su interpretación. El PDF lo imprime dentro del informe, no en hoja aparte.</p>` },
+  <p class="mP">Con la sección integrada, el informe suma una oración por defecto con tipo, tamaño, borde mínimo, dirección del shunt, Qp/Qs y DDVI indexado, y el <b>EN SUMA</b> agrega el Qp/Qs con su interpretación. El PDF lo imprime dentro del informe, no en hoja aparte.</p>` },
 
  { tab: '🫀 ETE: TAVI', html: `
-  <p class="mP"><strong style="color:#0D9488">Evaluación pre y post implante valvular aórtico.</strong> Última sección del módulo ETE, con el mismo acordeón y el mismo checkbox de inclusión a la izquierda del título. Dos solapas.</p>
+  <p class="mP"><strong style="color:#0D9488">Evaluación pre y post implante valvular aórtico.</strong> Última sección del módulo ETE, con el mismo acordeón y el mismo botón <b>📎 Integrar al informe</b> al pie. Dos solapas.</p>
   <div class="mSub">Pre-TAVI</div>
   <p class="mP">Válvula nativa (morfología tricúspide, bicúspide o cuadricúspide; grado y distribución de la calcificación), <b>anillo aórtico</b> medido a 120-140° con diámetro, área y perímetro, <b>raíz aórtica</b> (seno de Valsalva, unión sinotubular, aorta ascendente proximal) y <b>distancia de las coronarias al anillo</b>, izquierda y derecha.</p>
   <div class="mSub">Post-TAVI</div>
