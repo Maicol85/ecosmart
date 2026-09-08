@@ -1,0 +1,82 @@
+{
+  "_meta": {
+    "proposito": "Dos pacientes de prueba para correr en el navegador ANTES de cada commit sobre index.html. El primero verifica que ningún dato hostil ejecute; el segundo, que la defensa no rompa datos legítimos. Los dos hacen falta: un escape que neutraliza todo también rompe un apellido con apóstrofo.",
+    "creado": "2026-09-08",
+    "como_usar": "Ver la sección «Tests de regresión» del CLAUDE.md de esta carpeta.",
+    "denominador": "Antes de contar CUALQUIER resultado, verificar que la vista realmente renderizó. Varias veces un test dio «sin XSS» sobre un contenedor vacío: render() sale antes de poblar tbody si la tabla está colapsada, y la lista de guardados no dibuja sin estudios. Un cero sobre cero elementos no prueba nada."
+  },
+
+  "paciente_1_envenenado": {
+    "descripcion": "Informe con cuatro campos malformados, uno por cada contexto de inyección distinto: atributo (fecha), cuerpo de manejador inline (id), texto de elemento (nombre) y bloque de script (en_suma).",
+    "informe": {
+      "id": "999; alert(2)",
+      "nombre": "<img src=x onerror=alert(3)>",
+      "ci": "1.111.111-1",
+      "doc_tipo": "CI",
+      "fecha_estudio": "<svg onload=alert(1)>",
+      "fecha_guardado": "2026-09-08T10:00:00Z",
+      "campos": {
+        "en_suma": "<script>alert(4)</script>",
+        "informe_texto": "Texto de prueba"
+      }
+    },
+    "esperado": {
+      "ejecuciones": 0,
+      "elementos_con_onerror": 0,
+      "elementos_con_onload": 0,
+      "elementos_script_inyectados": 0,
+      "elementos_img_inyectados": 0,
+      "elementos_svg_inyectados": 0,
+      "id_reparado": {
+        "tipo": "number",
+        "banda_minima": 900000000000000,
+        "nota": "El id se repara en CeiboStore a un valor derivado del CONTENIDO del registro, dentro de la banda 9e14. Es determinista: la misma ficha da SIEMPRE el mismo id, en cualquier balde y en cualquier orden de escritura. Eso es lo que permite que el clic en la lista resuelva el estudio en una llamada posterior. Con este contenido exacto el valor observado fue 953960418635701, pero NO hay que assertar ese número: assertar tipo number y >= 9e14."
+      },
+      "campos_como_texto_literal": [
+        "nombre",
+        "fecha_estudio",
+        "en_suma"
+      ],
+      "no_se_pierde_ningun_estudio": true
+    },
+    "trampa_conocida": "El paciente NO se puede cargar por el import JSON: validarInformeImportado exige typeof id === 'number' y formato ISO en fecha_estudio, así que lo rechaza antes. Para ejercer el sink hay que escribirlo directo con CeiboStore.setLocal([...]). Eso no invalida el test: la vía de escritura directa es precisamente el vector que queda abierto, porque la app se abre con doble clic (file://)."
+  },
+
+  "paciente_2_legitimo_extremos": {
+    "descripcion": "Valores clínicamente válidos pero en los bordes, para detectar defensas que se pasan de celosas. El apellido lleva apóstrofo, ampersand y signos de menor/mayor, que son exactamente los cinco caracteres que escapa escHtml.",
+    "informe": {
+      "id": 2026010101,
+      "nombre": "O'Brien & Cía <Cardiólogo>",
+      "ci": "2.222.222-2",
+      "doc_tipo": "CI",
+      "fecha_estudio": "2026-01-01",
+      "fecha_guardado": "2026-01-01T10:00:00Z",
+      "campos": {
+        "fevi": "0",
+        "edad": "0",
+        "en_suma": "Función sistólica severamente deprimida.",
+        "informe_texto": "Control."
+      }
+    },
+    "esperado": {
+      "id_sin_cambios": 2026010101,
+      "nombre_visible": "O'Brien & Cía <Cardiólogo>",
+      "nombre_en_html": "O&#39;Brien &amp; Cía &lt;Cardiólogo&gt;",
+      "nota_nombre": "En pantalla tiene que verse TAL CUAL se escribió. Si aparecen entidades a la vista (&#39;) hay doble escape en algún lado.",
+      "fevi_visible": "0",
+      "edad_visible": "0",
+      "nota_ceros": "Un FEVI de 0 es un dato extremo pero real. Antes del 2026-09-08 escHtml usaba String(s||'') y lo pintaba como celda VACÍA, que se lee como «no se midió». Este es el caso que protege ese cambio: el cero tiene que verse como 0.",
+      "badge_color_conservado": {
+        "nota": "Si el estudio dispara un badge de alerta, el color tiene que ser el que corresponde. La allowlist de badge() incluye orange y yellow; si alguien la recorta, esos badges caen a gris y una alerta pasa a leerse como dato neutro."
+      }
+    }
+  },
+
+  "sinks_a_verificar": [
+    { "vista": "Lista de guardados", "funcion": "igItemHTML", "como": "Escribir el paciente con CeiboStore.setLocal y pintar getInformes().map(igItemHTML).join('') en un div. Contar .ig-item ANTES de contar handlers." },
+    { "vista": "Detalle del estudio", "funcion": "verDetalleInforme", "como": "Stub de getInformes() que devuelva el paciente, y llamar verDetalleInforme(id). Medir #ig-detalle-contenido; si da 0 bytes el test es vacuo." },
+    { "vista": "Tabla principal", "funcion": "render", "como": "Poner tablExpanded = true y mostrar #tbl-wrap ANTES de render(): si no, sale por el if(!tablExpanded)return y tbody queda vacío." },
+    { "vista": "Seguimiento cardio-oncológico", "funcion": "renderSeguimientoLista", "como": "Setear #nombre, obtener la clave con _coPacienteKey() y escribir co_seguimiento indexado por ESA clave. Una variable global no ejerce el sink." },
+    { "vista": "PDF", "funcion": "generarPDFReal", "como": "Envolver window.jspdf.jsPDF para capturar el doc y leer el content stream. El flip a UTF-16 se detecta contando bytes NUL, no buscando <FEFF." }
+  ]
+}

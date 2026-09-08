@@ -24095,9 +24095,23 @@ function _togglePDF(key, btnId, label){ const on = localStorage.getItem(key)!=='
 function cxWilkinsPDF(){ _togglePDF('wilkins_incluir_pdf','cx-wilkins-pdf','Score de Wilkins'); }
 function cxDukePDF(){ _togglePDF('duke_incluir_pdf','cx-duke-pdf','Score de Duke'); }
 function cxGtpPDF(){ _togglePDF('gtp_incluir_pdf','cx-gtp-pdf','GTP/RVP'); }
+/* Se quitó el `window.eeIncluirPDF=eeIncluirPDF` de la línea de exports (2026-09-08).
+   ACLARACIÓN IMPORTANTE, porque la intuición engaña: quitarlo NO vuelve inalcanzable la
+   función. Esta declaración está en el nivel superior de un <script> clásico, y una
+   declaración de función en scope global YA crea la propiedad en window. Medido después de
+   sacar la línea: `typeof window.eeIncluirPDF` sigue dando 'function'.
+   O sea que el export explícito era redundante, y sacarlo es limpieza, no un cierre. Para que
+   el bloque quede realmente inalcanzable habría que envolverlo en un IIFE o borrarlo, que es
+   más que tocar una línea.
+   Qué SÍ mantiene el bloque inerte hoy, que es lo que importa: el toggle 'ee-incluir-pdf' no
+   existe en el DOM, y al arrancar se borra la bandera ecoestres_incluir_pdf, así que la
+   condición del PDF no puede dar verdadero por sí sola. El riesgo residual es llamar a la
+   función a mano desde la consola en esa misma sesión: pondría la bandera en '1' y la limpieza
+   sólo corre al cargar, con lo cual el PDF podría estampar una sección «ECO ESTRÉS» con los 17
+   segmentos en NORMAL sobre un estudio donde no se hizo ninguno. No re-agregar el export. */
 function eeIncluirPDF(){ _togglePDF('ecoestres_incluir_pdf','ee-incluir-pdf','Eco Estrés'); }
 function eteQxIncluirPDF(){ _togglePDF('mitral_qx_incluir_pdf','ete-qx-pdf','Vista quirúrgica mitral'); }
-window.cxWilkinsPDF=cxWilkinsPDF; window.cxDukePDF=cxDukePDF; window.cxGtpPDF=cxGtpPDF; window.eeIncluirPDF=eeIncluirPDF; window.eteQxIncluirPDF=eteQxIncluirPDF;
+window.cxWilkinsPDF=cxWilkinsPDF; window.cxDukePDF=cxDukePDF; window.cxGtpPDF=cxGtpPDF; window.eteQxIncluirPDF=eteQxIncluirPDF;
 
 // ══════════ Eco Estrés · Tabla de protocolo + toggles PDF por sección ══════════
 var EE_PROTO={
@@ -26660,6 +26674,32 @@ const DCM_DERIV_MEDIA = '373098007';    // (373098007, SCT) "Mean"
    un 0 de relleno, un signo negativo—. Un valor afuera de su ventana no llegó por una
    enfermedad, llegó por un error de transporte, así que se descarta con el motivo a la
    vista en vez de entrar destildado: destildado sigue siendo un click de distancia. */
+/* ══ ATENCIÓN: estos rangos ASUMEN PACIENTE ADULTO ══
+   Se usan para rechazar filas en el importador DICOM y —desde el 2026-09-08, vía la fusión
+   perezosa de LAB_XLS_RANGO— también en el importador de Excel. Un valor pediátrico
+   perfectamente válido cae fuera de varios de estos pisos y la fila se rechaza ENTERA, con
+   el motivo listado en la vista previa: no se corrompe nada, pero el estudio no entra y la
+   causa no es obvia si uno no sabe que el piso es de adulto.
+
+   Campos cuyo LÍMITE INFERIOR rechaza valores neonatales o de lactante reales:
+     · ao_sin / ao_st / ao_tub  piso 10 mm  — seno aórtico neonatal ronda 6-9 mm
+     · ai_vol                   piso 5 ml   — volumen AI neonatal ronda 2-3 ml
+     · ddfvi                    piso 20 mm  — DDVI neonatal ronda 17-19 mm, y en prematuro menos
+     · siv / ppvi               piso 3 mm   — septum de prematuro puede estar en 1,5-2 mm
+   El resto (velocidades, gradientes, TAPSE, TDE, e') no discrimina por edad en la práctica:
+   en pediatría esos valores son iguales o MÁS altos, así que los techos no molestan.
+
+   NO se bajaron los pisos a propósito. Bajarlos convertiría el rango en decorativo para el
+   adulto, que es el 99 % del uso de esta app: el piso de 10 mm en ao_sin es justamente lo que
+   atrapa un 1,2 escrito por 12. La decisión correcta, cuando haga falta pediatría de verdad,
+   es un rango por franja etaria usando el campo `edad` que ya está en el mapa de Excel, no
+   ensanchar la ventana única.
+
+   OJO ADEMÁS: los tamaños de CIA/CIV (ete_cia_tam_max, ete_cia_tam_min, ete_civ_tam) y los
+   diámetros de TSVD/TSVI NO tienen rango en ninguna de las dos tablas. Esa sección se movió a
+   la tab Hemodinámica el 2026-09-08 y quedó más a mano, así que es el lugar más probable
+   donde vaya a entrar un dato pediátrico — y ahí no hay validación de rango que lo rechace,
+   ni bien ni mal. Si se agrega, agregarla con franja etaria desde el principio. */
 const DCM_RANGO = {
   fevi:[5,90], siv:[3,35], ddfvi:[20,100], ppvi:[3,35], tapse:[3,40], ai_vol:[5,400],
   onda_e:[10,250], onda_a:[5,250], e_sep:[1,30], e_lat:[1,35], tde:[40,500],
