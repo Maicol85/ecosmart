@@ -3111,6 +3111,177 @@ window.cerrarSesion = cerrarSesion;
   </div>
   </div>
 
+  <!-- CIA/CIV vive acá y no en la tab ETE: el shunt se calcula con TSVI/TSVD, que son
+       mediciones de Hemodinámica. Los campos fuente (diam_tsvi, itv_tsvi, tsvd_diametro,
+       vti_tsvd) siguen viviendo en #tab-doppler y #tab-vd — esta sección sólo muestra
+       espejos de sólo lectura (ete_shunt_*_ro) que llena eteShuntSync(). El encabezado
+       disparador se mueve JUNTO con la sección: si quedaba en ETE, el clic seguía
+       plegando un contenedor que ya no está en esa tab y no pasaba nada visible. -->
+  <!-- ═══ CIA / CIV — CARDIOPATÍA CONGÉNITA CON SHUNT ═══
+       El toggle de inclusión de esta sección NO usa localStorage: se lee del propio
+       checkbox, que guardarInforme captura en `campos` y la reimpresión repone. Las
+       secciones viejas leen una clave global y por eso un estudio reimpreso podía salir sin
+       una sección que el PDF original sí tenía; acá se evita de entrada. -->
+  <div class="card" style="margin-bottom:8px;">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;"
+        onclick="toggleEteSeccion('shunt',this);eteShuntSync();">
+      <span style="flex:1;">🫀 CIA / CIV — Cardiopatía congénita con shunt</span>
+      <span id="ete_shunt_badge" class="incl-badge" hidden>📎 en el informe</span>
+      <span id="ete-shunt-arrow" style="transition:transform 0.2s;flex:0 0 auto;">▶</span>
+    </h2>
+  </div>
+  <div id="ete-seccion-shunt" style="display:none;">
+  <div class="card"><div class="card-body">
+
+    <div class="subtabs-wrap" style="justify-content:flex-start;margin-bottom:12px;">
+      <div class="tabs-row">
+        <button type="button" class="tab-btn active" id="ete-shunt-tab-cia" onclick="eteShuntTab('cia')">CIA</button>
+        <button type="button" class="tab-btn" id="ete-shunt-tab-civ" onclick="eteShuntTab('civ')">CIV</button>
+      </div>
+    </div>
+
+    <!-- ── CIA ── -->
+    <div id="ete-shunt-pane-cia">
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">Tipo y tamaño</div>
+      <div class="grid-3">
+        <div class="fg"><label>Tipo de CIA</label>
+          <select id="ete_cia_tipo" onchange="eteShuntSync()">
+            <option value="">—</option>
+            <option value="secundum">Ostium secundum</option>
+            <option value="primum">Ostium primum</option>
+            <option value="sv_vcs">Seno venoso VCS</option>
+            <option value="sv_vci">Seno venoso VCI</option>
+            <option value="seno_coronario">Seno coronario</option>
+          </select>
+        </div>
+        <div class="fg"><label>Tamaño máximo (mm)</label><input type="number" id="ete_cia_tam_max" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+        <div class="fg"><label>Tamaño mínimo (mm)</label><input type="number" id="ete_cia_tam_min" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Bordes</div>
+      <div class="tablewrap">
+      <table class="tbl" style="width:100%;font-size:12px;">
+        <thead><tr>
+          <th style="text-align:left;">Borde</th><th style="text-align:left;">Ventana ETE</th><th style="text-align:right;">Medida (mm)</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>Aórtico (superoanterior)</td><td style="color:var(--text2);">30–45°</td>
+              <td style="text-align:right;"><input type="number" id="ete_cia_borde_ao" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
+          <tr><td>AV / Mitral (inferoanterior)</td><td style="color:var(--text2);">0°</td>
+              <td style="text-align:right;"><input type="number" id="ete_cia_borde_av" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
+          <tr><td>VCS (superoposterior)</td><td style="color:var(--text2);">90° bicava</td>
+              <td style="text-align:right;"><input type="number" id="ete_cia_borde_vcs" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
+          <tr><td>VCI (inferoposterior)</td><td style="color:var(--text2);">90° bicava</td>
+              <td style="text-align:right;"><input type="number" id="ete_cia_borde_vci" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
+          <tr><td>Posterior</td><td style="color:var(--text2);">0°</td>
+              <td style="text-align:right;"><input type="number" id="ete_cia_borde_post" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <div id="ete-cia-borde-min-box" class="calc-box" style="margin-top:8px;display:none;">
+        <div class="calc-row"><span class="calc-lbl">Borde mínimo</span><span id="ete-cia-borde-min">—</span></div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Shunt</div>
+      <div class="grid-2">
+        <div class="fg"><label>Dirección</label>
+          <select id="ete_cia_dir" onchange="eteShuntSync()">
+            <option value="">—</option>
+            <option value="id">Izquierda → derecha</option>
+            <option value="di">Derecha → izquierda</option>
+            <option value="bi">Bidireccional</option>
+          </select>
+        </div>
+        <div class="fg"><label>Velocidad pico del jet (m/s)</label><input type="number" id="ete_cia_vel" step="0.1" placeholder="m/s" oninput="eteShuntSync()"></div>
+      </div>
+      <!-- No se deriva PAPs del jet interauricular: esa fórmula (PAS − 4V²) es la del CIV,
+           donde la velocidad refleja el gradiente VI–VD. En una CIA el gradiente es AI–AD y
+           da números sin sentido (PAS 120 con V 1,2 → «PAPs 114»). La PAPs de la CIA se
+           informa por IT, que ya viene calculada más abajo. -->
+      <div class="calc-box" style="margin-top:8px;">
+        <div class="calc-row"><span class="calc-lbl">PAPs por IT (del estudio)</span><span id="ete-cia-paps-it" class="calc-val">—</span></div>
+      </div>
+    </div>
+
+    <!-- ── CIV ── -->
+    <div id="ete-shunt-pane-civ" style="display:none;">
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">Tipo y tamaño</div>
+      <div class="grid-3">
+        <div class="fg"><label>Tipo de CIV</label>
+          <select id="ete_civ_tipo" onchange="eteShuntSync()">
+            <option value="">—</option>
+            <option value="perimembranosa">Perimembranosa</option>
+            <option value="muscular">Muscular</option>
+            <option value="infundibular">Infundibular</option>
+            <option value="inlet">Inlet</option>
+          </select>
+        </div>
+        <div class="fg"><label>Tamaño máximo (mm)</label><input type="number" id="ete_civ_tam" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+        <div class="fg"><label>Vista ETE</label><input type="text" id="ete_civ_vista" placeholder="Ej: 4C 0°, eje corto 45°" oninput="eteShuntSync()"></div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Gradiente y presión pulmonar</div>
+      <div class="grid-2">
+        <div class="fg"><label>Velocidad pico del jet CIV (m/s)</label><input type="number" id="ete_civ_vel" step="0.1" placeholder="m/s" oninput="eteShuntSync()"></div>
+        <div class="fg"><label>PA sistémica (mmHg)</label><input type="number" id="ete_civ_pas" step="1" placeholder="mmHg" oninput="eteShuntSync()"></div>
+      </div>
+      <div class="calc-box" style="margin-top:8px;">
+        <div class="calc-row"><span class="calc-lbl">PAPs estimada por CIV (PAS − 4V²)</span><span id="ete-civ-paps" class="calc-val">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">PAPs por IT (del estudio)</span><span id="ete-civ-paps-it" class="calc-val">—</span></div>
+      </div>
+    </div>
+
+    <!-- ── Comunes a CIA y CIV ──
+         Qp/Qs y DDVI indexado se cargan UNA vez y valen para las dos pestañas: el Qp/Qs es
+         una propiedad del shunt y el DDVIi del paciente, ninguno de los dos es específico de
+         CIA o CIV. Con dos juegos de campos, un paciente con ambos defectos podía terminar
+         informando dos Qp/Qs distintos. -->
+    <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;border-top:1px solid var(--border);padding-top:12px;">
+      Qp/Qs y DDVI indexado <span style="font-weight:400;color:var(--text2);font-size:11px;">— comunes a CIA y CIV</span>
+    </div>
+    <div class="grid-4">
+      <div class="fg"><label>Ø TSVI (mm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
+        <input type="text" id="ete_shunt_tsvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+      <div class="fg"><label>VTI TSVI (cm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
+        <input type="text" id="ete_shunt_vtitsvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+      <!-- Los cuatro son espejos de solo lectura, no sólo los dos izquierdos: el diámetro y
+           el VTI del TSVD se cargan en la tab VD/AD, con el resto de las medidas del
+           ventrículo derecho. Antes el VTI TSVD estaba duplicado —uno acá para el Qp/Qs y
+           otro en VD/AD para la RVP de Abbas, sin sincronizar—, así que un mismo estudio
+           podía informar dos VTI distintos de la misma medición. -->
+      <div class="fg"><label>Ø TSVD (mm) <span style="color:var(--text2);font-size:10px;">— de VD/AD</span></label>
+        <input type="text" id="ete_shunt_tsvd_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+      <div class="fg"><label>VTI TSVD (cm) <span style="color:var(--text2);font-size:10px;">— de VD/AD</span></label>
+        <input type="text" id="ete_shunt_vtitsvd_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+    </div>
+    <div style="font-size:10.5px;color:var(--text2);margin-top:4px;">
+      Los cuatro valores del Qp/Qs se cargan en sus tabs: TSVI y VTI-TSVI en <b>〰️ Doppler → Doppler Aórtico (TSVI)</b>, diámetro y VTI del TSVD en <b>VD / AD</b>.
+    </div>
+    <div class="calc-box" style="margin-top:8px;">
+      <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Qp/Qs</span><span id="ete-shunt-qpqs">—</span></div>
+      <div class="calc-row"><span class="calc-lbl">Interpretación</span><span id="ete-shunt-qpqs-interp" style="font-size:11px;color:var(--text2);">—</span></div>
+    </div>
+    <div class="grid-3" style="margin-top:10px;">
+      <div class="fg"><label>DDVI (mm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
+        <input type="text" id="ete_shunt_ddvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+      <div class="fg"><label>ASC (m²) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
+        <input type="text" id="ete_shunt_asc_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+      <div class="fg"><label>DDVI indexado</label>
+        <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+          <span id="ete-shunt-ddvii" class="calc-val">—</span></div></div>
+        <div style="font-size:10px;color:var(--text2);margin-top:3px;">Normal &lt; 32 mm/m²</div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:10px;">
+      <!-- El checkbox sigue siendo el estado; el botón es la piel. Oculto y no
+           eliminado: guardarInforme lo captura por `input[type=checkbox][id]`. -->
+      <input type="checkbox" id="ete_shunt_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+      <button type="button" class="btn btn-integrar" data-ete-chk="ete_shunt_incluir_chk" aria-pressed="false"
+              onclick="eteInclToggle('ete_shunt_incluir_chk')">📎 Integrar al informe</button>
+    </div>
+  </div></div>
+  </div><!-- /#ete-seccion-shunt -->
+
 </div>
 <div id="tab-contractilidad" class="tab-section">
   <div class="card sacc" id="sacc-contr">
@@ -7109,170 +7280,6 @@ z
   </div>
   </div>
 
-  <!-- ═══ CIA / CIV — CARDIOPATÍA CONGÉNITA CON SHUNT ═══
-       El toggle de inclusión de esta sección NO usa localStorage: se lee del propio
-       checkbox, que guardarInforme captura en `campos` y la reimpresión repone. Las
-       secciones viejas leen una clave global y por eso un estudio reimpreso podía salir sin
-       una sección que el PDF original sí tenía; acá se evita de entrada. -->
-  <div class="card" style="margin-bottom:8px;">
-    <h2 class="card-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;"
-        onclick="toggleEteSeccion('shunt',this);eteShuntSync();">
-      <span style="flex:1;">🫀 CIA / CIV — Cardiopatía congénita con shunt</span>
-      <span id="ete_shunt_badge" class="incl-badge" hidden>📎 en el informe</span>
-      <span id="ete-shunt-arrow" style="transition:transform 0.2s;flex:0 0 auto;">▶</span>
-    </h2>
-  </div>
-  <div id="ete-seccion-shunt" style="display:none;">
-  <div class="card"><div class="card-body">
-
-    <div class="subtabs-wrap" style="justify-content:flex-start;margin-bottom:12px;">
-      <div class="tabs-row">
-        <button type="button" class="tab-btn active" id="ete-shunt-tab-cia" onclick="eteShuntTab('cia')">CIA</button>
-        <button type="button" class="tab-btn" id="ete-shunt-tab-civ" onclick="eteShuntTab('civ')">CIV</button>
-      </div>
-    </div>
-
-    <!-- ── CIA ── -->
-    <div id="ete-shunt-pane-cia">
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">Tipo y tamaño</div>
-      <div class="grid-3">
-        <div class="fg"><label>Tipo de CIA</label>
-          <select id="ete_cia_tipo" onchange="eteShuntSync()">
-            <option value="">—</option>
-            <option value="secundum">Ostium secundum</option>
-            <option value="primum">Ostium primum</option>
-            <option value="sv_vcs">Seno venoso VCS</option>
-            <option value="sv_vci">Seno venoso VCI</option>
-            <option value="seno_coronario">Seno coronario</option>
-          </select>
-        </div>
-        <div class="fg"><label>Tamaño máximo (mm)</label><input type="number" id="ete_cia_tam_max" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
-        <div class="fg"><label>Tamaño mínimo (mm)</label><input type="number" id="ete_cia_tam_min" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
-      </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Bordes</div>
-      <div class="tablewrap">
-      <table class="tbl" style="width:100%;font-size:12px;">
-        <thead><tr>
-          <th style="text-align:left;">Borde</th><th style="text-align:left;">Ventana ETE</th><th style="text-align:right;">Medida (mm)</th>
-        </tr></thead>
-        <tbody>
-          <tr><td>Aórtico (superoanterior)</td><td style="color:var(--text2);">30–45°</td>
-              <td style="text-align:right;"><input type="number" id="ete_cia_borde_ao" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
-          <tr><td>AV / Mitral (inferoanterior)</td><td style="color:var(--text2);">0°</td>
-              <td style="text-align:right;"><input type="number" id="ete_cia_borde_av" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
-          <tr><td>VCS (superoposterior)</td><td style="color:var(--text2);">90° bicava</td>
-              <td style="text-align:right;"><input type="number" id="ete_cia_borde_vcs" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
-          <tr><td>VCI (inferoposterior)</td><td style="color:var(--text2);">90° bicava</td>
-              <td style="text-align:right;"><input type="number" id="ete_cia_borde_vci" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
-          <tr><td>Posterior</td><td style="color:var(--text2);">0°</td>
-              <td style="text-align:right;"><input type="number" id="ete_cia_borde_post" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
-        </tbody>
-      </table>
-      </div>
-      <div id="ete-cia-borde-min-box" class="calc-box" style="margin-top:8px;display:none;">
-        <div class="calc-row"><span class="calc-lbl">Borde mínimo</span><span id="ete-cia-borde-min">—</span></div>
-      </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Shunt</div>
-      <div class="grid-2">
-        <div class="fg"><label>Dirección</label>
-          <select id="ete_cia_dir" onchange="eteShuntSync()">
-            <option value="">—</option>
-            <option value="id">Izquierda → derecha</option>
-            <option value="di">Derecha → izquierda</option>
-            <option value="bi">Bidireccional</option>
-          </select>
-        </div>
-        <div class="fg"><label>Velocidad pico del jet (m/s)</label><input type="number" id="ete_cia_vel" step="0.1" placeholder="m/s" oninput="eteShuntSync()"></div>
-      </div>
-      <!-- No se deriva PAPs del jet interauricular: esa fórmula (PAS − 4V²) es la del CIV,
-           donde la velocidad refleja el gradiente VI–VD. En una CIA el gradiente es AI–AD y
-           da números sin sentido (PAS 120 con V 1,2 → «PAPs 114»). La PAPs de la CIA se
-           informa por IT, que ya viene calculada más abajo. -->
-      <div class="calc-box" style="margin-top:8px;">
-        <div class="calc-row"><span class="calc-lbl">PAPs por IT (del estudio)</span><span id="ete-cia-paps-it" class="calc-val">—</span></div>
-      </div>
-    </div>
-
-    <!-- ── CIV ── -->
-    <div id="ete-shunt-pane-civ" style="display:none;">
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">Tipo y tamaño</div>
-      <div class="grid-3">
-        <div class="fg"><label>Tipo de CIV</label>
-          <select id="ete_civ_tipo" onchange="eteShuntSync()">
-            <option value="">—</option>
-            <option value="perimembranosa">Perimembranosa</option>
-            <option value="muscular">Muscular</option>
-            <option value="infundibular">Infundibular</option>
-            <option value="inlet">Inlet</option>
-          </select>
-        </div>
-        <div class="fg"><label>Tamaño máximo (mm)</label><input type="number" id="ete_civ_tam" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
-        <div class="fg"><label>Vista ETE</label><input type="text" id="ete_civ_vista" placeholder="Ej: 4C 0°, eje corto 45°" oninput="eteShuntSync()"></div>
-      </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Gradiente y presión pulmonar</div>
-      <div class="grid-2">
-        <div class="fg"><label>Velocidad pico del jet CIV (m/s)</label><input type="number" id="ete_civ_vel" step="0.1" placeholder="m/s" oninput="eteShuntSync()"></div>
-        <div class="fg"><label>PA sistémica (mmHg)</label><input type="number" id="ete_civ_pas" step="1" placeholder="mmHg" oninput="eteShuntSync()"></div>
-      </div>
-      <div class="calc-box" style="margin-top:8px;">
-        <div class="calc-row"><span class="calc-lbl">PAPs estimada por CIV (PAS − 4V²)</span><span id="ete-civ-paps" class="calc-val">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">PAPs por IT (del estudio)</span><span id="ete-civ-paps-it" class="calc-val">—</span></div>
-      </div>
-    </div>
-
-    <!-- ── Comunes a CIA y CIV ──
-         Qp/Qs y DDVI indexado se cargan UNA vez y valen para las dos pestañas: el Qp/Qs es
-         una propiedad del shunt y el DDVIi del paciente, ninguno de los dos es específico de
-         CIA o CIV. Con dos juegos de campos, un paciente con ambos defectos podía terminar
-         informando dos Qp/Qs distintos. -->
-    <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;border-top:1px solid var(--border);padding-top:12px;">
-      Qp/Qs y DDVI indexado <span style="font-weight:400;color:var(--text2);font-size:11px;">— comunes a CIA y CIV</span>
-    </div>
-    <div class="grid-4">
-      <div class="fg"><label>Ø TSVI (mm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
-        <input type="text" id="ete_shunt_tsvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
-      <div class="fg"><label>VTI TSVI (cm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
-        <input type="text" id="ete_shunt_vtitsvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
-      <!-- Los cuatro son espejos de solo lectura, no sólo los dos izquierdos: el diámetro y
-           el VTI del TSVD se cargan en la tab VD/AD, con el resto de las medidas del
-           ventrículo derecho. Antes el VTI TSVD estaba duplicado —uno acá para el Qp/Qs y
-           otro en VD/AD para la RVP de Abbas, sin sincronizar—, así que un mismo estudio
-           podía informar dos VTI distintos de la misma medición. -->
-      <div class="fg"><label>Ø TSVD (mm) <span style="color:var(--text2);font-size:10px;">— de VD/AD</span></label>
-        <input type="text" id="ete_shunt_tsvd_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
-      <div class="fg"><label>VTI TSVD (cm) <span style="color:var(--text2);font-size:10px;">— de VD/AD</span></label>
-        <input type="text" id="ete_shunt_vtitsvd_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
-    </div>
-    <div style="font-size:10.5px;color:var(--text2);margin-top:4px;">
-      Los cuatro valores del Qp/Qs se cargan en sus tabs: TSVI y VTI-TSVI en <b>〰️ Doppler → Doppler Aórtico (TSVI)</b>, diámetro y VTI del TSVD en <b>VD / AD</b>.
-    </div>
-    <div class="calc-box" style="margin-top:8px;">
-      <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Qp/Qs</span><span id="ete-shunt-qpqs">—</span></div>
-      <div class="calc-row"><span class="calc-lbl">Interpretación</span><span id="ete-shunt-qpqs-interp" style="font-size:11px;color:var(--text2);">—</span></div>
-    </div>
-    <div class="grid-3" style="margin-top:10px;">
-      <div class="fg"><label>DDVI (mm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
-        <input type="text" id="ete_shunt_ddvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
-      <div class="fg"><label>ASC (m²) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
-        <input type="text" id="ete_shunt_asc_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
-      <div class="fg"><label>DDVI indexado</label>
-        <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
-          <span id="ete-shunt-ddvii" class="calc-val">—</span></div></div>
-        <div style="font-size:10px;color:var(--text2);margin-top:3px;">Normal &lt; 32 mm/m²</div>
-      </div>
-    </div>
-    <div style="text-align:center;margin-top:10px;">
-      <!-- El checkbox sigue siendo el estado; el botón es la piel. Oculto y no
-           eliminado: guardarInforme lo captura por `input[type=checkbox][id]`. -->
-      <input type="checkbox" id="ete_shunt_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
-      <button type="button" class="btn btn-integrar" data-ete-chk="ete_shunt_incluir_chk" aria-pressed="false"
-              onclick="eteInclToggle('ete_shunt_incluir_chk')">📎 Integrar al informe</button>
-    </div>
-  </div></div>
-  </div><!-- /#ete-seccion-shunt -->
 
   <!-- ═══ TAVI — EVALUACIÓN ECOCARDIOGRÁFICA ═══ -->
   <div class="card" style="margin-bottom:8px;">
@@ -16867,6 +16874,54 @@ function generarPDFReal() {
   // ════════════════════════════════════════════════════════════
   // VISTA QUIRÚRGICA — VÁLVULA MITRAL (ETE) — antes de la firma
   // ════════════════════════════════════════════════════════════
+  /* ── JET PARAVALVULAR POST-TAVI: reloj de 12 horas (EPC) ──
+     Va acá y no "en el bloque TAVI del PDF del ETE", porque ese bloque no existe: la hoja del
+     ETE la arma amiloDibujarSecciones, que sólo sabe emitir texto (bar/sub/kv/txt), y TAVI ni
+     siquiera figura entre sus secciones — se imprime como prosa dentro del informe narrativo.
+     Así que el reloj se dibuja como banda propia en el flujo principal, replicando el bloque
+     de la vista quirúrgica mitral de acá abajo, que es el análogo exacto.
+     Sólo si hay horas marcadas: sin jet no hay nada que localizar, y un reloj vacío en un
+     informe firmado se lee como "se evaluó y no había", que no es lo mismo que "no se evaluó".
+     El checkPage reserva la banda ENTERA antes de la barra. Reservando sólo la imagen, drawBar
+     podría saltar de página por su cuenta y dejar el título en una hoja y el reloj en la
+     siguiente; las páginas de continuación no repiten el encabezado con el nombre del
+     paciente, así que un reloj huérfano queda sin atribución.
+     try/catch porque una excepción acá aborta generarPDFReal con páginas ya dibujadas: el
+     médico se queda sin archivo y sin mensaje. Mejor el informe sin el reloj que sin informe. */
+  /* La imagen se genera ANTES de dibujar nada. drawBar pinta la banda y avanza y, así que
+     generarla después dejaba el encabezado ya estampado si toDataURL o addImage tiraban: el
+     informe salía con el título "JET PARAVALVULAR POST-TAVI" y nada debajo. Un encabezado
+     huérfano es peor que un reloj ausente — es el mismo malentendido ("se evaluó y no había")
+     más la apariencia de un fallo de impresión.
+     El gate incluye el checkbox de inclusión, no sólo la presencia de datos: todas las demás
+     salidas de TAVI lo respetan (la prosa del narrativo y el bloque estructurado), y sin esto
+     el médico que destilda "Integrar al informe" igual se encontraba la banda impresa. */
+  let _epcImg = null, _epcHoras = null;
+  try {
+    const _epcChk = document.getElementById('ete_tavi_incluir_chk');
+    if (_epcChk && _epcChk.checked && typeof eteEpcHoras === 'function' &&
+        typeof eteEpcDataURL === 'function' && eteEpcHoras().length > 0) {
+      _epcHoras = eteEpcHoras();
+      _epcImg = eteEpcDataURL();
+    }
+  } catch (_e) { _epcImg = null; }
+  if (_epcImg) {
+    const _epcLado = 40;                            // el reloj es 1:1
+    checkPage(_BAR_H + 4 + _epcLado + 10);
+    drawBar('JET PARAVALVULAR POST-TAVI - LOCALIZACION HORARIA');
+    y += 3;
+    doc.addImage(_epcImg, 'PNG', mL + (pgW - _epcLado) / 2, y, _epcLado, _epcLado);
+    y += _epcLado + 4;
+    fn(7); tc(90,90,90);
+    /* Mismo vocabulario que el dibujo: el canvas rotula VD arriba, AP a la derecha, AI abajo
+       y AD a la izquierda. Antes la leyenda decía "12 h anterior" para el mismo punto que la
+       imagen llama VD — dos nombres para el mismo reparo en la misma figura. */
+    const _epcTxt = _sanML('Horas comprometidas: ' + _epcHoras.join(', ') +
+      '  ·  Referencia: 12 h VD (anterior), 3 h AP, 6 h AI (posterior), 9 h AD.');
+    doc.text(_epcTxt, mL + (pgW - doc.getTextWidth(_epcTxt)) / 2, y);
+    y += 6;
+  }
+
   if (localStorage.getItem('mitral_qx_incluir_pdf') === '1' && typeof eteQxDataURL === 'function') {
     const _mData = eteQxDataURL();
     checkPage(92);
@@ -17686,19 +17741,17 @@ function eteEpcSet(arr){
   const t=document.getElementById('ete-tavi-jet-txt');
   if(t) t.textContent = arr.length ? ('Jet en hora: '+arr.join(', ')) : 'Sin jet marcado';
 }
-function eteEpcDibujar(){
-  const cv=document.getElementById('ete-tavi-epc');
-  if(!cv || !cv.getContext) return;
-  const ctx=cv.getContext('2d');
-  ctx.clearRect(0,0,340,340);
-  const sel=eteEpcHoras();
+/* El dibujo se separa del canvas para poder pintarlo también en uno fuera de pantalla al
+   generar el PDF. Recibe el contexto y las horas: NO lee el DOM ni el estado global. */
+function eteEpcPintar(ctx, sel){
+  const _sel = sel || [];
   for(let h=0; h<12; h++){
     const a0=_epcRad(epcCenterDeg(h)-15), a1=_epcRad(epcCenterDeg(h)+15);
     ctx.beginPath();
     ctx.arc(EPC_CX,EPC_CY,EPC_ROUT,a0,a1);
     ctx.arc(EPC_CX,EPC_CY,EPC_RIN,a1,a0,true);
     ctx.closePath();
-    ctx.fillStyle = sel.indexOf(epcLabelNum(h))>=0 ? 'rgba(230,130,0,0.9)' : 'rgba(255,240,180,0.85)';
+    ctx.fillStyle = _sel.indexOf(epcLabelNum(h))>=0 ? 'rgba(230,130,0,0.9)' : 'rgba(255,240,180,0.85)';
     ctx.fill();
     ctx.strokeStyle='rgba(120,110,80,0.55)'; ctx.lineWidth=1; ctx.stroke();
     const rm=(EPC_ROUT+EPC_RIN)/2, am=_epcRad(epcCenterDeg(h));
@@ -17719,6 +17772,33 @@ function eteEpcDibujar(){
   ctx.textAlign='center'; ctx.textBaseline='middle';
   ctx.fillText('VD',170,11);  ctx.fillText('AI',170,329);
   ctx.fillText('AP',323,170); ctx.fillText('AD',17,170);
+}
+/* Dibujo en pantalla: mantiene el clearRect porque el canvas visible se repinta encima. */
+function eteEpcDibujar(){
+  const cv=document.getElementById('ete-tavi-epc');
+  if(!cv || !cv.getContext) return;
+  const ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,340,340);
+  eteEpcPintar(ctx, eteEpcHoras());
+}
+/* Imagen para el PDF. Se pinta en un canvas NUEVO y no se lee el visible, por dos razones:
+   1) el bitmap de pantalla sólo se repinta en cuatro lugares (click, refrescar, reset), y el
+      campo oculto ete_tavi_jet_horas se puede escribir sin pasar por ninguno —lo hace el
+      importador de Excel—, así que el canvas podría mostrar el reloj del paciente ANTERIOR.
+      Una localización de jet plausible pero equivocada en un informe firmado es peor que una
+      imagen en blanco;
+   2) el canvas visible arranca con clearRect, o sea fondo transparente, y jsPDF sobre
+      transparente da un recuadro vacío. Acá se pinta blanco opaco primero.
+   Mismo patrón (supermuestreo 2x + base blanca) que bullseyeDataURL y eteQxDataURL. */
+function eteEpcDataURL(){
+  const S=340, k=2;
+  const cv=document.createElement('canvas');
+  cv.width=S*k; cv.height=S*k;
+  const c=cv.getContext('2d');
+  c.scale(k,k);
+  c.fillStyle='#ffffff'; c.fillRect(0,0,S,S);
+  eteEpcPintar(c, eteEpcHoras());
+  return cv.toDataURL('image/png');
 }
 function eteEpcClick(ev){
   const cv=document.getElementById('ete-tavi-epc'); if(!cv) return;
@@ -22876,9 +22956,18 @@ function _pptDesdeFormulario(inf, tema){
     const chkShu = document.getElementById('ete_shunt_incluir_chk');
     const chkTav = document.getElementById('ete_tavi_incluir_chk');
     const hayShunt = !!(chkShu && chkShu.checked), hayTavi = !!(chkTav && chkTav.checked);
+    /* El título ya no puede afirmar "Transesofágico" sólo porque haya CIA/CIV: esa sección se
+       mudó a la tab Hemodinámica, que es transtorácica, y se calcula con TSVI/TSVD, que son
+       mediciones de TTE. Un operador que hace un TTE, carga el shunt y tilda "Integrar al
+       informe" firmaba un informe con una sección titulada "Ecocardiograma Transesofágico"
+       sobre un estudio que nunca fue transesofágico — eso es una afirmación médico-legal
+       falsa, no un detalle de maquetación.
+       El shunt SÍ sigue apareciendo: si es lo único marcado, va bajo su propio título. */
+    const _soloShunt = hayShunt && !hayEte && !(chkTec && chkTec.checked) &&
+                       !(chkMor && chkMor.checked) && !hayTavi;
     if (hayEte || (chkTec && chkTec.checked) || (chkMor && chkMor.checked) || hayShunt || hayTavi) {
       const s = nueva();
-      titulo(s, 'ETE — Ecocardiograma Transesofágico');
+      titulo(s, _soloShunt ? 'Cardiopatía congénita con shunt' : 'ETE — Ecocardiograma Transesofágico');
       const F = [];
       if (chkTec && chkTec.checked) {
         const t = (typeof eteTecnicaTexto === 'function') ? eteTecnicaTexto() : '';
@@ -24917,6 +25006,10 @@ function _labExcelRow(inf) {
     'Médico solicitante': c.med_solicitante || '',
     'Motivo / Indicación': _labArrCol(inf,'indicaciones','ind_otro','indicacion'),
     'Antecedentes': _labArrCol(inf,'antecedentes_sel','ant_otro','antecedentes'),
+    /* Columnas agregadas para que el mapa y el export coincidan: el importador ya las
+       conoce, y sin la columna correspondiente acá el ciclo exportar → editar →
+       reimportar las perdía en silencio. */
+    'Peso (kg)': rnd(num('peso'),1), 'Talla (cm)': rnd(num('talla'),0),
     'SIV (mm)': rnd(siv,0), 'DDVI (mm)': rnd(dd,0), 'DSVI (mm)': rnd(ds,0), 'PP (mm)': rnd(pp,0),
     'Masa VI (g/m²)': rnd(masaIdx,0), 'RWT': rnd(rwt,2), 'VDFVI idx (ml/m²)': rnd(vdfviIdx,1), 'Geometría VI': geomS,
     'Geom_Normal': geomS === 'Normal' ? 1 : 0, 'Geom_RemConcentrico': geomBin(/remodelado/i), 'Geom_HVI_Concentrica': geomBin(/conc[eé]ntrica/i), 'Geom_HVI_Excentrica': geomBin(/exc[eé]ntrica/i),
@@ -24955,7 +25048,20 @@ function _labExcelRow(inf) {
        reimporta, así que renombrarlas no rompe el importador. */
     [`PSAP_${UMBRAL_PSAP_ELEVADA+1}_50`]: htpBin(UMBRAL_PSAP_ELEVADA,50), 'PSAP_51_70': htpBin(50,70), 'PSAP_71_mas': htpBin(70,null),
     'PAP media (mmHg)': rnd(num('pap_med'),0),
-    'Ao sinusal (mm)': rnd(num('ao_sin'),0), 'Ao asc. proximal (mm)': rnd(num('ao_tub'),0),
+    'Ao sinusal (mm)': rnd(num('ao_sin'),0),
+    'Ao sinotubular (mm)': rnd(num('ao_st'),0),
+    /* Se renombra de «Ao asc. proximal (mm)» a «Ao tubular (mm)». El importador acepta
+       el nombre viejo como alias, así que los Excel ya exportados siguen entrando. */
+    'Ao tubular (mm)': rnd(num('ao_tub'),0),
+    'Diám. AP AI (mm)': rnd(num('ai_diam'),0),
+    'Área AI (cm²)': rnd(num('ai_area'),1),
+    /* Volumen ABSOLUTO. No confundir con «Vol AI (LAVI) (ml/m²)», que es el indexado por
+       BSA y ya existe más arriba: si las dos columnas compartieran nombre, el importador
+       escribiría el indexado en el campo del absoluto y una AI de 34 ml/m² pasaría a ser
+       una AI de 34 ml. */
+    'Volumen AI (ml)': rnd(num('ai_vol'),1),
+    'LARS (%)': rnd(num('lars'),1),
+    'Área AD (cm²)': rnd(num('ad_area'),1),
     'Pericardio': c.pericardio || '',
     /* CIA/CIV y TAVI. Las etiquetas legibles y no los value crudos del <select>: el nombre de
        la columna y su contenido son lo que se ve al abrir la planilla en R o en Analytics, y
@@ -25018,13 +25124,42 @@ function labExportarXLSX() {
 /* Sustitución del nombre. Se aplica sobre la fila YA construida y sobre TODAS: si se
    filtrara por «tiene nombre» o se saltearan las vacías quedarían filas con nombre real
    mezcladas con anónimas, que es la peor de las dos opciones —parece anonimizado—. */
+/* Ordena las cabeceras del export siguiendo LAB_XLS_MAP. Las que el mapa no conoce conservan
+   su orden original al final. Es tolerante a propósito: si una columna del mapa no está en el
+   export, simplemente no aparece — no se inventa una columna vacía. */
+function _labOrdenarCols(headers) {
+  const set = new Set(headers);
+  const orden = [], visto = new Set();
+  const meter = c => { if (set.has(c) && !visto.has(c)) { visto.add(c); orden.push(c); } };
+  LAB_XLS_MAP.forEach(m => {
+    meter(m[0]);
+    /* Las binarias van INTERCALADAS después de su columna de texto, exactamente como las
+       arma labPlantillaXLSX. Sin esta expansión el export coincidía con la plantilla en las
+       primeras 41 columnas y a partir de ahí se corría —+3 en IM, +6 en EM, +9 en EAo—, que
+       es peor que la desincronización que había antes: cuarenta columnas alineadas le enseñan
+       al médico que los dos archivos tienen el mismo layout, y recién después empieza a pegar
+       la vena contracta dentro de "Morfología aórtica". */
+    const grp = LAB_XLS_BIN.find(g => g.dest === m[1]);
+    if (grp) grp.cols.forEach(alias => meter(alias[0]));
+  });
+  headers.forEach(meter);
+  return orden;
+}
 function _labExportarXLSXReal(infs, anon) {
   const rows = infs.map(_labExcelRow).map(r => {
     if (!anon) return r;
     r['Nombre'] = 'Paciente anónimo';
     return r;
   });
-  const headers = Object.keys(rows[0]);
+  /* El orden de columnas del export se DERIVA de LAB_XLS_MAP, que es el mismo que usa la
+     plantilla. Antes salía en el orden del objeto literal de _labExcelRow, o sea que plantilla
+     y export eran dos listas paralelas mantenidas a mano: el comentario de labPlantillaXLSX
+     pedía que se vieran iguales, pero nada lo garantizaba, y reordenar una sin la otra no
+     rompía nada visible — hasta que el médico copia un bloque de columnas de un archivo al
+     otro y las pega en los campos equivocados.
+     Las columnas que el export tiene y el mapa no (las ~40 derivadas y las binarias de
+     severidad) van después, en el orden en que las escribe _labExcelRow. */
+  const headers = _labOrdenarCols(Object.keys(rows[0]));
   const aoa = [headers, ...rows.map(r => headers.map(h => r[h]))];
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws['!cols'] = headers.map(h => ({ wch: Math.min(46, Math.max(10, h.length + 2)) }));
@@ -25202,7 +25337,17 @@ function _labXlsEsCalculado(dest) {
 }
 
 const LAB_XLS_MAP = [
-  // [columna del Excel, destino, tipo]  ·  destino '@x' = campo de primer nivel
+  /* [columna del Excel, destino, tipo, aliasesOpcionales]  ·  destino '@x' = campo de primer nivel
+     El ORDEN de este array define el orden de columnas de la plantilla Y del export: la
+     cabecera del export se ordena siguiendo este mapa (ver _labOrdenarCols). Antes el export
+     salía en el orden del objeto literal de _labExcelRow y había que mantener las dos listas
+     sincronizadas a mano; el comentario de labPlantillaXLSX ya pedía que se vieran iguales,
+     pero nada lo garantizaba.
+     El 4º elemento son ALIAS de cabecera para el importador: nombres viejos que se siguen
+     aceptando. Sin eso, renombrar una columna hace que los Excel ya exportados pierdan ese
+     dato al reimportarse, en silencio, porque el importador matchea por nombre. */
+
+  // 1 · Identificación
   ['Nombre',                 '@nombre',        'txt'],
   ['CI',                     '@ci',            'txt'],
   ['Fecha estudio',          '@fecha_estudio', 'fecha'],
@@ -25210,8 +25355,33 @@ const LAB_XLS_MAP = [
   ['Sexo',                   'sexo',           'vocab'],
   ['Centro / Institución',   'centro_nombre',  'txt'],
   ['Médico solicitante',     'med_solicitante','txt'],
+
+  // 2 · Contexto clínico
   ['Motivo / Indicación',    'indicaciones',   'lista'],
   ['Antecedentes',           'antecedentes_sel','lista'],
+
+  // 3 · Antropometría (entran a la BSA: ver el rango de plausibilidad en LAB_XLS_RANGO)
+  ['Peso (kg)',              'peso',           'num'],
+  ['Talla (cm)',             'talla',          'num'],
+
+  // 4 · Aorta
+  ['Ao sinusal (mm)',        'ao_sin',         'num'],
+  ['Ao sinotubular (mm)',    'ao_st',          'num'],
+  ['Ao tubular (mm)',        'ao_tub',         'num', ['Ao asc. proximal (mm)']],
+
+  // 5 · Aurícula izquierda
+  ['Diám. AP AI (mm)',       'ai_diam',        'num'],
+  ['Área AI (cm²)',          'ai_area',        'num'],
+  ['Volumen AI (ml)',        'ai_vol',         'num'],
+  ['LARS (%)',               'lars',           'num'],
+
+  // 6 · Aurícula derecha y presiones de llenado
+  ['Área AD (cm²)',          'ad_area',        'num'],
+  ['VCI diám (mm)',          'vci_diam',       'num'],
+  ['Colapso VCI',            'vci_col',        'vocab'],
+  ['PmAD (mmHg)',            'pmad',           'num'],
+
+  // 7 · Ventrículo izquierdo y función diastólica
   ['SIV (mm)',               'siv',            'num'],
   ['DDVI (mm)',              'ddfvi',          'num'],
   ['DSVI (mm)',              'dsfvi',          'num'],
@@ -25222,24 +25392,26 @@ const LAB_XLS_MAP = [
   ['Onda A (cm/s)',          'onda_a',         'num'],
   ["e' septal (cm/s)",       'e_sep',          'num'],
   ["e' lateral (cm/s)",      'e_lat',          'num'],
+
+  // 8 · Ventrículo derecho
   ['TAPSE (mm)',             'tapse',          'num'],
   ["S' (cm/s)",              's_prime',        'num'],
   ['TAP (ms)',               'tvia',           'num'],
   ['Diám. basal VD (mm)',    'vd_bas',         'num'],
-  ['VCI diám (mm)',          'vci_diam',       'num'],
-  ['Colapso VCI',            'vci_col',        'vocab'],
-  ['PmAD (mmHg)',            'pmad',           'num'],
-  /* VEXUS: se exportan los tres vasos CRUDOS (0/1/2), no el grado. El grado es derivado y
-     se recalcula con vexusGrado() donde haga falta; exportarlo dejaría un número que puede
-     contradecir a sus propios insumos si alguien edita una celda en la planilla. */
+
+  // 9 · Congestión venosa
   ['VEXUS suprahepática',    'vexus_sh',       'vocab'],
   ['VEXUS porta',            'vexus_pv',       'vocab'],
   ['VEXUS intrarrenal',      'vexus_ir',       'vocab'],
+
+  // 10 · Válvula mitral
   ['Morfología mitral',      'vm_morf',        'opcion'],
   ['IM grado',               'im_grado',       'vocab'],
   ['VC IM (mm)',             'im_vc',          'num'],
   ['EM grado',               'em_grado',       'vocab'],
   ['AVm (cm²)',              'avm_thp',        'num'],
+
+  // 11 · Válvula aórtica
   ['Morfología aórtica',     'va_morf',        'opcion'],
   ['EA grado',               'ea_grado',       'vocab'],
   ['V. max Ao (m/s)',        'vmax_ao',        'num'],
@@ -25248,53 +25420,92 @@ const LAB_XLS_MAP = [
   ['IAo grado',              'ia_grado',       'vocab'],
   ['VC IAo (mm)',            'ia_vc',          'num'],
   ['PHT IAo (ms)',           'ia_pht',         'num'],
+
+  // 12 · Válvula tricúspide y presiones pulmonares
   ['Morfología tricúspide',  'vt_morf',        'opcion'],
   ['IT grado',               'it_grado',       'vocab'],
   ['VC IT (mm)',             'it_vc',          'num'],
   ['PSAP (mmHg)',            'psap_calc',      'num'],
   ['PAP media (mmHg)',       'pap_med',        'num'],
-  ['Ao sinusal (mm)',        'ao_sin',         'num'],
-  ['Ao asc. proximal (mm)',  'ao_tub',         'num'],
+
+  // 13 · Pericardio
   ['Pericardio',             'pericardio',     'opcion'],
-  /* ══ CIA/CIV y TAVI ══
-     El Excel ya exportaba estas 22 columnas desde la sesión anterior, pero el importador no
-     las conocía: la planilla iba y volvía y el shunt y la prótesis se perdían en el camino,
-     sin un solo mensaje. Van con vocabulario INVERSO porque el export publica la etiqueta
-     legible ('Ostium secundum') y el <select> acepta el token ('secundum'): escribir la
-     etiqueta en el select lo deja en selectedIndex=-1 con value='', o sea el campo vacío
-     igual que antes pero además pisando lo que hubiera.
-     NO se reimportan 'CIA borde mínimo (mm)' ni 'Qp/Qs': son derivados. El borde mínimo es
-     el Math.min de cinco bordes que no se exportan —meterlo en uno de los cinco sería
-     inventar en cuál se midió— y el Qp/Qs se recalcula desde TSVI/TSVD, que sí se importan. */
-  ['CIA tipo',                   'ete_cia_tipo',        'vocab'],
-  ['CIA tamaño máx (mm)',        'ete_cia_tam_max',     'num'],
-  ['CIA tamaño mín (mm)',        'ete_cia_tam_min',     'num'],
-  ['CIA dirección shunt',        'ete_cia_dir',         'vocab'],
-  ['CIV tipo',                   'ete_civ_tipo',        'vocab'],
-  ['CIV tamaño (mm)',            'ete_civ_tam',         'num'],
-  ['Ø TSVD (mm)',                'tsvd_diametro',       'num'],
-  ['VTI TSVD (cm)',              'vti_tsvd',            'num'],
-  ['Ø TSVI (mm)',                'diam_tsvi',           'num'],
-  ['VTI TSVI (cm)',              'itv_tsvi',            'num'],
-  ['TAVI prótesis tipo',         'ete_tavi_pro_tipo',   'vocab'],
-  ['TAVI prótesis marca',        'ete_tavi_pro_marca',  'txt'],
-  ['TAVI prótesis tamaño (mm)',  'ete_tavi_pro_tam',    'num'],
-  ['TAVI posición',              'ete_tavi_pro_pos',    'vocab'],
-  ['TAVI anillo Ø (mm)',         'ete_tavi_anillo_diam','num'],
-  ['TAVI anillo área (cm²)',     'ete_tavi_anillo_area','num'],
-  ['TAVI G. medio (mmHg)',       'ete_tavi_gmedio',     'num'],
-  ['TAVI Vmax (m/s)',            'ete_tavi_vmax',       'num'],
-  ['TAVI AVA (cm²)',             'ete_tavi_ava',        'num'],
-  ['TAVI AVAi (cm²/m²)',         'ete_tavi_avai',       'num'],
-  ['TAVI RPV extensión (%)',     'ete_tavi_ext_circ',   'num'],
-  ['TAVI RPV vena contracta (cm)','ete_tavi_vc_ancho',  'num'],
-  ['TAVI RPV PHT (ms)',          'ete_tavi_pht',        'num'],
-  ['TAVI jet (horas)',           'ete_tavi_jet_horas',  'horas'],
+
+  // 14 · CIA / CIV
+  ['CIA tipo',               'ete_cia_tipo',   'vocab'],
+  ['CIA tamaño máx (mm)',    'ete_cia_tam_max','num'],
+  ['CIA tamaño mín (mm)',    'ete_cia_tam_min','num'],
+  ['CIA dirección shunt',    'ete_cia_dir',    'vocab'],
+  ['CIV tipo',               'ete_civ_tipo',   'vocab'],
+  ['CIV tamaño (mm)',        'ete_civ_tam',    'num'],
+  ['Ø TSVD (mm)',            'tsvd_diametro',  'num'],
+  ['VTI TSVD (cm)',          'vti_tsvd',       'num'],
+  ['Ø TSVI (mm)',            'diam_tsvi',      'num'],
+  ['VTI TSVI (cm)',          'itv_tsvi',       'num'],
+
+  // 15 · TAVI
+  ['TAVI prótesis tipo',     'ete_tavi_pro_tipo',  'vocab'],
+  ['TAVI prótesis marca',    'ete_tavi_pro_marca', 'txt'],
+  ['TAVI prótesis tamaño (mm)','ete_tavi_pro_tam', 'num'],
+  ['TAVI posición',          'ete_tavi_pro_pos',   'vocab'],
+  ['TAVI anillo Ø (mm)',     'ete_tavi_anillo_diam','num'],
+  ['TAVI anillo área (cm²)', 'ete_tavi_anillo_area','num'],
+  ['TAVI G. medio (mmHg)',   'ete_tavi_gmedio',    'num'],
+  ['TAVI Vmax (m/s)',        'ete_tavi_vmax',      'num'],
+  ['TAVI AVA (cm²)',         'ete_tavi_ava',       'num'],
+  ['TAVI AVAi (cm²/m²)',     'ete_tavi_avai',      'num'],
+  ['TAVI RPV extensión (%)', 'ete_tavi_ext_circ',  'num'],
+  ['TAVI RPV vena contracta (cm)','ete_tavi_vc_ancho','num'],
+  ['TAVI RPV PHT (ms)',      'ete_tavi_pht',       'num'],
+  ['TAVI jet (horas)',       'ete_tavi_jet_horas', 'horas'],
+
+  // 16 · Inclusión en el informe
   ['Incluir CIA/CIV en informe', 'ete_shunt_incluir_chk__chk', 'chk'],
   ['Incluir TAVI en informe',    'ete_tavi_incluir_chk__chk',  'chk'],
+
+  // 17 · Texto libre
   ['Informe (texto completo)','informe_texto', 'txt'],
-  ['EN SUMA (texto completo)','en_suma',       'txt'],
+  ['EN SUMA (texto completo)','en_suma',       'txt']
 ];
+/* Ventanas de plausibilidad para el importador. _labXlsNum sólo verifica que el valor PARSEE:
+   una talla de 1,70 (metros en vez de cm) o un peso de 7 entraban sin chistar, y peso/talla son
+   los números de mayor apalancamiento del mapa porque alimentan la BSA, y la BSA alimenta la
+   masa VI indexada, la geometría del VI, el VDFVI indexado y el LAVI. Un dato mal tipeado
+   reclasifica la geometría ventricular de toda una cohorte importada, sin un solo mensaje.
+   Existía DCM_RANGO con la misma idea, pero sólo en el camino DICOM. */
+const LAB_XLS_RANGO_PROPIO = {
+  peso:[1,400], talla:[30,250], edad:[0,120],
+  ao_sin:[10,90], ao_st:[10,80], ao_tub:[10,90],
+  ai_diam:[10,90], ai_area:[3,60], ai_vol:[5,400], lars:[0,60], ad_area:[3,60]
+};
+/* La fusión con DCM_RANGO es PEREZOSA y no en la inicialización. DCM_RANGO es un const
+   declarado ~1000 líneas más abajo, así que en el momento en que se evalúa esta línea está en
+   la zona muerta temporal — y ahí `typeof` NO devuelve 'undefined': lanza ReferenceError. Como
+   esto es una sentencia de nivel superior, esa excepción se llevaba puesto todo el resto del
+   bloque <script>. Este archivo ya se rompió antes exactamente así.
+   Resolviendo en la primera llamada, DCM_RANGO ya está inicializado. Se cachea para no rehacer
+   el merge por celda. */
+let _labRangoCache = null;
+function _labRango(dest) {
+  if (!_labRangoCache) {
+    let base = {};
+    try { base = DCM_RANGO || {}; } catch (e) { base = {}; }   // por si el orden vuelve a cambiar
+    _labRangoCache = Object.assign({}, base, LAB_XLS_RANGO_PROPIO);
+  }
+  return _labRangoCache[dest];
+}
+/* Se parte de DCM_RANGO en vez de escribir una tabla nueva. DCM_RANGO ya acotaba once campos
+   que también entran por Excel —siv, ddfvi, ppvi, fevi, onda_e, onda_a, e_sep, e_lat, tapse,
+   vmax_ao, gmedio_ao— pero sólo se aplicaba en el camino DICOM. Tener dos tablas parciales
+   daba el peor resultado posible: un SIV de 110 mm (dedazo por 11,0) entraba limpio por Excel
+   y reclasificaba la geometría del VI, que es exactamente el daño que este bloque dice evitar
+   —y el texto de instrucciones de la plantilla le promete al médico que no pasa—.
+   ao_st se alinea a [10,80], el valor de DCM_RANGO: el mismo campo no puede tener dos
+   veredictos según por qué puerta entró.
+   lars arranca en 0 y no en -60: el strain auricular es positivo por convención (la etiqueta
+   del formulario dice "normal > 18%"), así que la mitad negativa no rechazaba nada legítimo y
+   dejaba pasar un signo invertido. */
+
 /* Vocabularios: el importador tiene que emitir EXACTAMENTE el token que el control del
    formulario acepta, no una palabra linda para humanos. Escribir 'Masculino' en un
    <select> cuyos values son 'M'/'F' deja el select en selectedIndex=-1 y value='': calcVI
@@ -25503,6 +25714,9 @@ function labPlantillaXLSX() {
     'Nombre': LAB_XLS_EJEMPLO, 'CI': '1.234.567-8', 'Fecha estudio': '2026-03-15', 'Edad': 64, 'Sexo': 'M',
     'Centro / Institución': 'Hospital de ejemplo', 'Médico solicitante': 'Dr. Ejemplo',
     'Motivo / Indicación': 'Disnea | Control', 'Antecedentes': 'HTA | Diabetes',
+    'Peso (kg)': 78, 'Talla (cm)': 172,
+    'Diám. AP AI (mm)': 38, 'Área AI (cm²)': 18, 'Volumen AI (ml)': 52, 'LARS (%)': 32,
+    'Área AD (cm²)': 16,
     'SIV (mm)': 11, 'DDVI (mm)': 48, 'DSVI (mm)': 32, 'PP (mm)': 10,
     'FEVI Simpson (%)': 58, 'GLS (%)': -18.5,
     'Onda E (cm/s)': 78, 'Onda A (cm/s)': 62, "e' septal (cm/s)": 7.5, "e' lateral (cm/s)": 9.5,
@@ -25514,7 +25728,7 @@ function labPlantillaXLSX() {
     'V. max Ao (m/s)': 1.3, 'G. máx Ao (mmHg)': 7, 'G. medio Ao (mmHg)': 4,
     'IAo grado': 0, 'VC IAo (mm)': '', 'PHT IAo (ms)': '',
     'Morfología tricúspide': 'Normal', 'IT grado': 1, 'VC IT (mm)': 2,
-    'PSAP (mmHg)': 28, 'PAP media (mmHg)': 16, 'Ao sinusal (mm)': 34, 'Ao asc. proximal (mm)': 32,
+    'PSAP (mmHg)': 28, 'PAP media (mmHg)': 16, 'Ao sinusal (mm)': 34, 'Ao sinotubular (mm)': 29, 'Ao tubular (mm)': 32,
     'Pericardio': 'Normal, sin derrame',
     'Informe (texto completo)': 'Texto libre del informe.', 'EN SUMA (texto completo)': 'Conclusión del estudio.',
   };
@@ -25584,10 +25798,14 @@ function labPlantillaXLSX() {
     ['Esas columnas están en el Excel que exporta el Laboratorio pero NO se pueden'],
     ['importar, y por eso no están acá: la app no guarda la geometría en ningún campo.'],
     ['La calcula en cada pantalla a partir de la masa VI indexada, el RWT y el sexo, o sea'],
-    ['de SIV, DDVI, PP, talla, peso y sexo. De esos, en esta planilla están SIV, DDVI, PP'],
-    ['y Sexo; la talla y el peso NO son columnas, así que desde el Excel no se puede'],
-    ['cambiar la superficie corporal. Escribir un 1 en Geom_HVI_Concentrica no tendría'],
-    ['ningún efecto: la app vuelve a mostrar lo que le dan las medidas.'],
+    ['de SIV, DDVI, PP, talla, peso y sexo — y los seis están en esta planilla, así que'],
+    ['la superficie corporal SÍ se puede cambiar desde el Excel. Ojo con eso: Peso y Talla'],
+    ['alimentan la BSA, y la BSA alimenta la masa VI indexada, la geometría del VI, el'],
+    ['VDFVI indexado y el LAVI. Una talla cargada en metros (1,70) en vez de centímetros'],
+    ['reclasifica la geometría ventricular de todo el estudio. El importador rechaza la fila'],
+    ['si el valor cae fuera de rango, pero un 172 escrito como 127 entra igual.'],
+    ['Aun así, escribir un 1 en Geom_HVI_Concentrica no tiene ningún efecto: esas columnas'],
+    ['no se importan, la app recalcula la geometría a partir de las medidas.'],
     [''],
     ['VALORES QUE LA APP CALCULA (no se importan)'],
     ['PmAD, AVm, G. máx Ao, PSAP y PAP media salen de otras mediciones. Se exportan para'],
@@ -25655,13 +25873,22 @@ function labImportarXLSX(file) {
     const cabeceras = Object.keys(filas[0]);
     const normCab = h => String(h).trim().replace(/\s+/g,' ').toLowerCase();
     const porNorm = new Map(); cabeceras.forEach(h => { if(!porNorm.has(normCab(h))) porNorm.set(normCab(h), h); });
-    const _presentes = LAB_XLS_MAP.filter(m => porNorm.has(normCab(m[0])));
+    /* Resuelve la cabecera real de cada entrada: primero el nombre actual, y si no está, los
+       alias del 4º elemento. Sin esto, renombrar una columna hacía que los Excel exportados
+       antes perdieran ese dato al reimportarse, sin ningún aviso. */
+    const _cabDe = m => {
+      if (porNorm.has(normCab(m[0]))) return porNorm.get(normCab(m[0]));
+      const al = m[3] || [];
+      for (let i = 0; i < al.length; i++) if (porNorm.has(normCab(al[i]))) return porNorm.get(normCab(al[i]));
+      return null;
+    };
+    const _presentes = LAB_XLS_MAP.filter(m => _cabDe(m) !== null);
     /* Los calculados se apartan ANTES de leer las filas. No se descartan en silencio: se
        listan en la vista previa con el motivo, porque la columna existe en el Excel que la
        propia app exporta y el médico razonablemente espera que vuelva a entrar. */
     const calculadas = _presentes.filter(m => _labXlsEsCalculado(m[1])).map(m => m[0]);
     const conocidas = _presentes.filter(m => !_labXlsEsCalculado(m[1]))
-      .map(m => [porNorm.get(normCab(m[0])), m[1], m[2], m[0]]);
+      .map(m => [_cabDe(m), m[1], m[2], m[0]]);
     if (!conocidas.length) {
       toast('❌ Ninguna columna reconocida — usá «📥 Importar» > «📋 Descargar plantilla Excel»'); return;
     }
@@ -25698,6 +25925,15 @@ function labImportarXLSX(file) {
           if (vacio) return;
           v = _labXlsNum(bruto);
           if (isNaN(v)) { errs.push('«' + col + '»: "' + String(bruto).slice(0,20) + '" no es un número'); return; }
+          /* Ventana de plausibilidad. Parsear no es validar: una talla de 1,70 —metros en vez
+             de centímetros— parsea perfecto y después reclasifica la geometría del VI de todo
+             el estudio vía la BSA. Se rechaza la FILA, con el motivo, en vez de importar un
+             número imposible en silencio. */
+          const _rg = _labRango(dest);
+          if (_rg && (v < _rg[0] || v > _rg[1])) {
+            errs.push('«' + col + '»: ' + v + ' fuera del rango esperado (' + _rg[0] + '–' + _rg[1] + ')');
+            return;
+          }
           v = String(v);
         } else if (tipo === 'fecha') {
           v = _labXlsFecha(bruto);
