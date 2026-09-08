@@ -12563,7 +12563,7 @@ function calcDiastolASE2025() {
 
   if (ee === null && ep === null && el === null) {
     window._diastResult = {
-      texto: 'Completar e\' septal y/o lateral para clasificar con ASE 2025.',
+      texto: 'Completar e\' septal y/o lateral para clasificar.',
       textoSuma: '',
       badge: badge('gray', 'Incompleto — ASE 2025'),
       algoritmo: 'ase2025'
@@ -12586,7 +12586,7 @@ function calcDiastolASE2025() {
   if (totalParam === 0) {
     cls = 'gray';
     badgeTxt = 'Datos insuficientes — ASE 2025';
-    texto = 'Datos insuficientes para clasificar presión de llenado (ASE 2025). Completar E/e\', Vol AI y/o TR.';
+    texto = 'Datos insuficientes para clasificar presión de llenado. Completar E/e\', Vol AI y/o TR.';
     textoSuma = '';
   } else if (totalParam < 2) {
     /* ECOS-03 (B): ASE 2025 pide al menos DOS parámetros evaluados. Con uno solo, ese único
@@ -12599,9 +12599,9 @@ function calcDiastolASE2025() {
        parámetros positivos)», que se contradice dentro de la misma línea. */
     cls = 'gray';
     badgeTxt = 'Indeterminado — ASE 2025';
-    texto = 'Presión de llenado no clasificable: ASE 2025 requiere al menos 2 de los 4 ' +
+    texto = 'Presión de llenado no clasificable: el algoritmo requiere al menos 2 de los 4 ' +
       'parámetros evaluados (E/e\', Vol AI indexado, TR, LARS) y aquí sólo hay 1' + nPar +
-      '. Completar otro parámetro para clasificar. ASE 2025.';
+      '. Completar otro parámetro para clasificar.';
     textoSuma = '';
   } else {
     const umbral = ePrimReducida ? 1 : 2;
@@ -12624,34 +12624,34 @@ function calcDiastolASE2025() {
         badgeTxt = 'Indeterminado — ASE 2025';
         texto = 'Presión de llenado no concluyente: ' + (ePrimReducida ? 'e\' reducida' : 'e\' conservada') +
           ' con ' + nPar.trim().replace(/^\(|\)$/g, '') + ', por debajo del umbral de ' + umbral +
-          ' para afirmar presión elevada pero sin ser todos negativos. Grado indeterminado. ASE 2025.';
+          ' para afirmar presión elevada pero sin ser todos negativos. Grado indeterminado.';
         textoSuma = '';
       } else if (!ePrimReducida) {
         cls = 'green';
         badgeTxt = 'Función diastólica normal — ASE 2025';
-        texto = 'Función diastólica normal: e\' conservada con presión de llenado normal' + nPar + '. ASE 2025.';
+        texto = 'Función diastólica normal: e\' conservada con presión de llenado normal' + nPar + '.';
         textoSuma = '';
       } else if (ea !== null && ea <= 0.8) {
         cls = 'yellow';
         badgeTxt = 'DD Grado I — ASE 2025';
         texto = 'Disfunción diastólica grado I (relajación alterada). e\' reducida, E/A ' + ea.toFixed(2) +
-          ' (≤0,80) y presión de llenado normal' + nPar + '. ASE 2025.';
-        textoSuma = 'Disfunción diastólica grado I — relajación alterada con presión de llenado normal (ASE 2025).';
+          ' (≤0,80) y presión de llenado normal' + nPar + '.';
+        textoSuma = 'Disfunción diastólica grado I — relajación alterada con presión de llenado normal.';
       } else {
         cls = 'gray';
         badgeTxt = 'Indeterminado — ASE 2025';
         texto = 'e\' reducida con presión de llenado normal' + nPar + ', pero ' +
           (ea === null ? 'sin cociente E/A no se puede confirmar el grado I, que requiere E/A ≤0,80'
                        : 'el cociente E/A (' + ea.toFixed(2) + ') es mayor a 0,80, así que no cumple criterio de grado I') +
-          '. Grado indeterminado. ASE 2025.';
+          '. Grado indeterminado.';
         textoSuma = '';
       }
     } else if (ea === null) {
       cls = 'orange';
       badgeTxt = 'DD — Presión elevada (ASE 2025)';
       texto = 'Presión de llenado elevada' + nPar +
-        '. Completar cociente E/A para determinar grado. ASE 2025.';
-      textoSuma = 'Disfunción diastólica — presión de llenado elevada (ASE 2025).';
+        '. Completar cociente E/A para determinar grado.';
+      textoSuma = 'Disfunción diastólica — presión de llenado elevada.';
     } else if (ea >= 2 && ePrimReducida) {
       cls = 'red';
       badgeTxt = 'DD Grado III — ASE 2025';
@@ -12660,14 +12660,14 @@ function calcDiastolASE2025() {
          elegir un subtipo al azar. */
       texto = 'Disfunción diastólica grado III (patrón restrictivo). e\' reducida, E/A ' + ea.toFixed(2) +
         ' (≥2,00) y presión de llenado elevada' + nPar +
-        '. La distinción entre IIIa (reversible con Valsalva) y IIIb (fija) requiere la maniobra de Valsalva, no registrada. ASE 2025.';
-      textoSuma = 'Disfunción diastólica grado III — patrón restrictivo, presión de llenado elevada (ASE 2025).';
+        '. La distinción entre IIIa (reversible con Valsalva) y IIIb (fija) requiere la maniobra de Valsalva, no registrada.';
+      textoSuma = 'Disfunción diastólica grado III — patrón restrictivo, presión de llenado elevada.';
     } else if (ea >= 0.8 && ea < 2) {
       cls = 'orange';
       badgeTxt = 'DD Grado II — ASE 2025';
       texto = 'Disfunción diastólica grado II (patrón pseudonormal). E/A ' + ea.toFixed(2) +
-        ' (0,80–2,00) con presión de llenado elevada' + nPar + '. ASE 2025.';
-      textoSuma = 'Disfunción diastólica grado II — presión de llenado elevada (ASE 2025).';
+        ' (0,80–2,00) con presión de llenado elevada' + nPar + '.';
+      textoSuma = 'Disfunción diastólica grado II — presión de llenado elevada.';
     } else {
       /* E/A ≥2 con e' CONSERVADA no es grado III: es el patrón del corazón joven y sano, donde
          un llenado precoz dominante convive con relajación normal. Rotularlo restrictivo sería
@@ -12677,7 +12677,7 @@ function calcDiastolASE2025() {
       badgeTxt = 'Indeterminado — ASE 2025';
       texto = 'Presión de llenado elevada' + nPar + ' con E/A ' + ea.toFixed(2) + ' y ' +
         (ePrimReducida ? 'e\' reducida' : 'e\' conservada') +
-        ': la combinación no cumple criterios de grado I, II ni III. Grado indeterminado — correlacionar con clínica. ASE 2025.';
+        ': la combinación no cumple criterios de grado I, II ni III. Grado indeterminado — correlacionar con clínica.';
       textoSuma = '';
     }
   }
@@ -14076,9 +14076,9 @@ function renderSeguimientoLista() {
   html += '<tr style="background:var(--section-head);"><th style="padding:5px 8px;text-align:left;color:var(--accent2);">Fecha</th><th style="padding:5px 8px;text-align:center;color:var(--accent2);">FEVI%</th><th style="padding:5px 8px;text-align:center;color:var(--accent2);">GLS%</th><th style="padding:5px 8px;text-align:left;color:var(--accent2);">Nota</th><th style="padding:5px 8px;"></th></tr>';
   coSeguimiento.forEach(function(p, i) {
     html += '<tr style="border-bottom:1px solid var(--border);' + (i%2===1?'background:var(--bg3);':'') + '">';
-    html += '<td style="padding:5px 8px;">' + p.fecha + '</td>';
-    html += '<td style="padding:5px 8px;text-align:center;font-weight:700;color:' + (p.fevi && p.fevi < 50 ? 'var(--red)' : p.fevi && p.fevi < 54 ? 'var(--orange)' : 'var(--green)') + ';">' + (p.fevi !== null ? p.fevi + '%' : '—') + '</td>';
-    html += '<td style="padding:5px 8px;text-align:center;">' + (p.gls !== null ? p.gls + '%' : '—') + '</td>';
+    html += '<td style="padding:5px 8px;">' + escHtml(p.fecha) + '</td>';
+    html += '<td style="padding:5px 8px;text-align:center;font-weight:700;color:' + (p.fevi && p.fevi < 50 ? 'var(--red)' : p.fevi && p.fevi < 54 ? 'var(--orange)' : 'var(--green)') + ';">' + (p.fevi !== null ? escHtml(p.fevi) + '%' : '—') + '</td>';
+    html += '<td style="padding:5px 8px;text-align:center;">' + (p.gls !== null ? escHtml(p.gls) + '%' : '—') + '</td>';
     html += '<td style="padding:5px 8px;">' + escHtml(p.nota || '—') + '</td>';
     html += '<td style="padding:5px 8px;"><button class="btn btn-danger" style="padding:2px 8px;font-size:10px;" onclick="eliminarPuntoSeg(' + i + ')">✕</button></td>';
     html += '</tr>';
@@ -15727,6 +15727,13 @@ function generarPDFReal() {
   }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  /* Saneador WinAnsi para TODO texto que salga por doc.text/splitTextToSize en esta función.
+     Sin esto, un solo caracter fuera de WinAnsi —≤ y ≥ los emite el algoritmo diastólico ASE
+     2025, y un apóstrofo tipográfico entra con cualquier texto pegado desde Word— hace que
+     jsPDF pase la cadena ENTERA a UTF-16 y esa línea salga con letra más grande y espaciada.
+     Se usa la variante multilínea siempre: para una línea da lo mismo, y para el informe
+     narrativo evita que se coman los saltos de párrafo. */
+  const _sanML = (typeof amiloSanPDFml === 'function') ? amiloSanPDFml : (t => String(t == null ? '' : t));
   // Márgenes A4 ~9 mm (rediseño layout impresión) — antes 14/196
   const mL = 9, mR = 201, pgW = 192;
   let y = 0;
@@ -15861,7 +15868,10 @@ function generarPDFReal() {
       }
     }
 
-    const _unir = a => a.filter(Boolean).join('  ·  ');
+    /* Espacios DUROS (\xA0, WinAnsi 0xA0): amiloSanPDF colapsa /[ \t]{2,}/ a un espacio,
+       así que el '  ·  ' de dos espacios que buscaba este separador salía reducido a la
+       mitad en la firma de todos los informes. El no-break space no entra en esa clase. */
+    const _unir = a => a.filter(Boolean).join('\u00A0\u00A0·\u00A0\u00A0');
     const _datos = _sueltos.length
       ? [_num].concat(_sueltos)                                   // legacy: una por fila
       : [_unir([_num, _esp]), _unir([_dir, _lug]), _tel, _mail];
@@ -15886,6 +15896,12 @@ function generarPDFReal() {
 
     // Cada fila entra en UNA línea: si no, se le achica la tipografía. Envolver
     // haría que las filas se pisen entre sí (van a 2.75 mm de distancia).
+    /* Se sanea ACÁ, antes del bucle de encogido, y no en el doc.text de más abajo. Si se
+       saneara sólo al dibujar, este bucle elegiría el cuerpo de letra midiendo una cadena y
+       se estamparía otra —el mismo desfase entre medir y dibujar que arregló el comentario
+       de acá abajo, movido del eje del tamaño al eje del texto—. Sanear puede ALARGAR
+       (≥ pasa a >=, ± a +/-), así que la medida cruda tampoco es una cota superior. */
+    _firmaFilas.forEach(fila => { fila.txt = _sanML(fila.txt); });
     _firmaFilas.forEach(fila => {
       const escalas = [fila.sz, fila.sz - 0.5, fila.sz - 1, fila.sz - 1.4, fila.sz - 1.8];
       for (let i = 0; i < escalas.length; i++) {
@@ -16130,7 +16146,7 @@ function generarPDFReal() {
   for(let i=1;i<ecg.length;i++) doc.line(ecg[i-1][0],ecg[i-1][1]*_kEcg,ecg[i][0],ecg[i][1]*_kEcg);
   fb(13); tc(255,255,255);
   doc.text('Informe Ecocardiograma Doppler Color',105, _hdrDos ? 7.0 : 7.6, {align:'center'});
-  if (_hdrDos) { fn(8.5); tc(200,221,245); doc.text(_hdrLine,105,12.9,{align:'center'}); }
+  if (_hdrDos) { fn(8.5); tc(200,221,245); doc.text(_sanML(_hdrLine),105,12.9,{align:'center'}); }
   // Logo del centro en el vértice superior derecho, proporción conservada y ajustado a la banda
   try {
     const _logoData = localStorage.getItem('logo_centro_' + (localStorage.getItem('centro_tipo_activo') || 'default'));
@@ -16199,8 +16215,8 @@ function generarPDFReal() {
       const colW = pgW / row.length;
       const cells = row.map(cell => {
         if (!cell.val) return null;
-        fb(7); const lw = doc.getTextWidth(cell.lbl + ': ');
-        fn(7.5); const lines = doc.splitTextToSize(String(cell.val), Math.max(6, colW - lw - 3));
+        fb(7); const lw = doc.getTextWidth(_sanML(cell.lbl) + ': ');
+        fn(7.5); const lines = doc.splitTextToSize(_sanML(cell.val), Math.max(6, colW - lw - 3));
         return { cell, lw, lines, colW };
       });
       const maxLines = Math.max(1, ...cells.map(c => c ? c.lines.length : 1));
@@ -16216,7 +16232,7 @@ function generarPDFReal() {
       rc.cells.forEach((c, ci) => {
         if (!c) return;
         const cx = mL + ci * c.colW + 2;
-        fb(7); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(c.cell.lbl + ': ', cx, ry + padTop);
+        fb(7); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(_sanML(c.cell.lbl) + ': ', cx, ry + padTop);
         fn(7.5); tc(13,13,13);
         c.lines.forEach((ln, li) => {
           doc.text(ln, li === 0 ? cx + c.lw : cx, ry + padTop + li * lineH);
@@ -16468,7 +16484,7 @@ function generarPDFReal() {
     drawBar('INFORME');
     y += 2;
     fn(8); tc(13,13,13);
-    const iL = doc.splitTextToSize(informeTxt, pgW-4);
+    const iL = doc.splitTextToSize(_sanML(informeTxt), pgW-4);
     iL.forEach(l=>{ checkPage(6); doc.text(l,mL+2,y); y+=5.5; });
     /* Sin cola: la barra del EN SUMA ya trae su propio aire (1,2 mm). Antes se sumaban 3 mm
        de acá + 1,5 de la barra = 4,5 mm de blanco entre el final del informe y el título. */
@@ -16485,7 +16501,7 @@ function generarPDFReal() {
        La barra "EN SUMA:" sí acompaña al resto, para que todos los encabezados de
        sección midan igual. */
     fif(8); tc(TEMA[0],TEMA[1],TEMA[2]);
-    const sL = doc.splitTextToSize(sumaTxt, pgW-4);
+    const sL = doc.splitTextToSize(_sanML(sumaTxt), pgW-4);
     sL.forEach(l=>{ checkPage(6); doc.text(l,mL+2,y); y+=5.5; });
     y += 3;
   }
@@ -16836,7 +16852,7 @@ function generarPDFReal() {
              fuera del MediaBox — el visor lo recorta sin avisar y el informe sale firmado
              SIN los hallazgos de motilidad, que es lo más accionable del estudio.
              Se corta acá: lo que no entra pasa a la hoja siguiente. */
-          doc.splitTextToSize(col.body, _colW).forEach(ln => {
+          doc.splitTextToSize(_sanML(col.body), _colW).forEach(ln => {
             if (_cy > _yMax) { doc.addPage(); _cy = 14; fn(8); tc(30,30,30); }
             doc.text(ln, _cx0, _cy); _cy += 4.8;
           });
@@ -16985,8 +17001,8 @@ function generarPDFReal() {
       doc.text(fila.txt, mR, fila.y, { align:'right' });
     });
     fn(6.5); tc(150,150,150);
-    doc.text(_fCopyr, 105, 292, { align:'center' });
-    fn(5.5); tc(160,160,160); doc.text(_fDisc, 105, 295, { align:'center' });
+    doc.text(_sanML(_fCopyr), 105, 292, { align:'center' });
+    fn(5.5); tc(160,160,160); doc.text(_sanML(_fDisc), 105, 295, { align:'center' });
   }
 
   const _nombre = (sv('nombre')||'paciente').replace(/\s+/g,'_');
@@ -21111,6 +21127,24 @@ function amiloSanPDF(s) {
     .trim();
 }
 
+/* Variante MULTILÍNEA. Usar ésta para cualquier texto que pueda traer saltos de línea.
+   amiloSanPDF borra todo lo que esté por debajo de \x20 —incluido el \n— y termina con
+   .trim(), así que aplicada de una sola pasada a un informe narrativo le come los saltos y
+   pega todos los párrafos en un bloque corrido. El informe y el EN SUMA son exactamente eso:
+   inf.join('\n') y suma.join('\n').
+   Sanea línea por línea, que es lo mismo que ya hacen a mano _etSan (técnica del ETE) y
+   amiloDibujarSecciones. Para un texto de una sola línea el resultado es idéntico a llamar a
+   amiloSanPDF directo, así que se puede usar siempre sin tener que decidir en cada punto. */
+function amiloSanPDFml(s) {
+  /* Se conserva la sangría de cada línea. amiloSanPDF termina en .trim(), así que aplicado
+     por línea le comía los espacios de adelante: el médico que indenta sub-ítems en el
+     informe los veía indentados en pantalla y planos en el PDF. Pantalla y papel tienen que
+     decir lo mismo. Los tabs pasan a dos espacios porque jsPDF no interpreta \t. */
+  return String(s == null ? '' : s).split('\n')
+    .map(l => l.match(/^[ \t]*/)[0].replace(/\t/g, '  ') + amiloSanPDF(l))
+    .join('\n');
+}
+
 // Dibuja [{tit, txt}] entre yIni e yFin achicando la letra hasta que entren.
 // Las líneas '## algo' del texto salen como subtítulos. Devuelve la y final.
 /* Escala de cuerpo del PDF. Vive acá arriba y no dentro de generarPDFReal porque estas
@@ -22119,8 +22153,8 @@ function verDetalleInforme(id) {
     <h2 class="card-head" style="font-size:13px;">👤 ${escHtml(inf.nombre)} &mdash; ${escHtml(inf.doc_tipo)}: ${escHtml(inf.ci)}</h2>
     <div class="card-body">
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
-        <span class="badge badge-blue">📅 Estudio: ${fechaEst}</span>
-        <span class="badge badge-gray">💾 Guardado: ${fechaGuard}</span>
+        <span class="badge badge-blue">📅 Estudio: ${escHtml(fechaEst)}</span>
+        <span class="badge badge-gray">💾 Guardado: ${escHtml(fechaGuard)}</span>
         ${medNombre ? `<span class="badge badge-green">🩺 ${escHtml(medNombre)}</span>` : ''}
         ${medLugar  ? `<span class="badge badge-gray">📍 ${escHtml(medLugar)}</span>` : ''}
       </div>
