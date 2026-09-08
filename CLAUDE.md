@@ -119,6 +119,54 @@ hace que, desde el primer guardado, todo estudio la traiga y el comportamiento �
 reabrir. Si hace falta distinguir «no» de «no decidió», va **bandera propia** (acá:
 `<id>__tocado`), persistida y restaurada aparte.
 
+### Una bandera booleana no puede representar dos decisiones opuestas
+`dataset.tocado` empezó significando «el médico decidió» y gobernaba el auto-marcado del
+selector de AVm. Como la rama «sin valor» de `_emPdfChk` desmarcaba incondicionalmente, y el
+`oninput` de un campo pasa **siempre** por `''` al corregir una medida con backspace, la
+bandera protegía el «no» del médico y **destruía su «sí»**: al volver el valor ya no re-marcaba,
+y «Sobreescribir» persistía la pérdida como un «no» que nadie había dado. Hoy la rama sin valor
+respeta la bandera en los dos sentidos, y el gate real es el número en `emAvmPdfVal`.
+
+Y se separó en **dos** banderas: `tocado` («el médico decidió», es lo único que se persiste) y
+`desdeEstudio` («esta carga ya trae respuesta», muere con la sesión). Con una sola, reabrir un
+estudio y volver a guardarlo promovía `__tocado` a `'1'` sin intervención de nadie, y la clave
+dejaba de significar lo que dice su nombre.
+
+### `('0','0')` es ambiguo: distinguir «dijo que no» de «no había valor»
+`guardarInforme` barre **todos** los checkbox y escribe la clave siempre, así que un `__chk='0'`
+puede venir de un control que nunca se mostró. Para decidir si respetar ese `'0'` se mira si el
+**estudio trae el número** (`avm_cont`, `avm_plan`/`avm_ete`) — dato que ya está persistido, sin
+clave nueva. Con valor el `'0'` es una respuesta real; sin valor sólo dice «no había nada que
+incluir» y el auto-marcado sigue vivo.
+
+Usar `> 0` y no `!isNaN`: un `"0"` parsea a 0 y daría «hay valor», pero `calcEM` y `emAvmPdfVal`
+lo tratan como ausencia por truthiness. Criterios distintos sobre el mismo dato = casilla
+congelada sobre un estudio que sí tenía medición.
+
+### Reimprimir y editar+regenerar tienen que dar el mismo PDF
+No divergen al cargar —**ninguno de los dos caminos llama `calcEM`**—, sino después: en la
+sesión de edición el médico **tiene** que abrir la píldora de estenosis mitral (`limpiarCampos`
+oculta los bloques y borra `valv-pill-*`), y ese clic dispara `calcEM`, que es lo único capaz de
+mover un `.checked` sin que nadie lo toque. Cualquier estado que gobierne contenido impreso y se
+recalcule ahí tiene que estar congelado antes.
+
+Queda **una divergencia intencional**: un estudio anterior al selector (o importado) no trae las
+claves, así que al reimprimirlo sale sólo THP y al editarlo corre el auto-marcado. Es correcto
+—nunca hubo un PDF firmado con este selector— pero es una decisión, no un descuido.
+
+### Un comentario mío rompió el bloque `<script>` entero
+Al insertar texto de comentario justo después de un `*/` quedó fuera del comentario y el bloque 8
+—donde vive `CeiboStore`— dejó de parsear: **DOM completo, todo el JS `undefined`**, y la consola
+del preview no mostró nada. Es el mismo síntoma que describe la sección del TDZ.
+Chequeo que lo detecta, y que hay que correr **comparando contra HEAD** porque los bloques 0 y 1
+fallan siempre por el extractor:
+```bash
+node -e "const s=require('fs').readFileSync('index.html','utf8');
+const re=/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g;let m,i=0;
+while((m=re.exec(s))){try{new Function(m[1]);}catch(e){console.log(i+': '+e.message);}i++;}"
+```
+Sólo 0 y 1 deben aparecer. Cualquier otro bloque en la lista es código muerto.
+
 ### Un `onclick` inline infla el elemento a 44×44
 La hoja de estilos trae una regla de área táctil:
 `button, [role="button"], .btn, .tab-btn, .nav-tab, .chip, .cal-cell, .seg-cell, [onclick] { min-height:44px; min-width:44px }`.

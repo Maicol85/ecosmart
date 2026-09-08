@@ -13296,15 +13296,22 @@ function _emPdfChk(idChk, idSpan, val) {
   if (!cb) return;
   const hay = (val != null && val !== '' && !isNaN(val));
   if (sp) sp.textContent = hay ? '— ' + Number(val).toFixed(2) + ' cm²' : '— sin valor';
-  /* OJO: no se borra `dataset.tocado` acá. Los input de esta app se convierten en runtime a
-     type="text", así que `oninput` dispara con el valor intermedio: corregir una medida
-     borrándola con backspace pasa SIEMPRE por ''. Si el vacío reseteara la memoria, el
-     médico que desmarcó «continuidad» y después corrige el VTI mitral se encontraba la
-     casilla marcada de nuevo, sola y sin aviso. La bandera sólo se limpia en limpiarCampos
-     (paciente nuevo), que es el único momento donde la decisión deja de aplicar. */
-  if (!hay) { cb.checked = false; cb.disabled = true; return; }
+  /* Los input de esta app se convierten en runtime a type="text", así que `oninput` dispara
+     con el valor intermedio: corregir una medida borrándola con backspace pasa SIEMPRE por
+     ''. Ese vacío es transitorio y no debe tocar la decisión del médico — ni la bandera ni
+     el `.checked`.
+     No borrar `dataset.tocado` protege el «no»: sin eso, quien desmarcó «continuidad» y
+     después corregía el VTI mitral se encontraba la casilla marcada de nuevo.
+     No bajar `.checked` cuando la bandera está puesta protege el «sí», que es la otra mitad
+     y faltaba: `tocado` es UN booleano para DOS decisiones opuestas, así que desmarcar en el
+     vacío destruía el «sí» de forma permanente —al volver el valor, la línea de abajo ya no
+     re-marca porque la bandera sigue puesta— y «Sobreescribir» lo persistía como un «no»
+     que el médico nunca dio. Sin valor no se imprime nada igual: emAvmPdfVal gatea por el
+     número, no por la casilla. La bandera sólo se limpia en limpiarCampos (paciente nuevo). */
+  const resuelto = cb.dataset.tocado || cb.dataset.desdeEstudio;
+  if (!hay) { if (!resuelto) cb.checked = false; cb.disabled = true; return; }
   cb.disabled = false;
-  if (!cb.dataset.tocado) cb.checked = true;
+  if (!resuelto) cb.checked = true;
 }
 function emPdfMetodosUI(thpVal, contVal, planVal) {
   // THP no lleva guarda de «tocado»: su casilla no se puede desmarcar, sólo informa el valor.
@@ -15819,7 +15826,7 @@ function limpiarCampos() {
   { const _t = document.getElementById('em_pdf_thp'); if (_t) _t.checked = true; }
   ['em_pdf_cont','em_pdf_plan'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) { el.checked = false; el.disabled = true; delete el.dataset.tocado; }
+    if (el) { el.checked = false; el.disabled = true; delete el.dataset.tocado; delete el.dataset.desdeEstudio; }
   });
   { const _mm = document.getElementById('vm_prolapso_mm'); if (_mm) _mm.value = ''; }
   { const _bp = document.getElementById('bloque-prolapso-vm'); if (_bp) _bp.style.display = 'none'; }
@@ -18372,7 +18379,11 @@ function _migrarShuntTsvd(c){
 window._migrarShuntTsvd = _migrarShuntTsvd;
 
 function _restaurarChkInclusion(campos){
-  if(!campos) return;
+  /* Objeto vacío en vez de `return`: un registro sin `campos` no es «no hagas nada», es «este
+     estudio no trae ninguna decisión». Con el return temprano las casillas se quedaban con las
+     del PACIENTE ANTERIOR —cargarEstudioPorId llama acá sin guarda y no pasa por
+     limpiarCampos—, que es justo la fuga que el bloque de AVm de abajo dice cerrar. */
+  if(!campos) campos = {};
   document.querySelectorAll('input[type=checkbox][id]').forEach(function(el){
     const k = el.id + '__chk';
     if(campos[k] !== undefined) el.checked = (campos[k] === '1' || campos[k] === true || campos[k] === 'true');
@@ -18380,16 +18391,47 @@ function _restaurarChkInclusion(campos){
   // Sin esto el estudio quedaba integrado pero el botón seguía gris: el médico leía
   // «no está en el informe» sobre una sección que sí iba a imprimirse.
   if (typeof eteInclSync === 'function') { try { eteInclSync(); } catch(e){} }
-  /* La decisión sobre los métodos de AVm se repone desde su propia clave, para que el primer
-     calcEM() posterior —que corre al abrir el bloque EM— no vuelva a auto-marcar lo que el
-     médico había desmarcado. Es el mismo defecto que arriba, pero al revés: allá el estado
-     se perdía, acá reaparecería. Los estudios anteriores a esta clave no la traen y
-     conservan el auto-marcado, que es lo correcto para ellos. */
+  /* ══ Métodos de AVm: el estudio manda sobre el auto-marcado ══
+     Reimprimir desde la lista y reimprimir después de «Editar» tienen que dar el MISMO PDF.
+     No divergen al cargar —ninguno de los dos caminos llama calcEM—, sino después: en la
+     sesión de edición el médico abre la píldora de estenosis mitral (obligatorio, porque
+     limpiarCampos oculta los bloques y borra las claves valv-pill-*) y ESE clic dispara
+     calcEM → _emPdfChk, que auto-marcaba encima de la decisión guardada.
+
+     `__tocado` solo no alcanza para decidir si congelar, porque el par ('0','0') es ambiguo:
+     tapa «el médico no decidió» y «el método no tenía valor cuando se guardó». Lo que los
+     separa es si el ESTUDIO trae el número, y eso ya está persistido — no hace falta una
+     clave nueva. Con valor, el '0' guardado es una respuesta real y se congela; sin valor,
+     el '0' sólo dice «no había nada que incluir» y el auto-marcado sigue vivo para cuando
+     el médico complete la medición.
+
+     Se usan DOS banderas y no una. `tocado` es «el médico decidió» y es lo único que se
+     persiste; `desdeEstudio` es «esta carga ya trae una respuesta» y muere con la sesión. Con
+     una sola, reabrir un estudio y volver a guardarlo promovía `__tocado` a '1' sin que nadie
+     hubiera tocado la casilla, y a partir de ahí la clave dejaba de significar lo que dice su
+     nombre: un '1' rancio congelaba el auto-marcado sobre un estudio al que después le
+     desaparecía el valor. */
+  const _AVM_FUENTE = { em_pdf_cont: ['avm_cont'], em_pdf_plan: ['avm_plan', 'avm_ete'] };
   ['em_pdf_cont','em_pdf_plan'].forEach(function(id){
     const cb = document.getElementById(id);
     if (!cb) return;
+    delete cb.dataset.tocado; delete cb.dataset.desdeEstudio;
+    /* Sin la clave no hay decisión que reponer: estudio anterior al selector, importado, o
+       traído por cargarEstudioPorId —que NO llama limpiarCampos—. Se desmarca explícitamente
+       porque el bucle de arriba sólo escribe `.checked` cuando la clave existe, así que si no
+       está, la casilla se quedaba con la del PACIENTE ANTERIOR. */
+    if (campos[id + '__chk'] === undefined) { cb.checked = false; return; }
+    /* `> 0`, no `!isNaN`: un «0» parsea a 0 y daría «hay valor», pero calcEM y emAvmPdfVal
+       lo tratan como ausencia por truthiness. Con el criterio distinto, un area de 0 cm²
+       —tipeo o importación— congelaba la casilla y mataba el auto-marcado para siempre. */
+    const conValor = _AVM_FUENTE[id].some(function(k){
+      const raw = campos[k];
+      if (raw == null || String(raw).trim() === '') return false;
+      const n = parseFloat(String(raw).replace(',', '.'));
+      return !isNaN(n) && n > 0;
+    });
     if (campos[id + '__tocado'] === '1') cb.dataset.tocado = '1';
-    else delete cb.dataset.tocado;
+    else if (conValor) cb.dataset.desdeEstudio = '1';
   });
 }
 window._restaurarChkInclusion = _restaurarChkInclusion;
