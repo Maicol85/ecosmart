@@ -419,6 +419,69 @@
   }
   input[readonly] { color: var(--accent2); font-weight: 600; }
   textarea { resize: vertical; min-height: 60px; }
+  /* ══ FRASES RÁPIDAS ══
+     Desktop: panel lateral fijo al lado del textarea, que se achica por el flex.
+     Móvil (<=768px, el mismo corte que usa el resto de la app): drawer desde abajo al 65 %
+     de la altura, con el textarea visible arriba. */
+  .inf-wrap { display: flex; gap: 10px; align-items: stretch; }
+  .inf-wrap > textarea { flex: 1 1 auto; min-width: 0; }   /* min-width:0 o el textarea no se achica */
+  .frases-panel {
+    flex: 0 0 250px; width: 250px; display: flex; flex-direction: column; gap: 8px;
+    background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px; max-height: 420px; overflow-y: auto;
+  }
+  .frases-panel[hidden] { display: none; }                 /* [hidden] pierde contra display:flex */
+  .frases-grip { display: none; }
+  .frases-head { display: flex; align-items: center; justify-content: space-between;
+                 font-weight: 700; font-size: 13px; color: var(--accent2); }
+  .frases-x { padding: 2px 8px; font-size: 14px; line-height: 1; min-height: 32px; }
+  .frases-add { width: 100%; font-size: 12px; min-height: 36px; }
+  .frases-form { display: flex; flex-direction: column; gap: 6px; }
+  .frases-form[hidden] { display: none; }
+  .frases-form textarea { min-height: 60px; font-size: 12px; }
+  .frases-form-btns { display: flex; gap: 6px; }
+  .frases-form-btns .btn { flex: 1; font-size: 12px; min-height: 36px; }
+  .frases-lista { display: flex; flex-direction: column; gap: 6px; }
+  .frases-vacio { font-size: 11px; color: var(--text2); line-height: 1.45; padding: 4px 2px; }
+  .frase-item { display: flex; align-items: flex-start; gap: 6px;
+                background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; }
+  .frase-txt {
+    flex: 1; text-align: left; background: none; border: none; cursor: pointer;
+    color: var(--text); font-family: inherit; font-size: 12px; line-height: 1.4;
+    padding: 8px; min-height: 44px;                        /* mínimo táctil */
+    overflow: hidden;
+  }
+  /* El clamp va en un SPAN interno y no en el <button>: el navegador coacciona el `display`
+     de un button —se le pide -webkit-box y computa flow-root—, así que la regla no tomaba y
+     quedaba sólo el overflow:hidden, que corta a mitad de renglón y deja una franja del
+     cuarto. Medido. El texto completo va en el title, así que no se pierde nada. */
+  .frase-clamp {
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+    overflow: hidden; word-break: break-word;
+  }
+  .frase-txt:hover { background: var(--bg3); }
+  .frase-del { background: none; border: none; cursor: pointer; color: var(--red);
+               font-size: 13px; padding: 8px 10px; min-height: 44px; min-width: 44px; }
+  @media(max-width:768px){
+    .inf-wrap { display: block; }                          /* el textarea recupera el ancho completo */
+    .frases-panel {
+      position: fixed; left: 0; right: 0; bottom: 0; top: auto; width: auto;
+      height: 65vh; max-height: 65vh; z-index: 450;
+      /* 450 y no 1200: por encima del cajón lateral (400) pero por DEBAJO del toast (999) y
+         de los modales comparativo (500) y evolución (600). Con 1200 el drawer tapaba el
+         toast, que está en bottom:24px — o sea que «Escribí la frase antes de guardar», la
+         única validación de esta feature, era invisible en el celular. */
+      border-radius: 14px 14px 0 0; border-bottom: none;
+      box-shadow: 0 -6px 24px rgba(0,0,0,.35);
+      transform: translateY(0); transition: transform .18s ease-out;
+    }
+    .frases-panel.frases-cerrando { transform: translateY(100%); }
+    .frases-grip {
+      display: block; width: 44px; height: 5px; border-radius: 3px;
+      background: var(--border); margin: 2px auto 6px; flex: 0 0 auto;
+      touch-action: none;                                  /* si no, el navegador se queda el gesto */
+    }
+  }
   /* ══ BADGE ══ */
   .badge {
     display: inline-block; padding: 2px 8px; border-radius: 20px;
@@ -9266,11 +9329,38 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           <button type="button" class="btn btn-ghost estilo-pill" data-estilo="conciso" onclick="setEstiloInforme('conciso')">📋 Conciso</button>
           <button type="button" class="btn btn-primary estilo-pill" data-estilo="estandar" onclick="setEstiloInforme('estandar')">📄 Estándar</button>
           <button type="button" class="btn btn-ghost estilo-pill" data-estilo="narrativo" onclick="setEstiloInforme('narrativo')">📖 Narrativo</button>
+          <button type="button" class="btn btn-ghost" id="frases-btn" onclick="frasesToggle()" aria-expanded="false" aria-controls="frases-panel">💬 Frases</button>
         </div>
       </div>
       <div class="fg">
         <label>Informe (autogenerado — editable)</label>
-        <textarea id="informe_texto" style="min-height:200px;" placeholder="Presione 'Generar Informe' para autocompletar..."></textarea>
+        <div class="inf-wrap" id="inf-wrap">
+          <textarea id="informe_texto" style="min-height:200px;" placeholder="Presione 'Generar Informe' para autocompletar..."></textarea>
+          <!-- El panel es hermano del textarea, no lo envuelve: envolverlo habría cambiado el
+               selector de guardarInforme, que recorre `input[id], select[id], textarea[id]` de
+               todo el documento y depende de que el textarea siga siendo alcanzable por id. -->
+          <aside class="frases-panel" id="frases-panel" hidden aria-label="Mis frases">
+            <div class="frases-grip" id="frases-grip" title="Deslizá hacia abajo para cerrar"></div>
+            <div class="frases-head">
+              <span>💬 Mis frases</span>
+              <button type="button" class="btn btn-ghost frases-x" onclick="frasesToggle()" aria-label="Cerrar panel de frases">✕</button>
+            </div>
+            <button type="button" class="btn btn-primary frases-add" onclick="frasesNuevaAbrir()">+ Agregar frase</button>
+            <div class="frases-form" id="frases-form" hidden>
+              <!-- id con prefijo cfg-: guardarInforme recolecta con un selector de TODO el documento
+                   (`input[id], select[id], textarea[id]`) y sin prefijo registrado este borrador se
+                   guardaba como un campo más del estudio, entraba en el autoguardado y viajaba en
+                   el backup JSON — justo lo contrario de lo que dice el manual. cfg- ya está en la
+                   allowlist _noVaciar. -->
+              <textarea id="cfg-frases-input" rows="3" placeholder="Escribí la frase…" aria-label="Texto de la frase nueva"></textarea>
+              <div class="frases-form-btns">
+                <button type="button" class="btn btn-primary" onclick="frasesGuardar()">Guardar</button>
+                <button type="button" class="btn btn-ghost" onclick="frasesNuevaCerrar()">Cancelar</button>
+              </div>
+            </div>
+            <div class="frases-lista" id="frases-lista"></div>
+          </aside>
+        </div>
       </div>
     </div>
   </div>
@@ -14245,6 +14335,227 @@ function usarTSVIenIM(val) {
 window.usarTSVIenIM = usarTSVIenIM;
 
 // ══ GENERAR INFORME ══
+// ══ FRASES RÁPIDAS DEL INFORME ══
+/* Frases propias del médico, guardadas en el dispositivo, para insertar en el informe sin
+   reescribirlas. No son datos de paciente: son plantillas del profesional. Aun así se guardan
+   en localStorage sin cifrar y pueden contener texto clínico, así que el manual lo dice. */
+const FRASES_KEY = 'ecosmart_frases';
+
+/* JSON.parse de storage SIEMPRE en try/catch, y verificando la forma: un valor corrupto
+   —escritura truncada, otra app del mismo origen, edición a mano— lanza SyntaxError, y esto
+   se llama desde el render. Se filtra a strings no vacíos: un objeto o un null en el array
+   reventaría el map de abajo. */
+function frasesLeer() {
+  let a;
+  try { a = JSON.parse(localStorage.getItem(FRASES_KEY) || '[]'); } catch (e) { return []; }
+  if (!Array.isArray(a)) return [];
+  return a.filter(x => typeof x === 'string' && x.trim() !== '');
+}
+function frasesEscribir(arr) {
+  try { localStorage.setItem(FRASES_KEY, JSON.stringify(arr)); return true; }
+  catch (e) { return false; }   // cuota llena: el llamador avisa, no se finge éxito
+}
+
+/* Posición del cursor. El textarea PIERDE el foco al tocar el panel, así que hay que
+   recordar dónde estaba: se guarda en cada interacción con el textarea. `null` significa
+   "nunca se puso el cursor", y ahí se inserta al final — distinto de 0, que es el cursor
+   puesto al principio a propósito. Con selectionStart a secas no se pueden distinguir. */
+let _frasePos = null, _fraseVal = null;
+function frasesInitCursor() {
+  const ta = document.getElementById('informe_texto');
+  if (!ta || ta._frasesInit) return;
+  ta._frasesInit = true;
+  const rec = () => { _frasePos = ta.selectionStart; _fraseVal = ta.value; };
+  ['keyup', 'mouseup', 'input', 'select', 'focus', 'blur'].forEach(ev => ta.addEventListener(ev, rec));
+}
+
+function frasesToggle() {
+  const pan = document.getElementById('frases-panel');
+  const btn = document.getElementById('frases-btn');
+  if (!pan) return;
+  const abierto = !pan.hidden;
+  if (abierto) { frasesCerrar(); return; }
+  pan.hidden = false;
+  pan.style.transform = '';                  // por si un gesto cancelado dejó uno pegado
+  if (btn) btn.setAttribute('aria-expanded', 'true');
+  frasesInitCursor();
+  frasesRender();
+  /* En móvil el drawer es `fixed` y ocupa el 65 % de abajo, así que tapa el textarea si la
+     página está scrolleada donde estaba. Medido sin esto: el drawer arrancaba en y=284 y el
+     textarea en y=365, o sea completamente oculto — y el diseño pide justamente que el texto
+     quede a la vista mientras se insertan frases.
+     Se lleva el textarea a la banda libre de arriba. Se usa scrollTo y no scrollIntoView
+     porque éste centra el elemento y volvería a meterlo debajo del drawer. */
+  if (window.matchMedia && window.matchMedia('(max-width:768px)').matches) {
+    const ta = document.getElementById('informe_texto');
+    if (ta) {
+      const y = Math.max(0, ta.getBoundingClientRect().top + window.scrollY - 56);
+      /* El `smooth` se pide sólo si el usuario NO tiene reducción de movimiento. Con la
+         preferencia activa el navegador ignora el scroll suave y NO scrollea nada —medido:
+         scrollY queda en 0 con 'smooth' y llega a destino con 'auto'—, así que el drawer
+         seguía tapando el textarea justamente para quien pidió menos animación. */
+      const suave = !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+      window.scrollTo({ top: y, behavior: suave ? 'smooth' : 'auto' });
+    }
+  }
+}
+function frasesCerrar() {
+  const pan = document.getElementById('frases-panel');
+  const btn = document.getElementById('frases-btn');
+  if (!pan) return;
+  pan.hidden = true;
+  pan.style.transform = '';                  // ver el touchcancel de abajo
+  pan.classList.remove('frases-cerrando');
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+  frasesNuevaCerrar();
+}
+
+function frasesNuevaAbrir() {
+  const f = document.getElementById('frases-form');
+  if (!f) return;
+  f.hidden = false;
+  const inp = document.getElementById('cfg-frases-input');
+  if (inp) { inp.value = ''; inp.focus(); }
+}
+function frasesNuevaCerrar() {
+  const f = document.getElementById('frases-form');
+  if (f) f.hidden = true;
+}
+function frasesGuardar() {
+  const inp = document.getElementById('cfg-frases-input');
+  if (!inp) return;
+  const txt = inp.value.trim();
+  if (!txt) { toast('Escribí la frase antes de guardar'); return; }
+  if (txt.length > 2000) { toast('La frase es demasiado larga (máximo 2000 caracteres)'); return; }
+  if (frasesLeer().length >= 100) { toast('Llegaste a 100 frases: borrá alguna antes de agregar otra'); return; }
+  /* Aviso sobre lo que el PDF va a borrar. amiloSanPDF transcribe ≤ ≥ — – ' " y demás, pero
+     lo que no está en su lista lo ELIMINA en silencio (viñetas •, ✓, flechas raras). En un
+     texto tipeado una vez eso es un error puntual; en una frase guardada se repite en TODOS
+     los informes donde se inserte, y se ve bien en pantalla. Se avisa, no se bloquea: la frase
+     puede ser correcta y el médico decide. */
+  if (typeof amiloSanPDF === 'function') {
+    const perdidos = [...new Set(txt.split('').filter(c => amiloSanPDF(c) === '' && c.trim() !== ''))];
+    if (perdidos.length && !confirm('Estos caracteres no se van a ver en el PDF y se borran al imprimir:\n\n' +
+        perdidos.join(' ') + '\n\n¿Guardar la frase igual?')) return;
+  }
+  const arr = frasesLeer();
+  arr.unshift(txt);                                   // la más reciente arriba
+  if (!frasesEscribir(arr)) { alert('No se pudo guardar: el almacenamiento del navegador está lleno.'); return; }
+  inp.value = '';            // sin esto el borrador queda vivo en el DOM tras guardar
+  frasesNuevaCerrar();
+  frasesRender();
+  toast('Frase guardada');
+}
+
+/* El índice va por data-* y NO interpolado en un onclick. En un manejador inline escHtml no
+   protege —el parser decodifica la entidad ANTES de compilar el handler—, y aunque acá el
+   índice sea un número del map, la plantilla es lo que se copia después para otra cosa. El
+   listener es delegado y se registra una sola vez sobre la lista. */
+function frasesRender() {
+  const cont = document.getElementById('frases-lista');
+  if (!cont) return;
+  const arr = frasesLeer();
+  if (!arr.length) {
+    cont.innerHTML = '<div class="frases-vacio">Todavía no guardaste ninguna frase. Tocá «+ Agregar frase» para crear la primera.</div>';
+    return;
+  }
+  cont.innerHTML = arr.map((t, i) =>
+    '<div class="frase-item">' +
+      '<button type="button" class="frase-txt" data-frase-i="' + i + '" title="' + escHtml(t) + '"><span class="frase-clamp">' + escHtml(t) + '</span></button>' +
+      '<button type="button" class="frase-del" data-frase-del="' + i + '" aria-label="Borrar frase">✕</button>' +
+    '</div>').join('');
+  if (!cont._frasesDeleg) {
+    cont._frasesDeleg = true;
+    cont.addEventListener('click', ev => {
+      const ins = ev.target.closest('[data-frase-i]');
+      if (ins) { frasesInsertar(+ins.dataset.fraseI); return; }
+      const del = ev.target.closest('[data-frase-del]');
+      if (del) frasesBorrar(+del.dataset.fraseDel);
+    });
+  }
+}
+
+function frasesBorrar(i) {
+  const arr = frasesLeer();
+  if (!Number.isInteger(i) || i < 0 || i >= arr.length) return;
+  if (!confirm('¿Borrar esta frase?\n\n' + arr[i].slice(0, 120))) return;
+  arr.splice(i, 1);
+  if (!frasesEscribir(arr)) { alert('No se pudo actualizar el almacenamiento del navegador.'); return; }
+  frasesRender();
+}
+
+/* Inserta en la posición exacta del cursor. El panel queda abierto a propósito: el médico
+   suele encadenar varias frases. El foco vuelve al textarea para que pueda seguir escribiendo,
+   y el cursor queda DESPUÉS de lo insertado, no al principio. */
+function frasesInsertar(i) {
+  const arr = frasesLeer();
+  if (!Number.isInteger(i) || i < 0 || i >= arr.length) return;
+  const ta = document.getElementById('informe_texto');
+  if (!ta) return;
+  const txt = arr[i];
+  const v = ta.value;
+  /* Se compara el texto guardado con el actual. Si no coinciden, alguien escribió el textarea
+     POR CÓDIGO —generarInforme, editarInforme, limpiarCampos, la reimpresión de un guardado— y
+     la posición recordada es de otro informe. El guard de `> v.length` solo no alcanzaba: si el
+     informe nuevo era MÁS largo que el offset viejo, la posición caía dentro del rango y la
+     frase se insertaba en mitad de una palabra del informe de otro paciente, sin separador y
+     sin aviso, y de ahí pasaba al estudio guardado y al PDF.
+     Comparar el valor en vez de resetear en cada sitio que escribe el textarea es a propósito:
+     los sitios son cuatro hoy y el quinto no se acordaría de resetear. */
+  const alFinal = (_frasePos === null || _fraseVal !== v || _frasePos > v.length);
+  const pos = alFinal ? v.length : _frasePos;
+  /* Sólo al APENDEAR al final se agrega un espacio si hace falta. Sin esto, encadenar frases
+     —que es el caso de uso: el panel queda abierto justamente para eso— pegaba cada una
+     contra el punto de la anterior: «conservados.Función sistólica…». En una inserción con
+     cursor NO se toca nada: ahí el médico eligió el punto exacto y meterle un espacio sería
+     desobedecerlo. */
+  const sep = (alFinal && v && !/\s$/.test(v)) ? ' ' : '';
+  ta.value = v.slice(0, pos) + sep + txt + v.slice(pos);
+  const fin = pos + sep.length + txt.length;
+  _frasePos = fin; _fraseVal = ta.value;   // el snapshot acompaña, si no la próxima inserción se cree stale
+  ta.focus();
+  try { ta.setSelectionRange(fin, fin); } catch (e) {}
+  /* input y no change: el informe se autoguarda y se recalcula escuchando input, y asignar
+     .value por código no dispara ningún evento. Sin esto la frase se veía en pantalla y no
+     entraba en el estudio guardado. */
+  ta.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+/* Cierre del drawer con swipe hacia abajo. Sólo se cierra si el gesto es claramente vertical
+   y hacia abajo: sin el umbral, un scroll dentro de la lista cerraba el panel. */
+(function frasesSwipe() {
+  const init = () => {
+    const grip = document.getElementById('frases-grip');
+    const pan = document.getElementById('frases-panel');
+    if (!grip || !pan || grip._init) return;
+    grip._init = true;
+    let y0 = null;
+    grip.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; }, { passive: true });
+    grip.addEventListener('touchmove', e => {
+      if (y0 === null) return;
+      const dy = e.touches[0].clientY - y0;
+      if (dy > 0) pan.style.transform = 'translateY(' + Math.min(dy, 400) + 'px)';
+    }, { passive: true });
+    grip.addEventListener('touchend', e => {
+      if (y0 === null) return;
+      const dy = (e.changedTouches[0] || {}).clientY - y0;
+      pan.style.transform = '';
+      y0 = null;
+      if (dy > 60) frasesCerrar();
+    });
+    /* Sin touchcancel el transform quedaba pegado: iOS cancela el gesto por un swipe de borde
+       o una llamada entrante, touchend nunca llega, y el panel reabría desplazado hasta 400px
+       hacia abajo — se lee como «el panel dejó de abrir» y no hay forma de recuperarlo sin
+       recargar. */
+    grip.addEventListener('touchcancel', () => { pan.style.transform = ''; y0 = null; });
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+
+window.frasesToggle = frasesToggle; window.frasesNuevaAbrir = frasesNuevaAbrir;
+window.frasesNuevaCerrar = frasesNuevaCerrar; window.frasesGuardar = frasesGuardar;
+
 // ══ ESTILO DE INFORME (Conciso / Estándar / Narrativo) ══
 let estiloInforme = 'estandar';
 function estiloPick(c, e, n) {
@@ -30562,9 +30873,16 @@ const ECO_AYUDA = [
   <p class="mP">Se arma en paralelo y <b>sólo recoge lo anormal</b>: función y geometría del VI, disfunción diastólica, aurícula izquierda, VD, cada valvulopatía con su grado, PSAP, VEXUS, dilatación de raíz aórtica, pericardio, HFA-PEFF y eco pulmonar. Si no hay nada anormal, escribe «Estudio sin alteraciones estructurales ni funcionales significativas.»</p>
   <div class="mSub">Estilo</div>
   <p class="mP">Tres pastillas: <b>📋 Conciso</b>, <b>📄 Estándar</b> (el que viene por defecto) y <b>📖 Narrativo</b>.</p>
+  <div class="mSub">💬 Frases rápidas</div>
+  <p class="mP">Son <b>frases tuyas</b>, prearmadas, para meter en el informe sin volver a escribirlas: la fórmula que usás siempre para describir una válvula, la recomendación de control, lo que repitas seguido.</p>
+  <p class="mP"><b>Agregar una.</b> En esta pestaña, botón <b>💬 Frases</b>, al lado de las pastillas de estilo. Se abre un panel a la derecha del cuadro de texto —en el celular sube desde abajo—. Tocá <b>+ Agregar frase</b>, escribila y <b>Guardar</b>. La más nueva queda arriba.</p>
+  <p class="mP"><b>Insertar una.</b> Poné el cursor donde la querés y tocá la frase: se mete <b>en ese punto exacto</b>, no al final. Si nunca tocaste el texto, va al final. El panel <b>queda abierto</b> a propósito, para encadenar varias, y el cursor vuelve al cuadro justo después de lo insertado para que sigas escribiendo.</p>
+  <p class="mP"><b>Borrar una.</b> La ✕ a la derecha de cada frase. Pregunta antes.</p>
+  <p class="mP"><b>Cerrar el panel.</b> El mismo botón 💬 Frases, la ✕ de arriba, o —en el celular— arrastrando hacia abajo la barrita gris.</p>
+  <div class="mBox mTip"><b>Dónde viven.</b> Las frases se guardan <b>en este dispositivo y en este navegador</b>: no se pierden al cerrar la app ni al apagar la máquina, y no viajan con el estudio ni con el backup. Si abrís EcoSmart en otra computadora o en otro navegador, ahí no van a estar. Tampoco van cifradas, así que no conviene guardar el nombre de un paciente dentro de una frase.</div>
   <div class="mSub">Editar el texto</div>
   <p class="mP">Los dos cuadros —informe y EN SUMA— son editables. Escribí lo que quieras.</p>
-  <div class="mBox mAviso"><b>Atención — lo que reescribe tu edición.</b> El texto editado a mano se pisa entero, sin preguntar, cuando: tocás Regenerar, cambiás el estilo, cambiás un selector de VEXUS, o integrás o retirás un módulo. Guardar el estudio <b>sí</b> conserva lo editado, y volver a abrirlo desde Guardados lo restaura tal cual. Regla práctica: editá al final, y si tenés que volver a tocar algo, guardá antes.</div>
+  <div class="mBox mAviso"><b>Atención — lo que reescribe tu edición.</b> El texto editado a mano se pisa entero, sin preguntar, cuando: tocás Regenerar, cambiás el estilo, cambiás un selector de VEXUS, o integrás o retirás un módulo. Guardar el estudio <b>sí</b> conserva lo editado, y volver a abrirlo desde Guardados lo restaura tal cual. Regla práctica: editá al final, y si tenés que volver a tocar algo, guardá antes. <b>Esto vale también para un informe armado sólo con frases rápidas:</b> aunque no hayas tipeado una letra, cuenta como texto propio y se pisa igual. Y algunos de esos rehechos son <b>silenciosos</b> —cambiar un valor de VEXUS o de amiloidosis regenera sin avisar—, así que si compusiste el informe con frases, guardalo o exportá el PDF antes de volver a tocar mediciones.</div>
   <div class="mSub">Modo comparativo</div>
   <p class="mP">El botón <b>🔀 Modo comparativo</b> aparece sólo si hay un estudio guardado con el mismo nombre. Pone lado a lado el informe actual y el texto del estudio previo que elijas. Compara <b>texto</b>; para comparar números está la tabla de evolución y el botón <b>Evol</b> de Guardados.</p>
   <div class="mBox mTip"><b>Consejo.</b> El checkbox <b>🎓 Marcar como caso de interés</b> de esta pestaña es el mismo que la estrella de Guardados. Marcalo acá y después lo filtrás allá.</div>` },
