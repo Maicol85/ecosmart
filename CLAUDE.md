@@ -99,6 +99,41 @@ realmente existen, no de suponerlas. Una primera versión omitió `orange` y `ye
 llamadas— y las habría pintado de gris: un badge de alerta degradado a uno neutro es una
 regresión de señal clínica, no un detalle visual.
 
+### `disabled` no sobrevive a la reimpresión — no lo uses como compuerta de contenido
+`.checked` se persiste (`<id>__chk`) y las tres rutas de restauración lo reponen. **`disabled`
+no**: no está en el HTML, `guardarInforme` no lo guarda y nadie lo repone. Y lo que lo baja es
+un recálculo (`calcEM`) que **no corre en la reimpresión** —ahí los campos se llenan asignando
+`.value`, y eso no dispara `oninput`; `calcEM` tampoco está en la lista de recálculos de
+`_pdfDeInformeGuardadoArmar`—.
+
+Resultado medido: un `c.checked && !c.disabled` hacía que, después de un «Nuevo estudio»
+—que deja `disabled=true`—, reimprimir un informe guardado con la continuidad marcada saliera
+**sin** continuidad. Distinto del que se firmó, sin ningún aviso. Gatear por el **dato** (¿hay
+valor?), nunca por el estado visual del control. Hay regla Semgrep:
+`ceibo-checked-gateado-por-disabled`.
+
+### `__chk` presente ≠ «el médico decidió»
+`guardarInforme` barre **todos** los `input[type=checkbox][id]` y escribe la clave siempre, con
+`'0'` incluso para un control que nunca se mostró. Inferir una decisión de que la clave exista
+hace que, desde el primer guardado, todo estudio la traiga y el comportamiento «auto» muera al
+reabrir. Si hace falta distinguir «no» de «no decidió», va **bandera propia** (acá:
+`<id>__tocado`), persistida y restaurada aparte.
+
+### Un `onclick` inline infla el elemento a 44×44
+La hoja de estilos trae una regla de área táctil:
+`button, [role="button"], .btn, .tab-btn, .nav-tab, .chip, .cal-cell, .seg-cell, [onclick] { min-height:44px; min-width:44px }`.
+Matchea por el **atributo**, no por el tipo de elemento: poner `onclick=` en un checkbox lo
+agranda a 44×44 —tres veces los de al lado— y rompe la fila. Si sólo hace falta reaccionar al
+cambio, usar `onchange`.
+
+### Una regla Semgrep nueva se verifica contra el código que la originó
+La primera versión de `ceibo-checked-gateado-por-disabled` daba 0 hallazgos y parecía calibrada.
+No matcheaba el caso real: `!!(c && c.checked && !c.disabled)` asocia a la izquierda, así que el
+operando izquierdo del `&&` externo es `(c && c.checked)` y el patrón `$C.checked && !$C.disabled`
+no aplica. Antes de dar por buena una regla, correrla sobre un archivo con el defecto **y** con
+la versión corregida, y confirmar que distingue. Cero hallazgos suele ser un patrón mal escrito,
+no un código limpio — mismo error de denominador que el resto de esta lista.
+
 ### Semgrep: 118 warnings, 106 son ruido
 El triage completo del 2026-09-08 dio **106 falsos positivos / 12 reales**. Los falsos
 vienen del patrón `innerHTML +=` con resultados numéricos (`.toFixed()`, `Math.round`,

@@ -2250,6 +2250,33 @@ window.cerrarSesion = cerrarSesion;
           <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Severidad EM integrada (ESC 2021)</span><span id="em-sev-integrada">—</span></div>
           <div class="calc-row"><span id="em-discordancia" style="color:var(--yellow);font-size:11px;"></span></div>
         </div>
+
+        <!-- Selector de métodos de AVm que se imprimen en el PDF.
+             THP va siempre: es el que la tabla del informe ya imprimía antes de este selector,
+             así que dejarlo desmarcable habría hecho DESAPARECER un dato que los informes
+             venían trayendo, y encima en silencio. Por eso no se deshabilita —deshabilitado
+             acá significa «no hay valor», que es otra cosa— sino que el clic lo repone. -->
+        <div style="margin-top:8px;padding:8px;border:1px solid var(--border);border-radius:6px;">
+          <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;">🖨️ Incluir en el informe:</div>
+          <label style="display:block;font-size:11px;margin-bottom:4px;cursor:pointer;">
+            <!-- `onchange`, NO `onclick`: la regla de área táctil de la hoja de estilos
+                 (`button, [role=button], .btn, …, [onclick] { min-width:44px; min-height:44px }`)
+                 matchea por el ATRIBUTO, así que un onclick inline acá inflaba la casilla a
+                 44×44 —tres veces las otras dos— y rompía la fila. El efecto es el mismo:
+                 change dispara después del toggle y reponer .checked lo revierte. -->
+            <input type="checkbox" id="em_pdf_thp" checked onchange="this.checked=true;"> AVm por THP
+            <span id="em-pdf-thp-val" style="color:var(--text2);"></span>
+            <span style="color:var(--text2);font-size:10px;">— siempre incluida</span>
+          </label>
+          <label style="display:block;font-size:11px;margin-bottom:4px;cursor:pointer;">
+            <input type="checkbox" id="em_pdf_cont" onchange="this.dataset.tocado='1';"> AVm por continuidad
+            <span id="em-pdf-cont-val" style="color:var(--text2);"></span>
+          </label>
+          <label style="display:block;font-size:11px;cursor:pointer;">
+            <input type="checkbox" id="em_pdf_plan" onchange="this.dataset.tocado='1';"> AVm por planimetría
+            <span id="em-pdf-plan-val" style="color:var(--text2);"></span>
+          </label>
+        </div>
       </div>
       <div id="bloque-insuf-mitral" style="display:none;">
       <div class="divider"></div>
@@ -7046,7 +7073,7 @@ z
             <option value="secundaria">Secundaria (funcional)</option>
           </select>
         </div>
-        <div class="fg"><label>Área mitral planimetría (cm²)</label>
+        <div class="fg"><label>Área mitral planimetría (cm²) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← Válvula Mitral</span></label>
           <input type="number" id="teer_area_mitral" placeholder="cm²" oninput="calcTEER()">
         </div>
         <div class="fg"><label>PASP (mmHg)</label>
@@ -7066,11 +7093,11 @@ z
           <input type="number" id="teer_ancho_flail" placeholder="mm" oninput="calcTEER()">
           <span style="font-size:10px; color:var(--text2);">Excl: ≥15mm</span>
         </div>
-        <div class="fg"><label>Longitud velo anterior (mm)</label>
+        <div class="fg"><label>Longitud velo anterior (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← ETE Válvula Mitral</span></label>
           <input type="number" id="teer_lva" placeholder="mm" oninput="calcTEER()">
           <span style="font-size:10px; color:var(--text2);">Req: ≥20mm</span>
         </div>
-        <div class="fg"><label>Longitud velo posterior (mm)</label>
+        <div class="fg"><label>Longitud velo posterior (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← ETE Válvula Mitral</span></label>
           <input type="number" id="teer_lvp" placeholder="mm" oninput="calcTEER()">
           <span style="font-size:10px; color:var(--text2);">Req: ≥7mm (ideal ≥10mm)</span>
         </div>
@@ -7088,11 +7115,11 @@ z
           <input type="number" id="teer_gap" placeholder="mm" oninput="calcTEER()">
           <span style="font-size:10px; color:var(--text2);">Req: &gt;2mm</span>
         </div>
-        <div class="fg"><label>FEVI (%)</label>
+        <div class="fg"><label>FEVI (%) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← VI Función Sistólica</span></label>
           <input type="number" id="teer_fevi" placeholder="%" oninput="calcTEER()">
           <span style="font-size:10px; color:var(--text2);">COAPT: 20–50%</span>
         </div>
-        <div class="fg"><label>DTSVI (mm)</label>
+        <div class="fg"><label>DTSVI (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← VI Estructura (DSFVI)</span></label>
           <input type="number" id="teer_dtsvi" placeholder="mm" oninput="calcTEER()">
           <span style="font-size:10px; color:var(--text2);">COAPT: ≤70mm</span>
         </div>
@@ -13098,6 +13125,11 @@ function calcEM() {
   // AVm planimetría
   document.getElementById('em-plan-row').textContent = avm_plan ? avm_plan + ' cm²' : (avm_ete ? avm_ete + ' cm² (ETE)' : '—');
 
+  // Selector de métodos para el PDF: refleja qué se puede imprimir con los datos de ahora.
+  // La planimetría cae al área de Wilkins por ETE cuando no hay planimetría transtorácica,
+  // que es la misma precedencia que usan em-plan-row y la clasificación integrada de abajo.
+  emPdfMetodosUI(avm_thp_val, avm_cont_val, avm_plan ? PF(avm_plan) : (avm_ete ? PF(avm_ete) : null));
+
   // AVm indexada — mejor estimada (planimetría > continuidad > THP)
   const avmMejor = avm_plan || avm_cont_val || avm_thp_val;
   const bsa = getBSA();
@@ -13221,6 +13253,117 @@ function sincronizarEADesdeGlobal() {
   });
   calcEADetalle();
 }
+
+/* ══ Sincronización hacia campos derivados — variante que NO pisa lo manual ══
+   sincronizarEADesdeGlobal (arriba) SÍ pisa el destino, y puede permitírselo porque la EA
+   tiene vuelta: syncEADesdeValvulas devuelve al Doppler global lo que se escribe a mano, así
+   que las dos copias se mantienen iguales y pisar es idempotente. EM y TEER no tienen esa
+   vuelta. Si copiaran igual, el valor medido a mano por el médico se perdería cada vez que
+   se reabre la sección, sin aviso y sobre un campo que decide contenido impreso.
+   Por eso estas dos usan la guarda de cxGtpSync: escribir sólo si el destino está VACÍO.
+   Esa es también la implementación de «el valor manual tiene prioridad»: no hace falta
+   bandera, el propio contenido del campo es el estado. */
+function _syncSiVacio(map) {
+  map.forEach(([src, dst]) => {
+    const s  = document.getElementById(src);
+    const el = document.getElementById(dst);
+    if (el && s && el.value === '' && s.value !== '') el.value = s.value;
+  });
+}
+
+/* EM: los dos campos del TSVI ya se ANUNCIABAN como «auto ← Doppler» y calcEM ya caía a los
+   globales (`v('em_dtsvi') || v('diam_tsvi')`), así que la CUENTA salía bien — pero el campo
+   quedaba vacío. El médico leía un «AVm por continuidad» calculado a partir de dos casillas
+   en blanco, sin forma de saber con qué Ø TSVI se computó ni de detectar que era el del
+   Doppler y no el que él creía haber puesto. Esto hace visible lo que ya se estaba usando. */
+function sincronizarEMDesdeGlobal() {
+  _syncSiVacio([['diam_tsvi','em_dtsvi'], ['itv_tsvi','em_vtitsvi']]);
+  calcEM();
+}
+window.sincronizarEMDesdeGlobal = sincronizarEMDesdeGlobal;
+
+/* ══ Selector de métodos de AVm que van al PDF ══
+   Un método sin valor calculado no se puede imprimir, así que su casilla queda desmarcada y
+   DESHABILITADA: una casilla marcable que no imprime nada es una promesa que el informe no
+   cumple. Y mientras el médico no toque la casilla, tener valor la marca sola —que es lo
+   útil por defecto—; en cuanto la toca, `dataset.tocado` congela su decisión y ningún
+   recálculo posterior se la pisa. Sin ese freno, desmarcar «continuidad» y después corregir
+   cualquier medida del bloque la habría vuelto a marcar sin decir nada, que es exactamente
+   el defecto que ya se pagó con las secciones del ETE (ver _restaurarChkInclusion). */
+function _emPdfChk(idChk, idSpan, val) {
+  const cb = document.getElementById(idChk);
+  const sp = document.getElementById(idSpan);
+  if (!cb) return;
+  const hay = (val != null && val !== '' && !isNaN(val));
+  if (sp) sp.textContent = hay ? '— ' + Number(val).toFixed(2) + ' cm²' : '— sin valor';
+  /* OJO: no se borra `dataset.tocado` acá. Los input de esta app se convierten en runtime a
+     type="text", así que `oninput` dispara con el valor intermedio: corregir una medida
+     borrándola con backspace pasa SIEMPRE por ''. Si el vacío reseteara la memoria, el
+     médico que desmarcó «continuidad» y después corrige el VTI mitral se encontraba la
+     casilla marcada de nuevo, sola y sin aviso. La bandera sólo se limpia en limpiarCampos
+     (paciente nuevo), que es el único momento donde la decisión deja de aplicar. */
+  if (!hay) { cb.checked = false; cb.disabled = true; return; }
+  cb.disabled = false;
+  if (!cb.dataset.tocado) cb.checked = true;
+}
+function emPdfMetodosUI(thpVal, contVal, planVal) {
+  // THP no lleva guarda de «tocado»: su casilla no se puede desmarcar, sólo informa el valor.
+  const spT = document.getElementById('em-pdf-thp-val');
+  if (spT) spT.textContent = (thpVal != null && !isNaN(thpVal)) ? '— ' + Number(thpVal).toFixed(2) + ' cm²' : '— sin valor';
+  _emPdfChk('em_pdf_cont', 'em-pdf-cont-val', contVal);
+  _emPdfChk('em_pdf_plan', 'em-pdf-plan-val', planVal);
+}
+window.emPdfMetodosUI = emPdfMetodosUI;
+
+/* Valor de la fila «AVm» de la tabla del PDF.
+   THP se imprime SIEMPRE que tenga valor, sin consultar su casilla. No es sólo por el «no
+   desmarcable» de la interfaz: los estudios guardados antes de este selector no traen
+   `em_pdf_thp__chk`, y tanto la reimpresión como el restaurador lo leen como desmarcado. Si
+   la fila dependiera del checkbox, reimprimir CUALQUIER informe viejo habría salido sin AVm
+   — borrando un dato que esos informes sí traían, y en silencio.
+
+   NO se consulta `disabled`. Es estado de runtime puro: no está en el HTML, guardarInforme
+   sólo persiste `.checked`, y ninguna ruta de restauración lo repone —`calcEM` ni siquiera
+   corre durante la reimpresión, así que `_emPdfChk`, la única que lo baja, no se ejecuta—.
+   Usarlo como compuerta hacía que, después de un «Nuevo estudio», reimprimir un informe
+   guardado con la continuidad marcada saliera SIN continuidad: distinto del que se firmó, y
+   sin aviso. Verificado reproduciéndolo. La guarda que sí corresponde es el propio valor:
+   si no hay número, no se imprime, y `_emPdfChk` ya desmarca lo que no tiene valor.
+
+   Los métodos se leen de los campos ya calculados (`avm_cont` guarda «0.79 cm²» y v() se
+   queda con el número); no se recalculan acá a propósito: una segunda copia de la fórmula
+   se pudre sin que se vea desde la app, que es como se rompió el bloque diastólico. */
+function emAvmPdfVal() {
+  const partes = [];
+  const marcado = id => { const c = document.getElementById(id); return !!(c && c.checked); };
+  /* THP lleva prefijo porque ya no es el único método de la celda, y la fila no puede
+     rotularse «AVm THP»: en fibrilación auricular o post-valvuloplastia el THP no es válido
+     y el médico mide sólo planimetría. Con el rótulo viejo, esa celda decía «AVm THP» sobre
+     un número que no era THP. */
+  const thp = v('avm_thp');
+  if (thp) partes.push('THP: ' + thp + ' cm2');
+  if (marcado('em_pdf_cont')) { const x = v('avm_cont'); if (x) partes.push('Cont: ' + x.toFixed(2) + ' cm2'); }
+  if (marcado('em_pdf_plan')) { const x = v('avm_plan') || v('avm_ete'); if (x) partes.push('Plan: ' + x.toFixed(2) + ' cm2'); }
+  return partes.length ? partes.join(' · ') : null;
+}
+window.emAvmPdfVal = emAvmPdfVal;
+
+/* TEER: los cinco criterios de MitraClip/PASCAL que ya están medidos en otras secciones.
+   DTSVI es el diámetro TELEsistólico (LVESD del COAPT, umbral ≤70 mm), o sea DSFVI — no
+   confundir con el «Ø TSVI» del tracto de salida que usan EM y EA, que es otro campo. */
+function sincronizarTEERDesdeGlobal() {
+  _syncSiVacio([
+    ['ete_lva','teer_lva'], ['ete_lvp','teer_lvp'],
+    ['fevi','teer_fevi'], ['dsfvi','teer_dtsvi'], ['avm_plan','teer_area_mitral']
+  ]);
+  /* El área mitral cae a «Área Wilkins (ETE)» cuando no hay planimetría transtorácica: TEER
+     es un contexto transesofágico, así que ése es justamente el campo que suele estar
+     cargado. Es la misma precedencia que usan emAvmPdfVal y em-plan-row; sin esto calcTEER
+     contaba el criterio de área como «no ingresado» sobre un dato que la app ya tenía. */
+  _syncSiVacio([['avm_ete','teer_area_mitral']]);
+  if (typeof calcTEER === 'function') calcTEER();
+}
+window.sincronizarTEERDesdeGlobal = sincronizarTEERDesdeGlobal;
 window.sincronizarEADesdeGlobal = sincronizarEADesdeGlobal;
 
 // EA: input manual desde bloque Válvulas → sincronizar al Doppler global y recalcular
@@ -15669,6 +15812,15 @@ function limpiarCampos() {
      estudio como ETE y después dar «Nuevo estudio» dejaba el título transesofágico
      puesto para el paciente siguiente. */
   { const _ete = document.getElementById('ete-es-ete'); if (_ete) _ete.checked = false; }
+  /* Ídem para el selector de métodos de AVm. Además de desmarcar hay que borrar
+     `dataset.tocado`: es la memoria de «el médico ya decidió», y si sobrevive al paciente
+     nuevo el auto-marcado nunca vuelve a encenderse y la continuidad queda fuera del
+     informe en silencio. THP vuelve a marcado, que es su estado permanente. */
+  { const _t = document.getElementById('em_pdf_thp'); if (_t) _t.checked = true; }
+  ['em_pdf_cont','em_pdf_plan'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.checked = false; el.disabled = true; delete el.dataset.tocado; }
+  });
   { const _mm = document.getElementById('vm_prolapso_mm'); if (_mm) _mm.value = ''; }
   { const _bp = document.getElementById('bloque-prolapso-vm'); if (_bp) _bp.style.display = 'none'; }
   // Masa intracardíaca: resetear selector y ocultar bloque
@@ -16764,7 +16916,7 @@ function generarPDFReal() {
       {lbl:'EROA',          ref:'(<20 / 20–40 / ≥40) mm²', val:eroaS},
       {lbl:'Vol.R',         ref:'(<30 / 30–60 / ≥60) ml', val:volrS},
       {lbl:'EM grado',      ref:'', val:(sv('em_grado')&&sv('em_grado')!=='sin')?_cap(sv('em_grado')):null},
-      {lbl:'AVm THP',       ref:'(>2.5 / 1.5–2.5 / ≤1.5) cm²', val:v('avm_thp')?v('avm_thp')+' cm2':null},
+      {lbl:'AVm',           ref:'(>2.5 / 1.5–2.5 / ≤1.5) cm²', val:emAvmPdfVal()},
       {lbl:'Notas',         ref:'', val:sv('vm_notas')||null},
     ]},
     {titulo:'Válvula Aórtica', items:[
@@ -17871,6 +18023,10 @@ function toggleEteSeccion(id, headEl) {
      adentro» decía lo contrario de lo que pasaba, y en estas secciones gobierna el acceso a
      campos que deciden contenido impreso. Cerrada ▶ (sin rotar), abierta ▼ (90° horario). */
   if (arrow) arrow.style.transform = visible ? 'rotate(0deg)' : 'rotate(90deg)';
+  // `visible` es el estado ANTERIOR al toggle, así que !visible es «se acaba de abrir».
+  if (!visible && id === 'teer' && typeof sincronizarTEERDesdeGlobal === 'function') {
+    sincronizarTEERDesdeGlobal();
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -18224,6 +18380,17 @@ function _restaurarChkInclusion(campos){
   // Sin esto el estudio quedaba integrado pero el botón seguía gris: el médico leía
   // «no está en el informe» sobre una sección que sí iba a imprimirse.
   if (typeof eteInclSync === 'function') { try { eteInclSync(); } catch(e){} }
+  /* La decisión sobre los métodos de AVm se repone desde su propia clave, para que el primer
+     calcEM() posterior —que corre al abrir el bloque EM— no vuelva a auto-marcar lo que el
+     médico había desmarcado. Es el mismo defecto que arriba, pero al revés: allá el estado
+     se perdía, acá reaparecería. Los estudios anteriores a esta clave no la traen y
+     conservan el auto-marcado, que es lo correcto para ellos. */
+  ['em_pdf_cont','em_pdf_plan'].forEach(function(id){
+    const cb = document.getElementById(id);
+    if (!cb) return;
+    if (campos[id + '__tocado'] === '1') cb.dataset.tocado = '1';
+    else delete cb.dataset.tocado;
+  });
 }
 window._restaurarChkInclusion = _restaurarChkInclusion;
 
@@ -18313,7 +18480,9 @@ function toggleValvPill(valvula, tipo) {
     if (valvula === 'mitral' && tipo === 'esten') {
       const det = document.getElementById('bloque-em-detalle');
       if (det) det.style.display = 'block';
-      calcEM();
+      // Copia Ø TSVI y VTI TSVI del Doppler antes de calcular (y llama a calcEM adentro),
+      // igual que la aórtica de abajo hace con sincronizarEADesdeGlobal.
+      sincronizarEMDesdeGlobal();
     }
     // Mostrar bloque detalle EA si corresponde
     if (valvula === 'aortica' && tipo === 'esten') {
@@ -20064,6 +20233,16 @@ function guardarInforme(onDone) {
      distintas sin que nada lo avisara. `caso_interes` y los humorales del HFA-PEFF ya tenían
      su tratamiento especial abajo; esto cubre a todos los demás. */
   document.querySelectorAll('input[type=checkbox][id]').forEach(el => { campos[el.id + '__chk'] = el.checked ? '1' : '0'; });
+  /* «El médico decidió» va como dato propio, no se infiere de que exista `__chk`. La línea de
+     arriba guarda TODOS los checkbox siempre, así que desde este commit todo estudio trae
+     `em_pdf_cont__chk`, incluso uno sin estenosis mitral donde el bloque nunca se abrió.
+     Inferir la decisión de esa presencia hacía que al reabrir CUALQUIER estudio el
+     auto-marcado quedara muerto: la continuidad se calculaba, se mostraba en pantalla y no
+     entraba al informe, sin que nadie hubiera decidido eso. */
+  ['em_pdf_cont','em_pdf_plan'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) campos[id + '__tocado'] = el.dataset.tocado ? '1' : '0';
+  });
   campos['caso_interes'] = document.getElementById('caso_interes')?.checked ? '1' : '0';
   // Criterios humorales del HFA-PEFF: el bucle de arriba los guarda con .value, que
   // en un checkbox vale "on" siempre. Hay que persistir .checked como '1'/'0'.
@@ -23702,6 +23881,14 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
   document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => { backup[el.id] = el.value; });
   const chkEstado = {};
   document.querySelectorAll('input[type=checkbox][id]').forEach(el => { chkEstado[el.id] = el.checked; });
+  /* `dataset.tocado` del selector de AVm es estado igual que `.checked`, y la reimpresión lo
+     pisa más abajo. Sin respaldarlo, imprimir un guardado dejaba congelada la decisión del
+     paciente EN PANTALLA: sus casillas ya no se volvían a auto-marcar al recalcular. */
+  const tocadoEstado = {};
+  ['em_pdf_cont','em_pdf_plan'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) tocadoEstado[id] = el.dataset.tocado;
+  });
   // Backup de los checklists del acordeón (checkboxes son class-based, sin id → no entran en el backup anterior)
   const chkBackup = {
     indicaciones: Array.from(document.querySelectorAll('.ind-chk:checked')).map(c => c.dataset.val),
@@ -23765,6 +23952,17 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
        el algoritmo diastólico lea '' y asuma ritmo sinusal sin mostrar nada en pantalla. */
     if (el.tagName === 'SELECT') { if (c[el.id] !== undefined) el.value = c[el.id]; else el.selectedIndex = 0; return; }
     el.value = (c[el.id] !== undefined ? c[el.id] : '');
+  });
+  /* Mismo freno que en _restaurarChkInclusion: la decisión sobre los métodos de AVm viene
+     del estudio, así que se repone tal cual para que un calcEM() disparado durante la
+     generación no la vuelva a auto-marcar. Sin esto, un estudio donde el médico había
+     sacado la continuidad la reimprimía CON continuidad, y el informe reimpreso no
+     coincidía con el firmado. */
+  ['em_pdf_cont','em_pdf_plan'].forEach(function(id){
+    const cb = document.getElementById(id);
+    if (!cb) return;
+    if (c[id + '__tocado'] === '1') cb.dataset.tocado = '1';
+    else delete cb.dataset.tocado;
   });
   /* Se escribe SIEMPRE, con '' cuando el estudio no trae la clave. Con la asignación
      condicional, un guardado sin médico —toda la base anterior a que guardarInforme lo
@@ -23860,6 +24058,12 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
     // Simétrico con el llenado: sin esto el paciente en pantalla perdía sus tildes.
     document.querySelectorAll('input[type=checkbox][id]').forEach(el => {
       if (chkEstado[el.id] !== undefined) el.checked = chkEstado[el.id];
+    });
+    ['em_pdf_cont','em_pdf_plan'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (tocadoEstado[id] === undefined) delete el.dataset.tocado;
+      else el.dataset.tocado = tocadoEstado[id];
     });
     ['med-nombre','med-matricula','med-lugar','med-especialidad','med-direccion','med-telefono'].forEach(fid => {
       const el = document.getElementById(fid);
