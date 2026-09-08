@@ -57,20 +57,41 @@ dio por bueno**, porque sólo valida sintaxis y el archivo seguía siendo JS vá
 detectó recién en el navegador, con `CeiboStore` dando `undefined`. Después de un cambio
 grande, mirar `git diff` y contar las líneas eliminadas.
 
-### `getLocal()` devuelve el array **vivo**
-No es una copia. Un `CeiboStore.getLocal().push(x)` escribe directo en el caché interno y
-esquiva el saneo de id. Hoy todos los llamadores son de sólo lectura o hacen `.slice()`,
-pero nada lo obliga. Si hace falta modificar, `.slice()` primero y volver por `setLocal`.
+### `getLocal()` devuelve una copia **superficial** (desde 2026-09-08)
+Antes devolvía el array vivo y un `push()` directo esquivaba el saneo de id. Ahora
+`getLocal()`/`getChunk()` hacen `.slice()`, así que **mutar el array devuelto no hace nada**.
 
-### `window.eeIncluirPDF` — y por qué sacarlo no alcanzó
-Se quitó el export explícito el 2026-09-08. **Ojo con la intuición**: eso NO volvió
-inalcanzable la función, porque una declaración de función en el nivel superior de un
-`<script>` clásico ya crea la propiedad en `window`. Medido: después de sacar la línea,
-`typeof window.eeIncluirPDF` sigue dando `'function'`. El export era redundante.
-Lo que mantiene inerte el bloque de Eco Estrés es otra cosa: el toggle `ee-incluir-pdf` no
-existe en el DOM y al arrancar se borra la bandera `ecoestres_incluir_pdf`. **No volver a
-agregar el export**, y si algún día hace falta cerrarlo de verdad, envolver el bloque en un
-IIFE o borrarlo.
+Lo superficial es deliberado: **los objetos se siguen compartiendo**. Un `.find()` devuelve
+el informe real, se puede mutar y se persiste con `setLocal`, que vuelve a pasar por
+`_sanearIds`. Una copia profunda rompería eso y además clonaría las imágenes en base64 de
+cada estudio en cada llamada.
+
+Lo que se cerró es la mutación del **array** (push/splice/length). Si necesitás cambiar la
+lista, andá por `setLocal`/`setChunk`.
+
+### Eco Estrés: `ee*` NO identifica el módulo, y el IIFE no es viable
+Se quitó el export explícito de `window.eeIncluirPDF` el 2026-09-08. Eso **no** volvió
+inalcanzable la función: una declaración de función en nivel superior de un `<script>`
+clásico ya crea la propiedad en `window`, así que `typeof window.eeIncluirPDF` sigue dando
+`'function'`. El export era redundante.
+
+**Envolver "el bloque" en un IIFE no se puede** (analizado 2026-09-08). No hay un bloque:
+son **73 declaraciones `ee*` en cinco clusters entre las líneas 7437 y 30207**, con **599
+funciones ajenas intercaladas**. Y peor, el prefijo miente: en este archivo `ee` es tanto
+*Eco Estrés* como *EcoSmart ETT*. `eeGetMode`, `eeGetModules` y `eeModOn` (cluster
+30162-30207) son la **configuración de modo básico/avanzado de la app**, van de la mano de
+`cfgSetMode` y alimentan el selector «Sección avanzada»; encerrarlas apagaría esa función.
+Un wrap mecánico por prefijo rompe la app.
+
+Lo que **sí** se hizo, y cierra el riesgo real: el gate del PDF exige ahora que el toggle
+`ee-incluir-pdf` **exista en el DOM**, además de la bandera. Como la interfaz se retiró, la
+condición no puede dar verdadero, y vuelve sola el día que se restaure la UI —sin dejar un
+booleano que alguien tenga que acordarse de invertir—. Verificado forzando
+`ecoestres_incluir_pdf='1'` y generando el PDF: la sección no sale.
+
+El riesgo que esto cerraba era concreto: llamar `eeIncluirPDF()` a mano ponía la bandera, la
+limpieza sólo corre al arrancar, y el PDF podía estampar una sección «ECO ESTRÉS» con los 17
+segmentos en NORMAL sobre un estudio donde no se hizo ninguno. **No re-agregar el export.**
 
 ### `badge(cls, txt)` — verificar la allowlist contra el CSS
 La lista de clases permitidas tiene que salir de `grep` de las clases `.badge-*` que
@@ -118,4 +139,16 @@ arriba de `DCM_RANGO`, con la lista de campos afectados. No bajar los pisos: son
 atrapan un `1,2` escrito por `12`. Si hace falta pediatría, rango por franja etaria usando
 el campo `edad` que ya está en el mapa de Excel.
 
-Los tamaños de CIA/CIV y los diámetros de TSVD/TSVI **no tienen rango en ninguna tabla**.
+### CIA/CIV y tractos de salida: sin red
+`ete_cia_tam_max`, `ete_cia_tam_min`, `ete_civ_tam`, `tsvd_diametro`, `vti_tsvd`,
+`diam_tsvi`, `itv_tsvi` **no figuran en ninguna de las dos tablas de rango**. Entran por
+Excel sin ventana de plausibilidad: un TSVI de 210 mm escrito por 21,0 se importa sin
+chistar, y de ahí sale el **Qp/Qs** del shunt.
+
+No se les inventó rango a propósito: son campos de cardiopatía congénita, o sea población
+pediátrica por definición, y una ventana adulta rechazaría los casos legítimos — el mismo
+problema que ya tiene `DCM_RANGO`. La salida correcta es rango por franja etaria usando el
+campo `edad`, que ya está en el mapa de Excel. Hasta entonces, **saber que no hay red**.
+
+Contexto: esta sección se movió a la tab Hemodinámica el 2026-09-08 y quedó más a mano, así
+que es donde más probablemente entre un dato fuera de escala.

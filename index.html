@@ -16638,7 +16638,22 @@ function generarPDFReal() {
   // ════════════════════════════════════════════════════════════
   // ECO ESTRÉS (si el toggle está activo y hay datos) — después del EN SUMA, antes de las imágenes del ETT
   // ════════════════════════════════════════════════════════════
-  if (localStorage.getItem('ecoestres_incluir_pdf') === '1' && typeof window.eeHasData === 'function' && window.eeHasData()) {
+  /* Se exige además que el toggle EXISTA en el DOM. Es lo que cierra de verdad el riesgo que
+     quedó abierto: la interfaz de Eco Estrés se retiró, pero las funciones siguen en el objeto
+     global —una declaración de función en nivel superior de un <script> clásico ya crea la
+     propiedad en window, así que quitar el export explícito no alcanzó—, y llamar
+     eeIncluirPDF() a mano ponía la bandera en '1'. La limpieza de esa bandera sólo corre al
+     arrancar, con lo cual en esa misma sesión el PDF podía estampar una sección «ECO ESTRÉS»
+     con los 17 segmentos en NORMAL sobre un estudio donde no se hizo ninguno: un informe
+     firmado afirmando motilidad normal en pico de un test que no existió.
+     Atarlo a la presencia del toggle hace que la condición vuelva sola el día que se restaure
+     la interfaz, sin dejar una bandera booleana que alguien tenga que acordarse de invertir.
+     NO se envolvió el bloque en un IIFE: el código de Eco Estrés no es contiguo —73
+     declaraciones en cinco clusters entre las líneas 7437 y 30207, con 599 funciones ajenas
+     intercaladas— y el prefijo `ee` no lo identifica: eeGetMode/eeGetModules/eeModOn son la
+     configuración de modo básico/avanzado de la app, alimentan el selector «Sección avanzada»
+     y romperlas apagaría esa función. */
+  if (document.getElementById('ee-incluir-pdf') && localStorage.getItem('ecoestres_incluir_pdf') === '1' && typeof window.eeHasData === 'function' && window.eeHasData()) {
     const _eev = id => { const el = document.getElementById(id); return el ? (el.value || '') : ''; };
     const _eeselT = id => { const el = document.getElementById(id); return (el && el.value !== '') ? el.options[el.selectedIndex].text : ''; };
     const _eeSub = t => { checkPage(8); fb(8); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(t, mL, y); y += 5; };
@@ -19260,8 +19275,20 @@ const CeiboStore = (function () {
     ready,
     lista:  () => _lista,
     modo:   () => (_db ? 'indexedDB' : 'localStorage'),
-    getLocal: () => _local,
-    getChunk: () => _chunk,
+    /* Copia SUPERFICIAL del array, no el array vivo. Antes devolvían `_local`/`_chunk`
+       directo, así que un CeiboStore.getLocal().push(x) escribía en el caché interno y
+       esquivaba _sanearIds — el saneo de id quedaba sorteado por la vía más natural que se
+       le ocurriría a alguien. Hoy los siete llamadores son de sólo lectura o hacen .slice()
+       igual, pero eso era una convención, no una garantía.
+       La copia es superficial A PROPÓSITO: los OBJETOS se siguen compartiendo. igNotaLeer y
+       compañía hacen .find() y leen el informe; si la copia fuera profunda, el id que
+       _sanearIds reparó al leer no sería el mismo objeto que el que después se persiste, y
+       además clonaría en cada llamada las imágenes en base64 de cada estudio. Lo que se cierra
+       acá es la mutación del ARRAY (push/splice/length), que es la que esquivaba el saneo; la
+       mutación de un objeto encontrado sigue funcionando como antes y se persiste con
+       setLocal, que vuelve a pasar por _sanearIds. */
+    getLocal: () => _local.slice(),
+    getChunk: () => _chunk.slice(),
     setLocal(arr) { _local = _sanearIds(Array.isArray(arr) ? arr.slice() : []); return _persistir(); },
     setChunk(arr) { _chunk = _sanearIds(Array.isArray(arr) ? arr.slice() : []); return _persistir(); }
   };
@@ -25568,6 +25595,18 @@ const LAB_XLS_MAP = [
    masa VI indexada, la geometría del VI, el VDFVI indexado y el LAVI. Un dato mal tipeado
    reclasifica la geometría ventricular de toda una cohorte importada, sin un solo mensaje.
    Existía DCM_RANGO con la misma idea, pero sólo en el camino DICOM. */
+/* SIN VALIDACIÓN DE RANGO (verificado 2026-09-08): los tamaños de CIA/CIV
+   (ete_cia_tam_max, ete_cia_tam_min, ete_civ_tam) y los diámetros y VTI de los tractos de
+   salida (tsvd_diametro, vti_tsvd, diam_tsvi, itv_tsvi) NO figuran ni acá ni en DCM_RANGO.
+   Entran por Excel sin ninguna ventana de plausibilidad: un TSVI de 210 mm escrito por 21,0
+   se importa sin chistar, y de ahí sale el Qp/Qs del shunt.
+   No se inventaron rangos: poner una ventana adulta sobre campos de cardiopatía congénita
+   —que es población pediátrica por definición— rechazaría los casos legítimos, que es
+   exactamente el problema que ya tiene DCM_RANGO y está documentado arriba suyo. La salida
+   correcta es rango por franja etaria usando el campo `edad`, que ya está en el mapa; hasta
+   entonces, estos campos quedan sin red y conviene saberlo.
+   Nota de contexto: esta sección se movió a la tab Hemodinámica el 2026-09-08 y quedó más a
+   mano, así que es donde más probablemente entre un dato fuera de escala. */
 const LAB_XLS_RANGO_PROPIO = {
   peso:[1,400], talla:[30,250], edad:[0,120],
   ao_sin:[10,90], ao_st:[10,80], ao_tub:[10,90],
