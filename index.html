@@ -8461,6 +8461,10 @@ function selectValve(valve) {
     + '<div class="fcg-info-item"><span class="fcg-info-lbl">Irradia</span><span class="fcg-info-val">'+valve.irradia+'</span></div>'
     + '<div class="fcg-info-item"><span class="fcg-info-lbl">Claves</span><span class="fcg-info-val">'+valve.clave+'</span></div>';
 
+  /* VERIFICADO 2026-09-08: interpola sin escapar, y es seguro sólo porque items y tip salen
+     de VALVES —tabla literal de este archivo— por los tres únicos llamadores. Es invariante de
+     PROCEDENCIA, no de tipo: si algún día recibe texto del estudio, es XSS directo; ahí hay que
+     envolver con escHtml, que ya está disponible. */
   function makeList(items, tip) {
     let html = '<ul>';
     items.forEach(i => { html += '<li>'+i+'</li>'; });
@@ -10865,8 +10869,19 @@ function setv(id, val) {
   const el = document.getElementById(id);
   if (el) el.value = val !== null && val !== undefined ? val : '';
 }
+/* txt escapado y cls por allowlist, para que la invariante quede por construcción y no por
+   convención: hoy los ~210 llamadores pasan literales o números ya formateados, pero nada en
+   la firma impedía que el primer badge('gray', campos.observaciones) fuera XSS. Semgrep no lo
+   marcaba porque el sink está acá adentro, no en los llamadores.
+   El escape es inocuo para el contenido actual: los '<' que aparecen son de la forma '(<0,9)'
+   o '(<105 ms)' —'<' seguido de dígito o espacio—, que el parser ya trataba como texto.
+   La lista sale de las clases .badge-* que EXISTEN en el CSS, verificada con grep: una primera
+   versión omitía 'orange' y 'yellow' —57 llamadas— y las habría pintado de gris, degradando un
+   badge de alerta a uno neutro, que es una regresión de señal clínica. */
+const BADGE_CLS_OK = ['gray','green','yellow','orange','red','amber','blue','purple','teal'];
 function badge(cls, txt) {
-  return `<span class="badge badge-${cls}">${txt}</span>`;
+  const c = BADGE_CLS_OK.indexOf(String(cls)) >= 0 ? cls : 'gray';
+  return `<span class="badge badge-${c}">${escHtml(txt)}</span>`;
 }
 function toast(msg) {
   const t = document.getElementById('toast');
@@ -18981,8 +18996,14 @@ window.toggleTheme = toggleTheme;
 
 // ══ INFORMES GUARDADOS ══
 
+/* String(s ?? '') y no (s||''): con || un 0 legítimo se pintaba como celda vacía, y escHtml
+   recibe números —FEVI, GLS—. Un FEVI de 0 es un dato extremo pero real, no un hueco. Mismo
+   endurecimiento que en CardioSalud.
+   Cubre & < > " ' : alcanza para texto de elemento y atributo entrecomillado. NO alcanza para
+   una URL en src/href (validar el esquema, ver LOGO_DATA_OK) ni para un string de JS dentro de
+   un manejador inline, porque el parser decodifica la entidad ANTES de compilar el handler. */
 function escHtml(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -19009,6 +19030,62 @@ const CeiboStore = (function () {
   let _lista = false;
 
   // ── localStorage (fuente inicial y respaldo) ──
+  /* ══ Saneo de id en el BORDE DE LECTURA ══
+     El id se interpola crudo —sin escHtml— en once atributos y manejadores inline
+     (igItemHTML, la tabla del Laboratorio, verDetalleInforme). Un id no numérico rompe el
+     atributo y ejecuta AL PINTAR la lista, sin un clic. Y ahí escHtml tampoco alcanzaría: el
+     parser decodifica la entidad ANTES de compilar el handler.
+     Se sanea acá y no en las once plantillas porque cinco funciones leen CeiboStore.getLocal()
+     directo sin pasar por getInformes(), y porque una plantilla nueva volvería a abrir el
+     agujero. Mismo patrón que csNumId en CardioSalud.
+     El import JSON ya exigía typeof id === 'number', así que esa vía estaba cerrada; queda la
+     escritura directa a localStorage/IndexedDB, que en esta app no es hipotética: se abre con
+     doble clic (file://) y varios navegadores comparten origen entre archivos locales.
+
+     Los id inválidos se REPARAN, no se descartan: descartarlos perdería estudios clínicos en
+     silencio y el primer guardado los borraría del disco.
+     El id reparado sale de una BANDA DISJUNTA (9e14, muy por encima de los reales, que salen
+     de Date.now()+random y rondan 1,79e12) y se deriva del CONTENIDO del registro, no de un
+     contador. Con contador se perdían estudios igual: los baldes se escriben en momentos
+     distintos, así que un id reparado hoy en _chunk podía chocar mañana con un id legítimo de
+     _local, y getInformes() fusiona en un Map indexado por id — el segundo pisaba al primero y
+     el estudio desaparecía, también del backup JSON. Medido: seis entraban, salían cinco.
+     Ojo con la comparación correcta: antes de este saneo ese estudio SOBREVIVÍA (con su id
+     hostil y su XSS). Cambiar un XSS por un estudio clínico perdido no sería un arreglo.
+     Derivarlo del contenido lo hace determinista sin depender del estado ni del orden, que es
+     lo que necesita la lista dibujada para que el clic siga resolviendo el estudio en una
+     llamada posterior. */
+  const _ETT_ID_MAX = 1e15, _ETT_ID_BANDA = 9e14;
+  const _ettNumId = v => {
+    const n = typeof v === 'number' ? v
+            : (typeof v === 'string' && /^\d{1,15}$/.test(v.trim()) ? +v.trim() : NaN);
+    return Number.isSafeInteger(n) && n >= 1 && n <= _ETT_ID_MAX ? n : null;
+  };
+  const _idReparado = r => {
+    const t = String((r && r.nombre) ?? '') + '|' + String((r && r.ci) ?? '') + '|' +
+              String((r && r.fecha_guardado) ?? '') + '|' + String((r && r.fecha_estudio) ?? '');
+    let h = 0;
+    for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) % 1e14;
+    return _ETT_ID_BANDA + h;
+  };
+  /* El dedup es POR BALDE y no compartido: _local y _chunk contienen legítimamente el MISMO
+     id para el mismo estudio —para eso existe la deduplicación de getInformes(), y
+     setLocal(getInformes()) deja esa situación como estado normal tras cualquier import—, así
+     que un dedup compartido haría aparecer cada estudio dos veces. */
+  const _sanearIds = arr => {
+    if (!Array.isArray(arr)) return [];
+    const lista = arr.filter(x => x && typeof x === 'object');
+    const vistos = new Set();
+    lista.forEach(r => {
+      let n = _ettNumId(r.id);
+      if (n === null || vistos.has(n)) {
+        n = _idReparado(r);
+        while (vistos.has(n)) n = _ETT_ID_BANDA + ((n - _ETT_ID_BANDA + 1) % 1e14);   // choque de hash
+      }
+      r.id = n; vistos.add(n);
+    });
+    return lista;
+  };
   function _lsLocal() {
     try { const r = localStorage.getItem(LS_MAIN); const p = r ? JSON.parse(r) : []; return Array.isArray(p) ? p : []; }
     catch (e) { console.error('ett_informes corrupto:', e); return []; }
@@ -19138,7 +19215,7 @@ const CeiboStore = (function () {
   // Arranque. La caché se llena PRIMERO desde localStorage de forma síncrona,
   // así nunca hay una ventana en la que getInformes() devuelva vacío y un
   // guardado pise los datos. Después se reconcilia con IndexedDB.
-  _local = _lsLocal(); _chunk = _lsChunks();
+  _local = _sanearIds(_lsLocal()); _chunk = _sanearIds(_lsChunks());
 
   const ready = (async function () {
     _db = await _abrir();
@@ -19148,15 +19225,19 @@ const CeiboStore = (function () {
     if (enIDB === null) { _db = null; _lista = true; return { modo: 'localStorage', motivo: 'IndexedDB ilegible' }; }
 
     if (enIDB.length) {                                   // ya migrado
-      _local = enIDB.filter(r => r.bucket === 'local').map(r => r.data);
-      _chunk = enIDB.filter(r => r.bucket === 'chunk').map(r => r.data);
+      _local = _sanearIds(enIDB.filter(r => r.bucket === 'local').map(r => r.data));
+      _chunk = _sanearIds(enIDB.filter(r => r.bucket === 'chunk').map(r => r.data));
       const restos = _lsLocal().length + _lsChunks().length;
       if (restos) _lsBorrar();                            // sobras de una migración cortada
       _lista = true;
       return { modo: 'indexedDB', estudios: _local.length + _chunk.length };
     }
 
-    const lsL = _lsLocal(), lsC = _lsChunks();
+    /* Se migran los arrays YA SANEADOS: con los crudos, _pk se arma con el id, así que dos
+       registros con el mismo id colapsaban en el put —y el Set de esperados colapsaba igual,
+       con lo cual la verificación daba OK— y después se borraba localStorage con un estudio
+       menos. */
+    const lsL = _local, lsC = _chunk;
     if (!lsL.length && !lsC.length) { _lista = true; return { modo: 'indexedDB', estudios: 0 }; }
 
     // ── MIGRACIÓN: escribir, VERIFICAR y recién entonces limpiar localStorage ──
@@ -19181,8 +19262,8 @@ const CeiboStore = (function () {
     modo:   () => (_db ? 'indexedDB' : 'localStorage'),
     getLocal: () => _local,
     getChunk: () => _chunk,
-    setLocal(arr) { _local = Array.isArray(arr) ? arr.slice() : []; return _persistir(); },
-    setChunk(arr) { _chunk = Array.isArray(arr) ? arr.slice() : []; return _persistir(); }
+    setLocal(arr) { _local = _sanearIds(Array.isArray(arr) ? arr.slice() : []); return _persistir(); },
+    setChunk(arr) { _chunk = _sanearIds(Array.isArray(arr) ? arr.slice() : []); return _persistir(); }
   };
 })();
 window.CeiboStore = CeiboStore;
@@ -27312,6 +27393,11 @@ function labSubTab(id, el) {
     : (Math.abs(coef)<0.3 ? 'Débil' : (Math.abs(coef)<=0.6 ? 'Moderada' : 'Fuerte'));
   // Lectura clínica por par de variables. La frase se elige según el signo OBSERVADO del
   // coeficiente, para no afirmar una dirección que los datos no muestran.
+  /* VERIFICADO 2026-09-08: INTERP y ASSOC son literales de este archivo y sus valores se
+     interpolan sin escapar en el módulo de asociaciones. Seguro por procedencia, no por
+     construcción: son etiquetas y frases fijas del código, nunca datos del estudio; los números
+     que las acompañan salen de cálculos ya coercionados. Si se agrega una etiqueta editable por
+     el usuario, hay que escapar. */
   const INTERP = {
     'FEVI – PSAP':       {neg:'A menor FEVI, mayor presión pulmonar.',                              pos:'A mayor FEVI, mayor presión pulmonar.'},
     "FEVI – E/e'":       {neg:'Disfunción sistólica asociada a presiones de llenado elevadas.',     pos:"A mayor FEVI, mayor E/e'."},
