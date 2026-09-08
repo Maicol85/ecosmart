@@ -19160,8 +19160,16 @@ function validarInformeImportado(inf) {
   if (!strMax(inf.nombre, 200)) return false;
   if (!strMax(inf.ci, 60)) return false;
   if (inf.doc_tipo !== undefined && !strMax(inf.doc_tipo, 20)) return false;
-  if (inf.fecha_estudio !== undefined && !strMax(inf.fecha_estudio, 20)) return false;
-  if (inf.fecha_guardado !== undefined && !strMax(inf.fecha_guardado, 40)) return false;
+  /* Formato, no sólo largo. strMax dejaba pasar cualquier cosa de hasta 20 caracteres, y la
+     tarjeta de detalle arma la fecha con .split('-').reverse().join('/'), que es la IDENTIDAD
+     si la cadena no tiene guiones: '<svg onload=print()>' mide exactamente 20 y llegaba entera
+     al innerHTML. El escape en el render ya cierra el XSS; esto lo corta antes, en el borde,
+     para que un dato imposible no entre a la base y salga después por cualquier otra ruta.
+     Se acepta la fecha vacía porque el formulario permite guardar sin fecha de estudio. */
+  const fechaISO_OK = v => v === '' || /^\d{4}-\d{2}-\d{2}$/.test(v);
+  if (inf.fecha_estudio !== undefined && (!strMax(inf.fecha_estudio, 20) || !fechaISO_OK(inf.fecha_estudio))) return false;
+  /* fecha_guardado es un ISO completo con hora (toISOString), no sólo el día. */
+  if (inf.fecha_guardado !== undefined && (!strMax(inf.fecha_guardado, 40) || !/^\d{4}-\d{2}-\d{2}[T ]?[\d:.]*Z?$/.test(inf.fecha_guardado))) return false;
   if (inf.importado_pdf !== undefined && typeof inf.importado_pdf !== 'boolean') return false;
   if (inf.archivo_origen !== undefined && !strMax(inf.archivo_origen, 300)) return false;
   if (inf.campos !== undefined) {
@@ -24107,6 +24115,15 @@ if (typeof cxWilkins === 'function') cxWilkins();
 // ══════════════ IMÁGENES DEL ESTUDIO (memoria de sesión, NO localStorage) ══════════════
 let imgSlots = [null, null];      // cada elemento: {dataURL, ampliada} o null
 let imgSlotCount = 2;
+/* Allowlist de esquema para el src de las imágenes del estudio. Escapar NO alcanza acá:
+   escHtml cierra la fuga del atributo, pero un http:// externo es HTML válido y convierte cada
+   apertura de la ficha en una baliza que confirma que se abrió y filtra IP y hora, sin ejecutar
+   una línea de script. Se reusa LOGO_DATA_OK, que es la misma política que ya se aplica al logo
+   del centro (data:image/... y nada más).
+   El guard typeof no es adorno: LOGO_DATA_OK es un const declarado más arriba y este archivo ya
+   se rompió antes por la zona muerta temporal de un const. Si por orden de carga no estuviera,
+   falla cerrado —descarta la imagen— en vez de tirar. */
+const _imgSrcOK = d => (typeof LOGO_DATA_OK === 'function') ? LOGO_DATA_OK(d) : false;
 let imgActiveSlot = 0;            // slot destino de "+"/pegar
 let imgSwapSel = null;           // slot seleccionado para intercambio (mobile)
 let _imgLongTimer = null, _imgLastTap = 0;
@@ -24141,7 +24158,7 @@ function imgRender(){
     if (slot){
       cell.setAttribute('draggable','true');
       cell.innerHTML =
-        '<img src="'+slot.dataURL+'" loading="lazy" style="max-width:100%;max-height:220px;display:block;pointer-events:none;" alt="imagen '+(idx+1)+'">'
+        '<img src="'+(_imgSrcOK(slot.dataURL)?slot.dataURL:'')+'" loading="lazy" style="max-width:100%;max-height:220px;display:block;pointer-events:none;" alt="'+(_imgSrcOK(slot.dataURL)?('imagen '+(idx+1)):'Imagen '+(idx+1)+' no se puede mostrar: formato no admitido')+'" title="'+(_imgSrcOK(slot.dataURL)?'':'Formato de imagen no admitido')+'">'
         + (amp ? '<span style="position:absolute;top:6px;left:6px;background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;pointer-events:none;">AMPLIADA</span>' : '')
         + '<button type="button" title="Eliminar" onclick="imgRemove(event,'+idx+')" style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1;">✕</button>';
     } else {
