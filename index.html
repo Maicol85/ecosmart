@@ -3576,6 +3576,24 @@ window.cerrarSesion = cerrarSesion;
 <!-- ═══════════════════════ TAB: ETE MITRAL ═══════════════════════ -->
 <div id="tab-ete" class="tab-section">
 
+  <!-- Marca el estudio como transesofágico y cambia el título del PDF. Es un checkbox visible
+       y no un derivado de «hay datos de ETE cargados»: llenar un campo de esta tab no implica
+       que el estudio SEA un ETE —se usa para anotar hallazgos de un transesofágico previo—, y
+       afirmar la vía de acceso equivocada en un informe firmado es una afirmación clínica
+       falsa, no un detalle de maquetación.
+       id con guion, como el resto de los ete-* de interfaz (ete-tecnica-arrow, ete-cia-borde-min).
+       Verificado que NO cae en la allowlist _noVaciar, así que «Nuevo estudio» lo desmarca. -->
+  <div class="card" style="margin-bottom:8px;">
+    <div class="card-body" style="padding:10px 12px;">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;min-height:44px;">
+        <input type="checkbox" id="ete-es-ete" style="width:18px;height:18px;flex:0 0 auto;cursor:pointer;">
+        <span><b>Ecocardiograma Transesofágico</b> — marcar si este estudio es ETE
+          <span style="display:block;font-size:11px;color:var(--text2);font-weight:400;margin-top:2px;">Cambia el título del PDF de «Informe Ecocardiograma Doppler Color» a «Ecocardiograma Transesofágico».</span>
+        </span>
+      </label>
+    </div>
+  </div>
+
   <!-- TÉCNICA DEL PROCEDIMIENTO — acordeón colapsado + botón «Integrar al informe» al pie
        del contenido, mismo patrón que el Score de Wilkins. El estado sigue siendo un
        <input type=checkbox> oculto (lo capturan guardarInforme y la reimpresión); el botón
@@ -15646,6 +15664,11 @@ function limpiarCampos() {
   // Prolapso mitral: desmarcar checkboxes, limpiar extensión, ocultar bloque
   ['vm_seg_a1','vm_seg_a2','vm_seg_a3','vm_seg_p1','vm_seg_p2','vm_seg_p3','vm_seg_ca','vm_seg_cp','vm_flail','vm_rotura_cuerdas','vm_elongacion_cuerdas','vm_calc_anular','vm_engros_valvar','vm_exceso_tejido'].forEach(id => { const el = document.getElementById(id); if (el) el.checked = false; });
   { const _ci = document.getElementById('caso_interes'); if (_ci) _ci.checked = false; }
+  /* limpiarCampos desmarca por listas explícitas, no con un barrido de todos los
+     checkbox, así que un checkbox nuevo NO se resetea solo. Sin esta línea, marcar un
+     estudio como ETE y después dar «Nuevo estudio» dejaba el título transesofágico
+     puesto para el paciente siguiente. */
+  { const _ete = document.getElementById('ete-es-ete'); if (_ete) _ete.checked = false; }
   { const _mm = document.getElementById('vm_prolapso_mm'); if (_mm) _mm.value = ''; }
   { const _bp = document.getElementById('bloque-prolapso-vm'); if (_bp) _bp.style.display = 'none'; }
   // Masa intracardíaca: resetear selector y ocultar bloque
@@ -16478,7 +16501,14 @@ function generarPDFReal() {
   const ecg=[[0,14],[20,14],[28,14],[30,6],[32,22],[34,6],[36,14],[50,14],[52,11],[54,14],[70,14],[72,11],[74,14],[210,14]];
   for(let i=1;i<ecg.length;i++) doc.line(ecg[i-1][0],ecg[i-1][1]*_kEcg,ecg[i][0],ecg[i][1]*_kEcg);
   fb(13); tc(255,255,255);
-  doc.text('Informe Ecocardiograma Doppler Color',105, _hdrDos ? 7.0 : 7.6, {align:'center'});
+  /* El título sale del checkbox de la tab ETE. Se lee del DOM y no de localStorage a
+     propósito: tiene que viajar CON el estudio —guardarInforme lo captura como
+     `ete-es-ete__chk` y la reimpresión lo repone—, así que reimprimir un ETE guardado
+     mientras se trabaja en un transtorácico da el título correcto de cada uno. Una bandera
+     global en localStorage habría puesto el título del estudio actual en el PDF del viejo. */
+  const _esEte = !!(document.getElementById('ete-es-ete') || {}).checked;
+  doc.text(_esEte ? 'Ecocardiograma Transesofágico' : 'Informe Ecocardiograma Doppler Color',
+           105, _hdrDos ? 7.0 : 7.6, {align:'center'});
   if (_hdrDos) { fn(8.5); tc(200,221,245); doc.text(_sanML(_hdrLine),105,12.9,{align:'center'}); }
   // Logo del centro en el vértice superior derecho, proporción conservada y ajustado a la banda
   try {
