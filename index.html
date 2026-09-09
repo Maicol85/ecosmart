@@ -14754,6 +14754,134 @@ function initEstiloInforme() {
 window.setEstiloInforme = setEstiloInforme;
 setTimeout(initEstiloInforme, 50);
 
+/* ══════════════════════════════════════════════════════════════════════════════
+   PROCEDENCIA DEL TEXTO DEL INFORME — automático vs. escrito por el médico
+   ══════════════════════════════════════════════════════════════════════════════
+   El informe es UN textarea plano: no hay estructura donde marcar el origen de cada
+   párrafo, así que la procedencia se reconstruye por diferencia. `_infBase` guarda lo último
+   que escribió la APP (generarInforme, o el texto del estudio al cargarlo); todo lo que
+   difiera de eso lo escribió el médico.
+
+   Hace falta porque los refrescos silenciosos —VEXUS y amiloidosis, colgados de un
+   `onchange`— reescribían el textarea ENTERO. Una frase insertada con el panel, o cualquier
+   observación tipeada a mano, desaparecía al tocar cualquier selector, sin toast ni cambio de
+   pestaña que lo delatara: el médico no tenía forma de enterarse hasta releer el informe.
+
+   El botón «Generar Informe» y el cambio de estilo NO pasan por acá: son explícitos y
+   regeneran todo, que es lo que el médico pidió. */
+let _infBase = null, _sumaBase = null;   // arrays de líneas, o null si nunca escribimos
+
+// Subsecuencia común más larga. Devuelve pares [iEnA, iEnB] en orden creciente.
+function _infLcs(a, b) {
+  const n = a.length, m = b.length;
+  if (!n || !m) return [];
+  const dp = [];
+  for (let i = 0; i <= n; i++) dp.push(new Uint32Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+  const pares = []; let i = 0, j = 0;
+  while (i < n && j < m) {
+    if (a[i] === b[j]) { pares.push([i, j]); i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) i++;
+    else j++;
+  }
+  return pares;
+}
+
+/* antes[k] = posición en `nuevo` correspondiente a «justo antes de base[k]». Los pares de la
+   LCS son puntos fijos y los huecos se interpolan por desplazamiento. Esa interpolación es lo
+   que mantiene en su lugar una nota pegada a un párrafo que la regeneración REESCRIBIÓ: sin
+   ella el párrafo desaparece del emparejamiento y la nota se iba al final del informe. */
+function _infMapaAntes(base, nuevo, pares) {
+  const antes = new Array(base.length + 1);
+  let bi = 0, ni = 0;
+  const hueco = (bFin, nFin) => { for (let k = bi; k < bFin; k++) antes[k] = Math.min(ni + (k - bi), nFin); };
+  pares.forEach(([ib, inv]) => { hueco(ib, inv); antes[ib] = inv; bi = ib + 1; ni = inv + 1; });
+  hueco(base.length, nuevo.length);
+  antes[base.length] = nuevo.length;
+  return antes;
+}
+
+function _infMerge(base, actual, nuevo) {
+  base = base || []; actual = actual || []; nuevo = nuevo || [];
+  if (actual.join('\n') === base.join('\n')) return nuevo.slice();   // sin ediciones
+  if (!base.length) return actual.slice();                           // sin base: no se pisa nada
+  /* Vaciado a propósito: no se resucita. Borrar es una edición como cualquier otra, y para
+     recuperarlo está «Generar Informe», que no pasa por acá. */
+  if (!actual.some(l => String(l).trim())) return actual.slice();
+
+  const parBA = _infLcs(base, actual), parBN = _infLcs(base, nuevo);
+  const autoEnActual = new Map(); parBA.forEach(([ib, ia]) => autoEnActual.set(ia, ib));
+  const baseViva     = new Set(parBA.map(p => p[0]));
+  const nuevoDeBase  = new Map(); parBN.forEach(([ib, inv]) => nuevoDeBase.set(inv, ib));
+  const antes = _infMapaAntes(base, nuevo, parBN);
+
+  /* Cada corrida manual se ancla a la SIGUIENTE línea automática, no a la anterior. Hacia
+     atrás se pierde el ancla justo cuando el médico escribe pisando un párrafo automático:
+     ese párrafo sale del emparejamiento y se lleva el ancla con él. */
+  const manuales = []; let corrida = [];
+  for (let ia = 0; ia < actual.length; ia++) {
+    if (autoEnActual.has(ia)) { if (corrida.length) { manuales.push({ q: autoEnActual.get(ia), lineas: corrida }); corrida = []; } }
+    else corrida.push(actual[ia]);
+  }
+  if (corrida.length) manuales.push({ q: base.length, lineas: corrida });
+
+  const porPos = new Map();
+  manuales.forEach(m => { const p = antes[m.q]; if (!porPos.has(p)) porPos.set(p, []); porPos.get(p).push(...m.lineas); });
+
+  const salida = [];
+  for (let inv = 0; inv <= nuevo.length; inv++) {
+    if (porPos.has(inv)) salida.push(...porPos.get(inv));
+    if (inv === nuevo.length) break;
+    const ib = nuevoDeBase.get(inv);
+    // Línea que el médico borró y que la regeneración no cambió: no se repone.
+    if (ib !== undefined && !baseViva.has(ib)) continue;
+    salida.push(nuevo[inv]);
+  }
+  return salida;
+}
+
+/* Escribe respetando lo manual y deja el textarea como nueva base. En el camino explícito
+   (silencioso=false) escribe `nuevo` tal cual. */
+function _infEscribir(id, lineasNuevas, silencioso, base) {
+  const el = document.getElementById(id);
+  if (!el) return base;
+  const habiaBase = !!(base && base.length);
+  const actual = String(el.value || '').split('\n');
+  const salida = silencioso ? _infMerge(base, actual, lineasNuevas) : lineasNuevas.slice();
+  el.value = salida.join('\n');
+  /* Sin base previa, `salida` ES el texto del médico (el merge lo devolvió intacto porque no
+     podía clasificarlo). Promoverlo a base lo haría pasar por texto nuestro, y el SIGUIENTE
+     refresco silencioso vería `actual === base`, tomaría el atajo de «sin ediciones» y lo
+     pisaría entero. O sea: la protección duraba exactamente un refresco. Medido.
+     El caso es el más común de todos —tipear en el informe, o insertar una frase, ANTES de
+     apretar Generar Informe—, así que la base se deja nula y los refrescos silenciosos quedan
+     inertes hasta que el médico regenere explícitamente. Es el comportamiento conservador y
+     el que ya tenía la app antes de este cambio. */
+  if (silencioso && !habiaBase) return base;
+  /* La base nueva es lo GENERADO (`lineasNuevas`), NO lo que quedó escrito. Parece más
+     natural devolver `salida` —es lo que tiene el textarea— pero eso mete las líneas
+     manuales dentro de la base, y en el refresco siguiente `actual === base` dispara el
+     atajo de «sin ediciones» y las borra todas. O sea: la protección volvía a durar un solo
+     refresco, ahora por el flujo normal (generar → editar → dos cambios de dato). Medido.
+     La base responde «¿qué escribió la app?», y eso es siempre `lineasNuevas`. */
+  return lineasNuevas.slice();
+}
+
+/* El texto de un estudio recién cargado cuenta como base: no lo escribió el médico en ESTA
+   sesión, y tratarlo como manual habría congelado los refrescos de VEXUS y amiloidosis sobre
+   cualquier estudio reabierto. Lo que se protege es lo que el médico tipee DESPUÉS de cargar. */
+function infBaseDesdeDOM() {
+  const t = document.getElementById('informe_texto');
+  const s = document.getElementById('en_suma');
+  _infBase  = t ? String(t.value || '').split('\n') : null;
+  _sumaBase = s ? String(s.value || '').split('\n') : null;
+}
+window.infBaseDesdeDOM = infBaseDesdeDOM;
+
 /* `opts.silencioso` lo usan los refrescos automáticos (VEXUS, amiloidosis): reescriben el
    texto porque cambió un dato que el informe menciona, pero NO son una acción que el médico
    haya pedido. Sin esto, cada refresco saltaba a la pestaña Informe y cantaba un toast
@@ -15770,12 +15898,12 @@ function generarInforme(opts) {
     if (_eeLines.length) { inf.push('', 'Eco Estrés:', ..._eeLines); }
   }
 
-  // Escribir informe
-  document.getElementById('informe_texto').value = inf.filter(Boolean).join('\n');
+  // Escribir informe — en los refrescos silenciosos se respeta lo que el médico escribió.
+  _infBase = _infEscribir('informe_texto', inf.filter(Boolean), _silencioso, _infBase);
 
   // Escribir En Suma
   if (suma.length === 0) suma.push('Estudio sin alteraciones estructurales ni funcionales significativas.');
-  document.getElementById('en_suma').value = suma.filter(Boolean).join('\n');
+  _sumaBase = _infEscribir('en_suma', suma.filter(Boolean), _silencioso, _sumaBase);
 
   if (!_silencioso) { toast('✅ Informe generado'); showTabById('informe'); }
 }
@@ -15828,6 +15956,12 @@ function limpiarCampos() {
     const el = document.getElementById(id);
     if (el) { el.checked = false; el.disabled = true; delete el.dataset.tocado; delete el.dataset.desdeEstudio; }
   });
+  /* Paciente nuevo: no hay texto previo nuestro contra el cual comparar. Sin esto, la base del
+     paciente ANTERIOR clasificaba como «automático» texto del nuevo y lo dejaba pisar. */
+  _infBase = null; _sumaBase = null;
+  /* Las imágenes NO se vacían acá: ver imgVaciar(), que lo hace sólo en «Nuevo estudio».
+     limpiarCampos también lo llama editarInforme, y ahí borrarlas sería destruir dato
+     irrecuperable —no se persisten con el estudio— por reabrir un informe a corregir. */
   { const _mm = document.getElementById('vm_prolapso_mm'); if (_mm) _mm.value = ''; }
   { const _bp = document.getElementById('bloque-prolapso-vm'); if (_bp) _bp.style.display = 'none'; }
   // Masa intracardíaca: resetear selector y ocultar bloque
@@ -15950,12 +16084,34 @@ function neGuardarYContinuar() {
   // Vía callback: el guardado puede quedar esperando la card de severidades, y en ese caso
   // el valor de retorno todavía es false. Sólo se limpia cuando el guardado fue efectivo
   // (evita perder datos si falta el paciente o si se cancela la card).
-  guardarInforme(ok => { if (ok) limpiarCampos(); });
+  guardarInforme(ok => { if (ok) { limpiarCampos(); imgVaciar(); } });
 }
 function neContinuarSinGuardar() {
   _neCerrar();
   limpiarCampos();
+  imgVaciar();
 }
+/* Vacía las imágenes adjuntas. Va en los DOS caminos de «Nuevo estudio» y NO dentro de
+   limpiarCampos, que también corre al abrir un estudio con «Editar» — ahí borrarlas sería
+   destruir dato irrecuperable, porque las imágenes no se persisten con el estudio.
+
+   Sin esto, las imágenes ecográficas del paciente ANTERIOR sobrevivían a «Nuevo estudio» y
+   salían en la página «Imágenes del estudio» de un PDF firmado a nombre de otro paciente.
+   Medido y reproducido. limpiarCampos resetea a mano decenas de estados que no viven en el
+   DOM —segmentos del ETE, Wilkins, amiloidosis, VEXUS, contractilidad, strain— y éste había
+   quedado afuera; la reimpresión ya había detectado el mismo riesgo por su lado y lo cerraba
+   sólo para su propia ventana.
+
+   Se muta el array EN SITIO: el backup de la reimpresión es un slice() y repone mutando en
+   sitio también, así que ambos tenedores tienen que hablar de la misma identidad de array. */
+function imgVaciar() {
+  if (typeof imgSlots === 'undefined') return;
+  imgSlots.length = 0; imgSlots.push(null, null);
+  imgSlotCount = 2;
+  imgSwapSel = null;
+  if (typeof imgRender === 'function') { try { imgRender(); } catch(e){} }
+}
+window.imgVaciar = imgVaciar;
 window.nuevoEstudio = nuevoEstudio;
 window._neCerrar = _neCerrar;
 window.neGuardarYContinuar = neGuardarYContinuar;
@@ -16096,6 +16252,12 @@ function _autosaveRestore(){
       if (typeof window[fn] === 'function') { try { window[fn](); } catch (e) { console.warn('[autosave] '+fn, e); } }
     });
   } catch (e) { console.warn('[autosave] recálculo de derivados', e); }
+  /* El borrador repuesto es la base de procedencia del informe. Sin esta línea, `_infBase`
+     quedaba en null tras una recarga y los refrescos silenciosos dejaban de actualizar el
+     informe para siempre en esa sesión: el merge no puede distinguir lo automático de lo
+     manual sin base, y falla hacia conservar. Es el escritor de textarea que no pasa por
+     generarInforme y que más fácil se olvida, porque corre solo en el arranque. */
+  if (typeof infBaseDesdeDOM === 'function') infBaseDesdeDOM();
   /* El borrador restaurado se anuncia. Una reposición SILENCIOSA de datos clínicos es
      indistinguible de un formulario en blanco para quien acaba de abrir la app, y el
      paciente al que pertenecen esos datos no es necesariamente el que tiene delante. */
@@ -20045,6 +20207,10 @@ function editarInforme(id) {
     // Guardar id del informe siendo editado
     window._ettEditandoId = id;
     eeCurrentInformeId = inf.estudioId || null;   // el QR del PDF apuntará a este estudio
+    /* Después de TODOS los recálculos: el texto que quedó es la base contra la cual se medirá
+       lo que el médico escriba. Si se tomara antes, los refrescos que corren en el llenado
+       entrarían como si fueran edición manual. */
+    infBaseDesdeDOM();
     showTab('datos');
     toast('✏️ Datos cargados — modificá y generá el PDF');
   };
@@ -20085,6 +20251,7 @@ function cargarEstudioPorId(id) {
   ['calcVI','calcAI','calcAorta','calcVD','calcVEXUS',
    'eteShuntSync','eteTaviSync','eteEpcRefrescar'].forEach(fn => { if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} } });
   window._ettEditandoId = inf.id;
+  infBaseDesdeDOM();   // ver nota en editarInforme: base = lo que quedó tras los recálculos
   eeCurrentInformeId = inf.estudioId;
   // showTab() depende de la variable global 'event'; al invocarse sin un click (init por URL) la carga
   // de datos igual debe completarse, por eso se protege el cambio de pestaña.
@@ -23931,6 +24098,12 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
     const el = document.getElementById(id);
     if (el) tocadoEstado[id] = el.dataset.tocado;
   });
+  /* La base de procedencia del informe es estado de sesión igual que lo de arriba, y este
+     camino pisa los dos textarea con el estudio guardado. Sin respaldarla, al volver quedaba
+     apuntando al texto del OTRO estudio: el del paciente en pantalla pasaba a contar como
+     escrito a mano, y el primer refresco silencioso ya no lo actualizaba. */
+  const infBaseBackup  = _infBase  ? _infBase.slice()  : null;
+  const sumaBaseBackup = _sumaBase ? _sumaBase.slice() : null;
   // Backup de los checklists del acordeón (checkboxes son class-based, sin id → no entran en el backup anterior)
   const chkBackup = {
     indicaciones: Array.from(document.querySelectorAll('.ind-chk:checked')).map(c => c.dataset.val),
@@ -24107,6 +24280,8 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
       if (tocadoEstado[id] === undefined) delete el.dataset.tocado;
       else el.dataset.tocado = tocadoEstado[id];
     });
+    _infBase  = infBaseBackup;
+    _sumaBase = sumaBaseBackup;
     ['med-nombre','med-matricula','med-lugar','med-especialidad','med-direccion','med-telefono'].forEach(fid => {
       const el = document.getElementById(fid);
       if (el) el.textContent = ceBackup[fid] || '';

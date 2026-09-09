@@ -167,6 +167,29 @@ while((m=re.exec(s))){try{new Function(m[1]);}catch(e){console.log(i+': '+e.mess
 ```
 Sólo 0 y 1 deben aparecer. Cualquier otro bloque en la lista es código muerto.
 
+### La base de procedencia del informe es lo GENERADO, no lo que quedó en pantalla
+`_infBase` contesta «¿qué escribió la app?». Devolverle la salida **fusionada** —que es lo
+natural, porque es lo que tiene el textarea— mete las líneas del médico dentro de la base, y en
+el refresco siguiente `actual === base` dispara el atajo de «sin ediciones» y las borra todas.
+La protección dura entonces **un solo refresco**, que es peor que no tenerla porque parece
+funcionar. Pasó dos veces en la misma sesión, por dos caminos distintos:
+
+- promoviendo la salida cuando **no había base** (el médico tipea antes de generar), y
+- promoviendo la salida fusionada en el **flujo normal** (generar → editar → dos cambios de dato).
+
+Al probar un merge, **encadenar al menos dos regeneraciones seguidas**. Con una sola pasada los
+dos defectos daban verde.
+
+### Las imágenes se vacían en «Nuevo estudio», NO en `limpiarCampos`
+`limpiarCampos` también lo llama `editarInforme`, y las imágenes **no se persisten con el
+estudio**: borrarlas al reabrir un informe para corregirlo destruye dato que no se puede
+recuperar de ningún lado. El vaciado (`imgVaciar()`) va en `neGuardarYContinuar` y
+`neContinuarSinGuardar`, que son los dos caminos de «Nuevo estudio».
+
+Se muta el array **en sitio** (`length=0; push(null,null)`): el backup de la reimpresión es un
+`slice()` y repone mutando en sitio también, así que los dos tenedores tienen que hablar de la
+misma identidad de array.
+
 ### Un `onclick` inline infla el elemento a 44×44
 La hoja de estilos trae una regla de área táctil:
 `button, [role="button"], .btn, .tab-btn, .nav-tab, .chip, .cal-cell, .seg-cell, [onclick] { min-height:44px; min-width:44px }`.
