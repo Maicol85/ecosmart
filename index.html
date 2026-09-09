@@ -1363,6 +1363,17 @@ window.cerrarSesion = cerrarSesion;
         </label>
       </div>
 
+      <!-- Guardado de imágenes -->
+      <div style="margin-bottom:22px;border-top:1px solid var(--border);padding-top:16px;">
+        <div class="cfg-sec-title">🖼️ Imágenes del estudio</div>
+        <label style="display:flex;align-items:center;gap:9px;cursor:pointer;">
+          <input type="checkbox" id="cfg-guardar-imagenes" onchange="cfgToggleGuardarImagenes(this.checked)" style="width:16px;height:16px;cursor:pointer">
+          <span style="font-size:12.5px;color:var(--text)"><b>💾 Guardar imágenes con los estudios</b> — quedan en este dispositivo</span>
+        </label>
+        <p style="font-size:11px;color:var(--text2);margin-top:6px;">Apagado, las imágenes viven sólo en la sesión (comportamiento de siempre). Encendido, se guardan al guardar el estudio y vuelven al reabrirlo. <b>No viajan en el backup JSON ni en el export.</b></p>
+        <div id="cfg-img-storage" style="margin-top:12px;cursor:pointer;" onclick="cfgStorageDetalle()" title="Tocar para ver el detalle"></div>
+      </div>
+
       <!-- Centros de trabajo -->
       <div style="margin-bottom:22px;border-top:1px solid var(--border);padding-top:16px;">
         <div class="cfg-sec-title">🏥 Centros de trabajo</div>
@@ -16108,6 +16119,116 @@ function neContinuarSinGuardar() {
 
    Se muta el array EN SITIO: el backup de la reimpresión es un slice() y repone mutando en
    sitio también, así que ambos tenedores tienen que hablar de la misma identidad de array. */
+/* ══ Persistencia de las imágenes del estudio ══
+   Gobernada por un toggle APAGADO por defecto: con el toggle off el comportamiento es
+   idéntico al de siempre —las imágenes viven sólo en la sesión— y no se escribe nada.
+   La clave `cfg-` la excluye _noVaciar, así que «Nuevo estudio» no la resetea: es una
+   preferencia del médico, no un dato del paciente. */
+const IMG_CFG_KEY = 'cfg-guardar-imagenes';
+function imgGuardadoActivo() {
+  try { return localStorage.getItem(IMG_CFG_KEY) === '1'; } catch (e) { return false; }
+}
+window.imgGuardadoActivo = imgGuardadoActivo;
+
+/* Escribe las imágenes del formulario bajo el uuid del estudio. Con el toggle apagado BORRA
+   lo que hubiera: si el médico desactiva la opción, lo que ya estaba guardado tiene que dejar
+   de estarlo, o el interruptor miente sobre lo que hay en el disco. */
+function imgPersistir(uuid) {
+  if (typeof CeiboImg === 'undefined' || !_uuidValido(uuid)) return Promise.resolve(false);
+  if (!imgGuardadoActivo()) return CeiboImg.borrar(uuid).catch(() => false);
+  const vivas = (typeof imgSlots !== 'undefined' ? imgSlots : []).filter(s => s && s.dataURL);
+  return CeiboImg.guardar(uuid, vivas).then(ok => {
+    if (!ok && vivas.length && typeof toast === 'function') {
+      toast('⚠️ El estudio se guardó, pero no se pudieron guardar las imágenes');
+    }
+    return ok;
+  }).catch(() => false);
+}
+window.imgPersistir = imgPersistir;
+
+/* Repone las imágenes de un estudio al abrirlo. Sólo pisa `imgSlots` si HAY algo guardado:
+   con un estudio sin imágenes persistidas se respeta lo que el médico tenga en pantalla, que
+   es el comportamiento previo. */
+function imgRestaurar(uuid) {
+  if (typeof CeiboImg === 'undefined' || !_uuidValido(uuid)) return Promise.resolve(0);
+  return CeiboImg.leer(uuid).then(imgs => {
+    if (!imgs || !imgs.length) return 0;
+    imgSlots.length = 0;
+    imgs.forEach(s => imgSlots.push({ dataURL: s.dataURL, ampliada: !!s.ampliada }));
+    while (imgSlots.length < 2) imgSlots.push(null);
+    imgSlotCount = imgSlots.length;
+    if (typeof imgRender === 'function') { try { imgRender(); } catch (e) {} }
+    return imgs.length;
+  }).catch(() => 0);
+}
+window.imgRestaurar = imgRestaurar;
+
+function cfgToggleGuardarImagenes(on) {
+  try { localStorage.setItem(IMG_CFG_KEY, on ? '1' : '0'); } catch (e) {}
+  if (on && typeof CeiboImg !== 'undefined') {
+    CeiboImg.disponible().then(ok => {
+      /* Se avisa en vez de dejar el toggle encendido sin efecto. En file:// o con la base
+         bloqueada no hay dónde guardar, y una casilla marcada que no guarda nada es la
+         promesa que el informe no cumple. No hay respaldo a localStorage: cada imagen son
+         decenas de KB en base64 y reventaría la cuota. */
+      if (!ok) {
+        if (typeof toast === 'function') toast('⚠️ Este navegador no permite guardar imágenes — las imágenes seguirán viviendo sólo en la sesión');
+        const el = document.getElementById('cfg-guardar-imagenes'); if (el) el.checked = false;
+        try { localStorage.setItem(IMG_CFG_KEY, '0'); } catch (e) {}
+      }
+      cfgStorageRender();
+    });
+  } else cfgStorageRender();
+}
+window.cfgToggleGuardarImagenes = cfgToggleGuardarImagenes;
+
+const _fmtMB = b => (b / 1048576) >= 1 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
+
+/* Barra de ocupación. El denominador es la cuota del ORIGEN (navigator.storage.estimate), no
+   el tamaño de esta base: al médico le importa cuánto le queda al navegador, que es lo que se
+   agota. Si el navegador no informa cuota, se dice que no se puede estimar en vez de dibujar
+   una barra inventada. */
+function cfgStorageRender() {
+  const cont = document.getElementById('cfg-img-storage');
+  if (!cont || typeof CeiboImg === 'undefined') return;
+  Promise.all([CeiboImg.uso(), CeiboImg.cuota()]).then(([uso, q]) => {
+    const total = q.total || 0;
+    const pct = total ? Math.min(100, (q.usado / total) * 100) : 0;
+    const llenos = total ? Math.max(uso.estudios ? 1 : 0, Math.round(pct / 10)) : 0;
+    const barra = '█'.repeat(llenos) + '░'.repeat(10 - llenos);
+    const col = pct >= 85 ? 'var(--red)' : 'var(--accent2)';
+    /* Se arma por DOM y no con innerHTML. Todo lo interpolado acá es numérico —barra de bloques,
+       MB, conteo, porcentaje— así que un innerHTML sería seguro, pero deja un hallazgo más en
+       una pila de 69 falsos positivos que hay que triagear a mano cada vez. Con textContent el
+       escáner no tiene nada que decir y la revisión siguiente mira sólo lo que importa. */
+    const mk = (tag, css, txt) => { const e = document.createElement(tag); e.style.cssText = css;
+                                    if (txt != null) e.textContent = txt; return e; };
+    cont.textContent = '';
+    cont.appendChild(mk('div', 'font-size:11px;color:var(--text2);margin-bottom:3px;', 'Almacenamiento'));
+    const fila = mk('div', 'font-family:monospace;font-size:15px;letter-spacing:1px;line-height:1.1;');
+    fila.appendChild(mk('span', 'color:' + col, barra.slice(0, llenos)));
+    fila.appendChild(mk('span', 'color:var(--green)', barra.slice(llenos)));
+    cont.appendChild(fila);
+    cont.appendChild(mk('div', 'font-size:11px;color:var(--text2);margin-top:3px;',
+      _fmtMB(uso.bytes) + ' en imágenes · ' + uso.estudios + ' estudio(s)' +
+      (total ? ' · ' + pct.toFixed(1) + '% del navegador usado' : ' · cuota no informada')));
+  }).catch(() => {});
+}
+window.cfgStorageRender = cfgStorageRender;
+
+function cfgStorageDetalle() {
+  if (typeof CeiboImg === 'undefined') return;
+  Promise.all([CeiboImg.uso(), CeiboImg.cuota()]).then(([uso, q]) => {
+    const pct = q.total ? ((q.usado / q.total) * 100).toFixed(2) + '%' : 'no informada';
+    if (typeof toast === 'function') {
+      toast('🖼️ ' + uso.estudios + ' estudio(s) con imágenes · ' + _fmtMB(uso.bytes) +
+            ' · ocupación del navegador: ' + pct +
+            (q.total ? ' (' + _fmtMB(q.usado) + ' de ' + _fmtMB(q.total) + ')' : ''));
+    }
+  }).catch(() => {});
+}
+window.cfgStorageDetalle = cfgStorageDetalle;
+
 function imgVaciar() {
   if (typeof imgSlots === 'undefined') return;
   imgSlots.length = 0; imgSlots.push(null, null);
@@ -20210,6 +20331,135 @@ const CeiboStore = (function () {
 })();
 window.CeiboStore = CeiboStore;
 
+/* ══════════════════════════════════════════════════════════════════════════════
+   CeiboImg — imágenes del estudio, persistidas aparte
+   ══════════════════════════════════════════════════════════════════════════════
+   BASE DE DATOS SEPARADA, no un object store más dentro de `ceibomed`. La consigna pedía
+   «store separado para no interferir con _idbGuardar ni con la verificación de migración»;
+   una base aparte cumple eso por construcción y no por convención:
+
+   - Agregar un store a `ceibomed` exige subir DB_VER, y `_abrir()` resuelve null ante
+     `onblocked` — o sea que con DOS PESTAÑAS abiertas, que es lo habitual, el upgrade se
+     bloquea y la tienda de ESTUDIOS cae a modo respaldo. Una base nueva no versiona la vieja.
+   - El barrido por clave de `_idbGuardar` y el `verif.length === esperados.size` de la
+     migración operan sobre el índice `app` de `ceibomed`; desde otra base son inalcanzables,
+     sin depender de que nadie escriba ahí con `app:'eco'` por error.
+
+   La clave es el `uuid` del estudio, nunca el `id`: `id` lo reescribe `_sanearIds` y lo
+   reasignan los importadores (ver la sección de CLAUDE.md).
+
+   Todo falla CERRADO y devuelve promesas: sin IndexedDB no hay imágenes persistidas y la app
+   sigue funcionando exactamente como antes. NO hay respaldo a localStorage a propósito: cada
+   imagen son decenas de KB en base64 y reventaría la cuota, con el agravante de que _lsGuardar
+   borra los chunks ANTES de saber si puede escribirlos. */
+const CeiboImg = (function () {
+  const DB_NAME = 'ceibomed_img', DB_VER = 1, STORE = 'imagenes';
+  let _db = null, _intento = null;
+
+  function _abrir() {
+    if (_intento) return _intento;
+    _intento = new Promise(resolve => {
+      let listo = false;
+      const fin = v => { if (!listo) { listo = true; _db = v; resolve(v); } };
+      let req;
+      try {
+        if (!window.indexedDB) return fin(null);
+        req = indexedDB.open(DB_NAME, DB_VER);
+      } catch (e) { return fin(null); }
+      req.onupgradeneeded = ev => {
+        const db = ev.target.result;
+        if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: 'uuid' });
+      };
+      req.onsuccess = () => fin(req.result);
+      req.onerror   = () => fin(null);
+      req.onblocked = () => fin(null);
+      setTimeout(() => fin(null), 3000);          // no colgar nada esperando la base
+    });
+    return _intento;
+  }
+
+  function _tx(modo, fn) {
+    return _abrir().then(db => new Promise(resolve => {
+      if (!db) return resolve(null);
+      let tx;
+      try { tx = db.transaction(STORE, modo); } catch (e) { return resolve(null); }
+      let out = null;
+      try { fn(tx.objectStore(STORE), v => { out = v; }); } catch (e) { return resolve(null); }
+      tx.oncomplete = () => resolve(out);
+      tx.onerror    = () => resolve(null);
+      tx.onabort    = () => resolve(null);
+    }));
+  }
+
+  const _bytes = imgs => imgs.reduce((n, s) => n + (s && s.dataURL ? s.dataURL.length : 0), 0);
+
+  return {
+    disponible: () => _abrir().then(db => !!db),
+    /* Guarda el juego completo de imágenes de un estudio. Sin imágenes BORRA el registro en vez
+       de dejar uno vacío: así «quitar todas las imágenes y volver a guardar» limpia de verdad,
+       y el conteo de estudios con imágenes no miente. */
+    guardar(uuid, imgs) {
+      if (!_uuidValido(uuid)) return Promise.resolve(false);
+      const limpias = (imgs || []).filter(s => s && s.dataURL)
+                                  .map(s => ({ dataURL: s.dataURL, ampliada: !!s.ampliada }));
+      if (!limpias.length) return this.borrar(uuid).then(() => true);
+      return _tx('readwrite', (os, ok) => {
+        os.put({ uuid, imgs: limpias, bytes: _bytes(limpias), ts: new Date().toISOString() });
+        ok(true);
+      }).then(r => r === true);
+    },
+    leer(uuid) {
+      if (!_uuidValido(uuid)) return Promise.resolve([]);
+      return _tx('readonly', (os, ok) => {
+        const q = os.get(uuid);
+        q.onsuccess = () => ok(q.result && Array.isArray(q.result.imgs) ? q.result.imgs : []);
+      }).then(r => r || []);
+    },
+    borrar(uuid) {
+      if (!_uuidValido(uuid)) return Promise.resolve(false);
+      return _tx('readwrite', (os, ok) => { os.delete(uuid); ok(true); }).then(r => r === true);
+    },
+    /* Borra todo lo que NO esté en la lista de uuid vivos. Es la única forma de cerrar los
+       caminos de borrado masivo y de reasignación sin engancharse a cada uno: se llama después
+       de cualquier operación que cambie el conjunto de estudios.
+       Deduplica por uuid ANTES de decidir: _local y _chunk contienen legítimamente la misma
+       ficha, así que un uuid repetido es un solo dueño, no dos. */
+    recolectar(uuidsVivos) {
+      const vivos = new Set((uuidsVivos || []).filter(_uuidValido));
+      return _tx('readwrite', (os, ok) => {
+        const q = os.getAllKeys();
+        q.onsuccess = () => {
+          const muertos = (q.result || []).filter(k => !vivos.has(k));
+          muertos.forEach(k => os.delete(k));
+          ok(muertos.length);
+        };
+      }).then(r => r || 0);
+    },
+    // {estudios, bytes} de lo guardado, para la barra de Config.
+    uso() {
+      return _tx('readonly', (os, ok) => {
+        const q = os.getAll();
+        q.onsuccess = () => {
+          const rs = q.result || [];
+          ok({ estudios: rs.length,
+               bytes: rs.reduce((n, r) => n + (typeof r.bytes === 'number' ? r.bytes : _bytes(r.imgs || [])), 0) });
+        };
+      }).then(r => r || { estudios: 0, bytes: 0 });
+    },
+    // Cuota del ORIGEN, no sólo de esta base: es lo que le importa al médico.
+    cuota() {
+      try {
+        if (navigator.storage && navigator.storage.estimate) {
+          return navigator.storage.estimate().then(e => ({ usado: e.usage || 0, total: e.quota || 0 }))
+                                             .catch(() => ({ usado: 0, total: 0 }));
+        }
+      } catch (e) {}
+      return Promise.resolve({ usado: 0, total: 0 });
+    }
+  };
+})();
+window.CeiboImg = CeiboImg;
+
 // ── Lectura segura de informes (FIX M1): try/catch ante storage corrupto ──
 // El chunking se mantiene como concepto (dos baldes: propios e importados)
 // porque varias funciones distinguen dónde vive cada estudio. Con IndexedDB
@@ -20421,6 +20671,9 @@ function editarInforme(id) {
        lo que el médico escriba. Si se tomara antes, los refrescos que corren en el llenado
        entrarían como si fueran edición manual. */
     infBaseDesdeDOM();
+    // Las imágenes se reponen por uuid. Es asíncrono y no bloquea la carga del formulario:
+    // si no hay nada guardado, imgRestaurar no toca imgSlots.
+    if (typeof imgRestaurar === 'function') imgRestaurar(inf.uuid);
     showTab('datos');
     toast('✏️ Datos cargados — modificá y generá el PDF');
   };
@@ -20462,6 +20715,7 @@ function cargarEstudioPorId(id) {
    'eteShuntSync','eteTaviSync','eteEpcRefrescar'].forEach(fn => { if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} } });
   window._ettEditandoId = inf.id;
   infBaseDesdeDOM();   // ver nota en editarInforme: base = lo que quedó tras los recálculos
+  if (typeof imgRestaurar === 'function') imgRestaurar(inf.uuid);
   eeCurrentInformeId = inf.estudioId;
   // showTab() depende de la variable global 'event'; al invocarse sin un click (init por URL) la carga
   // de datos igual debe completarse, por eso se protege el cambio de pestaña.
@@ -20722,7 +20976,7 @@ function guardarInforme(onDone) {
       informes.unshift(nuevoInforme);
       eeCurrentInformeId = nuevoInforme.estudioId;
       guardarInformesSeguro(informes).then(_okN => {
-        if (_okN) { toast('💾 Informe guardado como nuevo'); _autosaveDescartar(); }   // el error lo avisa CeiboStore
+        if (_okN) { imgPersistir(nuevoInforme.uuid); toast('💾 Informe guardado como nuevo'); _autosaveDescartar(); }   // el error lo avisa CeiboStore
         if (onDone) onDone(_okN);
       });
     };
@@ -20742,7 +20996,7 @@ function guardarInforme(onDone) {
       else informes.unshift(nuevoInforme);
       eeCurrentInformeId = (idx >= 0) ? informes[idx].estudioId : nuevoInforme.estudioId;
       guardarInformesSeguro(informes).then(_okO => {
-        if (_okO) { toast('🔄 Informe sobreescrito correctamente'); _autosaveDescartar(); }
+        if (_okO) { imgPersistir((idx >= 0 ? informes[idx] : nuevoInforme).uuid); toast('🔄 Informe sobreescrito correctamente'); _autosaveDescartar(); }
         if (onDone) onDone(_okO);
       });
     };
@@ -20750,7 +21004,7 @@ function guardarInforme(onDone) {
     informes.unshift(nuevoInforme);
     eeCurrentInformeId = nuevoInforme.estudioId;
     return guardarInformesSeguro(informes).then(_ok => {
-      if (_ok) { toast('💾 Informe guardado correctamente'); _autosaveDescartar(); }
+      if (_ok) { imgPersistir(nuevoInforme.uuid); toast('💾 Informe guardado correctamente'); _autosaveDescartar(); }
       if (onDone) onDone(_ok);
       return _ok;
     });
@@ -21215,6 +21469,30 @@ function limpiarFiltroFechas() {
 }
 window.limpiarFiltroFechas = limpiarFiltroFechas;
 
+/* Borra de IndexedDB las imágenes que ya no tienen estudio. Un recolector y no un borrado
+   puntual por camino: los estudios se borran o se reasignan por varias vías —las diez que
+   documenta CLAUDE.md— y enganchar cada una deja huérfanos por la que se olvide. Acá se compara
+   contra el conjunto VIVO, así que cubre las que existen hoy y las que se agreguen mañana.
+
+   Se llama después de que la escritura del store se confirmó, nunca antes: con la lista todavía
+   sin persistir, un fallo de guardado dejaría las imágenes borradas y el estudio vivo.
+
+   Las vías que sólo reescriben el `id` —_sanearIds, _nuevoIdUnico— NO orfanan nada, porque la
+   clave es el uuid. Ése era todo el punto de agregarlo. */
+function imgRecolectarHuerfanas() {
+  if (typeof CeiboImg === 'undefined') return Promise.resolve(0);
+  let vivos = [];
+  try { vivos = getInformes().map(i => i.uuid); } catch (e) { return Promise.resolve(0); }
+  /* Guarda contra el borrado catastrófico: una lista vacía puede ser «el médico borró todo»
+     —legítimo— o una caché transitoriamente vacía por un arranque degradado. Se distingue por
+     el estado del store: si no está lista, no se recolecta. */
+  if (!vivos.length && !(CeiboStore.lista() && CeiboStore.getLocal().length === 0 && getInformesChunked().length === 0)) {
+    return Promise.resolve(0);
+  }
+  return CeiboImg.recolectar(vivos).catch(() => 0);
+}
+window.imgRecolectarHuerfanas = imgRecolectarHuerfanas;
+
 function eliminarInforme(id) {
   if (!confirm('¿Eliminar este informe guardado?')) return;
   let informes = CeiboStore.getLocal().slice();
@@ -21224,6 +21502,7 @@ function eliminarInforme(id) {
   // También en los chunks (estudios importados)
   const chunked = getInformesChunked();
   if (chunked.some(i => i.id === id)) saveInformesChunked(chunked.filter(i => i.id !== id));
+  imgRecolectarHuerfanas();
   toast('🗑️ Informe eliminado');
   renderInformesGuardados();
 }
@@ -21232,6 +21511,7 @@ function limpiarTodosInformes() {
   if (!confirm('¿Eliminar TODOS los informes guardados? Esta acción no se puede deshacer.')) return;
   CeiboStore.setLocal([]);
   saveInformesChunked([]);   // borra todos los chunks
+  imgRecolectarHuerfanas();
   toast('🗑️ Todos los informes eliminados');
   renderInformesGuardados();
 }
@@ -23390,6 +23670,7 @@ function eliminarInformeYVolver(id) {
   if (informes.length !== antes) CeiboStore.setLocal(informes);
   const chunked = getInformesChunked();
   if (chunked.some(i => i.id === id)) saveInformesChunked(chunked.filter(i => i.id !== id));
+  imgRecolectarHuerfanas();   // gemela de eliminarInforme — ver la nota del recolector
   toast('🗑️ Informe eliminado');
   volverAListaInformes();
   renderInformesGuardados();
@@ -24265,7 +24546,45 @@ function _pptDesdeFormulario(inf, tema){
     _slug(inf.fecha_estudio || new Date().toISOString().slice(0,10)) +
     '_' + String(inf.id).slice(-6) + '.pptx';
 
-  P.writeFile({ fileName: nombreArch })
+  /* ══ Diapositivas de imágenes ══
+     Van al FINAL y sólo si el estudio tiene imágenes guardadas en IndexedDB: si el toggle está
+     apagado o el estudio no tiene ninguna, el PPT sale exactamente igual que antes.
+     Se leen por `uuid`, no por `id`: ver la sección de CLAUDE.md sobre por qué el id no sirve
+     como clave.
+
+     Reparto: bloques de 6. 10 → 6+4, 12 → 6+6, 7 → 6+1, que es lo pedido y sale solo de trocear
+     de a 6 sin ningún caso especial.
+
+     `contain` y no `cover`: la grilla ocupa la diapositiva entera, pero cada imagen se ajusta
+     DENTRO de su celda sin recortarse. Con `cover` la imagen llena la celda a costa de cortarle
+     los bordes, y en una imagen ecográfica el borde es donde están la escala y los marcadores. */
+  const _pptGrilla = n => n <= 1 ? [1,1] : n === 2 ? [2,1] : n === 3 ? [3,1]
+                       : n === 4 ? [2,2] : [3,2];
+  function _pptAgregarImagenes(imgs) {
+    const buenas = (imgs || []).filter(s => s && typeof s.dataURL === 'string' && s.dataURL.indexOf('data:image') === 0);
+    if (!buenas.length) return 0;
+    for (let i = 0; i < buenas.length; i += 6) {
+      const bloque = buenas.slice(i, i + 6);
+      const [cols, rows] = _pptGrilla(bloque.length);
+      const cw = W / cols, ch = H / rows;
+      const s = P.addSlide();
+      s.background = { color: PPT_C.bg };
+      bloque.forEach((im, k) => {
+        const cx = k % cols, cy = Math.floor(k / cols);
+        try {
+          s.addImage({ data: im.dataURL, x: cx * cw, y: cy * ch, w: cw, h: ch,
+                       sizing: { type: 'contain', w: cw, h: ch } });
+        } catch (e) { console.warn('[PPT] imagen omitida', e); }
+      });
+    }
+    return buenas.length;
+  }
+
+  const _pptLeerImgs = (typeof CeiboImg !== 'undefined' && inf && typeof _uuidValido === 'function' && _uuidValido(inf.uuid))
+    ? CeiboImg.leer(inf.uuid).catch(() => []) : Promise.resolve([]);
+
+  _pptLeerImgs
+    .then(imgs => { _pptAgregarImagenes(imgs); return P.writeFile({ fileName: nombreArch }); })
     .then(() => {
       if (typeof toast !== 'function') return;
       /* Los avisos ganan sobre el ✅: si algo puede haber quedado fuera del marco, eso es lo
@@ -31246,7 +31565,9 @@ function cfgLoadMed(){
 }
 function eeQrEnabled(){ return localStorage.getItem('ett_qr_enabled') !== '0'; } // por defecto activado
 function cfgToggleQr(on){ try { localStorage.setItem('ett_qr_enabled', on ? '1' : '0'); } catch(e){} }
-function cfgOnShow(){ cfgRenderModulos(); cfgLoadMed(); if(typeof cfgRenderCentros==='function')cfgRenderCentros(); if(typeof cfgRenderMedicos==='function')cfgRenderMedicos(); var q=document.getElementById('cfg-qr'); if(q) q.checked = eeQrEnabled(); var mi=document.getElementById('cfg-modo-inst'); if(mi) mi.checked=(localStorage.getItem('ett_modo_institucional')==='1'); }
+function cfgOnShow(){ cfgRenderModulos(); cfgLoadMed(); if(typeof cfgRenderCentros==='function')cfgRenderCentros(); if(typeof cfgRenderMedicos==='function')cfgRenderMedicos(); var q=document.getElementById('cfg-qr'); if(q) q.checked = eeQrEnabled(); var mi=document.getElementById('cfg-modo-inst'); if(mi) mi.checked=(localStorage.getItem('ett_modo_institucional')==='1');
+  var gi=document.getElementById('cfg-guardar-imagenes'); if(gi && typeof imgGuardadoActivo==='function') gi.checked=imgGuardadoActivo();
+  if(typeof cfgStorageRender==='function') cfgStorageRender(); }
 /* Botón "🏥 Centro": ya no edita inline — los centros se gestionan en ⚙️ Config. */
 function ecoCentroBtn(){
   if(typeof hdrIrAConfig==='function') hdrIrAConfig();

@@ -237,6 +237,25 @@ sanatorio, que es un modo de uso real), ni en Safari/iOS anterior a 15.4. El fal
 `getRandomValues` —que no está gateada y el archivo ya usa en `_dcmUID`— y sólo como último
 escalón a `Math.random`. Los uuid del fallback llevan prefijo `x` para distinguirlos al depurar.
 
+### Las imágenes viven en `CeiboImg`, una base de IndexedDB APARTE
+Base `ceibomed_img`, store `imagenes`, clave = `uuid` del estudio. **No** es un object store más
+dentro de `ceibomed`, y eso es deliberado: agregar un store ahí exige subir `DB_VER`, y `_abrir()`
+resuelve `null` ante `onblocked` — o sea que con **dos pestañas abiertas**, que es lo habitual, el
+upgrade se bloquea y la tienda de **estudios** cae a modo respaldo. Una base nueva no versiona la
+vieja, y el barrido por clave de `_idbGuardar` no puede alcanzarla ni por error.
+
+Falla cerrado: sin IndexedDB no hay imágenes persistidas y la app funciona como antes. **No hay
+respaldo a localStorage** a propósito — cada imagen son decenas de KB en base64 y reventaría la
+cuota, con el agravante de que `_lsGuardar` borra los chunks antes de saber si puede escribirlos.
+
+**El borrado es por recolector, no por camino.** `imgRecolectarHuerfanas()` compara contra el
+conjunto vivo de uuid en vez de engancharse a cada una de las diez vías de borrado: la que se
+olvide deja huérfanos, y mañana hay una más. Tiene guarda contra el borrado catastrófico — una
+lista vacía puede ser «se borró todo» o una caché transitoriamente vacía por arranque degradado.
+
+Las vías que sólo reescriben el `id` (`_sanearIds`, `_nuevoIdUnico`) **ya no orfanan nada**,
+porque la clave es el uuid. Ése era todo el punto de agregarlo.
+
 ### Los caminos que borran o reasignan un estudio
 Cualquier cosa que se cuelgue del `id` de un estudio —imágenes, adjuntos, notas externas— tiene
 que considerar estos diez. **No indexar por `informe.id`**: lo reescribe `_sanearIds` y lo
