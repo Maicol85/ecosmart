@@ -16053,8 +16053,16 @@ function limpiarCampos() {
      canvas EPC, el hidden con las horas del jet, los dos checkboxes de inclusión y los
      sub-tabs viven fuera de él y quedaban con lo del paciente anterior. */
   if (typeof eteShuntTaviReset === 'function') { try { eteShuntTaviReset(); } catch (e) {} }
-  _pdfToggleBtnState('contr-pdf-toggle', false);
-  _pdfToggleBtnState('sgl-pdf-toggle', false);
+  /* Los botones se repintan desde el ESTADO REAL, no a `false` fijo. Las claves del bull's eye
+     no se borran a propósito (ver la nota de arriba: son preferencia del médico, no dato del
+     paciente), así que pintarlos apagados los dejaba MINTIENDO: el médico veía el botón gris,
+     lo tocaba para encenderlo, y toggleContrPDF calcula `on = clave !== '1'` — como la clave
+     seguía en '1', lo APAGABA de verdad y avisaba «excluido del PDF». Desde ahí el bull's eye
+     no salía en ningún informe hasta tocarlo dos veces. Es la explicación más probable del
+     «desaparece el bull's eye», y no tiene nada que ver con el ETE: aparece al encadenar
+     estudios, que es justo cuando uno hace un ETE después de un ETT. */
+  _pdfToggleBtnState('contr-pdf-toggle', localStorage.getItem('contractilidad_incluir_pdf') === '1');
+  _pdfToggleBtnState('sgl-pdf-toggle',   localStorage.getItem('sgl_incluir_pdf') === '1');
   try { localStorage.removeItem('ecosmart_autosave'); } catch(e) {}
   // Checklists de indicaciones/antecedentes → desmarcar, ocultar "Otro" y resetear resumen
   document.querySelectorAll('.ind-chk, .ant-chk').forEach(c => { c.checked = false; });
@@ -17741,7 +17749,21 @@ function generarPDFReal() {
       const _colW = (pgW - (_n - 1) * _gap) / _n;
       const _sz = Math.min(_colW, 54);              // bull's eye cuadrado, centrado en su columna
       const _startY = y;
+      /* Cada columna arranca en la MISMA página, no en la que dejó la anterior.
+         `_cols.map` compartía la página actual del documento: si el cuerpo de la columna 0
+         —los hallazgos de motilidad, que en un post-IAM con varios territorios necesitan 40-60
+         mm contra los ~9 que presupuesta el checkPage— desbordaba y llamaba addPage(), la
+         columna 1 arrancaba con `_cy = _startY` (una coordenada de la página ANTERIOR) pero
+         dibujando sobre la página NUEVA: el bull's eye del SGL caía a media hoja encima del
+         texto que acababa de pasar ahí. Y `y = max(_bottoms)` quedaba en una coordenada de otra
+         página, así que el checkPage siguiente saltaba una hoja de más.
+         Se lee como «desapareció el bull's eye» y no tiene nada que ver con el ETE: depende
+         del largo del texto de motilidad. */
+      const _pag0 = doc.internal.getCurrentPageInfo().pageNumber;
+      let _pagFin = _pag0;
       const _bottoms = _cols.map((col, i) => {
+        doc.setPage(_pag0);
+        let _pagCol = _pag0;
         const _cx0 = mL + i * (_colW + _gap);       // borde izquierdo de la columna
         const _ccx = _cx0 + _colW / 2;              // centro de la columna
         let _cy = _startY;
@@ -17782,13 +17804,24 @@ function generarPDFReal() {
              SIN los hallazgos de motilidad, que es lo más accionable del estudio.
              Se corta acá: lo que no entra pasa a la hoja siguiente. */
           doc.splitTextToSize(_sanML(col.body), _colW).forEach(ln => {
-            if (_cy > _yMax) { doc.addPage(); _cy = 14; fn(8); tc(30,30,30); }
+            if (_cy > _yMax) {
+              /* Se REUSA la página de continuación que abrió la columna anterior en vez de
+                 abrir una nueva por columna: si no, dos columnas largas producían dos hojas
+                 con media columna cada una. */
+              _pagCol++;
+              if (_pagCol > doc.internal.getNumberOfPages()) doc.addPage(); else doc.setPage(_pagCol);
+              _cy = 14; fn(8); tc(30,30,30);
+            }
             doc.text(ln, _cx0, _cy); _cy += 4.8;
           });
         }
-        return _cy;
+        if (_pagCol > _pagFin) _pagFin = _pagCol;
+        return { pag: _pagCol, y: _cy };
       });
-      y = Math.max.apply(null, _bottoms) + 4;
+      /* La `y` de salida tiene que ser de la ÚLTIMA página escrita, no el máximo numérico de
+         coordenadas de páginas distintas. */
+      doc.setPage(_pagFin);
+      y = Math.max.apply(null, _bottoms.filter(b => b.pag === _pagFin).map(b => b.y)) + 4;
     }
   }
 
@@ -24809,19 +24842,36 @@ function pdfDeInformeGuardado(id, accion, etiqueta) {
      por una preferencia de la app.
      Ante cualquier fallo se sigue sin imágenes: un PDF sin ellas es peor que ninguno, pero un
      botón mudo es peor que los dos. */
-  const _inf0 = (typeof getInformes === 'function' ? getInformes() : []).find(i => i.id === id);
-  const _leer = (typeof CeiboImg !== 'undefined' && _inf0 && _uuidValido(_inf0.uuid))
-    ? CeiboImg.leer(_inf0.uuid).then(r => r || []).catch(() => []) : Promise.resolve([]);
+  /* getInformes() va DENTRO del try. Antes corría afuera, y si lanzaba —almacén corrupto, un
+     blob que _sanearIds no digiere— la excepción escapaba de esta función sin catch y
+     `_pdfGuardadoEnCurso` quedaba en true para el RESTO DE LA SESIÓN: todo PDF y todo PPT
+     posteriores contestaban «⏳ Esperá a que termine la exportación anterior», un botón muerto
+     con un mensaje que manda a esperar algo que ya terminó. */
+  const _fallo = e => {
+    console.error('[pdfDeInformeGuardado]', e);
+    // Sólo si no quedó una restauración en vuelo: ésa libera el guard en su propio finally.
+    if (!_pdfRestauracionPendiente) _pdfGuardadoEnCurso = false;
+    if (typeof toast === 'function') toast('❌ No se pudo generar el ' + _lbl + ' de este estudio');
+  };
+  let _inf0 = null, _leer;
+  try {
+    _inf0 = (typeof getInformes === 'function' ? getInformes() : []).find(i => i.id === id);
+    /* `leer` devuelve null cuando NO SE PUDO LEER y [] cuando el estudio no tiene imágenes.
+       Colapsar las dos con `r || []` producía un informe FIRMADO sin las ecografías del estudio
+       ante un fallo transitorio de IndexedDB —base ocupada por otra pestaña, timeout de 3 s—
+       y sin un solo aviso. Se conserva la distinción y se avisa. */
+    _leer = (typeof CeiboImg !== 'undefined' && _inf0 && _uuidValido(_inf0.uuid))
+      ? CeiboImg.leer(_inf0.uuid).catch(() => null) : Promise.resolve([]);
+  } catch (e) { _fallo(e); return; }
   _leer.then(imgs => {
-    _pdfImgsEstudio = imgs;
+    if (imgs === null && typeof toast === 'function') {
+      toast('⚠️ No se pudieron leer las imágenes de este estudio — el ' + _lbl + ' sale sin ellas');
+    }
+    _pdfImgsEstudio = imgs || [];
     try { _pdfDeInformeGuardadoArmar(id, accion); }
-    catch (e) {
-      console.error('[pdfDeInformeGuardado]', e);
-      // Sólo si no quedó una restauración en vuelo: ésa libera el guard en su propio finally.
-      if (!_pdfRestauracionPendiente) _pdfGuardadoEnCurso = false;
-      if (typeof toast === 'function') toast('❌ No se pudo generar el ' + _lbl + ' de este estudio');
-    } finally { _pdfImgsEstudio = null; }
-  });
+    catch (e) { _fallo(e); }
+    finally { _pdfImgsEstudio = null; }
+  }).catch(_fallo);
 }
 function _pdfDeInformeGuardadoArmar(id, accion) {
   const informes = getInformes();
@@ -24853,6 +24903,7 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
      antes de entrar acá). Así el PDF desde la lista sale igual que el generado desde Editar, y
      el formulario del paciente en pantalla no se entera: el backup de abajo lo restaura. */
   const imgBackup = (typeof imgSlots !== 'undefined') ? imgSlots.slice() : null;
+  const _imgEditadoBackup = (typeof _imgEditado !== 'undefined') ? _imgEditado : false;
 
   // Backup current form state
   const backup = {};
@@ -24915,11 +24966,21 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
     /* Las imágenes del estudio que se está reimprimiendo, leídas por uuid antes de entrar.
        Se validan con _imgSrcOK igual que en el resto: el bucle de imágenes del PDF llama a
        doc.getImageProperties sin try/catch, así que un dataURL que jsPDF no procese deja el
-       botón mudo. */
+       botón mudo. Se conserva `calidad` —igual que imgRestaurar— para que el selector no lea
+       undefined si alguien lo toca en la ventana de generación. */
     (_pdfImgsEstudio || []).forEach(s => {
-      if (s && _imgSrcOK(s.dataURL)) imgSlots.push({ dataURL: s.dataURL, ampliada: !!s.ampliada });
+      if (s && _imgSrcOK(s.dataURL)) imgSlots.push({ dataURL: s.dataURL, ampliada: !!s.ampliada,
+        calidad: (typeof s.calidad === 'string' ? s.calidad : 'media') });
     });
     while (imgSlots.length < 2) imgSlots.push(null);
+    /* imgSlotCount y imgRender, igual que imgRestaurar. Sin ellos la grilla EN PANTALLA seguía
+       mostrando las miniaturas del paciente abierto mientras el array ya tenía las del estudio
+       que se está imprimiendo, con índices distintos: durante los ~600 ms de la ventana,
+       cualquier clic por índice —quitar, intercambiar, ampliar, arrastrar— operaba sobre el
+       array equivocado. Y `imgRemove` llama a imgMarcarEditado(), que la restauración diferida
+       NO resetea: quedaba armado el permiso de borrado de lo persistido. */
+    imgSlotCount = imgSlots.length;
+    if (typeof imgRender === 'function') { try { imgRender(); } catch (e) {} }
   }
   if (typeof autosaveSuspender === 'function') autosaveSuspender();
 
@@ -25043,7 +25104,13 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
     /* Las imágenes van PRIMERO: son el único estado de toda esta función que no se puede
        recuperar de ningún lado. Si algo tira antes —un JSON.parse, un _sevManualSync— se
        perdían para siempre. */
-    if (imgBackup) { imgSlots.length = 0; imgBackup.forEach(x => imgSlots.push(x)); if (typeof imgRender === 'function') imgRender(); }
+    if (imgBackup) { imgSlots.length = 0; imgBackup.forEach(x => imgSlots.push(x));
+      imgSlotCount = Math.max(2, imgSlots.length);
+      /* `_imgEditado` vuelve al estado que tenía antes de la reimpresión: si el médico tocó la
+         grilla durante la ventana —sobre el array del OTRO estudio— esa bandera autorizaría
+         después el borrado de lo persistido del paciente en pantalla. */
+      _imgEditado = _imgEditadoBackup;
+      if (typeof imgRender === 'function') imgRender(); }
     try { window.esqSevManual = JSON.parse(sevManualBackup) || {}; } catch (e) { window.esqSevManual = {}; }
     if (typeof _sevManualSync === 'function') _sevManualSync();
     document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
