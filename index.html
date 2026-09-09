@@ -13154,11 +13154,21 @@ function calcDiastolASE2016() {
   let texto = null, textoSuma = null, cls = 'gray', badgeTxt = 'Indeterminado — ASE 2016';
   if (ea === null || disp < 1) {
     texto = null; textoSuma = null; cls = 'gray'; badgeTxt = "Datos insuficientes — ASE 2016";
-  } else if (ea < 0.8 && e !== null && e < 50) {
+  /* ASE/EACVI 2016 define el patrón de relajación prolongada como E/A **≤0,8 con E ≤50 cm/s**.
+     Con `<` estricto, un E/A de exactamente 0,80 —alcanzable con enteros, E 40 / A 50— caía en la
+     rama de 0,8-2,0, y de ahí con 0/3 criterios salía «Normal» sobre una relajación prolongada.
+     Lo mismo del otro lado: el Grado III pide E/A ≥2,0, no >2,0. `calcDiastolASE2025` y
+     `diastAlgoRender` ya usaban `>= 2`; el 2016 era el único disidente. */
+  } else if (ea <= 0.8 && e !== null && e <= 50) {
     texto = 'Llenado diastólico con patrón de relajación prolongada (Disfunción diastólica Grado I).'; textoSuma = 'Disfunción diastólica Grado I (relajación prolongada).'; cls = 'yellow'; badgeTxt = 'Grado I — ASE 2016';
-  } else if (ea > 2.0) {
+  } else if (ea >= 2.0) {
     texto = 'Llenado diastólico restrictivo (Disfunción diastólica Grado III).'; textoSuma = 'Disfunción diastólica Grado III (restrictivo).'; cls = 'red'; badgeTxt = 'Grado III — ASE 2016';
-  } else if (ea >= 0.8 && ea <= 2.0) {
+  } else {
+    /* Rama de criterios, sin predicado propio A PROPÓSITO: es el complemento exacto de las dos
+       de arriba, así que no puede quedar ningún E/A sin clasificar. Con `ea > 0.8 && ea < 2.0`
+       explícito quedaba un hueco nuevo —E/A ≤0,8 con E >50, que por ASE es indeterminado y va
+       justamente acá— y ese caso se caía al `else` mudo del final. Una cascada de bandas sobre
+       un dato clínico tiene que ser exhaustiva: lo no clasificable no puede desaparecer. */
     // FIX clínico ASE/EACVI 2016: el Grado III (restrictivo) requiere E/A ≥2.0.
     // Con E/A 0.8–2.0 NUNCA se asigna Grado III. Según los 3 criterios (E/e'>14, Vol AI>34, TR>2.8):
     //   2/3 o 3/3 positivos → Grado II (pseudonormal, presiones de llenado elevadas)
@@ -13172,8 +13182,6 @@ function calcDiastolASE2016() {
       else if (disp >= 2)   { texto = 'Función diastólica normal.'; textoSuma = 'Función diastólica normal.'; cls = 'green'; badgeTxt = 'Normal — ASE 2016'; }
       else                  { texto = 'Función diastólica indeterminada.'; textoSuma = 'Función diastólica indeterminada.'; cls = 'gray'; badgeTxt = 'Indeterminado — ASE 2016'; }
     }
-  } else {
-    texto = 'Función diastólica indeterminada.'; textoSuma = 'Función diastólica indeterminada.'; cls = 'gray'; badgeTxt = 'Indeterminado — ASE 2016';
   }
   const dd = document.getElementById('dd-interp');
   if (dd) dd.innerHTML = badge(cls, badgeTxt);
@@ -14056,24 +14064,29 @@ function calcIM_ESC() {
     else { scores.severa++; document.getElementById('im-onda-s-interp').innerHTML = badge('red','Invertida — severa'); }
   }
 
-  // Onda E >150 cm/s
-  const ondaE = v('onda_e');
-  if (ondaE) {
-    if (ondaE > 150) { scores.severa++; params.push({p:'OndaE',sev:'severa'}); }
-    else if (ondaE >= 100) { scores.moderada++; params.push({p:'OndaE',sev:'moderada'}); }
-    else { scores.leve++; params.push({p:'OndaE',sev:'leve'}); }
-  }
+  /* ── Signos de APOYO, no parámetros graduados ──────────────────────────────
+     La onda E y el cociente VTI mitral / VTI TSVI NO gradúan la insuficiencia mitral. En ASE la
+     onda E dominante (>1,2 m/s) es un signo de APOYO de IM severa y la onda A dominante la
+     EXCLUYE; ninguno de los dos define «leve» ni «moderada». Tratarlos como bandas de tres
+     niveles hacía que un paciente SIN insuficiencia mitral, con una onda E de 110 cm/s —hallazgo
+     banal en cualquier presión de llenado elevada— sumara `leve:1 + moderada:1` y saliera
+     «Moderada», con `im_grado='2'` escrito al estudio, al EN SUMA y a la tabla del PDF. Y como
+     `calcIM_ESC` se vuelve a correr al reimprimir, un estudio archivado ADQUIRÍA un grado que su
+     PDF firmado original no tenía.
+     Ahora se muestran —tienen valor clínico— pero no votan: sin ningún parámetro cuantitativo de
+     IM cargado, `params` queda vacío y la función sale sin escribir grado. Una válvula que nadie
+     cuantificó no recibe severidad. Es el mismo criterio que el archivo ya aplicó a los
+     importados vía `esqSevManual`; faltaba el camino manual, que es el habitual. */
+  /* La onda E ya no se lee acá: no había ningún elemento donde mostrarla —el código anterior
+     sólo la usaba para votar— y agregar uno que no existe sería código muerto que aparenta
+     informar. El dato sigue visible en su propia tab (Doppler). */
 
-  // Ratio VTI mitral / VTI TSVI >1.4
   const vtim = v('vtim');
   const vtitsvi = v('itv_tsvi');
   if (vtim && vtitsvi) {
     const ratio = (vtim / vtitsvi).toFixed(2);
     const ratioEl = document.getElementById('im-vti-ratio');
-    if (ratioEl) ratioEl.textContent = ratio;
-    if (PF(ratio) > 1.4) { scores.severa++; params.push({p:'VTI-ratio',sev:'severa'}); }
-    else if (PF(ratio) > 1.0) { scores.moderada++; params.push({p:'VTI-ratio',sev:'moderada'}); }
-    else { scores.leve++; params.push({p:'VTI-ratio',sev:'leve'}); }
+    if (ratioEl) ratioEl.textContent = ratio + (PF(ratio) > 1.4 ? '  (>1,4 — apoya IM severa)' : '');
   }
 
   if (params.length === 0) return;
@@ -14749,9 +14762,18 @@ function calcContIM() {
   const vmit   = am    * vtim;                     // Vol mitral/latido (ml)
   const vstsvi = atsvi * itsvi;                    // VS anterógrado TSVI (ml)
 
-  // EROA = (VTI_TSVI × Área_TSVI) / VTI_mitral  → en cm² → ×100 → mm²
-  const eroa_cm2 = (atsvi * itsvi) / vtim;
-  const eroa_mm2 = eroa_cm2 * 100;
+  /* NO se calcula EROA acá, y no es un olvido. La expresión que había —`(atsvi*itsvi)/vtim`— es
+     literalmente la ecuación de continuidad del ÁREA VALVULAR MITRAL: la MISMA línea que usa
+     `calcEM` para `avm_cont_val`. Una EROA de insuficiencia es `Vol-R / VTI del JET de IM`, y el
+     VTI del jet por CW no es ninguno de los campos de este bloque (`vtim` es el de llenado, que
+     es lo que la fórmula del volumen mitral necesita; un mismo campo no puede ser los dos).
+     Medido con valores fisiológicos normales —anillo 30, VTI mitral 13, Ø TSVI 20, VTI TSVI 20—
+     daba 483 mm² contra un umbral de severa de 40, así que la regla de abajo (un OR) imprimía
+     «Severa» en TODO paciente con los cuatro campos cargados, al lado de un Vol-R de 29 ml y una
+     FR de 32 % —ambos bien calculados— que decían «leve». Era un veredicto fabricado sobre el
+     número que orienta derivación a cirugía o TEER.
+     El método volumétrico SÍ es válido y se conserva: Vol-R y FR salen de la diferencia entre el
+     flujo mitral y el del TSVI, que es lo que este bloque mide de verdad. */
 
   // Vol-R = Vol_mitral − VS_TSVI
   const volR = vmit - vstsvi;
@@ -14766,21 +14788,25 @@ function calcContIM() {
   const fEl = document.getElementById('im_fr_cont');
   const sEl = document.getElementById('im-cont-severidad');
 
-  if (eEl) eEl.value = eroa_mm2.toFixed(1) + ' mm²';
+  // El campo de EROA queda vacío y DICE por qué: en blanco a secas el médico lo lee como
+  // «no se pudo calcular con estos datos» y vuelve a cargar campos que ya están.
+  if (eEl) { eEl.value = ''; eEl.placeholder = 'requiere VTI del jet de IM (CW)'; }
   if (fEl) fEl.value = fr.toFixed(0) + ' %';
 
   // Clasificación ESC 2021
   if (sEl) {
+    /* Sólo por el método VOLUMÉTRICO (Vol-R y FR), que son los dos parámetros que este bloque
+       calcula bien. Los cortes son los de ASE/ESC: severa ≥60 ml o ≥50 %; leve <30 ml y <30 %. */
     let sev = '', color = '';
-    if (eroa_mm2 < 20 && volR < 30 && fr < 30) {
+    if (volR < 30 && fr < 30) {
       sev = 'Leve'; color = '#3ecf8e';
-    } else if (eroa_mm2 >= 40 || volR >= 60 || fr >= 50) {
+    } else if (volR >= 60 || fr >= 50) {
       sev = 'Severa'; color = 'var(--red)';
     } else {
       sev = 'Moderada'; color = '#f59e0b';
     }
     sEl.innerHTML = `Severidad (continuidad): <span style="color:${color};">${sev}</span>
-      <span style="font-weight:400;color:var(--text2);font-size:10px;margin-left:8px;">EROA ${eroa_mm2.toFixed(1)} mm² · Vol-R ${volR.toFixed(1)} ml · FR ${fr.toFixed(0)}%</span>`;
+      <span style="font-weight:400;color:var(--text2);font-size:10px;margin-left:8px;">método volumétrico · Vol-R ${volR.toFixed(1)} ml · FR ${fr.toFixed(0)}%</span>`;
   }
 }
 function usarTSVIenIM(val) {
@@ -22390,6 +22416,29 @@ window._accTexto = _accTexto;
 
 // onDone(ok) es opcional: hace falta porque el guardado puede quedar en espera de la card
 // de severidades y entonces el `return` ya no refleja el resultado (ver gate más abajo).
+/* ── Semáforo de escritura ──────────────────────────────────────────────
+   `guardarInforme` no tenía guarda de reentrada. El daño NO es el que suele suponerse: como
+   `_persistir` snapshotea `_local` y `_chunk` COMPLETOS antes de escribir, una segunda escritura
+   contiene todo lo de la primera y no quedan «datos parciales». Los riesgos reales del doble
+   clic son otros dos: que se creen DOS estudios, y que dos escrituras a IndexedDB completen
+   fuera de orden y termine ganando el snapshot viejo.
+   La bandera cubre SÓLO la ventana en que hay una escritura en vuelo, no las esperas de modal.
+   Es deliberado: un semáforo tomado mientras la card de severidad o la de sobreescribir están
+   abiertas se filtra para siempre si el médico las cierra sin elegir, y una app que no puede
+   volver a guardar hasta recargar es peor que el defecto que se venía a cerrar. Por eso se
+   libera en `finally`, que corre tanto si la promesa resuelve como si rechaza. */
+let _guardEnVuelo = false;
+function _guardarConSemaforo(informes, cb) {
+  if (_guardEnVuelo) {
+    if (typeof toast === 'function') toast('⏳ Ya se está guardando — esperá un momento');
+    return Promise.resolve(false);
+  }
+  _guardEnVuelo = true;
+  return guardarInformesSeguro(informes)
+    .then(ok => { try { cb(ok); } finally { _guardEnVuelo = false; } return ok; })
+    .catch(e => { _guardEnVuelo = false; throw e; });
+}
+
 function guardarInforme(onDone) {
   /* El espejo se sincroniza justo antes de capturar el formulario: la marca de severidad
      fijada a mano vive en window y viaja con el estudio por el input oculto `sev_manual`.
@@ -22489,7 +22538,7 @@ function guardarInforme(onDone) {
       window._ettEditandoId = null;
       informes.unshift(nuevoInforme);
       eeCurrentInformeId = nuevoInforme.estudioId;
-      guardarInformesSeguro(informes).then(_okN => {
+      _guardarConSemaforo(informes, _okN => {
         if (_okN) { imgPersistir(nuevoInforme.uuid); toast('💾 Informe guardado como nuevo'); _autosaveDescartar(); }   // el error lo avisa CeiboStore
         if (onDone) onDone(_okN);
       });
@@ -22509,7 +22558,7 @@ function guardarInforme(onDone) {
         uuid: _uuidValido(informes[idx].uuid) ? informes[idx].uuid : nuevoInforme.uuid };
       else informes.unshift(nuevoInforme);
       eeCurrentInformeId = (idx >= 0) ? informes[idx].estudioId : nuevoInforme.estudioId;
-      guardarInformesSeguro(informes).then(_okO => {
+      _guardarConSemaforo(informes, _okO => {
         if (_okO) { imgPersistir((idx >= 0 ? informes[idx] : nuevoInforme).uuid); toast('🔄 Informe sobreescrito correctamente'); _autosaveDescartar(); }
         if (onDone) onDone(_okO);
       });
@@ -22517,10 +22566,9 @@ function guardarInforme(onDone) {
   } else {
     informes.unshift(nuevoInforme);
     eeCurrentInformeId = nuevoInforme.estudioId;
-    return guardarInformesSeguro(informes).then(_ok => {
+    return _guardarConSemaforo(informes, _ok => {
       if (_ok) { imgPersistir(nuevoInforme.uuid); toast('💾 Informe guardado correctamente'); _autosaveDescartar(); }
       if (onDone) onDone(_ok);
-      return _ok;
     });
   }
 }
@@ -27767,7 +27815,12 @@ function _labIndicadoresList(infs) {
     { lbl: 'Vol AI elevado sin función diastólica documentada',
       casos: infs.filter(i => { const l = _labLavi(i); return l !== null && l > 34 && _labDiastGrado(i) === null; }) },
     { lbl: 'GLS anormal (peor que -18%) con FEVI conservada',
-      casos: infs.filter(i => { const g = _labGls(i), f = _labFevi(i); return g !== null && g > -18 && f !== null && f >= 50; }) },
+      /* Se compara el VALOR ABSOLUTO contra 16, que es el corte de `calcSGL` para «anormal»
+         (≥20 normal · 16-20 zona gris · <16 anormal). El `g > -18` anterior contaba como anormal
+         TODO strain tipeado en positivo, y además usaba un umbral que ningún informe individual
+         aplica: el agregado no puede contradecir al informe firmado. */
+      casos: infs.filter(i => { const g = _labGls(i), f = _labFevi(i);
+        return g !== null && Math.abs(g) < 16 && f !== null && f >= 50; }) },
   ];
 }
 
@@ -31316,6 +31369,12 @@ function labCompararRender() {
     const vals = arr.map(i => numCampo(i, campo)).filter(v => v !== null);
     return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '—';
   };
+  /* Variante en valor absoluto, para el GLS: la base tiene el strain con las dos convenciones de
+     signo —`calcSGL` y `calcCardioOnco` usan Math.abs justamente por eso— y promediar crudo da 0. */
+  const promAbs = (arr, campo) => {
+    const vals = arr.map(i => numCampo(i, campo)).filter(v => v !== null).map(Math.abs);
+    return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '—';
+  };
   const pct = (arr, campo) => {
     if (!arr.length) return '—';
     return Math.round(arr.filter(i => numCampo(i,campo) !== null).length / arr.length * 100) + '%';
@@ -31324,7 +31383,9 @@ function labCompararRender() {
   const filas = [
     { lbl: 'Total estudios', a: A.length, b: B.length, unidad: '' },
     { lbl: 'FEVI promedio', a: prom(A,'fevi'), b: prom(B,'fevi'), unidad: '%' },
-    { lbl: 'GLS promedio', a: prom(A,'sgl'), b: prom(B,'sgl'), unidad: '%' },
+    /* |GLS| por el mismo motivo que en el PDF de auditoría: la base tiene las dos convenciones
+       de signo y el promedio crudo se anula. */
+    { lbl: 'GLS promedio', a: promAbs(A,'sgl'), b: promAbs(B,'sgl'), unidad: '%' },
     { lbl: 'PSAP promedio', a: prom(A,'psap_calc'), b: prom(B,'psap_calc'), unidad: ' mmHg' },
     { lbl: 'TAPSE promedio', a: prom(A,'tapse'), b: prom(B,'tapse'), unidad: ' mm' },
     { lbl: '% con GLS', a: pct(A,'sgl'), b: pct(B,'sgl'), unidad: '' },
@@ -32628,7 +32689,10 @@ async function labGenerarPDF() {
   const edades = infs.map(i => numCampo(i, 'edad')).filter(v => v !== null && v > 0 && v < 120);
   const edadProm = edades.length ? Math.round(edades.reduce((a, b) => a + b, 0) / edades.length) : null;
   const feviProm = avgOf(_labFevi, 1);
-  const glsProm = avgOf(_labGls, 1);
+  /* |GLS|: la app acepta el strain tipeado como `18` o como `-18` —`calcSGL` y `calcCardioOnco`
+     usan Math.abs a propósito y el input no tiene `min`—, así que promediar el signo crudo sobre
+     una base mixta daba 0,0 % y eso salía impreso como «GLS promedio» en un PDF firmado. */
+  const glsProm = avgOf(i => { const g = _labGls(i); return g === null ? null : Math.abs(g); }, 1);
   const psapProm = avgOf(_labPsap, 0);
   const laviProm = avgOf(_labLavi, 1);
 
@@ -33226,7 +33290,13 @@ function aplicarFiltros() {
 
     // FEVI
     if (filtroFevi) {
-      const fevi = PF(c.fevi_simpson);
+      /* `_labFevi` y no `c.fevi_simpson`: esa clave es la CANÓNICA DEL PARSER DE PDF y no existe
+         como campo del formulario —no hay ningún `id="fevi_simpson"` en el archivo—, así que
+         para todo estudio cargado en la app daba NaN y el `isNaN → return false` de abajo lo
+         descartaba. Elegir cualquier opción del desplegable vaciaba la lista entera y el médico
+         concluía que no tenía esos pacientes. Los filtros numéricos de veinte líneas más abajo
+         ya usaban el accesor, así que dos filtros contiguos respondían distinto del mismo dato. */
+      const fevi = _labFevi({ campos: c });
       if (isNaN(fevi)) return false;
       if (filtroFevi === 'lt30'  && fevi > 30)  return false;
       if (filtroFevi === 'lt40'  && fevi > 40)  return false;
