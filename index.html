@@ -1371,7 +1371,10 @@ window.cerrarSesion = cerrarSesion;
           <span style="font-size:12.5px;color:var(--text)"><b>💾 Guardar imágenes con los estudios</b> — quedan en este dispositivo</span>
         </label>
         <p style="font-size:11px;color:var(--text2);margin-top:6px;">Apagado, las imágenes viven sólo en la sesión (comportamiento de siempre). Encendido, se guardan al guardar el estudio y vuelven al reabrirlo. <b>No viajan en el backup JSON ni en el export.</b></p>
-        <div id="cfg-img-storage" style="margin-top:12px;cursor:pointer;" onclick="cfgStorageDetalle()" title="Tocar para ver el detalle"></div>
+        <!-- La barra de almacenamiento se mudó a la cabecera de Informes Guardados: ahí es
+             donde el médico está cuando el espacio le importa (viendo la lista que lo ocupa),
+             y en Config quedaba enterrada bajo una preferencia que se toca una vez. Config
+             conserva el toggle y el borrado. -->
         <div style="margin-top:10px;"><button class="btn btn-ghost" onclick="cfgBorrarTodasImagenes()">🗑️ Borrar todas las imágenes guardadas</button></div>
       </div>
 
@@ -9470,7 +9473,14 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   <!-- Lista view -->
   <div id="ig-lista-view">
     <div class="card">
-      <h2 class="card-head">📋 Informes Guardados</h2>
+      <!-- `flex-wrap` + `space-between`: en escritorio título y barra comparten fila; cuando no
+           entran, la barra baja sola debajo del título sin necesidad de media query. -->
+      <h2 class="card-head" style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;justify-content:space-between;">
+        <span>📋 Informes Guardados <span id="ig-titulo-count" style="font-weight:400;color:var(--text2);"></span></span>
+        <!-- `text-transform:none` y `letter-spacing:normal`: card-head los fuerza en mayúsculas
+             y espaciado, y una medición sale como «186 KB USADO», que grita y se lee peor. -->
+        <span id="ig-img-storage" style="cursor:pointer;font-weight:400;text-transform:none;letter-spacing:normal;" onclick="imgStorageDetalle()" title="Tocar para ver el detalle"></span>
+      </h2>
       <div class="card-body">
         <!-- Fila: disparadores de filtros (izquierda) · acciones de datos (derecha) -->
         <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap;justify-content:space-between;">
@@ -16264,9 +16274,9 @@ function cfgToggleGuardarImagenes(on) {
         const el = document.getElementById('cfg-guardar-imagenes'); if (el) el.checked = false;
         try { localStorage.setItem(IMG_CFG_KEY, '0'); } catch (e) {}
       }
-      cfgStorageRender();
+      imgStorageRender();
     });
-  } else cfgStorageRender();
+  } else imgStorageRender();
 }
 window.cfgToggleGuardarImagenes = cfgToggleGuardarImagenes;
 
@@ -16284,7 +16294,7 @@ function cfgBorrarTodasImagenes() {
                  'Los estudios y sus datos no se tocan.')) return;
     CeiboImg.borrarTodo().then(ok => {
       if (typeof toast === 'function') toast(ok ? '🗑️ Imágenes guardadas eliminadas' : '❌ No se pudieron borrar las imágenes');
-      cfgStorageRender();
+      imgStorageRender();
     });
   });
 }
@@ -16296,9 +16306,25 @@ const _fmtMB = b => (b / 1048576) >= 1 ? (b / 1048576).toFixed(1) + ' MB' : Math
    el tamaño de esta base: al médico le importa cuánto le queda al navegador, que es lo que se
    agota. Si el navegador no informa cuota, se dice que no se puede estimar en vez de dibujar
    una barra inventada. */
-function cfgStorageRender() {
-  const cont = document.getElementById('cfg-img-storage');
+/* Barra de almacenamiento, en la cabecera de Informes Guardados.
+   Se llamaba `cfgStorageRender` cuando vivía en Config; el nombre se cambió con la mudanza para
+   que no siga apuntando a una pestaña donde ya no está.
+
+   ══ Cuando migremos a Supabase ══
+   Hoy el denominador es la cuota del ORIGEN que informa `navigator.storage.estimate()`, o sea
+   el espacio que el navegador le concede a este dispositivo. Con Supabase esta misma barra pasa
+   a medir el storage GLOBAL DEL USUARIO —su cuota de cuenta, compartida entre dispositivos— y
+   deja de ser una medida local. El único punto a tocar es `CeiboImg.cuota()`: mientras siga
+   devolviendo `{usado, total}` en bytes, esta función no cambia. Lo que sí hay que revisar ese
+   día es el texto: «del navegador usado» pasa a ser «de tu espacio usado», y el caso «cuota no
+   informada» deja de existir porque el backend siempre la conoce. */
+function imgStorageRender() {
+  const cont = document.getElementById('ig-img-storage');
   if (!cont || typeof CeiboImg === 'undefined') return;
+  /* Con el guardado apagado no hay nada que medir: la barra afirmaría un consumo sobre una
+     función que la app no está usando. Se vacía en vez de ocultarse con display:none para que
+     la fila del título no cambie de alto al encender y apagar el toggle. */
+  if (typeof imgGuardadoActivo === 'function' && !imgGuardadoActivo()) { cont.textContent = ''; return; }
   Promise.all([CeiboImg.uso(), CeiboImg.cuota()]).then(([uso, q]) => {
     const total = q.total || 0;
     const pct = total ? Math.min(100, (q.usado / total) * 100) : 0;
@@ -16312,19 +16338,24 @@ function cfgStorageRender() {
     const mk = (tag, css, txt) => { const e = document.createElement(tag); e.style.cssText = css;
                                     if (txt != null) e.textContent = txt; return e; };
     cont.textContent = '';
-    cont.appendChild(mk('div', 'font-size:11px;color:var(--text2);margin-bottom:3px;', 'Almacenamiento'));
-    const fila = mk('div', 'font-family:monospace;font-size:15px;letter-spacing:1px;line-height:1.1;');
-    fila.appendChild(mk('span', 'color:' + col, barra.slice(0, llenos)));
-    fila.appendChild(mk('span', 'color:var(--green)', barra.slice(llenos)));
+    const fila = mk('span', 'display:inline-flex;align-items:baseline;gap:7px;white-space:nowrap;');
+    const bloques = mk('span', 'font-family:monospace;font-size:13px;letter-spacing:1px;');
+    bloques.appendChild(mk('span', 'color:' + col, barra.slice(0, llenos)));
+    bloques.appendChild(mk('span', 'color:var(--green)', barra.slice(llenos)));
+    fila.appendChild(bloques);
+    /* «<1%» y no «0%» cuando hay consumo pero redondea a cero. La barra pinta un bloque mínimo
+       si hay imágenes guardadas —para no mostrarse vacía habiendo datos— y junto a un «0%» eso
+       se lee como una contradicción. Con una cuota de varios GB, unos cientos de KB caen
+       siempre en ese caso, o sea que es el estado NORMAL, no el borde. */
+    const pctTxt = !total ? '' : (pct > 0 && pct < 0.5 ? '<1% · ' : pct.toFixed(0) + '% · ');
+    fila.appendChild(mk('span', 'font-size:11px;color:var(--text2);',
+      pctTxt + _fmtMB(uso.bytes) + ' usado'));
     cont.appendChild(fila);
-    cont.appendChild(mk('div', 'font-size:11px;color:var(--text2);margin-top:3px;',
-      _fmtMB(uso.bytes) + ' en imágenes · ' + uso.estudios + ' estudio(s)' +
-      (total ? ' · ' + pct.toFixed(1) + '% del navegador usado' : ' · cuota no informada')));
   }).catch(() => {});
 }
-window.cfgStorageRender = cfgStorageRender;
+window.imgStorageRender = imgStorageRender;
 
-function cfgStorageDetalle() {
+function imgStorageDetalle() {
   if (typeof CeiboImg === 'undefined') return;
   Promise.all([CeiboImg.uso(), CeiboImg.cuota()]).then(([uso, q]) => {
     const pct = q.total ? ((q.usado / q.total) * 100).toFixed(2) + '%' : 'no informada';
@@ -16335,7 +16366,7 @@ function cfgStorageDetalle() {
     }
   }).catch(() => {});
 }
-window.cfgStorageDetalle = cfgStorageDetalle;
+window.imgStorageDetalle = imgStorageDetalle;
 
 function imgVaciar() {
   if (typeof imgSlots === 'undefined') return;
@@ -21273,6 +21304,12 @@ function igPintar(filtrados){
   if (cont) cont.textContent = todos.length
     ? ('Mostrando ' + filtrados.length + ' de ' + todos.length + ' estudio' + (todos.length===1?'':'s'))
     : '';
+  /* El (N) del título es el TOTAL, no el filtrado: #ig-contador de abajo ya informa «Mostrando
+     N de M» y repetir el filtrado arriba daría dos números distintos para lo mismo. */
+  { const _tc = document.getElementById('ig-titulo-count');
+    if (_tc) _tc.textContent = todos.length ? '(' + todos.length + ')' : ''; }
+  // La barra se repinta con la lista: es cuando el médico está mirando lo que ocupa el espacio.
+  if (typeof imgStorageRender === 'function') imgStorageRender();
 
   if (!filtrados.length) {
     if (todos.length) {
@@ -26178,7 +26215,7 @@ function imgSetCalidad(idx, cal){
        edita —guardarInforme lo pone en null al terminar—, así que cambiar la calidad después de
        guardar no llegaba al disco. Medido: la pantalla mostraba 12 KB y IndexedDB seguía en 67. */
     if (imgGuardadoActivo() && _uuidValido(_imgUuidActual)) imgPersistir(_imgUuidActual);
-    if (typeof cfgStorageRender === 'function') cfgStorageRender();
+    if (typeof imgStorageRender === 'function') imgStorageRender();
     return true;
   }).catch(() => {
     imgRender();
@@ -32031,8 +32068,7 @@ function cfgLoadMed(){
 function eeQrEnabled(){ return localStorage.getItem('ett_qr_enabled') !== '0'; } // por defecto activado
 function cfgToggleQr(on){ try { localStorage.setItem('ett_qr_enabled', on ? '1' : '0'); } catch(e){} }
 function cfgOnShow(){ cfgRenderModulos(); cfgLoadMed(); if(typeof cfgRenderCentros==='function')cfgRenderCentros(); if(typeof cfgRenderMedicos==='function')cfgRenderMedicos(); var q=document.getElementById('cfg-qr'); if(q) q.checked = eeQrEnabled(); var mi=document.getElementById('cfg-modo-inst'); if(mi) mi.checked=(localStorage.getItem('ett_modo_institucional')==='1');
-  var gi=document.getElementById('cfg-guardar-imagenes'); if(gi && typeof imgGuardadoActivo==='function') gi.checked=imgGuardadoActivo();
-  if(typeof cfgStorageRender==='function') cfgStorageRender(); }
+  var gi=document.getElementById('cfg-guardar-imagenes'); if(gi && typeof imgGuardadoActivo==='function') gi.checked=imgGuardadoActivo(); }
 /* Botón "🏥 Centro": ya no edita inline — los centros se gestionan en ⚙️ Config. */
 function ecoCentroBtn(){
   if(typeof hdrIrAConfig==='function') hdrIrAConfig();
