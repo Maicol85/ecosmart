@@ -1236,6 +1236,12 @@ window.cerrarSesion = cerrarSesion;
         <span class="pdf-color-sw" data-idx="3" onclick="setPdfColor(3)" title="Violeta" style="width:20px;height:20px;border-radius:5px;background:#4a1a7a;cursor:pointer;box-sizing:border-box;border:1px solid rgba(255,255,255,0.25);"></span>
         <span class="pdf-color-sw" data-idx="4" onclick="setPdfColor(4)" title="Bordo"   style="width:20px;height:20px;border-radius:5px;background:#7B2D42;cursor:pointer;box-sizing:border-box;border:1px solid rgba(255,255,255,0.25);"></span>
       </span>
+      <!-- Punto de entrada al selector de plantilla. No duplica el estado: sólo lleva a Config
+           y resalta la sección. Va acá porque es donde el médico ya cambia la apariencia del
+           PDF —los cuatro colores están dos líneas arriba—; la sección de Config arranca en el
+           píxel 774 y en una pantalla de 720 queda entera bajo el pliegue. -->
+      <button type="button" id="hdr-pltz-link" title="Elegir el diseño del encabezado del PDF"
+        style="font-size:9px;padding:1px 6px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:var(--bg3);color:var(--text2);cursor:pointer;font-family:inherit;">📄 Diseño…</button>
       <select id="pdf-fmt-sel" title="Formato nombre archivo PDF"
         style="font-size:9px;padding:1px 3px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:var(--bg3);color:var(--text2);cursor:pointer;max-width:110px;"
         onchange="localStorage.setItem('ett_filename_fmt', this.value)">
@@ -17382,7 +17388,19 @@ function generarPDFReal() {
       if (w > wMax) { h = h * (wMax / w); w = wMax; }
       doc.addImage(_hdrLogo.data, (p && p.fileType) || undefined, xDer - w, yTop + (hMax - h) / 2, w, h);
     } catch (_e) {
+      /* Con aviso, no sólo console.warn. En HEAD el try/catch envolvía getImageProperties Y
+         addImage, y el catch mostraba el toast — era el punto del commit que cerró esto. Al
+         partir la validación del dibujo me quedé sin aviso en la segunda mitad: un logo que
+         pasa LOGO_DATA_OK y getImageProperties pero falla al estampar desaparecía de TODOS los
+         informes de ese centro sin que nadie se entere, que es exactamente el agujero que ya
+         se había cerrado una vez.
+         La bandera evita duplicarlo: el fallback del despachador puede dibujar el Clásico dos
+         veces, y dos toasts idénticos se leen como dos fallas distintas. */
       console.warn('[PDF] no se pudo dibujar el logo del centro:', _e);
+      if (!_hdrLogo.avisado) {
+        _hdrLogo.avisado = true;
+        if (typeof toast === 'function') toast('⚠️ El logo del centro no se pudo incluir en el PDF — revisá el formato (usá JPG o PNG)');
+      }
     }
   }
 
@@ -17595,17 +17613,24 @@ function generarPDFReal() {
     fs(15, 'bold'); tc(17,17,17);
     titLn.forEach((ln, i) => doc.text(ln, mL, yTit + i * 5.6));
     if (_hdrLine) { fs(9); tc(120,120,120); doc.text(_sanML(_hdrLine), mL, yTit + (titLn.length - 1) * 5.6 + 5.2); }
-    /* ID del estudio. XXXX es un hash FNV-1a del documento, NO un tramo del documento: el
-       informe se imprime, se fotocopia y se archiva, así que publicar dígitos de la cédula
-       sería filtrar identidad en papel. El hash es estable —mismo paciente y misma fecha dan
-       siempre el mismo id— y no reversible. Sin documento se cae al nombre; sin ninguno de los
-       dos NO se estampa nada, antes que un identificador falso que parezca real. */
-    const _semilla = sv('ci') || sv('nombre') || '';
+    /* ID del estudio: hash FNV-1a de documento + FECHA, NO un tramo del documento.
+       La fecha va en la SEMILLA, no sólo en el año que se concatena: sin ella dos estudios del
+       mismo paciente en el mismo año llevaban el MISMO código —basal y control indistinguibles,
+       que es justo lo que un id de estudio existe para separar—.
+       Seis caracteres y no cuatro: con cuatro son 36^4 casilleros y por cumpleaños la colisión
+       llega a ~26% con mil pacientes al año y supera el 99% con cinco mil. Un identificador que
+       colisiona es peor que no tener ninguno. Con seis son 2.176 millones.
+       Sobre «no reversible»: son ~31 bits, o sea fuerza bruta trivial sobre el espacio de
+       cédulas. NO es una defensa de privacidad y no se vende como tal — esta misma hoja imprime
+       la cédula completa en la tabla de abajo. El hash está por estabilidad y compacidad.
+       Sin documento se cae al nombre; sin ninguno de los dos NO se estampa nada, antes que un
+       identificador falso que parezca real. */
+    const _semilla = (sv('ci') || sv('nombre') || '') + '|' + (rawF || '');
     if (_semilla) {
       let h = 2166136261;
       for (let i = 0; i < _semilla.length; i++) { h ^= _semilla.charCodeAt(i); h = Math.imul(h, 16777619); }
       const anio = (rawF && /^\d{4}/.test(rawF)) ? rawF.slice(0,4) : String(new Date().getFullYear());
-      const cod = ('0000' + (h >>> 0).toString(36).toUpperCase()).slice(-4);
+      const cod = ('000000' + (h >>> 0).toString(36).toUpperCase()).slice(-6);
       fs(8); tc(110,110,110);
       doc.text(_sanML('ECO-' + anio + '-' + cod), mR - logoW - (logoW ? 3 : 0), 13.2, {align:'right'});
     }
@@ -17642,7 +17667,15 @@ function generarPDFReal() {
      desconocido. El `|| _hdrClasico` es la red por si el mapa y la lista se desincronizan: un
      informe con encabezado clásico es un problema de estética; uno SIN encabezado es un
      documento clínico sin identificar. */
-  const _PLANTILLAS_FN = { clasico:_hdrClasico, moderno:_hdrModerno, minimalista:_hdrMinimalista, academico:_hdrAcademico };
+  /* Object.create(null) y no `{}`: `_PLANTILLAS_FN['constructor']` sobre un objeto normal es
+     la función Object —truthy—, así que el `|| _hdrClasico` de abajo NO protegería: se la
+     LLAMARÍA y devolvería {}, dejando el informe sin encabezado. Hoy `pdfPlantillaGet` filtra
+     antes y es inalcanzable, pero el `||` está justificado como red para el día que el mapa y
+     la lista se desincronicen, que es exactamente el escenario donde una clave de prototipo sí
+     podría llegar. Es la trampa que CLAUDE.md ya documenta para `MAPA[k] || 'Otro'`. */
+  const _PLANTILLAS_FN = Object.create(null);
+  _PLANTILLAS_FN.clasico = _hdrClasico;     _PLANTILLAS_FN.moderno   = _hdrModerno;
+  _PLANTILLAS_FN.minimalista = _hdrMinimalista; _PLANTILLAS_FN.academico = _hdrAcademico;
   const _plantillaId = (typeof pdfPlantillaGet === 'function') ? pdfPlantillaGet() : 'clasico';
 
   /* La `y` que devuelve la plantilla se VALIDA, no se confía. Es el único acoplamiento entre el
@@ -17657,7 +17690,22 @@ function generarPDFReal() {
      botón no hace nada y no hay mensaje. Los dos se atajan acá.
      Se exige número finito y dentro del papel. `_yMax` se lee en runtime y NO es 284: lo
      reescribe el bloque de firma según cuántas filas tenga (270,2 sin médico configurado). */
-  function _yValida(r) { return typeof r === 'number' && isFinite(r) && r >= 10 && r <= _yMax; }
+  /* SIN cota superior, a propósito, y esto se corrigió dos veces: primero contra `_yMax` y
+     después contra 297. Las dos estaban mal por el mismo motivo — una `y` grande NO es un valor
+     inválido, es el estado normal «pasamos el margen», y cada bloque de abajo lo resuelve con su
+     propio checkPage. `ant_otro` es un input de texto SIN maxlength: con ~1200 caracteres la
+     caja del paciente mide más que la hoja entera y devuelve legítimamente más de 297.
+     Con cualquiera de las dos cotas, ese paciente disparaba el camino de fallo: toast FALSO de
+     «el encabezado elegido falló», Clásico redibujado sobre la caja ya dibujada, y el informe
+     estampado encima de los datos del paciente. Medido — pasaba incluso con la plantilla
+     Clásica, o sea en el camino por defecto, y HEAD no tenía el problema porque simplemente
+     dejaba desbordar. Lo único que hay que atajar acá es null / undefined / NaN / Infinity /
+     string, que son los modos de fallo mudos de jsPDF (`isNaN(null)` es false y dibuja en y=0). */
+  function _yValida(r) { return typeof r === 'number' && isFinite(r) && r > 0; }
+  // Página en la que arrancó el encabezado: si la plantilla saltó de hoja antes de fallar, el
+  // Clásico tiene que redibujarse donde estaba, no sobre la hoja nueva.
+  let _pag0 = 1;
+  try { _pag0 = doc.internal.getCurrentPageInfo().pageNumber; } catch (_e0) {}
   let _yHdr = null;
   try { _yHdr = (_PLANTILLAS_FN[_plantillaId] || _hdrClasico)(); } catch (_e) {
     console.error('[PDF] la plantilla «' + _plantillaId + '» falló:', _e);
@@ -17666,12 +17714,21 @@ function generarPDFReal() {
   if (!_yValida(_yHdr)) {
     console.error('[PDF] la plantilla «' + _plantillaId + '» devolvió una y inválida:', _yHdr);
     if (typeof toast === 'function') toast('⚠️ El encabezado elegido falló — se usó el diseño Clásico');
-    /* Se redibuja el clásico en la MISMA página, sin cirugía de páginas: acá no se dibujó nada
-       más todavía, y el clásico arranca con una banda sólida de 210 mm de ancho que tapa lo que
-       la plantilla rota haya alcanzado a estampar arriba. Se descartó borrar y recrear la
-       página porque `deletePage` sobre la única hoja del documento deja a jsPDF en un estado
-       que no verifiqué — y un PDF a medio construir es peor que un encabezado con un resto
-       tapado debajo de la banda. */
+    /* Se vuelve a la hoja donde arrancó el encabezado y se TAPA con blanco antes de redibujar.
+       La versión anterior confiaba en que la banda del Clásico (16,5 mm) cubría los restos —y
+       no alcanza: si la que falló fue Académico, sus filetes están en 22,7 y 24,0 y su tabla
+       arranca en 29,2, o sea que quedaban datos del paciente duplicados, en dos tipografías y
+       superpuestos. Y si la plantilla ya había saltado de página, el Clásico se dibujaba en la
+       hoja 2 dejando la 1 con el encabezado roto y nada más.
+       No se borra la página: `deletePage` sobre la única hoja deja a jsPDF en un estado que no
+       verifiqué, y un PDF a medio construir es peor que una hoja tapada. */
+    try { doc.setPage(_pag0); } catch (_e1) {}
+    /* La opacidad se restaura a mano: Moderno la baja a 0,22 para la píldora de la fecha y la
+       repone después, así que un throw en esa ventana dejaba el GState en 0,22 — y el Clásico
+       entero (banda, ECG, título, logo y caja) salía lavado y casi ilegible. `_hdrCerrar` no
+       toca el GState. */
+    try { if (doc.setGState) doc.setGState(new doc.GState({ opacity: 1 })); } catch (_e3) {}
+    fc(255,255,255); doc.rect(0, 0, 210, 70, 'F');
     y = 0;
     try { _yHdr = _hdrClasico(); } catch (_e2) { console.error('[PDF] el clásico también falló:', _e2); _yHdr = null; }
     if (!_yValida(_yHdr)) _yHdr = 20.5;   // último recurso: el valor del clásico con dos líneas
@@ -19660,7 +19717,7 @@ const PDF_PLANTILLAS = [
 /* Miniaturas: siluetas, no texto legible. Se dibuja la HOJA (rectángulo blanco) y encima las
    formas del encabezado, para que se lea como «así va a salir el papel» y no como un ícono.
    Todo literal de este archivo: nada de acá viene de un dato del estudio. */
-const _PLTZ_SVG = {
+const _PLTZ_SVG = Object.assign(Object.create(null), {
   clasico: `<rect x="0" y="0" width="148" height="84" fill="#ffffff"/>
     <rect x="0" y="0" width="148" height="20" fill="#1a3a5c"/>
     <path d="M0 11 H30 l3 -6 l3 12 l3 -6 H60 l3 -3 l3 3 H148" fill="none" stroke="#31547b" stroke-width="1.1"/>
@@ -19700,7 +19757,7 @@ const _PLTZ_SVG = {
     <rect x="10" y="44" width="128" height="0.5" fill="#cccccc"/>
     <g fill="#c9c9c9"><rect x="10" y="48" width="30" height="2.2" rx="1"/><rect x="60" y="48" width="34" height="2.2" rx="1"/><rect x="10" y="55" width="26" height="2.2" rx="1"/><rect x="60" y="55" width="30" height="2.2" rx="1"/></g>
     <g fill="#e6e6e6"><rect x="10" y="68" width="128" height="2.2" rx="1"/><rect x="10" y="75" width="110" height="2.2" rx="1"/></g>`
-};
+});
 
 /* Lectura VALIDADA contra la allowlist, no el string crudo. localStorage lo escribe el usuario
    —y sobrevive a versiones viejas de la app—, así que un valor desconocido tiene que caer al
@@ -19772,6 +19829,49 @@ function initPdfPlantillas() {
   _pltzPintarSeleccion(pdfPlantillaGet());
 }
 window.initPdfPlantillas = initPdfPlantillas;
+
+/* Atajo del header → la sección de Config. Se CLICKEA el botón de la tab en vez de llamar a
+   showTab()+cfgOnShow() a mano: esa pareja está escrita en el atributo onclick de la tab, y
+   duplicarla acá significaba que el día que se agregue un tercer paso a la tab, este camino
+   entre a Config a medio inicializar. Un solo lugar define qué es «abrir Config».
+   Sin onclick inline en el botón: la hoja de estilos infla TODO `[onclick]` a 44×44 por la
+   regla de área táctil, y en el racimo del header eso rompe la fila de controles de 9 px. */
+function pdfPlantillaIr() {
+  const tab = [...document.querySelectorAll('.tab-btn')].find(b => /Config/.test(b.textContent));
+  if (tab) tab.click(); else if (typeof showTab === 'function') { showTab('config'); if (window.cfgOnShow) cfgOnShow(); }
+  /* El scroll y el realce se aplican de forma SÍNCRONA, y se repiten una vez con setTimeout.
+     La versión anterior los metía en un doble requestAnimationFrame para «dejar asentar el
+     layout»; medido, el callback no corría —rAF se estrangula o directamente no dispara en una
+     pestaña de fondo o en un navegador headless— y el atajo no hacía absolutamente nada, en
+     silencio. Que la única función de este botón dependa de que se programe un cuadro de
+     animación es apostar la feature a algo que no controlamos.
+     Síncrono alcanza: scrollIntoView fuerza el layout, así que no hace falta esperar a que el
+     navegador pinte el panel recién mostrado. El setTimeout queda como segunda pasada por si
+     algo reacomoda la página después (una imagen que carga y corre el contenido). */
+  const _ir = () => {
+    const g = document.getElementById('pltz-grid');
+    if (!g) return;
+    const sec = g.closest('div[style*="border-top"]') || g;
+    sec.scrollIntoView({ block: 'center' });
+    /* Realce breve. Se define acá y no en la hoja de estilos porque es de un solo uso, y se
+       limpia solo: un outline que queda pegado deja de ser un realce y pasa a leerse como un
+       estado de error permanente. */
+    sec.style.transition = 'outline-color .25s';
+    sec.style.outline = '2px solid var(--accent)';
+    sec.style.outlineOffset = '6px';
+    sec.style.borderRadius = '10px';
+    clearTimeout(_ir._t1); clearTimeout(_ir._t2);
+    _ir._t1 = setTimeout(() => { sec.style.outlineColor = 'transparent'; }, 1400);
+    _ir._t2 = setTimeout(() => { sec.style.outline = ''; sec.style.outlineOffset = ''; sec.style.transition = ''; }, 1800);
+  };
+  _ir();
+  setTimeout(_ir, 60);
+}
+window.pdfPlantillaIr = pdfPlantillaIr;
+document.addEventListener('DOMContentLoaded', () => {
+  const b = document.getElementById('hdr-pltz-link');
+  if (b) b.addEventListener('click', pdfPlantillaIr);
+});
 
 // ══ OAI ══
 function calcOAI() {
