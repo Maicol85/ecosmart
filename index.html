@@ -1159,6 +1159,11 @@ function toggleLoginPwd() {
 function doLogin() {
   const pwd = document.getElementById('login-pwd').value;
   if (pwd === 'maicolett1') {
+    /* Se limpia también acá, no sólo en el error. El campo conservaba el valor toda la sesión y
+       el barrido de guardarInforme lo capturaba: la contraseña terminaba dentro de cada estudio
+       guardado y salía en el backup JSON que el médico manda por correo. El filtro de arriba ya
+       lo excluye; esto cierra la otra mitad — que el secreto no quede suelto en el DOM. */
+    document.getElementById('login-pwd').value = '';
     sessionStorage.setItem('ett_auth', '1');
     document.getElementById('login-overlay').style.display = 'none';
     mostrarAvisoEco();
@@ -9382,7 +9387,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <input type="number" id="co_gls_actual" placeholder="% (negativo)" oninput="calcCardioOnco()">
       </div>
       <div class="fg"><label>Troponina elevada</label>
-        <select id="co_troponi" onchange="calcCardioOnco()">
+        <select id="co_troponi" onchange="calcCardioOnco()"><option value="">— no evaluado —</option>
           <option value="no">No</option>
           <option value="si">Si</option>
         </select>
@@ -9942,17 +9947,17 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <div><label>FEVI (%)</label><input type="number" id="ett-fevi" placeholder="Ej: 55" min="10" max="80" oninput="calcETT()"></div>
       <div>
         <label>Patrón granular "sparkling"</label>
-        <select id="ett-sparkling" onchange="calcETT()"><option value="no">No presente</option><option value="si">Presente</option></select>
+        <select id="ett-sparkling" onchange="calcETT()"><option value="">— no evaluado —</option><option value="no">No presente</option><option value="si">Presente</option></select>
       </div>
     </div>
     <div class="form-row cols2">
       <div>
         <label>Derrame pericárdico</label>
-        <select id="ett-derrperic" onchange="calcETT()"><option value="no">No</option><option value="si">Sí (mínimo o moderado)</option></select>
+        <select id="ett-derrperic" onchange="calcETT()"><option value="">— no evaluado —</option><option value="no">No</option><option value="si">Sí (mínimo o moderado)</option></select>
       </div>
       <div>
         <label>Engrosamiento valvular</label>
-        <select id="ett-valvular" onchange="calcETT()"><option value="no">No</option><option value="si">Sí (mitral y/o tricúspide)</option></select>
+        <select id="ett-valvular" onchange="calcETT()"><option value="">— no evaluado —</option><option value="no">No</option><option value="si">Sí (mitral y/o tricúspide)</option></select>
       </div>
     </div>
   </div>
@@ -10956,8 +10961,16 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
             Indicadores automáticos
           </label>
           <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer;">
-            <input type="checkbox" id="lab-pdf-medicos" checked>
-            Comparativa por médico
+            <!-- Sin `checked`: esta sección imprime casos individuales y el PDF de auditoría se
+                 comparte con dirección o se lleva al ateneo. Que la identificación del paciente
+                 salga por defecto, y encima bajo un rótulo que no lo insinúa, es una fuga de dato
+                 personal por omisión. Ahora hay que pedirla a propósito. -->
+            <input type="checkbox" id="lab-pdf-medicos">
+            Docencia — casos de interés <span style="color:var(--text2);font-weight:400;">(incluye datos del paciente)</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer;margin-left:18px;">
+            <input type="checkbox" id="lab-pdf-medicos-nominal">
+            …con nombre y fecha de cada paciente
           </label>
         </div>
       </div>
@@ -22502,7 +22515,26 @@ function guardarInforme(onDone) {
     return false;   // el guardado real ocurre al confirmar la card
   }
   const campos = {};
+  /* ── Qué NO es un campo del estudio ────────────────────────────────────────
+     El barrido toma `input[id], select[id], textarea[id]` de TODO el documento, así que hasta
+     ahora se llevaba 498 campos, 50 de ellos ajenos al estudio: la contraseña del login, los
+     filtros de Guardados y del Laboratorio, y los datos de Config. Todo eso quedaba dentro de la
+     ficha clínica, se persistía, y viajaba en el backup JSON y en el export a Analytics. Y
+     `editarInforme` los REPONÍA, así que abrir un estudio viejo le cambiaba al médico los filtros
+     y la configuración a los que había el día que se guardó.
+
+     Lista PROPIA y no `_noVaciar`, aunque el problema sea el complementario. `_noVaciar` está
+     rotulada «configuración» pero incluye `ett-`, `alg-`, `rwt-`, `ee-`, `ap-` y `rev-`, que son
+     ~33 campos CLÍNICOS del módulo de amiloidosis y del score ETT: reusarla acá dejaría de
+     guardarlos y sería pérdida de dato clínico, que es peor que lo que se viene a cerrar.
+     Tampoco se excluyen `med-`, `firma-`, `logo`, `tema` ni `centro_tipo`: el firmante y la
+     institución SÍ tienen que viajar con el estudio — es lo que hace que reimprimir un informe
+     viejo lo firme el médico que lo hizo y no el Principal de hoy.
+     Sólo entran acá los prefijos que no describen al paciente ni al estudio bajo ninguna
+     lectura: sesión, filtros y preferencias de la app. */
+  const _noEsDelEstudio = /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-)/;
   document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
+    if (_noEsDelEstudio.test(el.id)) return;
     campos[el.id] = el.value;
   });
   /* En un checkbox `.value` es el atributo («on»), NO el estado marcado, así que el bucle de
@@ -22511,7 +22543,7 @@ function guardarInforme(onDone) {
      hallazgo desaparecía, y el documento firmado y el registro guardado decían cosas
      distintas sin que nada lo avisara. `caso_interes` y los humorales del HFA-PEFF ya tenían
      su tratamiento especial abajo; esto cubre a todos los demás. */
-  document.querySelectorAll('input[type=checkbox][id]').forEach(el => { campos[el.id + '__chk'] = el.checked ? '1' : '0'; });
+  document.querySelectorAll('input[type=checkbox][id]').forEach(el => { if (_noEsDelEstudio.test(el.id)) return; campos[el.id + '__chk'] = el.checked ? '1' : '0'; });
   /* «El médico decidió» va como dato propio, no se infiere de que exista `__chk`. La línea de
      arriba guarda TODOS los checkbox siempre, así que desde este commit todo estudio trae
      `em_pdf_cont__chk`, incluso uno sin estenosis mitral donde el bloque nunca se abrió.
@@ -23424,9 +23456,17 @@ function amiloTextoETT() {
   const fevi = _amV('ett-fevi');
   const otros = [];
   if (fevi) otros.push('FEVI ' + fevi + '%');
-  otros.push('Patrón granular "sparkling": ' + (_amV('ett-sparkling') === 'si' ? 'presente' : 'no presente'));
-  otros.push('Derrame pericárdico: ' + (_amV('ett-derrperic') === 'si' ? 'sí' : 'no'));
-  otros.push('Engrosamiento valvular: ' + (_amV('ett-valvular') === 'si' ? 'sí' : 'no'));
+  /* Mismo criterio que la troponina: la ausencia de dato no se informa como hallazgo negativo.
+     Los tres selects arrancaban en «No» sin opción vacía, así que todo estudio del módulo salía
+     afirmando que no hay sparkling, ni derrame, ni engrosamiento valvular, se hubieran mirado o
+     no. `_amRotulo` mantiene el texto exacto para los que sí se evaluaron. */
+  const _amRotulo = (id, si, no) => { const vv = _amV(id); return (vv === 'si') ? si : (vv === 'no') ? no : null; };
+  { const t = _amRotulo('ett-sparkling', 'presente', 'no presente');
+    if (t) otros.push('Patrón granular "sparkling": ' + t); }
+  { const t = _amRotulo('ett-derrperic', 'sí', 'no');
+    if (t) otros.push('Derrame pericárdico: ' + t); }
+  { const t = _amRotulo('ett-valvular', 'sí', 'no');
+    if (t) otros.push('Engrosamiento valvular: ' + t); }
   otros.forEach(o => L.push(o));
 
   return L.join('\n');
@@ -23702,7 +23742,12 @@ function amiloTextoCardioOnco() {
     L.push('Caída relativa de GLS | ' + (((Math.abs(gb) - Math.abs(ga)) / Math.abs(gb)) * 100).toFixed(1) + ' %');
 
   L.push('## Marcadores');
-  L.push('Troponina | ' + (_amV('co_troponi') === 'si' ? 'elevada' : 'no elevada'));
+  /* Sólo se afirma si SE EVALUÓ. Con el select arrancando en «No» y sin opción vacía, un estudio
+     donde nunca se pidió troponina imprimía «Troponina | no elevada» en texto firmado — una
+     negación fabricada por ausencia de dato, y la troponina es criterio de CTRCD (ESC 2022).
+     Es el mismo cierre que ya se le había hecho a `oai_trombo`. */
+  { const _tro = _amV('co_troponi');
+    if (_tro === 'si' || _tro === 'no') L.push('Troponina | ' + (_tro === 'si' ? 'elevada' : 'no elevada')); }
 
   // Los criterios vienen unidos por " | " desde calcCardioOnco(), que es el
   // mismo separador que usan las filas de tabla: se parten en líneas sueltas.
@@ -33216,8 +33261,24 @@ async function labGenerarPDF() {
     if (!docentes.length) {
       sectionTable('Docencia — casos de interés', ['Detalle', 'Valor'], [['Casos marcados en el período', '0']], [120, 60]);
     } else {
-      sectionTable('Docencia — casos de interés', ['Paciente', 'Fecha del estudio'],
-        docentes.map(i => [String(i.nombre || '—').substring(0, 48), i.fecha_estudio || '—']), [120, 60]);
+      /* Agregado y anónimo por defecto. El nombre del paciente sólo sale si además se pide
+         explícitamente el detalle nominal, porque para auditar hace falta saber CUÁNTOS casos
+         de interés hubo y de qué tipo, no quiénes son. */
+      const _nominal = document.getElementById('lab-pdf-medicos-nominal')?.checked;
+      if (_nominal) {
+        sectionTable('Docencia — casos de interés', ['Paciente', 'Fecha del estudio'],
+          docentes.map(i => [String(i.nombre || '—').substring(0, 48), i.fecha_estudio || '—']), [120, 60]);
+      } else {
+        /* Por mes: es la lectura que sirve para auditoría —cuántos casos se marcaron y cuándo—
+           sin identificar a nadie. */
+        const porMes = Object.create(null);
+        docentes.forEach(i => { const f = String(i.fecha_estudio || '');
+          const k = /^\d{4}-\d{2}/.test(f) ? f.slice(0,7) : 'sin fecha';
+          porMes[k] = (porMes[k] || 0) + 1; });
+        const filas = Object.keys(porMes).sort().map(k => [k, String(porMes[k])]);
+        filas.push(['Total del período', String(docentes.length)]);
+        sectionTable('Docencia — casos de interés', ['Mes', 'Casos marcados'], filas, [120, 60]);
+      }
     }
   }
 
