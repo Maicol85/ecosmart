@@ -754,6 +754,42 @@ inline en el HTML. Y hay funciones invocadas por nombre desde listas
 (`['calcAI','calcAo',…].forEach(f => window[f]())`) que ningún grep de llamada directa
 encuentra. Verificar las dos cosas antes de declarar algo muerto.
 
+### `requestAnimationFrame` no dispara con la pestaña oculta — y eso colgaba el PDF
+`labGenerarPDF` no llegaba nunca a `doc.save()`. **No era un artefacto del preview headless**,
+que es lo que yo había supuesto y anotado como deuda: es un bug de producción.
+
+`_labChartImg` y `_labPieImg` resolvían su promesa **dentro de un `requestAnimationFrame`
+anidado**. Con `document.hidden === true` el rAF no se estrangula: **no dispara**. Medido: ni
+el simple ni el anidado en 2 s; `setTimeout` sí. Como `labGenerarPDF` las espera, la promesa
+quedaba pendiente para siempre — sin error, sin aviso y sin PDF.
+
+**El caso de producción no requiere nada raro:** el médico aprieta «Generar PDF de auditoría»
+—que tarda ~13 s con 12 estudios— y se va a otra pestaña mientras espera. `document.hidden`
+pasa a true, el rAF deja de disparar y al volver no hay nada. La pantalla se ve igual que si
+no hubiera apretado el botón.
+
+El arreglo es **`_trasPintar(cb)`**: doble rAF (rápido y garantiza el cuadro cuando la pestaña
+está visible) con un `setTimeout(120)` de respaldo, ejecutando una sola vez gane quien gane.
+Con `animation:false` Chart.js ya pintó de forma síncrona en el constructor, así que el
+respaldo nunca captura un canvas a medio dibujar.
+
+Este archivo YA había tropezado con esto en `pdfPlantillaIr` y lo dejó anotado ahí; las dos
+funciones de gráfica se salvaron de esa pasada. **Si una promesa depende de un rAF, tiene que
+tener respaldo.** `animate()` del fonocardiograma sigue con rAF a propósito: es una animación
+visual y que no corra oculta es lo correcto.
+
+Medición, con 12 estudios y la pestaña oculta:
+
+    HEAD          → no termina; `doc.save()` nunca se llama
+    con el fix    → 6 páginas, 67 KB, 16 imágenes, 12 secciones, ~13 s
+
+Tres corridas seguidas en la misma página: 12,6 s · 13,0 s · **90 s**. La tercera no se cuelga
+—termina, con sus 6 páginas—: es el estrangulamiento agresivo de timers que Chrome aplica a
+una página oculta desde hace rato (un `setTimeout(120)` pasa a tardar 620 ms). Es del entorno,
+no del código; con la pestaña visible gana el rAF y no se nota. **Ojo al medir: yo di la
+tercera corrida por colgada dos veces por no esperar lo suficiente.** Antes de declarar un
+cuelgue, confirmar que el reloj no está estrangulado.
+
 ## Deuda conocida sin resolver
 
 - **Contraseña en el código.** `doLogin()` compara contra un literal. Choca con el checklist
@@ -775,12 +811,9 @@ encuentra. Verificar las dos cosas antes de declarar algo muerto.
   el PDF está gateado por `#ee-incluir-pdf`; las dos ausencias se tapan mutuamente y
   restaurar la interfaz destapa las dos. Necesitan el tratamiento de `imgVaciar` —mutación en
   sitio, `_imgGen++`— ANTES de que vuelva el toggle.
-- **`labGenerarPDF` no termina en el preview headless.** Medido: se lanza, no tira error y
-  nunca llega a `doc.save()`, ni con los cambios de esta sesión ni **en HEAD** — o sea que es
-  preexistente y no una regresión. Los dos rasterizadores que sospeché (`_labHeartPng`,
-  `_labValvChartPng`) responden bien por separado (8 ms y 800 ms). Queda sin diagnosticar si
-  falla también en un navegador real o sólo en headless. **Mientras tanto, los cambios de esa
-  función se verifican por unidad**, no de punta a punta.
+- ~~`labGenerarPDF` no termina~~ — **DIAGNOSTICADO Y CERRADO (2026-09-09)**. No era del
+  entorno: ver la sección «rAF no dispara con la pestaña oculta». Los cambios de esa función
+  ya se pueden verificar de punta a punta.
 
 ## Auditoría 2026-09-09 — resumen de la tanda
 

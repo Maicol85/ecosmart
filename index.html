@@ -32052,6 +32052,32 @@ function labCompararRender() {
     </table>`;
 }
 
+/* Espera a que el canvas esté pintado y devuelve el control. Doble rAF cuando la pestaña está
+   visible —rápido y garantiza el cuadro— con un setTimeout de RESPALDO que gana cuando no lo
+   está. Se ejecuta una sola vez, gane quien gane.
+
+   `requestAnimationFrame` NO DISPARA con `document.hidden`: ni en headless ni en una pestaña
+   de fondo. Las dos funciones de gráfica del Laboratorio resolvían su promesa DENTRO de un rAF
+   anidado, así que `labGenerarPDF` —que las espera— se quedaba colgada para siempre: sin
+   error, sin aviso y sin PDF. El médico apretaba «Generar PDF de auditoría», se iba a otra
+   pestaña mientras tarda, y al volver no había nada. Medido: con document.hidden, ni el rAF
+   simple ni el anidado disparan en 2 s; setTimeout sí.
+
+   El archivo ya había tropezado con esto en `pdfPlantillaIr` y ahí quedó anotado; estas dos
+   se salvaron de la pasada. `animate()` del fonocardiograma sigue con rAF a propósito: es una
+   animación visual, y que no corra con la pestaña oculta es lo correcto.
+
+   120 ms: en una pestaña visible los dos cuadros llegan en ~33 ms y gana el rAF, así que no
+   cambia nada; oculta, acota la espera. Con `animation:false` Chart.js ya pintó de forma
+   síncrona en el constructor, o sea que el respaldo nunca captura un canvas a medio dibujar. */
+function _trasPintar(cb) {
+  let hecho = false;
+  const unaVez = () => { if (hecho) return; hecho = true; cb(); };
+  requestAnimationFrame(() => requestAnimationFrame(unaVez));
+  setTimeout(unaVez, 120);
+}
+window._trasPintar = _trasPintar;
+
 // Renderiza una gráfica de barras horizontales en un canvas oculto y devuelve {url PNG, ar aspecto}
 function _labChartImg(labels, values, colors) {
   return new Promise((resolve) => {
@@ -32075,13 +32101,13 @@ function _labChartImg(labels, values, colors) {
         }
       }
     });
-    requestAnimationFrame(() => requestAnimationFrame(() => {
+    _trasPintar(() => {
       let url = null;
       try { url = cv.toDataURL('image/png'); } catch(e) { url = null; }
       try { chart.destroy(); } catch(e) {}
       cv.remove();
       resolve(url ? { url, ar: H / W } : null);
-    }));
+    });
   });
 }
 window._labChartImg = _labChartImg;
@@ -32272,13 +32298,13 @@ function _labPieImg(labels, values, colors) {
         }
       }
     });
-    requestAnimationFrame(() => requestAnimationFrame(() => {
+    _trasPintar(() => {
       let url = null;
       try { url = cv.toDataURL('image/png'); } catch(e) { url = null; }
       try { chart.destroy(); } catch(e) {}
       cv.remove();
       resolve(url ? { url, ar: H / W } : null);
-    }));
+    });
   });
 }
 window._labPieImg = _labPieImg;
