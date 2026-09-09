@@ -15975,6 +15975,15 @@ function limpiarCampos() {
   /* Paciente nuevo: no hay texto previo nuestro contra el cual comparar. Sin esto, la base del
      paciente ANTERIOR clasificaba como «automático» texto del nuevo y lo dejaba pisar. */
   _infBase = null; _sumaBase = null;
+  /* El id del estudio que se estaba editando NO puede sobrevivir a «Nuevo estudio».
+     Sobrevivía: editar al paciente A, dar «Nuevo estudio», cargar al paciente B y guardar
+     ofrecía «🔄 Sobreescribir informe original», y aceptarlo REEMPLAZABA el estudio de A con
+     los datos de B conservando el id y el uuid de A — o sea que el paciente A desaparecía de
+     la base y sus imágenes, que cuelgan del uuid, pasaban a pertenecer al registro de B.
+     Reproducido: es lo que destruyó un paciente de prueba durante la verificación de esta
+     tanda. guardarInforme sólo lo limpia al confirmar una de las dos opciones del modal, así
+     que ninguna otra ruta lo apagaba. */
+  window._ettEditandoId = null;
   /* Las imágenes NO se vacían acá: ver imgVaciar(), que lo hace sólo en «Nuevo estudio».
      limpiarCampos también lo llama editarInforme, y ahí borrarlas sería destruir dato
      irrecuperable —no se persisten con el estudio— por reabrir un informe a corregir. */
@@ -16146,6 +16155,13 @@ let _imgEditado = false;
 function imgMarcarEditado() { _imgEditado = true; }
 window.imgMarcarEditado = imgMarcarEditado;
 
+/* uuid del estudio cuyas imágenes están en pantalla. Lo necesita el selector de calidad para
+   reflejar el cambio en disco en el acto. No sirve `_ettEditandoId`: sólo está puesto durante
+   la edición y guardarInforme lo limpia al terminar. Se pone al guardar y al restaurar, y se
+   limpia en «Nuevo estudio» — si sobreviviera, un cambio de calidad escribiría sobre el uuid
+   del paciente anterior. */
+let _imgUuidActual = null;
+
 function imgPersistir(uuid) {
   if (typeof CeiboImg === 'undefined' || !_uuidValido(uuid)) return Promise.resolve(false);
   /* Durante la reimpresión el formulario tiene los datos de OTRO estudio y `imgSlots` está
@@ -16156,6 +16172,7 @@ function imgPersistir(uuid) {
      corrección de texto destruía del disco las imágenes que seguían visibles en pantalla. Para
      borrar está el botón explícito de Config. */
   if (!imgGuardadoActivo()) return Promise.resolve(false);
+  _imgUuidActual = uuid;   // el estudio en pantalla es éste
   if (!vivas.length && !_imgEditado) return Promise.resolve(false);   // ver _imgEditado
   return CeiboImg.guardar(uuid, vivas).then(ok => {
     if (!ok && typeof toast === 'function') {
@@ -16187,6 +16204,14 @@ let _imgGen = 0;
    null): un error transitorio no puede borrarle las imágenes al médico. */
 function imgRestaurar(uuid) {
   const gen = ++_imgGen;
+  /* Se invalida ARRIBA, no al final. `_imgUuidActual` se seteaba sólo en la ruta de éxito, así
+     que ante cualquiera de las tres salidas tempranas —uuid inválido, llegada tardía, y sobre
+     todo LECTURA FALLIDA— quedaba apuntando al estudio ANTERIOR. Con la lectura fallida el
+     formulario se queda mostrando las imágenes del estudio previo (por diseño, para no
+     destruirlas), y ahí un cambio de calidad escribía sobre el uuid de ESE estudio: degradaba a
+     miniatura las imágenes guardadas de A desde el formulario de B, sin ningún aviso.
+     Ponerlo en `uuid` arriba sería peor: escribiría las imágenes de A bajo el uuid de B. */
+  _imgUuidActual = null;
   if (typeof CeiboImg === 'undefined' || !_uuidValido(uuid)) return Promise.resolve(0);
   // Con el toggle apagado no se lee: si no se guarda, tampoco se repone. Antes se restauraba
   // igual, y esas imágenes ajenas alimentaban la fuga de arriba.
@@ -16196,10 +16221,15 @@ function imgRestaurar(uuid) {
     if (imgs === null) return 0;        // no se pudo leer: no destruir lo que haya
     const buenas = imgs.filter(s => s && _imgSrcOK(s.dataURL));
     imgSlots.length = 0;
-    buenas.forEach(s => imgSlots.push({ dataURL: s.dataURL, ampliada: !!s.ampliada }));
+    /* Sin `_orig`: el original no se persiste, así que al reabrir un estudio sólo se puede
+       BAJAR de calidad desde lo guardado. El selector lo refleja deshabilitando lo que
+       requeriría más información de la que hay. */
+    buenas.forEach(s => imgSlots.push({ dataURL: s.dataURL, ampliada: !!s.ampliada,
+                                        calidad: (typeof s.calidad === 'string' ? s.calidad : 'media') }));
     while (imgSlots.length < 2) imgSlots.push(null);
     imgSlotCount = imgSlots.length;
     _imgEditado = false;                // arranca limpio para este estudio
+    _imgUuidActual = uuid;
     if (typeof imgRender === 'function') { try { imgRender(); } catch (e) {} }
     return buenas.length;
   }).catch(() => 0);
@@ -16298,6 +16328,7 @@ function imgVaciar() {
   // anterior aterrizaba sobre el formulario en blanco del paciente nuevo.
   _imgGen++;
   _imgEditado = false;
+  _imgUuidActual = null;   // paciente nuevo: no hay estudio al que atribuirle un cambio
   imgSlots.length = 0; imgSlots.push(null, null);
   imgSlotCount = 2;
   imgSwapSel = null;
@@ -20471,8 +20502,13 @@ const CeiboImg = (function () {
          desde imgCompressLoad, que siempre produce un JPEG bien formado; ahora entra lo que
          haya en la base, y los tres lectores (imgRender, el bucle del PDF y el PPT) aplicaban
          criterios distintos — uno de ellos ninguno. Se usa la misma política que el logo. */
+      /* El map es una ALLOWLIST explícita, no un spread: es lo que garantiza que `_orig` —el
+         dataURL sin comprimir que el selector de calidad guarda en memoria— no llegue nunca al
+         disco. Un `{...s}` acá metería varios MB por imagen en IndexedDB sin que se note.
+         `calidad` sí se persiste: es el estado del selector, no la imagen. */
       const limpias = (imgs || []).filter(s => s && _imgSrcOK(s.dataURL))
-                                  .map(s => ({ dataURL: s.dataURL, ampliada: !!s.ampliada }));
+                                  .map(s => ({ dataURL: s.dataURL, ampliada: !!s.ampliada,
+                                               calidad: (typeof s.calidad === 'string' ? s.calidad : 'media') }));
       /* `.then(r => r)` y no `.then(() => true)`: descartar el resultado del borrado hacía que
          «quitar todas las imágenes y guardar» cantara éxito aunque el delete fallara, y las
          imágenes que el médico había descartado reaparecían al reabrir el estudio. */
@@ -25745,7 +25781,11 @@ _pdfToggleBtnState('ete-qx-pdf', localStorage.getItem('mitral_qx_incluir_pdf')==
 if (typeof cxWilkins === 'function') cxWilkins();
 
 // ══════════════ IMÁGENES DEL ESTUDIO (memoria de sesión, NO localStorage) ══════════════
-let imgSlots = [null, null];      // cada elemento: {dataURL, ampliada} o null
+/* cada elemento: {dataURL, ampliada, calidad, _orig?} o null.
+   `_orig` es el dataURL SIN comprimir y vive SÓLO en memoria: lo usa el selector de calidad
+   para poder re-comprimir, y CeiboImg.guardar lo descarta con una allowlist explícita. Un
+   `{...slot}` en esa función metería megabytes por imagen en IndexedDB sin ningún síntoma. */
+let imgSlots = [null, null];
 let imgSlotCount = 2;
 /* Allowlist de esquema para el src de las imágenes del estudio. Escapar NO alcanza acá:
    escHtml cierra la fuga del atributo, pero un http:// externo es HTML válido y convierte cada
@@ -25792,13 +25832,60 @@ function imgRender(){
       cell.innerHTML =
         '<img src="'+(_imgSrcOK(slot.dataURL)?slot.dataURL:'')+'" loading="lazy" style="max-width:100%;max-height:220px;display:block;pointer-events:none;" alt="'+(_imgSrcOK(slot.dataURL)?('imagen '+(idx+1)):'Imagen '+(idx+1)+' no se puede mostrar: formato no admitido')+'" title="'+(_imgSrcOK(slot.dataURL)?'':'Formato de imagen no admitido')+'">'
         + (amp ? '<span style="position:absolute;top:6px;left:6px;background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;pointer-events:none;">AMPLIADA</span>' : '')
-        + '<button type="button" title="Eliminar" onclick="imgRemove(event,'+idx+')" style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1;">✕</button>';
+        + '<button type="button" title="Eliminar" onclick="imgRemove(event,'+idx+')" style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1;">✕</button>'
+        + _imgSelectorCalidad(slot, idx);
     } else {
       cell.innerHTML = '<button type="button" onclick="imgPick('+idx+')" style="background:none;border:none;color:var(--text2);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;"><span style="font-size:30px;line-height:1;">➕</span>Agregar imagen</button>';
     }
     _imgAttach(cell, idx);
     grid.appendChild(cell);
   });
+}
+
+/* Selector de calidad, debajo de cada imagen. Sólo con el toggle encendido: si la app no
+   guarda las imágenes, elegir con qué calidad guardarlas no significa nada.
+
+   Sin `_orig` en memoria —estudio reabierto desde IndexedDB— se deshabilitan las opciones de
+   MÁS calidad que la guardada: la única fuente sería el JPEG ya comprimido, y reescalar una
+   miniatura a 800×600 da un archivo más pesado sin un pixel más de información. Ofrecerlo
+   sería mentir sobre la calidad de una ecografía.
+
+   El `radio` va con `name` por índice para que los tres de una imagen se excluyan entre sí sin
+   pisar los de las demás. imgRender rearma el grid entero en cada llamada, así que el estado
+   del selector se lee siempre de `slot.calidad` y no del DOM. */
+function _imgSelectorCalidad(slot, idx){
+  if (typeof imgGuardadoActivo !== 'function' || !imgGuardadoActivo()) return '';
+  const actual = (slot && IMG_CAL[slot.calidad]) ? slot.calidad : 'media';
+  const rankAct = IMG_CAL[actual].rank;
+  const hayOrig = !!(slot && slot._orig);
+  const kb = slot && slot.dataURL ? Math.max(1, Math.round(slot.dataURL.length * 0.75 / 1024)) : 0;
+  /* La barra vive DENTRO de la celda, y _imgAttach cuelga los gestos de la celda: sin frenar la
+     propagación, tocar un radio heredaba todo. Dos consecuencias medidas sobre dato clínico:
+     un doble clic marcaba la imagen como AMPLIADA —que cambia el layout del PDF a media
+     página—, y en la tablet un toque sostenido de 450 ms activaba el modo intercambio y
+     redibujaba el nodo bajo el dedo, con lo cual el `change` podía no llegar nunca y el toque
+     SIGUIENTE en otra celda ejecutaba un imgSwap que el médico no pidió. */
+  const _stop = "event.stopPropagation()";
+  let html = '<div ontouchstart="' + _stop + '" ontouchend="' + _stop + '" onclick="' + _stop +
+             '" ondblclick="' + _stop + '" onmousedown="' + _stop +
+             '" style="position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);padding:4px 6px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;">';
+  Object.keys(IMG_CAL).forEach(k => {
+    const c = IMG_CAL[k];
+    // Sin original sólo se puede bajar; con original, todo disponible.
+    const dis = !hayOrig && c.rank > rankAct;
+    /* El área táctil la da el <label> con padding, no el input: agrandar el input lo deforma, y
+       volver a `onclick` para ganar los 44px de la regla de área táctil rompería otra cosa (ver
+       la nota del selector de AVm). El label envuelve al radio, así que tocarlo lo activa. */
+    html += '<label style="font-size:10px;color:#fff;display:flex;align-items:center;gap:4px;padding:6px 4px;margin:-4px 0;'
+          + (dis ? 'opacity:.45;cursor:not-allowed;' : 'cursor:pointer;') + '"'
+          + (dis ? ' title="El original no está en memoria: sólo se puede reducir la calidad de lo guardado"' : '') + '>'
+          + '<input type="radio" name="imgcal-' + idx + '" value="' + k + '"'
+          + (k === actual ? ' checked' : '') + (dis ? ' disabled' : '')
+          + ' onchange="imgSetCalidad(' + idx + ',this.value)" style="width:12px;height:12px;margin:0;">'
+          + escHtml(c.lbl) + '</label>';
+  });
+  html += '<span style="font-size:10px;color:#bbb;margin-left:auto;">' + kb + ' KB</span>';
+  return html + '</div>';
 }
 
 function _imgAttach(cell, idx){
@@ -25828,26 +25915,99 @@ function imgPick(idx){ imgActiveSlot = idx; const inp=document.getElementById('i
 function imgFileChosen(e){ const f=e.target.files && e.target.files[0]; if(f) imgCompressLoad(f, imgActiveSlot); e.target.value=''; }
 
 // Compresión: máx 800x600, JPEG 65%
+/* ══ Calidad de imagen ══
+   `rank` ordena las opciones: sin el original en memoria sólo se puede BAJAR de calidad.
+   Subir desde una miniatura ya comprimida reescalaría 400×300 a 800×600 — un archivo más
+   pesado, sin un pixel más de información y con el aspecto de ser mejor. En una ecografía eso
+   es peor que no ofrecer la opción, así que se deshabilita. */
+const IMG_CAL = {
+  mini:  { lbl:'Miniatura',        w:400, h:300, q:0.50, rank:1 },
+  media: { lbl:'Calidad media',    w:800, h:600, q:0.65, rank:2 },
+  orig:  { lbl:'Calidad original', w:0,   h:0,   q:0,    rank:3 }
+};
+const IMG_CAL_DEF = 'media';
+
+/* Comprime `src` al nivel pedido. `orig` devuelve la fuente tal cual. */
+function _imgComprimir(src, cal){
+  return new Promise((res, rej) => {
+    const c = IMG_CAL[cal] || IMG_CAL[IMG_CAL_DEF];
+    /* Se gatea por el DATO y no por el string `cal`: IMG_CAL.orig tiene w:0/h:0, así que si
+       esta guarda quedara debajo del cálculo de `r`, `Math.min(0/w, 0/h, 1)` daría 0 y TODA
+       imagen saldría de 1×1 — un JPEG válido, que pasa _imgSrcOK y entra al PDF firmado. */
+    if (!c.w || !c.h) return res(src);
+    const im = new Image();
+    im.onload = function(){
+      let w = im.width, h = im.height;
+      const r = Math.min(c.w/w, c.h/h, 1);
+      w = Math.max(1, Math.round(w*r)); h = Math.max(1, Math.round(h*r));
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+      const cx = cv.getContext('2d'); cx.fillStyle = '#ffffff'; cx.fillRect(0,0,w,h);
+      cx.drawImage(im, 0, 0, w, h);
+      res(cv.toDataURL('image/jpeg', c.q));
+    };
+    im.onerror = () => rej(new Error('imagen ilegible'));
+    im.src = src;
+  });
+}
+
+/* Cambia la calidad de un slot re-comprimiendo desde el ORIGINAL en memoria.
+   El original vive DENTRO del objeto del slot (`_orig`), no en una estructura paralela
+   indexada por posición: imgSwap intercambia objetos enteros y imgRemove anula el slot, así
+   que un paralelo se desincronizaría en cada movimiento y terminaría re-comprimiendo la
+   imagen de otro. Y nunca sale de memoria: CeiboImg.guardar mapea explícitamente a
+   {dataURL, ampliada, calidad}, así que `_orig` se descarta en el borde por construcción. */
+function imgSetCalidad(idx, cal){
+  const slot = imgSlots[idx];
+  if (!slot || !IMG_CAL[cal]) return Promise.resolve(false);
+  if (cal === 'orig' && !slot._orig) return Promise.resolve(false);   // no hay de dónde
+  const gen = _imgGen;                       // ver nota de _imgGen en imgRestaurar
+  const fuente = slot._orig || slot.dataURL;
+  return _imgComprimir(fuente, cal).then(url => {
+    /* Si mientras se comprimía se abrió otro estudio, este resultado pertenece al paciente
+       ANTERIOR. Escribirlo acá pondría su imagen sobre el formulario del actual — la misma
+       fuga que cerró el token en imgRestaurar, por otra puerta. */
+    /* Las salidas por rechazo re-renderizan: el navegador YA movió el radio, así que sin esto
+       el panel muestra una calidad que el modelo no tiene, con la etiqueta de KB vieja al lado.
+       imgRender vuelve a dibujar desde `slot.calidad`, que es la fuente de verdad. */
+    if (gen !== _imgGen) { imgRender(); return false; }
+    if (imgSlots[idx] !== slot) { imgRender(); return false; }   // el slot se movió o se borró
+    slot.dataURL = url; slot.calidad = cal;
+    imgMarcarEditado();
+    imgRender();
+    /* Se refleja en disco en el acto: si no, la barra de Config y el peso real mienten hasta el
+       próximo guardado, y el médico eligió la calidad justamente para controlar el espacio.
+       Se usa `_imgUuidActual` y NO `_ettEditandoId`: ese último sólo está puesto mientras se
+       edita —guardarInforme lo pone en null al terminar—, así que cambiar la calidad después de
+       guardar no llegaba al disco. Medido: la pantalla mostraba 12 KB y IndexedDB seguía en 67. */
+    if (imgGuardadoActivo() && _uuidValido(_imgUuidActual)) imgPersistir(_imgUuidActual);
+    if (typeof cfgStorageRender === 'function') cfgStorageRender();
+    return true;
+  }).catch(() => {
+    imgRender();
+    if (typeof toast === 'function') toast('❌ No se pudo cambiar la calidad de la imagen');
+    return false;
+  });
+}
+window.imgSetCalidad = imgSetCalidad;
+
 function imgCompressLoad(file, idx){
   const reader = new FileReader();
   reader.onload = function(){
-    const im = new Image();
-    im.onload = function(){
-      let w=im.width, h=im.height;
-      const r = Math.min(800/w, 600/h, 1); w=Math.max(1,Math.round(w*r)); h=Math.max(1,Math.round(h*r));
-      const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
-      const cx=cv.getContext('2d'); cx.fillStyle='#ffffff'; cx.fillRect(0,0,w,h); cx.drawImage(im,0,0,w,h);
+    const original = reader.result;
+    const gen = _imgGen;
+    _imgComprimir(original, IMG_CAL_DEF).then(url => {
+      if (gen !== _imgGen) return;            // se cambió de estudio mientras se comprimía
       let target = idx;
       if (target==null || target<0 || target>=imgSlots.length || imgSlots[target]){
         let t = imgSlots.findIndex(s=>!s);
         if (t===-1){ imgSlots.push(null); t=imgSlots.length-1; imgSlotCount=imgSlots.length; }
         target = t;
       }
-      imgSlots[target] = { dataURL: cv.toDataURL('image/jpeg', 0.65), ampliada:false };
+      // `_orig` sólo en memoria. `calidad` arranca en media, que es el defecto pedido.
+      imgSlots[target] = { dataURL: url, ampliada:false, calidad: IMG_CAL_DEF, _orig: original };
       imgMarcarEditado();
       imgRender();
-    };
-    im.src = reader.result;
+    }).catch(() => { if (typeof toast === 'function') toast('❌ No se pudo procesar la imagen'); });
   };
   reader.readAsDataURL(file);
 }
