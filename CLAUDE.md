@@ -387,6 +387,56 @@ CeiboStore**; siguen apareciendo en el conteo porque las reglas son sintácticas
 saneo del borde. **No "arreglar" los 106 restantes sin triagearlos de nuevo**: la mayoría
 son correctos como están.
 
+### `ci: ci || '—'` — el placeholder que se hace pasar por documento
+`guardarInforme` guarda `nombre || '—'` y `ci || '—'` con raya U+2014. Cualquier código que
+pregunte «¿esta ficha tiene documento?» mirando si `ci` está vacío responde **sí** para todo
+estudio cargado sin cédula, que es el caso más común del Laboratorio. Y las normalizaciones
+del tipo `.replace(/[.\-\s]/g,'')` sacan el guion ASCII pero **no** la raya, así que sobrevive
+y llega a las claves.
+
+Costó dos rondas de revisión encontrarlo, porque leída sola cada mitad es correcta: el
+placeholder existe para que la lista no muestre un hueco, y la normalización saca los
+separadores que la gente tipea. El defecto es de la interacción. `_dupSinDato()` es la
+respuesta: **presencia de una letra o un dígito**, no `!== ''`. Si escribís otra cosa que
+decida sobre identidad de paciente, usala; `\p{L}\p{N}` y no `[a-z0-9]`, o un nombre en
+alfabeto no latino queda sin identidad y se reinserta en cada importación.
+
+### Dedup de importación: una sola identidad, y con un Set de consumidos
+Las cuatro vías (JSON, Excel, DICOM y los dos previews) comparten `_dupKeys` →
+`_dupIndice` / `_dupBuscarClave` / `_dupBuscar` / `_dupRegistrar`. Hubo una `_dupKey`
+paralela cuyo comentario **juraba** que las dos vías compartían criterio; hacía años que no
+era cierto y ese comentario es lo que hizo que nadie mirara. Si agregás una vía de
+importación, no escribas la búsqueda de nuevo.
+
+Tres invariantes que no son obvias y que se rompieron una por una:
+- **La clave de nombre no une dos fichas que las dos tienen documento.** Son homónimos. Sin
+  esa regla, «sobreescribir» pisa el estudio de un paciente con el de otro conservando id,
+  uuid y estudioId del equivocado: el QR del PDF firmado de Ana abre el informe de Juan.
+- **Un estudio guardado no puede ser destino de dos registros del mismo archivo.** De ahí el
+  `Set` de índices consumidos que reciben los tres ejecutores. Sin él, dos filas fusionan
+  sobre la misma ficha y el toast dice «2 actualizados» sobre un solo registro con las
+  mediciones de dos pacientes mezcladas.
+- **Después de sobreescribir o fusionar hay que re-registrar.** La ficha cambió de
+  nombre/CI/fecha; sus claves viejas ya no la describen.
+
+El índice guarda una **lista** de candidatos por clave, no uno: la app deja tener «Ana, CI
+12345» y «Ana, sin CI» del mismo día con «Guardar como nuevo», y quedarse con el primero
+resolvía al paciente equivocado.
+
+### `_IG_SECTIONS`: los ids son del DOM, y un id inventado no falla, calla
+El renderer descarta el campo vacío, así que un id equivocado no rompe nada visible: la fila
+no aparece nunca. Había seis escritos «como suenan» (`vci_colapso` por `vci_col`, `dtd_e` por
+`tde`, `gmax_ao` por `gmax_calc`, `gmed_ao` por `gmedio_ao`, más `ad_vol` y `vp_e` que no
+existen). El detalle callaba el colapso de VCI, el TDE y los dos gradientes aórticos — lo que
+define la severidad de una estenosis. Al agregar un campo, verificá que exista
+`id="<ese id>"`. Excepción: `indicaciones` y `antecedentes_sel` son claves array de
+`guardarInforme`, no ids.
+
+**Ojo con los calculados.** `gmax_calc` es `readonly` y está en `LAB_XLS_SOLO_EXPORT`, así
+que el import de Excel no lo escribe y nada lo recalcula al abrir: importar una `vmax_ao`
+corregida deja el gradiente viejo, y ahora el detalle los muestra **juntos**. Es
+«bloquear no es recalcular» otra vez. Sin resolver.
+
 ## Tests de regresión
 
 `tests/regresion.json` tiene dos pacientes. **Correr los dos en el navegador antes de cada

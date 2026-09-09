@@ -22597,7 +22597,7 @@ function guardarInforme(onDone) {
     id: (typeof _nuevoIdUnico === 'function')
           ? _nuevoIdUnico(new Set(informes.map(i => i.id)))
           : Date.now(),
-    estudioId: Date.now().toString(36) + Math.random().toString(36).substr(2,5),  // ID único para QR / carga por URL
+    estudioId: _nuevoEstudioId(),  // ID único para QR / carga por URL
     uuid: _uuidNuevo(),          // clave estable para recursos externos — ver _uuidNuevo
     nombre: nombre || '—',
     ci: ci || '—',
@@ -23273,36 +23273,149 @@ window.exportRangoCount = exportRangoCount; window.exportCentroCount = exportCen
 
 // ══════════════ IMPORT de estudios — preview + manejo de duplicados ══════════════
 let _impDatos = null;   // estudios validados del archivo, en espera de confirmación
-/* Todas las claves con las que un estudio puede reconocerse: la fuerte (documento) y la
-   de respaldo (nombre). Buscar sólo por la que el registro entrante tiene deja dos
-   espacios de claves incomparables: si la planilla viene sin CI —la plantilla admite
-   nombre O documento— cada estudio ya guardado con CI se volvía a agregar, y el modal
-   anunciaba "48 nuevas y 0 que ya existen", un conteo plausible y falso. */
+/* Identidad de un estudio para deduplicar. ÚNICA para las tres vías de importación —JSON,
+   Excel y DICOM—: si cada una usa la suya, mezclarlas duplica.
+
+   Devuelve TODAS las claves con las que un estudio puede reconocerse: la fuerte (documento)
+   y la de respaldo (nombre), las dos si tiene las dos. Buscar sólo por la que el registro
+   entrante trae deja dos espacios de claves incomparables: si la planilla viene sin CI
+   —la plantilla admite nombre O documento— cada estudio ya guardado con CI se volvía a
+   agregar, y el modal anunciaba "48 nuevas y 0 que ya existen", un conteo plausible y falso.
+
+   Hubo una segunda función, `_dupKey`, que devolvía UNA sola clave (documento si lo había,
+   nombre si no) y la usaba el importador JSON. Su propio comentario afirmaba «la usan el
+   importador JSON y el de Excel: tiene que ser LA MISMA en los dos» — y no era cierto: el
+   Excel ya había migrado a `_dupKeys` justo para cerrar esa asimetría, y el JSON se quedó
+   con el defecto que la migración corregía. Restaurar un backup JSON sobre una base armada
+   desde planilla reinsertaba cada estudio cuya CI no coincidiera en PRESENCIA con la
+   guardada, y el modal lo anunciaba como "sin duplicados". El comentario que juraba que las
+   dos vías compartían criterio es lo que hizo que nadie mirara. Eliminada: una sola
+   identidad, la de acá.
+
+   Documento + fecha es la clave fuerte; nombre + fecha la de respaldo. Dos pacientes
+   homónimos estudiados el mismo día siguen colisionando por la de respaldo — es el riesgo
+   de homónimos que ya nos mordió en la evolución longitudinal—; por eso la de documento
+   existe y gana cuando el registro la trae.
+
+   El `id` NO entra en la clave: se reasigna al insertar cuando colisiona (ver
+   _nuevoIdUnico), y el Excel que exporta el Laboratorio ni siquiera lo lleva. */
+/* Un valor sin NINGUNA letra ni dígito no identifica a nadie: es ausencia disfrazada.
+   `guardarInforme` guarda `nombre || '—'` y `ci || '—'` (raya U+2014), así que TODO estudio
+   creado desde el formulario sin cédula llevaba `ci:'—'` — y como la normalización de abajo
+   sólo saca `.`, `-` y espacios ASCII, la raya sobrevivía y esa ficha figuraba como si
+   TUVIERA documento. Dos consecuencias, las dos medidas:
+
+     · el flujo más común del Laboratorio —cargar el estudio en el momento sin la cédula a
+       mano y completarla después por planilla— dejaba de reconocer el estudio: la ficha
+       decía tener documento «—» y la fila traía «12345», así que no cruzaban por la clave
+       fuerte, y la regla del documento descartaba también la de nombre porque las DOS
+       parecían tener documento. Resultado: una segunda ficha de la misma paciente,
+       anunciada como «1 nueva»;
+     · peor: dos pacientes DISTINTOS estudiados el mismo día sin cédula compartían la clave
+       fuerte `D:—|fecha` y se trataban como el mismo estudio.
+
+   Se usa \p{L}/\p{N} y no [a-z0-9] para no dejar sin claves a un nombre en alfabeto no
+   latino, que quedaría sin identidad y se reinsertaría en cada importación. */
+function _dupSinDato(s) { return !/[\p{L}\p{N}]/u.test(s); }
 function _dupKeys(i) {
   const f = String(i.fecha_estudio || '').trim();
-  const ci = String(i.ci || '').trim().replace(/[.\-\s]/g, '');
-  const nom = String(i.nombre || '').trim().toLowerCase();
+  let ci = String(i.ci || '').trim().replace(/[.\-\s]/g, '');
+  if (_dupSinDato(ci)) ci = '';
+  let nom = String(i.nombre || '').trim().toLowerCase();
+  if (_dupSinDato(nom)) nom = '';
   const ks = [];
   if (ci) ks.push('D:' + ci.toLowerCase() + '|' + f);
   if (nom) ks.push('N:' + nom + '|' + f);
   return ks;
 }
-/* Identidad de un estudio para deduplicar. La usan el importador JSON y el de Excel:
-   tiene que ser LA MISMA en los dos o mezclar las dos vías duplica.
+/* Mapa clave→índice sobre los estudios ya guardados, y el buscador que lo consulta con
+   TODAS las claves del entrante. Los tres importadores lo arman igual; acá está una sola
+   vez para que no vuelvan a divergir. Primera clave que gana se queda con el índice: si un
+   estudio guardado comparte documento con uno y nombre con otro, manda el que se indexó
+   antes, que es el orden de la base.
 
-   Documento + fecha cuando el registro trae documento; si no, nombre + fecha. Antes era
-   sólo nombre + fecha, y dos pacientes distintos con el mismo apellido estudiados el
-   mismo día contaban como el mismo estudio: uno pisaba al otro al importar. Es el mismo
-   riesgo de homónimos que ya nos mordió en la evolución longitudinal.
+   REGLA DEL DOCUMENTO: la clave de nombre NO puede unir dos fichas que las dos tienen
+   documento y difieren en él. Son homónimos, no el mismo paciente.
 
-   El `id` NO entra en la clave: se reasigna al insertar cuando colisiona (ver
-   _nuevoIdUnico), y el Excel que exporta el Laboratorio ni siquiera lo lleva. */
-function _dupKey(i) {
-  const f = String(i.fecha_estudio || '').trim();
-  const ci = String(i.ci || '').trim().replace(/[.\-\s]/g, '');
-  if (ci) return 'D:' + ci.toLowerCase() + '|' + f;
-  return 'N:' + String(i.nombre || '').trim().toLowerCase() + '|' + f;
+   Sin esta regla, buscar por todas las claves arregla el falso negativo (el mismo paciente
+   guardado con CI y reimportado sin ella, que se duplicaba) pero abre uno peor en la otra
+   dirección: «Juan Gómez, CI 111» y «Juan Gómez, CI 222» estudiados el mismo día comparten
+   la clave de nombre y pasan por el mismo estudio. En modo «sobreescribir» eso no duplica
+   —pisa—: el informe de un paciente reemplaza al de otro, con el nombre correcto arriba y
+   las mediciones del equivocado abajo. Es la única de las dos fallas que no se ve.
+
+   Por eso el nombre es sólo respaldo: vale cuando a una de las dos fichas le falta el
+   documento, que es exactamente el caso que _dupKeys vino a cubrir, y no cuando las dos lo
+   tienen y no coincide.
+
+   Cada clave guarda una LISTA de candidatos, no uno solo. La app deja guardar dos veces al
+   mismo paciente y fecha con «Guardar como nuevo», así que una base real puede tener
+   «Ana Pérez, CI 12345» y «Ana Pérez, sin CI» del mismo día: las dos reclaman la clave de
+   nombre. Quedándose con la primera, reimportar el backup de la SEGUNDA resolvía a la
+   primera y, en modo «sobreescribir», el contenido de una ficha reemplazaba a la otra
+   conservando id, uuid y estudioId de la equivocada. Con la lista, _dupBuscarClave elige el
+   candidato compatible —el que coincide en tener o no tener documento— antes que el que
+   simplemente estaba antes en el array. */
+function _dupIndice(existentes) {
+  const m = new Map();
+  existentes.forEach((i, idx) => _dupRegistrar(m, i, idx));
+  return m;
 }
+/* `excluir` es un Set opcional de índices ya consumidos en esta misma pasada. Sin él, dos
+   registros distintos del mismo archivo pueden resolver al mismo estudio guardado y el
+   segundo pisa al primero: base con «Ana Pérez» sin CI, archivo con «Ana Pérez CI 999» y
+   «Ana Pérez CI 888» — los dos matchean por nombre, los dos sobreescriben el índice 0, y
+   queda UNA ficha donde tenía que haber dos, con el toast anunciando «Sobreescritos: 2».
+   El importador de Excel se salvaba de esto por su chequeo de repetidos dentro del archivo;
+   el de JSON no tiene ninguno. */
+function _dupBuscarClave(mapa, inf, excluir) {
+  const ks = _dupKeys(inf);
+  const infConDoc = ks.some(k => k.charAt(0) === 'D');
+  for (const k of ks) {
+    const lista = mapa.get(k);
+    if (!lista) continue;
+    // Homónimos con documentos distintos NO son el mismo paciente: la clave de nombre
+    // sólo une cuando a alguna de las dos fichas le falta el documento.
+    const aptos = lista.filter(e => !(k.charAt(0) === 'N' && infConDoc && e.conDoc))
+                       .filter(e => !(excluir && excluir.has(e.idx)));
+    if (!aptos.length) continue;
+    const comp = aptos.find(e => e.conDoc === infConDoc);
+    return { clave: k, idx: (comp || aptos[0]).idx };
+  }
+  return null;
+}
+/* El preview del Excel necesita la CLAVE (la cruza con `repetidosPrevios`) y el ejecutor
+   necesita el ÍNDICE. Son la misma búsqueda: si cada uno la escribe por su lado, el modal
+   anuncia "actualiza 12" y el botón inserta 12 nuevas, que es la variante de este mismo
+   defecto que ya nos costó una sesión. */
+function _dupBuscar(mapa, inf, excluir) {
+  const r = _dupBuscarClave(mapa, inf, excluir);
+  return r === null ? -1 : r.idx;
+}
+/* Da de alta un estudio en el índice: lo usa _dupIndice al construirlo y los tres
+   importadores después de insertar, para que el siguiente registro del mismo archivo lo
+   encuentre. Va acá y no repetido en cada uno porque el VALOR del mapa es una lista de
+   {idx, conDoc}, no un número: los sitios que lo alimentaban a mano guardaban el índice
+   pelado y _dupBuscarClave habría leído `.filter` sobre un number. */
+function _dupRegistrar(mapa, inf, idx) {
+  const ks = _dupKeys(inf);
+  const conDoc = ks.some(k => k.charAt(0) === 'D');
+  ks.forEach(k => {
+    if (!mapa.has(k)) mapa.set(k, []);
+    if (!mapa.get(k).some(e => e.idx === idx)) mapa.get(k).push({ idx, conDoc });
+  });
+}
+/* ID que resuelve el QR del PDF. Se acuñaba con esta misma expresión en tres importadores
+   distintos; acá una sola vez. No es el `uuid` (que enlaza las imágenes) ni el `id` (índice
+   interno reasignable): es lo único que un PDF ya impreso lleva encima. */
+function _nuevoEstudioId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+}
+/* Mismo criterio que el `strMax(inf.estudioId, 40)` de validarInformeImportado —string y
+   acotado— más el rechazo del vacío, que allá pasa porque el campo es opcional y acá no
+   sirve: un '' heredado deja el QR igual de muerto que un undefined. `strMax` es const
+   LOCAL de esa función, no se puede reusar desde afuera. */
+function _eidValido(v) { return typeof v === 'string' && v.trim() !== '' && v.length <= 40; }
 function importarInformesJSON(file) {
   const reader = new FileReader();
   reader.onload = function(e) {
@@ -23314,15 +23427,18 @@ function importarInformesJSON(file) {
     if (!nuevos.length) { toast('⚠️ El archivo no contiene estudios'); return; }
     _impDatos = nuevos;
     const existentes = getInformes();
-    const keysExist = new Set(existentes.map(_dupKey));
-    const dups = nuevos.filter(i => keysExist.has(_dupKey(i))).length;
+    /* Mismo índice que usa importEjecutar: el conteo que anuncia el modal y la decisión
+       que después toma el botón tienen que salir del mismo criterio, o el médico aprueba
+       "sin duplicados" y termina con la base duplicada. */
+    const _idx = _dupIndice(existentes);
+    const dups = nuevos.filter(i => _dupBuscar(_idx, i) !== -1).length;
     document.getElementById('imp-info').innerHTML =
       'Se encontraron <strong>' + nuevos.length + '</strong> estudios en el archivo.<br>' +
       'Ya tenés <strong>' + existentes.length + '</strong> estudios guardados.' +
       (dups ? '<br><span style="color:var(--warn,#e0a800);">' + dups + ' coinciden con estudios existentes (duplicados).</span>' : '<br><span style="color:var(--text2)">Sin duplicados detectados.</span>');
     const prev = nuevos.slice(0, 10).map(i => {
       const centro = (i.campos && i.campos.centro_nombre) ? i.campos.centro_nombre : '—';
-      const esDup = keysExist.has(_dupKey(i));
+      const esDup = _dupBuscar(_idx, i) !== -1;
       return '<div class="eio-row"><span class="rn">' + escHtml(i.nombre || '—') + (esDup ? ' <span class="eio-dup">DUP</span>' : '') + '</span>' +
         '<span class="rf">' + escHtml(i.fecha_estudio || '—') + '</span><span class="rc">' + escHtml(centro) + '</span></div>';
     }).join('');
@@ -23345,23 +23461,48 @@ async function importEjecutar() {
      sus recursos— pero nunca se admite repetido: dos fichas distintas con el mismo uuid rompen
      la clave igual que si cambiara. Pasa al importar dos veces el mismo archivo en modo
      «todos», o al restaurar un backup sobre una base que ya tiene esos estudios con otra fecha
-     (y por lo tanto otra _dupKey). */
+     (y por lo tanto otras _dupKeys). */
   const uuidsUsados = new Set(existentes.map(i => i.uuid).filter(_uuidValido));
-  const keyToIdx = new Map(); existentes.forEach((i, idx) => keyToIdx.set(_dupKey(i), idx));
+  /* Mismo argumento que uuidsUsados, y por el mismo motivo: `estudioId` también es clave de
+     BÚSQUEDA —cargarEstudioPorId resuelve el QR con find(i => i.estudioId === id)—, así que
+     dos fichas con el mismo valor dejan una inalcanzable. Importar dos veces el mismo backup
+     en modo «todos» las produce. El QR de un informe firmado abriría siempre la primera. */
+  const eidsUsados = new Set(existentes.map(i => i.estudioId).filter(_eidValido));
+  const keyToIdx = _dupIndice(existentes);
+  /* Índices ya sobreescritos en esta pasada: un estudio guardado no puede ser el destino de
+     dos registros del archivo. Ver el comentario de _dupBuscarClave. */
+  const yaPisados = new Set();
   let importados = 0, omitidos = 0, sobreescritos = 0;
   _impDatos.forEach(inf => {
-    const k = _dupKey(inf);
-    const esDup = keyToIdx.has(k);
+    const idx = _dupBuscar(keyToIdx, inf, modo === 'sobre' ? yaPisados : null);
+    const esDup = idx !== -1;
     if (esDup && modo === 'omitir') { omitidos++; return; }
     if (esDup && modo === 'sobre') {
-      const idx = keyToIdx.get(k);
-      /* Se conserva el uuid del registro EXISTENTE, no el del archivo: «sobreescribir» actualiza
-         una ficha que ya está, y tomar el uuid entrante desconectaría las imágenes que esa ficha
-         ya tenía colgadas. Mismo criterio que el «Sobreescribir informe original» de
-         guardarInforme. */
+      /* Se conservan las TRES identidades del registro EXISTENTE, no las del archivo:
+         «sobreescribir» actualiza una ficha que ya está. Mismo criterio que el
+         «Sobreescribir informe original» de guardarInforme.
+           · `id`        — índice interno, puede estar referenciado.
+           · `uuid`      — enlaza las imágenes; tomar el entrante las desconecta.
+           · `estudioId` — es lo que resuelve el QR. Se tomaba el del archivo, que viene
+             `undefined` en todo backup anterior a que existiera el campo, y en todo lo que
+             entra por Excel o DICOM: sobreescribir un estudio con su propio backup le
+             borraba el estudioId y dejaba muerto el QR de un PDF ya impreso y firmado.
+             El fallo es silencioso de los dos lados —la app no avisa, el papel no cambia—
+             y sólo aparece cuando alguien escanea el código meses después. */
       const uuidPrevio = _uuidValido(existentes[idx].uuid) ? existentes[idx].uuid : _uuidNuevo();
-      existentes[idx] = { ...inf, id: existentes[idx].id, uuid: uuidPrevio };   // conserva el id existente (no rompe referencias)
+      /* El estudioId del ARCHIVO sólo se adopta si el existente no tiene uno válido Y ese
+         valor no pertenece ya a otra ficha de la base: adoptarlo a ciegas apuntaría dos
+         estudios al mismo QR. */
+      const eidPrevio = _eidValido(existentes[idx].estudioId) ? existentes[idx].estudioId
+                      : (_eidValido(inf.estudioId) && !eidsUsados.has(inf.estudioId)
+                          ? inf.estudioId : _nuevoEstudioId());
+      existentes[idx] = { ...inf, id: existentes[idx].id, uuid: uuidPrevio, estudioId: eidPrevio };
       uuidsUsados.add(uuidPrevio);
+      eidsUsados.add(eidPrevio);
+      /* Se re-registra con los datos NUEVOS: la ficha acaba de cambiar de nombre/CI/fecha,
+         así que sus claves viejas ya no la describen y las nuevas todavía no están. */
+      _dupRegistrar(keyToIdx, existentes[idx], idx);
+      yaPisados.add(idx);
       sobreescritos++; return;
     }
     // 'todos' o no-duplicado → agregar con id único
@@ -23370,8 +23511,18 @@ async function importEjecutar() {
     let nuuid = inf.uuid;
     if (!_uuidValido(nuuid) || uuidsUsados.has(nuuid)) nuuid = _uuidNuevo();
     uuidsUsados.add(nuuid);
-    existentes.push({ ...inf, id: nid, uuid: nuuid });
-    keyToIdx.set(k, existentes.length - 1);
+    /* Se acuña estudioId si el archivo no lo trae —backups viejos, y todo lo que pasó por
+       Excel o DICOM antes de que esas vías lo acuñaran—. Sin esto el estudio entra sin ID
+       de QR: al abrirlo, `eeCurrentInformeId` queda en null y el PDF sale con un código que
+       no resuelve a nada. Las otras dos vías ya lo acuñan (ver los importadores de planilla
+       y DICOM); ésta era la que faltaba. */
+    let neid = inf.estudioId;
+    if (!_eidValido(neid) || eidsUsados.has(neid)) neid = _nuevoEstudioId();
+    eidsUsados.add(neid);
+    const nuevo = { ...inf, id: nid, uuid: nuuid, estudioId: neid };
+    existentes.push(nuevo);
+    // Se registra el objeto INSERTADO, igual que las otras dos vías, no el entrante.
+    _dupRegistrar(keyToIdx, nuevo, existentes.length - 1);
     importados++;
   });
   const _pImp = (typeof guardarInformesSeguro === 'function') ? guardarInformesSeguro(existentes) : CeiboStore.setLocal(existentes);
@@ -23796,10 +23947,43 @@ window.pulBasicoUI = pulBasicoUI;
 // y se prefiere no imprimir estimación antes que imprimir un volumen imposible.
 // Es `function` y no `const` a propósito: se usa desde funciones que corren antes
 // de esta línea y un const en zona muerta temporal cortaría el script entero.
+/* ÚNICO lugar donde la separación pleural se convierte en volumen. Devuelve null cuando el
+   valor no es estimable —ausente, no numérico, ≤0 o >120 mm— para que cada módulo redacte
+   su frase pero ninguno decida por su cuenta si el número es plausible.
+
+   La cuenta estaba duplicada: `_balikDet` (módulo pulmonar básico) descartaba >120 mm, y
+   `amiloTextoPulmonar` (módulo avanzado) hacía su propio `Math.round(bk*20)` sin ninguna
+   guarda. El mismo 200 mm mal tipeado salía «fuera de rango, verificar» por una vía y
+   «volumen aproximado de 4000 ml» por la otra, según qué módulo tuviera integrado el
+   médico. Un derrame de 4000 ml no existe; impreso en un informe firmado, es una cifra que
+   otro puede usar para decidir un drenaje. */
+/* Devuelve el motivo además del volumen. Colapsar «no hay dato» y «hay un dato y es
+   implausible» en un mismo `null` obliga a cada llamador a re-implementar la guarda para
+   poder redactar — que es la duplicación que esto vino a eliminar— y hace que un llamador
+   nuevo imprima "fuera de rango, verificar" sobre un campo vacío.
+
+   Rango plausible 1-120 mm (≈20-2400 ml). Fuera de ahí el número casi seguro es un error de
+   tipeo, y como se multiplica por 20 el error sale amplificado: 200 daba "4000 ml". Un
+   valor ≤0 también es tipeo (un guion de más), no ausencia: se marca, no se calla. */
+function _balikVol(bk) {
+  if (bk === null || bk === undefined || isNaN(bk)) return { ml:null, motivo:'ausente' };
+  if (bk <= 0 || bk > 120) return { ml:null, motivo:'fuera_rango' };
+  return { ml: Math.round(bk * 20), motivo:'ok' };
+}
+/* Frase única para los dos módulos. `medida` la envuelve para que cada uno la inserte en su
+   prosa —el básico va entre paréntesis al final, el avanzado en medio de la oración— sin
+   volver a decidir si el número es plausible. Antes cada uno tenía su propio texto: el mismo
+   200 mm salía «(Balik 200 mm — valor fuera de rango, verificar)» en el En Suma y
+   «…de 200 mm (valor fuera de rango, no se estima el volumen)» en el cuerpo del informe. */
+function _balikFrase(bk) {
+  const r = _balikVol(bk);
+  if (r.motivo === 'ausente') return '';
+  if (r.motivo === 'fuera_rango') return 'Balik ' + bk + ' mm — valor fuera de rango, verificar';
+  return 'Balik ' + bk + ' mm, aproximadamente ' + r.ml + ' ml';
+}
 function _balikDet(bk) {
-  if (bk === null || bk === undefined || isNaN(bk) || bk <= 0) return '';
-  if (bk > 120) return ' (Balik ' + bk + ' mm — valor fuera de rango, verificar)';
-  return ' (Balik ' + bk + ' mm, aproximadamente ' + Math.round(bk * 20) + ' ml)';
+  const f = _balikFrase(bk);
+  return f ? ' (' + f + ')' : '';
 }
 
 function pulBasicoHayDatos() {
@@ -23905,8 +24089,11 @@ function amiloTextoPulmonar() {
     const bk = PF(_amV('pua_balik'));
     const tipo = _amV('pua_derrame_tipo') || 'libre';
     const dl = _amV('pua_derrame_lado') || 'bilateral';
-    const vol = (bk && !isNaN(bk)) ? ', con una separación pleural (Balik) de ' + bk +
-                ' mm, que corresponde a un volumen aproximado de ' + Math.round(bk * 20) + ' ml' : '';
+    /* Misma frase que el módulo básico. Antes esto multiplicaba por 20 sin mirar: 200 mm
+       —tres cifras por un tipeo— salía impreso como «4000 ml», un derrame que no existe, en
+       un informe que otro puede usar para decidir un drenaje. */
+    const _bf = _balikFrase(bk);
+    const vol = _bf ? ', con una separación pleural (' + _bf + ')' : '';
     L.push('Derrame pleural ' + dl + ', de aspecto ' + tipo + vol + '.');
   } else {
     L.push('Sin derrame pleural.');
@@ -25196,6 +25383,23 @@ function volverAListaInformes() {
   document.getElementById('ig-detalle-view').style.display = 'none';
 }
 
+/* Detalle del estudio guardado. Cada `id` es una clave de `inf.campos`, y `campos` se llena
+   con el id del input del formulario: acá el id TIENE que ser el del control real, no el
+   nombre que uno le pondría.
+
+   El renderer descarta el campo cuando el valor viene vacío, así que un id equivocado no
+   rompe nada visible — la fila simplemente no aparece nunca. Seis se habían escrito «como
+   suenan» y no existían: `vci_colapso` (es `vci_col`), `dtd_e` (es `tde`), `gmax_ao` (es
+   `gmax_calc`, el calculado) y `gmed_ao` (es `gmedio_ao`); más `ad_vol` y `vp_e`, que
+   directamente no tienen control en la app —la única medida de AD es el área, y `vp_` acá
+   es válvula pulmonar, no velocidad de propagación— y se eliminaron en vez de inventarles
+   un origen. Resultado: el detalle callaba el colapso de VCI, el TDE y los dos gradientes
+   aórticos, que es justo lo que define la severidad de una estenosis.
+
+   Excepción a la regla: `indicaciones` y `antecedentes_sel` NO son ids del DOM sino las
+   claves array que guarda guardarInforme desde los checklists (ver _INF_CAMPOS_ARRAY);
+   se pintan con `arr:` y su input «Otro». Si agregás un campo acá, verificá que exista
+   `id="<ese id>"` en el formulario, o que sea una de esas dos. */
 const _IG_SECTIONS = [
   { titulo:'👤 Paciente', fields:[
     {id:'nombre',lbl:'Nombre'},{id:'doc_tipo',lbl:'Tipo doc.'},{id:'ci',lbl:'Documento'},
@@ -25230,15 +25434,15 @@ const _IG_SECTIONS = [
     {id:'tvia',lbl:'TAP (ms)'},{id:'tapse',lbl:'TAPSE (mm)'},{id:'s_prime',lbl:"S' (cm/s)"},
     {id:'vd_bas',lbl:'VD basal (mm)'},{id:'vd_mid',lbl:'VD medio (mm)'},
     {id:'vd_long',lbl:'VD long. (mm)'},{id:'fevd',lbl:'FEVD (%)'},
-    {id:'ad_area',lbl:'Área AD (cm²)'},{id:'ad_vol',lbl:'Vol. AD (ml)'},
-    {id:'vci_diam',lbl:'VCI diám. (mm)'},{id:'vci_colapso',lbl:'VCI colapso'}
+    {id:'ad_area',lbl:'Área AD (cm²)'},
+    {id:'vci_diam',lbl:'VCI diám. (mm)'},{id:'vci_col',lbl:'Colapso VCI'}
   ]},
   { titulo:'〰️ Doppler', fields:[
     {id:'onda_e',lbl:'Onda E (cm/s)'},{id:'onda_a',lbl:'Onda A (cm/s)'},
-    {id:'dtd_e',lbl:'TDE (ms)'},{id:'vp_e',lbl:'Vp E (cm/s)'},
+    {id:'tde',lbl:'TDE (ms)'},
     {id:'e_sep',lbl:"e' sep. (cm/s)"},{id:'e_lat',lbl:"e' lat. (cm/s)"},
-    {id:'vmax_ao',lbl:'Vmax Ao (m/s)'},{id:'gmax_ao',lbl:'Gmax Ao (mmHg)'},
-    {id:'gmed_ao',lbl:'Gmed Ao (mmHg)'},{id:'itv_ao',lbl:'ITV Ao (cm)'},
+    {id:'vmax_ao',lbl:'Vmax Ao (m/s)'},{id:'gmax_calc',lbl:'G.Máx Ao (mmHg)'},
+    {id:'gmedio_ao',lbl:'G.Medio Ao (mmHg)'},{id:'itv_ao',lbl:'ITV Ao (cm)'},
     {id:'diam_tsvi',lbl:'Ø TSVI Doppler (mm)'},{id:'itv_tsvi',lbl:'ITV TSVI (cm)'},
     {id:'ava_cont',lbl:'AVA cont. (cm²)'},{id:'vmax_it',lbl:'Vmax IT (m/s)'}
   ]},
@@ -25299,6 +25503,8 @@ function verDetalleInforme(id) {
         if (val === undefined || val === null || val === '') return null;
         if (f.grades) { const g = parseInt(val)||0; if (!g) return null; val = _IG_GRADE[g]||val; }
         if (f.id === 'sexo') val = val==='M'?'Masculino':val==='F'?'Femenino':val;
+        // El <select> de colapso VCI guarda el token ('>50'), no la etiqueta ('>50%').
+        if (f.id === 'vci_col') val = (val==='>50'||val==='<50') ? val + '%' : val;
         return { lbl: f.lbl, val: String(val) };
       })
       .filter(Boolean);
@@ -25679,8 +25885,20 @@ function _pptDesdeFormulario(inf, tema){
     const meta = [];
     if (l1) meta.push(l1);
     if (fEst) meta.push('Fecha del estudio: ' + fEst);
-    if (_pptTxt(c.indicacion)) meta.push('Indicación: ' + _pptTxt(c.indicacion));
-    if (_pptTxt(c.antecedentes)) meta.push('Antecedentes: ' + _pptTxt(c.antecedentes));
+    /* Indicación y antecedentes se leen con _labArrCol, el mismo resolvedor que usa el
+       export del Laboratorio: primero el array de checklists que escribe el formulario de
+       hoy (`indicaciones` / `antecedentes_sel`, con su «Otro»), y sólo si viene vacío el
+       texto libre de los estudios históricos (`indicacion` / `antecedentes`).
+
+       Acá se leían ÚNICAMENTE las claves históricas. Nadie las escribe desde que el panel
+       Paciente pasó a acordeón con checkboxes, así que la portada del PPT salía sin
+       indicación y sin antecedentes en todo estudio hecho con la app actual — y con datos
+       en los viejos, que es lo que hacía parecer que funcionaba. El PDF ya resolvía bien
+       esto (usa _accTexto con _pdfFallbackNotas de respaldo); el PPT se quedó atrás. */
+    const _pptInd = _labArrCol(inf, 'indicaciones', 'ind_otro', 'indicacion');
+    const _pptAnt = _labArrCol(inf, 'antecedentes_sel', 'ant_otro', 'antecedentes');
+    if (_pptTxt(_pptInd)) meta.push('Indicación: ' + _pptTxt(_pptInd));
+    if (_pptTxt(_pptAnt)) meta.push('Antecedentes: ' + _pptTxt(_pptAnt));
     s.addText(meta.join('\n'), { x:0.5, y:2.15, w:W-1, h:2.4, fontSize:13, color:PPT_C.txt2,
       fontFace:PPT_FONT, lineSpacingMultiple:1.4, valign:'top' });
     conPie(s);
@@ -29349,11 +29567,15 @@ function labImportarXLSX(file) {
        marca las identidades que YA están duplicadas en el almacenamiento —la app deja
        guardar dos veces el mismo paciente y fecha con "Guardar como nuevo"—, donde
        actualizar tocaría una sola y la otra quedaría con datos viejos sin decirlo. */
-    const keysExist = new Map(), repetidosPrevios = new Set();
-    existentes.forEach((e, idx) => _dupKeys(e).forEach(k => {
-      if (keysExist.has(k)) repetidosPrevios.add(k); else keysExist.set(k, idx);
-    }));
-    const buscaExist = inf => { for (const k of _dupKeys(inf)) if (keysExist.has(k)) return k; return null; };
+    const keysExist = _dupIndice(existentes);
+    const repetidosPrevios = new Set();
+    { const vistas = new Set();
+      existentes.forEach(e => _dupKeys(e).forEach(k => { if (vistas.has(k)) repetidosPrevios.add(k); else vistas.add(k); })); }
+    /* Misma búsqueda que usa labImpEjecutar —incluida la regla del documento, que evita
+       tratar a dos homónimos con CI distinta como el mismo estudio—. Este preview la tenía
+       escrita aparte y sin esa regla: anunciaba "actualiza" sobre filas que el ejecutor
+       después insertaba como nuevas. */
+    const buscaExist = inf => { const r = _dupBuscarClave(keysExist, inf); return r ? r.clave : null; };
     const ok = [], errores = [], vistasEnArchivo = new Map();
     let ejemplos = 0;
 
@@ -29503,14 +29725,19 @@ function labImportarXLSX(file) {
 
       /* Dos filas del MISMO archivo con la misma identidad: la segunda pisaría a la
          primera al guardar y una se perdería sin decirlo. Se marca como error de fila
-         para que el médico decida cuál va. */
-      const mias = _dupKeys(inf);
-      const choque = mias.find(k => vistasEnArchivo.has(k));
-      if (choque) {
-        errores.push({ fila:nFila, nombre: nombre || inf.ci, errs:['repite la identidad de la fila ' + vistasEnArchivo.get(choque)] });
+         para que el médico decida cuál va.
+
+         Se resuelve con _dupBuscarClave, el mismo predicado que usa el ejecutor. Antes era
+         un cruce crudo de claves, sin la regla del documento: dos homónimos con cédulas
+         distintas en la misma planilla —que son pacientes distintos— chocaban por la clave
+         de nombre y la segunda fila se RECHAZABA con «repite la identidad de la fila N».
+         El diagnóstico era falso y el estudio no entraba. */
+      const filaPrevia = _dupBuscarClave(vistasEnArchivo, inf);
+      if (filaPrevia) {
+        errores.push({ fila:nFila, nombre: nombre || inf.ci, errs:['repite la identidad de la fila ' + filaPrevia.idx] });
         return;
       }
-      mias.forEach(k => vistasEnArchivo.set(k, nFila));
+      _dupRegistrar(vistasEnArchivo, inf, nFila);   // el "idx" acá es el número de fila
       const kExist = buscaExist(inf);
       if (kExist && repetidosPrevios.has(kExist)) {
         errores.push({ fila:nFila, nombre: nombre || inf.ci,
@@ -29623,9 +29850,15 @@ async function labImpEjecutar() {
   const modo = document.querySelector('input[name="lab-imp-dup"]:checked')?.value || 'omitir';
   let existentes = getInformes();
   const usados = new Set(existentes.map(i => i.id));
-  const keyToIdx = new Map();
-  existentes.forEach((i, idx) => _dupKeys(i).forEach(k => { if (!keyToIdx.has(k)) keyToIdx.set(k, idx); }));
-  const buscar = inf => { for (const k of _dupKeys(inf)) if (keyToIdx.has(k)) return keyToIdx.get(k); return -1; };
+  const keyToIdx = _dupIndice(existentes);
+  /* Índices ya consumidos en esta pasada: un estudio guardado no puede ser destino de dos
+     registros del mismo archivo. Sin esto, dos filas de pacientes DISTINTOS que sólo cruzan
+     por la clave de nombre —porque el estudio guardado no tiene documento— fusionan las dos
+     sobre la misma ficha, y como el modo «Actualizar» fusiona campos en vez de reemplazar,
+     queda UNA ficha con las mediciones de los dos pacientes mezcladas y el toast diciendo
+     «2 actualizados». Ver _dupBuscarClave. */
+  const yaTocados = new Set();
+  const buscar = inf => _dupBuscar(keyToIdx, inf, yaTocados);
   let nuevos = 0, actualizados = 0, sinCambios = 0;
   const tocados = new Set();   // ids escritos en esta importación, para el aviso de período
 
@@ -29644,6 +29877,10 @@ async function labImpEjecutar() {
       if (inf.fecha_estudio) merged.fecha_estudio = inf.fecha_estudio;
       if (JSON.stringify(merged) === JSON.stringify(prev)) { sinCambios++; return; }
       existentes[idx] = merged;
+      /* La ficha acaba de cambiar de nombre/CI/fecha: sus claves viejas ya no la describen
+         y las nuevas todavía no están en el índice. Y se marca consumida. */
+      _dupRegistrar(keyToIdx, merged, idx);
+      yaTocados.add(idx);
       tocados.add(merged.id);
       actualizados++;
       return;
@@ -29653,12 +29890,12 @@ async function labImpEjecutar() {
     /* uuid propio: `inf` viene del parser de la planilla, no de un estudio existente, así que
        esto es una ficha NUEVA. _sanearIds se lo asignaría igual al persistir, pero explícito
        evita que la identidad dependa de un efecto lateral del borde del store. */
-    const nuevo = { ...inf, id: nid, estudioId: Date.now().toString(36) + Math.random().toString(36).substr(2,5),
+    const nuevo = { ...inf, id: nid, estudioId: _nuevoEstudioId(),
                     uuid: _uuidNuevo(),
                     fecha_guardado: new Date().toISOString() };
     existentes.push(nuevo);
     tocados.add(nid);
-    _dupKeys(nuevo).forEach(k => { if (!keyToIdx.has(k)) keyToIdx.set(k, existentes.length - 1); });
+    _dupRegistrar(keyToIdx, nuevo, existentes.length - 1);
     nuevos++;
   });
 
@@ -30238,10 +30475,16 @@ async function dcmImportarSR(fileList) {
        cardiólogo ya midió y escribió FEVI 55, el archivo del ecógrafo la reemplaza por 48
        sin que nada lo muestre y sin deshacer. Teniendo el valor guardado a mano, la vista
        previa puede decir «55 → 48» y dejar esa fila destildada. */
+    /* Misma búsqueda que dcmImpEjecutar. Era una CUARTA implementación a mano, sin la regla
+       del documento; coincidía con el ejecutor por casualidad, porque acá el `ci` va vacío
+       fijo y entonces la regla nunca podía dispararse. El día que el SR aporte PatientID al
+       `ci`, este preview y el ejecutor apuntarían a estudios distintos — y es este preview
+       el que decide qué filas salen destildadas para no pisar una FEVI medida a mano. */
     let previo = null;
     try {
-      const key = new Set(_dupKeys({ nombre:pac.nombre, ci:'', fecha_estudio:pac.fecha_estudio }));
-      previo = (getInformes() || []).find(i => _dupKeys(i).some(k => key.has(k))) || null;
+      const _lista = getInformes() || [];
+      const _i = _dupBuscar(_dupIndice(_lista), { nombre:pac.nombre, ci:'', fecha_estudio:pac.fecha_estudio });
+      previo = _i === -1 ? null : _lista[_i];
     } catch (e) { previo = null; }
     if (previo && previo.campos) {
       elegidas.forEach(r => {
@@ -30386,9 +30629,15 @@ async function dcmImpEjecutar() {
      de ellas duplicaría los estudios. */
   let existentes = getInformes();
   const usados = new Set(existentes.map(i => i.id));
-  const keyToIdx = new Map();
-  existentes.forEach((i, idx) => _dupKeys(i).forEach(k => { if (!keyToIdx.has(k)) keyToIdx.set(k, idx); }));
-  const buscar = inf => { for (const k of _dupKeys(inf)) if (keyToIdx.has(k)) return keyToIdx.get(k); return -1; };
+  const keyToIdx = _dupIndice(existentes);
+  /* Índices ya consumidos en esta pasada: un estudio guardado no puede ser destino de dos
+     registros del mismo archivo. Sin esto, dos filas de pacientes DISTINTOS que sólo cruzan
+     por la clave de nombre —porque el estudio guardado no tiene documento— fusionan las dos
+     sobre la misma ficha, y como el modo «Actualizar» fusiona campos en vez de reemplazar,
+     queda UNA ficha con las mediciones de los dos pacientes mezcladas y el toast diciendo
+     «2 actualizados». Ver _dupBuscarClave. */
+  const yaTocados = new Set();
+  const buscar = inf => _dupBuscar(keyToIdx, inf, yaTocados);
   let nuevos = 0, actualizados = 0, omitidos = 0, campos = 0;
 
   nuevosInf.forEach(inf => {
@@ -30406,17 +30655,19 @@ async function dcmImpEjecutar() {
       if (inf.nombre) merged.nombre = inf.nombre;
       if (inf.ci) merged.ci = inf.ci;
       existentes[idx] = merged;
+      _dupRegistrar(keyToIdx, merged, idx);   // claves nuevas al índice
+      yaTocados.add(idx);                     // y no puede ser destino de otro SR del lote
       actualizados++;
       return;
     }
     campos += Object.keys(inf.campos).length;
     const nid = _nuevoIdUnico(usados);
     const nuevo = { ...inf, id:nid,
-                    estudioId: Date.now().toString(36) + Math.random().toString(36).substr(2,5),
+                    estudioId: _nuevoEstudioId(),
                     uuid: _uuidNuevo(),   // ficha nueva desde el SR DICOM — ver nota en el importador de Excel
                     fecha_guardado: new Date().toISOString() };
     existentes.push(nuevo);
-    _dupKeys(nuevo).forEach(k => { if (!keyToIdx.has(k)) keyToIdx.set(k, existentes.length - 1); });
+    _dupRegistrar(keyToIdx, nuevo, existentes.length - 1);
     nuevos++;
   });
 
