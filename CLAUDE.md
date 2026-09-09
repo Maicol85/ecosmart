@@ -554,6 +554,49 @@ viven entre 99998 y 100000, así que «Cerrar sesión» levantaba la pantalla **
 ellos — y el modal de `editarInforme` lleva el nombre del paciente en el cuerpo. Si agregás
 un overlay, no le pongas más que eso.
 
+### Clasificar por texto libre: sin guarda de negación el sesgo es sistemático
+Varias estadísticas del Laboratorio salen de buscar palabras en el informe narrativo
+—hallazgos frecuentes, geometría del VI, grado diastólico, contractilidad difusa, casos de
+docencia—. Todas usaban `regex.test(texto)`, así que «se descarta HTP» contaba como un caso
+DE HTP. El sesgo **no es aleatorio**: un laboratorio que informa bien nombra lo que descartó,
+así que infla justo lo que más se menciona para negarlo, y esas cifras van a un PDF de
+auditoría. Medido sobre una cohorte de 8: HTP contaba 4, son 2.
+
+Ahora todo pasa por **`_labMenciona(txt, re)`**. Mira hacia atrás desde cada ocurrencia,
+dentro de la misma oración (`.`/`;`/salto cortan la ventana), y una mención afirmativa
+alcanza. Deliberadamente no mira hacia adelante: «HTP no severa» menciona HTP y lo negado es
+el calificativo. Si agregás una clasificación por texto, usala — no escribas otro `.test()`.
+
+Y `_labGeomCat` es la **única** implementación de geometría del VI: había dos copias
+idénticas, dashboard y PDF. La rama `normal` ya no usa `\bnormal\b` suelto, que matcheaba
+«función diastólica normal» y clasificaba la geometría de ese estudio como normal, inflando
+numerador y denominador a la vez.
+
+### El denominador se declara una vez, o el PDF publica dos
+La sección de Valvulopatías tenía la gráfica dividiendo por `infs.length` y las seis tablas
+por la base de cada válvula, **en la misma página**, bajo un subtítulo que decía las dos
+cosas: «Solo pacientes con valvulopatía documentada — % sobre total (n=…)». Y como la gráfica
+imprime el `n` crudo dentro de cada barra, el mismo número aparecía dos veces con dos
+porcentajes: la barra decía «n=2 · 1%» y la tabla «2 (25%)».
+
+La base correcta es **por válvula**: un estudio sin `im_grado` no dice nada sobre la mitral,
+así que meterlo en su denominador no mide prevalencia, mide cuánto se completó el formulario.
+`_labValvCounts` devuelve `bases[]` y el `n` va en el título de cada tabla, porque es distinto
+en cada una.
+
+**`pctOf(n, 0)` devolvía `0`, que es el valor que más se parece a un resultado.** La estenosis
+tricuspídea no existe en el modelo de datos (su accesor es `() => null`), así que el PDF
+imprimía cuatro filas confiadas en «0 (0%)» y un auditor leía «este laboratorio no tiene
+estenosis tricuspídea». Con base 0 la celda ahora dice «—» y el título «(sin datos)».
+
+### Frases direccionales: el texto no puede afirmar lo que el semáforo niega
+`interpTxt` elegía la lectura clínica por el SIGNO del coeficiente y nada más, así que una
+correlación de rho=0,05 con p=0,8 publicaba «A mayor FEVI, mayor presión pulmonar» en la
+tabla, el Excel y el PDF. No podía consultar el p ajustado: `runOne` corre antes de que
+exista `pAdj`, que necesita las 29 asociaciones juntas. La decisión se movió a `_bh`, después
+del ajuste. Umbral: el **p ajustado**, el mismo del semáforo. Si el semáforo no está verde,
+el texto dice «Sin asociación significativa.».
+
 ## Deuda conocida sin resolver
 
 - **Contraseña en el código.** `doLogin()` compara contra un literal. Choca con el checklist
@@ -575,3 +618,9 @@ un overlay, no le pongas más que eso.
   el PDF está gateado por `#ee-incluir-pdf`; las dos ausencias se tapan mutuamente y
   restaurar la interfaz destapa las dos. Necesitan el tratamiento de `imgVaciar` —mutación en
   sitio, `_imgGen++`— ANTES de que vuelva el toggle.
+- **`labGenerarPDF` no termina en el preview headless.** Medido: se lanza, no tira error y
+  nunca llega a `doc.save()`, ni con los cambios de esta sesión ni **en HEAD** — o sea que es
+  preexistente y no una regresión. Los dos rasterizadores que sospeché (`_labHeartPng`,
+  `_labValvChartPng`) responden bien por separado (8 ms y 800 ms). Queda sin diagnosticar si
+  falla también en un navegador real o sólo en headless. **Mientras tanto, los cambios de esa
+  función se verifican por unidad**, no de punta a punta.

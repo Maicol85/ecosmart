@@ -28116,6 +28116,59 @@ function _labNum(inf, ...keys) {
   return null;
 }
 function _labTxt(inf) { return ((inf.campos?.en_suma || '') + ' ' + (inf.campos?.informe_texto || '')); }
+
+/* ── Clasificación por texto libre con detección de negación ──────────────────────────
+   Varias estadísticas del Laboratorio salen de buscar palabras en el informe narrativo:
+   hallazgos frecuentes, geometría del VI, grado diastólico, contractilidad difusa y los
+   casos de docencia. Todas usaban `regex.test(texto)` a secas, así que un informe que dice
+   «se descarta hipertensión pulmonar» contaba como un caso DE hipertensión pulmonar. En un
+   laboratorio que informa bien —nombrando lo que descartó— el sesgo es sistemático y va
+   siempre en la misma dirección: infla la prevalencia de lo que más se menciona para
+   descartarlo. Y esas cifras se publican en un PDF de auditoría.
+
+   `_labMenciona` cuenta una mención sólo si NO viene negada. Mira hacia atrás desde cada
+   ocurrencia, dentro de la misma oración: los cortes `.`/`;`/salto de línea frenan la
+   ventana, para que «Sin derrame pericárdico. HTP severa» no quede negado por el «Sin» de
+   la oración anterior. La negación posterior («HTP no severa») no cuenta: ahí la entidad
+   está mencionada y lo negado es el calificativo.
+
+   Sólo se mira hacia atrás y sólo dentro de la oración a propósito: un detector más
+   ambicioso empieza a fallar en la dirección cara —dejar de contar hallazgos reales—, y
+   acá el error tolerable es contar de menos algo negado, no perder un hallazgo positivo. */
+const _LAB_NEG_RE = /\b(?:no|sin|ni|niega|descarta|descartan|descartamos|descartada|descartado|ausencia|ausente|excluye|excluida)\b/i;
+function _labMenciona(txt, re) {
+  const t = String(txt || '');
+  if (!t) return false;
+  // `re` puede venir con /g de otro uso; se reconstruye local para no arrastrar lastIndex.
+  const rx = new RegExp(re.source, re.flags.replace('g', '') + 'g');
+  let m;
+  while ((m = rx.exec(t)) !== null) {
+    if (m[0] === '') { rx.lastIndex++; continue; }          // regex vacía: no colgar el bucle
+    const desde = Math.max(0, m.index - 40);
+    let ventana = t.slice(desde, m.index);
+    const corte = Math.max(ventana.lastIndexOf('.'), ventana.lastIndexOf(';'), ventana.lastIndexOf('\n'));
+    if (corte !== -1) ventana = ventana.slice(corte + 1);
+    if (!_LAB_NEG_RE.test(ventana)) return true;            // una mención afirmativa alcanza
+  }
+  return false;
+}
+window._labMenciona = _labMenciona;
+
+/* Geometría del VI desde el texto. ÚNICA implementación: había dos copias idénticas —una en
+   el dashboard y otra dentro del PDF— y este archivo ya documenta lo que pasa cuando una
+   fórmula vive duplicada. La rama `normal` NO usa `\bnormal\b` suelto: eso matcheaba
+   «función diastólica normal» y clasificaba la geometría del VI de ese estudio como normal,
+   inflando numerador y denominador a la vez. */
+function _labGeomCat(inf) {
+  const t = ((inf.campos?.geom_vi || '') + ' ' + (inf.campos?.informe_texto || '') + ' ' + (inf.campos?.en_suma || '')).toLowerCase();
+  if (!t.trim()) return null;
+  if (_labMenciona(t, /hipertrofia\s+conc[eé]ntrica|hvi\s+conc[eé]ntrica|conc[eé]ntrica/)) return 'conc';
+  if (_labMenciona(t, /hipertrofia\s+exc[eé]ntrica|hvi\s+exc[eé]ntrica|exc[eé]ntrica/))   return 'exc';
+  if (_labMenciona(t, /remodelado\s+conc[eé]ntrico|remodelado/))                          return 'remod';
+  if (_labMenciona(t, /geometr[ií]a\s+normal|sin\s+hipertrofia|ventr[ií]culo\s+izquierdo\s+normal/)) return 'normal';
+  return null;
+}
+window._labGeomCat = _labGeomCat;
 function _labFevi(inf)  { return _labNum(inf, 'fevi', 'fevi_simpson'); }
 function _labGls(inf)   { return _labNum(inf, 'sgl', 'gls_global'); }
 function _labPsap(inf)  { return _labNum(inf, 'psap_calc'); }
@@ -28165,10 +28218,10 @@ function _labHeart(infs) {
 function _labDiastGrado(inf) {   // grado desde el texto del resumen (misma heurística que la distribución)
   const t = _labTxt(inf);
   if (!t.trim()) return null;
-  if (/grado\s*III|restrictivo/i.test(t)) return 'III';
-  if (/grado\s*II\b|pseudonormal/i.test(t)) return 'II';
-  if (/grado\s*I\b|relajaci[oó]n\s+(alterada|prolongada)/i.test(t)) return 'I';
-  if (/diast[oó]lica\s+normal|llenado\s+(del\s+vi\s+)?normal/i.test(t)) return 'sin';
+  if (_labMenciona(t, /grado\s*III|restrictivo/i)) return 'III';
+  if (_labMenciona(t, /grado\s*II\b|pseudonormal/i)) return 'II';
+  if (_labMenciona(t, /grado\s*I\b|relajaci[oó]n\s+(alterada|prolongada)/i)) return 'I';
+  if (_labMenciona(t, /diast[oó]lica\s+normal|llenado\s+(del\s+vi\s+)?normal/i)) return 'sin';
   return null;
 }
 function _labRegurgSev(inf, key) {   // im_grado/ia_grado/it_grado: numérico 0-4 (form) o texto (importado)
@@ -28514,9 +28567,8 @@ function labInit() {
   // ── PILAR 5: DOCENCIA ──
   const docentes = infs.filter(i =>
     i.campos?.caso_interes === '1' || i.campos?.caso_interes === 'true' ||
-    /caso\s+de\s+inter[eé]s|ateneo|residente/i.test(
-      (i.campos?.en_suma||'') + ' ' + (i.campos?.informe_texto||'')
-    )
+    _labMenciona((i.campos?.en_suma||'') + ' ' + (i.campos?.informe_texto||''),
+      /caso\s+de\s+inter[eé]s|ateneo|residente/i)
   );
   const docEl = document.getElementById('lab-docencia-lista');
   if (!docentes.length) {
@@ -28622,15 +28674,7 @@ function labRenderExtras(infs, n) {
   labBarras('lab-vd-dist', tt > 0 ? vdDist : []);
 
   // SECCIÓN I — Geometría VI (patrón, desde texto del informe / campo geom_vi)
-  const _geomCat = (inf) => {
-    const t = ((inf.campos?.geom_vi || '') + ' ' + (inf.campos?.informe_texto || '') + ' ' + (inf.campos?.en_suma || '')).toLowerCase();
-    if (!t.trim()) return null;
-    if (/hipertrofia\s+conc[eé]ntrica|hvi\s+conc[eé]ntrica|conc[eé]ntrica/.test(t)) return 'conc';
-    if (/hipertrofia\s+exc[eé]ntrica|hvi\s+exc[eé]ntrica|exc[eé]ntrica/.test(t)) return 'exc';
-    if (/remodelado\s+conc[eé]ntrico|remodelado/.test(t)) return 'remod';
-    if (/geometr[ií]a\s+normal|sin\s+hipertrofia|\bnormal\b/.test(t)) return 'normal';
-    return null;
-  };
+  const _geomCat = _labGeomCat;   // única implementación, con guarda de negación
   const geomCat = { normal:0, remod:0, conc:0, exc:0 }; let geomTot = 0;
   infs.forEach(i => { const g = _geomCat(i); if (g && geomCat[g] !== undefined) { geomCat[g]++; geomTot++; } });
   const geomDist = [
@@ -31270,6 +31314,21 @@ function labSubTab(id, el) {
     }
     res.forEach(r => { if (r.p == null) r.pAdj = null;
       r.sig = sigLight(r.pAdj, r.ok !== false); });
+    /* La lectura clínica se decide ACÁ y no en runOne, que es donde se arma: runOne corre
+       antes de que exista `pAdj` —el ajuste necesita las 29 juntas—, así que estructuralmente
+       no podía consultarlo. Elegía la frase por el SIGNO del coeficiente y nada más, de modo
+       que una correlación de rho=0,05 con p=0,8 igual publicaba «A mayor FEVI, mayor presión
+       pulmonar» en la tabla, en el Excel y en el PDF. Eso es una afirmación fisiopatológica
+       direccional sacada de ruido, y sale de un módulo que el médico usa para escribir.
+
+       El umbral es el p AJUSTADO, el mismo del semáforo: si el semáforo dice que no hay
+       hallazgo, el texto no puede afirmar una dirección. Sin dato suficiente (`ok === false`,
+       n<15) tampoco se afirma — es la misma razón por la que el semáforo no se pone verde. */
+    res.forEach(r => {
+      if (!r.interp) return;
+      const significativa = r.pAdj != null && r.pAdj < 0.05 && r.ok !== false;
+      if (!significativa) r.interp = 'Sin asociación significativa.';
+    });
     return res;
   }
   function computeAll(){ const infs=informes(); return _bh(ASSOC.map(d=>runOne(d,infs))); }
@@ -31956,12 +32015,22 @@ function _labValvCounts(infs) {
     () => null
   ];
   const counts = { Leve: [], Moderada: [], Severa: [] };
+  /* Base POR VÁLVULA: los estudios donde ESA válvula tiene severidad registrada, incluidos
+     los «Sin». Un estudio sin `im_grado` no dice nada sobre la mitral, así que meterlo en el
+     denominador de la mitral no mide prevalencia, mide cuánto se completó el formulario.
+
+     Antes la gráfica dividía por `infs.length` mientras las tablas de abajo dividían por esta
+     base, en la MISMA página y bajo un solo subtítulo. La gráfica imprime el n crudo dentro de
+     cada barra, así que el mismo número aparecía dos veces con dos porcentajes: la barra decía
+     «n=2 · 1%» y la tabla «2 (25%)». No hay forma de saber cuál es desde el PDF. */
+  const bases = [];
   defs.forEach(fn => {
-    const c = { Leve: 0, Moderada: 0, Severa: 0 };
-    infs.forEach(i => { const s = fn(i); if (s && c[s] !== undefined) c[s]++; });
+    const c = { Leve: 0, Moderada: 0, Severa: 0 }; let base = 0;
+    infs.forEach(i => { const s = fn(i); if (!s) return; base++; if (c[s] !== undefined) c[s]++; });
     counts.Leve.push(c.Leve); counts.Moderada.push(c.Moderada); counts.Severa.push(c.Severa);
+    bases.push(base);
   });
-  return { counts, N: infs.length };
+  return { counts, bases, N: infs.length };
 }
 // Plugin de etiquetas dentro/fuera del segmento según su alto en px
 const _LAB_VALV_DATALABELS = {
@@ -32009,11 +32078,12 @@ const _LAB_VALV_DATALABELS = {
 function _labValvChartCfg(infs, opts) {
   opts = opts || {};
   const off = !!opts.offscreen;
-  const { counts, N } = _labValvCounts(infs);
+  const { counts, bases } = _labValvCounts(infs);
   const OP = { Leve: 0.38, Moderada: 0.68, Severa: 1.0 };
   const datasets = ['Leve', 'Moderada', 'Severa'].map(sev => ({
     label: sev,
-    data: counts[sev].map(nn => N > 0 ? +(nn / N * 100).toFixed(2) : 0),
+    // Cada barra sobre SU base, la misma que usan las tablas del PDF. Ver _labValvCounts.
+    data: counts[sev].map((nn, k) => bases[k] > 0 ? +(nn / bases[k] * 100).toFixed(2) : 0),
     _rawN: counts[sev].slice(),
     backgroundColor: _LAB_VALV_BASE.map(c => _labRgba(c, OP[sev])),
     borderWidth: 0, stack: 'sev', categoryPercentage: 0.66, barPercentage: 0.9
@@ -32205,6 +32275,17 @@ const _prom = arr => {
   return ns.length ? { v: ns.reduce((a, b) => a + b, 0) / ns.length, n: ns.length } : null;
 };
 const _promTxt = (p, dec, suf) => p ? (p.v.toFixed(dec) + (suf || '') + ' (n=' + p.n + ')') : '—';
+/* Promedio de una MAGNITUD: descarta ≤0 antes de promediar. Una velocidad de vaciamiento de
+   orejuela, un diámetro o un área no pueden ser negativos ni cero; si aparecen es un tipeo
+   —el input no tiene `min` y estos campos tampoco están en ninguna ventana de plausibilidad
+   de la importación— y contaminan el promedio en la dirección peligrosa: la velocidad de
+   vaciamiento se lee contra el umbral de <20 cm/s de riesgo trombótico, así que un negativo
+   baja la media y hace parecer que el laboratorio ve más orejuelas de riesgo de las que ve.
+
+   NO va dentro de `_prom`: ése es genérico y hay magnitudes con signo legítimo —el strain
+   longitudinal se tipea como -18— donde filtrar negativos daría un promedio inventado. El
+   filtro tiene que estar donde se sabe qué se está promediando. */
+const _promPos = arr => _prom(arr.filter(x => x !== null && x !== undefined && isFinite(x) && x > 0));
 /* Rótulo de un mapa de etiquetas indexado por un valor del estudio. Se usa acá y en los pie.
    NUNCA el valor crudo: `k` viene de campos de un estudio que puede haber entrado por un backup
    JSON importado, y labBarras lo mete en innerHTML.
@@ -32743,9 +32824,9 @@ function labEteRender(infs, n) {
   if (!taviArr.length) { empty('lab-tavi-stats','TAVI'); empty('lab-tavi-pro-bars','TAVI');
                          empty('lab-tavi-rpv-bars','TAVI'); empty('lab-ete-jet-bars','jet paravalvular'); }
   else {
-    const gm = _prom(taviArr.map(i => _labNum(i,'ete_tavi_gmedio')));
-    const vm = _prom(taviArr.map(i => _labNum(i,'ete_tavi_vmax')));
-    const ava = _prom(taviArr.map(i => _labNum(i,'ete_tavi_ava')));
+    const gm = _promPos(taviArr.map(i => _labNum(i,'ete_tavi_gmedio')));
+    const vm = _promPos(taviArr.map(i => _labNum(i,'ete_tavi_vmax')));
+    const ava = _promPos(taviArr.map(i => _labNum(i,'ete_tavi_ava')));
     setHtml('lab-tavi-stats',
       stat('Estudios con TAVI', taviArr.length + ' (' + pctS(taviArr.length) + ')') +
       stat('Gradiente medio post-TAVI', _promTxt(gm, 1, ' mmHg')) +
@@ -32864,10 +32945,10 @@ function labEteRender(infs, n) {
       stat('Estudios con orejuela evaluada', oaiArr.length + ' (' + pctS(oaiArr.length) + ')') +
       stat('Trombo confirmado', evaluados.length ? (positivos + ' de ' + evaluados.length + ' (' + pctDe(positivos, evaluados.length) + ')') : '—') +
       stat('Sospecha de trombo', evaluados.length ? (sospecha + ' de ' + evaluados.length + ' (' + pctDe(sospecha, evaluados.length) + ')') : '—') +
-      stat('Velocidad de vaciamiento', _promTxt(_prom(oaiArr.map(i => _labNum(i,'oai_vel_vac'))), 1, ' cm/s')) +
-      stat('Diámetro del ostium', _promTxt(_prom(oaiArr.map(i => _labNum(i,'oai_ostium_diam'))), 1, ' mm')) +
-      stat('Profundidad', _promTxt(_prom(oaiArr.map(i => _labNum(i,'oai_profundidad'))), 1, ' mm')) +
-      stat('Área del ostium', _promTxt(_prom(oaiArr.map(i => _labNum(i,'oai_area_ostium'))), 2, ' cm²')));
+      stat('Velocidad de vaciamiento', _promTxt(_promPos(oaiArr.map(i => _labNum(i,'oai_vel_vac'))), 1, ' cm/s')) +
+      stat('Diámetro del ostium', _promTxt(_promPos(oaiArr.map(i => _labNum(i,'oai_ostium_diam'))), 1, ' mm')) +
+      stat('Profundidad', _promTxt(_promPos(oaiArr.map(i => _labNum(i,'oai_profundidad'))), 1, ' mm')) +
+      stat('Área del ostium', _promTxt(_promPos(oaiArr.map(i => _labNum(i,'oai_area_ostium'))), 2, ' cm²')));
     const MORF_L = { ala:'Ala de pollo', coliflor:'Coliflor', cactus:'Cactus', veleta:'Veleta' };
     // Mismo motivo que `op` en el bloque TAVI: la clave es un valor del estudio.
     const om = Object.create(null);
@@ -32952,9 +33033,9 @@ function _labContrPoblacion(infs) {
   let conTrast = 0, difusa = 0, disqSep = 0;
   infs.forEach(i => {
     const txt = (i.campos?.en_suma || '') + ' ' + (i.campos?.informe_texto || '');
-    const esDifusa = /hipocontractilidad\s+difusa/i.test(txt);
-    const esDisq   = /disquinesia\s+septal/i.test(txt);
-    const esMult   = /m[uú]ltiples\s+trastornos/i.test(txt);
+    const esDifusa = _labMenciona(txt, /hipocontractilidad\s+difusa/i);
+    const esDisq   = _labMenciona(txt, /disquinesia\s+septal/i);
+    const esMult   = _labMenciona(txt, /m[uú]ltiples\s+trastornos/i);
     if (esDifusa) difusa++;
     if (esDisq)   disqSep++;
     let cont = i.campos?.contractilidad;
@@ -33425,8 +33506,12 @@ async function labGenerarPDF() {
       { lbl: 'Estenosis aórtica', patron: /estenosis\s+a[oó]rtica|EAo/i },
       { lbl: 'Dilatación AI', patron: /dilataci[oó]n.{0,10}auricular|AI\s+(?:dilata|agrand)/i },
       { lbl: 'HVI', patron: /hipertrofia\s+ventricular\s+izq|HVI/i },
-      { lbl: 'Derrame pericárdico', byField: i => { var v = String((i.campos && i.campos.pericardio) || ''); return /derrame|efusi[oó]n/i.test(v) && !/sin\s+derrame|sin\s+efusi[oó]n/i.test(v); } },
-    ].map(h => ({ lbl: h.lbl, n: h.byField ? infs.filter(h.byField).length : textos.filter(t => h.patron.test(t)).length }))
+      { lbl: 'Derrame pericárdico', byField: i => _labMenciona(String((i.campos && i.campos.pericardio) || ''), /derrame|efusi[oó]n/i) },
+      /* Los siete patrones de arriba se evaluaban con `patron.test(t)` a secas: «se descarta
+         HTP» contaba como un caso de HTP. El único que tenía guarda era el de pericardio, y
+         con su propia lista de negaciones («sin derrame», «sin efusión») — o sea la respuesta
+         correcta escrita una vez y no reutilizada. Ahora los ocho pasan por _labMenciona. */
+    ].map(h => ({ lbl: h.lbl, n: h.byField ? infs.filter(h.byField).length : textos.filter(t => _labMenciona(t, h.patron)).length }))
       .filter(d => d.n > 0).sort((a, b) => b.n - a.n).slice(0, 8);
     if (hallazgos.length) await sectionChart('Hallazgos frecuentes',
       ['Hallazgo', 'n (%)'],
@@ -33469,15 +33554,7 @@ async function labGenerarPDF() {
       { labels: ['Grado I', 'Grado II', 'Grado III', 'Sin disf.'], values: [dg.I, dg.II, dg.III, dg.sin], colors: ['#f5c842', '#f0a500', '#f05454', '#3ecf8e'] });
 
     // 7. Geometría VI
-    const _labGeom = (inf) => {
-      const t = ((inf.campos?.geom_vi || '') + ' ' + (inf.campos?.informe_texto || '') + ' ' + (inf.campos?.en_suma || '')).toLowerCase();
-      if (!t.trim()) return null;
-      if (/hipertrofia\s+conc[eé]ntrica|hvi\s+conc[eé]ntrica|conc[eé]ntrica/.test(t)) return 'conc';
-      if (/hipertrofia\s+exc[eé]ntrica|hvi\s+exc[eé]ntrica|exc[eé]ntrica/.test(t)) return 'exc';
-      if (/remodelado\s+conc[eé]ntrico|remodelado/.test(t)) return 'remod';
-      if (/geometr[ií]a\s+normal|sin\s+hipertrofia|\bnormal\b/.test(t)) return 'normal';
-      return null;
-    };
+    const _labGeom = _labGeomCat;   // misma función que el dashboard
     const gm = { normal: 0, remod: 0, conc: 0, exc: 0 }; let gmt = 0;
     infs.forEach(i => { const g = _labGeom(i); if (g && gm[g] !== undefined) { gm[g]++; gmt++; } });
     await sectionChart('Geometría VI',
@@ -33542,7 +33619,12 @@ async function labGenerarPDF() {
     if (y > 195) { doc.addPage(); y = 20; }
     sectionTitle('Valvulopatías — distribución de severidad');
     doc.setFontSize(8); doc.setFont('helvetica', 'italic'); doc.setTextColor(GRY[0], GRY[1], GRY[2]);
-    doc.text(S('Solo pacientes con valvulopatía documentada — % sobre total (n=' + infs.length + ')'), W / 2, y, { align: 'center' });
+    /* UN solo denominador declarado, y el mismo que usan la gráfica y las seis tablas. El
+       subtítulo anterior decía las dos cosas a la vez —«Solo pacientes con valvulopatía
+       documentada» Y «% sobre total (n=<todos>)»— sobre una gráfica que dividía por el total
+       y unas tablas que dividían por la base de cada válvula. El `n` por válvula va en el
+       título de cada tabla, porque es distinto en cada una y un `n` global no lo representa. */
+    doc.text(S('Porcentajes sobre los estudios con esa valvula evaluada (el n de cada una figura en su tabla), no sobre los ' + infs.length + ' del periodo.'), W / 2, y, { align: 'center' });
     doc.setFont('helvetica', 'normal'); doc.setTextColor(0, 0, 0); y += 4;
     const vimg = await _labValvChartPng(infs);
     if (vimg) {
@@ -33554,13 +33636,20 @@ async function labGenerarPDF() {
     // Tablas individuales en grid 2 columnas: IM|EM, IAo|EAo, IT|ET
     const miniValv = (x, w, v) => {
       doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
-      doc.text(S(v.name), x, y + 3.2); doc.setTextColor(0, 0, 0);
+      // El n va en el título: es la base de ESTA tabla y difiere de las otras cinco.
+      doc.text(S(v.name + (v.t > 0 ? '  (n=' + v.t + ')' : '  (sin datos)')), x, y + 3.2);
+      doc.setTextColor(0, 0, 0);
       y += 5;
+      /* Con base 0 la celda dice «—», no «0 (0%)». La estenosis tricuspídea NO existe en el
+         modelo de datos (su accesor es () => null), así que la tabla imprimía cuatro filas
+         confiadas en 0% y un auditor leía «este laboratorio no tiene estenosis tricuspídea».
+         Lo cierto es que la app no puede registrarla. Un 0% afirma; un «—» no. */
+      const celda = (nn) => v.t > 0 ? nn + ' (' + pctOf(nn, v.t) + '%)' : '—';
       drawTable(x, [w * 0.52, w * 0.48], ['Severidad', 'n (%)'],
-        [['Sin', v.b.Sin + ' (' + pctOf(v.b.Sin, v.t) + '%)'],
-         ['Leve', v.b.Leve + ' (' + pctOf(v.b.Leve, v.t) + '%)'],
-         ['Moderada', v.b.Moderada + ' (' + pctOf(v.b.Moderada, v.t) + '%)'],
-         ['Severa', v.b.Severa + ' (' + pctOf(v.b.Severa, v.t) + '%)']]);
+        [['Sin', celda(v.b.Sin)],
+         ['Leve', celda(v.b.Leve)],
+         ['Moderada', celda(v.b.Moderada)],
+         ['Severa', celda(v.b.Severa)]]);
       return y;
     };
     const valvColW = 86, valvGap = 8, valvXR = M + valvColW + valvGap;
@@ -33638,7 +33727,8 @@ async function labGenerarPDF() {
   if (document.getElementById('lab-pdf-medicos')?.checked) {
     const docentes = infs.filter(i =>
       i.campos?.caso_interes === '1' || i.campos?.caso_interes === 'true' ||
-      /caso\s+de\s+inter[eé]s|ateneo|residente/i.test((i.campos?.en_suma || '') + ' ' + (i.campos?.informe_texto || '')));
+      _labMenciona((i.campos?.en_suma || '') + ' ' + (i.campos?.informe_texto || ''),
+        /caso\s+de\s+inter[eé]s|ateneo|residente/i));
     if (!docentes.length) {
       sectionTable('Docencia — casos de interés', ['Detalle', 'Valor'], [['Casos marcados en el período', '0']], [120, 60]);
     } else {
@@ -34749,7 +34839,7 @@ const ECO_AYUDA = [
   <div class="mBox mTip"><b>Consejo.</b> Pericardio y la eco pulmonar básica vivían antes en Válvulas. Si venís de una versión anterior y no los encontrás, están acá.</div>
   <div class="mSub">🖼️ Imágenes</div>
   <p class="mP">Se cargan desde archivo, desde la cámara o pegando con <span class="mKbd">Ctrl+V</span>. Podés tener 2, 4, 6, 8 o 10 espacios, y agregar más con el botón <b>＋</b>. Todas las cargadas entran al PDF, al final, en hojas aparte.</p>
-  <div class="mBox mAviso"><b>Atención — las imágenes no se guardan.</b> Viven sólo mientras el estudio está abierto. Si guardás el estudio, cerrás y después generás el PDF desde Guardados, ese PDF <b>sale sin imágenes</b>. Si las necesitás en el documento, exportá el PDF antes de cerrar el estudio.</div>` },
+  <div class="mBox mAviso"><b>Atención — depende del interruptor de Config.</b> De fábrica las imágenes <b>no</b> se guardan: viven mientras el estudio está abierto y se pierden al cerrar, así que el PDF hecho después desde Guardados sale sin ellas. Si activás <b>«Guardar imágenes con el estudio»</b> en Config, quedan asociadas al estudio y el PDF desde Guardados sí las incluye. Ver la solapa <b>Imágenes</b>.</div>` },
 
  { tab: '🌊 Doppler y válvulas', html: `
   <div class="mSub">Estenosis mitral: qué métodos entran al informe</div>
@@ -34960,7 +35050,7 @@ const ECO_AYUDA = [
   <p class="mP">Cuatro colores junto al botón PDF: azul (por defecto), verde, violeta y bordó. El desplegable de abajo elige cómo se llama el archivo, entre cinco formatos.</p>
   <div class="mBox mAviso"><b>El logo en SVG no funciona.</b> Se descarta sin avisar y el PDF sale sin logo. Usá PNG o JPG.</div>
   <p class="mP">Con <b>🏛️ Modo institucional</b> tildado en Config, el PDF saca «CeiboMed» del pie —copyright y disclaimer— y también del encabezado cuando no hay centro cargado. Si ya tenés un centro configurado, su nombre aparece en el encabezado con el modo prendido o apagado.</p>
-  <div class="mBox mAviso"><b>Las imágenes no sobreviven al guardado.</b> Viven sólo mientras el estudio está abierto, así que un PDF generado desde <b>Guardados sale sin imágenes</b> — es lo correcto, porque no hay ninguna imagen asociada a ese estudio. Si las querés en el documento, exportá el PDF antes de cerrar.</div>
+  <div class="mBox mAviso"><b>Si las imágenes sobreviven al guardado lo decidís vos.</b> Con el interruptor de Config apagado —el valor de fábrica— viven sólo mientras el estudio está abierto y el PDF desde <b>Guardados sale sin ellas</b>: no hay ninguna imagen asociada a ese estudio. Con el interruptor encendido quedan guardadas y el PDF desde Guardados las trae. Si está apagado y las querés en el documento, exportá el PDF antes de cerrar.</div>
   <div class="mBox mTip"><b>Consejo.</b> El PDF que se genera desde Guardados no pasa por la tarjeta de confirmación de severidades valvulares. Si querés revisarlas, abrí el estudio con <b>Editar</b> y exportá desde ahí.</div>` },
 
  { tab: '💾 Guardados', html: `
@@ -35053,7 +35143,7 @@ const ECO_AYUDA = [
   <div class="mBox mAviso"><b>El logo sólo se puede cargar desde la computadora.</b> En celular y tablet el recuadro <b>＋ Logo</b> no se muestra, y no hay otra forma de cargarlo ni de quitarlo.</div>` },
 
  { tab: '❓ Preguntas frecuentes', html: `
-  <p class="mP"><b>Generé el PDF desde Guardados y salió sin las imágenes.</b> Es así: las imágenes viven sólo mientras el estudio está abierto, no se guardan con él. Exportá el PDF antes de cerrar el estudio.</p>
+  <p class="mP"><b>Generé el PDF desde Guardados y salió sin las imágenes.</b> Revisá <b>«Guardar imágenes con el estudio»</b> en Config: apagado —que es como viene— las imágenes viven sólo mientras el estudio está abierto y no quedan asociadas a él. Encendelo para los estudios nuevos; para los que ya guardaste sin él, abrí el estudio y exportá el PDF antes de cerrarlo.</p>
   <p class="mP"><b>Edité el informe y se borró lo que escribí.</b> Regenerar, cambiar el estilo, tocar un selector de VEXUS o integrar un módulo reescriben el texto entero. Editá al final, y guardá el estudio: al reabrirlo desde Guardados, tu edición vuelve intacta.</p>
   <p class="mP"><b>El PDF salió sin firma.</b> No hay ningún médico marcado como Principal en Config. El PDF se genera igual, con renglones en blanco.</p>
   <p class="mP"><b>Cargué el logo y no aparece.</b> Si es un SVG, se descarta sin avisar. Convertilo a PNG o JPG.</p>
