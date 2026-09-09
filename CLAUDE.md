@@ -354,6 +354,30 @@ no aplica. Antes de dar por buena una regla, correrla sobre un archivo con el de
 la versión corregida, y confirmar que distingue. Cero hallazgos suele ser un patrón mal escrito,
 no un código limpio — mismo error de denominador que el resto de esta lista.
 
+### Un contador `{}` con clave del estudio pierde el caso `__proto__` en silencio
+Los gráficos del Laboratorio cuentan con `obj[k] = (obj[k]||0)+1` donde `k` sale de un campo del
+estudio. Sobre un objeto literal eso **no crea la propiedad** si `k` es `__proto__`: el setter de
+`__proto__` descarta los valores que no son objetos, y lo hace sin error. `Object.entries` nunca
+ve la entrada, así que ese estudio desaparece de la distribución y el gráfico queda **coherente
+con un caso de menos** — peor que romperse, porque no hay nada que mirar. Medido en el navegador:
+`const o={}; o['__proto__']=(o['__proto__']||0)+1; Object.keys(o).length` → `0`; con
+`Object.create(null)` → `1`. Los contadores cuya clave venga de datos van con prototipo nulo.
+Lo cubre la regla `ceibo-contador-objeto-literal-con-clave-de-dato`.
+
+### `MAPA[k] || 'Otro'` no cae al fallback con `k='constructor'`
+La traducción por allowlist protege de mostrar el valor crudo del estudio, pero **sólo para las
+claves propias**. Con `k='constructor'` devuelve la función `Object`, que es truthy, y el rótulo
+pasa a ser `"function Object() { [native code] }"`; con `toString` o `valueOf`, ídem. Medido, no
+supuesto. No es XSS —`String(Object)` no trae `<`— pero rompe justo la garantía por la que existe
+la allowlist: que lo mostrado sea siempre un literal del archivo. Usar el helper `_lblDe(mapa, k)`,
+que hace `Object.prototype.hasOwnProperty.call` (`.call` y no `mapa.hasOwnProperty`, porque el
+mapa puede ser de prototipo nulo).
+**No hay regla Semgrep para esto y no es un olvido**: `$MAPA[$K] || "..."` da 43 hits con ~12
+reales, y acotarla a mapas literales inline la deja en 0 —ni siquiera matchea el código que la
+originó, donde el mapa tiene nombre—. Quedan sin cubrir, y hay que mirarlos a mano si se tocan:
+`ETE_INCL_LBL[id] || 'La sección'`, `INSUF_TXT[n] || 'Severa'`, `farmMap[f]`, y el bloque de
+exportación a Excel (`{balon:…,auto:…}[c.ete_tavi_pro_tipo] || ''`).
+
 ### Semgrep: 118 warnings, 106 son ruido
 El triage completo del 2026-09-08 dio **106 falsos positivos / 12 reales**. Los falsos
 vienen del patrón `innerHTML +=` con resultados numéricos (`.toFixed()`, `Math.round`,
