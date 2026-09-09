@@ -16192,18 +16192,47 @@ function _neCerrar() {
   const m = document.getElementById('modal-nuevo-estudio');
   if (m) m.style.display = 'none';
 }
+/* Lleva a la tab Paciente tras «Nuevo estudio». Un helper propio y no showTab/showTabById:
+
+   · `showTab()` marca el botón activo con `event.target`, o sea la variable GLOBAL `event`.
+     Desde neGuardarYContinuar la limpieza corre dentro del callback asíncrono de
+     guardarInforme —el guardado puede quedar esperando la card de severidades—, y ahí ese
+     `event` ya no existe: la pestaña cambiaría sin que ningún botón quede marcado. El propio
+     archivo ya documenta esta fragilidad y la envuelve en try/catch en cargarEstudioPorId.
+   · `showTabById()` tampoco sirve: marca SIEMPRE el botón que dice «Informe» —está escrito
+     para ese único caso—, así que dejaría el panel de Paciente con el botón de Informe
+     resaltado.
+
+   Se marca el botón por su `onclick`, que es el vínculo real entre botón y panel en esta app. */
+function irATabPaciente() {
+  try {
+    document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    const pan = document.getElementById('tab-datos');
+    if (pan) pan.classList.add('active');
+    const btn = Array.prototype.find.call(document.querySelectorAll('.tab-btn'),
+      b => (b.getAttribute('onclick') || '').indexOf("showTab('datos')") !== -1);
+    if (btn) btn.classList.add('active');
+    // Mismo efecto que showTab: abre los acordeones de la sección que ya tengan datos.
+    if (typeof secAutoOpen === 'function') secAutoOpen('tab-datos');
+    window.scrollTo(0, 0);
+  } catch (e) { console.warn('[irATabPaciente]', e); }
+}
+window.irATabPaciente = irATabPaciente;
+
 function neGuardarYContinuar() {
   _neCerrar();
   if (typeof guardarInforme !== 'function') return;
   // Vía callback: el guardado puede quedar esperando la card de severidades, y en ese caso
   // el valor de retorno todavía es false. Sólo se limpia cuando el guardado fue efectivo
   // (evita perder datos si falta el paciente o si se cancela la card).
-  guardarInforme(ok => { if (ok) { limpiarCampos(); imgVaciar(); } });
+  guardarInforme(ok => { if (ok) { limpiarCampos(); imgVaciar(); irATabPaciente(); } });
 }
 function neContinuarSinGuardar() {
   _neCerrar();
   limpiarCampos();
   imgVaciar();
+  irATabPaciente();
 }
 /* Vacía las imágenes adjuntas. Va en los DOS caminos de «Nuevo estudio» y NO dentro de
    limpiarCampos, que también corre al abrir un estudio con «Editar» — ahí borrarlas sería
