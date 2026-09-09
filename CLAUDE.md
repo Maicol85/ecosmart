@@ -647,6 +647,107 @@ que vuelva la UI, mientras que la guarda por DOM revive sola. Es el criterio con
 cerró el gate del PDF. **Lo único real** es el orden: el paste de Eco Estrés se registra ANTES
 que `imgPasteHandler`, así que al restaurar la UI hay que decidir el orden, no descubrirlo.
 
+### Semgrep: 118 warnings y los 118 son ruido (triage 2026-09-09)
+Re-triage completo. El conteo **es 118, no 146**. De 131 previos, 13 eran la regla
+`ceibo-contador-objeto-literal-con-clave-de-dato` y se cerraron en esta sesión.
+
+Los 118 restantes se reparten en tres reglas y **ninguno es real**:
+- `ceibo-xss-innerhtml-concat` (69) — casi todos interpolan resultados numéricos
+  (`toFixed`, `Math.round`, `.length`) o constantes de las tablas de referencia del propio
+  archivo. Los que sí tocan dato de paciente pasan por `escHtml()` **una línea más abajo**,
+  dentro de un `.map()`, y la regla es sintáctica: no lo ve.
+- `ceibo-xss-inline-event-dynamic` (45) — en su mayoría `onclick="fn(${inf.id})"`. El `id` se
+  sanea en el borde de `CeiboStore` y el test de regresión asserta que es `number` ≥9e14.
+- `ceibo-xss-event-property-dynamic` (4) — `el.onclick = fn`, o sea asignar una **referencia
+  a función**, que es la forma segura. **4 de 4 falsos positivos: la regla penaliza justo el
+  idioma que uno quiere que se use.** Excluye la función inline (`= function(){}` y `= ()=>`)
+  pero no la referencia con nombre.
+
+  **Arreglo propuesto, sin aplicar.** El ruleset es compartido por toda la suite y vive fuera
+  de este repo (`.ceibomed-security/ceibomed-rules.yml`), así que la decisión es tuya. El
+  riesgo real es asignar una CADENA —eso el navegador lo compila—, no una referencia. Agregar
+  a la regla, después del `pattern-either` de los eventos:
+
+      - pattern-either:
+          - pattern: $EL.$EVENT = "..."
+          - pattern: $EL.$EVENT = $A + $B
+
+  Es un estrechamiento puro: no puede perder señal que hoy tenga. Al aplicarlo hay que
+  re-escanear **toda la suite**, no sólo EcoSmart, y confirmar que el total baja exactamente
+  en los falsos positivos y no aparece nada nuevo — la regla de verificar una regla contra el
+  código que la originó.
+
+Método usado, por si hay que repetirlo: mapear la línea del JS extraído a la del HTML
+(`scan.py` concatena los `<script>`, así que los números NO coinciden), y después cruzar cada
+hallazgo contra una ventana de 4 líneas buscando dato de paciente sin escape. Dio 2
+sospechosos y los dos resultaron falsos: interpolaban `sev` y `color`, que son literales
+asignados en las ramas de arriba. **No "arreglar" los 118 sin re-triagearlos.**
+
+Verificado además que este trabajo no introdujo ninguno: 0 hallazgos sobre las 694 líneas
+modificadas en los cinco commits de la auditoría.
+
+### Contadores: `Object.create(null)` en los 12, no en cinco
+Un contador `{}` con clave que viene del estudio se corrompe con las claves del prototipo.
+Medido en el navegador con `['constructor','__proto__','valueOf','toString']`:
+
+    literal {}            → {"constructor":"function Object() { [native code] }1", …}  y
+                             **`__proto__` desaparece**: 3 claves donde deberían ser 4
+    Object.create(null)   → {"constructor":1,"__proto__":1,"valueOf":1,"toString":1}
+
+`(counts[k] || 0) + 1` sobre un literal devuelve el método heredado (truthy), lo concatena
+como string, y `__proto__` ni siquiera crea propiedad: ese estudio se cae del conteo **en
+silencio**. Si agregás un contador cuya clave salga de un estudio, `Object.create(null)`.
+
+Y `MAPA[k] || 'Otro'` tiene el mismo agujero: con `k='constructor'` el `||` no cae al
+fallback. Para eso está **`_lblDe(mapa, k)`**, que usa `hasOwnProperty`.
+
+### Leer `campos[]` directo esquiva la resolución de alias
+`_labFevi` resuelve `fevi | fevi_simpson` y `_labGls` resuelve `sgl | gls_global`. Tres
+lugares leían la clave cruda y **los estudios importados se caían de la estadística sin
+avisar**. Medido sobre una cohorte de 4 con la mitad en formato alias: la distribución de FEVI
+del dashboard veía **2 de 4**.
+
+Trampa al migrar: `numCampo` usa `v ? …`, así que un FEVI de `"0"` da null; `_labNum` usa
+`String(v).trim() !== ''`, así que da 0. Y si el filtro era `!isNaN(v)`, hay que cambiarlo a
+`!== null`, porque **`isNaN(null)` es `false`** y los ausentes pasarían el filtro sumando como
+cero. Es el mismo tropiezo que ya nos costó el filtro de FEVI del Laboratorio.
+
+**Queda a propósito sin migrar** `antec()` del módulo de asociaciones (~31231): usa regex
+ancladas (`/^HTA$/`) sobre los elementos del array. `_labArrCol` devuelve el array unido por
+`' | '`, así que la ancla dejaría de matchear; y usar el texto libre legacy como si fuera un
+elemento convertiría «no sé» en «No», que en una tabla de chi² es un falso negativo. Hoy
+devuelve `null` para los legacy, o sea que quedan fuera del denominador — que es lo correcto.
+
+### Código muerto: 30 funciones, ninguna se borró
+Documentado para que nadie las "arregle" ni las dé por vivas. **No borrarlas sin leer esto.**
+
+- **Cluster Eco Estrés (14)** — `eeBullPdfTog`, `eeCalcCFVR`, `eeEcgChosen`, `eeEvalCFVR`,
+  `eeEvalEE`, `eeEvalPSAP`, `eeImgChosen`, `eeOnShow`, `eeProtoMode`, `eeResetBull`,
+  `eeSwitchBullTab`, `eeSwitchTab`, `eeToggleStep`, `eeUpdateResult`, más
+  `generarInformeEcoEstres`. Muertas porque la interfaz se retiró; se conservan para cuando
+  vuelva.
+- **Diagrama de segmentos del ETE (3)** — `toggleSegmento`, `resetDiagrama`,
+  `updateProyeccion`. Necesitan `id="seg-A1"`, que no existe.
+- **El QR está desconectado de punta a punta (4)** — `eeStudyUrl`, `eeQrDataURL`,
+  `eeQrEnabled`, `cfgToggleQr`, y **tampoco existe la casilla `#cfg-qr`**. Un comentario mío
+  anterior afirmaba que la casilla seguía en Config: era falso, ya está corregido en el
+  código.
+- **Sueltas (9)** — `_coPuntos`, `_csvCell`, `actualizarBtnComparativo`,
+  `calcPISA` (es un alias de una línea a `calcIM_ESC`), `ecoCentroBtn`, `ecoMedToggle`,
+  `eteSetModo`, `ptpCad`, `saveCentroLabel`, `selPatron`, `valvSevReset`.
+- **Constantes sin uso (3)** — `CHUNK_SIZE`, `CHUNK_KEY` (restos del troceado de
+  localStorage) y `SGL_ESCALA`.
+
+`valvSevReset` merece una nota: parece un reseteo que falta llamar, pero **no lo es** —
+`valvSevConfirmada` sí se resetea en `limpiarCampos`, `editarInforme` y `cargarEstudioPorId`.
+Es un envoltorio redundante, no un bug.
+
+Cuidado con el método: contar apariciones y restar declaraciones **da falsos muertos**. Los
+`toggleContrDifusa` / `Multiple` / `DisqSep` aparecían como muertos y se llaman desde `onclick`
+inline en el HTML. Y hay funciones invocadas por nombre desde listas
+(`['calcAI','calcAo',…].forEach(f => window[f]())`) que ningún grep de llamada directa
+encuentra. Verificar las dos cosas antes de declarar algo muerto.
+
 ## Deuda conocida sin resolver
 
 - **Contraseña en el código.** `doLogin()` compara contra un literal. Choca con el checklist
@@ -674,3 +775,57 @@ que `imgPasteHandler`, así que al restaurar la UI hay que decidir el orden, no 
   `_labValvChartPng`) responden bien por separado (8 ms y 800 ms). Queda sin diagnosticar si
   falla también en un navegador real o sólo en headless. **Mientras tanto, los cambios de esa
   función se verifican por unidad**, no de punta a punta.
+
+## Auditoría 2026-09-09 — resumen de la tanda
+
+Seis commits: `2b95740`, `3486302`, `1b5e9e8`, `7904fe4` y este. Lo que sigue es el saldo.
+
+### Corregido (por orden de gravedad)
+1. **El algoritmo de amiloidosis se llevaba el paciente anterior.** `gradoGamma`/`protMonoc`
+   sobrevivían a «Nuevo estudio» y quedaba MEDIO limpio: «Motivo: no especificado» arriba y
+   «ATTR confirmado — Grado 3» abajo. Un clic metía el centellograma del anterior en el
+   informe del actual.
+2. **La clave de nombre fusionaba pacientes distintos al importar.** En modo «sobreescribir»
+   el informe de uno reemplazaba al de otro conservando id, uuid y estudioId del equivocado:
+   el QR firmado de Ana abría el informe de Juan.
+3. **`ci: ci || '—'`**: todo estudio guardado sin cédula figuraba como si tuviera documento,
+   porque la raya U+2014 sobrevivía a la normalización.
+4. **El aviso médico-legal salía sólo al tipear la contraseña** y fallaba ABIERTO por los dos
+   caminos.
+5. **Estenosis mitral con dos escuelas y el THP votando dos veces** contra sí mismo. Incluye
+   un cambio clínico declarado: gradiente medio de 10 pasa de moderada a severa.
+6. **El PDF del Laboratorio publicaba dos denominadores del mismo dato** con un subtítulo que
+   decía las dos cosas; y `pctOf(n,0)` afirmaba «0%» sobre una entidad que la app no registra.
+7. **Frases clínicas direccionales sin mirar el p**: rho=0,05 con p=0,8 publicaba «A mayor
+   FEVI, mayor presión pulmonar».
+8. **Regex sobre texto libre sin negación**: «se descarta HTP» contaba como HTP. Medido, el
+   doble.
+9. **`estudioId` se perdía al sobreescribir** → QR muerto en un PDF ya firmado.
+10. **Seis ids inexistentes en el detalle** callaban colapso de VCI, TDE y los dos gradientes
+    aórticos; el volumen de derrame se calculaba dos veces con guardas distintas; el PPT leía
+    claves que nadie escribe; los accesores de alias se esquivaban; los contadores se
+    corrompían con claves del prototipo.
+
+### Patrones a evitar (los que más caro salieron)
+- **Un reseteo que no repinta no es un reseteo.** `resetAlgoritmo` nuleaba variables y dejaba
+  el cartel en pantalla.
+- **Grepear el literal no es leer la función.** En la extracción de umbrales se pasaron ~20
+  sitios, tres en la línea contigua a uno que sí se cambió.
+- **Un cambio de umbral no puede viajar dentro de un refactor.** El gradiente de 10 casi entra
+  disfrazado, bajo un comentario mío que afirmaba lo contrario.
+- **Una constante que no gobierna nada es peor que el literal.** `THP_SEVERO_MIN` se creó y se
+  borró en la misma sesión.
+- **Verificar en el navegador, no por grep.** «El bull's eye no se limpia» parecía cierto por
+  grep y era falso: el reseteo va por `contrReset`/`sglReset`.
+- **Mirar el denominador antes de contar.** Un test dio «sin XSS» sobre un contenedor vacío;
+  otro midió la columna equivocada y reportó 29 frases direccionales donde había 1.
+- **Un comentario que afirma una invariante no la garantiza.** El de `_dupKey` juraba que las
+  dos vías compartían criterio y hacía años que no.
+- **`isNaN(null)` es `false`** y **`typeof` sobre un `const` en zona muerta lanza**.
+
+### Falsos positivos verificados — no volver a levantarlos
+Nueve de las correcciones pedidas en la tanda no existían: `eeHasData` con datos del ETE, el
+bull's eye sin limpiar, la captura fuera del viewport, FEVI Simpson con un plano, THP sin
+planimetría, frases rápidas con límite de 10.000, los listeners de Eco Estrés «interfiriendo»,
+y el conteo de 146 warnings de Semgrep (son 118). Cada uno está documentado arriba con la
+evidencia.

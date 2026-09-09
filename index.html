@@ -16440,12 +16440,15 @@ function limpiarCampos() {
      tanda. guardarInforme sólo lo limpia al confirmar una de las dos opciones del modal, así
      que ninguna otra ruta lo apagaba. */
   window._ettEditandoId = null;
-  /* El id hermano, por el mismo motivo. Hoy es latente —`eeStudyUrl`/`eeQrDataURL` no tienen
-     un solo call site, el QR no se dibuja—, pero la casilla #cfg-qr sigue viva en Config, o
-     sea que la interfaz promete la función. El día que se reconecte, generar el PDF del
-     paciente B antes de guardarlo daría un código que resuelve al estudio de A. Es el mismo
-     defecto que ya tuvimos que cerrar en CardioSalud; sale más barato la línea que la
-     próxima sesión averiguándolo. */
+  /* El id hermano, por el mismo motivo. Hoy es latente: `eeStudyUrl`, `eeQrDataURL`,
+     `eeQrEnabled` y `cfgToggleQr` no tienen un solo call site y **tampoco existe la casilla
+     `#cfg-qr`** — la función del QR está entera y desconectada de punta a punta. (Un
+     comentario anterior mío decía que la casilla seguía en Config; era falso, medido: cero
+     ocurrencias de `id="cfg-qr"`.)
+     La línea se deja igual: el día que se reconecte el QR, generar el PDF del paciente B
+     antes de guardarlo daría un código que resuelve al estudio de A. Es el defecto que ya
+     tuvimos que cerrar en CardioSalud, y sale más barato la línea que la próxima sesión
+     averiguándolo. */
   if (typeof eeCurrentInformeId !== 'undefined') eeCurrentInformeId = null;
   /* Las imágenes NO se vacían acá: ver imgVaciar(), que lo hace sólo en «Nuevo estudio».
      limpiarCampos también lo llama editarInforme, y ahí borrarlas sería destruir dato
@@ -28470,7 +28473,7 @@ function labInit() {
   }
 
   // Estudios por mes (últimos 12)
-  const porMes = {};
+  const porMes = Object.create(null);
   infs.forEach(i => {
     if (!i.fecha_estudio) return;
     const mes = i.fecha_estudio.substring(0,7);
@@ -28489,8 +28492,10 @@ function labInit() {
     return v ? PF(String(v).replace(',','.')) : null;
   };
 
-  // Distribución FEVI — key real del input: 'fevi'
-  const fevis = infs.map(i => numCampo(i,'fevi')).filter(v => v !== null && v > 0);
+  /* `_labFevi` y no `numCampo(i,'fevi')`: el accesor resuelve el alias `fevi_simpson`, que
+     traen los estudios importados. Leyendo la clave directa esos estudios se caían de la
+     distribución en silencio. El filtro `> 0` se conserva tal cual. */
+  const fevis = infs.map(_labFevi).filter(v => v !== null && v > 0);
   const ft = fevis.length;
   const feviDist = [
     { lbl:'Normal / conservada (≥50%)',        n: fevis.filter(v=>v>=50).length,          total:ft, color:'#3ecf8e' },
@@ -28591,7 +28596,8 @@ function labInit() {
 
        /* |GLS| como en el PDF de auditoría y en Comparar: sin esto la pantalla decía -1,2 %
          y el PDF firmado 18,4 % sobre la MISMA cohorte. */
-      const glss = infs.map(i => numCampo(i,'sgl')).filter(v => v !== null && v !== 0).map(Math.abs);
+      // `_labGls` resuelve el alias `gls_global`. Filtro y Math.abs sin cambios.
+      const glss = infs.map(_labGls).filter(v => v !== null && v !== 0).map(Math.abs);
   if (glss.length)
     document.getElementById('lab-gls-prom').textContent =
       (glss.reduce((a,b)=>a+b,0)/glss.length).toFixed(1) + '% (n=' + glss.length + ')';
@@ -28771,7 +28777,7 @@ function labRenderExtras(infs, n) {
 
   // SECCIONES E/F — frecuencia por indicación y por antecedente (tortas)
   const freqEntries = (key) => {
-    const counts = {};
+    const counts = Object.create(null);
     infs.forEach(i => {
       let arr = i.campos?.[key];
       if (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch(e) { arr = arr ? [arr] : []; } }
@@ -31852,8 +31858,13 @@ function labMedicoRender() {
   const statsEl = document.getElementById('lab-med-stats');
   if (!statsEl) return;
 
-  const fevis = infs.map(i => PF(i.campos?.fevi)).filter(v => !isNaN(v));
-  const glss  = infs.map(i => PF(i.campos?.sgl)).filter(v => !isNaN(v));
+  /* Accesores en vez de la clave cruda: resuelven `fevi_simpson` y `gls_global`.
+     Y el filtro pasa a `!== null`: `isNaN(null)` es FALSE, así que con el accesor —que
+     devuelve null cuando falta el dato— un `!isNaN` habría dejado pasar los ausentes y
+     `null` se suma como 0 en el promedio. Es el mismo tropiezo que ya nos costó el filtro
+     de FEVI del Laboratorio. */
+  const fevis = infs.map(_labFevi).filter(v => v !== null);
+  const glss  = infs.map(_labGls).filter(v => v !== null);
 
   statsEl.innerHTML = `
     <div>
@@ -31896,7 +31907,7 @@ function labMedicoRender() {
     </div>`;
 
   // Gráfica estudios por mes del médico seleccionado
-  const porMes = {};
+  const porMes = Object.create(null);
   infs.forEach(i => {
     if (!i.fecha_estudio) return;
     const mes = i.fecha_estudio.substring(0, 7);
@@ -32440,7 +32451,7 @@ function _labAdvancedRender(infs, n) {
   if (!amilArr.length) { empty('lab-adv-amil-stats', 'score de amiloidosis'); setHtml('lab-adv-amil-cat', '<div class="lab-empty">Sin datos</div>'); }
   else {
     setHtml('lab-adv-amil-stats', stat('Estudios con score calculado', amilArr.length + ' (' + pctS(amilArr.length) + ')'));
-    const cat = {}; amilArr.forEach(i => { const c = _labAmilCat(i) || 'No clasificado'; cat[c] = (cat[c] || 0) + 1; });
+    const cat = Object.create(null); amilArr.forEach(i => { const c = _labAmilCat(i) || 'No clasificado'; cat[c] = (cat[c] || 0) + 1; });
     _labPieDash('lab-adv-amil-cat', Object.entries(cat));
   }
 
@@ -32455,7 +32466,10 @@ function _labAdvancedRender(infs, n) {
       stat('Caída de FEVI ≥10 puntos', caida + ' (' + pctO(caida) + ')') +
       stat('GLS anormal en control (peor que -18%)', glsAn + ' (' + pctO(glsAn) + ')'));
     const farmMap = { antracicline: 'Antraciclinas', trastuzumab: 'Trastuzumab / anti-HER2', inmunoterapia: 'Inmunoterapia (ICI)', vegf: 'Anti-VEGF', bcr_abl: 'BCR-ABL', radioterapia: 'Radioterapia', otro: 'Otro' };
-    const farm = {}; oncoArr.forEach(i => { const f = _labCampoRaw(i, 'co_farmaco'); if (f) { const l = farmMap[f] || 'Otro'; farm[l] = (farm[l] || 0) + 1; } });
+    /* `_lblDe` y no `farmMap[f] || 'Otro'`: con f='constructor' el `||` NO cae al fallback
+       —devuelve la función heredada del prototipo, que es truthy— y la clave del contador
+       pasa a ser el código fuente de esa función. Es el patrón que ya documentamos. */
+    const farm = Object.create(null); oncoArr.forEach(i => { const f = _labCampoRaw(i, 'co_farmaco'); if (f) { const l = _lblDe(farmMap, f); farm[l] = (farm[l] || 0) + 1; } });
     const fe = Object.entries(farm).sort((a, b) => b[1] - a[1]);
     labBarras('lab-adv-onco-bars', fe.map(([l, c], idx) => ({ lbl: `${l} (n=${c})`, n: c, total: oncoArr.length, color: _LAB_PIE_PAL[idx % _LAB_PIE_PAL.length] })));
   }
@@ -32896,7 +32910,7 @@ function labEteRender(infs, n) {
     labDestroyChart('lab-ete-meses-chart');
   }
   if (typeof Chart !== 'undefined' && typeof labChartMeses === 'function') {
-    const porMes = {};
+    const porMes = Object.create(null);
     eteArr.forEach(i => { const f = String(i.fecha_estudio || ''); if (/^\d{4}-\d{2}/.test(f)) {
       const k = f.slice(0,7); porMes[k] = (porMes[k]||0)+1; } });
     const claves = Object.keys(porMes).sort();
@@ -32928,7 +32942,7 @@ function labEteRender(infs, n) {
     /* La severidad de RPV se recalcula con la MISMA regla que la pantalla (gana el criterio
        más severo), a partir de los campos guardados. Leerla de un span daría la del estudio
        abierto para todos los de la lista. */
-    const rpv = {}; let nR = 0;
+    const rpv = Object.create(null); let nR = 0;
     taviArr.forEach(i => {
       const ext=_labNum(i,'ete_tavi_ext_circ'), vc=_labNum(i,'ete_tavi_vc_ancho'),
             vcA=_labNum(i,'ete_tavi_vc_area'), pht=_labNum(i,'ete_tavi_pht');
@@ -32955,7 +32969,7 @@ function labEteRender(infs, n) {
        deduplica por estudio igual que eteEpcHoras, porque un «3,3,3» de un importado contaría
        tres veces la misma hora. El denominador es el nº de ESTUDIOS con jet, no el de jets:
        un estudio con tres jets no vale por tres. */
-    const horas = {}; let nJet = 0;
+    const horas = Object.create(null); let nJet = 0;
     taviArr.forEach(i => {
       const crudo = _labCampoRaw(i,'ete_tavi_jet_horas');
       if (!crudo) return;
@@ -33062,7 +33076,7 @@ function labEteRender(infs, n) {
        y un estudio con los seis anatómicos en rango y calcificación densa salía «NO apto» en
        pantalla y «Elegible» en la estadística. Los de IM secundaria (FEVI, DTSVI) siguen fuera,
        que es lo que calcTEER hace. */
-    const fallos = {}; let apto = 0, posible = 0, limite = 0, noApto = 0, sinDatos = 0;
+    const fallos = Object.create(null); let apto = 0, posible = 0, limite = 0, noApto = 0, sinDatos = 0;
     teerArr.forEach(i => {
       let ingresados = 0, fallados = 0;
       TEER_CRIT.forEach(c => {
@@ -33527,7 +33541,7 @@ async function labGenerarPDF() {
 
   // ══════════ 3. ACTIVIDAD DEL LABORATORIO ══════════
   if (document.getElementById('lab-pdf-actividad')?.checked) {
-    const porMes = {};
+    const porMes = Object.create(null);
     infs.forEach(i => { if (i.fecha_estudio) { const m = i.fecha_estudio.substring(0, 7); porMes[m] = (porMes[m] || 0) + 1; } });
     const meses = Object.keys(porMes).sort().slice(-12);
     const mesesChart = meses.length ? { labels: meses.map(m => m.replace('-', '/')), values: meses.map(m => porMes[m]), colors: meses.map(() => '#2e86c1') } : null;
@@ -33564,7 +33578,7 @@ async function labGenerarPDF() {
 
     // Frecuencia por array (indicaciones / antecedentes)
     const freqData = (key) => {
-      const counts = {};
+      const counts = Object.create(null);
       infs.forEach(i => { let a = i.campos?.[key]; if (typeof a === 'string') { try { a = JSON.parse(a); } catch (e) { a = a ? [a] : []; } } if (!Array.isArray(a)) return; a.forEach(v => { const k = String(v).trim(); if (k) counts[k] = (counts[k] || 0) + 1; }); });
       return Object.entries(counts).sort((a, b) => b[1] - a[1]);
     };
@@ -33873,7 +33887,7 @@ window.labInit = function() {
   // Reemplazar barras de meses por Chart.js si existe el canvas
   const infs = labGetInformes();
   if (!infs.length) return;
-  const porMes = {};
+  const porMes = Object.create(null);
   infs.forEach(i => {
     if (!i.fecha_estudio) return;
     const mes = i.fecha_estudio.substring(0,7);
