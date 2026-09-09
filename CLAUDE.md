@@ -790,6 +790,51 @@ no del código; con la pestaña visible gana el rAF y no se nota. **Ojo al medir
 tercera corrida por colgada dos veces por no esperar lo suficiente.** Antes de declarar un
 cuelgue, confirmar que el reloj no está estrangulado.
 
+### `estudioId`: migración perezosa derivada del `id`, no del contenido
+Los estudios anteriores al campo —y todo lo que entró por Excel o DICOM antes de que esas
+vías lo acuñaran— quedaban sin `estudioId` para siempre. Ahora `_sanearIds` lo asigna al leer,
+igual que el uuid: sólo si falta, jamás pisa uno existente.
+
+**No se acuña con `_nuevoEstudioId()`** (Date.now()+azar) por dos razones del borde:
+`_sanearIds` corre por separado sobre `_local` y `_chunk`, donde el mismo estudio vive
+legítimamente en los dos; y asigna EN MEMORIA, así que un valor aleatorio muere con la pestaña
+si el arranque no persiste — que es el problema que obligó a `_uuidAsignados` a forzar una
+escritura.
+
+**Se deriva del `id` ya saneado, no de `_idReparado(r)`.** Mi primera versión hasheaba el
+contenido otra vez y el comentario afirmaba que una colisión «no agrega un modo de fallo
+nuevo». Era falso, y el contraejemplo estaba 40 líneas más arriba en el mismo bucle: para el
+`id` la colisión se resuelve por **sondeo** (`while (vistos.has(n))`), así que dos registros
+con la misma tupla salen con ids distintos. Rehashear se salteaba ese sondeo y los dejaba como
+dos estudios compartiendo un solo `estudioId`. Reproducido: dos registros de tupla idéntica
+daban los dos `mig-901ofg74yb`; ahora dan `...yb` y `...yc`.
+
+No era teórico: antes de `2b95740` el import JSON en modo «todos» no acuñaba `estudioId` y
+`fecha_guardado` viene del archivo, no del reloj, así que reimportar el mismo backup dejaba dos
+registros con tupla idéntica y sin el campo. El médico corrige la copia #2, firma, y el QR de
+ese PDF abría la copia #1 sin corregir.
+
+**`_idReparado` es ahora FORMATO DE CABLE.** Cambiarle la tupla o el hash reasigna en silencio
+el `estudioId` de cada estudio migrado y mata el QR de todos los PDF ya impresos desde ellos.
+
+### `String(v)` lanza, y en `_sanearIds` eso se lleva 12.500 líneas
+`String({toString:null})` tira `TypeError` —`toString` no invocable, `valueOf` heredado
+devuelve el objeto, ToPrimitive falla— y `JSON.parse` produce exactamente eso. `_idReparado`
+hacía cuatro `String()` sin red.
+
+Acá una excepción no se pierde en una tarjeta: `_sanearIds` corre como sentencia de nivel
+superior **dentro del IIFE de CeiboStore**, sin try/catch, así que el throw impide que
+`const CeiboStore` se inicialice y se lleva el resto del bloque. Es el síntoma que este archivo
+ya documenta dos veces: **DOM completo y todo el JS `undefined`** — el médico ve la app entera
+y ningún estudio.
+
+El modelo de amenaza no es hipotético y ya está documentado en el propio borde: la app se abre
+con doble clic (`file://`), varios navegadores comparten origen entre archivos locales, y la
+base `ceibomed` la comparte toda la suite. Y **la migración del estudioId amplió el disparador**:
+antes `_idReparado` sólo corría con un `id` inválido; ahora corre para el 100 % de una base
+vieja. Cerrado con `_str()`, que envuelve el `String()` en try/catch. Verificado sembrando
+`{"toString":null}` con un id válido: CeiboStore vivo y los dos estudios legibles.
+
 ## Deuda conocida sin resolver
 
 - **Contraseña en el código.** `doLogin()` compara contra un literal. Choca con el checklist

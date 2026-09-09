@@ -21678,9 +21678,24 @@ const CeiboStore = (function () {
             : (typeof v === 'string' && /^\d{1,15}$/.test(v.trim()) ? +v.trim() : NaN);
     return Number.isSafeInteger(n) && n >= 1 && n <= _ETT_ID_MAX ? n : null;
   };
+  /* `String(v)` LANZA con un objeto cuyo `toString` no es invocable, y `JSON.parse` produce
+     exactamente eso: `{"toString":null}` deja el método a null, `valueOf` heredado devuelve el
+     objeto y ToPrimitive tira TypeError. Comprobado en node con `toString:null` y `toString:{}`.
+
+     Acá una excepción no se pierde en una tarjeta: `_sanearIds` corre como sentencia de nivel
+     superior DENTRO del IIFE de CeiboStore, sin try/catch, así que el throw impide que
+     `const CeiboStore` se inicialice y se lleva puesto el resto del bloque —~12.500 líneas—.
+     Es el síntoma que este archivo ya documenta dos veces: DOM completo y todo el JS
+     `undefined`. El médico ve la app entera y ningún estudio.
+
+     El modelo de amenaza no es hipotético: la app se abre con doble clic (`file://`), varios
+     navegadores comparten origen entre archivos locales, y la base `ceibomed` la comparte toda
+     la suite. Y desde la migración perezosa del estudioId esto corre para el 100 % de una base
+     vieja, no sólo cuando el id venía mal. */
+  const _str = v => { try { return String(v ?? ''); } catch (e) { return ''; } };
   const _idReparado = r => {
-    const t = String((r && r.nombre) ?? '') + '|' + String((r && r.ci) ?? '') + '|' +
-              String((r && r.fecha_guardado) ?? '') + '|' + String((r && r.fecha_estudio) ?? '');
+    const t = _str(r && r.nombre) + '|' + _str(r && r.ci) + '|' +
+              _str(r && r.fecha_guardado) + '|' + _str(r && r.fecha_estudio);
     let h = 0;
     for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) % 1e14;
     return _ETT_ID_BANDA + h;
@@ -21711,6 +21726,52 @@ const CeiboStore = (function () {
          al campo. La unicidad se cuida donde se CREAN o COPIAN estudios: guardarInforme y los
          importadores. */
       if (!_uuidValido(r.uuid)) { r.uuid = _uuidNuevo(); _uuidAsignados++; }
+      /* Migración perezosa del estudioId — el identificador que resuelve el QR—, con el mismo
+         criterio que el uuid: se asigna sólo si falta y jamás se toca uno existente. Los
+         estudios anteriores a que el campo existiera, y todo lo que entró por Excel o DICOM
+         antes de que esas vías lo acuñaran, quedaban sin él para siempre.
+
+         Pero NO se acuña con `_nuevoEstudioId()`, que usa Date.now()+azar. Dos razones, las
+         dos por cómo funciona este borde:
+
+           · `_sanearIds` corre por SEPARADO sobre _local y _chunk, y el mismo estudio vive
+             legítimamente en los dos baldes (ver el comentario del dedup por balde). Con un
+             valor aleatorio, cada balde le daría un estudioId distinto a la misma ficha.
+           · Acá se asigna EN MEMORIA. Si el arranque no persiste, un valor aleatorio muere
+             con la pestaña y el arranque siguiente genera otro — que es exactamente el
+             problema que obligó a `_uuidAsignados` a forzar una escritura.
+
+         Derivándolo las dos desaparecen: el mismo estudio da el mismo valor en los dos baldes
+         y en todos los arranques, se persista o no. El prefijo `mig-` lo distingue de los
+         acuñados por guardarInforme y los importadores. Tiene que ser un prefijo con guion y
+         no una letra suelta: `_nuevoEstudioId` empieza por `Date.now().toString(36)`, que hoy
+         arranca con `m`, así que una `m` sola no distinguía nada — lo comprobé escribiendo un
+         test que daba verde sobre el registro equivocado.
+
+         Se deriva del `id` YA SANEADO (asignado tres líneas arriba) y NO de `_idReparado(r)`.
+         La diferencia importa y una versión anterior de este comentario afirmaba lo contrario:
+         decía que una colisión de hash «no agrega un modo de fallo nuevo». Es falso, y el
+         contraejemplo está 40 líneas más arriba, en este mismo bucle: para el `id` la colisión
+         se resuelve por SONDEO (`while (vistos.has(n))`), así que dos registros con la misma
+         tupla salen con ids distintos. Hashear el contenido otra vez acá se saltea ese sondeo:
+         los dos registros seguirían siendo dos estudios para la app —sobreviven al dedup por
+         id de getInformes()— compartiendo un solo estudioId.
+
+         No es teórico: antes de `2b95740` el import JSON en modo «todos» no acuñaba estudioId
+         y `fecha_guardado` viene del archivo, no del reloj, así que reimportar el mismo backup
+         dejaba dos registros con tupla idéntica y sin el campo. Con el hash, los dos migran al
+         mismo valor; el médico corrige la copia #2, firma, y el QR de ese PDF abre la copia #1
+         sin corregir, con un toast de «Estudio cargado» y ninguna señal de ambigüedad.
+
+         `r.id` ya pasó por el sondeo, es único dentro del balde, y cuando hubo que repararlo
+         sale del mismo hash de contenido — así que conserva las dos propiedades que motivan
+         todo esto y encima hereda la unicidad. Alcance: la tupla incluye nombre Y documento,
+         de modo que una colisión implica el mismo paciente; no hay ruta a paciente equivocado.
+
+         OJO al tocar `_idReparado`: desde acá su salida es FORMATO DE CABLE, no un detalle
+         interno. Cambiarle la tupla o el hash reasigna en silencio el estudioId de cada
+         estudio migrado y mata el QR de todos los PDF ya impresos desde ellos. */
+      if (!_eidValido(r.estudioId)) r.estudioId = 'mig-' + r.id.toString(36);
     });
     return lista;
   };
@@ -22693,8 +22754,13 @@ function guardarInforme(onDone) {
      institución SÍ tienen que viajar con el estudio — es lo que hace que reimprimir un informe
      viejo lo firme el médico que lo hizo y no el Principal de hoy.
      Sólo entran acá los prefijos que no describen al paciente ni al estudio bajo ninguna
-     lectura: sesión, filtros y preferencias de la app. */
-  const _noEsDelEstudio = /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-)/;
+     lectura: sesión, filtros y preferencias de la app.
+
+     `fcg-` se agregó 2026-09-09. Medido guardando un estudio real y mirando el backup: de los
+     493 campos que viajan, los de Config y filtros son CERO —esta lista ya los cubría— y el
+     único colado era `fcg-valve-select`, el desplegable de válvula del fonocardiograma. Es un
+     control del visor, no una medición: no describe al paciente. Uno solo, no cincuenta. */
+  const _noEsDelEstudio = /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-)/;
   document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
     if (_noEsDelEstudio.test(el.id)) return;
     campos[el.id] = el.value;
