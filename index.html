@@ -7998,6 +7998,21 @@ function eeEcgChosen(e){ const f=e.target.files&&e.target.files[0]; if(f) _eeEcg
 function _eeEcgPlace(file,idx){ _eeCompress(file,function(d){ let t=idx; if(t==null||t<0||t>=eeEcg.length||eeEcg[t]){ t=eeEcg.findIndex(s=>!s); if(t===-1){ eeEcg.push(null); t=eeEcg.length-1; eeEcgCount=eeEcg.length; } } eeEcg[t]=d; eeEcgRender(); }); }
 function eeEcgRemove(e,idx){ if(e) e.stopPropagation(); eeEcg[idx]=null; eeEcgRender(); }
 // Pegar desde portapapeles (con la sección ECG del Eco Estrés activa)
+/* Este listener y el de click de más arriba (`#ee-eye-pop`) son de Eco Estrés, cuya interfaz
+   está retirada. NO se desactivan con una bandera «que nunca sea true»: la guarda correcta ya
+   es la que tienen adentro —preguntan por su propio DOM, que no existe—, y verificado en el
+   navegador ninguno de los dos llega a `preventDefault()`. Una bandera falsa es peor: hay que
+   acordarse de invertirla el día que vuelva la UI, mientras que esto revive solo. Es el mismo
+   criterio con el que se cerró el gate del PDF (`#ee-incluir-pdf`).
+
+   Tampoco tiene sentido «desactivar los exports»: estas son declaraciones de función en el
+   nivel superior de un <script> clásico, así que ya crean la propiedad en `window` aunque se
+   borre la línea de export. Está medido y anotado en CLAUDE.md.
+
+   Lo que SÍ queda pendiente, y es la única interferencia real posible: este handler se
+   registra ANTES que `imgPasteHandler` del módulo de imágenes. Si vuelve `#tab-ee`, un pegado
+   con la pestaña de ECG activa haría `preventDefault()` acá y el módulo de imágenes no lo
+   vería. Al restaurar la UI hay que decidir el orden, no descubrirlo. */
 document.addEventListener('paste',function(e){
   const ee=document.getElementById('tab-ee'), ecg=document.getElementById('ee-tab-ecg');
   if(!ee||!ee.classList.contains('active')||!ecg||!ecg.classList.contains('active')) return;
@@ -8787,8 +8802,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <div id="ref-em" style="display:none;" class="card-body">
           <table style="width:100%;border-collapse:collapse;font-size:12px;">
             <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Parámetro</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Leve</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Moderada</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Severa</th></tr>
-            <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">AVm (cm²)</td><td style="padding:5px 8px;text-align:center;">&gt;2.5</td><td style="padding:5px 8px;text-align:center;">1.6–2.5</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">≤1.5</td></tr>
-            <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">THP (ms)</td><td style="padding:5px 8px;text-align:center;">&lt;100</td><td style="padding:5px 8px;text-align:center;">100–219</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">≥220</td></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">AVm (cm²)</td><td style="padding:5px 8px;text-align:center;">&gt;2.5</td><td style="padding:5px 8px;text-align:center;">1.51–2.5</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">≤1.5</td></tr>
+            <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">THP (ms) <span style="font-size:9px;color:var(--text2);">— no se clasifica solo: se convierte a AVm (220/THP) y manda la fila de arriba. ASE publica ≥150 para severa; el equivalente exacto de AVm ≤1,5 es ≥147</span></td><td style="padding:5px 8px;text-align:center;">&lt;88</td><td style="padding:5px 8px;text-align:center;">88–146</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">≥147</td></tr>
             <tr><td style="padding:5px 8px;color:var(--text2);">Gmedio (mmHg)</td><td style="padding:5px 8px;text-align:center;">&lt;5</td><td style="padding:5px 8px;text-align:center;">5–9</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">≥10</td></tr>
           </table>
           <div style="margin-top:10px;font-size:12px;color:var(--text);line-height:1.8;">
@@ -11209,6 +11224,58 @@ function avaEsValida(ava) { return _avaNum(ava) !== null; }
 window.avaEsModerada = avaEsModerada; window.avaEsValida = avaEsValida;
 window.AVA_SEVERA_MAX = AVA_SEVERA_MAX; window.avaEsSevera = avaEsSevera;
 
+/* ── Estenosis MITRAL: una sola escuela ────────────────────────────────────────────────
+   El archivo tenía DOS convenciones conviviendo, y no eran dos opiniones: eran dos épocas.
+
+     · La tabla de referencia y el score integrado decían «AVm ≤1.5 severa» —ESC/EACTS— y en
+       la misma tabla «THP ≥220 severa».
+     · La calculadora `cxAVT` decía «severa <1.0».
+
+   El THP y el AVm no son dos mediciones: el AVm por THP ES 220/THP (fórmula de Hatle). Así
+   que THP ≥220 equivale a AVm ≤1.0, que es el corte VIEJO (AHA/ACC clásico). Con AVm ≤1.5
+   como severa, el THP equivalente es 220/1.5 = 146,7 ms. Entre 147 y 219 ms el mismo número
+   daba «severa» por la vía del área y «moderada» por la vía del THP, y las dos votaban en el
+   mismo score: una sola medición contada dos veces y en contra de sí misma.
+
+   Verificado contra las guías (septiembre 2026): ESC/EACTS 2021 y 2025 definen estenosis
+   mitral clínicamente significativa / severa como **AVm ≤1.5 cm²**, sin cambios entre las dos
+   ediciones; las recomendaciones ASE 2023 dan severa con **AVm ≤1.5 cm², THP ≥150 ms,
+   gradiente medio ≥10 mmHg y PSAP ≥50 mmHg**. O sea que el THP vigente es ≥150, no ≥220, y
+   ≥150 es coherente con AVm ≤1.5 (220/150 = 1,47).
+
+   CAMBIO CLÍNICO DECLARADO — el gradiente medio se movió. El archivo tenía
+   `else if (gm <= 10) moderada`, o sea severa sólo con gm ESTRICTAMENTE mayor a 10; la guía
+   dice severa con **≥10**. Un gradiente medio de 10 exacto —un entero que se tipea todos los
+   días— pasa de «moderada» a «severa», y con eso cambia el `em_grado` que va al EN SUMA, al
+   cuerpo del informe y a la tabla del PDF. El mismo estudio reimpreso antes y después de este
+   commit puede decir cosas distintas. Es intencional y coincide con la guía; se anota acá
+   porque casi entra disfrazado de refactor.
+
+   NO hay constante de THP. El motor no clasifica el THP: lo convierte a área con Hatle y
+   clasifica el área. Una `THP_SEVERO_MIN = 150` que no gobierna nada es justamente la clase
+   de número suelto que este bloque existe para eliminar — y además desfasaba, porque el corte
+   efectivo del motor es 220/1,5 = 146,7, o sea ≥147 ms, no ≥150. La tabla de referencia
+   publica los valores derivados y lo dice. */
+const AVM_SEVERA_MAX    = 1.5;   // cm² — AVm ≤1.5 → severa (ESC/EACTS 2021 y 2025, ASE 2023)
+const AVM_MODERADA_MAX  = 2.5;   // cm² — 1.5 < AVm ≤2.5 → moderada;  >2.5 → sin estenosis / leve
+const GMED_MITRAL_SEVERO_MIN = 10;  // mmHg — gradiente medio ≥10 → severa (ASE 2023)
+window.AVM_SEVERA_MAX = AVM_SEVERA_MAX; window.AVM_MODERADA_MAX = AVM_MODERADA_MAX;
+window.GMED_MITRAL_SEVERO_MIN = GMED_MITRAL_SEVERO_MIN;
+
+/* ── Umbrales que estaban escritos a mano en 3+ lugares ────────────────────────────────
+   Mismo patrón que AVA_SEVERA_MAX / UMBRAL_PSAP_ELEVADA. No se extraen «todos los números»:
+   sólo los que ya se repetían y clasifican al paciente, que son los que se desincronizan. */
+/* Volumen auricular izquierdo indexado. Umbral ASE/EACVI de dilatación; alimenta los
+   criterios diastólicos ASE 2016, el HFA-PEFF y el score de amiloidosis, así que vivía en
+   ocho lugares. */
+const UMBRAL_LAVI_DILATADO = 34;   // ml/m² — LAVI >34 → aurícula izquierda dilatada
+window.UMBRAL_LAVI_DILATADO = UMBRAL_LAVI_DILATADO;
+/* Masa VI indexada: el corte de HVI es distinto por sexo (ASE/EACVI). Estaban los dos
+   números sueltos en el cálculo, en la tabla de referencia del PDF y en el Laboratorio. */
+const UMBRAL_MASA_HVI_M = 95;    // g/m² — mujeres
+const UMBRAL_MASA_HVI_H = 115;   // g/m² — hombres
+window.UMBRAL_MASA_HVI_M = UMBRAL_MASA_HVI_M; window.UMBRAL_MASA_HVI_H = UMBRAL_MASA_HVI_H;
+
 /* Resistencia vascular pulmonar: el corte de ESC/ERS 2022 para el componente precapilar es
    >2 UW. La app lo aplicaba en la clasificación pre/pos/mixta pero los badges usaban el
    umbral pre-2022 de >3 con una banda «2–3 (límite)» en el medio, así que un mismo paciente
@@ -11255,7 +11322,7 @@ function calcGeometriaVI(masaIdx, rwt, sexo) {
   const r = Math.round(PF(rwt) * 100) / 100;
   if (!m || !r || isNaN(m) || isNaN(r)) return '—';
   const esMujer = String(sexo || '').charAt(0).toUpperCase() === 'F';
-  const masaNormal = m < (esMujer ? 95 : 115);
+  const masaNormal = m < (esMujer ? UMBRAL_MASA_HVI_M : UMBRAL_MASA_HVI_H);
   if (masaNormal && r < 0.42) return 'Normal';
   if (masaNormal) return 'Remodelado concéntrico';
   if (r < 0.42) return 'Hipertrofia excéntrica';
@@ -11353,7 +11420,7 @@ function calcAI() {
   const idx = (vol / bsa).toFixed(1);
   document.getElementById('ai-idx').textContent = idx + ' ml/m²';
   let interp;
-  if (idx <= 34) interp = badge('green','Normal (≤34 ml/m²)');
+  if (idx <= UMBRAL_LAVI_DILATADO) interp = badge('green','Normal (≤' + UMBRAL_LAVI_DILATADO + ' ml/m²)');
   else if (idx <= 41) interp = badge('yellow','Dilat. leve (35-41)');
   else if (idx <= 48) interp = badge('orange','Dilat. moderada (42-48)');
   else interp = badge('red','Dilat. severa (>48)');
@@ -11362,6 +11429,10 @@ function calcAI() {
 
 // ══ VI ══
 // Severidad de HVI por masa indexada (cortes ASE, por sexo)
+/* OJO: las bandas de acá arrancan en UMBRAL_MASA_HVI_M + 1 (96) y UMBRAL_MASA_HVI_H + 1
+   (116), o sea que están acopladas a esas constantes sin nombrarlas. Si movés el umbral de
+   HVI, movelas también: si no, calcVI dice «HVI» y esta función devuelve null, y el badge
+   queda con hipertrofia sin grado. */
 function hviSeveridad(idx, sexo) {
   idx = PF(idx);
   if (sexo === 'F') { if (idx >= 122) return 'severa'; if (idx >= 109) return 'moderada'; if (idx >= 96) return 'leve'; return null; }
@@ -11393,7 +11464,7 @@ function calcVI() {
     const mass = 0.8 * (1.04 * ((dd/10 + siv/10 + pp/10) ** 3 - (dd/10) ** 3)) + 0.6;
     if (bsa) {
       const idx = (mass / bsa).toFixed(0);
-      const hvi = (sexo === 'F' && idx > 95) || (sexo !== 'F' && idx > 115);
+      const hvi = (sexo === 'F' && idx > UMBRAL_MASA_HVI_M) || (sexo !== 'F' && idx > UMBRAL_MASA_HVI_H);
       document.getElementById('devereux-val').innerHTML = idx + ' g/m² ' + (hvi ? badge('red','HVI') : badge('green','Normal'));
     } else {
       document.getElementById('devereux-val').textContent = mass.toFixed(0) + ' g (sin BSA)';
@@ -11624,8 +11695,15 @@ function cxAVT() {
   if (!el) return;
   if (t === null || t <= 0) { el.textContent = '—'; return; }
   const avm = 220 / t;
-  const cls = avm >= 1.5 ? 'green' : avm >= 1.0 ? 'yellow' : 'red';
-  const sev = avm >= 1.5 ? 'sin/leve (≥1.5)' : avm >= 1.0 ? 'moderada (1.0–1.49)' : 'severa (<1.0)';
+  /* Misma escala que el módulo de EM y que el informe. Esta calculadora usaba la vieja
+     —severa <1.0—, así que el mismo THP daba «moderada» acá y «severa» tres pestañas más
+     allá, sobre el mismo paciente. */
+  const cls = avm > AVM_MODERADA_MAX ? 'green' : avm > AVM_SEVERA_MAX ? 'yellow' : 'red';
+  /* «sin estenosis / leve» y no «leve» a secas: un THP normal de 60 ms da AVm 3,67 cm², que
+     es una válvula sana. Rotularla «leve» afirma una estenosis que no existe. */
+  const sev = avm > AVM_MODERADA_MAX ? 'sin estenosis / leve (>' + AVM_MODERADA_MAX + ')'
+            : avm > AVM_SEVERA_MAX   ? 'moderada (' + (AVM_SEVERA_MAX + 0.01).toFixed(2) + '–' + AVM_MODERADA_MAX.toFixed(1) + ')'
+                                     : 'severa (≤' + AVM_SEVERA_MAX + ')';
   el.innerHTML = avm.toFixed(2) + ' cm² ' + badge(cls, sev);
 }
 
@@ -12323,11 +12401,11 @@ function calcDiastolBSE2024() {
 
   if (ee !== null) { totalEvaluables++; if (ee > 14) marcadores++; }
   if (ea !== null) { totalEvaluables++; if (ea <= 0.8 || ea >= 2.0) marcadores++; }
-  if (aiVol && bsa) { lavi = aiVol / bsa; totalEvaluables++; if (lavi > 34) marcadores++; }
+  if (aiVol && bsa) { lavi = aiVol / bsa; totalEvaluables++; if (lavi > UMBRAL_LAVI_DILATADO) marcadores++; }
 
   const fevi = v('fevi');
   const sgl = v('sgl');
-  const feviReducida = (fevi !== null && fevi < 50) || (sgl !== null && Math.abs(sgl) < 16);
+  const feviReducida = (fevi !== null && fevi < UMBRAL_FEVI_NORMAL) || (sgl !== null && Math.abs(sgl) < 16);
 
   let resultado;
   if (feviReducida) {
@@ -12335,7 +12413,7 @@ function calcDiastolBSE2024() {
     let marcadoresFR = 0, totalFR = 0;
     if (ee !== null) { totalFR++; if (ee > 14) marcadoresFR++; }
     if (trv !== null) { totalFR++; if (trv > 2.8) marcadoresFR++; }
-    if (aiVol && bsa) { totalFR++; if ((aiVol/bsa) > 34) marcadoresFR++; }
+    if (aiVol && bsa) { totalFR++; if ((aiVol/bsa) > UMBRAL_LAVI_DILATADO) marcadoresFR++; }
     resultado = window.calcularBSE2024_FEVIreducida(marcadoresFR, totalFR, ee, trv, (aiVol && bsa) ? aiVol/bsa : null);
   } else {
     resultado = window.calcularBSE2024(alterada, marcadores, totalEvaluables, ee, ea, lavi);
@@ -12509,8 +12587,8 @@ function hfapeffScore(soloEco, src) {
     _hfC('GLS < 16 %',                     d.gls !== null,  d.gls < 16)
   ]);
 
-  const uLaviMay = fa ? 40 : 34, uLaviMenLo = fa ? 34 : 29, uLaviMenHi = fa ? 40 : 34;
-  const uImviMay = M ? 149 : 122, uImviMen = M ? 115 : 95;
+  const uLaviMay = fa ? 40 : UMBRAL_LAVI_DILATADO, uLaviMenLo = fa ? UMBRAL_LAVI_DILATADO : 29, uLaviMenHi = fa ? 40 : UMBRAL_LAVI_DILATADO;
+  const uImviMay = M ? 149 : 122, uImviMen = M ? UMBRAL_MASA_HVI_H : UMBRAL_MASA_HVI_M;
   const morf = _hfDom([
     _hfC('LAVI > ' + uLaviMay + ' ml/m2' + (fa ? ' (FA)' : ''), d.lavi !== null, d.lavi > uLaviMay),
     _hfC('IMVI > ' + uImviMay + ' g/m2 con RWT > 0.42',
@@ -12855,7 +12933,7 @@ function _daCriteriosLAP() {
   return {
     ee:   { val: ee,   cumple: ee   !== null && ee   > 14  },
     it:   { val: it,   cumple: it   !== null && it   > 2.8 },
-    lavi: { val: lavi, cumple: lavi !== null && lavi > 34  }
+    lavi: { val: lavi, cumple: lavi !== null && lavi > UMBRAL_LAVI_DILATADO }
   };
 }
 function _daContar(cs) {
@@ -12890,8 +12968,8 @@ function diastAlgoRender() {
 
     h += '<div class="da-paso">Criterios de presión de llenado</div>';
     h += _daFila('E/e\' promedio > 14', L.ee.val, '', L.ee.cumple);
-    h += _daFila('Velocidad IT > 2.8 m/s (PSAP > 35 mmHg)', L.it.val, 'm/s', L.it.cumple);
-    h += _daFila('LAVI > 34 ml/m²', L.lavi.val, 'ml/m²', L.lavi.cumple);
+    h += _daFila('Velocidad IT > 2.8 m/s (PSAP > ' + UMBRAL_PSAP_ELEVADA + ' mmHg)', L.it.val, 'm/s', L.it.cumple);
+    h += _daFila('LAVI > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', L.lavi.val, 'ml/m²', L.lavi.cumple);
     const c = _daContar([L.ee, L.it, L.lavi]);
     h += '<div class="da-paso">Criterio secundario</div>';
     h += _daFila('LARS < 18 % (usar si hay 2 criterios primarios)', lars, '%', lars !== null && lars < 18);
@@ -12920,7 +12998,7 @@ function diastAlgoRender() {
   } else if (algo === 'bse2024') {
     h += '<div class="da-paso">Criterios principales</div>';
     h += _daFila('E/e\' promedio > 14', L.ee.val, '', L.ee.cumple);
-    h += _daFila('LAVI > 34 ml/m²', L.lavi.val, 'ml/m²', L.lavi.cumple);
+    h += _daFila('LAVI > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', L.lavi.val, 'ml/m²', L.lavi.cumple);
     h += _daFila('Velocidad IT > 2.8 m/s', L.it.val, 'm/s', L.it.cumple);
     const c = _daContar([L.ee, L.lavi, L.it]);
 
@@ -12938,7 +13016,7 @@ function diastAlgoRender() {
     const ritmo = (document.getElementById('diast_ritmo') || {}).value;
     const fevi = _daNum('fevi');
     const via = ritmo === 'fa' ? 'C — fibrilación auricular'
-              : (fevi !== null && fevi < 50) ? 'B — FEVI reducida o miocardiopatía' : 'A — FEVI normal';
+              : (fevi !== null && fevi < UMBRAL_FEVI_NORMAL) ? 'B — FEVI reducida o miocardiopatía' : 'A — FEVI normal';
     h += '<p class="da-nota">Vía aplicada: <b>' + via + '</b>.</p>';
     h += '<div class="da-res"><b>' + lap + '</b> · ' + c.pos + ' de ' + c.eval + ' criterios positivos.' + detalle + '</div>';
 
@@ -12955,7 +13033,7 @@ function diastAlgoRender() {
     h += _daFila('E/e\' promedio > 14', L.ee.val, '', L.ee.cumple);
     h += _daFila('e\' septal < 7 o lateral < 10 cm/s', eprimaVal, 'cm/s', eprimaBaja);
     h += _daFila('Velocidad IT > 2.8 m/s', L.it.val, 'm/s', L.it.cumple);
-    h += _daFila('LAVI > 34 ml/m²', L.lavi.val, 'ml/m²', L.lavi.cumple);
+    h += _daFila('LAVI > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', L.lavi.val, 'ml/m²', L.lavi.cumple);
 
     const eprimaCrit = { val: eprimaVal, cumple: eprimaBaja };
     const c = _daContar([L.ee, eprimaCrit, L.it, L.lavi]);
@@ -13073,7 +13151,7 @@ function calcDiastolASE2025() {
   // ── PASO 2: parámetros de presión elevada (E/e'>14, Vol AI>34, TR>2.8, LARS≤18)
   let presionElevada = 0, totalParam = 0;
   if (ee !== null && E !== null) { totalParam++; if ((E / ee) > 14) presionElevada++; }
-  if (laviI !== null)           { totalParam++; if (laviI > 34) presionElevada++; }
+  if (laviI !== null)           { totalParam++; if (laviI > UMBRAL_LAVI_DILATADO) presionElevada++; }
   if (tr !== null)              { totalParam++; if (tr > 2.8) presionElevada++; }
   if (lars !== null)            { totalParam++; if (lars <= 18) presionElevada++; }
 
@@ -13202,7 +13280,7 @@ function calcDiastolASE2016() {
   // criterios positivos entre los disponibles: E/e'>14, Vol AI>34, TR Vmax>2.8
   let pos = 0, disp = 0;
   if (ee !== null)   { disp++; if (ee > 14) pos++; }
-  if (lavi !== null) { disp++; if (lavi > 34) pos++; }
+  if (lavi !== null) { disp++; if (lavi > UMBRAL_LAVI_DILATADO) pos++; }
   if (trv !== null)  { disp++; if (trv > 2.8) pos++; }
 
   let texto = null, textoSuma = null, cls = 'gray', badgeTxt = 'Indeterminado — ASE 2016';
@@ -13317,7 +13395,7 @@ function calcularBSE2024(alterada, marcadores, totalEvaluables, ee, ea, lavi) {
 
   const detalles = [];
   if (ee !== null) detalles.push(`E/e' promedio ${ee.toFixed(1)}`);
-  if (lavi !== null) detalles.push(`AI ${lavi > 34 ? 'dilatada' : 'de dimensiones normales'} (Vol AI ${lavi.toFixed(1)} ml/m²)`);
+  if (lavi !== null) detalles.push(`AI ${lavi > UMBRAL_LAVI_DILATADO ? 'dilatada' : 'de dimensiones normales'} (Vol AI ${lavi.toFixed(1)} ml/m²)`);
 
   let texto, textoSuma, badgeC;
   if (categoria === 'normal') {
@@ -13397,9 +13475,12 @@ function sugerirSeveridadEM(avm) {
      que en calcIM_ESC/calcIA_ESC/calcIT_ESC. Sin esto, tocar cualquier campo del Doppler
      aórtico cambiaba el <select> de «Severa» a lo que diera la Vmax, sin avisar. */
   if (window.esqSevManual && window.esqSevManual.em) return;
+  /* Mismas constantes que clasificarAVm: ésta es la función que ESCRIBE `em_grado`, así que
+     si las dos escalas divergen el <select> y el score integrado discrepan sobre el mismo
+     campo — que es el defecto que este bloque cierra. */
   let opcion;
-  if (avm > 2.5) opcion = 'leve';
-  else if (avm > 1.5) opcion = 'moderada';
+  if (avm > AVM_MODERADA_MAX) opcion = 'leve';
+  else if (avm > AVM_SEVERA_MAX) opcion = 'moderada';
   else opcion = 'severa';
   sel.value = opcion;
   if (badgeEl) badgeEl.textContent = `Sugerido por THP (AVm ${avm.toFixed(2)} cm²) — editable manualmente.`;
@@ -13408,7 +13489,9 @@ window.sugerirSeveridadEM = sugerirSeveridadEM;
 
 // ══ ESTENOSIS MITRAL INTEGRADA ══
 function calcEM() {
-  const thp     = v('thp');
+  /* No hay `const thp` acá a propósito: el THP entra al score por `avm_thp_val` (220/THP,
+     ver `thpRaw` más abajo) y no como criterio aparte. Dejarlo declarado invitaba a volver a
+     usarlo como tercer voto, que es el defecto que se acaba de cerrar. */
   const vmax    = v('em_vmax');
   const gmedio  = v('em_gmedio');
   const avm_plan= v('avm_plan');
@@ -13494,18 +13577,22 @@ function calcEM() {
     if (elIdx) elIdx.value = idx + ' cm²/m²';
   }
 
-  // ══ CLASIFICACIÓN INTEGRADA ESC 2021 ══
-  // Criterios: AVm ≤1.5 severa, 1.5–2.5 moderada, >2.5 leve
-  //            G.medio >10 severa, 5–10 moderada, <5 leve
-  //            THP ≥220 severa, 130–219 moderada, <130 leve
+  /* ══ CLASIFICACIÓN INTEGRADA — ESC/EACTS 2021-2025 + ASE 2023 ══
+     AVm     >2.5 leve · 1.5–2.5 moderada · ≤1.5 severa
+     G.medio  <5  leve · 5–9    moderada · ≥10 severa
+
+     El THP NO vota aparte. El «AVm por THP» que ya se clasifica más abajo ES 220/THP: son la
+     misma medición expresada de dos formas. Votando las dos, un THP de 180 ms sumaba a la vez
+     «severa» (por AVm = 1,22) y «moderada» (por el umbral viejo de ≥220), o sea que una sola
+     medición se contaba dos veces y en contra de sí misma. Ver el bloque de AVM_SEVERA_MAX. */
   let scores = { leve:0, moderada:0, severa:0 };
   let params = [];
 
   const clasificarAVm = (avm, fuente) => {
     if (!avm) return;
-    if (avm > 2.5)      { scores.leve++;     params.push({p:`AVm(${fuente})`, sev:'leve'}); }
-    else if (avm > 1.5) { scores.moderada++; params.push({p:`AVm(${fuente})`, sev:'moderada'}); }
-    else                { scores.severa++;   params.push({p:`AVm(${fuente})`, sev:'severa'}); }
+    if (avm > AVM_MODERADA_MAX)    { scores.leve++;     params.push({p:`AVm(${fuente})`, sev:'leve'}); }
+    else if (avm > AVM_SEVERA_MAX) { scores.moderada++; params.push({p:`AVm(${fuente})`, sev:'moderada'}); }
+    else                           { scores.severa++;   params.push({p:`AVm(${fuente})`, sev:'severa'}); }
   };
 
   if (avm_plan)      clasificarAVm(PF(avm_plan), 'plan');
@@ -13515,17 +13602,14 @@ function calcEM() {
 
   if (gmedio) {
     const gm = PF(gmedio);
-    if (gm < 5)       { scores.leve++;     params.push({p:'Gmedio', sev:'leve'}); }
-    else if (gm <= 10){ scores.moderada++; params.push({p:'Gmedio', sev:'moderada'}); }
-    else              { scores.severa++;   params.push({p:'Gmedio', sev:'severa'}); }
+    if (gm < 5)                            { scores.leve++;     params.push({p:'Gmedio', sev:'leve'}); }
+    else if (gm < GMED_MITRAL_SEVERO_MIN)  { scores.moderada++; params.push({p:'Gmedio', sev:'moderada'}); }
+    else                                   { scores.severa++;   params.push({p:'Gmedio', sev:'severa'}); }
   }
 
-  if (thp) {
-    const t = PF(thp);
-    if (t < 130)      { scores.leve++;     params.push({p:'THP', sev:'leve'}); }
-    else if (t < 220) { scores.moderada++; params.push({p:'THP', sev:'moderada'}); }
-    else              { scores.severa++;   params.push({p:'THP', sev:'severa'}); }
-  }
+  /* Acá había un tercer voto por THP con la escala vieja (≥220 severa). Se quitó: el THP ya
+     entra al score como `AVm(THP)`, que es su conversión de Hatle. No se pierde información
+     —el THP se sigue mostrando y sigue alimentando el AVm—, se deja de contar dos veces. */
 
   const sevEl   = document.getElementById('em-sev-integrada');
   const discEl  = document.getElementById('em-discordancia');
@@ -15423,7 +15507,7 @@ function generarInforme(opts) {
   if (ai_vol && bsa) {
     const aiIdx = (ai_vol / bsa).toFixed(1);
     let aiStr, aiSuma;
-    if (PF(aiIdx) <= 34) { aiStr = 'de dimensiones normales'; aiSuma = null; }
+    if (PF(aiIdx) <= UMBRAL_LAVI_DILATADO) { aiStr = 'de dimensiones normales'; aiSuma = null; }
     else if (PF(aiIdx) <= 41) { aiStr = 'levemente dilatada'; aiSuma = `AI levemente dilatada (Vol Index ${aiIdx} ml/m²).`; }
     else if (PF(aiIdx) <= 48) { aiStr = 'moderadamente dilatada'; aiSuma = `AI moderadamente dilatada (Vol Index ${aiIdx} ml/m²).`; }
     else { aiStr = 'severamente dilatada'; aiSuma = `AI severamente dilatada (Vol Index ${aiIdx} ml/m²).`; }
@@ -18318,7 +18402,7 @@ function generarPDFReal() {
       {lbl:'Diám. AP',     ref:'<40 mm',    val:v('ai_diam')?v('ai_diam')+' mm':null},
       {lbl:'Área AI',      ref:'<22 cm2',   val:v('ai_area')?v('ai_area')+' cm2':null},
       {lbl:'Volumen AI',   ref:'',           val:v('ai_vol') ?v('ai_vol') +' ml':null},
-      {lbl:'Vol. indexado',ref:'<34 ml/m2', val:aiIdx},
+      {lbl:'Vol. indexado',ref:'<' + UMBRAL_LAVI_DILATADO + ' ml/m2', val:aiIdx},
     ]},
     {titulo:'Aurícula Derecha / VCI', items:[
       {lbl:'Área AD',     ref:'<18 cm2',  val:v('ad_area') ?v('ad_area') +' cm2':null},
@@ -18354,7 +18438,7 @@ function generarPDFReal() {
       {lbl:'FA',        ref:'>=28%',           val:faStr},
       {lbl:'SGL',       ref:'>=-18%',          val:sglS},
       {lbl:'Vol. lat.', ref:'55-100 ml',       val:v('vol_lat')?v('vol_lat')+' ml':null},
-      {lbl:'Masa idx',  ref:'H<115 M<95 g/m2', val:masaIdx},
+      {lbl:'Masa idx',  ref:'H<' + UMBRAL_MASA_HVI_H + ' M<' + UMBRAL_MASA_HVI_M + ' g/m2', val:masaIdx},
       {lbl:'RWT',       ref:'<=0.42',          val:rwtStr},
       {lbl:'Geometria', ref:'',                val:geomStr},
     ]},
@@ -28269,7 +28353,7 @@ function _labIndicadoresList(infs) {
     { lbl: "E/e' >14 sin clasificación de disfunción diastólica",
       casos: infs.filter(i => { const ee = _labEeProm(i); return ee !== null && ee > 14 && _labDiastGrado(i) === null; }) },
     { lbl: 'Vol AI elevado sin función diastólica documentada',
-      casos: infs.filter(i => { const l = _labLavi(i); return l !== null && l > 34 && _labDiastGrado(i) === null; }) },
+      casos: infs.filter(i => { const l = _labLavi(i); return l !== null && l > UMBRAL_LAVI_DILATADO && _labDiastGrado(i) === null; }) },
     { lbl: 'GLS anormal (|GLS| <16 %) con FEVI conservada con FEVI conservada',
       /* Se compara el VALOR ABSOLUTO contra 16, que es el corte de `calcSGL` para «anormal»
          (≥20 normal · 16-20 zona gris · <16 anormal). El `g > -18` anterior contaba como anormal
@@ -31147,11 +31231,11 @@ function labSubTab(id, el) {
   const antec = (inf,re) => { const a=inf.campos&&inf.campos.antecedentes_sel; return Array.isArray(a)?(a.some(s=>re.test(String(s)))?1:0):null; };
   const HTA=i=>antec(i,/^HTA$/i), DM=i=>antec(i,/^DM$/i), FA=i=>antec(i,/FA|flutter/i);
   const SEXO=inf=>{ const s=String((inf.campos&&inf.campos.sexo)||'').toLowerCase(); if(/^f|femen|mujer/.test(s))return 'F'; if(/^m|mascul|var|hombre/.test(s))return 'M'; return null; };
-  const FEVICAT=inf=>{ const f=VARS.fevi.get(inf); return f==null?null:(f>=50?'≥50':(f>=40?'40-49':'<40')); };
-  const HTP=inf=>{ const p=VARS.psap.get(inf); return p==null?null:(p>35?1:0); };
+  const FEVICAT=inf=>{ const f=VARS.fevi.get(inf); return f==null?null:(f>=UMBRAL_FEVI_NORMAL?'≥'+UMBRAL_FEVI_NORMAL:(f>=40?'40-49':'<40')); };
+  const HTP=inf=>{ const p=VARS.psap.get(inf); return p==null?null:(p>UMBRAL_PSAP_ELEVADA?1:0); };
   const VALVSIG=inf=>{ const c=inf.campos||{}; let known=false,sig=false; ['im_grado','ia_grado','it_grado','ea_grado','em_grado','et_grado'].forEach(k=>{ const v=c[k]; if(v!=null&&String(v).trim()!==''){ known=true; const s=String(v).toLowerCase(),n=parseInt(v); if(/severa|moderada/.test(s)||(!isNaN(n)&&n>=2))sig=true; } }); return known?(sig?1:0):null; };
   const DIAST=inf=>{ const t=(((inf.campos&&inf.campos.en_suma)||'')+' '+((inf.campos&&inf.campos.informe_texto)||'')).toLowerCase(); if(/grado iii|restrictiv/.test(t))return 'III'; if(/grado ii|pseudonormal/.test(t))return 'II'; if(/grado i\b|relajaci/.test(t))return 'I'; if(/sin disfunci|llenado normal|diast[óo]lica normal/.test(t))return 'Normal'; return null; };
-  const GEOM=inf=>{ const masa=MASAI(inf), dd=NUM(inf,['ddfvi','ddvi']), pp=NUM(inf,['ppvi']); if(masa==null||!dd||!pp)return null; const rwt=2*pp/dd, sexo=SEXO(inf); const hvi=(sexo==='F'&&masa>95)||(sexo!=='F'&&masa>115); if(!hvi&&rwt<0.42)return 'Normal'; if(!hvi&&rwt>=0.42)return 'Remodelado conc.'; if(hvi&&rwt<0.42)return 'HVI excéntrica'; return 'HVI concéntrica'; };
+  const GEOM=inf=>{ const masa=MASAI(inf), dd=NUM(inf,['ddfvi','ddvi']), pp=NUM(inf,['ppvi']); if(masa==null||!dd||!pp)return null; const rwt=2*pp/dd, sexo=SEXO(inf); const hvi=(sexo==='F'&&masa>UMBRAL_MASA_HVI_M)||(sexo!=='F'&&masa>UMBRAL_MASA_HVI_H); if(!hvi&&rwt<0.42)return 'Normal'; if(!hvi&&rwt>=0.42)return 'Remodelado conc.'; if(hvi&&rwt<0.42)return 'HVI excéntrica'; return 'HVI concéntrica'; };
 
   // ── Distribuciones (p-values en JS puro) ──
   const erf = x => { const s=x<0?-1:1; x=Math.abs(x); const t=1/(1+0.3275911*x); const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x); return s*y; };
@@ -31233,8 +31317,8 @@ function labSubTab(id, el) {
     {cat:'HTP y VD', lbl:'PSAP – TAPSE', t:'sp', a:'psap', b:'tapse'},
     {cat:'HTP y VD', lbl:'PSAP – Vol AI idx', t:'sp', a:'psap', b:'lavi'},
     {cat:'HTP y VD', lbl:'TAPSE – FEVI', t:'sp', a:'tapse', b:'fevi'},
-    {cat:'HTP y VD', lbl:'HTP → valvulopatía sig.', t:'chi', ca:i=>YN(HTP(i)), cb:i=>YN(VALVSIG(i)), al:'HTP (PSAP>35)', bl:'Valvulopatía significativa'},
-    {cat:'HTP y VD', lbl:'HTP → FA', t:'chi', ca:i=>YN(HTP(i)), cb:i=>YN(FA(i)), al:'HTP (PSAP>35)', bl:'FA / flutter'},
+    {cat:'HTP y VD', lbl:'HTP → valvulopatía sig.', t:'chi', ca:i=>YN(HTP(i)), cb:i=>YN(VALVSIG(i)), al:'HTP (PSAP>' + UMBRAL_PSAP_ELEVADA + ')', bl:'Valvulopatía significativa'},
+    {cat:'HTP y VD', lbl:'HTP → FA', t:'chi', ca:i=>YN(HTP(i)), cb:i=>YN(FA(i)), al:'HTP (PSAP>' + UMBRAL_PSAP_ELEVADA + ')', bl:'FA / flutter'},
     {cat:'Geometría', lbl:'Geometría VI → HTA', t:'chi', ca:GEOM, cb:i=>YN(HTA(i)), al:'Geometría VI', bl:'HTA'},
     {cat:'Geometría', lbl:'Geometría VI → DM', t:'chi', ca:GEOM, cb:i=>YN(DM(i)), al:'Geometría VI', bl:'DM'},
     {cat:'Geometría', lbl:'Geometría VI → sexo', t:'chi', ca:GEOM, cb:SEXO, al:'Geometría VI', bl:'Sexo'},
@@ -33837,7 +33921,7 @@ function _tieneValv(inf, cat){
     case 'im':  { const g=_labRegurgSev(inf,'im_grado'); return (g && g!=='Sin') || /insuficiencia mitral|regurgitacion mitral/.test(txt); }
     case 'iao': { const g=_labRegurgSev(inf,'ia_grado'); return (g && g!=='Sin') || /insuficiencia aortica|regurgitacion aortica/.test(txt); }
     case 'it':  { const g=_labRegurgSev(inf,'it_grado'); return (g && g!=='Sin') || /insuficiencia tricuspidea|regurgitacion tricusp|insuf.*tricusp/.test(txt); }
-    case 'htp': { const p=_labPsap(inf); return (p!==null && p>35) || /hipertension pulmonar|\bhtp\b/.test(txt); }
+    case 'htp': { const p=_labPsap(inf); return (p!==null && p>UMBRAL_PSAP_ELEVADA) || /hipertension pulmonar|\bhtp\b/.test(txt); }
   }
   return false;
 }
@@ -33886,7 +33970,7 @@ function aplicarFiltros() {
       if (filtroFevi === 'lt30'  && fevi > 30)  return false;
       if (filtroFevi === 'lt40'  && fevi > 40)  return false;
       if (filtroFevi === 'lt50'  && fevi >= UMBRAL_FEVI_NORMAL) return false;
-      if (filtroFevi === 'gte50' && fevi < 50)  return false;
+      if (filtroFevi === 'gte50' && fevi < UMBRAL_FEVI_NORMAL) return false;
     }
 
     // Geometría VI — busca en texto del informe y en campo geometria si existe
@@ -35552,7 +35636,7 @@ window.esqPills=(function(){
     let pos=0, tot=0;
     if(ee!=null){tot++; if(ee>14)pos++;}
     if(tr!=null){tot++; if(tr>2.8)pos++;}
-    if(lavi!=null){tot++; if(lavi>34)pos++;}
+    if(lavi!=null){tot++; if(lavi>UMBRAL_LAVI_DILATADO)pos++;}
     if(tot<2) return null;
     if(pos>=2) return 'Presiones elevadas';
     if(pos===1) return 'Indeterminada';

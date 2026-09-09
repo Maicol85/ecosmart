@@ -597,6 +597,56 @@ exista `pAdj`, que necesita las 29 asociaciones juntas. La decisión se movió a
 del ajuste. Umbral: el **p ajustado**, el mismo del semáforo. Si el semáforo no está verde,
 el texto dice «Sin asociación significativa.».
 
+### Estenosis mitral: una sola escuela, y el THP no vota aparte
+El archivo tenía dos convenciones conviviendo, y no eran dos opiniones sino dos épocas: la
+tabla de referencia y el score decían «AVm ≤1,5 severa» (ESC) y en la misma tabla «THP ≥220
+severa»; la calculadora `cxAVT` decía «severa <1,0» (AHA/ACC clásico).
+
+**El THP y el AVm no son dos mediciones.** El AVm por THP ES 220/THP (Hatle), así que THP
+≥220 equivale a AVm ≤1,0. Entre 147 y 219 ms el mismo número daba «severa» por el área y
+«moderada» por el THP, y **las dos votaban en el mismo score**: una medición contada dos veces
+y en contra de sí misma. Se eliminó el voto del THP; sigue entrando como `AVm(THP)`.
+
+Verificado contra las guías (2026-09): ESC/EACTS 2021 y 2025 → severa AVm ≤1,5 cm², sin
+cambios entre ediciones. ASE 2023 → AVm ≤1,5, THP ≥150 ms, gradiente medio ≥10 mmHg.
+
+**Cambio clínico declarado:** el gradiente medio pasó de `>10` a `≥10` para severa. Un
+gradiente de 10 exacto ahora es severa. Casi entra disfrazado de refactor bajo un comentario
+mío que afirmaba «ya coincidía y no se tocó» — lo cazó `/differential-review`. **Un cambio de
+umbral no puede viajar dentro de una extracción de constantes.**
+
+**No hay `THP_SEVERO_MIN`.** Se creó y se borró en la misma sesión: no gobernaba nada —el
+motor clasifica el área, no el THP— y encima desfasaba, porque el corte efectivo es 220/1,5 =
+146,7 (≥147 ms) y no ≥150. La tabla de referencia publica ≥147 y explica por qué difiere del
+≥150 que publica ASE. Una constante que no gobierna nada es peor que el literal.
+
+### Extraer un umbral es leer por función, no grepear el literal
+En la extracción de LAVI/masa/PSAP/FEVI se pasaron por alto ~20 sitios, y **tres estaban en la
+línea contigua a uno que sí se cambió** (`(aiVol/bsa) > 34`, `FEVICAT f>=50`, el rótulo
+`PSAP > 35`). El patrón delata el método: una pasada por el literal exacto en vez de leer la
+función. Dos de los omitidos eran clasificatorios y uno escribía el **informe narrativo
+firmado** («AI de dimensiones normales»).
+
+Y no todo número igual es el mismo umbral. Quedan literales A PROPÓSITO:
+- `fevi >= 20 && fevi <= 50` — rango de elegibilidad COAPT del TEER, no normalidad.
+- la escala 50/54 de cardio-oncología — ESC 2022, otra guía.
+- `uLaviMay = fa ? 40 : ...` — el ajuste por FA del HFA-PEFF.
+- la tabla de **prótesis** mitral (`AVm <1.0`, `THP >200`) — obstrucción protésica, otra
+  entidad. Se ve como la escala vieja y NO lo es. No la "arregles".
+- `hviSeveridad` arranca sus bandas en 96 y 116, o sea `UMBRAL_MASA_HVI_* + 1`: acopladas sin
+  nombrarlas. Hay un comentario cruzado; si movés el umbral, movelas.
+
+### El bloque de Eco Estrés ya está inerte — no le pongas una bandera falsa
+Sus dos listeners sobre `document` (click en `#ee-eye-pop`, paste en `#tab-ee`) preguntan por
+su propio DOM adentro y salen temprano. Medido: ninguno llega a `preventDefault()`. Y
+«desactivar los exports» no hace nada: son declaraciones de función de nivel superior, así que
+`window.eeX` existe aunque se borre la línea de export.
+
+Una condición «que nunca sea true» sería un retroceso: hay que acordarse de invertirla el día
+que vuelva la UI, mientras que la guarda por DOM revive sola. Es el criterio con el que ya se
+cerró el gate del PDF. **Lo único real** es el orden: el paste de Eco Estrés se registra ANTES
+que `imgPasteHandler`, así que al restaurar la UI hay que decidir el orden, no descubrirlo.
+
 ## Deuda conocida sin resolver
 
 - **Contraseña en el código.** `doLogin()` compara contra un literal. Choca con el checklist
