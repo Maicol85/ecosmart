@@ -1378,6 +1378,22 @@ window.cerrarSesion = cerrarSesion;
         <div style="margin-top:10px;"><button class="btn btn-ghost" onclick="cfgBorrarTodasImagenes()">🗑️ Borrar todas las imágenes guardadas</button></div>
       </div>
 
+      <!-- Diseño del informe PDF ──────────────────────────────────────────────
+           Botones y no <input>/<select>: limpiarCampos() barre TODOS los input/select del
+           documento sin filtro de scope, así que un control de preferencia acá se vaciaría al
+           apretar «Nuevo estudio». Los ids llevan prefijo `pltz-` para no cruzarse con ningún
+           campo del estudio. Las miniaturas son SVG inline —sin recursos externos— y sólo
+           muestran la SILUETA del encabezado: bandas, líneas y bloques, no texto legible. -->
+      <div style="margin-bottom:22px;border-top:1px solid var(--border);padding-top:16px;">
+        <div class="cfg-sec-title">📄 Diseño del informe PDF</div>
+        <p style="font-size:11.5px;color:var(--text2);margin-bottom:12px;line-height:1.5;">
+          Cambia <b>sólo el encabezado</b> del PDF — el bloque con el logo, el título, la institución y los datos del paciente.
+          El resto del informe sale idéntico en las cuatro. La elección vale para todos los informes que generes desde este dispositivo.
+        </p>
+        <div id="pltz-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px;"></div>
+        <p id="pltz-nota" style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.5;"></p>
+      </div>
+
       <!-- Centros de trabajo -->
       <div style="margin-bottom:22px;border-top:1px solid var(--border);padding-top:16px;">
         <div class="cfg-sec-title">🏥 Centros de trabajo</div>
@@ -17304,89 +17320,91 @@ function generarPDFReal() {
   const volrS  = volrEl&&volrEl.textContent!=='—'?volrEl.textContent:null;
 
   // ════════════════════════════════════════════════════════════
-  // 1. ENCABEZADO
+  // 1+2. ENCABEZADO (4 plantillas) + DATOS DEL PACIENTE
   // ════════════════════════════════════════════════════════════
+  /* Las cuatro plantillas dibujan LA MISMA INFORMACIÓN con distinta forma. Por eso todo lo que
+     se muestra se resuelve UNA vez acá abajo —título, institución, logo, filas del paciente— y
+     las funciones de dibujo no leen nada del DOM ni de localStorage: si leyeran, una plantilla
+     podría terminar mostrando un dato que otra no, y eso en un informe firmado es un documento
+     distinto, no un estilo distinto.
+     Contrato de cada plantilla: dibuja y DEVUELVE la `y` donde termina. El resto de
+     generarPDFReal (unas 900 líneas) no se entera de cuál corrió. */
+
   // El nombre del centro va en el header junto al título; el médico informante va sólo en la firma al pie
   const _medCentro = sv('med-centro') || '';
   // En modo institucional el encabezado nunca cae al fallback 'CeiboMed': o va la institución o va vacío.
   const _hdrModoInst = localStorage.getItem('ett_modo_institucional')==='1';
   const _hdrLine = _medCentro || centroStr || (_hdrModoInst ? '' : 'CeiboMed');
-  /* Alto derivado del contenido, no fijo en 22. Con el título a 13 · PDF_FS (mayúscula
-     ~3,5 mm) y el subtítulo a 8,5 (~2,3 mm), 22 mm dejaban 6 mm muertos arriba y casi 5
-     abajo. Con 3,5 de aire superior y ~2,5 inferior alcanzan 16,5 — y 11,5 si no hay
-     segunda línea, que es el caso del modo institucional sin centro cargado. */
-  const _hdrDos = !!_hdrLine;
-  const hdrH = _hdrDos ? 16.5 : 11.5;
-  fc(TEMA[0],TEMA[1],TEMA[2]); doc.rect(0,0,210,hdrH,'F');
-  /* El trazo de ECG estaba en coordenadas absolutas para una banda de 22 mm: con la banda
-     más baja, la espiga de la R (y=22) caía fuera. Se escala con la altura. */
-  dc(49,84,123); doc.setLineWidth(0.6);
-  const _kEcg = hdrH / 22;
-  const ecg=[[0,14],[20,14],[28,14],[30,6],[32,22],[34,6],[36,14],[50,14],[52,11],[54,14],[70,14],[72,11],[74,14],[210,14]];
-  for(let i=1;i<ecg.length;i++) doc.line(ecg[i-1][0],ecg[i-1][1]*_kEcg,ecg[i][0],ecg[i][1]*_kEcg);
-  fb(13); tc(255,255,255);
   /* El título sale del checkbox de la tab ETE. Se lee del DOM y no de localStorage a
      propósito: tiene que viajar CON el estudio —guardarInforme lo captura como
      `ete-es-ete__chk` y la reimpresión lo repone—, así que reimprimir un ETE guardado
      mientras se trabaja en un transtorácico da el título correcto de cada uno. Una bandera
      global en localStorage habría puesto el título del estudio actual en el PDF del viejo. */
   const _esEte = !!(document.getElementById('ete-es-ete') || {}).checked;
-  doc.text(_esEte ? 'Ecocardiograma Transesofágico' : 'Informe Ecocardiograma Doppler Color',
-           105, _hdrDos ? 7.0 : 7.6, {align:'center'});
-  if (_hdrDos) { fn(8.5); tc(200,221,245); doc.text(_sanML(_hdrLine),105,12.9,{align:'center'}); }
-  // Logo del centro en el vértice superior derecho, proporción conservada y ajustado a la banda
-  try {
-    const _logoData = localStorage.getItem('logo_centro_' + (localStorage.getItem('centro_tipo_activo') || 'default'));
-    /* Última puerta antes del informe FIRMADO: se comprueba que sea una imagen embebida y no
-       lo que haya quedado en la clave. El try/catch de abajo queda como red secundaria. */
-    /* El aviso va en el `else`, no sólo en el catch: un logo descartado por el predicado
-       —el caso que motivó todo esto, un SVG guardado por una versión anterior— no llega al
-       catch, lo filtra este if. Sin el else, el logo institucional desaparecía de todos los
-       informes del centro exactamente igual de callado que antes. */
-    if (_logoData && typeof LOGO_DATA_OK === 'function' && !LOGO_DATA_OK(_logoData)) {
-      if (typeof toast === 'function') toast('⚠️ El logo guardado de este centro no es una imagen compatible con el PDF — volvé a subirlo en JPG o PNG');
-    }
-    if (_logoData && (typeof LOGO_DATA_OK !== 'function' || LOGO_DATA_OK(_logoData))) {
-      const _lp = doc.getImageProperties(_logoData);
-      /* Escala con la banda: era 18 mm fijos apoyados en y=2, o sea 20 mm de alto en una
-         banda que ahora mide 16,5 — se salía por abajo y pisaba los datos del paciente.
-         Y TOPE DE ANCHO: el alto salía de la banda pero el ancho era libre, así que un
-         logotipo apaisado (relación > 4:1, la forma habitual de un wordmark de clínica)
-         se comía hasta la mitad del título y el nombre del centro, porque además se
-         dibujaba DESPUÉS del texto. Con 40 mm el borde izquierdo del logo queda en 164 y
-         el título centrado llega a ~154: no se tocan. */
-      const _lhBanda = hdrH - 4;
-      const _lwMax = 40;
-      let _lh = _lhBanda;
-      let _lw = (_lp.width && _lp.height) ? _lh * (_lp.width / _lp.height) : _lh;
-      if (_lw > _lwMax) { _lh = _lh * (_lwMax / _lw); _lw = _lwMax; }
-      doc.addImage(_logoData, _lp.fileType || undefined, 210 - _lw - 6, 2 + (_lhBanda - _lh) / 2, _lw, _lh);
-    }
-  } catch (_e) {
-    /* El catch documentaba el agujero en vez de cerrarlo: cuando jsPDF no puede dibujar el
-       logo, TODOS los informes de ese centro salen sin identidad institucional y nadie se
-       entera. Se avisa. El SVG ya no llega hasta acá (se rechaza en la subida), así que si
-       este aviso aparece es por un formato que hay que revisar. */
-    console.warn('[PDF] no se pudo dibujar el logo del centro:', _e);
-    if (typeof toast === 'function') toast('⚠️ El logo del centro no se pudo incluir en el PDF — revisá el formato (usá JPG o PNG)');
-  }
-  dc(91,155,213); doc.setLineWidth(1.2); doc.line(0,hdrH,210,hdrH);
-  y = hdrH + 4;
+  const _hdrTitulo = _esEte ? 'Ecocardiograma Transesofágico' : 'Informe Ecocardiograma Doppler Color';
 
-  // ════════════════════════════════════════════════════════════
-  // 2. DATOS PACIENTE
-  // ════════════════════════════════════════════════════════════
-  // Header del paciente: 3 filas tipo tabla compacta (4 columnas c/u)
+  /* Logo: se valida UNA vez y se reparte a las cuatro plantillas. Los dos avisos viven acá y
+     no dentro de cada plantilla, para que no se dupliquen ni se pierdan según cuál corra. */
+  const _hdrLogo = (() => {
+    try {
+      const d = localStorage.getItem('logo_centro_' + (localStorage.getItem('centro_tipo_activo') || 'default'));
+      if (!d) return null;
+      /* Última puerta antes del informe FIRMADO: se comprueba que sea una imagen embebida y no
+         lo que haya quedado en la clave.
+         El aviso va acá y no sólo en el catch: un logo descartado por el predicado —el caso que
+         motivó todo esto, un SVG guardado por una versión anterior— no llega al catch, lo filtra
+         este if. Sin él, el logo institucional desaparecía de todos los informes del centro
+         exactamente igual de callado que antes. */
+      if (typeof LOGO_DATA_OK === 'function' && !LOGO_DATA_OK(d)) {
+        if (typeof toast === 'function') toast('⚠️ El logo guardado de este centro no es una imagen compatible con el PDF — volvé a subirlo en JPG o PNG');
+        return null;
+      }
+      return { data: d, props: doc.getImageProperties(d) };
+    } catch (_e) {
+      /* El catch documentaba el agujero en vez de cerrarlo: cuando jsPDF no puede leer el logo,
+         TODOS los informes de ese centro salen sin identidad institucional y nadie se entera. */
+      console.warn('[PDF] no se pudo leer el logo del centro:', _e);
+      if (typeof toast === 'function') toast('⚠️ El logo del centro no se pudo incluir en el PDF — revisá el formato (usá JPG o PNG)');
+      return null;
+    }
+  })();
+
+  /* Dibuja el logo dentro de una caja, conservando proporción y sin pasarse de ancho.
+     El TOPE DE ANCHO no es cosmético: el alto salía de la banda pero el ancho era libre, así
+     que un logotipo apaisado (relación > 4:1, la forma habitual de un wordmark de clínica) se
+     comía hasta la mitad del título, porque además se dibuja DESPUÉS del texto. */
+  function _hdrDibujarLogo(xDer, yTop, hMax, wMax) {
+    if (!_hdrLogo) return;
+    try {
+      const p = _hdrLogo.props;
+      let h = hMax;
+      let w = (p && p.width && p.height) ? h * (p.width / p.height) : h;
+      if (w > wMax) { h = h * (wMax / w); w = wMax; }
+      doc.addImage(_hdrLogo.data, (p && p.fileType) || undefined, xDer - w, yTop + (hMax - h) / 2, w, h);
+    } catch (_e) {
+      console.warn('[PDF] no se pudo dibujar el logo del centro:', _e);
+    }
+  }
+
+  // ─── Filas de datos del paciente. MISMO contenido en las cuatro plantillas ───
   const rawFsol   = sv('fecha_solicitud');
   const fechaSol  = rawFsol ? rawFsol.split('-').reverse().join('/') : null;
-  const edadSexo  = [v('edad') ? v('edad') + ' años' : '', sexoTxt].filter(Boolean).join(' · ') || null;
+  /* `!= null` y NO truthiness. `v()` devuelve el número 0 para un recién nacido, y `0` es
+     falsy: con `v('edad') ? ...` el PDF de un neonato salía «Edad / Sexo: Masculino», sin edad,
+     y lo mismo con peso y talla. Es exactamente el caso que protege el paciente 2 de
+     tests/regresion.json —«FEVI 0 y edad 0 visibles como 0, no como celda vacía»— y el mismo
+     motivo por el que escHtml se endureció a `String(s ?? '')`; seguía vivo del lado del PDF.
+     Importa justo en pediatría, que es donde CLAUDE.md ya avisa que los rangos de importación
+     asumen adulto. `!= null` cubre null y undefined y deja pasar el cero. */
+  const _edadV = v('edad');
+  const edadSexo  = [_edadV != null ? _edadV + ' años' : '', sexoTxt].filter(Boolean).join(' · ') || null;
   const pRows = [
     [{lbl:'Nombre',            val:sv('nombre')||null},
      {lbl:sv('doc_tipo')||'Cédula', val:sv('ci')||null},
      {lbl:'Edad / Sexo',       val:edadSexo},
      {lbl:'Fecha realización', val:rawF?fecha:null}],
-    [{lbl:'Peso',  val:peso?peso+' kg':null},
-     {lbl:'Talla', val:talla?talla+' cm':null},
+    [{lbl:'Peso',  val:peso  != null ? peso  + ' kg':null},
+     {lbl:'Talla', val:talla != null ? talla + ' cm':null},
      {lbl:'ASC',   val:ascV},
      {lbl:'IMC',   val:imc}],
     [{lbl:'Antecedentes',    val:(_accTexto('ant-chk','ant_otro') || (window._pdfFallbackNotas && window._pdfFallbackNotas.ant) || null)},
@@ -17394,8 +17412,25 @@ function generarPDFReal() {
      {lbl:'Solicitante',     val:sv('med_solicitante')||null},
      {lbl:'Fecha solicitud', val:fechaSol}],
   ].filter(r => r.some(c=>c.val));
+  // Lista plana, para las plantillas que no maquetan en grilla de 4 columnas.
+  const pCeldas = pRows.reduce((a, r) => a.concat(r.filter(c => c.val)), []);
 
-  if (pRows.length) {
+  /* Estado del `doc` al terminar CUALQUIER plantilla. Se fija explícitamente porque hoy ya
+     variaba: si el paciente no tiene ni un campo cargado el bloque de datos no se dibuja y lo
+     que queda activo es el blanco sobre la banda de color del título. Con cuatro encabezados
+     distintos eso pasaba de rareza a bomba: un bloque de abajo que se olvidara de setear un
+     color heredaría uno distinto según la plantilla elegida, y el síntoma sería texto invisible
+     en el informe firmado de una plantilla y no de las otras. */
+  function _hdrCerrar(yFin) {
+    fn(7.5); tc(13,13,13); fc(255,255,255); dc(204,212,228); doc.setLineWidth(0.2);
+    return yFin;
+  }
+
+  /* Caja de datos del paciente en grilla — la maquetación de SIEMPRE. La usan Clásico y
+     Moderno; las otras dos tienen forma propia. `colLbl` es el color de las etiquetas, que es
+     lo único que cambia entre las dos. */
+  function _hdrCajaPaciente(yIni, colLbl) {
+    if (!pRows.length) return yIni;
     // Alturas de fila dinámicas: cada fila crece según el texto envuelto más largo (evita solapamientos)
     const lineH = 3.9, padTop = 3.9, padBot = 1.8;
     const rowsCalc = pRows.map(row => {
@@ -17410,16 +17445,16 @@ function generarPDFReal() {
       return { cells, rowH: padBot + maxLines * lineH };
     });
     const boxH = rowsCalc.reduce((a, r) => a + r.rowH, 0);
-    checkPage(boxH + 4);
-    fc(255,255,255); doc.rect(mL,y,pgW,boxH,'F');
-    dc(170,185,210); doc.setLineWidth(0.6); doc.rect(mL,y,pgW,boxH);
-    let ry = y;
+    y = yIni; checkPage(boxH + 4); let yy = y;   // checkPage opera sobre `y`; puede saltar de página
+    fc(255,255,255); doc.rect(mL,yy,pgW,boxH,'F');
+    dc(170,185,210); doc.setLineWidth(0.6); doc.rect(mL,yy,pgW,boxH);
+    let ry = yy;
     rowsCalc.forEach((rc, ri) => {
       if (ri > 0) { dc(204,212,228); doc.setLineWidth(0.2); doc.line(mL+1, ry, mR-1, ry); }
       rc.cells.forEach((c, ci) => {
         if (!c) return;
         const cx = mL + ci * c.colW + 2;
-        fb(7); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(_sanML(c.cell.lbl) + ': ', cx, ry + padTop);
+        fb(7); tc(colLbl[0],colLbl[1],colLbl[2]); doc.text(_sanML(c.cell.lbl) + ': ', cx, ry + padTop);
         fn(7.5); tc(13,13,13);
         c.lines.forEach((ln, li) => {
           doc.text(ln, li === 0 ? cx + c.lw : cx, ry + padTop + li * lineH);
@@ -17427,8 +17462,221 @@ function generarPDFReal() {
       });
       ry += rc.rowH;
     });
-    y += boxH + 3;
+    return yy + boxH + 3;
   }
+
+  // ─── PLANTILLA 1 · CLÁSICO (idéntica al diseño de siempre) ───────────────
+  function _hdrClasico() {
+    /* Alto derivado del contenido, no fijo en 22. Con el título a 13 · PDF_FS (mayúscula
+       ~3,5 mm) y el subtítulo a 8,5 (~2,3 mm), 22 mm dejaban 6 mm muertos arriba y casi 5
+       abajo. Con 3,5 de aire superior y ~2,5 inferior alcanzan 16,5 — y 11,5 si no hay
+       segunda línea, que es el caso del modo institucional sin centro cargado. */
+    const dos = !!_hdrLine;
+    const hdrH = dos ? 16.5 : 11.5;
+    fc(TEMA[0],TEMA[1],TEMA[2]); doc.rect(0,0,210,hdrH,'F');
+    /* El trazo de ECG estaba en coordenadas absolutas para una banda de 22 mm: con la banda
+       más baja, la espiga de la R (y=22) caía fuera. Se escala con la altura. */
+    dc(49,84,123); doc.setLineWidth(0.6);
+    const k = hdrH / 22;
+    const ecg=[[0,14],[20,14],[28,14],[30,6],[32,22],[34,6],[36,14],[50,14],[52,11],[54,14],[70,14],[72,11],[74,14],[210,14]];
+    for(let i=1;i<ecg.length;i++) doc.line(ecg[i-1][0],ecg[i-1][1]*k,ecg[i][0],ecg[i][1]*k);
+    fb(13); tc(255,255,255);
+    doc.text(_sanML(_hdrTitulo), 105, dos ? 7.0 : 7.6, {align:'center'});
+    if (dos) { fn(8.5); tc(200,221,245); doc.text(_sanML(_hdrLine),105,12.9,{align:'center'}); }
+    // Con 40 mm de tope el borde izquierdo del logo queda en 164 y el título centrado llega a ~154.
+    _hdrDibujarLogo(210 - 6, 2, hdrH - 4, 40);
+    dc(91,155,213); doc.setLineWidth(1.2); doc.line(0,hdrH,210,hdrH);
+    return _hdrCajaPaciente(hdrH + 4, TEMA);
+  }
+
+  // ─── PLANTILLA 2 · MODERNO ───────────────────────────────────────────────
+  function _hdrModerno() {
+    const ROJO = [198,40,40];
+    const dos = !!_hdrLine;
+    const hdrH = dos ? 20 : 15;
+    fc(ROJO[0],ROJO[1],ROJO[2]); doc.rect(0,0,210,hdrH,'F');
+    /* El logo se reserva ANTES de medir el título: va sobre fondo rojo y a la derecha, donde
+       también va la fecha. Sin reservarlo, un wordmark ancho y la fecha se pisaban. */
+    const logoW = _hdrLogo ? 26 : 0;
+    fb(14); tc(255,255,255);
+    doc.text(_sanML(_hdrTitulo), mL, dos ? 9.0 : 9.8);
+    if (dos) { fn(8.5); tc(255,255,255); doc.text(_sanML(_hdrLine), mL, 15.4); }
+    /* Fecha como etiqueta redondeada. Va la de REALIZACIÓN, la misma que la caja de datos:
+       tomar otra haría que el encabezado y el cuerpo del informe discreparan en la fecha del
+       estudio, que es el dato por el que se lo archiva. Si no hay fecha, no hay etiqueta —
+       antes que estampar un guión dentro de una píldora. */
+    const fTxt = rawF ? fecha : '';
+    if (fTxt) {
+      fn(8); const w = doc.getTextWidth(_sanML(fTxt)) + 9;
+      const bx = mR - w - logoW - (logoW ? 3 : 0);
+      fc(255,255,255); doc.setGState && doc.setGState(new doc.GState({opacity:0.22}));
+      doc.roundedRect(bx, dos ? 4.6 : 4.2, w, 7.2, 3.6, 3.6, 'F');
+      doc.setGState && doc.setGState(new doc.GState({opacity:1}));
+      tc(255,255,255); doc.text(_sanML(fTxt), bx + w/2, dos ? 9.5 : 9.1, {align:'center'});
+    }
+    if (logoW) _hdrDibujarLogo(mR, 3, hdrH - 6, logoW);
+    return _hdrCajaPaciente(hdrH + 4, ROJO);
+  }
+
+  // ─── PLANTILLA 3 · MINIMALISTA ───────────────────────────────────────────
+  function _hdrMinimalista() {
+    let yy = 12;
+    // El logo va primero y en gris, para que el título sepa cuánto ancho tiene libre.
+    const logoW = _hdrLogo ? 22 : 0;
+    if (logoW) _hdrDibujarLogo(mR, 8, 10, logoW);
+    /* Fecha a la derecha, en la MISMA línea del título. Se dibuja antes para descontar su
+       ancho: con un título largo —«Informe Ecocardiograma Doppler Color» son ~62 mm— y la
+       fecha a la derecha, sin reservar se solapaban en el papel. */
+    fn(9); tc(17,17,17);
+    const fTxt = rawF ? fecha : '';
+    const fW = fTxt ? doc.getTextWidth(_sanML(fTxt)) : 0;
+    if (fTxt) doc.text(_sanML(fTxt), mR - logoW - (logoW ? 3 : 0), yy, {align:'right'});
+    fb(12); tc(17,17,17);
+    const anchoTit = pgW - logoW - fW - 8;
+    const titLn = doc.splitTextToSize(_sanML(_hdrTitulo), Math.max(30, anchoTit));
+    titLn.forEach((ln, i) => doc.text(ln, mL, yy + i * 4.6));
+    yy += (titLn.length - 1) * 4.6;
+    if (_hdrLine) { fn(8.5); tc(120,120,120); yy += 5.0; doc.text(_sanML(_hdrLine), mL, yy); }
+    yy += 3.4;
+    dc(17,17,17); doc.setLineWidth(0.35); doc.line(mL, yy, mR, yy);   // única decoración
+    yy += 5.0;
+    /* Datos en UNA fila corrida separados por «·», sin recuadros. Envuelve si no entra: cortar
+       silenciosamente dejaría un informe con menos datos que el mismo estudio en otra plantilla,
+       y eso ya no es un estilo distinto sino otro documento. */
+    if (pCeldas.length) {
+      /* Cada par etiqueta+valor se vuelve ATÓMICO con espacios duros (\xA0): sin esto
+         splitTextToSize corta en cualquier espacio y la línea terminaba en «Talla 50» con el
+         «cm» arrancando la siguiente. El no-break space sobrevive a amiloSanPDF —que colapsa
+         /[ \t]{2,}/ pero no lo incluye en esa clase—, el mismo motivo por el que el separador
+         de la firma lo usa. */
+      /* SÓLO los valores cortos se vuelven átomos. Endurecer todos los espacios convertía un
+         campo de texto libre —«Antecedentes» admite párrafos enteros por la vía de «Otro»— en
+         una única palabra inquebrable: splitTextToSize no podía partirla, la línea desbordaba
+         el ancho y el visor la recortaba. Medido: los antecedentes DESAPARECÍAN del PDF en
+         Minimalista y salían enteros en las otras tres — el mismo estudio con menos información
+         clínica según el diseño elegido. El tope de 24 caracteres cubre lo que este arreglo
+         venía a proteger («50 cm», «3.2 kg», «12.8 kg/m2») y deja envolver al resto. */
+      const _duro = t => { const q = _sanML(t); return q.length <= 24 ? q.replace(/ /g, '\u00A0') : q; };
+      const txt = pCeldas.map(c => _duro(c.lbl) + '\u00A0' + _duro(c.val)).join('  ·  ');
+      fn(7.8); tc(70,70,70);
+      const lns = doc.splitTextToSize(txt, pgW);
+      y = yy; checkPage(lns.length * 3.8 + 4); yy = y;
+      lns.forEach((ln, i) => doc.text(ln, mL, yy + i * 3.8));
+      yy += lns.length * 3.8;
+    }
+    return yy + 2.5;
+  }
+
+  // ─── PLANTILLA 4 · ACADÉMICO ─────────────────────────────────────────────
+  function _hdrAcademico() {
+    /* Serif = `times`. jsPDF trae Helvetica, Times y Courier y nada más: Georgia exigiría
+       embeber un archivo de fuente por CDN, que rompe la regla de recursos externos auditados
+       y la disciplina de SRI de este proyecto. Y una familia inexistente NO lanza: jsPDF cae en
+       silencio a la última activa, así que el error se vería recién en el PDF impreso. */
+    const fs = (sz, st) => { doc.setFont('times', st || 'normal'); doc.setFontSize(sz * _FS); };
+    /* La línea superior respeta el MODO INSTITUCIONAL. Existe un toggle en Config que promete
+       «el PDF muestra sólo la institución, sin CeiboMed», y también limpia el copyright del
+       pie: estampar la marca acá lo dejaría mintiendo. Con el modo activo va la institución. */
+    const marca = (_hdrModoInst ? (_hdrLine || '') : 'CeiboMed') + ' · Informe Ecocardiográfico';
+    const logoW = _hdrLogo ? 20 : 0;
+    /* Se MIDE primero y se dibuja una sola vez. jsPDF no tiene z-index —estampa en el orden en
+       que se llama—, así que el fondo gris tiene que salir ANTES que el texto, y para eso hay
+       que conocer el alto sin haber dibujado nada. splitTextToSize sólo mide, no imprime. */
+    fs(15, 'bold');
+    const anchoTit = pgW - logoW - 34;
+    const titLn = doc.splitTextToSize(_sanML(_hdrTitulo), Math.max(30, anchoTit));
+    const yTit = 13.3;
+    let yFin = yTit + (titLn.length - 1) * 5.6;
+    if (_hdrLine) yFin += 5.2;
+    const hdrH = yFin + 4.2;
+
+    fc(248,248,248); doc.rect(0, 0, 210, hdrH, 'F');
+    fs(7); tc(140,140,140); doc.text(_sanML(marca), mL, 6.5);
+    fs(15, 'bold'); tc(17,17,17);
+    titLn.forEach((ln, i) => doc.text(ln, mL, yTit + i * 5.6));
+    if (_hdrLine) { fs(9); tc(120,120,120); doc.text(_sanML(_hdrLine), mL, yTit + (titLn.length - 1) * 5.6 + 5.2); }
+    /* ID del estudio. XXXX es un hash FNV-1a del documento, NO un tramo del documento: el
+       informe se imprime, se fotocopia y se archiva, así que publicar dígitos de la cédula
+       sería filtrar identidad en papel. El hash es estable —mismo paciente y misma fecha dan
+       siempre el mismo id— y no reversible. Sin documento se cae al nombre; sin ninguno de los
+       dos NO se estampa nada, antes que un identificador falso que parezca real. */
+    const _semilla = sv('ci') || sv('nombre') || '';
+    if (_semilla) {
+      let h = 2166136261;
+      for (let i = 0; i < _semilla.length; i++) { h ^= _semilla.charCodeAt(i); h = Math.imul(h, 16777619); }
+      const anio = (rawF && /^\d{4}/.test(rawF)) ? rawF.slice(0,4) : String(new Date().getFullYear());
+      const cod = ('0000' + (h >>> 0).toString(36).toUpperCase()).slice(-4);
+      fs(8); tc(110,110,110);
+      doc.text(_sanML('ECO-' + anio + '-' + cod), mR - logoW - (logoW ? 3 : 0), 13.2, {align:'right'});
+    }
+    if (logoW) _hdrDibujarLogo(mR, 5, 12, logoW);
+    let yy = hdrH;
+    // Separación doble: gruesa + fina, como el filete de una publicación.
+    dc(17,17,17); doc.setLineWidth(0.7); doc.line(0, hdrH, 210, hdrH);
+    doc.setLineWidth(0.25); doc.line(0, hdrH + 1.3, 210, hdrH + 1.3);
+    yy = hdrH + 6.5;
+    // Datos en formato tabla: Parámetro | Valor. Sin columna de referencia, por ahora.
+    if (pCeldas.length) {
+      const filas = pCeldas.map(c => ({ p: _sanML(c.lbl), v: _sanML(c.val) }));
+      const colP = 42, colV = pgW - colP;
+      fs(7.5, 'bold'); tc(110,110,110);
+      doc.text('Parámetro', mL, yy); doc.text('Valor', mL + colP, yy);
+      yy += 1.6;
+      dc(200,200,200); doc.setLineWidth(0.25); doc.line(mL, yy, mR, yy);
+      yy += 3.6;
+      filas.forEach(f => {
+        fs(7.5); tc(17,17,17);
+        const lns = doc.splitTextToSize(f.v, colV - 3);
+        y = yy; checkPage(lns.length * 3.7 + 3); yy = y;
+        doc.setFont('times','bold'); doc.text(f.p, mL, yy);
+        doc.setFont('times','normal');
+        lns.forEach((ln, i) => doc.text(ln, mL + colP, yy + i * 3.7));
+        yy += Math.max(1, lns.length) * 3.7 + 0.8;
+      });
+    }
+    return yy + 2;
+  }
+
+  // ─── Despachador ─────────────────────────────────────────────────────────
+  /* El id se valida contra la allowlist en `pdfPlantillaGet`, así que acá no puede llegar algo
+     desconocido. El `|| _hdrClasico` es la red por si el mapa y la lista se desincronizan: un
+     informe con encabezado clásico es un problema de estética; uno SIN encabezado es un
+     documento clínico sin identificar. */
+  const _PLANTILLAS_FN = { clasico:_hdrClasico, moderno:_hdrModerno, minimalista:_hdrMinimalista, academico:_hdrAcademico };
+  const _plantillaId = (typeof pdfPlantillaGet === 'function') ? pdfPlantillaGet() : 'clasico';
+
+  /* La `y` que devuelve la plantilla se VALIDA, no se confía. Es el único acoplamiento entre el
+     encabezado y las ~900 líneas de abajo, y su peor modo de fallo es mudo: en jsPDF
+     `isNaN(null)` es FALSE y `Number(null)` es 0, así que `rect`, `line` y `text` NO lanzan con
+     null — dibujan en y=0. Una plantilla que hiciera `return null` en algún camino («no hay
+     nada que dibujar») estampaba los datos del paciente ENCIMA de la banda del título: nombre,
+     documento y fecha ilegibles sobre fondo oscuro, con el PDF generado y el toast de éxito.
+     Un informe firmado sin identificación legible.
+     El hermano opuesto —olvidar el `return`, o sea `undefined`— sí lanza, pero nadie lo
+     captura: generarPDF() llama a pelo y la reimpresión usa try/finally SIN catch, así que el
+     botón no hace nada y no hay mensaje. Los dos se atajan acá.
+     Se exige número finito y dentro del papel. `_yMax` se lee en runtime y NO es 284: lo
+     reescribe el bloque de firma según cuántas filas tenga (270,2 sin médico configurado). */
+  function _yValida(r) { return typeof r === 'number' && isFinite(r) && r >= 10 && r <= _yMax; }
+  let _yHdr = null;
+  try { _yHdr = (_PLANTILLAS_FN[_plantillaId] || _hdrClasico)(); } catch (_e) {
+    console.error('[PDF] la plantilla «' + _plantillaId + '» falló:', _e);
+    _yHdr = null;
+  }
+  if (!_yValida(_yHdr)) {
+    console.error('[PDF] la plantilla «' + _plantillaId + '» devolvió una y inválida:', _yHdr);
+    if (typeof toast === 'function') toast('⚠️ El encabezado elegido falló — se usó el diseño Clásico');
+    /* Se redibuja el clásico en la MISMA página, sin cirugía de páginas: acá no se dibujó nada
+       más todavía, y el clásico arranca con una banda sólida de 210 mm de ancho que tapa lo que
+       la plantilla rota haya alcanzado a estampar arriba. Se descartó borrar y recrear la
+       página porque `deletePage` sobre la única hoja del documento deja a jsPDF en un estado
+       que no verifiqué — y un PDF a medio construir es peor que un encabezado con un resto
+       tapado debajo de la banda. */
+    y = 0;
+    try { _yHdr = _hdrClasico(); } catch (_e2) { console.error('[PDF] el clásico también falló:', _e2); _yHdr = null; }
+    if (!_yValida(_yHdr)) _yHdr = 20.5;   // último recurso: el valor del clásico con dos líneas
+  }
+  y = _hdrCerrar(_yHdr);
 
   // ════════════════════════════════════════════════════════════
   // BLOQUE 1 (3 col): Raíz de Aorta | Aurícula Izquierda | Aurícula Derecha / VCI
@@ -19395,6 +19643,135 @@ function initPdfColor() {
 }
 window.setPdfColor = setPdfColor;
 setTimeout(initPdfColor, 60);
+
+// ══ PLANTILLAS DE ENCABEZADO DEL PDF ══════════════════════════════════════════
+/* Cambian SÓLO el encabezado (banda/título/institución/logo + datos del paciente). El resto de
+   generarPDFReal no se entera: cada plantilla devuelve la `y` donde termina y el informe sigue
+   desde ahí.
+   `PDF_PLANTILLAS` es la ÚNICA fuente de verdad de qué ids son válidos — la usan el selector de
+   Config y el despachador del PDF. Con dos listas, un id agregado en un lado dibujaba el
+   encabezado clásico sin que nada lo avisara. */
+const PDF_PLANTILLAS = [
+  { id:'clasico',      nom:'Clásico',      desc:'El de siempre: banda de color con el trazo de ECG.' },
+  { id:'moderno',      nom:'Moderno',      desc:'Banda roja a todo el ancho, fecha como etiqueta.' },
+  { id:'minimalista',  nom:'Minimalista',  desc:'Sin color. Una línea fina y nada más.' },
+  { id:'academico',    nom:'Académico',    desc:'Serif, fondo gris claro y datos en tabla.' }
+];
+/* Miniaturas: siluetas, no texto legible. Se dibuja la HOJA (rectángulo blanco) y encima las
+   formas del encabezado, para que se lea como «así va a salir el papel» y no como un ícono.
+   Todo literal de este archivo: nada de acá viene de un dato del estudio. */
+const _PLTZ_SVG = {
+  clasico: `<rect x="0" y="0" width="148" height="84" fill="#ffffff"/>
+    <rect x="0" y="0" width="148" height="20" fill="#1a3a5c"/>
+    <path d="M0 11 H30 l3 -6 l3 12 l3 -6 H60 l3 -3 l3 3 H148" fill="none" stroke="#31547b" stroke-width="1.1"/>
+    <rect x="40" y="6" width="56" height="4" rx="1" fill="#ffffff"/>
+    <rect x="52" y="13" width="32" height="2.6" rx="1" fill="#c8ddf5"/>
+    <rect x="118" y="5" width="24" height="10" rx="1.5" fill="#ffffff" opacity="0.9"/>
+    <rect x="0" y="20" width="148" height="1.4" fill="#5b9bd5"/>
+    <rect x="8" y="27" width="132" height="26" rx="1.5" fill="#ffffff" stroke="#aab9d2" stroke-width="1"/>
+    <g fill="#1a3a5c"><rect x="12" y="31" width="14" height="2.4" rx="1"/><rect x="46" y="31" width="14" height="2.4" rx="1"/><rect x="80" y="31" width="14" height="2.4" rx="1"/><rect x="114" y="31" width="14" height="2.4" rx="1"/></g>
+    <g fill="#c9d2e2"><rect x="12" y="40" width="24" height="2.4" rx="1"/><rect x="46" y="40" width="24" height="2.4" rx="1"/><rect x="80" y="40" width="20" height="2.4" rx="1"/><rect x="114" y="40" width="20" height="2.4" rx="1"/></g>
+    <g fill="#e4e9f2"><rect x="12" y="60" width="124" height="2.2" rx="1"/><rect x="12" y="67" width="110" height="2.2" rx="1"/><rect x="12" y="74" width="118" height="2.2" rx="1"/></g>`,
+  moderno: `<rect x="0" y="0" width="148" height="84" fill="#ffffff"/>
+    <rect x="0" y="0" width="148" height="24" fill="#C62828"/>
+    <rect x="10" y="6" width="60" height="5" rx="1.5" fill="#ffffff"/>
+    <rect x="10" y="15" width="38" height="3" rx="1.5" fill="#ffffff" opacity="0.75"/>
+    <rect x="104" y="8" width="34" height="9" rx="4.5" fill="#ffffff" opacity="0.28"/>
+    <rect x="110" y="11" width="22" height="3" rx="1.5" fill="#ffffff"/>
+    <g fill="#C62828"><rect x="10" y="32" width="16" height="2.6" rx="1"/><rect x="80" y="32" width="16" height="2.6" rx="1"/><rect x="10" y="42" width="16" height="2.6" rx="1"/><rect x="80" y="42" width="16" height="2.6" rx="1"/></g>
+    <g fill="#cfcfcf"><rect x="30" y="32" width="34" height="2.6" rx="1"/><rect x="100" y="32" width="34" height="2.6" rx="1"/><rect x="30" y="42" width="28" height="2.6" rx="1"/><rect x="100" y="42" width="30" height="2.6" rx="1"/></g>
+    <g fill="#e6e6e6"><rect x="10" y="60" width="128" height="2.2" rx="1"/><rect x="10" y="67" width="112" height="2.2" rx="1"/><rect x="10" y="74" width="120" height="2.2" rx="1"/></g>`,
+  minimalista: `<rect x="0" y="0" width="148" height="84" fill="#ffffff"/>
+    <rect x="10" y="10" width="58" height="5" rx="1" fill="#111111"/>
+    <rect x="10" y="19" width="34" height="2.6" rx="1" fill="#9a9a9a"/>
+    <rect x="108" y="10" width="30" height="3" rx="1" fill="#111111"/>
+    <rect x="10" y="28" width="128" height="0.9" fill="#111111"/>
+    <g fill="#8c8c8c"><rect x="10" y="36" width="26" height="2.4" rx="1"/><circle cx="41" cy="37.2" r="1.1"/><rect x="46" y="36" width="20" height="2.4" rx="1"/><circle cx="71" cy="37.2" r="1.1"/><rect x="76" y="36" width="24" height="2.4" rx="1"/><circle cx="105" cy="37.2" r="1.1"/><rect x="110" y="36" width="28" height="2.4" rx="1"/></g>
+    <g fill="#e6e6e6"><rect x="10" y="56" width="128" height="2.2" rx="1"/><rect x="10" y="63" width="112" height="2.2" rx="1"/><rect x="10" y="70" width="122" height="2.2" rx="1"/><rect x="10" y="77" width="98" height="2.2" rx="1"/></g>`,
+  academico: `<rect x="0" y="0" width="148" height="84" fill="#ffffff"/>
+    <rect x="0" y="0" width="148" height="30" fill="#f8f8f8"/>
+    <rect x="10" y="5" width="44" height="2.2" rx="1" fill="#9a9a9a"/>
+    <rect x="10" y="11" width="66" height="6" rx="1" fill="#111111"/>
+    <rect x="10" y="21" width="40" height="2.6" rx="1" fill="#8c8c8c"/>
+    <rect x="104" y="11" width="34" height="3" rx="1" fill="#6f6f6f"/>
+    <rect x="0" y="30" width="148" height="1.6" fill="#111111"/>
+    <rect x="0" y="33" width="148" height="0.6" fill="#111111"/>
+    <g fill="#6f6f6f"><rect x="10" y="39" width="22" height="2.2" rx="1"/><rect x="60" y="39" width="22" height="2.2" rx="1"/><rect x="110" y="39" width="24" height="2.2" rx="1"/></g>
+    <rect x="10" y="44" width="128" height="0.5" fill="#cccccc"/>
+    <g fill="#c9c9c9"><rect x="10" y="48" width="30" height="2.2" rx="1"/><rect x="60" y="48" width="34" height="2.2" rx="1"/><rect x="10" y="55" width="26" height="2.2" rx="1"/><rect x="60" y="55" width="30" height="2.2" rx="1"/></g>
+    <g fill="#e6e6e6"><rect x="10" y="68" width="128" height="2.2" rx="1"/><rect x="10" y="75" width="110" height="2.2" rx="1"/></g>`
+};
+
+/* Lectura VALIDADA contra la allowlist, no el string crudo. localStorage lo escribe el usuario
+   —y sobrevive a versiones viejas de la app—, así que un valor desconocido tiene que caer al
+   clásico y no dejar el PDF sin encabezado. Es el mismo criterio del borde de confianza de los
+   id en CeiboStore: se sanea al leer, no al escribir. */
+function pdfPlantillaGet() {
+  let val = 'clasico';
+  try { val = localStorage.getItem('ett_pdf_plantilla') || 'clasico'; } catch (e) { val = 'clasico'; }
+  return PDF_PLANTILLAS.some(p => p.id === val) ? val : 'clasico';
+}
+window.pdfPlantillaGet = pdfPlantillaGet;
+
+function setPdfPlantilla(id) {
+  if (!PDF_PLANTILLAS.some(p => p.id === id)) return;
+  try { localStorage.setItem('ett_pdf_plantilla', id); } catch (e) {}
+  _pltzPintarSeleccion(id);
+  const p = PDF_PLANTILLAS.find(x => x.id === id);
+  if (typeof toast === 'function' && p) toast('📄 Encabezado del PDF: ' + p.nom);
+}
+window.setPdfPlantilla = setPdfPlantilla;
+
+function _pltzPintarSeleccion(id) {
+  document.querySelectorAll('#pltz-grid [data-pltz]').forEach(el => {
+    const on = el.getAttribute('data-pltz') === id;
+    el.style.borderColor = on ? 'var(--accent)' : 'var(--border)';
+    el.style.boxShadow   = on ? '0 0 0 2px var(--accent)' : 'none';
+    el.setAttribute('aria-checked', on ? 'true' : 'false');
+    const chk = el.querySelector('.pltz-chk');
+    if (chk) chk.style.display = on ? 'inline' : 'none';
+  });
+  const nota = document.getElementById('pltz-nota');
+  const p = PDF_PLANTILLAS.find(x => x.id === id);
+  if (nota && p) nota.textContent = 'Seleccionado: ' + p.nom + ' — ' + p.desc;
+}
+
+function initPdfPlantillas() {
+  const grid = document.getElementById('pltz-grid');
+  if (!grid) return;
+  /* role=radio y no <input type=radio>: limpiarCampos() barre los input del documento sin
+     filtro de scope y esto es una preferencia, no un campo del estudio. La semántica de
+     accesibilidad se declara con ARIA. */
+  grid.setAttribute('role', 'radiogroup');
+  grid.setAttribute('aria-label', 'Diseño del encabezado del informe PDF');
+  /* Sin `onclick` inline: el id viaja en `data-pltz` y el clic se atiende por delegación. Hoy
+     `p.id` es un literal de este archivo, así que interpolarlo en el atributo sería inocuo —
+     pero es exactamente el patrón que la regla `ceibo-interp-en-string-de-handler` existe para
+     atajar, porque dentro de un handler inline `escHtml` NO protege: el parser decodifica la
+     entidad ANTES de compilar el handler. El día que la lista salga de otro lado, el agujero ya
+     no estaría. Además evita la regla de área táctil que infla todo `[onclick]` a 44×44. */
+  grid.innerHTML = PDF_PLANTILLAS.map(p => `
+    <button type="button" role="radio" aria-checked="false" data-pltz="${escHtml(p.id)}"
+            title="${escHtml(p.desc)}"
+            style="display:block;width:100%;text-align:left;padding:8px;border:2px solid var(--border);border-radius:10px;background:var(--bg2);cursor:pointer;font-family:inherit;transition:.15s;">
+      <svg viewBox="0 0 148 84" style="width:100%;height:auto;display:block;border-radius:5px;border:1px solid var(--border);background:#fff;" aria-hidden="true">${_PLTZ_SVG[p.id] || ''}</svg>
+      <div style="margin-top:7px;font-size:12px;font-weight:700;color:var(--text);">${escHtml(p.nom)}<span class="pltz-chk" style="display:none;color:var(--accent);"> ✓</span></div>
+      <div style="font-size:10.5px;color:var(--text2);line-height:1.4;margin-top:2px;">${escHtml(p.desc)}</div>
+    </button>`).join('');
+  /* Delegación, y con guarda de idempotencia: cfgOnShow() corre cada vez que se abre Config, y
+     sin la bandera se acumulaba un listener por apertura — a la décima visita, diez toasts por
+     clic. Va sobre el contenedor, que initPdfPlantillas reescribe entero con innerHTML: los
+     listeners de los botones morirían con ellos, el del grid no. */
+  if (!grid.dataset.pltzLigado) {
+    grid.dataset.pltzLigado = '1';
+    grid.addEventListener('click', ev => {
+      const b = ev.target.closest('[data-pltz]');
+      if (b && grid.contains(b)) setPdfPlantilla(b.getAttribute('data-pltz'));
+    });
+  }
+  _pltzPintarSeleccion(pdfPlantillaGet());
+}
+window.initPdfPlantillas = initPdfPlantillas;
 
 // ══ OAI ══
 function calcOAI() {
@@ -32891,7 +33268,7 @@ function cfgLoadMed(){
 }
 function eeQrEnabled(){ return localStorage.getItem('ett_qr_enabled') !== '0'; } // por defecto activado
 function cfgToggleQr(on){ try { localStorage.setItem('ett_qr_enabled', on ? '1' : '0'); } catch(e){} }
-function cfgOnShow(){ cfgRenderModulos(); cfgLoadMed(); if(typeof cfgRenderCentros==='function')cfgRenderCentros(); if(typeof cfgRenderMedicos==='function')cfgRenderMedicos(); var q=document.getElementById('cfg-qr'); if(q) q.checked = eeQrEnabled(); var mi=document.getElementById('cfg-modo-inst'); if(mi) mi.checked=(localStorage.getItem('ett_modo_institucional')==='1');
+function cfgOnShow(){ cfgRenderModulos(); cfgLoadMed(); if(typeof cfgRenderCentros==='function')cfgRenderCentros(); if(typeof cfgRenderMedicos==='function')cfgRenderMedicos(); if(typeof initPdfPlantillas==='function')initPdfPlantillas(); var q=document.getElementById('cfg-qr'); if(q) q.checked = eeQrEnabled(); var mi=document.getElementById('cfg-modo-inst'); if(mi) mi.checked=(localStorage.getItem('ett_modo_institucional')==='1');
   var gi=document.getElementById('cfg-guardar-imagenes'); if(gi && typeof imgGuardadoActivo==='function') gi.checked=imgGuardadoActivo(); }
 /* Botón "🏥 Centro": ya no edita inline — los centros se gestionan en ⚙️ Config. */
 function ecoCentroBtn(){
