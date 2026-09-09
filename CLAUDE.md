@@ -248,10 +248,42 @@ Falla cerrado: sin IndexedDB no hay imágenes persistidas y la app funciona como
 respaldo a localStorage** a propósito — cada imagen son decenas de KB en base64 y reventaría la
 cuota, con el agravante de que `_lsGuardar` borra los chunks antes de saber si puede escribirlos.
 
+**`imgRestaurar` es AUTORITATIVA: el estudio abierto manda sobre lo que haya en pantalla.**
+Antes salía sin tocar nada cuando el estudio no tenía imágenes guardadas, «respetando lo que el
+médico tenga en pantalla». Esa premisa valía cuando `imgSlots` sólo podía contener lo que él
+hubiera cargado a mano; desde que las imágenes se restauran solas dejó de valer, y quedaba una
+fuga entre pacientes **reproducible en dos clics**: abrir el estudio A (con imágenes), abrir el B
+(sin ellas), y el formulario de B se quedaba con las ecografías de A — que iban al PDF firmado de
+B y, al guardar, quedaban persistidas bajo el uuid de B para siempre. Medido y reproducido.
+
+La única excepción es que la **lectura falle**: por eso `CeiboImg.leer` devuelve `null` cuando no
+se pudo leer y `[]` cuando el estudio genuinamente no tiene. Con un solo valor para las dos
+cosas, un error transitorio se traducía en «no tiene imágenes» y aguas abajo en un borrado.
+
+**Toda lectura lleva token de generación** (`_imgGen`). La primera del arranque paga la apertura
+de la base —hasta 3 s— y ni `editarInforme` ni `cargarEstudioPorId` la esperan: sin el token, una
+restauración en vuelo aterrizaba sobre el paciente siguiente o sobre un «Nuevo estudio».
+
+**`imgPersistir` no borra por omisión.** `imgSlots` vacío al guardar sólo borra si el médico
+tocó las imágenes (`_imgEditado`). Sin esa bandera, dos situaciones que no son una decisión suya
+destruían lo guardado: la ventana de reimpresión —que vacía `imgSlots` ~600 ms y `guardarInforme`
+no tiene guard de reentrada— y una lectura fallida. Además se aborta si `_pdfGuardadoEnCurso`.
+
+**Apagar el toggle NO borra.** Sería destruir dato clínico por cambiar una preferencia, sin
+confirmación. El toggle es prospectivo y el borrado es un botón explícito en Config que dice
+cuántos estudios afecta y que no hay backup posible. El commit anterior afirmaba lo contrario y
+el código no lo hacía: el interruptor mentía sobre el disco.
+
 **El borrado es por recolector, no por camino.** `imgRecolectarHuerfanas()` compara contra el
 conjunto vivo de uuid en vez de engancharse a cada una de las diez vías de borrado: la que se
-olvide deja huérfanos, y mañana hay una más. Tiene guarda contra el borrado catastrófico — una
-lista vacía puede ser «se borró todo» o una caché transitoriamente vacía por arranque degradado.
+olvide deja huérfanos, y mañana hay una más.
+
+La guarda va sobre el **estado del store**, no sobre el largo de la lista: exige
+`CeiboStore.lista()`, `modo() === 'indexedDB'` y que **ningún estudio vivo carezca de uuid**. La
+primera versión sólo cubría el caso «lista vacía» y encima era casi tautológica —`getInformes()`
+es la unión de los dos baldes—. Lo peligroso no es la lista vacía sino la **parcial**: un arranque
+degradado deja la caché con 2 estudios mientras IndexedDB tiene 60, y borrar uno de esos dos
+recolectaba las imágenes de los otros 58 — que no están en ningún backup.
 
 Las vías que sólo reescriben el `id` (`_sanearIds`, `_nuevoIdUnico`) **ya no orfanan nada**,
 porque la clave es el uuid. Ése era todo el punto de agregarlo.

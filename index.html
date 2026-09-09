@@ -1372,6 +1372,7 @@ window.cerrarSesion = cerrarSesion;
         </label>
         <p style="font-size:11px;color:var(--text2);margin-top:6px;">Apagado, las imágenes viven sólo en la sesión (comportamiento de siempre). Encendido, se guardan al guardar el estudio y vuelven al reabrirlo. <b>No viajan en el backup JSON ni en el export.</b></p>
         <div id="cfg-img-storage" style="margin-top:12px;cursor:pointer;" onclick="cfgStorageDetalle()" title="Tocar para ver el detalle"></div>
+        <div style="margin-top:10px;"><button class="btn btn-ghost" onclick="cfgBorrarTodasImagenes()">🗑️ Borrar todas las imágenes guardadas</button></div>
       </div>
 
       <!-- Centros de trabajo -->
@@ -16133,12 +16134,31 @@ window.imgGuardadoActivo = imgGuardadoActivo;
 /* Escribe las imágenes del formulario bajo el uuid del estudio. Con el toggle apagado BORRA
    lo que hubiera: si el médico desactiva la opción, lo que ya estaba guardado tiene que dejar
    de estarlo, o el interruptor miente sobre lo que hay en el disco. */
+/* `_imgEditado` marca que el médico TOCÓ las imágenes en esta sesión de edición: agregó o
+   quitó alguna. Sin esta bandera, `imgSlots` vacío al guardar se interpretaba como «las quitó»
+   y BORRABA las guardadas, cosa que pasa por dos vías que no son una decisión del médico:
+     - la reimpresión de un PDF/PPT vacía `imgSlots` durante ~600 ms y guardarInforme no tiene
+       guard de reentrada, así que un clic en Guardar ahí borraba las imágenes del estudio;
+     - una lectura fallida de IndexedDB deja el formulario sin imágenes, y el guardado siguiente
+       convertía ese fallo transitorio en una destrucción permanente.
+   Ahora el borrado por vaciado exige intención explícita. */
+let _imgEditado = false;
+function imgMarcarEditado() { _imgEditado = true; }
+window.imgMarcarEditado = imgMarcarEditado;
+
 function imgPersistir(uuid) {
   if (typeof CeiboImg === 'undefined' || !_uuidValido(uuid)) return Promise.resolve(false);
-  if (!imgGuardadoActivo()) return CeiboImg.borrar(uuid).catch(() => false);
+  /* Durante la reimpresión el formulario tiene los datos de OTRO estudio y `imgSlots` está
+     vaciado a propósito. Persistir ahí escribe basura o borra lo bueno. */
+  if (typeof _pdfGuardadoEnCurso !== 'undefined' && _pdfGuardadoEnCurso) return Promise.resolve(false);
   const vivas = (typeof imgSlots !== 'undefined' ? imgSlots : []).filter(s => s && s.dataURL);
+  /* Con el toggle apagado NO se borra en silencio. Antes, apagar la opción y guardar una
+     corrección de texto destruía del disco las imágenes que seguían visibles en pantalla. Para
+     borrar está el botón explícito de Config. */
+  if (!imgGuardadoActivo()) return Promise.resolve(false);
+  if (!vivas.length && !_imgEditado) return Promise.resolve(false);   // ver _imgEditado
   return CeiboImg.guardar(uuid, vivas).then(ok => {
-    if (!ok && vivas.length && typeof toast === 'function') {
+    if (!ok && typeof toast === 'function') {
       toast('⚠️ El estudio se guardó, pero no se pudieron guardar las imágenes');
     }
     return ok;
@@ -16149,16 +16169,39 @@ window.imgPersistir = imgPersistir;
 /* Repone las imágenes de un estudio al abrirlo. Sólo pisa `imgSlots` si HAY algo guardado:
    con un estudio sin imágenes persistidas se respeta lo que el médico tenga en pantalla, que
    es el comportamiento previo. */
+/* Contador de generación. Lo incrementa toda operación que cambie de estudio, para que una
+   lectura en vuelo no aterrice sobre el paciente equivocado: la primera del arranque paga la
+   apertura de la base (hasta 3 s) y `editarInforme`/`cargarEstudioPorId` no la esperan. */
+let _imgGen = 0;
+
+/* AUTORITATIVA: el estudio abierto manda sobre lo que haya en pantalla.
+   Antes salía con `return 0` cuando el estudio no tenía imágenes guardadas, «respetando lo que
+   el médico tenga en pantalla». Esa premisa valía cuando `imgSlots` sólo podía tener lo que él
+   hubiera cargado a mano; desde que las imágenes se restauran solas dejó de valer, y el
+   resultado era una fuga entre pacientes REPRODUCIBLE en dos clics: abrir el estudio A (con
+   imágenes), abrir el B (sin ellas), y el formulario de B se quedaba con las ecografías de A —
+   que iban al PDF firmado de B y, al guardar, quedaban persistidas bajo el uuid de B para
+   siempre. Medido.
+
+   La única situación en la que NO se toca nada es cuando la lectura FALLA (`leer` devuelve
+   null): un error transitorio no puede borrarle las imágenes al médico. */
 function imgRestaurar(uuid) {
+  const gen = ++_imgGen;
   if (typeof CeiboImg === 'undefined' || !_uuidValido(uuid)) return Promise.resolve(0);
+  // Con el toggle apagado no se lee: si no se guarda, tampoco se repone. Antes se restauraba
+  // igual, y esas imágenes ajenas alimentaban la fuga de arriba.
+  if (!imgGuardadoActivo()) return Promise.resolve(0);
   return CeiboImg.leer(uuid).then(imgs => {
-    if (!imgs || !imgs.length) return 0;
+    if (gen !== _imgGen) return 0;      // llegó tarde: ya hay otro estudio abierto
+    if (imgs === null) return 0;        // no se pudo leer: no destruir lo que haya
+    const buenas = imgs.filter(s => s && _imgSrcOK(s.dataURL));
     imgSlots.length = 0;
-    imgs.forEach(s => imgSlots.push({ dataURL: s.dataURL, ampliada: !!s.ampliada }));
+    buenas.forEach(s => imgSlots.push({ dataURL: s.dataURL, ampliada: !!s.ampliada }));
     while (imgSlots.length < 2) imgSlots.push(null);
     imgSlotCount = imgSlots.length;
+    _imgEditado = false;                // arranca limpio para este estudio
     if (typeof imgRender === 'function') { try { imgRender(); } catch (e) {} }
-    return imgs.length;
+    return buenas.length;
   }).catch(() => 0);
 }
 window.imgRestaurar = imgRestaurar;
@@ -16181,6 +16224,26 @@ function cfgToggleGuardarImagenes(on) {
   } else cfgStorageRender();
 }
 window.cfgToggleGuardarImagenes = cfgToggleGuardarImagenes;
+
+/* Apagar el toggle NO borra: sería destruir dato clínico por cambiar una preferencia, y sin
+   confirmación. El commit anterior afirmaba que sí borraba y el código no lo hacía — el
+   interruptor mentía sobre el disco. Se resuelve al revés: el toggle es prospectivo (deja de
+   guardar) y el borrado es esta acción explícita, que dice cuánto va a destruir y avisa que no
+   hay backup posible porque las imágenes no viajan en el export. */
+function cfgBorrarTodasImagenes() {
+  if (typeof CeiboImg === 'undefined') return;
+  CeiboImg.uso().then(u => {
+    if (!u.estudios) { if (typeof toast === 'function') toast('No hay imágenes guardadas'); return; }
+    if (!confirm('¿Borrar las imágenes guardadas de ' + u.estudios + ' estudio(s)?\n\n' +
+                 'Las imágenes NO están en el backup JSON ni en el export: esto no se puede deshacer.\n' +
+                 'Los estudios y sus datos no se tocan.')) return;
+    CeiboImg.borrarTodo().then(ok => {
+      if (typeof toast === 'function') toast(ok ? '🗑️ Imágenes guardadas eliminadas' : '❌ No se pudieron borrar las imágenes');
+      cfgStorageRender();
+    });
+  });
+}
+window.cfgBorrarTodasImagenes = cfgBorrarTodasImagenes;
 
 const _fmtMB = b => (b / 1048576) >= 1 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
 
@@ -16231,6 +16294,10 @@ window.cfgStorageDetalle = cfgStorageDetalle;
 
 function imgVaciar() {
   if (typeof imgSlots === 'undefined') return;
+  // Invalida cualquier restauración en vuelo: sin esto, una lectura lanzada por el estudio
+  // anterior aterrizaba sobre el formulario en blanco del paciente nuevo.
+  _imgGen++;
+  _imgEditado = false;
   imgSlots.length = 0; imgSlots.push(null, null);
   imgSlotCount = 2;
   imgSwapSel = null;
@@ -20400,20 +20467,35 @@ const CeiboImg = (function () {
        y el conteo de estudios con imágenes no miente. */
     guardar(uuid, imgs) {
       if (!_uuidValido(uuid)) return Promise.resolve(false);
-      const limpias = (imgs || []).filter(s => s && s.dataURL)
+      /* Validación en el BORDE y no en cada sink. Hasta este commit `imgSlots` sólo se poblaba
+         desde imgCompressLoad, que siempre produce un JPEG bien formado; ahora entra lo que
+         haya en la base, y los tres lectores (imgRender, el bucle del PDF y el PPT) aplicaban
+         criterios distintos — uno de ellos ninguno. Se usa la misma política que el logo. */
+      const limpias = (imgs || []).filter(s => s && _imgSrcOK(s.dataURL))
                                   .map(s => ({ dataURL: s.dataURL, ampliada: !!s.ampliada }));
-      if (!limpias.length) return this.borrar(uuid).then(() => true);
+      /* `.then(r => r)` y no `.then(() => true)`: descartar el resultado del borrado hacía que
+         «quitar todas las imágenes y guardar» cantara éxito aunque el delete fallara, y las
+         imágenes que el médico había descartado reaparecían al reabrir el estudio. */
+      if (!limpias.length) return this.borrar(uuid);
       return _tx('readwrite', (os, ok) => {
         os.put({ uuid, imgs: limpias, bytes: _bytes(limpias), ts: new Date().toISOString() });
         ok(true);
       }).then(r => r === true);
     },
+    /* Devuelve el array, o **null** si NO SE PUDO LEER. La distinción es crítica: antes las dos
+       situaciones daban `[]`, y el llamador traducía «falló la lectura» a «este estudio no tiene
+       imágenes» — que aguas abajo se convertía en un borrado. Un fallo de lectura no puede
+       destruir datos. */
     leer(uuid) {
-      if (!_uuidValido(uuid)) return Promise.resolve([]);
+      if (!_uuidValido(uuid)) return Promise.resolve(null);
       return _tx('readonly', (os, ok) => {
         const q = os.get(uuid);
-        q.onsuccess = () => ok(q.result && Array.isArray(q.result.imgs) ? q.result.imgs : []);
-      }).then(r => r || []);
+        q.onsuccess = () => ok({ imgs: (q.result && Array.isArray(q.result.imgs)) ? q.result.imgs : [] });
+      }).then(r => (r && r.imgs) ? r.imgs : null);
+    },
+    // Borra TODO. Es la acción explícita que faltaba para que apagar el toggle no mienta.
+    borrarTodo() {
+      return _tx('readwrite', (os, ok) => { os.clear(); ok(true); }).then(r => r === true);
     },
     borrar(uuid) {
       if (!_uuidValido(uuid)) return Promise.resolve(false);
@@ -21481,15 +21563,25 @@ window.limpiarFiltroFechas = limpiarFiltroFechas;
    clave es el uuid. Ése era todo el punto de agregarlo. */
 function imgRecolectarHuerfanas() {
   if (typeof CeiboImg === 'undefined') return Promise.resolve(0);
-  let vivos = [];
-  try { vivos = getInformes().map(i => i.uuid); } catch (e) { return Promise.resolve(0); }
-  /* Guarda contra el borrado catastrófico: una lista vacía puede ser «el médico borró todo»
-     —legítimo— o una caché transitoriamente vacía por un arranque degradado. Se distingue por
-     el estado del store: si no está lista, no se recolecta. */
-  if (!vivos.length && !(CeiboStore.lista() && CeiboStore.getLocal().length === 0 && getInformesChunked().length === 0)) {
-    return Promise.resolve(0);
-  }
-  return CeiboImg.recolectar(vivos).catch(() => 0);
+  /* La guarda anterior sólo miraba el caso «lista vacía», y encima era casi tautológica:
+     getInformes() es la unión de los dos baldes, así que `!vivos.length` ya implicaba que los
+     dos estaban vacíos. Lo peligroso no es la lista vacía sino la lista PARCIAL, que no cubría.
+
+     Escenario medido en la sesión anterior y documentado en CLAUDE.md: un arranque degradado
+     deja la caché con los 2 estudios de localStorage mientras IndexedDB tiene 60. Ahí
+     `vivos.length === 2`, la guarda vieja ni se evaluaba, y borrar UNO de esos dos recolectaba
+     las imágenes de los otros 58 — que no están en ningún backup, porque el propio toggle
+     avisa que las imágenes no viajan en el export.
+
+     Ahora la condición es sobre el ESTADO DEL STORE, no sobre el largo de la lista. */
+  if (!CeiboStore.lista() || CeiboStore.modo() !== 'indexedDB') return Promise.resolve(0);
+  let infs = [];
+  try { infs = getInformes(); } catch (e) { return Promise.resolve(0); }
+  /* Un estudio vivo sin uuid válido es justamente aquel cuyas imágenes se estarían por borrar:
+     recolectar mapea a uuid y lo descarta, así que quedaría fuera del conjunto de vivos. Ante
+     la duda no se recolecta. */
+  if (infs.some(i => !_uuidValido(i && i.uuid))) return Promise.resolve(0);
+  return CeiboImg.recolectar(infs.map(i => i.uuid)).catch(() => 0);
 }
 window.imgRecolectarHuerfanas = imgRecolectarHuerfanas;
 
@@ -24561,7 +24653,17 @@ function _pptDesdeFormulario(inf, tema){
   const _pptGrilla = n => n <= 1 ? [1,1] : n === 2 ? [2,1] : n === 3 ? [3,1]
                        : n === 4 ? [2,2] : [3,2];
   function _pptAgregarImagenes(imgs) {
-    const buenas = (imgs || []).filter(s => s && typeof s.dataURL === 'string' && s.dataURL.indexOf('data:image') === 0);
+    /* `_imgSrcOK` y no `indexOf('data:image')`: el prefijo dejaba pasar `data:image/svg+xml,…`
+       o un base64 truncado, que PptxGenJS no codifica y que revienta en writeFile —o sea lejos
+       del try/catch de cada addImage, con el mensaje genérico que culpa a la conexión—. Es la
+       misma política que la app ya aplica al logo y al src de la grilla. */
+    const total = (imgs || []).length;
+    const buenas = (imgs || []).filter(s => s && _imgSrcOK(s.dataURL));
+    /* El descarte no puede ser mudo: son imágenes clínicas que el médico cree que van. */
+    if (total > buenas.length) {
+      _pptAvisos.push('⚠️ ' + (total - buenas.length) + ' de ' + total +
+                      ' imagen(es) no se pudieron incluir en el PPT (formato no admitido)');
+    }
     if (!buenas.length) return 0;
     for (let i = 0; i < buenas.length; i += 6) {
       const bloque = buenas.slice(i, i + 6);
@@ -24580,8 +24682,12 @@ function _pptDesdeFormulario(inf, tema){
     return buenas.length;
   }
 
-  const _pptLeerImgs = (typeof CeiboImg !== 'undefined' && inf && typeof _uuidValido === 'function' && _uuidValido(inf.uuid))
-    ? CeiboImg.leer(inf.uuid).catch(() => []) : Promise.resolve([]);
+  /* Se consulta el toggle: si la app no guarda imágenes, tampoco las lee. Antes el PPT las
+     anexaba igual con el toggle apagado, y esas imágenes ajenas alimentaban la fuga entre
+     pacientes. `leer` puede devolver null (no se pudo leer) — se trata como sin imágenes. */
+  const _pptLeerImgs = (typeof CeiboImg !== 'undefined' && inf && typeof _uuidValido === 'function' &&
+                        _uuidValido(inf.uuid) && typeof imgGuardadoActivo === 'function' && imgGuardadoActivo())
+    ? CeiboImg.leer(inf.uuid).then(r => r || []).catch(() => []) : Promise.resolve([]);
 
   _pptLeerImgs
     .then(imgs => { _pptAgregarImagenes(imgs); return P.writeFile({ fileName: nombreArch }); })
@@ -25717,7 +25823,7 @@ function _imgAttach(cell, idx){
 
 function imgSwap(a,b){ if(a===b) return; const t=imgSlots[a]; imgSlots[a]=imgSlots[b]; imgSlots[b]=t; imgRender(); }
 function imgToggleAmpliar(idx){ if(imgSlots[idx]){ imgSlots[idx].ampliada = !imgSlots[idx].ampliada; imgRender(); } }
-function imgRemove(e, idx){ if(e) e.stopPropagation(); imgSlots[idx]=null; imgRender(); }
+function imgRemove(e, idx){ if(e) e.stopPropagation(); imgSlots[idx]=null; imgMarcarEditado(); imgRender(); }
 function imgPick(idx){ imgActiveSlot = idx; const inp=document.getElementById('img-file-input'); if(inp){ inp.value=''; inp.click(); } }
 function imgFileChosen(e){ const f=e.target.files && e.target.files[0]; if(f) imgCompressLoad(f, imgActiveSlot); e.target.value=''; }
 
@@ -25738,6 +25844,7 @@ function imgCompressLoad(file, idx){
         target = t;
       }
       imgSlots[target] = { dataURL: cv.toDataURL('image/jpeg', 0.65), ampliada:false };
+      imgMarcarEditado();
       imgRender();
     };
     im.src = reader.result;
