@@ -24648,18 +24648,21 @@ function _pptDesdeFormulario(inf, tema){
     }
   }
 
-  // ══ En Suma ══
-  {
+  /* ══ En Suma ══
+     Es función y no un bloque en línea porque va ANTEÚLTIMA, después de las diapositivas de
+     imágenes — y ésas se crean en la cadena de promesas, no acá. La conclusión del estudio es
+     lo último que el médico quiere dejar en pantalla antes del cierre; entre el informe y las
+     ecografías quedaba sepultada. */
+  function _pptEnSuma() {
     const suma = _pptTxt(c.en_suma || '');
-    if (suma) {
-      const s = nueva();
-      s.addText('En Suma', { x:0.5, y:0.35, w:W-1, h:0.6, fontSize:28, bold:true, color:PPT_C.rojo, fontFace:PPT_FONT });
-      s.addShape(P.ShapeType.line, { x:0.5, y:1.0, w:W-1, h:0, line:{ color:PPT_C.rojo, width:2 } });
-      s.addText(suma, { x:0.7, y:1.25, w:W-1.4, h:H-2.45, fontSize:20, color:PPT_C.txt,
-        fontFace:PPT_FONT, valign:'middle', lineSpacingMultiple:1.3 });
-      s.addShape(P.ShapeType.line, { x:0.7, y:H-1.0, w:W-1.4, h:0, line:{ color:PPT_C.rojo, width:1 } });
-      conPie(s);
-    }
+    if (!suma) return;
+    const s = nueva();
+    s.addText('En Suma', { x:0.5, y:0.35, w:W-1, h:0.6, fontSize:28, bold:true, color:PPT_C.rojo, fontFace:PPT_FONT });
+    s.addShape(P.ShapeType.line, { x:0.5, y:1.0, w:W-1, h:0, line:{ color:PPT_C.rojo, width:2 } });
+    s.addText(suma, { x:0.7, y:1.25, w:W-1.4, h:H-2.45, fontSize:20, color:PPT_C.txt,
+      fontFace:PPT_FONT, valign:'middle', lineSpacingMultiple:1.3 });
+    s.addShape(P.ShapeType.line, { x:0.7, y:H-1.0, w:W-1.4, h:0, line:{ color:PPT_C.rojo, width:1 } });
+    conPie(s);
   }
 
   /* La hoja en blanco «Notas / Imágenes adicionales» se retiró: existía para que el médico
@@ -24733,11 +24736,14 @@ function _pptDesdeFormulario(inf, tema){
     return buenas.length;
   }
 
-  /* Se consulta el toggle: si la app no guarda imágenes, tampoco las lee. Antes el PPT las
-     anexaba igual con el toggle apagado, y esas imágenes ajenas alimentaban la fuga entre
-     pacientes. `leer` puede devolver null (no se pudo leer) — se trata como sin imágenes. */
+  /* NO se gatea por el toggle, igual que el PDF desde la lista. El gate se puso cuando la
+     preocupación era `imgRestaurar` metiendo imágenes ajenas en el FORMULARIO; acá se lee por
+     uuid directo al documento, así que no hay forma de traer las de otro paciente. Y gatearlo
+     tenía un costo real: apagar la opción de guardado borraba del PPT imágenes que ya estaban
+     guardadas, o sea un documento que cambia de contenido por una preferencia de la app.
+     `leer` puede devolver null (no se pudo leer) — se trata como sin imágenes. */
   const _pptLeerImgs = (typeof CeiboImg !== 'undefined' && inf && typeof _uuidValido === 'function' &&
-                        _uuidValido(inf.uuid) && typeof imgGuardadoActivo === 'function' && imgGuardadoActivo())
+                        _uuidValido(inf.uuid))
     ? CeiboImg.leer(inf.uuid).then(r => r || []).catch(() => []) : Promise.resolve([]);
 
   /* Diapositiva de CIERRE. Va última, después de las de imágenes, y por eso se agrega en la
@@ -24770,7 +24776,9 @@ function _pptDesdeFormulario(inf, tema){
   }
 
   _pptLeerImgs
-    .then(imgs => { _pptAgregarImagenes(imgs); _pptCierre(); return P.writeFile({ fileName: nombreArch }); })
+    /* Orden final: imágenes → En Suma → cierre. Los tres se agregan acá porque las de imágenes
+       dependen de la lectura de IndexedDB, y En Suma tiene que quedar DESPUÉS de ellas. */
+    .then(imgs => { _pptAgregarImagenes(imgs); _pptEnSuma(); _pptCierre(); return P.writeFile({ fileName: nombreArch }); })
     .then(() => {
       if (typeof toast !== 'function') return;
       /* Los avisos ganan sobre el ✅: si algo puede haber quedado fuera del marco, eso es lo
@@ -24784,17 +24792,36 @@ function _pptDesdeFormulario(inf, tema){
 }
 window._pptDesdeFormulario = _pptDesdeFormulario;
 
+/* Imágenes del estudio que se está reimprimiendo, leídas por uuid ANTES de tocar el formulario.
+   Vive fuera de _pdfDeInformeGuardadoArmar porque esa función es síncrona de punta a punta y la
+   lectura de IndexedDB no lo es: hacerla adentro obligaría a partir la función en dos y a mover
+   con ella el backup/restore del formulario, que es lo más delicado de todo el emisor. */
+let _pdfImgsEstudio = null;
+
 function pdfDeInformeGuardado(id, accion, etiqueta) {
   const _lbl = etiqueta || 'PDF';
   if (_pdfGuardadoEnCurso) { if (typeof toast === 'function') toast('⏳ Esperá a que termine la exportación anterior'); return; }
   _pdfGuardadoEnCurso = true;
-  try { _pdfDeInformeGuardadoArmar(id, accion); }
-  catch (e) {
-    console.error('[pdfDeInformeGuardado]', e);
-    // Sólo si no quedó una restauración en vuelo: ésa libera el guard en su propio finally.
-    if (!_pdfRestauracionPendiente) _pdfGuardadoEnCurso = false;
-    if (typeof toast === 'function') toast('❌ No se pudo generar el ' + _lbl + ' de este estudio');
-  }
+  /* Se leen ANTES de marcar nada del formulario. NO se gatea por el toggle de guardado: leer
+     por uuid es leer las imágenes de ESE estudio, no puede traer las de otro paciente, y el
+     toggle sólo gobierna si se GUARDAN nuevas. Gatearlo haría que apagar la opción borrara del
+     informe imágenes que ya estaban guardadas — un documento firmado que cambia de contenido
+     por una preferencia de la app.
+     Ante cualquier fallo se sigue sin imágenes: un PDF sin ellas es peor que ninguno, pero un
+     botón mudo es peor que los dos. */
+  const _inf0 = (typeof getInformes === 'function' ? getInformes() : []).find(i => i.id === id);
+  const _leer = (typeof CeiboImg !== 'undefined' && _inf0 && _uuidValido(_inf0.uuid))
+    ? CeiboImg.leer(_inf0.uuid).then(r => r || []).catch(() => []) : Promise.resolve([]);
+  _leer.then(imgs => {
+    _pdfImgsEstudio = imgs;
+    try { _pdfDeInformeGuardadoArmar(id, accion); }
+    catch (e) {
+      console.error('[pdfDeInformeGuardado]', e);
+      // Sólo si no quedó una restauración en vuelo: ésa libera el guard en su propio finally.
+      if (!_pdfRestauracionPendiente) _pdfGuardadoEnCurso = false;
+      if (typeof toast === 'function') toast('❌ No se pudo generar el ' + _lbl + ' de este estudio');
+    } finally { _pdfImgsEstudio = null; }
+  });
 }
 function _pdfDeInformeGuardadoArmar(id, accion) {
   const informes = getInformes();
@@ -24817,11 +24844,14 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
      documentado como IM severa salía del PDF firmado como IM leve, sin que la pantalla
      cambiara nada porque el finally restaura el formulario. */
   const sevManualBackup = JSON.stringify(window.esqSevManual || {});
-  /* Las imágenes NO se persisten con el estudio (viven sólo en la sesión), pero
-     generarPDFReal() lee el imgSlots VIVO. Sin vaciarlo, reimprimir un guardado mientras
-     hay otro paciente abierto producía un informe firmado con las IMÁGENES DE OTRO
-     PACIENTE. El PDF de un guardado sale sin imágenes, que es lo correcto: no hay ninguna
-     imagen asociada a ese estudio. Mismo criterio que el snapshot de ETT Avanzado. */
+  /* `generarPDFReal()` lee el imgSlots VIVO. Sin vaciarlo, reimprimir un guardado mientras hay
+     otro paciente abierto producía un informe firmado con las IMÁGENES DE OTRO PACIENTE.
+     El comentario original seguía acá diciendo que las imágenes no se persisten y que por eso
+     el PDF de un guardado sale sin ninguna: eso dejó de ser cierto cuando se agregó CeiboImg.
+     Hoy el vaciado sigue siendo necesario —cierra la fuga— pero además se REPUEBLA con las
+     imágenes de ESTE estudio, leídas por su uuid (`_pdfImgsEstudio`, que carga el llamador
+     antes de entrar acá). Así el PDF desde la lista sale igual que el generado desde Editar, y
+     el formulario del paciente en pantalla no se entera: el backup de abajo lo restaura. */
   const imgBackup = (typeof imgSlots !== 'undefined') ? imgSlots.slice() : null;
 
   // Backup current form state
@@ -24880,7 +24910,17 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
      hermano y no ve sus `const` —medido, tiraba «imgBackup is not defined» en la
      restauración de cada reimpresión exitosa—. */
   try {
-  if (imgBackup) imgSlots.length = 0;
+  if (imgBackup) {
+    imgSlots.length = 0;
+    /* Las imágenes del estudio que se está reimprimiendo, leídas por uuid antes de entrar.
+       Se validan con _imgSrcOK igual que en el resto: el bucle de imágenes del PDF llama a
+       doc.getImageProperties sin try/catch, así que un dataURL que jsPDF no procese deja el
+       botón mudo. */
+    (_pdfImgsEstudio || []).forEach(s => {
+      if (s && _imgSrcOK(s.dataURL)) imgSlots.push({ dataURL: s.dataURL, ampliada: !!s.ampliada });
+    });
+    while (imgSlots.length < 2) imgSlots.push(null);
+  }
   if (typeof autosaveSuspender === 'function') autosaveSuspender();
 
   // Fill form with saved data
