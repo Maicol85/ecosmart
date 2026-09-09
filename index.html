@@ -17037,6 +17037,20 @@ function generarPDFReal() {
      reponerla dejaba el encabezado entero al 22%—. Mezclar da el mismo píxel sobre papel blanco
      y no deja estado que restaurar. */
   const _mezcla = (c, a) => [Math.round(c[0]*a + 255*(1-a)), Math.round(c[1]*a + 255*(1-a)), Math.round(c[2]*a + 255*(1-a))];
+  // Oscurecido contra negro, para texto corrido sobre blanco.
+  const _oscuro = (c, a) => [Math.round(c[0]*a), Math.round(c[1]*a), Math.round(c[2]*a)];
+  /* Texto sobre un color de fondo elegido por el médico: se decide por LUMINANCIA, no se fija
+     en blanco. Con el naranja por defecto (#E67E22) el blanco daba 2,85:1 —por debajo del 3:1
+     que WCAG pide incluso para texto grande— y la paleta ofrece otro color peor todavía. */
+  const _lum = c => { const f = v => { const x = v/255; return x <= 0.03928 ? x/12.92 : Math.pow((x+0.055)/1.055, 2.4); };
+                      return 0.2126*f(c[0]) + 0.7152*f(c[1]) + 0.0722*f(c[2]); };
+  /* Se COMPARAN los dos contrastes en vez de usar un umbral de luminancia. Con el umbral en
+     0,45 el naranja por defecto y el dorado caían del lado del blanco y quedaban en 2,85:1 y
+     2,38:1 — peor que si no hubiera regla. Eligiendo el mejor de los dos, ninguno de los seis
+     colores de la paleta baja de 3:1. */
+  const _contr = (a, b) => { const l1 = Math.max(_lum(a), _lum(b)), l2 = Math.min(_lum(a), _lum(b));
+                             return (l1 + 0.05) / (l2 + 0.05); };
+  const _sobre = c => (_contr([20,20,20], c) >= _contr([255,255,255], c) ? [20,20,20] : [255,255,255]);
   const _C = v => {
     if (!v) return v;
     if (v === 'TEMA')      return TEMA;
@@ -17045,6 +17059,9 @@ function generarPDFReal() {
     if (v === 'TEMA2')     return TEMA2;
     if (v === 'TEMA2_30')  return _mezcla(TEMA2, 0.30);
     if (v === 'TEMA2_05')  return _mezcla(TEMA2, 0.05);
+    if (v === 'TEMA2_TXT') return _sobre(TEMA2);        // blanco o negro según el secundario
+    if (v === 'TEMA2_OSC') return _oscuro(TEMA2, 0.62); // conclusión legible sobre blanco
+
     return v;
   };
 
@@ -17124,10 +17141,13 @@ function generarPDFReal() {
   // ── PLANTILLA 6 · ELEGANTE ── crema #FFFDF5, dorado #D4A017, borde suave #E8D89A.
   // `times` y no Georgia: jsPDF sólo trae helvetica/times/courier sin embeber un binario.
   _TBL_ESTILOS.elegante = {
-    serif:true, hdrFill:[255,253,245], hdrText:[212,160,23], hdrUpper:false, hdrTrack:0,
+    /* Oro OSCURO (160,118,10) y no el claro (212,160,23) para el texto: sobre el crema daba
+       2,33:1 y son los títulos de sección, la navegación del informe y lo primero que se
+       pierde en una fotocopia. Es el mismo tono que esta plantilla ya usa en `sumaCol`. */
+    serif:true, hdrFill:[255,253,245], hdrText:[160,118,10], hdrUpper:false, hdrTrack:0,
     zebra:[255,253,245], lblCol:[40,35,20], valCol:[55,50,35], rowPad:1.6,
     bordeExt:[232,216,154], sepHdr:[212,160,23], divH:[240,230,190], divV:[232,216,154],
-    barFill:[255,253,245], barText:[212,160,23], barSerif:true, barUpper:false, barLinea:[212,160,23],
+    barFill:[255,253,245], barText:[160,118,10], barSerif:true, barUpper:false, barLinea:[212,160,23],
     infBorde:[212,160,23], infFondo:null, infSerif:true, infCol:[35,30,18], sumaCol:[160,118,10],
     tituloInforme:'Informe narrativo', tituloSuma:'En suma',
     firmaSerif:true, firmaMonoMatr:false, firmaCirculo:null, firmaCierre:false
@@ -17138,11 +17158,13 @@ function generarPDFReal() {
      cuadraditos del header, y el secundario sale de `ett_color2`. Las variantes suaves son
      mezclas contra blanco pre-calculadas, no opacidad — ver `_C`. */
   _TBL_ESTILOS.bicolor = {
-    serif:false, hdrFill:'TEMA2', hdrText:[255,255,255], hdrUpper:false, hdrTrack:0,
+    serif:false, hdrFill:'TEMA2', hdrText:'TEMA2_TXT', hdrUpper:false, hdrTrack:0,
     zebra:'TEMA2_05', lblCol:[13,13,13], valCol:[40,40,40], rowPad:1.5,
     bordeExt:'TEMA2_30', sepHdr:'TEMA2_30', divH:'TEMA2_30', divV:null,
-    barFill:'TEMA2', barText:[255,255,255], barSerif:false, barUpper:false, barLinea:null,
-    infBorde:'TEMA', infFondo:null, infSerif:false, infCol:[13,13,13], sumaCol:'TEMA2',
+    barFill:'TEMA2', barText:'TEMA2_TXT', barSerif:false, barUpper:false, barLinea:null,
+    /* `sumaCol` NO es un rótulo: pinta el PÁRRAFO ENTERO de la conclusión. Con el secundario
+       crudo eran 2,85:1 sobre blanco, contra 5,6–12,2:1 de las cuatro originales. */
+    infBorde:'TEMA', infFondo:null, infSerif:false, infCol:[13,13,13], sumaCol:'TEMA2_OSC',
     tituloInforme:'INFORME', tituloSuma:'EN SUMA:',
     firmaSerif:false, firmaMonoMatr:false, firmaCirculo:'TEMA2', firmaCierre:false
   };
@@ -17965,7 +17987,13 @@ function generarPDFReal() {
     // Datos del paciente en una fila corrida, con el mismo criterio de átomos que Minimalista.
     if (pCeldas.length) {
       const _duro = t => { const q = _sanML(t); return q.length <= 24 ? q.replace(/ /g, '\u00A0') : q; };
-      const txt = pCeldas.map(c => _duro(c.lbl) + '\u00A0' + _duro(c.val)).join('\u00A0\u00A0·\u00A0\u00A0');
+      /* El separador va con espacios ASCII, NO duros. `_duro` ya endurece cada par etiqueta+
+         valor; endurecer TAMBIÉN el separador dejaba la fila entera como un único token sin un
+         solo espacio, y splitTextToSize —que parte por `split(' ')`— caía en su corte por
+         ancho al carácter. Medido: la tira salía con «Talla 162» al final de un renglón y «cm»
+         abriendo el siguiente, o el corte adentro del nombre o de la cédula. El separador es
+         justamente el punto donde el diseño QUIERE que corte. */
+      const txt = pCeldas.map(c => _duro(c.lbl) + '\u00A0' + _duro(c.val)).join('  ·  ');
       fn(7.2); tc(60,60,60);
       const lns = doc.splitTextToSize(txt, pgW);
       y = yy; checkPage(lns.length * 3.5 + 3); yy = y;
@@ -18039,7 +18067,15 @@ function generarPDFReal() {
         if (w > 80) { h = h * (80 / w); w = 80; }
         doc.addImage(_hdrLogo.data, (pr && pr.fileType) || undefined, 105 - w/2, yy, w, h);
         yy += h + 2.5;
-      } catch (_e) { console.warn('[PDF] logo institucional:', _e); }
+      } catch (_e) {
+        /* Con aviso, igual que `_hdrDibujarLogo`. Ésta es la única plantilla cuya razón de ser
+           es el logo grande centrado, o sea donde más se nota que falte y donde menos se va a
+           sospechar: el resto del encabezado sale perfecto. La bandera evita el doble toast
+           si el despachador redibuja. */
+        console.warn('[PDF] logo institucional:', _e);
+        if (_hdrLogo && !_hdrLogo.avisado) { _hdrLogo.avisado = true;
+          if (typeof toast === 'function') toast('⚠️ El logo del centro no se pudo incluir en el PDF — revisá el formato (usá JPG o PNG)'); }
+      }
     }
     if (_hdrLine) { fb(12); tc(TEMA[0],TEMA[1],TEMA[2]); yy += 4.2;
       doc.text(_sanML(_hdrLine), 105, yy, { align:'center' }); }
@@ -34115,6 +34151,7 @@ const ECO_AYUDA = [
   <div class="mBox mAviso"><b>Lo que NO es.</b> EcoSmart es una herramienta de apoyo. No reemplaza el juicio clínico, ni el informe de un ecocardiografista, ni las guías originales. Los cálculos y las conclusiones son orientativos: cruzan lo que vos cargaste y sugieren un patrón. La interpretación final y la responsabilidad son del médico.</div>` },
 
  { tab: '⚡ Inicio rápido', html: `
+  <div class="mBox mTip"><b>Nuevo estudio.</b> Al confirmar, la app limpia todos los campos y te deja directamente en la pestaña <b>Paciente</b>, lista para cargar al siguiente.</div>
   <p class="mP"><strong style="color:#0D9488">Tu primer informe, en cinco pasos.</strong></p>
   <ol class="mOl">
     <li><b>Entrá y aceptá el aviso.</b> Contraseña, Enter, y el aviso legal de tres puntos.</li>
@@ -34150,6 +34187,10 @@ const ECO_AYUDA = [
   <div class="mBox mAviso"><b>Atención — las imágenes no se guardan.</b> Viven sólo mientras el estudio está abierto. Si guardás el estudio, cerrás y después generás el PDF desde Guardados, ese PDF <b>sale sin imágenes</b>. Si las necesitás en el documento, exportá el PDF antes de cerrar el estudio.</div>` },
 
  { tab: '🌊 Doppler y válvulas', html: `
+  <div class="mSub">Estenosis mitral: qué métodos entran al informe</div>
+  <p class="mP">El área valvular mitral se puede estimar por varios caminos y no siempre coinciden. Con los checkboxes <b>«Incluir en el informe»</b> elegís cuáles se escriben. <b>El THP va siempre.</b> Continuidad y planimetría entran sólo si tienen valor calculado <b>y</b> están marcadas.</p>
+  <div class="mBox mTip"><b>Tu decisión se guarda con el estudio.</b> Al reabrirlo para editarlo, los checkboxes arrancan como los dejaste, no como los pondría el cálculo automático. El automático sólo actúa en un estudio nuevo o si nunca tocaste esas casillas.</div>
+  <div class="mBox mTip"><b>El TSVI llega solo.</b> El diámetro que usa la continuidad en Estenosis Mitral viene del que cargaste en <b>Doppler</b>: no hay que escribirlo dos veces, y si lo corregís allá, acá se actualiza.</div>
   <div class="mSub">Función diastólica</div>
   <p class="mP">En la tarjeta mitral cargás onda E, onda A, TDE y los e' septal y lateral. Con el botón <b>🧭 Algoritmo</b> se abre el algoritmo interactivo, que es sólo de consulta: no escribe nada en el estudio.</p>
   <p class="mP">Hay tres algoritmos a elegir: <b>ASE 2025 (recomendado)</b>, <b>BSE 2024 (descriptivo)</b> y <b>ASE/EACVI 2016 (Grados I–III)</b>.</p>
@@ -34189,6 +34230,7 @@ const ECO_AYUDA = [
   <div class="mBox mTip"><b>Consejo.</b> Sólo Hemodinámica (por VEXUS y HFA-PEFF) y Eco Pulmonar suman líneas al EN SUMA. ETE, Amiloidosis y Cardio-Oncología aportan su hoja pero no modifican el resumen.</div>` },
 
  { tab: '🫀 ETE: CIA / CIV', html: `
+  <div class="mBox mTip"><b>¿El estudio es un transesofágico?</b> Marcá <b>«🫀 Este estudio es ETE»</b> arriba de la pestaña ETE. Con eso el título del PDF pasa de «Informe Ecocardiograma Doppler Color» a <b>«Ecocardiograma Transesofágico»</b>. La marca viaja con el estudio, así que reimprimir un ETE guardado mientras trabajás en un transtorácico da el título correcto de cada uno.</div>
   <p class="mP"><strong style="color:#0D9488">Comunicación interauricular e interventricular.</strong> Está dentro del módulo <b>ETE</b>, después de Aorta, como acordeón plegado. Se abre tocando el encabezado; adentro, al pie de la sección, el botón <b>📎 Integrar al informe</b> es el que decide si baja al informe. Cuando está integrada, el encabezado muestra la marca <b>📎 en el informe</b>, así que se ve también con la sección cerrada.</p>
   <div class="mSub">CIA</div>
   <p class="mP">Elegí el <b>tipo</b> (ostium secundum, ostium primum, seno venoso de VCS o de VCI, seno coronario) y cargá el tamaño máximo y mínimo del defecto.</p>
@@ -34206,6 +34248,7 @@ const ECO_AYUDA = [
   <p class="mP">Con la sección integrada, el informe suma una oración por defecto con tipo, tamaño, borde mínimo, dirección del shunt, Qp/Qs y DDVI indexado, y el <b>EN SUMA</b> agrega el Qp/Qs con su interpretación. El PDF lo imprime dentro del informe, no en hoja aparte.</p>` },
 
  { tab: '🫀 ETE: TAVI', html: `
+  <div class="mBox mTip"><b>Los criterios TEER se llenan solos.</b> La longitud de los velos viene de <b>ETE → Válvula Mitral</b>, y la FEVI y el DTSVI de <b>AI/VI</b>. No hay que volver a escribirlos: si corregís el dato en su tab de origen, el criterio se recalcula.</div>
   <p class="mP"><strong style="color:#0D9488">Evaluación pre y post implante valvular aórtico.</strong> Última sección del módulo ETE, con el mismo acordeón y el mismo botón <b>📎 Integrar al informe</b> al pie. Dos solapas.</p>
   <div class="mSub">Pre-TAVI</div>
   <p class="mP">Válvula nativa (morfología tricúspide, bicúspide o cuadricúspide; grado y distribución de la calcificación), <b>anillo aórtico</b> medido a 120-140° con diámetro, área y perímetro, <b>raíz aórtica</b> (seno de Valsalva, unión sinotubular, aorta ascendente proximal) y <b>distancia de las coronarias al anillo</b>, izquierda y derecha.</p>
@@ -34235,6 +34278,55 @@ const ECO_AYUDA = [
   <div class="mBox mAviso"><b>Necesita conexión a internet.</b> La librería que arma el archivo se carga junto con la app. Si no llegó a cargar —sin conexión, o con el hash de integridad desactualizado tras una actualización— la app avisa y no genera nada — no queda un archivo a medias. Y si el estudio todavía no tiene informe generado, también te lo dice: generá el informe antes de exportar.</div>
   <div class="mSub">Nombre del archivo</div>
   <p class="mP">Sale como <span class="mKbd">EcoSmart_apellido_documento_fecha_id.pptx</span>. El id del final es para distinguir dos estudios del mismo paciente en la misma fecha, que si no quedarían con el mismo nombre.</p>` },
+
+ { tab: '💬 Frases rápidas', html: `
+  <p class="mP"><strong style="color:#0D9488">Tus frases de siempre, a un toque.</strong> En vez de reescribir «Se sugiere control ecocardiográfico en 6 meses» en cada informe, la guardás una vez y la insertás cuando la necesitás.</p>
+  <div class="mSub">Abrir el panel</div>
+  <p class="mP">En la pestaña <b>Informe</b>, el botón <span class="mKbd">💬 Frases</span>. En escritorio se abre como panel lateral; en el celular sube desde abajo como cajón, y se cierra deslizando o tocando fuera.</p>
+  <div class="mSub">Usarlas</div>
+  <ul class="mUl">
+    <li><b>Insertar</b> — tocá la frase y se escribe <b>en la posición del cursor</b> dentro del informe. Si el cursor estaba al final, va al final; si lo dejaste en medio de un párrafo, entra ahí.</li>
+    <li><b>Agregar</b> — escribila en el campo del panel y confirmá. Queda disponible para todos los estudios.</li>
+    <li><b>Borrar</b> — la ✕ de cada frase. No pide confirmación: es una preferencia, no un dato clínico.</li>
+  </ul>
+  <div class="mBox mTip"><b>Quedan en este dispositivo.</b> Las frases persisten entre sesiones y sobreviven a «Nuevo estudio», pero <b>no viajan</b> en el backup JSON ni en el export. Si cambiás de computadora, hay que volver a cargarlas.</div>` },
+
+ { tab: '🖼️ Imágenes del estudio', html: `
+  <p class="mP"><strong style="color:#0D9488">Las ecografías pueden quedar guardadas con el estudio.</strong> Apagado —que es como viene— las imágenes viven sólo mientras la pestaña está abierta: sirven para el PDF de hoy y se pierden al cerrar.</p>
+  <div class="mSub">Activarlo</div>
+  <p class="mP">En <b>⚙️ Config → 🖼️ Imágenes del estudio</b>, el interruptor <b>«Guardar imágenes con los estudios»</b>. Desde ahí, al guardar un estudio también se guardan sus imágenes, y vuelven solas al reabrirlo.</p>
+  <div class="mSub">Calidad</div>
+  <p class="mP">Cada imagen tiene su propio selector, debajo de la miniatura:</p>
+  <ul class="mUl">
+    <li><b>Miniatura</b> — 400×300. La más liviana; alcanza para reconocer el plano.</li>
+    <li><b>Calidad media</b> — 800×600. Es la opción por defecto.</li>
+    <li><b>Calidad original</b> — tal como se cargó, sin recomprimir. Ocupa bastante más.</li>
+  </ul>
+  <div class="mBox mAviso"><b>La calidad sólo puede bajar.</b> Una vez guardada en miniatura, el original ya no está en memoria y no se puede recuperar: hay que volver a cargar la imagen. El selector deshabilita las opciones que ya no son alcanzables y te lo dice al pasar el dedo por encima.</div>
+  <div class="mSub">Cuánto espacio ocupan</div>
+  <p class="mP">En la cabecera de <b>💾 Guardados</b> aparece una barra con el espacio usado. Tocándola sale el detalle: cuántos estudios tienen imágenes, cuántos MB ocupan y qué porcentaje de la cuota del navegador es. La barra sólo se muestra si el guardado está activado.</p>
+  <div class="mSub">Borrarlas</div>
+  <p class="mP">En Config, <b>🗑️ Borrar todas las imágenes guardadas</b>. Borra las imágenes de todos los estudios y no se puede deshacer: <b>no hay respaldo</b>, porque las imágenes no viajan en el backup JSON.</p>
+  <div class="mBox mTip"><b>Apagar el interruptor no borra nada.</b> Deja de guardar de ahí en más, pero lo ya guardado sigue estando. Para borrar hay que usar el botón.</div>` },
+
+ { tab: '📄 Diseño del informe PDF', html: `
+  <p class="mP"><strong style="color:#0D9488">Ocho presentaciones para el mismo informe.</strong> Cambian el encabezado, las tablas de mediciones, el bloque de informe, el En Suma y la firma. <b>Los datos son exactamente los mismos en las ocho</b> — lo único que cambia es cómo se ven.</p>
+  <div class="mSub">Las ocho</div>
+  <ul class="mUl">
+    <li><b>Clásico</b> — el de siempre: banda de color con el trazo de ECG.</li>
+    <li><b>Moderno</b> — banda roja a todo el ancho, fecha como etiqueta, iniciales en un círculo junto a la firma.</li>
+    <li><b>Minimalista</b> — sin color. Una línea fina como única decoración.</li>
+    <li><b>Académico</b> — tipografía serif, fondo gris claro, datos del paciente en tabla y un identificador de estudio al pie.</li>
+    <li><b>Compacto</b> — todo en una línea, filas apretadas, sin bordes.</li>
+    <li><b>Elegante</b> — crema y dorado, serif, filetes finos.</li>
+    <li><b>Bicolor</b> — tu color del PDF más un segundo color a elección.</li>
+    <li><b>Institucional</b> — logo grande centrado y todo en el color del centro.</li>
+  </ul>
+  <div class="mSub">Cambiarla</div>
+  <p class="mP">Desde <b>⚙️ Config → 📄 Diseño del informe PDF</b>, tocando la miniatura. También tenés el atajo <span class="mKbd">📄 Diseño…</span> en el encabezado, debajo de los cuadrados de color: te lleva directo a esa sección y la resalta.</p>
+  <div class="mSub">Color y plantilla son cosas distintas</div>
+  <p class="mP">Los <b>cuatro cuadrados de color</b> del encabezado eligen el color del PDF —azul, verde, violeta o bordó— y funcionan con cualquier plantilla. La plantilla decide la <b>forma</b>; el cuadrado, el <b>color</b>. Bicolor es la única que además pide un segundo color, y su fila de colores aparece en Config sólo cuando esa plantilla está elegida.</p>
+  <div class="mBox mTip"><b>Vale para este dispositivo.</b> La elección se guarda acá y se aplica a todos los PDF que generes, incluidos los que reimprimas desde Guardados. No viaja en el backup ni cambia los PDF ya emitidos.</div>` },
 
  { tab: '🩺 VEXUS', html: `
   <p class="mP"><strong style="color:#0D9488">Grado de congestión venosa sistémica.</strong> Responde «¿este paciente está congestivo?», no «¿va a responder a fluidos?». Sirve para decidir descongestión.</p>
@@ -34305,6 +34397,7 @@ const ECO_AYUDA = [
   <div class="mBox mTip"><b>Consejo.</b> El PDF que se genera desde Guardados no pasa por la tarjeta de confirmación de severidades valvulares. Si querés revisarlas, abrí el estudio con <b>Editar</b> y exportá desde ahí.</div>` },
 
  { tab: '💾 Guardados', html: `
+  <div class="mBox mTip"><b>La barra de espacio.</b> Si activaste el guardado de imágenes, en la cabecera de esta pantalla aparece una barra con lo que ocupan. Tocala y sale el detalle: cuántos estudios tienen imágenes, cuántos MB y qué porcentaje de la cuota del navegador estás usando.</div>
   <p class="mP">Todos los estudios guardados en este dispositivo, del más reciente al más viejo.</p>
   <div class="mSub">Acordeón por mes</div>
   <p class="mP">Se agrupan por mes, con una cabecera del tipo «── Agosto 2026 (3 estudios) ──» y un chevron para plegar. Todos los meses arrancan abiertos.</p>
@@ -34329,6 +34422,12 @@ const ECO_AYUDA = [
   <div class="mSub">Filtros</div>
   <p class="mP">Período (último mes, 3 meses, 6 meses, <b>último año — el que viene puesto</b>, o todo el tiempo), fechas desde/hasta y filtro por centro.</p>
   <div class="mBox mAviso"><b>Atención.</b> El período por defecto es de un año. Si te faltan estudios viejos en las estadísticas, no es que no estén: es el filtro. Poné «Todo el tiempo».</div>
+    <div class="mSub">Subtab ETE</div>
+  <p class="mP">Reúne todo lo transesofágico: <b>TAVI</b> (gradientes, tipo de prótesis, regurgitación paravalvular y los jets por hora del reloj), <b>score de Wilkins</b>, <b>orejuela izquierda</b> (morfología, velocidad de vaciamiento y trombos) y <b>criterios TEER</b>, con el reparto de aptos, límite y no aptos y qué criterio falla más seguido.</p>
+  <p class="mP">El Wilkins se agrupa en <b>≤8 favorable</b>, <b>9-11 resultado subóptimo</b> y <b>≥12 no favorable</b> — los mismos cortes con los que la app clasifica cada estudio, para que el agregado no contradiga al informe individual. Los scores <b>incompletos se excluyen</b> y te dice cuántos quedaron afuera: un total con menos de cuatro criterios está sesgado hacia «favorable».</p>
+  <div class="mBox mTip"><b>Dos números, no uno.</b> «Marcados como ETE» cuenta la casilla; «Con datos ETE cargados» detecta el estudio por sus campos. Ninguno contiene al otro —hay ETE que se informan sólo en la narrativa, y transesofágicos ajenos que se anotan sin marcar la casilla—, así que el denominador de la subtab es la <b>unión</b> de los dos.</div>
+  <div class="mSub">Subtab Hemodinámica</div>
+  <p class="mP">Perfil hemodinámico con el mapa de Forrester, y el shunt congénito: CIA/CIV por tipo, distribución del Qp/Qs en cuatro bandas —incluida la de <b>Qp/Qs &lt; 1</b>, que es flujo neto de derecha a izquierda y no admite la graduación por magnitud— y los bordes de la CIA.</p>
   <div class="mSub">Qué calcula</div>
   <ul class="mUl">
     <li><b>Actividad</b> — total, hoy, semana, mes, promedio por día hábil, demora entre solicitud y estudio, estudios por mes.</li>
