@@ -9304,7 +9304,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">DO₂ — Transporte O₂</td><td style="padding:5px 8px;font-family:monospace;">GC × Hb × 1.34 × SaO₂ × 10</td><td style="padding:5px 8px;">950–1150 ml/min</td></tr>
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">VO₂ — Consumo O₂</td><td style="padding:5px 8px;font-family:monospace;">GC × (CaO₂ − CvO₂) × 10</td><td style="padding:5px 8px;">200–250 ml/min</td></tr>
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Extracción O₂</td><td style="padding:5px 8px;font-family:monospace;">VO₂ / DO₂ × 100</td><td style="padding:5px 8px;">22–30%</td></tr>
-        <tr style="background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Qp/Qs — Shunt</td><td style="padding:5px 8px;font-family:monospace;">VTI_Ao × ØTSVI² / VTI_VP × ØTSVD²</td><td style="padding:5px 8px;">= 1.0</td></tr>
+        <tr style="background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Qp/Qs — Shunt</td><td style="padding:5px 8px;font-family:monospace;">VTI_VP × ØTSVD² / VTI_Ao × ØTSVI²</td><td style="padding:5px 8px;">= 1.0</td></tr>
       </table>
 
       <!-- 10. VD -->
@@ -9912,7 +9912,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     <div class="criterio-item" id="crit-sgl" onclick="toggleCrit('crit-sgl','ett-sgl',1)">
       <div class="criterio-check" id="chk-sgl">—</div>
       <div style="flex:1">
-        <div class="criterio-nombre">SGL ≤ -13%</div>
+        <div class="criterio-nombre">|SGL| ≤ 13%</div>
         <div class="criterio-def">Strain longitudinal global del VI. Valor absoluto ≤13% (ej: -12%, -10%). Patrón apical sparing característico de amiloidosis</div>
       </div>
       <button type="button" class="crit-calc-btn" id="calcbtn-sgl" onclick="event.stopPropagation();amCalcToggle('sgl')">Calcular ▾</button>
@@ -13506,7 +13506,12 @@ function calcEM() {
   }
 
   if (sevEl)  sevEl.innerHTML = `<span style="color:${color};font-weight:700;">${sev}</span> <span style="font-weight:400;color:var(--text2);font-size:10px;">${params.map(p=>p.p+':'+p.sev).join(' · ')}</span>`;
-  if (gradSel) gradSel.value = gradoStr;
+  /* No se pisa el grado que el médico fijó a mano. `sugerirSeveridadEM` ya respeta
+     `esqSevManual.em`, pero esta línea corre DESPUÉS y sin guarda: el médico confirmaba «Severa»
+     en la pastilla, tocaba cualquier campo del bloque (THP, gradiente medio, VTI) y el grado
+     volvía al autocálculo sin aviso. `em_grado` baja al informe narrativo y a la tabla del PDF.
+     Es el mismo cierre que ya tienen `autoCompletarSevIM` y `autoCompletarSevIA`. */
+  if (gradSel && !(window.esqSevManual && window.esqSevManual.em)) gradSel.value = gradoStr;
 
   const sevs = [...new Set(params.map(p=>p.sev))];
   if (discEl) discEl.textContent = sevs.length > 1 ? '⚠️ Parámetros discordantes — revisar integración clínica: ' + params.map(p=>`${p.p}:${p.sev}`).join(', ') : '';
@@ -17664,7 +17669,15 @@ function generarPDFReal() {
   // Aortic
   const avaC   = v('ava_cont');
   const avaIdx = (avaC&&bsa)?(avaC/bsa).toFixed(2)+' cm2/m2':null;
-  const coV    = (v('diam_tsvi')&&v('itv_tsvi'))?(Math.PI*((v('diam_tsvi')/20)**2)*v('itv_tsvi')*70/1000).toFixed(1)+' L/min':null;
+  /* FC REAL del estudio, con 70 sólo como respaldo. Estaba fija en 70 mientras `calcHemo` usaba
+     el valor cargado, así que el mismo paciente tenía dos gastos cardíacos distintos: uno en
+     pantalla y otro —inventado— en el informe firmado, sin nota de que la FC era supuesta. Con
+     FC 110 el impreso quedaba 36 % por debajo del real; con FC 50, un 40 % por encima.
+     El respaldo se marca con «*» para que no se lea como medido. */
+  const _fcReal = v('hemo_fc');
+  const _fcUso  = (_fcReal !== null && _fcReal > 20 && _fcReal < 250) ? _fcReal : 70;
+  const _fcSup  = !(_fcReal !== null && _fcReal > 20 && _fcReal < 250);
+  const coV    = (v('diam_tsvi')&&v('itv_tsvi'))?(Math.PI*((v('diam_tsvi')/20)**2)*v('itv_tsvi')*_fcUso/1000).toFixed(1)+' L/min'+(_fcSup?'*':''):null;
   const icV    = (coV&&bsa)?(PF(coV)/bsa).toFixed(2)+' L/min/m2':null;
 
   // PSAP
@@ -30863,7 +30876,7 @@ function labSubTab(id, el) {
       if(!r)return {...base, n:pairs.length, method:'Spearman', stat:'—', p:null, sig:'⚫', dir:'—', fuerza:'—', interp:''};
       const ok=r.n>=15;
       // El "Estadístico" muestra el coeficiente ρ (no el t de la prueba): es lo que se interpreta.
-      return {...base, n:r.n, method:'Spearman', stat:'Spearman='+r.rho.toFixed(2), p:r.p, sig:sigLight(r.p,ok),
+      return {...base, n:r.n, method:'Spearman', stat:'Spearman='+r.rho.toFixed(2), p:r.p, ok, sig:sigLight(r.p,ok),
               coef:r.rho, dir:dirTxt(r.rho,true), fuerza:fuerzaTxt(r.rho), interp:interpTxt(def.lbl,r.rho),
               det:{t:'sp', pairs, xl:VARS[def.a].lbl, yl:VARS[def.b].lbl, rho:r.rho}};
     }
@@ -30875,7 +30888,7 @@ function labSubTab(id, el) {
       const ok=r.n1>=8&&r.n2>=8;
       // Tamaño de efecto r = z/√N (comparación entre grupos: no tiene dirección lineal).
       const N=r.n1+r.n2, ef=N>0?Math.abs(r.z||0)/Math.sqrt(N):null;
-      return {...base, n:N, method:'Mann-Whitney U', stat:'U='+r.U+' ('+r.n1+'/'+r.n2+')', p:r.p, sig:sigLight(r.p,ok),
+      return {...base, n:N, method:'Mann-Whitney U', stat:'U='+r.U+' ('+r.n1+'/'+r.n2+')', p:r.p, ok, sig:sigLight(r.p,ok),
               coef:ef, dir:dirTxt(null,false), fuerza:fuerzaTxt(ef), interp:'',
               det:{t:'mw', g1, g2, vl:VARS[def.a].lbl, gl:def.gl||'el grupo'}};
     }
@@ -30896,12 +30909,35 @@ function labSubTab(id, el) {
     const V=(r.N>0&&r.k>0)?Math.sqrt(r.chi2/(r.N*r.k)):null;
     return {...base, n:r.N, method:'Chi²',
             stat:'Chi2='+r.chi2.toFixed(2)+(V!=null?'  V='+V.toFixed(2):'')+(r.minE<5?' ⚠fe<5':''),
-            p:r.p, sig:sigLight(r.p,ok), warnFe:r.minE<5,
+            p:r.p, ok, sig:sigLight(r.p,ok), warnFe:r.minE<5,
             coef:V, dir:dirTxt(null,false), fuerza:fuerzaTxt(V), interp:'',
             det:{t:'chi', aV, bV, table, al:def.al||'', bl:def.bl||'', minE:r.minE}};
   }
 
-  function computeAll(){ const infs=informes(); return ASSOC.map(d=>runOne(d,infs)); }
+  /* ── Corrección por comparaciones múltiples (Benjamini-Hochberg) ──────────────
+     Se corren 29 asociaciones a la vez. Con α=0,05 eso son ~1,5 falsos positivos por corrida
+     sobre datos SIN señal, y la tarjeta «cómo leer esta tabla» dice «p <0,05 = significativa»
+     mientras el filtro permite mostrar sólo las significativas y exportarlas al PDF con semáforo
+     verde. Es la presentación que convierte ruido en hallazgo de laboratorio.
+     BH y no Bonferroni: controla la tasa de falsos DESCUBRIMIENTOS en vez de la probabilidad de
+     cometer uno solo, que es lo que corresponde a una tabla exploratoria — Bonferroni con m=29
+     dejaría casi todo en negro y el médico terminaría ignorando la columna.
+     El p CRUDO se sigue mostrando; lo que cambia es de cuál cuelga el semáforo. */
+  function _bh(res){
+    const conP = res.map((r,i)=>({i,p:r.p})).filter(x=>x.p!=null).sort((a,b)=>a.p-b.p);
+    const m = conP.length;
+    /* Se recorre de mayor a menor acumulando el mínimo: sin ese `prev` el q-valor puede no ser
+       monótono y una asociación con p menor quedaría con q mayor que otra con p mayor. */
+    let prev = 1;
+    for (let k = m-1; k >= 0; k--) {
+      prev = Math.min(prev, conP[k].p * m / (k+1));
+      res[conP[k].i].pAdj = Math.min(1, prev);
+    }
+    res.forEach(r => { if (r.p == null) r.pAdj = null;
+      r.sig = sigLight(r.pAdj, r.ok !== false); });
+    return res;
+  }
+  function computeAll(){ const infs=informes(); return _bh(ASSOC.map(d=>runOne(d,infs))); }
   const pTxt = p => p==null?'—':(p<0.001?'<0.001':p.toFixed(3));
 
   // ── Descriptiva ──
@@ -30930,8 +30966,9 @@ function labSubTab(id, el) {
     const fn=parseInt((document.getElementById('asoc-f-n')||{}).value||'0');
     const fc=(document.getElementById('asoc-f-cat')||{}).value||'all';
     return res.filter(r=>{
-      if(fs==='05' && !(r.p!=null&&r.p<0.05))return false;
-      if(fs==='01' && !(r.p!=null&&r.p<0.01))return false;
+      // Sobre el p AJUSTADO: filtrar por el crudo devolvía justamente los falsos positivos.
+      if(fs==='05' && !(r.pAdj!=null&&r.pAdj<0.05))return false;
+      if(fs==='01' && !(r.pAdj!=null&&r.pAdj<0.01))return false;
       if(fn && r.n<fn)return false;
       if(fc!=='all' && r.cat!==fc)return false;
       return true;
@@ -31142,6 +31179,7 @@ function labSubTab(id, el) {
       '<td class="asoc-c-sec" style="padding:5px 8px;text-align:center;">'+(r.fuerza||'—')+'</td>'+
       '<td class="asoc-c-sec" style="padding:5px 8px;white-space:nowrap;">'+r.stat+'</td>'+
       '<td style="padding:5px 8px;text-align:right;">'+pTxt(r.p)+'</td>'+
+      '<td style="padding:5px 8px;text-align:right;" title="p ajustado por comparaciones múltiples (Benjamini-Hochberg, m=29). Es el que decide el semáforo.">'+pTxt(r.pAdj)+'</td>'+
       '<td style="padding:5px 8px;text-align:center;font-size:14px;">'+r.sig+'</td></tr>'; });
     host.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:12px;">'+
       '<thead><tr style="font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);border-bottom:1px solid var(--border);">'+
@@ -31149,7 +31187,9 @@ function labSubTab(id, el) {
       '<th class="asoc-c-sec" style="padding:5px 8px;text-align:left;">Interpretación</th><th style="padding:5px 8px;">N</th>'+
       '<th class="asoc-c-sec" style="padding:5px 8px;text-align:left;">Método</th><th class="asoc-c-sec" style="padding:5px 8px;">Dirección</th>'+
       '<th class="asoc-c-sec" style="padding:5px 8px;">Fuerza</th><th class="asoc-c-sec" style="padding:5px 8px;text-align:left;">Estadístico</th>'+
-      '<th style="padding:5px 8px;text-align:right;">p</th><th style="padding:5px 8px;">Sig.</th></tr></thead>'+
+      '<th style="padding:5px 8px;text-align:right;">p</th>'+
+      '<th style="padding:5px 8px;text-align:right;" title="p ajustado por comparaciones múltiples (Benjamini-Hochberg)">p aj.</th>'+
+      '<th style="padding:5px 8px;">Sig.</th></tr></thead>'+
       '<tbody>'+body+'</tbody></table>'+
       /* En móvil quedan cuatro columnas y las otras seis se ven al tocar la fila. Se dice,
          porque una tabla que en el celular tiene menos columnas que en la compu parece
@@ -31169,8 +31209,8 @@ function labSubTab(id, el) {
   window.labAsociacionesExportXLSX = function(){
     if(typeof XLSX==='undefined'){ if(typeof toast==='function')toast('❌ Excel (XLSX) no disponible'); return; }
     const rows=filtered(); if(!rows.length){ if(typeof toast==='function')toast('⚠️ Sin filas para exportar'); return; }
-    const headers=['Categoría','Asociación','Interpretación','N','Método','Dirección','Fuerza','Estadístico','p','Significativo'];
-    const aoa=[headers, ...rows.map(r=>[r.cat,r.lbl,r.interp||'',r.n,r.method,r.dir||'—',r.fuerza||'—',r.stat,pTxt(r.p), r.sig==='🟢'?'Sí':(r.sig==='🟡'?'Sí (N bajo)':'No')])];
+    const headers=['Categoría','Asociación','Interpretación','N','Método','Dirección','Fuerza','Estadístico','p','p ajustado (BH)','Significativo'];
+    const aoa=[headers, ...rows.map(r=>[r.cat,r.lbl,r.interp||'',r.n,r.method,r.dir||'—',r.fuerza||'—',r.stat,pTxt(r.p), pTxt(r.pAdj), r.sig==='🟢'?'Sí':(r.sig==='🟡'?'Sí (N bajo)':'No')])];
     const ws=XLSX.utils.aoa_to_sheet(aoa); ws['!cols']=headers.map(h=>({wch:Math.max(12,h.length+2)}));
     const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Asociaciones');
     XLSX.writeFile(wb,'ecosmart_asociaciones.xlsx');
@@ -31184,7 +31224,7 @@ function labSubTab(id, el) {
     doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(26,58,92); doc.text('EcoSmart — Asociaciones estadísticas',mL,y); y+=6;
     doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(90,90,90);
     doc.text('Semáforo: Verde = significativo (p<0.05) con N suficiente · Amarillo = significativo pero N bajo · Negro = no significativo.',mL,y); y+=7;
-    const cols=[['Categoría',26],['Asociación',42],['Interpretación',66],['N',10],['Método',30],['Dirección',18],['Fuerza',20],['Estadístico',34],['p',16],['Sig.',12]];
+    const cols=[['Categoría',26],['Asociación',42],['Interpretación',60],['N',10],['Método',30],['Dirección',18],['Fuerza',20],['Estadístico',28],['p',14],['p aj.',14],['Sig.',12]];
     const drawHead=()=>{ doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(26,58,92); let x=mL; cols.forEach(c=>{ doc.text(c[0],x,y); x+=c[1]; }); y+=1.5; doc.setDrawColor(200,200,200); doc.line(mL,y,mL+cols.reduce((a,c)=>a+c[1],0),y); y+=4; };
     drawHead();
     doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(30,30,30);
@@ -31193,7 +31233,7 @@ function labSubTab(id, el) {
     rows.forEach(r=>{ if(y>195){ doc.addPage(); y=16; drawHead(); doc.setFont('helvetica','normal'); doc.setTextColor(30,30,30); }
       const sigTxt=r.sig==='🟢'?'SI':(r.sig==='🟡'?'si*':'no');
       const dirTx=r.dir==='↑↑'?'+/+':(r.dir==='↑↓'?'+/-':(r.dir==='→'?'s/d':'-'));
-      const vals=[r.cat,r.lbl,ascii(r.interp||''),String(r.n),r.method,dirTx,r.fuerza||'-',ascii(r.stat),pTxt(r.p),sigTxt];
+      const vals=[r.cat,r.lbl,ascii(r.interp||''),String(r.n),r.method,dirTx,r.fuerza||'-',ascii(r.stat),pTxt(r.p),pTxt(r.pAdj),sigTxt];
       // La interpretación se parte en hasta 2 renglones (y la fila crece) en vez de
       // cortarse a la mitad como hace el substring del resto de las columnas.
       const iLines=vals[2]?doc.splitTextToSize(vals[2],cols[2][1]-2).slice(0,2):[];
@@ -31271,7 +31311,12 @@ function labChartBarrasH(canvasId, labels, datos, colores) {
 
 // ── Médico ──
 function labMedicoInit() {
-  const todos = getInformes();
+  /* `labGetInformes` y no `getInformes`: todo el resto de la pestaña —encabezado, General,
+     Calidad, Avanzado, Hemodinámica, ETE y Asociaciones— trabaja sobre la población filtrada por
+     período y centro. «Por médico» mostraba el histórico completo al lado de un encabezado
+     filtrado: dos totales que se contradecían en la misma pantalla. Y `labGetInformes` además
+     descarta los estudios sin `fecha_estudio` válido, así que la diferencia no era sólo de rango. */
+  const todos = (typeof labGetInformes === 'function') ? labGetInformes() : getInformes();
   const medicos = {};
   todos.forEach(i => {
     const m = (i.campos?.['med-nombre'] || i.campos?.['med_solicitante'] || '').trim();
@@ -31294,7 +31339,8 @@ function labMedicoInit() {
 function labMedicoRender() {
   const sel = document.getElementById('lab-med-select');
   const medSelec = sel?.value || '';
-  const todos = getInformes();
+  // Misma población que labMedicoInit: ver el comentario de allá.
+  const todos = (typeof labGetInformes === 'function') ? labGetInformes() : getInformes();
 
   // Agrupar por médico para comparativa
   const porMedico = {};
