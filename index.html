@@ -11020,8 +11020,12 @@ function badge(cls, txt) {
 }
 function toast(msg) {
   const t = document.getElementById('toast');
-  // FIX A11y: errores críticos se anuncian de inmediato (assertive); el resto, polite
-  const esError = /[⚠️❌🚫]|error|incorrect|no se pudo|inválid|fall/i.test(String(msg));
+  /* FIX A11y: errores críticos se anuncian de inmediato (assertive); el resto, polite.
+     Alternancia y NO clase de caracteres: `[⚠️❌🚫]` descompone los emoji en unidades UTF-16,
+     así que la clase terminaba conteniendo el surrogate alto U+D83D (de 🚫) y marcaba como
+     ERROR a cualquier emoji de ese rango — 💾, 🔄, 📝 entre otros. Avisos informativos se
+     anunciaban como alerta e interrumpían al lector de pantalla. Medido. */
+  const esError = /⚠️|❌|🚫|error|incorrect|no se pudo|inválid|fall/i.test(String(msg));
   t.setAttribute('aria-live', esError ? 'assertive' : 'polite');
   t.setAttribute('role', esError ? 'alert' : 'status');
   t.textContent = msg;
@@ -19854,6 +19858,25 @@ const CeiboStore = (function () {
     if (e && e.name === 'QuotaExceededError') toast('❌ Almacenamiento lleno. Exportá un backup y eliminá informes viejos.');
     else toast('❌ No se pudo guardar el estudio (error de almacenamiento).');
   }
+  /* Aviso DIFERIDO. `ready` corre durante la evaluación de este <script>, que es inline en el
+     body: `toast()` hace `t.setAttribute` sobre `#toast` sin comprobar nulo, así que llamarlo
+     acá tira y se lleva puesto el resto del arranque de la tienda. Se espera al DOM y se
+     verifica el nodo.
+     El retraso es de 3200 ms, no de 900: `#toast` es UN solo nodo y cada mensaje se muestra
+     2500 ms, así que el toast del autosave —que sale a los 400 ms y avisa que se repuso un
+     borrador que puede ser de OTRO paciente— sigue en pantalla hasta los 2900. A 900 ms este
+     aviso lo pisaba, y encima el temporizador del primero le sacaba la clase `show` al segundo.
+     Hay que quedar por encima de esa ventana. */
+  const _AVISO_MS = 3200;
+  function _avisoDiferido(msg) {
+    const emitir = () => {
+      try { if (typeof toast === 'function' && document.getElementById('toast')) toast(msg); }
+      catch (e) { console.warn('[CeiboStore] aviso', e); }
+    };
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => setTimeout(emitir, _AVISO_MS), { once: true });
+    } else setTimeout(emitir, _AVISO_MS);
+  }
 
   // ── IndexedDB ──
   function _abrir() {
@@ -19941,25 +19964,131 @@ const CeiboStore = (function () {
     return ok;
   }
 
+  /* ══ Fusión localStorage → IndexedDB ══
+     Incorpora a la caché los estudios que están en localStorage y NO en IndexedDB, persiste,
+     VERIFICA y recién entonces limpia localStorage. Misma disciplina que la migración inicial:
+     el disco sólo se libera con la copia confirmada.
+
+     Ante un id presente en los dos lados gana el de `fecha_guardado` MÁS NUEVA, y el empate
+     lo gana IndexedDB. NO «localStorage siempre gana», que era la primera versión de esto y
+     estaba mal por una premisa falsa: que si hay IndexedDB migrado, lo que esté en localStorage
+     sólo puede haberse escrito después, en una sesión degradada. `_persistir` desmiente eso —
+     cuando IndexedDB RECHAZA una escritura cae a `_lsGuardar(local, chunk)` con `_db` NO nulo,
+     o sea en una sesión normal, y no vuelca el estudio nuevo sino la caché ENTERA. localStorage
+     queda con una foto completa de la base en ese instante, y nada la limpia hasta el arranque
+     siguiente. Con la regla vieja, un solo fallo transitorio de IndexedDB a las 10:00 hacía que
+     al día siguiente la fusión pisara los 60 estudios con la versión de las 10:00: las
+     ediciones de toda la jornada revertidas, y en silencio, porque `agregados` valía 0 y el
+     aviso colgaba de `agregados`. Un rollback de la base entera es peor que el bug original.
+
+     Contrapartida asumida y no resuelta: la unión no tiene tombstones, así que un estudio
+     borrado durante una sesión con respaldo vuelve a aparecer. Se elige ese lado a propósito —
+     resucitar un estudio se deshace borrándolo otra vez; perderlo no se deshace— pero el aviso
+     lo dice, para que no se lea como que la sincronización sólo suma.
+
+     Devuelve {agregados, pisados, pendiente}. `pendiente` en true significa que la escritura
+     no se pudo verificar: localStorage queda INTACTO —no se pierde nada— y se reintenta en el
+     próximo arranque. */
+  const _ts = r => {
+    const t = Date.parse((r && r.fecha_guardado) || '');
+    return isNaN(t) ? 0 : t;      // sin fecha usable pierde el desempate, nunca lo gana
+  };
+  async function _fusionarDesdeLS() {
+    const lsL = _sanearIds(_lsLocal()), lsC = _sanearIds(_lsChunks());
+    if (!lsL.length && !lsC.length) return { agregados: 0, pisados: 0, pendiente: false };
+
+    const idxL = new Map(), idxC = new Map();
+    _local.forEach((r, i) => idxL.set(r.id, i));
+    _chunk.forEach((r, i) => idxC.set(r.id, i));
+    let agregados = 0, pisados = 0;
+    /* Dedup POR BALDE: `_local` y `_chunk` contienen legítimamente el mismo id para el mismo
+       estudio —lo dice el comentario de _sanearIds y lo produce cualquier import—, así que
+       mirar el índice del otro balde escribía el registro en el array equivocado y dejaba las
+       dos copias divergentes, con getInformesChunked() sirviendo la vieja. */
+    const incorporar = (r, destino, idx) => {
+      if (idx.has(r.id)) {
+        const i = idx.get(r.id);
+        if (_ts(r) > _ts(destino[i])) { destino[i] = r; pisados++; }
+        return;
+      }
+      destino.push(r); idx.set(r.id, destino.length - 1); agregados++;
+    };
+    lsL.forEach(r => incorporar(r, _local, idxL));
+    lsC.forEach(r => incorporar(r, _chunk, idxC));
+    if (!agregados && !pisados) { _lsBorrar(); return { agregados, pisados, pendiente: false }; }
+
+    /* Snapshots: `_idbGuardar` y `esperados` tienen que hablar de los MISMOS arrays. Leyendo
+       `_local`/`_chunk` vivos, un setLocal() del médico durante el await dejaba la
+       verificación describiendo un estado distinto del que se escribió — y un falso OK ahí
+       borra localStorage, que en ese momento es la última copia. Mismo cuidado que _persistir. */
+    const L = _local.slice(), C = _chunk.slice();
+    const ok = await _idbGuardar(L, C);
+    const verif = ok ? await _idbLeer() : null;
+    const esperados = new Set([].concat(L.map((d, i) => _pk('L', d, i)),
+                                        C.map((d, i) => _pk('C', d, i))));
+    // Tripwire: si _pk colapsara, `esperados` encogería y la verificación daría un falso OK
+    // sobre datos incompletos. Ya pasó una vez en la migración original.
+    const sinColapso = esperados.size === L.length + C.length;
+    const confirmado = !!(ok && sinColapso && verif && verif.length === esperados.size &&
+                          verif.every(r => esperados.has(r._pk)));
+    if (!confirmado) {
+      console.error('[CeiboStore] fusión no verificada; se conserva localStorage');
+      _avisoDiferido('⚠️ No se pudo consolidar el respaldo — los estudios siguen a salvo, se reintenta al reabrir');
+      return { agregados, pisados, pendiente: true };
+    }
+    _lsBorrar();                                          // sólo con la copia confirmada
+    /* Avisa también cuando sólo hubo `pisados`: ése es el caso en que la fusión CAMBIÓ
+       contenido existente, que es el más importante de comunicar y el que la primera versión
+       callaba. */
+    _avisoDiferido('🔄 Se sincronizaron ' + (agregados + pisados) +
+      ' estudio(s) desde el respaldo — revisá la lista de Guardados');
+    return { agregados, pisados, pendiente: false };
+  }
+
   // Arranque. La caché se llena PRIMERO desde localStorage de forma síncrona,
   // así nunca hay una ventana en la que getInformes() devuelva vacío y un
   // guardado pise los datos. Después se reconcilia con IndexedDB.
   _local = _sanearIds(_lsLocal()); _chunk = _sanearIds(_lsChunks());
 
   const ready = (async function () {
+    /* La degradación a localStorage era INVISIBLE: nadie consume ready/modo/lista, el único
+       rastro era un console.error, y la lista de Guardados aparecía vacía sin explicación —
+       indistinguible de «no hay estudios». El aviso es tranquilizador a propósito: en este
+       modo la app funciona y no se pierde nada, porque el arranque siguiente fusiona. */
+    const _modoRespaldo = motivo => {
+      _db = null; _lista = true;
+      _avisoDiferido('💾 Guardando en modo de respaldo — los estudios se sincronizarán automáticamente al reabrir la app');
+      return { modo: 'localStorage', motivo };
+    };
+
     _db = await _abrir();
-    if (!_db) { _lista = true; return { modo: 'localStorage', motivo: 'IndexedDB no disponible' }; }
+    if (!_db) return _modoRespaldo('IndexedDB no disponible');
 
     const enIDB = await _idbLeer();
-    if (enIDB === null) { _db = null; _lista = true; return { modo: 'localStorage', motivo: 'IndexedDB ilegible' }; }
+    if (enIDB === null) return _modoRespaldo('IndexedDB ilegible');
 
     if (enIDB.length) {                                   // ya migrado
       _local = _sanearIds(enIDB.filter(r => r.bucket === 'local').map(r => r.data));
       _chunk = _sanearIds(enIDB.filter(r => r.bucket === 'chunk').map(r => r.data));
-      const restos = _lsLocal().length + _lsChunks().length;
-      if (restos) _lsBorrar();                            // sobras de una migración cortada
+      /* NUNCA borrar sin fusionar. Acá había un `if (restos) _lsBorrar()` con el comentario
+         «sobras de una migración cortada» — que es un caso real, pero la condición `restos > 0`
+         no lo distingue del otro, que es pérdida de datos clínicos:
+
+         Sesión N: migración hecha, IndexedDB tiene todo, localStorage vacío.
+         Sesión N+1: _abrir() tarda más de 3 s (disco frío, otra pestaña bloqueando, perfil
+           privado) y el timeout la degrada a localStorage de forma irreversible —el guard
+           `listo` descarta el onsuccess posterior—. La lista de Guardados aparece VACÍA, sin
+           explicación. El médico trabaja igual y guarda al paciente X, que va a localStorage.
+         Sesión N+2: IndexedDB abre bien, enIDB tiene los viejos —X no está ahí— y `restos`
+           vale 1, así que se borraba a X del disco. Sin fusionar y sin ningún aviso.
+
+         La fusión cubre los dos casos con la misma lógica: unión por id. Para las sobras de
+         una migración cortada los registros son idénticos a los que ya están en IndexedDB, así
+         que la unión no cambia nada; para el estudio de una sesión degradada, lo incorpora. */
+      const fus = await _fusionarDesdeLS();
       _lista = true;
-      return { modo: 'indexedDB', estudios: _local.length + _chunk.length };
+      return { modo: 'indexedDB', estudios: _local.length + _chunk.length,
+               fusionados: fus.agregados, fusionPendiente: fus.pendiente };
     }
 
     /* Se migran los arrays YA SANEADOS: con los crudos, _pk se arma con el id, así que dos
@@ -19981,8 +20110,7 @@ const CeiboStore = (function () {
     }
     // Falló algo: localStorage queda INTACTO y se sigue usando.
     console.error('Migración a IndexedDB fallida; se conserva localStorage');
-    _db = null; _lista = true;
-    return { modo: 'localStorage', motivo: 'migración fallida' };
+    return _modoRespaldo('migración fallida');
   })();
 
   return {

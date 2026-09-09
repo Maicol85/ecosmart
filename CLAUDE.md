@@ -167,6 +167,67 @@ while((m=re.exec(s))){try{new Function(m[1]);}catch(e){console.log(i+': '+e.mess
 ```
 Sólo 0 y 1 deben aparecer. Cualquier otro bloque en la lista es código muerto.
 
+### Nunca borrar localStorage sin fusionar
+`_lsBorrar()` sólo puede correr **después** de escribir en IndexedDB y **verificar** la copia.
+El caso que costó el arreglo:
+
+> Sesión N: migración hecha, IndexedDB con todo, localStorage vacío.
+> Sesión N+1: `_abrir()` tarda más de 3 s —disco frío, otra pestaña, perfil privado— y el
+> timeout degrada la sesión a localStorage de forma **irreversible**: el guard `listo` descarta
+> el `onsuccess` posterior, así que una apertura simplemente lenta arruina la sesión entera. La
+> lista de Guardados aparece **vacía**, indistinguible de «no hay estudios». El médico trabaja
+> igual y lo que guarda va a localStorage.
+> Sesión N+2: IndexedDB abre bien, `enIDB` trae los viejos, y el `if (restos) _lsBorrar()`
+> —cuyo comentario decía «sobras de una migración cortada»— **borraba el estudio nuevo**. Sin
+> fusionar y sin ningún aviso.
+
+`restos > 0` no distingue una sobra de una escritura nueva y única. Hoy lo resuelve
+`_fusionarDesdeLS()`: unión por id, desempate por **`fecha_guardado` más nueva** (empate y
+fecha ilegible los gana IndexedDB), y el disco se libera sólo con la copia confirmada. Si la
+verificación falla, `fusionPendiente:true` y localStorage queda intacto para el próximo arranque.
+
+**No usar «localStorage siempre gana».** Fue la primera versión de este arreglo y estaba mal por
+una premisa falsa: que si hay IndexedDB migrado, lo que esté en localStorage se escribió después.
+`_persistir` la desmiente — cuando IndexedDB **rechaza** una escritura cae a
+`_lsGuardar(local, chunk)` con `_db` **no nulo**, o sea en sesión normal, y no vuelca el estudio
+nuevo sino **la caché entera**. localStorage queda con una foto completa de la base, y nada la
+limpia hasta el arranque siguiente. Con esa regla, un fallo transitorio de IndexedDB a las 10:00
+hacía que al otro día la fusión pisara los 60 estudios con la versión de las 10:00 — las
+ediciones de toda la jornada revertidas, y en silencio, porque el aviso colgaba de `agregados` y
+ahí `agregados` vale 0. **Un rollback de la base entera es peor que el bug original.**
+
+Contrapartida asumida: la unión no tiene tombstones, así que un estudio borrado durante una
+sesión con respaldo **vuelve a aparecer**. Se eligió ese lado a propósito —resucitar se deshace
+borrando otra vez; perder no se deshace— y el aviso lo dice en vez de anunciar sólo «sincronizado».
+
+### Los caminos que borran o reasignan un estudio
+Cualquier cosa que se cuelgue del `id` de un estudio —imágenes, adjuntos, notas externas— tiene
+que considerar estos diez. **No indexar por `informe.id`**: lo reescribe `_sanearIds` y lo
+reasigna el importador.
+
+| # | Camino | Qué hace |
+|---|---|---|
+| 1 | `eliminarInforme` (21084) | filtra y `setLocal`/`setChunk` |
+| 2 | `eliminarInformeYVolver` (23236) | **copia literal del anterior**; enganchar uno solo deja huérfanos por el otro |
+| 3 | `limpiarTodosInformes` (21097) | `setLocal([])` + chunk vacío — borra todo |
+| 4 | `importEjecutar` modo «sobre» (21259) | conserva el id y **reemplaza el contenido**: lo colgado queda atado a un estudio que ya es otro |
+| 5 | `importEjecutar` + `_nuevoIdUnico` (21258) | ante colisión el estudio entra con **id nuevo** |
+| 6 | `guardarInforme` «Sobreescribir» (20129) | reemplaza conservando `id` y `estudioId` |
+| 7 | `guardarInforme` «Guardar como nuevo» | `id` y `estudioId` **nuevos** |
+| 8 | `_sanearIds` | **cambia el `id`** en cada lectura/escritura si es inválido o duplicado — orfaniza sin que nadie borre |
+| 9 | `_idbGuardar` (19910) | barre por clave todo lo que tenga `app:'eco'` y no esté en el lote |
+| 10 | `_lsBorrar` (19837) | hoy sólo tras `_fusionarDesdeLS` con copia confirmada |
+
+`estudioId` es más estable que `id` —se preserva al sobreescribir y es lo que usa el QR— pero
+viene `undefined` en los importados de Excel/DICOM y en los backups viejos.
+
+### `toast()` clasificaba emoji como error
+La heurística usaba la clase `[⚠️❌🚫]`, que descompone los emoji en unidades UTF-16: la clase
+terminaba conteniendo el surrogate alto `U+D83D` (de `🚫`) y marcaba como error **cualquier**
+emoji de ese rango — `💾`, `🔄`, `📝`. Los avisos informativos salían con `role="alert"` y
+`aria-live="assertive"`, interrumpiendo al lector de pantalla. Va con **alternancia**
+(`/⚠️|❌|🚫|…/`), no con clase de caracteres. Vale para cualquier regex de emoji en este archivo.
+
 ### La base de procedencia del informe es lo GENERADO, no lo que quedó en pantalla
 `_infBase` contesta «¿qué escribió la app?». Devolverle la salida **fusionada** —que es lo
 natural, porque es lo que tiene el textarea— mete las líneas del médico dentro de la base, y en
