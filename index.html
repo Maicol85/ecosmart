@@ -8621,7 +8621,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   <div class="card">
     <h2 class="card-head">🖼️ Imágenes del estudio</h2>
     <div class="card-body">
-      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;">Cargá imágenes por archivo, cámara o pegando con Ctrl/Cmd+V. Doble click (PC) o tap prolongado (mobile) sobre una imagen para <b>ampliarla</b> (ancho completo y media página en el PDF). Reordená arrastrando (PC) o con tap-para-intercambiar (mobile). Las imágenes viven solo en esta sesión (no se guardan).</p>
+      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;">Cargá imágenes por archivo, cámara o pegando con Ctrl/Cmd+V. Doble click (PC) o tap prolongado (mobile) sobre una imagen para <b>ampliarla</b> (ancho completo y media página en el PDF). Reordená arrastrando (PC) o con tap-para-intercambiar (mobile). El selector de cada imagen elige con qué calidad sale en el PDF. Si activás «Guardar imágenes con los estudios» en ⚙️ Config, además quedan guardadas en este dispositivo y vuelven al reabrir el estudio; si no, viven sólo en esta sesión. <b>Nunca viajan en el backup ni en el export.</b></p>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
         <span style="font-size:12px;color:var(--text2);font-weight:600;">Cantidad de slots:</span>
         <div id="img-count-btns" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
@@ -16152,7 +16152,14 @@ window.imgGuardadoActivo = imgGuardadoActivo;
        convertía ese fallo transitorio en una destrucción permanente.
    Ahora el borrado por vaciado exige intención explícita. */
 let _imgEditado = false;
-function imgMarcarEditado() { _imgEditado = true; }
+/* La guarda va ADENTRO y no en cada llamador: con el toggle apagado `imgRestaurar` sale antes
+   de resetear la bandera, así que cruza de estudio a estudio, y `_imgEditado` es lo que
+   autoriza el BORRADO de lo persistido cuando imgSlots queda vacío. Gatear sólo en
+   imgSetCalidad dejaba abiertas las otras dos vías (imgRemove e imgCompressLoad): cargar una
+   imagen con el guardado apagado, abrir otro estudio, activar el toggle y guardar borraba las
+   imágenes de ESE estudio, que el médico nunca llegó a ver. Apagado la bandera no significa
+   nada, porque no hay disco donde borrar. */
+function imgMarcarEditado() { if (imgGuardadoActivo()) _imgEditado = true; }
 window.imgMarcarEditado = imgMarcarEditado;
 
 /* uuid del estudio cuyas imágenes están en pantalla. Lo necesita el selector de calidad para
@@ -24023,6 +24030,10 @@ function _pptDesdeFormulario(inf, tema){
   const medico = _pptTxt(c['med-nombre'] || '');
   const pie = [centro, medico, '© 2026 CeiboMed'].filter(Boolean).join(' · ');
 
+  /* Una sola fórmula de fecha para todo el PPT. Estaba duplicada en el encabezado y en el
+     cierre, y es el patrón que ya mordió a este proyecto: si una de las dos cambia de formato,
+     la MISMA presentación muestra dos fechas distintas del mismo estudio y nada lo delata. */
+  const _pptFecha = f => f ? _pptTxt(f).split('-').reverse().join('/') : '';
   const nueva = () => { const s = P.addSlide(); s.background = { color: PPT_C.bg }; return s; };
   /* El disclaimer va en TODAS las diapositivas, igual que en el PDF. Es material que se
      proyecta ante colegas, y el PDF ya tuvo el bug de una hoja sin la salvedad. */
@@ -24120,7 +24131,7 @@ function _pptDesdeFormulario(inf, tema){
     const dTipo = _pptTxt(inf.doc_tipo || 'CI');
     const edad = _pptTxt(c.edad), sexo = _pptSel('sexo') || _pptTxt(c.sexo);
     const l1 = [ (inf.ci ? dTipo+' '+_pptTxt(inf.ci) : ''), (edad ? edad+' años' : ''), sexo ].filter(Boolean).join('  ·  ');
-    const fEst = inf.fecha_estudio ? _pptTxt(inf.fecha_estudio).split('-').reverse().join('/') : '';
+    const fEst = _pptFecha(inf.fecha_estudio);
     const meta = [];
     if (l1) meta.push(l1);
     if (fEst) meta.push('Fecha del estudio: ' + fEst);
@@ -24698,12 +24709,18 @@ function _pptDesdeFormulario(inf, tema){
                       ' imagen(es) no se pudieron incluir en el PPT (formato no admitido)');
     }
     if (!buenas.length) return 0;
+    /* La grilla reserva la banda del pie (0,62") en vez de ir a sangre hasta H. Estas eran las
+       ÚNICAS diapositivas sin disclaimer: usaban P.addSlide() crudo y no llamaban conPie, con
+       lo cual rompían el invariante que declara el comentario de arriba —«va en TODAS las
+       diapositivas»— y que la hoja retirada respetaba explícitamente.
+       Son además las más propensas a circular solas: una captura de una ecografía se reenvía
+       sin el resto del set. Cuesta un 11% de alto y `contain` reparte el resto sin recortar. */
+    const HB = H - 0.62;
     for (let i = 0; i < buenas.length; i += 6) {
       const bloque = buenas.slice(i, i + 6);
       const [cols, rows] = _pptGrilla(bloque.length);
-      const cw = W / cols, ch = H / rows;
-      const s = P.addSlide();
-      s.background = { color: PPT_C.bg };
+      const cw = W / cols, ch = HB / rows;
+      const s = nueva();
       bloque.forEach((im, k) => {
         const cx = k % cols, cy = Math.floor(k / cols);
         try {
@@ -24711,6 +24728,7 @@ function _pptDesdeFormulario(inf, tema){
                        sizing: { type: 'contain', w: cw, h: ch } });
         } catch (e) { console.warn('[PPT] imagen omitida', e); }
       });
+      conPie(s);
     }
     return buenas.length;
   }
@@ -24734,11 +24752,13 @@ function _pptDesdeFormulario(inf, tema){
     const s = nueva();
     s.addText('¿Preguntas?', { x:0.5, y:1.35, w:W-1, h:1.0, fontSize:54, bold:true,
       color:PPT_C.teal, align:'center', valign:'middle', fontFace:PPT_FONT });
-    /* Datos institucionales. Todo pasa por _pptTxt —PptxGenJS escribe XML y un `&` en el nombre
-       del centro rompe el archivo— y las líneas vacías se filtran para no dejar huecos. */
+    /* Datos institucionales. Pasan por _pptTxt, que recorta CARACTERES DE CONTROL —esos sí
+       producen un .pptx que PowerPoint declara corrupto sin decir por qué—. El escape XML de
+       `&`, `<` y `>` NO lo hace _pptTxt: lo hace la librería, como aclara el comentario de su
+       definición. Anotarlo acá porque confundir las dos cosas llevaría a alguien a quitar el
+       saneo creyendo que está duplicado. Las líneas vacías se filtran para no dejar huecos. */
     const esp = _pptTxt(c['med-especialidad'] || '');
-    // Mismo formateo que el encabezado del PPT (línea ~24123): ISO → dd/mm/aaaa.
-    const fecha = (inf && inf.fecha_estudio) ? _pptTxt(inf.fecha_estudio).split('-').reverse().join('/') : '';
+    const fecha = _pptFecha(inf && inf.fecha_estudio);
     const datos = [centro, [medico, esp].filter(Boolean).join(' · '), fecha].filter(Boolean);
     if (datos.length) {
       s.addText(datos.join('\n'), { x:0.5, y:2.55, w:W-1, h:1.2, fontSize:16,
@@ -25866,8 +25886,7 @@ function imgRender(){
   });
 }
 
-/* Selector de calidad, debajo de cada imagen. Sólo con el toggle encendido: si la app no
-   guarda las imágenes, elegir con qué calidad guardarlas no significa nada.
+/* Selector de calidad, debajo de cada imagen.
 
    Sin `_orig` en memoria —estudio reabierto desde IndexedDB— se deshabilitan las opciones de
    MÁS calidad que la guardada: la única fuente sería el JPEG ya comprimido, y reescalar una
@@ -25991,6 +26010,17 @@ function imgSetCalidad(idx, cal){
   const slot = imgSlots[idx];
   if (!slot || !IMG_CAL[cal]) return Promise.resolve(false);
   if (cal === 'orig' && !slot._orig) { imgRender(); return Promise.resolve(false); }   // no hay de dónde
+  /* El original conserva el formato del archivo que cargó el médico, y `accept="image/*"` deja
+     entrar HEIC, TIFF, AVIF o SVG: el navegador los decodifica en un <img> —por eso la versión
+     comprimida sale bien— pero jsPDF no los procesa, y el bucle de imágenes del PDF es el único
+     de los tres lectores que no filtra ni envuelve en try/catch. Resultado: «⬇️ PDF» dejaba de
+     hacer nada, sin toast ni mensaje. Se rechaza en el borde y se dice por qué; la miniatura y
+     la calidad media siguen disponibles, que son JPEG producidos por el canvas. */
+  if (cal === 'orig' && !_imgSrcOK(slot._orig)) {
+    imgRender();
+    if (typeof toast === 'function') toast('⚠️ El archivo original no es JPEG ni PNG — se mantiene la versión comprimida');
+    return Promise.resolve(false);
+  }
   /* Confirmación con el peso ANTES de comprimir. El original de una ecografía son varios MB y
      la cuota del origen es COMPARTIDA con la tienda de estudios: llenarla no rompe sólo las
      imágenes. Se usa confirm() porque es el patrón de la app para lo destructivo o costoso
@@ -25999,9 +26029,24 @@ function imgSetCalidad(idx, cal){
      empujarlo a media sería un cambio que no pidió y que además ocupa más. imgRender redibuja
      desde slot.calidad, que no se tocó, así que el radio del navegador vuelve solo a su lugar. */
   if (cal === 'orig') {
-    const mb = slot._orig.length * 0.75 / 1048576;
-    const txt = mb >= 1 ? mb.toFixed(1) + ' MB' : Math.max(1, Math.round(mb * 1024)) + ' KB';
-    if (!confirm('Esta imagen pesa ~' + txt + '. ¿Guardar en calidad original?')) {
+    const _peso = _fmtMB;   // el mismo formateo que la barra de Config, no una copia
+    const txt = _peso(slot._orig.length * 0.75);
+    /* El total acumulado, no sólo esta imagen: con seis ecografías salen seis confirms de «~4 MB»
+       y ninguno dice 24. Y la consecuencia se nombra según el modo — con el guardado apagado no
+       se guarda nada en ningún lado, lo que cambia es la resolución con la que la ecografía
+       entra al PDF firmado, que es justamente para lo que sirve el selector en ese modo. */
+    const totalTrasCambio = imgSlots.reduce((n, s2) => n + (s2 && s2.dataURL ?
+      (s2 === slot ? (s2._orig || '').length : s2.dataURL.length) : 0), 0) * 0.75;
+    /* Se exigen las DOS condiciones que hacen falta para que realmente se escriba: el toggle y
+       un uuid de estudio. Con el toggle recién activado a mitad de sesión `_imgUuidActual`
+       sigue en null y no se persiste hasta el próximo Guardar — prometer disco ahí sería la
+       misma clase de mentira que ya costó una entrada de CLAUDE.md. */
+    const dest = (imgGuardadoActivo() && _uuidValido(_imgUuidActual))
+      ? 'Se guarda en este dispositivo y sale a esa resolución en el PDF.'
+      : 'Sale a esa resolución en el PDF.';
+    if (!confirm('Esta imagen pesa ~' + txt + '. ' + dest +
+                 '\n\nTotal de las imágenes del estudio: ~' + _peso(totalTrasCambio) +
+                 '.\n\n¿Usar calidad original?')) {
       imgRender();
       return Promise.resolve(false);
     }
@@ -26018,7 +26063,7 @@ function imgSetCalidad(idx, cal){
     if (gen !== _imgGen) { imgRender(); return false; }
     if (imgSlots[idx] !== slot) { imgRender(); return false; }   // el slot se movió o se borró
     slot.dataURL = url; slot.calidad = cal;
-    imgMarcarEditado();
+    imgMarcarEditado();   // la guarda por toggle vive dentro de la función
     imgRender();
     /* Se refleja en disco en el acto: si no, la barra de Config y el peso real mienten hasta el
        próximo guardado, y el médico eligió la calidad justamente para controlar el espacio.
