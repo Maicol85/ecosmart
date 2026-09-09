@@ -24651,13 +24651,10 @@ function _pptDesdeFormulario(inf, tema){
     }
   }
 
-  // ══ Hoja en blanco para el médico (sin pie, por diseño) ══
-  {
-    const s = nueva();
-    s.addText('Notas / Imágenes adicionales', { x:0.5, y:2.4, w:W-1, h:0.6, fontSize:16,
-      color:PPT_C.vacio, align:'center', fontFace:PPT_FONT });
-    conPie(s);   // también acá: una hoja del set sin la salvedad es una hoja que circula sola
-  }
+  /* La hoja en blanco «Notas / Imágenes adicionales» se retiró: existía para que el médico
+     pegara las imágenes a mano, y desde que el PPT las incluye solo era una diapositiva vacía
+     entre el contenido y el final. La reemplaza la de cierre, que se agrega en la cadena de
+     promesas DESPUÉS de las de imágenes — ver _pptCierre. */
 
   /* Nombre del archivo saneado: el apellido y el documento vienen del paciente y van a un
      nombre de archivo. Sin esto, un `/` o un `:` en el nombre produce una descarga con el
@@ -24725,8 +24722,35 @@ function _pptDesdeFormulario(inf, tema){
                         _uuidValido(inf.uuid) && typeof imgGuardadoActivo === 'function' && imgGuardadoActivo())
     ? CeiboImg.leer(inf.uuid).then(r => r || []).catch(() => []) : Promise.resolve([]);
 
+  /* Diapositiva de CIERRE. Va última, después de las de imágenes, y por eso se agrega en la
+     cadena de promesas: las de imágenes también se crean ahí, y P.addSlide() apila en el orden
+     en que se llama. Si la lectura de imágenes falla, `_pptLeerImgs` resuelve [] y el cierre se
+     agrega igual — la última diapositiva no puede depender de que IndexedDB haya respondido.
+
+     Lleva conPie() como todas: el disclaimer va en TODAS las diapositivas porque son hojas que
+     circulan solas ante colegas, y el PDF ya tuvo el defecto de una hoja sin la salvedad. El
+     branding de CeiboMed va ARRIBA del pie, no en su lugar. */
+  function _pptCierre() {
+    const s = nueva();
+    s.addText('¿Preguntas?', { x:0.5, y:1.35, w:W-1, h:1.0, fontSize:54, bold:true,
+      color:PPT_C.teal, align:'center', valign:'middle', fontFace:PPT_FONT });
+    /* Datos institucionales. Todo pasa por _pptTxt —PptxGenJS escribe XML y un `&` en el nombre
+       del centro rompe el archivo— y las líneas vacías se filtran para no dejar huecos. */
+    const esp = _pptTxt(c['med-especialidad'] || '');
+    // Mismo formateo que el encabezado del PPT (línea ~24123): ISO → dd/mm/aaaa.
+    const fecha = (inf && inf.fecha_estudio) ? _pptTxt(inf.fecha_estudio).split('-').reverse().join('/') : '';
+    const datos = [centro, [medico, esp].filter(Boolean).join(' · '), fecha].filter(Boolean);
+    if (datos.length) {
+      s.addText(datos.join('\n'), { x:0.5, y:2.55, w:W-1, h:1.2, fontSize:16,
+        color:PPT_C.txt, align:'center', valign:'top', fontFace:PPT_FONT, lineSpacingMultiple:1.35 });
+    }
+    s.addText('CeiboMed · Tecnología clínica con raíces', { x:0.4, y:H-0.92, w:W-0.8, h:0.26,
+      fontSize:12, color:PPT_C.txt2, align:'center', fontFace:PPT_FONT });
+    conPie(s);
+  }
+
   _pptLeerImgs
-    .then(imgs => { _pptAgregarImagenes(imgs); return P.writeFile({ fileName: nombreArch }); })
+    .then(imgs => { _pptAgregarImagenes(imgs); _pptCierre(); return P.writeFile({ fileName: nombreArch }); })
     .then(() => {
       if (typeof toast !== 'function') return;
       /* Los avisos ganan sobre el ✅: si algo puede haber quedado fuera del marco, eso es lo
@@ -25854,7 +25878,14 @@ function imgRender(){
    pisar los de las demás. imgRender rearma el grid entero en cada llamada, así que el estado
    del selector se lee siempre de `slot.calidad` y no del DOM. */
 function _imgSelectorCalidad(slot, idx){
-  if (typeof imgGuardadoActivo !== 'function' || !imgGuardadoActivo()) return '';
+  /* Se muestra SIEMPRE que haya imagen, con el toggle encendido o apagado. La calidad no
+     gobierna sólo lo que se persiste: gobierna los píxeles que van al PDF, que es el documento
+     que el médico firma y que existe igual con el guardado desactivado. Antes el selector
+     desaparecía con el toggle apagado y no había forma de elegir con qué resolución salía la
+     ecografía en el informe.
+     El toggle sigue controlando la persistencia y nada más: imgSetCalidad sólo escribe en
+     IndexedDB si está encendido, así que con el toggle apagado esto no toca el disco. */
+  if (!slot) return '';
   const actual = (slot && IMG_CAL[slot.calidad]) ? slot.calidad : 'media';
   const rankAct = IMG_CAL[actual].rank;
   const hayOrig = !!(slot && slot._orig);
@@ -25959,7 +25990,22 @@ function _imgComprimir(src, cal){
 function imgSetCalidad(idx, cal){
   const slot = imgSlots[idx];
   if (!slot || !IMG_CAL[cal]) return Promise.resolve(false);
-  if (cal === 'orig' && !slot._orig) return Promise.resolve(false);   // no hay de dónde
+  if (cal === 'orig' && !slot._orig) { imgRender(); return Promise.resolve(false); }   // no hay de dónde
+  /* Confirmación con el peso ANTES de comprimir. El original de una ecografía son varios MB y
+     la cuota del origen es COMPARTIDA con la tienda de estudios: llenarla no rompe sólo las
+     imágenes. Se usa confirm() porque es el patrón de la app para lo destructivo o costoso
+     (eliminarInforme, limpiarTodosInformes, cfgBorrarTodasImagenes).
+     Al cancelar se vuelve al valor ANTERIOR, no a «media» fijo: si el médico venía de miniatura,
+     empujarlo a media sería un cambio que no pidió y que además ocupa más. imgRender redibuja
+     desde slot.calidad, que no se tocó, así que el radio del navegador vuelve solo a su lugar. */
+  if (cal === 'orig') {
+    const mb = slot._orig.length * 0.75 / 1048576;
+    const txt = mb >= 1 ? mb.toFixed(1) + ' MB' : Math.max(1, Math.round(mb * 1024)) + ' KB';
+    if (!confirm('Esta imagen pesa ~' + txt + '. ¿Guardar en calidad original?')) {
+      imgRender();
+      return Promise.resolve(false);
+    }
+  }
   const gen = _imgGen;                       // ver nota de _imgGen en imgRestaurar
   const fuente = slot._orig || slot.dataURL;
   return _imgComprimir(fuente, cal).then(url => {
@@ -32112,11 +32158,13 @@ const ECO_AYUDA = [
  { tab: '📊 Exportar como PowerPoint', html: `
   <p class="mP"><strong style="color:#0D9488">Un .pptx con el estudio, listo para presentar.</strong> El botón <b>📊 PPT</b> está dentro de cada estudio guardado, al lado de Ver PDF y Eliminar. Abrí <b>Guardados</b>, tocá el estudio y ahí lo tenés.</p>
   <div class="mSub">Qué diapositivas genera</div>
-  <p class="mP">Siempre: <b>encabezado</b> con los datos del paciente, <b>parámetros ecocardiográficos</b> en tabla agrupada por cámara, el <b>informe narrativo</b> completo y una <b>hoja en blanco</b> al final. El <b>EN SUMA</b> sale si el estudio tiene conclusión cargada.</p>
+  <p class="mP">Siempre: <b>encabezado</b> con los datos del paciente, <b>parámetros ecocardiográficos</b> en tabla agrupada por cámara, el <b>informe narrativo</b> completo y una <b>diapositiva de cierre</b> al final. El <b>EN SUMA</b> sale si el estudio tiene conclusión cargada.</p>
   <p class="mP">Según lo que tenga el estudio: <b>contractilidad y strain</b> —con el bull's eye— si hay algún segmento alterado o GLS cargado, y una diapositiva por cada <b>módulo avanzado</b> que hayas integrado al informe: ETE (con CIA/CIV y TAVI si los incluiste), amiloidosis, cardio-oncología, eco pulmonar y hemodinámica.</p>
   <div class="mBox mTip"><b>Los módulos siguen el mismo criterio que el PDF.</b> Si un módulo no estaba integrado al informe cuando guardaste el estudio, no genera diapositiva. No hay un interruptor aparte para el PPT.</div>
+  <div class="mSub">Imágenes del estudio</div>
+  <p class="mP">Si el estudio tiene <b>imágenes guardadas</b> —hace falta activar «Guardar imágenes con los estudios» en ⚙️ Config— salen al final, antes del cierre, en diapositivas de hasta <b>seis por hoja</b> a pantalla completa. Diez imágenes dan dos diapositivas de seis y cuatro; siete dan una de seis y una sola grande. Si el estudio no tiene imágenes guardadas, el PPT sale sin esas diapositivas.</p>
   <div class="mSub">La última diapositiva</div>
-  <p class="mP">Queda vacía a propósito, con el rótulo «Notas / Imágenes adicionales». Es para que pegues ahí las imágenes del eco desde PowerPoint: el PPT <b>no incluye las imágenes adjuntas</b> del estudio.</p>
+  <p class="mP">Es la de <b>cierre</b>: «¿Preguntas?» en grande, debajo el centro, tu nombre y especialidad y la fecha del estudio, y al pie el sello de CeiboMed. Pensada para dejarla proyectada mientras se discute el caso.</p>
   <div class="mBox mAviso"><b>Necesita conexión a internet.</b> La librería que arma el archivo se carga junto con la app. Si no llegó a cargar —sin conexión, o con el hash de integridad desactualizado tras una actualización— la app avisa y no genera nada — no queda un archivo a medias. Y si el estudio todavía no tiene informe generado, también te lo dice: generá el informe antes de exportar.</div>
   <div class="mSub">Nombre del archivo</div>
   <p class="mP">Sale como <span class="mKbd">EcoSmart_apellido_documento_fecha_id.pptx</span>. El id del final es para distinguir dos estudios del mismo paciente en la misma fecha, que si no quedarían con el mismo nombre.</p>` },
