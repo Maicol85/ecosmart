@@ -16993,13 +16993,27 @@ function generarPDFReal() {
   _TBL_ESTILOS.clasico = {
     serif:false, hdrFill:[238,238,238], hdrText:[85,85,85], hdrUpper:false, hdrTrack:0,
     zebra:null, lblCol:[13,13,13], valCol:[30,30,30], rowPad:1.5,
-    bordeExt:[180,180,180], sepHdr:[210,210,210], divH:[210,210,210], divV:[150,150,150]
+    /* sepHdr en 180 y NO 210: en HEAD un solo `dc(180,180,180)` servía al rectángulo exterior
+       Y al separador del encabezado —el comentario decía «outer + header/data separator»— y
+       recién después bajaba a 210 para los divisores de fila. Al desarmarlo en claves quedó
+       mapeado al gris de los divisores: el separador salía 17% más claro y del MISMO tono que
+       las líneas entre filas, así que el encabezado dejaba de leerse como encabezado. */
+    bordeExt:[180,180,180], sepHdr:[180,180,180], divH:[210,210,210], divV:[150,150,150],
+    // ── barras de sección, informe, En Suma y firma ──
+    barFill:'TEMA', barText:[255,255,255], barSerif:false, barUpper:false, barLinea:null,
+    infBorde:null, infFondo:null, infSerif:false, infCol:[13,13,13], sumaCol:'TEMA',
+    tituloInforme:'INFORME', tituloSuma:'EN SUMA:',
+    firmaSerif:false, firmaMonoMatr:false, firmaCirculo:null, firmaCierre:false
   };
   _TBL_ESTILOS.moderno = {
     // Sin bordes verticales ni exterior: «sólo líneas horizontales finas».
     serif:false, hdrFill:[198,40,40], hdrText:[255,255,255], hdrUpper:false, hdrTrack:0,
     zebra:[255,245,245], lblCol:[13,13,13], valCol:[45,45,45], rowPad:1.5,
-    bordeExt:null, sepHdr:null, divH:[232,205,205], divV:null
+    bordeExt:null, sepHdr:null, divH:[232,205,205], divV:null,
+    barFill:[198,40,40], barText:[255,255,255], barSerif:false, barUpper:true, barLinea:null,
+    infBorde:[198,40,40], infFondo:[255,245,245], infSerif:false, infCol:[13,13,13], sumaCol:[198,40,40],
+    tituloInforme:'INFORME', tituloSuma:'EN SUMA:',
+    firmaSerif:false, firmaMonoMatr:false, firmaCirculo:[198,40,40], firmaCierre:false
   };
   _TBL_ESTILOS.minimalista = {
     /* Sin relleno de encabezado y sin divisores: la única decoración es la línea bajo el
@@ -17007,7 +17021,12 @@ function generarPDFReal() {
        2,6 — y eso hace la tabla más alta, que es el costo de esta plantilla. */
     serif:false, hdrFill:null, hdrText:[17,17,17], hdrUpper:true, hdrTrack:0.35,
     zebra:null, lblCol:[17,17,17], valCol:[85,85,85], rowPad:2.6,
-    bordeExt:null, sepHdr:[17,17,17], divH:null, divV:null
+    bordeExt:null, sepHdr:[17,17,17], divH:null, divV:null,
+    // Sin relleno: el título va en negro sobre blanco con una línea fina debajo.
+    barFill:null, barText:[17,17,17], barSerif:false, barUpper:true, barLinea:[17,17,17],
+    infBorde:null, infFondo:null, infSerif:false, infCol:[40,40,40], sumaCol:[17,17,17],
+    tituloInforme:'INFORME', tituloSuma:'EN SUMA',
+    firmaSerif:false, firmaMonoMatr:false, firmaCirculo:null, firmaCierre:false
   };
   _TBL_ESTILOS.academico = {
     /* `times` es el serif de jsPDF. Georgia exigiría embeber una fuente por CDN, que rompe la
@@ -17015,7 +17034,14 @@ function generarPDFReal() {
        en silencio a Times, o sea que el error se vería recién en el papel. */
     serif:true, hdrFill:[51,51,51], hdrText:[255,255,255], hdrUpper:false, hdrTrack:0,
     zebra:[244,244,244], lblCol:[17,17,17], valCol:[40,40,40], rowPad:1.6,
-    bordeExt:[51,51,51], sepHdr:null, divH:[221,221,221], divV:[190,190,190]
+    bordeExt:[51,51,51], sepHdr:null, divH:[221,221,221], divV:[190,190,190],
+    barFill:[51,51,51], barText:[255,255,255], barSerif:true, barUpper:false, barLinea:null,
+    infBorde:null, infFondo:null, infSerif:true, infCol:[25,25,25], sumaCol:[51,51,51],
+    /* Los rótulos cambian SÓLO acá. Son encabezados de sección, no contenido clínico: el texto
+       del informe y del En Suma es idéntico en las cuatro. Y no afecta al buscador del
+       Laboratorio, que grepea el campo `en_suma` guardado, no el rótulo del PDF. */
+    tituloInforme:'Informe clínico', tituloSuma:'Conclusión clínica',
+    firmaSerif:true, firmaMonoMatr:true, firmaCirculo:null, firmaCierre:true
   };
   const _TBL = _TBL_ESTILOS[_plantillaId] || _TBL_ESTILOS.clasico;
 
@@ -17136,8 +17162,18 @@ function generarPDFReal() {
       _firmaFilas.push({ txt: 'Firma: '  + _LINEA, sz: 7.2, esNombre: false, manual: true });
     } else {
       _firmaFilas.push({ txt: _nom + '.', sz: 7.2, esNombre: true });
-      _datos.filter(Boolean).forEach(t => _firmaFilas.push({ txt: t, sz: 6.0, esNombre: false }));
+      // `esMatr` marca la PRIMERA fila de datos, que es «matrícula · especialidad»: es la que
+      // la plantilla Académico pide en monospace. Se marca acá, donde se sabe cuál es.
+      _datos.filter(Boolean).forEach((t, _i) => _firmaFilas.push({ txt: t, sz: 6.0, esNombre: false, esMatr: _i === 0 }));
     }
+
+    /* Familia tipográfica de cada fila de la firma, según la plantilla. Se usa para MEDIR
+       (bucle de encogido, acá abajo) y para DIBUJAR (pie de página, ~1500 líneas más abajo):
+       tienen que ser la misma función o vuelve el desfase medir-vs-dibujar.
+       Los renglones manuales («Médico: ____») quedan siempre en Helvetica: son para completar
+       a mano y fotocopiar, y ahí la legibilidad manda sobre la coherencia estética. */
+    const _firmaFam = fila => (fila.manual || !_TBL.firmaSerif) ? 'helvetica'
+                            : (fila.esMatr && _TBL.firmaMonoMatr) ? 'courier' : 'times';
 
     // Cada fila entra en UNA línea: si no, se le achica la tipografía. Envolver
     // haría que las filas se pisen entre sí (van a 2.75 mm de distancia).
@@ -17151,14 +17187,31 @@ function generarPDFReal() {
       const escalas = [fila.sz, fila.sz - 0.5, fila.sz - 1, fila.sz - 1.4, fila.sz - 1.8];
       for (let i = 0; i < escalas.length; i++) {
         fila.sz = escalas[i];
-        doc.setFont('helvetica', fila.esNombre ? 'bolditalic' : 'normal');
+        /* La FAMILIA sale de la plantilla, igual que en el dibujo de más abajo. Medir con
+           Helvetica y estampar con Times o Courier rompe la única garantía de este bucle —que
+           la fila entra en una línea—, y como van alineadas a la derecha contra mR el excedente
+           se va por la IZQUIERDA y le come el principio a la dirección del centro. Courier es
+           notablemente más ancho, así que sin esto la firma de Académico se salía del papel. */
+        /* La familia se GUARDA en la fila, no se recalcula al dibujar. El dibujo del pie está
+           ~1500 líneas abajo y FUERA de este bloque, así que no alcanza a `_firmaFam`; y aunque
+           lo hiciera, dos llamadas separadas son dos oportunidades de divergir. Con el valor
+           persistido, medir y dibujar usan literalmente el mismo string. */
+        fila.fam = _firmaFam(fila);
+        doc.setFont(fila.fam, fila.esNombre ? 'bolditalic' : 'normal');
         /* Se MIDE al mismo tamaño al que se DIBUJA. El dibujado usa fif()/fnf(), que
            aplican _FSF, así que medir sin escalar validaba que la fila entra a S y la
            estampaba a 1,15·S. Como va alineada a la derecha contra mR, el excedente se
            iba por la izquierda y le comía el principio a la dirección del centro.
            _FSF y no _FS: la firma no acompañó la bajada de cuerpo del informe. */
         doc.setFontSize(fila.sz * _FSF);
-        if (doc.getTextWidth(fila.txt) <= pgW) break;
+        /* El presupuesto de la fila del NOMBRE descuenta el adorno. El círculo de iniciales se
+           dibuja a la izquierda del nombre, pero este bucle medía contra `pgW` entero: con un
+           nombre largo («Dra. María Fernanda Rodríguez Etchegaray» más los dos puntos) la fila
+           «entraba» y el círculo quedaba empujado más allá del margen izquierdo, donde jsPDF lo
+           dibuja recortado por el borde del papel y sin avisar. 5,4 mm = diámetro (3,8) más la
+           separación (1,6), los mismos números con los que se dibuja abajo. */
+        const _adorno = (fila.esNombre && _TBL.firmaCirculo) ? 5.4 : 0;
+        if (doc.getTextWidth(fila.txt) <= pgW - _adorno) break;
       }
     });
 
@@ -17206,9 +17259,25 @@ function generarPDFReal() {
      conclusión firmada empezar en la página siguiente. */
   function drawBar(txt) {
     y += 1.2; checkPage(_BAR_H + 1.2 + 8);
-    fc(TEMA[0],TEMA[1],TEMA[2]); doc.rect(mL, y, pgW, _BAR_H, 'F');
-    fb(8.5); tc(255,255,255);
-    doc.text(txt, mL+5, y + _BAR_PAD + _BAR_CAP);
+    /* El ALTO (_BAR_H) es el mismo en las cuatro plantillas, a propósito: de él cuelga el
+       checkPage de acá arriba y, por acumulación, dónde cae cada salto de página. Si una
+       plantilla lo cambiara, el mismo estudio saldría en distinta cantidad de hojas según una
+       preferencia estética. Lo único que varía es lo que se dibuja DENTRO de ese alto. */
+    const fill = _TBL.barFill === 'TEMA' ? TEMA : _TBL.barFill;
+    if (fill) { fc(fill[0],fill[1],fill[2]); doc.rect(mL, y, pgW, _BAR_H, 'F'); }
+    const _t = _TBL.barUpper ? String(txt).toUpperCase() : txt;
+    /* Sin relleno el texto no puede ir en x=mL+5: esos 5 mm eran el aire DENTRO de la banda de
+       color. Sobre blanco, la sangría lo despegaría del margen del resto del informe. */
+    const bx = fill ? mL + 5 : mL;
+    if (_TBL.barSerif) { doc.setFont('times','bold'); doc.setFontSize(8.5 * _FS); } else fb(8.5);
+    tc(_TBL.barText[0],_TBL.barText[1],_TBL.barText[2]);
+    doc.text(_t, bx, y + _BAR_PAD + _BAR_CAP);
+    // Línea fina bajo el título: la única decoración de la plantilla sin banda de color.
+    if (_TBL.barLinea) {
+      dc(_TBL.barLinea[0],_TBL.barLinea[1],_TBL.barLinea[2]); doc.setLineWidth(0.3);
+      doc.line(mL, y + _BAR_H - 0.6, mR, y + _BAR_H - 0.6);
+      dc(0,0,0); doc.setLineWidth(0.2);
+    }
     y += _BAR_H + 1.2;
   }
 
@@ -17246,7 +17315,10 @@ function generarPDFReal() {
        celda de tabla no puede tener saltos reales; convertirlos en separador es la semántica
        correcta. */
     const _tSan = t => {
-      const plano = String(t == null ? '' : t).replace(/\s*\n+\s*/g, ' · ');
+      /* .trim() ANTES del replace. `sv()` devuelve el value crudo de un <textarea>, así que un
+         Enter final dejaba «...cuerda. ·» con el separador colgando, y un textarea con SÓLO un
+         Enter imprimía «Notas: ·» —pasa el filtro `val !== ''`, que corre sobre el crudo—. */
+      const plano = String(t == null ? '' : t).trim().replace(/\s*\n+\s*/g, ' · ');
       return (typeof amiloSanPDF === 'function') ? amiloSanPDF(plano) : plano;
     };
     secs.forEach(sec => { sec.titulo = _tSan(sec.titulo);
@@ -17290,7 +17362,14 @@ function generarPDFReal() {
       let _t = _TBL.hdrUpper ? sec.titulo.toUpperCase() : sec.titulo;
       let _sz = 6.5;
       _cs(_TBL.hdrTrack);
-      for (let k = 0; k < 4; k++) { _tb(_sz); if (doc.getTextWidth(_t) <= cW - 4) break; _sz -= 0.5; }
+      /* El ancho se corrige a mano por el tracking: `getTextWidth` de jsPDF IGNORA el charSpace
+         con las fuentes internas —sólo lo suma en la rama de TTF embebidas—, mientras que
+         `doc.text` sí lo emite. Medido: el mismo título da 31,48 mm con setCharSpace(0) y con
+         setCharSpace(0.35), pero se estampa ~7 mm más ancho. Sin esto la garantía que promete
+         este bucle no existe, y el modo de falla es el título metiéndose en la columna vecina.
+         Hoy sobra holgura (el peor caso son 11,75 mm), pero un título más largo la consume. */
+      const _anchoReal = t2 => doc.getTextWidth(t2) + (_TBL.hdrTrack || 0) * Math.max(0, t2.length - 1);
+      for (let k = 0; k < 4; k++) { _tb(_sz); if (_anchoReal(_t) <= cW - 4) break; _sz -= 0.5; }
       tc(_TBL.hdrText[0],_TBL.hdrText[1],_TBL.hdrText[2]);
       doc.text(_t, sx+2, y+3.1);
       _cs(0);
@@ -18051,11 +18130,29 @@ function generarPDFReal() {
   // ════════════════════════════════════════════════════════════
   const informeTxt = sv('informe_texto');
   if (informeTxt) {
-    drawBar('INFORME');
+    drawBar(_TBL.tituloInforme);
     y += 2;
-    fn(8); tc(13,13,13);
+    /* Serif si la plantilla lo pide. Se fija ANTES del splitTextToSize: Times y Helvetica
+       tienen métricas distintas, así que medir con una y estampar con la otra desbordaría el
+       ancho de columna. Es la misma disciplina que ya rige en el bloque de firma. */
+    if (_TBL.infSerif) { doc.setFont('times','normal'); doc.setFontSize(8 * _FS); } else fn(8);
+    tc(_TBL.infCol[0],_TBL.infCol[1],_TBL.infCol[2]);
     const iL = doc.splitTextToSize(_sanML(informeTxt), pgW-4);
-    iL.forEach(l=>{ checkPage(6); doc.text(l,mL+2,y); y+=5.5; });
+    iL.forEach(l=>{
+      checkPage(6);
+      /* El fondo y el borde se pintan POR LÍNEA, no como un rectángulo único calculado antes.
+         El informe narrativo puede saltar de página a mitad de bloque —el checkPage está DENTRO
+         de este forEach—, así que un solo rect de alto total quedaría dibujado en la hoja donde
+         empezó y el texto continuaría en la siguiente sobre fondo blanco, con el recuadro
+         cortado. Por línea, el fondo sigue al texto a través del salto sin cálculo extra.
+         Y va antes del texto: jsPDF no tiene z-index, pinta en el orden en que se llama. */
+      if (_TBL.infFondo) { fc(_TBL.infFondo[0],_TBL.infFondo[1],_TBL.infFondo[2]);
+        doc.rect(mL, y - 3.9, pgW, 5.5, 'F'); }
+      if (_TBL.infBorde) { fc(_TBL.infBorde[0],_TBL.infBorde[1],_TBL.infBorde[2]);
+        doc.rect(mL, y - 3.9, 0.7, 5.5, 'F'); }
+      // El texto se re-fija tras los rects: fc() no toca la fuente, pero sí conviene el color.
+      tc(_TBL.infCol[0],_TBL.infCol[1],_TBL.infCol[2]);
+      doc.text(l, _TBL.infBorde ? mL+3.5 : mL+2, y); y+=5.5; });
     /* Sin cola: la barra del EN SUMA ya trae su propio aire (1,2 mm). Antes se sumaban 3 mm
        de acá + 1,5 de la barra = 4,5 mm de blanco entre el final del informe y el título. */
   }
@@ -18065,12 +18162,14 @@ function generarPDFReal() {
   // ════════════════════════════════════════════════════════════
   const sumaTxt = sv('en_suma');
   if (sumaTxt) {
-    drawBar('EN SUMA:');
+    drawBar(_TBL.tituloSuma);
     y += 2;
     /* fif y no fi: la conclusión se queda en el cuerpo de letra anterior (8 · 1,15).
        La barra "EN SUMA:" sí acompaña al resto, para que todos los encabezados de
        sección midan igual. */
-    fif(8); tc(TEMA[0],TEMA[1],TEMA[2]);
+    if (_TBL.infSerif) { doc.setFont('times','bolditalic'); doc.setFontSize(8 * _FSF); } else fif(8);
+    const _sc = _TBL.sumaCol === 'TEMA' ? TEMA : _TBL.sumaCol;
+    tc(_sc[0],_sc[1],_sc[2]);
     const sL = doc.splitTextToSize(_sanML(sumaTxt), pgW-4);
     sL.forEach(l=>{ checkPage(6); doc.text(l,mL+2,y); y+=5.5; });
     y += 3;
@@ -18646,6 +18745,17 @@ function generarPDFReal() {
   const _fCopyr = (_fModoInst && _fInst)
     ? ('© 2026 ' + _fInst + ' · Todos los derechos reservados · Uso clínico exclusivo')
     : '© 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo';
+  /* Fecha en ISO (aaaa-mm-dd) tal cual la guarda el campo, sin reordenar: es el formato que
+     pide la plantilla Académico y el que ya viene del <input type=date>. El id reusa el mismo
+     hash del encabezado para que las dos apariciones del código en la hoja coincidan. */
+  const _fechaISO = sv('fecha') || '';
+  const _idEstudio = (() => {
+    const sem = (sv('ci') || sv('nombre') || '') + '|' + (sv('fecha') || '');
+    if (!sem.replace('|','')) return '';
+    let h = 2166136261;
+    for (let i = 0; i < sem.length; i++) { h ^= sem.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return ('000000' + (h >>> 0).toString(36).toUpperCase()).slice(-6);
+  })();
   const _fDisc = 'Esta herramienta es de apoyo clínico. No reemplaza el juicio médico ni constituye una recomendación diagnóstica o terapéutica.' + (_fModoInst ? '' : ' CeiboMed © 2026');
   // Banda de pie (A4 = 297 mm): filas de firma alineadas a la derecha, apoyando
   // en 289.2 y creciendo hacia arriba; copyright 292; disclaimer 295.
@@ -18653,13 +18763,49 @@ function generarPDFReal() {
     doc.setPage(_p);
     _firmaFilas.forEach(fila => {
       // fif/fnf y no fi/fn: el pie se dibuja al mismo cuerpo al que se midió arriba.
+      /* `fila.fam` es la familia con la que se MIDIÓ arriba. fif/fnf fijan helvetica, así que
+         se aplican primero (por el tamaño y la escala _FSF) y después se pisa la familia. */
       if (fila.esNombre)   { fif(fila.sz); tc(0,0,0); }
       else if (fila.manual){ fnf(fila.sz); tc(40,40,40); }   // renglón para completar: tiene que fotocopiarse
       else                 { fnf(fila.sz); tc(90,90,90); }
+      if (fila.fam && fila.fam !== 'helvetica') doc.setFont(fila.fam, fila.esNombre ? 'bolditalic' : 'normal');
       doc.text(fila.txt, mR, fila.y, { align:'right' });
+      /* Círculo con iniciales a la izquierda del nombre. Se dibuja DENTRO del alto que la firma
+         ya ocupa —el hueco de 3,2 mm que hay sobre la fila del nombre— así que no mueve `_yMax`
+         ni repagina nada. El radio es chico a propósito: agrandarlo sería comerle líneas al
+         informe en todas las páginas. */
+      if (fila.esNombre && _TBL.firmaCirculo) {
+        const _ini = String(fila.txt).replace(/[^A-Za-zÁÉÍÓÚÑáéíóúñ ]/g,'').trim().split(/\s+/)
+          .slice(0,2).map(w => w.charAt(0).toUpperCase()).join('');
+        if (_ini) {
+          const _w = doc.getTextWidth(fila.txt), _r = 1.9;
+          const _cx = mR - _w - _r - 1.6, _cy = fila.y - 1.0;
+          const C = _TBL.firmaCirculo;
+          fc(C[0],C[1],C[2]); doc.circle(_cx, _cy, _r, 'F');
+          doc.setFont('helvetica','bold'); doc.setFontSize(4.6 * _FSF); tc(255,255,255);
+          doc.text(_ini, _cx, _cy + 0.9, { align:'center' });
+        }
+      }
     });
     fn(6.5); tc(150,150,150);
     doc.text(_sanML(_fCopyr), 105, 292, { align:'center' });
+    /* Línea de cierre de Académico: id del estudio y fecha ISO. Va en la MISMA y del copyright,
+       apoyada a la izquierda, en vez de como fila propia de la firma. Una fila más habría bajado
+       `_yMax` y repaginado el informe entero: el mismo estudio saldría en distinta cantidad de
+       hojas según el estilo elegido, que es precisamente lo que no queremos.
+       Se dibuja sólo si NO pisa al copyright, que va centrado y puede ser largo (en modo
+       institucional lleva el nombre de la clínica). Antes que superponer dos textos en el pie
+       de un informe firmado, no se estampa. */
+    if (_TBL.firmaCierre) {
+      const _idCierre = 'ECO-' + (_fechaISO || '----------') + (_idEstudio ? ' · ' + _idEstudio : '');
+      doc.setFont('times','normal'); doc.setFontSize(5.5 * _FS); tc(150,150,150);
+      const _wCierre = doc.getTextWidth(_idCierre);
+      const _wCopyr = (fn(6.5), doc.getTextWidth(_sanML(_fCopyr)));
+      if (mL + _wCierre < 105 - _wCopyr/2 - 3) {
+        doc.setFont('times','normal'); doc.setFontSize(5.5 * _FS); tc(150,150,150);
+        doc.text(_idCierre, mL, 292);
+      }
+    }
     fn(5.5); tc(160,160,160); doc.text(_sanML(_fDisc), 105, 295, { align:'center' });
   }
 
