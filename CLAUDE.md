@@ -481,3 +481,97 @@ campo `edad`, que ya está en el mapa de Excel. Hasta entonces, **saber que no h
 
 Contexto: esta sección se movió a la tab Hemodinámica el 2026-09-08 y quedó más a mano, así
 que es donde más probablemente entre un dato fuera de escala.
+
+## Hallazgos de auditoría verificados como FALSOS (2026-09-09)
+
+Seis de una tanda de siete no existían. Se documentan con la evidencia para que no vuelvan a
+entrar en una lista de correcciones: cada uno cuesta media sesión de verificación.
+
+- **«`eeHasData()` puede activarse con datos del ETE».** Invierte la relación: `eeHasData`
+  (~8012) es de Eco Estrés y sólo lee `ee-*`, `eeBull`, `eeImg`, `eeEcg`. No hay ninguna ruta
+  del ETE. Y el gate está cerrado por partida doble: la UI se retiró —cero ocurrencias de
+  `id="ee-incluir-pdf"`, `ee-res-global`, `ee-b-mets`— y su único consumidor (~18654) exige
+  `document.getElementById('ee-incluir-pdf')`, que no puede existir. El defecto real de esta
+  función (`.length` por `.some(Boolean)`) se cerró el 2026-09-08.
+- **«El bull's eye no se limpia al cargar otro paciente».** `limpiarCampos` **sí** lo limpia,
+  en las líneas 16344-16345, vía `contrReset()` y `sglReset()`. Grepear `strainEstado` dentro
+  de la función da cero y parece confirmar el bug — el reseteo va por esas dos funciones. Es
+  el caso típico donde el grep miente: medir en el navegador. Verificado pintando segmentos y
+  llamando `limpiarCampos()`: estado a 0 y el SVG repinta al color de índice 0.
+- **«El bull's eye no se captura si el canvas está fuera del viewport».** No hay canvas en
+  pantalla: el de la UI es un `<svg>` (`sgl-svg-bullseye`, 3585) y `bullseyeDataURL` (~27436)
+  crea un canvas **desprendido** con `document.createElement`. La posición del scroll es
+  irrelevante. El arreglo pedido —scrollear o «renderizar offscreen»— habría creado la segunda
+  ruta de dibujo contra la que advierte el comentario de ~26058.
+- **«FEVI Simpson calcula con un solo plano».** No existe cálculo de Simpson por planos.
+  `fevi` es un `<input type="number">` (1759) que el médico tipea, y `fevi_met` es una
+  etiqueta. Nada escribe `fevi` por código; no hay `id="fevi_simpson"`.
+- **«THP se calcula con AVm planimetría vacío».** `calcTHP` (~13340) lee sólo `thp`, tiene
+  guarda `if (!thp) { setv('avm_thp',''); return; }` y nunca mira `avm_plan`. AVm por THP es
+  220/THP (Hatle): la planimetría es una medición independiente, no una entrada.
+- **«Frases rápidas fallan con textarea >10.000 caracteres».** No hay ningún límite:
+  `frasesInsertar` (~15005) no chequea longitud y `#informe_texto` (9459) no tiene
+  `maxlength`. El único `maxlength` del archivo es 400, en la nota de caso de interés.
+
+**Lo que sí era real de esa tanda:** el aviso médico-legal sólo salía desde `doLogin()`.
+
+### El algoritmo de amiloidosis: estado de módulo que no era del formulario
+`gradoGamma` y `protMonoc` (~23557) son dos `var` de nivel superior con dato clínico del
+paciente, y el panel de conclusión son tres `div` sueltos (`#algo-title`, `#algo-body`,
+`#algo-accion`) que **no alcanza ningún barrido** de `limpiarCampos` —ni el de
+`.calc-box .calc-row span[id]` ni el de `[id$="-badge"]`—.
+
+Lo peligroso no era que no se limpiara: era que se limpiaba **a medias**. El bucle de inputs
+sí vaciaba `alg-motivo` y `alg-ett-score`, así que el paciente nuevo veía «Motivo de
+sospecha: no especificado» arriba y «ATTR confirmado — Grado 3 (VPP 100%)» abajo. Se lee
+como una evaluación fresca. Un clic en «Integrar al informe» metía el centellograma del
+paciente anterior en el informe del actual. Reproducido en el navegador.
+
+Y `resetAlgoritmo` tampoco alcanzaba solo: nuleaba las variables pero **no repintaba**,
+porque no llamaba a `actualizarAlgoritmo()`. El cartel sobrevivía también al botón «🔄 Nueva
+evaluación». Hoy `resetAlgoritmo` termina llamando a `actualizarAlgoritmo()`, y la rama
+temprana de ésa —la de estado en null— es la única que decide cómo se ve el panel vacío.
+
+**La lección general:** al agregar un módulo con estado propio, las tres columnas son
+`limpiarCampos` / `editarInforme`+`cargarEstudioPorId` / `guardarInforme`. Si falta la
+primera, el dato del paciente anterior viaja. Y un reseteo que no repinta no es un reseteo.
+
+### El aviso médico-legal falla CERRADO
+`_avisoLegalForzar()` (~1113) toca el DOM directamente en vez de llamar a `mostrarAvisoEco`,
+que vive ~33.000 líneas más abajo en otro bloque `<script>`: si ese bloque deja de parsear
+—ya pasó dos veces— la función desaparece y el aviso deja de salir.
+
+Antes había dos caminos y los dos fallaban abiertos, de forma distinta: con `typeof` era un
+no-op mudo, y la llamada pelada de `doLogin` tiraba `ReferenceError` **después** de marcar
+la sesión y ocultar el overlay, o sea que el login quedaba hecho y el disclaimer no aparecía
+nunca. Ahora, si `#modalAvisoEco` no está, se revierte al login. **No cambiar esto por un
+`try/catch` mudo:** el requisito que custodia `clinical-disclaimer-guard` no puede fallar de
+un modo que se vea igual que un arranque sano.
+
+### El z-index del login no es negociable
+`#login-overlay` está en `2147483000`. Estaba en 9999 mientras ocho overlays escritos a mano
+viven entre 99998 y 100000, así que «Cerrar sesión» levantaba la pantalla **por debajo** de
+ellos — y el modal de `editarInforme` lleva el nombre del paciente en el cuerpo. Si agregás
+un overlay, no le pongas más que eso.
+
+## Deuda conocida sin resolver
+
+- **Contraseña en el código.** `doLogin()` compara contra un literal. Choca con el checklist
+  («sin contraseñas hardcodeadas visibles»), pero es la única compuerta que tiene la app y
+  sacarla sin backend la deja abierta. Se resuelve con la migración a Supabase, no parcheando
+  del lado del cliente. Mientras tanto: **es una barrera de cortesía, no un control de
+  acceso** — cualquiera que abra el archivo la lee.
+- **`gmax_calc` puede quedar rancio.** Ver la sección de `_IG_SECTIONS`.
+- **`cerrarSesion()` no es un borde de sesión.** No recarga ni llama a `limpiarCampos` /
+  `imgVaciar`: detrás del overlay quedan intactos el formulario, las imágenes y todo el
+  estado de módulo. Y los listeners de autosave siguen enganchados, así que un input con la
+  sesión «cerrada» sigue escribiendo el formulario del paciente anterior en `localStorage`.
+  El arreglo obvio —terminar en `location.reload()`— **no alcanza solo**: `_autosaveRestore`
+  corre en `DOMContentLoaded` sin mirar `ett_auth`, así que repondría ese formulario detrás
+  del login. Cerrarlo de verdad exige decidir qué pasa con el borrador: limpiarlo pierde
+  trabajo en curso, conservarlo mantiene la fuga. Es una decisión de producto, no técnica.
+- **Si vuelve la UI de Eco Estrés, `eeResetAll` necesita vaciar `eeImg` y `eeEcg`.** Hoy sólo
+  barre `#tab-ee input/select/textarea` y `eeBull`. No fuga porque no hay UI que las pueble y
+  el PDF está gateado por `#ee-incluir-pdf`; las dos ausencias se tapan mutuamente y
+  restaurar la interfaz destapa las dos. Necesitan el tratamiento de `imgVaciar` —mutación en
+  sitio, `_imgGen++`— ANTES de que vuelva el toggle.

@@ -1101,8 +1101,15 @@ window.PF = PF;
 </script>
 
 <!-- ══ LOGIN ══ -->
+<!-- z-index por encima de TODO lo demás del archivo. Estaba en 9999 mientras ocho overlays
+     escritos a mano viven entre 99998 y 100000 (modales de guardado, de edición, .eio-ov),
+     así que «Cerrar sesión» levantaba esta pantalla POR DEBAJO de ellos: cualquiera abierto
+     al momento de cerrar seguía pintando encima — y el de editarInforme lleva el nombre del
+     paciente en el cuerpo. En una máquina compartida eso es el dato del paciente anterior
+     visible sobre la pantalla que afirma que la sesión está cerrada.
+     El valor es deliberadamente extremo: acá el orden de apilamiento no es negociable. -->
 <div id="login-overlay" style="
-  position:fixed;inset:0;z-index:9999;
+  position:fixed;inset:0;z-index:2147483000;
   background:#0f1117;
   display:flex;align-items:center;justify-content:center;
 ">
@@ -1145,10 +1152,40 @@ window.PF = PF;
 </div>
 
 <script>
+/* Compuerta del aviso médico-legal. Toca el DOM directamente en vez de llamar a
+   `mostrarAvisoEco()`, que vive ~33.000 líneas más abajo en OTRO bloque <script>: si ese
+   bloque deja de parsear —ya nos pasó dos veces, con `DCM_RANGO` y con un comentario mal
+   cerrado— la función desaparece y el aviso deja de salir. Definida acá, arriba de todo,
+   depende sólo de su propio bloque.
+
+   Y falla CERRADO. Si `#modalAvisoEco` no está en el documento no se puede consentir lo que
+   no se muestra, así que se revierte al login: un fallo visible, no uno que se ve idéntico a
+   un arranque sano. Es el mismo criterio que el hash SRI — un despliegue roto no puede
+   parecerse a uno bueno. */
+function _avisoLegalForzar() {
+  var m = document.getElementById('modalAvisoEco');
+  if (m) { m.style.display = 'flex'; return true; }
+  console.error('[aviso-legal] #modalAvisoEco no está en el DOM: se revierte la sesión al login');
+  try { sessionStorage.removeItem('ett_auth'); } catch (e) {}
+  var lo = document.getElementById('login-overlay');
+  if (lo) lo.style.display = 'flex';
+  return false;
+}
 (function() {
-  if (sessionStorage.getItem('ett_auth') === '1') {
-    document.getElementById('login-overlay').style.display = 'none';
-  }
+  if (sessionStorage.getItem('ett_auth') !== '1') return;
+  document.getElementById('login-overlay').style.display = 'none';
+  /* El aviso se mostraba SÓLO desde doLogin(), o sea únicamente en el arranque donde alguien
+     tipeaba la contraseña. Con la sesión ya abierta en `sessionStorage` —que sobrevive a F5,
+     al restaurar la pestaña y a duplicarla— el médico recargaba y entraba al formulario sin
+     verlo nunca. Y recargar es lo habitual: la app es una sola página que se usa horas.
+
+     Va acá y no en doLogin porque éste es el OTRO camino de entrada, no una repetición del
+     mismo: los dos terminan con el overlay oculto y el formulario a mano, así que los dos
+     tienen que pasar por el aviso.
+
+     Diferido a DOMContentLoaded porque este <script> está inmediatamente después del overlay
+     de login, con el resto del documento sin parsear: `#modalAvisoEco` todavía no existe. */
+  document.addEventListener('DOMContentLoaded', _avisoLegalForzar, { once: true });
 })();
 function toggleLoginPwd() {
   const inp = document.getElementById('login-pwd');
@@ -1166,7 +1203,11 @@ function doLogin() {
     document.getElementById('login-pwd').value = '';
     sessionStorage.setItem('ett_auth', '1');
     document.getElementById('login-overlay').style.display = 'none';
-    mostrarAvisoEco();
+    /* `_avisoLegalForzar` y no `mostrarAvisoEco`: acá la llamada pelada era la peor de las
+       dos ramas. Tiraba ReferenceError DESPUÉS de marcar la sesión y ocultar el overlay, o
+       sea que el login quedaba hecho, el médico entraba al formulario y el disclaimer no
+       aparecía nunca — sin nada en pantalla. Ahora, si el modal no está, se revierte. */
+    _avisoLegalForzar();
   } else {
     document.getElementById('login-err').textContent = 'Contraseña incorrecta';
     document.getElementById('login-pwd').value = '';
@@ -16315,6 +16356,13 @@ function limpiarCampos() {
      tanda. guardarInforme sólo lo limpia al confirmar una de las dos opciones del modal, así
      que ninguna otra ruta lo apagaba. */
   window._ettEditandoId = null;
+  /* El id hermano, por el mismo motivo. Hoy es latente —`eeStudyUrl`/`eeQrDataURL` no tienen
+     un solo call site, el QR no se dibuja—, pero la casilla #cfg-qr sigue viva en Config, o
+     sea que la interfaz promete la función. El día que se reconecte, generar el PDF del
+     paciente B antes de guardarlo daría un código que resuelve al estudio de A. Es el mismo
+     defecto que ya tuvimos que cerrar en CardioSalud; sale más barato la línea que la
+     próxima sesión averiguándolo. */
+  if (typeof eeCurrentInformeId !== 'undefined') eeCurrentInformeId = null;
   /* Las imágenes NO se vacían acá: ver imgVaciar(), que lo hace sólo en «Nuevo estudio».
      limpiarCampos también lo llama editarInforme, y ahí borrarlas sería destruir dato
      irrecuperable —no se persisten con el estudio— por reabrir un informe a corregir. */
@@ -16410,6 +16458,20 @@ function limpiarCampos() {
   // paciente nuevo arrancaba con los criterios del anterior marcados y puntuando, y
   // desde que los cálculos viven en un acordeón colapsado eso ya ni se ve.
   if (typeof resetETT === 'function') resetETT();
+  /* Algoritmo diagnóstico de amiloidosis. `gradoGamma` y `protMonoc` son dos `var` de nivel
+     superior que sólo se limpiaban desde el botón «🔄 Nueva evaluación», y el panel de
+     conclusión (#algo-title / #algo-body / #algo-accion, divs sueltos) no lo alcanza ningún
+     barrido de esta función.
+
+     El resultado era peor que «no se limpia»: quedaba MEDIO limpio. El bucle de arriba sí
+     vacía los inputs de la pestaña —`alg-motivo` vuelve al índice 0 y `alg-ett-score` a ''—,
+     así que el paciente nuevo veía «Motivo de sospecha: no especificado» arriba y
+     «ATTR confirmado — Grado 3 (VPP 100%)» abajo, que se lee como una evaluación fresca.
+     Un clic en «Integrar al informe» metía el centellograma del paciente anterior —grado
+     Perugini y proteínas monoclonales— en el informe del actual. Reproducido. */
+  if (typeof resetAlgoritmo === 'function') {
+    try { resetAlgoritmo(); } catch (e) { console.error('[limpiarCampos] resetAlgoritmo:', e); }
+  }
   // Módulos de ETT Avanzado: el bucle de arriba vacía los am-txt-*, pero los bloques
   // seguían VISIBLES, así que el paciente nuevo arrancaba con los módulos del anterior
   // integrados (botones en verde) y su vista previa todavía en pantalla. Peor aún: con
@@ -24680,6 +24742,17 @@ function actualizarAlgoritmo() {
   if(gradoGamma === null || protMonoc === null) {
     panel.className = 'result-panel';
     if(escenEl) escenEl.style.display='none';
+    /* Los tres divs vuelven a su marcador inicial. Esta rama sólo bajaba la clase del panel
+       y ocultaba el escenario, así que el TEXTO de la conclusión anterior seguía en pantalla
+       con el estado ya en null. Con «🔄 Nueva evaluación» el médico veía «ATTR confirmado —
+       Grado 3 (VPP 100%)» sobre una evaluación vacía; y desde que limpiarCampos llama a
+       resetAlgoritmo, ese cartel pasaba al paciente siguiente.
+       Se restaura el '—' del HTML (líneas 9780-9782), no cadena vacía: el panel tiene que
+       decir «no hay evaluación», no quedar mudo. */
+    if(titleEl)  titleEl.textContent  = '—';
+    if(bodyEl)   bodyEl.textContent   = '—';
+    if(accionEl) accionEl.textContent = '';
+    if(iconEl)   iconEl.textContent   = '🔬';   // el del HTML (9778), no vacío
     return;
   }
 
@@ -24746,9 +24819,20 @@ function actualizarAlgoritmo() {
 function resetAlgoritmo() {
   gradoGamma = null; protMonoc = null;
   document.querySelectorAll('.grado-item').forEach(el => el.classList.remove('selected'));
-  document.getElementById('prot-neg').classList.remove('selected');
-  document.getElementById('prot-abn').classList.remove('selected');
-  document.getElementById('algo-result').className = 'result-panel';
+  /* Con guarda de null: desde que limpiarCampos llama a esta función, un getElementById
+     pelado sobre una UI que se retire mañana tira acá y se lleva puesto todo lo que
+     limpiarCampos hace DESPUÉS — el paciente nuevo arrancaría con medio formulario del
+     anterior. Es el mismo modo de falla que ya documentamos con `DCM_RANGO`. */
+  ['prot-neg', 'prot-abn'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.classList.remove('selected');
+  });
+  const resEl = document.getElementById('algo-result'); if (resEl) resEl.className = 'result-panel';
+  /* Repintar el panel vacío es responsabilidad de actualizarAlgoritmo, que con el estado en
+     null cae en su rama temprana y devuelve los tres divs a su marcador. Sin esta llamada,
+     `resetAlgoritmo` bajaba la clase del panel pero dejaba el TEXTO de la conclusión
+     anterior: el cartel «ATTR confirmado — Grado 3» sobrevivía tanto a «🔄 Nueva evaluación»
+     como al paciente siguiente. Una sola función decide cómo se ve el panel. */
+  if (typeof actualizarAlgoritmo === 'function') actualizarAlgoritmo();
   var escenEl = document.getElementById('escenario-box');
   if(escenEl) escenEl.style.display='none';
   ['alg-ett-score'].forEach(id=>{
