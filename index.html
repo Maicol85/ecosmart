@@ -13178,7 +13178,13 @@ function calcDiastolASE2016() {
     else if (pos === 1) { texto = 'Función diastólica indeterminada (1/3 criterios de presión de llenado positivos).'; textoSuma = 'Función diastólica indeterminada.'; cls = 'gray'; badgeTxt = 'Indeterminado — ASE 2016'; }
     else {              // pos === 0: presiones de llenado normales
       const ePrimeBajo = (esep !== null && esep < 7) || (elat !== null && elat < 10) || (eprom !== null && eprom < 8);
-      if (ePrimeBajo)       { texto = 'Patrón de relajación alterada con presiones de llenado normales (Disfunción diastólica Grado I).'; textoSuma = 'Disfunción diastólica Grado I (relajación alterada).'; cls = 'yellow'; badgeTxt = 'Grado I — ASE 2016'; }
+      /* Un E/A ≤0,8 NO puede salir «normal» por esta rama. Antes de mover el borde a `<=0,8`, el
+         caso «E/A ≤0,8 con E >50» caía en un `else` final que decía «Indeterminada»; al hacer
+         esta rama el catch-all, ese paciente pasó a poder terminar en verde con 0/3 criterios.
+         Un cociente ≤0,8 es relajación prolongada por definición, así que se fuerza Grado I:
+         omitir es aceptable, afirmar normalidad no. */
+      const eaBajo = (ea !== null && ea <= 0.8);
+      if (ePrimeBajo || eaBajo)       { texto = 'Patrón de relajación alterada con presiones de llenado normales (Disfunción diastólica Grado I).'; textoSuma = 'Disfunción diastólica Grado I (relajación alterada).'; cls = 'yellow'; badgeTxt = 'Grado I — ASE 2016'; }
       else if (disp >= 2)   { texto = 'Función diastólica normal.'; textoSuma = 'Función diastólica normal.'; cls = 'green'; badgeTxt = 'Normal — ASE 2016'; }
       else                  { texto = 'Función diastólica indeterminada.'; textoSuma = 'Función diastólica indeterminada.'; cls = 'gray'; badgeTxt = 'Indeterminado — ASE 2016'; }
     }
@@ -14797,6 +14803,16 @@ function calcContIM() {
   if (sEl) {
     /* Sólo por el método VOLUMÉTRICO (Vol-R y FR), que son los dos parámetros que este bloque
        calcula bien. Los cortes son los de ASE/ESC: severa ≥60 ml o ≥50 %; leve <30 ml y <30 %. */
+    /* Vol-R ≤ 0 no es una insuficiencia leve: es la resta de dos volúmenes medidos por separado
+       dando ruido, algo esperable en un estudio de estenosis mitral —los mismos campos alimentan
+       el área por continuidad de calcEM— donde la insuficiencia puede ser nula. Sin esta guarda
+       se imprimía «Leve · Vol-R -9,0 ml · FR -11 %», y la etiqueta nueva es más creíble que la
+       vieja. */
+    if (volR <= 0) {
+      sEl.innerHTML = '<span style="color:var(--text2);">Sin regurgitación significativa por método volumétrico</span>';
+      if (fEl) fEl.value = '';
+      return;
+    }
     let sev = '', color = '';
     if (volR < 30 && fr < 30) {
       sev = 'Leve'; color = '#3ecf8e';
@@ -22198,6 +22214,12 @@ function editarInforme(id) {
     /* VEXUS: sin esto el acordeón queda mostrando el score del estudio anterior, porque el
        badge y la interpretación viven en spans que nada reescribe al cargar los campos. */
     if (typeof calcVEXUS === 'function') calcVEXUS();
+    /* calcContIM: los estudios guardados antes de que se quitara la «EROA por continuidad»
+       traen `campos.im_eroa_cont` con el número fabricado (483 mm²), y editarInforme lo repone
+       tal cual con `el.value = val`. Sin recalcular, el médico reabre un estudio viejo y sigue
+       leyendo el número inventado — el placeholder sólo se ve con el campo vacío. La
+       reimpresión ya estaba cubierta; faltaba la edición. */
+    if (typeof calcContIM === 'function') calcContIM();
     /* CIA/CIV y TAVI: los espejos de solo lectura, el Qp/Qs, la severidad de RPV y el bitmap
        del canvas EPC se pintan por JS. Sin esto, un estudio reabierto mostraba los campos
        poblados pero el diagrama en blanco, «Sin jet marcado» y el Qp/Qs en «—». */
@@ -22427,16 +22449,37 @@ window._accTexto = _accTexto;
    abiertas se filtra para siempre si el médico las cierra sin elegir, y una app que no puede
    volver a guardar hasta recargar es peor que el defecto que se venía a cerrar. Por eso se
    libera en `finally`, que corre tanto si la promesa resuelve como si rechaza. */
-let _guardEnVuelo = false;
+/* `var` y no `let`: en nivel superior de un <script>, un `let` reintroduce la trampa de zona
+   muerta que este archivo ya documenta. Si algo por encima lanza en nivel superior, con `let` el
+   guardado moriría con ReferenceError; con `var` sigue funcionando. */
+var _guardEnVuelo = false;
+var _guardWatchdog = null;
+function _guardLiberar() { _guardEnVuelo = false; clearTimeout(_guardWatchdog); _guardWatchdog = null; }
 function _guardarConSemaforo(informes, cb) {
   if (_guardEnVuelo) {
     if (typeof toast === 'function') toast('⏳ Ya se está guardando — esperá un momento');
+    /* Se llama al callback igual. `neGuardarYContinuar` pasa un `onDone` y sin esto «Nuevo
+       estudio» se quedaba a mitad de camino, sin más señal que el toast. */
+    try { cb(false); } catch (e) { console.error('[guardar] callback:', e); }
     return Promise.resolve(false);
   }
   _guardEnVuelo = true;
-  return guardarInformesSeguro(informes)
-    .then(ok => { try { cb(ok); } finally { _guardEnVuelo = false; } return ok; })
-    .catch(e => { _guardEnVuelo = false; throw e; });
+  /* Watchdog. `_idbGuardar` NO tiene timeout —a diferencia de `_abrir`, que sí lleva el suyo—,
+     así que una transacción que no dispara ni onsuccess ni onerror (pestaña estrangulada, upgrade
+     bloqueado desde otra pestaña) deja la promesa sin asentar y el `finally` no corre. Antes del
+     semáforo eso era un guardado colgado; con el semáforo sería el botón Guardar inutilizado
+     hasta recargar, con un estudio completo en pantalla. Liberar de más sólo reabre la ventana de
+     doble escritura; no liberar nunca deja al médico sin poder guardar. */
+  _guardWatchdog = setTimeout(() => { _guardEnVuelo = false; _guardWatchdog = null; }, 15000);
+  /* El try envuelve la LLAMADA, no sólo la promesa: `setLocal` corre `_sanearIds` de forma
+     sincrónica y `_persistir` en modo respaldo evalúa `_lsGuardar` como argumento de
+     `Promise.resolve`. Un throw ahí escapa ANTES de que se enganchen los handlers y dejaba la
+     bandera tomada para siempre. */
+  try {
+    return guardarInformesSeguro(informes)
+      .then(ok => { try { cb(ok); } finally { _guardLiberar(); } return ok; })
+      .catch(e => { _guardLiberar(); throw e; });
+  } catch (e) { _guardLiberar(); throw e; }
 }
 
 function guardarInforme(onDone) {
@@ -27814,7 +27857,7 @@ function _labIndicadoresList(infs) {
       casos: infs.filter(i => { const ee = _labEeProm(i); return ee !== null && ee > 14 && _labDiastGrado(i) === null; }) },
     { lbl: 'Vol AI elevado sin función diastólica documentada',
       casos: infs.filter(i => { const l = _labLavi(i); return l !== null && l > 34 && _labDiastGrado(i) === null; }) },
-    { lbl: 'GLS anormal (peor que -18%) con FEVI conservada',
+    { lbl: 'GLS anormal (|GLS| <16 %) con FEVI conservada con FEVI conservada',
       /* Se compara el VALOR ABSOLUTO contra 16, que es el corte de `calcSGL` para «anormal»
          (≥20 normal · 16-20 zona gris · <16 anormal). El `g > -18` anterior contaba como anormal
          TODO strain tipeado en positivo, y además usaba un umbral que ningún informe individual
@@ -28049,7 +28092,9 @@ function labInit() {
       '♀ ' + Math.round(nF/t*100) + '% (n=' + nF + ') &nbsp;·&nbsp; ♂ ' + Math.round(nM/t*100) + '% (n=' + nM + ')';
   }
 
-  const glss = infs.map(i => numCampo(i,'sgl')).filter(v => v !== null && v !== 0);
+       /* |GLS| como en el PDF de auditoría y en Comparar: sin esto la pantalla decía -1,2 %
+         y el PDF firmado 18,4 % sobre la MISMA cohorte. */
+      const glss = infs.map(i => numCampo(i,'sgl')).filter(v => v !== null && v !== 0).map(Math.abs);
   if (glss.length)
     document.getElementById('lab-gls-prom').textContent =
       (glss.reduce((a,b)=>a+b,0)/glss.length).toFixed(1) + '% (n=' + glss.length + ')';
@@ -33296,8 +33341,16 @@ function aplicarFiltros() {
          descartaba. Elegir cualquier opción del desplegable vaciaba la lista entera y el médico
          concluía que no tenía esos pacientes. Los filtros numéricos de veinte líneas más abajo
          ya usaban el accesor, así que dos filtros contiguos respondían distinto del mismo dato. */
-      const fevi = _labFevi({ campos: c });
-      if (isNaN(fevi)) return false;
+      const fevi = _labFevi(inf);
+      /* `=== null` y NO `isNaN`. `_labFevi` devuelve `null` cuando no hay dato, y `isNaN(null)` es
+         FALSE porque `Number(null)` es 0: con la guarda vieja los estudios sin FEVI pasaban el
+         filtro y, como `null > 30` también es false, aparecían dentro de «FEVI < 30 %». Eso es
+         PEOR que el bug que este arreglo vino a cerrar — una lista vacía se lee como «no tengo
+         esos pacientes», una lista poblada con casos falsos se lee como un resultado—. Y era
+         asimétrico: `null < 50` sí es true, así que «≥50 %» los excluía y los dos extremos del
+         mismo desplegable no eran complementarios. Es el patrón que ya usan los filtros
+         avanzados de más abajo (`if (fv === null || ...) return false`). */
+      if (fevi === null) return false;
       if (filtroFevi === 'lt30'  && fevi > 30)  return false;
       if (filtroFevi === 'lt40'  && fevi > 40)  return false;
       if (filtroFevi === 'lt50'  && fevi >= UMBRAL_FEVI_NORMAL) return false;
