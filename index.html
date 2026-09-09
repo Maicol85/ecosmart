@@ -19755,12 +19755,64 @@ function escHtml(s) {
 // estudios de las otras apps y EcoEstrés importa el eco basal de EcoSmart.
 // Por eso cada registro lleva su `app` y el store se crea igual desde
 // cualquiera de ellas.
+/* ══════════════════════════════════════════════════════════════════════════════
+   uuid — clave ESTABLE del estudio
+   ══════════════════════════════════════════════════════════════════════════════
+   `id` es un índice numérico interno y NO sirve para colgarle nada: `_sanearIds` lo reescribe
+   en cada lectura/escritura si es inválido o duplicado, y los importadores lo reasignan ante
+   colisión. Cualquier recurso externo indexado por `id` —imágenes, adjuntos— se orfanaría solo,
+   sin que nadie borre nada. `estudioId` es más estable pero viene undefined en los importados
+   de Excel/DICOM y en los backups viejos.
+
+   `uuid` se genera UNA vez y no se modifica nunca más. Ni al sanear, ni al editar, ni al
+   sobreescribir, ni al reasignar el id.
+
+   Declaración de FUNCIÓN y no `const`: _sanearIds las llama durante la evaluación del IIFE de
+   CeiboStore (el llenado síncrono de la caché), y un `const` declarado más abajo tiraría
+   ReferenceError por zona muerta — que en este archivo ya se llevó puesto un bloque <script>
+   entero. Las funciones se hoistean y quedan disponibles. */
+function _uuidValido(v) {
+  return typeof v === 'string' && v.length >= 8 && v.length <= 64 && /^[A-Za-z0-9-]+$/.test(v);
+}
+function _uuidNuevo() {
+  /* crypto.randomUUID exige CONTEXTO SEGURO: en https y en localhost está, pero esta app se
+     abre con doble clic (file://) y se sirve por http en la LAN del sanatorio, y ahí queda
+     undefined. El fallback no es decorativo: es el camino habitual en dos de los tres modos de
+     uso. Se le antepone `x` para que un uuid del fallback se distinga a simple vista de uno
+     canónico al depurar. */
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  } catch (e) { /* algunos navegadores tiran en contexto inseguro en vez de no definirla */ }
+  /* Segundo escalón: getRandomValues NO está gateada por contexto seguro y existe en todos los
+     contextos donde randomUUID falta —incluido http://192.168.x.x, que es como se usa desde la
+     tablet contra la laptop—. El archivo ya la usa en _dcmUID. Sin esto, la clave estable de un
+     estudio clínico salía de Math.random en uno de los tres modos de uso reales. */
+  try {
+    const c = (typeof crypto !== 'undefined' ? crypto : null) || window.msCrypto;
+    if (c && typeof c.getRandomValues === 'function') {
+      const b = new Uint8Array(16); c.getRandomValues(b);
+      let s = 'x'; for (let i = 0; i < b.length; i++) s += b[i].toString(16).padStart(2, '0');
+      return s;
+    }
+  } catch (e) { /* sin CSPRNG: cae al último escalón */ }
+  return 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2) +
+         Math.random().toString(36).slice(2);
+}
+window._uuidNuevo = _uuidNuevo; window._uuidValido = _uuidValido;
+
 const CeiboStore = (function () {
   const DB_NAME = 'ceibomed', DB_VER = 1, STORE = 'informes', APP = 'eco';
   const LS_MAIN = 'ett_informes', LS_CHUNK = 'ett_informes_chunk_';
   let _db = null;                    // IDBDatabase, o null si no hay IndexedDB
   let _local = [], _chunk = [];      // caché en memoria (lecturas síncronas)
   let _lista = false;
+  /* Cuenta de uuid asignados por la migración perezosa. _sanearIds los pone EN MEMORIA; si el
+     arranque no persiste, el uuid muere con la pestaña y el arranque siguiente genera otro
+     distinto para el mismo estudio. En una sesión de sólo consulta —abrir, mirar, colgarle
+     imágenes a un estudio viejo— eso deja las imágenes huérfanas sin que nadie haya editado ni
+     borrado nada, y rompe la única promesa del campo: que no cambia nunca. Por eso el arranque
+     fuerza UNA escritura cuando la cuenta es > 0. */
+  let _uuidAsignados = 0;
 
   // ── localStorage (fuente inicial y respaldo) ──
   /* ══ Saneo de id en el BORDE DE LECTURA ══
@@ -19816,6 +19868,17 @@ const CeiboStore = (function () {
         while (vistos.has(n)) n = _ETT_ID_BANDA + ((n - _ETT_ID_BANDA + 1) % 1e14);   // choque de hash
       }
       r.id = n; vistos.add(n);
+      /* Migración perezosa del uuid. Se asigna SÓLO si falta; un uuid existente no se toca
+         nunca, ni acá ni en ningún otro lado — ésa es toda su razón de ser. Va en este borde
+         porque es por donde pasan todas las lecturas y todas las escrituras del store, así que
+         un estudio anterior a este campo queda con uuid la primera vez que se lo lee, sin
+         necesidad de migrar la base entera de una vez.
+         NO se deduplica el uuid acá: _local y _chunk contienen legítimamente el mismo estudio
+         (ver el comentario de arriba), así que dos registros con el mismo uuid en esta lista
+         son la MISMA ficha y regenerar uno rompería precisamente la estabilidad que da sentido
+         al campo. La unicidad se cuida donde se CREAN o COPIAN estudios: guardarInforme y los
+         importadores. */
+      if (!_uuidValido(r.uuid)) { r.uuid = _uuidNuevo(); _uuidAsignados++; }
     });
     return lista;
   };
@@ -20057,6 +20120,9 @@ const CeiboStore = (function () {
        modo la app funciona y no se pierde nada, porque el arranque siguiente fusiona. */
     const _modoRespaldo = motivo => {
       _db = null; _lista = true;
+      // Ídem que en la rama de IndexedDB: los uuid recién asignados tienen que quedar en disco,
+      // acá en localStorage, o cambian en el arranque siguiente.
+      if (_uuidAsignados > 0) { try { _persistir(); } catch (e) { console.warn('[CeiboStore] persistir uuid', e); } }
       _avisoDiferido('💾 Guardando en modo de respaldo — los estudios se sincronizarán automáticamente al reabrir la app');
       return { modo: 'localStorage', motivo };
     };
@@ -20086,6 +20152,13 @@ const CeiboStore = (function () {
          una migración cortada los registros son idénticos a los que ya están en IndexedDB, así
          que la unión no cambia nada; para el estudio de una sesión degradada, lo incorpora. */
       const fus = await _fusionarDesdeLS();
+      /* La fusión ya persiste cuando movió algo, y ahí van los uuid nuevos de arrastre. Si no
+         movió nada, esta es la única oportunidad de fijar en disco los uuid que la migración
+         perezosa acaba de asignar. Una sola escritura, la primera vez que se abre una base
+         anterior a este campo. */
+      if (_uuidAsignados > 0 && !fus.agregados && !fus.pisados) {
+        try { await _persistir(); } catch (e) { console.warn('[CeiboStore] persistir uuid', e); }
+      }
       _lista = true;
       return { modo: 'indexedDB', estudios: _local.length + _chunk.length,
                fusionados: fus.agregados, fusionPendiente: fus.pendiente };
@@ -20174,7 +20247,11 @@ function guardarInformesSeguro(informes) {
 }
 
 // ── Validación de esquema para import JSON (FIX A2) ──
-const _INF_CAMPOS_PERMITIDOS = ['id','estudioId','nombre','ci','doc_tipo','fecha_estudio','fecha_guardado','campos','importado_pdf','archivo_origen'];
+/* `uuid` es obligatorio en esta lista aunque sea opcional en el dato: la validación RECHAZA el
+   informe ENTERO ante un campo desconocido (más abajo), así que sin esta entrada cualquier
+   backup exportado desde esta versión en adelante sería irrecuperable — el archivo se vería
+   bien y el import diría «0 estudios válidos». */
+const _INF_CAMPOS_PERMITIDOS = ['id','estudioId','uuid','nombre','ci','doc_tipo','fecha_estudio','fecha_guardado','campos','importado_pdf','archivo_origen'];
 // Únicas claves de `campos` que guardarInforme() escribe como array (los checklists
 // del panel Paciente). El resto es string; contractilidad/contr_flags van con
 // JSON.stringify, así que también son strings.
@@ -20187,6 +20264,11 @@ function validarInformeImportado(inf) {
   const strMax = (v, max) => typeof v === 'string' && v.length <= max;
   if (typeof inf.id !== 'number') return false;
   if (inf.estudioId !== undefined && !strMax(inf.estudioId, 40)) return false;
+  /* Formato acotado, no sólo largo: el uuid va a ser clave de un object store de IndexedDB y
+     puede terminar interpolado en la interfaz al depurar. Se valida con la misma función que
+     usa el store, así que el criterio es uno solo. Ausente es válido — los backups anteriores
+     a este campo no lo traen y _sanearIds se lo asigna al leerlos. */
+  if (inf.uuid !== undefined && !_uuidValido(inf.uuid)) return false;
   if (!strMax(inf.nombre, 200)) return false;
   if (!strMax(inf.ci, 60)) return false;
   if (inf.doc_tipo !== undefined && !strMax(inf.doc_tipo, 20)) return false;
@@ -20611,6 +20693,7 @@ function guardarInforme(onDone) {
           ? _nuevoIdUnico(new Set(informes.map(i => i.id)))
           : Date.now(),
     estudioId: Date.now().toString(36) + Math.random().toString(36).substr(2,5),  // ID único para QR / carga por URL
+    uuid: _uuidNuevo(),          // clave estable para recursos externos — ver _uuidNuevo
     nombre: nombre || '—',
     ci: ci || '—',
     doc_tipo: document.getElementById('doc_tipo')?.value || 'CI',
@@ -20647,7 +20730,15 @@ function guardarInforme(onDone) {
       ov2.remove();
       window._ettEditandoId = null;
       const idx = informes.findIndex(i => i.id === idEditando);
-      if (idx >= 0) informes[idx] = { ...nuevoInforme, id: idEditando, estudioId: informes[idx].estudioId || nuevoInforme.estudioId };
+      /* El uuid del registro original se conserva, igual que estudioId: «Sobreescribir» es la
+         MISMA ficha con datos corregidos, no una nueva. Si acá entrara el uuid recién generado
+         de `nuevoInforme`, editar un estudio le cambiaría la clave estable y desconectaría sus
+         imágenes — exactamente el fallo que este campo viene a evitar, y por la vía más
+         frecuente de todas. Si el idx no aparece se cae a `unshift` más abajo, que sí es un
+         estudio nuevo y se queda con su uuid propio. */
+      if (idx >= 0) informes[idx] = { ...nuevoInforme, id: idEditando,
+        estudioId: informes[idx].estudioId || nuevoInforme.estudioId,
+        uuid: _uuidValido(informes[idx].uuid) ? informes[idx].uuid : nuevoInforme.uuid };
       else informes.unshift(nuevoInforme);
       eeCurrentInformeId = (idx >= 0) ? informes[idx].estudioId : nuevoInforme.estudioId;
       guardarInformesSeguro(informes).then(_okO => {
@@ -21304,6 +21395,12 @@ async function importEjecutar() {
   const modo = document.querySelector('input[name="imp-dup"]:checked')?.value || 'omitir';
   let existentes = getInformes();
   const usados = new Set(existentes.map(i => i.id));
+  /* El uuid entrante se CONSERVA —es lo que permite que un backup restaurado siga encontrando
+     sus recursos— pero nunca se admite repetido: dos fichas distintas con el mismo uuid rompen
+     la clave igual que si cambiara. Pasa al importar dos veces el mismo archivo en modo
+     «todos», o al restaurar un backup sobre una base que ya tiene esos estudios con otra fecha
+     (y por lo tanto otra _dupKey). */
+  const uuidsUsados = new Set(existentes.map(i => i.uuid).filter(_uuidValido));
   const keyToIdx = new Map(); existentes.forEach((i, idx) => keyToIdx.set(_dupKey(i), idx));
   let importados = 0, omitidos = 0, sobreescritos = 0;
   _impDatos.forEach(inf => {
@@ -21312,13 +21409,22 @@ async function importEjecutar() {
     if (esDup && modo === 'omitir') { omitidos++; return; }
     if (esDup && modo === 'sobre') {
       const idx = keyToIdx.get(k);
-      existentes[idx] = { ...inf, id: existentes[idx].id };   // conserva el id existente (no rompe referencias)
+      /* Se conserva el uuid del registro EXISTENTE, no el del archivo: «sobreescribir» actualiza
+         una ficha que ya está, y tomar el uuid entrante desconectaría las imágenes que esa ficha
+         ya tenía colgadas. Mismo criterio que el «Sobreescribir informe original» de
+         guardarInforme. */
+      const uuidPrevio = _uuidValido(existentes[idx].uuid) ? existentes[idx].uuid : _uuidNuevo();
+      existentes[idx] = { ...inf, id: existentes[idx].id, uuid: uuidPrevio };   // conserva el id existente (no rompe referencias)
+      uuidsUsados.add(uuidPrevio);
       sobreescritos++; return;
     }
     // 'todos' o no-duplicado → agregar con id único
     let nid = inf.id;
     if (nid == null || usados.has(nid)) nid = _nuevoIdUnico(usados); else usados.add(nid);
-    existentes.push({ ...inf, id: nid });
+    let nuuid = inf.uuid;
+    if (!_uuidValido(nuuid) || uuidsUsados.has(nuuid)) nuuid = _uuidNuevo();
+    uuidsUsados.add(nuuid);
+    existentes.push({ ...inf, id: nid, uuid: nuuid });
     keyToIdx.set(k, existentes.length - 1);
     importados++;
   });
@@ -27223,7 +27329,11 @@ async function labImpEjecutar() {
     }
     const nid = _nuevoIdUnico(usados);
     _sevManualEnCampos(inf.campos);
+    /* uuid propio: `inf` viene del parser de la planilla, no de un estudio existente, así que
+       esto es una ficha NUEVA. _sanearIds se lo asignaría igual al persistir, pero explícito
+       evita que la identidad dependa de un efecto lateral del borde del store. */
     const nuevo = { ...inf, id: nid, estudioId: Date.now().toString(36) + Math.random().toString(36).substr(2,5),
+                    uuid: _uuidNuevo(),
                     fecha_guardado: new Date().toISOString() };
     existentes.push(nuevo);
     tocados.add(nid);
@@ -27982,6 +28092,7 @@ async function dcmImpEjecutar() {
     const nid = _nuevoIdUnico(usados);
     const nuevo = { ...inf, id:nid,
                     estudioId: Date.now().toString(36) + Math.random().toString(36).substr(2,5),
+                    uuid: _uuidNuevo(),   // ficha nueva desde el SR DICOM — ver nota en el importador de Excel
                     fecha_guardado: new Date().toISOString() };
     existentes.push(nuevo);
     _dupKeys(nuevo).forEach(k => { if (!keyToIdx.has(k)) keyToIdx.set(k, existentes.length - 1); });

@@ -200,6 +200,43 @@ Contrapartida asumida: la unión no tiene tombstones, así que un estudio borrad
 sesión con respaldo **vuelve a aparecer**. Se eligió ese lado a propósito —resucitar se deshace
 borrando otra vez; perder no se deshace— y el aviso lo dice en vez de anunciar sólo «sincronizado».
 
+### `uuid` es la clave estable; `id` es sólo el índice numérico interno
+**Todo recurso externo —imágenes, adjuntos futuros— se cuelga del `uuid`, nunca del `id`.**
+`id` lo reescribe `_sanearIds` en cada lectura/escritura si es inválido o duplicado, y los
+importadores lo reasignan ante colisión: lo indexado por `id` se orfanaría solo, sin que nadie
+borre nada. `estudioId` es más estable pero viene `undefined` en los importados de Excel/DICOM
+y en los backups viejos.
+
+El `uuid` se genera una vez y **no se modifica nunca**. Las reglas que lo sostienen:
+
+- **`_sanearIds` sólo lo asigna si falta**, jamás lo pisa. Es el borde por el que pasan las
+  cinco vías de entrada (JSON, Excel, DICOM, escritura directa, lectura cruda de
+  localStorage/IndexedDB); `validarInformeImportado` cubre **una** sola.
+- **La migración perezosa hay que PERSISTIRLA.** `_sanearIds` asigna en memoria; si el arranque
+  no escribe, el uuid muere con la pestaña y la sesión siguiente genera otro para el mismo
+  estudio. En una sesión de sólo consulta —abrir, mirar, colgar imágenes— eso deja los recursos
+  huérfanos sin que nadie edite ni borre. Por eso el arranque fuerza una escritura cuando
+  `_uuidAsignados > 0`.
+- **«Sobreescribir» conserva el uuid del registro existente**, tanto en `guardarInforme` como en
+  el import modo «sobre». Es la misma ficha con datos corregidos; tomar el uuid entrante
+  desconectaría sus imágenes por la vía más frecuente de todas.
+- **El alta por import deduplica el uuid** contra la base y regenera ante colisión. Reimportar
+  el mismo backup en modo «todos» dejaría dos fichas con el mismo uuid, que rompe la clave igual
+  que si cambiara.
+- **`uuid` tiene que estar en `_INF_CAMPOS_PERMITIDOS`.** La validación rechaza el informe
+  **entero** ante un campo desconocido, así que sin esa entrada cualquier backup exportado desde
+  esta versión sería irrecuperable: el archivo se ve bien y el import dice «formato inválido».
+
+**No es único a nivel global, y no puede serlo:** `_local` y `_chunk` contienen legítimamente la
+misma ficha, así que dos registros con el mismo uuid son **una** ficha con dos representaciones.
+Cualquier recolector de imágenes huérfanas tiene que deduplicar por uuid antes de decidir, o va
+a creer que un recurso quedó sin dueño porque borró una de las dos copias.
+
+`crypto.randomUUID()` exige **contexto seguro**: no existe en `http://192.168.x.x` (la LAN del
+sanatorio, que es un modo de uso real), ni en Safari/iOS anterior a 15.4. El fallback baja a
+`getRandomValues` —que no está gateada y el archivo ya usa en `_dcmUID`— y sólo como último
+escalón a `Math.random`. Los uuid del fallback llevan prefijo `x` para distinguirlos al depurar.
+
 ### Los caminos que borran o reasignan un estudio
 Cualquier cosa que se cuelgue del `id` de un estudio —imágenes, adjuntos, notas externas— tiene
 que considerar estos diez. **No indexar por `informe.id`**: lo reescribe `_sanearIds` y lo
