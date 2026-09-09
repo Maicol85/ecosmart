@@ -16976,6 +16976,49 @@ function generarPDFReal() {
   const _temaPDF = { '1':[26,58,92], '2':[26,92,58], '3':[74,26,122], '4':[123,45,66] };
   const TEMA = _temaPDF[String(localStorage.getItem('pdf_color') || '1')] || _temaPDF['1'];
 
+  /* ─── plantilla del informe ───────────────────────────────────
+     Se lee UNA vez, acá arriba, porque la consumen dos cosas muy separadas: el encabezado
+     (~700 líneas abajo) y `drawTablaCompacta`, que se DEFINE antes que el encabezado. Leerla en
+     cada punto de uso abría la puerta a que una llamada intermedia a setPdfPlantilla dejara el
+     encabezado con un estilo y las tablas con otro dentro del mismo PDF.
+     `pdfPlantillaGet` valida contra la allowlist, así que acá no puede llegar un id desconocido. */
+  const _plantillaId = (typeof pdfPlantillaGet === 'function') ? pdfPlantillaGet() : 'clasico';
+
+  /* Estilo de las tablas numéricas por plantilla. SÓLO presentación: ni una sola de estas
+     claves decide qué datos se muestran ni cómo se calculan — eso lo fijan los cinco sitios de
+     llamada, que son idénticos para las cuatro. Es la garantía de «los mismos datos en las 4»
+     expresada en la estructura, no en la disciplina de acordarse.
+     `clasico` reproduce exactamente los valores que estaban escritos a mano en la función. */
+  const _TBL_ESTILOS = Object.create(null);
+  _TBL_ESTILOS.clasico = {
+    serif:false, hdrFill:[238,238,238], hdrText:[85,85,85], hdrUpper:false, hdrTrack:0,
+    zebra:null, lblCol:[13,13,13], valCol:[30,30,30], rowPad:1.5,
+    bordeExt:[180,180,180], sepHdr:[210,210,210], divH:[210,210,210], divV:[150,150,150]
+  };
+  _TBL_ESTILOS.moderno = {
+    // Sin bordes verticales ni exterior: «sólo líneas horizontales finas».
+    serif:false, hdrFill:[198,40,40], hdrText:[255,255,255], hdrUpper:false, hdrTrack:0,
+    zebra:[255,245,245], lblCol:[13,13,13], valCol:[45,45,45], rowPad:1.5,
+    bordeExt:null, sepHdr:null, divH:[232,205,205], divV:null
+  };
+  _TBL_ESTILOS.minimalista = {
+    /* Sin relleno de encabezado y sin divisores: la única decoración es la línea bajo el
+       encabezado. Como no hay líneas entre filas, el aire ES el separador: rowPad sube de 1,5 a
+       2,6 — y eso hace la tabla más alta, que es el costo de esta plantilla. */
+    serif:false, hdrFill:null, hdrText:[17,17,17], hdrUpper:true, hdrTrack:0.35,
+    zebra:null, lblCol:[17,17,17], valCol:[85,85,85], rowPad:2.6,
+    bordeExt:null, sepHdr:[17,17,17], divH:null, divV:null
+  };
+  _TBL_ESTILOS.academico = {
+    /* `times` es el serif de jsPDF. Georgia exigiría embeber una fuente por CDN, que rompe la
+       regla de recursos externos auditados; y pedir una familia inexistente NO lanza: jsPDF cae
+       en silencio a Times, o sea que el error se vería recién en el papel. */
+    serif:true, hdrFill:[51,51,51], hdrText:[255,255,255], hdrUpper:false, hdrTrack:0,
+    zebra:[244,244,244], lblCol:[17,17,17], valCol:[40,40,40], rowPad:1.6,
+    bordeExt:[51,51,51], sepHdr:null, divH:[221,221,221], divV:[190,190,190]
+  };
+  const _TBL = _TBL_ESTILOS[_plantillaId] || _TBL_ESTILOS.clasico;
+
   // ─── data readers (uses global sv/v) ─────────────────────────
   const bsa = getBSA();
   const medNombre    = sv('med-nombre');
@@ -17182,7 +17225,7 @@ function generarPDFReal() {
     const n    = secs.length;
     const cW   = pgW / n;
     // Espaciado compacto A4: header 4.4 mm; filas con altura dinámica (envuelven texto largo sin desbordar)
-    const hH = 5.1, lineH = 3.5, rowPad = 1.5;
+    const hH = 5.1, lineH = 3.5;   // rowPad viene de _TBL (varía por plantilla)
     const maxR = Math.max(...secs.map(s => s.items.length));
 
     /* SANEADO en el borde. Las referencias de severidad llevan «≥», «≤» y la raya corta
@@ -17192,21 +17235,43 @@ function generarPDFReal() {
        severidad valvular ILEGIBLES en todos los PDF firmados. Se saneá acá, en el único
        punto por donde pasan las tres partes de cada celda, y no cazando símbolos uno por
        uno en las decenas de literales de los cinco bloques. */
-    const _tSan = t => (typeof amiloSanPDF === 'function') ? amiloSanPDF(String(t == null ? '' : t)) : String(t == null ? '' : t);
+    /* Los saltos de línea se convierten en separador ANTES de sanear. `amiloSanPDF` los borra
+       con su catch-all [^\x20-\xFF] y NO deja espacio, así que un médico que escribe en
+       `vm_notas`, `va_notas` u `otras_notas` —los tres son <textarea>— en dos renglones veía
+       «Prolapso P2 con flail de cuerda.Se sugiere ETE.» en el PDF firmado. Es la misma trampa
+       que este archivo ya arregló dos veces (la técnica del ETE y el informe narrativo), y acá
+       quedó abierta porque nadie esperaba saltos de línea en una tabla numérica.
+       NO sirve `amiloSanPDFml`: conservaría los \n y splitTextToSize los respetaría, generando
+       más líneas de las que contó el pre-cálculo de rowH — o sea texto fuera de la fila. Una
+       celda de tabla no puede tener saltos reales; convertirlos en separador es la semántica
+       correcta. */
+    const _tSan = t => {
+      const plano = String(t == null ? '' : t).replace(/\s*\n+\s*/g, ' · ');
+      return (typeof amiloSanPDF === 'function') ? amiloSanPDF(plano) : plano;
+    };
     secs.forEach(sec => { sec.titulo = _tSan(sec.titulo);
       sec.items.forEach(it => { it.lbl = _tSan(it.lbl); it.ref = _tSan(it.ref); it.val = _tSan(it.val); }); });
+    /* Fuente de ESTA tabla. Envuelve a fb/fn para respetar `_TBL.serif`; con serif:false es
+       exactamente lo mismo que fb/fn, así que Clásico no cambia. Se usa para medir Y para
+       dibujar: medir con Helvetica y estampar con Times daría anchos equivocados y el valor se
+       saldría de su columna, que es el defecto que este archivo ya pagó en el bloque de firma. */
+    const _tf = _TBL.serif ? 'times' : 'helvetica';
+    const _tb = sz => { doc.setFont(_tf,'bold');   doc.setFontSize((sz||7)*_FS); };
+    const _tn = sz => { doc.setFont(_tf,'normal'); doc.setFontSize((sz||7)*_FS); };
+    const _cs = v => { if (doc.setCharSpace) doc.setCharSpace(v || 0); };
+
     // Pre-cálculo: envolver cada valor y medir cuántas líneas ocupa
     secs.forEach(sec => sec.items.forEach(it => {
-      fb(7); it._lw = doc.getTextWidth(it.lbl);
+      _tb(7); it._lw = doc.getTextWidth(it.lbl);
       it._suf = it.ref ? ' ('+it.ref+'): '+it.val : ': '+it.val;
-      fn(7); it._lines = doc.splitTextToSize(it._suf, Math.max(6, cW - 4 - it._lw));
+      _tn(7); it._lines = doc.splitTextToSize(it._suf, Math.max(6, cW - 4 - it._lw));
     }));
     // Altura de cada fila = máx. de líneas entre las columnas de esa fila
     const rowH = [];
     for (let ri = 0; ri < maxR; ri++) {
       let ml = 1;
       secs.forEach(sec => { const it = sec.items[ri]; if (it) ml = Math.max(ml, it._lines.length); });
-      rowH[ri] = rowPad + ml * lineH;
+      rowH[ri] = _TBL.rowPad + ml * lineH;
     }
     const rowY = []; let acc = 0;
     for (let ri = 0; ri < maxR; ri++) { rowY[ri] = acc; acc += rowH[ri]; }
@@ -17217,50 +17282,63 @@ function generarPDFReal() {
     // ── header row ──
     secs.forEach((sec, si) => {
       const sx = mL + si * cW;
-      fc(238,238,238); doc.rect(sx, y, cW, hH, 'F');
-      fb(6.5); tc(85,85,85);
-      doc.text(sec.titulo, sx+2, y+3.1);
+      if (_TBL.hdrFill) { fc(_TBL.hdrFill[0],_TBL.hdrFill[1],_TBL.hdrFill[2]); doc.rect(sx, y, cW, hH, 'F'); }
+      /* Los títulos en versalitas espaciadas son MÁS anchos que el original, y acá nadie los
+         envuelve: se dibujan de una con doc.text. Sin este ajuste, «Aurícula Derecha / VCI» en
+         mayúsculas con tracking se salía de su columna y se metía en la de al lado. Se achica
+         hasta que entre, igual que hace el bloque de firma con sus filas. */
+      let _t = _TBL.hdrUpper ? sec.titulo.toUpperCase() : sec.titulo;
+      let _sz = 6.5;
+      _cs(_TBL.hdrTrack);
+      for (let k = 0; k < 4; k++) { _tb(_sz); if (doc.getTextWidth(_t) <= cW - 4) break; _sz -= 0.5; }
+      tc(_TBL.hdrText[0],_TBL.hdrText[1],_TBL.hdrText[2]);
+      doc.text(_t, sx+2, y+3.1);
+      _cs(0);
     });
 
     // ── data rows (altura variable) ──
     for (let ri = 0; ri < maxR; ri++) {
       const ry = y + hH + rowY[ri];
+      /* La banda cebrada se pinta a lo ANCHO de la tabla entera, no por sección: con un rect por
+         columna las juntas se ven como líneas verticales claras justo en las plantillas que
+         piden no tener divisores verticales. */
+      const _bg = (_TBL.zebra && ri % 2 === 1) ? _TBL.zebra : [255,255,255];
+      fc(_bg[0],_bg[1],_bg[2]); doc.rect(mL, ry, pgW, rowH[ri], 'F');
       secs.forEach((sec, si) => {
         const sx = mL + si * cW;
-        fc(255,255,255); doc.rect(sx, ry, cW, rowH[ri], 'F');
         const it = sec.items[ri];
         if (!it) return;
         const cx = sx + 2;
         // bold label
-        fb(7); tc(13,13,13);
+        _tb(7); tc(_TBL.lblCol[0],_TBL.lblCol[1],_TBL.lblCol[2]);
         doc.text(it.lbl, cx, ry + 2.6);
         // normal (ref): val — línea 0 tras el label; continuación bajo el label
-        fn(7); tc(30,30,30);
+        _tn(7); tc(_TBL.valCol[0],_TBL.valCol[1],_TBL.valCol[2]);
         it._lines.forEach((ln, li) => {
           doc.text(ln, li === 0 ? cx + it._lw : cx, ry + 3.0 + li * lineH);
         });
       });
     }
 
-    // ── grid borders ──
-    // outer + header/data separator
-    dc(180,180,180); doc.setLineWidth(0.3);
-    doc.rect(mL, y, pgW, tblH);
-    dc(180,180,180); doc.setLineWidth(0.25);
-    doc.line(mL, y+hH, mR, y+hH);
-    // horizontal row dividers
-    dc(210,210,210); doc.setLineWidth(0.2);
-    for (let ri = 1; ri < maxR; ri++) {
-      doc.line(mL, y+hH+rowY[ri], mR, y+hH+rowY[ri]);
+    // ── grid borders (cada trazo es opcional según la plantilla) ──
+    if (_TBL.bordeExt) { dc(_TBL.bordeExt[0],_TBL.bordeExt[1],_TBL.bordeExt[2]); doc.setLineWidth(0.3);
+      doc.rect(mL, y, pgW, tblH); }
+    if (_TBL.sepHdr) { dc(_TBL.sepHdr[0],_TBL.sepHdr[1],_TBL.sepHdr[2]); doc.setLineWidth(0.25);
+      doc.line(mL, y+hH, mR, y+hH); }
+    if (_TBL.divH) { dc(_TBL.divH[0],_TBL.divH[1],_TBL.divH[2]); doc.setLineWidth(0.2);
+      for (let ri = 1; ri < maxR; ri++) doc.line(mL, y+hH+rowY[ri], mR, y+hH+rowY[ri]); }
+    if (_TBL.divV && n > 1) {
+      dc(_TBL.divV[0],_TBL.divV[1],_TBL.divV[2]); doc.setLineWidth(0.8);
+      for (let si = 1; si < n; si++) { const vx = mL + si * cW; doc.line(vx, y, vx, y+tblH); }
     }
-    // vertical section dividers
-    if (n > 1) {
-      dc(150,150,150); doc.setLineWidth(0.8);
-      for (let si = 1; si < n; si++) {
-        const vx = mL + si * cW;
-        doc.line(vx, y, vx, y+tblH);
-      }
-    }
+    /* Estado de trazo restaurado al salir. Antes la función se iba con lineWidth en 0,8 (si
+       había divisores verticales) o 0,2 (si no), y la leyenda de colores del mapa mitral
+       —`doc.rect(...,'FD')` sin fijar grosor— lo heredaba: el borde gris se comía casi la mitad
+       de un swatch de 3,5 mm, y el grosor dependía de cuántas secciones había tenido la última
+       tabla, o sea de qué midió el médico. El mismo informe salía distinto de un paciente a
+       otro. Con cuatro plantillas que usan trazos distintos —dos ni siquiera dibujan bordes—
+       eso pasaba de rareza a cuatro comportamientos no diseñados. */
+    dc(0,0,0); doc.setLineWidth(0.2);
     // Gap compacto entre bloques
     y += tblH + 1.4;
   }
@@ -17676,7 +17754,7 @@ function generarPDFReal() {
   const _PLANTILLAS_FN = Object.create(null);
   _PLANTILLAS_FN.clasico = _hdrClasico;     _PLANTILLAS_FN.moderno   = _hdrModerno;
   _PLANTILLAS_FN.minimalista = _hdrMinimalista; _PLANTILLAS_FN.academico = _hdrAcademico;
-  const _plantillaId = (typeof pdfPlantillaGet === 'function') ? pdfPlantillaGet() : 'clasico';
+  // `_plantillaId` se lee arriba, junto a TEMA: lo usan el encabezado Y las tablas.
 
   /* La `y` que devuelve la plantilla se VALIDA, no se confía. Es el único acoplamiento entre el
      encabezado y las ~900 líneas de abajo, y su peor modo de fallo es mudo: en jsPDF
