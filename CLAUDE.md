@@ -647,35 +647,41 @@ que vuelva la UI, mientras que la guarda por DOM revive sola. Es el criterio con
 cerró el gate del PDF. **Lo único real** es el orden: el paste de Eco Estrés se registra ANTES
 que `imgPasteHandler`, así que al restaurar la UI hay que decidir el orden, no descubrirlo.
 
-### Semgrep: 118 warnings y los 118 son ruido (triage 2026-09-09)
-Re-triage completo. El conteo **es 118, no 146**. De 131 previos, 13 eran la regla
-`ceibo-contador-objeto-literal-con-clave-de-dato` y se cerraron en esta sesión.
+### Semgrep: 114 warnings y los 114 son ruido (triage 2026-09-09)
+Re-triage completo. El conteo **nunca fue 146**. De 131 previos: 13 eran la regla
+`ceibo-contador-objeto-literal-con-clave-de-dato` y se cerraron arreglando los contadores;
+otros 4 desaparecieron al afinar `ceibo-xss-event-property-dynamic` (ver abajo). Quedan 114.
 
-Los 118 restantes se reparten en tres reglas y **ninguno es real**:
+Los 114 restantes se reparten en dos reglas y **ninguno es real**:
 - `ceibo-xss-innerhtml-concat` (69) — casi todos interpolan resultados numéricos
   (`toFixed`, `Math.round`, `.length`) o constantes de las tablas de referencia del propio
   archivo. Los que sí tocan dato de paciente pasan por `escHtml()` **una línea más abajo**,
   dentro de un `.map()`, y la regla es sintáctica: no lo ve.
 - `ceibo-xss-inline-event-dynamic` (45) — en su mayoría `onclick="fn(${inf.id})"`. El `id` se
   sanea en el borde de `CeiboStore` y el test de regresión asserta que es `number` ≥9e14.
-- `ceibo-xss-event-property-dynamic` (4) — `el.onclick = fn`, o sea asignar una **referencia
-  a función**, que es la forma segura. **4 de 4 falsos positivos: la regla penaliza justo el
-  idioma que uno quiere que se use.** Excluye la función inline (`= function(){}` y `= ()=>`)
-  pero no la referencia con nombre.
 
-  **Arreglo propuesto, sin aplicar.** El ruleset es compartido por toda la suite y vive fuera
-  de este repo (`.ceibomed-security/ceibomed-rules.yml`), así que la decisión es tuya. El
-  riesgo real es asignar una CADENA —eso el navegador lo compila—, no una referencia. Agregar
-  a la regla, después del `pattern-either` de los eventos:
+### `ceibo-xss-event-property-dynamic` — regla afinada (2026-09-09), 22/22 falsos positivos
+Marcaba **cualquier** valor asignado a `onclick`/`onerror`/etc. Excluía la función inline
+(`= function(){}`, `= ()=>`) pero **no la referencia con nombre**, que es la forma más común y
+la correcta. Al medirla sobre la suite entera —no sólo EcoSmart— dio **22 de 22 falsos
+positivos**: `canc.onclick = cerrar`, `img.onerror = reject`, `i.onload = ()=>res(i)`,
+`$("mYes").onclick = null`. Penalizaba el idioma que uno quiere que se use, y hasta el de
+limpiar un handler.
 
-      - pattern-either:
-          - pattern: $EL.$EVENT = "..."
-          - pattern: $EL.$EVENT = $A + $B
+El riesgo real es asignar una **cadena**: eso el navegador lo compila. La regla ahora exige
+que el valor sea literal de cadena, plantilla o concatenación. Es un estrechamiento puro: no
+puede perder señal que la versión anterior tuviera.
 
-  Es un estrechamiento puro: no puede perder señal que hoy tenga. Al aplicarlo hay que
-  re-escanear **toda la suite**, no sólo EcoSmart, y confirmar que el total baja exactamente
-  en los falsos positivos y no aparece nada nuevo — la regla de verificar una regla contra el
-  código que la originó.
+**Verificado en las dos direcciones**, que es lo que hace falta para tocar una regla:
+- *Negativo* — suite completa 1020 → 998, exactamente −22, y **ninguna otra regla se movió**
+  ni apareció ningún hallazgo nuevo. EcoSmart 118 → 114.
+- *Positivo* — un archivo de prueba con las dos familias: dispara en las 4 asignaciones de
+  cadena (`= "alert(1)"`, `= "x(" + d + ")"`, `` = `alert(${d})` ``, `= "x"`) y en 0 de las 6
+  formas correctas. Sin esta mitad, una regla que no marca nada parece perfecta.
+
+El ruleset vive en `~/Desktop/APLICACIONES/.ceibomed-security/ceibomed-rules.yml` y **no está
+bajo control de versiones**: APLICACIONES no es un repo y cada app tiene el suyo, así que ese
+archivo no lo versiona nadie. Los cambios al ruleset no viajan en ningún commit.
 
 Método usado, por si hay que repetirlo: mapear la línea del JS extraído a la del HTML
 (`scan.py` concatena los `<script>`, así que los números NO coinciden), y después cruzar cada
