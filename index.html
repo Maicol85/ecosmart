@@ -603,6 +603,11 @@
   .mca-cel.mca-dup { background:rgba(21,128,61,.30); color:var(--text2); }
   .mca-cel.mca-menor.mca-on { background:#4ade80; color:#0f172a; }
   .mca-na { text-align:center; color:var(--text2); opacity:.35; }
+  /* Celda DERIVADA: se pinta como las demás pero no responde al clic — su valor sale de otro
+     campo, y dejarla clickeable invitaría a marcarla y a que el clic no hiciera nada. */
+  .mca-cel.mca-auto { cursor:default; }
+  .mca-cel.mca-auto:hover { background:rgba(255,255,255,.04); }
+  .mca-cel.mca-auto.mca-on:hover { background:#4ade80; }
   .mP { margin:0 0 10px; }
   .mUl { padding-left:0; list-style:none; display:flex; flex-direction:column; gap:6px; margin:0 0 12px; }
   /* Sangría colgante y NO `display:flex`. El flex estaba sólo para colocar la flecha, pero
@@ -8287,11 +8292,20 @@ z
 
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Factores de riesgo de muerte súbita</div>
       <div class="grid-3">
-        <div class="fg"><label>Historia familiar de muerte súbita</label>
-          <select id="mch_fam_ms" onchange="mchSync()">
+        <!-- Campo COMPARTIDO con la sección de miocardiopatía arritmogénica. Vive acá porque acá
+             nació, pero el hecho —hubo una muerte súbita en un familiar de primer grado— es uno
+             solo y no puede estar en dos lugares: un «Sí» en una sección y un blanco en la otra
+             produce un informe que se contesta distinto dos veces sobre el mismo paciente.
+             La EDAD es lo que separa los dos criterios: el HCM Risk-SCD la trata como binaria y el
+             menor del Task Force exige que haya sido ANTES DE LOS 35. Sin la edad, MCA no puede
+             puntuar el criterio y lo dice. -->
+        <div class="fg"><label>Historia familiar de muerte súbita <span style="font-weight:400;color:var(--text2);font-size:10px;">compartido con MCA</span></label>
+          <select id="mch_fam_ms" onchange="mchSync();if(typeof mcaSync==='function')mcaSync();">
             <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
           </select>
         </div>
+        <div class="fg"><label>Edad del familiar al fallecer (años)</label>
+          <input type="number" id="fam_ms_edad" step="1" placeholder="años" oninput="mchSync();if(typeof mcaSync==='function')mcaSync();"></div>
         <div class="fg"><label>Síncope inexplicado</label>
           <select id="mch_sincope" onchange="mchSync()">
             <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
@@ -8491,7 +8505,7 @@ z
         <tr><td class="mca-cat">Familia</td><td>MCA confirmada en autopsia o cirugía en familiar de 1.º grado</td><td class="mca-cel" id="cel_mca_vi_may2" onclick="mcaTogglePunto('mca_vi_may2')">☐</td><td class="mca-na">—</td></tr>
         <tr><td class="mca-cat">Familia</td><td>Mutación patogénica asociada a MCA en el paciente <span style="color:var(--text2);font-size:9px;">(categoría de historia familiar)</span></td><td class="mca-cel" id="cel_mca_vi_may3" onclick="mcaTogglePunto('mca_vi_may3')">☐</td><td class="mca-na">—</td></tr>
         <tr><td class="mca-cat">Familia</td><td>MCA en familiar de 1.º grado sin poder verificar los criterios</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_vi_men1" onclick="mcaTogglePunto('mca_vi_men1')">☐</td></tr>
-        <tr><td class="mca-cat">Familia</td><td>Muerte súbita &lt;35 años por sospecha de MCA en familiar de 1.º grado</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_vi_men2" onclick="mcaTogglePunto('mca_vi_men2')">☐</td></tr>
+        <tr><td class="mca-cat">Familia</td><td>Muerte súbita &lt;35 años en familiar de 1.º grado <span style="color:var(--text2);font-size:9px;">— se deriva de «Historia familiar de muerte súbita» y de la edad del familiar, en la sección de MCH</span></td><td class="mca-na">—</td><td class="mca-cel mca-menor mca-auto" id="cel_mca_vi_men2" title="Derivado: no se marca a mano">☐</td></tr>
         <tr><td class="mca-cat">Familia</td><td>MCA confirmada en familiar de 2.º grado</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_vi_men3" onclick="mcaTogglePunto('mca_vi_men3')">☐</td></tr>
         </tbody>
       </table>
@@ -8515,7 +8529,6 @@ z
       <input type="text" id="mca_vi_may2" value="" style="display:none;" tabindex="-1" aria-hidden="true">
       <input type="text" id="mca_vi_may3" value="" style="display:none;" tabindex="-1" aria-hidden="true">
       <input type="text" id="mca_vi_men1" value="" style="display:none;" tabindex="-1" aria-hidden="true">
-      <input type="text" id="mca_vi_men2" value="" style="display:none;" tabindex="-1" aria-hidden="true">
       <input type="text" id="mca_vi_men3" value="" style="display:none;" tabindex="-1" aria-hidden="true">
 
       <div class="calc-box" style="margin-top:12px;">
@@ -22659,7 +22672,26 @@ const MCA_FENO_TXT = {
 };
 function _mcaSv(id){ return (document.getElementById(id)?.value || '').trim(); }
 function _mcaNv(id){ const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; }
-function _mcaChk(id){ return _mcaSv(id) === 'si'; }
+/* `mca_vi_men2` NO se marca a mano: se DERIVA del campo compartido de historia familiar de
+   muerte súbita y de la edad del familiar. Los dos criterios no son el mismo —el HCM Risk-SCD
+   trata la historia familiar como binaria y el menor del Task Force exige que la muerte haya sido
+   antes de los 35— así que propagar el «Sí» sin más le habría dado a MCA un punto por una muerte
+   súbita a los 38. Sin la edad cargada NO se puntúa: es la única forma de no afirmar el «<35».
+   El Task Force además pide que la muerte se atribuya a sospecha de MCA; esa es una valoración
+   clínica que hace el médico al evaluar al paciente, y el informe imprime la base (el hecho y la
+   edad) para que quien lo lea pueda juzgarla. */
+function mcaFamMuerteSubita(){
+  const hay = _mcaSv('mch_fam_ms');
+  const ed  = _mcaNv('fam_ms_edad');
+  if (hay !== 'si') return { cumple:false, motivo: hay === 'no' ? 'no' : 'sin_dato' };
+  if (ed == null)   return { cumple:false, motivo:'sin_edad' };
+  if (ed < 0 || ed > 120) return { cumple:false, motivo:'edad_fuera' };
+  return { cumple: ed < 35, edad: ed, motivo: ed < 35 ? 'cumple' : 'edad_mayor' };
+}
+function _mcaChk(id){
+  if (id === 'mca_vi_men2') return mcaFamMuerteSubita().cumple;
+  return _mcaSv(id) === 'si';
+}
 
 /* CATEGORÍA I — estructural por ecocardiografía.
    La anomalía REGIONAL de la motilidad es una COMPUERTA, no una alternativa. La tabla del TFC
@@ -22742,7 +22774,7 @@ const MCA_CATS = [
            ['mca_vi_may2','MCA confirmada en autopsia o cirugía en familiar de primer grado'],
            ['mca_vi_may3','Mutación patogénica asociada a MCA identificada en el paciente']],
     menor:[['mca_vi_men1','Historia de MCA en familiar de primer grado sin posibilidad de verificar los criterios'],
-           ['mca_vi_men2','Muerte súbita prematura (<35 años) por sospecha de MCA en familiar de primer grado'],
+           ['mca_vi_men2','Muerte súbita prematura (<35 años) en familiar de primer grado'],
            ['mca_vi_men3','MCA confirmada por criterios o anatomía patológica en familiar de segundo grado']] }
 ];
 function mcaScore(){
@@ -22848,6 +22880,13 @@ function mcaConclusion(){
     return c.nom + ' — ' + (c.nivel === 'mayor' ? 'mayor' : 'menor') + ' (' + c.pts + (c.pts === 1 ? ' punto' : ' puntos') + ')' +
            (c.marcados > 1 ? ', de ' + c.marcados + ' criterios marcados en la categoría' : '');
   }).join('; '));
+  /* La base de la derivación se imprime: quien lea el informe tiene que poder juzgar si esa
+     muerte súbita se atribuye a MCA, que es la parte del criterio que la app no puede decidir. */
+  { const fam = mcaFamMuerteSubita();
+    if (fam.motivo === 'cumple') partes.push('El criterio familiar se sostiene en la muerte súbita de un familiar de primer grado a los ' + fam.edad + ' años; los criterios Task Force piden además que se atribuya a sospecha de miocardiopatía arritmogénica, que es una valoración clínica');
+    else if (fam.motivo === 'sin_edad') partes.push('Consta historia familiar de muerte súbita pero no la edad del familiar: el criterio Task Force exige que haya sido antes de los 35 años, así que la categoría familiar no puede puntuarse por esa vía');
+    else if (fam.motivo === 'edad_mayor') partes.push('La muerte súbita familiar ocurrió a los ' + fam.edad + ' años, por encima del corte de 35 del criterio Task Force');
+    else if (fam.motivo === 'edad_fuera') partes.push('La edad del familiar al fallecer está fuera de rango — revisar'); }
   const dobles = sc.cats.filter(function(c){ return c.marcados > 1; });
   if (dobles.length) partes.push('Regla de conteo aplicada: cada categoría aporta un solo criterio, el de mayor jerarquía');
 
@@ -22916,6 +22955,15 @@ function mcaSync(){
       cel.classList.toggle('mca-dup', marcado && x[0] !== gana);
     });
   });
+  /* La celda derivada se pinta desde su origen, no desde un input propio. */
+  { const fam = mcaFamMuerteSubita(); const cel = document.getElementById('cel_mca_vi_men2');
+    if (cel) { cel.classList.toggle('mca-on', fam.cumple); cel.classList.remove('mca-dup');
+      cel.textContent = fam.cumple ? '☑' : '☐';
+      cel.title = fam.motivo === 'cumple' ? 'Derivado: muerte súbita a los ' + fam.edad + ' años'
+        : fam.motivo === 'sin_edad'  ? 'Falta la edad del familiar — el criterio exige <35 años'
+        : fam.motivo === 'edad_mayor'? 'El familiar tenía ' + fam.edad + ' años: por encima del corte de 35'
+        : fam.motivo === 'edad_fuera'? 'Edad fuera de rango — revisar'
+        : 'Se deriva de «Historia familiar de muerte súbita» en la sección de MCH'; } }
   const cc = mcaConclusion();
   txt('mca-concl', cc ? cc.txt : '—');
 }
@@ -22928,6 +22976,9 @@ function mcaSync(){
    Si la interfaz impidiera marcar el segundo, el médico no vería que cumple dos de la misma
    categoría. */
 function mcaTogglePunto(id){
+  /* `mca_vi_men2` se deriva del campo compartido de historia familiar: no se marca a mano. La
+     celda no tiene onclick, pero la guarda queda por si alguien la reconecta. */
+  if (id === 'mca_vi_men2') return;
   const el = document.getElementById(id);
   if (!el) return;
   const marcar = !(el.value === 'si');
@@ -29418,7 +29469,8 @@ const _IG_SECTIONS = [
     {id:'mch_grad_reposo',lbl:'Gradiente TSVI reposo (mmHg)'},{id:'mch_grad_valsalva',lbl:'Gradiente TSVI Valsalva (mmHg)'},
     {id:'mch_sam',lbl:'SAM mitral',map:_IG_SN},{id:'mch_mesocavitaria',lbl:'Obstrucción mesocavitaria',map:_IG_SN},
     {id:'mch_cf',lbl:'Clase funcional',map:{i_ii:'I-II',iii_iv:'III-IV'}},
-    {id:'mch_fam_ms',lbl:'FR: familiar con muerte súbita',map:_IG_SN},
+    {id:'mch_fam_ms',lbl:'Historia familiar de muerte súbita',map:_IG_SN},
+    {id:'fam_ms_edad',lbl:'Edad del familiar al fallecer (años)'},
     {id:'mch_sincope',lbl:'FR: síncope inexplicado',map:_IG_SN},
     {id:'mch_tvns',lbl:'FR: TVNS en Holter',map:_IG_SN},
     {id:'mch_aneurisma_apical',lbl:'FR: aneurisma apical',map:_IG_SN},
@@ -29486,7 +29538,6 @@ const _IG_SECTIONS = [
     {id:'mca_vi_may2',lbl:'Familia — mayor (autopsia o cirugía)',map:{si:'Sí'}},
     {id:'mca_vi_may3',lbl:'Familia — mayor (mutación patogénica)',map:{si:'Sí'}},
     {id:'mca_vi_men1',lbl:'Familia — menor (no verificable)',map:{si:'Sí'}},
-    {id:'mca_vi_men2',lbl:'Familia — menor (muerte súbita <35 años)',map:{si:'Sí'}},
     {id:'mca_vi_men3',lbl:'Familia — menor (familiar 2.º grado)',map:{si:'Sí'}}
   ]},
   { titulo:'📎 Secciones integradas al informe', fields:[
@@ -33302,6 +33353,7 @@ function _labExcelRow(inf) {
     'MCH obstrucción mesocavitaria': _cc3e(c.mch_mesocavitaria),
     'MCH clase funcional': _ccLbl({i_ii:'I-II',iii_iv:'III-IV'}, c.mch_cf),
     'MCH historia familiar muerte súbita': _cc3e(c.mch_fam_ms),
+    'Edad familiar muerte súbita (años)': rnd(num('fam_ms_edad'),0),
     'MCH síncope inexplicado': _cc3e(c.mch_sincope),
     'MCH TVNS en Holter': _cc3e(c.mch_tvns),
     'MCH aneurisma apical': _cc3e(c.mch_aneurisma_apical),
@@ -33370,7 +33422,6 @@ function _labExcelRow(inf) {
     'MCA familiar autopsia': c.mca_vi_may2 === 'si' ? 'Sí' : '',
     'MCA mutación patogénica': c.mca_vi_may3 === 'si' ? 'Sí' : '',
     'MCA familiar no verificable': c.mca_vi_men1 === 'si' ? 'Sí' : '',
-    'MCA muerte súbita <35a': c.mca_vi_men2 === 'si' ? 'Sí' : '',
     'MCA familiar 2do grado': c.mca_vi_men3 === 'si' ? 'Sí' : '',
     'Incluir TGA en informe':        c['tga_incluir_chk__chk']    === '1' ? 1 : 0,
     'Incluir MCA en informe':        c['mca_incluir_chk__chk']    === '1' ? 1 : 0,
@@ -33783,6 +33834,9 @@ const LAB_XLS_MAP = [
   ['MCH obstrucción mesocavitaria','mch_mesocavitaria','vocab'],
   ['MCH clase funcional',        'mch_cf',        'vocab'],
   ['MCH historia familiar muerte súbita','mch_fam_ms','vocab'],
+  /* Compartida con MCA: es lo que separa el criterio binario del HCM Risk-SCD del menor del
+     Task Force, que exige <35 años. */
+  ['Edad familiar muerte súbita (años)','fam_ms_edad','num'],
   ['MCH síncope inexplicado',    'mch_sincope',   'vocab'],
   ['MCH TVNS en Holter',         'mch_tvns',      'vocab'],
   ['MCH aneurisma apical',       'mch_aneurisma_apical','vocab'],
@@ -33847,7 +33901,6 @@ const LAB_XLS_MAP = [
   ['MCA familiar autopsia',           'mca_vi_may2', 'vocab'],
   ['MCA mutación patogénica',         'mca_vi_may3', 'vocab'],
   ['MCA familiar no verificable',     'mca_vi_men1', 'vocab'],
-  ['MCA muerte súbita <35a',          'mca_vi_men2', 'vocab'],
   ['MCA familiar 2do grado',          'mca_vi_men3', 'vocab'],
 
   // 16 · Inclusión en el informe
@@ -34152,7 +34205,7 @@ const _MCA_SI = { si:'si', x:'si', '1':'si', marcado:'si', cumple:'si', presente
                   no:'', '0':'', ausente:'', 'no consta':'' };
 ['mca_ii_may','mca_ii_men','mca_iii_may','mca_iii_men1','mca_iii_men2','mca_iv_may',
  'mca_iv_men1','mca_iv_men2','mca_v_may','mca_v_men1','mca_v_men2','mca_vi_may1',
- 'mca_vi_may2','mca_vi_may3','mca_vi_men1','mca_vi_men2','mca_vi_men3'].forEach(function(k){
+ 'mca_vi_may2','mca_vi_may3','mca_vi_men1','mca_vi_men3'].forEach(function(k){
   LAB_XLS_VOCAB[k] = Object.assign({}, _MCA_SI);
 });
 LAB_XLS_VOCAB.mca_vi_aneurisma = Object.assign({}, LAB_XLS_VOCAB_3E);
@@ -34266,7 +34319,6 @@ const LAB_XLS_OPCIONES = {
   mca_vi_may2:'Sí · No · vacío',
   mca_vi_may3:'Sí · No · vacío',
   mca_vi_men1:'Sí · No · vacío',
-  mca_vi_men2:'Sí · No · vacío',
   mca_vi_men3:'Sí · No · vacío',
 };
 LAB_XLS_OPCIONES.ia_grado = LAB_XLS_OPCIONES.it_grado = LAB_XLS_OPCIONES.im_grado;
@@ -34684,7 +34736,7 @@ function labImportarXLSX(file) {
           en «Conservada» para toda la cohorte encendía la sección en cada estudio. Es el mismo
           criterio con el que se acotó `func_vd` cuatro líneas más arriba: sólo descriptores
           cuyo negativo ES el vacío. */
-       ['mca_incluir_chk__chk',       /^mca_(tsvd_|fac|ii_|iii_|iv_|v_|vi_)/]].forEach(([flag, rx]) => {
+       ['mca_incluir_chk__chk',       /^mca_(tsvd_|fac|ii_|iii_|iv_|v_|vi_(may|men1|men3))/]].forEach(([flag, rx]) => {
         if (inf.campos[flag] !== undefined) return;
         /* Una RESPUESTA NEGATIVA no cuenta como dato. La corrección original se ató al tipo
            `chk` («cola diastólica en 0») y no al significado del valor, así que al llegar los
@@ -39993,6 +40045,7 @@ const ECO_AYUDA = [
   <div class="mBox mAviso"><b>La anomalía regional de la motilidad es obligatoria, no una alternativa.</b> El Task Force exige «aquinesia, disquinesia o aneurisma regional <b>Y</b> uno de los umbrales». Un tracto de salida dilatado o una fracción de acortamiento baja <b>con motilidad normal no es criterio de nada</b>: la app lo dice explícitamente en vez de sumar puntos, y si el desplegable quedó en blanco dice que <b>no consta</b> — que no es lo mismo que decir que la anomalía no está. El <b>diámetro de eje largo es un campo propio</b> y no reusa el TSVD del Qp/Qs, que se mide en el anillo pulmonar: son niveles distintos, y reusar un número medido con otra convención es peor que duplicarlo. Umbrales del eco — mayor: eje largo ≥32 mm, eje corto ≥36 mm o fracción ≤33 %. Menor (sólo con aquinesia o discinesia, no con aneurisma): 29 a &lt;32 · 32 a &lt;36 · &gt;33 a ≤40 %. <b>La hipocinesia aislada no es criterio</b> — es un hallazgo inespecífico de cualquier sobrecarga derecha, y tiene su propia opción en el desplegable, que no puntúa.</div>
   <div class="mBox mAviso"><b>Cada categoría aporta un solo criterio, el de mayor jerarquía.</b> Podés marcar todas las celdas que cumpla el paciente —y conviene, porque es información clínica— pero el puntaje toma el mayor de cada categoría, y la celda que no cuenta queda atenuada. Sumar filas de la misma categoría sobrediagnostica: un portador de <b>mutación patogénica</b> con un <b>familiar de primer grado afectado</b> son dos mayores de la misma categoría; sumándolos darían 4 puntos y «diagnóstico definitivo» sobre alguien sin ningún fenotipo. Con la regla correcta son 2 puntos: posible. Es el tamizaje familiar de rutina.</div>
   <p class="mP">Bandas: <b>≥4</b> definitivo · <b>3</b> limítrofe · <b>2</b> posible · <b>1 o 0</b> sin criterios diagnósticos. <b>Un punto no es «posible»</b>: la regla pide un mayor o dos menores de categorías distintas, y un menor aislado —más de 500 extrasístoles en 24 h, que es un hallazgo de Holter común— no llega a ninguna categoría.</p>
+  <div class="mBox mTip"><b>La historia familiar de muerte súbita es un campo compartido con MCH.</b> Se carga una sola vez, en la sección de miocardiopatía hipertrófica, junto con la <b>edad del familiar al fallecer</b>. Los dos scores la usan con reglas distintas y por eso hace falta la edad: el HCM Risk-SCD la trata como binaria, y el criterio menor del Task Force exige que la muerte haya sido <b>antes de los 35 años</b>. Una muerte súbita a los 38 cuenta para el score de la MCH y <b>no</b> para el de la MCA, y el informe lo dice. Sin la edad cargada, MCA no puntúa ese criterio y aclara que falta el dato — en vez de asumir el «&lt;35». La celda de esa fila en la tabla es <b>derivada</b>: no se marca a mano, se enciende sola. El Task Force pide además que la muerte se atribuya a sospecha de MCA; eso es una valoración clínica, así que el informe imprime la base —el hecho y la edad— para que quien lo lea pueda juzgarla.</div>
   <div class="mBox mTip"><b>El ventrículo izquierdo no puntúa, y eso no es un olvido.</b> Los Criterios Task Force 2010 son ciegos al VI — es la razón por la que existen los criterios de Padua 2020 y el consenso europeo de 2023. La app carga e informa el compromiso izquierdo, derivándolo de la <b>FEVI</b> y del módulo de <b>Contractilidad</b> que ya registra la motilidad segmentaria, pero lo mantiene fuera del total del Task Force y lo dice en el informe.</div>
   <div class="mBox mTip"><b>Lo que el informe siempre aclara.</b> Que un puntaje ecocardiográfico aislado no confirma ni descarta el diagnóstico, que hace falta integrar categorías, y que la resonancia con gadolinio es el estándar de referencia para la caracterización tisular. Cuando marcaste dos criterios de una misma categoría, el informe además deja constancia de la regla de conteo aplicada, para que el número sea auditable.</div>
 
