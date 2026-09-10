@@ -25876,7 +25876,39 @@ const PPT_TEMAS = {
   claro: { nombre:'⬜ Clínico claro', bg:'FFFFFF', teal:'0D9488', rojo:'E11D48', txt:'111111',
            txt2:'555555', fila1:'F8F8F8', fila2:'FFFFFF', vacio:'AAAAAA', hdrTxt:'FFFFFF', sumaTxt:'111111' },
   azul:  { nombre:'🔵 Azul institucional', bg:'0F172A', teal:'38BDF8', rojo:'38BDF8', txt:'F1F5F9',
-           txt2:'94A3B8', fila1:'1E293B', fila2:'162032', vacio:'475569', hdrTxt:'0F172A', sumaTxt:'F1F5F9' }
+           txt2:'94A3B8', fila1:'1E293B', fila2:'162032', vacio:'475569', hdrTxt:'0F172A', sumaTxt:'F1F5F9' },
+
+  /* ── Tres paletas agregadas 2026-09-10 ───────────────────────────────────────────────
+     Las claves de color son las mismas ocho que consumen los tres temas de arriba. Las que
+     siguen son OPCIONALES y las resuelve `_pptDeco` con el valor de los temas originales, de
+     modo que agregar una paleta no obliga a declararlas y los temas viejos siguen dibujando
+     exactamente igual:
+
+       hdrBg     fondo de la banda del encabezado.  Por defecto: `teal`.
+       hdrFont   tipografía de la banda y los títulos. Por defecto: PPT_FONT (Arial).
+       barraIzq  {color, w} barra vertical pegada al borde izquierdo de la banda.
+       franjaInf {color, h} franja horizontal al pie de la banda.
+       ecgHdr    {color, transparency} del trazo de ECG dibujado sobre la banda. Se usa
+                 transparencia real y no un color pre-mezclado: verificado que PptxGenJS
+                 3.12.0 emite `<a:alpha>` para `transparency`, así que el trazo sigue siendo
+                 blanco al 20 % aunque mañana cambie el color de la banda.
+
+     `hdrBg` existe porque `teal` hacía DOS trabajos a la vez —fondo de la banda y color de
+     acento de títulos, líneas y pie— y en «Azul marino» son distintos: la banda es 0D2137 y
+     el acento 4FC3F7. Sin separarlos, pedir uno cambiaba el otro.
+
+     `vacio` y `sumaTxt` NO se declaran en las nuevas: están en las tres viejas y no las lee
+     nadie (verificado, cero usos). Se dejan ahí para no tocar lo que ya anda, pero no se
+     propagan. */
+  borgona: { nombre:'🍷 Borgoña', bg:'FAFAF8', teal:'6B1A2A', rojo:'6B1A2A', txt:'3B0B14',
+             txt2:'555555', fila1:'F2EFEC', fila2:'FAFAF8', hdrTxt:'FFFFFF',
+             hdrFont:'Georgia', ecgHdr:{ color:'FFFFFF', transparency:80 } },
+  marino:  { nombre:'⚓ Azul marino', bg:'0D1B2A', teal:'4FC3F7', rojo:'4FC3F7', txt:'FFFFFF',
+             txt2:'B0BEC5', fila1:'16293D', fila2:'0F2030', hdrTxt:'0D1B2A',
+             hdrBg:'0D2137', barraIzq:{ color:'4FC3F7', w:0.042 } },
+  purpura: { nombre:'🟣 Púrpura', bg:'F8F6FF', teal:'3C3489', rojo:'3C3489', txt:'26215C',
+             txt2:'534AB7', fila1:'EFEBFF', fila2:'F8F6FF', hdrTxt:'FFFFFF',
+             franjaInf:{ color:'7F77DD', h:0.042 } }
 };
 const PPT_TEMA_KEY = 'ecosmart_ppt_tema';
 const PPT_C = PPT_TEMAS.dark;   // se usa fuera de la generación (nada hoy); dentro se resuelve por tema
@@ -26097,6 +26129,15 @@ function _pptDesdeFormulario(inf, tema, presentador){
   /* PPT_C local sombrea al global: todo el cuerpo de la función sigue escrito contra
      PPT_C y no hubo que tocar una sola referencia para soportar los tres temas. */
   const PPT_C = Object.prototype.hasOwnProperty.call(PPT_TEMAS, tema) ? PPT_TEMAS[tema] : PPT_TEMAS.dark;
+  /* Decoraciones OPCIONALES del tema, con el valor de los tres temas originales como piso.
+     Se resuelven UNA vez acá y no con `PPT_C.x || y` desperdigado: así el default vive en un
+     solo lugar y una paleta nueva no tiene que declarar las cinco claves para no romperse.
+     Ver el bloque de comentarios de PPT_TEMAS. */
+  const _HDR_BG   = PPT_C.hdrBg   || PPT_C.teal;      // banda del encabezado
+  const _HDR_FONT = PPT_C.hdrFont || PPT_FONT;        // tipografía de banda y títulos
+  const _BARRA    = PPT_C.barraIzq  || null;
+  const _FRANJA   = PPT_C.franjaInf || null;
+  const _ECG      = PPT_C.ecgHdr    || null;
   const P = new PptxGenJS();
   P.layout = 'LAYOUT_16x9';                      // 25,4 × 14,29 cm
   const W = 10, H = 5.63;                        // pulgadas, que es la unidad de PptxGenJS
@@ -26126,7 +26167,7 @@ function _pptDesdeFormulario(inf, tema, presentador){
   };
   const titulo = (s, t, color) => {
     s.addText(_pptTxt(t), { x:0.5, y:0.3, w:W-1, h:0.5, fontSize:24, bold:true,
-      color: color || PPT_C.teal, fontFace:PPT_FONT });
+      color: color || PPT_C.teal, fontFace:_HDR_FONT });
     s.addShape(P.ShapeType.line, { x:0.5, y:0.85, w:W-1, h:0, line:{ color: color || PPT_C.teal, width:1 } });
   };
   /* Tabla con el estilo de la paleta. Los subtítulos de grupo van como fila sin fondo, que
@@ -26204,9 +26245,48 @@ function _pptDesdeFormulario(inf, tema, presentador){
   // ══ 1 · Encabezado ══
   {
     const s = nueva();
-    s.addShape(P.ShapeType.rect, { x:0, y:0, w:W, h:1.18, fill:{ color:PPT_C.teal } });
-    s.addText('Ecocardiograma Doppler Color', { x:0, y:0, w:W, h:1.18, fontSize:28, bold:true,
-      color:'FFFFFF', align:'center', valign:'middle', fontFace:PPT_FONT });
+    const HB = 1.18;                                   // alto de la banda del encabezado
+    s.addShape(P.ShapeType.rect, { x:0, y:0, w:W, h:HB, fill:{ color:_HDR_BG } });
+    /* Decoraciones de la banda. Se dibujan ANTES del título para que queden por debajo: en
+       PptxGenJS el orden de inserción es el orden de apilamiento, y un trazo encima del texto
+       lo haría ilegible. Las tres son opcionales — un tema que no las declare no dibuja nada
+       y la banda queda como siempre. */
+    if (_ECG) {
+      /* Trazo de ECG a lo ancho de la banda. Se arma con segmentos porque PptxGenJS no tiene
+         polilínea; cada uno va de un punto al siguiente. El eje Y de PowerPoint crece hacia
+         ABAJO, así que una deflexión hacia arriba es un dy NEGATIVO y el segmento se dibuja
+         con flipV — sin eso la R quedaría invertida y el trazo no se leería como un ECG.
+         Va en la mitad inferior de la banda para no cruzar el título, que está centrado. */
+      const base = HB - 0.22, amp = 1.0, latido = 1.25;
+      const perfil = [[0,0],[0.15,0],[0.22,-0.05],[0.30,0],[0.42,0],
+                      [0.46,0.06],[0.52,-0.26],[0.58,0.09],[0.64,0],
+                      [0.82,-0.10],[0.98,0],[latido,0]];
+      const pts = [];
+      for (let k = 0; k * latido < W; k++) {
+        perfil.forEach(([dx, dy]) => pts.push([k * latido + dx, base + dy * amp]));
+      }
+      for (let i = 0; i + 1 < pts.length; i++) {
+        const [x0, y0] = pts[i], [x1, y1] = pts[i + 1];
+        if (x1 > W) break;
+        const dy = y1 - y0;
+        s.addShape(P.ShapeType.line, {
+          x: x0, y: Math.min(y0, y1), w: x1 - x0, h: Math.abs(dy),
+          flipV: dy < 0,
+          line: { color: _ECG.color, width: 1.25, transparency: _ECG.transparency }
+        });
+      }
+    }
+    // Barra vertical pegada al borde izquierdo de la banda.
+    if (_BARRA) s.addShape(P.ShapeType.rect, { x:0, y:0, w:_BARRA.w, h:HB, fill:{ color:_BARRA.color } });
+    // Franja horizontal al pie de la banda.
+    if (_FRANJA) s.addShape(P.ShapeType.rect, { x:0, y:HB - _FRANJA.h, w:W, h:_FRANJA.h, fill:{ color:_FRANJA.color } });
+    /* 'FFFFFF' fijo, como estaba. NO se usa `PPT_C.hdrTxt`: ésa es la tinta sobre el relleno
+       `teal` de la cabecera de las TABLAS, que es otra superficie. En «Azul institucional»
+       vale 0F172A porque ahí el relleno es celeste; usarla acá le cambiaría el título de la
+       portada a un tema que nadie pidió tocar, y en «Azul marino» —banda 0D2137— sería
+       oscuro sobre oscuro. Las tres bandas nuevas son oscuras, así que el blanco sirve. */
+    s.addText('Ecocardiograma Doppler Color', { x:0, y:0, w:W, h:HB, fontSize:28, bold:true,
+      color:'FFFFFF', align:'center', valign:'middle', fontFace:_HDR_FONT });
     /* `PPT_C.txt` y NO 'FFFFFF' fijo. El nombre va en y=1.42, o sea DEBAJO de la banda teal
        (que mide 1.18 de alto): se dibuja sobre el fondo de la diapositiva, no sobre el teal.
        Con el tema «Clínico claro» —bg FFFFFF— era blanco sobre blanco y el nombre del
