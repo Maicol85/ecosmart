@@ -1243,6 +1243,58 @@ salvedades. Los que hay que recordar:
 **Medido:** 3 secciones activas → 325 caracteres, 5 líneas, **1 página**. Antes, las mismas tres
 daban 542 caracteres de párrafos. Con 8 secciones son 742 caracteres y 2 páginas.
 
+### Diapositiva de congénitas en el PPT — 2026-09-10 (noche)
+
+Una fila «Hallazgos» y otra «Conclusión según guías» por sección incluida, entre la de ETE y el
+informe narrativo. Los hallazgos son la MISMA línea que sube al EN SUMA (`ccSumaLinea`).
+
+**El PPT es ahora el único consumidor de `<sec>Conclusion().resumen` en toda la app.** El cuerpo
+del informe imprime `txt`; el EN SUMA pasó a `ccSumaLinea`. Cinco de las diez secciones no
+devuelven `resumen` y ahí el `||` cae a `txt`. Una corrección clínica sobre `txt` **no le llega
+sola** a la diapositiva, y el único lugar donde se vería la divergencia es el proyector.
+
+**Doce secciones no entran en una diapositiva.** Medido: 8,64 pulgadas de contenido contra 3,96
+disponibles — más del doble fuera del área visible, y PowerPoint no recorta: dibuja por debajo
+del borde y la diapositiva se ve entera hasta que se proyecta. Se pagina, como ya hace el informe
+narrativo, con contador «(1/3)» en el título. Once secciones dan tres diapositivas.
+
+**Lecciones del PPT que costaron esta vez:**
+
+- **`_pptAvisos` es un `const` LOCAL de `_pptDesdeFormulario`.** `window._pptAvisos` no existe, así
+  que un test que lo lea siempre da vacío y parece que no hubo desbordamiento. Para verificar hay
+  que **interceptar `toast`**. Ese falso negativo tapó un desbordamiento del doble del área útil.
+- **El aviso de `_pptFsQueEntra` nombraba siempre «Parámetros ecocardiográficos».** Lo usan tres
+  diapositivas distintas; con la de congénitas desbordada, el mensaje mandaba al médico a revisar
+  una tabla que no tenía nada que ver. Ahora lleva parámetro `donde`.
+- **`_pptFsQueEntra` y `tabla` tienen que compartir `colK`.** Si el estimador cuenta líneas sobre
+  un ancho que el renderer no usa, la tabla sale por debajo del borde **sin ningún aviso**, porque
+  el modelo dijo que entraba.
+- **Repartir dos columnas por número de secciones o de filas no sirve.** Una MCH ocupa cuatro veces
+  más que una ventana aortopulmonar. Se reparte por longitud de texto, que es lo que determina los
+  renglones.
+- **Crear la diapositiva antes de armar las filas deja diapositivas vacías.** `hayEte` es la unión
+  de cuatro claves y una de ellas —`etem`— dejó de aportar filas cuando cada grupo pasó a consultar
+  su propia compuerta: integrarla sola abría una diapositiva que afirmaba «Ecocardiograma
+  Transesofágico» con el médico y el disclaimer al pie y nada en el medio. `nueva()` va DESPUÉS
+  de `if (F.length)`.
+- **Mudar contenido de una diapositiva a otra pierde lo que la nueva no pidió.** Al sacar CIA/CIV
+  de ETE se perdieron el DDVI indexado y la PAPs por IT —las dos que dicen si el shunt repercutió—
+  porque la línea del EN SUMA no las lleva. Y la compuerta del EN SUMA exige el TAMAÑO mientras el
+  cuerpo del informe emite párrafo con el tipo o el borde solos: un informe que describía «CIA
+  ostium secundum, shunt de izquierda a derecha, Qp/Qs 2,10» se quedaba sin diapositiva, con el
+  informe abierto al lado del proyector.
+- **Un grupo de filas tiene que consultar SU compuerta, no la unión.** «Válvula mitral», «Orejuela
+  izquierda» y «Aorta torácica» se agregaban incondicionalmente: el médico retiraba el módulo de
+  orejuela del informe —y la app le confirmaba «ya no sale en el informe»— y el PPT igual
+  proyectaba «Trombo en orejuela» leído del DOM vivo.
+- **`hdrTxt` se lee sin default** y el comentario de `PPT_TEMAS` enseña el patrón contrario. No es
+  la única —`teal`, `txt`, `txt2`, `bg`, `rojo`, `fila1`, `fila2` también— pero es la que rompe más
+  silenciosamente: un color de texto `undefined` no lanza, dibuja invisible.
+
+**Verificado:** las seis paletas (ninguna omite una clave que la diapositiva lea; contraste mínimo
+12,4:1 en el dato), 1 a 12 secciones, el reparto en dos columnas, la paginación con fuzz de 4.000
+casos sin perder ni duplicar secciones, y que retirar un módulo del informe lo saca del PPT.
+
 ## Deuda conocida sin resolver
 
 - **Contraseña en el código.** `doLogin()` compara contra un literal. Choca con el checklist

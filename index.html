@@ -31243,6 +31243,14 @@ function _pptDesdeFormulario(inf, tema, presentador){
      Ver el bloque de comentarios de PPT_TEMAS. */
   const _HDR_BG   = PPT_C.hdrBg   || PPT_C.teal;      // banda del encabezado
   const _HDR_FONT = PPT_C.hdrFont || PPT_FONT;        // tipografía de banda y títulos
+  /* `hdrTxt` se lee sin default y el comentario de PPT_TEMAS enseña el patrón contrario
+     —«agregar una paleta no obliga a declararlas»— con el ejemplo de una que declara seis. La
+     séptima que alguien copie de ahí y la omita manda `color: undefined` a la cabecera de TODAS
+     las tablas del mazo. No es la única sin default: `teal`, `txt`, `txt2`, `bg`, `rojo`,
+     `fila1` y `fila2` también se leen crudas — hoy las seis paletas las declaran, y decir que
+     el resto está protegido sería falso. Se cubre la que rompe más silenciosamente: un color de
+     texto `undefined` no lanza, dibuja invisible. */
+  const _HDR_TXT  = PPT_C.hdrTxt || 'FFFFFF';
   const _BARRA    = PPT_C.barraIzq  || null;
   const _FRANJA   = PPT_C.franjaInf || null;
   const _ECG      = PPT_C.ecgHdr    || null;
@@ -31355,29 +31363,48 @@ function _pptDesdeFormulario(inf, tema, presentador){
     return Math.max(Math.ceil(String(f.k).length / cpl(wK)),
                     Math.ceil(String(f.v).length / cpl(wV)));
   };
-  const _pptFsQueEntra = (arrs, disp, ancho) => {
-    const wK = ancho * 0.58, wV = ancho * 0.42;
+  /* Proporción por defecto de la columna izquierda. La diapositiva de congénitas la baja a
+     0,26 porque ahí la izquierda lleva rótulos de dos palabras y la derecha, la línea de
+     hallazgos entera. `colK` viaja por el MISMO camino a `_pptFsQueEntra` y a `tabla`: si sólo
+     lo supiera una de las dos, el estimador contaría líneas sobre un ancho que el renderer no
+     usa y la tabla saldría por debajo del borde sin que nada lo avise. */
+  const _COLK = 0.58;
+  /* Altura estimada de un arreglo de filas. Se extrajo de `_pptFsQueEntra` para que la
+     paginación de la diapositiva de congénitas pueda preguntar «¿entra esta sección?» sin
+     duplicar la fórmula: dos modelos del mismo alto divergen y el que se pudre es el que nadie
+     mira, que acá es el que decide si el contenido sale fuera del borde. */
+  const _altoArr = (arr, fs, pad, ancho, colK) => {
+    const _k = (colK === undefined) ? _COLK : colK;
+    const wK = ancho * _k, wV = ancho * (1 - _k);
+    return arr.reduce((a, f) => a + (f.grupo ? _altoGrupo() : _lineasFila(f, fs, wK, wV) * _altoFila(fs, pad)), 0);
+  };
+  /* `donde` nombra la diapositiva en el aviso. Estaba fijo en «Parámetros ecocardiográficos»
+     y esta función la usan tres diapositivas distintas: con la de congénitas desbordada, el
+     mensaje mandaba al médico a revisar una tabla que no tenía nada que ver. */
+  const _pptFsQueEntra = (arrs, disp, ancho, colK, donde) => {
+    const _k = (colK === undefined) ? _COLK : colK;
     const opciones = [[11,3],[11,2],[10,2],[10,1.5],[9,1.5],[9,1]];
     for (const [fs, pad] of opciones) {
-      const alto = Math.max.apply(null, arrs.map(arr => arr.reduce((a, f) =>
-        a + (f.grupo ? _altoGrupo() : _lineasFila(f, fs, wK, wV) * _altoFila(fs, pad)), 0)));
+      const alto = Math.max.apply(null, arrs.map(arr => _altoArr(arr, fs, pad, ancho, _k)));
       if (alto <= disp) return { fs, pad };
     }
     /* Ni con lo más chico entra. No se calla: PowerPoint dibujaría la tabla por debajo del
        borde y la diapositiva se ve completa hasta que se proyecta. */
-    _pptAvisos.push('⚠️ Hay demasiadas mediciones para una diapositiva — revisá «Parámetros ecocardiográficos» antes de presentar');
+    _pptAvisos.push('⚠️ Hay demasiado contenido para una diapositiva — revisá «' +
+      (donde || 'Parámetros ecocardiográficos') + '» antes de presentar');
     return { fs:9, pad:1 };
   };
   const tabla = (s, filas, y, alto, x, ancho, estilo) => {
     if (!filas.length) return;
     const _fs  = (estilo && estilo.fs !== undefined) ? estilo.fs : 11;
     const _pad = (estilo && estilo.pad !== undefined) ? estilo.pad : 3;
+    const _colK = (estilo && estilo.colK !== undefined) ? estilo.colK : _COLK;
     const rows = [];
     /* La cabecera «Parámetro | Valor» se omite en el modo de dos columnas: repetida al lado
        de sí misma no informa nada y cuesta una fila de las que faltan. */
     if (!(estilo && estilo.sinCabecera)) rows.push([
-      { text:'Parámetro', options:{ fill:PPT_C.teal, color:PPT_C.hdrTxt, bold:true, fontSize:_fs, fontFace:PPT_FONT } },
-      { text:'Valor',     options:{ fill:PPT_C.teal, color:PPT_C.hdrTxt, bold:true, fontSize:_fs, fontFace:PPT_FONT } }
+      { text:'Parámetro', options:{ fill:PPT_C.teal, color:_HDR_TXT, bold:true, fontSize:_fs, fontFace:PPT_FONT } },
+      { text:'Valor',     options:{ fill:PPT_C.teal, color:_HDR_TXT, bold:true, fontSize:_fs, fontFace:PPT_FONT } }
     ]);
     let i = 0;
     filas.forEach(f => {
@@ -31393,7 +31420,7 @@ function _pptDesdeFormulario(inf, tema, presentador){
     });
     const _x = (x !== undefined) ? x : 0.5;
     const _w = (ancho !== undefined) ? ancho : (W - 1);
-    s.addTable(rows, { x:_x, y:y||1.05, w:_w, h:alto||undefined, colW:[_w*0.58,_w*0.42],
+    s.addTable(rows, { x:_x, y:y||1.05, w:_w, h:alto||undefined, colW:[_w*_colK, _w*(1-_colK)],
       border:{ type:'none' }, autoPage:false, fontFace:PPT_FONT });
   };
   /* Sólo entra la fila si hay valor: `omitir vacíos` es lo que evita una tabla de guiones. */
@@ -31805,21 +31832,22 @@ function _pptDesdeFormulario(inf, tema, presentador){
     const hayEte = eteKs.some(integrado);
     const chkTec = document.getElementById('ete_tecnica_incluir_chk');
     const chkMor = document.getElementById('ete_morfo_incluir_chk');
-    const chkShu = document.getElementById('ete_shunt_incluir_chk');
     const chkTav = document.getElementById('ete_tavi_incluir_chk');
-    const hayShunt = !!(chkShu && chkShu.checked), hayTavi = !!(chkTav && chkTav.checked);
-    /* El título ya no puede afirmar "Transesofágico" sólo porque haya CIA/CIV: esa sección se
-       mudó a la tab Hemodinámica, que es transtorácica, y se calcula con TSVI/TSVD, que son
-       mediciones de TTE. Un operador que hace un TTE, carga el shunt y tilda "Integrar al
-       informe" firmaba un informe con una sección titulada "Ecocardiograma Transesofágico"
-       sobre un estudio que nunca fue transesofágico — eso es una afirmación médico-legal
-       falsa, no un detalle de maquetación.
-       El shunt SÍ sigue apareciendo: si es lo único marcado, va bajo su propio título. */
-    const _soloShunt = hayShunt && !hayEte && !(chkTec && chkTec.checked) &&
-                       !(chkMor && chkMor.checked) && !hayTavi;
-    if (hayEte || (chkTec && chkTec.checked) || (chkMor && chkMor.checked) || hayShunt || hayTavi) {
-      const s = nueva();
-      titulo(s, _soloShunt ? 'Cardiopatía congénita con shunt' : 'ETE — Ecocardiograma Transesofágico');
+    const hayTavi = !!(chkTav && chkTav.checked);
+    /* CIA/CIV SALIÓ de esta diapositiva el 2026-09-10: vive en la pestaña «🧬 Congénitas» y
+       tiene su propia diapositiva, que la dibuja con la misma línea de hallazgos que sube al
+       EN SUMA. Con las dos, el mismo defecto se proyectaba dos veces en el mismo PPT.
+       Con eso desaparece también el `_soloShunt`, que existía para no titular «Ecocardiograma
+       Transesofágico» una diapositiva cuyo único contenido era un shunt calculado con TSVI y
+       TSVD —mediciones transtorácicas—. El problema que resolvía ya no puede darse: esta
+       diapositiva sólo aparece con contenido que SÍ es de ETE. */
+    if (hayEte || (chkTec && chkTec.checked) || (chkMor && chkMor.checked) || hayTavi) {
+      /* La diapositiva se crea DESPUÉS de armar las filas, no antes. `hayEte` es la unión de
+         cuatro claves y una de ellas —`etem`, «Mediciones ETE / Válvula mitral»— no aporta
+         ninguna fila desde que cada grupo consulta su propia compuerta: integrarla sola abría
+         una diapositiva que afirmaba «Ecocardiograma Transesofágico», con el médico y el
+         disclaimer al pie, y nada en el medio. Proyectado ante colegas, una diapositiva vacía
+         con ese título es peor que la ausencia de la diapositiva. */
       const F = [];
       if (chkTec && chkTec.checked) {
         const t = (typeof eteTecnicaTexto === 'function') ? eteTecnicaTexto() : '';
@@ -31830,30 +31858,30 @@ function _pptDesdeFormulario(inf, tema, presentador){
         fila(F,'Carpentier', _pptSel('ete_carpentier'));
         fila(F,'Mecanismo', _pptSel('ete_mecanismo'));
       }
+      /* Cada grupo consulta SU compuerta. Los tres se agregaban incondicionalmente mientras
+         `hayEte` —que es la unión de las cuatro— alcanzara con una sola: el médico integraba el
+         módulo de orejuela, lo revisaba, usaba «Retirar» —y la app le decía «Mediciones OAI ya
+         no sale en el informe»— y el PPT igual proyectaba «Trombo en orejuela» leído del DOM
+         vivo. La diapositiva publicaba secciones que el médico excluyó del informe firmado, y
+         en el ateneo el informe está abierto al lado. */
       let n = F.length;
-      fila(F,'Score de Wilkins', _pptSpan('wilkins-total'));
-      fila(F,'Área valvular por planimetría', _pptNum('ete_area_mitral'), ' cm²');
+      if (integrado('wilk')) {
+        fila(F,'Score de Wilkins', _pptSpan('wilkins-total'));
+        fila(F,'Área valvular por planimetría', _pptNum('ete_area_mitral'), ' cm²');
+      }
       grupo(F,'Válvula mitral', n);
       n = F.length;
-      fila(F,'Trombo en orejuela', _pptSel('oai_trombo'));
-      fila(F,'Velocidad de vaciado', _pptNum('oai_vel_vac'), ' cm/s');
+      if (integrado('oai')) {
+        fila(F,'Trombo en orejuela', _pptSel('oai_trombo'));
+        fila(F,'Velocidad de vaciado', _pptNum('oai_vel_vac'), ' cm/s');
+      }
       grupo(F,'Orejuela izquierda', n);
       n = F.length;
-      fila(F,'Aterosclerosis aórtica', _pptSel('ao_grado_atero'));
-      fila(F,'Grosor máximo de placa', _pptNum('ao_grosor_placa'), ' mm');
-      grupo(F,'Aorta torácica', n);
-      if (hayShunt) {
-        n = F.length;
-        fila(F,'Tipo de CIA', _pptSel('ete_cia_tipo'));
-        fila(F,'Tamaño máximo CIA', _pptNum('ete_cia_tam_max'), ' mm');
-        fila(F,'Borde mínimo', _pptSpan('ete-cia-borde-min'));
-        fila(F,'Tipo de CIV', _pptSel('ete_civ_tipo'));
-        fila(F,'Tamaño CIV', _pptNum('ete_civ_tam'), ' mm');
-        fila(F,'Qp/Qs', _pptSpan('ete-shunt-qpqs'));
-        fila(F,'DDVI indexado', _pptSpan('ete-shunt-ddvii'));
-        fila(F,'PAPs por IT', _pptSpan('ete-cia-paps-it'));
-        grupo(F,'CIA / CIV', n);
+      if (integrado('aoete')) {
+        fila(F,'Aterosclerosis aórtica', _pptSel('ao_grado_atero'));
+        fila(F,'Grosor máximo de placa', _pptNum('ao_grosor_placa'), ' mm');
       }
+      grupo(F,'Aorta torácica', n);
       if (hayTavi) {
         n = F.length;
         fila(F,'Morfología valvular nativa', _pptSel('ete_tavi_morf'));
@@ -31868,8 +31896,200 @@ function _pptDesdeFormulario(inf, tema, presentador){
         if (hs.length) fila(F,'Jet paravalvular', 'hora ' + hs.join(', '));
         grupo(F,'TAVI', n);
       }
-      tabla(s, F, 1.05, H-1.85);
-      conPie(s);
+      if (F.length) {
+        const s = nueva();
+        titulo(s, 'ETE — Ecocardiograma Transesofágico');
+        tabla(s, F, 1.05, H-1.85);
+        conPie(s);
+      }
+    }
+  }
+
+  // ══ Cardiopatías congénitas y miocardiopatías genéticas ══
+  /* Va DESPUÉS de la de ETE y antes del informe narrativo, que es el orden en que se presenta
+     un caso: primero lo que se midió, después lo que se concluyó.
+
+     ── DE DÓNDE SALEN LOS DATOS ──
+     Los hallazgos son la MISMA línea que sube al EN SUMA (`ccSumaLinea`). Ninguna de las dos
+     se recalcula acá: dos derivaciones del mismo hecho es la forma de que la diapositiva y el
+     informe terminen diciendo cosas distintas del mismo paciente, y en un ateneo el que
+     proyecta tiene el informe abierto al lado.
+
+     La conclusión sale de `<sec>Conclusion().resumen`, que NO es lo que imprime el cuerpo del
+     informe —el cuerpo imprime `txt`, el párrafo entero— sino su versión de una línea, que es
+     lo que cabe en una diapositiva. Cinco de las diez secciones no devuelven `resumen` y ahí
+     el `||` cae a `txt`, que sí coincide con el cuerpo.
+     ATENCIÓN AL MANTENER: desde que el EN SUMA pasó a `ccSumaLinea`, esta diapositiva es el
+     ÚNICO consumidor de `resumen` en toda la app. Una corrección clínica sobre `txt` no le
+     llega sola, y el único lugar donde se vería la divergencia es el proyector. Cualquier
+     cambio en la conclusión de una sección hay que aplicarlo a las dos.
+
+     ── POR QUÉ ACÁ SÍ VA LA CONDUCTA Y EN EL EN SUMA NO ──
+     El EN SUMA del informe FIRMADO no lleva recomendaciones terapéuticas (decisión del médico,
+     2026-09-10): ahí la app informa el riesgo y la indicación la firma quien firma. El PPT es
+     otro documento y otro uso — se proyecta en un ateneo, donde la posición de la guía es
+     justamente lo que se discute — así que la fila «Conclusión según guías» sí la lleva. El
+     mismo estudio dice «criterios de significación» en el informe y «indicación de intervención
+     según ESC 2020» en la diapositiva, y no se contradicen: son el hecho y su lectura. */
+  {
+    /* Tabla de secciones. `sec` es la clave de `ccSumaLinea`; `fn` la conclusión de la sección.
+       CIA y CIV comparten casilla y no tienen función de conclusión: la suya es la lectura del
+       Qp/Qs, que es lo que las guías miran para decidir el cierre. */
+    const CC_PPT = [
+      { chk:'ete_shunt_incluir_chk', sec:'cia', nom:'CIA — comunicación interauricular' },
+      { chk:'ete_shunt_incluir_chk', sec:'civ', nom:'CIV — comunicación interventricular' },
+      { chk:'ductus_incluir_chk',    sec:'dap', nom:'DAP — ductus arterioso permeable',    fn:'dapConclusion' },
+      { chk:'coart_incluir_chk',     sec:'coa', nom:'Coartación de aorta',                  fn:'coaConclusion' },
+      { chk:'vap_incluir_chk',       sec:'vap', nom:'Ventana aortopulmonar',                fn:'vapConclusion' },
+      { chk:'fop_incluir_chk',       sec:'fop', nom:'FOP — foramen oval permeable',         fn:'fopConclusion' },
+      { chk:'vab_incluir_chk',       sec:'vab', nom:'VAB — válvula aórtica bicúspide',      fn:'vabConclusion' },
+      { chk:'mch_incluir_chk',       sec:'mch', nom:'MCH — miocardiopatía hipertrófica',    fn:'mchConclusion' },
+      { chk:'ebs_incluir_chk',       sec:'ebs', nom:'Anomalía de Ebstein',                  fn:'ebsConclusion' },
+      { chk:'tdf_incluir_chk',       sec:'tdf', nom:'Tetralogía de Fallot reparada',        fn:'tdfConclusion' },
+      { chk:'tga_incluir_chk',       sec:'tga', nom:'TGA — transposición de grandes arterias', fn:'tgaConclusion' },
+      { chk:'mca_incluir_chk',       sec:'mca', nom:'MCA — miocardiopatía arritmogénica',   fn:'mcaConclusion' }
+    ];
+    const secs = [];
+    CC_PPT.forEach(function(d){
+      const chk = document.getElementById(d.chk);
+      if (!chk || !chk.checked) return;
+      /* La compuerta es la MISMA que la del EN SUMA: sin línea de hallazgos no hay sección que
+         mostrar. Una diapositiva con el nombre de una cardiopatía y la fila de hallazgos vacía
+         afirma la enfermedad y no dice nada de ella — es peor que no estar.
+         CIA y CIV tienen además la salvedad de abajo: su compuerta del EN SUMA exige el TAMAÑO,
+         y el CUERPO del informe emite párrafo con el tipo, la dirección o el borde solos. Con la
+         compuerta estricta a secas, un informe que describe «CIA tipo ostium secundum, shunt de
+         izquierda a derecha, Qp/Qs 2,10» no tenía diapositiva — y el informe está abierto al
+         lado del proyector. */
+      let hall = (typeof ccSumaLinea === 'function') ? ccSumaLinea(d.sec) : null;
+      if (!hall && d.sec === 'cia') {
+        const t = _ccS('ete_cia_tipo'), dir = _ccS('ete_cia_dir');
+        const bm = (typeof eteCiaBordeMin === 'function') ? eteCiaBordeMin() : null;
+        if (t || dir || bm) {
+          const p = ['CIA' + (t ? ' ' + _ccLbl(CIA_TIPO_TXT, t) : '')];
+          if (dir) p.push('shunt de ' + _ccLbl(CIA_DIR_TXT, dir));
+          if (bm && bm.mm != null) p.push('borde ' + bm.nombre + ' de ' + _cc1(bm.mm) + ' mm');
+          p.push('sin tamaño consignado');
+          hall = p.join(' — ');
+        }
+      }
+      if (!hall && d.sec === 'civ') {
+        const t = _ccS('ete_civ_tipo'), vista = _ccS('ete_civ_vista');
+        if (t || vista) hall = 'CIV' + (t ? ' ' + _ccLbl(CIV_TIPO_TXT, t) : '') +
+          (vista ? ' — visualizada en ' + vista : '') + ' — sin tamaño ni velocidad consignados';
+      }
+      if (!hall) return;
+      let concl = '';
+      if (d.fn && typeof window[d.fn] === 'function') {
+        let cc = null;
+        try { cc = window[d.fn](); } catch (e) { cc = null; }
+        if (cc) concl = _pptTxt(cc.resumen || cc.txt);
+      } else if (typeof ccQpQsDe === 'function' && typeof eteQpQsInterp === 'function') {
+        const q = ccQpQsDe(d.sec);
+        if (q != null) concl = _pptTxt(eteQpQsInterp(q));
+      }
+      /* Filas EXTRA que el cuerpo del informe imprime y la línea del EN SUMA no lleva. Al sacar
+         CIA/CIV de la diapositiva de ETE se perdieron dos que sí estaban: el DDVI indexado y la
+         PAPs por insuficiencia tricuspídea, que son las que dicen si el shunt repercutió. La
+         diapositiva decía menos que el informe firmado del mismo paciente. */
+      const extra = [];
+      if (d.sec === 'cia' || d.sec === 'civ') {
+        const di = (typeof eteDDVIi === 'function') ? eteDDVIi() : null;
+        if (di != null && isFinite(di)) extra.push({ k:'DDVI indexado', v:_cc1(di) + ' mm/m²' });
+        const pa = _ccNum('psap_calc');
+        if (pa != null) extra.push({ k:'PAPs por IT', v:_cc1(pa) + ' mmHg' });
+      }
+      secs.push({ nom:d.nom, hall:_pptTxt(hall), concl:concl, extra:extra });
+    });
+
+    if (secs.length) {
+      const aFilas = function(lista){
+        const F = [];
+        lista.forEach(function(x){
+          const n = F.length;
+          fila(F, 'Hallazgos', x.hall);
+          (x.extra || []).forEach(function(e){ fila(F, e.k, e.v); });
+          fila(F, 'Conclusión según guías', x.concl);
+          grupo(F, x.nom, n);
+        });
+        return F;
+      };
+      const _yTab = 0.95, _yFin = H - 0.72;   // el filete del pie está en H-0,62
+      const _COLK_CC = 0.26;                  // la izquierda son rótulos; el contenido va a la derecha
+      const _disp = _yFin - _yTab;
+      const _colW = (W - 1.15) / 2;
+      const _FS_MIN = 9, _PAD_MIN = 1;        // el escalón más chico de `_pptFsQueEntra`
+
+      /* ── PAGINACIÓN ──
+         Doce secciones no entran en una diapositiva, y el estimador no recorta: PowerPoint
+         dibuja la tabla por debajo del borde y la diapositiva se ve entera hasta que se
+         proyecta. Medido con las once secciones cargadas: 8,64 pulgadas de contenido contra
+         3,96 disponibles, o sea más del doble fuera del área visible.
+         Se parte en varias diapositivas, como ya hace el informe narrativo, en vez de recortar:
+         acortar la conclusión de una cardiopatía para que entre en la maqueta es dejar de decir
+         algo del paciente por un motivo tipográfico. */
+      const _cabe = function(lista){
+        if (lista.length <= 3) return _altoArr(aFilas(lista), _FS_MIN, _PAD_MIN, W - 1, _COLK_CC) <= _disp;
+        const par = _partir(lista);
+        return _altoArr(aFilas(par[0]), _FS_MIN, _PAD_MIN, _colW, _COLK_CC) <= _disp &&
+               _altoArr(aFilas(par[1]), _FS_MIN, _PAD_MIN, _colW, _COLK_CC) <= _disp;
+      };
+      /* Reparto por ALTURA ESTIMADA y no por número de secciones ni de filas. Una MCH sola
+         ocupa cuatro veces más que una ventana aortopulmonar —su conclusión son tres oraciones
+         y la de la ventana, seis palabras— así que partir «seis y seis» deja una columna al ras
+         del pie y la otra a media diapositiva. */
+      function _partir(lista){
+        const peso = function(x){ return 40 + x.hall.length + (x.concl ? 40 + x.concl.length : 0) +
+          (x.extra || []).reduce(function(a, e){ return a + 40 + e.k.length + e.v.length; }, 0); };
+        const total = lista.reduce(function(a, x){ return a + peso(x); }, 0);
+        let acum = 0, corte = lista.length;
+        for (let i = 0; i < lista.length; i++) {
+          acum += peso(lista[i]);
+          /* El corte se elige DESPUÉS de pasar la mitad sólo si la sección entra mejor de este
+             lado: con `>=` a secas, una sección muy larga justo en el medio se iba entera a la
+             izquierda y desbalanceaba lo que este cálculo viene a balancear. */
+          if (acum >= total / 2) { corte = (acum - total / 2 > peso(lista[i]) / 2 && i > 0) ? i : i + 1; break; }
+        }
+        return [lista.slice(0, corte), lista.slice(corte)];
+      }
+
+      const paginas = [];
+      let pag = [];
+      secs.forEach(function(x){
+        if (!pag.length) { pag = [x]; return; }
+        if (_cabe(pag.concat([x]))) pag = pag.concat([x]);
+        else { paginas.push(pag); pag = [x]; }
+      });
+      if (pag.length) paginas.push(pag);
+      /* Una sección sola que no entra ni a 9 pt no se puede paginar más: se dice, con el nombre
+         de la diapositiva, en vez de dibujarla por debajo del borde en silencio. */
+      const _desborda = paginas.filter(function(pg){ return pg.length === 1 && !_cabe(pg); });
+      if (_desborda.length) _pptAvisos.push('⚠️ No entra «' + _desborda[0][0].nom +
+        '» en la diapositiva de congénitas — revisala antes de presentar');
+
+      paginas.forEach(function(pg, iPag){
+        const s = nueva();
+        titulo(s, '🧬 Cardiopatías congénitas y miocardiopatías genéticas' +
+                  (paginas.length > 1 ? '  (' + (iPag + 1) + '/' + paginas.length + ')' : ''));
+        /* Dos columnas a partir de CUATRO secciones. Con tres o menos, una sola columna ancha se
+           lee mejor de lejos: partirla deja media diapositiva vacía y el texto igual de chico. */
+        if (pg.length <= 3) {
+          const F = aFilas(pg);
+          const _est = _pptFsQueEntra([F], _disp, W - 1, _COLK_CC, 'Cardiopatías congénitas');
+          _est.sinCabecera = true; _est.colK = _COLK_CC;
+          tabla(s, F, _yTab, undefined, 0.5, W - 1, _est);
+        } else {
+          const par = _partir(pg);
+          const IZQ = aFilas(par[0]), DER = aFilas(par[1]);
+          /* Un solo cuerpo de letra para las dos, evaluadas juntas: si cada una eligiera el suyo
+             parecerían dos tablas de estudios distintos. */
+          const _est = _pptFsQueEntra([IZQ, DER], _disp, _colW, _COLK_CC, 'Cardiopatías congénitas');
+          _est.sinCabecera = true; _est.colK = _COLK_CC;
+          tabla(s, IZQ, _yTab, undefined, 0.5, _colW, _est);
+          tabla(s, DER, _yTab, undefined, 0.5 + _colW + 0.15, _colW, _est);
+        }
+        conPie(s);
+      });
     }
   }
 
