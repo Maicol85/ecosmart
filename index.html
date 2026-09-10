@@ -28312,6 +28312,35 @@ window._labMenciona = _labMenciona;
    fórmula vive duplicada. La rama `normal` NO usa `\bnormal\b` suelto: eso matcheaba
    «función diastólica normal» y clasificaba la geometría del VI de ese estudio como normal,
    inflando numerador y denominador a la vez. */
+/* Hallazgos frecuentes: UNA lista y UNA cuenta para el dashboard y el PDF de auditoría.
+   Estaba duplicada y la auditoría migró sólo la copia del PDF a `_labMenciona`, así que el
+   mismo período daba números distintos en las dos pantallas: con la cohorte medida —tres
+   estudios, dos de ellos diciendo «se descarta HTP»— el Laboratorio mostraba n=3 y el PDF
+   firmado imprimía n=1. Es «fórmula duplicada: pantalla vs informe» al revés de lo habitual:
+   se arregló la copia que se imprime y quedó podrida la que se mira.
+
+   El pericardio va por `byField` porque sale de un `<select>` acotado, no del narrativo, y
+   también pasa por `_labMenciona`: su lista de negaciones a mano («sin derrame», «sin
+   efusión») era la respuesta correcta escrita una vez y no reutilizada. */
+const _LAB_HALLAZGOS = [
+  { lbl:'HTP', patron:/hipertensi[oó]n\s+pulmonar|HTP/i },
+  { lbl:'Disfunción diastólica', patron:/disfunci[oó]n\s+diast[oó]lica/i },
+  { lbl:'Disfunción sistólica VI', patron:/disfunci[oó]n\s+sist[oó]lica|FEVI\s+[<>]?\s*[0-4]\d/i },
+  { lbl:'Insuficiencia mitral', patron:/insuficiencia\s+mitral|IM\s+(?:leve|moderada|severa)/i },
+  { lbl:'Estenosis aórtica', patron:/estenosis\s+a[oó]rtica|EAo/i },
+  { lbl:'Dilatación AI', patron:/dilataci[oó]n.{0,10}auricular|AI\s+(?:dilata|agrand)/i },
+  { lbl:'HVI', patron:/hipertrofia\s+ventricular\s+izq|HVI/i },
+  { lbl:'Derrame pericárdico', byField:i => _labMenciona(String((i.campos && i.campos.pericardio) || ''), /derrame|efusi[oó]n/i) }
+];
+/* Devuelve [{lbl, n}] ya filtrado y ordenado. Los dos llamadores le agregan lo suyo
+   (`total`/`color` el dashboard, la fila de tabla el PDF) pero el CONTEO sale de acá. */
+function _labHallazgosCuenta(infs) {
+  const textos = infs.map(i => (i.campos?.en_suma || '') + ' ' + (i.campos?.informe_texto || ''));
+  return _LAB_HALLAZGOS
+    .map(h => ({ lbl: h.lbl, n: h.byField ? infs.filter(h.byField).length
+                                          : textos.filter(t => _labMenciona(t, h.patron)).length }))
+    .filter(d => d.n > 0).sort((a, b) => b.n - a.n).slice(0, 8);
+}
 function _labGeomCat(inf) {
   const t = ((inf.campos?.geom_vi || '') + ' ' + (inf.campos?.informe_texto || '') + ' ' + (inf.campos?.en_suma || '')).toLowerCase();
   if (!t.trim()) return null;
@@ -28623,23 +28652,10 @@ function labInit() {
     ? vexTot + ' de ' + n + ' estudios con VEXUS evaluable'
     : 'Ningún estudio del período tiene VEXUS evaluable.';
 
-  // Hallazgos frecuentes
-  const textos = infs.map(i => (i.campos?.en_suma||'') + ' ' + (i.campos?.informe_texto||''));
-  const hallazgos = [
-    { lbl:'HTP', patron:/hipertensi[oó]n\s+pulmonar|HTP/i },
-    { lbl:'Disfunción diastólica', patron:/disfunci[oó]n\s+diast[oó]lica/i },
-    { lbl:'Disfunción sistólica VI', patron:/disfunci[oó]n\s+sist[oó]lica|FEVI\s+[<>]?\s*[0-4]\d/i },
-    { lbl:'Insuficiencia mitral', patron:/insuficiencia\s+mitral|IM\s+(?:leve|moderada|severa)/i },
-    { lbl:'Estenosis aórtica', patron:/estenosis\s+a[oó]rtica|EAo/i },
-    { lbl:'Dilatación AI', patron:/dilataci[oó]n.{0,10}auricular|AI\s+(?:dilata|agrand)/i },
-    { lbl:'HVI', patron:/hipertrofia\s+ventricular\s+izq|HVI/i },
-    { lbl:'Derrame pericárdico', byField:i=>{var v=String((i.campos&&i.campos.pericardio)||'');return /derrame|efusi[oó]n/i.test(v) && !/sin\s+derrame|sin\s+efusi[oó]n/i.test(v);} },
-  ].map(h => ({
-    lbl: h.lbl,
-    n: h.byField ? infs.filter(h.byField).length : textos.filter(t => h.patron.test(t)).length,
-    total: n,
-    color: 'var(--accent)'
-  })).filter(d => d.n > 0).sort((a,b) => b.n - a.n).slice(0,8);
+  /* Hallazgos frecuentes — misma lista y misma cuenta que el PDF de auditoría, vía
+     `_labHallazgosCuenta`. Acá vivía una segunda copia con `.test()` crudo, sin la guarda de
+     negación, así que la pantalla contaba «se descarta HTP» como un caso de HTP y el PDF no. */
+  const hallazgos = _labHallazgosCuenta(infs).map(d => ({ ...d, total: n, color: 'var(--accent)' }));
   labBarras('lab-hallazgos', hallazgos, 'fraction');
 
   // Edad y sexo promedio
@@ -28790,7 +28806,13 @@ function labRenderExtras(infs, n) {
   // Gráfica apilada integrada de valvulopatías (debajo de las tablas)
   _labValvBuildChart('lab-valv-chart', infs);
   { const s = document.getElementById('lab-valv-chart-sub');
-    if (s) s.textContent = 'Solo pacientes con valvulopatía documentada — % sobre total (n=' + n + ')';
+    /* Mismo texto que el subtítulo del PDF, y por el mismo motivo. `_labValvChartCfg` la
+       comparten esta gráfica y la del PDF; cuando la auditoría le cambió el reparto a base
+       POR VÁLVULA se actualizó sólo el subtítulo del PDF, y acá quedó anunciando «% sobre
+       total (n=<todos los del período>)» sobre barras que ya no dividían por eso. Como la
+       barra imprime el n crudo adentro, se leía «n=1 · 50 %» bajo un cartel que decía que el
+       denominador eran los 8 estudios del período. */
+    if (s) s.textContent = 'Porcentajes sobre los estudios con esa válvula evaluada — el n de cada barra es su propio numerador, no sobre los ' + n + ' del período.';
     const l = document.getElementById('lab-valv-chart-leyenda');
     if (l) l.innerHTML = _labValvLegendHTML(); }
 
@@ -28812,8 +28834,10 @@ function labRenderExtras(infs, n) {
   const lavisAll = infs.map(i => _labLavi(i)).filter(v => v !== null && v > 0);
   const lt = lavisAll.length;
   const volaiDist = [
-    { lbl:`Normal (≤34) (n=${lavisAll.filter(v=>v<=34).length})`,           n: lavisAll.filter(v=>v<=34).length,          total:lt, color:'#3ecf8e' },
-    { lbl:`Leve dilatación (35–41) (n=${lavisAll.filter(v=>v>34&&v<=41).length})`, n: lavisAll.filter(v=>v>34&&v<=41).length, total:lt, color:'#f5c842' },
+    /* La banda «normal» ES el umbral de dilatación, así que sale de la constante; el 41 y el
+       48 de las bandas de severidad son cortes propios de la escala ASE y quedan literales. */
+    { lbl:`Normal (≤${UMBRAL_LAVI_DILATADO}) (n=${lavisAll.filter(v=>v<=UMBRAL_LAVI_DILATADO).length})`, n: lavisAll.filter(v=>v<=UMBRAL_LAVI_DILATADO).length, total:lt, color:'#3ecf8e' },
+    { lbl:`Leve dilatación (${UMBRAL_LAVI_DILATADO+1}–41) (n=${lavisAll.filter(v=>v>UMBRAL_LAVI_DILATADO&&v<=41).length})`, n: lavisAll.filter(v=>v>UMBRAL_LAVI_DILATADO&&v<=41).length, total:lt, color:'#f5c842' },
     { lbl:`Moderada (42–48) (n=${lavisAll.filter(v=>v>41&&v<=48).length})`,  n: lavisAll.filter(v=>v>41&&v<=48).length,     total:lt, color:'#f0a500' },
     { lbl:`Severa (>48) (n=${lavisAll.filter(v=>v>48).length})`,            n: lavisAll.filter(v=>v>48).length,           total:lt, color:'#f05454' },
   ];
@@ -31306,7 +31330,15 @@ function labSubTab(id, el) {
   const FEVICAT=inf=>{ const f=VARS.fevi.get(inf); return f==null?null:(f>=UMBRAL_FEVI_NORMAL?'≥'+UMBRAL_FEVI_NORMAL:(f>=40?'40-49':'<40')); };
   const HTP=inf=>{ const p=VARS.psap.get(inf); return p==null?null:(p>UMBRAL_PSAP_ELEVADA?1:0); };
   const VALVSIG=inf=>{ const c=inf.campos||{}; let known=false,sig=false; ['im_grado','ia_grado','it_grado','ea_grado','em_grado','et_grado'].forEach(k=>{ const v=c[k]; if(v!=null&&String(v).trim()!==''){ known=true; const s=String(v).toLowerCase(),n=parseInt(v); if(/severa|moderada/.test(s)||(!isNaN(n)&&n>=2))sig=true; } }); return known?(sig?1:0):null; };
-  const DIAST=inf=>{ const t=(((inf.campos&&inf.campos.en_suma)||'')+' '+((inf.campos&&inf.campos.informe_texto)||'')).toLowerCase(); if(/grado iii|restrictiv/.test(t))return 'III'; if(/grado ii|pseudonormal/.test(t))return 'II'; if(/grado i\b|relajaci/.test(t))return 'I'; if(/sin disfunci|llenado normal|diast[óo]lica normal/.test(t))return 'Normal'; return null; };
+  /* Reusa `_labDiastGrado`, que es la implementación con guarda de negación. Acá había una
+     TERCERA copia con `.test()` crudo: «no hay patrón restrictivo» matcheaba `restrictiv` y
+     clasificaba el estudio como grado III —la categoría más severa— en las cuatro chi² de
+     grado diastólico contra HTA, DM, FA y sexo, que salen en la tabla, el Excel y el PDF.
+     Y encima discrepaba de la distribución del dashboard: el mismo estudio era «Sin
+     disfunción» en una pantalla y «III» en la otra, en la misma sesión.
+     `_labDiastGrado` devuelve 'sin' donde ésta devolvía 'Normal'; se traduce acá porque el
+     rótulo 'Normal' es el que espera el orden de lectura ORD de este módulo. */
+  const DIAST=inf=>{ const g=_labDiastGrado(inf); return g===null?null:(g==='sin'?'Normal':g); };
   const GEOM=inf=>{ const masa=MASAI(inf), dd=NUM(inf,['ddfvi','ddvi']), pp=NUM(inf,['ppvi']); if(masa==null||!dd||!pp)return null; const rwt=2*pp/dd, sexo=SEXO(inf); const hvi=(sexo==='F'&&masa>UMBRAL_MASA_HVI_M)||(sexo!=='F'&&masa>UMBRAL_MASA_HVI_H); if(!hvi&&rwt<0.42)return 'Normal'; if(!hvi&&rwt>=0.42)return 'Remodelado conc.'; if(hvi&&rwt<0.42)return 'HVI excéntrica'; return 'HVI concéntrica'; };
 
   // ── Distribuciones (p-values en JS puro) ──
@@ -32052,10 +32084,16 @@ function labCompararRender() {
   const A = labFiltrarPorFecha(todos, aD, aH);
   const B = labFiltrarPorFecha(todos, bD, bH);
 
-  const numCampo = (inf, id) => {
-    const v = inf.campos?.[id];
-    return v ? PF(String(v).replace(',','.')) : null;
-  };
+  /* Resuelve los alias, igual que el resto del Laboratorio. Éste era el CUARTO sitio que leía
+     la clave cruda —CLAUDE.md decía «tres lugares» y se migraron tres—, así que los estudios
+     importados de PDF o planilla se caían del promedio Y del «% con …», que es justamente un
+     indicador de completitud del laboratorio: subdeclaraba.
+
+     Y de paso cierra la trampa de `numCampo` vs `_labNum`: el `v ? …` anterior trataba un
+     `fevi:"0"` como ausente, mientras `_labNum` usa `String(v).trim() !== ''`. Un FEVI de 0 es
+     un valor registrado —el test de regresión lo exige— y ahora cuenta como tal. */
+  const _ALIAS_CMP = { fevi: ['fevi', 'fevi_simpson'], sgl: ['sgl', 'gls_global'] };
+  const numCampo = (inf, id) => _labNum(inf, ...(_ALIAS_CMP[id] || [id]));
   const prom = (arr, campo) => {
     const vals = arr.map(i => numCampo(i, campo)).filter(v => v !== null);
     return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '—';
@@ -33686,23 +33724,8 @@ async function labGenerarPDF() {
     const antBlk = freqBlock('Antecedentes', 'Antecedente', freqData('antecedentes_sel'));
     if (indBlk || antBlk) await sectionTwoCol(indBlk, antBlk);
 
-    // 3. Hallazgos frecuentes
-    const textos = infs.map(i => (i.campos?.en_suma || '') + ' ' + (i.campos?.informe_texto || ''));
-    const hallazgos = [
-      { lbl: 'HTP', patron: /hipertensi[oó]n\s+pulmonar|HTP/i },
-      { lbl: 'Disfunción diastólica', patron: /disfunci[oó]n\s+diast[oó]lica/i },
-      { lbl: 'Disfunción sistólica VI', patron: /disfunci[oó]n\s+sist[oó]lica|FEVI\s+[<>]?\s*[0-4]\d/i },
-      { lbl: 'Insuficiencia mitral', patron: /insuficiencia\s+mitral|IM\s+(?:leve|moderada|severa)/i },
-      { lbl: 'Estenosis aórtica', patron: /estenosis\s+a[oó]rtica|EAo/i },
-      { lbl: 'Dilatación AI', patron: /dilataci[oó]n.{0,10}auricular|AI\s+(?:dilata|agrand)/i },
-      { lbl: 'HVI', patron: /hipertrofia\s+ventricular\s+izq|HVI/i },
-      { lbl: 'Derrame pericárdico', byField: i => _labMenciona(String((i.campos && i.campos.pericardio) || ''), /derrame|efusi[oó]n/i) },
-      /* Los siete patrones de arriba se evaluaban con `patron.test(t)` a secas: «se descarta
-         HTP» contaba como un caso de HTP. El único que tenía guarda era el de pericardio, y
-         con su propia lista de negaciones («sin derrame», «sin efusión») — o sea la respuesta
-         correcta escrita una vez y no reutilizada. Ahora los ocho pasan por _labMenciona. */
-    ].map(h => ({ lbl: h.lbl, n: h.byField ? infs.filter(h.byField).length : textos.filter(t => _labMenciona(t, h.patron)).length }))
-      .filter(d => d.n > 0).sort((a, b) => b.n - a.n).slice(0, 8);
+    // 3. Hallazgos frecuentes — misma cuenta que el dashboard. Ver _labHallazgosCuenta.
+    const hallazgos = _labHallazgosCuenta(infs);
     if (hallazgos.length) await sectionChart('Hallazgos frecuentes',
       ['Hallazgo', 'n (%)'],
       hallazgos.map(h => [h.lbl, h.n + '/' + N + ' (' + pctOf(h.n, N) + '%)']),
@@ -34017,17 +34040,25 @@ function _valvCategoria(norm){
   return null;
 }
 // ¿El estudio tiene documentada la valvulopatía (cualquier grado)? — por campo de grado o por texto
+/* «Alguna de estas palabras, y no negada». Los filtros de Guardados definen la COHORTE del
+   PDF de auditoría, así que un `n` inflado por negaciones se propaga a TODOS los
+   denominadores del informe firmado — incluidos los que esta auditoría acaba de corregir.
+   Filtrar «Diastólica: Grado III» arrastraba los informes que dicen «sin patrón restrictivo».
+   Se escapan los metacaracteres porque las palabras vienen de mapas de texto legible. */
+function _algunaMencion(txt, palabras) {
+  return palabras.some(p => _labMenciona(txt, new RegExp(p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')));
+}
 function _tieneValv(inf, cat){
   const c = inf.campos || {};
   const txt = normTxt((c.informe_texto||'') + ' ' + (c.en_suma||''));
   const eaG = String(c.ea_grado||'').toLowerCase(), emG = String(c.em_grado||'').toLowerCase();
   switch(cat){
-    case 'ea':  return (eaG && eaG!=='sin' && eaG!=='esclerosis') || /estenosis aortica/.test(txt);
-    case 'em':  return (emG && emG!=='sin') || /estenosis mitral/.test(txt);
-    case 'im':  { const g=_labRegurgSev(inf,'im_grado'); return (g && g!=='Sin') || /insuficiencia mitral|regurgitacion mitral/.test(txt); }
-    case 'iao': { const g=_labRegurgSev(inf,'ia_grado'); return (g && g!=='Sin') || /insuficiencia aortica|regurgitacion aortica/.test(txt); }
-    case 'it':  { const g=_labRegurgSev(inf,'it_grado'); return (g && g!=='Sin') || /insuficiencia tricuspidea|regurgitacion tricusp|insuf.*tricusp/.test(txt); }
-    case 'htp': { const p=_labPsap(inf); return (p!==null && p>UMBRAL_PSAP_ELEVADA) || /hipertension pulmonar|\bhtp\b/.test(txt); }
+    case 'ea':  return (eaG && eaG!=='sin' && eaG!=='esclerosis') || _labMenciona(txt, /estenosis aortica/);
+    case 'em':  return (emG && emG!=='sin') || _labMenciona(txt, /estenosis mitral/);
+    case 'im':  { const g=_labRegurgSev(inf,'im_grado'); return (g && g!=='Sin') || _labMenciona(txt, /insuficiencia mitral|regurgitacion mitral/); }
+    case 'iao': { const g=_labRegurgSev(inf,'ia_grado'); return (g && g!=='Sin') || _labMenciona(txt, /insuficiencia aortica|regurgitacion aortica/); }
+    case 'it':  { const g=_labRegurgSev(inf,'it_grado'); return (g && g!=='Sin') || _labMenciona(txt, /insuficiencia tricuspidea|regurgitacion tricusp|insuf.*tricusp/); }
+    case 'htp': { const p=_labPsap(inf); return (p!==null && p>UMBRAL_PSAP_ELEVADA) || _labMenciona(txt, /hipertension pulmonar|\bhtp\b/); }
   }
   return false;
 }
@@ -34090,7 +34121,7 @@ function aplicarFiltros() {
         'remod':    ['remodelado concéntrico','remodelado']
       };
       const palabras = map[filtroGeom] || [];
-      if (!palabras.some(p => txt.includes(p))) return false;
+      if (!_algunaMencion(txt, palabras)) return false;
     }
 
     // Diastólica — busca en texto
@@ -34106,7 +34137,7 @@ function aplicarFiltros() {
         'elevada':  ['presión de llenado elevada','presion de llenado elevada']
       };
       const palabras = map[filtroDiast] || [];
-      if (!palabras.some(p => txt.includes(p))) return false;
+      if (!_algunaMencion(txt, palabras)) return false;
     }
 
     // Valvulopatía — busca en texto
@@ -34120,7 +34151,7 @@ function aplicarFiltros() {
         'htp': ['hipertensión pulmonar','htp','psap']
       };
       const palabras = map[filtroValv] || [];
-      if (!palabras.some(p => txt.includes(p))) return false;
+      if (!_algunaMencion(txt, palabras)) return false;
     }
 
     // Caso de interés
@@ -35742,7 +35773,12 @@ window.esqPills=(function(){
     let pos=0, tot=0;
     if(ee!=null){tot++; if(ee>14)pos++;}
     if(tr!=null){tot++; if(tr>2.8)pos++;}
-    if(lavi!=null){tot++; if(lavi>UMBRAL_LAVI_DILATADO)pos++;}
+    /* Vía `window` y con respaldo, igual que el `typeof escHtml==='function'` de este mismo
+       bloque: `UMBRAL_LAVI_DILATADO` es un const del bloque <script> de CeiboStore, y si ése
+       deja de parsear —ya pasó dos veces— una referencia pelada acá tira ReferenceError donde
+       antes había un 34 literal que seguía funcionando. */
+    const _uL = (typeof window.UMBRAL_LAVI_DILATADO === 'number') ? window.UMBRAL_LAVI_DILATADO : 34;
+    if(lavi!=null){tot++; if(lavi>_uL)pos++;}
     if(tot<2) return null;
     if(pos>=2) return 'Presiones elevadas';
     if(pos===1) return 'Indeterminada';

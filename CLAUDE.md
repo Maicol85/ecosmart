@@ -835,6 +835,43 @@ antes `_idReparado` sólo corría con un `id` inválido; ahora corre para el 100
 vieja. Cerrado con `_str()`, que envuelve el `String()` en try/catch. Verificado sembrando
 `{"toString":null}` con un id válido: CeiboStore vivo y los dos estudios legibles.
 
+### Arreglar la copia del PDF y dejar la del dashboard es la trampa al revés
+El análisis acumulado de los 8 commits encontró que la auditoría había migrado **sólo la copia
+que se imprime** de tres lógicas duplicadas, dejando rancia la que el médico mira:
+
+- **Hallazgos frecuentes** vivía dos veces. Migré el PDF a `_labMenciona` y el dashboard quedó
+  con `.test()` crudo. Medido sobre la cohorte de la reproducción —dos estudios diciendo «se
+  descarta HTP» y uno con HTP real—: el Laboratorio mostraba **n=3** y el PDF firmado imprimía
+  **n=1**, mismo período, misma cohorte. Ahora hay una sola lista (`_LAB_HALLAZGOS`) y una
+  sola cuenta (`_labHallazgosCuenta`); los dos llamadores le agregan su presentación.
+- **El subtítulo de valvulopatías del dashboard.** `_labValvChartCfg` la comparten pantalla y
+  PDF; al cambiar el reparto a base por válvula actualicé sólo el subtítulo del PDF. La
+  pantalla siguió anunciando «% sobre total (n=<todos>)» sobre barras que ya no dividían por
+  eso — y como la barra imprime el n crudo adentro, se leía «n=1 · 50 %» bajo ese cartel.
+- **`DIAST` del módulo de asociaciones** era una TERCERA copia de la clasificación diastólica.
+  «no hay patrón restrictivo» matcheaba `restrictiv` y clasificaba grado III —la categoría más
+  severa— en las cuatro chi² contra HTA, DM, FA y sexo. Y discrepaba de `_labDiastGrado`: el
+  mismo estudio era «Sin disfunción» en una pantalla y «III» en la otra. Ahora delega.
+
+**Y el conteo de sitios que yo mismo documenté estaba mal.** Escribí «tres lugares leían la
+clave cruda» y migré tres; el cuarto era `labCompararRender`, que además usaba el `numCampo`
+con `v ? …` —o sea un `fevi:"0"` daba null—. Su «% con GLS» es un indicador de completitud del
+laboratorio y subdeclaraba. **Antes de escribir «son N sitios», contarlos con grep.**
+
+### Los filtros de Guardados definen la cohorte del PDF firmado
+`aplicarFiltros` y `_tieneValv` cruzaban texto libre con `.includes()`/`.test()` crudos, así
+que filtrar «Diastólica: Grado III» arrastraba los informes que dicen «sin patrón restrictivo».
+No es cosmético: **el filtro define el denominador de todo el informe de auditoría**, incluidos
+los denominadores que esta misma auditoría acaba de arreglar. Pasaron por `_labMenciona` vía
+`_algunaMencion`, que escapa los metacaracteres porque las palabras vienen de mapas legibles.
+
+### Dependencias entre bloques `<script>`: usar `window` y respaldo
+`diastGrade` (bloque del modal de evolución) referenciaba `UMBRAL_LAVI_DILATADO` pelado, siendo
+un `const` del bloque de CeiboStore. Funciona, pero ese módulo protege sus otras dependencias
+cruzadas (`typeof escHtml === 'function'`) y ésta no: si el bloque grande deja de parsear —ya
+pasó dos veces— antes había un `34` literal que seguía andando y ahora sería `ReferenceError`.
+Pasó a `window.UMBRAL_LAVI_DILATADO` con respaldo, como el resto.
+
 ## Deuda conocida sin resolver
 
 - **Contraseña en el código.** `doLogin()` compara contra un literal. Choca con el checklist
