@@ -33241,23 +33241,43 @@ function labEteRender(infs, n) {
      las cifras impresas dos líneas más arriba. Ninguno de los dos contiene al otro; el que los
      contiene a ambos es la unión, que es lo que dice «Total considerado». */
   const marcadosSinDatos = marcados.filter(i => !conDatosEte(i)).length;
-  /* La población de trabajo es la UNIÓN: un estudio marcado sin datos sigue siendo un ETE, y
-     uno con datos sin marcar también. Cada bloque de abajo se filtra además por SU propio dato,
-     así que el denominador de cada estadística es el correcto sin depender de esta unión. */
-  const eteArr = infs.filter(i => esEte(i) || conDatosEte(i));
+  /* La población de trabajo es SÓLO la casilla «Es un ETE». Antes era la unión con la
+     detección por campos, y eso inventaba ETEs donde no los hay: en un hospital que no hace
+     transesofágicos, 48 estudios transtorácicos con el score de Wilkins puntuado y el área
+     mitral medida —las dos cosas se hacen por vía transtorácica— aparecían como «Total
+     considerado: 50» habiendo 2 ETE reales. Reproducido con esa cohorte exacta.
+
+     El razonamiento anterior no era falso: un ETE informado sólo en la narrativa no deja
+     campos, y ahí la detección por campos lo rescataba. Pero el error es asimétrico. Contar
+     de menos deja un estudio afuera de una estadística; contar de más le dice a un servicio
+     que hace ETEs que no hace, y ese número puede terminar en una memoria anual o en un
+     pedido de recursos. Ante la duda, el denominador es lo que el médico DECLARÓ.
+
+     Los dos conteos siguen a la vista, que es lo que permite detectar el desajuste: si
+     «Con datos» supera mucho a «Marcados», o falta tildar la casilla o el detector está
+     tomando campos que no son de ETE. La nota lo dice explícitamente. */
+  const eteArr = marcados;
+  /* Porcentaje sobre los ETE, no sobre todos los estudios del período. `pctS` divide por `n`
+     —la actividad completa— y eso es lo correcto para los dos contadores de arriba: «Marcados
+     como ETE: 2 (4 %)» se lee como «el 4 % de lo que hace el servicio son ETE». Pero dentro de
+     la subtab, «Estudios con TAVI (4 %)» sobre el total de ecos es una cifra que no responde a
+     ninguna pregunta: lo que se quiere saber es qué proporción DE LOS ETE llevó TAVI. */
+  const pctE = x => eteArr.length > 0 ? Math.round(x / eteArr.length * 100) + '%' : '0%';
 
   setHtml('lab-ete-actividad-stats',
     stat('Marcados como ETE', marcados.length + ' (' + pctS(marcados.length) + ')') +
     stat('Con datos ETE cargados', conDatos.length + ' (' + pctS(conDatos.length) + ')') +
-    stat('Total considerado', String(eteArr.length)));
+    stat('Denominador de esta subtab', String(eteArr.length)));
   setHtml('lab-ete-nota',
-    'Los dos números miden cosas distintas y <b>ninguno contiene al otro</b>. «Marcados» cuenta la casilla ' +
-    '«Es un ETE», que es posterior a algunos estudios y no viaja en la importación de Excel. «Con datos ETE ' +
-    'cargados» detecta el estudio por sus campos, así que se pierde los ETE que se informan sólo en la ' +
-    'narrativa y suma los transesofágicos ajenos que el médico anota sin marcar la casilla. ' +
-    '<b>«Total considerado» es la unión</b>, y es el denominador de esta subtab. ' +
-    (sinMarcar ? ('En este período hay <b>' + sinMarcar + '</b> con datos de ETE y sin la casilla marcada. ') : '') +
-    (marcadosSinDatos ? ('Y <b>' + marcadosSinDatos + '</b> marcado(s) sin ningún campo de ETE cargado. ') : '') +
+    'El denominador de esta subtab son los <b>marcados con la casilla «Es un ETE»</b>, no los detectados ' +
+    'por sus campos: hay mediciones que también se hacen por vía transtorácica —el score de Wilkins, el ' +
+    'área mitral— y contarlas como ETE le atribuye al servicio una actividad que no tuvo. ' +
+    '«Con datos ETE cargados» queda como <b>control</b>, no como denominador. ' +
+    'Si ese número supera bastante a «Marcados», falta tildar la casilla en esos estudios. ' +
+    '<b>Ojo con dos casos que hay que marcar a mano:</b> los estudios anteriores a que existiera la casilla, ' +
+    'y los importados desde Excel, que no la traen — sin el tilde no entran acá aunque sean ETE. ' +
+    (sinMarcar ? ('En este período hay <b>' + sinMarcar + '</b> con datos de ETE y sin la casilla marcada: no cuentan. ') : '') +
+    (marcadosSinDatos ? ('Y <b>' + marcadosSinDatos + '</b> marcado(s) sin ningún campo de ETE cargado: sí cuentan, y cada bloque los deja fuera por su propio dato. ') : '') +
     (!sinMarcar && !marcadosSinDatos ? 'En este período los dos criterios coinciden estudio por estudio.' : ''));
 
   /* Distribución por mes, sobre la unión.
@@ -33280,7 +33300,11 @@ function labEteRender(infs, n) {
   }
 
   // ── BLOQUE 2 · TAVI ── (movido tal cual desde la tab Avanzado)
-  const taviArr = infs.filter(usaTavi);
+  /* Los tres bloques parten de `eteArr` y no de `infs`. Cambiar sólo el denominador de arriba
+     no alcanzaba: con `infs` estos seguían contando estudios que la subtab ya no considera
+     ETE, así que «Estudios con TAVI» podía superar al denominador declarado — la misma
+     contradicción visible en pantalla que este archivo ya documenta para TEER. */
+  const taviArr = eteArr.filter(usaTavi);
   if (!taviArr.length) { empty('lab-tavi-stats','TAVI'); empty('lab-tavi-pro-bars','TAVI');
                          empty('lab-tavi-rpv-bars','TAVI'); empty('lab-ete-jet-bars','jet paravalvular'); }
   else {
@@ -33288,7 +33312,7 @@ function labEteRender(infs, n) {
     const vm = _promPos(taviArr.map(i => _labNum(i,'ete_tavi_vmax')));
     const ava = _promPos(taviArr.map(i => _labNum(i,'ete_tavi_ava')));
     setHtml('lab-tavi-stats',
-      stat('Estudios con TAVI', taviArr.length + ' (' + pctS(taviArr.length) + ')') +
+      stat('Estudios con TAVI', taviArr.length + ' (' + pctE(taviArr.length) + ' de los ETE)') +
       stat('Gradiente medio post-TAVI', _promTxt(gm, 1, ' mmHg')) +
       stat('Velocidad máxima', _promTxt(vm, 2, ' m/s')) +
       stat('Área valvular (AVA)', _promTxt(ava, 2, ' cm²')));
@@ -33360,7 +33384,11 @@ function labEteRender(infs, n) {
   const W_IDS = ['wilkins_movilidad','wilkins_engrosamiento','wilkins_calcificacion','wilkins_subvalvular'];
   let wParciales = 0;
   const wTot = [];
-  infs.forEach(i => {
+  /* `eteArr` y no `infs`, como los otros tres bloques. El score de Wilkins se puntúa también
+     por vía transtorácica, así que sobre `infs` esta sección contaba estudios que la subtab ya
+     no considera ETE: en la cohorte de prueba anunciaba «48 estudio(s) tienen el score
+     incompleto» dentro de una subtab cuyo denominador declarado son 2. */
+  eteArr.forEach(i => {
     const vs = W_IDS.map(k => _labNum(i, k)).filter(v => v !== null && v > 0);
     if (!vs.length) return;                       // no se evaluó Wilkins en este estudio
     if (vs.length < 4) { wParciales++; return; }  // parcial: no se interpreta
@@ -33393,7 +33421,7 @@ function labEteRender(infs, n) {
   }
 
   // ── BLOQUE 4 · Orejuela izquierda ──
-  const oaiArr = infs.filter(usaOai);
+  const oaiArr = eteArr.filter(usaOai);
   if (!oaiArr.length) { empty('lab-ete-oai-stats','orejuela izquierda'); empty('lab-ete-oai-morf','morfología'); }
   else {
     /* Trombo: el denominador son los EVALUADOS, no todos los con orejuela. Un «— no evaluado»
@@ -33402,7 +33430,7 @@ function labEteRender(infs, n) {
     const positivos = evaluados.filter(i => _labCampoRaw(i,'oai_trombo') === 'si').length;
     const sospecha  = evaluados.filter(i => _labCampoRaw(i,'oai_trombo') === 'sospecha').length;
     setHtml('lab-ete-oai-stats',
-      stat('Estudios con orejuela evaluada', oaiArr.length + ' (' + pctS(oaiArr.length) + ')') +
+      stat('Estudios con orejuela evaluada', oaiArr.length + ' (' + pctE(oaiArr.length) + ' de los ETE)') +
       stat('Trombo confirmado', evaluados.length ? (positivos + ' de ' + evaluados.length + ' (' + pctDe(positivos, evaluados.length) + ')') : '—') +
       stat('Sospecha de trombo', evaluados.length ? (sospecha + ' de ' + evaluados.length + ' (' + pctDe(sospecha, evaluados.length) + ')') : '—') +
       stat('Velocidad de vaciamiento', _promTxt(_promPos(oaiArr.map(i => _labNum(i,'oai_vel_vac'))), 1, ' cm/s')) +
@@ -33424,7 +33452,7 @@ function labEteRender(infs, n) {
      ranking falso de qué anatomía rechaza pacientes. Los dos criterios de IM secundaria (FEVI y
      DTSVI) no entran en el veredicto de calcTEER, así que tampoco acá. */
   // TEER_CRIT y usaTeer están declarados arriba, junto al resto de los predicados de bloque.
-  const teerArr = infs.filter(usaTeer);
+  const teerArr = eteArr.filter(usaTeer);
   if (!teerArr.length) { empty('lab-ete-teer-stats','evaluación TEER'); empty('lab-ete-teer-im-bars','tipo de IM');
                          empty('lab-ete-teer-crit-bars','criterios TEER'); }
   else {
