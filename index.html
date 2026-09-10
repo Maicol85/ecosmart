@@ -17695,7 +17695,10 @@ function _recalcModulos(etiqueta) {
 window.RECALC_MODULOS = RECALC_MODULOS; window._recalcModulos = _recalcModulos;
 
 // ══ LIMPIAR ══
-function limpiarCampos() {
+/* `silencioso`: el toast «Formulario limpiado» es correcto cuando el médico aprieta «Nuevo
+   estudio», y es ruido cuando la limpieza es un paso interno de cargar otro estudio — ahí el
+   único mensaje que corresponde es el de la carga. */
+function limpiarCampos(silencioso) {
   // Nuevo estudio: la card de severidades vuelve a pedirse en la próxima acción
   valvSevConfirmada = false;
   // Nuevo estudio: resetear los flags de severidad fijada manualmente (las pills vuelven a autocalcularse)
@@ -17903,7 +17906,7 @@ function limpiarCampos() {
      Sin esto, el paciente nuevo arrancaba con «Congestión venosa severa… considerar
      descongestión activa» del paciente anterior debajo de un score vacío. */
   if (typeof calcVEXUS === 'function') calcVEXUS();
-  toast('🗑 Formulario limpiado');
+  if (!silencioso) toast('🗑 Formulario limpiado');
 }
 
 // ══ Modal "Nuevo estudio" — confirmación propia (reemplaza el confirm nativo) ══
@@ -25641,6 +25644,21 @@ function cargarEstudioPorId(id) {
   if (!id) return;
   const inf = getInformes().find(i => i.estudioId === id);
   if (!inf) { _eeEstudioNoDisponible(); return; }
+  /* Se LIMPIA antes de poblar. Ésta era la última de las tres rutas de restauración que no lo
+     hacía: el bucle de abajo sólo pisa las claves que el estudio TRAE, así que todo lo que no
+     venga se quedaba con lo del paciente que estaba en pantalla. Con los estudios guardados por
+     esta versión no se notaba —guardarInforme barre todos los input/select/textarea con id, así
+     que las claves viajan aunque estén vacías—, pero los importados de Excel y de DICOM
+     construyen `campos` desde cero y traen unas pocas decenas de claves.
+     Reproducido antes de arreglarlo: con un paciente cargado y abriendo por `?estudio=` un
+     importado, la pantalla quedaba con el nombre del estudio nuevo y la coartación, la válvula
+     bicúspide, el espesor de la miocardiopatía y las notas clínicas del anterior — más la casilla
+     «✓ Integrado al informe» tildada. El PDF de ese paciente salía con «indicación de
+     intervención según ESC 2020» por una coartación que era de otra persona.
+     En silencio: el toast que corresponde acá es el de la carga, no el de la limpieza. */
+  if (typeof limpiarCampos === 'function') {
+    try { limpiarCampos(true); } catch (e) { console.error('[cargarEstudioPorId] no se pudo limpiar el formulario', e); }
+  }
   if (inf.campos && typeof _migrarCamposLegacy === 'function') _migrarCamposLegacy(inf.campos);
   if (inf.campos) Object.entries(inf.campos).forEach(([fid, val]) => {
     const el = document.getElementById(fid);
@@ -28797,6 +28815,11 @@ function volverAListaInformes() {
    claves array que guarda guardarInforme desde los checklists (ver _INF_CAMPOS_ARRAY);
    se pintan con `arr:` y su input «Otro». Si agregás un campo acá, verificá que exista
    `id="<ese id>"` en el formulario, o que sea una de esas dos. */
+/* Mapas de etiquetas para «Ver detalle». Se declaran una vez y se referencian: el sí/no/no
+   consta lo comparten decenas de campos, y tres copias se desincronizan en el primer cambio. */
+const _IG_SN = { si:'Sí', no:'No' };
+const _IG_FUNCVD = { normal:'Normal', leve:'Disfunción leve', moderada:'Disfunción moderada', severa:'Disfunción severa' };
+const _IG_DIR = { id:'Izquierda a derecha', bi:'Bidireccional', di:'Derecha a izquierda' };
 const _IG_SECTIONS = [
   { titulo:'👤 Paciente', fields:[
     {id:'nombre',lbl:'Nombre'},{id:'doc_tipo',lbl:'Tipo doc.'},{id:'ci',lbl:'Documento'},
@@ -28848,7 +28871,131 @@ const _IG_SECTIONS = [
     {id:'it_grado',lbl:'IT grado',grades:true},{id:'ip_grado',lbl:'IP grado'},
     {id:'em_grado',lbl:'EM grado',grades:true},{id:'ea_grado',lbl:'EA grado',grades:true},
     {id:'et_grado',lbl:'ET grado',grades:true}
+  ]},
+  /* ══ Congénitas y miocardiopatías genéticas ══
+     Once tarjetas, una por patología. El renderer omite entera la sección que no tiene ningún
+     campo cargado, así que un paciente con sólo una coartación ve una tarjeta y no once.
+     Hasta 2026-09-10 «Ver detalle» no mostraba NINGUNO de estos campos: el revisor que quería
+     auditar de dónde salió un «cierre indicado» o un score de muerte súbita no podía. */
+  { titulo:'🫀 CIA / CIV', fields:[
+    {id:'ete_cia_tipo',lbl:'Tipo de CIA',map:{secundum:'Ostium secundum',primum:'Ostium primum',sv_vcs:'Seno venoso VCS',sv_vci:'Seno venoso VCI',seno_coronario:'Seno coronario'}},
+    {id:'ete_cia_tam_max',lbl:'Tamaño máximo (mm)'},{id:'ete_cia_tam_min',lbl:'Tamaño mínimo (mm)'},
+    {id:'ete_cia_borde_ao',lbl:'Borde aórtico (mm)'},{id:'ete_cia_borde_av',lbl:'Borde AV/mitral (mm)'},
+    {id:'ete_cia_borde_vcs',lbl:'Borde VCS (mm)'},{id:'ete_cia_borde_vci',lbl:'Borde VCI (mm)'},
+    {id:'ete_cia_borde_post',lbl:'Borde posterior (mm)'},
+    {id:'ete_cia_dir',lbl:'Dirección del shunt',map:_IG_DIR},{id:'ete_cia_vel',lbl:'Velocidad del jet (m/s)'},
+    {id:'ete_civ_tipo',lbl:'Tipo de CIV',map:{perimembranosa:'Perimembranosa',muscular:'Muscular',infundibular:'Infundibular',inlet:'Inlet'}},
+    {id:'ete_civ_tam',lbl:'Tamaño CIV (mm)'},{id:'ete_civ_vista',lbl:'Vista'},
+    {id:'ete_civ_vel',lbl:'Velocidad CIV (m/s)'},{id:'ete_civ_pas',lbl:'PA sistémica (mmHg)'}
+  ]},
+  { titulo:'🔀 Ductus arterioso permeable', fields:[
+    {id:'dap_tipo',lbl:'Tipo',map:{silente:'Silente',restrictivo:'Restrictivo',no_restrictivo:'No restrictivo'}},
+    {id:'dap_diam',lbl:'Diámetro mínimo (mm)'},{id:'dap_dir',lbl:'Dirección del shunt',map:_IG_DIR},
+    {id:'dap_vmax',lbl:'Vmax (m/s)'},{id:'dap_paps',lbl:'PAPs estimada (mmHg)'}
+  ]},
+  { titulo:'🩸 Coartación de aorta', fields:[
+    {id:'coa_loc',lbl:'Localización',map:{preductal:'Preductal',yuxtaductal:'Yuxtaductal',posductal:'Posductal'}},
+    {id:'coa_situacion',lbl:'Situación',map:{nativa:'Nativa',recoartacion:'Recoartación'}},
+    {id:'coa_istmo',lbl:'Istmo (mm)'},{id:'coa_ao_desc',lbl:'Ao descendente (mm)'},
+    {id:'coa_vmax',lbl:'Vmax (m/s)'},{id:'coa_gmedio',lbl:'Gradiente medio (mmHg)'},
+    {id:'coa_diast_anterogrado__chk',lbl:'Cola diastólica',map:{'1':'Presente'}}
+  ]},
+  { titulo:'🫁 Ventana aortopulmonar', fields:[
+    {id:'vap_tipo',lbl:'Tipo',map:{i:'Tipo I proximal',ii:'Tipo II distal',iii:'Tipo III total'}},
+    {id:'vap_diam',lbl:'Diámetro (mm)'},{id:'vap_dir',lbl:'Dirección del shunt',map:_IG_DIR},
+    {id:'vap_htp',lbl:'Hipertensión pulmonar',map:_IG_SN}
+  ]},
+  { titulo:'🔵 Foramen oval permeable', fields:[
+    {id:'fop_tunel',lbl:'Longitud del túnel (mm)'},
+    {id:'fop_mov',lbl:'Movilidad del septum',map:{si:'Septum móvil',no:'No aumentada'}},
+    {id:'fop_asa',lbl:'Aneurisma del septum',map:_IG_SN},{id:'fop_asa_mm',lbl:'Excursión (mm)'},
+    {id:'fop_contraste',lbl:'Contraste con burbujas',map:{si:'Realizado',no:'No se realizó'}},
+    {id:'fop_shunt_reposo',lbl:'Shunt en reposo',map:{si:'Presente',no:'Ausente'}},
+    {id:'fop_shunt_valsalva',lbl:'Shunt con Valsalva',map:{si:'Presente',no:'Ausente'}},
+    {id:'fop_burbujas',lbl:'Cantidad de burbujas',map:{pocas:'Pocas (<5)',moderado:'Moderado (5-20)',abundante:'Abundante (>20)'}},
+    {id:'fop_acv',lbl:'ACV criptogénico',map:_IG_SN},{id:'fop_trombofilia',lbl:'Trombofilia',map:_IG_SN}
+  ]},
+  { titulo:'🫀 Válvula aórtica bicúspide', fields:[
+    {id:'vab_tipo',lbl:'Tipo de fusión',map:{t0:'Tipo 0 (sin rafe)',t1rl:'Tipo 1 R-L',t1rn:'Tipo 1 R-N',t1nl:'Tipo 1 N-L',t2:'Tipo 2'}},
+    {id:'vab_rafe',lbl:'Rafe calcificado',map:_IG_SN},
+    {id:'vab_funcion',lbl:'Función valvular',map:{normal:'Normofuncionante',estenosis:'Estenosis',insuficiencia:'Insuficiencia',mixta:'Mixta'}},
+    {id:'vab_fenotipo',lbl:'Fenotipo aortopático',map:{sin:'Sin dilatación',raiz:'De raíz',tubular:'Tubular',arco:'Extendido'}},
+    {id:'vab_cx_valvular',lbl:'Cirugía valvular prevista',map:_IG_SN},
+    {id:'vab_riesgo_qx',lbl:'Riesgo quirúrgico bajo',map:_IG_SN},
+    {id:'vab_fr_familiar',lbl:'FR: familiar con síndrome aórtico',map:_IG_SN},
+    {id:'vab_fr_hta',lbl:'FR: HTA resistente',map:_IG_SN},
+    {id:'vab_fr_crecimiento',lbl:'FR: crecimiento ≥3 mm/año',map:_IG_SN},
+    {id:'vab_fr_longitud',lbl:'FR: longitud Ao ≥11 cm',map:_IG_SN},
+    {id:'vab_fr_cx',lbl:'FR: cirugía concomitante',map:_IG_SN},
+    {id:'vab_fr_embarazo',lbl:'FR: deseo de embarazo',map:_IG_SN}
+  ]},
+  { titulo:'🫀 Miocardiopatía hipertrófica', fields:[
+    {id:'mch_espesor',lbl:'Espesor máximo (mm)'},
+    {id:'mch_loc',lbl:'Localización',map:{sept_ant:'Septal anterosuperior',sept_post:'Septal posterior',apical:'Apical',lateral:'Lateral',concentrica:'Concéntrica',medioventricular:'Medioventricular'}},
+    {id:'mch_patron',lbl:'Patrón morfológico',map:{sigmoidea:'Sigmoidea',reversa:'Curvatura reversa',apical:'Apical',neutral:'Neutral'}},
+    {id:'mch_fam_mch',lbl:'Historia familiar de MCH',map:_IG_SN},
+    {id:'mch_grad_reposo',lbl:'Gradiente TSVI reposo (mmHg)'},{id:'mch_grad_valsalva',lbl:'Gradiente TSVI Valsalva (mmHg)'},
+    {id:'mch_sam',lbl:'SAM mitral',map:_IG_SN},{id:'mch_mesocavitaria',lbl:'Obstrucción mesocavitaria',map:_IG_SN},
+    {id:'mch_cf',lbl:'Clase funcional',map:{i_ii:'I-II',iii_iv:'III-IV'}},
+    {id:'mch_fam_ms',lbl:'FR: familiar con muerte súbita',map:_IG_SN},
+    {id:'mch_sincope',lbl:'FR: síncope inexplicado',map:_IG_SN},
+    {id:'mch_tvns',lbl:'FR: TVNS en Holter',map:_IG_SN},
+    {id:'mch_aneurisma_apical',lbl:'FR: aneurisma apical',map:_IG_SN},
+    {id:'mch_fibrosis_rmn',lbl:'FR: realce tardío por RMN',map:_IG_SN},
+    {id:'mch_tension_ejercicio',lbl:'Respuesta tensional anormal',map:_IG_SN},
+    {id:'mch_ex_atleta',lbl:'Excl.: atleta de competición',map:_IG_SN},
+    {id:'mch_ex_fenocopia',lbl:'Excl.: fenocopia',map:_IG_SN},
+    {id:'mch_ex_sindromica',lbl:'Excl.: forma sindrómica',map:_IG_SN},
+    {id:'mch_ex_parada',lbl:'Excl.: parada o TV sostenida previa',map:_IG_SN},
+    {id:'mch_ex_reduccion',lbl:'Excl.: reducción septal previa',map:_IG_SN},
+    {id:'mch_ctx_hta',lbl:'HTA resistente',map:_IG_SN},
+    {id:'mch_ctx_crecimiento',lbl:'Crecimiento del espesor (mm/año)'},
+    {id:'mch_ctx_embarazo',lbl:'Deseo de embarazo',map:_IG_SN}
+  ]},
+  { titulo:'💧 Anomalía de Ebstein', fields:[
+    {id:'ebs_desplazamiento',lbl:'Desplazamiento del velo septal (mm)'},
+    {id:'ebs_atrializacion',lbl:'Atrialización del VD (%)'},
+    {id:'ebs_func_vd',lbl:'Función del VD funcional',map:{normal:'Normal',leve:'Reducida leve',moderada:'Reducida moderada',severa:'Reducida severa'}},
+    {id:'ebs_area_ad',lbl:'Celermajer: área AD (cm²)'},{id:'ebs_area_vd_atrial',lbl:'Celermajer: área VD atrializado (cm²)'},
+    {id:'ebs_area_vd_func',lbl:'Celermajer: área VD funcional (cm²)'},{id:'ebs_area_ai',lbl:'Celermajer: área AI (cm²)'},
+    {id:'ebs_area_vi',lbl:'Celermajer: área VI (cm²)'},
+    {id:'ebs_tsv',lbl:'Taquicardia supraventricular',map:_IG_SN},
+    {id:'ebs_vias',lbl:'Vías accesorias',map:_IG_SN},
+    {id:'ebs_sintomas',lbl:'Síntomas',map:_IG_SN},
+    {id:'ebs_ejercicio',lbl:'Deterioro de la capacidad de ejercicio',map:_IG_SN},
+    {id:'ebs_progresion',lbl:'Dilatación progresiva del VD',map:_IG_SN}
+  ]},
+  { titulo:'🫁 Tetralogía de Fallot reparada', fields:[
+    {id:'tdf_func_vd',lbl:'Función del VD',map:_IG_FUNCVD},
+    {id:'tdf_grad_tsvd',lbl:'Gradiente TSVD (mmHg)'},
+    {id:'tdf_civ_residual',lbl:'CIV residual',map:_IG_SN},{id:'tdf_civ_grad',lbl:'Gradiente CIV residual (mmHg)'},
+    {id:'tdf_ep_stent',lbl:'EP nativa o stent',map:_IG_SN},
+    {id:'tdf_sintomas',lbl:'Síntomas',map:_IG_SN},
+    {id:'tdf_ejercicio',lbl:'Caída de la capacidad de ejercicio',map:_IG_SN},
+    {id:'tdf_tv',lbl:'Taquicardia ventricular',map:_IG_SN}
+  ]},
+  { titulo:'🔄 TGA corregida', fields:[
+    {id:'tga_tipo',lbl:'Tipo',map:{cctga:'ccTGA',mustard:'Post-Mustard',senning:'Post-Senning'}},
+    {id:'tga_func_vd',lbl:'Función del VD sistémico',map:_IG_FUNCVD},
+    {id:'tga_obstr_subaortica',lbl:'Obstrucción subaórtica',map:_IG_SN},
+    {id:'tga_grad_subaortico',lbl:'Gradiente subaórtico (mmHg)'},
+    {id:'tga_bav',lbl:'Bloqueo AV completo',map:_IG_SN},
+    {id:'tga_civ_residual',lbl:'CIV residual',map:_IG_SN},{id:'tga_civ_grad',lbl:'Gradiente CIV residual (mmHg)'},
+    {id:'tga_sintomas',lbl:'Síntomas',map:_IG_SN}
+  ]},
+  { titulo:'📎 Secciones integradas al informe', fields:[
+    {id:'ete_shunt_incluir_chk__chk',lbl:'CIA / CIV',map:{'1':'Sí'}},
+    {id:'ductus_incluir_chk__chk',lbl:'Ductus arterioso',map:{'1':'Sí'}},
+    {id:'coart_incluir_chk__chk',lbl:'Coartación de aorta',map:{'1':'Sí'}},
+    {id:'vap_incluir_chk__chk',lbl:'Ventana aortopulmonar',map:{'1':'Sí'}},
+    {id:'fop_incluir_chk__chk',lbl:'Foramen oval permeable',map:{'1':'Sí'}},
+    {id:'vab_incluir_chk__chk',lbl:'Válvula aórtica bicúspide',map:{'1':'Sí'}},
+    {id:'mch_incluir_chk__chk',lbl:'Miocardiopatía hipertrófica',map:{'1':'Sí'}},
+    {id:'ebs_incluir_chk__chk',lbl:'Anomalía de Ebstein',map:{'1':'Sí'}},
+    {id:'tdf_incluir_chk__chk',lbl:'Tetralogía de Fallot',map:{'1':'Sí'}},
+    {id:'tga_incluir_chk__chk',lbl:'TGA corregida',map:{'1':'Sí'}}
   ]}
+
 ];
 
 const _IG_GRADE = ['—','Leve','Moderada','Mod-Severa','Severa'];
@@ -28899,6 +29046,17 @@ function verDetalleInforme(id) {
         }
         if (val === undefined || val === null || val === '') return null;
         if (f.grades) { const g = parseInt(val)||0; if (!g) return null; val = _IG_GRADE[g]||val; }
+        /* `map`: los <select> guardan el TOKEN (`t1rl`, `no_eval`, `sept_ant`), no la etiqueta.
+           Sin traducir, «Ver detalle» mostraba «t1rl» y «no_eval». Un token que no esté en el
+           mapa se OMITE en vez de imprimirse crudo: es más honesto que mostrar basura, y el
+           renderer ya omite todo lo vacío, así que la ausencia de la fila no sorprende.
+           `no_eval` se omite a propósito: esta vista resume lo que se encontró, y llenar la
+           tarjeta de «No consta» la vuelve ilegible — que la fila no esté ya significa eso. */
+        if (f.map) {
+          const _t = String(val);
+          if (_t === 'no_eval' || !Object.prototype.hasOwnProperty.call(f.map, _t)) return null;
+          val = f.map[_t];
+        }
         if (f.id === 'sexo') val = val==='M'?'Masculino':val==='F'?'Femenino':val;
         // El <select> de colapso VCI guarda el token ('>50'), no la etiqueta ('>50%').
         if (f.id === 'vci_col') val = (val==='>50'||val==='<50') ? val + '%' : val;

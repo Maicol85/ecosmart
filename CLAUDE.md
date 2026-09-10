@@ -993,6 +993,25 @@ iteraciones anteriores), y la FEVI sí — la app ya tiene el campo.
   cambia el número; una exclusión sin contestar no cambia el número, cambia si el número
   corresponde.
 
+### Dos deudas cerradas el 2026-09-10
+
+- **`cargarEstudioPorId` ahora llama a `limpiarCampos(true)`.** Era la última de las tres rutas
+  de restauración que no limpiaba antes de poblar, y el bucle sólo pisa las claves que el estudio
+  TRAE. Reproducido antes de arreglarlo: con un paciente en pantalla y abriendo por `?estudio=`
+  un importado de Excel, la pantalla quedaba con el NOMBRE del estudio nuevo y la coartación, la
+  bicúspide, el espesor de la miocardiopatía y las notas clínicas del anterior, más la casilla
+  «✓ Integrado al informe» tildada. El PDF de ese paciente salía con «indicación de intervención
+  según ESC 2020» por una coartación de otra persona.
+  `limpiarCampos` acepta ahora un parámetro `silencioso`: el toast «Formulario limpiado» es
+  correcto cuando el médico aprieta «Nuevo estudio» y es ruido cuando la limpieza es un paso
+  interno de cargar otro estudio.
+- **`_IG_SECTIONS` conoce las once secciones de Congénitas.** El renderer aprendió `f.map`, que
+  traduce el TOKEN guardado (`t1rl`, `sept_ant`) a su etiqueta: sin eso «Ver detalle» habría
+  mostrado los tokens crudos. Un token que no está en el mapa se OMITE en vez de imprimirse, y
+  `no_eval` se omite a propósito —esta vista resume lo que se encontró y llenarla de «No consta»
+  la vuelve ilegible—. El renderer ya salteaba las secciones sin campos, así que un paciente con
+  sólo una coartación ve una tarjeta y no once.
+
 ## Deuda conocida sin resolver
 
 - **Contraseña en el código.** `doLogin()` compara contra un literal. Choca con el checklist
@@ -1046,19 +1065,6 @@ iteraciones anteriores), y la FEVI sí — la app ya tiene el campo.
   «Sí» en una y un «No» en la otra no produce una afirmación falsa dentro de ninguna, pero sí un
   informe que se contesta a sí mismo dos veces distinto. No es colisión `mch_ctx_crecimiento` vs
   `vab_fr_crecimiento`: uno es crecimiento del espesor parietal y el otro de la aorta.
-- **`_IG_SECTIONS` no conoce ductus ni coartación.** Cero coincidencias `dap_`/`coa_` en el
-  bloque (verificado 2026-09-10): el «Ver detalle» de un estudio guardado no muestra ninguno de
-  los 13 campos nuevos. Es el mismo agujero que los seis ids que ya documenta esa sección; se
-  anota acá para que no se descubra por casualidad.
-- **`cargarEstudioPorId` no llama a `limpiarCampos`.** Sólo pisa las claves que el estudio trae
-  (`editarInforme` sí limpia primero, desde el arreglo de 2026-09-08). Para estudios guardados
-  por esta versión no fuga —`guardarInforme` barre todos los `input[id]` y todos los
-  `input[type=checkbox][id]`, así que las claves viajan aunque estén vacías—, pero los
-  **importados de Excel y de DICOM** construyen `campos` desde cero: abrir uno por
-  `?estudio=<id>` con otro paciente cargado deja en pantalla los datos y las casillas
-  «✓ Integrado» del anterior. Hoy la exposición es baja porque el QR está desconectado de punta
-  a punta y la única entrada es una URL escrita a mano; sube el día que se reconecte. El
-  arreglo va en `cargarEstudioPorId`, no dentro del módulo de turno.
 - **Cuatro `MAPA[k] || ''` nuevos en `_labExcelRow`** (ductus y coartación, 2026-09-10). Suma a
   los que esa sección ya nombra. `c` es `inf.campos`, no el DOM, así que por `<select>` y por
   Excel no se llega —`_labXlsVocab` valida o rechaza la fila—, pero el import de backup JSON
