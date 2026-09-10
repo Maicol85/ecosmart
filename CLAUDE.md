@@ -879,6 +879,36 @@ Pasó a `window.UMBRAL_LAVI_DILATADO` con respaldo, como el resto.
   sacarla sin backend la deja abierta. Se resuelve con la migración a Supabase, no parcheando
   del lado del cliente. Mientras tanto: **es una barrera de cortesía, no un control de
   acceso** — cualquiera que abra el archivo la lee.
+- **El «logo del centro» es UNO SOLO para toda la app, no uno por centro.** Decidido dejarlo
+  así (2026-09-10) y resolverlo en la migración a Supabase, junto con el resto del estado que
+  hoy vive en `localStorage` sin noción de identidad.
+  El mecanismo *parece* multi-centro y no lo es: la clave es `logo_centro_<getCentroKey()>`,
+  `getCentroKey()` lee `centro_tipo_activo`, y esa clave la escribe **únicamente**
+  `selectCentroTipo()` — alcanzable sólo desde botones `.centro-opt` / `centro_opt_N` que
+  **no existen en el HTML** (verificado: cero ocurrencias como clase o como id; sólo aparecen
+  dentro del `querySelectorAll`/`getElementById` de esa misma función). En una instalación
+  nueva la clave nunca se crea y `getCentroKey()` devuelve `'default'` para siempre. La lista
+  que el médico sí usa —«🏥 Centros de trabajo»— escribe otra clave, `ett_centro_principal`,
+  que es la que alimentan el botón del header y el select del formulario.
+  **Consecuencia al leer un informe:** con dos centros cargados, el PDF sale con el NOMBRE del
+  centro principal y el ÚNICO logotipo guardado. Lo heredan las tres superficies que leen esa
+  clave: el logo del header (`renderLogoCentro`), el encabezado del PDF (`_hdrLogo` dentro de
+  `generarPDFReal`) y la portada/cierre del PPT (`_pptLogo`).
+  **No "arreglarlo" moviendo la clave a `ett_centro_principal` sin plan de migración:** cambia
+  de qué logotipo salen los informes firmados y deja huérfano lo guardado en
+  `logo_centro_default`.
+  Al depurar: si en tu navegador `getCentroKey()` NO devuelve `'default'`, es porque alguien
+  seteó `centro_tipo_activo` a mano en una sesión anterior — no es el estado de un usuario
+  real. Confirmar con `localStorage.getItem('centro_tipo_activo')` antes de sacar conclusiones
+  sobre esta ruta; ya produjo una verificación inválida.
+- **Nadie mide el ancho del copyright del pie del PDF.** `_fCopyr` va centrado en `x=105` con
+  `doc.text` directo, sin `splitTextToSize`: jsPDF no envuelve ni avisa, así que se recorta por
+  los dos márgenes. Importa en **modo institucional**, donde `_fCopyr` lleva el nombre de la
+  clínica adentro (`'© 2026 ' + _fInst + ' · Todos los derechos reservados · Uso clínico
+  exclusivo'`). Es deuda anterior, pero se anota ahora porque el ÚNICO `getTextWidth` que se
+  aplicaba a `_fCopyr` vivía dentro del bloque de la línea de cierre de Académico, y ese bloque
+  quedó dormido el 2026-09-10 al apagar `firmaCierre`. Nunca protegió al copyright —protegía a
+  la línea de cierre *de* él— pero era lo único que lo tocaba.
 - **`gmax_calc` puede quedar rancio.** Ver la sección de `_IG_SECTIONS`.
 - **`cerrarSesion()` no es un borde de sesión.** No recarga ni llama a `limpiarCampos` /
   `imgVaciar`: detrás del overlay quedan intactos el formulario, las imágenes y todo el

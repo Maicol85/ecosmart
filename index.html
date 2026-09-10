@@ -17228,7 +17228,8 @@ window.generarPDF = generarPDF;
    sigue dando el PDF de siempre, pero ese camino ya no lo usa nadie.
      _aj.sp    factor de AIRE — interlínea del texto corrido y separación entre bloques.
      _aj.fs    factor del CUERPO de letra, sobre PDF_FS. Nunca sobre PDF_FS_FIJO (En suma y
-               firma) ni sobre _FSP (copyright, id de cierre y disclaimer médico-legal).
+               firma) ni sobre _FSP (copyright y disclaimer médico-legal; el «id de cierre»
+               que también salía por ahí está dormido desde que se apagó firmaCierre).
      _aj.medir true = corta apenas sabe en cuántas hojas cayó el cuerpo: no dibuja las hojas
                de ETE/ETT avanzado ni las de imágenes, no arma el pie y no guarda el archivo.
                Devuelve {pagCuerpo, guardado:false}. Los toast de advertencia del cuerpo SÍ
@@ -17437,7 +17438,16 @@ function generarPDFReal(_aj) {
        del informe y del En Suma es idéntico en las cuatro. Y no afecta al buscador del
        Laboratorio, que grepea el campo `en_suma` guardado, no el rótulo del PDF. */
     tituloInforme:'Informe clínico', tituloSuma:'Conclusión clínica',
-    firmaSerif:true, firmaMonoMatr:true, firmaCirculo:null, firmaCierre:true
+    /* `firmaCierre:false` desde 2026-09-10. Era la ÚNICA plantilla que lo tenía en true, y
+       dibujaba la línea `ECO-<fecha ISO> · <id>` en el pie. Se apagó a pedido del médico, que
+       ya había pedido sacar el id del encabezado: los dos eran el mismo identificador con dos
+       formatos distintos y no quiere ninguno en el informe que entrega.
+       Con esto NINGUNA plantilla usa `firmaCierre`, así que el bloque que lo consume
+       (`generarPDFReal`, ~19517) y el hash que lo alimenta quedan dormidos, no borrados: es un
+       flag, volver a encenderlo es una palabra. Mismo criterio que `hdrBg` y `barraIzq` en las
+       paletas del PPT — ramas declaradas y sin consumidor, anotadas para que nadie las lea
+       como código vivo ni las borre creyendo que sobran. */
+    firmaSerif:true, firmaMonoMatr:true, firmaCirculo:null, firmaCierre:false
   };
   /* ── PLANTILLA 5 · COMPACTO ──
      La compacidad sale del padding y del alto de fila, NO de bajar el cuerpo de letra ni de
@@ -18282,10 +18292,9 @@ function generarPDFReal(_aj) {
        Se borró el bloque entero —semilla, hash FNV-1a y `doc.text`— y no sólo el dibujado: con
        el `doc.text` comentado, el cálculo quedaba corriendo sin consumidor y el próximo que
        leyera el hash iba a suponer que algo lo usa.
-       OJO — esta plantilla imprime un SEGUNDO id, distinto, en el PIE: la línea de cierre
-       `ECO-<fecha ISO> · <id>` que gobierna `_TBL.firmaCierre` (también sólo Académico). Ésa NO
-       se tocó porque el pedido decía «encabezado». Si tampoco se la quiere, hay que apagar
-       `firmaCierre` en `_TBL_ESTILOS.academico`, no volver acá. */
+       Había un SEGUNDO id, distinto, en el PIE de esta misma plantilla: la línea de cierre
+       `ECO-<fecha ISO> · <id>`. También se apagó (2026-09-10), pero NO acá: se hace con
+       `firmaCierre:false` en `_TBL_ESTILOS.academico`. Académico ya no imprime ningún ECO. */
     if (logoW) _hdrDibujarLogo(mR, 5, 12, logoW);
     let yy = hdrH;
     // Separación doble: gruesa + fina, como el filete de una publicación.
@@ -19449,10 +19458,14 @@ function generarPDFReal(_aj) {
     : '© 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo';
   /* Fecha en ISO (aaaa-mm-dd) tal cual la guarda el campo, sin reordenar: es el formato que
      pide la plantilla Académico y el que ya viene del <input type=date>.
-     El id usa el mismo hash FNV-1a que usaba el encabezado. Ya NO hay dos apariciones que
-     coincidir —el id del encabezado se quitó a pedido del médico (2026-09-09) y éste quedó
-     como el único de la hoja—, pero el algoritmo se mantiene igual a propósito: cambiarlo
-     haría que un informe reimpreso hoy lleve un código distinto del que ya se entregó. */
+     `_idEstudio` es un hash FNV-1a que HOY NO SE IMPRIME EN NINGUNA HOJA: el id del encabezado
+     se quitó el 2026-09-09 y el del pie se apagó el 2026-09-10 (`firmaCierre:false`). Se
+     conserva sólo para no re-derivar el formato si algún día se re-enciende el flag.
+     Es libre de cambiar: nunca se persistió ni se lee desde ningún lado —cero buscadores,
+     filtros o importadores lo resuelven—, así que era una referencia de papel a papel. Lo que
+     se perdió al apagarlo es la trazabilidad de lo YA entregado: un PDF viejo con
+     «ECO-2026-05-12 · A3F9K2» impreso no se puede volver a reproducir desde la app. Fue una
+     decisión tomada, no un descuido. */
   const _fechaISO = sv('fecha') || '';
   const _idEstudio = (() => {
     const sem = (sv('ci') || sv('nombre') || '') + '|' + (sv('fecha') || '');
@@ -19510,10 +19523,20 @@ function generarPDFReal(_aj) {
        Se dibuja sólo si NO pisa al copyright, que va centrado y puede ser largo (en modo
        institucional lleva el nombre de la clínica). Antes que superponer dos textos en el pie
        de un informe firmado, no se estampa. */
-    /* Sin fecha NI id no se estampa nada: el relleno de guiones daba «ECO-----------», una
-       cadena sin significado en un informe firmado. La guarda se mantiene aunque ya no haya
-       un segundo id con el que discrepar —el del encabezado se quitó—: el criterio es propio
-       de esta línea, no una coordinación con la otra. O el identificador dice algo, o no va. */
+    /* DORMIDO: ninguna plantilla tiene hoy `firmaCierre` en true (Académico era la única y se
+       apagó el 2026-09-10). Este bloque no dibuja nada; se conserva porque re-encenderlo es
+       cambiar una palabra en `_TBL_ESTILOS`. `_fechaISO` y `_idEstudio` se siguen calculando
+       arriba —un hash FNV sobre una cadena corta, costo despreciable— y no se borran por lo
+       mismo: sin ellos, volver a encender el flag imprimiría `ECO-s/f` sin id.
+       Si se revive, DOS cosas que este código nunca tuvo probadas y que ahora nadie ejercita:
+       1) Sin fecha NI id no se estampa nada. El relleno de guiones daba «ECO-----------», una
+          cadena sin significado en un informe firmado. O el identificador dice algo, o no va.
+       2) La condición de ancho de acá abajo —`mL + _wCierre < 105 - _wCopyr/2 - 3`— descarta
+          la línea EN SILENCIO si el copyright es ancho, y el copyright es ancho justamente en
+          MODO INSTITUCIONAL, donde lleva el nombre de la clínica. Mientras Académico lo
+          dibujaba, ese caso se ejercitaba en cada informe; dormido, no lo ejercita nadie.
+          Probar con modo institucional y un nombre de institución largo ANTES de confiar en
+          que la línea sale. */
     if (_TBL.firmaCierre && (_fechaISO || _idEstudio)) {
       const _idCierre = 'ECO-' + (_fechaISO || 's/f') + (_idEstudio ? ' · ' + _idEstudio : '');
       doc.setFont('times','normal'); doc.setFontSize(5.5 * _FSP); tc(150,150,150);
@@ -19563,9 +19586,9 @@ function generarPDFReal(_aj) {
         actual). No baja más: PDF_FS ya bajó de 1,15 a 1,07 a mano para este mismo fin, y
         seguir bajando repite un intercambio que ya se hizo una vez.
 
-   Lo que NO toca: PDF_FS_FIJO —el "En suma" y la firma— ni _FSP —copyright, id de cierre y
-   disclaimer médico-legal—. Esos cinco textos conservan su cuerpo de letra en todos los
-   pasos; sí se comprime el AIRE del "En suma", que es blanco, no letra. Lo de PDF_FS_FIJO
+   Lo que NO toca: PDF_FS_FIJO —el "En suma" y la firma— ni _FSP —copyright y disclaimer
+   médico-legal—. Esos CUATRO textos conservan su cuerpo de letra en todos los pasos. (Eran
+   cinco: el «id de cierre» de Académico salía por _FSP y dejó de dibujarse el 2026-09-10.) sí se comprime el AIRE del "En suma", que es blanco, no letra. Lo de PDF_FS_FIJO
    está escrito en la constante y no se revisa desde acá; lo del pie es que son los textos
    más chicos del documento y achicarlos no gana ni un renglón, porque van a `y` fijo.
 
@@ -35895,7 +35918,7 @@ const ECO_AYUDA = [
     <li><b>Clásico</b> — el de siempre: banda de color con el trazo de ECG.</li>
     <li><b>Moderno</b> — banda roja a todo el ancho, fecha como etiqueta, iniciales en un círculo junto a la firma.</li>
     <li><b>Minimalista</b> — sin color. Una línea fina como única decoración.</li>
-    <li><b>Académico</b> — tipografía serif, fondo gris claro, datos del paciente en tabla y un identificador de estudio al pie.</li>
+    <li><b>Académico</b> — tipografía serif, fondo gris claro y datos del paciente en tabla.</li>
     <li><b>Compacto</b> — todo en una línea, filas apretadas, sin bordes.</li>
     <li><b>Elegante</b> — crema y dorado, serif, filetes finos.</li>
     <li><b>Bicolor</b> — tu color del PDF más un segundo color a elección.</li>
