@@ -1399,6 +1399,7 @@ window.cerrarSesion = cerrarSesion;
       <div class="tabs-row tabs-special">
         <button class="tab-btn tab-special" data-mod="hemodinamica" onclick="showTab('hemodinamica')">🫀 Hemodinámica</button>
         <button class="tab-btn tab-special" data-mod="ete" onclick="showTab('ete')">🔬 ETE</button>
+        <button class="tab-btn tab-special" data-mod="congenitas" onclick="showTab('congenitas')">🧬 Congénitas</button>
         <button class="tab-btn tab-special" data-mod="amiloidosis" onclick="showTab('amiloidosis')">🧬 Amiloidosis</button>
         <button class="tab-btn tab-special" data-mod="cardioOnco" onclick="showTab('cardioOnco')">❤️ Cardio-Oncología</button>
         <button class="tab-btn tab-special" data-mod="pulmonar" onclick="showTab('pulmonar')">🫁 Eco Pulmonar</button>
@@ -3369,285 +3370,19 @@ window.cerrarSesion = cerrarSesion;
   </div>
   </div>
 
-  <!-- CIA/CIV vive acá y no en la tab ETE: el shunt se calcula con TSVI/TSVD, que son
-       mediciones de Hemodinámica. Los campos fuente (diam_tsvi, itv_tsvi, tsvd_diametro,
-       vti_tsvd) siguen viviendo en #tab-doppler y #tab-vd — esta sección sólo muestra
-       espejos de sólo lectura (ete_shunt_*_ro) que llena eteShuntSync(). El encabezado
-       disparador se mueve JUNTO con la sección: si quedaba en ETE, el clic seguía
-       plegando un contenedor que ya no está en esa tab y no pasaba nada visible. -->
-  <!-- ═══ CIA / CIV — CARDIOPATÍA CONGÉNITA CON SHUNT ═══
-       El toggle de inclusión de esta sección NO usa localStorage: se lee del propio
-       checkbox, que guardarInforme captura en `campos` y la reimpresión repone. Las
-       secciones viejas leen una clave global y por eso un estudio reimpreso podía salir sin
-       una sección que el PDF original sí tenía; acá se evita de entrada. -->
+  <!-- CIA/CIV, ductus y coartación se mudaron a la tab 🧬 Congénitas el 2026-09-10.
+       No quedó un espejo acá a propósito: dos lugares donde cargar el mismo campo es la vía
+       más corta a que el informe firmado y la pantalla digan cosas distintas. Lo que SÍ sigue
+       viviendo en esta tab son los cuatro valores que alimentan el Qp/Qs —diam_tsvi e itv_tsvi
+       en 〰️ Doppler, tsvd_diametro y vti_tsvd en VD / AD—; la sección de Congénitas los espeja
+       en sólo lectura. El Laboratorio los sigue contando en su subtab Hemodinámica, que lee
+       `campos` y no el DOM, así que la mudanza no lo toca. -->
   <div class="card" style="margin-bottom:8px;">
-    <h2 class="card-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;"
-        onclick="toggleEteSeccion('shunt',this);eteShuntSync();">
-      <span style="flex:1;">🫀 CIA / CIV — Cardiopatía congénita con shunt</span>
-      <span id="ete_shunt_badge" class="incl-badge" hidden>📎 en el informe</span>
-      <span id="ete-shunt-arrow" style="transition:transform 0.2s;flex:0 0 auto;">▶</span>
-    </h2>
+    <div class="card-body" style="padding:10px 14px;font-size:12px;color:var(--text2);">
+      🧬 <b>CIA / CIV, ductus y coartación</b> se cargan en la pestaña <b>Congénitas</b>.
+      Los diámetros y VTI de los tractos de salida que alimentan el Qp/Qs se siguen midiendo acá.
+    </div>
   </div>
-  <div id="ete-seccion-shunt" style="display:none;">
-  <div class="card"><div class="card-body">
-
-    <div class="subtabs-wrap" style="justify-content:flex-start;margin-bottom:12px;">
-      <div class="tabs-row">
-        <button type="button" class="tab-btn active" id="ete-shunt-tab-cia" onclick="eteShuntTab('cia')">CIA</button>
-        <button type="button" class="tab-btn" id="ete-shunt-tab-civ" onclick="eteShuntTab('civ')">CIV</button>
-      </div>
-    </div>
-
-    <!-- ── CIA ── -->
-    <div id="ete-shunt-pane-cia">
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">Tipo y tamaño</div>
-      <div class="grid-3">
-        <div class="fg"><label>Tipo de CIA</label>
-          <select id="ete_cia_tipo" onchange="eteShuntSync()">
-            <option value="">—</option>
-            <option value="secundum">Ostium secundum</option>
-            <option value="primum">Ostium primum</option>
-            <option value="sv_vcs">Seno venoso VCS</option>
-            <option value="sv_vci">Seno venoso VCI</option>
-            <option value="seno_coronario">Seno coronario</option>
-          </select>
-        </div>
-        <div class="fg"><label>Tamaño máximo (mm)</label><input type="number" id="ete_cia_tam_max" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
-        <div class="fg"><label>Tamaño mínimo (mm)</label><input type="number" id="ete_cia_tam_min" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
-      </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Bordes</div>
-      <div class="tablewrap">
-      <table class="tbl" style="width:100%;font-size:12px;">
-        <thead><tr>
-          <th style="text-align:left;">Borde</th><th style="text-align:left;">Ventana ETE</th><th style="text-align:right;">Medida (mm)</th>
-        </tr></thead>
-        <tbody>
-          <tr><td>Aórtico (superoanterior)</td><td style="color:var(--text2);">30–45°</td>
-              <td style="text-align:right;"><input type="number" id="ete_cia_borde_ao" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
-          <tr><td>AV / Mitral (inferoanterior)</td><td style="color:var(--text2);">0°</td>
-              <td style="text-align:right;"><input type="number" id="ete_cia_borde_av" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
-          <tr><td>VCS (superoposterior)</td><td style="color:var(--text2);">90° bicava</td>
-              <td style="text-align:right;"><input type="number" id="ete_cia_borde_vcs" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
-          <tr><td>VCI (inferoposterior)</td><td style="color:var(--text2);">90° bicava</td>
-              <td style="text-align:right;"><input type="number" id="ete_cia_borde_vci" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
-          <tr><td>Posterior</td><td style="color:var(--text2);">0°</td>
-              <td style="text-align:right;"><input type="number" id="ete_cia_borde_post" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
-        </tbody>
-      </table>
-      </div>
-      <div id="ete-cia-borde-min-box" class="calc-box" style="margin-top:8px;display:none;">
-        <div class="calc-row"><span class="calc-lbl">Borde mínimo</span><span id="ete-cia-borde-min">—</span></div>
-      </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Shunt</div>
-      <div class="grid-2">
-        <div class="fg"><label>Dirección</label>
-          <select id="ete_cia_dir" onchange="eteShuntSync()">
-            <option value="">—</option>
-            <option value="id">Izquierda → derecha</option>
-            <option value="di">Derecha → izquierda</option>
-            <option value="bi">Bidireccional</option>
-          </select>
-        </div>
-        <div class="fg"><label>Velocidad pico del jet (m/s)</label><input type="number" id="ete_cia_vel" step="0.1" placeholder="m/s" oninput="eteShuntSync()"></div>
-      </div>
-      <!-- No se deriva PAPs del jet interauricular: esa fórmula (PAS − 4V²) es la del CIV,
-           donde la velocidad refleja el gradiente VI–VD. En una CIA el gradiente es AI–AD y
-           da números sin sentido (PAS 120 con V 1,2 → «PAPs 114»). La PAPs de la CIA se
-           informa por IT, que ya viene calculada más abajo. -->
-      <div class="calc-box" style="margin-top:8px;">
-        <div class="calc-row"><span class="calc-lbl">PAPs por IT (del estudio)</span><span id="ete-cia-paps-it" class="calc-val">—</span></div>
-      </div>
-    </div>
-
-    <!-- ── CIV ── -->
-    <div id="ete-shunt-pane-civ" style="display:none;">
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">Tipo y tamaño</div>
-      <div class="grid-3">
-        <div class="fg"><label>Tipo de CIV</label>
-          <select id="ete_civ_tipo" onchange="eteShuntSync()">
-            <option value="">—</option>
-            <option value="perimembranosa">Perimembranosa</option>
-            <option value="muscular">Muscular</option>
-            <option value="infundibular">Infundibular</option>
-            <option value="inlet">Inlet</option>
-          </select>
-        </div>
-        <div class="fg"><label>Tamaño máximo (mm)</label><input type="number" id="ete_civ_tam" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
-        <div class="fg"><label>Vista ETE</label><input type="text" id="ete_civ_vista" placeholder="Ej: 4C 0°, eje corto 45°" oninput="eteShuntSync()"></div>
-      </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Gradiente y presión pulmonar</div>
-      <div class="grid-2">
-        <div class="fg"><label>Velocidad pico del jet CIV (m/s)</label><input type="number" id="ete_civ_vel" step="0.1" placeholder="m/s" oninput="eteShuntSync()"></div>
-        <div class="fg"><label>PA sistémica (mmHg)</label><input type="number" id="ete_civ_pas" step="1" placeholder="mmHg" oninput="eteShuntSync()"></div>
-      </div>
-      <div class="calc-box" style="margin-top:8px;">
-        <div class="calc-row"><span class="calc-lbl">PAPs estimada por CIV (PAS − 4V²)</span><span id="ete-civ-paps" class="calc-val">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">PAPs por IT (del estudio)</span><span id="ete-civ-paps-it" class="calc-val">—</span></div>
-      </div>
-    </div>
-
-    <!-- ── Comunes a CIA y CIV ──
-         Qp/Qs y DDVI indexado se cargan UNA vez y valen para las dos pestañas: el Qp/Qs es
-         una propiedad del shunt y el DDVIi del paciente, ninguno de los dos es específico de
-         CIA o CIV. Con dos juegos de campos, un paciente con ambos defectos podía terminar
-         informando dos Qp/Qs distintos. -->
-    <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;border-top:1px solid var(--border);padding-top:12px;">
-      Qp/Qs y DDVI indexado <span style="font-weight:400;color:var(--text2);font-size:11px;">— comunes a CIA y CIV</span>
-    </div>
-    <div class="grid-4">
-      <div class="fg"><label>Ø TSVI (mm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
-        <input type="text" id="ete_shunt_tsvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
-      <div class="fg"><label>VTI TSVI (cm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
-        <input type="text" id="ete_shunt_vtitsvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
-      <!-- Los cuatro son espejos de solo lectura, no sólo los dos izquierdos: el diámetro y
-           el VTI del TSVD se cargan en la tab VD/AD, con el resto de las medidas del
-           ventrículo derecho. Antes el VTI TSVD estaba duplicado —uno acá para el Qp/Qs y
-           otro en VD/AD para la RVP de Abbas, sin sincronizar—, así que un mismo estudio
-           podía informar dos VTI distintos de la misma medición. -->
-      <div class="fg"><label>Ø TSVD (mm) <span style="color:var(--text2);font-size:10px;">— de VD/AD</span></label>
-        <input type="text" id="ete_shunt_tsvd_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
-      <div class="fg"><label>VTI TSVD (cm) <span style="color:var(--text2);font-size:10px;">— de VD/AD</span></label>
-        <input type="text" id="ete_shunt_vtitsvd_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
-    </div>
-    <div style="font-size:10.5px;color:var(--text2);margin-top:4px;">
-      Los cuatro valores del Qp/Qs se cargan en sus tabs: TSVI y VTI-TSVI en <b>〰️ Doppler → Doppler Aórtico (TSVI)</b>, diámetro y VTI del TSVD en <b>VD / AD</b>.
-    </div>
-    <div class="calc-box" style="margin-top:8px;">
-      <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Qp/Qs</span><span id="ete-shunt-qpqs">—</span></div>
-      <div class="calc-row"><span class="calc-lbl">Interpretación</span><span id="ete-shunt-qpqs-interp" style="font-size:11px;color:var(--text2);">—</span></div>
-    </div>
-    <div class="grid-3" style="margin-top:10px;">
-      <div class="fg"><label>DDVI (mm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
-        <input type="text" id="ete_shunt_ddvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
-      <div class="fg"><label>ASC (m²) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
-        <input type="text" id="ete_shunt_asc_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
-      <div class="fg"><label>DDVI indexado</label>
-        <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
-          <span id="ete-shunt-ddvii" class="calc-val">—</span></div></div>
-        <div style="font-size:10px;color:var(--text2);margin-top:3px;">Normal &lt; 32 mm/m²</div>
-      </div>
-    </div>
-    <div style="text-align:center;margin-top:10px;">
-      <!-- El checkbox sigue siendo el estado; el botón es la piel. Oculto y no
-           eliminado: guardarInforme lo captura por `input[type=checkbox][id]`. -->
-      <input type="checkbox" id="ete_shunt_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
-      <button type="button" class="btn btn-integrar" data-ete-chk="ete_shunt_incluir_chk" aria-pressed="false"
-              onclick="eteInclToggle('ete_shunt_incluir_chk')">📎 Integrar al informe</button>
-    </div>
-  </div></div>
-  </div><!-- /#ete-seccion-shunt -->
-
-  <!-- ══ DUCTUS ARTERIOSO PERMEABLE ══
-       Mismo patrón que CIA/CIV: los campos se guardan solos porque guardarInforme barre
-       `input[id], select[id]`, el estado de inclusión es un checkbox oculto —para que viaje
-       en `campos` y la reimpresión reproduzca lo firmado— y el botón es sólo la piel. -->
-  <div id="hemo-seccion-ductus">
-  <div class="card"><div class="card-body">
-    <div style="font-size:13px;font-weight:700;color:var(--accent2);margin-bottom:10px;">
-      Ductus arterioso permeable
-      <span id="ductus_badge" hidden style="font-size:10px;font-weight:600;color:var(--green);margin-left:6px;">● en el informe</span>
-    </div>
-    <div class="grid-3">
-      <div class="fg"><label>Tipo de ductus</label>
-        <select id="dap_tipo" onchange="dapSync()">
-          <option value="">—</option>
-          <option value="silente">Silente</option>
-          <option value="restrictivo">Restrictivo (pequeño)</option>
-          <option value="no_restrictivo">No restrictivo (grande)</option>
-        </select>
-      </div>
-      <div class="fg"><label>Diámetro mínimo (mm)</label><input type="number" id="dap_diam" step="0.1" placeholder="mm" oninput="dapSync()"></div>
-      <div class="fg"><label>Dirección del shunt</label>
-        <select id="dap_dir" onchange="dapSync()">
-          <option value="">—</option>
-          <option value="id">Izquierda a derecha</option>
-          <option value="bi">Bidireccional</option>
-          <option value="di">Derecha a izquierda</option>
-        </select>
-      </div>
-    </div>
-    <div class="grid-3" style="margin-top:10px;">
-      <div class="fg"><label>Velocidad máxima (m/s)</label><input type="number" id="dap_vmax" step="0.1" placeholder="m/s" oninput="dapSync()"></div>
-      <div class="fg"><label>Gradiente instantáneo máx.</label>
-        <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
-          <span id="dap-gmax" class="calc-val">—</span></div></div>
-        <div style="font-size:10px;color:var(--text2);margin-top:3px;">4 × Vmax²</div>
-      </div>
-      <div class="fg"><label>PAPs estimada (mmHg)</label><input type="number" id="dap_paps" step="1" placeholder="mmHg" oninput="dapSync()"></div>
-    </div>
-    <div class="calc-box" style="margin-top:12px;">
-      <div class="calc-row"><span class="calc-lbl">Qp/Qs</span><span id="dap-qpqs" class="calc-val">—</span></div>
-      <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="dap-concl" class="calc-val">—</span></div>
-    </div>
-    <div style="text-align:center;margin-top:10px;">
-      <input type="checkbox" id="ductus_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
-      <button type="button" class="btn btn-integrar" data-ete-chk="ductus_incluir_chk" aria-pressed="false"
-              onclick="eteInclToggle('ductus_incluir_chk')">📎 Integrar al informe</button>
-    </div>
-  </div></div>
-  </div><!-- /#hemo-seccion-ductus -->
-
-  <!-- ══ COARTACIÓN DE AORTA ══ -->
-  <div id="hemo-seccion-coart">
-  <div class="card"><div class="card-body">
-    <div style="font-size:13px;font-weight:700;color:var(--accent2);margin-bottom:10px;">
-      Coartación de aorta
-      <span id="coart_badge" hidden style="font-size:10px;font-weight:600;color:var(--green);margin-left:6px;">● en el informe</span>
-    </div>
-    <div class="grid-3">
-      <div class="fg"><label>Localización</label>
-        <select id="coa_loc" onchange="coaSync()">
-          <option value="">—</option>
-          <option value="preductal">Preductal</option>
-          <option value="yuxtaductal">Yuxtaductal</option>
-          <option value="posductal">Posductal</option>
-        </select>
-      </div>
-      <div class="fg"><label>Situación</label>
-        <select id="coa_situacion" onchange="coaSync()">
-          <option value="">—</option>
-          <option value="nativa">Coartación nativa</option>
-          <option value="recoartacion">Recoartación post-intervención</option>
-        </select>
-      </div>
-      <div class="fg"><label>Diámetro del istmo (mm)</label><input type="number" id="coa_istmo" step="0.1" placeholder="mm" oninput="coaSync()"></div>
-    </div>
-    <div class="grid-3" style="margin-top:10px;">
-      <div class="fg"><label>Ao ascendente (mm)</label><input type="number" id="coa_ao_asc" step="0.1" placeholder="mm" oninput="coaSync()"></div>
-      <div class="fg"><label>Ao descendente (mm)</label><input type="number" id="coa_ao_desc" step="0.1" placeholder="mm" oninput="coaSync()"></div>
-      <div class="fg"><label>Relación istmo / Ao desc.</label>
-        <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
-          <span id="coa-ratio" class="calc-val">—</span></div></div>
-      </div>
-    </div>
-    <div class="grid-3" style="margin-top:10px;">
-      <div class="fg"><label>Vmax coartación (m/s)</label><input type="number" id="coa_vmax" step="0.1" placeholder="m/s" oninput="coaSync()"></div>
-      <div class="fg"><label>Gradiente máximo</label>
-        <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
-          <span id="coa-gmax" class="calc-val">—</span></div></div>
-        <div style="font-size:10px;color:var(--text2);margin-top:3px;">4 × Vmax²</div>
-      </div>
-      <div class="fg"><label>Gradiente medio (mmHg)</label><input type="number" id="coa_gmedio" step="1" placeholder="mmHg" oninput="coaSync()"></div>
-    </div>
-    <div class="fg" style="margin-top:10px;">
-      <label class="cfg-opt-row" style="cursor:pointer;">
-        <input type="checkbox" id="coa_diast_anterogrado" onchange="coaSync()">
-        <span style="font-size:12px;">Flujo diastólico anterógrado en aorta descendente (cola diastólica)</span>
-      </label>
-    </div>
-    <div class="calc-box" style="margin-top:12px;">
-      <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="coa-concl" class="calc-val">—</span></div>
-    </div>
-    <div style="text-align:center;margin-top:10px;">
-      <input type="checkbox" id="coart_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
-      <button type="button" class="btn btn-integrar" data-ete-chk="coart_incluir_chk" aria-pressed="false"
-              onclick="eteInclToggle('coart_incluir_chk')">📎 Integrar al informe</button>
-    </div>
-  </div></div>
-  </div><!-- /#hemo-seccion-coart -->
 
 </div>
 <div id="tab-contractilidad" class="tab-section">
@@ -7812,6 +7547,320 @@ z
     </div>
   </div></div>
   </div><!-- /#ete-seccion-tavi -->
+
+</div>
+
+<div id="tab-congenitas" class="tab-section">
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════
+       CARDIOPATÍAS CONGÉNITAS Y MIOCARDIOPATÍAS GENÉTICAS
+
+       El rótulo dice las dos cosas a propósito: la miocardiopatía hipertrófica y la
+       arritmogénica del VD NO son cardiopatías congénitas —son miocardiopatías genéticas— y
+       llamar «congénita» a una MCH en un informe firmado es un error que cualquier colega
+       marca. Comparten tab porque comparten el modo de trabajo (base hereditaria, seguimiento
+       largo, criterios de guía), no la taxonomía.
+
+       Patrón de las secciones: `.sacc` + secToggle(), NO `.acc`. `.acc` tiene
+       `max-height:720px` con `overflow:hidden` en el contenedor, así que recorta el contenido
+       más alto que eso SIN barra de scroll — medido: 1600 px de contenido muestran 720. Los
+       campos por debajo del corte quedan invisibles pero siguen en el DOM, o sea que
+       guardarInforme los guarda y las conclusiones los leen. `secToggle` mide `scrollHeight`
+       y no tiene tope.
+
+       Inclusión en el informe: `data-ete-chk`, NO `data-am-k`. Los dos botones se ven
+       idénticos y `data-am-k` tiene el doble de usos, así que es lo que aparece primero al
+       copiar — pero congela el texto en el instante del clic y nada lo recalcula: el médico
+       corrige una medida después y el informe sale con la conclusión vieja. Ya se pagó una vez
+       con el cruce Wilkins × trombo de orejuela. Con `data-ete-chk` el checkbox viaja en
+       `campos` y el texto se recalcula en cada generarInforme.
+       ═══════════════════════════════════════════════════════════════════════════════════ -->
+  <div class="card" style="margin-bottom:8px;">
+    <div class="card-body" style="padding:12px 14px;">
+      <div style="font-size:15px;font-weight:800;">🧬 Cardiopatías congénitas y miocardiopatías genéticas</div>
+      <p style="font-size:11px;color:var(--text2);margin:6px 0 0;">Cada patología es una sección plegable. Las que ya tengan datos cargados se abren solas al entrar a la pestaña. Cada una decide por separado si entra al informe.</p>
+    </div>
+  </div>
+
+  <!-- ═══ CIA / CIV ═══
+       Vive acá y no en ETE porque el shunt se calcula con TSVI/TSVD. Los campos fuente
+       (diam_tsvi, itv_tsvi, tsvd_diametro, vti_tsvd) siguen en #tab-doppler y #tab-vd — esta
+       sección sólo muestra espejos de sólo lectura (ete_shunt_*_ro) que llena eteShuntSync().
+       El toggle de inclusión NO usa localStorage: se lee del propio checkbox, que
+       guardarInforme captura en `campos` y la reimpresión repone. Las secciones viejas leen
+       una clave global y por eso un estudio reimpreso podía salir sin una sección que el PDF
+       original sí tenía. -->
+  <div class="card sacc" id="sacc-cc-shunt">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-shunt');eteShuntSync();" aria-expanded="false">
+      <span class="sacc-arrow">▶</span>
+      <span style="flex:1;">CIA / CIV — Comunicación interauricular e interventricular</span>
+      <span id="ete_shunt_badge" class="incl-badge" hidden>📎 en el informe</span>
+    </button>
+    <div class="card-body sacc-body">
+
+    <div class="subtabs-wrap" style="justify-content:flex-start;margin-bottom:12px;">
+      <div class="tabs-row">
+        <button type="button" class="tab-btn active" id="ete-shunt-tab-cia" onclick="eteShuntTab('cia')">CIA</button>
+        <button type="button" class="tab-btn" id="ete-shunt-tab-civ" onclick="eteShuntTab('civ')">CIV</button>
+      </div>
+    </div>
+
+    <!-- ── CIA ── -->
+    <div id="ete-shunt-pane-cia">
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">Tipo y tamaño</div>
+      <div class="grid-3">
+        <div class="fg"><label>Tipo de CIA</label>
+          <select id="ete_cia_tipo" onchange="eteShuntSync()">
+            <option value="">—</option>
+            <option value="secundum">Ostium secundum</option>
+            <option value="primum">Ostium primum</option>
+            <option value="sv_vcs">Seno venoso VCS</option>
+            <option value="sv_vci">Seno venoso VCI</option>
+            <option value="seno_coronario">Seno coronario</option>
+          </select>
+        </div>
+        <div class="fg"><label>Tamaño máximo (mm)</label><input type="number" id="ete_cia_tam_max" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+        <div class="fg"><label>Tamaño mínimo (mm)</label><input type="number" id="ete_cia_tam_min" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Bordes</div>
+      <div class="tablewrap">
+      <table class="tbl" style="width:100%;font-size:12px;">
+        <thead><tr>
+          <th style="text-align:left;">Borde</th><th style="text-align:left;">Ventana ETE</th><th style="text-align:right;">Medida (mm)</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>Aórtico (superoanterior)</td><td style="color:var(--text2);">30–45°</td>
+              <td style="text-align:right;"><input type="number" id="ete_cia_borde_ao" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
+          <tr><td>AV / Mitral (inferoanterior)</td><td style="color:var(--text2);">0°</td>
+              <td style="text-align:right;"><input type="number" id="ete_cia_borde_av" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
+          <tr><td>VCS (superoposterior)</td><td style="color:var(--text2);">90° bicava</td>
+              <td style="text-align:right;"><input type="number" id="ete_cia_borde_vcs" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
+          <tr><td>VCI (inferoposterior)</td><td style="color:var(--text2);">90° bicava</td>
+              <td style="text-align:right;"><input type="number" id="ete_cia_borde_vci" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
+          <tr><td>Posterior</td><td style="color:var(--text2);">0°</td>
+              <td style="text-align:right;"><input type="number" id="ete_cia_borde_post" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <div id="ete-cia-borde-min-box" class="calc-box" style="margin-top:8px;display:none;">
+        <div class="calc-row"><span class="calc-lbl">Borde mínimo</span><span id="ete-cia-borde-min">—</span></div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Shunt</div>
+      <div class="grid-2">
+        <div class="fg"><label>Dirección</label>
+          <select id="ete_cia_dir" onchange="eteShuntSync()">
+            <option value="">—</option>
+            <option value="id">Izquierda → derecha</option>
+            <option value="di">Derecha → izquierda</option>
+            <option value="bi">Bidireccional</option>
+          </select>
+        </div>
+        <div class="fg"><label>Velocidad pico del jet (m/s)</label><input type="number" id="ete_cia_vel" step="0.1" placeholder="m/s" oninput="eteShuntSync()"></div>
+      </div>
+      <!-- No se deriva PAPs del jet interauricular: esa fórmula (PAS − 4V²) es la del CIV,
+           donde la velocidad refleja el gradiente VI–VD. En una CIA el gradiente es AI–AD y
+           da números sin sentido (PAS 120 con V 1,2 → «PAPs 114»). La PAPs de la CIA se
+           informa por IT, que ya viene calculada más abajo. -->
+      <div class="calc-box" style="margin-top:8px;">
+        <div class="calc-row"><span class="calc-lbl">PAPs por IT (del estudio)</span><span id="ete-cia-paps-it" class="calc-val">—</span></div>
+      </div>
+    </div>
+
+    <!-- ── CIV ── -->
+    <div id="ete-shunt-pane-civ" style="display:none;">
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">Tipo y tamaño</div>
+      <div class="grid-3">
+        <div class="fg"><label>Tipo de CIV</label>
+          <select id="ete_civ_tipo" onchange="eteShuntSync()">
+            <option value="">—</option>
+            <option value="perimembranosa">Perimembranosa</option>
+            <option value="muscular">Muscular</option>
+            <option value="infundibular">Infundibular</option>
+            <option value="inlet">Inlet</option>
+          </select>
+        </div>
+        <div class="fg"><label>Tamaño máximo (mm)</label><input type="number" id="ete_civ_tam" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+        <div class="fg"><label>Vista ETE</label><input type="text" id="ete_civ_vista" placeholder="Ej: 4C 0°, eje corto 45°" oninput="eteShuntSync()"></div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Gradiente y presión pulmonar</div>
+      <div class="grid-2">
+        <div class="fg"><label>Velocidad pico del jet CIV (m/s)</label><input type="number" id="ete_civ_vel" step="0.1" placeholder="m/s" oninput="eteShuntSync()"></div>
+        <div class="fg"><label>PA sistémica (mmHg)</label><input type="number" id="ete_civ_pas" step="1" placeholder="mmHg" oninput="eteShuntSync()"></div>
+      </div>
+      <div class="calc-box" style="margin-top:8px;">
+        <div class="calc-row"><span class="calc-lbl">PAPs estimada por CIV (PAS − 4V²)</span><span id="ete-civ-paps" class="calc-val">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">PAPs por IT (del estudio)</span><span id="ete-civ-paps-it" class="calc-val">—</span></div>
+      </div>
+    </div>
+
+    <!-- ── Comunes a CIA y CIV ──
+         Qp/Qs y DDVI indexado se cargan UNA vez y valen para las dos pestañas: el Qp/Qs es
+         una propiedad del shunt y el DDVIi del paciente, ninguno de los dos es específico de
+         CIA o CIV. Con dos juegos de campos, un paciente con ambos defectos podía terminar
+         informando dos Qp/Qs distintos. -->
+    <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;border-top:1px solid var(--border);padding-top:12px;">
+      Qp/Qs y DDVI indexado <span style="font-weight:400;color:var(--text2);font-size:11px;">— comunes a CIA y CIV</span>
+    </div>
+    <div class="grid-4">
+      <div class="fg"><label>Ø TSVI (mm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
+        <input type="text" id="ete_shunt_tsvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+      <div class="fg"><label>VTI TSVI (cm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
+        <input type="text" id="ete_shunt_vtitsvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+      <!-- Los cuatro son espejos de solo lectura, no sólo los dos izquierdos: el diámetro y
+           el VTI del TSVD se cargan en la tab VD/AD, con el resto de las medidas del
+           ventrículo derecho. Antes el VTI TSVD estaba duplicado —uno acá para el Qp/Qs y
+           otro en VD/AD para la RVP de Abbas, sin sincronizar—, así que un mismo estudio
+           podía informar dos VTI distintos de la misma medición. -->
+      <div class="fg"><label>Ø TSVD (mm) <span style="color:var(--text2);font-size:10px;">— de VD/AD</span></label>
+        <input type="text" id="ete_shunt_tsvd_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+      <div class="fg"><label>VTI TSVD (cm) <span style="color:var(--text2);font-size:10px;">— de VD/AD</span></label>
+        <input type="text" id="ete_shunt_vtitsvd_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+    </div>
+    <div style="font-size:10.5px;color:var(--text2);margin-top:4px;">
+      Los cuatro valores del Qp/Qs se cargan en sus tabs: TSVI y VTI-TSVI en <b>〰️ Doppler → Doppler Aórtico (TSVI)</b>, diámetro y VTI del TSVD en <b>VD / AD</b>.
+    </div>
+    <div class="calc-box" style="margin-top:8px;">
+      <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Qp/Qs</span><span id="ete-shunt-qpqs">—</span></div>
+      <div class="calc-row"><span class="calc-lbl">Interpretación</span><span id="ete-shunt-qpqs-interp" style="font-size:11px;color:var(--text2);">—</span></div>
+    </div>
+    <div class="grid-3" style="margin-top:10px;">
+      <div class="fg"><label>DDVI (mm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
+        <input type="text" id="ete_shunt_ddvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+      <div class="fg"><label>ASC (m²) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
+        <input type="text" id="ete_shunt_asc_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+      <div class="fg"><label>DDVI indexado</label>
+        <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+          <span id="ete-shunt-ddvii" class="calc-val">—</span></div></div>
+        <div style="font-size:10px;color:var(--text2);margin-top:3px;">Normal &lt; 32 mm/m²</div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:10px;">
+      <!-- El checkbox sigue siendo el estado; el botón es la piel. Oculto y no
+           eliminado: guardarInforme lo captura por `input[type=checkbox][id]`. -->
+      <input type="checkbox" id="ete_shunt_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+      <button type="button" class="btn btn-integrar" data-ete-chk="ete_shunt_incluir_chk" aria-pressed="false"
+              onclick="eteInclToggle('ete_shunt_incluir_chk')">📎 Integrar al informe</button>
+    </div>
+    </div>
+  </div>
+
+  <!-- ═══ DUCTUS ARTERIOSO PERMEABLE ═══ -->
+  <div class="card sacc" id="sacc-cc-dap">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-dap');dapSync();" aria-expanded="false">
+      <span class="sacc-arrow">▶</span>
+      <span style="flex:1;">DAP — Ductus arterioso permeable</span>
+      <span id="ductus_badge" class="incl-badge" hidden>📎 en el informe</span>
+    </button>
+    <div class="card-body sacc-body">
+    <div class="grid-3">
+      <div class="fg"><label>Tipo de ductus</label>
+        <select id="dap_tipo" onchange="dapSync()">
+          <option value="">—</option>
+          <option value="silente">Silente</option>
+          <option value="restrictivo">Restrictivo (pequeño)</option>
+          <option value="no_restrictivo">No restrictivo (grande)</option>
+        </select>
+      </div>
+      <div class="fg"><label>Diámetro mínimo (mm)</label><input type="number" id="dap_diam" step="0.1" placeholder="mm" oninput="dapSync()"></div>
+      <div class="fg"><label>Dirección del shunt</label>
+        <select id="dap_dir" onchange="dapSync()">
+          <option value="">—</option>
+          <option value="id">Izquierda a derecha</option>
+          <option value="bi">Bidireccional</option>
+          <option value="di">Derecha a izquierda</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid-3" style="margin-top:10px;">
+      <div class="fg"><label>Velocidad máxima (m/s)</label><input type="number" id="dap_vmax" step="0.1" placeholder="m/s" oninput="dapSync()"></div>
+      <div class="fg"><label>Gradiente instantáneo máx.</label>
+        <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+          <span id="dap-gmax" class="calc-val">—</span></div></div>
+        <div style="font-size:10px;color:var(--text2);margin-top:3px;">4 × Vmax²</div>
+      </div>
+      <div class="fg"><label>PAPs estimada (mmHg)</label><input type="number" id="dap_paps" step="1" placeholder="mmHg" oninput="dapSync()"></div>
+    </div>
+    <div class="calc-box" style="margin-top:12px;">
+      <div class="calc-row"><span class="calc-lbl">Qp/Qs</span><span id="dap-qpqs" class="calc-val">—</span></div>
+      <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="dap-concl" class="calc-val">—</span></div>
+    </div>
+    <div style="text-align:center;margin-top:10px;">
+      <input type="checkbox" id="ductus_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+      <button type="button" class="btn btn-integrar" data-ete-chk="ductus_incluir_chk" aria-pressed="false"
+              onclick="eteInclToggle('ductus_incluir_chk')">📎 Integrar al informe</button>
+    </div>
+    </div>
+  </div>
+
+  <!-- ═══ COARTACIÓN DE AORTA ═══ -->
+  <div class="card sacc" id="sacc-cc-coa">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-coa');coaSync();" aria-expanded="false">
+      <span class="sacc-arrow">▶</span>
+      <span style="flex:1;">CoAo — Coartación de aorta</span>
+      <span id="coart_badge" class="incl-badge" hidden>📎 en el informe</span>
+    </button>
+    <div class="card-body sacc-body">
+    <div class="grid-3">
+      <div class="fg"><label>Localización</label>
+        <select id="coa_loc" onchange="coaSync()">
+          <option value="">—</option>
+          <option value="preductal">Preductal</option>
+          <option value="yuxtaductal">Yuxtaductal</option>
+          <option value="posductal">Posductal</option>
+        </select>
+      </div>
+      <div class="fg"><label>Situación</label>
+        <select id="coa_situacion" onchange="coaSync()">
+          <option value="">—</option>
+          <option value="nativa">Coartación nativa</option>
+          <option value="recoartacion">Recoartación post-intervención</option>
+        </select>
+      </div>
+      <div class="fg"><label>Diámetro del istmo (mm)</label><input type="number" id="coa_istmo" step="0.1" placeholder="mm" oninput="coaSync()"></div>
+    </div>
+    <div class="grid-3" style="margin-top:10px;">
+      <!-- Espejo de sólo lectura, no un campo: la aorta ascendente ya se mide en Paciente →
+           Aorta torácica, donde se llama `ao_tub` («Ao tubular») y el PDF la rotula «Ao asc».
+           Este campo nació duplicado el 2026-09-09 y se consolidó el 2026-09-10: dos entradas
+           para el mismo diámetro es la vía más corta a que el informe firmado se contradiga
+           consigo mismo, y la VAB va a necesitar la misma medida para el umbral quirúrgico de
+           45/50 mm. `ao_tub` además ya tiene ventana de plausibilidad (10-90 mm) y este no
+           tenía ninguna. -->
+      <div class="fg"><label>Ao ascendente (mm) — de Aorta torácica</label>
+        <input type="text" id="coa_ao_asc_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+      <div class="fg"><label>Ao descendente (mm)</label><input type="number" id="coa_ao_desc" step="0.1" placeholder="mm" oninput="coaSync()"></div>
+      <div class="fg"><label>Relación istmo / Ao desc.</label>
+        <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+          <span id="coa-ratio" class="calc-val">—</span></div></div>
+      </div>
+    </div>
+    <div class="grid-3" style="margin-top:10px;">
+      <div class="fg"><label>Vmax coartación (m/s)</label><input type="number" id="coa_vmax" step="0.1" placeholder="m/s" oninput="coaSync()"></div>
+      <div class="fg"><label>Gradiente máximo</label>
+        <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+          <span id="coa-gmax" class="calc-val">—</span></div></div>
+        <div style="font-size:10px;color:var(--text2);margin-top:3px;">4 × Vmax²</div>
+      </div>
+      <div class="fg"><label>Gradiente medio (mmHg)</label><input type="number" id="coa_gmedio" step="1" placeholder="mmHg" oninput="coaSync()"></div>
+    </div>
+    <div class="fg" style="margin-top:10px;">
+      <label class="cfg-opt-row" style="cursor:pointer;">
+        <input type="checkbox" id="coa_diast_anterogrado" onchange="coaSync()">
+        <span style="font-size:12px;">Flujo diastólico anterógrado en aorta descendente (cola diastólica)</span>
+      </label>
+    </div>
+    <div class="calc-box" style="margin-top:12px;">
+      <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="coa-concl" class="calc-val">—</span></div>
+    </div>
+    <div style="text-align:center;margin-top:10px;">
+      <input type="checkbox" id="coart_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+      <button type="button" class="btn btn-integrar" data-ete-chk="coart_incluir_chk" aria-pressed="false"
+              onclick="eteInclToggle('coart_incluir_chk')">📎 Integrar al informe</button>
+    </div>
+    </div>
+  </div>
 
 </div>
 
@@ -16565,7 +16614,10 @@ function generarInforme(opts) {
       if (!c) return;
       const f1 = n => (n==null || !isFinite(n)) ? null : String(Math.round(n*10)/10);
       const loc = sv('coa_loc');
-      const ist = v('coa_istmo'), asc = v('coa_ao_asc'), desc = v('coa_ao_desc');
+      /* La ascendente sale de `ao_tub` (Aorta torácica), no de un campo propio: ver la nota del
+         espejo `coa_ao_asc_ro`. Si el informe la imprimiera desde una segunda entrada, podría
+         contradecir a la sección de aorta del mismo documento. */
+      const ist = v('coa_istmo'), asc = v('ao_tub'), desc = v('coa_ao_desc');
       const vmax = v('coa_vmax'), gm = v('coa_gmedio');
       const g = (typeof coaGmax === 'function') ? coaGmax() : null;
       const r = (typeof coaRatio === 'function') ? coaRatio() : null;
@@ -20565,13 +20617,25 @@ function coaConclusion(){
   const sit = sv2('coa_situacion');
   /* hayDato usa los valores CRUDOS: un número fuera de banda sigue siendo un dato que el
      médico escribió; lo que no hace es votar en las ramas de abajo.
-     Incluye las dos aortas porque el PÁRRAFO del informe las imprime: sin ellas, un
-     seguimiento documentado sólo con Ao ascendente y descendente daba `null`, y la sección
-     quedaba con el badge «● en el informe» y cero líneas impresas. */
-  const hayDato = !!(sv2('coa_loc') || sit || coaNV('coa_istmo')!=null || coaNV('coa_ao_asc')!=null ||
+     Incluye la aorta descendente porque el PÁRRAFO del informe la imprime: sin ella, un
+     seguimiento documentado sólo con las aortas daba `null`, y la sección quedaba con el badge
+     «● en el informe» y cero líneas impresas.
+     La ASCENDENTE queda afuera a propósito, y el motivo es clínico y no de interfaz: `ao_tub` es
+     una medición de rutina que está cargada en casi todos los estudios, así que no es evidencia de
+     que se haya buscado una coartación. El istmo y la aorta descendente sí lo son. Contarla haría
+     que cualquier paciente con la aorta medida y la casilla tildada imprimiera un párrafo de
+     coartación. (Quién ABRE la sección es otra cosa: eso lo decide secAutoOpen leyendo el DOM, y
+     ya está resuelto porque el espejo lleva `readonly`.) */
+  const hayDato = !!(sv2('coa_loc') || sit || coaNV('coa_istmo')!=null ||
                      coaNV('coa_ao_desc')!=null || gRaw!=null || gmRaw!=null || cola);
   if (!hayDato) return null;
-  coaBanda(coaNV('coa_ao_asc'), 2, 60, fuera, 'aorta ascendente');
+  /* Banda 2-60, NO la 10-90 de LAB_XLS_RANGO_PROPIO. Copiar esa fue un error de un minuto: es la
+     ventana del importador de Excel, pensada para el adulto, y el comentario que la encabeza dice
+     justamente que una ventana adulta sobre campos de cardiopatía congénita —población pediátrica
+     por definición— rechaza los casos legítimos. Con piso 10 mm, un lactante con recoartación y
+     aorta ascendente de 9 mm (medición correcta) sacaba «aorta ascendente fuera de rango: revisar
+     unidades antes de concluir» en el informe firmado. */
+  coaBanda(coaNV('ao_tub'), 2, 60, fuera, 'aorta ascendente');
   const g = coaBanda(gRaw, 0, 150, fuera, 'gradiente máximo'), gm = coaBanda(gmRaw, 0, 100, fuera, 'gradiente medio');
   const pre = sit === 'recoartacion' ? 'Recoartación post-intervención' : (sit === 'nativa' ? 'Coartación nativa' : 'Coartación de aorta');
   /* La cola diastólica basta por sí sola: es el escenario en que el gradiente engaña. */
@@ -20605,6 +20669,11 @@ function coaSync(){
   const g = coaGmax(), r = coaRatio();
   txt('coa-gmax', g==null ? '—' : (Math.round(g*10)/10) + ' mmHg');
   txt('coa-ratio', r==null ? '—' : r.toFixed(2));
+  /* Espejo de la aorta ascendente, que se mide en Aorta torácica. Mismo patrón que los
+     `ete_shunt_*_ro` del Qp/Qs: se muestra para que se vea con qué está trabajando la sección,
+     y lleva `readonly` para que `secAutoOpen` no la cuente como dato propio. */
+  { const e = document.getElementById('coa_ao_asc_ro');
+    if (e) { const a = (typeof v==='function') ? v('ao_tub') : null; e.value = (a!=null) ? a + ' mm' : ''; } }
   const c = coaConclusion();
   txt('coa-concl', c ? c.txt : '—');
 }
@@ -20859,13 +20928,29 @@ window.eteEpcRefrescar = eteEpcRefrescar;
    hubiera cargado— y, peor, «Sobreescribir informe original» reconstruye `campos` desde el
    DOM y BORRA la medición para siempre. Se copia a la clave nueva sólo si la nueva está
    vacía, así que reabrir un estudio ya migrado no pisa nada. */
-function _migrarShuntTsvd(c){
+/* Migración perezosa de campos que se CONSOLIDARON: un id que dejó de existir en el formulario
+   pero que sigue vivo dentro de `campos` en los estudios ya guardados. Sin esto, las rutas de
+   restauración hacen getElementById(k) sobre un id que ya no está y descartan la clave EN
+   SILENCIO — o sea que reimprimir un estudio viejo da un PDF distinto del que se firmó, sin
+   ningún aviso. Se aplica al leer, no al guardar: no reescribe la base, sólo evita que un
+   estudio viejo se lea mal.
+   Se llamaba `_migrarShuntTsvd` cuando cubría un solo par; renombrada 2026-09-10 al sumar el
+   segundo, para que la próxima consolidación tenga un lugar obvio donde ir en vez de crear otra
+   función paralela. */
+function _migrarCamposLegacy(c){
   if (!c) return c;
   if (!c['tsvd_diametro'] && c['ete_shunt_tsvd'])     c['tsvd_diametro'] = c['ete_shunt_tsvd'];
   if (!c['vti_tsvd']      && c['ete_shunt_vti_tsvd']) c['vti_tsvd']      = c['ete_shunt_vti_tsvd'];
+  /* `coa_ao_asc` fue un duplicado de `ao_tub` que vivió del 2026-09-09 al 2026-09-10. Los
+     estudios guardados en esa ventana lo tienen, y sin esta línea la coartación de un informe
+     reimpreso pierde la línea «Aorta ascendente X mm» que el PDF firmado sí tenía. */
+  if (!c['ao_tub']        && c['coa_ao_asc'])         c['ao_tub']        = c['coa_ao_asc'];
   return c;
 }
-window._migrarShuntTsvd = _migrarShuntTsvd;
+/* Nombre viejo mantenido como puente: si alguna ruta quedó sin renombrar, sigue migrando en vez
+   de tirar ReferenceError y cortar el bloque. */
+function _migrarShuntTsvd(c){ return _migrarCamposLegacy(c); }
+window._migrarCamposLegacy = _migrarCamposLegacy; window._migrarShuntTsvd = _migrarShuntTsvd;
 
 function _restaurarChkInclusion(campos){
   /* Objeto vacío en vez de `return`: un registro sin `campos` no es «no hagas nada», es «este
@@ -20937,7 +21022,8 @@ const ETE_INCL_LBL = {
   ete_morfo_incluir_chk:   'Morfología y clasificación VM',
   ete_shunt_incluir_chk:   'CIA / CIV',
   ete_tavi_incluir_chk:    'TAVI',
-  /* Ductus y coartación viven en la tab Hemodinámica, igual que CIA/CIV, y reusan toda esta
+  /* Ductus y coartación viven en la tab Congénitas, igual que CIA/CIV —las tres se mudaron ahí
+     desde Hemodinámica el 2026-09-10—, y reusan toda esta
      maquinaria: el id del badge sale de quitarle `_incluir_chk` al del checkbox, así que
      tienen que llamarse `ductus_badge` y `coart_badge` — no es decorativo. */
   ductus_incluir_chk:      'Ductus arterioso permeable',
@@ -23236,6 +23322,11 @@ function editarInforme(id) {
        Verificado: sin esto, abrir un importado dejaba en pantalla el otras_notas del
        estudio anterior. */
     if (typeof limpiarCampos === 'function') { try { limpiarCampos(); } catch (e) { console.error('[editarInforme] no se pudo limpiar el formulario', e); } }
+    /* editarInforme era la ÚNICA de las tres rutas de restauración que no migraba los campos
+       consolidados: cargarEstudioPorId y la reimpresión sí lo hacían desde que se unificó el
+       TSVD. Así que reimprimir un estudio viejo mostraba el dato y abrirlo para corregirlo lo
+       perdía, y al guardar se perdía de verdad. */
+    if (typeof _migrarCamposLegacy === 'function') _migrarCamposLegacy(inf.campos);
     Object.entries(inf.campos).forEach(([k, val]) => {
       if (inf.importado_pdf && MAP_SKIP.has(k)) return;
       const el = document.getElementById(inf.importado_pdf ? (MAP_IMPORT[k] || k) : k);
@@ -23319,7 +23410,7 @@ function cargarEstudioPorId(id) {
   if (!id) return;
   const inf = getInformes().find(i => i.estudioId === id);
   if (!inf) { _eeEstudioNoDisponible(); return; }
-  if (inf.campos && typeof _migrarShuntTsvd === 'function') _migrarShuntTsvd(inf.campos);
+  if (inf.campos && typeof _migrarCamposLegacy === 'function') _migrarCamposLegacy(inf.campos);
   if (inf.campos) Object.entries(inf.campos).forEach(([fid, val]) => {
     const el = document.getElementById(fid);
     if (el) el.value = val;
@@ -23451,7 +23542,12 @@ function secAutoOpen(tabId) {
   const tab = document.getElementById(tabId); if (!tab) return;
   tab.querySelectorAll('.sacc').forEach(acc => {
     if (acc.classList.contains('open')) return;
-    const has = Array.from(acc.querySelectorAll('.sacc-body input, .sacc-body select, .sacc-body textarea')).some(el => {
+    /* `:not([readonly])` — los espejos de sólo lectura NO cuentan como «esta sección tiene
+       datos». La sección de CIA/CIV muestra seis (`ete_shunt_*_ro`) que llena eteShuntSync con
+       el TSVI, el TSVD, el DDVI y la ASC del estudio: sin la exclusión, la sección de
+       cardiopatía congénita se abría sola en todo paciente con un TSVI medido, que son casi
+       todos. Un espejo es un dato de OTRA sección, mostrado acá por comodidad. */
+    const has = Array.from(acc.querySelectorAll('.sacc-body input:not([readonly]), .sacc-body select, .sacc-body textarea')).some(el => {
       if (el.type === 'checkbox' || el.type === 'radio') return el.checked;
       if (el.tagName === 'SELECT') return el.selectedIndex > 0;
       return String(el.value || '').trim() !== '';
@@ -27985,7 +28081,7 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
      try/catch dice haber resuelto — y es el camino más probable (almacén vacío por cuota,
      JSON ilegible, estudio borrado en otra pestaña). */
   if (!inf) { _pdfGuardadoEnCurso = false; if (typeof toast === 'function') toast('❌ No se encontró ese estudio guardado'); return; }
-  const c = (typeof _migrarShuntTsvd === 'function') ? _migrarShuntTsvd(inf.campos || {}) : (inf.campos || {});
+  const c = (typeof _migrarCamposLegacy === 'function') ? _migrarCamposLegacy(inf.campos || {}) : (inf.campos || {});
 
   // La card de ETT Avanzado se construye ANTES del backup: si no existe, sus textarea
   // no entran en el backup ni pueden recibir el texto del estudio guardado.
@@ -30242,7 +30338,6 @@ function _labExcelRow(inf) {
     'Coartación localización': ({preductal:'Preductal',yuxtaductal:'Yuxtaductal',posductal:'Posductal'}[c.coa_loc] || ''),
     'Coartación situación': ({nativa:'Nativa',recoartacion:'Recoartación'}[c.coa_situacion] || ''),
     'Coartación istmo (mm)': rnd(num('coa_istmo'),1),
-    'Coartación Ao ascendente (mm)': rnd(num('coa_ao_asc'),1),
     'Coartación Ao descendente (mm)': rnd(num('coa_ao_desc'),1),
     'Coartación Vmax (m/s)': rnd(num('coa_vmax'),2),
     'Coartación G. medio (mmHg)': rnd(num('coa_gmedio'),0),
@@ -30509,7 +30604,11 @@ const LAB_XLS_MAP = [
   // 4 · Aorta
   ['Ao sinusal (mm)',        'ao_sin',         'num'],
   ['Ao sinotubular (mm)',    'ao_st',          'num'],
-  ['Ao tubular (mm)',        'ao_tub',         'num', ['Ao asc. proximal (mm)']],
+  /* «Coartación Ao ascendente (mm)» es alias y no columna propia: ese campo se consolidó con
+     `ao_tub` el 2026-09-10 (era un duplicado). Como alias, los Excel ya exportados con la
+     columna vieja se siguen importando —al campo correcto— en vez de perder el dato en
+     silencio, que es exactamente para lo que existe el 4º elemento de estas entradas. */
+  ['Ao tubular (mm)',        'ao_tub',         'num', ['Ao asc. proximal (mm)', 'Coartación Ao ascendente (mm)']],
 
   // 5 · Aurícula izquierda
   ['Diám. AP AI (mm)',       'ai_diam',        'num'],
@@ -30613,7 +30712,6 @@ const LAB_XLS_MAP = [
   ['Coartación localización',    'coa_loc',       'vocab'],
   ['Coartación situación',       'coa_situacion', 'vocab'],
   ['Coartación istmo (mm)',      'coa_istmo',     'num'],
-  ['Coartación Ao ascendente (mm)','coa_ao_asc',  'num'],
   ['Coartación Ao descendente (mm)','coa_ao_desc','num'],
   ['Coartación Vmax (m/s)',      'coa_vmax',      'num'],
   ['Coartación G. medio (mmHg)', 'coa_gmedio',    'num'],
@@ -30641,7 +30739,7 @@ const LAB_XLS_MAP = [
 /* SIN VALIDACIÓN DE RANGO (verificado 2026-09-10): los tamaños de CIA/CIV
    (ete_cia_tam_max, ete_cia_tam_min, ete_civ_tam), los diámetros y VTI de los tractos de
    salida (tsvd_diametro, vti_tsvd, diam_tsvi, itv_tsvi) y los del ductus y la coartación
-   (dap_diam, dap_vmax, dap_paps, coa_istmo, coa_ao_asc, coa_ao_desc, coa_vmax, coa_gmedio)
+   (dap_diam, dap_vmax, dap_paps, coa_istmo, coa_ao_desc, coa_vmax, coa_gmedio)
    NO figuran ni acá ni en DCM_RANGO.
    Lo que sí tienen ductus y coartación es una banda de plausibilidad DENTRO de la app
    —`banda()` en dapConclusion y `coaBanda()`—: un número fuera de escala entra igual y se
@@ -31081,19 +31179,26 @@ function labImportarXLSX(file) {
     /* Resuelve la cabecera real de cada entrada: primero el nombre actual, y si no está, los
        alias del 4º elemento. Sin esto, renombrar una columna hacía que los Excel exportados
        antes perdieran ese dato al reimportarse, sin ningún aviso. */
-    const _cabDe = m => {
-      if (porNorm.has(normCab(m[0]))) return porNorm.get(normCab(m[0]));
-      const al = m[3] || [];
-      for (let i = 0; i < al.length; i++) if (porNorm.has(normCab(al[i]))) return porNorm.get(normCab(al[i]));
-      return null;
+    /* Devuelve TODAS las cabeceras presentes para una entrada —la actual primero, después los
+       alias— y no sólo la primera que matchee. El «y no sólo la primera» es el arreglo:
+       `_labExcelRow` escribe la columna actual SIEMPRE, vacía o no, así que todo Excel que
+       exporta la app trae la cabecera nueva. Con la resolución vieja el alias no se consultaba
+       nunca en un archivo de la app, que es exactamente el archivo que venía a proteger: la
+       columna vieja quedaba con el dato, la nueva vacía, y el valor se perdía en silencio.
+       Medido antes de arreglarlo. Aplica a los dos alias que hay hoy, no sólo al de la aorta. */
+    const _cabsDe = m => {
+      const out = [];
+      const cand = [m[0]].concat(m[3] || []);
+      cand.forEach(c => { const real = porNorm.get(normCab(c)); if (real && out.indexOf(real) < 0) out.push(real); });
+      return out;
     };
-    const _presentes = LAB_XLS_MAP.filter(m => _cabDe(m) !== null);
+    const _presentes = LAB_XLS_MAP.filter(m => _cabsDe(m).length > 0);
     /* Los calculados se apartan ANTES de leer las filas. No se descartan en silencio: se
        listan en la vista previa con el motivo, porque la columna existe en el Excel que la
        propia app exporta y el médico razonablemente espera que vuelva a entrar. */
     const calculadas = _presentes.filter(m => _labXlsEsCalculado(m[1])).map(m => m[0]);
     const conocidas = _presentes.filter(m => !_labXlsEsCalculado(m[1]))
-      .map(m => [_cabDe(m), m[1], m[2], m[0]]);
+      .map(m => [_cabsDe(m), m[1], m[2], m[0]]);
     if (!conocidas.length) {
       toast('❌ Ninguna columna reconocida — usá «📥 Importar» > «📋 Descargar plantilla Excel»'); return;
     }
@@ -31121,12 +31226,15 @@ function labImportarXLSX(file) {
       // La fila de ejemplo de la plantilla nunca entra, esté donde esté.
       if (nombre.indexOf('FILA DE EJEMPLO') >= 0 || nombre === LAB_XLS_EJEMPLO) { ejemplos++; return; }
       // Fila completamente vacía: se ignora sin ruido (Excel deja filas fantasma).
-      if (conocidas.every(([c]) => String(row[c] == null ? '' : row[c]).trim() === '')) return;
+      if (conocidas.every(([cs]) => cs.every(c => String(row[c] == null ? '' : row[c]).trim() === ''))) return;
 
       const errs = [];
       const inf = { id: 0, nombre:'', ci:'', doc_tipo:'CI', fecha_estudio:'', campos:{} };
-      conocidas.forEach(([colReal, dest, tipo, col]) => {
-        const row_ = row; const _c = colReal;
+      conocidas.forEach(([colsReales, dest, tipo, col]) => {
+        /* La primera candidata con contenido. Con la columna actual llena gana ella; con la
+           actual vacía y un alias lleno —el Excel exportado antes del renombre— entra el alias. */
+        const row_ = row;
+        const _c = colsReales.find(h => String(row_[h] == null ? '' : row_[h]).trim() !== '') || colsReales[0];
         const bruto = row_[_c];
         const vacio = bruto === null || bruto === undefined || String(bruto).trim() === '';
         let v;
@@ -31292,7 +31400,9 @@ function labImportarXLSX(file) {
     });
 
     if (!ok.length && !errores.length) { toast('⚠️ No hay filas con datos para importar'); return; }
-    const usadas = new Set(conocidas.map(c => c[0]));
+    /* Todas las candidatas cuentan como usadas: una columna vieja que el importador SÍ sabe leer
+       no puede aparecer en «se ignoraron estas columnas», que es un aviso de pérdida de dato. */
+    const usadas = new Set(); conocidas.forEach(c => c[0].forEach(h => usadas.add(h)));
     // Las calculadas ya se explican en su propio renglón: sin esto aparecían además en
     // «columnas que no corresponden a un campo editable», que sugiere que no se reconocen.
     calculadas.forEach(col => { const c = porNorm.get(normCab(col)); if (c) usadas.add(c); });
@@ -36098,6 +36208,7 @@ var EE_MODULES = [
   {key:'hemodinamica', label:'🩸 Hemodinámica'},
   {key:'ete',          label:'🔬 ETE'},
   {key:'pulmonar',     label:'🫁 Eco Pulmonar'},
+  {key:'congenitas',   label:'🧬 Congénitas'},
   {key:'amiloidosis',  label:'🫀 Amiloidosis'},
   {key:'cardioOnco',   label:'🎗️ Cardio-Oncología'},
   {key:'calculadoras', label:'🧮 Calculadoras'},
@@ -36404,10 +36515,13 @@ const ECO_AYUDA = [
   <div class="mBox mTip"><b>Consejo.</b> El score de Wilkins no se carga en Válvulas: se calcula en <b>Calculadoras</b> o en el módulo <b>ETE</b>. En Válvulas sólo está el campo del área por Wilkins para anotar el resultado.</div>` },
 
  { tab: '🧠 Módulos avanzados', html: `
-  <p class="mP">Cinco módulos de patología y tres herramientas, todos en <b>Modo Avanzado</b>. Se prenden y apagan en Config, salvo Eco Pulmonar, que está siempre.</p>
+  <p class="mP">Seis módulos de patología y tres herramientas, todos en <b>Modo Avanzado</b>. Se prenden y apagan en Config, todos — incluido Eco Pulmonar, que hasta el 2026-09-10 estaba siempre visible porque le faltaba la casilla.</p>
   <div class="mSub">🫀 Hemodinámica</div>
   <p class="mP">Perfil hemodinámico completo (gasto cardíaco, índice cardíaco, resistencias, presión capilar, perfil de Forrester), probabilidad de HTP según ESC/ERS 2022, score de TEP sobre 7 (McConnell, signo 60/60, tabique en D, relación VD/VI), <b>VEXUS</b> y el score <b>HFA-PEFF</b> para insuficiencia cardíaca con fracción preservada (tres dominios de hasta 2 puntos, máximo 6: 0-1 descarta, 5-6 confirma).</p>
-  <p class="mP">Al final de Hemodinámica hay tres secciones de <b>cortocircuito y obstrucción</b>, cada una con su botón <span class="mKbd">📎 Integrar al informe</span>: CIA / CIV —que son dos solapas bajo un mismo botón—, <b>ductus arterioso permeable</b> y <b>coartación de aorta</b>. Las tres funcionan igual: cargás los campos, la app calcula lo derivado y propone una conclusión, y el botón decide si entra al informe narrativo.</p>
+  <div class="mSub">🧬 Congénitas</div>
+  <p class="mP">Pestaña propia, después de ETE. Se llama <b>Cardiopatías congénitas y miocardiopatías genéticas</b> porque incluye las dos cosas: comparten el modo de trabajo —base hereditaria, seguimiento largo, criterios de guía— pero no la taxonomía, y llamarle «congénita» a una miocardiopatía hipertrófica en un informe firmado sería un error.</p>
+  <p class="mP">Cada patología es una sección plegable, colapsada al entrar. Las que ya tengan datos cargados <b>se abren solas</b>, así que al reabrir un estudio ves de un vistazo qué se documentó. Hoy están <b>CIA / CIV</b> —dos solapas bajo un mismo botón—, <b>ductus arterioso permeable</b> y <b>coartación de aorta</b>, cada una con su <span class="mKbd">📎 Integrar al informe</span>. Las tres funcionan igual: cargás los campos, la app calcula lo derivado y propone una conclusión, y el botón decide si entra al informe narrativo.</p>
+  <div class="mBox mTip"><b>Los cuatro valores del Qp/Qs se siguen midiendo en sus pestañas.</b> Diámetro y VTI del TSVI en <b>〰️ Doppler → Doppler Aórtico</b>, los del TSVD en <b>VD / AD</b>. La sección de Congénitas los muestra en gris, de sólo lectura, para que veas con qué está calculando: <b>no se cargan ahí</b>. Dos lugares donde escribir el mismo número es la vía más corta a que la pantalla y el informe firmado digan cosas distintas.</div>
   <div class="mBox mAviso"><b>La app no concluye sobre lo que no cargaste.</b> Con la sección vacía la conclusión queda en «—» y no se imprime nada, aunque el botón esté en «✓ Integrado». Si cargaste algo pero no lo suficiente para sostener una negación —por ejemplo la localización de la coartación sin ningún gradiente—, el informe lo dice así: «sin gradiente registrado; completar con Doppler». Y si un número quedó fuera de escala —la Vmax en cm/s, 300 en vez de 3,0— la conclusión es «revisar unidades antes de concluir» en vez de «sin gradiente significativo». Un error de unidad no puede terminar en una conclusión tranquilizadora.</div>
   <div class="mSub">🔀 Ductus arterioso permeable</div>
   <p class="mP">Tipo (silente / restrictivo / no restrictivo), diámetro mínimo, dirección del shunt, velocidad máxima y PAPs estimada. La app calcula el <b>gradiente instantáneo máximo</b> (4 × Vmax²) y toma el <b>Qp/Qs</b> del mismo cálculo que usa CIA/CIV — sale de los diámetros y VTI de los tractos de salida, así que hay que tenerlos cargados.</p>
@@ -36421,10 +36535,10 @@ const ECO_AYUDA = [
   <div class="mBox mTip"><b>Si no la marcás, el informe no dice nada al respecto.</b> La casilla desmarcada significa dos cosas a la vez —«la busqué y no está» y «no la interrogué»— y el informe no puede distinguirlas, así que sólo afirma la <b>presencia</b>. Antes imprimía «Sin flujo diastólico anterógrado» aunque nadie hubiera hecho el Doppler de aorta descendente, y eso deja un gradiente limítrofe leyéndose como descartado en un documento firmado.</div>
   <div class="mBox mTip"><b>El gradiente es Bernoulli simplificado.</b> 4 × Vmax² no descuenta la velocidad proximal, que en la coartación suele estar elevada, así que el número <b>sobreestima</b>. El informe lo dice explícitamente al lado de la cifra para que quien lo lea sepa de dónde sale.</div>
   <div class="mBox mTip"><b>Qué llega al EN SUMA.</b> Del ductus, sólo las conclusiones que cambian conducta: moderado, grande y con HTP. Un ductus silente o pequeño queda descrito en el cuerpo del informe pero no ensucia la conclusión. De la coartación suben la significativa y la limítrofe — la primera indica intervención y la segunda manda a pedir imagen.</div>
-  <p class="mP">El <b>Laboratorio</b> los cuenta aparte, en la solapa Hemodinámica: «Con ductus arterioso» y «Con coartación de aorta». Los detecta por el <b>tipo o el diámetro</b> del ductus y por la <b>localización o el istmo</b> de la coartación —no por el botón de integrar—, así que un estudio que describe el hallazgo sin integrarlo al informe igual entra en la estadística. Un estudio documentado <i>sólo</i> con la Vmax no lo cuenta.</p>
-  <p class="mP">Las dos secciones viajan completas en el <b>Excel</b> del Laboratorio y en su plantilla: quince columnas entre las mediciones, la cola diastólica y los dos «Incluir … en informe». Si armás la planilla a mano y omitís la columna de inclusión, la app la deduce de que la fila traiga datos del hallazgo — pero una cola diastólica en 0 no cuenta como dato, porque es una respuesta negativa.</p>
+  <p class="mP">El <b>Laboratorio</b> los cuenta aparte, en su solapa <b>Hemodinámica</b> —sigue ahí aunque los campos se carguen en Congénitas, porque el Laboratorio lee los datos guardados y no la pantalla—: «Con ductus arterioso» y «Con coartación de aorta». Los detecta por el <b>tipo o el diámetro</b> del ductus y por la <b>localización o el istmo</b> de la coartación —no por el botón de integrar—, así que un estudio que describe el hallazgo sin integrarlo al informe igual entra en la estadística. Un estudio documentado <i>sólo</i> con la Vmax no lo cuenta.</p>
+  <p class="mP">Las dos secciones viajan completas en el <b>Excel</b> del Laboratorio y en su plantilla: catorce columnas entre las mediciones, la cola diastólica y los dos «Incluir … en informe». Si armás la planilla a mano y omitís la columna de inclusión, la app la deduce de que la fila traiga datos del hallazgo — pero una cola diastólica en 0 no cuenta como dato, porque es una respuesta negativa.</p>
   <div class="mSub">🔬 ETE</div>
-  <p class="mP">Transesofágico: técnica, morfología mitral con clasificación de Carpentier, criterios de elegibilidad para TEER (MitraClip/PASCAL), score de Wilkins sobre 16, orejuela izquierda para cierre percutáneo y aorta. Sale en <b>hoja propia</b> del PDF. Al final del módulo hay dos secciones más —<b>CIA / CIV</b> y <b>TAVI</b>, con sus propias solapas del manual— que en cambio se imprimen <b>dentro del informe narrativo</b>.</p>
+  <p class="mP">Transesofágico: técnica, morfología mitral con clasificación de Carpentier, criterios de elegibilidad para TEER (MitraClip/PASCAL), score de Wilkins sobre 16, orejuela izquierda para cierre percutáneo y aorta. Sale en <b>hoja propia</b> del PDF. Al final del módulo está <b>TAVI</b>, con su propia solapa del manual, que en cambio se imprime <b>dentro del informe narrativo</b>. CIA / CIV estaba acá hasta el 2026-09-10 y se mudó a <b>🧬 Congénitas</b>, junto con el ductus y la coartación.</p>
   <div class="mSub">🧬 Amiloidosis</div>
   <p class="mP">Tres solapas: score ETT según ESC 2021 sobre 10 puntos, algoritmo diagnóstico (incluye Perugini y proteínas monoclonales) y una guía de lectura.</p>
   <div class="mSub">❤️ Cardio-Oncología</div>
@@ -36441,11 +36555,11 @@ const ECO_AYUDA = [
   <p class="mP">El Fonocardiograma es didáctico: dibuja un fonocardiograma sintético según la valvulopatía y la severidad que elijas. <b>No usa el micrófono, no graba nada y no aporta al informe.</b></p>
   <div class="mSub">Cómo entran al informe</div>
   <p class="mP">Todos —salvo el Fonocardiograma— tienen un botón <b>📎 Integrar al informe</b>. Lo integrado aparece en la tarjeta <b>🧬 ETT Avanzado</b> de la pestaña Informe, con botones para editarlo o retirarlo, y sale en <b>hoja aparte del PDF</b>, después del EN SUMA.</p>
-  <div class="mBox mTip"><b>Consejo.</b> Sólo Hemodinámica (por VEXUS y HFA-PEFF) y Eco Pulmonar suman líneas al EN SUMA. ETE, Amiloidosis y Cardio-Oncología aportan su hoja pero no modifican el resumen.</div>` },
+  <div class="mBox mTip"><b>Consejo.</b> Suman líneas al EN SUMA: Hemodinámica (por VEXUS y HFA-PEFF), Eco Pulmonar y <b>Congénitas</b> —el Qp/Qs significativo, el ductus moderado, grande o con hipertensión pulmonar, y la coartación significativa o limítrofe—. ETE, Amiloidosis y Cardio-Oncología aportan su hoja pero no modifican el resumen.</div>` },
 
- { tab: '🫀 ETE: CIA / CIV', html: `
+ { tab: '🧬 CIA / CIV', html: `
   <div class="mBox mTip"><b>¿El estudio es un transesofágico?</b> Marcá <b>«🫀 Este estudio es ETE»</b> arriba de la pestaña ETE. Con eso el título del PDF pasa de «Informe Ecocardiograma Doppler Color» a <b>«Ecocardiograma Transesofágico»</b>. La marca viaja con el estudio, así que reimprimir un ETE guardado mientras trabajás en un transtorácico da el título correcto de cada uno.</div>
-  <p class="mP"><strong style="color:#0D9488">Comunicación interauricular e interventricular.</strong> Está dentro del módulo <b>ETE</b>, después de Aorta, como acordeón plegado. Se abre tocando el encabezado; adentro, al pie de la sección, el botón <b>📎 Integrar al informe</b> es el que decide si baja al informe. Cuando está integrada, el encabezado muestra la marca <b>📎 en el informe</b>, así que se ve también con la sección cerrada.</p>
+  <p class="mP"><strong style="color:#0D9488">Comunicación interauricular e interventricular.</strong> Está en la pestaña <b>🧬 Congénitas</b>, primera de las tres secciones, como acordeón plegado — hasta el 2026-09-10 vivía dentro del módulo ETE. Se abre tocando el encabezado; adentro, al pie de la sección, el botón <b>📎 Integrar al informe</b> es el que decide si baja al informe. Cuando está integrada, el encabezado muestra la marca <b>📎 en el informe</b>, así que se ve también con la sección cerrada, y la sección se abre sola al reabrir el estudio.</p>
   <div class="mSub">CIA</div>
   <p class="mP">Elegí el <b>tipo</b> (ostium secundum, ostium primum, seno venoso de VCS o de VCI, seno coronario) y cargá el tamaño máximo y mínimo del defecto.</p>
   <p class="mP">La tabla de <b>bordes</b> tiene los cinco rodetes con la ventana ETE donde se mide cada uno: aórtico (30-45°), AV/mitral (0°), VCS y VCI (90° bicava) y posterior (0°). No hace falta cargarlos todos: la app calcula el <b>borde mínimo</b> con los que hayas ingresado y <b>dice cuál es</b>, que es lo que orienta la viabilidad del cierre percutáneo.</p>
