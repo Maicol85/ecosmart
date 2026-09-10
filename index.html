@@ -590,6 +590,19 @@
           text-transform:uppercase; letter-spacing:.07em;
           padding-left:9px; border-left:3px solid #0D9488; line-height:1.35; }
   .mSub:first-child { margin-top:0; }
+  /* Tabla multicriterio de MCA. `mca-on` es el criterio que CUENTA; `mca-dup` el marcado que la
+     regla de uno-por-categoría deja fuera — se atenúa en vez de ocultarse, porque el médico lo
+     marcó y tiene que ver que lo marcó y que no pesó. */
+  .mca-tabla { width:100%; border-collapse:collapse; font-size:11px; margin-top:8px; }
+  .mca-tabla th { text-align:left; font-weight:700; color:var(--text2); padding:4px 6px; border-bottom:1px solid var(--border); font-size:10px; text-transform:uppercase; letter-spacing:.04em; }
+  .mca-tabla td { padding:3px 6px; border-bottom:1px solid rgba(255,255,255,.05); vertical-align:middle; line-height:1.35; }
+  .mca-tabla td.mca-cat { color:var(--text2); font-size:10px; white-space:nowrap; }
+  .mca-cel { text-align:center; width:52px; cursor:pointer; user-select:none; border-radius:4px; background:rgba(255,255,255,.04); }
+  .mca-cel:hover { background:rgba(255,255,255,.10); }
+  .mca-cel.mca-on  { background:#15803d; color:#fff; font-weight:700; }
+  .mca-cel.mca-dup { background:rgba(21,128,61,.30); color:var(--text2); }
+  .mca-cel.mca-menor.mca-on { background:#4ade80; color:#0f172a; }
+  .mca-na { text-align:center; color:var(--text2); opacity:.35; }
   .mP { margin:0 0 10px; }
   .mUl { padding-left:0; list-style:none; display:flex; flex-direction:column; gap:6px; margin:0 0 12px; }
   /* Sangría colgante y NO `display:flex`. El flex estaba sólo para colocar la flecha, pero
@@ -8206,7 +8219,7 @@ z
     <div class="card-body sacc-body">
       <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
         Hipertrofia del ventrículo izquierdo sin causa que la explique. Genética y heterogénea, <b>1 de cada 500</b>.
-        Junto con la MAVD es la principal causa de muerte súbita en jóvenes y atletas.
+        Junto con la MCA (miocardiopatía arritmogénica) es la principal causa de muerte súbita en jóvenes y atletas.
         <b style="color:var(--accent2);">No es una cardiopatía congénita</b> — está en esta pestaña por el modo de trabajo, y por eso la pestaña se llama «congénitas y miocardiopatías genéticas».
       </p>
 
@@ -8377,6 +8390,148 @@ z
         <input type="checkbox" id="mch_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
         <button type="button" class="btn btn-integrar" data-ete-chk="mch_incluir_chk" aria-pressed="false"
                 onclick="eteInclToggle('mch_incluir_chk')">📎 Integrar al informe</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ MIOCARDIOPATÍA ARRITMOGÉNICA ═══
+       MCA y no MAVD/ARVC: el compromiso puede ser biventricular o predominantemente izquierdo.
+       La regla de conteo es UNO POR CATEGORÍA — ver mcaScore(). -->
+  <div class="card sacc" id="sacc-cc-mca">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-mca');mcaSync();" aria-expanded="false">
+      <span class="sacc-arrow">▶</span>
+      <span style="flex:1;">MCA — Miocardiopatía arritmogénica</span>
+      <span id="mca_badge" class="incl-badge" hidden>📎 en el informe</span>
+    </button>
+    <div class="card-body sacc-body">
+      <p style="font-size:10px;color:var(--text2);margin:0 0 12px;line-height:1.55;">
+        La MCA (antes denominada MAVD/ARVC) es una miocardiopatía genética por mutaciones en proteínas desmosómicas, con sustitución fibro-adiposa del miocardio.
+        Prevalencia 1/2000-1/5000. Tres fenotipos reconocidos: dominante derecho (clásico), biventricular y dominante izquierdo.
+        Principal causa de muerte súbita en jóvenes y atletas junto con la miocardiopatía hipertrófica.
+        El diagnóstico es multicriterio (Criterios Task Force 2010 revisados) — el eco aporta sólo los criterios estructurales.
+        La resonancia cardíaca con gadolinio es el estándar de referencia para la caracterización tisular del miocardio.
+      </p>
+
+      <div class="grid-2">
+        <div class="fg"><label>Fenotipo predominante</label>
+          <select id="mca_fenotipo" onchange="mcaSync()">
+            <option value="">—</option>
+            <option value="derecho">Dominante derecho (clásico)</option>
+            <option value="biventricular">Biventricular</option>
+            <option value="izquierdo">Dominante izquierdo</option>
+            <option value="no_det">No determinado</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Criterios estructurales ecocardiográficos (Task Force 2010)</div>
+      <div class="mBoxLike" style="border-left:3px solid var(--accent2);background:rgba(13,148,136,.08);padding:8px 12px;border-radius:6px;font-size:10px;line-height:1.5;margin-bottom:10px;color:var(--text2);">
+        <b>La anomalía regional de la motilidad es obligatoria.</b> El Task Force exige «aquinesia, disquinesia o aneurisma regional <b>Y</b> uno de los umbrales»:
+        un tracto de salida dilatado con motilidad normal <b>no es criterio de nada</b>.
+      </div>
+      <div class="grid-3">
+        <div class="fg"><label>Motilidad regional del VD</label>
+          <select id="mca_mov_regional" onchange="mcaSync()">
+            <option value="">—</option>
+            <option value="normal">Conservada</option>
+            <option value="hipo">Hipocinesia regional (no es criterio)</option>
+            <option value="aqui_disc">Aquinesia o discinesia regional</option>
+            <option value="aneurisma">Aneurisma localizado</option>
+          </select>
+        </div>
+        <div class="fg"><label>Localización de la anomalía</label><input type="text" id="mca_localizacion" placeholder="p. ej. pared libre basal" oninput="mcaSync()"></div>
+        <div class="fg"><label>TSVD paraesternal eje largo (mm)</label><input type="number" id="mca_tsvd_plax" step="0.1" placeholder="mm" oninput="mcaSync()"></div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>TSVD paraesternal eje corto (mm)</label><input type="number" id="mca_tsvd_psax" step="0.1" placeholder="mm" oninput="mcaSync()"></div>
+        <div class="fg"><label>Fracción de acortamiento de área del VD (%)</label><input type="number" id="mca_fac" step="0.1" placeholder="%" oninput="mcaSync()"></div>
+        <div class="fg"><label>TSVD del Qp/Qs (de VD / AD) — referencia</label>
+          <input type="text" id="mca_plax_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+      </div>
+      <div class="grid-2" style="margin-top:10px;">
+        <div class="fg"><label>Aporte del eco</label>
+          <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+            <span id="mca-eco-aporte" class="calc-val">—</span></div></div>
+        </div>
+      </div>
+      <p style="font-size:10px;color:var(--text2);margin:6px 0 0;">El diámetro de eje largo es un <b>campo propio</b>: el TSVD de VD / AD se mide en el anillo pulmonar para el Qp/Qs, que no es el nivel del criterio. Se muestra al lado como referencia y la app avisa si difieren en 3 mm o más. Umbrales — mayor: eje largo ≥32 · eje corto ≥36 · fracción ≤33 %. Menor: 29 a &lt;32 · 32 a &lt;36 · &gt;33 a ≤40 %.
+      Umbrales: mayor ≥32 mm en eje largo, ≥36 mm en eje corto, o fracción de acortamiento ≤33 %. Menor: 29 a &lt;32 · 32 a &lt;36 · &gt;33 a ≤40 %.</p>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Compromiso del ventrículo izquierdo</div>
+      <p style="font-size:10px;color:var(--text2);margin:0 0 8px;">Relevante en los fenotipos biventricular e izquierdo. Se deriva de la <b>FEVI</b> y del módulo de <b>Contractilidad</b>, que ya registra la motilidad segmentaria. <b>No puntúa</b> en Task Force 2010, que es ciego al ventrículo izquierdo.</p>
+      <div class="grid-2">
+        <div class="fg"><label>Aneurisma del VI (si no está en Contractilidad)</label>
+          <select id="mca_vi_aneurisma" onchange="mcaSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Hallazgos del VI</label>
+          <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+            <span id="mca-vi-hallazgos" class="calc-val">—</span></div></div>
+        </div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Criterios no ecocardiográficos</div>
+      <p style="font-size:10px;color:var(--text2);margin:0 0 4px;">Tocá la celda para marcar. <b>Cada categoría aporta un solo criterio</b>, el de mayor jerarquía: si marcás dos de la misma categoría, el que no cuenta queda atenuado.</p>
+      <table class="mca-tabla">
+        <thead><tr><th>Categoría</th><th>Criterio</th><th style="text-align:center;">Mayor</th><th style="text-align:center;">Menor</th></tr></thead>
+        <tbody>
+        <tr><td class="mca-cat">Tisular</td><td>Sustitución fibrosa, miocitos residuales &lt;60 % en biopsia</td><td class="mca-cel" id="cel_mca_ii_may" onclick="mcaTogglePunto('mca_ii_may')">☐</td><td class="mca-na">—</td></tr>
+        <tr><td class="mca-cat">Tisular</td><td>Miocitos residuales 60-75 % en biopsia</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_ii_men" onclick="mcaTogglePunto('mca_ii_men')">☐</td></tr>
+        <tr><td class="mca-cat">ECG repol.</td><td>Inversión de T en V1-V3 o más allá, sin BRD completo</td><td class="mca-cel" id="cel_mca_iii_may" onclick="mcaTogglePunto('mca_iii_may')">☐</td><td class="mca-na">—</td></tr>
+        <tr><td class="mca-cat">ECG repol.</td><td>Inversión de T en V1-V2, o en V4-V6</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_iii_men1" onclick="mcaTogglePunto('mca_iii_men1')">☐</td></tr>
+        <tr><td class="mca-cat">ECG repol.</td><td>Inversión de T en V1-V4 con BRD completo</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_iii_men2" onclick="mcaTogglePunto('mca_iii_men2')">☐</td></tr>
+        <tr><td class="mca-cat">ECG despol.</td><td>Onda épsilon en V1-V3</td><td class="mca-cel" id="cel_mca_iv_may" onclick="mcaTogglePunto('mca_iv_may')">☐</td><td class="mca-na">—</td></tr>
+        <tr><td class="mca-cat">ECG despol.</td><td>Potenciales tardíos: ≥1 de los 3 parámetros del ECG de señal promediada</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_iv_men1" onclick="mcaTogglePunto('mca_iv_men1')">☐</td></tr>
+        <tr><td class="mca-cat">ECG despol.</td><td>Activación terminal del QRS ≥55 ms en V1-V3, sin BRD completo</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_iv_men2" onclick="mcaTogglePunto('mca_iv_men2')">☐</td></tr>
+        <tr><td class="mca-cat">Arritmias</td><td>TV sostenida o no sostenida, morfología de BRI y <b>eje superior</b></td><td class="mca-cel" id="cel_mca_v_may" onclick="mcaTogglePunto('mca_v_may')">☐</td><td class="mca-na">—</td></tr>
+        <tr><td class="mca-cat">Arritmias</td><td>TV con morfología de BRI y eje <b>inferior</b>, o de eje desconocido</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_v_men1" onclick="mcaTogglePunto('mca_v_men1')">☐</td></tr>
+        <tr><td class="mca-cat">Arritmias</td><td>Más de 500 extrasístoles ventriculares en 24 h</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_v_men2" onclick="mcaTogglePunto('mca_v_men2')">☐</td></tr>
+        <tr><td class="mca-cat">Familia</td><td>Familiar de 1.º grado con MCA confirmada por criterios Task Force</td><td class="mca-cel" id="cel_mca_vi_may1" onclick="mcaTogglePunto('mca_vi_may1')">☐</td><td class="mca-na">—</td></tr>
+        <tr><td class="mca-cat">Familia</td><td>MCA confirmada en autopsia o cirugía en familiar de 1.º grado</td><td class="mca-cel" id="cel_mca_vi_may2" onclick="mcaTogglePunto('mca_vi_may2')">☐</td><td class="mca-na">—</td></tr>
+        <tr><td class="mca-cat">Familia</td><td>Mutación patogénica asociada a MCA en el paciente <span style="color:var(--text2);font-size:9px;">(categoría de historia familiar)</span></td><td class="mca-cel" id="cel_mca_vi_may3" onclick="mcaTogglePunto('mca_vi_may3')">☐</td><td class="mca-na">—</td></tr>
+        <tr><td class="mca-cat">Familia</td><td>MCA en familiar de 1.º grado sin poder verificar los criterios</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_vi_men1" onclick="mcaTogglePunto('mca_vi_men1')">☐</td></tr>
+        <tr><td class="mca-cat">Familia</td><td>Muerte súbita &lt;35 años por sospecha de MCA en familiar de 1.º grado</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_vi_men2" onclick="mcaTogglePunto('mca_vi_men2')">☐</td></tr>
+        <tr><td class="mca-cat">Familia</td><td>MCA confirmada en familiar de 2.º grado</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_vi_men3" onclick="mcaTogglePunto('mca_vi_men3')">☐</td></tr>
+        </tbody>
+      </table>
+      <!-- Los 17 criterios son `type="text"` ocultos por CSS y NO `type="hidden"`: el barrido de
+           limpiarCampos toma `input[type=text], input[type=number]`, así que un hidden sobrevive a
+           «Nuevo estudio» —es la razón por la que im_grado y sus hermanos están en la lista
+           explícita— y el paciente siguiente heredaría «mutación patogénica» y «TV sostenida».
+           Con type=text el barrido los limpia solo, sin lista que mantener. -->
+      <input type="text" id="mca_ii_may" value="" style="display:none;" tabindex="-1" aria-hidden="true">
+      <input type="text" id="mca_ii_men" value="" style="display:none;" tabindex="-1" aria-hidden="true">
+      <input type="text" id="mca_iii_may" value="" style="display:none;" tabindex="-1" aria-hidden="true">
+      <input type="text" id="mca_iii_men1" value="" style="display:none;" tabindex="-1" aria-hidden="true">
+      <input type="text" id="mca_iii_men2" value="" style="display:none;" tabindex="-1" aria-hidden="true">
+      <input type="text" id="mca_iv_may" value="" style="display:none;" tabindex="-1" aria-hidden="true">
+      <input type="text" id="mca_iv_men1" value="" style="display:none;" tabindex="-1" aria-hidden="true">
+      <input type="text" id="mca_iv_men2" value="" style="display:none;" tabindex="-1" aria-hidden="true">
+      <input type="text" id="mca_v_may" value="" style="display:none;" tabindex="-1" aria-hidden="true">
+      <input type="text" id="mca_v_men1" value="" style="display:none;" tabindex="-1" aria-hidden="true">
+      <input type="text" id="mca_v_men2" value="" style="display:none;" tabindex="-1" aria-hidden="true">
+      <input type="text" id="mca_vi_may1" value="" style="display:none;" tabindex="-1" aria-hidden="true">
+      <input type="text" id="mca_vi_may2" value="" style="display:none;" tabindex="-1" aria-hidden="true">
+      <input type="text" id="mca_vi_may3" value="" style="display:none;" tabindex="-1" aria-hidden="true">
+      <input type="text" id="mca_vi_men1" value="" style="display:none;" tabindex="-1" aria-hidden="true">
+      <input type="text" id="mca_vi_men2" value="" style="display:none;" tabindex="-1" aria-hidden="true">
+      <input type="text" id="mca_vi_men3" value="" style="display:none;" tabindex="-1" aria-hidden="true">
+
+      <div class="calc-box" style="margin-top:12px;">
+        <div class="calc-row"><span class="calc-lbl">Puntaje acumulado</span><span id="mca-score" class="calc-val">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Interpretación Task Force 2010</span><span id="mca-interp" class="calc-val">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="mca-concl" class="calc-val">—</span></div>
+      </div>
+      <p style="font-size:10px;color:var(--text2);margin:8px 0 0;line-height:1.5;">
+        El diagnóstico definitivo de MCA requiere integración de criterios de múltiples categorías. Un score ecocardiográfico aislado no confirma ni descarta el diagnóstico.
+        La resonancia cardíaca con gadolinio es el estándar de referencia para la caracterización tisular.
+        Bandas: <b>≥4</b> definitivo · <b>3</b> limítrofe · <b>2</b> posible · <b>1 o 0</b> sin criterios diagnósticos.
+      </p>
+      <div style="text-align:center;margin-top:10px;">
+        <input type="checkbox" id="mca_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+        <button type="button" class="btn btn-integrar" data-ete-chk="mca_incluir_chk" aria-pressed="false"
+                onclick="eteInclToggle('mca_incluir_chk')">📎 Integrar al informe</button>
       </div>
     </div>
   </div>
@@ -10156,11 +10311,13 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         • <b>Eco:</b> dilatación VI, disfunción sistólica global, patrón diastólico restrictivo en avanzada<br>
         • <b>TRC:</b> indicada si FEVI ≤35% + BRiHH ≥150ms · Seguimiento: 3–6m post GDMT
       </div>
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:6px;">MAVD — Miocardiopatía Arritmogénica VD</div>
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:6px;">MCA — Miocardiopatía arritmogénica <span style="font-weight:400;color:var(--text2);font-size:10px;">(antes MAVD/ARVC)</span></div>
       <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:10px;">
-        • <b>Criterios mayores eco:</b> VD basal ≥32mm · FEVD &lt;40% · discinesia/aneurisma regional VD<br>
-        • <b>Criterios menores:</b> VD basal 29–32mm · FEVD 40–44%<br>
-        • <b>Diagnóstico:</b> 2 criterios mayores / 1 mayor + 2 menores / 4 menores
+        • <b>Criterio ECO mayor:</b> anomalía regional (aquinesia, disquinesia o aneurisma) <b>Y</b> TSVD paraesternal eje largo ≥32 mm, eje corto ≥36 mm, o fracción de acortamiento de área ≤33 %<br>
+        • <b>Criterio ECO menor:</b> aquinesia o discinesia regional <b>Y</b> 29 a &lt;32 mm · 32 a &lt;36 mm · &gt;33 a ≤40 %<br>
+        • <b>La anomalía regional es obligatoria:</b> un tracto de salida dilatado con motilidad normal no es criterio<br>
+        • <b>Diagnóstico:</b> 2 mayores / 1 mayor + 2 menores / 4 menores, <b>de categorías distintas</b> — cada una de las seis aporta un solo criterio<br>
+        • <b>Sección propia</b> en 🧬 Congénitas con las seis categorías y el puntaje automático
       </div>
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:6px;">MNC — Miocardio No Compactado</div>
       <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:10px;">
@@ -17595,7 +17752,8 @@ function generarInforme(opts) {
        corrección que las otras sí reciben. */
     [['ebs_incluir_chk', typeof ebsConclusion === 'function' ? ebsConclusion : null, typeof ebsSync === 'function' ? ebsSync : null],
      ['tdf_incluir_chk', typeof tdfConclusion === 'function' ? tdfConclusion : null, typeof tdfSync === 'function' ? tdfSync : null],
-     ['tga_incluir_chk', typeof tgaConclusion === 'function' ? tgaConclusion : null, typeof tgaSync === 'function' ? tgaSync : null]
+     ['tga_incluir_chk', typeof tgaConclusion === 'function' ? tgaConclusion : null, typeof tgaSync === 'function' ? tgaSync : null],
+     ['mca_incluir_chk', typeof mcaConclusion === 'function' ? mcaConclusion : null, typeof mcaSync === 'function' ? mcaSync : null]
     ].forEach(function(sec){
       const chk = document.getElementById(sec[0]);
       if (!chk || !chk.checked || !sec[1]) return;
@@ -17683,7 +17841,7 @@ function _noEsDelEstudio(id) {
    Los `calc*` NO entran acá: son estables y cada sitio llama los suyos. Lo que crece con cada
    módulo nuevo es esta lista, y por eso tiene que estar en un solo lugar. */
 function RECALC_MODULOS() {
-  return ['eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync'];
+  return ['eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -22467,6 +22625,328 @@ function mchSync(){
 }
 window.mchSync = mchSync; window.mchConclusion = mchConclusion;
 
+/* ══ MIOCARDIOPATÍA ARRITMOGÉNICA ════════════════════════════════════════════════════════
+   Se llama MCA y no MAVD/ARVC porque el compromiso puede ser biventricular o predominantemente
+   izquierdo, no sólo del ventrículo derecho. Los tres fenotipos se declaran en la sección.
+
+   ── LA REGLA DE CONTEO: UNO POR CATEGORÍA ──
+   Los Criterios Task Force 2010 (Marcus, Circulation 2010;121:1533) definen el diagnóstico por
+   combinación: 2 mayores · 1 mayor + 2 menores · 4 menores de categorías DISTINTAS → definitivo.
+   El artículo primario NO enuncia cuántos criterios puede aportar una categoría —es un hueco del
+   documento— pero la implementación operativa del campo lo resuelve. Bosman, EP Europace
+   2020;22:787, que es el estudio de referencia sobre el rendimiento de estos criterios:
+   «Within each category, a patient can fulfil a major, minor, or no criterion.»
+
+   Por eso cada una de las SEIS categorías aporta como máximo un criterio, el de mayor jerarquía.
+   Sumar las filas marcadas sobrediagnostica, y el caso peor es el más frecuente: un portador de
+   mutación patogénica con un familiar de primer grado afectado son DOS mayores de la misma
+   categoría VI — sumando dan 4 puntos y «diagnóstico definitivo» sobre alguien sin ningún
+   fenotipo. Con la regla correcta son 2 puntos: posible. Es el tamizaje familiar de rutina.
+
+   ── LAS BANDAS ──
+   ≥4 definitivo · 3 limítrofe · 2 posible · 1 SIN CRITERIOS · 0 sin criterios.
+   El 1 no es «posible»: la regla textual pide «1 mayor o 2 menores de categorías distintas», y un
+   menor aislado —más de 500 extrasístoles en 24 h, que es un hallazgo de Holter banal— no llega a
+   ninguna categoría diagnóstica.
+
+   ── EL VENTRÍCULO IZQUIERDO NO PUNTÚA ──
+   Los TFC 2010 son CIEGOS al ventrículo izquierdo; es justamente la razón por la que existen los
+   criterios de Padua 2020 y el consenso europeo de 2023. Los hallazgos del VI se cargan y se
+   informan —son el sentido de llamarla MCA— pero NO entran al total del Task Force. */
+const MCA_FENO_TXT = {
+  derecho:'dominante derecho (clásico)', biventricular:'biventricular',
+  izquierdo:'dominante izquierdo', no_det:'no determinado'
+};
+function _mcaSv(id){ return (document.getElementById(id)?.value || '').trim(); }
+function _mcaNv(id){ const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; }
+function _mcaChk(id){ return _mcaSv(id) === 'si'; }
+
+/* CATEGORÍA I — estructural por ecocardiografía.
+   La anomalía REGIONAL de la motilidad es una COMPUERTA, no una alternativa. La tabla del TFC
+   dice «Regional RV akinesia, dyskinesia or aneurysm **AND** one of the following»: un tracto de
+   salida dilatado o un FAC bajo con motilidad normal NO es criterio de nada. El pedido original
+   lo planteaba con «O», que habría producido criterios a partir de un número solo.
+   Asimetría del propio documento: el aneurisma habilita MAYOR pero no figura en la fila de menor.
+   Un aneurisma con medidas en rango menor no encaja en la tabla; es un hueco de la guía y se dice
+   en vez de inventar una regla. */
+function mcaCatI(){
+  const mov = _mcaSv('mca_mov_regional');
+  /* `mca_tsvd_plax` es un campo PROPIO y no reusa `tsvd_diametro`. Aquel existe desde antes
+     para alimentar el Qp/Qs junto con el VTI del TSVD, y ese diametro se toma en el anillo
+     pulmonar, no en la vista ni en el nivel que define el criterio Task Force. Reusar un numero
+     medido con otra convencion es peor que duplicarlo: una CIA con sobrecarga de volumen y un
+     TSVD de 33 mm cargado para el Qp/Qs entraba como criterio MAYOR y, con 500 extrasistoles
+     banales, el informe firmaba «miocardiopatia arritmogenica limitrofe». El del Qp/Qs se
+     muestra al lado, rotulado, y si difieren se avisa. */
+  const plax = _mcaNv('mca_tsvd_plax'), psax = _mcaNv('mca_tsvd_psax'), fac = _mcaNv('mca_fac');
+  const fuera = [];
+  const banda = (n, lo, hi, lbl) => { if (n==null) return null; if (n>=lo && n<=hi) return n; if(lbl) fuera.push(lbl); return null; };
+  const p = banda(plax, 5, 80, 'TSVD paraesternal eje largo'), s = banda(psax, 5, 80, 'TSVD paraesternal eje corto');
+  const f = banda(fac, 1, 80, 'fracción de acortamiento de área');
+  if (fuera.length) return { pts:0, nivel:'no_interpretable', fuera:fuera };
+  /* Sin anomalía regional no hay criterio, aunque los números estén alterados. */
+  /* `aqui_disc` cubre aquinesia y discinesia, que es lo que dice el criterio. Antes la unica
+     opcion anormal no aneurismatica era «hipocinesia o discinesia» y no existia la de
+     aquinesia: faltaba el estado central del criterio mientras cuatro superficies del codigo
+     afirmaban que estaba. La HIPOCINESIA aislada no es criterio — es un hallazgo inespecifico
+     de cualquier sobrecarga derecha (HTP, EPOC, CIA, TEP) — y ahora tiene opcion propia que
+     no puntua. */
+  if (mov !== 'aqui_disc' && mov !== 'aneurisma') {
+    const numAlterado = (p != null && p >= 29) || (s != null && s >= 32) || (f != null && f <= 40);
+    /* «no está presente» sólo con la respuesta EXPLÍCITA. Con el desplegable en blanco la app
+       afirmaba una ausencia que nadie contestó, y se disparaba sola porque `numAlterado` incluye
+       p>=29 y ese número ronda los 30 en cualquier estudio. */
+    return { pts:0, nivel:'ninguno',
+             sinMotilidad: numAlterado && (mov === 'normal' || mov === 'hipo'),
+             faltaMotilidad: numAlterado && !mov };
+  }
+  /* Mayor: los operadores son los del documento — ≥ para diámetros, ≤ para el FAC. Un FAC de
+     exactamente 33 % es MAYOR, y un PLAX de exactamente 32 mm también. */
+  const mayorNum = (p != null && p >= 32) || (s != null && s >= 36) || (f != null && f <= 33);
+  if (mayorNum) return { pts:2, nivel:'mayor' };
+  /* Menor: intervalos semiabiertos, ≥a–<b para diámetros y >a–≤b para el FAC. Y exige
+     hipocinesia o discinesia: el aneurisma sólo califica para mayor. */
+  if (mov === 'aqui_disc') {
+    const menorNum = (p != null && p >= 29 && p < 32) || (s != null && s >= 32 && s < 36) ||
+                     (f != null && f > 33 && f <= 40);
+    if (menorNum) return { pts:1, nivel:'menor' };
+  }
+  /* «las medidas no alcanzan el umbral» exige que HAYA medidas. Sin ninguna cargada, el informe
+     desactivaba el hallazgo mas especifico que da el eco —el aneurisma regional del VD— citando
+     mediciones inexistentes. */
+  if (mov === 'aneurisma') return { pts:0, nivel:'ninguno',
+    aneurismaSinUmbral: (p != null || s != null || f != null),
+    aneurismaSinMedidas: (p == null && s == null && f == null) };
+  return { pts:0, nivel:'ninguno' };
+}
+/* Las cinco categorías no ecocardiográficas. Cada una toma el criterio de MAYOR jerarquía de los
+   marcados: dos menores de la misma categoría siguen valiendo un menor. */
+const MCA_CATS = [
+  { k:'ii',  nom:'Caracterización tisular',
+    mayor:[['mca_ii_may','Sustitución fibrosa con miocitos residuales <60 % en biopsia']],
+    menor:[['mca_ii_men','Miocitos residuales 60-75 % en biopsia']] },
+  { k:'iii', nom:'Repolarización',
+    mayor:[['mca_iii_may','Inversión de onda T en V1-V3 o más allá, sin bloqueo completo de rama derecha']],
+    menor:[['mca_iii_men1','Inversión de onda T en V1-V2, o en V4-V6'],
+           ['mca_iii_men2','Inversión de onda T en V1-V4 con bloqueo completo de rama derecha']] },
+  { k:'iv',  nom:'Despolarización y conducción',
+    mayor:[['mca_iv_may','Onda épsilon en V1-V3']],
+    menor:[['mca_iv_men1','Potenciales tardíos en al menos uno de los tres parámetros del ECG de señal promediada'],
+           ['mca_iv_men2','Duración de la activación terminal del QRS ≥55 ms en V1-V3, sin bloqueo completo de rama derecha']] },
+  { k:'v',   nom:'Arritmias',
+    mayor:[['mca_v_may','Taquicardia ventricular sostenida o no sostenida con morfología de bloqueo de rama izquierda y EJE SUPERIOR']],
+    menor:[['mca_v_men1','Taquicardia ventricular con morfología de bloqueo de rama izquierda y eje inferior, o de eje desconocido'],
+           ['mca_v_men2','Más de 500 extrasístoles ventriculares en 24 horas']] },
+  { k:'vi',  nom:'Historia familiar y genética',
+    mayor:[['mca_vi_may1','Familiar de primer grado con MCA confirmada por criterios Task Force'],
+           ['mca_vi_may2','MCA confirmada en autopsia o cirugía en familiar de primer grado'],
+           ['mca_vi_may3','Mutación patogénica asociada a MCA identificada en el paciente']],
+    menor:[['mca_vi_men1','Historia de MCA en familiar de primer grado sin posibilidad de verificar los criterios'],
+           ['mca_vi_men2','Muerte súbita prematura (<35 años) por sospecha de MCA en familiar de primer grado'],
+           ['mca_vi_men3','MCA confirmada por criterios o anatomía patológica en familiar de segundo grado']] }
+];
+function mcaScore(){
+  const cats = [];
+  const catI = mcaCatI();
+  cats.push({ k:'i', nom:'Estructural por ecocardiografía', pts:catI.pts, nivel:catI.nivel,
+              detalle: catI.nivel === 'mayor' ? 'criterio mayor' : (catI.nivel === 'menor' ? 'criterio menor' : null),
+              info: catI });
+  MCA_CATS.forEach(function(c){
+    const may = c.mayor.filter(function(x){ return _mcaChk(x[0]); });
+    const men = c.menor.filter(function(x){ return _mcaChk(x[0]); });
+    /* El de mayor jerarquía, y se ANOTA cuántos se marcaron: el médico tiene que poder ver que
+       marcó dos y que contó uno, o el número parece un error de la app. */
+    const nivel = may.length ? 'mayor' : (men.length ? 'menor' : 'ninguno');
+    cats.push({ k:c.k, nom:c.nom, pts: may.length ? 2 : (men.length ? 1 : 0), nivel:nivel,
+                marcados: may.length + men.length,
+                detalle: may.length ? may[0][1] : (men.length ? men[0][1] : null) });
+  });
+  const total = cats.reduce(function(a,c){ return a + c.pts; }, 0);
+  const banda = total >= 4 ? 'definitivo' : (total === 3 ? 'limitrofe' : (total === 2 ? 'posible' : 'sin_criterios'));
+  return { cats: cats, eco: catI.pts, noEco: total - catI.pts, total: total, banda: banda, catI: catI };
+}
+/* Compromiso del ventrículo izquierdo. NO puntúa: los TFC 2010 no lo contemplan. Se deriva de lo
+   que la app ya tiene —la FEVI y el módulo de contractilidad segmentaria, que registra
+   hipocinesia, aquinesia, discinesia y aneurisma por segmento— en vez de preguntarlo otra vez. */
+function mcaVI(){
+  const hallazgos = [];
+  const fevi = _mcaNv('fevi');
+  if (fevi != null && fevi >= 5 && fevi <= 90 && fevi < 50) hallazgos.push('disfunción sistólica del ventrículo izquierdo (FEVI ' + fevi + ' %)');
+  /* `contrEstado` es un const de nivel superior y NO cuelga de window: se lee por el identificador
+     léxico, con guarda. Códigos: 0 normal · 1 hipoquinesia · 2 aquinesia · 3 discinesia · 4 aneurisma. */
+  let peor = 0;
+  try {
+    if (typeof contrEstado !== 'undefined' && contrEstado) {
+      Object.keys(contrEstado).forEach(function(k){ const n = Number(contrEstado[k]) || 0; if (n > peor) peor = n; });
+    }
+  } catch(e){}
+  /* DIFUSA no es REGIONAL, y la palabra es todo el peso diagnóstico acá: la alteración regional
+     del VI es el rasgo del fenotipo de dominancia izquierda. `toggleContrDifusa` pinta los 17
+     segmentos en 1, así que tomar el máximo convertía una hipocinesia GLOBAL de una miocardiopatía
+     dilatada en «alteración regional». Se leen también las banderas del módulo, que es donde vive
+     esa distinción — y de paso la disquinesia septal, que no pinta ningún segmento y quedaba
+     invisible. */
+  let difusa = false, disqSep = false;
+  try { if (typeof contrDifusa !== 'undefined') difusa = !!contrDifusa; } catch(e){}
+  try { if (typeof contrDisqSep !== 'undefined') disqSep = !!contrDisqSep; } catch(e){}
+  if (difusa && peor <= 1) hallazgos.push('hipocontractilidad difusa del ventrículo izquierdo (no es una alteración regional)');
+  else if (peor >= 1 && peor <= 3) hallazgos.push('alteración regional de la motilidad del ventrículo izquierdo documentada en Contractilidad');
+  if (disqSep) hallazgos.push('disquinesia septal documentada en Contractilidad');
+  /* El aneurisma del VI está en TRES lugares: el mapa de segmentos, `mch_aneurisma_apical` —que
+     además vota como factor mayor de la AHA en el score de muerte súbita de la MCH— y el campo
+     propio de esta sección. Se leen los tres: un «Sí» en cualquiera es el mismo hallazgo físico, y
+     que el párrafo de MCH lo nombre y el de MCA lo omita sería el informe contradiciéndose. */
+  const aneurMch = _mcaSv('mch_aneurisma_apical') === 'si';
+  if (peor >= 4) hallazgos.push('aneurisma del ventrículo izquierdo documentado en Contractilidad');
+  else if (_mcaChk('mca_vi_aneurisma') || aneurMch) hallazgos.push('aneurisma del ventrículo izquierdo' +
+    (aneurMch && !_mcaChk('mca_vi_aneurisma') ? ' (registrado en la sección de miocardiopatía hipertrófica)' : ''));
+  return { hallazgos: hallazgos, hay: hallazgos.length > 0 };
+}
+function mcaConclusion(){
+  const feno = _mcaSv('mca_fenotipo');
+  const sc = mcaScore();
+  const vi = mcaVI();
+  const alguno = sc.cats.some(function(c){ return c.pts > 0; });
+  const hayEcoCargado = _mcaSv('mca_mov_regional') !== '' || _mcaNv('mca_tsvd_plax') != null ||
+                        _mcaNv('mca_tsvd_psax') != null || _mcaNv('mca_fac') != null;
+  /* `vi.hay` NO entra: sale de la FEVI y del módulo de contractilidad, que son datos de otras
+     secciones y están llenos en la mayoría de los estudios. Con él adentro, cualquier paciente
+     con un infarto antiguo o una miocardiopatía dilatada obtenía una conclusión de MCA con sólo
+     desplegar el acordeón, y el emisor la bajaba entera al EN SUMA. Las otras nueve secciones de
+     esta pestaña leen sólo campos propios en su hayDato; ésta era la única que no. */
+  const hayDato = !!(feno || alguno || hayEcoCargado || sc.catI.fuera);
+  if (!hayDato) return null;
+
+  const partes = [];
+  partes.push('Miocardiopatía arritmogénica' + (feno ? ' — fenotipo ' + (MCA_FENO_TXT[feno] || feno) : ''));
+  /* Categoría I: lo que aportó y por qué. */
+  if (sc.catI.fuera) partes.push('Criterio estructural no evaluable: ' + sc.catI.fuera.join(' y ') + ' fuera de rango — revisar unidades');
+  else {
+    const plax = _mcaNv('mca_tsvd_plax'), psax = _mcaNv('mca_tsvd_psax'), fac = _mcaNv('mca_fac');
+    const med = [];
+    if (plax != null) med.push('TSVD en paraesternal eje largo ' + plax + ' mm');
+    if (psax != null) med.push('TSVD en paraesternal eje corto ' + psax + ' mm');
+    if (fac  != null) med.push('fracción de acortamiento de área del VD ' + fac + ' %');
+    if (med.length) partes.push('Ventrículo derecho: ' + med.join(', '));
+    const mov = _mcaSv('mca_mov_regional'), loc = _mcaSv('mca_localizacion');
+    if (mov === 'aqui_disc') partes.push('Aquinesia o discinesia regional del ventrículo derecho' + (loc ? ' (' + loc + ')' : ''));
+    else if (mov === 'hipo') partes.push('Hipocinesia regional del ventrículo derecho' + (loc ? ' (' + loc + ')' : '') +
+      ', que no constituye criterio Task Force: la tabla exige aquinesia, discinesia o aneurisma');
+    else if (mov === 'aneurisma') partes.push('Aneurisma localizado del ventrículo derecho' + (loc ? ' (' + loc + ')' : ''));
+    else if (mov === 'normal') partes.push('Motilidad regional del ventrículo derecho conservada');
+    if (sc.catI.sinMotilidad) partes.push('Las medidas del tracto de salida alcanzan rango de criterio, pero los criterios Task Force exigen ADEMÁS aquinesia, discinesia o aneurisma regional, que no está presente: la categoría estructural no aporta puntos');
+    if (sc.catI.faltaMotilidad) partes.push('Las medidas del tracto de salida alcanzan rango de criterio, pero no consta la evaluación de la motilidad regional del ventrículo derecho, que los criterios Task Force exigen además del umbral: la categoría estructural queda sin puntuar');
+    if (sc.catI.aneurismaSinUmbral) partes.push('Hay aneurisma regional pero las medidas no alcanzan el umbral de criterio mayor; la tabla del Task Force no contempla el aneurisma en la fila de criterio menor, de modo que la categoría queda sin puntuar');
+    if (sc.catI.aneurismaSinMedidas) partes.push('Hay aneurisma regional del ventrículo derecho pero no consta ninguna medición del tracto de salida ni la fracción de acortamiento, que los criterios Task Force exigen además: completar las medidas para poder puntuar la categoría estructural');
+  }
+  /* Compromiso izquierdo, declarado como lo que es. */
+  if (vi.hay) partes.push('Compromiso del ventrículo izquierdo: ' + vi.hallazgos.join('; ') +
+    '. Los criterios Task Force 2010 no puntúan el ventrículo izquierdo — los que sí lo hacen son los criterios de Padua 2020 y el consenso europeo de 2023, todavía no validados');
+  /* Las categorías que aportaron. */
+  const aportan = sc.cats.filter(function(c){ return c.pts > 0; });
+  if (aportan.length) partes.push('Criterios cumplidos: ' + aportan.map(function(c){
+    return c.nom + ' — ' + (c.nivel === 'mayor' ? 'mayor' : 'menor') + ' (' + c.pts + (c.pts === 1 ? ' punto' : ' puntos') + ')' +
+           (c.marcados > 1 ? ', de ' + c.marcados + ' criterios marcados en la categoría' : '');
+  }).join('; '));
+  const dobles = sc.cats.filter(function(c){ return c.marcados > 1; });
+  if (dobles.length) partes.push('Regla de conteo aplicada: cada categoría aporta un solo criterio, el de mayor jerarquía');
+
+  const BANDA = {
+    definitivo:'Diagnóstico DEFINITIVO de miocardiopatía arritmogénica',
+    limitrofe:'Diagnóstico LIMÍTROFE de miocardiopatía arritmogénica',
+    posible:'Diagnóstico POSIBLE de miocardiopatía arritmogénica',
+    sin_criterios:'No se cumplen criterios diagnósticos de miocardiopatía arritmogénica'
+  };
+  partes.push('Puntaje Task Force 2010: ' + sc.total + (sc.total === 1 ? ' punto' : ' puntos') +
+    ' (ecocardiografía ' + sc.eco + ', resto ' + sc.noEco + ') — ' + BANDA[sc.banda]);
+  partes.push('El diagnóstico definitivo requiere integrar criterios de varias categorías: un puntaje ecocardiográfico aislado no confirma ni descarta la enfermedad, y la resonancia cardíaca con gadolinio es el estándar de referencia para la caracterización tisular del miocardio');
+
+  /* El resumen NUNCA es null. Lo era en la banda «sin criterios», y el emisor hace
+     `suma.push(c.resumen || c.txt)`: con el resumen vacío caía el CUERPO ENTERO —siete oraciones—
+     dentro del EN SUMA, encabezado por «Miocardiopatía arritmogénica». Las otras nueve secciones
+     devuelven siempre una cadena; ésta era la única que podía no hacerlo. */
+  const resumen = sc.banda === 'definitivo'
+      ? 'Miocardiopatía arritmogénica — diagnóstico definitivo (Task Force 2010: ' + sc.total + ' puntos)'
+    : sc.banda === 'limitrofe'
+      ? 'Miocardiopatía arritmogénica limítrofe (Task Force 2010: 3 puntos) — completar criterios diagnósticos'
+    : sc.banda === 'posible'
+      ? 'Criterios posibles de miocardiopatía arritmogénica (Task Force 2010: 2 puntos) — evaluación multimodal indicada'
+      : 'Miocardiopatía arritmogénica: no se cumplen criterios diagnósticos (Task Force 2010: ' + sc.total +
+        (sc.total === 1 ? ' punto' : ' puntos') + ')';
+  /* Un valor ilegible corta la banda, como en ductus y coartación: sin esto el informe decía a la
+     vez «criterio estructural no evaluable, fuera de rango» y «no se cumplen criterios
+     diagnósticos», que es una negación apoyada en un número que no se pudo leer. */
+  if (sc.catI.fuera) {
+    const t = 'Miocardiopatía arritmogénica — ' + sc.catI.fuera.join(' y ') + ' fuera de rango: revisar unidades antes de puntuar el criterio estructural';
+    return { clave:'no_interpretable', txt: partes.concat([t]).join('. '), resumen: t, score: sc, vi: vi };
+  }
+  return { clave: sc.banda, txt: partes.join('. '), resumen: resumen, score: sc, vi: vi };
+}
+function mcaSync(){
+  const txt = (id,s) => { const e=document.getElementById(id); if(e) e.textContent = s; };
+  const ro  = (id,s) => { const e=document.getElementById(id); if(e) e.value = s; };
+  /* El TSVD del Qp/Qs se muestra como REFERENCIA, no como fuente: se mide en otro nivel. */
+  { const q = _mcaNv('tsvd_diametro'), p = _mcaNv('mca_tsvd_plax');
+    ro('mca_plax_ro', q == null ? '' : (q + ' mm' + (p != null && Math.abs(p - q) >= 3 ? ' — difiere del de esta sección' : ''))); }
+  const sc = mcaScore(), catI = sc.catI;
+  txt('mca-eco-aporte', catI.fuera ? 'No evaluable — ' + catI.fuera.join(' y ') + ' fuera de rango'
+    : catI.nivel === 'mayor' ? 'Criterio mayor — 2 puntos'
+    : catI.nivel === 'menor' ? 'Criterio menor — 1 punto'
+    : catI.sinMotilidad ? 'Sin criterio — falta la anomalía regional de la motilidad, que el Task Force exige además del umbral'
+    : catI.aneurismaSinUmbral ? 'Sin criterio — aneurisma sin alcanzar el umbral de mayor'
+    : 'Sin criterio');
+  const vi = mcaVI();
+  txt('mca-vi-hallazgos', vi.hay ? vi.hallazgos.join('; ') + ' — no puntúa en Task Force 2010' : '—');
+  txt('mca-score', 'ECO ' + sc.eco + ' · resto ' + sc.noEco + ' · TOTAL ' + sc.total);
+  const B = { definitivo:'≥4 — diagnóstico DEFINITIVO', limitrofe:'3 — diagnóstico LIMÍTROFE',
+              posible:'2 — diagnóstico POSIBLE', sin_criterios:'sin criterios diagnósticos' };
+  txt('mca-interp', B[sc.banda]);
+  /* Se pinta cada celda de la tabla según lo marcado, y se atenúa la que no cuenta por la regla
+     de uno-por-categoría: si el médico marcó dos, tiene que ver cuál pesó. */
+  sc.cats.forEach(function(c){
+    const def = MCA_CATS.filter(function(x){ return x.k === c.k; })[0];
+    if (!def) return;
+    const gana = c.nivel === 'mayor' ? (def.mayor.filter(function(x){ return _mcaChk(x[0]); })[0] || [])[0]
+               : c.nivel === 'menor' ? (def.menor.filter(function(x){ return _mcaChk(x[0]); })[0] || [])[0] : null;
+    def.mayor.concat(def.menor).forEach(function(x){
+      const cel = document.getElementById('cel_' + x[0]);
+      if (!cel) return;
+      const marcado = _mcaChk(x[0]);
+      cel.classList.toggle('mca-on', marcado && x[0] === gana);
+      cel.classList.toggle('mca-dup', marcado && x[0] !== gana);
+    });
+  });
+  const cc = mcaConclusion();
+  txt('mca-concl', cc ? cc.txt : '—');
+}
+/* Marca o desmarca una celda de la tabla. Cada fila tiene UNA sola celda marcable —las cinco
+   categorías con mayor y menor los tienen en filas separadas— así que acá no hay exclusión mutua
+   que resolver, y el bucle de abajo sobre la fila es defensivo: si mañana alguien agrega una fila
+   con dos celdas, apaga la hermana en vez de dejar las dos encendidas.
+   Entre filas NO hay restricción, y es deliberado: el médico marca todo lo que su paciente cumple
+   —que es información clínica— y la regla de uno-por-categoría la aplica el SCORE, no la interfaz.
+   Si la interfaz impidiera marcar el segundo, el médico no vería que cumple dos de la misma
+   categoría. */
+function mcaTogglePunto(id){
+  const el = document.getElementById(id);
+  if (!el) return;
+  const marcar = !(el.value === 'si');
+  /* Apagar el hermano de la misma fila. Los ids de una fila comparten prefijo salvo el sufijo
+     de jerarquía, así que la fila se resuelve por el DOM y no por convención de nombre: una
+     convención de nombre acá sería otra derivación por `replace` de las que ya costaron caro. */
+  const cel = document.getElementById('cel_' + id);
+  const fila = cel ? cel.closest('tr') : null;
+  if (fila) fila.querySelectorAll('.mca-cel').forEach(function(c){
+    const otro = document.getElementById(String(c.id).replace(/^cel_/, ''));
+    if (otro) otro.value = '';
+  });
+  el.value = marcar ? 'si' : '';
+  if (typeof mcaSync === 'function') mcaSync();
+}
+window.mcaTogglePunto = mcaTogglePunto;
+window.mcaSync = mcaSync; window.mcaConclusion = mcaConclusion;
+window.mcaScore = mcaScore; window.mcaCatI = mcaCatI; window.mcaVI = mcaVI;
+
 /* ══ ANOMALÍA DE EBSTEIN ═════════════════════════════════════════════════════════════════
    Desplazamiento apical del velo septal tricuspídeo con atrialización del ventrículo derecho.
    Principal causa de insuficiencia tricuspídea congénita severa.
@@ -23262,7 +23742,8 @@ const ETE_INCL_LBL = {
   mch_incluir_chk:         'Miocardiopatía hipertrófica',
   ebs_incluir_chk:         'Anomalía de Ebstein',
   tdf_incluir_chk:         'Tetralogía de Fallot reparada',
-  tga_incluir_chk:         'Transposición de grandes arterias corregida'
+  tga_incluir_chk:         'Transposición de grandes arterias corregida',
+  mca_incluir_chk:         'Miocardiopatía arritmogénica'
 };
 function eteInclSync(){
   document.querySelectorAll('.btn-integrar[data-ete-chk]').forEach(function(b){
@@ -23298,7 +23779,7 @@ function eteShuntTaviReset(){
    'coa_diast_anterogrado'].forEach(function(id){
     const c=document.getElementById(id); if(c) c.checked=false;
   });
-  try{ dapSync(); coaSync(); vapSync(); fopSync(); vabSync(); mchSync(); ebsSync(); tdfSync(); tgaSync(); }catch(e){}
+  try{ dapSync(); coaSync(); vapSync(); fopSync(); vabSync(); mchSync(); ebsSync(); tdfSync(); tgaSync(); mcaSync(); }catch(e){}
   const jh=document.getElementById('ete_tavi_jet_horas'); if(jh) jh.value='';
   try{ eteEpcSet([]); eteEpcDibujar(); }catch(e){}
   try{ eteShuntTab('cia'); eteTaviTab('pre'); }catch(e){}
@@ -28873,7 +29354,7 @@ const _IG_SECTIONS = [
     {id:'et_grado',lbl:'ET grado',grades:true}
   ]},
   /* ══ Congénitas y miocardiopatías genéticas ══
-     Once tarjetas, una por patología. El renderer omite entera la sección que no tiene ningún
+     Doce tarjetas, una por patología. El renderer omite entera la sección que no tiene ningún
      campo cargado, así que un paciente con sólo una coartación ve una tarjeta y no once.
      Hasta 2026-09-10 «Ver detalle» no mostraba NINGUNO de estos campos: el revisor que quería
      auditar de dónde salió un «cierre indicado» o un score de muerte súbita no podía. */
@@ -28983,6 +29464,31 @@ const _IG_SECTIONS = [
     {id:'tga_civ_residual',lbl:'CIV residual',map:_IG_SN},{id:'tga_civ_grad',lbl:'Gradiente CIV residual (mmHg)'},
     {id:'tga_sintomas',lbl:'Síntomas',map:_IG_SN}
   ]},
+  { titulo:'⚡ Miocardiopatía arritmogénica', fields:[
+    {id:'mca_fenotipo',lbl:'Fenotipo predominante',map:{derecho:'Dominante derecho',biventricular:'Biventricular',izquierdo:'Dominante izquierdo',no_det:'No determinado'}},
+    {id:'mca_mov_regional',lbl:'Motilidad regional del VD',map:{normal:'Conservada',hipo:'Hipocinesia regional',aqui_disc:'Aquinesia o discinesia regional',aneurisma:'Aneurisma localizado'}},
+    {id:'mca_localizacion',lbl:'Localización de la anomalía'},
+    {id:'mca_tsvd_plax',lbl:'TSVD eje largo (mm)'},{id:'mca_tsvd_psax',lbl:'TSVD eje corto (mm)'},
+    {id:'mca_fac',lbl:'Fracción de acortamiento de área del VD (%)'},
+    {id:'mca_vi_aneurisma',lbl:'Aneurisma del VI',map:_IG_SN},
+    {id:'mca_ii_may',lbl:'Biopsia — criterio mayor',map:{si:'Sí'}},
+    {id:'mca_ii_men',lbl:'Biopsia — criterio menor',map:{si:'Sí'}},
+    {id:'mca_iii_may',lbl:'Repolarización — mayor (T en V1-V3)',map:{si:'Sí'}},
+    {id:'mca_iii_men1',lbl:'Repolarización — menor (V1-V2 o V4-V6)',map:{si:'Sí'}},
+    {id:'mca_iii_men2',lbl:'Repolarización — menor (V1-V4 con BRD)',map:{si:'Sí'}},
+    {id:'mca_iv_may',lbl:'Despolarización — mayor (onda épsilon)',map:{si:'Sí'}},
+    {id:'mca_iv_men1',lbl:'Despolarización — menor (potenciales tardíos)',map:{si:'Sí'}},
+    {id:'mca_iv_men2',lbl:'Despolarización — menor (activación terminal ≥55 ms)',map:{si:'Sí'}},
+    {id:'mca_v_may',lbl:'Arritmias — mayor (TV con BRI y eje superior)',map:{si:'Sí'}},
+    {id:'mca_v_men1',lbl:'Arritmias — menor (TV con BRI y eje inferior)',map:{si:'Sí'}},
+    {id:'mca_v_men2',lbl:'Arritmias — menor (>500 EV/24 h)',map:{si:'Sí'}},
+    {id:'mca_vi_may1',lbl:'Familia — mayor (familiar 1.º grado con TFC)',map:{si:'Sí'}},
+    {id:'mca_vi_may2',lbl:'Familia — mayor (autopsia o cirugía)',map:{si:'Sí'}},
+    {id:'mca_vi_may3',lbl:'Familia — mayor (mutación patogénica)',map:{si:'Sí'}},
+    {id:'mca_vi_men1',lbl:'Familia — menor (no verificable)',map:{si:'Sí'}},
+    {id:'mca_vi_men2',lbl:'Familia — menor (muerte súbita <35 años)',map:{si:'Sí'}},
+    {id:'mca_vi_men3',lbl:'Familia — menor (familiar 2.º grado)',map:{si:'Sí'}}
+  ]},
   { titulo:'📎 Secciones integradas al informe', fields:[
     {id:'ete_shunt_incluir_chk__chk',lbl:'CIA / CIV',map:{'1':'Sí'}},
     {id:'ductus_incluir_chk__chk',lbl:'Ductus arterioso',map:{'1':'Sí'}},
@@ -28993,7 +29499,8 @@ const _IG_SECTIONS = [
     {id:'mch_incluir_chk__chk',lbl:'Miocardiopatía hipertrófica',map:{'1':'Sí'}},
     {id:'ebs_incluir_chk__chk',lbl:'Anomalía de Ebstein',map:{'1':'Sí'}},
     {id:'tdf_incluir_chk__chk',lbl:'Tetralogía de Fallot',map:{'1':'Sí'}},
-    {id:'tga_incluir_chk__chk',lbl:'TGA corregida',map:{'1':'Sí'}}
+    {id:'tga_incluir_chk__chk',lbl:'TGA corregida',map:{'1':'Sí'}},
+    {id:'mca_incluir_chk__chk',lbl:'Miocardiopatía arritmogénica',map:{'1':'Sí'}}
   ]}
 
 ];
@@ -32841,7 +33348,32 @@ function _labExcelRow(inf) {
     'Incluir MCH en informe':        c['mch_incluir_chk__chk']    === '1' ? 1 : 0,
     'Incluir Ebstein en informe':    c['ebs_incluir_chk__chk']    === '1' ? 1 : 0,
     'Incluir TdF en informe':        c['tdf_incluir_chk__chk']    === '1' ? 1 : 0,
+    'MCA fenotipo': _ccLbl({derecho:'Dominante derecho',biventricular:'Biventricular',izquierdo:'Dominante izquierdo',no_det:'No determinado'}, c.mca_fenotipo),
+    'MCA motilidad regional VD': _ccLbl({normal:'Conservada',hipo:'Hipocinesia regional',aqui_disc:'Aquinesia o discinesia regional',aneurisma:'Aneurisma localizado'}, c.mca_mov_regional),
+    'MCA localización anomalía': c.mca_localizacion || '',
+    'MCA TSVD eje largo (mm)': rnd(num('mca_tsvd_plax'),1),
+    'MCA TSVD eje corto (mm)': rnd(num('mca_tsvd_psax'),1),
+    'MCA fracción acortamiento VD (%)': rnd(num('mca_fac'),1),
+    'MCA aneurisma VI': _cc3e(c.mca_vi_aneurisma),
+    'MCA biopsia mayor': c.mca_ii_may === 'si' ? 'Sí' : '',
+    'MCA biopsia menor': c.mca_ii_men === 'si' ? 'Sí' : '',
+    'MCA repol. mayor': c.mca_iii_may === 'si' ? 'Sí' : '',
+    'MCA repol. menor V1-V2/V4-V6': c.mca_iii_men1 === 'si' ? 'Sí' : '',
+    'MCA repol. menor con BRD': c.mca_iii_men2 === 'si' ? 'Sí' : '',
+    'MCA onda épsilon': c.mca_iv_may === 'si' ? 'Sí' : '',
+    'MCA potenciales tardíos': c.mca_iv_men1 === 'si' ? 'Sí' : '',
+    'MCA activación terminal': c.mca_iv_men2 === 'si' ? 'Sí' : '',
+    'MCA TV eje superior': c.mca_v_may === 'si' ? 'Sí' : '',
+    'MCA TV eje inferior': c.mca_v_men1 === 'si' ? 'Sí' : '',
+    'MCA >500 EV/24h': c.mca_v_men2 === 'si' ? 'Sí' : '',
+    'MCA familiar 1er grado TFC': c.mca_vi_may1 === 'si' ? 'Sí' : '',
+    'MCA familiar autopsia': c.mca_vi_may2 === 'si' ? 'Sí' : '',
+    'MCA mutación patogénica': c.mca_vi_may3 === 'si' ? 'Sí' : '',
+    'MCA familiar no verificable': c.mca_vi_men1 === 'si' ? 'Sí' : '',
+    'MCA muerte súbita <35a': c.mca_vi_men2 === 'si' ? 'Sí' : '',
+    'MCA familiar 2do grado': c.mca_vi_men3 === 'si' ? 'Sí' : '',
     'Incluir TGA en informe':        c['tga_incluir_chk__chk']    === '1' ? 1 : 0,
+    'Incluir MCA en informe':        c['mca_incluir_chk__chk']    === '1' ? 1 : 0,
     'Informe (texto completo)': c.informe_texto || '', 'EN SUMA (texto completo)': c.en_suma || '',
   };
 }
@@ -33293,6 +33825,30 @@ const LAB_XLS_MAP = [
   ['TGA CIV residual',          'tga_civ_residual','vocab'],
   ['TGA gradiente CIV residual (mmHg)','tga_civ_grad','num'],
   ['TGA síntomas',              'tga_sintomas',  'vocab'],
+  ['MCA fenotipo',              'mca_fenotipo',  'vocab'],
+  ['MCA motilidad regional VD',  'mca_mov_regional','vocab'],
+  ['MCA localización anomalía',  'mca_localizacion','txt'],
+  ['MCA TSVD eje largo (mm)',    'mca_tsvd_plax', 'num'],
+  ['MCA TSVD eje corto (mm)',    'mca_tsvd_psax', 'num'],
+  ['MCA fracción acortamiento VD (%)','mca_fac',  'num'],
+  ['MCA aneurisma VI',           'mca_vi_aneurisma','vocab'],
+  ['MCA biopsia mayor',               'mca_ii_may', 'vocab'],
+  ['MCA biopsia menor',               'mca_ii_men', 'vocab'],
+  ['MCA repol. mayor',                'mca_iii_may', 'vocab'],
+  ['MCA repol. menor V1-V2/V4-V6',    'mca_iii_men1', 'vocab'],
+  ['MCA repol. menor con BRD',        'mca_iii_men2', 'vocab'],
+  ['MCA onda épsilon',                'mca_iv_may', 'vocab'],
+  ['MCA potenciales tardíos',         'mca_iv_men1', 'vocab'],
+  ['MCA activación terminal',         'mca_iv_men2', 'vocab'],
+  ['MCA TV eje superior',             'mca_v_may', 'vocab'],
+  ['MCA TV eje inferior',             'mca_v_men1', 'vocab'],
+  ['MCA >500 EV/24h',                 'mca_v_men2', 'vocab'],
+  ['MCA familiar 1er grado TFC',      'mca_vi_may1', 'vocab'],
+  ['MCA familiar autopsia',           'mca_vi_may2', 'vocab'],
+  ['MCA mutación patogénica',         'mca_vi_may3', 'vocab'],
+  ['MCA familiar no verificable',     'mca_vi_men1', 'vocab'],
+  ['MCA muerte súbita <35a',          'mca_vi_men2', 'vocab'],
+  ['MCA familiar 2do grado',          'mca_vi_men3', 'vocab'],
 
   // 16 · Inclusión en el informe
   ['Incluir CIA/CIV en informe', 'ete_shunt_incluir_chk__chk', 'chk'],
@@ -33306,6 +33862,7 @@ const LAB_XLS_MAP = [
   ['Incluir Ebstein en informe',     'ebs_incluir_chk__chk',    'chk'],
   ['Incluir TdF en informe',         'tdf_incluir_chk__chk',    'chk'],
   ['Incluir TGA en informe',         'tga_incluir_chk__chk',    'chk'],
+  ['Incluir MCA en informe',         'mca_incluir_chk__chk',    'chk'],
 
   // 17 · Texto libre
   ['Informe (texto completo)','informe_texto', 'txt'],
@@ -33587,6 +34144,28 @@ const _CC_FUNC_VD = { normal:'normal', normales:'normal',
 ['ebs_func_vd','tdf_func_vd','tga_func_vd'].forEach(function(k){
   LAB_XLS_VOCAB[k] = Object.assign({}, _CC_FUNC_VD);
 });
+/* Miocardiopatía arritmogénica. Los 17 criterios de la tabla guardan 'si' o cadena vacía, así
+   que su vocabulario es BINARIO y no de tres estados: la tabla no tiene «no consta» — una celda
+   sin marcar significa que ese criterio no se cumple o no se evaluó, y el score los trata igual
+   porque el Task Force también: un criterio que no consta no suma. */
+const _MCA_SI = { si:'si', x:'si', '1':'si', marcado:'si', cumple:'si', presente:'si',
+                  no:'', '0':'', ausente:'', 'no consta':'' };
+['mca_ii_may','mca_ii_men','mca_iii_may','mca_iii_men1','mca_iii_men2','mca_iv_may',
+ 'mca_iv_men1','mca_iv_men2','mca_v_may','mca_v_men1','mca_v_men2','mca_vi_may1',
+ 'mca_vi_may2','mca_vi_may3','mca_vi_men1','mca_vi_men2','mca_vi_men3'].forEach(function(k){
+  LAB_XLS_VOCAB[k] = Object.assign({}, _MCA_SI);
+});
+LAB_XLS_VOCAB.mca_vi_aneurisma = Object.assign({}, LAB_XLS_VOCAB_3E);
+LAB_XLS_VOCAB.mca_fenotipo = { derecho:'derecho', 'dominante derecho':'derecho',
+  'dominante derecho (clasico)':'derecho', clasico:'derecho',
+  biventricular:'biventricular', izquierdo:'izquierdo', 'dominante izquierdo':'izquierdo',
+  no_det:'no_det', 'no determinado':'no_det' };
+LAB_XLS_VOCAB.mca_mov_regional = { normal:'normal', conservada:'normal',
+  hipo:'hipo', 'hipocinesia regional':'hipo', hipocinesia:'hipo',
+  'hipocinesia regional (no es criterio)':'hipo',
+  aqui_disc:'aqui_disc', 'aquinesia o discinesia regional':'aqui_disc',
+  aquinesia:'aqui_disc', discinesia:'aqui_disc', 'aquinesia':'aqui_disc',
+  aneurisma:'aneurisma', 'aneurisma localizado':'aneurisma' };
 LAB_XLS_VOCAB.tga_tipo = { cctga:'cctga', 'congenitamente corregida':'cctga',
   'tga congenitamente corregida':'cctga', 'l-tga':'cctga',
   mustard:'mustard', 'post-mustard':'mustard', 'post mustard':'mustard',
@@ -33669,6 +34248,26 @@ const LAB_XLS_OPCIONES = {
   tdf_tv:'Sí · No · No consta',
   tga_obstr_subaortica:'Sí · No · No evaluada', tga_bav:'Sí · No · No consta',
   tga_civ_residual:'Sí · No · No evaluada', tga_sintomas:'Sí · No · No consta',
+  mca_fenotipo:'Dominante derecho · Biventricular · Dominante izquierdo · No determinado',
+  mca_mov_regional:'Conservada · Hipocinesia regional · Aquinesia o discinesia regional · Aneurisma localizado',
+  mca_vi_aneurisma:'Sí · No · No consta',
+  mca_ii_may:'Sí · No · vacío',
+  mca_ii_men:'Sí · No · vacío',
+  mca_iii_may:'Sí · No · vacío',
+  mca_iii_men1:'Sí · No · vacío',
+  mca_iii_men2:'Sí · No · vacío',
+  mca_iv_may:'Sí · No · vacío',
+  mca_iv_men1:'Sí · No · vacío',
+  mca_iv_men2:'Sí · No · vacío',
+  mca_v_may:'Sí · No · vacío',
+  mca_v_men1:'Sí · No · vacío',
+  mca_v_men2:'Sí · No · vacío',
+  mca_vi_may1:'Sí · No · vacío',
+  mca_vi_may2:'Sí · No · vacío',
+  mca_vi_may3:'Sí · No · vacío',
+  mca_vi_men1:'Sí · No · vacío',
+  mca_vi_men2:'Sí · No · vacío',
+  mca_vi_men3:'Sí · No · vacío',
 };
 LAB_XLS_OPCIONES.ia_grado = LAB_XLS_OPCIONES.it_grado = LAB_XLS_OPCIONES.im_grado;
 // Selects de texto libre acotado: se acepta cualquier opción de la lista, tal cual.
@@ -34077,7 +34676,15 @@ function labImportarXLSX(file) {
           negativo ES el vacío, que es el criterio con el que se acotaron las de MCH, VAB y FOP. */
        ['ebs_incluir_chk__chk',       /^ebs_(desplazamiento|atrializacion|area_)/],
        ['tdf_incluir_chk__chk',       /^tdf_(grad_tsvd|civ_|ep_stent)/],
-       ['tga_incluir_chk__chk',       /^tga_(tipo|dilatacion|obstr_|grad_|civ_|bav)/]].forEach(([flag, rx]) => {
+       ['tga_incluir_chk__chk',       /^tga_(tipo|dilatacion|obstr_|grad_|civ_|bav)/],
+       /* Los criterios de la tabla guardan 'si' o vacío, así que `_esNegativo` filtra los vacíos.
+          Se excluye `mca_localizacion`: es texto libre, describe pero no documenta el hallazgo. */
+       /* Fuera `fenotipo` y `mov_regional`: sus opciones «No determinado» y «Conservada» no son
+          vacío, así que `_esNegativo` no las filtra y una planilla con una columna de motilidad
+          en «Conservada» para toda la cohorte encendía la sección en cada estudio. Es el mismo
+          criterio con el que se acotó `func_vd` cuatro líneas más arriba: sólo descriptores
+          cuyo negativo ES el vacío. */
+       ['mca_incluir_chk__chk',       /^mca_(tsvd_|fac|ii_|iii_|iv_|v_|vi_)/]].forEach(([flag, rx]) => {
         if (inf.campos[flag] !== undefined) return;
         /* Una RESPUESTA NEGATIVA no cuenta como dato. La corrección original se ató al tipo
            `chk` («cola diastólica en 0») y no al significado del valor, así que al llegar los
@@ -36887,6 +37494,9 @@ function labHemoRender(infs, n) {
   const ebsArr = infs.filter(i => _labCampoRaw(i, 'ebs_desplazamiento') || _labCampoRaw(i, 'ebs_area_vd_atrial'));
   const tdfArr = infs.filter(i => _labCampoRaw(i, 'tdf_func_vd') || _labCampoRaw(i, 'tdf_grad_tsvd'));
   const tgaArr = infs.filter(i => _labCampoRaw(i, 'tga_tipo'));
+  const mcaArr = infs.filter(i => _labCampoRaw(i, 'mca_fenotipo') || _labCampoRaw(i, 'mca_mov_regional') ||
+                                  _labCampoRaw(i, 'mca_tsvd_plax') || _labCampoRaw(i, 'mca_tsvd_psax') ||
+                                  _labCampoRaw(i, 'mca_fac'));
 
   /* El Qp/Qs se RECALCULA desde los cuatro campos guardados y no se lee del span: el span es
      del estudio que esté cargado en pantalla, así que leerlo daría el mismo número para los 60
@@ -36916,7 +37526,7 @@ function labHemoRender(infs, n) {
      condición vieja, una cohorte con ductus y sin CIA dejaba el bloque en «sin datos» y los
      estudios con ductus no aparecían en ninguna parte del laboratorio. Las barras de CIA y el
      pie de CIV siguen gateados por lo suyo, que es lo que de verdad las alimenta. */
-  if (!shuntArr.length && !dapArr.length && !coaArr.length && !vapArr.length && !fopArr.length && !vabArr.length && !mchArr.length && !ebsArr.length && !tdfArr.length && !tgaArr.length) {
+  if (!shuntArr.length && !dapArr.length && !coaArr.length && !vapArr.length && !fopArr.length && !vabArr.length && !mchArr.length && !ebsArr.length && !tdfArr.length && !tgaArr.length && !mcaArr.length) {
     empty('lab-shunt-stats', 'CIA / CIV / ductus / coartación'); empty('lab-shunt-cia-bars', 'CIA');
     empty('lab-shunt-civ-pie', 'CIV');
   } else {
@@ -36942,7 +37552,8 @@ function labHemoRender(infs, n) {
       stat('Con miocardiopatía hipertrófica', mchArr.length + ' (' + pctS(mchArr.length) + ')') +
       stat('Con anomalía de Ebstein', ebsArr.length + ' (' + pctS(ebsArr.length) + ')') +
       stat('Con Fallot reparada', tdfArr.length + ' (' + pctS(tdfArr.length) + ')') +
-      stat('Con TGA corregida', tgaArr.length + ' (' + pctS(tgaArr.length) + ')'));
+      stat('Con TGA corregida', tgaArr.length + ' (' + pctS(tgaArr.length) + ')') +
+      stat('Con MCA evaluada', mcaArr.length + ' (' + pctS(mcaArr.length) + ')'));
     const CIA_L = { secundum:'Ostium secundum', primum:'Ostium primum', sv_vcs:'Seno venoso VCS',
                     sv_vci:'Seno venoso VCI', seno_coronario:'Seno coronario' };
     const CIV_L = { perimembranosa:'Perimembranosa', muscular:'Muscular',
@@ -39348,7 +39959,7 @@ const ECO_AYUDA = [
   <div class="mBox mTip"><b>Coartación y bicúspide se cruzan solas.</b> La asociación es del 50-85 %, así que si hay una coartación significativa o limítrofe y la sección de bicúspide está <b>vacía</b>, el informe lo dice: la válvula aórtica no es un hallazgo incidental en una coartación. Y en la otra dirección, una coartación documentada cuenta como uno de los nueve factores de riesgo que bajan el umbral quirúrgico de la aorta — pero sólo si la sección de coartación llegó a una conclusión: con la localización cargada y sin ningún gradiente, se anota como pendiente y no como factor. El aviso desaparece en cuanto registres la morfología aórtica en <b>Válvulas</b> (incluida «Trivalva normal» elegida a mano) o completes la sección de bicúspide.</div>
 
   <div class="mSub">🫀 MCH — Miocardiopatía hipertrófica</div>
-  <p class="mP">Hipertrofia del ventrículo izquierdo sin causa que la explique, genética y heterogénea, <b>1 de cada 500</b>. Junto con la MAVD es la principal causa de muerte súbita en jóvenes y atletas. <b>No es una cardiopatía congénita</b> — está en esta pestaña por el modo de trabajo, y por eso la pestaña se llama «congénitas y miocardiopatías genéticas».</p>
+  <p class="mP">Hipertrofia del ventrículo izquierdo sin causa que la explique, genética y heterogénea, <b>1 de cada 500</b>. Junto con la MCA es la principal causa de muerte súbita en jóvenes y atletas. <b>No es una cardiopatía congénita</b> — está en esta pestaña por el modo de trabajo, y por eso la pestaña se llama «congénitas y miocardiopatías genéticas».</p>
   <p class="mP">Se cargan la <b>hipertrofia</b> (espesor máximo, localización, patrón morfológico), la <b>obstrucción</b> (gradiente en reposo y con Valsalva, SAM, obstrucción mesocavitaria, clase funcional), los <b>factores de riesgo de muerte súbita</b> y las <b>exclusiones del modelo</b>. El diámetro de aurícula izquierda y la FEVI se muestran en gris: se miden en <b>AI / VI</b>.</p>
   <div class="mBox mTip"><b>El espesor máximo es un campo propio y no se deduce del SIV.</b> En la miocardiopatía hipertrófica el punto de mayor espesor no siempre es septal: puede ser apical, lateral o medioventricular. El SIV y la PP se muestran al lado como referencia, pero el que entra en el score es el que cargás vos. <b>Ojo si además integrás Amiloidosis:</b> ese módulo imprime su propio «espesor parietal máximo», calculado desde sus campos y con umbral de 12 mm. Por eso esta sección rotula el suyo como «medido en esta sección» — son dos mediciones distintas en la misma hoja. Umbral diagnóstico <b>≥15 mm</b>, o <b>≥13 mm</b> con historia familiar de MCH. Si marcás <b>fenocopia</b> o <b>forma sindrómica</b>, el informe habla de «hipertrofia ventricular izquierda» y no de miocardiopatía hipertrófica: la MCH se define por hipertrofia <i>sin causa que la explique</i>, y marcar esas casillas es decir que la causa se conoce.</div>
 
@@ -39376,6 +39987,14 @@ const ECO_AYUDA = [
   <p class="mP">ccTGA o post-Mustard/Senning. Lo que define el seguimiento es que <b>el ventrículo derecho es el ventrículo sistémico</b>: su deterioro es progresivo y es la principal causa de muerte. La válvula tricúspide de estos pacientes es la auriculoventricular <b>sistémica</b>, así que su insuficiencia pesa como pesaría una mitral — el informe la nombra de esa manera para que no se lea como una IT cualquiera.</p>
   <p class="mP">Conducta: IT sistémica severa y sintomática → cirugía sobre la válvula a considerar <b>antes</b> de que caiga la función del ventrículo sistémico, que es cuando los resultados son mejores. Obstrucción subaórtica con gradiente &gt;50 mmHg → intervención a considerar. Disfunción del ventrículo sistémico → tratamiento médico de insuficiencia cardíaca y evaluación de resincronización. El <b>bloqueo AV completo</b> se registra aparte: en la ccTGA es una complicación esperable por la disposición del sistema de conducción.</p>
   <div class="mBox mTip"><b>La CIV residual de TdF y de TGA son campos propios de cada sección</b>, distintos de la sección CIA/CIV. Un paciente operado de Fallot puede tener una CIV residual pequeña que no tiene nada que ver con el defecto original: es una fuga del parche, se informa distinto y significa otra cosa.</div>
+
+  <div class="mSub">⚡ MCA — Miocardiopatía arritmogénica</div>
+  <p class="mP">Se llama <b>MCA</b> y no MAVD ni ARVC porque el compromiso puede ser <b>biventricular o predominantemente izquierdo</b>, no sólo del ventrículo derecho. La sección declara el fenotipo (dominante derecho clásico, biventricular, dominante izquierdo o no determinado) y calcula el puntaje de los <b>Criterios Task Force 2010</b> sobre las seis categorías.</p>
+  <div class="mBox mAviso"><b>La anomalía regional de la motilidad es obligatoria, no una alternativa.</b> El Task Force exige «aquinesia, disquinesia o aneurisma regional <b>Y</b> uno de los umbrales». Un tracto de salida dilatado o una fracción de acortamiento baja <b>con motilidad normal no es criterio de nada</b>: la app lo dice explícitamente en vez de sumar puntos, y si el desplegable quedó en blanco dice que <b>no consta</b> — que no es lo mismo que decir que la anomalía no está. El <b>diámetro de eje largo es un campo propio</b> y no reusa el TSVD del Qp/Qs, que se mide en el anillo pulmonar: son niveles distintos, y reusar un número medido con otra convención es peor que duplicarlo. Umbrales del eco — mayor: eje largo ≥32 mm, eje corto ≥36 mm o fracción ≤33 %. Menor (sólo con aquinesia o discinesia, no con aneurisma): 29 a &lt;32 · 32 a &lt;36 · &gt;33 a ≤40 %. <b>La hipocinesia aislada no es criterio</b> — es un hallazgo inespecífico de cualquier sobrecarga derecha, y tiene su propia opción en el desplegable, que no puntúa.</div>
+  <div class="mBox mAviso"><b>Cada categoría aporta un solo criterio, el de mayor jerarquía.</b> Podés marcar todas las celdas que cumpla el paciente —y conviene, porque es información clínica— pero el puntaje toma el mayor de cada categoría, y la celda que no cuenta queda atenuada. Sumar filas de la misma categoría sobrediagnostica: un portador de <b>mutación patogénica</b> con un <b>familiar de primer grado afectado</b> son dos mayores de la misma categoría; sumándolos darían 4 puntos y «diagnóstico definitivo» sobre alguien sin ningún fenotipo. Con la regla correcta son 2 puntos: posible. Es el tamizaje familiar de rutina.</div>
+  <p class="mP">Bandas: <b>≥4</b> definitivo · <b>3</b> limítrofe · <b>2</b> posible · <b>1 o 0</b> sin criterios diagnósticos. <b>Un punto no es «posible»</b>: la regla pide un mayor o dos menores de categorías distintas, y un menor aislado —más de 500 extrasístoles en 24 h, que es un hallazgo de Holter común— no llega a ninguna categoría.</p>
+  <div class="mBox mTip"><b>El ventrículo izquierdo no puntúa, y eso no es un olvido.</b> Los Criterios Task Force 2010 son ciegos al VI — es la razón por la que existen los criterios de Padua 2020 y el consenso europeo de 2023. La app carga e informa el compromiso izquierdo, derivándolo de la <b>FEVI</b> y del módulo de <b>Contractilidad</b> que ya registra la motilidad segmentaria, pero lo mantiene fuera del total del Task Force y lo dice en el informe.</div>
+  <div class="mBox mTip"><b>Lo que el informe siempre aclara.</b> Que un puntaje ecocardiográfico aislado no confirma ni descarta el diagnóstico, que hace falta integrar categorías, y que la resonancia con gadolinio es el estándar de referencia para la caracterización tisular. Cuando marcaste dos criterios de una misma categoría, el informe además deja constancia de la regla de conteo aplicada, para que el número sea auditable.</div>
 
   <div class="mBox mTip"><b>El Qp/Qs es del paciente, no de cada defecto.</b> Sale de los flujos del TSVI y el TSVD, así que mide el cortocircuito total. Si hay más de uno cargado —una CIA y una ventana, por ejemplo— las tres secciones muestran <b>«shunt múltiple: el Qp/Qs es del conjunto»</b> en vez del número, ninguna se lo atribuye en su conclusión y tampoco sube al EN SUMA. Repartir el shunt entre dos defectos no se puede hacer con un ecocardiograma. El FOP queda fuera de esa cuenta a propósito: es fisiológico y está en el 25 % de la gente, así que contarlo apagaría el Qp/Qs de la CIA en uno de cada cuatro pacientes.</div>
   <div class="mSub">🔬 ETE</div>
