@@ -7599,6 +7599,65 @@ z
     </div>
   </div>
 
+  <!-- ═══ ARRITMIA VENTRICULAR — BLOQUE COMPARTIDO ═══
+       La taquicardia ventricular estaba en tres campos sin relación: `mch_tvns` (binario, que
+       vota en el HCM Risk-SCD con coeficiente 0,826), `tdf_tv` (binario) y las dos filas de
+       arritmias de MCA (que distinguen morfología y eje). Un «Sí» en uno y un blanco en otro
+       producía un informe firmado que se contestaba distinto tres veces sobre el mismo paciente.
+
+       Vive acá arriba y no dentro de una sección porque lo usan TRES: un paciente post-Fallot con
+       taquicardia ventricular no tendría por qué abrir el acordeón de miocardiopatía hipertrófica
+       para registrarla.
+
+       El HECHO es uno solo; lo que cambia es qué le pide cada criterio. Por eso hay morfología,
+       eje y tipo: el Task Force distingue el eje superior —origen en pared libre del VD— del
+       inferior, que es la taquicardia del tracto de salida y tiene otro pronóstico. -->
+  <div class="card sacc" id="sacc-cc-tv">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-tv');tvSync();" aria-expanded="false">
+      <span class="sacc-arrow">▶</span>
+      <span style="flex:1;">⚡ Arritmia ventricular <span style="font-weight:400;color:var(--text2);font-size:11px;">— compartido por MCH, Fallot y MCA</span></span>
+      <span id="tv_badge" class="incl-badge" hidden>● cargada</span>
+    </button>
+    <div class="card-body sacc-body">
+      <p style="font-size:10px;color:var(--text2);margin:0 0 10px;line-height:1.5;">
+        Se carga <b>una sola vez</b> y la usan las tres secciones, cada una con su propia regla.
+        La <b>morfología y el eje</b> sólo los necesita el Task Force de la miocardiopatía arritmogénica; si no evaluás esa entidad, alcanza con el hecho y el tipo.
+      </p>
+      <div class="grid-3">
+        <div class="fg"><label>Taquicardia ventricular documentada</label>
+          <select id="tv_documentada" onchange="tvSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Tipo</label>
+          <select id="tv_tipo" onchange="tvSync()">
+            <option value="">—</option>
+            <option value="no_sostenida">No sostenida</option>
+            <option value="sostenida">Sostenida</option>
+            <option value="ambas">Ambas</option>
+          </select>
+        </div>
+        <div class="fg"><label>Extrasístoles ventriculares en 24 h (Holter)</label><input type="number" id="tv_ev24h" step="1" placeholder="EV/24h" oninput="tvSync()"></div>
+      </div>
+      <div class="grid-2" style="margin-top:10px;">
+        <div class="fg"><label>Morfología y eje</label>
+          <select id="tv_morfologia" onchange="tvSync()">
+            <option value="">—</option>
+            <option value="bcri_sup">BCRI con eje superior — origen en pared libre del VD</option>
+            <option value="bcri_inf">BCRI con eje inferior — tracto de salida del VD</option>
+            <option value="bcri_desc">BCRI con eje no determinado</option>
+            <option value="bcrd">BCRD — origen en el ventrículo izquierdo</option>
+            <option value="no_esp">No especificada</option>
+          </select>
+        </div>
+        <div class="fg"><label>Qué aporta a cada sección</label>
+          <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+            <span id="tv-aporte" class="calc-val">—</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ═══ CIA / CIV ═══
        Vive acá y no en ETE porque el shunt se calcula con TSVI/TSVD. Los campos fuente
        (diam_tsvi, itv_tsvi, tsvd_diametro, vti_tsvd) siguen en #tab-doppler y #tab-vd — esta
@@ -8311,8 +8370,8 @@ z
             <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
           </select>
         </div>
-        <div class="fg"><label>TVNS en Holter</label>
-          <select id="mch_tvns" onchange="mchSync()">
+        <div class="fg"><label>TVNS en Holter <span style="font-weight:400;color:var(--text2);font-size:10px;">— derivado</span></label>
+          <select id="mch_tvns" disabled data-espejo title="Se deriva del bloque «⚡ Arritmia ventricular», arriba de esta pestaña. Una TV sostenida no es una TVNS: activa la exclusión del score, no esta casilla.">
             <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
           </select>
         </div>
@@ -8498,9 +8557,9 @@ z
         <tr><td class="mca-cat">ECG despol.</td><td>Onda épsilon en V1-V3</td><td class="mca-cel" id="cel_mca_iv_may" onclick="mcaTogglePunto('mca_iv_may')">☐</td><td class="mca-na">—</td></tr>
         <tr><td class="mca-cat">ECG despol.</td><td>Potenciales tardíos: ≥1 de los 3 parámetros del ECG de señal promediada</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_iv_men1" onclick="mcaTogglePunto('mca_iv_men1')">☐</td></tr>
         <tr><td class="mca-cat">ECG despol.</td><td>Activación terminal del QRS ≥55 ms en V1-V3, sin BRD completo</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_iv_men2" onclick="mcaTogglePunto('mca_iv_men2')">☐</td></tr>
-        <tr><td class="mca-cat">Arritmias</td><td>TV sostenida o no sostenida, morfología de BRI y <b>eje superior</b></td><td class="mca-cel" id="cel_mca_v_may" onclick="mcaTogglePunto('mca_v_may')">☐</td><td class="mca-na">—</td></tr>
-        <tr><td class="mca-cat">Arritmias</td><td>TV con morfología de BRI y eje <b>inferior</b>, o de eje desconocido</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_v_men1" onclick="mcaTogglePunto('mca_v_men1')">☐</td></tr>
-        <tr><td class="mca-cat">Arritmias</td><td>Más de 500 extrasístoles ventriculares en 24 h</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_v_men2" onclick="mcaTogglePunto('mca_v_men2')">☐</td></tr>
+        <tr><td class="mca-cat">Arritmias</td><td>TV <b>sostenida</b>, morfología de BRI y <b>eje superior</b> <span style="color:var(--text2);font-size:10px;">— más exigente que el TFC, que también cuenta la no sostenida</span></td><td class="mca-cel" id="cel_mca_v_may" title="Derivado del bloque «⚡ Arritmia ventricular»">☐</td><td class="mca-na">—</td></tr>
+        <tr><td class="mca-cat">Arritmias</td><td>TV con morfología de BRI y eje <b>inferior</b>, o de eje desconocido</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_v_men1" title="Derivado del bloque «⚡ Arritmia ventricular»">☐</td></tr>
+        <tr><td class="mca-cat">Arritmias</td><td>Más de 500 extrasístoles ventriculares en 24 h</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_v_men2" title="Derivado del bloque «⚡ Arritmia ventricular»">☐</td></tr>
         <tr><td class="mca-cat">Familia</td><td>Familiar de 1.º grado con MCA confirmada por criterios Task Force</td><td class="mca-cel" id="cel_mca_vi_may1" onclick="mcaTogglePunto('mca_vi_may1')">☐</td><td class="mca-na">—</td></tr>
         <tr><td class="mca-cat">Familia</td><td>MCA confirmada en autopsia o cirugía en familiar de 1.º grado</td><td class="mca-cel" id="cel_mca_vi_may2" onclick="mcaTogglePunto('mca_vi_may2')">☐</td><td class="mca-na">—</td></tr>
         <tr><td class="mca-cat">Familia</td><td>Mutación patogénica asociada a MCA en el paciente <span style="color:var(--text2);font-size:9px;">(categoría de historia familiar)</span></td><td class="mca-cel" id="cel_mca_vi_may3" onclick="mcaTogglePunto('mca_vi_may3')">☐</td><td class="mca-na">—</td></tr>
@@ -8522,9 +8581,10 @@ z
       <input type="text" id="mca_iv_may" value="" style="display:none;" tabindex="-1" aria-hidden="true">
       <input type="text" id="mca_iv_men1" value="" style="display:none;" tabindex="-1" aria-hidden="true">
       <input type="text" id="mca_iv_men2" value="" style="display:none;" tabindex="-1" aria-hidden="true">
-      <input type="text" id="mca_v_may" value="" style="display:none;" tabindex="-1" aria-hidden="true">
-      <input type="text" id="mca_v_men1" value="" style="display:none;" tabindex="-1" aria-hidden="true">
-      <input type="text" id="mca_v_men2" value="" style="display:none;" tabindex="-1" aria-hidden="true">
+      <input type="text" id="tv_legacy_ev" value="" data-espejo style="display:none;" tabindex="-1" aria-hidden="true">
+      <input type="text" id="mca_v_may" value="" data-espejo style="display:none;" tabindex="-1" aria-hidden="true">
+      <input type="text" id="mca_v_men1" value="" data-espejo style="display:none;" tabindex="-1" aria-hidden="true">
+      <input type="text" id="mca_v_men2" value="" data-espejo style="display:none;" tabindex="-1" aria-hidden="true">
       <input type="text" id="mca_vi_may1" value="" style="display:none;" tabindex="-1" aria-hidden="true">
       <input type="text" id="mca_vi_may2" value="" style="display:none;" tabindex="-1" aria-hidden="true">
       <input type="text" id="mca_vi_may3" value="" style="display:none;" tabindex="-1" aria-hidden="true">
@@ -8716,8 +8776,8 @@ z
             <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
           </select>
         </div>
-        <div class="fg"><label>Taquicardia ventricular</label>
-          <select id="tdf_tv" onchange="tdfSync()">
+        <div class="fg"><label>Taquicardia ventricular <span style="font-weight:400;color:var(--text2);font-size:10px;">— derivado</span></label>
+          <select id="tdf_tv" disabled data-espejo title="Se deriva del bloque «⚡ Arritmia ventricular», arriba de esta pestaña.">
             <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
           </select>
         </div>
@@ -17854,7 +17914,10 @@ function _noEsDelEstudio(id) {
    Los `calc*` NO entran acá: son estables y cada sitio llama los suyos. Lo que crece con cada
    módulo nuevo es esta lista, y por eso tiene que estar en un solo lugar. */
 function RECALC_MODULOS() {
-  return ['eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync'];
+  /* `tvSync` va PRIMERO: repone los cinco espejos de arritmia ventricular, y `mchSync`,
+     `tdfSync` y `mcaSync` pintan a partir de ellos. Al final igual, porque tvSync los vuelve a
+     llamar, pero el orden deja el estado coherente aunque alguno tire. */
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -22393,7 +22456,16 @@ function mchExclusiones(){
   else if (_fen !== 'no') pend.push('fenocopia metabólica o infiltrativa (Fabry, amiloidosis)' +
     (_amHayDatos ? ' — hay datos cargados en el módulo de amiloidosis de esta app' : ''));
   chequear('mch_ex_sindromica','miocardiopatía hipertrófica sindrómica');
-  chequear('mch_ex_parada',   'parada cardíaca o taquicardia ventricular sostenida previa');
+  /* La app AVISA, no marca. Que el bloque compartido registre una TV sostenida es motivo fuerte
+     para sospechar que el modelo no aplica, pero la exclusión del HCM Risk-SCD es «parada
+     cardíaca o TV sostenida PREVIA» —un antecedente— y una TV sostenida documentada en este
+     estudio puede ser el episodio índice. La diferencia decide si se publica o no un porcentaje
+     de riesgo de muerte súbita, así que la contesta el médico. Lo que no puede pasar es que la
+     pregunta quede en blanco al lado de una TV sostenida cargada: eso se dice. */
+  { const _val = _mchSv('mch_ex_parada'), _tv = tvEstado();
+    if (_val === 'si') act.push('parada cardíaca o taquicardia ventricular sostenida previa');
+    else if (_val !== 'no') pend.push('parada cardíaca o taquicardia ventricular sostenida previa' +
+      (_tv.sostenida ? ' — hay taquicardia ventricular SOSTENIDA cargada en el bloque de arritmia ventricular: confirmar si es un antecedente, porque en ese caso el score no es aplicable' : '')); }
   chequear('mch_ex_reduccion','miectomía o alcoholización septal previa');
   return { activas: act, pendientes: pend };
 }
@@ -22403,7 +22475,9 @@ function mchScoreESC(){
   const ai   = _mchNv('ai_diam');
   const grad = mchGradMax();
   const edad = _mchNv('edad');
-  const fhx  = _mchSv('mch_fam_ms'), tvns = _mchSv('mch_tvns'), sinc = _mchSv('mch_sincope');
+  const fhx  = _mchSv('mch_fam_ms'), sinc = _mchSv('mch_sincope');
+  /* La TVNS sale del bloque compartido de arritmia ventricular, no del espejo `mch_tvns`. */
+  const tvns = tvEstado().mchTvns;
   const faltan = [];
   if (espH.crudo == null) faltan.push('espesor máximo de pared');
   if (ai   == null) faltan.push('diámetro anteroposterior de aurícula izquierda (tab AI / VI)');
@@ -22453,7 +22527,8 @@ function mchAHA(){
   bin('mch_fam_ms',  'historia familiar de muerte súbita por MCH');
   chequear(espH.valor != null && espH.valor >= 30, 'espesor máximo ≥30 mm', espH.valor != null);
   bin('mch_sincope', 'síncope inexplicado');
-  bin('mch_tvns',    'taquicardia ventricular no sostenida');
+  { const _tv = tvEstado().mchTvns;
+    chequear(_tv === 'si', 'taquicardia ventricular no sostenida', _tv === 'si' || _tv === 'no'); }
   bin('mch_aneurisma_apical', 'aneurisma apical del ventrículo izquierdo');
   chequear(feviH.valor != null && feviH.valor < 50, 'disfunción sistólica del VI (FEVI <50 %)', feviH.valor != null);
   bin('mch_fibrosis_rmn', 'realce tardío extenso por resonancia');
@@ -22574,6 +22649,21 @@ function mchConclusion(){
      completo queda en el cuerpo, que es donde se lee el estudio.
      Se construye desde las MISMAS variables que el texto largo, no re-derivando nada: dos
      cálculos del mismo hecho es la forma de que la conclusión y el cuerpo terminen discrepando. */
+  /* La arritmia ventricular se NOMBRA, como en las secciones de MCA y Fallot. Sin esto, una TV
+     SOSTENIDA cargada en el bloque compartido no aparecía en ninguna parte del informe de MCH:
+     `mchTvns` la traduce a «no» —correcto, una TV sostenida no es una TVNS—, `mchAHA` la deja
+     fuera de presentes y de pendientes, y el único lugar donde asomaba era la rama de
+     `mch_ex_parada` SIN CONTESTAR. Un médico que contesta «No» a esa pregunta (respuesta
+     razonable: pregunta por un ANTECEDENTE, y la TV puede ser el episodio índice de este estudio)
+     dejaba el informe con «riesgo bajo — desfibrilador no indicado de rutina» y cero menciones de
+     la taquicardia ventricular sostenida que sí se había registrado. */
+  { const _f = (typeof tvFrase === 'function') ? tvFrase() : null;
+    if (_f) partes.push(_f); }
+  /* Y el aviso de aplicabilidad va con INDEPENDENCIA de cómo se haya contestado la exclusión:
+     lo que decide si el porcentaje corresponde es que haya una TV sostenida, no la respuesta. */
+  { const _tv = tvEstado();
+    if (_tv.sostenida && !ex.activas.length) partes.push('Se registró taquicardia ventricular sostenida en este estudio. El HCM Risk-SCD se desarrolló en prevención primaria y no está validado en pacientes con arritmia ventricular sostenida documentada: revisar si corresponde publicar el porcentaje y si el desfibrilador está indicado en prevención secundaria'); }
+
   let resumen;
   if (ex.activas.length) resumen = 'Miocardiopatía hipertrófica: el score HCM Risk-SCD no es aplicable (' + ex.activas.join('; ') + ')' +
     (_mchSv('mch_ex_parada') === 'si' ? '; desfibrilador indicado en prevención secundaria' : '');
@@ -22599,6 +22689,11 @@ function mchConclusion(){
      que el ecocardiograma no puede ver, y un conteo bajo sin ella no significa lo mismo. */
   if (_mchSv('mch_fibrosis_rmn') !== 'si' && _mchSv('mch_fibrosis_rmn') !== 'no')
     resumen += '. No consta resonancia, que es uno de los factores mayores de la AHA y el eco no evalúa';
+  /* La TV sostenida sube al EN SUMA por la misma razón que la resonancia: cambia si el número
+     de arriba corresponde, y el EN SUMA es donde se lee la conducta. */
+  { const _tv = tvEstado();
+    if (_tv.sostenida && !ex.activas.length)
+      resumen += '. Taquicardia ventricular sostenida documentada: el score de la ESC no está validado en ese escenario'; }
   /* Y la aplicabilidad no verificada del modelo europeo. */
   if (!ex.activas.length && ex.pendientes.length)
     resumen += '. Aplicabilidad del score de la ESC no verificada: ' + ex.pendientes.length +
@@ -22670,6 +22765,147 @@ const MCA_FENO_TXT = {
   derecho:'dominante derecho (clásico)', biventricular:'biventricular',
   izquierdo:'dominante izquierdo', no_det:'no determinado'
 };
+/* ══════════ ARRITMIA VENTRICULAR — DERIVACIÓN COMPARTIDA ══════════
+   Un solo hecho, tres lecturas. El campo compartido guarda lo que se OBSERVÓ; cada sección
+   aplica su propio criterio sobre eso. Las funciones de abajo son la única fuente: `mch_tvns`,
+   `tdf_tv` y las tres filas de arritmias de MCA son ESPEJOS que `tvSync` escribe para que el
+   dato viaje al estudio, al Excel y a «Ver detalle», pero NINGUNA lógica los lee — se lee
+   `tvEstado()`. Si se leyeran los espejos, cargar un estudio viejo antes de que corra `tvSync`
+   daría un puntaje calculado sobre el paciente anterior.
+
+   Divergencia declarada con el Task Force 2010, decidida el 2026-09-10:
+   el TFC da criterio MAYOR a la TV de BRI y eje superior «non-sustained OR sustained»; acá el
+   mayor exige que sea SOSTENIDA y la no sostenida baja a menor. Es más exigente que la guía, o
+   sea que subestima, y por eso el informe lo dice con todas las letras cuando el caso aparece:
+   un puntaje rotulado «Task Force 2010» calculado con otra regla y sin avisar sería una cita
+   falsa. Lo que sí se respeta del TFC —contra el pedido original— es que el eje INFERIOR y el
+   eje desconocido son criterio menor, no cero. */
+function _tvSv(id){ return (document.getElementById(id)?.value || '').trim(); }
+function _tvNv(id){ const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; }
+function tvEstado(){
+  const doc  = _tvSv('tv_documentada');
+  const tipo = _tvSv('tv_tipo');
+  const morf = _tvSv('tv_morfologia');
+  const evCrudo = _tvNv('tv_ev24h');
+  /* Se cuenta con ENTEROS. Los `input type=number` de esta app se convierten en runtime a
+     `text` con `inputmode="decimal"`, así que `step="1"` no restringe nada y un «500,5» llegaba
+     como 500.5, que es `> 500` y encendía el criterio menor sobre medio latido. Se trunca, que
+     además es el sentido de un recuento. */
+  const ev   = (evCrudo != null) ? Math.floor(evCrudo) : null;
+  const evDecimal = (evCrudo != null && evCrudo !== ev);
+  /* Rango de cordura: un Holter no registra 500.000 extrasístoles en 24 h (el máximo físico
+     ronda las 150.000 a 100 lpm). Un número fuera de rango NO se convierte en «no supera 500»
+     —eso sería negar apoyado en un dato ilegible, el defecto de ductus y coartación— sino que
+     se declara y no puntúa. */
+  const evFuera = (ev != null && (ev < 0 || ev > 150000));
+  const evOk    = (ev != null && !evFuera);
+  const hay    = doc === 'si';
+  const sost   = hay && (tipo === 'sostenida'    || tipo === 'ambas');
+  const nsost  = hay && (tipo === 'no_sostenida' || tipo === 'ambas');
+  const faltaTipo = hay && !tipo;
+  const faltaMorf = hay && (!morf || morf === 'no_esp');
+
+  /* MCH — la variable del HCM Risk-SCD es «TVNS», no «TV». Una TV sostenida NO es una TVNS: es
+     una EXCLUSIÓN del modelo, que no está validado en prevención secundaria. Propagarla como
+     «Sí» en la TVNS habría puesto un valor en la variable equivocada y, peor, habría publicado
+     un porcentaje de riesgo de un modelo que no aplica. */
+  let mchTvns;
+  if (doc === 'no')            mchTvns = 'no';
+  else if (doc === 'no_eval')  mchTvns = 'no_eval';
+  else if (!hay)               mchTvns = '';
+  else if (faltaTipo)          mchTvns = '';          // hay TV pero no se sabe si fue no sostenida
+  else                         mchTvns = nsost ? 'si' : 'no';
+
+  /* MCA — Task Force 2010 categoría V, con la divergencia declarada arriba. */
+  const mayor = !!(sost && morf === 'bcri_sup');
+  const menorEjeSup = !!(nsost && !sost && morf === 'bcri_sup');   // el TFC lo llamaría mayor
+  const menorTSVD   = !!(hay && (morf === 'bcri_inf' || morf === 'bcri_desc'));
+  const menorEV     = !!(evOk && ev > 500);
+
+  const notas = [];
+  if (menorEjeSup) notas.push('La taquicardia ventricular es de morfología de bloqueo de rama izquierda con eje superior pero no sostenida: se puntúa como criterio MENOR. Los criterios Task Force 2010 la consideran criterio mayor con independencia de que sea sostenida o no sostenida — acá se aplica un criterio más exigente, de modo que el puntaje puede quedar por debajo del que daría la tabla original');
+  if (hay && morf === 'bcri_inf') notas.push('Morfología compatible con origen en el tracto de salida del ventrículo derecho (bloqueo de rama izquierda con eje inferior); los criterios Task Force la puntúan como criterio menor');
+  if (hay && morf === 'bcri_desc') notas.push('Morfología de bloqueo de rama izquierda con eje no determinado; los criterios Task Force la puntúan como criterio menor');
+  if (hay && morf === 'bcrd') notas.push('Morfología de bloqueo de rama derecha, sugestiva de origen en el ventrículo izquierdo: los criterios Task Force 2010 no la contemplan y no aporta puntos. Es un hallazgo del fenotipo con compromiso izquierdo, que puntúan los criterios de Padua 2020');
+  if (hay && (!morf || morf === 'no_esp')) notas.push('No consta la morfología de la taquicardia ventricular: sin ella no puede aplicarse el criterio de arritmias del Task Force, que distingue el eje superior del inferior');
+  if (faltaTipo && morf === 'bcri_sup') notas.push('No consta si la taquicardia ventricular fue sostenida o no sostenida. Los criterios Task Force 2010 puntúan esta morfología —bloqueo de rama izquierda con eje superior— como criterio MAYOR con independencia de la duración; sin el tipo cargado la categoría de arritmias queda SIN PUNTUAR y el total está por debajo del que daría la tabla');
+  else if (faltaTipo) notas.push('No consta si la taquicardia ventricular fue sostenida o no sostenida: sin ese dato la categoría de arritmias queda sin puntuar y tampoco puede completarse el score de la ESC en miocardiopatía hipertrófica');
+  if (evFuera) notas.push('El recuento de extrasístoles ventriculares en 24 h está fuera de rango — revisar antes de aplicar el criterio de >500');
+  if (evDecimal) notas.push('El recuento de extrasístoles ventriculares se cargó con decimales (' + evCrudo + ') y se truncó a ' + ev + ' para aplicar el criterio — verificar el número');
+  /* Estudio anterior al bloque compartido que traía marcado el criterio de >500 EV sin el número:
+     la casilla existía, el recuento no. No se puede reconstruir, así que se pide. */
+  if (_tvSv('tv_legacy_ev') === '1' && ev == null) notas.push('Este estudio se cargó antes de que existiera el recuento de extrasístoles y traía marcado el criterio de más de 500 en 24 h; el número no quedó registrado, de modo que el criterio no puede aplicarse: completar el recuento del Holter');
+
+  return { doc:doc, tipo:tipo, morf:morf, ev:ev, evFuera:evFuera,
+           hay:hay, sostenida:sost, noSostenida:nsost, faltaTipo:faltaTipo, faltaMorf:faltaMorf,
+           mchTvns:mchTvns, tdfTv: (doc || ''),
+           mayor:mayor, menorEjeSup:menorEjeSup, menorTSVD:menorTSVD, menorEV:menorEV,
+           notas:notas };
+}
+const TV_MORF_TXT = { bcri_sup:'bloqueo de rama izquierda con eje superior', bcri_inf:'bloqueo de rama izquierda con eje inferior',
+                      bcri_desc:'bloqueo de rama izquierda con eje no determinado', bcrd:'bloqueo de rama derecha', no_esp:'morfología no especificada' };
+const TV_TIPO_TXT = { sostenida:'sostenida', no_sostenida:'no sostenida', ambas:'sostenida y no sostenida' };
+/* Frase para el informe. Se emite desde la sección que corresponda, no por su cuenta: el bloque
+   compartido no es una sección del informe. */
+function tvFrase(){
+  const t = tvEstado();
+  /* Sin TV pero con extrasistolia que alcanza el criterio, la frase igual existe: si no, el
+     informe de MCA sumaría un punto por un hallazgo que no menciona en ningún lado. */
+  if (!t.hay) return t.menorEV
+    ? (t.ev + ' extrasístoles ventriculares en 24 h' + (t.doc === 'no' ? ', sin taquicardia ventricular documentada' : ''))
+    : null;
+  const bits = ['Taquicardia ventricular documentada'];
+  if (t.tipo) bits.push(TV_TIPO_TXT[t.tipo] || t.tipo);
+  if (t.morf && t.morf !== 'no_esp') bits.push('morfología de ' + (TV_MORF_TXT[t.morf] || t.morf));
+  let f = bits.join(', ');
+  if (!t.evFuera && t.ev != null) f += '; ' + t.ev + ' extrasístoles ventriculares en 24 h';
+  return f;
+}
+function tvSync(){
+  const t = tvEstado();
+  const set = (id,val) => { const e=document.getElementById(id); if(e && e.value !== val) e.value = val; };
+  /* Espejos. Se escriben para que el dato viaje con el estudio; nadie los lee para decidir. */
+  set('mch_tvns', t.mchTvns);
+  set('tdf_tv',   t.tdfTv);
+  set('mca_v_may',  t.mayor ? 'si' : '');
+  set('mca_v_men1', (t.menorEjeSup || t.menorTSVD) ? 'si' : '');
+  set('mca_v_men2', t.menorEV ? 'si' : '');
+  /* El detalle sólo tiene sentido con TV documentada: sin ella son dos desplegables que piden
+     precisar algo que no ocurrió.
+     `tv_ev24h` NO entra acá y es la diferencia que importa: el criterio menor del Task Force
+     —«más de 500 extrasístoles ventriculares en 24 h»— es INDEPENDIENTE de que haya habido
+     taquicardia ventricular, y la extrasistolia frecuente aislada es la presentación común.
+     Mientras estuvo dentro de la compuerta, el recuento se borraba solo al contestar «No» a la
+     TV y el criterio menor no se podía cumplir nunca por esa vía. */
+  const detalle = (t.doc === 'si');
+  ['tv_tipo','tv_morfologia'].forEach(function(id){
+    const e = document.getElementById(id); if (!e) return;
+    const fg = e.closest('.fg'); if (fg) fg.style.opacity = detalle ? '' : '0.45';
+    e.disabled = !detalle;
+    if (!detalle && e.value !== '') e.value = '';
+  });
+  /* La chapa mira si hay ALGÚN dato cargado, no sólo TV: con >500 EV y sin TV el bloque aporta
+     un criterio menor, y una chapa apagada diría que no hay nada. */
+  const bd = document.getElementById('tv_badge'); if (bd) bd.hidden = !(t.hay || t.ev != null);
+  const ap = document.getElementById('tv-aporte');
+  if (ap) {
+    const _ev = t.menorEV ? ' · MCA: criterio menor por ' + t.ev + ' EV/24 h' : (t.evFuera ? ' · EV/24 h fuera de rango' : '');
+    if (!t.doc && !_ev) ap.textContent = '—';
+    else if (!t.hay) ap.textContent = (t.doc === 'no' ? 'Sin taquicardia ventricular' : t.doc === 'no_eval' ? 'No consta' : 'TV no evaluada') + _ev;
+    else {
+      const a = [];
+      a.push('MCH: ' + (t.mchTvns === 'si' ? 'TVNS presente' : t.mchTvns === 'no' ? (t.sostenida ? 'sin TVNS — la TV sostenida excluye el score' : 'sin TVNS') : 'falta el tipo'));
+      a.push('Fallot: TV presente');
+      a.push('MCA: ' + (t.mayor ? 'criterio mayor' : (t.menorEjeSup || t.menorTSVD || t.menorEV) ? 'criterio menor' : 'sin criterio'));
+      ap.textContent = a.join(' · ');
+    }
+  }
+  ['mchSync','tdfSync','mcaSync'].forEach(function(fn){
+    if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} }
+  });
+}
+window.tvEstado = tvEstado; window.tvSync = tvSync; window.tvFrase = tvFrase;
+
 function _mcaSv(id){ return (document.getElementById(id)?.value || '').trim(); }
 function _mcaNv(id){ const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; }
 /* `mca_vi_men2` NO se marca a mano: se DERIVA del campo compartido de historia familiar de
@@ -22690,6 +22926,11 @@ function mcaFamMuerteSubita(){
 }
 function _mcaChk(id){
   if (id === 'mca_vi_men2') return mcaFamMuerteSubita().cumple;
+  /* Las tres filas de arritmias se DERIVAN del bloque compartido, no del input espejo: leer el
+     espejo dejaría el puntaje a merced de que `tvSync` haya corrido. */
+  if (id === 'mca_v_may')  return tvEstado().mayor;
+  if (id === 'mca_v_men1') { const t = tvEstado(); return t.menorEjeSup || t.menorTSVD; }
+  if (id === 'mca_v_men2') return tvEstado().menorEV;
   return _mcaSv(id) === 'si';
 }
 
@@ -22838,7 +23079,14 @@ function mcaConclusion(){
   const feno = _mcaSv('mca_fenotipo');
   const sc = mcaScore();
   const vi = mcaVI();
-  const alguno = sc.cats.some(function(c){ return c.pts > 0; });
+  /* La categoría V queda FUERA de `alguno`: desde que se deriva del bloque compartido dejó de
+     ser un campo propio de esta sección. Con ella adentro, un recuento de 800 extrasístoles
+     —que el bloque pide con independencia de la TV, porque la extrasistolia aislada es la
+     presentación común— hacía que el panel afirmara «Miocardiopatía arritmogénica … Puntaje Task
+     Force 2010: 1 punto» en un paciente evaluado por otra cosa. Es la misma regla que ya aplican
+     `vi.hay` cuatro líneas más abajo y `tdfConclusion` con la TV: la sección se despierta con sus
+     campos PROPIOS. La categoría V sigue puntuando cuando la sección está despierta. */
+  const alguno = sc.cats.some(function(c){ return c.k !== 'v' && c.pts > 0; });
   const hayEcoCargado = _mcaSv('mca_mov_regional') !== '' || _mcaNv('mca_tsvd_plax') != null ||
                         _mcaNv('mca_tsvd_psax') != null || _mcaNv('mca_fac') != null;
   /* `vi.hay` NO entra: sale de la FEVI y del módulo de contractilidad, que son datos de otras
@@ -22880,6 +23128,12 @@ function mcaConclusion(){
     return c.nom + ' — ' + (c.nivel === 'mayor' ? 'mayor' : 'menor') + ' (' + c.pts + (c.pts === 1 ? ' punto' : ' puntos') + ')' +
            (c.marcados > 1 ? ', de ' + c.marcados + ' criterios marcados en la categoría' : '');
   }).join('; '));
+  /* Arritmia ventricular: el hecho, y por qué puntuó lo que puntuó. La nota de la divergencia
+     con el Task Force viaja acá adentro — si el mayor se degradó a menor por exigir que fuera
+     sostenida, el informe no puede rotular el puntaje «Task Force 2010» sin decirlo. */
+  { const _tv = tvEstado(); const _f = tvFrase();
+    if (_f) partes.push(_f);
+    _tv.notas.forEach(function(n){ partes.push(n); }); }
   /* La base de la derivación se imprime: quien lea el informe tiene que poder juzgar si esa
      muerte súbita se atribuye a MCA, que es la parte del criterio que la app no puede decidir. */
   { const fam = mcaFamMuerteSubita();
@@ -22912,6 +23166,20 @@ function mcaConclusion(){
       ? 'Criterios posibles de miocardiopatía arritmogénica (Task Force 2010: 2 puntos) — evaluación multimodal indicada'
       : 'Miocardiopatía arritmogénica: no se cumplen criterios diagnósticos (Task Force 2010: ' + sc.total +
         (sc.total === 1 ? ' punto' : ' puntos') + ')';
+  /* La divergencia con el Task Force viaja en el EN SUMA, no sólo en el cuerpo. El resumen lleva
+     el rótulo «Task Force 2010» al lado del puntaje, y los dos textarea del informe se editan por
+     separado: una edición del cuerpo puede llevarse la nota y dejar el rótulo solo. Es la misma
+     asimetría que ya se cerró para los factores sin evaluar de la AHA, colgando la salvedad del
+     resumen y no sólo del párrafo. */
+  let resumenF = resumen;
+  { const _tv = tvEstado();
+    if (_tv.menorEjeSup) resumenF += ' — criterio de arritmias aplicado con una regla más exigente que la del Task Force, que puntúa esta morfología como mayor aunque la taquicardia no sea sostenida';
+    else if (_tv.faltaTipo && _tv.morf === 'bcri_sup') resumenF += ' — categoría de arritmias sin puntuar por falta del tipo de taquicardia; el Task Force puntúa esta morfología como criterio mayor';
+    /* Las otras dos vías por las que la categoría queda sin puntuar suben también. No son
+       divergencia con la guía —sin morfología el Task Force tampoco puntúa— pero el EN SUMA
+       lleva el rótulo y el puntaje, y los dos textarea se editan por separado. */
+    else if (_tv.faltaMorf) resumenF += ' — categoría de arritmias sin puntuar: no consta la morfología de la taquicardia ventricular';
+    else if (_tv.hay && _tv.morf === 'bcrd') resumenF += ' — la taquicardia ventricular es de bloqueo de rama derecha, que los criterios Task Force 2010 no contemplan'; }
   /* Un valor ilegible corta la banda, como en ductus y coartación: sin esto el informe decía a la
      vez «criterio estructural no evaluable, fuera de rango» y «no se cumplen criterios
      diagnósticos», que es una negación apoyada en un número que no se pudo leer. */
@@ -22919,7 +23187,7 @@ function mcaConclusion(){
     const t = 'Miocardiopatía arritmogénica — ' + sc.catI.fuera.join(' y ') + ' fuera de rango: revisar unidades antes de puntuar el criterio estructural';
     return { clave:'no_interpretable', txt: partes.concat([t]).join('. '), resumen: t, score: sc, vi: vi };
   }
-  return { clave: sc.banda, txt: partes.join('. '), resumen: resumen, score: sc, vi: vi };
+  return { clave: sc.banda, txt: partes.join('. '), resumen: resumenF, score: sc, vi: vi };
 }
 function mcaSync(){
   const txt = (id,s) => { const e=document.getElementById(id); if(e) e.textContent = s; };
@@ -22953,6 +23221,12 @@ function mcaSync(){
       const marcado = _mcaChk(x[0]);
       cel.classList.toggle('mca-on', marcado && x[0] === gana);
       cel.classList.toggle('mca-dup', marcado && x[0] !== gana);
+      /* Las tres filas de arritmias son DERIVADAS desde que perdieron el onclick: nadie escribe
+         su glifo, así que se quedaban en «☐» sobre fondo verde cuando el criterio SÍ contó —una
+         casilla que se lee «desmarcada» sobre un criterio que puntuó—. Se pintan como la otra
+         celda derivada, `cel_mca_vi_men2`. */
+      if (x[0] === 'mca_v_may' || x[0] === 'mca_v_men1' || x[0] === 'mca_v_men2')
+        cel.textContent = marcado ? '☑' : '☐';
     });
   });
   /* La celda derivada se pinta desde su origen, no desde un input propio. */
@@ -22979,6 +23253,7 @@ function mcaTogglePunto(id){
   /* `mca_vi_men2` se deriva del campo compartido de historia familiar: no se marca a mano. La
      celda no tiene onclick, pero la guarda queda por si alguien la reconecta. */
   if (id === 'mca_vi_men2') return;
+  if (id === 'mca_v_may' || id === 'mca_v_men1' || id === 'mca_v_men2') return;
   const el = document.getElementById(id);
   if (!el) return;
   const marcar = !(el.value === 'si');
@@ -23227,7 +23502,7 @@ function tdfConclusion(){
   const gradProp = _tdfNv('tdf_grad_tsvd'), gradVP = _tdfNv('vp_gmax');
   const gradT = gradProp != null ? gradProp : gradVP;
   const gradDiscrepa = (gradProp != null && gradVP != null && Math.abs(gradProp - gradVP) >= 10);
-  const tv = _tdfSv('tdf_tv');
+  const tv = tvEstado().tdfTv;   // bloque compartido de arritmia ventricular
   const sint = _tdfSv('tdf_sintomas'), ejerc = _tdfSv('tdf_ejercicio');
   const ep = _tdfSv('tdf_ep_stent'), it = _tdfSv('it_grado');
   const psvd = _tdfNv('psap_calc');
@@ -23236,8 +23511,15 @@ function tdfConclusion(){
      cualquier paciente con IP fisiológica hacía que la sección devolviera un objeto cuya primera
      frase es «Tetralogía de Fallot reparada», y el panel lo mostraba en pantalla. La sección se
      despierta con sus campos PROPIOS. */
+  /* `tv` SALE de hayDato desde el 2026-09-10. Dejó de ser un campo propio de esta sección: ahora
+     es el bloque compartido de arritmia ventricular, que llenan también MCH y MCA. Con él adentro,
+     cualquier paciente con una taquicardia ventricular documentada y ninguna cardiopatía congénita
+     hacía que el panel afirmara «Tetralogía de Fallot reparada». Es la misma regla que ya aplican
+     `tga_*` con `dil`, `mcaConclusion` con `vi.hay` y esta misma función con `ip_grado`, cuatro
+     líneas más arriba: la sección se despierta con sus campos PROPIOS. La TV sigue sumando al
+     párrafo y a los criterios de reintervención una vez que la sección está despierta. */
   const hayDato = !!(civ === 'si' || civG != null || func || gradT != null ||
-                     tv === 'si' || ep === 'si' || sint === 'si' || sint === 'no');
+                     ep === 'si' || sint === 'si' || sint === 'no');
   if (!hayDato) return null;
   const fuera = [];
   if (gradT != null && (gradT < 0 || gradT > 200)) fuera.push('gradiente del tracto de salida');
@@ -23278,7 +23560,8 @@ function tdfConclusion(){
   const ITT = { '1':'leve', '2':'moderada', '3':'moderada-severa', '4':'severa' };
   const itTxt = _ccLbl(ITT, it);
   if (itTxt) partes.push('Insuficiencia tricuspídea ' + itTxt);
-  if (tv === 'si') partes.push('Taquicardia ventricular documentada, que la ESC 2020 vincula al mapeo e istmos anatómicos antes de una eventual reintervención');
+  if (tv === 'si') { const _f = (typeof tvFrase === 'function') ? tvFrase() : null;
+    partes.push((_f || 'Taquicardia ventricular documentada') + ', que la ESC 2020 vincula al mapeo e istmos anatómicos antes de una eventual reintervención'); }
 
   /* Conducta según la tabla de la ESC 2020 para TdF reparada. */
   let clave, conducta;
@@ -23303,8 +23586,13 @@ function tdfConclusion(){
        sin obstrucción una presión alta es hipertensión pulmonar, que es otra cosa. */
     if (psvd != null && psvd > 80 && obstrModerada) criterios.push('presión sistólica del VD por encima de 80 mmHg');
     /* La TV sostenida es criterio de la ESC y estaba impresa en el cuerpo sin contar: el informe
-       la describía y dos renglones después decía «sin otros criterios de reintervención». */
-    if (tv === 'si') criterios.push('taquicardia ventricular sostenida documentada');
+       la describía y dos renglones después decía «sin otros criterios de reintervención».
+       Y hasta el 2026-09-10 este `if` leía un binario que NO distinguía el tipo, así que una TV
+       NO sostenida entraba a la lista de criterios de reintervención con el rótulo «sostenida»:
+       el informe afirmaba un hallazgo que nadie había registrado, y sostenía sobre él una
+       indicación Clase IIa de recambio valvular pulmonar. Ahora el tipo viene del bloque
+       compartido. Sin tipo cargado no se afirma nada: se pide el dato. */
+    if (tvEstado().sostenida) criterios.push('taquicardia ventricular sostenida documentada');
     if (criterios.length) {
       clave = 'reintervencion_iia';
       /* «Asintomático» sólo con el «No» explícito. La diferencia entre Clase I y IIa ES el estado
@@ -23329,13 +23617,37 @@ function tdfConclusion(){
     conducta = 'Sin criterios de reintervención por los datos cargados — seguimiento clínico y por imagen. ' +
       'La evaluación completa incluye los volúmenes del ventrículo derecho, que se miden por RESONANCIA y no por ecocardiografía';
   }
+  /* La salvedad de la taquicardia ventricular vive FUERA de la cascada. Estaba dentro de la
+     rama `ipSevera || obstrModerada`, que es la única que arma `criterios[]`: por las otras tres
+     —insuficiencia pulmonar moderada, seguimiento y la sintomática Clase I— el cuerpo describía
+     «Taquicardia ventricular documentada, sostenida…» y dos oraciones después «Sin criterios de
+     reintervención por los datos cargados», sin decir por qué no contó. Acá se dice siempre. */
+  const _tvT = tvEstado();
+  let salvedadTV = '';
+  if (_tvT.hay && _tvT.faltaTipo) salvedadTV = 'Consta taquicardia ventricular pero no si fue sostenida: la ESC 2020 lista como criterio de reintervención la taquicardia ventricular SOSTENIDA, de modo que sin ese dato el criterio no puede aplicarse';
+  else if (_tvT.noSostenida && !_tvT.sostenida) salvedadTV = 'La taquicardia ventricular documentada es no sostenida, que no figura entre los criterios de reintervención de la ESC 2020';
+  /* Tres desenlaces distintos, y decir el de al lado sería afirmar algo falso:
+     - `reintervencion_iia`: la TV ES uno de los criterios que arman la indicación. Ya se nombra
+       en la conducta; una salvedad acá sobraría.
+     - `reintervencion_i`: hay obstrucción o insuficiencia pulmonar severa Y síntomas, así que la
+       indicación ya está dada por otra vía. Decir «no se cumplen» sería falso: sí se cumplen.
+     - el resto: no hay ni insuficiencia pulmonar severa ni obstrucción, y ahí la TV sostenida
+       sola no sostiene un recambio valvular por la ESC. */
+  else if (_tvT.sostenida && clave === 'reintervencion_i') salvedadTV = 'La taquicardia ventricular sostenida no modifica la indicación, que ya es Clase I por la situación clínica, pero pide manejo propio: estudio electrofisiológico y mapeo de istmos anatómicos antes de la reintervención';
+  else if (_tvT.sostenida && clave !== 'reintervencion_iia') salvedadTV = 'La taquicardia ventricular sostenida es criterio de reintervención de la ESC 2020 junto a insuficiencia pulmonar severa u obstrucción al menos moderada del tracto de salida, que no están presentes en este estudio; su manejo —estudio electrofisiológico, mapeo de istmos anatómicos— es una indicación por sí misma';
+  if (salvedadTV) partes.push(salvedadTV);
   if (fuera.length) {
     const t = 'Tetralogía de Fallot reparada — ' + fuera.join(' y ') + ' fuera de rango: revisar unidades antes de concluir';
     return { clave:'no_interpretable', txt: partes.concat([t]).join('. '), resumen: t };
   }
   partes.push(conducta);
+  /* La TV sostenida sube al EN SUMA, como en miocardiopatía hipertrófica: por las ramas que no
+     arman criterios no llegaba nunca, y el EN SUMA es lo que se lee. */
+  const sumaTV = _tvT.sostenida && clave !== 'reintervencion_iia' && clave !== 'reintervencion_i'
+    ? '. Taquicardia ventricular sostenida documentada — valorar estudio electrofisiológico'
+    : (_tvT.hay && _tvT.faltaTipo ? '. Consta taquicardia ventricular sin especificar si fue sostenida' : '');
   return { clave: clave, txt: partes.join('. '),
-    resumen: 'Tetralogía de Fallot reparada' + (ipTxt ? ', ' + ipTxt : '') + '. ' + conducta };
+    resumen: 'Tetralogía de Fallot reparada' + (ipTxt ? ', ' + ipTxt : '') + '. ' + conducta + sumaTV };
 }
 function tdfSync(){
   const txt = (id,s) => { const e=document.getElementById(id); if(e) e.textContent = s; };
@@ -23704,6 +24016,43 @@ function _migrarCamposLegacy(c){
      estudios guardados en esa ventana lo tienen, y sin esta línea la coartación de un informe
      reimpreso pierde la línea «Aorta ascendente X mm» que el PDF firmado sí tenía. */
   if (!c['ao_tub']        && c['coa_ao_asc'])         c['ao_tub']        = c['coa_ao_asc'];
+  /* Arritmia ventricular unificada el 2026-09-10. Antes el hecho vivía en `mch_tvns` (TVNS),
+     `tdf_tv` (TV) y tres casillas de MCA marcadas a mano. Sin esto, reabrir un estudio de esa
+     época muestra el bloque compartido vacío y los espejos se sobrescriben con '': el informe
+     reimpreso pierde la taquicardia ventricular que el PDF firmado sí tenía.
+
+     Se rellena SÓLO lo que el dato viejo sostiene, sin completar por inferencia:
+     - `mch_tvns='si'` decía TV NO sostenida → tipo `no_sostenida`.
+     - `tdf_tv='si'` decía TV, sin tipo → el tipo queda vacío y el informe lo pide.
+     - La morfología NO se deriva de las casillas de MCA: `mca_v_may` sólo se marcaba con eje
+       superior, pero era una marca manual sobre una fila cuyo texto decía «sostenida o no
+       sostenida», así que no autoriza a afirmar el tipo. Se recupera la morfología, no el tipo. */
+  if (!c['tv_documentada']) {
+    const _mt = c['mch_tvns'], _tt = c['tdf_tv'];
+    /* Las casillas de MCA entran acá adentro. Sin ellas, el caso NORMAL de un paciente evaluado
+       por MCA —criterio marcado a mano, `mch_tvns` y `tdf_tv` vacíos porque nadie abre esos dos
+       acordeones para registrar una arritmia— no matcheaba ninguna rama, `tv_documentada` quedaba
+       vacío, y `_mcaChk` derivaba 0 puntos SIN UNA SOLA NOTA: un estudio firmado con 4 puntos
+       («diagnóstico definitivo») se reimprimía con 2 («criterios posibles»). Y `tvSync` después
+       escribía '' sobre los espejos, así que al guardar la pérdida se persistía. */
+    const _mcaV = (c['mca_v_may'] === 'si' || c['mca_v_men1'] === 'si' || c['mca_v_men2'] === 'si');
+    if (_mt === 'si' || _tt === 'si' || _mcaV)   c['tv_documentada'] = 'si';
+    /* El «no» NO se ensancha. `tdf_tv='no'` decía «no hubo TV» y se traduce directo; pero
+       `mch_tvns='no'` decía «no hubo TV NO SOSTENIDA», que no niega una TV sostenida. Traducirlo
+       a «no hubo TV» sería el mismo error de tipo que este bloque compartido vino a cerrar, y
+       encima podía contradecir a `mca_v_may='si'` dentro del MISMO registro. Sin dato que lo
+       sostenga, el campo queda vacío y el informe lo pide. */
+    else if (_tt === 'no')                       c['tv_documentada'] = 'no';
+    else if (_mt === 'no_eval' || _tt === 'no_eval') c['tv_documentada'] = 'no_eval';
+    if (c['tv_documentada'] === 'si' && !c['tv_tipo'] && _mt === 'si') c['tv_tipo'] = 'no_sostenida';
+    if (c['tv_documentada'] === 'si' && !c['tv_morfologia']) {
+      if (c['mca_v_may'] === 'si')       c['tv_morfologia'] = 'bcri_sup';
+      else if (c['mca_v_men1'] === 'si') c['tv_morfologia'] = 'bcri_desc';
+    }
+    /* El recuento de extrasístoles NO se puede recuperar: `mca_v_men2` era una casilla y el
+       número nunca existió. Se marca para que el informe lo pida en vez de callarlo. */
+    if (c['mca_v_men2'] === 'si' && !c['tv_ev24h']) c['tv_legacy_ev'] = '1';
+  }
   return c;
 }
 /* Nombre viejo mantenido como puente: si alguna ruta quedó sin renombrar, sigue migrando en vez
@@ -23830,7 +24179,13 @@ function eteShuntTaviReset(){
    'coa_diast_anterogrado'].forEach(function(id){
     const c=document.getElementById(id); if(c) c.checked=false;
   });
-  try{ dapSync(); coaSync(); vapSync(); fopSync(); vabSync(); mchSync(); ebsSync(); tdfSync(); tgaSync(); mcaSync(); }catch(e){}
+  /* `tvSync` va acá adentro desde el 2026-09-10. Es el único que escribe `tv_badge`, y ese badge
+     no lo alcanza ninguna de las dos redes existentes: `eteInclSync` apaga los otros catorce por
+     su casilla de inclusión, y el bloque compartido no tiene una; y el barrido `[id$="-badge"]`
+     de limpiarCampos no lo ve porque el id lleva guion BAJO. Sin esto, «Nuevo estudio» dejaba el
+     acordeón del paciente siguiente rotulado «● cargada» —que con el acordeón cerrado es la única
+     señal de contenido que ve el médico— sobre un formulario vacío. */
+  try{ tvSync(); dapSync(); coaSync(); vapSync(); fopSync(); vabSync(); mchSync(); ebsSync(); tdfSync(); tgaSync(); mcaSync(); }catch(e){}
   const jh=document.getElementById('ete_tavi_jet_horas'); if(jh) jh.value='';
   try{ eteEpcSet([]); eteEpcDibujar(); }catch(e){}
   try{ eteShuntTab('cia'); eteTaviTab('pre'); }catch(e){}
@@ -26328,7 +26683,13 @@ function secAutoOpen(tabId) {
        el TSVI, el TSVD, el DDVI y la ASC del estudio: sin la exclusión, la sección de
        cardiopatía congénita se abría sola en todo paciente con un TSVI medido, que son casi
        todos. Un espejo es un dato de OTRA sección, mostrado acá por comodidad. */
-    const has = Array.from(acc.querySelectorAll('.sacc-body input:not([readonly]), .sacc-body select, .sacc-body textarea')).some(el => {
+    /* `[data-espejo]` se suma el 2026-09-10. El `:not([readonly])` de arriba no alcanzaba para
+       los espejos nuevos: `mch_tvns` y `tdf_tv` son `<select disabled>` —y el selector toma TODOS
+       los select, con o sin readonly— y `mca_v_*` son inputs ocultos sin readonly. Resultado:
+       contestar «No» en «TV documentada» escribía `'no'` en los dos select, que es
+       `selectedIndex 2`, y al entrar a la pestaña se abrían solos los acordeones de
+       miocardiopatía hipertrófica y de Fallot en un paciente que no tiene ninguna de las dos. */
+    const has = Array.from(acc.querySelectorAll('.sacc-body input:not([readonly]):not([data-espejo]), .sacc-body select:not([data-espejo]), .sacc-body textarea')).some(el => {
       if (el.type === 'checkbox' || el.type === 'radio') return el.checked;
       if (el.tagName === 'SELECT') return el.selectedIndex > 0;
       return String(el.value || '').trim() !== '';
@@ -29461,6 +29822,12 @@ const _IG_SECTIONS = [
     {id:'vab_fr_cx',lbl:'FR: cirugía concomitante',map:_IG_SN},
     {id:'vab_fr_embarazo',lbl:'FR: deseo de embarazo',map:_IG_SN}
   ]},
+  { titulo:'⚡ Arritmia ventricular (compartido)', fields:[
+    {id:'tv_documentada',lbl:'TV documentada',map:_IG_SN},
+    {id:'tv_tipo',lbl:'Tipo',map:{sostenida:'Sostenida',no_sostenida:'No sostenida',ambas:'Ambas'}},
+    {id:'tv_morfologia',lbl:'Morfología y eje',map:{bcri_sup:'BRI eje superior',bcri_inf:'BRI eje inferior',bcri_desc:'BRI eje no determinado',bcrd:'BRD (origen VI)',no_esp:'No especificada'}},
+    {id:'tv_ev24h',lbl:'EV en 24 h'}
+  ]},
   { titulo:'🫀 Miocardiopatía hipertrófica', fields:[
     {id:'mch_espesor',lbl:'Espesor máximo (mm)'},
     {id:'mch_loc',lbl:'Localización',map:{sept_ant:'Septal anterosuperior',sept_post:'Septal posterior',apical:'Apical',lateral:'Lateral',concentrica:'Concéntrica',medioventricular:'Medioventricular'}},
@@ -29532,7 +29899,7 @@ const _IG_SECTIONS = [
     {id:'mca_iv_men1',lbl:'Despolarización — menor (potenciales tardíos)',map:{si:'Sí'}},
     {id:'mca_iv_men2',lbl:'Despolarización — menor (activación terminal ≥55 ms)',map:{si:'Sí'}},
     {id:'mca_v_may',lbl:'Arritmias — mayor (TV con BRI y eje superior)',map:{si:'Sí'}},
-    {id:'mca_v_men1',lbl:'Arritmias — menor (TV con BRI y eje inferior)',map:{si:'Sí'}},
+    {id:'mca_v_men1',lbl:'Arritmias — criterio menor por morfología',map:{si:'Sí'}},
     {id:'mca_v_men2',lbl:'Arritmias — menor (>500 EV/24 h)',map:{si:'Sí'}},
     {id:'mca_vi_may1',lbl:'Familia — mayor (familiar 1.º grado con TFC)',map:{si:'Sí'}},
     {id:'mca_vi_may2',lbl:'Familia — mayor (autopsia o cirugía)',map:{si:'Sí'}},
@@ -33355,6 +33722,10 @@ function _labExcelRow(inf) {
     'MCH historia familiar muerte súbita': _cc3e(c.mch_fam_ms),
     'Edad familiar muerte súbita (años)': rnd(num('fam_ms_edad'),0),
     'MCH síncope inexplicado': _cc3e(c.mch_sincope),
+    'TV documentada': _cc3e(c.tv_documentada),
+    'TV tipo': _ccLbl({sostenida:'Sostenida',no_sostenida:'No sostenida',ambas:'Ambas'}, c.tv_tipo),
+    'TV morfología y eje': _ccLbl({bcri_sup:'BRI eje superior',bcri_inf:'BRI eje inferior',bcri_desc:'BRI eje no determinado',bcrd:'BRD (origen VI)',no_esp:'No especificada'}, c.tv_morfologia),
+    'TV extrasístoles 24h': c.tv_ev24h || '',
     'MCH TVNS en Holter': _cc3e(c.mch_tvns),
     'MCH aneurisma apical': _cc3e(c.mch_aneurisma_apical),
     'MCH realce tardío RMN': _cc3e(c.mch_fibrosis_rmn),
@@ -33416,7 +33787,7 @@ function _labExcelRow(inf) {
     'MCA potenciales tardíos': c.mca_iv_men1 === 'si' ? 'Sí' : '',
     'MCA activación terminal': c.mca_iv_men2 === 'si' ? 'Sí' : '',
     'MCA TV eje superior': c.mca_v_may === 'si' ? 'Sí' : '',
-    'MCA TV eje inferior': c.mca_v_men1 === 'si' ? 'Sí' : '',
+    'MCA TV criterio menor': c.mca_v_men1 === 'si' ? 'Sí' : '',
     'MCA >500 EV/24h': c.mca_v_men2 === 'si' ? 'Sí' : '',
     'MCA familiar 1er grado TFC': c.mca_vi_may1 === 'si' ? 'Sí' : '',
     'MCA familiar autopsia': c.mca_vi_may2 === 'si' ? 'Sí' : '',
@@ -33594,7 +33965,16 @@ function _labPreguntarAnonimo(cb) {
    La solución correcta no es no importarlos: es importarlos y marcarlos como fijados a mano
    —el mecanismo esqSevManual que ya usa la pastilla de severidad—, para que el autocálculo
    no los pise. Ver _sevManualEnCampos(). */
-const LAB_XLS_SOLO_EXPORT = new Set(['pmad', 'avm_thp', 'gmax_calc', 'psap_calc', 'pap_med']);
+/* Los cinco espejos de arritmia ventricular entran acá el 2026-09-10. Se EXPORTAN —el dato es
+   útil en la cohorte— pero no se importan: son derivados de `tv_documentada`/`tv_tipo`/
+   `tv_morfologia`/`tv_ev24h`, y `tvSync` los pisa al abrir el estudio. Una planilla cuya única
+   columna de MCA fuera «MCA TV eje superior = Sí» encendía la casilla de inclusión de la sección
+   —el badge decía «✓ Integrado al informe»— y después el espejo se borraba, la sección puntuaba
+   cero y `mcaConclusion` devolvía null: badge encendido sobre un informe sin la sección. Con más
+   columnas era peor: el informe imprimía «Task Force 2010: 2 puntos» sobre una fila que sostenía
+   4. Lo que se importa es la fuente; los espejos se recalculan. */
+const LAB_XLS_SOLO_EXPORT = new Set(['pmad', 'avm_thp', 'gmax_calc', 'psap_calc', 'pap_med',
+  'mch_tvns', 'tdf_tv', 'mca_v_may', 'mca_v_men1', 'mca_v_men2']);
 
 /* ── Severidad valvular fijada a mano ──
    `window.esqSevManual` marca qué grados NO debe pisar el autocálculo. Vivía sólo en memoria,
@@ -33838,6 +34218,10 @@ const LAB_XLS_MAP = [
      Task Force, que exige <35 años. */
   ['Edad familiar muerte súbita (años)','fam_ms_edad','num'],
   ['MCH síncope inexplicado',    'mch_sincope',   'vocab'],
+  ['TV documentada',             'tv_documentada','vocab'],
+  ['TV tipo',                    'tv_tipo',       'vocab'],
+  ['TV morfología y eje',        'tv_morfologia', 'vocab'],
+  ['TV extrasístoles 24h',       'tv_ev24h',      'num'],
   ['MCH TVNS en Holter',         'mch_tvns',      'vocab'],
   ['MCH aneurisma apical',       'mch_aneurisma_apical','vocab'],
   ['MCH realce tardío RMN',      'mch_fibrosis_rmn','vocab'],
@@ -33895,7 +34279,7 @@ const LAB_XLS_MAP = [
   ['MCA potenciales tardíos',         'mca_iv_men1', 'vocab'],
   ['MCA activación terminal',         'mca_iv_men2', 'vocab'],
   ['MCA TV eje superior',             'mca_v_may', 'vocab'],
-  ['MCA TV eje inferior',             'mca_v_men1', 'vocab'],
+  ['MCA TV criterio menor',           'mca_v_men1', 'vocab'],
   ['MCA >500 EV/24h',                 'mca_v_men2', 'vocab'],
   ['MCA familiar 1er grado TFC',      'mca_vi_may1', 'vocab'],
   ['MCA familiar autopsia',           'mca_vi_may2', 'vocab'],
@@ -34167,7 +34551,8 @@ LAB_XLS_VOCAB.vab_fenotipo = { sin:'sin', 'sin dilatacion':'sin', normal:'sin',
   tubular:'tubular', ascendente:'tubular', 'tubular / ascendente':'tubular',
   arco:'arco', extendido:'arco', 'con arco':'arco' };
 /* Miocardiopatía hipertrófica. Los dieciséis campos de tres estados reusan el núcleo. */
-['mch_fam_mch','mch_sam','mch_mesocavitaria','mch_fam_ms','mch_sincope','mch_tvns',
+['tv_documentada','tv_tipo','tv_morfologia',
+ 'mch_fam_mch','mch_sam','mch_mesocavitaria','mch_fam_ms','mch_sincope','mch_tvns',
  'mch_aneurisma_apical','mch_fibrosis_rmn','mch_tension_ejercicio','mch_ex_atleta',
  'mch_ex_fenocopia','mch_ex_sindromica','mch_ex_parada','mch_ex_reduccion',
  'mch_ctx_hta','mch_ctx_embarazo'].forEach(function(k){
@@ -34209,6 +34594,22 @@ const _MCA_SI = { si:'si', x:'si', '1':'si', marcado:'si', cumple:'si', presente
   LAB_XLS_VOCAB[k] = Object.assign({}, _MCA_SI);
 });
 LAB_XLS_VOCAB.mca_vi_aneurisma = Object.assign({}, LAB_XLS_VOCAB_3E);
+/* Arritmia ventricular compartida. Las claves van SIN tilde y en minúscula porque `_labXlsNorm`
+   normaliza antes de buscar; poner 'morfología' acá no encontraría nada. */
+LAB_XLS_VOCAB.tv_documentada = Object.assign({}, LAB_XLS_VOCAB_3E);
+LAB_XLS_VOCAB.tv_tipo = { sostenida:'sostenida', 'tv sostenida':'sostenida', 'tvs':'sostenida',
+  no_sostenida:'no_sostenida', 'no sostenida':'no_sostenida', 'tv no sostenida':'no_sostenida',
+  tvns:'no_sostenida', 'no-sostenida':'no_sostenida',
+  ambas:'ambas', 'sostenida y no sostenida':'ambas', 'las dos':'ambas' };
+LAB_XLS_VOCAB.tv_morfologia = {
+  bcri_sup:'bcri_sup', 'bri eje superior':'bcri_sup', 'bcri eje superior':'bcri_sup',
+  'eje superior':'bcri_sup', 'bri superior':'bcri_sup', 'pared libre vd':'bcri_sup',
+  bcri_inf:'bcri_inf', 'bri eje inferior':'bcri_inf', 'bcri eje inferior':'bcri_inf',
+  'eje inferior':'bcri_inf', 'bri inferior':'bcri_inf', 'tracto de salida vd':'bcri_inf', 'tsvd':'bcri_inf',
+  bcri_desc:'bcri_desc', 'bri eje no determinado':'bcri_desc', 'bri eje desconocido':'bcri_desc',
+  'eje no determinado':'bcri_desc', 'eje desconocido':'bcri_desc', 'bri sin eje':'bcri_desc',
+  bcrd:'bcrd', 'brd':'bcrd', 'brd (origen vi)':'bcrd', 'bloqueo de rama derecha':'bcrd', 'origen vi':'bcrd',
+  no_esp:'no_esp', 'no especificada':'no_esp', 'no especificado':'no_esp', 'sin especificar':'no_esp', 'no consta':'no_esp' };
 LAB_XLS_VOCAB.mca_fenotipo = { derecho:'derecho', 'dominante derecho':'derecho',
   'dominante derecho (clasico)':'derecho', clasico:'derecho',
   biventricular:'biventricular', izquierdo:'izquierdo', 'dominante izquierdo':'izquierdo',
@@ -34278,6 +34679,9 @@ const LAB_XLS_OPCIONES = {
   mch_fam_mch:'Sí · No · No consta',
   mch_fam_ms:'Sí · No · No consta',
   mch_sincope:'Sí · No · No consta',
+  tv_documentada:'Sí · No · No consta',
+  tv_tipo:'Sostenida · No sostenida · Ambas',
+  tv_morfologia:'BRI eje superior · BRI eje inferior · BRI eje no determinado · BRD (origen VI) · No especificada',
   mch_tvns:'Sí · No · No consta',
   mch_aneurisma_apical:'Sí · No · No evaluado',
   mch_fibrosis_rmn:'Sí · No · No consta',
@@ -34313,7 +34717,7 @@ const LAB_XLS_OPCIONES = {
   mca_iv_men1:'Sí · No · vacío',
   mca_iv_men2:'Sí · No · vacío',
   mca_v_may:'Sí · No · vacío',
-  mca_v_men1:'Sí · No · vacío',
+  mca_v_men1:'Sí · No · vacío',   /* espejo: eje inferior, eje no determinado, o eje superior no sostenida */
   mca_v_men2:'Sí · No · vacío',
   mca_vi_may1:'Sí · No · vacío',
   mca_vi_may2:'Sí · No · vacío',
@@ -34506,6 +34910,9 @@ function labPlantillaXLSX() {
     ['el análisis, pero al importar se ignoran y se vuelven a calcular: escribirlos dejaba'],
     ['un número que se veía un instante y desaparecía al guardar. Para cambiarlos, corregí'],
     ['las mediciones que los alimentan (VCI y colapso, PHT mitral, V. max Ao, V. max IT).'],
+    ['Lo mismo con MCH TVNS en Holter, TdF taquicardia ventricular, MCA TV eje superior,'],
+    ['MCA TV criterio menor y MCA >500 EV/24h: se derivan del bloque de arritmia ventricular.'],
+    ['Para cambiarlos, corregí TV documentada, TV tipo, TV morfología y eje y TV extrasístoles 24h.'],
     [''],
     ['COLUMNAS'],
     ['COLUMNA', 'QUÉ ES', 'VALORES QUE ACEPTA', 'EJEMPLO'],
@@ -34736,7 +35143,10 @@ function labImportarXLSX(file) {
           en «Conservada» para toda la cohorte encendía la sección en cada estudio. Es el mismo
           criterio con el que se acotó `func_vd` cuatro líneas más arriba: sólo descriptores
           cuyo negativo ES el vacío. */
-       ['mca_incluir_chk__chk',       /^mca_(tsvd_|fac|ii_|iii_|iv_|v_|vi_(may|men1|men3))/]].forEach(([flag, rx]) => {
+       /* `v_` salió el 2026-09-10: las tres filas de arritmias se derivan del bloque compartido
+          y sus inputs son espejos que `tvSync` reescribe. Una columna suya no es un dato cargado
+          de esta sección y no puede encender su casilla de inclusión. */
+       ['mca_incluir_chk__chk',       /^mca_(tsvd_|fac|ii_|iii_|iv_|vi_(may|men1|men3))/]].forEach(([flag, rx]) => {
         if (inf.campos[flag] !== undefined) return;
         /* Una RESPUESTA NEGATIVA no cuenta como dato. La corrección original se ató al tipo
            `chk` («cola diastólica en 0») y no al significado del valor, así que al llegar los

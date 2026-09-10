@@ -1012,6 +1012,88 @@ iteraciones anteriores), y la FEVI sí — la app ya tiene el campo.
   la vuelve ilegible—. El renderer ya salteaba las secciones sin campos, así que un paciente con
   sólo una coartación ve una tarjeta y no once.
 
+### Taquicardia ventricular unificada — 2026-09-10
+
+La TV vivía en tres campos sin relación: `mch_tvns` (binario, variable del HCM Risk-SCD con
+coeficiente 0,826), `tdf_tv` (binario, criterio ESC 2020 de reintervención en Fallot) y tres
+casillas de MCA marcadas a mano. Un «Sí» en uno y un blanco en otro daba un informe firmado que
+se contestaba distinto tres veces sobre el mismo paciente.
+
+Ahora hay un bloque compartido —`tv_documentada`, `tv_tipo`, `tv_morfologia`, `tv_ev24h`— y
+`tvEstado()` es la única fuente. Los tres campos viejos quedaron como ESPEJOS que escribe
+`tvSync()`; ninguna lógica los lee.
+
+**Decisiones tomadas (las tres del médico, 2026-09-10):**
+1. **Criterio MAYOR de MCA: sólo TV sostenida.** Es MÁS EXIGENTE que el Task Force 2010, que
+   dice *«non-sustained **or** sustained VT of left bundle branch morphology with superior axis»*
+   y las cuenta a las dos. La TVNS de eje superior baja a menor. Como el puntaje se imprime
+   rotulado «Task Force 2010», **el informe declara la divergencia con todas las letras** —en el
+   cuerpo por `tvEstado().notas` y en el EN SUMA por `resumenF`—. Un número con el nombre de una
+   guía calculado con otra regla y sin avisar es una cita falsa.
+2. **Eje INFERIOR y eje no determinado: criterio MENOR, no cero.** Acá se siguió el Task Force
+   contra el pedido original, que los ponía en 0 puntos. El texto los incluye explícitamente.
+3. **Una TV sostenida NO se traduce a `mch_tvns='si'`.** La variable del modelo es «TVNS», y una
+   TV sostenida es otra cosa: es una EXCLUSIÓN del HCM Risk-SCD, que no está validado en
+   prevención secundaria. La app AVISA y no marca `mch_ex_parada` sola, porque esa pregunta es
+   por un ANTECEDENTE y la TV de este estudio puede ser el episodio índice.
+
+**El bloque compartido rompió invariantes que el archivo ya tenía escritas.** Un campo que era
+propio de una sección pasó a ser global, y con eso heredó los tres problemas de los globales:
+
+- **Un campo compartido no despierta una sección.** `tdf_tv` estaba en el `hayDato` de Fallot;
+  al volverse compartido, cualquier paciente con una TV documentada y ninguna cardiopatía
+  congénita veía «Tetralogía de Fallot reparada» en el panel. Lo mismo con la categoría V en
+  MCA: 800 extrasístoles —que el bloque pide con independencia de la TV— afirmaban
+  «Miocardiopatía arritmogénica … Task Force 2010: 1 punto». Los dos salieron de su `hayDato`.
+  Es la misma regla que ya aplicaban `tga_*` con `dil`, `mcaConclusion` con `vi.hay` y
+  `tdfConclusion` con `ip_grado`.
+- **Un espejo no cuenta como «esta sección tiene datos».** `secAutoOpen` excluye espejos con
+  `:not([readonly])`, y eso NO alcanzaba: `mch_tvns`/`tdf_tv` son `<select disabled>` —el
+  selector toma todos los select— y `mca_v_*` son inputs ocultos sin readonly. Contestar «No»
+  en «TV documentada» abría solos los acordeones de MCH y de Fallot. Se agregó `[data-espejo]`
+  al selector y el atributo a los cinco espejos.
+- **Un badge sin casilla de inclusión no lo apaga nadie.** `tv_badge` sobrevivía a «Nuevo
+  estudio»: `eteInclSync` apaga los otros catorce por su `*_incluir_chk`, y el barrido
+  `[id$="-badge"]` de `limpiarCampos` no lo ve porque el id lleva guion BAJO. `tvSync` entró a
+  la lista de repintado de `eteShuntTaviReset`.
+
+**Un derivado no se importa.** Los cinco espejos entraron a `LAB_XLS_SOLO_EXPORT`. Una planilla
+cuya única columna de MCA fuera «MCA TV eje superior = Sí» encendía la casilla de inclusión de
+la sección —el badge decía «✓ Integrado al informe»— y después `tvSync` borraba el espejo, la
+sección puntuaba cero y `mcaConclusion` devolvía `null`: badge encendido sobre un informe sin la
+sección. Con más columnas era peor: «Task Force 2010: 2 puntos» sobre una fila que sostenía 4.
+
+**La migración no puede poner en cero, en silencio, algo que está en un PDF firmado.** La
+primera versión de `_migrarCamposLegacy` sólo miraba `mch_tvns`/`tdf_tv`, y el caso NORMAL de
+un paciente evaluado por MCA —criterio marcado a mano, esos dos vacíos porque nadie abre esos
+acordeones para registrar una arritmia— no matcheaba ninguna rama: 4 puntos («definitivo») se
+reimprimían como 2 («posible») sin una sola nota, y `tvSync` después escribía `''` sobre los
+espejos, así que al guardar la pérdida se persistía. Ahora lee también `mca_v_*`.
+Y el «no» NO se ensancha: `tdf_tv='no'` decía «no hubo TV» y se traduce; `mch_tvns='no'` decía
+«no hubo TV NO SOSTENIDA», que no niega una sostenida, y traducirlo sería el mismo error de tipo
+que este bloque vino a cerrar. El recuento de extrasístoles de un `mca_v_men2` legado es
+irrecuperable —la casilla existía, el número no— y por eso hay `tv_legacy_ev`, que hace que el
+informe lo PIDA en vez de callarlo.
+
+**Un rótulo tiene que describir todo lo que el campo carga.** `mca_v_men1` pasó a llevar dos
+hechos (eje inferior/no determinado, y eje superior no sostenida por la regla más exigente) y
+su etiqueta seguía diciendo sólo «eje inferior»: «Ver detalle» mostraba «Morfología: BRI eje
+superior» y tres filas abajo «Arritmias — menor (TV con BRI y eje **inferior**): Sí», y el Excel
+traía las dos afirmaciones en la MISMA fila. Se renombró a «criterio menor por morfología».
+
+**Defecto preexistente cerrado de paso.** `tdfConclusion` afirmaba «taquicardia ventricular
+**sostenida** documentada» a partir de un binario que no distinguía el tipo, y sobre eso sostenía
+una indicación Clase IIa de recambio valvular pulmonar. Ahora el tipo viene del bloque
+compartido; sin tipo cargado no se afirma nada, se pide el dato. Además la salvedad salió de la
+rama `ipSevera || obstrModerada` —la única que arma `criterios[]`—: por las otras tres el cuerpo
+describía la TV y dos oraciones después decía «sin criterios de reintervención» sin decir por
+qué. Cuidado con el texto por rama: en `reintervencion_i` la obstrucción SÍ está presente, así
+que la frase «no están presentes en este estudio» sería falsa ahí y tiene su propia rama.
+
+**El recuento de EV se cuenta con enteros.** Los `input type=number` de esta app se convierten en
+runtime a `text` con `inputmode="decimal"`, así que `step="1"` no restringe nada: un «500,5»
+llegaba como 500.5, que es `> 500` y encendía el criterio menor sobre medio latido.
+
 ## Deuda conocida sin resolver
 
 - **Contraseña en el código.** `doLogin()` compara contra un literal. Choca con el checklist
