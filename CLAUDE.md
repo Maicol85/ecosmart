@@ -1094,6 +1094,91 @@ que la frase «no están presentes en este estudio» sería falsa ahí y tiene s
 runtime a `text` con `inputmode="decimal"`, así que `step="1"` no restringe nada: un «500,5»
 llegaba como 500.5, que es `> 500` y encendía el criterio menor sobre medio latido.
 
+### Los dos algoritmos de MCH, verificados contra la fuente — 2026-09-10 (tarde)
+
+Se verificó la AHA/ACC 2020 (Ommen, *Circulation* 2020;142:e558, §7.2), su actualización 2024
+(*JACC*, DOI 10.1016/j.jacc.2024.02.014), la ESC 2023 (Arbelo, *EHJ* 2023;44:3503, Tabla 23 y
+Fig. 16) y la ESC 2014 (Elliott, *EHJ* 2014;35:2733, §9.5.2 — la **única** que publica la fórmula
+con unidades). Salieron **dos defectos clínicos preexistentes**:
+
+- **`mchAHA` contaba SIETE factores mayores y son CINCO.** La rec. 3 (COR 2a) enumera: muerte
+  súbita familiar, HVI ≥30 mm, síncope reciente, aneurisma apical y FEVI <50 %. **La TVNS y el
+  realce tardío extenso NO son mayores**: comparten la rec. 6, que es **COR 2b**. Un paciente
+  cuyo único hallazgo era una TVNS salía con «1 factor mayor — desfibrilador razonable (Clase
+  IIa)». Subir una clase es cambiar la conducta.
+- **Un solo campo de muerte súbita familiar alimentaba TRES umbrales incompatibles.** Task Force
+  <35, ESC <40 (o cualquier edad si el familiar tenía MCH establecida), AHA ≤50. La ESC y la AHA
+  leían el binario **sin mirar la edad**, así que una muerte a los 60 entraba como «Sí» en los
+  dos. Ahora hay `mchFamMS()`, `mch_fam_ms_mch`, y el informe explica por qué un mismo hecho
+  cuenta en un algoritmo y no en el otro.
+
+**Lo que la verificación desmintió del pedido, y hay que recordar para no reintroducirlo:**
+- La caja **«SCD risk modifiers»** (obstrucción del TSVI, realce tardío, aneurisma apical,
+  mutaciones múltiples) es de la guía **ACCF/AHA 2011**, §6.3.1.2. La palabra «modifier» aparece
+  **cero veces** en la de 2020. En 2020 el aneurisma ascendió a factor mayor, el realce quedó como
+  árbitro IIb, y la obstrucción desapareció del esquema de riesgo.
+- La **respuesta tensional anormal al ejercicio** la RETIRÓ la guía de 2020 («the removal of
+  abnormal blood pressure response to exercise as a routine part of the SCD risk evaluation») y el
+  HCM Risk-SCD nunca la incluyó. No va en ningún diagrama.
+- Las **mutaciones sarcoméricas múltiples** no son factor de decisión en adultos: no figuran en el
+  esquema AHA —en 2024 el genotipo entra a la Tabla 8 como factor **pediátrico**— y la ESC 2023
+  §7.1.5.5 desaconseja usar las variantes sarcoméricas para guiar el implante en prevención
+  primaria de riesgo bajo o intermedio. `mch_mult_mut` se registra por su valor en el tamizaje
+  familiar, y el informe lo dice así.
+- **AHA 2024 endureció el aneurisma apical:** exige «with transmural scar or LGE». Los diagramas
+  siguen 2020, que es lo que cita el informe.
+- El **diámetro de AI** del score es el **anteroposterior en mm**: la ESC 2023 (Tabla 19) dice
+  expresamente que no hay datos sobre área ni volumen. Nada de strain.
+
+**Los dos algoritmos dan indicaciones OPUESTAS en el mismo paciente**, y el panel lo declara en
+una tabla de siete filas. La más grande: con aneurisma apical aislado, la AHA implanta (factor
+mayor, IIa) y la ESC pide calcular el score igual y **no** decidir por el aneurisma solo (también
+IIa, pero para hacerlo así). También divergen en FEVI <50 % (mayor vs IIb sólo en banda baja),
+TVNS (árbitro IIb vs la variable de mayor coeficiente del score) y el corte familiar (50 vs 40).
+
+**Un panel de referencia se GENERA desde las constantes que puntúan.** El de MCA sale de
+`MCA_CATS` y `MCA_UMBRAL`; los umbrales de la categoría I se extrajeron a esa constante para que
+scorer y panel no puedan divergir. Dos trampas que igual aparecieron y hay que vigilar:
+- **No derivar un borde con aritmética de enteros.** Imprimir «29-31» con `mayor - 1` reintroduce
+  la deriva dentro de la misma expresión que dice evitarla: los campos son decimales y en runtime
+  pasan a `text`, así que un 31,5 puntúa como menor mientras el panel dice que termina en 31. Se
+  imprime el mismo operador que aplica el código: «≥29 y <32».
+- **Una banda no puede compartir el borde con la siguiente.** «4 – 6 %» ponía el 6 en las dos
+  cajas; el código corta en `pct < 6`, y ahí la diferencia entre IIa y IIb es un implante.
+
+**Un desplegable nuevo agrega un estado, no dos.** `mch_fam_ms_mch` tiene cuatro valores (`''`,
+`no_eval`, `no`, `si`) y la primera versión sólo distinguía `si`: los otros tres colapsaban en «no
+cumple», `fhx` los traducía a `'no'` —una negación EXPLÍCITA— y el score se publicaba sin el
+término 0,4583. Medido: 5,80 % (intermedio, IIb) bajaba a **3,71 %** (bajo, «no indicado de
+rutina»). Un desplegable que nadie miró cambiaba la conducta publicada.
+
+**Una negación sobre preguntas sin contestar no es una negación.** La rec. 6 de la AHA es
+expresamente para pacientes **sin** factores mayores; no haberlos evaluado no es haberlos
+descartado, y si el que falta estuviera presente sería IIa. Por eso `clase` es `null` con
+`pendientes > 0`, y las tres superficies —cuerpo, EN SUMA y panel— leen `aha.clase` en vez de
+re-derivarla. Antes cada una decidía por su cuenta y ya habían dejado de coincidir: con los cinco
+mayores en blanco y una TVNS, el cuerpo publicaba Clase IIb y el EN SUMA no la mencionaba.
+
+**Una edad de cero pasaba las tres bandas.** `ed >= 0` en vez de `ed > 0` dejaba entrar el 0, que
+cumple ≤50, <40 y <35 a la vez. La edad del PACIENTE ya exigía `> 0`; la del familiar no.
+
+**El informe no puede cuantificar más que la pregunta.** El texto del árbitro decía «realce tardío
+extenso (≥15 % de la masa del VI)» sobre un desplegable rotulado sólo «Realce tardío extenso»: un
+«Sí» cualitativo se publicaba como si el médico hubiera consignado una medición, y esa frase es la
+que sostiene la Clase IIb. El umbral se movió a la ETIQUETA del campo, que es donde cambia lo que
+el «Sí» significa.
+
+### Categoría V de MCA — vuelta al Task Force verbatim, 2026-09-10 (tarde)
+
+Revierte la decisión 1 de la entrada de la mañana. El criterio MAYOR vuelve a ser «non-sustained
+**or** sustained VT of left bundle branch morphology with superior axis»: el tipo NO cambia la
+jerarquía, y tampoco la bloquea que falte. `tv_tipo` se sigue registrando porque lo necesitan las
+otras dos secciones —el HCM Risk-SCD distingue la TVNS de la sostenida, que es una exclusión del
+modelo, y la ESC 2020 en Fallot pide expresamente la sostenida— pero para MCA es información
+clínica, no una entrada del puntaje. Con esto desapareció todo el aparato de declaración de
+divergencia: `menorEjeSup`, las notas y las dos ramas de `resumenF`. El rótulo «Task Force 2010»
+vuelve a corresponderse con la regla aplicada.
+
 ## Deuda conocida sin resolver
 
 - **Contraseña en el código.** `doLogin()` compara contra un literal. Choca con el checklist

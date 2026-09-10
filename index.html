@@ -1372,6 +1372,22 @@ window.cerrarSesion = cerrarSesion;
   </div>
 </div>
 
+<!-- Panel de criterios de MCH y MCA. Mismo armazón que #diast-algo-overlay: overlay que cierra
+     al clic afuera, cabecera pegajosa con título y ✕, cuerpo scrolleable. Más ancho porque acá
+     entran dos diagramas lado a lado y una tabla de seis categorías.
+     El contenido lo genera `critRender` DESDE las mismas constantes que puntúan: un panel que
+     copiara los umbrales sería una segunda fuente que se pudre sin que se vea desde la app. -->
+<div id="crit-overlay" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.55);" onclick="if(event.target===this)critCerrar();">
+  <div id="crit-card" role="dialog" aria-label="Criterios"
+       style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:900px;max-width:calc(100vw - 24px);max-height:calc(100vh - 48px);overflow:auto;background:var(--bg2);border:1px solid var(--border);border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.6);">
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg2);z-index:1;">
+      <span id="crit-titulo" style="flex:1;font-weight:700;font-size:13px;color:var(--accent2);">Criterios</span>
+      <button type="button" class="btn btn-ghost" style="font-size:12px;padding:3px 10px;font-weight:700;" onclick="critCerrar()">✕</button>
+    </div>
+    <div id="crit-cuerpo" style="padding:12px 14px;"></div>
+  </div>
+</div>
+
 <div id="firma-panel" style="display:none;position:fixed;top:64px;left:16px;z-index:250;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;box-shadow:0 12px 40px rgba(0,0,0,0.5);width:330px;max-width:calc(100vw - 32px);">
   <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--text);">🖊️ Firma del centro</div>
   <!-- Sólo lectura: quién firma lo define el médico Principal de ⚙️ Config → Médicos.
@@ -8286,6 +8302,7 @@ z
         Junto con la MCA (miocardiopatía arritmogénica) es la principal causa de muerte súbita en jóvenes y atletas.
         <b style="color:var(--accent2);">No es una cardiopatía congénita</b> — está en esta pestaña por el modo de trabajo, y por eso la pestaña se llama «congénitas y miocardiopatías genéticas».
       </p>
+      <button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 12px;margin:0 0 12px;" onclick="critAbrir('mch')">📋 Ver criterios</button>
 
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:4px 0 8px;">Hipertrofia</div>
       <div class="grid-3">
@@ -8365,6 +8382,11 @@ z
         </div>
         <div class="fg"><label>Edad del familiar al fallecer (años)</label>
           <input type="number" id="fam_ms_edad" step="1" placeholder="años" oninput="mchSync();if(typeof mcaSync==='function')mcaSync();"></div>
+        <div class="fg"><label>¿El familiar tenía MCH establecida?</label>
+          <select id="mch_fam_ms_mch" onchange="mchSync()" title="El score de la ESC cuenta la muerte súbita de un familiar de primer grado a CUALQUIER edad si tenía miocardiopatía hipertrófica ya diagnosticada. Sin esto, un familiar de 55 años con MCH conocida quedaba fuera del score por el corte de 40.">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
         <div class="fg"><label>Síncope inexplicado</label>
           <select id="mch_sincope" onchange="mchSync()">
             <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
@@ -8382,7 +8404,7 @@ z
             <option value="">—</option><option value="no_eval">No evaluado</option><option value="no">No</option><option value="si">Sí</option>
           </select>
         </div>
-        <div class="fg"><label>Realce tardío extenso por RMN</label>
+        <div class="fg"><label>Realce tardío extenso por RMN <span style="font-weight:400;color:var(--text2);font-size:10px;">— ≥15 % de la masa del VI</span></label>
           <select id="mch_fibrosis_rmn" onchange="mchSync()">
             <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
           </select>
@@ -8434,8 +8456,13 @@ z
       </div>
 
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Factores adicionales considerados</div>
-      <p style="font-size:10px;color:var(--text2);margin:0 0 8px;">No suman a ningún score — el informe los menciona como contexto.</p>
+      <p style="font-size:10px;color:var(--text2);margin:0 0 8px;">No entran en el score de la ESC ni en el conteo de la AHA/ACC. El informe los menciona como contexto clínico.</p>
       <div class="grid-3">
+        <div class="fg"><label>Múltiples mutaciones patogénicas</label>
+          <select id="mch_mult_mut" onchange="mchSync()" title="Dos o más variantes patogénicas sarcoméricas en el mismo paciente. NO es factor de decisión de desfibrilador en adultos: no figura en el esquema de la AHA/ACC 2020/2024 (donde el genotipo es un factor PEDIÁTRICO) y la ESC 2023 desaconseja usar las variantes sarcoméricas para guiar el implante en prevención primaria de riesgo bajo o intermedio. Se registra por su valor en el tamizaje familiar.">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
         <div class="fg"><label>HTA resistente</label>
           <select id="mch_ctx_hta" onchange="mchSync()">
             <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
@@ -8484,6 +8511,7 @@ z
         El diagnóstico es multicriterio (Criterios Task Force 2010 revisados) — el eco aporta sólo los criterios estructurales.
         La resonancia cardíaca con gadolinio es el estándar de referencia para la caracterización tisular del miocardio.
       </p>
+      <button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 12px;margin:0 0 12px;" onclick="critAbrir('mca')">📋 Ver criterios</button>
 
       <div class="grid-2">
         <div class="fg"><label>Fenotipo predominante</label>
@@ -8557,7 +8585,7 @@ z
         <tr><td class="mca-cat">ECG despol.</td><td>Onda épsilon en V1-V3</td><td class="mca-cel" id="cel_mca_iv_may" onclick="mcaTogglePunto('mca_iv_may')">☐</td><td class="mca-na">—</td></tr>
         <tr><td class="mca-cat">ECG despol.</td><td>Potenciales tardíos: ≥1 de los 3 parámetros del ECG de señal promediada</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_iv_men1" onclick="mcaTogglePunto('mca_iv_men1')">☐</td></tr>
         <tr><td class="mca-cat">ECG despol.</td><td>Activación terminal del QRS ≥55 ms en V1-V3, sin BRD completo</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_iv_men2" onclick="mcaTogglePunto('mca_iv_men2')">☐</td></tr>
-        <tr><td class="mca-cat">Arritmias</td><td>TV <b>sostenida</b>, morfología de BRI y <b>eje superior</b> <span style="color:var(--text2);font-size:10px;">— más exigente que el TFC, que también cuenta la no sostenida</span></td><td class="mca-cel" id="cel_mca_v_may" title="Derivado del bloque «⚡ Arritmia ventricular»">☐</td><td class="mca-na">—</td></tr>
+        <tr><td class="mca-cat">Arritmias</td><td>TV sostenida o no sostenida, morfología de BRI y <b>eje superior</b></td><td class="mca-cel" id="cel_mca_v_may" title="Derivado del bloque «⚡ Arritmia ventricular»">☐</td><td class="mca-na">—</td></tr>
         <tr><td class="mca-cat">Arritmias</td><td>TV con morfología de BRI y eje <b>inferior</b>, o de eje desconocido</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_v_men1" title="Derivado del bloque «⚡ Arritmia ventricular»">☐</td></tr>
         <tr><td class="mca-cat">Arritmias</td><td>Más de 500 extrasístoles ventriculares en 24 h</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_v_men2" title="Derivado del bloque «⚡ Arritmia ventricular»">☐</td></tr>
         <tr><td class="mca-cat">Familia</td><td>Familiar de 1.º grado con MCA confirmada por criterios Task Force</td><td class="mca-cel" id="cel_mca_vi_may1" onclick="mcaTogglePunto('mca_vi_may1')">☐</td><td class="mca-na">—</td></tr>
@@ -22475,7 +22503,18 @@ function mchScoreESC(){
   const ai   = _mchNv('ai_diam');
   const grad = mchGradMax();
   const edad = _mchNv('edad');
-  const fhx  = _mchSv('mch_fam_ms'), sinc = _mchSv('mch_sincope');
+  const sinc = _mchSv('mch_sincope');
+  /* Historia familiar con el umbral de la ESC (<40 años, o cualquier edad con MCH establecida),
+     no el binario crudo: ver mchFamMS. */
+  const _fam = mchFamMS();
+  const fhx = _fam.motivo === 'no' ? 'no'
+            : (_fam.esc.motivo === 'cumple' || _fam.esc.motivo === 'familiar_con_mch') ? 'si'
+            : _fam.esc.motivo === 'edad_mayor' ? 'no' : '';
+  /* Qué falta EXACTAMENTE. «historia familiar de muerte súbita» a secas, sobre un desplegable que
+     dice «Sí», manda al médico a contestar algo que ya contestó. */
+  const _faltaFam = _fam.esc.motivo === 'sin_edad' ? 'edad del familiar al fallecer (el criterio de la ESC es <40 años)'
+                  : _fam.esc.motivo === 'sin_mch'  ? '¿el familiar tenía MCH establecida? — con ' + _fam.edad + ' años el criterio de la ESC sólo se cumple por esa vía'
+                  : 'historia familiar de muerte súbita';
   /* La TVNS sale del bloque compartido de arritmia ventricular, no del espejo `mch_tvns`. */
   const tvns = tvEstado().mchTvns;
   const faltan = [];
@@ -22486,7 +22525,7 @@ function mchScoreESC(){
   /* Los tres binarios exigen respuesta EXPLÍCITA. Tratar «no consta» como 0 es lo que hace la
      mayoría de las calculadoras y es la razón por la que el número sale más bajo de lo que
      corresponde: un síncope no preguntado pesa 0,7165 en el índice, que no es poco. */
-  if (fhx  !== 'si' && fhx  !== 'no') faltan.push('historia familiar de muerte súbita');
+  if (fhx  !== 'si' && fhx  !== 'no') faltan.push(_faltaFam);
   if (tvns !== 'si' && tvns !== 'no') faltan.push('taquicardia ventricular no sostenida en Holter');
   if (sinc !== 'si' && sinc !== 'no') faltan.push('síncope inexplicado');
   /* Bandas de plausibilidad: fuera de rango no se calcula. Un espesor de 1,8 (cm por mm) da un
@@ -22496,6 +22535,10 @@ function mchScoreESC(){
   if (ai   != null && (ai   < 15 || ai   > 90))  fuera.push('diámetro de aurícula izquierda');
   if (grad != null && (grad < 0  || grad > 250)) fuera.push('gradiente en el tracto de salida');
   if (edad != null && (edad < 0  || edad > 120)) fuera.push('edad');
+  /* Una edad del familiar imposible es `fuera`, no `faltan`: la lista existe justo para separar
+     «no lo sé» de «esto no puede ser», y con 200 años el informe decía «faltan datos: historia
+     familiar» sobre un desplegable contestado. */
+  if (_fam.motivo === 'edad_fuera') fuera.push('edad del familiar al fallecer');
   if (fuera.length) return { fuera: fuera };
   if (faltan.length) return { faltan: faltan };
   const pi = 0.15939858 * esp
@@ -22517,6 +22560,65 @@ function mchScoreESC(){
 /* Los SIETE factores mayores de la AHA/ACC 2020. La respuesta tensional anormal al ejercicio NO
    entra en el conteo —salió de la lista en 2020— pero se registra y el informe la menciona con
    esa aclaración. La FEVI se deriva del campo que ya existe. */
+/* ══ HISTORIA FAMILIAR DE MUERTE SÚBITA — TRES CRITERIOS, UN SOLO CAMPO ══
+   El hecho es uno y los umbrales de edad son TRES, incompatibles entre sí:
+     · Task Force 2010 (MCA)  → familiar de primer grado, muerte  <35 años
+     · HCM Risk-SCD (ESC)     → primer grado <40 años, O cualquier edad si tenía MCH establecida
+     · AHA/ACC 2020           → primer grado o pariente cercano,  ≤50 años
+   Hasta el 2026-09-10 el score de la ESC y el conteo de la AHA leían el binario CRUDO, sin mirar
+   la edad: una muerte súbita de un familiar a los 60 años entraba como «Sí» en los dos. En el
+   índice de la ESC eso son 0,4583 puntos que el paciente no tiene, y en la AHA es un factor mayor
+   inventado que sube la conducta a Clase IIa. Sólo MCA aplicaba su umbral.
+   Sin la edad cargada no se afirma ni se niega: se declara que falta. */
+function mchFamMS(){
+  const hay = _mchSv('mch_fam_ms');
+  const ed  = _mchNv('fam_ms_edad');
+  const conMCH = _mchSv('mch_fam_ms_mch');
+  if (hay !== 'si') {
+    const base = { hay:false, motivo: hay === 'no' ? 'no' : 'sin_dato' };
+    return { esc:Object.assign({cumple:false}, base), aha:Object.assign({cumple:false}, base), hay:false, motivo:base.motivo };
+  }
+  /* Banda de plausibilidad. `ed > 0` y no `ed >= 0`: con la banda vieja un CERO pasaba, y cero
+     cumplía los tres cortes a la vez —≤50, <40, <35—, o sea que un campo tipeado mal daba un
+     factor mayor de la AHA, 0,4583 en el índice de la ESC y un punto del Task Force. La edad del
+     PACIENTE ya exigía `> 0` doce líneas más abajo; la del familiar no. */
+  if (ed != null && !(ed > 0 && ed <= 120))
+    return { hay:true, motivo:'edad_fuera', esc:{cumple:false,motivo:'edad_fuera'}, aha:{cumple:false,motivo:'edad_fuera'} };
+  /* La rama «cualquier edad con MCH establecida» es de la ESC y NO de la AHA: la AHA pide que la
+     muerte sea atribuible a MCH Y que el familiar tuviera ≤50 años, sin excepción por diagnóstico.
+
+     CUATRO estados, no tres. `conMCH` puede valer '', 'no_eval', 'no' o 'si', y colapsar los tres
+     primeros en «no cumple» hace fallar ABIERTO: con una muerte súbita familiar a los 55 años y
+     esta segunda pregunta en el estado de fábrica, la rama daba `edad_mayor`, `mchScoreESC` lo
+     traducía a `fhx='no'` —una negación EXPLÍCITA— y publicaba el porcentaje sin el término
+     0,4583082. Medido sobre el caso trabajado de CLAUDE.md: 5,80 % (intermedio, DAI Clase IIb)
+     bajaba a 3,71 % (bajo, «desfibrilador no indicado de rutina»). Un desplegable que nadie miró
+     cambiaba la conducta publicada, y el informe no decía en ninguna parte que faltaba contestarlo.
+     Con la edad por debajo de 40 el criterio ya se cumple y la segunda pregunta es indiferente:
+     sólo hace falta cuando la edad NO alcanza por sí sola. */
+  const esc = (conMCH === 'si') ? { cumple:true, motivo:'familiar_con_mch' }
+            : (ed == null)      ? { cumple:false, motivo:'sin_edad' }
+            : (ed < 40)         ? { cumple:true, edad:ed, motivo:'cumple' }
+            : (conMCH === 'no') ? { cumple:false, edad:ed, motivo:'edad_mayor' }
+            : { cumple:false, edad:ed, motivo:'sin_mch' };
+  const aha = (ed == null) ? { cumple:false, motivo:'sin_edad' }
+            : { cumple: ed <= 50, edad:ed, motivo: ed <= 50 ? 'cumple' : 'edad_mayor' };
+  return { hay:true, edad:ed, conMCH:conMCH, esc:esc, aha:aha };
+}
+
+/* ══ AHA/ACC 2020 — CINCO factores mayores, no siete ══
+   Verificado contra la Sección 7.2 de la guía (Ommen et al., Circulation 2020;142:e558).
+   La recomendación 3 (COR 2a) enumera CINCO: historia familiar de muerte súbita, HVI masiva,
+   síncope inexplicado reciente, aneurisma apical y FEVI <50 %.
+   La TVNS y el realce tardío extenso NO son factores mayores: comparten la recomendación 6,
+   que es COR **2b** —«may be considered», en pacientes SIN factores mayores o cuando la decisión
+   queda incierta—. Hasta el 2026-09-10 esta función los metía en la misma bolsa y devolvía
+   `n = 7`, así que un paciente cuyo único hallazgo era una TVNS salía en el informe firmado con
+   «1 factor mayor — desfibrilador razonable (Clase IIa)» sobre una recomendación que la guía
+   gradúa como IIb. Subir una clase de recomendación es cambiar la conducta.
+   La respuesta tensional al ejercicio ya estaba fuera del conteo, y es correcto: la guía la
+   RETIRÓ explícitamente de la evaluación de rutina en 2020 («the removal of abnormal blood
+   pressure response to exercise as a routine part of the SCD risk evaluation»). */
 function mchAHA(){
   const pres = [], pend = [];
   /* Las MISMAS bandas que el score de la ESC. Un valor fuera de rango no cuenta como presente
@@ -22524,16 +22626,40 @@ function mchAHA(){
   const espH = mchEspesor(), feviH = mchFevi();
   const chequear = (cond, txt, evaluado) => { if (cond) pres.push(txt); else if (!evaluado) pend.push(txt); };
   const bin = (id, txt) => { const val = _mchSv(id); chequear(val === 'si', txt, val === 'si' || val === 'no'); };
-  bin('mch_fam_ms',  'historia familiar de muerte súbita por MCH');
+  const fam = mchFamMS();
+  chequear(fam.aha.cumple, 'historia familiar de muerte súbita por MCH en familiar de primer grado o cercano ≤50 años',
+           fam.motivo === 'no' || fam.aha.motivo === 'cumple' || fam.aha.motivo === 'edad_mayor');
   chequear(espH.valor != null && espH.valor >= 30, 'espesor máximo ≥30 mm', espH.valor != null);
-  bin('mch_sincope', 'síncope inexplicado');
-  { const _tv = tvEstado().mchTvns;
-    chequear(_tv === 'si', 'taquicardia ventricular no sostenida', _tv === 'si' || _tv === 'no'); }
+  bin('mch_sincope', 'síncope inexplicado reciente');
   bin('mch_aneurisma_apical', 'aneurisma apical del ventrículo izquierdo');
   chequear(feviH.valor != null && feviH.valor < 50, 'disfunción sistólica del VI (FEVI <50 %)', feviH.valor != null);
-  bin('mch_fibrosis_rmn', 'realce tardío extenso por resonancia');
-  return { presentes: pres, pendientes: pend, n: pres.length };
+  /* Los dos árbitros de la recomendación 6, en su propia lista y con su propia clase. */
+  const arb = [], arbPend = [];
+  { const _tv = tvEstado().mchTvns;
+    if (_tv === 'si') arb.push('taquicardia ventricular no sostenida');
+    else if (_tv !== 'no') arbPend.push('taquicardia ventricular no sostenida'); }
+  /* El árbitro NO cuantifica más que la etiqueta del campo. Decía «(≥15 % de la masa del VI)»
+     sobre un desplegable rotulado sólo «Realce tardío extenso», así que un «Sí» CUALITATIVO
+     —que es como suele venir redactado un informe de resonancia— se publicaba en el informe
+     firmado como si el médico hubiera consignado una cuantificación, y encima esa frase es la
+     que sostiene la Clase IIb. El umbral se movió a la etiqueta, que es donde cambia lo que el
+     «Sí» significa. */
+  { const _lge = _mchSv('mch_fibrosis_rmn');
+    if (_lge === 'si') arb.push('realce tardío extenso por resonancia');
+    else if (_lge !== 'no') arbPend.push('realce tardío extenso por resonancia'); }
+  /* `clase` es la ÚNICA fuente del rótulo. Antes se calculaba acá y las tres superficies
+     —cuerpo, EN SUMA y panel— la re-derivaban a mano con literales, y ya habían dejado de
+     coincidir entre sí. La rama IIb exige `pend.length === 0`: la recomendación 6 de la AHA es
+     para pacientes SIN factores mayores, y no haberlos evaluado no es haberlos descartado. Con
+     preguntas abiertas la clase no se puede fijar — si el factor sin evaluar estuviera presente
+     sería IIa, así que afirmar IIb es BAJAR una clase sobre datos ausentes. */
+  const clase = pres.length ? 'iia' : ((arb.length && !pend.length) ? 'iib' : null);
+  return { presentes: pres, pendientes: pend, n: pres.length,
+           arbitros: arb, arbitrosPend: arbPend, fam: fam, clase: clase };
 }
+/* Cuántos factores mayores tiene la lista de la AHA/ACC 2020. Se lee en cuatro sitios; escrito
+   como literal en tres de ellos y como constante en uno era peor que el literal a secas. */
+const MCH_AHA_N_MAYORES = 5;
 function mchConclusion(){
   const espH = mchEspesor(), esp = espH.valor;
   const gr = mchGrad(), grad = gr.max;
@@ -22603,26 +22729,79 @@ function mchConclusion(){
   const ex = mchExclusiones();
   const esc = mchScoreESC();
   const aha = mchAHA();
+  /* Los dos hallazgos que la ESC 2023 valora DENTRO de la banda de bajo riesgo (Clase IIb). Se
+     calculan acá arriba y no dentro del `else` porque los lee también el `resumen`: declarados
+     dentro de la rama, el EN SUMA tiraba `ReferenceError` y eso corta el bloque `<script>`. */
+  const _feviB = mchFevi(), _lgeB = _mchSv('mch_fibrosis_rmn');
+  const _mod = [], _modPend = [];
+  if (_lgeB === 'si') _mod.push('realce tardío extenso');
+  if (_feviB.valor != null && _feviB.valor < 50) _mod.push('FEVI ' + _feviB.valor + ' %');
+  if (_lgeB !== 'si' && _lgeB !== 'no') _modPend.push('realce tardío por resonancia');
+  if (_feviB.valor == null) _modPend.push('FEVI');
   let txtESC;
   if (ex.activas.length) txtESC = 'El score HCM Risk-SCD de la ESC no es aplicable en este paciente (' + ex.activas.join('; ') + ')' +
     (_mchSv('mch_ex_parada') === 'si' ? '; en ese escenario el desfibrilador está indicado en prevención secundaria, con independencia del score' : '');
   else if (esc.fuera)  txtESC = 'Score HCM Risk-SCD no calculado: ' + esc.fuera.join(' y ') + ' fuera de rango — revisar unidades';
   else if (esc.faltan) txtESC = 'Score HCM Risk-SCD no calculado, faltan datos: ' + esc.faltan.join('; ');
   else {
+    /* La banda baja NO es incondicional. La ESC 2023 da Clase IIb dentro de <4 % si hay realce
+       tardío extenso o FEVI <50 %, y el informe decía «desfibrilador no indicado de rutina» a
+       secas mientras el panel de criterios, al lado, mostraba ese IIb. La app tiene los dos datos
+       y la rama benigna no los miraba: una negación necesita que se haya medido algo. */
     const cl = esc.banda === 'alto' ? ' — desfibrilador a considerar (Clase IIa, ESC)'
              : (esc.banda === 'intermedio' ? ' — desfibrilador puede considerarse (Clase IIb, ESC)'
-                                           : ' — desfibrilador no indicado de rutina');
+                : (_mod.length ? ' — el score por sí solo no indica desfibrilador, pero la ESC 2023 lo sitúa en Clase IIb dentro de esta banda cuando hay ' + _mod.join(' o ') + ', para una decisión compartida'
+                               : ' — desfibrilador no indicado de rutina'));
     txtESC = 'Riesgo de muerte súbita a 5 años (HCM Risk-SCD, ESC) ' + esc.pct.toFixed(2) + ' %: riesgo ' + esc.banda + cl +
+      (esc.banda === 'bajo' && !_mod.length && _modPend.length
+        ? '. Los dos hallazgos que la ESC 2023 valora dentro de esta banda no constan: ' + _modPend.join(' y ')
+        : '') +
       (ex.pendientes.length ? '. El modelo no está validado en algunas poblaciones y no consta si este paciente pertenece a ellas: ' + ex.pendientes.join('; ') : '');
   }
-  const txtAHA = aha.n
-    ? 'Factores mayores de la AHA/ACC 2020: ' + aha.n + ' (' + aha.presentes.join('; ') + ') — desfibrilador razonable (Clase IIa, AHA)' +
+  /* La clase sale de `aha.clase` y no se re-deriva acá: eran tres superficies decidiéndola por
+     su cuenta con literales, y ya habían dejado de coincidir entre sí. */
+  let txtAHA = aha.n
+    ? 'Factores mayores de la AHA/ACC 2020: ' + aha.n + ' de ' + MCH_AHA_N_MAYORES + ' (' + aha.presentes.join('; ') + ') — desfibrilador razonable (Clase IIa, AHA)' +
       (aha.pendientes.length ? '. Sin evaluar: ' + aha.pendientes.join('; ') : '')
-    : (aha.pendientes.length === 7
+    : (aha.pendientes.length === MCH_AHA_N_MAYORES
         ? 'Factores mayores de la AHA/ACC 2020: ninguno evaluado'
-        : 'Factores mayores de la AHA/ACC 2020: ninguno de los evaluados' +
-          (aha.pendientes.length ? '. Sin evaluar: ' + aha.pendientes.join('; ') : '') +
-          (aha.pendientes.length ? '' : ' — desfibrilador no indicado por este criterio'));
+        : 'Factores mayores de la AHA/ACC 2020: ninguno de los evaluados está presente' +
+          (aha.pendientes.length ? '. Sin evaluar: ' + aha.pendientes.join('; ') : ''));
+  if (aha.arbitros.length) {
+    if (aha.n) txtAHA += '. Además: ' + aha.arbitros.join(' y ');
+    else if (aha.clase === 'iib') txtAHA += '. Sin factores mayores, pero con ' + aha.arbitros.join(' y ') +
+      ': la AHA/ACC 2020 sitúa el desfibrilador en Clase IIb en ese escenario — puede considerarse, no es una indicación establecida';
+    /* Con factores mayores SIN EVALUAR la clase no se fija. «Sin factores mayores» sobre cinco
+       preguntas en blanco es una negación que nadie contestó, y la recomendación 6 de la AHA es
+       expresamente para pacientes sin factores mayores: si el que falta estuviera presente sería
+       IIa, así que afirmar IIb ahí es BAJAR una clase sobre datos ausentes. */
+    else txtAHA += '. Consta ' + aha.arbitros.join(' y ') + ', que la AHA/ACC valora cuando no hay factores mayores; con ' +
+      aha.pendientes.length + (aha.pendientes.length === 1 ? ' factor mayor sin evaluar' : ' factores mayores sin evaluar') +
+      ' no puede establecerse si el paciente está en ese escenario';
+  }
+  else if (!aha.n && !aha.pendientes.length && !aha.arbitrosPend.length)
+    txtAHA += ' — desfibrilador no indicado por este criterio';
+  if (aha.arbitrosPend.length) txtAHA += '. Tampoco consta: ' + aha.arbitrosPend.join('; ') +
+    (aha.n ? '' : ', que la AHA valora cuando no hay factores mayores');
+  /* La historia familiar se explica con UNA ORACIÓN POR ALGORITMO. Antes era una sola que hablaba
+     de los dos y ramificaba sólo por el motivo de la AHA: con «el familiar tenía MCH establecida»
+     el score de la ESC SÍ sumaba el término 0,4583 y el texto decía que no lo había hecho, en las
+     tres ramas. El lector veía el porcentaje y debajo la explicación de que la historia familiar
+     no había entrado; si corregía mentalmente hacia arriba, subía de banda un score que ya la
+     incluía. La quinta rama era además inalcanzable: con la edad vacía, `aha.motivo` vale
+     siempre 'sin_edad' y la de arriba se la comía. */
+  if (aha.fam.hay) {
+    const F = aha.fam;
+    if (F.motivo === 'edad_fuera') txtAHA += '. La edad del familiar al fallecer está fuera de rango — revisar antes de aplicar el criterio en cualquiera de los dos algoritmos';
+    else {
+      if (F.aha.motivo === 'sin_edad')        txtAHA += '. Para la AHA/ACC no consta la edad del familiar, y su criterio exige ≤50 años';
+      else if (F.aha.motivo === 'edad_mayor') txtAHA += '. La muerte súbita familiar ocurrió a los ' + F.edad + ' años, por encima del corte de 50 de la AHA/ACC';
+      if (F.esc.motivo === 'familiar_con_mch') txtAHA += '. Para el score de la ESC el criterio SÍ se cumple: el familiar tenía miocardiopatía hipertrófica establecida, y en ese caso cuenta con independencia de la edad';
+      else if (F.esc.motivo === 'edad_mayor')  txtAHA += '. Para el score de la ESC no se cumple: su corte es 40 años';
+      else if (F.esc.motivo === 'sin_mch')     txtAHA += '. Para el score de la ESC falta contestar si el familiar tenía MCH establecida: con ' + F.edad + ' años el criterio sólo puede cumplirse por esa vía';
+      else if (F.esc.motivo === 'sin_edad')    txtAHA += '. Para el score de la ESC no consta la edad del familiar, y su criterio exige <40 años';
+    }
+  }
   partes.push(txtESC);
   partes.push(txtAHA);
   /* La AHA cuenta un factor que el ecocardiograma no puede ver. Decirlo evita que un conteo de
@@ -22632,6 +22811,15 @@ function mchConclusion(){
   /* Contexto que no vota en ningún score, por decisión registrada. */
   const ctx = [];
   if (_mchSv('mch_tension_ejercicio') === 'si') ctx.push('respuesta tensional anormal al ejercicio (factor reconocido en guías previas, no incluido en el conteo AHA/ACC 2020)');
+  /* «Factor modificador AHA Clase IIa» era lo pedido, y NINGUNA de las dos guías lo sostiene en
+     adultos: la AHA/ACC no incluye las variantes sarcoméricas en su esquema de decisión —en la
+     actualización 2024 el genotipo entra a la tabla, pero como factor PEDIÁTRICO— y la ESC 2023
+     (§7.1.5.5) desaconseja expresamente usarlas para guiar el implante en prevención primaria de
+     riesgo bajo o intermedio. La categoría «modificadores de riesgo» que agrupaba obstrucción,
+     realce tardío, aneurisma apical y mutaciones es de la guía ACCF/AHA de 2011: la palabra
+     «modifier» no aparece ni una vez en la de 2020. Imprimir «Clase IIa» al lado de este hallazgo
+     habría puesto en un informe firmado una clase de recomendación que no existe. */
+  if (_mchSv('mch_mult_mut') === 'si') ctx.push('dos o más variantes patogénicas sarcoméricas — hallazgo relevante para el tamizaje familiar; no es factor de decisión de desfibrilador en adultos en la AHA/ACC 2020 ni en la ESC 2023');
   if (_mchSv('mch_ctx_hta') === 'si') ctx.push('hipertensión arterial resistente');
   if (_mchNv('mch_ctx_crecimiento') != null) ctx.push('crecimiento del espesor de ' + _mchNv('mch_ctx_crecimiento') + ' mm/año');
   if (_mchSv('mch_ctx_embarazo') === 'si') ctx.push('deseo de embarazo');
@@ -22671,18 +22859,28 @@ function mchConclusion(){
   else if (esc.faltan) resumen = 'Miocardiopatía hipertrófica: score de muerte súbita no calculado, faltan ' + esc.faltan.length +
     (esc.faltan.length === 1 ? ' dato' : ' datos') + ' (detalle en el cuerpo del informe)';
   else resumen = 'Miocardiopatía hipertrófica: riesgo de muerte súbita a 5 años ' + esc.pct.toFixed(2) + ' % (HCM Risk-SCD, ESC), riesgo ' + esc.banda +
-    (esc.banda === 'alto' ? ' — desfibrilador a considerar (Clase IIa)' : (esc.banda === 'intermedio' ? ' — desfibrilador puede considerarse (Clase IIb)' : ' — desfibrilador no indicado de rutina'));
+    (esc.banda === 'alto' ? ' — desfibrilador a considerar (Clase IIa)'
+     : esc.banda === 'intermedio' ? ' — desfibrilador puede considerarse (Clase IIb)'
+     : _mod.length ? ' — con ' + _mod.join(' y ') + ', la ESC 2023 sitúa el desfibrilador en Clase IIb dentro de esta banda'
+     : ' — desfibrilador no indicado de rutina');
   /* El resumen arrastra los factores SIN EVALUAR. Sin eso, un paciente sin resonancia salía con
      «AHA/ACC 2020: ninguno de los factores evaluados» en el EN SUMA —que es donde el conteo se
      lee— mientras el cuerpo aclaraba que faltaba justo el estudio que cambia la conducta. El
      manual afirmaba que la nota existía para evitar esa lectura; existía sólo en el cuerpo.
      Y «ninguno de los factores evaluados» se leía en los dos sentidos opuestos: ahora la rama sin
      factores presentes dice explícitamente «está presente». */
-  resumen += '. AHA/ACC 2020: ' + (aha.n
-    ? aha.n + (aha.n === 1 ? ' factor mayor' : ' factores mayores') + ' — desfibrilador razonable (Clase IIa)'
-    : (aha.pendientes.length === 7 ? 'ningún factor evaluado'
+  /* El orden de las ramas importa y estaba mal: la de los árbitros iba DESPUÉS de «ningún factor
+     evaluado», que es un `else if`, así que con los cinco mayores en blanco y una TVNS cargada el
+     cuerpo publicaba Clase IIb y el EN SUMA no la mencionaba — sobre una clase de recomendación y
+     con los dos textarea editables por separado. Ahora manda la clase. */
+  resumen += '. AHA/ACC 2020: ' + (aha.clase === 'iia'
+    ? aha.n + (aha.n === 1 ? ' factor mayor' : ' factores mayores') + ' de ' + MCH_AHA_N_MAYORES + ' — desfibrilador razonable (Clase IIa)'
+    : aha.clase === 'iib'
+      ? 'ningún factor mayor, pero ' + aha.arbitros.join(' y ') + ' — desfibrilador puede considerarse (Clase IIb)'
+    : aha.arbitros.length ? 'consta ' + aha.arbitros.join(' y ') + ', pero quedan factores mayores sin evaluar: clase no establecida'
+    : (aha.pendientes.length === MCH_AHA_N_MAYORES ? 'ningún factor evaluado'
        : 'ninguno de los factores evaluados está presente'))
-    + (aha.pendientes.length && aha.pendientes.length < 7
+    + (aha.pendientes.length && aha.pendientes.length < MCH_AHA_N_MAYORES
         ? ' (' + aha.pendientes.length + (aha.pendientes.length === 1 ? ' sin evaluar' : ' sin evaluar') + ')'
         : '');
   /* La resonancia se nombra en el resumen, no sólo en el cuerpo: es el único factor de la lista
@@ -22726,8 +22924,11 @@ function mchSync(){
       (esc.banda === 'alto' ? ' (DAI Clase IIa)' : (esc.banda === 'intermedio' ? ' (DAI Clase IIb)' : ' (DAI no indicado de rutina)')) +
       (ex.pendientes.length ? ' · aplicabilidad sin verificar (' + ex.pendientes.length + ')' : ''));
   const aha = mchAHA();
-  txt('mch-aha', aha.n ? aha.n + (aha.n === 1 ? ' factor mayor' : ' factores mayores') + ' — DAI razonable (Clase IIa)'
-      : (aha.pendientes.length === 7 ? '— (ninguno evaluado)' : 'ninguno de los evaluados'));
+  txt('mch-aha', aha.clase === 'iia'
+      ? aha.n + '/' + MCH_AHA_N_MAYORES + ' ' + (aha.n === 1 ? 'factor mayor' : 'factores mayores') + ' — DAI razonable (Clase IIa)'
+    : aha.clase === 'iib' ? 'sin factores mayores · ' + aha.arbitros.length + ' árbitro' + (aha.arbitros.length > 1 ? 's' : '') + ' — DAI puede considerarse (Clase IIb)'
+    : aha.arbitros.length ? aha.arbitros.length + ' árbitro' + (aha.arbitros.length > 1 ? 's' : '') + ' · ' + aha.pendientes.length + ' sin evaluar — clase no establecida'
+    : (aha.pendientes.length === MCH_AHA_N_MAYORES ? '— (ninguno evaluado)' : 'ninguno de los ' + MCH_AHA_N_MAYORES));
   const c = mchConclusion();
   txt('mch-concl', c ? c.txt : '—');
 }
@@ -22773,13 +22974,18 @@ const MCA_FENO_TXT = {
    `tvEstado()`. Si se leyeran los espejos, cargar un estudio viejo antes de que corra `tvSync`
    daría un puntaje calculado sobre el paciente anterior.
 
-   Divergencia declarada con el Task Force 2010, decidida el 2026-09-10:
-   el TFC da criterio MAYOR a la TV de BRI y eje superior «non-sustained OR sustained»; acá el
-   mayor exige que sea SOSTENIDA y la no sostenida baja a menor. Es más exigente que la guía, o
-   sea que subestima, y por eso el informe lo dice con todas las letras cuando el caso aparece:
-   un puntaje rotulado «Task Force 2010» calculado con otra regla y sin avisar sería una cita
-   falsa. Lo que sí se respeta del TFC —contra el pedido original— es que el eje INFERIOR y el
-   eje desconocido son criterio menor, no cero. */
+   La categoría V sigue el Task Force 2010 VERBATIM, sin excepciones (decidido el 2026-09-10;
+   revierte la regla más exigente que estuvo vigente unas horas ese mismo día):
+   - MAYOR: TV de bloqueo de rama izquierda con eje superior, «non-sustained OR sustained» —
+     las DOS cuentan, el tipo no cambia la jerarquía del criterio.
+   - MENOR: TV de bloqueo de rama izquierda con eje inferior «or of unknown axis», y más de 500
+     extrasístoles ventriculares en 24 h.
+   El `tv_tipo` se sigue registrando y se imprime, porque lo necesitan las OTRAS dos secciones:
+   el HCM Risk-SCD distingue la TVNS de la sostenida —que es una exclusión del modelo— y el
+   criterio de reintervención de la ESC 2020 en Fallot pide expresamente la sostenida. Para MCA
+   es información clínica, no una entrada del puntaje. Con esto el rótulo «Task Force 2010» del
+   informe vuelve a corresponderse con la regla que se aplicó, y desaparece todo el aparato de
+   declaración de divergencia que hacía falta mientras no fuera así. */
 function _tvSv(id){ return (document.getElementById(id)?.value || '').trim(); }
 function _tvNv(id){ const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; }
 function tvEstado(){
@@ -22816,20 +23022,24 @@ function tvEstado(){
   else if (faltaTipo)          mchTvns = '';          // hay TV pero no se sabe si fue no sostenida
   else                         mchTvns = nsost ? 'si' : 'no';
 
-  /* MCA — Task Force 2010 categoría V, con la divergencia declarada arriba. */
-  const mayor = !!(sost && morf === 'bcri_sup');
-  const menorEjeSup = !!(nsost && !sost && morf === 'bcri_sup');   // el TFC lo llamaría mayor
+  /* MCA — Task Force 2010 categoría V, verbatim: el tipo de taquicardia no cambia la jerarquía. */
+  /* El tipo NO entra: el Task Force cuenta la sostenida y la no sostenida por igual. Tampoco
+     bloquea `faltaTipo` — sin el tipo el criterio de arritmias igual se resuelve, porque lo que
+     lo define es la morfología y el eje. */
+  const mayor = !!(hay && morf === 'bcri_sup');
   const menorTSVD   = !!(hay && (morf === 'bcri_inf' || morf === 'bcri_desc'));
   const menorEV     = !!(evOk && ev > 500);
 
   const notas = [];
-  if (menorEjeSup) notas.push('La taquicardia ventricular es de morfología de bloqueo de rama izquierda con eje superior pero no sostenida: se puntúa como criterio MENOR. Los criterios Task Force 2010 la consideran criterio mayor con independencia de que sea sostenida o no sostenida — acá se aplica un criterio más exigente, de modo que el puntaje puede quedar por debajo del que daría la tabla original');
   if (hay && morf === 'bcri_inf') notas.push('Morfología compatible con origen en el tracto de salida del ventrículo derecho (bloqueo de rama izquierda con eje inferior); los criterios Task Force la puntúan como criterio menor');
   if (hay && morf === 'bcri_desc') notas.push('Morfología de bloqueo de rama izquierda con eje no determinado; los criterios Task Force la puntúan como criterio menor');
   if (hay && morf === 'bcrd') notas.push('Morfología de bloqueo de rama derecha, sugestiva de origen en el ventrículo izquierdo: los criterios Task Force 2010 no la contemplan y no aporta puntos. Es un hallazgo del fenotipo con compromiso izquierdo, que puntúan los criterios de Padua 2020');
   if (hay && (!morf || morf === 'no_esp')) notas.push('No consta la morfología de la taquicardia ventricular: sin ella no puede aplicarse el criterio de arritmias del Task Force, que distingue el eje superior del inferior');
-  if (faltaTipo && morf === 'bcri_sup') notas.push('No consta si la taquicardia ventricular fue sostenida o no sostenida. Los criterios Task Force 2010 puntúan esta morfología —bloqueo de rama izquierda con eje superior— como criterio MAYOR con independencia de la duración; sin el tipo cargado la categoría de arritmias queda SIN PUNTUAR y el total está por debajo del que daría la tabla');
-  else if (faltaTipo) notas.push('No consta si la taquicardia ventricular fue sostenida o no sostenida: sin ese dato la categoría de arritmias queda sin puntuar y tampoco puede completarse el score de la ESC en miocardiopatía hipertrófica');
+  /* La falta del tipo NO afecta a MCA —el Task Force no lo mira— pero sí a las otras dos: el
+     score de la ESC necesita saber si fue no sostenida, y el criterio de reintervención de la
+     ESC 2020 en Fallot pide la sostenida. La nota lo dice sin mencionar el puntaje de MCA, que
+     era lo que decía antes y ahora sería falso. */
+  if (faltaTipo) notas.push('No consta si la taquicardia ventricular fue sostenida o no sostenida. Los criterios Task Force 2010 no lo requieren —cuentan las dos por igual— pero sin ese dato no puede completarse el score de la ESC en miocardiopatía hipertrófica ni aplicarse el criterio de reintervención de la ESC 2020 en tetralogía de Fallot');
   if (evFuera) notas.push('El recuento de extrasístoles ventriculares en 24 h está fuera de rango — revisar antes de aplicar el criterio de >500');
   if (evDecimal) notas.push('El recuento de extrasístoles ventriculares se cargó con decimales (' + evCrudo + ') y se truncó a ' + ev + ' para aplicar el criterio — verificar el número');
   /* Estudio anterior al bloque compartido que traía marcado el criterio de >500 EV sin el número:
@@ -22839,7 +23049,7 @@ function tvEstado(){
   return { doc:doc, tipo:tipo, morf:morf, ev:ev, evFuera:evFuera,
            hay:hay, sostenida:sost, noSostenida:nsost, faltaTipo:faltaTipo, faltaMorf:faltaMorf,
            mchTvns:mchTvns, tdfTv: (doc || ''),
-           mayor:mayor, menorEjeSup:menorEjeSup, menorTSVD:menorTSVD, menorEV:menorEV,
+           mayor:mayor, menorTSVD:menorTSVD, menorEV:menorEV,
            notas:notas };
 }
 const TV_MORF_TXT = { bcri_sup:'bloqueo de rama izquierda con eje superior', bcri_inf:'bloqueo de rama izquierda con eje inferior',
@@ -22868,7 +23078,7 @@ function tvSync(){
   set('mch_tvns', t.mchTvns);
   set('tdf_tv',   t.tdfTv);
   set('mca_v_may',  t.mayor ? 'si' : '');
-  set('mca_v_men1', (t.menorEjeSup || t.menorTSVD) ? 'si' : '');
+  set('mca_v_men1', t.menorTSVD ? 'si' : '');
   set('mca_v_men2', t.menorEV ? 'si' : '');
   /* El detalle sólo tiene sentido con TV documentada: sin ella son dos desplegables que piden
      precisar algo que no ocurrió.
@@ -22896,7 +23106,7 @@ function tvSync(){
       const a = [];
       a.push('MCH: ' + (t.mchTvns === 'si' ? 'TVNS presente' : t.mchTvns === 'no' ? (t.sostenida ? 'sin TVNS — la TV sostenida excluye el score' : 'sin TVNS') : 'falta el tipo'));
       a.push('Fallot: TV presente');
-      a.push('MCA: ' + (t.mayor ? 'criterio mayor' : (t.menorEjeSup || t.menorTSVD || t.menorEV) ? 'criterio menor' : 'sin criterio'));
+      a.push('MCA: ' + (t.mayor ? 'criterio mayor' : (t.menorTSVD || t.menorEV) ? 'criterio menor' : 'sin criterio'));
       ap.textContent = a.join(' · ');
     }
   }
@@ -22921,7 +23131,8 @@ function mcaFamMuerteSubita(){
   const ed  = _mcaNv('fam_ms_edad');
   if (hay !== 'si') return { cumple:false, motivo: hay === 'no' ? 'no' : 'sin_dato' };
   if (ed == null)   return { cumple:false, motivo:'sin_edad' };
-  if (ed < 0 || ed > 120) return { cumple:false, motivo:'edad_fuera' };
+  /* Misma banda que `mchFamMS`: `> 0`, no `>= 0`. Cero cumplía «<35» y regalaba un punto. */
+  if (!(ed > 0 && ed <= 120)) return { cumple:false, motivo:'edad_fuera' };
   return { cumple: ed < 35, edad: ed, motivo: ed < 35 ? 'cumple' : 'edad_mayor' };
 }
 function _mcaChk(id){
@@ -22929,7 +23140,7 @@ function _mcaChk(id){
   /* Las tres filas de arritmias se DERIVAN del bloque compartido, no del input espejo: leer el
      espejo dejaría el puntaje a merced de que `tvSync` haya corrido. */
   if (id === 'mca_v_may')  return tvEstado().mayor;
-  if (id === 'mca_v_men1') { const t = tvEstado(); return t.menorEjeSup || t.menorTSVD; }
+  if (id === 'mca_v_men1') return tvEstado().menorTSVD;
   if (id === 'mca_v_men2') return tvEstado().menorEV;
   return _mcaSv(id) === 'si';
 }
@@ -22942,6 +23153,15 @@ function _mcaChk(id){
    Asimetría del propio documento: el aneurisma habilita MAYOR pero no figura en la fila de menor.
    Un aneurisma con medidas en rango menor no encaja en la tabla; es un hueco de la guía y se dice
    en vez de inventar una regla. */
+/* Umbrales de la categoría I en UN solo lugar. El panel «📋 Ver criterios» los imprime y el
+   scorer los compara: escritos dos veces, cambiar uno y no el otro deja al médico leyendo un
+   umbral que la app no aplica, y nada en la pantalla lo delataría. Es el mismo defecto que ya
+   costó caro con la fórmula duplicada entre pantalla e informe. */
+const MCA_UMBRAL = {
+  plax: { mayor:32, menorLo:29 },   // TSVD paraesternal eje largo, mm
+  psax: { mayor:36, menorLo:32 },   // TSVD paraesternal eje corto, mm
+  fac:  { mayor:33, menorHi:40 }    // fracción de acortamiento de área del VD, %
+};
 function mcaCatI(){
   const mov = _mcaSv('mca_mov_regional');
   /* `mca_tsvd_plax` es un campo PROPIO y no reusa `tsvd_diametro`. Aquel existe desde antes
@@ -22965,7 +23185,7 @@ function mcaCatI(){
      de cualquier sobrecarga derecha (HTP, EPOC, CIA, TEP) — y ahora tiene opcion propia que
      no puntua. */
   if (mov !== 'aqui_disc' && mov !== 'aneurisma') {
-    const numAlterado = (p != null && p >= 29) || (s != null && s >= 32) || (f != null && f <= 40);
+    const numAlterado = (p != null && p >= MCA_UMBRAL.plax.menorLo) || (s != null && s >= MCA_UMBRAL.psax.menorLo) || (f != null && f <= MCA_UMBRAL.fac.menorHi);
     /* «no está presente» sólo con la respuesta EXPLÍCITA. Con el desplegable en blanco la app
        afirmaba una ausencia que nadie contestó, y se disparaba sola porque `numAlterado` incluye
        p>=29 y ese número ronda los 30 en cualquier estudio. */
@@ -22975,13 +23195,14 @@ function mcaCatI(){
   }
   /* Mayor: los operadores son los del documento — ≥ para diámetros, ≤ para el FAC. Un FAC de
      exactamente 33 % es MAYOR, y un PLAX de exactamente 32 mm también. */
-  const mayorNum = (p != null && p >= 32) || (s != null && s >= 36) || (f != null && f <= 33);
+  const mayorNum = (p != null && p >= MCA_UMBRAL.plax.mayor) || (s != null && s >= MCA_UMBRAL.psax.mayor) || (f != null && f <= MCA_UMBRAL.fac.mayor);
   if (mayorNum) return { pts:2, nivel:'mayor' };
   /* Menor: intervalos semiabiertos, ≥a–<b para diámetros y >a–≤b para el FAC. Y exige
      hipocinesia o discinesia: el aneurisma sólo califica para mayor. */
   if (mov === 'aqui_disc') {
-    const menorNum = (p != null && p >= 29 && p < 32) || (s != null && s >= 32 && s < 36) ||
-                     (f != null && f > 33 && f <= 40);
+    const menorNum = (p != null && p >= MCA_UMBRAL.plax.menorLo && p < MCA_UMBRAL.plax.mayor) ||
+                     (s != null && s >= MCA_UMBRAL.psax.menorLo && s < MCA_UMBRAL.psax.mayor) ||
+                     (f != null && f > MCA_UMBRAL.fac.mayor && f <= MCA_UMBRAL.fac.menorHi);
     if (menorNum) return { pts:1, nivel:'menor' };
   }
   /* «las medidas no alcanzan el umbral» exige que HAYA medidas. Sin ninguna cargada, el informe
@@ -23128,9 +23349,10 @@ function mcaConclusion(){
     return c.nom + ' — ' + (c.nivel === 'mayor' ? 'mayor' : 'menor') + ' (' + c.pts + (c.pts === 1 ? ' punto' : ' puntos') + ')' +
            (c.marcados > 1 ? ', de ' + c.marcados + ' criterios marcados en la categoría' : '');
   }).join('; '));
-  /* Arritmia ventricular: el hecho, y por qué puntuó lo que puntuó. La nota de la divergencia
-     con el Task Force viaja acá adentro — si el mayor se degradó a menor por exigir que fuera
-     sostenida, el informe no puede rotular el puntaje «Task Force 2010» sin decirlo. */
+  /* Arritmia ventricular: el hecho, y por qué puntuó lo que puntuó. Las notas explican las vías
+     por las que la categoría queda SIN puntuar —morfología no especificada, bloqueo de rama
+     derecha— para que el rótulo «Task Force 2010» del puntaje no quede solo al lado de un cero
+     que el lector no puede explicarse. */
   { const _tv = tvEstado(); const _f = tvFrase();
     if (_f) partes.push(_f);
     _tv.notas.forEach(function(n){ partes.push(n); }); }
@@ -23166,19 +23388,17 @@ function mcaConclusion(){
       ? 'Criterios posibles de miocardiopatía arritmogénica (Task Force 2010: 2 puntos) — evaluación multimodal indicada'
       : 'Miocardiopatía arritmogénica: no se cumplen criterios diagnósticos (Task Force 2010: ' + sc.total +
         (sc.total === 1 ? ' punto' : ' puntos') + ')';
-  /* La divergencia con el Task Force viaja en el EN SUMA, no sólo en el cuerpo. El resumen lleva
-     el rótulo «Task Force 2010» al lado del puntaje, y los dos textarea del informe se editan por
-     separado: una edición del cuerpo puede llevarse la nota y dejar el rótulo solo. Es la misma
-     asimetría que ya se cerró para los factores sin evaluar de la AHA, colgando la salvedad del
-     resumen y no sólo del párrafo. */
+  /* Las salvedades de la categoría de arritmias viajan en el EN SUMA, no sólo en el cuerpo. El
+     resumen lleva el rótulo «Task Force 2010» al lado del puntaje, y los dos textarea del informe
+     se editan por separado: una edición del cuerpo puede llevarse la nota y dejar el rótulo solo.
+     Es la misma asimetría que ya se cerró para los factores sin evaluar de la AHA, colgando la
+     salvedad del resumen y no sólo del párrafo. */
   let resumenF = resumen;
   { const _tv = tvEstado();
-    if (_tv.menorEjeSup) resumenF += ' — criterio de arritmias aplicado con una regla más exigente que la del Task Force, que puntúa esta morfología como mayor aunque la taquicardia no sea sostenida';
-    else if (_tv.faltaTipo && _tv.morf === 'bcri_sup') resumenF += ' — categoría de arritmias sin puntuar por falta del tipo de taquicardia; el Task Force puntúa esta morfología como criterio mayor';
-    /* Las otras dos vías por las que la categoría queda sin puntuar suben también. No son
+    /* Las dos vías por las que la categoría queda sin puntuar suben al EN SUMA. No son
        divergencia con la guía —sin morfología el Task Force tampoco puntúa— pero el EN SUMA
        lleva el rótulo y el puntaje, y los dos textarea se editan por separado. */
-    else if (_tv.faltaMorf) resumenF += ' — categoría de arritmias sin puntuar: no consta la morfología de la taquicardia ventricular';
+    if (_tv.faltaMorf) resumenF += ' — categoría de arritmias sin puntuar: no consta la morfología de la taquicardia ventricular';
     else if (_tv.hay && _tv.morf === 'bcrd') resumenF += ' — la taquicardia ventricular es de bloqueo de rama derecha, que los criterios Task Force 2010 no contemplan'; }
   /* Un valor ilegible corta la banda, como en ductus y coartación: sin esto el informe decía a la
      vez «criterio estructural no evaluable, fuera de rango» y «no se cumplen criterios
@@ -23271,6 +23491,236 @@ function mcaTogglePunto(id){
 }
 window.mcaTogglePunto = mcaTogglePunto;
 window.mcaSync = mcaSync; window.mcaConclusion = mcaConclusion;
+
+/* ══ PANEL DE CRITERIOS ═══════════════════════════════════════════════════════════════════
+   Referencia estática: muestra la REGLA, no el paciente. Deliberado — el algoritmo diastólico
+   sí pinta los valores del estudio, pero acá lo que se publica es una indicación de
+   desfibrilador, y un camino resaltado por error sería una recomendación equivocada con
+   apariencia de cálculo. El puntaje del paciente ya vive en el panel de cada sección, calculado
+   y auditable; esto es la tabla de la guía al lado, para leer una contra otra.
+
+   El contenido de MCA se GENERA desde `MCA_CATS` y `MCA_UMBRAL`, que son las mismas constantes
+   que puntúan. Escribir la tabla a mano habría creado una segunda fuente: cambiar un umbral en
+   el scorer y no en el panel deja al médico leyendo un número que la app no aplica, y nada en
+   la pantalla lo delata. */
+function _critEsc(t){ return String(t == null ? '' : t).replace(/[&<>"]/g, function(c){
+  return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); }
+const CRIT_CSS_OK = 'background:rgba(16,185,129,.18);border-left:3px solid #10B981;';
+const CRIT_CSS_MEN = 'background:rgba(16,185,129,.07);border-left:3px solid rgba(16,185,129,.45);';
+
+function critMCA(){
+  const U = MCA_UMBRAL;
+  const celda = (txts, css) => '<td style="padding:7px 9px;vertical-align:top;font-size:11px;line-height:1.5;' + css + '">' +
+    (txts.length ? txts.map(function(t){ return '• ' + _critEsc(t); }).join('<br>') : '<span style="color:var(--text2);">—</span>') + '</td>';
+  const fila = (rom, nom, may, men) =>
+    '<tr>' +
+    '<td style="padding:7px 9px;vertical-align:top;font-size:11px;font-weight:700;white-space:nowrap;">' + rom + '. ' + _critEsc(nom) + '</td>' +
+    celda(may, CRIT_CSS_OK) + celda(men, CRIT_CSS_MEN) + '</tr>';
+
+  let h = '';
+  h += '<div style="background:var(--bg3,rgba(255,255,255,.04));border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:12px;">' +
+       '<div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:4px;">Un criterio por categoría — el de mayor jerarquía</div>' +
+       '<div style="font-size:11px;color:var(--text2);line-height:1.6;">Cada categoría aporta como máximo un criterio. Mayor = 2 puntos · menor = 1 punto.<br>' +
+       '<b>≥4</b> definitivo &nbsp;·&nbsp; <b>3</b> limítrofe &nbsp;·&nbsp; <b>2</b> posible &nbsp;·&nbsp; <b>0-1</b> sin criterios diagnósticos</div></div>';
+
+  h += '<table style="width:100%;border-collapse:collapse;">' +
+       '<thead><tr style="background:var(--bg);">' +
+       '<th style="padding:7px 9px;text-align:left;font-size:11px;width:22%;">Categoría</th>' +
+       '<th style="padding:7px 9px;text-align:left;font-size:11px;">Criterio MAYOR (2 pts)</th>' +
+       '<th style="padding:7px 9px;text-align:left;font-size:11px;">Criterio MENOR (1 pt)</th>' +
+       '</tr></thead><tbody>';
+
+  /* Categoría I no está en MCA_CATS —la calcula `mcaCatI` con números, no con casillas— así que
+     se arma desde MCA_UMBRAL. La COMPUERTA de motilidad se enuncia en las dos celdas: el Task
+     Force la exige para el mayor Y para el menor, y omitirla en el menor es el error que traía
+     el texto de origen. */
+  h += fila('I', 'Imagen (eco / RMN)',
+    ['Anomalía regional del VD — aquinesia, discinesia o aneurisma — Y ADEMÁS uno de:',
+     'TSVD paraesternal eje largo ≥' + U.plax.mayor + ' mm',
+     'TSVD paraesternal eje corto ≥' + U.psax.mayor + ' mm',
+     'Fracción de acortamiento de área del VD ≤' + U.fac.mayor + ' %'],
+    /* Intervalos SEMIABIERTOS, con el operador literal. Escribirlos como «29-31» con
+       `mayor - 1` reintroducía la deriva dentro de la misma expresión que decía evitarla: los
+       campos son decimales —y en runtime pasan a texto, así que el `step` no restringe nada—, de
+       modo que un TSVD de 31,5 puntúa como criterio menor mientras el panel abierto al lado dice
+       que el rango termina en 31. El manual ya publicaba la forma correcta. */
+    ['Aquinesia o discinesia regional del VD — el aneurisma sólo califica para mayor — Y ADEMÁS uno de:',
+     'TSVD paraesternal eje largo ≥' + U.plax.menorLo + ' y <' + U.plax.mayor + ' mm',
+     'TSVD paraesternal eje corto ≥' + U.psax.menorLo + ' y <' + U.psax.mayor + ' mm',
+     'Fracción de acortamiento de área del VD >' + U.fac.mayor + ' y ≤' + U.fac.menorHi + ' %']);
+
+  const ROM = { ii:'II', iii:'III', iv:'IV', v:'V', vi:'VI' };
+  MCA_CATS.forEach(function(c){
+    h += fila(ROM[c.k] || c.k.toUpperCase(), c.nom,
+      c.mayor.map(function(x){ return x[1]; }),
+      c.menor.map(function(x){ return x[1]; }));
+  });
+  h += '</tbody></table>';
+
+  h += '<p style="font-size:10px;color:var(--text2);line-height:1.6;margin:12px 0 0;">' +
+       'Los criterios de compromiso del ventrículo izquierdo (criterios de Padua 2020 y consenso europeo 2023) ' +
+       'no forman parte del Task Force 2010. Se registran en esta sección como hallazgos adicionales y se informan, ' +
+       'pero no se suman al puntaje.</p>';
+  h += '<p style="font-size:10px;color:var(--text2);line-height:1.6;margin:6px 0 0;">' +
+       'Marcus FI et al. <i>Circulation</i> 2010;121:1533. La regla de un criterio por categoría sigue a ' +
+       'Bosman LP et al. <i>EP Europace</i> 2020;22:787.</p>';
+  return h;
+}
+
+/* ── Diagramas de flujo de MCH ────────────────────────────────────────────────
+   SVG a mano y no una librería: la app no carga dependencias externas.
+   Helpers mínimos — caja con borde redondeado y texto multilínea, y flecha con punta. */
+function _critCaja(x, y, w, h, lineas, tono, negrita){
+  const FILL = { neutro:'var(--bg)', ok:'rgba(16,185,129,.18)', iia:'rgba(16,185,129,.14)',
+                 iib:'rgba(234,179,8,.14)', no:'rgba(148,163,184,.10)', dato:'rgba(59,130,246,.10)' };
+  const STROKE = { neutro:'var(--border)', ok:'#10B981', iia:'#10B981', iib:'#EAB308',
+                   no:'var(--border)', dato:'#3B82F6' };
+  let o = '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="7" ' +
+          'fill="' + (FILL[tono] || FILL.neutro) + '" stroke="' + (STROKE[tono] || STROKE.neutro) + '" stroke-width="1.4"/>';
+  const lh = 13, y0 = y + h / 2 - ((lineas.length - 1) * lh) / 2 + 4;
+  lineas.forEach(function(t, i){
+    o += '<text x="' + (x + w / 2) + '" y="' + (y0 + i * lh) + '" text-anchor="middle" ' +
+         'font-size="10.5" font-weight="' + (negrita ? '700' : '500') + '" fill="var(--text)">' + _critEsc(t) + '</text>';
+  });
+  return o;
+}
+function _critFlecha(x1, y1, x2, y2, rotulo){
+  let o = '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" ' +
+          'stroke="var(--text2)" stroke-width="1.4" marker-end="url(#critPunta)"/>';
+  if (rotulo) o += '<text x="' + (x1 === x2 ? x1 + 12 : (x1 + x2) / 2) + '" y="' + ((y1 + y2) / 2 + 3) + '" ' +
+    'font-size="9.5" font-weight="700" fill="var(--text2)" text-anchor="' + (x1 === x2 ? 'start' : 'middle') + '">' + _critEsc(rotulo) + '</text>';
+  return o;
+}
+const _CRIT_DEFS = '<defs><marker id="critPunta" viewBox="0 0 10 10" refX="9" refY="5" ' +
+  'markerWidth="6" markerHeight="6" orient="auto-start-reverse">' +
+  '<path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text2)"/></marker></defs>';
+
+/* AHA/ACC 2020, Sección 7.2. CINCO factores mayores (rec. 3, COR 2a) y DOS árbitros que
+   comparten la rec. 6 (COR 2b). Ni la respuesta tensional al ejercicio ni las mutaciones
+   múltiples figuran: la primera la RETIRÓ la guía de 2020, y el genotipo entró en 2024 como
+   factor PEDIÁTRICO. La caja «SCD risk modifiers» con obstrucción, realce, aneurisma y
+   mutaciones es de la guía de 2011 — la palabra no aparece ni una vez en la de 2020. */
+function _critSvgAHA(){
+  let g = '<svg viewBox="0 0 400 470" style="width:100%;height:auto;">' + _CRIT_DEFS;
+  g += _critCaja(60, 6, 280, 34, ['Paro cardíaco previo o TV sostenida'], 'dato', true);
+  g += _critFlecha(200, 40, 200, 62, 'Sí');
+  g += _critCaja(85, 62, 230, 30, ['CDI — Clase I'], 'ok', true);
+  g += _critFlecha(200, 92, 200, 118, 'No');
+  g += _critCaja(15, 118, 370, 82, ['¿Alguno de los CINCO factores mayores?',
+    'Muerte súbita familiar ≤50 a · Espesor ≥30 mm',
+    'Síncope inexplicado reciente · Aneurisma apical',
+    'FEVI <50 %'], 'dato', false);
+  g += _critFlecha(115, 200, 115, 228, 'Sí');
+  g += _critCaja(15, 228, 190, 30, ['CDI — Clase IIa'], 'iia', true);
+  g += _critFlecha(290, 200, 290, 228, 'No');
+  g += _critCaja(215, 228, 170, 30, ['Ninguno'], 'no', false);
+  g += _critFlecha(300, 258, 300, 288);
+  g += _critCaja(150, 288, 235, 52, ['¿Realce tardío extenso (≥15 %)', 'o TVNS en Holter?'], 'dato', false);
+  g += _critFlecha(220, 340, 220, 368, 'Sí');
+  g += _critCaja(150, 368, 145, 30, ['CDI — Clase IIb'], 'iib', true);
+  g += _critFlecha(360, 340, 360, 368, 'No');
+  g += _critCaja(300, 368, 90, 30, ['No indicado'], 'no', false);
+  g += '<text x="200" y="424" text-anchor="middle" font-size="9.5" fill="var(--text2)">Clase IIa = «es razonable» · Clase IIb = «puede considerarse»</text>';
+  g += '<text x="200" y="440" text-anchor="middle" font-size="9.5" fill="var(--text2)">Sin ningún factor de riesgo: no implantar (Clase 3, Harm)</text>';
+  g += '<text x="200" y="456" text-anchor="middle" font-size="9.5" fill="var(--text2)">Adultos. La lista pediátrica es distinta e incluye la TVNS como IIa</text>';
+  return g + '</svg>';
+}
+
+/* ESC 2023, Recommendation Table 23 + Figura 16. */
+function _critSvgESC(){
+  let g = '<svg viewBox="0 0 400 470" style="width:100%;height:auto;">' + _CRIT_DEFS;
+  g += _critCaja(30, 6, 340, 46, ['Paro cardíaco por TV/FV, o TV sostenida', 'con compromiso hemodinámico'], 'dato', true);
+  g += _critFlecha(200, 52, 200, 74, 'Sí');
+  g += _critCaja(75, 74, 250, 30, ['CDI — Clase I'], 'ok', true);
+  g += _critFlecha(200, 104, 200, 130, 'No');
+  g += _critCaja(15, 130, 370, 68, ['HCM Risk-SCD — siete variables',
+    'Edad · Espesor máximo · Diámetro AP de AI',
+    'Gradiente TSVI · Muerte súbita familiar <40 a',
+    'Síncope inexplicado · TVNS'], 'dato', false);
+  g += _critFlecha(200, 198, 200, 222);
+  g += _critCaja(115, 222, 170, 28, ['Riesgo a 5 años'], 'neutro', true);
+  g += _critFlecha(200, 250, 65, 284);
+  g += _critFlecha(200, 250, 200, 284);
+  g += _critFlecha(200, 250, 335, 284);
+  g += _critCaja(12, 284, 108, 26, ['< 4 %'], 'neutro', true);
+  /* «4 – 6 %» ponía el 6 en las dos cajas. El código corta en `pct < 6`, así que 6,00 exacto es
+     ALTO y la diferencia entre IIa y IIb ahí es un implante. */
+  g += _critCaja(146, 284, 108, 26, ['4 a < 6 %'], 'neutro', true);
+  g += _critCaja(280, 284, 108, 26, ['≥ 6 %'], 'neutro', true);
+  g += _critFlecha(66, 310, 66, 334);
+  g += _critFlecha(200, 310, 200, 334);
+  g += _critFlecha(334, 310, 334, 334);
+  g += _critCaja(12, 334, 108, 46, ['IIb sólo si realce', 'tardío ≥15 % o', 'FEVI <50 %'], 'iib', false);
+  g += _critCaja(146, 334, 108, 30, ['CDI — Clase IIb'], 'iib', true);
+  g += _critCaja(280, 334, 108, 30, ['CDI — Clase IIa'], 'iia', true);
+  g += '<text x="200" y="404" text-anchor="middle" font-size="9.5" fill="var(--text2)">La ESC 2023 no tiene Clase III por banda de riesgo (la de 2014 sí la tenía)</text>';
+  g += '<text x="200" y="420" text-anchor="middle" font-size="9.5" fill="var(--text2)">Requiere expectativa de vida de buena calidad &gt;1 año y decisión compartida</text>';
+  g += '<text x="200" y="436" text-anchor="middle" font-size="9.5" fill="var(--text2)">≥16 años. En menores, modelo pediátrico validado (HCM Risk-Kids)</text>';
+  g += '<text x="200" y="452" text-anchor="middle" font-size="9.5" fill="var(--text2)">Con aneurisma apical: calcular igual el score, no decidir por el aneurisma solo</text>';
+  return g + '</svg>';
+}
+
+function critMCH(){
+  const col = (tit, sub, svg) =>
+    '<div style="flex:1;min-width:330px;">' +
+    '<div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:2px;">' + tit + '</div>' +
+    '<div style="font-size:10px;color:var(--text2);margin-bottom:8px;">' + sub + '</div>' + svg + '</div>';
+  let h = '<div style="display:flex;gap:16px;flex-wrap:wrap;">' +
+    col('AHA/ACC 2020', 'Ommen SR et al. <i>Circulation</i> 2020;142:e558 — Sección 7.2', _critSvgAHA()) +
+    col('ESC 2023', 'Arbelo E et al. <i>Eur Heart J</i> 2023;44:3503 — Tabla 23 y Figura 16', _critSvgESC()) +
+    '</div>';
+
+  /* Las diferencias entre los dos algoritmos no son matices: el mismo paciente puede recibir
+     indicaciones opuestas. Ponerlos lado a lado sin decirlo sería la trampa del panel. */
+  const DIF = [
+    ['Aneurisma apical', 'Factor mayor por sí solo (Clase IIa)', 'No decide solo: se calcula igual el score (Clase IIa para hacerlo así)'],
+    ['FEVI <50 %', 'Factor mayor (Clase IIa)', 'Fuera del score; Clase IIb sólo dentro de la banda <4 %'],
+    ['TVNS', 'Árbitro, Clase IIb en adultos', 'Variable del score, y la de mayor coeficiente'],
+    ['Realce tardío ≥15 %', 'Árbitro, Clase IIb', 'Clase IIb sólo dentro de la banda <4 %'],
+    ['Gradiente del TSVI', 'No es factor de riesgo; sólo se mide para alimentar el score europeo', 'Variable continua del score'],
+    ['Muerte súbita familiar', '≤50 años, primer grado o pariente cercano', '<40 años en primer grado, o cualquier edad si tenía MCH establecida'],
+    ['Edad del paciente', 'Sin ajuste cuantitativo', 'Variable continua y protectora en el score']
+  ];
+  h += '<div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 6px;">Dónde no coinciden</div>';
+  h += '<table style="width:100%;border-collapse:collapse;">' +
+       '<thead><tr style="background:var(--bg);">' +
+       '<th style="padding:6px 8px;text-align:left;font-size:11px;width:20%;">Hallazgo</th>' +
+       '<th style="padding:6px 8px;text-align:left;font-size:11px;">AHA/ACC 2020</th>' +
+       '<th style="padding:6px 8px;text-align:left;font-size:11px;">ESC 2023</th></tr></thead><tbody>';
+  DIF.forEach(function(d){
+    h += '<tr><td style="padding:6px 8px;font-size:11px;font-weight:700;vertical-align:top;">' + _critEsc(d[0]) + '</td>' +
+         '<td style="padding:6px 8px;font-size:11px;vertical-align:top;line-height:1.45;">' + _critEsc(d[1]) + '</td>' +
+         '<td style="padding:6px 8px;font-size:11px;vertical-align:top;line-height:1.45;">' + _critEsc(d[2]) + '</td></tr>';
+  });
+  h += '</tbody></table>';
+
+  h += '<p style="font-size:10px;color:var(--text2);line-height:1.6;margin:12px 0 0;">' +
+       '<b>La respuesta tensional anormal al ejercicio no está en ninguno de los dos.</b> La AHA/ACC la retiró ' +
+       'explícitamente de la evaluación de rutina en 2020, y el HCM Risk-SCD nunca la incluyó. La app la registra ' +
+       'y la informa como factor reconocido en guías previas, fuera de los dos conteos.</p>';
+  h += '<p style="font-size:10px;color:var(--text2);line-height:1.6;margin:6px 0 0;">' +
+       'La actualización AHA/ACC 2024 endureció un criterio: el aneurisma apical exige ahora escara transmural ' +
+       'o realce tardío. Los diagramas siguen la versión 2020, que es la que cita el informe.</p>';
+  h += '<p style="font-size:10px;color:var(--text2);line-height:1.6;margin:6px 0 0;">' +
+       'El HCM Risk-SCD no está validado en menores de 16 años, atletas de competición, fenocopias metabólicas ' +
+       'o infiltrativas, formas sindrómicas, ni tras miectomía. Tampoco usa gradientes inducidos por ejercicio, ' +
+       'y con espesores ≥35 mm el riesgo calculado desciende por la relación no lineal: hay pocos datos ahí.</p>';
+  return h;
+}
+
+const CRIT_PANELES = {
+  mca: { titulo:'Criterios Task Force 2010 — Miocardiopatía arritmogénica', render: critMCA },
+  mch: { titulo:'Algoritmos de desfibrilador en MCH — AHA/ACC 2020 y ESC 2023', render: critMCH }
+};
+function critAbrir(cual){
+  const def = CRIT_PANELES[cual]; if (!def) return;
+  const t = document.getElementById('crit-titulo'); if (t) t.textContent = def.titulo;
+  const c = document.getElementById('crit-cuerpo'); if (c) c.innerHTML = def.render();
+  const ov = document.getElementById('crit-overlay'); if (ov) ov.style.display = 'block';
+}
+function critCerrar(){ const ov = document.getElementById('crit-overlay'); if (ov) ov.style.display = 'none'; }
+window.critAbrir = critAbrir; window.critCerrar = critCerrar;
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') critCerrar(); });
 window.mcaScore = mcaScore; window.mcaCatI = mcaCatI; window.mcaVI = mcaVI;
 
 /* ══ ANOMALÍA DE EBSTEIN ═════════════════════════════════════════════════════════════════
@@ -29848,6 +30298,8 @@ const _IG_SECTIONS = [
     {id:'mch_ex_sindromica',lbl:'Excl.: forma sindrómica',map:_IG_SN},
     {id:'mch_ex_parada',lbl:'Excl.: parada o TV sostenida previa',map:_IG_SN},
     {id:'mch_ex_reduccion',lbl:'Excl.: reducción septal previa',map:_IG_SN},
+    {id:'mch_fam_ms_mch',lbl:'Familiar con MCH establecida',map:_IG_SN},
+    {id:'mch_mult_mut',lbl:'Múltiples mutaciones patogénicas',map:_IG_SN},
     {id:'mch_ctx_hta',lbl:'HTA resistente',map:_IG_SN},
     {id:'mch_ctx_crecimiento',lbl:'Crecimiento del espesor (mm/año)'},
     {id:'mch_ctx_embarazo',lbl:'Deseo de embarazo',map:_IG_SN}
@@ -29899,7 +30351,7 @@ const _IG_SECTIONS = [
     {id:'mca_iv_men1',lbl:'Despolarización — menor (potenciales tardíos)',map:{si:'Sí'}},
     {id:'mca_iv_men2',lbl:'Despolarización — menor (activación terminal ≥55 ms)',map:{si:'Sí'}},
     {id:'mca_v_may',lbl:'Arritmias — mayor (TV con BRI y eje superior)',map:{si:'Sí'}},
-    {id:'mca_v_men1',lbl:'Arritmias — criterio menor por morfología',map:{si:'Sí'}},
+    {id:'mca_v_men1',lbl:'Arritmias — menor (TV con BRI y eje inferior o no determinado)',map:{si:'Sí'}},
     {id:'mca_v_men2',lbl:'Arritmias — menor (>500 EV/24 h)',map:{si:'Sí'}},
     {id:'mca_vi_may1',lbl:'Familia — mayor (familiar 1.º grado con TFC)',map:{si:'Sí'}},
     {id:'mca_vi_may2',lbl:'Familia — mayor (autopsia o cirugía)',map:{si:'Sí'}},
@@ -33735,6 +34187,8 @@ function _labExcelRow(inf) {
     'MCH excl. sindrómica': _cc3e(c.mch_ex_sindromica),
     'MCH excl. parada previa': _cc3e(c.mch_ex_parada),
     'MCH excl. reducción septal': _cc3e(c.mch_ex_reduccion),
+    'MCH familiar con MCH establecida': _cc3e(c.mch_fam_ms_mch),
+    'MCH múltiples mutaciones': _cc3e(c.mch_mult_mut),
     'MCH HTA resistente': _cc3e(c.mch_ctx_hta),
     'MCH crecimiento espesor (mm/año)': rnd(num('mch_ctx_crecimiento'),1),
     'MCH deseo de embarazo': _cc3e(c.mch_ctx_embarazo),
@@ -33787,7 +34241,7 @@ function _labExcelRow(inf) {
     'MCA potenciales tardíos': c.mca_iv_men1 === 'si' ? 'Sí' : '',
     'MCA activación terminal': c.mca_iv_men2 === 'si' ? 'Sí' : '',
     'MCA TV eje superior': c.mca_v_may === 'si' ? 'Sí' : '',
-    'MCA TV criterio menor': c.mca_v_men1 === 'si' ? 'Sí' : '',
+    'MCA TV eje inferior/indet.': c.mca_v_men1 === 'si' ? 'Sí' : '',
     'MCA >500 EV/24h': c.mca_v_men2 === 'si' ? 'Sí' : '',
     'MCA familiar 1er grado TFC': c.mca_vi_may1 === 'si' ? 'Sí' : '',
     'MCA familiar autopsia': c.mca_vi_may2 === 'si' ? 'Sí' : '',
@@ -34231,6 +34685,8 @@ const LAB_XLS_MAP = [
   ['MCH excl. sindrómica',       'mch_ex_sindromica','vocab'],
   ['MCH excl. parada previa',    'mch_ex_parada', 'vocab'],
   ['MCH excl. reducción septal', 'mch_ex_reduccion','vocab'],
+  ['MCH familiar con MCH establecida','mch_fam_ms_mch','vocab'],
+  ['MCH múltiples mutaciones',   'mch_mult_mut',  'vocab'],
   ['MCH HTA resistente',         'mch_ctx_hta',   'vocab'],
   ['MCH crecimiento espesor (mm/año)','mch_ctx_crecimiento','num'],
   ['MCH deseo de embarazo',      'mch_ctx_embarazo','vocab'],
@@ -34279,7 +34735,7 @@ const LAB_XLS_MAP = [
   ['MCA potenciales tardíos',         'mca_iv_men1', 'vocab'],
   ['MCA activación terminal',         'mca_iv_men2', 'vocab'],
   ['MCA TV eje superior',             'mca_v_may', 'vocab'],
-  ['MCA TV criterio menor',           'mca_v_men1', 'vocab'],
+  ['MCA TV eje inferior/indet.',      'mca_v_men1', 'vocab'],
   ['MCA >500 EV/24h',                 'mca_v_men2', 'vocab'],
   ['MCA familiar 1er grado TFC',      'mca_vi_may1', 'vocab'],
   ['MCA familiar autopsia',           'mca_vi_may2', 'vocab'],
@@ -34555,7 +35011,7 @@ LAB_XLS_VOCAB.vab_fenotipo = { sin:'sin', 'sin dilatacion':'sin', normal:'sin',
  'mch_fam_mch','mch_sam','mch_mesocavitaria','mch_fam_ms','mch_sincope','mch_tvns',
  'mch_aneurisma_apical','mch_fibrosis_rmn','mch_tension_ejercicio','mch_ex_atleta',
  'mch_ex_fenocopia','mch_ex_sindromica','mch_ex_parada','mch_ex_reduccion',
- 'mch_ctx_hta','mch_ctx_embarazo'].forEach(function(k){
+ 'mch_ctx_hta','mch_ctx_embarazo','mch_mult_mut','mch_fam_ms_mch'].forEach(function(k){
   LAB_XLS_VOCAB[k] = Object.assign({}, LAB_XLS_VOCAB_3E);
 });
 LAB_XLS_VOCAB.mch_loc = { sept_ant:'sept_ant', 'septal anterosuperior':'sept_ant', 'septal anterior':'sept_ant',
@@ -34691,6 +35147,8 @@ const LAB_XLS_OPCIONES = {
   mch_ex_sindromica:'Sí · No · No consta',
   mch_ex_parada:'Sí · No · No consta',
   mch_ex_reduccion:'Sí · No · No consta',
+  mch_fam_ms_mch:'Sí · No · No consta',
+  mch_mult_mut:'Sí · No · No consta',
   mch_ctx_hta:'Sí · No · No consta',
   mch_ctx_embarazo:'Sí · No · No consta',
   ebs_func_vd:'Normal · Reducida leve · Reducida moderada · Reducida severa',
@@ -34717,7 +35175,7 @@ const LAB_XLS_OPCIONES = {
   mca_iv_men1:'Sí · No · vacío',
   mca_iv_men2:'Sí · No · vacío',
   mca_v_may:'Sí · No · vacío',
-  mca_v_men1:'Sí · No · vacío',   /* espejo: eje inferior, eje no determinado, o eje superior no sostenida */
+  mca_v_men1:'Sí · No · vacío',
   mca_v_men2:'Sí · No · vacío',
   mca_vi_may1:'Sí · No · vacío',
   mca_vi_may2:'Sí · No · vacío',
@@ -34911,7 +35369,7 @@ function labPlantillaXLSX() {
     ['un número que se veía un instante y desaparecía al guardar. Para cambiarlos, corregí'],
     ['las mediciones que los alimentan (VCI y colapso, PHT mitral, V. max Ao, V. max IT).'],
     ['Lo mismo con MCH TVNS en Holter, TdF taquicardia ventricular, MCA TV eje superior,'],
-    ['MCA TV criterio menor y MCA >500 EV/24h: se derivan del bloque de arritmia ventricular.'],
+    ['MCA TV eje inferior/indet. y MCA >500 EV/24h: se derivan del bloque de arritmia ventricular.'],
     ['Para cambiarlos, corregí TV documentada, TV tipo, TV morfología y eje y TV extrasístoles 24h.'],
     [''],
     ['COLUMNAS'],
@@ -40425,7 +40883,7 @@ const ECO_AYUDA = [
   <p class="mP">Se cargan la <b>hipertrofia</b> (espesor máximo, localización, patrón morfológico), la <b>obstrucción</b> (gradiente en reposo y con Valsalva, SAM, obstrucción mesocavitaria, clase funcional), los <b>factores de riesgo de muerte súbita</b> y las <b>exclusiones del modelo</b>. El diámetro de aurícula izquierda y la FEVI se muestran en gris: se miden en <b>AI / VI</b>.</p>
   <div class="mBox mTip"><b>El espesor máximo es un campo propio y no se deduce del SIV.</b> En la miocardiopatía hipertrófica el punto de mayor espesor no siempre es septal: puede ser apical, lateral o medioventricular. El SIV y la PP se muestran al lado como referencia, pero el que entra en el score es el que cargás vos. <b>Ojo si además integrás Amiloidosis:</b> ese módulo imprime su propio «espesor parietal máximo», calculado desde sus campos y con umbral de 12 mm. Por eso esta sección rotula el suyo como «medido en esta sección» — son dos mediciones distintas en la misma hoja. Umbral diagnóstico <b>≥15 mm</b>, o <b>≥13 mm</b> con historia familiar de MCH. Si marcás <b>fenocopia</b> o <b>forma sindrómica</b>, el informe habla de «hipertrofia ventricular izquierda» y no de miocardiopatía hipertrófica: la MCH se define por hipertrofia <i>sin causa que la explique</i>, y marcar esas casillas es decir que la causa se conoce.</div>
 
-  <div class="mBox mAviso"><b>Dos scores, lado a lado, y no se promedian.</b> El europeo (<b>HCM Risk-SCD</b>) es una ecuación continua que devuelve un porcentaje a 5 años; el americano (<b>AHA/ACC 2020</b>) es un conteo de siete factores mayores. Discrepan de verdad, y elegir uno sería decidir por vos. Bandas de la ESC: <b>&lt;4 %</b> bajo · <b>4 a 6 %</b> intermedio (DAI Clase IIb) · <b>≥6 %</b> alto (DAI Clase IIa). La AHA: <b>al menos un factor mayor</b> hace razonable el desfibrilador (Clase IIa).</div>
+  <div class="mBox mAviso"><b>Dos scores, lado a lado, y no se promedian.</b> El europeo (<b>HCM Risk-SCD</b>) es una ecuación continua que devuelve un porcentaje a 5 años; el americano (<b>AHA/ACC 2020</b>) es un conteo de <b>cinco</b> factores mayores. Discrepan de verdad, y elegir uno sería decidir por vos. Bandas de la ESC: <b>&lt;4 %</b> bajo · <b>4 a 6 %</b> intermedio (DAI Clase IIb) · <b>≥6 %</b> alto (DAI Clase IIa). La AHA: <b>al menos un factor mayor</b> hace razonable el desfibrilador (Clase IIa); sin ninguno, la TVNS o el realce tardío extenso lo dejan en Clase IIb, que es «puede considerarse». El botón <b>📋 Ver criterios</b> de la sección abre los dos algoritmos dibujados, con una tabla de dónde no coinciden.</div>
   <div class="mBox mAviso"><b>Si falta cualquiera de las siete variables, no se publica el número.</b> El score necesita espesor máximo, diámetro AP de aurícula izquierda, gradiente en el tracto de salida, edad, historia familiar de muerte súbita, TVNS y síncope inexplicado. Los tres últimos exigen respuesta <b>explícita</b>: tratar un «No consta» como un «No» es lo que hace la mayoría de las calculadoras, y es la razón por la que el número sale más bajo de lo que corresponde — un síncope no preguntado pesa 0,72 en el índice pronóstico, que no es poco.</div>
   <div class="mBox mAviso"><b>Las exclusiones no son advertencias, son compuertas.</b> El HCM Risk-SCD no está validado en menores de 16 años, atletas de competición, fenocopias metabólicas o infiltrativas (Fabry, <b>amiloidosis</b>), MCH sindrómica, parada cardíaca o TV sostenida previa, ni después de miectomía o alcoholización septal. Con cualquiera de ésas <b>marcada</b> la app no muestra el porcentaje y dice cuál lo impide. <b>Sin contestar es distinto:</b> el número se publica —bloquearlo pediría contestar seis desplegables antes de ver nada— pero tanto el cuerpo como el EN SUMA dicen que la aplicabilidad del modelo no se verificó y cuántas exclusiones quedaron abiertas. Los menores de 16 años se detectan solos desde Datos del paciente. Y si el <b>módulo de amiloidosis</b> de esta app tiene datos cargados y la pregunta de fenocopia quedó sin contestar, el aviso lo dice con todas las letras: que ese módulo esté en uso significa que la amiloidosis se está evaluando, que es lo contrario de que esté confirmada, así que la app no lo deriva sola.</div>
   <div class="mBox mTip"><b>Con parada cardíaca o TV sostenida previa</b> el informe además aclara que el desfibrilador está indicado en <b>prevención secundaria</b>, con independencia del score. Es la situación en la que un porcentaje bajo podría leerse al revés de lo que corresponde.</div>
