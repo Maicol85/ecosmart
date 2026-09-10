@@ -918,6 +918,46 @@ cierre» **en el EN SUMA**. Hoy: la PSAP se presta sólo si el ductus es `no_res
 ≥3 mm, y el Qp/Qs se ignora si hay una CIA/CIV cargada. Es el mismo defecto que ya se cerró en
 TAVI con el PHT de la IA nativa.
 
+### MCH — especificación verificada del score, pendiente de implementar
+
+Acordado con Maicol el 2026-09-10, antes de escribir la sección. Se registra acá porque la
+implementación va dos etapas más adelante y la fórmula **no se puede reconstruir de memoria**.
+
+**Fórmula HCM Risk-SCD (ESC, O'Mahony 2014) — verificada coeficiente por coeficiente:**
+
+```
+riesgo a 5 años = 1 − 0.998^exp(PI)
+PI =  0.15939858 × espesor máximo (mm)
+    − 0.00294271 × espesor máximo² (mm²)
+    + 0.0259082  × diámetro AP de aurícula izquierda (mm)
+    + 0.00446131 × gradiente TSVI máximo (mmHg)
+    + 0.4583082  × historia familiar de muerte súbita (0/1)
+    + 0.82639195 × TVNS (0/1)
+    + 0.71650361 × síncope inexplicado (0/1)
+    − 0.01799934 × edad en la evaluación (años)
+```
+Bandas: <4 % bajo (DAI no indicado de rutina) · 4-6 % intermedio (IIb) · >6 % alto (IIa).
+
+**El campo de aurícula es `ai_diam` («Diámetro AP (mm)», tab AI/VI), NO `lars` ni el LAVI.**
+La nota original decía «LAVI (ml/m²) — sincronizar con `lars`», y son tres magnitudes
+distintas: `lars` es strain de reservorio en **%** y alimenta `calcDiastol`. El coeficiente
+está calibrado sobre milímetros. Medido: espesor 25 mm, gradiente 60, familiar sí, 40 años →
+con `ai_diam`=48 da **5,80 % (intermedio, DAI IIb)** y con `lars`=25 da **3,24 % (bajo, no
+indicado)**. Cruza la banda. En un segundo caso el número cae de 15,94 % a 7,30 %.
+
+**Exclusiones del modelo — son compuertas, no factores.** El HCM Risk-SCD no está validado en:
+menores de 16 años · atletas · fenocopias metabólicas o infiltrativas (Fabry, **amiloidosis** —
+y esta app tiene módulo propio de amiloidosis, así que el caso es alcanzable) · HCM sindrómica ·
+parada cardíaca o TV sostenida previa (ya son prevención secundaria: el DAI está indicado con
+independencia del score) · post-miectomía o post-alcoholización septal. Sin estas guardas el
+número sale igual y no se puede usar.
+
+**Factores mayores AHA/ACC 2020** (para el cálculo paralelo): historia familiar de muerte
+súbita por MCH · espesor ≥30 mm · síncope inexplicado · TVNS · aneurisma apical ·
+**disfunción sistólica del VI (FEVI <50 %)** · realce tardío extenso por RMN. La
+**respuesta tensional anormal al ejercicio NO figura** en la lista de 2020 (venía de
+iteraciones anteriores), y la FEVI sí — la app ya tiene el campo.
+
 ## Deuda conocida sin resolver
 
 - **Contraseña en el código.** `doLogin()` compara contra un literal. Choca con el checklist
