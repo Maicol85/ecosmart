@@ -16631,6 +16631,27 @@ function generarInforme(opts) {
 
   let inf = [];
   let suma = [];
+  /* Las líneas de congénitas van a su PROPIO acumulador y se vuelcan al final, después de los
+     hallazgos cardíacos generales. Antes se intercalaban en `suma` a medida que cada sección
+     se emitía, así que quedaban tipográficamente indistinguibles de «IT leve.» — dos renglones
+     idénticos, uno de rutina y otro con el nombre de una cardiopatía congénita.
+     `sumaCC` filtra el `null` en el borde: cada constructor devuelve `null` cuando falta el dato
+     principal de su sección, y así ninguna llamada necesita repetir la guarda. */
+  const sumaCCLineas = [];
+  /* Prueba de que una sección de CONGÉNITAS escribió párrafo en el cuerpo. Lo consume el
+     fallback del EN SUMA para no negar en la conclusión lo que el informe acaba de describir.
+     Se marca sección por sección y NO desde `etePars.length`: ese acumulador es del bloque ETE
+     entero —morfología mitral, orejuela, aorta torácica por ETE, TAVI— así que un estudio normal
+     con un ETE hecho y la aorta descrita como «íntima normal, sin aterosclerosis» ponía la
+     bandera en true y el EN SUMA salía diciendo «Sin OTRAS alteraciones significativas — ver los
+     hallazgos descritos en el cuerpo», que implica hallazgos que no existen y manda a buscarlos. */
+  let _ccHuboParrafo = false;
+  const sumaCC = function(linea){
+    if (typeof linea === 'string' && linea.trim()) sumaCCLineas.push(linea.trim().replace(/\.$/, '') + '.');
+  };
+  /* Lo llama cada sección de congénitas justo después de empujar su párrafo. Es lo único que
+     autoriza al fallback a decir «sin OTRAS alteraciones». */
+  const ccMarcarParrafo = function(){ _ccHuboParrafo = true; };
 
   // Helper: capitaliza la primera letra de la oración
   const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
@@ -17489,7 +17510,7 @@ function generarInforme(opts) {
         if(q!=null) p.push('Qp/Qs global '+q.toFixed(2));
         if(f1(di)) p.push('DDVI indexado '+f1(di)+' mm/m²');
         if(f1(paps)) p.push('PAPs por IT '+f1(paps)+' mmHg');
-        etePars.push(p.join('. ')+'.'); emitido = true;
+        etePars.push(p.join('. ')+'.'); emitido = true; ccMarcarParrafo();
       }
 
       // ── CIV ──
@@ -17506,13 +17527,16 @@ function generarInforme(opts) {
         let pc = (vVel!=null && vPas!=null) ? (vPas - 4*vVel*vVel) : null;
         if(pc!=null && isFinite(pc) && pc>=5 && pc<=150) p.push('PAPs estimada por CIV '+f1(pc)+' mmHg');
         else if(f1(paps)) p.push('PAPs por IT '+f1(paps)+' mmHg');
-        etePars.push(p.join('. ')+'.'); emitido = true;
+        etePars.push(p.join('. ')+'.'); emitido = true; ccMarcarParrafo();
       }
 
       /* El EN SUMA sólo habla del shunt si el CUERPO describió alguno: con el checkbox
          tildado y sólo el TSVD cargado, la conclusión afirmaba «Qp/Qs 1.90 — shunt moderado,
-         considerar cierre» sobre un informe que no menciona ningún defecto. */
-      if(q!=null && emitido) suma.push('Qp/Qs '+q.toFixed(2)+'. '+eteQpQsInterp(q)+'.');
+         considerar cierre» sobre un informe que no menciona ningún defecto.
+         El Qp/Qs ya NO sube como línea suelta: se absorbió dentro de la línea de CIA y la de
+         CIV, que es donde el número tiene a qué defecto atribuirse. Suelto aparecía dos veces
+         con distinta redacción en cuanto hubiera CIA y CIV a la vez. */
+      if (emitido) { sumaCC(ccSumaLinea('cia')); sumaCC(ccSumaLinea('civ')); }
     })();
 
     /* 6. TAVI — ídem, gateado por su propio checkbox. */
@@ -17638,13 +17662,13 @@ function generarInforme(opts) {
       if (f1(g)) p.push('Gradiente instantáneo máximo ' + f1(g) + ' mmHg');
       if (q != null) p.push('Qp/Qs global ' + q.toFixed(2));
       if (f1(paps)) p.push('PAPs estimada ' + f1(paps) + ' mmHg');
-      etePars.push(p.join('. ') + '. ' + c.txt + '.');
+      etePars.push(p.join('. ') + '. ' + c.txt + '.'); ccMarcarParrafo();
       /* Al EN SUMA sólo las conclusiones ACCIONABLES. Mismo criterio que el shunt —que sólo
          resume si el cuerpo describió un defecto— pero además filtrado por relevancia: un
          ductus silente o pequeño sin repercusión no cambia ninguna conducta y llenaría la
          conclusión de hallazgos incidentales. Los tres que quedan sí: uno indica cierre, otro
          obliga a estudiar operabilidad. */
-      if (c.clave === 'grande' || c.clave === 'htp' || c.clave === 'moderado') suma.push(c.txt + '.');
+      sumaCC(ccSumaLinea('dap'));
     })();
 
     /* ── Coartación de aorta ── */
@@ -17684,11 +17708,11 @@ function generarInforme(opts) {
          en algo que se lee como descartado, en un documento firmado que otro médico va a leer
          meses después sin poder saber que la casilla nunca se tocó. */
       if (cola) p.push('Flujo diastólico anterógrado presente en aorta descendente');
-      etePars.push(p.join('. ') + '. ' + c.txt + '.');
+      etePars.push(p.join('. ') + '. ' + c.txt + '.'); ccMarcarParrafo();
       /* La significativa y la limítrofe sí van al EN SUMA: la primera indica intervención y la
          segunda manda a pedir una angio-RMN. Dejar una indicación de intervención sólo en el
          cuerpo del informe es exactamente lo que la conclusión existe para evitar. */
-      if (c.clave === 'significativa' || c.clave === 'limitrofe') suma.push(c.txt + '.');
+      sumaCC(ccSumaLinea('coa'));
       /* Cruce con la bicúspide. La asociación es del 50-85 %, o sea que en una coartación la
          válvula aórtica NO es un hallazgo incidental: es parte de la evaluación. Y en la otra
          dirección la coartación es uno de los nueve factores de riesgo de la ESC 2024 que bajan
@@ -17708,11 +17732,10 @@ function generarInforme(opts) {
         const _av = 'La coartación de aorta se asocia a válvula aórtica bicúspide en el 50-85 % de los casos; ' +
                     'en este estudio no consta la evaluación de la válvula aórtica en ese sentido.';
         etePars.push(_av);
-        /* Y sube al EN SUMA. El comentario de veinte líneas más arriba ya fija el criterio para
-           este mismo bloque: dejar en el cuerpo algo que cambia una conducta es exactamente lo
-           que la conclusión existe para evitar. El módulo de FOP hace lo mismo con su «falta el
-           contexto». */
-        suma.push(_av);
+        /* Y sube al EN SUMA, dentro del bloque de congénitas y no suelto entre los hallazgos
+           generales: es una salvedad SOBRE la coartación, y separada de su línea se leía como un
+           comentario de la válvula aórtica. */
+        sumaCC(_av);
       }
     })();
 
@@ -17738,12 +17761,8 @@ function generarInforme(opts) {
          el informe no puede afirmar nada sobre lo que nadie miró. */
       if (htp === 'si') p.push('Con hipertensión pulmonar asociada');
       else if (htp === 'no') p.push('Sin hipertensión pulmonar asociada');
-      etePars.push(p.join('. ') + '. ' + c.txt + '.');
-      /* Las tres ramas accionables suben al EN SUMA. La de Eisenmenger sobre todo: es una
-         CONTRAINDICACIÓN, y dejarla sepultada en el cuerpo del informe es exactamente lo que la
-         conclusión existe para evitar. */
-      if (c.clave === 'eisenmenger' || c.clave === 'htp' || c.clave === 'cierre' ||
-          c.clave === 'htp_no_eval') suma.push(c.txt + '.');
+      etePars.push(p.join('. ') + '. ' + c.txt + '.'); ccMarcarParrafo();
+      sumaCC(ccSumaLinea('vap'));
     })();
 
     /* ── Foramen oval permeable ── */
@@ -17778,15 +17797,13 @@ function generarInforme(opts) {
       } else if (contraste === 'no') {
         p.push('No se realizó estudio con contraste');
       }
-      etePars.push(p.join('. ') + '. ' + c.txt + '.');
+      etePars.push(p.join('. ') + '. ' + c.txt + '.'); ccMarcarParrafo();
       /* Al EN SUMA sólo lo que cambia una conducta. `incidental` no: un FOP sin contexto es un
          hallazgo de uno de cada cuatro adultos y llenaría la conclusión de ruido.
          `sin_contexto` SÍ sube, aunque no sea una indicación: le está diciendo al médico que
          falta el dato del que depende la decisión, y eso tiene que verse en la conclusión y no
          doce renglones más arriba. */
-      if (c.clave === 'cierre_iia' || c.clave === 'acv_mayor' || c.clave === 'trombofilia' ||
-          c.clave === 'alto_riesgo_sin_evento' || c.clave === 'sin_contexto' ||
-          c.clave === 'acv_sin_edad') suma.push(c.txt + '.');
+      sumaCC(ccSumaLinea('fop'));
     })();
 
     /* ── Válvula aórtica bicúspide ── */
@@ -17810,11 +17827,8 @@ function generarInforme(opts) {
       /* El fenotipo extendido no tiene umbral propio en la ESC 2024. Se dice en el informe en vez
          de que el lector suponga que el cálculo lo contempló. */
       if (feno === 'arco') p.push('El fenotipo extendido no tiene umbral quirúrgico propio en la ESC 2024: la decisión es individual');
-      etePars.push(p.join('. ') + '. ' + c.txt + '.');
-      /* Al EN SUMA todo lo que cambia una conducta o señala que falta el dato que la decide. La
-         rama benigna «sin dilatación» también sube, y a propósito: lleva el cribado familiar, que
-         es una acción sobre personas que no están en la consulta y que si no se escribe no ocurre. */
-      if (c.clave !== 'no_interpretable') suma.push(c.txt + '.');
+      etePars.push(p.join('. ') + '. ' + c.txt + '.'); ccMarcarParrafo();
+      sumaCC(ccSumaLinea('vab'));
     })();
 
     /* ── Miocardiopatía hipertrófica ── */
@@ -17838,12 +17852,8 @@ function generarInforme(opts) {
       if (sv('mch_sam') === 'si' && _imTxt) p.push('Insuficiencia mitral ' + _imTxt + ' en presencia de SAM');
       /* `c.txt` ya trae el diagnóstico, la obstrucción, los dos scores y el contexto: se arma
          entero en mchConclusion para que la pantalla y el informe no puedan divergir. */
-      etePars.push(p.join('. ') + '. ' + c.txt + '.');
-      /* Todo sube al EN SUMA menos el caso sin datos suficientes para nada. Una estratificación
-         de muerte súbita sepultada en el cuerpo del informe no cumple ninguna función, y las
-         ramas «no aplicable» y «faltan datos» son justamente las que el médico necesita ver
-         para saber que el número que esperaba no está. */
-      if (c.clave !== 'no_interpretable') suma.push((c.resumen || c.txt) + '.');
+      etePars.push(p.join('. ') + '. ' + c.txt + '.'); ccMarcarParrafo();
+      sumaCC(ccSumaLinea('mch'));
     })();
 
     /* ── Ebstein · Fallot reparada · TGA corregida ──
@@ -17851,10 +17861,10 @@ function generarInforme(opts) {
        sólo decide si van. Se agrupan en una tabla en vez de repetir tres IIFE idénticos — con
        ocho secciones ya escritas, el copiar y pegar es lo que hace que una se quede sin una
        corrección que las otras sí reciben. */
-    [['ebs_incluir_chk', typeof ebsConclusion === 'function' ? ebsConclusion : null, typeof ebsSync === 'function' ? ebsSync : null],
-     ['tdf_incluir_chk', typeof tdfConclusion === 'function' ? tdfConclusion : null, typeof tdfSync === 'function' ? tdfSync : null],
-     ['tga_incluir_chk', typeof tgaConclusion === 'function' ? tgaConclusion : null, typeof tgaSync === 'function' ? tgaSync : null],
-     ['mca_incluir_chk', typeof mcaConclusion === 'function' ? mcaConclusion : null, typeof mcaSync === 'function' ? mcaSync : null]
+    [['ebs_incluir_chk', typeof ebsConclusion === 'function' ? ebsConclusion : null, typeof ebsSync === 'function' ? ebsSync : null, 'ebs'],
+     ['tdf_incluir_chk', typeof tdfConclusion === 'function' ? tdfConclusion : null, typeof tdfSync === 'function' ? tdfSync : null, 'tdf'],
+     ['tga_incluir_chk', typeof tgaConclusion === 'function' ? tgaConclusion : null, typeof tgaSync === 'function' ? tgaSync : null, 'tga'],
+     ['mca_incluir_chk', typeof mcaConclusion === 'function' ? mcaConclusion : null, typeof mcaSync === 'function' ? mcaSync : null, 'mca']
     ].forEach(function(sec){
       const chk = document.getElementById(sec[0]);
       if (!chk || !chk.checked || !sec[1]) return;
@@ -17865,10 +17875,14 @@ function generarInforme(opts) {
          ruidosamente es preferible a que falte en silencio. */
       const c = sec[1]();
       if (!c) return;
-      etePars.push(c.txt + '.');
-      /* Todo sube al EN SUMA menos lo ilegible: las tres publican conducta, y una indicación
-         quirúrgica sepultada en el cuerpo no cumple ninguna función. */
-      if (c.clave !== 'no_interpretable') suma.push((c.resumen || c.txt) + '.');
+      etePars.push(c.txt + '.'); ccMarcarParrafo();
+      /* `clave !== 'no_interpretable'` YA NO gatea. Ese filtro borraba del EN SUMA afirmaciones
+         que el cuerpo sí publicaba: con `mca_tsvd_plax` cargado en cm en vez de mm, el cuerpo
+         imprimía «Task Force 2010: 4 puntos — diagnóstico DEFINITIVO» y el EN SUMA quedaba mudo.
+         Un valor ilegible tiene que bloquear la NEGACIÓN, no la afirmación — es la regla que
+         `vabConclusion` ya aplica en su cascada. Cada constructor decide qué decir en ese caso,
+         y todos dicen «medidas fuera de rango, revisar unidades». */
+      sumaCC(ccSumaLinea(sec[3]));
     });
 
     if (etePars.length) inf.push('', ...etePars);
@@ -17883,8 +17897,32 @@ function generarInforme(opts) {
   // Escribir informe — en los refrescos silenciosos se respeta lo que el médico escribió.
   _infBase = _infEscribir('informe_texto', inf.filter(Boolean), _silencioso, _infBase);
 
+  /* ── Bloque de congénitas y miocardiopatías genéticas ──
+     Va DESPUÉS de los hallazgos cardíacos generales y con rótulo propio. El rótulo no es
+     decoración: sin él, «MCH sigmoidea — espesor máx. 25 mm — …» queda pegada a «IT leve.» con
+     la misma tipografía y el mismo interlineado.
+     Se usa un rótulo y NO una línea en blanco porque `_infEscribir` recibe `suma.filter(Boolean)`
+     y una cadena vacía es falsy: el único separador que el archivo intentaba —el `inf.push('',
+     ...etePars)` del cuerpo— lo borra el propio filtro de la línea que lo escribe, así que era
+     código muerto desde siempre. Un rótulo es truthy y sobrevive. */
+  if (sumaCCLineas.length) {
+    suma.push('Cardiopatías congénitas y miocardiopatías genéticas:');
+    sumaCCLineas.forEach(function(l){ suma.push(l); });
+  }
+
   // Escribir En Suma
-  if (suma.length === 0) suma.push('Estudio sin alteraciones estructurales ni funcionales significativas.');
+  /* El fallback NO puede correr si el cuerpo describió algo. `suma.length === 0` significaba
+     «sin hallazgos» y también «los hallazgos no pasaron su filtro», y las dos cosas producían
+     la misma frase. Caso medido: una CIA de 30 × 24 mm con borde inferior de 2 mm, descrita en
+     el cuerpo con todas las letras, salía en el EN SUMA —que es la superficie que se lee y se
+     copia— como «Estudio sin alteraciones estructurales ni funcionales significativas». El
+     informe firmado negaba el hallazgo que describía dos párrafos más arriba.
+     `etePars` es la prueba de que hubo párrafo: si tiene algo, la negación global no se emite. */
+  if (suma.length === 0) {
+    suma.push(_ccHuboParrafo
+      ? 'Sin otras alteraciones estructurales ni funcionales significativas — ver los hallazgos descritos en el cuerpo del informe.'
+      : 'Estudio sin alteraciones estructurales ni funcionales significativas.');
+  }
   _sumaBase = _infEscribir('en_suma', suma.filter(Boolean), _silencioso, _sumaBase);
 
   if (!_silencioso) { toast('✅ Informe generado'); showTabById('informe'); }
@@ -23492,6 +23530,385 @@ function mcaTogglePunto(id){
 window.mcaTogglePunto = mcaTogglePunto;
 window.mcaSync = mcaSync; window.mcaConclusion = mcaConclusion;
 
+/* ══════════════ LÍNEA DE EN SUMA POR SECCIÓN DE CONGÉNITAS ══════════════════════════════
+   El informe tiene DOS superficies en el mismo PDF: el CUERPO, con el párrafo narrativo, y el
+   EN SUMA, que es lo que se lee y lo que se copia. Hasta el 2026-09-10 nueve de las doce
+   secciones subían al EN SUMA su párrafo ENTERO —hasta 570 caracteres, cinco oraciones— y las
+   otras tres no subían nada. Acá cada sección arma UNA línea corta y estructurada.
+
+   ── QUÉ VA Y QUÉ NO ──
+   El EN SUMA informa HALLAZGOS y CRITERIOS DIAGNÓSTICOS, nunca recomendaciones terapéuticas
+   (decisión del médico, 2026-09-10). O sea: «criterios de significación», no «indicación de
+   intervención»; «shunt significativo», no «cierre indicado»; el porcentaje del score y su
+   banda, no la clase de recomendación del desfibrilador. La conducta y su clase siguen en el
+   cuerpo del informe, completas.
+   Esto REVIERTE una decisión anterior que está escrita en el emisor de la coartación —«dejar
+   una indicación de intervención sólo en el cuerpo es lo que la conclusión existe para
+   evitar»—. Lo que la reemplaza no es el silencio: la línea publica el CRITERIO que dispara
+   la conducta, que es el hecho verificable, y quien lee «criterios de significación» sabe qué
+   sigue. La app informa el riesgo; la indicación la firma el médico.
+
+   ── POR QUÉ NO SE RECALCULA NADA ──
+   Cada constructor lee los MISMOS accesores que la conclusión de su sección (`_mchNv`,
+   `mchEspesor()`, `mcaScore()`, `ebsCelermajer()`, `ccQpQsDe()`). No hay una segunda derivación
+   del mismo hecho: eso es lo que hace que la conclusión y el cuerpo terminen discrepando, y en
+   este archivo ya pasó con una fórmula duplicada entre pantalla e informe.
+
+   ── LA COMPUERTA ──
+   Devuelve `null` si falta el DATO PRINCIPAL de la sección (tamaño, gradiente, score). Una
+   línea que dijera «CIA — cierre indicado» sin un solo número no es una conclusión, es una
+   afirmación sin sustento; y el nombre de la cardiopatía en el EN SUMA de un paciente que no
+   la tiene es peor que la ausencia de la línea.
+
+   Declaración de función y no `const`: se lee desde el emisor, a 6.000 líneas de acá, y un
+   `const` de nivel superior leído antes de su línea corta el bloque `<script>` entero. */
+function _ccS(id){ return (document.getElementById(id)?.value || '').trim(); }
+function _ccNum(id){ const n = (typeof v === 'function') ? v(id) : null; return (n != null && isFinite(n)) ? n : null; }
+function _cc1(n){ return (n == null || !isFinite(n)) ? null : String(Math.round(n * 10) / 10); }
+
+/* Grados valvulares: el código 3 es MODERADA-SEVERA en toda la app, no severa. */
+const _CC_GRADO = { '1':'leve', '2':'moderada', '3':'moderada-severa', '4':'severa' };
+const _CC_FUNCVD = { normal:'función normal', leve:'disfunción leve', moderada:'disfunción moderada', severa:'disfunción severa' };
+
+function ccSumaLinea(sec){
+  /* `_ccLbl` y NO `MAPA[k] || k`. El `||` no cae al fallback con las claves heredadas de
+     Object.prototype: un `k='constructor'` llegado por import de backup JSON convierte el
+     rótulo en «function Object() { [native code] }» dentro del informe firmado. */
+  const L = function(mapa, k){ return _ccLbl(mapa, k); };
+  const G = function(id){ return _ccLbl(_CC_GRADO, _ccS(id)) || null; };
+  const F = function(id){ return _ccLbl(_CC_FUNCVD, _ccS(id)) || null; };
+  /* Banda de plausibilidad para los números que la línea publica. CIA y CIV no tenían ninguna
+     en NINGUNA parte de la app —deuda ya declarada en CLAUDE.md— y hasta ahora no importaba
+     porque sus números no llegaban al EN SUMA. Ahora sí: una velocidad de CIV tipeada en cm/s
+     (300) publicaba «gradiente 360000 mmHg» en la conclusión firmada. Fuera de banda se declara
+     y no se imprime el número: negar apoyado en un valor ilegible es el defecto de ductus y
+     coartación, y afirmarlo es peor. */
+  const fuera = [];
+  const B = function(n, lo, hi, lbl){
+    if (n == null) return null;
+    if (n >= lo && n <= hi) return n;
+    fuera.push(lbl); return null;
+  };
+  const cierraFuera = function(cab){
+    return fuera.length ? cab + ' — ' + fuera.join(' y ') + ' fuera de rango: revisar unidades' : null;
+  };
+  const Q = function(cual){ return (typeof ccQpQsDe === 'function') ? ccQpQsDe(cual) : null; };
+  /* Interpretación del shunt en clave DIAGNÓSTICA. `eteQpQsInterp` no sirve acá: sus ramas
+     terminan en «conducta conservadora», «considerar cierre» y «evaluar cierre». Lo que sí se
+     conserva de aquella es la salvedad del cociente invertido, que NO es una conducta sino el
+     hallazgo que cambia el diagnóstico. */
+  const qTxt = function(q){
+    if (q == null) return null;
+    if (q < 1)   return 'flujo neto de derecha a izquierda — descartar hipertensión pulmonar o fisiología de Eisenmenger';
+    if (q < 1.5) return 'shunt pequeño';
+    if (q <= 2)  return 'shunt moderado';
+    return 'shunt significativo';
+  };
+
+  switch (sec) {
+
+  case 'cia': {
+    const tipo = _ccS('ete_cia_tipo');
+    const mx = B(_ccNum('ete_cia_tam_max'), 1, 60, 'tamaño máximo de la CIA');
+    const mn = B(_ccNum('ete_cia_tam_min'), 1, 60, 'tamaño mínimo de la CIA');
+    const bmRaw = (typeof eteCiaBordeMin === 'function') ? eteCiaBordeMin() : null;
+    const bm = (bmRaw && bmRaw.mm != null && bmRaw.mm >= 0 && bmRaw.mm <= 40) ? bmRaw : null;
+    const cab = 'CIA' + (tipo ? ' ' + L(CIA_TIPO_TXT, tipo) : '');
+    const fz = cierraFuera(cab); if (fz) return fz;
+    /* Dato principal: el TAMAÑO. El Qp/Qs solo no alcanza — sale de cuatro mediciones de otras
+       dos pestañas y existe en casi todo estudio completo, así que con él como disparador la
+       línea aparecería en pacientes sin ninguna comunicación. */
+    if (mx == null && mn == null) return null;
+    const q = Q('cia');
+    let l = cab + ' ';
+    l += (mx != null && mn != null) ? (_cc1(mx) + '×' + _cc1(mn) + ' mm') : (_cc1(mx != null ? mx : mn) + ' mm');
+    /* «Qp/Qs global», con el adjetivo que el cuerpo también usa: con CIA y CIV a la vez el
+       cociente es el MISMO para las dos y sin el adjetivo se lee como propio de cada defecto. */
+    if (q != null) l += ' — Qp/Qs global ' + q.toFixed(2) + (qTxt(q) ? ', ' + qTxt(q) : '');
+    if (bm) l += ' — borde ' + bm.nombre + ' de ' + _cc1(bm.mm) + ' mm';
+    return l;
+  }
+
+  case 'civ': {
+    const tipo = _ccS('ete_civ_tipo');
+    const tam = B(_ccNum('ete_civ_tam'), 0.5, 60, 'tamaño de la CIV');
+    const vel = B(_ccNum('ete_civ_vel'), 0.3, 9, 'velocidad del jet de la CIV');
+    const cab = 'CIV' + (tipo ? ' ' + L(CIV_TIPO_TXT, tipo) : '');
+    const fz = cierraFuera(cab); if (fz) return fz;
+    if (tam == null && vel == null) return null;
+    let l = cab;
+    if (tam != null) l += ' ' + _cc1(tam) + ' mm';
+    if (vel != null) l += ' — gradiente ' + _cc1(4 * vel * vel) + ' mmHg';
+    /* El Qp/Qs se emite UNA sola vez por informe. Con CIA y CIV cargadas las dos llamadas
+       devuelven el mismo cociente —`ccQpQsDe` mapea ambas al grupo «shunt»— y el EN SUMA lo
+       publicaba dos veces con distinta redacción. Lo lleva la línea de la CIA si existe. */
+    const yaCIA = (_ccNum('ete_cia_tam_max') != null || _ccNum('ete_cia_tam_min') != null);
+    const q = yaCIA ? null : Q('civ');
+    if (q != null) l += ' — Qp/Qs global ' + q.toFixed(2) + (qTxt(q) ? ', ' + qTxt(q) : '');
+    return l;
+  }
+
+  case 'dap': {
+    const c = (typeof dapConclusion === 'function') ? dapConclusion() : null;
+    if (!c) return null;
+    const tipo = _ccS('dap_tipo'), diam = _ccNum('dap_diam'), q = Q('dap');
+    /* Los textos NO repiten el tipo, que la línea ya nombró. */
+    const DX = { htp:'con hipertensión pulmonar', grande:'con repercusión hemodinámica significativa',
+                 moderado:'con repercusión hemodinámica', pequeno:'sin repercusión hemodinámica',
+                 silente:'sin repercusión hemodinámica',
+                 no_interpretable:'medidas fuera de rango — revisar unidades',
+                 incompleto:'datos incompletos para clasificarlo' };
+    if (diam == null && q == null && !tipo && c.clave !== 'no_interpretable') return null;
+    let l = 'DAP' + (tipo ? ' ' + L(DAP_TIPO_TXT, tipo) : '');
+    if (diam != null) l += ' ' + _cc1(diam) + ' mm';
+    if (q != null) l += ' — Qp/Qs global ' + q.toFixed(2);
+    const dx = L(DX, c.clave);
+    return l + (dx ? ' — ' + dx : '');
+  }
+
+  case 'coa': {
+    const c = (typeof coaConclusion === 'function') ? coaConclusion() : null;
+    if (!c) return null;
+    const loc = _ccS('coa_loc'), sit = _ccS('coa_situacion');
+    const g = (typeof coaGmax === 'function') ? coaGmax() : null;
+    const gm = _ccNum('coa_gmedio'), ist = _ccNum('coa_istmo');
+    const cola = !!document.getElementById('coa_diast_anterogrado')?.checked;
+    const DX = { significativa:'criterios de significación', limitrofe:'gradiente limítrofe',
+                 no_significativa:'sin gradiente significativo',
+                 no_interpretable:'medidas fuera de rango — revisar unidades',
+                 incompleto:'datos incompletos para clasificarla' };
+    /* La compuerta deja pasar «significativa» aunque no haya números: la COLA DIASTÓLICA basta
+       sola para esa clave, y es justo el signo que salva el caso en que el gradiente subestima.
+       Con la compuerta puramente numérica, el hallazgo más específico de la sección quedaba sólo
+       en el cuerpo. */
+    if (g == null && gm == null && ist == null && c.clave !== 'significativa' && c.clave !== 'no_interpretable') return null;
+    /* «Recoartación» y «Coartación nativa» no son lo mismo, y la línea decía «CoAo» para las dos. */
+    /* Los valores del select son `nativa` y `recoartacion` — no `operada`. Un valor inventado
+       hace que `_ccLbl` devuelva '' y la línea caiga al genérico «CoAo» en silencio, que es
+       justo la distinción que esta rama viene a rescatar. */
+    const CAB = { nativa:'Coartación de aorta nativa', recoartacion:'Recoartación post-intervención' };
+    let l = (L(CAB, sit) || 'CoAo') + (loc ? ' ' + L(COA_LOC_TXT, loc) : '');
+    if (ist != null) l += ' — istmo ' + _cc1(ist) + ' mm';
+    if (g != null) l += ' — gradiente máx. ' + _cc1(g) + ' mmHg';
+    else if (gm != null) l += ' — gradiente medio ' + _cc1(gm) + ' mmHg';
+    if (cola) l += ' — cola diastólica presente';
+    const dx = L(DX, c.clave);
+    return l + (dx ? ' — ' + dx : '');
+  }
+
+  case 'vap': {
+    const c = (typeof vapConclusion === 'function') ? vapConclusion() : null;
+    if (!c) return null;
+    const tipo = _ccS('vap_tipo'), diam = _ccNum('vap_diam'), q = Q('vap');
+    const DX = { eisenmenger:'shunt invertido — fisiología de Eisenmenger', htp:'con hipertensión pulmonar',
+                 htp_no_eval:'sin evaluación de la presión pulmonar', cierre:'shunt de izquierda a derecha',
+                 no_interpretable:'medidas fuera de rango — revisar unidades' };
+    /* Eisenmenger pasa sin tipo ni diámetro: `vapConclusion` la dispara con la DIRECCIÓN sola, y
+       es la frase más grave que emite esta sección. */
+    if (!tipo && diam == null && c.clave !== 'eisenmenger' && c.clave !== 'no_interpretable') return null;
+    let l = 'Ventana aortopulmonar' + (tipo ? ' tipo ' + tipo.toUpperCase() : '');
+    if (diam != null) l += ' — ' + _cc1(diam) + ' mm';
+    if (q != null) l += ' — Qp/Qs global ' + q.toFixed(2);
+    const dx = L(DX, c.clave);
+    return l + (dx ? ' — ' + dx : '');
+  }
+
+  case 'fop': {
+    const c = (typeof fopConclusion === 'function') ? fopConclusion() : null;
+    if (!c) return null;
+    /* No hay campo «tamaño del FOP»: lo que la sección mide es la LONGITUD DEL TÚNEL. Se nombra
+       por lo que es en vez de rotularlo «tamaño», que sería otra medida. */
+    const tun = _ccNum('fop_tunel'), asa = _ccS('fop_asa'), asaMm = _ccNum('fop_asa_mm');
+    const rep = _ccS('fop_shunt_reposo'), val = _ccS('fop_shunt_valsalva'), contr = _ccS('fop_contraste');
+    /* Mismo criterio que `fopConclusion`: el aneurisma se da por presente también cuando la
+       EXCURSIÓN medida alcanza el umbral, aunque el desplegable no se haya contestado. */
+    const hayASA = asa === 'si' || (asaMm != null && asaMm >= 10);
+    const DX = { descartado:'sin evidencia de foramen oval permeable', cierre_iia:'con ACV criptogénico',
+                 acv_mayor:'con ACV criptogénico en mayor de 60 años', acv_sin_edad:'con ACV criptogénico, sin edad cargada',
+                 trombofilia:'con trombofilia conocida', sin_contexto:'sin contexto embólico definido',
+                 alto_riesgo_sin_evento:'con características de alto riesgo embólico, sin evento',
+                 sin_contraste:'shunt no interrogado — falta estudio con contraste',
+                 incidental:'hallazgo incidental', no_interpretable:'medidas fuera de rango — revisar unidades' };
+    /* Las claves de CONTEXTO CLÍNICO pasan sin anatomía: `fopConclusion` las dispara con el
+       antecedente solo, y son las que cambian el sentido del hallazgo. */
+    const CTX = ['cierre_iia','acv_mayor','acv_sin_edad','trombofilia','sin_contexto','descartado','no_interpretable'];
+    if (tun == null && !rep && !val && !hayASA && CTX.indexOf(c.clave) < 0) return null;
+    /* Con el contraste negativo NO se abre diciendo «FOP», que es justo lo que se descartó. El
+       cuerpo ya hace esta misma sustitución en su encabezado. */
+    let l = (c.clave === 'descartado') ? 'Septum interauricular' : 'FOP';
+    if (tun != null) l += ' — túnel ' + _cc1(tun) + ' mm';
+    /* El shunt sólo se nombra si se lo interrogó: «sin shunt» sobre un estudio sin contraste
+       es una negación que nadie buscó. */
+    const sh = [];
+    if (rep === 'si') sh.push('en reposo');
+    if (val === 'si') sh.push('con Valsalva');
+    if (sh.length) l += ' — shunt ' + sh.join(' y ');
+    else if (contr === 'si' && rep === 'no' && val === 'no') l += ' — sin paso de burbujas';
+    if (hayASA) l += ' — aneurisma del septum' + (asaMm != null ? ' (' + _cc1(asaMm) + ' mm)' : '');
+    const dx = L(DX, c.clave);
+    return l + (dx ? ' — ' + dx : '');
+  }
+
+  case 'vab': {
+    const c = (typeof vabConclusion === 'function') ? vabConclusion() : null;
+    if (!c) return null;
+    const tipo = _ccS('vab_tipo'), func = _ccS('vab_funcion'), feno = _ccS('vab_fenotipo');
+    /* `ao_sin` y NO `ao_raiz`, que no existe en el archivo: con el id equivocado la raíz salía
+       siempre null y el EN SUMA publicaba la ASCENDENTE de 44 mm mientras el cuerpo indicaba
+       cirugía por una raíz de 54. Es el mismo defecto que `vabConclusion` documenta haber
+       cerrado, reintroducido por un identificador mal escrito — y `v()` devuelve null para un
+       elemento inexistente, así que fallaba en silencio. */
+    const asc = _ccNum('ao_tub'), raiz = _ccNum('ao_sin');
+    const maxAo = (raiz != null && asc != null) ? Math.max(raiz, asc) : (raiz != null ? raiz : asc);
+    const DX = { contradiccion:'DISCREPANCIA con la morfología registrada en Válvulas — resolver antes de firmar',
+                 no_interpretable:'medidas fuera de rango — revisar unidades',
+                 sin_aorta:'sin medición de la aorta' };
+    if (!tipo && maxAo == null && c.clave !== 'contradiccion' && c.clave !== 'sin_aorta' && c.clave !== 'no_interpretable') return null;
+    let l = 'VAB' + (tipo ? ' ' + L(VAB_TIPO_TXT, tipo) : '');
+    const fx = L(VAB_FUNC_TXT, func); if (fx) l += ', ' + fx;
+    /* Se publica el DIÁMETRO MÁXIMO, que es el que decide, y se dice de dónde sale. */
+    if (raiz != null) l += ' — raíz ' + _cc1(raiz) + ' mm';
+    if (asc != null) l += ' — Ao ascendente ' + _cc1(asc) + ' mm';
+    if (maxAo != null && raiz != null && asc != null) l += ' (máx. ' + _cc1(maxAo) + ' mm)';
+    const fz = L(VAB_FENO_TXT, feno); if (fz) l += ' — dilatación ' + fz;
+    const dx = L(DX, c.clave);
+    return l + (dx ? ' — ' + dx : '');
+  }
+
+  case 'mch': {
+    const c = (typeof mchConclusion === 'function') ? mchConclusion() : null;
+    if (!c) return null;
+    const espH = mchEspesor(), patron = _ccS('mch_patron'), grad = mchGradMax();
+    /* `espH.crudo` y no `espH.valor`: `valor` es null cuando el número está FUERA de banda, y con
+       él en la compuerta un espesor tipeado en cm (180) borraba la sección entera del EN SUMA en
+       vez de declarar el problema. Un valor ilegible bloquea la negación, no la afirmación. */
+    if (espH.crudo == null && grad == null) return null;
+    const esc = mchScoreESC(), aha = mchAHA(), ex = mchExclusiones();
+    let l = 'MCH' + (L(MCH_PATRON_TXT, patron) ? ' ' + L(MCH_PATRON_TXT, patron) : '');
+    if (espH.valor != null) l += ' — espesor máx. ' + _cc1(espH.valor) + ' mm';
+    else if (espH.crudo != null) l += ' — espesor máximo fuera de rango: revisar unidades';
+    if (grad != null) l += ' — gradiente TSVI ' + _cc1(grad) + ' mmHg';
+    /* El score con su BANDA, sin la clase de recomendación del desfibrilador. */
+    if (ex.activas.length) l += ' — HCM Risk-SCD no aplicable (' + ex.activas.join('; ') + ')';
+    else if (esc.fuera)  l += ' — HCM Risk-SCD no calculado: ' + esc.fuera.join(' y ') + ' fuera de rango';
+    else if (esc.faltan) l += ' — HCM Risk-SCD no calculado, faltan ' + esc.faltan.length + (esc.faltan.length === 1 ? ' dato' : ' datos');
+    else l += ' — HCM Risk-SCD ' + esc.pct.toFixed(2) + ' % a 5 años (riesgo ' + esc.banda + ')';
+    l += ' — AHA/ACC ' + aha.n + '/' + MCH_AHA_N_MAYORES + ' factores mayores' +
+         (aha.pendientes.length ? ' (' + aha.pendientes.length + ' sin evaluar)' : '');
+    /* Las tres salvedades que el resumen anterior colgaba a propósito del EN SUMA y no del
+       párrafo. Ninguna es una conducta: las tres dicen si el número de arriba corresponde. */
+    if (!ex.activas.length && ex.pendientes.length)
+      l += ' — aplicabilidad del score no verificada: ' + ex.pendientes.length +
+           (ex.pendientes.length === 1 ? ' exclusión sin contestar' : ' exclusiones sin contestar');
+    if (_ccS('mch_fibrosis_rmn') !== 'si' && _ccS('mch_fibrosis_rmn') !== 'no')
+      l += ' — no consta resonancia, que el ecocardiograma no evalúa';
+    if (typeof tvEstado === 'function' && tvEstado().sostenida && !ex.activas.length)
+      l += ' — taquicardia ventricular sostenida documentada, escenario en que el score de la ESC no está validado';
+    return l;
+  }
+
+  case 'mca': {
+    const c = (typeof mcaConclusion === 'function') ? mcaConclusion() : null;
+    if (!c) return null;
+    const sc = mcaScore(), feno = _ccS('mca_fenotipo');
+    const BANDA = { definitivo:'diagnóstico definitivo', limitrofe:'diagnóstico limítrofe',
+                    posible:'diagnóstico posible', sin_criterios:'no cumple criterios diagnósticos' };
+    const fz = L(MCA_FENO_TXT, feno);
+    let l = 'MCA' + (fz ? ' fenotipo ' + fz : '');
+    if (sc.catI.fuera) return l + ' — ' + sc.catI.fuera.join(' y ') + ' fuera de rango: revisar unidades antes de puntuar';
+    l += ' — Task Force 2010 ' + sc.total + (sc.total === 1 ? ' punto' : ' puntos') +
+         ' (eco ' + sc.eco + ', resto ' + sc.noEco + ') — ' + (L(BANDA, sc.banda) || sc.banda);
+    /* Las salvedades de la categoría de arritmias viajaban en el resumen y no en el párrafo, a
+       propósito: el EN SUMA lleva el rótulo «Task Force 2010» al lado del puntaje. */
+    if (typeof tvEstado === 'function') {
+      const t = tvEstado();
+      if (t.faltaMorf) l += ' — categoría de arritmias sin puntuar: no consta la morfología de la taquicardia';
+      else if (t.hay && t.morf === 'bcrd') l += ' — taquicardia de bloqueo de rama derecha, no contemplada por el Task Force 2010';
+    }
+    return l;
+  }
+
+  case 'ebs': {
+    const c = (typeof ebsConclusion === 'function') ? ebsConclusion() : null;
+    if (!c) return null;
+    const cel = (typeof ebsCelermajer === 'function') ? ebsCelermajer() : null;
+    const desp = B(_ccNum('ebs_desplazamiento'), 1, 80, 'desplazamiento del velo septal');
+    const it = G('it_grado'), fvd = F('ebs_func_vd');
+    /* El rótulo sale de la CONCLUSIÓN, que ya decide si el desplazamiento indexado alcanza el
+       umbral diagnóstico. Escribir «Anomalía de Ebstein» fijo hacía que el EN SUMA afirmara el
+       diagnóstico que el cuerpo acababa de descartar, y acá el rótulo no es anamnésico —como en
+       Fallot o TGA, donde el paciente viene operado— sino un diagnóstico que este eco hace. */
+    const cab = c.rotulo || 'Anomalía de Ebstein';
+    const fz = cierraFuera(cab); if (fz) return fz;
+    if (desp == null && !(cel && cel.grado)) return null;
+    let l = cab;
+    if (desp != null) l += ' — desplazamiento septal ' + _cc1(desp) + ' mm';
+    if (cel && cel.grado) l += ' — Celermajer grado ' + cel.grado + ' (índice ' + cel.idx.toFixed(2) + ')';
+    else if (cel && cel.fuera) l += ' — índice de Celermajer no calculado: ' + cel.fuera.join(' y ') + ' fuera de rango';
+    if (it) l += ' — IT ' + it;
+    if (fvd) l += ' — VD con ' + fvd;
+    return l;
+  }
+
+  case 'tdf': {
+    const c = (typeof tdfConclusion === 'function') ? tdfConclusion() : null;
+    if (!c) return null;
+    const ip = _ccS('ip_grado'), fvd = F('tdf_func_vd');
+    const gp = B(_ccNum('tdf_grad_tsvd'), 0, 250, 'gradiente del tracto de salida derecho');
+    const gv = B(_ccNum('vp_gmax'), 0, 250, 'gradiente pulmonar');
+    const g = gp != null ? gp : gv;
+    const it = G('it_grado'), civ = _ccS('tdf_civ_residual'), ep = _ccS('tdf_ep_stent');
+    const civG = B(_ccNum('tdf_civ_grad'), 0, 200, 'gradiente de la CIV residual');
+    const cab = 'Tetralogía de Fallot reparada';
+    const fz = cierraFuera(cab); if (fz) return fz;
+    if (!ip && !fvd && g == null && civ !== 'si' && ep !== 'si') return null;
+    let l = cab;
+    /* El valor de `ip_grado` YA empieza con «IP» —«IP severa»— así que anteponerlo daba «IP ip». */
+    if (ip) l += ' — ' + ip;
+    if (g != null) l += ' — gradiente TSVD ' + _cc1(g) + ' mmHg';
+    if (ep === 'si') l += ' — estenosis o stent pulmonar';
+    if (civ === 'si') l += ' — CIV residual' + (civG != null ? ' (gradiente ' + _cc1(civG) + ' mmHg)' : '');
+    if (fvd) l += ' — VD con ' + fvd;
+    if (it) l += ' — IT ' + it;
+    /* La TV sostenida viaja en el EN SUMA por la misma razón que en MCH: por las ramas que no
+       arman criterios no llegaba nunca, y es un hallazgo, no una conducta. */
+    if (typeof tvEstado === 'function' && tvEstado().sostenida) l += ' — taquicardia ventricular sostenida documentada';
+    /* La ausencia del criterio volumétrico cambia lo que la línea significa. */
+    l += ' — volúmenes de VD por resonancia, no evaluados por ecocardiografía';
+    return l;
+  }
+
+  case 'tga': {
+    const c = (typeof tgaConclusion === 'function') ? tgaConclusion() : null;
+    if (!c) return null;
+    const tipo = _ccS('tga_tipo'), fvd = F('tga_func_vd'), it = G('it_grado');
+    const obstr = _ccS('tga_obstr_subaortica'), bav = _ccS('tga_bav'), civ = _ccS('tga_civ_residual');
+    const gsub = B(_ccNum('tga_grad_subaortico'), 0, 250, 'gradiente subaórtico');
+    const civG = B(_ccNum('tga_civ_grad'), 0, 200, 'gradiente de la CIV residual');
+    const TT = { cctga:'congénitamente corregida', mustard:'post-Mustard', senning:'post-Senning' };
+    const cab = 'TGA' + (L(TT, tipo) ? ' ' + L(TT, tipo) : '');
+    const fz = cierraFuera(cab); if (fz) return fz;
+    if (!tipo && !fvd && !it) return null;
+    let l = cab;
+    /* «Función del VD SISTÉMICO» y no «función del VD»: en esta cardiopatía el ventrículo derecho
+       sostiene la circulación sistémica, y ése es todo el sentido de la sección. El campo es
+       cualitativo — no hay porcentaje que publicar. */
+    l += fvd ? ' — VD sistémico con ' + fvd : ' — función del VD sistémico no consignada';
+    if (it) l += ' — IT ' + it;
+    /* El gradiente subaórtico sólo con la obstrucción AFIRMADA. Con «Obstrucción subaórtica: No»
+       y un número tipeado, la línea publicaba el gradiente al lado de un cuerpo que decía «sin
+       obstrucción subaórtica»: los dos se contradecían en la misma hoja. */
+    if (obstr === 'si') l += ' — obstrucción subaórtica' + (gsub != null ? ' (gradiente ' + _cc1(gsub) + ' mmHg)' : '');
+    if (civ === 'si') l += ' — CIV residual' + (civG != null ? ' (gradiente ' + _cc1(civG) + ' mmHg)' : '');
+    if (bav === 'si') l += ' — bloqueo auriculoventricular completo';
+    return l;
+  }
+
+  }
+  return null;
+}
+window.ccSumaLinea = ccSumaLinea;
+
 /* ══ PANEL DE CRITERIOS ═══════════════════════════════════════════════════════════════════
    Referencia estática: muestra la REGLA, no el paciente. Deliberado — el algoritmo diastólico
    sí pinta los valores del estudio, pero acá lo que se publica es una indicación de
@@ -23877,7 +24294,7 @@ function ebsConclusion(){
      la negación fallando abierta que CLAUDE.md ya documenta. */
   if (fuera.length) {
     const t = 'Anomalía de Ebstein — ' + fuera.join(' y ') + ' fuera de rango: revisar unidades antes de concluir';
-    return { clave:'no_interpretable', txt: partes.concat([t]).join('. '), resumen: t, cel: cel };
+    return { clave:'no_interpretable', rotulo:'Anomalía de Ebstein', txt: partes.concat([t]).join('. '), resumen: t, cel: cel };
   }
   partes.push(conducta);
   /* El resumen NO afirma el diagnóstico cuando el desplazamiento quedó por debajo del umbral: el
@@ -23887,7 +24304,10 @@ function ebsConclusion(){
   const rotulo = bajoUmbral
     ? 'Desplazamiento del velo septal por debajo del umbral diagnóstico de anomalía de Ebstein'
     : 'Anomalía de Ebstein';
-  return { clave: clave, txt: partes.join('. '), resumen: rotulo +
+  /* `rotulo` se EXPONE. La línea del EN SUMA lo necesita y recalcularlo sería una segunda
+     derivación del mismo hecho — el defecto que este archivo persigue desde la fórmula
+     duplicada entre pantalla e informe. */
+  return { clave: clave, rotulo: rotulo, txt: partes.join('. '), resumen: rotulo +
     (cel.idx != null ? ', índice de Celermajer ' + cel.idx.toFixed(2) + ' (grado ' + ['', 'I','II','III','IV'][cel.grado] + ', orientativo por eco)' : '') +
     (itTxt ? ', insuficiencia tricuspídea ' + itTxt : '') + '. ' + conducta, cel: cel };
 }

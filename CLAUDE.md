@@ -1179,6 +1179,70 @@ clínica, no una entrada del puntaje. Con esto desapareció todo el aparato de d
 divergencia: `menorEjeSup`, las notas y las dos ramas de `resumenF`. El rótulo «Task Force 2010»
 vuelve a corresponderse con la regla aplicada.
 
+### EN SUMA de congénitas — línea concisa por sección, 2026-09-10 (noche)
+
+**La premisa del pedido era falsa para 9 de las 12 secciones.** Medido antes de tocar nada: con
+CoAo + VAB + MCH activas, las tres ya subían al EN SUMA. Lo que era cierto es otra cosa: CIA/CIV
+nunca subía su conclusión (sólo un Qp/Qs suelto), el formato era el PÁRRAFO ENTERO —hasta 570
+caracteres— y ductus/coartación/ventana/foramen estaban filtrados por `clave`.
+
+**Política editorial nueva (decisión del médico):** el EN SUMA informa HALLAZGOS y CRITERIOS
+DIAGNÓSTICOS, **nunca recomendaciones terapéuticas**. «Criterios de significación», no
+«indicación de intervención»; el porcentaje del score y su banda, no la clase del desfibrilador.
+Revierte lo que el emisor de la coartación tenía escrito —«dejar una indicación de intervención
+sólo en el cuerpo es lo que la conclusión existe para evitar»—. Lo que la reemplaza no es el
+silencio: la línea publica el CRITERIO que dispara la conducta, que es el hecho verificable.
+
+**Un constructor por sección (`ccSumaLinea`), leyendo los mismos accesores que la conclusión.**
+Recalcular sería una segunda derivación del mismo hecho.
+
+**Dos defectos preexistentes que la auditoría destapó y se cerraron:**
+- **El fallback negaba hallazgos que el propio informe describía.** `if (suma.length === 0)
+  suma.push('Estudio sin alteraciones estructurales ni funcionales significativas.')` no
+  distinguía «no hay hallazgos» de «los hallazgos no pasaron su filtro». Una CIA de 30 × 24 mm
+  con borde de 2 mm, descrita en el cuerpo, salía en el EN SUMA como «sin alteraciones».
+- **El único separador del informe era código muerto.** `inf.push('', ...etePars)` escribe una
+  cadena vacía como separador y `inf.filter(Boolean)`, dos líneas después, la borra. Por eso el
+  bloque lleva un RÓTULO —truthy, sobrevive al filtro— y no una línea en blanco.
+
+**Trece defectos del propio diff, y el patrón que los une: una línea corta miente más fácil que
+un párrafo.** El párrafo trae su contexto; la línea condensa y en el camino se comen las
+salvedades. Los que hay que recordar:
+
+- **Un id mal escrito falla en SILENCIO.** `ao_raiz` no existe —el real es `ao_sin`— y `v()`
+  devuelve `null` para un elemento inexistente. El EN SUMA publicaba la ascendente de 44 mm
+  mientras el cuerpo indicaba cirugía por una raíz de 54. Grepear el id antes de usarlo.
+- **Un rótulo puede ser un diagnóstico.** `ebsConclusion` cambia el suyo a «Desplazamiento por
+  debajo del umbral diagnóstico» y la línea escribía «Anomalía de Ebstein» fijo. Ídem FOP: con
+  el contraste negativo el cuerpo abre con «Septum interauricular» y la línea decía «FOP». Se
+  EXPONE el rótulo desde la conclusión en vez de recalcularlo.
+- **Un número no se publica sin su compuerta.** El gradiente subaórtico de la TGA sólo se imprime
+  con `tga_obstr_subaortica === 'si'`: sin eso, la línea publicaba 70 mmHg al lado de un cuerpo
+  que decía «sin obstrucción subaórtica».
+- **La compuerta de «dato principal» silenciaba lo más grave.** Eisenmenger de la ventana
+  aortopulmonar se dispara con la DIRECCIÓN sola; la cola diastólica basta sola para una
+  coartación significativa; el ACV criptogénico basta solo en el foramen. Las claves que importan
+  pasan aunque falte la medida.
+- **`espH.valor` es null fuera de banda; `espH.crudo` no.** Con `valor` en la compuerta, un
+  espesor tipeado en cm borraba la sección entera del EN SUMA en vez de declarar el problema.
+  Un valor ilegible bloquea la NEGACIÓN, no la afirmación.
+- **CIA y CIV no tenían banda de plausibilidad en ninguna parte** —deuda ya declarada— y no
+  importaba porque sus números no llegaban al EN SUMA. Ahora sí: una velocidad en cm/s publicaba
+  «gradiente 360000 mmHg» en la conclusión firmada.
+- **`MAPA[k] || k` volvió a colarse en once sitios.** Existe `_ccLbl` justamente para eso.
+- **Una bandera tiene que probar lo que su nombre dice.** `_ccHuboParrafo` salía de
+  `etePars.length`, que es el acumulador del bloque ETE ENTERO: un estudio normal con la aorta
+  descrita por ETE ponía la bandera en true y el EN SUMA decía «sin OTRAS alteraciones — ver los
+  hallazgos descritos en el cuerpo», implicando hallazgos que no existían. Se marca sección por
+  sección.
+- **Lo que viajaba en `resumen` y no en `txt` viajaba ahí a propósito.** MCH colgaba del resumen
+  la aplicabilidad no verificada, la resonancia faltante y la TV sostenida; MCA, las salvedades
+  de la categoría de arritmias; TdF, la TV sostenida. Ninguna es una conducta: las tres dicen si
+  el número de arriba corresponde. Al reescribir la línea se perdieron todas y hubo que reponerlas.
+
+**Medido:** 3 secciones activas → 325 caracteres, 5 líneas, **1 página**. Antes, las mismas tres
+daban 542 caracteres de párrafos. Con 8 secciones son 742 caracteres y 2 páginas.
+
 ## Deuda conocida sin resolver
 
 - **Contraseña en el código.** `doLogin()` compara contra un literal. Choca con el checklist
