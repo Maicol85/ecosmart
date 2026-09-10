@@ -101,10 +101,13 @@
   header {
     background: var(--bg2);
     border-bottom: 1px solid var(--border);
-    padding: 10px 20px;
+    /* Padding y gap reducidos: con los tres botones de export/import fuera y el bloque del
+       PDF en una fila en vez de tres, el header pasó de 91 px a una sola línea. Los 20 px
+       laterales se mantienen para que el logo no quede pegado al borde. */
+    padding: 6px 16px;
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 8px;
     position: sticky;
     top: 0;
     z-index: 100;
@@ -117,6 +120,12 @@
     font-size: 20px; flex-shrink: 0;
   }
   .hdr-title { font-size: 16px; font-weight: 700; color: var(--accent2); }
+  /* min-width:0 es lo que habilita el encogido: sin él, el piso de un ítem flex es su ancho
+     de contenido y nunca cede. El overflow/ellipsis va en los hijos, que son los que tienen
+     texto. */
+  .hdr-titulo-wrap { min-width: 0; flex: 0 1 auto; }
+  .hdr-titulo-wrap .hdr-title,
+  .hdr-titulo-wrap .hdr-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .hdr-sub { font-size: 11px; color: var(--text2); margin-top: 1px; }
   .hdr-extra { font-size: 10px; opacity: 0.85; margin-top: 3px; }
   .hdr-extra-field[contenteditable]:empty::before {
@@ -128,12 +137,15 @@
      bloque, los botones se acomodan en varias líneas en vez de salirse de la pantalla.
      Sin min-width:0 a propósito: con min-width:auto el piso del bloque es su ancho de
      contenido mínimo, así que sólo se reacomoda cuando de verdad no entra. */
-  .hdr-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .hdr-btns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
   /* Identidad (Médico / Centro): la etiqueta pasó a ser el nombre configurado, o sea
      de largo variable. Se acota con elipsis para que un "Sanatorio Americano de
      Montevideo" no empuje el resto del header fuera de la pantalla. */
+  /* 22ch y no 30: con el header en una sola fila, cada carácter de más acá empuja «Cerrar»
+     al segundo renglón. La elipsis ya estaba; lo único que cambia es dónde corta. Medido a
+     1280 px, que es donde el header tenía que entrar en una línea. */
   #hdr-med-btn, #hdr-centro-btn {
-    max-width: 30ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 22ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   @media (max-width: 900px) { #hdr-med-btn, #hdr-centro-btn { max-width: 13ch; } }
   .hdr-burger{display:none;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:7px;font-size:18px;line-height:1;padding:5px 11px;cursor:pointer;flex-shrink:0}
@@ -585,7 +597,7 @@
   .mTbl th { color:#0D9488; font-weight:600; }
   .mKbd { background:rgba(255,255,255,0.08); border-radius:4px; padding:1px 6px; font-size:11px; white-space:nowrap; }
   /* ═══ REDISEÑO LAYOUT: header compacto + rail lateral + subtabs (estilo EcoEstrés) ═══ */
-  :root { --rail:160px; --topbar-h:56px; --teal:#0D9488; }
+  :root { --rail:160px; --topbar-h:48px; --teal:#0D9488; }
   /* flex-wrap:nowrap es SÓLO del layout de escritorio, donde el header es una barra de
      una línea y quien envuelve es el bloque .hdr-btns. Declarado suelto pisaba al
      header{flex-wrap:wrap} del media query de ≤768px, que está más arriba en la hoja:
@@ -594,7 +606,14 @@
      Se acota por min-width en vez de re-declarar wrap más abajo, para que la intención
      quede escrita y no dependa del orden de las reglas. */
   header { min-height: var(--topbar-h); }
-  @media (min-width: 769px) { header { flex-wrap: nowrap; } }
+  @media (min-width: 769px) {
+    header { flex-wrap: nowrap; }
+    /* Quién cede cuando no entra todo. Sin esto cedía `.hdr-btns` —que tiene flex-wrap:wrap—
+       y las acciones se partían en dos renglones, que es justo lo que estira el header. Las
+       acciones son botones: o entran enteros o no sirven. El que cede es el TÍTULO, que tiene
+       min-width:0 y elipsis y sigue siendo legible recortado. */
+    .hdr-btns { flex-shrink: 0; flex-wrap: nowrap; }
+  }
   .hdr-med-wrap { position:relative; display:inline-flex; flex-shrink:0; }
   /* Los estilos de .hdr-med-panel se eliminaron con el panel. */
   .app-shell { display:flex; align-items:flex-start; }
@@ -1227,8 +1246,14 @@ window.cerrarSesion = cerrarSesion;
 <header>
   <button class="eco-tabsburger" aria-label="Secciones del estudio" onclick="ecoDrawerToggle()">≡</button>
   <div class="hdr-icon">🫀</div>
-  <div>
-    <h1 class="hdr-title">Ecocardiograma Doppler Color <span id="autosave-indicator" style="color:var(--text2);font-size:11px;font-weight:400;opacity:0;transition:opacity .4s">● Guardado</span></h1>
+  <!-- `hdr-titulo-wrap`: el título es la pieza ELÁSTICA del header. Sin esto entraba en una
+       línea con cero holgura a 1280 px y flexbox lo envolvía igual por redondeo subpíxel; y
+       cualquier ancho menor mandaba «Cerrar» al segundo renglón. Con min-width:0 el título
+       cede espacio y se recorta con elipsis en vez de empujar a las acciones, así que el
+       header se mantiene en una fila a cualquier ancho de escritorio en vez de estar afinado
+       a una resolución concreta. -->
+  <div class="hdr-titulo-wrap">
+    <h1 class="hdr-title">Ecocardiograma Doppler Color <span id="autosave-indicator" style="color:var(--text2);font-size:11px;font-weight:400;opacity:0;max-width:0;overflow:hidden;display:inline-block;vertical-align:baseline;transition:opacity .4s">● Guardado</span></h1>
   </div>
   <div class="hdr-med-wrap">
     <!-- Sólo lectura: muestran lo configurado y llevan a ⚙️ Config. El texto lo
@@ -1263,35 +1288,11 @@ window.cerrarSesion = cerrarSesion;
   <button class="hdr-burger" id="ecoHdrBurger" aria-label="Menú de acciones" aria-haspopup="true" aria-expanded="false" aria-controls="ecoHdrBtns" onclick="ecoHdrToggle()">⋮</button>
   <div class="hdr-btns" id="ecoHdrBtns">
     <button class="btn btn-ghost" id="theme-toggle-btn" onclick="toggleTheme()" title="Cambiar modo día/noche">🌙 Noche</button>
-    <button onclick="exportarInformesJSON()" title="Exportar informes a JSON"
-      style="background:none;
-      border:1px solid rgba(255,255,255,0.15);
-      border-radius:6px;padding:5px 10px;
-      font-size:12px;color:var(--text2,#94A3B8);
-      cursor:pointer;display:flex;
-      align-items:center;gap:4px;">
-      📤 Exportar
-    </button>
-    <button onclick="document.getElementById('ig-import-file').click()" title="Importar informes desde JSON"
-      style="background:none;
-      border:1px solid rgba(255,255,255,0.15);
-      border-radius:6px;padding:5px 10px;
-      font-size:12px;color:var(--text2,#94A3B8);
-      cursor:pointer;display:flex;
-      align-items:center;gap:4px;">
-      📥 Importar
-    </button>
-    <button onclick="exportarEcoAnalytics()" title="Exportar estudios para CeiboAnalytics"
-      style="background:none;
-      border:1px solid rgba(255,255,255,0.15);
-      border-radius:6px;padding:5px 10px;
-      font-size:12px;color:var(--text2,#94A3B8);
-      cursor:pointer;display:flex;
-      align-items:center;gap:4px;">
-      📤 Exportar para Analytics
-    </button>
-    <button class="btn btn-primary" onclick="generarInformeConEvolucion()">📝 Generar Informe</button>
-    <span style="display:inline-flex;flex-direction:column;align-items:center;gap:4px;">
+    <!-- Una sola FILA: PDF, los cuatro colores, 🎨 Diseño y el formato de nombre. Antes era
+         flex-direction:column, o sea tres renglones apilados, y eso era lo que estiraba el
+         header a lo alto. En el menú ⋮ de móvil el contenedor sigue siendo columna, así que
+         esta fila queda como un renglón más del desplegable. -->
+    <span style="display:inline-flex;flex-direction:row;align-items:center;gap:6px;flex-wrap:wrap;">
       <button class="btn btn-green" onclick="generarPDF()">⬇️ PDF</button>
       <span style="display:inline-flex;gap:4px;" title="Color del PDF">
         <span class="pdf-color-sw" data-idx="1" onclick="setPdfColor(1)" title="Azul"    style="width:20px;height:20px;border-radius:5px;background:#1a3a5c;cursor:pointer;box-sizing:border-box;border:1px solid rgba(255,255,255,0.25);"></span>
@@ -1305,16 +1306,8 @@ window.cerrarSesion = cerrarSesion;
            píxel 774 y en una pantalla de 720 queda entera bajo el pliegue. -->
       <button type="button" id="hdr-pltz-link" title="Elegir el diseño del encabezado del PDF"
         style="font-size:9px;padding:1px 6px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:var(--bg3);color:var(--text2);cursor:pointer;font-family:inherit;">📄 Diseño…</button>
-      <select id="pdf-fmt-sel" title="Formato nombre archivo PDF"
-        style="font-size:9px;padding:1px 3px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:var(--bg3);color:var(--text2);cursor:pointer;max-width:110px;"
-        onchange="localStorage.setItem('ett_filename_fmt', this.value)">
-        <option value="0">Nombre + Fecha</option>
-        <option value="1">Nombre + Doc + Fecha</option>
-        <option value="2">Nombre + Matr + Fecha</option>
-        <option value="3">Doc + Fecha</option>
-        <option value="4">Matr + Fecha</option>
-      </select>
     </span>
+    <button class="btn btn-primary" onclick="generarInformeConEvolucion()">📝 Generar Informe</button>
     <button onclick="abrirAyudaEco()" title="Ayuda"
       style="background:none;border:1px solid rgba(255,255,255,0.2);border-radius:50%;width:32px;height:32px;color:var(--text,#CBD5E1);cursor:pointer;font-size:14px;font-weight:700;flex-shrink:0;">
       ?
@@ -1481,6 +1474,26 @@ window.cerrarSesion = cerrarSesion;
         </p>
         <div id="pltz-grid"></div>
         <p id="pltz-nota" style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.5;"></p>
+        <!-- Formato del NOMBRE DE ARCHIVO del PDF. Vivía en el header, apretado al lado de los
+             colores, y era el único acceso a esta preferencia — por eso se mudó en vez de
+             borrarse. Va acá porque es una preferencia de PDF y ésta es la sección de PDF,
+             igual que la plantilla y el color.
+             `<select>` y no botones: a diferencia de las miniaturas de plantilla de arriba,
+             este control NO lo barre `limpiarCampos()` — su id es `pdf-fmt-sel`, y el filtro
+             `_noEsDelEstudio` de guardarInforme excluye el prefijo `pdf-`, así que ni se guarda
+             en el estudio ni se vacía con «Nuevo estudio». Verificado antes de moverlo. -->
+        <div style="margin-top:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <label for="pdf-fmt-sel" style="font-size:12px;color:var(--text2);">Nombre del archivo:</label>
+          <select id="pdf-fmt-sel" title="Formato nombre archivo PDF"
+            style="font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);cursor:pointer;"
+            onchange="localStorage.setItem('ett_filename_fmt', this.value)">
+            <option value="0">Nombre + Fecha</option>
+            <option value="1">Nombre + Doc + Fecha</option>
+            <option value="2">Nombre + Matr + Fecha</option>
+            <option value="3">Doc + Fecha</option>
+            <option value="4">Matr + Fecha</option>
+          </select>
+        </div>
         <!-- Segundo color: sólo lo usa Bicolor, así que la fila aparece únicamente con esa
              plantilla elegida. Mostrarla siempre sería ofrecer un control que no hace nada. -->
         <div id="pltz-color2-row" style="display:none;align-items:center;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
@@ -16902,11 +16915,22 @@ function showMasaPanel(){
 // ══ Autosave en localStorage (debounce 1500ms) ══
 var AUTOSAVE_KEY = 'ecosmart_autosave';
 var _autosaveTimer = null, _autosaveIndTimer = null;
+/* El indicador alterna también el ANCHO, no sólo la opacidad. Con el header en una sola fila
+   el título se recorta con elipsis, y un span invisible de 64 px adentro hacía que apareciera
+   el «…» de forma permanente sobre un título que sí entraba entero. `max-width:0` +
+   `overflow:hidden` lo saca del cálculo mientras no se muestra; se sigue viendo al guardar. */
+function _autosaveInd(el, on){
+  el.style.opacity = on ? '1' : '0';
+  el.style.maxWidth = on ? '12ch' : '0';
+  el.style.overflow = 'hidden';
+  el.style.display = 'inline-block';
+  el.style.verticalAlign = 'baseline';
+}
 function _autosaveShowInd(){
   var el = document.getElementById('autosave-indicator'); if (!el) return;
-  el.style.opacity = '1';
+  _autosaveInd(el, true);
   clearTimeout(_autosaveIndTimer);
-  _autosaveIndTimer = setTimeout(function(){ el.style.opacity = '0'; }, 2000);
+  _autosaveIndTimer = setTimeout(function(){ _autosaveInd(el, false); }, 2000);
 }
 // Mientras el formulario está pisado con OTRO estudio (reimpresión de un guardado), el
 // autosave tiene que callarse: si no, persiste los datos del estudio ajeno como borrador
@@ -25916,11 +25940,81 @@ function generarPPT(id){
   /* Selector de tema antes de generar. Se pregunta siempre pero se preselecciona el último
      usado, así que quien ya eligió confirma con un clic. */
   _pptElegirTema(tema => {
-    // Se carga el estudio en el formulario y se restaura después: ver la nota de abajo.
-    pdfDeInformeGuardado(id, inf2 => _pptDesdeFormulario(inf2, tema), 'PPT');
+    /* Y después quién presenta. Encadenado y no en el mismo modal: la elección de tema ya
+       existía y mezclarlas obligaría a rehacerla. Cancelar en cualquiera de los dos NO genera
+       el archivo. */
+    _pptElegirPresentador(inf, quien => {
+      // Se carga el estudio en el formulario y se restaura después: ver la nota de abajo.
+      pdfDeInformeGuardado(id, inf2 => _pptDesdeFormulario(inf2, tema, quien), 'PPT');
+    });
   });
 }
 window.generarPPT = generarPPT;
+
+/* Modal «¿Quién presenta?». Mismo patrón que `_pptElegirTema`: createElement y textContent,
+   nunca innerHTML, porque acá entra un nombre que el médico tipea y que después va al .pptx.
+
+   Por qué no se toma directamente el médico principal de Config: quien FIRMA el estudio y
+   quien lo PRESENTA en un ateneo no son siempre la misma persona —un residente presenta el
+   caso de su tutor—, y la diapositiva de cierre es lo que queda proyectado mientras se
+   responden preguntas. Se precarga con el principal porque es el caso más común. */
+let _pptQuienAbierto = false;
+function _pptElegirPresentador(inf, cb) {
+  if (_pptQuienAbierto) return;              // mismo motivo que en el selector de tema
+  _pptQuienAbierto = true;
+  const _t = v => String(v == null ? '' : v).trim();
+  /* El médico del ESTUDIO primero y el de Config como respaldo: reimprimir un estudio viejo
+     tiene que ofrecer al médico que lo hizo, no al principal de hoy. Es el mismo criterio que
+     usa la firma del PDF en una reimpresión. */
+  const delEstudio = _t(inf && inf.campos && inf.campos['med-nombre']);
+  const deConfig = _t((document.getElementById('med-nombre') || {}).textContent);
+  const sugerido = delEstudio || deConfig;
+
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  const caja = document.createElement('div');
+  caja.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:420px;width:100%;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,0.5);';
+  const h1 = document.createElement('div');
+  h1.style.cssText = 'font-size:15px;font-weight:700;color:var(--accent2);margin-bottom:6px;';
+  h1.textContent = '🎤 ¿Quién presenta este estudio?';
+  const sub = document.createElement('p');
+  sub.style.cssText = 'font-size:12px;color:var(--text2);margin:0 0 14px;';
+  sub.textContent = 'Aparece en la diapositiva de cierre, debajo de «¿Preguntas?».';
+  const inp = document.createElement('input');
+  inp.type = 'text';
+  inp.value = sugerido;
+  inp.placeholder = 'Nombre de quien presenta';
+  inp.setAttribute('maxlength', '80');        // entra en una línea de la diapositiva
+  inp.setAttribute('aria-label', '¿Quién presenta este estudio?');
+  inp.style.cssText = 'width:100%;box-sizing:border-box;padding:9px 11px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;font-family:inherit;';
+  caja.appendChild(h1); caja.appendChild(sub); caja.appendChild(inp);
+
+  const cerrar = () => { _pptQuienAbierto = false; document.removeEventListener('keydown', onKey); ov.remove(); };
+  const aceptar = () => { const v = _t(inp.value); cerrar(); cb(v); };
+  const onKey = ev => {
+    if (ev.key === 'Escape') cerrar();
+    // Enter confirma: es un formulario de un solo campo y obligar al mouse es fricción pura.
+    else if (ev.key === 'Enter' && document.activeElement === inp) { ev.preventDefault(); aceptar(); }
+  };
+
+  const pie2 = document.createElement('div');
+  pie2.style.cssText = 'display:flex;justify-content:flex-end;gap:8px;margin-top:16px;';
+  const canc = document.createElement('button');
+  canc.type = 'button'; canc.className = 'btn btn-ghost'; canc.textContent = 'Cancelar';
+  canc.onclick = cerrar;                      // cancelar NO genera el PPT
+  const ok = document.createElement('button');
+  ok.type = 'button'; ok.className = 'btn btn-primary'; ok.textContent = '📊 Generar PPT';
+  ok.onclick = aceptar;
+  pie2.appendChild(canc); pie2.appendChild(ok); caja.appendChild(pie2);
+
+  ov.appendChild(caja);
+  ov.addEventListener('click', ev => { if (ev.target === ov) cerrar(); });
+  document.addEventListener('keydown', onKey);
+  document.body.appendChild(ov);
+  /* Foco y selección: el caso más común es aceptar el sugerido, el segundo es reemplazarlo
+     entero. Con el texto seleccionado los dos son un gesto. */
+  setTimeout(() => { try { inp.focus(); inp.select(); } catch(e){} }, 30);
+}
 
 /* Modal de selección de tema. Se construye con createElement y se asignan los colores por
    propiedad de style —nunca por innerHTML ni por cadena de CSS armada— para que ni siquiera
@@ -25999,7 +26093,7 @@ function _pptElegirTema(cb){
   document.body.appendChild(ov);
 }
 
-function _pptDesdeFormulario(inf, tema){
+function _pptDesdeFormulario(inf, tema, presentador){
   /* PPT_C local sombrea al global: todo el cuerpo de la función sigue escrito contra
      PPT_C y no hubo que tocar una sola referencia para soportar los tres temas. */
   const PPT_C = Object.prototype.hasOwnProperty.call(PPT_TEMAS, tema) ? PPT_TEMAS[tema] : PPT_TEMAS.dark;
@@ -26113,8 +26207,13 @@ function _pptDesdeFormulario(inf, tema){
     s.addShape(P.ShapeType.rect, { x:0, y:0, w:W, h:1.18, fill:{ color:PPT_C.teal } });
     s.addText('Ecocardiograma Doppler Color', { x:0, y:0, w:W, h:1.18, fontSize:28, bold:true,
       color:'FFFFFF', align:'center', valign:'middle', fontFace:PPT_FONT });
+    /* `PPT_C.txt` y NO 'FFFFFF' fijo. El nombre va en y=1.42, o sea DEBAJO de la banda teal
+       (que mide 1.18 de alto): se dibuja sobre el fondo de la diapositiva, no sobre el teal.
+       Con el tema «Clínico claro» —bg FFFFFF— era blanco sobre blanco y el nombre del
+       paciente simplemente no se veía en la portada. El título de arriba sí puede quedar en
+       blanco fijo: ése sí cae dentro de la banda teal en los tres temas. */
     s.addText(_pptTxt(inf.nombre).toUpperCase(), { x:0.5, y:1.42, w:W-1, h:0.6, fontSize:32,
-      bold:true, color:'FFFFFF', fontFace:PPT_FONT });
+      bold:true, color:PPT_C.txt, fontFace:PPT_FONT });
     const dTipo = _pptTxt(inf.doc_tipo || 'CI');
     const edad = _pptTxt(c.edad), sexo = _pptSel('sexo') || _pptTxt(c.sexo);
     const l1 = [ (inf.ci ? dTipo+' '+_pptTxt(inf.ci) : ''), (edad ? edad+' años' : ''), sexo ].filter(Boolean).join('  ·  ');
@@ -26652,14 +26751,59 @@ function _pptDesdeFormulario(inf, tema){
      imágenes — y ésas se crean en la cadena de promesas, no acá. La conclusión del estudio es
      lo último que el médico quiere dejar en pantalla antes del cierre; entre el informe y las
      ecografías quedaba sepultada. */
+  /* Cuerpo de letra que entra, con el mismo criterio que `_pptFsQueEntra` usa para las tablas
+     y por el mismo motivo: PowerPoint NO recorta ni encoge un cuadro de texto que se pasa del
+     borde — lo dibuja por debajo, así que la diapositiva se ve entera hasta que se proyecta y
+     el En Suma termina encima del pie y del disclaimer.
+
+     Cuenta LÍNEAS y no ítems: un ítem del En Suma como «Función sistólica del VI conservada,
+     sin trastornos segmentarios de la motilidad» ocupa dos o tres renglones. Los caracteres
+     por línea se derivan del ancho real de la columna, igual que en `_lineasFila`. */
+  const _pptFsSuma = (cols, disp, wCol) => {
+    for (const fs of [20, 18, 16, 14, 13, 12, 11, 10]) {
+      const cpl = Math.max(10, Math.floor(wCol * 72 / (fs * 0.52)));   // ~0,52 em de ancho medio
+      const alto = Math.max.apply(null, cols.map(col =>
+        col.reduce((a, t) => a + Math.max(1, Math.ceil(t.length / cpl)), 0) * (fs * 1.3 / 72)));
+      if (alto <= disp) return fs;
+    }
+    return null;   // ni con 10 pt entra
+  };
   function _pptEnSuma() {
     const suma = _pptTxt(c.en_suma || '');
     if (!suma) return;
     const s = nueva();
     s.addText('En Suma', { x:0.5, y:0.35, w:W-1, h:0.6, fontSize:28, bold:true, color:PPT_C.rojo, fontFace:PPT_FONT });
     s.addShape(P.ShapeType.line, { x:0.5, y:1.0, w:W-1, h:0, line:{ color:PPT_C.rojo, width:2 } });
-    s.addText(suma, { x:0.7, y:1.25, w:W-1.4, h:H-2.45, fontSize:20, color:PPT_C.txt,
-      fontFace:PPT_FONT, valign:'middle', lineSpacingMultiple:1.3 });
+
+    /* El piso es el renglón decorativo de H-1.0, que a su vez deja libre la franja del pie
+       (línea en H-0.62, firma en H-0.56, disclaimer en H-0.34). El cuadro NUNCA pasa de ahí. */
+    const items = suma.split('\n').map(t => t.trim()).filter(Boolean);
+    const yTop = 1.25, yBot = H - 1.12, disp = yBot - yTop;
+    /* Dos columnas a partir de 12 ítems: con más que eso, achicar la letra lo suficiente como
+       para que entren en una sola columna la deja ilegible proyectada. La primera columna se
+       lleva el ítem de más cuando son impares. */
+    const dosCol = items.length > 12;
+    const gap = 0.35, wTotal = W - 1.4;
+    const wCol = dosCol ? (wTotal - gap) / 2 : wTotal;
+    const mitad = Math.ceil(items.length / 2);
+    const cols = dosCol ? [items.slice(0, mitad), items.slice(mitad)] : [items];
+
+    const fsQueEntra = _pptFsSuma(cols, disp, wCol);
+    if (fsQueEntra === null) {
+      _pptAvisos.push('⚠️ El En Suma no entra en una diapositiva ni con el cuerpo más chico — acortalo antes de presentar');
+    }
+    const fs = fsQueEntra || 10;
+    /* `valign:'top'` y no 'middle': centrado verticalmente, el desborde de un En Suma largo
+       se reparte hacia ARRIBA y hacia abajo, así que además de pisar el pie se mete debajo
+       del título. Anclado arriba, el crecimiento va en una sola dirección y es la que el
+       cálculo de `disp` controla. */
+    cols.forEach((col, k) => {
+      s.addText(col.join('\n'), {
+        x: 0.7 + k * (wCol + gap), y: yTop, w: wCol, h: disp,
+        fontSize: fs, color: PPT_C.txt, fontFace: PPT_FONT, valign: 'top',
+        lineSpacingMultiple: 1.3
+      });
+    });
     s.addShape(P.ShapeType.line, { x:0.7, y:H-1.0, w:W-1.4, h:0, line:{ color:PPT_C.rojo, width:1 } });
     conPie(s);
   }
@@ -26764,7 +26908,15 @@ function _pptDesdeFormulario(inf, tema){
        saneo creyendo que está duplicado. Las líneas vacías se filtran para no dejar huecos. */
     const esp = _pptTxt(c['med-especialidad'] || '');
     const fecha = _pptFecha(inf && inf.fecha_estudio);
-    const datos = [centro, [medico, esp].filter(Boolean).join(' · '), fecha].filter(Boolean);
+    /* Quien PRESENTA manda sobre quien firma: es lo que queda proyectado mientras se responden
+       preguntas, y no siempre son la misma persona (un residente presenta el caso de su tutor).
+       Si el modal se dejó vacío se cae al médico del estudio, que es el comportamiento previo.
+       La especialidad sólo acompaña al firmante: pegársela a un presentador distinto le
+       atribuiría un título que nadie declaró. */
+    const _quien = _pptTxt(presentador || '');
+    const linea2 = _quien ? (_quien === medico ? [medico, esp].filter(Boolean).join(' · ') : _quien)
+                          : [medico, esp].filter(Boolean).join(' · ');
+    const datos = [centro, linea2, fecha].filter(Boolean);
     if (datos.length) {
       s.addText(datos.join('\n'), { x:0.5, y:2.55, w:W-1, h:1.2, fontSize:16,
         color:PPT_C.txt, align:'center', valign:'top', fontFace:PPT_FONT, lineSpacingMultiple:1.35 });
