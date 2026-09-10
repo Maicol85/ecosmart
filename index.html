@@ -8381,6 +8381,264 @@ z
     </div>
   </div>
 
+  <!-- ═══ ANOMALÍA DE EBSTEIN ═══
+       Las cinco áreas del índice de Celermajer son campos PROPIOS y no reusan ad_area/ai_area:
+       aquéllas se miden en telesístole (aurícula máxima, criterio ASE para tamaño de cámara) y
+       ésta en telediástole. Ver ebsCelermajer(). -->
+  <div class="card sacc" id="sacc-cc-ebs">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-ebs');ebsSync();" aria-expanded="false">
+      <span class="sacc-arrow">▶</span>
+      <span style="flex:1;">Ebstein — Anomalía de Ebstein</span>
+      <span id="ebs_badge" class="incl-badge" hidden>📎 en el informe</span>
+    </button>
+    <div class="card-body sacc-body">
+      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
+        Desplazamiento apical del velo septal tricuspídeo con atrialización del ventrículo derecho. Menos del 1 % de las cardiopatías congénitas,
+        y la principal causa de <b>insuficiencia tricuspídea congénita severa</b>. Asociación frecuente con FOP o CIA y con vías accesorias.
+        <b style="color:var(--accent2);">Umbral diagnóstico: desplazamiento ≥8 mm/m² de superficie corporal.</b>
+      </p>
+      <div class="grid-3">
+        <div class="fg"><label>Desplazamiento del velo septal (mm)</label><input type="number" id="ebs_desplazamiento" step="0.1" placeholder="mm" oninput="ebsSync()"></div>
+        <div class="fg"><label>Indexado por superficie</label>
+          <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+            <span id="ebs-desp-idx" class="calc-val">—</span></div></div>
+        </div>
+        <div class="fg"><label>Atrialización del VD (%)</label><input type="number" id="ebs_atrializacion" step="1" placeholder="%" oninput="ebsSync()"></div>
+      </div>
+      <div class="grid-2" style="margin-top:10px;">
+        <div class="fg"><label>Función del VD funcional</label>
+          <select id="ebs_func_vd" onchange="ebsSync()">
+            <option value="">—</option>
+            <option value="normal">Normal</option>
+            <option value="leve">Reducida leve</option>
+            <option value="moderada">Reducida moderada</option>
+            <option value="severa">Reducida severa</option>
+          </select>
+        </div>
+        <div class="fg"><label>IT — grado (de Válvulas)</label>
+          <input type="text" id="ebs_it_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Índice de Celermajer</div>
+      <p style="font-size:10px;color:var(--text2);margin:0 0 8px;">Las cinco áreas se trazan en <b>apical 4 cámaras y en TELEDIÁSTOLE</b>. No son las mismas que las áreas auriculares del estudio, que se miden en telesístole (aurícula máxima) para evaluar tamaño de cámara — por eso son campos aparte.</p>
+      <div class="grid-3">
+        <div class="fg"><label>Área AD (cm²)</label><input type="number" id="ebs_area_ad" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
+        <div class="fg"><label>Área VD atrializado (cm²)</label><input type="number" id="ebs_area_vd_atrial" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
+        <div class="fg"><label>Área VD funcional (cm²)</label><input type="number" id="ebs_area_vd_func" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>Área AI (cm²)</label><input type="number" id="ebs_area_ai" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
+        <div class="fg"><label>Área VI (cm²)</label><input type="number" id="ebs_area_vi" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
+        <div class="fg"><label>Áreas del estudio (telesístole)</label>
+          <input type="text" id="ebs_areas_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+      </div>
+      <div class="calc-box" style="margin-top:10px;">
+        <div class="calc-row"><span class="calc-lbl">Índice de Celermajer</span><span id="ebs-celermajer" class="calc-val">—</span></div>
+      </div>
+      <div class="mBoxLike" style="border-left:3px solid var(--red,#b91c1c);background:rgba(185,28,28,.08);padding:8px 12px;border-radius:6px;font-size:10px;line-height:1.5;margin-top:10px;">
+        <b>El índice es orientativo, no una indicación.</b> Por ecocardiografía <b>sobreestima</b> la severidad (concordancia con resonancia κ=0,39; sólo el índice por RMC correlacionó con la capacidad funcional).
+        Se derivó en una serie de <b>28 neonatos</b> — el «100 %» del grado IV son 5 pacientes de 5 — y <b>no figura en la ESC 2020</b>, cuyas indicaciones de cirugía en Ebstein son clínicas.
+        Cortes: I &lt;0,5 · II 0,50-0,99 · III 1,00-1,49 · IV ≥1,5. Origen: Celermajer DS et al., <i>JACC</i> 1992;19:1041-6.
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Arritmias y situación clínica</div>
+      <div class="grid-3">
+        <div class="fg"><label>Taquicardia supraventricular</label>
+          <select id="ebs_tsv" onchange="ebsSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Vías accesorias conocidas</label>
+          <select id="ebs_vias" onchange="ebsSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Síntomas atribuibles</label>
+          <select id="ebs_sintomas" onchange="ebsSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:10px;">
+        <div class="fg"><label>Deterioro objetivo de la capacidad de ejercicio</label>
+          <select id="ebs_ejercicio" onchange="ebsSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Dilatación progresiva del VD</label>
+          <select id="ebs_progresion" onchange="ebsSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+      <div class="calc-box" style="margin-top:12px;">
+        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="ebs-concl" class="calc-val">—</span></div>
+      </div>
+      <div style="text-align:center;margin-top:10px;">
+        <input type="checkbox" id="ebs_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+        <button type="button" class="btn btn-integrar" data-ete-chk="ebs_incluir_chk" aria-pressed="false"
+                onclick="eteInclToggle('ebs_incluir_chk')">📎 Integrar al informe</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TETRALOGÍA DE FALLOT REPARADA ═══
+       Sin campos de volumen a propósito: los umbrales de 160/80 ml/m² son de RESONANCIA y la
+       eco 2D no mide volúmenes del VD de forma fiable. Ver tdfConclusion(). -->
+  <div class="card sacc" id="sacc-cc-tdf">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-tdf');tdfSync();" aria-expanded="false">
+      <span class="sacc-arrow">▶</span>
+      <span style="flex:1;">TdF — Tetralogía de Fallot reparada</span>
+      <span id="tdf_badge" class="incl-badge" hidden>📎 en el informe</span>
+    </button>
+    <div class="card-body sacc-body">
+      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
+        La cardiopatía congénita compleja más frecuente en el adulto. El seguimiento gira alrededor de la <b>insuficiencia pulmonar residual</b>
+        y la dilatación del ventrículo derecho, con riesgo de taquicardia ventricular sostenida a largo plazo.
+      </p>
+      <div class="mBoxLike" style="border-left:3px solid var(--accent2);background:rgba(13,148,136,.08);padding:8px 12px;border-radius:6px;font-size:10px;line-height:1.5;margin-bottom:12px;color:var(--text2);">
+        <b>Acá no hay campos de volumen, y es a propósito.</b> Los umbrales que definen la reintervención —VDFVD indexado ≥160 ml/m², volumen sistólico final ≥80 ml/m²— son cifras de <b>resonancia</b>:
+        la ESC 2020 dice que la RMC es el método de elección para el volumen y la función del VD, y la eco 2D no los mide de forma fiable. Esta sección maneja lo que el ecocardiograma sí mide.
+        La guía además advierte que ese corte «puede no correlacionar con beneficio clínico» y pide <b>medidas seriadas</b>.
+      </div>
+      <div class="grid-3">
+        <div class="fg"><label>IP — grado (de Válvulas)</label>
+          <input type="text" id="tdf_ip_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+        <div class="fg"><label>Ø TSVD (de VD / AD)</label>
+          <input type="text" id="tdf_tsvd_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+        <div class="fg"><label>Función del VD</label>
+          <select id="tdf_func_vd" onchange="tdfSync()">
+            <option value="">—</option>
+            <option value="normal">Normal</option>
+            <option value="leve">Disfunción leve</option>
+            <option value="moderada">Disfunción moderada</option>
+            <option value="severa">Disfunción severa</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>Gradiente TSVD (mmHg) — si difiere del transvalvular</label><input type="number" id="tdf_grad_tsvd" step="1" placeholder="mmHg" oninput="tdfSync()"></div>
+        <div class="fg"><label>Presión sistólica VD (de PSAP por IT)</label>
+          <input type="text" id="tdf_psvd_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+        <div class="fg"><label>IT — grado (de Válvulas)</label>
+          <input type="text" id="tdf_it_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+      </div>
+      <p style="font-size:10px;color:var(--text2);margin:6px 0 0;">Con obstrucción residual del tracto de salida, la presión que estima la IT es la del <b>ventrículo derecho</b> y no la de la arteria pulmonar: las separa el gradiente del TSVD.</p>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>CIV residual</label>
+          <select id="tdf_civ_residual" onchange="tdfSync()">
+            <option value="">—</option><option value="no_eval">No evaluada</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Gradiente CIV residual (mmHg)</label><input type="number" id="tdf_civ_grad" step="1" placeholder="mmHg" oninput="tdfSync()"></div>
+        <div class="fg"><label>Estenosis pulmonar nativa o stent</label>
+          <select id="tdf_ep_stent" onchange="tdfSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>Síntomas</label>
+          <select id="tdf_sintomas" onchange="tdfSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Caída objetiva de la capacidad de ejercicio</label>
+          <select id="tdf_ejercicio" onchange="tdfSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Taquicardia ventricular</label>
+          <select id="tdf_tv" onchange="tdfSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+      <div class="calc-box" style="margin-top:12px;">
+        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="tdf-concl" class="calc-val">—</span></div>
+      </div>
+      <div style="text-align:center;margin-top:10px;">
+        <input type="checkbox" id="tdf_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+        <button type="button" class="btn btn-integrar" data-ete-chk="tdf_incluir_chk" aria-pressed="false"
+                onclick="eteInclToggle('tdf_incluir_chk')">📎 Integrar al informe</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TRANSPOSICIÓN DE GRANDES ARTERIAS CORREGIDA ═══ -->
+  <div class="card sacc" id="sacc-cc-tga">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-tga');tgaSync();" aria-expanded="false">
+      <span class="sacc-arrow">▶</span>
+      <span style="flex:1;">TGA — Transposición de grandes arterias corregida</span>
+      <span id="tga_badge" class="incl-badge" hidden>📎 en el informe</span>
+    </button>
+    <div class="card-body sacc-body">
+      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
+        El <b>ventrículo derecho es el ventrículo sistémico</b>, y su deterioro progresivo es inevitable y es la principal causa de muerte.
+        La válvula tricúspide de estos pacientes es la auriculoventricular <b>sistémica</b>: su insuficiencia pesa como pesaría una mitral.
+      </p>
+      <div class="grid-3">
+        <div class="fg"><label>Tipo</label>
+          <select id="tga_tipo" onchange="tgaSync()">
+            <option value="">—</option>
+            <option value="cctga">ccTGA — congénitamente corregida</option>
+            <option value="mustard">Post-Mustard</option>
+            <option value="senning">Post-Senning</option>
+          </select>
+        </div>
+        <div class="fg"><label>Función del VD sistémico</label>
+          <select id="tga_func_vd" onchange="tgaSync()">
+            <option value="">—</option>
+            <option value="normal">Normal</option>
+            <option value="leve">Disfunción leve</option>
+            <option value="moderada">Disfunción moderada</option>
+            <option value="severa">Disfunción severa</option>
+          </select>
+        </div>
+        <div class="fg"><label>Diámetro del VD sistémico (de VD / AD)</label>
+          <input type="text" id="tga_dilatacion_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>IT sistémica — grado (de Válvulas)</label>
+          <input type="text" id="tga_it_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+        <div class="fg"><label>Obstrucción subaórtica</label>
+          <select id="tga_obstr_subaortica" onchange="tgaSync()">
+            <option value="">—</option><option value="no_eval">No evaluada</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Gradiente subaórtico (mmHg)</label><input type="number" id="tga_grad_subaortico" step="1" placeholder="mmHg" oninput="tgaSync()"></div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>Bloqueo AV completo</label>
+          <select id="tga_bav" onchange="tgaSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>CIV residual</label>
+          <select id="tga_civ_residual" onchange="tgaSync()">
+            <option value="">—</option><option value="no_eval">No evaluada</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Gradiente CIV residual (mmHg)</label><input type="number" id="tga_civ_grad" step="1" placeholder="mmHg" oninput="tgaSync()"></div>
+      </div>
+      <div class="grid-2" style="margin-top:10px;">
+        <div class="fg"><label>Síntomas</label>
+          <select id="tga_sintomas" onchange="tgaSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+      <div class="calc-box" style="margin-top:12px;">
+        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="tga-concl" class="calc-val">—</span></div>
+      </div>
+      <div style="text-align:center;margin-top:10px;">
+        <input type="checkbox" id="tga_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+        <button type="button" class="btn btn-integrar" data-ete-chk="tga_incluir_chk" aria-pressed="false"
+                onclick="eteInclToggle('tga_incluir_chk')">📎 Integrar al informe</button>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- ═══════════════════════ TAB: ECO ESTRÉS ═══════════════════════ -->
@@ -17330,6 +17588,30 @@ function generarInforme(opts) {
       if (c.clave !== 'no_interpretable') suma.push((c.resumen || c.txt) + '.');
     })();
 
+    /* ── Ebstein · Fallot reparada · TGA corregida ──
+       Las tres comparten forma: `xxxConclusion()` arma el texto largo y el resumen, y el emisor
+       sólo decide si van. Se agrupan en una tabla en vez de repetir tres IIFE idénticos — con
+       ocho secciones ya escritas, el copiar y pegar es lo que hace que una se quede sin una
+       corrección que las otras sí reciben. */
+    [['ebs_incluir_chk', typeof ebsConclusion === 'function' ? ebsConclusion : null, typeof ebsSync === 'function' ? ebsSync : null],
+     ['tdf_incluir_chk', typeof tdfConclusion === 'function' ? tdfConclusion : null, typeof tdfSync === 'function' ? tdfSync : null],
+     ['tga_incluir_chk', typeof tgaConclusion === 'function' ? tgaConclusion : null, typeof tgaSync === 'function' ? tgaSync : null]
+    ].forEach(function(sec){
+      const chk = document.getElementById(sec[0]);
+      if (!chk || !chk.checked || !sec[1]) return;
+      if (sec[2]) { try { sec[2](); } catch(e){} }
+      /* Sin try/catch alrededor de la conclusión, igual que las ocho secciones vecinas: tragarla
+         dejaba un informe firmado sin la conducta quirúrgica que el médico pidió, con el badge
+         diciendo «📎 en el informe» y sin nada en pantalla que lo delatara. Que reviente
+         ruidosamente es preferible a que falte en silencio. */
+      const c = sec[1]();
+      if (!c) return;
+      etePars.push(c.txt + '.');
+      /* Todo sube al EN SUMA menos lo ilegible: las tres publican conducta, y una indicación
+         quirúrgica sepultada en el cuerpo no cumple ninguna función. */
+      if (c.clave !== 'no_interpretable') suma.push((c.resumen || c.txt) + '.');
+    });
+
     if (etePars.length) inf.push('', ...etePars);
   })();
 
@@ -17401,7 +17683,7 @@ function _noEsDelEstudio(id) {
    Los `calc*` NO entran acá: son estables y cada sitio llama los suyos. Lo que crece con cada
    módulo nuevo es esta lista, y por eso tiene que estar en un solo lugar. */
 function RECALC_MODULOS() {
-  return ['eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync'];
+  return ['eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -22181,6 +22463,445 @@ function mchSync(){
   txt('mch-concl', c ? c.txt : '—');
 }
 window.mchSync = mchSync; window.mchConclusion = mchConclusion;
+
+/* ══ ANOMALÍA DE EBSTEIN ═════════════════════════════════════════════════════════════════
+   Desplazamiento apical del velo septal tricuspídeo con atrialización del ventrículo derecho.
+   Principal causa de insuficiencia tricuspídea congénita severa.
+
+   ── EL UMBRAL DIAGNÓSTICO ──
+   Desplazamiento del velo septal ≥8 mm/m² de superficie corporal. El pedido original decía
+   «>20 mm/m²»; ese número no corresponde a ningún criterio publicado y se usó el establecido
+   (Shiina / Edwards), que es el que citan las guías. Queda dicho para que no se «corrija» de
+   vuelta al número del pedido.
+
+   ── EL ÍNDICE DE CELERMAJER, Y POR QUÉ LLEVA TANTAS SALVEDADES ──
+   Cel-ind = (AD + VD atrializado) / (VD funcional + AI + VI), áreas en apical 4 cámaras y
+   TELEDIÁSTOLE. Origen: Celermajer DS et al., «Outcome in neonates with Ebstein's anomaly»,
+   JACC 1992;19:1041-6. (No el paper de 1994, que lo aplica pero no lo crea.)
+
+   Las cinco áreas son campos PROPIOS y no reusan `ad_area`/`ai_area`, aunque midan la misma
+   cámara. El motivo es de método y está verificado contra la ASE/EACVI 2015: las áreas
+   auriculares para TAMAÑO de cámara se miden «at end-systole, on the frame just prior to
+   mitral/tricuspid valve opening» — o sea en el frame de aurícula MÁXIMA. Celermajer se mide en
+   telediástole, con la aurícula MÍNIMA. Reusarlas inflaría el numerador de forma sistemática y
+   empujaría el grado hacia arriba, al lado de peor pronóstico.
+
+   Tres salvedades que el informe imprime, porque el número solo engaña:
+   · Por ECO sobreestima. Cieplucha 2019 (Can J Cardiol): concordancia eco-RMC κ=0,39, y sólo el
+     índice por RMC correlacionó con VO₂ pico y VE/VCO₂ — el ecocardiográfico con ninguno.
+   · Se derivó en 28 NEONATOS. El «100 %» del grado IV son 5 pacientes de 5. En adultos es
+     extrapolación.
+   · NO figura en la ESC 2020 de congénitas del adulto (verificado por búsqueda de texto
+     completo). Las indicaciones de cirugía de esa guía son clínicas: IT severa con síntomas o
+     deterioro objetivo de la capacidad de ejercicio (Clase I C), y dilatación progresiva o caída
+     de la función sistólica del VD (Clase IIa C). El índice describe, no indica. */
+function _ebsSv(id){ return (document.getElementById(id)?.value || '').trim(); }
+function _ebsNv(id){ const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; }
+function ebsCelermajer(){
+  const ad  = _ebsNv('ebs_area_ad'),   atr = _ebsNv('ebs_area_vd_atrial');
+  const vdf = _ebsNv('ebs_area_vd_func'), ai = _ebsNv('ebs_area_ai'), vi = _ebsNv('ebs_area_vi');
+  const faltan = [];
+  if (ad  == null) faltan.push('área de aurícula derecha');
+  if (atr == null) faltan.push('área del VD atrializado');
+  if (vdf == null) faltan.push('área del VD funcional');
+  if (ai  == null) faltan.push('área de aurícula izquierda');
+  if (vi  == null) faltan.push('área del ventrículo izquierdo');
+  if (faltan.length) return { faltan: faltan };
+  /* Banda de plausibilidad: un área en mm² en vez de cm² da un índice absurdo y la fórmula
+     devuelve un número igual. */
+  const fuera = [ ['aurícula derecha',ad], ['VD atrializado',atr], ['VD funcional',vdf],
+                  ['aurícula izquierda',ai], ['ventrículo izquierdo',vi] ]
+    .filter(function(p){ return p[1] < 1 || p[1] > 200; }).map(function(p){ return p[0]; });
+  if (fuera.length) return { fuera: fuera };
+  const den = vdf + ai + vi;
+  if (!(den > 0)) return { fuera: ['denominador cero'] };
+  const idx = (ad + atr) / den;
+  if (!isFinite(idx) || idx <= 0 || idx > 20) return { fuera: ['resultado fuera de rango'] };
+  /* Cortes de 1992. El del grado IV se publica como ≥1,5; las fuentes secundarias discrepan
+     entre ≥1,5, >1,5 y >1,4 y no se pudo verificar contra el Methods del original, así que se
+     usa el del abstract. */
+  const grado = idx < 0.5 ? 1 : (idx < 1.0 ? 2 : (idx < 1.5 ? 3 : 4));
+  return { idx: idx, grado: grado };
+}
+function ebsConclusion(){
+  /* `fuera` es la red que dap/coa/fop/vab/mch ya tienen y que estas tres secciones no heredaron:
+     sin ella, un valor ilegible anotaba una salvedad y la cascada seguía hasta una rama benigna
+     —«sin criterios de intervención, seguimiento»— sobre un estudio que no se pudo leer. */
+  const fuera = [];
+  const desp = _ebsNv('ebs_desplazamiento'), atrPct = _ebsNv('ebs_atrializacion');
+  const func = _ebsSv('ebs_func_vd'), tsv = _ebsSv('ebs_tsv'), vias = _ebsSv('ebs_vias');
+  const sint = _ebsSv('ebs_sintomas'), ejerc = _ebsSv('ebs_ejercicio'), prog = _ebsSv('ebs_progresion');
+  const cel = ebsCelermajer();
+  const it = _ebsSv('it_grado');
+  const hayDato = !!(desp != null || atrPct != null || func || cel.idx != null ||
+                     tsv === 'si' || vias === 'si');
+  if (!hayDato) return null;
+
+  const partes = [];
+  const bsa = (typeof getBSA === 'function') ? getBSA() : null;
+  if (desp != null) {
+    if (desp < 1 || desp > 80) { fuera.push('desplazamiento del velo septal');
+      partes.push('Desplazamiento del velo septal de ' + desp + ' mm fuera de rango: revisar unidades'); }
+    else if (bsa && bsa > 0) {
+      const idx = desp / bsa;
+      partes.push('Desplazamiento apical del velo septal ' + desp + ' mm (' + idx.toFixed(1) + ' mm/m²), ' +
+        (idx >= 8 ? 'en rango diagnóstico de anomalía de Ebstein (≥8 mm/m²)' : 'por debajo del umbral diagnóstico de 8 mm/m²'));
+    } else partes.push('Desplazamiento apical del velo septal ' + desp + ' mm; falta la superficie corporal (peso y talla) para indexarlo y aplicar el umbral de 8 mm/m²');
+  }
+  if (atrPct != null) partes.push('Atrialización del ventrículo derecho ' + atrPct + ' %');
+  const FUNC = { normal:'normal', leve:'con disfunción leve', moderada:'con disfunción moderada', severa:'con disfunción severa' };
+  if (func) partes.push('Ventrículo derecho funcional ' + (FUNC[func] || func));
+  const ITT = { '1':'leve', '2':'moderada', '3':'moderada-severa', '4':'severa' };
+  const itTxt = _ccLbl(ITT, it);
+  if (itTxt) partes.push('Insuficiencia tricuspídea ' + itTxt);
+
+  if (cel.fuera)  { fuera.push('áreas del índice de Celermajer');
+    partes.push('Índice de Celermajer no calculado: área de ' + cel.fuera.join(' y ') + ' fuera de rango — revisar unidades'); }
+  else if (cel.faltan) partes.push('Índice de Celermajer no calculado, faltan: ' + cel.faltan.join('; '));
+  else {
+    partes.push('Índice de Celermajer ' + cel.idx.toFixed(2) + ' — grado ' +
+      ['', 'I', 'II', 'III', 'IV'][cel.grado] +
+      '. Medido por ecocardiografía el índice tiende a SOBREESTIMAR la severidad (concordancia con resonancia κ=0,39) y fue derivado en una serie neonatal: en el adulto es orientativo. La indicación quirúrgica de la ESC 2020 es clínica y no depende de este índice');
+  }
+  /* El FOP y la CIA se DERIVAN de las secciones de esta misma pestaña. La asociación con Ebstein
+     es frecuente y preguntarla otra vez es la vía a que el informe se contradiga. */
+  /* ALLOWLIST de claves, no lista de exclusión: `clave !== 'descartado'` dejaba pasar
+     `sin_contraste` —que significa literalmente «el shunt no se interrogó»— y `sin_contexto`, y
+     el informe afirmaba «documentada en este estudio» sobre algo que nadie buscó. Es el patrón
+     que el propio emisor del FOP ya usa.
+     Y un foramen oval NO es una comunicación interauricular: en Ebstein la diferencia importa,
+     porque una CIA con shunt derecha-izquierda es lo que produce cianosis y lo que se cierra en
+     el acto quirúrgico. Se nombran por separado. */
+  const hayCia = !!(_ebsSv('ete_cia_tipo') || _ebsSv('ete_cia_tam_max') || _ebsSv('ete_cia_vel'));
+  const fopC = (typeof fopConclusion === 'function') ? fopConclusion() : null;
+  const FOP_CONFIRMA = ['cierre_iia','acv_mayor','acv_sin_edad','trombofilia','alto_riesgo_sin_evento','incidental'];
+  const hayFop = !!(fopC && FOP_CONFIRMA.indexOf(fopC.clave) >= 0);
+  if (hayCia) partes.push('Comunicación interauricular asociada documentada en este estudio');
+  if (hayFop) partes.push('Foramen oval permeable asociado');
+  if (tsv === 'si')  partes.push('Taquicardia supraventricular');
+  if (vias === 'si') partes.push('Vías accesorias conocidas');
+  if (tsv === 'si' || vias === 'si') partes.push('La asociación con vías accesorias y taquiarritmias obliga a evaluación electrofisiológica antes de una eventual cirugía');
+
+  /* Conducta según ESC 2020 §4.9.3 — clínica, no por índice. */
+  /* `it_grado` código 3 es MODERADA-SEVERA en toda la app (INSUF_TXT, _labRegurgSev, el propio
+     ITT de esta función). Leerlo como severa hacía que una IT moderada-severa sintomática
+     saliera con «insuficiencia tricuspídea SEVERA con síntomas — cirugía indicada, Clase I»,
+     contradiciendo al párrafo de arriba que la llamaba moderada-severa dos renglones antes.
+     Y tdfConclusion, en el mismo diff, ya lo leía bien. Severa es el 4. */
+  const itSevera = it === '4';
+  let clave, conducta;
+  if (itSevera && (sint === 'si' || ejerc === 'si')) {
+    clave = 'cirugia';
+    conducta = 'Insuficiencia tricuspídea severa con ' + (sint === 'si' ? 'síntomas' : 'deterioro objetivo de la capacidad de ejercicio') +
+      ' — cirugía indicada (ESC 2020, Clase I)';
+  } else if (prog === 'si' || func === 'moderada' || func === 'severa') {
+    clave = 'considerar_cirugia';
+    /* Se nombra el criterio que REALMENTE está presente. Antes decía «Dilatación progresiva del
+       VD o caída de su función» aunque `ebs_progresion` estuviera contestado que NO: la frase
+       ofrecía como criterio algo que el médico había descartado. */
+    conducta = (prog === 'si'
+        ? 'Dilatación progresiva del ventrículo derecho'
+        : 'Caída de la función sistólica del ventrículo derecho') +
+      ' — cirugía a considerar con independencia de los síntomas (ESC 2020, Clase IIa)';
+  } else if (itSevera) {
+    clave = 'it_severa_asintomatica';
+    conducta = 'Insuficiencia tricuspídea severa sin síntomas ni deterioro objetivo documentados — seguimiento estrecho; la indicación quirúrgica de la ESC se apoya en los síntomas, la capacidad de ejercicio y la evolución del ventrículo derecho';
+  } else if (sint !== 'si' && sint !== 'no') {
+    clave = 'sin_contexto';
+    conducta = 'No consta la situación clínica (síntomas y capacidad de ejercicio), que es de lo que dependen las indicaciones de intervención de la ESC 2020 en la anomalía de Ebstein';
+  } else {
+    clave = 'seguimiento';
+    conducta = 'Sin criterios de intervención por los datos cargados — seguimiento clínico y por imagen';
+  }
+  /* Un valor ilegible corta ANTES de publicar conducta: la cascada de arriba termina en ramas
+     que tranquilizan, y «sin criterios de intervención» sobre un estudio que no se pudo leer es
+     la negación fallando abierta que CLAUDE.md ya documenta. */
+  if (fuera.length) {
+    const t = 'Anomalía de Ebstein — ' + fuera.join(' y ') + ' fuera de rango: revisar unidades antes de concluir';
+    return { clave:'no_interpretable', txt: partes.concat([t]).join('. '), resumen: t, cel: cel };
+  }
+  partes.push(conducta);
+  /* El resumen NO afirma el diagnóstico cuando el desplazamiento quedó por debajo del umbral: el
+     EN SUMA es lo que se lee y se copia, y acá el rótulo no es anamnésico —como en Fallot o TGA,
+     donde el paciente viene operado— sino un diagnóstico que este ecocardiograma está haciendo. */
+  const bajoUmbral = (desp != null && bsa && bsa > 0 && (desp / bsa) < 8);
+  const rotulo = bajoUmbral
+    ? 'Desplazamiento del velo septal por debajo del umbral diagnóstico de anomalía de Ebstein'
+    : 'Anomalía de Ebstein';
+  return { clave: clave, txt: partes.join('. '), resumen: rotulo +
+    (cel.idx != null ? ', índice de Celermajer ' + cel.idx.toFixed(2) + ' (grado ' + ['', 'I','II','III','IV'][cel.grado] + ', orientativo por eco)' : '') +
+    (itTxt ? ', insuficiencia tricuspídea ' + itTxt : '') + '. ' + conducta, cel: cel };
+}
+function ebsSync(){
+  const txt = (id,s) => { const e=document.getElementById(id); if(e) e.textContent = s; };
+  const ro  = (id,s) => { const e=document.getElementById(id); if(e) e.value = s; };
+  const desp = _ebsNv('ebs_desplazamiento');
+  const bsa = (typeof getBSA === 'function') ? getBSA() : null;
+  /* La MISMA banda que ebsConclusion: sin esto la pantalla mostraba «444.4 mm/m² — rango
+     diagnóstico» para un desplazamiento de 800 mm mientras el informe decía «fuera de rango». */
+  txt('ebs-desp-idx', (desp == null) ? '—'
+    : (desp < 1 || desp > 80) ? 'fuera de rango — revisar unidades'
+    : (bsa && bsa > 0) ? ((desp / bsa).toFixed(1) + ' mm/m²' + ((desp / bsa) >= 8 ? ' — rango diagnóstico' : ' — bajo el umbral de 8'))
+    : 'falta la superficie corporal');
+  const ITT = { '1':'Leve', '2':'Moderada', '3':'Moderada-severa', '4':'Severa' };
+  ro('ebs_it_ro', _ccLbl(ITT, _ebsSv('it_grado')));
+  /* Espejo rotulado de las áreas auriculares del estudio: se muestran para que se VEA que no son
+     las mismas mediciones (telesístole vs telediástole) y no para reusarlas. */
+  ro('ebs_areas_ro', (function(){ const a = _ebsNv('ad_area'), b = _ebsNv('ai_area');
+    return (a != null || b != null) ? ('AD ' + (a != null ? a : '—') + ' · AI ' + (b != null ? b : '—') + ' cm²') : ''; })());
+  const cel = ebsCelermajer();
+  txt('ebs-celermajer', cel.idx != null ? cel.idx.toFixed(2) + ' — grado ' + ['', 'I','II','III','IV'][cel.grado]
+      : (cel.fuera ? 'fuera de rango: ' + cel.fuera.join(' y ') : 'faltan ' + cel.faltan.length + ' de 5 áreas'));
+  const c = ebsConclusion();
+  txt('ebs-concl', c ? c.txt : '—');
+}
+window.ebsSync = ebsSync; window.ebsConclusion = ebsConclusion; window.ebsCelermajer = ebsCelermajer;
+
+/* ══ TETRALOGÍA DE FALLOT REPARADA ═══════════════════════════════════════════════════════
+   La cardiopatía congénita compleja más frecuente en el adulto. El seguimiento gira alrededor
+   de la insuficiencia pulmonar residual y la dilatación del ventrículo derecho.
+
+   ── POR QUÉ ACÁ NO HAY VOLÚMENES ──
+   Los umbrales que todo el mundo cita —VDFVD indexado ≥160 ml/m², volumen sistólico final
+   ≥80 ml/m²— son cifras de RESONANCIA. La ESC 2020 es explícita: «CMR is the method of choice
+   for assessment of RV volume and function», y a la ecocardiografía le asigna otro papel
+   (obstrucción residual del TSVD, IP, CIV residual, tamaño y función de VD y VI, IT, presión
+   del VD, raíz aórtica). La eco 2D no mide volúmenes del VD de forma fiable: el ventrículo es
+   una semiluna y no hay asunción geométrica válida.
+
+   Por decisión tomada, esta sección maneja SÓLO lo que el ecocardiograma mide, y nombra el
+   criterio volumétrico como lo que es: una evaluación por resonancia. La alternativa —un campo
+   donde transcribir el volumen— se descartó; el antecedente pesa: el pedido original pedía
+   sincronizarlo con `vdfvi`, que es el volumen del ventrículo IZQUIERDO en mililitros, y eso
+   habría metido un VI dilatado de 180 ml en un umbral del VD indexado.
+
+   Dos correcciones más sobre la guía, verificadas en el texto: el operador es ≥ y no >, y la
+   propia ESC advierte que ese corte «may not correlate with clinical benefit» y pide medidas
+   SERIADAS, no un valor aislado. Nada de eso se puede sostener desde un solo ecocardiograma. */
+function _tdfSv(id){ return (document.getElementById(id)?.value || '').trim(); }
+function _tdfNv(id){ const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; }
+function tdfConclusion(){
+  const civ = _tdfSv('tdf_civ_residual'), civG = _tdfNv('tdf_civ_grad');
+  const func = _tdfSv('tdf_func_vd'), ip = _tdfSv('ip_grado');
+  /* El gradiente del tracto de salida: `vp_gmax` («G. Máx pulmonar — auto») ya lo calcula
+     `calcVP()` desde la velocidad pico, y alimenta el badge de severidad y `vp_morf` en el mismo
+     informe. `tdf_grad_tsvd` existe porque en la Fallot reparada la obstrucción puede ser
+     subvalvular, en el conducto o en las ramas, y no siempre coincide con el gradiente
+     transvalvular. Pero DOS gradientes del mismo tracto en un PDF firmado es el patrón que ya
+     costó tres correcciones, así que: si el propio está vacío se usa el calculado, y si los dos
+     están y difieren, el informe lo dice en vez de elegir uno en silencio. */
+  const gradProp = _tdfNv('tdf_grad_tsvd'), gradVP = _tdfNv('vp_gmax');
+  const gradT = gradProp != null ? gradProp : gradVP;
+  const gradDiscrepa = (gradProp != null && gradVP != null && Math.abs(gradProp - gradVP) >= 10);
+  const tv = _tdfSv('tdf_tv');
+  const sint = _tdfSv('tdf_sintomas'), ejerc = _tdfSv('tdf_ejercicio');
+  const ep = _tdfSv('tdf_ep_stent'), it = _tdfSv('it_grado');
+  const psvd = _tdfNv('psap_calc');
+  /* `ip_grado` NO entra en hayDato: es un campo compartido de Válvulas y su opción «IP leve
+     (fisiológica)» está presente en una fracción grande de los estudios normales. Con él adentro,
+     cualquier paciente con IP fisiológica hacía que la sección devolviera un objeto cuya primera
+     frase es «Tetralogía de Fallot reparada», y el panel lo mostraba en pantalla. La sección se
+     despierta con sus campos PROPIOS. */
+  const hayDato = !!(civ === 'si' || civG != null || func || gradT != null ||
+                     tv === 'si' || ep === 'si' || sint === 'si' || sint === 'no');
+  if (!hayDato) return null;
+  const fuera = [];
+  if (gradT != null && (gradT < 0 || gradT > 200)) fuera.push('gradiente del tracto de salida');
+  if (civG  != null && (civG  < 0 || civG  > 200)) fuera.push('gradiente de la CIV residual');
+
+  /* El párrafo encabeza con la enfermedad. Sin esto el cuerpo del informe describía la
+     insuficiencia pulmonar, la función del VD y la conducta sin nombrar nunca la tetralogía:
+     quien leyera el informe seis meses después no sabía de qué paciente se estaba hablando —el
+     EN SUMA sí la nombraba, y el cuerpo no—. */
+  const partes = ['Tetralogía de Fallot reparada'];
+  /* `ip_grado` es un <select> con TEXTO («IP severa»), no un código. `.toLowerCase()` sobre eso
+     daba «ip severa» en el informe firmado, con la sigla en minúscula. Se expande la sigla. */
+  const ipSevera = /severa/i.test(ip), ipModerada = /moderada/i.test(ip);
+  const ipTxt = ip ? ip.replace(/^IP\s*/i, 'insuficiencia pulmonar ') : '';
+  if (ipTxt) partes.push(ipTxt.charAt(0).toUpperCase() + ipTxt.slice(1));
+  if (civ === 'si') partes.push('Comunicación interventricular residual' + (civG != null ? ' con gradiente de ' + civG + ' mmHg' : ''));
+  else if (civ === 'no') partes.push('Sin comunicación interventricular residual');
+  const FUNC = { normal:'normal', leve:'con disfunción leve', moderada:'con disfunción moderada', severa:'con disfunción severa' };
+  if (func) partes.push('Función del ventrículo derecho ' + (FUNC[func] || func));
+  const tsvd = _tdfNv('tsvd_diametro');
+  if (tsvd != null) partes.push('Diámetro del TSVD ' + tsvd + ' mm');
+  if (gradT != null) partes.push('Gradiente en el tracto de salida derecho ' + gradT + ' mmHg' +
+    (gradProp == null ? ' (gradiente transvalvular pulmonar del estudio)' : '') +
+    (gradT >= 36 ? ' (obstrucción al menos moderada: velocidad pico >3 m/s)' : '') +
+    (gradDiscrepa ? '. El gradiente cargado en esta sección (' + gradProp + ' mmHg) y el transvalvular pulmonar del estudio (' + gradVP + ' mmHg) difieren: verificar cuál corresponde al nivel de la obstrucción' : ''));
+  /* `vp_morf` («Estenosis leve» / «Estenosis moderada/severa») ya describe la válvula pulmonar y
+     tiene MÁS resolución que este sí/no. Se nombra junto, para que el informe no diga dos cosas
+     distintas sobre la misma válvula. */
+  const vpMorf = _tdfSv('vp_morf');
+  if (ep === 'si') partes.push('Estenosis pulmonar sobre válvula nativa o stent' +
+    (/Estenosis/i.test(vpMorf) ? ' (morfología valvular pulmonar: ' + vpMorf.toLowerCase() + ')' : ''));
+  else if (ep !== 'si' && /Estenosis/i.test(vpMorf)) partes.push('Morfología valvular pulmonar: ' + vpMorf.toLowerCase());
+  /* En la TdF reparada con obstrucción residual, la presión estimada por IT es la del VENTRÍCULO
+     DERECHO y no la de la arteria pulmonar: el gradiente del TSVD las separa. La app calcula esa
+     presión bajo el nombre «PSAP», que es correcto sin obstrucción y engañoso con ella. */
+  if (psvd != null) partes.push('Presión sistólica del ventrículo derecho estimada por insuficiencia tricuspídea ' + psvd + ' mmHg' +
+    (psvd > 80 ? ' — por encima de 80 mmHg, que la ESC 2020 lista entre los criterios de reintervención' : ''));
+  const ITT = { '1':'leve', '2':'moderada', '3':'moderada-severa', '4':'severa' };
+  const itTxt = _ccLbl(ITT, it);
+  if (itTxt) partes.push('Insuficiencia tricuspídea ' + itTxt);
+  if (tv === 'si') partes.push('Taquicardia ventricular documentada, que la ESC 2020 vincula al mapeo e istmos anatómicos antes de una eventual reintervención');
+
+  /* Conducta según la tabla de la ESC 2020 para TdF reparada. */
+  let clave, conducta;
+  /* `tdf_ep_stent` registra PRESENCIA de estenosis o stent, no severidad: no puede por sí solo
+     convertirse en «obstrucción al menos moderada» y disparar una Clase I. Un stent pulmonar con
+     gradiente de 12 mmHg en un paciente con disnea de otra causa salía con «reemplazo valvular
+     pulmonar indicado». La severidad la define el GRADIENTE (velocidad pico >3 m/s ≈ 36 mmHg). */
+  const obstrModerada = (gradT != null && gradT >= 36) || /moderada\/severa/i.test(_tdfSv('vp_morf'));
+  if ((ipSevera || obstrModerada) && sint === 'si') {
+    clave = 'reintervencion_i';
+    conducta = 'Paciente sintomático con ' + (ipSevera ? 'insuficiencia pulmonar severa' : 'obstrucción al menos moderada del tracto de salida derecho') +
+      ' — reemplazo valvular pulmonar indicado (ESC 2020, Clase I). ' +
+      'La evaluación de los volúmenes del ventrículo derecho, que completa la decisión, se hace por RESONANCIA y no por ecocardiografía';
+  } else if (ipSevera || obstrModerada) {
+    const criterios = [];
+    if (ejerc === 'si') criterios.push('caída objetiva de la capacidad de ejercicio');
+    /* Sin «progresiva»: no hay campo de progresión en esta sección, así que el adjetivo no lo
+       sostiene nada. La ESC pide medidas seriadas para eso, y un solo eco no las tiene. */
+    if (func === 'moderada' || func === 'severa') criterios.push('disfunción sistólica del ventrículo derecho');
+    if (it === '2' || it === '3' || it === '4') criterios.push('insuficiencia tricuspídea al menos moderada');
+    /* La presión del VD sólo cuenta con obstrucción: en la ESC ese criterio va atado al TSVD, y
+       sin obstrucción una presión alta es hipertensión pulmonar, que es otra cosa. */
+    if (psvd != null && psvd > 80 && obstrModerada) criterios.push('presión sistólica del VD por encima de 80 mmHg');
+    /* La TV sostenida es criterio de la ESC y estaba impresa en el cuerpo sin contar: el informe
+       la describía y dos renglones después decía «sin otros criterios de reintervención». */
+    if (tv === 'si') criterios.push('taquicardia ventricular sostenida documentada');
+    if (criterios.length) {
+      clave = 'reintervencion_iia';
+      /* «Asintomático» sólo con el «No» explícito. La diferencia entre Clase I y IIa ES el estado
+         sintomático, así que afirmarlo sin preguntar es decidir la clase por el paciente. */
+      const enc = sint === 'no' ? 'Asintomático con ' : 'Con ';
+      conducta = enc + (ipSevera ? 'insuficiencia pulmonar severa' : 'obstrucción del tracto de salida') + ' y ' +
+        criterios.join('; ') + ' — reemplazo valvular pulmonar a considerar (ESC 2020, Clase IIa)' +
+        (sint !== 'no' ? '. No consta la situación clínica: con síntomas la indicación sería Clase I' : '') + '. ' +
+        'El criterio volumétrico (VDFVD indexado ≥160 ml/m² o volumen sistólico final ≥80 ml/m²) se evalúa por RESONANCIA, no por ecocardiografía, y la guía pide medidas seriadas';
+    } else {
+      clave = 'vigilancia';
+      conducta = (ipSevera ? 'Insuficiencia pulmonar severa' : 'Obstrucción del tracto de salida derecho') +
+        ' sin síntomas ni otros criterios de reintervención por los datos cargados — seguimiento. ' +
+        'La decisión se apoya además en los volúmenes del ventrículo derecho, que se miden por RESONANCIA: VDFVD indexado ≥160 ml/m² o volumen sistólico final ≥80 ml/m²' +
+        (sint !== 'no' ? '. No consta la situación clínica, que es lo que define la indicación Clase I' : '');
+    }
+  } else if (ipModerada) {
+    clave = 'ip_moderada';
+    conducta = 'Insuficiencia pulmonar moderada — vigilar la evolución de los volúmenes y la función del ventrículo derecho por resonancia';
+  } else {
+    clave = 'seguimiento';
+    conducta = 'Sin criterios de reintervención por los datos cargados — seguimiento clínico y por imagen. ' +
+      'La evaluación completa incluye los volúmenes del ventrículo derecho, que se miden por RESONANCIA y no por ecocardiografía';
+  }
+  if (fuera.length) {
+    const t = 'Tetralogía de Fallot reparada — ' + fuera.join(' y ') + ' fuera de rango: revisar unidades antes de concluir';
+    return { clave:'no_interpretable', txt: partes.concat([t]).join('. '), resumen: t };
+  }
+  partes.push(conducta);
+  return { clave: clave, txt: partes.join('. '),
+    resumen: 'Tetralogía de Fallot reparada' + (ipTxt ? ', ' + ipTxt : '') + '. ' + conducta };
+}
+function tdfSync(){
+  const txt = (id,s) => { const e=document.getElementById(id); if(e) e.textContent = s; };
+  const ro  = (id,s) => { const e=document.getElementById(id); if(e) e.value = s; };
+  ro('tdf_tsvd_ro', _tdfNv('tsvd_diametro') != null ? _tdfNv('tsvd_diametro') + ' mm' : '');
+  ro('tdf_ip_ro',   _tdfSv('ip_grado'));
+  ro('tdf_psvd_ro', _tdfNv('psap_calc') != null ? _tdfNv('psap_calc') + ' mmHg' : '');
+  const ITT = { '1':'Leve', '2':'Moderada', '3':'Moderada-severa', '4':'Severa' };
+  ro('tdf_it_ro', _ccLbl(ITT, _tdfSv('it_grado')));
+  const c = tdfConclusion();
+  txt('tdf-concl', c ? c.txt : '—');
+}
+window.tdfSync = tdfSync; window.tdfConclusion = tdfConclusion;
+
+/* ══ TRANSPOSICIÓN DE GRANDES ARTERIAS CORREGIDA ═════════════════════════════════════════
+   ccTGA o post-Mustard/Senning: el ventrículo DERECHO es el sistémico. El deterioro de su
+   función es progresivo y es la principal causa de muerte.
+   ESC 2020: cirugía si la insuficiencia tricuspídea sistémica es severa y sintomática, o ante
+   disfunción progresiva del ventrículo sistémico. La válvula tricúspide de estos pacientes es
+   la AURICULOVENTRICULAR SISTÉMICA, así que su insuficiencia pesa como pesaría una mitral. */
+function _tgaSv(id){ return (document.getElementById(id)?.value || '').trim(); }
+function _tgaNv(id){ const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; }
+function tgaConclusion(){
+  /* El diámetro sale de `vd_bas` («VD basal»), que la app ya mide: un segundo campo para la
+     misma medida es el patrón que ya costó tres correcciones. */
+  const tipo = _tgaSv('tga_tipo'), func = _tgaSv('tga_func_vd'), dil = _tgaNv('vd_bas');
+  const obstr = _tgaSv('tga_obstr_subaortica'), gradS = _tgaNv('tga_grad_subaortico');
+  const bav = _tgaSv('tga_bav'), civ = _tgaSv('tga_civ_residual'), civG = _tgaNv('tga_civ_grad');
+  const sint = _tgaSv('tga_sintomas'), it = _tgaSv('it_grado');
+  /* `dil` sale de un campo compartido, así que NO despierta la sección: si lo contara, todo
+     paciente con el VD medido tendría conclusión de transposición. */
+  const hayDato = !!(tipo || func || obstr === 'si' || gradS != null ||
+                     bav === 'si' || civ === 'si' || civG != null);
+  if (!hayDato) return null;
+
+  const TIPO = { cctga:'congénitamente corregida (ccTGA)', mustard:'post-Mustard', senning:'post-Senning' };
+  const partes = ['Transposición de grandes arterias ' + (tipo ? (TIPO[tipo] || tipo) : 'corregida') +
+                  ': el ventrículo derecho es el ventrículo sistémico'];
+  const FUNC = { normal:'normal', leve:'con disfunción leve', moderada:'con disfunción moderada', severa:'con disfunción severa' };
+  if (func) partes.push('Función del ventrículo derecho sistémico ' + (FUNC[func] || func));
+  if (dil != null) partes.push('Diámetro basal del ventrículo sistémico ' + dil + ' mm');
+  const ITT = { '1':'leve', '2':'moderada', '3':'moderada-severa', '4':'severa' };
+  const itTxt = _ccLbl(ITT, it);
+  if (itTxt) partes.push('Insuficiencia de la válvula auriculoventricular sistémica (tricúspide) ' + itTxt);
+  if (obstr === 'si') partes.push('Obstrucción subaórtica' + (gradS != null ? ' con gradiente de ' + gradS + ' mmHg' : ''));
+  else if (obstr === 'no') partes.push('Sin obstrucción subaórtica');
+  if (civ === 'si') partes.push('Comunicación interventricular residual' + (civG != null ? ' con gradiente de ' + civG + ' mmHg' : ''));
+  if (bav === 'si') partes.push('Bloqueo auriculoventricular completo, complicación esperable en la ccTGA por la disposición del sistema de conducción');
+
+  const itSevera = it === '4';   // el 3 es moderada-severa; ver la nota en ebsConclusion
+  let clave, conducta;
+  if (itSevera && sint === 'si') {
+    clave = 'cirugia_it';
+    conducta = 'Insuficiencia tricuspídea sistémica severa y sintomática — cirugía sobre la válvula a considerar antes de que la función del ventrículo sistémico se deteriore (ESC 2020)';
+  } else if (func === 'moderada' || func === 'severa') {
+    /* La disfunción del ventrículo sistémico va ANTES que el gradiente subaórtico. Con las dos
+       presentes, la única conducta publicada era «intervención a considerar» por la obstrucción y
+       nunca se imprimía el tratamiento de insuficiencia cardíaca ni la resincronización — para lo
+       que la propia sección llama «la principal causa de muerte en esta población». */
+    clave = 'disfuncion';
+    conducta = 'Disfunción del ventrículo sistémico — optimización del tratamiento médico de insuficiencia cardíaca y evaluación de resincronización; el deterioro del ventrículo derecho sistémico es progresivo y es la principal causa de muerte en esta población' +
+      (gradS != null && gradS > 50 && obstr === 'si' ? '. Además, obstrucción subaórtica con gradiente por encima de 50 mmHg — intervención a considerar' : '');
+  } else if (gradS != null && gradS > 50 && obstr === 'si') {
+    /* Exige la obstrucción marcada: con «Obstrucción subaórtica: No» y un gradiente tipeado, la
+       conducta afirmaba una obstrucción que el médico acababa de descartar. */
+    clave = 'obstr_subaortica';
+    conducta = 'Obstrucción subaórtica con gradiente por encima de 50 mmHg — intervención a considerar';
+  } else if (itSevera) {
+    clave = 'it_severa';
+    conducta = 'Insuficiencia tricuspídea sistémica severa sin síntomas documentados — seguimiento estrecho: la reparación valvular tiene mejores resultados antes de que caiga la función del ventrículo sistémico';
+  } else if (sint !== 'si' && sint !== 'no') {
+    clave = 'sin_contexto';
+    conducta = 'No consta la situación clínica, de la que dependen las indicaciones de intervención';
+  } else if (func === 'normal') {
+    clave = 'seguimiento';
+    conducta = 'Función del ventrículo sistémico conservada — seguimiento anual';
+  } else {
+    /* «Conservada» es una afirmación y necesita que se haya medido. Antes esta rama la publicaba
+       con la función SIN EVALUAR —hayDato se satisface sólo con el tipo— y también con
+       «disfunción leve» cargada, o sea contradiciendo al propio párrafo tres renglones arriba. */
+    clave = 'sin_funcion';
+    conducta = (func === 'leve'
+      ? 'Disfunción leve del ventrículo sistémico — seguimiento anual y vigilancia de la progresión'
+      : 'No consta la función del ventrículo sistémico, que es lo que gobierna el pronóstico en esta cardiopatía — completar la evaluación');
+  }
+  partes.push(conducta);
+  return { clave: clave, txt: partes.join('. '),
+    resumen: 'Transposición de grandes arterias ' + (tipo ? (TIPO[tipo] || tipo) : 'corregida') +
+             (itTxt ? ', insuficiencia de la AV sistémica ' + itTxt : '') + '. ' + conducta };
+}
+function tgaSync(){
+  const txt = (id,s) => { const e=document.getElementById(id); if(e) e.textContent = s; };
+  const ro  = (id,s) => { const e=document.getElementById(id); if(e) e.value = s; };
+  const ITT = { '1':'Leve', '2':'Moderada', '3':'Moderada-severa', '4':'Severa' };
+  ro('tga_it_ro', _ccLbl(ITT, _tgaSv('it_grado')));
+  ro('tga_dilatacion_ro', _tgaNv('vd_bas') != null ? _tgaNv('vd_bas') + ' mm' : '');
+  const c = tgaConclusion();
+  txt('tga-concl', c ? c.txt : '—');
+}
+window.tgaSync = tgaSync; window.tgaConclusion = tgaConclusion;
 window.mchScoreESC = mchScoreESC; window.mchAHA = mchAHA; window.mchExclusiones = mchExclusiones;
 window.mchGradMax = mchGradMax;
 function eteDDVIi(){
@@ -22535,7 +23256,10 @@ const ETE_INCL_LBL = {
   vap_incluir_chk:         'Ventana aortopulmonar',
   fop_incluir_chk:         'Foramen oval permeable',
   vab_incluir_chk:         'Válvula aórtica bicúspide',
-  mch_incluir_chk:         'Miocardiopatía hipertrófica'
+  mch_incluir_chk:         'Miocardiopatía hipertrófica',
+  ebs_incluir_chk:         'Anomalía de Ebstein',
+  tdf_incluir_chk:         'Tetralogía de Fallot reparada',
+  tga_incluir_chk:         'Transposición de grandes arterias corregida'
 };
 function eteInclSync(){
   document.querySelectorAll('.btn-integrar[data-ete-chk]').forEach(function(b){
@@ -22571,7 +23295,7 @@ function eteShuntTaviReset(){
    'coa_diast_anterogrado'].forEach(function(id){
     const c=document.getElementById(id); if(c) c.checked=false;
   });
-  try{ dapSync(); coaSync(); vapSync(); fopSync(); vabSync(); mchSync(); }catch(e){}
+  try{ dapSync(); coaSync(); vapSync(); fopSync(); vabSync(); mchSync(); ebsSync(); tdfSync(); tgaSync(); }catch(e){}
   const jh=document.getElementById('ete_tavi_jet_horas'); if(jh) jh.value='';
   try{ eteEpcSet([]); eteEpcDibujar(); }catch(e){}
   try{ eteShuntTab('cia'); eteTaviTab('pre'); }catch(e){}
@@ -31927,7 +32651,39 @@ function _labExcelRow(inf) {
     'MCH crecimiento espesor (mm/año)': rnd(num('mch_ctx_crecimiento'),1),
     'MCH deseo de embarazo': _cc3e(c.mch_ctx_embarazo),
     'Incluir VAB en informe':        c['vab_incluir_chk__chk']    === '1' ? 1 : 0,
+    'Ebstein desplazamiento (mm)': rnd(num('ebs_desplazamiento'),1),
+    'Ebstein atrialización (%)': rnd(num('ebs_atrializacion'),0),
+    'Ebstein función VD': _ccLbl({normal:'Normal',leve:'Disfunción leve',moderada:'Disfunción moderada',severa:'Disfunción severa'}, c.ebs_func_vd),
+    'Ebstein área AD (cm2)': rnd(num('ebs_area_ad'),1),
+    'Ebstein área VD atrializado (cm2)': rnd(num('ebs_area_vd_atrial'),1),
+    'Ebstein área VD funcional (cm2)': rnd(num('ebs_area_vd_func'),1),
+    'Ebstein área AI (cm2)': rnd(num('ebs_area_ai'),1),
+    'Ebstein área VI (cm2)': rnd(num('ebs_area_vi'),1),
+    'Ebstein TSV': _cc3e(c.ebs_tsv),
+    'Ebstein vías accesorias': _cc3e(c.ebs_vias),
+    'Ebstein síntomas': _cc3e(c.ebs_sintomas),
+    'Ebstein capacidad ejercicio': _cc3e(c.ebs_ejercicio),
+    'Ebstein dilatación progresiva VD': _cc3e(c.ebs_progresion),
+    'TdF función VD': _ccLbl({normal:'Normal',leve:'Disfunción leve',moderada:'Disfunción moderada',severa:'Disfunción severa'}, c.tdf_func_vd),
+    'TdF gradiente TSVD (mmHg)': rnd(num('tdf_grad_tsvd'),0),
+    'TdF CIV residual': _cc3e(c.tdf_civ_residual),
+    'TdF gradiente CIV residual (mmHg)': rnd(num('tdf_civ_grad'),0),
+    'TdF EP nativa o stent': _cc3e(c.tdf_ep_stent),
+    'TdF síntomas': _cc3e(c.tdf_sintomas),
+    'TdF capacidad ejercicio': _cc3e(c.tdf_ejercicio),
+    'TdF taquicardia ventricular': _cc3e(c.tdf_tv),
+    'TGA tipo': _ccLbl({cctga:'ccTGA',mustard:'Post-Mustard',senning:'Post-Senning'}, c.tga_tipo),
+    'TGA función VD sistémico': _ccLbl({normal:'Normal',leve:'Disfunción leve',moderada:'Disfunción moderada',severa:'Disfunción severa'}, c.tga_func_vd),
+    'TGA obstrucción subaórtica': _cc3e(c.tga_obstr_subaortica),
+    'TGA gradiente subaórtico (mmHg)': rnd(num('tga_grad_subaortico'),0),
+    'TGA bloqueo AV completo': _cc3e(c.tga_bav),
+    'TGA CIV residual': _cc3e(c.tga_civ_residual),
+    'TGA gradiente CIV residual (mmHg)': rnd(num('tga_civ_grad'),0),
+    'TGA síntomas': _cc3e(c.tga_sintomas),
     'Incluir MCH en informe':        c['mch_incluir_chk__chk']    === '1' ? 1 : 0,
+    'Incluir Ebstein en informe':    c['ebs_incluir_chk__chk']    === '1' ? 1 : 0,
+    'Incluir TdF en informe':        c['tdf_incluir_chk__chk']    === '1' ? 1 : 0,
+    'Incluir TGA en informe':        c['tga_incluir_chk__chk']    === '1' ? 1 : 0,
     'Informe (texto completo)': c.informe_texto || '', 'EN SUMA (texto completo)': c.en_suma || '',
   };
 }
@@ -32350,6 +33106,35 @@ const LAB_XLS_MAP = [
   ['MCH HTA resistente',         'mch_ctx_hta',   'vocab'],
   ['MCH crecimiento espesor (mm/año)','mch_ctx_crecimiento','num'],
   ['MCH deseo de embarazo',      'mch_ctx_embarazo','vocab'],
+  ['Ebstein desplazamiento (mm)','ebs_desplazamiento','num'],
+  ['Ebstein atrialización (%)', 'ebs_atrializacion','num'],
+  ['Ebstein función VD',        'ebs_func_vd',   'vocab'],
+  ['Ebstein área AD (cm2)',     'ebs_area_ad',   'num'],
+  ['Ebstein área VD atrializado (cm2)','ebs_area_vd_atrial','num'],
+  ['Ebstein área VD funcional (cm2)','ebs_area_vd_func','num'],
+  ['Ebstein área AI (cm2)',     'ebs_area_ai',   'num'],
+  ['Ebstein área VI (cm2)',     'ebs_area_vi',   'num'],
+  ['Ebstein TSV',               'ebs_tsv',       'vocab'],
+  ['Ebstein vías accesorias',   'ebs_vias',      'vocab'],
+  ['Ebstein síntomas',          'ebs_sintomas',  'vocab'],
+  ['Ebstein capacidad ejercicio','ebs_ejercicio','vocab'],
+  ['Ebstein dilatación progresiva VD','ebs_progresion','vocab'],
+  ['TdF función VD',            'tdf_func_vd',   'vocab'],
+  ['TdF gradiente TSVD (mmHg)', 'tdf_grad_tsvd', 'num'],
+  ['TdF CIV residual',          'tdf_civ_residual','vocab'],
+  ['TdF gradiente CIV residual (mmHg)','tdf_civ_grad','num'],
+  ['TdF EP nativa o stent',     'tdf_ep_stent',  'vocab'],
+  ['TdF síntomas',              'tdf_sintomas',  'vocab'],
+  ['TdF capacidad ejercicio',   'tdf_ejercicio', 'vocab'],
+  ['TdF taquicardia ventricular','tdf_tv',       'vocab'],
+  ['TGA tipo',                  'tga_tipo',      'vocab'],
+  ['TGA función VD sistémico',  'tga_func_vd',   'vocab'],
+  ['TGA obstrucción subaórtica','tga_obstr_subaortica','vocab'],
+  ['TGA gradiente subaórtico (mmHg)','tga_grad_subaortico','num'],
+  ['TGA bloqueo AV completo',   'tga_bav',       'vocab'],
+  ['TGA CIV residual',          'tga_civ_residual','vocab'],
+  ['TGA gradiente CIV residual (mmHg)','tga_civ_grad','num'],
+  ['TGA síntomas',              'tga_sintomas',  'vocab'],
 
   // 16 · Inclusión en el informe
   ['Incluir CIA/CIV en informe', 'ete_shunt_incluir_chk__chk', 'chk'],
@@ -32360,6 +33145,9 @@ const LAB_XLS_MAP = [
   ['Incluir FOP en informe',         'fop_incluir_chk__chk',    'chk'],
   ['Incluir VAB en informe',         'vab_incluir_chk__chk',    'chk'],
   ['Incluir MCH en informe',         'mch_incluir_chk__chk',    'chk'],
+  ['Incluir Ebstein en informe',     'ebs_incluir_chk__chk',    'chk'],
+  ['Incluir TdF en informe',         'tdf_incluir_chk__chk',    'chk'],
+  ['Incluir TGA en informe',         'tga_incluir_chk__chk',    'chk'],
 
   // 17 · Texto libre
   ['Informe (texto completo)','informe_texto', 'txt'],
@@ -32627,6 +33415,24 @@ LAB_XLS_VOCAB.mch_patron = { sigmoidea:'sigmoidea', sigmoideo:'sigmoidea',
   apical:'apical', neutral:'neutral', neutra:'neutral' };
 LAB_XLS_VOCAB.mch_cf = { i_ii:'i_ii', 'i-ii':'i_ii', 'i':'i_ii', ii:'i_ii',
   iii_iv:'iii_iv', 'iii-iv':'iii_iv', iii:'iii_iv', iv:'iii_iv' };
+/* Ebstein, Fallot y TGA. Los de tres estados reusan el núcleo; los de grado de función comparten
+   un vocabulario propio porque las tres secciones usan la misma escala. */
+['ebs_tsv','ebs_vias','ebs_sintomas','ebs_ejercicio','ebs_progresion','tdf_civ_residual',
+ 'tdf_ep_stent','tdf_sintomas','tdf_ejercicio','tdf_tv','tga_obstr_subaortica','tga_bav',
+ 'tga_civ_residual','tga_sintomas'].forEach(function(k){
+  LAB_XLS_VOCAB[k] = Object.assign({}, LAB_XLS_VOCAB_3E);
+});
+const _CC_FUNC_VD = { normal:'normal', normales:'normal',
+  leve:'leve', 'reducida leve':'leve', 'disfuncion leve':'leve',
+  moderada:'moderada', 'reducida moderada':'moderada', 'disfuncion moderada':'moderada',
+  severa:'severa', 'reducida severa':'severa', 'disfuncion severa':'severa' };
+['ebs_func_vd','tdf_func_vd','tga_func_vd'].forEach(function(k){
+  LAB_XLS_VOCAB[k] = Object.assign({}, _CC_FUNC_VD);
+});
+LAB_XLS_VOCAB.tga_tipo = { cctga:'cctga', 'congenitamente corregida':'cctga',
+  'tga congenitamente corregida':'cctga', 'l-tga':'cctga',
+  mustard:'mustard', 'post-mustard':'mustard', 'post mustard':'mustard',
+  senning:'senning', 'post-senning':'senning', 'post senning':'senning' };
 LAB_XLS_VOCAB.fop_burbujas = { pocas:'pocas', leve:'pocas', '<5':'pocas', 'menos de 5':'pocas',
                                moderado:'moderado', moderada:'moderado', '5-20':'moderado',
                                abundante:'abundante', severo:'abundante', severa:'abundante', '>20':'abundante' };
@@ -32693,6 +33499,18 @@ const LAB_XLS_OPCIONES = {
   mch_ex_reduccion:'Sí · No · No consta',
   mch_ctx_hta:'Sí · No · No consta',
   mch_ctx_embarazo:'Sí · No · No consta',
+  ebs_func_vd:'Normal · Reducida leve · Reducida moderada · Reducida severa',
+  tdf_func_vd:'Normal · Disfunción leve · Disfunción moderada · Disfunción severa',
+  tga_func_vd:'Normal · Disfunción leve · Disfunción moderada · Disfunción severa',
+  tga_tipo:'ccTGA · Post-Mustard · Post-Senning',
+  ebs_tsv:'Sí · No · No consta', ebs_vias:'Sí · No · No consta',
+  ebs_sintomas:'Sí · No · No consta', ebs_ejercicio:'Sí · No · No consta',
+  ebs_progresion:'Sí · No · No consta',
+  tdf_civ_residual:'Sí · No · No evaluada', tdf_ep_stent:'Sí · No · No consta',
+  tdf_sintomas:'Sí · No · No consta', tdf_ejercicio:'Sí · No · No consta',
+  tdf_tv:'Sí · No · No consta',
+  tga_obstr_subaortica:'Sí · No · No evaluada', tga_bav:'Sí · No · No consta',
+  tga_civ_residual:'Sí · No · No evaluada', tga_sintomas:'Sí · No · No consta',
 };
 LAB_XLS_OPCIONES.ia_grado = LAB_XLS_OPCIONES.it_grado = LAB_XLS_OPCIONES.im_grado;
 // Selects de texto libre acotado: se acepta cualquier opción de la lista, tal cual.
@@ -33091,7 +33909,17 @@ function labImportarXLSX(file) {
        ['vab_incluir_chk__chk',       /^vab_(tipo|rafe|funcion|fenotipo)/],
        /* Sólo lo que DESCRIBE la hipertrofia. Ni los factores de riesgo, ni las exclusiones, ni
           el contexto: una fila que sólo diga «TVNS: Sí» no documenta una miocardiopatía. */
-       ['mch_incluir_chk__chk',       /^mch_(espesor|loc|patron|grad_|sam|mesocavitaria|aneurisma)/]].forEach(([flag, rx]) => {
+       ['mch_incluir_chk__chk',       /^mch_(espesor|loc|patron|grad_|sam|mesocavitaria|aneurisma)/],
+       /* Sólo lo que DESCRIBE el hallazgo: ni los síntomas, ni la capacidad de ejercicio, ni las
+          arritmias, que son contexto y no documentan la cardiopatía. */
+       /* `func_vd` queda FUERA de las tres regex: su opción «normal» no es una respuesta negativa
+          para `_esNegativo` —que sólo reconoce '', '0', 'no' y 'no_eval'—, así que una planilla
+          cuya única columna de la sección fuera «TGA función VD sistémico: Normal» encendía la
+          casilla y el informe afirmaba la transposición. Las regex se acotan a descriptores cuyo
+          negativo ES el vacío, que es el criterio con el que se acotaron las de MCH, VAB y FOP. */
+       ['ebs_incluir_chk__chk',       /^ebs_(desplazamiento|atrializacion|area_)/],
+       ['tdf_incluir_chk__chk',       /^tdf_(grad_tsvd|civ_|ep_stent)/],
+       ['tga_incluir_chk__chk',       /^tga_(tipo|dilatacion|obstr_|grad_|civ_|bav)/]].forEach(([flag, rx]) => {
         if (inf.campos[flag] !== undefined) return;
         /* Una RESPUESTA NEGATIVA no cuenta como dato. La corrección original se ató al tipo
            `chk` («cola diastólica en 0») y no al significado del valor, así que al llegar los
@@ -35898,6 +36726,9 @@ function labHemoRender(infs, n) {
                                   _labCampoRaw(i, 'fop_burbujas'));
   const vabArr = infs.filter(i => _labCampoRaw(i, 'vab_tipo') || _labCampoRaw(i, 'vab_fenotipo'));
   const mchArr = infs.filter(i => _labCampoRaw(i, 'mch_espesor') || _labCampoRaw(i, 'mch_loc'));
+  const ebsArr = infs.filter(i => _labCampoRaw(i, 'ebs_desplazamiento') || _labCampoRaw(i, 'ebs_area_vd_atrial'));
+  const tdfArr = infs.filter(i => _labCampoRaw(i, 'tdf_func_vd') || _labCampoRaw(i, 'tdf_grad_tsvd'));
+  const tgaArr = infs.filter(i => _labCampoRaw(i, 'tga_tipo'));
 
   /* El Qp/Qs se RECALCULA desde los cuatro campos guardados y no se lee del span: el span es
      del estudio que esté cargado en pantalla, así que leerlo daría el mismo número para los 60
@@ -35927,7 +36758,7 @@ function labHemoRender(infs, n) {
      condición vieja, una cohorte con ductus y sin CIA dejaba el bloque en «sin datos» y los
      estudios con ductus no aparecían en ninguna parte del laboratorio. Las barras de CIA y el
      pie de CIV siguen gateados por lo suyo, que es lo que de verdad las alimenta. */
-  if (!shuntArr.length && !dapArr.length && !coaArr.length && !vapArr.length && !fopArr.length && !vabArr.length && !mchArr.length) {
+  if (!shuntArr.length && !dapArr.length && !coaArr.length && !vapArr.length && !fopArr.length && !vabArr.length && !mchArr.length && !ebsArr.length && !tdfArr.length && !tgaArr.length) {
     empty('lab-shunt-stats', 'CIA / CIV / ductus / coartación'); empty('lab-shunt-cia-bars', 'CIA');
     empty('lab-shunt-civ-pie', 'CIV');
   } else {
@@ -35950,7 +36781,10 @@ function labHemoRender(infs, n) {
       stat('Con ventana aortopulmonar', vapArr.length + ' (' + pctS(vapArr.length) + ')') +
       stat('Con foramen oval permeable', fopArr.length + ' (' + pctS(fopArr.length) + ')') +
       stat('Con válvula aórtica bicúspide', vabArr.length + ' (' + pctS(vabArr.length) + ')') +
-      stat('Con miocardiopatía hipertrófica', mchArr.length + ' (' + pctS(mchArr.length) + ')'));
+      stat('Con miocardiopatía hipertrófica', mchArr.length + ' (' + pctS(mchArr.length) + ')') +
+      stat('Con anomalía de Ebstein', ebsArr.length + ' (' + pctS(ebsArr.length) + ')') +
+      stat('Con Fallot reparada', tdfArr.length + ' (' + pctS(tdfArr.length) + ')') +
+      stat('Con TGA corregida', tgaArr.length + ' (' + pctS(tgaArr.length) + ')'));
     const CIA_L = { secundum:'Ostium secundum', primum:'Ostium primum', sv_vcs:'Seno venoso VCS',
                     sv_vci:'Seno venoso VCI', seno_coronario:'Seno coronario' };
     const CIV_L = { perimembranosa:'Perimembranosa', muscular:'Muscular',
@@ -38367,6 +39201,23 @@ const ECO_AYUDA = [
   <div class="mBox mTip"><b>Dos factores que no están en las dos listas.</b> El <b>realce tardío extenso por resonancia</b> cuenta para la AHA y no para la ESC — y el eco no lo evalúa, así que el informe lo dice <b>en el cuerpo y en el EN SUMA</b> para que un conteo bajo no se lea como «sin factores» cuando lo que falta es una resonancia. La <b>respuesta tensional anormal al ejercicio</b> se registra y se menciona, pero <b>no suma</b>: salió de la lista de la AHA en la edición de 2020. La <b>disfunción sistólica (FEVI &lt;50 %)</b> sí cuenta y se deriva sola del campo que ya existe.</div>
   <div class="mBox mTip"><b>Obstrucción.</b> El gradiente que entra al score es el <b>mayor</b> entre reposo y Valsalva. Un 0 es un dato válido —MCH no obstructiva— y no lo mismo que el campo vacío. ≥30 mmHg define obstrucción significativa; ≥50 mmHg con clase funcional III-IV refractaria al tratamiento médico es el umbral de reducción septal. <b>Si no cargaste la Valsalva, el informe no dice que sea negativa:</b> avisa que no está registrada. La obstrucción latente —basal 0, provocado 70— es el fenotipo entero para el que existe la maniobra.</div>
   <div class="mBox mTip"><b>Al EN SUMA sube un resumen, no el párrafo entero.</b> La conclusión lleva la estratificación y su clase por cada guía, más la obstrucción severa si la hay; el detalle completo —diagnóstico, patrón, factores presentes y sin evaluar, contexto— queda en el cuerpo del informe. Los <b>factores adicionales considerados</b> (HTA resistente, crecimiento del espesor, deseo de embarazo) se mencionan en el cuerpo y no suman a ningún score.</div>
+
+  <div class="mSub">💧 Ebstein — Anomalía de Ebstein</div>
+  <p class="mP">Desplazamiento apical del velo septal tricuspídeo con atrialización del ventrículo derecho. Principal causa de <b>insuficiencia tricuspídea congénita severa</b>, con asociación frecuente a FOP o CIA y a vías accesorias. Umbral diagnóstico: desplazamiento <b>≥8 mm/m²</b> de superficie corporal — la app lo indexa sola con el peso y la talla de Datos del paciente.</p>
+  <div class="mBox mAviso"><b>El índice de Celermajer es orientativo, no una indicación.</b> Se calcula con cinco áreas —AD, VD atrializado, VD funcional, AI y VI— y la app lo grada I a IV. Pero: por <b>ecocardiografía sobreestima</b> la severidad (concordancia con resonancia κ=0,39, y sólo el índice por RMC correlacionó con la capacidad funcional); se derivó en una serie de <b>28 neonatos</b> —el «100 %» del grado IV son 5 pacientes de 5—; y <b>no figura en la ESC 2020</b>, cuyas indicaciones de cirugía en Ebstein son clínicas. El informe imprime esas salvedades junto al número.</div>
+  <div class="mBox mTip"><b>Las cinco áreas son campos propios y no reusan las del estudio.</b> Las áreas auriculares que ya cargás en AI y VD/AD se miden en <b>telesístole</b> —aurícula máxima, que es el criterio de la ASE para tamaño de cámara— y el índice de Celermajer se mide en <b>telediástole</b>. Reusarlas inflaría el numerador de forma sistemática y empujaría el grado hacia el lado de peor pronóstico. Se muestran al lado, rotuladas, sólo para que se vea que no son lo mismo.</div>
+  <p class="mP">La conducta sale de la ESC 2020, que es clínica: IT severa con <b>síntomas</b> o deterioro objetivo de la capacidad de ejercicio → cirugía indicada (Clase I); dilatación progresiva del VD o caída de su función → cirugía a considerar aunque no haya síntomas (Clase IIa). Si marcás taquicardia supraventricular o vías accesorias, el informe agrega que corresponde evaluación electrofisiológica antes de una eventual cirugía.</p>
+
+  <div class="mSub">🫁 TdF — Tetralogía de Fallot reparada</div>
+  <p class="mP">La cardiopatía congénita compleja más frecuente en el adulto. El seguimiento gira alrededor de la <b>insuficiencia pulmonar residual</b> y la dilatación del ventrículo derecho. Se cargan la función del VD, el gradiente del tracto de salida, la CIV residual, la estenosis pulmonar sobre válvula nativa o stent, y la situación clínica. El grado de IP, el diámetro del TSVD, la presión del VD y el grado de IT se espejan de las pestañas donde ya se miden.</p>
+  <div class="mBox mAviso"><b>Esta sección no tiene campos de volumen, y es deliberado.</b> Los umbrales que definen la reintervención —VDFVD indexado ≥160 ml/m², volumen sistólico final ≥80 ml/m²— son cifras de <b>resonancia</b>: la ESC 2020 dice que la RMC es el método de elección para el volumen y la función del ventrículo derecho, y la ecocardiografía 2D no los mide de forma fiable. La conclusión nombra el criterio y dice que se evalúa por RMC —en las cuatro ramas, no sólo en las que indican reintervención— en vez de calcularlo con datos que el eco no produce. La guía además advierte que ese corte puede no correlacionar con beneficio clínico y pide <b>medidas seriadas</b>.</div>
+  <div class="mBox mTip"><b>El gradiente y la válvula pulmonar se cruzan con lo que ya mide la app.</b> Si no cargás el gradiente del TSVD, la sección usa el <b>transvalvular pulmonar</b> que la app ya calcula; si cargás los dos y difieren en 10 mmHg o más, el informe lo dice en vez de elegir uno. La severidad de la estenosis puede venir del campo de morfología pulmonar («Estenosis moderada/severa»), que tiene más resolución que el sí/no de esta sección. El diámetro del VD sistémico en TGA se espeja del <b>VD basal</b> que ya se mide en VD / AD.<br><br><b>Cuidado con la «PSAP» en esta sección.</b> Con obstrucción residual del tracto de salida, la presión que estima la insuficiencia tricuspídea es la del <b>ventrículo derecho</b> y no la de la arteria pulmonar — las separa el gradiente del TSVD. La app la rotula así acá. Por encima de 80 mmHg es uno de los criterios de reintervención de la ESC.</div>
+  <p class="mP">Conducta: paciente <b>sintomático</b> con IP severa u obstrucción al menos moderada → reemplazo valvular pulmonar indicado (Clase I). Con IP severa <i>más</i> alguno de: caída objetiva de la capacidad de ejercicio, disfunción del VD, IT al menos moderada, taquicardia ventricular sostenida, o presión del VD &gt;80 mmHg <i>con obstrucción</i> → a considerar (Clase IIa). Si no consta si el paciente tiene síntomas, la conclusión lo dice: con síntomas la indicación sería Clase I.</p>
+
+  <div class="mSub">🔄 TGA — Transposición de grandes arterias corregida</div>
+  <p class="mP">ccTGA o post-Mustard/Senning. Lo que define el seguimiento es que <b>el ventrículo derecho es el ventrículo sistémico</b>: su deterioro es progresivo y es la principal causa de muerte. La válvula tricúspide de estos pacientes es la auriculoventricular <b>sistémica</b>, así que su insuficiencia pesa como pesaría una mitral — el informe la nombra de esa manera para que no se lea como una IT cualquiera.</p>
+  <p class="mP">Conducta: IT sistémica severa y sintomática → cirugía sobre la válvula a considerar <b>antes</b> de que caiga la función del ventrículo sistémico, que es cuando los resultados son mejores. Obstrucción subaórtica con gradiente &gt;50 mmHg → intervención a considerar. Disfunción del ventrículo sistémico → tratamiento médico de insuficiencia cardíaca y evaluación de resincronización. El <b>bloqueo AV completo</b> se registra aparte: en la ccTGA es una complicación esperable por la disposición del sistema de conducción.</p>
+  <div class="mBox mTip"><b>La CIV residual de TdF y de TGA son campos propios de cada sección</b>, distintos de la sección CIA/CIV. Un paciente operado de Fallot puede tener una CIV residual pequeña que no tiene nada que ver con el defecto original: es una fuga del parche, se informa distinto y significa otra cosa.</div>
 
   <div class="mBox mTip"><b>El Qp/Qs es del paciente, no de cada defecto.</b> Sale de los flujos del TSVI y el TSVD, así que mide el cortocircuito total. Si hay más de uno cargado —una CIA y una ventana, por ejemplo— las tres secciones muestran <b>«shunt múltiple: el Qp/Qs es del conjunto»</b> en vez del número, ninguna se lo atribuye en su conclusión y tampoco sube al EN SUMA. Repartir el shunt entre dos defectos no se puede hacer con un ecocardiograma. El FOP queda fuera de esa cuenta a propósito: es fisiológico y está en el 25 % de la gente, así que contarlo apagaría el Qp/Qs de la CIA en uno de cada cuatro pacientes.</div>
   <div class="mSub">🔬 ETE</div>
