@@ -21157,6 +21157,14 @@ function loadCentro() {
   const txtEl  = document.getElementById('centro_nombre');
   if (txtEl && nombre) txtEl.value = nombre;
 }
+/* Estas dos SUBEN acá, arriba de `loadCentro()`, aunque su bloque temático esté más abajo.
+   `loadCentro()` es un statement de nivel superior y encadena selectCentroTipo() → firmaLoad(),
+   que puede llegar a `ecoGetCentroPrincipal()`; con la declaración abajo, ese camino lee un
+   const en zona muerta y tira «Cannot access 'ETT_CENTRO_PR_KEY' before initialization», que
+   mata el resto del bloque <script> y deja al médico sin estudios. Es la misma trampa que ya
+   se llevó puesto este archivo con LOGO_DATA_OK. Son dos literales sin dependencias: moverlas
+   no cambia nada más. No devolverlas abajo. */
+const ETT_CENTROS_KEY='ett_centros', ETT_CENTRO_PR_KEY='ett_centro_principal';
 loadCentro();
 window.selectCentroTipo = selectCentroTipo;
 window.saveCentroLabel = saveCentroLabel;
@@ -21165,7 +21173,9 @@ window.saveCentroLabel = saveCentroLabel;
 // CENTROS PREDEFINIDOS — gestión en Config · select en form · filtro múltiple en Lab
 // (no toca la lógica de informes: el campo guardado sigue siendo centro_nombre)
 // ══════════════════════════════════════════════════════════════
-const ETT_CENTROS_KEY='ett_centros', ETT_CENTRO_PR_KEY='ett_centro_principal';
+/* ETT_CENTROS_KEY y ETT_CENTRO_PR_KEY ya NO se declaran acá: subieron arriba de `loadCentro()`
+   por la zona muerta (ver el comentario allá). Se deja esta nota para que nadie las
+   re-declare acá al leer este bloque y termine con una sombra o un SyntaxError. */
 function ecoGetCentros(){ try{ const a=JSON.parse(localStorage.getItem(ETT_CENTROS_KEY)||'[]'); return Array.isArray(a)?a.filter(x=>typeof x==='string'&&x.trim()).map(x=>x.trim()):[]; }catch(e){ return []; } }
 function ecoSetCentros(arr){ try{ localStorage.setItem(ETT_CENTROS_KEY, JSON.stringify(arr.slice(0,10))); }catch(e){} }
 function ecoGetCentroPrincipal(){ return (localStorage.getItem(ETT_CENTRO_PR_KEY)||'').trim(); }
@@ -21500,7 +21510,18 @@ function getCentroKey() { return localStorage.getItem('centro_tipo_activo') || '
    informes firmados de ese centro sin un solo aviso — el catch del PDF se tragaba el error.
    Al sacarlo del predicado, un SVG guardado por una versión anterior también se descarta al
    pintar, en vez de arrastrarse. */
-const LOGO_DATA_OK = d => typeof d === 'string' && /^data:image\/(png|jpeg|jpg|gif|webp);base64,/i.test(d);
+/* DECLARACIÓN DE FUNCIÓN, no `const`. El comentario de acá arriba describía esta trampa y el
+   código igual caía en ella: `loadCentro()` corre como statement de nivel superior en la línea
+   ~21160 y encadena selectCentroTipo() → renderLogoCentro(), que llama a este predicado. Con
+   `const`, en la 21160 todavía está en zona muerta y salta
+   «Cannot access 'LOGO_DATA_OK' before initialization», que MATA el resto del bloque <script>:
+   CeiboStore no llega a construirse y el médico abre la app sin ninguno de sus estudios.
+   Sólo se dispara con un logo guardado bajo la clave del centro activo (`logo_centro_<idx>`),
+   porque `renderLogoCentro` hace `data && !LOGO_DATA_OK(data)` y sin logo cortocircuita. Por eso
+   parecía un bug de Safari: era el navegador donde había un logo cargado. Reproducido en Chrome
+   poniendo centro_tipo_activo='1' + logo_centro_1.
+   Como declaración se hoistea y el orden deja de importar. No convertir a const/let de nuevo. */
+function LOGO_DATA_OK(d) { return typeof d === 'string' && /^data:image\/(png|jpeg|jpg|gif|webp);base64,/i.test(d); }
 const LOGO_ES_SVG = f => !!f && (f.type === 'image/svg+xml' || /\.svg$/i.test(f.name || ''));
 function getLogoGallery(){try{return JSON.parse(localStorage.getItem('logo_gallery')||'[]');}catch(e){return[];}}
 function saveLogoGallery(arr){try{localStorage.setItem('logo_gallery',JSON.stringify(arr));return true;}catch(e){return false;}}
