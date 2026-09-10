@@ -16624,6 +16624,61 @@ function showTabById(id) {
   btns.forEach(b => { if (b.textContent.includes('Informe')) b.classList.add('active'); });
 }
 
+/* ¿Este id pertenece al ESTUDIO o es cromo de la app? Única fuente de verdad: la usan
+   `guardarInforme` (para decidir qué viaja con el estudio) y `limpiarCampos` (para decidir qué
+   se resetea al cambiar de paciente). Las dos preguntas son la misma —lo que no viaja con el
+   estudio tampoco se resetea con el estudio— y tenerlas en dos copias garantizaba que se
+   separaran.
+
+   Va como DECLARACIÓN DE FUNCIÓN y no como `const`: se lee desde dos funciones que están a
+   7.000 líneas de distancia, y un `const` de nivel superior leído antes de su línea tira
+   `ReferenceError: Cannot access before initialization` y corta el bloque `<script>` entero
+   —el médico abre la app sin ningún estudio—. Ya pasó tres veces en este archivo; ver la
+   sección de TDZ en CLAUDE.md. Las declaraciones de función se hoistean y no tienen ese modo
+   de falla.
+
+   Sólo entran acá los prefijos que no describen al paciente ni al estudio bajo ninguna
+   lectura: sesión, filtros y preferencias de la app. NO se excluyen `med-`, `firma-`, `logo`,
+   `tema` ni `centro_tipo`: el firmante y la institución SÍ tienen que viajar con el estudio —es
+   lo que hace que reimprimir un informe viejo lo firme el médico que lo hizo y no el Principal
+   de hoy—. `fcg-` se agregó 2026-09-09: medido sobre un estudio real, de los 493 campos que
+   viajan el único colado era `fcg-valve-select`, el desplegable de válvula del fonocardiograma,
+   que es un control del visor y no una medición. */
+function _noEsDelEstudio(id) {
+  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-)/.test(id);
+}
+
+/* ══ Repintado de módulos al cargar un estudio ═══════════════════════════════════════════
+   Los módulos avanzados pintan sus derivados por JS —espejos de solo lectura, Qp/Qs, el
+   bitmap del canvas EPC, las conclusiones del ductus y la coartación, y el estado de los
+   botones «Integrar al informe»—. Asignar `.value` o `.checked` no dispara ningún evento, así
+   que sin volver a correrlas un estudio cargado muestra los campos poblados y los cálculos
+   en «—».
+
+   Hay CINCO caminos que cargan un estudio en el formulario: el autosave al recargar la página,
+   `editarInforme`, `cargarEstudioPorId`, y los dos de la reimpresión (armar el PDF y restaurar
+   después el paciente en curso). Hasta 2026-09-10 cada uno llevaba su propia copia del array,
+   y las cinco copias ya eran CUATRO listas distintas — con un bug real en producción: el
+   autosave reponía el `.checked` de las casillas de inclusión pero nunca llamaba a
+   `eteInclSync`, así que después de recargar con un borrador el botón decía «📎 Integrar al
+   informe» en gris sobre una sección que SÍ se iba a imprimir. Verificado en el navegador.
+
+   Función y no `const`: se lee desde cinco puntos repartidos en 11.000 líneas, y un `const` de
+   nivel superior leído antes de su línea corta el bloque `<script>` entero (ver CLAUDE.md).
+   Los `calc*` NO entran acá: son estables y cada sitio llama los suyos. Lo que crece con cada
+   módulo nuevo es esta lista, y por eso tiene que estar en un solo lugar. */
+function RECALC_MODULOS() {
+  return ['eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync'];
+}
+function _recalcModulos(etiqueta) {
+  RECALC_MODULOS().forEach(function(fn){
+    if (typeof window[fn] === 'function') {
+      try { window[fn](); } catch (e) { console.warn('[' + (etiqueta || 'recalc') + '] ' + fn, e); }
+    }
+  });
+}
+window.RECALC_MODULOS = RECALC_MODULOS; window._recalcModulos = _recalcModulos;
+
 // ══ LIMPIAR ══
 function limpiarCampos() {
   // Nuevo estudio: la card de severidades vuelve a pedirse en la próxima acción
@@ -16647,15 +16702,35 @@ function limpiarCampos() {
   document.querySelectorAll('textarea').forEach(el => el.value = el.defaultValue);
   document.querySelectorAll('select').forEach(el => el.selectedIndex = 0);
   if (typeof renderCentroField === 'function') renderCentroField('');   // nuevo estudio → centro principal por defecto
-  // Prolapso mitral: desmarcar checkboxes, limpiar extensión, ocultar bloque
-  ['vm_seg_a1','vm_seg_a2','vm_seg_a3','vm_seg_p1','vm_seg_p2','vm_seg_p3','vm_seg_ca','vm_seg_cp','vm_flail','vm_rotura_cuerdas','vm_elongacion_cuerdas','vm_calc_anular','vm_engros_valvar','vm_exceso_tejido'].forEach(id => { const el = document.getElementById(id); if (el) el.checked = false; });
+  /* ══ Checkboxes: barrido con ALLOWLIST, no lista de los que sí se limpian ══
+     Hasta 2026-09-10 esto se hacía al revés —una lista explícita de los que se desmarcan— y
+     eso hace que la clase de riesgo crezca con CADA checkbox nuevo: el que se olvide sobrevive
+     a «Nuevo estudio» y aparece en el informe del paciente siguiente. Ya se pagó dos veces
+     (`ete-es-ete` y `coa_diast_anterogrado`), y al invertirlo aparecieron dos fugas más que
+     nadie había visto, las dos con salida clínica:
+       · `htp2022_a3/_b1muesca/_b2/_b3` alimentan calcHTP2022, que publica la probabilidad de
+         hipertensión pulmonar; con nCat>=2 empujan de BAJA a INTERMEDIA.
+       · `pua_z_*` son las seis zonas con líneas B, que el informe pulmonar nombra una por una.
+     Con el barrido, lo que crece con cada campo nuevo es la seguridad, no el riesgo: para
+     filtrarse hay que pedirlo explícitamente acá.
+
+     La allowlist es de PREFERENCIAS, no de datos — cosas que el médico configura una vez y
+     espera encontrar igual con el paciente siguiente:
+       · `firma-*`  qué líneas muestra el bloque de firma
+       · `evol-*`   qué series dibuja el modal de evolución
+     Los `cfg-`, `lab-`, `adv-`, `exp-` ya quedan afuera por `_noEsDelEstudio`, la misma regex
+     que usa guardarInforme: si no viaja con el estudio, tampoco se resetea con el estudio.
+     `em_pdf_thp` NO va en la allowlist: se desmarca acá y unas líneas más abajo vuelve a
+     `true`, que es su estado permanente, junto con el borrado de su `dataset.tocado`. */
+  const _CHK_PREFERENCIA = /^(firma-|evol-)/;
+  document.querySelectorAll('input[type=checkbox][id]').forEach(el => {
+    if (_noEsDelEstudio(el.id) || _CHK_PREFERENCIA.test(el.id)) return;
+    el.checked = false;
+  });
+  // Prolapso mitral: limpiar extensión y ocultar bloque (las casillas las desmarcó el barrido)
   { const _ci = document.getElementById('caso_interes'); if (_ci) _ci.checked = false; }
-  /* limpiarCampos desmarca por listas explícitas, no con un barrido de todos los
-     checkbox, así que un checkbox nuevo NO se resetea solo. Sin esta línea, marcar un
-     estudio como ETE y después dar «Nuevo estudio» dejaba el título transesofágico
-     puesto para el paciente siguiente. */
   { const _ete = document.getElementById('ete-es-ete'); if (_ete) _ete.checked = false; }
-  /* Ídem para el selector de métodos de AVm. Además de desmarcar hay que borrar
+  /* Selector de métodos de AVm. Además de desmarcar hay que borrar
      `dataset.tocado`: es la memoria de «el médico ya decidió», y si sobrevive al paciente
      nuevo el auto-marcado nunca vuelve a encenderse y la continuidad queda fuera del
      informe en silencio. THP vuelve a marcado, que es su estado permanente. */
@@ -17263,10 +17338,10 @@ function _autosaveRestore(){
     ['calcBSA','calcVI','calcAI','calcAorta','calcVD','calcDiastol','calcPSAP','calcPmAD',
      'calcIM_ESC','calcIA_ESC','calcIT_ESC','calcContIM','calcAo','calcEADetalle',
      'calcWilkins','cxWilkins','cxDuke','cxGtpSync','showMasaPanel','calcHTP2022',
-     'calcCardioOnco','updateHdrExtra','eteShuntSync','eteTaviSync','eteEpcRefrescar',
-     'dapSync','coaSync'].forEach(function(fn){
+     'calcCardioOnco','updateHdrExtra'].forEach(function(fn){
       if (typeof window[fn] === 'function') { try { window[fn](); } catch (e) { console.warn('[autosave] '+fn, e); } }
     });
+    _recalcModulos('autosave');
   } catch (e) { console.warn('[autosave] recálculo de derivados', e); }
   /* El borrador repuesto es la base de procedencia del informe. Sin esta línea, `_infBase`
      quedaba en null tras una recarga y los refrescos silenciosos dejaban de actualizar el
@@ -23210,9 +23285,7 @@ function editarInforme(id) {
        dapSync/coaSync por lo mismo: el gradiente, el Qp/Qs, el cociente istmo/aorta y la
        conclusión del ductus y de la coartación son spans pintados por JS, así que un estudio
        reabierto mostraba los campos cargados y la conclusión en «—». */
-    ['eteShuntSync','eteTaviSync','eteEpcRefrescar','dapSync','coaSync'].forEach(function(fn){
-      if (typeof window[fn] === 'function') { try { window[fn](); } catch (e) {} }
-    });
+    _recalcModulos('editarInforme');
     // Guardar id del informe siendo editado
     window._ettEditandoId = id;
     eeCurrentInformeId = inf.estudioId || null;   // el QR del PDF apuntará a este estudio
@@ -23260,8 +23333,8 @@ function cargarEstudioPorId(id) {
   if (typeof amiloRestaurarDesdeCampos === 'function') amiloRestaurarDesdeCampos(inf.campos);
   valvSevConfirmada = false;   // estudio cargado por URL/QR: vuelve a pedir confirmación
   if (typeof renderCentroField === 'function') renderCentroField(inf.campos && inf.campos.centro_nombre);
-  ['calcVI','calcAI','calcAorta','calcVD','calcVEXUS',
-   'eteShuntSync','eteTaviSync','eteEpcRefrescar','dapSync','coaSync'].forEach(fn => { if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} } });
+  ['calcVI','calcAI','calcAorta','calcVD','calcVEXUS'].forEach(fn => { if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} } });
+  _recalcModulos('cargarEstudioPorId');
   window._ettEditandoId = inf.id;
   infBaseDesdeDOM();   // ver nota en editarInforme: base = lo que quedó tras los recálculos
   if (typeof imgRestaurar === 'function') imgRestaurar(inf.uuid);
@@ -23511,9 +23584,13 @@ function guardarInforme(onDone) {
      493 campos que viajan, los de Config y filtros son CERO —esta lista ya los cubría— y el
      único colado era `fcg-valve-select`, el desplegable de válvula del fonocardiograma. Es un
      control del visor, no una medición: no describe al paciente. Uno solo, no cincuenta. */
-  const _noEsDelEstudio = /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-)/;
+  /* La regex vive ahora en `_noEsDelEstudio()`, arriba, como DECLARACIÓN DE FUNCIÓN —hoisteada,
+     sin zona muerta— porque limpiarCampos también la necesita para su barrido de checkboxes y
+     estaba declarada acá adentro con `const`, o sea invisible desde afuera. Leerla desde otra
+     función habría tirado `ReferenceError` y, en este archivo, eso corta el bloque `<script>`
+     entero: el médico abre la app sin ningún estudio. Ya pasó tres veces (ver CLAUDE.md). */
   document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
-    if (_noEsDelEstudio.test(el.id)) return;
+    if (_noEsDelEstudio(el.id)) return;
     campos[el.id] = el.value;
   });
   /* En un checkbox `.value` es el atributo («on»), NO el estado marcado, así que el bucle de
@@ -23522,7 +23599,7 @@ function guardarInforme(onDone) {
      hallazgo desaparecía, y el documento firmado y el registro guardado decían cosas
      distintas sin que nada lo avisara. `caso_interes` y los humorales del HFA-PEFF ya tenían
      su tratamiento especial abajo; esto cubre a todos los demás. */
-  document.querySelectorAll('input[type=checkbox][id]').forEach(el => { if (_noEsDelEstudio.test(el.id)) return; campos[el.id + '__chk'] = el.checked ? '1' : '0'; });
+  document.querySelectorAll('input[type=checkbox][id]').forEach(el => { if (_noEsDelEstudio(el.id)) return; campos[el.id + '__chk'] = el.checked ? '1' : '0'; });
   /* «El médico decidió» va como dato propio, no se infiere de que exista `__chk`. La línea de
      arriba guarda TODOS los checkbox siempre, así que desde este commit todo estudio trae
      `em_pdf_cont__chk`, incluso uno sin estenosis mitral donde el bloque nunca se abrió.
@@ -28098,7 +28175,7 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
      directamente (arriba, en el barrido de campos) y era la única ruta que los movía sin
      repintar. Si la restauración falla a mitad, el médico revisa la pestaña ETE y ve los
      botones del paciente en curso sobre las casillas del estudio reimpreso. */
-  ['eteShuntSync','eteTaviSync','eteInclSync','dapSync','coaSync'].forEach(function(f){ if (typeof window[f] === 'function') { try { window[f](); } catch(e){} } });
+  _recalcModulos('pdfDeInformeGuardado');
 
   // Fallback: estudios históricos (previos al acordeón) con texto libre en indicacion/antecedentes
   // → el PDF lo usa solo si el acordeón quedó vacío
@@ -28191,7 +28268,7 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
     if (typeof calcAo === 'function') calcAo();
     if (typeof calcSGL === 'function') calcSGL();
     if (typeof calcCardioOnco === 'function') calcCardioOnco();
-    ['eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync'].forEach(function(f){ if (typeof window[f] === 'function') { try { window[f](); } catch(e){} } });
+    _recalcModulos('restaurarTrasReimpresion');
     if (typeof updateHdrExtra === 'function') updateHdrExtra();
    } catch (e) {
     /* La restauración corre en otra tarea: su excepción NO la ve el try/catch del wrapper,
@@ -36010,15 +36087,37 @@ window.ecoMedToggle=ecoMedToggle;
 </script>
 <script>
 /* ══ CONFIG / MODO DE VISUALIZACIÓN (CAMBIO 2) ══ */
+/* Esta lista dibuja las casillas de Config; los botones de las tabs se marcan aparte con
+   `data-mod`. Son dos listas paralelas y ya se habían separado: `pulmonar` tenía su botón desde
+   siempre y NO estaba acá, así que Eco Pulmonar no se podía apagar desde Config y nadie se
+   enteró — `eeModOn` devuelve `true` cuando falta la clave, o sea que la incoherencia falla
+   abierta y muda. Se agregó 2026-09-10.
+   Al sumar una tab modular: entrada acá Y `data-mod` en el botón. El chequeo de arranque de
+   más abajo avisa por consola si vuelven a separarse. */
 var EE_MODULES = [
   {key:'hemodinamica', label:'🩸 Hemodinámica'},
   {key:'ete',          label:'🔬 ETE'},
+  {key:'pulmonar',     label:'🫁 Eco Pulmonar'},
   {key:'amiloidosis',  label:'🫀 Amiloidosis'},
   {key:'cardioOnco',   label:'🎗️ Cardio-Oncología'},
   {key:'calculadoras', label:'🧮 Calculadoras'},
   {key:'fono',         label:'🔊 Fonocardiograma'},
   {key:'refs',         label:'📚 Referencias'}
 ];
+/* Guarda contra la divergencia que acabamos de cerrar. No corrige nada —no puede saber cuál de
+   las dos listas tiene razón— pero deja de ser un fallo mudo. */
+document.addEventListener('DOMContentLoaded', function(){
+  try {
+    var enBotones = {}, faltan = [], sobran = [];
+    document.querySelectorAll('[data-mod]').forEach(function(b){ enBotones[b.getAttribute('data-mod')] = true; });
+    var enConfig = {};
+    EE_MODULES.forEach(function(m){ enConfig[m.key] = true; if (!enBotones[m.key]) sobran.push(m.key); });
+    Object.keys(enBotones).forEach(function(k){ if (!enConfig[k]) faltan.push(k); });
+    if (faltan.length || sobran.length)
+      console.warn('[modulos] EE_MODULES y data-mod no coinciden — sin casilla en Config:', faltan,
+                   '· sin botón:', sobran);
+  } catch(e){}
+});
 function eeGetMode(){ return localStorage.getItem('ett_view_mode') || 'avanzado'; }
 function eeGetModules(){ try { return JSON.parse(localStorage.getItem('ett_modules') || '{}'); } catch(e){ return {}; } }
 function eeModOn(k){ var m=eeGetModules(); return m[k] !== false; } // por defecto visible
