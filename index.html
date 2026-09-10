@@ -7862,6 +7862,188 @@ z
     </div>
   </div>
 
+  <!-- ═══ VENTANA AORTOPULMONAR ═══ -->
+  <div class="card sacc" id="sacc-cc-vap">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-vap');vapSync();" aria-expanded="false">
+      <span class="sacc-arrow">▶</span>
+      <span style="flex:1;">VAP — Ventana aortopulmonar</span>
+      <span id="vap_badge" class="incl-badge" hidden>📎 en el informe</span>
+    </button>
+    <div class="card-body sacc-body">
+      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
+        Comunicación directa entre la aorta ascendente y la arteria pulmonar principal. Menos del 1 % de las cardiopatías congénitas.
+        A diferencia del ductus no tiene variante restrictiva relevante en el adulto: el defecto es proximal y de gran calibre, así que
+        la repercusión hemodinámica se asume salvo prueba en contra.
+        <b style="color:var(--accent2);">ESC 2020: cierre indicado siempre, salvo hipertensión pulmonar irreversible (Eisenmenger).</b>
+      </p>
+      <div class="grid-3">
+        <div class="fg"><label>Tipo</label>
+          <select id="vap_tipo" onchange="vapSync()">
+            <option value="">—</option>
+            <option value="i">Tipo I — proximal</option>
+            <option value="ii">Tipo II — distal</option>
+            <option value="iii">Tipo III — total</option>
+          </select>
+        </div>
+        <div class="fg"><label>Diámetro (mm)</label><input type="number" id="vap_diam" step="0.1" placeholder="mm" oninput="vapSync()"></div>
+        <div class="fg"><label>Dirección del shunt</label>
+          <select id="vap_dir" onchange="vapSync()">
+            <option value="">—</option>
+            <option value="id">Izquierda a derecha</option>
+            <option value="bi">Bidireccional</option>
+            <option value="di">Derecha a izquierda</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>Hipertensión pulmonar asociada</label>
+          <select id="vap_htp" onchange="vapSync()">
+            <option value="">—</option>
+            <option value="no_eval">No evaluada</option>
+            <option value="no">No</option>
+            <option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>PAPs estimada — del estudio</label>
+          <input type="text" id="vap_paps_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+        <div class="fg"><label>Qp/Qs</label>
+          <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+            <span id="vap-qpqs" class="calc-val">—</span></div></div>
+        </div>
+      </div>
+      <div class="calc-box" style="margin-top:12px;">
+        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="vap-concl" class="calc-val">—</span></div>
+      </div>
+      <div style="text-align:center;margin-top:10px;">
+        <input type="checkbox" id="vap_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+        <button type="button" class="btn btn-integrar" data-ete-chk="vap_incluir_chk" aria-pressed="false"
+                onclick="eteInclToggle('vap_incluir_chk')">📎 Integrar al informe</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ FORAMEN OVAL PERMEABLE ═══
+       Los campos de contexto clínico son SELECTS de tres estados, no casillas: la diferencia
+       entre «no lo tiene» y «no lo pregunté» decide acá entre no hacer nada e implantar un
+       dispositivo. Ver la nota de fopConclusion(). -->
+  <div class="card sacc" id="sacc-cc-fop">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-fop');fopSync();" aria-expanded="false">
+      <span class="sacc-arrow">▶</span>
+      <span style="flex:1;">FOP — Foramen oval permeable</span>
+      <span id="fop_badge" class="incl-badge" hidden>📎 en el informe</span>
+    </button>
+    <div class="card-body sacc-body">
+      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
+        Comunicación interauricular fisiológica que no se cierra tras el nacimiento. Está en aproximadamente el <b>25 % de la población</b>,
+        así que el hallazgo por sí solo no es una enfermedad: lo que decide la conducta es el contexto clínico.
+        <b style="color:var(--accent2);">ESC: cierre percutáneo Clase IIa en el ACV criptogénico del menor de 60 años</b>, tras evaluación conjunta con neurología.
+      </p>
+      <div class="mBoxLike" style="border-left:3px solid var(--red,#b91c1c);background:rgba(185,28,28,.08);padding:8px 12px;border-radius:6px;font-size:11px;line-height:1.5;margin-bottom:12px;">
+        <b>Riesgo asociado.</b> El FOP con ACV criptogénico y sin cierre tiene recurrencia de en torno al 5 % anual. La coexistencia de
+        <b>aneurisma del septum interauricular</b> y <b>shunt severo</b> marca el subgrupo de mayor riesgo embólico.
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:4px 0 8px;">Anatomía</div>
+      <div class="grid-3">
+        <div class="fg"><label>Longitud del túnel (mm)</label><input type="number" id="fop_tunel" step="0.1" placeholder="mm" oninput="fopSync()"></div>
+        <div class="fg"><label>Movilidad del septum</label>
+          <select id="fop_mov" onchange="fopSync()">
+            <option value="">—</option>
+            <option value="no_eval">No evaluada</option>
+            <option value="no">No aumentada</option>
+            <option value="si">Septum móvil</option>
+          </select>
+        </div>
+        <div class="fg"><label>Aneurisma del septum</label>
+          <select id="fop_asa" onchange="fopSync()">
+            <option value="">—</option>
+            <option value="no_eval">No evaluado</option>
+            <option value="no">No</option>
+            <option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:10px;">
+        <div class="fg"><label>Excursión del aneurisma (mm)</label><input type="number" id="fop_asa_mm" step="0.1" placeholder="mm" oninput="fopSync()"></div>
+        <div class="fg"><label>Interpretación</label>
+          <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+            <span id="fop-asa-interp" class="calc-val">—</span></div></div>
+        </div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Shunt</div>
+      <div class="grid-3">
+        <div class="fg"><label>Contraste con burbujas</label>
+          <select id="fop_contraste" onchange="fopSync()">
+            <option value="">—</option>
+            <option value="no">No se realizó</option>
+            <option value="si">Realizado</option>
+          </select>
+        </div>
+        <div class="fg"><label>Shunt en reposo</label>
+          <select id="fop_shunt_reposo" onchange="fopSync()">
+            <option value="">—</option>
+            <option value="no_eval">No evaluado</option>
+            <option value="no">Ausente</option>
+            <option value="si">Presente</option>
+          </select>
+        </div>
+        <div class="fg"><label>Shunt con Valsalva</label>
+          <select id="fop_shunt_valsalva" onchange="fopSync()">
+            <option value="">—</option>
+            <option value="no_eval">No evaluado</option>
+            <option value="no">Ausente</option>
+            <option value="si">Presente</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:10px;">
+        <div class="fg"><label>Cantidad de burbujas</label>
+          <select id="fop_burbujas" onchange="fopSync()">
+            <option value="">—</option>
+            <option value="pocas">Pocas (&lt;5)</option>
+            <option value="moderado">Moderado (5-20)</option>
+            <option value="abundante">Abundante (&gt;20)</option>
+          </select>
+        </div>
+        <div class="fg"><label>Grado del shunt</label>
+          <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+            <span id="fop-shunt-grado" class="calc-val">—</span></div></div>
+        </div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Contexto clínico</div>
+      <p style="font-size:10px;color:var(--text2);margin:0 0 8px;">Sin esto la app no puede distinguir un hallazgo incidental de una indicación de cierre, y no lo va a suponer.</p>
+      <div class="grid-2">
+        <div class="fg"><label>ACV criptogénico</label>
+          <select id="fop_acv" onchange="fopSync()">
+            <option value="">—</option>
+            <option value="no_eval">No consta</option>
+            <option value="no">No</option>
+            <option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Trombofilia conocida</label>
+          <select id="fop_trombofilia" onchange="fopSync()">
+            <option value="">—</option>
+            <option value="no_eval">No consta</option>
+            <option value="no">No</option>
+            <option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="calc-box" style="margin-top:12px;">
+        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="fop-concl" class="calc-val">—</span></div>
+      </div>
+      <div style="text-align:center;margin-top:10px;">
+        <input type="checkbox" id="fop_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+        <button type="button" class="btn btn-integrar" data-ete-chk="fop_incluir_chk" aria-pressed="false"
+                onclick="eteInclToggle('fop_incluir_chk')">📎 Integrar al informe</button>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- ═══════════════════════ TAB: ECO ESTRÉS ═══════════════════════ -->
@@ -16418,7 +16600,12 @@ function generarInforme(opts) {
       const chk=document.getElementById('ete_shunt_incluir_chk');
       if(!chk || !chk.checked) return;
       if(typeof eteShuntSync==='function') { try{ eteShuntSync(); }catch(e){} }
-      const q  = (typeof eteQpQs==='function') ? eteQpQs() : null;
+      /* Por `ccQpQsDe` y no por `eteQpQs()` crudo. Ésta es la sección que publica el Qp/Qs al
+         EN SUMA, o sea la que más fuerte habla, y era la única de las tres que seguía
+         reclamándolo sin preguntar: con una CIA y una ventana aortopulmonar cargadas, el
+         informe firmado decía «Qp/Qs 2.60 — shunt significativo, evaluar cierre» atribuyéndole
+         a la CIA una sobrecarga que en parte venía de la ventana. */
+      const q  = (typeof ccQpQsDe==='function') ? ccQpQsDe('cia') : null;
       const di = (typeof eteDDVIi==='function') ? eteDDVIi() : null;
       const paps = v('psap_calc');
       /* MISMO f1 guardado que usa la pantalla. El de acá no tenía isFinite, y como el script
@@ -16588,7 +16775,9 @@ function generarInforme(opts) {
       const tipo = sv('dap_tipo'), dir = sv('dap_dir');
       const diam = v('dap_diam'), vmax = v('dap_vmax'), paps = v('dap_paps');
       const g = (typeof dapGmax === 'function') ? dapGmax() : null;
-      const q = (typeof eteQpQs === 'function') ? eteQpQs() : null;
+      /* Idem: la pantalla ya retenía el número por shunt múltiple y el párrafo firmado lo
+         imprimía igual, pegado a una conclusión calculada sin él. */
+      const q = (typeof ccQpQsDe === 'function') ? ccQpQsDe('dap') : null;
       const p = ['Ductus arterioso permeable' + (tipo ? ' ' + (DAP_TIPO_TXT[tipo] || tipo) : '')];
       if (f1(diam)) p.push('Diámetro mínimo ' + f1(diam) + ' mm');
       if (dir) p.push('Shunt de ' + (DAP_DIR_TXT[dir] || dir));
@@ -16647,6 +16836,79 @@ function generarInforme(opts) {
          segunda manda a pedir una angio-RMN. Dejar una indicación de intervención sólo en el
          cuerpo del informe es exactamente lo que la conclusión existe para evitar. */
       if (c.clave === 'significativa' || c.clave === 'limitrofe') suma.push(c.txt + '.');
+    })();
+
+    /* ── Ventana aortopulmonar ── */
+    (function(){
+      const chk = document.getElementById('vap_incluir_chk');
+      if (!chk || !chk.checked) return;
+      if (typeof vapSync === 'function') { try { vapSync(); } catch(e){} }
+      const c = (typeof vapConclusion === 'function') ? vapConclusion() : null;
+      if (!c) return;
+      const f1 = n => (n==null || !isFinite(n)) ? null : String(Math.round(n*10)/10);
+      const tipo = sv('vap_tipo'), dir = sv('vap_dir'), htp = sv('vap_htp');
+      const diam = v('vap_diam');
+      const q = (typeof ccQpQsDe === 'function') ? ccQpQsDe('vap') : null;
+      const p = ['Ventana aortopulmonar' + (tipo ? ' ' + (VAP_TIPO_TXT[tipo] || tipo) : '')];
+      if (f1(diam)) p.push('Diámetro ' + f1(diam) + ' mm');
+      if (dir) p.push('Shunt de ' + (VAP_DIR_TXT[dir] || dir));
+      /* El Qp/Qs sólo se imprime si esta sección puede reclamarlo. Con otro cortocircuito
+         cargado el número es del conjunto, y ponerlo en el párrafo de la ventana lo convierte
+         en una medida de la ventana para quien lea el informe seis meses después. */
+      if (q != null) p.push('Qp/Qs ' + q.toFixed(2));
+      /* Sólo la respuesta afirmativa o negativa EXPLÍCITA: «no evaluada» no se imprime, porque
+         el informe no puede afirmar nada sobre lo que nadie miró. */
+      if (htp === 'si') p.push('Con hipertensión pulmonar asociada');
+      else if (htp === 'no') p.push('Sin hipertensión pulmonar asociada');
+      etePars.push(p.join('. ') + '. ' + c.txt + '.');
+      /* Las tres ramas accionables suben al EN SUMA. La de Eisenmenger sobre todo: es una
+         CONTRAINDICACIÓN, y dejarla sepultada en el cuerpo del informe es exactamente lo que la
+         conclusión existe para evitar. */
+      if (c.clave === 'eisenmenger' || c.clave === 'htp' || c.clave === 'cierre' ||
+          c.clave === 'htp_no_eval') suma.push(c.txt + '.');
+    })();
+
+    /* ── Foramen oval permeable ── */
+    (function(){
+      const chk = document.getElementById('fop_incluir_chk');
+      if (!chk || !chk.checked) return;
+      if (typeof fopSync === 'function') { try { fopSync(); } catch(e){} }
+      const c = (typeof fopConclusion === 'function') ? fopConclusion() : null;
+      if (!c) return;
+      const f1 = n => (n==null || !isFinite(n)) ? null : String(Math.round(n*10)/10);
+      const tunel = v('fop_tunel'), asaMm = v('fop_asa_mm');
+      const asa = sv('fop_asa'), mov = sv('fop_mov'), burb = sv('fop_burbujas');
+      const reposo = sv('fop_shunt_reposo'), valsalva = sv('fop_shunt_valsalva'), contraste = sv('fop_contraste');
+      /* El encabezado del párrafo depende de la conclusión: con el estudio de burbujas negativo
+         no se puede abrir diciendo «Foramen oval permeable», que es justo lo que se descartó. */
+      const p = [c.clave === 'descartado' ? 'Septum interauricular' : 'Foramen oval permeable'];
+      if (f1(tunel)) p.push('Longitud del túnel ' + f1(tunel) + ' mm');
+      if (mov === 'si') p.push('Septum interauricular móvil');
+      if (asa === 'si' || (asaMm != null && asaMm >= 10))
+        p.push('Aneurisma del septum interauricular' + (f1(asaMm) ? ' con excursión de ' + f1(asaMm) + ' mm' : ''));
+      else if (asa === 'no') p.push('Sin aneurisma del septum interauricular');
+      /* El estudio con burbujas se nombra SIEMPRE que se haya contestado, incluso negativo: que
+         no se haya hecho es información clínica —significa que el shunt no fue interrogado— y
+         omitirlo deja al lector suponiendo que sí se buscó y no había. */
+      if (contraste === 'si') {
+        p.push('Estudio con solución salina agitada realizado');
+        if (reposo === 'si') p.push('Shunt presente en reposo');
+        else if (reposo === 'no') p.push('Sin shunt en reposo');
+        if (valsalva === 'si') p.push('Shunt presente con maniobra de Valsalva');
+        else if (valsalva === 'no') p.push('Sin shunt con maniobra de Valsalva');
+        if (burb) p.push('Paso de burbujas: ' + (FOP_BURB_TXT[burb] || burb));
+      } else if (contraste === 'no') {
+        p.push('No se realizó estudio con contraste');
+      }
+      etePars.push(p.join('. ') + '. ' + c.txt + '.');
+      /* Al EN SUMA sólo lo que cambia una conducta. `incidental` no: un FOP sin contexto es un
+         hallazgo de uno de cada cuatro adultos y llenaría la conclusión de ruido.
+         `sin_contexto` SÍ sube, aunque no sea una indicación: le está diciendo al médico que
+         falta el dato del que depende la decisión, y eso tiene que verse en la conclusión y no
+         doce renglones más arriba. */
+      if (c.clave === 'cierre_iia' || c.clave === 'acv_mayor' || c.clave === 'trombofilia' ||
+          c.clave === 'alto_riesgo_sin_evento' || c.clave === 'sin_contexto' ||
+          c.clave === 'acv_sin_edad') suma.push(c.txt + '.');
     })();
 
     if (etePars.length) inf.push('', ...etePars);
@@ -16720,7 +16982,7 @@ function _noEsDelEstudio(id) {
    Los `calc*` NO entran acá: son estables y cada sitio llama los suyos. Lo que crece con cada
    módulo nuevo es esta lista, y por eso tiene que estar en un solo lugar. */
 function RECALC_MODULOS() {
-  return ['eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync'];
+  return ['eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -20477,12 +20739,60 @@ function eteQpQsInterp(q){
   return 'Shunt significativo — evaluar cierre según sobrecarga de VD y resistencia pulmonar';
 }
 
+/* ══ ATRIBUCIÓN DEL Qp/Qs ════════════════════════════════════════════════════════════════
+   `eteQpQs()` sale de los flujos TSVI/TSVD: mide el shunt TOTAL del paciente y no sabe por qué
+   defecto pasa. Con más de un cortocircuito documentado, ese número es del conjunto y
+   atribuírselo a una sección la hace mentir — un ductus que el médico marcó restrictivo
+   apareciendo como «grande no restrictivo» porque la CIA de al lado tiene un Qp/Qs de 2,6.
+
+   Esto empezó como una guarda dentro de `dapConclusion` con la lista de campos de CIA/CIV
+   escrita a mano. Con la ventana aortopulmonar son TRES secciones compitiendo por el mismo
+   número, y tres copias de la lista se desincronizan en el primer campo que se agregue. Una
+   sola tabla, una sola función.
+
+   `ccQpQsDe(cual)` devuelve el Qp/Qs sólo si `cual` es el ÚNICO shunt con datos. Si hay dos,
+   devuelve null y cada sección concluye con su evidencia propia — que es lo honesto: el dato
+   para repartir el shunt entre dos defectos no está en un ecocardiograma. */
+const CC_SHUNTS = {
+  cia: ['ete_cia_tipo','ete_cia_dir','ete_cia_tam_max','ete_cia_tam_min','ete_cia_vel'],
+  civ: ['ete_civ_tipo','ete_civ_tam','ete_civ_vel'],
+  dap: ['dap_tipo','dap_dir','dap_diam','dap_vmax'],
+  vap: ['vap_tipo','vap_dir','vap_diam']
+};
+/* El FOP no entra en la tabla A PROPÓSITO: es un shunt fisiológico presente en el 25 % de la
+   población, casi siempre sin repercusión de flujo, y contarlo como «otro shunt» apagaría el
+   Qp/Qs de la CIA en uno de cada cuatro pacientes. Si el FOP tiene shunt de verdad, lo que
+   corresponde es reclasificarlo como CIA, no repartir el cociente. */
+function ccShuntsConDatos(){
+  const con = [];
+  Object.keys(CC_SHUNTS).forEach(function(k){
+    const hay = CC_SHUNTS[k].some(function(id){
+      const el = document.getElementById(id);
+      return !!el && String(el.value || '').trim() !== '';
+    });
+    if (hay) con.push(k);
+  });
+  return con;
+}
+function ccQpQsDe(cual){
+  if (typeof eteQpQs !== 'function') return null;
+  const con = ccShuntsConDatos();
+  /* CIA y CIV comparten una sola sección y un solo botón de integrar, así que para esta
+     decisión cuentan como uno: un paciente con CIA y CIV es un paciente con «el shunt del
+     ETE», y esa sección ya publica el Qp/Qs global con ese nombre. */
+  const grupos = new Set(con.map(function(k){ return (k === 'cia' || k === 'civ') ? 'shunt' : k; }));
+  const mio = (cual === 'cia' || cual === 'civ') ? 'shunt' : cual;
+  if (grupos.size > 1) return null;
+  if (grupos.size === 1 && !grupos.has(mio)) return null;
+  return eteQpQs();
+}
+window.ccQpQsDe = ccQpQsDe; window.ccShuntsConDatos = ccShuntsConDatos;
+
 /* ══ DUCTUS ARTERIOSO PERMEABLE ══════════════════════════════════════════════════════════
    Umbrales ESC 2020 de cardiopatías congénitas del adulto / AHA-ACC 2018.
    El Qp/Qs es el MISMO `eteQpQs()` del shunt y no una copia: sale de los mismos TSVI/TSVD, y
    dos implementaciones del mismo cociente terminan divergiendo — ya pasó en este archivo con
-   el f1 del informe. Por eso también es «Qp/Qs global»: con CIA y ductus a la vez, el número
-   es del conjunto, no de cada defecto. */
+   el f1 del informe. La atribución la resuelve `ccQpQsDe`, arriba. */
 const DAP_TIPO_TXT = { silente:'silente', restrictivo:'restrictivo', no_restrictivo:'no restrictivo' };
 const DAP_DIR_TXT  = { id:'izquierda a derecha', bi:'bidireccional', di:'derecha a izquierda' };
 function dapGmax(){
@@ -20536,14 +20846,7 @@ function dapConclusion(){
   const ductusGrande = tipo === 'no_restrictivo' || (diam != null && diam >= 3);
   const paps = papsDap != null ? papsDap
              : (ductusGrande ? banda((typeof v==='function') ? v('psap_calc') : null, 5, 150) : null);
-  /* Qp/Qs es GLOBAL —sale de los flujos TSVI/TSVD— y no dice por qué defecto pasa el shunt.
-     Con una CIA/CIV cargada ese mismo número ya se le atribuyó a la otra sección, y usarlo
-     acá haría que la pantalla llamara «grande no restrictivo» a un ductus que el propio
-     médico marcó restrictivo. Sólo se le atribuye al ductus si es el único shunt del estudio. */
-  const otroShunt = ['ete_cia_tipo','ete_cia_dir','ete_cia_tam_max','ete_cia_tam_min','ete_cia_vel',
-                     'ete_civ_tipo','ete_civ_tam','ete_civ_vel'].some(id => sv2(id) !== '')
-                 || !!document.getElementById('ete_shunt_incluir_chk')?.checked;
-  const q = (!otroShunt && typeof eteQpQs==='function') ? eteQpQs() : null;
+  const q = ccQpQsDe('dap');
   const htp = (paps!=null && paps >= 50) || dir === 'di' || dir === 'bi';
   if (htp) return { clave:'htp',
     txt:'Ductus con hipertensión pulmonar — evaluar operabilidad (resistencias pulmonares y test de vasorreactividad) antes de indicar cierre' };
@@ -20571,11 +20874,39 @@ function dapSync(){
   const txt = (id,s) => { const e=document.getElementById(id); if(e) e.textContent = s; };
   const g = dapGmax();
   txt('dap-gmax', g==null ? '—' : (Math.round(g*10)/10) + ' mmHg');
-  const q = (typeof eteQpQs==='function') ? eteQpQs() : null;
-  txt('dap-qpqs', q==null ? '—' : q.toFixed(2));
+  /* La pantalla muestra lo MISMO que usa la conclusión. Antes pintaba `eteQpQs()` crudo mientras
+     la conclusión lo descartaba por shunt múltiple, así que el panel decía «Qp/Qs 2.60» arriba de
+     «ductus pequeño restrictivo sin repercusión» y el número parecía ignorado por un error. */
+  txt('dap-qpqs', ccQpQsTxt('dap'));
   const c = dapConclusion();
   txt('dap-concl', c ? c.txt : '—');
 }
+/* Texto del Qp/Qs para el panel de una sección: el número si le corresponde, y si no, el motivo.
+   «Falta el dato» y «el dato es del conjunto» no pueden verse iguales — es el mismo criterio de
+   eteQpQsMotivo(), que ya existía para la sección de CIA/CIV. */
+/* Motivo por el que no hay Qp/Qs atribuible a esta sección. Envuelve a eteQpQsMotivo(), que
+   sólo sabe de campos faltantes, y agrega el caso que introdujo la atribución: el número existe
+   pero es de otra sección. Sin esto las dos situaciones se veían como «—». */
+function ccQpQsMotivo(cual){
+  const con = ccShuntsConDatos();
+  const grupos = new Set(con.map(function(k){ return (k === 'cia' || k === 'civ') ? 'shunt' : k; }));
+  const mio = (cual === 'cia' || cual === 'civ') ? 'shunt' : cual;
+  if (grupos.size > 1) return 'Hay más de un cortocircuito cargado: el Qp/Qs mide el shunt total del paciente y no se puede repartir entre defectos por ecocardiografía';
+  if (grupos.size === 1 && !grupos.has(mio)) return 'El Qp/Qs corresponde a otra sección de esta pestaña';
+  return (typeof eteQpQsMotivo === 'function') ? eteQpQsMotivo() : '—';
+}
+window.ccQpQsMotivo = ccQpQsMotivo;
+function ccQpQsTxt(cual){
+  const q = ccQpQsDe(cual);
+  if (q != null) return q.toFixed(2);
+  const con = ccShuntsConDatos();
+  const grupos = new Set(con.map(function(k){ return (k === 'cia' || k === 'civ') ? 'shunt' : k; }));
+  const mio = (cual === 'cia' || cual === 'civ') ? 'shunt' : cual;
+  if (grupos.size > 1) return '— (shunt múltiple: el Qp/Qs es del conjunto)';
+  if (grupos.size === 1 && !grupos.has(mio)) return '— (el Qp/Qs es de otra sección)';
+  return '—';
+}
+window.ccQpQsTxt = ccQpQsTxt;
 window.dapSync = dapSync; window.dapConclusion = dapConclusion; window.dapGmax = dapGmax;
 
 /* ══ COARTACIÓN DE AORTA ═════════════════════════════════════════════════════════════════
@@ -20679,6 +21010,182 @@ function coaSync(){
 }
 window.coaSync = coaSync; window.coaConclusion = coaConclusion;
 window.coaGmax = coaGmax; window.coaRatio = coaRatio;
+
+/* ══ VENTANA AORTOPULMONAR ═══════════════════════════════════════════════════════════════
+   Comunicación directa entre aorta ascendente y arteria pulmonar principal. Es rara (<1 % de
+   las cardiopatías congénitas) y, a diferencia del ductus, NO tiene variante restrictiva
+   relevante en el adulto: el defecto es proximal y de gran calibre, así que la repercusión
+   hemodinámica se asume salvo prueba en contra.
+   ESC 2020: el cierre está indicado siempre, EXCEPTO con hipertensión pulmonar irreversible
+   (fisiología de Eisenmenger). Por eso el orden de las ramas está invertido respecto del resto
+   de las secciones: acá la contraindicación se evalúa PRIMERO. Decir «cierre indicado» sobre un
+   Eisenmenger es la peor frase que puede imprimir esta sección — cerrar el shunt en ese
+   escenario elimina la única vía de descarga del ventrículo derecho. */
+const VAP_TIPO_TXT = { i:'tipo I (proximal)', ii:'tipo II (distal)', iii:'tipo III (total)' };
+const VAP_DIR_TXT  = { id:'izquierda a derecha', bi:'bidireccional', di:'derecha a izquierda' };
+function vapConclusion(){
+  const sv2 = id => (document.getElementById(id)?.value || '').trim();
+  const nv = id => { const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; };
+  const fuera = [];
+  const banda = (n, lo, hi, lbl) => { if (n==null) return null; if (n>=lo && n<=hi) return n; if(lbl) fuera.push(lbl); return null; };
+  const tipo = sv2('vap_tipo'), dir = sv2('vap_dir'), htp = sv2('vap_htp');
+  const diamRaw = nv('vap_diam');
+  const hayDato = !!(tipo || dir || (htp && htp !== 'no_eval') || diamRaw != null);
+  if (!hayDato) return null;
+  const diam = banda(diamRaw, 1, 40, 'diámetro');
+  const q = ccQpQsDe('vap');
+  /* Eisenmenger primero. El shunt invertido es evidencia PROPIA de la ventana —el flujo pasa
+     por ella—, así que no hace falta que además esté marcada la HTP: un flujo de derecha a
+     izquierda a través de una comunicación sistémico-pulmonar ya significa que la resistencia
+     pulmonar superó a la sistémica. */
+  if (dir === 'di') return { clave:'eisenmenger',
+    txt:'Ventana aortopulmonar con shunt invertido (derecha a izquierda) — fisiología de Eisenmenger: el cierre está CONTRAINDICADO; derivar a unidad de cardiopatías congénitas del adulto' };
+  if (dir === 'bi' || htp === 'si') return { clave:'htp',
+    txt:'Ventana aortopulmonar con hipertensión pulmonar — evaluar resistencias pulmonares y test de vasorreactividad antes de decidir el cierre; la operabilidad no se define por ecocardiografía' };
+  /* Recién acá el número fuera de escala corta, porque de acá para abajo las ramas afirman. */
+  if (fuera.length) return { clave:'no_interpretable',
+    txt:'Ventana aortopulmonar — ' + fuera.join(' y ') + ' fuera de rango: revisar unidades antes de concluir' };
+  /* «Cierre indicado» exige que la hipertensión pulmonar se haya EVALUADO. Sin eso la frase que
+     sale es la que el comentario de cabecera llama la peor que puede imprimir esta sección: una
+     indicación quirúrgica sobre un paciente en el que nadie descartó el Eisenmenger, y el
+     médico lo dejó dicho en el campo. La sección de FOP ya trataba «No consta» como bloqueante
+     para su conclusión benigna; acá faltaba el mismo criterio para la accionable, que es la que
+     hace daño. Se pide `htp === 'no'` explícito, no la mera ausencia de `'si'`. */
+  if (htp !== 'no') return { clave:'htp_no_eval',
+    txt:'Ventana aortopulmonar — la hipertensión pulmonar no fue evaluada: la indicación de cierre no puede establecerse sin descartar fisiología de Eisenmenger' };
+  /* Sin el tipo: el párrafo del informe ya encabeza con «Ventana aortopulmonar tipo I
+     (proximal)» y el panel lo muestra en su propio campo, así que repetirlo daba
+     «Ventana aortopulmonar tipo I (proximal). Ventana aortopulmonar tipo I (proximal) sin…».
+     La conclusión igual se sostiene sola en el EN SUMA, que es lo que se le pide. */
+  return { clave:'cierre',
+    txt:'Ventana aortopulmonar sin hipertensión pulmonar establecida — cierre indicado (ESC 2020)' };
+}
+function vapSync(){
+  const txt = (id,s) => { const e=document.getElementById(id); if(e) e.textContent = s; };
+  txt('vap-qpqs', ccQpQsTxt('vap'));
+  /* Espejo de la PAPs del estudio. Se MUESTRA pero no vota: quien decide la rama de HTP es el
+     campo explícito `vap_htp`. Es la lección del ductus —una PAPs alta puede ser de una mitral
+     severa y no del defecto— y acá se resuelve preguntando en vez de deduciendo. */
+  { const e = document.getElementById('vap_paps_ro');
+    if (e) { const p = (typeof v==='function') ? v('psap_calc') : null; e.value = (p!=null) ? p + ' mmHg' : ''; } }
+  const c = vapConclusion();
+  txt('vap-concl', c ? c.txt : '—');
+}
+window.vapSync = vapSync; window.vapConclusion = vapConclusion;
+
+/* ══ FORAMEN OVAL PERMEABLE ══════════════════════════════════════════════════════════════
+   Está en uno de cada cuatro adultos sanos, así que el hallazgo por sí solo NO es una
+   enfermedad: lo que decide la conducta es el CONTEXTO CLÍNICO, no la anatomía.
+   ESC 2020 / posicionamiento conjunto ESC 2019: el cierre percutáneo es Clase IIa en el ACV
+   criptogénico del menor de 60 años tras evaluación por neurología y cardiología. Sin ese
+   antecedente, un FOP es un hallazgo incidental.
+
+   Por eso los tres campos de contexto —ACV criptogénico, trombofilia y la propia realización
+   del estudio con contraste— son SELECTS de tres estados y no casillas. Una casilla
+   desmarcada significa «no lo tiene» y «no lo pregunté» a la vez, y acá esa ambigüedad decide
+   entre «hallazgo incidental sin indicación de cierre» y «cierre percutáneo Clase IIa»: es la
+   diferencia entre no hacer nada y implantar un dispositivo. La app no puede firmar «FOP
+   asintomático» sobre un paciente al que nadie le preguntó por qué se le pidió el estudio. */
+const FOP_BURB_TXT = { pocas:'shunt leve (<5 burbujas)', moderado:'shunt moderado (5-20 burbujas)', abundante:'shunt severo (>20 burbujas)' };
+function fopConclusion(){
+  const sv2 = id => (document.getElementById(id)?.value || '').trim();
+  const nv = id => { const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; };
+  /* Banda de plausibilidad, igual que en ductus, coartación y ventana. Faltaba acá, y el modo
+     de falla es el mismo: una excursión del aneurisma tipeada en cm (1,2 por 12 mm) dejaba de
+     superar el umbral de 10 mm, desaparecía la característica de alto riesgo, y la cascada
+     bajaba de «mayor riesgo embólico» a «hallazgo incidental sin indicación de cierre». El
+     error de unidad invirtiendo la conducta hacia el lado benigno, otra vez. */
+  const fuera = [];
+  const banda = (n, lo, hi, lbl) => { if (n==null) return null; if (n>=lo && n<=hi) return n; if(lbl) fuera.push(lbl); return null; };
+  const tunelRaw = nv('fop_tunel'), asaMmRaw = nv('fop_asa_mm');
+  const tunel = banda(tunelRaw, 1, 40, 'longitud del túnel');
+  const asaMm = banda(asaMmRaw, 2, 40, 'excursión del aneurisma');
+  const asa = sv2('fop_asa'), mov = sv2('fop_mov'), burb = sv2('fop_burbujas');
+  const reposo = sv2('fop_shunt_reposo'), valsalva = sv2('fop_shunt_valsalva');
+  const contraste = sv2('fop_contraste');
+  const acv = sv2('fop_acv'), trombofilia = sv2('fop_trombofilia');
+  const resp = s => s === 'si' || s === 'no';        // «no evaluado» no es una respuesta
+  const hayDato = !!(tunelRaw != null || asaMmRaw != null || resp(asa) || resp(mov) || burb ||
+                     resp(reposo) || resp(valsalva) || resp(contraste) || resp(acv) || resp(trombofilia));
+  if (!hayDato) return null;
+
+  /* No hay un campo «FOP presente: sí/no», así que la sección se afirmaba a sí misma: un estudio
+     de burbujas NEGATIVO —que es justamente como se descarta un foramen oval— llenaba `hayDato`
+     con puras respuestas negativas y el informe firmado salía diciendo «Foramen oval permeable.
+     Sin shunt en reposo. Sin shunt con Valsalva. Hallazgo incidental sin indicación de cierre»:
+     afirmaba el hallazgo que el estudio acababa de descartar. */
+  const shuntNegado = contraste === 'si' && reposo === 'no' && valsalva === 'no' && !burb;
+  const anatomiaNegada = tunelRaw == null && asaMmRaw == null && asa !== 'si' && mov !== 'si';
+  if (shuntNegado && anatomiaNegada) return { clave:'descartado',
+    txt:'Estudio con solución salina agitada sin paso de burbujas en reposo ni con maniobra de Valsalva — sin evidencia de foramen oval permeable' };
+
+  const shuntAbundante = burb === 'abundante';
+  /* Aneurisma del septum interauricular: la excursión ≥10 mm es el umbral clásico. Si el
+     médico marcó «sí» sin medir, se cree la clasificación; si midió, manda la medida. */
+  const hayASA = asa === 'si' || (asaMm != null && asaMm >= 10);
+  const edad = (typeof v==='function') ? v('edad') : null;
+
+  /* 1 · El antecedente manda sobre la anatomía. */
+  if (acv === 'si') {
+    if (edad != null && edad >= 60) return { clave:'acv_mayor',
+      txt:'FOP en paciente con ACV criptogénico de 60 años o más — la indicación de cierre percutáneo de la ESC está establecida por debajo de esa edad; decisión individual en equipo con neurología' };
+    /* La edad decide, y se lee de otra pestaña. Sin ella, `!(edad != null && edad >= 60)` cae
+       hacia la rama que INDICA el implante: un paciente de 78 años con ACV criptogénico al que
+       nadie le cargó la edad salía con «cierre percutáneo Clase IIa» en el EN SUMA, y el texto
+       omitía la edad en silencio. La rama que niega exigía el dato; la que afirma, no.
+       `edad > 0` y no `edad != null`: un 0 producía «en paciente de 0 años». */
+    if (!(edad > 0)) return { clave:'acv_sin_edad',
+      txt:'FOP con ACV criptogénico — falta la edad del paciente, de la que depende la indicación: el cierre percutáneo es Clase IIa por debajo de los 60 años' };
+    return { clave:'cierre_iia',
+      txt:'FOP con ACV criptogénico' + (edad > 0 ? ' en paciente de ' + edad + ' años' : '') +
+          (hayASA || shuntAbundante ? ', con características de alto riesgo embólico (' +
+            [hayASA ? 'aneurisma del septum interauricular' : null, shuntAbundante ? 'shunt severo' : null].filter(Boolean).join(' y ') + ')' : '') +
+          ' — cierre percutáneo Clase IIa (ESC), tras evaluación conjunta con neurología' };
+  }
+  /* La trombofilia NO puede tragarse el aviso de contexto faltante. Esta rama está antes que
+     `sin_contexto`, así que un paciente con trombofilia y el ACV en «No consta» perdía el único
+     aviso de que falta el dato que decide — justo en el paciente con estado protrombótico, que
+     es donde el ACV criptogénico es más probable. Se arrastra la salvedad en vez de reordenar
+     las ramas: la trombofilia también cambia la conducta y tiene que decirse. */
+  if (trombofilia === 'si') return { clave:'trombofilia',
+    txt:'FOP en paciente con trombofilia conocida — la conducta antitrombótica la define hematología; el cierre percutáneo no sustituye a la anticoagulación cuando ésta está indicada por la trombofilia' +
+        (acv !== 'no' ? '. No consta si hubo ACV criptogénico, que es el dato del que depende la indicación de cierre' : '') };
+
+  /* 2 · Sin antecedente NO se afirma que no lo haya: se dice que no consta. */
+  if (acv !== 'no') return { clave:'sin_contexto',
+    txt:'FOP' + (hayASA ? ' con aneurisma del septum interauricular' : '') +
+        (shuntAbundante ? (hayASA ? ' y shunt severo' : ' con shunt severo') : '') +
+        ' — la conducta depende del contexto clínico (ACV criptogénico, edad): no consta en este estudio' };
+
+  /* 3 · Con «sin ACV criptogénico» explícito ya se puede concluir hallazgo incidental. */
+  /* Antes de las ramas que niegan: si un número no se pudo leer, la negación puede venir de él. */
+  if (fuera.length) return { clave:'no_interpretable',
+    txt:'FOP — ' + fuera.join(' y ') + ' fuera de rango: revisar unidades antes de concluir' };
+  if (hayASA || shuntAbundante) return { clave:'alto_riesgo_sin_evento',
+    txt:'FOP con características de mayor riesgo embólico (' +
+        [hayASA ? 'aneurisma del septum interauricular' : null, shuntAbundante ? 'shunt severo' : null].filter(Boolean).join(' y ') +
+        ') sin evento embólico — no hay indicación de cierre en prevención primaria; seguimiento clínico' };
+  /* «No se realizó contraste» no puede leerse como «no hay shunt»: el estudio con burbujas y
+     Valsalva es el que hace el diagnóstico, y sin él sólo se documentó la anatomía. */
+  if (contraste === 'no' && !resp(reposo) && !resp(valsalva)) return { clave:'sin_contraste',
+    txt:'FOP sin estudio de contraste con burbujas — el shunt no fue interrogado; completar con solución salina agitada y maniobra de Valsalva si el contexto clínico lo justifica' };
+  return { clave:'incidental',
+    txt:'FOP sin ACV criptogénico ni características de alto riesgo — hallazgo incidental sin indicación de cierre' };
+}
+function fopSync(){
+  const txt = (id,s) => { const e=document.getElementById(id); if(e) e.textContent = s; };
+  const sv2 = id => (document.getElementById(id)?.value || '').trim();
+  const nv = id => { const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; };
+  const asaMm = nv('fop_asa_mm');
+  txt('fop-asa-interp', asaMm == null ? '—'
+      : (asaMm < 2 || asaMm > 40) ? asaMm + ' mm — fuera de rango, revisar unidades'
+      : (asaMm >= 10 ? asaMm + ' mm — aneurisma significativo (≥10 mm)' : asaMm + ' mm — por debajo del umbral de 10 mm'));
+  const burb = sv2('fop_burbujas');
+  txt('fop-shunt-grado', burb ? (FOP_BURB_TXT[burb] || burb) : '—');
+  const c = fopConclusion();
+  txt('fop-concl', c ? c.txt : '—');
+}
+window.fopSync = fopSync; window.fopConclusion = fopConclusion;
 function eteDDVIi(){
   const d = v('ddfvi'), asc = (typeof getBSA==='function') ? getBSA() : null;
   if(d==null || !asc || !(asc>0)) return null;
@@ -20712,9 +21219,9 @@ function eteShuntSync(){
      del paciente en pantalla se colaba en la diapositiva de otro estudio. */
   txt('ete-cia-borde-min', bm ? (f1(bm.mm)+' mm ('+bm.nombre+')') : '—');
 
-  const q = eteQpQs();
-  txt('ete-shunt-qpqs', q==null ? '—' : q.toFixed(2));
-  txt('ete-shunt-qpqs-interp', q==null ? eteQpQsMotivo() : eteQpQsInterp(q));
+  const q = ccQpQsDe('cia');
+  txt('ete-shunt-qpqs', ccQpQsTxt('cia'));
+  txt('ete-shunt-qpqs-interp', q==null ? ccQpQsMotivo('cia') : eteQpQsInterp(q));
 
   const di = eteDDVIi();
   txt('ete-shunt-ddvii', di==null ? '—' : f1(di)+' mm/m²');
@@ -21027,7 +21534,9 @@ const ETE_INCL_LBL = {
      maquinaria: el id del badge sale de quitarle `_incluir_chk` al del checkbox, así que
      tienen que llamarse `ductus_badge` y `coart_badge` — no es decorativo. */
   ductus_incluir_chk:      'Ductus arterioso permeable',
-  coart_incluir_chk:       'Coartación de aorta'
+  coart_incluir_chk:       'Coartación de aorta',
+  vap_incluir_chk:         'Ventana aortopulmonar',
+  fop_incluir_chk:         'Foramen oval permeable'
 };
 function eteInclSync(){
   document.querySelectorAll('.btn-integrar[data-ete-chk]').forEach(function(b){
@@ -21054,17 +21563,16 @@ function eteInclToggle(id){
 window.eteInclSync = eteInclSync; window.eteInclToggle = eteInclToggle;
 
 function eteShuntTaviReset(){
-  /* `coa_diast_anterogrado` NO es un checkbox de inclusión, es un DATO del paciente, y va en
-     esta lista porque el barrido de limpiarCampos sólo toca inputs de texto/número y selects:
-     los checkbox se desmarcan por lista explícita. Sin esta línea la cola diastólica del
-     paciente anterior sobrevivía a «Nuevo estudio», y como basta por sí sola para la rama
-     «significativa», el paciente siguiente arrancaba con «indicación de intervención según
-     ESC 2020» sin que nadie hubiera cargado un solo dato de coartación. */
+  /* Desde el 2026-09-10 `limpiarCampos` desmarca TODOS los checkbox con un barrido y una
+     allowlist de preferencias, así que esta lista ya no es la que los limpia: quedó como el
+     reseteo de la sección cuando se la llama sola. Se deja porque el repintado de abajo sí hace
+     falta —un reseteo que no repinta no es un reseteo— y porque `eteShuntTab`/`eteEpcSet` no
+     tienen otro lugar. No hace falta agregar acá los checkbox de las secciones nuevas. */
   ['ete_shunt_incluir_chk','ete_tavi_incluir_chk','ductus_incluir_chk','coart_incluir_chk',
    'coa_diast_anterogrado'].forEach(function(id){
     const c=document.getElementById(id); if(c) c.checked=false;
   });
-  try{ dapSync(); coaSync(); }catch(e){}
+  try{ dapSync(); coaSync(); vapSync(); fopSync(); }catch(e){}
   const jh=document.getElementById('ete_tavi_jet_horas'); if(jh) jh.value='';
   try{ eteEpcSet([]); eteEpcDibujar(); }catch(e){}
   try{ eteShuntTab('cia'); eteTaviTab('pre'); }catch(e){}
@@ -30181,6 +30689,24 @@ function _labSectorial(inf) {
   return m ? m[0].trim() : '';
 }
 // Una fila del Excel: deriva TODAS las columnas desde los campos crudos del estudio
+/* Búsqueda segura en un mapa de etiquetas, para el export. Dos motivos para no usar
+   `MAPA[k] || ''`, que es el patrón del resto de este bloque y que CLAUDE.md ya deja anotado
+   como pendiente: con una clave hostil —`constructor`, `__proto__`, que el import de backup JSON
+   acepta— el `||` no cae al fallback y devuelve la función `Object`; y `hasOwnProperty` sobre un
+   objeto literal es la única forma de distinguir «no está en el mapa» de «vale cadena vacía».
+   Y NO se reusa `_lblDe`, que existe 3.700 líneas más abajo: es un `const` —o sea que leerlo
+   desde acá depende del orden de ejecución, que es el modo de falla que ya cortó el bloque
+   `<script>` tres veces— y además su fallback es `'Otro'`, así que un paciente sin ventana
+   aortopulmonar habría exportado «Otro» en las cuatro columnas de VAP. */
+function _ccLbl(mapa, k){
+  return (k != null && Object.prototype.hasOwnProperty.call(mapa, k)) ? mapa[k] : '';
+}
+/* «No consta» y no «No evaluado»: es la etiqueta que muestran los <select> de ACV y
+   trombofilia y la que publica LAB_XLS_OPCIONES, y el médico que abre el Excel no puede
+   leer un texto que no existe en la app. El vocabulario acepta las dos, así que el ida y
+   vuelta no cambia. */
+function _cc3e(k){ return _ccLbl({ si:'Sí', no:'No', no_eval:'No consta' }, k); }
+
 function _labExcelRow(inf) {
   const c = inf.campos || {};
   const num = (...k) => _labNum(inf, ...k);
@@ -30345,7 +30871,27 @@ function _labExcelRow(inf) {
     'Incluir CIA/CIV en informe': c['ete_shunt_incluir_chk__chk'] === '1' ? 1 : 0,
     'Incluir TAVI en informe':    c['ete_tavi_incluir_chk__chk']  === '1' ? 1 : 0,
     'Incluir ductus en informe':     c['ductus_incluir_chk__chk'] === '1' ? 1 : 0,
+    /* Ventana aortopulmonar y foramen oval. Los tres estados se exportan con su etiqueta
+       legible, «No evaluado» incluido: si esa fila volviera como vacío, la reimportación
+       afirmaría que el paciente NO tuvo un ACV criptogénico cuando lo que pasó es que nadie lo
+       preguntó, y de esa diferencia depende una indicación de cierre percutáneo. */
+    'VAP tipo': _ccLbl({i:'Tipo I proximal',ii:'Tipo II distal',iii:'Tipo III total'}, c.vap_tipo),
+    'VAP diámetro (mm)': rnd(num('vap_diam'),1),
+    'VAP dirección shunt': _ccLbl({id:'Izquierda a derecha',di:'Derecha a izquierda',bi:'Bidireccional'}, c.vap_dir),
+    'VAP hipertensión pulmonar': _cc3e(c.vap_htp),
+    'FOP túnel (mm)': rnd(num('fop_tunel'),1),
+    'FOP movilidad septum': _ccLbl({si:'Septum móvil',no:'No aumentada',no_eval:'No evaluada'}, c.fop_mov),
+    'FOP aneurisma septum': _cc3e(c.fop_asa),
+    'FOP excursión aneurisma (mm)': rnd(num('fop_asa_mm'),1),
+    'FOP contraste burbujas': _ccLbl({si:'Realizado',no:'No se realizó'}, c.fop_contraste),
+    'FOP shunt en reposo': _ccLbl({si:'Presente',no:'Ausente',no_eval:'No evaluado'}, c.fop_shunt_reposo),
+    'FOP shunt con Valsalva': _ccLbl({si:'Presente',no:'Ausente',no_eval:'No evaluado'}, c.fop_shunt_valsalva),
+    'FOP cantidad burbujas': _ccLbl({pocas:'Pocas (<5)',moderado:'Moderado (5-20)',abundante:'Abundante (>20)'}, c.fop_burbujas),
+    'FOP ACV criptogénico': _cc3e(c.fop_acv),
+    'FOP trombofilia': _cc3e(c.fop_trombofilia),
     'Incluir coartación en informe': c['coart_incluir_chk__chk']  === '1' ? 1 : 0,
+    'Incluir VAP en informe':        c['vap_incluir_chk__chk']    === '1' ? 1 : 0,
+    'Incluir FOP en informe':        c['fop_incluir_chk__chk']    === '1' ? 1 : 0,
     'Informe (texto completo)': c.informe_texto || '', 'EN SUMA (texto completo)': c.en_suma || '',
   };
 }
@@ -30719,12 +31265,28 @@ const LAB_XLS_MAP = [
      sola para la rama «indicación de intervención»: si no viaja en la planilla, el estudio
      reimportado baja solo a «sin gradiente significativo — seguimiento clínico». */
   ['Coartación cola diastólica', 'coa_diast_anterogrado__chk', 'chk'],
+  ['VAP tipo',                   'vap_tipo',      'vocab'],
+  ['VAP diámetro (mm)',          'vap_diam',      'num'],
+  ['VAP dirección shunt',        'vap_dir',       'vocab'],
+  ['VAP hipertensión pulmonar',  'vap_htp',       'vocab'],
+  ['FOP túnel (mm)',             'fop_tunel',     'num'],
+  ['FOP movilidad septum',       'fop_mov',       'vocab'],
+  ['FOP aneurisma septum',       'fop_asa',       'vocab'],
+  ['FOP excursión aneurisma (mm)','fop_asa_mm',   'num'],
+  ['FOP contraste burbujas',     'fop_contraste', 'vocab'],
+  ['FOP shunt en reposo',        'fop_shunt_reposo',   'vocab'],
+  ['FOP shunt con Valsalva',     'fop_shunt_valsalva', 'vocab'],
+  ['FOP cantidad burbujas',      'fop_burbujas',  'vocab'],
+  ['FOP ACV criptogénico',       'fop_acv',       'vocab'],
+  ['FOP trombofilia',            'fop_trombofilia','vocab'],
 
   // 16 · Inclusión en el informe
   ['Incluir CIA/CIV en informe', 'ete_shunt_incluir_chk__chk', 'chk'],
   ['Incluir TAVI en informe',    'ete_tavi_incluir_chk__chk',  'chk'],
   ['Incluir ductus en informe',      'ductus_incluir_chk__chk', 'chk'],
   ['Incluir coartación en informe',  'coart_incluir_chk__chk',  'chk'],
+  ['Incluir VAP en informe',         'vap_incluir_chk__chk',    'chk'],
+  ['Incluir FOP en informe',         'fop_incluir_chk__chk',    'chk'],
 
   // 17 · Texto libre
   ['Informe (texto completo)','informe_texto', 'txt'],
@@ -30739,7 +31301,8 @@ const LAB_XLS_MAP = [
 /* SIN VALIDACIÓN DE RANGO (verificado 2026-09-10): los tamaños de CIA/CIV
    (ete_cia_tam_max, ete_cia_tam_min, ete_civ_tam), los diámetros y VTI de los tractos de
    salida (tsvd_diametro, vti_tsvd, diam_tsvi, itv_tsvi) y los del ductus y la coartación
-   (dap_diam, dap_vmax, dap_paps, coa_istmo, coa_ao_desc, coa_vmax, coa_gmedio)
+   (dap_diam, dap_vmax, dap_paps, coa_istmo, coa_ao_desc, coa_vmax, coa_gmedio, vap_diam,
+   fop_tunel, fop_asa_mm)
    NO figuran ni acá ni en DCM_RANGO.
    Lo que sí tienen ductus y coartación es una banda de plausibilidad DENTRO de la app
    —`banda()` en dapConclusion y `coaBanda()`—: un número fuera de escala entra igual y se
@@ -30908,6 +31471,55 @@ const LAB_XLS_VOCAB = {
 };
 /* dap_dir es literalmente el vocabulario de ete_cia_dir: se referencia, no se duplica. */
 LAB_XLS_VOCAB.dap_dir = LAB_XLS_VOCAB.ete_cia_dir;
+/* Ventana aortopulmonar y foramen oval. La dirección del shunt reusa el vocabulario de la CIA
+   —mismos tres tokens— igual que el ductus. Los campos de TRES ESTADOS llevan `no_eval` además
+   de sí/no: la distinción entre «no lo tiene» y «no lo pregunté» es la que decide, en el FOP,
+   entre un hallazgo incidental y una indicación de cierre percutáneo, así que tiene que
+   sobrevivir al ida y vuelta por Excel. Si se perdiera, una cohorte reimportada afirmaría que
+   ninguno de esos pacientes tuvo un ACV. */
+LAB_XLS_VOCAB.vap_dir = LAB_XLS_VOCAB.ete_cia_dir;
+LAB_XLS_VOCAB.vap_tipo = { i:'i', 'tipo i':'i', proximal:'i', 'i proximal':'i', 'tipo i proximal':'i',
+                           ii:'ii', 'tipo ii':'ii', distal:'ii', 'ii distal':'ii', 'tipo ii distal':'ii',
+                           iii:'iii', 'tipo iii':'iii', total:'iii', 'iii total':'iii', 'tipo iii total':'iii' };
+/* Un solo objeto para los campos sí/no/no evaluado, y se referencia —no se copia— en los seis
+   que lo usan: seis literales paralelos se desincronizan en el primer alias que se agregue a
+   uno solo. Las claves van sin tilde: _labXlsNorm normaliza a NFD y borra los diacríticos. */
+/* NÚCLEO común de los tres estados. Las claves van sin tilde y sin duplicados: _labXlsNorm
+   normaliza a NFD y borra los diacríticos, así que una clave 'sí' no matchea NUNCA —sería otra
+   línea que se lee como viva y no lo está— y `si:` ya cubre las dos escrituras. */
+const LAB_XLS_VOCAB_3E = {
+  si:'si', presente:'si', positivo:'si', '1':'si', x:'si', verdadero:'si',
+  no:'no', ausente:'no', negativo:'no', '0':'no', falso:'no',
+  no_eval:'no_eval', 'no evaluado':'no_eval', 'no evaluada':'no_eval', 'no consta':'no_eval',
+  'sin datos':'no_eval'
+};
+/* Cada campo recibe una COPIA del núcleo más sus alias propios, en vez de compartir el mismo
+   objeto por referencia. Compartirlo ahorraba una desincronización y creaba ocho: cada alias
+   agregado para un campo se volvía válido para los ocho, así que «Realizado» —el vocabulario de
+   «¿se hizo el contraste?»— era un `sí` aceptable en la columna «FOP ACV criptogénico», que es
+   la que decide entre no hacer nada e implantar un dispositivo. Y «No aumentada» —de la
+   movilidad del septum— habilitaba ahí la rama de hallazgo incidental. Con una columna corrida
+   al copiar y pegar alcanzaba. El núcleo sigue en un solo lugar; lo específico no se cruza. */
+const _CC_3E_ALIAS = {
+  vap_htp:              {},
+  fop_mov:              { 'no aumentada':'no', 'septum movil':'si', movil:'si' },
+  fop_asa:              {},
+  /* Sin `no_eval`: el <select> de contraste sólo tiene «Realizado» y «No se realizó», así que
+     un `no_eval` importado se persistía en `campos` y desaparecía de la pantalla al
+     restaurar —selectedIndex -1— sin ningún aviso. Se mapea a `no`, que es lo que significa. */
+  fop_contraste:        { realizado:'si', 'se realizo':'si', 'no se realizo':'no', 'no realizado':'no',
+                          no_eval:'no', 'no evaluado':'no', 'no evaluada':'no', 'no consta':'no', 'sin datos':'no' },
+  fop_shunt_reposo:     {},
+  fop_shunt_valsalva:   {},
+  fop_acv:              { criptogenico:'si', 'acv criptogenico':'si' },
+  fop_trombofilia:      {}
+};
+Object.keys(_CC_3E_ALIAS).forEach(function(k){
+  LAB_XLS_VOCAB[k] = Object.assign({}, LAB_XLS_VOCAB_3E, _CC_3E_ALIAS[k]);
+});
+LAB_XLS_VOCAB.fop_burbujas = { pocas:'pocas', leve:'pocas', '<5':'pocas', 'menos de 5':'pocas',
+                               moderado:'moderado', moderada:'moderado', '5-20':'moderado',
+                               abundante:'abundante', severo:'abundante', severa:'abundante', '>20':'abundante' };
 LAB_XLS_VOCAB.im_grado = LAB_XLS_VOCAB.ia_grado = LAB_XLS_VOCAB.it_grado = LAB_XLS_VOCAB._grado04;
 // Etiquetas para la fila de ejemplo y la ayuda: se derivan del vocabulario, no se escriben
 // a mano, para que un ejemplo no pueda enseñar un valor que el importador rechaza.
@@ -30929,6 +31541,17 @@ const LAB_XLS_OPCIONES = {
   dap_dir:'Izquierda a derecha · Derecha a izquierda · Bidireccional',
   coa_loc:'Preductal · Yuxtaductal · Posductal',
   coa_situacion:'Nativa · Recoartación',
+  vap_tipo:'Tipo I proximal · Tipo II distal · Tipo III total',
+  vap_dir:'Izquierda a derecha · Derecha a izquierda · Bidireccional',
+  vap_htp:'Sí · No · No evaluada',
+  fop_mov:'Septum móvil · No aumentada · No evaluada',
+  fop_asa:'Sí · No · No evaluado',
+  fop_contraste:'Realizado · No se realizó',
+  fop_shunt_reposo:'Presente · Ausente · No evaluado',
+  fop_shunt_valsalva:'Presente · Ausente · No evaluado',
+  fop_burbujas:'Pocas (<5) · Moderado (5-20) · Abundante (>20)',
+  fop_acv:'Sí · No · No consta',
+  fop_trombofilia:'Sí · No · No consta',
 };
 LAB_XLS_OPCIONES.ia_grado = LAB_XLS_OPCIONES.it_grado = LAB_XLS_OPCIONES.im_grado;
 // Selects de texto libre acotado: se acepta cualquier opción de la lista, tal cual.
@@ -31315,14 +31938,26 @@ function labImportarXLSX(file) {
       [['ete_shunt_incluir_chk__chk', /^(ete_cia_|ete_civ_|tsvd_diametro|vti_tsvd)/],
        ['ete_tavi_incluir_chk__chk',  /^ete_tavi_/],
        ['ductus_incluir_chk__chk',    /^dap_/],
-       ['coart_incluir_chk__chk',     /^coa_/]].forEach(([flag, rx]) => {
+       ['coart_incluir_chk__chk',     /^coa_/],
+       ['vap_incluir_chk__chk',       /^vap_/],
+       /* El FOP se deduce por los campos de HALLAZGO, no por `/^fop_/`: los de contexto clínico
+          (`fop_acv`, `fop_trombofilia`) los trae toda planilla exportada por la app, en «No
+          consta», y con el regex amplio cualquier fila activaría la sección del foramen oval. */
+       ['fop_incluir_chk__chk',       /^fop_(tunel|asa|mov|contraste|shunt_|burbujas)/]].forEach(([flag, rx]) => {
         if (inf.campos[flag] !== undefined) return;
-        /* Un `__chk` sólo cuenta como dato cuando vale '1'. Sin esta salvedad, la columna
-           «Coartación cola diastólica» en 0 —o sea, el médico diciendo que NO la hay— hacía
-           deducir que la sección va al informe: una respuesta negativa activando la sección
-           que niega. Los campos de valor siguen contando por su sola presencia, porque el
-           importador ni siquiera crea la clave cuando la celda viene vacía. */
-        if (Object.keys(inf.campos).some(k => rx.test(k) && !(/__chk$/.test(k) && inf.campos[k] !== '1')))
+        /* Una RESPUESTA NEGATIVA no cuenta como dato. La corrección original se ató al tipo
+           `chk` («cola diastólica en 0») y no al significado del valor, así que al llegar los
+           campos de tres estados el agujero volvió por otra puerta: una fila con
+           «VAP hipertensión pulmonar: No» como única columna de la sección activaba la ventana
+           aortopulmonar y el informe salía con «cierre indicado (ESC 2020)» sobre una fila que
+           no describe ninguna ventana. Y un estudio de burbujas NEGATIVO activaba el foramen
+           oval. Cuenta como dato el valor afirmativo o la medición; no el «no», el «no evaluado»
+           ni el «0». */
+        const _esNegativo = val => {
+          const t = String(val == null ? '' : val).trim().toLowerCase();
+          return t === '' || t === '0' || t === 'no' || t === 'no_eval';
+        };
+        if (Object.keys(inf.campos).some(k => rx.test(k) && !_esNegativo(inf.campos[k])))
           inf.campos[flag] = '1';
       });
       /* Severidad por columnas 0/1, sólo si la columna de TEXTO no dijo nada: es la única
@@ -34107,6 +34742,12 @@ function labHemoRender(infs, n) {
      laboratorio contaría de menos sin decirlo. Mismo criterio para la coartación. */
   const dapArr = infs.filter(i => _labCampoRaw(i, 'dap_tipo') || _labCampoRaw(i, 'dap_diam'));
   const coaArr = infs.filter(i => _labCampoRaw(i, 'coa_loc')  || _labCampoRaw(i, 'coa_istmo'));
+  const vapArr = infs.filter(i => _labCampoRaw(i, 'vap_tipo') || _labCampoRaw(i, 'vap_diam'));
+  /* El FOP se cuenta por el TÚNEL o por el aneurisma, no por los campos de contexto clínico:
+     un `fop_acv` en «no consta» es el valor que deja la exportación de cualquier estudio, así
+     que contarlo daría el 100 % de la base con foramen oval. */
+  const fopArr = infs.filter(i => _labCampoRaw(i, 'fop_tunel') || _labCampoRaw(i, 'fop_asa_mm') ||
+                                  _labCampoRaw(i, 'fop_burbujas'));
 
   /* El Qp/Qs se RECALCULA desde los cuatro campos guardados y no se lee del span: el span es
      del estudio que esté cargado en pantalla, así que leerlo daría el mismo número para los 60
@@ -34136,7 +34777,7 @@ function labHemoRender(infs, n) {
      condición vieja, una cohorte con ductus y sin CIA dejaba el bloque en «sin datos» y los
      estudios con ductus no aparecían en ninguna parte del laboratorio. Las barras de CIA y el
      pie de CIV siguen gateados por lo suyo, que es lo que de verdad las alimenta. */
-  if (!shuntArr.length && !dapArr.length && !coaArr.length) {
+  if (!shuntArr.length && !dapArr.length && !coaArr.length && !vapArr.length && !fopArr.length) {
     empty('lab-shunt-stats', 'CIA / CIV / ductus / coartación'); empty('lab-shunt-cia-bars', 'CIA');
     empty('lab-shunt-civ-pie', 'CIV');
   } else {
@@ -34155,7 +34796,9 @@ function labHemoRender(infs, n) {
          `shuntArr` es el denominador de las barras de CIA/CIV y del Qp/Qs de más abajo, y
          meterlos ahí desalinearía todos esos porcentajes. */
       stat('Con ductus arterioso', dapArr.length + ' (' + pctS(dapArr.length) + ')') +
-      stat('Con coartación de aorta', coaArr.length + ' (' + pctS(coaArr.length) + ')'));
+      stat('Con coartación de aorta', coaArr.length + ' (' + pctS(coaArr.length) + ')') +
+      stat('Con ventana aortopulmonar', vapArr.length + ' (' + pctS(vapArr.length) + ')') +
+      stat('Con foramen oval permeable', fopArr.length + ' (' + pctS(fopArr.length) + ')'));
     const CIA_L = { secundum:'Ostium secundum', primum:'Ostium primum', sv_vcs:'Seno venoso VCS',
                     sv_vci:'Seno venoso VCI', seno_coronario:'Seno coronario' };
     const CIV_L = { perimembranosa:'Perimembranosa', muscular:'Muscular',
@@ -36535,8 +37178,22 @@ const ECO_AYUDA = [
   <div class="mBox mTip"><b>Si no la marcás, el informe no dice nada al respecto.</b> La casilla desmarcada significa dos cosas a la vez —«la busqué y no está» y «no la interrogué»— y el informe no puede distinguirlas, así que sólo afirma la <b>presencia</b>. Antes imprimía «Sin flujo diastólico anterógrado» aunque nadie hubiera hecho el Doppler de aorta descendente, y eso deja un gradiente limítrofe leyéndose como descartado en un documento firmado.</div>
   <div class="mBox mTip"><b>El gradiente es Bernoulli simplificado.</b> 4 × Vmax² no descuenta la velocidad proximal, que en la coartación suele estar elevada, así que el número <b>sobreestima</b>. El informe lo dice explícitamente al lado de la cifra para que quien lo lea sepa de dónde sale.</div>
   <div class="mBox mTip"><b>Qué llega al EN SUMA.</b> Del ductus, sólo las conclusiones que cambian conducta: moderado, grande y con HTP. Un ductus silente o pequeño queda descrito en el cuerpo del informe pero no ensucia la conclusión. De la coartación suben la significativa y la limítrofe — la primera indica intervención y la segunda manda a pedir imagen.</div>
-  <p class="mP">El <b>Laboratorio</b> los cuenta aparte, en su solapa <b>Hemodinámica</b> —sigue ahí aunque los campos se carguen en Congénitas, porque el Laboratorio lee los datos guardados y no la pantalla—: «Con ductus arterioso» y «Con coartación de aorta». Los detecta por el <b>tipo o el diámetro</b> del ductus y por la <b>localización o el istmo</b> de la coartación —no por el botón de integrar—, así que un estudio que describe el hallazgo sin integrarlo al informe igual entra en la estadística. Un estudio documentado <i>sólo</i> con la Vmax no lo cuenta.</p>
-  <p class="mP">Las dos secciones viajan completas en el <b>Excel</b> del Laboratorio y en su plantilla: catorce columnas entre las mediciones, la cola diastólica y los dos «Incluir … en informe». Si armás la planilla a mano y omitís la columna de inclusión, la app la deduce de que la fila traiga datos del hallazgo — pero una cola diastólica en 0 no cuenta como dato, porque es una respuesta negativa.</p>
+  <p class="mP">El <b>Laboratorio</b> los cuenta aparte, en su solapa <b>Hemodinámica</b> —sigue ahí aunque los campos se carguen en Congénitas, porque el Laboratorio lee los datos guardados y no la pantalla—: «Con ductus arterioso» y «Con coartación de aorta». Los detecta por el <b>tipo o el diámetro</b> del ductus y por la <b>localización o el istmo</b> de la coartación —no por el botón de integrar—, así que un estudio que describe el hallazgo sin integrarlo al informe igual entra en la estadística. Un estudio documentado <i>sólo</i> con la Vmax no lo cuenta. La solapa suma además «Con ventana aortopulmonar» y «Con foramen oval permeable». El FOP se cuenta por el <b>túnel, la excursión del aneurisma o las burbujas</b> — no por los campos de contexto clínico, que toda planilla exportada trae en «No consta» y darían el 100 % de la base con foramen oval.</p>
+  <p class="mP">Las secciones viajan completas en el <b>Excel</b> del Laboratorio y en su plantilla, con sus columnas de «Incluir … en informe». Si armás la planilla a mano y omitís la columna de inclusión, la app la deduce de que la fila traiga datos del hallazgo — pero una respuesta <i>negativa</i> no cuenta como dato: un 0, un «No» o un «No consta» no activan la sección. Hace falta un valor afirmativo o una medición.</p>
+
+  <div class="mSub">🫁 VAP — Ventana aortopulmonar</div>
+  <p class="mP">Comunicación directa entre la aorta ascendente y la arteria pulmonar principal. Menos del 1 % de las cardiopatías congénitas. A diferencia del ductus <b>no tiene variante restrictiva relevante</b> en el adulto: el defecto es proximal y de gran calibre, así que la repercusión se asume salvo prueba en contra. Campos: tipo (I proximal / II distal / III total), diámetro, dirección del shunt e hipertensión pulmonar asociada.</p>
+  <p class="mP">Conclusión según ESC 2020: el cierre está indicado <b>siempre</b>, salvo hipertensión pulmonar irreversible.</p>
+  <div class="mBox mAviso"><b>Acá el orden de las ramas está invertido respecto del resto.</b> La contraindicación se evalúa <b>primero</b>: con shunt de derecha a izquierda la conclusión es <b>Eisenmenger — cierre CONTRAINDICADO</b>, y no se llega nunca a «cierre indicado». Cerrar el shunt en esa fisiología elimina la única vía de descarga del ventrículo derecho. El shunt invertido manda aunque marques «hipertensión pulmonar: no» — el flujo retrógrado a través de una comunicación sistémico-pulmonar ya dice que la resistencia pulmonar superó a la sistémica.</div>
+  <div class="mBox mTip"><b>La PAPs se muestra pero no vota.</b> El espejo trae la PSAP del estudio para que la veas al decidir, pero quien define la rama es el campo <b>hipertensión pulmonar asociada</b>, que contestás vos. Es la lección del ductus: una PAPs alta puede ser de una mitral severa y no del defecto, y la app no lo puede distinguir sola.</div>
+
+  <div class="mSub">🔵 FOP — Foramen oval permeable</div>
+  <p class="mP">Está en <b>uno de cada cuatro adultos</b>, así que el hallazgo por sí solo no es una enfermedad. Se cargan tres bloques: <b>anatomía</b> (longitud del túnel, movilidad del septum, aneurisma y su excursión), <b>shunt</b> (contraste con burbujas, en reposo y con Valsalva, y cantidad de burbujas) y <b>contexto clínico</b>.</p>
+  <p class="mP">Conclusión según ESC: el cierre percutáneo es <b>Clase IIa</b> en el ACV criptogénico del menor de 60 años, tras evaluación conjunta con neurología. Sin ese antecedente, un FOP es un hallazgo incidental. El aneurisma del septum (excursión ≥10 mm) y el shunt severo (>20 burbujas) marcan el subgrupo de mayor riesgo embólico.</p>
+  <div class="mBox mAviso"><b>Los campos de contexto son de tres estados, no casillas.</b> «No consta» no es lo mismo que «No», y la diferencia decide entre no hacer nada e implantar un dispositivo. Si el ACV criptogénico queda en <b>«No consta»</b>, la app <b>no</b> concluye «hallazgo incidental»: dice que la conducta depende de un dato que no está en el estudio, y esa línea sube al EN SUMA. Con trombofilia marcada la conclusión es la de la trombofilia, que arrastra la misma salvedad. No va a firmar «FOP asintomático» sobre un paciente al que nadie le preguntó por qué se le pidió el eco.</div>
+  <div class="mBox mTip"><b>«No se realizó contraste» tampoco es «no hay shunt».</b> El estudio con solución salina agitada y Valsalva es el que hace el diagnóstico. Si no se hizo, el <b>cuerpo del informe lo dice siempre</b>; y cuando no hay ningún otro hallazgo que pese más, la conclusión además sugiere completarlo — en vez de dar por interrogado algo que no se interrogó. Si el estudio con burbujas se hizo y salió <b>negativo</b>, la conclusión no afirma un foramen oval: dice que no hay evidencia de uno.</div>
+  <div class="mBox mTip"><b>Qué llega al EN SUMA.</b> Del FOP suben las seis conclusiones que cambian algo: cierre Clase IIa, ACV en mayor de 60, ACV sin edad cargada, trombofilia, alto riesgo sin evento y «falta el contexto». <b>No</b> suben el hallazgo incidental —es el 25 % de la población y llenaría la conclusión de ruido— ni el FOP descartado. De la VAP suben las cuatro, incluida la de hipertensión pulmonar no evaluada.</div>
+  <div class="mBox mTip"><b>El Qp/Qs es del paciente, no de cada defecto.</b> Sale de los flujos del TSVI y el TSVD, así que mide el cortocircuito total. Si hay más de uno cargado —una CIA y una ventana, por ejemplo— las tres secciones muestran <b>«shunt múltiple: el Qp/Qs es del conjunto»</b> en vez del número, ninguna se lo atribuye en su conclusión y tampoco sube al EN SUMA. Repartir el shunt entre dos defectos no se puede hacer con un ecocardiograma. El FOP queda fuera de esa cuenta a propósito: es fisiológico y está en el 25 % de la gente, así que contarlo apagaría el Qp/Qs de la CIA en uno de cada cuatro pacientes.</div>
   <div class="mSub">🔬 ETE</div>
   <p class="mP">Transesofágico: técnica, morfología mitral con clasificación de Carpentier, criterios de elegibilidad para TEER (MitraClip/PASCAL), score de Wilkins sobre 16, orejuela izquierda para cierre percutáneo y aorta. Sale en <b>hoja propia</b> del PDF. Al final del módulo está <b>TAVI</b>, con su propia solapa del manual, que en cambio se imprime <b>dentro del informe narrativo</b>. CIA / CIV estaba acá hasta el 2026-09-10 y se mudó a <b>🧬 Congénitas</b>, junto con el ductus y la coartación.</p>
   <div class="mSub">🧬 Amiloidosis</div>
