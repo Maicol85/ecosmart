@@ -35247,7 +35247,7 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
     <div class="lgal-upload" onclick="document.getElementById('lgal-file').click()">
       <div style="font-size:22px;margin-bottom:4px">＋</div>
       <div style="font-weight:600">Subir nuevo logo</div>
-      <div style="font-size:10px;margin-top:3px;opacity:.7">JPG · PNG · SVG · WebP</div>
+      <div style="font-size:10px;margin-top:3px;opacity:.7">JPG · PNG · WebP</div>
     </div>
     <!-- Sin image/svg+xml: jsPDF no lo dibuja. El selector deja de ofrecerlo, y si igual
          llega uno (arrastrando el archivo, o con el filtro en «todos»), logoGalleryUpload
@@ -35779,6 +35779,9 @@ const ECO_AYUDA = [
   <p class="mP">Modelo de 17 segmentos. Cada clic sobre un segmento avanza al siguiente estado: normal → hipoquinesia → aquinesia → disquinesia. Hay botones de patrón global para llenar todo de una. El bull's eye se puede incluir en el PDF con su casilla.</p>
   <div class="mSub">📐 SGL</div>
   <p class="mP">Strain longitudinal global, sincronizado con el campo de AI/VI. Tiene su propia casilla «Incluir en PDF».</p>
+  <div class="mBox mAviso"><b>El GLS se muestra como número, sin clasificación.</b> No hay semáforo ni etiqueta de «normal / zona gris / anormal» — ni en el formulario, ni en la tabla del PDF, ni en el PPT. Antes la había y se sacó: convivían <b>tres umbrales distintos</b> para el mismo dato, y un GLS de −18 % podía salir en el informe firmado diciendo que alcanzaba la referencia impresa y que igual no era normal, en el mismo renglón.</div>
+  <p class="mP">La lectura clínica la hacés vos, con las dos herramientas que sí están para eso: el <b>bull's eye de SGL</b> —que muestra dónde está el compromiso, no sólo cuánto— y el <b>informe narrativo</b>.</p>
+  <div class="mBox mTip"><b>El número no se perdió.</b> Sigue apareciendo en las tres superficies. Lo único que se quitó es el juicio automático sobre él.</div>
   <div class="mSub">🗂️ Otros</div>
   <p class="mP">Pericardio y masas, y la ecografía pulmonar básica (líneas B, derrame con el método de Balik, consolidación).</p>
   <div class="mBox mTip"><b>Consejo.</b> Pericardio y la eco pulmonar básica vivían antes en Válvulas. Si venís de una versión anterior y no los encontrás, están acá.</div>
@@ -35875,8 +35878,28 @@ const ECO_AYUDA = [
   <p class="mP">Si el estudio tiene <b>imágenes guardadas</b> —hace falta activar «Guardar imágenes con los estudios» en ⚙️ Config— salen <b>después del informe y antes del En Suma</b>, en diapositivas de hasta <b>seis por hoja</b> a pantalla completa. Diez imágenes dan dos diapositivas de seis y cuatro; siete dan una de seis y una sola grande. Si el estudio no tiene imágenes guardadas, el PPT sale sin esas diapositivas.</p>
   <div class="mSub">En qué orden salen</div>
   <p class="mP">Encabezado · mediciones · bull's eye —si hay alteración o GLS— · los módulos avanzados que hayas integrado (ETE, amiloidosis, cardio-oncología, eco pulmonar, hemodinámica) · <b>informe</b> · <b>imágenes</b> · <b>En Suma</b> · <b>cierre</b>. El En Suma queda siempre <b>anteúltimo</b>, justo antes del cierre: es la conclusión, y es lo que conviene tener en pantalla cuando se discute el caso. Si el estudio no tiene imágenes, esas diapositivas simplemente no están y el orden se cierra igual.</p>
+  <div class="mSub">Antes de generar: dos preguntas</div>
+  <p class="mP">Al tocar <b>📊 PPT</b> aparecen dos cuadros, uno detrás del otro:</p>
+  <ul class="mUl">
+    <li><b>🎨 Tema de la presentación</b> — la paleta con la que se dibuja el .pptx. Queda marcado el último que usaste.</li>
+    <li><b>¿Quién presenta este estudio?</b> — viene <b>precargado</b> y es <b>editable</b>. Lo que escribas ahí es lo que sale en la diapositiva de cierre.</li>
+  </ul>
+  <div class="mBox mTip"><b>Qué viene precargado.</b> El médico <b>del estudio</b> —el que lo firmó—, y sólo si el estudio no lo trae se usa el <b>Principal</b> de ⚙️ Config. Es el mismo criterio que la firma del PDF: exportar un estudio viejo ofrece a quien lo hizo, no al titular de hoy.</div>
+  <div class="mBox mCaso"><b>Para qué sirve.</b> El estudio lo firmó quien lo hizo, pero al ateneo lo lleva un residente. Escribís su nombre y la última diapositiva dice quién está presentando, sin tocar la firma del informe.</div>
+  <div class="mSub">Las seis paletas</div>
+  <ul class="mUl">
+    <li><b>🌑 Dark CeiboMed</b> — fondo oscuro, verde azulado de acento. La de siempre.</li>
+    <li><b>⬜ Clínico claro</b> — fondo blanco, sobrio.</li>
+    <li><b>🔵 Azul institucional</b> — azul profundo con celeste de acento.</li>
+    <li><b>🍷 Borgoña</b> — fondo crema y tipografía serif, con trazo de ECG en la banda.</li>
+    <li><b>🟣 Púrpura</b> — lila claro con franja al pie de la banda.</li>
+    <li><b>◼️ Alto contraste</b> — blanco puro y rojo CeiboMed, con el dato en negro. Pensada para <b>proyector flojo y sala iluminada</b>, que es donde las paletas oscuras se pierden.</li>
+  </ul>
+  <div class="mBox mTip"><b>La elección se recuerda</b> para la próxima vez, en este dispositivo. No viaja con el estudio: el mismo estudio se puede reexportar con otra paleta cuando quieras.</div>
+  <div class="mSub">El logo de la institución</div>
+  <p class="mP">Si hay un <b>logo cargado</b>, aparece discreto abajo a la derecha en la <b>primera</b> diapositiva y en la <b>última</b>, sin deformarse aunque sea apaisado. En las del medio no va, para no competir con las mediciones. Si no hay logo cargado, la presentación sale exactamente igual que antes.</p>
   <div class="mSub">La última diapositiva</div>
-  <p class="mP">Es la de <b>cierre</b>: «¿Preguntas?» en grande, debajo el centro, tu nombre y especialidad y la fecha del estudio, y al pie el sello de CeiboMed. Pensada para dejarla proyectada mientras se discute el caso.</p>
+  <p class="mP">Es la de <b>cierre</b>: «¿Preguntas?» en grande, debajo el centro, quien presenta y su especialidad y la fecha del estudio, y al pie el sello de CeiboMed. Pensada para dejarla proyectada mientras se discute el caso.</p>
   <div class="mBox mAviso"><b>Necesita conexión a internet.</b> La librería que arma el archivo se carga junto con la app. Si no llegó a cargar —sin conexión, o con el hash de integridad desactualizado tras una actualización— la app avisa y no genera nada — no queda un archivo a medias. Y si el estudio todavía no tiene informe generado, también te lo dice: generá el informe antes de exportar.</div>
   <div class="mSub">Nombre del archivo</div>
   <p class="mP">Sale como <span class="mKbd">EcoSmart_apellido_documento_fecha_id.pptx</span>. El id del final es para distinguir dos estudios del mismo paciente en la misma fecha, que si no quedarían con el mismo nombre.</p>` },
@@ -35905,6 +35928,9 @@ const ECO_AYUDA = [
     <li><b>Calidad original</b> — tal como se cargó, sin recomprimir. Ocupa bastante más.</li>
   </ul>
   <div class="mBox mAviso"><b>La calidad sólo puede bajar.</b> Una vez guardada en miniatura, el original ya no está en memoria y no se puede recuperar: hay que volver a cargar la imagen. El selector deshabilita las opciones que ya no son alcanzables y te lo dice al pasar el dedo por encima.</div>
+  <div class="mSub">Al reabrir un estudio guardado</div>
+  <p class="mP">Las calidades <b>superiores a la guardada</b> aparecen deshabilitadas. <b>Esto es correcto, no es una falla.</b> Lo que se guardó fue la imagen ya comprimida: el archivo original nunca se persiste, así que al reabrir no hay de dónde sacar los píxeles que faltan. Si el estudio se guardó en miniatura, ahí abajo sólo vas a poder quedarte en miniatura.</p>
+  <div class="mBox mTip"><b>Para pasar a una calidad superior.</b> Borrá la imagen del estudio y <b>volvé a cargarla desde el archivo</b>. Recién entonces el original está otra vez en memoria y las tres opciones vuelven a estar disponibles.</div>
   <div class="mSub">Cuánto espacio ocupan</div>
   <p class="mP">En la cabecera de <b>💾 Guardados</b> aparece una barra con el espacio usado. Tocándola sale el detalle: cuántos estudios tienen imágenes, cuántos MB ocupan y qué porcentaje de la cuota del navegador es. La barra sólo se muestra si el guardado está activado.</p>
   <div class="mSub">Borrarlas</div>
@@ -35926,6 +35952,22 @@ const ECO_AYUDA = [
   </ul>
   <div class="mSub">Cambiarla</div>
   <p class="mP">Desde <b>⚙️ Config → 📄 Diseño del informe PDF</b>, tocando la miniatura. También tenés el atajo <span class="mKbd">📄 Diseño…</span> en el encabezado, debajo de los cuadrados de color: te lleva directo a esa sección y la resalta.</p>
+  <div class="mSub">La imagen decorativa del encabezado</div>
+  <p class="mP"><b>Cinco de las ocho</b> llevan un dibujo propio en la banda superior. Es decoración: no ocupa lugar del informe ni cambia ningún dato.</p>
+  <ul class="mUl">
+    <li><b>Clásico</b> — trazo de ECG sobre la banda de color.</li>
+    <li><b>Moderno</b> — onda de pulso blanca, semitransparente, a lo ancho de la banda roja.</li>
+    <li><b>Compacto</b> — trazo de ECG chico y gris claro, contra el margen derecho.</li>
+    <li><b>Elegante</b> — disco dorado con las iniciales del <b>centro</b>, <b>sólo si no hay logo cargado</b>: el disco ocupa el lugar del logo, así que con logo se muestra el logo y el disco no aparece.</li>
+    <li><b>Bicolor</b> — círculos concéntricos del segundo color, por detrás del logo.</li>
+  </ul>
+  <div class="mBox mTip"><b>Minimalista, Académico e Institucional no llevan ninguna</b>, y es a propósito: las tres apuestan a un encabezado sobrio. Si querés un informe sin adornos, son ésas — y Elegante con logo cargado queda en el mismo grupo.</div>
+  <div class="mSub">Ajuste automático para que entre en una hoja</div>
+  <p class="mP">Al generar el PDF, la app <b>mide primero</b> y si el cuerpo del informe se pasa a una segunda hoja lo reintenta más compacto. Comprime en dos pasos y en este orden: primero el <b>aire</b> —interlineado y separación entre bloques—, y sólo si eso no alcanza, el <b>cuerpo de letra</b>, con un piso para que no quede ilegible.</p>
+  <div class="mBox mTip"><b>Nunca se achican el En Suma, la firma ni el pie.</b> La conclusión y quién firma son lo que se lee de reojo, así que conservan su tamaño en todos los pasos. Lo mismo el disclaimer médico-legal.</div>
+  <p class="mP">Si con la compresión máxima igual no entra, <b>vuelve al original</b> —no deja el informe apretado a cambio de nada— y avisa: <span class="mKbd">✅ PDF generado — este estudio es muy extenso, el PDF tiene N páginas.</span> El archivo se descarga igual; el mensaje es informativo.</p>
+  <div class="mBox mTip"><b>Las hojas anexas no cuentan para el aviso.</b> Las imágenes adjuntas, la hoja de ETT avanzado y la de transesofágico van en páginas propias a propósito, y el aviso mira sólo el cuerpo del informe: un estudio con imágenes puede salir en tres páginas sin ningún mensaje. Está bien así.</div>
+  <div class="mBox mAviso"><b>Pero hay figuras que sí lo disparan.</b> El bull's eye de contractilidad, la vista quirúrgica mitral y el jet paravalvular post-TAVI van <b>dentro</b> del cuerpo y reservan mucho alto, así que pueden forzar la segunda hoja por sí solas — y ahí el aviso aparece aunque la causa sea la figura y no el texto. Si te salta con un estudio corto que tiene el bull's eye tildado, es eso.</div>
   <div class="mSub">Color y plantilla son cosas distintas</div>
   <p class="mP">Los <b>cuatro cuadrados de color</b> del encabezado eligen el color del PDF —azul, verde, violeta o bordó— y funcionan con cualquier plantilla. La plantilla decide la <b>forma</b>; el cuadrado, el <b>color</b>. Bicolor es la única que además pide un segundo color, y su fila de colores aparece en Config sólo cuando esa plantilla está elegida.</p>
   <div class="mBox mTip"><b>Vale para este dispositivo.</b> La elección se guarda acá y se aplica a todos los PDF que generes, incluidos los que reimprimas desde Guardados. No viaja en el backup ni cambia los PDF ya emitidos.</div>` },
@@ -35981,19 +36023,19 @@ const ECO_AYUDA = [
     <li>Encabezado con banda de color, logo si cargaste uno, y datos del paciente.</li>
     <li>Cinco bloques de tablas: aorta/AI/AD-VCI · VI y VD · Doppler transmitral, DTI y tricuspídeo · gradientes aórticos y área · las válvulas mitral, aórtica y tricúspide, y Otros.</li>
     <li><b>INFORME</b> y <b>EN SUMA</b>, tal como quedaron en la pestaña Informe.</li>
-    <li>Opcionales según lo que hayas tildado: Wilkins, GTP/RVP, eco estrés, score de Duke, contractilidad con bull's eye, SGL, vista quirúrgica mitral.</li>
+    <li>Opcionales según lo que hayas tildado: Wilkins, GTP/RVP, score de Duke, contractilidad con bull's eye, SGL, vista quirúrgica mitral.</li>
     <li>Hoja aparte de <b>estudio avanzado</b> con los módulos integrados, y hoja aparte de <b>ETE</b> si lo usaste.</li>
     <li>Hojas de <b>imágenes</b> al final.</li>
     <li>Firma y disclaimer legal, en todas las páginas.</li>
   </ul>
-  <div class="mBox mAviso"><b>Dos cosas no están donde uno las busca.</b> La <b>válvula pulmonar</b> no tiene columna propia en el bloque de válvulas: sus velocidades y su morfología salen dentro de la columna «Tricúspide / PSAP», y la morfología sólo si es distinta de «Normal». Y el <b>score de Duke</b> está anidado dentro del bloque de eco estrés: si tildás Duke pero no incluís el eco estrés, no sale nunca.</div>
+  <div class="mBox mAviso"><b>Dos cosas no están donde uno las busca.</b> La <b>válvula pulmonar</b> no tiene columna propia en el bloque de válvulas: sus velocidades y su morfología salen dentro de la columna «Tricúspide / PSAP», y la morfología sólo si es distinta de «Normal». El <b>score de Duke</b> ya no depende del eco estrés: tiene su propio interruptor y sale solo, al lado de Wilkins y GTP/RVP.</div>
   <div class="mSub">La firma</div>
   <p class="mP">Es texto, no una firma dibujada. El nombre y la matrícula salen del médico marcado como <b>Principal</b> en Config. Especialidad, ciudad, dirección y teléfono salen sólo si tildaste «Incluir en el PDF» en cada uno, en Config.</p>
   <p class="mP">El <b>email</b> es aparte: se carga y se tilda en el panel <b>✏️ Editar firma del centro</b>, dentro del bloque «Institución y firma» de Config.</p>
   <div class="mBox mAviso"><b>Si no hay médico configurado, el PDF sale igual</b> — con dos renglones en blanco para completar a mano. No avisa ni bloquea. Configurá el médico antes de entregar un informe.</div>
   <div class="mSub">Apariencia</div>
   <p class="mP">Cuatro colores junto al botón PDF: azul (por defecto), verde, violeta y bordó. El desplegable de abajo elige cómo se llama el archivo, entre cinco formatos.</p>
-  <div class="mBox mAviso"><b>El logo en SVG no funciona.</b> Se descarta sin avisar y el PDF sale sin logo. Usá PNG o JPG.</div>
+  <div class="mBox mAviso"><b>El logo en SVG no sirve para el PDF.</b> Al intentar subirlo la app te lo dice y no lo acepta, así que ya no podés quedarte con un logo que no se imprime. Usá PNG o JPG.</div>
   <p class="mP">Con <b>🏛️ Modo institucional</b> tildado en Config, el PDF saca «CeiboMed» del pie —copyright y disclaimer— y también del encabezado cuando no hay centro cargado. Si ya tenés un centro configurado, su nombre aparece en el encabezado con el modo prendido o apagado.</p>
   <div class="mBox mAviso"><b>Si las imágenes sobreviven al guardado lo decidís vos.</b> Con el interruptor de Config apagado —el valor de fábrica— viven sólo mientras el estudio está abierto y el PDF desde <b>Guardados sale sin ellas</b>: no hay ninguna imagen asociada a ese estudio. Con el interruptor encendido quedan guardadas y el PDF desde Guardados las trae. Si está apagado y las querés en el documento, exportá el PDF antes de cerrar.</div>
   <div class="mBox mTip"><b>Consejo.</b> El PDF que se genera desde Guardados no pasa por la tarjeta de confirmación de severidades valvulares. Si querés revisarlas, abrí el estudio con <b>Editar</b> y exportá desde ahí.</div>` },
@@ -36027,7 +36069,9 @@ const ECO_AYUDA = [
     <div class="mSub">Subtab ETE</div>
   <p class="mP">Reúne todo lo transesofágico: <b>TAVI</b> (gradientes, tipo de prótesis, regurgitación paravalvular y los jets por hora del reloj), <b>score de Wilkins</b>, <b>orejuela izquierda</b> (morfología, velocidad de vaciamiento y trombos) y <b>criterios TEER</b>, con el reparto de aptos, límite y no aptos y qué criterio falla más seguido.</p>
   <p class="mP">El Wilkins se agrupa en <b>≤8 favorable</b>, <b>9-11 resultado subóptimo</b> y <b>≥12 (o sea &gt;11) no favorable</b> — los mismos cortes con los que la app clasifica cada estudio, para que el agregado no contradiga al informe individual. Los scores <b>incompletos se excluyen</b> y te dice cuántos quedaron afuera: un total con menos de cuatro criterios está sesgado hacia «favorable».</p>
-  <div class="mBox mTip"><b>Dos números, no uno.</b> «Marcados como ETE» cuenta la casilla; «Con datos ETE cargados» detecta el estudio por sus campos. Ninguno contiene al otro —hay ETE que se informan sólo en la narrativa, y transesofágicos ajenos que se anotan sin marcar la casilla—, así que el denominador de la subtab es la <b>unión</b> de los dos.</div>
+  <div class="mBox mAviso"><b>Sólo cuentan los estudios con la casilla «Este estudio es ETE» marcada.</b> Es el denominador de toda la subtab. Un estudio con campos de ETE cargados pero <b>sin la casilla no entra</b> en ninguna de estas estadísticas — ni en el conteo, ni en Wilkins, ni en TAVI, ni en orejuela, ni en TEER.</div>
+  <p class="mP">El criterio es el de la casilla y no el de «tiene campos cargados» a propósito: los campos se llenan también al planificar un procedimiento o al copiar un estudio previo, y con el criterio automático el laboratorio contaba transesofágicos que nunca se hicieron.</p>
+  <div class="mBox mAviso"><b>La casilla no viaja en el import de Excel.</b> Los estudios que entren por planilla llegan sin marcar, aunque traigan mediciones de ETE. Si querés que aparezcan en esta subtab hay que <b>abrirlos y tildarla a mano</b>. Es la causa más común de «me faltan ETE en el Laboratorio».</div>
   <div class="mSub">Subtab Hemodinámica</div>
   <p class="mP">Perfil hemodinámico con el mapa de Forrester, y el shunt congénito: CIA/CIV por tipo, distribución del Qp/Qs en cuatro bandas —incluida la de <b>Qp/Qs &lt; 1</b>, que es flujo neto de derecha a izquierda y no admite la graduación por magnitud— y los bordes de la CIA.</p>
   <div class="mSub">Qué calcula</div>
@@ -36042,10 +36086,11 @@ const ECO_AYUDA = [
   </ul>
   <div class="mSub">Exportar</div>
   <p class="mP">La solapa <b>Informe PDF</b> genera un <b>PDF de auditoría</b> con cinco bloques seleccionables por casilla: actividad, población, calidad, indicadores y médicos. Sólo salen los que dejes tildados. La solapa Asociaciones tiene sus propios botones de PDF y Excel.</p>
-  <div class="mBox mTip"><b>Consejo — para CeiboAnalytics.</b> El botón <b>📈 Para Analytics</b> (en el menú Exportar de Guardados, o en el <span class="mKbd">⋮</span> del encabezado) genera un JSON pensado para abrir en CeiboAnalytics. <b>Exporta todos los estudios, sin aplicar los filtros del Laboratorio y sin anonimizar</b>: el archivo lleva nombre y documento de cada paciente. Tratalo como lo que es, una base con datos identificables.</div>` },
+  <div class="mBox mTip"><b>Consejo — para CeiboAnalytics.</b> El botón <b>📈 Para Analytics</b> (en el menú <b>📤 Exportar ▾</b> de 💾 Guardados) genera un JSON pensado para abrir en CeiboAnalytics. <b>Exporta todos los estudios, sin aplicar los filtros del Laboratorio y sin anonimizar</b>: el archivo lleva nombre y documento de cada paciente. Tratalo como lo que es, una base con datos identificables.</div>` },
 
  { tab: '🔄 Importar / Exportar', html: `
   <p class="mP">Todo vive en dos menús desplegables de la pestaña <b>💾 Guardados</b>: <b>📤 Exportar ▾</b> y <b>📥 Importar ▾</b>, con cuatro opciones cada uno.</p>
+  <div class="mBox mAviso"><b>Se movieron acá desde el encabezado.</b> <b>Importar</b>, <b>Exportar</b> y <b>Exportar para Analytics</b> estaban arriba y ahora están dentro de 💾 Guardados, que es donde están los estudios sobre los que operan. El encabezado quedó en una sola fila. Si los buscabas arriba, es por eso.</div>
   <div class="mSub">Cuál usar</div>
   <table class="mTbl"><tr><th>Formato</th><th>Para qué sirve</th></tr>
   <tr><td><b>📦 JSON</b></td><td><b>Backup y restauración.</b> Es el único formato completo: se lleva todo y lo devuelve todo. Es el que tenés que usar para no perder los estudios.</td></tr>
@@ -36082,16 +36127,23 @@ const ECO_AYUDA = [
   <div class="mBox mAviso"><b>Pasar a Modo Básico no borra lo cargado.</b> Si completaste un módulo avanzado y después cambiás a Básico, el módulo desaparece de la pantalla pero <b>sus datos siguen entrando al informe y al PDF</b>. Si querés sacarlo del informe, usá «Retirar» en la tarjeta ETT Avanzado.</div>
   <p class="mP">En Modo Avanzado aparecen las casillas para prender y apagar cada módulo: Hemodinámica, ETE, Amiloidosis, Cardio-Oncología, Calculadoras, Fonocardiograma y Referencias.</p>
   <div class="mBox mTip"><b>Eco Pulmonar no tiene casilla</b> — está siempre disponible en Modo Avanzado.</div>
-  <div class="mSub">El logo</div>
-  <p class="mP">No está en Config: se carga desde el recuadro <b>＋ Logo</b> del encabezado, que abre una <b>galería</b> de logos ya subidos. Elegís uno o subís uno nuevo. La asignación es <b>por centro</b>; la galería es común a todos.</p>
-  <div class="mBox mAviso"><b>La ✕ del encabezado no borra el logo.</b> Sólo lo desasigna de este centro: la imagen sigue en la galería. Para borrarla de verdad, usá la ✕ de su miniatura dentro de la galería.</div>
-  <div class="mBox mAviso"><b>El logo sólo se puede cargar desde la computadora.</b> En celular y tablet el recuadro <b>＋ Logo</b> no se muestra, y no hay otra forma de cargarlo ni de quitarlo.</div>` },
+  <div class="mSub">El logo del centro</div>
+  <p class="mP">Ahora hay <b>dos accesos al mismo gestor</b>, y los dos abren la misma galería de logos ya subidos:</p>
+  <ul class="mUl">
+    <li>El recuadro <b>＋ Logo</b> del <b>encabezado</b>, como siempre.</li>
+    <li><b>⚙️ Config → 🏥 Institución y firma → 📎 Logo del centro</b>. Sin logo muestra <span class="mKbd">+ Agregar logo</span>; con logo, la miniatura y los botones <span class="mKbd">Cambiar</span> y <span class="mKbd">Eliminar</span>.</li>
+  </ul>
+  <div class="mBox mTip"><b>Son dos vistas de lo mismo, no dos logos.</b> Lo que cargues o borres desde Config se ve al instante en el encabezado, y al revés. No hay forma de que queden mostrando cosas distintas.</div>
+  <div class="mBox mAviso"><b>El botón Eliminar no borra la imagen de la galería.</b> Sólo la desasigna de este centro, igual que la ✕ del encabezado. Para borrarla de verdad, usá la ✕ de su miniatura dentro de la galería.</div>
+  <div class="mBox mTip"><b>En celular y tablet, entrá por Config.</b> El recuadro ＋ Logo del encabezado se esconde en pantallas chicas, pero el acceso de Config abre la misma galería y desde ahí <b>sí podés subir un archivo nuevo</b>.</div>
+  <div class="mSub">📄 Nombre del archivo PDF</div>
+  <p class="mP">El selector del <b>formato del nombre</b> con que se descarga el PDF —nombre, documento, matrícula y fecha en distintas combinaciones— <b>ahora vive en Config</b>. Antes estaba en el encabezado.</p>` },
 
  { tab: '❓ Preguntas frecuentes', html: `
   <p class="mP"><b>Generé el PDF desde Guardados y salió sin las imágenes.</b> Revisá <b>«Guardar imágenes con el estudio»</b> en Config: apagado —que es como viene— las imágenes viven sólo mientras el estudio está abierto y no quedan asociadas a él. Encendelo para los estudios nuevos; para los que ya guardaste sin él, abrí el estudio y exportá el PDF antes de cerrarlo.</p>
   <p class="mP"><b>Edité el informe y se borró lo que escribí.</b> Regenerar, cambiar el estilo, tocar un selector de VEXUS o integrar un módulo reescriben el texto entero. Editá al final, y guardá el estudio: al reabrirlo desde Guardados, tu edición vuelve intacta.</p>
   <p class="mP"><b>El PDF salió sin firma.</b> No hay ningún médico marcado como Principal en Config. El PDF se genera igual, con renglones en blanco.</p>
-  <p class="mP"><b>Cargué el logo y no aparece.</b> Si es un SVG, se descarta sin avisar. Convertilo a PNG o JPG.</p>
+  <p class="mP"><b>Cargué el logo y no aparece.</b> El SVG no se acepta y la app lo avisa al subirlo. Si el logo es viejo y quedó guardado por una versión anterior, se descarta al pintarlo: volvé a subirlo en PNG o JPG.</p>
   <p class="mP"><b>El Laboratorio no muestra estudios viejos.</b> El período por defecto es el último año. Cambialo a «Todo el tiempo».</p>
   <p class="mP"><b>Exporté a Excel y faltan estudios.</b> El Excel usa los filtros del Laboratorio, no los de Guardados. El menú te avisa en ámbar cuántos quedan afuera.</p>
   <p class="mP"><b>Importé un Excel y algunos valores no entraron.</b> Los campos que la app calcula sola —PmAD, área mitral, gradiente máximo aórtico, PSAP y PAP media— no se importan: se recalculan desde las mediciones que los alimentan. La vista previa te los lista en ámbar antes de confirmar. Corregí esas mediciones (VCI y colapso, PHT mitral, V. max Ao, V. max IT), no el resultado.</p>
