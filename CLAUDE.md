@@ -872,6 +872,52 @@ cruzadas (`typeof escHtml === 'function'`) y ésta no: si el bloque grande deja 
 pasó dos veces— antes había un `34` literal que seguía andando y ahora sería `ReferenceError`.
 Pasó a `window.UMBRAL_LAVI_DILATADO` con respaldo, como el resto.
 
+### `PF()` devuelve NaN, y `NaN != null`: el guard «¿hay dato?» falla ABIERTO
+Ductus y coartación (2026-09-10) nacieron con `const nv = id => PF(el.value)`. `PF('')` es
+`NaN`, `NaN == null` es **false**, así que `hayDato` daba `true` con el formulario en blanco y
+la app afirmaba «Ductus pequeño restrictivo sin repercusión hemodinámica» y «Coartación de
+aorta sin gradiente significativo» en pantalla **y en el informe firmado**, sobre un paciente
+al que nadie le había cargado nada. Los `if (!c) return;` de los dos emisores eran código
+muerto que se leía como una guarda.
+**El helper canónico es `v(id)`** (línea ~11468): hace el `isNaN(n) ? null : n` que `PF` no
+hace. `PF` es sólo el parseo tolerante a la coma decimal — no es un lector de campo.
+Al revisar cualquier módulo nuevo: buscar `PF(` fuera de `v()` y comprobar contra qué se
+compara el resultado. Contra `null` está mal siempre.
+
+### Descartar un valor fuera de rango también falla abierto si la cascada termina negando
+Corolario del anterior, encontrado en el `/differential-review` de la misma tanda. Poner una
+banda de plausibilidad y devolver `null` fuera de ella **no alcanza**: si la última rama de la
+cascada es una afirmación —«sin repercusión hemodinámica», «sin gradiente significativo»—, el
+valor descartado cae ahí y *«no pude leer esto»* se publica como *«esto es normal»*.
+El caso real es la unidad: una Vmax en cm/s (300 en vez de 3,0) da un gradiente de 360.000, se
+descarta por banda, y el informe firmado salía diciendo «sin gradiente significativo —
+seguimiento clínico» **con «Gradiente máximo estimado 360000 mmHg» impreso dos renglones más
+arriba**. Un error de tipeo invertía la conducta, y hacia el lado benigno.
+El patrón correcto ya estaba en el archivo: `eteQpQs()` descarta fuera de 0,2–10 **y**
+`eteQpQsMotivo()` existe para que «falta el dato» y «el número es imposible» no se vean
+iguales. Ahora `dapConclusion`/`coaConclusion` anotan lo que quedó fuera de escala en `fuera[]`
+y eso corta la cascada antes de las ramas benignas (`clave:'no_interpretable'`).
+Tercera cara del mismo problema: **una negación necesita que se haya medido algo**. «Sin
+gradiente significativo» sobre un estudio donde nadie midió un gradiente es una afirmación sin
+respaldo; hoy devuelve `clave:'incompleto'`.
+
+### Un checkbox no puede afirmar una ausencia
+`coa_diast_anterogrado` desmarcado significa las dos cosas a la vez —«lo interrogué y no está»
+y «no lo interrogué»— y su estado de fábrica es desmarcado por las tres vías (`limpiarCampos`,
+reimpresión, import de Excel sin la columna). El párrafo imprimía
+`cola ? 'presente' : 'Sin flujo diastólico anterógrado'` **incondicionalmente** — era el único
+`push` sin guarda de los dos módulos. Ahora sólo se afirma la presencia.
+Si algún día hace falta registrar el «lo busqué y no está», va como `<select>` de tres estados,
+que es lo que ya hace `sv('oai_trombo')`.
+
+### Un dato global no se le atribuye a la sección que lo pide prestado
+`psap_calc` (PAPs por IT del estudio) y `eteQpQs()` (flujo global TSVI/TSVD) no dicen **por qué
+defecto** pasan. Prestárselos al ductus sin recaudo hacía que un paciente con IM severa y PSAP
+62 al que se le veía un ductus de 2 mm terminara con «evaluar operabilidad antes de indicar
+cierre» **en el EN SUMA**. Hoy: la PSAP se presta sólo si el ductus es `no_restrictivo` o mide
+≥3 mm, y el Qp/Qs se ignora si hay una CIA/CIV cargada. Es el mismo defecto que ya se cerró en
+TAVI con el PHT de la IA nativa.
+
 ## Deuda conocida sin resolver
 
 - **Contraseña en el código.** `doLogin()` compara contra un literal. Choca con el checklist
@@ -910,6 +956,25 @@ Pasó a `window.UMBRAL_LAVI_DILATADO` con respaldo, como el resto.
   quedó dormido el 2026-09-10 al apagar `firmaCierre`. Nunca protegió al copyright —protegía a
   la línea de cierre *de* él— pero era lo único que lo tocaba.
 - **`gmax_calc` puede quedar rancio.** Ver la sección de `_IG_SECTIONS`.
+- **`_IG_SECTIONS` no conoce ductus ni coartación.** Cero coincidencias `dap_`/`coa_` en el
+  bloque (verificado 2026-09-10): el «Ver detalle» de un estudio guardado no muestra ninguno de
+  los 13 campos nuevos. Es el mismo agujero que los seis ids que ya documenta esa sección; se
+  anota acá para que no se descubra por casualidad.
+- **`cargarEstudioPorId` no llama a `limpiarCampos`.** Sólo pisa las claves que el estudio trae
+  (`editarInforme` sí limpia primero, desde el arreglo de 2026-09-08). Para estudios guardados
+  por esta versión no fuga —`guardarInforme` barre todos los `input[id]` y todos los
+  `input[type=checkbox][id]`, así que las claves viajan aunque estén vacías—, pero los
+  **importados de Excel y de DICOM** construyen `campos` desde cero: abrir uno por
+  `?estudio=<id>` con otro paciente cargado deja en pantalla los datos y las casillas
+  «✓ Integrado» del anterior. Hoy la exposición es baja porque el QR está desconectado de punta
+  a punta y la única entrada es una URL escrita a mano; sube el día que se reconecte. El
+  arreglo va en `cargarEstudioPorId`, no dentro del módulo de turno.
+- **Cuatro `MAPA[k] || ''` nuevos en `_labExcelRow`** (ductus y coartación, 2026-09-10). Suma a
+  los que esa sección ya nombra. `c` es `inf.campos`, no el DOM, así que por `<select>` y por
+  Excel no se llega —`_labXlsVocab` valida o rechaza la fila—, pero el import de backup JSON
+  acepta claves arbitrarias y `'constructor'` devolvería la función en vez del fallback. No es
+  XSS (`String(Object)` no trae `<`). El helper `_lblDe(mapa, k)` ya existe y resuelve esto;
+  el bloque entero de `_labExcelRow` merece una pasada, no un parche por caso.
 - **`cerrarSesion()` no es un borde de sesión.** No recarga ni llama a `limpiarCampos` /
   `imgVaciar`: detrás del overlay quedan intactos el formulario, las imágenes y todo el
   estado de módulo. Y los listeners de autosave siguen enganchados, así que un input con la

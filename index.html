@@ -3533,6 +3533,115 @@ window.cerrarSesion = cerrarSesion;
   </div></div>
   </div><!-- /#ete-seccion-shunt -->
 
+  <!-- ══ DUCTUS ARTERIOSO PERMEABLE ══
+       Mismo patrón que CIA/CIV: los campos se guardan solos porque guardarInforme barre
+       `input[id], select[id]`, el estado de inclusión es un checkbox oculto —para que viaje
+       en `campos` y la reimpresión reproduzca lo firmado— y el botón es sólo la piel. -->
+  <div id="hemo-seccion-ductus">
+  <div class="card"><div class="card-body">
+    <div style="font-size:13px;font-weight:700;color:var(--accent2);margin-bottom:10px;">
+      Ductus arterioso permeable
+      <span id="ductus_badge" hidden style="font-size:10px;font-weight:600;color:var(--green);margin-left:6px;">● en el informe</span>
+    </div>
+    <div class="grid-3">
+      <div class="fg"><label>Tipo de ductus</label>
+        <select id="dap_tipo" onchange="dapSync()">
+          <option value="">—</option>
+          <option value="silente">Silente</option>
+          <option value="restrictivo">Restrictivo (pequeño)</option>
+          <option value="no_restrictivo">No restrictivo (grande)</option>
+        </select>
+      </div>
+      <div class="fg"><label>Diámetro mínimo (mm)</label><input type="number" id="dap_diam" step="0.1" placeholder="mm" oninput="dapSync()"></div>
+      <div class="fg"><label>Dirección del shunt</label>
+        <select id="dap_dir" onchange="dapSync()">
+          <option value="">—</option>
+          <option value="id">Izquierda a derecha</option>
+          <option value="bi">Bidireccional</option>
+          <option value="di">Derecha a izquierda</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid-3" style="margin-top:10px;">
+      <div class="fg"><label>Velocidad máxima (m/s)</label><input type="number" id="dap_vmax" step="0.1" placeholder="m/s" oninput="dapSync()"></div>
+      <div class="fg"><label>Gradiente instantáneo máx.</label>
+        <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+          <span id="dap-gmax" class="calc-val">—</span></div></div>
+        <div style="font-size:10px;color:var(--text2);margin-top:3px;">4 × Vmax²</div>
+      </div>
+      <div class="fg"><label>PAPs estimada (mmHg)</label><input type="number" id="dap_paps" step="1" placeholder="mmHg" oninput="dapSync()"></div>
+    </div>
+    <div class="calc-box" style="margin-top:12px;">
+      <div class="calc-row"><span class="calc-lbl">Qp/Qs</span><span id="dap-qpqs" class="calc-val">—</span></div>
+      <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="dap-concl" class="calc-val">—</span></div>
+    </div>
+    <div style="text-align:center;margin-top:10px;">
+      <input type="checkbox" id="ductus_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+      <button type="button" class="btn btn-integrar" data-ete-chk="ductus_incluir_chk" aria-pressed="false"
+              onclick="eteInclToggle('ductus_incluir_chk')">📎 Integrar al informe</button>
+    </div>
+  </div></div>
+  </div><!-- /#hemo-seccion-ductus -->
+
+  <!-- ══ COARTACIÓN DE AORTA ══ -->
+  <div id="hemo-seccion-coart">
+  <div class="card"><div class="card-body">
+    <div style="font-size:13px;font-weight:700;color:var(--accent2);margin-bottom:10px;">
+      Coartación de aorta
+      <span id="coart_badge" hidden style="font-size:10px;font-weight:600;color:var(--green);margin-left:6px;">● en el informe</span>
+    </div>
+    <div class="grid-3">
+      <div class="fg"><label>Localización</label>
+        <select id="coa_loc" onchange="coaSync()">
+          <option value="">—</option>
+          <option value="preductal">Preductal</option>
+          <option value="yuxtaductal">Yuxtaductal</option>
+          <option value="posductal">Posductal</option>
+        </select>
+      </div>
+      <div class="fg"><label>Situación</label>
+        <select id="coa_situacion" onchange="coaSync()">
+          <option value="">—</option>
+          <option value="nativa">Coartación nativa</option>
+          <option value="recoartacion">Recoartación post-intervención</option>
+        </select>
+      </div>
+      <div class="fg"><label>Diámetro del istmo (mm)</label><input type="number" id="coa_istmo" step="0.1" placeholder="mm" oninput="coaSync()"></div>
+    </div>
+    <div class="grid-3" style="margin-top:10px;">
+      <div class="fg"><label>Ao ascendente (mm)</label><input type="number" id="coa_ao_asc" step="0.1" placeholder="mm" oninput="coaSync()"></div>
+      <div class="fg"><label>Ao descendente (mm)</label><input type="number" id="coa_ao_desc" step="0.1" placeholder="mm" oninput="coaSync()"></div>
+      <div class="fg"><label>Relación istmo / Ao desc.</label>
+        <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+          <span id="coa-ratio" class="calc-val">—</span></div></div>
+      </div>
+    </div>
+    <div class="grid-3" style="margin-top:10px;">
+      <div class="fg"><label>Vmax coartación (m/s)</label><input type="number" id="coa_vmax" step="0.1" placeholder="m/s" oninput="coaSync()"></div>
+      <div class="fg"><label>Gradiente máximo</label>
+        <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+          <span id="coa-gmax" class="calc-val">—</span></div></div>
+        <div style="font-size:10px;color:var(--text2);margin-top:3px;">4 × Vmax²</div>
+      </div>
+      <div class="fg"><label>Gradiente medio (mmHg)</label><input type="number" id="coa_gmedio" step="1" placeholder="mmHg" oninput="coaSync()"></div>
+    </div>
+    <div class="fg" style="margin-top:10px;">
+      <label class="cfg-opt-row" style="cursor:pointer;">
+        <input type="checkbox" id="coa_diast_anterogrado" onchange="coaSync()">
+        <span style="font-size:12px;">Flujo diastólico anterógrado en aorta descendente (cola diastólica)</span>
+      </label>
+    </div>
+    <div class="calc-box" style="margin-top:12px;">
+      <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="coa-concl" class="calc-val">—</span></div>
+    </div>
+    <div style="text-align:center;margin-top:10px;">
+      <input type="checkbox" id="coart_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+      <button type="button" class="btn btn-integrar" data-ete-chk="coart_incluir_chk" aria-pressed="false"
+              onclick="eteInclToggle('coart_incluir_chk')">📎 Integrar al informe</button>
+    </div>
+  </div></div>
+  </div><!-- /#hemo-seccion-coart -->
+
 </div>
 <div id="tab-contractilidad" class="tab-section">
   <div class="card sacc" id="sacc-contr">
@@ -16411,6 +16520,76 @@ function generarInforme(opts) {
       }
     })();
 
+    /* ── Ductus arterioso permeable ── (mismo criterio que CIA/CIV: manda el checkbox, que
+       viaja dentro del estudio, así que la reimpresión reproduce lo que se firmó) */
+    (function(){
+      const chk = document.getElementById('ductus_incluir_chk');
+      if (!chk || !chk.checked) return;
+      if (typeof dapSync === 'function') { try { dapSync(); } catch(e){} }
+      const c = (typeof dapConclusion === 'function') ? dapConclusion() : null;
+      if (!c) return;                       // tildado pero sin un solo dato: no se inventa un párrafo
+      const f1 = n => (n==null || !isFinite(n)) ? null : String(Math.round(n*10)/10);
+      const tipo = sv('dap_tipo'), dir = sv('dap_dir');
+      const diam = v('dap_diam'), vmax = v('dap_vmax'), paps = v('dap_paps');
+      const g = (typeof dapGmax === 'function') ? dapGmax() : null;
+      const q = (typeof eteQpQs === 'function') ? eteQpQs() : null;
+      const p = ['Ductus arterioso permeable' + (tipo ? ' ' + (DAP_TIPO_TXT[tipo] || tipo) : '')];
+      if (f1(diam)) p.push('Diámetro mínimo ' + f1(diam) + ' mm');
+      if (dir) p.push('Shunt de ' + (DAP_DIR_TXT[dir] || dir));
+      if (f1(vmax)) p.push('Velocidad máxima ' + f1(vmax) + ' m/s');
+      if (f1(g)) p.push('Gradiente instantáneo máximo ' + f1(g) + ' mmHg');
+      if (q != null) p.push('Qp/Qs global ' + q.toFixed(2));
+      if (f1(paps)) p.push('PAPs estimada ' + f1(paps) + ' mmHg');
+      etePars.push(p.join('. ') + '. ' + c.txt + '.');
+      /* Al EN SUMA sólo las conclusiones ACCIONABLES. Mismo criterio que el shunt —que sólo
+         resume si el cuerpo describió un defecto— pero además filtrado por relevancia: un
+         ductus silente o pequeño sin repercusión no cambia ninguna conducta y llenaría la
+         conclusión de hallazgos incidentales. Los tres que quedan sí: uno indica cierre, otro
+         obliga a estudiar operabilidad. */
+      if (c.clave === 'grande' || c.clave === 'htp' || c.clave === 'moderado') suma.push(c.txt + '.');
+    })();
+
+    /* ── Coartación de aorta ── */
+    (function(){
+      const chk = document.getElementById('coart_incluir_chk');
+      if (!chk || !chk.checked) return;
+      if (typeof coaSync === 'function') { try { coaSync(); } catch(e){} }
+      const c = (typeof coaConclusion === 'function') ? coaConclusion() : null;
+      if (!c) return;
+      const f1 = n => (n==null || !isFinite(n)) ? null : String(Math.round(n*10)/10);
+      const loc = sv('coa_loc');
+      const ist = v('coa_istmo'), asc = v('coa_ao_asc'), desc = v('coa_ao_desc');
+      const vmax = v('coa_vmax'), gm = v('coa_gmedio');
+      const g = (typeof coaGmax === 'function') ? coaGmax() : null;
+      const r = (typeof coaRatio === 'function') ? coaRatio() : null;
+      const cola = !!document.getElementById('coa_diast_anterogrado')?.checked;
+      const p = ['Coartación de aorta' + (loc ? ' de localización ' + (COA_LOC_TXT[loc] || loc) : '')];
+      if (f1(ist)) p.push('Diámetro del istmo ' + f1(ist) + ' mm');
+      if (f1(asc)) p.push('Aorta ascendente ' + f1(asc) + ' mm');
+      if (f1(desc)) p.push('Aorta descendente ' + f1(desc) + ' mm');
+      if (r != null) p.push('Relación istmo/aorta descendente ' + r.toFixed(2));
+      if (f1(vmax)) p.push('Velocidad máxima ' + f1(vmax) + ' m/s');
+      /* Se nombra el método: 4·Vmax² sobreestima en la coartación porque no descuenta la
+         velocidad proximal, y el informe firmado no puede dar el número sin decir de dónde
+         sale — quien lo lea después tiene que poder repetirlo. */
+      if (f1(g)) p.push('Gradiente máximo estimado ' + f1(g) + ' mmHg (Bernoulli simplificado)');
+      if (f1(gm)) p.push('Gradiente medio ' + f1(gm) + ' mmHg');
+      /* Sólo se afirma la PRESENCIA. Era el único push incondicional de los dos módulos, y por
+         eso afirmaba una ausencia que nadie había buscado: la casilla desmarcada significa las
+         dos cosas a la vez —«lo interrogué y no está» y «no lo interrogué»—, y su estado de
+         fábrica es desmarcada por las tres vías (limpiarCampos, reimpresión e import de Excel
+         sin la columna). El daño es específico: la cola diastólica es justo el signo que salva
+         el caso en que el gradiente subestima, así que negarla convierte un gradiente limítrofe
+         en algo que se lee como descartado, en un documento firmado que otro médico va a leer
+         meses después sin poder saber que la casilla nunca se tocó. */
+      if (cola) p.push('Flujo diastólico anterógrado presente en aorta descendente');
+      etePars.push(p.join('. ') + '. ' + c.txt + '.');
+      /* La significativa y la limítrofe sí van al EN SUMA: la primera indica intervención y la
+         segunda manda a pedir una angio-RMN. Dejar una indicación de intervención sólo en el
+         cuerpo del informe es exactamente lo que la conclusión existe para evitar. */
+      if (c.clave === 'significativa' || c.clave === 'limitrofe') suma.push(c.txt + '.');
+    })();
+
     if (etePars.length) inf.push('', ...etePars);
   })();
 
@@ -17077,7 +17256,8 @@ function _autosaveRestore(){
     ['calcBSA','calcVI','calcAI','calcAorta','calcVD','calcDiastol','calcPSAP','calcPmAD',
      'calcIM_ESC','calcIA_ESC','calcIT_ESC','calcContIM','calcAo','calcEADetalle',
      'calcWilkins','cxWilkins','cxDuke','cxGtpSync','showMasaPanel','calcHTP2022',
-     'calcCardioOnco','updateHdrExtra','eteShuntSync','eteTaviSync','eteEpcRefrescar'].forEach(function(fn){
+     'calcCardioOnco','updateHdrExtra','eteShuntSync','eteTaviSync','eteEpcRefrescar',
+     'dapSync','coaSync'].forEach(function(fn){
       if (typeof window[fn] === 'function') { try { window[fn](); } catch (e) { console.warn('[autosave] '+fn, e); } }
     });
   } catch (e) { console.warn('[autosave] recálculo de derivados', e); }
@@ -20162,6 +20342,192 @@ function eteQpQsInterp(q){
   if(q <= 2.0) return 'Shunt moderado — considerar cierre';
   return 'Shunt significativo — evaluar cierre según sobrecarga de VD y resistencia pulmonar';
 }
+
+/* ══ DUCTUS ARTERIOSO PERMEABLE ══════════════════════════════════════════════════════════
+   Umbrales ESC 2020 de cardiopatías congénitas del adulto / AHA-ACC 2018.
+   El Qp/Qs es el MISMO `eteQpQs()` del shunt y no una copia: sale de los mismos TSVI/TSVD, y
+   dos implementaciones del mismo cociente terminan divergiendo — ya pasó en este archivo con
+   el f1 del informe. Por eso también es «Qp/Qs global»: con CIA y ductus a la vez, el número
+   es del conjunto, no de cada defecto. */
+const DAP_TIPO_TXT = { silente:'silente', restrictivo:'restrictivo', no_restrictivo:'no restrictivo' };
+const DAP_DIR_TXT  = { id:'izquierda a derecha', bi:'bidireccional', di:'derecha a izquierda' };
+function dapGmax(){
+  const v = (typeof PF==='function') ? PF(document.getElementById('dap_vmax')?.value) : null;
+  return (v==null || !isFinite(v) || v<=0) ? null : 4*v*v;
+}
+/* Devuelve {txt, clave} para que el informe imprima lo mismo que la pantalla sin recalcular.
+   El orden de las ramas es clínico, no cosmético: la HTP y el shunt invertido MANDAN sobre el
+   tamaño, porque un ductus grande que además invirtió el flujo ya no es «considerar cierre»
+   sino una contraindicación potencial —Eisenmenger—, y decir «cerrar» ahí sería peligroso. */
+function dapConclusion(){
+  const sv2 = id => (document.getElementById(id)?.value || '').trim();
+  /* nv() va por v(), que es el helper canónico y devuelve null con el campo vacío.
+     PF() devuelve NaN, y NaN nunca es == null: con `nv = PF(...)` el `hayDato` de abajo daba
+     true SIEMPRE y el formulario en blanco afirmaba «ductus pequeño restrictivo» en pantalla
+     y en el informe firmado. */
+  const nv = id => { const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; };
+  /* Banda de plausibilidad. Descartar el valor fuera de rango NO alcanza: la cascada termina
+     en una AFIRMACIÓN («sin repercusión hemodinámica»), así que un número descartado cae solo
+     en la rama que niega y «no pude leer esto» se convierte en «esto es normal». El caso real
+     es la unidad: una Vmax en cm/s (300 en vez de 3,0) o un diámetro en cm (0,3 por 3 mm).
+     Por eso se ANOTA lo que quedó fuera —`fuera`— y más abajo eso corta la cascada antes de
+     las ramas benignas. Es el mismo criterio que ya usa eteQpQsMotivo(): «falta el dato» y
+     «el número es imposible» no pueden verse iguales. */
+  const fuera = [];
+  const banda = (n, lo, hi, lbl) => {
+    if (n == null) return null;
+    if (n >= lo && n <= hi) return n;
+    if (lbl) fuera.push(lbl);
+    return null;
+  };
+  const tipo = sv2('dap_tipo'), dir = sv2('dap_dir');
+  const diamRaw = nv('dap_diam'), vmaxRaw = nv('dap_vmax'), papsRaw = nv('dap_paps');
+  /* hayDato mira SÓLO campos del ductus. La PAPs del estudio y el Qp/Qs global entran DESPUÉS
+     de este corte: son datos de otras secciones y no prueban que exista un ductus. */
+  const hayDato = !!(tipo || dir || diamRaw!=null || vmaxRaw!=null || papsRaw!=null);
+  if (!hayDato) return null;
+  const diam = banda(diamRaw, 0.5, 30, 'diámetro');
+  banda(vmaxRaw, 0.3, 7, 'velocidad máxima');   // no vota en ninguna rama, pero su escala sí importa
+  /* Si no se cargó la PAPs de la sección se usa la estimada por IT del estudio: es la misma
+     presión pulmonar, y sin esto un ductus con PAPs 70 por IT se informaba sin HTP nada más
+     porque el número no se repitió acá.
+     El préstamo pide DOS condiciones, no una. Que el médico no haya dicho «silente» o
+     «restrictivo» no alcanza: el estado más común de `dap_tipo` es vacío —hallazgo incidental
+     que nadie clasificó—, y con esa sola guarda un paciente con IM severa y PSAP 62 al que se
+     le ve un ductus de 2 mm terminaba con «evaluar operabilidad antes de indicar cierre» en el
+     EN SUMA del informe firmado. La HTP era de la mitral. Así que la presión prestada sólo se
+     le atribuye al ductus si el ductus es lo bastante grande como para haberla causado.
+     El shunt invertido sí manda siempre: es evidencia propia del ductus, no prestada. */
+  const papsDap = banda(papsRaw, 5, 150, 'PAPs');
+  const ductusGrande = tipo === 'no_restrictivo' || (diam != null && diam >= 3);
+  const paps = papsDap != null ? papsDap
+             : (ductusGrande ? banda((typeof v==='function') ? v('psap_calc') : null, 5, 150) : null);
+  /* Qp/Qs es GLOBAL —sale de los flujos TSVI/TSVD— y no dice por qué defecto pasa el shunt.
+     Con una CIA/CIV cargada ese mismo número ya se le atribuyó a la otra sección, y usarlo
+     acá haría que la pantalla llamara «grande no restrictivo» a un ductus que el propio
+     médico marcó restrictivo. Sólo se le atribuye al ductus si es el único shunt del estudio. */
+  const otroShunt = ['ete_cia_tipo','ete_cia_dir','ete_cia_tam_max','ete_cia_tam_min','ete_cia_vel',
+                     'ete_civ_tipo','ete_civ_tam','ete_civ_vel'].some(id => sv2(id) !== '')
+                 || !!document.getElementById('ete_shunt_incluir_chk')?.checked;
+  const q = (!otroShunt && typeof eteQpQs==='function') ? eteQpQs() : null;
+  const htp = (paps!=null && paps >= 50) || dir === 'di' || dir === 'bi';
+  if (htp) return { clave:'htp',
+    txt:'Ductus con hipertensión pulmonar — evaluar operabilidad (resistencias pulmonares y test de vasorreactividad) antes de indicar cierre' };
+  /* El Qp/Qs no puede ascender a «grande no restrictivo» un ductus que el médico describió
+     como restrictivo o silente: ahí la descripción anatómica manda sobre el flujo global. */
+  if (tipo === 'no_restrictivo' || (q!=null && q > 2.2 && tipo !== 'restrictivo' && tipo !== 'silente')) return { clave:'grande',
+    txt:'Ductus grande no restrictivo — considerar cierre' };
+  if ((q!=null && q >= 1.5 && tipo !== 'silente') || (diam!=null && diam >= 3 && tipo !== 'silente')) return { clave:'moderado',
+    txt:'Ductus moderado con sobrecarga de cavidades izquierdas' };
+  /* Desde acá abajo todas las ramas NIEGAN repercusión, así que primero hay que descartar que
+     la negación venga de un número que no se pudo leer. */
+  if (fuera.length) return { clave:'no_interpretable',
+    txt:'Ductus arterioso permeable — ' + fuera.join(' y ') + ' fuera de rango: revisar unidades antes de concluir' };
+  if (tipo === 'silente') return { clave:'silente',
+    txt:'Ductus silente — sin repercusión hemodinámica; no requiere cierre' };
+  /* «Sin repercusión hemodinámica» es una afirmación, no un default: exige que se haya medido
+     algo con qué sostenerla —un tamaño en banda, un Qp/Qs, o la clasificación del médico—.
+     Con sólo la dirección del shunt cargada no se puede negar una repercusión que nadie buscó. */
+  if (tipo === 'restrictivo' || diam != null || q != null) return { clave:'pequeno',
+    txt:'Ductus pequeño restrictivo sin repercusión hemodinámica' };
+  return { clave:'incompleto',
+    txt:'Ductus arterioso permeable — datos insuficientes para estimar la repercusión hemodinámica' };
+}
+function dapSync(){
+  const txt = (id,s) => { const e=document.getElementById(id); if(e) e.textContent = s; };
+  const g = dapGmax();
+  txt('dap-gmax', g==null ? '—' : (Math.round(g*10)/10) + ' mmHg');
+  const q = (typeof eteQpQs==='function') ? eteQpQs() : null;
+  txt('dap-qpqs', q==null ? '—' : q.toFixed(2));
+  const c = dapConclusion();
+  txt('dap-concl', c ? c.txt : '—');
+}
+window.dapSync = dapSync; window.dapConclusion = dapConclusion; window.dapGmax = dapGmax;
+
+/* ══ COARTACIÓN DE AORTA ═════════════════════════════════════════════════════════════════
+   ESC 2020: gradiente pico-pico en reposo > 20 mmHg define coartación significativa e
+   indicación de intervención. La COLA DIASTÓLICA (flujo anterógrado que persiste en diástole
+   en aorta descendente) es un signo de significación aunque el gradiente quede por debajo:
+   con obstrucción severa y colaterales el gradiente SUBESTIMA, así que un gradiente bajo con
+   cola diastólica no descarta nada.
+   El gradiente que se muestra es 4·Vmax², o sea Bernoulli SIMPLIFICADO: no descuenta la
+   velocidad proximal, y en la coartación esa velocidad suele estar elevada, de modo que el
+   número sobreestima. Se deja explícito en la conclusión en vez de corregirlo en silencio:
+   la corrección exige medir la velocidad preestenótica, que no es un campo de esta sección. */
+const COA_LOC_TXT = { preductal:'preductal', yuxtaductal:'yuxtaductal', posductal:'posductal' };
+function coaGmax(){
+  const v = (typeof PF==='function') ? PF(document.getElementById('coa_vmax')?.value) : null;
+  return (v==null || !isFinite(v) || v<=0) ? null : 4*v*v;
+}
+/* coaNV() y coaBanda() replican lo de dapConclusion, por el mismo motivo: PF() devuelve NaN con
+   el campo vacío y NaN nunca es == null, así que la sección concluía sobre un formulario en
+   blanco. `fuera` es el mismo mecanismo: lo que quedó fuera de escala corta la cascada antes de
+   la rama que niega, en vez de desaparecer y dejar que la negación hable por él. */
+function coaNV(id){ const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; }
+function coaBanda(n, lo, hi, fuera, lbl){
+  if (n == null) return null;
+  if (n >= lo && n <= hi) return n;
+  if (fuera && lbl) fuera.push(lbl);
+  return null;
+}
+function coaRatio(fuera){
+  const i = coaBanda(coaNV('coa_istmo'), 2, 60, fuera, 'diámetro del istmo');
+  const d = coaBanda(coaNV('coa_ao_desc'), 2, 60, fuera, 'aorta descendente');
+  return (i!=null && d!=null && d>0) ? i/d : null;
+}
+function coaConclusion(){
+  const sv2 = id => (document.getElementById(id)?.value || '').trim();
+  const fuera = [];
+  const gRaw = coaGmax(), gmRaw = coaNV('coa_gmedio'), r = coaRatio(fuera);
+  const cola = !!document.getElementById('coa_diast_anterogrado')?.checked;
+  const sit = sv2('coa_situacion');
+  /* hayDato usa los valores CRUDOS: un número fuera de banda sigue siendo un dato que el
+     médico escribió; lo que no hace es votar en las ramas de abajo.
+     Incluye las dos aortas porque el PÁRRAFO del informe las imprime: sin ellas, un
+     seguimiento documentado sólo con Ao ascendente y descendente daba `null`, y la sección
+     quedaba con el badge «● en el informe» y cero líneas impresas. */
+  const hayDato = !!(sv2('coa_loc') || sit || coaNV('coa_istmo')!=null || coaNV('coa_ao_asc')!=null ||
+                     coaNV('coa_ao_desc')!=null || gRaw!=null || gmRaw!=null || cola);
+  if (!hayDato) return null;
+  coaBanda(coaNV('coa_ao_asc'), 2, 60, fuera, 'aorta ascendente');
+  const g = coaBanda(gRaw, 0, 150, fuera, 'gradiente máximo'), gm = coaBanda(gmRaw, 0, 100, fuera, 'gradiente medio');
+  const pre = sit === 'recoartacion' ? 'Recoartación post-intervención' : (sit === 'nativa' ? 'Coartación nativa' : 'Coartación de aorta');
+  /* La cola diastólica basta por sí sola: es el escenario en que el gradiente engaña. */
+  if ((g!=null && g > 20) || cola) return { clave:'significativa',
+    txt: pre + ' con criterios de significación' + (cola && !(g!=null && g>20) ? ' (cola diastólica con gradiente no concluyente)' : '') +
+         ' — indicación de intervención según ESC 2020' };
+  /* El gradiente MEDIO vota, pero sólo hacia «completar estudio», nunca hacia la indicación de
+     intervención: el criterio de la ESC 2020 es el pico-pico INVASIVO > 20 mmHg, y el medio por
+     Doppler no tiene umbral guía equivalente. Antes se pedía el dato, se lo mostraba y no
+     influía en ninguna rama — un campo que el médico llenaba para nada. */
+  if ((g!=null && g >= 12) || (gm!=null && gm >= 20)) return { clave:'limitrofe',
+    txt: pre + ' con gradiente limítrofe — completar con angio-RMN o angio-TC y evaluar gradiente invasivo' };
+  if (r!=null && r < 0.6) return { clave:'limitrofe',
+    txt: pre + ' con istmo hipoplásico respecto de la aorta descendente y gradiente no significativo — completar con imagen' };
+  /* Las dos ramas que quedan niegan. Antes de negar, descartar que la negación venga de un
+     número ilegible: una Vmax cargada en cm/s (300 por 3,0) da un gradiente de 360.000, se
+     descarta por banda, y el informe firmado salía diciendo «sin gradiente significativo —
+     seguimiento clínico» con «Gradiente máximo estimado 360000 mmHg» impreso dos renglones
+     más arriba. Un error de unidad invertía la conducta, y hacia el lado benigno. */
+  if (fuera.length) return { clave:'no_interpretable',
+    txt: pre + ' — ' + fuera.join(' y ') + ' fuera de rango: revisar unidades antes de concluir' };
+  /* «Sin gradiente significativo» exige que se haya MEDIDO un gradiente. Con sólo la
+     localización o las aortas cargadas no hay nada que sostenga la negación. */
+  if (g != null || gm != null) return { clave:'no_significativa',
+    txt: pre + ' sin gradiente significativo — seguimiento clínico y por imagen' };
+  return { clave:'incompleto',
+    txt: pre + ' — sin gradiente registrado; completar con Doppler de aorta descendente e imagen' };
+}
+function coaSync(){
+  const txt = (id,s) => { const e=document.getElementById(id); if(e) e.textContent = s; };
+  const g = coaGmax(), r = coaRatio();
+  txt('coa-gmax', g==null ? '—' : (Math.round(g*10)/10) + ' mmHg');
+  txt('coa-ratio', r==null ? '—' : r.toFixed(2));
+  const c = coaConclusion();
+  txt('coa-concl', c ? c.txt : '—');
+}
+window.coaSync = coaSync; window.coaConclusion = coaConclusion;
+window.coaGmax = coaGmax; window.coaRatio = coaRatio;
 function eteDDVIi(){
   const d = v('ddfvi'), asc = (typeof getBSA==='function') ? getBSA() : null;
   if(d==null || !asc || !(asc>0)) return null;
@@ -20488,7 +20854,12 @@ const ETE_INCL_LBL = {
   ete_tecnica_incluir_chk: 'Técnica del procedimiento',
   ete_morfo_incluir_chk:   'Morfología y clasificación VM',
   ete_shunt_incluir_chk:   'CIA / CIV',
-  ete_tavi_incluir_chk:    'TAVI'
+  ete_tavi_incluir_chk:    'TAVI',
+  /* Ductus y coartación viven en la tab Hemodinámica, igual que CIA/CIV, y reusan toda esta
+     maquinaria: el id del badge sale de quitarle `_incluir_chk` al del checkbox, así que
+     tienen que llamarse `ductus_badge` y `coart_badge` — no es decorativo. */
+  ductus_incluir_chk:      'Ductus arterioso permeable',
+  coart_incluir_chk:       'Coartación de aorta'
 };
 function eteInclSync(){
   document.querySelectorAll('.btn-integrar[data-ete-chk]').forEach(function(b){
@@ -20515,9 +20886,17 @@ function eteInclToggle(id){
 window.eteInclSync = eteInclSync; window.eteInclToggle = eteInclToggle;
 
 function eteShuntTaviReset(){
-  ['ete_shunt_incluir_chk','ete_tavi_incluir_chk'].forEach(function(id){
+  /* `coa_diast_anterogrado` NO es un checkbox de inclusión, es un DATO del paciente, y va en
+     esta lista porque el barrido de limpiarCampos sólo toca inputs de texto/número y selects:
+     los checkbox se desmarcan por lista explícita. Sin esta línea la cola diastólica del
+     paciente anterior sobrevivía a «Nuevo estudio», y como basta por sí sola para la rama
+     «significativa», el paciente siguiente arrancaba con «indicación de intervención según
+     ESC 2020» sin que nadie hubiera cargado un solo dato de coartación. */
+  ['ete_shunt_incluir_chk','ete_tavi_incluir_chk','ductus_incluir_chk','coart_incluir_chk',
+   'coa_diast_anterogrado'].forEach(function(id){
     const c=document.getElementById(id); if(c) c.checked=false;
   });
+  try{ dapSync(); coaSync(); }catch(e){}
   const jh=document.getElementById('ete_tavi_jet_horas'); if(jh) jh.value='';
   try{ eteEpcSet([]); eteEpcDibujar(); }catch(e){}
   try{ eteShuntTab('cia'); eteTaviTab('pre'); }catch(e){}
@@ -22820,8 +23199,11 @@ function editarInforme(id) {
     if (typeof calcContIM === 'function') calcContIM();
     /* CIA/CIV y TAVI: los espejos de solo lectura, el Qp/Qs, la severidad de RPV y el bitmap
        del canvas EPC se pintan por JS. Sin esto, un estudio reabierto mostraba los campos
-       poblados pero el diagrama en blanco, «Sin jet marcado» y el Qp/Qs en «—». */
-    ['eteShuntSync','eteTaviSync','eteEpcRefrescar'].forEach(function(fn){
+       poblados pero el diagrama en blanco, «Sin jet marcado» y el Qp/Qs en «—».
+       dapSync/coaSync por lo mismo: el gradiente, el Qp/Qs, el cociente istmo/aorta y la
+       conclusión del ductus y de la coartación son spans pintados por JS, así que un estudio
+       reabierto mostraba los campos cargados y la conclusión en «—». */
+    ['eteShuntSync','eteTaviSync','eteEpcRefrescar','dapSync','coaSync'].forEach(function(fn){
       if (typeof window[fn] === 'function') { try { window[fn](); } catch (e) {} }
     });
     // Guardar id del informe siendo editado
@@ -22872,7 +23254,7 @@ function cargarEstudioPorId(id) {
   valvSevConfirmada = false;   // estudio cargado por URL/QR: vuelve a pedir confirmación
   if (typeof renderCentroField === 'function') renderCentroField(inf.campos && inf.campos.centro_nombre);
   ['calcVI','calcAI','calcAorta','calcVD','calcVEXUS',
-   'eteShuntSync','eteTaviSync','eteEpcRefrescar'].forEach(fn => { if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} } });
+   'eteShuntSync','eteTaviSync','eteEpcRefrescar','dapSync','coaSync'].forEach(fn => { if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} } });
   window._ettEditandoId = inf.id;
   infBaseDesdeDOM();   // ver nota en editarInforme: base = lo que quedó tras los recálculos
   if (typeof imgRestaurar === 'function') imgRestaurar(inf.uuid);
@@ -27709,7 +28091,7 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
      directamente (arriba, en el barrido de campos) y era la única ruta que los movía sin
      repintar. Si la restauración falla a mitad, el médico revisa la pestaña ETE y ve los
      botones del paciente en curso sobre las casillas del estudio reimpreso. */
-  ['eteShuntSync','eteTaviSync','eteInclSync'].forEach(function(f){ if (typeof window[f] === 'function') { try { window[f](); } catch(e){} } });
+  ['eteShuntSync','eteTaviSync','eteInclSync','dapSync','coaSync'].forEach(function(f){ if (typeof window[f] === 'function') { try { window[f](); } catch(e){} } });
 
   // Fallback: estudios históricos (previos al acordeón) con texto libre en indicacion/antecedentes
   // → el PDF lo usa solo si el acordeón quedó vacío
@@ -27802,7 +28184,7 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
     if (typeof calcAo === 'function') calcAo();
     if (typeof calcSGL === 'function') calcSGL();
     if (typeof calcCardioOnco === 'function') calcCardioOnco();
-    ['eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync'].forEach(function(f){ if (typeof window[f] === 'function') { try { window[f](); } catch(e){} } });
+    ['eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync'].forEach(function(f){ if (typeof window[f] === 'function') { try { window[f](); } catch(e){} } });
     if (typeof updateHdrExtra === 'function') updateHdrExtra();
    } catch (e) {
     /* La restauración corre en otra tarea: su excepción NO la ve el try/catch del wrapper,
@@ -29766,8 +30148,25 @@ function _labExcelRow(inf) {
        recuperaba las mediciones pero NO el permiso para imprimirlas: el estudio reimportado
        tenía la prótesis cargada y el informe firmado no la mencionaba, lo que se lee como un
        olvido del médico y no como una pérdida de la planilla. */
+    /* Ductus y coartación. Se emiten las ETIQUETAS legibles, igual que CIA/CIV, y el
+       vocabulario del importador las devuelve al token del <select>. */
+    'Ductus tipo': ({silente:'Silente',restrictivo:'Restrictivo',no_restrictivo:'No restrictivo'}[c.dap_tipo] || ''),
+    'Ductus Ø mínimo (mm)': rnd(num('dap_diam'),1),
+    'Ductus dirección shunt': ({id:'Izquierda a derecha',di:'Derecha a izquierda',bi:'Bidireccional'}[c.dap_dir] || ''),
+    'Ductus Vmax (m/s)': rnd(num('dap_vmax'),2),
+    'Ductus PAPs (mmHg)': rnd(num('dap_paps'),0),
+    'Coartación localización': ({preductal:'Preductal',yuxtaductal:'Yuxtaductal',posductal:'Posductal'}[c.coa_loc] || ''),
+    'Coartación situación': ({nativa:'Nativa',recoartacion:'Recoartación'}[c.coa_situacion] || ''),
+    'Coartación istmo (mm)': rnd(num('coa_istmo'),1),
+    'Coartación Ao ascendente (mm)': rnd(num('coa_ao_asc'),1),
+    'Coartación Ao descendente (mm)': rnd(num('coa_ao_desc'),1),
+    'Coartación Vmax (m/s)': rnd(num('coa_vmax'),2),
+    'Coartación G. medio (mmHg)': rnd(num('coa_gmedio'),0),
+    'Coartación cola diastólica': c['coa_diast_anterogrado__chk'] === '1' ? 1 : 0,
     'Incluir CIA/CIV en informe': c['ete_shunt_incluir_chk__chk'] === '1' ? 1 : 0,
     'Incluir TAVI en informe':    c['ete_tavi_incluir_chk__chk']  === '1' ? 1 : 0,
+    'Incluir ductus en informe':     c['ductus_incluir_chk__chk'] === '1' ? 1 : 0,
+    'Incluir coartación en informe': c['coart_incluir_chk__chk']  === '1' ? 1 : 0,
     'Informe (texto completo)': c.informe_texto || '', 'EN SUMA (texto completo)': c.en_suma || '',
   };
 }
@@ -30118,9 +30517,32 @@ const LAB_XLS_MAP = [
   ['TAVI RPV PHT (ms)',      'ete_tavi_pht',       'num'],
   ['TAVI jet (horas)',       'ete_tavi_jet_horas', 'horas'],
 
+  /* 15b · Ductus y coartación. Van en el mapa por la misma razón que CIA/CIV: sin columnas,
+     la deducción de «Incluir … en informe» de más abajo —que mira si la fila trae algún
+     `dap_`/`coa_`— no puede dispararse NUNCA, porque el importador matchea por nombre de
+     columna y ninguna produce esas claves. Era código que se leía como vivo y no lo estaba. */
+  ['Ductus tipo',                'dap_tipo',      'vocab'],
+  ['Ductus Ø mínimo (mm)',       'dap_diam',      'num'],
+  ['Ductus dirección shunt',     'dap_dir',       'vocab'],
+  ['Ductus Vmax (m/s)',          'dap_vmax',      'num'],
+  ['Ductus PAPs (mmHg)',         'dap_paps',      'num'],
+  ['Coartación localización',    'coa_loc',       'vocab'],
+  ['Coartación situación',       'coa_situacion', 'vocab'],
+  ['Coartación istmo (mm)',      'coa_istmo',     'num'],
+  ['Coartación Ao ascendente (mm)','coa_ao_asc',  'num'],
+  ['Coartación Ao descendente (mm)','coa_ao_desc','num'],
+  ['Coartación Vmax (m/s)',      'coa_vmax',      'num'],
+  ['Coartación G. medio (mmHg)', 'coa_gmedio',    'num'],
+  /* La cola diastólica es un DATO del paciente, no una casilla de inclusión, y alcanza por sí
+     sola para la rama «indicación de intervención»: si no viaja en la planilla, el estudio
+     reimportado baja solo a «sin gradiente significativo — seguimiento clínico». */
+  ['Coartación cola diastólica', 'coa_diast_anterogrado__chk', 'chk'],
+
   // 16 · Inclusión en el informe
   ['Incluir CIA/CIV en informe', 'ete_shunt_incluir_chk__chk', 'chk'],
   ['Incluir TAVI en informe',    'ete_tavi_incluir_chk__chk',  'chk'],
+  ['Incluir ductus en informe',      'ductus_incluir_chk__chk', 'chk'],
+  ['Incluir coartación en informe',  'coart_incluir_chk__chk',  'chk'],
 
   // 17 · Texto libre
   ['Informe (texto completo)','informe_texto', 'txt'],
@@ -30132,9 +30554,14 @@ const LAB_XLS_MAP = [
    masa VI indexada, la geometría del VI, el VDFVI indexado y el LAVI. Un dato mal tipeado
    reclasifica la geometría ventricular de toda una cohorte importada, sin un solo mensaje.
    Existía DCM_RANGO con la misma idea, pero sólo en el camino DICOM. */
-/* SIN VALIDACIÓN DE RANGO (verificado 2026-09-08): los tamaños de CIA/CIV
-   (ete_cia_tam_max, ete_cia_tam_min, ete_civ_tam) y los diámetros y VTI de los tractos de
-   salida (tsvd_diametro, vti_tsvd, diam_tsvi, itv_tsvi) NO figuran ni acá ni en DCM_RANGO.
+/* SIN VALIDACIÓN DE RANGO (verificado 2026-09-10): los tamaños de CIA/CIV
+   (ete_cia_tam_max, ete_cia_tam_min, ete_civ_tam), los diámetros y VTI de los tractos de
+   salida (tsvd_diametro, vti_tsvd, diam_tsvi, itv_tsvi) y los del ductus y la coartación
+   (dap_diam, dap_vmax, dap_paps, coa_istmo, coa_ao_asc, coa_ao_desc, coa_vmax, coa_gmedio)
+   NO figuran ni acá ni en DCM_RANGO.
+   Lo que sí tienen ductus y coartación es una banda de plausibilidad DENTRO de la app
+   —`banda()` en dapConclusion y `coaBanda()`—: un número fuera de escala entra igual y se
+   muestra, pero no vota en la conclusión. Eso protege el diagnóstico, no el dato.
    Entran por Excel sin ninguna ventana de plausibilidad: un TSVI de 210 mm escrito por 21,0
    se importa sin chistar, y de ahí sale el Qp/Qs del shunt.
    No se inventaron rangos: poner una ventana adulta sobre campos de cardiopatía congénita
@@ -30279,7 +30706,26 @@ const LAB_XLS_VOCAB = {
                       alta:'alta', 'implante alto':'alta',
                       baja:'baja', 'implante bajo':'baja',
                       muy_baja:'muy_baja', 'muy baja':'muy_baja', 'muy profunda':'muy_baja' },
+  /* Ductus y coartación. La dirección del shunt del ductus usa el MISMO vocabulario que la
+     CIA —son los mismos tres tokens id/di/bi y el mismo <select>—, así que se copia en vez de
+     reescribirse: dos listas paralelas se desincronizan en el primer alias que se agregue a
+     una sola. Las etiquetas largas del <option> («Restrictivo (pequeño)») entran igual
+     porque _labXlsVocab reintenta con el texto anterior al paréntesis. */
+  /* Las claves van SIN tilde y sin «ñ» a propósito: _labXlsNorm normaliza a NFD y borra los
+     diacríticos, así que una clave 'pequeño' o 'recoartación' no matchea nunca —sería otra
+     línea que se lee como viva y no lo está—. */
+  dap_tipo: { silente:'silente', 'ductus silente':'silente',
+              restrictivo:'restrictivo', pequeno:'restrictivo',
+              no_restrictivo:'no_restrictivo', 'no restrictivo':'no_restrictivo', grande:'no_restrictivo' },
+  coa_loc: { preductal:'preductal', 'pre-ductal':'preductal',
+             yuxtaductal:'yuxtaductal', 'yuxta-ductal':'yuxtaductal',
+             posductal:'posductal', 'post-ductal':'posductal', postductal:'posductal' },
+  coa_situacion: { nativa:'nativa', 'coartacion nativa':'nativa', nativo:'nativa',
+                   recoartacion:'recoartacion', 'recoartacion post-intervencion':'recoartacion',
+                   'post-intervencion':'recoartacion' },
 };
+/* dap_dir es literalmente el vocabulario de ete_cia_dir: se referencia, no se duplica. */
+LAB_XLS_VOCAB.dap_dir = LAB_XLS_VOCAB.ete_cia_dir;
 LAB_XLS_VOCAB.im_grado = LAB_XLS_VOCAB.ia_grado = LAB_XLS_VOCAB.it_grado = LAB_XLS_VOCAB._grado04;
 // Etiquetas para la fila de ejemplo y la ayuda: se derivan del vocabulario, no se escriben
 // a mano, para que un ejemplo no pueda enseñar un valor que el importador rechaza.
@@ -30297,6 +30743,10 @@ const LAB_XLS_OPCIONES = {
   ete_civ_tipo:'Perimembranosa · Muscular · Infundibular · Inlet',
   ete_tavi_pro_tipo:'Balón expandible · Auto expandible',
   ete_tavi_pro_pos:'Correcta · Alta · Baja · Muy baja',
+  dap_tipo:'Silente · Restrictivo · No restrictivo',
+  dap_dir:'Izquierda a derecha · Derecha a izquierda · Bidireccional',
+  coa_loc:'Preductal · Yuxtaductal · Posductal',
+  coa_situacion:'Nativa · Recoartación',
 };
 LAB_XLS_OPCIONES.ia_grado = LAB_XLS_OPCIONES.it_grado = LAB_XLS_OPCIONES.im_grado;
 // Selects de texto libre acotado: se acepta cualquier opción de la lista, tal cual.
@@ -30671,9 +31121,17 @@ function labImportarXLSX(file) {
          fila lo quiere en el informe. Es una deducción, no un dato, así que sólo actúa cuando
          la columna está AUSENTE; un 0 explícito manda. */
       [['ete_shunt_incluir_chk__chk', /^(ete_cia_|ete_civ_|tsvd_diametro|vti_tsvd)/],
-       ['ete_tavi_incluir_chk__chk',  /^ete_tavi_/]].forEach(([flag, rx]) => {
+       ['ete_tavi_incluir_chk__chk',  /^ete_tavi_/],
+       ['ductus_incluir_chk__chk',    /^dap_/],
+       ['coart_incluir_chk__chk',     /^coa_/]].forEach(([flag, rx]) => {
         if (inf.campos[flag] !== undefined) return;
-        if (Object.keys(inf.campos).some(k => rx.test(k))) inf.campos[flag] = '1';
+        /* Un `__chk` sólo cuenta como dato cuando vale '1'. Sin esta salvedad, la columna
+           «Coartación cola diastólica» en 0 —o sea, el médico diciendo que NO la hay— hacía
+           deducir que la sección va al informe: una respuesta negativa activando la sección
+           que niega. Los campos de valor siguen contando por su sola presencia, porque el
+           importador ni siquiera crea la clave cuando la celda viene vacía. */
+        if (Object.keys(inf.campos).some(k => rx.test(k) && !(/__chk$/.test(k) && inf.campos[k] !== '1')))
+          inf.campos[flag] = '1';
       });
       /* Severidad por columnas 0/1, sólo si la columna de TEXTO no dijo nada: es la única
          que distingue moderada-severa, así que gana ella. Tres binarias en 1 a la vez es
@@ -33450,6 +33908,11 @@ function labHemoRender(infs, n) {
   const ciaArr   = infs.filter(i => _labCampoRaw(i, 'ete_cia_tipo'));
   const civArr   = infs.filter(i => _labCampoRaw(i, 'ete_civ_tipo'));
   const shuntArr = infs.filter(i => _labCampoRaw(i, 'ete_cia_tipo') || _labCampoRaw(i, 'ete_civ_tipo'));
+  /* Ductus: `dap_tipo` es el campo que describe el hallazgo. Se suma `dap_diam` porque un
+     ductus medido sin clasificar sigue siendo un ductus visto, y si sólo mirásemos el tipo el
+     laboratorio contaría de menos sin decirlo. Mismo criterio para la coartación. */
+  const dapArr = infs.filter(i => _labCampoRaw(i, 'dap_tipo') || _labCampoRaw(i, 'dap_diam'));
+  const coaArr = infs.filter(i => _labCampoRaw(i, 'coa_loc')  || _labCampoRaw(i, 'coa_istmo'));
 
   /* El Qp/Qs se RECALCULA desde los cuatro campos guardados y no se lee del span: el span es
      del estudio que esté cargado en pantalla, así que leerlo daría el mismo número para los 60
@@ -33475,17 +33938,30 @@ function labHemoRender(infs, n) {
   };
 
   // ── BLOQUE 1 · CIA / CIV ──
-  if (!shuntArr.length) {
-    empty('lab-shunt-stats', 'CIA / CIV'); empty('lab-shunt-cia-bars', 'CIA');
+  /* El panel se muestra si hay CUALQUIERA de los cuatro defectos, no sólo CIA/CIV: con la
+     condición vieja, una cohorte con ductus y sin CIA dejaba el bloque en «sin datos» y los
+     estudios con ductus no aparecían en ninguna parte del laboratorio. Las barras de CIA y el
+     pie de CIV siguen gateados por lo suyo, que es lo que de verdad las alimenta. */
+  if (!shuntArr.length && !dapArr.length && !coaArr.length) {
+    empty('lab-shunt-stats', 'CIA / CIV / ductus / coartación'); empty('lab-shunt-cia-bars', 'CIA');
     empty('lab-shunt-civ-pie', 'CIV');
   } else {
+    if (!shuntArr.length) { empty('lab-shunt-cia-bars', 'CIA'); empty('lab-shunt-civ-pie', 'CIV'); }
     setHtml('lab-shunt-stats',
       stat('Estudios con CIA o CIV', shuntArr.length + ' (' + pctS(shuntArr.length) + ')') +
       stat('Con CIA', ciaArr.length + ' (' + pctS(ciaArr.length) + ')') +
       stat('Con CIV', civArr.length + ' (' + pctS(civArr.length) + ')') +
       /* La unión no es la suma: un estudio puede tener las dos. Se informa cuántos, porque si
          no el lector suma 8+5 y no le da 12, y no tiene forma de saber por qué. */
-      stat('Con ambas', (ciaArr.length + civArr.length - shuntArr.length) + ''));
+      stat('Con ambas', (ciaArr.length + civArr.length - shuntArr.length) + '') +
+      /* Ductus y coartación se detectan por su campo DESCRIPTIVO —tipo de ductus / localización
+         de la coartación—, igual que CIA y CIV por `ete_cia_tipo`. NO por el checkbox de
+         inclusión: éste cuenta lo que el laboratorio VIO, y un estudio puede describir un
+         ductus sin integrarlo al informe. Van fuera del conteo de «CIA o CIV» a propósito:
+         `shuntArr` es el denominador de las barras de CIA/CIV y del Qp/Qs de más abajo, y
+         meterlos ahí desalinearía todos esos porcentajes. */
+      stat('Con ductus arterioso', dapArr.length + ' (' + pctS(dapArr.length) + ')') +
+      stat('Con coartación de aorta', coaArr.length + ' (' + pctS(coaArr.length) + ')'));
     const CIA_L = { secundum:'Ostium secundum', primum:'Ostium primum', sv_vcs:'Seno venoso VCS',
                     sv_vci:'Seno venoso VCI', seno_coronario:'Seno coronario' };
     const CIV_L = { perimembranosa:'Perimembranosa', muscular:'Muscular',
