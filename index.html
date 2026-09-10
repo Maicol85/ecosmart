@@ -17178,18 +17178,32 @@ window.mostrarCardSeveridadValvular = mostrarCardSeveridadValvular;
 
 function generarPDF() {
   if (document.getElementById('pdf-review-overlay')) return;
+  /* Por `_pdfAjustarA4` y no directo por `generarPDFReal`: es el que mide y decide si el
+     informe entra en una hoja. `pdfDeInformeGuardado` entra por el MISMO camino, para que
+     reimprimir un guardado dé el documento que se firmó y no uno más largo. */
   if (valvSevConfirmada) {          // ya se confirmó en este estudio (por Guardar o por un PDF previo)
-    generarPDFReal();
+    _pdfAjustarA4();
     return;
   }
   mostrarCardSeveridadValvular(() => {
     valvSevConfirmada = true;
-    generarPDFReal();
+    _pdfAjustarA4();
   });
 }
 window.generarPDF = generarPDF;
 
-function generarPDFReal() {
+/* `_aj` lo pasa SÓLO `_pdfAjustarA4` (más abajo), que es por donde entran hoy TODOS los
+   llamadores: el botón ⬇️ PDF y también `pdfDeInformeGuardado`. Sin argumento la función
+   sigue dando el PDF de siempre, pero ese camino ya no lo usa nadie.
+     _aj.sp    factor de AIRE — interlínea del texto corrido y separación entre bloques.
+     _aj.fs    factor del CUERPO de letra, sobre PDF_FS. Nunca sobre PDF_FS_FIJO (En suma y
+               firma) ni sobre _FSP (copyright, id de cierre y disclaimer médico-legal).
+     _aj.medir true = corta apenas sabe en cuántas hojas cayó el cuerpo: no dibuja las hojas
+               de ETE/ETT avanzado ni las de imágenes, no arma el pie y no guarda el archivo.
+               Devuelve {pagCuerpo, guardado:false}. Los toast de advertencia del cuerpo SÍ
+               salen en esta pasada —son los mismos que en una generación normal—; como
+               toast() reescribe un único elemento, el del final gana igual. */
+function generarPDFReal(_aj) {
   if (typeof window.jspdf === 'undefined') {
     alert('La biblioteca PDF está cargando, intentá en un momento.');
     return;
@@ -17226,15 +17240,52 @@ function generarPDFReal() {
      1,32 sobre un informe firmado.
      Los interlineados de las grillas se subieron en la misma proporción; sin eso las
      líneas dentro de una celda quedaban casi tocándose. */
-  const _FS = PDF_FS;
+  /* Factores del ajuste automático A4. Los dos valen 1 en una generación normal, así que
+     sin ajuste el PDF sale byte a byte como antes. */
+  /* Se exige el marcador `__a4` y no basta con "es un objeto". Hoy todos los llamadores
+     entran por `_pdfAjustarA4`, que siempre arma el objeto de ajuste; pero el call site de
+     `pdfDeInformeGuardado` —`(typeof accion === 'function' ? accion : ...)(inf)`— reparte
+     el MISMO argumento entre dos contratos, y a `accion` le toca el informe entero, que
+     también es un objeto. El día que alguien vuelva a apuntar ese ternario al generador, el
+     centinela es lo que evita que un informe con un campo `sp` o `medir` salga comprimido, o
+     peor, en modo medición: sin archivo y sin un solo mensaje de error. */
+  const _AJ  = (_aj && _aj.__a4 === true) ? _aj : {};
+  const _SPA = (typeof _AJ.sp === 'number' && _AJ.sp > 0 && _AJ.sp <= 1) ? _AJ.sp : 1;
+  const _FSA = (typeof _AJ.fs === 'number' && _AJ.fs > 0 && _AJ.fs <= 1) ? _AJ.fs : 1;
+  /* Comprime un avance vertical en mm. Se aplica al AIRE (interlínea y separación entre
+     bloques), no al cuerpo de letra: son dos palancas distintas y la primera se agota
+     antes de tocar la segunda.
+     Se llama `_aire` y no `_e` porque esta función tiene OCHO `catch (_e)` —17479, 17949,
+     17970, 18415, 18491, 19067, 19244, 19438—, uno de ellos a cinco líneas de un avance
+     escalado. Ninguno lo usaba, así que no había defecto todavía; pero el primer
+     `y += _e(n)` escrito dentro de uno de esos bloques daba «_e is not a function» recién
+     al generar el PDF, que es el peor momento posible para enterarse. */
+  const _aire = v => v * _SPA;
+  const _FS = PDF_FS * _FSA;
   function fb(sz){ doc.setFont('helvetica','bold');       doc.setFontSize((sz||7)*_FS);   }
   function fn(sz){ doc.setFont('helvetica','normal');     doc.setFontSize((sz||7)*_FS);   }
   function fi(sz){ doc.setFont('helvetica','bolditalic'); doc.setFontSize((sz||8)*_FS);   }
   /* Los dos de abajo escalan con PDF_FS_FIJO en vez de _FS: son el "En suma" y las filas
-     de la firma, que quedan al tamaño de antes aunque el cuerpo del informe se achique. */
+     de la firma, que quedan al tamaño de antes aunque el cuerpo del informe se achique.
+     _FSA NO entra acá a propósito: el ajuste automático puede comprimir el AIRE del "En
+     suma" (su interlínea sale de `_IL`), pero no le achica la letra ni a la conclusión ni
+     a la firma. Es la decisión escrita en PDF_FS_FIJO, y el ajuste no la revisa solo. */
   const _FSF = PDF_FS_FIJO;
+  /* Interlínea del texto corrido — técnica del ETE, informe narrativo y "En suma". Una
+     sola constante porque el informe pinta un rect de fondo POR LÍNEA que tiene que medir
+     exactamente lo mismo que el avance (ver el comentario del rect, más abajo): con dos
+     valores sueltos, comprimir uno dejaba las bandas de color pisadas o separadas. */
+  const _IL = _aire(5.5);
   function fnf(sz){ doc.setFont('helvetica','normal');     doc.setFontSize((sz||7)*_FSF); }
   function fif(sz){ doc.setFont('helvetica','bolditalic'); doc.setFontSize((sz||8)*_FSF); }
+  /* Pie de página: copyright, id de cierre y DISCLAIMER médico-legal. Escala con PDF_FS pero
+     NO con `_FSA`. Son los textos más chicos del documento —5,5 pt— y el ajuste automático
+     los dejaba en 5,50 pt exactos: 6,5% menos sobre lo que ya está en el límite de lo legible
+     impreso, en todas las páginas. Y uno de los tres es la cláusula que valida
+     clinical-disclaimer-guard, que no se achica para ganar un renglón en otra parte de la
+     hoja. Achicar el pie tampoco gana nada: va a `y` fijo (292 y 295), no empuja al cuerpo. */
+  const _FSP = PDF_FS;
+  function fnp(sz){ doc.setFont('helvetica','normal');     doc.setFontSize((sz||7)*_FSP); }
   function tc(r,g,b){ doc.setTextColor(r,g,b); }
   function fc(r,g,b){ doc.setFillColor(r,g,b); }
   function dc(r,g,b){ doc.setDrawColor(r,g,b); }
@@ -18704,10 +18755,10 @@ function generarPDFReal() {
     const _etSan = (typeof amiloSanPDF === 'function')
       ? _eteTecnica.split('\n').map(amiloSanPDF).join('\n') : _eteTecnica;
     drawBar('TECNICA Y SEDACION');
-    y += 2;
+    y += _aire(2);
     fn(8); tc(13,13,13);
-    doc.splitTextToSize(_etSan, pgW-4).forEach(l => { checkPage(6); doc.text(l, mL+2, y); y += 5.5; });
-    y += 3;
+    doc.splitTextToSize(_etSan, pgW-4).forEach(l => { checkPage(_IL+0.5); doc.text(l, mL+2, y); y += _IL; });
+    y += _aire(3);
   }
 
   // ════════════════════════════════════════════════════════════
@@ -18716,15 +18767,22 @@ function generarPDFReal() {
   const informeTxt = sv('informe_texto');
   if (informeTxt) {
     drawBar(_TBL.tituloInforme);
-    y += 2;
+    y += _aire(2);
     /* Serif si la plantilla lo pide. Se fija ANTES del splitTextToSize: Times y Helvetica
        tienen métricas distintas, así que medir con una y estampar con la otra desbordaría el
        ancho de columna. Es la misma disciplina que ya rige en el bloque de firma. */
     if (_TBL.infSerif) { doc.setFont('times','normal'); doc.setFontSize(8 * _FS); } else fn(8);
     { const ic = _C(_TBL.infCol); tc(ic[0],ic[1],ic[2]); }
     const iL = doc.splitTextToSize(_sanML(informeTxt), pgW-4);
+    /* Cuánto hay que subir desde la línea base para que el rect apoye EXACTO en el borde
+       inferior de la barra. Se DERIVA de los dos avances que llevaron `y` hasta acá —la cola
+       de drawBar (1,2, que no escala) y el `y += _aire(2)` (que sí)— en vez de ir escrito como
+       3,2. Con el 3,2 fijo, comprimir el aire dejaba el fondo 0,30 mm ARRIBA de la barra y le
+       comía el 6% del alto: exactamente la regresión que el comentario de abajo dice haber
+       cerrado, reabierta porque uno de los dos sumandos empezó a escalar y el otro no. */
+    const _infTop = 1.2 + _aire(2);
     iL.forEach(l=>{
-      checkPage(6);
+      checkPage(_IL+0.5);
       /* El fondo y el borde se pintan POR LÍNEA, no como un rectángulo único calculado antes.
          El informe narrativo puede saltar de página a mitad de bloque —el checkPage está DENTRO
          de este forEach—, así que un solo rect de alto total quedaría dibujado en la hoja donde
@@ -18737,11 +18795,11 @@ function generarPDFReal() {
          banda del título perdía el 13,7% de su alto en una franja del color del fondo a todo
          el ancho. Con 3,2 el primer rect apoya exacto en barBottom, los siguientes quedan
          contiguos (5,5 de alto contra 5,5 de interlínea) y no se mueve ni un texto. */
-      { const iff = _C(_TBL.infFondo); if (iff) { fc(iff[0],iff[1],iff[2]); doc.rect(mL, y - 3.2, pgW, 5.5, 'F'); } }
-      { const ib = _C(_TBL.infBorde); if (ib) { fc(ib[0],ib[1],ib[2]); doc.rect(mL, y - 3.2, 0.7, 5.5, 'F'); } }
+      { const iff = _C(_TBL.infFondo); if (iff) { fc(iff[0],iff[1],iff[2]); doc.rect(mL, y - _infTop, pgW, _IL, 'F'); } }
+      { const ib = _C(_TBL.infBorde); if (ib) { fc(ib[0],ib[1],ib[2]); doc.rect(mL, y - _infTop, 0.7, _IL, 'F'); } }
       // El texto se re-fija tras los rects: fc() no toca la fuente, pero sí conviene el color.
       { const ic2 = _C(_TBL.infCol); tc(ic2[0],ic2[1],ic2[2]); }
-      doc.text(l, _TBL.infBorde ? mL+3.5 : mL+2, y); y+=5.5; });
+      doc.text(l, _TBL.infBorde ? mL+3.5 : mL+2, y); y+=_IL; });
     /* Sin cola: la barra del EN SUMA ya trae su propio aire (1,2 mm). Antes se sumaban 3 mm
        de acá + 1,5 de la barra = 4,5 mm de blanco entre el final del informe y el título. */
   }
@@ -18752,7 +18810,7 @@ function generarPDFReal() {
   const sumaTxt = sv('en_suma');
   if (sumaTxt) {
     drawBar(_TBL.tituloSuma);
-    y += 2;
+    y += _aire(2);
     /* fif y no fi: la conclusión se queda en el cuerpo de letra anterior (8 · 1,15).
        La barra "EN SUMA:" sí acompaña al resto, para que todos los encabezados de
        sección midan igual. */
@@ -18760,8 +18818,8 @@ function generarPDFReal() {
     const _sc = _C(_TBL.sumaCol);
     tc(_sc[0],_sc[1],_sc[2]);
     const sL = doc.splitTextToSize(_sanML(sumaTxt), pgW-4);
-    sL.forEach(l=>{ checkPage(6); doc.text(l,mL+2,y); y+=5.5; });
-    y += 3;
+    sL.forEach(l=>{ checkPage(_IL+0.5); doc.text(l,mL+2,y); y+=_IL; });
+    y += _aire(3);
   }
 
   // ════════════════════════════════════════════════════════════
@@ -18803,7 +18861,7 @@ function generarPDFReal() {
         ['Engrosamiento subvalvar', _wsub + '/4'],
         ['Total', (_wmov + _weng + _wcal + _wsub) + '/16']
       ];
-      checkPage(8 + _wrows.length * 5); drawBar('SCORE DE WILKINS'); y += 3;
+      checkPage(8 + _wrows.length * 5); drawBar('SCORE DE WILKINS'); y += _aire(3);
       /* maxWidth NO trunca: parte el texto y dibuja las líneas hacia abajo, pero el
          llamador avanzaba y += 5 como si hubiera sido una sola. Con la fuente escalada
          más cadenas cruzan el umbral y la segunda línea se pisa con la fila siguiente.
@@ -18812,7 +18870,7 @@ function generarPDFReal() {
         const _ln = doc.splitTextToSize(String(r[1]), pgW - _lw - 6);
         _ln.forEach((l, i) => { if (i) checkPage(5); doc.text(l, i ? mL + 2 : mL + 2 + _lw, y); if (i < _ln.length - 1) y += 4.2; });
         y += 5; });
-      y += 2;
+      y += _aire(2);
     }
   }
   if (localStorage.getItem('gtp_incluir_pdf') === '1') {
@@ -18826,7 +18884,7 @@ function generarPDFReal() {
          más de lo pedido y el checkPage del disclaimer metía un salto de página, así que la
          salvedad aterrizaba sola arriba de la hoja siguiente, separada de los badges
          «componente precapilar» y «HTP vascular» que califica. */
-      checkPage(9 + _grows.length * 5 + (_hayPCP ? 10 : 0)); drawBar('GRADIENTE TRANSPULMONAR (GTP) / RVP'); y += 3;
+      checkPage(9 + _grows.length * 5 + (_hayPCP ? 10 : 0)); drawBar('GRADIENTE TRANSPULMONAR (GTP) / RVP'); y += _aire(3);
       _grows.forEach(r => { checkPage(6); fb(7.5); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(r[0] + ': ', mL + 2, y); const _lw = doc.getTextWidth(r[0] + ': '); fn(8); tc(30,30,30);
         const _ln = doc.splitTextToSize(String(r[1]), pgW - _lw - 6);
         _ln.forEach((l, i) => { if (i) checkPage(5); doc.text(l, i ? mL + 2 : mL + 2 + _lw, y); if (i < _ln.length - 1) y += 4.2; });
@@ -18844,7 +18902,7 @@ function generarPDFReal() {
           + ' La clasificación pre / poscapilar de la hipertensión pulmonar es hemodinámica y requiere cateterismo cardíaco derecho (ESC/ERS 2022).', pgW - 4)
           .forEach(l => { checkPage(4); doc.text(l, mL + 2, y); y += 3.6; });
       }
-      y += 2;
+      y += _aire(2);
     }
   }
   /* ECOS-10 — SCORE DE DUKE.
@@ -18861,10 +18919,10 @@ function generarPDFReal() {
        _cxVacio no lo filtra, y saldría un número bajo la barra «SCORE DE DUKE» sin la
        palabra «parcial» que lo califica en pantalla. */
     if (!_cxVacio(_dk) && !/parcial/i.test(_dk)) {
-      checkPage(14); drawBar('SCORE DE DUKE (treadmill: min - 5xST - 4xangina)'); y += 3;
+      checkPage(14); drawBar('SCORE DE DUKE (treadmill: min - 5xST - 4xangina)'); y += _aire(3);
       fn(8); tc(30,30,30);
       doc.splitTextToSize(_dk, pgW - 4).forEach(l => { checkPage(6); doc.text(l, mL + 2, y); y += 5; });
-      y += 2;
+      y += _aire(2);
     }
   }
 
@@ -18911,7 +18969,7 @@ function generarPDFReal() {
         }
         y += 5 + (_maxL - 1) * 4.2;
       }
-      y += 1;
+      y += _aire(1);
     };
     const _eeDimJ = (data, maxW, maxH) => { const p = doc.getImageProperties(data); const r = p.height / p.width; let w = maxW, h = w * r; if (h > maxH) { h = maxH; w = h / r; } return { w, h }; };
     const _eeImgGrid = list => {
@@ -18929,7 +18987,7 @@ function generarPDFReal() {
 
     checkPage(20);
     drawBar('ECO ESTRÉS');
-    y += 3;
+    y += _aire(3);
 
     // (a) Parámetros del estrés
     _eeSub('Parámetros del estrés');
@@ -18972,7 +19030,7 @@ function generarPDFReal() {
         });
         const _atrC = document.getElementById('ee-atropina-chk');
         if (_atrC && _atrC.checked) { checkPage(5); fn(7.5); tc(30,30,30); doc.text('Atropina administrada: sí ' + (_eev('ee-atropina-dosis') || ''), mL + 2, y); y += 5; }
-        y += 1;
+        y += _aire(1);
       }
     }
 
@@ -19080,7 +19138,7 @@ function generarPDFReal() {
     if (_cols.length) {
       checkPage(88);
       drawBar(_cols.length === 2 ? 'CONTRACTILIDAD Y STRAIN (SGL)' : _cols[0].title.toUpperCase());
-      y += 3;
+      y += _aire(3);
       const _n = _cols.length, _gap = 10;
       const _colW = (pgW - (_n - 1) * _gap) / _n;
       const _sz = Math.min(_colW, 54);              // bull's eye cuadrado, centrado en su columna
@@ -19200,7 +19258,7 @@ function generarPDFReal() {
     const _epcLado = 40;                            // el reloj es 1:1
     checkPage(_BAR_H + 4 + _epcLado + 10);
     drawBar('JET PARAVALVULAR POST-TAVI - LOCALIZACION HORARIA');
-    y += 3;
+    y += _aire(3);
     doc.addImage(_epcImg, 'PNG', mL + (pgW - _epcLado) / 2, y, _epcLado, _epcLado);
     y += _epcLado + 4;
     fn(7); tc(90,90,90);
@@ -19210,14 +19268,14 @@ function generarPDFReal() {
     const _epcTxt = _sanML('Horas comprometidas: ' + _epcHoras.join(', ') +
       '  ·  Referencia: 12 h VD (anterior), 3 h AP, 6 h AI (posterior), 9 h AD.');
     doc.text(_epcTxt, mL + (pgW - doc.getTextWidth(_epcTxt)) / 2, y);
-    y += 6;
+    y += _aire(6);
   }
 
   if (localStorage.getItem('mitral_qx_incluir_pdf') === '1' && typeof eteQxDataURL === 'function') {
     const _mData = eteQxDataURL();
     checkPage(92);
     drawBar('VÁLVULA MITRAL — VISTA QUIRÚRGICA');
-    y += 3;
+    y += _aire(3);
     const _mW = Math.min(pgW, 120);
     const _mH = _mW * (290 / 520);
     const _mX = mL + (pgW - _mW) / 2;
@@ -19248,6 +19306,26 @@ function generarPDFReal() {
     y = _mly + 4;
   }
 
+  /* Hojas que ocupó el CUERPO del informe. Se cuenta acá, ANTES de las hojas que se agregan
+     a propósito —ETT avanzado, ETE e imágenes adjuntas—, porque es el único número que el
+     ajuste automático puede corregir: esas otras son páginas queridas, no desborde, y
+     contándolas el aviso saltaría en todo estudio con una imagen adjunta.
+     ALCANCE, para no leer de más: esto excluye las hojas ANEXAS, no las figuras que van
+     DENTRO del cuerpo. El bull's eye reserva 88 mm, la vista quirúrgica mitral 92 y el jet
+     post-TAVI ~59: cualquiera de las tres fuerza el salto por sí sola, queda contada acá y
+     no la mueve ninguna de las dos palancas. Ese estudio recibe el aviso aunque su segunda
+     hoja sea tan "de diseño" como la de las imágenes. Cerrarlo pide contar por bloque. */
+  const _pagCuerpo = doc.internal.getNumberOfPages();
+
+  /* Modo medición: sale ACÁ, en cuanto `_pagCuerpo` quedó fijo. Todo lo que sigue —hojas de
+     ETT avanzado y ETE, páginas de imágenes con un addImage por base64, y el pie de las N
+     páginas— ya no puede cambiarlo, así que dibujarlo sería tirar el trabajo. Con hasta
+     cuatro mediciones descartadas, un estudio con ocho imágenes embebía ocho base64 en cinco
+     documentos jsPDF seguidos, sincrónicamente y sin spinner: la app se congelaba.
+     `guardado:false` distingue esta salida de la que sí bajó el archivo — las dos devolvían
+     el mismo objeto y ningún llamador podía notar la diferencia. */
+  if (_AJ.medir) return { pagCuerpo: _pagCuerpo, guardado: false };
+
   // ════════════════════════════════════════════════════════════
   // ETT AVANZADO (Amiloidosis) — hoja aparte, tras el EN SUMA y antes de las imágenes
   // ════════════════════════════════════════════════════════════
@@ -19264,7 +19342,7 @@ function generarPDFReal() {
     /* titPagina también acá: la hoja del ETE ya lo pasaba y por eso sus continuaciones
        llevan banner; ésta no, así que una segunda hoja de ETT avanzado salía sin nada que
        la identificara. */
-    y = amiloDibujarSecciones(doc, _amEtt, { mL, pgW, tema: TEMA, yIni: 20, yFin: _yMax,
+    y = amiloDibujarSecciones(doc, _amEtt, { mL, pgW, tema: TEMA, yIni: 20, yFin: _yMax, fsa: _FSA,
       titPagina: 'ECOCARDIOGRAMA TRANSTORACICO - ESTUDIO AVANZADO' });
   }
 
@@ -19276,7 +19354,7 @@ function generarPDFReal() {
     _amEte.forEach(x => _secsEte.push(x));
     doc.addPage();
     y = amiloDibujarSecciones(doc, _secsEte, {
-      mL, pgW, tema: TEMA, yIni: 20, yFin: _yMax, titPagina: 'ECOCARDIOGRAMA TRANSESOFÁGICO'
+      mL, pgW, tema: TEMA, yIni: 20, yFin: _yMax, fsa: _FSA, titPagina: 'ECOCARDIOGRAMA TRANSESOFÁGICO'
     });
   }
 
@@ -19385,7 +19463,7 @@ function generarPDFReal() {
         }
       }
     });
-    fn(6.5); tc(150,150,150);
+    fnp(6.5); tc(150,150,150);
     doc.text(_sanML(_fCopyr), 105, 292, { align:'center' });
     /* Línea de cierre de Académico: id del estudio y fecha ISO. Va en la MISMA y del copyright,
        apoyada a la izquierda, en vez de como fila propia de la firma. Una fila más habría bajado
@@ -19400,15 +19478,15 @@ function generarPDFReal() {
        dos lugares: o el identificador dice algo, o no va. */
     if (_TBL.firmaCierre && (_fechaISO || _idEstudio)) {
       const _idCierre = 'ECO-' + (_fechaISO || 's/f') + (_idEstudio ? ' · ' + _idEstudio : '');
-      doc.setFont('times','normal'); doc.setFontSize(5.5 * _FS); tc(150,150,150);
+      doc.setFont('times','normal'); doc.setFontSize(5.5 * _FSP); tc(150,150,150);
       const _wCierre = doc.getTextWidth(_idCierre);
-      const _wCopyr = (fn(6.5), doc.getTextWidth(_sanML(_fCopyr)));
+      const _wCopyr = (fnp(6.5), doc.getTextWidth(_sanML(_fCopyr)));
       if (mL + _wCierre < 105 - _wCopyr/2 - 3) {
-        doc.setFont('times','normal'); doc.setFontSize(5.5 * _FS); tc(150,150,150);
+        doc.setFont('times','normal'); doc.setFontSize(5.5 * _FSP); tc(150,150,150);
         doc.text(_idCierre, mL, 292);
       }
     }
-    fn(5.5); tc(160,160,160); doc.text(_sanML(_fDisc), 105, 295, { align:'center' });
+    fnp(5.5); tc(160,160,160); doc.text(_sanML(_fDisc), 105, 295, { align:'center' });
   }
 
   const _nombre = (sv('nombre')||'paciente').replace(/\s+/g,'_');
@@ -19428,7 +19506,82 @@ function generarPDFReal() {
   const _sel = parseInt(localStorage.getItem('ett_filename_fmt')||'0');
   const _fname = _fmtOpts[_sel] ? _fmtOpts[_sel].val : _fmtOpts[0].val;
   doc.save(_fname+'.pdf');
-  toast('✅ PDF generado');
+  /* Se DECIDE por `_pagCuerpo` y se INFORMA `_totalPag`. Son dos números distintos y usar uno
+     solo falla de los dos lados: decidir por el total haría saltar el aviso en todo estudio
+     con hoja de ETE o imágenes —páginas queridas, no desborde—, e informar el cuerpo le
+     decía al médico «tiene 2 páginas» sobre un archivo de cinco. El ✅ va igual: sin él, la
+     rama del aviso dejaba al médico sin acuse de que el archivo bajó. */
+  if (_pagCuerpo > 1) toast('✅ PDF generado — este estudio es muy extenso, el PDF tiene ' + _totalPag + ' páginas.');
+  else toast('✅ PDF generado');
+  return { pagCuerpo: _pagCuerpo, paginas: _totalPag, guardado: true };
+}
+
+/* Ajuste automático A4. Genera el informe en modo medición y, si el CUERPO se pasó de una
+   hoja, lo reintenta comprimido antes de bajarlo. Dos palancas, en este orden:
+
+     1. AIRE (`sp`) — interlínea del texto corrido y separación entre bloques. Se agota
+        primero porque no toca el tamaño de la letra: el informe se lee igual.
+     2. CUERPO (`fs`) — sólo sobre PDF_FS, y con piso en 1,00 (= 0,935 sobre el 1,07
+        actual). No baja más: PDF_FS ya bajó de 1,15 a 1,07 a mano para este mismo fin, y
+        seguir bajando repite un intercambio que ya se hizo una vez.
+
+   Lo que NO toca: PDF_FS_FIJO —el "En suma" y la firma— ni _FSP —copyright, id de cierre y
+   disclaimer médico-legal—. Esos cinco textos conservan su cuerpo de letra en todos los
+   pasos; sí se comprime el AIRE del "En suma", que es blanco, no letra. Lo de PDF_FS_FIJO
+   está escrito en la constante y no se revisa desde acá; lo del pie es que son los textos
+   más chicos del documento y achicarlos no gana ni un renglón, porque van a `y` fijo.
+
+   Costo real, sin maquillaje: el paso 0 se mide SIEMPRE, así que hasta el informe de una
+   hoja paga dos pasadas —una medición y la generación—, y el que agota la escalera paga
+   cinco. La medición es la barata: corta apenas sabe en cuántas hojas cayó el cuerpo, sin
+   dibujar las hojas de imágenes ni el pie. Pero no es gratis, y quien venga a mirar el
+   perfil de `generarPDF` va a encontrar el doble de trabajo del que espera.
+
+   Lo que este ajuste NO puede arreglar: `drawTablaCompacta` tiene `hH`, `lineH` y `rowPad`
+   literales, así que `sp` no toca las tablas de mediciones. `fs` sí les achica el texto, y a
+   veces eso baja el conteo de líneas de una celda y con él el alto de la fila — o sea que
+   ayuda, pero de rebote y sin garantía. El estudio que desborda por tablas suele agotar los
+   cuatro pasos.
+
+   Tampoco distingue de dónde vino el desborde. `_pagCuerpo` se cuenta al final del cuerpo, y
+   adentro del cuerpo hay figuras que reservan mucho y fuerzan salto por sí solas: el bull's
+   eye (`checkPage(88)`), la vista quirúrgica mitral (`checkPage(92)`) y el jet paravalvular
+   post-TAVI. Un estudio con bull's eye integrado y un narrativo normal da dos hojas por la
+   figura, no por el texto, y va a recibir el aviso igual. Separar esos casos pide contar por
+   bloque, no por documento; hoy no se hace. */
+const _PDF_A4_PASOS = [
+  { sp: 1.00, fs: 1.000 },   // como siempre
+  { sp: 0.92, fs: 1.000 },   // aire -8%
+  { sp: 0.85, fs: 1.000 },   // aire -15% (el mínimo pedido)
+  { sp: 0.85, fs: 0.935 },   // + cuerpo 1,07 → 1,00, el piso
+];
+function _pdfAjustarA4() {
+  if (typeof window.jspdf === 'undefined') {
+    alert('La biblioteca PDF está cargando, intentá en un momento.');
+    return;
+  }
+  let elegido = _PDF_A4_PASOS[0], logrado = false;
+  for (let i = 0; i < _PDF_A4_PASOS.length; i++) {
+    let m;
+    /* Si un intento de MEDICIÓN falla, se descarta ese paso y se sigue: el ajuste es una
+       mejora, no un requisito, y un informe firmado no se puede quedar sin generar porque
+       la medición tropezó. Se deja rastro igual: este generador ya falló antes de un modo
+       indistinguible de «el botón no hizo nada», y tragarse cuatro excepciones en silencio
+       es la peor forma de llegar a la quinta. */
+    try { m = generarPDFReal({ sp: _PDF_A4_PASOS[i].sp, fs: _PDF_A4_PASOS[i].fs, __a4: true, medir: true }); }
+    catch (e) { console.error('[_pdfAjustarA4/medir]', _PDF_A4_PASOS[i], e); continue; }
+    if (!m) continue;
+    if (m.pagCuerpo <= 1) { elegido = _PDF_A4_PASOS[i]; logrado = true; break; }
+  }
+  /* Si NINGÚN paso logró la hoja única, se vuelve al paso 0. Comprimir "lo más que se pueda"
+     cuando igual van a salir dos hojas es puro costo: letra 6,5% más chica e interlínea 15%
+     más apretada en un informe firmado, a cambio de nada. Y no es un caso raro: el estudio
+     que desborda por tablas o por una figura de alto fijo agota la escalera sin moverse. */
+  if (!logrado) elegido = _PDF_A4_PASOS[0];
+  /* Objeto armado campo por campo y no `{...elegido, __a4:true}`: con el spread, agregarle
+     `medir` a cualquier entrada de _PDF_A4_PASOS convertía la generación final en una
+     medición —sin archivo, sin aviso y sin excepción—. */
+  return generarPDFReal({ sp: elegido.sp, fs: elegido.fs, __a4: true });
 }
 // ══ ETE PROYECCIONES ══
 const ETE_COLORES = {prolapso:'#ef4444',flail:'#f97316',restriccion:'#3b82f6',perforacion:'#eab308',calcificacion:'#6b7280'};
@@ -24762,17 +24915,22 @@ function amiloSanPDFml(s) {
    letra distintos en un documento y ninguna de las dos hojas parecía la equivocada. */
 function amiloDibujarSecciones(doc, secs, g) {
   const mL = g.mL, pgW = g.pgW, T = g.tema;
+  /* Factor del ajuste automático A4. Lo pasa generarPDFReal cuando decidió achicar el cuerpo
+     del informe; sin él, estas hojas seguían a PDF_FS pelado y el informe firmado salía con
+     dos cuerpos de letra —el mismo defecto que el comentario de arriba dice haber cerrado,
+     reabierto por una palanca que no existía cuando se escribió. */
+  const _FSL = PDF_FS * ((typeof g.fsa === 'number' && g.fsa > 0 && g.fsa <= 1) ? g.fsa : 1);
   /* La escala se aplica DENTRO de fb/fn, que son los mismos que usa plan() para medir
      con splitTextToSize: así lo medido y lo dibujado son el mismo tamaño. Escalar sólo
      al dibujar es el bug que ya nos mordió en el autoajuste de la firma —validaba que
      la fila entra a S y la estampaba a 1,15·S—. */
-  const fb = sz => { doc.setFont('helvetica','bold');   doc.setFontSize(sz * PDF_FS); };
-  const fn = sz => { doc.setFont('helvetica','normal'); doc.setFontSize(sz * PDF_FS); };
+  const fb = sz => { doc.setFont('helvetica','bold');   doc.setFontSize(sz * _FSL); };
+  const fn = sz => { doc.setFont('helvetica','normal'); doc.setFontSize(sz * _FSL); };
 
   const plan = sz => {
     /* El interlineado también escala. Con H sin escalar, las líneas se dibujarían a
        1,15 del cuerpo con el paso del cuerpo original y se pisarían entre sí. */
-    const H = sz * 0.48 * PDF_FS;               // interlineado proporcional
+    const H = sz * 0.48 * _FSL;               // interlineado proporcional
     const filas = []; let alto = 0;
     secs.forEach((sec, i) => {
       if (i) alto += H * 1.2;
@@ -27347,7 +27505,16 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
      formulario, así que puede leer los flags de módulo, el bull's eye y los derivados igual
      que generarPDFReal. Lo que devuelva se ignora: la restauración del finally NO espera, y
      un emisor asíncrono tiene que haber leído todo lo que necesita antes de retornar. */
-  try { (typeof accion === 'function' ? accion : generarPDFReal)(inf); }
+  /* Por `_pdfAjustarA4` y NO por `generarPDFReal` pelado. El botón ⬇️ PDF pasa por el ajuste
+     automático, así que el informe que el médico firmó puede haber salido comprimido a una
+     hoja; llamando acá al generador sin ajuste, la reimpresión del MISMO estudio salía a otro
+     cuerpo de letra, otra interlínea y dos hojas — mismo estudioId, mismo QR, distinto
+     documento. El ajuste es determinista sobre el mismo contenido, así que volver a medir
+     reproduce el paso elegido sin tener que persistirlo en el informe.
+     Envuelto en una lambda y no pasado como referencia: `generarPDFReal` recibe un objeto de
+     AJUSTE y `accion` recibe el INFORME, dos contratos incompatibles en un solo call site.
+     Pasarle `inf` al generador era lo que obligaba al centinela `__a4`. */
+  try { (typeof accion === 'function' ? accion : (() => _pdfAjustarA4()))(inf); }
   finally { window._pdfReimpresion = false; }
 
   // El finally cubre TODO lo de arriba, no sólo generarPDFReal: si tira el llenado o
