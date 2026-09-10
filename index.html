@@ -1863,7 +1863,8 @@ window.cerrarSesion = cerrarSesion;
           <span id="fevi-interp">—</span>
         </div>
         <div class="calc-row">
-          <span class="calc-lbl">SGL — interpretación</span>
+          <!-- Ya no dice «interpretación»: el span muestra el valor, no un juicio. Ver calcSGL. -->
+          <span class="calc-lbl">SGL</span>
           <span id="sgl-interp">—</span>
         </div>
       </div>
@@ -11535,26 +11536,32 @@ function calcVI() {
 
 // ══ SGL ══
 function calcSGL() {
-  // Sincronización bidireccional: #sgl (tab AI/VI) ←→ #sgl_gls (tab SGL).
-  // Va antes del return temprano para que vaciar un campo también vacíe el otro.
+  /* Copia #sgl → #sgl_gls. NO es bidireccional aunque lo diga el nombre de la pestaña: la
+     vuelta la hace el `oninput` inline de #sgl_gls, que no dispara al asignar `.value` por
+     código. Consecuencia a tener presente: llamar calcSGL() sobre un registro con `sgl` vacío
+     y `sgl_gls` cargado BORRA `sgl_gls`, y con él la línea «SGL global: X %» del panel de
+     strain del PDF y del PPT. En uso normal los dos campos convergen; el estado asimétrico
+     sólo llega desde un import o un registro legacy. */
   const sglIn = document.getElementById('sgl');
   const sglGls = document.getElementById('sgl_gls');
   if (sglIn && sglGls && sglGls.value !== sglIn.value) sglGls.value = sglIn.value;
 
   const sgl = v('sgl');
-  if (!sgl) return;
-  const sglAbs = Math.abs(sgl);
   const el = document.getElementById('sgl-interp');
   if (!el) return;
-  let interp;
-  if (sglAbs >= 20) {
-    interp = badge('green', `SGL ${sgl}% — Normal (≥ -20%)`);
-  } else if (sglAbs >= 16) {
-    interp = badge('yellow', `SGL ${sgl}% — Zona gris (-16 a -20%) — vigilar`);
-  } else {
-    interp = badge('red', `SGL ${sgl}% — Anormal (< -16%) — disfunción subclínica`);
-  }
-  el.innerHTML = interp;
+  /* El SGL se muestra COMO NÚMERO, sin semáforo ni etiqueta de normalidad. La interpretación
+     la hace el médico, que para eso tiene el bull's eye de 17 segmentos y el informe
+     narrativo. Antes esto pintaba un badge verde/amarillo/rojo con «Normal / Zona gris /
+     Anormal», y el mismo criterio bajaba al PDF firmado.
+     No es sólo una preferencia de presentación: convivían TRES umbrales para el mismo dato.
+     El badge cortaba en 20 y 16; la tabla del PDF imprimía la referencia «>=-18%» al lado de
+     la etiqueta calculada con 20/16. Resultado medido: un SGL de -18% salía en el informe
+     firmado como «SGL (>=-18%): -18% - Zona gris» — la referencia impresa dice que -18
+     alcanza, y la etiqueta pegada al lado dice que no. Un informe firmado no puede
+     contradecirse en un renglón.
+     El `if (!sgl) return` temprano se sacó a propósito: sin él, borrar el campo dejaba
+     colgado el último valor mostrado. Ahora vacío se muestra vacío. */
+  el.textContent = sgl ? `SGL ${sgl}%` : '—';
 }
 
 // ══ HEMODINÁMICA VI ══
@@ -17875,7 +17882,10 @@ function generarPDFReal(_aj) {
   // Con estimación visual muestra el rango completo (feviRangoTexto), no el piso.
   const feviS  = v('fevi')?feviRangoTexto(v('fevi'))+(feviM?' ('+feviM+')':''):null;
   const sglN   = v('sgl');
-  const sglS   = sglN?sglN+'%  —  '+(Math.abs(sglN)>=20?'Normal':Math.abs(sglN)>=16?'Zona gris':'Anormal'):null;
+  /* Sólo el número. Sin «Normal / Zona gris / Anormal»: la clasificación del SGL la hace el
+     médico en el narrativo, no la tabla de mediciones. Ver el comentario largo en calcSGL —
+     acá vivía la MITAD del informe firmado que se contradecía con su propia referencia. */
+  const sglS   = sglN ? sglN + '%' : null;
 
   // VDFVI indexado
   const vdfviVal = v('vdfvi');
@@ -18579,7 +18589,13 @@ function generarPDFReal(_aj) {
       // FEVI normal ≥50% — criterio ASE Chamber Quantification 2025
       {lbl:'FEVI',      ref:'>=' + UMBRAL_FEVI_NORMAL + '%',           val:feviS},
       {lbl:'FA',        ref:'>=28%',           val:faStr},
-      {lbl:'SGL',       ref:'>=-18%',          val:sglS},
+      /* SIN referencia, a diferencia del resto de la tabla. `>=-18%` era un CUARTO umbral
+         para el mismo dato —el badge del formulario cortaba en 20 y 16— y era la mitad
+         impresa de la contradicción: «SGL (>=-18%): -18% - Zona gris» decía que el valor
+         alcanza la referencia y que igual no es normal. Quitada la etiqueta, dejar la
+         referencia seguiría afirmando dónde está lo normal, que es justo lo que se decidió
+         que no haga la tabla. `_suf` ya contempla ref vacía: sale «SGL: -18%». */
+      {lbl:'SGL',       ref:'',                val:sglS},
       {lbl:'Vol. lat.', ref:'55-100 ml',       val:v('vol_lat')?v('vol_lat')+' ml':null},
       {lbl:'Masa idx',  ref:'H<' + UMBRAL_MASA_HVI_H + ' M<' + UMBRAL_MASA_HVI_M + ' g/m2', val:masaIdx},
       {lbl:'RWT',       ref:'<=0.42',          val:rwtStr},
@@ -26103,7 +26119,8 @@ const PPT_TEMAS = {
 
   /* ── Tres paletas agregadas 2026-09-10 ───────────────────────────────────────────────
      Las claves de color son las mismas ocho que consumen los tres temas de arriba. Las que
-     siguen son OPCIONALES y las resuelve `_pptDeco` con el valor de los temas originales, de
+     siguen son OPCIONALES y las resuelve el bloque `_HDR_BG`/`_HDR_FONT`/... de
+     `_pptDesdeFormulario` con el valor de los temas originales, de
      modo que agregar una paleta no obliga a declararlas y los temas viejos siguen dibujando
      exactamente igual:
 
@@ -26116,9 +26133,15 @@ const PPT_TEMAS = {
                  3.12.0 emite `<a:alpha>` para `transparency`, así que el trazo sigue siendo
                  blanco al 20 % aunque mañana cambie el color de la banda.
 
-     `hdrBg` existe porque `teal` hacía DOS trabajos a la vez —fondo de la banda y color de
-     acento de títulos, líneas y pie— y en «Azul marino» son distintos: la banda es 0D2137 y
-     el acento 4FC3F7. Sin separarlos, pedir uno cambiaba el otro.
+     `hdrBg` existe porque `teal` hace DOS trabajos a la vez —fondo de la banda y color de
+     acento de títulos, líneas y pie— y hubo una paleta («Azul marino», reemplazada por «Alto
+     contraste») en la que eran distintos: banda 0D2137 y acento 4FC3F7. Sin separarlos, pedir
+     uno cambiaba el otro. Hoy NINGUNA paleta declara `hdrBg`, así que la clave no tiene uso
+     activo — se deja porque el problema que resuelve reaparece con la primera paleta que
+     quiera banda y acento de distinto color, y porque quitarla es gratis y volver a
+     descubrirla no. Lo mismo vale para `barraIzq`: era exclusiva de «Azul marino», así que
+     `_BARRA` y su addShape quedaron sin consumidor al reemplazarla. Ramas muertas declaradas,
+     no olvidadas: si dentro de un tiempo nadie las usa, se borran las tres juntas.
 
      `vacio` y `sumaTxt` NO se declaran en las nuevas: están en las tres viejas y no las lee
      nadie (verificado, cero usos). Se dejan ahí para no tocar lo que ya anda, pero no se
@@ -26126,9 +26149,19 @@ const PPT_TEMAS = {
   borgona: { nombre:'🍷 Borgoña', bg:'FAFAF8', teal:'6B1A2A', rojo:'6B1A2A', txt:'3B0B14',
              txt2:'555555', fila1:'F2EFEC', fila2:'FAFAF8', hdrTxt:'FFFFFF',
              hdrFont:'Georgia', ecgHdr:{ color:'FFFFFF', transparency:80 } },
-  marino:  { nombre:'⚓ Azul marino', bg:'0D1B2A', teal:'4FC3F7', rojo:'4FC3F7', txt:'FFFFFF',
-             txt2:'B0BEC5', fila1:'16293D', fila2:'0F2030', hdrTxt:'0D1B2A',
-             hdrBg:'0D2137', barraIzq:{ color:'4FC3F7', w:0.042 } },
+  /* «Alto contraste» REEMPLAZA a «Azul marino» (2026-09-09). Pensada para proyector malo y
+     sala iluminada: blanco puro de fondo, negro para el dato y el rojo CeiboMed como único
+     acento. No declara `hdrBg` a propósito — `teal` ya es C62828 y `_HDR_BG` cae a `teal`
+     cuando no hay `hdrBg`, así que declararlo sería repetir el mismo valor en dos
+     lugares que después pueden separarse sin que nadie lo note. `teal` alimenta además la
+     línea del pie, el subrayado de los títulos y el relleno de la cabecera de las tablas,
+     que es lo que la vuelve el «acento/líneas» pedido.
+     Ojo con la clave: se llama `contraste`, no `marino`. La preferencia guardada en
+     localStorage de quien venía usando «Azul marino» ya no existe, y `_esTema` la descarta y
+     preselecciona Dark. Es un reseteo de preferencia, no un error — pero deja de aparecer el
+     tema que esa persona elegía. */
+  contraste: { nombre:'◼️ Alto contraste', bg:'FFFFFF', teal:'C62828', rojo:'C62828', txt:'111111',
+               txt2:'333333', fila1:'F0F0F0', fila2:'FFFFFF', hdrTxt:'FFFFFF' },
   purpura: { nombre:'🟣 Púrpura', bg:'F8F6FF', teal:'3C3489', rojo:'3C3489', txt:'26215C',
              txt2:'534AB7', fila1:'EFEBFF', fila2:'F8F6FF', hdrTxt:'FFFFFF',
              franjaInf:{ color:'7F77DD', h:0.042 } }
@@ -26361,6 +26394,56 @@ function _pptDesdeFormulario(inf, tema, presentador){
   const _BARRA    = PPT_C.barraIzq  || null;
   const _FRANJA   = PPT_C.franjaInf || null;
   const _ECG      = PPT_C.ecgHdr    || null;
+  /* Logo del centro para portada y cierre. MISMA clave y MISMA validación que el PDF
+     (`_hdrLogo`, en generarPDFReal): si se leyera de otro lado, un logo aceptado por el
+     informe podría no salir en la presentación del mismo estudio, o al revés, y nadie lo
+     relacionaría con la carga del logo.
+     La validación exige un data: URL de imagen real — es lo que filtra el SVG que guardaba una
+     versión anterior y que PptxGenJS mete en el .pptx sin quejarse.
+     NO garantiza que PowerPoint lo dibuje: la allowlist acepta `webp` y `gif`, y el cargador
+     de logos ofrece webp explícitamente, pero Office recién lo soporta desde los builds
+     2021/365. En un PowerPoint anterior, un logo webp da el mismo recuadro roto. Sin medir no
+     lo afirmo como defecto, pero la allowlist es más ancha que lo que los dos consumidores
+     saben estampar, y conviene achicarla a png/jpeg para el camino de exportación.
+     Sin logo cargado esto es null y no se dibuja nada: la portada y el cierre salen
+     exactamente como antes. */
+  const _pptLogo = (() => {
+    try {
+      const d = localStorage.getItem('logo_centro_' + (localStorage.getItem('centro_tipo_activo') || 'default'));
+      if (!d) return null;
+      /* Fail-CLOSED: si el validador no está, se descarta el logo. La forma
+         `typeof X === 'function' && !X(d)` —que es la que usa el PDF— se saltea la validación
+         cuando X no existe y manda el dato crudo a addImage. Acá se exige que exista.
+         `_imgSrcOK` y no `LOGO_DATA_OK` directo: aquél ya encapsula el mismo criterio con el
+         default en `false`, y es el que usan los otros dos consumidores de imágenes. */
+      if (typeof _imgSrcOK !== 'function' || !_imgSrcOK(d)) return null;
+      return d;
+    } catch (e) { return null; }
+  })();
+  /* Se dibuja discreto, abajo a la derecha y POR ENCIMA de la línea del pie (que va en
+     H-0.62), así que no lo pisa ni le pisa el disclaimer.
+     `sizing: contain` y no w/h directos: sin eso, un wordmark apaisado de clínica —la forma
+     habitual— sale estirado o aplastado dentro de la caja. Es el mismo cuidado que el PDF ya
+     toma en `_hdrDibujarLogo`, resuelto acá por la librería en vez de a mano. */
+  let _logoAvisado = false;
+  const _pptPonerLogo = s => {
+    if (!_pptLogo) return;
+    const lw = 1.25, lh = 0.55;
+    try {
+      s.addImage({ data:_pptLogo, x: W - lw - 0.4, y: H - 1.28, w: lw, h: lh,
+                   sizing:{ type:'contain', w: lw, h: lh } });
+    } catch (e) {
+      /* Se AVISA, no sólo se loguea. El PDF ya cerró este mismo agujero en `_hdrDibujarLogo`:
+         un logo que pasa la validación pero falla al estampar desaparecía de todos los
+         documentos del centro sin que nadie se entere. `_logoAvisado` evita duplicar el aviso
+         entre portada y cierre, igual que la bandera del PDF. */
+      console.error('[ppt/logo]', e);
+      if (!_logoAvisado) {
+        _logoAvisado = true;
+        _pptAvisos.push('⚠️ El logo del centro no se pudo incluir en la presentación — revisá el formato (usá JPG o PNG)');
+      }
+    }
+  };
   const P = new PptxGenJS();
   P.layout = 'LAYOUT_16x9';                      // 25,4 × 14,29 cm
   const W = 10, H = 5.63;                        // pulgadas, que es la unidad de PptxGenJS
@@ -26506,8 +26589,13 @@ function _pptDesdeFormulario(inf, tema, presentador){
     /* 'FFFFFF' fijo, como estaba. NO se usa `PPT_C.hdrTxt`: ésa es la tinta sobre el relleno
        `teal` de la cabecera de las TABLAS, que es otra superficie. En «Azul institucional»
        vale 0F172A porque ahí el relleno es celeste; usarla acá le cambiaría el título de la
-       portada a un tema que nadie pidió tocar, y en «Azul marino» —banda 0D2137— sería
-       oscuro sobre oscuro. Las tres bandas nuevas son oscuras, así que el blanco sirve. */
+       portada a un tema que nadie pidió tocar.
+       El blanco NO sirve igual de bien en las seis paletas y conviene no afirmar de más: en
+       «Azul institucional» la banda es 38BDF8 (celeste, porque no declara hdrBg y cae a
+       `teal`) y el blanco da 1,94:1 — por debajo de cualquier mínimo. Es un defecto
+       PREEXISTENTE, no lo introduce «Alto contraste», cuyo C62828 da 5,62:1. Se deja anotado
+       en vez de arreglarlo de paso: tocarlo cambia la portada de un tema que este cambio no
+       vino a tocar. */
     s.addText('Ecocardiograma Doppler Color', { x:0, y:0, w:W, h:HB, fontSize:28, bold:true,
       color:'FFFFFF', align:'center', valign:'middle', fontFace:_HDR_FONT });
     /* `PPT_C.txt` y NO 'FFFFFF' fijo. El nombre va en y=1.42, o sea DEBAJO de la banda teal
@@ -26538,8 +26626,15 @@ function _pptDesdeFormulario(inf, tema, presentador){
     const _pptAnt = _labArrCol(inf, 'antecedentes_sel', 'ant_otro', 'antecedentes');
     if (_pptTxt(_pptInd)) meta.push('Indicación: ' + _pptTxt(_pptInd));
     if (_pptTxt(_pptAnt)) meta.push('Antecedentes: ' + _pptTxt(_pptAnt));
-    s.addText(meta.join('\n'), { x:0.5, y:2.15, w:W-1, h:2.4, fontSize:13, color:PPT_C.txt2,
-      fontFace:PPT_FONT, lineSpacingMultiple:1.4, valign:'top' });
+    /* La caja se ACORTA si hay logo. Sin esto llegaba hasta y=4,55 y el logo arranca en 4,35:
+       0,20" × 1,15" de superposición en la esquina inferior derecha. Con `valign:'top'` no se
+       nota mientras el texto sea corto, y por eso es del tipo que aparece recién en el ateneo
+       —la portada de hoy arma indicación y antecedentes desde los checklists, y un paciente
+       con ocho antecedentes más un «Otro» llena las nueve líneas—. El cierre ya tenía este
+       análisis escrito; la portada no. */
+    s.addText(meta.join('\n'), { x:0.5, y:2.15, w:W-1, h: _pptLogo ? 2.15 : 2.4, fontSize:13,
+      color:PPT_C.txt2, fontFace:PPT_FONT, lineSpacingMultiple:1.4, valign:'top' });
+    _pptPonerLogo(s);
     conPie(s);
   }
 
@@ -26825,12 +26920,25 @@ function _pptDesdeFormulario(inf, tema, presentador){
         if (gls != null) {
           s.addText('GLS', { x:_xG, y, w:_wG, h:0.3, fontSize:14, color:PPT_C.teal, fontFace:PPT_FONT }); y += 0.32;
           s.addText(String(gls) + ' %', { x:_xG, y, w:_wG, h:0.7, fontSize:36, bold:true, color:PPT_C.txt, fontFace:PPT_FONT }); y += 0.72;
-          s.addText('Referencia normal < −18 %', { x:_xG, y, w:_wG, h:0.3, fontSize:12, color:PPT_C.txt2, fontFace:PPT_FONT }); y += 0.45;
+          /* Sin «Referencia normal < −18 %». Era la MISMA afirmación de normalidad que se sacó
+             del formulario y de la tabla del PDF, proyectada en 36 pt al lado del número, y con
+             el mismo umbral huérfano de −18 que ya no gobierna nada. Además decía «normal
+             < −18 %» sobre un GLS de −18: ni siquiera se pronunciaba sobre su propio borde.
+             El GLS va solo. La lectura la hace quien presenta. */
+          y += 0.10;
         }
         /* No se informa WMSI: en esta app sólo se calcula dentro de Eco Estrés (ee-wmsi-<fase>)
            y no existe un WMSI del estudio basal. La fila pedía un id que no existe en ningún
            lado, así que salía siempre vacía. */
-        const extra = [_pptSpan('sgl-interp'), _motilidad].filter(Boolean).join('\n');
+        /* `_pptSpan('sgl-interp')` SALIÓ de acá. Ese span es el badge del formulario, y mientras
+           clasificaba, la diapositiva importaba «Normal / Zona gris / Anormal» desde el DOM —o
+           sea que el PPT publicaba la clasificación aunque nadie la hubiera puesto en el PPT—.
+           Ahora el span dice sólo «SGL -18%», que es exactamente el número ya impreso arriba en
+           36 pt: incluirlo era repetirlo.
+           Segundo motivo para no volver a ponerlo: lee el DOM VIVO, no `inf`. Es la misma clase
+           de fuente que el comentario de `contrEstado` de más arriba señala como riesgo de
+           arrastrar datos entre pacientes. Lo que se proyecta tiene que salir del estudio. */
+        const extra = [_motilidad].filter(Boolean).join('\n');
         if (extra) s.addText(extra, { x:_xG, y, w:_wG, h:H-y-0.8, fontSize:13, color:PPT_C.txt2, fontFace:PPT_FONT, valign:'top' });
       }
       conPie(s);
@@ -27226,6 +27334,12 @@ function _pptDesdeFormulario(inf, tema, presentador){
     }
     s.addText('CeiboMed · Tecnología clínica con raíces', { x:0.4, y:H-0.92, w:W-0.8, h:0.26,
       fontSize:12, color:PPT_C.txt2, align:'center', fontFace:PPT_FONT });
+    /* Misma posición que en la portada, a pedido. La franja vertical del logo (H-1.28 a
+       H-0.73) se solapa 0,19" con la caja del branding (H-0.92 a H-0.66), pero esa caja es
+       `align:'center'` y su texto queda a media diapositiva, mientras el logo apoya contra el
+       borde derecho: verificado que no se tocan. Si algún día ese texto se alarga o se
+       alinea a la derecha, esto hay que rever. */
+    _pptPonerLogo(s);
     conPie(s);
   }
 
@@ -28916,11 +29030,23 @@ function _labIndicadoresList(infs) {
       casos: infs.filter(i => { const ee = _labEeProm(i); return ee !== null && ee > 14 && _labDiastGrado(i) === null; }) },
     { lbl: 'Vol AI elevado sin función diastólica documentada',
       casos: infs.filter(i => { const l = _labLavi(i); return l !== null && l > UMBRAL_LAVI_DILATADO && _labDiastGrado(i) === null; }) },
-    { lbl: 'GLS anormal (|GLS| <16 %) con FEVI conservada con FEVI conservada',
-      /* Se compara el VALOR ABSOLUTO contra 16, que es el corte de `calcSGL` para «anormal»
-         (≥20 normal · 16-20 zona gris · <16 anormal). El `g > -18` anterior contaba como anormal
-         TODO strain tipeado en positivo, y además usaba un umbral que ningún informe individual
-         aplica: el agregado no puede contradecir al informe firmado. */
+    /* «|GLS| < 16 %» y NO «GLS ≤ -16 %». El filtro es `Math.abs(g) < 16`, o sea strain PEOR que
+       −16 (−14, −12…). Escribirlo como «≤ -16 %» nombra el conjunto complementario: −20 entra
+       en el rótulo y no en el filtro, −14 entra en el filtro y contradice el rótulo. */
+    { lbl: '|GLS| < 16 % con FEVI ≥50 % — revisar',
+      /* El rótulo describe el FILTRO, no dictamina. Decía «GLS anormal», y eso ya no lo afirma
+         ninguna de las tres superficies del ESTUDIO: el formulario (calcSGL), la tabla del PDF
+         firmado y el PPT dejaron de clasificar el SGL a propósito. El mismo estudio salía sin
+         juicio en su informe y listado bajo «anormal» en el agregado del laboratorio. (Además
+         el texto venía con «con FEVI conservada» duplicado, que se imprimía tal cual.)
+         Siguen clasificando strain, con otros cortes y sobre OTROS campos: `eeEvalGLS` en Eco
+         Estrés (#ee-gls-bas) y la ficha de referencia de cardio-oncología. No se tocaron
+         porque no son el SGL de este estudio, pero conviene saber que existen.
+         El VALOR ABSOLUTO contra 16 se mantiene: la base tiene strain tipeado con los dos
+         signos, y el `g > -18` anterior contaba como anormal todo lo tipeado en positivo.
+         OJO — este 16 es un umbral de ESTE filtro de auditoría, no «el corte de calcSGL»:
+         calcSGL ya no clasifica nada. Es el mismo número que usa el criterio menor de
+         HFA-PEFF más arriba, pero por coincidencia de guía, no porque uno derive del otro. */
       casos: infs.filter(i => { const g = _labGls(i), f = _labFevi(i);
         return g !== null && Math.abs(g) < 16 && f !== null && f >= 50; }) },
   ];
@@ -32563,7 +32689,9 @@ function labCompararRender() {
     return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '—';
   };
   /* Variante en valor absoluto, para el GLS: la base tiene el strain con las dos convenciones de
-     signo —`calcSGL` y `calcCardioOnco` usan Math.abs justamente por eso— y promediar crudo da 0. */
+     signo —el input no tiene `min` y `calcCardioOnco` usa Math.abs justamente por eso— y promediar
+     crudo da 0. (`calcSGL` también lo usaba; dejó de hacerlo cuando se le sacó la clasificación
+     del SGL, pero la base sigue teniendo las dos convenciones: la normalización acá NO sobra.) */
   const promAbs = (arr, campo) => {
     const vals = arr.map(i => numCampo(i, campo)).filter(v => v !== null).map(Math.abs);
     return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '—';
@@ -33961,8 +34089,9 @@ async function labGenerarPDF() {
   const edades = infs.map(i => numCampo(i, 'edad')).filter(v => v !== null && v > 0 && v < 120);
   const edadProm = edades.length ? Math.round(edades.reduce((a, b) => a + b, 0) / edades.length) : null;
   const feviProm = avgOf(_labFevi, 1);
-  /* |GLS|: la app acepta el strain tipeado como `18` o como `-18` —`calcSGL` y `calcCardioOnco`
-     usan Math.abs a propósito y el input no tiene `min`—, así que promediar el signo crudo sobre
+  /* |GLS|: la app acepta el strain tipeado como `18` o como `-18` —el input #sgl no tiene `min`
+     y `calcCardioOnco` usa Math.abs a propósito; `calcSGL` lo hacía hasta que se le quitó la
+     clasificación—, así que promediar el signo crudo sobre
      una base mixta daba 0,0 % y eso salía impreso como «GLS promedio» en un PDF firmado. */
   const glsProm = avgOf(i => { const g = _labGls(i); return g === null ? null : Math.abs(g); }, 1);
   const psapProm = avgOf(_labPsap, 0);
