@@ -8194,6 +8194,193 @@ z
     </div>
   </div>
 
+  <!-- ═══ MIOCARDIOPATÍA HIPERTRÓFICA ═══
+       Dos scores de muerte súbita con criterios distintos, lado a lado, cada uno con su guía y
+       su clase. No se promedian ni se elige uno. Ver mchConclusion(). -->
+  <div class="card sacc" id="sacc-cc-mch">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-mch');mchSync();" aria-expanded="false">
+      <span class="sacc-arrow">▶</span>
+      <span style="flex:1;">MCH — Miocardiopatía hipertrófica</span>
+      <span id="mch_badge" class="incl-badge" hidden>📎 en el informe</span>
+    </button>
+    <div class="card-body sacc-body">
+      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
+        Hipertrofia del ventrículo izquierdo sin causa que la explique. Genética y heterogénea, <b>1 de cada 500</b>.
+        Junto con la MAVD es la principal causa de muerte súbita en jóvenes y atletas.
+        <b style="color:var(--accent2);">No es una cardiopatía congénita</b> — está en esta pestaña por el modo de trabajo, y por eso la pestaña se llama «congénitas y miocardiopatías genéticas».
+      </p>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:4px 0 8px;">Hipertrofia</div>
+      <div class="grid-3">
+        <div class="fg"><label>Espesor máximo de pared (mm)</label><input type="number" id="mch_espesor" step="0.1" placeholder="mm" oninput="mchSync()"></div>
+        <div class="fg"><label>SIV / PP (de AI · VI)</label>
+          <input type="text" id="mch_siv_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+        <div class="fg"><label>Localización</label>
+          <select id="mch_loc" onchange="mchSync()">
+            <option value="">—</option>
+            <option value="sept_ant">Septal anterosuperior</option>
+            <option value="sept_post">Septal posterior</option>
+            <option value="apical">Apical</option>
+            <option value="lateral">Lateral</option>
+            <option value="concentrica">Concéntrica</option>
+            <option value="medioventricular">Medioventricular</option>
+          </select>
+        </div>
+      </div>
+      <p style="font-size:10px;color:var(--text2);margin:6px 0 0;">El <b>espesor máximo</b> es un campo propio y no se deduce del SIV: en la MCH el punto de mayor espesor no siempre es septal. El SIV y la PP se muestran al lado como referencia. Umbral diagnóstico ≥15 mm, o ≥13 mm con historia familiar.</p>
+      <div class="grid-2" style="margin-top:10px;">
+        <div class="fg"><label>Patrón morfológico</label>
+          <select id="mch_patron" onchange="mchSync()">
+            <option value="">—</option>
+            <option value="sigmoidea">Sigmoidea</option>
+            <option value="reversa">Curvatura reversa</option>
+            <option value="apical">Apical</option>
+            <option value="neutral">Neutral</option>
+          </select>
+        </div>
+        <div class="fg"><label>Historia familiar de MCH</label>
+          <select id="mch_fam_mch" onchange="mchSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Obstrucción</div>
+      <div class="grid-3">
+        <div class="fg"><label>Gradiente TSVI en reposo (mmHg)</label><input type="number" id="mch_grad_reposo" step="1" placeholder="mmHg" oninput="mchSync()"></div>
+        <div class="fg"><label>Gradiente TSVI con Valsalva (mmHg)</label><input type="number" id="mch_grad_valsalva" step="1" placeholder="mmHg" oninput="mchSync()"></div>
+        <div class="fg"><label>Gradiente máximo</label>
+          <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+            <span id="mch-grad-max" class="calc-val">—</span></div></div>
+        </div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>SAM de la mitral</label>
+          <select id="mch_sam" onchange="mchSync()">
+            <option value="">—</option><option value="no_eval">No evaluado</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Obstrucción mesocavitaria</label>
+          <select id="mch_mesocavitaria" onchange="mchSync()">
+            <option value="">—</option><option value="no_eval">No evaluada</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Clase funcional (NYHA)</label>
+          <select id="mch_cf" onchange="mchSync()">
+            <option value="">—</option><option value="i_ii">I-II</option><option value="iii_iv">III-IV</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Factores de riesgo de muerte súbita</div>
+      <div class="grid-3">
+        <div class="fg"><label>Historia familiar de muerte súbita</label>
+          <select id="mch_fam_ms" onchange="mchSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Síncope inexplicado</label>
+          <select id="mch_sincope" onchange="mchSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>TVNS en Holter</label>
+          <select id="mch_tvns" onchange="mchSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>Aneurisma apical</label>
+          <select id="mch_aneurisma_apical" onchange="mchSync()">
+            <option value="">—</option><option value="no_eval">No evaluado</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Realce tardío extenso por RMN</label>
+          <select id="mch_fibrosis_rmn" onchange="mchSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Respuesta tensional anormal al ejercicio</label>
+          <select id="mch_tension_ejercicio" onchange="mchSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:10px;">
+        <div class="fg"><label>Diám. AP aurícula izquierda (de AI · VI)</label>
+          <input type="text" id="mch_ai_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+        <div class="fg"><label>FEVI (de AI · VI)</label>
+          <input type="text" id="mch_fevi_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+      </div>
+      <p style="font-size:10px;color:var(--text2);margin:6px 0 0;">La <b>respuesta tensional anormal</b> se registra y el informe la menciona, pero <b>no suma</b> al conteo de la AHA/ACC 2020: salió de la lista en esa edición. El <b>realce tardío</b> sí cuenta para la AHA y no para la ESC — el eco no lo evalúa.</p>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Exclusiones del modelo de la ESC</div>
+      <p style="font-size:10px;color:var(--text2);margin:0 0 8px;">El HCM Risk-SCD no está validado en estos grupos. Si alguno está <b>marcado</b>, no se publica el porcentaje y se dice cuál lo impide. Si quedan <b>sin contestar</b>, el número se publica pero el informe avisa que la aplicabilidad no se verificó. Los menores de 16 años se detectan solos.</p>
+      <div class="grid-3">
+        <div class="fg"><label>Atleta de competición</label>
+          <select id="mch_ex_atleta" onchange="mchSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Fenocopia (Fabry, amiloidosis)</label>
+          <select id="mch_ex_fenocopia" onchange="mchSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>MCH sindrómica</label>
+          <select id="mch_ex_sindromica" onchange="mchSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:10px;">
+        <div class="fg"><label>Parada cardíaca o TV sostenida previa</label>
+          <select id="mch_ex_parada" onchange="mchSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Miectomía o alcoholización septal previa</label>
+          <select id="mch_ex_reduccion" onchange="mchSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Factores adicionales considerados</div>
+      <p style="font-size:10px;color:var(--text2);margin:0 0 8px;">No suman a ningún score — el informe los menciona como contexto.</p>
+      <div class="grid-3">
+        <div class="fg"><label>HTA resistente</label>
+          <select id="mch_ctx_hta" onchange="mchSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Crecimiento del espesor (mm/año)</label><input type="number" id="mch_ctx_crecimiento" step="0.1" placeholder="mm/año" oninput="mchSync()"></div>
+        <div class="fg"><label>Deseo de embarazo</label>
+          <select id="mch_ctx_embarazo" onchange="mchSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="calc-box" style="margin-top:14px;">
+        <div class="calc-row"><span class="calc-lbl">ESC 2022 · HCM Risk-SCD</span><span id="mch-esc" class="calc-val">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">AHA/ACC 2020 · factores mayores</span><span id="mch-aha" class="calc-val">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="mch-concl" class="calc-val">—</span></div>
+      </div>
+      <div class="mBoxLike" style="border-left:3px solid var(--accent2);background:rgba(13,148,136,.08);padding:8px 12px;border-radius:6px;font-size:10px;line-height:1.5;margin-top:10px;color:var(--text2);">
+        <b>Los dos scores se muestran juntos y no se promedian.</b> El europeo es una ecuación continua (HCM Risk-SCD, O'Mahony 2014) y el americano un conteo de factores mayores: discrepan de verdad, y elegir uno sería decidir por vos.
+        Bandas de la ESC: <b>&lt;4 %</b> bajo · <b>4 a 6 %</b> intermedio (IIb) · <b>≥6 %</b> alto (IIa).
+        Si falta cualquiera de las siete variables, <b>no se publica el número</b>: se listan cuáles faltan.
+      </div>
+      <div style="text-align:center;margin-top:10px;">
+        <input type="checkbox" id="mch_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+        <button type="button" class="btn btn-integrar" data-ete-chk="mch_incluir_chk" aria-pressed="false"
+                onclick="eteInclToggle('mch_incluir_chk')">📎 Integrar al informe</button>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- ═══════════════════════ TAB: ECO ESTRÉS ═══════════════════════ -->
@@ -17114,6 +17301,35 @@ function generarInforme(opts) {
       if (c.clave !== 'no_interpretable') suma.push(c.txt + '.');
     })();
 
+    /* ── Miocardiopatía hipertrófica ── */
+    (function(){
+      const chk = document.getElementById('mch_incluir_chk');
+      if (!chk || !chk.checked) return;
+      if (typeof mchSync === 'function') { try { mchSync(); } catch(e){} }
+      const c = (typeof mchConclusion === 'function') ? mchConclusion() : null;
+      if (!c) return;
+      const f1 = n => (n==null || !isFinite(n)) ? null : String(Math.round(n*10)/10);
+      const loc = sv('mch_loc'), patron = sv('mch_patron');
+      const p = ['Miocardiopatía hipertrófica' +
+                 (loc ? ' de distribución ' + (MCH_LOC_TXT[loc] || loc) : '') +
+                 (patron ? ', patrón ' + (MCH_PATRON_TXT[patron] || patron) : '')];
+      /* «en presencia de SAM», no «secundaria al SAM»: el SAM marcado no prueba el mecanismo, y
+         una IM primaria por prolapso en un paciente que además tiene SAM se trata distinto —la
+         del SAM cede reduciendo la obstrucción, la primaria se opera—. Y se traduce el código:
+         `im_grado` es 0-4 en el formulario pero puede llegar como texto desde un backup
+         importado, así que imprimir «grado ' + im + '/4» daba «grado Moderada/4». */
+      const _imTxt = _ccLbl({ '1':'leve', '2':'moderada', '3':'moderada-severa', '4':'severa' }, sv('im_grado'));
+      if (sv('mch_sam') === 'si' && _imTxt) p.push('Insuficiencia mitral ' + _imTxt + ' en presencia de SAM');
+      /* `c.txt` ya trae el diagnóstico, la obstrucción, los dos scores y el contexto: se arma
+         entero en mchConclusion para que la pantalla y el informe no puedan divergir. */
+      etePars.push(p.join('. ') + '. ' + c.txt + '.');
+      /* Todo sube al EN SUMA menos el caso sin datos suficientes para nada. Una estratificación
+         de muerte súbita sepultada en el cuerpo del informe no cumple ninguna función, y las
+         ramas «no aplicable» y «faltan datos» son justamente las que el médico necesita ver
+         para saber que el número que esperaba no está. */
+      if (c.clave !== 'no_interpretable') suma.push((c.resumen || c.txt) + '.');
+    })();
+
     if (etePars.length) inf.push('', ...etePars);
   })();
 
@@ -17185,7 +17401,7 @@ function _noEsDelEstudio(id) {
    Los `calc*` NO entran acá: son estables y cada sitio llama los suyos. Lo que crece con cada
    módulo nuevo es esta lista, y por eso tiene que estar en un solo lugar. */
 function RECALC_MODULOS() {
-  return ['eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync'];
+  return ['eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -21620,6 +21836,353 @@ function vabSync(){
   txt('vab-concl', c ? c.txt : '—');
 }
 window.vabSync = vabSync; window.vabConclusion = vabConclusion; window.vabFactores = vabFactores;
+
+/* ══ MIOCARDIOPATÍA HIPERTRÓFICA ═════════════════════════════════════════════════════════
+   NO es una cardiopatía congénita — es una miocardiopatía genética. Está en esta pestaña por
+   el modo de trabajo (base hereditaria, seguimiento largo, criterios de guía) y por eso la
+   pestaña se llama «congénitas y miocardiopatías genéticas» y no sólo «congénitas».
+
+   Esta sección calcula DOS scores de muerte súbita con criterios distintos y los muestra lado
+   a lado, cada uno con su guía y su clase. No se promedian ni se elige uno: discrepan de
+   verdad —el modelo europeo es una ecuación continua y el americano un conteo de factores— y
+   ocultar la discrepancia sería decidir por el médico.
+
+   ── LA ECUACIÓN ──
+   HCM Risk-SCD (O'Mahony 2014, el modelo que la ESC mantiene). Los coeficientes están
+   verificados uno por uno contra la publicación y quedan registrados en CLAUDE.md, porque no
+   se pueden reconstruir de memoria y un dígito cambiado acá es una recomendación de implante.
+
+   La variable auricular es el DIÁMETRO ANTEROPOSTERIOR EN MILÍMETROS (`ai_diam`). No el LAVI
+   ni el LARS: `lars` es strain de reservorio en % y el coeficiente está calibrado sobre mm.
+   Medido sobre un mismo paciente, usar `lars` en vez de `ai_diam` movía el resultado de 5,80 %
+   (intermedio, DAI Clase IIb) a 3,24 % (bajo, no indicado).
+
+   ── LAS COMPUERTAS ──
+   El modelo NO está validado en varias poblaciones, y ahí no se publica el número: se dice cuál
+   exclusión lo impide. Es una decisión tomada, no una omisión — un porcentaje impreso en un
+   informe firmado se lee como válido aunque tenga una salvedad debajo. */
+const MCH_LOC_TXT = {
+  sept_ant:'septal anterosuperior', sept_post:'septal posterior', apical:'apical',
+  lateral:'lateral', concentrica:'concéntrica', medioventricular:'medioventricular'
+};
+const MCH_PATRON_TXT = { sigmoidea:'sigmoidea', reversa:'de curvatura reversa', apical:'apical', neutral:'neutral' };
+function _mchSv(id){ return (document.getElementById(id)?.value || '').trim(); }
+function _mchNv(id){ const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; }
+/* Gradiente TSVI MÁXIMO: el mayor entre reposo y Valsalva, que es lo que pide el modelo. Un 0
+   es un dato válido —MCH no obstructiva— y no lo mismo que el campo vacío, así que se distingue. */
+/* Espesor máximo con su banda, en UN SOLO lugar. Antes la banda vivía dentro de mchScoreESC y
+   `mchAHA` y la cascada diagnóstica volvían a leer el campo crudo: un 180 tipeado por 18,0
+   bloqueaba el score de la ESC —bien— y al mismo tiempo encendía el factor mayor «espesor
+   ≥30 mm» de la AHA, que publica «desfibrilador razonable (Clase IIa)». Y un 1,8 por 18 hacía
+   que el factor contara como EVALUADO Y AUSENTE, o sea que el informe firmaba «ninguno de los
+   evaluados» sobre un número que la propia app acababa de declarar ilegible. La banda tiene que
+   ser la misma para los tres consumidores. */
+function mchEspesor(){
+  const n = _mchNv('mch_espesor');
+  if (n == null) return { valor:null, fuera:false, crudo:null };
+  if (n < 5 || n > 60) return { valor:null, fuera:true, crudo:n };
+  return { valor:n, fuera:false, crudo:n };
+}
+/* FEVI con banda, por lo mismo: un 0,45 tipeado por 45 encendía «disfunción sistólica del VI
+   (FEVI <50 %)» como factor mayor de la AHA. */
+function mchFevi(){
+  const n = _mchNv('fevi');
+  if (n == null) return { valor:null, fuera:false };
+  if (n < 5 || n > 90) return { valor:null, fuera:true };
+  return { valor:n, fuera:false };
+}
+/* Devuelve también QUÉ se midió. El número solo perdía esa información y la rama benigna
+   afirmaba «sin obstrucción significativa en reposo NI CON VALSALVA» con la Valsalva sin hacer
+   — que es justo el fenotipo de obstrucción latente, el único para el que existe la maniobra.
+   Es la misma regla que el módulo de FOP ya aplica separando reposo de Valsalva. */
+function mchGrad(){
+  const r = _mchNv('mch_grad_reposo'), val = _mchNv('mch_grad_valsalva');
+  const max = (r == null && val == null) ? null : (r == null ? val : (val == null ? r : Math.max(r, val)));
+  return { max: max, reposo: r, valsalva: val, hayReposo: r != null, hayValsalva: val != null };
+}
+function mchGradMax(){ return mchGrad().max; }
+/* Las seis exclusiones del HCM Risk-SCD.
+   `activas` son las marcadas «sí»: sólo el sí explícito excluye. `pendientes` son las que nadie
+   contestó, y NO son decorativas: hasta el 2026-09-10 se calculaban y no las leía nadie, así que
+   con las seis compuertas sin tocar —que es el estado de fábrica— el porcentaje se publicaba
+   igual. Un paciente en estudio por sospecha de amiloidosis salía con «riesgo bajo, desfibrilador
+   no indicado» sobre un modelo que no está validado en fenocopias infiltrativas.
+   El número se sigue publicando (bloquearlo pediría contestar seis desplegables antes de ver
+   nada), pero la aplicabilidad no verificada viaja en las DOS superficies —cuerpo y EN SUMA— y
+   no sólo en una. La asimetría con los tres binarios del score es deliberada: aquellos entran en
+   la ecuación y un «no consta» tratado como 0 cambia el número; una exclusión sin contestar no
+   cambia el número, cambia si el número corresponde. */
+function mchExclusiones(){
+  const edad = _mchNv('edad');
+  const act = [], pend = [];
+  const chequear = (id, txt) => {
+    const val = _mchSv(id);
+    if (val === 'si') act.push(txt);
+    else if (val !== 'no') pend.push(txt);
+  };
+  /* La edad se deriva y no se pregunta: ya está cargada, y preguntarla otra vez es la vía a que
+     el informe se contradiga consigo mismo. */
+  if (edad != null && edad > 0 && edad < 16) act.push('menor de 16 años');
+  chequear('mch_ex_atleta',   'atleta de competición');
+  /* La fenocopia NO se deriva del módulo de amiloidosis, aunque la decisión registrada decía
+     derivarla: que ese módulo tenga datos significa que la amiloidosis se está EVALUANDO, que es
+     lo contrario de que esté confirmada — se usa justamente para descartarla. Derivar una
+     exclusión de «alguien miró» sería inventar un diagnóstico. Lo que sí se hace es avisar: si el
+     módulo tiene datos y esta pregunta quedó sin contestar, se dice con todas las letras. */
+  const _amHayDatos = ['ett-septo','ett-pp'].some(function(id){
+    const e = document.getElementById(id); return !!e && String(e.value || '').trim() !== '';
+  });
+  const _fen = _mchSv('mch_ex_fenocopia');
+  if (_fen === 'si') act.push('fenocopia metabólica o infiltrativa (Fabry, amiloidosis)');
+  else if (_fen !== 'no') pend.push('fenocopia metabólica o infiltrativa (Fabry, amiloidosis)' +
+    (_amHayDatos ? ' — hay datos cargados en el módulo de amiloidosis de esta app' : ''));
+  chequear('mch_ex_sindromica','miocardiopatía hipertrófica sindrómica');
+  chequear('mch_ex_parada',   'parada cardíaca o taquicardia ventricular sostenida previa');
+  chequear('mch_ex_reduccion','miectomía o alcoholización septal previa');
+  return { activas: act, pendientes: pend };
+}
+/* ESC HCM Risk-SCD. Devuelve el porcentaje, o la lista de lo que falta. Nunca un número a medias. */
+function mchScoreESC(){
+  const espH = mchEspesor(), esp = espH.valor;
+  const ai   = _mchNv('ai_diam');
+  const grad = mchGradMax();
+  const edad = _mchNv('edad');
+  const fhx  = _mchSv('mch_fam_ms'), tvns = _mchSv('mch_tvns'), sinc = _mchSv('mch_sincope');
+  const faltan = [];
+  if (espH.crudo == null) faltan.push('espesor máximo de pared');
+  if (ai   == null) faltan.push('diámetro anteroposterior de aurícula izquierda (tab AI / VI)');
+  if (grad == null) faltan.push('gradiente en el tracto de salida (reposo o Valsalva)');
+  if (edad == null || !(edad > 0)) faltan.push('edad (Datos del paciente)');
+  /* Los tres binarios exigen respuesta EXPLÍCITA. Tratar «no consta» como 0 es lo que hace la
+     mayoría de las calculadoras y es la razón por la que el número sale más bajo de lo que
+     corresponde: un síncope no preguntado pesa 0,7165 en el índice, que no es poco. */
+  if (fhx  !== 'si' && fhx  !== 'no') faltan.push('historia familiar de muerte súbita');
+  if (tvns !== 'si' && tvns !== 'no') faltan.push('taquicardia ventricular no sostenida en Holter');
+  if (sinc !== 'si' && sinc !== 'no') faltan.push('síncope inexplicado');
+  /* Bandas de plausibilidad: fuera de rango no se calcula. Un espesor de 1,8 (cm por mm) da un
+     índice pronóstico absurdo y el modelo devuelve un número igual. */
+  const fuera = [];
+  if (espH.fuera) fuera.push('espesor máximo');
+  if (ai   != null && (ai   < 15 || ai   > 90))  fuera.push('diámetro de aurícula izquierda');
+  if (grad != null && (grad < 0  || grad > 250)) fuera.push('gradiente en el tracto de salida');
+  if (edad != null && (edad < 0  || edad > 120)) fuera.push('edad');
+  if (fuera.length) return { fuera: fuera };
+  if (faltan.length) return { faltan: faltan };
+  const pi = 0.15939858 * esp
+           - 0.00294271 * esp * esp
+           + 0.0259082  * ai
+           + 0.00446131 * grad
+           + 0.4583082  * (fhx  === 'si' ? 1 : 0)
+           + 0.82639195 * (tvns === 'si' ? 1 : 0)
+           + 0.71650361 * (sinc === 'si' ? 1 : 0)
+           - 0.01799934 * edad;
+  const pct = 100 * (1 - Math.pow(0.998, Math.exp(pi)));
+  if (!isFinite(pct) || pct < 0 || pct > 100) return { fuera: ['resultado fuera de rango'] };
+  /* Bandas de la ESC. El corte alto es ≥6 %, no >6: la guía dice «≥6 %» y en 6,00 exacto la
+     diferencia entre IIa y IIb es un implante. La nota de CLAUDE.md decía «>6», se corrigió acá
+     al implementar y queda dicho para que no se «arregle» de vuelta. */
+  const banda = pct < 4 ? 'bajo' : (pct < 6 ? 'intermedio' : 'alto');
+  return { pct: pct, banda: banda };
+}
+/* Los SIETE factores mayores de la AHA/ACC 2020. La respuesta tensional anormal al ejercicio NO
+   entra en el conteo —salió de la lista en 2020— pero se registra y el informe la menciona con
+   esa aclaración. La FEVI se deriva del campo que ya existe. */
+function mchAHA(){
+  const pres = [], pend = [];
+  /* Las MISMAS bandas que el score de la ESC. Un valor fuera de rango no cuenta como presente
+     ni como evaluado: entra en pendientes, que es lo que es. */
+  const espH = mchEspesor(), feviH = mchFevi();
+  const chequear = (cond, txt, evaluado) => { if (cond) pres.push(txt); else if (!evaluado) pend.push(txt); };
+  const bin = (id, txt) => { const val = _mchSv(id); chequear(val === 'si', txt, val === 'si' || val === 'no'); };
+  bin('mch_fam_ms',  'historia familiar de muerte súbita por MCH');
+  chequear(espH.valor != null && espH.valor >= 30, 'espesor máximo ≥30 mm', espH.valor != null);
+  bin('mch_sincope', 'síncope inexplicado');
+  bin('mch_tvns',    'taquicardia ventricular no sostenida');
+  bin('mch_aneurisma_apical', 'aneurisma apical del ventrículo izquierdo');
+  chequear(feviH.valor != null && feviH.valor < 50, 'disfunción sistólica del VI (FEVI <50 %)', feviH.valor != null);
+  bin('mch_fibrosis_rmn', 'realce tardío extenso por resonancia');
+  return { presentes: pres, pendientes: pend, n: pres.length };
+}
+function mchConclusion(){
+  const espH = mchEspesor(), esp = espH.valor;
+  const gr = mchGrad(), grad = gr.max;
+  const loc = _mchSv('mch_loc'), patron = _mchSv('mch_patron');
+  /* Con una fenocopia o una forma sindrómica marcada, la hipertrofia TIENE causa conocida y por
+     definición no es una miocardiopatía hipertrófica. La app no puede afirmar el diagnóstico que
+     el propio médico acaba de descartar en el desplegable de al lado. */
+  const causaConocida = _mchSv('mch_ex_fenocopia') === 'si' || _mchSv('mch_ex_sindromica') === 'si';
+  const nombre = causaConocida ? 'Hipertrofia ventricular izquierda' : 'Miocardiopatía hipertrófica';
+  const sam = _mchSv('mch_sam'), meso = _mchSv('mch_mesocavitaria'), aneur = _mchSv('mch_aneurisma_apical');
+  const cf = _mchSv('mch_cf');
+  /* Se exige una MEDICIÓN o una respuesta afirmativa: un `<select>` descriptivo solo no alcanza.
+     Antes, elegir «Apical» en Localización para ver qué hacía y tocar Integrar producía
+     «Miocardiopatía hipertrófica de distribución apical» en el informe firmado, sin una sola
+     medición detrás. Y contestar «No» a las tres preguntas de obstrucción sin cargar nada daba
+     `hayDato` falso: el botón decía «✓ Integrado» y no se imprimía nada. */
+  const hayDato = !!(espH.crudo != null || grad != null || sam === 'si' || meso === 'si' ||
+                     aneur === 'si' || ((loc || patron) && (espH.crudo != null || grad != null)));
+  if (!hayDato) return null;
+
+  const partes = [];
+  /* 1 · Diagnóstico. ≥15 mm es el umbral en el caso esporádico; ≥13 mm alcanza con historia
+     familiar de MCH. Sin espesor no se afirma ni se niega el diagnóstico. */
+  const fam = _mchSv('mch_fam_mch');
+  /* «medido en esta sección»: el módulo de amiloidosis imprime en la MISMA tarjeta su propio
+     «Espesor parietal máximo», derivado de `ett-septo`/`ett-pp` y con umbral de 12 mm. Los dos
+     botones de integrar son independientes y el caso natural es tenerlos activos a la vez —la
+     duda entre MCH y amiloidosis es el diferencial clásico de una HVI inexplicada—, así que sin
+     calificar cada frase el informe firmado quedaba con dos renglones que empiezan igual y dan
+     números distintos. Sigue siendo una medición duplicada: ver la deuda en CLAUDE.md. */
+  if (espH.fuera) partes.push('Espesor parietal máximo de ' + espH.crudo + ' mm fuera de rango: revisar unidades');
+  else if (esp != null) {
+    const pre = 'Espesor parietal máximo medido en esta sección ' + esp + ' mm';
+    if (esp >= 15) partes.push(pre + (causaConocida
+      ? ', en rango de hipertrofia significativa; con causa conocida marcada no se aplica el criterio diagnóstico de miocardiopatía hipertrófica'
+      : ', en rango diagnóstico de miocardiopatía hipertrófica'));
+    else if (esp >= 13 && fam === 'si') partes.push(pre + ', en rango diagnóstico en el contexto de historia familiar de miocardiopatía hipertrófica');
+    else if (esp >= 13) partes.push(pre + ', por debajo del umbral diagnóstico de 15 mm; alcanzaría el criterio con historia familiar de miocardiopatía hipertrófica');
+    else partes.push(pre + ', por debajo del umbral diagnóstico');
+  }
+  /* 2 · Obstrucción. ≥30 mmHg define obstrucción significativa; ≥50 con síntomas refractarios
+     es el umbral de reducción septal. */
+  if (grad != null) {
+    if (grad >= 50) {
+      const refractario = cf === 'iii_iv';
+      partes.push('Gradiente máximo en el tracto de salida de ' + grad + ' mmHg' +
+        (refractario ? ' con clase funcional III-IV: umbral de reducción septal (miectomía o alcoholización) si es refractario al tratamiento médico óptimo'
+                     : '; con síntomas refractarios en clase funcional III-IV correspondería evaluar reducción septal'));
+    } else if (grad >= 30) partes.push('Gradiente máximo en el tracto de salida de ' + grad + ' mmHg: obstrucción significativa — tratamiento con betabloqueante o verapamilo');
+    else {
+      /* Se nombra SÓLO lo que se midió. «Sin obstrucción en reposo ni con Valsalva» con la
+         Valsalva sin hacer describe como negativa una maniobra que no se realizó, y ése es
+         exactamente el fenotipo de obstrucción latente: basal 0, provocado 70. */
+      const donde = (gr.hayReposo && gr.hayValsalva) ? 'en reposo ni con maniobra de Valsalva'
+                  : (gr.hayValsalva ? 'con maniobra de Valsalva' : 'en reposo');
+      partes.push('Gradiente máximo en el tracto de salida de ' + grad + ' mmHg: sin obstrucción significativa ' + donde +
+        (gr.hayValsalva ? '' : '; la maniobra de Valsalva no está registrada, y la obstrucción latente sólo se detecta con provocación'));
+    }
+  }
+  if (aneur === 'si') partes.push('Aneurisma apical, que es factor mayor de riesgo arrítmico y foco de trombo');
+  if (meso === 'si')  partes.push('Obstrucción mesocavitaria');
+  if (sam === 'si')   partes.push('SAM de la válvula mitral');
+
+  /* 3 · Los dos scores. Las exclusiones sólo apagan el de la ESC —es el que está validado en
+     una población concreta—; el conteo de la AHA es una lista de factores y sigue siendo
+     informativo. */
+  const ex = mchExclusiones();
+  const esc = mchScoreESC();
+  const aha = mchAHA();
+  let txtESC;
+  if (ex.activas.length) txtESC = 'El score HCM Risk-SCD de la ESC no es aplicable en este paciente (' + ex.activas.join('; ') + ')' +
+    (_mchSv('mch_ex_parada') === 'si' ? '; en ese escenario el desfibrilador está indicado en prevención secundaria, con independencia del score' : '');
+  else if (esc.fuera)  txtESC = 'Score HCM Risk-SCD no calculado: ' + esc.fuera.join(' y ') + ' fuera de rango — revisar unidades';
+  else if (esc.faltan) txtESC = 'Score HCM Risk-SCD no calculado, faltan datos: ' + esc.faltan.join('; ');
+  else {
+    const cl = esc.banda === 'alto' ? ' — desfibrilador a considerar (Clase IIa, ESC)'
+             : (esc.banda === 'intermedio' ? ' — desfibrilador puede considerarse (Clase IIb, ESC)'
+                                           : ' — desfibrilador no indicado de rutina');
+    txtESC = 'Riesgo de muerte súbita a 5 años (HCM Risk-SCD, ESC) ' + esc.pct.toFixed(2) + ' %: riesgo ' + esc.banda + cl +
+      (ex.pendientes.length ? '. El modelo no está validado en algunas poblaciones y no consta si este paciente pertenece a ellas: ' + ex.pendientes.join('; ') : '');
+  }
+  const txtAHA = aha.n
+    ? 'Factores mayores de la AHA/ACC 2020: ' + aha.n + ' (' + aha.presentes.join('; ') + ') — desfibrilador razonable (Clase IIa, AHA)' +
+      (aha.pendientes.length ? '. Sin evaluar: ' + aha.pendientes.join('; ') : '')
+    : (aha.pendientes.length === 7
+        ? 'Factores mayores de la AHA/ACC 2020: ninguno evaluado'
+        : 'Factores mayores de la AHA/ACC 2020: ninguno de los evaluados' +
+          (aha.pendientes.length ? '. Sin evaluar: ' + aha.pendientes.join('; ') : '') +
+          (aha.pendientes.length ? '' : ' — desfibrilador no indicado por este criterio'));
+  partes.push(txtESC);
+  partes.push(txtAHA);
+  /* La AHA cuenta un factor que el ecocardiograma no puede ver. Decirlo evita que un conteo de
+     cero se lea como «sin factores» cuando lo que falta es una resonancia. */
+  if (_mchSv('mch_fibrosis_rmn') !== 'si' && _mchSv('mch_fibrosis_rmn') !== 'no')
+    partes.push('La lista de la AHA incluye el realce tardío extenso por resonancia, que la ecocardiografía no evalúa');
+  /* Contexto que no vota en ningún score, por decisión registrada. */
+  const ctx = [];
+  if (_mchSv('mch_tension_ejercicio') === 'si') ctx.push('respuesta tensional anormal al ejercicio (factor reconocido en guías previas, no incluido en el conteo AHA/ACC 2020)');
+  if (_mchSv('mch_ctx_hta') === 'si') ctx.push('hipertensión arterial resistente');
+  if (_mchNv('mch_ctx_crecimiento') != null) ctx.push('crecimiento del espesor de ' + _mchNv('mch_ctx_crecimiento') + ' mm/año');
+  if (_mchSv('mch_ctx_embarazo') === 'si') ctx.push('deseo de embarazo');
+  if (ctx.length) partes.push('Factores adicionales considerados: ' + ctx.join('; '));
+
+  const clave = ex.activas.length ? 'no_aplicable'
+    : (esc.fuera ? 'no_interpretable'
+      : (esc.faltan ? 'incompleto'
+        : (esc.banda === 'alto' ? 'alto' : (esc.banda === 'intermedio' ? 'intermedio' : 'bajo'))));
+
+  /* El EN SUMA lleva un RESUMEN, no el párrafo entero. Todas las demás secciones suben una
+     oración; ésta armaba seis —diagnóstico, obstrucción, los dos scores, la nota de la RMN y el
+     contexto— y con eso desbordaba la conclusión del informe y empujaba el ajuste A4 a una
+     segunda hoja. Lo que sube es lo accionable: la estratificación y su clase. El detalle
+     completo queda en el cuerpo, que es donde se lee el estudio.
+     Se construye desde las MISMAS variables que el texto largo, no re-derivando nada: dos
+     cálculos del mismo hecho es la forma de que la conclusión y el cuerpo terminen discrepando. */
+  let resumen;
+  if (ex.activas.length) resumen = 'Miocardiopatía hipertrófica: el score HCM Risk-SCD no es aplicable (' + ex.activas.join('; ') + ')' +
+    (_mchSv('mch_ex_parada') === 'si' ? '; desfibrilador indicado en prevención secundaria' : '');
+  else if (esc.fuera)  resumen = 'Miocardiopatía hipertrófica: score de muerte súbita no calculado — ' + esc.fuera.join(' y ') + ' fuera de rango';
+  else if (esc.faltan) resumen = 'Miocardiopatía hipertrófica: score de muerte súbita no calculado, faltan ' + esc.faltan.length +
+    (esc.faltan.length === 1 ? ' dato' : ' datos') + ' (detalle en el cuerpo del informe)';
+  else resumen = 'Miocardiopatía hipertrófica: riesgo de muerte súbita a 5 años ' + esc.pct.toFixed(2) + ' % (HCM Risk-SCD, ESC), riesgo ' + esc.banda +
+    (esc.banda === 'alto' ? ' — desfibrilador a considerar (Clase IIa)' : (esc.banda === 'intermedio' ? ' — desfibrilador puede considerarse (Clase IIb)' : ' — desfibrilador no indicado de rutina'));
+  /* El resumen arrastra los factores SIN EVALUAR. Sin eso, un paciente sin resonancia salía con
+     «AHA/ACC 2020: ninguno de los factores evaluados» en el EN SUMA —que es donde el conteo se
+     lee— mientras el cuerpo aclaraba que faltaba justo el estudio que cambia la conducta. El
+     manual afirmaba que la nota existía para evitar esa lectura; existía sólo en el cuerpo.
+     Y «ninguno de los factores evaluados» se leía en los dos sentidos opuestos: ahora la rama sin
+     factores presentes dice explícitamente «está presente». */
+  resumen += '. AHA/ACC 2020: ' + (aha.n
+    ? aha.n + (aha.n === 1 ? ' factor mayor' : ' factores mayores') + ' — desfibrilador razonable (Clase IIa)'
+    : (aha.pendientes.length === 7 ? 'ningún factor evaluado'
+       : 'ninguno de los factores evaluados está presente'))
+    + (aha.pendientes.length && aha.pendientes.length < 7
+        ? ' (' + aha.pendientes.length + (aha.pendientes.length === 1 ? ' sin evaluar' : ' sin evaluar') + ')'
+        : '');
+  /* La resonancia se nombra en el resumen, no sólo en el cuerpo: es el único factor de la lista
+     que el ecocardiograma no puede ver, y un conteo bajo sin ella no significa lo mismo. */
+  if (_mchSv('mch_fibrosis_rmn') !== 'si' && _mchSv('mch_fibrosis_rmn') !== 'no')
+    resumen += '. No consta resonancia, que es uno de los factores mayores de la AHA y el eco no evalúa';
+  /* Y la aplicabilidad no verificada del modelo europeo. */
+  if (!ex.activas.length && ex.pendientes.length)
+    resumen += '. Aplicabilidad del score de la ESC no verificada: ' + ex.pendientes.length +
+               (ex.pendientes.length === 1 ? ' exclusión sin contestar' : ' exclusiones sin contestar');
+  /* La obstrucción severa sube también: cambia una conducta distinta de la del desfibrilador. */
+  if (grad != null && grad >= 50) resumen += '. Obstrucción severa en el tracto de salida (' + grad + ' mmHg)';
+  return { clave: clave, txt: partes.join('. '), resumen: resumen, esc: esc, aha: aha, ex: ex };
+}
+function mchSync(){
+  const txt = (id,s) => { const e=document.getElementById(id); if(e) e.textContent = s; };
+  const ro  = (id,s) => { const e=document.getElementById(id); if(e) e.value = s; };
+  ro('mch_ai_ro',   _mchNv('ai_diam') != null ? _mchNv('ai_diam') + ' mm' : '');
+  ro('mch_fevi_ro', _mchNv('fevi')    != null ? _mchNv('fevi')    + ' %'  : '');
+  ro('mch_siv_ro',  (function(){ const s=_mchNv('siv'), p=_mchNv('ppvi');
+      return (s!=null||p!=null) ? ('SIV ' + (s!=null?s:'—') + ' · PP ' + (p!=null?p:'—') + ' mm') : ''; })());
+  const g = mchGradMax();
+  txt('mch-grad-max', g == null ? '—' : g + ' mmHg' + (g >= 50 ? ' — obstrucción severa' : (g >= 30 ? ' — obstrucción significativa' : ' — sin obstrucción')));
+  /* Con la sección virgen los tres paneles quedan en «—». Antes el de la ESC listaba los siete
+     datos faltantes sobre un formulario en blanco: es ruido, y encima se lee como si la sección
+     estuviera reclamando algo cuando el médico todavía no dijo que este paciente tenga una
+     miocardiopatía. La lista aparece en cuanto hay un dato de la sección cargado. */
+  const hayAlgo = !!mchConclusion();
+  const ex = mchExclusiones();
+  const esc = mchScoreESC();
+  if (!hayAlgo) { txt('mch-esc', '—'); txt('mch-aha', '—'); txt('mch-concl', '—'); return; }
+  if (ex.activas.length) txt('mch-esc', 'No aplicable — ' + ex.activas.join('; '));
+  else if (esc.fuera)  txt('mch-esc', 'Fuera de rango: ' + esc.fuera.join(' y '));
+  else if (esc.faltan) txt('mch-esc', 'Faltan: ' + esc.faltan.join('; '));
+  else txt('mch-esc', esc.pct.toFixed(2) + ' % a 5 años — riesgo ' + esc.banda +
+      (esc.banda === 'alto' ? ' (DAI Clase IIa)' : (esc.banda === 'intermedio' ? ' (DAI Clase IIb)' : ' (DAI no indicado de rutina)')) +
+      (ex.pendientes.length ? ' · aplicabilidad sin verificar (' + ex.pendientes.length + ')' : ''));
+  const aha = mchAHA();
+  txt('mch-aha', aha.n ? aha.n + (aha.n === 1 ? ' factor mayor' : ' factores mayores') + ' — DAI razonable (Clase IIa)'
+      : (aha.pendientes.length === 7 ? '— (ninguno evaluado)' : 'ninguno de los evaluados'));
+  const c = mchConclusion();
+  txt('mch-concl', c ? c.txt : '—');
+}
+window.mchSync = mchSync; window.mchConclusion = mchConclusion;
+window.mchScoreESC = mchScoreESC; window.mchAHA = mchAHA; window.mchExclusiones = mchExclusiones;
+window.mchGradMax = mchGradMax;
 function eteDDVIi(){
   const d = v('ddfvi'), asc = (typeof getBSA==='function') ? getBSA() : null;
   if(d==null || !asc || !(asc>0)) return null;
@@ -21971,7 +22534,8 @@ const ETE_INCL_LBL = {
   coart_incluir_chk:       'Coartación de aorta',
   vap_incluir_chk:         'Ventana aortopulmonar',
   fop_incluir_chk:         'Foramen oval permeable',
-  vab_incluir_chk:         'Válvula aórtica bicúspide'
+  vab_incluir_chk:         'Válvula aórtica bicúspide',
+  mch_incluir_chk:         'Miocardiopatía hipertrófica'
 };
 function eteInclSync(){
   document.querySelectorAll('.btn-integrar[data-ete-chk]').forEach(function(b){
@@ -22007,7 +22571,7 @@ function eteShuntTaviReset(){
    'coa_diast_anterogrado'].forEach(function(id){
     const c=document.getElementById(id); if(c) c.checked=false;
   });
-  try{ dapSync(); coaSync(); vapSync(); fopSync(); vabSync(); }catch(e){}
+  try{ dapSync(); coaSync(); vapSync(); fopSync(); vabSync(); mchSync(); }catch(e){}
   const jh=document.getElementById('ete_tavi_jet_horas'); if(jh) jh.value='';
   try{ eteEpcSet([]); eteEpcDibujar(); }catch(e){}
   try{ eteShuntTab('cia'); eteTaviTab('pre'); }catch(e){}
@@ -31339,7 +31903,31 @@ function _labExcelRow(inf) {
     'VAB FR cirugía concomitante': _cc3e(c.vab_fr_cx),
     'VAB FR deseo de embarazo': _cc3e(c.vab_fr_embarazo),
     'Incluir FOP en informe':        c['fop_incluir_chk__chk']    === '1' ? 1 : 0,
+    'MCH espesor máximo (mm)': rnd(num('mch_espesor'),1),
+    'MCH localización': _ccLbl({sept_ant:'Septal anterosuperior',sept_post:'Septal posterior',apical:'Apical',lateral:'Lateral',concentrica:'Concéntrica',medioventricular:'Medioventricular'}, c.mch_loc),
+    'MCH patrón morfológico': _ccLbl({sigmoidea:'Sigmoidea',reversa:'Curvatura reversa',apical:'Apical',neutral:'Neutral'}, c.mch_patron),
+    'MCH historia familiar MCH': _cc3e(c.mch_fam_mch),
+    'MCH gradiente reposo (mmHg)': rnd(num('mch_grad_reposo'),0),
+    'MCH gradiente Valsalva (mmHg)': rnd(num('mch_grad_valsalva'),0),
+    'MCH SAM mitral': _cc3e(c.mch_sam),
+    'MCH obstrucción mesocavitaria': _cc3e(c.mch_mesocavitaria),
+    'MCH clase funcional': _ccLbl({i_ii:'I-II',iii_iv:'III-IV'}, c.mch_cf),
+    'MCH historia familiar muerte súbita': _cc3e(c.mch_fam_ms),
+    'MCH síncope inexplicado': _cc3e(c.mch_sincope),
+    'MCH TVNS en Holter': _cc3e(c.mch_tvns),
+    'MCH aneurisma apical': _cc3e(c.mch_aneurisma_apical),
+    'MCH realce tardío RMN': _cc3e(c.mch_fibrosis_rmn),
+    'MCH respuesta tensional ejercicio': _cc3e(c.mch_tension_ejercicio),
+    'MCH excl. atleta': _cc3e(c.mch_ex_atleta),
+    'MCH excl. fenocopia': _cc3e(c.mch_ex_fenocopia),
+    'MCH excl. sindrómica': _cc3e(c.mch_ex_sindromica),
+    'MCH excl. parada previa': _cc3e(c.mch_ex_parada),
+    'MCH excl. reducción septal': _cc3e(c.mch_ex_reduccion),
+    'MCH HTA resistente': _cc3e(c.mch_ctx_hta),
+    'MCH crecimiento espesor (mm/año)': rnd(num('mch_ctx_crecimiento'),1),
+    'MCH deseo de embarazo': _cc3e(c.mch_ctx_embarazo),
     'Incluir VAB en informe':        c['vab_incluir_chk__chk']    === '1' ? 1 : 0,
+    'Incluir MCH en informe':        c['mch_incluir_chk__chk']    === '1' ? 1 : 0,
     'Informe (texto completo)': c.informe_texto || '', 'EN SUMA (texto completo)': c.en_suma || '',
   };
 }
@@ -31739,6 +32327,29 @@ const LAB_XLS_MAP = [
   ['VAB FR longitud Ao >=11cm',  'vab_fr_longitud','vocab'],
   ['VAB FR cirugía concomitante','vab_fr_cx',     'vocab'],
   ['VAB FR deseo de embarazo',   'vab_fr_embarazo','vocab'],
+  ['MCH espesor máximo (mm)',    'mch_espesor',   'num'],
+  ['MCH localización',           'mch_loc',       'vocab'],
+  ['MCH patrón morfológico',     'mch_patron',    'vocab'],
+  ['MCH historia familiar MCH',  'mch_fam_mch',   'vocab'],
+  ['MCH gradiente reposo (mmHg)','mch_grad_reposo','num'],
+  ['MCH gradiente Valsalva (mmHg)','mch_grad_valsalva','num'],
+  ['MCH SAM mitral',             'mch_sam',       'vocab'],
+  ['MCH obstrucción mesocavitaria','mch_mesocavitaria','vocab'],
+  ['MCH clase funcional',        'mch_cf',        'vocab'],
+  ['MCH historia familiar muerte súbita','mch_fam_ms','vocab'],
+  ['MCH síncope inexplicado',    'mch_sincope',   'vocab'],
+  ['MCH TVNS en Holter',         'mch_tvns',      'vocab'],
+  ['MCH aneurisma apical',       'mch_aneurisma_apical','vocab'],
+  ['MCH realce tardío RMN',      'mch_fibrosis_rmn','vocab'],
+  ['MCH respuesta tensional ejercicio','mch_tension_ejercicio','vocab'],
+  ['MCH excl. atleta',           'mch_ex_atleta', 'vocab'],
+  ['MCH excl. fenocopia',        'mch_ex_fenocopia','vocab'],
+  ['MCH excl. sindrómica',       'mch_ex_sindromica','vocab'],
+  ['MCH excl. parada previa',    'mch_ex_parada', 'vocab'],
+  ['MCH excl. reducción septal', 'mch_ex_reduccion','vocab'],
+  ['MCH HTA resistente',         'mch_ctx_hta',   'vocab'],
+  ['MCH crecimiento espesor (mm/año)','mch_ctx_crecimiento','num'],
+  ['MCH deseo de embarazo',      'mch_ctx_embarazo','vocab'],
 
   // 16 · Inclusión en el informe
   ['Incluir CIA/CIV en informe', 'ete_shunt_incluir_chk__chk', 'chk'],
@@ -31748,6 +32359,7 @@ const LAB_XLS_MAP = [
   ['Incluir VAP en informe',         'vap_incluir_chk__chk',    'chk'],
   ['Incluir FOP en informe',         'fop_incluir_chk__chk',    'chk'],
   ['Incluir VAB en informe',         'vab_incluir_chk__chk',    'chk'],
+  ['Incluir MCH en informe',         'mch_incluir_chk__chk',    'chk'],
 
   // 17 · Texto libre
   ['Informe (texto completo)','informe_texto', 'txt'],
@@ -31998,6 +32610,23 @@ LAB_XLS_VOCAB.vab_fenotipo = { sin:'sin', 'sin dilatacion':'sin', normal:'sin',
   raiz:'raiz', 'de raiz':'raiz', 'fenotipo raiz':'raiz',
   tubular:'tubular', ascendente:'tubular', 'tubular / ascendente':'tubular',
   arco:'arco', extendido:'arco', 'con arco':'arco' };
+/* Miocardiopatía hipertrófica. Los dieciséis campos de tres estados reusan el núcleo. */
+['mch_fam_mch','mch_sam','mch_mesocavitaria','mch_fam_ms','mch_sincope','mch_tvns',
+ 'mch_aneurisma_apical','mch_fibrosis_rmn','mch_tension_ejercicio','mch_ex_atleta',
+ 'mch_ex_fenocopia','mch_ex_sindromica','mch_ex_parada','mch_ex_reduccion',
+ 'mch_ctx_hta','mch_ctx_embarazo'].forEach(function(k){
+  LAB_XLS_VOCAB[k] = Object.assign({}, LAB_XLS_VOCAB_3E);
+});
+LAB_XLS_VOCAB.mch_loc = { sept_ant:'sept_ant', 'septal anterosuperior':'sept_ant', 'septal anterior':'sept_ant',
+  sept_post:'sept_post', 'septal posterior':'sept_post',
+  apical:'apical', lateral:'lateral',
+  concentrica:'concentrica', 'concentrico':'concentrica',
+  medioventricular:'medioventricular', 'medio ventricular':'medioventricular' };
+LAB_XLS_VOCAB.mch_patron = { sigmoidea:'sigmoidea', sigmoideo:'sigmoidea',
+  reversa:'reversa', 'curvatura reversa':'reversa', 'de curvatura reversa':'reversa',
+  apical:'apical', neutral:'neutral', neutra:'neutral' };
+LAB_XLS_VOCAB.mch_cf = { i_ii:'i_ii', 'i-ii':'i_ii', 'i':'i_ii', ii:'i_ii',
+  iii_iv:'iii_iv', 'iii-iv':'iii_iv', iii:'iii_iv', iv:'iii_iv' };
 LAB_XLS_VOCAB.fop_burbujas = { pocas:'pocas', leve:'pocas', '<5':'pocas', 'menos de 5':'pocas',
                                moderado:'moderado', moderada:'moderado', '5-20':'moderado',
                                abundante:'abundante', severo:'abundante', severa:'abundante', '>20':'abundante' };
@@ -32045,6 +32674,25 @@ const LAB_XLS_OPCIONES = {
   vab_fr_longitud:'Sí · No · No consta',
   vab_fr_cx:'Sí · No · No consta',
   vab_fr_embarazo:'Sí · No · No consta',
+  mch_loc:'Septal anterosuperior · Septal posterior · Apical · Lateral · Concéntrica · Medioventricular',
+  mch_patron:'Sigmoidea · Curvatura reversa · Apical · Neutral',
+  mch_cf:'I-II · III-IV',
+  mch_sam:'Sí · No · No evaluado',
+  mch_mesocavitaria:'Sí · No · No evaluada',
+  mch_fam_mch:'Sí · No · No consta',
+  mch_fam_ms:'Sí · No · No consta',
+  mch_sincope:'Sí · No · No consta',
+  mch_tvns:'Sí · No · No consta',
+  mch_aneurisma_apical:'Sí · No · No evaluado',
+  mch_fibrosis_rmn:'Sí · No · No consta',
+  mch_tension_ejercicio:'Sí · No · No consta',
+  mch_ex_atleta:'Sí · No · No consta',
+  mch_ex_fenocopia:'Sí · No · No consta',
+  mch_ex_sindromica:'Sí · No · No consta',
+  mch_ex_parada:'Sí · No · No consta',
+  mch_ex_reduccion:'Sí · No · No consta',
+  mch_ctx_hta:'Sí · No · No consta',
+  mch_ctx_embarazo:'Sí · No · No consta',
 };
 LAB_XLS_OPCIONES.ia_grado = LAB_XLS_OPCIONES.it_grado = LAB_XLS_OPCIONES.im_grado;
 // Selects de texto libre acotado: se acepta cualquier opción de la lista, tal cual.
@@ -32440,7 +33088,10 @@ function labImportarXLSX(file) {
        /* Igual que el FOP: sólo los campos que DESCRIBEN la válvula. Los nueve factores de
           riesgo y el contexto quirúrgico no son el hallazgo — una fila que sólo diga «HTA
           resistente: Sí» no documenta una bicúspide. */
-       ['vab_incluir_chk__chk',       /^vab_(tipo|rafe|funcion|fenotipo)/]].forEach(([flag, rx]) => {
+       ['vab_incluir_chk__chk',       /^vab_(tipo|rafe|funcion|fenotipo)/],
+       /* Sólo lo que DESCRIBE la hipertrofia. Ni los factores de riesgo, ni las exclusiones, ni
+          el contexto: una fila que sólo diga «TVNS: Sí» no documenta una miocardiopatía. */
+       ['mch_incluir_chk__chk',       /^mch_(espesor|loc|patron|grad_|sam|mesocavitaria|aneurisma)/]].forEach(([flag, rx]) => {
         if (inf.campos[flag] !== undefined) return;
         /* Una RESPUESTA NEGATIVA no cuenta como dato. La corrección original se ató al tipo
            `chk` («cola diastólica en 0») y no al significado del valor, así que al llegar los
@@ -35246,6 +35897,7 @@ function labHemoRender(infs, n) {
   const fopArr = infs.filter(i => _labCampoRaw(i, 'fop_tunel') || _labCampoRaw(i, 'fop_asa_mm') ||
                                   _labCampoRaw(i, 'fop_burbujas'));
   const vabArr = infs.filter(i => _labCampoRaw(i, 'vab_tipo') || _labCampoRaw(i, 'vab_fenotipo'));
+  const mchArr = infs.filter(i => _labCampoRaw(i, 'mch_espesor') || _labCampoRaw(i, 'mch_loc'));
 
   /* El Qp/Qs se RECALCULA desde los cuatro campos guardados y no se lee del span: el span es
      del estudio que esté cargado en pantalla, así que leerlo daría el mismo número para los 60
@@ -35275,7 +35927,7 @@ function labHemoRender(infs, n) {
      condición vieja, una cohorte con ductus y sin CIA dejaba el bloque en «sin datos» y los
      estudios con ductus no aparecían en ninguna parte del laboratorio. Las barras de CIA y el
      pie de CIV siguen gateados por lo suyo, que es lo que de verdad las alimenta. */
-  if (!shuntArr.length && !dapArr.length && !coaArr.length && !vapArr.length && !fopArr.length && !vabArr.length) {
+  if (!shuntArr.length && !dapArr.length && !coaArr.length && !vapArr.length && !fopArr.length && !vabArr.length && !mchArr.length) {
     empty('lab-shunt-stats', 'CIA / CIV / ductus / coartación'); empty('lab-shunt-cia-bars', 'CIA');
     empty('lab-shunt-civ-pie', 'CIV');
   } else {
@@ -35297,7 +35949,8 @@ function labHemoRender(infs, n) {
       stat('Con coartación de aorta', coaArr.length + ' (' + pctS(coaArr.length) + ')') +
       stat('Con ventana aortopulmonar', vapArr.length + ' (' + pctS(vapArr.length) + ')') +
       stat('Con foramen oval permeable', fopArr.length + ' (' + pctS(fopArr.length) + ')') +
-      stat('Con válvula aórtica bicúspide', vabArr.length + ' (' + pctS(vabArr.length) + ')'));
+      stat('Con válvula aórtica bicúspide', vabArr.length + ' (' + pctS(vabArr.length) + ')') +
+      stat('Con miocardiopatía hipertrófica', mchArr.length + ' (' + pctS(mchArr.length) + ')'));
     const CIA_L = { secundum:'Ostium secundum', primum:'Ostium primum', sv_vcs:'Seno venoso VCS',
                     sv_vci:'Seno venoso VCI', seno_coronario:'Seno coronario' };
     const CIV_L = { perimembranosa:'Perimembranosa', muscular:'Muscular',
@@ -37701,6 +38354,19 @@ const ECO_AYUDA = [
   <div class="mBox mTip"><b>Dos huecos declarados, y son de la guía y no del cálculo.</b> El <b>fenotipo extendido</b> (con arco) no tiene fila de umbral propia en la ESC 2024: cuando se marca, el informe lo dice. Los umbrales generales —≥55 mm y el de cirugía valvular concomitante— se siguen aplicando, porque la guía los da para cualquier fenotipo; lo que no existe es un umbral <i>específico</i> del extendido. Y el <b>umbral indexado</b> no se usa: la AHA gradúa 10 cm²/m y la ESC lo desestima explícitamente para bicúspide, mientras su propio 13 cm²/m aparece en prosa y sin grado. Sin una cifra graduada la app no publica un umbral.</div>
   <div class="mBox mTip"><b>La conclusión benigna también sube al EN SUMA</b>, al revés que en el resto de las secciones. «Sin dilatación — seguimiento anual» lleva pegado el <b>cribado a familiares de primer grado</b>, que es una acción sobre personas que no están en la consulta: si no queda escrito en la conclusión, no ocurre.</div>
   <div class="mBox mTip"><b>Coartación y bicúspide se cruzan solas.</b> La asociación es del 50-85 %, así que si hay una coartación significativa o limítrofe y la sección de bicúspide está <b>vacía</b>, el informe lo dice: la válvula aórtica no es un hallazgo incidental en una coartación. Y en la otra dirección, una coartación documentada cuenta como uno de los nueve factores de riesgo que bajan el umbral quirúrgico de la aorta — pero sólo si la sección de coartación llegó a una conclusión: con la localización cargada y sin ningún gradiente, se anota como pendiente y no como factor. El aviso desaparece en cuanto registres la morfología aórtica en <b>Válvulas</b> (incluida «Trivalva normal» elegida a mano) o completes la sección de bicúspide.</div>
+
+  <div class="mSub">🫀 MCH — Miocardiopatía hipertrófica</div>
+  <p class="mP">Hipertrofia del ventrículo izquierdo sin causa que la explique, genética y heterogénea, <b>1 de cada 500</b>. Junto con la MAVD es la principal causa de muerte súbita en jóvenes y atletas. <b>No es una cardiopatía congénita</b> — está en esta pestaña por el modo de trabajo, y por eso la pestaña se llama «congénitas y miocardiopatías genéticas».</p>
+  <p class="mP">Se cargan la <b>hipertrofia</b> (espesor máximo, localización, patrón morfológico), la <b>obstrucción</b> (gradiente en reposo y con Valsalva, SAM, obstrucción mesocavitaria, clase funcional), los <b>factores de riesgo de muerte súbita</b> y las <b>exclusiones del modelo</b>. El diámetro de aurícula izquierda y la FEVI se muestran en gris: se miden en <b>AI / VI</b>.</p>
+  <div class="mBox mTip"><b>El espesor máximo es un campo propio y no se deduce del SIV.</b> En la miocardiopatía hipertrófica el punto de mayor espesor no siempre es septal: puede ser apical, lateral o medioventricular. El SIV y la PP se muestran al lado como referencia, pero el que entra en el score es el que cargás vos. <b>Ojo si además integrás Amiloidosis:</b> ese módulo imprime su propio «espesor parietal máximo», calculado desde sus campos y con umbral de 12 mm. Por eso esta sección rotula el suyo como «medido en esta sección» — son dos mediciones distintas en la misma hoja. Umbral diagnóstico <b>≥15 mm</b>, o <b>≥13 mm</b> con historia familiar de MCH. Si marcás <b>fenocopia</b> o <b>forma sindrómica</b>, el informe habla de «hipertrofia ventricular izquierda» y no de miocardiopatía hipertrófica: la MCH se define por hipertrofia <i>sin causa que la explique</i>, y marcar esas casillas es decir que la causa se conoce.</div>
+
+  <div class="mBox mAviso"><b>Dos scores, lado a lado, y no se promedian.</b> El europeo (<b>HCM Risk-SCD</b>) es una ecuación continua que devuelve un porcentaje a 5 años; el americano (<b>AHA/ACC 2020</b>) es un conteo de siete factores mayores. Discrepan de verdad, y elegir uno sería decidir por vos. Bandas de la ESC: <b>&lt;4 %</b> bajo · <b>4 a 6 %</b> intermedio (DAI Clase IIb) · <b>≥6 %</b> alto (DAI Clase IIa). La AHA: <b>al menos un factor mayor</b> hace razonable el desfibrilador (Clase IIa).</div>
+  <div class="mBox mAviso"><b>Si falta cualquiera de las siete variables, no se publica el número.</b> El score necesita espesor máximo, diámetro AP de aurícula izquierda, gradiente en el tracto de salida, edad, historia familiar de muerte súbita, TVNS y síncope inexplicado. Los tres últimos exigen respuesta <b>explícita</b>: tratar un «No consta» como un «No» es lo que hace la mayoría de las calculadoras, y es la razón por la que el número sale más bajo de lo que corresponde — un síncope no preguntado pesa 0,72 en el índice pronóstico, que no es poco.</div>
+  <div class="mBox mAviso"><b>Las exclusiones no son advertencias, son compuertas.</b> El HCM Risk-SCD no está validado en menores de 16 años, atletas de competición, fenocopias metabólicas o infiltrativas (Fabry, <b>amiloidosis</b>), MCH sindrómica, parada cardíaca o TV sostenida previa, ni después de miectomía o alcoholización septal. Con cualquiera de ésas <b>marcada</b> la app no muestra el porcentaje y dice cuál lo impide. <b>Sin contestar es distinto:</b> el número se publica —bloquearlo pediría contestar seis desplegables antes de ver nada— pero tanto el cuerpo como el EN SUMA dicen que la aplicabilidad del modelo no se verificó y cuántas exclusiones quedaron abiertas. Los menores de 16 años se detectan solos desde Datos del paciente. Y si el <b>módulo de amiloidosis</b> de esta app tiene datos cargados y la pregunta de fenocopia quedó sin contestar, el aviso lo dice con todas las letras: que ese módulo esté en uso significa que la amiloidosis se está evaluando, que es lo contrario de que esté confirmada, así que la app no lo deriva sola.</div>
+  <div class="mBox mTip"><b>Con parada cardíaca o TV sostenida previa</b> el informe además aclara que el desfibrilador está indicado en <b>prevención secundaria</b>, con independencia del score. Es la situación en la que un porcentaje bajo podría leerse al revés de lo que corresponde.</div>
+  <div class="mBox mTip"><b>Dos factores que no están en las dos listas.</b> El <b>realce tardío extenso por resonancia</b> cuenta para la AHA y no para la ESC — y el eco no lo evalúa, así que el informe lo dice <b>en el cuerpo y en el EN SUMA</b> para que un conteo bajo no se lea como «sin factores» cuando lo que falta es una resonancia. La <b>respuesta tensional anormal al ejercicio</b> se registra y se menciona, pero <b>no suma</b>: salió de la lista de la AHA en la edición de 2020. La <b>disfunción sistólica (FEVI &lt;50 %)</b> sí cuenta y se deriva sola del campo que ya existe.</div>
+  <div class="mBox mTip"><b>Obstrucción.</b> El gradiente que entra al score es el <b>mayor</b> entre reposo y Valsalva. Un 0 es un dato válido —MCH no obstructiva— y no lo mismo que el campo vacío. ≥30 mmHg define obstrucción significativa; ≥50 mmHg con clase funcional III-IV refractaria al tratamiento médico es el umbral de reducción septal. <b>Si no cargaste la Valsalva, el informe no dice que sea negativa:</b> avisa que no está registrada. La obstrucción latente —basal 0, provocado 70— es el fenotipo entero para el que existe la maniobra.</div>
+  <div class="mBox mTip"><b>Al EN SUMA sube un resumen, no el párrafo entero.</b> La conclusión lleva la estratificación y su clase por cada guía, más la obstrucción severa si la hay; el detalle completo —diagnóstico, patrón, factores presentes y sin evaluar, contexto— queda en el cuerpo del informe. Los <b>factores adicionales considerados</b> (HTA resistente, crecimiento del espesor, deseo de embarazo) se mencionan en el cuerpo y no suman a ningún score.</div>
 
   <div class="mBox mTip"><b>El Qp/Qs es del paciente, no de cada defecto.</b> Sale de los flujos del TSVI y el TSVD, así que mide el cortocircuito total. Si hay más de uno cargado —una CIA y una ventana, por ejemplo— las tres secciones muestran <b>«shunt múltiple: el Qp/Qs es del conjunto»</b> en vez del número, ninguna se lo atribuye en su conclusión y tampoco sube al EN SUMA. Repartir el shunt entre dos defectos no se puede hacer con un ecocardiograma. El FOP queda fuera de esa cuenta a propósito: es fisiológico y está en el 25 % de la gente, así que contarlo apagaría el Qp/Qs de la CIA en uno de cada cuatro pacientes.</div>
   <div class="mSub">🔬 ETE</div>

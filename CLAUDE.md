@@ -979,6 +979,20 @@ iteraciones anteriores), y la FEVI sí — la app ya tiene el campo.
 5. **Si faltan campos del score de la ESC, no se muestra el número**: se listan cuáles faltan.
    Es el mismo criterio que ya rige en FOP con el ACV y en VAB con el riesgo quirúrgico.
 
+### MCH — lo que quedó implementado distinto de la decisión, y por qué
+
+- **La fenocopia NO se deriva del módulo de amiloidosis**, aunque la decisión 2 decía derivarla.
+  Que ese módulo tenga datos significa que la amiloidosis se está **evaluando**, que es lo
+  contrario de que esté confirmada: se usa justamente para descartarla. Derivar una exclusión de
+  «alguien miró» sería inventar un diagnóstico. Lo que sí se hace es avisar: si el módulo tiene
+  datos y la pregunta quedó sin contestar, la lista de pendientes lo dice con todas las letras.
+- **Las exclusiones sin contestar no bloquean el número**, lo declaran. Bloquear pediría contestar
+  seis desplegables antes de ver nada. La aplicabilidad no verificada viaja en las dos superficies
+  —cuerpo y EN SUMA— y el manual y la ayuda en pantalla lo dicen. La asimetría con los tres
+  binarios del score es deliberada: aquellos entran en la ecuación y un «no consta» tratado como 0
+  cambia el número; una exclusión sin contestar no cambia el número, cambia si el número
+  corresponde.
+
 ## Deuda conocida sin resolver
 
 - **Contraseña en el código.** `doLogin()` compara contra un literal. Choca con el checklist
@@ -1017,6 +1031,21 @@ iteraciones anteriores), y la FEVI sí — la app ya tiene el campo.
   quedó dormido el 2026-09-10 al apagar `firmaCierre`. Nunca protegió al copyright —protegía a
   la línea de cierre *de* él— pero era lo único que lo tocaba.
 - **`gmax_calc` puede quedar rancio.** Ver la sección de `_IG_SECTIONS`.
+- **Tres entradas independientes del espesor parietal máximo.** `siv`/`ppvi` (AI · VI),
+  `ett-septo`/`ett-pp` (Amiloidosis) y `mch_espesor` (MCH). El módulo de amiloidosis imprime
+  «Espesor parietal máximo X mm» con umbral de 12 mm y la MCH imprime la misma frase con umbral
+  de 15, en la MISMA tarjeta y con botones de integrar independientes — y el caso natural es
+  tenerlos los dos activos, porque la duda entre MCH y amiloidosis es el diferencial clásico de
+  una HVI inexplicada. Mitigado calificando la frase de MCH («medido en esta sección») y
+  documentándolo en el manual, pero **siguen siendo tres mediciones del mismo hecho**. Lo
+  correcto es una sola, con las otras como espejo. Es el patrón `va_morf` / `coa_ao_asc` por
+  tercera vez: al agregar una sección, buscar SIEMPRE si el dato ya existe con otro id.
+- **`mch_ctx_hta` duplica `vab_fr_hta`, y `mch_ctx_embarazo` duplica `vab_fr_embarazo`.** Misma
+  pregunta clínica textual, secciones contiguas de la misma pestaña, nada las sincroniza. En VAB
+  la HTA resistente **vota** (es uno de los nueve factores) y en MCH es sólo contexto, así que un
+  «Sí» en una y un «No» en la otra no produce una afirmación falsa dentro de ninguna, pero sí un
+  informe que se contesta a sí mismo dos veces distinto. No es colisión `mch_ctx_crecimiento` vs
+  `vab_fr_crecimiento`: uno es crecimiento del espesor parietal y el otro de la aorta.
 - **`_IG_SECTIONS` no conoce ductus ni coartación.** Cero coincidencias `dap_`/`coa_` en el
   bloque (verificado 2026-09-10): el «Ver detalle» de un estudio guardado no muestra ninguno de
   los 13 campos nuevos. Es el mismo agujero que los seis ids que ya documenta esa sección; se
