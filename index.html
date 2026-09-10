@@ -8044,6 +8044,156 @@ z
     </div>
   </div>
 
+  <!-- ═══ VÁLVULA AÓRTICA BICÚSPIDE ═══
+       La guía que se aplica es la ESC 2024 de AORTA, no la ESC/EACTS de valvulopatías: la 2021
+       está superada por la 2025, y la 2025 borró sus propias filas de 55/50 mm y remite a la de
+       aorta. El texto que imprime la sección nombra la guía y la clase. Ver vabConclusion(). -->
+  <div class="card sacc" id="sacc-cc-vab">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-vab');vabSync();" aria-expanded="false">
+      <span class="sacc-arrow">▶</span>
+      <span style="flex:1;">VAB — Válvula aórtica bicúspide</span>
+      <span id="vab_badge" class="incl-badge" hidden>📎 en el informe</span>
+    </button>
+    <div class="card-body sacc-body">
+      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
+        La cardiopatía congénita más frecuente: <b>1-2 % de la población</b>. Fusión de dos velos aórticos, con alta asociación a
+        aortopatía y estenosis aórtica precoz. Base hereditaria — corresponde ofrecer cribado a familiares de primer grado.
+        <b style="color:var(--accent2);">Lo que decide la conducta no es la válvula sino la aorta.</b>
+      </p>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:4px 0 8px;">Válvula</div>
+      <div class="grid-3">
+        <div class="fg"><label>Tipo de fusión</label>
+          <select id="vab_tipo" onchange="vabSync()">
+            <option value="">—</option>
+            <option value="t0">Tipo 0 — sin rafe</option>
+            <option value="t1rl">Tipo 1 — R-L (la más frecuente)</option>
+            <option value="t1rn">Tipo 1 — R-N</option>
+            <option value="t1nl">Tipo 1 — N-L</option>
+            <option value="t2">Tipo 2 — unicúspide funcional</option>
+          </select>
+        </div>
+        <div class="fg"><label>Rafe calcificado</label>
+          <select id="vab_rafe" onchange="vabSync()">
+            <option value="">—</option>
+            <option value="no_eval">No evaluado</option>
+            <option value="no">No</option>
+            <option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Función valvular</label>
+          <select id="vab_funcion" onchange="vabSync()">
+            <option value="">—</option>
+            <option value="normal">Normofuncionante</option>
+            <option value="estenosis">Estenosis</option>
+            <option value="insuficiencia">Insuficiencia</option>
+            <option value="mixta">Mixta</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>Morfología aórtica (de Válvulas)</label>
+          <input type="text" id="vab_morf_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+        <div class="fg"><label>EA — grado (de Válvulas)</label>
+          <input type="text" id="vab_ea_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+        <div class="fg"><label>IAo — grado (de Válvulas)</label>
+          <input type="text" id="vab_ia_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Aortopatía</div>
+      <div class="grid-3">
+        <div class="fg"><label>Raíz aórtica (de Aorta torácica)</label>
+          <input type="text" id="vab_raiz_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+        <div class="fg"><label>Ao ascendente (de Aorta torácica)</label>
+          <input type="text" id="vab_asc_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+        <div class="fg"><label>Fenotipo aortopático</label>
+          <select id="vab_fenotipo" onchange="vabSync()">
+            <option value="">—</option>
+            <option value="sin">Sin dilatación</option>
+            <option value="raiz">De raíz (seno &gt; tubular)</option>
+            <option value="tubular">Tubular / ascendente</option>
+            <option value="arco">Extendido (con arco)</option>
+          </select>
+        </div>
+      </div>
+      <p style="font-size:10px;color:var(--text2);margin:6px 0 0;">Los diámetros se miden en <b>Paciente → Aorta torácica</b>. Acá se muestran en gris para que veas con qué está calculando el umbral.</p>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Contexto quirúrgico</div>
+      <div class="grid-2">
+        <div class="fg"><label>Cirugía valvular aórtica prevista</label>
+          <select id="vab_cx_valvular" onchange="vabSync()">
+            <option value="">—</option>
+            <option value="no_eval">No consta</option>
+            <option value="no">No</option>
+            <option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Riesgo quirúrgico bajo (&lt;3 %)</label>
+          <select id="vab_riesgo_qx" onchange="vabSync()">
+            <option value="">—</option>
+            <option value="no_eval">No consta</option>
+            <option value="no">No</option>
+            <option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+      <p style="font-size:10px;color:var(--text2);margin:6px 0 0;">El riesgo quirúrgico lo define el Heart Team, no el ecocardiograma. Sin un «Sí» explícito la app no emite las indicaciones Clase IIa que lo exigen.</p>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Factores de riesgo (ESC 2024, Tabla 68)</div>
+      <p style="font-size:10px;color:var(--text2);margin:0 0 8px;">Tres se derivan solos: <b>edad &lt;50 años</b> y <b>talla 1,50-1,69 m</b> de Datos del paciente, y <b>coartación</b> de la sección de esta misma pestaña. Los seis restantes se preguntan acá.</p>
+      <div class="grid-3">
+        <div class="fg"><label>Familiar con síndrome aórtico agudo</label>
+          <select id="vab_fr_familiar" onchange="vabSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Hipertensión arterial resistente</label>
+          <select id="vab_fr_hta" onchange="vabSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Crecimiento ≥3 mm/año</label>
+          <select id="vab_fr_crecimiento" onchange="vabSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>Longitud Ao ascendente ≥11 cm</label>
+          <select id="vab_fr_longitud" onchange="vabSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Cirugía cardíaca concomitante</label>
+          <select id="vab_fr_cx" onchange="vabSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Deseo de embarazo</label>
+          <select id="vab_fr_embarazo" onchange="vabSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="calc-box" style="margin-top:12px;">
+        <div class="calc-row"><span class="calc-lbl">Factores presentes</span><span id="vab-fr" class="calc-val">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="vab-concl" class="calc-val">—</span></div>
+      </div>
+      <div class="mBoxLike" style="border-left:3px solid var(--accent2);background:rgba(13,148,136,.08);padding:8px 12px;border-radius:6px;font-size:10px;line-height:1.5;margin-top:10px;color:var(--text2);">
+        <b>Umbrales ESC 2024 de aorta</b> (Eur Heart J 2024;45:3538) — ≥55 mm cualquier fenotipo (I) · ≥50 mm fenotipo raíz (I) ·
+        por encima de 52 mm ascendente con riesgo bajo (IIa) · ≥50 mm ascendente con riesgo bajo y ≥1 factor (IIa) · ≥45 mm si ya va a cirugía valvular (IIa).
+        <b>No se implementa el umbral indexado</b>: la AHA gradúa 10 cm²/m y la ESC lo desestima para bicúspide; su propio 13 cm²/m va en prosa y sin grado.
+        El <b>fenotipo extendido</b> no tiene fila propia en la guía — es un hueco de la ESC, no del cálculo.
+      </div>
+      <div style="text-align:center;margin-top:10px;">
+        <input type="checkbox" id="vab_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+        <button type="button" class="btn btn-integrar" data-ete-chk="vab_incluir_chk" aria-pressed="false"
+                onclick="eteInclToggle('vab_incluir_chk')">📎 Integrar al informe</button>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- ═══════════════════════ TAB: ECO ESTRÉS ═══════════════════════ -->
@@ -16836,6 +16986,31 @@ function generarInforme(opts) {
          segunda manda a pedir una angio-RMN. Dejar una indicación de intervención sólo en el
          cuerpo del informe es exactamente lo que la conclusión existe para evitar. */
       if (c.clave === 'significativa' || c.clave === 'limitrofe') suma.push(c.txt + '.');
+      /* Cruce con la bicúspide. La asociación es del 50-85 %, o sea que en una coartación la
+         válvula aórtica NO es un hallazgo incidental: es parte de la evaluación. Y en la otra
+         dirección la coartación es uno de los nueve factores de riesgo de la ESC 2024 que bajan
+         el umbral quirúrgico de la aorta, así que no haberla mirado cambia una conducta.
+         Sólo se avisa si la sección de bicúspide está VACÍA — si el médico ya la contestó, aunque
+         sea para decir que la válvula es trivalva, el aviso sobra y sería ruido. */
+      /* Se consulta TAMBIÉN `va_morf`, que es donde la morfología aórtica se registra desde
+         siempre: sin eso el aviso salía diciendo «no consta la evaluación de la válvula aórtica»
+         en un informe cuya propia tabla decía «Morf.: Bicúspide». Ojo con el valor de fábrica:
+         `va_morf` no tiene opción vacía y limpiarCampos lo deja en «Trivalva normal», así que
+         ese valor NO cuenta como respuesta — sólo una morfología elegida a mano silencia. */
+      const _morfVA = (document.getElementById('va_morf')?.value || '').trim();
+      const _morfContestada = !!_morfVA && _morfVA !== 'Trivalva normal';
+      const _vabVacia = !_morfContestada && ['vab_tipo','vab_funcion','vab_fenotipo','vab_rafe']
+        .every(id => (document.getElementById(id)?.value || '').trim() === '');
+      if (_vabVacia && (c.clave === 'significativa' || c.clave === 'limitrofe')) {
+        const _av = 'La coartación de aorta se asocia a válvula aórtica bicúspide en el 50-85 % de los casos; ' +
+                    'en este estudio no consta la evaluación de la válvula aórtica en ese sentido.';
+        etePars.push(_av);
+        /* Y sube al EN SUMA. El comentario de veinte líneas más arriba ya fija el criterio para
+           este mismo bloque: dejar en el cuerpo algo que cambia una conducta es exactamente lo
+           que la conclusión existe para evitar. El módulo de FOP hace lo mismo con su «falta el
+           contexto». */
+        suma.push(_av);
+      }
     })();
 
     /* ── Ventana aortopulmonar ── */
@@ -16911,6 +17086,34 @@ function generarInforme(opts) {
           c.clave === 'acv_sin_edad') suma.push(c.txt + '.');
     })();
 
+    /* ── Válvula aórtica bicúspide ── */
+    (function(){
+      const chk = document.getElementById('vab_incluir_chk');
+      if (!chk || !chk.checked) return;
+      if (typeof vabSync === 'function') { try { vabSync(); } catch(e){} }
+      const c = (typeof vabConclusion === 'function') ? vabConclusion() : null;
+      if (!c) return;
+      const f1 = n => (n==null || !isFinite(n)) ? null : String(Math.round(n*10)/10);
+      const tipo = sv('vab_tipo'), func = sv('vab_funcion'), feno = sv('vab_fenotipo'), rafe = sv('vab_rafe');
+      const raiz = v('ao_sin'), asc = v('ao_tub');
+      const p = ['Válvula aórtica bicúspide' + (tipo ? ' ' + (VAB_TIPO_TXT[tipo] || tipo) : '')];
+      /* Sólo la afirmación explícita: «rafe no calcificado» es un hallazgo, «no evaluado» no. */
+      if (rafe === 'si') p.push('Rafe calcificado');
+      else if (rafe === 'no') p.push('Rafe no calcificado');
+      if (func) p.push('Válvula ' + (VAB_FUNC_TXT[func] || func));
+      if (f1(raiz)) p.push('Raíz aórtica ' + f1(raiz) + ' mm');
+      if (f1(asc))  p.push('Aorta ascendente ' + f1(asc) + ' mm');
+      if (feno) p.push('Fenotipo aortopático ' + (VAB_FENO_TXT[feno] || feno));
+      /* El fenotipo extendido no tiene umbral propio en la ESC 2024. Se dice en el informe en vez
+         de que el lector suponga que el cálculo lo contempló. */
+      if (feno === 'arco') p.push('El fenotipo extendido no tiene umbral quirúrgico propio en la ESC 2024: la decisión es individual');
+      etePars.push(p.join('. ') + '. ' + c.txt + '.');
+      /* Al EN SUMA todo lo que cambia una conducta o señala que falta el dato que la decide. La
+         rama benigna «sin dilatación» también sube, y a propósito: lleva el cribado familiar, que
+         es una acción sobre personas que no están en la consulta y que si no se escribe no ocurre. */
+      if (c.clave !== 'no_interpretable') suma.push(c.txt + '.');
+    })();
+
     if (etePars.length) inf.push('', ...etePars);
   })();
 
@@ -16982,7 +17185,7 @@ function _noEsDelEstudio(id) {
    Los `calc*` NO entran acá: son estables y cada sitio llama los suyos. Lo que crece con cada
    módulo nuevo es esta lista, y por eso tiene que estar en un solo lugar. */
 function RECALC_MODULOS() {
-  return ['eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync'];
+  return ['eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -21186,6 +21389,237 @@ function fopSync(){
   txt('fop-concl', c ? c.txt : '—');
 }
 window.fopSync = fopSync; window.fopConclusion = fopConclusion;
+
+/* ══ VÁLVULA AÓRTICA BICÚSPIDE ═══════════════════════════════════════════════════════════
+   La cardiopatía congénita más frecuente (1-2 % de la población). Lo que decide la conducta no
+   es la válvula sino la AORTA, y por eso esta sección es sobre todo una calculadora de umbral
+   quirúrgico.
+
+   ── QUÉ GUÍA SE APLICA, Y POR QUÉ ÉSA ──
+   Se aplica la **ESC 2024 de aorta y arterias periféricas** (Eur Heart J 2024;45:3538). No la
+   ESC/EACTS 2021 de valvulopatías, que está SUPERADA por la 2025 — y la 2025 borró sus propias
+   filas de 55/50 mm y remite explícitamente a la guía de aorta 2024 para la raíz y la
+   ascendente. Citar «ESC 2021» para una aortopatía bicúspide es citar una guía reemplazada dos
+   veces, así que el texto que imprime esta sección nombra la guía y la clase.
+
+   La AHA/ACC 2022 discrepa y no se implementa, pero conviene saber dónde: para el fenotipo raíz
+   a 50 mm la ESC dice Clase I —«recomendada»— y la AHA lo trata como uno de cuatro factores de
+   riesgo que llevan la banda 5,0-5,4 cm a 2a y con centro experimentado. Mismo paciente,
+   recomendación fuerte en Europa y condicional en EE.UU. La AHA además NO cuenta la
+   hipertensión como factor de riesgo.
+
+   ── LO QUE NO SE IMPLEMENTÓ, DECLARADO ──
+   · El fenotipo «extendido» (arco, 5-10 % de los casos) NO tiene fila de umbral propia en la
+     ESC 2024. Es un hueco de la guía, no del código: la sección lo dice en vez de inventar uno.
+   · El umbral indexado por superficie corporal no se usa. La AHA gradúa 10 cm²/m y la ESC 2024
+     lo desestima explícitamente para bicúspide; su propio 13 cm²/m aparece en prosa y sin
+     grado. Sin una cifra graduada no se publica un umbral.
+   · «Riesgo quirúrgico bajo» es un juicio del Heart Team, no una medida del ecocardiograma. Va
+     como campo de tres estados y sin él las ramas IIa no disparan. */
+const VAB_TIPO_TXT = {
+  t0:'tipo 0 (sin rafe)', t1rl:'tipo 1 con fusión derecha-izquierda', t1rn:'tipo 1 con fusión derecha-no coronariana',
+  t1nl:'tipo 1 con fusión no coronariana-izquierda', t2:'tipo 2 (unicúspide funcional)'
+};
+const VAB_FUNC_TXT = { normal:'normofuncionante', estenosis:'con estenosis', insuficiencia:'con insuficiencia', mixta:'con lesión mixta' };
+const VAB_FENO_TXT = { sin:'sin dilatación', raiz:'de raíz', tubular:'tubular (ascendente)', arco:'extendido (con compromiso del arco)' };
+/* Los NUEVE factores de la Tabla 68 de la ESC 2024. Tres se derivan de datos que la app ya
+   tiene —edad, talla y la propia sección de coartación de esta misma pestaña— y seis se
+   preguntan. Cada uno devuelve `true` sólo con evidencia AFIRMATIVA: un factor «no evaluado»
+   no cuenta, ni a favor ni en contra, y eso se dice en la conclusión. */
+function vabFactores(){
+  const sv2 = id => (document.getElementById(id)?.value || '').trim();
+  const nv  = id => { const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; };
+  const edad = nv('edad'), talla = nv('talla');
+  const presentes = [], sinEvaluar = [];
+  const anota = (cond, txt, evaluado) => {
+    if (cond) presentes.push(txt);
+    else if (!evaluado) sinEvaluar.push(txt);
+  };
+  anota(edad != null && edad > 0 && edad < 50, 'edad menor de 50 años', edad != null && edad > 0);
+  /* Talla baja: la ESC la define como 1,50-1,69 m, equivalente a un área transversal indexada
+     por altura > 13 cm²/m. Por debajo de 1,50 m la guía no lo trata como «talla baja» sino que
+     manda a los criterios de síndrome de Turner, que no son de esta sección. */
+  /* `evaluado` sólo si la talla está en centímetros plausibles. Una talla en metros (1,65) o por
+     debajo de 1,50 m daba `talla > 0` y el factor desaparecía: ni contado ni listado como
+     pendiente. Por debajo de 1,50 m la ESC no lo trata como «talla baja» sino que manda a los
+     criterios de Turner, que no son de esta sección — así que se anota como pendiente. */
+  anota(talla != null && talla >= 150 && talla <= 169, 'talla entre 1,50 y 1,69 m',
+        talla != null && talla >= 150 && talla <= 220);
+  /* Coartación: se DERIVA de la sección de coartación de esta misma pestaña en vez de
+     preguntarse otra vez. Preguntar dos veces el mismo hecho en la misma pantalla es la forma
+     más corta de que el informe se contradiga consigo mismo. */
+  /* El filtro por la conclusión iba detrás de dos `||`, así que nunca se evaluaba en el camino
+     normal: `coa_loc` es el primer campo de la sección, y con sólo tocarlo la coartación ya
+     contaba como factor de riesgo. Un desplegable de otra sección, sin una medición que lo
+     respalde, movía el informe de «vigilancia estrecha» a «cirugía a considerar» — y el texto
+     afirmaba «coartación documentada en este estudio», que es justo lo que `coaConclusion` se
+     niega a decir sin gradiente. Ahora manda la conclusión de esa sección: si ella no concluye,
+     acá no cuenta, y se anota como pendiente en vez de desaparecer. */
+  const coaC = (typeof coaConclusion === 'function') ? coaConclusion() : null;
+  const coaConcluye = !!(coaC && coaC.clave !== 'incompleto' && coaC.clave !== 'no_interpretable');
+  const coaTocada = !!(sv2('coa_loc') || sv2('coa_situacion'));
+  if (coaConcluye) presentes.push('coartación de aorta documentada en este estudio');
+  else if (coaTocada) sinEvaluar.push('coartación de aorta (sección iniciada pero sin conclusión)');
+  else sinEvaluar.push('coartación de aorta');
+  const preg = [
+    ['vab_fr_familiar',   'antecedente familiar de síndrome aórtico agudo'],
+    ['vab_fr_hta',        'hipertensión arterial resistente'],
+    ['vab_fr_crecimiento','crecimiento del diámetro ≥3 mm/año'],
+    ['vab_fr_longitud',   'longitud de la aorta ascendente ≥11 cm'],
+    ['vab_fr_cx',         'cirugía cardíaca concomitante no valvular aórtica'],
+    ['vab_fr_embarazo',   'deseo de embarazo']
+  ];
+  preg.forEach(function(p){ const val = sv2(p[0]); anota(val === 'si', p[1], val === 'si' || val === 'no'); });
+  return { presentes: presentes, sinEvaluar: sinEvaluar, n: presentes.length };
+}
+function vabConclusion(){
+  const sv2 = id => (document.getElementById(id)?.value || '').trim();
+  const nv  = id => { const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; };
+  const fuera = [];
+  const banda = (n, lo, hi, lbl) => { if (n==null) return null; if (n>=lo && n<=hi) return n; if(lbl) fuera.push(lbl); return null; };
+  const tipo = sv2('vab_tipo'), func = sv2('vab_funcion'), feno = sv2('vab_fenotipo');
+  const rafe = sv2('vab_rafe'), cxValv = sv2('vab_cx_valvular'), riesgo = sv2('vab_riesgo_qx');
+  const raiz = banda(nv('ao_sin'), 10, 90, 'raíz aórtica');
+  const asc  = banda(nv('ao_tub'), 10, 90, 'aorta ascendente');
+  /* `va_morf` (tab Válvulas) es la fuente CANÓNICA de la morfología aórtica: existe desde antes
+     que esta sección, se imprime en la tabla del PDF, viaja al Excel y alimenta el narrativo.
+     Esta sección no la duplica — la lee. Sin esto la app tenía dos campos para el mismo hecho y
+     el informe firmado podía decir «Morf.: Trivalva normal» en la tabla y «válvula aórtica
+     bicúspide — cirugía de la aorta indicada» en la conclusión, en la misma hoja. Es el mismo
+     error que se cerró hace dos commits con `coa_ao_asc`, y acá sobre el dato que NOMBRA la
+     entidad. */
+  const morf = sv2('va_morf');
+  /* `va_morf` no tiene opción vacía y limpiarCampos lo deja en «Trivalva normal», así que ese
+     valor NO significa «el médico dijo trivalva»: significa «nadie lo tocó». No se puede usar
+     para negar nada; sólo el «Bicúspide» explícito afirma. */
+  const morfBicuspide = morf === 'Bicúspide';
+  const hayPropio = !!(tipo || func || feno || rafe === 'si' || rafe === 'no');
+  /* `vab_cx_valvular` queda FUERA de hayDato: describe el plan quirúrgico, no la válvula. Con él
+     adentro, un paciente con estenosis aórtica severa trivalva que va a reemplazo valvular y al
+     que se le anotaba sólo ese campo salía del informe con «Válvula aórtica bicúspide. Diámetro
+     46 mm en paciente con cirugía valvular prevista — reemplazo de la aorta en el mismo acto».
+     La app inventaba la bicúspide y sobre ella extendía una cirugía cardíaca. El criterio
+     correcto ya estaba escrito en el regex de deducción del importador de Excel. */
+  const hayDato = hayPropio || morfBicuspide;
+  if (!hayDato) return null;
+  /* Los dos campos en desacuerdo: no se elige uno en silencio, se lo dice. */
+  if (hayPropio && morf && !morfBicuspide) return { clave:'contradiccion',
+    txt:'La morfología aórtica registrada en Válvulas es «' + morf + '» y esta sección describe una válvula bicúspide — resolver la discrepancia antes de firmar' };
+
+  const maxAo = (raiz != null && asc != null) ? Math.max(raiz, asc) : (raiz != null ? raiz : asc);
+  const fr = vabFactores();
+  /* Sin el tipo de fusión: el párrafo del informe ya encabeza con él y el panel lo muestra en su
+     propio campo, así que repetirlo daba «…tipo 1 con fusión derecha-izquierda. Rafe calcificado.
+     […] Válvula aórtica bicúspide tipo 1 con fusión derecha-izquierda con fenotipo de raíz…».
+     La conclusión igual nombra la entidad, que es lo que necesita para sostenerse sola en el
+     EN SUMA. */
+  const cabeza = 'Válvula aórtica bicúspide';
+  const conFR = fr.n ? ' (' + fr.presentes.join('; ') + ')' : '';
+  /* Los factores SIN EVALUAR se arrastran a todas las ramas donde el conteo decide o donde la
+     conclusión tranquiliza. Antes se imprimían en una sola de las diez, y el manual afirmaba
+     que se listaban siempre: quien leía «con riesgo quirúrgico bajo y un factor de riesgo»
+     creía que los otros ocho se habían descartado. */
+  const sinEval = fr.sinEvaluar.length ? ' (sin evaluar: ' + fr.sinEvaluar.join('; ') + ')' : '';
+
+  /* El corte por «fuera de rango» NO va antes de la cascada. `coaConclusion` ya estableció el
+     patrón en el módulo hermano y por un motivo: un valor ilegible bloquea las NEGACIONES, no
+     las afirmaciones. Con el corte arriba, una raíz tipeada en cm (3,4 por 34) borraba del
+     EN SUMA la indicación Clase I de una ascendente de 56 mm que estaba perfectamente medida —
+     un error de tipeo en un campo apagaba la conducta que dictaba el otro. Las ramas que
+     indican cirugía se evalúan primero; el corte queda justo antes de las que tranquilizan.
+     La salvedad se arrastra igual en el texto, para que el número ilegible no pase inadvertido. */
+  const salvedadFuera = fuera.length ? ' (' + fuera.join(' y ') + ' fuera de rango: revisar unidades)' : '';
+
+  /* Cascada ESC 2024, de la indicación más fuerte a la más débil. */
+  if (maxAo != null && maxAo >= 55) return { clave:'cx_55',
+    txt: cabeza + '. Diámetro aórtico máximo ' + maxAo + ' mm — cirugía de la aorta indicada (ESC 2024, Clase I)' };
+  if (feno === 'raiz' && raiz != null && raiz >= 50) return { clave:'cx_raiz_50',
+    txt: cabeza + ' con fenotipo de raíz y diámetro de ' + raiz + ' mm — cirugía de la aorta indicada (ESC 2024, Clase I para el fenotipo raíz desde 50 mm)' + salvedadFuera };
+  /* El fenotipo declarado NO se cree a ciegas cuando las dos medidas lo contradicen. «De raíz» es
+     por definición seno > tubular —lo dice la propia etiqueta del desplegable—, así que una raíz
+     de 52 con ascendente de 44 ES fenotipo raíz, y con `tubular` marcado por error la conclusión
+     bajaba de Clase I a «control anual por imagen». Un clic en la opción de al lado movía una
+     indicación de cirugía cardíaca. El incentivo estaba invertido: dejarlo vacío avisaba, llenarlo
+     mal era silencioso. La app tiene los dos números; los mira. */
+  if (raiz != null && asc != null && raiz > asc && raiz >= 50 && feno && feno !== 'raiz')
+    return { clave:'feno_discrepante',
+      txt: cabeza + '. Raíz aórtica ' + raiz + ' mm mayor que la ascendente (' + asc + ' mm), lo que define fenotipo de raíz, pero está declarado como «' +
+           (VAB_FENO_TXT[feno] || feno) + '» — revisar: con fenotipo de raíz este diámetro tiene indicación quirúrgica Clase I (ESC 2024)' + salvedadFuera };
+  /* El fenotipo raíz cambia el umbral de 55 a 50 y es Clase I, así que no declararlo no puede
+     pasar en silencio cuando la medida está en esa banda. */
+  if (!feno && raiz != null && raiz >= 50 && raiz < 55) return { clave:'feno_sin_declarar',
+    txt: cabeza + '. Raíz aórtica ' + raiz + ' mm — falta declarar el fenotipo de la aortopatía: con fenotipo de raíz este diámetro ya tiene indicación quirúrgica Clase I (ESC 2024)' + salvedadFuera };
+  if (cxValv === 'si' && maxAo != null && maxAo >= 45) return { clave:'concomitante_45',
+    txt: cabeza + '. Diámetro aórtico ' + maxAo + ' mm en paciente con cirugía valvular aórtica prevista — reemplazo de la aorta en el mismo acto (ESC 2024, Clase IIa desde 45 mm)' + salvedadFuera };
+  /* De acá para abajo las ramas tranquilizan o piden más datos, así que ahora sí corta el valor
+     ilegible: si la conclusión va a decir «por debajo del umbral», el número tiene que ser legible. */
+  if (fuera.length) return { clave:'no_interpretable',
+    txt: cabeza + ' — ' + fuera.join(' y ') + ' fuera de rango: revisar unidades antes de concluir' };
+  if (maxAo == null) return { clave:'sin_aorta',
+    txt: cabeza + ' — falta la medida de la aorta (raíz y ascendente, en Paciente → Aorta torácica): la conducta de la aortopatía no se puede establecer sin ella' };
+  /* La conclusión nombra SIEMPRE el diámetro mayor, no sólo el que disparó la rama. Antes, con
+     raíz 54 y ascendente 51 la salida era «Aorta ascendente 51 mm … por debajo del umbral de
+     52 mm», y la raíz de 54 —el diámetro mayor del paciente, a 1 mm del Clase I universal— no
+     aparecía en el EN SUMA, que es lo que se lee. */
+  const otroDiam = (raiz != null && asc != null && Math.abs(raiz - asc) >= 2)
+    ? ' (raíz ' + raiz + ' mm, ascendente ' + asc + ' mm)' : '';
+  if (asc != null && asc >= 50) {
+    /* «No consta» y «No» no son lo mismo, que es la invariante de toda esta pestaña. Con el
+       riesgo dictaminado como NO bajo, devolver la pregunta al Heart Team que ya la contestó
+       es ruido; lo que corresponde decir es que por ese umbral la ESC no da indicación IIa. */
+    if (riesgo === 'no') return { clave:'riesgo_no_bajo',
+      txt: cabeza + '. Aorta ascendente ' + asc + ' mm' + otroDiam + conFR +
+           ' — alcanza el umbral de diámetro, pero las indicaciones Clase IIa de la ESC 2024 exigen riesgo quirúrgico bajo, que consta como no cumplido' };
+    if (riesgo !== 'si') return { clave:'umbral_sin_riesgo',
+      txt: cabeza + '. Aorta ascendente ' + asc + ' mm' + otroDiam + conFR + ' — alcanza el umbral de la ESC 2024, cuya indicación (Clase IIa) exige riesgo quirúrgico bajo: evaluar en Heart Team' + sinEval };
+    if (asc > 52) return { clave:'cx_52',
+      txt: cabeza + '. Aorta ascendente ' + asc + ' mm' + otroDiam + ' con riesgo quirúrgico bajo — cirugía de la aorta a considerar (ESC 2024, Clase IIa por encima de 52 mm)' };
+    if (fr.n) return { clave:'cx_50_fr',
+      txt: cabeza + '. Aorta ascendente ' + asc + ' mm' + otroDiam + ' con riesgo quirúrgico bajo y ' + (fr.n === 1 ? 'un factor de riesgo' : fr.n + ' factores de riesgo') + conFR +
+           ' — cirugía de la aorta a considerar (ESC 2024, Clase IIa)' + sinEval };
+    return { clave:'vigilancia_50',
+      txt: cabeza + '. Aorta ascendente ' + asc + ' mm' + otroDiam + ' sin factores de riesgo adicionales identificados' + sinEval +
+           ' — por debajo del umbral de 52 mm de la ESC 2024; vigilancia estrecha' };
+  }
+  if (maxAo >= 45) return { clave:'vigilancia_45',
+    txt: cabeza + '. Dilatación de la aorta de ' + maxAo + ' mm' + otroDiam + ', por debajo de los umbrales quirúrgicos de la ESC 2024 — control anual por imagen' +
+         (cxValv !== 'si' ? '; si se indicara cirugía valvular, correspondería reemplazar la aorta en el mismo acto' : '') + sinEval };
+  if (maxAo >= 40) return { clave:'dilatacion_leve',
+    txt: cabeza + '. Dilatación leve de la aorta de ' + maxAo + ' mm' + otroDiam + ' — control por imagen y seguimiento del ritmo de crecimiento' };
+  /* Rama benigna: sólo se afirma con la aorta MEDIDA, que es lo que exige `maxAo != null`. */
+  return { clave:'sin_dilatacion',
+    txt: cabeza + (func ? ' ' + (VAB_FUNC_TXT[func] || func) : '') + '. Aorta de ' + maxAo + ' mm, sin dilatación — seguimiento anual (la bicúspide es hereditaria: corresponde ofrecer cribado a familiares de primer grado)' };
+}
+function vabSync(){
+  const txt = (id,s) => { const e=document.getElementById(id); if(e) e.textContent = s; };
+  const ro  = (id,s) => { const e=document.getElementById(id); if(e) e.value = s; };
+  const nv  = id => { const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; };
+  const sv2 = id => (document.getElementById(id)?.value || '').trim();
+  const raiz = nv('ao_sin'), asc = nv('ao_tub');
+  /* Espejo de `va_morf`, que es la fuente canónica y vive en Válvulas. Se muestra para que la
+     discrepancia entre las dos secciones se vea ANTES de firmar y no en el PDF. */
+  ro('vab_morf_ro', sv2('va_morf'));
+  ro('vab_raiz_ro', raiz != null ? raiz + ' mm' : '');
+  ro('vab_asc_ro',  asc  != null ? asc  + ' mm' : '');
+  /* Espejos de la severidad valvular. `ea_grado` es un <select> con token legible; `ia_grado` es
+     un <input hidden> con CÓDIGO 0-4 que maneja sincronizarGradoIA — meterle texto corrompería
+     el motor de severidad, así que acá sólo se LEE y se traduce. */
+  const EA = { sin:'Sin estenosis', esclerosis:'Esclerosis', leve:'Leve', moderada:'Moderada', severa:'Severa' };
+  const IA = { '0':'Ausente', '1':'Leve', '2':'Moderada', '3':'Moderada-severa', '4':'Severa' };
+  ro('vab_ea_ro', _ccLbl(EA, sv2('ea_grado')));
+  ro('vab_ia_ro', _ccLbl(IA, sv2('ia_grado')));
+  const fr = vabFactores();
+  /* «ninguno identificado» es una afirmación y necesita que se haya evaluado algo. Antes la
+     condición era `sinEvaluar.length === 9`, inalcanzable porque la coartación nunca entraba a
+     esa lista (máximo 8), así que una sección virgen mostraba «ninguno identificado» sobre nueve
+     preguntas que nadie hizo. */
+  txt('vab-fr', fr.n ? fr.n + ': ' + fr.presentes.join('; ')
+      : (fr.sinEvaluar.length >= 9 ? '— (ninguno evaluado)'
+         : 'ninguno de los evaluados' + (fr.sinEvaluar.length ? ' · sin evaluar: ' + fr.sinEvaluar.join('; ') : '')));
+  const c = vabConclusion();
+  txt('vab-concl', c ? c.txt : '—');
+}
+window.vabSync = vabSync; window.vabConclusion = vabConclusion; window.vabFactores = vabFactores;
 function eteDDVIi(){
   const d = v('ddfvi'), asc = (typeof getBSA==='function') ? getBSA() : null;
   if(d==null || !asc || !(asc>0)) return null;
@@ -21536,7 +21970,8 @@ const ETE_INCL_LBL = {
   ductus_incluir_chk:      'Ductus arterioso permeable',
   coart_incluir_chk:       'Coartación de aorta',
   vap_incluir_chk:         'Ventana aortopulmonar',
-  fop_incluir_chk:         'Foramen oval permeable'
+  fop_incluir_chk:         'Foramen oval permeable',
+  vab_incluir_chk:         'Válvula aórtica bicúspide'
 };
 function eteInclSync(){
   document.querySelectorAll('.btn-integrar[data-ete-chk]').forEach(function(b){
@@ -21572,7 +22007,7 @@ function eteShuntTaviReset(){
    'coa_diast_anterogrado'].forEach(function(id){
     const c=document.getElementById(id); if(c) c.checked=false;
   });
-  try{ dapSync(); coaSync(); vapSync(); fopSync(); }catch(e){}
+  try{ dapSync(); coaSync(); vapSync(); fopSync(); vabSync(); }catch(e){}
   const jh=document.getElementById('ete_tavi_jet_horas'); if(jh) jh.value='';
   try{ eteEpcSet([]); eteEpcDibujar(); }catch(e){}
   try{ eteShuntTab('cia'); eteTaviTab('pre'); }catch(e){}
@@ -30891,7 +31326,20 @@ function _labExcelRow(inf) {
     'FOP trombofilia': _cc3e(c.fop_trombofilia),
     'Incluir coartación en informe': c['coart_incluir_chk__chk']  === '1' ? 1 : 0,
     'Incluir VAP en informe':        c['vap_incluir_chk__chk']    === '1' ? 1 : 0,
+    'VAB tipo de fusión': _ccLbl({t0:'Tipo 0',t1rl:'Tipo 1 R-L',t1rn:'Tipo 1 R-N',t1nl:'Tipo 1 N-L',t2:'Tipo 2'}, c.vab_tipo),
+    'VAB rafe calcificado': _cc3e(c.vab_rafe),
+    'VAB función valvular': _ccLbl({normal:'Normofuncionante',estenosis:'Estenosis',insuficiencia:'Insuficiencia',mixta:'Mixta'}, c.vab_funcion),
+    'VAB fenotipo aortopático': _ccLbl({sin:'Sin dilatación',raiz:'De raíz',tubular:'Tubular',arco:'Extendido'}, c.vab_fenotipo),
+    'VAB cirugía valvular prevista': _cc3e(c.vab_cx_valvular),
+    'VAB riesgo quirúrgico bajo': _cc3e(c.vab_riesgo_qx),
+    'VAB FR familiar disección': _cc3e(c.vab_fr_familiar),
+    'VAB FR HTA resistente': _cc3e(c.vab_fr_hta),
+    'VAB FR crecimiento >=3mm/año': _cc3e(c.vab_fr_crecimiento),
+    'VAB FR longitud Ao >=11cm': _cc3e(c.vab_fr_longitud),
+    'VAB FR cirugía concomitante': _cc3e(c.vab_fr_cx),
+    'VAB FR deseo de embarazo': _cc3e(c.vab_fr_embarazo),
     'Incluir FOP en informe':        c['fop_incluir_chk__chk']    === '1' ? 1 : 0,
+    'Incluir VAB en informe':        c['vab_incluir_chk__chk']    === '1' ? 1 : 0,
     'Informe (texto completo)': c.informe_texto || '', 'EN SUMA (texto completo)': c.en_suma || '',
   };
 }
@@ -31279,6 +31727,18 @@ const LAB_XLS_MAP = [
   ['FOP cantidad burbujas',      'fop_burbujas',  'vocab'],
   ['FOP ACV criptogénico',       'fop_acv',       'vocab'],
   ['FOP trombofilia',            'fop_trombofilia','vocab'],
+  ['VAB tipo de fusión',         'vab_tipo',      'vocab'],
+  ['VAB rafe calcificado',       'vab_rafe',      'vocab'],
+  ['VAB función valvular',       'vab_funcion',   'vocab'],
+  ['VAB fenotipo aortopático',   'vab_fenotipo',  'vocab'],
+  ['VAB cirugía valvular prevista','vab_cx_valvular','vocab'],
+  ['VAB riesgo quirúrgico bajo', 'vab_riesgo_qx', 'vocab'],
+  ['VAB FR familiar disección',  'vab_fr_familiar','vocab'],
+  ['VAB FR HTA resistente',      'vab_fr_hta',    'vocab'],
+  ['VAB FR crecimiento >=3mm/año','vab_fr_crecimiento','vocab'],
+  ['VAB FR longitud Ao >=11cm',  'vab_fr_longitud','vocab'],
+  ['VAB FR cirugía concomitante','vab_fr_cx',     'vocab'],
+  ['VAB FR deseo de embarazo',   'vab_fr_embarazo','vocab'],
 
   // 16 · Inclusión en el informe
   ['Incluir CIA/CIV en informe', 'ete_shunt_incluir_chk__chk', 'chk'],
@@ -31287,6 +31747,7 @@ const LAB_XLS_MAP = [
   ['Incluir coartación en informe',  'coart_incluir_chk__chk',  'chk'],
   ['Incluir VAP en informe',         'vap_incluir_chk__chk',    'chk'],
   ['Incluir FOP en informe',         'fop_incluir_chk__chk',    'chk'],
+  ['Incluir VAB en informe',         'vab_incluir_chk__chk',    'chk'],
 
   // 17 · Texto libre
   ['Informe (texto completo)','informe_texto', 'txt'],
@@ -31302,7 +31763,8 @@ const LAB_XLS_MAP = [
    (ete_cia_tam_max, ete_cia_tam_min, ete_civ_tam), los diámetros y VTI de los tractos de
    salida (tsvd_diametro, vti_tsvd, diam_tsvi, itv_tsvi) y los del ductus y la coartación
    (dap_diam, dap_vmax, dap_paps, coa_istmo, coa_ao_desc, coa_vmax, coa_gmedio, vap_diam,
-   fop_tunel, fop_asa_mm)
+   fop_tunel, fop_asa_mm). La VAB no agrega campos numéricos: lee ao_sin y ao_tub, que SÍ tienen
+   ventana (10-90 mm)
    NO figuran ni acá ni en DCM_RANGO.
    Lo que sí tienen ductus y coartación es una banda de plausibilidad DENTRO de la app
    —`banda()` en dapConclusion y `coaBanda()`—: un número fuera de escala entra igual y se
@@ -31517,6 +31979,25 @@ const _CC_3E_ALIAS = {
 Object.keys(_CC_3E_ALIAS).forEach(function(k){
   LAB_XLS_VOCAB[k] = Object.assign({}, LAB_XLS_VOCAB_3E, _CC_3E_ALIAS[k]);
 });
+/* Válvula aórtica bicúspide. Los nueve campos de tres estados reusan el núcleo, sin alias
+   propios: son todos preguntas de sí/no sin jerga alternativa. */
+['vab_rafe','vab_cx_valvular','vab_riesgo_qx','vab_fr_familiar','vab_fr_hta','vab_fr_crecimiento',
+ 'vab_fr_longitud','vab_fr_cx','vab_fr_embarazo'].forEach(function(k){
+  LAB_XLS_VOCAB[k] = Object.assign({}, LAB_XLS_VOCAB_3E);
+});
+LAB_XLS_VOCAB.vab_tipo = { t0:'t0', 'tipo 0':'t0', 'tipo 0 sin rafe':'t0', 'sin rafe':'t0',
+  t1rl:'t1rl', 'tipo 1 r-l':'t1rl', 'r-l':'t1rl', 'rl':'t1rl', 'derecha-izquierda':'t1rl',
+  t1rn:'t1rn', 'tipo 1 r-n':'t1rn', 'r-n':'t1rn', 'rn':'t1rn',
+  t1nl:'t1nl', 'tipo 1 n-l':'t1nl', 'n-l':'t1nl', 'nl':'t1nl',
+  t2:'t2', 'tipo 2':'t2', unicuspide:'t2', 'unicuspide funcional':'t2' };
+LAB_XLS_VOCAB.vab_funcion = { normal:'normal', normofuncionante:'normal',
+  estenosis:'estenosis', 'estenosis aortica':'estenosis',
+  insuficiencia:'insuficiencia', 'insuficiencia aortica':'insuficiencia',
+  mixta:'mixta', mixto:'mixta', 'lesion mixta':'mixta' };
+LAB_XLS_VOCAB.vab_fenotipo = { sin:'sin', 'sin dilatacion':'sin', normal:'sin',
+  raiz:'raiz', 'de raiz':'raiz', 'fenotipo raiz':'raiz',
+  tubular:'tubular', ascendente:'tubular', 'tubular / ascendente':'tubular',
+  arco:'arco', extendido:'arco', 'con arco':'arco' };
 LAB_XLS_VOCAB.fop_burbujas = { pocas:'pocas', leve:'pocas', '<5':'pocas', 'menos de 5':'pocas',
                                moderado:'moderado', moderada:'moderado', '5-20':'moderado',
                                abundante:'abundante', severo:'abundante', severa:'abundante', '>20':'abundante' };
@@ -31552,6 +32033,18 @@ const LAB_XLS_OPCIONES = {
   fop_burbujas:'Pocas (<5) · Moderado (5-20) · Abundante (>20)',
   fop_acv:'Sí · No · No consta',
   fop_trombofilia:'Sí · No · No consta',
+  vab_tipo:'Tipo 0 · Tipo 1 R-L · Tipo 1 R-N · Tipo 1 N-L · Tipo 2',
+  vab_funcion:'Normofuncionante · Estenosis · Insuficiencia · Mixta',
+  vab_fenotipo:'Sin dilatación · De raíz · Tubular · Extendido',
+  vab_rafe:'Sí · No · No evaluado',
+  vab_cx_valvular:'Sí · No · No consta',
+  vab_riesgo_qx:'Sí · No · No consta',
+  vab_fr_familiar:'Sí · No · No consta',
+  vab_fr_hta:'Sí · No · No consta',
+  vab_fr_crecimiento:'Sí · No · No consta',
+  vab_fr_longitud:'Sí · No · No consta',
+  vab_fr_cx:'Sí · No · No consta',
+  vab_fr_embarazo:'Sí · No · No consta',
 };
 LAB_XLS_OPCIONES.ia_grado = LAB_XLS_OPCIONES.it_grado = LAB_XLS_OPCIONES.im_grado;
 // Selects de texto libre acotado: se acepta cualquier opción de la lista, tal cual.
@@ -31943,7 +32436,11 @@ function labImportarXLSX(file) {
        /* El FOP se deduce por los campos de HALLAZGO, no por `/^fop_/`: los de contexto clínico
           (`fop_acv`, `fop_trombofilia`) los trae toda planilla exportada por la app, en «No
           consta», y con el regex amplio cualquier fila activaría la sección del foramen oval. */
-       ['fop_incluir_chk__chk',       /^fop_(tunel|asa|mov|contraste|shunt_|burbujas)/]].forEach(([flag, rx]) => {
+       ['fop_incluir_chk__chk',       /^fop_(tunel|asa|mov|contraste|shunt_|burbujas)/],
+       /* Igual que el FOP: sólo los campos que DESCRIBEN la válvula. Los nueve factores de
+          riesgo y el contexto quirúrgico no son el hallazgo — una fila que sólo diga «HTA
+          resistente: Sí» no documenta una bicúspide. */
+       ['vab_incluir_chk__chk',       /^vab_(tipo|rafe|funcion|fenotipo)/]].forEach(([flag, rx]) => {
         if (inf.campos[flag] !== undefined) return;
         /* Una RESPUESTA NEGATIVA no cuenta como dato. La corrección original se ató al tipo
            `chk` («cola diastólica en 0») y no al significado del valor, así que al llegar los
@@ -34748,6 +35245,7 @@ function labHemoRender(infs, n) {
      que contarlo daría el 100 % de la base con foramen oval. */
   const fopArr = infs.filter(i => _labCampoRaw(i, 'fop_tunel') || _labCampoRaw(i, 'fop_asa_mm') ||
                                   _labCampoRaw(i, 'fop_burbujas'));
+  const vabArr = infs.filter(i => _labCampoRaw(i, 'vab_tipo') || _labCampoRaw(i, 'vab_fenotipo'));
 
   /* El Qp/Qs se RECALCULA desde los cuatro campos guardados y no se lee del span: el span es
      del estudio que esté cargado en pantalla, así que leerlo daría el mismo número para los 60
@@ -34777,7 +35275,7 @@ function labHemoRender(infs, n) {
      condición vieja, una cohorte con ductus y sin CIA dejaba el bloque en «sin datos» y los
      estudios con ductus no aparecían en ninguna parte del laboratorio. Las barras de CIA y el
      pie de CIV siguen gateados por lo suyo, que es lo que de verdad las alimenta. */
-  if (!shuntArr.length && !dapArr.length && !coaArr.length && !vapArr.length && !fopArr.length) {
+  if (!shuntArr.length && !dapArr.length && !coaArr.length && !vapArr.length && !fopArr.length && !vabArr.length) {
     empty('lab-shunt-stats', 'CIA / CIV / ductus / coartación'); empty('lab-shunt-cia-bars', 'CIA');
     empty('lab-shunt-civ-pie', 'CIV');
   } else {
@@ -34798,7 +35296,8 @@ function labHemoRender(infs, n) {
       stat('Con ductus arterioso', dapArr.length + ' (' + pctS(dapArr.length) + ')') +
       stat('Con coartación de aorta', coaArr.length + ' (' + pctS(coaArr.length) + ')') +
       stat('Con ventana aortopulmonar', vapArr.length + ' (' + pctS(vapArr.length) + ')') +
-      stat('Con foramen oval permeable', fopArr.length + ' (' + pctS(fopArr.length) + ')'));
+      stat('Con foramen oval permeable', fopArr.length + ' (' + pctS(fopArr.length) + ')') +
+      stat('Con válvula aórtica bicúspide', vabArr.length + ' (' + pctS(vabArr.length) + ')'));
     const CIA_L = { secundum:'Ostium secundum', primum:'Ostium primum', sv_vcs:'Seno venoso VCS',
                     sv_vci:'Seno venoso VCI', seno_coronario:'Seno coronario' };
     const CIV_L = { perimembranosa:'Perimembranosa', muscular:'Muscular',
@@ -37193,6 +37692,16 @@ const ECO_AYUDA = [
   <div class="mBox mAviso"><b>Los campos de contexto son de tres estados, no casillas.</b> «No consta» no es lo mismo que «No», y la diferencia decide entre no hacer nada e implantar un dispositivo. Si el ACV criptogénico queda en <b>«No consta»</b>, la app <b>no</b> concluye «hallazgo incidental»: dice que la conducta depende de un dato que no está en el estudio, y esa línea sube al EN SUMA. Con trombofilia marcada la conclusión es la de la trombofilia, que arrastra la misma salvedad. No va a firmar «FOP asintomático» sobre un paciente al que nadie le preguntó por qué se le pidió el eco.</div>
   <div class="mBox mTip"><b>«No se realizó contraste» tampoco es «no hay shunt».</b> El estudio con solución salina agitada y Valsalva es el que hace el diagnóstico. Si no se hizo, el <b>cuerpo del informe lo dice siempre</b>; y cuando no hay ningún otro hallazgo que pese más, la conclusión además sugiere completarlo — en vez de dar por interrogado algo que no se interrogó. Si el estudio con burbujas se hizo y salió <b>negativo</b>, la conclusión no afirma un foramen oval: dice que no hay evidencia de uno.</div>
   <div class="mBox mTip"><b>Qué llega al EN SUMA.</b> Del FOP suben las seis conclusiones que cambian algo: cierre Clase IIa, ACV en mayor de 60, ACV sin edad cargada, trombofilia, alto riesgo sin evento y «falta el contexto». <b>No</b> suben el hallazgo incidental —es el 25 % de la población y llenaría la conclusión de ruido— ni el FOP descartado. De la VAP suben las cuatro, incluida la de hipertensión pulmonar no evaluada.</div>
+  <div class="mSub">🫀 VAB — Válvula aórtica bicúspide</div>
+  <p class="mP">La cardiopatía congénita más frecuente: <b>1-2 % de la población</b>, con base hereditaria. Se cargan el <b>tipo de fusión</b> (0 sin rafe, 1 R-L —la más frecuente—, 1 R-N, 1 N-L, 2), si el rafe está calcificado, la función valvular, y el <b>fenotipo aortopático</b>. Los grados de estenosis e insuficiencia y los diámetros de raíz y aorta ascendente se muestran en gris: se miden en <b>Válvulas</b> y en <b>Paciente → Aorta torácica</b>.</p>
+  <div class="mBox mAviso"><b>Lo que decide la conducta no es la válvula sino la aorta</b>, y la guía que aplica la app es la <b>ESC 2024 de aorta</b> (Eur Heart J 2024;45:3538) — <b>no</b> la ESC/EACTS de valvulopatías. La 2021 está superada por la 2025, y la 2025 borró sus propias filas de 55/50 mm y remite a la de aorta. Cada conclusión imprime la guía y la clase, para que quien lea el informe sepa contra qué se midió.</div>
+  <p class="mP">Umbrales: <b>≥55 mm</b> cualquier fenotipo (Clase I) · <b>≥50 mm</b> con fenotipo de raíz (Clase I) · <b>por encima de 52 mm</b> ascendente con riesgo quirúrgico bajo (IIa) · <b>≥50 mm</b> ascendente con riesgo bajo y al menos un factor de riesgo (IIa) · <b>≥45 mm</b> si el paciente ya va a cirugía valvular aórtica, para reemplazar la aorta en el mismo acto (IIa).</p>
+  <div class="mBox mAviso"><b>45 mm no es un umbral quirúrgico por sí solo.</b> Es el umbral para reemplazar la aorta <i>cuando el paciente ya va a quirófano por la válvula</i>. Por eso hay un campo <b>«Cirugía valvular aórtica prevista»</b> de tres estados: sin un «Sí» explícito la app no usa ese umbral. Y las dos indicaciones IIa del fenotipo ascendente exigen <b>riesgo quirúrgico bajo</b>, que lo define el Heart Team y no el ecocardiograma: sin ese dato la conclusión dice que el diámetro alcanza el umbral y que falta lo que la guía pide para sostener la indicación.</div>
+  <div class="mBox mTip"><b>Los nueve factores de riesgo de la ESC 2024.</b> Tres se derivan solos: <b>edad &lt;50 años</b> y <b>talla 1,50-1,69 m</b> de Datos del paciente, y <b>coartación</b> de la sección de esta misma pestaña. Los otros seis se preguntan: familiar con síndrome aórtico agudo, HTA <i>resistente</i>, crecimiento ≥3 mm/año, longitud de la ascendente ≥11 cm, cirugía cardíaca concomitante y deseo de embarazo. Un factor «No consta» no cuenta ni a favor ni en contra, y la conclusión lista cuáles quedaron sin evaluar en todas las ramas donde el conteo decide o donde la conclusión tranquiliza.</div>
+  <div class="mBox mTip"><b>Dos huecos declarados, y son de la guía y no del cálculo.</b> El <b>fenotipo extendido</b> (con arco) no tiene fila de umbral propia en la ESC 2024: cuando se marca, el informe lo dice. Los umbrales generales —≥55 mm y el de cirugía valvular concomitante— se siguen aplicando, porque la guía los da para cualquier fenotipo; lo que no existe es un umbral <i>específico</i> del extendido. Y el <b>umbral indexado</b> no se usa: la AHA gradúa 10 cm²/m y la ESC lo desestima explícitamente para bicúspide, mientras su propio 13 cm²/m aparece en prosa y sin grado. Sin una cifra graduada la app no publica un umbral.</div>
+  <div class="mBox mTip"><b>La conclusión benigna también sube al EN SUMA</b>, al revés que en el resto de las secciones. «Sin dilatación — seguimiento anual» lleva pegado el <b>cribado a familiares de primer grado</b>, que es una acción sobre personas que no están en la consulta: si no queda escrito en la conclusión, no ocurre.</div>
+  <div class="mBox mTip"><b>Coartación y bicúspide se cruzan solas.</b> La asociación es del 50-85 %, así que si hay una coartación significativa o limítrofe y la sección de bicúspide está <b>vacía</b>, el informe lo dice: la válvula aórtica no es un hallazgo incidental en una coartación. Y en la otra dirección, una coartación documentada cuenta como uno de los nueve factores de riesgo que bajan el umbral quirúrgico de la aorta — pero sólo si la sección de coartación llegó a una conclusión: con la localización cargada y sin ningún gradiente, se anota como pendiente y no como factor. El aviso desaparece en cuanto registres la morfología aórtica en <b>Válvulas</b> (incluida «Trivalva normal» elegida a mano) o completes la sección de bicúspide.</div>
+
   <div class="mBox mTip"><b>El Qp/Qs es del paciente, no de cada defecto.</b> Sale de los flujos del TSVI y el TSVD, así que mide el cortocircuito total. Si hay más de uno cargado —una CIA y una ventana, por ejemplo— las tres secciones muestran <b>«shunt múltiple: el Qp/Qs es del conjunto»</b> en vez del número, ninguna se lo atribuye en su conclusión y tampoco sube al EN SUMA. Repartir el shunt entre dos defectos no se puede hacer con un ecocardiograma. El FOP queda fuera de esa cuenta a propósito: es fisiológico y está en el 25 % de la gente, así que contarlo apagaría el Qp/Qs de la CIA en uno de cada cuatro pacientes.</div>
   <div class="mSub">🔬 ETE</div>
   <p class="mP">Transesofágico: técnica, morfología mitral con clasificación de Carpentier, criterios de elegibilidad para TEER (MitraClip/PASCAL), score de Wilkins sobre 16, orejuela izquierda para cierre percutáneo y aorta. Sale en <b>hoja propia</b> del PDF. Al final del módulo está <b>TAVI</b>, con su propia solapa del manual, que en cambio se imprime <b>dentro del informe narrativo</b>. CIA / CIV estaba acá hasta el 2026-09-10 y se mudó a <b>🧬 Congénitas</b>, junto con el ductus y la coartación.</p>
