@@ -958,6 +958,27 @@ súbita por MCH · espesor ≥30 mm · síncope inexplicado · TVNS · aneurisma
 **respuesta tensional anormal al ejercicio NO figura** en la lista de 2020 (venía de
 iteraciones anteriores), y la FEVI sí — la app ya tiene el campo.
 
+**Decisiones tomadas por Maicol el 2026-09-10, para no re-litigarlas al implementar:**
+
+1. **Los siete de la AHA/ACC 2020 cuentan; la respuesta tensional va aparte.** Se registra como
+   campo propio, el informe la menciona y NO suma al conteo, con la aclaración literal:
+   «Factor de riesgo reconocido en guías previas, no incluido en el conteo AHA/ACC 2020».
+2. **Las exclusiones son compuertas:** si alguna está marcada, no se muestra el porcentaje y se
+   nombra cuál lo impide. Con parada cardíaca o TV sostenida previa, además, aclarar que el DAI
+   está indicado con independencia del score. La amiloidosis se deriva del módulo propio de la
+   app si está cargado, en vez de preguntarse otra vez.
+3. **Los cuatro campos que no están en ningún modelo** —HTA resistente, crecimiento anual del
+   espesor, deseo de embarazo y talla— entran como contexto: el médico los marca si los tiene,
+   **no suman a ningún score**, y el informe los menciona como «factores adicionales
+   considerados». *(Ojo: la selección de la pregunta decía «sólo el deseo de embarazo» y el
+   texto de la respuesta decía los cuatro; se tomó el texto, que traía la redacción decidida.
+   Confirmar antes de escribir la sección.)*
+4. **Los dos scores se muestran lado a lado**, cada uno con su guía y su clase: `ESC 2022: X % a
+   5 años — Clase X` · `AHA 2020: N factores mayores — Clase X`, y la nota de que la AHA incluye
+   la fibrosis por RMN, que el ecocardiograma no evalúa.
+5. **Si faltan campos del score de la ESC, no se muestra el número**: se listan cuáles faltan.
+   Es el mismo criterio que ya rige en FOP con el ACV y en VAB con el riesgo quirúrgico.
+
 ## Deuda conocida sin resolver
 
 - **Contraseña en el código.** `doLogin()` compara contra un literal. Choca con el checklist
