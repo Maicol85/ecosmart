@@ -18054,6 +18054,34 @@ function generarPDFReal() {
     const dos = !!_hdrLine;
     const hdrH = dos ? 20 : 15;
     fc(ROJO[0],ROJO[1],ROJO[2]); doc.rect(0,0,210,hdrH,'F');
+    /* Onda de pulso a todo el ancho, blanca al 25 %. Va INMEDIATAMENTE después de la banda y
+       antes del título y del logo: en jsPDF lo último dibujado queda encima, así que invertir
+       el orden pondría el trazo sobre el texto.
+       El perfil es un pulso, no un ECG: línea de base larga, subida rápida, pico, bajada y
+       vuelta a la base — que es lo que pidió el diseño para esta plantilla y lo que la
+       distingue del trazo de Clásico.
+       Las coordenadas van normalizadas 0..1 sobre `hdrH` y no en milímetros absolutos: la
+       banda mide 20 mm con centro cargado y 15 sin él, y el trazo del Clásico ya tuvo el bug
+       de estar fijado a una altura y salirse cuando la banda se achicó.
+       `setGState` va guardado con `&&` como en la píldora de la fecha de más abajo: es la
+       misma API opcional, y si el build de jsPDF no la trae el trazo sale opaco pero el PDF
+       se genera igual — que es preferible a que reviente el informe por una decoración. */
+    {
+      const yb = 0.62, amp = 0.30;                 // base y amplitud, en fracción de hdrH
+      const pulso = [[0,0],[16,0],[22,0],[25,-0.55],[28,1],[31,-0.15],[34,0],[46,0]];
+      const ancho = 46;                            // un latido cada 46 mm
+      dc(255,255,255); doc.setLineWidth(0.7);
+      if (doc.setGState) doc.setGState(new doc.GState({ opacity:0.25 }));
+      for (let x0 = 0; x0 < 210; x0 += ancho) {
+        for (let i = 1; i < pulso.length; i++) {
+          const ax = x0 + pulso[i-1][0], bx = x0 + pulso[i][0];
+          if (ax > 210) break;
+          doc.line(ax, (yb + pulso[i-1][1] * amp) * hdrH,
+                   Math.min(bx, 210), (yb + pulso[i][1] * amp) * hdrH);
+        }
+      }
+      if (doc.setGState) doc.setGState(new doc.GState({ opacity:1 }));
+    }
     /* El logo se reserva ANTES de medir el título: va sobre fondo rojo y a la derecha, donde
        también va la fecha. Sin reservarlo, un wordmark ancho y la fecha se pisaban. */
     const logoW = _hdrLogo ? 26 : 0;
@@ -18224,7 +18252,26 @@ function generarPDFReal() {
     for (let k = 0; k < 5 && doc.getTextWidth(_sanML(cab)) > disp; k++) { sz -= 0.6; fb(sz); }
     doc.text(_sanML(cab), x0, 10);
     let yy = 13.2;
-    dc(150,150,150); doc.setLineWidth(0.3); doc.line(mL, yy, mR, yy); yy += 4.4;
+    /* La hairline de separación TERMINA antes del borde derecho y ese tramo lo ocupa un trazo
+       de ECG en gris claro: la línea se convierte en el trazo, en vez de agregar un elemento
+       nuevo que compita por espacio. Es lo que pide esta plantilla, cuya identidad es la
+       densidad — «todo en una línea, filas apretadas, sin bordes»— y donde un adorno con
+       fondo de color estaría fuera de lugar.
+       Va a la derecha y sobre la línea, no arriba: el renglón de arriba ya lo comparten el
+       título y la fecha, y el título se achica en un bucle hasta entrar en el ancho que deja
+       la fecha. Meter el trazo ahí le habría robado ancho al título, que es el dato. */
+    const ecgW = 26, ecgX = mR - ecgW;
+    dc(150,150,150); doc.setLineWidth(0.3); doc.line(mL, yy, ecgX - 2, yy);
+    {
+      // Mismo perfil que Clásico, comprimido a 26 mm de ancho y ±1,6 mm de alto.
+      const p = [[0,0],[0.30,0],[0.38,0],[0.42,-0.55],[0.46,1],[0.50,-0.55],[0.54,0],[0.72,0],[0.76,-0.22],[0.80,0],[1,0]];
+      dc(187,187,187); doc.setLineWidth(0.35);
+      for (let i = 1; i < p.length; i++) {
+        doc.line(ecgX + p[i-1][0] * ecgW, yy + p[i-1][1] * 1.6,
+                 ecgX + p[i][0] * ecgW,   yy + p[i][1] * 1.6);
+      }
+    }
+    yy += 4.4;
     // Datos del paciente en una fila corrida, con el mismo criterio de átomos que Minimalista.
     if (pCeldas.length) {
       const _duro = t => { const q = _sanML(t); return q.length <= 24 ? q.replace(/ /g, '\u00A0') : q; };
@@ -18287,6 +18334,24 @@ function generarPDFReal() {
     fc(TEMA[0],TEMA[1],TEMA[2]); doc.rect(0, 0, 210, hdrH, 'F');
     // Franja secundaria de ~3 px ≈ 1,06 mm, pegada bajo la banda.
     fc(TEMA2[0],TEMA2[1],TEMA2[2]); doc.rect(0, hdrH, 210, 1.06, 'F');
+    /* Círculos concéntricos en el color secundario, efecto de onda. Van ANTES del logo a
+       propósito: si hay logo, queda encima y los círculos funcionan como marca de agua; si no
+       lo hay, se ven solos. Así la decoración no depende de que el centro tenga logo cargado
+       ni compite con él por el mismo lugar.
+       Se recortan contra la banda por construcción —el radio mayor no llega al alto— en vez de
+       confiar en un clip: jsPDF no recorta formas fuera del área y un círculo que se pase se
+       dibuja sobre la caja de datos del paciente. */
+    {
+      const cy = hdrH / 2, cx = 210 - 20;
+      const rMax = Math.min(9, hdrH / 2 - 0.8);
+      fc(TEMA2[0], TEMA2[1], TEMA2[2]);
+      [[rMax, 0.15], [rMax * 0.66, 0.25], [rMax * 0.34, 0.40]].forEach(([r, op]) => {
+        if (r <= 0) return;
+        if (doc.setGState) doc.setGState(new doc.GState({ opacity: op }));
+        doc.circle(cx, cy, r, 'F');
+      });
+      if (doc.setGState) doc.setGState(new doc.GState({ opacity: 1 }));
+    }
     const logoW = _hdrLogo ? 26 : 0;
     if (logoW) _hdrDibujarLogo(mR, 3, hdrH - 6, logoW);
     fb(13); tc(255,255,255);
