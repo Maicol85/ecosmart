@@ -585,8 +585,14 @@
   .mSub:first-child { margin-top:0; }
   .mP { margin:0 0 10px; }
   .mUl { padding-left:0; list-style:none; display:flex; flex-direction:column; gap:6px; margin:0 0 12px; }
-  .mUl li { display:flex; gap:8px; }
-  .mUl li::before { content:'→'; color:#0D9488; flex-shrink:0; }
+  /* Sangría colgante y NO `display:flex`. El flex estaba sólo para colocar la flecha, pero
+     convertía en ITEM FLEX a cada trozo suelto del <li> —cada <b> y cada nodo de texto entre
+     ellos—, en una fila con `nowrap`. En desktop sobra ancho y no se nota; en 390 px la
+     viñeta «Fecha desde / hasta, y desplegables de antecedente o diagnóstico» se partía en
+     columnas verticales, una por trozo, e ilegible. Con position/absolute el texto vuelve a
+     ser contenido en línea normal y envuelve como corresponde. */
+  .mUl li { position:relative; padding-left:18px; }
+  .mUl li::before { content:'→'; color:#0D9488; position:absolute; left:0; top:0; }
   .mOl { padding-left:18px; margin:0 0 12px; display:flex; flex-direction:column; gap:7px; }
   .mBox { padding:9px 12px; border-radius:8px; font-size:12px; margin:0 0 10px; line-height:1.6; }
   .mAviso { background:rgba(239,68,68,0.10); border-left:3px solid #EF4444; color:#FCA5A5; }
@@ -35699,9 +35705,16 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
       </div>
     </div>
 
+    <!-- `scrollbar-width:thin` y no `none`: son 20 pestañas y ninguna entra entera en 618 px,
+         así que la tira SIEMPRE scrollea. Ocultar la barra dejaba al médico sin ninguna señal
+         de que hay más pestañas a la derecha. `-webkit-overflow-scrolling:touch` es para el
+         arrastre con el dedo en Safari de iOS, que es donde más se nota.
+         `flex-shrink:0` acá es del contenedor contra el modal (que no lo aplaste en alto); el
+         que hace legibles las pestañas es el `flex:0 0 auto` de cada botón, en renderAyudaEco. -->
     <div id="ecoAyudaTabs" style="display:flex;
-      gap:0;padding:10px 22px 0;overflow-x:auto;
-      scrollbar-width:none;flex-shrink:0;
+      gap:0;padding:10px 22px 0;overflow-x:auto;overflow-y:hidden;
+      scrollbar-width:thin;-webkit-overflow-scrolling:touch;
+      flex-shrink:0;
       border-bottom:1px solid rgba(255,255,255,0.07);">
     </div>
 
@@ -36185,20 +36198,38 @@ function renderAyudaEco(activo) {
   const tabs = document.getElementById('ecoAyudaTabs');
   const cont = document.getElementById('ecoAyudaContenido');
   if (!tabs || !cont) return;
+  /* `flex:0 0 auto` es lo que hace legibles las pestañas, y no el `overflow-x:auto` del
+     contenedor —que ya estaba y no alcanzaba—. En un flex los hijos se ENCOGEN antes de
+     desbordar: con `flex-shrink:1` (el default) los 20 botones, que suman 2260 px de ancho
+     natural, se aplastaban a 44 px cada uno dentro de un contenedor de 618. A 44 px entra el
+     emoji y nada más, así que las veinte quedaban recortadas y el `white-space:nowrap` sólo
+     lograba que el texto se cortara en vez de envolverse. Sin encogimiento, los botones
+     desbordan de verdad y recién ahí el scroll horizontal existente hace su trabajo. */
   tabs.innerHTML = ECO_AYUDA.map((s,i) =>
-    `<button onclick="renderAyudaEco(${i})"
+    `<button type="button" onclick="renderAyudaEco(${i})"
       style="background:none;border:none;
+      flex:0 0 auto;
       padding:8px 13px;cursor:pointer;
       font-size:12px;white-space:nowrap;
       color:${i===activo?'#0D9488':'#94A3B8'};
       font-weight:${i===activo?'600':'400'};
       border-bottom:2px solid ${i===activo?
         '#0D9488':'transparent'};
-      transition:all 0.15s;font-family:inherit;">
+      transition:color 0.15s,border-color 0.15s;font-family:inherit;">
       ${s.tab}
     </button>`
   ).join('');
   cont.innerHTML = ECO_AYUDA[activo].html;
+  /* Reponer el scroll de la tira. `innerHTML =` reconstruye los botones y con eso el
+     navegador resetea scrollLeft a 0: sin esto, tocar una pestaña del final saltaba al
+     principio y la pestaña recién elegida quedaba fuera de pantalla — un defecto que sólo
+     se vuelve visible ahora que la tira scrollea de verdad.
+     `block:'nearest'` para que no arrastre el modal entero verticalmente. */
+  const btn = tabs.children[activo];
+  if (btn && btn.scrollIntoView) {
+    try { btn.scrollIntoView({ inline:'nearest', block:'nearest' }); } catch (e) {}
+  }
+  cont.scrollTop = 0;   // pestaña nueva, se lee desde arriba
 }
 document.addEventListener('keydown', e => {
   if (e.key==='Escape') cerrarAyudaEco();
