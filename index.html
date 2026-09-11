@@ -1270,6 +1270,13 @@ function cerrarSesion() {
      el Excel se exporta desde Guardados, donde ese aviso no llega. `typeof` porque esta función
      vive en un bloque <script> anterior al del Laboratorio. */
   if (typeof labCohorteLimpiar === 'function') { try { labCohorteLimpiar(true); } catch (e) {} }
+  /* Y la sesión de asociaciones libres, por el MISMO motivo y en la misma función: `_libreSesion`
+     es estado de módulo y `cerrarSesion` no recarga. El médico siguiente veía una tabla titulada
+     «Pares probados en esta sesión (7)» con pares que nunca corrió, y —peor— su primer
+     «Calcular» entraba al ajuste por multiplicidad con m=8, o sea castigado por la pesca del
+     anterior. Es exactamente el defecto que el renglón de arriba acaba de cerrar para la
+     cohorte, reintroducido dos líneas después. */
+  if (typeof labAsocLibreReset === 'function') { try { labAsocLibreReset(true); } catch (e) {} }
   sessionStorage.removeItem('ett_auth');
   document.getElementById('login-pwd').value = '';
   document.getElementById('login-err').textContent = '';
@@ -11992,6 +11999,10 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
               🟢 significativa con N suficiente<br>
               🟡 significativa pero N bajo<br>
               ⚫ no significativa</div>
+            <div class="ai-sec"><b>— (raya)</b> — la prueba <b>no se pudo correr</b>: sin datos, N
+              insuficiente o una sola categoría. <b>No es lo mismo que ⚫</b>, que sí es una prueba
+              que se corrió y dio no significativa. Ausencia de prueba y prueba negativa se ven
+              distinto a propósito.</div>
             <div class="ai-sec"><b>Cómo analizarlo</b> — mirá primero el semáforo. Si es 🟢 o 🟡,
               fijate en la Fuerza: una asociación Fuerte con p&lt;0.001 es la más valiosa
               clínicamente. Una asociación Débil aunque sea significativa puede no tener
@@ -12000,7 +12011,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
               juicio clínico ni establecen causalidad.</div>
           </div>
         </div>
-        <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Test elegido automáticamente según el tipo de variables. Semáforo: 🟢 significativo con N suficiente · 🟡 significativo pero N bajo · ⚫ no significativo. Cálculo en JS puro sobre los estudios guardados.</div>
+        <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Test elegido automáticamente según el tipo de variables. Semáforo: 🟢 significativo con N suficiente · 🟡 significativo pero N bajo · ⚫ no significativo · — no se pudo calcular (sin datos o N insuficiente), que no es lo mismo que negativo. Cálculo en JS puro sobre los estudios guardados.</div>
         <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:14px;">
           <div class="fg" style="margin:0;min-width:130px;"><label style="font-size:.72rem;">Significancia</label>
             <select id="asoc-f-sig" onchange="if(window.labAsociacionesRender)labAsociacionesRender()"><option value="all">Todos</option><option value="05">p&lt;0.05</option><option value="01">p&lt;0.01</option></select></div>
@@ -12014,6 +12025,63 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           </div>
         </div>
         <div id="lab-asoc-tabla" style="overflow-x:auto;"></div>
+      </div>
+    </div>
+
+    <!-- ══ BLOQUE A — Asociaciones clínicas predefinidas ══ -->
+    <div class="lab-card">
+      <div class="lab-card-hdr">🩺 Asociaciones clínicas predefinidas</div>
+      <div class="lab-card-body">
+        <div style="font-size:.78rem;color:var(--text2);line-height:1.6;margin-bottom:10px;">
+          Un conjunto <b>pre-especificado</b> de asociaciones con sentido fisiopatológico, cada una
+          sobre <b>su</b> población (los estudios donde esa sección se evaluó), no sobre toda la cohorte.
+          Se calculan sólo con <b>N&nbsp;≥&nbsp;10</b>.
+        </div>
+        <div style="font-size:.74rem;color:var(--text);background:var(--bg3);border-left:3px solid var(--accent);border-radius:6px;padding:8px 10px;line-height:1.55;margin-bottom:12px;">
+          <b>El p ajustado de esta tabla NO es comparable con el de la tabla de arriba.</b> El ajuste por
+          comparaciones múltiples depende de la <b>familia</b> de pruebas: arriba se corrigen las 29
+          exploratorias juntas, acá sólo las de este bloque. La misma asociación puede aparecer en las dos
+          con distinto p ajustado, y ninguna de las dos cifras está mal — contestan preguntas distintas.
+          Cuando eso pasa, la fila lo dice.
+        </div>
+        <div id="lab-asocA-tabla" style="overflow-x:auto;"></div>
+        <div id="lab-asocA-nota" style="font-size:.72rem;color:var(--text2);margin-top:10px;line-height:1.55;"></div>
+      </div>
+    </div>
+
+    <!-- ══ BLOQUE B — Asociación libre ══ -->
+    <div class="lab-card">
+      <div class="lab-card-hdr">🔬 Asociación libre</div>
+      <div class="lab-card-body">
+        <div style="font-size:.78rem;color:var(--text2);line-height:1.6;margin-bottom:10px;">
+          Elegí dos variables numéricas y calculá su correlación sobre la cohorte actual.
+          Se usa <b>Spearman</b>, que no supone linealidad ni normalidad.
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:12px;">
+          <div class="fg" style="margin:0;min-width:210px;"><label style="font-size:.72rem;">Variable X</label>
+            <select id="asocL-x"></select></div>
+          <div class="fg" style="margin:0;min-width:210px;"><label style="font-size:.72rem;">Variable Y</label>
+            <select id="asocL-y"></select></div>
+          <button type="button" class="btn btn-primary" onclick="labAsocLibreCalcular()">Calcular</button>
+          <button type="button" class="btn btn-ghost" onclick="labAsocLibreReset()" style="font-size:12px;">Reiniciar sesión</button>
+        </div>
+        <div id="lab-asocL-resultado"></div>
+        <div id="lab-asocL-graf-cont">
+          <div data-sc style="position:relative;height:280px;width:100%;margin-top:12px;" id="lab-asocL-graf-wrap">
+            <canvas id="lab-asocL-graf"></canvas>
+          </div>
+        </div>
+        <div id="lab-asocL-sesion" style="margin-top:14px;"></div>
+        <div style="font-size:.74rem;color:var(--text);background:var(--bg3);border-left:3px solid var(--orange,#f0a500);border-radius:6px;padding:8px 10px;line-height:1.55;margin-top:12px;">
+          <b>Probar pares hasta que uno dé significativo es la forma más fácil de fabricar un hallazgo.</b>
+          Con 20 pares al azar sobre datos sin ninguna señal, uno da p&nbsp;&lt;&nbsp;0,05 por puro azar.
+          Por eso el p ajustado de acá abajo se recalcula sobre <b>todos los pares que probaste en esta
+          sesión</b>, y no sobre el último: el ajuste que corresponde es el de lo que miraste, no el de lo
+          que decidiste mostrar.
+          <br><br><b>La cuenta se reinicia al recargar la página, al cerrar sesión y con «Reiniciar sesión».</b>
+          Se dice acá porque es el único modo de escapar del ajuste, y una corrección que se puede
+          esquivar sin saberlo es peor que no tenerla.
+        </div>
       </div>
     </div>
   </div>
@@ -34896,6 +34964,24 @@ function labInit() {
       document.getElementById('lab-sub-asociaciones')) {
     try { labAsociacionesRender(); if (typeof labRenderDesc === 'function') labRenderDesc(); }
     catch (e) { console.error('[lab] no se pudieron recalcular las asociaciones', e); }
+    /* Bloque A y bloque libre, en su PROPIO try: si uno lanza no puede llevarse el otro ni la
+       tabla general, que ya se dibujó arriba. El bloque libre se repinta acá porque sus pares se
+       recalculan sobre la cohorte vigente — al aplicar un filtro, la tabla de la sesión tiene
+       que dejar de describir la población anterior. */
+    /* El catch VACÍA la tabla en vez de dejarla. `labAsocARender` lanza dentro del cálculo, o sea
+       ANTES de pisar el innerHTML: los números viejos quedaban en pantalla mientras el encabezado,
+       las descriptivas y la tabla general ya se habían movido a la cohorte nueva. Dos poblaciones
+       en la misma pantalla y sin ninguna marca — el defecto contra el que este archivo advierte
+       en «el denominador se declara una vez». */
+    try { if (typeof labAsocARender === 'function') labAsocARender(); }
+    catch (e) { console.error('[lab] asociaciones clínicas', e);
+      const _hA = document.getElementById('lab-asocA-tabla');
+      if (_hA) _hA.innerHTML = '<div class="lab-empty">No se pudieron recalcular las asociaciones clínicas sobre esta cohorte. ' +
+        'La tabla se vació a propósito: dejar los números anteriores sería mostrarlos junto a los de otra población.</div>';
+      const _nA = document.getElementById('lab-asocA-nota'); if (_nA) _nA.innerHTML = ''; }
+    try { if (typeof labAsocLibreInit === 'function') labAsocLibreInit();
+          if (typeof _labAsocLibreRefrescar === 'function') _labAsocLibreRefrescar(); }
+    catch (e) { console.error('[lab] asociación libre', e); }
   }
   const infs = labGetInformes();
   const n = infs.length;
@@ -38434,11 +38520,21 @@ function labSubTab(id, el) {
   const tp2 = (t,df) => betai(df/2,0.5,df/(df+t*t));  // p 2-colas para |t|
   const ranks = arr => { const idx=arr.map((v,i)=>[v,i]).sort((a,b)=>a[0]-b[0]); const r=new Array(arr.length); let i=0; while(i<idx.length){ let j=i; while(j+1<idx.length&&idx[j+1][0]===idx[i][0])j++; const avg=(i+j)/2+1; for(let k=i;k<=j;k++)r[idx[k][1]]=avg; i=j+1; } return r; };
 
-  const spearman = pairs => { const n=pairs.length; if(n<3)return null; const rx=ranks(pairs.map(p=>p[0])), ry=ranks(pairs.map(p=>p[1])); const mx=rx.reduce((a,b)=>a+b,0)/n, my=ry.reduce((a,b)=>a+b,0)/n; let sxy=0,sxx=0,syy=0; for(let i=0;i<n;i++){ const dx=rx[i]-mx,dy=ry[i]-my; sxy+=dx*dy; sxx+=dx*dx; syy+=dy*dy; } if(sxx===0||syy===0)return {rho:0,p:1,n}; const rho=sxy/Math.sqrt(sxx*syy); const df=n-2; const t=rho*Math.sqrt(df/Math.max(1e-12,1-rho*rho)); return {rho,p:tp2(t,df),n}; };
+  const spearman = pairs => { const n=pairs.length; if(n<3)return null; const rx=ranks(pairs.map(p=>p[0])), ry=ranks(pairs.map(p=>p[1])); const mx=rx.reduce((a,b)=>a+b,0)/n, my=ry.reduce((a,b)=>a+b,0)/n; let sxy=0,sxx=0,syy=0; for(let i=0;i<n;i++){ const dx=rx[i]-mx,dy=ry[i]-my; sxy+=dx*dy; sxx+=dx*dx; syy+=dy*dy; } /* `null` y NO `{rho:0,p:1}`. Varianza cero significa que una de las dos variables es CONSTANTE
+       en esta cohorte, o sea que la prueba no se puede correr — y con p=1 la fila salía ⚫ «no
+       significativo», fuerza «Débil» y dirección «→», que es afirmar un resultado negativo sobre
+       algo que nunca se midió. Es la misma confusión ausencia/negativo que `sigLight` separa un
+       nivel más arriba. Los tres llamadores ya contemplan el null (`if(!r)`). */
+    if(sxx===0||syy===0)return null; const rho=sxy/Math.sqrt(sxx*syy); const df=n-2; const t=rho*Math.sqrt(df/Math.max(1e-12,1-rho*rho)); return {rho,p:tp2(t,df),n}; };
   const mannwhitney = (g1,g2) => { const n1=g1.length,n2=g2.length,N=n1+n2; if(n1<1||n2<1)return null; const all=g1.map(v=>[v,0]).concat(g2.map(v=>[v,1])); const r=ranks(all.map(a=>a[0])); let R1=0; for(let i=0;i<N;i++)if(all[i][1]===0)R1+=r[i]; const U1=R1-n1*(n1+1)/2, U2=n1*n2-U1, U=Math.min(U1,U2); const mU=n1*n2/2; const sv=all.map(a=>a[0]).sort((a,b)=>a-b); let tie=0,i=0; while(i<N){ let j=i; while(j+1<N&&sv[j+1]===sv[i])j++; const t=j-i+1; if(t>1)tie+=t*t*t-t; i=j+1; } const sU=Math.sqrt((n1*n2/12)*((N+1)-tie/(N*(N-1)||1))); if(sU===0)return {U,p:1,n1,n2,z:0}; const z=(Math.abs(U-mU)-0.5)/sU; return {U,p:Math.max(0,Math.min(1,2*(1-normCdf(z)))),n1,n2,z}; };
   const chi2test = rows => { const R=rows.length, C=rows[0].length; const rt=rows.map(r=>r.reduce((a,b)=>a+b,0)); const ct=[]; for(let c=0;c<C;c++){let s=0;for(let r=0;r<R;r++)s+=rows[r][c];ct.push(s);} const N=rt.reduce((a,b)=>a+b,0); if(N===0)return null; let chi2=0,minE=Infinity; for(let r=0;r<R;r++)for(let c=0;c<C;c++){ const e=rt[r]*ct[c]/N; if(e>0){minE=Math.min(minE,e); chi2+=(rows[r][c]-e)*(rows[r][c]-e)/e;} } const df=(R-1)*(C-1); if(df<1)return null; return {chi2,p:chi2p(chi2,df),df,N,minE,k:Math.min(R-1,C-1)}; };
 
-  const sigLight = (p, ok) => p==null?'⚫':(p<0.05?(ok?'🟢':'🟡'):'⚫');
+  /* `—` y NO `⚫` cuando no hay p. La leyenda que la app imprime dice «⚫ no significativo», así
+     que pintar de negro una prueba que NUNCA SE CORRIÓ —sin datos, N insuficiente, un solo
+     grupo— publica un resultado negativo que nadie midió. Es el mismo error de tipo que este
+     archivo ya cerró con `pctOf(n, 0)`, que devolvía «0 %» sobre una entidad que la app no
+     registra. Ausencia de prueba y prueba negativa no se ven iguales. */
+  const sigLight = (p, ok) => p==null?'—':(p<0.05?(ok?'🟢':'🟡'):'⚫');
 
   // ── Dirección / fuerza / lectura clínica ──
   // Dirección: ↑↑ = ambas suben juntas (coef>0) · ↑↓ = una sube y la otra baja (coef<0)
@@ -38601,7 +38697,21 @@ function labSubTab(id, el) {
     });
     return res;
   }
-  function computeAll(){ const infs=informes(); return _bh(ASSOC.map(d=>runOne(d,infs))); }
+  /* Tamaño REAL de la familia de la tabla general: las asociaciones que se pudieron calcular, que
+     es sobre las que corrige `_bh`. Se DECLARA antes de `computeAll`, que es quien lo escribe:
+     un `let` de nivel de módulo escrito antes de su línea LANZA, y en este archivo eso se lleva
+     el bloque <script> entero. */
+  let _mGeneral = 0;
+  /* `_mGeneral` se toma ACÁ y no en `labAsociacionesRender`: allá las filas son las que pasaron
+     los filtros de pantalla, y el ajuste por multiplicidad no se hace sobre lo que se muestra
+     sino sobre la FAMILIA completa de pruebas que se corrieron. Filtrando a «p<0,05» el m habría
+     bajado al número de filas verdes, que es exactamente el sesgo que BH viene a corregir. */
+  function computeAll(){
+    const infs=informes();
+    const res=_bh(ASSOC.map(d=>runOne(d,infs)));
+    _mGeneral = res.filter(r => r.p != null).length;
+    return res;
+  }
   const pTxt = p => p==null?'—':(p<0.001?'<0.001':p.toFixed(3));
 
   // ── Descriptiva ──
@@ -38843,7 +38953,12 @@ function labSubTab(id, el) {
       '<td class="asoc-c-sec" style="padding:5px 8px;text-align:center;">'+(r.fuerza||'—')+'</td>'+
       '<td class="asoc-c-sec" style="padding:5px 8px;white-space:nowrap;">'+r.stat+'</td>'+
       '<td style="padding:5px 8px;text-align:right;">'+pTxt(r.p)+'</td>'+
-      '<td style="padding:5px 8px;text-align:right;" title="p ajustado por comparaciones múltiples (Benjamini-Hochberg, m=29). Es el que decide el semáforo.">'+pTxt(r.pAdj)+'</td>'+
+      /* El m se CALCULA. Decía «m=29» fijo, y `_bh` corrige sobre las que tienen p no nulo: con
+         una cohorte chica la mitad de la tabla sale «—» y el m real es bastante menor. Desde que
+         `sigLight` distingue «no calculada» de «no significativa», el médico puede CONTAR esas
+         filas y ver que el número declarado no cierra. Es la única cifra del módulo que se
+         afirmaba sin calcularse. */
+      '<td style="padding:5px 8px;text-align:right;" title="p ajustado por comparaciones múltiples (Benjamini-Hochberg, m='+_mGeneral+'). Es el que decide el semáforo.">'+pTxt(r.pAdj)+'</td>'+
       '<td style="padding:5px 8px;text-align:center;font-size:14px;">'+r.sig+'</td></tr>'; });
     host.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:12px;">'+
       '<thead><tr style="font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);border-bottom:1px solid var(--border);">'+
@@ -38867,14 +38982,545 @@ function labSubTab(id, el) {
       tr.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); asocToggle(tr,idx); } });
     });
   };
-  window.labAsociacionesInit = function(){ if(window.labRenderDesc)labRenderDesc(); labAsociacionesRender(); };
+  /* ══════════════════════════════════════════════════════════════════════════════════════
+     BLOQUE A — asociaciones clínicas predefinidas · BLOQUE B — asociación libre
+     ══════════════════════════════════════════════════════════════════════════════════════
+     Viven DENTRO de este IIFE para usar `spearman`, `ranks`, `chi2p`, `_bh`, `pTxt`, `desc`,
+     `detSPChart` y `VARS` sin duplicar una sola fórmula. */
+
+  /* Kruskal-Wallis: la extensión de Mann-Whitney a más de dos grupos. Hace falta porque una de
+     las asociaciones pedidas cruza un puntaje con la GEOMETRÍA del VI, que tiene cuatro
+     categorías nominales: un scatter y un ρ ahí no significan nada —el eje X no es una
+     magnitud— y reducirlo a «HVI sí/no» tira información que el médico sí cargó.
+     Con corrección por empates: el score ETT es entero de 0 a 10 sobre pocas categorías, así que
+     los empates son la regla y sin corregir el H sale subestimado (p conservador). */
+  const kruskal = grupos => {
+    const gs = grupos.filter(g => g.length > 0);
+    if (gs.length < 2) return null;
+    const todos = [].concat.apply([], gs), N = todos.length;
+    if (N < 3) return null;
+    const r = ranks(todos);
+    let idx = 0, acum = 0;
+    gs.forEach(g => { let R = 0; for (let i = 0; i < g.length; i++) R += r[idx++]; acum += (R * R) / g.length; });
+    let H = 12 / (N * (N + 1)) * acum - 3 * (N + 1);
+    const sv = todos.slice().sort((a, b) => a - b);
+    let tie = 0, i = 0;
+    while (i < N) { let j = i; while (j + 1 < N && sv[j + 1] === sv[i]) j++; const t = j - i + 1; if (t > 1) tie += t * t * t - t; i = j + 1; }
+    const C = 1 - tie / (N * N * N - N);
+    if (C > 0) H = H / C;
+    const df = gs.length - 1;
+    if (!(df >= 1) || !isFinite(H)) return null;
+    return { H, df, p: chi2p(H, df), N, k: gs.length };
+  };
+
+  /* Población mínima. La consigna pide N ≥ 10 y se respeta, pero conviene saber qué compra ese
+     número: con n=10, Spearman necesita |ρ| ≈ 0,64 para llegar a p<0,05. O sea que por debajo de
+     eso el bloque no puede detectar nada moderado, y la ausencia de 🟢 no dice que no haya
+     asociación — dice que esta cohorte no alcanza para verla. La nota al pie lo declara. */
+  const A_NMIN = 10;
+
+  // Accesores de las variables clínicas de este bloque. Los que derivan de una regla clínica NO
+  // se recalculan acá: salen de las funciones de módulo que ya las gobiernan.
+  const A_POBL = {
+    todos:  infs => infs,
+    mch:    infs => infs.filter(i => _ccSecPred('mch')(i)),
+    mca:    infs => infs.filter(i => _ccSecPred('mca')(i)),
+    cia:    infs => infs.filter(i => _ccSecPred('cia')(i)),
+    coa:    infs => infs.filter(i => _ccSecPred('coa')(i)),
+    onco:   infs => infs.filter(_labOncoUsado),
+    amil:   infs => infs.filter(_labAmilUsado)
+  };
+  const A_HF = i => { const h = _labHfPeffRaw(i); return (h && h.doms === 3) ? h.r.total : null; };
+
+  const ASSOC_A = [
+    { k:'psap_tapse', pob:'todos', lbl:'PSAP – TAPSE', t:'sp',
+      x:{lbl:'PSAP (mmHg)', get:VARS.psap.get}, y:{lbl:'TAPSE (mm)', get:VARS.tapse.get},
+      dup:'PSAP – TAPSE',
+      nota:'Acoplamiento VD-arteria pulmonar. Se espera relación inversa: a mayor poscarga, menor excursión.' },
+    { k:'psap_sprime', pob:'todos', lbl:"PSAP – Onda S'", t:'sp',
+      x:{lbl:'PSAP (mmHg)', get:VARS.psap.get}, y:{lbl:"Onda S' (cm/s)", get:VARS.sprime.get},
+      nota:"Segunda medida de función longitudinal del VD, independiente del TAPSE." },
+    { k:'amil_geom', pob:'amil', lbl:'Score ETT de amiloidosis – Geometría del VI', t:'kw',
+      x:{lbl:'Score ETT (0–10)', get:i => _labNum(i, 'alg-ett-score')}, grupo:GEOM, gl:'Geometría del VI',
+      /* Tan circular como las otras dos, y se había escapado. El score ETT suma cinco términos
+         (`pasarScoreAAlgoritmo`) y uno de ellos, `ett-rwt`, vale 3 de los 10 puntos con criterio
+         RWT > 0,6 — mientras `GEOM` clasifica con el MISMO cociente 2·PP/DDVI y corte 0,42. Todo
+         estudio que gana esos 3 puntos cae necesariamente del lado concéntrico, así que ese grupo
+         tiene el puntaje inflado por construcción. Matiz honesto: el score se tipea en campos
+         propios de la pestaña de amiloidosis, no en `ppvi`/`ddfvi`, así que son los mismos dos
+         milímetros del mismo paciente re-tipeados — la circularidad es de constructo, no de campo
+         compartido. Sigue siendo del mismo tipo que las otras dos. */
+      circular:'El score ETT incluye el RWT (3 de sus 10 puntos, criterio > 0,6) y la geometría se clasifica con ese mismo cociente (corte 0,42), así que el grupo concéntrico tiene el puntaje elevado por construcción.',
+      nota:'La geometría es una variable de CUATRO categorías nominales, así que no hay coeficiente de correlación ni recta: se compara la distribución del puntaje entre grupos (Kruskal-Wallis).' },
+    { k:'mch_grad_ai', pob:'mch', lbl:'MCH: gradiente TSVI – Diámetro de AI', t:'sp',
+      x:{lbl:'Gradiente TSVI máximo (mmHg)', get:_ccMchGradMax},
+      y:{lbl:'Diámetro AP de AI (mm)', get:i => _labNum(i, 'ai_diam')},
+      nota:'Las dos son variables del HCM Risk-SCD, así que su relación importa para interpretar el score. El gradiente es el mayor de reposo y Valsalva, igual que en la pestaña del paciente.' },
+    { k:'onco_dosis', pob:'onco', lbl:'Cardio-oncología: caída de FEVI – Dosis de antraciclinas', t:'sp',
+      x:{lbl:'Dosis acumulada (mg/m²)', get:i => _labNum(i, 'co_dosis_antrac')},
+      y:{lbl:'Caída de FEVI (puntos)', get:_labOncoCaidaFevi},
+      nota:'Sólo los estudios con dosis cargada Y el par de FEVI basal/actual. La dosis se registra casi siempre para antraciclinas, así que la población real es menor que la de cardio-oncología.' },
+    { k:'hfpeff_ee', pob:'todos', lbl:"HFA-PEFF – E/e'", t:'sp',
+      x:{lbl:'HFA-PEFF (puntos, 3 dominios)', get:A_HF}, y:{lbl:"E/e' (ratio)", get:VARS.ee.get},
+      circular:"El E/e' es uno de los criterios que PUNTÚA el dominio funcional del propio score, así que parte de esta correlación está garantizada por construcción y no es un hallazgo de la cohorte.",
+      nota:'Sólo estudios con los tres dominios evaluados: con uno sin medir el puntaje tiene techo 4 y la correlación mide cuánto se completó el formulario.' },
+    { k:'mca_vd', pob:'mca', lbl:'MCA: puntaje Task Force – FAC del VD', t:'sp',
+      x:{lbl:'Puntaje Task Force 2010', get:_ccMcaTF},
+      y:{lbl:'FAC del VD (%)', get:i => { const f = _labNum(i, 'mca_fac'); return (f !== null && f >= 1 && f <= 80) ? f : null; }},
+      circular:'El FAC es uno de los criterios de la categoría estructural del propio Task Force, así que parte de esta correlación es tautológica.',
+      nota:'El puntaje mide también cuánto se completó el formulario: las cinco categorías no-eco son casillas que nadie abre salvo que sospeche la enfermedad.' },
+    { k:'cia_qpqs_vd', pob:'cia', lbl:'CIA: Qp/Qs – Diámetro basal del VD', t:'sp',
+      x:{lbl:'Qp/Qs', get:_ccQpQs}, y:{lbl:'VD basal (mm)', get:i => _labNum(i, 'vd_bas')},
+      nota:'Es la pregunta clínica del cierre: si el shunt repercutió sobre el VD. Ninguno de los cuatro campos del Qp/Qs tiene ventana de plausibilidad en la importación de Excel — sólo la banda 0,2–10 del propio cociente.' },
+    { k:'coa_hvi', pob:'coa', lbl:'Coartación: gradiente – Masa del VI indexada', t:'sp',
+      x:{lbl:'Gradiente máximo (mmHg)', get:_ccCoaGradMax}, y:{lbl:'Masa VI indexada (g/m²)', get:VARS.masa.get},
+      nota:'La masa indexada necesita DDVI, septum, pared posterior, peso y talla: en una cohorte real es el término que más recorta el N.' }
+  ];
+
+  function runA(def, infs){
+    const pob = (A_POBL[def.pob] || A_POBL.todos)(infs);
+    const base = { k:def.k, lbl:def.lbl, nota:def.nota, circular:def.circular, dup:def.dup, nPob:pob.length };
+    if (def.t === 'kw'){
+      const porGrupo = Object.create(null);
+      pob.forEach(i => { const x = def.x.get(i), g = def.grupo(i);
+        if (x != null && !isNaN(x) && g != null) { const kk = String(g); (porGrupo[kk] = porGrupo[kk] || []).push(x); } });
+      const claves = Object.keys(porGrupo).sort(ordCmp);
+      const n = claves.reduce((a, kk) => a + porGrupo[kk].length, 0);
+      /* DOS causas distintas y hay que nombrar la que corresponde. `claves.length < 2` es la
+         configuración clínicamente esperable de esta asociación —la amiloidosis es un fenotipo
+         concéntrico, así que una cohorte entera puede caer en un solo grupo— y el mensaje de N
+         insuficiente decía «hacen falta al menos 10 estudios y hay 40», contradiciéndose dentro
+         de la misma oración. */
+      if (n < A_NMIN || claves.length < 2)
+        return { ...base, n, method:'Kruskal-Wallis', stat:'—', p:null, insuf:true,
+                 motivo: claves.length < 2 ? 'ungrupo' : 'n', grupos:claves.map(kk => [kk, porGrupo[kk]]) };
+      const r = kruskal(claves.map(kk => porGrupo[kk]));
+      if (!r) return { ...base, n, method:'Kruskal-Wallis', stat:'—', p:null, insuf:true, grupos:claves.map(kk => [kk, porGrupo[kk]]) };
+      /* Piso POR GRUPO, no sólo total. Es la única de las cuatro pruebas del módulo que no lo
+         tenía —Mann-Whitney exige 8 por grupo, Chi² exige frecuencia esperada ≥5— y la
+         aproximación χ² de H no vale con celdas de uno. La corrección por empates lo AMPLIFICA,
+         que es justo lo que este código agrega a propósito: con doce estudios empatados y tres
+         grupos de un paciente, C = 0,49 y el H corregido se duplica hasta dar p = 0,003. La fila
+         cerrada decía 🟢; los N por grupo sólo se veían desplegando el acordeón. */
+      const minGrupo = Math.min.apply(null, claves.map(kk => porGrupo[kk].length));
+      return { ...base, n, ok:(n >= 15 && minGrupo >= 5), minGrupo,
+               method:'Kruskal-Wallis', stat:'H=' + r.H.toFixed(2) + ' (gl=' + r.df + ')', p:r.p,
+               grupos:claves.map(kk => [kk, porGrupo[kk]]), gl:def.gl, xl:def.x.lbl };
+    }
+    const pairs = [];
+    pob.forEach(i => { const x = def.x.get(i), y = def.y.get(i);
+      if (x != null && y != null && !isNaN(x) && !isNaN(y)) pairs.push([x, y]); });
+    if (pairs.length < A_NMIN)
+      return { ...base, n:pairs.length, method:'Spearman', stat:'—', p:null, insuf:true, motivo:'n' };
+    const r = spearman(pairs);
+    /* DOS causas otra vez. Con `pairs.length >= A_NMIN` y `spearman` devolviendo null, lo que
+       pasó es que una de las dos variables es CONSTANTE en esta cohorte —varianza cero—, no que
+       falten estudios. Es alcanzable justo en las variables discretas de este bloque: una cohorte
+       con doce MCA todas en 0 entra por acá. Sin el motivo, el detalle decía «hacen falta al
+       menos 10 estudios y hay 37», contradiciéndose dentro de la misma oración. */
+    if (!r) return { ...base, n:pairs.length, method:'Spearman', stat:'—', p:null, insuf:true, motivo:'constante' };
+    /* `ok` es el mismo piso de N que la tabla general (15): entre 10 y 14 el semáforo va
+       amarillo, «significativo pero N bajo». Sin esto, `_bh` lee `ok !== false` sobre un
+       undefined y pinta verde una asociación de n=10, que es el tamaño con el que este bloque
+       apenas puede detectar un ρ de 0,64. */
+    return { ...base, n:r.n, ok:r.n >= 15, method:'Spearman', stat:'ρ=' + r.rho.toFixed(2), p:r.p, coef:r.rho,
+             fuerza:fuerzaTxt(r.rho), dir:dirTxt(r.rho, true),
+             det:{ t:'sp', pairs, xl:def.x.lbl, yl:def.y.lbl, rho:r.rho } };
+  }
+
+  /* El ajuste BH corre sobre la familia de ESTE bloque, no sobre las 29 de arriba. `_bh` ya
+     descarta las de p nulo y cuenta m = las que sí tienen p, así que las que quedaron por debajo
+     de N mínimo no inflan el denominador de la corrección — que sería castigar a las demás por
+     pruebas que nunca se hicieron. `_bh` además pisa `r.interp`, que acá no existe: no molesta. */
+  let _asocARows = [];
+  window.labAsocARender = function(){
+    const host = document.getElementById('lab-asocA-tabla'); if (!host) return;
+    host.querySelectorAll('canvas').forEach(cv => { if (typeof Chart !== 'undefined') { const c = Chart.getChart(cv); if (c) c.destroy(); } });
+    const infs = informes();
+    const rows = _bh(ASSOC_A.map(d => runA(d, infs)));
+    _asocARows = rows;
+    const conP = rows.filter(r => r.p != null).length;
+    const cel = (t, st) => '<td style="padding:6px 8px;' + (st || '') + '">' + t + '</td>';
+    let html = '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+      '<thead><tr style="font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);border-bottom:1px solid var(--border);">' +
+      '<th style="padding:6px 8px;text-align:left;">Asociación</th><th style="padding:6px 8px;">N</th>' +
+      '<th style="padding:6px 8px;text-align:left;">Método</th><th style="padding:6px 8px;text-align:left;">Estadístico</th>' +
+      '<th style="padding:6px 8px;">p</th><th style="padding:6px 8px;">p aj. (BH, m=' + conP + ')</th>' +
+      '<th style="padding:6px 8px;">Sig.</th></tr></thead><tbody>';
+    rows.forEach((r, idx) => {
+      const sig = r.insuf ? '—' : r.sig;
+      html += '<tr class="asocA-fila" data-ri="' + idx + '" tabindex="0" role="button" aria-expanded="false" ' +
+        'style="border-bottom:1px solid var(--border);cursor:pointer;">' +
+        cel('<span class="asocA-chev" style="color:var(--text2);">▸</span> ' + escHtml(r.lbl) +
+            (r.circular ? ' <span title="Correlación parcialmente tautológica" style="color:var(--orange);">⚠</span>' : '') +
+            (r.dup ? ' <span title="También está en la tabla general, con otro p ajustado" style="color:var(--text2);">↕</span>' : ''),
+            'font-weight:600;') +
+        cel(String(r.n), 'text-align:center;') +
+        cel(escHtml(r.method)) + cel(escHtml(r.stat)) +
+        cel(r.insuf ? '—' : pTxt(r.p), 'text-align:center;') +
+        cel(r.insuf ? '—' : pTxt(r.pAdj), 'text-align:center;') +
+        cel(sig, 'text-align:center;font-size:14px;') + '</tr>';
+    });
+    html += '</tbody></table>';
+    host.innerHTML = html;
+    host.querySelectorAll('tr.asocA-fila').forEach(tr => {
+      const idx = parseInt(tr.dataset.ri, 10);
+      tr.addEventListener('click', () => asocAToggle(tr, idx));
+      tr.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); asocAToggle(tr, idx); } });
+    });
+    const nota = document.getElementById('lab-asocA-nota');
+    if (nota) {
+      const insuf = rows.filter(r => r.insuf).length;
+      nota.innerHTML =
+        '<b>Poder estadístico.</b> Con el mínimo de N = ' + A_NMIN + ' que aplica este bloque, Spearman necesita ' +
+        '|ρ| ≈ 0,64 para alcanzar p &lt; 0,05. Por debajo de eso <b>la ausencia de semáforo verde no dice que no ' +
+        'haya asociación</b>: dice que esta cohorte no alcanza para verla.' +
+        (insuf ? ' <b>' + insuf + '</b> de las ' + rows.length + ' no se calcularon por N insuficiente — la columna N muestra ' +
+                 'cuántos estudios tienen las dos variables, para saber qué falta.' : '') +
+        ' El ⚠ marca las asociaciones donde una variable es COMPONENTE de la otra: ahí una parte de la ' +
+        'correlación está garantizada por construcción. El ↕ marca las que también aparecen en la tabla ' +
+        'general de arriba, con distinto p ajustado por ser otra familia de pruebas.';
+    }
+  };
+
+  function asocAToggle(tr, idx){
+    const sig = tr.nextElementSibling;
+    if (sig && sig.classList.contains('asocA-det')){
+      const cv = sig.querySelector('canvas');
+      if (cv && typeof Chart !== 'undefined') { const c = Chart.getChart(cv); if (c) c.destroy(); }
+      sig.remove(); tr.setAttribute('aria-expanded','false');
+      const ch = tr.querySelector('.asocA-chev'); if (ch) ch.textContent = '▸';
+      return;
+    }
+    const r = _asocARows[idx]; if (!r) return;
+    const det = document.createElement('tr');
+    det.className = 'asocA-det';
+    let cuerpo = '';
+    if (r.circular) cuerpo += '<div style="font-size:11.5px;color:var(--text);background:var(--bg3);border-left:3px solid var(--orange,#f0a500);border-radius:6px;padding:7px 9px;margin-bottom:8px;line-height:1.5;"><b>⚠ Correlación parcialmente tautológica.</b> ' + escHtml(r.circular) + '</div>';
+    if (r.dup) cuerpo += '<div style="font-size:11.5px;color:var(--text2);margin-bottom:8px;line-height:1.5;">↕ Esta asociación también está en la tabla general de arriba. El <b>p crudo es el mismo</b>; el ajustado difiere porque allá se corrige contra las exploratorias que se pudieron calcular (m=' + _mGeneral + ') y acá contra las de este bloque. Ninguna de las dos cifras está mal.</div>';
+    cuerpo += '<div style="font-size:11.5px;color:var(--text2);margin-bottom:8px;line-height:1.5;">' + escHtml(r.nota || '') +
+      ' <b>Población de la asociación:</b> ' + r.nPob + ' estudio(s); con las dos variables cargadas, ' + r.n + '.</div>';
+    if (r.insuf){
+      cuerpo += '<div style="font-size:12px;color:var(--text2);">' + (
+        r.motivo === 'ungrupo'
+        ? ('No se calcula: los ' + r.n + ' estudios con datos caen en <b>un solo grupo</b>, así que no hay nada que comparar. ' +
+           'No es falta de N — es falta de variabilidad, que en esta asociación puede ser el propio hallazgo clínico.')
+        : r.motivo === 'constante'
+        ? ('No se calcula: hay ' + r.n + ' estudios con las dos variables, pero <b>una de las dos es constante</b> en esta ' +
+           'cohorte (varianza cero). No falta N — falta variabilidad, y sin ella no hay correlación que medir.')
+        : ('No se calcula: hacen falta al menos ' + A_NMIN + ' estudios con las dos variables y hay ' + r.n + '.')) +
+        ' <b>Eso no es un resultado negativo</b> — es la ausencia de la prueba.</div>';
+    } else if (r.det && r.det.t === 'sp'){
+      cuerpo += '<div data-sc style="position:relative;height:260px;width:100%;"><canvas></canvas></div>';
+    } else if (r.grupos){
+      cuerpo += detKW(r);
+    }
+    det.innerHTML = '<td colspan="7" style="padding:12px 16px;background:var(--bg2);">' + cuerpo + '</td>';
+    tr.parentNode.insertBefore(det, tr.nextSibling);
+    tr.setAttribute('aria-expanded','true');
+    const ch = tr.querySelector('.asocA-chev'); if (ch) ch.textContent = '▾';
+    /* La recta sólo se dibuja con el p AJUSTADO significativo, igual que en la tabla general: una
+       recta sobre ruido se lee como un hallazgo, y es la misma razón por la que `interpTxt` no
+       afirma una dirección sin semáforo verde. */
+    if (r.det && r.det.t === 'sp') detSPChart(det, r.det, r.pAdj != null && r.pAdj < 0.05);
+  }
+
+  /* Kruskal-Wallis no tiene scatter: se muestran las medianas y el rango intercuartílico por
+     grupo, que es lo que la prueba compara. Con la media se estaría resumiendo con un estadístico
+     que la prueba no usa. */
+  function detKW(r){
+    const filas = r.grupos.map(([g, arr]) => {
+      const d = desc(arr);
+      return '<tr style="border-bottom:1px solid var(--border);">' +
+        '<td style="padding:5px 8px;font-weight:600;">' + escHtml(g) + '</td>' +
+        '<td style="padding:5px 8px;text-align:center;">' + d.n + '</td>' +
+        '<td style="padding:5px 8px;text-align:right;">' + f1(d.median) + '</td>' +
+        '<td style="padding:5px 8px;text-align:right;">' + f1(d.p25) + ' – ' + f1(d.p75) + '</td>' +
+        '<td style="padding:5px 8px;text-align:right;">' + f1(d.min) + ' – ' + f1(d.max) + '</td></tr>';
+    }).join('');
+    return '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+      '<thead><tr style="font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);border-bottom:1px solid var(--border);">' +
+      '<th style="padding:5px 8px;text-align:left;">' + escHtml(r.gl || 'Grupo') + '</th><th style="padding:5px 8px;">N</th>' +
+      '<th style="padding:5px 8px;text-align:right;">Mediana</th><th style="padding:5px 8px;text-align:right;">P25 – P75</th>' +
+      '<th style="padding:5px 8px;text-align:right;">Mín – Máx</th></tr></thead><tbody>' + filas + '</tbody></table>' +
+      '<div style="font-size:11px;color:var(--text2);margin-top:7px;line-height:1.5;">Valores de <b>' + escHtml(r.xl || '') +
+      '</b>. Kruskal-Wallis contrasta si <b>alguna</b> distribución difiere; no dice cuál, y un resultado ' +
+      'significativo no autoriza a nombrar el grupo responsable sin una comparación por pares.</div>';
+  }
+
+  /* ── BLOQUE B — asociación libre ──────────────────────────────────────────────────────
+     El registro de variables sale de `VARS` más las clínicas de este bloque, para que el
+     selector ofrezca lo mismo que la app ya sabe calcular y ni una sola derivación nueva. */
+  const LIBRE = Object.assign({}, VARS, {
+    ai_diam:   { lbl:'Diámetro AP de AI (mm)',        get:i => _labNum(i, 'ai_diam') },
+    vd_bas:    { lbl:'VD basal (mm)',                  get:i => _labNum(i, 'vd_bas') },
+    gls:       { lbl:'Strain global longitudinal (%)', get:_labGls },
+    qpqs:      { lbl:'Qp/Qs',                          get:_ccQpQs },
+    mch_grad:  { lbl:'Gradiente TSVI máximo (mmHg)',   get:_ccMchGradMax },
+    coa_grad:  { lbl:'Gradiente de coartación (mmHg)', get:_ccCoaGradMax },
+    /* GATEADO por la población, y es la única entrada que lo necesita: `_ccMcaTF` devuelve 0 —no
+       null— sobre un estudio donde nadie abrió la sección, porque 0 es un puntaje legítimo. Las
+       otras 22 variables devuelven null ante la falta. Sin la compuerta, el bloque libre corre
+       sobre TODOS los estudios: con 60 en la cohorte y 3 con MCA evaluada, la fila informaba
+       «N = 60» bajo un cartel que dice «tienen las dos variables cargadas», el ρ medía «¿se
+       abrió la pestaña de MCA?» y con una cohorte sin ninguna MCA los 60 valores eran 0 → ρ=0,
+       p=1 → ⚫ «no significativo» sobre una variable sin un solo dato. */
+    mca_tf:    { lbl:'Puntaje Task Force de MCA',      get:i => _ccSecPred('mca')(i) ? _ccMcaTF(i) : null },
+    hfpeff:    { lbl:'HFA-PEFF (3 dominios)',          get:A_HF },
+    amil:      { lbl:'Score ETT de amiloidosis',       get:i => _labNum(i, 'alg-ett-score') },
+    co_dosis:  { lbl:'Dosis de antraciclinas (mg/m²)', get:i => _labNum(i, 'co_dosis_antrac') },
+    co_dfevi:  { lbl:'Caída de FEVI (puntos)',         get:_labOncoCaidaFevi },
+    co_dgls:   { lbl:'Caída relativa de GLS (%)',      get:_labOncoCaidaGls }
+  });
+/* ── Puntajes compuestos y sus propios componentes ──────────────────────────────────────
+   El bloque A se toma el trabajo de marcar dos asociaciones circulares y el libre dejaba armar
+   una docena sin una sola marca: `LIBRE` ofrece los tres puntajes al lado de las variables que
+   los puntúan. Correlacionar un score con su propio componente da una correlación garantizada
+   por construcción, y en una pantalla que existe para explorar es donde más fácil se confunde
+   con un hallazgo.
+
+   Las listas están VERIFICADAS contra el código que arma cada puntaje, no supuestas:
+   · `amil` = `alg-ett-score`, que `pasarScoreAAlgoritmo` suma como
+     `ett-rwt + ett-ee + ett-tapse + ett-sgl + ett-apice` — de ahí E/e', TAPSE, GLS y el RWT
+     (2·PP/DDVI), que arrastra a `pp` y `ddvi`.
+   · `hfpeff` = `hfapeffDatos`, que lee `ddfvi`, `siv`, `ppvi`, `onda_e`, `e_sep`, `e_lat`,
+     `ai_vol` (→ LAVI), `vmax_it` (la velocidad de IT, de la que deriva la PSAP), `sgl` y la edad.
+   · `mca_tf` puntúa `mca_tsvd_plax/psax` y `mca_fac`, y NINGUNO está en este registro: por eso
+     no tiene lista. Si mañana se agregan, van acá. */
+const _LIBRE_COMPONENTES = {
+  amil:   { lbl:'el score ETT de amiloidosis', de:['ee','tapse','gls','pp','ddvi'] },
+  hfpeff: { lbl:'el puntaje HFA-PEFF',         de:['ee','lavi','masa','siv','pp','ddvi','gls','psap','edad'] }
+};
+function _libreCircular(kx, ky){
+  const mira = (a, b) => {
+    const c = Object.prototype.hasOwnProperty.call(_LIBRE_COMPONENTES, a) ? _LIBRE_COMPONENTES[a] : null;
+    return (c && c.de.indexOf(b) >= 0) ? c.lbl : null;
+  };
+  return mira(kx, ky) || mira(ky, kx);
+}
+
+  /* Las pruebas que el médico corrió EN ESTA SESIÓN. El ajuste por multiplicidad se recalcula
+     sobre todas ellas cada vez: corregir sólo la última sería no corregir nada, porque la
+     multiplicidad la genera el haber mirado, no el haber mostrado. Se guarda por PAR, así que
+     recalcular el mismo par no cuenta dos veces — probarlo de nuevo no es una prueba nueva. */
+  let _libreSesion = [];   // sólo {clave, kx, ky}: los números se recalculan (ver abajo)
+
+  window.labAsocLibreInit = function(){
+    const sx = document.getElementById('asocL-x'), sy = document.getElementById('asocL-y');
+    if (!sx || !sy || sx.dataset.listo === '1') return;
+    const ks = Object.keys(LIBRE);
+    const opts = ks.map(k => '<option value="' + escHtml(k) + '">' + escHtml(LIBRE[k].lbl) + '</option>').join('');
+    sx.innerHTML = opts; sy.innerHTML = opts;
+    sx.value = 'fevi'; sy.value = 'psap';
+    sx.dataset.listo = '1';
+  };
+
+  /* Repintado tras un cambio de cohorte o de período. La TABLA de la sesión se recalcula sola
+     (ver `_libreRenderSesion`), pero el resultado suelto de arriba y su gráfica describen la
+     población anterior y no hay forma de saberlo mirándolos: se retiran y se dice por qué.
+     Dejarlos sería la versión más silenciosa del defecto que este archivo ya documenta — dos
+     números de dos poblaciones distintas en la misma pantalla. */
+  /* Firma de la población: período, rango de fechas, centros y cohorte. `labInit()` cuelga del
+     onclick del botón de navegación, así que volver a la pestaña Laboratorio lo dispara — y sin
+     esta comparación el resultado desaparecía con un cartel que afirmaba «la población cambió»
+     cuando no había cambiado nada. Si el mensaje va a nombrar una causa, tiene que haberla. */
+  let _libreFirma = null;
+  function _labPobFirma(){
+    const g = id => { const e = document.getElementById(id); return e ? String(e.value || '') : ''; };
+    const c = (typeof _labCentroSeleccion === 'function') ? _labCentroSeleccion() : null;
+    let coh = '';
+    try { coh = JSON.stringify(_LAB_COHORTE); } catch (e) { coh = 'x'; }
+    /* La base entra en la firma, no sólo los filtros. `labInit()` lo llaman también el import de
+       Excel/JSON y el de DICOM, y ahí la población cambia DE VERDAD sin que se mueva ningún
+       control: con la firma mirando sólo período, centros y cohorte, el `return` temprano dejaba
+       el ρ suelto y su gráfica describiendo la población PRE-importación mientras la tabla de
+       abajo ya se había recalculado sobre la nueva. Cambiar un falso positivo por un falso
+       negativo es el peor lado del intercambio: el primero avisaba de más, el segundo calla
+       justo cuando importa. `fecha_guardado` máxima además de la cuenta, porque editar un
+       estudio no cambia el largo de la lista. */
+    let base = '';
+    try { const xs = informes();
+          base = xs.length + '/' + xs.reduce((a, i) => { const f = String(i.fecha_guardado || ''); return f > a ? f : a; }, ''); }
+    catch (e) { base = 'x'; }
+    return [g('lab-periodo'), g('lab-desde'), g('lab-hasta'),
+            c ? c.sel.slice().sort().join(',') + '/' + c.total : '', coh, base].join('|');
+  }
+  window._labAsocLibreRefrescar = function(){
+    const firma = _labPobFirma();
+    const cambio = (_libreFirma !== null && _libreFirma !== firma);
+    _libreFirma = firma;
+    if (!_libreSesion.length) { _libreRenderSesion(); return; }
+    if (!cambio) { _libreRenderSesion(); return; }
+    const g = document.getElementById('lab-asocL-graf');
+    if (g && typeof Chart !== 'undefined') { const c = Chart.getChart(g); if (c) c.destroy(); }
+    const res = document.getElementById('lab-asocL-resultado');
+    if (res) res.innerHTML = '<div style="color:var(--text2);font-size:.82rem;">La población cambió (período, centro o filtros). ' +
+      'La tabla de abajo se recalculó sobre la cohorte actual; volvé a apretar <b>Calcular</b> para ver la gráfica del par que te interese.</div>';
+    _libreRenderSesion();
+  };
+
+  window.labAsocLibreReset = function(silencioso){
+    _libreSesion = [];
+    const g = document.getElementById('lab-asocL-graf');
+    if (g && typeof Chart !== 'undefined') { const c = Chart.getChart(g); if (c) c.destroy(); }
+    const r = document.getElementById('lab-asocL-resultado'); if (r) r.innerHTML = '';
+    _libreRenderSesion();
+    if (!silencioso && typeof toast === 'function') toast('Sesión de asociaciones reiniciada');
+  };
+
+  /* Los pares de la sesión se RECALCULAN sobre la población vigente en cada render, no se
+     guardan con su número. Si se guardaran, aplicar un filtro de cohorte dejaría la tabla
+     mostrando p-valores de OTRA población al lado del resultado nuevo, sin nada que lo dijera —
+     y el ajuste BH estaría mezclando pruebas de dos poblaciones distintas, que no son una
+     familia. Recalculando, la tabla siempre describe la cohorte que está en pantalla.
+     Un par que deja de ser calculable con la cohorte nueva se muestra igual, con «—»: que
+     desapareciera sería perder la cuenta de lo que el médico ya miró, que es lo que la
+     corrección por multiplicidad existe para contar. */
+  function _libreRenderSesion(){
+    const host = document.getElementById('lab-asocL-sesion'); if (!host) return;
+    if (!_libreSesion.length) { host.innerHTML = ''; return; }
+    const infs = informes();
+    const rows = _bh(_libreSesion.map(x => {
+      const vx = LIBRE[x.kx], vy = LIBRE[x.ky];
+      const pairs = [];
+      infs.forEach(i => { const a = vx.get(i), b = vy.get(i);
+        if (a != null && b != null && !isNaN(a) && !isNaN(b)) pairs.push([a, b]); });
+      const r = pairs.length >= 3 ? spearman(pairs) : null;
+      return { clave:x.clave, kx:x.kx, ky:x.ky, xl:vx.lbl, yl:vy.lbl,
+               n:r ? r.n : pairs.length, coef:r ? r.rho : null, p:r ? r.p : null, ok:r ? r.n >= 15 : false };
+    }));
+    /* `mSes` y no `rows.length`: `_bh` corrige sobre las pruebas con p NO NULO, y un par que dejó
+       de ser calculable con la cohorte nueva se conserva en la tabla a propósito pero sale del
+       denominador. Con 5 pares de los que 2 quedaron sin datos, el título decía «sobre los 5» y
+       el ajuste había corrido sobre 3. El bloque A ya lo declara así. */
+    const mSes = rows.filter(x => x.p != null).length;
+    let html = '<div style="font-size:.78rem;font-weight:700;color:var(--accent2);margin-bottom:6px;">' +
+      'Pares probados en esta sesión (' + rows.length + ')' +
+      (mSes ? (' — p ajustado por Benjamini-Hochberg sobre ' + (mSes === 1 ? 'el único calculable' : ('los ' + mSes + ' calculables'))) : ' — ninguno calculable con esta cohorte') +
+      '</div>' +
+      '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+      '<thead><tr style="font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);border-bottom:1px solid var(--border);">' +
+      '<th style="padding:5px 8px;text-align:left;">X</th><th style="padding:5px 8px;text-align:left;">Y</th>' +
+      '<th style="padding:5px 8px;">N</th><th style="padding:5px 8px;text-align:right;">ρ</th>' +
+      '<th style="padding:5px 8px;">p</th><th style="padding:5px 8px;">p aj.</th><th style="padding:5px 8px;">Sig.</th></tr></thead><tbody>';
+    rows.forEach(r => {
+      html += '<tr style="border-bottom:1px solid var(--border);">' +
+        '<td style="padding:5px 8px;">' + escHtml(r.xl) + '</td><td style="padding:5px 8px;">' + escHtml(r.yl) + '</td>' +
+        '<td style="padding:5px 8px;text-align:center;">' + r.n + '</td>' +
+        '<td style="padding:5px 8px;text-align:right;">' + (r.coef == null ? '—' : r.coef.toFixed(2)) + '</td>' +
+        '<td style="padding:5px 8px;text-align:center;">' + pTxt(r.p) + '</td>' +
+        '<td style="padding:5px 8px;text-align:center;">' + pTxt(r.pAdj) + '</td>' +
+        '<td style="padding:5px 8px;text-align:center;font-size:14px;">' + r.sig + '</td></tr>';
+    });
+    host.innerHTML = html + '</tbody></table>';
+    return rows;
+  }
+
+  window.labAsocLibreCalcular = function(){
+    const sx = document.getElementById('asocL-x'), sy = document.getElementById('asocL-y');
+    const res = document.getElementById('lab-asocL-resultado');
+    if (!sx || !sy || !res) return;
+    const kx = sx.value, ky = sy.value;
+    const vx = Object.prototype.hasOwnProperty.call(LIBRE, kx) ? LIBRE[kx] : null;
+    const vy = Object.prototype.hasOwnProperty.call(LIBRE, ky) ? LIBRE[ky] : null;
+    if (!vx || !vy) return;
+    if (kx === ky) {
+      res.innerHTML = '<div style="color:var(--orange);font-size:.85rem;">Elegí dos variables distintas: una variable contra sí misma da ρ = 1 por definición, no es un resultado.</div>';
+      return;
+    }
+    const circ = _libreCircular(kx, ky);
+    const pairs = [];
+    informes().forEach(i => { const a = vx.get(i), b = vy.get(i);
+      if (a != null && b != null && !isNaN(a) && !isNaN(b)) pairs.push([a, b]); });
+    const r = pairs.length >= 3 ? spearman(pairs) : null;
+    if (!r) {
+      /* Mismo par de causas que en el bloque A: con datos suficientes y `spearman` en null, lo
+         que falta es VARIABILIDAD, no estudios. */
+      /* El aviso de circularidad va también acá: es una propiedad del PAR, no de los datos, y con
+         otra cohorte el mismo par sí se calcula. Mostrarlo sólo cuando hay resultado enseñaría
+         que el problema aparece y desaparece. */
+      res.innerHTML = (circ ? '<div style="font-size:.78rem;color:var(--text);background:var(--bg3);border-left:3px solid var(--orange,#f0a500);' +
+        'border-radius:6px;padding:8px 10px;line-height:1.55;margin-bottom:10px;"><b>⚠ Correlación parcialmente tautológica.</b> ' +
+        'La otra variable es uno de los criterios que PUNTÚAN ' + escHtml(circ) + '.</div>' : '') +
+        '<div style="color:var(--text2);font-size:.85rem;">' + (pairs.length >= 3
+        ? ('Hay <b>' + pairs.length + '</b> estudio(s) con las dos variables, pero <b>una de las dos es constante</b> ' +
+           'en esta cohorte (varianza cero): no hay correlación que medir. No falta N — falta variabilidad.')
+        : ('Sólo <b>' + pairs.length + '</b> estudio(s) tienen las dos variables cargadas — hacen falta al menos 3 para calcular, ' +
+           'y bastantes más para interpretar.')) + '</div>';
+      const g0 = document.getElementById('lab-asocL-graf');
+      if (g0 && typeof Chart !== 'undefined') { const c = Chart.getChart(g0); if (c) c.destroy(); }
+      return;
+    }
+    /* Un par que se recalcula no es una prueba nueva: se reemplaza en vez de acumularse. Sin
+       esto, apretar «Calcular» cinco veces sobre el mismo par inflaba m y castigaba a los demás
+       pares con una corrección que no corresponde. La clave es el par SIN ordenar por nombre:
+       X–Y e Y–X dan el mismo ρ de Spearman, así que son la misma prueba. */
+    const clave = [kx, ky].slice().sort().join('|');
+    _libreSesion = _libreSesion.filter(x => x.clave !== clave);
+    _libreSesion.push({ clave, kx, ky });
+    const rows = _libreRenderSesion() || [];
+    const mio = rows.filter(x => x.clave === clave)[0];
+    /* DOS motivos distintos para no dibujar la recta, y hay que nombrar el que corresponde. Con
+       ρ = −1,00 y p < 0,001 sobre n = 14, el mensaje «sin significación tras el ajuste» es falso:
+       el ajuste dio significativo y lo que faltó fue el piso de N. Es el mismo defecto que este
+       archivo ya documenta en el aviso de desbordamiento del PPT, que nombraba siempre la misma
+       diapositiva aunque lo usaran tres. */
+    const pOk = mio && mio.pAdj != null && mio.pAdj < 0.05;
+    const nOk = r.n >= 15;
+    const sigAj = pOk && nOk;
+    const porQueNo = sigAj ? '' : (!pOk
+      ? 'Sin significación tras el ajuste por multiplicidad'
+      : 'El p ajustado es significativo, pero con N &lt; 15 esta app no da por establecida una asociación');
+    res.innerHTML =
+      (circ ? '<div style="font-size:.78rem;color:var(--text);background:var(--bg3);border-left:3px solid var(--orange,#f0a500);' +
+              'border-radius:6px;padding:8px 10px;line-height:1.55;margin-bottom:10px;"><b>⚠ Correlación parcialmente tautológica.</b> ' +
+              'La otra variable es uno de los criterios que PUNTÚAN ' + escHtml(circ) + ', así que parte de esta correlación está ' +
+              'garantizada por construcción y no es un hallazgo de la cohorte.</div>' : '') +
+      '<div style="display:flex;flex-wrap:wrap;gap:18px;font-size:.9rem;align-items:baseline;">' +
+      '<div><b>ρ de Spearman</b> ' + r.rho.toFixed(2) + ' <span style="color:var(--text2);font-size:.82rem;">(' + fuerzaTxt(r.rho) + ', ' + dirTxt(r.rho, true) + ')</span></div>' +
+      '<div><b>N</b> ' + r.n + '</div>' +
+      '<div><b>p</b> ' + pTxt(r.p) + '</div>' +
+      '<div><b>p ajustado</b> ' + (mio ? pTxt(mio.pAdj) : '—') + '</div>' +
+      '<div style="font-size:16px;">' + (mio ? mio.sig : '') + '</div></div>' +
+      (sigAj ? '' : '<div style="color:var(--text2);font-size:.78rem;margin-top:6px;">' + porQueNo +
+        ', así que <b>no se dibuja la recta de tendencia</b>. Una recta trazada sobre una asociación que la app no da por establecida se lee como un hallazgo, y es la misma regla con la que la tabla general no afirma una dirección sin semáforo verde.</div>');
+    const graf = document.getElementById('lab-asocL-graf');
+    if (graf && typeof Chart !== 'undefined') { const c = Chart.getChart(graf); if (c) c.destroy(); }
+    /* Se pasa un contenedor PROPIO (`lab-asocL-graf-cont`), no `.parentNode` del wrap:
+       `detSPChart` busca `[data-sc] canvas` DENTRO del contenedor y no matchea el contenedor
+       mismo, así que pasar el wrap no dibujaría nada y en silencio. Con `.parentNode` el
+       contenedor pasaba a ser la tarjeta entera y el selector tomaba el PRIMER `[data-sc]` que
+       hubiera — agregar otro bloque con esa marca arriba desviaba la gráfica al canvas
+       equivocado. Y el wrap se repone antes: la rama sin Chart.js de `detSPChart` escribe sobre
+       el `[data-sc]` y borra el canvas del DOM de forma permanente. */
+    const cont = document.getElementById('lab-asocL-graf-cont');
+    if (cont) {
+      if (!document.getElementById('lab-asocL-graf'))
+        cont.innerHTML = '<div data-sc style="position:relative;height:280px;width:100%;margin-top:12px;" ' +
+          'id="lab-asocL-graf-wrap"><canvas id="lab-asocL-graf"></canvas></div>';
+      detSPChart(cont, { pairs, xl:vx.lbl, yl:vy.lbl, rho:r.rho }, sigAj);
+    }
+  };
+
+  /* Inicializa los TRES bloques de la subtab, no uno. Antes sólo llamaba a la tabla general, y
+     lo único que dibujaba los otros dos era `labInit()`, que hoy cuelga de un único `onclick`
+     inline del botón de navegación. El día que alguien agregue una segunda entrada a la pestaña
+     —un deep link, un «ver en Laboratorio» desde Guardados— y llame a la función que se llama
+     «init de asociaciones», el bloque A queda en blanco y los dos `<select>` sin opciones, con lo
+     cual «Calcular» sale por un `return` mudo y el botón no hace nada sin decir por qué. */
+  window.labAsociacionesInit = function(){
+    if (window.labRenderDesc) labRenderDesc();
+    labAsociacionesRender();
+    try { labAsocARender(); } catch (e) { console.error('[lab] asociaciones clínicas', e); }
+    try { labAsocLibreInit(); _libreRenderSesion(); } catch (e) { console.error('[lab] asociación libre', e); }
+  };
 
   // ── Exportaciones ──
   window.labAsociacionesExportXLSX = function(){
     if(typeof XLSX==='undefined'){ if(typeof toast==='function')toast('❌ Excel (XLSX) no disponible'); return; }
     const rows=filtered(); if(!rows.length){ if(typeof toast==='function')toast('⚠️ Sin filas para exportar'); return; }
     const headers=['Categoría','Asociación','Interpretación','N','Método','Dirección','Fuerza','Estadístico','p','p ajustado (BH)','Significativo'];
-    const aoa=[headers, ...rows.map(r=>[r.cat,r.lbl,r.interp||'',r.n,r.method,r.dir||'—',r.fuerza||'—',r.stat,pTxt(r.p), pTxt(r.pAdj), r.sig==='🟢'?'Sí':(r.sig==='🟡'?'Sí (N bajo)':'No')])];
+    const aoa=[headers, ...rows.map(r=>[r.cat,r.lbl,r.interp||'',r.n,r.method,r.dir||'—',r.fuerza||'—',r.stat,pTxt(r.p), pTxt(r.pAdj), r.sig==='🟢'?'Sí':(r.sig==='🟡'?'Sí (N bajo)':(r.sig==='⚫'?'No':'No calculada'))])];
     const ws=XLSX.utils.aoa_to_sheet(aoa); ws['!cols']=headers.map(h=>({wch:Math.max(12,h.length+2)}));
     const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Asociaciones');
     XLSX.writeFile(wb,'ecosmart_asociaciones.xlsx');
@@ -38887,7 +39533,7 @@ function labSubTab(id, el) {
     const mL=10; let y=16;
     doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(26,58,92); doc.text('EcoSmart — Asociaciones estadísticas',mL,y); y+=6;
     doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(90,90,90);
-    doc.text('Semáforo: Verde = significativo (p<0.05) con N suficiente · Amarillo = significativo pero N bajo · Negro = no significativo.',mL,y); y+=7;
+    doc.text('Semáforo: Verde = significativo (p<0.05) con N suficiente · Amarillo = significativo pero N bajo · Negro = no significativo · n/c = no se pudo calcular (no es un resultado negativo).',mL,y); y+=7;
     const cols=[['Categoría',26],['Asociación',42],['Interpretación',60],['N',10],['Método',30],['Dirección',18],['Fuerza',20],['Estadístico',28],['p',14],['p aj.',14],['Sig.',12]];
     const drawHead=()=>{ doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(26,58,92); let x=mL; cols.forEach(c=>{ doc.text(c[0],x,y); x+=c[1]; }); y+=1.5; doc.setDrawColor(200,200,200); doc.line(mL,y,mL+cols.reduce((a,c)=>a+c[1],0),y); y+=4; };
     drawHead();
@@ -38895,7 +39541,11 @@ function labSubTab(id, el) {
     // helvetica/WinAnsi de jsPDF no tiene ρ, χ, ² ni flechas → se transliteran.
     const ascii = s => String(s).replace(/[χ²ρ→⚠↑↓]/g,m=>({'χ':'X','²':'2','ρ':'r','→':'->','⚠':'!','↑':'+','↓':'-'}[m]||m));
     rows.forEach(r=>{ if(y>195){ doc.addPage(); y=16; drawHead(); doc.setFont('helvetica','normal'); doc.setTextColor(30,30,30); }
-      const sigTxt=r.sig==='🟢'?'SI':(r.sig==='🟡'?'si*':'no');
+      /* `n/c` y no `s/d`: la columna Dirección ya usa `s/d` para «sin dirección lineal», así que el
+         mismo token significaba dos cosas en la misma fila. Y se matchea el `—` EXPLÍCITO en vez de
+         usarlo como fallback del else, para que un símbolo nuevo en `sigLight` no se rotule
+         «no se pudo calcular» sin que nadie lo haya decidido. */
+      const sigTxt=r.sig==='🟢'?'SI':(r.sig==='🟡'?'si*':(r.sig==='⚫'?'no':(r.sig==='—'?'n/c':'?')));
       const dirTx=r.dir==='↑↑'?'+/+':(r.dir==='↑↓'?'+/-':(r.dir==='→'?'s/d':'-'));
       const vals=[r.cat,r.lbl,ascii(r.interp||''),String(r.n),r.method,dirTx,r.fuerza||'-',ascii(r.stat),pTxt(r.p),pTxt(r.pAdj),sigTxt];
       // La interpretación se parte en hasta 2 renglones (y la fila crece) en vez de
@@ -39578,6 +40228,80 @@ const _CC_SECS = [
   { k:'tdf', lbl:'TdF',      pred: i => _labCampoRaw(i,'tdf_func_vd') !== '' || _labCampoRaw(i,'tdf_grad_tsvd') !== '' },
   { k:'tga', lbl:'TGA',      pred: i => _labCampoRaw(i,'tga_tipo') !== '' }
 ];
+/* ── Derivaciones de congénitas que el Laboratorio calcula sobre estudios GUARDADOS ──
+   Vivían dentro de `labCCRender` como constantes locales, razonadas y comentadas. Se extraen
+   —con su comentario— porque el bloque de asociaciones clínicas necesita las mismas cuatro, y
+   escribirlas de nuevo ahí es el defecto que este archivo ya pagó cuatro veces: dos números
+   agregados que no significan lo mismo, y ninguno se ve mal. */
+
+/* Qp/Qs RECALCULADO desde los cuatro campos guardados, no leído del span: el span es del estudio
+   que esté cargado en pantalla, así que leerlo daría el mismo número para los 60 de la lista. */
+function _ccQpQs(i) {
+  const dI = _labNum(i,'diam_tsvi'), vI = _labNum(i,'itv_tsvi');
+  // Alias a los ids viejos: el Lab lee `campos` directo, sin pasar por la migración del formulario.
+  const dD = _labNum(i,'tsvd_diametro','ete_shunt_tsvd'), vD = _labNum(i,'vti_tsvd','ete_shunt_vti_tsvd');
+  if (dI === null || vI === null || dD === null || vD === null) return null;
+  const den = dI * dI * vI; if (!(den > 0)) return null;
+  const q = (dD * dD * vD) / den;
+  return (isFinite(q) && q >= 0.2 && q <= 10) ? q : null;   // mismo rango que eteQpQs
+}
+/* Gradiente máximo de la coartación. La ventana efectiva es la del GRADIENTE (0-150 mmHg), no la
+   de la velocidad: `coaConclusion` banda el gradiente ya calculado, así que acotar sólo la
+   velocidad a 9 m/s dejaba pasar hasta 324 mmHg, mientras el informe de ese mismo paciente lo
+   cortaba como no interpretable. */
+function _ccCoaGradMax(i) {
+  const v = _labNum(i, 'coa_vmax');
+  if (v === null || !(v > 0 && v <= 9)) return null;
+  const g = 4 * v * v;
+  return (g >= 0 && g <= 150) ? g : null;
+}
+// Gradiente TSVI máximo de la MCH: el mayor de reposo y Valsalva dentro de banda, que es la
+// variable del HCM Risk-SCD. Sin ninguno de los dos en banda devuelve null, no 0.
+function _ccMchGradMax(i) {
+  const r = _labNum(i, 'mch_grad_reposo'), v = _labNum(i, 'mch_grad_valsalva');
+  const xs = [r, v].filter(x => x !== null && x >= 0 && x <= 250);
+  return xs.length ? Math.max.apply(null, xs) : null;
+}
+/* Puntaje Task Force 2010 de MCA sobre un estudio guardado. Replica la regla operativa del campo:
+   UN criterio por categoría, el de mayor jerarquía (Bosman, EP Europace 2020). Sumar todas las
+   filas marcadas sobrediagnostica — dos mayores de la misma categoría darían 4 puntos.
+   La categoría I (estructural) es `_ccMcaCatI`, con su compuerta de valor ilegible. */
+const _CC_MCA_CATS = [['mca_ii_may','mca_ii_men'], ['mca_iii_may','mca_iii_men1|mca_iii_men2'],
+                      ['mca_iv_may','mca_iv_men1|mca_iv_men2'], ['mca_v_may','mca_v_men1|mca_v_men2'],
+                      ['mca_vi_may1|mca_vi_may2|mca_vi_may3','mca_vi_men1|mca_vi_men3']];
+function _ccMcaCatI(i) {
+  const U = MCA_UMBRAL;
+  const p = _labNum(i, 'mca_tsvd_plax'), s2 = _labNum(i, 'mca_tsvd_psax'), f = _labNum(i, 'mca_fac');
+  /* Un valor ILEGIBLE invalida la categoría ENTERA, no se ignora para seguir evaluando los otros
+     dos: sin esto, un TSVD de 320 (tipeo cm/mm) junto a un FAC de 30 daba criterio MAYOR por el
+     FAC mientras la pestaña del paciente declaraba la categoría no interpretable. */
+  const fuera = (x, lo, hi) => x !== null && (x < lo || x > hi);
+  if (fuera(p, 5, 80) || fuera(s2, 5, 80) || fuera(f, 1, 80)) return 0;
+  const mov = _labCampoRaw(i, 'mca_mov_regional');
+  if (mov !== 'aqui_disc' && mov !== 'aneurisma') return 0;
+  const ok = x => x !== null;
+  if ((ok(p) && p >= U.plax.mayor) || (ok(s2) && s2 >= U.psax.mayor) || (ok(f) && f <= U.fac.mayor)) return 2;
+  if (mov === 'aqui_disc' && ((ok(p) && p >= U.plax.menorLo && p < U.plax.mayor) ||
+      (ok(s2) && s2 >= U.psax.menorLo && s2 < U.psax.mayor) ||
+      (ok(f) && f > U.fac.mayor && f <= U.fac.menorHi))) return 1;
+  return 0;
+}
+/* `mca_vi_men2` NO es un campo: la celda es DERIVADA de la muerte súbita familiar y de la edad
+   del familiar (<35 del Task Force). Se replica `mcaFamMuerteSubita()`: sin la edad NO se
+   puntúa, que es la única forma de no afirmar el «<35». */
+function _ccMcaFamMS35(i) {
+  if (_labCampoRaw(i, 'mch_fam_ms') !== 'si') return false;
+  const ed = _labNum(i, 'fam_ms_edad');
+  return ed !== null && ed > 0 && ed <= 120 && ed < 35;
+}
+function _ccMcaTF(i) {
+  return _CC_MCA_CATS.reduce((a, par, k) => {
+    const hay = ids => ids.split('|').some(id => _labCampoRaw(i, id) === 'si');
+    const menor = hay(par[1]) || (k === 4 && _ccMcaFamMS35(i));   // k=4 es la categoría VI
+    return a + (hay(par[0]) ? 2 : (menor ? 1 : 0));
+  }, _ccMcaCatI(i));
+}
+
 /* hasOwnProperty y no `_CC_SECS.find(...)`  sobre una clave arbitraria: la clave viene de los
    checkbox del panel, que son literales de este archivo, pero el mapa se arma una vez. */
 const _CC_SEC_POR_K = Object.create(null);
@@ -40081,15 +40805,9 @@ function labCCRender(infs, n) {
   /* El Qp/Qs se RECALCULA desde los cuatro campos guardados y no se lee del span: el span es
      del estudio que esté cargado en pantalla, así que leerlo daría el mismo número para los 60
      de la lista. Misma razón por la que el Lab recalcula la severidad de RPV y el Wilkins. */
-  const qp = i => {
-    const dI = _labNum(i,'diam_tsvi'), vI = _labNum(i,'itv_tsvi');
-    // Alias a los ids viejos: el Lab lee `campos` directo, sin pasar por la migración del formulario.
-    const dD = _labNum(i,'tsvd_diametro','ete_shunt_tsvd'), vD = _labNum(i,'vti_tsvd','ete_shunt_vti_tsvd');
-    if (dI === null || vI === null || dD === null || vD === null) return null;
-    const den = dI * dI * vI; if (!(den > 0)) return null;
-    const q = (dD * dD * vD) / den;
-    return (isFinite(q) && q >= 0.2 && q <= 10) ? q : null;   // mismo rango que eteQpQs
-  };
+  // `_ccQpQs` vive a nivel de módulo con su comentario: el bloque de asociaciones clínicas
+  // correlaciona el Qp/Qs contra la dilatación del VD y tiene que ser EL MISMO número.
+  const qp = _ccQpQs;
   /* DDVI indexado = DDVI / ASC, igual que eteDDVIi(). El corte de 32 mm/m² NO es inventado acá:
      es el que la propia pantalla de Hemodinámica imprime bajo el valor («Normal < 32 mm/m²»).
      Sin peso o sin talla no hay ASC y devuelve null, que NO es lo mismo que «no dilatado». */
@@ -40366,9 +41084,7 @@ function labCCRender(infs, n) {
        banda el gradiente ya calculado, así que acotar sólo la velocidad a 9 m/s dejaba pasar
        hasta 324 mmHg al promedio y al conteo de «> 20 mmHg», mientras el informe del paciente
        cortaba ese mismo estudio como no interpretable. */
-    const gmaxDe = i => { const v = _labNum(i, 'coa_vmax');
-      if (v === null || !(v > 0 && v <= 9)) return null;
-      const g = 4 * v * v; return (g >= 0 && g <= 150) ? g : null; };
+    const gmaxDe = _ccCoaGradMax;
     const gs = coaArr.map(gmaxDe).filter(v => v !== null);
     const conG = gs.length, sig = gs.filter(g => g > 20).length;
     /* La cola diastólica es un CHECKBOX: su estado de fábrica es desmarcado y eso significa a la
@@ -40442,8 +41158,7 @@ function labCCRender(infs, n) {
   // ── BLOQUE 9 · Miocardiopatía hipertrófica ──
   if (!mchArr.length) { empty('lab-cc-mch-stats', 'miocardiopatía hipertrófica'); empty('lab-cc-mch-bars', 'patrón'); empty('lab-cc-mch-riesgo-bars', 'riesgo'); setHtml('lab-cc-mch-nota', ''); }
   else {
-    const gr = i => { const r = _labNum(i, 'mch_grad_reposo'), v = _labNum(i, 'mch_grad_valsalva');
-      const xs = [r, v].filter(x => x !== null && x >= 0 && x <= 250); return xs.length ? Math.max.apply(null, xs) : null; };
+    const gr = _ccMchGradMax;
     const grads = mchArr.map(gr).filter(v => v !== null);
     const obstr = grads.filter(g => g >= 30).length;
     const samSi = cuantos(mchArr, 'mch_sam', 'si'), samCont = contestados(mchArr, 'mch_sam');
@@ -40529,49 +41244,16 @@ function labCCRender(infs, n) {
        paciente. Re-tipearlos acá habría sido un tercer lector de una constante que existe
        justamente para que no haya dos: «cambiar uno y no el otro deja al médico leyendo un
        umbral que la app no aplica». */
-    const U = MCA_UMBRAL;
-    const catI = i => {
-      const p = _labNum(i, 'mca_tsvd_plax'), s2 = _labNum(i, 'mca_tsvd_psax'), f = _labNum(i, 'mca_fac');
-      /* La compuerta `fuera` de `mcaCatI`: un valor ILEGIBLE invalida la categoría entera, no
-         se ignora para seguir evaluando los otros dos. Sin esto, un TSVD de 320 (tipeo cm/mm)
-         junto a un FAC de 30 daba criterio MAYOR por el FAC, mientras la pestaña del paciente
-         declaraba la categoría no interpretable y 0 puntos. */
-      const fuera = (x, lo, hi) => x !== null && (x < lo || x > hi);
-      if (fuera(p, 5, 80) || fuera(s2, 5, 80) || fuera(f, 1, 80)) return 0;
-      const mov = _labCampoRaw(i, 'mca_mov_regional');
-      if (mov !== 'aqui_disc' && mov !== 'aneurisma') return 0;
-      const ok = x => x !== null;
-      if ((ok(p) && p >= U.plax.mayor) || (ok(s2) && s2 >= U.psax.mayor) || (ok(f) && f <= U.fac.mayor)) return 2;
-      if (mov === 'aqui_disc' && ((ok(p) && p >= U.plax.menorLo && p < U.plax.mayor) ||
-          (ok(s2) && s2 >= U.psax.menorLo && s2 < U.psax.mayor) ||
-          (ok(f) && f > U.fac.mayor && f <= U.fac.menorHi))) return 1;
-      return 0;
-    };
+    /* La categoría I y el puntaje total viven a nivel de módulo (`_ccMcaCatI`, `_ccMcaTF`) con
+       todos sus comentarios: el bloque de asociaciones clínicas correlaciona el puntaje Task
+       Force contra la función del VD y tiene que aplicar EXACTAMENTE esta regla —un criterio por
+       categoría, el de mayor jerarquía, con la compuerta de valor ilegible y con la muerte súbita
+       familiar <35 que no es un campo sino una celda derivada—. Reescribirla del lado de las
+       asociaciones daba un puntaje distinto sobre el mismo paciente, en la misma pestaña. */
+    const catI = _ccMcaCatI;
+    const total = _ccMcaTF;
     const conEco = mcaArr.filter(i => _labCampoRaw(i, 'mca_mov_regional')).length;
     const may = mcaArr.filter(i => catI(i) === 2).length, men = mcaArr.filter(i => catI(i) === 1).length;
-    /* Las cinco categorías no-eco se puntúan UNA POR CATEGORÍA, el de mayor jerarquía, que es la
-       regla operativa del campo (Bosman, EP Europace 2020). Sumar las filas marcadas
-       sobrediagnostica: dos mayores de la misma categoría darían 4 puntos. */
-    const CATS = [['mca_ii_may','mca_ii_men'], ['mca_iii_may','mca_iii_men1|mca_iii_men2'],
-                  ['mca_iv_may','mca_iv_men1|mca_iv_men2'], ['mca_v_may','mca_v_men1|mca_v_men2'],
-                  ['mca_vi_may1|mca_vi_may2|mca_vi_may3','mca_vi_men1|mca_vi_men3']];
-    /* `mca_vi_men2` NO está en la lista de arriba porque NO ES UN CAMPO: la celda es DERIVADA
-       de la historia familiar de muerte súbita y de la edad del familiar (<35 del Task Force),
-       y `_labCampoRaw` devolvía siempre '' — el criterio no disparaba nunca. Un paciente cuyo
-       único criterio de categoría VI era esa muerte súbita puntuaba 1 en la pestaña y 0 acá, así
-       que un Limítrofe se publicaba como Posible y un Definitivo como Limítrofe. Se replica la
-       regla de `mcaFamMuerteSubita()`: sin la edad NO se puntúa, que es la única forma de no
-       afirmar el «<35». */
-    const famMS35 = i => {
-      if (_labCampoRaw(i, 'mch_fam_ms') !== 'si') return false;
-      const ed = _labNum(i, 'fam_ms_edad');
-      return ed !== null && ed > 0 && ed <= 120 && ed < 35;
-    };
-    const total = i => CATS.reduce((a, [mays, mens], k) => {
-      const hay = ids => ids.split('|').some(id => _labCampoRaw(i, id) === 'si');
-      const menor = hay(mens) || (k === 4 && famMS35(i));     // k=4 es la categoría VI
-      return a + (hay(mays) ? 2 : (menor ? 1 : 0));
-    }, catI(i));
     const totales = mcaArr.map(total);
     setHtml('lab-cc-mca-stats',
       stat('Estudios con MCA evaluada', mcaArr.length + ' (' + pctS(mcaArr.length) + ' ' + _labPobDe() + ')') +

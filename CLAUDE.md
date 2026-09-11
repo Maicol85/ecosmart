@@ -1516,6 +1516,98 @@ Es la columna que faltaba del patrón que este archivo ya documenta para `gradoG
   y el valor de fábrica mapea a «Sin», que no es opción, así que los estudios no evaluados quedan
   fuera de las tres.
 
+### Asociaciones clínicas y asociación libre — 2026-09-11
+
+Nueve asociaciones pre-especificadas (`ASSOC_A`, bloque A) y un explorador X/Y con 23 variables
+(`LIBRE`, bloque B). Los dos viven DENTRO del IIFE de estadística para usar `spearman`, `ranks`,
+`chi2p`, `_bh`, `pTxt`, `desc` y `detSPChart` sin duplicar una sola fórmula.
+
+**Cuatro derivaciones más se extrajeron de `labCCRender`** —`_ccQpQs`, `_ccCoaGradMax`,
+`_ccMchGradMax` y `_ccMcaTF`/`_ccMcaCatI`/`_ccMcaFamMS35`— por la misma razón de siempre. El
+puntaje Task Force es el delicado: lleva la compuerta de valor ilegible (un TSVD de 320 invalida
+la categoría ENTERA) y la muerte súbita familiar <35, que **no es un campo** sino una celda
+derivada. Dos fuzz independientes, 20.000 y 200.000 estudios: cero divergencias.
+
+**Estadística — lo que hay que saber antes de tocar esto:**
+
+- **`kruskal` existe porque la geometría del VI es NOMINAL de cuatro niveles.** Un scatter y un ρ
+  ahí no significan nada y reducirla a «HVI sí/no» tira información que el médico cargó. Lleva
+  corrección por empates —el score ETT es entero sobre pocas categorías, así que los empates son
+  la regla— y se verificó sin implementación de referencia, que es lo que este archivo ya
+  documenta como método: aritmética a mano con y sin empates, y la **identidad H = z² con
+  Mann-Whitney** para k=2 (coincide a 1e−9).
+- **Piso POR GRUPO, no sólo total.** Era la única de las cuatro pruebas del módulo sin él
+  —Mann-Whitney exige 8 por grupo, Chi² exige frecuencia esperada ≥5— y la corrección por empates
+  lo AMPLIFICA: con doce estudios empatados y tres grupos de un paciente, C = 0,49 y el H
+  corregido se duplica. Medido: H = 17,00 con p < 0,001 sobre grupos de tres.
+- **El ajuste BH depende de la FAMILIA, así que el q de un bloque no es comparable con el del
+  otro.** PSAP–TAPSE está en los dos y no puede tener el mismo q; va marcada con ↕ y el detalle
+  lo explica. Ninguna de las dos cifras está mal — contestan preguntas distintas.
+- **`m` se CALCULA, nunca se escribe.** Decía «m=29» fijo y `_bh` corrige sobre las que tienen p
+  no nulo: con una cohorte chica son cinco. Desde que `sigLight` distingue «no calculada» de «no
+  significativa», el médico puede contarlas y ver que el número declarado no cierra. Y `_mGeneral`
+  se toma en `computeAll`, no en el render: allá las filas son las que pasaron los filtros de
+  pantalla, y corregir sobre lo que se muestra es el sesgo que BH viene a eliminar.
+- **«FDR» sobre una sola prueba no significa nada.** La multiplicidad la genera el médico probando
+  pares, no la app mostrando uno. Por eso `_libreSesion` acumula los pares de la sesión y el
+  ajuste se recalcula sobre todos. Se guardan **por clave y sin su número**: se recomputan sobre
+  la cohorte vigente en cada repintado, porque guardarlos con el resultado dejaba p-valores de
+  otra población al lado del nuevo, y BH mezclando dos poblaciones no es una familia.
+  Los tres modos de reiniciar la cuenta —recargar, cerrar sesión, el botón— se DECLARAN en
+  pantalla: una corrección que se puede esquivar sin saberlo es peor que no tenerla.
+
+**TRES asociaciones son parcialmente tautológicas, y la tercera se escapó en la primera pasada:**
+el E/e′ es criterio del dominio funcional del propio HFA-PEFF; el FAC es criterio de la categoría
+estructural del propio Task Force; y el **score ETT de amiloidosis incluye el RWT** (`ett-rwt`, 3
+de sus 10 puntos, criterio > 0,6) mientras `GEOM` clasifica con **ese mismo cociente** 2·PP/DDVI
+(corte 0,42), así que el grupo concéntrico tiene el puntaje elevado por construcción. Al agregar
+una asociación nueva: **buscar si una variable PUNTÚA a la otra.** `_LIBRE_COMPONENTES` tiene las
+listas verificadas contra el código que arma cada score, no supuestas.
+
+**Un puntaje compuesto no devuelve `null` ante la ausencia, devuelve 0.** `_ccMcaTF` da 0 sobre un
+estudio donde nadie abrió la sección, porque 0 es un puntaje legítimo — y es la única de las 23
+variables de `LIBRE` que codifica la ausencia como número. Sin gatearlo por la población, el
+bloque libre informaba «N = 60» sobre una cohorte con 3 MCA evaluadas, bajo un cartel que dice
+«tienen las dos variables cargadas», y el ρ medía «¿se abrió la pestaña?». **Si agregás un puntaje
+al registro, gatealo por su población.**
+
+**Cambio de comportamiento declarado — una prueba que no se corrió deja de verse como negativa.**
+`sigLight` devuelve `—` con p nulo, no `⚫`, porque la leyenda que la propia app imprime define
+`⚫` como «no significativo». Alcanza a la tabla general, al Excel y al PDF de auditoría. Por el
+mismo motivo `spearman` con varianza cero devuelve `null` en vez de `{rho:0, p:1}`: una variable
+CONSTANTE en la cohorte no es una correlación nula, es una prueba que no se puede correr. Es el
+mismo error de tipo que se cerró con `pctOf(n, 0)`. Las **tres** leyendas nombran el cuarto
+estado: el párrafo suelto, el panel «¿Cómo leer esta tabla?» —que es el que el médico abre a
+propósito— y la del PDF.
+
+**La firma de población tiene que ver la BASE, no sólo los filtros.** `_labPobFirma` existe porque
+`labInit()` cuelga del `onclick` del botón de navegación y volver a la pestaña disparaba «la
+población cambió» sin que cambiara nada. Pero mirando sólo período, centros y cohorte se pasaba al
+otro extremo: tras un **import** —donde la población cambia de verdad sin tocar un control— el ρ
+suelto y su gráfica quedaban describiendo la población anterior en silencio. Un falso negativo es
+el peor lado del intercambio: el falso positivo avisa de más, éste calla justo cuando importa.
+Hoy la firma incluye la cuenta y la `fecha_guardado` máxima —la cuenta sola no ve una edición—.
+
+**Dos trampas de plomería que costaron:**
+- **`detSPChart(cont, …)` exige un ancestro ESTRICTO**: hace `cont.querySelector('[data-sc] canvas')`,
+  que no matchea el propio `cont`. Pasar el wrap no dibuja nada y sin error. Por eso hay un
+  contenedor propio (`lab-asocL-graf-cont`) y no un `.parentNode`, que convertía el contenedor en
+  la tarjeta entera y tomaba el PRIMER `[data-sc]` que hubiera. Y la rama sin Chart.js de
+  `detSPChart` escribe sobre el `[data-sc]`, o sea que **borra el canvas del DOM para siempre**: el
+  llamador lo repone antes.
+- **El `catch` de un render VACÍA su tabla**, no la deja. `labAsocARender` lanza dentro del cálculo,
+  o sea antes de pisar el `innerHTML`: los números viejos quedaban en pantalla mientras el
+  encabezado y la tabla general ya se habían movido a la cohorte nueva.
+
+**`labAsociacionesInit` inicializa los TRES bloques.** Antes sólo la tabla general, y lo único que
+dibujaba los otros dos era `labInit()`, que hoy cuelga de un único `onclick` inline. El día que
+haya una segunda entrada a la pestaña, el bloque A queda en blanco y los dos `<select>` sin
+opciones, con lo cual «Calcular» sale por un `return` mudo.
+
+**Deuda anotada:** con N = 10 —el mínimo que pide el bloque A— Spearman necesita |ρ| ≈ 0,64 para
+llegar a p < 0,05. La ausencia de semáforo verde **no dice que no haya asociación**, dice que la
+cohorte no alcanza para verla. La nota al pie lo declara; no lo borres al tocar el bloque.
+
 ## Deuda conocida sin resolver
 
 - **Contraseña en el código.** `doLogin()` compara contra un literal. Choca con el checklist
