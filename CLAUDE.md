@@ -1693,6 +1693,91 @@ crudas a `doc.text`: «Función sistólica», «Geometría VI» y «Patrón dias
 PDF desde siempre. Además translitera `ρ` como `r` mientras el común usa `rho` — los dos botones
 de la misma barra imprimían distinto el mismo número.
 
+### Excel del Laboratorio — bloques, 44 columnas nuevas y plantilla virgen (2026-09-11)
+
+305 columnas en 16 bloques. `LAB_XLS_BLOQUES` asigna por prefijo con desempate por orden del
+array, `_labOrdenarCols` reagrupa al final, y `_labXlsAssertBloques()` comprueba al arrancar que
+cada prefijo declarado resuelva a SU bloque — se agregó porque «Morfología » se tragaba
+«Morfología orejuela» y la entrada del bloque 16 quedaba como código muerto que se leía como si
+funcionara. La hoja «Bloques» no lo delataba: se calcula con la misma función, así que quedaba
+internamente consistente y mal.
+
+**Lo que la librería escribe y lo que no — MEDIDO, no supuesto.** SheetJS 0.18.5 comunitaria:
+- **estilos de celda: NO** (se escribió un libro con relleno y negrita y `styles.xml` sale sin el
+  relleno y sin `<b/>`). Por eso los bloques se declaran en su hoja y no con color.
+- **`!freeze`: NO**, en sus dos formas documentadas (objeto y referencia). Se quitó y la hoja de
+  instrucciones pide el paso manual. Dejarlo habría sido código que no hace nada bajo un
+  comentario que promete el formato.
+- **comentarios de celda y `!autofilter`: SÍ.** Los comentarios son lo que reemplaza al color.
+
+**La plantilla y el export salen de la MISMA fuente** (`_labExcelRow` sobre un estudio vacío +
+`_labOrdenarCols`). Construirla desde `LAB_XLS_MAP` daba 275 contra 305 y la primera diferencia
+caía en el bloque 3, o sea que los dos archivos quedaban CORRIDOS de ahí en adelante — el defecto
+contra el que advertía el comentario de esa función, que pedía que coincidieran sin que nada lo
+garantizara. **El camino por el que podrían volver a divergir:** el export toma las cabeceras de
+`rows[0]` y la plantilla de un estudio vacío, así que una clave CONDICIONAL en `_labExcelRow`
+(`...(cond ? {x} : {})`) las separa en silencio. Hoy no hay ninguna.
+
+**`caso_interes` tiene DOS claves persistidas y la canónica es la que NO lleva sufijo.**
+`guardarInforme` la escribe dos veces —por el barrido genérico de casillas como
+`caso_interes__chk`, y en su línea propia como `caso_interes`— y los seis consumidores reales
+(la ⭐ de Guardados, el pilar de Docencia, el tablero, el badge y las dos restauraciones) leen la
+segunda. Además `toggleCasoInteresGuardado` escribe directo al store sin pasar por el formulario,
+así que el `__chk` de un estudio marcado con la estrella NUNCA se actualiza. Se excluyó
+`caso_interes` del barrido de `_restaurarChkInclusion`, que pisaba la canónica con la rancia.
+
+> **Esto estuvo escrito al revés unas horas y el round-trip lo dio por bueno**, porque
+> `_labExcelRow` leía `__chk` y el importador escribía `__chk`: eran espejo. Es literalmente
+> «ida y vuelta exacto no prueba nada». **La prueba correcta es contra el CONSUMIDOR**, no contra
+> el otro extremo del tubo. Al agregar una columna de casilla, verificá con el predicado que usa
+> la pantalla que la muestra.
+
+**Reincidí dos veces en la zona muerta temporal, en la misma edición.** Dos sentencias de nivel
+superior leían `LAB_XLS_OPCIONES` y `_labXlsNorm` **antes de sus declaraciones**, y eso mata el
+bloque `<script>` ENTERO: 49 `const` sin inicializar, funciones vivas por hoisting, y la app
+cargando con la interfaz completa y sin estado. **`node --check` da verde** porque es error de
+ejecución. Lo que lo detecta es **recargar y probar centinelas repartidos por el bloque** —el
+último `const` declarado y algo del final— no leer el diff. Si agregás una tabla que dependa de
+otra, mirá el ORDEN antes que la lógica.
+
+**Criterio de qué columna entra (decisión del médico, 2026-09-11):** lo que EcoSmart realmente
+GUARDA y puede REIMPORTAR, o sea lo que tiene `id` de input/select/textarea —porque
+`guardarInforme` barre esos tres tags—. Los derivados sin control propio no entran por el mapa;
+los que se exportan salen de `_labExcelRow` como columnas calculadas.
+
+**`_labXlsEsCalculado` tiene DOS mitades y hay que usar las dos:** `LAB_XLS_SOLO_EXPORT` **y** el
+atributo `readonly` del DOM. Leer sólo la primera hacía que el comentario del encabezado
+prometiera «se reimporta» sobre AVm continuidad, AVA continuidad, AVm indexada y PVC, que la app
+calcula. La condición se comparte, no se reescribe.
+
+**Al agregar un select al Excel, tres cosas:**
+1. Los valores salen de los `option value` **leídos del DOM**. Un value inventado se cae en
+   silencio (ya pasó con `escaso` por `pocas`).
+2. Un `vocab` **sin entrada en `LAB_XLS_VOCAB` RECHAZA la celda**, y sin entrada en
+   `LAB_XLS_OPCIONES` el error sale con los paréntesis vacíos. Los quince nuevos salían así.
+3. El export emite la **etiqueta legible** y el vocabulario acepta las DOS formas. Sin eso, un
+   Excel exportado por la propia app no se reimportaba. `_labXlsNorm` unifica además las rayas
+   (la app muestra raya larga y quien tipea escribe guion).
+
+**Valores de fábrica que afirman un negativo.** Tres selects nuevos no tienen opción vacía, así
+que TODO estudio guardado los trae: `co_riesgo_cv` («Ninguno»), `hf_ritmo` («Automático») y el
+`0` de las cuatro subescalas de Wilkins, que significa «sin puntuar» y no un puntaje. Se emiten
+sólo si el módulo se usó. Es el mismo patrón que los cinco grados valvulares y que «`__chk`
+presente ≠ el médico decidió».
+
+**Columnas que quedan FUERA del Excel y por qué.** De las 250 de `ecosmart_plantilla_v2.xlsx`,
+164 no tienen campo persistido en la app: GLS y contractilidad segmentarios (16 segmentos cada
+uno), eco pulmonar completo, dominios del HFA-PEFF, detalle de TEER, VEXUS agregado, seguimiento
+oncológico, y los derivados puros (ASC, IMC, LAVI, masa, E/e'). Los derivados que SÍ se exportan
+los calcula `_labExcelRow` al vuelo. **La plantilla v2 del escritorio está desactualizada**: le
+faltan las 130 columnas de CC/Genéticas y no refleja esta estructura.
+
+**Deuda declarada:** las cuatro entradas `readonly` del mapa (`avm_cont`, `ava_cont`, `avm_idx`,
+`hemo_pvc`) existen sólo para que la columna aparezca en la lista «calculadas» del preview de
+importación. Si alguien le saca el `readonly` a uno de esos inputs, la columna pasa a ser
+importable sin que nada la recalcule al abrir el estudio — «bloquear no es recalcular» con el
+gatillo invertido. La dependencia no está declarada en ningún lado salvo el atributo HTML.
+
 ## Deuda conocida sin resolver
 
 - **Contraseña en el código.** `doLogin()` compara contra un literal. Choca con el checklist

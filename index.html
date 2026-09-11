@@ -10931,7 +10931,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
                 <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();document.getElementById('lab-import-xlsx').click()">📊 Excel<small>Planilla con las columnas de la plantilla</small></button>
                 <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();document.getElementById('ig-import-dcm').click()">🏥 DICOM SR<small>Archivos .dcm del ecógrafo</small></button>
                 <div class="igio-sep"></div>
-                <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();labPlantillaXLSX()">📋 Descargar plantilla Excel<small>Excel vacío con las columnas correctas, una fila de ejemplo y una hoja de instrucciones</small></button>
+                <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();labPlantillaXLSX()">📋 Descargar plantilla Excel<small>Columnas correctas, una fila de ejemplo con el formato de cada celda en un comentario, y las hojas «Bloques» e «Instrucciones»</small></button>
+                <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();labPlantillaXLSX(true)">📋 Exportar plantilla virgen<small>La misma estructura pero SIN la fila de ejemplo: sólo los encabezados, lista para llenar e importar</small></button>
               </div>
             </div>
           </div>
@@ -25406,7 +25407,20 @@ function _restaurarChkInclusion(campos){
      del PACIENTE ANTERIOR —cargarEstudioPorId llama acá sin guarda y no pasa por
      limpiarCampos—, que es justo la fuga que el bloque de AVm de abajo dice cerrar. */
   if(!campos) campos = {};
+  /* `caso_interes` queda FUERA de este barrido: es la única casilla con DOS claves persistidas
+     —`guardarInforme` la escribe por el barrido genérico como `caso_interes__chk` y además en su
+     línea propia como `caso_interes`— y la canónica es la segunda, que es la que leen la ⭐ de
+     Guardados, el pilar de Docencia del Laboratorio, el tablero y el badge de la ficha.
+     Sin esta excepción el orden de restauración quedaba invertido respecto del de autoridad: las
+     dos rutas ponían `.checked` desde `caso_interes` y acto seguido este barrido lo PISABA con el
+     `__chk`. Un estudio importado con «Caso de interés = 1» —el importador escribe la canónica—
+     se contaba en Docencia de inmediato, pero al abrirlo la casilla salía apagada por el `__chk`
+     rancio, y al guardar se reescribía en 0: la marca se revertía sin ningún aviso.
+     `toggleCasoInteresGuardado` tiene el mismo problema por otro camino: escribe directo al store
+     sin pasar por el formulario, así que el `__chk` de un estudio marcado con la estrella nunca
+     se actualiza. */
   document.querySelectorAll('input[type=checkbox][id]').forEach(function(el){
+    if (el.id === 'caso_interes') return;
     const k = el.id + '__chk';
     if(campos[k] !== undefined) el.checked = (campos[k] === '1' || campos[k] === true || campos[k] === 'true');
   });
@@ -35756,6 +35770,75 @@ function _labExcelRow(inf) {
     'Incluir TGA en informe':        c['tga_incluir_chk__chk']    === '1' ? 1 : 0,
     'Incluir MCA en informe':        c['mca_incluir_chk__chk']    === '1' ? 1 : 0,
     'Informe (texto completo)': c.informe_texto || '', 'EN SUMA (texto completo)': c.en_suma || '',
+
+    /* ── Campos agregados el 2026-09-11 ────────────────────────────────────────────────────
+       Todos tienen `id` de input/select/textarea, o sea que `guardarInforme` los barre y viajan
+       en el JSON del estudio: por eso se exportan Y se reimportan (están en LAB_XLS_MAP).
+       Los ids se verificaron contra el DOM uno por uno. */
+    // Mismo predicado que los seis consumidores de la app: `'1'` o `'true'`.
+    'Caso de interés (S/N)': (c.caso_interes === '1' || c.caso_interes === 'true') ? 1 : 0,
+    'AVm continuidad (cm²)': rnd(num('avm_cont'),2), 'AVm planimetría (cm²)': rnd(num('avm_plan'),2),
+    'AVA continuidad (cm²)': rnd(num('ava_cont'),2), /* «AVm indexada» y NO «AVAi»: `avm_idx` es el área MITRAL indexada —así lo rotula su propio
+       campo en el formulario— y AVAi en ecocardiografía es la AÓRTICA. Salía pegada a «AVA
+       continuidad», que sí es aórtica, así que se leía como su par; y el mismo libro ya tiene una
+       «TAVI AVAi (cm²/m²)» que sí es aórtica. Dos columnas con el mismo nombre y dos válvulas
+       distintas en la planilla que va a CeiboAnalytics. */
+    'AVm indexada (cm²/m²)': rnd(num('avm_idx'),2),
+    /* El `0` de Wilkins es el «—» de SIN PUNTUAR, no un puntaje: lo dice el comentario del score
+       de abajo y por eso el total exige las cuatro > 0. Emitirlo como 0 hacía que un promedio en
+       R tomara «no evaluado» como si fuera un valor, que es el mismo error de tipo que este
+       archivo ya cerró con `pctOf(n, 0)`. Va vacío. */
+    'Wilkins movilidad': _labXlsEtiq('wilkins_movilidad', num('wilkins_movilidad') > 0 ? c.wilkins_movilidad : ''),
+    'Wilkins engrosamiento': _labXlsEtiq('wilkins_engrosamiento', num('wilkins_engrosamiento') > 0 ? c.wilkins_engrosamiento : ''),
+    'Wilkins calcificación': _labXlsEtiq('wilkins_calcificacion', num('wilkins_calcificacion') > 0 ? c.wilkins_calcificacion : ''),
+    'Wilkins subvalvular': _labXlsEtiq('wilkins_subvalvular', num('wilkins_subvalvular') > 0 ? c.wilkins_subvalvular : ''),
+    /* Score de Wilkins: sólo se suma si las CUATRO subescalas están puntuadas. `calcWilkins`
+       trata el 0 como «sin puntuar», así que sumar parciales publicaría un score bajo sobre una
+       válvula a medio evaluar — y ese score decide valvuloplastia. Es el mismo criterio con el
+       que la subtab ETE excluye los Wilkins incompletos. */
+    'Score Wilkins total': (() => {
+      const vs = ['wilkins_movilidad','wilkins_engrosamiento','wilkins_calcificacion','wilkins_subvalvular']
+        .map(k => { const n = num(k); return (n !== null && n > 0) ? n : null; });
+      return vs.every(v => v !== null) ? vs.reduce((a,b) => a+b, 0) : '';
+    })(),
+    'FC (lpm)': rnd(num('hemo_fc'),0), 'PAM (mmHg)': rnd(num('hemo_pam'),0), 'PVC (mmHg)': rnd(num('hemo_pvc'),0),
+    'Signo McConnell': _labXlsEtiq('tep_mcconnell', c.tep_mcconnell),
+    'Signo 60-60': _labXlsEtiq('tep_signo6060', c.tep_signo6060),
+    'Tabique en D': _labXlsEtiq('tep_tabique_d', c.tep_tabique_d),
+    'VD/VI ratio (TEP)': rnd(num('tep_vdvi'),2),
+    'CIA borde AO (mm)': rnd(num('ete_cia_borde_ao'),1), 'CIA borde AV (mm)': rnd(num('ete_cia_borde_av'),1),
+    'CIA borde VCS (mm)': rnd(num('ete_cia_borde_vcs'),1), 'CIA borde VCI (mm)': rnd(num('ete_cia_borde_vci'),1),
+    'CIA borde posterior (mm)': rnd(num('ete_cia_borde_post'),1),
+    'Es ETE': c['ete-es-ete__chk'] === '1' ? 1 : 0,
+    'Etiología mitral ETE': _labXlsEtiq('ete_etiologia', c.ete_etiologia),
+    'Área mitral ETE (cm²)': rnd(num('ete_area_mitral'),2),
+    'Morfología orejuela': _labXlsEtiq('oai_morfologia', c.oai_morfologia),
+    'Trombo orejuela': _labXlsEtiq('oai_trombo', c.oai_trombo),
+    'SEC orejuela': _labXlsEtiq('oai_sec', c.oai_sec),
+    'Vel vaciamiento orejuela (cm/s)': rnd(num('oai_vel_vac'),0),
+    'Segmento aorta ETE': _labXlsEtiq('ao_segmento', c.ao_segmento),
+    'Grado ateromatosis Ao': _labXlsEtiq('ao_grado_atero', c.ao_grado_atero),
+    'Fármaco cardiotóxico': _labXlsEtiq('co_farmaco', c.co_farmaco),
+    'Dosis antraciclinas (mg/m²)': rnd(num('co_dosis_antrac'),0),
+    /* El `<select>` de riesgo CV NO tiene opción vacía y su valor de fábrica es «0 — Ninguno»,
+       así que TODO estudio guardado lo trae: emitirlo crudo afirmaba «sin factores de riesgo
+       cardiovascular» sobre estudios donde nadie abrió el módulo, indistinguible de una respuesta
+       real. Se emite sólo si el módulo se usó —hay fármaco o alguna FEVI/GLS basal—, que es el
+       mismo predicado con el que `_labOncoUsado` decide la población de cardio-oncología. */
+    'Riesgo CV basal': _labOncoUsado(inf) ? _labXlsEtiq('co_riesgo_cv', c.co_riesgo_cv) : '',
+    'FEVI basal onco (%)': rnd(num('co_fevi_basal'),0),
+    'GLS basal onco (%)': rnd(num('co_gls_basal'),1), 'FEVI actual onco (%)': rnd(num('co_fevi_actual'),0),
+    'GLS actual onco (%)': rnd(num('co_gls_actual'),1),
+    'Troponina elevada': _labXlsEtiq('co_troponi', c.co_troponi),
+    /* `hf_ritmo` tampoco tiene opción vacía y su fábrica es «auto». Sólo se emite si el módulo
+       HFA-PEFF tiene algún dato propio; si no, la columna diría «Automático» en toda la cohorte. */
+    'Ritmo HFA-PEFF': (num('hf_ntprobnp') !== null || num('hf_bnp') !== null || c.hf_ritmo === 'rs' || c.hf_ritmo === 'fa')
+      ? _labXlsEtiq('hf_ritmo', c.hf_ritmo) : '',
+    'NT-proBNP (pg/ml)': rnd(num('hf_ntprobnp'),0),
+    'BNP (pg/ml)': rnd(num('hf_bnp'),0),
+    'Score amiloidosis ETT': rnd(num('alg-ett-score'),0),
+    'Motivo evaluación amiloidosis': c['alg-motivo'] || '',
+    'Sparkling': _labXlsEtiq('ett-sparkling', c['ett-sparkling']),
   };
 }
 function labExportarXLSX() {
@@ -35770,6 +35853,84 @@ function labExportarXLSX() {
 /* Sustitución del nombre. Se aplica sobre la fila YA construida y sobre TODAS: si se
    filtrara por «tiene nombre» o se saltearan las vacías quedarían filas con nombre real
    mezcladas con anónimas, que es la peor de las dos opciones —parece anonimizado—. */
+/* ══ BLOQUES DEL EXCEL ══════════════════════════════════════════════════════════════════════
+   Los 16 bloques clínicos. Cada uno se define por PREFIJOS de nombre de columna y por una lista
+   explícita; el orden de este array es el orden de las columnas del Excel.
+
+   Por qué prefijos y no una lista cerrada de 305 nombres: una lista cerrada se desincroniza en
+   cuanto alguien agrega una columna, y el modo de falla sería que la columna nueva desaparezca
+   del Excel sin que nada lo diga. Con prefijos, una columna nueva cae sola en su bloque.
+
+   Y por eso existe `_LAB_XLS_BLOQUE_RESTO`: lo que no matchea NINGÚN bloque igual se exporta,
+   agrupado al final y declarado en la hoja «Bloques». Perder una columna en silencio sería peor
+   que verla fuera de lugar — es la misma razón por la que `_labOrdenarCols` ya era tolerante.
+
+   NO se colorea la fila 1 por bloque: la build comunitaria de SheetJS 0.18.5 NO escribe estilos
+   de celda. Se verificó escribiendo un libro con relleno y negrita y leyendo el zip: `styles.xml`
+   sale sin el relleno y sin `<b/>`. O sea que pintar acá sería código que no hace nada y un
+   Excel que se ve igual de bien sin el formato prometido. Los bloques se declaran en su propia
+   hoja, con rangos de columna, y cada encabezado lleva un COMENTARIO de celda —eso sí lo
+   escribe— que dice a qué bloque pertenece y si la columna se reimporta. */
+const LAB_XLS_BLOQUES = [
+  { n:'1 · FICHA PATRONÍMICA', cols:['Nombre','CI','Fecha estudio','Edad','Sexo','Peso (kg)','Talla (cm)',
+      'Centro / Institución','Médico solicitante','Motivo / Indicación','Antecedentes','Caso de interés (S/N)'] },
+  { n:'2 · AORTA', pre:['Ao '] },
+  { n:'3 · AURÍCULA IZQUIERDA', cols:['Diám. AP AI (mm)','Área AI (cm²)','Volumen AI (ml)','LARS (%)',
+      'Vol AI (LAVI) (ml/m²)'] },
+  { n:'4 · VENTRÍCULO IZQUIERDO', cols:['SIV (mm)','DDVI (mm)','DSVI (mm)','PP (mm)','FEVI Simpson (%)','GLS (%)',
+      'Masa VI (g/m²)','RWT','VDFVI idx (ml/m²)','FA (%)'], pre:['Geometría VI','Geom_','Trastornos sectoriales','TS_'] },
+  { n:'5 · VENTRÍCULO DERECHO', cols:['TAPSE (mm)',"S' (cm/s)",'TAP (ms)','Diám. basal VD (mm)'] },
+  { n:'6 · AURÍCULA DERECHA / VCI', cols:['Área AD (cm²)','VCI diám (mm)','Colapso VCI','PmAD (mmHg)'] },
+  { n:'7 · DOPPLER Y DIASTÓLICA', cols:['Onda E (cm/s)','Onda A (cm/s)',"e' septal (cm/s)","e' lateral (cm/s)",
+      'E/A',"e' promedio (cm/s)","E/e'",'Grado disfunción diastólica'], pre:['DD_'] },
+  /* «Morfología » a secas se tragaba «Morfología orejuela», que es del bloque 16: gana el PRIMER
+     bloque que matchea y éste está antes. La entrada del 16 quedaba como código muerto que se leía
+     como si funcionara, y la hoja «Bloques» no lo delataba porque se calcula con la misma función
+     —internamente consistente y mal—. Se acotan a los tres nombres exactos. El `_labXlsAssertBloques`
+     de más abajo cierra la clase entera, no este caso. */
+  { n:'8 · VÁLVULAS', pre:['Morfología mitral','Morfología aórtica','Morfología tricúspide',
+      'IM','EM','EA','IAo','IT','VC ','AVm','AVA','V. max Ao','G. máx Ao',
+      'G. medio Ao','PHT IAo','EROA','Vol R IM','Wilkins','Score Wilkins','PSAP','PAP media','Grad VD-AD','Pericardio'] },
+  { n:'9 · INFORME', cols:['Informe (texto completo)','EN SUMA (texto completo)'] },
+
+  // ▼ SECCIÓN AVANZADA ▼ — de acá en adelante son módulos que no todo estudio usa
+  { n:'10 · HEMODINÁMICA Y VEXUS', avanzada:true, cols:['FC (lpm)','PAM (mmHg)','PVC (mmHg)'], pre:['VEXUS'] },
+  { n:'11 · TEP / SOBRECARGA VD', avanzada:true, cols:['Signo McConnell','Signo 60-60','Tabique en D','VD/VI ratio (TEP)'] },
+  { n:'12 · SHUNT Y CORTOCIRCUITOS', avanzada:true, pre:['CIA','CIV','Ø TSV','VTI TSV','Qp/Qs','Ductus','VAP ','FOP '] },
+  { n:'13 · AORTA CONGÉNITA Y VÁLVULA BICÚSPIDE', avanzada:true, pre:['Coartación','VAB '] },
+  { n:'14 · MIOCARDIOPATÍAS', avanzada:true, pre:['MCH','MCA','TV ','Edad familiar muerte súbita'] },
+  { n:'15 · CARDIOPATÍAS COMPLEJAS', avanzada:true, pre:['Ebstein','TdF','TGA'] },
+  { n:'16 · ETE, TAVI Y MÓDULOS CLÍNICOS', avanzada:true, pre:['Es ETE','Etiología mitral ETE','Área mitral ETE',
+      'Morfología orejuela','Trombo orejuela','SEC orejuela','Vel vaciamiento orejuela','Segmento aorta ETE',
+      'Grado ateromatosis','TAVI','Fármaco cardiotóxico','Dosis antraciclinas','Riesgo CV basal','FEVI basal onco',
+      'GLS basal onco','FEVI actual onco','GLS actual onco','Troponina elevada','Ritmo HFA-PEFF','NT-proBNP','BNP (',
+      'Score amiloidosis','Motivo evaluación amiloidosis','Sparkling','Incluir '] }
+];
+const _LAB_XLS_BLOQUE_RESTO = '17 · OTRAS COLUMNAS';
+/* Bloque de una columna. `startsWith` sobre los prefijos y coincidencia exacta sobre `cols`;
+   gana el PRIMER bloque que matchee, así que el orden del array también desempata. */
+/* Comprobación de arranque: cada prefijo/columna declarado en un bloque tiene que RESOLVER a ese
+   bloque. Sin esto, un prefijo nuevo que sea subcadena de otro anterior se convierte en una
+   entrada muerta que igual se lee como si funcionara — que es lo que pasó con «Morfología ». */
+function _labXlsAssertBloques() {
+  const malas = [];
+  LAB_XLS_BLOQUES.forEach(b => {
+    (b.cols || []).forEach(c => { if (_labXlsBloqueDe(c) !== b.n) malas.push(c + ' → ' + _labXlsBloqueDe(c) + ' (declarada en ' + b.n + ')'); });
+    (b.pre || []).forEach(p => { if (_labXlsBloqueDe(p) !== b.n) malas.push('prefijo «' + p + '» → ' + _labXlsBloqueDe(p) + ' (declarado en ' + b.n + ')'); });
+  });
+  if (malas.length) console.error('[xlsx] bloques mal resueltos:\n  ' + malas.join('\n  '));
+  return malas;
+}
+window._labXlsAssertBloques = _labXlsAssertBloques;
+
+function _labXlsBloqueDe(col) {
+  for (const b of LAB_XLS_BLOQUES) {
+    if (b.cols && b.cols.indexOf(col) >= 0) return b.n;
+    if (b.pre && b.pre.some(p => col.indexOf(p) === 0)) return b.n;
+  }
+  return _LAB_XLS_BLOQUE_RESTO;
+}
+
 /* Ordena las cabeceras del export siguiendo LAB_XLS_MAP. Las que el mapa no conoce conservan
    su orden original al final. Es tolerante a propósito: si una columna del mapa no está en el
    export, simplemente no aparece — no se inventa una columna vacía. */
@@ -35789,8 +35950,98 @@ function _labOrdenarCols(headers) {
     if (grp) grp.cols.forEach(alias => meter(alias[0]));
   });
   headers.forEach(meter);
-  return orden;
+  /* Reagrupación por BLOQUE, estable: dentro de cada bloque se conserva el orden que acaba de
+     calcularse (el del mapa, con las binarias intercaladas). Se agrupa al final y no al armar,
+     para no duplicar la lógica de intercalado de las binarias. */
+  const porBloque = new Map();
+  LAB_XLS_BLOQUES.forEach(b => porBloque.set(b.n, []));
+  porBloque.set(_LAB_XLS_BLOQUE_RESTO, []);
+  orden.forEach(c => porBloque.get(_labXlsBloqueDe(c)).push(c));
+  const salida = [];
+  porBloque.forEach(cols => cols.forEach(c => salida.push(c)));
+  /* Invariante: reagrupar no puede perder ni duplicar una columna. Si alguna vez fallara, se
+     devuelve el orden SIN agrupar en vez de exportar un Excel incompleto — una columna que
+     desaparece del Excel no se ve, y este archivo ya documenta ese modo de falla tres veces. */
+  if (salida.length !== orden.length) {
+    console.error('[xlsx] la agrupación por bloques perdió columnas: %d → %d', orden.length, salida.length);
+    return orden;
+  }
+  return salida;
 }
+/* ── Letra de columna de Excel (1 → A, 27 → AA) ── */
+function _labXlsLetra(n) {
+  let r = '';
+  while (n > 0) { const m = (n - 1) % 26; r = String.fromCharCode(65 + m) + r; n = Math.floor((n - 1) / 26); }
+  return r;
+}
+/* Nombres que el importador acepta. Se calcula UNA vez desde las mismas estructuras que usa el
+   importador, así que no puede desincronizarse: si mañana una columna deja de ser importable, el
+   comentario de su encabezado lo dice solo. */
+let _labXlsImportablesCache = null;
+function _labXlsImportables() {
+  if (_labXlsImportablesCache) return _labXlsImportablesCache;
+  const set = new Set();
+  LAB_XLS_MAP.forEach(m => {
+    /* `_labXlsEsCalculado`, que es EXACTAMENTE el predicado que aplica el importador, y no una
+       lectura suelta de `LAB_XLS_SOLO_EXPORT`. Aquélla es sólo una de sus dos mitades: la otra
+       es `readonly` en el DOM, y cubre cuatro campos más (AVm continuidad, AVA continuidad,
+       AVAi y PVC) que la app CALCULA. Con el predicado a medias, el comentario del encabezado
+       prometía «se reimporta» sobre columnas que el importador descarta — y el médico las
+       editaba esperando que entraran. Es la misma regla que este archivo repite: la condición
+       se comparte, no se reescribe. */
+    const dest = String(m[1] || '');
+    if (dest[0] === '@') { set.add(m[0]); return; }
+    if (!_labXlsEsCalculado(dest.replace(/__chk$/, ''))) set.add(m[0]);
+  });
+  LAB_XLS_BIN.forEach(g => g.cols.forEach(al => set.add(al[0])));
+  _labXlsImportablesCache = set;
+  return set;
+}
+/* Hoja «Bloques»: el mapa del Excel. Acá vive el separador ▼ SECCIÓN AVANZADA ▼ y NO en la hoja
+   de datos, y es una restricción del formato, no una preferencia: el importador lee la FILA 1
+   como cabecera, así que una fila de títulos por encima se tomaría como los nombres de columna
+   —no matchearía ninguna— y la fila de encabezados entraría como un estudio llamado «Nombre». */
+function _labXlsHojaBloques(wb, headers) {
+  const imp = _labXlsImportables();
+  const filas = [['Bloque', 'Columnas', 'Desde', 'Hasta', 'Reimportan', 'Sólo lectura']];
+  // `sep` como variable y no como propiedad del array: `filas` va a `aoa_to_sheet`, que itera por
+  // índices, así que colgarle una propiedad funciona por accidente del writer.
+  let sep = false;
+  LAB_XLS_BLOQUES.concat([{ n: _LAB_XLS_BLOQUE_RESTO }]).forEach(b => {
+    const cols = headers.filter(h => _labXlsBloqueDe(h) === b.n);
+    if (!cols.length) return;
+    if (b.avanzada && !sep) { filas.push([]); filas.push(['▼ SECCIÓN AVANZADA ▼']); filas.push([]); sep = true; }
+    const desde = headers.indexOf(cols[0]) + 1, hasta = headers.indexOf(cols[cols.length - 1]) + 1;
+    const nImp = cols.filter(c => imp.has(c)).length;
+    filas.push([b.n, cols.length, _labXlsLetra(desde), _labXlsLetra(hasta), nImp, cols.length - nImp]);
+  });
+  const totalImp = headers.filter(h => imp.has(h)).length;
+  filas.push([]);
+  filas.push(['TOTAL', headers.length, _labXlsLetra(1), _labXlsLetra(headers.length), totalImp, headers.length - totalImp]);
+  filas.push([]);
+  filas.push(['El importador matchea por NOMBRE de columna. Si renombrás una que reimporta, ese dato se pierde en silencio.']);
+  filas.push(['Las columnas de «Sólo lectura» se pueden leer y analizar en la planilla, pero la app las ignora al importar:']);
+  filas.push(['o son valores calculados que EcoSmart rehace desde sus mediciones, o son campos que el importador no contempla.']);
+  filas.push(['Cada encabezado de la hoja «Estudios» lleva un comentario con su bloque y si reimporta.']);
+  const ws = XLSX.utils.aoa_to_sheet(filas);
+  ws['!cols'] = [{ wch: 44 }, { wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 12 }, { wch: 13 }];
+  XLSX.utils.book_append_sheet(wb, ws, 'Bloques');
+}
+/* Comentario de celda en cada encabezado. Los comentarios SÍ los escribe SheetJS 0.18.5 —
+   verificado leyendo el zip—, a diferencia de los estilos. Es lo que reemplaza al color. */
+function _labXlsComentarEncabezados(ws, headers) {
+  const imp = _labXlsImportables();
+  headers.forEach((h, i) => {
+    const ref = XLSX.utils.encode_cell({ c: i, r: 0 });
+    if (!ws[ref]) return;
+    ws[ref].c = [{ a: 'EcoSmart',
+      t: _labXlsBloqueDe(h) + '\n' +
+         (imp.has(h) ? 'Se REIMPORTA: editá esta celda y el dato entra a EcoSmart.'
+                     : 'Sólo lectura: la app la ignora al importar.') }];
+    ws[ref].c.hidden = true;
+  });
+}
+
 function _labExportarXLSXReal(infs, anon) {
   const rows = infs.map(_labExcelRow).map(r => {
     if (!anon) return r;
@@ -35809,8 +36060,16 @@ function _labExportarXLSXReal(infs, anon) {
   const aoa = [headers, ...rows.map(r => headers.map(h => r[h]))];
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws['!cols'] = headers.map(h => ({ wch: Math.min(46, Math.max(10, h.length + 2)) }));
+  /* NO se pone `!freeze`: la build comunitaria de SheetJS 0.18.5 NO lo escribe. Medido con el
+     mismo método que los estilos —escribir el libro y buscar `<pane` en el zip— en las dos formas
+     documentadas (objeto `{xSplit,ySplit}` y referencia `'A2'`): ninguna sale. Dejarlo sería
+     código que no hace nada bajo un comentario que promete el formato, que es exactamente contra
+     lo que advierte el bloque de los colores. El autofiltro SÍ se escribe, y se verificó igual. */
+  ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s:{c:0,r:0}, e:{c:headers.length-1, r:aoa.length-1} }) };
+  _labXlsComentarEncabezados(ws, headers);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Estudios');
+  _labXlsHojaBloques(wb, headers);
 
   // Hoja "Leyenda" — descripción de las columnas binarias
   const V = '1 = presente · 0 = ausente';
@@ -36290,7 +36549,91 @@ const LAB_XLS_MAP = [
 
   // 17 · Texto libre
   ['Informe (texto completo)','informe_texto', 'txt'],
-  ['EN SUMA (texto completo)','en_suma',       'txt']
+  ['EN SUMA (texto completo)','en_suma',       'txt'],
+
+  /* ══ 18 · Campos agregados el 2026-09-11 ══════════════════════════════════════════════════
+     CRITERIO (decisión del médico): entra al Excel lo que EcoSmart realmente GUARDA y puede
+     REIMPORTAR — o sea, lo que tiene un `id` de input/select/textarea, porque `guardarInforme`
+     barre exactamente esos tres tags y por eso viaja en el JSON del estudio. Los derivados sin
+     control propio (ASC, IMC, E/e', masa, puntajes calculados) NO entran por acá: los que se
+     exportan salen de `_labExcelRow` como columnas calculadas y de sólo lectura.
+     Los ids se verificaron UNO POR UNO contra el DOM, y los `option value` de cada select se
+     leyeron del DOM, no del rótulo. */
+
+  // Ficha
+  /* `caso_interes` SIN sufijo, que es la clave CANÓNICA: tiene línea propia en `guardarInforme`
+     y es la que leen los seis consumidores reales —la ⭐ de Guardados, el pilar de Docencia del
+     Laboratorio, el tablero, el badge de la ficha y las dos restauraciones—. El `__chk` existe
+     sólo como subproducto del barrido genérico de casillas y no lo lee ninguno de ellos.
+     Y no es simetría: `toggleCasoInteresGuardado` escribe `caso_interes` DIRECTO al store, sin
+     pasar por el formulario, así que el `__chk` de un estudio marcado con la estrella nunca se
+     actualiza — el Excel exportaba 0 sobre un caso marcado y contradecía al panel de Docencia de
+     la misma app. Al importar era al revés: el estudio entraba sin ser caso de interés para
+     ningún panel.
+     Esto estuvo escrito al revés unas horas, y el ida y vuelta de la Parte 3 lo dio por bueno
+     porque `_labExcelRow` leía `__chk` y el importador escribía `__chk`: eran espejo. Es
+     exactamente «ida y vuelta exacto no prueba nada». La prueba correcta es contra el consumidor,
+     no contra el otro extremo del tubo. */
+  ['Caso de interés (S/N)',  'caso_interes',    'chk'],
+
+  // Válvulas — áreas medidas y score de Wilkins
+  ['AVm continuidad (cm²)',  'avm_cont',       'num'],
+  ['AVm planimetría (cm²)',  'avm_plan',       'num'],
+  ['AVA continuidad (cm²)',  'ava_cont',       'num'],
+  ['AVm indexada (cm²/m²)',  'avm_idx',        'num', ['AVAi (cm²/m²)']],
+  ['Wilkins movilidad',      'wilkins_movilidad',     'vocab'],
+  ['Wilkins engrosamiento',  'wilkins_engrosamiento', 'vocab'],
+  ['Wilkins calcificación',  'wilkins_calcificacion', 'vocab'],
+  ['Wilkins subvalvular',    'wilkins_subvalvular',   'vocab'],
+
+  // Hemodinámica
+  ['FC (lpm)',               'hemo_fc',        'num'],
+  ['PAM (mmHg)',             'hemo_pam',       'num'],
+  ['PVC (mmHg)',             'hemo_pvc',       'num'],
+
+  // TEP / sobrecarga del VD
+  ['Signo McConnell',        'tep_mcconnell',  'vocab'],
+  ['Signo 60-60',            'tep_signo6060',  'vocab'],
+  ['Tabique en D',           'tep_tabique_d',  'vocab'],
+  ['VD/VI ratio (TEP)',      'tep_vdvi',       'num'],
+
+  // Bordes de la CIA (la columna «CIA borde mínimo» del export es DERIVADA de estos cinco)
+  ['CIA borde AO (mm)',      'ete_cia_borde_ao',   'num'],
+  ['CIA borde AV (mm)',      'ete_cia_borde_av',   'num'],
+  ['CIA borde VCS (mm)',     'ete_cia_borde_vcs',  'num'],
+  ['CIA borde VCI (mm)',     'ete_cia_borde_vci',  'num'],
+  ['CIA borde posterior (mm)','ete_cia_borde_post','num'],
+
+  // ETE — mitral, orejuela y aorta torácica
+  ['Es ETE',                 'ete-es-ete__chk',    'chk'],
+  ['Etiología mitral ETE',   'ete_etiologia',      'vocab'],
+  ['Área mitral ETE (cm²)',  'ete_area_mitral',    'num'],
+  ['Morfología orejuela',    'oai_morfologia',     'vocab'],
+  ['Trombo orejuela',        'oai_trombo',         'vocab'],
+  ['SEC orejuela',           'oai_sec',            'vocab'],
+  ['Vel vaciamiento orejuela (cm/s)', 'oai_vel_vac','num'],
+  ['Segmento aorta ETE',     'ao_segmento',        'vocab'],
+  ['Grado ateromatosis Ao',  'ao_grado_atero',     'vocab'],
+
+  // Cardio-oncología
+  ['Fármaco cardiotóxico',   'co_farmaco',     'vocab'],
+  ['Dosis antraciclinas (mg/m²)', 'co_dosis_antrac', 'num'],
+  ['Riesgo CV basal',        'co_riesgo_cv',   'vocab'],
+  ['FEVI basal onco (%)',    'co_fevi_basal',  'num'],
+  ['GLS basal onco (%)',     'co_gls_basal',   'num'],
+  ['FEVI actual onco (%)',   'co_fevi_actual', 'num'],
+  ['GLS actual onco (%)',    'co_gls_actual',  'num'],
+  ['Troponina elevada',      'co_troponi',     'vocab'],
+
+  // HFA-PEFF
+  ['Ritmo HFA-PEFF',         'hf_ritmo',       'vocab'],
+  ['NT-proBNP (pg/ml)',      'hf_ntprobnp',    'num'],
+  ['BNP (pg/ml)',            'hf_bnp',         'num'],
+
+  // Amiloidosis
+  ['Score amiloidosis ETT',  'alg-ett-score',  'num'],
+  ['Motivo evaluación amiloidosis', 'alg-motivo', 'opcion'],
+  ['Sparkling',              'ett-sparkling',  'vocab']
 ];
 /* Ventanas de plausibilidad para el importador. _labXlsNum sólo verifica que el valor PARSEE:
    una talla de 1,70 (metros en vez de cm) o un peso de 7 entraban sin chistar, y peso/talla son
@@ -36320,7 +36663,27 @@ const LAB_XLS_MAP = [
 const LAB_XLS_RANGO_PROPIO = {
   peso:[1,400], talla:[30,250], edad:[0,120],
   ao_sin:[10,90], ao_st:[10,80], ao_tub:[10,90],
-  ai_diam:[10,90], ai_area:[3,60], ai_vol:[5,400], lars:[0,60], ad_area:[3,60]
+  ai_diam:[10,90], ai_area:[3,60], ai_vol:[5,400], lars:[0,60], ad_area:[3,60],
+  /* Bandas de los numéricos agregados el 2026-09-11. Sin entrada acá, `_labXlsNum` sólo
+     verifica que el valor PARSEE: una FEVI basal de 580 o un NT-proBNP de 900000 entraban sin
+     chistar. Las bandas son anchas a propósito —atrapan el error de un orden de magnitud, no
+     el clínicamente raro—, que es el mismo criterio que la banda de peso 1-400. */
+  avm_cont:[0.1,8], avm_plan:[0.1,8], ava_cont:[0.1,8], avm_idx:[0.05,6],
+  hemo_fc:[20,250], hemo_pam:[20,200], hemo_pvc:[0,40],
+  tep_vdvi:[0.1,5],
+  ete_cia_borde_ao:[0,40], ete_cia_borde_av:[0,40], ete_cia_borde_vcs:[0,40],
+  ete_cia_borde_vci:[0,40], ete_cia_borde_post:[0,40],
+  ete_area_mitral:[0.1,15], oai_vel_vac:[0,150],
+  /* [0,95] y no [0,90]: una FEVI de 92 % es hiperdinámica pero perfectamente real en el
+     seguimiento de un paciente joven, y con el techo en 90 se RECHAZABA LA FILA ENTERA. El
+     criterio declarado de esta tabla es atrapar el error de un orden de magnitud, no lo
+     clínicamente infrecuente — igual que `peso:[1,400]`. */
+  co_dosis_antrac:[0,2000], co_fevi_basal:[0,95], co_fevi_actual:[0,95],
+  /* El GLS se tipea negativo o positivo según el equipo —`calcCardioOnco` usa Math.abs a
+     propósito— así que la banda tiene que admitir los dos signos. */
+  co_gls_basal:[-45,45], co_gls_actual:[-45,45],
+  hf_ntprobnp:[0,70000], hf_bnp:[0,20000],
+  'alg-ett-score':[0,10]
 };
 /* La fusión con DCM_RANGO es PEREZOSA y no en la inicialización. DCM_RANGO es un const
    declarado ~1000 líneas más abajo, así que en el momento en que se evalúa esta línea está en
@@ -36390,6 +36753,78 @@ const LAB_XLS_BIN = [
 // im/ia/it son <input hidden> con código numérico; em/ea son <select> con texto.
 const LAB_XLS_BIN_VAL = { num:['1','2','4'], txt:['leve','moderada','severa'] };
 const LAB_XLS_BIN_NADA = { num:'0', txt:'sin' };
+
+/* ── Vocabularios de los campos que se sumaron al Excel el 2026-09-11 ──────────────────────
+   Los valores son los `option value` REALES, leídos del DOM y no deducidos del rótulo: este
+   archivo ya documenta el caso en que un value inventado (`escaso` por `pocas`) hizo desaparecer
+   una categoría entera en silencio. Sin entrada acá, `_labXlsVocab` devuelve null y el
+   importador RECHAZA la celda con error — o sea que agregar una columna `vocab` sin su
+   vocabulario rompe la importación de esa columna, no la deja pasar. */
+/* Etiquetas legibles de los selects nuevos. El export emite la ETIQUETA y no el `value` crudo
+   —«Degenerativa — Barlow» y no «barlow»—, que es la regla que este archivo ya aplica a todas las
+   demás categóricas: una planilla de cohorte con «dfe», «bcr_abl» o «descendente_dist» no se
+   puede leer ni en Excel ni en R. Y el vocabulario de más abajo acepta LAS DOS formas, así que un
+   Excel exportado se reimporta y el médico puede además tipear lo que ve en pantalla —que antes
+   se rechazaba con un mensaje que ni siquiera decía cuál era el valor bueno. */
+const LAB_XLS_ETIQ = {
+  wilkins_movilidad:     { '1':'1 — Muy móvil', '2':'2 — Reducida en base y punta', '3':'3 — Sólo en la base', '4':'4 — Mínimo o sin movimiento' },
+  wilkins_engrosamiento: { '1':'1 — Casi normal (4-5mm)', '2':'2 — Punta engrosada (5-8mm)', '3':'3 — Hasta 1/3 del velo', '4':'4 — Difuso >8-10mm' },
+  wilkins_calcificacion: { '1':'1 — Área única', '2':'2 — Áreas dispersas en punta', '3':'3 — Hasta 1/3 del velo', '4':'4 — Difusa' },
+  wilkins_subvalvular:   { '1':'1 — Mínimo bajo velos', '2':'2 — Hasta 1/3 de cuerdas', '3':'3 — Hasta 2/3 de cuerdas', '4':'4 — Extenso y acortado' },
+  _tep:  { ne:'No evaluado', no:'No', si:'Sí' },
+  co_farmaco: { antracicline:'Antraciclinas', trastuzumab:'Trastuzumab / Anti-HER2', inmunoterapia:'Inmunoterapia (ICI)',
+                vegf:'Anti-VEGF / Bevacizumab', bcr_abl:'BCR-ABL (imatinib)', radioterapia:'Radioterapia torácica', otro:'Otro' },
+  co_riesgo_cv: { '0':'Ninguno', '1':'1 factor', '2':'2 factores', '3':'3 o más factores o IC previa' },
+  co_troponi: { no:'No', si:'Sí' },
+  hf_ritmo: { auto:'Automático', rs:'Ritmo sinusal', fa:'Fibrilación auricular' },
+  'ett-sparkling': { no:'No presente', si:'Presente' },
+  ete_etiologia: { barlow:'Degenerativa — Barlow', dfe:'Degenerativa — DFE', reumatica:'Reumática',
+                   funcional_isq:'Funcional isquémica', funcional_aur:'Funcional auricular (FA)',
+                   endocarditis:'Endocarditis', congenita:'Congénita' },
+  oai_morfologia: { ala:'Ala de pollo', coliflor:'Coliflor', cactus:'Cactus', veleta:'Veleta' },
+  oai_trombo: { no:'No', sospecha:'Sospecha', si:'Sí — confirmado' },
+  oai_sec: { ausente:'Ausente', leve:'Leve', moderado:'Moderado', severo:'Severo (barro)' },
+  ao_segmento: { ascendente:'Aorta ascendente', arco:'Arco aórtico', descendente:'Aorta descendente proximal',
+                 descendente_dist:'Aorta descendente distal' },
+  ao_grado_atero: { '1':'Grado 1 — Íntima normal', '2':'Grado 2 — Engrosamiento mínimo', '3':'Grado 3 — Placas irregulares',
+                    '4':'Grado 4 — Placas complejas', '5':'Grado 5 — Protrusiones móviles' }
+};
+['tep_mcconnell','tep_signo6060','tep_tabique_d'].forEach(k => { LAB_XLS_ETIQ[k] = LAB_XLS_ETIQ._tep; });
+// Traduce el value guardado a su etiqueta; si no la conoce devuelve el crudo (nunca vacía el dato).
+function _labXlsEtiq(campo, v) {
+  const m = LAB_XLS_ETIQ[campo], k = String(v == null ? '' : v).trim();
+  if (!k) return '';
+  return (m && Object.prototype.hasOwnProperty.call(m, k)) ? m[k] : k;
+}
+
+const LAB_XLS_VOCAB_NUEVOS = {
+  // Wilkins: cuatro subescalas de 1 a 4. El 0 es el «—» de sin puntuar, y `calcWilkins` lo trata
+  // como ausencia, así que se admite explícitamente para poder vaciar la celda.
+  _wilkins: { '0':'0', '':'0', '1':'1', '2':'2', '3':'3', '4':'4' },
+  // TEP: los tres signos comparten escala, y `ne` («no evaluado») es su valor de FÁBRICA —
+  // distinguirlo de «no» es lo que hace que `_labTepUsado` no cuente negativos inventados.
+  _tepSigno: { ne:'ne', 'no evaluado':'ne', '':'ne', no:'no', si:'si', 'sí':'si', s:'si', '1':'si', '0':'no' },
+  co_farmaco: { antracicline:'antracicline', antraciclinas:'antracicline', trastuzumab:'trastuzumab',
+                'anti-her2':'trastuzumab', inmunoterapia:'inmunoterapia', ici:'inmunoterapia',
+                vegf:'vegf', 'anti-vegf':'vegf', bevacizumab:'vegf', bcr_abl:'bcr_abl', 'bcr-abl':'bcr_abl',
+                imatinib:'bcr_abl', radioterapia:'radioterapia', otro:'otro' },
+  co_riesgo_cv: { '0':'0', ninguno:'0', '1':'1', '2':'2', '3':'3' },
+  co_troponi: { '':'', no:'no', si:'si', 'sí':'si', '1':'si', '0':'no' },
+  hf_ritmo: { auto:'auto', automatico:'auto', '':'auto', rs:'rs', sinusal:'rs', 'ritmo sinusal':'rs',
+              fa:'fa', 'fibrilacion auricular':'fa' },
+  'ett-sparkling': { '':'', no:'no', 'no presente':'no', si:'si', 'sí':'si', presente:'si' },
+  ete_etiologia: { '':'', barlow:'barlow', dfe:'dfe', reumatica:'reumatica', funcional_isq:'funcional_isq',
+                   funcional_aur:'funcional_aur', endocarditis:'endocarditis', congenita:'congenita' },
+  oai_morfologia: { '':'', ala:'ala', 'ala de pollo':'ala', coliflor:'coliflor', cactus:'cactus', veleta:'veleta' },
+  /* Orejuela: `sospecha` NO se colapsa con `si`. La app trata el trombo CONFIRMADO como
+     contraindicación absoluta de valvuloplastia; fusionarlos importaría una contraindicación
+     que el informe del paciente no sostiene. */
+  oai_trombo: { '':'', no:'no', sospecha:'sospecha', si:'si', 'sí':'si', 'si - confirmado':'si' },
+  oai_sec: { '':'', ausente:'ausente', leve:'leve', moderado:'moderado', severo:'severo', barro:'severo' },
+  ao_segmento: { '':'', ascendente:'ascendente', arco:'arco', descendente:'descendente',
+                 descendente_dist:'descendente_dist', 'descendente distal':'descendente_dist' },
+  ao_grado_atero: { '':'', '1':'1', '2':'2', '3':'3', '4':'4', '5':'5' }
+};
 
 const LAB_XLS_VOCAB = {
   // Las claves van en MINÚSCULA: la búsqueda normaliza a minúscula antes de comparar, y
@@ -36471,6 +36906,15 @@ const LAB_XLS_VOCAB = {
                    'post-intervencion':'recoartacion' },
 };
 /* dap_dir es literalmente el vocabulario de ete_cia_dir: se referencia, no se duplica. */
+// Los nuevos se mezclan acá, después del literal, para no tocar su cuerpo.
+['wilkins_movilidad','wilkins_engrosamiento','wilkins_calcificacion','wilkins_subvalvular']
+  .forEach(k => { LAB_XLS_VOCAB[k] = LAB_XLS_VOCAB_NUEVOS._wilkins; });
+['tep_mcconnell','tep_signo6060','tep_tabique_d']
+  .forEach(k => { LAB_XLS_VOCAB[k] = LAB_XLS_VOCAB_NUEVOS._tepSigno; });
+Object.keys(LAB_XLS_VOCAB_NUEVOS).forEach(k => {
+  if (k[0] !== '_') LAB_XLS_VOCAB[k] = LAB_XLS_VOCAB_NUEVOS[k];
+});
+
 LAB_XLS_VOCAB.dap_dir = LAB_XLS_VOCAB.ete_cia_dir;
 /* Ventana aortopulmonar y foramen oval. La dirección del shunt reusa el vocabulario de la CIA
    —mismos tres tokens— igual que el ductus. Los campos de TRES ESTADOS llevan `no_eval` además
@@ -36714,6 +37158,7 @@ const LAB_XLS_OPCIONES = {
   mca_vi_men1:'Sí · No · vacío',
   mca_vi_men3:'Sí · No · vacío',
 };
+
 LAB_XLS_OPCIONES.ia_grado = LAB_XLS_OPCIONES.it_grado = LAB_XLS_OPCIONES.im_grado;
 // Selects de texto libre acotado: se acepta cualquier opción de la lista, tal cual.
 const LAB_XLS_LISTAS = {
@@ -36721,6 +37166,13 @@ const LAB_XLS_LISTAS = {
   va_morf: ['Trivalva normal','Bicúspide','Calcificada','Reumática','Prótesis'],
   vt_morf: ['Normal','Mixomatosa','Reumática','Prótesis'],
   pericardio: ['Normal, sin derrame','Derrame mínimo','Derrame leve (5-10mm)','Derrame moderado (10-20mm)','Derrame severo (>20mm)','Engrosamiento / calcificación'],
+  /* `alg-motivo` va por LISTA y no por vocabulario porque su `option value` ES la etiqueta,
+     paréntesis incluidos — y `_labXlsVocab` parte por `(` para su fallback de etiqueta larga,
+     así que ahí se confundiría. `_labXlsLista` compara normalizado y devuelve el valor exacto. */
+  'alg-motivo': ['HVI inexplicable (≥12mm)','IC con FE preservada refractaria',
+    'Síndrome del túnel carpiano bilateral','Neuropatía periférica + afectación cardíaca',
+    'Historia familiar de ATTR','Ruptura de tendón del bíceps',
+    'Estenosis aórtica de bajo gradiente','Otro'],
 };
 /* Topes de largo para el texto libre. Sólo para los campos que se imprimen dentro de una
    línea del informe; `informe_texto` y `en_suma` no figuran a propósito. */
@@ -36730,8 +37182,45 @@ const LAB_XLS_MAX_TXT = {
 // Marca de la fila de ejemplo de la plantilla. Se busca en el Nombre y NUNCA se importa.
 const LAB_XLS_EJEMPLO = '*** FILA DE EJEMPLO — BORRAR ANTES DE IMPORTAR ***';
 
+/* Las rayas se unifican a guion común: las etiquetas de la app usan raya larga («Degenerativa —
+   Barlow», «Severo (barro)», «1 — Muy móvil») y quien la tipea a mano escribe un guion normal.
+   Sin esto el valor se rechazaba y el mensaje de error mostraba la raya larga, o sea que el
+   médico veía su texto y el «correcto» como si fueran iguales. Es un ensanchamiento puro: no
+   puede perder ninguna coincidencia que ya funcionara. */
 const _labXlsNorm = x => String(x == null ? '' : x).trim().toLowerCase()
-  .normalize('NFD').replace(/[\u0300-\u036F]/g,'').replace(/\s+/g,' ');
+  .normalize('NFD').replace(/[\u0300-\u036F]/g,'')
+  .replace(/[\u2010-\u2015\u2212]/g,'-')
+  .replace(/\s+/g,' ');
+
+/* ══ Cierre del vocabulario de los selects nuevos ══════════════════════════════════════════
+   Estos dos bucles van ACÁ y no junto a las tablas que mutan, y la razón es la que este archivo
+   documenta dos veces: leen `_labXlsNorm` (declarada justo arriba) y `LAB_XLS_OPCIONES`, y
+   escritos junto a `LAB_XLS_VOCAB` quedaban ~300 y ~150 líneas ANTES de esas declaraciones.
+   Leer un `const` en zona muerta no da `undefined`: LANZA, y como son sentencias de nivel
+   superior se llevaban puesto TODO el resto del bloque <script>. Reproducido las dos veces: la
+   app cargaba con la interfaz completa y `_CONTR_SEG_IDS` —5.000 líneas más abajo— sin
+   inicializar, y `node --check` daba verde porque es un error de ejecución, no de sintaxis.
+   Si agregás una tabla que dependa de otra, mirá el ORDEN antes que la lógica. */
+
+/* Cada vocabulario acepta TAMBIÉN la etiqueta que emite el export y que el médico ve en
+   pantalla. Sin esto, un Excel exportado por la propia app no se reimportaba —«Coliflor»,
+   «Degenerativa — Barlow», «Aorta descendente proximal» se rechazaban— y encima el mensaje de
+   error salía con los paréntesis vacíos. */
+Object.keys(LAB_XLS_ETIQ).forEach(campo => {
+  if (campo[0] === '_') return;
+  const voc = LAB_XLS_VOCAB[campo]; if (!voc) return;
+  Object.keys(LAB_XLS_ETIQ[campo]).forEach(val => {
+    const etq = _labXlsNorm(LAB_XLS_ETIQ[campo][val]);
+    if (etq && !Object.prototype.hasOwnProperty.call(voc, etq)) voc[etq] = val;
+  });
+});
+/* Y el texto que el importador muestra al rechazar un valor sale de las MISMAS etiquetas, no
+   escrito a mano: los quince `vocab` nuevos no tenían entrada y rechazaban con «no es un valor
+   válido ()». */
+Object.keys(LAB_XLS_ETIQ).forEach(campo => {
+  if (campo[0] === '_' || LAB_XLS_OPCIONES[campo]) return;
+  LAB_XLS_OPCIONES[campo] = Object.keys(LAB_XLS_ETIQ[campo]).map(v => LAB_XLS_ETIQ[campo][v]).join(' · ');
+});
 
 /* Un número y nada más. Antes se limpiaba con una regex que dejaba pasar cualquier cosa
    que empezara con dígitos: "60-65" daba 60, "<1.5" daba 1.5 —perdiendo el «menor que»,
@@ -36786,17 +37275,27 @@ function _labXlsLista(campo, v) {
 }
 
 /* ── Plantilla ── */
-function labPlantillaXLSX() {
+/* `vacia` = plantilla VIRGEN, sin la fila de ejemplo. Es un parámetro y no una segunda función
+   porque la estructura tiene que ser la misma: dos generadores de plantilla divergen en cuanto
+   se agrega una columna, y el que se pudre es el que se usa menos. */
+function labPlantillaXLSX(vacia) {
   if (typeof XLSX === 'undefined') { toast('❌ Librería Excel (XLSX) no disponible'); return; }
   /* Las binarias se intercalan DESPUÉS de su columna de texto, igual que en el Excel del
      Laboratorio: la plantilla y el export tienen que verse iguales o el médico que copia
      de uno al otro se pierde. */
-  const cols = [];
-  LAB_XLS_MAP.forEach(m => {
-    cols.push(m[0]);
-    const grp = LAB_XLS_BIN.find(g => g.dest === m[1]);
-    if (grp) grp.cols.forEach(alias => cols.push(alias[0]));
-  });
+  /* Las columnas salen de `_labExcelRow` sobre un estudio VACÍO y se ordenan con
+     `_labOrdenarCols` — o sea, exactamente la misma fuente y el mismo orden que el export.
+
+     Construirlas desde `LAB_XLS_MAP` daba 275 columnas contra las 305 del export: faltaban las
+     ~30 DERIVADAS (LAVI, masa, RWT, geometría, E/e', grado diastólico, EROA, AVA, Qp/Qs…), que
+     el export emite y el mapa no conoce porque no se importan. Y no es que sobraran al final:
+     la primera aparece en el bloque 3, así que de ahí en adelante los dos archivos quedaban
+     CORRIDOS. Es textualmente el defecto contra el que este comentario advertía —el médico que
+     copia un bloque de columnas de un archivo al otro las pega en los campos equivocados— y el
+     comentario seguía pidiendo que coincidieran sin que nada lo garantizara.
+     Ahora coinciden POR CONSTRUCCIÓN: si mañana se agrega una columna al export, aparece sola
+     en la plantilla. Las derivadas salen vacías y su comentario dice que no se reimportan. */
+  const cols = _labOrdenarCols(Object.keys(_labExcelRow({ id:0, campos:{} })));
   const ejemplo = {
     'Nombre': LAB_XLS_EJEMPLO, 'CI': '1.234.567-8', 'Fecha estudio': '2026-03-15', 'Edad': 64, 'Sexo': 'M',
     'Centro / Institución': 'Hospital de ejemplo', 'Médico solicitante': 'Dr. Ejemplo',
@@ -36830,11 +37329,50 @@ function labPlantillaXLSX() {
       : ({ leve:0, moderada:1, severa:2 })[String(v).toLowerCase()];
     grp.cols.forEach((alias, i) => { ejemplo[alias[0]] = (cual === i) ? 1 : 0; });
   });
-  const aoa = [cols, cols.map(c => ejemplo[c] !== undefined ? ejemplo[c] : '')];
+  const aoa = vacia
+    ? [cols]
+    : [cols, cols.map(c => ejemplo[c] !== undefined ? ejemplo[c] : '')];
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws['!cols'] = cols.map(h => ({ wch: Math.min(40, Math.max(12, h.length + 2)) }));
+  // Ver el comentario de `!freeze` en el export: la librería no lo escribe. Se pone el autofiltro,
+  // que sí, para que la plantilla y el export se vean iguales también en esto.
+  ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s:{c:0,r:0}, e:{c:cols.length-1, r:aoa.length-1} }) };
+  _labXlsComentarEncabezados(ws, cols);
+  /* Comentarios en la FILA DE EJEMPLO con el formato esperado de cada celda. Salen del mismo
+     vocabulario/lista/rango que VALIDA el importador, nunca escritos a mano: una ayuda que
+     enseñe un formato que el importador rechaza es peor que no tener ayuda. */
+  if (!vacia) cols.forEach((h, i) => {
+    const m = LAB_XLS_MAP.find(x => x[0] === h);
+    if (!m) return;
+    const dest = m[1], tipo = m[2];
+    let ayuda = '';
+    if (tipo === 'num') {
+      const r = (typeof _labRango === 'function') ? _labRango(dest) : null;
+      ayuda = 'Número decimal (coma o punto).' + (r ? ' Rango aceptado: ' + r[0] + ' a ' + r[1] + '.' : '');
+    } else if (tipo === 'fecha') ayuda = 'Fecha AAAA-MM-DD, por ejemplo 2026-03-15.';
+    else if (tipo === 'vocab') {
+      const op = LAB_XLS_OPCIONES[dest];
+      const voc = LAB_XLS_VOCAB[dest];
+      ayuda = 'Valores aceptados: ' + (op || (voc ? Array.from(new Set(Object.values(voc))).filter(String).join(' · ') : '—')) + '.';
+    } else if (tipo === 'opcion') ayuda = 'Elegí uno de: ' + (LAB_XLS_LISTAS[dest] || []).join(' · ') + '.';
+    else if (tipo === 'lista') ayuda = 'Varios valores separados por « | ».';
+    else if (tipo === 'chk') ayuda = 'Sí/No — escribí 1 o 0.';
+    else if (tipo === 'horas') ayuda = 'Horas del reloj separadas por coma, de 1 a 12.';
+    else ayuda = 'Texto libre.';
+    /* `_labXlsEsCalculado` y no `LAB_XLS_SOLO_EXPORT`: aquélla es UNA de las dos mitades del
+       predicado —la otra es `readonly` en el DOM— y sin ella la ayuda de AVm continuidad, AVA
+       continuidad, AVm indexada y PVC omitía el aviso, mientras el comentario de la fila 1, en la
+       MISMA columna, decía «sólo lectura». Dos frases contradictorias a un renglón de distancia,
+       y la que se lee al llenar es ésta. */
+    if (_labXlsEsCalculado(dest.replace(/__chk$/, ''))) ayuda += ' ⚠ Esta columna NO se reimporta: es un valor calculado y EcoSmart lo rehace desde sus mediciones.';
+    const ref = XLSX.utils.encode_cell({ c: i, r: 1 });
+    if (!ws[ref]) { ws[ref] = { t:'s', v:'' }; }
+    ws[ref].c = [{ a:'EcoSmart', t: h + '\n' + ayuda }];
+    ws[ref].c.hidden = true;
+  });
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Estudios');
+  _labXlsHojaBloques(wb, cols);
 
   /* Los valores aceptados salen del MISMO vocabulario que valida el importador. Escritos
      a mano, la ayuda enseñaba "Ausente" para un campo cuyo <select> sólo acepta "sin", y
@@ -36862,12 +37400,22 @@ function labPlantillaXLSX() {
     ['Si el estudio ya existe, elegís al importar si se actualiza o se deja como está.'],
     [''],
     ['COLUMNAS QUE NO SE IMPORTAN'],
-    ['El Excel que exporta el Laboratorio tiene columnas CALCULADAS que esta plantilla no'],
-    ['incluye: Masa VI, RWT, VDFVI idx, Geometría VI, FA, E/A, e’ promedio, E/e’,'],
-    ['Grado de disfunción diastólica, Vol AI (LAVI), EROA, Vol R, AVA, Grad VD-AD,'],
-    ['Trastornos sectoriales y todas las binarias (IM_I, DD_II, HTP_III, Geom_*, TS_*).'],
-    ['La app las calcula sola desde las medidas de abajo, así que editarlas no tendría'],
-    ['efecto: al abrir el estudio volvería a mostrar el valor calculado.'],
+    ['Esta plantilla tiene EXACTAMENTE las mismas columnas que el Excel que exporta el'],
+    ['Laboratorio, en el mismo orden — para que puedas copiar bloques enteros de un archivo al'],
+    ['otro sin que se corran. Eso incluye las columnas CALCULADAS: Masa VI, RWT, VDFVI idx,'],
+    ['Geometría VI, FA, E/A, e’ promedio, E/e’, Grado de disfunción diastólica, Vol AI (LAVI),'],
+    ['EROA, Vol R, AVA, Grad VD-AD, Trastornos sectoriales y las binarias (IM_I, DD_II,'],
+    ['PSAP_36_50, Geom_*, TS_*).'],
+    ['La app las calcula sola desde las medidas de abajo, así que editarlas no tiene efecto:'],
+    ['al abrir el estudio volvería a mostrar el valor calculado.'],
+    ['Cada encabezado trae un COMENTARIO de celda que dice a qué bloque pertenece y si esa'],
+    ['columna se reimporta o es de sólo lectura. La hoja «Bloques» tiene el mapa completo,'],
+    ['con el rango de columnas de cada uno y el corte de la SECCIÓN AVANZADA.'],
+    [''],
+    ['UN PASO MANUAL: CONGELÁ LA FILA 1'],
+    ['Con 305 columnas conviene inmovilizar la cabecera (en Excel: Vista → Inmovilizar fila'],
+    ['superior). La app no lo puede dejar hecho: la librería con la que genera el archivo no'],
+    ['escribe esa propiedad. El autofiltro sí viene puesto.'],
     ['Para cambiar la masa VI, cargá SIV, DDVI y PP. Para el E/e’, Onda E y e’ septal/lateral.'],
     [''],
     ['SEVERIDAD VALVULAR: DOS FORMAS, ELEGÍ UNA'],
@@ -36882,8 +37430,8 @@ function labPlantillaXLSX() {
     ['cargalo por la columna de TEXTO para no bajarlo a Moderada.'],
     [''],
     ['GEOMETRÍA DEL VI (Geom_Normal, Geom_RemConcentrico, …)'],
-    ['Esas columnas están en el Excel que exporta el Laboratorio pero NO se pueden'],
-    ['importar, y por eso no están acá: la app no guarda la geometría en ningún campo.'],
+    ['Esas columnas están en la planilla pero NO se pueden importar: la app no guarda la'],
+    ['geometría en ningún campo.'],
     ['La calcula en cada pantalla a partir de la masa VI indexada, el RWT y el sexo, o sea'],
     ['de SIV, DDVI, PP, talla, peso y sexo — y los seis están en esta planilla, así que'],
     ['la superficie corporal SÍ se puede cambiar desde el Excel. Ojo con eso: Peso y Talla'],
@@ -36927,7 +37475,7 @@ function labPlantillaXLSX() {
   const wsI = XLSX.utils.aoa_to_sheet(inst);
   wsI['!cols'] = [{wch:26},{wch:46},{wch:44},{wch:24}];
   XLSX.utils.book_append_sheet(wb, wsI, 'Instrucciones');
-  XLSX.writeFile(wb, 'ecosmart_plantilla_laboratorio.xlsx');
+  XLSX.writeFile(wb, vacia ? 'ecosmart_plantilla_virgen.xlsx' : 'ecosmart_plantilla_laboratorio.xlsx');
   toast('✅ Plantilla descargada');
 }
 
@@ -37101,6 +37649,16 @@ function labImportarXLSX(file) {
          la columna está AUSENTE; un 0 explícito manda. */
       [['ete_shunt_incluir_chk__chk', /^(ete_cia_|ete_civ_|tsvd_diametro|vti_tsvd)/],
        ['ete_tavi_incluir_chk__chk',  /^ete_tavi_/],
+       /* «Es un ETE» se deduce igual que las otras: los campos de etiología mitral por
+          transesofágico, los de orejuela y los de aorta torácica son transesofágicos POR
+          DEFINICIÓN, así que una fila que los trae describe un ETE. Sin esta línea, una planilla
+          con trombo en orejuela entraba sin la bandera y el PDF salía titulado «Informe
+          Ecocardiograma Doppler Color» — y el estudio quedaba fuera de `_labEsEte`, o sea fuera
+          del contador de la subtab ETE del Laboratorio.
+          No se incluye `/^ete_tavi_/` a propósito: el sizing pre-TAVI se hace por vía
+          transtorácica y marcarlo como ETE inventaría transesofágicos que no se hicieron, que es
+          justo el defecto que la nota de esa subtab documenta. */
+       ['ete-es-ete__chk',            /^(ete_etiologia|ete_carpentier|ete_mecanismo|ete_tecnica|ete_lva|ete_lvp|ete_area_mitral|oai_|ao_segmento|ao_grado_atero|ao_grosor_placa|ao_movilidad_placa|ao_ulceracion|ao_calcificacion)/],
        ['ductus_incluir_chk__chk',    /^dap_/],
        ['coart_incluir_chk__chk',     /^coa_/],
        ['vap_incluir_chk__chk',       /^vap_/],
