@@ -1047,6 +1047,19 @@ html.light-mode #amilo-root{
 @media(max-width:600px){#amilo-root .form-row.cols2,#amilo-root .form-row.cols3{grid-template-columns:1fr}}
 @media(max-width:500px){#amilo-root .grado-grid{grid-template-columns:1fr 1fr}}
 @media print{#amilo-root .amilo-tabhead,#amilo-root .btn,#amilo-root .no-print{display:none!important}#amilo-root .card{break-inside:avoid}}
+/* El panel de indicaciones es sólo pantalla. Va por ID porque la clase `.no-print` sólo la apaga
+   la regla de arriba, que está scopeada a #amilo-root: fuera de ese subárbol no hace nada. */
+@media print{#indic-overlay{display:none!important}}
+/* Tres columnas no entran en un teléfono: medido a 288 px de ancho, la nota de cada fila se parte
+   en seis renglones de dos palabras. Por debajo de 560 px la fila pasa a dos renglones —rótulo y
+   valor arriba, nota abajo a lo ancho— en vez de tres columnas espachurradas. */
+@media (max-width:560px){
+  #indic-cuerpo table{display:block}
+  #indic-cuerpo tbody,#indic-cuerpo tr{display:block}
+  #indic-cuerpo tr{display:grid;grid-template-columns:1fr auto;column-gap:8px}
+  #indic-cuerpo td:nth-child(3){grid-column:1/-1;padding-top:0!important}
+  #indic-cuerpo td:nth-child(2){text-align:right}
+}
 </style>
 <style>
 /* ── Strain Patrones ── */
@@ -1351,6 +1364,12 @@ window.cerrarSesion = cerrarSesion;
         style="font-size:9px;padding:1px 6px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:var(--bg3);color:var(--text2);cursor:pointer;font-family:inherit;">📄 Diseño…</button>
     </span>
     <button class="btn btn-primary" onclick="generarInformeConEvolucion()">📝 Generar Informe</button>
+    <!-- Panel de indicaciones. Es SÓLO PANTALLA: no lo lee ningún generador de PDF, PPT ni el
+         informe narrativo, y el overlay lleva `no-print` para el camino de impresión del
+         navegador. No guarda estado — se re-deriva del formulario en cada apertura, así que no
+         necesita columna en limpiarCampos/editarInforme/guardarInforme y no puede arrastrar el
+         paciente anterior (que es el defecto que costó la sesión de `gradoGamma`/`protMonoc`). -->
+    <button class="btn btn-ghost" onclick="indicAbrir()" title="Indicaciones según guías — sólo pantalla, no va al informe">📋 Indicaciones</button>
     <button onclick="abrirAyudaEco()" title="Ayuda"
       style="background:none;border:1px solid rgba(255,255,255,0.2);border-radius:50%;width:32px;height:32px;color:var(--text,#CBD5E1);cursor:pointer;font-size:14px;font-weight:700;flex-shrink:0;">
       ?
@@ -1397,6 +1416,30 @@ window.cerrarSesion = cerrarSesion;
       <button type="button" class="btn btn-ghost" style="font-size:12px;padding:3px 10px;font-weight:700;" onclick="critCerrar()">✕</button>
     </div>
     <div id="crit-cuerpo" style="padding:12px 14px;"></div>
+  </div>
+</div>
+
+<!-- Panel de indicaciones según guías. Mismo armazón que #crit-overlay, con una diferencia: el
+     pie va PEGAJOSO ABAJO, porque la advertencia médico-legal tiene que estar visible con el
+     panel scrolleado — un descargo que sólo se ve llegando al final no descarga nada.
+     La regla `@media print` va por ID y no por la clase `.no-print`: esa clase existe en el
+     archivo pero la ÚNICA regla que la apaga está scopeada a `#amilo-root`, así que ponérsela
+     acá habría sido un atributo decorativo bajo un comentario que promete que no se imprime.
+     El PDF lo dibuja jsPDF y no la impresión, pero el requisito es «no sale del informe» y
+     cubrir sólo el camino que hoy existe deja el otro abierto. -->
+<div id="indic-overlay" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.55);" onclick="if(event.target===this)indicCerrar();">
+  <div id="indic-card" role="dialog" aria-modal="true" aria-labelledby="indic-titulo"
+       style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:820px;max-width:calc(100vw - 24px);max-height:calc(100vh - 48px);display:flex;flex-direction:column;background:var(--bg2);border:1px solid var(--border);border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.6);">
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);background:var(--bg2);border-radius:12px 12px 0 0;flex-shrink:0;">
+      <span id="indic-titulo" style="flex:1;font-weight:700;font-size:13px;color:var(--accent2);">📋 Indicaciones según guías</span>
+      <button type="button" class="btn btn-ghost" style="font-size:12px;padding:3px 10px;font-weight:700;" onclick="indicCerrar()">✕</button>
+    </div>
+    <div id="indic-cuerpo" style="padding:12px 14px;overflow:auto;flex:1;"></div>
+    <div style="flex-shrink:0;padding:10px 14px;border-top:1px solid var(--border);background:var(--bg3);border-radius:0 0 12px 12px;font-size:10px;color:var(--text2);line-height:1.55;">
+      Este panel muestra datos ecocardiográficos contra umbrales publicados en guías ESC/AHA.
+      <b>No constituye recomendación terapéutica.</b> La indicación final requiere correlación clínica completa.
+      No forma parte del informe ni del PDF.
+    </div>
   </div>
 </div>
 
@@ -13536,11 +13579,33 @@ function cxGTP(){
 window.cxWilkins = cxWilkins; window.cxDuke = cxDuke; window.cxGTP = cxGTP; window.cxGtpSync = cxGtpSync;
 
 // ══ VD ══
+/* Bandas del diámetro basal del VD, extraídas de `calcVD` para que el panel de indicaciones no
+   las reescriba. OJO: NO son el umbral de HTP. `_htp2022Core` usa `vdBas > 41` como signo
+   ecocardiográfico de categoría A, o sea el límite superior de lo normal; acá «dilatado» empieza
+   en >45, que es otra pregunta. Los dos números conviven a propósito y no hay que unificarlos:
+   son dos criterios distintos sobre la misma medida. */
+const VD_BAS_NORMAL_MAX = 41;   // mm — ≤41 normal (ASE)
+const VD_BAS_LEVE_MAX   = 45;   // mm — 42-45 dilatación leve;  >45 dilatado
+function vdBasCat(vd) {
+  const n = (typeof PF === 'function') ? PF(vd) : parseFloat(vd);
+  if (n == null || !isFinite(n) || n <= 0) return null;
+  /* El rótulo de la banda intermedia imprime los MISMOS operadores que aplica el código
+     («>41 y ≤45»), no «42-45». Derivar el borde con `VD_BAS_NORMAL_MAX + 1` reintroduce la deriva
+     dentro de la misma expresión que dice evitarla: `vd_bas` es decimal —y en runtime los input
+     number de esta app pasan a text, así que el `step` no restringe nada—, de modo que un 41,5 se
+     clasifica «leve» bajo un cartel que dice que la banda empieza en 42. Es exactamente la trampa
+     que ya se documentó con el panel de criterios de MCA. */
+  if (n <= VD_BAS_NORMAL_MAX) return { cat:'normal',   cls:'green',  lbl:'Normal (≤' + VD_BAS_NORMAL_MAX + 'mm)' };
+  if (n <= VD_BAS_LEVE_MAX)   return { cat:'leve',     cls:'yellow', lbl:'Leve (>' + VD_BAS_NORMAL_MAX + ' y ≤' + VD_BAS_LEVE_MAX + 'mm)' };
+  return                             { cat:'dilatado', cls:'red',    lbl:'Dilatado (>' + VD_BAS_LEVE_MAX + 'mm)' };
+}
+window.vdBasCat = vdBasCat;
+
 function calcVD() {
   const vd = v('vd_bas'), tapse = v('tapse'), sp = v('s_prime');
   if (vd) {
-    let t = vd <= 41 ? badge('green','Normal (≤41mm)') : vd <= 45 ? badge('yellow','Leve (42-45mm)') : badge('red','Dilatado (>45mm)');
-    document.getElementById('vd-tam').innerHTML = t;
+    const c = vdBasCat(vd);
+    if (c) document.getElementById('vd-tam').innerHTML = badge(c.cls, c.lbl);
   }
   if (tapse) {
     let t = tapse >= UMBRAL_TAPSE_NORMAL ? badge('green','Normal (≥' + UMBRAL_TAPSE_NORMAL + 'mm)') : badge('red','Disfunción (< ' + UMBRAL_TAPSE_NORMAL + 'mm)');
@@ -21765,16 +21830,45 @@ function updateProyeccion() {
   if (el) el.textContent = labels[proy] || '';
 }
 
-function calcWilkins() {
+/* El score se CALCULA acá y el pintado queda en `calcWilkins`.
+
+   Lo que NO justifica esta extracción, y hay que decirlo porque es lo primero que uno supone:
+   que al reabrir un estudio el total quedaría en «—». No queda. `calcWilkins` cuelga del
+   `onchange` de sus cuatro selects y reponer un estudio asigna `.value` sin disparar eventos,
+   pero `editarInforme` y `cargarEstudioPorId` —las dos rutas de restauración— lo llaman a mano
+   justamente por eso, y sus comentarios lo explican; `limpiarCampos` es el tercer sitio que lo
+   llama. Verificado en el navegador sobre un estudio reabierto: el `<span>` decía «8 / 16».
+
+   Lo que sí la justifica son dos cosas:
+   · La banda se necesita como DATO. Las alternativas eran leer `dataset.banda` —un atributo que
+     escribe una función de pintado— o parsear el texto del badge, que es exactamente lo que la
+     nota de más abajo documenta como causa de un defecto real (`/[Ff]avorable/` matcheaba dentro
+     de la frase del score INCOMPLETO).
+   · Saca una dependencia de orden que ya se olvidó una vez. Con el score sólo en el DOM, que el
+     panel diga la verdad depende de que tres sitios distintos se acuerden de llamar a
+     `calcWilkins()` antes — y la restauración por `?estudio=` estuvo sin esa llamada «desde
+     siempre», según el comentario de su propio bloque de recálculos. */
+function wilkinsScore() {
   const m = parseInt(sv('wilkins_movilidad')) || 0;
   const e = parseInt(sv('wilkins_engrosamiento')) || 0;
   const c = parseInt(sv('wilkins_calcificacion')) || 0;
   const s = parseInt(sv('wilkins_subvalvular')) || 0;
+  const puntuados = [m, e, c, s].filter(x => x > 0).length;
+  const total = m + e + c + s;
+  /* Cuatro bandas, no tres: «sin puntuar» y «parcial» NO son un score bajo. El `0` de fábrica de
+     los cuatro selects significa «sin puntuar», así que un total de 0 no es «muy favorable». */
+  const banda = !puntuados ? '' : (puntuados < 4 ? 'incompleto'
+                : (total <= 8 ? 'favorable' : (total <= 11 ? 'suboptimo' : 'nofavorable')));
+  return { m, e, c, s, total, puntuados, banda };
+}
+window.wilkinsScore = wilkinsScore;
+
+function calcWilkins() {
+  const W = wilkinsScore();
+  const total = W.total, puntuados = W.puntuados;
   const totEl = document.getElementById('wilkins-total');
   const intEl = document.getElementById('wilkins-interp');
-  const puntuados = [m, e, c, s].filter(x => x > 0).length;
   if (!puntuados) { if (totEl) totEl.textContent = '—'; if (intEl) { intEl.innerHTML = '—'; intEl.dataset.banda = ''; } return; }
-  const total = m + e + c + s;
   /* El score de Wilkins es la SUMA de los cuatro criterios: con menos de cuatro puntuados el
      total está incompleto y sesgado hacia abajo, o sea hacia «favorable», que es el veredicto
      que habilita una valvuloplastia percutánea. Con un solo criterio en 2 salía «Score 2 —
@@ -21790,11 +21884,11 @@ function calcWilkins() {
      /[Ff]avorable/ matcheara dentro de «…el total quedaría sesgado a favorable», que es la
      frase del score INCOMPLETO: el informe firmado sumaba una salvedad y una contraindicación
      sobre un score que la app declara no interpretable. */
-  if (intEl) intEl.dataset.banda = (total <= 8) ? 'favorable' : (total <= 11 ? 'suboptimo' : 'nofavorable');
+  if (intEl) intEl.dataset.banda = W.banda;
   let interp;
-  if (total <= 8) interp = badge('green', `Score ${total} — Favorable para valvuloplastia percutánea`);
-  else if (total <= 11) interp = badge('yellow', `Score ${total} — Resultado subóptimo probable`);
-  else interp = badge('red', `Score ${total} — No favorable para valvuloplastia`);
+  if (W.banda === 'favorable')      interp = badge('green',  `Score ${total} — Favorable para valvuloplastia percutánea`);
+  else if (W.banda === 'suboptimo') interp = badge('yellow', `Score ${total} — Resultado subóptimo probable`);
+  else                              interp = badge('red',    `Score ${total} — No favorable para valvuloplastia`);
   if (intEl) intEl.innerHTML = interp;
 }
 
@@ -24608,8 +24702,619 @@ function critAbrir(cual){
 }
 function critCerrar(){ const ov = document.getElementById('crit-overlay'); if (ov) ov.style.display = 'none'; }
 window.critAbrir = critAbrir; window.critCerrar = critCerrar;
-document.addEventListener('keydown', function(e){ if (e.key === 'Escape') critCerrar(); });
+document.addEventListener('keydown', function(e){
+  if (e.key !== 'Escape') return;
+  critCerrar();
+  if (typeof indicCerrar === 'function') indicCerrar();
+});
 window.mcaScore = mcaScore; window.mcaCatI = mcaCatI; window.mcaVI = mcaVI;
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   PANEL DE INDICACIONES SEGÚN GUÍAS  —  #indic-overlay
+   ══════════════════════════════════════════════════════════════════════════════════════════
+   Muestra los datos del estudio EN CURSO contra los umbrales publicados. NO recomienda, NO
+   decide y NO sale del informe: ningún generador de PDF, PPT ni el narrativo lo leen.
+
+   Cuatro reglas que gobiernan todo lo de abajo:
+
+   1 · NO TIENE ESTADO. Se re-deriva del formulario en cada apertura. Por eso no necesita
+       columna en `limpiarCampos` / `editarInforme`+`cargarEstudioPorId` / `guardarInforme`, que
+       es el trío que este archivo documenta como obligatorio para todo módulo con estado propio
+       — y no puede arrastrar al paciente anterior como hicieron `gradoGamma`/`protMonoc`.
+
+   2 · NO REIMPLEMENTA NINGUNA REGLA CLÍNICA. Cada número sale de la función o la constante que
+       ya gobierna la pantalla y el informe firmado: `avaEsSevera`/`avaEsModerada`,
+       `AVM_SEVERA_MAX`, `UMBRAL_FEVI_NORMAL`, `UMBRAL_PSAP_ELEVADA`, `UMBRAL_LAVI_DILATADO`,
+       `wilkinsScore`, `vdBasCat`, `eteQpQs`, `mchGrad`, `coaGmax`, `coaConclusion`,
+       `vabConclusion`, `_htp2022Core`. Si acá apareciera un umbral escrito a mano, sería una
+       segunda copia que se pudre sin que se vea desde la app — que es el defecto que este
+       archivo ya pagó con la geometría del VI, los hallazgos frecuentes y `DIAST`.
+
+   3 · LAS COMPARACIONES CONTRA null SON EXPLÍCITAS. `null <= 1.0` es **true** en JavaScript, así
+       que `ava <= 1.0` con el campo vacío activaba la sección de estenosis aórtica severa sobre
+       un formulario en blanco. Es el mismo error de tipo que `isNaN(null) === false` y que el
+       `PF() != null` de ductus y coartación. De ahí `_ge/_le/_gt/_lt`, que devuelven false si
+       falta cualquiera de los dos operandos.
+
+   4 · FALLA CERRADO. Los umbrales cruzan bloques `<script>`, así que se leen por `window.X`
+       (patrón ya usado por `diastGrade`) pero SIN literal de respaldo: si la constante no está,
+       la fila dice «umbral no disponible» en vez de publicar una copia que puede haber quedado
+       vieja. Un descargo que se ve igual de bien con el número correcto y con el equivocado es
+       peor que no tenerlo.
+
+   Lo que este panel DECLARA y hay que mantener: qué falta por medir (❓ y no silencio), que
+   ciertos criterios no son ecocardiográficos, y cuándo un valor quedó fuera de escala.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+
+/* Las cinco marcas, y su leyenda se IMPRIME en el panel. Sin leyenda, el ✅ significaba dos cosas
+   incompatibles según la sección —«criterio de intervención cumplido» en la estenosis aórtica y
+   «valor normal» en la insuficiencia mitral—, que es el mismo defecto que la gráfica de válvulas
+   sin decodificador. Acá ✅ significa SIEMPRE «este dato alcanza un criterio de la guía», aunque
+   el valor sea malo: una FEVI de 55 % en una IM primaria severa CUMPLE el criterio de cirugía. */
+const IND_MARCA = {
+  ok:    { ico:'✅', col:'#10B981', ley:'el dato alcanza un criterio de la guía' },
+  alarm: { ico:'🔴', col:'#DC2626', ley:'criterio alcanzado y además valor de alarma' },
+  warn:  { ico:'⚠️', col:'#D97706', ley:'limítrofe, o salvedad que hay que leer' },
+  ask:   { ico:'❓', col:'#94A3B8', ley:'falta el dato, o no lo aporta el ecocardiograma' },
+  none:  { ico:'—',  col:'#94A3B8', ley:'medido y no alcanza el criterio' }
+};
+function _indLeyendaHTML(){
+  return '<div style="font-size:10.5px;color:var(--text2);line-height:1.6;margin:0 0 10px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;">' +
+    ['ok','alarm','warn','ask','none'].map(k => IND_MARCA[k].ico + ' ' + _critEsc(IND_MARCA[k].ley)).join(' &nbsp;·&nbsp; ') +
+    '</div>';
+}
+
+/* Lectores. `v`, `sv` y las funciones clínicas viven en otros bloques <script>; las
+   declaraciones de función son globales, pero se accede con guarda para que la caída de un
+   bloque deje el panel mudo en vez de romper el que lo contiene. */
+function _indN(id){ const n = (typeof v === 'function') ? v(id) : null; return (n != null && isFinite(n)) ? n : null; }
+function _indS(id){ return (typeof sv === 'function') ? String(sv(id) || '').trim() : ''; }
+function _indChk(id){ const e = document.getElementById(id); return !!(e && e.checked); }
+function _indFn(nombre){ const f = window[nombre]; return (typeof f === 'function') ? f : null; }
+function _indUmb(nombre){ const u = window[nombre]; return (typeof u === 'number' && isFinite(u)) ? u : null; }
+
+/* Ver la regla 3 de la cabecera. NO reemplazar por `a >= b` suelto. */
+function _ge(a, b){ return a != null && b != null && a >= b; }
+function _le(a, b){ return a != null && b != null && a <= b; }
+function _gt(a, b){ return a != null && b != null && a >  b; }
+function _lt(a, b){ return a != null && b != null && a <  b; }
+
+function _indNum(n, dec, uni){
+  if (n == null) return '—';
+  return n.toFixed(dec == null ? 1 : dec).replace('.', ',') + (uni ? ' ' + uni : '');
+}
+function _indFila(lbl, val, marca, nota){ return { lbl:lbl, val:val, marca:marca || 'none', nota:nota || '' }; }
+/* Fila de umbral ausente. Existe para que la regla 4 tenga una sola forma de expresarse. */
+function _indSinUmbral(lbl){ return _indFila(lbl, '—', 'ask', 'umbral no disponible — recargar la aplicación'); }
+
+function _indFilaHTML(f){
+  const M = IND_MARCA[f.marca] || IND_MARCA.none;
+  return '<tr style="border-top:1px solid var(--border);">' +
+    '<td style="padding:5px 8px;font-size:11.5px;vertical-align:top;">' + _critEsc(f.lbl) + '</td>' +
+    '<td style="padding:5px 8px;font-size:11.5px;font-weight:700;vertical-align:top;white-space:nowrap;">' + _critEsc(f.val) + '</td>' +
+    '<td style="padding:5px 8px;font-size:11px;vertical-align:top;line-height:1.45;color:' + M.col + ';">' +
+      M.ico + (f.nota ? ' ' + _critEsc(f.nota) : '') + '</td></tr>';
+}
+
+/* Abre sola la sección donde hay un criterio CUMPLIDO, una alarma o un aviso. Las que sólo
+   tienen ⚠️/❓ quedan colapsadas: si se abrieran todas, «se abre automáticamente» dejaría de
+   significar algo.
+
+   La regla se decide ACÁ y ninguna sección trae su propia `abrir`. La primera versión sí: VAB
+   abría con `clave.indexOf('cx') === 0` sobre las claves de `vabConclusion`, y se comió
+   `concomitante_45` —cirugía concomitante desde 45 mm—, así que la sección quedaba COLAPSADA
+   sobre un paciente al que la app le indica reemplazo de la aorta. Es la misma trampa que el
+   `'Morfología '` que se tragaba `'Morfología orejuela'` en los bloques del Excel: una lista de
+   claves escrita a mano contra una función que tiene dieciséis y puede sumar la diecisiete.
+   Un aviso también abre, porque si no la advertencia queda tapada por el propio acordeón. */
+function _indSecHTML(tit, r){
+  const abrir = !!r.aviso || r.filas.some(f => f.marca === 'ok' || f.marca === 'alarm');
+  let h = '<details' + (abrir ? ' open' : '') + ' style="margin:0 0 8px;border:1px solid var(--border);border-radius:9px;background:var(--bg3);overflow:hidden;">';
+  h += '<summary style="cursor:pointer;padding:9px 12px;font-size:12px;font-weight:700;color:var(--accent2);list-style:revert;">' + _critEsc(tit) + '</summary>';
+  h += '<div style="padding:2px 12px 12px;">';
+  if (r.aviso) h += '<div style="font-size:11px;line-height:1.5;color:#D97706;margin:2px 0 8px;">' + _critEsc(r.aviso) + '</div>';
+  h += '<table style="width:100%;border-collapse:collapse;">' + r.filas.map(_indFilaHTML).join('') + '</table>';
+  if (r.clinica && r.clinica.length) {
+    h += '<div style="font-size:11px;font-weight:700;color:var(--text2);margin:12px 0 2px;">Requiere datos clínicos — no evaluable por ecocardiograma</div>';
+    h += '<table style="width:100%;border-collapse:collapse;">' + r.clinica.map(_indFilaHTML).join('') + '</table>';
+  }
+  h += '<div style="font-size:11px;line-height:1.55;color:var(--text2);margin-top:11px;padding-top:8px;border-top:1px dashed var(--border);">' +
+       '<b>' + _critEsc(r.guia) + '</b>' + (r.notas && r.notas.length
+         ? r.notas.map(n => '<div style="margin-top:5px;">' + _critEsc(n) + '</div>').join('') : '') + '</div>';
+  return h + '</div></details>';
+}
+
+/* ── Estenosis aórtica ─────────────────────────────────────────────────────────────────────
+   `ea_grado` arranca en «sin» por el barrido de `guardarInforme` —es la deuda BLOQUEANTE de los
+   cinco grados valvulares—, así que sólo el «severa» explícito activa: el valor de fábrica no
+   puede encender ninguna sección de este panel. La activación por medida es DELIBERADAMENTE más
+   ancha que el criterio (≤ el corte en vez de <), porque de más se muestra y de menos se calla. */
+function _indEA(){
+  const UA = _indUmb('AVA_SEVERA_MAX'), UF = _indUmb('UMBRAL_FEVI_NORMAL');
+  const esSev = _indFn('avaEsSevera'), esMod = _indFn('avaEsModerada');
+  const ava = _indN('ava_cont'), gm = _indN('gmedio_ao'), vmax = _indN('vmax_ao'), fevi = _indN('fevi');
+  const avaSev = !!(esSev && ava != null && esSev(ava));
+  const avaMod = !!(esMod && ava != null && esMod(ava));
+  if (!(_indS('ea_grado') === 'severa' || _ge(vmax, 4) || _ge(gm, 40) || _le(ava, UA))) return null;
+
+  const filas = [];
+  filas.push(UA == null ? _indSinUmbral('AVA por continuidad')
+    : _indFila('AVA por continuidad', _indNum(ava, 2, 'cm²'),
+        avaSev ? 'ok' : (avaMod ? 'warn' : (ava != null ? 'none' : 'ask')),
+        avaSev ? 'menor que ' + _indNum(UA, 1) + ' cm² — criterio de estenosis severa'
+        : avaMod ? _indNum(UA, 1) + '–1,49 cm² — moderada'
+        : ava != null ? 'no alcanza el criterio de severidad'
+        : 'no calculada — requiere Ø y VTI del TSVI y VTI aórtico'));
+  filas.push(_indFila('Gradiente medio', _indNum(gm, 0, 'mmHg'),
+    _ge(gm, 40) ? 'ok' : (gm != null ? 'none' : 'ask'),
+    _ge(gm, 40) ? '≥ 40 mmHg — criterio de estenosis severa' : (gm != null ? 'no alcanza 40 mmHg' : 'sin medir')));
+  filas.push(_indFila('Vmax aórtica', _indNum(vmax, 2, 'm/s'),
+    _ge(vmax, 4) ? 'ok' : (vmax != null ? 'none' : 'ask'),
+    _ge(vmax, 4) ? '≥ 4,0 m/s — criterio de estenosis severa' : (vmax != null ? 'no alcanza 4,0 m/s' : 'sin medir')));
+  /* La FEVI NO es criterio de la indicación en la estenosis aórtica, así que una FEVI conservada
+     no puede llevar ✅: con la leyenda nueva eso significaría «alcanza un criterio de la guía».
+     Está acá porque una FEVI baja cambia cómo se leen los otros tres números. */
+  filas.push(UF == null ? _indSinUmbral('FEVI')
+    : _indFila('FEVI', _indNum(fevi, 0, '%'),
+        _gt(fevi, UF) ? 'none' : (fevi != null ? 'warn' : 'ask'),
+        _gt(fevi, UF) ? 'conservada (> ' + UF + ' %) — no es criterio de la indicación'
+        : fevi != null ? 'reducida — descartar estenosis de bajo flujo y bajo gradiente antes de clasificar por gradiente'
+        : 'sin medir'));
+
+  return { filas: filas,
+    clinica: [
+      _indFila('Síntomas (angina, síncope, disnea)', '—', 'ask', 'es el disparador de la Clase I'),
+      _indFila('Expectativa de vida > 1 año', '—', 'ask', '')
+    ],
+    guia: 'ESC/EACTS 2021 — La INTERVENCIÓN es Clase I B en el paciente sintomático con estenosis aórtica severa de alto gradiente (gradiente medio ≥ 40 mmHg, Vmax ≥ 4,0 m/s y AVA ≤ 1,0 cm² o ≤ 0,6 cm²/m²).',
+    notas: [
+      'La MODALIDAD es una decisión aparte y no es intercambiable: SAVR Clase I B en menores de 75 años con riesgo quirúrgico bajo (STS-PROM/EuroSCORE II < 4 %); TAVI Clase I A desde los 75 años, o con riesgo alto (> 8 %) o no operables.',
+      'La guía define el criterio de área como AVA ≤ 1,0 cm² y esta app la clasifica con < 1,0 (constante AVA_SEVERA_MAX): un AVA de exactamente 1,00 cm² alcanza el criterio de la guía y la app lo rotula moderado. No se cambió el clasificador desde este panel porque gobierna el informe firmado.',
+      'Los tres criterios pueden discordar, y el patrón de bajo flujo y bajo gradiente no se cierra con estos tres números. La app señala la discordancia en la propia tarjeta de estenosis aórtica.',
+      'La ESC/EACTS 2025 reemplaza a la de 2021 y mueve el corte de edad de la modalidad de 75 a 70 años.'
+    ] };
+}
+
+/* ── Insuficiencia mitral primaria ─────────────────────────────────────────────────────────
+   Gatea por `im_sev_final === '4'` y NO por 3: el valor 3 es «Moderada-severa» y el 4 es
+   «Severa». El pedido original decía «severa (im_sev_final=3)» — se verificó contra el `<select>`
+   y contra `_labRegurgSev`, que mapea el 3 a «Moderada».
+
+   El MECANISMO no es compuerta, es una FILA. El único campo que registra primaria vs secundaria
+   es `teer_tipo_im`, y vive dentro del bloque TEER de la pestaña ETE —evaluación de Heart Team
+   para reparación percutánea—, así que arranca vacío y la enorme mayoría de los estudios con IM
+   severa nunca lo tocan. Gatear por él habría hecho que un prolapso con IM severa no viera nada
+   y sin decir por qué. Decisión de Maicol, 2026-09-11: mostrar y declarar. */
+function _indIM(){
+  if (_indS('im_sev_final') !== '4') return null;
+  const UF = _indUmb('UMBRAL_FEVI_NORMAL');
+  const fevi = _indN('fevi'), dsf = _indN('dsfvi'), aiVol = _indN('ai_vol');
+  const getBsa = _indFn('getBSA');
+  const bsa = getBsa ? getBsa() : null;
+  const lavi = (aiVol != null && bsa != null && bsa > 0) ? aiVol / bsa : null;
+  const mec = _indS('teer_tipo_im');
+
+  const filas = [
+    _indFila('Mecanismo', mec === 'primaria' ? 'Primaria (orgánica)' : (mec === 'secundaria' ? 'Secundaria (funcional)' : 'No consignado'),
+      mec === 'primaria' ? 'ok' : (mec === 'secundaria' ? 'warn' : 'ask'),
+      mec === 'primaria' ? 'los umbrales de abajo le corresponden'
+      : mec === 'secundaria' ? 'los umbrales de abajo son de IM PRIMARIA y no se aplican a ésta'
+      : 'se registra en ETE → TEER · sin él no se puede afirmar que los umbrales de abajo correspondan'),
+    _indFila('Grado de insuficiencia mitral', 'Severa', 'ok', 'severidad confirmada en el estudio')
+  ];
+  /* FEVI ≤ 60 % y DTSI ≥ 40 mm son los DOS criterios Clase I del asintomático, con esos
+     operadores. El pedido traía «FEVI < 60 %» y «DTSI > 45 mm»: el 45 es el valor de la ESC
+     2017, que la propia guía de 2021 imprime en su tabla de recomendaciones revisadas al
+     bajarlo a ≥ 40. Con la versión anterior, un DTSI de 42 mm —que la guía opera— salía como
+     «40–45 mm» sin cumplir nada, y una FEVI de exactamente 60 % tampoco disparaba. */
+  filas.push(UF == null ? _indSinUmbral('FEVI')
+    : _indFila('FEVI', _indNum(fevi, 0, '%'),
+        _lt(fevi, UF) ? 'alarm' : (_le(fevi, 60) ? 'ok' : (fevi != null ? 'none' : 'ask')),
+        _lt(fevi, UF) ? '≤ 60 % — criterio de cirugía; además disfunción sistólica establecida (< ' + UF + ' %)'
+        : _le(fevi, 60) ? '≤ 60 % — criterio de cirugía Clase I'
+        : fevi != null ? 'conservada (> 60 %)' : 'sin medir'));
+  filas.push(_indFila('DTSI — diámetro telesistólico del VI', _indNum(dsf, 0, 'mm'),
+    _ge(dsf, 40) ? 'ok' : (dsf != null ? 'none' : 'ask'),
+    _ge(dsf, 40) ? '≥ 40 mm — criterio de cirugía Clase I' : (dsf != null ? 'no alcanza 40 mm' : 'sin medir')));
+  filas.push(_indFila('Volumen AI indexado', _indNum(lavi, 1, 'ml/m²'),
+    _ge(lavi, 60) ? 'warn' : (lavi != null ? 'none' : 'ask'),
+    _ge(lavi, 60) ? '≥ 60 ml/m² — dilatación significativa: entra en la Clase IIa, no en la I' : (lavi != null ? 'no alcanza 60 ml/m²' : 'requiere volumen de AI, peso y talla')));
+
+  return { filas: filas,
+    aviso: mec === 'primaria' ? '' :
+      (mec === 'secundaria'
+        ? 'El mecanismo registrado es SECUNDARIO (funcional). Los umbrales de esta sección son los de la insuficiencia mitral PRIMARIA y no gobiernan esta situación: la conducta en la secundaria depende del tratamiento médico óptimo y de la evaluación por Heart Team.'
+        : 'El mecanismo (primaria / secundaria) no está consignado. Se registra en ETE → TEER. Los umbrales de esta sección son los de la insuficiencia mitral PRIMARIA.'),
+    clinica: [
+      _indFila('Síntomas (clase funcional NYHA)', '—', 'ask', 'con síntomas la cirugía es Clase I con independencia de los números de arriba'),
+      _indFila('Fibrilación auricular de nueva aparición', '—', 'ask', '')
+    ],
+    guia: 'ESC/EACTS 2021 — Cirugía Clase I B en el paciente sintomático operable y de riesgo no alto, y en el asintomático con FEVI ≤ 60 % o DTSI ≥ 40 mm.',
+    notas: [
+      'El corte de 45 mm es el de la ESC 2017. La guía de 2021 lo bajó a ≥ 40 mm y lo declara en su propia tabla de recomendaciones revisadas.',
+      'La dilatación auricular (índice de volumen ≥ 60 ml/m² o diámetro ≥ 55 mm) es Clase IIa B, no I, y sólo en asintomáticos de bajo riesgo con FEVI > 60 % y DTSI < 40 mm, en un centro experto y con reparación duradera probable.',
+      'La ESC/EACTS 2025 reemplaza a la de 2021: agrega el DTSI indexado ≥ 20 mm/m² a la Clase I y una Clase I nueva con función preservada cuando concurren tres de cuatro (FA, PAPs en reposo > 50 mmHg, dilatación auricular, insuficiencia tricuspídea secundaria al menos moderada).'
+    ] };
+}
+
+/* ── Estenosis mitral ──────────────────────────────────────────────────────────────────────
+   El AVm no se resume en un número: la app admite cuatro fuentes y `calcEM` las hace VOTAR. Acá
+   se listan las que tengan valor, cada una con su marca, para que una discordancia entre
+   planimetría y THP se vea en vez de quedar resuelta en silencio por una prioridad inventada.
+
+   El TROMBO DE OREJUELA no estaba en el pedido y va igual, porque sin él esta sección imprimiría
+   «Valvuloplastia Clase I si AVm ≤1,5 + Wilkins ≤8 + sin trombo» al lado de un Wilkins favorable
+   sobre un paciente con trombo confirmado — que es contraindicación ABSOLUTA y exactamente el
+   defecto que ya se cerró una vez en el cruce Wilkins × orejuela. */
+function _indEM(){
+  const US = _indUmb('AVM_SEVERA_MAX'), UM = _indUmb('AVM_MODERADA_MAX');
+  const grado = _indS('em_grado');
+  const FUENTES = [['avm_plan','planimetría'], ['avm_ete','planimetría por ETE'], ['avm_cont','ecuación de continuidad'], ['avm_thp','THP (Hatle)']];
+  const medidas = FUENTES.map(f => [f[1], _indN(f[0])]).filter(f => f[1] != null);
+  if (!(grado === 'moderada' || grado === 'severa' || medidas.some(m => _le(m[1], US)))) return null;
+
+  const filas = [];
+  if (US == null || UM == null) filas.push(_indSinUmbral('Área valvular mitral'));
+  else if (!medidas.length) filas.push(_indFila('Área valvular mitral', '—', 'ask', 'ninguna de las cuatro fuentes tiene valor'));
+  else medidas.forEach(function(m){
+    filas.push(_indFila('AVm — ' + m[0], _indNum(m[1], 2, 'cm²'),
+      _le(m[1], US) ? 'ok' : (_le(m[1], UM) ? 'warn' : 'none'),
+      _le(m[1], US) ? '≤ ' + _indNum(US, 1) + ' cm² — estenosis clínicamente significativa'
+      : _le(m[1], UM) ? _indNum(US, 1) + '–' + _indNum(UM, 1) + ' cm² — moderada para esta app'
+      : 'mayor que ' + _indNum(UM, 1) + ' cm² — leve'));
+  });
+
+  /* El Wilkins NO es un criterio positivo y la primera versión lo tenía invertido: marcaba ✅ un
+     score ≤ 8 como si habilitara el procedimiento. La ESC/EACTS 2021 no pide un score favorable,
+     define lo CONTRARIO y como conjunto — «características desfavorables» son VARIAS de: edad
+     avanzada, comisurotomía previa, NYHA IV, FA permanente, hipertensión pulmonar severa, score
+     ecocardiográfico > 8, Cormier 3, área muy pequeña, insuficiencia tricuspídea severa. Un
+     score de 9 aislado no descalifica a nadie. */
+  const W = (_indFn('wilkinsScore') || function(){ return null; })();
+  filas.push(!W ? _indSinUmbral('Score de Wilkins')
+    : _indFila('Score de Wilkins', W.puntuados ? W.total + ' / 16' : '—',
+        (W.banda === 'suboptimo' || W.banda === 'nofavorable') ? 'warn' : (W.banda === 'favorable' ? 'none' : 'ask'),
+        W.banda === 'favorable' ? '≤ 8 — no figura entre las características desfavorables'
+        : W.banda === 'suboptimo' ? '9–11 — > 8 es UNA de las características desfavorables; no descalifica por sí sola'
+        : W.banda === 'nofavorable' ? '≥ 12 — > 8 es UNA de las características desfavorables; pesa junto con las demás'
+        : W.puntuados ? 'incompleto: ' + W.puntuados + ' de 4 criterios puntuados — no se interpreta'
+        : 'sin puntuar'));
+
+  /* La guía habla de trombo en AURÍCULA izquierda, sin restringirlo a la orejuela. El campo de
+     la app es de orejuela, así que el rótulo lo dice y la nota aclara el alcance real. */
+  const tr = _indS('oai_trombo');
+  filas.push(_indFila('Trombo en orejuela izquierda',
+    tr === 'si' ? 'Confirmado' : (tr === 'sospecha' ? 'Sospecha' : (tr === 'no' ? 'No se observó' : 'No evaluado')),
+    tr === 'si' ? 'alarm' : (tr === 'sospecha' ? 'warn' : (tr === 'no' ? 'none' : 'ask')),
+    tr === 'si' ? 'contraindicación ABSOLUTA de comisurotomía percutánea'
+    : tr === 'sospecha' ? 'resolver antes de indicar el procedimiento'
+    : tr === 'no' ? 'la contraindicación de la guía es el trombo en la aurícula, no sólo en la orejuela'
+    : 'la indicación exige haber descartado trombo auricular'));
+
+  const UP = _indUmb('UMBRAL_PSAP_ELEVADA'), psap = _indN('psap_calc');
+  filas.push(UP == null ? _indSinUmbral('PSAP estimada')
+    : _indFila('PSAP estimada', _indNum(psap, 0, 'mmHg'),
+        _gt(psap, UP) ? 'warn' : (psap != null ? 'none' : 'ask'),
+        _gt(psap, UP) ? 'mayor que ' + UP + ' mmHg' : (psap != null ? 'no elevada' : 'sin estimar')));
+
+  return { filas: filas,
+    clinica: [_indFila('Síntomas', '—', 'ask', 'es el disparador de la Clase I: en el asintomático la indicación baja a Clase IIa C')],
+    guia: 'ESC/EACTS 2021 — Comisurotomía mitral percutánea Clase I B en el paciente SINTOMÁTICO sin características desfavorables, y Clase I C en cualquier sintomático con contraindicación o riesgo alto para cirugía.',
+    notas: [
+      'La guía define AVm ≤ 1,5 cm² como estenosis «clínicamente significativa (moderada o severa)»: ese corte no separa moderada de severa, las agrupa. La banda ' + (US != null && UM != null ? _indNum(US,1) + '–' + _indNum(UM,1) : '1,5–2,5') + ' cm² que usa esta app es su propia graduación y no sale de esa tabla.',
+      'Contraindicaciones del procedimiento: AVm > 1,5 cm²; trombo en aurícula izquierda; insuficiencia mitral MÁS QUE LEVE —no «moderada o más»—; calcificación severa o bicomisural; ausencia de fusión comisural; valvulopatía aórtica severa o enfermedad tricuspídea combinada severa que requiera cirugía; enfermedad coronaria que requiera revascularización quirúrgica.',
+      'En el asintomático la comisurotomía es Clase IIa C y sólo con riesgo embólico alto o de descompensación hemodinámica.'
+    ] };
+}
+
+/* ── Insuficiencia aórtica ─────────────────────────────────────────────────────────────────
+   Mismo criterio de compuerta que la mitral: `ia_sev_final === '4'`, no 3. */
+function _indIA(){
+  if (_indS('ia_sev_final') !== '4') return null;
+  const UF = _indUmb('UMBRAL_FEVI_NORMAL');
+  const fevi = _indN('fevi'), dsf = _indN('dsfvi'), asc = _indN('ao_tub');
+  const filas = [_indFila('Grado de insuficiencia aórtica', 'Severa', 'ok', 'severidad confirmada en el estudio')];
+  /* Acá es al revés que en la aórtica estenótica: la FEVI SÍ es criterio, y el que cumple es el
+     valor BAJO. Una FEVI conservada no alcanza ningún criterio y por eso va con «—». */
+  filas.push(UF == null ? _indSinUmbral('FEVI')
+    : _indFila('FEVI', _indNum(fevi, 0, '%'),
+        _le(fevi, UF) ? 'alarm' : (fevi != null ? 'none' : 'ask'),
+        _le(fevi, UF) ? '≤ ' + UF + ' % — criterio de cirugía Clase I' : (fevi != null ? 'conservada (> ' + UF + ' %)' : 'sin medir')));
+  /* El DTSI es criterio Clase I al mismo nivel que la FEVI y el pedido no lo tenía. Su versión
+     indexada (> 25 mm/m²) también, y es la que manda en el paciente de talla pequeña. */
+  const _g = _indFn('getBSA'), _bsa = _g ? _g() : null;
+  const dsfi = (dsf != null && _bsa != null && _bsa > 0) ? dsf / _bsa : null;
+  filas.push(_indFila('DTSI — diámetro telesistólico del VI', _indNum(dsf, 0, 'mm'),
+    _gt(dsf, 50) ? 'ok' : (dsf != null ? 'none' : 'ask'),
+    _gt(dsf, 50) ? '> 50 mm — criterio de cirugía Clase I' : (dsf != null ? 'no supera 50 mm' : 'sin medir')));
+  filas.push(_indFila('DTSI indexado', _indNum(dsfi, 1, 'mm/m²'),
+    _gt(dsfi, 25) ? 'ok' : (dsfi != null ? 'none' : 'ask'),
+    _gt(dsfi, 25) ? '> 25 mm/m² — criterio de cirugía Clase I, el que manda en talla pequeña'
+    : (dsfi != null ? 'no supera 25 mm/m²' : 'requiere peso y talla')));
+  /* `ao_tub` («Ao tubular») es la fuente canónica de la ascendente. `vab_asc_ro` la espeja en
+     gris dentro de la sección de bicúspide: leer el espejo sería leer una copia.
+     Va como contexto y no como criterio: el aneurisma de raíz o de aorta ascendente tiene su
+     propia tabla de indicaciones, que no es ésta. */
+  filas.push(_indFila('Aorta ascendente', _indNum(asc, 0, 'mm'),
+    _gt(asc, 50) ? 'warn' : (asc != null ? 'none' : 'ask'),
+    _gt(asc, 50) ? '> 50 mm — la aorta tiene su propia tabla de indicaciones, no ésta' : (asc != null ? 'no supera 50 mm' : 'sin medir')));
+  return { filas: filas,
+    clinica: [_indFila('Síntomas', '—', 'ask', 'con síntomas la cirugía es Clase I con independencia de la función del VI')],
+    guia: 'ESC/EACTS 2021 — Cirugía Clase I B en el paciente sintomático sea cual sea la función del VI, y en el asintomático con DTSI > 50 mm, DTSI indexado > 25 mm/m² o FEVI en reposo ≤ 50 %.',
+    notas: ['El corte de 20 mm/m² es Clase IIb C, no I, y va junto con FEVI ≤ 55 % y riesgo quirúrgico bajo. En la ESC/EACTS 2025 esa fila se reescribió a DTSI indexado > 22 mm/m². Ojo: el 20 mm/m² de la edición 2025 es el umbral MITRAL, no el aórtico.'] };
+}
+
+/* ── CIA ───────────────────────────────────────────────────────────────────────────────────
+   La compuerta de la guía es la RESISTENCIA VASCULAR PULMONAR, que es un dato de cateterismo. El
+   ecocardiograma no la mide, así que va como fila ❓ y no se deduce de la PAPs: publicar una
+   probabilidad de HTP donde la guía pide unidades Wood haría pasar por contestada una pregunta
+   que este estudio no contesta. */
+function _indCIA(){
+  const tipo = _indS('ete_cia_tipo');
+  const qpqs = _indFn('eteQpQs'), motivo = _indFn('eteQpQsMotivo');
+  const q = qpqs ? qpqs() : null;
+  const tam = _indN('ete_cia_tam_max');
+  if (!tipo || (q == null && tam == null)) return null;
+
+  const filas = [];
+  /* El Qp/Qs NO forma parte de la Clase I. La tabla operativa la define por sobrecarga de
+     volumen del VD, ausencia de hipertensión pulmonar y ausencia de enfermedad del VI, «regardless
+     of symptoms». El Qp/Qs > 1,5 —con >, no ≥— aparece sólo en las filas IIa y IIb, las de RVP
+     entre 3 y 5 UW. El resumen «What is new» del propio documento lo cuenta distinto que su tabla;
+     acá manda la tabla. */
+  filas.push(_indFila('Qp/Qs', q != null ? _indNum(q, 2) : '—',
+    _gt(q, 1.5) ? 'warn' : (q != null ? 'none' : 'ask'),
+    _gt(q, 1.5) ? '> 1,5 — shunt significativo; entra en las Clases IIa y IIb, no en la I'
+    : q != null ? 'no supera 1,5' : (motivo && motivo() !== '—' ? motivo() : 'requiere Ø y VTI de los dos tractos de salida')));
+
+  /* `vdBasCat` es la MISMA clasificación que pinta `calcVD`. OJO: su umbral de «dilatado» (>45)
+     no es el `> 41` que `_htp2022Core` usa como signo de categoría A — son dos criterios
+     distintos sobre la misma medida y no hay que unificarlos. */
+  const cat = (_indFn('vdBasCat') || function(){ return null; })(_indN('vd_bas'));
+  filas.push(_indFila('Diámetro basal del VD', _indNum(_indN('vd_bas'), 0, 'mm'),
+    cat ? (cat.cat === 'dilatado' ? 'ok' : (cat.cat === 'leve' ? 'warn' : 'none')) : 'ask',
+    cat ? cat.lbl + (cat.cat === 'dilatado' ? ' — la sobrecarga de volumen del VD es el criterio Clase I' : '') : 'sin medir'));
+
+  const core = _indFn('_htp2022Core'), n = _indFn('_hfN'), c = _indFn('_hfChk');
+  let R = null;
+  if (core && n && c && typeof sv === 'function') { try { R = core({ num:n, txt:sv, chk:c }); } catch (e) { R = null; } }
+  /* `_htp2022Core` clasifica CUALQUIER estudio, porque los signos A/B/C salen de mediciones de
+     rutina. Sin VRT medible ni signos, lo que devuelve no es una evaluación: es el suelo del
+     algoritmo. Por eso ese caso se muestra como «no evaluada» y no como «probabilidad baja». */
+  const htpEvaluada = !!(R && (R.vrtCat !== 'nomedible' || R.nCat > 0));
+  filas.push(_indFila('Probabilidad de hipertensión pulmonar (ESC 2022)',
+    htpEvaluada ? R.prob : '—',
+    htpEvaluada ? (R.prob === 'ALTA' ? 'alarm' : (R.prob === 'INTERMEDIA' ? 'warn' : 'none')) : 'ask',
+    htpEvaluada ? 'derivada de la VRT y los signos ecocardiográficos' : 'sin VRT medible ni signos consignados'));
+
+  return { filas: filas,
+    clinica: [_indFila('Resistencia vascular pulmonar < 3 UW', '—', 'ask', 'es la compuerta de la guía y se mide por cateterismo, no por ecocardiograma')],
+    guia: 'ESC 2020 (cardiopatías congénitas del adulto) — Cierre Clase I B con sobrecarga de volumen del VD y sin hipertensión pulmonar (sin signos no invasivos de PAP elevada, o RVP < 3 UW confirmada por cateterismo si los hay) ni enfermedad del VI, CON INDEPENDENCIA DE LOS SÍNTOMAS.',
+    notas: [
+      'El corte es RVP < 3 UW, no < 5. La escalera completa: < 3 UW → Clase I B · 3–5 UW → Clase IIa C y sólo con shunt izquierda-derecha significativo (Qp/Qs > 1,5) · ≥ 5 UW → cierre FENESTRADO Clase IIb C, y sólo si la RVP baja de 5 tras tratamiento dirigido · Eisenmenger o ≥ 5 UW pese al tratamiento → Clase III C.',
+      'Un Qp/Qs menor que 1 indica shunt neto de derecha a izquierda, que es donde el cierre está contraindicado.'
+    ] };
+}
+
+/* ── Coartación de aorta ───────────────────────────────────────────────────────────────────
+   La compuerta y la lectura salen de `coaConclusion()`, que es lo que ya sostiene el informe
+   firmado. Dos cosas que ella sabe y este panel tiene que repetir: el criterio de la guía es el
+   gradiente pico-pico INVASIVO, y la cola diastólica basta sola. Y la casilla de la cola sólo
+   afirma: desmarcada significa a la vez «la busqué y no está» y «no la busqué». */
+function _indCoAo(){
+  const conc = _indFn('coaConclusion'), gmax = _indFn('coaGmax');
+  const C = conc ? conc() : null;
+  if (!C) return null;
+  const g = gmax ? gmax() : null, gm = _indN('coa_gmedio'), cola = _indChk('coa_diast_anterogrado');
+  const filas = [
+    /* El umbral numérico de la guía se aplica al gradiente INVASIVO pico-a-pico, no a éste. El
+       Doppler dispara la sospecha; la Clase I exige la confirmación invasiva. Por eso la marca
+       máxima que puede dar esta fila es ⚠️ y no ✅: sola no cumple ningún criterio. */
+    _indFila('Gradiente máximo por Doppler (4·Vmax²)', _indNum(g, 0, 'mmHg'),
+      _ge(g, 20) ? 'warn' : (g != null ? 'none' : 'ask'),
+      _ge(g, 20) ? '≥ 20 mmHg — obliga a confirmar con medición invasiva; el criterio de la guía es el pico-a-pico invasivo'
+      : (g != null ? 'no alcanza 20 mmHg' : 'sin Vmax de la coartación')),
+    _indFila('Gradiente medio', _indNum(gm, 0, 'mmHg'), gm != null ? 'none' : 'ask',
+      gm != null ? 'sin umbral guía equivalente por Doppler' : 'sin medir'),
+    _indFila('Cola diastólica anterógrada', cola ? 'Presente' : 'No consignada', cola ? 'warn' : 'ask',
+      cola ? 'basta por sí sola para que la app concluya significación: es el escenario en que el gradiente engaña' : 'la casilla desmarcada no distingue «no está» de «no se buscó»'),
+    _indFila('Diámetro del istmo', _indNum(_indN('coa_istmo'), 1, 'mm'), _indN('coa_istmo') != null ? 'none' : 'ask', '')
+  ];
+  /* Esta sección no puede producir un ✅ por sí sola —el criterio de la guía es invasivo— así que
+     con la regla de apertura por ✅/🔴 quedaba COLAPSADA justo en el paciente que importa: el que
+     tiene cola diastólica y 36 mmHg por Doppler. Se abre por el aviso, y el aviso es la conclusión
+     que la app ya publica en el informe firmado, no un criterio nuevo escrito acá. */
+  return { filas: filas,
+    aviso: (C.clave === 'significativa' || C.clave === 'no_interpretable') ? C.txt : '',
+    clinica: [
+      _indFila('Hipertensión arterial', '—', 'ask', 'es CONDICIÓN de la Clase I, no un factor más; sin ella la indicación baja a IIa'),
+      _indFila('Gradiente invasivo pico-a-pico ≥ 20 mmHg', '—', 'ask', 'es el número que la guía exige, y no lo da el ecocardiograma'),
+      _indFila('Estrechamiento ≥ 50 % respecto de la aorta a nivel del diafragma', '—', 'ask', 'permite intervenir aun con gradiente invasivo < 20 mmHg')
+    ],
+    guia: 'ESC 2020 (cardiopatías congénitas del adulto) — Reparación Clase I C en pacientes HIPERTENSOS con gradiente no invasivo aumentado CONFIRMADO por medición invasiva (pico-a-pico ≥ 20 mmHg), con preferencia por el tratamiento percutáneo cuando es técnicamente posible.',
+    notas: [
+      'Sin hipertensión arterial, el mismo gradiente invasivo ≥ 20 mmHg es Clase IIa C.',
+      'Se puede intervenir con gradiente invasivo < 20 mmHg: un estrechamiento ≥ 50 % respecto del diámetro aórtico a nivel del diafragma es Clase IIa C en el hipertenso y IIb C en el normotenso.',
+      'El gradiente de arriba es Bernoulli simplificado y no descuenta la velocidad proximal, que en la coartación suele estar elevada: sobreestima.'
+    ] };
+}
+
+/* ── FOP ───────────────────────────────────────────────────────────────────────────────────
+   La edad y el ACV criptogénico NO van como «requiere clínica»: la app los tiene en campos
+   propios (`edad`, `fop_acv`). Pedirle al médico un dato que la app ya guardó es el defecto que
+   este archivo documenta como «mirar si el dato ya está». Lo que sí queda ❓ es el campo sin
+   contestar, que no es lo mismo que un «no». */
+function _indFOP(){
+  const conc = _indFn('fopConclusion');
+  if (!conc || !conc()) return null;
+  const reposo = _indS('fop_shunt_reposo'), valsalva = _indS('fop_shunt_valsalva'), burb = _indS('fop_burbujas');
+  /* «Shunt documentado» exige un SÍ explícito. `fop_burbujas` tiene opción vacía, así que un
+     valor ahí es una respuesta del médico y no un estado de fábrica — se verificó en el HTML. */
+  if (!(reposo === 'si' || valsalva === 'si' || burb)) return null;
+
+  /* Prototipo nulo, no `_lblDe`. El helper resuelve el mismo problema —que `MAPA['constructor']`
+     devuelve la función `Object` en vez de caer al fallback— pero es un `const` de otro bloque
+     `<script>`, y `typeof` sobre un const en zona muerta LANZA en vez de dar 'undefined'. Con el
+     mapa sin prototipo el `||` vuelve a funcionar y no hay dependencia cruzada que se pueda caer. */
+  const BURB = Object.assign(Object.create(null), { pocas:'Pocas (< 5)', moderado:'Moderado (5–20)', abundante:'Abundante (> 20)' });
+  const asa = _indS('fop_asa'), asaMm = _indN('fop_asa_mm'), acv = _indS('fop_acv'), edad = _indN('edad');
+  const hayASA = asa === 'si' || _ge(asaMm, 10);
+  const filas = [
+    _indFila('Longitud del túnel', _indNum(_indN('fop_tunel'), 1, 'mm'), _indN('fop_tunel') != null ? 'none' : 'ask',
+      _indN('fop_tunel') != null ? 'describe la anatomía; no es criterio de la indicación' : 'sin medir'),
+    _indFila('Shunt con Valsalva', valsalva === 'si' ? 'Presente' : (valsalva === 'no' ? 'Ausente' : 'No evaluado'),
+      valsalva === 'si' ? 'ok' : (valsalva === 'no' ? 'none' : 'ask'),
+      valsalva === 'si' ? 'documenta el shunt, que es lo que hace evaluable el foramen' : ''),
+    _indFila('Cantidad de burbujas', burb ? (BURB[burb] || 'Otro') : '—',
+      burb === 'abundante' ? 'warn' : (burb ? 'none' : 'ask'),
+      burb === 'abundante' ? 'shunt severo — característica de alto riesgo embólico' : ''),
+    _indFila('Aneurisma del septum interauricular',
+      hayASA ? 'Sí' : (asa === 'no' ? 'No' : 'No evaluado'),
+      hayASA ? 'warn' : (asa === 'no' ? 'none' : 'ask'),
+      hayASA ? 'característica de alto riesgo embólico' + (_ge(asaMm, 10) ? ' (excursión ' + _indNum(asaMm, 1, 'mm') + ')' : '') : ''),
+    _indFila('ACV criptogénico', acv === 'si' ? 'Sí' : (acv === 'no' ? 'No' : 'No consignado'),
+      acv === 'si' ? 'ok' : (acv === 'no' ? 'none' : 'ask'),
+      acv === 'si' ? 'es lo que sostiene la indicación' : (acv === 'no' ? 'sin él no hay indicación de cierre' : 'se registra en esta misma sección')),
+    /* 18 a 65 años, que es la franja del documento. El pedido decía «< 60»; ese número no está
+       en la fuente. El piso tampoco es decorativo: por debajo de 18 el documento no se pronuncia. */
+    _indFila('Edad', edad != null ? _indNum(edad, 0, 'años') : '—',
+      (_ge(edad, 18) && _le(edad, 65)) ? 'ok' : (_gt(edad, 0) ? 'warn' : 'ask'),
+      (_ge(edad, 18) && _le(edad, 65)) ? 'dentro de la franja de 18 a 65 años del documento'
+      : _gt(edad, 65) ? 'por encima de los 65 años — fuera de la franja en que el documento se pronuncia'
+      : _gt(edad, 0) ? 'por debajo de los 18 años — fuera de la franja del documento'
+      : 'sin cargar en la ficha del paciente')
+  ];
+  return { filas: filas,
+    guia: 'Documento de posición europeo sobre foramen oval permeable (Pristipino et al., Eur Heart J 2019;40:3182 — EAPCI/ESO/EHRA/EACVI y otras) — recomendación FUERTE a favor del cierre percutáneo en pacientes seleccionados de 18 a 65 años con ACV criptogénico, AIT o embolia sistémica confirmados y probabilidad alta de rol causal del foramen.',
+    notas: [
+      'No sale de la guía ESC 2020 de cardiopatías congénitas: ahí la palabra «criptogénico» no aparece y las únicas recomendaciones sobre foramen oval son específicas de la anomalía de Ebstein.',
+      'El documento usa metodología GRADE y no las clases I/IIa/IIb de la ESC, así que «Clase IIa» no le corresponde: su fuerza es «recomendación fuerte».',
+      'Exige evaluación interdisciplinaria y decisión compartida con neurología.'
+    ] };
+}
+
+/* ── MCH obstructiva ───────────────────────────────────────────────────────────────────────
+   Los dos gradientes salen de `mchGrad()`, que ya los acota a su banda de plausibilidad: leer
+   los campos crudos habría dejado entrar un valor en otra unidad como si fuera un criterio. */
+function _indMCH(){
+  const grad = _indFn('mchGrad');
+  const G = grad ? grad() : null;
+  if (!G || !_ge(G.max, 30)) return null;
+  const marcaG = n => _ge(n, 50) ? 'ok' : (_ge(n, 30) ? 'warn' : (n != null ? 'none' : 'ask'));
+  const notaG  = n => _ge(n, 50) ? '≥ 50 mmHg — umbral de la indicación'
+                    : _ge(n, 30) ? '30–49 mmHg — obstrucción, por debajo del umbral de intervención'
+                    : (n != null ? 'sin obstrucción significativa' : 'sin medir');
+  const sam = _indS('mch_sam'), cf = _indS('mch_cf');
+  const filas = [
+    _indFila('Gradiente del TSVI en reposo', _indNum(G.reposo, 0, 'mmHg'), marcaG(G.reposo), notaG(G.reposo)),
+    _indFila('Gradiente del TSVI con Valsalva', _indNum(G.valsalva, 0, 'mmHg'), marcaG(G.valsalva), notaG(G.valsalva)),
+    _indFila('SAM mitral', sam === 'si' ? 'Presente' : (sam === 'no' ? 'Ausente' : 'No evaluado'),
+      sam === 'si' ? 'warn' : (sam === 'no' ? 'none' : 'ask'),
+      sam === 'si' ? 'explica el mecanismo de la obstrucción; no es criterio de la indicación' : ''),
+    _indFila('Clase funcional (NYHA)', cf === 'iii_iv' ? 'III–IV' : (cf === 'i_ii' ? 'I–II' : 'No consignada'),
+      cf === 'iii_iv' ? 'ok' : (cf === 'i_ii' ? 'none' : 'ask'),
+      cf === 'iii_iv' ? 'es la clase que exige la indicación' : (cf === 'i_ii' ? '' : 'se registra en la sección de miocardiopatía hipertrófica'))
+  ];
+  return { filas: filas,
+    clinica: [_indFila('Refractariedad al tratamiento médico máximo tolerado', '—', 'ask', 'la Clase I lo exige y no se registra en la app')],
+    guia: 'ESC 2023 (miocardiopatías) — La terapia de reducción septal para mejorar los síntomas es Clase I B con gradiente del TSVI ≥ 50 mmHg en reposo o máximo provocado y clase funcional NYHA/Ross III–IV, pese al tratamiento médico máximo tolerado.',
+    notas: [
+      'Es Clase I B, no IIa. El IIa C de esa misma tabla es otra fila, la del SÍNCOPE DE ESFUERZO RECURRENTE con el mismo gradiente de 50 mmHg — comparten el umbral y por eso se confunden.',
+      'La clase funcional III–IV no es un detalle: es lo que separa esta Clase I de la Clase IIb (NYHA II con insuficiencia mitral por SAM, fibrilación auricular o dilatación auricular).',
+      'El riesgo de muerte súbita se evalúa aparte: la app lo calcula en la propia sección de miocardiopatía hipertrófica y tiene su panel en «Criterios».'
+    ] };
+}
+
+/* ── VAB — aorta ascendente ────────────────────────────────────────────────────────────────
+   Los umbrales NO se escriben acá: se toma la conclusión de `vabConclusion()`, que es la que
+   viaja al informe firmado y al EN SUMA. Escribirlos a mano habría puesto al panel a contradecir
+   a la app en la misma pantalla — su cascada indica cirugía Clase I desde 55 mm (y desde 50 con
+   fenotipo de raíz), no desde 50 mm.
+
+   La morfología es una fila y no una compuerta por el mismo motivo que en la mitral, con un
+   agravante propio: `va_morf` no tiene opción vacía y `limpiarCampos` lo deja en «Trivalva
+   normal», así que ese valor no significa que el médico haya dicho trivalva. No puede negar nada. */
+function _indVAB(){
+  const asc = _indN('ao_tub'), raiz = _indN('ao_sin');
+  if (!_ge(asc, 45) && !_ge(raiz, 45)) return null;
+  const conc = _indFn('vabConclusion');
+  const C = conc ? conc() : null;
+  const morf = _indS('va_morf'), cx = _indS('vab_cx_valvular'), riesgo = _indS('vab_riesgo_qx');
+  const filas = [
+    _indFila('Aorta ascendente (tubular)', _indNum(asc, 0, 'mm'),
+      _ge(asc, 55) ? 'alarm' : (_ge(asc, 45) ? 'warn' : (asc != null ? 'none' : 'ask')),
+      _ge(asc, 55) ? '≥ 55 mm — cirugía Clase I B'
+      : _gt(asc, 52) ? '> 52 mm — Clase IIa B en fenotipo ascendente con riesgo quirúrgico bajo'
+      : _ge(asc, 50) ? '50–52 mm — Clase IIa C sólo si concurre un factor de riesgo'
+      : _ge(asc, 45) ? '45–49 mm — Clase IIa C sólo si hay cirugía valvular aórtica prevista' : ''),
+    _indFila('Raíz aórtica (senos)', _indNum(raiz, 0, 'mm'),
+      _ge(raiz, 50) ? 'alarm' : (_ge(raiz, 45) ? 'warn' : (raiz != null ? 'none' : 'ask')),
+      _ge(raiz, 50) ? '≥ 50 mm — cirugía Clase I B SI el fenotipo es de raíz'
+      : _ge(raiz, 45) ? '≥ 45 mm — Clase IIa C si hay cirugía valvular aórtica prevista' : ''),
+    _indFila('Morfología de la válvula aórtica', morf || '—',
+      morf === 'Bicúspide' ? 'ok' : 'ask',
+      morf === 'Bicúspide' ? 'confirma que corresponde la tabla de aortopatía bicúspide'
+      : 'este campo no tiene opción vacía: «' + (morf || '—') + '» puede significar que nadie lo tocó, así que no confirma ni descarta la bicúspide'),
+    _indFila('Cirugía valvular prevista', cx === 'si' ? 'Sí' : (cx === 'no' ? 'No' : 'No consta'),
+      cx === 'si' ? 'ok' : (cx === 'no' ? 'none' : 'ask'),
+      cx === 'si' ? 'baja el umbral de la cirugía de la aorta' : ''),
+    _indFila('Riesgo quirúrgico bajo (< 3 %)', riesgo === 'si' ? 'Sí' : (riesgo === 'no' ? 'No' : 'No consta'),
+      riesgo === 'si' ? 'warn' : (riesgo === 'no' ? 'none' : 'ask'),
+      riesgo === 'si' ? 'condición de las Clases IIa por debajo de 55 mm; solo no alcanza ningún criterio' : '')
+  ];
+  return { filas: filas,
+    aviso: (C && C.clave === 'contradiccion') ? C.txt : '',
+    guia: 'ESC 2024 (enfermedades aórticas y arteriales periféricas) — Cirugía Clase I B con diámetro máximo ≥ 55 mm, y Clase I B desde 50 mm en el FENOTIPO DE RAÍZ. Todo lo demás es Clase IIa.',
+    notas: [
+      C ? 'Conclusión de la app para este estudio: ' + C.txt
+        : 'La sección de válvula bicúspide no tiene datos cargados, así que la app no emite conclusión. Los diámetros de arriba se muestran solos.',
+      'La distinción raíz / ascendente decide la conducta: en fenotipo ascendente NO hay Clase I a 50 mm — el gatillo aislado es > 52 mm (IIa B) y la Clase I recién a ≥ 55 mm.',
+      'Clase IIa C a partir de 50 mm con riesgo quirúrgico bajo y algún factor: edad < 50 años, talla baja, longitud de la aorta ascendente ≥ 11 cm, crecimiento ≥ 3 mm/año, antecedente familiar de síndrome aórtico agudo, coartación, hipertensión resistente, cirugía cardíaca no valvular aórtica concomitante o deseo de embarazo.',
+      'Clase IIa C a partir de 45 mm (raíz o ascendente) si el paciente va a cirugía valvular aórtica.',
+      'Los dos umbrales Clase I que circulan con «> 50 mm con factores de riesgo» y «> 45 mm con recambio valvular programado» son de la ESC 2014: la guía de 2024 los imprime en su tabla de recomendaciones modificadas, degradados a IIa C.'
+    ] };
+}
+
+const IND_SECS = [
+  { tit:'Estenosis aórtica',                     fn:_indEA },
+  { tit:'Insuficiencia mitral primaria',         fn:_indIM },
+  { tit:'Estenosis mitral',                      fn:_indEM },
+  { tit:'Insuficiencia aórtica',                 fn:_indIA },
+  { tit:'Comunicación interauricular',           fn:_indCIA },
+  { tit:'Coartación de aorta',                   fn:_indCoAo },
+  { tit:'Foramen oval permeable',                fn:_indFOP },
+  { tit:'Miocardiopatía hipertrófica obstructiva', fn:_indMCH },
+  { tit:'Válvula aórtica bicúspide — aorta ascendente', fn:_indVAB }
+];
+
+function indicRender(){
+  let h = '', n = 0, fallos = 0;
+  IND_SECS.forEach(function(s){
+    /* Una sección que lanza NO puede llevarse el panel entero: el resto de las indicaciones
+       desaparecería sin decir por qué, que es el modo de falla contra el que este archivo
+       insiste. Se cuenta y se declara al pie. */
+    let r = null;
+    try { r = s.fn(); } catch (e) { fallos++; return; }
+    if (!r) return;
+    n++;
+    h += _indSecHTML(s.tit, r);
+  });
+  if (!n) h = '<div style="padding:22px 6px;text-align:center;font-size:12px;color:var(--text2);line-height:1.6;">' +
+    'Sin criterios de intervención detectados con los datos actuales.' +
+    '<div style="font-size:11px;margin-top:8px;">El panel sólo muestra las secciones cuyos umbrales alcanzan el estudio cargado. Que no aparezca ninguna no descarta patología: puede faltar la medición que la activa.</div></div>';
+  else h = _indLeyendaHTML() + h;
+  if (fallos) h += '<div style="font-size:11px;color:#DC2626;margin-top:10px;line-height:1.5;">' +
+    fallos + (fallos === 1 ? ' sección no se pudo evaluar' : ' secciones no se pudieron evaluar') +
+    ' — el resto del panel es válido, pero falta información. Revisar la consola.</div>';
+  const c = document.getElementById('indic-cuerpo'); if (c) c.innerHTML = h;
+}
+
+function indicAbrir(){
+  indicRender();
+  const ov = document.getElementById('indic-overlay'); if (ov) ov.style.display = 'block';
+}
+function indicCerrar(){ const ov = document.getElementById('indic-overlay'); if (ov) ov.style.display = 'none'; }
+window.indicAbrir = indicAbrir; window.indicCerrar = indicCerrar; window.indicRender = indicRender;
 
 /* ══ ANOMALÍA DE EBSTEIN ═════════════════════════════════════════════════════════════════
    Desplazamiento apical del velo septal tricuspídeo con atrialización del ventrículo derecho.

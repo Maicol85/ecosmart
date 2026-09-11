@@ -1778,7 +1778,116 @@ importación. Si alguien le saca el `readonly` a uno de esos inputs, la columna 
 importable sin que nada la recalcule al abrir el estudio — «bloquear no es recalcular» con el
 gatillo invertido. La dependencia no está declarada en ningún lado salvo el atributo HTML.
 
+### Panel de indicaciones según guías — 2026-09-11
+
+`indicAbrir()` / `indicRender()` / `IND_SECS`, en el bloque `<script>` de `critAbrir`. Nueve
+secciones que muestran los datos del estudio EN CURSO contra los umbrales publicados. Es **sólo
+pantalla**: verificado generando el PDF con el panel abierto y buscando sus cadenas en el content
+stream —cero— con el denominador confirmado (el PDF traía «Paciente Prueba»).
+
+**No tiene estado, y eso es la mitad del diseño.** Se re-deriva del formulario en cada apertura,
+así que no necesita columna en `limpiarCampos` / `editarInforme`+`cargarEstudioPorId` /
+`guardarInforme` — el trío que este archivo declara obligatorio para todo módulo con estado propio
+— y no puede arrastrar al paciente anterior como hicieron `gradoGamma`/`protMonoc`.
+
+**Cuatro reglas del módulo, todas en el comentario de cabecera del código:** no reimplementar
+ninguna regla clínica; comparar contra `null` sólo con `_ge/_le/_gt/_lt` (`null <= 1.0` es **true**,
+y con `ava <= 1.0` suelto la sección de estenosis aórtica severa se activaba sobre un formulario en
+blanco); leer las constantes de otros bloques por `window.X` **sin literal de respaldo**, para que
+falte antes de mentir; y que la marca ✅ signifique una sola cosa.
+
+**Las citas del pedido original estaban mal en siete de nueve, y se verificaron contra el texto
+primario de cada guía antes de escribirlas.** Es el trabajo que más valor tuvo de toda la tarea y
+hay que repetirlo ante cualquier umbral nuevo. Lo que cambió:
+
+| Sección | Decía el pedido | Dice la guía |
+|---|---|---|
+| IM primaria | DTSI > 45 mm · FEVI < 60 % | **DTSI ≥ 40 mm · FEVI ≤ 60 %** (ESC/EACTS 2021, I B). El 45 es de la **ESC 2017**, y la propia guía de 2021 lo imprime en su tabla de recomendaciones revisadas |
+| CIA | RVP < 5 UW · Qp/Qs ≥ 1,5 en la Clase I | **RVP < 3 UW** (I B). El Qp/Qs **no está** en la Clase I: aparece en las filas IIa (3–5 UW) y IIb (≥ 5 UW), y con **>**, no ≥ |
+| MCH | Reducción septal Clase IIa | **Clase I B** (ESC 2023, Rec. Table 20), con ≥ 50 mmHg en reposo o máximo provocado **y CF III–IV**. El IIa C de esa misma tabla es la fila del **síncope de esfuerzo recurrente**, que comparte el umbral de 50 |
+| VAB | Clase I > 50 mm, y > 45 con cirugía valvular | Los dos son **IIa** desde 2024. Clase I es ≥ 55 mm, y ≥ 50 mm **sólo en fenotipo de raíz**. La frase del pedido está reproducida casi literal en la tabla de recomendaciones modificadas de la ESC 2024, como texto de **2014** |
+| FOP | ESC 2020, Clase IIa, < 60 años | **ESO/EAPCI 2019** (Pristipino, *EHJ* 40:3182), metodología **GRADE** («recomendación fuerte», no clase ESC), **18 a 65 años**. En la ESC 2020 de congénitas la palabra «criptogénico» aparece **cero veces** |
+| EM | Valvuloplastia I si Wilkins ≤ 8 | El score **no es criterio positivo**. La guía define «características **desfavorables**» como VARIAS de una lista donde «score > 8» es una; un 9 aislado no descalifica. Y el gatillo de la Clase I es el **síntoma** |
+| Coartación | Gradiente > 20 mmHg | **Invasivo pico-a-pico ≥ 20**, y la **HTA es condición** (sin ella, IIa). Falta un criterio entero: estrechamiento **≥ 50 %** respecto de la aorta a nivel del diafragma permite intervenir con gradiente < 20 |
+
+Las dos que estaban bien —estenosis e insuficiencia aórtica— igual necesitaron precisiones: en la
+aórtica estenótica la **indicación** (I B con síntomas) es una cosa y la **modalidad** otra
+(SAVR I B < 75 años y riesgo bajo; TAVI I A ≥ 75 o riesgo alto); en la insuficiencia faltaba el
+DTSI > 50 mm / > 25 mm/m², que es Clase I al mismo nivel que la FEVI.
+
+**Y dos defectos del pedido sobre el modelo de datos, encontrados al verificar los ids:**
+- **«IM severa = im_sev_final 3» es falso.** El 3 es «Moderada-severa» y la severa es el **4**;
+  `_labRegurgSev` mapea el 3 a «Moderada». Con el 3 el panel abría sobre moderadas y callaba sobre
+  severas. Ídem `ia_sev_final`.
+- **`vab_ao_asc` no existe.** La ascendente es **`ao_tub`**; `vab_asc_ro` es un espejo readonly que
+  escribe `vabSync`. Leer el espejo habría sido leer una copia.
+
+**Decisión del médico (2026-09-11): el mecanismo de la IM se DECLARA, no se gatea.** El único campo
+que registra primaria vs secundaria es `teer_tipo_im`, dentro del bloque TEER de la pestaña ETE, y
+arranca vacío. Gatear por él dejaba a un prolapso con IM severa sin ver nada y sin decir por qué.
+
+**Cuatro defectos del propio diff que vale la pena recordar:**
+- **La marca ✅ significaba dos cosas incompatibles** —«criterio de la guía alcanzado» en la aórtica
+  y «valor normal» en la mitral— y **no había leyenda**, así que nada lo delataba. Ahora la leyenda
+  se imprime (`_indLeyendaHTML`) y ✅ significa siempre «este dato alcanza un criterio», aunque el
+  valor sea malo. Una FEVI conservada, que no es criterio de ninguna indicación, lleva «—».
+- **La apertura automática se decidía por prefijo y se comía un caso.** VAB abría con
+  `clave.indexOf('cx') === 0` sobre las **dieciséis** claves de `vabConclusion`, y `concomitante_45`
+  no empieza con `cx`: la sección quedaba colapsada sobre un paciente al que la app le indica
+  reemplazo de la aorta. Es el `'Morfología '` que se tragaba `'Morfología orejuela'` otra vez. Hoy
+  la regla vive sólo en `_indSecHTML` (✅/🔴 o aviso) y **ninguna sección trae su propia `abrir`**.
+- **La coartación no puede producir un ✅** —su criterio es invasivo— así que quedaba colapsada justo
+  en el paciente que importa. Se abre por el `aviso`, y el aviso es la conclusión que `coaConclusion`
+  ya publica en el informe firmado, no un criterio nuevo escrito en el panel.
+- **Derivé un borde con aritmética de enteros** en `vdBasCat` («42-45» desde `VD_BAS_NORMAL_MAX + 1`).
+  `vd_bas` es decimal y en runtime los `input number` de esta app pasan a `text`, así que un 41,5
+  clasificaba «leve» bajo un cartel que decía que la banda empieza en 42. Se imprime el mismo
+  operador que aplica el código: «>41 y ≤45». Ya estaba documentado con el panel de MCA.
+
+**Y un comentario mío que afirmaba algo falso, corregido antes de commitear.** Justificaba la
+extracción de `wilkinsScore()` diciendo que al reabrir un estudio el total quedaría en «—». **No
+queda**: `editarInforme` y `cargarEstudioPorId` llaman a `calcWilkins()` a mano justamente por eso,
+y sus comentarios lo explican. Medido en el navegador sobre un estudio reabierto: «8 / 16». La
+extracción se sostiene por otras dos razones —la banda se necesita como DATO (la alternativa era
+`dataset.banda`, un atributo que escribe una función de pintado, o parsear el badge, que ya causó un
+defecto real) y saca una dependencia de orden que **ya se olvidó una vez**, según el comentario del
+bloque de recálculos de la restauración por `?estudio=`—.
+
+**`VD_BAS_NORMAL_MAX` (41) NO es el umbral de HTP.** `_htp2022Core` usa `vdBas > 41` como signo
+ecocardiográfico de categoría A —el límite superior de lo normal— y `vdBasCat` marca «dilatado»
+desde >45. Son dos criterios distintos sobre la misma medida y **no hay que unificarlos**.
+
+**Al verificar este panel, cuidado con el denominador.** El paciente ficticio «completo»
+(`paciente_ficticio_completo.json`) enciende **dos** de las nueve secciones: estenosis mitral y CIA.
+Verificar sólo con él no dice nada sobre las otras siete. Hace falta un estudio adversario que las
+encienda a la vez, y el formulario vacío para el mensaje de «sin criterios».
+
+**La `.no-print` no sirve fuera de `#amilo-root`.** La única regla que la apaga está scopeada a ese
+subárbol, así que ponérsela a un overlay nuevo es un atributo decorativo bajo un comentario que
+promete que no se imprime. El panel lleva su propia regla por ID.
+
+
 ## Deuda conocida sin resolver
+
+## Deuda conocida sin resolver
+
+- **La ESC/EACTS 2021 de valvulopatías está SUPERADA por la 2025** (*Eur Heart J* 2025;46:4635,
+  doi:10.1093/eurheartj/ehaf194 — su preámbulo dice «updates and replaces the previous version from
+  2021»). EcoSmart la cita en varios lugares, no sólo en el panel de indicaciones. Lo que cambia y
+  ya está verificado contra la fuente: el corte de edad de la modalidad en estenosis aórtica pasa de
+  **75 a 70 años**; en IM primaria la Clase I suma el **DTSI indexado ≥ 20 mm/m²** y aparece una
+  Clase I nueva con función preservada cuando concurren **tres de cuatro** (FA, PAPs en reposo
+  > 50 mmHg, dilatación auricular, IT secundaria al menos moderada); y en IA la fila IIb se reescribe
+  a DTSI indexado > 22 mm/m². **Ojo al migrar:** el 20 mm/m² de la edición 2025 es el umbral
+  **mitral**, no el aórtico — cruzarlos es fácil y cambia la conducta.
+  Decisión de Maicol (2026-09-11): no migrar ahora. El panel sigue citando la 2021 **con los valores
+  correctos de esa edición**, y la migración es tarea propia porque toca el informe firmado.
+- **Hay DOS implementaciones del score de Wilkins.** `wilkinsScore()`/`calcWilkins` (pestaña ETE,
+  `wilkins-*`) y la de la calculadora `cx` (`cx-wilkins-total`, ~13480). Comparten las bandas
+  (≤ 8 / ≤ 11) pero **no el texto**: una dice «resultado intermedio» y la otra «Resultado subóptimo
+  probable», y la segunda no tiene la guarda de score incompleto que la primera documenta como
+  necesaria —sin ella, un solo criterio en 2 sale «favorable para valvuloplastia percutánea»—. Es
+  preexistente; el panel de indicaciones usa la primera.
 
 - **Contraseña en el código.** `doLogin()` compara contra un literal. Choca con el checklist
   («sin contraseñas hardcodeadas visibles»), pero es la única compuerta que tiene la app y
