@@ -1265,6 +1265,11 @@ function doLogin() {
   }
 }
 function cerrarSesion() {
+  /* La cohorte del Laboratorio es estado de MÓDULO y sobrevivía al cierre de sesión: el médico
+     siguiente heredaba los filtros del anterior. En el Laboratorio se ve (badge y aviso), pero
+     el Excel se exporta desde Guardados, donde ese aviso no llega. `typeof` porque esta función
+     vive en un bloque <script> anterior al del Laboratorio. */
+  if (typeof labCohorteLimpiar === 'function') { try { labCohorteLimpiar(true); } catch (e) {} }
   sessionStorage.removeItem('ett_auth');
   document.getElementById('login-pwd').value = '';
   document.getElementById('login-err').textContent = '';
@@ -11462,6 +11467,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 </style>
 
   <div style="display:flex;flex-wrap:wrap;border-bottom:2px solid var(--border);margin-bottom:16px;">
+    <button class="lab-subtab" onclick="labSubTab('filtros',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Filtros<span id="lab-coh-badge" style="display:none;margin-left:6px;background:var(--orange,#f0a500);color:#111;border-radius:9px;padding:1px 7px;font-size:.68rem;font-weight:800;"></span></button>
     <button class="lab-subtab active" onclick="labSubTab('general',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="14"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="10"/><line x1="3" y1="20" x2="21" y2="20"/></svg>General</button>
     <button class="lab-subtab" onclick="labSubTab('mediciones',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21C12 21 4 14 4 8.5A4.5 4.5 0 0 1 12 6 4.5 4.5 0 0 1 20 8.5C20 14 12 21 12 21Z"/><path d="M6 12H9L10.5 9L13 15L14.5 12H18"/></svg>Mediciones</button>
     <button class="lab-subtab" onclick="labSubTab('asociaciones',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>Asociaciones</button>
@@ -11474,6 +11480,170 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     <button class="lab-subtab" onclick="labSubTab('comparar',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>Comparar períodos</button>
     <button class="lab-subtab" onclick="labSubTab('informe',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>Informe PDF</button>
   </div>
+
+  <!-- ══ PANEL DE FILTROS — define la cohorte de las once subtabs ══ -->
+  <div id="lab-sub-filtros" class="lab-subpanel" onchange="labCohortePendiente()">
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-body">
+        <div style="font-size:.78rem;color:var(--text2);line-height:1.6;margin-bottom:4px;">
+          Los filtros definen una <b>cohorte</b>: al aplicarlos, <b>todas</b> las pestañas del Laboratorio
+          —General, Mediciones, Asociaciones, Calidad, Avanzado, Hemodinámica, CC/Genéticas, ETE,
+          Por médico, Comparar períodos y el PDF de auditoría— se recalculan sobre ella.
+          El <b>período</b> y los <b>centros</b> se siguen eligiendo en la pestaña General y se combinan con esto.
+        </div>
+        <div style="font-size:.75rem;color:var(--text2);background:var(--bg3);border-left:3px solid var(--accent);border-radius:6px;padding:8px 10px;line-height:1.55;">
+          Un estudio en el que un criterio <b>no se puede evaluar</b> —el dato no está o el módulo no se usó—
+          queda <b>fuera</b> de la cohorte, no dentro. Filtrar «FEVI &lt; 40 %» dejando pasar los estudios
+          sin FEVI armaría una cohorte de disfunción severa con pacientes a los que nadie se la midió.
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;"><div class="card-body">
+      <div style="font-size:.8rem;font-weight:700;color:var(--accent2);margin-bottom:8px;">Demográficos</div>
+      <div class="lab-filtros">
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Edad mínima (años)</label>
+          <input type="number" id="coh-edad-min" min="0" max="120" placeholder="—"></div>
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Edad máxima (años)</label>
+          <input type="number" id="coh-edad-max" min="0" max="120" placeholder="—"></div>
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Sexo</label>
+          <select id="coh-sexo"><option value="">Todos</option><option value="M">Masculino</option><option value="F">Femenino</option></select></div>
+      </div>
+    </div></div>
+
+    <div class="card" style="margin-bottom:14px;"><div class="card-body">
+      <div style="font-size:.8rem;font-weight:700;color:var(--accent2);margin-bottom:8px;">Función ventricular</div>
+      <div class="lab-filtros">
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">FEVI</label>
+          <select id="coh-fevi"><option value="">Todas</option><option value="baja">&lt; 40 %</option><option value="media">40–49 %</option><option value="alta">≥ 50 %</option></select></div>
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Disfunción diastólica</label>
+          <select id="coh-diast"><option value="">Todas</option><option value="I">Grado I</option><option value="II">Grado II</option><option value="III">Grado III</option><option value="sin">Sin disfunción</option></select></div>
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Geometría del VI</label>
+          <select id="coh-geom"><option value="">Todas</option><option value="normal">Normal</option><option value="remod">Remodelado concéntrico</option><option value="conc">HVI concéntrica</option><option value="exc">HVI excéntrica</option></select></div>
+      </div>
+      <div style="font-size:.72rem;color:var(--text2);margin-top:8px;line-height:1.5;">
+        La geometría y el grado diastólico se leen del <b>texto del informe</b> con detección de negación
+        («se descarta…» no cuenta como hallazgo). Un estudio cuyo informe no los nombre queda fuera del filtro.
+      </div>
+    </div></div>
+
+    <div class="card" style="margin-bottom:14px;"><div class="card-body">
+      <div style="font-size:.8rem;font-weight:700;color:var(--accent2);margin-bottom:8px;">Valvulopatías</div>
+      <div class="lab-filtros">
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Insuficiencia mitral</label>
+          <select id="coh-im"><option value="">Todas</option><option value="Leve">Leve</option><option value="Moderada">Moderada</option><option value="Severa">Severa</option></select></div>
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Estenosis aórtica</label>
+          <select id="coh-ea"><option value="">Todas</option><option value="Leve">Leve</option><option value="Moderada">Moderada</option><option value="Severa">Severa</option></select></div>
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Insuficiencia aórtica</label>
+          <select id="coh-ia"><option value="">Todas</option><option value="Leve">Leve</option><option value="Moderada">Moderada</option><option value="Severa">Severa</option></select></div>
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Insuficiencia tricuspídea</label>
+          <select id="coh-it"><option value="">Todas</option><option value="Leve">Leve</option><option value="Moderada">Moderada</option><option value="Severa">Severa</option></select></div>
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Estenosis mitral</label>
+          <select id="coh-em"><option value="">Todas</option><option value="Leve">Leve</option><option value="Moderada">Moderada</option><option value="Severa">Severa</option></select></div>
+      </div>
+      <div style="font-size:.74rem;color:var(--text);background:var(--bg3);border-left:3px solid var(--orange,#f0a500);border-radius:6px;padding:8px 10px;margin-top:10px;line-height:1.55;">
+        ⚠️ Los grados valvulares se registran en todos los estudios por defecto — este filtro puede no reflejar
+        estudios donde la válvula no fue evaluada.
+      </div>
+    </div></div>
+
+    <div class="card" style="margin-bottom:14px;"><div class="card-body">
+      <div style="font-size:.8rem;font-weight:700;color:var(--accent2);margin-bottom:8px;">Insuficiencia cardíaca</div>
+      <div class="lab-filtros">
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">HFA-PEFF</label>
+          <select id="coh-hfpeff"><option value="">Todos</option><option value="bajo">Bajo (0–1)</option><option value="inter">Intermedio (2–4)</option><option value="alto">Alto (≥5)</option></select></div>
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Péptidos natriuréticos</label>
+          <select id="coh-peptido"><option value="">Todos</option><option value="alto">Elevado (criterio mayor)</option><option value="normal">Normal</option></select></div>
+      </div>
+      <div style="font-size:.72rem;color:var(--text2);margin-top:8px;line-height:1.5;">
+        La banda HFA-PEFF sólo se calcula con los <b>tres dominios</b> evaluados: con uno sin medir el techo
+        es 4 puntos y un «alto» es aritméticamente imposible. Los cortes de péptidos son los <b>ajustados por
+        ritmo</b> (en fibrilación auricular se triplican); la <b>zona gris</b> del criterio menor no es ni
+        «elevado» ni «normal» y queda fuera de las dos opciones.
+      </div>
+    </div></div>
+
+    <div class="card" style="margin-bottom:14px;"><div class="card-body">
+      <div style="font-size:.8rem;font-weight:700;color:var(--accent2);margin-bottom:8px;">HTP y TEP</div>
+      <div class="lab-filtros">
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Probabilidad de HTP (ESC/ERS 2022)</label>
+          <select id="coh-htp"><option value="">Todos</option><option value="BAJA">Baja</option><option value="INTERMEDIA">Intermedia</option><option value="ALTA">Alta</option></select></div>
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">PSAP estimada</label>
+          <select id="coh-psap"><option value="">Todos</option><option value="lt36">—</option><option value="a3650">—</option><option value="gt50">&gt; 50 mmHg</option></select></div>
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Signos de TEP</label>
+          <select id="coh-tep"><option value="">Todos</option><option value="si">Con al menos un signo</option></select></div>
+      </div>
+      <div style="font-size:.72rem;color:var(--text2);margin-top:8px;line-height:1.5;">
+        La probabilidad se calcula con la misma función que la publica en el informe, y sólo sobre los estudios
+        donde la <b>VRT</b> está medida o categorizada a mano, o hay algún signo tildado: los signos A, B y C se
+        derivan de mediciones de rutina, así que clasificar sin eso sería clasificar por ausencia.
+      </div>
+    </div></div>
+
+    <div class="card" style="margin-bottom:14px;"><div class="card-body">
+      <div style="font-size:.8rem;font-weight:700;color:var(--accent2);margin-bottom:8px;">Amiloidosis</div>
+      <div class="lab-filtros">
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Score ETT</label>
+          <select id="coh-amil"><option value="">Todos</option><option value="baja">Baja (&lt; 6)</option><option value="inter">Intermedio (6–7)</option><option value="alta">Probable (≥ 8)</option></select></div>
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Patrón granular «sparkling»</label>
+          <select id="coh-sparkling"><option value="">Todos</option><option value="si">Presente</option></select></div>
+      </div>
+    </div></div>
+
+    <div class="card" style="margin-bottom:14px;"><div class="card-body">
+      <div style="font-size:.8rem;font-weight:700;color:var(--accent2);margin-bottom:8px;">Cardio-oncología</div>
+      <div class="lab-filtros">
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Fármaco</label>
+          <select id="coh-co-farmaco"><option value="">Todos</option><option value="antracicline">Antraciclinas</option><option value="otros">Otros</option></select></div>
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Caída de FEVI</label>
+          <select id="coh-co-fevi"><option value="">Todas</option><option value="gt10">&gt; 10 puntos</option><option value="gt15">&gt; 15 puntos</option></select></div>
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Caída relativa de GLS</label>
+          <select id="coh-co-gls"><option value="">Todas</option><option value="gt15">&gt; 15 %</option></select></div>
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Cardiotoxicidad</label>
+          <select id="coh-co-tox"><option value="">Todos</option><option value="si">CTRCD confirmada</option></select></div>
+      </div>
+      <div style="font-size:.72rem;color:var(--text2);margin-top:8px;line-height:1.5;">
+        «CTRCD confirmada» son los <b>cuatro grados</b> de ESC 2022 (leve, moderada por caída, moderada por
+        criterio menor y severa), por el mismo clasificador que rotula el informe firmado. Los hallazgos que la
+        guía expresamente <b>no gradúa</b> —una FEVI baja sin basal, un empeoramiento sobre disfunción previa—
+        no entran: el informe de ese paciente dice «no cumple criterio de CTRCD».
+      </div>
+    </div></div>
+
+    <div class="card" style="margin-bottom:14px;"><div class="card-body">
+      <div style="font-size:.8rem;font-weight:700;color:var(--accent2);margin-bottom:8px;">Cardiopatías congénitas y miocardiopatías genéticas</div>
+      <div id="coh-cc-box" style="display:flex;flex-wrap:wrap;gap:6px 18px;"></div>
+      <div style="font-size:.72rem;color:var(--text2);margin-top:8px;line-height:1.5;">
+        Marcar varias es <b>«cualquiera de ellas»</b>, no «todas a la vez». El criterio de pertenencia es el
+        mismo que usa la subtab CC/Genéticas como denominador de cada bloque.
+      </div>
+    </div></div>
+
+    <div class="card" style="margin-bottom:14px;"><div class="card-body">
+      <div style="font-size:.8rem;font-weight:700;color:var(--accent2);margin-bottom:8px;">Ecocardiograma transesofágico</div>
+      <div class="lab-filtros">
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Estudios</label>
+          <select id="coh-ete"><option value="">Todos</option><option value="si">Solo ETEs marcados</option></select></div>
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Con TAVI</label>
+          <select id="coh-tavi"><option value="">Todos</option><option value="si">Sí</option></select></div>
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Con trombo en orejuela</label>
+          <select id="coh-trombo"><option value="">Todos</option><option value="si">Sí — confirmado</option></select></div>
+      </div>
+      <div style="font-size:.72rem;color:var(--text2);margin-top:8px;line-height:1.5;">
+        «Trombo» es sólo <b>confirmado</b>. El campo admite además «sospecha», que no es lo mismo: la app trata
+        el trombo confirmado como contraindicación absoluta de valvuloplastia.
+      </div>
+    </div></div>
+
+    <div class="card"><div class="card-body">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+        <button type="button" class="btn btn-primary" id="coh-btn-aplicar" onclick="labCohorteAplicar()">Aplicar filtros</button>
+        <button type="button" class="btn" onclick="labCohorteLimpiar()">Limpiar filtros</button>
+        <span id="coh-pendiente" style="display:none;font-size:.76rem;color:var(--orange);font-weight:700;">● Cambios sin aplicar — el resto del Laboratorio sigue mostrando la cohorte anterior</span>
+      </div>
+      <div id="coh-resultado" style="margin-top:12px;font-size:.85rem;line-height:1.6;"></div>
+    </div></div>
+  </div><!-- /lab-sub-filtros -->
 
   <div id="lab-sub-general" class="lab-subpanel active">
 
@@ -11669,7 +11839,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     <div class="lab-card">
       <div class="lab-card-hdr">📋 Indicaciones del estudio</div>
       <div class="lab-card-body">
-        <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Frecuencia por indicación (sobre el total de estudios del período).</div>
+        <div class="lab-pob-sub" data-lab-pob="Frecuencia por indicación" style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Frecuencia por indicación (sobre el total de estudios del período).</div>
         <div class="lab-bar-wrap" id="lab-indicaciones-freq"></div>
       </div>
     </div>
@@ -11677,7 +11847,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     <div class="lab-card">
       <div class="lab-card-hdr">🩺 Antecedentes</div>
       <div class="lab-card-body">
-        <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Frecuencia por antecedente (sobre el total de estudios del período).</div>
+        <div class="lab-pob-sub" data-lab-pob="Frecuencia por antecedente" style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Frecuencia por antecedente (sobre el total de estudios del período).</div>
         <div class="lab-bar-wrap" id="lab-antecedentes-freq"></div>
       </div>
     </div>
@@ -13492,35 +13662,32 @@ window.calcTEP = calcTEP;
 
 // ══ HTP — probabilidad ecocardiográfica (ESC 2022) ══
 // calcHTP2022: signo de desacoplamiento en HTP — umbral <0.55 (contexto HTP crónica)
-function calcHTP2022() {
-  const selEl = document.getElementById('htp2022_vrt');
-  const vrtSel = selEl ? selEl.value : 'auto';
-  const vit = v('vmax_it');
+
+/* ── El núcleo se evalúa sobre una FUENTE, no sobre el DOM ──────────────────────────────
+   Mismo motivo y mismo patrón que `hfapeffScore` + `_hfSrcCampos`: el panel de cohorte del
+   Laboratorio tiene que clasificar la probabilidad de HTP de cada estudio GUARDADO, y la
+   alternativa —reescribir la tabla ESC/ERS 2022 del lado del Lab— es la trampa de la fórmula
+   duplicada, que en este archivo ya se pagó tres veces. Los umbrales, los signos y el cruce
+   VRT × categorías no se tocaron: sólo de dónde salen los números.
+   `S.txt('htp2022_vrt') || 'auto'` conserva el comportamiento del selector ausente. */
+function _htp2022Core(S) {
+  const vrtSel = S.txt('htp2022_vrt') || 'auto';
+  const vit = S.num('vmax_it');
   /* ECOS-08: la categoría que se deriva de la IT medida se calcula SIEMPRE, no sólo en modo
      automático, para poder contrastarla con la que el usuario eligió a mano. Sin esto, elegir
      «< 2.8 m/s» con una IT medida de 3,6 bajaba la probabilidad de ALTA a BAJA y el informe
      firmado no dejaba rastro de que el dato medido decía otra cosa. */
   const vrtAuto = (vit === null) ? null
     : (vit < 2.8 ? 'baja' : (vit <= 3.4 ? 'media' : 'alta'));
-  let vrtCat;
-  if (vrtSel === 'auto') {
-    vrtCat = (vrtAuto === null) ? 'nomedible' : vrtAuto;
-  } else vrtCat = vrtSel;
-  const VRT_LBL = { baja:'baja (< 2.8 m/s)', media:'media (2.8–3.4 m/s)', alta:'alta (> 3.4 m/s)' };
-  const vrtDiscrepa = (vrtSel !== 'auto' && vrtAuto !== null && vrtAuto !== vrtCat);
-  const vrtAviso = vrtDiscrepa
-    ? '⚠️ Categoría de VRT seleccionada manualmente. La VRT medida (' + vit + ' m/s) corresponde a categoría ' +
-      (VRT_LBL[vrtAuto] || vrtAuto) + '. Verificar.'
-    : '';
+  const vrtCat = (vrtSel === 'auto') ? ((vrtAuto === null) ? 'nomedible' : vrtAuto) : vrtSel;
 
-  const chk = id => { const el = document.getElementById(id); return el ? el.checked : false; };
-  const vdBas = v('vd_bas'), vdvi = v('vd_vi'), tap = v('tvia');
-  const vciD = v('vci_diam'), vciCol = sv('vci_col'), adA = v('ad_area');
-  const tapse = v('tapse'), psap = v('psap_calc');
+  const vdBas = S.num('vd_bas'), vdvi = S.num('vd_vi'), tap = S.num('tvia');
+  const vciD = S.num('vci_diam'), vciCol = S.txt('vci_col'), adA = S.num('ad_area');
+  const tapse = S.num('tapse'), psap = S.num('psap_calc');
   const tapsePsap = (tapse && psap) ? tapse / psap : null;
 
-  const catA = (vdBas !== null && vdBas > 41) || (vdvi !== null && vdvi > 1.0) || chk('htp2022_a3');
-  const catB = (tap !== null && tap < 105) || chk('htp2022_b1muesca') || chk('htp2022_b2') || chk('htp2022_b3');
+  const catA = (vdBas !== null && vdBas > 41) || (vdvi !== null && vdvi > 1.0) || S.chk('htp2022_a3');
+  const catB = (tap !== null && tap < 105) || S.chk('htp2022_b1muesca') || S.chk('htp2022_b2') || S.chk('htp2022_b3');
   const catC = (vciD !== null && vciD > 21 && vciCol === '<50') || (adA !== null && adA > 18) || (tapsePsap !== null && tapsePsap < 0.55);
   const nCat = (catA ? 1 : 0) + (catB ? 1 : 0) + (catC ? 1 : 0);
 
@@ -13529,6 +13696,25 @@ function calcHTP2022() {
   else if (vrtCat === 'media'){ prob = (nCat >= 2) ? 'ALTA' : 'INTERMEDIA'; cls = (nCat >= 2) ? 'red' : 'yellow'; }
   else if (vrtCat === 'alta') { prob = 'ALTA'; cls = 'red'; }
   else                        { prob = (nCat >= 2) ? 'INTERMEDIA' : 'INDETERMINADA'; cls = (nCat >= 2) ? 'yellow' : 'gray'; }
+
+  return { vrtSel, vit, vrtAuto, vrtCat, catA, catB, catC, nCat, prob, cls };
+}
+window._htp2022Core = _htp2022Core;
+
+function calcHTP2022() {
+  /* La fuente se arma acá con las tres funciones DECLARADAS (`_hfN`, `sv`, `_hfChk`), que se
+     hoistean, y no con `_HF_SRC_DOM`: ése es un `const` declarado 340 líneas más abajo, y en
+     este archivo leer un `const` de nivel superior antes de su línea no da `undefined` — LANZA,
+     y se lleva puesto el bloque <script> entero. Ya pasó dos veces. */
+  const R = _htp2022Core({ num: _hfN, txt: sv, chk: _hfChk });
+  const vrtSel = R.vrtSel, vit = R.vit, vrtAuto = R.vrtAuto, vrtCat = R.vrtCat;
+  const catA = R.catA, catB = R.catB, catC = R.catC, nCat = R.nCat, prob = R.prob, cls = R.cls;
+  const VRT_LBL = { baja:'baja (< 2.8 m/s)', media:'media (2.8–3.4 m/s)', alta:'alta (> 3.4 m/s)' };
+  const vrtDiscrepa = (vrtSel !== 'auto' && vrtAuto !== null && vrtAuto !== vrtCat);
+  const vrtAviso = vrtDiscrepa
+    ? '⚠️ Categoría de VRT seleccionada manualmente. La VRT medida (' + vit + ' m/s) corresponde a categoría ' +
+      (VRT_LBL[vrtAuto] || vrtAuto) + '. Verificar.'
+    : '';
 
   const vrtTxt = {baja:'VRT < 2.8 m/s', media:'VRT 2.8–3.4 m/s', alta:'VRT > 3.4 m/s', nomedible:'VRT no medible'}[vrtCat];
   const set = (id, html) => { const e = document.getElementById(id); if (e) e.innerHTML = html; };
@@ -15988,6 +16174,51 @@ function _coPuntos() {
   return Array.isArray(v) ? v : [];   // un valor no-array en storage no debe tirar
 }
 
+/* ── La cascada de CTRCD, extraída como clasificador puro ──────────────────────────────
+   Devuelve UNA clave por rama, en el MISMO orden en que la cascada de `calcCardioOnco` las
+   evaluaba. El orden importa y no es evidente: una FEVI de 38 con caída de 12 pp sobre un basal
+   de 35 NO es CTRCD severa (la severa exige que la reducción por debajo de 40 sea NUEVA, o sea
+   basal ≥40) y tampoco es moderada — es 'empeoramiento_sub40', que la guía no gradúa. Un filtro
+   que preguntara «¿FEVI <50 y caída ≥10?» por su cuenta lo rotularía moderada.
+
+   Se extrae porque el panel de cohorte del Laboratorio filtra por «toxicidad confirmada» y no
+   puede reimplementar los grados de ESC 2022: el informe firmado de ese paciente dice una cosa
+   y la cohorte diría otra. `calcCardioOnco` conserva sus textos rama por rama; lo único que
+   cambió es de dónde sale la decisión de en qué rama está.
+
+   `null` NO es «sin toxicidad»: es «esta combinación no cae en ninguna rama», que incluye el
+   estudio sin datos. Quien lo consuma tiene que distinguirlo de un negativo medido. */
+function _ctrcdEstado(d) {
+  const fb = d.feviBasal, fa = d.feviActual;
+  const gls = !!d.glsAlterado, tropo = !!d.tropoElevada;
+  if (fb && fa) {
+    const caida = fb - fa;
+    if (fa < 40 && fb >= 40)                      return 'severa';
+    if (fa < 40 && caida >= 10)                   return 'empeoramiento_sub40';
+    if (fa < 40)                                  return 'sub40_sin_descenso';
+    if (fa < 50 && caida >= 10)                   return 'moderada';
+    if (fa < 50 && caida > 0 && (gls || tropo))   return 'moderada_menor';
+    if (fa < 50)                                  return 'sub50_sin_criterio';
+    if (gls || tropo)                             return 'leve';
+    if (caida >= 10)                              return 'caida10_sin_criterio';
+    if (caida >= 5)                               return 'caida5';
+    return null;
+  }
+  if (gls || tropo) return 'sin_par_con_criterio';
+  return null;
+}
+/* Las CUATRO claves que son un grado de CTRCD de la guía. Las demás son hallazgos que la guía
+   expresamente NO gradúa, y meterlas en «toxicidad confirmada» contradiría el informe firmado
+   del mismo paciente, que dice «no cumple criterio de CTRCD». */
+function _ctrcdEsGrado(k) { return k === 'severa' || k === 'moderada' || k === 'moderada_menor' || k === 'leve'; }
+/* Caída RELATIVA del GLS, en %. Se extrae por lo mismo: el umbral de ESC 2022 es relativo
+   (≥15 % del basal), no absoluto, y el valor se tipea negativo — de ahí los `Math.abs`. Con la
+   fórmula escrita otra vez del lado del Lab, un GLS de −18 → −16 sería «11 %» en un lado y
+   «2 puntos» en el otro. Devuelve null si falta alguno de los dos. */
+function _ctrcdGlsRel(gb, ga) {
+  return (gb && ga && Math.abs(gb) > 0) ? (Math.abs(gb) - Math.abs(ga)) / Math.abs(gb) * 100 : null;
+}
+
 function calcCardioOnco() {
   var feviBasal = v('co_fevi_basal');
   var feviActual = v('co_fevi_actual');
@@ -16052,8 +16283,7 @@ function calcCardioOnco() {
      sueltos sino CRITERIO de dos grados de CTRCD —la leve y la moderada con caída <10 pp—,
      así que la cascada los necesita para decidir. Antes se evaluaban después y sólo servían
      para agregar una línea suelta, por eso los dos grados que dependen de ellos no existían. */
-  var glsCaidaRel = (glsBasal && glsActual && Math.abs(glsBasal) > 0)
-    ? (Math.abs(glsBasal) - Math.abs(glsActual)) / Math.abs(glsBasal) * 100 : null;
+  var glsCaidaRel = _ctrcdGlsRel(glsBasal, glsActual);
   var glsAlterado  = glsCaidaRel !== null && glsCaidaRel >= 15;
   var tropoElevada = (troponi === 'si');
   var glsTxt   = glsAlterado ? 'caida relativa de GLS ' + glsCaidaRel.toFixed(1) + '%' : '';
@@ -16064,6 +16294,11 @@ function calcCardioOnco() {
      más allá «toxicidad subclinica» sobre el mismo GLS. */
   var critConsumido = false;
 
+  /* La RAMA la decide `_ctrcdEstado`, el clasificador compartido con el panel de cohorte del
+     Laboratorio. Los textos, los colores y el orden son los mismos de antes: lo único que se
+     movió es la decisión, para que no exista una segunda copia de los grados de ESC 2022. */
+  var _ctrcdK = _ctrcdEstado({ feviBasal: feviBasal, feviActual: feviActual,
+                               glsAlterado: glsAlterado, tropoElevada: tropoElevada });
   if (feviBasal && feviActual) {
     var caida = feviBasal - feviActual;
     /* ECOS-04: la severa es «nueva FEVI <40%», sin exigir 10 pp de caída. Pedir además el
@@ -16071,24 +16306,24 @@ function calcCardioOnco() {
        CTRCD severa de la guía. Lo que sí se conserva es la exigencia de que la reducción sea
        NUEVA (basal ≥40): una miocardiopatía previa con FEVI 35 estable que arranca
        quimioterapia no «cayó» a ningún lado y no puede salir rotulada severa. */
-    if (feviActual < 40 && feviBasal >= 40) {
+    if (_ctrcdK === 'severa') {
       alertas.push('FEVI ' + feviActual + '% (nueva reduccion por debajo de 40, desde ' + feviBasal +
         '%; caida ' + caida.toFixed(1) + ' pp) — cardiotoxicidad SEVERA (ESC 2022)');
       toxCls = 'red'; critConsumido = true;
-    } else if (feviActual < 40 && caida >= 10) {
+    } else if (_ctrcdK === 'empeoramiento_sub40') {
       /* FEVI ya <40 en el basal: no es una reducción NUEVA a <40, pero un descenso de 10 pp
          sobre una disfunción previa tampoco es un no-evento. Se informa sin rotular grado. */
       alertas.push('FEVI ' + feviActual + '% con caida de ' + caida.toFixed(1) + ' pp sobre un basal ya por debajo de 40 (' +
         feviBasal + '%) — empeoramiento significativo sobre disfuncion previa; no configura la reduccion NUEVA a <40 que define la CTRCD severa. Valorar en contexto');
       toxCls = 'red'; critConsumido = true;
-    } else if (feviActual < 40) {
+    } else if (_ctrcdK === 'sub40_sin_descenso') {
       alertas.push('FEVI ' + feviActual + '% (por debajo de 40) sin descenso significativo respecto del basal — no cumple criterio de CTRCD por descenso; valorar en contexto');
       if (toxCls !== 'red') toxCls = 'orange';
-    } else if (feviActual < 50 && caida >= 10) {
+    } else if (_ctrcdK === 'moderada') {
       alertas.push('FEVI ' + feviActual + '% con caida de ' + caida.toFixed(1) + ' pp — cardiotoxicidad MODERADA (ESC 2022)');
       critConsumido = true;
       if (toxCls !== 'red') toxCls = 'orange';   // la tabla de Referencias usa naranja para moderada
-    } else if (feviActual < 50 && caida > 0 && (glsAlterado || tropoElevada)) {
+    } else if (_ctrcdK === 'moderada_menor') {
       /* ECOS-05: la moderada con FEVI 40–49 y caída <10 pp existe cuando hay GLS relativo
          >15% o troponina nueva elevada. Sin esta rama, ese paciente caía en el texto de abajo
          —«no cumple criterio de CTRCD»— que es lo contrario de lo que dice la guía.
@@ -16100,12 +16335,12 @@ function calcCardioOnco() {
         ' — cardiotoxicidad MODERADA (ESC 2022)');
       critConsumido = true;
       if (toxCls !== 'red') toxCls = 'orange';
-    } else if (feviActual < 50) {
+    } else if (_ctrcdK === 'sub50_sin_criterio') {
       /* Por debajo de 50 pero sin caída documentada respecto del basal y sin GLS ni troponina
          alterados: no es un grado de CTRCD. Se informa el hallazgo sin rotularlo. */
       alertas.push('FEVI ' + feviActual + '% (por debajo de 50) sin caida significativa respecto del basal y sin GLS ni troponina alterados — no cumple criterio de CTRCD; valorar en contexto');
       if (toxCls !== 'red') toxCls = 'orange';
-    } else if (glsAlterado || tropoElevada) {
+    } else if (_ctrcdK === 'leve') {
       /* ECOS-06: la CTRCD leve asintomática de ESC 2022 es FEVI ≥50% con caída relativa de
          GLS >15% y/o biomarcadores nuevos elevados. NO la define la caída de 10 pp —una caída
          de 12 pp que deja la FEVI en 55 no es una categoría de CTRCD— ni los síntomas, que
@@ -16115,15 +16350,15 @@ function calcCardioOnco() {
       alertas.push('FEVI ' + feviActual + '% (>=50) con ' + critMenor + ' — cardiotoxicidad LEVE asintomatica (ESC 2022)');
       critConsumido = true;
       if (toxCls !== 'red') toxCls = 'orange';
-    } else if (caida >= 10) {
+    } else if (_ctrcdK === 'caida10_sin_criterio') {
       alertas.push('Caida FEVI ' + caida.toFixed(1) + ' pp con FEVI >= 50% (' + feviActual +
         '%) sin caida de GLS >15% ni biomarcadores elevados — no configura CTRCD leve (ESC 2022); vigilancia estrecha');
       if (toxCls !== 'red') toxCls = 'orange';
-    } else if (caida >= 5) {
+    } else if (_ctrcdK === 'caida5') {
       alertas.push('Caida FEVI ' + caida.toFixed(1) + ' pp — por debajo del umbral de CTRCD; vigilancia estrecha');
       if (toxCls !== 'red') toxCls = 'orange';
     }
-  } else if (glsAlterado || tropoElevada) {
+  } else if (_ctrcdK === 'sin_par_con_criterio') {
     /* Sin par de FEVI no se puede graduar, pero GLS y troponina siguen siendo hallazgos. */
     alertas.push(critMenor.charAt(0).toUpperCase() + critMenor.slice(1) +
       ' — sin par de FEVI basal/actual no se puede graduar la CTRCD; valorar en contexto');
@@ -34017,6 +34252,358 @@ imgRender();
    «último mes» arriba vaciaría los dos rangos de la comparación sin explicar por qué. El filtro
    de centro —y la cohorte, cuando exista— sí se aplican: son propiedades del PACIENTE, no de la
    ventana temporal, así que valen para cualquier rango. */
+/* ══ COHORTE (pestaña «Filtros») ═══════════════════════════════════════════════════════
+   `null` = sin cohorte, y entonces `_labCohorteOk` devuelve true para todo. Cuando hay cohorte
+   es una FOTO tomada al apretar «Aplicar filtros», no una lectura del DOM: si se leyera el DOM
+   como se lee el período, tocar un control recalcularía las once subtabs a media edición y el
+   botón no significaría nada.
+
+   `var` y no `let`: en nivel superior de un <script> un `let`/`const` reintroduce la trampa de
+   zona muerta que este archivo ya documentó dos veces. */
+var _LAB_COHORTE = null;
+
+/* Un estudio pasa la cohorte si cumple TODOS los criterios activos. Los vacíos no filtran.
+
+   Regla transversal, y es la que hace que estos filtros no mientan: cuando un criterio no se
+   puede EVALUAR sobre un estudio —el dato no está, o el módulo no se usó— el estudio queda
+   FUERA, no dentro. Un filtro «FEVI < 40 %» que dejara pasar los estudios sin FEVI construiría
+   una cohorte de disfunción severa con pacientes a los que nadie se la midió, y el n de esa
+   cohorte es el denominador de todo el Laboratorio y del PDF de auditoría. */
+function _labCohorteOk(inf) {
+  const C = _LAB_COHORTE;
+  if (!C) return true;
+
+  // ── Demográficos ──
+  /* `> 0` y no `!== null` para el piso: `_cohNum` devuelve 0 para un «0» tipeado, y un 0 en
+     «Edad mínima» se LEE como «sin piso» mientras que acá activaba la cohorte y descartaba todo
+     estudio sin `edad` cargada —que los hay, el campo no es obligatorio—. La descripción decía
+     «Edad ≥ 0 años», que no delata nada. El techo sí admite 0: «Edad ≤ 0» no se lee como
+     «sin techo», y en una app que puede ver neonatos es un filtro con sentido. */
+  const _edMin = (C.edadMin !== null && C.edadMin > 0) ? C.edadMin : null;
+  if (_edMin !== null || C.edadMax !== null) {
+    const e = _labNum(inf, 'edad');
+    if (e === null) return false;
+    if (_edMin !== null && e < _edMin) return false;
+    if (C.edadMax !== null && e > C.edadMax) return false;
+  }
+  if (C.sexo) {
+    // El sexo se guarda 'M'/'F'. Un estudio sin sexo cargado no entra en ninguna de las dos.
+    if (_labCampoRaw(inf, 'sexo').toUpperCase() !== C.sexo) return false;
+  }
+
+  // ── Función ventricular ──
+  /* `UMBRAL_FEVI_NORMAL` y no un 50 a pelo: es la constante que gobierna `FEVICAT`, o sea las
+     MISMAS tres bandas en el módulo de asociaciones. CLAUDE.md ya lista un `FEVICAT f>=50`
+     entre los ~20 sitios que se escaparon la vez anterior; escribir el número otra vez acá es
+     reintroducir uno nuevo. El 40 queda literal porque no hay constante y es el borde interno
+     de la banda intermedia, no un umbral de normalidad. */
+  if (C.fevi) {
+    const f = _labFevi(inf);
+    if (f === null) return false;
+    const uf = (typeof UMBRAL_FEVI_NORMAL === 'number') ? UMBRAL_FEVI_NORMAL : 50;
+    if (C.fevi === 'baja'  && !(f < 40)) return false;
+    if (C.fevi === 'media' && !(f >= 40 && f < uf)) return false;
+    if (C.fevi === 'alta'  && !(f >= uf)) return false;
+  }
+  if (C.diast && _labDiastGrado(inf) !== C.diast) return false;
+  if (C.geom  && _labGeomCat(inf)    !== C.geom)  return false;
+
+  // ── Valvulopatías ── (ver la salvedad impresa en el panel)
+  if (C.im && _labRegurgSev(inf, 'im_grado') !== C.im) return false;
+  if (C.ia && _labRegurgSev(inf, 'ia_grado') !== C.ia) return false;
+  if (C.it && _labRegurgSev(inf, 'it_grado') !== C.it) return false;
+  if (C.ea && _labEstenSev(inf, 'ea_grado')  !== C.ea) return false;
+  if (C.em && _labEstenSev(inf, 'em_grado')  !== C.em) return false;
+
+  // ── Insuficiencia cardíaca ──
+  if (C.hfpeff) {
+    const h = _labHfPeff(inf);
+    // `prob` sólo existe con los TRES dominios evaluados; con dos el techo es 4 puntos.
+    if (!h || h.prob !== C.hfpeff) return false;
+  }
+  if (C.peptido && _labPeptido(inf) !== C.peptido) return false;
+
+  // ── HTP y TEP ──
+  if (C.htp && _labHtpProb(inf) !== C.htp) return false;
+  /* Las bandas se derivan de `UMBRAL_PSAP_ELEVADA` con los MISMOS operadores que la
+     distribución de la pestaña General (`≤U` / `>U y ≤50` / `>50`). Escritas como «<36 / 36–50»
+     coincidían sólo porque `psap_calc` se guarda con `toFixed(0)`: con un valor fraccionario un
+     35,5 caía en la barra «36–50» del gráfico y en el bucket «<36» del filtro, en la misma
+     pantalla. Eso no es un acuerdo, es una dependencia no declarada de cómo se redondea. */
+  if (C.psap) {
+    const p = _labPsap(inf);
+    if (p === null) return false;
+    const up = (typeof UMBRAL_PSAP_ELEVADA === 'number') ? UMBRAL_PSAP_ELEVADA : 35;
+    if (C.psap === 'lt36'  && !(p <= up)) return false;
+    if (C.psap === 'a3650' && !(p > up && p <= 50)) return false;
+    if (C.psap === 'gt50'  && !(p > 50)) return false;
+  }
+  // «Con signos TEP» exige que el módulo se haya USADO: los tres selects tienen 'ne' = no
+  // evaluado, así que «ningún signo en sí» sobre un módulo cerrado no es un negativo medido.
+  if (C.tep === 'si' && !(_labTepUsado(inf) && _labTepSignos(inf) > 0)) return false;
+
+  // ── Amiloidosis ──
+  // Por `_labAmilBanda`, que es la misma clasificación que rotula el gráfico de Avanzado.
+  if (C.amil && _labAmilBanda(inf) !== C.amil) return false;
+  if (C.sparkling === 'si' && _labCampoRaw(inf, 'ett-sparkling') !== 'si') return false;
+
+  // ── Cardio-oncología ──
+  if (C.coFarmaco) {
+    const f = _labCampoRaw(inf, 'co_farmaco');
+    if (!f) return false;
+    if (C.coFarmaco === 'antracicline' && f !== 'antracicline') return false;
+    // «Otros» es cualquier fármaco CARGADO que no sea antraciclinas, nunca el campo vacío.
+    if (C.coFarmaco === 'otros' && f === 'antracicline') return false;
+  }
+  if (C.coFevi) {
+    const d = _labOncoCaidaFevi(inf);
+    if (d === null) return false;
+    if (C.coFevi === 'gt10' && !(d > 10)) return false;
+    if (C.coFevi === 'gt15' && !(d > 15)) return false;
+  }
+  if (C.coGls) {
+    const g = _labOncoCaidaGls(inf);
+    if (g === null || !(g > 15)) return false;
+  }
+  if (C.coTox === 'si' && !_ctrcdEsGrado(_labCtrcd(inf))) return false;
+
+  // ── CC / Genéticas ──
+  /* UNIÓN, no intersección: marcar CIA y CIV significa «cualquiera de las dos». Con
+     intersección, marcar dos casillas daría casi siempre cero y el panel lo diría igual. */
+  if (C.cc && C.cc.length) {
+    const alguna = C.cc.some(k => { const p = _ccSecPred(k); return p ? p(inf) : false; });
+    if (!alguna) return false;
+  }
+
+  // ── ETE ──
+  if (C.ete    === 'si' && !_labEsEte(inf))       return false;
+  if (C.tavi   === 'si' && !_labUsaTavi(inf))     return false;
+  if (C.trombo === 'si' && !_labOaiTromboSi(inf)) return false;
+
+  return true;
+}
+
+/* ── Lectura del panel, descripción legible y pintado del aviso ───────────────────────── */
+function _cohEl(id) { return document.getElementById(id); }
+function _cohSel(id) { const e = _cohEl(id); return e ? String(e.value || '').trim() : ''; }
+function _cohNum(id) {
+  const e = _cohEl(id); if (!e) return null;
+  const s = String(e.value || '').trim(); if (s === '') return null;
+  const n = parseFloat(s.replace(',', '.'));
+  return isFinite(n) ? n : null;
+}
+/* Los rótulos de la descripción son LITERALES de este archivo, nunca el valor crudo del control:
+   es la misma allowlist con la que se rotulan las barras. Van por `_lblDe`, que usa
+   hasOwnProperty — con `MAPA[k] || '…'` la clave 'constructor' no cae al fallback. */
+const _COH_LBL = {
+  sexo:     { M:'Masculino', F:'Femenino' },
+  fevi:     { baja:'FEVI < 40 %', media:'FEVI 40–49 %', alta:'FEVI ≥ 50 %' },
+  diast:    { I:'Diastólica grado I', II:'Diastólica grado II', III:'Diastólica grado III', sin:'Sin disfunción diastólica' },
+  geom:     { normal:'Geometría normal', remod:'Remodelado concéntrico', conc:'HVI concéntrica', exc:'HVI excéntrica' },
+  hfpeff:   { bajo:'HFA-PEFF bajo', inter:'HFA-PEFF intermedio', alto:'HFA-PEFF alto' },
+  peptido:  { alto:'Péptidos elevados', normal:'Péptidos normales' },
+  htp:      { BAJA:'HTP probabilidad baja', INTERMEDIA:'HTP probabilidad intermedia', ALTA:'HTP probabilidad alta' },
+  psap:     { lt36:'PSAP ' + _cohPsapLbl('lt36'), a3650:'PSAP ' + _cohPsapLbl('a3650'), gt50:'PSAP > 50 mmHg' },
+  amil:     { baja:'Amiloidosis score < 6', inter:'Amiloidosis score 6–7', alta:'Amiloidosis score ≥ 8' },
+  farmaco:  { antracicline:'Antraciclinas', otros:'Otros fármacos onco' },
+  coFevi:   { gt10:'Caída FEVI > 10 pp', gt15:'Caída FEVI > 15 pp' }
+};
+function _cohLbl(grupo, k) {
+  const m = _COH_LBL[grupo] || {};
+  return Object.prototype.hasOwnProperty.call(m, k) ? m[k] : null;
+}
+
+/* Foto de los controles. Devuelve null si NINGÚN criterio está activo: una cohorte «vacía» que
+   no filtra nada no es una cohorte, y encender el aviso amarillo sobre los 118 estudios de
+   siempre entrenaría al médico a ignorarlo. */
+function _labCohorteLeer() {
+  const C = {
+    edadMin: _cohNum('coh-edad-min'), edadMax: _cohNum('coh-edad-max'),
+    sexo: _cohSel('coh-sexo'),
+    fevi: _cohSel('coh-fevi'), diast: _cohSel('coh-diast'), geom: _cohSel('coh-geom'),
+    im: _cohSel('coh-im'), ea: _cohSel('coh-ea'), ia: _cohSel('coh-ia'),
+    it: _cohSel('coh-it'), em: _cohSel('coh-em'),
+    hfpeff: _cohSel('coh-hfpeff'), peptido: _cohSel('coh-peptido'),
+    htp: _cohSel('coh-htp'), psap: _cohSel('coh-psap'), tep: _cohSel('coh-tep'),
+    amil: _cohSel('coh-amil'), sparkling: _cohSel('coh-sparkling'),
+    coFarmaco: _cohSel('coh-co-farmaco'), coFevi: _cohSel('coh-co-fevi'),
+    coGls: _cohSel('coh-co-gls'), coTox: _cohSel('coh-co-tox'),
+    cc: Array.prototype.slice.call(document.querySelectorAll('#coh-cc-box input.coh-cc:checked'))
+          .map(e => String(e.value)),
+    ete: _cohSel('coh-ete'), tavi: _cohSel('coh-tavi'), trombo: _cohSel('coh-trombo')
+  };
+  const activo = Object.keys(C).some(k => {
+    const val = C[k];
+    if (Array.isArray(val)) return val.length > 0;
+    return val !== '' && val !== null && val !== undefined;
+  });
+  return activo ? C : null;
+}
+
+/* Descripción legible de la cohorte activa. La usan el badge, el aviso de las otras pestañas y
+   —esto es lo que importa— el ENCABEZADO del PDF de auditoría: un PDF que imprime «n = 12» sin
+   decir que hay una cohorte aplicada publica un denominador que no es el que su lector supone. */
+function _labCohorteDesc() {
+  const C = _LAB_COHORTE; if (!C) return '';
+  const p = [];
+  // El mismo piso que aplica `_labCohorteOk`: un 0 en «Edad mínima» no es un filtro.
+  const edMin = (C.edadMin !== null && C.edadMin > 0) ? C.edadMin : null;
+  if (edMin !== null && C.edadMax !== null) p.push('Edad ' + edMin + '–' + C.edadMax + ' años');
+  else if (edMin !== null) p.push('Edad ≥ ' + edMin + ' años');
+  else if (C.edadMax !== null) p.push('Edad ≤ ' + C.edadMax + ' años');
+  const simple = [['sexo','sexo'], ['fevi','fevi'], ['diast','diast'], ['geom','geom'],
+                  ['hfpeff','hfpeff'], ['peptido','peptido'], ['htp','htp'], ['psap','psap'],
+                  ['amil','amil'], ['coFarmaco','farmaco'], ['coFevi','coFevi']];
+  simple.forEach(([campo, grupo]) => { const l = _cohLbl(grupo, C[campo]); if (l) p.push(l); });
+  [['im','IM'], ['ea','EA'], ['ia','IAo'], ['it','IT'], ['em','EM']].forEach(([k, lbl]) => {
+    if (C[k] === 'Leve' || C[k] === 'Moderada' || C[k] === 'Severa') p.push(lbl + ' ' + C[k].toLowerCase());
+  });
+  if (C.tep === 'si') p.push('Con signos de TEP');
+  if (C.sparkling === 'si') p.push('Sparkling presente');
+  if (C.coGls === 'gt15') p.push('Caída GLS > 15 %');
+  if (C.coTox === 'si') p.push('CTRCD confirmada');
+  if (C.cc && C.cc.length) {
+    const ls = C.cc.map(k => (_CC_SEC_POR_K[k] ? _CC_SEC_POR_K[k].lbl : null)).filter(Boolean);
+    if (ls.length) p.push('CC: ' + ls.join(' o '));
+  }
+  if (C.ete === 'si') p.push('Solo ETEs marcados');
+  if (C.tavi === 'si') p.push('Con TAVI');
+  if (C.trombo === 'si') p.push('Con trombo en orejuela');
+  return p.join(' · ');
+}
+window._labCohorteDesc = _labCohorteDesc;
+
+/* Las casillas de CC se generan desde `_CC_SECS`, no se escriben a mano: una lista paralela se
+   desincroniza el día que se agregue una sección, y la casilla faltante no se ve.
+   `onchange` y NO `onclick`: la hoja de estilos tiene una regla de área táctil que matchea por
+   el ATRIBUTO `[onclick]` e infla el control a 44×44, tres veces los de al lado. Acá no hace
+   falta ningún manejador —las casillas se leen al apretar «Aplicar»— así que no llevan ninguno. */
+/* Los dos rótulos de PSAP se DERIVAN del umbral que aplica el filtro. Escritos a mano decían
+   «< 36» y «36–50» mientras el código corta en `<= UMBRAL_PSAP_ELEVADA`; coincidían sólo porque
+   `psap_calc` se guarda redondeado, y el día que deje de estarlo el rótulo miente. Es una
+   función y no una constante para no depender del orden de inicialización del bloque. */
+function _cohPsapLbl(k) {
+  const u = (typeof UMBRAL_PSAP_ELEVADA === 'number') ? UMBRAL_PSAP_ELEVADA : 35;
+  return k === 'lt36' ? ('≤ ' + u + ' mmHg') : ((u + 1) + '–50 mmHg');
+}
+function _labCohorteCCBox() {
+  ['lt36','a3650'].forEach(k => {
+    const o = document.querySelector('#coh-psap option[value="' + k + '"]');
+    if (o) o.textContent = _cohPsapLbl(k);
+  });
+  const box = document.getElementById('coh-cc-box');
+  if (!box || box.dataset.listo === '1') return;
+  box.innerHTML = _CC_SECS.map(s =>
+    '<label style="display:inline-flex;align-items:center;gap:5px;font-size:.78rem;cursor:pointer;">' +
+    '<input type="checkbox" class="coh-cc" value="' + escHtml(s.k) + '"> ' + escHtml(s.lbl) + '</label>'
+  ).join('');
+  box.dataset.listo = '1';
+}
+
+/* Badge en la pestaña Filtros + aviso amarillo en TODAS las demás.
+   El aviso se inyecta como primer hijo de cada `.lab-subpanel`, generado acá y no escrito once
+   veces en el HTML: la pestaña que se olvidara mostraría números de una cohorte sin decirlo. */
+function _labCohortePintar(n) {
+  const desc = _labCohorteDesc();
+  /* Los dos subtítulos que declaran su denominador en HTML estático («sobre el total de estudios
+     del período») se reescriben acá: con cohorte activa esa frase nombra una población que no es
+     la que dibujan las barras de al lado. El rótulo va en `data-lab-pob` para no reconstruirlo
+     desde el texto ya pisado. */
+  Array.prototype.forEach.call(document.querySelectorAll('#tab-lab .lab-pob-sub'), el => {
+    const base = el.getAttribute('data-lab-pob') || '';
+    el.textContent = base + ' (sobre el total de estudios ' + _labPobDe() + ').';
+  });
+  const badge = document.getElementById('lab-coh-badge');
+  if (badge) {
+    if (_LAB_COHORTE) { badge.textContent = n + ' — filtros activos'; badge.style.display = 'inline-block'; }
+    else { badge.textContent = ''; badge.style.display = 'none'; }
+  }
+  const paneles = document.querySelectorAll('#tab-lab .lab-subpanel');
+  Array.prototype.forEach.call(paneles, pan => {
+    if (pan.id === 'lab-sub-filtros') return;
+    let av = pan.querySelector(':scope > .lab-coh-aviso');
+    if (!_LAB_COHORTE) { if (av) av.remove(); return; }
+    if (!av) {
+      av = document.createElement('div');
+      av.className = 'lab-coh-aviso';
+      av.style.cssText = 'background:var(--bg3);border:1px solid var(--border);border-left:4px solid var(--orange,#f0a500);' +
+        'border-radius:8px;padding:9px 12px;margin-bottom:14px;font-size:.78rem;line-height:1.55;color:var(--text);';
+      pan.insertBefore(av, pan.firstChild);
+    }
+    av.innerHTML = '⚠️ Mostrando <b>' + n + '</b> estudio' + (n === 1 ? '' : 's') + ' (filtros activos)' +
+      (desc ? ' — <span style="color:var(--text2);">' + escHtml(desc) + '</span>' : '') +
+      ' <button type="button" class="btn" style="padding:2px 9px;font-size:.72rem;margin-left:6px;" ' +
+      'onclick="labCohorteLimpiar()">Limpiar filtros</button>';
+  });
+}
+
+/* «Cambios sin aplicar».
+   La foto se toma al apretar el botón, que es lo correcto —si no, tocar un control recalcularía
+   las once subtabs a media edición—, pero sin este aviso el médico movía un control, se iba a
+   Mediciones, y ahí el cartel amarillo declaraba la cohorte ANTERIOR mientras el panel de
+   Filtros mostraba la nueva. Las dos pantallas coherentes por dentro y contradiciéndose entre
+   sí es el modo de falla más caro: no hay nada roto que mirar.
+   Va como `onchange` en el CONTENEDOR y no en cada control: la hoja de estilos matchea por el
+   atributo `[onclick]` e infla el elemento a 44×44 —acá sería cada casilla de CC—, y `change`
+   burbujea, así que un solo manejador alcanza para los 25 controles. */
+function labCohortePendiente() {
+  const el = document.getElementById('coh-pendiente');
+  if (!el) return;
+  let dif = false;
+  try { dif = JSON.stringify(_labCohorteLeer()) !== JSON.stringify(_LAB_COHORTE); } catch (e) { dif = true; }
+  el.style.display = dif ? 'inline' : 'none';
+  const btn = document.getElementById('coh-btn-aplicar');
+  if (btn) btn.style.boxShadow = dif ? '0 0 0 2px var(--orange)' : '';
+}
+window.labCohortePendiente = labCohortePendiente;
+
+function labCohorteAplicar() {
+  _LAB_COHORTE = _labCohorteLeer();
+  if (typeof labInit === 'function') labInit();
+  const n = labGetInformes().length;
+  _labCohortePintar(n);
+  const res = document.getElementById('coh-resultado');
+  if (res) {
+    if (!_LAB_COHORTE) {
+      res.innerHTML = '<span style="color:var(--text2);">Ningún filtro seleccionado — el Laboratorio muestra todos los estudios del período.</span>';
+    } else {
+      const desc = _labCohorteDesc();
+      res.innerHTML = '<b>' + n + '</b> estudio' + (n === 1 ? '' : 's') + ' encontrado' + (n === 1 ? '' : 's') +
+        (desc ? '<div style="color:var(--text2);font-size:.78rem;margin-top:4px;">' + escHtml(desc) + '</div>' : '') +
+        (n === 0 ? '<div style="color:var(--orange,#f0a500);font-size:.78rem;margin-top:6px;">Ninguna pestaña va a tener datos con esta cohorte. Recordá que un estudio en el que un criterio no se puede evaluar queda fuera.</div>' : '');
+    }
+  }
+  labCohortePendiente();
+  toast(_LAB_COHORTE ? ('Cohorte aplicada — ' + n + ' estudio' + (n === 1 ? '' : 's')) : 'Sin filtros activos');
+}
+window.labCohorteAplicar = labCohorteAplicar;
+
+/* `silencioso`: el toast «Filtros limpiados» es correcto cuando el médico aprieta el botón y es
+   ruido cuando la limpieza es un paso interno del cierre de sesión. Mismo parámetro y mismo
+   motivo que `limpiarCampos(silencioso)`. */
+function labCohorteLimpiar(silencioso) {
+  ['coh-edad-min','coh-edad-max','coh-sexo','coh-fevi','coh-diast','coh-geom','coh-im','coh-ea',
+   'coh-ia','coh-it','coh-em','coh-hfpeff','coh-peptido','coh-htp','coh-psap','coh-tep','coh-amil',
+   'coh-sparkling','coh-co-farmaco','coh-co-fevi','coh-co-gls','coh-co-tox','coh-ete','coh-tavi',
+   'coh-trombo'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+  Array.prototype.forEach.call(document.querySelectorAll('#coh-cc-box input.coh-cc'), e => { e.checked = false; });
+  _LAB_COHORTE = null;
+  if (typeof labInit === 'function') labInit();
+  _labCohortePintar(0);
+  const res = document.getElementById('coh-resultado');
+  if (res) res.innerHTML = '<span style="color:var(--text2);">Filtros limpiados — el Laboratorio muestra todos los estudios del período.</span>';
+  labCohortePendiente();
+  if (!silencioso) toast('Filtros limpiados');
+}
+window.labCohorteLimpiar = labCohorteLimpiar;
+
+/* Cómo se NOMBRA la población en los rótulos que van pegados a un número. Con cohorte activa,
+   «en el período seleccionado» es falso: son los del período que ADEMÁS pasan los filtros, y el
+   aviso de arriba no alcanza — este archivo ya pagó una vez que un subtítulo y una barra
+   declararan denominadores distintos en la misma pantalla. Una función, todos los rótulos. */
+function _labPobTxt() { return _LAB_COHORTE ? 'en la cohorte filtrada' : 'en el período seleccionado'; }
+function _labPobDe()  { return _LAB_COHORTE ? 'de la cohorte filtrada' : 'del período'; }
+
 function labGetInformesSinPeriodo() { return _labFiltrarBase(getInformes(), true); }
 function labGetInformes() { return _labFiltrarBase(getInformes(), false); }
 function _labFiltrarBase(todos, sinPeriodo) {
@@ -34045,6 +34632,10 @@ function _labFiltrarBase(todos, sinPeriodo) {
       if (f < limite) return false;
     }
     if (!_centroOk(inf)) return false;
+    /* La cohorte se aplica también SIN período, igual que el centro: son propiedades del
+       PACIENTE, no de la ventana temporal. «Comparar períodos» define sus propias fechas y
+       compara la MISMA cohorte en dos rangos, que es lo que uno querría preguntar. */
+    if (!_labCohorteOk(inf)) return false;
     return true;
   });
 }
@@ -34296,6 +34887,9 @@ function _labIndicadoresList(infs) {
 
 function labInit() {
   if (typeof labRenderCentroFilter === 'function') labRenderCentroFilter();
+  /* Las casillas de CC se generan una sola vez desde `_CC_SECS`. Va acá y no al arrancar la app
+     porque la pestaña Laboratorio puede no haberse abierto nunca. */
+  try { _labCohorteCCBox(); } catch (e) { console.error('[lab] casillas de cohorte', e); }
   /* Las asociaciones ahora respetan el filtro de período/centro, así que hay que
      recalcularlas cuando cambia; si no, quedaban mostrando el corte anterior. */
   if (typeof labAsociacionesRender === 'function' &&
@@ -34305,10 +34899,17 @@ function labInit() {
   }
   const infs = labGetInformes();
   const n = infs.length;
+  /* El aviso se repinta en CADA labInit, no sólo al aplicar: cambiar el período o destildar un
+     centro mueve el `n` de la cohorte, y un aviso con el número viejo es peor que ninguno. */
+  try { _labCohortePintar(n); } catch (e) { console.error('[lab] aviso de cohorte', e); }
   _labHeart(infs);   // corazón anatómico (maneja n=0 → todos "—")
+  /* El encabezado dice «del período» y con cohorte activa eso es falso: son los del período QUE
+     ADEMÁS pasan los filtros. Es la regla de esta app —el denominador se declara donde se
+     imprime— y el aviso de arriba no alcanza, porque esta línea se lee como el total. */
   document.getElementById('lab-resumen-header').textContent =
-    n === 0 ? 'Sin estudios en el período seleccionado.' :
-    `${n} estudio${n !== 1 ? 's' : ''} en el período seleccionado.`;
+    n === 0 ? (_LAB_COHORTE ? 'Sin estudios que cumplan los filtros en el período seleccionado.'
+                            : 'Sin estudios en el período seleccionado.') :
+    `${n} estudio${n !== 1 ? 's' : ''} ${_LAB_COHORTE ? 'que cumplen los filtros activos' : 'en el período seleccionado'}.`;
 
   if (n === 0) {
     ['lab-total','lab-hoy','lab-semana','lab-mes','lab-prom-dia',
@@ -34482,7 +35083,7 @@ function labInit() {
   const vexN = document.getElementById('lab-vexus-n');
   if (vexN) vexN.textContent = vexTot
     ? vexTot + ' de ' + n + ' estudios con VEXUS evaluable'
-    : 'Ningún estudio del período tiene VEXUS evaluable.';
+    : 'Ningún estudio ' + _labPobDe() + ' tiene VEXUS evaluable.';
 
   /* Hallazgos frecuentes — misma lista y misma cuenta que el PDF de auditoría, vía
      `_labHallazgosCuenta`. Acá vivía una segunda copia con `.test()` crudo, sin la guarda de
@@ -34576,7 +35177,7 @@ function labInit() {
   );
   const docEl = document.getElementById('lab-docencia-lista');
   if (!docentes.length) {
-    docEl.innerHTML = '<div class="lab-empty">Sin casos marcados en el período</div>';
+    docEl.innerHTML = '<div class="lab-empty">Sin casos marcados ' + _labPobTxt() + '</div>';
   } else {
     docEl.innerHTML = `<table class="lab-table">
       <thead><tr><th>Paciente</th><th>Fecha</th><th>Resumen</th><th></th></tr></thead>
@@ -34644,7 +35245,7 @@ function labRenderExtras(infs, n) {
        total (n=<todos los del período>)» sobre barras que ya no dividían por eso. Como la
        barra imprime el n crudo adentro, se leía «n=1 · 50 %» bajo un cartel que decía que el
        denominador eran los 8 estudios del período. */
-    if (s) s.textContent = 'Porcentajes sobre los estudios con esa válvula evaluada — el n de cada barra es su propio numerador, no sobre los ' + n + ' del período.';
+    if (s) s.textContent = 'Porcentajes sobre los estudios con esa válvula evaluada — el n de cada barra es su propio numerador, no sobre los ' + n + ' ' + _labPobDe() + '.';
     const l = document.getElementById('lab-valv-chart-leyenda');
     if (l) l.innerHTML = _labValvLegendHTML(); }
 
@@ -35157,9 +35758,35 @@ function _labExportarXLSXReal(infs, anon) {
   wsLeg['!cols'] = [{ wch: 22 }, { wch: 44 }, { wch: 30 }];
   XLSX.utils.book_append_sheet(wb, wsLeg, 'Leyenda');
 
-  XLSX.writeFile(wb, 'ecosmart_laboratorio' + (anon ? '_sin_nombres' : '') + '_' +
+  /* ── COHORTE DECLARADA EN EL PROPIO ARCHIVO ──
+     Este Excel sale de `labGetInformes()`, así que hereda los filtros del panel de cohorte sin
+     que nadie lo toque. Un archivo llamado «ecosmart_laboratorio_<fecha>.xlsx» que en realidad
+     trae una cohorte de disfunción severa se lee como los datos del laboratorio — y éste es el
+     archivo que se reimporta y el que va a CeiboAnalytics, o sea otra frontera de confianza,
+     donde se convertiría en la prevalencia basal de otra app. El aviso amarillo de la pantalla
+     no viaja con el archivo; la hoja sí. Y el nombre lo dice antes de abrirlo. */
+  const _cohDesc = (typeof _labCohorteDesc === 'function') ? _labCohorteDesc() : '';
+  if (_cohDesc) {
+    const wsCoh = XLSX.utils.aoa_to_sheet([
+      ['COHORTE FILTRADA — los totales NO son los del laboratorio completo'],
+      [],
+      ['Estudios exportados', infs.length],
+      ['Filtros activos', _cohDesc],
+      ['Período', (() => { const e = document.getElementById('lab-periodo');
+                           return (e && e.selectedOptions[0]) ? e.selectedOptions[0].text : ''; })()],
+      ['Exportado', new Date().toISOString().split('T')[0]],
+      [],
+      ['Un estudio en el que un criterio no se pudo evaluar quedó FUERA de la cohorte, no dentro.']
+    ]);
+    wsCoh['!cols'] = [{ wch: 22 }, { wch: 88 }];
+    XLSX.utils.book_append_sheet(wb, wsCoh, 'Cohorte');
+  }
+
+  XLSX.writeFile(wb, 'ecosmart_laboratorio' + (anon ? '_sin_nombres' : '') +
+    (_cohDesc ? '_cohorte_filtrada' : '') + '_' +
     new Date().toISOString().split('T')[0] + '.xlsx');
-  toast('✅ Excel exportado — ' + infs.length + ' estudios' + (anon ? ' (sin nombres)' : ''));
+  toast('✅ Excel exportado — ' + infs.length + ' estudios' + (anon ? ' (sin nombres)' : '') +
+    (_cohDesc ? ' — COHORTE FILTRADA (ver hoja «Cohorte»)' : ''));
 }
 
 /* Modal de anonimización. La advertencia es el punto del modal, no un detalle: reemplazar
@@ -36677,7 +37304,8 @@ async function labImpEjecutar() {
   } catch (e) {}
   toast('✅ ' + nuevos + ' nuevo' + (nuevos===1?'':'s') + ' · ' + actualizados + ' actualizado' + (actualizados===1?'':'s') +
         ' · ' + sinCambios + ' sin cambios · Total: ' + total +
-        (fuera ? ' · ' + fuera + (fuera===1?' queda':' quedan') + ' fuera del período que muestra el Laboratorio' : ''));
+        (fuera ? ' · ' + fuera + (fuera===1?' queda':' quedan') + ' fuera de lo que muestra el Laboratorio (' +
+          (_LAB_COHORTE ? 'período y filtros de cohorte' : 'período') + ')' : ''));
 }
 
 window.labPlantillaXLSX = labPlantillaXLSX;
@@ -38912,6 +39540,75 @@ window._labPieDash = _labPieDash;
 
 // ══ Laboratorio — Tab Avanzado (uso de módulos especiales) ══
 function _labCampoRaw(inf, id) { const v = inf.campos ? inf.campos[id] : undefined; return (v === undefined || v === null) ? '' : String(v).trim(); }
+
+/* ══ Reglas de pertenencia COMPARTIDAS entre las subtabs y el panel de cohorte ══════════
+   Todo lo que sigue estaba escrito y razonado DENTRO de un render (labCCRender, labEteRender,
+   _labAdvancedRender, calcHTP2022, calcCardioOnco). Se extrae sin tocar la regla.
+
+   El motivo no es estético. Si el filtro de cohorte reimplementa «este estudio tiene una CIA»
+   o «este estudio es un ETE», el panel de Filtros dice «N estudios encontrados» y la subtab que
+   los explica cuenta otra cosa — y los dos números se leen exactamente igual de bien. Es el
+   patrón que este archivo ya pagó tres veces: hallazgos frecuentes, el subtítulo de
+   valvulopatías y la clasificación diastólica del módulo de asociaciones. */
+
+/* Las doce secciones de la pestaña «🧬 Congénitas». El orden es el del panel de filtros.
+   `pred` es el predicado de «el médico evaluó esta sección», idéntico al que la subtab CC usa
+   como DENOMINADOR de su bloque: si divergieran, filtrar por CIA daría una cohorte cuyo propio
+   bloque de CIA informa otro n. */
+const _CC_SECS = [
+  { k:'cia', lbl:'CIA',      pred: i => _labCampoRaw(i,'ete_cia_tipo') !== '' },
+  { k:'civ', lbl:'CIV',      pred: i => _labCampoRaw(i,'ete_civ_tipo') !== '' },
+  /* Ductus: `dap_tipo` es el campo que describe el hallazgo. Se suma `dap_diam` porque un
+     ductus medido sin clasificar sigue siendo un ductus visto, y si sólo mirásemos el tipo el
+     laboratorio contaría de menos sin decirlo. Mismo criterio para la coartación. */
+  { k:'dap', lbl:'DAP',      pred: i => _labCampoRaw(i,'dap_tipo') !== '' || _labCampoRaw(i,'dap_diam') !== '' },
+  { k:'vap', lbl:'VAP',      pred: i => _labCampoRaw(i,'vap_tipo') !== '' || _labCampoRaw(i,'vap_diam') !== '' },
+  { k:'coa', lbl:'CoAo',     pred: i => _labCampoRaw(i,'coa_loc')  !== '' || _labCampoRaw(i,'coa_istmo') !== '' },
+  /* El FOP se cuenta por el TÚNEL o por el aneurisma, no por los campos de contexto clínico:
+     un `fop_acv` en «no consta» es el valor que deja la exportación de cualquier estudio, así
+     que contarlo daría el 100 % de la base con foramen oval. */
+  { k:'fop', lbl:'FOP',      pred: i => _labCampoRaw(i,'fop_tunel') !== '' || _labCampoRaw(i,'fop_asa_mm') !== '' ||
+                                        _labCampoRaw(i,'fop_burbujas') !== '' },
+  { k:'vab', lbl:'VAB',      pred: i => _labCampoRaw(i,'vab_tipo') !== '' || _labCampoRaw(i,'vab_fenotipo') !== '' },
+  { k:'ebs', lbl:'Ebstein',  pred: i => _labCampoRaw(i,'ebs_desplazamiento') !== '' || _labCampoRaw(i,'ebs_area_vd_atrial') !== '' },
+  { k:'mch', lbl:'MCH',      pred: i => _labCampoRaw(i,'mch_espesor') !== '' || _labCampoRaw(i,'mch_loc') !== '' },
+  { k:'mca', lbl:'MCA',      pred: i => _labCampoRaw(i,'mca_fenotipo') !== '' || _labCampoRaw(i,'mca_mov_regional') !== '' ||
+                                        _labCampoRaw(i,'mca_tsvd_plax') !== '' || _labCampoRaw(i,'mca_tsvd_psax') !== '' ||
+                                        _labCampoRaw(i,'mca_fac') !== '' },
+  { k:'tdf', lbl:'TdF',      pred: i => _labCampoRaw(i,'tdf_func_vd') !== '' || _labCampoRaw(i,'tdf_grad_tsvd') !== '' },
+  { k:'tga', lbl:'TGA',      pred: i => _labCampoRaw(i,'tga_tipo') !== '' }
+];
+/* hasOwnProperty y no `_CC_SECS.find(...)`  sobre una clave arbitraria: la clave viene de los
+   checkbox del panel, que son literales de este archivo, pero el mapa se arma una vez. */
+const _CC_SEC_POR_K = Object.create(null);
+_CC_SECS.forEach(s => { _CC_SEC_POR_K[s.k] = s; });
+function _ccSecPred(k) { const s = _CC_SEC_POR_K[k]; return s ? s.pred : null; }
+
+/* ── ETE: los tres predicados que el panel de filtros necesita ──
+   `_labEsEte` es la casilla «Es un ETE» que el médico DECLARA; labEteRender ya la usa como
+   población de trabajo y la nota de esa subtab explica por qué es un piso y no un total. */
+function _labEsEte(i) { return (((i && i.campos) || {})['ete-es-ete__chk']) === '1'; }
+function _labAlgunTxt(i, ks) { return ks.some(k => _labCampoRaw(i, k) !== ''); }
+function _labAlgunNum(i, ks) { return ks.some(k => _labNum(i, k) !== null); }
+// TAVI: se miran los dos panes (sizing pre y control post), igual que en labEteRender.
+function _labUsaTavi(i) {
+  return _labAlgunTxt(i, ['ete_tavi_pro_tipo','ete_tavi_morf','ete_tavi_calc','ete_tavi_distrib']) ||
+         _labAlgunNum(i, ['ete_tavi_gmedio','ete_tavi_vmax','ete_tavi_ava','ete_tavi_anillo_diam',
+                          'ete_tavi_anillo_area','ete_tavi_anillo_perim','ete_tavi_valsalva','ete_tavi_ao_asc']);
+}
+/* Trombo de orejuela: SÓLO `si` («Sí — confirmado»). El select tiene además `sospecha`, que no
+   es un trombo confirmado y no puede entrar en un filtro rotulado «con trombo»: el informe de
+   ese paciente dice «sospecha», y el Wilkins de la app trata la confirmación como
+   contraindicación ABSOLUTA de valvuloplastia. Un filtro que las fusione arma una cohorte de
+   contraindicados con pacientes que no lo están. */
+function _labOaiTromboSi(i) { return _labCampoRaw(i, 'oai_trombo') === 'si'; }
+
+/* Signos de TEP: cuántos de los tres están en «sí». `_labTepUsado` (más abajo) dice si el
+   módulo se usó; esto dice si dio positivo. Son preguntas distintas y el panel las separa. */
+function _labTepSignos(i) {
+  return ['tep_mcconnell','tep_signo6060','tep_tabique_d'].filter(k => _labCampoRaw(i, k) === 'si').length;
+}
+
 // Hemodinámica: usado si hemo_fc o hemo_pam tienen valor
 function _labHemoUsado(inf) { return _labCampoRaw(inf, 'hemo_fc') !== '' || _labCampoRaw(inf, 'hemo_pam') !== ''; }
 // Recomputa IC (GC/BSA) y PCP (Nagueh) desde campos → perfil Forrester I/II/III/IV o null
@@ -38945,17 +39642,145 @@ function _labTepUsado(inf) {
   const ev = id => { const v = _labCampoRaw(inf, id); return v === 'si' || v === 'no'; };
   return ev('tep_mcconnell') || ev('tep_signo6060') || ev('tep_tabique_d') || _labNum(inf, 'tep_vdvi') !== null;
 }
+/* ── HFA-PEFF sobre un estudio guardado ──
+   Puntúa con `hfapeffScore`, la MISMA función que la pantalla y el informe firmado, apuntada al
+   `campos` del estudio con `_hfSrcCampos`. Estaba dentro de `_labAdvancedRender`; se extrae
+   porque el panel de cohorte filtra por la banda de probabilidad y por el péptido, y
+   reimplementar los nueve cortes —que además se mueven con edad, sexo y ritmo— es la trampa de
+   la fórmula duplicada.
+
+   `domEval` exige dato en algún criterio MAYOR, no el `hayDatos` de `_hfDom`: entre los menores
+   del dominio morfológico está «grosor de pared ≥12 mm», que sale de max(siv, ppvi), o sea que
+   basta el septum de cualquier eco de rutina para que el dominio figure como evaluado.
+
+   Devuelve null con menos de dos dominios. La BANDA (`prob`) sólo existe con los TRES: con un
+   dominio sin medir el techo es 4 puntos, así que un «≥5» es aritméticamente imposible y meter
+   esos estudios en un filtro de «bajo» fabricaría descartes de HFpEF por falta de datos. */
+/* El piso de dos dominios es una regla del SCORE, no del péptido. Por eso hay dos capas:
+   `_labHfPeffRaw` puntúa y dice qué dominios se evaluaron, y `_labHfPeff` aplica el piso. Con
+   una sola, un estudio con NT-proBNP de 5.000 medido pero sin los otros dominios quedaba fuera
+   del filtro de péptidos por un requisito que no es del péptido.
+
+   MEMO por estudio: `_labCohorteOk` corre por estudio dentro de `_labFiltrarBase`, y
+   `labGetInformes()` se invoca media docena de veces por `labInit`. Con los dos filtros de
+   insuficiencia cardíaca activos eran ~12 puntuaciones completas por estudio y por refresco.
+   La clave es el objeto del informe; el valor caduca solo cuando el estudio se reemplaza. */
+const _LAB_HF_MEMO = new WeakMap();
+function _labHfPeffRaw(inf) {
+  if (!inf || typeof inf !== 'object') return null;
+  if (_LAB_HF_MEMO.has(inf)) return _LAB_HF_MEMO.get(inf);
+  let out = null;
+  if (typeof hfapeffScore === 'function' && typeof _hfSrcCampos === 'function') {
+    let r = null;
+    try { r = hfapeffScore(false, _hfSrcCampos(inf.campos || {})); } catch (e) { r = null; }
+    if (r) {
+      const domEval = dom => !!(dom && dom.todos && dom.todos.some(c => c.tipo === 'mayor' && c.dato));
+      const ev = { func: domEval(r.func), morf: domEval(r.morf), hum: domEval(r.hum) };
+      out = { r, ev, doms: (ev.func ? 1 : 0) + (ev.morf ? 1 : 0) + (ev.hum ? 1 : 0) };
+    }
+  }
+  _LAB_HF_MEMO.set(inf, out);
+  return out;
+}
+function _labHfPeff(inf) {
+  const h = _labHfPeffRaw(inf);
+  if (!h || h.doms < 2) return null;
+  const prob = (h.doms === 3) ? (h.r.total >= 5 ? 'alto' : (h.r.total >= 2 ? 'inter' : 'bajo')) : null;
+  return { r: h.r, doms: h.doms, ev: h.ev, prob };
+}
+/* Péptidos natriuréticos con los cortes AJUSTADOS POR RITMO de `hfUmbrales` — en fibrilación
+   auricular se triplican (NT-proBNP 220 → 660). Un umbral fijo clasificaría como «elevado» a
+   todo paciente en FA, que es exactamente la población que más los tiene medidos.
+   Devuelve 'alto' | 'normal' | null. `null` es «no hay valor», y NO cae en ninguna de las dos
+   ramas: un estudio sin péptido no es un péptido normal. La zona gris del criterio menor
+   tampoco: no es «elevado» ni «normal», así que queda fuera de los dos filtros a propósito. */
+function _labPeptido(inf) {
+  // `Raw` a propósito: el péptido no necesita que haya dos dominios evaluados.
+  const h = _labHfPeffRaw(inf);
+  if (!h || !h.r || !h.r.hum || !Array.isArray(h.r.hum.todos)) return null;
+  /* Se lee el DOMINIO HUMORAL YA RESUELTO (`hum.todos`), no se vuelven a testear `ntprobnp` y
+     `bnp` contra `hfUmbrales`. Esa era una TERCERA copia del criterio y ya discrepaba: el
+     dominio admite DOS vías —el número o el tilde manual, para cuando el médico tiene el
+     laboratorio informado sin el valor exacto (`_hum1`)— y la copia sólo miraba el número. Un
+     estudio con `hf_nt_may` tildado y sin número entraba a «HFA-PEFF alto» por un criterio
+     MAYOR cumplido y no entraba a «Péptidos elevados» ni a «Péptidos normales»: dos filtros de
+     la misma tarjeta contestando distinto sobre un informe que dice «NT-proBNP elevado».
+     Los umbrales ajustados por ritmo siguen siendo los de `hfUmbrales`: los aplica el dominio. */
+  const crit = h.r.hum.todos;
+  if (!crit.some(c => c.dato)) return null;          // nadie cargó número ni tildó nada
+  if (crit.some(c => c.tipo === 'mayor' && c.ok)) return 'alto';
+  if (crit.some(c => c.tipo === 'menor' && c.ok)) return 'gris';
+  return 'normal';
+}
+
 // Amiloidosis: usado si el score ETT (alg-ett-score) está cargado
 function _labAmilUsado(inf) { return _labNum(inf, 'alg-ett-score') !== null; }
-function _labAmilCat(inf) {
+/* Banda del score ETT de amiloidosis. `_labAmilCat` es su ETIQUETA, no una segunda
+   clasificación: el panel de cohorte filtra por la banda y con los cortes escritos dos veces
+   mover uno dejaría el filtro y el gráfico de la subtab Avanzado contando distinto. */
+function _labAmilBanda(inf) {
   const s = _labNum(inf, 'alg-ett-score');
   if (s === null) return null;
-  if (s >= 8) return 'Probable (≥8)';
-  if (s >= 6) return 'Intermedio (6–7)';
-  return 'Baja (<6)';
+  return s >= 8 ? 'alta' : (s >= 6 ? 'inter' : 'baja');
+}
+const _LAB_AMIL_LBL = { alta:'Probable (≥8)', inter:'Intermedio (6–7)', baja:'Baja (<6)' };
+function _labAmilCat(inf) {
+  const b = _labAmilBanda(inf);
+  return b ? _LAB_AMIL_LBL[b] : null;
 }
 // Cardio-onco: usado si hay fármaco onco o FEVI/GLS basal
 function _labOncoUsado(inf) { return _labCampoRaw(inf, 'co_farmaco') !== '' || _labNum(inf, 'co_fevi_basal') !== null || _labNum(inf, 'co_gls_basal') !== null; }
+/* Caída de FEVI en PUNTOS (basal − actual) y caída RELATIVA de GLS en %. Devuelven null si
+   falta alguno de los dos términos: sin el par no hay caída, y 0 no es lo mismo que «no sé». */
+function _labOncoCaidaFevi(inf) {
+  const b = _labNum(inf, 'co_fevi_basal'), a = _labNum(inf, 'co_fevi_actual');
+  return (b !== null && a !== null) ? (b - a) : null;
+}
+function _labOncoCaidaGls(inf) { return _ctrcdGlsRel(_labNum(inf, 'co_gls_basal'), _labNum(inf, 'co_gls_actual')); }
+/* Grado de CTRCD del estudio guardado, por el MISMO clasificador que puntúa el informe firmado
+   (`_ctrcdEstado`). Ver el comentario de esa función: `null` no es «sin toxicidad». */
+function _labCtrcd(inf) {
+  const rel = _labOncoCaidaGls(inf);
+  return _ctrcdEstado({
+    feviBasal:    _labNum(inf, 'co_fevi_basal'),
+    feviActual:   _labNum(inf, 'co_fevi_actual'),
+    glsAlterado:  rel !== null && rel >= 15,
+    tropoElevada: _labCampoRaw(inf, 'co_troponi') === 'si'
+  });
+}
+
+/* ── Probabilidad ecocardiográfica de HTP de un estudio guardado ──
+   Por `_htp2022Core`, la misma función que publica la probabilidad en el informe firmado.
+
+   La COMPUERTA es lo delicado. Los signos A, B y C se derivan de mediciones de rutina —VD
+   basal, TAPSE, VCI, área de AD—, así que el núcleo devuelve una probabilidad para CUALQUIER
+   estudio, incluso uno donde nadie abrió el módulo. Publicar eso como «probabilidad ALTA»
+   sería clasificar por ausencia: el informe de ese paciente no dice nada de HTP.
+   Se exige que la VRT exista —medida o categorizada a mano— o que el médico haya tildado algún
+   signo. Es el mismo criterio con que la subtab ETE toma la casilla declarada y no la
+   detección por campos. */
+function _labHtpUsado(inf) {
+  /* `nomedible` NO cuenta como VRT categorizada: con esa opción el núcleo cae en la rama del
+     `else` y devuelve INTERMEDIA con ≥2 categorías de signos, que salen de VD basal, TAPSE/PSAP,
+     VCI y área de AD — mediciones de rutina. O sea, el estudio cuya VRT el médico declaró NO
+     MEDIBLE entraría a la cohorte «probabilidad intermedia» clasificado por hallazgos
+     incidentales, que es exactamente lo que el texto del panel promete no hacer. El informe
+     firmado sigue publicando esa probabilidad —`calcHTP2022` no cambió—; lo que no se hace es
+     construir una cohorte con ella. */
+  const sel = _labCampoRaw(inf, 'htp2022_vrt');
+  if (sel && sel !== 'auto' && sel !== 'nomedible') return true;
+  if (_labNum(inf, 'vmax_it') !== null || _labNum(inf, 'vrt') !== null) return true;
+  return ['htp2022_a3','htp2022_b1muesca','htp2022_b2','htp2022_b3']
+    .some(k => _labCampoRaw(inf, k + '__chk') === '1');
+}
+function _labHtpProb(inf) {
+  if (typeof _htp2022Core !== 'function' || typeof _hfSrcCampos !== 'function') return null;
+  if (!_labHtpUsado(inf)) return null;
+  let R = null;
+  try { R = _htp2022Core(_hfSrcCampos((inf && inf.campos) || {})); } catch (e) { return null; }
+  // 'INDETERMINADA' queda fuera de las tres bandas a propósito: no es una probabilidad.
+  return (R && (R.prob === 'BAJA' || R.prob === 'INTERMEDIA' || R.prob === 'ALTA')) ? R.prob : null;
+}
 
 /* Helpers de agregación compartidos por las tabs Avanzado y ETE.
    Los promedios se calculan sólo sobre valores FINITOS: un solo Infinity los arruina y el
@@ -38996,7 +39821,7 @@ const _barras = (id, mapa, obj, total) => {
 function _labAdvancedRender(infs, n) {
   const setHtml = (id, h) => { const e = document.getElementById(id); if (e) e.innerHTML = h; };
   const stat = (lbl, val) => `<div class="lab-stat"><span class="lab-stat-lbl">${lbl}</span><span class="lab-stat-val">${val}</span></div>`;
-  const empty = (id, mod) => setHtml(id, `<div class="lab-empty">Sin estudios con ${mod} registrado en el período seleccionado.</div>`);
+  const empty = (id, mod) => setHtml(id, `<div class="lab-empty">Sin estudios con ${mod} registrado ${_labPobTxt()}.</div>`);
   const pctS = x => n > 0 ? Math.round(x / n * 100) + '%' : '0%';
   const avg = (a, dec) => a.length ? (a.reduce((x, y) => x + y, 0) / a.length).toFixed(dec) : '—';
 
@@ -39007,7 +39832,7 @@ function _labAdvancedRender(infs, n) {
 
   // ── Uso general ──
   setHtml('lab-adv-resumen',
-    stat('Total de estudios en el período', String(n)) +
+    stat('Total de estudios ' + _labPobTxt(), String(n)) +
     stat('Con hemodinámica', hemoArr.length + ' (' + pctS(hemoArr.length) + ')') +
     stat('Con evaluación TEP', tepArr.length + ' (' + pctS(tepArr.length) + ')') +
     stat('Con amiloidosis', amilArr.length + ' (' + pctS(amilArr.length) + ')') +
@@ -39083,25 +39908,10 @@ function _labAdvancedRender(infs, n) {
      que nada lo delate. Es la misma trampa que `hfapeffConclusion` ya ataja en el informe
      individual, y el mismo criterio con que la subtab ETE excluye los Wilkins parciales. */
   if (typeof hfapeffScore === 'function' && typeof _hfSrcCampos === 'function') {
-    /* «Dominio evaluado» exige dato en algún criterio MAYOR, no el `hayDatos` de _hfDom.
-       `hayDatos` mira mayores Y menores, y entre los menores del dominio morfológico está
-       «grosor de pared ≥ 12 mm», que sale de `Math.max(siv, ppvi)` — o sea que basta con tener
-       el septum, que está en todo eco de rutina, para que el dominio figure como evaluado
-       aunque LAVI e IMVI sean null. Con ese criterio, un estudio sin volumen de AI y sin
-       peso/talla entraba al histograma con 0 puntos morfológicos «medidos y negativos», y el
-       agregado publicaba un descarte de HFpEF fabricado por ausencia de datos.
-       Los mayores son los únicos que pueden dar los 2 puntos, así que son la condición honesta
-       para decir que el dominio se evaluó. */
-    const domEval = dom => !!(dom && dom.todos && dom.todos.some(c => c.tipo === 'mayor' && c.dato));
-    const hfR = [];
-    infs.forEach(i => {
-      let r = null;
-      try { r = hfapeffScore(false, _hfSrcCampos(i.campos || {})); } catch (e) { return; }
-      if (!r) return;
-      const ev = { func: domEval(r.func), morf: domEval(r.morf), hum: domEval(r.hum) };
-      const doms = (ev.func ? 1 : 0) + (ev.morf ? 1 : 0) + (ev.hum ? 1 : 0);
-      if (doms >= 2) hfR.push({ r, doms, ev });
-    });
+    /* La puntuación, la regla de «dominio evaluado» y el piso de dos dominios se mudaron a
+       `_labHfPeff`, a nivel de módulo, con su comentario: el panel de cohorte filtra por la
+       banda de probabilidad y necesita EXACTAMENTE esta clasificación. */
+    const hfR = infs.map(_labHfPeff).filter(Boolean);
     const completos = hfR.filter(x => x.doms === 3);
     const parciales = hfR.length - completos.length;
     if (!hfR.length) {
@@ -39113,9 +39923,11 @@ function _labAdvancedRender(infs, n) {
       // Promedios de péptidos: denominador = los estudios que TRAEN el valor, no todos.
       const nt = hfR.map(x => x.r.d.ntprobnp).filter(x => x !== null);
       const bn = hfR.map(x => x.r.d.bnp).filter(x => x !== null);
-      const pos = completos.filter(x => x.r.total >= 5).length;
-      const int = completos.filter(x => x.r.total >= 2 && x.r.total <= 4).length;
-      const neg = completos.filter(x => x.r.total <= 1).length;
+      // Las bandas salen de `x.prob`, que es lo que filtra el panel de cohorte. Con los cortes
+      // escritos otra vez acá, mover uno dejaría la pantalla y el filtro contando distinto.
+      const pos = completos.filter(x => x.prob === 'alto').length;
+      const int = completos.filter(x => x.prob === 'inter').length;
+      const neg = completos.filter(x => x.prob === 'bajo').length;
       /* Acá NO hay `pctDe`: es local de labHemoRender y labEteRender, no de esta función. Un
          helper que lo usara compilaba igual y tiraba ReferenceError recién al ejecutarse — y
          `_labAdvancedRender` es la única de las tres que el orquestador NO envuelve en
@@ -39193,7 +40005,7 @@ window._labAdvancedRender = _labAdvancedRender;
 function labHemoRender(infs, n) {
   const setHtml = (id, h) => { const e = document.getElementById(id); if (e) e.innerHTML = h; };
   const stat = (lbl, val) => `<div class="lab-stat"><span class="lab-stat-lbl">${lbl}</span><span class="lab-stat-val">${val}</span></div>`;
-  const empty = (id, mod) => setHtml(id, `<div class="lab-empty">Sin estudios con ${mod} registrado en el período seleccionado.</div>`);
+  const empty = (id, mod) => setHtml(id, `<div class="lab-empty">Sin estudios con ${mod} registrado ${_labPobTxt()}.</div>`);
   const pctS = x => n > 0 ? Math.round(x / n * 100) + '%' : '0%';
   const pctDe = (x, d) => d > 0 ? Math.round(x / d * 100) + '%' : '0%';
 
@@ -39246,7 +40058,7 @@ window.labHemoRender = labHemoRender;
 function labCCRender(infs, n) {
   const setHtml = (id, h) => { const e = document.getElementById(id); if (e) e.innerHTML = h; };
   const stat = (lbl, val) => `<div class="lab-stat"><span class="lab-stat-lbl">${lbl}</span><span class="lab-stat-val">${val}</span></div>`;
-  const empty = (id, mod) => setHtml(id, `<div class="lab-empty">Sin estudios con ${mod} registrado en el período seleccionado.</div>`);
+  const empty = (id, mod) => setHtml(id, `<div class="lab-empty">Sin estudios con ${mod} registrado ${_labPobTxt()}.</div>`);
   const pctS = x => n > 0 ? Math.round(x / n * 100) + '%' : '— (sin datos)';
   /* `— (sin datos)` y NO «0 %» con base vacía: un porcentaje de cero se lee como «lo medimos y
      dio cero», que es lo contrario de lo que pasa. Misma convención que `_labCel` del PDF. */
@@ -39255,28 +40067,16 @@ function labCCRender(infs, n) {
      paréntesis que ya trae paréntesis daba «0 de 0 (— (sin datos))», que además afirma un
      numerador y un denominador que no existen: con base cero no hay «0 de 0», no hay nada. */
   const deBase = (x, d) => d > 0 ? (x + ' de ' + d + ' (' + Math.round(x / d * 100) + '%)') : '— (sin datos)';
-  const ciaArr   = infs.filter(i => _labCampoRaw(i, 'ete_cia_tipo'));
-  const civArr   = infs.filter(i => _labCampoRaw(i, 'ete_civ_tipo'));
-  const shuntArr = infs.filter(i => _labCampoRaw(i, 'ete_cia_tipo') || _labCampoRaw(i, 'ete_civ_tipo'));
-  /* Ductus: `dap_tipo` es el campo que describe el hallazgo. Se suma `dap_diam` porque un
-     ductus medido sin clasificar sigue siendo un ductus visto, y si sólo mirásemos el tipo el
-     laboratorio contaría de menos sin decirlo. Mismo criterio para la coartación. */
-  const dapArr = infs.filter(i => _labCampoRaw(i, 'dap_tipo') || _labCampoRaw(i, 'dap_diam'));
-  const coaArr = infs.filter(i => _labCampoRaw(i, 'coa_loc')  || _labCampoRaw(i, 'coa_istmo'));
-  const vapArr = infs.filter(i => _labCampoRaw(i, 'vap_tipo') || _labCampoRaw(i, 'vap_diam'));
-  /* El FOP se cuenta por el TÚNEL o por el aneurisma, no por los campos de contexto clínico:
-     un `fop_acv` en «no consta» es el valor que deja la exportación de cualquier estudio, así
-     que contarlo daría el 100 % de la base con foramen oval. */
-  const fopArr = infs.filter(i => _labCampoRaw(i, 'fop_tunel') || _labCampoRaw(i, 'fop_asa_mm') ||
-                                  _labCampoRaw(i, 'fop_burbujas'));
-  const vabArr = infs.filter(i => _labCampoRaw(i, 'vab_tipo') || _labCampoRaw(i, 'vab_fenotipo'));
-  const mchArr = infs.filter(i => _labCampoRaw(i, 'mch_espesor') || _labCampoRaw(i, 'mch_loc'));
-  const ebsArr = infs.filter(i => _labCampoRaw(i, 'ebs_desplazamiento') || _labCampoRaw(i, 'ebs_area_vd_atrial'));
-  const tdfArr = infs.filter(i => _labCampoRaw(i, 'tdf_func_vd') || _labCampoRaw(i, 'tdf_grad_tsvd'));
-  const tgaArr = infs.filter(i => _labCampoRaw(i, 'tga_tipo'));
-  const mcaArr = infs.filter(i => _labCampoRaw(i, 'mca_fenotipo') || _labCampoRaw(i, 'mca_mov_regional') ||
-                                  _labCampoRaw(i, 'mca_tsvd_plax') || _labCampoRaw(i, 'mca_tsvd_psax') ||
-                                  _labCampoRaw(i, 'mca_fac'));
+  /* Los doce predicados de pertenencia viven en `_CC_SECS`, a nivel de módulo, porque el panel
+     de cohorte filtra con los MISMOS. Estaban acá; se mudaron con su comentario. Una segunda
+     copia en el filtro haría que «12 estudios encontrados» y el «n» de este bloque discrepen
+     sin que nada lo delate. */
+  const _sec = k => infs.filter(_ccSecPred(k));
+  const ciaArr = _sec('cia'), civArr = _sec('civ'), dapArr = _sec('dap'), coaArr = _sec('coa');
+  const vapArr = _sec('vap'), fopArr = _sec('fop'), vabArr = _sec('vab'), mchArr = _sec('mch');
+  const ebsArr = _sec('ebs'), tdfArr = _sec('tdf'), tgaArr = _sec('tga'), mcaArr = _sec('mca');
+  // La unión CIA ∪ CIV: es el denominador de las barras de CIA/CIV y del Qp/Qs, no la suma.
+  const shuntArr = infs.filter(i => _ccSecPred('cia')(i) || _ccSecPred('civ')(i));
 
   /* El Qp/Qs se RECALCULA desde los cuatro campos guardados y no se lee del span: el span es
      del estudio que esté cargado en pantalla, así que leerlo daría el mismo número para los 60
@@ -39360,7 +40160,7 @@ function labCCRender(infs, n) {
   if (!conQ.length) {
     empty('lab-shunt-qpqs-stats', 'Qp/Qs calculable'); empty('lab-shunt-qpqs-bars', 'Qp/Qs');
     setHtml('lab-shunt-qpqs-nota', shuntArr.length
-      ? ('Hay <b>' + shuntArr.length + '</b> estudio(s) con shunt en el período, pero ninguno tiene los cuatro ' +
+      ? ('Hay <b>' + shuntArr.length + '</b> estudio(s) con shunt ' + _labPobTxt() + ', pero ninguno tiene los cuatro ' +
          'campos que el Qp/Qs necesita (diámetro y VTI del TSVI y del TSVD).')
       : '');
   } else {
@@ -39451,7 +40251,7 @@ function labCCRender(infs, n) {
   if (!conAlgunBorde.length) {
     empty('lab-shunt-bordes-stats', 'bordes de CIA medidos'); empty('lab-shunt-bordes-bars', 'bordes de CIA');
     setHtml('lab-shunt-bordes-nota', ciaArr.length
-      ? ('Hay <b>' + ciaArr.length + '</b> estudio(s) con CIA en el período y ninguno tiene bordes medidos.') : '');
+      ? ('Hay <b>' + ciaArr.length + '</b> estudio(s) con CIA ' + _labPobTxt() + ' y ninguno tiene bordes medidos.') : '');
   } else {
     const conDefic = conAlgunBorde.filter(i => BORDES.some(([id]) => { const x = _labNum(i, id); return x !== null && x < CIA_BORDE_DEF; })).length;
     setHtml('lab-shunt-bordes-stats',
@@ -39530,7 +40330,7 @@ function labCCRender(infs, n) {
        Qp/Qs ≥1,5 sobre los que tienen Qp/Qs calculable, y se dice el denominador. */
     const conQ = qs.length, cierre = qs.filter(q => q >= 1.5).length;
     setHtml('lab-cc-dap-stats',
-      stat('Estudios con ductus', dapArr.length + ' (' + pctS(dapArr.length) + ' del período)') +
+      stat('Estudios con ductus', dapArr.length + ' (' + pctS(dapArr.length) + ' ' + _labPobDe() + ')') +
       stat('Diámetro mínimo promedio', _promTxt(promDe(dapArr, 'dap_diam', 0.5, 30), 1, ' mm')) +
       stat('Con Qp/Qs atribuible al ductus', deBase(conQ, dapArr.length)) +
       stat('Qp/Qs promedio', _promTxt(_prom(qs), 2)) +
@@ -39550,7 +40350,7 @@ function labCCRender(infs, n) {
     const dirs = distrib(vapArr, 'vap_dir', { id:'Izquierda a derecha', di:'Derecha a izquierda', bi:'Bidireccional' });
     const htpSi = cuantos(vapArr, 'vap_htp', 'si'), htpCont = contestados(vapArr, 'vap_htp');
     setHtml('lab-cc-vap-stats',
-      stat('Estudios con ventana aortopulmonar', vapArr.length + ' (' + pctS(vapArr.length) + ' del período)') +
+      stat('Estudios con ventana aortopulmonar', vapArr.length + ' (' + pctS(vapArr.length) + ' ' + _labPobDe() + ')') +
       stat('Diámetro promedio', _promTxt(promDe(vapArr, 'vap_diam', 1, 40), 1, ' mm')) +
       stat('Con hipertensión pulmonar', (htpCont > 0 ? (htpSi + ' de ' + htpCont + ' contestados (' + pctDe(htpSi, htpCont) + ')') : '— (sin contestar)')) +
       stat('Con shunt derecha-izquierda', (dirs['Derecha a izquierda'] || 0) + ' de ' + vapArr.length + ' (' + pctDe(dirs['Derecha a izquierda'] || 0, vapArr.length) + ')'));
@@ -39575,7 +40375,7 @@ function labCCRender(infs, n) {
        vez «la busqué y no está» y «no la busqué». Se informa como «marcada», no como prevalencia. */
     const cola = coaArr.filter(i => _labCampoRaw(i, 'coa_diast_anterogrado__chk') === '1').length;
     setHtml('lab-cc-coa-stats',
-      stat('Estudios con coartación', coaArr.length + ' (' + pctS(coaArr.length) + ' del período)') +
+      stat('Estudios con coartación', coaArr.length + ' (' + pctS(coaArr.length) + ' ' + _labPobDe() + ')') +
       stat('Diámetro del istmo promedio', _promTxt(promDe(coaArr, 'coa_istmo', 2, 60), 1, ' mm')) +
       stat('Con gradiente calculable', deBase(conG, coaArr.length)) +
       stat('Gradiente máximo promedio', _promTxt(_prom(gs), 0, ' mmHg')) +
@@ -39602,7 +40402,7 @@ function labCCRender(infs, n) {
     const repSi = cuantos(fopArr, 'fop_shunt_reposo', 'si'), repCont = contestados(fopArr, 'fop_shunt_reposo');
     const acvSi = cuantos(fopArr, 'fop_acv', 'si'), acvCont = contestados(fopArr, 'fop_acv');
     setHtml('lab-cc-fop-stats',
-      stat('Estudios con foramen oval', fopArr.length + ' (' + pctS(fopArr.length) + ' del período)') +
+      stat('Estudios con foramen oval', fopArr.length + ' (' + pctS(fopArr.length) + ' ' + _labPobDe() + ')') +
       stat('Longitud del túnel promedio', _promTxt(promDe(fopArr, 'fop_tunel', 1, 40), 1, ' mm')) +
       stat('Con aneurisma del septum', deBase(asa, fopArr.length)) +
       stat('Con shunt en reposo', (repCont > 0 ? (repSi + ' de ' + repCont + ' contestados (' + pctDe(repSi, repCont) + ')') : '— (sin contestar)')) +
@@ -39628,7 +40428,7 @@ function labCCRender(infs, n) {
     const aos = vabArr.map(maxAo).filter(v => v !== null);
     const dil = aos.filter(x => x >= 40).length;
     setHtml('lab-cc-vab-stats',
-      stat('Estudios con bicúspide', vabArr.length + ' (' + pctS(vabArr.length) + ' del período)') +
+      stat('Estudios con bicúspide', vabArr.length + ' (' + pctS(vabArr.length) + ' ' + _labPobDe() + ')') +
       stat('Con aorta medida', deBase(aos.length, vabArr.length)) +
       stat('Diámetro aórtico máximo promedio', _promTxt(_prom(aos), 1, ' mm')) +
       stat('Con dilatación (≥ 40 mm)', deBase(dil, aos.length)));
@@ -39698,7 +40498,7 @@ function labCCRender(infs, n) {
     };
     const conAha = mchArr.filter(i => ahaN(i) >= 1).length;
     setHtml('lab-cc-mch-stats',
-      stat('Estudios con miocardiopatía hipertrófica', mchArr.length + ' (' + pctS(mchArr.length) + ' del período)') +
+      stat('Estudios con miocardiopatía hipertrófica', mchArr.length + ' (' + pctS(mchArr.length) + ' ' + _labPobDe() + ')') +
       stat('Espesor máximo promedio', _promTxt(promDe(mchArr, 'mch_espesor', 5, 60), 1, ' mm')) +
       stat('Gradiente TSVI en reposo promedio', _promTxt(promDe(mchArr, 'mch_grad_reposo', 0, 250), 0, ' mmHg')) +
       stat('Gradiente TSVI con Valsalva promedio', _promTxt(promDe(mchArr, 'mch_grad_valsalva', 0, 250), 0, ' mmHg')) +
@@ -39774,7 +40574,7 @@ function labCCRender(infs, n) {
     }, catI(i));
     const totales = mcaArr.map(total);
     setHtml('lab-cc-mca-stats',
-      stat('Estudios con MCA evaluada', mcaArr.length + ' (' + pctS(mcaArr.length) + ' del período)') +
+      stat('Estudios con MCA evaluada', mcaArr.length + ' (' + pctS(mcaArr.length) + ' ' + _labPobDe() + ')') +
       stat('Con motilidad regional consignada', deBase(conEco, mcaArr.length)) +
       stat('Con criterio MAYOR por eco', deBase(may, mcaArr.length)) +
       stat('Con criterio MENOR por eco', deBase(men, mcaArr.length)) +
@@ -39804,7 +40604,7 @@ function labCCRender(infs, n) {
     const fvd = distrib(tdfArr, 'tdf_func_vd', { normal:'Normal', leve:'Disfunción leve', moderada:'Disfunción moderada', severa:'Disfunción severa' });
     const conFvd = Object.keys(fvd).reduce((a, k) => a + fvd[k], 0);
     setHtml('lab-cc-tdf-stats',
-      stat('Estudios con Fallot reparada', tdfArr.length + ' (' + pctS(tdfArr.length) + ' del período)') +
+      stat('Estudios con Fallot reparada', tdfArr.length + ' (' + pctS(tdfArr.length) + ' ' + _labPobDe() + ')') +
       stat('Con función del VD consignada', deBase(conFvd, tdfArr.length)) +
       stat('Con disfunción del VD', deBase(conFvd - (fvd['Normal'] || 0), conFvd)) +
       stat('Con IP consignada', deBase(conIp, tdfArr.length)) +
@@ -39827,7 +40627,7 @@ function labCCRender(infs, n) {
     const disf = conFvd - (fvd['Normal'] || 0);
     const it = gradoBloque(tgaArr, 'it_grado', 'lab-cc-tga-it-bars');
     setHtml('lab-cc-tga-stats',
-      stat('Estudios con TGA corregida', tgaArr.length + ' (' + pctS(tgaArr.length) + ' del período)') +
+      stat('Estudios con TGA corregida', tgaArr.length + ' (' + pctS(tgaArr.length) + ' ' + _labPobDe() + ')') +
       stat('Con función del VD sistémico consignada', deBase(conFvd, tgaArr.length)) +
       stat('Con disfunción del VD sistémico', deBase(disf, conFvd)) +
       stat('Con IT graduada', deBase(it.conGrado, tgaArr.length)) +
@@ -39858,7 +40658,7 @@ function labCCRender(infs, n) {
                        gr[g] = (gr[g] || 0) + 1; });
     const it = gradoBloque(ebsArr, 'it_grado', 'lab-cc-ebs-it-bars');
     setHtml('lab-cc-ebs-stats',
-      stat('Estudios con anomalía de Ebstein', ebsArr.length + ' (' + pctS(ebsArr.length) + ' del período)') +
+      stat('Estudios con anomalía de Ebstein', ebsArr.length + ' (' + pctS(ebsArr.length) + ' ' + _labPobDe() + ')') +
       stat('Desplazamiento septal promedio', _promTxt(promDe(ebsArr, 'ebs_desplazamiento', 1, 80), 1, ' mm')) +
       stat('Con índice de Celermajer calculable', deBase(idx.length, ebsArr.length)) +
       stat('Índice de Celermajer promedio', _promTxt(_prom(idx), 2)) +
@@ -39884,7 +40684,7 @@ function labCCRender(infs, n) {
   } else {
     const secciones = conAlguna.map(i => TIPOS.filter(([, arr]) => arr.indexOf(i) >= 0).length);
     setHtml('lab-cc-actividad-stats',
-      stat('Estudios con al menos una sección evaluada', conAlguna.length + ' de ' + n + ' del período (' + pctS(conAlguna.length) + ')') +
+      stat('Estudios con al menos una sección evaluada', conAlguna.length + ' de ' + n + ' ' + _labPobDe() + ' (' + pctS(conAlguna.length) + ')') +
       stat('Secciones evaluadas por estudio', _promTxt(_prom(secciones), 1)) +
       stat('Con más de una sección', secciones.filter(x => x > 1).length + ' de ' + conAlguna.length + ' (' + pctDe(secciones.filter(x => x > 1).length, conAlguna.length) + ')'));
     /* Las barras suman MÁS que el total de estudios y eso es correcto: un mismo paciente puede
@@ -39895,7 +40695,7 @@ function labCCRender(infs, n) {
     const cuentaTipos = Object.create(null);
     TIPOS.forEach(([lbl, arr]) => { if (arr.length) cuentaTipos[lbl] = arr.length; });
     barrasDe('lab-cc-tipos-bars', cuentaTipos, n);
-    setHtml('lab-cc-actividad-nota', 'El porcentaje de esta tarjeta es sobre <b>el total del período</b> — es prevalencia en tu ' +
+    setHtml('lab-cc-actividad-nota', 'El porcentaje de esta tarjeta es sobre <b>el total ' + _labPobDe() + '</b> — es prevalencia en tu ' +
       'laboratorio. En las tarjetas de abajo, cada porcentaje va sobre <b>los estudios de esa sección</b>. ' +
       'Las barras de tipo <b>suman más que el total</b> y es correcto: un mismo paciente puede tener bicúspide y ' +
       'coartación, que es la asociación más frecuente de todas.');
@@ -39924,7 +40724,7 @@ window.labCCRender = labCCRender;
 function labEteRender(infs, n) {
   const setHtml = (id, h) => { const e = document.getElementById(id); if (e) e.innerHTML = h; };
   const stat = (lbl, val) => `<div class="lab-stat"><span class="lab-stat-lbl">${lbl}</span><span class="lab-stat-val">${val}</span></div>`;
-  const empty = (id, mod) => setHtml(id, `<div class="lab-empty">Sin estudios con ${mod} registrado en el período seleccionado.</div>`);
+  const empty = (id, mod) => setHtml(id, `<div class="lab-empty">Sin estudios con ${mod} registrado ${_labPobTxt()}.</div>`);
   const pctS = x => n > 0 ? Math.round(x / n * 100) + '%' : '0%';
   const pctDe = (x, d) => d > 0 ? Math.round(x / d * 100) + '%' : '0%';
 
@@ -39938,20 +40738,20 @@ function labEteRender(infs, n) {
      Ojo con dos campos que NO sirven como evidencia: `ete_cia_*`/`ete_civ_*` se mudaron a la
      tab Hemodinámica, así que su presencia no implica transesofágico; y la orejuela lleva
      prefijo `oai_`, no `ete_`, así que un filtro por /^ete_/ se la perdería entera. */
-  const esEte = i => ((i && i.campos) || {})['ete-es-ete__chk'] === '1';
+  // `_labEsEte` vive a nivel de módulo: el panel de cohorte filtra «Solo ETEs marcados» con ÉL.
+  const esEte = _labEsEte;
   /* UN predicado por bloque, y conDatosEte es su unión. Antes eran dos listas paralelas y ya
      habían divergido: `teerArr` admitía cualquiera de los seis criterios y la evidencia sólo
      miraba tres, así que «Estudios con evaluación TEER» podía SUPERAR al «Total considerado»
      del mismo panel — una contradicción visible en pantalla. Ídem orejuela, que promediaba
      ostium/profundidad/área sin admitirlos en su propio filtro: un sizing de Watchman quedaba
      fuera del denominador y sus medidas nunca entraban al promedio. */
-  const _algunNum = (i, ks) => ks.some(k => _labNum(i, k) !== null);
-  const _algunTxt = (i, ks) => ks.some(k => _labCampoRaw(i, k) !== '');
+  const _algunNum = _labAlgunNum;
+  const _algunTxt = _labAlgunTxt;
   // TAVI: se miran los dos panes. Antes sólo el post, así que un laboratorio que hace sizing
   // pre-TAVI y no controla los post veía «Estudios con TAVI: 0».
-  const usaTavi = i => _algunTxt(i, ['ete_tavi_pro_tipo','ete_tavi_morf','ete_tavi_calc','ete_tavi_distrib']) ||
-    _algunNum(i, ['ete_tavi_gmedio','ete_tavi_vmax','ete_tavi_ava','ete_tavi_anillo_diam',
-                  'ete_tavi_anillo_area','ete_tavi_anillo_perim','ete_tavi_valsalva','ete_tavi_ao_asc']);
+  // `_labUsaTavi` está a nivel de módulo porque el panel de cohorte filtra «Con TAVI» con ÉL.
+  const usaTavi = _labUsaTavi;
   const usaOai = i => _algunTxt(i, ['oai_morfologia','oai_trombo','oai_sec','oai_patron']) ||
     _algunNum(i, ['oai_vel_vac','oai_vel_llen','oai_ostium_diam','oai_profundidad','oai_area_ostium']);
   const usaWilkins = i => ['wilkins_movilidad','wilkins_engrosamiento','wilkins_calcificacion','wilkins_subvalvular']
@@ -40027,7 +40827,7 @@ function labEteRender(infs, n) {
     'Si ese número supera bastante a «Marcados», falta tildar la casilla en esos estudios. ' +
     '<b>Ojo con dos casos que hay que marcar a mano:</b> los estudios anteriores a que existiera la casilla, ' +
     'y los importados desde Excel, que no la traen — sin el tilde no entran acá aunque sean ETE. ' +
-    (sinMarcar ? ('En este período hay <b>' + sinMarcar + '</b> con datos de ETE y sin la casilla marcada: no cuentan. ') : '') +
+    (sinMarcar ? ((_LAB_COHORTE ? 'En esta cohorte hay <b>' : 'En este período hay <b>') + sinMarcar + '</b> con datos de ETE y sin la casilla marcada: no cuentan. ') : '') +
     (marcadosSinDatos ? ('Y <b>' + marcadosSinDatos + '</b> marcado(s) sin ningún campo de ETE cargado: sí cuentan, y cada bloque los deja fuera por su propio dato. ') : '') +
     (!sinMarcar && !marcadosSinDatos ? 'En este período los dos criterios coinciden estudio por estudio.' : ''));
 
@@ -40148,7 +40948,7 @@ function labEteRender(infs, n) {
   if (!wTot.length) {
     empty('lab-ete-wilkins-stats','Score de Wilkins completo'); empty('lab-ete-wilkins-bars','Wilkins');
     if (wParciales) setHtml('lab-ete-wilkins-stats',
-      `<div class="lab-empty">Sin scores de Wilkins completos en el período. ${wParciales} estudio(s) tienen el score incompleto y no se interpretan.</div>`);
+      `<div class="lab-empty">Sin scores de Wilkins completos ${_labPobTxt()}. ${wParciales} estudio(s) tienen el score incompleto y no se interpretan.</div>`);
   } else {
     /* Las bandas son las de calcWilkins (≤8 / 9-11 / ≥12), NO el corte clásico ≤8 / 9-12 / >12
        de la literatura. Es a propósito: el Laboratorio agrega estudios cuyo badge ya lo produjo
@@ -40443,7 +41243,7 @@ window._labSanPDF = _labSanPDF;
 // ── Generar PDF de auditoría — Laboratorio Cardiovascular (profesional) ──
 async function labGenerarPDF() {
   const infs = labGetInformes();
-  if (!infs.length) { toast('⚠️ Sin estudios en el período'); return; }
+  if (!infs.length) { toast(_LAB_COHORTE ? '⚠️ Sin estudios que cumplan los filtros activos' : '⚠️ Sin estudios en el período'); return; }
   if (typeof window.jspdf === 'undefined' && typeof jsPDF === 'undefined') {
     toast('❌ jsPDF no disponible'); return;
   }
@@ -40651,6 +41451,27 @@ async function labGenerarPDF() {
   doc.setFontSize(10);
   if (periodo) { doc.text(S('Período analizado: ' + periodo), W / 2, y, { align: 'center' }); y += 6; }
   else { doc.text(S(new Date().toLocaleDateString('es-UY')), W / 2, y, { align: 'center' }); y += 6; }
+  /* COHORTE EN LA PORTADA. Este PDF sale por `labGetInformes()`, así que hereda los filtros sin
+     que nadie lo toque — y eso es justo el peligro: un informe de auditoría que imprime «Total
+     estudios: 12» sin decir que hay una cohorte aplicada publica un denominador que su lector
+     lee como «todo el laboratorio en el período». El `n` de este PDF termina en una memoria
+     anual. Si hay cohorte, se declara acá, arriba del banner de KPIs y no en una nota al pie.
+     `splitTextToSize` porque la descripción crece con cada filtro y `doc.text` no envuelve:
+     se recortaría por los dos márgenes sin ningún aviso. */
+  if (typeof _labCohorteDesc === 'function') {
+    const _cohTxt = _labCohorteDesc();
+    if (_cohTxt) {
+      doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(176, 92, 0);
+      doc.text(S('Cohorte filtrada — los totales NO son los del laboratorio completo'), W / 2, y, { align: 'center' });
+      y += 4.6;
+      doc.setFont('helvetica', 'italic'); doc.setFontSize(8);
+      doc.splitTextToSize(S('Filtros activos: ' + _cohTxt), CW).forEach(line => {
+        doc.text(line, W / 2, y, { align: 'center' }); y += 4;
+      });
+      y += 1.6;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(GRY[0], GRY[1], GRY[2]);
+    }
+  }
   // Línea decorativa azul 2px
   doc.setDrawColor(NAVY[0], NAVY[1], NAVY[2]); doc.setLineWidth(0.7);
   doc.line(M, y, W - M, y); y += 8;
@@ -40683,7 +41504,7 @@ async function labGenerarPDF() {
     if (typeof _labHeart === 'function') _labHeart(infs);
     const heartPng = await _labHeartPng();
     if (heartPng) {
-      sectionTitle('Corazón anatómico — promedios del período');
+      sectionTitle('Corazón anatómico — promedios ' + _labPobDe());
       const hSize = 100;
       ensure(hSize + 4);
       doc.addImage(heartPng, 'PNG', (W - hSize) / 2, y, hSize, hSize);
@@ -40699,7 +41520,7 @@ async function labGenerarPDF() {
     const mesesChart = meses.length ? { labels: meses.map(m => m.replace('-', '/')), values: meses.map(m => porMes[m]), colors: meses.map(() => '#2e86c1') } : null;
     await sectionChart('Actividad del laboratorio',
       ['Indicador', 'Valor'],
-      [['Total de estudios en el período', String(infs.length)],
+      [['Total de estudios ' + _labPobTxt(), String(infs.length)],
        ['FEVI promedio', feviProm !== '—' ? feviProm + '%' : '—'],
        ['GLS promedio', glsProm !== '—' ? glsProm + '%' : '—'],
        ['PSAP promedio', psapProm !== '—' ? psapProm + ' mmHg' : '—']],
@@ -40859,7 +41680,7 @@ async function labGenerarPDF() {
        documentada» Y «% sobre total (n=<todos>)»— sobre una gráfica que dividía por el total
        y unas tablas que dividían por la base de cada válvula. El `n` por válvula va en el
        título de cada tabla, porque es distinto en cada una y un `n` global no lo representa. */
-    doc.text(S('Porcentajes sobre los estudios con esa valvula evaluada (el n de cada una figura en su tabla), no sobre los ' + infs.length + ' del periodo.'), W / 2, y, { align: 'center' });
+    doc.text(S('Porcentajes sobre los estudios con esa valvula evaluada (el n de cada una figura en su tabla), no sobre los ' + infs.length + ' ' + _labPobDe() + '.'), W / 2, y, { align: 'center' });
     doc.setFont('helvetica', 'normal'); doc.setTextColor(0, 0, 0); y += 4;
     const vimg = await _labValvChartPng(infs);
     if (vimg) {
@@ -40965,7 +41786,7 @@ async function labGenerarPDF() {
       _labMenciona((i.campos?.en_suma || '') + ' ' + (i.campos?.informe_texto || ''),
         /caso\s+de\s+inter[eé]s|ateneo|residente/i));
     if (!docentes.length) {
-      sectionTable('Docencia — casos de interés', ['Detalle', 'Valor'], [['Casos marcados en el período', '0']], [120, 60]);
+      sectionTable('Docencia — casos de interés', ['Detalle', 'Valor'], [['Casos marcados ' + _labPobTxt(), '0']], [120, 60]);
     } else {
       /* Agregado y anónimo por defecto. El nombre del paciente sólo sale si además se pide
          explícitamente el detalle nominal, porque para auditar hace falta saber CUÁNTOS casos
@@ -40982,7 +41803,7 @@ async function labGenerarPDF() {
           const k = /^\d{4}-\d{2}/.test(f) ? f.slice(0,7) : 'sin fecha';
           porMes[k] = (porMes[k] || 0) + 1; });
         const filas = Object.keys(porMes).sort().map(k => [k, String(porMes[k])]);
-        filas.push(['Total del período', String(docentes.length)]);
+        filas.push(['Total ' + _labPobDe(), String(docentes.length)]);
         sectionTable('Docencia — casos de interés', ['Mes', 'Casos marcados'], filas, [120, 60]);
       }
     }
@@ -41023,7 +41844,16 @@ window.labInit = function() {
   _labInitOrig();
   // Reemplazar barras de meses por Chart.js si existe el canvas
   const infs = labGetInformes();
-  if (!infs.length) return;
+  /* Con cero estudios había que DESTRUIR el gráfico, no salir. La rama `n === 0` de labInit
+     limpia `lab-chart-meses` —el div de respaldo— pero el canvas real es `chart-meses`, y este
+     wrapper salía antes de tocarlo: quedaban dibujadas las barras de la consulta anterior, con
+     el resto de la pantalla en «—». Se llegaba igual eligiendo un período vacío, pero el panel
+     de Filtros ANUNCIA el caso cero como resultado posible («ninguna pestaña va a tener datos
+     con esta cohorte»), así que pasó de rareza a camino frecuente. */
+  if (!infs.length) {
+    if (typeof labDestroyChart === 'function') { try { labDestroyChart('chart-meses'); } catch (e) {} }
+    return;
+  }
   const porMes = Object.create(null);
   infs.forEach(i => {
     if (!i.fecha_estudio) return;
@@ -41317,6 +42147,19 @@ function igIOSubXLSX() {
   const faltan = pantalla.filter(i => !idsExcel.has(i.id)).length;
   const plural = n => n + ' estudio' + (n === 1 ? '' : 's');
 
+  /* La cohorte del Laboratorio recorta este Excel igual que el período, y este subtítulo es el
+     ÚNICO cartel que el médico ve antes de exportar: esta pantalla es Guardados, o sea la única
+     desde la que se puede exportar y a la que el aviso amarillo de `_labCohortePintar` no llega
+     —itera `#tab-lab .lab-subpanel`—. Sin esto, el subtítulo atribuía al PERÍODO unas
+     exclusiones que había hecho la cohorte, y la rama de «sin diferencias» decía «Datos del
+     laboratorio» en gris tranquilizador sobre un recorte clínico. */
+  const _cohDesc = (typeof _labCohorteDesc === 'function') ? _labCohorteDesc() : '';
+  if (_cohDesc) {
+    sub.textContent = plural(excel.length) + ' — ⚠️ cohorte filtrada en el Laboratorio (' +
+      _cohDesc + '), no son los datos completos del laboratorio';
+    sub.style.color = 'var(--orange)';
+    return;
+  }
   if (faltan === 0 && excel.length === pantalla.length) {
     sub.textContent = 'Datos del laboratorio — ' + plural(excel.length);
     sub.style.color = '';

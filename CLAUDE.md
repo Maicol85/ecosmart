@@ -1419,6 +1419,103 @@ que nadie abre salvo que sospeche la enfermedad, y sin marcar suman 0 como si fu
 y «Con IP consignada» de Fallot subdeclara, porque la opción vacía de `ip_grado` está rotulada
 «Sin insuficiencia» y el vacío significa las dos cosas.
 
+### Panel de cohorte del Laboratorio («Filtros») — 2026-09-11
+
+`_LAB_COHORTE` es una FOTO de los controles tomada al apretar «Aplicar», no una lectura del DOM:
+leyéndolo como se lee el período, tocar un control recalcularía las once subtabs a media edición
+y el botón no significaría nada. Vive DENTRO de `_labFiltrarBase`, así que las once subtabs,
+«Comparar períodos», el PDF de auditoría y el Excel la heredan sin tocarlas.
+
+**La regla que hace que estos filtros no mientan: lo que no se puede EVALUAR queda FUERA, no
+dentro.** Un «FEVI < 40 %» que dejara pasar los estudios sin FEVI armaría una cohorte de
+disfunción severa con pacientes a los que nadie se la midió, y ese `n` es el denominador de todo
+el Laboratorio y del PDF de auditoría. Los 24 criterios se verificaron uno por uno.
+
+**Seis reglas clínicas se EXTRAJERON para que el filtro no las reimplemente**, que es el defecto
+que este archivo ya pagó tres veces: `_CC_SECS` (los doce predicados congénitos, desde
+`labCCRender`), `_labEsEte`/`_labUsaTavi`/`_labOaiTromboSi`/`_labTepSignos` (desde
+`labEteRender`), `_labHfPeffRaw`/`_labHfPeff`/`_labPeptido` (desde `_labAdvancedRender`),
+`_htp2022Core` (desde `calcHTP2022`) y `_ctrcdEstado`/`_ctrcdEsGrado`/`_ctrcdGlsRel` (desde
+`calcCardioOnco`). **Si agregás un filtro, el predicado sale de donde ya vive o se extrae: no se
+escribe de nuevo.** El panel diría «12 estudios encontrados» y la subtab que los explica contaría
+otra cosa, y los dos números se leen exactamente igual de bien.
+
+**`calcHTP2022` llama a `_htp2022Core({num:_hfN, txt:sv, chk:_hfChk})` y NO con `_HF_SRC_DOM`.**
+Ése es un `const` declarado 340 líneas más abajo, y leerlo antes de su línea no da `undefined`:
+lanza, y se lleva el bloque `<script>` entero. Las tres que se pasan son declaraciones de
+función, que se hoistean.
+
+**El orden de las nueve ramas de `_ctrcdEstado` es la regla, no un detalle de implementación.**
+Una FEVI de 38 con caída de 12 pp sobre un basal de 35 NO es CTRCD severa —la severa exige que la
+reducción por debajo de 40 sea NUEVA, o sea basal ≥40— y tampoco moderada: es
+`empeoramiento_sub40`, que la guía no gradúa. Un filtro escrito a ojo como «FEVI<50 y caída≥10»
+se lo lleva. Verificado sobre 900 combinaciones contra la cascada anterior: cero divergencias.
+
+**Compuertas que no son obvias y que hay que respetar al agregar filtros:**
+- **HTP.** Los signos A, B y C se derivan de mediciones de rutina, así que el núcleo clasifica
+  CUALQUIER estudio. `_labHtpUsado` exige VRT medida o categorizada a mano, o algún signo tildado.
+  Y **`nomedible` NO cuenta como categorizada**: con esa opción el núcleo cae en el `else` y
+  devuelve INTERMEDIA con ≥2 categorías de signos, o sea que el estudio cuya VRT el médico declaró
+  no medible entraría a la cohorte clasificado por hallazgos incidentales. El informe firmado
+  sigue publicando esa probabilidad —`calcHTP2022` no cambió—; lo que no se hace es armar una
+  cohorte con ella.
+- **HFA-PEFF.** La banda `prob` sólo existe con los TRES dominios: con uno sin medir el techo es
+  4 puntos y un «alto» es aritméticamente imposible. Pero **el piso de dos dominios es una regla
+  del SCORE, no del péptido** — por eso hay `_labHfPeffRaw` (sin piso) y `_labHfPeff` (con piso).
+  Con una sola capa, un NT-proBNP de 3.000 medido quedaba fuera del filtro de péptidos por un
+  requisito ajeno.
+- **Péptidos.** El dominio humoral admite DOS vías, el número o el tilde manual (`_hum1`), para
+  el laboratorio informado sin el valor exacto. `_labPeptido` lee `hum.todos` YA RESUELTO; la
+  primera versión re-testeaba `ntprobnp`/`bnp` contra `hfUmbrales` y era una TERCERA copia que ya
+  discrepaba: el tilde entraba a «HFA-PEFF alto» y no entraba ni a «elevado» ni a «normal».
+- **Trombo de orejuela: sólo `si`.** El select tiene además `sospecha`, y la app trata el
+  confirmado como contraindicación ABSOLUTA de valvuloplastia.
+- **Edad mínima: `> 0`, no `!== null`.** `_cohNum` devuelve 0 para un «0» tipeado y un 0 en ese
+  campo se LEE como «sin piso», pero activaba la cohorte y descartaba todo estudio sin `edad`.
+  El techo sí admite 0: «Edad ≤ 0» no se lee como «sin techo».
+
+**Los umbrales del filtro salen de las constantes que ya gobiernan la pantalla.** FEVI por
+`UMBRAL_FEVI_NORMAL` (el mismo de `FEVICAT`), amiloidosis por `_labAmilBanda` (que es lo que
+rotula el gráfico de Avanzado) y PSAP por `UMBRAL_PSAP_ELEVADA` con los MISMOS operadores que la
+distribución de General. Este último casi se escapa: escrito como «<36 / 36–50» coincidía con el
+gráfico **sólo porque `psap_calc` se guarda con `toFixed(0)`** — con un valor fraccionario, un
+35,5 caía en la barra «36–50» y en el bucket «<36» en la misma pantalla. Los rótulos del selector
+se derivan del umbral, para que no puedan mentir.
+
+**Todo rótulo que nombre la población va por `_labPobTxt()` / `_labPobDe()`.** Son 21 sitios,
+cuatro dentro del PDF de auditoría. Decían «en el período» al lado de números que con cohorte
+activa ya no son los del período. El aviso amarillo no alcanza —el PDF ni siquiera lo tiene— y es
+el defecto que este archivo documenta en «el denominador se declara una vez». Al agregar un
+rótulo con un `n`, usalos.
+
+**La cohorte se escapa del Laboratorio por dos caminos y los dos tuvieron que declararla:**
+- El **PDF de auditoría** lleva en la portada «Cohorte filtrada — los totales NO son los del
+  laboratorio completo» con los filtros enumerados y `splitTextToSize`, porque la descripción
+  crece con cada filtro y `doc.text` no envuelve ni avisa.
+- El **Excel** lleva hoja «Cohorte», sufijo `_cohorte_filtrada` en el nombre y un subtítulo
+  naranja en el botón. Su botón vive en **Guardados**, o sea la única pantalla desde la que se
+  exporta y a la que el aviso amarillo NO llega (`_labCohortePintar` itera
+  `#tab-lab .lab-subpanel`). Antes ese subtítulo atribuía al PERÍODO las exclusiones de la
+  cohorte, y ese archivo es el que va a **CeiboAnalytics**, o sea otra frontera de confianza.
+
+**`cerrarSesion()` limpia la cohorte.** Es estado de módulo y sobrevivía al cambio de usuario en
+una máquina compartida; en el Laboratorio se veía por el badge, pero no por el camino del Excel.
+Es la columna que faltaba del patrón que este archivo ya documenta para `gradoGamma`/`protMonoc`.
+
+**Lo que queda sabido y sin cerrar:**
+- **«Moderada» en los filtros de regurgitación arrastra el grado 3** (moderada-severa), porque
+  `_labRegurgSev` mapea 2 y 3 a «Moderada». Es preexistente y COMPARTIDO con la subtab
+  Valvulopatías, así que cohorte y subtab cierran entre sí; pero el rótulo del filtro dice menos
+  de lo que el filtro hace.
+- **Los bordes de cardio-oncología son `>` y el clasificador usa `>=`.** Una caída de exactamente
+  10,0 pp es CTRCD moderada en el informe y queda fuera del filtro «> 10 puntos». Las etiquetas
+  dicen «>», así que es honesto, pero los dos números conviven en la misma pantalla.
+- **La deuda BLOQUEANTE de los cinco grados valvulares sigue abierta** (ver la sección propia).
+  Los filtros se construyeron sobre el modelo actual por decisión del médico, con la salvedad
+  impresa en el grupo de Valvulopatías. No la agrava: las tres opciones son Leve/Moderada/Severa
+  y el valor de fábrica mapea a «Sin», que no es opción, así que los estudios no evaluados quedan
+  fuera de las tres.
+
 ## Deuda conocida sin resolver
 
 - **Contraseña en el código.** `doLogin()` compara contra un literal. Choca con el checklist
