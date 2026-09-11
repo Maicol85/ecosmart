@@ -1608,6 +1608,91 @@ opciones, con lo cual «Calcular» sale por un `return` mudo.
 llegar a p < 0,05. La ausencia de semáforo verde **no dice que no haya asociación**, dice que la
 cohorte no alcanza para verla. La nota al pie lo declara; no lo borres al tocar el bloque.
 
+### PDF del análisis estadístico — 2026-09-11
+
+`labAnalisisPDF()`. Documento distinto del de auditoría: aquél describe la ACTIVIDAD del
+laboratorio, éste una COHORTE y sus asociaciones, y por eso tiene su propio disclaimer.
+
+**No recalcula nada y ADEMÁS recibe la población congelada.** Tres seams —`_labEstDescriptiva`,
+`_labAsocParaPDF`, `_labScatterPng`— devuelven lo mismo que pinta la pantalla. Que compartan la
+CUENTA no alcanza si cada uno elige su MUESTRA: el PDF espera tres imágenes (más de medio
+segundo, porque `_labValvChartPng` tiene un `setTimeout(300)` fijo) y el botón está a dos
+elementos de «Aplicar filtros», así que releyendo `informes()` salía un documento con la portada,
+el banner de cohorte y la gráfica de válvulas de una cohorte y las asociaciones de otra, sin
+rastro. Y `informes()` dentro de un `.map` hacía que las nueve clínicas leyeran poblaciones
+distintas entre sí. **Al agregar un seam: parámetro de población, y hoisteado fuera del map.**
+
+**`_asocEstablecida` es EL criterio para trazar una recta de tendencia.** Había tres —la tabla
+general con el p CRUDO, el bloque clínico con el ajustado sin piso de N, el PDF con los dos— y
+cada comentario afirmaba ser igual a otro. La regla ya estaba escrita en `interpTxt`/`_bh`: si el
+semáforo no está verde, no se afirma una dirección; y una recta ES una afirmación de dirección.
+**Cambio de comportamiento declarado:** la tabla general traza menos rectas que antes.
+Ojo con la distinción que quedó: `pAdj < 0.05` decide si la fila se LISTA, `_asocEstablecida`
+decide si se traza la recta. Las 🟡 se listan con `*`; excluirlas las borraba del PDF bajo un
+título que dice «significativas».
+
+**`_labSanPDF` tiene catch-all `[^\x20-\xFF]` y no es opcional.** jsPDF codifica en UTF-16
+**toda** cadena que tenga un solo carácter fuera de WinAnsi, y la fuente Helvetica la imprime
+ilegible — no se pierde el símbolo, se pierde **la línea entera**. El `⚠️` de la nota de
+valvulopatías rompía justamente la frase que declara sobre qué base están los porcentajes
+impresos al lado, y el `⚠fe<5` de una Chi² rompía la celda con la advertencia de calidad del
+dato. Es el mismo modo de falla que los umbrales de severidad valvular. **No metas emoji en una
+cadena destinada a `doc.text`.**
+
+**`doc.text(..., {maxWidth})` NO trunca: parte y dibuja hacia abajo**, mientras el llamador avanza
+`y` como si fuera una línea, así que la segunda se imprime ENCIMA de la fila siguiente —y si esa
+fila es impar, su relleno la TAPA: texto perdido en silencio. Medido a 8,5 pt: el estadístico de
+una Chi² («Chi2=9.15  V=0.35») mide 25,0 mm sobre 22,64 disponibles, o sea que **toda** fila Chi²
+significativa desbordaba, y diez de las veintinueve exploratorias son Chi². Repartir mejor los
+180 mm no alcanza. La tabla del PDF de análisis **deriva el alto de fila del contenido**
+(`splitTextToSize` + `altoDe`); la de `labGenerarPDF` sigue con alto fijo — si le metés una
+columna angosta, mirá esto primero.
+
+**Una gráfica sin leyenda es un número sin denominador.** La de valvulopatías codifica la válvula
+por TONO y la severidad por OPACIDAD, con la leyenda de Chart.js apagada en `_labValvChartCfg`.
+Las otras dos superficies aportan el decodificador —`_labValvLegendHTML` en el dashboard, las seis
+mini-tablas en el PDF de auditoría—; ésta imprimía la imagen sola. Si publicás esa gráfica en una
+superficie nueva, va con su tabla.
+
+**`sv('medico')` NO EXISTE.** El id real es `med-nombre`. Era código muerto permanente, así que el
+responsable salía sólo del campo del modal del PDF de auditoría —que para este botón no hay razón
+de haber abierto— y la línea entera se omitía: un documento con estadística de una cohorte de
+pacientes circulando con cero atribución. Siempre queda raya de firma, como en el otro PDF. Es
+«un id inventado no falla, calla», otra vez.
+
+**Guard de reentrada y `try/catch` en todo generador `async` de PDF.** Sin el catch, cualquier
+throw queda como promesa rechazada sin manejador y el médico se queda mirando «⏳ Generando…»:
+**una falla total se ve exactamente igual que una generación lenta**, y el reflejo es apretar otra
+vez, que dispara dos generaciones concurrentes. El archivo ya tenía el patrón en
+`_pdfGuardadoEnCurso`.
+
+**El pie es compartido (`_labPdfPie`) porque es donde va el disclaimer.** Su alto se CALCULA
+(`_labPdfPieAlto`) y el piso de contenido del análisis deriva de ahí: el disclaimer crece hacia
+arriba y con dos líneas ya pisaba el borde inferior de una fila de tabla, sin error y sin que se
+note salvo mirando la última hoja. El actual deja sitio para unos 23 caracteres más — agregarle
+una frase lo parte en dos. **`_LAB_PDF.BOTTOM` es el piso SIN pie extra; no lo uses crudo si tu
+documento lleva disclaimer.**
+
+**Las primitivas de dibujo están duplicadas a propósito** entre los dos PDF, y es una decisión, no
+un olvido: giran alrededor de un `y` de cierre que `labGenerarPDF` toca en ~80 lugares, y
+rewirearlas ahí es un cambio de radio mayor que la duplicación que evitaría. Son presentación
+pura, sin regla clínica. **Si tocás una, mirá la otra** — ya divergieron una vez, en el orden del
+`ensure` respecto del título (el de auditoría resuelve la imagen primero, el nuevo no lo hacía y
+dejaba títulos huérfanos al pie de una hoja).
+
+**Lo que este documento DECLARA, y hay que mantener:** la cohorte (hereda los filtros), el N de
+cada tabla, el tamaño de cada familia de pruebas —listar sólo las significativas sin decir cuántas
+se corrieron es la presentación que convierte ruido en hallazgo—, que los dos p ajustados no son
+comparables entre familias, la circularidad con `(!)`, y que con **m = 0** no corrió ninguna
+prueba: ahí «ninguna resultó significativa» sería declarar un negativo sobre algo que no se midió,
+y es el caso de las cohortes chicas, que es cuando más se usa el botón.
+
+**El saneador de `labAsociacionesExportPDF` se consolidó en `_labSanPDF`.** Tenía una
+transliteración local de siete símbolos que no cubría acentos, y nueve de sus once columnas iban
+crudas a `doc.text`: «Función sistólica», «Geometría VI» y «Patrón diastólico» salían rotas en ese
+PDF desde siempre. Además translitera `ρ` como `r` mientras el común usa `rho` — los dos botones
+de la misma barra imprimían distinto el mismo número.
+
 ## Deuda conocida sin resolver
 
 - **Contraseña en el código.** `doLogin()` compara contra un literal. Choca con el checklist

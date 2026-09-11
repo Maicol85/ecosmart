@@ -11646,6 +11646,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
         <button type="button" class="btn btn-primary" id="coh-btn-aplicar" onclick="labCohorteAplicar()">Aplicar filtros</button>
         <button type="button" class="btn" onclick="labCohorteLimpiar()">Limpiar filtros</button>
+        <button type="button" class="btn btn-ghost" id="coh-btn-pdf" style="display:none;font-size:12px;"
+                onclick="if(window.labAnalisisPDF)labAnalisisPDF()">📄 Exportar análisis PDF</button>
         <span id="coh-pendiente" style="display:none;font-size:.76rem;color:var(--orange);font-weight:700;">● Cambios sin aplicar — el resto del Laboratorio sigue mostrando la cohorte anterior</span>
       </div>
       <div id="coh-resultado" style="margin-top:12px;font-size:.85rem;line-height:1.6;"></div>
@@ -12020,8 +12022,9 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           <div class="fg" style="margin:0;min-width:170px;"><label style="font-size:.72rem;">Categoría</label>
             <select id="asoc-f-cat" onchange="if(window.labAsociacionesRender)labAsociacionesRender()"><option value="all">Todas</option><option value="Función sistólica">Función sistólica</option><option value="Diastólica">Diastólica</option><option value="HTP y VD">HTP y VD</option><option value="Geometría">Geometría</option><option value="Aurícula">Aurícula</option></select></div>
           <div style="display:flex;gap:8px;margin-left:auto;">
-            <button class="btn btn-ghost" onclick="if(window.labAsociacionesExportPDF)labAsociacionesExportPDF()" style="font-size:12px;">📄 PDF</button>
-            <button class="btn btn-ghost" onclick="if(window.labAsociacionesExportXLSX)labAsociacionesExportXLSX()" style="font-size:12px;">📊 Excel</button>
+            <button class="btn btn-ghost" onclick="if(window.labAsociacionesExportPDF)labAsociacionesExportPDF()" style="font-size:12px;" title="Sólo esta tabla, tal como se ve">📄 Tabla PDF</button>
+            <button class="btn btn-ghost" onclick="if(window.labAsociacionesExportXLSX)labAsociacionesExportXLSX()" style="font-size:12px;" title="Sólo esta tabla">📊 Excel</button>
+            <button class="btn btn-primary" onclick="if(window.labAnalisisPDF)labAnalisisPDF()" style="font-size:12px;" title="Descriptivas, distribuciones, las dos familias de asociaciones y los gráficos de dispersión">📄 Exportar análisis PDF</button>
           </div>
         </div>
         <div id="lab-asoc-tabla" style="overflow-x:auto;"></div>
@@ -34581,6 +34584,11 @@ function _labCohortePintar(n) {
     const base = el.getAttribute('data-lab-pob') || '';
     el.textContent = base + ' (sobre el total de estudios ' + _labPobDe() + ').';
   });
+  /* El botón de análisis PDF aparece con la cohorte, como pide la consigna. La función corre
+     igual sin filtros —desde la pestaña Asociaciones— y está verificada en los dos casos: acá
+     sólo se gobierna la VISIBILIDAD, no la capacidad. */
+  const btnPdf = document.getElementById('coh-btn-pdf');
+  if (btnPdf) btnPdf.style.display = _LAB_COHORTE ? 'inline-flex' : 'none';
   const badge = document.getElementById('lab-coh-badge');
   if (badge) {
     if (_LAB_COHORTE) { badge.textContent = n + ' — filtros activos'; badge.style.display = 'inline-block'; }
@@ -38535,6 +38543,19 @@ function labSubTab(id, el) {
      archivo ya cerró con `pctOf(n, 0)`, que devolvía «0 %» sobre una entidad que la app no
      registra. Ausencia de prueba y prueba negativa no se ven iguales. */
   const sigLight = (p, ok) => p==null?'—':(p<0.05?(ok?'🟢':'🟡'):'⚫');
+  /* ── UN criterio para trazar la recta de tendencia, y es el del semáforo VERDE ───────────
+     Había TRES para la misma recta y cada superficie afirmaba ser igual a otra:
+       · tabla general → `r.p < 0.05`, el p CRUDO, sin ajuste ni piso de N;
+       · bloque A en pantalla → `r.pAdj < 0.05`, ajustado pero sin piso de N;
+       · PDF → ajustado Y con piso de N.
+     La regla de este módulo ya estaba escrita en `interpTxt`/`_bh`: si el semáforo no está
+     verde, el texto no afirma una dirección. Una recta ES una afirmación de dirección, así que
+     se rige por lo mismo. Los comentarios que decían «igual que en la tabla general» eran
+     falsos en las dos direcciones.
+     CAMBIO DE COMPORTAMIENTO DECLARADO: la tabla general deja de trazar rectas sobre p crudo.
+     Son menos rectas, y las que quedan son las que el semáforo sostiene. */
+  const _asocEstablecida = r => !!(r && r.pAdj != null && r.pAdj < 0.05 && r.ok !== false);
+  window._asocEstablecida = _asocEstablecida;
 
   // ── Dirección / fuerza / lectura clínica ──
   // Dirección: ↑↑ = ambas suben juntas (coef>0) · ↑↓ = una sube y la otra baja (coef<0)
@@ -38706,10 +38727,12 @@ function labSubTab(id, el) {
      los filtros de pantalla, y el ajuste por multiplicidad no se hace sobre lo que se muestra
      sino sobre la FAMILIA completa de pruebas que se corrieron. Filtrando a «p<0,05» el m habría
      bajado al número de filas verdes, que es exactamente el sesgo que BH viene a corregir. */
-  function computeAll(){
-    const infs=informes();
+  function computeAll(pobl){
+    const infs=pobl||informes();
     const res=_bh(ASSOC.map(d=>runOne(d,infs)));
-    _mGeneral = res.filter(r => r.p != null).length;
+    /* `_mGeneral` sólo lo escribe el camino de PANTALLA (sin argumento): es el m que anuncia el
+       tooltip de la tabla, y el PDF —que congela su propia población— no puede pisárselo. */
+    if (!pobl) _mGeneral = res.filter(r => r.p != null).length;
     return res;
   }
   const pTxt = p => p==null?'—':(p<0.001?'<0.001':p.toFixed(3));
@@ -38918,7 +38941,8 @@ function labSubTab(id, el) {
     tr.parentNode.insertBefore(det, tr.nextSibling);
     tr.setAttribute('aria-expanded','true');
     const ch=tr.querySelector('.asoc-chev'); if(ch)ch.textContent='▾';
-    if(r.det && r.det.t==='sp') detSPChart(det, r.det, r.p!=null && r.p<0.05);
+    // Antes: `r.p < 0.05`, el p CRUDO. Ver `_asocEstablecida`.
+    if(r.det && r.det.t==='sp') detSPChart(det, r.det, _asocEstablecida(r));
   }
 
   window.labAsociacionesRender = function(){
@@ -39219,10 +39243,8 @@ function labSubTab(id, el) {
     tr.parentNode.insertBefore(det, tr.nextSibling);
     tr.setAttribute('aria-expanded','true');
     const ch = tr.querySelector('.asocA-chev'); if (ch) ch.textContent = '▾';
-    /* La recta sólo se dibuja con el p AJUSTADO significativo, igual que en la tabla general: una
-       recta sobre ruido se lee como un hallazgo, y es la misma razón por la que `interpTxt` no
-       afirma una dirección sin semáforo verde. */
-    if (r.det && r.det.t === 'sp') detSPChart(det, r.det, r.pAdj != null && r.pAdj < 0.05);
+    // Mismo criterio que las otras dos superficies desde que existe `_asocEstablecida`.
+    if (r.det && r.det.t === 'sp') detSPChart(det, r.det, _asocEstablecida(r));
   }
 
   /* Kruskal-Wallis no tiene scatter: se muestran las medianas y el rango intercuartílico por
@@ -39467,7 +39489,7 @@ function _libreCircular(kx, ky){
        diapositiva aunque lo usaran tres. */
     const pOk = mio && mio.pAdj != null && mio.pAdj < 0.05;
     const nOk = r.n >= 15;
-    const sigAj = pOk && nOk;
+    const sigAj = _asocEstablecida(mio);   // === pOk && nOk, por la misma función que las otras tres
     const porQueNo = sigAj ? '' : (!pOk
       ? 'Sin significación tras el ajuste por multiplicidad'
       : 'El p ajustado es significativo, pero con N &lt; 15 esta app no da por establecida una asociación');
@@ -39508,6 +39530,83 @@ function _libreCircular(kx, ky){
      —un deep link, un «ver en Laboratorio» desde Guardados— y llame a la función que se llama
      «init de asociaciones», el bloque A queda en blanco y los dos `<select>` sin opciones, con lo
      cual «Calcular» sale por un `return` mudo y el botón no hace nada sin decir por qué. */
+  /* ══ Datos para el PDF de análisis ═══════════════════════════════════════════════════════
+     El PDF NO recalcula nada: pide los mismos objetos que pinta la pantalla. Si el PDF corriera
+     sus propias cuentas tendríamos dos p-valores del mismo par, y el que se pudre es el que
+     nadie mira — que acá además es el que se imprime y circula. Es la misma razón por la que
+     `_labHallazgosCuenta` existe: la auditoría había migrado la copia del PDF y dejado rancia
+     la del dashboard, y el mismo hallazgo salía n=3 en pantalla y n=1 en el PDF firmado. */
+  /* `pobl` es OBLIGATORIO en la práctica aunque tenga fallback: el PDF congela su población al
+     entrar y después espera tres imágenes (más de medio segundo de ventana, porque
+     `_labValvChartPng` tiene un `setTimeout(300)` fijo). Releyendo `informes()` acá, apretar
+     «Exportar análisis PDF» y enseguida «Aplicar filtros» —el gesto natural de «lo exporto y
+     sigo probando», y los dos botones están a dos elementos de distancia— producía un PDF con
+     la portada, el banner de cohorte y la gráfica de válvulas de una cohorte y las asociaciones
+     de otra, sin ningún rastro en el documento.
+     No alcanza con compartir la CUENTA si cada uno elige su MUESTRA. */
+  window._labEstDescriptiva = function(pobl){
+    const infs = pobl || informes();
+    const order = ['fevi','ee','lavi','psap','tapse','masa','ddvi','siv','pp','sprime','edad'];
+    return order.map(k => Object.assign({ lbl: VARS[k].lbl }, desc(infs.map(VARS[k].get))));
+  };
+  /* Devuelve las DOS familias con su tamaño, no sólo las significativas. Quien imprima decide
+     qué muestra, pero tiene que poder declarar el denominador: una lista de hallazgos sin decir
+     cuántas pruebas se corrieron es la presentación que convierte ruido en resultado, y es
+     textualmente lo que el comentario de `_bh` dice que este módulo vino a evitar. */
+  window._labAsocParaPDF = function(pobl){
+    const infs = pobl || informes();
+    /* `infs` se hoistea FUERA del `.map`: con `informes()` adentro, las nueve asociaciones
+       clínicas podían leer poblaciones distintas ENTRE SÍ. El camino de pantalla
+       (`labAsocARender`) ya lo hoistea; éste no lo hacía. */
+    const gen = computeAll(infs);
+    const A = _bh(ASSOC_A.map(d => runA(d, infs)));
+    return {
+      general:  gen, mGeneral: gen.filter(r => r.p != null).length, totalGeneral: gen.length,
+      clinicas: A,   mClinicas: A.filter(r => r.p != null).length, totalClinicas: A.length,
+      nMin: A_NMIN
+    };
+  };
+  /* Scatter a PNG, por el mismo camino que `_labValvChartPng`: canvas desprendido, fuera de la
+     pantalla, y se destruye. La recta se dibuja con el MISMO criterio que en pantalla (`sig`),
+     así que el PDF no puede afirmar una tendencia que la app no da por establecida. */
+  window._labScatterPng = async function(det, sig){
+    if (typeof Chart === 'undefined' || !det || !det.pairs || !det.pairs.length) return null;
+    const W = 640, H = 400;
+    const cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    cv.style.position = 'fixed'; cv.style.left = '-10000px'; cv.style.top = '0';
+    document.body.appendChild(cv);
+    const ctx = cv.getContext('2d'); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    const pts = det.pairs.map(p => ({ x:p[0], y:p[1] }));
+    const ds = [{ label:'Estudios', data:pts, backgroundColor:'rgba(37,99,235,.6)', pointRadius:4 }];
+    if (sig && pts.length >= 3){
+      const n = pts.length, mx = pts.reduce((a,q)=>a+q.x,0)/n, my = pts.reduce((a,q)=>a+q.y,0)/n;
+      let sxy = 0, sxx = 0; pts.forEach(q => { sxy += (q.x-mx)*(q.y-my); sxx += (q.x-mx)*(q.x-mx); });
+      const b = sxx > 0 ? sxy/sxx : null;
+      if (b != null && b !== 0 && det.rho != null && Math.sign(b) === Math.sign(det.rho)){
+        const a = my - b*mx;
+        const x0 = Math.min.apply(null, pts.map(q=>q.x)), x1 = Math.max.apply(null, pts.map(q=>q.x));
+        ds.push({ label:'Tendencia', type:'line', data:[{x:x0,y:a+b*x0},{x:x1,y:a+b*x1}],
+                  borderColor:'rgba(220,38,38,.9)', borderWidth:2, pointRadius:0, fill:false });
+      }
+    }
+    let chart = null, url = null;
+    try {
+      chart = new Chart(ctx, { type:'scatter', data:{datasets:ds},
+        options:{ responsive:false, animation:false, devicePixelRatio:2,
+          plugins:{ legend:{display:false} },
+          scales:{ x:{ title:{display:true,text:det.xl,color:'#333'}, ticks:{color:'#333'}, grid:{color:'#e5e7eb'} },
+                   y:{ title:{display:true,text:det.yl,color:'#333'}, ticks:{color:'#333'}, grid:{color:'#e5e7eb'} } } } });
+      // `_trasPintar` y no un rAF pelado: con la pestaña oculta el rAF NO dispara y la promesa
+      // queda pendiente para siempre. Ya colgó el PDF de auditoría una vez por exactamente esto.
+      await new Promise(r => _trasPintar(r));
+      url = cv.toDataURL('image/png');
+    } catch (e) { url = null; }
+    try { if (chart) chart.destroy(); } catch (e) {}
+    cv.remove();
+    return url ? { url, ar: H / W } : null;
+  };
+
   window.labAsociacionesInit = function(){
     if (window.labRenderDesc) labRenderDesc();
     labAsociacionesRender();
@@ -39539,7 +39638,15 @@ function _libreCircular(kx, ky){
     drawHead();
     doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(30,30,30);
     // helvetica/WinAnsi de jsPDF no tiene ρ, χ, ² ni flechas → se transliteran.
-    const ascii = s => String(s).replace(/[χ²ρ→⚠↑↓]/g,m=>({'χ':'X','²':'2','ρ':'r','→':'->','⚠':'!','↑':'+','↓':'-'}[m]||m));
+    /* Se delega en `_labSanPDF`, el saneador COMÚN de los PDF del Laboratorio, en vez de esta
+       transliteración local. Dos motivos:
+       · la local cubría sólo siete símbolos y NO los acentos, y las otras nueve columnas iban
+         crudas a `doc.text` — con un acento, jsPDF codifica la cadena ENTERA en UTF-16 y la
+         fuente WinAnsi la imprime ilegible. O sea que «Función sistólica», «Geometría VI» y
+         «Patrón diastólico» salían rotas en este PDF desde siempre;
+       · y translitera `ρ` como `r` mientras el común lo hace como `rho`: los dos botones de la
+         misma barra imprimían `r=-0,72` y `rho=-0,72` para el mismo número. */
+    const ascii = s => _labSanPDF(s).replace(/[↑↓]/g, m => ({'↑':'+','↓':'-'}[m]));
     rows.forEach(r=>{ if(y>195){ doc.addPage(); y=16; drawHead(); doc.setFont('helvetica','normal'); doc.setTextColor(30,30,30); }
       /* `n/c` y no `s/d`: la columna Dirección ya usa `s/d` para «sin dirección lineal», así que el
          mismo token significaba dos cosas en la misma fila. Y se matchea el `—` EXPLÍCITO en vez de
@@ -39547,7 +39654,8 @@ function _libreCircular(kx, ky){
          «no se pudo calcular» sin que nadie lo haya decidido. */
       const sigTxt=r.sig==='🟢'?'SI':(r.sig==='🟡'?'si*':(r.sig==='⚫'?'no':(r.sig==='—'?'n/c':'?')));
       const dirTx=r.dir==='↑↑'?'+/+':(r.dir==='↑↓'?'+/-':(r.dir==='→'?'s/d':'-'));
-      const vals=[r.cat,r.lbl,ascii(r.interp||''),String(r.n),r.method,dirTx,r.fuerza||'-',ascii(r.stat),pTxt(r.p),pTxt(r.pAdj),sigTxt];
+      // Las once columnas por el saneador, no sólo dos: ver el comentario de `ascii`.
+      const vals=[r.cat,r.lbl,r.interp||'',String(r.n),r.method,dirTx,r.fuerza||'-',r.stat,pTxt(r.p),pTxt(r.pAdj),sigTxt].map(ascii);
       // La interpretación se parte en hasta 2 renglones (y la fila crece) en vez de
       // cortarse a la mitad como hace el substring del resto de las columnas.
       const iLines=vals[2]?doc.splitTextToSize(vals[2],cols[2][1]-2).slice(0,2):[];
@@ -41918,11 +42026,90 @@ function _labSanPDF(s) {
     .replace(/[ÓÒÖÔÕ]/g, 'O').replace(/[ÚÙÜÛ]/g, 'U')
     .replace(/ñ/g, 'n').replace(/Ñ/g, 'N').replace(/ç/g, 'c').replace(/Ç/g, 'C')
     .replace(/≤/g, '<=').replace(/≥/g, '>=').replace(/→/g, '->').replace(/[≈]/g, '~')
-    .replace(/[–—]/g, '-').replace(/[’‘]/g, "'").replace(/[“”]/g, '"').replace(/…/g, '...');
+    .replace(/[–—]/g, '-').replace(/[’‘]/g, "'").replace(/[“”]/g, '"').replace(/…/g, '...')
+    /* Letras griegas: la fuente helvetica/WinAnsi de jsPDF NO las tiene y salen como basura.
+       `ρ` llega desde el estadístico de las asociaciones («ρ=-0.72») y `χ` desde Chi². El módulo
+       de asociaciones ya tenía su propia transliteración local para su exportador; acá va en el
+       saneador común, que es donde corresponde — es el mismo defecto que este archivo documenta
+       con los umbrales de severidad valvular saliendo ilegibles en TODOS los PDF firmados por
+       pasar por la única ruta sin saneador. */
+    .replace(/ρ/g, 'rho').replace(/χ/g, 'X').replace(/[σμ]/g, m => ({'σ':'sigma','μ':'u'}[m]))
+    /* CATCH-ALL, el escalón que faltaba. `helvetica`/WinAnsi sólo llega a U+00FF: todo lo de
+       arriba sale como bytes sin glifo Y ADEMÁS `splitTextToSize` lo mide con métricas
+       inventadas, así que el corte de línea también queda corrido. El ⚠️ de la nota de
+       valvulopatías caía justo delante de la frase que explica que «válvula evaluada» puede
+       incluir estudios donde nadie miró — el contenido clínicamente relevante de esa nota.
+       Se reemplaza por un espacio y no se borra, para no pegar dos palabras. `amiloSanPDF` hace
+       lo mismo desde hace tiempo; acá faltaba. */
+    .replace(/[^\x20-\xFF]/g, ' ').replace(/ {2,}/g, ' ');
 }
 window._labSanPDF = _labSanPDF;
 
 // ── Generar PDF de auditoría — Laboratorio Cardiovascular (profesional) ──
+/* ══ Identidad compartida de los PDF del Laboratorio ══════════════════════════════════════
+   Paleta, geometría y PIE. Los dos documentos que salen de esta pestaña —la auditoría y el
+   análisis estadístico— tienen que verse como el mismo papel y numerar las páginas igual, y
+   sobre todo el pie no puede vivir en dos lugares: es donde va el disclaimer.
+
+   Las PRIMITIVAS de dibujo (sectionTitle, drawTable) NO se extrajeron, y es una decisión, no un
+   olvido: giran alrededor de un `y` de cierre que `labGenerarPDF` toca en ~80 lugares, y
+   rewirearlas ahí es un cambio de radio mucho mayor que la duplicación que evitaría. Son
+   presentación pura, sin ninguna regla clínica adentro. Si tocás una, mirá la otra. */
+const _LAB_PDF = {
+  NAVY:[26,82,118], BLUE:[46,134,193], ALT:[244,246,247], BORD:[189,195,199], GRY:[127,140,141],
+  NARANJA:[176,92,0],
+  W:210, M:15, CW:180, BOTTOM:278
+};
+/* Pie en todas las hojas. `extra` es la línea de disclaimer propia del documento: el PDF de
+   análisis tiene que declarar que no es un diagnóstico, y dejarlo escrito en su propia función
+   sería la segunda copia de un requisito que `clinical-disclaimer-guard` custodia.
+   `splitTextToSize` porque `doc.text` no envuelve ni avisa — recorta por los dos márgenes y un
+   pie truncado se ve igual de bien que uno completo. */
+/* Alto que el pie va a consumir POR ENCIMA de su línea. `labAnalisisPDF` deriva su piso de
+   contenido de acá en vez de copiar el 278: el disclaimer crece hacia arriba y con dos líneas ya
+   pisaba el borde inferior de una fila de tabla, sin error y sin que se note salvo mirando la
+   última hoja. El disclaimer actual deja sitio para unos 23 caracteres más — o sea que agregarle
+   una frase, que es justo lo que pide una revisión médico-legal, lo partía en dos. */
+function _labPdfPieAlto(doc, extra) {
+  if (!extra) return 0;
+  const prevF = doc.getFont ? doc.getFont() : null, prevS = doc.getFontSize ? doc.getFontSize() : null;
+  doc.setFont('helvetica', 'italic'); doc.setFontSize(7.2);
+  const n = doc.splitTextToSize(_labSanPDF(extra), _LAB_PDF.CW).length;
+  if (prevF) doc.setFont(prevF.fontName, prevF.fontStyle);
+  if (prevS) doc.setFontSize(prevS);
+  return n * 3.1 + 2;
+}
+function _labPdfPie(doc, extra) {
+  const S = _labSanPDF, P = _LAB_PDF;
+  // En modo institucional se reemplaza CeiboMed por la institución (o se omite si no hay nombre).
+  const modoInst = localStorage.getItem('ett_modo_institucional') === '1';
+  const inst = ((typeof sv === 'function' ? sv('med-centro') : '') || '').trim();
+  const pie = modoInst
+    ? ('Laboratorio EcoSmart' + (inst ? ' · ' + inst : '') + ' 2026')
+    : 'Laboratorio EcoSmart · CeiboMed 2026';
+  const total = doc.getNumberOfPages();
+  for (let p = 1; p <= total; p++) {
+    doc.setPage(p);
+    let yPie = 285;
+    if (extra) {
+      doc.setFont('helvetica', 'italic'); doc.setFontSize(7.2);
+      doc.setTextColor(P.GRY[0], P.GRY[1], P.GRY[2]);
+      const lineas = doc.splitTextToSize(S(extra), P.CW);
+      yPie = 285 - (lineas.length * 3.1);
+      lineas.forEach((ln, k) => doc.text(ln, P.W / 2, yPie + k * 3.1, { align: 'center' }));
+      yPie = 285;
+      doc.setFont('helvetica', 'normal');
+    }
+    doc.setDrawColor(P.GRY[0], P.GRY[1], P.GRY[2]); doc.setLineWidth(0.106);
+    doc.line(P.M, yPie, P.W - P.M, yPie);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+    doc.setTextColor(P.GRY[0], P.GRY[1], P.GRY[2]);
+    doc.text(S(pie), P.M, yPie + 4);
+    doc.text(S('Página ' + p + ' de ' + total), P.W - P.M, yPie + 4, { align: 'right' });
+    doc.setTextColor(0, 0, 0);
+  }
+}
+
 async function labGenerarPDF() {
   const infs = labGetInformes();
   if (!infs.length) { toast(_LAB_COHORTE ? '⚠️ Sin estudios que cumplan los filtros activos' : '⚠️ Sin estudios en el período'); return; }
@@ -42498,27 +42685,420 @@ async function labGenerarPDF() {
   doc.text(S('Responsable: ' + (resp || '___________________________')), M, y + 6);
   doc.text(S('Fecha de emisión: ' + new Date().toLocaleDateString('es-UY')), M, y + 12);
 
-  // ── Pie de página en cada hoja ──
-  // En modo institucional se reemplaza CeiboMed por la institución (o se omite si no hay nombre).
-  const _labModoInst = localStorage.getItem('ett_modo_institucional')==='1';
-  const _labInst = ((typeof sv === 'function' ? sv('med-centro') : '') || '').trim();
-  const _labPie = _labModoInst
-    ? ('Laboratorio EcoSmart' + (_labInst ? ' · ' + _labInst : '') + ' 2026')
-    : 'Laboratorio EcoSmart · CeiboMed 2026';
-  const totalPages = doc.getNumberOfPages();
-  for (let p = 1; p <= totalPages; p++) {
-    doc.setPage(p);
-    doc.setDrawColor(GRY[0], GRY[1], GRY[2]); doc.setLineWidth(0.106);
-    doc.line(M, 285, W - M, 285);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(GRY[0], GRY[1], GRY[2]);
-    doc.text(S(_labPie), M, 289);
-    doc.text(S('Página ' + p + ' de ' + totalPages), W - M, 289, { align: 'right' });
-    doc.setTextColor(0, 0, 0);
-  }
+  // ── Pie de página en cada hoja ── (compartido con el PDF de análisis, ver `_labPdfPie`)
+  _labPdfPie(doc, null);
 
   doc.save('auditoria_laboratorio_' + new Date().toISOString().split('T')[0] + '.pdf');
   toast('✅ PDF de auditoría generado');
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   PDF DEL ANÁLISIS ESTADÍSTICO
+   ══════════════════════════════════════════════════════════════════════════════════════════
+   Documento distinto del de auditoría: aquél describe la actividad del laboratorio, éste una
+   COHORTE y sus asociaciones. Por eso tiene su propio disclaimer en el pie.
+
+   NO recalcula nada. Las descriptivas, las dos familias de asociaciones y los scatter salen de
+   `_labEstDescriptiva`, `_labAsocParaPDF` y `_labScatterPng`, que son la misma cuenta que pinta
+   la pantalla. Un PDF que corriera sus propios números tendría dos p-valores del mismo par, y
+   el que se pudre es el que nadie mira — que acá es justamente el que circula impreso.
+
+   LO QUE ESTE DOCUMENTO TIENE QUE DECLARAR SÍ O SÍ, y por qué:
+   · La COHORTE. Sale por `labGetInformes()`, así que hereda los filtros. Un informe que imprime
+     «N = 12» sin decir que hay una cohorte aplicada publica un denominador que su lector lee
+     como «todo el laboratorio».
+   · El TAMAÑO DE CADA FAMILIA de pruebas. Listar sólo las significativas sin decir cuántas se
+     corrieron es la presentación que convierte ruido en hallazgo, que es textualmente lo que el
+     comentario de `_bh` dice que este módulo vino a evitar.
+   · Que los dos p ajustados NO son comparables entre tablas: el ajuste depende de la familia.
+   · La CIRCULARIDAD de las asociaciones donde una variable puntúa a la otra. */
+/* Bandera de reentrada. Sin ella, dos clics daban dos generaciones concurrentes —dos descargas,
+   dos tandas de canvas de Chart.js compitiendo— y la segunda podía leer otra cohorte. Y como la
+   función es `async` sin try/catch, cualquier throw quedaba como promesa rechazada sin manejador:
+   el médico se quedaba mirando «⏳ Generando…» indefinidamente, o sea que **una falla total se
+   veía exactamente igual que una generación lenta** — y el reflejo es apretar otra vez, que es el
+   caso anterior. El archivo ya tiene este patrón en `_pdfGuardadoEnCurso`. */
+var _labAnalisisEnCurso = false;
+async function labAnalisisPDF() {
+  if (_labAnalisisEnCurso) { toast('⏳ Ya se está generando el PDF del análisis'); return; }
+  const infs = labGetInformes();
+  if (!infs.length) {
+    toast(_LAB_COHORTE ? '⚠️ Sin estudios que cumplan los filtros activos' : '⚠️ Sin estudios en el período');
+    return;
+  }
+  if (typeof window.jspdf === 'undefined' && typeof jsPDF === 'undefined') { toast('❌ jsPDF no disponible'); return; }
+  if (typeof _labAsocParaPDF !== 'function' || typeof _labEstDescriptiva !== 'function') {
+    toast('❌ El módulo de estadística no está disponible'); return;
+  }
+  _labAnalisisEnCurso = true;
+  const _btn = document.getElementById('coh-btn-pdf');
+  if (_btn) _btn.disabled = true;
+  toast('⏳ Generando PDF del análisis…');
+  try {
+    await _labAnalisisPDFReal(infs);
+  } catch (e) {
+    console.error('[lab] PDF del análisis', e);
+    toast('❌ No se pudo generar el PDF del análisis — ' + (e && e.message ? e.message : 'error desconocido'));
+  } finally {
+    _labAnalisisEnCurso = false;
+    if (_btn) _btn.disabled = false;
+  }
+}
+
+async function _labAnalisisPDFReal(infs) {
+  const { jsPDF: JSPDF } = window.jspdf || window;
+  const doc = new JSPDF({ unit: 'mm', format: 'a4' });
+  const S = _labSanPDF, P = _LAB_PDF;
+  const M = P.M, W = P.W, CW = P.CW;
+  const _DISC = 'Generado con CeiboMed EcoSmart · Análisis estadístico descriptivo. ' +
+                'No constituye diagnóstico ni recomendación terapéutica.';
+  // El piso de contenido DERIVA del alto real del pie, no es el 278 copiado del otro PDF.
+  const BOTTOM = P.BOTTOM - _labPdfPieAlto(doc, _DISC);
+  let y = 20;
+
+  /* Primitivas de dibujo. Son gemelas de las de `labGenerarPDF` a propósito —ver el comentario
+     de `_LAB_PDF`—: mismo alto de fila, mismos colores, misma alternancia. */
+  const ensure = h => { if (y + h > BOTTOM) { doc.addPage(); y = 20; } };
+  const sectionTitle = t => {
+    ensure(13);
+    doc.setFillColor(P.NAVY[0], P.NAVY[1], P.NAVY[2]);
+    doc.rect(M, y, CW, 8.5, 'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(11);
+    doc.text(S(t), M + 3.5, y + 5.8);
+    doc.setTextColor(0,0,0); doc.setFont('helvetica','normal');
+    y += 12.5;
+  };
+  const nota = txt => {
+    doc.setFontSize(7.5); doc.setFont('helvetica','italic');
+    doc.setTextColor(P.GRY[0], P.GRY[1], P.GRY[2]);
+    doc.splitTextToSize(S(txt), CW).forEach(ln => { ensure(4); doc.text(ln, M, y); y += 3.8; });
+    doc.setFont('helvetica','normal'); doc.setTextColor(0,0,0); y += 2;
+  };
+  /* ── Tabla con ALTO DE FILA DERIVADO del contenido ─────────────────────────────────────
+     `doc.text(..., {maxWidth})` NO trunca: parte el texto y dibuja las líneas sobrantes hacia
+     ABAJO, mientras el llamador avanza `y` como si fuera una sola. El resultado es que la
+     segunda línea se imprime ENCIMA de la fila siguiente — está documentado dos veces en este
+     archivo y aun así volvió a entrar acá.
+
+     No era teórico ni raro: medido con las métricas de Helvetica a 8,5 pt, el estadístico de una
+     Chi² («Chi2=9.15  V=0.35») mide 25,0 mm sobre los 22,64 disponibles, así que **toda** fila
+     Chi² significativa desbordaba — y diez de las veintinueve asociaciones exploratorias son
+     Chi². «Spearman=-0.72» pasaba por 0,22 mm, o sea que cualquier tercer decimal lo cruzaba.
+
+     Repartir mejor los 180 mm no alcanza: una etiqueta de asociación o un «105.3 - 128.7» en el
+     rango intercuartílico vuelven a cruzarlo. Se parte el texto ANTES, se mide, y la fila crece.
+     `splitTextToSize` es la misma función que usa jsPDF internamente para `maxWidth`, así que el
+     corte que se dibuja es exactamente el que se midió. */
+  const tabla = (colW, headers, rows) => {
+    const tW = colW.reduce((a,b)=>a+b,0), padX = 2.1, LINE = 3.5, PADY = 2.9;
+    const anchoUtil = i => Math.max(3, colW[i] - padX*1.6);
+    const partir = r => r.map((cell, ci) => doc.splitTextToSize(S(String(cell)), anchoUtil(ci)));
+    const altoDe = celdas => Math.max(6.4, PADY + celdas.reduce((a,c)=>Math.max(a,c.length),1) * LINE);
+    const bordes = (y0, h) => {
+      doc.setDrawColor(P.BORD[0],P.BORD[1],P.BORD[2]); doc.setLineWidth(0.106);
+      doc.rect(M, y0, tW, h);
+      let cx = M; for (let i=0;i<colW.length-1;i++){ cx += colW[i]; doc.line(cx, y0, cx, y0+h); }
+    };
+    const cab = () => {
+      doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+      const celdas = partir(headers), h = altoDe(celdas), y0 = y;
+      doc.setFillColor(P.BLUE[0],P.BLUE[1],P.BLUE[2]); doc.rect(M, y0, tW, h, 'F');
+      doc.setTextColor(255,255,255);
+      let cx = M;
+      celdas.forEach((lns,i)=>{ lns.forEach((ln,k)=>doc.text(ln, cx+padX, y0 + PADY + k*LINE)); cx += colW[i]; });
+      bordes(y0, h);
+      doc.setTextColor(0,0,0); doc.setFont('helvetica','normal');
+      y = y0 + h;
+    };
+    doc.setFontSize(8.5);
+    ensure(14); cab();
+    rows.forEach((r, ri) => {
+      doc.setFontSize(8.5);
+      const celdas = partir(r), h = altoDe(celdas);
+      if (y + h > BOTTOM) { doc.addPage(); y = 20; cab(); doc.setFontSize(8.5); }
+      const y0 = y;
+      if (ri % 2 === 1) { doc.setFillColor(P.ALT[0],P.ALT[1],P.ALT[2]); doc.rect(M, y0, tW, h, 'F'); }
+      let cx = M;
+      celdas.forEach((lns, ci) => { lns.forEach((ln,k)=>doc.text(ln, cx+padX, y0 + PADY + k*LINE)); cx += colW[ci]; });
+      bordes(y0, h); y = y0 + h;
+    });
+    y += 5;
+  };
+  const f1 = v => (v == null || isNaN(v)) ? '—' : (Math.round(v*10)/10).toString();
+
+  // ══════════ ENCABEZADO ══════════
+  doc.setFont('helvetica','bold'); doc.setFontSize(17);
+  doc.setTextColor(P.NAVY[0],P.NAVY[1],P.NAVY[2]);
+  doc.text('ANÁLISIS ESTADÍSTICO', W/2, y, { align:'center' }); y += 7;
+  doc.setFont('helvetica','normal'); doc.setFontSize(10);
+  doc.setTextColor(P.GRY[0],P.GRY[1],P.GRY[2]);
+  doc.text(S('Laboratorio de Ecocardiografía'), W/2, y, { align:'center' }); y += 6;
+
+  const _centro = ((typeof sv === 'function' ? sv('med-centro') : '') || '').trim();
+  /* `med-nombre` es el id REAL del médico. `sv('medico')` era código muerto permanente —no existe
+     ningún elemento con ese id— así que el responsable salía sólo del campo del modal del PDF de
+     auditoría, que para este botón no hay ninguna razón de haber abierto: el documento circulaba
+     con CERO atribución. Es la trampa de «un id inventado no falla, calla» que este archivo ya
+     documenta para `_IG_SECTIONS`. */
+  const _medico = ((typeof sv === 'function' ? sv('med-nombre') : '') ||
+                   (document.getElementById('lab-pdf-responsable') || {}).value || '').trim();
+  const _perEl = document.getElementById('lab-periodo');
+  const _perTxt = (_perEl && _perEl.selectedOptions[0]) ? _perEl.selectedOptions[0].text : '';
+  const _desde = (document.getElementById('lab-desde') || {}).value || '';
+  const _hasta = (document.getElementById('lab-hasta') || {}).value || '';
+  const _rango = (_desde || _hasta) ? ((_desde || '…') + ' a ' + (_hasta || '…')) : _perTxt;
+  doc.setFontSize(9.5);
+  if (_centro) { doc.text(S(_centro), W/2, y, { align:'center' }); y += 5; }
+  /* Siempre hay línea de responsable, con raya de firma si no hay nombre — igual que el PDF de
+     auditoría. Omitir la línea entera dejaba salir del laboratorio un documento con estadística
+     de una cohorte de pacientes y ninguna atribución. */
+  doc.text(S('Responsable: ' + (_medico || '___________________________')), W/2, y, { align:'center' }); y += 5;
+  doc.text(S('Período analizado: ' + (_rango || '—') + '   ·   Generado: ' + new Date().toLocaleDateString('es-UY')),
+           W/2, y, { align:'center' }); y += 6;
+
+  /* La cohorte, con el MISMO cartel que la portada del PDF de auditoría. Este documento existe
+     justamente para describir una cohorte, así que callarla sería peor acá que allá. */
+  const _cohDesc = (typeof _labCohorteDesc === 'function') ? _labCohorteDesc() : '';
+  if (_cohDesc) {
+    doc.setFont('helvetica','bold'); doc.setFontSize(9);
+    doc.setTextColor(P.NARANJA[0],P.NARANJA[1],P.NARANJA[2]);
+    doc.text(S('Cohorte filtrada — los totales NO son los del laboratorio completo'), W/2, y, { align:'center' });
+    y += 4.6;
+    doc.setFont('helvetica','italic'); doc.setFontSize(8);
+    doc.splitTextToSize(S('Filtros activos: ' + _cohDesc), CW).forEach(ln => { doc.text(ln, W/2, y, { align:'center' }); y += 4; });
+    doc.setFont('helvetica','normal'); doc.setTextColor(P.GRY[0],P.GRY[1],P.GRY[2]);
+    y += 1.5;
+  }
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(0,0,0);
+  doc.text(S('N = ' + infs.length + ' estudio' + (infs.length === 1 ? '' : 's')), W/2, y, { align:'center' });
+  y += 5;
+  doc.setDrawColor(P.NAVY[0],P.NAVY[1],P.NAVY[2]); doc.setLineWidth(0.7);
+  doc.line(M, y, W - M, y); y += 8;
+  doc.setFont('helvetica','normal');
+
+  // ══════════ 1 · DESCRIPTIVAS ══════════
+  /* Se listan TODAS las variables, con o sin datos. `filter(d => d.n > 0)` las borraba en
+     silencio y la nota no mencionaba omisiones: un auditor no podía distinguir «este laboratorio
+     no mide E/e'» de «esta versión del PDF no lo imprime». La pantalla las lista con «Datos
+     insuficientes»; el PDF tiene que poder cotejarse contra ella. */
+  const D = _labEstDescriptiva(infs);
+  if (D.length) {
+    sectionTitle('Estadística descriptiva de la cohorte');
+    tabla([46,14,20,20,18,20,20,22],
+      ['Variable','N','Media','Mediana','DS','P25 – P75','Mínimo','Máximo'],
+      /* Con N<5 no se publican los estadísticos y la fila lo dice en su propia celda: escribir
+         «datos insuficientes» en la columna de la media la envuelve —jsPDF parte por `maxWidth`—
+         y las líneas extra se dibujan ENCIMA de la fila siguiente, sin ningún aviso. */
+      D.map(d => d.n < 5
+        ? [d.lbl, String(d.n), d.n === 0 ? 'sin datos' : 'N<5', '—', '—', '—', '—', '—']
+        : [d.lbl, String(d.n), f1(d.mean), f1(d.median), f1(d.sd),
+           f1(d.p25) + ' – ' + f1(d.p75), f1(d.min), f1(d.max)]));
+    nota('El N de cada fila es el de los estudios que TIENEN esa medición, no el de la cohorte: ' +
+         'un estudio sin volumen auricular no dice nada sobre el volumen auricular y meterlo en ' +
+         'el denominador mediría cuánto se completó el formulario. Con menos de 5 no se publican ' +
+         'los estadísticos.');
+  }
+
+  // ══════════ 2 · DISTRIBUCIONES ══════════
+  const distros = [];
+  const feviV = infs.map(_labFevi).filter(v => v !== null);
+  if (feviV.length) {
+    const uf = (typeof UMBRAL_FEVI_NORMAL === 'number') ? UMBRAL_FEVI_NORMAL : 50;
+    distros.push({ t:'FEVI', labels:['< 40 %','40–49 %','≥ ' + uf + ' %'],
+      values:[feviV.filter(v=>v<40).length, feviV.filter(v=>v>=40&&v<uf).length, feviV.filter(v=>v>=uf).length],
+      colors:['#f05454','#f5c842','#3ecf8e'], base:feviV.length });
+  }
+  /* `VARS.psap.get` y NO `_labPsap`: el primero resuelve `psap_calc | psap` y es el que alimenta
+     la fila descriptiva; el segundo lee sólo `psap_calc`. Con los dos, un estudio que trae `psap`
+     y no `psap_calc` entraba en la tabla y no en la gráfica, y el documento decía «PSAP N=30» y
+     «PSAP estimada (n = 22)» a pocos centímetros. Es «el denominador se declara una vez» otra
+     vez, con los dos números correctos por separado describiendo poblaciones distintas. */
+  const _psapGet = i => _labNum(i, 'psap_calc', 'psap');
+  const psapV = infs.map(_psapGet).filter(v => v !== null);
+  if (psapV.length) {
+    const up = (typeof UMBRAL_PSAP_ELEVADA === 'number') ? UMBRAL_PSAP_ELEVADA : 35;
+    // Los dos primeros rótulos salen de `_cohPsapLbl`, que ya deriva del umbral: escribirlos a
+    // mano reintroducía el «(up+1)–50» que hace caer una PSAP de 35,4 en un bucket rotulado «36».
+    const _lblP = (typeof _cohPsapLbl === 'function') ? _cohPsapLbl : (k => k === 'lt36' ? ('<= ' + up + ' mmHg') : ((up+1) + '-50 mmHg'));
+    distros.push({ t:'PSAP estimada', labels:[_lblP('lt36'), _lblP('a3650'), '51–70 mmHg','> 70 mmHg'],
+      values:[psapV.filter(v=>v<=up).length, psapV.filter(v=>v>up&&v<=50).length,
+              psapV.filter(v=>v>50&&v<=70).length, psapV.filter(v=>v>70).length],
+      colors:['#3ecf8e','#f5c842','#f0a500','#f05454'], base:psapV.length });
+  }
+  if (distros.length) {
+    sectionTitle('Distribución de las variables principales');
+    for (const d of distros) {
+      const img = await _labChartImg(d.labels, d.values, d.colors);
+      /* El salto de página se decide con el alto REAL del bloque, antes del título. Con
+         `ensure(14)` primero y `ensure(ih+4)` después de escribir el rótulo, el salto caía EN
+         MEDIO: el título quedaba solo al pie de una hoja y su gráfica arrancaba la siguiente.
+         El PDF de auditoría ya lo hace bien en `sectionChart` — acá las primitivas «gemelas»
+         habían divergido justo donde importa. */
+      const _ih = img ? 110 * img.ar : 0;
+      ensure(4 + (img ? _ih + 5 : 30));
+      doc.setFont('helvetica','bold'); doc.setFontSize(9.5);
+      doc.text(S(d.t + '  (n = ' + d.base + ' con el dato)'), M, y); y += 4;
+      doc.setFont('helvetica','normal');
+      if (img) {
+        const iw = 110, ih = _ih;
+        try { doc.addImage(img.url, 'PNG', M, y, iw, ih); } catch (e) {}
+        y += ih + 5;
+      } else {
+        tabla([90,30,30], ['Rango','n','%'],
+          d.labels.map((l,i)=>[l, String(d.values[i]),
+            d.base > 0 ? Math.round(d.values[i]/d.base*100) + '%' : '— (sin datos)']));
+      }
+    }
+  }
+  // Valvulopatías: por la MISMA configuración de gráfica que usa la pantalla.
+  if (typeof _labValvChartPng === 'function') {
+    const vimg = await _labValvChartPng(infs);
+    if (vimg) {
+      const iw = CW, ih = iw * vimg.ar;
+      ensure(ih + 14);
+      doc.setFont('helvetica','bold'); doc.setFontSize(9.5);
+      doc.text(S('Severidad por valvulopatía'), M, y); y += 4;
+      doc.setFont('helvetica','normal');
+      try { doc.addImage(vimg.url, 'PNG', M, y, iw, ih); } catch (e) {}
+      y += ih + 3;
+      /* LEYENDA. La gráfica codifica la válvula por TONO y la severidad por OPACIDAD, y
+         `_labValvChartCfg` apaga la leyenda de Chart.js. Las otras dos superficies que la
+         publican aportan el decodificador —el dashboard con `_labValvLegendHTML`, el PDF de
+         auditoría con sus seis mini-tablas—; acá salía la imagen sola, o sea porcentajes
+         impresos que el lector no puede decodificar ni referir a una base. */
+      if (typeof _labValvCounts === 'function' && typeof _LAB_VALV_LABELS !== 'undefined') {
+        const vc = _labValvCounts(infs);
+        const lbls = _LAB_VALV_LABELS;
+        /* «Sin» se DERIVA: `_labValvCounts` cuenta Leve/Moderada/Severa y `base` incluye los
+           «Sin», así que restar es la única forma de que las cuatro columnas sumen la base.
+           Con base 0 van rayas y no ceros — un 0 sobre base 0 se lee como «lo medimos y dio
+           cero», que es el defecto que `_labCel` ya cierra en el resto del PDF. */
+        const filas = lbls.map((lb, i) => {
+          const base = vc.bases[i] || 0;
+          const L = vc.counts.Leve[i] || 0, Mo = vc.counts.Moderada[i] || 0, Se = vc.counts.Severa[i] || 0;
+          return base > 0
+            ? [lb + '  (n = ' + base + ')', String(base - L - Mo - Se), String(L), String(Mo), String(Se)]
+            : [lb + '  (sin datos)', '—', '—', '—', '—'];
+        });
+        tabla([60,30,30,30,30], ['Válvula (n evaluados)','Sin','Leve','Moderada','Severa'], filas);
+      }
+      nota('Los porcentajes son sobre los estudios con ESA válvula evaluada, no sobre los ' +
+           infs.length + ' de la cohorte. AVISO: los cinco grados valvulares se registran en todos los ' +
+           'estudios por defecto, así que «válvula evaluada» puede incluir estudios donde nadie la miró.');
+    }
+  }
+
+  // ══════════ 3 · ASOCIACIONES ══════════
+  const A = _labAsocParaPDF(infs);
+  /* «Significativa» para LISTAR es el p ajustado, y punto. El filtro anterior exigía además el
+     piso de N, así que las 🟡 —significativas con N bajo, que la pantalla SÍ muestra— no existían
+     en el PDF, bajo un título que dice «significativas» y contadas sólo dentro del total. Se
+     listan y se marcan con `*`; lo que el piso de N gobierna es la RECTA, no la existencia de la
+     fila. `_asocEstablecida` es la función compartida con las tres superficies de pantalla. */
+  const sigDe = r => r.pAdj != null && r.pAdj < 0.05;
+  const establecida = r => (typeof _asocEstablecida === 'function') ? _asocEstablecida(r)
+                                                                   : (sigDe(r) && r.ok !== false);
+  const pT = p => p == null ? '—' : (p < 0.001 ? '<0.001' : p.toFixed(3));
+
+  const bloqueAsoc = (titulo, rows, m, total, extraCols) => {
+    const sig = rows.filter(sigDe);
+    sectionTitle(titulo);
+    if (!sig.length) {
+      /* Con m = 0 no corrió NINGUNA prueba, así que «ninguna resultó significativa» sería declarar
+         un negativo sobre algo que no se midió — la misma confusión ausencia/negativo que este
+         archivo ya cerró en `sigLight` y en `pctOf(n, 0)`. Y es el caso de las cohortes chicas,
+         que es justo cuando más se usa este botón. */
+      nota(m === 0
+        ? ('Ninguna de las ' + total + ' asociaciones de esta familia se pudo calcular sobre esta cohorte: ' +
+           'faltan datos o no se alcanza el N mínimo. NO se corrió ninguna prueba, así que no hay ' +
+           'resultado —ni positivo ni negativo— sobre ninguna de las ' + total + '.')
+        : ('De las ' + total + ' asociaciones de esta familia se pudieron calcular ' + m + ', y ninguna ' +
+           'resultó significativa tras el ajuste por comparaciones múltiples. Las ' + (total - m) + ' que no ' +
+           'se pudieron calcular NO quedan declaradas negativas: es la ausencia de la prueba.'));
+      return;
+    }
+    tabla(extraCols.w, extraCols.h, sig.map(extraCols.fila));
+    const _resto = total - sig.length;
+    nota('Se muestran ' + sig.length + ' de ' + total + ' asociaciones de esta familia; se pudieron calcular ' + m +
+         ' y el ajuste de Benjamini-Hochberg corrió sobre ésas.' +
+         (_resto > 0 ? (' Las ' + _resto + ' restantes no aparecen acá y eso NO las declara negativas.') : '') +
+         (sig.some(r => !establecida(r))
+           ? ' (*) Significativa tras el ajuste pero con N < 15: la app no la da por establecida, y por eso no se traza su recta.'
+           : '') +
+         ' El p ajustado NO es comparable con el de la otra tabla: el ajuste depende de la familia de pruebas, ' +
+         'así que una misma asociación puede tener dos valores y ninguno estar mal.');
+  };
+
+  /* Sin columna «Sig.»: `sigDe` exige exactamente las tres condiciones que llevan al semáforo
+     verde, así que la rama «si*» era inalcanzable y la columna sólo podía decir «SI» sobre una
+     tabla titulada «significativas». Sus 10 mm son los que le faltaban al estadístico. */
+  bloqueAsoc('Asociaciones significativas — exploratorias', A.general, A.mGeneral, A.totalGeneral, {
+    w:[60,14,30,36,20,20],
+    h:['Asociación','N','Método','Estadístico','p','p ajustado'],
+    fila:r => [r.lbl + (establecida(r) ? '' : ' *'), String(r.n), r.method, r.stat, pT(r.p), pT(r.pAdj)]
+  });
+
+  bloqueAsoc('Asociaciones significativas — clínicas predefinidas', A.clinicas, A.mClinicas, A.totalClinicas, {
+    w:[64,14,30,32,20,20],
+    h:['Asociación','N','Método','Estadístico','p','p ajustado'],
+    fila:r => [r.lbl + (r.circular ? '  (!)' : '') + (establecida(r) ? '' : ' *'), String(r.n), r.method, r.stat, pT(r.p), pT(r.pAdj)]
+  });
+  /* La leyenda se gatea por lo que SE IMPRIME, no por lo significativo. `conScatter` incluye
+     toda Spearman calculable, así que una circular no significativa —`HFA-PEFF – E/e'` es el
+     caso frecuente— estampaba «(!)» en la sección de dispersión con el símbolo sin definir en
+     ninguna parte del documento. */
+  const _circImpresa = A.clinicas.some(r => r.circular && (sigDe(r) || (r.det && r.det.t === 'sp' && r.det.pairs && r.det.pairs.length)));
+  if (_circImpresa) {
+    nota('(!) Correlación parcialmente tautológica: una de las dos variables es uno de los criterios que ' +
+         'PUNTÚAN a la otra, así que parte de la correlación está garantizada por construcción y no es un ' +
+         'hallazgo de esta cohorte.');
+  }
+  nota('Mínimo de N = ' + A.nMin + ' para las asociaciones clínicas. Con ese tamaño, Spearman necesita ' +
+       '|rho| de aproximadamente 0,64 para alcanzar p < 0,05: la ausencia de asociaciones significativas ' +
+       'no dice que no las haya, dice que esta cohorte no alcanza para verlas.');
+
+  // ══════════ 4 · DISPERSIÓN ══════════
+  const conScatter = (typeof Chart !== 'undefined')
+    ? A.clinicas.filter(r => r.det && r.det.t === 'sp' && r.det.pairs && r.det.pairs.length) : [];
+  /* Sin Chart.js `_labScatterPng` devuelve null en cada vuelta y quedaba el título de sección y
+     la nota sobre las rectas con cero imágenes, sin decir por qué. Los otros dos bloques caen
+     bien: distribuciones tienen tabla de respaldo y valvulopatías se saltea entera. */
+  if (typeof Chart === 'undefined' && A.clinicas.some(r => r.det && r.det.t === 'sp')) {
+    sectionTitle('Gráficos de dispersión');
+    nota('No se pudieron generar: la librería de gráficos no cargó. Los coeficientes y los ' +
+         'p-valores de las tablas de arriba son correctos igual — lo que falta es el dibujo.');
+  }
+  if (conScatter.length) {
+    sectionTitle('Gráficos de dispersión — asociaciones clínicas con datos');
+    for (const r of conScatter) {
+      const img = await _labScatterPng(r.det, establecida(r));
+      if (!img) continue;
+      const iw = 118, ih = iw * img.ar;
+      ensure(ih + 12);
+      doc.setFont('helvetica','bold'); doc.setFontSize(9);
+      doc.text(S(r.lbl + (r.circular ? '  (!)' : '')), M, y); y += 3.6;
+      doc.setFont('helvetica','normal'); doc.setFontSize(8);
+      doc.setTextColor(P.GRY[0],P.GRY[1],P.GRY[2]);
+      doc.text(S('N = ' + r.n + '   ·   ' + r.stat + '   ·   p ajustado ' + pT(r.pAdj) +
+                 (establecida(r) ? '' : '   ·   asociación no establecida: no se traza la recta')), M, y);
+      doc.setTextColor(0,0,0); y += 4;
+      try { doc.addImage(img.url, 'PNG', M, y, iw, ih); } catch (e) {}
+      y += ih + 6;
+    }
+    nota('La recta de mínimos cuadrados se traza SÓLO cuando la asociación es significativa tras el ajuste ' +
+         'Y con N de al menos 15 — el mismo criterio del semáforo verde, y el mismo que aplican las tres ' +
+         'superficies de la pantalla desde esta versión. Una recta trazada sobre una asociación que la app no ' +
+         'da por establecida se lee como un hallazgo.');
+  }
+
+  // ══════════ PIE ══════════
+  _labPdfPie(doc, _DISC);
+
+  doc.save('analisis_estadistico_' + (_cohDesc ? 'cohorte_' : '') +
+           new Date().toISOString().split('T')[0] + '.pdf');
+  toast('✅ PDF del análisis generado — N = ' + infs.length);
+}
+window.labAnalisisPDF = labAnalisisPDF;
 
 // Actualizar labInit para usar Chart.js en meses
 const _labInitOrig = labInit;
