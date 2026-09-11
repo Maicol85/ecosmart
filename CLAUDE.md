@@ -1295,6 +1295,68 @@ narrativo, con contador «(1/3)» en el título. Once secciones dan tres diaposi
 12,4:1 en el dato), 1 a 12 secciones, el reparto en dos columnas, la paginación con fuzz de 4.000
 casos sin perder ni duplicar secciones, y que retirar un módulo del informe lo saca del PPT.
 
+### BLOQUEANTE — los cinco grados valvulares nunca están vacíos (2026-09-10)
+
+**Descubierto en la auditoría del Laboratorio y sin resolver.** Invalida todo el bloque de
+valvulopatías en pantalla y en el PDF de auditoría, y contamina las asociaciones.
+
+`im_grado`, `ia_grado` e `it_grado` son `<input type="hidden" value="0">`; `ea_grado` y
+`em_grado` son `<select>` cuya primera opción es `value="sin"`. Como `guardarInforme` barre
+`input[id], select[id], textarea[id]` de TODO el documento, **cada estudio guardado lleva los
+cinco campos rellenos aunque nadie haya mirado la válvula**. Y `limpiarCampos` los repone.
+
+Consecuencia: `_labRegurgSev` devuelve `'Sin'` —no `null`— para el valor de fábrica, así que
+«estudios con esa válvula evaluada» **es idéntico a** «todos los estudios del período». El
+subtítulo que el propio Laboratorio imprime se contradice a sí mismo:
+
+> «Porcentajes sobre los estudios con esa válvula evaluada — el n de cada barra es su propio
+> numerador, **no sobre los 118 del período**.»
+
+y el `n` de la barra ES 118. En el PDF es peor porque el `n` se imprime como sello de confianza.
+
+Es el mismo patrón que este archivo ya documentó para los checkboxes —«`__chk` presente ≠ el
+médico decidió»— aplicado a un hidden numérico, y **neutraliza la corrección de denominadores
+que CLAUDE.md daba por cerrada**: aquella asumió que la ausencia se vería como campo vacío.
+
+**La corrección es un cambio del modelo de datos, no del Laboratorio:** los tres hidden tienen
+que nacer `value=""` y la primera opción de los dos select ser `value=""` («— no evaluada —»),
+con `'0'`/`'sin'` reservados para «la busqué y no está». Eso necesita migración de los estudios
+guardados, que hoy no se pueden distinguir. Hasta entonces **ningún denominador por válvula es
+interpretable**, y cualquier filtro de cohorte por AUSENCIA de valvulopatía incluiría en
+silencio todos los estudios donde nadie miró.
+
+**Impacto en lo pedido:** los filtros de valvulopatías del panel de cohorte (Tarea 2) y los
+bloques de Ebstein/TdF/TGA de la subtab CC (Tarea 1) leen estos campos.
+
+### Laboratorio — base para la subtab CC y el panel de cohorte (2026-09-10)
+
+- **`pctOf(n, 0)` devolvía 0.** Una sección sin un solo estudio imprimía una distribución
+  completa de «0 (0%)», con su gráfica de barras a cero al lado, y eso se lee como «lo medimos y
+  dio cero». La corrección existía sólo en la mini-tabla de valvulopatías; las seis secciones
+  hermanas del mismo PDF seguían con la distribución de ceros. Ahora `_labCel(n, tot)` resuelve
+  el caso en un solo lugar y devuelve «— (sin datos)». 27 celdas migradas.
+- **`labCompararRender` era la única subtab que leía `getInformes()` crudo.** Que ignore el
+  PERÍODO es correcto —define sus propias fechas— pero así también ignoraba el filtro de CENTRO:
+  el médico destildaba un centro, el encabezado decía «48 estudios» y esa pestaña comparaba
+  sobre los 137 de todos los centros sin un cartel que lo dijera. Se partió la base en
+  `_labFiltrarBase(todos, sinPeriodo)` con dos entradas: `labGetInformes()` y
+  `labGetInformesSinPeriodo()`. **El filtro de centro —y la cohorte, cuando exista— son
+  propiedades del PACIENTE, no de la ventana temporal, así que valen para cualquier rango.**
+- **La ecuación del HCM Risk-SCD se extrajo a `_hcmRiskSCD(esp, ai, grad, edad, fhx, tvns, sinc)`.**
+  El Laboratorio necesita el score sobre los `campos` de estudios guardados, donde no hay
+  formulario que leer, y escribir los ocho coeficientes una segunda vez es la forma garantizada
+  de que las dos copias diverjan sin que nadie lo note. Verificado: el caso trabajado da
+  5,796378 % por los dos caminos.
+- **Las bandas de plausibilidad van ADENTRO de la ecuación.** El modo de falla es traicionero:
+  por el término cuadrático del espesor, un valor absurdo no da un número absurdo — `exp(pi)`
+  colapsa a 0 y el resultado es **0 %**, un riesgo de muerte súbita de cero que pasa cualquier
+  control de «¿es un porcentaje?». `mchScoreESC` bandeaba antes de llamar; el Laboratorio no
+  tendría cómo.
+
+**Arquitectura para el panel de cohorte:** `labGetInformes()` es el accesor único de las diez
+subtabs estadísticas (11 call sites). La cohorte va DENTRO de `_labFiltrarBase` y las pestañas
+la heredan sin tocarlas — igual que el período y el centro.
+
 ## Deuda conocida sin resolver
 
 - **Contraseña en el código.** `doLogin()` compara contra un literal. Choca con el checklist

@@ -22535,6 +22535,37 @@ function mchExclusiones(){
   chequear('mch_ex_reduccion','miectomía o alcoholización septal previa');
   return { activas: act, pendientes: pend };
 }
+/* La ECUACIÓN del HCM Risk-SCD, sola y sin tocar el DOM. Está separada de `mchScoreESC` porque
+   el Laboratorio necesita calcularla sobre los `campos` de cada estudio GUARDADO, donde no hay
+   formulario que leer, y escribir los ocho coeficientes una segunda vez es la forma garantizada
+   de que las dos copias diverjan sin que nadie lo note: el número de la pestaña del paciente y
+   el de la cohorte saldrían distintos y no habría nada en pantalla que lo delatara.
+   Verificada JS↔Python a 1e-7 cuando se implementó (ver CLAUDE.md). Devuelve null si el
+   resultado no es un porcentaje plausible. */
+function _hcmRiskSCD(esp, ai, grad, edad, fhx, tvns, sinc){
+  /* Las bandas de plausibilidad van ADENTRO. `mchScoreESC` las aplica antes de llamar —a través
+     de `mchEspesor()` y de su propia lista `fuera`— pero el Laboratorio va a llamar esta función
+     sobre los `campos` de estudios guardados, donde no hay formulario que valide. Y el modo de
+     falla es traicionero: por el término CUADRÁTICO del espesor, un valor absurdo no da un
+     número absurdo sino que `exp(pi)` colapsa a 0 y el resultado es **0 %** — un riesgo de
+     muerte súbita de cero, que pasa cualquier control de «¿es un porcentaje?». Fallar cerrado
+     acá es la única forma de que un espesor tipeado en cm no aporte un 0 % a la cohorte. */
+  if (![esp, ai, grad, edad].every(x => x != null && isFinite(x))) return null;
+  if (esp < 5 || esp > 60)   return null;    // mm
+  if (ai  < 15 || ai  > 90)  return null;    // mm, diámetro anteroposterior
+  if (grad < 0 || grad > 250) return null;   // mmHg
+  if (edad <= 0 || edad > 120) return null;
+  const pi = 0.15939858 * esp
+           - 0.00294271 * esp * esp
+           + 0.0259082  * ai
+           + 0.00446131 * grad
+           + 0.4583082  * (fhx  ? 1 : 0)
+           + 0.82639195 * (tvns ? 1 : 0)
+           + 0.71650361 * (sinc ? 1 : 0)
+           - 0.01799934 * edad;
+  const pct = 100 * (1 - Math.pow(0.998, Math.exp(pi)));
+  return (isFinite(pct) && pct >= 0 && pct <= 100) ? pct : null;
+}
 /* ESC HCM Risk-SCD. Devuelve el porcentaje, o la lista de lo que falta. Nunca un número a medias. */
 function mchScoreESC(){
   const espH = mchEspesor(), esp = espH.valor;
@@ -22579,16 +22610,8 @@ function mchScoreESC(){
   if (_fam.motivo === 'edad_fuera') fuera.push('edad del familiar al fallecer');
   if (fuera.length) return { fuera: fuera };
   if (faltan.length) return { faltan: faltan };
-  const pi = 0.15939858 * esp
-           - 0.00294271 * esp * esp
-           + 0.0259082  * ai
-           + 0.00446131 * grad
-           + 0.4583082  * (fhx  === 'si' ? 1 : 0)
-           + 0.82639195 * (tvns === 'si' ? 1 : 0)
-           + 0.71650361 * (sinc === 'si' ? 1 : 0)
-           - 0.01799934 * edad;
-  const pct = 100 * (1 - Math.pow(0.998, Math.exp(pi)));
-  if (!isFinite(pct) || pct < 0 || pct > 100) return { fuera: ['resultado fuera de rango'] };
+  const pct = _hcmRiskSCD(esp, ai, grad, edad, fhx === 'si', tvns === 'si', sinc === 'si');
+  if (pct == null) return { fuera: ['resultado fuera de rango'] };
   /* Bandas de la ESC. El corte alto es ≥6 %, no >6: la guía dice «≥6 %» y en 6,00 exacto la
      diferencia entre IIa y IIb es un implante. La nota de CLAUDE.md decía «>6», se corrigió acá
      al implementar y queda dicho para que no se «arregle» de vuelta. */
@@ -33848,11 +33871,17 @@ imgRender();
 
 // ══ LABORATORIO ══════════════════════════════════════════════════
 
-function labGetInformes() {
-  const todos = getInformes();
-  const periodo = parseInt(document.getElementById('lab-periodo')?.value || '365');
-  const desde = document.getElementById('lab-desde')?.value;
-  const hasta = document.getElementById('lab-hasta')?.value;
+/* Igual que `labGetInformes` pero SIN el recorte de período. La usa «Comparar períodos», que
+   define sus propias fechas: si le aplicáramos también el período del Laboratorio, elegir
+   «último mes» arriba vaciaría los dos rangos de la comparación sin explicar por qué. El filtro
+   de centro —y la cohorte, cuando exista— sí se aplican: son propiedades del PACIENTE, no de la
+   ventana temporal, así que valen para cualquier rango. */
+function labGetInformesSinPeriodo() { return _labFiltrarBase(getInformes(), true); }
+function labGetInformes() { return _labFiltrarBase(getInformes(), false); }
+function _labFiltrarBase(todos, sinPeriodo) {
+  const periodo = sinPeriodo ? 0 : parseInt(document.getElementById('lab-periodo')?.value || '365');
+  const desde = sinPeriodo ? '' : document.getElementById('lab-desde')?.value;
+  const hasta = sinPeriodo ? '' : document.getElementById('lab-hasta')?.value;
   const hoy = new Date();
 
   // Filtro múltiple por centro (checkboxes del Laboratorio). Normaliza a minúsculas/trim.
@@ -38351,7 +38380,17 @@ function labFiltrarPorFecha(infs, desde, hasta) {
 }
 
 function labCompararRender() {
-  const todos = getInformes();
+  /* `labGetInformes()` y no `getInformes()`. Era la ÚNICA subtab del Laboratorio que leía la
+     base cruda. Que ignore el PERÍODO es correcto —define sus propias fechas— pero así también
+     ignoraba el filtro de CENTRO y, cuando exista, la cohorte: el médico destildaba un centro,
+     el encabezado decía «48 estudios» y esta pestaña seguía comparando sobre los 137 de todos
+     los centros, sin un solo cartel que lo dijera.
+     El período de `labGetInformes` no estorba: `labFiltrarPorFecha` recorta después con las
+     cuatro fechas propias de la subtab, que siempre son iguales o más estrechas. Lo que sí hay
+     que cuidar es que el período del Laboratorio no sea MÁS ANGOSTO que los rangos elegidos
+     acá — por eso se compara contra la base sin recorte de período. */
+  const todos = (typeof labGetInformesSinPeriodo === 'function') ? labGetInformesSinPeriodo()
+              : (typeof labGetInformes === 'function' ? labGetInformes() : getInformes());
   const aD = document.getElementById('lab-cmp-a-desde').value;
   const aH = document.getElementById('lab-cmp-a-hasta').value;
   const bD = document.getElementById('lab-cmp-b-desde').value;
@@ -39817,6 +39856,16 @@ async function labGenerarPDF() {
     return b.length ? (b.reduce((s, x) => s + x, 0) / b.length).toFixed(dec) : '—';
   };
   const pctOf = (nn, tot) => tot > 0 ? Math.round(nn / tot * 100) : 0;
+  /* Celda «n (x %)» con el caso de BASE VACÍA resuelto en un solo lugar. `pctOf` devuelve 0 sin
+     denominador, así que una sección sin un solo estudio imprimía una distribución completa de
+     «0 (0%)» —con su gráfica de barras a cero al lado— y eso se lee como «lo medimos y dio
+     cero», no como «no hay datos». La corrección existía sólo en la mini-tabla de valvulopatías;
+     las seis secciones hermanas del mismo PDF seguían con la distribución de ceros.
+     Y se imprime el `n` de la base: una cohorte de 200 estudios con 2 FEVI cargadas mostraba
+     «Severamente reducida (<30%) 2 (100%)» debajo de un KPI que dice «Total estudios 200», sin
+     que el 2 apareciera en ninguna parte. */
+  const _labCel = (nn, tot) => tot > 0 ? (nn + ' (' + Math.round(nn / tot * 100) + '%)') : '— (sin datos)';
+  const _labBase = (tot, qué) => tot > 0 ? ('n = ' + tot + (qué ? ' ' + qué : '')) : 'sin datos';
 
   const edades = infs.map(i => numCampo(i, 'edad')).filter(v => v !== null && v > 0 && v < 120);
   const edadProm = edades.length ? Math.round(edades.reduce((a, b) => a + b, 0) / edades.length) : null;
@@ -40067,7 +40116,7 @@ async function labGenerarPDF() {
     };
     const freqBlock = (title, hdr, entries) => entries.length ? {
       title, headers: [hdr, 'n (%)'],
-      rows: entries.map(([l, cn]) => [l, cn + ' (' + pctOf(cn, N) + '%)']),
+      rows: entries.map(([l, cn]) => [l, _labCel(cn, N)]),
       chart: { labels: entries.map(x => x[0]), values: entries.map(x => x[1]),
                colors: entries.map((_, i) => _LAB_PIE_PAL[i % _LAB_PIE_PAL.length]), type: 'pie' }
     } : null;
@@ -40091,8 +40140,8 @@ async function labGenerarPDF() {
     await sectionChart('Perfil demográfico',
       ['Indicador', 'Valor'],
       [['Edad promedio', edadProm !== null ? edadProm + ' años' : '—'],
-       ['Sexo femenino', sexos.length ? nF + ' (' + pctOf(nF, sexos.length) + '%)' : '—'],
-       ['Sexo masculino', sexos.length ? nM + ' (' + pctOf(nM, sexos.length) + '%)' : '—'],
+       ['Sexo femenino', sexos.length ? _labCel(nF, sexos.length) : '—'],
+       ['Sexo masculino', sexos.length ? _labCel(nM, sexos.length) : '—'],
        ['GLS promedio', glsProm !== '—' ? glsProm + '%' : '—']],
       sexos.length ? { labels: ['Femenino', 'Masculino'], values: [nF, nM], colors: ['#f472b6', '#4f8ef7'], type: 'pie' } : null);
 
@@ -40102,10 +40151,10 @@ async function labGenerarPDF() {
     const feviN = [fevis.filter(v => v >= 50).length, fevis.filter(v => v >= 40 && v < 50).length, fevis.filter(v => v >= 30 && v < 40).length, fevis.filter(v => v < 30).length];
     await sectionChart('Función sistólica — FEVI',
       ['Rango', 'n (%)'],
-      [['Normal/conservada (≥50%)', feviN[0] + ' (' + pctOf(feviN[0], ft) + '%)'],
-       ['Levemente reducida (40-49%)', feviN[1] + ' (' + pctOf(feviN[1], ft) + '%)'],
-       ['Moderadamente reducida (30-39%)', feviN[2] + ' (' + pctOf(feviN[2], ft) + '%)'],
-       ['Severamente reducida (<30%)', feviN[3] + ' (' + pctOf(feviN[3], ft) + '%)']],
+      [['Normal/conservada (≥50%)', _labCel(feviN[0], ft)],
+       ['Levemente reducida (40-49%)', _labCel(feviN[1], ft)],
+       ['Moderadamente reducida (30-39%)', _labCel(feviN[2], ft)],
+       ['Severamente reducida (<30%)', _labCel(feviN[3], ft)]],
       { labels: ['Normal (≥50)', 'Leve (40-49)', 'Moderada (30-39)', 'Severa (<30)'], values: feviN, colors: ['#3ecf8e', '#f5c842', '#f0a500', '#f05454'] });
 
     // 6. Función diastólica
@@ -40113,10 +40162,10 @@ async function labGenerarPDF() {
     infs.forEach(i => { const g = _labDiastGrado(i); if (g && dg[g] !== undefined) { dg[g]++; dt++; } });
     await sectionChart('Función diastólica',
       ['Grado', 'n (%)'],
-      [['Grado I', dg.I + ' (' + pctOf(dg.I, dt) + '%)'],
-       ['Grado II', dg.II + ' (' + pctOf(dg.II, dt) + '%)'],
-       ['Grado III', dg.III + ' (' + pctOf(dg.III, dt) + '%)'],
-       ['Sin disfunción', dg.sin + ' (' + pctOf(dg.sin, dt) + '%)']],
+      [['Grado I', _labCel(dg.I, dt)],
+       ['Grado II', _labCel(dg.II, dt)],
+       ['Grado III', _labCel(dg.III, dt)],
+       ['Sin disfunción', _labCel(dg.sin, dt)]],
       { labels: ['Grado I', 'Grado II', 'Grado III', 'Sin disf.'], values: [dg.I, dg.II, dg.III, dg.sin], colors: ['#f5c842', '#f0a500', '#f05454', '#3ecf8e'] });
 
     // 7. Geometría VI
@@ -40125,10 +40174,10 @@ async function labGenerarPDF() {
     infs.forEach(i => { const g = _labGeom(i); if (g && gm[g] !== undefined) { gm[g]++; gmt++; } });
     await sectionChart('Geometría VI',
       ['Patrón', 'n (%)'],
-      [['Normal', gm.normal + ' (' + pctOf(gm.normal, gmt) + '%)'],
-       ['Remodelado concéntrico', gm.remod + ' (' + pctOf(gm.remod, gmt) + '%)'],
-       ['HVI concéntrica', gm.conc + ' (' + pctOf(gm.conc, gmt) + '%)'],
-       ['HVI excéntrica', gm.exc + ' (' + pctOf(gm.exc, gmt) + '%)']],
+      [['Normal', _labCel(gm.normal, gmt)],
+       ['Remodelado concéntrico', _labCel(gm.remod, gmt)],
+       ['HVI concéntrica', _labCel(gm.conc, gmt)],
+       ['HVI excéntrica', _labCel(gm.exc, gmt)]],
       { labels: ['Normal', 'Remod.', 'HVI conc.', 'HVI exc.'], values: [gm.normal, gm.remod, gm.conc, gm.exc], colors: ['#3ecf8e', '#f5c842', '#f0a500', '#8a5fd4'] });
 
     // 8. Contractilidad segmentaria + Bull's Eye
@@ -40210,7 +40259,7 @@ async function labGenerarPDF() {
          modelo de datos (su accesor es () => null), así que la tabla imprimía cuatro filas
          confiadas en 0% y un auditor leía «este laboratorio no tiene estenosis tricuspídea».
          Lo cierto es que la app no puede registrarla. Un 0% afirma; un «—» no. */
-      const celda = (nn) => v.t > 0 ? nn + ' (' + pctOf(nn, v.t) + '%)' : '—';
+      const celda = (nn) => v.t > 0 ? _labCel(nn, v.t) : '—';
       drawTable(x, [w * 0.52, w * 0.48], ['Severidad', 'n (%)'],
         [['Sin', celda(v.b.Sin)],
          ['Leve', celda(v.b.Leve)],
@@ -40234,9 +40283,9 @@ async function labGenerarPDF() {
     const tapN = [tapses.filter(v => v >= 17).length, tapses.filter(v => v >= 14 && v < 17).length, tapses.filter(v => v < 14).length];
     await sectionChart('Función VD (TAPSE)',
       ['Rango (mm)', 'n (%)'],
-      [['Normal (>=17)', tapN[0] + ' (' + pctOf(tapN[0], tt) + '%)'],
-       ['Levemente reducida (14-16)', tapN[1] + ' (' + pctOf(tapN[1], tt) + '%)'],
-       ['Reducida (<14)', tapN[2] + ' (' + pctOf(tapN[2], tt) + '%)']],
+      [['Normal (>=17)', _labCel(tapN[0], tt)],
+       ['Levemente reducida (14-16)', _labCel(tapN[1], tt)],
+       ['Reducida (<14)', _labCel(tapN[2], tt)]],
       { labels: ['Normal', 'Leve', 'Reducida'], values: tapN, colors: ['#3ecf8e', '#f5c842', '#f05454'] });
 
     // 11. HTP / PSAP
@@ -40248,10 +40297,10 @@ async function labGenerarPDF() {
     const hN = [psaps.filter(v => v <= _uP).length, psaps.filter(v => v > _uP && v <= 50).length, psaps.filter(v => v > 50 && v <= 70).length, psaps.filter(v => v > 70).length];
     await sectionChart('Distribución de PSAP estimada',
       ['Rango (mmHg)', 'n (%)'],
-      [['<=' + _uP, hN[0] + ' (' + pctOf(hN[0], ht) + '%)'],
-       [(_uP + 1) + '-50', hN[1] + ' (' + pctOf(hN[1], ht) + '%)'],
-       ['51-70', hN[2] + ' (' + pctOf(hN[2], ht) + '%)'],
-       ['>70', hN[3] + ' (' + pctOf(hN[3], ht) + '%)']],
+      [['<=' + _uP, _labCel(hN[0], ht)],
+       [(_uP + 1) + '-50', _labCel(hN[1], ht)],
+       ['51-70', _labCel(hN[2], ht)],
+       ['>70', _labCel(hN[3], ht)]],
       { labels: ['<=' + _uP, (_uP + 1) + '-50', '51-70', '>70'], values: hN, colors: ['#3ecf8e', '#f5c842', '#f0a500', '#f05454'] });
 
     // 12. Vol AI
@@ -40260,10 +40309,10 @@ async function labGenerarPDF() {
     const laviN = [lavis.filter(v => v <= 34).length, lavis.filter(v => v > 34 && v <= 41).length, lavis.filter(v => v > 41 && v <= 48).length, lavis.filter(v => v > 48).length];
     await sectionChart('Volumen AI indexado',
       ['Rango (ml/m2)', 'n (%)'],
-      [['Normal (<=34)', laviN[0] + ' (' + pctOf(laviN[0], lt) + '%)'],
-       ['Leve dilatación (35-41)', laviN[1] + ' (' + pctOf(laviN[1], lt) + '%)'],
-       ['Moderada (42-48)', laviN[2] + ' (' + pctOf(laviN[2], lt) + '%)'],
-       ['Severa (>48)', laviN[3] + ' (' + pctOf(laviN[3], lt) + '%)']],
+      [['Normal (<=34)', _labCel(laviN[0], lt)],
+       ['Leve dilatación (35-41)', _labCel(laviN[1], lt)],
+       ['Moderada (42-48)', _labCel(laviN[2], lt)],
+       ['Severa (>48)', _labCel(laviN[3], lt)]],
       { labels: ['Normal', 'Leve', 'Moderada', 'Severa'], values: laviN, colors: ['#3ecf8e', '#f5c842', '#f0a500', '#f05454'] });
 
     // (Indicaciones, Antecedentes y Hallazgos frecuentes van al principio de este bloque)
