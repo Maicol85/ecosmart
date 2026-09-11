@@ -1357,6 +1357,68 @@ bloques de Ebstein/TdF/TGA de la subtab CC (Tarea 1) leen estos campos.
 subtabs estadísticas (11 call sites). La cohorte va DENTRO de `_labFiltrarBase` y las pestañas
 la heredan sin tocarlas — igual que el período y el centro.
 
+### Subtab «CC / Genéticas» del Laboratorio — 2026-09-11
+
+Trece bloques sobre las doce secciones de la pestaña Congénitas. `labCCRender(infs, n)`.
+
+**Tres tarjetas SE MUDARON desde Hemodinámica** —CIA/CIV, Qp/Qs y bordes de la CIA— con su
+markup y su código. Quedaban ahí desde antes de que la sección se mudara a la pestaña
+«🧬 Congénitas» del paciente; con las dos, la misma estadística viviría dos veces en el mismo
+Laboratorio calculada por dos caminos. Es el tercer lugar donde CIA/CIV se mudó por el mismo
+motivo, después de la pestaña del paciente y de la diapositiva de ETE del PPT.
+
+**Los predicados de pertenencia ya existían** dentro de `labHemoRender`, razonados y comentados.
+Se mudaron en vez de reescribirse.
+
+**Decisiones del médico (2026-09-11):** los grados ordinales van como DISTRIBUCIÓN, nunca como
+promedio —leve=1 y severa=4 no dan «moderada»=2,5, la escala no es una magnitud—; y los filtros
+de valvulopatías se construyen sobre el modelo de datos actual, con la salvedad visible.
+
+**Once defectos del propio diff, y el patrón que los une: reimplementar una regla clínica en el
+Laboratorio la desincroniza de la pestaña del paciente sin que nada lo delate.** El daño acá no
+es un informe firmado equivocado, es un número agregado que no significa lo que el rótulo dice, y
+un porcentaje mal calculado se lee exactamente igual de bien que uno correcto.
+
+- **Un `option value` inventado se cae en silencio.** El mapa de burbujas del FOP decía `escaso`
+  y el select dice `pocas`: `distrib` descartaba la categoría entera —la de MENOR riesgo
+  embólico— y las dos barras restantes se llevaban todo el peso visual sin sumar 100 %.
+  **Verificar los `option value` reales antes de mapearlos.**
+- **El denominador se declara UNA vez.** La nota de la tarjeta de actividad prometía «sobre el
+  total del período» y las barras dividían por los estudios con alguna sección: 10 CIA en 100
+  estudios leían **50 %** bajo un cartel que prometía 10 %.
+- **`mch_fam_ms` crudo reintroduce el defecto cerrado la noche anterior.** Un solo campo alimenta
+  tres umbrales incompatibles (Task Force <35, ESC <40 o cualquier edad con MCH establecida,
+  AHA ≤50). Leerlo crudo contaba como «Sí» una muerte súbita a los 60 en los dos algoritmos.
+  Medido tras el arreglo: familiar a los 30 → intermedio; a los 60 → bajo; a los 60 con MCH
+  establecida → intermedio; sin edad → no entra al score.
+- **`_hcmRiskSCD` sólo valida sus cuatro argumentos NUMÉRICOS.** Los tres binarios los exige
+  `mchScoreESC`, no la ecuación. Pasarlos como `=== 'si'` convierte un «no consta» en un 0
+  medido, y los tres coeficientes suman 2,00 en el índice: el porcentaje sale sistemáticamente
+  bajo. **Al extraer una fórmula, las guardas que quedan en el llamador viajan con el llamador.**
+- **`mca_vi_men2` NO es un campo.** Es una celda DERIVADA de la muerte súbita familiar <35 años.
+  `_labCampoRaw` devolvía siempre `''` y el criterio no disparaba nunca: un Limítrofe se
+  publicaba como Posible y un Definitivo como Limítrofe.
+- **Una compuerta `fuera` no es un filtro por campo.** `mcaCatI` invalida la CATEGORÍA ENTERA con
+  un valor ilegible; ignorarlo para seguir evaluando los otros dos daba criterio MAYOR por el FAC
+  sobre un TSVD de 320 mm que el informe declaraba no interpretable.
+- **Las bandas de plausibilidad del Laboratorio tienen que ser las de la pestaña.** Seis campos
+  divergían. La peor: la coartación bandeaba la velocidad a 9 m/s y no el gradiente a 150 mmHg,
+  así que hasta **324 mmHg** entraban al promedio y al conteo de «> 20 mmHg».
+- **Un dato global no se le atribuye a la sección que lo pide prestado** — también acá. El Qp/Qs
+  de una CIA se sumaba al «Qp/Qs promedio» de la tarjeta del ductus.
+- **`_labFevi` y no `_labNum(i,'fevi')`:** los importados guardan `fevi_simpson` y perdían el
+  factor mayor de disfunción sistólica.
+- **`MCA_UMBRAL` tenía un tercer lector con literales.** Coincidían, pero el contrato de la
+  constante es que exista una sola copia.
+- **`deBase(x, d)` colapsa la base vacía.** Componer «x de y (z%)» a mano daba
+  «0 de 0 (— (sin datos))», que además afirma un numerador y un denominador que no existen.
+
+**Dos salvedades que ahora se imprimen en la propia tarjeta:** el «Puntaje Task Force promedio»
+de MCA mide también cuánto se completó el formulario —las cinco categorías no-eco son casillas
+que nadie abre salvo que sospeche la enfermedad, y sin marcar suman 0 como si fueran negativas—;
+y «Con IP consignada» de Fallot subdeclara, porque la opción vacía de `ip_grado` está rotulada
+«Sin insuficiencia» y el vacío significa las dos cosas.
+
 ## Deuda conocida sin resolver
 
 - **Contraseña en el código.** `doLogin()` compara contra un literal. Choca con el checklist

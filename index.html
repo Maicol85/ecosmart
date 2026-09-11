@@ -11468,6 +11468,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     <button class="lab-subtab" onclick="labSubTab('calidad',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 14l2 2 4-4"/></svg>Calidad</button>
     <button class="lab-subtab" id="lab-subtab-avanzado" onclick="labSubTab('avanzado',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>Avanzado</button>
     <button class="lab-subtab" onclick="labSubTab('hemo',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg>Hemodinámica</button>
+    <button class="lab-subtab" onclick="labSubTab('cc',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a4 4 0 0 0 8 0V3"/><path d="M8 21v-3a4 4 0 0 1 8 0v3"/><line x1="7" y1="12" x2="17" y2="12"/></svg>CC / Genéticas</button>
     <button class="lab-subtab" onclick="labSubTab('ete',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>ETE</button>
     <button class="lab-subtab" onclick="labSubTab('medicos',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Por médico</button>
     <button class="lab-subtab" onclick="labSubTab('comparar',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>Comparar períodos</button>
@@ -12011,6 +12012,37 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
+</div><!-- /lab-sub-hemo -->
+
+
+<!-- ══ Subtab CC / Genéticas ══
+     Mismo prefijo `lab-` que las demás subtabs del Laboratorio, por la misma razón: la allowlist
+     `_noVaciar` de editarInforme incluye `lab-` pero no `cc-`, así que un id `cc-*` sería tratado
+     como campo del estudio y se vaciaría al abrir un informe.
+
+     Las tres tarjetas de CIA/CIV, Qp/Qs y bordes VINIERON de la subtab Hemodinámica. Ahí
+     quedaron desde antes de que la sección se mudara a la pestaña «🧬 Congénitas» del paciente;
+     con las dos, la misma estadística viviría dos veces en el mismo Laboratorio y calculada por
+     dos caminos. Se mudan enteras, con su código: reescribirlas habría sido una segunda
+     derivación de los mismos hechos. -->
+<div id="lab-sub-cc" class="lab-subpanel">
+
+  <div class="lab-card">
+    <div class="lab-card-hdr">🧬 Actividad en cardiopatías congénitas y miocardiopatías genéticas</div>
+    <div class="lab-card-body">
+      <div class="lab-grid">
+        <div id="lab-cc-actividad-stats"></div>
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Distribución por mes</div>
+          <div class="lab-chart-container"><canvas id="lab-cc-meses-chart"></canvas></div>
+        </div>
+      </div>
+      <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:14px 0 8px;text-transform:uppercase;letter-spacing:.4px;">Distribución por tipo</div>
+      <div class="lab-bar-wrap" id="lab-cc-tipos-bars"></div>
+      <div id="lab-cc-actividad-nota" style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.5;"></div>
+    </div>
+  </div>
+
   <div class="lab-card">
     <div class="lab-card-hdr">🫀 CIA / CIV — shunt congénito</div>
     <div class="lab-card-body">
@@ -12054,7 +12086,116 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
-</div><!-- /lab-sub-hemo -->
+  <div class="lab-card">
+    <div class="lab-card-hdr">🩸 DAP — ductus arterioso permeable</div>
+    <div class="lab-card-body">
+      <div class="lab-grid">
+        <div id="lab-cc-dap-stats"></div>
+        <div><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:0 0 8px;text-transform:uppercase;letter-spacing:.4px;">Tipo de ductus</div><div class="lab-bar-wrap" id="lab-cc-dap-bars"></div></div>
+      </div>
+      <div id="lab-cc-dap-nota" style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.5;"></div>
+    </div>
+  </div>
+
+  <div class="lab-card">
+    <div class="lab-card-hdr">🔀 Ventana aortopulmonar</div>
+    <div class="lab-card-body">
+      <div class="lab-grid">
+        <div id="lab-cc-vap-stats"></div>
+        <div><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:0 0 8px;text-transform:uppercase;letter-spacing:.4px;">Tipo</div><div class="lab-bar-wrap" id="lab-cc-vap-bars"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lab-card">
+    <div class="lab-card-hdr">🫁 CoAo — coartación de aorta</div>
+    <div class="lab-card-body">
+      <div class="lab-grid">
+        <div id="lab-cc-coa-stats"></div>
+        <div><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:0 0 8px;text-transform:uppercase;letter-spacing:.4px;">Situación</div><div class="lab-bar-wrap" id="lab-cc-coa-bars"></div></div>
+      </div>
+      <div id="lab-cc-coa-nota" style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.5;"></div>
+    </div>
+  </div>
+
+  <div class="lab-card">
+    <div class="lab-card-hdr">🕳️ FOP — foramen oval permeable</div>
+    <div class="lab-card-body">
+      <div class="lab-grid">
+        <div id="lab-cc-fop-stats"></div>
+        <div><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:0 0 8px;text-transform:uppercase;letter-spacing:.4px;">Paso de burbujas con contraste</div><div class="lab-bar-wrap" id="lab-cc-fop-bars"></div></div>
+      </div>
+      <div id="lab-cc-fop-nota" style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.5;"></div>
+    </div>
+  </div>
+
+  <div class="lab-card">
+    <div class="lab-card-hdr">🔺 VAB — válvula aórtica bicúspide</div>
+    <div class="lab-card-body">
+      <div class="lab-grid">
+        <div id="lab-cc-vab-stats"></div>
+        <div><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:0 0 8px;text-transform:uppercase;letter-spacing:.4px;">Tipo de fusión</div><div class="lab-bar-wrap" id="lab-cc-vab-bars"></div><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:12px 0 8px;text-transform:uppercase;letter-spacing:.4px;">Función valvular</div><div class="lab-bar-wrap" id="lab-cc-vab-func-bars"></div></div>
+      </div>
+      <div id="lab-cc-vab-nota" style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.5;"></div>
+    </div>
+  </div>
+
+  <div class="lab-card">
+    <div class="lab-card-hdr">🫀 MCH — miocardiopatía hipertrófica</div>
+    <div class="lab-card-body">
+      <div class="lab-grid">
+        <div id="lab-cc-mch-stats"></div>
+        <div><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:0 0 8px;text-transform:uppercase;letter-spacing:.4px;">Patrón morfológico</div><div class="lab-bar-wrap" id="lab-cc-mch-bars"></div><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:12px 0 8px;text-transform:uppercase;letter-spacing:.4px;">Banda de riesgo HCM Risk-SCD</div><div class="lab-bar-wrap" id="lab-cc-mch-riesgo-bars"></div></div>
+      </div>
+      <div id="lab-cc-mch-nota" style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.5;"></div>
+    </div>
+  </div>
+
+  <div class="lab-card">
+    <div class="lab-card-hdr">⚡ MCA — miocardiopatía arritmogénica</div>
+    <div class="lab-card-body">
+      <div class="lab-grid">
+        <div id="lab-cc-mca-stats"></div>
+        <div><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:0 0 8px;text-transform:uppercase;letter-spacing:.4px;">Fenotipo</div><div class="lab-bar-wrap" id="lab-cc-mca-bars"></div><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:12px 0 8px;text-transform:uppercase;letter-spacing:.4px;">Banda Task Force 2010</div><div class="lab-bar-wrap" id="lab-cc-mca-banda-bars"></div></div>
+      </div>
+      <div id="lab-cc-mca-nota" style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.5;"></div>
+    </div>
+  </div>
+
+  <div class="lab-card">
+    <div class="lab-card-hdr">💠 Tetralogía de Fallot reparada</div>
+    <div class="lab-card-body">
+      <div class="lab-grid">
+        <div id="lab-cc-tdf-stats"></div>
+        <div><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:0 0 8px;text-transform:uppercase;letter-spacing:.4px;">Función del ventrículo derecho</div><div class="lab-bar-wrap" id="lab-cc-tdf-bars"></div><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:12px 0 8px;text-transform:uppercase;letter-spacing:.4px;">Insuficiencia pulmonar</div><div class="lab-bar-wrap" id="lab-cc-tdf-ip-bars"></div></div>
+      </div>
+      <div id="lab-cc-tdf-nota" style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.5;"></div>
+    </div>
+  </div>
+
+  <div class="lab-card">
+    <div class="lab-card-hdr">🔁 TGA — transposición de grandes arterias</div>
+    <div class="lab-card-body">
+      <div class="lab-grid">
+        <div id="lab-cc-tga-stats"></div>
+        <div><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:0 0 8px;text-transform:uppercase;letter-spacing:.4px;">Función del VD sistémico</div><div class="lab-bar-wrap" id="lab-cc-tga-bars"></div><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:12px 0 8px;text-transform:uppercase;letter-spacing:.4px;">Insuficiencia tricuspídea sistémica</div><div class="lab-bar-wrap" id="lab-cc-tga-it-bars"></div></div>
+      </div>
+      <div id="lab-cc-tga-nota" style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.5;"></div>
+    </div>
+  </div>
+
+  <div class="lab-card">
+    <div class="lab-card-hdr">🍃 Anomalía de Ebstein</div>
+    <div class="lab-card-body">
+      <div class="lab-grid">
+        <div id="lab-cc-ebs-stats"></div>
+        <div><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:0 0 8px;text-transform:uppercase;letter-spacing:.4px;">Grado de Celermajer</div><div class="lab-bar-wrap" id="lab-cc-ebs-bars"></div><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:12px 0 8px;text-transform:uppercase;letter-spacing:.4px;">Insuficiencia tricuspídea</div><div class="lab-bar-wrap" id="lab-cc-ebs-it-bars"></div></div>
+      </div>
+      <div id="lab-cc-ebs-nota" style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.5;"></div>
+    </div>
+  </div>
+
+</div><!-- /lab-sub-cc -->
 
 <!-- ══ Subtab ETE ══
      Todos los ids van con prefijo `lab-ete-`, NO `ete-`: la allowlist `_noVaciar` de
@@ -37601,6 +37742,8 @@ function labSubTab(id, el) {
   if (id === 'medicos') labMedicoInit();
   if (id === 'comparar') labCompararInit();
   if (id === 'mediciones' && typeof labRenderDesc === 'function') labRenderDesc();
+  /* La de congénitas NO se repinta acá: la pinta `labRenderExtras` con la misma población que
+     el resto, y repintarla desde el click la calcularía sobre otra cosa si el filtro cambió. */
   if (id === 'asociaciones' && typeof labAsociacionesInit === 'function') labAsociacionesInit();
 }
 
@@ -39074,6 +39217,44 @@ function labHemoRender(infs, n) {
     _labPieDash('lab-adv-hemo-forr', Object.entries(forr).filter(e => e[1] > 0));
   }
 
+  labCCRender(infs, n);
+}
+window.labHemoRender = labHemoRender;
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   Subtab CC / Genéticas — las doce secciones de la pestaña «🧬 Congénitas»
+   ══════════════════════════════════════════════════════════════════════════════
+   Recibe `infs` de labRenderExtras, o sea la población YA filtrada por labGetInformes.
+
+   ── DENOMINADORES ──
+   Cada bloque divide por LOS ESTUDIOS DE SU SECCIÓN, no por el total del período. Los
+   predicados de pertenencia son los de abajo y estaban escritos y razonados desde antes, en
+   la subtab Hemodinámica; se mudaron con su comentario en vez de reescribirse.
+   La única excepción declarada es el bloque de actividad, donde el denominador SÍ es el total:
+   ahí la pregunta es «qué proporción de mi laboratorio son congénitas», que es prevalencia.
+
+   ── GRADOS ORDINALES ──
+   Los grados valvulares se informan como DISTRIBUCIÓN, nunca como promedio (decisión del
+   médico, 2026-09-10). Promediar leve=1 y severa=4 para obtener «moderada»=2,5 no significa
+   nada: la escala es ordinal, no una magnitud.
+
+   ── LA SALVEDAD DE it_grado ──
+   `it_grado` es un `<input type="hidden" value="0">` que viaja en TODO estudio guardado, así que
+   «0» no distingue «no hay insuficiencia» de «nadie miró la válvula». Los bloques de Ebstein,
+   Fallot y TGA cuentan sólo los grados 1-4 y declaran el denominador; el 0 se reporta aparte
+   como «sin IT o no evaluada», que es lo único que el dato sostiene. */
+function labCCRender(infs, n) {
+  const setHtml = (id, h) => { const e = document.getElementById(id); if (e) e.innerHTML = h; };
+  const stat = (lbl, val) => `<div class="lab-stat"><span class="lab-stat-lbl">${lbl}</span><span class="lab-stat-val">${val}</span></div>`;
+  const empty = (id, mod) => setHtml(id, `<div class="lab-empty">Sin estudios con ${mod} registrado en el período seleccionado.</div>`);
+  const pctS = x => n > 0 ? Math.round(x / n * 100) + '%' : '— (sin datos)';
+  /* `— (sin datos)` y NO «0 %» con base vacía: un porcentaje de cero se lee como «lo medimos y
+     dio cero», que es lo contrario de lo que pasa. Misma convención que `_labCel` del PDF. */
+  const pctDe = (x, d) => d > 0 ? Math.round(x / d * 100) + '%' : '— (sin datos)';
+  /* `x de d (p%)` con el caso de base vacía COLAPSADO. Componer el porcentaje dentro de un
+     paréntesis que ya trae paréntesis daba «0 de 0 (— (sin datos))», que además afirma un
+     numerador y un denominador que no existen: con base cero no hay «0 de 0», no hay nada. */
+  const deBase = (x, d) => d > 0 ? (x + ' de ' + d + ' (' + Math.round(x / d * 100) + '%)') : '— (sin datos)';
   const ciaArr   = infs.filter(i => _labCampoRaw(i, 'ete_cia_tipo'));
   const civArr   = infs.filter(i => _labCampoRaw(i, 'ete_civ_tipo'));
   const shuntArr = infs.filter(i => _labCampoRaw(i, 'ete_cia_tipo') || _labCampoRaw(i, 'ete_civ_tipo'));
@@ -39224,9 +39405,9 @@ function labHemoRender(infs, n) {
       stat('Qp/Qs promedio', _promTxt(_prom(conQ), 2)) +
       stat('Qp/Qs promedio — CIA', _promTxt(_prom(ciaArr.map(qp)), 2)) +
       stat('Qp/Qs promedio — CIV', _promTxt(_prom(civArr.map(qp)), 2)) +
-      stat('Criterio Qp/Qs ≥ 1,5', porQ + ' de ' + conQ.length + ' (' + pctDe(porQ, conQ.length) + ')') +
-      stat('DDVI indexado > 32 mm/m² (sólo CIV)', conD.length ? (porD + ' de ' + conD.length + ' (' + pctDe(porD, conD.length) + ')') : '—') +
-      stat('Cumple alguno de los dos', cualquiera + ' de ' + shuntArr.length + ' (' + pctDe(cualquiera, shuntArr.length) + ')'));
+      stat('Criterio Qp/Qs ≥ 1,5', deBase(porQ, conQ.length)) +
+      stat('DDVI indexado > 32 mm/m² (sólo CIV)', conD.length ? (deBase(porD, conD.length)) : '—') +
+      stat('Cumple alguno de los dos', deBase(cualquiera, shuntArr.length)));
     labBarras('lab-shunt-qpqs-bars', [
       { lbl: '< 1,0 — derecha a izquierda / Eisenmenger (n=' + g0 + ')', n: g0, total: conQ.length, color: '#a855f7' },
       { lbl: '1,0–1,5 — shunt pequeño (n=' + g1 + ')',                   n: g1, total: conQ.length, color: '#3ecf8e' },
@@ -39274,8 +39455,8 @@ function labHemoRender(infs, n) {
   } else {
     const conDefic = conAlgunBorde.filter(i => BORDES.some(([id]) => { const x = _labNum(i, id); return x !== null && x < CIA_BORDE_DEF; })).length;
     setHtml('lab-shunt-bordes-stats',
-      stat('CIA con bordes medidos', conAlgunBorde.length + ' de ' + ciaArr.length + ' (' + pctDe(conAlgunBorde.length, ciaArr.length) + ')') +
-      stat('Con al menos un borde deficiente', conDefic + ' de ' + conAlgunBorde.length + ' (' + pctDe(conDefic, conAlgunBorde.length) + ')') +
+      stat('CIA con bordes medidos', deBase(conAlgunBorde.length, ciaArr.length)) +
+      stat('Con al menos un borde deficiente', deBase(conDefic, conAlgunBorde.length)) +
       stat('Bordes medidos por estudio', _promTxt(_prom(conAlgunBorde.map(i => BORDES.filter(([id]) => _labNum(i, id) !== null).length)), 1, ' de 5')));
     // Ordenadas por frecuencia de deficiencia. Las etiquetas son literales de BORDES, no datos.
     const filas = BORDES.map(([, lbl], k) => ({ lbl, def: defic[k], med: medidos[k] }))
@@ -39291,8 +39472,447 @@ function labHemoRender(infs, n) {
       'en los que <b>ese</b> borde se midió, no sobre todas las CIA: un borde que casi nunca se ' +
       'mide puede encabezar la lista con un n muy chico.');
   }
+
+  /* ══════════════ HELPERS COMPARTIDOS DE LOS BLOQUES DE ABAJO ══════════════ */
+  /* Distribución por etiqueta, con prototipo nulo y `hasOwnProperty`: las claves vienen de los
+     `campos` del estudio y una importada como `constructor` devolvería la función del prototipo
+     en vez del rótulo. Es la trampa que este archivo ya documentó. */
+  const distrib = (arr, campo, mapa) => {
+    const c = Object.create(null);
+    arr.forEach(i => {
+      const k = _labCampoRaw(i, campo);
+      if (!k) return;
+      const lbl = Object.prototype.hasOwnProperty.call(mapa, k) ? mapa[k] : null;
+      if (!lbl) return;                       // valor desconocido: no se inventa una categoría
+      c[lbl] = (c[lbl] || 0) + 1;
+    });
+    return c;
+  };
+  const barrasDe = (id, cuenta, total) => {
+    const filas = Object.keys(cuenta).map(k => ({ lbl: k, n: cuenta[k], total: total }))
+      .filter(f => f.n > 0).sort((a, b) => b.n - a.n);
+    if (!filas.length) { empty(id, 'esa clasificación'); return 0; }
+    labBarras(id, filas.map((f, k) => Object.assign(f, { color: _LAB_PIE_PAL[k % _LAB_PIE_PAL.length] })));
+    return filas.reduce((a, f) => a + f.n, 0);
+  };
+  const cuantos = (arr, campo, val) => arr.filter(i => _labCampoRaw(i, campo) === val).length;
+  /* Denominador de un sí/no de TRES estados: sólo los que contestaron. Un «no consta» no es un
+     «no», y contarlo como tal subdeclara el hallazgo en toda la cohorte. */
+  const contestados = (arr, campo) => arr.filter(i => { const v = _labCampoRaw(i, campo); return v === 'si' || v === 'no'; }).length;
+  const promDe = (arr, campo, lo, hi) => _prom(arr.map(i => _labNum(i, campo)).filter(v => v !== null && v >= lo && v <= hi));
+  /* Grados valvulares 1-4. El 0 NO entra: `it_grado` es un hidden con `value="0"` que viaja en
+     todo estudio guardado, así que no distingue «sin insuficiencia» de «no evaluada». */
+  const GRADO_L = { '1':'Leve', '2':'Moderada', '3':'Moderada-severa', '4':'Severa' };
+  const gradoBloque = (arr, campo, idBars) => {
+    const c = distrib(arr, campo, GRADO_L);
+    const conGrado = Object.keys(c).reduce((a, k) => a + c[k], 0);
+    barrasDe(idBars, c, conGrado || 1);
+    return { conGrado, sinGrado: arr.length - conGrado,
+             modSev: (c['Moderada'] || 0) + (c['Moderada-severa'] || 0) + (c['Severa'] || 0) };
+  };
+  const SALVEDAD_IT = 'Los grados valvulares se registran en todos los estudios por defecto, así que un ' +
+    '«0» no distingue «sin insuficiencia» de «válvula no evaluada». Acá se cuentan sólo los grados ' +
+    '<b>leve a severa</b> y el resto se informa aparte como «sin IT o no evaluada». <b>No se promedia el ' +
+    'grado</b>: la escala es ordinal — leve y severa no son 1 y 4 de una magnitud.';
+
+  // ── BLOQUE 4 · DAP ──
+  if (!dapArr.length) { empty('lab-cc-dap-stats', 'ductus arterioso'); empty('lab-cc-dap-bars', 'ductus'); setHtml('lab-cc-dap-nota', ''); }
+  else {
+    /* El Qp/Qs es GLOBAL y no se le atribuye a la sección que lo pide prestado: es la regla que
+       `ccQpQsDe` aplica en la pestaña del paciente. Un estudio con una CIA y un ductus incidental
+       aportaba el cociente de la CIA a «Qp/Qs promedio» y a «Con Qp/Qs ≥ 1,5» de la tarjeta del
+       ductus. Se descarta si hay datos de otro grupo de cortocircuito. */
+    const otroShunt = i => !!(_labCampoRaw(i, 'ete_cia_tipo') || _labCampoRaw(i, 'ete_civ_tipo') ||
+                              _labCampoRaw(i, 'vap_tipo') || _labCampoRaw(i, 'vap_diam'));
+    const qs = dapArr.filter(i => !otroShunt(i)).map(qp).filter(v => v !== null);
+    const sinAtribuir = dapArr.filter(i => otroShunt(i) && qp(i) !== null).length;
+    /* «Indicación de cierre» es una LECTURA de esta vista, no un campo del estudio: se cuenta
+       Qp/Qs ≥1,5 sobre los que tienen Qp/Qs calculable, y se dice el denominador. */
+    const conQ = qs.length, cierre = qs.filter(q => q >= 1.5).length;
+    setHtml('lab-cc-dap-stats',
+      stat('Estudios con ductus', dapArr.length + ' (' + pctS(dapArr.length) + ' del período)') +
+      stat('Diámetro mínimo promedio', _promTxt(promDe(dapArr, 'dap_diam', 0.5, 30), 1, ' mm')) +
+      stat('Con Qp/Qs atribuible al ductus', deBase(conQ, dapArr.length)) +
+      stat('Qp/Qs promedio', _promTxt(_prom(qs), 2)) +
+      stat('Con Qp/Qs ≥ 1,5', deBase(cierre, conQ)));
+    barrasDe('lab-cc-dap-bars', distrib(dapArr, 'dap_tipo', { silente:'Silente', restrictivo:'Restrictivo', no_restrictivo:'No restrictivo' }), dapArr.length);
+    setHtml('lab-cc-dap-nota', 'El Qp/Qs se recalcula desde los cuatro campos guardados, no se lee de la pantalla, y ' +
+      '<b>no se le atribuye al ductus si el estudio tiene además una CIA, una CIV o una ventana aortopulmonar</b>: ' +
+      'el cociente es global y en ese caso no dice cuánto aporta cada defecto' +
+      (sinAtribuir ? ' — ' + sinAtribuir + ' estudio(s) quedaron fuera por eso' : '') + '. ' +
+      '<b>«Qp/Qs ≥ 1,5» no es una indicación de cierre</b>: la decisión integra la repercusión sobre las cavidades ' +
+      'derechas y la resistencia pulmonar, que esta vista no evalúa.');
+  }
+
+  // ── BLOQUE 5 · Ventana aortopulmonar ──
+  if (!vapArr.length) { empty('lab-cc-vap-stats', 'ventana aortopulmonar'); empty('lab-cc-vap-bars', 'ventana'); }
+  else {
+    const dirs = distrib(vapArr, 'vap_dir', { id:'Izquierda a derecha', di:'Derecha a izquierda', bi:'Bidireccional' });
+    const htpSi = cuantos(vapArr, 'vap_htp', 'si'), htpCont = contestados(vapArr, 'vap_htp');
+    setHtml('lab-cc-vap-stats',
+      stat('Estudios con ventana aortopulmonar', vapArr.length + ' (' + pctS(vapArr.length) + ' del período)') +
+      stat('Diámetro promedio', _promTxt(promDe(vapArr, 'vap_diam', 1, 40), 1, ' mm')) +
+      stat('Con hipertensión pulmonar', (htpCont > 0 ? (htpSi + ' de ' + htpCont + ' contestados (' + pctDe(htpSi, htpCont) + ')') : '— (sin contestar)')) +
+      stat('Con shunt derecha-izquierda', (dirs['Derecha a izquierda'] || 0) + ' de ' + vapArr.length + ' (' + pctDe(dirs['Derecha a izquierda'] || 0, vapArr.length) + ')'));
+    barrasDe('lab-cc-vap-bars', distrib(vapArr, 'vap_tipo', { i:'Tipo I — proximal', ii:'Tipo II — distal', iii:'Tipo III — total' }), vapArr.length);
+  }
+
+  // ── BLOQUE 6 · Coartación de aorta ──
+  if (!coaArr.length) { empty('lab-cc-coa-stats', 'coartación de aorta'); empty('lab-cc-coa-bars', 'coartación'); setHtml('lab-cc-coa-nota', ''); }
+  else {
+    /* El gradiente máximo se RECALCULA por Bernoulli simplificado desde la velocidad, igual que
+       `coaGmax()`: leer un span daría el del estudio que esté en pantalla. */
+    /* La ventana efectiva es la del GRADIENTE (0-150 mmHg), no la de la velocidad: `coaConclusion`
+       banda el gradiente ya calculado, así que acotar sólo la velocidad a 9 m/s dejaba pasar
+       hasta 324 mmHg al promedio y al conteo de «> 20 mmHg», mientras el informe del paciente
+       cortaba ese mismo estudio como no interpretable. */
+    const gmaxDe = i => { const v = _labNum(i, 'coa_vmax');
+      if (v === null || !(v > 0 && v <= 9)) return null;
+      const g = 4 * v * v; return (g >= 0 && g <= 150) ? g : null; };
+    const gs = coaArr.map(gmaxDe).filter(v => v !== null);
+    const conG = gs.length, sig = gs.filter(g => g > 20).length;
+    /* La cola diastólica es un CHECKBOX: su estado de fábrica es desmarcado y eso significa a la
+       vez «la busqué y no está» y «no la busqué». Se informa como «marcada», no como prevalencia. */
+    const cola = coaArr.filter(i => _labCampoRaw(i, 'coa_diast_anterogrado__chk') === '1').length;
+    setHtml('lab-cc-coa-stats',
+      stat('Estudios con coartación', coaArr.length + ' (' + pctS(coaArr.length) + ' del período)') +
+      stat('Diámetro del istmo promedio', _promTxt(promDe(coaArr, 'coa_istmo', 2, 60), 1, ' mm')) +
+      stat('Con gradiente calculable', deBase(conG, coaArr.length)) +
+      stat('Gradiente máximo promedio', _promTxt(_prom(gs), 0, ' mmHg')) +
+      stat('Con gradiente > 20 mmHg', deBase(sig, conG)) +
+      stat('Con cola diastólica marcada', deBase(cola, coaArr.length)));
+    barrasDe('lab-cc-coa-bars', distrib(coaArr, 'coa_situacion', { nativa:'Nativa', recoartacion:'Recoartación post-intervención' }), coaArr.length);
+    setHtml('lab-cc-coa-nota', 'El gradiente sale de 4·Vmax² sobre la velocidad guardada, que <b>sobreestima</b> en la ' +
+      'coartación porque no descuenta la velocidad proximal. La <b>cola diastólica es una casilla</b>: sin marcar ' +
+      'significa a la vez «la busqué y no está» y «no la busqué», así que el número de arriba es cuántas ' +
+      'se <b>marcaron</b>, no la prevalencia del signo.');
+  }
+
+  // ── BLOQUE 7 · Foramen oval permeable ──
+  if (!fopArr.length) { empty('lab-cc-fop-stats', 'foramen oval'); empty('lab-cc-fop-bars', 'foramen oval'); setHtml('lab-cc-fop-nota', ''); }
+  else {
+    /* Mismo criterio de aneurisma que `fopConclusion`: el desplegable en «sí» O la excursión
+       medida ≥10 mm. Contar sólo el desplegable subdeclara los que se midieron sin clasificar. */
+    /* La excursión se banda 2-40 mm ANTES de aplicar el ≥10, igual que `fopConclusion`: sin la
+       banda, una excursión de 100 mm contaba como aneurisma mientras el informe la declaraba
+       fuera de rango. */
+    const asa = fopArr.filter(i => { const s = _labCampoRaw(i, 'fop_asa'); const mm = _labNum(i, 'fop_asa_mm');
+                                     return s === 'si' || (mm !== null && mm >= 2 && mm <= 40 && mm >= 10); }).length;
+    const valSi = cuantos(fopArr, 'fop_shunt_valsalva', 'si'), valCont = contestados(fopArr, 'fop_shunt_valsalva');
+    const repSi = cuantos(fopArr, 'fop_shunt_reposo', 'si'), repCont = contestados(fopArr, 'fop_shunt_reposo');
+    const acvSi = cuantos(fopArr, 'fop_acv', 'si'), acvCont = contestados(fopArr, 'fop_acv');
+    setHtml('lab-cc-fop-stats',
+      stat('Estudios con foramen oval', fopArr.length + ' (' + pctS(fopArr.length) + ' del período)') +
+      stat('Longitud del túnel promedio', _promTxt(promDe(fopArr, 'fop_tunel', 1, 40), 1, ' mm')) +
+      stat('Con aneurisma del septum', deBase(asa, fopArr.length)) +
+      stat('Con shunt en reposo', (repCont > 0 ? (repSi + ' de ' + repCont + ' contestados (' + pctDe(repSi, repCont) + ')') : '— (sin contestar)')) +
+      stat('Con shunt en Valsalva', (valCont > 0 ? (valSi + ' de ' + valCont + ' contestados (' + pctDe(valSi, valCont) + ')') : '— (sin contestar)')) +
+      stat('Con ACV criptogénico', (acvCont > 0 ? (acvSi + ' de ' + acvCont + ' contestados (' + pctDe(acvSi, acvCont) + ')') : '— (sin contestar)')));
+    /* `pocas`, no `escaso`: son los `option value` reales del select. Con la clave inventada,
+       `distrib` descartaba la categoría entera en silencio —justo la de MENOR riesgo embólico—
+       y las dos barras restantes se llevaban todo el peso visual sin sumar 100 %. */
+    barrasDe('lab-cc-fop-bars', distrib(fopArr, 'fop_burbujas', { pocas:'Paso escaso (<5 burbujas)', moderado:'Paso moderado', abundante:'Paso abundante' }), fopArr.length);
+    setHtml('lab-cc-fop-nota', 'Los tres porcentajes de shunt y de ACV se calculan <b>sobre los estudios que contestaron</b> ' +
+      'esa pregunta, no sobre todos los foramen: un «no consta» no es un «no», y contarlo como tal subdeclararía el hallazgo.');
+  }
+
+  // ── BLOQUE 8 · Válvula aórtica bicúspide ──
+  if (!vabArr.length) { empty('lab-cc-vab-stats', 'válvula aórtica bicúspide'); empty('lab-cc-vab-bars', 'bicúspide'); empty('lab-cc-vab-func-bars', 'función'); setHtml('lab-cc-vab-nota', ''); }
+  else {
+    /* «Dilatación aórtica» = el MAYOR de raíz y ascendente ≥40 mm, el corte por el que la ESC
+       2024 empieza a seguir la aorta. Se declara porque no es un campo del estudio. */
+    /* Banda 10-90 mm, la misma que `vabConclusion`: con 100 una aorta de 95 entraba acá y el
+       informe del mismo paciente la rechazaba. */
+    const maxAo = i => { const r = _labNum(i, 'ao_sin'), a = _labNum(i, 'ao_tub');
+      const v = [r, a].filter(x => x !== null && x >= 10 && x <= 90); return v.length ? Math.max.apply(null, v) : null; };
+    const aos = vabArr.map(maxAo).filter(v => v !== null);
+    const dil = aos.filter(x => x >= 40).length;
+    setHtml('lab-cc-vab-stats',
+      stat('Estudios con bicúspide', vabArr.length + ' (' + pctS(vabArr.length) + ' del período)') +
+      stat('Con aorta medida', deBase(aos.length, vabArr.length)) +
+      stat('Diámetro aórtico máximo promedio', _promTxt(_prom(aos), 1, ' mm')) +
+      stat('Con dilatación (≥ 40 mm)', deBase(dil, aos.length)));
+    barrasDe('lab-cc-vab-bars', distrib(vabArr, 'vab_tipo', { t0:'Tipo 0 — sin rafe', t1rl:'Tipo 1 — R-L', t1rn:'Tipo 1 — R-N', t1nl:'Tipo 1 — N-L', t2:'Tipo 2 — unicúspide' }), vabArr.length);
+    barrasDe('lab-cc-vab-func-bars', distrib(vabArr, 'vab_funcion', { normal:'Normofuncionante', estenosis:'Con estenosis', insuficiencia:'Con insuficiencia', mixta:'Lesión mixta' }), vabArr.length);
+    setHtml('lab-cc-vab-nota', 'El diámetro es el <b>mayor entre raíz y aorta ascendente</b>, que es el que decide. ' +
+      'El corte de <b>40 mm</b> lo aplica esta vista, no es un campo del estudio: es donde la ESC 2024 empieza a ' +
+      'seguir la aorta, muy por debajo del umbral quirúrgico.');
+  }
+
+  // ── BLOQUE 9 · Miocardiopatía hipertrófica ──
+  if (!mchArr.length) { empty('lab-cc-mch-stats', 'miocardiopatía hipertrófica'); empty('lab-cc-mch-bars', 'patrón'); empty('lab-cc-mch-riesgo-bars', 'riesgo'); setHtml('lab-cc-mch-nota', ''); }
+  else {
+    const gr = i => { const r = _labNum(i, 'mch_grad_reposo'), v = _labNum(i, 'mch_grad_valsalva');
+      const xs = [r, v].filter(x => x !== null && x >= 0 && x <= 250); return xs.length ? Math.max.apply(null, xs) : null; };
+    const grads = mchArr.map(gr).filter(v => v !== null);
+    const obstr = grads.filter(g => g >= 30).length;
+    const samSi = cuantos(mchArr, 'mch_sam', 'si'), samCont = contestados(mchArr, 'mch_sam');
+    /* El score se calcula con `_hcmRiskSCD`, la MISMA ecuación que usa la pestaña del paciente.
+       Sus bandas de plausibilidad viven adentro, así que un espesor en cm devuelve null y no un
+       0 % —que es lo que da la ecuación cruda por el término cuadrático—. */
+    /* La historia familiar NO se lee cruda. Un solo campo alimenta tres umbrales incompatibles
+       —Task Force <35, ESC <40 o cualquier edad con MCH establecida, AHA ≤50— y leer el binario
+       contaba como «Sí» una muerte súbita a los 60 en los dos algoritmos. Es el defecto que la
+       pestaña del paciente cerró el 2026-09-10 con `mchFamMS()`; acá se replica su regla.
+       Efecto medido de ese término (0,4583082 en el índice): 5,80 % → 3,71 %, que cruza banda. */
+    const famESC = i => {
+      const cru = _labCampoRaw(i, 'mch_fam_ms'), ed = _labNum(i, 'fam_ms_edad');
+      if (cru !== 'si') return cru === 'no' ? 'no' : '';
+      if (_labCampoRaw(i, 'mch_fam_ms_mch') === 'si') return 'si';
+      if (ed === null || !(ed > 0 && ed <= 120)) return '';          // sin edad no se afirma ni se niega
+      return ed < 40 ? 'si' : 'no';
+    };
+    const famAHA = i => {
+      const cru = _labCampoRaw(i, 'mch_fam_ms'), ed = _labNum(i, 'fam_ms_edad');
+      if (cru !== 'si') return cru === 'no' ? 'no' : '';
+      if (ed === null || !(ed > 0 && ed <= 120)) return '';
+      return ed <= 50 ? 'si' : 'no';
+    };
+    /* Los TRES binarios exigen respuesta explícita, igual que `mchScoreESC`. `_hcmRiskSCD` sólo
+       valida los cuatro argumentos numéricos, así que un «no consta» pasado como `=== 'si'` se
+       vuelve un 0 medido: los tres coeficientes suman 2,00 en el índice y el porcentaje sale
+       sistemáticamente bajo. Sin los tres contestados, el estudio no entra. */
+    const bin3 = (i, campo) => { const v = _labCampoRaw(i, campo); return (v === 'si' || v === 'no') ? v : null; };
+    const scoreDe = i => {
+      const f = famESC(i), t = bin3(i, 'mch_tvns'), sc = bin3(i, 'mch_sincope');
+      if ((f !== 'si' && f !== 'no') || t === null || sc === null) return null;
+      return _hcmRiskSCD(_labNum(i, 'mch_espesor'), _labNum(i, 'ai_diam'), gr(i), _labNum(i, 'edad'),
+                         f === 'si', t === 'si', sc === 'si');
+    };
+    const scores = mchArr.map(scoreDe).filter(v => v !== null);
+    const alto = scores.filter(x => x >= 6).length;
+    /* Los CINCO factores mayores de la AHA/ACC 2020. La TVNS y el realce tardío NO están: son
+       árbitros de la recomendación 6, que es Clase IIb. */
+    const ahaN = i => {
+      /* `_labFevi` y no `_labNum(i,'fevi')`: los estudios importados guardan la clave canónica
+         `fevi_simpson` y perdían el factor mayor de disfunción sistólica sin decirlo. */
+      const esp = _labNum(i, 'mch_espesor');
+      const fe = (typeof _labFevi === 'function') ? _labFevi(i) : _labNum(i, 'fevi', 'fevi_simpson');
+      let k = 0;
+      if (famAHA(i) === 'si') k++;
+      if (esp !== null && esp >= 30 && esp <= 60) k++;
+      if (_labCampoRaw(i, 'mch_sincope') === 'si') k++;
+      if (_labCampoRaw(i, 'mch_aneurisma_apical') === 'si') k++;
+      if (fe !== null && fe >= 5 && fe <= 90 && fe < 50) k++;
+      return k;
+    };
+    const conAha = mchArr.filter(i => ahaN(i) >= 1).length;
+    setHtml('lab-cc-mch-stats',
+      stat('Estudios con miocardiopatía hipertrófica', mchArr.length + ' (' + pctS(mchArr.length) + ' del período)') +
+      stat('Espesor máximo promedio', _promTxt(promDe(mchArr, 'mch_espesor', 5, 60), 1, ' mm')) +
+      stat('Gradiente TSVI en reposo promedio', _promTxt(promDe(mchArr, 'mch_grad_reposo', 0, 250), 0, ' mmHg')) +
+      stat('Gradiente TSVI con Valsalva promedio', _promTxt(promDe(mchArr, 'mch_grad_valsalva', 0, 250), 0, ' mmHg')) +
+      stat('Con obstrucción ≥ 30 mmHg', grads.length ? (obstr + ' de ' + grads.length + ' con gradiente (' + pctDe(obstr, grads.length) + ')') : '— (sin gradiente cargado)') +
+      stat('Con SAM de la mitral', (samCont > 0 ? (samSi + ' de ' + samCont + ' contestados (' + pctDe(samSi, samCont) + ')') : '— (sin contestar)')) +
+      stat('Con HCM Risk-SCD calculable', deBase(scores.length, mchArr.length)) +
+      stat('Con riesgo ≥ 6 % a 5 años', deBase(alto, scores.length)) +
+      stat('Con ≥ 1 factor mayor AHA/ACC', deBase(conAha, mchArr.length)));
+    barrasDe('lab-cc-mch-bars', distrib(mchArr, 'mch_patron', { sigmoidea:'Sigmoidea', reversa:'Curvatura reversa', apical:'Apical', neutral:'Neutral' }), mchArr.length);
+    const bandas = Object.create(null);
+    scores.forEach(x => { const b = x < 4 ? 'Bajo (< 4 %)' : (x < 6 ? 'Intermedio (4 – < 6 %)' : 'Alto (≥ 6 %)');
+                          bandas[b] = (bandas[b] || 0) + 1; });
+    if (scores.length) barrasDe('lab-cc-mch-riesgo-bars', bandas, scores.length);
+    else empty('lab-cc-mch-riesgo-bars', 'score calculable');
+    setHtml('lab-cc-mch-nota', 'El <b>gradiente del TSVI</b> es el mayor entre reposo y Valsalva, que es el que usa el score. ' +
+      'El <b>HCM Risk-SCD</b> se calcula con la misma ecuación que la pestaña del paciente y sólo sobre los estudios con las ' +
+      'siete variables en rango — el resto no entra, no cuenta como riesgo bajo. Los <b>factores mayores de la AHA/ACC 2020</b> ' +
+      'son cinco: la TVNS y el realce tardío no están entre ellos, son árbitros de una recomendación Clase IIb.');
+  }
+
+  // ── BLOQUE 10 · Miocardiopatía arritmogénica ──
+  if (!mcaArr.length) { empty('lab-cc-mca-stats', 'miocardiopatía arritmogénica'); empty('lab-cc-mca-bars', 'fenotipo'); empty('lab-cc-mca-banda-bars', 'banda'); setHtml('lab-cc-mca-nota', ''); }
+  else {
+    /* Criterio estructural por eco, con la misma COMPUERTA que `mcaCatI`: la anomalía regional
+       de la motilidad se exige ADEMÁS del umbral, para el mayor y para el menor. Sin ella, un
+       tracto de salida dilatado con motilidad normal no es criterio de nada. */
+    /* Los umbrales salen de `MCA_UMBRAL`, la MISMA constante que puntúa en la pestaña del
+       paciente. Re-tipearlos acá habría sido un tercer lector de una constante que existe
+       justamente para que no haya dos: «cambiar uno y no el otro deja al médico leyendo un
+       umbral que la app no aplica». */
+    const U = MCA_UMBRAL;
+    const catI = i => {
+      const p = _labNum(i, 'mca_tsvd_plax'), s2 = _labNum(i, 'mca_tsvd_psax'), f = _labNum(i, 'mca_fac');
+      /* La compuerta `fuera` de `mcaCatI`: un valor ILEGIBLE invalida la categoría entera, no
+         se ignora para seguir evaluando los otros dos. Sin esto, un TSVD de 320 (tipeo cm/mm)
+         junto a un FAC de 30 daba criterio MAYOR por el FAC, mientras la pestaña del paciente
+         declaraba la categoría no interpretable y 0 puntos. */
+      const fuera = (x, lo, hi) => x !== null && (x < lo || x > hi);
+      if (fuera(p, 5, 80) || fuera(s2, 5, 80) || fuera(f, 1, 80)) return 0;
+      const mov = _labCampoRaw(i, 'mca_mov_regional');
+      if (mov !== 'aqui_disc' && mov !== 'aneurisma') return 0;
+      const ok = x => x !== null;
+      if ((ok(p) && p >= U.plax.mayor) || (ok(s2) && s2 >= U.psax.mayor) || (ok(f) && f <= U.fac.mayor)) return 2;
+      if (mov === 'aqui_disc' && ((ok(p) && p >= U.plax.menorLo && p < U.plax.mayor) ||
+          (ok(s2) && s2 >= U.psax.menorLo && s2 < U.psax.mayor) ||
+          (ok(f) && f > U.fac.mayor && f <= U.fac.menorHi))) return 1;
+      return 0;
+    };
+    const conEco = mcaArr.filter(i => _labCampoRaw(i, 'mca_mov_regional')).length;
+    const may = mcaArr.filter(i => catI(i) === 2).length, men = mcaArr.filter(i => catI(i) === 1).length;
+    /* Las cinco categorías no-eco se puntúan UNA POR CATEGORÍA, el de mayor jerarquía, que es la
+       regla operativa del campo (Bosman, EP Europace 2020). Sumar las filas marcadas
+       sobrediagnostica: dos mayores de la misma categoría darían 4 puntos. */
+    const CATS = [['mca_ii_may','mca_ii_men'], ['mca_iii_may','mca_iii_men1|mca_iii_men2'],
+                  ['mca_iv_may','mca_iv_men1|mca_iv_men2'], ['mca_v_may','mca_v_men1|mca_v_men2'],
+                  ['mca_vi_may1|mca_vi_may2|mca_vi_may3','mca_vi_men1|mca_vi_men3']];
+    /* `mca_vi_men2` NO está en la lista de arriba porque NO ES UN CAMPO: la celda es DERIVADA
+       de la historia familiar de muerte súbita y de la edad del familiar (<35 del Task Force),
+       y `_labCampoRaw` devolvía siempre '' — el criterio no disparaba nunca. Un paciente cuyo
+       único criterio de categoría VI era esa muerte súbita puntuaba 1 en la pestaña y 0 acá, así
+       que un Limítrofe se publicaba como Posible y un Definitivo como Limítrofe. Se replica la
+       regla de `mcaFamMuerteSubita()`: sin la edad NO se puntúa, que es la única forma de no
+       afirmar el «<35». */
+    const famMS35 = i => {
+      if (_labCampoRaw(i, 'mch_fam_ms') !== 'si') return false;
+      const ed = _labNum(i, 'fam_ms_edad');
+      return ed !== null && ed > 0 && ed <= 120 && ed < 35;
+    };
+    const total = i => CATS.reduce((a, [mays, mens], k) => {
+      const hay = ids => ids.split('|').some(id => _labCampoRaw(i, id) === 'si');
+      const menor = hay(mens) || (k === 4 && famMS35(i));     // k=4 es la categoría VI
+      return a + (hay(mays) ? 2 : (menor ? 1 : 0));
+    }, catI(i));
+    const totales = mcaArr.map(total);
+    setHtml('lab-cc-mca-stats',
+      stat('Estudios con MCA evaluada', mcaArr.length + ' (' + pctS(mcaArr.length) + ' del período)') +
+      stat('Con motilidad regional consignada', deBase(conEco, mcaArr.length)) +
+      stat('Con criterio MAYOR por eco', deBase(may, mcaArr.length)) +
+      stat('Con criterio MENOR por eco', deBase(men, mcaArr.length)) +
+      stat('Puntaje Task Force promedio', _promTxt(_prom(totales), 1, ' puntos')));
+    barrasDe('lab-cc-mca-bars', distrib(mcaArr, 'mca_fenotipo', { derecho:'Dominante derecho', biventricular:'Biventricular', izquierdo:'Dominante izquierdo', no_det:'No determinado' }), mcaArr.length);
+    const bd = Object.create(null);
+    totales.forEach(t => { const b = t >= 4 ? 'Definitivo (≥ 4)' : (t === 3 ? 'Limítrofe (3)' : (t === 2 ? 'Posible (2)' : 'Sin criterios (0-1)'));
+                           bd[b] = (bd[b] || 0) + 1; });
+    barrasDe('lab-cc-mca-banda-bars', bd, mcaArr.length);
+    setHtml('lab-cc-mca-nota', '<b>El promedio mide también cuánto se completó el formulario.</b> Los estudios entran a esta ' +
+      'tarjeta por sus campos de ECO, y las otras cinco categorías son casillas que nadie abre salvo que sospeche la ' +
+      'enfermedad: sin marcar suman 0 igual que si se hubieran evaluado y fueran negativas. Leelo como un piso, no como el ' +
+      'puntaje real de la cohorte. ' +
+      'El puntaje aplica la regla del campo: <b>un criterio por categoría</b>, el de mayor jerarquía. ' +
+      'Sumar todas las filas marcadas sobrediagnostica — dos mayores de la misma categoría darían 4 puntos sobre un paciente sin ' +
+      'fenotipo. El criterio estructural exige <b>además</b> aquinesia, discinesia o aneurisma regional: un tracto de salida ' +
+      'dilatado con motilidad normal no puntúa.');
+  }
+
+  // ── BLOQUE 11 · Tetralogía de Fallot reparada ──
+  if (!tdfArr.length) { empty('lab-cc-tdf-stats', 'tetralogía de Fallot'); empty('lab-cc-tdf-bars', 'función del VD'); empty('lab-cc-tdf-ip-bars', 'insuficiencia pulmonar'); setHtml('lab-cc-tdf-nota', ''); }
+  else {
+    const IP_L = { 'IP leve (fisiológica)':'Leve (fisiológica)', 'IP moderada':'Moderada', 'IP severa':'Severa' };
+    const ip = distrib(tdfArr, 'ip_grado', IP_L);
+    const conIp = Object.keys(ip).reduce((a, k) => a + ip[k], 0);
+    const modSev = (ip['Moderada'] || 0) + (ip['Severa'] || 0);
+    const fvd = distrib(tdfArr, 'tdf_func_vd', { normal:'Normal', leve:'Disfunción leve', moderada:'Disfunción moderada', severa:'Disfunción severa' });
+    const conFvd = Object.keys(fvd).reduce((a, k) => a + fvd[k], 0);
+    setHtml('lab-cc-tdf-stats',
+      stat('Estudios con Fallot reparada', tdfArr.length + ' (' + pctS(tdfArr.length) + ' del período)') +
+      stat('Con función del VD consignada', deBase(conFvd, tdfArr.length)) +
+      stat('Con disfunción del VD', deBase(conFvd - (fvd['Normal'] || 0), conFvd)) +
+      stat('Con IP consignada', deBase(conIp, tdfArr.length)) +
+      stat('Con IP moderada o severa', deBase(modSev, conIp)) +
+      stat('Gradiente del TSVD promedio', _promTxt(promDe(tdfArr, 'tdf_grad_tsvd', 0, 250), 0, ' mmHg')));
+    barrasDe('lab-cc-tdf-bars', fvd, conFvd || 1);
+    if (conIp) barrasDe('lab-cc-tdf-ip-bars', ip, conIp); else empty('lab-cc-tdf-ip-bars', 'insuficiencia pulmonar');
+    setHtml('lab-cc-tdf-nota', '<b>«Con IP consignada» subdeclara:</b> la opción vacía de ese campo está rotulada «Sin ' +
+      'insuficiencia», así que un vacío significa a la vez «no hay IP» y «no se consignó», y acá cuenta como lo segundo. ' +
+      'Los grados se informan como <b>distribución</b> y no como promedio: la escala es ordinal — ' +
+      'leve y severa no son 1 y 4 de una magnitud. Los <b>volúmenes del ventrículo derecho</b>, que son el criterio ' +
+      'volumétrico de la ESC 2020, se miden por resonancia y no están en esta base.');
+  }
+
+  // ── BLOQUE 12 · TGA corregida ──
+  if (!tgaArr.length) { empty('lab-cc-tga-stats', 'transposición corregida'); empty('lab-cc-tga-bars', 'función del VD'); empty('lab-cc-tga-it-bars', 'insuficiencia tricuspídea'); setHtml('lab-cc-tga-nota', ''); }
+  else {
+    const fvd = distrib(tgaArr, 'tga_func_vd', { normal:'Normal', leve:'Disfunción leve', moderada:'Disfunción moderada', severa:'Disfunción severa' });
+    const conFvd = Object.keys(fvd).reduce((a, k) => a + fvd[k], 0);
+    const disf = conFvd - (fvd['Normal'] || 0);
+    const it = gradoBloque(tgaArr, 'it_grado', 'lab-cc-tga-it-bars');
+    setHtml('lab-cc-tga-stats',
+      stat('Estudios con TGA corregida', tgaArr.length + ' (' + pctS(tgaArr.length) + ' del período)') +
+      stat('Con función del VD sistémico consignada', deBase(conFvd, tgaArr.length)) +
+      stat('Con disfunción del VD sistémico', deBase(disf, conFvd)) +
+      stat('Con IT graduada', deBase(it.conGrado, tgaArr.length)) +
+      stat('Con IT moderada o mayor', deBase(it.modSev, it.conGrado)) +
+      stat('Sin IT o no evaluada', it.sinGrado + ' de ' + tgaArr.length));
+    barrasDe('lab-cc-tga-bars', fvd, conFvd || 1);
+    setHtml('lab-cc-tga-nota', 'En esta cardiopatía el <b>ventrículo derecho es el sistémico</b>, así que su función es la del ' +
+      'ventrículo que sostiene la circulación. ' + SALVEDAD_IT);
+  }
+
+  // ── BLOQUE 13 · Anomalía de Ebstein ──
+  if (!ebsArr.length) { empty('lab-cc-ebs-stats', 'anomalía de Ebstein'); empty('lab-cc-ebs-bars', 'Celermajer'); empty('lab-cc-ebs-it-bars', 'insuficiencia tricuspídea'); setHtml('lab-cc-ebs-nota', ''); }
+  else {
+    /* Índice de Celermajer = (AD + VD atrializado) / (VD funcional + AI + VI), con la misma
+       banda de plausibilidad que `ebsCelermajer()`. Se recalcula: leer un span daría el del
+       estudio en pantalla. */
+    const cel = i => {
+      const a = ['ebs_area_ad','ebs_area_vd_atrial','ebs_area_vd_func','ebs_area_ai','ebs_area_vi']
+        .map(k => _labNum(i, k));
+      if (a.some(x => x === null || x < 1 || x > 200)) return null;
+      const den = a[2] + a[3] + a[4]; if (!(den > 0)) return null;
+      const x = (a[0] + a[1]) / den;
+      return (isFinite(x) && x > 0 && x <= 20) ? x : null;
+    };
+    const idx = ebsArr.map(cel).filter(v => v !== null);
+    const gr = Object.create(null);
+    idx.forEach(x => { const g = x < 0.5 ? 'Grado I' : (x < 1.0 ? 'Grado II' : (x < 1.5 ? 'Grado III' : 'Grado IV'));
+                       gr[g] = (gr[g] || 0) + 1; });
+    const it = gradoBloque(ebsArr, 'it_grado', 'lab-cc-ebs-it-bars');
+    setHtml('lab-cc-ebs-stats',
+      stat('Estudios con anomalía de Ebstein', ebsArr.length + ' (' + pctS(ebsArr.length) + ' del período)') +
+      stat('Desplazamiento septal promedio', _promTxt(promDe(ebsArr, 'ebs_desplazamiento', 1, 80), 1, ' mm')) +
+      stat('Con índice de Celermajer calculable', deBase(idx.length, ebsArr.length)) +
+      stat('Índice de Celermajer promedio', _promTxt(_prom(idx), 2)) +
+      stat('Con IT graduada', deBase(it.conGrado, ebsArr.length)) +
+      stat('Con IT moderada o mayor', deBase(it.modSev, it.conGrado)) +
+      stat('Sin IT o no evaluada', it.sinGrado + ' de ' + ebsArr.length));
+    if (idx.length) barrasDe('lab-cc-ebs-bars', gr, idx.length); else empty('lab-cc-ebs-bars', 'índice calculable');
+    setHtml('lab-cc-ebs-nota', 'El índice se recalcula desde las <b>cinco áreas</b> guardadas; los estudios a los que les falta ' +
+      'alguna no entran y no cuentan como grado bajo. Los cortes son los de Celermajer 1992. ' + SALVEDAD_IT);
+  }
+
+  // ── BLOQUE 1 · Actividad (va al final del código, primero en la pantalla) ──
+  /* El ÚNICO bloque cuyo denominador es el total del período, y por eso se declara en el rótulo:
+     la pregunta acá es «qué proporción de mi laboratorio son congénitas», que es prevalencia. */
+  const TIPOS = [['CIA', ciaArr], ['CIV', civArr], ['DAP', dapArr], ['VAP', vapArr], ['CoAo', coaArr],
+                 ['FOP', fopArr], ['VAB', vabArr], ['Ebstein', ebsArr], ['MCH', mchArr], ['MCA', mcaArr],
+                 ['TdF', tdfArr], ['TGA', tgaArr]];
+  const conAlguna = infs.filter(i => TIPOS.some(([, arr]) => arr.indexOf(i) >= 0));
+  if (!conAlguna.length) {
+    empty('lab-cc-actividad-stats', 'alguna sección de congénitas'); empty('lab-cc-tipos-bars', 'congénitas');
+    setHtml('lab-cc-actividad-nota', '');
+    if (typeof labDestroyChart === 'function') labDestroyChart('lab-cc-meses-chart');
+  } else {
+    const secciones = conAlguna.map(i => TIPOS.filter(([, arr]) => arr.indexOf(i) >= 0).length);
+    setHtml('lab-cc-actividad-stats',
+      stat('Estudios con al menos una sección evaluada', conAlguna.length + ' de ' + n + ' del período (' + pctS(conAlguna.length) + ')') +
+      stat('Secciones evaluadas por estudio', _promTxt(_prom(secciones), 1)) +
+      stat('Con más de una sección', secciones.filter(x => x > 1).length + ' de ' + conAlguna.length + ' (' + pctDe(secciones.filter(x => x > 1).length, conAlguna.length) + ')'));
+    /* Las barras suman MÁS que el total de estudios y eso es correcto: un mismo paciente puede
+       tener bicúspide y coartación, que es justamente la asociación más frecuente. Se dice. */
+    /* El total de las barras es `n`, el del PERÍODO, que es lo que la nota de abajo declara.
+       Con `conAlguna` la barra decía 50 % donde el cartel prometía 10 % — el denominador se
+       declara UNA vez o la tarjeta publica dos. */
+    const cuentaTipos = Object.create(null);
+    TIPOS.forEach(([lbl, arr]) => { if (arr.length) cuentaTipos[lbl] = arr.length; });
+    barrasDe('lab-cc-tipos-bars', cuentaTipos, n);
+    setHtml('lab-cc-actividad-nota', 'El porcentaje de esta tarjeta es sobre <b>el total del período</b> — es prevalencia en tu ' +
+      'laboratorio. En las tarjetas de abajo, cada porcentaje va sobre <b>los estudios de esa sección</b>. ' +
+      'Las barras de tipo <b>suman más que el total</b> y es correcto: un mismo paciente puede tener bicúspide y ' +
+      'coartación, que es la asociación más frecuente de todas.');
+    /* Mismo patrón que la subtab ETE: destruir el chart anterior antes de dibujar, o Chart.js
+       deja el canvas con el dataset del corte previo debajo del nuevo. */
+    if (typeof labDestroyChart === 'function') labDestroyChart('lab-cc-meses-chart');
+    if (typeof Chart !== 'undefined' && typeof labChartMeses === 'function') {
+      const porMes = Object.create(null);
+      conAlguna.forEach(i => { const f = String(i.fecha_estudio || '');
+        if (/^\d{4}-\d{2}/.test(f)) { const k = f.slice(0, 7); porMes[k] = (porMes[k] || 0) + 1; } });
+      const claves = Object.keys(porMes).sort();
+      labChartMeses('lab-cc-meses-chart', claves, claves.map(k => porMes[k]), 'Estudios con congénitas');
+    }
+  }
 }
-window.labHemoRender = labHemoRender;
+window.labCCRender = labCCRender;
+
 
 /* ══════════════════════════════════════════════════════════════════════════════
    Subtab ETE — TAVI, Wilkins, orejuela y TEER
