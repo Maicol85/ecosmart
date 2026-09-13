@@ -352,6 +352,27 @@
   /* padding vertical 0 al colapsar (si no, el padding de .card-body deja un sliver visible con max-height:0) */
   .sacc .sacc-body { max-height:0;overflow:hidden;transition:max-height .3s ease;padding-top:0;padding-bottom:0; }
   .sacc.open .sacc-body { padding-top:12px;padding-bottom:12px; }
+  /* ── Congénitas: el acordeón abierto se ve como una tarjeta de Hemodinámica ──────────────
+     Hemodinámica NO usa .sacc: usa `.card` + `h2.card-head` + `.card-body`, y la diferencia
+     visual entera estaba en el HEADER — `.card-head` lleva `background:var(--section-head)` y
+     `border-bottom`, y `.sacc-hdr` tenía `background:none` y ningún borde, así que al abrir no
+     había separación entre el título y el contenido. El cuerpo ya coincidía: `.sacc-body`
+     también lleva la clase `.card-body`.
+     Va SCOPEADO a #tab-congenitas a propósito. `.sacc` lo usan SEIS tabs (Config, AI/VI, VD/AD,
+     Contractilidad, SGL y ésta) con 21 acordeones; tocar el selector pelado repintaría las
+     otras cinco, que nadie pidió cambiar y que además están siempre expandidas en PC por la
+     media query de abajo — ahí un header con fondo se leería como una barra de sección nueva.
+     El borde nace `transparent` y sólo toma color al abrir: si apareciera de la nada sumaría
+     1 px de alto a mitad de la transición de `max-height` y el contenido daría un salto.
+     Las dos variables existen en los DOS temas (`--section-head` es #232840 de noche y #e4e9f2
+     de día), así que resuelven solas, igual que en `.card-head`. */
+  #tab-congenitas .sacc .sacc-hdr { background-color:var(--section-head);border-bottom:1px solid transparent; }
+  #tab-congenitas .sacc.open .sacc-hdr { border-bottom-color:var(--border); }
+  /* El hover de arriba REEMPLAZA el `background`, así que sin esto el header perdía el fondo
+     nuevo al pasar el puntero. Se superpone una capa en vez de sustituir el color, y el signo
+     de la capa cambia con el tema: blanco sobre el header oscuro, negro sobre el claro. */
+  #tab-congenitas .sacc .sacc-hdr:hover { background-color:var(--section-head);background-image:linear-gradient(rgba(255,255,255,.055),rgba(255,255,255,.055)); }
+  html.light-mode #tab-congenitas .sacc .sacc-hdr:hover { background-image:linear-gradient(rgba(0,0,0,.045),rgba(0,0,0,.045)); }
   /* PC (>=768px): los acordeones de Paciente/AI-VI/VD-AD/Contractilidad/SGL quedan siempre
      expandidos, ignorando la clase .open y los estilos inline que deja secToggle() (de ahí los
      !important). overflow:visible es obligatorio: con overflow:hidden Safari rompe el hit-test
@@ -8355,7 +8376,261 @@ z
   <!-- ═══ MIOCARDIOPATÍA HIPERTRÓFICA ═══
        Dos scores de muerte súbita con criterios distintos, lado a lado, cada uno con su guía y
        su clase. No se promedian ni se elige uno. Ver mchConclusion(). -->
-  <div class="card sacc" id="sacc-cc-mch">
+  <div class="card sacc" id="sacc-cc-ebs">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-ebs');ebsSync();" aria-expanded="false">
+      <span class="sacc-arrow">▶</span>
+      <span style="flex:1;">Ebstein — Anomalía de Ebstein</span>
+      <span id="ebs_badge" class="incl-badge" hidden>📎 en el informe</span>
+    </button>
+    <div class="card-body sacc-body">
+      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
+        Desplazamiento apical del velo septal tricuspídeo con atrialización del ventrículo derecho. Menos del 1 % de las cardiopatías congénitas,
+        y la principal causa de <b>insuficiencia tricuspídea congénita severa</b>. Asociación frecuente con FOP o CIA y con vías accesorias.
+        <b style="color:var(--accent2);">Umbral diagnóstico: desplazamiento ≥8 mm/m² de superficie corporal.</b>
+      </p>
+      <div class="grid-3">
+        <div class="fg"><label>Desplazamiento del velo septal (mm)</label><input type="number" id="ebs_desplazamiento" step="0.1" placeholder="mm" oninput="ebsSync()"></div>
+        <div class="fg"><label>Indexado por superficie</label>
+          <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+            <span id="ebs-desp-idx" class="calc-val">—</span></div></div>
+        </div>
+        <div class="fg"><label>Atrialización del VD (%)</label><input type="number" id="ebs_atrializacion" step="1" placeholder="%" oninput="ebsSync()"></div>
+      </div>
+      <div class="grid-2" style="margin-top:10px;">
+        <div class="fg"><label>Función del VD funcional</label>
+          <select id="ebs_func_vd" onchange="ebsSync()">
+            <option value="">—</option>
+            <option value="normal">Normal</option>
+            <option value="leve">Reducida leve</option>
+            <option value="moderada">Reducida moderada</option>
+            <option value="severa">Reducida severa</option>
+          </select>
+        </div>
+        <div class="fg"><label>IT — grado (de Válvulas)</label>
+          <input type="text" id="ebs_it_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Índice de Celermajer</div>
+      <p style="font-size:10px;color:var(--text2);margin:0 0 8px;">Las cinco áreas se trazan en <b>apical 4 cámaras y en TELEDIÁSTOLE</b>. No son las mismas que las áreas auriculares del estudio, que se miden en telesístole (aurícula máxima) para evaluar tamaño de cámara — por eso son campos aparte.</p>
+      <div class="grid-3">
+        <div class="fg"><label>Área AD (cm²)</label><input type="number" id="ebs_area_ad" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
+        <div class="fg"><label>Área VD atrializado (cm²)</label><input type="number" id="ebs_area_vd_atrial" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
+        <div class="fg"><label>Área VD funcional (cm²)</label><input type="number" id="ebs_area_vd_func" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>Área AI (cm²)</label><input type="number" id="ebs_area_ai" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
+        <div class="fg"><label>Área VI (cm²)</label><input type="number" id="ebs_area_vi" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
+        <div class="fg"><label>Áreas del estudio (telesístole)</label>
+          <input type="text" id="ebs_areas_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+      </div>
+      <div class="calc-box" style="margin-top:10px;">
+        <div class="calc-row"><span class="calc-lbl">Índice de Celermajer</span><span id="ebs-celermajer" class="calc-val">—</span></div>
+      </div>
+      <div class="mBoxLike" style="border-left:3px solid var(--red,#b91c1c);background:rgba(185,28,28,.08);padding:8px 12px;border-radius:6px;font-size:10px;line-height:1.5;margin-top:10px;">
+        <b>El índice es orientativo, no una indicación.</b> Por ecocardiografía <b>sobreestima</b> la severidad (concordancia con resonancia κ=0,39; sólo el índice por RMC correlacionó con la capacidad funcional).
+        Se derivó en una serie de <b>28 neonatos</b> — el «100 %» del grado IV son 5 pacientes de 5 — y <b>no figura en la ESC 2020</b>, cuyas indicaciones de cirugía en Ebstein son clínicas.
+        Cortes: I &lt;0,5 · II 0,50-0,99 · III 1,00-1,49 · IV ≥1,5. Origen: Celermajer DS et al., <i>JACC</i> 1992;19:1041-6.
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Arritmias y situación clínica</div>
+      <div class="grid-3">
+        <div class="fg"><label>Taquicardia supraventricular</label>
+          <select id="ebs_tsv" onchange="ebsSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Vías accesorias conocidas</label>
+          <select id="ebs_vias" onchange="ebsSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Síntomas atribuibles</label>
+          <select id="ebs_sintomas" onchange="ebsSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:10px;">
+        <div class="fg"><label>Deterioro objetivo de la capacidad de ejercicio</label>
+          <select id="ebs_ejercicio" onchange="ebsSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Dilatación progresiva del VD</label>
+          <select id="ebs_progresion" onchange="ebsSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+      <div class="calc-box" style="margin-top:12px;">
+        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="ebs-concl" class="calc-val">—</span></div>
+      </div>
+      <div style="text-align:center;margin-top:10px;">
+        <input type="checkbox" id="ebs_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+        <button type="button" class="btn btn-integrar" data-ete-chk="ebs_incluir_chk" aria-pressed="false"
+                onclick="eteInclToggle('ebs_incluir_chk')">📎 Integrar al informe</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TETRALOGÍA DE FALLOT REPARADA ═══
+       Sin campos de volumen a propósito: los umbrales de 160/80 ml/m² son de RESONANCIA y la
+       eco 2D no mide volúmenes del VD de forma fiable. Ver tdfConclusion(). -->
+  <div class="card sacc" id="sacc-cc-tdf">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-tdf');tdfSync();" aria-expanded="false">
+      <span class="sacc-arrow">▶</span>
+      <span style="flex:1;">TdF — Tetralogía de Fallot reparada</span>
+      <span id="tdf_badge" class="incl-badge" hidden>📎 en el informe</span>
+    </button>
+    <div class="card-body sacc-body">
+      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
+        La cardiopatía congénita compleja más frecuente en el adulto. El seguimiento gira alrededor de la <b>insuficiencia pulmonar residual</b>
+        y la dilatación del ventrículo derecho, con riesgo de taquicardia ventricular sostenida a largo plazo.
+      </p>
+      <div class="mBoxLike" style="border-left:3px solid var(--accent2);background:rgba(13,148,136,.08);padding:8px 12px;border-radius:6px;font-size:10px;line-height:1.5;margin-bottom:12px;color:var(--text2);">
+        <b>Acá no hay campos de volumen, y es a propósito.</b> Los umbrales que definen la reintervención —VDFVD indexado ≥160 ml/m², volumen sistólico final ≥80 ml/m²— son cifras de <b>resonancia</b>:
+        la ESC 2020 dice que la RMC es el método de elección para el volumen y la función del VD, y la eco 2D no los mide de forma fiable. Esta sección maneja lo que el ecocardiograma sí mide.
+        La guía además advierte que ese corte «puede no correlacionar con beneficio clínico» y pide <b>medidas seriadas</b>.
+      </div>
+      <div class="grid-3">
+        <div class="fg"><label>IP — grado (de Válvulas)</label>
+          <input type="text" id="tdf_ip_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+        <div class="fg"><label>Ø TSVD (de VD / AD)</label>
+          <input type="text" id="tdf_tsvd_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+        <div class="fg"><label>Función del VD</label>
+          <select id="tdf_func_vd" onchange="tdfSync()">
+            <option value="">—</option>
+            <option value="normal">Normal</option>
+            <option value="leve">Disfunción leve</option>
+            <option value="moderada">Disfunción moderada</option>
+            <option value="severa">Disfunción severa</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>Gradiente TSVD (mmHg) — si difiere del transvalvular</label><input type="number" id="tdf_grad_tsvd" step="1" placeholder="mmHg" oninput="tdfSync()"></div>
+        <div class="fg"><label>Presión sistólica VD (de PSAP por IT)</label>
+          <input type="text" id="tdf_psvd_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+        <div class="fg"><label>IT — grado (de Válvulas)</label>
+          <input type="text" id="tdf_it_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+      </div>
+      <p style="font-size:10px;color:var(--text2);margin:6px 0 0;">Con obstrucción residual del tracto de salida, la presión que estima la IT es la del <b>ventrículo derecho</b> y no la de la arteria pulmonar: las separa el gradiente del TSVD.</p>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>CIV residual</label>
+          <select id="tdf_civ_residual" onchange="tdfSync()">
+            <option value="">—</option><option value="no_eval">No evaluada</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Gradiente CIV residual (mmHg)</label><input type="number" id="tdf_civ_grad" step="1" placeholder="mmHg" oninput="tdfSync()"></div>
+        <div class="fg"><label>Estenosis pulmonar nativa o stent</label>
+          <select id="tdf_ep_stent" onchange="tdfSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>Síntomas</label>
+          <select id="tdf_sintomas" onchange="tdfSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Caída objetiva de la capacidad de ejercicio</label>
+          <select id="tdf_ejercicio" onchange="tdfSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Taquicardia ventricular <span style="font-weight:400;color:var(--text2);font-size:10px;">— derivado</span></label>
+          <select id="tdf_tv" disabled data-espejo title="Se deriva del bloque «⚡ Arritmia ventricular», arriba de esta pestaña.">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+      <div class="calc-box" style="margin-top:12px;">
+        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="tdf-concl" class="calc-val">—</span></div>
+      </div>
+      <div style="text-align:center;margin-top:10px;">
+        <input type="checkbox" id="tdf_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+        <button type="button" class="btn btn-integrar" data-ete-chk="tdf_incluir_chk" aria-pressed="false"
+                onclick="eteInclToggle('tdf_incluir_chk')">📎 Integrar al informe</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TRANSPOSICIÓN DE GRANDES ARTERIAS CORREGIDA ═══ -->
+  <div class="card sacc" id="sacc-cc-tga">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-tga');tgaSync();" aria-expanded="false">
+      <span class="sacc-arrow">▶</span>
+      <span style="flex:1;">TGA — Transposición de grandes arterias corregida</span>
+      <span id="tga_badge" class="incl-badge" hidden>📎 en el informe</span>
+    </button>
+    <div class="card-body sacc-body">
+      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
+        El <b>ventrículo derecho es el ventrículo sistémico</b>, y su deterioro progresivo es inevitable y es la principal causa de muerte.
+        La válvula tricúspide de estos pacientes es la auriculoventricular <b>sistémica</b>: su insuficiencia pesa como pesaría una mitral.
+      </p>
+      <div class="grid-3">
+        <div class="fg"><label>Tipo</label>
+          <select id="tga_tipo" onchange="tgaSync()">
+            <option value="">—</option>
+            <option value="cctga">ccTGA — congénitamente corregida</option>
+            <option value="mustard">Post-Mustard</option>
+            <option value="senning">Post-Senning</option>
+          </select>
+        </div>
+        <div class="fg"><label>Función del VD sistémico</label>
+          <select id="tga_func_vd" onchange="tgaSync()">
+            <option value="">—</option>
+            <option value="normal">Normal</option>
+            <option value="leve">Disfunción leve</option>
+            <option value="moderada">Disfunción moderada</option>
+            <option value="severa">Disfunción severa</option>
+          </select>
+        </div>
+        <div class="fg"><label>Diámetro del VD sistémico (de VD / AD)</label>
+          <input type="text" id="tga_dilatacion_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>IT sistémica — grado (de Válvulas)</label>
+          <input type="text" id="tga_it_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+        <div class="fg"><label>Obstrucción subaórtica</label>
+          <select id="tga_obstr_subaortica" onchange="tgaSync()">
+            <option value="">—</option><option value="no_eval">No evaluada</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Gradiente subaórtico (mmHg)</label><input type="number" id="tga_grad_subaortico" step="1" placeholder="mmHg" oninput="tgaSync()"></div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>Bloqueo AV completo</label>
+          <select id="tga_bav" onchange="tgaSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>CIV residual</label>
+          <select id="tga_civ_residual" onchange="tgaSync()">
+            <option value="">—</option><option value="no_eval">No evaluada</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Gradiente CIV residual (mmHg)</label><input type="number" id="tga_civ_grad" step="1" placeholder="mmHg" oninput="tgaSync()"></div>
+      </div>
+      <div class="grid-2" style="margin-top:10px;">
+        <div class="fg"><label>Síntomas</label>
+          <select id="tga_sintomas" onchange="tgaSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+      <div class="calc-box" style="margin-top:12px;">
+        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="tga-concl" class="calc-val">—</span></div>
+      </div>
+      <div style="text-align:center;margin-top:10px;">
+        <input type="checkbox" id="tga_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+        <button type="button" class="btn btn-integrar" data-ete-chk="tga_incluir_chk" aria-pressed="false"
+                onclick="eteInclToggle('tga_incluir_chk')">📎 Integrar al informe</button>
+      </div>
+    </div>
+  </div>
+
+<div class="card sacc" id="sacc-cc-mch">
     <button type="button" class="sacc-hdr" onclick="secToggle('cc-mch');mchSync();" aria-expanded="false">
       <span class="sacc-arrow">▶</span>
       <span style="flex:1;">MCH — Miocardiopatía hipertrófica</span>
@@ -8706,260 +8981,7 @@ z
        Las cinco áreas del índice de Celermajer son campos PROPIOS y no reusan ad_area/ai_area:
        aquéllas se miden en telesístole (aurícula máxima, criterio ASE para tamaño de cámara) y
        ésta en telediástole. Ver ebsCelermajer(). -->
-  <div class="card sacc" id="sacc-cc-ebs">
-    <button type="button" class="sacc-hdr" onclick="secToggle('cc-ebs');ebsSync();" aria-expanded="false">
-      <span class="sacc-arrow">▶</span>
-      <span style="flex:1;">Ebstein — Anomalía de Ebstein</span>
-      <span id="ebs_badge" class="incl-badge" hidden>📎 en el informe</span>
-    </button>
-    <div class="card-body sacc-body">
-      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
-        Desplazamiento apical del velo septal tricuspídeo con atrialización del ventrículo derecho. Menos del 1 % de las cardiopatías congénitas,
-        y la principal causa de <b>insuficiencia tricuspídea congénita severa</b>. Asociación frecuente con FOP o CIA y con vías accesorias.
-        <b style="color:var(--accent2);">Umbral diagnóstico: desplazamiento ≥8 mm/m² de superficie corporal.</b>
-      </p>
-      <div class="grid-3">
-        <div class="fg"><label>Desplazamiento del velo septal (mm)</label><input type="number" id="ebs_desplazamiento" step="0.1" placeholder="mm" oninput="ebsSync()"></div>
-        <div class="fg"><label>Indexado por superficie</label>
-          <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
-            <span id="ebs-desp-idx" class="calc-val">—</span></div></div>
-        </div>
-        <div class="fg"><label>Atrialización del VD (%)</label><input type="number" id="ebs_atrializacion" step="1" placeholder="%" oninput="ebsSync()"></div>
-      </div>
-      <div class="grid-2" style="margin-top:10px;">
-        <div class="fg"><label>Función del VD funcional</label>
-          <select id="ebs_func_vd" onchange="ebsSync()">
-            <option value="">—</option>
-            <option value="normal">Normal</option>
-            <option value="leve">Reducida leve</option>
-            <option value="moderada">Reducida moderada</option>
-            <option value="severa">Reducida severa</option>
-          </select>
-        </div>
-        <div class="fg"><label>IT — grado (de Válvulas)</label>
-          <input type="text" id="ebs_it_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-      </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Índice de Celermajer</div>
-      <p style="font-size:10px;color:var(--text2);margin:0 0 8px;">Las cinco áreas se trazan en <b>apical 4 cámaras y en TELEDIÁSTOLE</b>. No son las mismas que las áreas auriculares del estudio, que se miden en telesístole (aurícula máxima) para evaluar tamaño de cámara — por eso son campos aparte.</p>
-      <div class="grid-3">
-        <div class="fg"><label>Área AD (cm²)</label><input type="number" id="ebs_area_ad" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
-        <div class="fg"><label>Área VD atrializado (cm²)</label><input type="number" id="ebs_area_vd_atrial" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
-        <div class="fg"><label>Área VD funcional (cm²)</label><input type="number" id="ebs_area_vd_func" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>Área AI (cm²)</label><input type="number" id="ebs_area_ai" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
-        <div class="fg"><label>Área VI (cm²)</label><input type="number" id="ebs_area_vi" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
-        <div class="fg"><label>Áreas del estudio (telesístole)</label>
-          <input type="text" id="ebs_areas_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-      </div>
-      <div class="calc-box" style="margin-top:10px;">
-        <div class="calc-row"><span class="calc-lbl">Índice de Celermajer</span><span id="ebs-celermajer" class="calc-val">—</span></div>
-      </div>
-      <div class="mBoxLike" style="border-left:3px solid var(--red,#b91c1c);background:rgba(185,28,28,.08);padding:8px 12px;border-radius:6px;font-size:10px;line-height:1.5;margin-top:10px;">
-        <b>El índice es orientativo, no una indicación.</b> Por ecocardiografía <b>sobreestima</b> la severidad (concordancia con resonancia κ=0,39; sólo el índice por RMC correlacionó con la capacidad funcional).
-        Se derivó en una serie de <b>28 neonatos</b> — el «100 %» del grado IV son 5 pacientes de 5 — y <b>no figura en la ESC 2020</b>, cuyas indicaciones de cirugía en Ebstein son clínicas.
-        Cortes: I &lt;0,5 · II 0,50-0,99 · III 1,00-1,49 · IV ≥1,5. Origen: Celermajer DS et al., <i>JACC</i> 1992;19:1041-6.
-      </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Arritmias y situación clínica</div>
-      <div class="grid-3">
-        <div class="fg"><label>Taquicardia supraventricular</label>
-          <select id="ebs_tsv" onchange="ebsSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>Vías accesorias conocidas</label>
-          <select id="ebs_vias" onchange="ebsSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>Síntomas atribuibles</label>
-          <select id="ebs_sintomas" onchange="ebsSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-      </div>
-      <div class="grid-2" style="margin-top:10px;">
-        <div class="fg"><label>Deterioro objetivo de la capacidad de ejercicio</label>
-          <select id="ebs_ejercicio" onchange="ebsSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>Dilatación progresiva del VD</label>
-          <select id="ebs_progresion" onchange="ebsSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-      </div>
-      <div class="calc-box" style="margin-top:12px;">
-        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="ebs-concl" class="calc-val">—</span></div>
-      </div>
-      <div style="text-align:center;margin-top:10px;">
-        <input type="checkbox" id="ebs_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
-        <button type="button" class="btn btn-integrar" data-ete-chk="ebs_incluir_chk" aria-pressed="false"
-                onclick="eteInclToggle('ebs_incluir_chk')">📎 Integrar al informe</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══ TETRALOGÍA DE FALLOT REPARADA ═══
-       Sin campos de volumen a propósito: los umbrales de 160/80 ml/m² son de RESONANCIA y la
-       eco 2D no mide volúmenes del VD de forma fiable. Ver tdfConclusion(). -->
-  <div class="card sacc" id="sacc-cc-tdf">
-    <button type="button" class="sacc-hdr" onclick="secToggle('cc-tdf');tdfSync();" aria-expanded="false">
-      <span class="sacc-arrow">▶</span>
-      <span style="flex:1;">TdF — Tetralogía de Fallot reparada</span>
-      <span id="tdf_badge" class="incl-badge" hidden>📎 en el informe</span>
-    </button>
-    <div class="card-body sacc-body">
-      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
-        La cardiopatía congénita compleja más frecuente en el adulto. El seguimiento gira alrededor de la <b>insuficiencia pulmonar residual</b>
-        y la dilatación del ventrículo derecho, con riesgo de taquicardia ventricular sostenida a largo plazo.
-      </p>
-      <div class="mBoxLike" style="border-left:3px solid var(--accent2);background:rgba(13,148,136,.08);padding:8px 12px;border-radius:6px;font-size:10px;line-height:1.5;margin-bottom:12px;color:var(--text2);">
-        <b>Acá no hay campos de volumen, y es a propósito.</b> Los umbrales que definen la reintervención —VDFVD indexado ≥160 ml/m², volumen sistólico final ≥80 ml/m²— son cifras de <b>resonancia</b>:
-        la ESC 2020 dice que la RMC es el método de elección para el volumen y la función del VD, y la eco 2D no los mide de forma fiable. Esta sección maneja lo que el ecocardiograma sí mide.
-        La guía además advierte que ese corte «puede no correlacionar con beneficio clínico» y pide <b>medidas seriadas</b>.
-      </div>
-      <div class="grid-3">
-        <div class="fg"><label>IP — grado (de Válvulas)</label>
-          <input type="text" id="tdf_ip_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-        <div class="fg"><label>Ø TSVD (de VD / AD)</label>
-          <input type="text" id="tdf_tsvd_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-        <div class="fg"><label>Función del VD</label>
-          <select id="tdf_func_vd" onchange="tdfSync()">
-            <option value="">—</option>
-            <option value="normal">Normal</option>
-            <option value="leve">Disfunción leve</option>
-            <option value="moderada">Disfunción moderada</option>
-            <option value="severa">Disfunción severa</option>
-          </select>
-        </div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>Gradiente TSVD (mmHg) — si difiere del transvalvular</label><input type="number" id="tdf_grad_tsvd" step="1" placeholder="mmHg" oninput="tdfSync()"></div>
-        <div class="fg"><label>Presión sistólica VD (de PSAP por IT)</label>
-          <input type="text" id="tdf_psvd_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-        <div class="fg"><label>IT — grado (de Válvulas)</label>
-          <input type="text" id="tdf_it_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-      </div>
-      <p style="font-size:10px;color:var(--text2);margin:6px 0 0;">Con obstrucción residual del tracto de salida, la presión que estima la IT es la del <b>ventrículo derecho</b> y no la de la arteria pulmonar: las separa el gradiente del TSVD.</p>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>CIV residual</label>
-          <select id="tdf_civ_residual" onchange="tdfSync()">
-            <option value="">—</option><option value="no_eval">No evaluada</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>Gradiente CIV residual (mmHg)</label><input type="number" id="tdf_civ_grad" step="1" placeholder="mmHg" oninput="tdfSync()"></div>
-        <div class="fg"><label>Estenosis pulmonar nativa o stent</label>
-          <select id="tdf_ep_stent" onchange="tdfSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>Síntomas</label>
-          <select id="tdf_sintomas" onchange="tdfSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>Caída objetiva de la capacidad de ejercicio</label>
-          <select id="tdf_ejercicio" onchange="tdfSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>Taquicardia ventricular <span style="font-weight:400;color:var(--text2);font-size:10px;">— derivado</span></label>
-          <select id="tdf_tv" disabled data-espejo title="Se deriva del bloque «⚡ Arritmia ventricular», arriba de esta pestaña.">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-      </div>
-      <div class="calc-box" style="margin-top:12px;">
-        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="tdf-concl" class="calc-val">—</span></div>
-      </div>
-      <div style="text-align:center;margin-top:10px;">
-        <input type="checkbox" id="tdf_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
-        <button type="button" class="btn btn-integrar" data-ete-chk="tdf_incluir_chk" aria-pressed="false"
-                onclick="eteInclToggle('tdf_incluir_chk')">📎 Integrar al informe</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══ TRANSPOSICIÓN DE GRANDES ARTERIAS CORREGIDA ═══ -->
-  <div class="card sacc" id="sacc-cc-tga">
-    <button type="button" class="sacc-hdr" onclick="secToggle('cc-tga');tgaSync();" aria-expanded="false">
-      <span class="sacc-arrow">▶</span>
-      <span style="flex:1;">TGA — Transposición de grandes arterias corregida</span>
-      <span id="tga_badge" class="incl-badge" hidden>📎 en el informe</span>
-    </button>
-    <div class="card-body sacc-body">
-      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
-        El <b>ventrículo derecho es el ventrículo sistémico</b>, y su deterioro progresivo es inevitable y es la principal causa de muerte.
-        La válvula tricúspide de estos pacientes es la auriculoventricular <b>sistémica</b>: su insuficiencia pesa como pesaría una mitral.
-      </p>
-      <div class="grid-3">
-        <div class="fg"><label>Tipo</label>
-          <select id="tga_tipo" onchange="tgaSync()">
-            <option value="">—</option>
-            <option value="cctga">ccTGA — congénitamente corregida</option>
-            <option value="mustard">Post-Mustard</option>
-            <option value="senning">Post-Senning</option>
-          </select>
-        </div>
-        <div class="fg"><label>Función del VD sistémico</label>
-          <select id="tga_func_vd" onchange="tgaSync()">
-            <option value="">—</option>
-            <option value="normal">Normal</option>
-            <option value="leve">Disfunción leve</option>
-            <option value="moderada">Disfunción moderada</option>
-            <option value="severa">Disfunción severa</option>
-          </select>
-        </div>
-        <div class="fg"><label>Diámetro del VD sistémico (de VD / AD)</label>
-          <input type="text" id="tga_dilatacion_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>IT sistémica — grado (de Válvulas)</label>
-          <input type="text" id="tga_it_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-        <div class="fg"><label>Obstrucción subaórtica</label>
-          <select id="tga_obstr_subaortica" onchange="tgaSync()">
-            <option value="">—</option><option value="no_eval">No evaluada</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>Gradiente subaórtico (mmHg)</label><input type="number" id="tga_grad_subaortico" step="1" placeholder="mmHg" oninput="tgaSync()"></div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>Bloqueo AV completo</label>
-          <select id="tga_bav" onchange="tgaSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>CIV residual</label>
-          <select id="tga_civ_residual" onchange="tgaSync()">
-            <option value="">—</option><option value="no_eval">No evaluada</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>Gradiente CIV residual (mmHg)</label><input type="number" id="tga_civ_grad" step="1" placeholder="mmHg" oninput="tgaSync()"></div>
-      </div>
-      <div class="grid-2" style="margin-top:10px;">
-        <div class="fg"><label>Síntomas</label>
-          <select id="tga_sintomas" onchange="tgaSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-      </div>
-      <div class="calc-box" style="margin-top:12px;">
-        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="tga-concl" class="calc-val">—</span></div>
-      </div>
-      <div style="text-align:center;margin-top:10px;">
-        <input type="checkbox" id="tga_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
-        <button type="button" class="btn btn-integrar" data-ete-chk="tga_incluir_chk" aria-pressed="false"
-                onclick="eteInclToggle('tga_incluir_chk')">📎 Integrar al informe</button>
-      </div>
-    </div>
-  </div>
-
+  
 </div>
 
 <!-- ═══════════════════════ TAB: ECO ESTRÉS ═══════════════════════ -->
