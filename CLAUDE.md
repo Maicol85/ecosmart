@@ -1910,6 +1910,59 @@ la frase sobrevive a dos regeneraciones encadenadas, que es lo que este archivo 
 merge por probado. El comportamiento es simétrico entre los dos textareas.
 
 
+### Donut de bordes de la CIA — 2026-09-11
+
+`CIA_DONUT_SEGS` (geometría) · `colorBordeCIA` (bandas) · `ciaDonutRender` (SVG de pantalla) ·
+`ciaDonutDataURL` (PNG del PDF) · `ciaDonutCentro` (los cinco textos del centro).
+
+**Una sola geometría para las dos superficies.** Las mismas cadenas de path alimentan el `<svg>`
+y el `Path2D` del canvas: `Path2D` acepta sintaxis de path de SVG, arcos incluidos. Si tocás un
+sector, se mueve en los dos lados — que es el punto.
+
+**`html2canvas` NO EXISTE en este proyecto y el bull's eye no captura DOM.** Es la tercera vez que
+alguien supone lo contrario; ya está en la lista de hallazgos falsos verificados. `bullseyeDataURL`
+crea un canvas **desprendido** con `document.createElement` y dibuja con `Path2D`. Cualquier
+diagrama nuevo para el PDF va por ahí. Agregar html2canvas rompería la regla de recursos externos
+auditados y sumaría un hash SRI que mantener.
+
+**El layout «al lado del bull's eye» no entra en A4 y está medido:** donut 54 mm + su tabla ~90 =
+144; una columna de diana son 54 + 34 de leyenda = 88. Total 232 sobre 192 útiles. El donut va en
+banda propia a lo ancho, siempre debajo de las dianas.
+
+**`_PDF_DIANA_LADO` (54 mm) lo comparten las dos dianas y el reloj del TAVI.** Antes el reloj iba a
+40 y el 54 estaba escrito dos veces; el mismo informe mostraba círculos de tamaños distintos sin
+razón clínica. Si agregás otra imagen cuadrada al informe, usá la constante.
+
+**Los cinco inputs de borde siguen existiendo.** «Reemplazar la tabla» fue reemplazar su
+PRESENTACIÓN: son campos persistidos que barre `guardarInforme` por `input[id]`, y sacarlos dejaba
+el estudio sin bordes. La columna «Ventana ETE» se mudó al panel, que muestra la del borde tocado.
+
+**El repintado cuelga de `eteShuntSync` y no de un `oninput` propio.** Esa función ya está en el
+`oninput` de los cinco bordes y en el `onchange` de los selects, Y en `RECALC_MODULOS`, que es el
+embudo de las rutas de restauración — donde reponer asigna `.value` y no dispara eventos.
+
+**El sexto sector (`aox`) no es un borde:** completa el anillo del lado aórtico, toma su color y al
+tocarlo selecciona el aórtico. No tiene campo y no entra en `eteCiaBordeMin`.
+
+**Sin `onclick` inline: `data-seg` + listener delegado registrado una vez.** Por dos motivos —el
+inline se compila tras decodificar entidades, así que ahí el escape no protege; y la regla de área
+táctil `[onclick]` infla a 44×44, que sobre un `<path>` de SVG no tiene sentido—. `ciaDonutRender`
+reescribe el `innerHTML` en cada repintado, así que enganchar por path acumularía un listener por
+tecla tipeada.
+
+**El rótulo del centro se abrevia (`CIA_TIPO_CORTO`) y `CIA_TIPO_TXT` NO se toca.** El círculo
+interior tiene 92 px de diámetro y «seno venoso de vena cava superior» mide ~150 a 9 px: se salía
+encima de los sectores. La prosa del informe necesita el nombre completo; la restricción es sólo
+del donut. Medidos los cinco: 66–78 px.
+
+**El ejemplo del pedido se contradecía:** daba «Aórtico 4 → Borderline» y «VCS 4 → Adecuado». Manda
+`colorBordeCIA`, que es la definición que el propio pedido trae.
+
+**Nada de escalas nuevas:** la interpretación del Qp/Qs sale de `eteQpQsInterp` y el borde mínimo de
+`eteCiaBordeMin`. La escala propuesta en el pedido («Mínimo/Moderado/Significativo») habría sido una
+cuarta copia del mismo corte, discrepando con el cuerpo del informe en la misma hoja.
+
+
 ## Deuda conocida sin resolver
 
 - **La ESC/EACTS 2021 de valvulopatías está SUPERADA por la 2025** (*Eur Heart J* 2025;46:4635,

@@ -7768,24 +7768,33 @@ z
       </div>
 
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Bordes</div>
-      <div class="tablewrap">
-      <table class="tbl" style="width:100%;font-size:12px;">
-        <thead><tr>
-          <th style="text-align:left;">Borde</th><th style="text-align:left;">Ventana ETE</th><th style="text-align:right;">Medida (mm)</th>
-        </tr></thead>
-        <tbody>
-          <tr><td>Aórtico (superoanterior)</td><td style="color:var(--text2);">30–45°</td>
-              <td style="text-align:right;"><input type="number" id="ete_cia_borde_ao" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
-          <tr><td>AV / Mitral (inferoanterior)</td><td style="color:var(--text2);">0°</td>
-              <td style="text-align:right;"><input type="number" id="ete_cia_borde_av" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
-          <tr><td>VCS (superoposterior)</td><td style="color:var(--text2);">90° bicava</td>
-              <td style="text-align:right;"><input type="number" id="ete_cia_borde_vcs" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
-          <tr><td>VCI (inferoposterior)</td><td style="color:var(--text2);">90° bicava</td>
-              <td style="text-align:right;"><input type="number" id="ete_cia_borde_vci" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
-          <tr><td>Posterior</td><td style="color:var(--text2);">0°</td>
-              <td style="text-align:right;"><input type="number" id="ete_cia_borde_post" step="0.1" placeholder="mm" style="width:90px;" oninput="eteShuntSync()"></td></tr>
-        </tbody>
-      </table>
+      <!-- Donut a la izquierda, detalle del borde tocado a la derecha. La columna «Ventana ETE»
+           de la tabla anterior se fue al panel, que es donde aparece la del borde que el médico
+           está mirando en vez de las cinco a la vez.
+           Los CINCO INPUTS SIGUEN EXISTIENDO, abajo: son campos persistidos que barre
+           `guardarInforme` por `input[id]`, y sacarlos habría dejado el donut sin forma de
+           cargarle datos y el estudio sin los bordes. «Reemplazar la tabla» es reemplazar su
+           PRESENTACIÓN, no la entrada de datos.
+           `overflow:visible` y `width`/`height` explícitos en el <svg>: el UA le pone
+           `overflow:hidden` y Safari no deriva la altura del viewBox — sin las dos cosas el
+           diagrama sale recortado o de alto cero. Ya está documentado en este proyecto. -->
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;margin-bottom:12px;">
+        <svg id="cia-donut-svg" width="260" height="260" viewBox="-130 -130 260 260"
+             role="img" aria-label="Bordes de la comunicación interauricular"
+             style="overflow:visible;flex:0 0 auto;max-width:100%;height:auto;aspect-ratio:1/1;"></svg>
+        <div style="flex:1 1 220px;min-width:200px;">
+          <div id="cia-donut-panel" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;"></div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:10.5px;color:var(--text2);margin-top:8px;">
+            <span>🟩 ≥5 mm adecuado</span><span>🟧 3–4 mm borderline</span><span>🟥 &lt;3 mm deficiente</span>
+          </div>
+        </div>
+      </div>
+      <div class="grid-3" style="margin-bottom:4px;">
+        <div class="fg"><label>Borde aórtico (mm)</label><input type="number" id="ete_cia_borde_ao" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+        <div class="fg"><label>Borde AV / mitral (mm)</label><input type="number" id="ete_cia_borde_av" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+        <div class="fg"><label>Borde VCS (mm)</label><input type="number" id="ete_cia_borde_vcs" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+        <div class="fg"><label>Borde VCI (mm)</label><input type="number" id="ete_cia_borde_vci" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+        <div class="fg"><label>Borde posterior (mm)</label><input type="number" id="ete_cia_borde_post" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
       </div>
       <div id="ete-cia-borde-min-box" class="calc-box" style="margin-top:8px;display:none;">
         <div class="calc-row"><span class="calc-lbl">Borde mínimo</span><span id="ete-cia-borde-min">—</span></div>
@@ -21323,6 +21332,11 @@ function generarPDFReal(_aj) {
   const _incSgl   = localStorage.getItem('sgl_incluir_pdf') === '1'
                     && typeof strainEstado === 'object'
                     && Object.keys(strainEstado).some(k => (strainEstado[k] || 0) > 0);
+  /* Lado de las imágenes cuadradas del informe, en mm. Lo comparten la diana de
+     contractilidad, la de strain y el reloj del jet paravalvular: antes el reloj iba a 40 y las
+     dianas a 54, así que el mismo informe mostraba dos diagramas circulares de tamaños distintos
+     sin ninguna razón clínica. Una sola constante, para que no vuelvan a separarse. */
+  const _PDF_DIANA_LADO = 54;
   if ((_incContr || _incSgl) && typeof bullseyeDataURL === 'function') {
     // Columnas: cada una con su bull's eye arriba y su texto debajo
     const _cols = [];
@@ -21357,7 +21371,7 @@ function generarPDFReal(_aj) {
       y += _aire(3);
       const _n = _cols.length, _gap = 10;
       const _colW = (pgW - (_n - 1) * _gap) / _n;
-      const _sz = Math.min(_colW, 54);              // bull's eye cuadrado, centrado en su columna
+      const _sz = Math.min(_colW, _PDF_DIANA_LADO);  // bull's eye cuadrado, centrado en su columna
       const _startY = y;
       /* Cada columna arranca en la MISMA página, no en la que dejó la anterior.
          `_cols.map` compartía la página actual del documento: si el cuerpo de la columna 0
@@ -21380,7 +21394,7 @@ function generarPDFReal(_aj) {
         fb(7.5); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(col.title, _ccx, _cy, { align:'center' }); _cy += 2;
         const _imgY = _cy;
         const _legW = col.leyenda ? 34 : 0;
-        const _szImg = Math.min(54, _colW - _legW - 2);
+        const _szImg = Math.min(_PDF_DIANA_LADO, _colW - _legW - 2);
         const _imgX = _cx0 + _legW + (_colW - _legW - _szImg) / 2;
         if (col.leyenda) {
           const _lx = _cx0;
@@ -21435,6 +21449,87 @@ function generarPDFReal(_aj) {
     }
   }
 
+  // ════════════════════════════════════════════════════════════
+  // BORDES DE LA CIA — donut + tabla, después del EN SUMA
+  // ════════════════════════════════════════════════════════════
+  /* Banda PROPIA a lo ancho, siempre debajo de las dianas, y no «al lado del bull's eye cuando
+     hay uno solo» como pedía la especificación. No es una preferencia: **no entra**. El donut
+     mide 54 mm y su tabla necesita ~90; una columna de diana son 54 más 34 de leyenda. Los dos
+     juntos dan 232 mm sobre los 192 útiles de la hoja, así que el layout pedido obligaba a
+     tirar la tabla o a partirla — y la tabla es la que lleva los números y los estados, que es
+     lo accionable. Con dos dianas el orden pedido se cumple solo, porque este bloque va después.
+
+     El gate es el MISMO checkbox que el resto de las salidas de CIA (`ete_shunt_incluir_chk`),
+     más la exigencia de que haya algún borde medido: un donut con los cinco sectores en celeste
+     «sin dato» dentro de un informe firmado se lee como «se midieron y estaban mal», que es el
+     malentendido contra el que este archivo ya puso guardas en el reloj del TAVI y en las
+     dianas. try/catch por lo mismo que el reloj: una excepción acá aborta el PDF entero. */
+  let _ciaImg = null, _ciaFilas = null;
+  try {
+    const _ciaChk = document.getElementById('ete_shunt_incluir_chk');
+    const _hayBorde = (typeof _CIA_BORDES !== 'undefined') && _CIA_BORDES.some(b => v(b[0]) != null);
+    if (_ciaChk && _ciaChk.checked && _hayBorde && typeof ciaDonutDataURL === 'function') {
+      _ciaImg = ciaDonutDataURL();
+      _ciaFilas = CIA_DONUT_SEGS.filter(s => s.campo).map(s => {
+        const mm = v(s.campo), col = colorBordeCIA(mm);
+        return { lbl: s.nombre.replace(/\s*\(.*\)$/, ''), mm: mm, col: col };
+      });
+    }
+  } catch (_e) { _ciaImg = null; }
+  if (_ciaImg && _ciaFilas) {
+    const _cL = _PDF_DIANA_LADO, _cGap = 8;
+    const _cTabX = mL + _cL + _cGap, _cTabW = pgW - _cL - _cGap;
+    const _bm = (typeof eteCiaBordeMin === 'function') ? eteCiaBordeMin() : null;
+    const _cq = (typeof ccQpQsDe === 'function') ? ccQpQsDe('cia') : null;
+    const _cdir = sv('ete_cia_dir'), _cvel = v('ete_cia_vel');
+    /* La interpretación del Qp/Qs sale de `eteQpQsInterp`, que es la que ya publica el cuerpo
+       del informe. La especificación traía su propia escala («Mínimo/Moderado/Significativo»),
+       que es una CUARTA copia del mismo corte: la app diría «Shunt pequeño» dos párrafos más
+       arriba y «Mínimo» acá, sobre el mismo número. Se toma la primera oración de la existente. */
+    const _cqTxt = (_cdir === 'di' || _cq == null) ? '—' : String(eteQpQsInterp(_cq)).split(/\s*[—.]\s*/)[0];
+    const _filasExtra = [
+      ['Borde mínimo', _bm ? String(_bm.mm) : '—', _bm ? ('(' + _bm.nombre + ')') : '', null],
+      ['Dirección', (typeof CIA_DIR_TXT === 'object' && CIA_DIR_TXT[_cdir]) || '—', '', null],
+      ['Vel. del jet', _cvel != null ? (_cvel + ' m/s') : '—', '', null],
+      ['Qp/Qs', (_cdir === 'di' || _cq == null) ? '—' : (Math.round(_cq*100)/100).toFixed(2), _cqTxt, null]
+    ];
+    const _altoTabla = (_ciaFilas.length + _filasExtra.length + 1) * 5.2 + 6;
+    checkPage(_BAR_H + 4 + Math.max(_cL, _altoTabla) + 8);
+    drawBar('COMUNICACION INTERAURICULAR - BORDES');
+    y += _aire(3);
+    const _cy0 = y;
+    doc.addImage(_ciaImg, 'PNG', mL, _cy0, _cL, _cL);
+    let _ty = _cy0 + 4;
+    fb(7.5); tc(TEMA[0],TEMA[1],TEMA[2]);
+    doc.text('Borde', _cTabX, _ty);
+    doc.text('mm', _cTabX + _cTabW * 0.42, _ty, { align:'right' });
+    doc.text('Estado', _cTabX + _cTabW * 0.50, _ty);
+    _ty += 1.6;
+    doc.setDrawColor(200,200,200); doc.line(_cTabX, _ty, _cTabX + _cTabW, _ty); _ty += 4.2;
+    /* `_sanML` en TODO lo que sale de un campo: los nombres traen «/» y acentos (bien), pero la
+       interpretación del Qp/Qs y el nombre del borde mínimo vienen de mapas con raya larga, y
+       jsPDF pasa la línea ENTERA a UTF-16 ante un solo carácter fuera de WinAnsi. */
+    _ciaFilas.forEach(function(f){
+      fn(8); tc(30,30,30);
+      doc.text(_sanML(f.lbl), _cTabX, _ty);
+      doc.text(f.mm == null ? '—' : String(f.mm), _cTabX + _cTabW * 0.42, _ty, { align:'right' });
+      const rgb = f.col.fill.match(/\w\w/g).map(h => parseInt(h,16));
+      doc.setFillColor(rgb[0],rgb[1],rgb[2]);
+      doc.rect(_cTabX + _cTabW * 0.50, _ty - 2.8, 3.2, 3.2, 'F');
+      const _est = f.col.estado === 'sin' ? 'No medido'
+                 : f.col.estado.charAt(0).toUpperCase() + f.col.estado.slice(1);
+      doc.text(_sanML(_est), _cTabX + _cTabW * 0.50 + 4.5, _ty);
+      _ty += 5.2;
+    });
+    doc.setDrawColor(200,200,200); doc.line(_cTabX, _ty - 3.4, _cTabX + _cTabW, _ty - 3.4);
+    _filasExtra.forEach(function(f){
+      fb(8); tc(30,30,30); doc.text(_sanML(f[0]), _cTabX, _ty);
+      fn(8); doc.text(_sanML(f[1]), _cTabX + _cTabW * 0.42, _ty, { align:'right' });
+      if (f[2]) { tc(90,90,90); doc.text(_sanML(f[2]), _cTabX + _cTabW * 0.50, _ty); }
+      _ty += 5.2;
+    });
+    y = Math.max(_cy0 + _cL, _ty) + 5;
+  }
 
   // ════════════════════════════════════════════════════════════
   // VISTA QUIRÚRGICA — VÁLVULA MITRAL (ETE) — antes de la firma
@@ -21471,7 +21566,7 @@ function generarPDFReal(_aj) {
     }
   } catch (_e) { _epcImg = null; }
   if (_epcImg) {
-    const _epcLado = 40;                            // el reloj es 1:1
+    const _epcLado = _PDF_DIANA_LADO;               // el reloj es 1:1, y del mismo lado que las dianas
     checkPage(_BAR_H + 4 + _epcLado + 10);
     drawBar('JET PARAVALVULAR POST-TAVI - LOCALIZACION HORARIA');
     y += _aire(3);
@@ -22309,6 +22404,215 @@ function eteCiaBordeMin(){
   });
   return min===null ? null : {mm:min, nombre:nom};
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   DONUT DE BORDES DE LA CIA — una sola geometría para la pantalla y para el PDF
+   ══════════════════════════════════════════════════════════════════════════════════════════
+   El pedido decía «div oculto capturado con html2canvas, igual al mecanismo del bull's eye».
+   Las tres partes de esa frase son falsas y se verificó antes de escribir nada:
+     · **html2canvas NO está cargado** (cero ocurrencias; los CDN son jsPDF, Chart, XLSX,
+       qrcode, PptxGen y pdf.js). Agregarlo rompería la regla de recursos externos auditados
+       de este proyecto y obligaría a un hash SRI más.
+     · **El bull's eye no captura DOM.** `bullseyeDataURL` crea un canvas DESPRENDIDO con
+       `document.createElement` y dibuja con `Path2D`. Está documentado en CLAUDE.md como
+       hallazgo verificado, justamente porque alguien ya supuso lo contrario.
+     · Y un div oculto no se puede capturar de todos modos sin librería.
+   Así que el donut del PDF se dibuja con `Path2D` sobre un canvas desprendido, igual que el
+   bull's eye de verdad — y con **las mismas cadenas de path** que usa el `<svg>` de pantalla.
+   `Path2D` acepta la sintaxis de path de SVG, arcos incluidos, así que las dos superficies no
+   pueden divergir en la geometría: es literalmente el mismo dato.
+
+   El sexto segmento (`aox`) no es un borde: es el sector que completa el anillo del lado
+   aórtico y toma SIEMPRE el color del aórtico. No tiene campo propio y no entra en el mínimo. */
+const CIA_DONUT_SEGS = [
+  { id:'ao',   campo:'ete_cia_borde_ao',   nombre:'Aórtico (superoanterior)',    ventana:'ETE 30–45° — eje corto aórtico',
+    d:'M 0,0 L 41,-103 A 115,115 0 0,1 103,-41 L 41,-16 A 46,46 0 0,0 16,-41 Z' },
+  { id:'vcs',  campo:'ete_cia_borde_vcs',  nombre:'VCS (superoposterior)',       ventana:'ETE 90° — vista bicaval',
+    d:'M 0,0 L -41,-103 A 115,115 0 0,1 41,-103 L 16,-41 A 46,46 0 0,0 -16,-41 Z' },
+  { id:'post', campo:'ete_cia_borde_post', nombre:'Posterior',                   ventana:'ETE 0° — cuatro cámaras',
+    d:'M 0,0 L -115,0 A 115,115 0 0,1 -41,-103 L -16,-41 A 46,46 0 0,0 -46,0 Z' },
+  { id:'vci',  campo:'ete_cia_borde_vci',  nombre:'VCI (inferoposterior)',       ventana:'ETE 90° — vista bicaval',
+    d:'M 0,0 L -41,103 A 115,115 0 0,1 -115,0 L -46,0 A 46,46 0 0,0 -16,41 Z' },
+  { id:'av',   campo:'ete_cia_borde_av',   nombre:'AV / Mitral (inferoanterior)',ventana:'ETE 0° — cuatro cámaras',
+    d:'M 0,0 L 103,41 A 115,115 0 0,1 -41,103 L -16,41 A 46,46 0 0,0 41,16 Z' },
+  { id:'aox',  campo:null, refiere:'ao',   nombre:'Aórtico (superoanterior)',    ventana:'ETE 30–45° — eje corto aórtico',
+    d:'M 0,0 L 103,-41 A 115,115 0 0,1 103,41 L 41,16 A 46,46 0 0,0 41,-16 Z' }
+];
+
+/* Las cuatro bandas. `sinDato` es un estado propio y NO el color de «deficiente»: un borde sin
+   medir no es un borde malo, y pintarlo de rojo publicaría una contraindicación relativa sobre
+   una ventana que nadie interrogó. Es la misma regla que el resto del archivo aplica a los
+   valores de fábrica. */
+function colorBordeCIA(mm){
+  const n = (mm == null || !isFinite(mm)) ? null : mm;
+  if (n === null)  return { fill:'#E6F1FB', text:'#185FA5', estado:'sin', badge:'No medido' };
+  if (n >= 5)      return { fill:'#C0DD97', text:'#27500A', estado:'adecuado',   badge:'Adecuado para cierre percutáneo' };
+  if (n >= 3)      return { fill:'#FAC775', text:'#633806', estado:'borderline', badge:'Borderline — evaluar complementariamente' };
+  return             { fill:'#F09595', text:'#791F1F', estado:'deficiente', badge:'Deficiente — contraindicación relativa' };
+}
+window.colorBordeCIA = colorBordeCIA;
+
+/* Lee el mm que le toca a un segmento: el `aox` no tiene campo y espeja al aórtico. */
+function _ciaSegMm(seg){
+  const campo = seg.campo || (CIA_DONUT_SEGS.find(s => s.id === seg.refiere) || {}).campo;
+  return campo ? v(campo) : null;
+}
+
+/* Los cinco textos del centro. Se arman una sola vez y los consumen el SVG y el canvas, para
+   que la pantalla y el PDF no puedan decir cosas distintas sobre el mismo estudio. */
+/* Rótulo CORTO del tipo, sólo para el centro del donut. El círculo interior tiene r=46, o sea
+   92 px de diámetro, y `CIA_TIPO_TXT` está escrito para la prosa del informe: «seno venoso de
+   vena cava superior» son 33 caracteres que a 9 px miden ~150 px y se salen del círculo por los
+   dos lados, encima de los sectores. No se acorta `CIA_TIPO_TXT` —el informe firmado la necesita
+   completa— sino que se abrevia acá, que es la única superficie con la restricción. */
+/* Prototipo nulo y no `_lblDe`: el helper resuelve el mismo problema —que `MAPA['constructor']`
+   devuelva la función `Object` en vez de caer al fallback— pero es un `const` de otro bloque
+   `<script>`, y `typeof` sobre un const en zona muerta LANZA. Sin prototipo, el `||` funciona. */
+const CIA_TIPO_CORTO = Object.assign(Object.create(null), { secundum:'Ostium secundum',
+  primum:'Ostium primum', sv_vcs:'Seno venoso VCS', sv_vci:'Seno venoso VCI',
+  seno_coronario:'Seno coronario' });
+
+function ciaDonutCentro(){
+  const _t = sv('ete_cia_tipo');
+  const tipo = _t ? (CIA_TIPO_CORTO[_t] || 'Otro') : '';
+  const mx = v('ete_cia_tam_max'), mn = v('ete_cia_tam_min');
+  const dir = sv('ete_cia_dir');
+  const q = (typeof ccQpQsDe === 'function') ? ccQpQsDe('cia') : null;
+  /* Con shunt neto de derecha a izquierda el Qp/Qs no se muestra: la graduación por magnitud
+     no aplica ahí —lo dice `eteQpQsInterp` en su primera rama— y un número al lado de «D→I» se
+     lee como si la midiera. */
+  return {
+    tipo: tipo,
+    tam: (mx != null || mn != null) ? ((mx != null ? mx : '?') + ' × ' + (mn != null ? mn : '?') + ' mm') : '',
+    dir: dir === 'id' ? 'I→D' : (dir === 'di' ? 'D→I' : (dir === 'bi' ? 'Bidireccional' : '')),
+    dirColor: dir === 'di' ? '#A32D2D' : '#185FA5',
+    qpqs: (dir === 'di' || q == null) ? '—' : (Math.round(q * 100) / 100).toFixed(2)
+  };
+}
+
+/* Segmento seleccionado en el panel de la derecha. Es estado de MÓDULO, así que lo resetea
+   `ciaDonutRender` cuando el segmento elegido se queda sin datos — pero el dato que muestra el
+   panel se relee del formulario en cada repintado, nunca se cachea: si se guardara el mm junto
+   con el id, cargar otro estudio dejaría el panel con la medida del paciente anterior bajo el
+   nombre del borde nuevo. Es el patrón `gradoGamma`/`protMonoc`. */
+var _ciaSegSel = 'ao';
+function selBordeCIA(id){
+  if (!CIA_DONUT_SEGS.some(s => s.id === id)) return;
+  const seg = CIA_DONUT_SEGS.find(s => s.id === id);
+  _ciaSegSel = seg.refiere || id;     // tocar el sector extra selecciona el aórtico, que es lo que describe
+  ciaDonutRender();
+}
+window.selBordeCIA = selBordeCIA;
+
+function ciaDonutRender(){
+  const svg = document.getElementById('cia-donut-svg');
+  const pan = document.getElementById('cia-donut-panel');
+  if (!svg && !pan) return;
+  const esc = (typeof escHtml === 'function') ? escHtml : (s => String(s == null ? '' : s));
+  const C = ciaDonutCentro();
+
+  if (svg) {
+    let g = '';
+    CIA_DONUT_SEGS.forEach(function(seg){
+      const col = colorBordeCIA(_ciaSegMm(seg));
+      const sel = (seg.refiere || seg.id) === _ciaSegSel;
+      /* `data-seg` + listener delegado, NO `onclick` inline. Dos motivos, y el segundo es el
+         que importa: el `onclick` inline se COMPILA tras decodificar entidades, así que ahí el
+         escape no protege —está documentado en este archivo— y aunque `seg.id` sea un literal
+         mío, dejar el patrón invita a interpolar un dato mañana. Además la hoja de estilos
+         infla a 44×44 todo lo que lleve el atributo `[onclick]`, que sobre un `<path>` de SVG
+         no tiene sentido. Es el mismo idioma que ya usa la lista de frases rápidas. */
+      g += '<path d="' + seg.d + '" fill="' + col.fill + '" stroke="' + (sel ? '#185FA5' : '#ffffff') +
+           '" stroke-width="' + (sel ? 2.5 : 1.5) + '" style="cursor:pointer" data-seg="' + seg.id +
+           '"><title>' + esc(seg.nombre) + '</title></path>';
+    });
+    g += '<circle cx="0" cy="0" r="60" fill="none" stroke="#d0d0d0" stroke-width="1.5"/>';
+    g += '<circle cx="0" cy="0" r="46" fill="#ffffff" stroke="#d0d0d0" stroke-width="1"/>';
+    const L = [];
+    if (C.tipo)  L.push(['9',  '#444', '500', C.tipo]);
+    if (C.tam)   L.push(['8',  '#888', '400', C.tam]);
+    if (C.dir)   L.push(['10', C.dirColor, '500', C.dir]);
+    L.push(['8', '#888', '400', 'Qp/Qs']);
+    L.push(['13', C.dirColor, '500', C.qpqs]);
+    const alto = L.reduce((a, l) => a + parseFloat(l[0]) + 3, 0);
+    let ty = -alto / 2 + parseFloat(L[0][0]);
+    L.forEach(function(l){
+      g += '<text x="0" y="' + ty.toFixed(1) + '" text-anchor="middle" font-size="' + l[0] +
+           '" fill="' + l[1] + '" font-weight="' + l[2] + '">' + esc(l[3]) + '</text>';
+      ty += parseFloat(l[0]) + 3;
+    });
+    svg.innerHTML = g;
+    /* Delegado y registrado UNA sola vez: `ciaDonutRender` reescribe el innerHTML en cada
+       repintado, así que enganchar por path acumularía un listener por tecla tipeada. */
+    if (!svg._ciaDeleg) {
+      svg._ciaDeleg = true;
+      svg.addEventListener('click', function(ev){
+        const p = ev.target.closest ? ev.target.closest('[data-seg]') : null;
+        if (p) selBordeCIA(p.getAttribute('data-seg'));
+      });
+    }
+  }
+
+  if (pan) {
+    const seg = CIA_DONUT_SEGS.find(s => s.id === _ciaSegSel) || CIA_DONUT_SEGS[0];
+    const mm = _ciaSegMm(seg), col = colorBordeCIA(mm);
+    let ph =
+      '<div style="font-size:10px;letter-spacing:.6px;color:var(--text2);text-transform:uppercase;">Borde</div>' +
+      '<div style="font-size:14px;font-weight:700;color:var(--text);margin:2px 0 8px;">' + esc(seg.nombre) + '</div>' +
+      '<div style="font-size:26px;font-weight:700;color:' + col.text + ';line-height:1;">' +
+        (mm == null ? '—' : esc(String(mm)) + ' <span style="font-size:13px;font-weight:500;">mm</span>') + '</div>' +
+      '<div style="font-size:10px;color:var(--text2);margin:2px 0 10px;">medido por ETE</div>' +
+      '<div style="display:inline-block;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;' +
+        'background:' + col.fill + ';color:' + col.text + ';line-height:1.35;">' + esc(col.badge) + '</div>' +
+      '<div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin:12px 0 2px;">Ventana de medición</div>' +
+      '<div style="font-size:12px;color:var(--text);">' + esc(seg.ventana) + '</div>';
+    pan.innerHTML = ph;
+  }
+}
+window.ciaDonutRender = ciaDonutRender;
+
+/* PNG para el PDF. Canvas DESPRENDIDO y `Path2D` con las mismas cadenas de path que el SVG,
+   igual que `bullseyeDataURL`. Supermuestreo 2x y base blanca, como el resto de las imágenes
+   que entran al informe: sin la base, el PNG sale transparente y jsPDF lo estampa sobre el
+   fondo del visor, que en modo oscuro deja el texto negro del centro ilegible. */
+function ciaDonutDataURL(){
+  const S = 300, k = 2;
+  const cv = document.createElement('canvas'); cv.width = S * k; cv.height = S * k;
+  const c = cv.getContext('2d'); if (!c) return null;
+  c.scale(k, k);
+  c.fillStyle = '#ffffff'; c.fillRect(0, 0, S, S);
+  c.save();
+  c.translate(S / 2, S / 2);
+  c.scale(S / 260, S / 260);          // el viewBox del SVG es 260×260 centrado en 0,0
+  CIA_DONUT_SEGS.forEach(function(seg){
+    const col = colorBordeCIA(_ciaSegMm(seg));
+    const p = new Path2D(seg.d);
+    c.fillStyle = col.fill; c.fill(p);
+    c.lineWidth = 1.5; c.strokeStyle = '#ffffff'; c.stroke(p);
+  });
+  const aro = (r, w) => { c.beginPath(); c.arc(0, 0, r, 0, 2 * Math.PI); c.lineWidth = w; c.strokeStyle = '#d0d0d0'; c.stroke(); };
+  aro(60, 1.5);
+  c.beginPath(); c.arc(0, 0, 46, 0, 2 * Math.PI); c.fillStyle = '#ffffff'; c.fill(); aro(46, 1);
+  const C = ciaDonutCentro();
+  const L = [];
+  if (C.tipo) L.push([9, '#444', '500', C.tipo]);
+  if (C.tam)  L.push([8, '#888', 'normal', C.tam]);
+  if (C.dir)  L.push([10, C.dirColor, '500', C.dir]);
+  L.push([8, '#888', 'normal', 'Qp/Qs']);
+  L.push([13, C.dirColor, '500', C.qpqs]);
+  c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+  const alto = L.reduce((a, l) => a + l[0] + 3, 0);
+  let ty = -alto / 2 + L[0][0];
+  L.forEach(function(l){
+    c.font = l[2] + ' ' + l[0] + 'px Helvetica, Arial, sans-serif';
+    c.fillStyle = l[1];
+    c.fillText(String(l[3]), 0, ty);
+    ty += l[0] + 3;
+  });
+  c.restore();
+  return cv.toDataURL('image/png');
+}
+window.ciaDonutDataURL = ciaDonutDataURL;
 /* Qp/Qs = (TSVD² · VTI_TSVD) / (TSVI² · VTI_TSVI). Los diámetros van en mm y las VTI en cm
    en los DOS términos, así que las unidades se cancelan y el cociente es adimensional.
    Devuelve null —nunca NaN ni Infinity— si falta un dato o si el denominador es 0: un
@@ -25953,6 +26257,13 @@ function eteShuntSync(){
      el PPT lee el span por textContent sin mirar el display — así el «Borde mínimo 4 mm»
      del paciente en pantalla se colaba en la diapositiva de otro estudio. */
   txt('ete-cia-borde-min', bm ? (f1(bm.mm)+' mm ('+bm.nombre+')') : '—');
+
+  /* El donut se repinta acá y no con un `oninput` propio en cada campo: `eteShuntSync` ya está
+     en el `oninput` de los cinco bordes, del tipo, de los tamaños y de la dirección, Y está en
+     `RECALC_MODULOS`, que es el embudo de las rutas de restauración. Colgarlo de los eventos
+     habría dejado el diagrama con el paciente anterior al reabrir un estudio, porque reponer
+     asigna `.value` y eso no dispara nada. */
+  if (typeof ciaDonutRender === 'function') { try { ciaDonutRender(); } catch (e) {} }
 
   const q = ccQpQsDe('cia');
   txt('ete-shunt-qpqs', ccQpQsTxt('cia'));
