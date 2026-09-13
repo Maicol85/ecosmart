@@ -1364,12 +1364,9 @@ window.cerrarSesion = cerrarSesion;
         style="font-size:9px;padding:1px 6px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:var(--bg3);color:var(--text2);cursor:pointer;font-family:inherit;">📄 Diseño…</button>
     </span>
     <button class="btn btn-primary" onclick="generarInformeConEvolucion()">📝 Generar Informe</button>
-    <!-- Panel de indicaciones. Es SÓLO PANTALLA: no lo lee ningún generador de PDF, PPT ni el
-         informe narrativo, y el overlay lleva `no-print` para el camino de impresión del
-         navegador. No guarda estado — se re-deriva del formulario en cada apertura, así que no
-         necesita columna en limpiarCampos/editarInforme/guardarInforme y no puede arrastrar el
-         paciente anterior (que es el defecto que costó la sesión de `gradoGamma`/`protMonoc`). -->
-    <button class="btn btn-ghost" onclick="indicAbrir()" title="Indicaciones según guías — sólo pantalla, no va al informe">📋 Indicaciones</button>
+    <!-- El botón «📋 Indicaciones» NO va acá: vive en la fila de estilo de la pestaña Informe,
+         al lado de «💬 Frases». Está junto al texto que el médico lee cuando decide la conducta,
+         y no en un header que en móvil se pliega dentro del menú ⋮. -->
     <button onclick="abrirAyudaEco()" title="Ayuda"
       style="background:none;border:1px solid rgba(255,255,255,0.2);border-radius:50%;width:32px;height:32px;color:var(--text,#CBD5E1);cursor:pointer;font-size:14px;font-weight:700;flex-shrink:0;">
       ?
@@ -10801,11 +10798,26 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     <div class="card-body">
       <div class="fg" style="margin-bottom:10px;">
         <label>Estilo del informe</label>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <!-- Las tres pastillas de estilo a la izquierda; las dos HERRAMIENTAS a la derecha,
+             separadas por `margin-left:auto`. La separación no es decorativa: las pastillas son
+             un selector de estado —una de las tres queda activa— y las otras dos son acciones.
+             Mezcladas en la misma fila, «Frases» se leía como un cuarto estilo de informe.
+             El `flex-wrap` del contenedor hace que en pantalla angosta el grupo de la derecha
+             baje entero a un segundo renglón en vez de partirse por la mitad. -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
           <button type="button" class="btn btn-ghost estilo-pill" data-estilo="conciso" onclick="setEstiloInforme('conciso')">📋 Conciso</button>
           <button type="button" class="btn btn-primary estilo-pill" data-estilo="estandar" onclick="setEstiloInforme('estandar')">📄 Estándar</button>
           <button type="button" class="btn btn-ghost estilo-pill" data-estilo="narrativo" onclick="setEstiloInforme('narrativo')">📖 Narrativo</button>
-          <button type="button" class="btn btn-ghost" id="frases-btn" onclick="frasesToggle()" aria-expanded="false" aria-controls="frases-panel">💬 Frases</button>
+          <span style="display:inline-flex;gap:8px;flex-wrap:wrap;margin-left:auto;">
+            <button type="button" class="btn btn-ghost" id="frases-btn" onclick="frasesToggle()" aria-expanded="false" aria-controls="frases-panel">💬 Frases</button>
+            <!-- Arranca oculto y lo enciende `indicSyncBoton()` sólo si el estudio tiene alguna
+                 sección con criterios. `hidden` y no `display:none` inline: la hoja de estilos
+                 trae `min-height:44px` para todo `[onclick]`, y un `display` inline ganándole a
+                 `[hidden]` es la clase de conflicto que deja un hueco de 44 px sin botón. -->
+            <button type="button" class="btn btn-ghost" id="indic-btn" hidden
+                    onclick="indicAbrir()" aria-haspopup="dialog" aria-controls="indic-overlay"
+                    title="Indicaciones según guías — sólo pantalla, no va al informe">📋 Indicaciones</button>
+          </span>
         </div>
       </div>
       <div class="fg">
@@ -18546,7 +18558,13 @@ function RECALC_MODULOS() {
   /* `tvSync` va PRIMERO: repone los cinco espejos de arritmia ventricular, y `mchSync`,
      `tdfSync` y `mcaSync` pintan a partir de ellos. Al final igual, porque tvSync los vuelve a
      llamar, pero el orden deja el estado coherente aunque alguno tire. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync'];
+  /* `indicSyncBoton` va ÚLTIMO y no es un módulo del informe: decide si se ve el botón
+     «📋 Indicaciones», y para eso corre las nueve secciones del panel, que leen el formulario ya
+     repuesto. Va acá y no colgado de un evento porque las rutas de restauración pueblan
+     asignando `.value`, que **no dispara `input`** — el listener con debounce no se entera y el
+     botón quedaría con el estado del paciente anterior. Es la misma razón por la que esta lista
+     y `limpiarCampos` llaman a `calcWilkins()` a mano. */
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','indicSyncBoton'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -18769,6 +18787,11 @@ function limpiarCampos(silencioso) {
      Sin esto, el paciente nuevo arrancaba con «Congestión venosa severa… considerar
      descongestión activa» del paciente anterior debajo de un score vacío. */
   if (typeof calcVEXUS === 'function') calcVEXUS();
+  /* `limpiarCampos` NO pasa por `_recalcModulos`, así que el botón «📋 Indicaciones» hay que
+     apagarlo acá a mano: si no, después de «Nuevo estudio» seguía visible el del paciente
+     anterior, y abrirlo mostraba el mensaje de «sin criterios» sobre un botón que afirmaba que
+     los había. Es el patrón `gradoGamma`/`protMonoc` — la columna que falta es siempre ésta. */
+  if (typeof indicSyncBoton === 'function') { try { indicSyncBoton(); } catch (e) {} }
   if (!silencioso) toast('🗑 Formulario limpiado');
 }
 
@@ -25364,7 +25387,59 @@ function indicAbrir(){
   const ov = document.getElementById('indic-overlay'); if (ov) ov.style.display = 'block';
 }
 function indicCerrar(){ const ov = document.getElementById('indic-overlay'); if (ov) ov.style.display = 'none'; }
+
+/* ── Visibilidad del botón ────────────────────────────────────────────────────────────────
+   El botón sólo aparece si el estudio tiene alguna sección con criterios. Corre las MISMAS
+   `IND_SECS` que el panel: preguntar «¿hay algo?» con una condición escrita aparte —«EA severa
+   o IM severa o…»— sería una segunda copia de las nueve compuertas, que divergiría del panel
+   sin que nada lo delate. El costo de recorrerlas es el mismo que abrir el panel.
+
+   FALLA HACIA VISIBLE, y es deliberado. Si una sección lanza, cuenta como «puede haber algo» y
+   el botón se muestra: escondido, la única señal sería su ausencia, indistinguible de «este
+   paciente no tiene nada» — el médico no tiene forma de saber que el panel existe y está roto.
+   Mostrarlo de más cuesta un clic; esconderlo de menos borra la función en silencio. */
+function indicHayCriterios(){
+  for (let i = 0; i < IND_SECS.length; i++) {
+    let r = null;
+    try { r = IND_SECS[i].fn(); } catch (e) { return true; }
+    if (r) return true;
+  }
+  return false;
+}
+
+function indicSyncBoton(){
+  const b = document.getElementById('indic-btn'); if (!b) return;
+  let hay = true;
+  try { hay = indicHayCriterios(); } catch (e) { hay = true; }
+  b.hidden = !hay;
+  /* Si el panel está abierto y la cohorte de criterios se vació —el médico borró el dato que lo
+     sostenía— se repinta en vez de dejar en pantalla una sección que ya no corresponde. No se
+     CIERRA solo: cerrarle un panel abierto en la cara es peor que mostrarle el mensaje de que
+     no quedan criterios. */
+  const ov = document.getElementById('indic-overlay');
+  if (ov && ov.style.display === 'block') indicRender();
+}
+
+/* Debounce propio y generoso. Recorrer las nueve secciones llama a `coaConclusion`,
+   `vabConclusion`, `fopConclusion`, `_htp2022Core` y `mchGrad`, así que engancharlo crudo al
+   `input` de cada tecla sería correr todo eso por carácter tipeado. `input` en fase de CAPTURA
+   sobre el documento, como ya hace el autoguardado: así alcanza a los campos que se pueblan por
+   código y despachan el evento a mano (las frases rápidas, sin ir más lejos). */
+var _indBtnTimer = null;
+function _indSyncDebounced(){ clearTimeout(_indBtnTimer); _indBtnTimer = setTimeout(indicSyncBoton, 400); }
+
+(function indicBotonArranque(){
+  const init = () => {
+    document.addEventListener('input',  _indSyncDebounced, true);
+    document.addEventListener('change', _indSyncDebounced, true);
+    indicSyncBoton();
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+
 window.indicAbrir = indicAbrir; window.indicCerrar = indicCerrar; window.indicRender = indicRender;
+window.indicHayCriterios = indicHayCriterios; window.indicSyncBoton = indicSyncBoton;
 
 /* ══ ANOMALÍA DE EBSTEIN ═════════════════════════════════════════════════════════════════
    Desplazamiento apical del velo septal tricuspídeo con atrialización del ventrículo derecho.

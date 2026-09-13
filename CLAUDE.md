@@ -1862,12 +1862,53 @@ desde >45. Son dos criterios distintos sobre la misma medida y **no hay que unif
 Verificar sólo con él no dice nada sobre las otras siete. Hace falta un estudio adversario que las
 encienda a la vez, y el formulario vacío para el mensaje de «sin criterios».
 
+**El botón vive en la fila de estilo de la pestaña Informe, no en el header** (2026-09-11), y
+**sólo aparece si hay criterios**. `indicHayCriterios()` corre las MISMAS `IND_SECS` que el panel:
+una condición escrita aparte —«EA severa o IM severa o…»— sería una segunda copia de las nueve
+compuertas. **Falla hacia VISIBLE**: si una sección lanza, el botón se muestra. Escondido, la única
+señal sería su ausencia, indistinguible de «este paciente no tiene nada».
+
+**Y el enganche no puede ser sólo un listener de eventos.** Las rutas de restauración pueblan
+asignando `.value`, que **no dispara `input`**: con sólo el listener con debounce, abrir un estudio
+guardado con EA severa dejaba el botón apagado. Va en **`RECALC_MODULOS`** —el embudo de
+`editarInforme`, `cargarEstudioPorId`, el autoguardado y las dos rutas de reimpresión— **más una
+llamada explícita al final de `limpiarCampos`, que NO pasa por ese embudo**. Sin ella, después de
+«Nuevo estudio» quedaba visible el botón del paciente anterior. Si agregás algo que dependa del
+estado del formulario, las dos columnas son ésas: `RECALC_MODULOS` y `limpiarCampos`.
+
 **La `.no-print` no sirve fuera de `#amilo-root`.** La única regla que la apaga está scopeada a ese
 subárbol, así que ponérsela a un overlay nuevo es un atributo decorativo bajo un comentario que
 promete que no se imprime. El panel lleva su propia regla por ID.
 
 
-## Deuda conocida sin resolver
+### Frases rápidas — destino y separador (2026-09-11)
+
+`frasesInsertar` inserta en el **último textarea con foco** (`informe_texto` / `en_suma`, en
+`FRASES_TAS`); sin foco previo, el Informe.
+
+**El registro del foco va al ARRANCAR, no al abrir el panel.** El único llamado a
+`frasesInitCursor` estaba dentro de `frasesToggle`, y el flujo normal es el contrario: el médico
+escribe en el EN SUMA y **recién después** abre las frases, así que ese `focus` ocurría antes de que
+existiera el listener y el destino quedaba sin registrar. El bug sobrevivía al arreglo en la primera
+inserción de cada sesión.
+
+**El snapshot del cursor vive en el ELEMENTO** (`ta._frasePos` / `ta._fraseVal`), no en globales:
+compartido, el cursor de un textarea pisaba al del otro al alternar. Ojo al leerlo — una propiedad
+de elemento sin asignar es `undefined`, no `null`, así que la comparación va con `== null`.
+
+**El separador se decide por la POSICIÓN, no por `alFinal`.** `alFinal` significa «no había cursor
+recordado o estaba stale», que **no** es «el cursor está al final». Con el cursor al final —donde
+queda después de tipear— las frases salían pegadas: «…normales.Función sistólica conservada.». En
+HEAD casi no se veía porque la inicialización perezosa hacía que la primera inserción no tuviera
+cursor registrado y cayera por la rama que sí separa; al registrar el foco desde el arranque, esa
+rama dejó de tomarse y el defecto quedó al descubierto en el caso normal.
+
+**Una frase la pisa un «Generar Informe» explícito, y NO es un defecto.** `_infEscribir` sólo hace
+merge cuando el refresco es `silencioso`; en la regeneración explícita la salida es `lineasNuevas`
+entera, a propósito. Por la vía que sí protege —los refrescos automáticos de VEXUS y amiloidosis—
+la frase sobrevive a dos regeneraciones encadenadas, que es lo que este archivo exige para dar un
+merge por probado. El comportamiento es simétrico entre los dos textareas.
+
 
 ## Deuda conocida sin resolver
 
