@@ -16759,18 +16759,54 @@ function frasesEscribir(arr) {
   catch (e) { return false; }   // cuota llena: el llamador avisa, no se finge éxito
 }
 
-/* Posición del cursor. El textarea PIERDE el foco al tocar el panel, así que hay que
-   recordar dónde estaba: se guarda en cada interacción con el textarea. `null` significa
-   "nunca se puso el cursor", y ahí se inserta al final — distinto de 0, que es el cursor
-   puesto al principio a propósito. Con selectionStart a secas no se pueden distinguir. */
-let _frasePos = null, _fraseVal = null;
-function frasesInitCursor() {
-  const ta = document.getElementById('informe_texto');
-  if (!ta || ta._frasesInit) return;
-  ta._frasesInit = true;
-  const rec = () => { _frasePos = ta.selectionStart; _fraseVal = ta.value; };
-  ['keyup', 'mouseup', 'input', 'select', 'focus', 'blur'].forEach(ev => ta.addEventListener(ev, rec));
+/* Los DOS destinos posibles de una frase. El orden importa: el PRIMERO es el fallback cuando
+   todavía no hubo foco en ninguno, que es el comportamiento que tenía antes. */
+const FRASES_TAS = ['informe_texto', 'en_suma'];
+
+/* Posición del cursor y textarea de destino. El textarea PIERDE el foco al tocar el panel, así
+   que hay que recordar dónde estaba: se guarda en cada interacción. `null` significa "nunca se
+   puso el cursor", y ahí se inserta al final — distinto de 0, que es el cursor puesto al
+   principio a propósito. Con selectionStart a secas no se pueden distinguir.
+
+   El snapshot vive AHORA EN CADA ELEMENTO (`ta._frasePos` / `ta._fraseVal`) y no en dos globales.
+   Con un solo par compartido, alternar entre Informe y EN SUMA hacía que el cursor del segundo
+   pisara al del primero: volver al Informe y encadenar una frase la mandaba al final en vez de al
+   punto donde había quedado. La guarda de valor lo habría hecho inofensivo, pero silenciosamente
+   equivocado, que es peor. Ojo al leerlos: una propiedad de elemento sin asignar es `undefined`,
+   no `null`, así que la comparación de abajo va con `== null` y no con `=== null`. */
+let _fraseTaId = null;
+
+function frasesTaActivo() {
+  const id = (_fraseTaId && FRASES_TAS.indexOf(_fraseTaId) >= 0) ? _fraseTaId : FRASES_TAS[0];
+  return document.getElementById(id) || document.getElementById(FRASES_TAS[0]);
 }
+
+function frasesInitCursor() {
+  FRASES_TAS.forEach(id => {
+    const ta = document.getElementById(id);
+    if (!ta || ta._frasesInit) return;
+    ta._frasesInit = true;
+    /* `focus` entra en la lista porque es lo que decide el DESTINO; los otros cinco están por la
+       posición. `blur` también fija el destino, y tiene que hacerlo: al pasar de un textarea al
+       otro el orden es A.blur → B.focus, así que gana B, que es el correcto. Y al pasar del
+       textarea al botón del panel sólo hay A.blur, que deja el destino donde el médico estaba. */
+    const rec = () => { _fraseTaId = id; ta._frasePos = ta.selectionStart; ta._fraseVal = ta.value; };
+    ['keyup', 'mouseup', 'input', 'select', 'focus', 'blur'].forEach(ev => ta.addEventListener(ev, rec));
+  });
+}
+
+/* Se registra AL ARRANCAR y no sólo al abrir el panel, que es de donde salía el único llamado.
+   El caso que rompía es el normal: el médico escribe en el EN SUMA y RECIÉN DESPUÉS abre las
+   frases. Con la inicialización perezosa, ese `focus` ocurrió antes de que existiera el listener,
+   así que el destino quedaba sin registrar y la frase caía en el Informe — o sea, el mismo bug
+   que este cambio viene a arreglar, sobreviviendo al arreglo en la primera inserción de cada
+   sesión. La llamada desde `frasesToggle` se conserva: es idempotente por `_frasesInit` y cubre
+   el caso de que estos elementos algún día se creen después del arranque. */
+(function frasesCursorArranque() {
+  const init = () => frasesInitCursor();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
 
 function frasesToggle() {
   const pan = document.getElementById('frases-panel');
@@ -16893,7 +16929,7 @@ function frasesBorrar(i) {
 function frasesInsertar(i) {
   const arr = frasesLeer();
   if (!Number.isInteger(i) || i < 0 || i >= arr.length) return;
-  const ta = document.getElementById('informe_texto');
+  const ta = frasesTaActivo();
   if (!ta) return;
   const txt = arr[i];
   const v = ta.value;
@@ -16905,17 +16941,31 @@ function frasesInsertar(i) {
      sin aviso, y de ahí pasaba al estudio guardado y al PDF.
      Comparar el valor en vez de resetear en cada sitio que escribe el textarea es a propósito:
      los sitios son cuatro hoy y el quinto no se acordaría de resetear. */
-  const alFinal = (_frasePos === null || _fraseVal !== v || _frasePos > v.length);
-  const pos = alFinal ? v.length : _frasePos;
+  const alFinal = (ta._frasePos == null || ta._fraseVal !== v || ta._frasePos > v.length);
+  const pos = alFinal ? v.length : ta._frasePos;
   /* Sólo al APENDEAR al final se agrega un espacio si hace falta. Sin esto, encadenar frases
      —que es el caso de uso: el panel queda abierto justamente para eso— pegaba cada una
      contra el punto de la anterior: «conservados.Función sistólica…». En una inserción con
      cursor NO se toca nada: ahí el médico eligió el punto exacto y meterle un espacio sería
      desobedecerlo. */
-  const sep = (alFinal && v && !/\s$/.test(v)) ? ' ' : '';
+  /* El separador se decide por la POSICIÓN de inserción, no por si hubo que caer al final.
+     Antes era `alFinal`, y eran dos cosas distintas que coincidían por accidente: `alFinal`
+     significa «no había cursor recordado o estaba stale», no «el cursor está al final». Con el
+     cursor al final —que es donde queda después de tipear, o sea el caso normal— la condición
+     daba falso y las frases salían pegadas: «…dimensiones normales.Función sistólica
+     conservada.», que es exactamente lo que este bloque dice evitar.
+     En HEAD casi no se veía porque `frasesInitCursor` sólo corría al ABRIR el panel: la primera
+     inserción de cada sesión no tenía cursor registrado y caía por la rama que sí separa. Al
+     registrar el foco desde el arranque —que es lo que hace falta para saber en qué textarea
+     insertar— esa rama dejó de tomarse y el defecto quedó al descubierto en el caso normal.
+     La inserción en mitad del texto sigue sin tocar nada: ahí el médico eligió el punto exacto. */
+  const sep = (pos === v.length && v && !/\s$/.test(v)) ? ' ' : '';
   ta.value = v.slice(0, pos) + sep + txt + v.slice(pos);
   const fin = pos + sep.length + txt.length;
-  _frasePos = fin; _fraseVal = ta.value;   // el snapshot acompaña, si no la próxima inserción se cree stale
+  /* El snapshot acompaña, si no la próxima inserción se cree stale. Y el destino se fija en el
+     textarea donde se acaba de insertar: encadenar frases —que es para lo que el panel queda
+     abierto— tiene que seguir en el mismo, aunque el `focus()` de abajo dispare `rec` igual. */
+  ta._frasePos = fin; ta._fraseVal = ta.value; _fraseTaId = ta.id;
   ta.focus();
   try { ta.setSelectionRange(fin, fin); } catch (e) {}
   /* input y no change: el informe se autoguarda y se recalcula escuchando input, y asignar
