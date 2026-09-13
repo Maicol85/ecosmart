@@ -366,7 +366,18 @@
      1 px de alto a mitad de la transición de `max-height` y el contenido daría un salto.
      Las dos variables existen en los DOS temas (`--section-head` es #232840 de noche y #e4e9f2
      de día), así que resuelven solas, igual que en `.card-head`. */
-  #tab-congenitas .sacc .sacc-hdr { background-color:var(--section-head);border-bottom:1px solid transparent; }
+  /* Los valores salen de MEDIR `.card-head` en la tab ETE, no de copiar la regla a ojo:
+     background var(--section-head) · border-bottom 1px var(--border) · color var(--accent2) ·
+     11px/700 · uppercase · letter-spacing .08em (0,88px a 11px) · padding 8px 14px.
+     OJO con la premisa: **ETE no usa `.sacc`** — tiene 9 `.card-head` y cero acordeones, igual
+     que Hemodinámica. O sea que «el estándar es ETE y no Hemodinámica» son la misma regla CSS;
+     lo que faltaba de la pasada anterior no era el fondo (ése ya coincidía) sino la TIPOGRAFÍA:
+     tamaño, peso, versalitas, interletra, color y padding. */
+  #tab-congenitas .sacc .sacc-hdr { background-color:var(--section-head);border-bottom:1px solid transparent;
+    color:var(--accent2);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:8px 14px; }
+  /* La flecha hereda `font-size` del header en su regla base (12px fijo), así que al bajar el
+     texto a 11px quedaba MÁS GRANDE que el título. Se la acompaña. */
+  #tab-congenitas .sacc .sacc-arrow { font-size:10px; }
   #tab-congenitas .sacc.open .sacc-hdr { border-bottom-color:var(--border); }
   /* El hover de arriba REEMPLAZA el `background`, así que sin esto el header perdía el fondo
      nuevo al pasar el puntero. Se superpone una capa en vez de sustituir el color, y el signo
@@ -7789,8 +7800,6 @@ z
       </div>
 
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Bordes</div>
-        </div>
-      </div>
       <div class="grid-3" style="margin-bottom:4px;">
         <div class="fg"><label>Borde aórtico (mm)</label><input type="number" id="ete_cia_borde_ao" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
         <div class="fg"><label>Borde AV / mitral (mm)</label><input type="number" id="ete_cia_borde_av" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
@@ -7844,6 +7853,8 @@ z
           <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:10.5px;color:var(--text2);margin-top:8px;">
             <span>🟩 ≥5 mm adecuado</span><span>🟧 3–4 mm borderline</span><span>🟥 &lt;3 mm deficiente</span>
           </div>
+        </div><!-- /columna derecha: panel + leyenda -->
+      </div><!-- /fila donut + panel -->
     </div>
 
     <!-- ── CIV ── -->

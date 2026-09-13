@@ -1975,6 +1975,29 @@ del donut. Medidos los cinco: 66–78 px.
 cuarta copia del mismo corte, discrepando con el cuerpo del informe en la misma hoja.
 
 
+### Congénitas — estilo del acordeón y el desbalance de CIA/CIV (2026-09-11)
+
+**ETE y Hemodinámica usan el MISMO patrón: `.card` + `h2.card-head`. Ninguna de las dos usa
+`.sacc`.** ETE tiene nueve `.card-head` y cero acordeones. Si alguien pide «igualar a ETE» o
+«igualar a Hemodinámica», es la misma regla. El estilo de Congénitas está scopeado a
+`#tab-congenitas` **a propósito**: `.sacc` lo usan seis tabs con 21 acordeones, y cinco de ellas
+están siempre expandidas en PC — ahí un header con fondo se lee como una barra de sección nueva.
+
+**Contar líneas borradas NO detecta un desbalance de etiquetas.** La pasada del donut dejó el
+panel `ete-shunt-pane-cia` cerrando justo después del rótulo «Bordes»: los cinco campos, el
+shunt, la PAPs y el propio donut quedaron como HERMANOS del `.sacc-body`, o sea fuera del
+contenedor colapsable, y el card tenía ocho hijos en vez de dos. Dos causas que se compensaban a
+medias —dos `</div>` huérfanos de la tabla vieja y dos cierres faltantes en el bloque del donut—,
+que es lo que lo volvía invisible leyendo el diff. **Lo que lo encontró fue preguntarle al DOM
+quiénes son los hijos del card.** Al mover bloques de HTML: contar `<div>` contra `</div>` en la
+región, y verificar la CONTENCIÓN en el navegador.
+
+**Las transiciones CSS no avanzan en el preview headless.** El `max-height` del `.sacc-body`
+queda congelado en el valor inicial de la transición, así que un acordeón cerrado mide su altura
+completa y parece no colapsar — pasa igual en acordeones que no se tocaron. Para medir el
+colapso hay que anular la transición; entonces cierra a 0 px. Falso «bug» de CSS garantizado.
+
+
 ## Deuda conocida sin resolver
 
 - **La ESC/EACTS 2021 de valvulopatías está SUPERADA por la 2025** (*Eur Heart J* 2025;46:4635,
