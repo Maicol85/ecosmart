@@ -3228,12 +3228,6 @@ window.cerrarSesion = cerrarSesion;
     <div class="card-body">
       <p style="font-size:11px;color:var(--text2);margin-bottom:12px;">Probabilidad de HTP según VRT + signos ecocardiográficos en 3 categorías (ESC/ERS 2022). Los signos derivables de datos ya ingresados se toman automáticamente.</p>
 
-      <!-- El checkbox "Incluir probabilidad de HTP en informe" se eliminó: ahora
-           la conclusión de HTP en el informe la decide este mismo botón. -->
-      <div style="margin:0 0 12px;">
-        <button type="button" class="btn btn-integrar" data-am-k="htp" onclick="amiloIntegrar('htp')">📎 Integrar al informe</button>
-      </div>
-
       <!-- Paso 1 -->
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 6px;">Paso 1 — Velocidad de regurgitación tricuspídea (VRT)</div>
       <div class="grid-2" style="margin-bottom:12px;">
@@ -3271,6 +3265,15 @@ window.cerrarSesion = cerrarSesion;
         <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
         <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Probabilidad de HTP</span><span id="htp2022-prob" style="font-weight:700;">—</span></div>
       </div>
+
+      <!-- El checkbox "Incluir probabilidad de HTP en informe" se eliminó: ahora
+           la conclusión de HTP en el informe la decide este mismo botón. Va al PIE,
+           después de la conclusión del Paso 3, como el resto de las secciones de
+           Hemodinámica: arriba se leía como un control de entrada y no como el
+           cierre de la evaluación. -->
+      <div style="text-align:center;margin-top:12px;">
+        <button type="button" class="btn btn-integrar" data-am-k="htp" onclick="amiloIntegrar('htp')">📎 Integrar al informe</button>
+      </div>
     </div>
   </div>
   </div>
@@ -3289,12 +3292,6 @@ window.cerrarSesion = cerrarSesion;
         Orientación ecocardiográfica de disfunción VD por sobrecarga aguda de presión (TEP/HTP aguda).
         Se calculan automáticamente los valores disponibles del estudio actual.
       </p>
-
-      <!-- El checkbox "Incluir probabilidad de TEP en informe" se eliminó: ahora
-           la conclusión de TEP en el informe la decide este mismo botón. -->
-      <div style="margin:0 0 12px;">
-        <button type="button" class="btn btn-integrar" data-am-k="tep" onclick="amiloIntegrar('tep')">📎 Integrar al informe</button>
-      </div>
 
       <!-- Campos nuevos -->
       <div class="grid-2" style="margin-bottom:10px;">
@@ -3355,6 +3352,14 @@ window.cerrarSesion = cerrarSesion;
           <span class="calc-lbl" style="font-weight:700;">📐 TAPSE/PSAP</span>
           <span id="tep-acoplamiento" style="font-weight:700;">—</span>
         </div>
+      </div>
+
+      <!-- El checkbox "Incluir probabilidad de TEP en informe" se eliminó: ahora
+           la conclusión de TEP en el informe la decide este mismo botón. Va al PIE,
+           después del score y la estratificación, como el resto de las secciones de
+           Hemodinámica. -->
+      <div style="text-align:center;margin-top:12px;">
+        <button type="button" class="btn btn-integrar" data-am-k="tep" onclick="amiloIntegrar('tep')">📎 Integrar al informe</button>
       </div>
 
     </div>
@@ -3430,6 +3435,13 @@ window.cerrarSesion = cerrarSesion;
           (la porta deja de ser fiable), y pulsatilidad portal aumentada en personas delgadas sanas.
           Graduación de Beaubien-Souligny <i>et al.</i>, Ultrasound J 2020;12(1):16.
         </div>
+      </div>
+
+      <!-- El botón agrega la hoja de VEXUS al bloque ETT Avanzado del PDF. NO gobierna la
+           línea del informe narrativo: ésa sale sola, gateada por el dato (VCI medida + al
+           menos una vena interrogada). Ver el comentario de amiloTextoVEXUS(). -->
+      <div style="text-align:center;margin-top:12px;">
+        <button type="button" class="btn btn-integrar" data-am-k="vexus" onclick="amiloIntegrar('vexus')">📎 Integrar al informe</button>
       </div>
 
     </div>
@@ -14023,6 +14035,47 @@ function vexusGrado(diam, sh, pv, ir) {
 }
 window.vexusGrado = vexusGrado;
 
+/* El detalle del protocolo, en UN solo lugar. Lo usan el informe narrativo y la sección de
+   la hoja de ETT Avanzado. Con dos copias, el mismo estudio podía describir el protocolo de
+   una manera en el cuerpo del informe y de otra en la hoja adjunta del mismo PDF — que es el
+   defecto que este archivo ya pagó tres veces (hallazgos frecuentes, subtítulo de
+   valvulopatías y el grado diastólico del módulo de asociaciones).
+
+   Dice SIEMPRE cuántos vasos se evaluaron, también cuando hay severos: «1 de 3 vasos con
+   patrón severo» se lee como que se miraron los tres y sólo uno estaba mal; si en realidad se
+   miró uno solo, el grado real podría ser 3 y el lector del informe no tiene cómo saberlo. */
+function vexusDetalle(st) {
+  if (!st || st.score === null) return '';
+  const nEv = st.evaluados + (st.evaluados === 1 ? ' vaso evaluado' : ' vasos evaluados');
+  const base = st.severos.length
+    ? st.severos.length + ' severo' + (st.severos.length === 1 ? '' : 's') + ' de ' + nEv + ': ' + st.severos.join(', ')
+    : 'sin patrón severo en ' + nEv;
+  return base + (st.score === 0 ? '; VCI < 20 mm' : '');
+}
+window.vexusDetalle = vexusDetalle;
+
+/* Cobertura del protocolo, también en un solo lugar y por el mismo motivo. Concuerda en
+   número: decía «Se evaluaron 1 de los 3 vasos», que es la clase de detalle que hace dudar
+   de todo lo demás en un documento firmado. */
+function vexusCobertura(st) {
+  if (!st || st.score === null || st.evaluados >= 3) return '';
+  return 'Se evalu' + (st.evaluados === 1 ? 'ó 1' : 'aron ' + st.evaluados) + ' de los 3 vasos del protocolo.';
+}
+window.vexusCobertura = vexusCobertura;
+
+/* La salvedad de confusores, una sola vez. La primera versión de este cambio la dejó copiada
+   VERBATIM entre el narrativo y la hoja del PDF —incluida la cita bibliográfica— bajo un
+   comentario que decía «igual que en el narrativo»: exactamente el patrón de `_dupKey` que
+   este archivo documenta, y en el mismo commit que extrajo `vexusDetalle()` para matar una
+   duplicación. Corregir el año, el volumen o la lista de confusores en un sitio no habría
+   llegado al otro, y la divergencia sólo se vería en un informe ya firmado.
+   Va sólo con score >= 1: los confusores producen falsos POSITIVOS, así que sobre un VEXUS 0
+   no aportan nada. */
+const VEXUS_SALVEDAD = 'El grado VEXUS debe integrarse con la clínica. Los patrones venosos '
+  + 'también se alteran, sin que haya congestión, en fibrilación auricular y en ventilación '
+  + 'mecánica. Graduación de Beaubien-Souligny et al., Ultrasound J 2020;12(1):16.';
+window.VEXUS_SALVEDAD = VEXUS_SALVEDAD;
+
 /* Estado del score leído del formulario en pantalla. */
 function vexusEstado() {
   return vexusGrado(v('vci_diam'), sv('vexus_sh'), sv('vexus_pv'), sv('vexus_ir'));
@@ -14077,6 +14130,15 @@ function calcVEXUS() {
    medido: tipear "24" dejaba la VCI en 2 mm, que después alimenta PmAD, PSAP y el propio
    VEXUS—. El refresco va colgado de los `onchange`, que disparan al confirmar el valor. */
 function vexusRefrescarInforme() {
+  /* La hoja de ETT Avanzado se refresca ANTES y sin la guarda del textarea, porque el texto
+     integrado se congela al apretar «Integrar» y nada más lo recalcula. Sin esto, el mismo PDF
+     firmado podía llevar dos grados distintos: integrar con VEXUS 3, corregir un vaso a normal
+     —dos clics, el gesto normal de corregir una medida— y el cuerpo del informe se regeneraba
+     solo a VEXUS 2 mientras la hoja adjunta seguía diciendo 3. Es la divergencia que
+     vexusDetalle() cierra a nivel de FORMATO, reabierta a nivel de DATO.
+     `amiloRefrescarSiIntacto` no pisa el texto si el médico lo editó a mano, y sale sola si el
+     módulo no está integrado — así que es barata y no hace falta gatearla acá. */
+  if (typeof amiloRefrescarSiIntacto === 'function') amiloRefrescarSiIntacto('vexus');
   const ta = document.getElementById('informe_texto');
   if (ta && String(ta.value || '').trim() && typeof generarInforme === 'function') generarInforme({silencioso:true});
 }
@@ -17755,17 +17817,13 @@ function generarInforme(opts) {
   {
     const vx = (typeof vexusEstado === 'function') ? vexusEstado() : null;
     if (vx && vx.score !== null) {
-      /* El detalle dice siempre CUÁNTOS vasos se evaluaron, también cuando hay severos.
-         Decir "1 de 3 vasos con patrón severo" se lee como que se miraron los tres y sólo
-         uno estaba mal; si en realidad se miró uno solo, el grado real podría ser 3 y el
-         lector del informe no tiene cómo saberlo. */
-      const nEv = vx.evaluados + (vx.evaluados === 1 ? ' vaso evaluado' : ' vasos evaluados');
-      const detalle = vx.severos.length
-        ? vx.severos.length + ' severo' + (vx.severos.length === 1 ? '' : 's') + ' de ' + nEv + ': ' + vx.severos.join(', ')
-          + (vx.score === 0 ? '; VCI < 20 mm' : '')
-        : 'sin patrón severo en ' + nEv + (vx.score === 0 ? '; VCI < 20 mm' : '');
+      /* El detalle sale de vexusDetalle() —el mismo que usa la sección de la hoja de ETT
+         Avanzado—, para que el cuerpo del informe y la hoja adjunta no puedan describir el
+         protocolo de dos maneras distintas en el mismo PDF. */
+      const detalle = vexusDetalle(vx);
+      const _cob = vexusCobertura(vx);
       inf.push(`VEXUS ${vx.score} (${detalle}): ${VEXUS_INTERP[vx.score]}`
-        + (vx.evaluados < 3 ? ` Se evaluaron ${vx.evaluados} de los 3 vasos del protocolo.` : ''));
+        + (_cob ? ' ' + _cob : ''));
       if (vx.score >= 2) {
         suma.push(`Congestión venosa ${vx.score === 2 ? 'moderada' : 'severa'} — VEXUS ${vx.score}.`);
       }
@@ -17793,9 +17851,7 @@ function generarInforme(opts) {
         if (conf.length) {
           inf.push('Salvedad sobre el VEXUS: ' + conf.join('; ') + '.');
         }
-        inf.push('El grado VEXUS debe integrarse con la clínica. Los patrones venosos también se '
-          + 'alteran, sin que haya congestión, en fibrilación auricular y en ventilación mecánica. '
-          + 'Graduación de Beaubien-Souligny et al., Ultrasound J 2020;12(1):16.');
+        inf.push(VEXUS_SALVEDAD);
       }
     }
   }
@@ -30588,6 +30644,57 @@ function amiloTextoTEP() {
   return L.join('\n');
 }
 
+/* VEXUS — sección de la hoja de ETT Avanzado.
+
+   ESTE BOTÓN NO GATEA EL INFORME NARRATIVO. La línea «VEXUS N (…): …» del cuerpo del informe
+   sale sola y seguirá saliendo sola: está gateada por el DATO (`vexusEstado().score !== null`,
+   o sea VCI medida Y al menos una vena interrogada), que es más fuerte que un botón porque no
+   se puede olvidar. Lo que el botón decide es si además va esta sección, con el detalle vaso
+   por vaso, a la hoja adjunta. Es una diferencia deliberada con HTP y TEP, donde el botón sí
+   gatea el narrativo — aquellos no tienen compuerta por dato.
+
+   Se deriva de `vexusEstado()`, que es la función PURA que lee el formulario, y NO de los
+   spans de la tarjeta (`#vexus-score`, `#vexus-interp`, `#vexus-severos`): esos los repinta
+   `calcVEXUS`, que no corre en `limpiarCampos` ni en las dos rutas de restauración, así que
+   leer el DOM traería el grado del paciente anterior. Es exactamente el defecto que ya tiene
+   Cardio-Oncología por leer su panel con `_amRows`. */
+function amiloTextoVEXUS() {
+  const L = [];
+  const st = (typeof vexusEstado === 'function') ? vexusEstado() : null;
+
+  L.push('## Protocolo venoso');
+  L.push('VCI | ' + (st && st.vciDiam != null ? st.vciDiam + ' mm' : 'no medida'));
+  /* La etiqueta de cada vena se lee del <option> seleccionado, no de un mapa paralelo: el
+     select ES el dato, y una segunda tabla de rótulos se desincroniza el día que alguien
+     reescriba una opción. */
+  VEXUS_VASOS.forEach(vaso => {
+    const sel = document.getElementById(vaso.id);
+    const opt = (sel && sel.value !== '') ? sel.options[sel.selectedIndex] : null;
+    L.push('Vena ' + vaso.lbl + ' | ' + (opt ? opt.text : 'no evaluada'));
+  });
+
+  L.push('## Grado y conclusión');
+  /* Sin score no se afirma NADA. `amiloIntegrar` no tiene compuerta de datos, así que este
+     texto se genera igual si se aprieta el botón con el módulo en blanco; escribir «VEXUS 0 —
+     sin congestión venosa significativa» ahí afirmaría que se aplicó el protocolo venoso sobre
+     un paciente al que nadie le puso el Doppler en una vena. Los dos motivos se distinguen
+     —igual que eteQpQsMotivo()— porque «falta el dato» y «no se interrogó ninguna vena» no son
+     lo mismo para quien lee el informe. */
+  if (!st || st.score === null) {
+    L.push(st && st.vciDiam != null
+      ? 'Protocolo VEXUS no aplicado: con la vena cava inferior medida pero ninguna vena interrogada no se informa grado, ni siquiera 0.'
+      : 'Protocolo VEXUS no aplicado: falta la medición de la vena cava inferior.');
+    return L.join('\n');
+  }
+
+  L.push('VEXUS ' + st.score + ' | ' + vexusDetalle(st));
+  const cob = vexusCobertura(st); if (cob) L.push(cob);
+  L.push(VEXUS_INTERP[st.score]);
+  // Mismo texto que el narrativo porque es LA MISMA constante, no una copia.
+  if (st.score >= 1) L.push('Salvedad | ' + VEXUS_SALVEDAD);
+  return L.join('\n');
+}
+
 // ── Módulos del ETE ───────────────────────────────────────────────
 // Las filas 'etiqueta | valor' se dibujan como tabla de dos columnas, tanto en
 // la card como en el PDF.
@@ -30982,6 +31089,12 @@ function amiloSecs() {
     { k:'hfpeff',lbl:'Score HFA-PEFF (HFpEF)',         tit:'SCORE HFA-PEFF - HFpEF (ESC/HFA 2019)',    gen:amiloTextoHFAPEFF },
     { k:'htp',  lbl:'Probabilidad de HTP (ESC 2022)',  tit:'PROBABILIDAD DE HTP - ESC 2022',           gen:amiloTextoHTP },
     { k:'tep',  lbl:'Probabilidad de TEP',             tit:'PROBABILIDAD DE TEP / SOBRECARGA VD',      gen:amiloTextoTEP },
+    /* `soloHoja`: este botón gobierna la hoja del PDF, NO la línea del informe narrativo —ésa
+       sale sola, gateada por el dato—. Sin esta marca los avisos mentían: retirar el módulo
+       decía «VEXUS — congestión venosa ya no sale en el informe» mientras el cuerpo del informe
+       seguía diciendo «Congestión venosa severa… considerar descongestión activa». Es el
+       patrón del interruptor que miente sobre el disco. */
+    { k:'vexus',lbl:'VEXUS — congestión venosa',       tit:'VEXUS - CONGESTION VENOSA SISTEMICA',      gen:amiloTextoVEXUS, soloHoja:true },
     { k:'etem', lbl:'Mediciones ETE — Válvula mitral', tit:'MEDICIONES - VALVULA MITRAL',               gen:amiloTextoEteMitral, grupo:'ete' },
     { k:'wilk', lbl:'Score de Wilkins',                tit:'SCORE DE WILKINS - ESTENOSIS MITRAL',      gen:amiloTextoWilkins, grupo:'ete' },
     { k:'oai',  lbl:'Mediciones OAI',                  tit:'OREJUELA IZQUIERDA',                       gen:amiloTextoOAI, grupo:'ete' },
@@ -31149,7 +31262,9 @@ function amiloIntegrar(k) {
   // Integra en silencio: NO navega a la tab Informe ni hace scroll, para no
   // sacar al operador de donde está trabajando (igual que el Bull's Eye).
   amiloRefrescarInforme();
-  if (typeof toast === 'function') toast('📎 ' + sec.lbl + ' integrado al informe');
+  if (typeof toast === 'function') {
+    toast('📎 ' + sec.lbl + (sec.soloHoja ? ' agregado a la hoja de ETT avanzado del PDF' : ' integrado al informe'));
+  }
 }
 window.amiloIntegrar = amiloIntegrar;
 
@@ -31234,7 +31349,11 @@ function amiloRetirar(k) {
   amiloSyncBotones();
   amiloRefrescarInforme();
   const sec = amiloSecs().find(x => x.k === k);
-  if (typeof toast === 'function') toast((sec ? sec.lbl : 'El bloque') + ' ya no sale en el informe');
+  if (typeof toast === 'function') {
+    toast(sec && sec.soloHoja
+      ? sec.lbl + ' ya no sale en la hoja del PDF. La línea del informe no depende de este botón.'
+      : (sec ? sec.lbl : 'El bloque') + ' ya no sale en el informe');
+  }
 }
 window.amiloRetirar = amiloRetirar;
 

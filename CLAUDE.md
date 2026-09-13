@@ -1998,7 +1998,92 @@ completa y parece no colapsar — pasa igual en acordeones que no se tocaron. Pa
 colapso hay que anular la transición; entonces cierra a 0 px. Falso «bug» de CSS garantizado.
 
 
+### Botones «Integrar al informe» de Hemodinámica y la hoja de VEXUS — 2026-09-13
+
+**El pedido partía de una premisa falsa y hubo que preguntar antes de construir.** «VEXUS no tiene
+botón para integrar al informe» es cierto; «hay que hacer que al integrar escriba la conclusión en
+el narrativo» ya estaba hecho. El bloque 11b de `generarInforme` emite `VEXUS N (detalle):
+VEXUS_INTERP[N]` **desde siempre y sin botón**, y el texto de ejemplo del pedido —«Sin congestión
+venosa sistémica significativa. Presión venosa central probablemente normal.»— es literalmente
+`VEXUS_INTERP[0]`. Verificado en el navegador antes de escribir una línea.
+
+**La asimetría con HTP/TEP es deliberada.** VEXUS está gateado por el DATO
+(`vexusEstado().score !== null`: VCI medida Y al menos una vena interrogada); HTP y TEP por el
+BOTÓN (`amiloIntegrado('htp')`). El gate por dato es más fuerte —no se puede olvidar—, así que el
+botón nuevo gobierna **sólo la hoja del PDF** y no toca el narrativo. Decidido por Maicol.
+
+**Todo `gen()` de `amiloSecs` tiene que poder decir «no aplicado».** `amiloIntegrar` **no tiene
+compuerta de datos**: corre `sec.gen()` aunque el módulo esté en blanco. Si el generador no
+distingue el caso vacío, un clic estampa una normalidad en un informe firmado — que es lo que hace
+hoy el módulo pulmonar avanzado. `amiloTextoVEXUS` distingue además los dos motivos («falta la
+VCI» vs «ninguna vena interrogada»), como `eteQpQsMotivo()`.
+
+**EL TEXTO INTEGRADO SE CONGELA Y NADA LO RECALCULA.** `amiloIntegrar` guarda la salida en
+`am-txt-<k>` y ahí queda; el único módulo con refresco era `wilk` (`amiloRefrescarSiIntacto`,
+llamado en un solo sitio). Con VEXUS eso era una bomba, porque su narrativo **sí** se auto-refresca
+en cada `onchange`: integrar con VEXUS 3, corregir un vaso a normal —dos clics, el gesto normal de
+corregir una medida— y el mismo PDF firmado salía con **VEXUS 2 en el cuerpo y VEXUS 3 en la hoja
+adjunta**, sin ningún aviso. Lo encontraron las dos revisiones por separado. Cerrado llamando
+`amiloRefrescarSiIntacto('vexus')` desde `vexusRefrescarInforme()`, que es el embudo de los dos
+caminos (los selects del protocolo y el `onchange` de `vci_diam`/`vci_col`). **Si agregás un módulo
+cuyo texto pueda cambiar después de integrarlo, enganchá el refresco o documentá por qué no.**
+
+**`soloHoja:true` en el descriptor de la sección.** Sin esa marca los avisos mentían: retirar el
+módulo decía «VEXUS — congestión venosa ya no sale en el informe» mientras el cuerpo del informe
+seguía diciendo «Congestión venosa severa… considerar descongestión activa». Es «el interruptor
+mentía sobre el disco» otra vez. El rótulo del botón sí se dejó igual que el de las demás, a
+pedido: la consistencia visual era el motivo del cambio.
+
+**Tres helpers, no tres copias.** `vexusDetalle(st)`, `vexusCobertura(st)` y la constante
+`VEXUS_SALVEDAD` los comparten el narrativo y la hoja. La primera versión de este mismo cambio
+extrajo `vexusDetalle` para matar una duplicación **y en el mismo commit creó otra**: la salvedad
+de confusores quedó copiada verbatim —cita bibliográfica incluida— bajo un comentario que decía
+«igual que en el narrativo». Lo cazó `/differential-review`. Un comentario que afirma una
+invariante no la garantiza; si dos superficies tienen que decir lo mismo, que sea la misma cadena.
+
+**Los botones de Hemodinámica van al PIE**, con `text-align:center;margin-top:12px`. HTP y TEP los
+tenían arriba del contenido, donde se leen como un control de entrada y no como el cierre de la
+evaluación — y encima invitaban a integrar antes de llenar la sección, que es justo lo que abre la
+ventana de divergencia de arriba.
+
+**Al medir esto:** el screenshot del preview headless volvió negro con la página cargada y con
+layout correcto (`getBoundingClientRect` daba valores válidos). No es un fallo de la app. Para el
+modo día/noche verificá por **estilos computados** del elemento, no por imagen.
+
 ## Deuda conocida sin resolver
+
+- **VEXUS 0 con venas severas se lee como normalidad.** Con VCI < 20 mm el grado es 0 aunque los
+  tres vasos estén severos —es correcto por protocolo—, pero el texto imprime «VEXUS 0 | 3 severos
+  de 3 vasos evaluados: …; VCI < 20 mm» y debajo «Sin congestión venosa sistémica significativa.
+  Presión venosa central probablemente normal.», sin ningún calificativo y **sin la salvedad**
+  (`score >= 1`). La pantalla lo dice mucho mejor: `calcVEXUS` escribe «(no cuentan: VCI < 20 mm)»,
+  que nombra la consecuencia en vez de yuxtaponer el dato. Afecta por igual al narrativo y a la
+  hoja —es la misma redacción—, así que no lo introdujo la hoja nueva. Cambiarlo toca el texto del
+  informe firmado: es decisión clínica, no técnica.
+- **Cardio-Oncología deja el panel del paciente anterior y lo manda al PDF firmado** (verificado
+  2026-09-13, sin corregir). `#co-riesgo-resultado` y `#co-toxicidad-resultado` se llenan con
+  `.calc-row` cuyos `<span>` **no llevan `id`**, así que el barrido
+  `.calc-box .calc-row span[id]` de `limpiarCampos` no los toca; y `calcCardioOnco` no está en
+  `limpiarCampos` ni en `editarInforme` ni en `cargarEstudioPorId` — sólo en los `oninput`, el
+  autosave y la reimpresión. `amiloTextoCardioOnco` lee el DOM con `_amRows`, no recalcula. Es el
+  caso `gradoGamma`/`protMonoc` completo: «Nuevo estudio» deja los campos vacíos y los dos paneles
+  con el riesgo MUY ALTO y la cardiotoxicidad SEVERA del anterior, y un clic en Integrar los mete
+  en el informe del actual. El PPT los lee igual (`_pptSpan`).
+- **El módulo pulmonar avanzado publica un pulmón normal completo sin que nadie mire nada, y borra
+  el hallazgo real del básico** (verificado 2026-09-13, sin corregir). Sus cinco `<select>` no
+  tienen opción vacía y arrancan todos en el valor normal; `amiloIntegrar` no tiene compuerta de
+  datos. Peor: la exclusión mutua con el módulo básico es **incondicional**, así que un «Derrame
+  pleural mínimo (Balik 25 mm, ~500 ml)» cargado en el básico desaparece y en su lugar se imprime
+  **«Sin derrame pleural.»** Un hallazgo convertido en su negación.
+- **La oración de aorta del narrativo decide sólo con `ao_sin`** (verificado 2026-09-13, sin
+  corregir). La ascendente (`ao_tub`) y la unión sinotubular (`ao_st`) no se leen, y la rama `else`
+  afirma: con `ao_tub`=52 mm y el seno vacío el informe dice «Aorta torácica de calibre normal»
+  mientras la tabla del MISMO PDF imprime `Ao asc 52* mm (* dilatado)`.
+- **`ete_morfo_incluir`: el botón dice «✓ Integrado» y el informe sale sin la sección** (verificado
+  2026-09-13, sin corregir). El checkbox se persiste con el estudio, pero la compuerta del informe
+  lee la clave global de `localStorage` que `limpiarCampos` borra, y `_restaurarChkInclusion`
+  repone `.checked` sin despachar `change`. La técnica del ETE, su gemela, lo hace bien: prefiere
+  el checkbox. Se agregaron juntas y sólo una leyó el control.
 
 - **La ESC/EACTS 2021 de valvulopatías está SUPERADA por la 2025** (*Eur Heart J* 2025;46:4635,
   doi:10.1093/eurheartj/ehaf194 — su preámbulo dice «updates and replaces the previous version from
