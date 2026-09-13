@@ -1941,8 +1941,20 @@ el estudio sin bordes. La columna «Ventana ETE» se mudó al panel, que muestra
 `oninput` de los cinco bordes y en el `onchange` de los selects, Y en `RECALC_MODULOS`, que es el
 embudo de las rutas de restauración — donde reponer asigna `.value` y no dispara eventos.
 
-**El sexto sector (`aox`) no es un borde:** completa el anillo del lado aórtico, toma su color y al
-tocarlo selecciona el aórtico. No tiene campo y no entra en `eteCiaBordeMin`.
+**CINCO sectores de 72° que cierran los 360°, uno por borde** (corregido 2026-09-11). Antes eran
+seis: había un «→Ao» sin campo propio que espejaba el color del aórtico, así que ese borde ocupaba
+dos de seis porciones y la proporción que el anillo sugiere era falsa. Los `d` salen de
+trigonometría y se verifican MIDIENDO EL DIBUJO —180 sondas a radio 80: cero huecos, cero solapes,
+72° en los cinco, nada fuera del anillo—, no leyendo el path.
+
+**Las siglas van en una SEGUNDA pasada y con `pointer-events:none`.** Dentro del bucle, el relleno
+del sector siguiente tapa la sigla del anterior en los bordes compartidos (pasa en el SVG y en el
+canvas). Y sin la guarda de puntero el clic sobre la letra no llega al `[data-seg]`: el centro del
+sector sería la única zona muerta. Su color es el campo `text` del MISMO `colorBordeCIA` que pinta
+el relleno — no hay un segundo mapa de tonos.
+
+**El diagrama va al FINAL del panel CIA**, debajo de los campos y del shunt: es una lectura, no un
+control de entrada, y arriba empujaba los campos bajo el pliegue.
 
 **Sin `onclick` inline: `data-seg` + listener delegado registrado una vez.** Por dos motivos —el
 inline se compila tras decodificar entidades, así que ahí el escape no protege; y la regla de área

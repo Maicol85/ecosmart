@@ -7768,25 +7768,6 @@ z
       </div>
 
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Bordes</div>
-      <!-- Donut a la izquierda, detalle del borde tocado a la derecha. La columna «Ventana ETE»
-           de la tabla anterior se fue al panel, que es donde aparece la del borde que el médico
-           está mirando en vez de las cinco a la vez.
-           Los CINCO INPUTS SIGUEN EXISTIENDO, abajo: son campos persistidos que barre
-           `guardarInforme` por `input[id]`, y sacarlos habría dejado el donut sin forma de
-           cargarle datos y el estudio sin los bordes. «Reemplazar la tabla» es reemplazar su
-           PRESENTACIÓN, no la entrada de datos.
-           `overflow:visible` y `width`/`height` explícitos en el <svg>: el UA le pone
-           `overflow:hidden` y Safari no deriva la altura del viewBox — sin las dos cosas el
-           diagrama sale recortado o de alto cero. Ya está documentado en este proyecto. -->
-      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;margin-bottom:12px;">
-        <svg id="cia-donut-svg" width="260" height="260" viewBox="-130 -130 260 260"
-             role="img" aria-label="Bordes de la comunicación interauricular"
-             style="overflow:visible;flex:0 0 auto;max-width:100%;height:auto;aspect-ratio:1/1;"></svg>
-        <div style="flex:1 1 220px;min-width:200px;">
-          <div id="cia-donut-panel" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;"></div>
-          <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:10.5px;color:var(--text2);margin-top:8px;">
-            <span>🟩 ≥5 mm adecuado</span><span>🟧 3–4 mm borderline</span><span>🟥 &lt;3 mm deficiente</span>
-          </div>
         </div>
       </div>
       <div class="grid-3" style="margin-bottom:4px;">
@@ -7819,6 +7800,29 @@ z
       <div class="calc-box" style="margin-top:8px;">
         <div class="calc-row"><span class="calc-lbl">PAPs por IT (del estudio)</span><span id="ete-cia-paps-it" class="calc-val">—</span></div>
       </div>
+
+      <!-- Donut a la izquierda, detalle del borde tocado a la derecha. La columna «Ventana ETE»
+           de la tabla anterior se fue al panel, que es donde aparece la del borde que el médico
+           está mirando en vez de las cinco a la vez.
+           Los CINCO INPUTS SIGUEN EXISTIENDO, abajo: son campos persistidos que barre
+           `guardarInforme` por `input[id]`, y sacarlos habría dejado el donut sin forma de
+           cargarle datos y el estudio sin los bordes. «Reemplazar la tabla» es reemplazar su
+           PRESENTACIÓN, no la entrada de datos.
+           El diagrama va al FINAL del panel, debajo de los campos y del shunt: es una LECTURA de
+           lo cargado, no un control de entrada, y arriba empujaba los campos por debajo del
+           pliegue — el médico tenía que scrollear para llegar a lo que tiene que tipear.
+           `overflow:visible` y `width`/`height` explícitos en el <svg>: el UA le pone
+           `overflow:hidden` y Safari no deriva la altura del viewBox — sin las dos cosas el
+           diagrama sale recortado o de alto cero. Ya está documentado en este proyecto. -->
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;margin-bottom:12px;">
+        <svg id="cia-donut-svg" width="260" height="260" viewBox="-130 -130 260 260"
+             role="img" aria-label="Bordes de la comunicación interauricular"
+             style="overflow:visible;flex:0 0 auto;max-width:100%;height:auto;aspect-ratio:1/1;"></svg>
+        <div style="flex:1 1 220px;min-width:200px;">
+          <div id="cia-donut-panel" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;"></div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:10.5px;color:var(--text2);margin-top:8px;">
+            <span>🟩 ≥5 mm adecuado</span><span>🟧 3–4 mm borderline</span><span>🟥 &lt;3 mm deficiente</span>
+          </div>
     </div>
 
     <!-- ── CIV ── -->
@@ -22422,21 +22426,29 @@ function eteCiaBordeMin(){
    `Path2D` acepta la sintaxis de path de SVG, arcos incluidos, así que las dos superficies no
    pueden divergir en la geometría: es literalmente el mismo dato.
 
-   El sexto segmento (`aox`) no es un borde: es el sector que completa el anillo del lado
-   aórtico y toma SIEMPRE el color del aórtico. No tiene campo propio y no entra en el mínimo. */
+   CINCO sectores de 72° que cierran los 360°, uno por borde, con el radio interior en 46, el
+   exterior en 115 y las siglas sobre el radio medio 80. Los `d` se calcularon con trigonometría
+   —no a ojo— y las cinco amplitudes suman exactamente 360.
+   Antes eran SEIS: había un sector «→Ao» sin campo propio que espejaba el color del aórtico, así
+   que el mismo borde ocupaba dos quintos del anillo y la lectura de proporción del diagrama era
+   falsa. Al quitarlo desapareció también la indirección `refiere`, que era la única razón por la
+   que `selBordeCIA` tenía que traducir un id a otro. */
 const CIA_DONUT_SEGS = [
-  { id:'ao',   campo:'ete_cia_borde_ao',   nombre:'Aórtico (superoanterior)',    ventana:'ETE 30–45° — eje corto aórtico',
-    d:'M 0,0 L 41,-103 A 115,115 0 0,1 103,-41 L 41,-16 A 46,46 0 0,0 16,-41 Z' },
-  { id:'vcs',  campo:'ete_cia_borde_vcs',  nombre:'VCS (superoposterior)',       ventana:'ETE 90° — vista bicaval',
-    d:'M 0,0 L -41,-103 A 115,115 0 0,1 41,-103 L 16,-41 A 46,46 0 0,0 -16,-41 Z' },
-  { id:'post', campo:'ete_cia_borde_post', nombre:'Posterior',                   ventana:'ETE 0° — cuatro cámaras',
-    d:'M 0,0 L -115,0 A 115,115 0 0,1 -41,-103 L -16,-41 A 46,46 0 0,0 -46,0 Z' },
-  { id:'vci',  campo:'ete_cia_borde_vci',  nombre:'VCI (inferoposterior)',       ventana:'ETE 90° — vista bicaval',
-    d:'M 0,0 L -41,103 A 115,115 0 0,1 -115,0 L -46,0 A 46,46 0 0,0 -16,41 Z' },
-  { id:'av',   campo:'ete_cia_borde_av',   nombre:'AV / Mitral (inferoanterior)',ventana:'ETE 0° — cuatro cámaras',
-    d:'M 0,0 L 103,41 A 115,115 0 0,1 -41,103 L -16,41 A 46,46 0 0,0 41,16 Z' },
-  { id:'aox',  campo:null, refiere:'ao',   nombre:'Aórtico (superoanterior)',    ventana:'ETE 30–45° — eje corto aórtico',
-    d:'M 0,0 L 103,-41 A 115,115 0 0,1 103,41 L 41,16 A 46,46 0 0,0 41,-16 Z' }
+  { id:'vcs',  campo:'ete_cia_borde_vcs',  sigla:'VCS',  sx:0,      sy:-80,
+    nombre:'VCS (superoposterior)',        ventana:'ETE 90° — vista bicaval',
+    d:'M -67.6,-93.04 A 115,115 0 0,1 67.6,-93.04 L 27.04,-37.21 A 46,46 0 0,0 -27.04,-37.21 Z' },
+  { id:'ao',   campo:'ete_cia_borde_ao',   sigla:'Ao',   sx:76.08,  sy:-24.72,
+    nombre:'Aórtico (superoanterior)',     ventana:'ETE 30–45° — eje corto aórtico',
+    d:'M 67.6,-93.04 A 115,115 0 0,1 109.37,35.54 L 43.75,14.21 A 46,46 0 0,0 27.04,-37.21 Z' },
+  { id:'av',   campo:'ete_cia_borde_av',   sigla:'AV',   sx:47.02,  sy:64.72,
+    nombre:'AV / Mitral (inferoanterior)', ventana:'ETE 0° — cuatro cámaras',
+    d:'M 109.37,35.54 A 115,115 0 0,1 0,115 L 0,46 A 46,46 0 0,0 43.75,14.21 Z' },
+  { id:'vci',  campo:'ete_cia_borde_vci',  sigla:'VCI',  sx:-47.02, sy:64.72,
+    nombre:'VCI (inferoposterior)',        ventana:'ETE 90° — vista bicaval',
+    d:'M 0,115 A 115,115 0 0,1 -109.37,35.54 L -43.75,14.21 A 46,46 0 0,0 0,46 Z' },
+  { id:'post', campo:'ete_cia_borde_post', sigla:'Post', sx:-76.08, sy:-24.72,
+    nombre:'Posterior',                    ventana:'ETE 0° — cuatro cámaras',
+    d:'M -109.37,35.54 A 115,115 0 0,1 -67.6,-93.04 L -27.04,-37.21 A 46,46 0 0,0 -43.75,14.21 Z' }
 ];
 
 /* Las cuatro bandas. `sinDato` es un estado propio y NO el color de «deficiente»: un borde sin
@@ -22452,11 +22464,8 @@ function colorBordeCIA(mm){
 }
 window.colorBordeCIA = colorBordeCIA;
 
-/* Lee el mm que le toca a un segmento: el `aox` no tiene campo y espeja al aórtico. */
-function _ciaSegMm(seg){
-  const campo = seg.campo || (CIA_DONUT_SEGS.find(s => s.id === seg.refiere) || {}).campo;
-  return campo ? v(campo) : null;
-}
+/* Los cinco sectores tienen campo propio: uno a uno, sin espejos. */
+function _ciaSegMm(seg){ return seg.campo ? v(seg.campo) : null; }
 
 /* Los cinco textos del centro. Se arman una sola vez y los consumen el SVG y el canvas, para
    que la pantalla y el PDF no puedan decir cosas distintas sobre el mismo estudio. */
@@ -22498,8 +22507,7 @@ function ciaDonutCentro(){
 var _ciaSegSel = 'ao';
 function selBordeCIA(id){
   if (!CIA_DONUT_SEGS.some(s => s.id === id)) return;
-  const seg = CIA_DONUT_SEGS.find(s => s.id === id);
-  _ciaSegSel = seg.refiere || id;     // tocar el sector extra selecciona el aórtico, que es lo que describe
+  _ciaSegSel = id;
   ciaDonutRender();
 }
 window.selBordeCIA = selBordeCIA;
@@ -22515,7 +22523,7 @@ function ciaDonutRender(){
     let g = '';
     CIA_DONUT_SEGS.forEach(function(seg){
       const col = colorBordeCIA(_ciaSegMm(seg));
-      const sel = (seg.refiere || seg.id) === _ciaSegSel;
+      const sel = seg.id === _ciaSegSel;
       /* `data-seg` + listener delegado, NO `onclick` inline. Dos motivos, y el segundo es el
          que importa: el `onclick` inline se COMPILA tras decodificar entidades, así que ahí el
          escape no protege —está documentado en este archivo— y aunque `seg.id` sea un literal
@@ -22525,6 +22533,14 @@ function ciaDonutRender(){
       g += '<path d="' + seg.d + '" fill="' + col.fill + '" stroke="' + (sel ? '#185FA5' : '#ffffff') +
            '" stroke-width="' + (sel ? 2.5 : 1.5) + '" style="cursor:pointer" data-seg="' + seg.id +
            '"><title>' + esc(seg.nombre) + '</title></path>';
+      /* La sigla va DESPUÉS de su sector y con `pointer-events:none`: dibujada antes quedaría
+         tapada por el relleno, y sin la guarda de puntero el clic sobre la letra no llegaría al
+         `[data-seg]` que busca el listener delegado — o sea que el centro del sector, que es
+         justo donde uno apunta, sería la única zona muerta. El color es el `text` de la MISMA
+         banda que pinta el relleno, así que sigla y sector no pueden desincronizarse. */
+      g += '<text x="' + seg.sx + '" y="' + seg.sy + '" text-anchor="middle" ' +
+           'dominant-baseline="middle" font-size="9" font-weight="500" fill="' + col.text +
+           '" style="pointer-events:none;user-select:none">' + esc(seg.sigla) + '</text>';
     });
     g += '<circle cx="0" cy="0" r="60" fill="none" stroke="#d0d0d0" stroke-width="1.5"/>';
     g += '<circle cx="0" cy="0" r="46" fill="#ffffff" stroke="#d0d0d0" stroke-width="1"/>';
@@ -22589,6 +22605,15 @@ function ciaDonutDataURL(){
     const p = new Path2D(seg.d);
     c.fillStyle = col.fill; c.fill(p);
     c.lineWidth = 1.5; c.strokeStyle = '#ffffff'; c.stroke(p);
+  });
+  /* Las siglas en una segunda pasada, por lo mismo que en el SVG: dibujadas dentro del bucle,
+     el relleno del sector siguiente tapa la del anterior en los bordes compartidos. */
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  CIA_DONUT_SEGS.forEach(function(seg){
+    const col = colorBordeCIA(_ciaSegMm(seg));
+    c.font = '500 9px Helvetica, Arial, sans-serif';
+    c.fillStyle = col.text;
+    c.fillText(seg.sigla, seg.sx, seg.sy);
   });
   const aro = (r, w) => { c.beginPath(); c.arc(0, 0, r, 0, 2 * Math.PI); c.lineWidth = w; c.strokeStyle = '#d0d0d0'; c.stroke(); };
   aro(60, 1.5);
