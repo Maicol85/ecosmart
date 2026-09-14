@@ -2419,6 +2419,49 @@ criterio». Si aparece, la palanca es juntar las salvedades con la línea de la 
 
 ## Deuda conocida sin resolver
 
+### Aorta — lo que quedó abierto tras unificar los umbrales (2026-09-14)
+El corte de normalidad pasó a **40 / 33 / 36 mm** (Valsalva / sinotubular / ascendente), decisión
+de Maicol, y hoy gobierna la cápsula de pantalla, el narrativo, el EN SUMA y las dos tablas del
+PDF desde una sola constante `AO_REF`. Lo que NO se tocó:
+
+- **El Laboratorio usa otro corte para el mismo campo.** `labCCRender` filtra `>= 40` y su nota
+  impresa dice que «el corte de 40 mm lo aplica esta vista … es donde la ESC 2024 empieza a
+  seguir la aorta». El panel de indicaciones (`_indVAB`, `vabConclusion`, `ccSumaLinea`) usa
+  45/50/55, que son los quirúrgicos. **No son contradicciones**: son tres preguntas distintas
+  —¿está fuera del rango normal?, ¿hay que seguirla?, ¿hay que operarla?—. Pero desde este commit
+  el EN SUMA firmado puede decir «Dilatación aorta ascendente (37 mm)» sobre un estudio que el
+  Laboratorio no cuenta como dilatado. Si eso molesta, la palanca es el **rótulo** del EN SUMA,
+  no el umbral: decir «por encima del límite superior normal» en vez de «Dilatación».
+- **`ao_st` salta de leve a severa sin banda moderada** (`mod:null`): 44 mm → «levemente
+  dilatada», 45 mm → «severamente dilatada». Venía así de la cápsula; desde este commit el
+  adjetivo entra al informe firmado. Definir la banda intermedia es decisión clínica, no de
+  código: no se inventó.
+- **Con CERO mediciones el informe sigue afirmando «Aorta torácica de calibre normal».** Es el
+  criterio que Maicol pidió («normal si están vacíos»), y es el caso más frecuente: la aorta no
+  se mide en todos los estudios. Queda anotado porque es el mismo patrón que el módulo pulmonar
+  vino a cerrar — afirmar sobre lo no evaluado— resuelto al revés a propósito.
+- **`AO_INTERP_EL` es una lista paralela a `AO_SEGS`.** Agregar un segmento sin su entrada ahí da
+  `getElementById(undefined)` → `return` mudo: el narrativo lo incluye y la pantalla no muestra
+  cápsula. Las dos tablas del PDF tampoco se generan desde `AO_SEGS`.
+- **`Object.freeze` no avisa.** El archivo no está en modo estricto fuera de un bloque, así que
+  `AO_REF.sin = 45` desde otro lado es un no-op MUDO: protege del accidente, no señaliza la
+  mutación deliberada.
+
+### Eco Pulmonar — `amiloSecs` falla ABIERTO a propósito
+La compuerta `hayDatos` de `amiloIntegrar` es **opcional**: 16 de las 17 secciones no la declaran
+y se integran sin control. El default se eligió así porque impedirle al médico integrar algo que
+sí cargó es peor que el defecto que cierra. Pero el camino fácil —copiar la línea de la sección
+de arriba— no tiene compuerta ni avisa. Si se agregan más secciones conviene invertirlo a
+opt-out (`sinCompuerta:true`) con un `console.warn` de arranque para las que no declaren ninguna
+de las dos, como hace `_labXlsAssertBloques()`.
+
+### Segmentos del ETE — la clave global de localStorage sigue teniendo un escritor
+`eteClick` escribe **las dos** representaciones: el espejo por estudio (`#ete_seg_*`, que es el
+que viaja en el backup) y la clave global `ete_seg_*`, que fugaba entre pacientes. Hoy la fuga
+está tapada porque `limpiarCampos` llama a `eteLimpiarSegmentos()`, que pone las seis en 0. La
+tapa depende de que ese llamado siga ahí. Con el espejo en su lugar, la clave global ya no tiene
+consumidor legítimo y se podría sacar — no se hizo hoy para no ampliar el diff.
+
 - **`med-centro` es un span huérfano y le gana al centro de Config en TODO PDF.** El encabezado
   resuelve `_medCentro || centroStr || 'CeiboMed'` (~21244) y `_medCentro` es `sv('med-centro')`,
   un `<span contenteditable>` dentro de `<div id="hdr-med-datos" hidden>` (~1408). Nadie lo puede

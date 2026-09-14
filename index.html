@@ -3088,7 +3088,7 @@ window.cerrarSesion = cerrarSesion;
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">🔍 Pleura y líneas A</div>
       <div class="grid-3" style="margin-bottom:12px;">
         <div class="fg"><label>Deslizamiento pleural</label>
-          <select id="pua_desliz" onchange="pulAvUI()">
+          <select id="pua_desliz" onchange="pulAvUI()"><option value="">— no evaluado —</option>
             <option value="presente">Presente</option>
             <option value="reducido">Reducido</option>
             <option value="abolido">Abolido</option>
@@ -3102,7 +3102,7 @@ window.cerrarSesion = cerrarSesion;
           </select>
         </div>
         <div class="fg"><label>Líneas A</label>
-          <select id="pua_lineasa" onchange="pulAvUI()">
+          <select id="pua_lineasa" onchange="pulAvUI()"><option value="">— no evaluado —</option>
             <option value="presentes">Presentes</option>
             <option value="ausentes">Ausentes</option>
           </select>
@@ -3112,7 +3112,7 @@ window.cerrarSesion = cerrarSesion;
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">💧 Líneas B</div>
       <div class="grid-2" style="margin-bottom:8px;">
         <div class="fg"><label>Líneas B</label>
-          <select id="pua_lineasb" onchange="pulAvUI()">
+          <select id="pua_lineasb" onchange="pulAvUI()"><option value="">— no evaluado —</option>
             <option value="ausentes">Ausentes</option>
             <option value="presentes">Presentes</option>
           </select>
@@ -3146,7 +3146,7 @@ window.cerrarSesion = cerrarSesion;
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">🌊 Derrame pleural</div>
       <div class="grid-4" style="margin-bottom:12px;">
         <div class="fg"><label>Derrame</label>
-          <select id="pua_derrame" onchange="pulAvUI()">
+          <select id="pua_derrame" onchange="pulAvUI()"><option value="">— no evaluado —</option>
             <option value="no">No</option><option value="si">Sí</option>
           </select>
         </div>
@@ -3170,7 +3170,7 @@ window.cerrarSesion = cerrarSesion;
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">🫁 Consolidación</div>
       <div class="grid-2" style="margin-bottom:12px;">
         <div class="fg"><label>Consolidación</label>
-          <select id="pua_consol" onchange="pulAvUI()">
+          <select id="pua_consol" onchange="pulAvUI()"><option value="">— no evaluado —</option>
             <option value="no">No</option><option value="si">Sí</option>
           </select>
         </div>
@@ -7383,6 +7383,15 @@ z
         ✅ Sin lesiones valvulares mitrales detectadas
       </div>
 
+      <!-- Espejos del diagrama de segmentos. El estado vivía SÓLO en claves globales de
+           localStorage (`ete_seg_A1`…`ete_seg_P3`), que `guardarInforme` no alcanza porque
+           barre `input[id], select[id], textarea[id]`: al reabrir un estudio para editarlo el
+           diagrama volvía en blanco y el PDF salía sin los hallazgos que el médico había
+           marcado. Con un input por segmento el estado entra al barrido genérico, viaja en el
+           backup JSON y lo repone `eteSegSync` desde RECALC_MODULOS. Son `hidden`, no
+           `readonly`: no hay nada que leer acá, el dato se ve en el diagrama. -->
+      <input type="hidden" id="ete_seg_A1" data-espejo><input type="hidden" id="ete_seg_A2" data-espejo><input type="hidden" id="ete_seg_A3" data-espejo>
+      <input type="hidden" id="ete_seg_P1" data-espejo><input type="hidden" id="ete_seg_P2" data-espejo><input type="hidden" id="ete_seg_P3" data-espejo>
       <div style="text-align:center;margin-top:10px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
         <button class="btn btn-ghost" onclick="eteLimpiarSegmentos()">🧹 Limpiar</button>
         <button class="btn btn-ghost" id="ete-qx-pdf" onclick="eteQxIncluirPDF()">📄 Incluir en PDF</button>
@@ -13395,6 +13404,49 @@ window.GMED_MITRAL_SEVERO_MIN = GMED_MITRAL_SEVERO_MIN;
    criterios diastólicos ASE 2016, el HFA-PEFF y el score de amiloidosis, así que vivía en
    ocho lugares. */
 const UMBRAL_LAVI_DILATADO = 34;   // ml/m² — LAVI >34 → aurícula izquierda dilatada
+/* Aorta torácica: UN solo juego de umbrales para los tres segmentos. Antes había dos —las
+   cápsulas de color de `calcAorta` decían normal hasta 38 (sinotubular) y 40 (ascendente), y las
+   dos tablas del PDF marcaban «* dilatado» desde 34 y 37—, así que la misma medición salía verde
+   en pantalla y asteriscada en el informe firmado. Se unificó en los del PDF (decisión de Maicol,
+   2026-09-14): son los que ya estaban en el documento que se entrega y mueven el criterio hacia
+   nombrar el hallazgo, no hacia callarlo. */
+const AO_REF = Object.freeze({ sin: 40, st: 33, tub: 36 });
+/* Bandas por segmento. La línea de NORMALIDAD sale de AO_REF; las bandas de severidad de arriba
+   son las que ya tenía `calcAorta` y no se tocaron: mover el corte de normalidad era la decisión
+   tomada, inventar grados nuevos no. `st` no tiene banda moderada, tampoco la tenía. */
+/* `min`/`max`: ventana de plausibilidad, los mismos valores que ya usan `vabConclusion`,
+   `LAB_XLS_RANGO` y el importador DICOM sobre estos tres campos. El camino del formulario era el
+   único sin red, y es justo el que alimenta el informe firmado: un seno tipeado en centímetros
+   —5.2 por 52— pasaba el `if (!x)`, caía en «normal» y el informe publicaba «Aorta torácica de
+   calibre normal (Raíz aórtica 5.2 mm)». Un valor ilegible tiene que bloquear la NEGACIÓN, no
+   colarse como afirmación de normalidad. */
+const AO_SEGS = Object.freeze([
+  Object.freeze({ k:'ao_sin', lbl:'raíz aórtica',        lblC:'Raíz aórtica',        med:'senos de Valsalva',    ref:AO_REF.sin, leve:45, mod:50,   min:10, max:90 }),
+  Object.freeze({ k:'ao_st',  lbl:'unión sinotubular',   lblC:'Unión sinotubular',   med:'unión sinotubular',    ref:AO_REF.st,  leve:44, mod:null, min:10, max:80 }),
+  Object.freeze({ k:'ao_tub', lbl:'aorta ascendente',    lblC:'Aorta ascendente',    med:'aorta ascendente',     ref:AO_REF.tub, leve:45, mod:50,   min:10, max:90 })
+]);
+/* Assert de arranque: `ref < leve` y, si hay banda moderada, `leve < mod`. Sin esto, un segmento
+   nuevo con las bandas invertidas imprime un rango dado vuelta —«Dilat. leve (34-30mm)»— sin
+   error. Y `mod` ausente se comporta igual que `mod:null` (salta de leve a severa), así que la
+   omisión silenciosa es una decisión clínica que nadie tomó: se avisa. */
+AO_SEGS.forEach(function(sg){
+  if (!(sg.ref < sg.leve)) console.error('[AO_SEGS] ' + sg.k + ': ref debe ser menor que leve', sg);
+  if (sg.mod != null && !(sg.leve < sg.mod)) console.error('[AO_SEGS] ' + sg.k + ': leve debe ser menor que mod', sg);
+  if (!('mod' in sg)) console.warn('[AO_SEGS] ' + sg.k + ': sin `mod` salta de leve a SEVERA; declarar `mod:null` si es a propósito');
+});
+/* Devuelve los segmentos MEDIDOS con su grado. Un segmento vacío no entra: no se puede afirmar
+   ni negar nada sobre él. Lo usan el narrativo y `calcAorta`, para que no puedan divergir. */
+function aoSegsMedidos() {
+  return AO_SEGS.map(function(sg){
+    const x = v(sg.k);
+    if (!x) return null;
+    if (x < sg.min || x > sg.max) return { sg: sg, val: x, grado: 'fuera', dil: false, fuera: true };
+    let grado = 'normal';
+    if (x > sg.ref) grado = (x <= sg.leve) ? 'leve' : (sg.mod && x <= sg.mod) ? 'moderada' : 'severa';
+    return { sg: sg, val: x, grado: grado, dil: grado !== 'normal', fuera: false };
+  }).filter(Boolean);
+}
+window.aoSegsMedidos = aoSegsMedidos;
 window.UMBRAL_LAVI_DILATADO = UMBRAL_LAVI_DILATADO;
 /* Masa VI indexada: el corte de HVI es distinto por sexo (ASE/EACVI). Estaban los dos
    números sueltos en el cálculo, en la tabla de referencia del PDF y en el Laboratorio. */
@@ -13513,21 +13565,26 @@ function getBSA() {
 }
 
 // ══ AORTA / AI ══
+/* Las tres cápsulas salen del MISMO `aoSegsMedidos()` que el narrativo, así que ya no pueden
+   discrepar: si la cápsula dice verde, el informe dice «normal», y al revés. */
+const AO_INTERP_EL = { ao_sin: 'ao-interp', ao_st: 'ao-st-interp', ao_tub: 'ao-tub-interp' };
+const AO_BADGE_COLOR = { normal:'green', leve:'yellow', moderada:'orange', severa:'red' };
 function calcAorta() {
-  const s = v('ao_sin'), st = v('ao_st');
-  if (s) {
-    let interp = s <= 40 ? badge('green','Normal (≤40mm)') : s <= 45 ? badge('yellow','Dilat. leve (41-45mm)') : s <= 50 ? badge('orange','Dilat. moderada (46-50mm)') : badge('red','Dilat. severa (>50mm)');
-    document.getElementById('ao-interp').innerHTML = interp;
-  }
-  if (st) {
-    let interp2 = st <= 38 ? badge('green','Normal (≤38mm)') : st <= 44 ? badge('yellow','Dilat. leve (39-44mm)') : badge('red','Dilat. severa (>44mm)');
-    document.getElementById('ao-st-interp').innerHTML = interp2;
-  }
-  const tub = v('ao_tub');
-  if (tub) {
-    let interpTub = tub <= 40 ? badge('green','Normal (≤40mm)') : tub <= 45 ? badge('yellow','Dilat. leve (41-45mm)') : tub <= 50 ? badge('orange','Dilat. moderada (46-50mm)') : badge('red','Dilat. severa (>50mm)');
-    document.getElementById('ao-tub-interp').innerHTML = interpTub;
-  }
+  aoSegsMedidos().forEach(function(m){
+    const el = document.getElementById(AO_INTERP_EL[m.sg.k]);
+    if (!el) return;
+    const sg = m.sg;
+    let txt;
+    /* Los rótulos llevan el OPERADOR que aplica el código, no un entero siguiente: estos campos
+       aceptan decimales (los `type=number` pasan a texto con `inputmode=decimal` en runtime), y
+       un 40,5 clasificaba «leve» bajo un rótulo que decía que la banda empieza en 41. */
+    if (m.grado === 'fuera')         txt = 'Valor fuera de rango (' + sg.min + '-' + sg.max + ' mm) — verificar';
+    else if (m.grado === 'normal')   txt = 'Normal (≤' + sg.ref + 'mm)';
+    else if (m.grado === 'leve')     txt = 'Dilat. leve (>' + sg.ref + ' y ≤' + sg.leve + 'mm)';
+    else if (m.grado === 'moderada') txt = 'Dilat. moderada (>' + sg.leve + ' y ≤' + sg.mod + 'mm)';
+    else                             txt = 'Dilat. severa (>' + (sg.mod || sg.leve) + 'mm)';
+    el.innerHTML = badge(m.grado === 'fuera' ? 'red' : AO_BADGE_COLOR[m.grado], txt);
+  });
 }
 
 function calcAI() {
@@ -18180,7 +18237,6 @@ function generarInforme(opts) {
   const onda_e = v('onda_e'), onda_a = v('onda_a');
   const e_sep = v('e_sep'), e_lat = v('e_lat');
   const ai_vol = v('ai_vol'), ai_diam = v('ai_diam');
-  const ao_sin = v('ao_sin');
   const psap = v('psap_calc');
   // Severidades desde los campos de la tab Válvulas (lo que fijan las pills o el médico).
   // Antes había un override desde los selectores del Esquema válvulas; ese módulo se eliminó.
@@ -18740,19 +18796,56 @@ function generarInforme(opts) {
     }
   }
 
-  // ── 12) Raíz de Aorta (Seno de Valsalva) ──
-  if (ao_sin) {
-    const aoStr = ao_sin <= 40 ? 'de calibre normal' : ao_sin <= 45 ? 'levemente dilatada' : 'dilatada';
-    const aoDil = ao_sin > 40;
-    const cAo = `Aorta torácica ${aoStr} (${ao_sin} mm).`;
-    const eAo = `Aorta torácica ${aoStr} (Seno de Valsalva ${ao_sin} mm).`;
-    const nAo = aoDil
-      ? `La raíz aórtica se encuentra ${aoStr}, con un diámetro a nivel de los senos de Valsalva de ${ao_sin} mm, hallazgo que amerita control evolutivo del calibre aórtico.`
-      : `La raíz aórtica es de calibre normal, con un diámetro a nivel de los senos de Valsalva de ${ao_sin} mm.`;
-    inf.push(estiloPick(cAo, eAo, nAo));
-    if (aoDil) suma.push(`Dilatación raíz aórtica (${ao_sin} mm).`);
-  } else {
-    inf.push(estiloPick('Aorta torácica normal.', 'Aorta torácica de calibre normal.', 'La aorta torácica es de calibre normal.'));
+  // ── 12) Aorta torácica (los TRES segmentos) ──
+  /* Antes esta cascada miraba SÓLO `ao_sin`. Con el seno vacío caía al `else` y afirmaba «Aorta
+     torácica de calibre normal» aunque `ao_tub` tuviera 52 mm — y la tabla del PDF, dos páginas
+     después, marcaba «Ao asc 52* (* dilatado)» en el mismo informe. El documento firmado se
+     contradecía a sí mismo, y la contradicción caía del lado de callar el hallazgo.
+     Ahora los tres segmentos entran por `aoSegsMedidos()`, que es la misma fuente de las cápsulas
+     de pantalla y de las dos tablas. «Normal» sólo se afirma si NINGÚN segmento medido está
+     dilatado; un segmento vacío no cuenta ni a favor ni en contra, que es el criterio que pediste. */
+  {
+    const aoM  = aoSegsMedidos().filter(x => !x.fuera);
+    const aoF  = aoSegsMedidos().filter(x =>  x.fuera);
+    const aoD  = aoM.filter(x => x.dil);
+    const gTxt = { leve:'levemente dilatada', moderada:'moderadamente dilatada', severa:'severamente dilatada' };
+    if (aoF.length && !aoD.length) {
+      /* Hay un valor fuera de escala y ninguno dilatado: NO se afirma normalidad. El médico ve
+         qué segmento revisar en vez de un informe que dice «normal» sobre un dato ilegible. */
+      inf.push('Aorta torácica: ' + aoF.map(x => x.sg.lblC + ' ' + x.val + ' mm').join(', ') +
+               ' — valor fuera de rango plausible, verificar la medición.' +
+               (aoM.length ? ' ' + aoM.map(x => x.sg.lblC + ' ' + x.val + ' mm').join(', ') + ' de calibre normal.' : ''));
+    } else if (!aoM.length) {
+      // Sin ninguna medición: se mantiene la frase de siempre.
+      inf.push(estiloPick('Aorta torácica normal.', 'Aorta torácica de calibre normal.', 'La aorta torácica es de calibre normal.'));
+    } else if (!aoD.length) {
+      const vals = aoM.map(x => x.sg.lblC + ' ' + x.val + ' mm').join(', ');
+      inf.push(estiloPick(
+        'Aorta torácica de calibre normal (' + aoM.map(x => x.val + ' mm').join(' · ') + ').',
+        'Aorta torácica de calibre normal (' + vals + ').',
+        'La aorta torácica es de calibre normal, con ' + vals.toLowerCase() + '.'));
+    } else {
+      const cad = aoD.map(x => x.sg.lblC + ' ' + x.val + ' mm (' + gTxt[x.grado] + ')').join('; ');
+      /* Sólo la raíz lleva el «a nivel de …»: su medición se toma en los senos de Valsalva, que
+         es un sitio distinto del segmento que se nombra. En los otros dos el sitio y el segmento
+         son el mismo y la cláusula quedaba redundante («la unión sinotubular … a nivel de la
+         unión sinotubular»). */
+      const nar = aoD.map(x => 'la ' + x.sg.lbl + ' se encuentra ' + gTxt[x.grado] +
+                               (x.sg.k === 'ao_sin' ? ', con un diámetro a nivel de los ' + x.sg.med + ' de ' : ', de ') +
+                               x.val + ' mm').join('; ');
+      /* Los segmentos medidos y NORMALES se citan igual: sin ellos, «aorta ascendente dilatada»
+         sobre un informe que midió las tres deja al lector sin saber si las otras dos se vieron. */
+      const okM = aoM.filter(x => !x.dil);
+      const okC = okM.length ? ' ' + okM.map(x => x.sg.lblC + ' ' + x.val + ' mm').join(', ') + ' de calibre normal.' : '';
+      inf.push(estiloPick(
+        'Aorta torácica: ' + cad + '.' + okC,
+        'Aorta torácica: ' + cad + '.' + okC,
+        'A nivel de la aorta torácica, ' + nar + ', hallazgo que amerita control evolutivo del calibre aórtico.' +
+          (okM.length ? ' El resto de los segmentos medidos es de calibre normal (' +
+            okM.map(x => x.sg.lbl + ' ' + x.val + ' mm').join(', ') + ').' : '')));
+      aoD.forEach(x => suma.push('Dilatación ' + (x.sg.k === 'ao_sin' ? 'raíz aórtica' : x.sg.lbl) +
+                                 ' (' + x.val + ' mm).'));
+    }
   }
 
   // ── 13) Pericardio + masas (juntas) ──
@@ -18838,8 +18931,14 @@ function generarInforme(opts) {
   // ── 13b) Ecografía pulmonar (módulo básico) ──
   // Sólo si hay hallazgos positivos. Si el módulo avanzado está integrado al
   // bloque ETT Avanzado, este se omite para no duplicar los mismos hallazgos.
+  /* La exclusión pide las DOS cosas: que el avanzado esté integrado Y que CUBRA los tres
+     dominios del básico. Acá va `pulAvanzadoCubreBasico`, NO `pulAvanzadoHayDatos`: con
+     `hayDatos` alcanza un campo cualquiera —una consolidación suelta— para silenciar el módulo
+     básico entero, y un derrame cargado ahí desaparece del informe firmado. Los dos predicados
+     se llaman parecido y hacen cosas distintas; éste es el único sitio donde elegir mal es grave. */
   if (typeof pulBasicoHayDatos === 'function' && pulBasicoHayDatos()
-      && !(typeof pulAvanzadoIntegrado === 'function' && pulAvanzadoIntegrado())) {
+      && !(typeof pulAvanzadoIntegrado === 'function' && pulAvanzadoIntegrado()
+           && typeof pulAvanzadoCubreBasico === 'function' && pulAvanzadoCubreBasico())) {
     const _pb = pulBasicoTexto();
     if (_pb.frases.length) inf.push(_pb.frases.join(' '));
     _pb.suma.forEach(x => suma.push(x));
@@ -18854,8 +18953,13 @@ function generarInforme(opts) {
   // ── 13c) Ecografía pulmonar (módulo avanzado) → sólo al En Suma ──
   // El detalle va en la hoja de ETT Avanzado; acá se agregan las conclusiones.
   if (typeof pulAvanzadoIntegrado === 'function' && pulAvanzadoIntegrado()
+      && typeof pulAvanzadoHayDatos === 'function' && pulAvanzadoHayDatos()
       && typeof pulAvSuma === 'function') {
-    pulAvSuma().forEach(x => suma.push(x));
+    /* Se le pasa lo que el básico publicó en ESTE informe: si la exclusión mutua se aplicó, el
+       básico no escribió nada y la lista va vacía, así que el avanzado emite todo. */
+    const _omit = (typeof pulAvanzadoCubreBasico === 'function' && pulAvanzadoCubreBasico())
+                  ? [] : (typeof pulBasicoDominios === 'function' ? pulBasicoDominios() : []);
+    pulAvSuma(_omit).forEach(x => suma.push(x));
   }
 
   // ════════════════════════════════════════════════════════════════════
@@ -18974,7 +19078,14 @@ function generarInforme(opts) {
        —viven en Calculadoras y en Mediciones— y tienen que seguir saliendo como hasta ahora.
        Apagar la oración entera habría borrado del informe un score que el médico cargó en
        otra pestaña sin haber tocado este botón. */
-    const _morfoInc = localStorage.getItem('ete_morfo_incluir') === '1';
+    /* Lee el CHECKBOX y usa la clave global sólo como respaldo — mismo patrón que la técnica
+       del ETE (~22055). La clave sola fallaba al reabrir un estudio: `limpiarCampos` la borra
+       (~19763) como paso interno de cargar otro, y lo que repone la decisión guardada es
+       `_restaurarChkInclusion`, que escribe `.checked` sin tocar la clave. Resultado: el botón
+       decía «✓ Integrado al informe» y las tres oraciones de morfología NO salían. La peor forma
+       del defecto, porque la interfaz afirmaba lo contrario de lo que hacía el informe firmado. */
+    const _morfoChk = document.getElementById('ete_morfo_incluir_chk');
+    const _morfoInc = _morfoChk ? _morfoChk.checked : (localStorage.getItem('ete_morfo_incluir') === '1');
     const etio = _morfoInc ? sv('ete_etiologia')  : '';
     const carp = _morfoInc ? sv('ete_carpentier') : '';
     const mec  = _morfoInc ? sv('ete_mecanismo')  : '';
@@ -19609,7 +19720,7 @@ function RECALC_MODULOS() {
      de OTRAS pestañas (el select `pericardio`, la VCI de VD/AD, e' de Doppler) y las rutas de
      restauración pueblan asignando `.value`, que no dispara ningún evento: sin esto, reabrir un
      estudio dejaba la conclusión de taponamiento del paciente anterior en pantalla. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','dptSync','cvrSync','hcSync','calcCardioOnco','indicSyncBoton'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','calcCardioOnco','indicSyncBoton'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -19803,6 +19914,13 @@ function limpiarCampos(silencioso) {
      estudios, que es justo cuando uno hace un ETE después de un ETT. */
   _pdfToggleBtnState('contr-pdf-toggle', localStorage.getItem('contractilidad_incluir_pdf') === '1');
   _pdfToggleBtnState('sgl-pdf-toggle',   localStorage.getItem('sgl_incluir_pdf') === '1');
+  /* `ete-qx-pdf` es el tercero, y es el ÚNICO de los tres cuya clave sí se borra unas líneas más
+     arriba (`mitral_qx_incluir_pdf`). Sólo se pintaba al arrancar la app (~36727), así que tras
+     «Nuevo estudio» quedaba encendido sobre una clave ya borrada: el botón prometía la vista
+     quirúrgica mitral y el PDF salía sin el diagrama. Peor que los otros dos, porque acá el
+     botón miente en la dirección de omitir algo del informe firmado. Se pinta desde el estado
+     real, igual que los otros, así que si mañana se deja de borrar la clave esto sigue bien. */
+  _pdfToggleBtnState('ete-qx-pdf',       localStorage.getItem('mitral_qx_incluir_pdf') === '1');
   try { localStorage.removeItem('ecosmart_autosave'); } catch(e) {}
   // Checklists de indicaciones/antecedentes → desmarcar, ocultar "Otro" y resetear resumen
   document.querySelectorAll('.ind-chk, .ant-chk').forEach(c => { c.checked = false; });
@@ -21228,8 +21346,8 @@ function generarPDFReal(_aj) {
      centro en el encabezado del informe firmado, pisando el que el estudio traía. Reimprimir y
      firmar daban documentos con instituciones distintas.
 
-     No se intentó hacer viajar el span con el estudio: el médico no puede llenarlo. Su `<div>`
-     contenedor es `hidden` (línea ~1408) y `ett_med_centro`, la clave que lee `initHdrEditable`,
+     No se intentó hacer viajar el span con el estudio: el médico no puede llenarlo. Su contenedor
+     es `hidden` (línea ~1408) y `ett_med_centro`, la clave que lee `initHdrEditable`,
      no la escribe NADIE en este archivo — quedó huérfana al pasar los centros a ⚙️ Config. O sea
      que sólo puede tener valor en una instalación vieja, con la clave persistida de antes de esa
      migración, y ahí lo que tiene es una institución PRE-migración: justamente la que no debe
@@ -21841,9 +21959,9 @@ function generarPDFReal(_aj) {
        media fila, forzando el envoltorio del valor a una segunda línea. El valor de
        referencia al lado desambigua qué es cada una. */
     {titulo:'Aorta torácica', items:[
-      {lbl:'SV',      ref:'<=40 mm', val:v('ao_sin') ?v('ao_sin') +' mm':null},
-      {lbl:'ST',      ref:'<=33 mm', val:v('ao_st')  ?v('ao_st')  +' mm':null},
-      {lbl:'Ao asc',  ref:'<=36 mm', val:v('ao_tub') ?v('ao_tub') +' mm':null},
+      {lbl:'SV',      ref:'<='+AO_REF.sin+' mm', val:v('ao_sin') ?v('ao_sin') +' mm':null},
+      {lbl:'ST',      ref:'<='+AO_REF.st +' mm', val:v('ao_st')  ?v('ao_st')  +' mm':null},
+      {lbl:'Ao asc',  ref:'<='+AO_REF.tub+' mm', val:v('ao_tub') ?v('ao_tub') +' mm':null},
       {lbl:'Ø TSVI',  ref:'',        val:v('diam_tsvi_ao')?v('diam_tsvi_ao')+' mm':null},
     ]},
     {titulo:'Aurícula Izquierda', items:[
@@ -21979,7 +22097,8 @@ function generarPDFReal(_aj) {
        afirmación de normalidad. Se marca el segmento con un asterisco y se aclara al pie.
        Etiquetas expandidas y no «SV»/«ST»: acá NO va el valor de referencia al lado que las
        desambigüe, y en cardiología «SV» es volumen sistólico y «ST» el segmento del ECG. */
-    const segs = [['ao_sin','Valsalva',40], ['ao_st','Sinotub.',33], ['ao_tub','Ao asc',36]];
+    // Los umbrales salen de AO_REF, no de literales: eran la tercera copia del mismo criterio.
+    const segs = [['ao_sin','Valsalva',AO_REF.sin], ['ao_st','Sinotub.',AO_REF.st], ['ao_tub','Ao asc',AO_REF.tub]];
     const partes = []; let algunoDilatado = false;
     segs.forEach(([k, lbl, ref]) => {
       const x = v(k); if (!x) return;
@@ -23341,6 +23460,16 @@ function toggleRef(id, headEl) {
 
 // ══ ETE MITRAL — Módulo interactivo de segmentos ══
 (function() {
+  /* ⚠️ FORMATO DE CABLE. Lo que se persiste —en el estudio guardado, en el backup JSON y en
+     localStorage— es el ÍNDICE posicional en este array, no la etiqueta. Reglas:
+       · Agregar SÓLO al final. Es seguro: los índices 0-5 no se mueven.
+       · Insertar en el medio o reordenar REESCRIBE EL DIAGNÓSTICO de todos los estudios ya
+         guardados, en silencio: un «Restricción» guardado se reimprime como «Perforación», y el
+         PDF reimpreso difiere del firmado.
+       · Quitar un estado hace que `eteSegSync` clampee a 0 y se pierda el hallazgo.
+     ETE_FILL y ETE_STROKE están indexados por la ETIQUETA de acá: agregar un estado sin entrada
+     en las dos deja el segmento con el color del estado anterior mientras el resumen y el PDF
+     publican el nombre nuevo. El assert de abajo lo caza al arrancar. */
   const ETE_ESTADOS = ["Normal","Prolapso","Flail","Restricción","Perforación","Calcificación"];
   const ETE_FILL = {
     "Normal":"#ffffff55","Prolapso":"#f59e0b55","Flail":"#ef444455",
@@ -23360,7 +23489,19 @@ function toggleRef(id, headEl) {
     P3:["valve-P3-bc","valve-P3-2ch"],
   };
   const ETE_QX_MAP = {A1:"ete-qx-A1",A2:"ete-qx-A2",A3:"ete-qx-A3",P1:"ete-qx-P1",P2:"ete-qx-P2",P3:"ete-qx-P3"};
+  ETE_ESTADOS.forEach(function(e){
+    if (!(e in ETE_FILL) || !(e in ETE_STROKE))
+      console.error('[ETE_ESTADOS] «' + e + '» no tiene color: el segmento queda con el color del estado anterior mientras el texto dice el nuevo');
+  });
 
+  /* ⚠️ CONTRATO: esta función CICLA +1 mod N sobre el estado actual. DOS llamadores dependen de
+     eso para aterrizar en un estado concreto sin duplicar el pintado: `eteSegSync` (restaura el
+     diagrama del estudio) y el bucle de arranque, que ponen `v-1` y llaman acá.
+     Si esto deja de ciclar —por ejemplo pasando a `eteClick(seg, estado)`— los dos quedan
+     llamando sin el segundo argumento: `ete_estado` pasa a `undefined`, el resumen publica «Sin
+     lesiones valvulares mitrales detectadas» sobre un flail guardado, el espejo se escribe en
+     '0' y la lesión SE BORRA del estudio al guardarlo, sin un error en consola.
+     Si hay que cambiarlo, hay que reescribir los dos llamadores en el mismo commit. */
   window.eteClick = function(seg) {
     ete_estado[seg] = (ete_estado[seg] + 1) % ETE_ESTADOS.length;
     const e = ETE_ESTADOS[ete_estado[seg]];
@@ -23394,7 +23535,15 @@ function toggleRef(id, headEl) {
     }
     eteActualizarResumen();
     localStorage.setItem("ete_seg_" + seg, ete_estado[seg]);
+    _eteSegEspejo(seg);
   };
+  /* El espejo se escribe en el MISMO lugar que la clave de localStorage, y no colgado de un
+     evento: el diagrama se pinta con SVG y clicks, no con controles de formulario, así que no
+     hay ningún `change` del que colgarse. */
+  function _eteSegEspejo(seg) {
+    const h = document.getElementById("ete_seg_" + seg);
+    if (h) h.value = String(ete_estado[seg] || 0);
+  }
   function eteActualizarResumen() {
     const les = [];
     ["A1","A2","A3","P1","P2","P3"].forEach(function(s) {
@@ -23423,14 +23572,38 @@ function toggleRef(id, headEl) {
         qx.style.removeProperty("stroke-width");
       }
       localStorage.setItem("ete_seg_" + seg, 0);
+      _eteSegEspejo(seg);
     });
     eteActualizarResumen();
   };
+  /* Repinta el diagrama desde los espejos. Entra en RECALC_MODULOS, que es el embudo de las
+     rutas de restauración (editar, abrir por ?estudio=, autosave y las dos de reimpresión):
+     esas rutas pueblan asignando `.value`, que no dispara ningún evento.
+     El `(v - 1 + N) % N` seguido de `eteClick` es el mismo truco que ya usaba el arranque para
+     aterrizar en un estado concreto reusando el pintor, en vez de duplicarlo. Con v = 0 aterriza
+     en «Normal», que es justo lo que borra los overrides: restaurar un estudio SIN lesiones
+     limpia las del paciente anterior en lugar de dejarlas. */
+  window.eteSegSync = function() {
+    const N = ETE_ESTADOS.length;
+    ["A1","A2","A3","P1","P2","P3"].forEach(function(seg) {
+      const h = document.getElementById("ete_seg_" + seg);
+      if (!h) return;
+      let v = parseInt(h.value, 10);
+      if (!isFinite(v) || v < 0 || v >= N) v = 0;
+      ete_estado[seg] = (v - 1 + N) % N;
+      window.eteClick(seg);
+    });
+  };
+  /* El arranque vuelca localStorage a los espejos y deja que `eteSegSync` haga el resto: antes
+     repetía el truco SIN la guarda de rango, así que un valor rancio de una versión con más
+     estados —un "7"— no caía a «Normal» sino a un diagnóstico ARBITRARIO («Prolapso», por
+     `(6+1)%6`). Una sola implementación de la guarda, y no dos parecidas. */
   setTimeout(function() {
     ["A1","A2","A3","P1","P2","P3"].forEach(function(s) {
-      const v = parseInt(localStorage.getItem("ete_seg_" + s)) || 0;
-      if (v > 0) { ete_estado[s] = v - 1; window.eteClick(s); }
+      const h = document.getElementById("ete_seg_" + s);
+      if (h) h.value = String(parseInt(localStorage.getItem("ete_seg_" + s), 10) || 0);
     });
+    window.eteSegSync();
   }, 300);
 
   // Agregar zonas de toque anchas sobre cada segmento de valva (líneas finas = difícil clickear)
@@ -27743,6 +27916,15 @@ function _restaurarChkInclusion(campos){
     const k = el.id + '__chk';
     if(campos[k] !== undefined) el.checked = (campos[k] === '1' || campos[k] === true || campos[k] === 'true');
   });
+  /* Las dos casillas del ETE cuelgan una clave de localStorage de su `onchange`, y asignar
+     `.checked` arriba NO dispara el evento: la clave quedaba con el valor del paciente anterior
+     —o borrada por `limpiarCampos`— mientras la casilla ya decía lo del estudio abierto. Se
+     despacha a mano, igual que hace `eteInclToggle` y por la misma razón. Con esto la clave y la
+     casilla vuelven a decir lo mismo, que es de lo que dependen las compuertas del informe. */
+  ['ete_tecnica_incluir_chk','ete_morfo_incluir_chk'].forEach(function(id){
+    const c = document.getElementById(id);
+    if (c) try { c.dispatchEvent(new Event('change', { bubbles:true })); } catch(e){}
+  });
   // Sin esto el estudio quedaba integrado pero el botón seguía gris: el médico leía
   // «no está en el informe» sobre una sección que sí iba a imprimirse.
   if (typeof eteInclSync === 'function') { try { eteInclSync(); } catch(e){} }
@@ -30232,6 +30414,15 @@ function cargarEstudioPorId(id) {
   if (typeof calcWilkins === 'function') calcWilkins();   // ver nota en editarInforme
   if (typeof amiloRestaurarDesdeCampos === 'function') amiloRestaurarDesdeCampos(inf.campos);
   valvSevConfirmada = false;   // estudio cargado por URL/QR: vuelve a pedir confirmación
+  /* Tercera columna de `_sevManualRestaurar`: tenía dos —autosave y `editarInforme`— y faltaba
+     ésta. Abrir por `?estudio=` dejaba `esqSevManual` con las banderas del paciente ANTERIOR (o
+     vacío), así que el primer recálculo pisaba la severidad que el médico había fijado a mano y
+     el informe salía diciendo «sin insuficiencia» sobre una válvula severa. Y como `guardarInforme`
+     llama a `_sevManualSync()` antes de capturar, re-guardar el estudio persistía esa pérdida.
+     Misma razón y mismo par de líneas que en `editarInforme`. */
+  if (typeof _sevManualRestaurar === 'function') _sevManualRestaurar();
+  else window.esqSevManual = {};
+  if (window.esqPills) try { esqPills.refresh(); } catch(e) {}
   if (typeof renderCentroField === 'function') renderCentroField(inf.campos && inf.campos.centro_nombre);
   ['calcVI','calcAI','calcAorta','calcVD','calcVEXUS'].forEach(fn => { if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} } });
   _recalcModulos('cargarEstudioPorId');
@@ -32146,9 +32337,24 @@ function _balikDet(bk) {
   return f ? ' (' + f + ')' : '';
 }
 
+/* Los tres dominios que el básico y el avanzado comparten, en UN solo lugar. Estaban como dos
+   listas literales a 200 líneas de distancia —una en `pulBasicoHayDatos`, otra en
+   `pulAvanzadoCubreBasico`— y la exclusión mutua sólo es correcta si son la misma terna: agregar
+   un hallazgo al básico sin acordarse de la otra lista reabre exactamente el defecto que este
+   commit cierra, que el avanzado silencie algo que no cubre. */
+const PUL_PARES = Object.freeze([
+  Object.freeze({ dom:'derrame', bas:'pul_derrame',       av:'pua_derrame' }),
+  Object.freeze({ dom:'lineasb', bas:'pul_lineasb',       av:'pua_lineasb' }),
+  Object.freeze({ dom:'consol',  bas:'pul_consolidacion', av:'pua_consol'  })
+]);
 function pulBasicoHayDatos() {
-  return _amV('pul_derrame') === 'si' || _amV('pul_lineasb') === 'si' || _amV('pul_consolidacion') === 'si';
+  return PUL_PARES.some(function(p){ return _amV(p.bas) === 'si'; });
 }
+/* Qué dominios PUBLICÓ el básico. Lo usa el En Suma para no repetir. */
+function pulBasicoDominios() {
+  return PUL_PARES.filter(function(p){ return _amV(p.bas) === 'si'; }).map(function(p){ return p.dom; });
+}
+window.pulBasicoDominios = pulBasicoDominios;
 
 // Devuelve {frases:[], suma:[]} del módulo básico.
 function pulBasicoTexto() {
@@ -32191,9 +32397,25 @@ function pulAvPatron() {
   const desliz = _amV('pua_desliz'), lineasA = _amV('pua_lineasa');
   const lb = _amV('pua_lineasb'), cant = _amV('pua_lineasb_cant');
   const consol = _amV('pua_consol') === 'si';
-  // El neumotórax manda: deslizamiento abolido con líneas A y sin líneas B.
-  if (desliz === 'abolido' && lineasA === 'presentes' && lb === 'ausentes')
-    return { p:'Neumotórax probable', i:'Deslizamiento pleural abolido con líneas A conservadas y ausencia de líneas B. Confirmar con punto pulmón.' };
+  /* El neumotórax manda: deslizamiento abolido con líneas A y sin líneas B.
+     Los dos acompañantes se exigen NO CONTRADICHOS, no presentes: antes `pua_lineasa` y
+     `pua_lineasb` arrancaban en 'presentes'/'ausentes' por ser la primera opción, así que marcar
+     sólo «Deslizamiento: Abolido» disparaba esta rama. Al agregar «— no evaluado —» quedaban en
+     '' y la cascada caía al `return` final: la hoja imprimía «Deslizamiento pleural ABOLIDO» y
+     tres líneas después «Patrón global: Normal. Deslizamiento pleural CONSERVADO», y el
+     neumotórax no subía al EN SUMA. La compuerta nueva le había sacado el hallazgo urgente a la
+     única rama que lo nombra. */
+  if (desliz === 'abolido' && lineasA !== 'ausentes' && lb !== 'presentes') {
+    /* El texto describe lo que REALMENTE se evaluó. Afirmar «con líneas A conservadas y ausencia
+       de líneas B» cuando los dos quedaron en «— no evaluado —» es inventar dos hallazgos para
+       sostener la conclusión, en la línea que el PDF imprime como interpretación. */
+    const _ap = (lineasA === 'presentes' ? 'líneas A conservadas' : '') +
+                (lineasA === 'presentes' && lb === 'ausentes' ? ' y ' : '') +
+                (lb === 'ausentes' ? 'ausencia de líneas B' : '');
+    return { p:'Neumotórax probable',
+             i:'Deslizamiento pleural abolido' + (_ap ? ' con ' + _ap : ', sin líneas A ni líneas B evaluadas') +
+               '. Confirmar con punto pulmón.' };
+  }
   if (consol)
     return { p:'Consolidación', i:'Consolidación pulmonar; correlacionar con clínica e historia (neumonía, atelectasia, infarto).' };
   if (lb === 'presentes' && cant === 'coalescentes')
@@ -32202,7 +32424,20 @@ function pulAvPatron() {
     return { p:'Síndrome intersticial', i:'Líneas B múltiples (≥3 por espacio): síndrome intersticial, compatible con edema pulmonar intersticial.' };
   if (lb === 'presentes' && cant === 'focal')
     return { p:'Líneas B focales', i:'Líneas B aisladas: hallazgo focal, puede ser inespecífico.' };
-  return { p:'Normal', i:'Deslizamiento pleural conservado con patrón A predominante.' };
+  /* Sin ningún campo cargado la caída era a «Normal — deslizamiento pleural conservado con patrón
+     A predominante», o sea una descripción positiva de una exploración que no se hizo. */
+  if (!pulAvanzadoHayDatos()) return { p:'No evaluado', i:'Cargá los campos del módulo para obtener el patrón.' };
+  /* Un deslizamiento anormal que no llegó a ninguna rama NO es un pulmón normal. Antes caía acá
+     y la hoja del PDF se contradecía sola: «Deslizamiento pleural disminuido» arriba y
+     «Patrón global: Normal. Deslizamiento pleural conservado» abajo. */
+  if (desliz && desliz !== 'presente')
+    return { p:'Indeterminado',
+             i:'Deslizamiento pleural ' + desliz + ' sin el resto del patrón evaluado o sin criterios suficientes para definir una entidad. Correlacionar con la clínica.' };
+  /* «patrón A predominante» sólo se afirma si las líneas A se evaluaron; si no, la conclusión se
+     limita a los campos que sí se miraron. */
+  return { p:'Normal', i: (lineasA === 'presentes')
+    ? 'Deslizamiento pleural conservado con patrón A predominante.'
+    : 'Sin hallazgos patológicos en los campos evaluados.' };
 }
 
 function pulAvUI() {
@@ -32211,6 +32446,11 @@ function pulAvUI() {
   on('pua-lb-cant-wrap', lbOn); on('pua-lb-zonas-wrap', lbOn);
   document.querySelectorAll('.pua-der').forEach(e => { e.style.display = (_amV('pua_derrame') === 'si') ? '' : 'none'; });
   on('pua-consol-bronco-wrap', _amV('pua_consol') === 'si');
+  /* Sin esto la hoja del PDF quedaba CONGELADA con el texto del momento en que se integró:
+     devolver un select a «— no evaluado —» hacía que el básico volviera a imprimirse mientras la
+     hoja seguía describiendo lo viejo, y el mismo PDF llevaba las dos versiones. Es el mismo
+     enganche que ya tienen VEXUS, Pericardio y Wilkins, y respeta la edición manual del texto. */
+  if (typeof amiloRefrescarSiIntacto === 'function') amiloRefrescarSiIntacto('pulm');
   const r = pulAvPatron();
   const p = document.getElementById('pua-patron'), i = document.getElementById('pua-patron-interp');
   if (p) p.textContent = r.p;
@@ -32222,16 +32462,23 @@ window.pulAvUI = pulAvUI;
 // NARRATIVO: una oración por hallazgo, en líneas separadas y en orden clínico
 // (pleura, líneas A, líneas B, derrame, consolidación). Nada de tablas: se lee
 // como un informe, no como una planilla.
+/* Cada bloque OMITE la oración cuando el campo quedó en «— no evaluado —», en vez de negar.
+   Los `else` afirmaban «Sin derrame pleural.», «Sin líneas B.», «Sin consolidaciones.» y
+   «Deslizamiento pleural conservado» sobre campos vacíos: con la compuerta nueva alcanza UN
+   campo cargado para poder integrar, así que un avanzado a medias imprimía cuatro negaciones
+   que nadie evaluó — y por la exclusión mutua esas negaciones reemplazaban al módulo básico.
+   Negar lo no evaluado es peor que callarlo: en el informe firmado se lee como hallazgo. */
 function amiloTextoPulmonar() {
   const L = [];
-  const dz = _amV('pua_desliz') || 'presente';
+  const dz = _amV('pua_desliz');
   const lado = _amV('pua_desliz_lado') || 'bilateral';
   const ladoTxt = lado === 'bilateral' ? 'en ambos hemitórax' : 'en el hemitórax ' + lado;
-  L.push(dz === 'presente'
+  if (dz) L.push(dz === 'presente'
     ? 'Deslizamiento pleural conservado ' + ladoTxt + '.'
     : 'Deslizamiento pleural ' + dz + ' ' + ladoTxt + '.');
 
-  L.push(_amV('pua_lineasa') === 'ausentes'
+  const la = _amV('pua_lineasa');
+  if (la) L.push(la === 'ausentes'
     ? 'Líneas A ausentes.'
     : 'Líneas A presentes, con patrón pleural de aireación conservada.');
 
@@ -32241,7 +32488,7 @@ function amiloTextoPulmonar() {
     const z = pulAvZonas();
     L.push('Líneas B ' + (CANT[cant] || cant) +
       (z.length ? ', de distribución ' + (z.length >= 5 ? 'difusa' : z.join(', ')) : '') + '.');
-  } else {
+  } else if (_amV('pua_lineasb')) {
     L.push('Sin líneas B.');
   }
 
@@ -32255,34 +32502,40 @@ function amiloTextoPulmonar() {
     const _bf = _balikFrase(bk);
     const vol = _bf ? ', con una separación pleural (' + _bf + ')' : '';
     L.push('Derrame pleural ' + dl + ', de aspecto ' + tipo + vol + '.');
-  } else {
+  } else if (_amV('pua_derrame')) {
     L.push('Sin derrame pleural.');
   }
 
   if (_amV('pua_consol') === 'si') {
     const B = { con:'con broncograma aéreo', sin:'sin broncograma', fluido:'con broncograma fluido' };
     L.push('Consolidación pulmonar ' + (B[_amV('pua_consol_bronco')] || 'sin broncograma especificado') + '.');
-  } else {
+  } else if (_amV('pua_consol')) {
     L.push('Sin consolidaciones.');
   }
 
   const r = pulAvPatron();
-  L.push('## En suma');
-  L.push('Patrón global: ' + r.p + '. ' + r.i);
+  if (r.p !== 'No evaluado') { L.push('## En suma'); L.push('Patrón global: ' + r.p + '. ' + r.i); }
   return L.join('\n');
 }
 
 // Conclusiones del avanzado para el En Suma.
-function pulAvSuma() {
+/* `omitir` es la lista de dominios que el módulo BÁSICO ya publicó. Sin esto, en el estado
+   intermedio —avanzado con el derrame cargado pero sin los otros dos campos— la exclusión mutua
+   NO se aplica (el avanzado no cubre al básico) pero el En Suma del avanzado sí se emite, y el
+   informe firmado salía con dos oraciones de derrame, con lateralidad y volumen distintos,
+   sacadas de los dos módulos. Las compuertas cubren superficies distintas, así que hay que
+   restar explícitamente: no particionan solas. */
+function pulAvSuma(omitir) {
+  const _om = Array.isArray(omitir) ? omitir : [];
   const s = [], r = pulAvPatron();
   if (r.p === 'Síndrome intersticial') s.push('Edema pulmonar intersticial.');
   else if (r.p === 'Edema alveolar')   s.push('Edema alveolar.');
   else if (r.p === 'Neumotórax probable') s.push('Neumotórax probable.');
-  if (_amV('pua_consol') === 'si') {
+  if (_amV('pua_consol') === 'si' && _om.indexOf('consol') < 0) {
     const b = _amV('pua_consol_bronco');
     s.push('Consolidación pulmonar ' + (b === 'con' ? 'con broncograma aéreo' : b === 'fluido' ? 'con broncograma fluido' : 'sin broncograma') + '.');
   }
-  if (_amV('pua_derrame') === 'si') {
+  if (_amV('pua_derrame') === 'si' && _om.indexOf('derrame') < 0) {
     const bk = PF(_amV('pua_balik')), lado = _amV('pua_derrame_lado') || 'bilateral';
     const det = _balikDet(bk);
     s.push('Derrame pleural ' + lado + det + '.');
@@ -32290,6 +32543,43 @@ function pulAvSuma() {
   return s;
 }
 window.pulAvSuma = pulAvSuma;
+
+/* ¿El médico cargó ALGO en el módulo avanzado? Los cinco selects arrancaban en un valor normal
+   («Presente», «Presentes», «Ausentes», «No», «No») sin opción vacía, así que un módulo que nadie
+   tocó se leía idéntico a un pulmón explorado y normal. Combinado con la exclusión mutua —que era
+   incondicional— un derrame real cargado en el módulo BÁSICO desaparecía del informe y el PDF
+   publicaba «Sin derrame pleural»: negar un hallazgo que el estudio sí tenía, en el documento
+   firmado. Desde este commit los cinco arrancan en «— no evaluado —» y esto mide si se tocaron.
+
+   Devuelve `false` si el módulo no está en el DOM. Es la dirección segura para las dos preguntas
+   que cuelgan de acá: sin datos NO se suprime el básico (el hallazgo real sigue saliendo) y no se
+   integra una hoja vacía. */
+function pulAvanzadoHayDatos() {
+  /* Los dependientes (`_cant`, `_tipo`, `_lado`, `_bronco`) NO se miran: conservan su valor por
+     defecto aunque nadie los toque, así que contarlos haría que este predicado diera `true`
+     siempre. Sólo cuentan los cinco primarios, el Balik y las seis zonas. */
+  const primarios = ['pua_desliz','pua_lineasa','pua_lineasb','pua_derrame','pua_consol'];
+  if (primarios.some(function(id){ const e = document.getElementById(id); return e && e.value !== ''; })) return true;
+  const bk = document.getElementById('pua_balik');
+  if (bk && String(bk.value || '').trim() !== '') return true;
+  return ['pua_z_ant_d','pua_z_lat_d','pua_z_bas_d','pua_z_ant_i','pua_z_lat_i','pua_z_bas_i']
+    .some(function(id){ const e = document.getElementById(id); return e && e.checked; });
+}
+window.pulAvanzadoHayDatos = pulAvanzadoHayDatos;
+
+/* ¿El avanzado evaluó lo MISMO que reporta el básico? Son preguntas distintas y la exclusión
+   mutua necesita ésta, no `hayDatos`. El básico informa derrame, líneas B y consolidación; el
+   avanzado los cubre con `pua_derrame`, `pua_lineasb` y `pua_consol`. Con `hayDatos` alcanzaba
+   UN campo cualquiera —por ejemplo sólo la consolidación— para silenciar al básico entero, y un
+   derrame moderado cargado ahí desaparecía del informe. Deslizamiento y líneas A no entran: no
+   tienen contraparte en el básico, así que no habilitan ni impiden nada.
+   Duplicar una oración es molesto; perder un derrame del informe firmado, no. */
+function pulAvanzadoCubreBasico() {
+  return PUL_PARES.every(function(p){
+    const e = document.getElementById(p.av); return e && e.value !== '';
+  });
+}
+window.pulAvanzadoCubreBasico = pulAvanzadoCubreBasico;
 
 // ¿Está integrado el módulo avanzado? Sirve para la exclusión mutua.
 function pulAvanzadoIntegrado() {
@@ -32321,7 +32611,10 @@ function amiloSecs() {
     { k:'dpt',  lbl:'Derrame pericárdico / Taponamiento', tit:'DERRAME PERICARDICO - VALORACION HEMODINAMICA', gen:amiloTextoDPT },
     { k:'cvr',  lbl:'Constricción vs Restricción',     tit:'CONSTRICCION vs RESTRICCION',              gen:amiloTextoCVR },
     { k:'conco',lbl:'Cardio-Oncología',                tit:'CARDIO-ONCOLOGIA - ESC 2022',   gen:amiloTextoCardioOnco },
-    { k:'pulm', lbl:'Eco Pulmonar (avanzado)',         tit:'ECOGRAFIA PULMONAR - EVALUACION AVANZADA', gen:amiloTextoPulmonar }
+    /* `hayDatos` es opcional y sólo lo usa `amiloIntegrar` para no dejar integrar una hoja
+       vacía. Va acá y no dentro de `amiloIntegrar` con un `if (k === 'pulm')` para que el día
+       que otro módulo lo necesite sea agregar una propiedad y no tocar el integrador. */
+    { k:'pulm', lbl:'Eco Pulmonar (avanzado)',         tit:'ECOGRAFIA PULMONAR - EVALUACION AVANZADA', gen:amiloTextoPulmonar, hayDatos:function(){ return typeof pulAvanzadoHayDatos !== 'function' || pulAvanzadoHayDatos(); } }
   ];
 }
 window.amiloSecs = amiloSecs;
@@ -32416,6 +32709,11 @@ function amiloRefrescarSiIntacto(k) {
     if (String(ta.value || '').trim() !== String(_amiloUltimo[k] || '').trim()) return;  // editado a mano
     const nuevo = sec.gen();
     ta.value = nuevo; _amiloUltimo[k] = nuevo;
+    /* Un `gen()` que queda VACÍO —devolver un campo a «— no evaluado —» después de integrar— hace
+       que `amiloEnInforme` descarte la sección y la hoja no salga del PDF, pero `amiloIntegrado`
+       mira el `display` del wrap y sigue en true: el botón quedaba diciendo «✓ Integrado al
+       informe» sobre algo que ya no se imprime. Se retira, que es lo que el estado real dice. */
+    if (String(nuevo || '').trim() === '') { if (typeof amiloRetirar === 'function') amiloRetirar(k); return; }
     if (typeof amiloPreview === 'function') amiloPreview(k);
   } catch (e) { /* nunca puede tumbar el cálculo que lo llamó */ }
 }
@@ -32471,6 +32769,22 @@ function amiloIntegrar(k) {
   const ta   = document.getElementById('am-txt-' + k);
   const wrap = document.getElementById('am-wrap-' + k);
   if (!card || !sec || !ta || !wrap) return;
+  /* Compuerta de datos. Un módulo en blanco no se integra: su hoja describiría una exploración
+     que no se hizo y —en el caso del pulmonar— además silenciaría al módulo básico por la
+     exclusión mutua. Falla ABIERTO a propósito: una sección sin `hayDatos` se integra como
+     siempre, y si el predicado no existe tampoco se bloquea. Impedirle al médico integrar algo
+     que sí cargó es peor que el defecto que esto cierra. */
+  if (typeof sec.hayDatos === 'function') {
+    let _ok = true;
+    /* El aviso NO es decorativo: el error más probable acá es un id mal tipeado, que tira
+       TypeError, el catch lo convierte en «hay datos» y la prueba del que lo escribió PASA
+       —integra, ve la hoja, cierra la tarea— sin ninguna señal de que la compuerta no existe. */
+    try { _ok = !!sec.hayDatos(); } catch (e) { _ok = true; console.warn('[amiloIntegrar] hayDatos de ' + k + ' lanzó:', e); }
+    if (!_ok) {
+      if (typeof toast === 'function') toast('⚠️ ' + sec.lbl + ': no hay datos cargados para integrar');
+      return;
+    }
+  }
   const actual = String(ta.value || '').trim();
   if (actual === '' || actual === (_amiloUltimo[k] || '')) {
     const nuevo = sec.gen();
