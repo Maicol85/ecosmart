@@ -2419,33 +2419,35 @@ criterio». Si aparece, la palanca es juntar las salvedades con la línea de la 
 
 ## Deuda conocida sin resolver
 
-### Aorta — lo que quedó abierto tras unificar los umbrales (2026-09-14)
-El corte de normalidad pasó a **40 / 33 / 36 mm** (Valsalva / sinotubular / ascendente), decisión
-de Maicol, y hoy gobierna la cápsula de pantalla, el narrativo, el EN SUMA y las dos tablas del
-PDF desde una sola constante `AO_REF`. Lo que NO se tocó:
+### Aorta — umbrales unificados (2026-09-14, ESC 2021)
+Un solo `AO_REF` gobierna la cápsula de pantalla, el narrativo, el EN SUMA, las dos tablas del
+PDF **y el Laboratorio**: `sin 40 · st 38 · tub 40`, con `>` estricto (40,0 exacto es normal).
+Bandas completas por segmento en `AO_SEGS`:
 
-- **El Laboratorio usa otro corte para el mismo campo.** `labCCRender` filtra `>= 40` y su nota
-  impresa dice que «el corte de 40 mm lo aplica esta vista … es donde la ESC 2024 empieza a
-  seguir la aorta». El panel de indicaciones (`_indVAB`, `vabConclusion`, `ccSumaLinea`) usa
-  45/50/55, que son los quirúrgicos. **No son contradicciones**: son tres preguntas distintas
-  —¿está fuera del rango normal?, ¿hay que seguirla?, ¿hay que operarla?—. Pero desde este commit
-  el EN SUMA firmado puede decir «Dilatación aorta ascendente (37 mm)» sobre un estudio que el
-  Laboratorio no cuenta como dilatado. Si eso molesta, la palanca es el **rótulo** del EN SUMA,
-  no el umbral: decir «por encima del límite superior normal» en vez de «Dilatación».
-- **`ao_st` salta de leve a severa sin banda moderada** (`mod:null`): 44 mm → «levemente
-  dilatada», 45 mm → «severamente dilatada». Venía así de la cápsula; desde este commit el
-  adjetivo entra al informe firmado. Definir la banda intermedia es decisión clínica, no de
-  código: no se inventó.
-- **Con CERO mediciones el informe sigue afirmando «Aorta torácica de calibre normal».** Es el
-  criterio que Maicol pidió («normal si están vacíos»), y es el caso más frecuente: la aorta no
-  se mide en todos los estudios. Queda anotado porque es el mismo patrón que el módulo pulmonar
-  vino a cerrar — afirmar sobre lo no evaluado— resuelto al revés a propósito.
+| segmento | normal | leve | moderada | severa |
+|---|---|---|---|---|
+| Valsalva / ascendente | ≤40 | 41-45 | 46-50 | >50 |
+| Sinotubular | ≤38 | 39-44 | 45-49 | ≥50 |
+
+Tres cosas que conviene no volver a mover sin pensarlas:
+
+- **El panel de indicaciones NO usa `AO_REF`, y está bien así.** `_indVAB`, `vabConclusion` y
+  `ccSumaLinea` van a 45 / 50 / 52 / 55 mm: son los umbrales **quirúrgicos** de la ESC 2024
+  (Clase I B ≥55, ≥50 en fenotipo de raíz, IIa desde 45). «Dilatada» y «operable» contestan
+  preguntas distintas. Cablearlos a `AO_REF` haría que la app propusiera criterios de cirugía
+  sobre una aorta de 41 mm. Si alguna vez alguien pide «una sola constante para todo», esto es
+  lo que hay que responder.
+- **Sin ninguna medición, la aorta NO se nombra.** Se sacó la frase «Aorta torácica de calibre
+  normal» que salía con los tres campos vacíos: era una normalidad declarada en el informe
+  firmado sobre algo que nadie midió, y no medir la aorta es lo habitual en un ETT de rutina.
+  Mismo criterio que el módulo pulmonar. Un valor fuera de la banda de plausibilidad tampoco
+  deja afirmar normalidad: nombra el segmento y pide verificar.
 - **`AO_INTERP_EL` es una lista paralela a `AO_SEGS`.** Agregar un segmento sin su entrada ahí da
   `getElementById(undefined)` → `return` mudo: el narrativo lo incluye y la pantalla no muestra
-  cápsula. Las dos tablas del PDF tampoco se generan desde `AO_SEGS`.
-- **`Object.freeze` no avisa.** El archivo no está en modo estricto fuera de un bloque, así que
-  `AO_REF.sin = 45` desde otro lado es un no-op MUDO: protege del accidente, no señaliza la
-  mutación deliberada.
+  cápsula. Las dos tablas del PDF tampoco se generan desde `AO_SEGS`. Hay assert de arranque para
+  las bandas invertidas y para `mod` faltante, no para esto.
+- **`Object.freeze` no avisa.** Fuera de modo estricto, `AO_REF.sin = 45` desde otro bloque es un
+  no-op MUDO: protege del accidente, no señaliza la mutación deliberada.
 
 ### Eco Pulmonar — `amiloSecs` falla ABIERTO a propósito
 La compuerta `hayDatos` de `amiloIntegrar` es **opcional**: 16 de las 17 secciones no la declaran

@@ -13404,16 +13404,21 @@ window.GMED_MITRAL_SEVERO_MIN = GMED_MITRAL_SEVERO_MIN;
    criterios diastólicos ASE 2016, el HFA-PEFF y el score de amiloidosis, así que vivía en
    ocho lugares. */
 const UMBRAL_LAVI_DILATADO = 34;   // ml/m² — LAVI >34 → aurícula izquierda dilatada
-/* Aorta torácica: UN solo juego de umbrales para los tres segmentos. Antes había dos —las
-   cápsulas de color de `calcAorta` decían normal hasta 38 (sinotubular) y 40 (ascendente), y las
-   dos tablas del PDF marcaban «* dilatado» desde 34 y 37—, así que la misma medición salía verde
-   en pantalla y asteriscada en el informe firmado. Se unificó en los del PDF (decisión de Maicol,
-   2026-09-14): son los que ya estaban en el documento que se entrega y mueven el criterio hacia
-   nombrar el hallazgo, no hacia callarlo. */
-const AO_REF = Object.freeze({ sin: 40, st: 33, tub: 36 });
-/* Bandas por segmento. La línea de NORMALIDAD sale de AO_REF; las bandas de severidad de arriba
-   son las que ya tenía `calcAorta` y no se tocaron: mover el corte de normalidad era la decisión
-   tomada, inventar grados nuevos no. `st` no tiene banda moderada, tampoco la tenía. */
+/* Aorta torácica: UN solo juego de umbrales para los tres segmentos, **ESC 2021**. Antes había
+   dos conviviendo —las cápsulas de `calcAorta` decían normal hasta 38 y 40, y las dos tablas del
+   PDF marcaban «* dilatado» desde 34 y 37—, así que la misma medición salía verde en pantalla y
+   asteriscada en el informe firmado.
+
+   Los consume la cápsula, el narrativo, el EN SUMA, las dos tablas del PDF y el Laboratorio.
+   NO los consume el panel de indicaciones (`_indVAB`, `vabConclusion`, `ccSumaLinea`): ésos son
+   umbrales QUIRÚRGICOS de la ESC 2024 —45 / 50 / 52 / 55 mm, Clase I B y IIa— y contestan otra
+   pregunta. «Dilatada» y «operable» no son lo mismo: cablearlos a esta constante haría que la app
+   propusiera criterios de cirugía sobre una aorta de 41 mm. */
+const AO_REF = Object.freeze({ sin: 40, st: 38, tub: 40 });
+/* Bandas por segmento. La línea de NORMALIDAD sale de AO_REF y el resto son los grados:
+     ao_sin / ao_tub → normal ≤40 · leve 41-45 · moderada 46-50 · severa >50
+     ao_st           → normal ≤38 · leve 39-44 · moderada 45-49 · severa ≥50
+   `ao_st` tenía `mod:null` y saltaba de leve a SEVERA sin banda intermedia; quedó completa. */
 /* `min`/`max`: ventana de plausibilidad, los mismos valores que ya usan `vabConclusion`,
    `LAB_XLS_RANGO` y el importador DICOM sobre estos tres campos. El camino del formulario era el
    único sin red, y es justo el que alimenta el informe firmado: un seno tipeado en centímetros
@@ -13422,7 +13427,7 @@ const AO_REF = Object.freeze({ sin: 40, st: 33, tub: 36 });
    colarse como afirmación de normalidad. */
 const AO_SEGS = Object.freeze([
   Object.freeze({ k:'ao_sin', lbl:'raíz aórtica',        lblC:'Raíz aórtica',        med:'senos de Valsalva',    ref:AO_REF.sin, leve:45, mod:50,   min:10, max:90 }),
-  Object.freeze({ k:'ao_st',  lbl:'unión sinotubular',   lblC:'Unión sinotubular',   med:'unión sinotubular',    ref:AO_REF.st,  leve:44, mod:null, min:10, max:80 }),
+  Object.freeze({ k:'ao_st',  lbl:'unión sinotubular',   lblC:'Unión sinotubular',   med:'unión sinotubular',    ref:AO_REF.st,  leve:44, mod:49,   min:10, max:80 }),
   Object.freeze({ k:'ao_tub', lbl:'aorta ascendente',    lblC:'Aorta ascendente',    med:'aorta ascendente',     ref:AO_REF.tub, leve:45, mod:50,   min:10, max:90 })
 ]);
 /* Assert de arranque: `ref < leve` y, si hay banda moderada, `leve < mod`. Sin esto, un segmento
@@ -18816,8 +18821,11 @@ function generarInforme(opts) {
                ' — valor fuera de rango plausible, verificar la medición.' +
                (aoM.length ? ' ' + aoM.map(x => x.sg.lblC + ' ' + x.val + ' mm').join(', ') + ' de calibre normal.' : ''));
     } else if (!aoM.length) {
-      // Sin ninguna medición: se mantiene la frase de siempre.
-      inf.push(estiloPick('Aorta torácica normal.', 'Aorta torácica de calibre normal.', 'La aorta torácica es de calibre normal.'));
+      /* SILENCIO. Antes afirmaba «Aorta torácica de calibre normal» sin un solo segmento medido:
+         una normalidad declarada en el informe firmado sobre algo que nadie midió. Es el mismo
+         criterio que el módulo pulmonar —no negar ni afirmar lo no evaluado— y acá pesa más,
+         porque no medir la aorta es lo habitual en un ETT de rutina. Si no hay medición, la
+         aorta no se nombra. */
     } else if (!aoD.length) {
       const vals = aoM.map(x => x.sg.lblC + ' ' + x.val + ' mm').join(', ');
       inf.push(estiloPick(
@@ -44811,24 +44819,35 @@ function labCCRender(infs, n) {
   // ── BLOQUE 8 · Válvula aórtica bicúspide ──
   if (!vabArr.length) { empty('lab-cc-vab-stats', 'válvula aórtica bicúspide'); empty('lab-cc-vab-bars', 'bicúspide'); empty('lab-cc-vab-func-bars', 'función'); setHtml('lab-cc-vab-nota', ''); }
   else {
-    /* «Dilatación aórtica» = el MAYOR de raíz y ascendente ≥40 mm, el corte por el que la ESC
-       2024 empieza a seguir la aorta. Se declara porque no es un campo del estudio. */
+    /* «Dilatación aórtica» sale de `AO_REF`, la MISMA constante que la cápsula, el narrativo y
+       las dos tablas del PDF: antes era un literal `>= 40` acá y el informe firmado podía decir
+       «Dilatación …» sobre un estudio que esta vista no contaba como dilatado.
+       Se evalúa SEGMENTO POR SEGMENTO y no contra el máximo: hoy raíz y ascendente comparten el
+       corte de 40, pero compararlos contra un solo número es correcto por casualidad, y el día
+       que diverjan esto vuelve a mentir sin avisar. Y es `>`, no `>=`: «dilatado >40» deja el 40
+       exacto del lado normal, como en el resto de la app. */
     /* Banda 10-90 mm, la misma que `vabConclusion`: con 100 una aorta de 95 entraba acá y el
        informe del mismo paciente la rechazaba. */
     const maxAo = i => { const r = _labNum(i, 'ao_sin'), a = _labNum(i, 'ao_tub');
       const v = [r, a].filter(x => x !== null && x >= 10 && x <= 90); return v.length ? Math.max.apply(null, v) : null; };
     const aos = vabArr.map(maxAo).filter(v => v !== null);
-    const dil = aos.filter(x => x >= 40).length;
+    const dil = vabArr.filter(i => {
+      const r = _labNum(i, 'ao_sin'), a = _labNum(i, 'ao_tub');
+      return (r !== null && r >= 10 && r <= 90 && r > AO_REF.sin) ||
+             (a !== null && a >= 10 && a <= 90 && a > AO_REF.tub);
+    }).length;
     setHtml('lab-cc-vab-stats',
       stat('Estudios con bicúspide', vabArr.length + ' (' + pctS(vabArr.length) + ' ' + _labPobDe() + ')') +
       stat('Con aorta medida', deBase(aos.length, vabArr.length)) +
       stat('Diámetro aórtico máximo promedio', _promTxt(_prom(aos), 1, ' mm')) +
-      stat('Con dilatación (≥ 40 mm)', deBase(dil, aos.length)));
+      stat('Con dilatación (> ' + AO_REF.sin + ' mm)', deBase(dil, aos.length)));
     barrasDe('lab-cc-vab-bars', distrib(vabArr, 'vab_tipo', { t0:'Tipo 0 — sin rafe', t1rl:'Tipo 1 — R-L', t1rn:'Tipo 1 — R-N', t1nl:'Tipo 1 — N-L', t2:'Tipo 2 — unicúspide' }), vabArr.length);
     barrasDe('lab-cc-vab-func-bars', distrib(vabArr, 'vab_funcion', { normal:'Normofuncionante', estenosis:'Con estenosis', insuficiencia:'Con insuficiencia', mixta:'Lesión mixta' }), vabArr.length);
-    setHtml('lab-cc-vab-nota', 'El diámetro es el <b>mayor entre raíz y aorta ascendente</b>, que es el que decide. ' +
-      'El corte de <b>40 mm</b> lo aplica esta vista, no es un campo del estudio: es donde la ESC 2024 empieza a ' +
-      'seguir la aorta, muy por debajo del umbral quirúrgico.');
+    /* La nota describía el corte como propio de esta vista. Ya no lo es: sale de `AO_REF`, la
+       misma que usa el informe, así que el Laboratorio y el PDF firmado cuentan lo mismo. */
+    setHtml('lab-cc-vab-nota', 'El <b>promedio</b> es del mayor entre raíz y aorta ascendente. La <b>dilatación</b> se ' +
+      'cuenta por segmento: raíz &gt; ' + AO_REF.sin + ' mm o ascendente &gt; ' + AO_REF.tub + ' mm, el mismo corte ' +
+      '(ESC 2021) que marca el informe — muy por debajo del umbral quirúrgico, que es otra pregunta.');
   }
 
   // ── BLOQUE 9 · Miocardiopatía hipertrófica ──
