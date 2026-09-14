@@ -14348,7 +14348,7 @@ window.vexusEstado = vexusEstado;
 
    Reglas de este módulo, todas por algo que este archivo ya pagó antes:
    - El TAMAÑO del derrame sale del select `pericardio`. No hay campo propio.
-   - e' en cm/s, la unidad de `e_sep`/`e_lat`. El umbral 7 es cm/s.
+   - e' en cm/s, la unidad de `e_sep`/`e_lat`. Septal 7, lateral 10 (ver las constantes).
    - Nada que la app ya tenga se vuelve a preguntar: e', E/e', VCI y las dos
      respirofasicidades son espejos de solo lectura en la tab de constricción.
    - `E/e'` sale de `hfapeffDatos()`, que es el accesor PURO que ya existe. La fórmula
@@ -14359,7 +14359,20 @@ window.vexusEstado = vexusEstado;
 
 const DPT_VAR_MITRAL_SIG = 25;   // % de variación respiratoria de la E mitral
 const DPT_VAR_TRIC_SIG   = 40;   // % de variación respiratoria de la E tricúspide
-const CVR_EPRIMA_CM_S    = 7;    // e' septal/lateral, cm/s
+/* Un umbral por anillo, no uno compartido. El septal corta en 7 y el lateral en 10, que es lo
+   que usa la CLASIFICACIÓN DIASTÓLICA del archivo (`esep < 7 || elat < 10`, fija). Con el 7
+   compartido, un e' lateral de 8 cm/s era «reducido» en toda la app y acá votaba CONSTRICCIÓN.
+   Decisión de Maicol, 2026-09-13.
+   Ojo con la cita: `hfapeffScore` usa 7/10 pero AJUSTADOS POR EDAD (`viejo ? 5 : 7` y
+   `viejo ? 7 : 10`, con `viejo = edad >= 75`). O sea que en un paciente de 75 o más el HFA-PEFF
+   considera NORMAL un e' lateral de 8 y este módulo lo llama reducido: si los dos están
+   integrados, el mismo PDF se contradice. Estos umbrales son fijos de adulto a propósito —no
+   hay corte por edad publicado para el diferencial constricción/restricción—, pero es una
+   divergencia declarada, no una alineación.
+   Y una constante que gobierna dos umbrales distintos es peor que dos literales: parece que
+   los acopla y lo que hace es esconder que uno de los dos está mal. */
+const CVR_ESEP_CM_S      = 7;    // e' septal, cm/s
+const CVR_ELAT_CM_S      = 10;   // e' lateral, cm/s
 const CVR_EE_ALTO        = 15;   // E/e'
 
 /* Los dos disclaimers, como CONSTANTES compartidas por las tres superficies (pantalla,
@@ -14607,10 +14620,22 @@ window.cvrDatos = cvrDatos;
    ✅ Constricción bajo un rótulo que lo excluía, y ningún rótulo cubría el 7. */
 function cvrFilas() {
   return [
-    { lbl:"e' septal",            c:'≥' + CVR_EPRIMA_CM_S + ' cm/s', r:'<' + CVR_EPRIMA_CM_S + ' cm/s',
-      ev: d => d.esep !== null, voto: d => d.esep >= CVR_EPRIMA_CM_S ? 'c' : 'r' },
-    { lbl:"e' lateral",           c:'≥' + CVR_EPRIMA_CM_S + ' cm/s', r:'<' + CVR_EPRIMA_CM_S + ' cm/s',
-      ev: d => d.elat !== null, voto: d => d.elat < CVR_EPRIMA_CM_S ? 'r' : 'c' },
+    { lbl:"e' septal",            c:'≥' + CVR_ESEP_CM_S + ' cm/s', r:'<' + CVR_ESEP_CM_S + ' cm/s',
+      ev: d => d.esep !== null, voto: d => d.esep >= CVR_ESEP_CM_S ? 'c' : 'r' },
+    /* El lateral reducido sólo vota RESTRICCIÓN si el septal también lo está. Con el septal
+       conservado, un lateral bajo ES el annulus reversus — y eso ya lo cuenta la fila de abajo.
+       Sin esta condición el mismo hecho votaba dos veces y en direcciones opuestas: al subir el
+       umbral del lateral de 7 a 10, esta fila pasó a votar 'r' en casi toda constricción real, y
+       como `constrictiva` exige `nR < 2` el presupuesto de votos en contra bajó a CERO: una sola
+       respuesta normal entre los seis criterios específicos vetaba el diagnóstico. Medido sobre
+       las combinaciones alcanzables: `constrictiva` perdía el 46,7% de su dominio, y el caso
+       testigo era una constricción de manual con TC pericárdica normal —que es entre el 18 y el
+       28% de las constricciones probadas quirúrgicamente— que pasaba a «no es posible
+       diferenciar, se recomienda cateterismo». */
+    { lbl:"e' lateral",           c:'≥' + CVR_ELAT_CM_S + ' cm/s', r:'<' + CVR_ELAT_CM_S + ' cm/s',
+      ev: d => d.elat !== null,
+      voto: d => d.elat >= CVR_ELAT_CM_S ? 'c'
+               : (d.esep !== null && d.esep < CVR_ESEP_CM_S) ? 'r' : null },
     { lbl:'Annulus reversus',     c:'Presente', r:'Ausente',
       ev: d => d.esep !== null && d.elat !== null, voto: d => d.esep > d.elat ? 'c' : 'r' },
     { lbl:"E/e'",                 c:'<' + CVR_EE_ALTO, r:'≥' + CVR_EE_ALTO, adic:true,
@@ -14665,8 +14690,8 @@ function cvrEstado() {
 
   /* «Sin respirofasicidad significativa» exige que se HAYA MEDIDO. Sin el dato no se puede
      afirmar el patrón restrictivo: sería una negación sin medición. */
-  const patronRestr = d.esep !== null && d.esep < CVR_EPRIMA_CM_S
-                   && d.elat !== null && d.elat < CVR_EPRIMA_CM_S
+  const patronRestr = d.esep !== null && d.esep < CVR_ESEP_CM_S
+                   && d.elat !== null && d.elat < CVR_ELAT_CM_S
                    && d.ee !== null && d.ee > CVR_EE_ALTO
                    && d.varM !== null && d.varM <= DPT_VAR_MITRAL_SIG;
 
@@ -14680,7 +14705,16 @@ function cvrEstado() {
   /* «≥2 criterios adicionales» son adicionales AL REVERSUS: si contaran las tres filas
      anulares, el reversus votaría dos veces y dos números darían tres criterios. */
   else if (reversus === true && nCAdic >= 2 && nR < 2) clave = 'constrictiva';
-  else if (patronRestr && nCAdic < 2)                  clave = 'restrictiva';
+  /* La rama restrictiva exige DOS criterios específicos evaluados, no uno. La compuerta
+     `espEval === 0` no la protegía: el único específico que `patronRestr` necesita es la
+     respirofasicidad mitral, o sea que el dato que abre la compuerta es el mismo que la
+     satisface. Medido: `e' septal 6,5 · e' lateral 9,5 · onda E 140 · variación mitral 10` —
+     cuatro números de la tab Diastólica de rutina, cero datos del pericardio— firmaba
+     «compatible con miocardiopatía restrictiva» en el cuerpo y en el EN SUMA. Con el umbral
+     lateral en 10 eso dejó de ser un borde y pasó a ser el perfil diastólico grado II-III
+     corriente. Es el mismo defecto que ya se cerró del lado de la constricción, por el otro
+     flanco: un guardián no puede ser también la llave. */
+  else if (patronRestr && nCAdic < 2 && espEval >= 2)  clave = 'restrictiva';
   else if (nC >= 2 && nR >= 2)                         clave = 'mixto';
   else if (nC >= 2 || nR >= 2)                         clave = 'no_concluyente';
   else                                                 clave = 'sin_datos';

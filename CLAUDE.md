@@ -2115,12 +2115,19 @@ engancharlo la hoja del PDF y el narrativo del MISMO documento llevaban dos E/e'
 agregar un módulo que lee campos prestados, enganchar **todos** los que alimentan el cálculo — no
 sólo los obvios.
 
-**`api-key-protector` da 30 falsos positivos sobre el idioma `clave`.** Su regex trata `clave`
-como token de contraseña, así que matchea `st.clave === 'sin_derrame'` — y `clave` es justamente
-la convención del archivo para la clave de una conclusión (`dapConclusion`, `coaConclusion`). Ocho
-ya existían; este módulo sumó 22. Medido: sacando `clave` del token list de la primera regla
-quedan **1 hallazgo real** (el `pwd === 'maicolett1'` de la línea 1293, deuda ya declarada) y
-**0 falsos**. Sin ese arreglo el gate de pre-push grita 31 veces y deja de leerse.
+**`api-key-protector` daba 30 falsos positivos sobre el idioma `clave` — CORREGIDO 2026-09-13.**
+Su regex de «contraseña comparada con literal» trataba `clave` como token de contraseña, así que
+matcheaba `st.clave === 'sin_derrame'` — y `clave` es justamente la convención del archivo para la
+clave de una conclusión (`dapConclusion`, `coaConclusion`). Ocho ya existían; este módulo sumó 22.
+Se sacó `clave` de esa regla **y se conservó en la de declaración** (`var clave = 'secreto'` sí
+nombra lo que guarda). Verificado en las dos direcciones, que es lo que hace falta para tocar una
+regla: *negativo* — la suite pasa de 34 a 1 hallazgo por esa regla, y los 33 que desaparecen
+comparan todos contra tokens de estado (`'restrictiva'`, `'taponamiento'`, `'no_interpretable'`,
+`'descartado'`…), ninguno es un secreto; las otras reglas no se movieron (18 + 9 idénticos).
+*Positivo* — archivo de prueba con 6 credenciales reales y 6 líneas del idioma clínico: dispara en
+las 6 reales (incluida `const clave = 'secretoDeVerdad'`, que caza la regla de declaración) y en 0
+de las 6 clínicas. **Un gate que grita 34 veces deja de leerse: ésa es la forma de fallar de un
+escáner, y es peor que no tenerlo.**
 
 ## Deuda conocida sin resolver
 
@@ -2129,10 +2136,37 @@ quedan **1 hallazgo real** (el `pwd === 'maicolett1'` de la línea 1293, deuda y
   restauran —`guardarInforme` barre `input[id]/select[id]/textarea[id]` y las tres rutas son
   genéricas—, pero no salen en «Ver detalle» ni viajan al Excel del Laboratorio, a diferencia de
   sus hermanos `dap_*`/`coa_*`, que están en las tres listas. Queda declarado, no es un olvido.
-- **`CVR_EPRIMA_CM_S = 7` se aplica también al e' LATERAL**, mientras el resto del archivo usa 7
-  para el septal y **10** para el lateral (`hfapeffScore`, la clasificación diastólica). Un e'
-  lateral de 8 cm/s es «reducido» en toda la app y acá vota constricción. Viene del pedido, que
-  define la fila de restricción como «e' lateral <7». Confirmar o mover a 10.
+- ~~`CVR_EPRIMA_CM_S = 7` se aplica también al e' lateral~~ — **CERRADO 2026-09-13.** Hoy son dos
+  constantes, `CVR_ESEP_CM_S = 7` y `CVR_ELAT_CM_S = 10`, alineadas con la clasificación
+  diastólica del archivo. **Una constante que gobierna dos umbrales distintos es peor que dos
+  literales**: parece que los acopla y lo que hace es esconder que uno de los dos está mal.
+  **Y subir el umbral del lateral rompió la calibración de `nR < 2`, que es la lección de esta
+  tanda.** Mi primera nota decía «la conclusión no cambia porque la gobiernan el reversus y los
+  criterios adicionales» y nombraba una sola interacción (E/e' >15). Era falso, y lo midió el
+  `/differential-review` enumerando las **1.166.400 combinaciones alcanzables**: `constrictiva`
+  perdía el **46,7%** de su dominio y `restrictiva` ganaba el **75%**. Con el lateral votando
+  'r' en casi toda constricción real, el presupuesto de votos en contra bajaba a CERO: el caso
+  testigo era una constricción de manual con **TC pericárdica normal** —entre el 18 y el 28% de
+  las constricciones probadas quirúrgicamente— y E/e' de 12, que pasaba a «no es posible
+  diferenciar, se recomienda cateterismo». Cerrado haciendo que el lateral reducido vote
+  restricción **sólo si el septal también lo está**: con el septal conservado, un lateral bajo ES
+  el annulus reversus, y eso ya lo cuenta su propia fila. El mismo hecho no puede votar dos veces
+  en direcciones opuestas.
+  **Al mover un umbral, medir qué le pasa a los CONTEOS que dependen de él**, no sólo a la fila
+  que se tocó. Un umbral puede ser el correcto y aun así romper la cascada que lo consume.
+- **`patronRestr` lo satisfacía un perfil diastólico de rutina** (detectado y cerrado 2026-09-13).
+  La compuerta `espEval === 0` protegía el lado de la constricción y no el restrictivo, porque el
+  único criterio específico que `patronRestr` necesita es la respirofasicidad mitral: **el dato
+  que abre la compuerta era el mismo que la satisfacía** — un guardián no puede ser también la
+  llave. Medido: `e' septal 6,5 · e' lateral 9,5 · onda E 140 · variación mitral 10` —cuatro
+  números de la tab Diastólica, cero datos del pericardio— firmaba «compatible con miocardiopatía
+  restrictiva» en el cuerpo y en el EN SUMA. Con el lateral en 10 dejó de ser un borde y pasó a
+  ser el grado II-III corriente. Hoy la rama exige `espEval >= 2`.
+- **`no_concluyente` no imprime nada, a propósito.** Un estudio que antes caía en `mixto` y ahora
+  cae acá pierde la recomendación de cateterismo sin que se imprima nada en su lugar. Es
+  deliberado —un párrafo que diga «no concluyente» ocupa lugar en el informe y no aporta— pero es
+  una decisión, no un descuido: la pantalla sí lo explica con `cvrMotivo()`, que lee el conteo
+  real en vez de un texto fijo.
 
 - **VEXUS 0 con venas severas se lee como normalidad.** Con VCI < 20 mm el grado es 0 aunque los
   tres vasos estén severos —es correcto por protocolo—, pero el texto imprime «VEXUS 0 | 3 severos
