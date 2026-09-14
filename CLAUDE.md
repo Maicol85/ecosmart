@@ -2419,6 +2419,54 @@ criterio». Si aparece, la palanca es juntar las salvedades con la línea de la 
 
 ## Deuda conocida sin resolver
 
+### DICOM — estado al 2026-09-14
+El módulo SR está escrito a mano (TID 5300) y ahora cubre **31 campos**: 18 con código LOINC
+verificado y 13 con **esquema privado `99CEIBOMED`** (`CM-DSFVI`, `CM-GLS`…). Más 4 calculados
+marcados `soloExport:true`, que se emiten y no se importan.
+
+- **Los 13 privados no los va a entender otro visor.** Un PACS los muestra sin nombre clínico.
+  Se eligió eso sobre inventar un LOINC: un código estándar equivocado hace que el PACS archive
+  el GLS bajo «fracción de eyección» sin que nada avise. Si algún día se verifica el LOINC real
+  de alguno **contra el estándar**, se agrega ADELANTE en su `cods` y el privado queda atrás
+  como respaldo de los archivos ya emitidos.
+- **`DCM_ETIQ` es un respaldo, no la vía principal.** Matchea por el texto del Code Meaning y
+  sólo cuando el código no se reconoce. Todo lo que entra por ahí va **destildado**. Se sacaron
+  a propósito las etiquetas peladas ambiguas —`S'`, `AT`, `DT`, `E wave`, `E vel`,
+  `Longitudinal Strain`, `Global LS`, `IVC`, `Acc Time`, `DecT`—: todas nombran también OTRA
+  medición con las mismas unidades y el mismo rango, así que un match por texto metía el número
+  en el campo equivocado sin que nada lo delatara. Al agregar etiquetas nuevas: **si no dice de
+  qué estructura es, no va.**
+- **Dos niveles de rango, y no son lo mismo.** `DCM_RANGO` es lo físicamente posible y
+  **rechaza** (atrapa el error de unidades cm/s↔m/s). `DCM_RANGO_CLIN` es lo normal y sólo
+  **avisa**, sin destildar. Un `null` en la banda clínica significa «sin piso/techo de
+  normalidad», no cero. Bandas demasiado angostas entrenan al médico a ignorar el cartel.
+- **El signo del GLS se normaliza en las DOS puntas.** El campo `sgl` admite positivo y
+  negativo; el exportador emite `-Math.abs()` y el importador lo fuerza al leer. Normalizar en
+  una sola punta rompía la identidad del ida y vuelta.
+- **`cx_gtp_ee` NO se exporta, aunque parezca un calculado.** Es un input libre del módulo de
+  gradiente transpulmonar que se llena una vez al abrir el acordeón y sólo si está vacío: no se
+  refresca al corregir e' septal, y puede tener un valor de un cateterismo. El E/e' canónico es
+  el span `#ee-val`, que no es un input.
+- **`vci_col` no se exporta:** es un `<select>` con «>50» / «<50», no un número. Un content item
+  NUM exige un DS numérico. Si hace falta, va como CODE.
+- **14 conceptos del pedido NO existen en la app** y por eso no se exportan: IVSs, LVPWs, FS,
+  LVEDV, LVESV, CO, LV Mass, RWT, RV FAC, LAVi, E/A, e' mean, s' septal y s' lateral del VI.
+  Las últimas cinco son derivadas; las nueve primeras EcoSmart no las recoge. Para exportarlas
+  hay que **agregar los campos al formulario** primero.
+
+### DICOM — visor de imágenes (pendiente, 2026-09-14)
+Investigado y **no implementado**, esperando un archivo real del **Vivid Q7**.
+- `https://cdnjs.cloudflare.com/ajax/libs/dcmjs/0.29.0/dcmjs.min.js` da **404**. dcmjs NO está
+  en cdnjs (la API responde «Library not found») y no hay ninguna librería DICOM ahí.
+- Sí están en jsDelivr: `dcmjs@0.52.0`, `dicom-parser@1.8.21`, `cornerstone-core@2.6.1`,
+  `cornerstone-wado-image-loader@4.13.2`. jsDelivr ya es un origen de esta app (pptxgenjs) y los
+  6 scripts externos llevan `integrity` SHA-512.
+- **Un SR no tiene imágenes.** Los cine loops son objetos DICOM aparte con pixel data y en la
+  práctica vienen comprimidos (JPEG / JPEG-LS / RLE); el parser propio los rechaza a propósito.
+  dcmjs solo tampoco los decodifica: hace falta el stack cornerstone con códecs WASM.
+- **Lo primero a mirar cuando llegue el archivo:** la sintaxis de transferencia (0002,0010). Si
+  el Vivid Q7 exporta sin comprimir, el parser que ya existe alcanza y se evita la dependencia.
+
 ### Aorta — umbrales unificados (2026-09-14, ESC 2021)
 Un solo `AO_REF` gobierna la cápsula de pantalla, el narrativo, el EN SUMA, las dos tablas del
 PDF **y el Laboratorio**: `sin 40 · st 38 · tub 40`, con `>` estricto (40,0 exacto es normal).

@@ -41306,12 +41306,143 @@ const DCM_MAPA = [
   { campo:'ao_st',   etiq:'Ao sinotubular',        ucum:{ 'cm':10, 'mm':1 },
     cods:[['79955-1','']] },
   { campo:'ao_tub',  etiq:'Ao tubular (ascendente)',ucum:{ 'cm':10, 'mm':1 },
-    cods:[['79966-8','']] }
+    cods:[['79966-8','']] },
+  /* ── Campos agregados 2026-09-14 ─────────────────────────────────────────────────────
+     Van con ESQUEMA PRIVADO `99CEIBOMED`, no con un LOINC. La regla del módulo es no
+     inventar códigos, y acá no pude verificar el código estándar de cada concepto contra
+     el estándar mismo. Emitir un LOINC equivocado es peor que emitir uno privado: el PACS
+     archivaría el GLS bajo «fracción de eyección» sin que nada avise, y el privado lleva el
+     designador `99…` que por norma significa «esto no es del estándar, no lo interpretes».
+     Decisión de Maicol (2026-09-14): exportarlos igual con concepto privado.
+     Consecuencia a la vista: otro visor NO los va a mostrar con su nombre clínico; el ida y
+     vuelta EcoSmart → .dcm → EcoSmart sí funciona, que es el caso de uso que hay hoy.
+     Si alguna vez se verifica el LOINC real de alguno, se agrega ADELANTE en su `cods` y el
+     privado queda atrás como respaldo de los archivos ya emitidos. */
+  { campo:'dsfvi',         etiq:'DSFVI',                     ucum:{ 'cm':10, 'mm':1 },     cods:[['CM-DSFVI','privado CeiboMed']], esq:'99CEIBOMED' },
+  { campo:'vd_bas',        etiq:'VD basal',                  ucum:{ 'cm':10, 'mm':1 },     cods:[['CM-VDBAS','privado CeiboMed']], esq:'99CEIBOMED' },
+  { campo:'triv',          etiq:'TRIV',                      ucum:{ 'ms':1 },              cods:[['CM-TRIV','privado CeiboMed']],  esq:'99CEIBOMED' },
+  /* El GLS es NEGATIVO por convención y varios equipos lo emiten en positivo. El signo se
+     normaliza al importar (ver `_dcmSignoGLS`), no acá: la tabla describe unidades, no signos. */
+  { campo:'sgl',           etiq:'Strain longitudinal global', ucum:{ '%':1 },              cods:[['CM-GLS','privado CeiboMed']],   esq:'99CEIBOMED' },
+  { campo:'ai_diam',       etiq:'Diámetro AP de AI',         ucum:{ 'cm':10, 'mm':1 },     cods:[['CM-AIDIAM','privado CeiboMed']],esq:'99CEIBOMED' },
+  { campo:'itv_tsvi',      etiq:'VTI TSVI',                  ucum:{ 'cm':1 },              cods:[['CM-VTITSVI','privado CeiboMed']],esq:'99CEIBOMED' },
+  { campo:'diam_tsvi',     etiq:'Diámetro TSVI',             ucum:{ 'cm':10, 'mm':1 },     cods:[['CM-DTSVI','privado CeiboMed']], esq:'99CEIBOMED' },
+  { campo:'em_vtimit',     etiq:'VTI mitral',                ucum:{ 'cm':1 },              cods:[['CM-VTIMIT','privado CeiboMed']],esq:'99CEIBOMED' },
+  { campo:'vci_diam',      etiq:'Diámetro VCI',              ucum:{ 'cm':10, 'mm':1 },     cods:[['CM-VCID','privado CeiboMed']],  esq:'99CEIBOMED' },
+  { campo:'tango_tac',     etiq:'Tiempo de aceleración pulmonar', ucum:{ 'ms':1 },         cods:[['CM-TACPULM','privado CeiboMed']],esq:'99CEIBOMED' },
+  { campo:'vti_tsvd',      etiq:'VTI TSVD',                  ucum:{ 'cm':1 },              cods:[['CM-VTITSVD','privado CeiboMed']],esq:'99CEIBOMED' },
+  { campo:'tsvd_diametro', etiq:'Diámetro TSVD',             ucum:{ 'cm':10, 'mm':1 },     cods:[['CM-DTSVD','privado CeiboMed']], esq:'99CEIBOMED' },
+  { campo:'s_prime',       etiq:"s' tricuspídeo",            ucum:{ 'cm/s':1, 'm/s':100 }, cods:[['CM-SPRIME','privado CeiboMed']],esq:'99CEIBOMED' },
+  /* `soloExport`: se EMITEN pero no se importan. Están acá para que reimportar un .dcm hecho
+     por EcoSmart los reconozca y explique por qué no entran, en vez de listarlos como cinco
+     «código sin equivalente» — un motivo que sugiere que falta soporte y que además sube el
+     contador de no reconocidos en cada importación de un archivo propio. */
+  { campo:'vs_calc',           etiq:'Volumen sistólico (calculado)',  ucum:{ 'ml':1 },      cods:[['CM-SV','privado CeiboMed']],   esq:'99CEIBOMED', soloExport:true },
+  { campo:'ava_cont',          etiq:'AVA por continuidad (calculado)',ucum:{ 'cm2':1 },     cods:[['CM-AVA','privado CeiboMed']],  esq:'99CEIBOMED', soloExport:true },
+  { campo:'psap_calc',         etiq:'PSAP (calculada)',               ucum:{ 'mm[Hg]':1 },  cods:[['CM-PASP','privado CeiboMed']], esq:'99CEIBOMED', soloExport:true },
+  { campo:'grad_vdad_display', etiq:'Gradiente VD-AD (calculado)',    ucum:{ 'mm[Hg]':1 },  cods:[['CM-TRPG','privado CeiboMed']], esq:'99CEIBOMED', soloExport:true }
 ];
+/* ── Diccionario multi-fabricante por ETIQUETA DE TEXTO ──────────────────────────────
+   El importador matchea por CÓDIGO, que es lo correcto y lo preciso. El problema práctico:
+   varios ecógrafos emiten los conceptos con códigos PRIVADOS suyos, y ahí el código no dice
+   nada — pero el Code Meaning sí trae la etiqueta que el fabricante le pone en pantalla
+   («IVSd», «LVIDd», «EF (Bip MOD)»). Esta tabla es el RESPALDO para esos casos: se consulta
+   sólo cuando el código no se reconoce.
+
+   Es deliberadamente un respaldo y no la vía principal: el texto es ambiguo —«AT» puede ser
+   el tiempo de aceleración pulmonar o cualquier otra cosa— y un match por texto equivocado
+   mete un número en el campo de otra medición. Por eso todo lo que entra por acá queda
+   MARCADO en la tabla de confirmación, para que se mire antes de tildarlo.
+
+   El valor apunta al mismo `campo` de `DCM_MAPA`, así que hereda su unidad UCUM, su rango y
+   su etiqueta: no hay una segunda definición que se pueda desincronizar. */
+const DCM_ETIQ = {
+  siv:           ["IVSd","IVS d","Septum d","IVS(d)","IVSD","SIV d","IVSd (2D)"],
+  dsfvi:         ["LVIDs","LVID s","LVDs","LVESD","LVD(s)","LV ID s"],
+  ddfvi:         ["LVIDd","LVID d","LVDd","LVEDD","LVD(d)","LV ID d"],
+  ppvi:          ["LVPWd","LVPW d","PW d","Posterior Wall d","LVPWD"],
+  fevi:          ["EF (Bip MOD)","EF Biplane","LVEF","EF MOD","EF (Simpson)","AutoEF",
+                  "LV EF","Ejection Fraction","EF(MOD-bp)","EF 2D","Biplane EF","LVEF (2D)"],
+  /* Sin «Global LS» ni «Longitudinal Strain» sueltos: también los usan el strain de pared
+     libre del VD y el de reservorio de AI. El de AI es POSITIVO (~35 %), así que la
+     normalización de signo lo convertiría en un GLS de -35 — un valor que parece un strain
+     del VI normal-bajo y no lo es. Quedan sólo las formas que dicen «GLS». */
+  sgl:           ["GLS","LV GLS","LS (GLS)","2D GLS","GLS (2D)"],
+  tapse:         ["TAPSE","RV TAPSE","Tricuspid Annular Plane","TA Excursion"],
+  vd_bas:        ["RVD1","RV basal","RV Basal Diam","RVD basal"],
+  vmax_it:       ["TR Vmax","TR Max Vel","Tricuspid Regurg Vmax","TR Peak Vel","TR V max"],
+  /* Sin «S'» pelado: es también el s' del anillo MITRAL, con las mismas unidades y el mismo
+     rango, y `s_prime` es lo que EcoSmart usa para función del VD. Sólo formas calificadas. */
+  s_prime:       ["s' tric","RV S'","TDI S' tric","Tricuspid S'"],
+  ai_diam:       ["LAD","LA diam","LA Diameter","Left Atrium","LA AP","LA d"],
+  ai_vol:        ["LAV","LA Vol","LA Volume","LA Vol biplane"],
+  // Sin «E wave» / «E vel» pelados: también son la E tricuspídea y la de venas pulmonares.
+  onda_e:        ["MV E","Mitral E","MV E vel","MV E velocity"],
+  onda_a:        ["MV A","Mitral A","MV A vel","MV A velocity"],
+  /* Sin «DT» ni «DecT» ni «Decel Time» pelados: también son el tiempo de desaceleración de
+     la onda D de venas pulmonares y el de la E tricuspídea, todos en ms y en el mismo rango. */
+  tde:           ["MV DT","Mitral DT","MV DecT"],
+  triv:          ["IVRT","IVR Time","Isovolumic Relaxation"],
+  em_vtimit:     ["MV VTI","MV TVI","Mitral VTI"],
+  e_sep:         ["e' sep","e' septal","e' (septal)","e' (sept)","Septal e'","TDI e' sep","Medial e'","e' med"],
+  e_lat:         ["e' lat","e' lateral","e' (lateral)","e' (lat)","Lateral e'","TDI e' lat"],
+  vmax_ao:       ["AV Vmax","AV Max Vel","Aortic Vmax","AV Peak Vel","AoV Vmax","AV V max"],
+  gmedio_ao:     ["AV MG","AV Mean Grad","Aortic MG","AV Mean PG"],
+  itv_tsvi:      ["LVOT VTI","LVOT TVI","LV Outflow VTI"],
+  diam_tsvi:     ["LVOT D","LVOT diam","LVOT Diameter"],
+  ao_sin:        ["Ao Root","Ao root","AoS","Sinus of Valsalva","Ao Sinus","Aortic Root"],
+  ao_st:         ["STJ","Sinotubular","Sinotubular Junction","Ao STJ"],
+  ao_tub:        ["Ao Asc","Ao asc","AAo","Ascending Aorta","AoAsc"],
+  // Sin «IVC» pelado: no distingue diámetro máximo de mínimo, y de ahí sale la PmAD → PSAP.
+  vci_diam:      ["IVC D","IVC diam","IVC Diameter","IVC Dmax"],
+  // Sin «AT» ni «Acc Time» pelados: también son el tiempo de aceleración aórtico y el mitral.
+  tango_tac:     ["RVOT AT","Pulm AT","PA AT","PV AT"],
+  vti_tsvd:      ["RVOT VTI","RVOT TVI"],
+  tsvd_diametro: ["RVOT D","RVOT diam","RVOT Diameter"]
+};
+/* Normaliza para comparar: sin acentos, sin comillas tipográficas, espacios colapsados,
+   minúsculas. Las comillas importan: los equipos escriben e' con apóstrofo recto, con
+   tipográfico (’) o con acento agudo (´), y las tres son la misma medición. */
+function _dcmNormEtiq(t) {
+  return String(t == null ? '' : t)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\u2018\u2019\u00b4\u0060\u2032\u02bc]/g, "'")   // ′ PRIME y ʼ los usan varios equipos
+    .replace(/\s+/g, ' ').trim().toLowerCase();
+}
+const _dcmPorEtiqueta = (() => {
+  const m = new Map();
+  Object.keys(DCM_ETIQ).forEach(campo => {
+    const def = DCM_MAPA.find(d => d.campo === campo);
+    if (!def) { console.error('[DCM_ETIQ] «' + campo + '» no existe en DCM_MAPA: esas etiquetas no van a importar nada'); return; }
+    DCM_ETIQ[campo].forEach(et => {
+      const k = _dcmNormEtiq(et);
+      /* Una etiqueta que ya apunta a OTRO campo es ambigua: no se queda con la primera en
+         silencio, se descarta y se avisa. Meter un número en el campo equivocado es peor
+         que no importarlo. */
+      /* `m.get(k) === null` primero: tras el primer choque la clave queda en null, y un
+         TERCER campo con la misma etiqueta hacía `null.def` → TypeError dentro de un IIFE de
+         nivel superior, o sea el bloque <script> entero muerto y la app sin nada de JS. */
+      if (m.has(k) && (m.get(k) === null || m.get(k).def.campo !== campo)) {
+        console.error('[DCM_ETIQ] «' + et + '» apunta a ' + m.get(k).def.campo + ' y a ' + campo + ': se ignora por ambigua');
+        m.set(k, null); return;
+      }
+      if (!m.has(k)) m.set(k, { def:def, metodo:'', pref:99, porEtiqueta:true });
+    });
+  });
+  return m;
+})();
 const _dcmPorCodigo = (() => {
   const m = new Map();
+  /* Se indexa por ESQUEMA|CÓDIGO y además por el código pelado. El esquema ya venía parseado
+     (`_dcmCodigo` devuelve {v,e,m}) y no se usaba para decidir: un archivo que declarara un
+     código PRIVADO cuyo valor coincidiera con uno de nuestros LOINC entraba como si fuera el
+     concepto estándar. La clave compuesta se prueba primero; la pelada queda como respaldo
+     para los archivos ya emitidos y para los equipos que declaran mal el designador. */
   DCM_MAPA.forEach(d => d.cods.forEach(([cod, met], i) => {
-    if (!m.has(cod)) m.set(cod, { def:d, metodo:met, pref:i });
+    const ent = { def:d, metodo:met, pref:i };
+    const esq = d.esq || 'LN';
+    if (!m.has(esq + '|' + cod)) m.set(esq + '|' + cod, ent);
+    if (!m.has(cod)) m.set(cod, ent);
   }));
   return m;
 })();
@@ -41359,7 +41490,47 @@ const DCM_RANGO = {
   fevi:[5,90], siv:[3,35], ddfvi:[20,100], ppvi:[3,35], tapse:[3,40], ai_vol:[5,400],
   onda_e:[10,250], onda_a:[5,250], e_sep:[1,30], e_lat:[1,35], tde:[40,500],
   vmax_it:[0.5,8], vmax_ao:[0.5,8], gmedio_ao:[1,150], em_gmedio:[1,60],
-  ao_sin:[10,90], ao_st:[10,80], ao_tub:[10,90]
+  ao_sin:[10,90], ao_st:[10,80], ao_tub:[10,90],
+  // Agregados 2026-09-14. Siguen siendo los FÍSICAMENTE posibles, no los normales.
+  /* `sgl` va [-40,0] y no [-45,45]: después de forzar el signo el valor es siempre ≤0, así
+     que la mitad positiva era rango muerto — y un GLS de +40, que es imposible, se convertía
+     en -40 y pasaba el guardián. El chequeo corre DESPUÉS de la normalización, que es donde
+     está. */
+  dsfvi:[10,90], vd_bas:[10,70], triv:[10,300], sgl:[-40,0], ai_diam:[10,90],
+  itv_tsvi:[2,60], diam_tsvi:[5,45], em_vtimit:[2,80], vci_diam:[2,50],
+  tango_tac:[10,300], vti_tsvd:[2,60], tsvd_diametro:[5,50], s_prime:[1,35]
+};
+/* ── Dos niveles de rango, que contestan preguntas distintas ──────────────────────────
+   `DCM_RANGO` es lo FÍSICAMENTE posible: un valor afuera no es un hallazgo raro, es un
+   error de unidades o de tipeo —una Vmax IT de 280 porque el archivo dice m/s y el número
+   es cm/s—. Eso se RECHAZA, con el motivo a la vista. Es el guardián que atrapa el error
+   que mete un número imposible en un informe firmado sin que nadie lo note.
+
+   `DCM_RANGO_CLIN` es lo NORMAL. Un valor afuera es un hallazgo real y frecuente —una FEVI
+   de 22 %, una Vmax aórtica de 5,2— y rechazarlo sería perder justamente el dato que hace
+   al estudio patológico. Entra, tildado, con una advertencia visible.
+
+   Decisión de Maicol (2026-09-14): rechazo para lo imposible, advertencia para lo posible
+   pero fuera de lo normal. Los límites de acá salen del diccionario que pasó.
+   Un campo sin entrada en esta tabla no genera advertencia: la ausencia no es «todo bien»,
+   es «no hay banda clínica definida», y en la duda no se molesta al médico con un cartel. */
+const DCM_RANGO_CLIN = {
+  fevi:[50,80], siv:[6,11], ddfvi:[38,58], dsfvi:[22,40], ppvi:[6,11],
+  tapse:[17,30], vd_bas:[null,41], vmax_it:[null,2.8], s_prime:[9.5,20],
+  ai_vol:[null,58],
+  onda_e:[50,110], onda_a:[30,90], tde:[140,240], triv:[50,100],
+  e_sep:[7,20], e_lat:[10,25],
+  vmax_ao:[0.5,2.5], gmedio_ao:[1,10], em_gmedio:[1,5],
+  itv_tsvi:[18,26], diam_tsvi:[18,26], em_vtimit:[8,20],
+  sgl:[-25,-18], vci_diam:[10,21],
+  /* `null` = sin piso de normalidad. Antes estos seis llevaban el piso de PLAUSIBILIDAD
+     copiado de DCM_RANGO, así que el cartel afirmaba que el rango normal de la raíz aórtica
+     «empieza» en 10 mm. Y tres bandas eran más angostas que lo normal —el AT pulmonar llega a
+     185 ms, el TSVD proximal a 35 mm, y no hay piso de normalidad para el diámetro de AI—, así
+     que avisaban sobre estudios sanos: la forma más rápida de que el médico aprenda a ignorar
+     el cartel. Los topes de la aorta salen de AO_REF, que es la única definición de dilatada. */
+  tango_tac:[null,185], vti_tsvd:[12,22], tsvd_diametro:[null,35], ai_diam:[null,40],
+  ao_sin:[null,AO_REF.sin], ao_st:[null,AO_REF.st], ao_tub:[null,AO_REF.tub]
 };
 
 /* ── Conversión de nombres, en UN solo lugar para las dos direcciones ──
@@ -41422,8 +41593,22 @@ function _dcmPaciente(ds) {
 function _dcmMapear(num) {
   const c = num.concepto;
   if (!c || !c.v) return { ok:false, motivo:'la medición no declara código de concepto' };
-  const hit = _dcmPorCodigo.get(c.v);
-  if (!hit) return { ok:false, motivo:'código sin equivalente en EcoSmart', cod:c };
+  /* Primero por ESQUEMA|CÓDIGO. El respaldo por código pelado sólo se acepta si el archivo NO
+     declara un esquema privado ajeno: un designador `99…` que no sea el nuestro significa
+     «este código es mío y quiere decir lo que yo diga», así que dejarlo caer al índice pelado
+     hacía que un `79991-6` privado de otro fabricante entrara como nuestra FEVI. Un esquema
+     estándar mal declarado —o ausente— sí cae al respaldo, que es tolerancia útil y no un
+     agujero: los códigos LOINC sólo los emite software que sigue el estándar. */
+  const _esqAjeno = c.e && /^99/.test(String(c.e)) && String(c.e) !== '99CEIBOMED';
+  let hit = (c.e ? _dcmPorCodigo.get(String(c.e) + '|' + c.v) : null) ||
+            (_esqAjeno ? null : _dcmPorCodigo.get(c.v));
+  /* Respaldo por etiqueta: sólo si el código no se reconoce. Ver la nota de `DCM_ETIQ`. */
+  if (!hit && c.m) hit = _dcmPorEtiqueta.get(_dcmNormEtiq(c.m)) || null;
+  if (hit && hit.def.soloExport) {
+    return { ok:false, cod:c,
+      motivo: hit.def.etiq + ': EcoSmart lo calcula, no lo guarda. Se importan las mediciones que lo alimentan y la app lo recalcula.' };
+  }
+  if (!hit) return { ok:false, motivo:'código sin equivalente en EcoSmart' + (c.m ? ' («' + c.m + '» tampoco figura entre las etiquetas conocidas)' : ''), cod:c };
   if (num.calificador && num.calificador.v) {
     return { ok:false, cod:c,
       motivo:'el archivo la marca como no medida (' + (num.calificador.m || num.calificador.v) + ')' };
@@ -41444,8 +41629,15 @@ function _dcmMapear(num) {
     return { ok:false, cod:c,
       motivo:'unidad «' + u + '» inesperada para ' + hit.def.etiq + ' (se esperaba ' + Object.keys(hit.def.ucum).join(' o ') + ')' };
   }
-  const conv = num.valor * factor;
+  let conv = num.valor * factor;
   if (!isFinite(conv)) return { ok:false, motivo:'el valor convertido no es finito', cod:c };
+  /* El strain longitudinal es NEGATIVO por convención y varios equipos lo emiten en
+     positivo. Sin normalizar, un GLS de 18 (normal) entra como +18 y EcoSmart lo lee como
+     un strain gravemente alterado — o al revés, según el umbral. Se fuerza el signo, que es
+     lo único que se puede afirmar: el valor absoluto es el dato, el signo es la convención.
+     Ya pasó una vez en el módulo de amiloidosis, con un `-Math.abs()` en el borde. */
+  let signoGLS = false;
+  if (hit.def.campo === 'sgl' && conv > 0) { conv = -Math.abs(conv); signoGLS = true; }
   const rg = DCM_RANGO[hit.def.campo];
   if (rg && (conv < rg[0] || conv > rg[1])) {
     return { ok:false, cod:c,
@@ -41461,9 +41653,23 @@ function _dcmMapear(num) {
   const der = num.mods.find(m => m.nombre && m.nombre.v === DCM_MOD_DERIV);
   const derTxt = (der && der.valor && der.valor.v !== DCM_DERIV_MEDIA)
     ? (der.valor.m || der.valor.v) : '';
+  /* Fuera de lo NORMAL pero dentro de lo posible: entra, y se avisa. No destilda: un
+     hallazgo patológico es justamente lo que hay que importar. */
+  const rgc = DCM_RANGO_CLIN[hit.def.campo];
+  /* La unidad del mensaje es la de EcoSmart, que es la del factor 1 en la tabla UCUM: sin
+     ella el cartel dice «Vmax IT = 3.2 queda fuera de (0.5–2.8)» y no se sabe de qué. */
+  const _uApp = Object.keys(hit.def.ucum).find(k => hit.def.ucum[k] === 1) || '';
+  const _fuera = rgc && ((rgc[0] != null && conv < rgc[0]) || (rgc[1] != null && conv > rgc[1]));
+  const _banda = rgc ? (rgc[0] == null ? 'hasta ' + rgc[1] : (rgc[1] == null ? 'desde ' + rgc[0] : rgc[0] + '–' + rgc[1])) : '';
+  const avClin = _fuera
+    ? hit.def.etiq + ' = ' + _dcmRed(conv) + (_uApp ? ' ' + _uApp : '') + ' queda fuera del rango normal (' + _banda + (_uApp ? ' ' + _uApp : '') + '). Se importa igual: revisá que sea un hallazgo y no un error de carga del equipo.'
+    : '';
   return { ok:true, campo:hit.def.campo, etiq:hit.def.etiq, metodo:hit.metodo, pref:hit.pref,
            cod:c, unidadOrig:u, valorOrig:num.valor, valor:conv,
-           derivacion:derTxt, dudoso: !!hit.def.psap || !!derTxt };
+           derivacion:derTxt, avClin:avClin, signoGLS:signoGLS, porEtiqueta:!!hit.porEtiqueta,
+           /* `porEtiqueta` entra DESTILDADO: el match por texto es ambiguo por naturaleza
+              y conviene que lo confirme una persona. `dudoso` ya hace exactamente eso. */
+           dudoso: !!hit.def.psap || !!derTxt || !!hit.porEtiqueta };
 }
 
 /* Redondeo de presentación: sin esto un 1.1 cm × 10 sale 11.000000000000002. */
@@ -41583,6 +41789,9 @@ function _dcmRenderPreview() {
         ? '<div style="font-size:10px;color:var(--text2);">' + E(_dcmRed(r.valorOrig) + ' ' + r.unidadOrig) + ' → convertido</div>' : '';
       const amb = t => '<div style="font-size:10px;color:#f59e0b;margin-top:2px;">⚠️ ' + t + '</div>';
       let av = '';
+      if (r.porEtiqueta) av += amb('Reconocida por el <b>nombre</b> «' + E(r.cod.m || '') + '», no por su código: el archivo usa un código que EcoSmart no conoce. El nombre puede ser ambiguo — confirmá que sea esta medición antes de tildarla.');
+      if (r.signoGLS)    av += amb('El archivo trae el strain en positivo. Se guarda en negativo, que es la convención que usa EcoSmart; el valor absoluto no se toca.');
+      if (r.avClin)      av += amb(E(r.avClin));
       if (r.campo === 'vmax_it') av += amb('El estándar no tiene código para la PSAP. Esto es la Vmax de la insuficiencia tricuspídea: EcoSmart calcula la PSAP a partir de ella y de la VCI. Revisá que sea el jet regurgitante.');
       if (r.derivacion)         av += amb('El archivo la declara como <b>' + E(r.derivacion) + '</b> de varias medidas, no como la medición. Elegí vos si va.');
       if (r.empate)             av += amb('El archivo trae <b>' + r.empate + '</b> valores distintos con este mismo código —típico de un eco de estrés, uno por etapa— y no hay forma de saber cuál corresponde. Se muestra el primero; los otros están más abajo.');
@@ -41880,7 +42089,39 @@ const DCM_EXPORT = [
   { campo:'em_gmedio', cod:'80073-0', u:'mm[Hg]', ut:'mmHg', f:1 },
   { campo:'ao_sin',    cod:'79953-6', u:'cm',     ut:'cm',   f:0.1 },
   { campo:'ao_st',     cod:'79955-1', u:'cm',     ut:'cm',   f:0.1 },
-  { campo:'ao_tub',    cod:'79966-8', u:'cm',     ut:'cm',   f:0.1 }
+  { campo:'ao_tub',    cod:'79966-8', u:'cm',     ut:'cm',   f:0.1 },
+  // Agregados 2026-09-14 — concepto privado, ver la nota en DCM_MAPA.
+  { campo:'dsfvi',         cod:'CM-DSFVI',   esq:'99CEIBOMED', u:'cm',     ut:'cm',   f:0.1 },
+  { campo:'vd_bas',        cod:'CM-VDBAS',   esq:'99CEIBOMED', u:'cm',     ut:'cm',   f:0.1 },
+  { campo:'triv',          cod:'CM-TRIV',    esq:'99CEIBOMED', u:'ms',     ut:'ms',   f:1 },
+  { campo:'sgl',           cod:'CM-GLS',     esq:'99CEIBOMED', u:'%',      ut:'%',    f:1 },
+  { campo:'ai_diam',       cod:'CM-AIDIAM',  esq:'99CEIBOMED', u:'cm',     ut:'cm',   f:0.1 },
+  { campo:'itv_tsvi',      cod:'CM-VTITSVI', esq:'99CEIBOMED', u:'cm',     ut:'cm',   f:1 },
+  { campo:'diam_tsvi',     cod:'CM-DTSVI',   esq:'99CEIBOMED', u:'cm',     ut:'cm',   f:0.1 },
+  { campo:'em_vtimit',     cod:'CM-VTIMIT',  esq:'99CEIBOMED', u:'cm',     ut:'cm',   f:1 },
+  { campo:'vci_diam',      cod:'CM-VCID',    esq:'99CEIBOMED', u:'cm',     ut:'cm',   f:0.1 },
+  { campo:'tango_tac',     cod:'CM-TACPULM', esq:'99CEIBOMED', u:'ms',     ut:'ms',   f:1 },
+  { campo:'vti_tsvd',      cod:'CM-VTITSVD', esq:'99CEIBOMED', u:'cm',     ut:'cm',   f:1 },
+  { campo:'tsvd_diametro', cod:'CM-DTSVD',   esq:'99CEIBOMED', u:'cm',     ut:'cm',   f:0.1 },
+  { campo:'s_prime',       cod:'CM-SPRIME',  esq:'99CEIBOMED', u:'cm/s',   ut:'cm/s', f:1 },
+  /* CALCULADOS — sólo SALIDA, a propósito. No están en `DCM_MAPA`, así que el importador
+     no los conoce y no puede escribirlos: son `readonly`, la app los recalcula en el
+     próximo render y un número escrito ahí se ve en pantalla y desaparece al guardar.
+     Exportarlos sí sirve: el que recibe el .dcm ve la PSAP y el AVA que decidió el informe,
+     que es justo lo que no puede recalcular sin el resto del estudio. */
+  { campo:'vs_calc',           cod:'CM-SV',     esq:'99CEIBOMED', u:'ml',     ut:'ml',    f:1, etiq:'Volumen sistólico (calculado)' },
+  { campo:'ava_cont',          cod:'CM-AVA',    esq:'99CEIBOMED', u:'cm2',    ut:'cm2',   f:1, etiq:'AVA por continuidad (calculado)' },
+  { campo:'psap_calc',         cod:'CM-PASP',   esq:'99CEIBOMED', u:'mm[Hg]', ut:'mmHg',  f:1, etiq:'PSAP (calculada)' },
+  { campo:'grad_vdad_display', cod:'CM-TRPG',   esq:'99CEIBOMED', u:'mm[Hg]', ut:'mmHg',  f:1, etiq:'Gradiente VD-AD (calculado)' },
+  /* `cx_gtp_ee` NO va acá, aunque parezca de la familia. No es readonly: es un input libre
+     del módulo de gradiente transpulmonar que se llena UNA vez, al abrir ese acordeón, y sólo
+     si está vacío. Si después se corrige e' septal, el E/e' real del estudio cambia y ese
+     campo NO — o directamente tiene un valor de un cateterismo previo tipeado a mano.
+     Exportarlo rotulado «calculado» publicaba en el PACS un número viejo con cara de actual.
+     El E/e' canónico es el span `#ee-val`, que no es un input y por eso no entra por `gv()`. */
+  /* `vci_col` NO se exporta: es un <select> con valores «>50» y «<50», no un número, y un
+     content item NUM exige un DS numérico. Emitirlo como medición daría un valor inválido
+     en el archivo. Si hace falta, va como CODE, que es otro tipo de content item. */
 ];
 
 /* Envoltorio: la construcción del archivo puede lanzar (_dcmElem rechaza un valor que no
@@ -41906,8 +42147,11 @@ function _dcmExportarSR() {
     if (raw === '') return;
     const n = parseFloat(raw.replace(',', '.'));
     if (!isFinite(n)) return;
-    const v = n * d.f;
-    meds.push(_dcmNum(d.cod, 'LN', _dcmEtiquetaCampo(d.campo), Math.round(v * 10000) / 10000, d.u, d.ut));
+    /* El strain se normaliza en LAS DOS direcciones. Normalizar sólo al importar rompía la
+       identidad del ida y vuelta que el comentario de DCM_MAPA promete: el médico tipea 18
+       —el campo admite los dos signos—, el .dcm salía con 18 y al reimportarlo volvía -18. */
+    const v = (d.campo === 'sgl') ? -Math.abs(n * d.f) : n * d.f;
+    meds.push(_dcmNum(d.cod, d.esq || 'LN', d.etiq || _dcmEtiquetaCampo(d.campo), Math.round(v * 10000) / 10000, d.u, d.ut));
   });
   if (!meds.length) { toast('⚠️ El estudio no tiene ninguna medición exportable a DICOM SR'); return; }
 
@@ -43378,7 +43622,13 @@ function labMedicoRender() {
      `null` se suma como 0 en el promedio. Es el mismo tropiezo que ya nos costó el filtro
      de FEVI del Laboratorio. */
   const fevis = infs.map(_labFevi).filter(v => v !== null);
-  const glss  = infs.map(_labGls).filter(v => v !== null);
+  /* `.map(Math.abs)`, igual que la otra vista de GLS (~38241) y que `promAbs`. El campo admite
+     los dos signos —la base tiene strain tipeado en positivo y en negativo— así que promediar
+     con signo daba un GLS promedio cercano a cero sobre una base mixta, y eso salía impreso.
+     Desde que el importador DICOM normaliza el signo a negativo, cada archivo importado suma
+     del lado negativo mientras el formulario sigue produciendo positivos: la mezcla dejó de
+     ser un accidente de tipeo y pasó a ser sistemática. */
+  const glss  = infs.map(_labGls).filter(v => v !== null && v !== 0).map(Math.abs);
 
   statsEl.innerHTML = `
     <div>
