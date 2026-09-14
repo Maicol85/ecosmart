@@ -2361,6 +2361,49 @@ motivo: un espejo es dato de OTRA sección mostrado por comodidad, y contarlo ab
 pacientes que no tienen esa patología. Y repinta la flecha: abrir por código sin tocarla deja el
 afford diciendo «cerrado» sobre una sección abierta.
 
+### MCH y MCA — párrafos en el informe y tabla por columnas — 2026-09-14
+
+Cambio de PRESENTACIÓN. Ninguna oración clínica se tocó: las 16 de `mchConclusion` y las 22 de
+`mcaConclusion` son las mismas y en el mismo orden, verificado de dos maneras —capturando la
+salida de 4 escenarios ANTES de editar y comparando frase por frase después (cero perdidas, cero
+inventadas, orden idéntico), y releyendo los `partes.push` contra `git show HEAD`—.
+
+**Los párrafos se emiten como ELEMENTOS SEPARADOS de `etePars`, nunca como un string con `\n`.**
+`_infEscribir` trata `lineasNuevas` como un array de LÍNEAS y `_infMerge` compara línea contra
+línea: un salto embebido deja `base` con un elemento donde `actual` —que sale de
+`value.split('\n')`— tiene varios, y el merge siguiente toma esas líneas por texto escrito por el
+médico. La protección de las ediciones manuales se rompe en silencio. Vale igual para el EN SUMA,
+por eso `sumaCC` acepta un array y no un string con saltos.
+
+**`_ccParrafos(partes, cortes)` corta el MISMO array, no re-deriva nada.** `txt` sigue siendo
+`partes.join('. ')` para la tarjeta de pantalla, así que pantalla e informe no pueden divergir.
+Agrupar sin reordenar fue deliberado: reordenar habría hecho imposible probar que no se perdió
+ninguna oración.
+
+**La tabla de MCA quedó en cinco mini-tablas, una por categoría, y cada una conserva sus `<tr>`.**
+No es decorativo: `mcaTogglePunto` resuelve la fila con `cel.closest('tr')` para apagar el hermano
+de la misma fila, y su guarda es `if (fila)` — sin un `<tr>` ancestro la exclusión mutua se
+perdería SIN ERROR. Las 17 celdas se movieron verbatim: mismos ids, mismos `onclick`, mismos
+`title`. Conteo Task Force verificado por clic real: jerarquía, duplicados y desmarcado intactos.
+
+**Lo que la revisión encontró y hay que recordar:**
+- **`ccSumaLinea` tiene nueve llamadores y uno NO pasa por `sumaCC`**: el del PPT hacía
+  `String(array)` → los criterios salían pegados por comas. Sin error, y el único lugar donde se
+  veía era el proyector. Al cambiar el tipo de retorno de una función, contar los llamadores.
+- **`.mca-tabla th` lleva `text-transform:uppercase`**, así que los encabezados `M` y `m` de
+  Mayor/Menor renderizaban los dos como «M». Hoy dicen «May.» y «Men.».
+- **Las salvedades del EN SUMA arrancaban en minúscula**: se escribieron para ir tras un ` — ` a
+  mitad de frase y como línea propia quedaban mal en un informe firmado.
+- **El blanco de toque de las celdas cayó de 52 a 26 px** al angostar las columnas. Restituido a
+  ~34×29. Sigue por debajo de los 44 px de la guía, como ya estaba antes.
+
+**El ajuste A4, medido y no estimado.** El EN SUMA de MCH pasó de 1 línea a 3-4, y el renglón del
+EN SUMA es el caro: `_pdfAjustarA4` no toca `PDF_FS_FIJO`, así que la escalera casi no lo
+recupera. A/B sobre el mismo estudio pesado (MCH + MCA integradas), con `generarPDFReal({medir:true})`:
+**antes 2 hojas de cuerpo, ahora 2** — el cambio suma 3 líneas al EN SUMA y 6 al cuerpo y no agrega
+hoja. Un estudio exactamente en el borde sí podría volcar, y eso es inherente a «una línea por
+criterio». Si aparece, la palanca es juntar las salvedades con la línea de la AHA.
+
 ## Deuda conocida sin resolver
 
 - ~~`generarInformeConEvolucion` cruza pacientes sin documento~~ — **CERRADO 2026-09-14.** Hoy

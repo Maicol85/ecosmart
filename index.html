@@ -628,13 +628,24 @@
   .mca-tabla { width:100%; border-collapse:collapse; font-size:11px; margin-top:8px; }
   .mca-tabla th { text-align:left; font-weight:700; color:var(--text2); padding:4px 6px; border-bottom:1px solid var(--border); font-size:10px; text-transform:uppercase; letter-spacing:.04em; }
   .mca-tabla td { padding:3px 6px; border-bottom:1px solid rgba(255,255,255,.05); vertical-align:middle; line-height:1.35; }
-  .mca-tabla td.mca-cat { color:var(--text2); font-size:10px; white-space:nowrap; }
   .mca-cel { text-align:center; width:52px; cursor:pointer; user-select:none; border-radius:4px; background:rgba(255,255,255,.04); }
   .mca-cel:hover { background:rgba(255,255,255,.10); }
   .mca-cel.mca-on  { background:#15803d; color:#fff; font-weight:700; }
   .mca-cel.mca-dup { background:rgba(21,128,61,.30); color:var(--text2); }
   .mca-cel.mca-menor.mca-on { background:#4ade80; color:#0f172a; }
   .mca-na { text-align:center; color:var(--text2); opacity:.35; }
+  /* Columnas por categoría. `auto-fit` con `minmax` y no cinco columnas fijas: en pantalla ancha
+     entran las cinco y en angosta bajan solas en vez de desbordar — los textos de criterio son
+     largos y una grilla rígida saca scroll horizontal. */
+  .mca-cat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:10px; margin-top:8px; }
+  .mca-cat-col { border:1px solid var(--border); border-radius:8px; padding:6px 8px; background:var(--bg2); min-width:0; }
+  .mca-cat-tit { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--accent2); margin-bottom:2px; }
+  .mca-tabla-col { margin-top:0; font-size:10.5px; }
+  .mca-tabla-col td:first-child { padding-left:0; }
+  /* 34px y no 26: al pasar a columnas angosté la celda de 52 a 26 y el área de toque cayó de
+     ~1090 a ~546 px². Sigue por debajo de los 44px que pide la guía —lo estaba también antes—,
+     pero no se empeora: con el padding vertical queda en ~34×29, cerca del área original. */
+  .mca-tabla-col .mca-cel, .mca-tabla-col .mca-na { width:34px; padding:7px 2px; }
   /* Celda DERIVADA: se pinta como las demás pero no responde al clic — su valor sale de otro
      campo, y dejarla clickeable invitaría a marcarla y a que el clic no hiciera nada. */
   .mca-cel.mca-auto { cursor:default; }
@@ -9176,28 +9187,70 @@ z
 
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Criterios no ecocardiográficos</div>
       <p style="font-size:10px;color:var(--text2);margin:0 0 4px;">Tocá la celda para marcar. <b>Cada categoría aporta un solo criterio</b>, el de mayor jerarquía: si marcás dos de la misma categoría, el que no cuenta queda atenuado.</p>
-      <table class="mca-tabla">
-        <thead><tr><th>Categoría</th><th>Criterio</th><th style="text-align:center;">Mayor</th><th style="text-align:center;">Menor</th></tr></thead>
-        <tbody>
-        <tr><td class="mca-cat">Tisular</td><td>Sustitución fibrosa, miocitos residuales &lt;60 % en biopsia</td><td class="mca-cel" id="cel_mca_ii_may" onclick="mcaTogglePunto('mca_ii_may')">☐</td><td class="mca-na">—</td></tr>
-        <tr><td class="mca-cat">Tisular</td><td>Miocitos residuales 60-75 % en biopsia</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_ii_men" onclick="mcaTogglePunto('mca_ii_men')">☐</td></tr>
-        <tr><td class="mca-cat">ECG repol.</td><td>Inversión de T en V1-V3 o más allá, sin BRD completo</td><td class="mca-cel" id="cel_mca_iii_may" onclick="mcaTogglePunto('mca_iii_may')">☐</td><td class="mca-na">—</td></tr>
-        <tr><td class="mca-cat">ECG repol.</td><td>Inversión de T en V1-V2, o en V4-V6</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_iii_men1" onclick="mcaTogglePunto('mca_iii_men1')">☐</td></tr>
-        <tr><td class="mca-cat">ECG repol.</td><td>Inversión de T en V1-V4 con BRD completo</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_iii_men2" onclick="mcaTogglePunto('mca_iii_men2')">☐</td></tr>
-        <tr><td class="mca-cat">ECG despol.</td><td>Onda épsilon en V1-V3</td><td class="mca-cel" id="cel_mca_iv_may" onclick="mcaTogglePunto('mca_iv_may')">☐</td><td class="mca-na">—</td></tr>
-        <tr><td class="mca-cat">ECG despol.</td><td>Potenciales tardíos: ≥1 de los 3 parámetros del ECG de señal promediada</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_iv_men1" onclick="mcaTogglePunto('mca_iv_men1')">☐</td></tr>
-        <tr><td class="mca-cat">ECG despol.</td><td>Activación terminal del QRS ≥55 ms en V1-V3, sin BRD completo</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_iv_men2" onclick="mcaTogglePunto('mca_iv_men2')">☐</td></tr>
-        <tr><td class="mca-cat">Arritmias</td><td>TV sostenida o no sostenida, morfología de BRI y <b>eje superior</b></td><td class="mca-cel" id="cel_mca_v_may" title="Derivado del bloque «⚡ Arritmia ventricular»">☐</td><td class="mca-na">—</td></tr>
-        <tr><td class="mca-cat">Arritmias</td><td>TV con morfología de BRI y eje <b>inferior</b>, o de eje desconocido</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_v_men1" title="Derivado del bloque «⚡ Arritmia ventricular»">☐</td></tr>
-        <tr><td class="mca-cat">Arritmias</td><td>Más de 500 extrasístoles ventriculares en 24 h</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_v_men2" title="Derivado del bloque «⚡ Arritmia ventricular»">☐</td></tr>
-        <tr><td class="mca-cat">Familia</td><td>Familiar de 1.º grado con MCA confirmada por criterios Task Force</td><td class="mca-cel" id="cel_mca_vi_may1" onclick="mcaTogglePunto('mca_vi_may1')">☐</td><td class="mca-na">—</td></tr>
-        <tr><td class="mca-cat">Familia</td><td>MCA confirmada en autopsia o cirugía en familiar de 1.º grado</td><td class="mca-cel" id="cel_mca_vi_may2" onclick="mcaTogglePunto('mca_vi_may2')">☐</td><td class="mca-na">—</td></tr>
-        <tr><td class="mca-cat">Familia</td><td>Mutación patogénica asociada a MCA en el paciente <span style="color:var(--text2);font-size:9px;">(categoría de historia familiar)</span></td><td class="mca-cel" id="cel_mca_vi_may3" onclick="mcaTogglePunto('mca_vi_may3')">☐</td><td class="mca-na">—</td></tr>
-        <tr><td class="mca-cat">Familia</td><td>MCA en familiar de 1.º grado sin poder verificar los criterios</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_vi_men1" onclick="mcaTogglePunto('mca_vi_men1')">☐</td></tr>
-        <tr><td class="mca-cat">Familia</td><td>Muerte súbita &lt;35 años en familiar de 1.º grado <span style="color:var(--text2);font-size:9px;">— se deriva de «Historia familiar de muerte súbita» y de la edad del familiar, en la sección de MCH</span></td><td class="mca-na">—</td><td class="mca-cel mca-menor mca-auto" id="cel_mca_vi_men2" title="Derivado: no se marca a mano">☐</td></tr>
-        <tr><td class="mca-cat">Familia</td><td>MCA confirmada en familiar de 2.º grado</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_vi_men3" onclick="mcaTogglePunto('mca_vi_men3')">☐</td></tr>
-        </tbody>
-      </table>
+      <!-- Cinco columnas, una por categoría del Task Force. Cada columna conserva su <table> con
+           sus <tr>: `mcaTogglePunto` resuelve la fila con `cel.closest('tr')` para apagar el
+           hermano de la misma fila, y su guarda es `if (fila)` — sin un <tr> ancestro esa
+           exclusión mutua se perdería EN SILENCIO, sin error. Las celdas se movieron verbatim:
+           mismos ids, mismos onclick, mismos title, mismas clases. -->
+      <div class="mca-cat-grid">
+        <div class="mca-cat-col">
+          <div class="mca-cat-tit">Tisular</div>
+          <table class="mca-tabla mca-tabla-col">
+            <thead><tr><th>Criterio</th><th style="text-align:center;">May.</th><th style="text-align:center;">Men.</th></tr></thead>
+            <tbody>
+              <tr><td>Sustitución fibrosa, miocitos residuales &lt;60 % en biopsia</td><td class="mca-cel" id="cel_mca_ii_may" onclick="mcaTogglePunto('mca_ii_may')">☐</td><td class="mca-na">—</td></tr>
+              <tr><td>Miocitos residuales 60-75 % en biopsia</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_ii_men" onclick="mcaTogglePunto('mca_ii_men')">☐</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="mca-cat-col">
+          <div class="mca-cat-tit">ECG repol.</div>
+          <table class="mca-tabla mca-tabla-col">
+            <thead><tr><th>Criterio</th><th style="text-align:center;">May.</th><th style="text-align:center;">Men.</th></tr></thead>
+            <tbody>
+              <tr><td>Inversión de T en V1-V3 o más allá, sin BRD completo</td><td class="mca-cel" id="cel_mca_iii_may" onclick="mcaTogglePunto('mca_iii_may')">☐</td><td class="mca-na">—</td></tr>
+              <tr><td>Inversión de T en V1-V2, o en V4-V6</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_iii_men1" onclick="mcaTogglePunto('mca_iii_men1')">☐</td></tr>
+              <tr><td>Inversión de T en V1-V4 con BRD completo</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_iii_men2" onclick="mcaTogglePunto('mca_iii_men2')">☐</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="mca-cat-col">
+          <div class="mca-cat-tit">ECG despol.</div>
+          <table class="mca-tabla mca-tabla-col">
+            <thead><tr><th>Criterio</th><th style="text-align:center;">May.</th><th style="text-align:center;">Men.</th></tr></thead>
+            <tbody>
+              <tr><td>Onda épsilon en V1-V3</td><td class="mca-cel" id="cel_mca_iv_may" onclick="mcaTogglePunto('mca_iv_may')">☐</td><td class="mca-na">—</td></tr>
+              <tr><td>Potenciales tardíos: ≥1 de los 3 parámetros del ECG de señal promediada</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_iv_men1" onclick="mcaTogglePunto('mca_iv_men1')">☐</td></tr>
+              <tr><td>Activación terminal del QRS ≥55 ms en V1-V3, sin BRD completo</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_iv_men2" onclick="mcaTogglePunto('mca_iv_men2')">☐</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="mca-cat-col">
+          <div class="mca-cat-tit">Arritmias</div>
+          <table class="mca-tabla mca-tabla-col">
+            <thead><tr><th>Criterio</th><th style="text-align:center;">May.</th><th style="text-align:center;">Men.</th></tr></thead>
+            <tbody>
+              <tr><td>TV sostenida o no sostenida, morfología de BRI y <b>eje superior</b></td><td class="mca-cel" id="cel_mca_v_may" title="Derivado del bloque «⚡ Arritmia ventricular»">☐</td><td class="mca-na">—</td></tr>
+              <tr><td>TV con morfología de BRI y eje <b>inferior</b>, o de eje desconocido</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_v_men1" title="Derivado del bloque «⚡ Arritmia ventricular»">☐</td></tr>
+              <tr><td>Más de 500 extrasístoles ventriculares en 24 h</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_v_men2" title="Derivado del bloque «⚡ Arritmia ventricular»">☐</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="mca-cat-col">
+          <div class="mca-cat-tit">Familia</div>
+          <table class="mca-tabla mca-tabla-col">
+            <thead><tr><th>Criterio</th><th style="text-align:center;">May.</th><th style="text-align:center;">Men.</th></tr></thead>
+            <tbody>
+              <tr><td>Familiar de 1.º grado con MCA confirmada por criterios Task Force</td><td class="mca-cel" id="cel_mca_vi_may1" onclick="mcaTogglePunto('mca_vi_may1')">☐</td><td class="mca-na">—</td></tr>
+              <tr><td>MCA confirmada en autopsia o cirugía en familiar de 1.º grado</td><td class="mca-cel" id="cel_mca_vi_may2" onclick="mcaTogglePunto('mca_vi_may2')">☐</td><td class="mca-na">—</td></tr>
+              <tr><td>Mutación patogénica asociada a MCA en el paciente <span style="color:var(--text2);font-size:9px;">(categoría de historia familiar)</span></td><td class="mca-cel" id="cel_mca_vi_may3" onclick="mcaTogglePunto('mca_vi_may3')">☐</td><td class="mca-na">—</td></tr>
+              <tr><td>MCA en familiar de 1.º grado sin poder verificar los criterios</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_vi_men1" onclick="mcaTogglePunto('mca_vi_men1')">☐</td></tr>
+              <tr><td>Muerte súbita &lt;35 años en familiar de 1.º grado <span style="color:var(--text2);font-size:9px;">— se deriva de «Historia familiar de muerte súbita» y de la edad del familiar, en la sección de MCH</span></td><td class="mca-na">—</td><td class="mca-cel mca-menor mca-auto" id="cel_mca_vi_men2" title="Derivado: no se marca a mano">☐</td></tr>
+              <tr><td>MCA confirmada en familiar de 2.º grado</td><td class="mca-na">—</td><td class="mca-cel mca-menor" id="cel_mca_vi_men3" onclick="mcaTogglePunto('mca_vi_men3')">☐</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
       <!-- Los 17 criterios son `type="text"` ocultos por CSS y NO `type="hidden"`: el barrido de
            limpiarCampos toma `input[type=text], input[type=number]`, así que un hidden sobrevive a
            «Nuevo estudio» —es la razón por la que im_grado y sus hermanos están en la lista
@@ -18156,6 +18209,11 @@ function generarInforme(opts) {
      hallazgos descritos en el cuerpo», que implica hallazgos que no existen y manda a buscarlos. */
   let _ccHuboParrafo = false;
   const sumaCC = function(linea){
+    /* Acepta un array para las secciones que suben VARIAS líneas. Va como array y no como un
+       string con `\n`: `_infEscribir` trata `lineasNuevas` como array de LÍNEAS y `_infMerge`
+       compara línea contra línea — un salto embebido desalinea `base` contra `actual` y el merge
+       siguiente toma esas líneas por texto del médico. */
+    if (Array.isArray(linea)) { linea.forEach(sumaCC); return; }
     if (typeof linea === 'string' && linea.trim()) sumaCCLineas.push(linea.trim().replace(/\.$/, '') + '.');
   };
   /* Lo llama cada sección de congénitas justo después de empujar su párrafo. Es lo único que
@@ -19403,7 +19461,14 @@ function generarInforme(opts) {
       if (sv('mch_sam') === 'si' && _imTxt) p.push('Insuficiencia mitral ' + _imTxt + ' en presencia de SAM');
       /* `c.txt` ya trae el diagnóstico, la obstrucción, los dos scores y el contexto: se arma
          entero en mchConclusion para que la pantalla y el informe no puedan divergir. */
-      etePars.push(p.join('. ') + '. ' + c.txt + '.'); ccMarcarParrafo();
+      /* Un elemento de `etePars` POR PÁRRAFO, y no un solo string con `\n` adentro:
+         `_infEscribir` trata `lineasNuevas` como un array de LÍNEAS y `_infMerge` compara línea
+         contra línea. Un salto embebido deja `base` con un elemento donde `actual` —que sale de
+         `value.split('\n')`— tiene varios, y el merge siguiente clasifica esas líneas como
+         escritas por el médico. La protección de las ediciones manuales se rompe en silencio. */
+      etePars.push(p.join('. ') + '.');
+      (c.parrafos || [c.txt + '.']).forEach(function(pp){ etePars.push(pp); });
+      ccMarcarParrafo();
       sumaCC(ccSumaLinea('mch'));
     })();
 
@@ -19426,7 +19491,7 @@ function generarInforme(opts) {
          ruidosamente es preferible a que falte en silencio. */
       const c = sec[1]();
       if (!c) return;
-      etePars.push(c.txt + '.'); ccMarcarParrafo();
+      (c.parrafos || [c.txt + '.']).forEach(function(pp){ etePars.push(pp); }); ccMarcarParrafo();
       /* `clave !== 'no_interpretable'` YA NO gatea. Ese filtro borraba del EN SUMA afirmaciones
          que el cuerpo sí publicaba: con `mca_tsvd_plax` cargado en cm en vez de mm, el cuerpo
          imprimía «Task Force 2010: 4 puntos — diagnóstico DEFINITIVO» y el EN SUMA quedaba mudo.
@@ -24411,6 +24476,27 @@ function _mchNv(id){ const n = (typeof v==='function') ? v(id) : null; return (n
    que el factor contara como EVALUADO Y AUSENTE, o sea que el informe firmaba «ninguno de los
    evaluados» sobre un número que la propia app acababa de declarar ilegible. La banda tiene que
    ser la misma para los tres consumidores. */
+/* Parte un array de oraciones en párrafos usando los índices de corte. Cada párrafo se arma
+   con el mismo `join('. ') + '.'` que usaba el emisor, así que ninguna oración cambia: lo único
+   que cambia es dónde termina un párrafo y empieza otro.
+   Devuelve SÓLO los párrafos con contenido — un corte puede quedar vacío (sin factores
+   adicionales, sin salvedades) y una línea en blanco en medio del informe se lee como un error
+   de armado. */
+function _ccParrafos(partes, cortes){
+  const out = [];
+  let ini = 0;
+  cortes.concat([partes.length]).forEach(function(fin){
+    /* `ini < partes.length` además de `fin > ini`: un corte más allá del largo, llegando después
+       de uno válido, daba `slice` vacío y empujaba un párrafo de sólo punto. Hoy no es alcanzable
+       —los cortes son snapshots monótonos de `partes.length`— pero el docstring promete «sólo los
+       párrafos con contenido» y sin esto el código no lo sostiene. */
+    if (fin > ini && ini < partes.length) out.push(partes.slice(ini, fin).join('. ') + '.');
+    ini = Math.max(ini, fin);
+  });
+  return out;
+}
+window._ccParrafos = _ccParrafos;
+
 function mchEspesor(){
   const n = _mchNv('mch_espesor');
   if (n == null) return { valor:null, fuera:false, crudo:null };
@@ -24812,12 +24898,22 @@ function mchConclusion(){
       else if (F.esc.motivo === 'sin_edad')    txtAHA += '. Para el score de la ESC no consta la edad del familiar, y su criterio exige <40 años';
     }
   }
+  /* ── Corte de párrafos ──────────────────────────────────────────────────────────────────
+     Hasta acá `partes` es la descripción morfológica; de acá en más van los dos scores, el
+     contexto y las salvedades. Se registran los cortes en vez de reordenar: `txt` sigue siendo
+     `partes.join('. ')` con las MISMAS oraciones en el MISMO orden —lo verifiqué frase por frase
+     contra la salida anterior— y lo único que cambia es que el emisor las manda al informe en
+     párrafos separados en vez de un bloque corrido. Reordenar habría hecho imposible probar que
+     no se perdió ninguna. */
+  const _cortes = [partes.length];          // fin del párrafo 1 (morfología)
   partes.push(txtESC);
+  _cortes.push(partes.length);              // fin del párrafo 2 (HCM Risk-SCD, ESC)
   partes.push(txtAHA);
   /* La AHA cuenta un factor que el ecocardiograma no puede ver. Decirlo evita que un conteo de
      cero se lea como «sin factores» cuando lo que falta es una resonancia. */
   if (_mchSv('mch_fibrosis_rmn') !== 'si' && _mchSv('mch_fibrosis_rmn') !== 'no')
     partes.push('La lista de la AHA incluye el realce tardío extenso por resonancia, que la ecocardiografía no evalúa');
+  _cortes.push(partes.length);              // fin del párrafo 3 (AHA/ACC + la nota de la RMN)
   /* Contexto que no vota en ningún score, por decisión registrada. */
   const ctx = [];
   if (_mchSv('mch_tension_ejercicio') === 'si') ctx.push('respuesta tensional anormal al ejercicio (factor reconocido en guías previas, no incluido en el conteo AHA/ACC 2020)');
@@ -24834,6 +24930,7 @@ function mchConclusion(){
   if (_mchNv('mch_ctx_crecimiento') != null) ctx.push('crecimiento del espesor de ' + _mchNv('mch_ctx_crecimiento') + ' mm/año');
   if (_mchSv('mch_ctx_embarazo') === 'si') ctx.push('deseo de embarazo');
   if (ctx.length) partes.push('Factores adicionales considerados: ' + ctx.join('; '));
+  _cortes.push(partes.length);              // fin del párrafo 4 (factores adicionales)
 
   const clave = ex.activas.length ? 'no_aplicable'
     : (esc.fuera ? 'no_interpretable'
@@ -24908,7 +25005,10 @@ function mchConclusion(){
                (ex.pendientes.length === 1 ? ' exclusión sin contestar' : ' exclusiones sin contestar');
   /* La obstrucción severa sube también: cambia una conducta distinta de la del desfibrilador. */
   if (grad != null && grad >= 50) resumen += '. Obstrucción severa en el tracto de salida (' + grad + ' mmHg)';
-  return { clave: clave, txt: partes.join('. '), resumen: resumen, esc: esc, aha: aha, ex: ex };
+  /* `parrafos` sale de los MISMOS `partes` y de los cortes: no re-deriva nada. `txt` queda
+     intacto para la tarjeta de pantalla y para el EN SUMA, que lo siguen usando. */
+  const parrafos = _ccParrafos(partes, _cortes);
+  return { clave: clave, txt: partes.join('. '), parrafos: parrafos, resumen: resumen, esc: esc, aha: aha, ex: ex };
 }
 function mchSync(){
   const txt = (id,s) => { const e=document.getElementById(id); if(e) e.textContent = s; };
@@ -25351,6 +25451,7 @@ function mcaConclusion(){
     if (sc.catI.aneurismaSinMedidas) partes.push('Hay aneurisma regional del ventrículo derecho pero no consta ninguna medición del tracto de salida ni la fracción de acortamiento, que los criterios Task Force exigen además: completar las medidas para poder puntuar la categoría estructural');
   }
   /* Compromiso izquierdo, declarado como lo que es. */
+  const _cortesM = [partes.length];         // fin del párrafo 1 (diagnóstico y criterio estructural)
   if (vi.hay) partes.push('Compromiso del ventrículo izquierdo: ' + vi.hallazgos.join('; ') +
     '. Los criterios Task Force 2010 no puntúan el ventrículo izquierdo — los que sí lo hacen son los criterios de Padua 2020 y el consenso europeo de 2023, todavía no validados');
   /* Las categorías que aportaron. */
@@ -25359,6 +25460,7 @@ function mcaConclusion(){
     return c.nom + ' — ' + (c.nivel === 'mayor' ? 'mayor' : 'menor') + ' (' + c.pts + (c.pts === 1 ? ' punto' : ' puntos') + ')' +
            (c.marcados > 1 ? ', de ' + c.marcados + ' criterios marcados en la categoría' : '');
   }).join('; '));
+  _cortesM.push(partes.length);            // fin del párrafo 2 (compromiso VI y criterios cumplidos)
   /* Arritmia ventricular: el hecho, y por qué puntuó lo que puntuó. Las notas explican las vías
      por las que la categoría queda SIN puntuar —morfología no especificada, bloqueo de rama
      derecha— para que el rótulo «Task Force 2010» del puntaje no quede solo al lado de un cero
@@ -25373,6 +25475,7 @@ function mcaConclusion(){
     else if (fam.motivo === 'sin_edad') partes.push('Consta historia familiar de muerte súbita pero no la edad del familiar: el criterio Task Force exige que haya sido antes de los 35 años, así que la categoría familiar no puede puntuarse por esa vía');
     else if (fam.motivo === 'edad_mayor') partes.push('La muerte súbita familiar ocurrió a los ' + fam.edad + ' años, por encima del corte de 35 del criterio Task Force');
     else if (fam.motivo === 'edad_fuera') partes.push('La edad del familiar al fallecer está fuera de rango — revisar'); }
+  _cortesM.push(partes.length);            // fin del párrafo 3 (arritmia e historia familiar)
   const dobles = sc.cats.filter(function(c){ return c.marcados > 1; });
   if (dobles.length) partes.push('Regla de conteo aplicada: cada categoría aporta un solo criterio, el de mayor jerarquía');
 
@@ -25384,6 +25487,7 @@ function mcaConclusion(){
   };
   partes.push('Puntaje Task Force 2010: ' + sc.total + (sc.total === 1 ? ' punto' : ' puntos') +
     ' (ecocardiografía ' + sc.eco + ', resto ' + sc.noEco + ') — ' + BANDA[sc.banda]);
+  _cortesM.push(partes.length);            // fin del párrafo 4 (regla de conteo y puntaje)
   partes.push('El diagnóstico definitivo requiere integrar criterios de varias categorías: un puntaje ecocardiográfico aislado no confirma ni descarta la enfermedad, y la resonancia cardíaca con gadolinio es el estándar de referencia para la caracterización tisular del miocardio');
 
   /* El resumen NUNCA es null. Lo era en la banda «sin criterios», y el emisor hace
@@ -25415,9 +25519,10 @@ function mcaConclusion(){
      diagnósticos», que es una negación apoyada en un número que no se pudo leer. */
   if (sc.catI.fuera) {
     const t = 'Miocardiopatía arritmogénica — ' + sc.catI.fuera.join(' y ') + ' fuera de rango: revisar unidades antes de puntuar el criterio estructural';
-    return { clave:'no_interpretable', txt: partes.concat([t]).join('. '), resumen: t, score: sc, vi: vi };
+    const _ps = partes.concat([t]);
+    return { clave:'no_interpretable', txt: _ps.join('. '), parrafos: _ccParrafos(_ps, _cortesM), resumen: t, score: sc, vi: vi };
   }
-  return { clave: sc.banda, txt: partes.join('. '), resumen: resumenF, score: sc, vi: vi };
+  return { clave: sc.banda, txt: partes.join('. '), parrafos: _ccParrafos(partes, _cortesM), resumen: resumenF, score: sc, vi: vi };
 }
 function mcaSync(){
   const txt = (id,s) => { const e=document.getElementById(id); if(e) e.textContent = s; };
@@ -25756,27 +25861,38 @@ function ccSumaLinea(sec){
        vez de declarar el problema. Un valor ilegible bloquea la negación, no la afirmación. */
     if (espH.crudo == null && grad == null) return null;
     const esc = mchScoreESC(), aha = mchAHA(), ex = mchExclusiones();
-    let l = 'MCH' + (L(MCH_PATRON_TXT, patron) ? ' ' + L(MCH_PATRON_TXT, patron) : '');
-    if (espH.valor != null) l += ' — espesor máx. ' + _cc1(espH.valor) + ' mm';
-    else if (espH.crudo != null) l += ' — espesor máximo fuera de rango: revisar unidades';
-    if (grad != null) l += ' — gradiente TSVI ' + _cc1(grad) + ' mmHg';
+    /* UNA LÍNEA POR CRITERIO. El contenido es el mismo que cuando era una sola línea larga: lo
+       único que cambia es dónde corta. Cada guía queda en su renglón porque el EN SUMA es lo que
+       se lee primero, y tres estratificaciones encadenadas con guiones en un párrafo corrido se
+       leen como una sola frase. */
+    let l1 = 'MCH' + (L(MCH_PATRON_TXT, patron) ? ' ' + L(MCH_PATRON_TXT, patron) : '');
+    if (espH.valor != null) l1 += ' — espesor máx. ' + _cc1(espH.valor) + ' mm';
+    else if (espH.crudo != null) l1 += ' — espesor máximo fuera de rango: revisar unidades';
+    if (grad != null) l1 += ' — gradiente TSVI ' + _cc1(grad) + ' mmHg';
     /* El score con su BANDA, sin la clase de recomendación del desfibrilador. */
-    if (ex.activas.length) l += ' — HCM Risk-SCD no aplicable (' + ex.activas.join('; ') + ')';
-    else if (esc.fuera)  l += ' — HCM Risk-SCD no calculado: ' + esc.fuera.join(' y ') + ' fuera de rango';
-    else if (esc.faltan) l += ' — HCM Risk-SCD no calculado, faltan ' + esc.faltan.length + (esc.faltan.length === 1 ? ' dato' : ' datos');
-    else l += ' — HCM Risk-SCD ' + esc.pct.toFixed(2) + ' % a 5 años (riesgo ' + esc.banda + ')';
-    l += ' — AHA/ACC ' + aha.n + '/' + MCH_AHA_N_MAYORES + ' factores mayores' +
+    let l2;
+    if (ex.activas.length) l2 = 'HCM Risk-SCD no aplicable (' + ex.activas.join('; ') + ')';
+    else if (esc.fuera)  l2 = 'HCM Risk-SCD no calculado: ' + esc.fuera.join(' y ') + ' fuera de rango';
+    else if (esc.faltan) l2 = 'HCM Risk-SCD no calculado, faltan ' + esc.faltan.length + (esc.faltan.length === 1 ? ' dato' : ' datos');
+    else l2 = 'HCM Risk-SCD ' + esc.pct.toFixed(2) + ' % a 5 años (riesgo ' + esc.banda + ')';
+    const l3 = 'AHA/ACC ' + aha.n + '/' + MCH_AHA_N_MAYORES + ' factores mayores' +
          (aha.pendientes.length ? ' (' + aha.pendientes.length + ' sin evaluar)' : '');
     /* Las tres salvedades que el resumen anterior colgaba a propósito del EN SUMA y no del
-       párrafo. Ninguna es una conducta: las tres dicen si el número de arriba corresponde. */
+       párrafo. Ninguna es una conducta: las tres dicen si el número de arriba corresponde.
+       Van JUNTAS en un renglón: separadas, tres líneas de salvedad pesan más que las dos de
+       estratificación que califican. */
+    const sal = [];
     if (!ex.activas.length && ex.pendientes.length)
-      l += ' — aplicabilidad del score no verificada: ' + ex.pendientes.length +
-           (ex.pendientes.length === 1 ? ' exclusión sin contestar' : ' exclusiones sin contestar');
+      sal.push('aplicabilidad del score no verificada: ' + ex.pendientes.length +
+           (ex.pendientes.length === 1 ? ' exclusión sin contestar' : ' exclusiones sin contestar'));
     if (_ccS('mch_fibrosis_rmn') !== 'si' && _ccS('mch_fibrosis_rmn') !== 'no')
-      l += ' — no consta resonancia, que el ecocardiograma no evalúa';
+      sal.push('no consta resonancia, que el ecocardiograma no evalúa');
     if (typeof tvEstado === 'function' && tvEstado().sostenida && !ex.activas.length)
-      l += ' — taquicardia ventricular sostenida documentada, escenario en que el score de la ESC no está validado';
-    return l;
+      sal.push('taquicardia ventricular sostenida documentada, escenario en que el score de la ESC no está validado');
+    /* Capitalizada: los tres literales se escribieron para ir tras un ` — ` a mitad de frase, y
+       como línea propia arrancaban en minúscula en un informe firmado. */
+    const salTxt = sal.join(' — ');
+    return sal.length ? [l1, l2, l3, salTxt.charAt(0).toUpperCase() + salTxt.slice(1)] : [l1, l2, l3];
   }
 
   case 'mca': {
@@ -34988,6 +35104,12 @@ function _pptDesdeFormulario(inf, tema, presentador){
          izquierda a derecha, Qp/Qs 2,10» no tenía diapositiva — y el informe está abierto al
          lado del proyector. */
       let hall = (typeof ccSumaLinea === 'function') ? ccSumaLinea(d.sec) : null;
+  /* `ccSumaLinea('mch')` devuelve un ARRAY desde que el EN SUMA sube una línea por criterio, y
+     éste es el único de sus nueve llamadores que no pasa por `sumaCC`. `_pptTxt` hace `String(x)`,
+     que sobre un array es el `join(',')` por defecto: la diapositiva salía con los criterios
+     pegados por comas, sin error y sin perder texto. El único lugar donde se veía era el
+     proyector. */
+  if (Array.isArray(hall)) hall = hall.join(' — ');
       if (!hall && d.sec === 'cia') {
         const t = _ccS('ete_cia_tipo'), dir = _ccS('ete_cia_dir');
         const bm = (typeof eteCiaBordeMin === 'function') ? eteCiaBordeMin() : null;
