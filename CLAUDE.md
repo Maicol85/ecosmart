@@ -24,6 +24,90 @@ ninguna es evidente leyendo el código alrededor.
 
 ## Trampas
 
+### Un campo «auto» que se calcula UNA vez es peor que uno vacío
+`vp_gmax` («G. Máx pulmonar — auto») se derivaba con `if (vmax && !gmax)`: se llenaba en el
+primer keystroke y **nunca más**. Como el `oninput` dispara carácter por carácter, tipear «4.5»
+dejaba el gradiente del «4» intermedio —64 en vez de 81—, y corregir una velocidad ya cargada no
+movía nada. El síntoma que se reportó fue «con Vmax 4 m/s el gradiente da 16»: reproducido exacto
+en el navegador, es el gradiente de una Vmax 2 anterior sobreviviendo al cambio de velocidad.
+**La fórmula siempre estuvo bien; lo que estaba mal era cuándo se aplicaba.** Antes de creerle al
+diagnóstico de un bug de cálculo, reproducirlo: el reporte decía «falta elevar al cuadrado» y el
+`4 * vmax * vmax` estaba ahí, correcto, desde siempre.
+
+Regla: un campo derivado se recalcula **siempre** que cambia su origen, y se **limpia** cuando el
+origen desaparece. Si no, el informe firmado publica dos números contradiciéndose dentro del
+mismo paréntesis: «Válvula pulmonar estenosis moderada/severa (Vmax 4 m/s, Gmax 16 mmHg)».
+
+### `dataset` no se persiste, pero tampoco se limpia solo
+Las marcas de «este valor lo escribió la app» (`derivadoDe`, `sugerido`, `espejoDe`) viven en el
+nodo del DOM. Escribí tres comentarios afirmando que «un estudio reabierto nunca coincide, falla
+del lado seguro» — **la premisa era falsa**. No persistirse no es lo mismo que limpiarse: su
+alcance es la **sesión**, no el estudio, y `limpiarCampos` vacía `.value` sin tocarlas.
+
+Consecuencia medida: paciente A con Vmax 3 deja `vp_gmax = 36` y `derivadoDe = "36"`; «Nuevo
+estudio» vacía el campo y deja la marca; el médico del paciente B, que no tiene velocidad, tipea
+el gradiente medido —36— y **el campo se borra solo en la tecla que lo completa**. El espacio de
+colisión es justo el de los valores redondos (16, 25, 36, 49, 64), que son los que se tipean a
+mano. El archivo ya sabía esto: `limpiarCampos` borra `dataset.tocado` y `dataset.desdeEstudio`
+a mano, y la reimpresión los respalda. Faltaba aplicarlo. Hoy hay un barrido **por atributo**
+(`[data-derivado-de],[data-sugerido],[data-espejo-de]`) en `limpiarCampos` y un backup/restore en
+`_pdfDeInformeGuardadoArmar`, para que una marca nueva quede cubierta sin que nadie se acuerde.
+
+### Clasificar un número y publicar OTRO
+La FAC se calculaba cruda, se clasificaba cruda y se **guardaba redondeada**. Con áreas 20,0 /
+13,1 (FAC 34,5): la cápsula decía «35% — disfunción (<35%)» —contradiciéndose sola— y el informe
+firmado, que lee `vd_fac` ya redondeado, decía «función sistólica conservada (FAC 35%)». En el
+borde de severidad, la cápsula decía «25% — disfunción severa (<25%)» y el En Suma no emitía la
+línea, porque `25 < 25` es falso. Es el mismo defecto que `calcGeometriaVI` documenta haber
+cerrado. **Clasificar siempre sobre el valor que se imprime.**
+
+### Un default tranquilizador es una afirmación
+Los tres selects del TEER —calcificación, clefts, trombo en AI— tenían `value="no"` como opción
+0, así que en todo estudio nuevo valían «no» sin que nadie los mirara. Mientras eso sólo pintaba
+badges en pantalla, pasaba; en cuanto el módulo ganó «Integrar al informe», la hoja del PDF
+**afirmaba** «sin calcificación densa» y «sin clefts» —los dos hallazgos que más limitan el
+agarre del clip— y esos dos «cumplidos» alcanzaban para concluir **APTO**. Hoy los tres arrancan
+en «— no evaluado —», c9/c10 devuelven `null` en ese estado, y el trombo sin consignar nunca
+llega a «apto»: es contraindicación **absoluta** y el lado seguro es pedirlo, no suponerlo.
+
+### Un criterio que se pinta y no se cuenta
+`fallos` en el TEER era `[c1..c6, c9]` y `noIngresados` sólo `[c1..c6]`, mientras `r.orden`
+pintaba e imprimía los once. Resultado: con los seis anatómicos correctos y `teer_clefts = 'si'`,
+la misma hoja firmada decía «Clefts/perforaciones - limitan agarre» y dos renglones abajo «APTO
+para TEER - criterios cumplidos». Y «Faltan N criterio(s)» contaba sobre 6 de 8. Hoy hay **una
+sola lista** (`veto`) de la que salen `fallos`, `evaluados` y `noIngresados`, para que agregar un
+criterio no exija acordarse de tres sitios.
+
+### No traduzcas emoji al sanear para el PDF
+`_teerAsciiPDF` mapeaba ✅→«SI» y ❌→«NO». El título «❌ CONTRAINDICADO — trombo en aurícula
+izquierda» salía impreso como **«NO CONTRAINDICADO - trombo en aurícula izquierda»**: la negación
+de una contraindicación absoluta, en la línea de conclusión de un informe firmado. Los emoji se
+**borran**; el texto que queda ya dice qué pasa. Y el saneador colapsa espacios horizontales con
+`[^\S\n]+`, no `\s+`, para no aplanar el texto libre del médico — el mismo par
+`amiloSanPDF` / `amiloSanPDFml` de siempre, con otro nombre.
+
+### Un `else` mudo manda la basura a la rama más grave
+`epGradoPorGmax` era una cascada sin guarda: `null` y `0` se coercionan y caen en «Normal», y
+`NaN`, `undefined` o una cadena hacen fallar las tres comparaciones y salen por el `return`
+final, o sea **«Estenosis severa»**. Y estaba exportada en `window`. Las funciones que clasifican
+severidad devuelven `null` para lo que no es un número, y el llamador decide qué hacer con eso.
+
+### Un predicado `hayDatos` que en realidad pregunta si APLICA
+El slot `hayDatos` de `amiloSecs` falla **abierto** por diseño (`catch → _ok = true`), y está
+bien para la pregunta que dice contestar: impedirle al médico integrar algo que sí cargó es peor
+que el defecto que cierra. El módulo `hfpeff` lo reusa para otra pregunta —«¿este score aplica a
+este paciente?»— cuya dirección de falla es la **opuesta**. Hoy queda cubierto porque
+`amiloTextoHFAPEFF` reevalúa la compuerta por su cuenta y devuelve `''`, pero eso es suerte de la
+doble evaluación, no diseño. Si hace falta una tercera compuerta clínica, va en una propiedad
+propia con `catch → false`.
+
+### Editar la redacción no es consentir que cambie la premisa
+`amiloRefrescarSiIntacto` sale temprano si el médico tocó «✏️ Editar», y eso convertía un clic en
+un permiso permanente: se integraba el HFA-PEFF con la FEVI vacía, se corregía una coma, después
+se cargaba FEVI 28, y la hoja del PDF seguía diciendo «HFpEF confirmado» mientras la pantalla
+decía «score no aplicable». Cuando cambia la **premisa clínica** —no el dato, la premisa— el
+módulo se retira aunque el texto esté editado, con toast, porque ahí sí se pierde algo escrito.
+
 ### Si el valor lo pusiste vos, no probaste nada
 Al cerrar la fuga del centro en reimpresión (2026-09-14) monté la prueba escribiendo
 `med-centro.textContent = 'CENTRO AL FIRMAR'` desde la consola, vi la fuga, la arreglé, vi que
@@ -2418,6 +2502,44 @@ hoja. Un estudio exactamente en el borde sí podría volcar, y eso es inherente 
 criterio». Si aparece, la palanca es juntar las salvedades con la línea de la AHA.
 
 ## Deuda conocida sin resolver
+
+### VD / válvula pulmonar / TEER / HFA-PEFF (2026-09-14) — reglas para no romperlo
+- **El grado del VD sale de `vdBasCat`, no de un `> 41` suelto.** Había dos umbrales sobre la
+  misma medida —`VD_BAS_NORMAL_MAX` (41, normal) y `VD_BAS_LEVE_MAX` (45, dilatado)— y el informe
+  contestaba «¿está dilatado?» con el primero mientras la cápsula decía «Leve (>41 y ≤45mm)». Hoy
+  el narrativo dice «levemente dilatado» / «dilatado» según la misma función que pinta la
+  cápsula. Si aparece un tercer consumidor, que también pase por ahí.
+- **`calcVP` corre en `cargarEstudioPorId` y NO en la reimpresión.** Es deliberado: reimprimir
+  reproduce lo que se firmó, aunque lo firmado tuviera el gradiente congelado; abrir para editar
+  lo corrige, que es cuando el médico está mirando. Consecuencia aceptada: en un estudio viejo
+  con el gradiente mal, reimprimir y editar+regenerar **no** dan el mismo PDF. Es la misma
+  divergencia que ya tiene el HFA-PEFF cuando la compuerta de FEVI lo retira al reabrir.
+- **`_labHfPeffRaw` excluye los estudios con FEVI reducida.** Esto **cambió los conteos
+  históricos** del panel, del filtro de cohorte y de las asociaciones, en la dirección correcta:
+  esos estudios nunca debieron puntuar. Si un número del Laboratorio no coincide con una captura
+  vieja, es por acá.
+- **`_HF_ALIAS.fevi` incluye `fevi_simpson`.** Sin ese alias la compuerta no podía bloquear
+  NINGÚN estudio importado de PDF: caían todos en «sin FEVI». Cualquier campo nuevo que el
+  importador emita con otro nombre necesita su entrada acá, igual que en `_labFevi`.
+- **La compuerta de FEVI se consulta por `r.gate`, no recalculando.** Hay cinco superficies
+  (pantalla, línea del Doppler, hoja del PDF, En Suma, Laboratorio) y el `gate` viaja dentro del
+  resultado de `hfapeffScore`. Eso **no** obliga a nadie a mirarlo —el Laboratorio no lo miraba—:
+  cualquier consumidor nuevo de `r.total` tiene que preguntarse primero si aplica.
+
+**Queda abierto, sin tocar en este commit:**
+- **`teer_*` no está en el Excel del Laboratorio.** El módulo ya llega al informe firmado pero
+  sus campos no tienen columnas propias; el panel ETE del Lab reconstruye los criterios con su
+  propia lista (`TEER_CRIT`), que es una **segunda copia** de los umbrales de `teerEstado()`. La
+  de `teerEstado` es la que manda; si divergen, las dos superficies cuentan cohortes distintas.
+  Además `TEER_CRIT` sigue sin contar clefts ni trombo.
+- **`ip_grado` / `ip_vmax` / `ip_vtd` tampoco están en el Excel.** Hoy la insuficiencia pulmonar
+  llega al informe y al PDF, y no al Laboratorio.
+- **`vd_area_d` / `vd_area_s` no tienen banda de plausibilidad** en `DCM_RANGO` ni en los rangos
+  de importación del Excel. La guarda de `calcVD` sólo rechaza el par imposible (telesistólica
+  ≥ telediastólica, o cero), no un área de 300 cm².
+- **`_syncDerivado` no valida unicidad del destino.** Con dos orígenes apuntando al mismo campo,
+  gana el último en silencio. Hoy hay un solo mapeo; el módulo TEER ya tiene el patrón de dos
+  orígenes resuelto por precedencia explícita con `_syncSiVacio`, así que es cuestión de tiempo.
 
 ### Pericardio en el Laboratorio — fuente inyectable (2026-09-14)
 El módulo (`dptEstado`, `cvrEstado`, `dptTamano`, `dptPletora`, `cvrDatos`, `_dptPct`, `_dptMm`)

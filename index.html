@@ -2145,10 +2145,32 @@ window.cerrarSesion = cerrarSesion;
           <input type="number" id="vd_vi" placeholder="ratio" step="0.01">
         </div>
       </div>
+      <!-- FAC — fracción de acortamiento de área del VD (apical 4C). Se CALCULA desde las dos
+           áreas y no se tipea: así el informe firma un número que la app puede rehacer y
+           auditar, y queda claro de qué par de áreas salió. No confundir con la FEVD de arriba,
+           que es 3D y lleva otro corte (≥45 %); la FAC es 2D y el corte es 35 %. -->
+      <div class="grid-3" style="margin-top:8px;">
+        <div class="fg">
+          <label>Área VD telediastólica (cm²) <span style="font-weight:400;color:var(--text2);font-size:10px;">FAC</span></label>
+          <input type="number" id="vd_area_d" placeholder="cm²" step="0.1" oninput="calcVD()">
+        </div>
+        <div class="fg">
+          <label>Área VD telesistólica (cm²) <span style="font-weight:400;color:var(--text2);font-size:10px;">FAC</span></label>
+          <input type="number" id="vd_area_s" placeholder="cm²" step="0.1" oninput="calcVD()">
+        </div>
+        <div class="fg">
+          <label>FAC VD (%) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← áreas</span></label>
+          <input type="number" id="vd_fac" readonly placeholder="—">
+        </div>
+      </div>
       <div class="calc-box">
         <div class="calc-row">
           <span class="calc-lbl">VD basal — tamaño</span>
           <span id="vd-tam">—</span>
+        </div>
+        <div class="calc-row">
+          <span class="calc-lbl">FAC — función sistólica VD</span>
+          <span id="fac-interp">—</span>
         </div>
         <div class="calc-row">
           <span class="calc-lbl">TAPSE — función sistólica VD</span>
@@ -2949,7 +2971,11 @@ window.cerrarSesion = cerrarSesion;
   <div class="card">
     <div class="card-body">
       <div class="fg"><label>Válvula pulmonar</label>
-        <select id="vp_morf"><option>Normal</option><option>Insuficiencia leve (fisiológica)</option><option>Estenosis leve</option><option>Estenosis moderada/severa</option></select>
+        <!-- «Estenosis moderada/severa» queda al final como opción HEREDADA: los estudios
+             guardados antes de separar las bandas la traen persistida, y sacarla del select
+             haría que reabrirlos mostrara el campo vacío — el informe firmado diría una cosa y
+             la app otra. No la sugiere el cálculo; sólo sobrevive para leer lo viejo. -->
+        <select id="vp_morf"><option>Normal</option><option>Insuficiencia leve (fisiológica)</option><option>Estenosis leve</option><option>Estenosis moderada</option><option>Estenosis severa</option><option>Estenosis moderada/severa</option></select>
         <div id="vp-sev-badge" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
       </div>
     </div>
@@ -7477,7 +7503,7 @@ z
         <div class="fg"><label>Área mitral planimetría (cm²) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← Válvula Mitral</span></label>
           <input type="number" id="teer_area_mitral" placeholder="cm²" oninput="calcTEER()">
         </div>
-        <div class="fg"><label>PASP (mmHg)</label>
+        <div class="fg"><label>PASP (mmHg) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← Tricúspide / PSAP</span></label>
           <input type="number" id="teer_pasp" placeholder="mmHg" oninput="calcTEER()">
         </div>
       </div>
@@ -7530,21 +7556,29 @@ z
         ⚪ Criterios comunes — ambos tipos
       </div>
       <div class="grid-2">
+        <!-- Los tres arrancan en «— no evaluado —». Antes su opción 0 era «No», así que en todo
+             estudio nuevo valían «no» sin que nadie los hubiera mirado: la hoja del PDF afirmaba
+             «sin calcificación densa» y «sin clefts» —los dos hallazgos que más limitan el agarre
+             del clip— y esos dos «cumplidos» alcanzaban para concluir APTO. El default no puede
+             ser la respuesta tranquilizadora. -->
         <div class="fg"><label>Calcificación zona clip</label>
           <select id="teer_calcificacion" onchange="calcTEER()">
+            <option value="">— no evaluado —</option>
             <option value="no">No / mínima</option>
             <option value="si">Sí — densa</option>
           </select>
         </div>
         <div class="fg"><label>Clefts / perforaciones en zona agarre</label>
           <select id="teer_clefts" onchange="calcTEER()">
+            <option value="">— no evaluado —</option>
             <option value="no">No</option>
             <option value="si">Sí — limitan agarre</option>
           </select>
         </div>
         <div class="fg"><label>Trombo en AI</label>
           <select id="teer_trombo" onchange="calcTEER()">
-            <option value="no">No</option>
+            <option value="">— no evaluado —</option>
+            <option value="no">No — descartado por ETE</option>
             <option value="si">Sí — contraindicación absoluta</option>
           </select>
         </div>
@@ -7575,6 +7609,7 @@ z
       <div class="fg" style="margin-top:8px;"><label>Notas ETE / Heart Team</label>
         <textarea id="ete_notas" placeholder="Observaciones para el Heart Team, imagen multimodal, TC cardíaca..."></textarea>
       </div>
+      <div style="text-align:center;margin-top:10px;"><button type="button" class="btn btn-integrar" data-am-k="teer" onclick="amiloIntegrar('teer')">📎 Integrar al informe</button></div>
     </div>
   </div>
   </div>
@@ -13742,6 +13777,30 @@ function calcVI() {
   }
 
   if (typeof calcHemo === 'function') calcHemo();
+  /* La FEVI es la PREMISA del HFA-PEFF, no uno de sus insumos: corregirla puede volver el score
+     inaplicable de golpe. Sin este refresco, bajar la FEVI a 30 dejaba en pantalla —y en la hoja
+     integrada del PDF— el «HFpEF confirmado» calculado cuando la FEVI todavía estaba vacía.
+     `amiloRefrescarSiIntacto` retira la hoja sola cuando el `gen()` queda vacío, y respeta el
+     texto que el médico haya editado a mano. */
+  if (typeof hfapeffRender === 'function') { try { hfapeffRender(); } catch (e) {} }
+  if (typeof hfapeffLineaEco === 'function') { try { hfapeffLineaEco(); } catch (e) {} }
+  if (typeof amiloRefrescarSiIntacto === 'function') amiloRefrescarSiIntacto('hfpeff');
+  /* `amiloRefrescarSiIntacto` sale temprano si el médico editó el texto a mano, y eso convierte
+     un clic en «✏️ Editar» en un permiso permanente para publicar el score: se integraba con la
+     FEVI vacía, se corregía una coma, después se cargaba FEVI 28 y la hoja del PDF seguía
+     diciendo «HFpEF confirmado» mientras la pantalla decía «score no aplicable». Editar la
+     REDACCIÓN no es consentir que cambie la PREMISA clínica: cuando la compuerta se cierra, el
+     módulo se retira aunque el texto esté editado, y con aviso — porque acá sí se pierde algo
+     que el médico escribió. */
+  if (typeof hfapeffScore === 'function' && typeof amiloIntegrado === 'function'
+      && amiloIntegrado('hfpeff')) {
+    let g = null;
+    try { g = hfapeffScore(false).gate; } catch (e) { g = null; }
+    if (g && !g.aplica) {
+      if (typeof amiloRetirar === 'function') amiloRetirar('hfpeff');
+      if (typeof toast === 'function') toast('⚠️ HFA-PEFF retirado del informe: ' + g.msgUI);
+    }
+  }
 }
 
 // ══ SGL ══
@@ -14140,6 +14199,15 @@ window.cxWilkins = cxWilkins; window.cxDuke = cxDuke; window.cxGTP = cxGTP; wind
    son dos criterios distintos sobre la misma medida. */
 const VD_BAS_NORMAL_MAX = 41;   // mm — ≤41 normal (ASE)
 const VD_BAS_LEVE_MAX   = 45;   // mm — 42-45 dilatación leve;  >45 dilatado
+/* FAC del VD (ASE 2015): <35 % es disfunción sistólica. El segundo corte —<25 %— lo usa el
+   En Suma para llamarla severa; no está en la guía como banda formal, es el criterio con el
+   que trabaja esta app y por eso vive acá y no repartido en literales. */
+const UMBRAL_FAC_VD_NORMAL = 35;   // %
+const UMBRAL_FAC_VD_SEVERA = 25;   // %
+/* Área de la AD en 4 cámaras: ≤18 cm² normal (ASE). Estaba como literal en `calcAD` y otro
+   literal igual en el informe narrativo — dos copias del mismo corte, que es como la cápsula
+   de pantalla y el informe firmado terminan discrepando. */
+const UMBRAL_AD_AREA_NORMAL = 18;  // cm²
 function vdBasCat(vd) {
   const n = (typeof PF === 'function') ? PF(vd) : parseFloat(vd);
   if (n == null || !isFinite(n) || n <= 0) return null;
@@ -14169,6 +14237,40 @@ function calcVD() {
     let t = sp >= 9.5 ? badge('green','Normal (≥9.5 cm/s)') : badge('red','Disfunción (< 9.5 cm/s)');
     document.getElementById('sprime-interp').innerHTML = t;
   }
+  /* FAC = (área telediastólica − área telesistólica) / telediastólica × 100. Se escribe el
+     campo SIEMPRE que el par sea utilizable, y se BORRA cuando deja de serlo: si sólo se
+     llenara, corregir un área a un valor inválido dejaba en pantalla —y en el informe— la FAC
+     de la medición anterior. La guarda `as >= ad` no es cosmética: invertir las dos áreas al
+     tipear da una FAC negativa, que no es «muy mala función» sino un par intercambiado. */
+  const areaD = v('vd_area_d'), areaS = v('vd_area_s');
+  const facEl = document.getElementById('vd_fac');
+  const facInt = document.getElementById('fac-interp');
+  /* `areaS > 0` y no `>= 0`: un área telesistólica de cero es imposible, y admitirla daba
+     FAC = 100 % —badge verde, informe firmado afirmando función normal del VD— a partir de un
+     cero de más o de un campo que quedó vacío en 0 al corregir otra medida. La guarda de
+     inversión se escribió justamente porque un par mal medido no es un resultado; el caso
+     degenerado que faltaba fabricaba el resultado MÁS tranquilizador posible. */
+  const facUsable = areaD !== null && areaS !== null && areaD > 0 && areaS > 0 && areaS < areaD;
+  /* Se clasifica sobre el valor REDONDEADO, que es el que se guarda, el que se imprime y el que
+     lee el informe. Con el crudo, unas áreas de 20,0 / 13,1 daban FAC 34,5: la cápsula decía
+     «35% — disfunción (<35%)» —contradiciéndose sola— y el informe firmado, que lee `vd_fac`
+     ya redondeado, decía «función sistólica conservada (FAC 35%)». Es el mismo defecto que
+     `calcGeometriaVI` documenta haber cerrado: clasificar un número y publicar otro. */
+  const fac = facUsable ? Math.round((areaD - areaS) / areaD * 100) : null;
+  if (facEl) facEl.value = fac === null ? '' : String(fac);
+  if (facInt) {
+    if (fac === null) {
+      facInt.innerHTML = (areaD !== null && areaS !== null)
+        ? badge('yellow', 'Áreas no utilizables — la telesistólica debe ser mayor que cero y menor que la telediastólica')
+        : '—';
+    } else {
+      facInt.innerHTML = fac >= UMBRAL_FAC_VD_NORMAL
+        ? badge('green', `${fac}% — normal (≥${UMBRAL_FAC_VD_NORMAL}%)`)
+        : (fac < UMBRAL_FAC_VD_SEVERA
+            ? badge('red',    `${fac}% — disfunción severa (<${UMBRAL_FAC_VD_SEVERA}%)`)
+            : badge('orange', `${fac}% — disfunción (<${UMBRAL_FAC_VD_NORMAL}%)`));
+    }
+  }
   // TAP — aceleración pulmonar (elemento indirecto de HTP si < 105 ms)
   const tap = v('tvia');
   const tapEl = document.getElementById('tap-interp');
@@ -14187,7 +14289,9 @@ function calcVD() {
 function calcAD() {
   const ad = v('ad_area');
   if (!ad) return;
-  let t = ad <= 18 ? badge('green','Normal (≤18cm²)') : badge('yellow','Dilatada (>18cm²)');
+  let t = ad <= UMBRAL_AD_AREA_NORMAL
+    ? badge('green',  `Normal (≤${UMBRAL_AD_AREA_NORMAL}cm²)`)
+    : badge('yellow', `Dilatada (>${UMBRAL_AD_AREA_NORMAL}cm²)`);
   document.getElementById('ad-interp').innerHTML = t;
   if (typeof calcHTP2022 === 'function') calcHTP2022();
 }
@@ -15250,6 +15354,13 @@ function calcPSAP() {
     if (htpEl)   htpEl.innerHTML = '—';
     if (typeof calcTEP === 'function') calcTEP();
     if (typeof calcIP  === 'function') calcIP();
+    /* También acá, y no sólo al final: esta rama sale por `return`, así que el espejo de la
+       PASP del TEER se quedaba con la última PSAP calculada después de borrar la velocidad de
+       IT — el criterio ≤70 mmHg siguiendo evaluado contra un número sin origen. Medido: borrar
+       la IT dejaba «✓ 51mmHg ≤70mmHg». */
+    if (typeof sincronizarTEERDesdeGlobal === 'function') {
+      try { sincronizarTEERDesdeGlobal(); } catch (e) {}
+    }
     return;
   }
   // Dato primario: gradiente VD-AD = 4 × VRT²
@@ -15278,6 +15389,14 @@ function calcPSAP() {
   if (typeof calcHemo   === 'function') calcHemo();
   if (typeof cxTP       === 'function') cxTP();
   if (typeof calcIP     === 'function') calcIP();
+  /* TEER: el criterio «PASP ≤70 mmHg» decide APTO / NO APTO para MitraClip y su campo no se
+     llenaba nunca solo — sólo al abrir el acordeón, y en ese momento la velocidad de IT todavía
+     no estaba cargada. Engancharlo acá es lo que hace que «colocar la velocidad de IT» tenga el
+     efecto que el módulo promete. `sincronizarTEERDesdeGlobal` termina llamando a `calcTEER`,
+     que repinta el criterio con el número nuevo. */
+  if (typeof sincronizarTEERDesdeGlobal === 'function') {
+    try { sincronizarTEERDesdeGlobal(); } catch (e) {}
+  }
 }
 
 // ══ DIASTOL ══
@@ -15373,7 +15492,11 @@ const _HF_ALIAS = {
   e_sep:    ['e_sep', 'e_prima_sept'],
   e_lat:    ['e_lat', 'e_prima_lat'],
   ddfvi:    ['ddfvi', 'ddvi'],
-  vmax_it:  ['vmax_it', 'vrt']        // el importador de Excel emite `vrt`
+  vmax_it:  ['vmax_it', 'vrt'],       // el importador de Excel emite `vrt`
+  /* Mismo alias que `_labFevi`. Sin esto, la compuerta de FEVI del HFA-PEFF no podía bloquear
+     NINGÚN estudio importado de PDF —que trae la FEVI bajo `fevi_simpson`—: caían todos en
+     «sin FEVI» y el Laboratorio los contaba como HFpEF con una FEVI de 25 % guardada. */
+  fevi:     ['fevi', 'fevi_simpson']
 };
 /* LIMITACIÓN CONOCIDA, no un olvido: `_labEeProm` y `_labLavi` aceptan además un `ee_prom` y un
    `lavi` YA CALCULADOS, y acá no se pueden aliasear porque `hfapeffDatos` no recibe la relación
@@ -15468,9 +15591,46 @@ function hfapeffDatos(src) {
     // El viejo fallback a diast_ritmo era código muerto: hf_ritmo es un <select> y
     // siempre tiene valor, así que nunca se evaluaba y el score ignoraba la FA de la
     // tab Diastólica. Ahora lo resuelve hfRitmoEfectivo(), que con 'auto' la lee.
-    ritmo: S.ritmo()
+    ritmo: S.ritmo(),
+    fevi: S.num('fevi')
   };
 }
+
+/* ══ Compuerta de FEVI ═══════════════════════════════════════════════════════════════════
+   El HFA-PEFF es el score de IC con FEVI CONSERVADA — la sigla lo dice: HFpEF. Con FEVI
+   reducida el algoritmo no aplica, porque el diagnóstico ya es HFrEF y no hay nada que
+   estimar; publicar «HFpEF confirmado» sobre una FEVI de 30 % es un diagnóstico equivocado en
+   un informe firmado. Ahí se BLOQUEA, no se advierte: un aviso al pie de un puntaje de 5/6 lo
+   lee como matiz quien ya leyó el número.
+
+   Sin FEVI cargada sí se calcula, con aviso. No tenerla es un dato faltante, no un descarte, y
+   bloquear ahí dejaría sin score a todo estudio a medio cargar — que es cuando el médico abre
+   el módulo.
+
+   Dos redacciones del MISMO mensaje: `msg` va al informe firmado y a la hoja del PDF, que se
+   dibujan con jsPDF —helvetica WinAnsi—, donde «≥» se descarta en silencio y la frase sale
+   mutilada. `msgUI` es para pantalla, que sí lo renderiza. El texto no se duplica a mano: sale
+   de la misma plantilla con el símbolo como parámetro. */
+function hfapeffFeviGate(feviCrudo) {
+  const uf = (typeof UMBRAL_FEVI_NORMAL === 'number') ? UMBRAL_FEVI_NORMAL : 50;
+  /* Normalización en el BORDE. `isNaN('')` es false —`Number('')` da 0—, así que una cadena
+     vacía esquivaba la guarda de abajo, entraba por `'' < 50` y devolvía «no aplicable» con el
+     mensaje roto («FEVI actual: % - score no aplicable»). Las dos fuentes reales devuelven
+     number o null y nunca lo alcanzan, pero la función está en `window` recibiendo un escalar
+     crudo: la próxima fuente que alguien escriba lo reabre. */
+  const fevi = (feviCrudo === '' || feviCrudo === null || feviCrudo === undefined)
+    ? null : Number(String(feviCrudo).replace(',', '.'));
+  const noAplica = s => `El score HFA-PEFF aplica solo en IC con FEVI conservada (${s}${uf}%). FEVI actual: ${fevi}% ${s === '≥' ? '—' : '-'} score no aplicable.`;
+  const verificar = s => `Verificar FEVI antes de aplicar este score: el HFA-PEFF solo aplica en IC con FEVI conservada (${s}${uf}%).`;
+  if (fevi === null || !isFinite(fevi)) {
+    return { aplica:true, motivo:'sin_fevi', fevi:null, umbral:uf, msg:verificar('>='), msgUI:verificar('≥') };
+  }
+  if (fevi < uf) {
+    return { aplica:false, motivo:'fevi_baja', fevi, umbral:uf, msg:noAplica('>='), msgUI:noAplica('≥') };
+  }
+  return { aplica:true, motivo:'ok', fevi, umbral:uf, msg:'', msgUI:'' };
+}
+window.hfapeffFeviGate = hfapeffFeviGate;
 
 // Devuelve {pts, mayor:[], menor:[], hayDatos} de un dominio.
 function _hfDom(mayores, menores) {
@@ -15529,7 +15689,12 @@ function hfapeffScore(soloEco, src) {
 
   const total = func.pts + morf.pts + (soloEco ? 0 : hum.pts);
   const max = soloEco ? 4 : 6;
+  /* `gate` viaja DENTRO del resultado y no se consulta aparte en cada sitio: así ninguna
+     superficie nueva puede olvidarse de mirarlo. El puntaje se sigue calculando —la pantalla
+     necesita mostrar qué criterios se cumplen para explicar por qué no aplica—, lo que se
+     bloquea es publicarlo como conclusión. */
   return { d, func, morf, hum, total, max, soloEco: !!soloEco, fa,
+           gate: hfapeffFeviGate(d.fevi),
            interp: hfapeffInterp(total), completo: func.hayDatos && morf.hayDatos && (soloEco || hum.hayDatos) };
 }
 
@@ -15541,7 +15706,16 @@ function hfapeffInterp(t) {
 
 // Conclusión para el informe / En Suma.
 function hfapeffConclusion(r) {
+  /* La compuerta de FEVI va PRIMERO y devuelve de inmediato: es la única rama que no puede
+     terminar en una frase con la palabra «HFpEF» al lado de un puntaje. Y el puntaje NO se
+     nombra acá — «Score HFA-PEFF 5/6, no aplicable» se copia al resumen de alta sin la
+     segunda mitad. */
+  const _g = r.gate || (typeof hfapeffFeviGate === 'function' ? hfapeffFeviGate(r.d && r.d.fevi) : null);
+  if (_g && !_g.aplica) return _g.msg;
   const p = 'Score HFA-PEFF ' + r.total + '/' + (r.max || 6) + ' — ';
+  // Sin FEVI cargada el score se emite, pero arrastra el aviso: quien lo lea tiene que saber
+  // que nadie verificó la premisa del algoritmo.
+  const avisoFevi = (_g && _g.motivo === 'sin_fevi') ? ' ' + _g.msg : '';
   // Un dominio sin medir suma 0 exactamente igual que uno medido y negativo. Sin
   // este control, un score incompleto salía como "probabilidad baja de HFpEF", es
   // decir un descarte diagnóstico fabricado por ausencia de datos — y esa frase va
@@ -15555,13 +15729,13 @@ function hfapeffConclusion(r) {
     const nota = 'puntaje parcial: sin datos del dominio ' + faltan.join(' ni ') + '. ';
     // Nunca afirmar probabilidad baja con dominios sin evaluar: es la dirección
     // peligrosa, porque se lee como exclusión diagnóstica.
-    if (r.total <= 1) return p + nota + 'No permite descartar ni confirmar HFpEF; completar los datos faltantes.';
-    if (r.total <= 4) return p + nota + 'Probabilidad intermedia con los datos disponibles. Se recomienda completar el score y, según resultado, ecocardiografía de esfuerzo y/o cateterismo cardíaco derecho.';
-    return p + nota + 'Hallazgos compatibles con HFpEF con los datos disponibles (ESC/HFA 2019).';
+    if (r.total <= 1) return p + nota + 'No permite descartar ni confirmar HFpEF; completar los datos faltantes.' + avisoFevi;
+    if (r.total <= 4) return p + nota + 'Probabilidad intermedia con los datos disponibles. Se recomienda completar el score y, según resultado, ecocardiografía de esfuerzo y/o cateterismo cardíaco derecho.' + avisoFevi;
+    return p + nota + 'Hallazgos compatibles con HFpEF con los datos disponibles (ESC/HFA 2019).' + avisoFevi;
   }
-  if (r.total <= 1) return p + 'probabilidad baja de HFpEF. Investigar causas alternativas de disnea.';
-  if (r.total <= 4) return p + 'probabilidad intermedia de HFpEF. Se recomienda ecocardiografía de esfuerzo y/o cateterismo cardíaco derecho para confirmación diagnóstica.';
-  return p + 'probabilidad alta de HFpEF. Hallazgos compatibles con diagnóstico de insuficiencia cardíaca con fracción de eyección preservada (ESC/HFA 2019).';
+  if (r.total <= 1) return p + 'probabilidad baja de HFpEF. Investigar causas alternativas de disnea.' + avisoFevi;
+  if (r.total <= 4) return p + 'probabilidad intermedia de HFpEF. Se recomienda ecocardiografía de esfuerzo y/o cateterismo cardíaco derecho para confirmación diagnóstica.' + avisoFevi;
+  return p + 'probabilidad alta de HFpEF. Hallazgos compatibles con diagnóstico de insuficiencia cardíaca con fracción de eyección preservada (ESC/HFA 2019).' + avisoFevi;
 }
 window.hfapeffScore = hfapeffScore; window.hfapeffConclusion = hfapeffConclusion;
 
@@ -15572,8 +15746,11 @@ function hfapeffLineaEco() {
   if (!el || !val) return;
   const r = hfapeffScore(true);
   // Sin los dos dominios de eco cargados no se muestra nada: un score parcial
-  // sobre datos ausentes induciría a error.
-  if (!r.func.hayDatos || !r.morf.hayDatos || r.total <= 1) { el.style.display = 'none'; return; }
+  // sobre datos ausentes induciría a error. Con FEVI reducida, tampoco: esta línea vive en la
+  // tabla del Doppler, lejos del módulo, y sería la única superficie que seguiría anunciando
+  // «HFpEF probable» sobre un paciente cuyo diagnóstico es HFrEF.
+  if (!r.func.hayDatos || !r.morf.hayDatos || r.total <= 1
+      || (r.gate && !r.gate.aplica)) { el.style.display = 'none'; return; }
   el.style.display = '';
   // Con eco sola el techo son 4 puntos (2 funcional + 2 morfológico): nunca se
   // llega a 5 sin péptidos. Por eso el corte de "probable" es 4/4, no 5.
@@ -15755,10 +15932,25 @@ function hfapeffRender() {
     { k:'NT-proBNP', v:d.ntprobnp, u:'pg/ml', d:0 }, { k:'BNP', v:d.bnp, u:'pg/ml', d:0 }
   ]);
 
+  /* Bloqueado por FEVI: el detalle de los dominios se deja arriba —sirve para entender POR QUÉ
+     no aplica— pero el resultado NO se muestra. Si el puntaje se imprimiera igual con un cartel
+     al lado, el número es lo que se lee y lo que se copia. */
+  if (r.gate && !r.gate.aplica) {
+    h += '<div class="da-res">' + badge('red', 'Score no aplicable') + '<br>'
+       + escHtml(r.gate.msgUI)
+       + '<br><span style="color:var(--text2);">Con FEVI reducida el diagnóstico es insuficiencia cardíaca con fracción de eyección reducida; el HFA-PEFF no se aplica a ese escenario.</span>'
+       + '</div>';
+    host.innerHTML = h;
+    return;
+  }
   const col = r.total <= 1 ? 'green' : (r.total <= 4 ? 'yellow' : 'red');
   h += '<div class="da-res">' + badge(col, 'HFA-PEFF ' + r.total + ' / 6') + ' <b>' + r.interp.txt + '</b><br>'
      + escHtml(hfapeffConclusion(r))
      + (r.completo ? '' : '<br><span style="color:var(--text2);">Faltan datos en algún dominio: el puntaje es parcial.</span>')
+     /* El aviso de «sin FEVI» ya viene DENTRO de hfapeffConclusion(r), que se imprime dos
+        líneas más arriba. Agregarlo otra vez acá lo mostraba duplicado, y con los dos símbolos
+        distintos («>=50%» del texto del informe y «≥50%» del de pantalla), que se lee como si
+        fueran dos avisos diferentes. */
      + '</div>';
   host.innerHTML = h;
 }
@@ -15770,6 +15962,13 @@ function amiloTextoHFAPEFF() {
   const L = [];
   const fila = (k, x, u, dec) => L.push(k + ' | ' + ((x === null || x === undefined) ? 'sin dato'
     : (typeof x === 'number' ? x.toFixed(dec == null ? 1 : dec) : x) + (u ? ' ' + u : '')));
+
+  /* La hoja del PDF no imprime un puntaje que no aplica. Devolver '' retira la sección
+     entera —`amiloIntegrar` y el armador del PDF descartan los módulos con texto vacío—, así
+     que un estudio que pasa a FEVI reducida después de integrar el módulo deja de llevarlo:
+     la hoja no puede quedar congelada diciendo «HFpEF confirmado» sobre el paciente corregido.
+     Es la misma mecánica que Eco Pulmonar avanzado con `hayDatos`. */
+  if (r.gate && !r.gate.aplica) return '';
 
   L.push('## Puntaje');
   L.push('Score HFA-PEFF | ' + r.total + ' / 6');
@@ -16626,6 +16825,38 @@ function _syncSiVacio(map) {
   });
 }
 
+/* Igual que `_syncSiVacio`, pero además REFRESCA mientras el espejo siga siendo un espejo: se
+   pisa el destino si está vacío o si su valor es exactamente el último que copiamos nosotros.
+   En cuanto el médico lo cambia a mano deja de coincidir y no se vuelve a tocar.
+
+   Hace falta para los campos que se llenan una sola vez al abrir un acordeón: el origen sigue
+   cambiando después (la PSAP se recalcula con cada corrección de la velocidad de IT) y el
+   espejo queda congelado con el número viejo, con cara de dato actual. Es el mismo defecto que
+   `cx_gtp_ee`, que por eso quedó afuera del exportador DICOM.
+
+   El `dataset` NO se persiste, y eso es deliberado: en un estudio reabierto ningún destino
+   coincide con su marca, así que lo guardado nunca se pisa. Falla del lado seguro. */
+function _syncDerivado(map) {
+  map.forEach(([src, dst]) => {
+    const s  = document.getElementById(src);
+    const el = document.getElementById(dst);
+    if (!s || !el) return;
+    const esNuestro = el.dataset.espejoDe !== undefined && el.dataset.espejoDe === el.value;
+    if (s.value === '') {
+      /* El origen se vació —borraron la velocidad de IT—: si el destino es nuestro se limpia
+         con él. Si no, es un valor que tipeó el médico y se respeta. Dejarlo daba el mismo
+         fantasma que el gradiente pulmonar: un criterio evaluándose contra un número que ya no
+         tiene de dónde salir. */
+      if (esNuestro) { el.value = ''; delete el.dataset.espejoDe; }
+      return;
+    }
+    if (el.value === '' || esNuestro) {
+      el.value = s.value;
+      el.dataset.espejoDe = s.value;
+    }
+  });
+}
+
 /* EM: los dos campos del TSVI ya se ANUNCIABAN como «auto ← Doppler» y calcEM ya caía a los
    globales (`v('em_dtsvi') || v('diam_tsvi')`), así que la CUENTA salía bien — pero el campo
    quedaba vacío. El médico leía un «AVm por continuidad» calculado a partir de dos casillas
@@ -16718,6 +16949,12 @@ function sincronizarTEERDesdeGlobal() {
     ['ete_lva','teer_lva'], ['ete_lvp','teer_lvp'],
     ['fevi','teer_fevi'], ['dsfvi','teer_dtsvi'], ['avm_plan','teer_area_mitral']
   ]);
+  /* PASP: la app ya la calcula en `psap_calc` (4·VIT² + PmAD, en calcPSAP) y este campo no la
+     recibía — había que tipearla a mano en un módulo cuyo criterio ≤70 mmHg decide APTO / NO
+     APTO para MitraClip. Va por `_syncDerivado` y no por `_syncSiVacio` porque este acordeón
+     suele quedar abierto mientras se corrige la velocidad de IT: con el espejo de una sola vez,
+     la primera PSAP se quedaba fija y el criterio se evaluaba contra un número viejo. */
+  _syncDerivado([['psap_calc','teer_pasp']]);
   /* El área mitral cae a «Área Wilkins (ETE)» cuando no hay planimetría transtorácica: TEER
      es un contexto transesofágico, así que ése es justamente el campo que suele estar
      cargado. Es la misma precedencia que usan emAvmPdfVal y em-plan-row; sin esto calcTEER
@@ -17256,32 +17493,93 @@ function calcIA_ESC() {
   document.getElementById('ia-discordancia').textContent = sevs.length > 1 ? '⚠️ Discordancia: ' + params.map(p=>`${p.p}:${p.sev}`).join(', ') : '';
 }
 
+/* Estenosis pulmonar por gradiente pico (ESC/ASE): leve <36 mmHg · moderada 36-64 · severa
+   >64. Los cortes por velocidad que suelen citarse —3 y 4 m/s— son EXACTAMENTE éstos vistos
+   por el otro lado (4·3² = 36, 4·4² = 64), así que se clasifica siempre por gradiente y hay
+   un solo juego de números. Debajo de 9 mmHg (1,5 m/s) la válvula es normal, que es la banda
+   que esta app ya usaba. */
+const EP_GMAX_NORMAL_MAX = 9;    // mmHg — <9 (Vmax <1,5 m/s) normal
+const EP_GMAX_LEVE_MAX   = 36;   // mmHg — <36 (Vmax <3 m/s) leve
+const EP_GMAX_MOD_MAX    = 64;   // mmHg — 36-64 (Vmax 3-4 m/s) moderada; >64 severa
+function epGradoPorGmax(g) {
+  /* Guarda de entrada, y devuelve `null` —no una banda— para lo que no es un gradiente. Sin
+     ella la cascada fallaba en las DOS direcciones: `null` y `0` se coercionan y caen en
+     «Normal», y `NaN`, `undefined` o una cadena hacen fallar las tres comparaciones y salen por
+     el `return` final, o sea «Estenosis severa». Es el `else` mudo que manda la basura a la
+     rama más grave, y esta función está exportada en `window`: la próxima superficie que la use
+     hereda las dos. */
+  if (typeof g !== 'number' || !isFinite(g) || g < 0) return null;
+  if (g < EP_GMAX_NORMAL_MAX) return 'Normal';
+  if (g < EP_GMAX_LEVE_MAX)   return 'Estenosis leve';
+  if (g <= EP_GMAX_MOD_MAX)   return 'Estenosis moderada';
+  return                             'Estenosis severa';
+}
+window.epGradoPorGmax = epGradoPorGmax;
+
 function calcVP() {
   const vmax = v('vp_vmax');
-  let gmax = v('vp_gmax');
+  const gEl  = document.getElementById('vp_gmax');
 
-  if (vmax && !gmax) {
-    gmax = (4 * vmax * vmax).toFixed(1);
-    setv('vp_gmax', gmax);
-  }
+  /* El gradiente es DERIVADO: con una Vmax cargada vale 4·V² y nada más. Antes se calculaba
+     sólo `if (vmax && !gmax)`, o sea una única vez, y después el campo quedaba congelado
+     mientras la velocidad seguía cambiando. Reproducido en el navegador: con Vmax 4 m/s el
+     informe firmado decía «Gmax 16 mmHg» —el gradiente de una Vmax 2 anterior— y tipeando
+     «4.5» carácter por carácter quedaba en 64 (el del «4» intermedio) en vez de 81. El
+     síntoma que se reportó como «falta elevar al cuadrado» era esto: la fórmula siempre
+     estuvo bien, lo que estaba mal era CUÁNDO se aplicaba.
 
-  if (!vmax && !gmax) return;
-  let opcion, origen;
-  if (vmax) {
-    if (vmax < 1.5) opcion = 'Normal';
-    else if (vmax < 3) opcion = 'Estenosis leve';
-    else opcion = 'Estenosis moderada/severa';
-    origen = `Vmax ${vmax} m/s`;
+     Cuando no hay Vmax el campo se respeta: hay informes que traen sólo el gradiente. Pero si
+     el número que está ahí es exactamente el que derivamos nosotros, es nuestro y se limpia —
+     si no, borrar la velocidad dejaba un gradiente huérfano en el informe firmado, sin ninguna
+     velocidad al lado. La marca se borra en `limpiarCampos` junto con el resto del formulario,
+     así que no cruza de un paciente al siguiente, y no se persiste, de modo que un estudio
+     reabierto nunca coincide y el valor guardado jamás se toca: falla del lado seguro.
+
+     `vmax > 0` y no `if (vmax)`: con `vp_vmax = 0` —que `v()` devuelve como 0, no como null—
+     se caía por el `else`, y como la guarda de abajo pregunta por `null` tampoco cortaba: se
+     llamaba a la clasificación con el gradiente nulo y el badge imprimía «Sugerido
+     automáticamente por Gmax null mmHg». */
+  let gmax;
+  if (vmax !== null && vmax > 0) {
+    gmax = PF((4 * vmax * vmax).toFixed(1));
+    if (gEl) { gEl.value = gmax; gEl.dataset.derivadoDe = String(gmax); }
   } else {
-    if (gmax < 9) opcion = 'Normal';
-    else if (gmax < 36) opcion = 'Estenosis leve';
-    else opcion = 'Estenosis moderada/severa';
-    origen = `Gmax ${gmax} mmHg`;
+    gmax = v('vp_gmax');
+    if (gEl && gmax !== null && gEl.dataset.derivadoDe === String(gmax)) {
+      gEl.value = ''; delete gEl.dataset.derivadoDe; gmax = null;
+    }
   }
-  const sel = document.getElementById('vp_morf');
-  if (sel) sel.value = opcion;
+
   const badgeEl = document.getElementById('vp-sev-badge');
-  if (badgeEl) badgeEl.textContent = `Sugerido automáticamente por ${origen}. Podés cambiarlo manualmente si lo creés necesario.`;
+  const sel = document.getElementById('vp_morf');
+  /* Sólo se pisa el select si el valor actual es uno de los que ESTE cálculo produce. Con
+     «Insuficiencia leve (fisiológica)» elegida a mano, cargar una velocidad normal la
+     convertía en «Normal» y borraba la insuficiencia del informe sin avisar. */
+  const _pisable = !!sel && (sel.value === '' || /^(Normal|Estenosis )/.test(sel.value));
+
+  /* `opcion === null` cubre el gradiente ausente Y el no clasificable en una sola guarda: la
+     función de clasificación es la única que decide qué es un gradiente, y acá no se repite el
+     criterio. Antes se preguntaba por `vmax === null && gmax === null`, que dejaba pasar el
+     cero y el texto no numérico. */
+  const opcion = epGradoPorGmax(gmax);
+  if (opcion === null) {
+    /* Sin gradiente utilizable, un grado que quedó de una medición borrada es una estenosis
+       afirmada en el informe firmado sin nada que la sostenga —medido: borrar la velocidad
+       dejaba «Válvula pulmonar estenosis severa.»—. Se devuelve a «Normal», que es lo que la
+       app ya dice de toda válvula pulmonar que nadie midió, y sólo si el valor es EXACTAMENTE
+       el que sugerimos nosotros en ESTA carga (la marca se borra en `limpiarCampos` y no se
+       persiste, así que un estudio reabierto nunca coincide y el grado guardado no se toca). */
+    if (sel && _pisable && sel.dataset.sugerido && sel.value === sel.dataset.sugerido) {
+      sel.value = 'Normal'; delete sel.dataset.sugerido;
+    }
+    if (badgeEl) badgeEl.textContent = '';
+    return;
+  }
+  const origen = (vmax !== null && vmax > 0) ? `Vmax ${vmax} m/s → Gmax ${gmax} mmHg` : `Gmax ${gmax} mmHg`;
+  if (_pisable) { sel.value = opcion; sel.dataset.sugerido = opcion; }
+  if (badgeEl) badgeEl.textContent = _pisable
+    ? `Sugerido automáticamente por ${origen}. Podés cambiarlo manualmente si lo creés necesario.`
+    : `Por ${origen} correspondería «${opcion}», pero se respeta la opción elegida a mano.`;
 }
 window.calcVP = calcVP;
 
@@ -18565,39 +18863,91 @@ function generarInforme(opts) {
   }
 
   // ── 5) Ventrículo derecho (una sola oración combinada: tamaño + función) ──
-  if (tapse || sp) {
-    const vdDilat = v('vd_bas') ? v('vd_bas') > 41 : false;
-    // Disfunción sistólica VD: TAPSE < 17 mm y/o S' < 9.5 cm/s (criterios de la app)
-    const tapseBajo = tapse ? tapse < UMBRAL_TAPSE_NORMAL : false;
-    const spBajo = sp ? sp < 9.5 : false;
-    const vdDisf = tapseBajo || spBajo;
-    // conciso (sigla) · estándar (nombre completo, frase compacta) · narrativo (prosa),
-    // misma escala que AI / válvula pulmonar / aorta. El "En suma" mantiene la sigla.
-    let vdC = '', vdE = '', vdN = '';
-    if (!vdDilat && !vdDisf) {
-      // VD normal + función sistólica normal → no se menciona el VD
-    } else if (!vdDilat && vdDisf) {
-      vdC = 'VD con disfunción sistólica';
-      vdE = 'Ventrículo derecho con disfunción sistólica';
-      vdN = 'El ventrículo derecho, de dimensiones conservadas, presenta disfunción sistólica';
-      suma.push('VD con disfunción sistólica.');
-    } else if (vdDilat && !vdDisf) {
-      vdC = 'VD dilatado con función sistólica normal';
-      vdE = 'Ventrículo derecho dilatado con función sistólica normal';
-      vdN = 'El ventrículo derecho se encuentra dilatado, con función sistólica conservada';
-      suma.push('VD dilatado con función sistólica normal.');
-    } else {
-      vdC = 'VD dilatado con disfunción sistólica';
-      vdE = 'Ventrículo derecho dilatado con disfunción sistólica';
-      vdN = 'El ventrículo derecho se encuentra dilatado y presenta disfunción sistólica';
-      suma.push('VD dilatado con disfunción sistólica.');
-    }
-    if (vdC) {
-      let datosVD = '';
-      if (tapse) datosVD += `TAPSE ${tapse} mm`;
-      if (sp) datosVD += (tapse ? `, S' ${sp} cm/s` : `S' ${sp} cm/s`);
-      const datosVDp = datosVD ? ` (${datosVD})` : '';
+  /* La compuerta es «¿hay alguna medida del VD?», NO «¿hay TAPSE o S'?». Con `tapse || sp` un
+     VD basal de 48 mm sin TAPSE ni S' cargados desaparecía entero del informe firmado: el
+     hallazgo se perdía por no haber medido OTRA cosa. Reproducido en el navegador antes de
+     tocarlo (caso D del barrido).
+
+     Y el caso normal vuelve a nombrarse. Lo había sacado el commit 58fccf6 (2026-08-14) al
+     unificar tamaño y función en una oración: la rama `!vdDilat && !vdDisf` quedó vacía, así
+     que un VD medido y normal salía idéntico a un VD que nadie miró. El lector del informe no
+     podía distinguirlos.
+
+     Lo que NO se afirma es lo que no se midió: tamaño y función se enuncian por separado y
+     cada uno sólo si tiene su dato. Es la misma regla que la aorta (c76f9ed). */
+  {
+    const vdBas = v('vd_bas');
+    const facVD = v('vd_fac');
+    /* `> 0` y no `!== null`: `calcVD` y `vdBasCat` rechazan el cero —no hay diámetro cero— pero
+       acá un `!== null` lo aceptaba y publicaba «Ventrículo derecho de dimensiones normales»
+       sobre un 0 tipeado por error, con la cápsula de pantalla en blanco al mismo tiempo. */
+    const hayTam  = vdBas !== null && vdBas > 0;
+    const hayFunc = tapse !== null || sp !== null || facVD !== null;
+    if (hayTam || hayFunc) {
+      /* El GRADO sale de `vdBasCat`, la misma función que pinta la cápsula, en vez de un
+         `> 41` propio. Con el umbral suelto, un VD basal de 43 mm daba «Leve (>41 y ≤45mm)» en
+         pantalla y «Ventrículo derecho dilatado» en el informe firmado — dos respuestas a la
+         misma pregunta. Y este diff lo volvió mucho más alcanzable, porque la oración ya no
+         exige TAPSE ni S'. */
+      const vdCat = (typeof vdBasCat === 'function' && hayTam) ? vdBasCat(vdBas) : null;
+      const vdDilat = !!(vdCat && vdCat.cat !== 'normal');
+      // Disfunción sistólica VD: TAPSE < 17 mm, S' < 9.5 cm/s y/o FAC < 35 % (ASE 2015)
+      const tapseBajo = tapse !== null ? tapse < UMBRAL_TAPSE_NORMAL : false;
+      const spBajo    = sp    !== null ? sp    < 9.5 : false;
+      const facBajo   = facVD !== null ? facVD < UMBRAL_FAC_VD_NORMAL : false;
+      const vdDisf = tapseBajo || spBajo || facBajo;
+
+      // 'leve' → «levemente dilatado», que es lo que dice la cápsula; 'dilatado' → «dilatado».
+      const tamTxt  = hayTam  ? (vdCat && vdCat.cat === 'leve' ? 'levemente dilatado'
+                                 : (vdDilat ? 'dilatado' : 'de dimensiones normales')) : null;
+      const funcTxt = hayFunc ? (vdDisf ? 'disfunción sistólica' : 'función sistólica conservada') : null;
+
+      // conciso (sigla) · estándar (nombre completo, frase compacta) · narrativo (prosa),
+      // misma escala que AI / válvula pulmonar / aorta. El "En suma" mantiene la sigla.
+      let vdC, vdE, vdN;
+      if (tamTxt && funcTxt) {
+        /* «de dimensiones normales, función sistólica conservada» con coma cuando todo es
+           normal, y «dilatado con disfunción sistólica» con nexo cuando hay un hallazgo: es la
+           forma en que se dicta un informe y la que pidió Maicol textualmente. */
+        const nexo = (!vdDilat && !vdDisf) ? ', ' : ' con ';
+        vdC = `VD ${tamTxt}${nexo}${funcTxt}`;
+        vdE = `Ventrículo derecho ${tamTxt}${nexo}${funcTxt}`;
+        vdN = (!vdDilat && !vdDisf)
+          ? 'El ventrículo derecho es de dimensiones normales, con función sistólica conservada'
+          : `El ventrículo derecho se encuentra ${tamTxt} y presenta ${funcTxt}`;
+      } else if (tamTxt) {
+        vdC = `VD ${tamTxt}`;
+        vdE = `Ventrículo derecho ${tamTxt}`;
+        vdN = `El ventrículo derecho es ${tamTxt}`;
+      } else {
+        vdC = `VD con ${funcTxt}`;
+        vdE = `Ventrículo derecho con ${funcTxt}`;
+        vdN = `El ventrículo derecho presenta ${funcTxt}`;
+      }
+
+      const medVD = [];
+      if (tapse !== null) medVD.push(`TAPSE ${tapse} mm`);
+      if (sp    !== null) medVD.push(`S' ${sp} cm/s`);
+      if (facVD !== null) medVD.push(`FAC ${facVD}%`);
+      const datosVDp = medVD.length ? ` (${medVD.join(', ')})` : '';
       inf.push(estiloPick(`${vdC}${datosVDp}.`, `${vdE}${datosVDp}.`, `${vdN}${datosVDp}.`));
+
+      /* Al En Suma sólo lo anormal: un VD normal no es un hallazgo, igual que la geometría
+         normal del VI o la AI de dimensiones normales. */
+      /* Cada mitad de la frase exige SU dato. Una primera versión decía «VD dilatado con función
+         sistólica conservada» sobre un estudio con el VD basal medido y ni TAPSE ni S' ni FAC:
+         la conclusión afirmaba una función que nadie evaluó. Medido en el barrido. */
+      if (vdDilat && vdDisf)                suma.push(`VD ${tamTxt} con disfunción sistólica.`);
+      else if (vdDilat && hayFunc)          suma.push(`VD ${tamTxt} con función sistólica conservada.`);
+      else if (vdDilat)                     suma.push(`VD ${tamTxt}.`);
+      else if (vdDisf && hayTam)            suma.push('VD de dimensiones normales con disfunción sistólica.');
+      else if (vdDisf)                      suma.push('VD con disfunción sistólica.');
+      /* La FAC severa va como línea PROPIA y no reemplaza a la de arriba: la de arriba dice
+         tamaño y función, ésta gradúa. Lleva el número porque es el que sostiene la palabra
+         «severa» y sin él la afirmación no se puede auditar. */
+      if (facVD !== null && facVD < UMBRAL_FAC_VD_SEVERA) {
+        suma.push(`Disfunción sistólica severa del VD (FAC ${facVD}%).`);
+      }
     }
   }
 
@@ -18605,8 +18955,14 @@ function generarInforme(opts) {
   {
     const adArea = v('ad_area');
     if (adArea) {
-      const adStr = adArea <= 18 ? 'de dimensiones normales' : 'dilatada';
-      inf.push(`Aurícula derecha ${adStr}.`);
+      const adDil = adArea > UMBRAL_AD_AREA_NORMAL;
+      inf.push(`Aurícula derecha ${adDil ? 'dilatada' : 'de dimensiones normales'} (área ${adArea} cm²).`);
+      /* La AD dilatada llegaba al informe narrativo y NO al En Suma, mientras la AI dilatada sí
+         entraba. Misma regla para las dos: la dilatación auricular es un hallazgo y va a la
+         conclusión. El rótulo sigue la forma que ya usa la AI —sigla + grado + el valor entre
+         paréntesis—, no «Dilatación auricular derecha», para que las dos líneas se lean iguales
+         cuando aparecen juntas. */
+      if (adDil) suma.push(`AD dilatada (área ${adArea} cm²).`);
     } else {
       inf.push('Aurícula derecha no valorada.');
     }
@@ -18757,10 +19113,27 @@ function generarInforme(opts) {
         `La válvula aórtica es ${vaMorf.toLowerCase()}, ${cE} significativas.`));
     } else {
       const escC = esclerosis ? 'esclerosis valvular; ' : '';
+      /* Los números que SOSTIENEN la estenosis van en la misma oración que la nombra. Antes el
+         informe decía «estenosis severa» y los valores había que ir a buscarlos a la tabla de
+         mediciones del PDF, dos páginas más allá; quien copia la línea al resumen de alta o a
+         la interconsulta se llevaba el adjetivo sin el dato.
+         El AVA REAL primero y la indexada entre paréntesis detrás: el corte de severidad de la
+         guía es el área absoluta (<1,0 cm²) y la indexada es el ajuste por superficie, no al
+         revés. Sólo se listan los que están medidos —sin BSA no hay indexada, y afirmar un
+         gradiente que nadie midió es lo mismo que afirmar una aorta normal sin medirla—. */
+      const medEA = [];
+      if (_avaC !== null) {
+        const _avaIdx = bsa ? ` (indexada ${(_avaC / bsa).toFixed(2)} cm²/m²)` : '';
+        medEA.push(`AVA ${_avaC.toFixed(2)} cm²${_avaIdx}`);
+      }
+      if (_vmaxA !== null) medEA.push(`Vmax ${_vmaxA} m/s`);
+      if (_gmedA !== null) medEA.push(`gradiente medio ${_gmedA} mmHg`);
+      // Sólo si de verdad hay estenosis: en una insuficiencia aislada estos números no describen el hallazgo.
+      const medEAp = (estE && medEA.length) ? ` (${medEA.join(', ')})` : '';
       inf.push(estiloPick(
-        `VAo ${escC}${cC}.`,
-        `Válvula aórtica ${vaMorf.toLowerCase()}, ${escC}${cE}.`,
-        `La válvula aórtica (${vaMorf.toLowerCase()}), ${escC}${cE}; hallazgo que requiere seguimiento ecocardiográfico y valoración de indicación de intervención según evolución clínica.`));
+        `VAo ${escC}${cC}${medEAp}.`,
+        `Válvula aórtica ${vaMorf.toLowerCase()}, ${escC}${cE}${medEAp}.`,
+        `La válvula aórtica (${vaMorf.toLowerCase()}), ${escC}${cE}${medEAp}; hallazgo que requiere seguimiento ecocardiográfico y valoración de indicación de intervención según evolución clínica.`));
     }
     if (_eaDiscordante) {
       const _eaBase = `El grado de estenosis aórtica se sostiene por el área valvular (AVA ${_avaC.toFixed(2)} cm²) `
@@ -18863,7 +19236,7 @@ function generarInforme(opts) {
     inf.push(tricLine);
   }
 
-  // ── 10) Válvula pulmonar ──
+  // ── 10) Válvula pulmonar (estenosis + insuficiencia) ──
   {
     const vpMorf = sv('vp_morf') || 'Normal';
     const vpVmax = v('vp_vmax'), vpGmax = v('vp_gmax');
@@ -18871,14 +19244,72 @@ function generarInforme(opts) {
     if (vpVmax) datosVP += `Vmax ${vpVmax} m/s`;
     if (vpGmax) datosVP += (vpVmax ? `, Gmax ${vpGmax} mmHg` : `Gmax ${vpGmax} mmHg`);
     const datosVPp = datosVP ? ` (${datosVP})` : '';
-    if (vpMorf === 'Normal' && !vpVmax && !vpGmax) {
+    /* Los datos de INSUFICIENCIA pulmonar se leen acá arriba, antes de decidir la frase de
+       normalidad. `vp_morf` arranca en «Normal» —es la opción 0 del select y lo que deja
+       «Nuevo estudio»—, así que sin esta compuerta un paciente con IP severa y sin Doppler de
+       estenosis salía con dos oraciones CONSECUTIVAS en el informe firmado: «La válvula
+       pulmonar presenta morfología y flujo dentro de límites normales.» seguida de «Se observa
+       insuficiencia pulmonar severa (…)». La primera niega explícitamente el flujo que la
+       segunda describe. Es el caso típico de la IP postquirúrgica. */
+    const ipGrado = sv('ip_grado');
+    const ipProto = v('ip_vmax'), ipTele = v('ip_vtd'), ipPmad = v('pmad');
+    const hayIP = !!(ipGrado || ipProto !== null || ipTele !== null);
+    if (vpMorf === 'Normal' && !vpVmax && !vpGmax && !hayIP) {
       inf.push(estiloPick('VP normal.', 'Válvula pulmonar normal.', 'La válvula pulmonar presenta morfología y flujo dentro de límites normales.'));
+    } else if (vpMorf === 'Normal' && !vpVmax && !vpGmax) {
+      /* Con IP cargada y sin datos de estenosis, la válvula se describe SÓLO por lo que se
+         midió: la frase de la insuficiencia sale justo abajo y ésta sería redundante o
+         contradictoria. No se escribe nada acá. */
     } else {
       inf.push(estiloPick(
         `VP ${vpMorf.toLowerCase()}${datosVPp}.`,
         `Válvula pulmonar ${vpMorf.toLowerCase()}${datosVPp}.`,
         `La válvula pulmonar presenta ${vpMorf.toLowerCase()}${datosVPp}.`));
-      if (vpMorf !== 'Normal') suma.push(`VP — ${vpMorf}.`);
+      /* Guion corto, no raya em: el En Suma se dibuja con jsPDF y la helvetica WinAnsi descarta
+         la raya en silencio — el PDF firmado salía «VP  Estenosis moderada.» con doble espacio. */
+      if (vpMorf !== 'Normal') suma.push(`VP - ${vpMorf}.`);
+    }
+
+    /* ── 10b) Insuficiencia pulmonar ──
+       El módulo entero —grado, velocidades proto y telediastólica, PAPm y PAPd— no lo leía
+       NADIE del informe: `ip_grado`, `ip_vmax` e `ip_vtd` sólo aparecían en la tabla del PDF y
+       en el módulo de Fallot. Se cargaba la insuficiencia pulmonar y el informe firmado no la
+       nombraba.
+
+       Las presiones se recalculan acá desde las velocidades y no se leen de `ip_papd` ni del
+       span `ip-papm-row`: el texto del informe no puede depender de lo que haya quedado
+       pintado en la pantalla —esos elementos no se repintan al reabrir un estudio— y una
+       segunda copia de la fórmula en el emisor es justamente lo que pudre los números. Es la
+       misma fórmula de `calcIP`, un solo nivel: 4·V² + PmAD (Masuyama). */
+    if (hayIP) {
+      /* `ip_grado` ya viene con el prefijo «IP» en su texto («IP moderada»), así que se
+         desarma para no escribir «insuficiencia pulmonar IP moderada». Sin grado elegido pero
+         con velocidades cargadas se dice sólo que está presente: el grado es una evaluación
+         integral que el médico hace a mano, y deducirlo de una velocidad sería inventarlo. */
+      const ipDesc = ipGrado ? ipGrado.replace(/^IP\s*/i, '').trim() : '';
+      const pres = [];
+      if (ipProto !== null && ipPmad !== null) pres.push(`PAP media ${(4 * ipProto * ipProto + ipPmad).toFixed(0)} mmHg`);
+      if (ipTele  !== null && ipPmad !== null) pres.push(`PAP diastólica ${(4 * ipTele  * ipTele  + ipPmad).toFixed(0)} mmHg`);
+      /* Sin PmAD no se publican las presiones: 4·V² solo es el GRADIENTE entre arteria
+         pulmonar y ventrículo derecho, no la presión pulmonar, y rotularlo «PAP media» sería
+         un número sistemáticamente bajo con nombre de otra cosa. La pantalla lo muestra con la
+         aclaración «(sin PmAD)»; el informe firmado, mejor callarlo. */
+      const presP = pres.length ? ` (${pres.join(', ')})` : '';
+      const faltaPmad = (ipProto !== null || ipTele !== null) && ipPmad === null
+        ? ' Para estimar las presiones pulmonares por la insuficiencia pulmonar falta la PmAD (diámetro y colapso de la VCI).' : '';
+      if (ipDesc) {
+        inf.push(estiloPick(
+          `IP ${ipDesc}${presP}.${faltaPmad}`,
+          `Insuficiencia pulmonar ${ipDesc}${presP}.${faltaPmad}`,
+          `Se observa insuficiencia pulmonar ${ipDesc}${presP}.${faltaPmad}`));
+        // Al En Suma sólo lo que no es fisiológico: una IP leve fisiológica no es un hallazgo.
+        if (!/leve|fisiol/i.test(ipDesc)) suma.push(`Insuficiencia pulmonar ${ipDesc}.`);
+      } else {
+        inf.push(estiloPick(
+          `IP presente${presP}.${faltaPmad}`,
+          `Insuficiencia pulmonar presente${presP}.${faltaPmad}`,
+          `Se observa insuficiencia pulmonar${presP}.${faltaPmad}`));
+      }
     }
   }
 
@@ -19091,7 +19522,12 @@ function generarInforme(opts) {
   // ── 13d) HFA-PEFF → conclusión al En Suma si el módulo está integrado ──
   if (typeof amiloEnInforme === 'function' && typeof hfapeffScore === 'function'
       && (amiloEnInforme() || []).some(x => x.k === 'hfpeff')) {
-    suma.push(hfapeffConclusion(hfapeffScore(false)));
+    /* Con FEVI reducida no se publica NADA en el En Suma: ni el puntaje ni el cartel de que no
+       aplica. El En Suma es la lista de hallazgos del estudio, y «este score no corresponde» no
+       es un hallazgo del paciente — es una nota sobre la app. El cartel sí se ve en pantalla,
+       donde está quien puede corregir la FEVI o cerrar el módulo. */
+    const _hf = hfapeffScore(false);
+    if (!_hf.gate || _hf.gate.aplica) suma.push(hfapeffConclusion(_hf));
   }
 
   // ── 13c) Ecografía pulmonar (módulo avanzado) → sólo al En Suma ──
@@ -19900,6 +20336,25 @@ function limpiarCampos(silencioso) {
      textarea vuelve a traer contenido en el HTML, las dos se comportan igual solas. */
   document.querySelectorAll('textarea').forEach(el => el.value = el.defaultValue);
   document.querySelectorAll('select').forEach(el => el.selectedIndex = 0);
+  /* ══ Marcas de valor DERIVADO ══
+     `derivadoDe` (gradiente pulmonar), `sugerido` (grado de la válvula pulmonar) y `espejoDe`
+     (PASP del TEER) marcan «este número lo escribió la app», para poder refrescarlo o limpiarlo
+     sin pisar lo que tipeó el médico. Viven en el nodo del DOM, así que su alcance es la SESIÓN
+     y no el estudio: vaciar `.value` no las borra.
+
+     Sin este barrido destruyen datos del paciente siguiente. Medido: paciente A con Vmax 3 deja
+     `vp_gmax = 36` y `derivadoDe = "36"`; «Nuevo estudio» vacía el campo y deja la marca; el
+     médico del paciente B, que no tiene velocidad, tipea el gradiente medido —36— y el campo se
+     borra solo en la tecla que lo completa. Y el espacio de colisión es justo el de los valores
+     redondos (16, 25, 36, 49, 64), que son los que se tipean a mano. Igual con el select: una
+     morfología elegida a mano que coincida con la heredada vuelve sola a «Normal».
+
+     Es exactamente lo que este archivo ya hace unas líneas más abajo con `dataset.tocado` y
+     `dataset.desdeEstudio`, y por la misma razón. Barrido por atributo y no por lista de ids:
+     así una marca nueva queda cubierta sin que nadie tenga que acordarse. */
+  document.querySelectorAll('[data-derivado-de],[data-sugerido],[data-espejo-de]').forEach(el => {
+    delete el.dataset.derivadoDe; delete el.dataset.sugerido; delete el.dataset.espejoDe;
+  });
   if (typeof renderCentroField === 'function') renderCentroField('');   // nuevo estudio → centro principal por defecto
   /* ══ Checkboxes: barrido con ALLOWLIST, no lista de los que sí se limpian ══
      Hasta 2026-09-10 esto se hacía al revés —una lista explícita de los que se desmarcan— y
@@ -22162,9 +22617,15 @@ function generarPDFReal(_aj) {
       {lbl:'TAP',         ref:'>105 ms',    val:v('tvia')   ?v('tvia')   +' ms'  :null},
       {lbl:'TAPSE',       ref:'>=' + UMBRAL_TAPSE_NORMAL + ' mm',     val:v('tapse')  ?v('tapse')  +' mm'  :null},
       {lbl:"S'",          ref:'>9.5 cm/s',  val:v('s_prime')?v('s_prime')+' cm/s':null},
-      {lbl:'Diám. basal', ref:'<42 mm',     val:v('vd_bas') ?v('vd_bas') +' mm'  :null},
+      {lbl:'Diám. basal', ref:'<=' + VD_BAS_NORMAL_MAX + ' mm',     val:v('vd_bas') ?v('vd_bas') +' mm'  :null},
       {lbl:'Diám. medio', ref:'',           val:v('vd_mid') ?v('vd_mid') +' mm'  :null},
       {lbl:'Longitud',    ref:'',           val:v('vd_long')?v('vd_long')+' mm'  :null},
+      /* FAC y FEVD van juntas y con SU propia referencia cada una: son dos medidas distintas de
+         lo mismo (2D por áreas vs 3D) y confundir los cortes —35 % y 45 %— convierte un VD
+         normal en disfuncionante. La referencia del diámetro basal decía «<42 mm» mientras el
+         código clasifica con «<=41»: el mismo borde escrito de dos formas, ahora derivado de la
+         constante. */
+      {lbl:'FAC',         ref:'>=' + UMBRAL_FAC_VD_NORMAL + '%', val:v('vd_fac') ?v('vd_fac') +'%'    :null},
       {lbl:'FEVD',        ref:'>=45%',       val:v('fevd')   ?v('fevd')   +'%'    :null},
       {lbl:'VD/VI',       ref:'',           val:v('vd_vi')  ?v('vd_vi')  .toFixed(2):null},
     ]},
@@ -22197,8 +22658,13 @@ function generarPDFReal(_aj) {
       {lbl:'V. máx VP',  ref:'', val:v('vp_vmax')?v('vp_vmax')+' m/s' :null},
       {lbl:'G. máx VP',  ref:'', val:v('vp_gmax')?v('vp_gmax')+' mmHg':null},
       {lbl:'Morf. VP',   ref:'', val:(sv('vp_morf')&&sv('vp_morf')!=='Normal')?sv('vp_morf'):null},
-      {lbl:'PAPm (IP)',  ref:'', val:(()=>{const vm=v('ip_vmax'),pm=v('pmad');return vm?(4*vm*vm+(pm||0)).toFixed(0)+' mmHg':null;})()},
-      {lbl:'PAPd (IP)',  ref:'', val:(()=>{const vt=v('ip_vtd'),pm=v('pmad');return vt?(4*vt*vt+(pm||0)).toFixed(0)+' mmHg':null;})()},
+      /* Sin PmAD NO se publica la fila. El `(pm||0)` de antes imprimía `4·V²` —el gradiente
+         entre arteria pulmonar y ventrículo derecho— bajo el rótulo «PAPm», subestimando la
+         presión pulmonar en el valor entero de la PmAD (5-15 mmHg) sin ninguna marca. Y desde
+         que el narrativo dice «falta la PmAD», el mismo PDF traía la advertencia en una página
+         y el número inventado en la otra. Misma regla en las dos superficies. */
+      {lbl:'PAPm (IP)',  ref:'', val:(()=>{const vm=v('ip_vmax'),pm=v('pmad');return (vm&&pm!==null)?(4*vm*vm+pm).toFixed(0)+' mmHg':null;})()},
+      {lbl:'PAPd (IP)',  ref:'', val:(()=>{const vt=v('ip_vtd'),pm=v('pmad');return (vt&&pm!==null)?(4*vt*vt+pm).toFixed(0)+' mmHg':null;})()},
     ]},
   ]);
 
@@ -23429,67 +23895,108 @@ function calcWilkins() {
   if (intEl) intEl.innerHTML = interp;
 }
 
-function calcTEER() {
-  const lva = v('teer_lva');
-  const gap = v('teer_gap');
-  const area = v('teer_area_mitral');
-  const profFlail = v('teer_prof_flail');
-  const anchoFlail = v('teer_ancho_flail');
-  const pasp = v('teer_pasp');
-  const fevi = v('teer_fevi');
-  const dtsvi = v('teer_dtsvi');
-  const calc = sv('teer_calcificacion');
-  const tipoIM = sv('teer_tipo_im');
+/* ══ TEER — estado en una función PURA ════════════════════════════════════════════════════
+   Desde que el módulo tiene «Integrar al informe», la hoja del PDF tiene que decir exactamente
+   lo mismo que la pantalla. Reimplementar los diez criterios del lado del emisor es la trampa
+   de la fórmula duplicada que ya se pagó con el bloque diastólico: las dos copias divergen en
+   cuanto se toca una, y la que se pudre es la que nadie mira. Acá la evaluación es UNA;
+   `calcTEER` sólo pinta y `amiloTextoTEER` sólo escribe.
 
-  function criterio(id, ok, txtOk, txtFail) {
-    const el = document.getElementById(id);
-    if (!el) return ok;
-    if (ok === null) { el.innerHTML = badge('gray', 'No ingresado'); return null; }
-    el.innerHTML = ok ? badge('green', '✓ ' + txtOk) : badge('red', '✗ ' + txtFail);
-    return ok;
+   `ok:null` = criterio no ingresado, distinto de no cumplido. */
+function teerEstado() {
+  const lva   = v('teer_lva'),  lvp = v('teer_lvp'),  gap = v('teer_gap');
+  const area  = v('teer_area_mitral');
+  const profFlail = v('teer_prof_flail'), anchoFlail = v('teer_ancho_flail');
+  const pasp  = v('teer_pasp'), fevi = v('teer_fevi'), dtsvi = v('teer_dtsvi');
+  const calc  = sv('teer_calcificacion'), clefts = sv('teer_clefts'), trombo = sv('teer_trombo');
+  const tipoIM = sv('teer_tipo_im');
+  const C = (id, lbl, ok, txtOk, txtFail) => ({ id, lbl, ok, txt: ok === null ? 'No ingresado' : (ok ? txtOk : txtFail) });
+
+  const cs = {
+    c1:  lva  !== null ? C('teer-c1', 'Velo anterior ≥20 mm', lva >= 20, `${lva}mm ≥20mm`, `${lva}mm <20mm — NO apto`)                          : C('teer-c1', 'Velo anterior ≥20 mm', null),
+    c1b: lvp  !== null ? C('teer-c1b','Velo posterior ≥7 mm', lvp >= 7,  `${lvp}mm ≥7mm`,  `${lvp}mm <7mm — agarre difícil`)                    : C('teer-c1b','Velo posterior ≥7 mm', null),
+    c2:  gap  !== null ? C('teer-c2', 'Gap de coaptación ≤10 mm', gap <= 10, `${gap}mm ≤10mm`, `${gap}mm >10mm — evaluar Heart Team`)           : C('teer-c2', 'Gap de coaptación ≤10 mm', null),
+    c3:  area !== null ? C('teer-c3', 'Área mitral ≥4,0 cm²', area >= 4.0, `${area}cm² ≥4cm²`, `${area}cm² <4cm² — NO apto`)                    : C('teer-c3', 'Área mitral ≥4,0 cm²', null),
+    c4:  profFlail  !== null ? C('teer-c4','Profundidad de flail ≤10 mm', profFlail <= 10, `${profFlail}mm ≤10mm`, `${profFlail}mm >10mm — anatomía compleja, Heart Team`) : C('teer-c4','Profundidad de flail ≤10 mm', null),
+    c5:  anchoFlail !== null ? C('teer-c5','Anchura de flail ≤15 mm', anchoFlail <= 15, `${anchoFlail}mm ≤15mm`, `${anchoFlail}mm >15mm — anatomía compleja, Heart Team`) : C('teer-c5','Anchura de flail ≤15 mm', null),
+    c6:  pasp !== null ? C('teer-c6', 'PASP ≤70 mmHg', pasp <= 70, `${pasp}mmHg ≤70mmHg`, `${pasp}mmHg >70mmHg — NO apto`)                      : C('teer-c6', 'PASP ≤70 mmHg', null),
+    c7:  (fevi  !== null && tipoIM === 'secundaria') ? C('teer-c7','FEVI 20-50 % (COAPT)', fevi >= 20 && fevi <= 50, `FEVI ${fevi}% (20-50%)`, `FEVI ${fevi}% fuera rango COAPT`) : C('teer-c7','FEVI 20-50 % (COAPT)', null),
+    c8:  (dtsvi !== null && tipoIM === 'secundaria') ? C('teer-c8','DTSVI ≤70 mm (COAPT)', dtsvi <= 70, `${dtsvi}mm ≤70mm`, `${dtsvi}mm >70mm — NO apto`)                       : C('teer-c8','DTSVI ≤70 mm (COAPT)', null),
+    /* `'' → null`, no `false`: son los únicos dos criterios que no podían mostrar «No
+       ingresado», así que su default se leía como un hallazgo negativo comprobado. */
+    c9:  C('teer-c9', 'Sin calcificación densa en zona clip',        calc   === '' ? null : calc   === 'no', 'Sin calcificación densa',    'Calcificación densa — evaluar'),
+    c10: C('teer-c10','Sin clefts ni perforaciones en zona agarre',  clefts === '' ? null : clefts === 'no', 'Sin clefts ni perforaciones','Clefts/perforaciones — limitan agarre')
+  };
+
+  /* UNA sola lista de criterios con veto, de la que salen `fallos`, `evaluados` y
+     `noIngresados`. Antes `fallos` era `[c1..c6, c9]` y `noIngresados` sólo `[c1..c6]`: c10
+     —clefts y perforaciones— se pintaba, se imprimía en la hoja firmada y NO contaba, así que
+     con los seis anatómicos correctos y `teer_clefts = 'si'` la misma hoja decía
+     «Clefts/perforaciones - limitan agarre» y, dos renglones abajo, «APTO para TEER - criterios
+     cumplidos». Y «Faltan N criterio(s)» contaba 6 sobre 8. Con la lista única, agregar un
+     criterio deja de exigir acordarse de tres sitios. */
+  const veto = [cs.c1, cs.c2, cs.c3, cs.c4, cs.c5, cs.c6, cs.c9, cs.c10];
+  const evaluados    = veto.filter(c => c.ok !== null);
+  const fallos       = veto.filter(c => c.ok === false);
+  const noIngresados = veto.filter(c => c.ok === null).length;
+
+  /* Trombo en la aurícula izquierda: contraindicación ABSOLUTA, y el select estaba en el
+     formulario sin que nadie lo leyera — la conclusión podía decir «APTO para TEER» con el
+     trombo marcado dos renglones más arriba. Es el mismo defecto que ya se cerró en Wilkins ×
+     orejuela (70e428a). Se evalúa PRIMERO y manda sobre todo lo demás: con el catéter cruzando
+     el septo y maniobrando en la AI, ningún criterio anatómico favorable lo compensa. */
+  let clave, badgeCls, titulo, nota;
+  if (trombo === 'si') {
+    clave = 'contraindicado'; badgeCls = 'red';
+    titulo = '❌ CONTRAINDICADO — trombo en aurícula izquierda';
+    nota = 'El trombo en aurícula izquierda es contraindicación absoluta del procedimiento, con independencia de los criterios anatómicos. Anticoagulación y reevaluación con ETE antes de considerar TEER.';
+  } else if (evaluados.length === 0) {
+    clave = 'sin_datos'; badgeCls = 'gray'; titulo = 'Ingresar datos para evaluar'; nota = '';
+  } else if (trombo === '') {
+    /* Trombo sin evaluar: nunca «APTO». El select ya no tiene un «no» de fábrica, así que acá
+       no se sabe si se descartó por ETE o si nadie lo miró, y ésta es una contraindicación
+       ABSOLUTA — el lado seguro es pedirlo, no suponerlo. */
+    clave = 'parcial'; badgeCls = 'yellow'; titulo = '⚠️ Falta descartar trombo en aurícula izquierda';
+    nota = 'El trombo en aurícula izquierda es contraindicación absoluta y no está consignado. '
+         + (fallos.length ? fallos.length + ' criterio(s) no cumplido(s). ' : '')
+         + (noIngresados ? 'Faltan además ' + noIngresados + ' criterio(s) por ingresar.' : '');
+  } else if (!fallos.length && noIngresados === 0) {
+    clave = 'apto'; badgeCls = 'green'; titulo = '✅ APTO para TEER — criterios cumplidos';
+    nota = tipoIM === 'secundaria' ? 'Optimizar GDMT previo. Evaluar Heart Team.' : 'Anatomía favorable. Evaluar Heart Team.';
+  } else if (!fallos.length) {
+    clave = 'parcial'; badgeCls = 'yellow'; titulo = '⚠️ Posiblemente apto — completar datos faltantes';
+    nota = 'Faltan ' + noIngresados + ' criterio(s) por ingresar.';
+  } else if (fallos.length === 1) {
+    clave = 'borderline'; badgeCls = 'yellow'; titulo = '⚠️ Límite — anatomía borderline';
+    nota = 'Un criterio no cumplido. Discutir en Heart Team con imagen multimodal (ETE 3D + TC).';
+  } else {
+    clave = 'no_apto'; badgeCls = 'red'; titulo = '❌ NO apto para TEER según criterios actuales';
+    nota = fallos.length + ' criterios no cumplidos. Evaluar cirugía o Heart Team.';
   }
 
-  const lvp = v('teer_lvp');
-  const c1 = lva !== null ? criterio('teer-c1', lva >= 20, `${lva}mm ≥20mm`, `${lva}mm <20mm — NO apto`) : criterio('teer-c1', null);
-  const c1b = lvp !== null ? criterio('teer-c1b', lvp >= 7, `${lvp}mm ≥7mm`, `${lvp}mm <7mm — agarre difícil`) : criterio('teer-c1b', null);
-  const c2 = gap !== null ? criterio('teer-c2', gap <= 10, `${gap}mm ≤10mm`, `${gap}mm >10mm — evaluar Heart Team`) : criterio('teer-c2', null);
-  const c3 = area !== null ? criterio('teer-c3', area >= 4.0, `${area}cm² ≥4cm²`, `${area}cm² <4cm² — NO apto`) : criterio('teer-c3', null);
-  const c4 = profFlail !== null ? criterio('teer-c4', profFlail <= 10, `${profFlail}mm ≤10mm`, `${profFlail}mm >10mm — anatomía compleja, Heart Team`) : criterio('teer-c4', null);
-  const c5 = anchoFlail !== null ? criterio('teer-c5', anchoFlail <= 15, `${anchoFlail}mm ≤15mm`, `${anchoFlail}mm >15mm — anatomía compleja, Heart Team`) : criterio('teer-c5', null);
-  const c6 = pasp !== null ? criterio('teer-c6', pasp <= 70, `${pasp}mmHg ≤70mmHg`, `${pasp}mmHg >70mmHg — NO apto`) : criterio('teer-c6', null);
-  const c7 = (fevi !== null && tipoIM === 'secundaria') ? criterio('teer-c7', fevi >= 20 && fevi <= 50, `FEVI ${fevi}% (20-50%)`, `FEVI ${fevi}% fuera rango COAPT`) : criterio('teer-c7', null);
-  const c8 = (dtsvi !== null && tipoIM === 'secundaria') ? criterio('teer-c8', dtsvi <= 70, `${dtsvi}mm ≤70mm`, `${dtsvi}mm >70mm — NO apto`) : criterio('teer-c8', null);
-  const c9 = criterio('teer-c9', calc === 'no', 'Sin calcificación densa', 'Calcificación densa — evaluar');
-  const clefts = sv('teer_clefts');
-  const c10 = criterio('teer-c10', clefts === 'no', 'Sin clefts ni perforaciones', 'Clefts/perforaciones — limitan agarre');
+  return { cs, orden:[cs.c1, cs.c1b, cs.c2, cs.c3, cs.c4, cs.c5, cs.c6, cs.c7, cs.c8, cs.c9, cs.c10],
+           tipoIM, trombo, clave, badgeCls, titulo, nota, fallos: fallos.length, noIngresados,
+           hayDatos: evaluados.length > 0 || trombo === 'si' || cs.c1b.ok !== null };
+}
+window.teerEstado = teerEstado;
 
-  const criteriosAnat = [c1, c2, c3, c4, c5, c6].filter(c => c !== null);
-  const fallos = [c1, c2, c3, c4, c5, c6, c9].filter(c => c === false);
-  const noIngresados = [c1, c2, c3, c4, c5, c6].filter(c => c === null).length;
-
+function calcTEER() {
+  const r = teerEstado();
+  r.orden.forEach(c => {
+    const el = document.getElementById(c.id);
+    if (!el) return;
+    el.innerHTML = c.ok === null ? badge('gray', 'No ingresado')
+                                 : badge(c.ok ? 'green' : 'red', (c.ok ? '✓ ' : '✗ ') + c.txt);
+  });
   const res = document.getElementById('teer-resultado');
   const notas = document.getElementById('teer-notas');
   if (!res) return;
-
-  if (criteriosAnat.length === 0) {
-    res.innerHTML = badge('gray', 'Ingresar datos para evaluar');
-    notas.textContent = '';
-    return;
-  }
-
-  if (fallos.length === 0 && noIngresados === 0) {
-    res.innerHTML = badge('green', '✅ APTO para TEER — criterios cumplidos');
-    notas.textContent = tipoIM === 'secundaria' ? 'Optimizar GDMT previo. Evaluar Heart Team.' : 'Anatomía favorable. Evaluar Heart Team.';
-  } else if (fallos.length === 0 && noIngresados > 0) {
-    res.innerHTML = badge('yellow', '⚠️ Posiblemente apto — completar datos faltantes');
-    notas.textContent = 'Faltan ' + noIngresados + ' criterio(s) por ingresar.';
-  } else if (fallos.length === 1) {
-    res.innerHTML = badge('yellow', '⚠️ Límite — anatomía borderline');
-    notas.textContent = 'Un criterio no cumplido. Discutir en Heart Team con imagen multimodal (ETE 3D + TC).';
-  } else {
-    res.innerHTML = badge('red', '❌ NO apto para TEER según criterios actuales');
-    notas.textContent = `${fallos.length} criterios no cumplidos. Evaluar cirugía o Heart Team.`;
-  }
+  res.innerHTML = badge(r.badgeCls, r.titulo);
+  if (notas) notas.textContent = r.nota;
+  /* La hoja integrada se rehace con el módulo: sin esto, cargar el trombo DESPUÉS de integrar
+     dejaba en el PDF la conclusión «APTO» que se calculó antes. Respeta el texto editado a
+     mano y se retira sola si el módulo queda sin datos. */
+  if (typeof amiloRefrescarSiIntacto === 'function') amiloRefrescarSiIntacto('teer');
 }
 
 function calcETE() {
@@ -27515,7 +28022,7 @@ function tdfConclusion(){
     (gradProp == null ? ' (gradiente transvalvular pulmonar del estudio)' : '') +
     (gradT >= 36 ? ' (obstrucción al menos moderada: velocidad pico >3 m/s)' : '') +
     (gradDiscrepa ? '. El gradiente cargado en esta sección (' + gradProp + ' mmHg) y el transvalvular pulmonar del estudio (' + gradVP + ' mmHg) difieren: verificar cuál corresponde al nivel de la obstrucción' : ''));
-  /* `vp_morf` («Estenosis leve» / «Estenosis moderada/severa») ya describe la válvula pulmonar y
+  /* `vp_morf` («Estenosis leve» / «moderada» / «severa») ya describe la válvula pulmonar y
      tiene MÁS resolución que este sí/no. Se nombra junto, para que el informe no diga dos cosas
      distintas sobre la misma válvula. */
   const vpMorf = _tdfSv('vp_morf');
@@ -27539,7 +28046,11 @@ function tdfConclusion(){
      convertirse en «obstrucción al menos moderada» y disparar una Clase I. Un stent pulmonar con
      gradiente de 12 mmHg en un paciente con disnea de otra causa salía con «reemplazo valvular
      pulmonar indicado». La severidad la define el GRADIENTE (velocidad pico >3 m/s ≈ 36 mmHg). */
-  const obstrModerada = (gradT != null && gradT >= 36) || /moderada\/severa/i.test(_tdfSv('vp_morf'));
+  /* El regex era `/moderada\/severa/` —la etiqueta COLAPSADA—, así que al separar las bandas
+     «Estenosis moderada» y «Estenosis severa» dejaban de contar y una Clase I de la ESC se
+     apagaba en silencio. Ahora se nombran las tres formas: las dos nuevas y la heredada. */
+  const obstrModerada = (gradT != null && gradT >= EP_GMAX_LEVE_MAX)
+    || /estenosis\s+(moderada|severa)/i.test(_tdfSv('vp_morf'));
   if ((ipSevera || obstrModerada) && sint === 'si') {
     clave = 'reintervencion_i';
     conducta = 'Paciente sintomático con ' + (ipSevera ? 'insuficiencia pulmonar severa' : 'obstrucción al menos moderada del tracto de salida derecho') +
@@ -30481,6 +30992,14 @@ function editarInforme(id) {
     if (typeof calcAI === 'function') calcAI();
     if (typeof calcAorta === 'function') calcAorta();
     if (typeof calcVD === 'function') calcVD();
+    /* `calcVP` sólo corría desde los `oninput` del Doppler pulmonar, así que el gradiente
+       congelado —el defecto que se cerró en calcVP— sobrevivía intacto en todos los estudios YA
+       guardados: se reabría uno con Vmax 4 y Gmax 16 y el informe volvía a imprimir los dos
+       números contradiciéndose dentro del mismo paréntesis. Va acá, en el camino de ABRIR PARA
+       EDITAR, y deliberadamente NO en la reimpresión: reimprimir tiene que reproducir lo que se
+       firmó, aunque lo firmado estuviera mal. Editar y regenerar lo corrige, que es el momento
+       en que el médico está mirando. */
+    if (typeof calcVP === 'function') calcVP();
     /* VEXUS: sin esto el acordeón queda mostrando el score del estudio anterior, porque el
        badge y la interpretación viven en spans que nada reescribe al cargar los campos. */
     if (typeof calcVEXUS === 'function') calcVEXUS();
@@ -32271,6 +32790,67 @@ function amiloTextoEteMitral() {
   return L.join('\n');
 }
 
+/* Hoja del PDF del módulo TEER. Todo sale de `teerEstado()` —la misma evaluación que pinta la
+   pantalla—, así que la hoja no puede contradecirla.
+
+   `amiloSanPDF` borra los caracteres fuera de \x20-\xFF, y los rótulos de los criterios llevan
+   «≥», «≤» y «²». Se reemplazan ACÁ, en el borde, y no se confía en el saneador de salida: es
+   el mismo defecto que dejó ilegibles los umbrales de severidad valvular en todos los informes
+   firmados (62d67f7) — ahí la cadena entera con «≥» pasaba a UTF-16 y se perdía. */
+/* Los emojis se BORRAN, no se traducen. Una primera versión mapeaba ✅→«SI» y ❌→«NO», y el
+   título «❌ CONTRAINDICADO — trombo en aurícula izquierda» salía impreso como
+   «NO CONTRAINDICADO - trombo en aurícula izquierda»: la negación de una contraindicación
+   absoluta, en la línea de conclusión de un informe firmado. Medido. El texto que queda ya
+   dice por sí solo qué pasa —«APTO», «NO apto», «CONTRAINDICADO»—; el icono era decoración. */
+function _teerAsciiPDF(s) {
+  return String(s == null ? '' : s)
+    .replace(/≥/g, '>=').replace(/≤/g, '<=').replace(/²/g, '2')
+    .replace(/[—–]/g, '-')
+    // Todo lo que amiloSanPDF descartaría igual, pero quitado acá para poder normalizar espacios.
+    .replace(/[^\x20-\xFF]/g, '').replace(/️/g, '')
+    // `[^\S\n]+` y no `\s+`: colapsa espacios horizontales pero CONSERVA los saltos de línea.
+    .replace(/[^\S\n]+/g, ' ').replace(/ *\n */g, '\n').trim();
+}
+
+/* Versión multilínea para el texto libre del médico. `ete_notas` es un textarea: aplanarlo
+   convertía una nota escrita como lista en una sola oración corrida, y si alguna línea traía
+   « | » la vista previa la dibujaba como fila clave-valor. Es el mismo par `amiloSanPDF` /
+   `amiloSanPDFml` que el archivo ya documenta, aplicado acá. */
+function _teerAsciiPDFml(s) {
+  return String(s == null ? '' : s).split('\n').map(_teerAsciiPDF).filter(Boolean).join('\n');
+}
+
+function amiloTextoTEER() {
+  if (typeof teerEstado !== 'function') return '';
+  const r = teerEstado();
+  // Módulo en blanco: la hoja describiría una evaluación de factibilidad que no se hizo.
+  if (!r.hayDatos) return '';
+  const L = [];
+  const TIPO = { primaria:'Primaria (organica)', secundaria:'Secundaria (funcional)' };
+
+  L.push('## Contexto');
+  L.push('Tipo de insuficiencia mitral | ' + (TIPO[r.tipoIM] || 'no consignado'));
+
+  L.push('## Criterios');
+  /* Los criterios no ingresados se listan igual, con «no ingresado». Omitirlos haría que una
+     hoja con tres criterios se leyera como una evaluación completa de tres criterios, que es
+     la misma confusión entre «negativo» y «no medido» que el resto de la app se cuida de
+     evitar. Los dos criterios COAPT sólo aplican a la IM secundaria: con IM primaria salen
+     null y se omiten, porque ahí no son «faltantes» sino inaplicables. */
+  const _coapt = new Set(['teer-c7', 'teer-c8']);
+  r.orden.forEach(c => {
+    if (c.ok === null && _coapt.has(c.id) && r.tipoIM !== 'secundaria') return;
+    L.push(_teerAsciiPDF(c.lbl) + ' | ' + _teerAsciiPDF(c.txt));
+  });
+
+  L.push('## Conclusión');
+  L.push(_teerAsciiPDF(r.titulo));
+  if (r.nota) L.push(_teerAsciiPDF(r.nota));
+  const notas = (document.getElementById('ete_notas') || {}).value || '';
+  if (String(notas).trim()) { L.push('## Notas ETE / Heart Team'); L.push(_teerAsciiPDFml(notas)); }
+  return L.join('\n');
+}
+
 function amiloTextoWilkins() {
   const L = ['## Puntaje total'];
   L.push('Score de Wilkins | ' + (_amTxt('wilkins-total') || 'no calculado'));
@@ -32739,7 +33319,12 @@ function amiloSecs() {
     { k:'ett',  lbl:'Score Amiloidosis por ETT',       tit:'SCORE DE PROBABILIDAD DE AMILOIDOSIS CARDÍACA — ESC 2021',            gen:amiloTextoETT },
     { k:'alg',  lbl:'Algoritmo diagnóstico',           tit:'ALGORITMO DIAGNOSTICO DE AMILOIDOSIS',     gen:amiloTextoAlgoritmo },
     { k:'hemo', lbl:'Perfil hemodinámico',             tit:'PERFIL HEMODINAMICO',                      gen:amiloTextoHemo },
-    { k:'hfpeff',lbl:'Score HFA-PEFF (HFpEF)',         tit:'SCORE HFA-PEFF - HFpEF (ESC/HFA 2019)',    gen:amiloTextoHFAPEFF },
+    /* `hayDatos` acá no pregunta si hay datos sino si el score APLICA: con FEVI reducida el
+       botón «Integrar» avisa y no integra, en vez de dejar una hoja que después el refresco
+       tiene que retirar sola. */
+    { k:'hfpeff',lbl:'Score HFA-PEFF (HFpEF)',         tit:'SCORE HFA-PEFF - HFpEF (ESC/HFA 2019)',    gen:amiloTextoHFAPEFF,
+      hayDatos:function(){ if (typeof hfapeffScore !== 'function') return true;
+                           const g = hfapeffScore(false).gate; return !g || g.aplica; } },
     { k:'htp',  lbl:'Probabilidad de HTP (ESC 2022)',  tit:'PROBABILIDAD DE HTP - ESC 2022',           gen:amiloTextoHTP },
     { k:'tep',  lbl:'Probabilidad de TEP',             tit:'PROBABILIDAD DE TEP / SOBRECARGA VD',      gen:amiloTextoTEP },
     /* `soloHoja`: este botón gobierna la hoja del PDF, NO la línea del informe narrativo —ésa
@@ -32749,6 +33334,8 @@ function amiloSecs() {
        patrón del interruptor que miente sobre el disco. */
     { k:'vexus',lbl:'VEXUS — congestión venosa',       tit:'VEXUS - CONGESTION VENOSA SISTEMICA',      gen:amiloTextoVEXUS, soloHoja:true },
     { k:'etem', lbl:'Mediciones ETE — Válvula mitral', tit:'MEDICIONES - VALVULA MITRAL',               gen:amiloTextoEteMitral, grupo:'ete' },
+    { k:'teer', lbl:'Criterios TEER (MitraClip / PASCAL)', tit:'CRITERIOS TEER - MITRACLIP / PASCAL',   gen:amiloTextoTEER, grupo:'ete',
+      hayDatos:function(){ return typeof teerEstado !== 'function' || teerEstado().hayDatos; } },
     { k:'wilk', lbl:'Score de Wilkins',                tit:'SCORE DE WILKINS - ESTENOSIS MITRAL',      gen:amiloTextoWilkins, grupo:'ete' },
     { k:'oai',  lbl:'Mediciones OAI',                  tit:'OREJUELA IZQUIERDA',                       gen:amiloTextoOAI, grupo:'ete' },
     { k:'aoete',lbl:'Mediciones Aorta (ETE)',          tit:'AORTA TORACICA',                           gen:amiloTextoAortaETE, grupo:'ete' },
@@ -34248,7 +34835,9 @@ const _IG_SECTIONS = [
   { titulo:'➡️ VD / AD', fields:[
     {id:'tvia',lbl:'TAP (ms)'},{id:'tapse',lbl:'TAPSE (mm)'},{id:'s_prime',lbl:"S' (cm/s)"},
     {id:'vd_bas',lbl:'VD basal (mm)'},{id:'vd_mid',lbl:'VD medio (mm)'},
-    {id:'vd_long',lbl:'VD long. (mm)'},{id:'fevd',lbl:'FEVD (%)'},
+    {id:'vd_long',lbl:'VD long. (mm)'},
+    {id:'vd_area_d',lbl:'Área VD telediast. (cm²)'},{id:'vd_area_s',lbl:'Área VD telesist. (cm²)'},
+    {id:'vd_fac',lbl:'FAC VD (%)'},{id:'fevd',lbl:'FEVD (%)'},
     {id:'ad_area',lbl:'Área AD (cm²)'},
     {id:'vci_diam',lbl:'VCI diám. (mm)'},{id:'vci_col',lbl:'Colapso VCI'}
   ]},
@@ -36163,6 +36752,20 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
     const el = document.getElementById(id);
     if (el) tocadoEstado[id] = el.dataset.tocado;
   });
+  /* Mismo problema con las marcas de valor derivado. Acá tienen DOS caras: si la marca del
+     paciente en pantalla sobrevive a la carga del estudio guardado, `_syncDerivado` puede creer
+     que la PASP restaurada es suya y pisarla o borrarla —y la conclusión del TEER de un informe
+     firmado como «APTO» se reimprime como «Posiblemente apto»—; y al volver, la marca del
+     estudio reimpreso se le queda al paciente en pantalla. Se limpian ANTES de cargar y se
+     reponen al restaurar, que es lo mismo que ya se hace con `dataset.tocado`. */
+  const _MARCAS_DERIV = ['vp_gmax','vp_morf','teer_pasp'];
+  const marcaEstado = {};
+  _MARCAS_DERIV.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    marcaEstado[id] = { derivadoDe: el.dataset.derivadoDe, sugerido: el.dataset.sugerido, espejoDe: el.dataset.espejoDe };
+    delete el.dataset.derivadoDe; delete el.dataset.sugerido; delete el.dataset.espejoDe;
+  });
   /* La base de procedencia del informe es estado de sesión igual que lo de arriba, y este
      camino pisa los dos textarea con el estudio guardado. Sin respaldarla, al volver quedaba
      apuntando al texto del OTRO estudio: el del paciente en pantalla pasaba a contar como
@@ -36379,6 +36982,15 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
       if (!el) return;
       if (tocadoEstado[id] === undefined) delete el.dataset.tocado;
       else el.dataset.tocado = tocadoEstado[id];
+    });
+    // Simétrico con la limpieza de antes de cargar: el paciente en pantalla recupera SUS marcas.
+    _MARCAS_DERIV.forEach(id => {
+      const el = document.getElementById(id);
+      const m = marcaEstado[id];
+      if (!el || !m) return;
+      ['derivadoDe','sugerido','espejoDe'].forEach(k => {
+        if (m[k] === undefined) delete el.dataset[k]; else el.dataset[k] = m[k];
+      });
     });
     _infBase  = infBaseBackup;
     _sumaBase = sumaBaseBackup;
@@ -38736,6 +39348,15 @@ function _labExcelRow(inf) {
     'DD_Sin (Sin disfunción)': (gd === 'sin' || (gd === null && eeDoc)) ? 1 : 0,
     'Vol AI (LAVI) (ml/m²)': rnd(_labLavi(inf),1),
     'TAPSE (mm)': rnd(num('tapse'),0), "S' (cm/s)": rnd(num('s_prime'),1), 'TAP (ms)': rnd(num('tvia'),0), 'Diám. basal VD (mm)': rnd(num('vd_bas'),0),
+    /* FAC: se recalcula desde las áreas en vez de leer `vd_fac`. El campo es un derivado y los
+       estudios guardados ANTES de que existiera el cálculo no lo traen, así que leerlo dejaba
+       la columna vacía sobre estudios que sí tienen las dos áreas cargadas. La fórmula es la
+       misma que `calcVD` —un solo nivel, sin umbrales— y lleva la misma guarda: con las áreas
+       invertidas no hay FAC, hay un par mal medido. */
+    'Área VD telediast. (cm²)': rnd(num('vd_area_d'),1), 'Área VD telesist. (cm²)': rnd(num('vd_area_s'),1),
+    'FAC VD (%)': (function(){ const ad = num('vd_area_d'), as = num('vd_area_s');
+      return (ad !== null && as !== null && ad > 0 && as > 0 && as < ad) ? rnd((ad - as) / ad * 100, 0) : null; })(),
+    'FEVD (%)': rnd(num('fevd'),0),
     'VCI diám (mm)': rnd(num('vci_diam'),0), 'Colapso VCI': c.vci_col || '', 'PmAD (mmHg)': rnd(num('pmad'),0),
     'VEXUS suprahepática': c.vexus_sh || '', 'VEXUS porta': c.vexus_pv || '', 'VEXUS intrarrenal': c.vexus_ir || '',
     'Morfología mitral': c.vm_morf || '', 'IM grado': gIM,
@@ -39117,7 +39738,8 @@ const LAB_XLS_BLOQUES = [
       'Vol AI (LAVI) (ml/m²)'] },
   { n:'4 · VENTRÍCULO IZQUIERDO', cols:['SIV (mm)','DDVI (mm)','DSVI (mm)','PP (mm)','FEVI Simpson (%)','GLS (%)',
       'Masa VI (g/m²)','RWT','VDFVI idx (ml/m²)','FA (%)'], pre:['Geometría VI','Geom_','Trastornos sectoriales','TS_'] },
-  { n:'5 · VENTRÍCULO DERECHO', cols:['TAPSE (mm)',"S' (cm/s)",'TAP (ms)','Diám. basal VD (mm)'] },
+  { n:'5 · VENTRÍCULO DERECHO', cols:['TAPSE (mm)',"S' (cm/s)",'TAP (ms)','Diám. basal VD (mm)',
+      'Área VD telediast. (cm²)','Área VD telesist. (cm²)','FAC VD (%)','FEVD (%)'] },
   { n:'6 · AURÍCULA DERECHA / VCI', cols:['Área AD (cm²)','VCI diám (mm)','Colapso VCI','PmAD (mmHg)'] },
   { n:'7 · DOPPLER Y DIASTÓLICA', cols:['Onda E (cm/s)','Onda A (cm/s)',"e' septal (cm/s)","e' lateral (cm/s)",
       'E/A',"e' promedio (cm/s)","E/e'",'Grado disfunción diastólica'], pre:['DD_'] },
@@ -39583,6 +40205,14 @@ const LAB_XLS_MAP = [
   ["S' (cm/s)",              's_prime',        'num'],
   ['TAP (ms)',               'tvia',           'num'],
   ['Diám. basal VD (mm)',    'vd_bas',         'num'],
+  /* Se importan las dos ÁREAS y NO la columna «FAC VD (%)», que es derivada: escribirla dejaría
+     un porcentaje que `calcVD` recalcula desde las áreas en cuanto se toca cualquiera de las
+     dos, y con las áreas ausentes quedaría un número sin nada detrás. El Excel la exporta para
+     el análisis del Laboratorio; la vuelta la reconstruye la app. Es la misma regla que ya se
+     aplicó al bloquear la reimportación de campos calculados. */
+  ['Área VD telediast. (cm²)','vd_area_d',     'num'],
+  ['Área VD telesist. (cm²)', 'vd_area_s',     'num'],
+  ['FEVD (%)',               'fevd',           'num'],
 
   // 9 · Congestión venosa
   ['VEXUS suprahepática',    'vexus_sh',       'vocab'],
@@ -44562,6 +45192,16 @@ function _labHfPeffRaw(inf) {
   if (typeof hfapeffScore === 'function' && typeof _hfSrcCampos === 'function') {
     let r = null;
     try { r = hfapeffScore(false, _hfSrcCampos(inf.campos || {})); } catch (e) { r = null; }
+    /* La compuerta de FEVI también acá. El score se bloquea en el informe, en el En Suma, en la
+       pantalla y en la hoja del PDF, y el Laboratorio era la quinta superficie —la que define el
+       denominador del PDF de auditoría—: un paciente con FEVI 28 % y 5/6 quedaba fuera de su
+       propio informe y al mismo tiempo contado como «HFA-PEFF alto» en el panel, y pasaba el
+       filtro de cohorte junto con «FEVI < 40 %». El mismo paciente, HFrEF en su informe y HFpEF
+       en la estadística. Se excluye acá, en el único punto por el que pasan las tres superficies
+       del Lab (panel, filtro y asociaciones).
+       Esto CAMBIA los conteos históricos del Laboratorio, en la dirección correcta: los estudios
+       que salen del denominador nunca debieron puntuar. */
+    if (r && r.gate && !r.gate.aplica) r = null;
     if (r) {
       const domEval = dom => !!(dom && dom.todos && dom.todos.some(c => c.tipo === 'mayor' && c.dato));
       const ev = { func: domEval(r.func), morf: domEval(r.morf), hum: domEval(r.hum) };
@@ -48278,7 +48918,8 @@ const ECO_AYUDA = [
   <div class="mSub">❤️ AI / VI</div>
   <p class="mP">Aorta torácica en sus cuatro niveles, aurícula izquierda (con volumen y LAVI automático), y ventrículo izquierdo: SIV, DDVI, DSVI, pared posterior, volúmenes y FEVI. La app calcula sola la masa VI indexada, el espesor parietal relativo y con eso la <b>geometría</b> (normal, remodelado concéntrico, hipertrofia concéntrica o excéntrica). FEVI normal ≥ 50 %.</p>
   <div class="mSub">▶️ VD / AD</div>
-  <p class="mP">Ventrículo derecho (diámetro basal, TAPSE, onda S', TAP) y aurícula derecha con la VCI. TAPSE normal ≥ 17 mm. El diámetro y el colapso de la VCI estiman la presión de aurícula derecha, y <b>el diámetro es además el prerequisito del VEXUS</b>.</p>
+  <p class="mP">Ventrículo derecho (diámetro basal, TAPSE, onda S', TAP, <b>FAC</b>) y aurícula derecha con la VCI. TAPSE normal ≥ 17 mm; AD normal ≤ 18 cm². El diámetro y el colapso de la VCI estiman la presión de aurícula derecha, y <b>el diámetro es además el prerequisito del VEXUS</b>.</p>
+  <div class="mBox mTip"><b>La FAC se calcula, no se tipea.</b> Cargás el área del VD en telediástole y en telesístole (apical 4 cámaras) y la app resuelve FAC = (telediastólica − telesistólica) / telediastólica × 100. Por debajo de <b>35 %</b> cuenta como disfunción sistólica del VD y el informe lo dice junto al TAPSE y la S'; por debajo de <b>25 %</b> el En Suma la califica de severa. Si la telesistólica sale mayor o igual que la telediastólica, la app no calcula nada y avisa: ese par está invertido o mal medido, y una FAC negativa no es «función muy mala». <b>No es la FEVD</b>, que está en el mismo bloque, se mide en 3D y lleva otro corte (≥ 45 %).</div>
   <div class="mSub">〰️ Doppler</div>
   <p class="mP">Cuatro tarjetas plegables: mitral (función diastólica), aórtico, tricuspídeo (PSAP) y pulmonar. Ver la sección «Doppler y válvulas» de este manual.</p>
   <div class="mSub">🔲 Válvulas</div>
@@ -48384,7 +49025,7 @@ const ECO_AYUDA = [
   <div class="mSub">🫁 TdF — Tetralogía de Fallot reparada</div>
   <p class="mP">La cardiopatía congénita compleja más frecuente en el adulto. El seguimiento gira alrededor de la <b>insuficiencia pulmonar residual</b> y la dilatación del ventrículo derecho. Se cargan la función del VD, el gradiente del tracto de salida, la CIV residual, la estenosis pulmonar sobre válvula nativa o stent, y la situación clínica. El grado de IP, el diámetro del TSVD, la presión del VD y el grado de IT se espejan de las pestañas donde ya se miden.</p>
   <div class="mBox mAviso"><b>Esta sección no tiene campos de volumen, y es deliberado.</b> Los umbrales que definen la reintervención —VDFVD indexado ≥160 ml/m², volumen sistólico final ≥80 ml/m²— son cifras de <b>resonancia</b>: la ESC 2020 dice que la RMC es el método de elección para el volumen y la función del ventrículo derecho, y la ecocardiografía 2D no los mide de forma fiable. La conclusión nombra el criterio y dice que se evalúa por RMC —en las cuatro ramas, no sólo en las que indican reintervención— en vez de calcularlo con datos que el eco no produce. La guía además advierte que ese corte puede no correlacionar con beneficio clínico y pide <b>medidas seriadas</b>.</div>
-  <div class="mBox mTip"><b>El gradiente y la válvula pulmonar se cruzan con lo que ya mide la app.</b> Si no cargás el gradiente del TSVD, la sección usa el <b>transvalvular pulmonar</b> que la app ya calcula; si cargás los dos y difieren en 10 mmHg o más, el informe lo dice en vez de elegir uno. La severidad de la estenosis puede venir del campo de morfología pulmonar («Estenosis moderada/severa»), que tiene más resolución que el sí/no de esta sección. El diámetro del VD sistémico en TGA se espeja del <b>VD basal</b> que ya se mide en VD / AD.<br><br><b>Cuidado con la «PSAP» en esta sección.</b> Con obstrucción residual del tracto de salida, la presión que estima la insuficiencia tricuspídea es la del <b>ventrículo derecho</b> y no la de la arteria pulmonar — las separa el gradiente del TSVD. La app la rotula así acá. Por encima de 80 mmHg es uno de los criterios de reintervención de la ESC.</div>
+  <div class="mBox mTip"><b>El gradiente y la válvula pulmonar se cruzan con lo que ya mide la app.</b> Si no cargás el gradiente del TSVD, la sección usa el <b>transvalvular pulmonar</b> que la app ya calcula; si cargás los dos y difieren en 10 mmHg o más, el informe lo dice en vez de elegir uno. La severidad de la estenosis puede venir del campo de morfología pulmonar («Estenosis leve / moderada / severa»), que tiene más resolución que el sí/no de esta sección. El diámetro del VD sistémico en TGA se espeja del <b>VD basal</b> que ya se mide en VD / AD.<br><br><b>Cuidado con la «PSAP» en esta sección.</b> Con obstrucción residual del tracto de salida, la presión que estima la insuficiencia tricuspídea es la del <b>ventrículo derecho</b> y no la de la arteria pulmonar — las separa el gradiente del TSVD. La app la rotula así acá. Por encima de 80 mmHg es uno de los criterios de reintervención de la ESC.</div>
   <p class="mP">Conducta: paciente <b>sintomático</b> con IP severa u obstrucción al menos moderada → reemplazo valvular pulmonar indicado (Clase I). Con IP severa <i>más</i> alguno de: caída objetiva de la capacidad de ejercicio, disfunción del VD, IT al menos moderada, taquicardia ventricular sostenida, o presión del VD &gt;80 mmHg <i>con obstrucción</i> → a considerar (Clase IIa). Si no consta si el paciente tiene síntomas, la conclusión lo dice: con síntomas la indicación sería Clase I.</p>
 
   <div class="mSub">🔄 TGA — Transposición de grandes arterias corregida</div>
