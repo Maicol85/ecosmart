@@ -2343,16 +2343,38 @@ barra, hay que revisar este botón.
 mínima de que el clic llegó. Y **no loguea el documento**: un `console.log('HC: ' + ci)` metería
 un identificador de paciente en una superficie que nadie limpia.
 
+### `cardAutoOpen` — auto-apertura de los acordeones `toggleCard` — 2026-09-14
+
+`secAutoOpen` sólo recorre `.sacc`, y **Hemodinámica no tiene ninguno**: son 5 `toggleCard`, igual
+que los 3 de Amiloidosis y los 2 de Pericardio. O sea que de los acordeones de la app, los únicos
+que se abren solos cuando tienen datos son los 12 `.sacc` de Congénitas. La premisa «que se abran
+igual que los de Hemodinámica» era falsa: aquellos tampoco lo hacían.
+
+`cardAutoOpen(tabId)` es la hermana para el patrón `toggleCard`, y es **opt-in por
+`data-autoopen`** en el div de sección, no automática para todo `toggleCard`: abrir de golpe los
+10 acordeones de las otras tres pestañas habría cambiado el comportamiento de algo que nadie pidió
+tocar. Hoy lo llevan las tres secciones de Cardio-Oncología que tienen campos —la de referencia no
+tiene ninguno, así que no se marcó—. Sumar otra es agregarle el atributo.
+
+Mismas exclusiones que `secAutoOpen` (`:not([readonly])`, `:not([data-espejo])`) y por el mismo
+motivo: un espejo es dato de OTRA sección mostrado por comodidad, y contarlo abre secciones de
+pacientes que no tienen esa patología. Y repinta la flecha: abrir por código sin tocarla deja el
+afford diciendo «cerrado» sobre una sección abierta.
+
 ## Deuda conocida sin resolver
 
-- **`generarInformeConEvolucion` cruza pacientes sin documento** (detectado 2026-09-14, sin
-  corregir, fuera del diff que lo destapó). Filtra con `if (ci && …)` y compara
-  `String(i.ci||'').trim() === ci`: `'—'` es truthy y es lo que `guardarInforme` deja en toda
-  ficha sin cédula, así que el modal de evolución **empareja entre sí a todos los pacientes sin
-  documento** y ofrece los estudios de otra gente como historia del que está en pantalla. Es
-  exactamente la clase que documenta `ci: ci || '—'`. El arreglo es una línea —`!_dupSinDato(ci)`,
-  con la función ya exportada— pero cambia qué estudios lista el modal, así que merece su propia
-  verificación.
+- ~~`generarInformeConEvolucion` cruza pacientes sin documento~~ — **CERRADO 2026-09-14.** Hoy
+  gatea con `!_dupSinDato(ci)`: sin documento real no hay evolución longitudinal y se genera el
+  informe directo. Verificado en el navegador sembrando tres estudios —dos sin cédula, de
+  pacientes distintos, y uno con cédula real—: con `'—'`, espacios, `'-'` y `'.'` el modal NO
+  abre; con documento real abre con **un** estudio, el de la misma cédula. De paso, el `hayCI` de
+  `verEvolucion` pasó del literal `ci !== '—'` a `_dupSinDato`, que también atrapa `'.'`, `'-'` y
+  los espacios: **un solo predicado de identidad en toda la app**.
+  Al probarlo, dos trampas del instrumento: `mostrarModalEvolucion` vive DENTRO del IIFE, así que
+  reemplazar `window.mostrarModalEvolucion` no intercepta nada y el modal real se abre igual; y
+  esa función **sale temprano si ya existe `#evol-modal-overlay`**, así que un overlay colgado de
+  una prueba anterior hace que la siguiente parezca no hacer nada. Detectar por el id del overlay,
+  y limpiarlo entre casos.
 
 - **Los campos de Pericardio no están en `_IG_SECTIONS`, ni en el mapa de Excel, ni en
   `LAB_XLS_RANGO`.** Los 19 ids nuevos (`dpt_*`, `cvr_*`, `resp_var_*`) **sí** se guardan y se

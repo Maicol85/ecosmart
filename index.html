@@ -10978,7 +10978,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <span id="co-basal-seccion-arrow" style="float:right;transition:transform 0.2s;">▶</span>
     </h2>
   </div>
-  <div id="co-basal-seccion" style="display:none;">
+  <div id="co-basal-seccion" data-autoopen="1" style="display:none;">
   <div class="card">
     <div class="card-body">
 <!-- ECOS-07: ya no se rotula «HFA-ICOS». Lo que suma este bloque son puntos genéricos
@@ -11038,7 +11038,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <span id="co-actual-seccion-arrow" style="float:right;transition:transform 0.2s;">▶</span>
     </h2>
   </div>
-  <div id="co-actual-seccion" style="display:none;">
+  <div id="co-actual-seccion" data-autoopen="1" style="display:none;">
   <div class="card">
     <div class="card-body">
 <div class="grid-3" style="margin-bottom:10px;">
@@ -11070,7 +11070,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <span id="co-seguimiento-seccion-arrow" style="float:right;transition:transform 0.2s;">▶</span>
     </h2>
   </div>
-  <div id="co-seguimiento-seccion" style="display:none;">
+  <div id="co-seguimiento-seccion" data-autoopen="1" style="display:none;">
   <div class="card">
     <div class="card-body">
 <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:flex-end;">
@@ -13229,6 +13229,7 @@ function showTab(id) {
   if (typeof event !== 'undefined' && event && event.target) event.target.classList.add('active');
   // Abrir automáticamente los acordeones de sección que ya tengan datos cargados
   if (typeof secAutoOpen === 'function') secAutoOpen('tab-' + id);
+  if (typeof cardAutoOpen === 'function') cardAutoOpen('tab-' + id);
   /* El seguimiento de Cardio-Oncología está indexado por paciente, así que hay que
      repintarlo cada vez que se entra: dibujado una sola vez al arrancar, al cambiar de
      paciente seguía mostrando los controles del anterior. */
@@ -30227,6 +30228,42 @@ function secAutoOpen(tabId) {
 }
 window.secAutoOpen = secAutoOpen;
 
+/* Hermana de `secAutoOpen` para los acordeones del patrón `toggleCard`, que son otra cosa: no
+   llevan `.sacc` ni `.sacc-body`, así que aquella función nunca los vio. Sin esto, entrar a una
+   tab con un estudio cargado mostraba barras cerradas sin ningún indicio de que adentro había
+   datos — en Cardio-Oncología, una cardiotoxicidad severa ya calculada.
+
+   Es OPT-IN por `data-autoopen` en la sección, no automática para todo `toggleCard`: hoy hay 5
+   acordeones así en Hemodinámica, 3 en Amiloidosis y 2 en Pericardio, y abrirlos todos de golpe
+   cambiaría el comportamiento de cuatro pestañas que nadie pidió tocar. Sumar una es agregarle el
+   atributo a su div de sección (sin corchetes a propósito: el chequeo de balance de etiquetas
+   cuenta texto plano y un `div` en prosa le desviaría el conteo para siempre).
+
+   Mismas exclusiones que `secAutoOpen` y por el mismo motivo: un espejo de sólo lectura es dato
+   de OTRA sección mostrado acá por comodidad, y contarlo abre secciones de pacientes que no
+   tienen esa patología. */
+function cardAutoOpen(tabId) {
+  const tab = document.getElementById(tabId); if (!tab) return;
+  tab.querySelectorAll('[data-autoopen]').forEach(sec => {
+    if (sec.style.display !== 'none') return;
+    const has = Array.from(sec.querySelectorAll(
+      'input:not([readonly]):not([data-espejo]), select:not([data-espejo]), textarea'
+    )).some(el => {
+      if (el.type === 'checkbox' || el.type === 'radio') return el.checked;
+      if (el.tagName === 'SELECT') return el.selectedIndex > 0;
+      return String(el.value || '').trim() !== '';
+    });
+    if (!has) return;
+    sec.style.display = 'block';
+    /* La flecha se repinta con la sección: `toggleCard` la rota desde el header, y abrir por
+       código sin tocarla deja el afford diciendo «cerrado» sobre una sección abierta. */
+    const h = document.querySelector('h2.card-head[onclick*="' + sec.id + '"]');
+    const fl = h ? h.querySelector('span') : null;
+    if (fl) fl.style.transform = 'rotate(90deg)';
+  });
+}
+window.cardAutoOpen = cardAutoOpen;
+
 function _accSum(cls, otroId, sumId) {
   const el = document.getElementById(sumId);
   if (!el) return;
@@ -46563,7 +46600,9 @@ function verEvolucion(nombre, ci) {
      diferentes entraban los dos a la misma serie longitudinal, y el gráfico mostraba una
      caída de FEVI que en realidad era el cambio de persona. Cuando hay documento, manda el
      documento; el nombre queda sólo como respaldo para los estudios que no lo tienen. */
-  const hayCI = ci && ci !== '—';
+  /* Un solo predicado de identidad en toda la app. El `ci !== '—'` de antes atrapaba la raya
+     pero no un '.', un '-' ni espacios, que también son fichas sin documento real. */
+  const hayCI = ci && typeof _dupSinDato === 'function' ? !_dupSinDato(ci) : (ci && ci !== '—');
   const estudios = todos.filter(i => {
     if (hayCI) return i.ci === ci;
     return nombre && nombre !== '—' &&
@@ -48327,7 +48366,13 @@ window.esqPills=(function(){
   window.generarInformeConEvolucion = function(){
     try{
       const ci = ((document.getElementById('ci')||{}).value || '').trim();
-      if(ci && typeof getInformes==='function'){
+      /* `_dupSinDato` y NO `ci &&`. `guardarInforme` guarda `ci || '—'` con raya U+2014, así que
+         toda ficha sin cédula «tiene» documento para un chequeo de truthiness — y como el filtro
+         compara por igualdad, TODOS los estudios sin cédula se emparejaban entre sí: el modal
+         ofrecía los estudios de otra gente como historia longitudinal del paciente en pantalla.
+         Sin documento real no hay evolución longitudinal: se genera el informe directo.
+         `verEvolucion` ya resolvía esto por su lado; acá faltaba. */
+      if(typeof _dupSinDato === 'function' && !_dupSinDato(ci) && typeof getInformes==='function'){
         const prevs = getInformes()
           .filter(i => (String(i.ci||'').trim()===ci) && i.id !== window._ettEditandoId)
           .sort((a,b) => String(b.fecha_estudio||b.fecha_guardado||'').localeCompare(String(a.fecha_estudio||a.fecha_guardado||'')));
