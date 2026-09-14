@@ -2116,11 +2116,11 @@ window.cerrarSesion = cerrarSesion;
         </div>
         <div class="fg">
           <label>VCI diámetro (mm)</label>
-          <input type="number" id="vci_diam" placeholder="mm" oninput="calcPmAD()" onchange="vexusRefrescarInforme()">
+          <input type="number" id="vci_diam" placeholder="mm" oninput="calcPmAD();dptSync();cvrSync();" onchange="dptSync();cvrSync();vexusRefrescarInforme()">
         </div>
         <div class="fg">
           <label>Colapso VCI</label>
-          <select id="vci_col" onchange="calcPmAD();vexusRefrescarInforme()">
+          <select id="vci_col" onchange="calcPmAD();dptSync();cvrSync();vexusRefrescarInforme()">
             <option value="">—</option>
             <option value=">50">&gt;50%</option>
             <option value="<50">&lt;50%</option>
@@ -2179,7 +2179,7 @@ window.cerrarSesion = cerrarSesion;
       <div class="grid-4">
         <div class="fg">
           <label>Onda E (cm/s)</label>
-          <input type="number" id="onda_e" placeholder="cm/s" oninput="calcDiastol()">
+          <input type="number" id="onda_e" placeholder="cm/s" oninput="calcDiastol();cvrSync();" onchange="cvrCambio()">
         </div>
         <div class="fg">
           <label>Onda A (cm/s)</label>
@@ -2187,11 +2187,11 @@ window.cerrarSesion = cerrarSesion;
         </div>
         <div class="fg">
           <label>e' septal (cm/s)</label>
-          <input type="number" id="e_sep" placeholder="cm/s" oninput="calcDiastol()">
+          <input type="number" id="e_sep" placeholder="cm/s" oninput="calcDiastol();cvrSync();" onchange="cvrCambio()">
         </div>
         <div class="fg">
           <label>e' lateral (cm/s)</label>
-          <input type="number" id="e_lat" placeholder="cm/s" oninput="calcDiastol()">
+          <input type="number" id="e_lat" placeholder="cm/s" oninput="calcDiastol();cvrSync();" onchange="cvrCambio()">
         </div>
         <div class="fg">
           <label>TDE (ms)</label>
@@ -2913,7 +2913,7 @@ window.cerrarSesion = cerrarSesion;
   <div class="card">
     <div class="card-body">
       <div class="fg"><label>Pericardio</label>
-        <select id="pericardio"><option>Normal, sin derrame</option><option>Derrame mínimo</option><option>Derrame leve (5-10mm)</option><option>Derrame moderado (10-20mm)</option><option>Derrame severo (>20mm)</option><option>Engrosamiento / calcificación</option></select>
+        <select id="pericardio" onchange="dptCambio()"><option>Normal, sin derrame</option><option>Derrame mínimo</option><option>Derrame leve (5-10mm)</option><option>Derrame moderado (10-20mm)</option><option>Derrame severo (>20mm)</option><option>Engrosamiento / calcificación</option></select>
       </div>
       <div class="fg" style="margin-top:8px;"><label>Notas adicionales</label>
         <textarea id="otras_notas" placeholder="Masa, trombo, DSA/DSV, anomalías congénitas..."></textarea>
@@ -2953,6 +2953,190 @@ window.cerrarSesion = cerrarSesion;
           <textarea id="masa_notas" placeholder="Detalles adicionales de la masa..."></textarea>
         </div>
       </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- ═══ DERRAME PERICÁRDICO / TAPONAMIENTO ═══ -->
+  <!-- El TAMAÑO del derrame NO se pregunta acá: se LEE del select `pericardio` de la sección de
+       arriba, que ya alimenta el narrativo, la tabla del PDF, el Excel, el PPT y la estadística
+       del Laboratorio. Un select propio habría sido una cuarta graduación del mismo hecho, y con
+       bordes distintos («leve <10» contra «leve 5-10» + «mínimo <5»): el mismo estudio podía
+       decir dos tamaños. Decisión de Maicol, 2026-09-13.
+       Los colapsos van como <select> de TRES estados y no como checkbox: la conclusión «sin
+       compromiso hemodinámico» es una AFIRMACIÓN, y un checkbox desmarcado no distingue «lo
+       busqué y no está» de «no lo busqué». Es la regla de `coa_diast_anterogrado`. -->
+  <div class="card" style="margin-bottom:6px;">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('derrame-tap',this);dptSync();">
+      🩸 Derrame pericárdico / Taponamiento
+      <span id="ete-derrame-tap-arrow" style="float:right;transition:transform 0.2s;">▶</span>
+    </h2>
+  </div>
+  <div id="ete-seccion-derrame-tap" style="display:none;">
+  <div class="card">
+    <div class="card-body">
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 6px;">1 · Cuantificación del derrame</div>
+      <div class="calc-box" style="margin-bottom:10px;">
+        <div class="calc-row">
+          <span class="calc-lbl">Tamaño — se toma del campo «Pericardio» de arriba</span>
+          <span id="dpt-tam-eco" style="font-weight:700;">—</span>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-bottom:10px;">
+        <div class="fg"><label>Localización</label>
+          <select id="dpt_local" onchange="dptCambio()">
+            <option value="">— no evaluada —</option>
+            <option value="circ">Circunferencial</option>
+            <option value="post">Posterior</option>
+            <option value="ant">Anterior</option>
+            <option value="locul">Loculado</option>
+            <option value="mixto">Mixto</option>
+          </select>
+        </div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--text);margin:6px 0 2px;">Medición en diástole (mm)</div>
+      <div class="grid-3" style="margin-bottom:10px;">
+        <div class="fg"><label>Posterior</label><input type="number" id="dpt_mm_post" placeholder="mm" oninput="dptSync()" onchange="dptCambio()"></div>
+        <div class="fg"><label>Lateral</label><input type="number" id="dpt_mm_lat" placeholder="mm" oninput="dptSync()" onchange="dptCambio()"></div>
+        <div class="fg"><label>Anterior</label><input type="number" id="dpt_mm_ant" placeholder="mm" oninput="dptSync()" onchange="dptCambio()"></div>
+      </div>
+      <!-- «Loculado» NO se repite acá: ya es una opción de Localización, y el mismo hecho en dos
+           campos independientes deja que un estudio se conteste distinto a sí mismo. -->
+      <div style="font-size:11px;font-weight:700;color:var(--text);margin:6px 0 2px;">Características</div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="dpt_libre" onchange="dptCambio()"> Libre</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="dpt_fibrina" onchange="dptCambio()"> Con fibrina</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="dpt_hemo" onchange="dptCambio()"> Hemopericardio</label>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 6px;">2 · Colapso de cavidades</div>
+      <div class="grid-2" style="margin-bottom:10px;">
+        <div class="fg"><label>Colapso AD — sistólico (≥1/3 del ciclo)</label>
+          <select id="dpt_col_ad" onchange="dptCambio()"><option value="">— no evaluado —</option><option value="no">Ausente</option><option value="si">Presente</option></select>
+        </div>
+        <div class="fg"><label>Colapso VD — diastólico (más específico)</label>
+          <select id="dpt_col_vd" onchange="dptCambio()"><option value="">— no evaluado —</option><option value="no">Ausente</option><option value="si">Presente</option></select>
+        </div>
+        <div class="fg"><label>Colapso AI — alta especificidad, raro</label>
+          <select id="dpt_col_ai" onchange="dptCambio()"><option value="">— no evaluado —</option><option value="no">Ausente</option><option value="si">Presente</option></select>
+        </div>
+        <div class="fg"><label>Colapso VI — muy raro, taponamiento grave</label>
+          <select id="dpt_col_vi" onchange="dptCambio()"><option value="">— no evaluado —</option><option value="no">Ausente</option><option value="si">Presente</option></select>
+        </div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 6px;">3 · VCI y variación respiratoria</div>
+      <div class="calc-box" style="margin-bottom:10px;">
+        <div class="calc-row"><span class="calc-lbl">VCI — diámetro (tab VD/AD)</span><span id="dpt-vci-eco" style="font-weight:700;">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Colapso inspiratorio VCI (tab VD/AD)</span><span id="dpt-vcicol-eco" style="font-weight:700;">—</span></div>
+      </div>
+      <!-- Los dos primeros los COMPARTE la tab «Constricción vs Restricción», que los muestra
+           en espejo: es una sola medición, no dos. -->
+      <div class="grid-2" style="margin-bottom:10px;">
+        <div class="fg"><label>Variación respiratoria E mitral (%) — significativa &gt;<span id="dpt-lbl-mitral">25</span>%</label>
+          <input type="number" id="resp_var_mitral" placeholder="%" oninput="dptSync();cvrSync();" onchange="dptCambio();cvrSync();"></div>
+        <div class="fg"><label>Variación respiratoria E tricúspide (%) — significativa &gt;<span id="dpt-lbl-tric">40</span>%</label>
+          <input type="number" id="resp_var_tric" placeholder="%" oninput="dptSync();cvrSync();" onchange="dptCambio();cvrSync();"></div>
+        <div class="fg"><label>Variación VTI aórtico (%)</label>
+          <input type="number" id="dpt_var_ao" placeholder="%" oninput="dptSync()" onchange="dptCambio()"></div>
+        <div class="fg"><label>Variación VTI pulmonar (%)</label>
+          <input type="number" id="dpt_var_pulm" placeholder="%" oninput="dptSync()" onchange="dptCambio()"></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="dpt_swinging" onchange="dptCambio()"> Swinging heart</label>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 6px;">4 · Conclusión</div>
+      <div class="calc-box">
+        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Valoración hemodinámica</span><span id="dpt-concl-badge" style="font-weight:700;">—</span></div>
+        <div id="dpt-concl" style="font-size:12px;line-height:1.6;color:var(--text);margin-top:6px;"></div>
+        <div style="font-size:10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;padding:8px 10px;margin-top:10px;line-height:1.5;">
+          ⚠️ El diagnóstico de taponamiento es clínico-ecocardiográfico. Esta herramienta es de apoyo y no reemplaza la evaluación clínica.
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:12px;">
+        <button type="button" class="btn btn-integrar" data-am-k="dpt" onclick="amiloIntegrar('dpt')">📎 Integrar al informe</button>
+      </div>
+
+    </div>
+  </div>
+  </div>
+
+  <!-- ═══ CONSTRICCIÓN vs RESTRICCIÓN ═══ -->
+  <!-- e' septal y e' lateral están en cm/s, que es la unidad de `e_sep`/`e_lat` y la de los
+       umbrales que el archivo ya usa (`esep < 7`). El pedido decía «mm/s» con umbral 7: el 7 es
+       un valor en cm/s — en mm/s serían 70. Decisión de Maicol, 2026-09-13.
+       E/e', e' septal, e' lateral, VCI y las dos respirofasicidades son ESPEJOS de solo lectura:
+       ninguna se vuelve a preguntar. -->
+  <div class="card" style="margin-bottom:6px;">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('constr-restr',this);cvrSync();">
+      🧊 Constricción vs Restricción
+      <span id="ete-constr-restr-arrow" style="float:right;transition:transform 0.2s;">▶</span>
+    </h2>
+  </div>
+  <div id="ete-seccion-constr-restr" style="display:none;">
+  <div class="card">
+    <div class="card-body">
+      <div class="grid-2">
+
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 6px;">Campos</div>
+          <div class="calc-box" style="margin-bottom:10px;">
+            <div style="font-size:10px;color:var(--text2);margin-bottom:6px;">Tomados de otras pestañas — no se vuelven a pedir.</div>
+            <div class="calc-row"><span class="calc-lbl">e' septal (Doppler)</span><span id="cvr-esep" style="font-weight:700;">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">e' lateral (Doppler)</span><span id="cvr-elat" style="font-weight:700;">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">E/e' promedio</span><span id="cvr-ee" style="font-weight:700;">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">VCI — diámetro (VD/AD)</span><span id="cvr-vci" style="font-weight:700;">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">Colapso VCI (VD/AD)</span><span id="cvr-vcicol" style="font-weight:700;">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">Respirofasicidad mitral (Derrame/Taponamiento)</span><span id="cvr-respm" style="font-weight:700;">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">Respirofasicidad tricúspide (Derrame/Taponamiento)</span><span id="cvr-respt" style="font-weight:700;">—</span></div>
+          </div>
+          <div class="fg"><label>Rebote septal</label>
+            <select id="cvr_rebote" onchange="cvrCambio()"><option value="">— no evaluado —</option><option value="si">Presente</option><option value="no">Ausente</option></select>
+          </div>
+          <div class="fg" style="margin-top:8px;"><label>Patrón venoso hepático</label>
+            <select id="cvr_hepatico" onchange="cvrCambio()">
+              <option value="">— no evaluado —</option>
+              <option value="normal">Normal</option>
+              <option value="esp">Inversión diastólica espiratoria (constricción)</option>
+              <option value="insp">Inversión diastólica inspiratoria (restricción)</option>
+            </select>
+          </div>
+          <div class="fg" style="margin-top:8px;"><label>Engrosamiento pericárdico (TC/RMC)</label>
+            <select id="cvr_pericardio_tc" onchange="cvrCambio()">
+              <option value="">No disponible</option>
+              <option value="engrosado">&gt;3 mm — engrosado</option>
+              <option value="normal">Normal</option>
+              <option value="calcificado">Calcificado</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 6px;">Comparación automática</div>
+          <div class="calc-box" style="margin-bottom:10px;">
+            <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:4px;">Annulus reversus</div>
+            <div id="cvr-reversus" style="font-size:12px;line-height:1.6;">—</div>
+          </div>
+          <div id="cvr-tabla" style="font-size:11px;"></div>
+          <div class="calc-box" style="margin-top:10px;">
+            <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Conteo</span><span id="cvr-conteo" style="font-weight:700;">—</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 6px;">Conclusión</div>
+      <div class="calc-box">
+        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Orientación</span><span id="cvr-concl-badge" style="font-weight:700;">—</span></div>
+        <div id="cvr-concl" style="font-size:12px;line-height:1.6;color:var(--text);margin-top:6px;"></div>
+        <div style="font-size:10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;padding:8px 10px;margin-top:10px;line-height:1.5;">
+          ⚠️ El diagnóstico definitivo de constricción requiere correlación clínica e invasiva.
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:12px;">
+        <button type="button" class="btn btn-integrar" data-am-k="cvr" onclick="amiloIntegrar('cvr')">📎 Integrar al informe</button>
+      </div>
+
     </div>
   </div>
   </div>
@@ -14139,9 +14323,18 @@ function vexusRefrescarInforme() {
      `amiloRefrescarSiIntacto` no pisa el texto si el médico lo editó a mano, y sale sola si el
      módulo no está integrado — así que es barata y no hace falta gatearla acá. */
   if (typeof amiloRefrescarSiIntacto === 'function') amiloRefrescarSiIntacto('vexus');
+  _refrescarInformeSiGenerado();
+}
+
+/* Regenerar el informe SÓLO si ya estaba generado, en un solo lugar: lo comparten VEXUS y los
+   dos módulos de Pericardio. Va colgado de `onchange` y NUNCA de `oninput` — regenerar por
+   tecla saca el foco del campo y trunca el número; medido con la VCI, tipear «24» dejaba 2 mm,
+   que después alimenta PmAD, PSAP y el propio VEXUS. */
+function _refrescarInformeSiGenerado() {
   const ta = document.getElementById('informe_texto');
   if (ta && String(ta.value || '').trim() && typeof generarInforme === 'function') generarInforme({silencioso:true});
 }
+window._refrescarInformeSiGenerado = _refrescarInformeSiGenerado;
 window.vexusRefrescarInforme = vexusRefrescarInforme;
 
 /* Lo que usan los controles: repinta y, si corresponde, rehace el informe. */
@@ -14149,6 +14342,456 @@ function calcVEXUSyRefrescar() { calcVEXUS(); vexusRefrescarInforme(); }
 window.calcVEXUSyRefrescar = calcVEXUSyRefrescar;
 window.calcVEXUS = calcVEXUS;
 window.vexusEstado = vexusEstado;
+
+/* ══════════════════════════════════════════════════════════════════
+   PERICARDIO — Derrame/Taponamiento (`dpt`) y Constricción vs Restricción (`cvr`)
+
+   Reglas de este módulo, todas por algo que este archivo ya pagó antes:
+   - El TAMAÑO del derrame sale del select `pericardio`. No hay campo propio.
+   - e' en cm/s, la unidad de `e_sep`/`e_lat`. El umbral 7 es cm/s.
+   - Nada que la app ya tenga se vuelve a preguntar: e', E/e', VCI y las dos
+     respirofasicidades son espejos de solo lectura en la tab de constricción.
+   - `E/e'` sale de `hfapeffDatos()`, que es el accesor PURO que ya existe. La fórmula
+     E/e' está escrita cuatro veces en el archivo; ésta no es la quinta.
+   - Los colapsos son selects de tres estados: la conclusión «sin compromiso» es una
+     afirmación, y un checkbox desmarcado no distingue «no está» de «no lo miré».
+   ══════════════════════════════════════════════════════════════════ */
+
+const DPT_VAR_MITRAL_SIG = 25;   // % de variación respiratoria de la E mitral
+const DPT_VAR_TRIC_SIG   = 40;   // % de variación respiratoria de la E tricúspide
+const CVR_EPRIMA_CM_S    = 7;    // e' septal/lateral, cm/s
+const CVR_EE_ALTO        = 15;   // E/e'
+
+/* Los dos disclaimers, como CONSTANTES compartidas por las tres superficies (pantalla,
+   narrativo y hoja del PDF). No van dentro del array de frases: la pantalla lo sacaba con
+   `slice(0,-1)`, o sea acoplado a la posición, y el día que alguien agregue un `push` al final
+   la pantalla se come una frase clínica. */
+const DPT_DISCLAIMER = 'El diagnóstico de taponamiento es clínico-ecocardiográfico. Esta '
+  + 'herramienta es de apoyo y no reemplaza la evaluación clínica.';
+const CVR_DISCLAIMER = 'El diagnóstico definitivo de constricción requiere correlación clínica e invasiva.';
+
+/* Bandas de plausibilidad. Fuera de banda devuelven null —«no medido»— y NO un número que
+   la cascada pueda usar. Importa por una dirección concreta: `patronRestr` exige
+   `varM <= 25` para afirmar «sin respirofasicidad significativa», así que una variación
+   tipeada como fracción (0,25 por 25) SATISFACÍA una afirmación de ausencia y ayudaba a
+   firmar «compatible con miocardiopatía restrictiva». Es el caso de la Vmax en cm/s que este
+   archivo ya documenta: el error de escala empuja hacia el lado benigno. */
+/* La banda 0-100 NO alcanza sola: `0,25` tipeado por `25` cae dentro, y `patronRestr` exige
+   `varM <= 25` para afirmar «sin respirofasicidad significativa», así que el error de escala
+   SATISFACE la afirmación de ausencia y ayuda a firmar «compatible con miocardiopatía
+   restrictiva». Verificado en el navegador antes de agregar esta guarda.
+   Por eso el intervalo abierto (0,1) se trata como NO MEDIDO: una variación respiratoria de
+   0,4% está por debajo de lo que el Doppler resuelve, y es exactamente donde aterriza una
+   fracción tipeada como porcentaje. El 0 exacto SÍ es una medición legítima («no varía») y se
+   conserva. El estudio que caiga ahí lo dice en el informe en vez de tratarlo como ausencia. */
+function _dptPctSospechoso(id) { const n = v(id); return n !== null && n > 0 && n < 1; }
+function _dptPct(id) { const n = v(id); return (n === null || n < 0 || n > 100 || (n > 0 && n < 1)) ? null : n; }
+function _dptMm(id)  { const n = v(id); return (n === null || n <= 0 || n > 100) ? null : n; }
+
+/* El tamaño se LEE del select `pericardio`. «Engrosamiento / calcificación» no es derrame. */
+function dptTamano() {
+  const p = sv('pericardio') || '';
+  if (/severo/i.test(p))    return { clave:'severo',   lbl:'severo',   min:20, max:null };
+  if (/moderado/i.test(p))  return { clave:'moderado', lbl:'moderado', min:10, max:20 };
+  if (/leve/i.test(p))      return { clave:'leve',     lbl:'leve',     min:5,  max:10 };
+  if (/m[ií]nimo/i.test(p)) return { clave:'minimo',   lbl:'mínimo',   min:0,  max:5 };
+  return { clave:'ninguno', lbl:'', min:null, max:null };
+}
+window.dptTamano = dptTamano;
+
+/* Plétora de VCI con el MISMO criterio que la categoría C del HTP ESC 2022 (>21 mm con
+   colapso <50%, ver `calcHTP2022`). Dos definiciones de plétora en la misma app terminan
+   contradiciéndose en el mismo informe. */
+function dptPletora() {
+  const d = v('vci_diam'), col = sv('vci_col');
+  return { evaluada: (d !== null && col !== ''), presente: (d !== null && d > 21 && col === '<50'), diam:d, col:col };
+}
+
+function dptEstado() {
+  const tam = dptTamano();
+  const hayDerrame = ['minimo','leve','moderado','severo'].indexOf(tam.clave) >= 0;
+  const colVD = sv('dpt_col_vd'), plet = dptPletora(), varM = _dptPct('resp_var_mitral');
+
+  /* Los TRES criterios MAYORES, cada uno con «¿se evaluó?» separado de «¿se cumple?». Sin esa
+     separación, «no lo miré» cuenta como «no está» y la cascada termina afirmando normalidad
+     sobre un estudio donde nadie buscó nada. */
+  const crit = [
+    { k:'colvd',   lbl:'colapso diastólico del VD',  ev: colVD !== '',  ok: colVD === 'si' },
+    { k:'pletora', lbl:'plétora de VCI sin colapso', ev: plet.evaluada, ok: plet.presente },
+    { k:'varmit',  lbl:'variación respiratoria de la E mitral >' + DPT_VAR_MITRAL_SIG + '%',
+      ev: varM !== null, ok: varM !== null && varM > DPT_VAR_MITRAL_SIG }
+  ];
+  const evaluados = crit.filter(c => c.ev).length;
+  const cumplidos = crit.filter(c => c.ok);
+
+  /* Los OTROS hallazgos de repercusión que el formulario recoge y el informe IMPRIME. Sin
+     ellos la conclusión podía decir «Colapso de aurícula derecha.» y dos renglones después
+     «Sin criterios ecocardiográficos de compromiso hemodinámico»: el colapso auricular derecho
+     es el signo más precoz, estaba consignado en la oración anterior, y la conclusión lo
+     negaba. Una negación no puede ignorar un hallazgo positivo del mismo párrafo. */
+  const varT = _dptPct('resp_var_tric');
+  const otros = [];
+  if (sv('dpt_col_ad') === 'si') otros.push('colapso sistólico de la aurícula derecha');
+  if (sv('dpt_col_ai') === 'si') otros.push('colapso de la aurícula izquierda');
+  if (sv('dpt_col_vi') === 'si') otros.push('colapso del ventrículo izquierdo');
+  if (_amChk('dpt_swinging'))    otros.push('corazón oscilante');
+  if (varT !== null && varT > DPT_VAR_TRIC_SIG) otros.push('variación respiratoria de la E tricúspide >' + DPT_VAR_TRIC_SIG + '%');
+
+  /* ¿La medición en mm contradice al select del que sale el tamaño? El módulo lee el tamaño de
+     `pericardio` a propósito (una sola graduación), pero entonces nada impedía que el informe
+     firmado dijera «Derrame pericárdico LEVE […] de hasta 25 mm en diástole». */
+  const mms = ['dpt_mm_post','dpt_mm_lat','dpt_mm_ant'].map(_dptMm).filter(x => x !== null);
+  const mmMax = mms.length ? Math.max.apply(null, mms) : null;
+  const mmDiscrepa = (mmMax !== null && tam.min !== null)
+    && (mmMax < tam.min || (tam.max !== null && mmMax > tam.max));
+
+  let clave;
+  if (!hayDerrame)                         clave = 'sin_derrame';
+  else if (cumplidos.length === 3)         clave = 'taponamiento';
+  else if (cumplidos.length >= 1 || otros.length) clave = 'incipiente';
+  else if (tam.clave === 'severo')         clave = 'incipiente_cuantia';
+  /* Sin ningún criterio evaluado NO se afirma «sin compromiso hemodinámico»: sería una
+     negación sobre algo que nadie midió. Y con UNO o DOS evaluados tampoco — es la regla que
+     este archivo ya aplicó en MCH: una negación sobre preguntas sin contestar no es una
+     negación. Sólo con los tres se afirma. */
+  else if (evaluados === 0)                clave = 'incompleto';
+  else if (evaluados < 3)                  clave = 'parcial';
+  else                                     clave = 'sin_compromiso';
+
+  return { clave, tam, hayDerrame, crit, evaluados, cumplidos, otros, plet, varM, varT, colVD, mmMax, mmDiscrepa };
+}
+window.dptEstado = dptEstado;
+
+/* Las frases CLÍNICAS del informe (sin el disclaimer, que va aparte). Las usan el narrativo,
+   la pantalla y la hoja del PDF: una sola redacción. */
+function dptFrases(st) {
+  const s = st || dptEstado();
+  if (s.clave === 'sin_derrame') return [];
+  const L = [];
+  const locTxt = { circ:'circunferencial', post:'posterior', ant:'anterior', locul:'loculado', mixto:'mixto' }[sv('dpt_local')] || '';
+  const car = [];
+  if (_amChk('dpt_libre'))   car.push('libre');
+  if (_amChk('dpt_fibrina')) car.push('con fibrina');
+  if (_amChk('dpt_hemo'))    car.push('hemopericardio');
+
+  L.push('Derrame pericárdico ' + s.tam.lbl
+    + (locTxt ? ', de distribución ' + locTxt : '')
+    + (s.mmMax !== null ? ', de hasta ' + s.mmMax + ' mm en diástole' : '')
+    + (car.length ? ', ' + car.join(', ') : '') + '.');
+  if (s.mmDiscrepa) {
+    L.push('La medición en milímetros no concuerda con la cuantía consignada: revisar el campo «Pericardio» o la medición.');
+  }
+  if (_dptPctSospechoso('resp_var_mitral') || _dptPctSospechoso('resp_var_tric')) {
+    L.push('La variación respiratoria cargada está por debajo de 1%, fuera de lo que el Doppler '
+      + 'resuelve: se descartó del cálculo por probable error de escala (fracción en vez de porcentaje).');
+  }
+
+  const colTxt = [];
+  [['dpt_col_ad','aurícula derecha'],['dpt_col_vd','ventrículo derecho'],
+   ['dpt_col_ai','aurícula izquierda'],['dpt_col_vi','ventrículo izquierdo']].forEach(p => {
+    if (sv(p[0]) === 'si') colTxt.push(p[1]);
+  });
+  if (colTxt.length) L.push('Colapso de ' + colTxt.join(', ') + '.');
+  if (_amChk('dpt_swinging')) L.push('Corazón oscilante (swinging heart).');
+
+  const faltan = s.crit.filter(c => !c.ev).map(c => c.lbl);
+  if (s.clave === 'taponamiento') {
+    L.push('Se cumplen los tres criterios ecocardiográficos de taponamiento: ' + s.cumplidos.map(c => c.lbl).join(', ') + '.');
+  } else if (s.clave === 'incipiente') {
+    const hall = s.cumplidos.map(c => c.lbl).concat(s.otros);
+    L.push('Signos de compromiso hemodinámico incipiente: ' + hall.join(', ') + '.');
+    if (faltan.length) L.push('No se evaluó: ' + faltan.join(', ') + '.');
+  } else if (s.clave === 'incipiente_cuantia') {
+    L.push('Derrame severo sin criterios de colapso documentados: se considera compromiso '
+      + 'hemodinámico incipiente por la cuantía.');
+    if (faltan.length) L.push('No se evaluó: ' + faltan.join(', ') + '.');
+  } else if (s.clave === 'sin_compromiso') {
+    L.push('Evaluados los tres criterios (colapso diastólico del VD, plétora de VCI y variación '
+      + 'respiratoria de la E mitral), sin criterios ecocardiográficos de compromiso hemodinámico.');
+  } else if (s.clave === 'parcial') {
+    L.push('Los criterios evaluados no muestran compromiso hemodinámico, pero la evaluación está '
+      + 'incompleta: no se evaluó ' + faltan.join(', ') + '. No se puede descartar repercusión hemodinámica.');
+  } else if (s.clave === 'incompleto') {
+    L.push('No se evaluaron los signos de compromiso hemodinámico (colapso de cavidades, '
+      + 'plétora de vena cava inferior ni variación respiratoria de los flujos), así que no se '
+      + 'puede afirmar ni descartar repercusión hemodinámica.');
+  }
+  return L;
+}
+window.dptFrases = dptFrases;
+
+function dptSuma(st) {
+  const s = st || dptEstado();
+  const t = s.tam.clave;
+  if (s.clave === 'taponamiento') return 'Derrame pericárdico con criterios ecocardiográficos de taponamiento cardíaco.';
+  if (s.clave === 'incipiente')   return 'Derrame pericárdico con signos de compromiso hemodinámico incipiente.';
+  /* El severo por CUANTÍA no dice «signos de compromiso»: no se midió ninguno. Una línea corta
+     miente más fácil que un párrafo, y ésta es la que lee el que sólo mira el EN SUMA. */
+  if (s.clave === 'incipiente_cuantia') {
+    return s.evaluados === 0
+      ? 'Derrame pericárdico severo; no se evaluaron los signos de compromiso hemodinámico.'
+      : 'Derrame pericárdico severo sin criterios de colapso, considerado de compromiso hemodinámico incipiente por la cuantía.';
+  }
+  if (s.clave === 'sin_compromiso' && (t === 'moderado' || t === 'severo')) {
+    return 'Derrame pericárdico ' + s.tam.lbl + ' sin compromiso hemodinámico.';
+  }
+  if (s.clave === 'parcial' && (t === 'moderado' || t === 'severo')) {
+    return 'Derrame pericárdico ' + s.tam.lbl + '; evaluación hemodinámica incompleta.';
+  }
+  return '';
+}
+window.dptSuma = dptSuma;
+
+/* La compuerta de la exclusión es el EMISOR, no la clave. Con `clave` las dos funciones podían
+   divergir y de hecho divergían: para derrame LEVE y MÍNIMO `dptMandaSuma` daba true y
+   `dptSuma` devolvía '', así que se suprimía la línea histórica y no se ponía nada — la
+   exclusión sin reemplazo contra la que el propio comentario advertía. Preguntándole al emisor
+   no pueden separarse aunque mañana se agregue una clave o un tamaño. */
+function dptMandaSuma() {
+  if (typeof amiloIntegrado !== 'function' || !amiloIntegrado('dpt')) return false;
+  return dptSuma() !== '';
+}
+window.dptMandaSuma = dptMandaSuma;
+
+const DPT_BADGE = { taponamiento:['red','TAPONAMIENTO CARDÍACO'], incipiente:['orange','COMPROMISO HEMODINÁMICO INCIPIENTE'],
+  incipiente_cuantia:['orange','COMPROMISO INCIPIENTE POR CUANTÍA'], sin_compromiso:['green','SIN COMPROMISO HEMODINÁMICO'],
+  parcial:['yellow','EVALUACIÓN INCOMPLETA'], incompleto:['gray','SIN EVALUAR'], sin_derrame:['gray','SIN DERRAME'] };
+
+function dptSync() {
+  const setH = (id, html) => { const e = document.getElementById(id); if (e) e.innerHTML = html; };
+  const txt  = (id, s) => { const e = document.getElementById(id); if (e) e.textContent = s; };
+  const st = dptEstado();
+  // Los umbrales de los rótulos salen de las constantes: un rótulo fijo miente el día que se mueva el corte.
+  txt('dpt-lbl-mitral', String(DPT_VAR_MITRAL_SIG));
+  txt('dpt-lbl-tric',   String(DPT_VAR_TRIC_SIG));
+  txt('dpt-tam-eco', st.hayDerrame ? ('Derrame ' + st.tam.lbl) : (sv('pericardio') || '—'));
+  txt('dpt-vci-eco', st.plet.diam !== null ? st.plet.diam + ' mm' : 'no cargada');
+  txt('dpt-vcicol-eco', st.plet.col === '>50' ? '> 50%' : st.plet.col === '<50' ? '< 50%' : 'no cargado');
+
+  const b = DPT_BADGE[st.clave] || DPT_BADGE.incompleto;
+  setH('dpt-concl-badge', badge(b[0], b[1]));
+  setH('dpt-concl', (st.clave === 'sin_derrame')
+    ? '<span style="color:var(--text2)">El campo «Pericardio» no indica derrame. Cargalo arriba para evaluar repercusión hemodinámica.</span>'
+    : escHtml(dptFrases(st).join(' ')));
+  if (typeof amiloRefrescarSiIntacto === 'function') amiloRefrescarSiIntacto('dpt');
+}
+window.dptSync = dptSync;
+
+/* ── Constricción vs Restricción ───────────────────────────────── */
+
+function cvrDatos() {
+  let hf = null;
+  try { hf = (typeof hfapeffDatos === 'function') ? hfapeffDatos() : null; } catch (e) { hf = null; }
+  return {
+    esep: hf ? hf.esep : v('e_sep'),
+    elat: hf ? hf.elat : v('e_lat'),
+    ee:   hf ? hf.ee   : null,
+    varM: _dptPct('resp_var_mitral'), varT: _dptPct('resp_var_tric'),
+    plet: dptPletora(), rebote: sv('cvr_rebote'), hep: sv('cvr_hepatico'), tc: sv('cvr_pericardio_tc')
+  };
+}
+window.cvrDatos = cvrDatos;
+
+/* Las diez filas, en UN solo lugar: de acá salen la tabla de pantalla, el conteo, la
+   conclusión y la hoja del PDF. `voto` devuelve 'c' (constricción), 'r' (restricción) o null
+   cuando el hallazgo NO discrimina — que no es lo mismo que no haberlo evaluado.
+
+   `esp` marca los criterios ESPECÍFICOS del pericardio. `adic` marca los que no son las tres
+   filas anulares. Los dos existen por el mismo defecto: las filas 1-3 salen de `e_sep` y
+   `e_lat`, dos números de la tab Diastólica que están cargados en casi todos los estudios, y
+   `nC >= 3` se alcanzaba con ellos solos. Medido: con e' septal 9 y e' lateral 8 y NADA más,
+   la app firmaba «compatible con pericarditis constrictiva» sin un solo dato del pericardio.
+
+   Los rótulos imprimen EL MISMO operador que aplica el código, porque se publican verbatim en
+   la hoja del PDF. Antes la fila de e' septal decía «>7» y aplicaba `>= 7`: un 7,0 exacto salía
+   ✅ Constricción bajo un rótulo que lo excluía, y ningún rótulo cubría el 7. */
+function cvrFilas() {
+  return [
+    { lbl:"e' septal",            c:'≥' + CVR_EPRIMA_CM_S + ' cm/s', r:'<' + CVR_EPRIMA_CM_S + ' cm/s',
+      ev: d => d.esep !== null, voto: d => d.esep >= CVR_EPRIMA_CM_S ? 'c' : 'r' },
+    { lbl:"e' lateral",           c:'≥' + CVR_EPRIMA_CM_S + ' cm/s', r:'<' + CVR_EPRIMA_CM_S + ' cm/s',
+      ev: d => d.elat !== null, voto: d => d.elat < CVR_EPRIMA_CM_S ? 'r' : 'c' },
+    { lbl:'Annulus reversus',     c:'Presente', r:'Ausente',
+      ev: d => d.esep !== null && d.elat !== null, voto: d => d.esep > d.elat ? 'c' : 'r' },
+    { lbl:"E/e'",                 c:'<' + CVR_EE_ALTO, r:'≥' + CVR_EE_ALTO, adic:true,
+      ev: d => d.ee !== null, voto: d => d.ee < CVR_EE_ALTO ? 'c' : 'r' },
+    { lbl:'Respirofasicidad mitral', c:'>' + DPT_VAR_MITRAL_SIG + '%', r:'≤' + DPT_VAR_MITRAL_SIG + '%', adic:true, esp:true,
+      ev: d => d.varM !== null, voto: d => d.varM > DPT_VAR_MITRAL_SIG ? 'c' : 'r' },
+    { lbl:'Respirofasicidad tricúspide', c:'>' + DPT_VAR_TRIC_SIG + '%', r:'≤' + DPT_VAR_TRIC_SIG + '%', adic:true, esp:true,
+      ev: d => d.varT !== null, voto: d => d.varT > DPT_VAR_TRIC_SIG ? 'c' : 'r' },
+    { lbl:'Rebote septal',        c:'Presente', r:'Ausente', adic:true, esp:true,
+      ev: d => d.rebote !== '', voto: d => d.rebote === 'si' ? 'c' : 'r' },
+    { lbl:'Plétora de VCI',       c:'Presente', r:'Variable', adic:true, esp:true,
+      ev: d => d.plet.evaluada, voto: d => d.plet.presente ? 'c' : null },
+    { lbl:'Patrón venoso hepático', c:'Inversión espiratoria', r:'Inversión inspiratoria', adic:true, esp:true,
+      ev: d => d.hep !== '', voto: d => d.hep === 'esp' ? 'c' : d.hep === 'insp' ? 'r' : null },
+    { lbl:'Engrosamiento pericárdico', c:'>3 mm o calcificado', r:'Normal', adic:true, esp:true,
+      ev: d => d.tc !== '', voto: d => (d.tc === 'engrosado' || d.tc === 'calcificado') ? 'c' : d.tc === 'normal' ? 'r' : null }
+  ];
+}
+
+/* Cómo se LEE cada criterio dentro de una oración del informe. Sin esto, la frase enumeraba
+   las etiquetas de la tabla —«annulus reversus (e' septal 9 > e' lateral 7), e' septal, e'
+   lateral, annulus reversus»—: el reversus nombrado dos veces y dos criterios como rótulos
+   sueltos que no dicen nada. El reversus devuelve '' a propósito: la oración ya lo nombra con
+   sus dos velocidades. */
+function cvrProsa(lbl, d) {
+  const n1 = x => (x === null ? '—' : (Math.round(x * 10) / 10));
+  return ({
+    "e' septal":                 "e' septal conservado (" + n1(d.esep) + ' cm/s)',
+    "e' lateral":                "e' lateral " + n1(d.elat) + ' cm/s',
+    'Annulus reversus':          '',
+    "E/e'":                      "E/e' no elevado (" + n1(d.ee) + ')',
+    'Respirofasicidad mitral':   'variación respiratoria de la E mitral del ' + d.varM + '%',
+    'Respirofasicidad tricúspide':'variación respiratoria de la E tricúspide del ' + d.varT + '%',
+    'Rebote septal':             'rebote septal',
+    'Plétora de VCI':            'plétora de vena cava inferior',
+    'Patrón venoso hepático':    'inversión diastólica espiratoria del flujo venoso hepático',
+    'Engrosamiento pericárdico': 'engrosamiento pericárdico en TC/RMC'
+  })[lbl] || '';
+}
+
+function cvrEstado() {
+  const d = cvrDatos();
+  const filas = cvrFilas().map(f => {
+    const ev = f.ev(d);
+    return { lbl:f.lbl, c:f.c, r:f.r, adic:!!f.adic, esp:!!f.esp, ev: ev, voto: ev ? f.voto(d) : null, prosa: cvrProsa(f.lbl, d) };
+  });
+  const nC = filas.filter(x => x.voto === 'c').length;
+  const nR = filas.filter(x => x.voto === 'r').length;
+  const nCAdic = filas.filter(x => x.voto === 'c' && x.adic).length;
+  const espEval = filas.filter(x => x.esp && x.ev).length;
+  const reversus = (d.esep !== null && d.elat !== null) ? (d.esep > d.elat) : null;
+
+  /* «Sin respirofasicidad significativa» exige que se HAYA MEDIDO. Sin el dato no se puede
+     afirmar el patrón restrictivo: sería una negación sin medición. */
+  const patronRestr = d.esep !== null && d.esep < CVR_EPRIMA_CM_S
+                   && d.elat !== null && d.elat < CVR_EPRIMA_CM_S
+                   && d.ee !== null && d.ee > CVR_EE_ALTO
+                   && d.varM !== null && d.varM <= DPT_VAR_MITRAL_SIG;
+
+  let clave;
+  /* COMPUERTA: sin NINGÚN criterio específico del pericardio evaluado no se concluye nada.
+     Sin esto, un perfil diastólico de rutina —e' septal 7, e' lateral 6, onda E 100— salía
+     «criterios mixtos […] se recomienda cateterismo cardíaco derecho e izquierdo simultáneo»
+     en el cuerpo del informe firmado, sin que nadie hubiera mirado el pericardio. Es la regla
+     que el archivo ya aplica en MCA y en Fallot: un campo compartido no despierta una sección. */
+  if (espEval === 0) clave = 'sin_datos';
+  /* «≥2 criterios adicionales» son adicionales AL REVERSUS: si contaran las tres filas
+     anulares, el reversus votaría dos veces y dos números darían tres criterios. */
+  else if (reversus === true && nCAdic >= 2 && nR < 2) clave = 'constrictiva';
+  else if (patronRestr && nCAdic < 2)                  clave = 'restrictiva';
+  else if (nC >= 2 && nR >= 2)                         clave = 'mixto';
+  else if (nC >= 2 || nR >= 2)                         clave = 'no_concluyente';
+  else                                                 clave = 'sin_datos';
+
+  return { d, filas, nC, nR, nCAdic, espEval, reversus, clave };
+}
+window.cvrEstado = cvrEstado;
+
+function cvrFrases(st) {
+  const s = st || cvrEstado(), d = s.d;
+  const n1 = x => (x === null ? '—' : (Math.round(x * 10) / 10));
+  const presentes = s.filas.filter(f => f.voto === 'c' && f.prosa).map(f => f.prosa);
+  if (s.clave === 'constrictiva') {
+    return ['Hallazgos ecocardiográficos compatibles con pericarditis constrictiva: annulus reversus '
+      + "(e' septal " + n1(d.esep) + " cm/s > e' lateral " + n1(d.elat) + ' cm/s), '
+      + presentes.join(', ') + '. El diagnóstico definitivo requiere correlación clínica e '
+      + 'imagenológica (TC/RMC pericárdica).'];
+  }
+  if (s.clave === 'restrictiva') {
+    return ['Hallazgos ecocardiográficos compatibles con miocardiopatía restrictiva: velocidades '
+      + "anulares reducidas (e' septal " + n1(d.esep) + " cm/s, e' lateral " + n1(d.elat) + ' cm/s), '
+      + "E/e' elevado (" + n1(d.ee) + '), sin respirofasicidad significativa. Considerar RMC con gadolinio.'];
+  }
+  if (s.clave === 'mixto') {
+    return ['Criterios mixtos de constricción y restricción. No es posible diferenciar '
+      + 'ecocardiográficamente. Se recomienda cateterismo cardíaco derecho e izquierdo simultáneo '
+      + 'para diagnóstico definitivo.'];
+  }
+  return [];
+}
+window.cvrFrases = cvrFrases;
+
+/* El texto de «no hay conclusión» tiene que decir CUÁL de las dos cosas pasa. Con una sola
+   rama, un estudio con cinco ✅ en la columna de constricción mostraba «menos de dos criterios
+   en alguna categoría» justo debajo de la tabla que mostraba los cinco. */
+function cvrMotivo(st) {
+  const s = st || cvrEstado();
+  if (s.clave === 'sin_datos' && s.espEval === 0) {
+    return 'No se evaluó ningún criterio específico del pericardio (respirofasicidad, rebote septal, '
+      + 'plétora de VCI, patrón venoso hepático o engrosamiento). Las velocidades anulares solas no '
+      + 'permiten orientar entre constricción y restricción.';
+  }
+  if (s.clave === 'sin_datos') {
+    return 'Datos insuficientes: se requieren al menos dos criterios en alguna de las dos categorías.';
+  }
+  return 'Los criterios cargados (constricción ' + s.nC + ', restricción ' + s.nR + ') no configuran '
+    + 'ninguno de los dos patrones. No se emite orientación diagnóstica.';
+}
+window.cvrMotivo = cvrMotivo;
+
+function cvrSuma(st) {
+  const s = st || cvrEstado();
+  if (s.clave === 'constrictiva') return 'Elementos ecocardiográficos de pericarditis constrictiva.';
+  if (s.clave === 'restrictiva')  return 'Elementos ecocardiográficos de miocardiopatía restrictiva.';
+  return '';
+}
+window.cvrSuma = cvrSuma;
+
+const CVR_BADGE = { constrictiva:['orange','COMPATIBLE CON PERICARDITIS CONSTRICTIVA'],
+  restrictiva:['orange','COMPATIBLE CON MIOCARDIOPATÍA RESTRICTIVA'],
+  mixto:['yellow','INDETERMINADO — CRITERIOS MIXTOS'],
+  no_concluyente:['gray','SIN PATRÓN DEFINIDO'], sin_datos:['gray','DATOS INSUFICIENTES'] };
+
+function cvrSync() {
+  const setH = (id, html) => { const e = document.getElementById(id); if (e) e.innerHTML = html; };
+  const txt  = (id, s) => { const e = document.getElementById(id); if (e) e.textContent = s; };
+  const st = cvrEstado(), d = st.d;
+  const n1 = x => (x === null ? '—' : (Math.round(x * 10) / 10));
+
+  txt('cvr-esep',  d.esep !== null ? n1(d.esep) + ' cm/s' : 'no cargado');
+  txt('cvr-elat',  d.elat !== null ? n1(d.elat) + ' cm/s' : 'no cargado');
+  txt('cvr-ee',    d.ee   !== null ? String(n1(d.ee))     : 'no calculable');
+  txt('cvr-vci',   d.plet.diam !== null ? d.plet.diam + ' mm' : 'no cargada');
+  txt('cvr-vcicol', d.plet.col === '>50' ? '> 50%' : d.plet.col === '<50' ? '< 50%' : 'no cargado');
+  txt('cvr-respm', d.varM !== null ? d.varM + ' %' : 'no cargada');
+  txt('cvr-respt', d.varT !== null ? d.varT + ' %' : 'no cargada');
+
+  setH('cvr-reversus', st.reversus === null
+    ? '<span style="color:var(--text2)">Faltan e\' septal o e\' lateral.</span>'
+    : ("e' septal " + n1(d.esep) + " cm/s vs e' lateral " + n1(d.elat) + ' cm/s ')
+      + badge(st.reversus ? 'orange' : 'green', st.reversus ? 'Reversus ✅' : 'Normal'));
+
+  const cel = (f, col) => f.voto === null ? '—' : (f.voto === col ? '✅' : '❌');
+  const filasHtml = st.filas.map(f =>
+    '<tr><td style="padding:3px 6px;border-bottom:1px solid var(--border);">' + escHtml(f.lbl) + '</td>'
+    + '<td style="padding:3px 6px;border-bottom:1px solid var(--border);text-align:center;">' + cel(f,'c') + ' <span style="color:var(--text2)">' + escHtml(f.c) + '</span></td>'
+    + '<td style="padding:3px 6px;border-bottom:1px solid var(--border);text-align:center;">' + cel(f,'r') + ' <span style="color:var(--text2)">' + escHtml(f.r) + '</span></td></tr>').join('');
+  setH('cvr-tabla', '<table style="width:100%;border-collapse:collapse;">'
+    + '<tr><th style="text-align:left;padding:3px 6px;">Criterio</th><th style="padding:3px 6px;">Constricción</th><th style="padding:3px 6px;">Restricción</th></tr>'
+    + filasHtml + '</table>');
+
+  txt('cvr-conteo', 'Constricción: ' + st.nC + ' · Restricción: ' + st.nR
+    + ' · sin evaluar: ' + st.filas.filter(f => !f.ev).length
+    + ' · específicos del pericardio evaluados: ' + st.espEval);
+
+  const b = CVR_BADGE[st.clave] || CVR_BADGE.sin_datos;
+  setH('cvr-concl-badge', badge(b[0], b[1]));
+  const fr = cvrFrases(st);
+  setH('cvr-concl', fr.length ? escHtml(fr.join(' '))
+    : '<span style="color:var(--text2)">' + escHtml(cvrMotivo(st)) + '</span>');
+  if (typeof amiloRefrescarSiIntacto === 'function') amiloRefrescarSiIntacto('cvr');
+}
+window.cvrSync = cvrSync;
+
+/* Lo que usan los CONTROLES: repinta y, si el informe ya estaba generado, lo rehace. Los
+   `*Sync` pelados son los que van en RECALC_MODULOS —durante una restauración no se toca el
+   informe del estudio que se está abriendo—, así que la diferencia entre los dos no es
+   cosmética: `dptSync` repinta, `dptCambio` además publica. */
+function dptCambio() { dptSync(); _refrescarInformeSiGenerado(); }
+function cvrCambio() { cvrSync(); _refrescarInformeSiGenerado(); }
+window.dptCambio = dptCambio; window.cvrCambio = cvrCambio;
 
 // ══ PSAP ══
 function calcPSAP() {
@@ -17875,32 +18518,80 @@ function generarInforme(opts) {
   {
     const peri = sv('pericardio');
     const hayMasa = sv('masa_presente') === 'Masa / imagen intracardíaca presente';
+    /* Si el módulo Derrame/Taponamiento está integrado Y llegó a una conclusión, SU línea
+       reemplaza a la histórica —«Derrame moderado (10-20mm).»— en vez de sumarse: son el mismo
+       hallazgo dicho dos veces. Decisión de Maicol, 2026-09-13.
+       La condición exige la conclusión, no sólo que el módulo esté integrado: con el módulo
+       integrado pero sin nada evaluado, suprimir la línea vieja borraría un derrame documentado
+       sin poner nada en su lugar. Es el defecto que hoy tiene la exclusión del módulo pulmonar
+       avanzado, que convierte un derrame pleural en «Sin derrame pleural». */
+    const _dptManda = (typeof dptMandaSuma === 'function') && dptMandaSuma();
+    /* Para el CUERPO la compuerta es otra: alcanza con que el módulo esté integrado y haya
+       derrame, aunque no emita línea de EN SUMA. Si no, el informe firmado decía «Derrame
+       moderado (10-20mm). Sin masas.» y dos renglones después «Derrame pericárdico moderado, de
+       distribución circunferencial, de hasta 15 mm…»: el mismo hallazgo dicho dos veces, que es
+       justo lo que la supresión dice venir a evitar. La supresión de `inf` y la de `suma` no
+       pueden compartir predicado porque no cubren los mismos casos. */
+    const _dptDescribe = (typeof amiloIntegrado === 'function') && amiloIntegrado('dpt')
+      && (typeof dptEstado === 'function') && dptEstado().clave !== 'sin_derrame';
     let s13;
     if (hayMasa) {
-      const derrame = (!peri || peri === 'Normal, sin derrame') ? 'Sin derrame pericárdico.' : `${peri}.`;
-      if (peri && peri !== 'Normal, sin derrame') suma.push(peri + '.');
+      const derrame = (!peri || peri === 'Normal, sin derrame') ? 'Sin derrame pericárdico.'
+        : (_dptDescribe ? '' : `${peri}.`);
+      if (peri && peri !== 'Normal, sin derrame' && !_dptManda) suma.push(peri + '.');
       const _mtam = (document.getElementById('masa_tam_mm') || {}).value || '';
       const _mf = 'Imagen intracardíaca en ' + sv('masa_cavidad') + ', ' + sv('masa_loc').toLowerCase() +
         (_mtam ? ', ' + _mtam + 'mm' : '') + ', morfología ' + sv('masa_morf').toLowerCase() + ', ' +
         sv('masa_movil').toLowerCase() + ', ' + sv('masa_eco').toLowerCase() +
         '. Diagnóstico diferencial: ' + sv('masa_dx').toLowerCase() + '.';
       const _mn = sv('masa_notas');
-      s13 = derrame + ' ' + _mf + (_mn ? ' ' + _mn : '');
+      s13 = (derrame ? derrame + ' ' : '') + _mf + (_mn ? ' ' + _mn : '');
     } else {
       if (!peri || peri === 'Normal, sin derrame') {
         s13 = estiloPick(
           'Sin derrame pericárdico. Sin masas.',
           'Sin derrame pericárdico. Sin masas intracardíacas.',
           'No se observa derrame pericárdico ni masas intracardíacas.');
+      } else if (_dptDescribe) {
+        // El derrame lo describe el módulo, con su cuantificación y su valoración hemodinámica.
+        s13 = estiloPick('Sin masas.', 'Sin masas intracardíacas.', 'No se observan masas intracardíacas.');
+        if (!_dptManda) suma.push(peri + '.');
       } else {
         s13 = estiloPick(
           `${peri}. Sin masas.`,
           `${peri}. Sin masas intracardíacas.`,
           `Se observa ${peri.toLowerCase()}, sin evidencia de masas intracardíacas; hallazgo que requiere correlación clínica y control evolutivo.`);
-        suma.push(peri + '.');
+        if (!_dptManda) suma.push(peri + '.');
       }
     }
     inf.push(s13);
+  }
+
+  // ── 13a2) Pericardio: derrame/taponamiento y constricción vs restricción ──
+  // Los dos los decide su botón «Integrar al informe», como HTP y TEP. A diferencia del VEXUS,
+  // acá no hay emisión automática: sin el clic no sale nada.
+  if (typeof amiloIntegrado === 'function' && amiloIntegrado('dpt') && typeof dptEstado === 'function') {
+    const _st = dptEstado();
+    const _fr = dptFrases(_st);
+    if (_fr.length) inf.push(_fr.join(' ') + ' ' + DPT_DISCLAIMER);
+    const _sm = dptSuma(_st);
+    if (_sm) suma.push(_sm);
+  }
+  if (typeof amiloIntegrado === 'function' && amiloIntegrado('cvr') && typeof cvrEstado === 'function') {
+    const _sc = cvrEstado();
+    const _fc = cvrFrases(_sc);
+    /* `cvrFrases` devuelve [] en «datos insuficientes»: no se imprime nada, ni siquiera una
+       constancia de que se miró. Un párrafo que diga «no concluyente» sobre dos campos cargados
+       ocupa lugar en el informe y no aporta. */
+    /* El disclaimer va SOLO cuando la frase no cierra sola. La de constricción ya termina en
+       «requiere correlación clínica e imagenológica (TC/RMC pericárdica)» y la de criterios
+       mixtos en «cateterismo […] para diagnóstico definitivo»: agregarle encima «requiere
+       correlación clínica e invasiva» dejaba dos oraciones de cierre casi iguales pegadas. */
+    if (_fc.length) {
+      inf.push(_fc.join(' ') + (_sc.clave === 'restrictiva' ? ' ' + CVR_DISCLAIMER : ''));
+      const _sm2 = cvrSuma(_sc);
+      if (_sm2) suma.push(_sm2);
+    }
   }
 
   // ── 13b) Ecografía pulmonar (módulo básico) ──
@@ -18666,7 +19357,11 @@ function RECALC_MODULOS() {
      asignando `.value`, que **no dispara `input`** — el listener con debounce no se entera y el
      botón quedaría con el estado del paciente anterior. Es la misma razón por la que esta lista
      y `limpiarCampos` llaman a `calcWilkins()` a mano. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','indicSyncBoton'];
+  /* `dptSync` y `cvrSync` repintan los dos módulos de Pericardio. Entran acá porque leen campos
+     de OTRAS pestañas (el select `pericardio`, la VCI de VD/AD, e' de Doppler) y las rutas de
+     restauración pueblan asignando `.value`, que no dispara ningún evento: sin esto, reabrir un
+     estudio dejaba la conclusión de taponamiento del paciente anterior en pantalla. */
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','dptSync','cvrSync','indicSyncBoton'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -18831,6 +19526,13 @@ function limpiarCampos(silencioso) {
      canvas EPC, el hidden con las horas del jet, los dos checkboxes de inclusión y los
      sub-tabs viven fuera de él y quedaban con lo del paciente anterior. */
   if (typeof eteShuntTaviReset === 'function') { try { eteShuntTaviReset(); } catch (e) {} }
+  /* Pericardio: el barrido de arriba vacía los inputs y los selects, pero los paneles de
+     conclusión (#dpt-concl, #cvr-concl, #cvr-tabla) son divs sueltos que no alcanza ningún
+     selector, y los espejos de solo lectura tampoco. Sin repintar, el paciente nuevo arrancaba
+     con «TAPONAMIENTO CARDÍACO» del anterior sobre un formulario ya vacío — el cuadro exacto
+     del algoritmo de amiloidosis. Un reseteo que no repinta no es un reseteo. */
+  if (typeof dptSync === 'function') { try { dptSync(); } catch (e) {} }
+  if (typeof cvrSync === 'function') { try { cvrSync(); } catch (e) {} }
   /* Los botones se repintan desde el ESTADO REAL, no a `false` fijo. Las claves del bull's eye
      no se borran a propósito (ver la nota de arriba: son preferencia del médico, no dato del
      paciente), así que pintarlos apagados los dejaba MINTIENDO: el médico veía el botón gris,
@@ -30695,6 +31397,84 @@ function amiloTextoVEXUS() {
   return L.join('\n');
 }
 
+/* Derrame pericárdico / Taponamiento — hoja de ETT Avanzado.
+   Las frases clínicas salen de `dptFrases()`, la MISMA que usa el narrativo: no hay una
+   segunda redacción que pueda divergir. Acá se les antepone la tabla de campos. */
+function amiloTextoDPT() {
+  const L = [], st = dptEstado();
+
+  L.push('## Derrame');
+  L.push('Tamaño | ' + (st.hayDerrame ? 'Derrame ' + st.tam.lbl : (sv('pericardio') || 'no consignado')));
+  const loc = { circ:'Circunferencial', post:'Posterior', ant:'Anterior', locul:'Loculado', mixto:'Mixto' }[sv('dpt_local')];
+  L.push('Distribución | ' + (loc || 'no evaluada'));
+  [['dpt_mm_post','Diástole posterior'],['dpt_mm_lat','Diástole lateral'],['dpt_mm_ant','Diástole anterior']]
+    .forEach(p => { const n = v(p[0]); if (n !== null) L.push(p[1] + ' | ' + n + ' mm'); });
+  const car = [];
+  if (_amChk('dpt_libre'))   car.push('libre');
+  if (_amChk('dpt_fibrina')) car.push('con fibrina');
+  if (_amChk('dpt_hemo'))    car.push('hemopericardio');
+  if (car.length) L.push('Características | ' + car.join(', '));
+
+  /* Las cuatro cavidades se imprimen con su estado REAL, incluido «no evaluado». Un informe
+     que sólo lista lo presente deja al lector sin saber si lo demás se buscó. */
+  L.push('## Colapso de cavidades');
+  [['dpt_col_ad','Aurícula derecha (sistólico)'],['dpt_col_vd','Ventrículo derecho (diastólico)'],
+   ['dpt_col_ai','Aurícula izquierda'],['dpt_col_vi','Ventrículo izquierdo']].forEach(p => {
+    const s = sv(p[0]);
+    L.push(p[1] + ' | ' + (s === 'si' ? 'Presente' : s === 'no' ? 'Ausente' : 'No evaluado'));
+  });
+
+  L.push('## VCI y variación respiratoria');
+  L.push('VCI | ' + (st.plet.diam !== null ? st.plet.diam + ' mm' : 'no cargada'));
+  L.push('Colapso inspiratorio | ' + (st.plet.col === '>50' ? '> 50%' : st.plet.col === '<50' ? '< 50%' : 'no cargado'));
+  [['resp_var_mitral','E mitral'],['resp_var_tric','E tricúspide'],['dpt_var_ao','VTI aórtico'],['dpt_var_pulm','VTI pulmonar']]
+    .forEach(p => { const n = v(p[0]); if (n !== null) L.push('Variación ' + p[1] + ' | ' + n + ' %'); });
+  if (_amChk('dpt_swinging')) L.push('Swinging heart | Presente');
+
+  L.push('## Conclusión');
+  const fr = dptFrases(st);
+  if (!fr.length) L.push('El campo «Pericardio» no indica derrame: no se evaluó repercusión hemodinámica.');
+  else { fr.forEach(f => L.push(f)); L.push('Salvedad | ' + DPT_DISCLAIMER); }
+  return L.join('\n');
+}
+
+/* Constricción vs Restricción — hoja de ETT Avanzado.
+   La tabla se arma con `cvrEstado().filas`, o sea la MISMA definición que la de pantalla y la
+   que alimenta el conteo y la conclusión. Una segunda tabla acá sería la cuarta superficie del
+   mismo criterio. */
+function amiloTextoCVR() {
+  const L = [], st = cvrEstado(), d = st.d;
+  const n1 = x => (x === null ? '—' : (Math.round(x * 10) / 10));
+
+  L.push('## Parámetros');
+  L.push("e' septal | " + (d.esep !== null ? n1(d.esep) + ' cm/s' : 'no cargado'));
+  L.push("e' lateral | " + (d.elat !== null ? n1(d.elat) + ' cm/s' : 'no cargado'));
+  L.push("E/e' promedio | " + (d.ee !== null ? String(n1(d.ee)) : 'no calculable'));
+  L.push('Annulus reversus | ' + (st.reversus === null ? 'no valorable' : st.reversus ? 'Presente' : 'Ausente'));
+
+  L.push('## Criterios');
+  st.filas.forEach(f => {
+    L.push(f.lbl + ' | ' + (!f.ev ? 'No evaluado'
+      : f.voto === 'c' ? 'Constricción (' + f.c + ')'
+      : f.voto === 'r' ? 'Restricción (' + f.r + ')'
+      : 'No discrimina'));
+  });
+  L.push('Recuento | Constricción ' + st.nC + ' · Restricción ' + st.nR);
+
+  L.push('## Conclusión');
+  const fr = cvrFrases(st);
+  if (fr.length) {
+    fr.forEach(f => L.push(f));
+    if (st.clave === 'restrictiva') L.push('Salvedad | ' + CVR_DISCLAIMER);
+  } else {
+    // El motivo REAL, no un texto fijo: con cinco criterios de constricción en la tabla de
+    // arriba, «menos de dos criterios» se contradecía con lo que el propio lector veía.
+    L.push(cvrMotivo(st));
+    L.push('Salvedad | ' + CVR_DISCLAIMER);
+  }
+  return L.join('\n');
+}
+
 // ── Módulos del ETE ───────────────────────────────────────────────
 // Las filas 'etiqueta | valor' se dibujan como tabla de dos columnas, tanto en
 // la card como en el PDF.
@@ -31099,6 +31879,8 @@ function amiloSecs() {
     { k:'wilk', lbl:'Score de Wilkins',                tit:'SCORE DE WILKINS - ESTENOSIS MITRAL',      gen:amiloTextoWilkins, grupo:'ete' },
     { k:'oai',  lbl:'Mediciones OAI',                  tit:'OREJUELA IZQUIERDA',                       gen:amiloTextoOAI, grupo:'ete' },
     { k:'aoete',lbl:'Mediciones Aorta (ETE)',          tit:'AORTA TORACICA',                           gen:amiloTextoAortaETE, grupo:'ete' },
+    { k:'dpt',  lbl:'Derrame pericárdico / Taponamiento', tit:'DERRAME PERICARDICO - VALORACION HEMODINAMICA', gen:amiloTextoDPT },
+    { k:'cvr',  lbl:'Constricción vs Restricción',     tit:'CONSTRICCION vs RESTRICCION',              gen:amiloTextoCVR },
     { k:'conco',lbl:'Cardio-Oncología',                tit:'CARDIO-ONCOLOGIA - ESC 2022',   gen:amiloTextoCardioOnco },
     { k:'pulm', lbl:'Eco Pulmonar (avanzado)',         tit:'ECOGRAFIA PULMONAR - EVALUACION AVANZADA', gen:amiloTextoPulmonar }
   ];

@@ -2050,7 +2050,89 @@ ventana de divergencia de arriba.
 layout correcto (`getBoundingClientRect` daba valores válidos). No es un fallo de la app. Para el
 modo día/noche verificá por **estilos computados** del elemento, no por imagen.
 
+### Pericardio — Derrame/Taponamiento y Constricción vs Restricción — 2026-09-13
+
+`dptEstado` · `dptFrases` · `dptSuma` · `dptMandaSuma` · `cvrFilas` · `cvrEstado` · `cvrFrases` ·
+`cvrMotivo`, más `amiloTextoDPT` / `amiloTextoCVR` para la hoja del PDF.
+
+**Dos premisas del pedido eran falsas y se decidieron antes de escribir.** (1) El tamaño del
+derrame YA existía en el select `pericardio`, que alimenta narrativo, tabla del PDF, Excel, PPT y
+Laboratorio; un select propio habría sido una cuarta graduación con bordes distintos («leve <10»
+contra «leve 5-10» + «mínimo <5»). Se lee de ahí. (2) El pedido decía e' en **mm/s** con umbral 7:
+el 7 es cm/s, que es la unidad de `e_sep`/`e_lat` y la que usan los umbrales del propio archivo.
+
+**Dos votos de la tabla de constricción salían del mismo hecho, y tres votos de dos números.**
+Medido: con `e_sep=9` y `e_lat=8` y NADA más, la app firmaba «compatible con pericarditis
+constrictiva» — sin un solo dato del pericardio. Y un perfil diastólico de rutina (`e_sep=7`,
+`e_lat=6`, `onda_e=100`) firmaba «criterios mixtos […] se recomienda cateterismo cardíaco derecho
+e izquierdo simultáneo». Las filas 1-3 salen de dos números de la tab Diastólica que están
+cargados en casi todos los estudios. Cerrado con dos marcas en las filas: **`esp`** (específico
+del pericardio — sin ninguno evaluado no se concluye NADA) y **`adic`** (los «≥2 criterios
+adicionales» son adicionales AL REVERSUS, no las filas anulares que ya lo contienen).
+**Al agregar una fila a una tabla de criterios, preguntarse de qué medición sale cada una:
+`nC >= 3` cuenta filas, no hechos independientes.**
+
+**Una negación no puede ignorar un hallazgo positivo del mismo párrafo.** El informe decía
+«Colapso de aurícula derecha.» y dos renglones después «Sin criterios ecocardiográficos de
+compromiso hemodinámico» — el colapso auricular derecho es el signo más precoz y estaba
+consignado ahí arriba. La cascada sólo puntuaba `dpt_col_vd`. Hoy los otros tres colapsos, el
+swinging heart y la variación tricúspide entran como `otros` y cortan la rama benigna.
+
+**«Sin compromiso» exige los TRES criterios evaluados**, no uno. Con 1-2 hay una rama `parcial`
+que nombra lo que falta. Es la regla de MCH: una negación sobre preguntas sin contestar no es una
+negación.
+
+**La compuerta de una exclusión tiene que ser el EMISOR, no la clave.** `dptMandaSuma` miraba
+`clave` y `dptSuma` exigía además que el tamaño fuera moderado o severo: para derrame **leve y
+mínimo** las dos divergían, se suprimía la línea histórica y no se ponía nada — la exclusión sin
+reemplazo contra la que el propio comentario advertía. Hoy `dptMandaSuma()` devuelve
+`dptSuma() !== ''` y no pueden separarse.
+
+**La supresión del CUERPO y la del EN SUMA no comparten predicado.** Con una sola, el informe
+decía «Derrame moderado (10-20mm). Sin masas.» y dos renglones después «Derrame pericárdico
+moderado, de distribución circunferencial…». Son dos compuertas: `_dptManda` (EN SUMA, mira el
+emisor) y `_dptDescribe` (cuerpo, alcanza con que el módulo describa el derrame).
+
+**Una banda 0-100 no atrapa el error de escala que importa.** `0,25` tipeado por `25` cae dentro,
+y `patronRestr` exige `varM <= 25` para afirmar «sin respirofasicidad significativa»: el error de
+escala **satisfacía la afirmación de ausencia** y ayudaba a firmar «miocardiopatía restrictiva».
+Hoy el intervalo abierto (0,1) se trata como no medido y el informe lo dice; el **0 exacto sigue
+siendo una medición legítima** y no se descarta. Verificado en el navegador en los dos sentidos.
+
+**Los rótulos publican el operador que aplica el código.** `f.c`/`f.r` se imprimen verbatim en la
+hoja del PDF: la fila de e' septal decía «>7» y aplicaba `>= 7`, así que un 7,0 salía ✅
+Constricción bajo un rótulo que lo excluía y ningún rótulo cubría el 7. Y los umbrales de los
+rótulos del HTML salen de las constantes por JS (`dpt-lbl-mitral`, `dpt-lbl-tric`), no de un
+literal que se queda viejo el día que se mueva el corte.
+
+**`_refrescarInformeSiGenerado()`** se extrajo de `vexusRefrescarInforme` y lo comparten los tres
+módulos. Va en `onchange` y NUNCA en `oninput`. Y ojo con la diferencia: **`dptSync`/`cvrSync`
+repintan** (son los que van en `RECALC_MODULOS`, donde no se puede tocar el informe del estudio
+que se está abriendo) y **`dptCambio`/`cvrCambio` además publican**.
+
+**`onda_e` también alimenta este módulo.** Es el numerador de E/e' vía `hfapeffDatos()`, y sin
+engancharlo la hoja del PDF y el narrativo del MISMO documento llevaban dos E/e' distintos. Al
+agregar un módulo que lee campos prestados, enganchar **todos** los que alimentan el cálculo — no
+sólo los obvios.
+
+**`api-key-protector` da 30 falsos positivos sobre el idioma `clave`.** Su regex trata `clave`
+como token de contraseña, así que matchea `st.clave === 'sin_derrame'` — y `clave` es justamente
+la convención del archivo para la clave de una conclusión (`dapConclusion`, `coaConclusion`). Ocho
+ya existían; este módulo sumó 22. Medido: sacando `clave` del token list de la primera regla
+quedan **1 hallazgo real** (el `pwd === 'maicolett1'` de la línea 1293, deuda ya declarada) y
+**0 falsos**. Sin ese arreglo el gate de pre-push grita 31 veces y deja de leerse.
+
 ## Deuda conocida sin resolver
+
+- **Los campos de Pericardio no están en `_IG_SECTIONS`, ni en el mapa de Excel, ni en
+  `LAB_XLS_RANGO`.** Los 19 ids nuevos (`dpt_*`, `cvr_*`, `resp_var_*`) **sí** se guardan y se
+  restauran —`guardarInforme` barre `input[id]/select[id]/textarea[id]` y las tres rutas son
+  genéricas—, pero no salen en «Ver detalle» ni viajan al Excel del Laboratorio, a diferencia de
+  sus hermanos `dap_*`/`coa_*`, que están en las tres listas. Queda declarado, no es un olvido.
+- **`CVR_EPRIMA_CM_S = 7` se aplica también al e' LATERAL**, mientras el resto del archivo usa 7
+  para el septal y **10** para el lateral (`hfapeffScore`, la clasificación diastólica). Un e'
+  lateral de 8 cm/s es «reducido» en toda la app y acá vota constricción. Viene del pedido, que
+  define la fila de restricción como «e' lateral <7». Confirmar o mover a 10.
 
 - **VEXUS 0 con venas severas se lee como normalidad.** Con VCI < 20 mm el grado es 0 aunque los
   tres vasos estén severos —es correcto por protocolo—, pero el texto imprime «VEXUS 0 | 3 severos
