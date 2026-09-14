@@ -2957,190 +2957,6 @@ window.cerrarSesion = cerrarSesion;
   </div>
   </div>
 
-  <!-- ═══ DERRAME PERICÁRDICO / TAPONAMIENTO ═══ -->
-  <!-- El TAMAÑO del derrame NO se pregunta acá: se LEE del select `pericardio` de la sección de
-       arriba, que ya alimenta el narrativo, la tabla del PDF, el Excel, el PPT y la estadística
-       del Laboratorio. Un select propio habría sido una cuarta graduación del mismo hecho, y con
-       bordes distintos («leve <10» contra «leve 5-10» + «mínimo <5»): el mismo estudio podía
-       decir dos tamaños. Decisión de Maicol, 2026-09-13.
-       Los colapsos van como <select> de TRES estados y no como checkbox: la conclusión «sin
-       compromiso hemodinámico» es una AFIRMACIÓN, y un checkbox desmarcado no distingue «lo
-       busqué y no está» de «no lo busqué». Es la regla de `coa_diast_anterogrado`. -->
-  <div class="card" style="margin-bottom:6px;">
-    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('derrame-tap',this);dptSync();">
-      🩸 Derrame pericárdico / Taponamiento
-      <span id="ete-derrame-tap-arrow" style="float:right;transition:transform 0.2s;">▶</span>
-    </h2>
-  </div>
-  <div id="ete-seccion-derrame-tap" style="display:none;">
-  <div class="card">
-    <div class="card-body">
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 6px;">1 · Cuantificación del derrame</div>
-      <div class="calc-box" style="margin-bottom:10px;">
-        <div class="calc-row">
-          <span class="calc-lbl">Tamaño — se toma del campo «Pericardio» de arriba</span>
-          <span id="dpt-tam-eco" style="font-weight:700;">—</span>
-        </div>
-      </div>
-      <div class="grid-2" style="margin-bottom:10px;">
-        <div class="fg"><label>Localización</label>
-          <select id="dpt_local" onchange="dptCambio()">
-            <option value="">— no evaluada —</option>
-            <option value="circ">Circunferencial</option>
-            <option value="post">Posterior</option>
-            <option value="ant">Anterior</option>
-            <option value="locul">Loculado</option>
-            <option value="mixto">Mixto</option>
-          </select>
-        </div>
-      </div>
-      <div style="font-size:11px;font-weight:700;color:var(--text);margin:6px 0 2px;">Medición en diástole (mm)</div>
-      <div class="grid-3" style="margin-bottom:10px;">
-        <div class="fg"><label>Posterior</label><input type="number" id="dpt_mm_post" placeholder="mm" oninput="dptSync()" onchange="dptCambio()"></div>
-        <div class="fg"><label>Lateral</label><input type="number" id="dpt_mm_lat" placeholder="mm" oninput="dptSync()" onchange="dptCambio()"></div>
-        <div class="fg"><label>Anterior</label><input type="number" id="dpt_mm_ant" placeholder="mm" oninput="dptSync()" onchange="dptCambio()"></div>
-      </div>
-      <!-- «Loculado» NO se repite acá: ya es una opción de Localización, y el mismo hecho en dos
-           campos independientes deja que un estudio se conteste distinto a sí mismo. -->
-      <div style="font-size:11px;font-weight:700;color:var(--text);margin:6px 0 2px;">Características</div>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="dpt_libre" onchange="dptCambio()"> Libre</label>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="dpt_fibrina" onchange="dptCambio()"> Con fibrina</label>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="dpt_hemo" onchange="dptCambio()"> Hemopericardio</label>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 6px;">2 · Colapso de cavidades</div>
-      <div class="grid-2" style="margin-bottom:10px;">
-        <div class="fg"><label>Colapso AD — sistólico (≥1/3 del ciclo)</label>
-          <select id="dpt_col_ad" onchange="dptCambio()"><option value="">— no evaluado —</option><option value="no">Ausente</option><option value="si">Presente</option></select>
-        </div>
-        <div class="fg"><label>Colapso VD — diastólico (más específico)</label>
-          <select id="dpt_col_vd" onchange="dptCambio()"><option value="">— no evaluado —</option><option value="no">Ausente</option><option value="si">Presente</option></select>
-        </div>
-        <div class="fg"><label>Colapso AI — alta especificidad, raro</label>
-          <select id="dpt_col_ai" onchange="dptCambio()"><option value="">— no evaluado —</option><option value="no">Ausente</option><option value="si">Presente</option></select>
-        </div>
-        <div class="fg"><label>Colapso VI — muy raro, taponamiento grave</label>
-          <select id="dpt_col_vi" onchange="dptCambio()"><option value="">— no evaluado —</option><option value="no">Ausente</option><option value="si">Presente</option></select>
-        </div>
-      </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 6px;">3 · VCI y variación respiratoria</div>
-      <div class="calc-box" style="margin-bottom:10px;">
-        <div class="calc-row"><span class="calc-lbl">VCI — diámetro (tab VD/AD)</span><span id="dpt-vci-eco" style="font-weight:700;">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Colapso inspiratorio VCI (tab VD/AD)</span><span id="dpt-vcicol-eco" style="font-weight:700;">—</span></div>
-      </div>
-      <!-- Los dos primeros los COMPARTE la tab «Constricción vs Restricción», que los muestra
-           en espejo: es una sola medición, no dos. -->
-      <div class="grid-2" style="margin-bottom:10px;">
-        <div class="fg"><label>Variación respiratoria E mitral (%) — significativa &gt;<span id="dpt-lbl-mitral">25</span>%</label>
-          <input type="number" id="resp_var_mitral" placeholder="%" oninput="dptSync();cvrSync();" onchange="dptCambio();cvrSync();"></div>
-        <div class="fg"><label>Variación respiratoria E tricúspide (%) — significativa &gt;<span id="dpt-lbl-tric">40</span>%</label>
-          <input type="number" id="resp_var_tric" placeholder="%" oninput="dptSync();cvrSync();" onchange="dptCambio();cvrSync();"></div>
-        <div class="fg"><label>Variación VTI aórtico (%)</label>
-          <input type="number" id="dpt_var_ao" placeholder="%" oninput="dptSync()" onchange="dptCambio()"></div>
-        <div class="fg"><label>Variación VTI pulmonar (%)</label>
-          <input type="number" id="dpt_var_pulm" placeholder="%" oninput="dptSync()" onchange="dptCambio()"></div>
-      </div>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="dpt_swinging" onchange="dptCambio()"> Swinging heart</label>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 6px;">4 · Conclusión</div>
-      <div class="calc-box">
-        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Valoración hemodinámica</span><span id="dpt-concl-badge" style="font-weight:700;">—</span></div>
-        <div id="dpt-concl" style="font-size:12px;line-height:1.6;color:var(--text);margin-top:6px;"></div>
-        <div style="font-size:10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;padding:8px 10px;margin-top:10px;line-height:1.5;">
-          ⚠️ El diagnóstico de taponamiento es clínico-ecocardiográfico. Esta herramienta es de apoyo y no reemplaza la evaluación clínica.
-        </div>
-      </div>
-
-      <div style="text-align:center;margin-top:12px;">
-        <button type="button" class="btn btn-integrar" data-am-k="dpt" onclick="amiloIntegrar('dpt')">📎 Integrar al informe</button>
-      </div>
-
-    </div>
-  </div>
-  </div>
-
-  <!-- ═══ CONSTRICCIÓN vs RESTRICCIÓN ═══ -->
-  <!-- e' septal y e' lateral están en cm/s, que es la unidad de `e_sep`/`e_lat` y la de los
-       umbrales que el archivo ya usa (`esep < 7`). El pedido decía «mm/s» con umbral 7: el 7 es
-       un valor en cm/s — en mm/s serían 70. Decisión de Maicol, 2026-09-13.
-       E/e', e' septal, e' lateral, VCI y las dos respirofasicidades son ESPEJOS de solo lectura:
-       ninguna se vuelve a preguntar. -->
-  <div class="card" style="margin-bottom:6px;">
-    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('constr-restr',this);cvrSync();">
-      🧊 Constricción vs Restricción
-      <span id="ete-constr-restr-arrow" style="float:right;transition:transform 0.2s;">▶</span>
-    </h2>
-  </div>
-  <div id="ete-seccion-constr-restr" style="display:none;">
-  <div class="card">
-    <div class="card-body">
-      <div class="grid-2">
-
-        <div>
-          <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 6px;">Campos</div>
-          <div class="calc-box" style="margin-bottom:10px;">
-            <div style="font-size:10px;color:var(--text2);margin-bottom:6px;">Tomados de otras pestañas — no se vuelven a pedir.</div>
-            <div class="calc-row"><span class="calc-lbl">e' septal (Doppler)</span><span id="cvr-esep" style="font-weight:700;">—</span></div>
-            <div class="calc-row"><span class="calc-lbl">e' lateral (Doppler)</span><span id="cvr-elat" style="font-weight:700;">—</span></div>
-            <div class="calc-row"><span class="calc-lbl">E/e' promedio</span><span id="cvr-ee" style="font-weight:700;">—</span></div>
-            <div class="calc-row"><span class="calc-lbl">VCI — diámetro (VD/AD)</span><span id="cvr-vci" style="font-weight:700;">—</span></div>
-            <div class="calc-row"><span class="calc-lbl">Colapso VCI (VD/AD)</span><span id="cvr-vcicol" style="font-weight:700;">—</span></div>
-            <div class="calc-row"><span class="calc-lbl">Respirofasicidad mitral (Derrame/Taponamiento)</span><span id="cvr-respm" style="font-weight:700;">—</span></div>
-            <div class="calc-row"><span class="calc-lbl">Respirofasicidad tricúspide (Derrame/Taponamiento)</span><span id="cvr-respt" style="font-weight:700;">—</span></div>
-          </div>
-          <div class="fg"><label>Rebote septal</label>
-            <select id="cvr_rebote" onchange="cvrCambio()"><option value="">— no evaluado —</option><option value="si">Presente</option><option value="no">Ausente</option></select>
-          </div>
-          <div class="fg" style="margin-top:8px;"><label>Patrón venoso hepático</label>
-            <select id="cvr_hepatico" onchange="cvrCambio()">
-              <option value="">— no evaluado —</option>
-              <option value="normal">Normal</option>
-              <option value="esp">Inversión diastólica espiratoria (constricción)</option>
-              <option value="insp">Inversión diastólica inspiratoria (restricción)</option>
-            </select>
-          </div>
-          <div class="fg" style="margin-top:8px;"><label>Engrosamiento pericárdico (TC/RMC)</label>
-            <select id="cvr_pericardio_tc" onchange="cvrCambio()">
-              <option value="">No disponible</option>
-              <option value="engrosado">&gt;3 mm — engrosado</option>
-              <option value="normal">Normal</option>
-              <option value="calcificado">Calcificado</option>
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 6px;">Comparación automática</div>
-          <div class="calc-box" style="margin-bottom:10px;">
-            <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:4px;">Annulus reversus</div>
-            <div id="cvr-reversus" style="font-size:12px;line-height:1.6;">—</div>
-          </div>
-          <div id="cvr-tabla" style="font-size:11px;"></div>
-          <div class="calc-box" style="margin-top:10px;">
-            <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Conteo</span><span id="cvr-conteo" style="font-weight:700;">—</span></div>
-          </div>
-        </div>
-
-      </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 6px;">Conclusión</div>
-      <div class="calc-box">
-        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Orientación</span><span id="cvr-concl-badge" style="font-weight:700;">—</span></div>
-        <div id="cvr-concl" style="font-size:12px;line-height:1.6;color:var(--text);margin-top:6px;"></div>
-        <div style="font-size:10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;padding:8px 10px;margin-top:10px;line-height:1.5;">
-          ⚠️ El diagnóstico definitivo de constricción requiere correlación clínica e invasiva.
-        </div>
-      </div>
-
-      <div style="text-align:center;margin-top:12px;">
-        <button type="button" class="btn btn-integrar" data-am-k="cvr" onclick="amiloIntegrar('cvr')">📎 Integrar al informe</button>
-      </div>
-
-    </div>
-  </div>
-  </div>
-
   <!-- ═══ ECOGRAFÍA PULMONAR — módulo básico ═══ -->
   <!-- Sólo genera texto si hay hallazgos positivos. Si se integra el módulo
        avanzado (tab Eco Pulmonar), este se omite del informe automáticamente. -->
@@ -3684,19 +3500,200 @@ window.cerrarSesion = cerrarSesion;
   </div>
   </div>
 
+  <!-- ═══ DERRAME PERICÁRDICO / TAPONAMIENTO ═══ -->
+  <!-- El TAMAÑO del derrame NO se pregunta acá: se LEE del select `pericardio` de la tab «Otros»,
+       que ya alimenta el narrativo, la tabla del PDF, el Excel, el PPT y la estadística
+       del Laboratorio. Un select propio habría sido una cuarta graduación del mismo hecho, y con
+       bordes distintos («leve <10» contra «leve 5-10» + «mínimo <5»): el mismo estudio podía
+       decir dos tamaños. Decisión de Maicol, 2026-09-13.
+       Los colapsos van como <select> de TRES estados y no como checkbox: la conclusión «sin
+       compromiso hemodinámico» es una AFIRMACIÓN, y un checkbox desmarcado no distingue «lo
+       busqué y no está» de «no lo busqué». Es la regla de `coa_diast_anterogrado`. -->
+  <div class="card" style="margin-bottom:6px;">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('derrame-tap',this);dptSync();">
+      🩸 Derrame pericárdico / Taponamiento
+      <span id="ete-derrame-tap-arrow" style="float:right;transition:transform 0.2s;">▶</span>
+    </h2>
+  </div>
+  <div id="ete-seccion-derrame-tap" style="display:none;">
+  <div class="card">
+    <div class="card-body">
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 6px;">1 · Cuantificación del derrame</div>
+      <div class="calc-box" style="margin-bottom:10px;">
+        <div class="calc-row">
+          <span class="calc-lbl">Tamaño — del campo «Pericardio» (tab 🗂️ Otros)</span>
+          <span id="dpt-tam-eco" style="font-weight:700;">—</span>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-bottom:10px;">
+        <div class="fg"><label>Localización</label>
+          <select id="dpt_local" onchange="dptCambio()">
+            <option value="">— no evaluada —</option>
+            <option value="circ">Circunferencial</option>
+            <option value="post">Posterior</option>
+            <option value="ant">Anterior</option>
+            <option value="locul">Loculado</option>
+            <option value="mixto">Mixto</option>
+          </select>
+        </div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--text);margin:6px 0 2px;">Medición en diástole (mm)</div>
+      <div class="grid-3" style="margin-bottom:10px;">
+        <div class="fg"><label>Posterior</label><input type="number" id="dpt_mm_post" placeholder="mm" oninput="dptSync()" onchange="dptCambio()"></div>
+        <div class="fg"><label>Lateral</label><input type="number" id="dpt_mm_lat" placeholder="mm" oninput="dptSync()" onchange="dptCambio()"></div>
+        <div class="fg"><label>Anterior</label><input type="number" id="dpt_mm_ant" placeholder="mm" oninput="dptSync()" onchange="dptCambio()"></div>
+      </div>
+      <!-- «Loculado» NO se repite acá: ya es una opción de Localización, y el mismo hecho en dos
+           campos independientes deja que un estudio se conteste distinto a sí mismo. -->
+      <div style="font-size:11px;font-weight:700;color:var(--text);margin:6px 0 2px;">Características</div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="dpt_libre" onchange="dptCambio()"> Libre</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="dpt_fibrina" onchange="dptCambio()"> Con fibrina</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="dpt_hemo" onchange="dptCambio()"> Hemopericardio</label>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 6px;">2 · Colapso de cavidades</div>
+      <div class="grid-2" style="margin-bottom:10px;">
+        <div class="fg"><label>Colapso AD — sistólico (≥1/3 del ciclo)</label>
+          <select id="dpt_col_ad" onchange="dptCambio()"><option value="">— no evaluado —</option><option value="no">Ausente</option><option value="si">Presente</option></select>
+        </div>
+        <div class="fg"><label>Colapso VD — diastólico (más específico)</label>
+          <select id="dpt_col_vd" onchange="dptCambio()"><option value="">— no evaluado —</option><option value="no">Ausente</option><option value="si">Presente</option></select>
+        </div>
+        <div class="fg"><label>Colapso AI — alta especificidad, raro</label>
+          <select id="dpt_col_ai" onchange="dptCambio()"><option value="">— no evaluado —</option><option value="no">Ausente</option><option value="si">Presente</option></select>
+        </div>
+        <div class="fg"><label>Colapso VI — muy raro, taponamiento grave</label>
+          <select id="dpt_col_vi" onchange="dptCambio()"><option value="">— no evaluado —</option><option value="no">Ausente</option><option value="si">Presente</option></select>
+        </div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 6px;">3 · VCI y variación respiratoria</div>
+      <div class="calc-box" style="margin-bottom:10px;">
+        <div class="calc-row"><span class="calc-lbl">VCI — diámetro (tab VD/AD)</span><span id="dpt-vci-eco" style="font-weight:700;">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Colapso inspiratorio VCI (tab VD/AD)</span><span id="dpt-vcicol-eco" style="font-weight:700;">—</span></div>
+      </div>
+      <!-- Los dos primeros los COMPARTE la tab «Constricción vs Restricción», que los muestra
+           en espejo: es una sola medición, no dos. -->
+      <div class="grid-2" style="margin-bottom:10px;">
+        <div class="fg"><label>Variación respiratoria E mitral (%) — significativa &gt;<span id="dpt-lbl-mitral">25</span>%</label>
+          <input type="number" id="resp_var_mitral" placeholder="%" oninput="dptSync();cvrSync();" onchange="dptCambio();cvrSync();"></div>
+        <div class="fg"><label>Variación respiratoria E tricúspide (%) — significativa &gt;<span id="dpt-lbl-tric">40</span>%</label>
+          <input type="number" id="resp_var_tric" placeholder="%" oninput="dptSync();cvrSync();" onchange="dptCambio();cvrSync();"></div>
+        <div class="fg"><label>Variación VTI aórtico (%)</label>
+          <input type="number" id="dpt_var_ao" placeholder="%" oninput="dptSync()" onchange="dptCambio()"></div>
+        <div class="fg"><label>Variación VTI pulmonar (%)</label>
+          <input type="number" id="dpt_var_pulm" placeholder="%" oninput="dptSync()" onchange="dptCambio()"></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="dpt_swinging" onchange="dptCambio()"> Swinging heart</label>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 6px;">4 · Conclusión</div>
+      <div class="calc-box">
+        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Valoración hemodinámica</span><span id="dpt-concl-badge" style="font-weight:700;">—</span></div>
+        <div id="dpt-concl" style="font-size:12px;line-height:1.6;color:var(--text);margin-top:6px;"></div>
+        <div style="font-size:10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;padding:8px 10px;margin-top:10px;line-height:1.5;">
+          ⚠️ El diagnóstico de taponamiento es clínico-ecocardiográfico. Esta herramienta es de apoyo y no reemplaza la evaluación clínica.
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:12px;">
+        <button type="button" class="btn btn-integrar" data-am-k="dpt" onclick="amiloIntegrar('dpt')">📎 Integrar al informe</button>
+      </div>
+
+    </div>
+  </div>
+  </div>
+
+  <!-- ═══ CONSTRICCIÓN vs RESTRICCIÓN ═══ -->
+  <!-- e' septal y e' lateral están en cm/s, que es la unidad de `e_sep`/`e_lat` y la de los
+       umbrales que el archivo ya usa (`esep < 7`). El pedido decía «mm/s» con umbral 7: el 7 es
+       un valor en cm/s — en mm/s serían 70. Decisión de Maicol, 2026-09-13.
+       E/e', e' septal, e' lateral, VCI y las dos respirofasicidades son ESPEJOS de solo lectura:
+       ninguna se vuelve a preguntar. -->
+  <div class="card" style="margin-bottom:6px;">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('constr-restr',this);cvrSync();">
+      🧊 Constricción vs Restricción
+      <span id="ete-constr-restr-arrow" style="float:right;transition:transform 0.2s;">▶</span>
+    </h2>
+  </div>
+  <div id="ete-seccion-constr-restr" style="display:none;">
+  <div class="card">
+    <div class="card-body">
+      <div class="grid-2">
+
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 6px;">Campos</div>
+          <div class="calc-box" style="margin-bottom:10px;">
+            <div style="font-size:10px;color:var(--text2);margin-bottom:6px;">Tomados de otras pestañas — no se vuelven a pedir.</div>
+            <div class="calc-row"><span class="calc-lbl">e' septal (Doppler)</span><span id="cvr-esep" style="font-weight:700;">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">e' lateral (Doppler)</span><span id="cvr-elat" style="font-weight:700;">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">E/e' promedio</span><span id="cvr-ee" style="font-weight:700;">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">VCI — diámetro (VD/AD)</span><span id="cvr-vci" style="font-weight:700;">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">Colapso VCI (VD/AD)</span><span id="cvr-vcicol" style="font-weight:700;">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">Respirofasicidad mitral (Derrame/Taponamiento)</span><span id="cvr-respm" style="font-weight:700;">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">Respirofasicidad tricúspide (Derrame/Taponamiento)</span><span id="cvr-respt" style="font-weight:700;">—</span></div>
+          </div>
+          <div class="fg"><label>Rebote septal</label>
+            <select id="cvr_rebote" onchange="cvrCambio()"><option value="">— no evaluado —</option><option value="si">Presente</option><option value="no">Ausente</option></select>
+          </div>
+          <div class="fg" style="margin-top:8px;"><label>Patrón venoso hepático</label>
+            <select id="cvr_hepatico" onchange="cvrCambio()">
+              <option value="">— no evaluado —</option>
+              <option value="normal">Normal</option>
+              <option value="esp">Inversión diastólica espiratoria (constricción)</option>
+              <option value="insp">Inversión diastólica inspiratoria (restricción)</option>
+            </select>
+          </div>
+          <div class="fg" style="margin-top:8px;"><label>Engrosamiento pericárdico (TC/RMC)</label>
+            <select id="cvr_pericardio_tc" onchange="cvrCambio()">
+              <option value="">No disponible</option>
+              <option value="engrosado">&gt;3 mm — engrosado</option>
+              <option value="normal">Normal</option>
+              <option value="calcificado">Calcificado</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 6px;">Comparación automática</div>
+          <div class="calc-box" style="margin-bottom:10px;">
+            <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:4px;">Annulus reversus</div>
+            <div id="cvr-reversus" style="font-size:12px;line-height:1.6;">—</div>
+          </div>
+          <div id="cvr-tabla" style="font-size:11px;"></div>
+          <div class="calc-box" style="margin-top:10px;">
+            <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Conteo</span><span id="cvr-conteo" style="font-weight:700;">—</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 6px;">Conclusión</div>
+      <div class="calc-box">
+        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Orientación</span><span id="cvr-concl-badge" style="font-weight:700;">—</span></div>
+        <div id="cvr-concl" style="font-size:12px;line-height:1.6;color:var(--text);margin-top:6px;"></div>
+        <div style="font-size:10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;padding:8px 10px;margin-top:10px;line-height:1.5;">
+          ⚠️ El diagnóstico definitivo de constricción requiere correlación clínica e invasiva.
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:12px;">
+        <button type="button" class="btn btn-integrar" data-am-k="cvr" onclick="amiloIntegrar('cvr')">📎 Integrar al informe</button>
+      </div>
+
+    </div>
+  </div>
+  </div>
+
   <!-- CIA/CIV, ductus y coartación se mudaron a la tab 🧬 Congénitas el 2026-09-10.
        No quedó un espejo acá a propósito: dos lugares donde cargar el mismo campo es la vía
        más corta a que el informe firmado y la pantalla digan cosas distintas. Lo que SÍ sigue
        viviendo en esta tab son los cuatro valores que alimentan el Qp/Qs —diam_tsvi e itv_tsvi
        en 〰️ Doppler, tsvd_diametro y vti_tsvd en VD / AD—; la sección de Congénitas los espeja
        en sólo lectura. El Laboratorio los sigue contando en su subtab Hemodinámica, que lee
-       `campos` y no el DOM, así que la mudanza no lo toca. -->
-  <div class="card" style="margin-bottom:8px;">
-    <div class="card-body" style="padding:10px 14px;font-size:12px;color:var(--text2);">
-      🧬 <b>CIA / CIV, ductus y coartación</b> se cargan en la pestaña <b>Congénitas</b>.
-      Los diámetros y VTI de los tractos de salida que alimentan el Qp/Qs se siguen midiendo acá.
-    </div>
-  </div>
+       `campos` y no el DOM, así que la mudanza no lo toca.
+       La tarjeta que anunciaba esto en pantalla se sacó el 2026-09-13 (ocupaba espacio y no
+       aportaba); la nota se conserva acá porque lo que documenta —POR QUÉ no hay espejo— es
+       justamente lo que no se puede deducir leyendo el código. -->
 
 </div>
 <div id="tab-contractilidad" class="tab-section">
@@ -14584,7 +14581,7 @@ function dptSync() {
   const b = DPT_BADGE[st.clave] || DPT_BADGE.incompleto;
   setH('dpt-concl-badge', badge(b[0], b[1]));
   setH('dpt-concl', (st.clave === 'sin_derrame')
-    ? '<span style="color:var(--text2)">El campo «Pericardio» no indica derrame. Cargalo arriba para evaluar repercusión hemodinámica.</span>'
+    ? '<span style="color:var(--text2)">El campo «Pericardio» no indica derrame. Cargalo en la tab 🗂️ Otros para evaluar repercusión hemodinámica.</span>'
     : escHtml(dptFrases(st).join(' ')));
   if (typeof amiloRefrescarSiIntacto === 'function') amiloRefrescarSiIntacto('dpt');
 }
@@ -46941,7 +46938,7 @@ const ECO_AYUDA = [
  { tab: '🧠 Módulos avanzados', html: `
   <p class="mP">Seis módulos de patología y tres herramientas, todos en <b>Modo Avanzado</b>. Se prenden y apagan en Config, todos — incluido Eco Pulmonar, que hasta el 2026-09-10 estaba siempre visible porque le faltaba la casilla.</p>
   <div class="mSub">🫀 Hemodinámica</div>
-  <p class="mP">Perfil hemodinámico completo (gasto cardíaco, índice cardíaco, resistencias, presión capilar, perfil de Forrester), probabilidad de HTP según ESC/ERS 2022, score de TEP sobre 7 (McConnell, signo 60/60, tabique en D, relación VD/VI), <b>VEXUS</b> y el score <b>HFA-PEFF</b> para insuficiencia cardíaca con fracción preservada (tres dominios de hasta 2 puntos, máximo 6: 0-1 descarta, 5-6 confirma).</p>
+  <p class="mP">Perfil hemodinámico completo (gasto cardíaco, índice cardíaco, resistencias, presión capilar, perfil de Forrester), probabilidad de HTP según ESC/ERS 2022, score de TEP sobre 7 (McConnell, signo 60/60, tabique en D, relación VD/VI), <b>VEXUS</b>, el score <b>HFA-PEFF</b> para insuficiencia cardíaca con fracción preservada (tres dominios de hasta 2 puntos, máximo 6: 0-1 descarta, 5-6 confirma), y los dos módulos de pericardio: <b>derrame y taponamiento</b> (cuantificación, colapso de cavidades, VCI y variación respiratoria) y <b>constricción vs restricción</b> (annulus reversus y diez criterios con recuento automático). Los dos leen el campo «Pericardio» de la tab 🗂️ Otros, que es donde se consigna la cuantía del derrame.</p>
   <div class="mSub">🧬 Congénitas</div>
   <p class="mP">Pestaña propia, después de ETE. Se llama <b>Cardiopatías congénitas y miocardiopatías genéticas</b> porque incluye las dos cosas: comparten el modo de trabajo —base hereditaria, seguimiento largo, criterios de guía— pero no la taxonomía, y llamarle «congénita» a una miocardiopatía hipertrófica en un informe firmado sería un error.</p>
   <p class="mP">Cada patología es una sección plegable, colapsada al entrar. Las que ya tengan datos cargados <b>se abren solas</b>, así que al reabrir un estudio ves de un vistazo qué se documentó. Hoy están <b>CIA / CIV</b> —dos solapas bajo un mismo botón—, <b>ductus arterioso permeable</b> y <b>coartación de aorta</b>, cada una con su <span class="mKbd">📎 Integrar al informe</span>. Las tres funcionan igual: cargás los campos, la app calcula lo derivado y propone una conclusión, y el botón decide si entra al informe narrativo.</p>

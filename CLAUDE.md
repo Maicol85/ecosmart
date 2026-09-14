@@ -2129,6 +2129,52 @@ las 6 reales (incluida `const clave = 'secretoDeVerdad'`, que caza la regla de d
 de las 6 clínicas. **Un gate que grita 34 veces deja de leerse: ésa es la forma de fallar de un
 escáner, y es peor que no tenerlo.**
 
+### Mover un acordeón de tab cambia QUIÉN puede llegar a él — 2026-09-13
+
+Los dos módulos de Pericardio se movieron de 🗂️ Otros a 🫀 Hemodinámica. El markup se movió
+verbatim (verificado por MD5: el bloque y **todo el JS del archivo** son byte-idénticos antes y
+después), pero **las dos tabs no tienen el mismo régimen de visibilidad**:
+
+- **🗂️ Otros** es un `.tab-btn` del rail, sin `data-mod`. `applyViewMode()` no lo toca nunca:
+  visible siempre.
+- **🫀 Hemodinámica** es `.tab-btn.tab-special` con `data-mod="hemodinamica"`, dentro de la fila
+  `.tabs-special`. En Modo Básico `applyViewMode` oculta **la fila entera**, y en Avanzado el
+  botón depende de `eeModOn('hemodinamica')`.
+
+Medido en el navegador a 1280 px: en avanzado con todo tildado las dos se ven; en **Modo Básico**
+y con el **módulo destildado en Config**, Hemodinámica desaparece y Otros sigue ahí. O sea que
+los dos módulos pasaron de «siempre alcanzables» a «alcanzables sólo en Avanzado con el módulo
+tildado» — igual que HTP, TEP, VEXUS y HFA-PEFF, que ya vivían ahí.
+
+**Lo que hace que esto importe y no sea sólo UX:** el dato y sus efectos sobre el informe firmado
+NO se van con la tab. Los 19 campos los persiste el barrido genérico de `guardarInforme`,
+`dptSync`/`cvrSync` siguen corriendo desde `RECALC_MODULOS`, y la emisión está gateada por
+`amiloIntegrado('dpt')`, que mira `#am-wrap-dpt` en la tab **Informe** — que nunca se oculta. Así
+que un estudio integrado en Avanzado sigue suprimiendo la línea histórica del EN SUMA y
+publicando la valoración de taponamiento cuando el médico abre la app en Modo Básico, **con el
+formulario fuera de alcance**. Y `ett_view_mode`/`ett_modules` viven en `localStorage`: son
+preferencia **del dispositivo**, mientras la bandera de integración viaja **con el estudio**.
+
+**Deliberadamente NO se gateó la emisión por `eeModOn`.** Hacerlo ataría el contenido de un
+informe firmado a una preferencia de la máquina: el mismo estudio saldría distinto en dos
+computadoras, que es peor que el problema. Los cuatro módulos que ya estaban en esa tab tampoco
+lo hacen. Queda declarado, no resuelto.
+
+**Al mover un bloque de tab, mirar el régimen de la tab destino, no sólo el markup.** El
+movimiento puede ser perfecto —byte por byte— y aun así cambiar quién ve el módulo.
+
+**Y los punteros posicionales de las cadenas visibles se pudren con la mudanza.** Tres textos
+decían «el campo Pericardio de arriba» / «Cargalo arriba», cierto cuando el módulo vivía debajo
+del acordeón «Pericardio y Masas» en la misma tab, falso desde que cruzó de tab. El propio bloque
+ya tenía la convención correcta en sus otros seis espejos —`(tab VD/AD)`, `(Doppler)`,
+`(Derrame/Taponamiento)`—: **nombrar la fuente, nunca su posición.** Un «arriba» en una cadena
+visible es una afirmación sobre el layout que ningún test cubre.
+
+**El manual (`ECO_AYUDA`) enumera el contenido de cada tab**, así que una mudanza lo desactualiza
+en silencio. Ya había un comentario propio advirtiendo que dos arrays divergieron y el manual
+llegó a decir que Pericardio vivía en dos lugares distintos. Al mover una sección, actualizar el
+párrafo de la tab destino — y el de la de origen si queda enumerando algo que ya no está.
+
 ## Deuda conocida sin resolver
 
 - **Los campos de Pericardio no están en `_IG_SECTIONS`, ni en el mapa de Excel, ni en
