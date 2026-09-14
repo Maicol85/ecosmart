@@ -2175,6 +2175,65 @@ en silencio. Ya había un comentario propio advirtiendo que dos arrays divergier
 llegó a decir que Pericardio vivía en dos lugares distintos. Al mover una sección, actualizar el
 párrafo de la tab destino — y el de la de origen si queda enumerando algo que ya no está.
 
+### Amiloidosis — rediseño a tres acordeones — 2026-09-13
+
+Las tres subtabs de fondo oscuro pasaron a ser tres acordeones con el patrón de Hemodinámica.
+El Score ETT quedó en cuatro columnas con el resultado ABAJO, el Algoritmo en dos, y la Guía
+intacta. **Ningún id de campo cambió**: 74 de 78 sobreviven y las cuatro bajas son `amilo-root`
+(pasó a clase) y los tres contenedores de subtab.
+
+**El scope CSS pasó de `#amilo-root` a `.amilo-root`.** No es cosmético: el estilo del módulo
+tiene que aplicarse a los TRES cuerpos de acordeón y un id no se puede repetir. El armazón del
+acordeón queda FUERA de ese div a propósito — `.amilo-root *{margin:0;padding:0}` y
+`.amilo-root .card` pisan el estilo global, y adentro el header no se vería como los de
+Hemodinámica, que era justo lo que se pidió igualar. **Contrapartida asumida:** 102 selectores
+perdieron un escalón de especificidad (id → clase). Hoy ninguna regla global les gana —está
+verificado contra los bloques `<style>` posteriores—, pero una regla global de dos clases sobre
+`.card`, `.btn` o `.badge` cambiaría el módulo sin error. Si hace falta red: `@layer` o duplicar
+la clase (`.amilo-root.amilo-root`).
+
+**Contar `<div>` NO detectó un desbalance semántico, otra vez.** Al componer el Algoritmo reusé
+un fragmento que arrastraba el `</div>` de un contenedor que no incluí: las etiquetas cerraban
+—el conteo daba 0— pero la `.card` cerraba ANTES del centellograma, la grilla `cols2` quedaba
+con tres hijos y el bloque del centellograma sin tarjeta. Mi chequeo en el navegador tampoco lo
+vio porque conté `:scope > .card`, y el intruso era un `<div>` pelado. **Contar hijos no alcanza:
+hay que contar los hijos ESPERADOS y comprobar que cada uno sea lo que se supone que es.**
+
+**Autollenado desde otras pestañas** (`_AM_FUENTE` + `amAutoLlenar` + el botón «↓ Traer del
+formulario»). Decisión de Maicol: el médico no retipea lo que ya está cargado. RWT ← `ppvi`/
+`ddfvi`, E/e' ← `onda_e` y el `eprom` de `hfapeffDatos()` —que se expuso en vez de escribir la
+quinta copia de la fórmula—, TAPSE ← `tapse`, SGL ← `sgl`. El ápice/base no tiene fuente y sigue
+manual. Tres reglas que costaron las dos revisiones:
+
+1. **El signo del SGL se normaliza EN EL BORDE.** `sgl` no tiene `min` ni `max` y el resto del
+   archivo ya sabe que puede venir con cualquier signo (sus dos consumidores lo envuelven en
+   `Math.abs`). El autollenado lo pasaba crudo a un umbral CON signo: con el strain cargado en
+   absoluto —18, que es NORMAL— `18 >= -13` daba verdadero y marcaba «|SGL| ≤ 13%». Un punto de
+   más, **siempre hacia el sobrediagnóstico**, y justo el que mueve un 7 a un 8, que es el corte
+   de «amiloidosis muy sugestiva». Lo encontraron las dos revisiones por separado.
+2. **TODOS los insumos o ninguno, y en dos pasadas.** Con uno solo rellenado, la función de
+   cálculo cae en su rama «falta un dato» y `amCalcSinDato` DESMARCA el criterio: traer datos a
+   medias restaba 1 punto (E/e') o 3 (RWT) sobre un estudio ya firmado. Y la primera versión, con
+   una sola pasada, dejaba escrito el insumo que sí tenía fuente aunque devolviera «no llené».
+3. **Va detrás de un BOTÓN, no de abrir el acordeón.** Colgarlo de la apertura convertía el gesto
+   de MIRAR en uno de escribir — uno toca «Calcular ▾» para ver de dónde salió un criterio— y
+   sobre un criterio que el médico había DESTILDADO a propósito lo volvía a marcar en silencio,
+   porque `toggleCrit` limpia el origen al destildar (deliberadamente, su comentario lo explica)
+   y `amAplicarCalc` sólo respeta `'manual'`. Con el botón, traer el dato es una decisión y no un
+   efecto colateral, y `toggleCrit`/`amAplicarCalc` quedaron sin tocar.
+
+**Hoja propia del PDF.** Con el Score ETT **y** el Algoritmo integrados los dos, se dibuja
+«EVALUACION DE AMILOIDOSIS CARDIACA» aparte; con uno solo vuelven a la hoja de ETT Avanzado. La
+condición es tener los dos, así que no se marcó el grupo en `amiloSecs()`.
+
+**Lo que NO se cambió, y por qué.** Los textos de las cuatro conclusiones del algoritmo se
+conservaron enteros (decisión de Maicol): los del pedido eran más cortos y perdían la distinción
+entre «sin captación + proteínas anormales» (→ RMC primero) y «con captación + proteínas
+anormales» (→ biopsia obligatoria: puede ser ATTR con GMSI, AL, o coexistencia). Verificado por
+MD5 que `calcETT`, `actualizarAlgoritmo`, `amiloTextoETT` y `amiloTextoAlgoritmo` quedaron byte
+por byte iguales. Las bandas del score también: ya cruzaban HVI y criterios cualitativos, que es
+más de lo que pedía la especificación.
+
 ## Deuda conocida sin resolver
 
 - **Los campos de Pericardio no están en `_IG_SECTIONS`, ni en el mapa de Excel, ni en

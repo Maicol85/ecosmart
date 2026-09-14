@@ -970,8 +970,8 @@ html.light-mode #tab-valvulas .sev-lvl3{color:#7f1d1d;}
 <style>
 /* ── Amiloidosis Calculator ── */
 /* --bg, --border, --text, --purple, --green, --red se heredan del sistema global (theme-aware) */
-#amilo-root{
-  --navy:#0B1F3A;--navy2:#162B4D;                 /* barra de tabs: chrome fijo con texto blanco, legible en ambos temas */
+.amilo-root{
+  --navy:#0B1F3A;                                 /* lo usa el banner de resultado del score */
   --purple2:#b79bf0;                              /* hover del acento púrpura */
   --surface:var(--bg2);--muted:var(--text2);--light:var(--text2);
   --blue:var(--accent);--amber:var(--orange);
@@ -983,104 +983,107 @@ html.light-mode #tab-valvulas .sev-lvl3{color:#7f1d1d;}
   font-family:inherit;color:var(--text)
 }
 /* En modo día, tintes claros opacos sobre superficies blancas (aspecto original) */
-html.light-mode #amilo-root{
+html.light-mode .amilo-root{
   --purple-pale:#F3EEFF;--red-pale:#FDEDEC;--amber-pale:#FEF3DC;--green-pale:#E8F5EE;--blue-pale:#EBF2FB;
 }
-#amilo-root *{box-sizing:border-box;margin:0;padding:0}
-#amilo-root .amilo-tabhead{background:var(--navy2);display:flex;padding:0 16px;gap:2px;overflow-x:auto;border-radius:10px 10px 0 0}
-#amilo-root .amilo-tab{padding:11px 16px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:transparent;color:rgba(255,255,255,.72);border-bottom:3px solid transparent;font-family:inherit;transition:all .15s;white-space:nowrap}
-#amilo-root .amilo-tab.active{color:#fff;border-bottom-color:#C8A0FF}
-#amilo-root .amilo-main{max-width:860px;margin:0 auto;padding:14px 2px}
-#amilo-root .result-panel{border-radius:14px;padding:20px;margin-bottom:18px;display:none;box-shadow:0 2px 8px rgba(0,0,0,0.18)}
-#amilo-root .result-panel.show{display:flex;gap:18px;align-items:flex-start}
-#amilo-root .result-panel.prob-alta{background:linear-gradient(135deg,#3D1B6E,#5B2D8E)}
-#amilo-root .result-panel.prob-baja{background:linear-gradient(135deg,#0B2E1A,#1A6B4A)}
-#amilo-root .result-panel.biopsia{background:linear-gradient(135deg,#6B1A1A,#C0392B)}
-#amilo-root .result-panel.intermedio{background:linear-gradient(135deg,#3D2E08,#D4860A)}
-#amilo-root .result-icon{font-size:40px;flex-shrink:0}
-#amilo-root .result-content{flex:1}
-#amilo-root .result-title{font-size:18px;font-weight:900;color:#fff;margin-bottom:6px}
-#amilo-root .result-body{font-size:13px;color:rgba(255,255,255,.82);line-height:1.6}
-#amilo-root .result-accion{margin-top:10px;padding:10px 14px;background:rgba(255,255,255,.12);border-radius:8px;font-size:12px;color:rgba(255,255,255,.9);line-height:1.5}
-#amilo-root .score-circle{width:64px;height:64px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:24px;font-weight:900;border:3px solid rgba(255,255,255,.3);flex-shrink:0}
-#amilo-root .score-circle .sc-label{font-size:9px;font-weight:600;opacity:.7}
-#amilo-root .card{background:var(--surface);border-radius:12px;padding:16px;border:1px solid var(--border);margin-bottom:14px}
-#amilo-root .card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:8px}
-#amilo-root .card-title span{font-size:16px}
-#amilo-root .criterio-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border:2px solid var(--border);border-radius:10px;margin-bottom:8px;cursor:pointer;transition:all .15s;user-select:none}
-#amilo-root .criterio-item:hover{border-color:var(--purple2);background:var(--purple-pale)}
-#amilo-root .criterio-item.activo{border-color:var(--purple);background:var(--purple-pale)}
-#amilo-root .criterio-check{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px}
-#amilo-root .criterio-item.activo .criterio-check{background:var(--purple);border-color:var(--purple);color:#fff}
-#amilo-root .criterio-nombre{flex:1;font-size:13px;font-weight:600}
-#amilo-root .criterio-def{font-size:11px;color:var(--muted);margin-top:2px}
-#amilo-root .criterio-pts{font-size:16px;font-weight:900;color:var(--purple);min-width:32px;text-align:right}
+.amilo-root *{box-sizing:border-box;margin:0;padding:0}
+/* Cuatro columnas del Score ETT. minmax(0,1fr) y no 1fr: sin el minimo 0 una columna con
+   contenido ancho desborda la grilla y aparece scroll horizontal. */
+.amilo-root .form-row.cols4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.amilo-root .form-row.cols4 .card{margin-bottom:0}
+.amilo-root .form-row.cols4 .criterio-item{flex-wrap:wrap;gap:8px}
+.amilo-root .form-row.cols4 .criterio-pts{min-width:0}
+.amilo-root .result-panel{border-radius:14px;padding:20px;margin-bottom:18px;display:none;box-shadow:0 2px 8px rgba(0,0,0,0.18)}
+.amilo-root .result-panel.show{display:flex;gap:18px;align-items:flex-start}
+.amilo-root .result-panel.prob-alta{background:linear-gradient(135deg,#3D1B6E,#5B2D8E)}
+.amilo-root .result-panel.prob-baja{background:linear-gradient(135deg,#0B2E1A,#1A6B4A)}
+.amilo-root .result-panel.biopsia{background:linear-gradient(135deg,#6B1A1A,#C0392B)}
+.amilo-root .result-panel.intermedio{background:linear-gradient(135deg,#3D2E08,#D4860A)}
+.amilo-root .result-icon{font-size:40px;flex-shrink:0}
+.amilo-root .result-content{flex:1}
+.amilo-root .result-title{font-size:18px;font-weight:900;color:#fff;margin-bottom:6px}
+.amilo-root .result-body{font-size:13px;color:rgba(255,255,255,.82);line-height:1.6}
+.amilo-root .result-accion{margin-top:10px;padding:10px 14px;background:rgba(255,255,255,.12);border-radius:8px;font-size:12px;color:rgba(255,255,255,.9);line-height:1.5}
+.amilo-root .score-circle{width:64px;height:64px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:24px;font-weight:900;border:3px solid rgba(255,255,255,.3);flex-shrink:0}
+.amilo-root .score-circle .sc-label{font-size:9px;font-weight:600;opacity:.7}
+.amilo-root .card{background:var(--surface);border-radius:12px;padding:16px;border:1px solid var(--border);margin-bottom:14px}
+.amilo-root .card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.amilo-root .card-title span{font-size:16px}
+.amilo-root .criterio-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border:2px solid var(--border);border-radius:10px;margin-bottom:8px;cursor:pointer;transition:all .15s;user-select:none}
+.amilo-root .criterio-item:hover{border-color:var(--purple2);background:var(--purple-pale)}
+.amilo-root .criterio-item.activo{border-color:var(--purple);background:var(--purple-pale)}
+.amilo-root .criterio-check{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px}
+.amilo-root .criterio-item.activo .criterio-check{background:var(--purple);border-color:var(--purple);color:#fff}
+.amilo-root .criterio-nombre{flex:1;font-size:13px;font-weight:600}
+.amilo-root .criterio-def{font-size:11px;color:var(--muted);margin-top:2px}
+.amilo-root .criterio-pts{font-size:16px;font-weight:900;color:var(--purple);min-width:32px;text-align:right}
 /* Acordeón de cálculo por criterio. La fila sola alcanza para marcar el criterio a
    mano; "Calcular" despliega los campos numéricos sólo si el médico los necesita. */
-#amilo-root .crit-calc-btn{background:var(--bg3,#eef1f6);color:var(--purple);border:1px solid var(--purple2);
+.amilo-root .crit-calc-btn{background:var(--bg3,#eef1f6);color:var(--purple);border:1px solid var(--purple2);
   border-radius:7px;font-size:11px;font-weight:700;padding:4px 9px;cursor:pointer;flex-shrink:0;
   font-family:inherit;white-space:nowrap;transition:all .15s}
-#amilo-root .crit-calc-btn:hover{background:var(--purple-pale)}
-#amilo-root .crit-calc-btn.abierto{background:var(--purple);color:#fff;border-color:var(--purple)}
+.amilo-root .crit-calc-btn:hover{background:var(--purple-pale)}
+.amilo-root .crit-calc-btn.abierto{background:var(--purple);color:#fff;border-color:var(--purple)}
 /* Con valor cargado el botón muestra el número, no la palabra "Calcular". */
-#amilo-root .crit-calc-btn.con-valor{font-variant-numeric:tabular-nums;min-width:64px}
-#amilo-root .crit-calc{margin:-4px 0 10px 0;padding:10px 12px;background:var(--purple-pale);
+.amilo-root .crit-calc-btn.con-valor{font-variant-numeric:tabular-nums;min-width:64px}
+.amilo-root .crit-calc{margin:-4px 0 10px 0;padding:10px 12px;background:var(--purple-pale);
   border:1px dashed var(--purple2);border-left:3px solid var(--purple);border-radius:0 10px 10px 0}
-#amilo-root .crit-calc[hidden]{display:none}
-#amilo-root .form-row{display:grid;gap:10px;margin-bottom:10px}
-#amilo-root .form-row.cols2{grid-template-columns:1fr 1fr}
-#amilo-root .form-row.cols3{grid-template-columns:1fr 1fr 1fr}
-#amilo-root label{font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px}
-#amilo-root input[type=number],#amilo-root input[type=text],#amilo-root input[type=date],#amilo-root select{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;color:var(--text);background:var(--surface)}
-#amilo-root input:focus,#amilo-root select:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(91,45,142,.1)}
-#amilo-root .grado-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px}
-#amilo-root .grado-item{border:2px solid var(--border);border-radius:10px;padding:12px 8px;text-align:center;cursor:pointer;transition:all .15s;user-select:none}
-#amilo-root .grado-item:hover{border-color:var(--purple2);background:var(--purple-pale)}
-#amilo-root .grado-item.selected{border-color:var(--purple);background:var(--purple-pale)}
-#amilo-root .grado-num{font-size:22px;font-weight:900}
-#amilo-root .grado-0{color:var(--green)}#amilo-root .grado-1{color:var(--amber)}
-#amilo-root .grado-2{color:var(--red)}#amilo-root .grado-3{color:#8B0000}
-#amilo-root .grado-label{font-size:10px;color:var(--muted);margin-top:4px}
-#amilo-root .grado-item.selected .grado-label{color:var(--purple);font-weight:700}
-#amilo-root .prot-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-#amilo-root .prot-item{border:2px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all .15s;user-select:none;text-align:center}
-#amilo-root .prot-item:hover{border-color:var(--purple2)}
-#amilo-root .prot-item.selected.negativo{border-color:var(--green);background:var(--green-pale)}
-#amilo-root .prot-item.selected.anormal{border-color:var(--red);background:var(--red-pale)}
-#amilo-root .prot-item-icon{font-size:28px;margin-bottom:4px}
-#amilo-root .prot-item-label{font-size:13px;font-weight:700}
-#amilo-root .prot-item-sub{font-size:11px;color:var(--muted);margin-top:3px}
-#amilo-root .score-bar{height:10px;background:var(--bg);border-radius:5px;overflow:hidden;margin-top:6px}
-#amilo-root .score-fill{height:100%;width:100%;border-radius:5px;transform:scaleX(0);transform-origin:left;transition:transform .4s}
-#amilo-root .escenario-box{border-radius:10px;padding:14px;margin-bottom:10px;border-left:4px solid}
-#amilo-root .escenario-box.verde{background:var(--green-pale);border-color:var(--green)}
-#amilo-root .escenario-box.amarillo{background:var(--amber-pale);border-color:var(--amber)}
-#amilo-root .escenario-box.rojo{background:var(--red-pale);border-color:var(--red)}
-#amilo-root .escenario-box.morado{background:var(--purple-pale);border-color:var(--purple)}
-#amilo-root .escenario-titulo{font-size:13px;font-weight:700;margin-bottom:6px}
-#amilo-root .escenario-body{font-size:12px;line-height:1.7;color:var(--text)}
-#amilo-root .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
-#amilo-root .btn-purple{background:var(--purple);color:#fff}
-#amilo-root .btn-purple:hover{background:var(--purple2)}
-#amilo-root .btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}
-#amilo-root .btn-green{background:var(--green);color:#fff}
-#amilo-root .btn-sm{padding:5px 12px;font-size:12px}
-#amilo-root .info-box{background:var(--blue-pale);border:1px solid #B0C8E8;border-radius:8px;padding:12px 14px;font-size:12px;color:var(--blue);line-height:1.6;margin-bottom:12px}
-#amilo-root .warn-box{background:var(--amber-pale);border:1px solid #E8C070;border-radius:8px;padding:12px 14px;font-size:12px;color:#7A4F00;line-height:1.6;margin-bottom:12px}
-#amilo-root .badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700}
-#amilo-root .badge-purple{background:var(--purple-pale);color:var(--purple)}
-#amilo-root .badge-green{background:var(--green-pale);color:var(--green)}
-#amilo-root .badge-red{background:var(--red-pale);color:var(--red)}
-#amilo-root .badge-amber{background:var(--amber-pale);color:var(--amber)}
-#amilo-root .divider{height:1px;background:var(--border);margin:14px 0}
-#amilo-root .flex{display:flex}#amilo-root .items-center{align-items:center}
-#amilo-root .gap-8{gap:8px}#amilo-root .ml-auto{margin-left:auto}
-#amilo-root .mt-12{margin-top:12px}#amilo-root .mb-12{margin-bottom:12px}
-@media(max-width:600px){#amilo-root .form-row.cols2,#amilo-root .form-row.cols3{grid-template-columns:1fr}}
-@media(max-width:500px){#amilo-root .grado-grid{grid-template-columns:1fr 1fr}}
-@media print{#amilo-root .amilo-tabhead,#amilo-root .btn,#amilo-root .no-print{display:none!important}#amilo-root .card{break-inside:avoid}}
+.amilo-root .crit-calc[hidden]{display:none}
+.amilo-root .form-row{display:grid;gap:10px;margin-bottom:10px}
+.amilo-root .form-row.cols2{grid-template-columns:1fr 1fr}
+.amilo-root .form-row.cols3{grid-template-columns:1fr 1fr 1fr}
+.amilo-root label{font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px}
+.amilo-root input[type=number],.amilo-root input[type=text],.amilo-root input[type=date],.amilo-root select{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;color:var(--text);background:var(--surface)}
+.amilo-root input:focus,.amilo-root select:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(91,45,142,.1)}
+.amilo-root .grado-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px}
+.amilo-root .grado-item{border:2px solid var(--border);border-radius:10px;padding:12px 8px;text-align:center;cursor:pointer;transition:all .15s;user-select:none}
+.amilo-root .grado-item:hover{border-color:var(--purple2);background:var(--purple-pale)}
+.amilo-root .grado-item.selected{border-color:var(--purple);background:var(--purple-pale)}
+.amilo-root .grado-num{font-size:22px;font-weight:900}
+.amilo-root .grado-0{color:var(--green)}.amilo-root .grado-1{color:var(--amber)}
+.amilo-root .grado-2{color:var(--red)}.amilo-root .grado-3{color:#8B0000}
+.amilo-root .grado-label{font-size:10px;color:var(--muted);margin-top:4px}
+.amilo-root .grado-item.selected .grado-label{color:var(--purple);font-weight:700}
+.amilo-root .prot-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.amilo-root .prot-item{border:2px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all .15s;user-select:none;text-align:center}
+.amilo-root .prot-item:hover{border-color:var(--purple2)}
+.amilo-root .prot-item.selected.negativo{border-color:var(--green);background:var(--green-pale)}
+.amilo-root .prot-item.selected.anormal{border-color:var(--red);background:var(--red-pale)}
+.amilo-root .prot-item-icon{font-size:28px;margin-bottom:4px}
+.amilo-root .prot-item-label{font-size:13px;font-weight:700}
+.amilo-root .prot-item-sub{font-size:11px;color:var(--muted);margin-top:3px}
+.amilo-root .score-bar{height:10px;background:var(--bg);border-radius:5px;overflow:hidden;margin-top:6px}
+.amilo-root .score-fill{height:100%;width:100%;border-radius:5px;transform:scaleX(0);transform-origin:left;transition:transform .4s}
+.amilo-root .escenario-box{border-radius:10px;padding:14px;margin-bottom:10px;border-left:4px solid}
+.amilo-root .escenario-box.verde{background:var(--green-pale);border-color:var(--green)}
+.amilo-root .escenario-box.amarillo{background:var(--amber-pale);border-color:var(--amber)}
+.amilo-root .escenario-box.rojo{background:var(--red-pale);border-color:var(--red)}
+.amilo-root .escenario-box.morado{background:var(--purple-pale);border-color:var(--purple)}
+.amilo-root .escenario-titulo{font-size:13px;font-weight:700;margin-bottom:6px}
+.amilo-root .escenario-body{font-size:12px;line-height:1.7;color:var(--text)}
+.amilo-root .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
+.amilo-root .btn-purple{background:var(--purple);color:#fff}
+.amilo-root .btn-purple:hover{background:var(--purple2)}
+.amilo-root .btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+.amilo-root .btn-green{background:var(--green);color:#fff}
+.amilo-root .btn-sm{padding:5px 12px;font-size:12px}
+.amilo-root .info-box{background:var(--blue-pale);border:1px solid #B0C8E8;border-radius:8px;padding:12px 14px;font-size:12px;color:var(--blue);line-height:1.6;margin-bottom:12px}
+.amilo-root .warn-box{background:var(--amber-pale);border:1px solid #E8C070;border-radius:8px;padding:12px 14px;font-size:12px;color:#7A4F00;line-height:1.6;margin-bottom:12px}
+.amilo-root .badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.amilo-root .badge-purple{background:var(--purple-pale);color:var(--purple)}
+.amilo-root .badge-green{background:var(--green-pale);color:var(--green)}
+.amilo-root .badge-red{background:var(--red-pale);color:var(--red)}
+.amilo-root .badge-amber{background:var(--amber-pale);color:var(--amber)}
+.amilo-root .divider{height:1px;background:var(--border);margin:14px 0}
+.amilo-root .flex{display:flex}.amilo-root .items-center{align-items:center}
+.amilo-root .gap-8{gap:8px}.amilo-root .ml-auto{margin-left:auto}
+.amilo-root .mt-12{margin-top:12px}.amilo-root .mb-12{margin-bottom:12px}
+@media(max-width:1200px){.amilo-root .form-row.cols4{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.amilo-root .form-row.cols2,.amilo-root .form-row.cols3,.amilo-root .form-row.cols4{grid-template-columns:1fr}}
+@media(max-width:500px){.amilo-root .grado-grid{grid-template-columns:1fr 1fr}}
+@media print{.amilo-root .btn,.amilo-root .no-print{display:none!important}.amilo-root .card{break-inside:avoid}}
 /* El panel de indicaciones es sólo pantalla. Va por ID porque la clase `.no-print` sólo la apaga
-   la regla de arriba, que está scopeada a #amilo-root: fuera de ese subárbol no hace nada. */
+   la regla de arriba, que está scopeada a .amilo-root: fuera de ese subárbol no hace nada. */
 @media print{#indic-overlay{display:none!important}}
 /* Tres columnas no entran en un teléfono: medido a 288 px de ancho, la nota de cada fila se parte
    en seis renglones de dos palabras. Por debajo de 560 px la fila pasa a dos renglones —rótulo y
@@ -1452,7 +1455,7 @@ window.cerrarSesion = cerrarSesion;
      pie va PEGAJOSO ABAJO, porque la advertencia médico-legal tiene que estar visible con el
      panel scrolleado — un descargo que sólo se ve llegando al final no descarga nada.
      La regla `@media print` va por ID y no por la clase `.no-print`: esa clase existe en el
-     archivo pero la ÚNICA regla que la apaga está scopeada a `#amilo-root`, así que ponérsela
+     archivo pero la ÚNICA regla que la apaga está scopeada a `.amilo-root`, así que ponérsela
      acá habría sido un atributo decorativo bajo un comentario que promete que no se imprime.
      El PDF lo dibuja jsPDF y no la impresión, pero el requisito es «no sale del informe» y
      cubrir sólo el camino que hoy existe deja el otro abierto. -->
@@ -11330,117 +11333,38 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 
 <!-- MODO COMPARATIVO -->
 <div id="tab-amiloidosis" class="tab-section">
-<div id="amilo-root">
-<div class="amilo-tabhead">
-  <button class="amilo-tab active" onclick="amiloSwitchTab('ett',this)">🫀 Score Amiloidosis por ETT</button>
-  <button class="amilo-tab" onclick="amiloSwitchTab('algoritmo',this)">🔬 Algoritmo Dx</button>
-  <button class="amilo-tab" onclick="amiloSwitchTab('guia',this)">📖 Guía</button>
-</div>
-<div class="amilo-main">
 
-<!-- TAB: ALGORITMO DIAGNÓSTICO -->
-<div id="tab-algoritmo" style="display:none">
-  <div class="result-panel" id="algo-result">
-    <div class="result-icon" id="algo-icon">🔬</div>
-    <div class="result-content">
-      <div class="result-title" id="algo-title">—</div>
-      <div class="result-body"  id="algo-body">—</div>
-      <div class="result-accion" id="algo-accion"></div>
-    </div>
+  <!-- ═══ 🫀 SCORE AMILOIDOSIS POR ETT (ESC 2021) ═══ -->
+  <div class="card" style="margin-bottom:6px;">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('amilo-ett-seccion',this);calcETT()">
+      🫀 Score Amiloidosis por ETT (ESC 2021)
+      <span id="amilo-ett-arrow" style="float:right;transition:transform 0.2s;">▶</span>
+    </h2>
   </div>
+  <div id="amilo-ett-seccion" style="display:none;">
   <div class="card">
-    <div class="card-title"><span>🔎</span> Contexto clínico</div>
-    <div class="form-row cols2">
-      <div>
-        <label>Motivo de sospecha</label>
-        <select id="alg-motivo">
-          <option value="">Seleccionar...</option>
-          <option>HVI inexplicable (≥12mm)</option>
-          <option>IC con FE preservada refractaria</option>
-          <option>Síndrome del túnel carpiano bilateral</option>
-          <option>Neuropatía periférica + afectación cardíaca</option>
-          <option>Historia familiar de ATTR</option>
-          <option>Ruptura de tendón del bíceps</option>
-          <option>Estenosis aórtica de bajo gradiente</option>
-          <option>Otro</option>
-        </select>
-      </div>
-      <div>
-        <label>Score Amiloidosis por ETT (si disponible)</label>
-        <input type="number" id="alg-ett-score" placeholder="0–10 puntos" min="0" max="10" oninput="actualizarAlgoritmo()">
-        <div style="font-size:11px;color:var(--muted);margin-top:4px">Calculalo en la pestaña Score Amiloidosis por ETT →</div>
-      </div>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-title"><span>☢️</span> Centellograma con Tecnecio 99 — Grado Perugini</div>
-    <div class="info-box">
-      Grados 2 y 3 tienen VPP 100% para diagnóstico de ATTR <strong>si las proteínas monoclonales son negativas</strong>.
-    </div>
-    <div class="grado-grid" id="gamma-grado-grid">
-      <div class="grado-item" onclick="selGrado(0)"><div class="grado-num grado-0">0</div><div class="grado-label">No capta nada</div></div>
-      <div class="grado-item" onclick="selGrado(1)"><div class="grado-num grado-1">1</div><div class="grado-label">Apenas capta</div></div>
-      <div class="grado-item" onclick="selGrado(2)"><div class="grado-num grado-2">2</div><div class="grado-label">Similar al hueso</div></div>
-      <div class="grado-item" onclick="selGrado(3)"><div class="grado-num grado-3">3</div><div class="grado-label">Más que el hueso</div></div>
-    </div>
-    <div style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.6">
-      <strong>Falsos positivos:</strong> amiloidosis AL, intoxicación por hidroxicloroquina, fracturas costales, calcificaciones valvulares, IAM &lt;4 semanas.<br>
-      <strong>Falsos negativos:</strong> enfermedad muy leve, adquisición retrasada o prematura.
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-title"><span>🧪</span> Proteínas monoclonales en sangre y orina</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
-      Incluye: inmunofijación sérica, inmunofijación urinaria, cadenas ligeras libres en suero (FLC). Deben ser <strong>todas negativas</strong> para confirmar ATTR sin biopsia.
-    </div>
-    <div class="prot-grid">
-      <div class="prot-item negativo" id="prot-neg" onclick="selProteinas('negativo')">
-        <div class="prot-item-icon">✅</div>
-        <div class="prot-item-label">Negativas</div>
-        <div class="prot-item-sub">Inmunofijación sérica y urinaria negativas + FLC normales</div>
-      </div>
-      <div class="prot-item anormal" id="prot-abn" onclick="selProteinas('anormal')">
-        <div class="prot-item-icon">⚠️</div>
-        <div class="prot-item-label">Al menos una anormal</div>
-        <div class="prot-item-sub">Cualquier proteína monoclonal detectada en sangre u orina</div>
-      </div>
-    </div>
-  </div>
-  <div id="escenario-box" style="display:none"></div>
-  <div class="flex gap-8 items-center mb-12 no-print" style="flex-wrap:wrap">
-    <button class="btn btn-green" onclick="amiloImprimirPDF('algoritmo')">🖨 Imprimir resultado</button>
-    <button class="btn btn-integrar" data-am-k="alg" onclick="amiloIntegrar('alg')">📎 Integrar al informe</button>
-    <button class="btn btn-secondary" onclick="resetAlgoritmo()">🔄 Nueva evaluación</button>
-  </div>
-</div>
+    <div class="card-body">
+      <!-- `.amilo-root` es CLASE y no id: el scope de estilos del modulo tiene que aplicarse a
+           los TRES cuerpos de acordeon, y un id no se puede repetir. El armazon del acordeon
+           queda FUERA de este div a proposito — `.amilo-root *{margin:0;padding:0}` y
+           `.amilo-root .card` pisan el estilo global, y adentro el header no se veria como los
+           de Hemodinamica, que es justamente lo que se pidio igualar. -->
+      <div class="amilo-root">
+        <div class="form-row cols4">
 
-<!-- TAB: ETT SCORE ESC 2021 -->
-<div id="tab-ett">
-  <div style="background:linear-gradient(135deg,var(--navy),var(--purple));border-radius:14px;padding:20px;margin-bottom:18px;display:flex;gap:18px;align-items:center">
-    <div style="text-align:center">
-      <div style="font-size:48px;font-weight:900;color:#fff;line-height:1" id="ett-score-num">0</div>
-      <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px">/ 10 pts</div>
-    </div>
-    <div style="flex:1">
-      <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:4px" id="ett-score-cat">Completá los parámetros</div>
-      <div style="font-size:12px;color:rgba(255,255,255,.7);line-height:1.5" id="ett-score-interp">Score ≥8 + HVI ≥12mm sugiere amiloidosis cardíaca.</div>
-      <div class="score-bar" style="margin-top:10px"><div class="score-fill" id="ett-score-bar" style="transform:scaleX(0);background:#C8A0FF"></div></div>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-title"><span>📏</span> Espesor del VI — Criterio indispensable</div>
-    <div class="warn-box">
-      El espesor parietal ≥12mm inexplicable es el punto de entrada al algoritmo. Sin HVI ≥12mm, el score ESC no es aplicable.
-    </div>
-    <div class="form-row cols2">
+          <div class="card">
+            <div class="card-title"><span>📏</span> Espesor VI — criterio indispensable</div>
+            <div class="warn-box">El espesor parietal ≥12mm inexplicable es el punto de entrada al algoritmo. Sin HVI ≥12mm, el score ESC no es aplicable.</div>
+            <div class="form-row cols2">
       <div><label>Espesor septal diastólico (mm)</label><input type="number" id="ett-septo" placeholder="Ej: 14" step="0.1" min="6" max="40" oninput="calcETT()"></div>
       <div><label>Espesor pared posterior (mm)</label><input type="number" id="ett-pp" placeholder="Ej: 13" step="0.1" min="6" max="40" oninput="calcETT()"></div>
     </div>
     <div id="ett-hvi-badge" style="font-size:12px;margin-top:4px;color:var(--muted)">—</div>
-  </div>
-  <div class="card">
-    <div class="card-title"><span>🔍</span> Criterios cualitativos ESC 2021 — deben estar presentes ≥2 de 3</div>
-    <div id="ett-cual-count" style="font-size:12px;color:var(--muted);margin-bottom:10px">0 de 3 presentes</div>
+          </div>
+
+          <div class="card">
+            <div class="card-title"><span>🔍</span> Criterios cualitativos — ≥2 de 3</div>
+            <div id="ett-cual-count" style="font-size:12px;color:var(--muted);margin-bottom:10px">0 de 3 presentes</div>
     <div class="criterio-item" id="cual-1" onclick="toggleCual('cual-1','ett-cual-1')">
       <div class="criterio-check" id="chk-cual-1">—</div>
       <div style="flex:1">
@@ -11465,10 +11389,11 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
       <input type="hidden" id="ett-cual-3" value="0">
     </div>
-  </div>
-  <div class="card">
-    <div class="card-title"><span>📊</span> Puntuación multiparamétrica — Score ESC 2021</div>
-    <div class="criterio-item" id="crit-rwt" onclick="toggleCrit('crit-rwt','ett-rwt',3)">
+          </div>
+
+          <div class="card">
+            <div class="card-title"><span>📊</span> Puntuación multiparamétrica — ESC 2021</div>
+            <div class="criterio-item" id="crit-rwt" onclick="toggleCrit('crit-rwt','ett-rwt',3)">
       <div class="criterio-check" id="chk-rwt">—</div>
       <div style="flex:1">
         <div class="criterio-nombre">RWT &gt; 0.6</div>
@@ -11484,6 +11409,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <div><label>DDVI (mm)</label><input type="number" id="rwt-ddvi" placeholder="Ej: 42" step="0.1" oninput="calcRWT()" onchange="amCalcAutoColapsar('rwt')"></div>
         <div><label>RWT calculado</label><input id="rwt-result" readonly style="background:#f5f7fa;font-weight:700;color:var(--purple)"></div>
       </div>
+      <div style="margin-top:8px;text-align:right;"><button type="button" class="crit-calc-btn" onclick="event.stopPropagation();amTraerDeFormulario('rwt')">↓ Traer del formulario</button></div>
     </div>
     <div class="criterio-item" id="crit-ee" onclick="toggleCrit('crit-ee','ett-ee',1)">
       <div class="criterio-check" id="chk-ee">—</div>
@@ -11501,6 +11427,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <div><label>e' promedio (cm/s)</label><input type="number" id="ee-ep" placeholder="Ej: 5" step="0.5" oninput="calcEE()" onchange="amCalcAutoColapsar('ee')"></div>
         <div><label>E/e' calculado</label><input id="ee-result" readonly style="background:#f5f7fa;font-weight:700;color:var(--purple)"></div>
       </div>
+      <div style="margin-top:8px;text-align:right;"><button type="button" class="crit-calc-btn" onclick="event.stopPropagation();amTraerDeFormulario('ee')">↓ Traer del formulario</button></div>
     </div>
     <div class="criterio-item" id="crit-tapse" onclick="toggleCrit('crit-tapse','ett-tapse',2)">
       <div class="criterio-check" id="chk-tapse">—</div>
@@ -11515,6 +11442,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     <div class="crit-calc" id="calc-tapse" hidden>
       <label>TAPSE medido (mm)</label>
       <input type="number" id="tapse-val" placeholder="Ej: 16" step="1" min="5" max="35" oninput="calcTAPSE()" onchange="amCalcAutoColapsar('tapse')" style="max-width:200px">
+      <div style="margin-top:8px;text-align:right;"><button type="button" class="crit-calc-btn" onclick="event.stopPropagation();amTraerDeFormulario('tapse')">↓ Traer del formulario</button></div>
     </div>
     <div class="criterio-item" id="crit-sgl" onclick="toggleCrit('crit-sgl','ett-sgl',1)">
       <div class="criterio-check" id="chk-sgl">—</div>
@@ -11529,6 +11457,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     <div class="crit-calc" id="calc-sgl" hidden>
       <label>SGL medido (%)</label>
       <input type="number" id="sgl-val" placeholder="Ej: -12" step="0.5" min="-25" max="0" oninput="amCalcSGL()" onchange="amCalcAutoColapsar('sgl')" style="max-width:200px">
+      <div style="margin-top:8px;text-align:right;"><button type="button" class="crit-calc-btn" onclick="event.stopPropagation();amTraerDeFormulario('sgl')">↓ Traer del formulario</button></div>
     </div>
     <div class="criterio-item" id="crit-apice" onclick="toggleCrit('crit-apice','ett-apice',3)">
       <div class="criterio-check" id="chk-apice">—</div>
@@ -11547,10 +11476,11 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <div><label>Relación calculada</label><input id="ap-result" readonly style="background:#f5f7fa;font-weight:700;color:var(--purple)"></div>
       </div>
     </div>
-  </div>
-  <div class="card">
-    <div class="card-title"><span>🔎</span> Otros hallazgos sugestivos (no puntuados)</div>
-    <div class="form-row cols2">
+          </div>
+
+          <div class="card">
+            <div class="card-title"><span>🔎</span> Otros hallazgos — no puntuados</div>
+            <div class="form-row cols2">
       <div><label>FEVI (%)</label><input type="number" id="ett-fevi" placeholder="Ej: 55" min="10" max="80" oninput="calcETT()"></div>
       <div>
         <label>Patrón granular "sparkling"</label>
@@ -11567,18 +11497,150 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <select id="ett-valvular" onchange="calcETT()"><option value="">— no evaluado —</option><option value="no">No</option><option value="si">Sí (mitral y/o tricúspide)</option></select>
       </div>
     </div>
-  </div>
-  <div class="flex gap-8 mb-12 no-print" style="flex-wrap:wrap">
-    <button class="btn btn-purple" onclick="pasarScoreAAlgoritmo()">→ Pasar score al Algoritmo</button>
-    <button class="btn btn-green" onclick="amiloImprimirPDF('ett')">🖨 Imprimir resultado</button>
-    <button class="btn btn-integrar" data-am-k="ett" onclick="amiloIntegrar('ett')">📎 Integrar al informe</button>
-    <button class="btn btn-secondary" onclick="resetETT()">🔄 Limpiar</button>
-  </div>
-</div>
+          </div>
 
-<!-- TAB: GUÍA -->
-<div id="tab-guia" style="display:none">
+        </div>
+
+        <!-- RESULTADO: va ABAJO de las cuatro columnas, no en el encabezado. Arriba se leia
+             como un titulo y no como el cierre de la evaluacion. -->
+        <div style="background:linear-gradient(135deg,var(--navy),var(--purple));border-radius:14px;padding:20px;margin-bottom:18px;display:flex;gap:18px;align-items:center">
+    <div style="text-align:center">
+      <div style="font-size:48px;font-weight:900;color:#fff;line-height:1" id="ett-score-num">0</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px">/ 10 pts</div>
+    </div>
+    <div style="flex:1">
+      <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:4px" id="ett-score-cat">Completá los parámetros</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.7);line-height:1.5" id="ett-score-interp">Score ≥8 + HVI ≥12mm sugiere amiloidosis cardíaca.</div>
+      <div class="score-bar" style="margin-top:10px"><div class="score-fill" id="ett-score-bar" style="transform:scaleX(0);background:#C8A0FF"></div></div>
+    </div>
+  </div>
+
+        <div style="text-align:center;margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;" class="no-print">
+          <button class="btn btn-purple" onclick="pasarScoreAAlgoritmo()">→ Pasar score al Algoritmo</button>
+          <button class="btn btn-green" onclick="amiloImprimirPDF('ett')">🖨 Imprimir resultado</button>
+          <button class="btn btn-integrar" data-am-k="ett" onclick="amiloIntegrar('ett')">📎 Integrar al informe</button>
+          <button class="btn btn-secondary" onclick="resetETT()">🔄 Limpiar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- ═══ 🔬 ALGORITMO DIAGNÓSTICO ═══ -->
+  <div class="card" style="margin-bottom:6px;">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('amilo-alg-seccion',this);actualizarAlgoritmo()">
+      🔬 Algoritmo diagnóstico
+      <span id="amilo-alg-arrow" style="float:right;transition:transform 0.2s;">▶</span>
+    </h2>
+  </div>
+  <div id="amilo-alg-seccion" style="display:none;">
   <div class="card">
+    <div class="card-body">
+      <!-- `.amilo-root` es CLASE y no id: el scope de estilos del modulo tiene que aplicarse a
+           los TRES cuerpos de acordeon, y un id no se puede repetir. El armazon del acordeon
+           queda FUERA de este div a proposito — `.amilo-root *{margin:0;padding:0}` y
+           `.amilo-root .card` pisan el estilo global, y adentro el header no se veria como los
+           de Hemodinamica, que es justamente lo que se pidio igualar. -->
+      <div class="amilo-root">
+        <div class="form-row cols2">
+
+          <div class="card">
+            <div class="card-title"><span>🔎</span> Contexto clínico y centellograma</div>
+            <div>
+              <label>Motivo de sospecha</label>
+              <select id="alg-motivo">
+                <option value="">Seleccionar...</option>
+                <option>HVI inexplicable (≥12mm)</option>
+                <option>IC con FE preservada refractaria</option>
+                <option>Síndrome del túnel carpiano bilateral</option>
+                <option>Neuropatía periférica + afectación cardíaca</option>
+                <option>Historia familiar de ATTR</option>
+                <option>Ruptura de tendón del bíceps</option>
+                <option>Estenosis aórtica de bajo gradiente</option>
+                <option>Otro</option>
+              </select>
+            </div>
+            <div style="margin-top:10px">
+              <label>Score Amiloidosis por ETT (si disponible)</label>
+              <input type="number" id="alg-ett-score" placeholder="0–10 puntos" min="0" max="10" oninput="actualizarAlgoritmo()">
+              <div style="font-size:11px;color:var(--muted);margin-top:4px">Lo completa el botón «Pasar score al Algoritmo» del acordeón de arriba ↑</div>
+            </div>
+            <div class="divider"></div>
+            <div class="card-title"><span>☢️</span> Centellograma con Tecnecio 99 — Grado Perugini</div>
+    <div class="info-box">
+      Grados 2 y 3 tienen VPP 100% para diagnóstico de ATTR <strong>si las proteínas monoclonales son negativas</strong>.
+    </div>
+    <div class="grado-grid" id="gamma-grado-grid">
+      <div class="grado-item" onclick="selGrado(0)"><div class="grado-num grado-0">0</div><div class="grado-label">No capta nada</div></div>
+      <div class="grado-item" onclick="selGrado(1)"><div class="grado-num grado-1">1</div><div class="grado-label">Apenas capta</div></div>
+      <div class="grado-item" onclick="selGrado(2)"><div class="grado-num grado-2">2</div><div class="grado-label">Similar al hueso</div></div>
+      <div class="grado-item" onclick="selGrado(3)"><div class="grado-num grado-3">3</div><div class="grado-label">Más que el hueso</div></div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.6">
+      <strong>Falsos positivos:</strong> amiloidosis AL, intoxicación por hidroxicloroquina, fracturas costales, calcificaciones valvulares, IAM &lt;4 semanas.<br>
+      <strong>Falsos negativos:</strong> enfermedad muy leve, adquisición retrasada o prematura.
+    </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title"><span>🧪</span> Proteínas monoclonales en sangre y orina</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
+      Incluye: inmunofijación sérica, inmunofijación urinaria, cadenas ligeras libres en suero (FLC). Deben ser <strong>todas negativas</strong> para confirmar ATTR sin biopsia.
+    </div>
+    <div class="prot-grid">
+      <div class="prot-item negativo" id="prot-neg" onclick="selProteinas('negativo')">
+        <div class="prot-item-icon">✅</div>
+        <div class="prot-item-label">Negativas</div>
+        <div class="prot-item-sub">Inmunofijación sérica y urinaria negativas + FLC normales</div>
+      </div>
+      <div class="prot-item anormal" id="prot-abn" onclick="selProteinas('anormal')">
+        <div class="prot-item-icon">⚠️</div>
+        <div class="prot-item-label">Al menos una anormal</div>
+        <div class="prot-item-sub">Cualquier proteína monoclonal detectada en sangre u orina</div>
+      </div>
+    </div>
+          </div>
+
+        </div>
+
+        <!-- CONCLUSION: abajo de las dos columnas, no arriba. -->
+        <div class="result-panel" id="algo-result">
+    <div class="result-icon" id="algo-icon">🔬</div>
+    <div class="result-content">
+      <div class="result-title" id="algo-title">—</div>
+      <div class="result-body"  id="algo-body">—</div>
+      <div class="result-accion" id="algo-accion"></div>
+    </div>
+  </div>
+        <div id="escenario-box" style="display:none"></div>
+
+        <div style="text-align:center;margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;" class="no-print">
+          <button class="btn btn-green" onclick="amiloImprimirPDF('algoritmo')">🖨 Imprimir resultado</button>
+          <button class="btn btn-integrar" data-am-k="alg" onclick="amiloIntegrar('alg')">📎 Integrar al informe</button>
+          <button class="btn btn-secondary" onclick="resetAlgoritmo()">🔄 Nueva evaluación</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- ═══ 📖 GUÍA RÁPIDA ═══ -->
+  <div class="card" style="margin-bottom:6px;">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('amilo-guia-seccion',this)">
+      📖 Guía rápida
+      <span id="amilo-guia-arrow" style="float:right;transition:transform 0.2s;">▶</span>
+    </h2>
+  </div>
+  <div id="amilo-guia-seccion" style="display:none;">
+  <div class="card">
+    <div class="card-body">
+      <!-- `.amilo-root` es CLASE y no id: el scope de estilos del modulo tiene que aplicarse a
+           los TRES cuerpos de acordeon, y un id no se puede repetir. El armazon del acordeon
+           queda FUERA de este div a proposito — `.amilo-root *{margin:0;padding:0}` y
+           `.amilo-root .card` pisan el estilo global, y adentro el header no se veria como los
+           de Hemodinamica, que es justamente lo que se pidio igualar. -->
+      <div class="amilo-root">
+          <div class="card">
     <div class="card-title"><span>🔬</span> Amiloidosis cardíaca — Conceptos clave</div>
     <div style="font-size:13px;line-height:1.8">
       <p style="margin-bottom:10px">La <strong>amiloidosis cardíaca</strong> es el depósito de fibrillas amiloides en el miocardio que produce una miocardiopatía infiltrativa. Existen dos tipos principales con compromiso cardíaco:</p>
@@ -11659,9 +11721,11 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <strong>Fuentes:</strong> Gillmore JD et al. NEJM 2016 · Guías ESC Cardiomiopatías 2023 · Garcia-Pavia P et al. Eur Heart J 2021.
     </div>
   </div>
-</div>
-</div><!-- /.amilo-main -->
-</div><!-- /#amilo-root -->
+      </div>
+    </div>
+  </div>
+  </div>
+
 </div><!-- /#tab-amiloidosis -->
 
 
@@ -15053,7 +15117,7 @@ function hfapeffDatos(src) {
   const gls = (glsProp !== null) ? glsProp : S.num('sgl');
   return {
     edad: S.num('edad'), sexo: (S.txt('sexo') || '').toUpperCase(),
-    esep, elat, ee: (e && eprom) ? e / eprom : null,
+    esep, elat, eprom, ee: (e && eprom) ? e / eprom : null,
     it: S.num('vmax_it'),
     lavi: (aiVol && bsa) ? aiVol / bsa : null,
     pared: (siv !== null || pp !== null) ? Math.max(siv || 0, pp || 0) : null,
@@ -19589,7 +19653,10 @@ function limpiarCampos(silencioso) {
   // no toca los <input type="hidden"> de puntos, ni la clase .activo, ni los ✓. El
   // paciente nuevo arrancaba con los criterios del anterior marcados y puntuando, y
   // desde que los cálculos viven en un acordeón colapsado eso ya ni se ve.
-  if (typeof resetETT === 'function') resetETT();
+  /* Con red, como su gemelo `resetAlgoritmo`: los tres `getElementById` pelados del final de
+     `resetETT` tiran si mañana se mueve uno de esos selects, y `limpiarCampos` abortaría ahí
+     dejando sin correr todo lo que viene después — el paciente anterior viajaría sin aviso. */
+  if (typeof resetETT === 'function') { try { resetETT(); } catch (e) { console.warn('resetETT', e); } }
   /* Algoritmo diagnóstico de amiloidosis. `gradoGamma` y `protMonoc` son dos `var` de nivel
      superior que sólo se limpiaban desde el botón «🔄 Nueva evaluación», y el panel de
      conclusión (#algo-title / #algo-body / #algo-accion, divs sueltos) no lo alcanza ningún
@@ -22471,8 +22538,24 @@ function generarPDFReal(_aj) {
   // primero se mide y se elige el cuerpo de letra que hace que quepan.
   const _amDatos = (typeof amiloEnInforme === 'function') ? (amiloEnInforme() || []) : [];
   // Los módulos del ETE van a SU PROPIA hoja; el resto queda en ETT Avanzado.
-  const _amEtt = _amDatos.filter(d => d.grupo !== 'ete').map(d => ({ tit: d.tit, txt: d.txt }));
+  /* AMILOIDOSIS: con el Score ETT Y el Algoritmo integrados los dos, se van a una hoja propia.
+     La condición es que estén LOS DOS —no se marca el grupo en `amiloSecs()`— porque con uno
+     solo la hoja quedaría con una única tabla y el módulo se lee mejor junto al resto del ETT
+     avanzado. Con los dos, en cambio, forman una evaluación completa que conviene leer seguida
+     y se puede entregar aparte. Es lo que se pidió el 2026-09-13. */
+  const _amAmiloK = ['ett', 'alg'];
+  const _hayAmiloPar = _amAmiloK.every(k => _amDatos.some(d => d.k === k));
+  const _esAmilo = d => _hayAmiloPar && _amAmiloK.indexOf(d.k) >= 0;
+  const _amAmilo = _amDatos.filter(d => _esAmilo(d)).map(d => ({ tit: d.tit, txt: d.txt }));
+  const _amEtt = _amDatos.filter(d => d.grupo !== 'ete' && !_esAmilo(d)).map(d => ({ tit: d.tit, txt: d.txt }));
   const _amEte = _amDatos.filter(d => d.grupo === 'ete').map(d => ({ tit: d.tit, txt: d.txt }));
+  if (_amAmilo.length) {
+    doc.addPage();
+    /* El orden lo fija `amiloSecs()` («ett» antes que «alg»), que es el mismo que ve el médico
+       en la pantalla: primero el score, después el algoritmo que lo consume. */
+    y = amiloDibujarSecciones(doc, _amAmilo, { mL, pgW, tema: TEMA, yIni: 20, yFin: _yMax, fsa: _FSA,
+      titPagina: 'EVALUACION DE AMILOIDOSIS CARDIACA' });
+  }
   if (_amEtt.length) {
     doc.addPage();
     // Mismo dibujado que usan los botones "Imprimir resultado" de cada pestaña.
@@ -31164,14 +31247,22 @@ window.importarInformesJSON = importarInformesJSON; window.importCerrar = import
 var gradoGamma = null;
 var protMonoc  = null;
 
-function amiloSwitchTab(id, btn) {
-  ['tab-algoritmo','tab-ett','tab-guia'].forEach(t => {
-    var el = document.getElementById(t); if(el) el.style.display='none';
-  });
-  var target = document.getElementById('tab-'+id);
-  if(target) target.style.display='block';
-  document.querySelectorAll('#amilo-root .amilo-tab').forEach(b => b.classList.remove('active'));
-  if(btn) btn.classList.add('active');
+/* Antes conmutaba las tres subtabs de fondo oscuro. Desde el rediseño de 2026-09-13 los tres
+   módulos son acordeones con el estilo de Hemodinámica, así que «cambiar de subtab» pasó a ser
+   «abrir la sección». Conserva el nombre y tolera el segundo argumento —el botón de la subtab,
+   que ya no existe— porque `pasarScoreAAlgoritmo` la llama y abrir el acordeón es exactamente
+   lo que ese gesto significaba. */
+function amiloSwitchTab(id) {
+  var mapa = { ett:'amilo-ett-seccion', algoritmo:'amilo-alg-seccion', alg:'amilo-alg-seccion', guia:'amilo-guia-seccion' };
+  var secId = mapa[id]; if (!secId) return;
+  var sec = document.getElementById(secId); if (!sec) return;
+  sec.style.display = 'block';
+  /* La flecha se repinta desde el ESTADO REAL, como hace `limpiarCampos` con los toggles del
+     bull's eye: pintarla a ciegas la deja mintiendo si la sección ya estaba abierta. */
+  var h = document.querySelector('h2.card-head[onclick*="' + secId + '"]');
+  var fl = h ? h.querySelector('span') : null;
+  if (fl) fl.style.transform = 'rotate(90deg)';
+  try { sec.scrollIntoView({ block: 'start' }); } catch (e) {}
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -32568,6 +32659,83 @@ var _AM_CALC = {
 };
 function amCalcIds() { return Object.keys(_AM_CALC); }
 
+/* De dónde sale cada insumo cuando la app YA lo tiene. Decisión de Maicol, 2026-09-13: el
+   médico no vuelve a tipear lo que está cargado en otra pestaña.
+
+   `eprom` sale de `hfapeffDatos()`, que es el accesor que ya promedia e' septal y lateral con
+   la convención del archivo (promedio si están los dos, el que haya si falta uno). No se
+   recalcula acá: la fórmula de E/e' ya está escrita cuatro veces y ésta no es la quinta.
+
+   El ápice/base NO tiene fuente: el strain por segmentos no da la relación ápice/base, así que
+   ese cálculo sigue siendo manual — que es lo que el propio pedido dice. */
+var _AM_FUENTE = {
+  rwt:   function(){ return [ v('ppvi'), v('ddfvi') ]; },
+  ee:    function(){ var d = null; try { d = hfapeffDatos(); } catch(e){}
+                     return [ v('onda_e'), d ? d.eprom : null ]; },
+  tapse: function(){ return [ v('tapse') ]; },
+  /* El SGL se normaliza a NEGATIVO acá, en el borde. El campo `sgl` no tiene `min` ni `max` y
+     el resto del archivo ya sabe que puede venir con cualquier signo: los dos consumidores que
+     le aplican un umbral lo envuelven en `Math.abs`. Éste comparaba contra un umbral CON signo,
+     así que con el strain cargado en absoluto (18, que es NORMAL) `18 >= -13` daba verdadero y
+     marcaba «|SGL| ≤ 13%»: un punto de más, siempre hacia el sobrediagnóstico, y justo el que
+     mueve un 7 a un 8 — el corte de «amiloidosis muy sugestiva». Lo cazaron las dos revisiones. */
+  sgl:   function(){ var x = v('sgl'); return [ x === null ? null : -Math.abs(x) ]; }
+};
+
+/* Rellena los insumos de un cálculo desde su fuente SÓLO SI ESTÁN VACÍOS, y sólo cuando el
+   médico abre el calculador — nunca durante una restauración.
+
+   Las dos condiciones son deliberadas y cierran el mismo riesgo por dos lados: un estudio ya
+   guardado no puede cambiar de score al reabrirlo. Si el campo trae valor, el valor guardado
+   manda; si la carga la dispara una ruta de restauración, no corre. Es la regla de
+   `imgPersistir`: no se pisa lo que el médico decidió, y no se decide por él en una ruta
+   automática. Lo rellenado queda EDITABLE — si no coincide con lo que midió, lo pisa. */
+function amAutoLlenar(k) {
+  var f = _AM_FUENTE[k]; if (!f) return false;
+  var cfg = _AM_CALC[k]; if (!cfg) return false;
+  var vals; try { vals = f(); } catch (e) { return false; }
+  /* DOS PASADAS: primero se resuelve qué se puede escribir, y recién si están TODOS se escribe.
+     Con una sola pasada, un insumo faltante dejaba el otro ya escrito —`ee-ep` cargado y `ee-e`
+     vacío—: no cambiaba el score, pero dejaba el calculador a medias con un número que el
+     médico no puso. Y con el recálculo colgado de ahí, la mitad faltante hacía que la función
+     de cálculo cayera en su rama «falta un dato» y `amCalcSinDato` DESMARCARA el criterio,
+     restando 1 punto (E/e') o 3 (RWT) sobre un estudio ya firmado. */
+  var plan = [];
+  for (var i = 0; i < cfg.ins.length; i++) {
+    var el = document.getElementById(cfg.ins[i]);
+    if (!el) return false;
+    if (String(el.value || '').trim() !== '') continue;         // lo cargado manda
+    var n = vals[i];
+    if (n === null || n === undefined || isNaN(n)) return false; // falta un insumo: no se escribe nada
+    plan.push([el, Math.round(n * 10) / 10]);
+  }
+  plan.forEach(function (p) { p[0].value = p[1]; });
+  return plan.length > 0;
+}
+window.amAutoLlenar = amAutoLlenar;
+
+/* El botón «↓ Traer del formulario» de cada calculador.
+
+   El autollenado colgaba de ABRIR el acordeón, y eso estaba mal por dos motivos que las dos
+   revisiones señalaron por separado: (a) abrir es el gesto de MIRAR —uno toca «Calcular ▾» para
+   ver de dónde salió un criterio— y ahí no puede cambiar el score; (b) sobre un criterio que el
+   médico había DESTILDADO a propósito, el recálculo lo volvía a marcar en silencio, porque
+   `toggleCrit` limpia el origen al destildar (deliberadamente, ver su comentario) y
+   `amAplicarCalc` sólo respeta `'manual'`.
+
+   Detrás de un botón, traer el dato es una decisión del médico y no un efecto colateral de
+   inspeccionar. `toggleCrit` y `amAplicarCalc` quedan sin tocar. */
+function amTraerDeFormulario(k) {
+  if (!amAutoLlenar(k)) {
+    if (typeof toast === 'function') toast('⚠️ No hay datos suficientes cargados en las otras pestañas para este criterio');
+    return;
+  }
+  var rec = { rwt:'calcRWT', ee:'calcEE', tapse:'calcTAPSE', sgl:'amCalcSGL' }[k];
+  if (rec && typeof window[rec] === 'function') { try { window[rec](); } catch (e) {} }
+  if (typeof toast === 'function') toast('↓ Valores traídos del formulario — editables');
+}
+window.amTraerDeFormulario = amTraerDeFormulario;
+
 // Valor con el que se evalúa el criterio. Se RECOMPUTA desde los campos crudos en vez
 // de leer el campo de resultado: ese guarda el valor redondeado (toFixed), y un RWT de
 // 0.6045 se leía como 0.60, o sea del lado equivocado del umbral 0.6. Eso deducía mal
@@ -32879,7 +33047,7 @@ function pasarScoreAAlgoritmo() {
     .reduce((s,id)=>s+(PF(document.getElementById(id)?.value)||0),0);
   var scoreEl = document.getElementById('alg-ett-score');
   if(scoreEl) scoreEl.value = pts;
-  amiloSwitchTab('algoritmo', document.querySelectorAll('#amilo-root .amilo-tab')[1]);
+  amiloSwitchTab('algoritmo');   // abre el acordeón del algoritmo (antes conmutaba la subtab)
   actualizarAlgoritmo();
 }
 
