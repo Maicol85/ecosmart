@@ -2234,6 +2234,57 @@ MD5 que `calcETT`, `actualizarAlgoritmo`, `amiloTextoETT` y `amiloTextoAlgoritmo
 por byte iguales. Las bandas del score también: ya cruzaban HVI y criterios cualitativos, que es
 más de lo que pedía la especificación.
 
+### Amiloidosis — estilo sobrio, y dos regresiones que metió el propio ajuste — 2026-09-13
+
+Cambio declarado como «sólo visual», y lo fue en JS: ids 1667 → 1667 sin altas ni bajas,
+handlers inline 925 → 925, y los cuerpos de `calcETT`, `actualizarAlgoritmo`, `amiloTextoETT` y
+`amiloTextoAlgoritmo` byte por byte iguales. Pero **un cambio de CSS puede romper cosas medibles**,
+y este metió dos.
+
+**`:not()` APORTA la especificidad de su argumento.** Para excluir el botón del reset del módulo
+escribí `.amilo-root *:not(.btn)`, creyendo que seguía valiendo (0,1,0). Vale **(0,2,0)**, así que
+pasó a ganarle a `.amilo-root label` y `.amilo-root select`, que son (0,1,1). Medido: los cuatro
+`<select>` quedaron con `padding:0` y **20 px de alto** —y `select` NO está en la allowlist de la
+regla táctil de 44 px, así que nadie los rescataba— y los 19 `<label>` perdieron su
+`margin-bottom`. La forma correcta es **`:where(:not(.btn))`**: `:where()` aporta especificidad
+CERO y el selector vuelve a valer exactamente lo que valía. Lo cazó el `/differential-review`
+midiendo el alto del select, no leyendo el selector.
+
+**Volver flex un contenedor sin `min-width:0` desborda.** Las tarjetas de proteínas monoclonales
+pasaron a `display:flex` con tres hijos en fila: un hijo de flex no baja de su min-content, así
+que desbordaban 33 px a 375 y 16 px a 768. Y la primera corrección —`min-width:0` en el último
+hijo— **seguía desbordando a 768**, porque los tres hijos competían por la fila. Lo resolvió
+`flex-wrap` con la descripción a `flex-basis:100%`. **Al compactar algo, medir a 375 y a 768, no
+sólo en el escritorio.**
+
+**Los botones no se re-estilan: se borran los overrides.** El módulo tenía su propia escala
+(13px/700, padding 9×18, radio 9) y se veía el doble de grueso. Borrar `.amilo-root .btn*` deja
+actuar al `.btn` global, que es el de Hemodinámica — verificado byte a byte en las ocho
+propiedades. Replicar los números habría funcionado igual hoy y se habría desincronizado el día
+que se ajuste el botón global.
+
+**La señal clínica no se degradó, y eso se verificó explícitamente.** El panel de conclusión
+perdió los cuatro gradientes pero la severidad sigue en el borde izquierdo de color (púrpura /
+rojo / ámbar / verde, cuatro tonos distintos medidos) y en el emoji, y el estado «sin conclusión»
+es `display:none`, así que no hay un panel gris con el que confundirse. Las cuatro clases
+(`prob-alta`, `prob-baja`, `biopsia`, `intermedio`) conservan sus nombres porque las escribe
+`actualizarAlgoritmo`.
+
+**Ningún hex fijo dentro de `.amilo-root`: es un subárbol de DOS temas.** `.grado-3` usaba
+`#8B0000` —color pensado para fondo blanco— y en el tema oscuro, que es el default, daba ~1,7:1:
+el grado Perugini **más severo**, el que da VPP 100% para ATTR, era el **menos visible** de los
+cuatro. Bajar el número de 22 px a 14 px lo empeoró. Hoy sale de `--red-fuerte`, definido por
+tema. Lo mismo con `.warn-box` (`#7A4F00`, ~1,8:1) y `.info-box`: pasaron a la convención del
+resto de la app —fondo neutro, borde izquierdo de color, texto en el gris del tema—. **La caja se
+veía de color y las palabras no se leían**, que es la regla de `badge()` por otra cara: la señal
+llegaba, el contenido no.
+
+**Queda anotado, sin resolver:** los botones «Limpiar» y «Nueva evaluación» son destructivos
+(`resetETT` vacía 14 inputs y 8 criterios, `resetAlgoritmo` borra `gradoGamma`/`protMonoc`), no
+piden confirmación, y ahora se ven **idénticos** a «Integrar al informe» — `.btn-ghost` y
+`.btn-integrar` tienen declaraciones byte a byte iguales. Es consecuencia directa de unificar el
+estilo, que es lo que se pidió. Si molesta: `confirm()` gateado por «¿hay dato cargado?».
+
 ## Deuda conocida sin resolver
 
 - **Los campos de Pericardio no están en `_IG_SECTIONS`, ni en el mapa de Excel, ni en

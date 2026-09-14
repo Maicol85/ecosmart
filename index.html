@@ -971,11 +971,11 @@ html.light-mode #tab-valvulas .sev-lvl3{color:#7f1d1d;}
 /* ── Amiloidosis Calculator ── */
 /* --bg, --border, --text, --purple, --green, --red se heredan del sistema global (theme-aware) */
 .amilo-root{
-  --navy:#0B1F3A;                                 /* lo usa el banner de resultado del score */
   --purple2:#b79bf0;                              /* hover del acento púrpura */
   --surface:var(--bg2);--muted:var(--text2);--light:var(--text2);
   --blue:var(--accent);--amber:var(--orange);
   --purple-pale:rgba(155,127,232,.16);
+  --red-fuerte:#ff4d4d;                           /* grado Perugini 3: el más severo, legible en oscuro */
   --red-pale:rgba(240,84,84,.15);
   --amber-pale:rgba(245,158,66,.15);
   --green-pale:rgba(62,207,142,.15);
@@ -985,38 +985,56 @@ html.light-mode #tab-valvulas .sev-lvl3{color:#7f1d1d;}
 /* En modo día, tintes claros opacos sobre superficies blancas (aspecto original) */
 html.light-mode .amilo-root{
   --purple-pale:#F3EEFF;--red-pale:#FDEDEC;--amber-pale:#FEF3DC;--green-pale:#E8F5EE;--blue-pale:#EBF2FB;
+  --red-fuerte:#8B0000;
 }
-.amilo-root *{box-sizing:border-box;margin:0;padding:0}
+/* El reset NO alcanza a `.btn`. `.amilo-root *` y `.btn` tienen la MISMA especificidad (0,1,0),
+   así que gana el que va después en el archivo — y este bloque va después del botón global.
+   Resultado medido: los botones del módulo quedaban con `padding:0` mientras los de
+   Hemodinámica llevan 6×14, o sea con el texto pegado al borde. Excluirlo es mejor que
+   redeclarar el padding acá: un número repetido se desincroniza el día que se ajuste el global. */
+.amilo-root *{box-sizing:border-box}
+/* `:where()` y no `:not()` pelado: `:not(.btn)` APORTA la especificidad de su argumento, así que
+   el reset pasaba de (0,1,0) a (0,2,0) y le ganaba a `.amilo-root label` y `.amilo-root select`,
+   que son (0,1,1). Medido: los cuatro `<select>` del módulo quedaban con `padding:0` y **20px de
+   alto** —y `select` NO está en la allowlist de la regla táctil de 44px, así que nadie los
+   rescataba— y los 19 `<label>` perdían su `margin-bottom`. `:where()` aporta especificidad
+   CERO, así que el selector vuelve a valer (0,1,0) exacto y la exclusión del botón se mantiene. */
+.amilo-root *:where(:not(.btn)){margin:0;padding:0}
 /* Cuatro columnas del Score ETT. minmax(0,1fr) y no 1fr: sin el minimo 0 una columna con
    contenido ancho desborda la grilla y aparece scroll horizontal. */
 .amilo-root .form-row.cols4{grid-template-columns:repeat(4,minmax(0,1fr))}
 .amilo-root .form-row.cols4 .card{margin-bottom:0}
 .amilo-root .form-row.cols4 .criterio-item{flex-wrap:wrap;gap:8px}
 .amilo-root .form-row.cols4 .criterio-pts{min-width:0}
-.amilo-root .result-panel{border-radius:14px;padding:20px;margin-bottom:18px;display:none;box-shadow:0 2px 8px rgba(0,0,0,0.18)}
-.amilo-root .result-panel.show{display:flex;gap:18px;align-items:flex-start}
-.amilo-root .result-panel.prob-alta{background:linear-gradient(135deg,#3D1B6E,#5B2D8E)}
-.amilo-root .result-panel.prob-baja{background:linear-gradient(135deg,#0B2E1A,#1A6B4A)}
-.amilo-root .result-panel.biopsia{background:linear-gradient(135deg,#6B1A1A,#C0392B)}
-.amilo-root .result-panel.intermedio{background:linear-gradient(135deg,#3D2E08,#D4860A)}
-.amilo-root .result-icon{font-size:40px;flex-shrink:0}
-.amilo-root .result-content{flex:1}
-.amilo-root .result-title{font-size:18px;font-weight:900;color:#fff;margin-bottom:6px}
-.amilo-root .result-body{font-size:13px;color:rgba(255,255,255,.82);line-height:1.6}
-.amilo-root .result-accion{margin-top:10px;padding:10px 14px;background:rgba(255,255,255,.12);border-radius:8px;font-size:12px;color:rgba(255,255,255,.9);line-height:1.5}
-.amilo-root .score-circle{width:64px;height:64px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:24px;font-weight:900;border:3px solid rgba(255,255,255,.3);flex-shrink:0}
-.amilo-root .score-circle .sc-label{font-size:9px;font-weight:600;opacity:.7}
-.amilo-root .card{background:var(--surface);border-radius:12px;padding:16px;border:1px solid var(--border);margin-bottom:14px}
+/* Conclusión compacta, con el mismo peso visual que las cajas de resultado de Hemodinámica.
+   El gradiente de 20px de padding y el título de 18px/900 en blanco se leían como un cartel.
+   La SEÑAL CLÍNICA no se pierde: la severidad sigue codificada en el borde izquierdo de color
+   y en el emoji que pinta `actualizarAlgoritmo`. Bajarla a gris habría sido degradar un aviso
+   clínico a uno neutro, que es una regresión y no un ajuste visual — la misma regla que la
+   allowlist de `badge()`. Las cuatro clases de severidad se conservan con sus nombres: las
+   escribe `actualizarAlgoritmo` y no se tocó una sola línea de esa función. */
+.amilo-root .result-panel{border-radius:8px;padding:9px 12px;margin-bottom:10px;display:none;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--border)}
+.amilo-root .result-panel.show{display:flex;gap:10px;align-items:flex-start}
+.amilo-root .result-panel.prob-alta{border-left-color:var(--purple)}
+.amilo-root .result-panel.prob-baja{border-left-color:var(--green)}
+.amilo-root .result-panel.biopsia{border-left-color:var(--red)}
+.amilo-root .result-panel.intermedio{border-left-color:var(--amber)}
+.amilo-root .result-icon{font-size:17px;flex-shrink:0;line-height:1.3}
+.amilo-root .result-content{flex:1;min-width:0}
+.amilo-root .result-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px}
+.amilo-root .result-body{font-size:12px;color:var(--muted);line-height:1.6}
+.amilo-root .result-accion{margin-top:6px;padding:6px 10px;background:var(--bg3,#eef1f6);border-radius:6px;font-size:11.5px;color:var(--muted);line-height:1.5}
+.amilo-root .card{background:var(--surface);border-radius:8px;padding:10px 12px;border:1px solid var(--border);margin-bottom:10px}
 .amilo-root .card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:8px}
 .amilo-root .card-title span{font-size:16px}
-.amilo-root .criterio-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border:2px solid var(--border);border-radius:10px;margin-bottom:8px;cursor:pointer;transition:all .15s;user-select:none}
+.amilo-root .criterio-item{display:flex;align-items:center;gap:10px;padding:7px 10px;border:1px solid var(--border);border-radius:7px;margin-bottom:6px;cursor:pointer;transition:all .15s;user-select:none}
 .amilo-root .criterio-item:hover{border-color:var(--purple2);background:var(--purple-pale)}
 .amilo-root .criterio-item.activo{border-color:var(--purple);background:var(--purple-pale)}
 .amilo-root .criterio-check{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px}
 .amilo-root .criterio-item.activo .criterio-check{background:var(--purple);border-color:var(--purple);color:#fff}
-.amilo-root .criterio-nombre{flex:1;font-size:13px;font-weight:600}
-.amilo-root .criterio-def{font-size:11px;color:var(--muted);margin-top:2px}
-.amilo-root .criterio-pts{font-size:16px;font-weight:900;color:var(--purple);min-width:32px;text-align:right}
+.amilo-root .criterio-nombre{flex:1;font-size:12px;font-weight:600}
+.amilo-root .criterio-def{font-size:10.5px;color:var(--muted);margin-top:2px;line-height:1.4}
+.amilo-root .criterio-pts{font-size:12px;font-weight:700;color:var(--purple);min-width:26px;text-align:right}
 /* Acordeón de cálculo por criterio. La fila sola alcanza para marcar el criterio a
    mano; "Calcular" despliega los campos numéricos sólo si el médico los necesita. */
 .amilo-root .crit-calc-btn{background:var(--bg3,#eef1f6);color:var(--purple);border:1px solid var(--purple2);
@@ -1036,39 +1054,55 @@ html.light-mode .amilo-root{
 .amilo-root input[type=number],.amilo-root input[type=text],.amilo-root input[type=date],.amilo-root select{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;color:var(--text);background:var(--surface)}
 .amilo-root input:focus,.amilo-root select:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(91,45,142,.1)}
 .amilo-root .grado-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px}
-.amilo-root .grado-item{border:2px solid var(--border);border-radius:10px;padding:12px 8px;text-align:center;cursor:pointer;transition:all .15s;user-select:none}
+.amilo-root .grado-item{border:1px solid var(--border);border-radius:7px;padding:6px 4px;text-align:center;cursor:pointer;transition:all .15s;user-select:none}
 .amilo-root .grado-item:hover{border-color:var(--purple2);background:var(--purple-pale)}
 .amilo-root .grado-item.selected{border-color:var(--purple);background:var(--purple-pale)}
-.amilo-root .grado-num{font-size:22px;font-weight:900}
+.amilo-root .grado-num{font-size:14px;font-weight:700;line-height:1.3}
 .amilo-root .grado-0{color:var(--green)}.amilo-root .grado-1{color:var(--amber)}
-.amilo-root .grado-2{color:var(--red)}.amilo-root .grado-3{color:#8B0000}
-.amilo-root .grado-label{font-size:10px;color:var(--muted);margin-top:4px}
+.amilo-root .grado-2{color:var(--red)}
+/* El grado 3 es el MÁS severo —VPP 100% para ATTR— y era el MENOS visible: `#8B0000` es un hex
+   de tema claro clavado en un subárbol que se pinta oscuro por defecto, donde daba ~1,7:1 contra
+   la tarjeta. La escala de salience se invertía justo en el extremo, y bajar el número de 22px a
+   14px lo empeoró. Token por tema, y peso 900 para que se distinga del grado 2 sin depender sólo
+   del tono. Ningún hex fijo dentro de `.amilo-root`. */
+.amilo-root .grado-3{color:var(--red-fuerte);font-weight:900}
+.amilo-root .grado-label{font-size:9.5px;color:var(--muted);margin-top:2px;line-height:1.3}
 .amilo-root .grado-item.selected .grado-label{color:var(--purple);font-weight:700}
-.amilo-root .prot-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.amilo-root .prot-item{border:2px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all .15s;user-select:none;text-align:center}
+.amilo-root .prot-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+/* Tres hijos en una sola fila (icono, etiqueta y descripción) desbordaban: un hijo de flex no
+   baja de su min-content. Medido: 33px de desborde a 375px y 16px a 768px. Con `flex-wrap` el
+   icono y la etiqueta quedan arriba y la descripción pasa a una línea propia a todo el ancho,
+   que además es lo que hace legible la tarjeta en columna angosta. La primera versión de este
+   arreglo puso `min-width:0` sólo en el último hijo y a 768px seguía desbordando. */
+.amilo-root .prot-item{border:1px solid var(--border);border-radius:7px;padding:7px 10px;cursor:pointer;transition:all .15s;user-select:none;display:flex;align-items:center;gap:6px 8px;flex-wrap:wrap;text-align:left;min-width:0}
+.amilo-root .prot-item-sub{flex-basis:100%;min-width:0}
 .amilo-root .prot-item:hover{border-color:var(--purple2)}
 .amilo-root .prot-item.selected.negativo{border-color:var(--green);background:var(--green-pale)}
 .amilo-root .prot-item.selected.anormal{border-color:var(--red);background:var(--red-pale)}
-.amilo-root .prot-item-icon{font-size:28px;margin-bottom:4px}
-.amilo-root .prot-item-label{font-size:13px;font-weight:700}
-.amilo-root .prot-item-sub{font-size:11px;color:var(--muted);margin-top:3px}
-.amilo-root .score-bar{height:10px;background:var(--bg);border-radius:5px;overflow:hidden;margin-top:6px}
+.amilo-root .prot-item-icon{font-size:15px;flex-shrink:0}
+.amilo-root .prot-item-label{font-size:12px;font-weight:600}
+.amilo-root .prot-item-sub{font-size:10px;color:var(--muted);line-height:1.35;flex-basis:100%;min-width:0}
+.amilo-root .score-bar{height:5px;background:var(--bg3,#eef1f6);border-radius:3px;overflow:hidden;margin-top:6px}
 .amilo-root .score-fill{height:100%;width:100%;border-radius:5px;transform:scaleX(0);transform-origin:left;transition:transform .4s}
-.amilo-root .escenario-box{border-radius:10px;padding:14px;margin-bottom:10px;border-left:4px solid}
+.amilo-root .escenario-box{border-radius:7px;padding:8px 10px;margin-bottom:8px;border-left:3px solid}
 .amilo-root .escenario-box.verde{background:var(--green-pale);border-color:var(--green)}
 .amilo-root .escenario-box.amarillo{background:var(--amber-pale);border-color:var(--amber)}
 .amilo-root .escenario-box.rojo{background:var(--red-pale);border-color:var(--red)}
 .amilo-root .escenario-box.morado{background:var(--purple-pale);border-color:var(--purple)}
-.amilo-root .escenario-titulo{font-size:13px;font-weight:700;margin-bottom:6px}
-.amilo-root .escenario-body{font-size:12px;line-height:1.7;color:var(--text)}
-.amilo-root .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
-.amilo-root .btn-purple{background:var(--purple);color:#fff}
-.amilo-root .btn-purple:hover{background:var(--purple2)}
-.amilo-root .btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}
-.amilo-root .btn-green{background:var(--green);color:#fff}
-.amilo-root .btn-sm{padding:5px 12px;font-size:12px}
-.amilo-root .info-box{background:var(--blue-pale);border:1px solid #B0C8E8;border-radius:8px;padding:12px 14px;font-size:12px;color:var(--blue);line-height:1.6;margin-bottom:12px}
-.amilo-root .warn-box{background:var(--amber-pale);border:1px solid #E8C070;border-radius:8px;padding:12px 14px;font-size:12px;color:#7A4F00;line-height:1.6;margin-bottom:12px}
+.amilo-root .escenario-titulo{font-size:12px;font-weight:700;margin-bottom:4px}
+.amilo-root .escenario-body{font-size:11.5px;line-height:1.6;color:var(--muted)}
+/* Los botones NO se estilan acá: se usan las clases globales (`.btn`, `.btn-ghost`,
+   `.btn-green`, `.btn-integrar`), que son las mismas que Hemodinámica. El módulo tenía su
+   propia escala —13px/700 con padding 9×18 y radio 9— y se veía el doble de grueso que el
+   resto de la app. Borrar el override es más seguro que replicar los números: si mañana se
+   ajusta el botón global, este módulo lo sigue solo. */
+/* Mismo patrón que los avisos de Hemodinámica y Pericardio: fondo neutro, borde izquierdo de
+   color y texto en el gris del tema. Antes el texto iba en `var(--blue)` y en `#7A4F00` sobre
+   tintes translúcidos — colores de tema claro dentro de un subárbol que se pinta oscuro: ~4,3:1
+   y ~1,8:1 a 11px. El aviso SE VEÍA de color y las palabras no se leían, que es la regla de
+   `badge()` por otra cara: la señal llegaba, el contenido no. */
+.amilo-root .info-box{background:var(--bg3,#eef1f6);border:1px solid var(--border);border-left:3px solid var(--blue);border-radius:7px;padding:7px 10px;font-size:11px;color:var(--muted);line-height:1.55;margin-bottom:9px}
+.amilo-root .warn-box{background:var(--bg3,#eef1f6);border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:7px;padding:7px 10px;font-size:11px;color:var(--muted);line-height:1.55;margin-bottom:9px}
 .amilo-root .badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700}
 .amilo-root .badge-purple{background:var(--purple-pale);color:var(--purple)}
 .amilo-root .badge-green{background:var(--green-pale);color:var(--green)}
@@ -1080,6 +1114,7 @@ html.light-mode .amilo-root{
 .amilo-root .mt-12{margin-top:12px}.amilo-root .mb-12{margin-bottom:12px}
 @media(max-width:1200px){.amilo-root .form-row.cols4{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.amilo-root .form-row.cols2,.amilo-root .form-row.cols3,.amilo-root .form-row.cols4{grid-template-columns:1fr}}
+@media(max-width:600px){.amilo-root .prot-grid{grid-template-columns:1fr}}
 @media(max-width:500px){.amilo-root .grado-grid{grid-template-columns:1fr 1fr}}
 @media print{.amilo-root .btn,.amilo-root .no-print{display:none!important}.amilo-root .card{break-inside:avoid}}
 /* El panel de indicaciones es sólo pantalla. Va por ID porque la clase `.no-print` sólo la apaga
@@ -11503,23 +11538,26 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 
         <!-- RESULTADO: va ABAJO de las cuatro columnas, no en el encabezado. Arriba se leia
              como un titulo y no como el cierre de la evaluacion. -->
-        <div style="background:linear-gradient(135deg,var(--navy),var(--purple));border-radius:14px;padding:20px;margin-bottom:18px;display:flex;gap:18px;align-items:center">
-    <div style="text-align:center">
-      <div style="font-size:48px;font-weight:900;color:#fff;line-height:1" id="ett-score-num">0</div>
-      <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px">/ 10 pts</div>
-    </div>
-    <div style="flex:1">
-      <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:4px" id="ett-score-cat">Completá los parámetros</div>
-      <div style="font-size:12px;color:rgba(255,255,255,.7);line-height:1.5" id="ett-score-interp">Score ≥8 + HVI ≥12mm sugiere amiloidosis cardíaca.</div>
-      <div class="score-bar" style="margin-top:10px"><div class="score-fill" id="ett-score-bar" style="transform:scaleX(0);background:#C8A0FF"></div></div>
-    </div>
-  </div>
+        <!-- Resultado compacto, con el peso visual de una caja de resultado de Hemodinámica.
+             Antes era un banner con gradiente de 20px de padding y el número en 48px: se leía
+             como un cartel y no como el cierre de la evaluación. Los CUATRO ids que escribe
+             `calcETT` —`ett-score-num`, `ett-score-cat`, `ett-score-interp` y `ett-score-bar`—
+             se conservan tal cual: no se tocó una línea de esa función. -->
+        <div class="card" style="margin-bottom:0">
+          <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Score ESC 2021</span>
+            <span style="font-size:13px;font-weight:700;font-variant-numeric:tabular-nums"><span id="ett-score-num">0</span> / 10 pts</span>
+            <span id="ett-score-cat" style="font-size:12px;font-weight:600">Completá los parámetros</span>
+          </div>
+          <div class="score-bar" style="margin-top:6px"><div class="score-fill" id="ett-score-bar" style="transform:scaleX(0);background:var(--purple)"></div></div>
+          <div id="ett-score-interp" style="font-size:11.5px;color:var(--muted);line-height:1.55;margin-top:6px">Score ≥8 + HVI ≥12mm sugiere amiloidosis cardíaca.</div>
+        </div>
 
         <div style="text-align:center;margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;" class="no-print">
-          <button class="btn btn-purple" onclick="pasarScoreAAlgoritmo()">→ Pasar score al Algoritmo</button>
+          <button class="btn btn-ghost" onclick="pasarScoreAAlgoritmo()">→ Pasar score al Algoritmo</button>
           <button class="btn btn-green" onclick="amiloImprimirPDF('ett')">🖨 Imprimir resultado</button>
           <button class="btn btn-integrar" data-am-k="ett" onclick="amiloIntegrar('ett')">📎 Integrar al informe</button>
-          <button class="btn btn-secondary" onclick="resetETT()">🔄 Limpiar</button>
+          <button class="btn btn-ghost" onclick="resetETT()">🔄 Limpiar</button>
         </div>
       </div>
     </div>
@@ -11617,7 +11655,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <div style="text-align:center;margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;" class="no-print">
           <button class="btn btn-green" onclick="amiloImprimirPDF('algoritmo')">🖨 Imprimir resultado</button>
           <button class="btn btn-integrar" data-am-k="alg" onclick="amiloIntegrar('alg')">📎 Integrar al informe</button>
-          <button class="btn btn-secondary" onclick="resetAlgoritmo()">🔄 Nueva evaluación</button>
+          <button class="btn btn-ghost" onclick="resetAlgoritmo()">🔄 Nueva evaluación</button>
         </div>
       </div>
     </div>
