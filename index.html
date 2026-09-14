@@ -1729,8 +1729,19 @@ window.cerrarSesion = cerrarSesion;
 
 <!-- ═══════════════════════ TAB: DATOS PACIENTE ═══════════════════════ -->
 <div id="tab-datos" class="tab-section active">
-  <div class="card sacc" id="sacc-pac">
+  <!-- `position:relative` para colgar el botón HC del encabezado. Va como HERMANO y no adentro
+       del `.sacc-hdr`, que ya ES un `<button>`: anidar botones es HTML inválido y el clic
+       interno se lo comería el de afuera —abriría el acordeón en vez de abrir la HC—. -->
+  <div class="card sacc" id="sacc-pac" style="position:relative;">
     <button type="button" class="sacc-hdr" onclick="secToggle('pac')" aria-expanded="false"><span class="sacc-arrow">▶</span>Datos del paciente</button>
+    <!-- 44×44 por la regla táctil global. Alinea con el encabezado porque `.sacc-hdr` TAMBIÉN es
+         un `<button>` y esa misma regla lo estira a 44 — no por la suma del padding, que da 43,5.
+         Si algún día se le hace excepción a la regla para compactar la barra (como ya existe para
+         `header [onclick]`), hay que revisar este botón. -->
+    <button type="button" class="btn btn-ghost" id="btn-hc" title="Historia clínica del paciente"
+            aria-label="Historia clínica del paciente"
+            style="display:none;position:absolute;top:0;right:10px;padding:0 12px;"
+            onclick="hcAbrir()">HC</button>
     <div class="card-body sacc-body">
       <div class="grid-4">
         <div class="fg">
@@ -1765,7 +1776,7 @@ window.cerrarSesion = cerrarSesion;
         </div>
         <div class="fg">
           <label>Nº documento</label>
-          <input type="text" id="ci" placeholder="Número">
+          <input type="text" id="ci" placeholder="Número" oninput="hcSync()">
         </div>
         <div class="fg">
           <label>Matrícula</label>
@@ -3048,9 +3059,17 @@ window.cerrarSesion = cerrarSesion;
 
 <!-- ═══════════════════════ TAB: ECO PULMONAR (avanzado) ═══════════════════════ -->
 <div id="tab-pulmonar" class="tab-section">
-  <div class="card" style="margin-bottom:8px;">
-    <h2 class="card-head">🫁 Ecografía Pulmonar — evaluación avanzada</h2>
+
+  <div class="card" style="margin-bottom:6px;">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('pua-seccion',this);pulAvUI()">
+      🫁 Ecografía pulmonar — evaluación avanzada
+      <span id="pua-seccion-arrow" style="float:right;transition:transform 0.2s;">▶</span>
+    </h2>
+  </div>
+  <div id="pua-seccion" style="display:none;">
+  <div class="card">
     <div class="card-body">
+
       <p style="font-size:11px;color:var(--text2);margin-bottom:12px;">
         Al integrar este módulo, la sección básica de Ecografía Pulmonar se omite del informe para no duplicar los hallazgos.
       </p>
@@ -3165,6 +3184,7 @@ window.cerrarSesion = cerrarSesion;
         <button type="button" class="btn btn-integrar" data-am-k="pulm" onclick="amiloIntegrar('pulm')">📎 Integrar al informe</button>
       </div>
     </div>
+  </div>
   </div>
 </div>
 
@@ -10951,12 +10971,17 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 
 <!-- ═══════════════════════ TAB: CARDIO-ONCOLOGIA ═══════════════════════ -->
 <div id="tab-cardioOnco" class="tab-section">
-<div class="card" style="margin-bottom:8px;">
-  <h2 class="card-head">🎗️ Cardio-Oncología — ESC 2022</h2>
-  <div class="card-body">
 
-    <!-- RIESGO BASAL -->
-    <!-- ECOS-07: ya no se rotula «HFA-ICOS». Lo que suma este bloque son puntos genéricos
+  <div class="card" style="margin-bottom:6px;">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('co-basal-seccion',this);calcCardioOnco()">
+      📊 Riesgo cardiovascular basal estimado (ESC 2022)
+      <span id="co-basal-seccion-arrow" style="float:right;transition:transform 0.2s;">▶</span>
+    </h2>
+  </div>
+  <div id="co-basal-seccion" style="display:none;">
+  <div class="card">
+    <div class="card-body">
+<!-- ECOS-07: ya no se rotula «HFA-ICOS». Lo que suma este bloque son puntos genéricos
          (riesgo CV, edad, FEVI, dosis de antraciclina) con cortes propios; HFA-ICOS son
          tablas ESPECÍFICAS por tipo de tratamiento y no existe un score único universal con
          estos cortes. Llamarlo HFA-ICOS le prestaba a un cálculo orientativo la autoridad de
@@ -11003,12 +11028,20 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
     </div>
     <div id="co-riesgo-resultado" class="calc-box" style="margin-bottom:14px;"></div>
+    </div>
+  </div>
+  </div>
 
-    <div class="divider"></div>
-
-    <!-- MONITOREO ACTUAL -->
-    <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">🫀 Evaluacion Actual</div>
-    <div class="grid-3" style="margin-bottom:10px;">
+  <div class="card" style="margin-bottom:6px;">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('co-actual-seccion',this);calcCardioOnco()">
+      🫀 Evaluación actual
+      <span id="co-actual-seccion-arrow" style="float:right;transition:transform 0.2s;">▶</span>
+    </h2>
+  </div>
+  <div id="co-actual-seccion" style="display:none;">
+  <div class="card">
+    <div class="card-body">
+<div class="grid-3" style="margin-bottom:10px;">
       <div class="fg"><label>FEVI actual (%)</label>
         <input type="number" id="co_fevi_actual" placeholder="%" oninput="calcCardioOnco()">
       </div>
@@ -11024,15 +11057,23 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
     <div id="co-toxicidad-resultado" class="calc-box" style="margin-bottom:14px;"></div>
 
-    <div style="text-align:center;margin-bottom:14px;">
-      <button type="button" class="btn btn-integrar" data-am-k="conco" onclick="amiloIntegrar('conco')">📎 Integrar al informe</button>
+      <div style="text-align:center;margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;" class="no-print">
+        <button type="button" class="btn btn-integrar" data-am-k="conco" onclick="amiloIntegrar('conco')">📎 Integrar al informe</button>
+      </div>
     </div>
+  </div>
+  </div>
 
-    <div class="divider"></div>
-
-    <!-- SEGUIMIENTO LONGITUDINAL -->
-    <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">📈 Seguimiento Longitudinal</div>
-    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:flex-end;">
+  <div class="card" style="margin-bottom:6px;">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('co-seguimiento-seccion',this);renderSeguimientoLista()">
+      📈 Seguimiento longitudinal
+      <span id="co-seguimiento-seccion-arrow" style="float:right;transition:transform 0.2s;">▶</span>
+    </h2>
+  </div>
+  <div id="co-seguimiento-seccion" style="display:none;">
+  <div class="card">
+    <div class="card-body">
+<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:flex-end;">
       <div class="fg" style="flex:1;min-width:120px;"><label>Fecha</label><input type="date" id="co_seg_fecha"></div>
       <div class="fg" style="flex:1;min-width:80px;"><label>FEVI (%)</label><input type="number" id="co_seg_fevi" placeholder="%"></div>
       <div class="fg" style="flex:1;min-width:80px;"><label>GLS (%)</label><input type="number" id="co_seg_gls" placeholder="%"></div>
@@ -11041,12 +11082,20 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
     <div id="co-seguimiento-lista" style="margin-bottom:10px;"></div>
     <canvas id="co-chart" style="max-height:220px;display:none;margin-bottom:10px;"></canvas>
+    </div>
+  </div>
+  </div>
 
-    <div class="divider"></div>
-
-    <!-- REFERENCIA RAPIDA -->
-    <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">📋 Referencia Rapida — Criterios ESC 2022</div>
-    <table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:10px;">
+  <div class="card" style="margin-bottom:6px;">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('co-referencia-seccion',this)">
+      📋 Referencia rápida — criterios ESC 2022
+      <span id="co-referencia-seccion-arrow" style="float:right;transition:transform 0.2s;">▶</span>
+    </h2>
+  </div>
+  <div id="co-referencia-seccion" style="display:none;">
+  <div class="card">
+    <div class="card-body">
+<table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:10px;">
       <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Hallazgo</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Definicion</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Accion</th></tr>
       <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;color:var(--red);">Caida FEVI severa</td><td style="padding:5px 8px;">FEVI &lt;50% o caida &gt;=10pp</td><td style="padding:5px 8px;">Suspender, cardioproteccion, reevaluar en 2-4 sem</td></tr>
       <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;color:var(--orange);">Caida FEVI moderada</td><td style="padding:5px 8px;">Caida 10-15pp con FEVI &gt;=50%</td><td style="padding:5px 8px;">Continuar con cardioproteccion y control en 4 sem</td></tr>
@@ -11063,9 +11112,9 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Anti-VEGF</td><td style="padding:5px 8px;">HTA, trombosis, disfuncion VI</td><td style="padding:5px 8px;">PA, eco si sintomas o FEVI limite</td></tr>
       <tr><td style="padding:5px 8px;font-weight:700;">Radioterapia toracica</td><td style="padding:5px 8px;">Pericarditis, EAC, valvulopatia tardia</td><td style="padding:5px 8px;">Eco 5 y 10 anos post-RT</td></tr>
     </table>
-
+    </div>
   </div>
-</div>
+  </div>
 </div>
 
 <!-- ═══════════════════════ TAB: INFORME ═══════════════════════ -->
@@ -19494,7 +19543,7 @@ function RECALC_MODULOS() {
      de OTRAS pestañas (el select `pericardio`, la VCI de VD/AD, e' de Doppler) y las rutas de
      restauración pueblan asignando `.value`, que no dispara ningún evento: sin esto, reabrir un
      estudio dejaba la conclusión de taponamiento del paciente anterior en pantalla. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','dptSync','cvrSync','indicSyncBoton'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','dptSync','cvrSync','hcSync','calcCardioOnco','indicSyncBoton'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -19664,6 +19713,18 @@ function limpiarCampos(silencioso) {
      selector, y los espejos de solo lectura tampoco. Sin repintar, el paciente nuevo arrancaba
      con «TAPONAMIENTO CARDÍACO» del anterior sobre un formulario ya vacío — el cuadro exacto
      del algoritmo de amiloidosis. Un reseteo que no repinta no es un reseteo. */
+  /* El barrido vacía `#ci`, pero asignar `.value` no dispara `oninput`: sin esto el botón HC
+     del paciente anterior seguía visible sobre un formulario en blanco. */
+  /* `calcCardioOnco` NO estaba en ninguna de las tres columnas: ni acá, ni en `editarInforme`,
+     ni en `cargarEstudioPorId`. Sus dos paneles se llenan con `.calc-row` cuyos `<span>` NO
+     llevan `id`, así que el barrido `.calc-box .calc-row span[id]` no los alcanza, y
+     `amiloTextoCardioOnco` los lee del DOM con `_amRows` en vez de recalcular. Resultado, medido
+     al principio de esta sesión: tras «Nuevo estudio» los campos quedaban vacíos y los paneles
+     seguían mostrando «Riesgo MUY ALTO» y la cardiotoxicidad SEVERA del paciente ANTERIOR, y un
+     clic en «Integrar» los metía en el informe del actual. Es el cuadro de `gradoGamma`/
+     `protMonoc`. Se cierra acá y en RECALC_MODULOS, que son las tres columnas. */
+  if (typeof hcSync === 'function') { try { hcSync(); } catch (e) {} }
+  if (typeof calcCardioOnco === 'function') { try { calcCardioOnco(); } catch (e) {} }
   if (typeof dptSync === 'function') { try { dptSync(); } catch (e) {} }
   if (typeof cvrSync === 'function') { try { cvrSync(); } catch (e) {} }
   /* Los botones se repintan desde el ESTADO REAL, no a `false` fijo. Las claves del bull's eye
@@ -31060,6 +31121,39 @@ let _impDatos = null;   // estudios validados del archivo, en espera de confirma
 
    Se usa \p{L}/\p{N} y no [a-z0-9] para no dejar sin claves a un nombre en alfabeto no
    latino, que quedaría sin identidad y se reinsertaría en cada importación. */
+/* ══ Botón «HC» del encabezado de Datos del paciente ══
+   Placeholder de la historia clínica, que llega con Supabase. Hoy sólo deja constancia en la
+   consola: no hay panel ni modal, y no hay nada que leer sin backend.
+
+   Se muestra SÓLO con documento cargado, y la presencia se decide con `_dupSinDato()` —la misma
+   función que ya usa la app para «¿esta ficha tiene documento?»— y no con `!== ''`. El motivo
+   está documentado: `guardarInforme` guarda `ci || '—'` con raya U+2014, así que todo estudio
+   sin cédula «tiene» algo en el campo, y las normalizaciones habituales sacan el guion ASCII
+   pero no la raya. Preguntar por presencia de una letra o un dígito es lo único que distingue un
+   documento de un placeholder. */
+function hcSync() {
+  var b = document.getElementById('btn-hc');
+  if (!b) return;
+  var ci = (document.getElementById('ci') || {}).value || '';
+  /* `_dupSinDato` es declaración de función del MISMO bloque, así que está hoisteada y el
+     `typeof` daba siempre 'function': la rama de respaldo era inalcanzable y sólo servía para
+     tener una segunda copia del predicado que decide identidad de paciente. Se llama directo. */
+  var hay = !_dupSinDato(ci);
+  b.style.display = hay ? '' : 'none';
+}
+window.hcSync = hcSync;
+
+function hcAbrir() {
+  /* NO loguear el documento acá. Un `console.log('HC: ' + ci)` mete un identificador de paciente
+     en la consola del navegador, que es una superficie que nadie limpia. */
+  console.log('HC: pendiente Supabase');
+  /* Y avisa. Un botón habilitado que al tocarlo no hace NADA visible se lee como que la app se
+     colgó, y el reflejo es tocarlo otra vez. No es panel ni modal: es la señal mínima de que el
+     clic llegó. */
+  if (typeof toast === 'function') toast('🗂️ Historia clínica: disponible en una próxima versión');
+}
+window.hcAbrir = hcAbrir;
+
 function _dupSinDato(s) { return !/[\p{L}\p{N}]/u.test(s); }
 function _dupKeys(i) {
   const f = String(i.fecha_estudio || '').trim();

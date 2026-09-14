@@ -2308,7 +2308,51 @@ no envolviendo la llamada nueva: arregla a los dos llamadores y al tercero que v
 abortaba antes de `calcETT()` y dejaba los campos vacíos con el panel del score mostrando todavía
 el número del paciente anterior.
 
+### Cardio-Oncología y Eco Pulmonar a acordeones · botón HC — 2026-09-14
+
+Dos conversiones a acordeón (`.card` + `h2.card-head` + `toggleCard`, el patrón de Hemodinámica)
+y un botón placeholder. Sin bajas de id en todo el archivo y balance de `<div>` sin cambios.
+
+**`secAutoOpen` NO alcanza a los acordeones `toggleCard`.** Sólo recorre `.sacc`, así que ninguna
+sección del patrón `toggleCard` se auto-abre cuando tiene datos. Consecuencia en Cardio-Oncología:
+un estudio con cardiotoxicidad severa calculada se ve como cuatro barras cerradas, sin indicio de
+que adentro hay algo. **No lo introdujo este cambio** —Hemodinámica, Congénitas y Amiloidosis se
+comportan igual desde antes— pero ahora alcanza a un módulo cuyo rótulo decide si se suspende una
+quimioterapia. La pieza para cerrarlo ya existe: `.incl-badge`, que se creó justo para «el botón
+vive DENTRO del cuerpo colapsable y con la sección cerrada no se veía nada».
+
+**El botón HC va como HERMANO del `.sacc-hdr`, no adentro.** Ese header ya ES un `<button>`:
+anidar botones es HTML inválido y, peor, el handler de afuera se come el clic de adentro — tocar
+HC habría abierto el acordeón en vez de la historia clínica. Va en `position:absolute` sobre la
+barra; verificado que no se recorta por el `overflow:hidden` de `.card`, que no dispara
+`secToggle`, y que conserva sus eventos en PC, donde `#tab-datos .sacc .sacc-hdr` tiene
+`pointer-events:none`.
+
+**La visibilidad se decide con `_dupSinDato()`, nunca con `!== ''`.** `guardarInforme` guarda
+`ci || '—'` con raya U+2014, así que **toda** ficha sin cédula «tiene» algo en el campo. Medido:
+con `'—'` el botón queda oculto, como corresponde. Y `hcSync` entró a `RECALC_MODULOS` y a
+`limpiarCampos` porque las rutas de restauración asignan `.value` sin disparar `oninput`.
+
+**Los 44×44 del botón NO salen de la suma del padding** (12+19,5 = 43,5): salen de que
+`.sacc-hdr` también es un `<button>` y la regla táctil global lo estira a 44. Coinciden por la
+regla, no por la aritmética — si algún día se le hace excepción a esa regla para compactar la
+barra, hay que revisar este botón.
+
+**Un botón que no hace nada visible se lee como que la app se colgó.** `hcAbrir` era sólo un
+`console.log`; se le agregó un toast. No es panel ni modal —eso llega con Supabase—, es la señal
+mínima de que el clic llegó. Y **no loguea el documento**: un `console.log('HC: ' + ci)` metería
+un identificador de paciente en una superficie que nadie limpia.
+
 ## Deuda conocida sin resolver
+
+- **`generarInformeConEvolucion` cruza pacientes sin documento** (detectado 2026-09-14, sin
+  corregir, fuera del diff que lo destapó). Filtra con `if (ci && …)` y compara
+  `String(i.ci||'').trim() === ci`: `'—'` es truthy y es lo que `guardarInforme` deja en toda
+  ficha sin cédula, así que el modal de evolución **empareja entre sí a todos los pacientes sin
+  documento** y ofrece los estudios de otra gente como historia del que está en pantalla. Es
+  exactamente la clase que documenta `ci: ci || '—'`. El arreglo es una línea —`!_dupSinDato(ci)`,
+  con la función ya exportada— pero cambia qué estudios lista el modal, así que merece su propia
+  verificación.
 
 - **Los campos de Pericardio no están en `_IG_SECTIONS`, ni en el mapa de Excel, ni en
   `LAB_XLS_RANGO`.** Los 19 ids nuevos (`dpt_*`, `cvr_*`, `resp_var_*`) **sí** se guardan y se
@@ -2355,15 +2399,18 @@ el número del paciente anterior.
   que nombra la consecuencia en vez de yuxtaponer el dato. Afecta por igual al narrativo y a la
   hoja —es la misma redacción—, así que no lo introdujo la hoja nueva. Cambiarlo toca el texto del
   informe firmado: es decisión clínica, no técnica.
-- **Cardio-Oncología deja el panel del paciente anterior y lo manda al PDF firmado** (verificado
-  2026-09-13, sin corregir). `#co-riesgo-resultado` y `#co-toxicidad-resultado` se llenan con
-  `.calc-row` cuyos `<span>` **no llevan `id`**, así que el barrido
-  `.calc-box .calc-row span[id]` de `limpiarCampos` no los toca; y `calcCardioOnco` no está en
-  `limpiarCampos` ni en `editarInforme` ni en `cargarEstudioPorId` — sólo en los `oninput`, el
-  autosave y la reimpresión. `amiloTextoCardioOnco` lee el DOM con `_amRows`, no recalcula. Es el
-  caso `gradoGamma`/`protMonoc` completo: «Nuevo estudio» deja los campos vacíos y los dos paneles
-  con el riesgo MUY ALTO y la cardiotoxicidad SEVERA del anterior, y un clic en Integrar los mete
-  en el informe del actual. El PPT los lee igual (`_pptSpan`).
+- ~~Cardio-Oncología deja el panel del paciente anterior y lo manda al PDF firmado~~ —
+  **CERRADO 2026-09-14.** `calcCardioOnco` entró a `RECALC_MODULOS` y a `limpiarCampos`, que son
+  las dos columnas que le faltaban (la tercera, `guardarInforme`, ya la cubría el barrido
+  genérico). El defecto: sus dos paneles se llenan con `.calc-row` cuyos `<span>` **no llevan
+  `id`**, así que el barrido `.calc-box .calc-row span[id]` no los alcanza, y
+  `amiloTextoCardioOnco` los lee del DOM con `_amRows` en vez de recalcular. Verificado antes y
+  después: «Nuevo estudio» dejaba los campos vacíos y los paneles con «Riesgo MUY ALTO» y la
+  cardiotoxicidad SEVERA del anterior; hoy se repintan con lo que corresponde al formulario vacío.
+  **Queda una salvedad sobre el panel de riesgo:** con el formulario en blanco dice «Riesgo BAJO
+  (0 pts)», o sea afirma sobre cero mediciones. El panel de toxicidad sí tiene su compuerta («No
+  evaluable — sin FEVI actual, GLS ni troponina cargados»); el de riesgo no. Es preexistente y
+  ahora se ve, porque antes lo tapaba el dato del paciente anterior.
 - **El módulo pulmonar avanzado publica un pulmón normal completo sin que nadie mire nada, y borra
   el hallazgo real del básico** (verificado 2026-09-13, sin corregir). Sus cinco `<select>` no
   tienen opción vacía y arrancan todos en el valor normal; `amiloIntegrar` no tiene compuerta de
