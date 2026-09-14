@@ -11557,7 +11557,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           <button class="btn btn-ghost" onclick="pasarScoreAAlgoritmo()">→ Pasar score al Algoritmo</button>
           <button class="btn btn-green" onclick="amiloImprimirPDF('ett')">🖨 Imprimir resultado</button>
           <button class="btn btn-integrar" data-am-k="ett" onclick="amiloIntegrar('ett')">📎 Integrar al informe</button>
-          <button class="btn btn-ghost" onclick="resetETT()">🔄 Limpiar</button>
+          <button class="btn btn-ghost" onclick="resetETTConfirmar()">🔄 Limpiar</button>
         </div>
       </div>
     </div>
@@ -11655,7 +11655,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <div style="text-align:center;margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;" class="no-print">
           <button class="btn btn-green" onclick="amiloImprimirPDF('algoritmo')">🖨 Imprimir resultado</button>
           <button class="btn btn-integrar" data-am-k="alg" onclick="amiloIntegrar('alg')">📎 Integrar al informe</button>
-          <button class="btn btn-ghost" onclick="resetAlgoritmo()">🔄 Nueva evaluación</button>
+          <button class="btn btn-ghost" onclick="resetAlgoritmoConfirmar()">🔄 Nueva evaluación</button>
         </div>
       </div>
     </div>
@@ -33089,6 +33089,75 @@ function pasarScoreAAlgoritmo() {
   actualizarAlgoritmo();
 }
 
+/* ══ Confirmación de los dos botones destructivos ══
+
+   El `confirm()` va en un ENVOLTORIO y no dentro de `resetETT`/`resetAlgoritmo`, porque a esas
+   dos las llama también `limpiarCampos` en cada «Nuevo estudio» y al abrir otro estudio: el
+   diálogo aparecería en una ruta automática, delante de un médico que no apretó nada. Los
+   envoltorios los llaman SÓLO los dos botones; el comportamiento de las funciones originales no
+   cambia para ningún otro llamador, ni para los que se agreguen mañana.
+
+   Y se gatea por el DATO, no por el estado visual de ningún control: preguntar sobre un
+   formulario ya vacío entrena a decir que sí sin leer, que es la forma de volver inútil una
+   confirmación. Sin nada cargado, limpia sin preguntar.
+
+   El predicado recorre la sección y no una lista de ids copiada de `resetETT`: una segunda lista
+   se desincroniza el día que se agregue un campo, y el modo de falla sería silencioso —el botón
+   dejaría de preguntar justo por el campo nuevo—. */
+function _amHayDato(secId) {
+  var sec = document.getElementById(secId);
+  /* Falla CERRADO. Sobre una acción destructiva, «no encuentro la sección» no puede significar
+     «no hay nada que perder»: significa que no sé, y entonces pregunto. Y el modo de falla del
+     `false` era mudo — si mañana cambia el id del contenedor, `resetETT` sigue borrando igual y
+     lo único que desaparece es la confirmación, sin error ni señal. Este módulo ya renombró sus
+     contenedores una vez en el rediseño a acordeones. */
+  if (!sec) return true;
+  var hay = false;
+  sec.querySelectorAll('input').forEach(function (el) {
+    if (hay || el.readOnly) return;
+    /* Los checkbox/radio se preguntan por `.checked`. Un `<input type=checkbox>` sin `value`
+       explícito devuelve `"on"` esté marcado o no, así que leerle el `.value` dejaría el
+       predicado trabado en `true` y la confirmación pasaría a ser incondicional — justo lo que
+       este predicado existe para evitar. Hoy no hay ninguno en estas dos secciones; la rama está
+       para el día que los tres criterios cualitativos dejen de ser `div` + hidden. */
+    if (el.type === 'checkbox' || el.type === 'radio') { if (el.checked) hay = true; return; }
+    var v = String(el.value || '').trim();
+    if (!v) return;
+    /* Un valor que parsea a 0 no es dato, y no es una regla nueva: es la que ya aplican los
+       consumidores del módulo. Los hidden de puntaje arrancan en '0' de fábrica, y
+       `actualizarAlgoritmo` lee el score con `PF(...) || null`, o sea que para él 0 es ausencia.
+       Sin esto, «→ Pasar score al Algoritmo» con el score vacío escribía un '0' en
+       `alg-ett-score` y «Nueva evaluación» preguntaba sobre un algoritmo en blanco. Dos
+       criterios distintos sobre el mismo dato es lo que se quiere evitar. */
+    if (parseFloat(v.replace(',', '.')) === 0) return;
+    hay = true;
+  });
+  if (!hay) sec.querySelectorAll('select').forEach(function (el) {
+    if (!hay && el.selectedIndex > 0) hay = true;
+  });
+  return hay;
+}
+
+function resetETTConfirmar() {
+  if (_amHayDato('amilo-ett-seccion')
+      && !confirm('¿Limpiar el Score de Amiloidosis por ETT?\n\nSe borran los espesores, los criterios marcados, los cálculos y los otros hallazgos (FEVI, sparkling, derrame, engrosamiento valvular). No se puede deshacer.')) return;
+  resetETT();
+  if (typeof toast === 'function') toast('🔄 Score ETT limpiado');
+}
+window.resetETTConfirmar = resetETTConfirmar;
+
+function resetAlgoritmoConfirmar() {
+  /* El grado Perugini y las proteínas monoclonales son variables de módulo, no campos del
+     formulario, así que el barrido del DOM no las ve: van aparte. */
+  var hay = _amHayDato('amilo-alg-seccion')
+         || (typeof gradoGamma !== 'undefined' && gradoGamma !== null)
+         || (typeof protMonoc  !== 'undefined' && protMonoc  !== null);
+  if (hay && !confirm('¿Empezar una evaluación nueva?\n\nSe borran el motivo de sospecha, el score ETT cargado, el grado del centellograma y el resultado de las proteínas monoclonales. No se puede deshacer.')) return;
+  resetAlgoritmo();
+  if (typeof toast === 'function') toast('🔄 Evaluación reiniciada');
+}
+window.resetAlgoritmoConfirmar = resetAlgoritmoConfirmar;
+
 function resetETT() {
   // ett-fevi faltaba: sobrevivía al Limpiar y entraba al informe del paciente siguiente.
   ['rwt-pp','rwt-ddvi','ee-e','ee-ep','tapse-val','sgl-val','ap-apic','ap-base',
@@ -33108,9 +33177,14 @@ function resetETT() {
   ['chk-rwt','chk-ee','chk-tapse','chk-sgl','chk-apice','chk-cual-1','chk-cual-2','chk-cual-3'].forEach(id=>{
     var el=document.getElementById(id); if(el) el.textContent='—';
   });
-  document.getElementById('ett-sparkling').selectedIndex=0;
-  document.getElementById('ett-derrperic').selectedIndex=0;
-  document.getElementById('ett-valvular').selectedIndex=0;
+  /* Con guarda, no pelados. `resetETT` ya tenía DOS llamadores —`limpiarCampos`, que la envuelve
+     en try/catch, y ahora el botón— y un throw acá abortaba antes de `amCalcToggle`, `amMarcaTitulo`
+     y `calcETT()`: campos vacíos con el panel del score mostrando todavía el número y la
+     interpretación del paciente anterior. Guardarlo en la fuente arregla a los dos llamadores y al
+     tercero que venga; envolver cada llamada dejaba el pelado vivo. */
+  ['ett-sparkling','ett-derrperic','ett-valvular'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.selectedIndex=0;
+  });
   // Los acordeones de cálculo vuelven a colapsarse: sin datos no hay nada que mostrar,
   // y los tooltips del tilde vuelven a decir "sin marcar".
   if (typeof amCalcIds === 'function') amCalcIds().forEach(k => { amCalcToggle(k, false); amMarcaTitulo(k); });

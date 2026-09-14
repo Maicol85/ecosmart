@@ -2279,11 +2279,34 @@ resto de la app —fondo neutro, borde izquierdo de color, texto en el gris del 
 veía de color y las palabras no se leían**, que es la regla de `badge()` por otra cara: la señal
 llegaba, el contenido no.
 
-**Queda anotado, sin resolver:** los botones «Limpiar» y «Nueva evaluación» son destructivos
-(`resetETT` vacía 14 inputs y 8 criterios, `resetAlgoritmo` borra `gradoGamma`/`protMonoc`), no
-piden confirmación, y ahora se ven **idénticos** a «Integrar al informe» — `.btn-ghost` y
-`.btn-integrar` tienen declaraciones byte a byte iguales. Es consecuencia directa de unificar el
-estilo, que es lo que se pidió. Si molesta: `confirm()` gateado por «¿hay dato cargado?».
+**Los dos botones destructivos piden confirmación — CERRADO 2026-09-13.** «Limpiar» y «Nueva
+evaluación» se ven idénticos a «Integrar al informe» (`.btn-ghost` y `.btn-integrar` tienen
+declaraciones byte a byte iguales), que es consecuencia de unificar el estilo. Cuatro cosas que
+costaron la revisión:
+
+- **El `confirm()` va en un ENVOLTORIO, no dentro del reset.** `resetETT` y `resetAlgoritmo` las
+  llama también `limpiarCampos` en cada «Nuevo estudio» y al abrir otro estudio: el diálogo
+  habría aparecido en una ruta automática, delante de alguien que no apretó nada.
+  `resetETTConfirmar`/`resetAlgoritmoConfirmar` los llaman SÓLO los dos botones, y las funciones
+  crudas no cambian para ningún otro llamador —ni para los que se agreguen mañana—.
+- **El predicado falla CERRADO.** `_amHayDato` devolvía `false` si no encontraba la sección: sobre
+  una acción destructiva, «no la encuentro» no puede significar «no hay nada que perder», y el
+  modo de falla era mudo — si cambia el id del contenedor, el borrado sigue funcionando y lo único
+  que desaparece es la confirmación. Hoy devuelve `true`. Este módulo ya renombró sus contenedores
+  una vez.
+- **Un valor que parsea a 0 no es dato, y no es una regla nueva:** es la que ya aplican los
+  consumidores (`actualizarAlgoritmo` lee el score con `PF(...) || null`). Sin eso, «→ Pasar score
+  al Algoritmo» con el score vacío escribía un `'0'` y «Nueva evaluación» preguntaba sobre un
+  algoritmo en blanco. Dos criterios distintos sobre el mismo dato, otra vez.
+- **`gradoGamma !== null`, nunca truthiness.** `selGrado(0)` es «No capta nada», una respuesta
+  clínica real con valor `0`; un `!gradoGamma` la habría tratado como vacío y el botón habría
+  borrado el centellograma sin preguntar. Y las dos variables de módulo van al predicado aparte:
+  el barrido del DOM no las ve porque no son campos del formulario.
+
+De paso se guardaron los tres `getElementById` pelados del final de `resetETT` **en la fuente** y
+no envolviendo la llamada nueva: arregla a los dos llamadores y al tercero que venga. Un throw ahí
+abortaba antes de `calcETT()` y dejaba los campos vacíos con el panel del score mostrando todavía
+el número del paciente anterior.
 
 ## Deuda conocida sin resolver
 
