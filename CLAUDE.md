@@ -24,6 +24,19 @@ ninguna es evidente leyendo el código alrededor.
 
 ## Trampas
 
+### Si el valor lo pusiste vos, no probaste nada
+Al cerrar la fuga del centro en reimpresión (2026-09-14) monté la prueba escribiendo
+`med-centro.textContent = 'CENTRO AL FIRMAR'` desde la consola, vi la fuga, la arreglé, vi que
+se cerraba, y hasta corrí un control negativo contra HEAD que la reprodujo. Todo verde. Sólo que
+**el médico no puede escribir ahí**: el `<div>` que contiene el span está `hidden` y la clave que
+lo puebla no la escribe nadie. Había verificado el mecanismo y no la *alcanzabilidad*, así que
+casi agrego 60 líneas —persistir el span en `campos`, reponerlo en la reimpresión, una bandera
+nueva— para conservar un dato que nunca existe. Es el mismo error de denominador de siempre, con
+otra cara: antes era medir sobre un contenedor vacío; acá fue poblar yo la entrada.
+Antes de arreglar un campo, preguntar **quién lo escribe en la app real** — `grep` de la clave y
+mirar si su contenedor es visible. Si la respuesta es «nadie», el arreglo es otro.
+
+
 ### `amiloSanPDF` borra los `\n`
 Su catch-all es `[^\x20-\xFF]`, o sea que se lleva puesto el salto de línea, y además
 termina en `.trim()`. Aplicada de una pasada a `informeTxt` o `sumaTxt` —que son
@@ -2405,6 +2418,31 @@ hoja. Un estudio exactamente en el borde sí podría volcar, y eso es inherente 
 criterio». Si aparece, la palanca es juntar las salvedades con la línea de la AHA.
 
 ## Deuda conocida sin resolver
+
+- **`med-centro` es un span huérfano y le gana al centro de Config en TODO PDF.** El encabezado
+  resuelve `_medCentro || centroStr || 'CeiboMed'` (~21244) y `_medCentro` es `sv('med-centro')`,
+  un `<span contenteditable>` dentro de `<div id="hdr-med-datos" hidden>` (~1408). Nadie lo puede
+  tipear —el contenedor está oculto— y **`ett_med_centro`, la única clave que lo puebla vía
+  `initHdrEditable` (~34101), no la escribe NADIE en el archivo**: quedó huérfana al pasar los
+  centros a ⚙️ Config. En una instalación limpia vale `''` y todo funciona por `centroStr`.
+  Pero en una instalación que venga de antes de esa migración la clave puede seguir en disco, y
+  entonces **todos** los PDF —no sólo las reimpresiones— llevan en el encabezado una institución
+  PRE-migración, ignorando la que el médico configuró. Es invisible: el campo está oculto y el
+  botón del encabezado muestra `ecoGetCentroPrincipal()`, no el span.
+  Para saber si esta máquina está afectada, en la consola de la app:
+  `localStorage.getItem('ett_med_centro')` — si devuelve algo que no sea `null` ni `''`, el
+  encabezado de los PDF del día está saliendo con ese valor.
+  Arreglarlo es borrar la clave huérfana y sacar el span del orden de resolución, pero eso toca
+  el camino del PDF de todos los días: no se hace de taquito junto con otra cosa.
+
+- **Reimprimiendo, el copyright institucional puede caer al genérico.** `_fInst` (~22825) ya no
+  usa `hdrCentroNombre()` durante una reimpresión, así que si `centroStr` queda vacío el pie sale
+  `© … EcoSmart` en vez del de la clínica. Y `centroStr` queda vacío más seguido de lo que
+  parece: la reimpresión repone `centro_nombre` con `el.value = c[el.id]` sobre un `<select>` que
+  `renderCentroField` reconstruye desde `ecoGetCentros()` (~28599); asignar un valor que ya no
+  tiene `<option>` **falla en silencio** y deja `''`. Pasa con centros renombrados o borrados y
+  con todo lo importado de Excel/DICOM. Es la decisión deliberada —mejor sin institución que con
+  la equivocada en un documento firmado— pero conviene saber que el disparador no es raro.
 
 - ~~`generarInformeConEvolucion` cruza pacientes sin documento~~ — **CERRADO 2026-09-14.** Hoy
   gatea con `!_dupSinDato(ci)`: sin documento real no hay evolución longitudinal y se genera el

@@ -21211,8 +21211,36 @@ function generarPDFReal(_aj) {
      Contrato de cada plantilla: dibuja y DEVUELVE la `y` donde termina. El resto de
      generarPDFReal (unas 900 líneas) no se entera de cuál corrió. */
 
+  /* ¿Esto es una REIMPRESIÓN de un estudio guardado? Lo marca `pdfDeInformeGuardado` y nadie
+     más, así que distingue con precisión el caso en que el formulario en pantalla NO es del
+     paciente que se está imprimiendo.
+
+     Importa porque el centro entra al PDF por tres vías y sólo UNA viaja con el estudio:
+       · `centro_tipo` / `centro_nombre` → son `input[id]`, los guarda `guardarInforme` con el
+         barrido genérico y los repone el backup de la reimpresión. Éste es el del estudio.
+       · `med-centro` → es un `<span contenteditable>`, NO un input: el backup de la reimpresión
+         sólo cubre `input[id], select[id], textarea[id]`, así que conserva lo que tenga la
+         sesión actual. Y `sv()` lee su `textContent`, o sea que devuelve valor.
+       · `hdrCentroNombre()` → centro principal de Config, estado global de la app.
+
+     El orden era `med-centro || centroStr || …`, así que la vía GLOBAL iba PRIMERO: reimprimir
+     el estudio de un paciente mientras se trabaja con otro centro configurado estampaba ese
+     centro en el encabezado del informe firmado, pisando el que el estudio traía. Reimprimir y
+     firmar daban documentos con instituciones distintas.
+
+     No se intentó hacer viajar el span con el estudio: el médico no puede llenarlo. Su `<div>`
+     contenedor es `hidden` (línea ~1408) y `ett_med_centro`, la clave que lee `initHdrEditable`,
+     no la escribe NADIE en este archivo — quedó huérfana al pasar los centros a ⚙️ Config. O sea
+     que sólo puede tener valor en una instalación vieja, con la clave persistida de antes de esa
+     migración, y ahí lo que tiene es una institución PRE-migración: justamente la que no debe
+     firmar nada. Apagarla es lo correcto, no una pérdida.
+
+     Reimprimiendo, entonces, las dos vías globales se apagan. Si nada deja centro, el encabezado cae donde cae cualquier estudio sin centro
+     —vacío en modo institucional, «CeiboMed» si no— y NO al de la pantalla: es preferible no
+     nombrar institución a nombrar la equivocada en un documento firmado. */
+  const _reimp = (typeof _pdfGuardadoEnCurso !== 'undefined' && !!_pdfGuardadoEnCurso);
   // El nombre del centro va en el header junto al título; el médico informante va sólo en la firma al pie
-  const _medCentro = sv('med-centro') || '';
+  const _medCentro = _reimp ? '' : (sv('med-centro') || '');
   // En modo institucional el encabezado nunca cae al fallback 'CeiboMed': o va la institución o va vacío.
   const _hdrModoInst = localStorage.getItem('ett_modo_institucional')==='1';
   const _hdrLine = _medCentro || centroStr || (_hdrModoInst ? '' : 'CeiboMed');
@@ -22793,7 +22821,11 @@ function generarPDFReal(_aj) {
   // Misma resolución que el encabezado (_hdrLine): sólo miraba med-centro, que quedó
   // vacío al pasar los centros a ⚙️ Config, así que el pie caía siempre al copyright de
   // CeiboMed aunque el modo institucional estuviera activo.
-  const _fInst = sv('med-centro') || centroStr || (typeof hdrCentroNombre === 'function' ? hdrCentroNombre() : '') || '';
+  /* Mismo criterio que `_hdrLine`: reimprimiendo, sólo la vía que viaja con el estudio. Éste
+     alimenta la línea de copyright del modo institucional, que lleva el nombre de la clínica
+     adentro — o sea que la fuga también llegaba al pie. */
+  const _fInst = _medCentro || centroStr ||
+                 (_reimp ? '' : (typeof hdrCentroNombre === 'function' ? hdrCentroNombre() : '')) || '';
   const _fCopyr = (_fModoInst && _fInst)
     ? ('© 2026 ' + _fInst + ' · Todos los derechos reservados · Uso clínico exclusivo')
     : '© 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo';
