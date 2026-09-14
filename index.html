@@ -12027,6 +12027,42 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div></div>
 
     <div class="card" style="margin-bottom:14px;"><div class="card-body">
+      <div style="font-size:.8rem;font-weight:700;color:var(--accent2);margin-bottom:8px;">Pericardio</div>
+      <div class="lab-filtros">
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Tamaño del derrame</label>
+          <select id="coh-dpt-tam"><option value="">Todos</option><option value="hay">Con derrame (cualquier tamaño)</option>
+            <option value="minimo">Mínimo</option><option value="leve">Leve</option>
+            <option value="moderado">Moderado</option><option value="severo">Severo</option>
+            <option value="modsev">Moderado o severo</option></select></div>
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Conclusión taponamiento</label>
+          <!-- Los `value` son las claves EXACTAS que devuelve `dptEstado()`. Inventar una
+               —puse «compromiso», que no existe— da una opción que filtra a cero siempre, sin
+               error y sin forma de notarlo salvo contando. -->
+          <select id="coh-dpt-con"><option value="">Todas</option>
+            <option value="taponamiento">Taponamiento (3 criterios mayores)</option>
+            <option value="incipiente">Compromiso incipiente (1-2 criterios)</option>
+            <option value="incipiente_cuantia">Derrame severo sin criterios</option>
+            <option value="sin_compromiso">Sin compromiso (3 evaluados)</option>
+            <option value="incompleto">Derrame sin criterios evaluados</option>
+            <option value="parcial">Evaluación parcial</option>
+            <option value="sin_derrame">Sin derrame</option></select></div>
+        <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Constricción / restricción</label>
+          <!-- `mixto` y `no_concluyente` son claves DISTINTAS: la primera es «vota por las dos»
+               y la segunda «no alcanza para ninguna». Un solo rótulo para las dos escondía la
+               mitad de los estudios en la otra opción. -->
+          <select id="coh-cvr-con"><option value="">Todas</option>
+            <option value="constrictiva">Constricción</option>
+            <option value="restrictiva">Restricción</option>
+            <option value="mixto">Mixto (vota por las dos)</option>
+            <option value="no_concluyente">No concluyente</option></select></div>
+      </div>
+      <div style="font-size:.72rem;color:var(--text2);margin-top:6px;line-height:1.5;">
+        Las dos conclusiones se recalculan sobre los datos de <b>cada estudio</b>. Un estudio donde el
+        módulo no se usó queda <b>fuera</b>, no dentro: sin datos no hay conclusión que filtrar.
+      </div>
+    </div></div>
+
+    <div class="card" style="margin-bottom:14px;"><div class="card-body">
       <div style="font-size:.8rem;font-weight:700;color:var(--accent2);margin-bottom:8px;">Función ventricular</div>
       <div class="lab-filtros">
         <div class="fg" style="margin:0;"><label style="font-size:.75rem;">FEVI</label>
@@ -14661,13 +14697,100 @@ const CVR_DISCLAIMER = 'El diagnóstico definitivo de constricción requiere cor
    0,4% está por debajo de lo que el Doppler resuelve, y es exactamente donde aterriza una
    fracción tipeada como porcentaje. El 0 exacto SÍ es una medición legítima («no varía») y se
    conserva. El estudio que caiga ahí lo dice en el informe en vez de tratarlo como ausencia. */
-function _dptPctSospechoso(id) { const n = v(id); return n !== null && n > 0 && n < 1; }
-function _dptPct(id) { const n = v(id); return (n === null || n < 0 || n > 100 || (n > 0 && n < 1)) ? null : n; }
-function _dptMm(id)  { const n = v(id); return (n === null || n <= 0 || n > 100) ? null : n; }
+/* ══ Fuente de datos del módulo de Pericardio ══════════════════════════════════════════
+   `null` —lo normal— significa «leé el formulario en pantalla». Cuando el Laboratorio
+   necesita la conclusión de UNA FILA, apunta esto al `campos` de ESE estudio y lo devuelve a
+   null. Sin esto, llamar a `dptEstado()`/`cvrEstado()` desde `_labExcelRow` daba la conclusión
+   del estudio ABIERTO EN PANTALLA repetida en las 305 filas, con cara de dato por estudio —el
+   mismo modo de falla que el archivo ya documenta para el Qp/Qs leído de un span.
+   La alternativa era reimplementar la cascada sobre `campos`, o sea una SEGUNDA copia de la
+   lógica clínica que decide taponamiento: la que se pudre sin que se vea desde la app. */
+let _pcSrc = null;
+function _pcV(id) {
+  if (!_pcSrc) return v(id);
+  const x = _pcSrc[id];
+  if (x === undefined || x === null || String(x).trim() === '') return null;
+  const n = parseFloat(String(x).replace(',', '.'));
+  return isFinite(n) ? n : null;
+}
+function _pcSv(id) {
+  if (!_pcSrc) return sv(id);
+  const x = _pcSrc[id];
+  return (x === undefined || x === null) ? '' : String(x);
+}
+/* `finally` y no una asignación al final: si la cascada tira, la fuente tiene que volver al
+   formulario igual. Quedarse apuntando a un `campos` haría que TODO el módulo de pericardio
+   de la pantalla pasara a describir a otro paciente, en silencio. */
+/* Los checkbox no se leen con `_pcSv`: en `campos` viven como `<id>__chk` con '1'/'0', porque
+   `.value` en un checkbox es el atributo («on») y no el estado. Sin esta función, `dptEstado`
+   seguía preguntándole al DOM por el swinging heart — y ese hallazgo corta la rama benigna de
+   la cascada, así que UN estudio abierto en pantalla con swinging marcado hacía que toda fila
+   con derrame del Excel saliera «incipiente». */
+function _pcChk(id) {
+  if (!_pcSrc) return _amChk(id);
+  const x = _pcSrc[id + '__chk'];
+  return x === '1' || x === 1 || x === true || x === 'true';
+}
+/* ¿El módulo se USÓ en este estudio? Las dos guardas vivían duplicadas en `_labExcelRow` y en
+   `_labCohorteOk`; ahora son una sola, porque si divergen el Excel y el filtro cuentan cohortes
+   distintas sobre los mismos datos.
+
+   `pericardio` NO cuenta, aunque sea el campo más obvio: su `<select>` no tiene opción vacía y
+   arranca en «Normal, sin derrame», así que `guardarInforme` lo persiste en TODOS los estudios y
+   la guarda daba `true` siempre. Con eso la columna salía «sin_derrame» en las 305 filas y la
+   opción «Sin derrame» del filtro armaba una cohorte con todos los estudios donde nadie abrió el
+   módulo — exactamente la negación publicada como hallazgo que la guarda venía a impedir. Lo que
+   sí cuenta es que el select diga algo DISTINTO de normal, o que haya algún campo propio.
+   `dpt_var_ao` y `dpt_var_pulm` no entran: `dptEstado` no los lee. */
+function _pcHayDpt(c) {
+  c = c || {};
+  const per = String(c.pericardio || '');
+  if (/m[ií]nimo|leve|moderado|severo/i.test(per)) return true;
+  return ['dpt_col_vd','dpt_col_ad','dpt_col_ai','dpt_col_vi','dpt_mm_ant','dpt_mm_lat','dpt_mm_post',
+          'resp_var_mitral','vci_diam','vci_col'].some(k => String(c[k] || '').trim() !== '')
+      || String(c['dpt_swinging__chk'] || '') === '1';
+}
+/* `e_sep`/`e_lat` quedan FUERA: son de la tab Diastólica y están cargados en casi todos los
+   estudios, así que incluirlos hacía que la guarda diera `true` sin que nadie hubiera abierto
+   Constricción vs Restricción. Lo que marca que el módulo se usó son sus tres campos propios y
+   la variación respiratoria tricuspídea. */
+function _pcHayCvr(c) {
+  c = c || {};
+  return ['cvr_rebote','cvr_hepatico','cvr_pericardio_tc','resp_var_tric']
+    .some(k => String(c[k] || '').trim() !== '');
+}
+/* Memo por estudio. `_labCohorteOk` corre por estudio y `labGetInformes()` se invoca ~6 veces
+   por `labInit`: sin esto son 3 cascadas × 6 pasadas × N estudios en cada repintado, y
+   `cvrEstado` aloca 10 objetos de fila por llamada. Con 500 estudios son ~9.000 cascadas.
+   `WeakMap` con clave el objeto `inf`, igual que `_LAB_HF_MEMO`: no retiene memoria y se
+   invalida sola cuando el store se vuelve a parsear, que es cuando los datos pudieron cambiar. */
+const _PC_MEMO = new WeakMap();
+function _pcDeEstudio(inf) {
+  if (!inf || typeof inf !== 'object') return { dpt:null, cvr:null, tam:null };
+  if (_PC_MEMO.has(inf)) return _PC_MEMO.get(inf);
+  const res = _pcCon(inf.campos || {}, () => {
+    let dpt = null, cvr = null, tam = null;
+    try { dpt = dptEstado(); } catch (e) {}
+    try { cvr = cvrEstado(); } catch (e) {}
+    try { tam = dptTamano(); } catch (e) {}
+    return { dpt, cvr, tam };
+  });
+  _PC_MEMO.set(inf, res);
+  return res;
+}
+function _pcCon(campos, fn) {
+  const prev = _pcSrc;
+  _pcSrc = campos || {};
+  try { return fn(); } finally { _pcSrc = prev; }
+}
+window._pcCon = _pcCon;
+function _dptPctSospechoso(id) { const n = _pcV(id); return n !== null && n > 0 && n < 1; }
+function _dptPct(id) { const n = _pcV(id); return (n === null || n < 0 || n > 100 || (n > 0 && n < 1)) ? null : n; }
+function _dptMm(id)  { const n = _pcV(id); return (n === null || n <= 0 || n > 100) ? null : n; }
 
 /* El tamaño se LEE del select `pericardio`. «Engrosamiento / calcificación» no es derrame. */
 function dptTamano() {
-  const p = sv('pericardio') || '';
+  const p = _pcSv('pericardio') || '';
   if (/severo/i.test(p))    return { clave:'severo',   lbl:'severo',   min:20, max:null };
   if (/moderado/i.test(p))  return { clave:'moderado', lbl:'moderado', min:10, max:20 };
   if (/leve/i.test(p))      return { clave:'leve',     lbl:'leve',     min:5,  max:10 };
@@ -14680,14 +14803,14 @@ window.dptTamano = dptTamano;
    colapso <50%, ver `calcHTP2022`). Dos definiciones de plétora en la misma app terminan
    contradiciéndose en el mismo informe. */
 function dptPletora() {
-  const d = v('vci_diam'), col = sv('vci_col');
+  const d = _pcV('vci_diam'), col = _pcSv('vci_col');
   return { evaluada: (d !== null && col !== ''), presente: (d !== null && d > 21 && col === '<50'), diam:d, col:col };
 }
 
 function dptEstado() {
   const tam = dptTamano();
   const hayDerrame = ['minimo','leve','moderado','severo'].indexOf(tam.clave) >= 0;
-  const colVD = sv('dpt_col_vd'), plet = dptPletora(), varM = _dptPct('resp_var_mitral');
+  const colVD = _pcSv('dpt_col_vd'), plet = dptPletora(), varM = _dptPct('resp_var_mitral');
 
   /* Los TRES criterios MAYORES, cada uno con «¿se evaluó?» separado de «¿se cumple?». Sin esa
      separación, «no lo miré» cuenta como «no está» y la cascada termina afirmando normalidad
@@ -14708,10 +14831,10 @@ function dptEstado() {
      negaba. Una negación no puede ignorar un hallazgo positivo del mismo párrafo. */
   const varT = _dptPct('resp_var_tric');
   const otros = [];
-  if (sv('dpt_col_ad') === 'si') otros.push('colapso sistólico de la aurícula derecha');
-  if (sv('dpt_col_ai') === 'si') otros.push('colapso de la aurícula izquierda');
-  if (sv('dpt_col_vi') === 'si') otros.push('colapso del ventrículo izquierdo');
-  if (_amChk('dpt_swinging'))    otros.push('corazón oscilante');
+  if (_pcSv('dpt_col_ad') === 'si') otros.push('colapso sistólico de la aurícula derecha');
+  if (_pcSv('dpt_col_ai') === 'si') otros.push('colapso de la aurícula izquierda');
+  if (_pcSv('dpt_col_vi') === 'si') otros.push('colapso del ventrículo izquierdo');
+  if (_pcChk('dpt_swinging'))    otros.push('corazón oscilante');
   if (varT !== null && varT > DPT_VAR_TRIC_SIG) otros.push('variación respiratoria de la E tricúspide >' + DPT_VAR_TRIC_SIG + '%');
 
   /* ¿La medición en mm contradice al select del que sale el tamaño? El módulo lee el tamaño de
@@ -14745,11 +14868,11 @@ function dptFrases(st) {
   const s = st || dptEstado();
   if (s.clave === 'sin_derrame') return [];
   const L = [];
-  const locTxt = { circ:'circunferencial', post:'posterior', ant:'anterior', locul:'loculado', mixto:'mixto' }[sv('dpt_local')] || '';
+  const locTxt = { circ:'circunferencial', post:'posterior', ant:'anterior', locul:'loculado', mixto:'mixto' }[_pcSv('dpt_local')] || '';
   const car = [];
-  if (_amChk('dpt_libre'))   car.push('libre');
-  if (_amChk('dpt_fibrina')) car.push('con fibrina');
-  if (_amChk('dpt_hemo'))    car.push('hemopericardio');
+  if (_pcChk('dpt_libre'))   car.push('libre');
+  if (_pcChk('dpt_fibrina')) car.push('con fibrina');
+  if (_pcChk('dpt_hemo'))    car.push('hemopericardio');
 
   L.push('Derrame pericárdico ' + s.tam.lbl
     + (locTxt ? ', de distribución ' + locTxt : '')
@@ -14769,7 +14892,7 @@ function dptFrases(st) {
     if (sv(p[0]) === 'si') colTxt.push(p[1]);
   });
   if (colTxt.length) L.push('Colapso de ' + colTxt.join(', ') + '.');
-  if (_amChk('dpt_swinging')) L.push('Corazón oscilante (swinging heart).');
+  if (_pcChk('dpt_swinging')) L.push('Corazón oscilante (swinging heart).');
 
   const faltan = s.crit.filter(c => !c.ev).map(c => c.lbl);
   if (s.clave === 'taponamiento') {
@@ -14841,7 +14964,7 @@ function dptSync() {
   // Los umbrales de los rótulos salen de las constantes: un rótulo fijo miente el día que se mueva el corte.
   txt('dpt-lbl-mitral', String(DPT_VAR_MITRAL_SIG));
   txt('dpt-lbl-tric',   String(DPT_VAR_TRIC_SIG));
-  txt('dpt-tam-eco', st.hayDerrame ? ('Derrame ' + st.tam.lbl) : (sv('pericardio') || '—'));
+  txt('dpt-tam-eco', st.hayDerrame ? ('Derrame ' + st.tam.lbl) : (_pcSv('pericardio') || '—'));
   txt('dpt-vci-eco', st.plet.diam !== null ? st.plet.diam + ' mm' : 'no cargada');
   txt('dpt-vcicol-eco', st.plet.col === '>50' ? '> 50%' : st.plet.col === '<50' ? '< 50%' : 'no cargado');
 
@@ -14857,14 +14980,27 @@ window.dptSync = dptSync;
 /* ── Constricción vs Restricción ───────────────────────────────── */
 
 function cvrDatos() {
+  /* `hfapeffDatos()` lee el formulario completo, así que con una fuente inyectada devolvería
+     los e' del paciente en pantalla. Con fuente se va derecho a los campos de la fila. */
+  /* Con fuente inyectada NO se puede pasar de largo: `hf` aporta el E/e', y sin él la fila
+     «E/e'» nunca se evalúa y `patronRestr` lo exige — o sea que `clave === 'restrictiva'` era
+     INALCANZABLE desde el Excel y desde el filtro, y la opción «Restricción» devolvía cero
+     siempre. Además «E/e' < 15» vota por constricción, así que el Excel subdeclaraba
+     constricción respecto de lo que la pantalla firma sobre el mismo estudio.
+     `hfapeffDatos` ya acepta fuente y `_hfSrcCampos` ya existe justo para esto — de paso
+     resuelve los alias (`e_prima_sept`, `gls_global`) que `_pcV` no conoce. */
   let hf = null;
-  try { hf = (typeof hfapeffDatos === 'function') ? hfapeffDatos() : null; } catch (e) { hf = null; }
+  try {
+    hf = (typeof hfapeffDatos === 'function')
+      ? (_pcSrc ? hfapeffDatos(_hfSrcCampos(_pcSrc)) : hfapeffDatos())
+      : null;
+  } catch (e) { hf = null; }
   return {
-    esep: hf ? hf.esep : v('e_sep'),
-    elat: hf ? hf.elat : v('e_lat'),
+    esep: hf ? hf.esep : _pcV('e_sep'),
+    elat: hf ? hf.elat : _pcV('e_lat'),
     ee:   hf ? hf.ee   : null,
     varM: _dptPct('resp_var_mitral'), varT: _dptPct('resp_var_tric'),
-    plet: dptPletora(), rebote: sv('cvr_rebote'), hep: sv('cvr_hepatico'), tc: sv('cvr_pericardio_tc')
+    plet: dptPletora(), rebote: _pcSv('cvr_rebote'), hep: _pcSv('cvr_hepatico'), tc: _pcSv('cvr_pericardio_tc')
   };
 }
 window.cvrDatos = cvrDatos;
@@ -37483,6 +37619,32 @@ function _labCohorteOk(inf) {
   if (C.tavi   === 'si' && !_labUsaTavi(inf))     return false;
   if (C.trombo === 'si' && !_labOaiTromboSi(inf)) return false;
 
+  /* ── Pericardio ──
+     Se calcula con `_pcCon` sobre los campos de ESTE estudio, no con `dptEstado()` pelado,
+     que leería el formulario en pantalla y haría que la cohorte entera se decidiera por el
+     paciente abierto. Una sola llamada para los tres criterios.
+     Sin datos del módulo el estudio queda FUERA, que es la regla que el propio panel enuncia:
+     un criterio que no se puede evaluar excluye, no incluye. */
+  if (C.dptTam || C.dptCon || C.cvrCon) {
+    const cp = inf.campos || {};
+    const pc = _pcDeEstudio(inf);
+    if (C.dptTam) {
+      const k = pc.tam ? pc.tam.clave : 'ninguno';
+      const hay = ['minimo','leve','moderado','severo'].indexOf(k) >= 0;
+      if (C.dptTam === 'hay'    && !hay) return false;
+      if (C.dptTam === 'modsev' && k !== 'moderado' && k !== 'severo') return false;
+      if (['minimo','leve','moderado','severo'].indexOf(C.dptTam) >= 0 && k !== C.dptTam) return false;
+    }
+    if (C.dptCon) {
+      const hayDpt = _pcHayDpt(cp);
+      if (!hayDpt || !pc.dpt || pc.dpt.clave !== C.dptCon) return false;
+    }
+    if (C.cvrCon) {
+      const hayCvr = _pcHayCvr(cp);
+      if (!hayCvr || !pc.cvr || pc.cvr.clave !== C.cvrCon) return false;
+    }
+  }
+
   return true;
 }
 
@@ -37533,7 +37695,8 @@ function _labCohorteLeer() {
     coGls: _cohSel('coh-co-gls'), coTox: _cohSel('coh-co-tox'),
     cc: Array.prototype.slice.call(document.querySelectorAll('#coh-cc-box input.coh-cc:checked'))
           .map(e => String(e.value)),
-    ete: _cohSel('coh-ete'), tavi: _cohSel('coh-tavi'), trombo: _cohSel('coh-trombo')
+    ete: _cohSel('coh-ete'), tavi: _cohSel('coh-tavi'), trombo: _cohSel('coh-trombo'),
+    dptTam: _cohSel('coh-dpt-tam'), dptCon: _cohSel('coh-dpt-con'), cvrCon: _cohSel('coh-cvr-con')
   };
   const activo = Object.keys(C).some(k => {
     const val = C[k];
@@ -37572,6 +37735,15 @@ function _labCohorteDesc() {
   if (C.ete === 'si') p.push('Solo ETEs marcados');
   if (C.tavi === 'si') p.push('Con TAVI');
   if (C.trombo === 'si') p.push('Con trombo en orejuela');
+  /* La descripción alimenta el encabezado del PDF de auditoría: una cohorte que no se nombra
+     publica un denominador que su lector no puede reconstruir. */
+  if (C.dptTam) p.push({hay:'Con derrame pericárdico', modsev:'Derrame moderado o severo'}[C.dptTam] || ('Derrame ' + C.dptTam));
+  if (C.dptCon) p.push('Pericardio: ' + ({taponamiento:'taponamiento', incipiente:'compromiso incipiente',
+    incipiente_cuantia:'derrame severo sin criterios', sin_compromiso:'sin compromiso',
+    incompleto:'derrame sin criterios evaluados',
+    parcial:'evaluación parcial', sin_derrame:'sin derrame'}[C.dptCon] || C.dptCon));
+  if (C.cvrCon) p.push('Constricción/restricción: ' + ({constrictiva:'constricción', restrictiva:'restricción',
+    mixto:'mixto', no_concluyente:'no concluyente'}[C.cvrCon] || C.cvrCon));
   return p.join(' · ');
 }
 window._labCohorteDesc = _labCohorteDesc;
@@ -37693,7 +37865,7 @@ function labCohorteLimpiar(silencioso) {
   ['coh-edad-min','coh-edad-max','coh-sexo','coh-fevi','coh-diast','coh-geom','coh-im','coh-ea',
    'coh-ia','coh-it','coh-em','coh-hfpeff','coh-peptido','coh-htp','coh-psap','coh-tep','coh-amil',
    'coh-sparkling','coh-co-farmaco','coh-co-fevi','coh-co-gls','coh-co-tox','coh-ete','coh-tavi',
-   'coh-trombo'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+   'coh-trombo','coh-dpt-tam','coh-dpt-con','coh-cvr-con'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
   Array.prototype.forEach.call(document.querySelectorAll('#coh-cc-box input.coh-cc'), e => { e.checked = false; });
   _LAB_COHORTE = null;
   if (typeof labInit === 'function') labInit();
@@ -38857,6 +39029,54 @@ function _labExcelRow(inf) {
     'Score amiloidosis ETT': rnd(num('alg-ett-score'),0),
     'Motivo evaluación amiloidosis': c['alg-motivo'] || '',
     'Sparkling': _labXlsEtiq('ett-sparkling', c['ett-sparkling']),
+
+    /* ── Pericardio avanzado ────────────────────────────────────────────────────────────
+       Prefijos «DPT » y «CVR » y NO «Pericardio »: el bloque 8 ya declara el prefijo
+       `Pericardio`, gana el PRIMER bloque que matchea, y una columna «Pericardio derrame…»
+       habría caído en VÁLVULAS dejando el bloque nuevo vacío. Es exactamente el defecto que
+       el comentario del bloque 8 documenta con «Morfología ».
+       Las tres conclusiones se calculan con `_pcCon(c, …)`, o sea con los campos de ESTA fila:
+       llamar a `dptEstado()` pelado habría dado la del estudio abierto en pantalla, repetida
+       en toda la planilla y con cara de dato por estudio. */
+    ...(() => {
+      const pc = _pcDeEstudio(inf);
+      const E = id => _labXlsEtiq(id, c[id]);
+      const CHK = id => (String(c[id + '__chk'] || '') === '1' ? 'Sí' : 'No');
+      // Los cinco «Sí/No» comparten vocabulario: una entrada `_sino` en vez de cinco iguales.
+      const SN  = id => _labXlsEtiq('_sino', c[id]);
+      /* Las conclusiones salen SÓLO si el módulo tiene algún dato propio. Sin esto, la
+         planilla entera diría «sin derrame» y «mixto» sobre estudios donde nadie abrió el
+         módulo: una negación publicada como hallazgo en 305 filas. */
+      const hayDpt = _pcHayDpt(c);
+      const hayCvr = _pcHayCvr(c);
+      return {
+        'DPT derrame ant (mm)':  rnd(num('dpt_mm_ant'),1),
+        'DPT derrame lat (mm)':  rnd(num('dpt_mm_lat'),1),
+        'DPT derrame post (mm)': rnd(num('dpt_mm_post'),1),
+        'DPT tamaño derrame':    (hayDpt && pc.tam) ? (pc.tam.lbl || '') : '',
+        /* Los checkbox se persisten como `<id>__chk` con '1'/'0'; `c['dpt_libre']` es
+           `undefined` y estas cuatro columnas salían EN BLANCO en toda la planilla, incluidos
+           los estudios donde el hallazgo estaba registrado. */
+        'DPT libre/tabicado':    CHK('dpt_libre'),
+        'DPT fibrina':           CHK('dpt_fibrina'),
+        'DPT hemopericardio':    CHK('dpt_hemo'),
+        'DPT localización':      E('dpt_local'),
+        'DPT colapso AD':        SN('dpt_col_ad'),
+        'DPT colapso VD':        SN('dpt_col_vd'),
+        'DPT colapso AI':        SN('dpt_col_ai'),
+        'DPT colapso VI':        SN('dpt_col_vi'),
+        'DPT swinging heart':    CHK('dpt_swinging'),
+        'DPT variación E mitral (%)': rnd(num('resp_var_mitral'),0),
+        'DPT variación VTI Ao (%)':   rnd(num('dpt_var_ao'),0),
+        'DPT variación VTI pulm (%)': rnd(num('dpt_var_pulm'),0),
+        'DPT conclusión taponamiento': (hayDpt && pc.dpt) ? (pc.dpt.clave || '') : '',
+        'CVR rebote septal':     SN('cvr_rebote'),
+        'CVR flujo hepático':    E('cvr_hepatico'),
+        'CVR pericardio TC/RM':  E('cvr_pericardio_tc'),
+        'CVR variación E tricúspide (%)': rnd(num('resp_var_tric'),0),
+        'CVR conclusión':        (hayCvr && pc.cvr) ? (pc.cvr.clave || '') : ''
+      };
+    })()
   };
 }
 function labExportarXLSX() {
@@ -38922,9 +39142,12 @@ const LAB_XLS_BLOQUES = [
       'Morfología orejuela','Trombo orejuela','SEC orejuela','Vel vaciamiento orejuela','Segmento aorta ETE',
       'Grado ateromatosis','TAVI','Fármaco cardiotóxico','Dosis antraciclinas','Riesgo CV basal','FEVI basal onco',
       'GLS basal onco','FEVI actual onco','GLS actual onco','Troponina elevada','Ritmo HFA-PEFF','NT-proBNP','BNP (',
-      'Score amiloidosis','Motivo evaluación amiloidosis','Sparkling','Incluir '] }
+      'Score amiloidosis','Motivo evaluación amiloidosis','Sparkling','Incluir '] },
+  /* Prefijos «DPT » y «CVR » con el espacio: sin él, «DPT» matchearía cualquier columna que
+     empiece así en el futuro, y el assert de arranque no lo vería porque hoy no hay ninguna. */
+  { n:'17 · PERICARDIO AVANZADO', avanzada:true, pre:['DPT ','CVR '] }
 ];
-const _LAB_XLS_BLOQUE_RESTO = '17 · OTRAS COLUMNAS';
+const _LAB_XLS_BLOQUE_RESTO = '18 · OTRAS COLUMNAS';
 /* Bloque de una columna. `startsWith` sobre los prefijos y coincidencia exacta sobre `cols`;
    gana el PRIMER bloque que matchee, así que el orden del array también desempata. */
 /* Comprobación de arranque: cada prefijo/columna declarado en un bloque tiene que RESOLVER a ese
@@ -39790,6 +40013,14 @@ const LAB_XLS_ETIQ = {
   wilkins_calcificacion: { '1':'1 — Área única', '2':'2 — Áreas dispersas en punta', '3':'3 — Hasta 1/3 del velo', '4':'4 — Difusa' },
   wilkins_subvalvular:   { '1':'1 — Mínimo bajo velos', '2':'2 — Hasta 1/3 de cuerdas', '3':'3 — Hasta 2/3 de cuerdas', '4':'4 — Extenso y acortado' },
   _tep:  { ne:'No evaluado', no:'No', si:'Sí' },
+  /* Pericardio avanzado. Los `value` salen del DOM, no del rótulo. Sin entrada acá,
+     `_labXlsEtiq` devuelve el crudo: la planilla exportaba «circ», «insp», «engrosado» —tokens
+     internos que no se leen ni en Excel ni en R— mientras el resto del archivo emite la
+     etiqueta legible. La llamada parecía que traducía y no traducía. */
+  _sino: { si:'Sí', no:'No' },
+  dpt_local:         { circ:'Circunferencial', post:'Posterior', ant:'Anterior', locul:'Loculado', mixto:'Mixto' },
+  cvr_hepatico:      { normal:'Normal', esp:'Reversión espiratoria', insp:'Reversión inspiratoria' },
+  cvr_pericardio_tc: { engrosado:'Engrosado', normal:'Normal', calcificado:'Calcificado' },
   co_farmaco: { antracicline:'Antraciclinas', trastuzumab:'Trastuzumab / Anti-HER2', inmunoterapia:'Inmunoterapia (ICI)',
                 vegf:'Anti-VEGF / Bevacizumab', bcr_abl:'BCR-ABL (imatinib)', radioterapia:'Radioterapia torácica', otro:'Otro' },
   co_riesgo_cv: { '0':'Ninguno', '1':'1 factor', '2':'2 factores', '3':'3 o más factores o IC previa' },

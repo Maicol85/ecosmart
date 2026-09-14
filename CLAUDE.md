@@ -2419,6 +2419,48 @@ criterio». Si aparece, la palanca es juntar las salvedades con la línea de la 
 
 ## Deuda conocida sin resolver
 
+### Pericardio en el Laboratorio — fuente inyectable (2026-09-14)
+El módulo (`dptEstado`, `cvrEstado`, `dptTamano`, `dptPletora`, `cvrDatos`, `_dptPct`, `_dptMm`)
+leía el DOM directo. Ahora tiene **fuente inyectable**: `_pcSrc` en `null` = formulario en
+pantalla; `_pcCon(campos, fn)` la apunta a un estudio y la restaura en un `finally`. Lo usan el
+Excel (22 columnas nuevas, bloque `17 · PERICARDIO AVANZADO`) y el filtro de cohorte.
+
+**Reglas para no romperlo:**
+- **Toda lectura del módulo va por `_pcV` / `_pcSv` / `_pcChk`.** Una sola que quede en `v()`,
+  `sv()` o `_amChk()` hace que la columna del Excel mezcle la fila con el paciente EN PANTALLA,
+  y eso parece correcto. Ya pasó dos veces en este mismo commit: `_amChk('dpt_swinging')` hacía
+  que un swinging marcado en pantalla sacara toda fila con derrame como «incipiente», y `_dptMm`
+  leía los tres milímetros de la pantalla.
+- **Los checkbox NO son `_pcSv`.** En `campos` viven como `<id>__chk` con '1'/'0'. Para eso está
+  `_pcChk`.
+- **`cvrDatos` con fuente usa `hfapeffDatos(_hfSrcCampos(_pcSrc))`.** Saltearlo dejaba `ee` en
+  null, y `patronRestr` lo exige: `restrictiva` era **inalcanzable** desde el Excel y el filtro
+  —la opción devolvía cero siempre— y `constrictiva` se subdeclaraba, porque «E/e' < 15» vota
+  por constricción. De paso resuelve los alias (`e_prima_sept`, `gls_global`) que `_pcV` no sabe.
+- **`_pcHayDpt` NO puede mirar `pericardio` a secas.** Ese `<select>` no tiene opción vacía y
+  arranca en «Normal, sin derrame», así que `guardarInforme` lo persiste en todos los estudios:
+  la guarda daba `true` siempre y la columna salía «sin_derrame» en las 305 filas. Mira que el
+  select diga algo distinto de normal, o que haya un campo propio del módulo.
+- **`_pcHayCvr` NO puede mirar `e_sep`/`e_lat`.** Son de la tab Diastólica y están en casi todos
+  los estudios.
+- **Las dos guardas viven en UN solo lugar** (`_pcHayDpt`/`_pcHayCvr`). Estaban duplicadas entre
+  `_labExcelRow` y `_labCohorteOk`: si divergen, el Excel y el filtro cuentan cohortes distintas
+  sobre los mismos datos.
+- **Las opciones del filtro son las claves EXACTAS de cada cascada.** `dptEstado` devuelve siete
+  y `cvrEstado` cinco. Inventar una —puse «compromiso», que no existe— da una opción que filtra a
+  cero siempre, sin error. Y `mixto` y `no_concluyente` son claves DISTINTAS: la primera es «vota
+  por las dos», la segunda «no alcanza para ninguna».
+- **Prefijos «DPT » y «CVR » y no «Pericardio »:** el bloque 8 ya declara ese prefijo y gana el
+  primero que matchea. Lo cubre `_labXlsAssertBloques()`.
+- `_PC_MEMO` es un `WeakMap` por estudio, como `_LAB_HF_MEMO`: sin él son ~3 cascadas × 6 pasadas
+  × N estudios por repintado del Laboratorio.
+
+### Laboratorio — las subtabs NO son las seis del pedido (2026-09-14)
+Hay **doce**, en este orden: `filtros`, `general`, `mediciones`, `asociaciones`, `calidad`,
+`avanzado`, `hemo`, `cc`, `ete`, `medicos`, `comparar`, `informe`. **Docencia no es una subtab**
+—es el «Pilar 5», una tarjeta dentro de un panel— y **Exportar/Importar tampoco**: es una opción
+del menú que llama a `labExportarXLSX()`. El reordenamiento quedó SIN HACER esperando decisión.
+
 ### DICOM — estado al 2026-09-14
 El módulo SR está escrito a mano (TID 5300) y ahora cubre **31 campos**: 18 con código LOINC
 verificado y 13 con **esquema privado `99CEIBOMED`** (`CM-DSFVI`, `CM-GLS`…). Más 4 calculados
