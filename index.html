@@ -8479,7 +8479,7 @@ z
     </div>
   </div>
   <div class="card sacc" id="sacc-cc-marfan">
-    <button type="button" class="sacc-hdr" onclick="secToggle('marfan');marfanSync()" aria-expanded="false">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-marfan');marfanSync()" aria-expanded="false">
       <span class="sacc-arrow">&#9654;</span>
       <span style="flex:1;">🧬 Marfan / EHAT — aortopatia hereditaria</span>
       <span id="marfan_badge" class="incl-badge" hidden>&#9679; cargada</span>
@@ -8648,7 +8648,7 @@ z
     </div>
   </div>
   <div class="card sacc" id="sacc-cc-esub">
-    <button type="button" class="sacc-hdr" onclick="secToggle('esub')" aria-expanded="false">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-esub')" aria-expanded="false">
       <span class="sacc-arrow">&#9654;</span>
       <span style="flex:1;">🫀 Estenosis subaortica</span>
     </button>
@@ -8657,7 +8657,7 @@ z
     </div>
   </div>
   <div class="card sacc" id="sacc-cc-easv">
-    <button type="button" class="sacc-hdr" onclick="secToggle('easv')" aria-expanded="false">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-easv')" aria-expanded="false">
       <span class="sacc-arrow">&#9654;</span>
       <span style="flex:1;">🫀 Estenosis supravalvular aortica</span>
     </button>
@@ -9984,7 +9984,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     </div>
   </div>
   <div class="card sacc" id="sacc-cc-dsav">
-    <button type="button" class="sacc-hdr" onclick="secToggle('dsav')" aria-expanded="false">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-dsav')" aria-expanded="false">
       <span class="sacc-arrow">&#9654;</span>
       <span style="flex:1;">🫀 DSAV — Defecto del septo auriculoventricular</span>
     </button>
@@ -9993,7 +9993,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     </div>
   </div>
   <div class="card sacc" id="sacc-cc-cvpa">
-    <button type="button" class="sacc-hdr" onclick="secToggle('cvpa')" aria-expanded="false">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-cvpa')" aria-expanded="false">
       <span class="sacc-arrow">&#9654;</span>
       <span style="flex:1;">🫀 CVPA — Conexion venosa pulmonar anomala</span>
     </button>
@@ -10170,7 +10170,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     </div>
   </div>
   <div class="card sacc" id="sacc-cc-eisen">
-    <button type="button" class="sacc-hdr" onclick="secToggle('eisen');eisenSync()" aria-expanded="false">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-eisen');eisenSync()" aria-expanded="false">
       <span class="sacc-arrow">&#9654;</span>
       <span style="flex:1;">🫁 Sindrome de Eisenmenger</span>
       <span id="eisen_badge" class="incl-badge" hidden>&#9679; cargada</span>
@@ -10259,7 +10259,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     </div>
   </div>
   <div class="card sacc" id="sacc-cc-fontan">
-    <button type="button" class="sacc-hdr" onclick="secToggle('fontan');fontanSync()" aria-expanded="false">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-fontan');fontanSync()" aria-expanded="false">
       <span class="sacc-arrow">&#9654;</span>
       <span style="flex:1;">🫀 Circulacion de Fontan</span>
       <span id="fontan_badge" class="incl-badge" hidden>&#9679; cargada</span>
@@ -34189,7 +34189,14 @@ window.accToggle = accToggle;
 // Anima con max-height medido (scrollHeight) → suave con contenido de cualquier tamaño; al terminar
 // libera max-height:none + overflow:visible (sin recorte y sin el bug de hit-test de Safari).
 function secToggle(id) {
-  const acc = document.getElementById('sacc-' + id); if (!acc) return;
+  /* Un id que no resuelve dejaba el acordeón MUERTO sin decir nada: el botón se veía, se podía
+     tocar, y no pasaba absolutamente nada. Siete de los diecinueve de Congénitas pasaban el
+     token sin el prefijo `cc-` (el card es `sacc-cc-fontan`, no `sacc-fontan`) y ninguna prueba
+     lo veía, porque todas miran el CONTENIDO de la sección y el contenido existe igual: lo que
+     faltaba era poder abrirla. Es «un id inventado no falla, calla» otra vez, y acá el coste es
+     una sección clínica entera inalcanzable. Ahora avisa. */
+  const acc = document.getElementById('sacc-' + id);
+  if (!acc) { console.error('[secToggle] no existe #sacc-' + id + ' — el acordeón no puede abrir'); return; }
   const body = acc.querySelector('.sacc-body'); if (!body) return;
   const open = acc.classList.toggle('open');
   const hdr = acc.querySelector('.sacc-hdr'); if (hdr) hdr.setAttribute('aria-expanded', open ? 'true' : 'false');

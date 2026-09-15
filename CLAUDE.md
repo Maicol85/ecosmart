@@ -188,6 +188,34 @@ distinta hoy. El EN SUMA se reserva para lo accionable.
 `eis_pdap`, `eis_it_vel`, `eis_vd_funcion`, `eis_pericardio`, `eis_clase_nyha`, `eis_sincope`,
 `eis_hemoptisis`, `eisen_incluir_chk`. Con sus once columnas de Excel.
 
+### `secToggle` recibe `cc-X`, no `X` — y un id que no existe deja el acordeón MUERTO
+`secToggle(id)` resuelve **`#sacc-<id>`**, y los cards de Congénitas se llaman **`sacc-cc-<X>`**:
+la cabecera tiene que pasar **`cc-fontan`**, no `fontan`. **Siete de las diecinueve** pasaban el
+token sin el prefijo —`marfan`, `eisen`, `fontan` y los cuatro placeholders `esub`, `easv`,
+`dsav`, `cvpa`—, así que `secToggle` salía por su `if (!acc) return` y el botón quedaba **muerto:
+visible, clicable, sin ningún efecto**. Tres secciones clínicas enteras inalcanzables.
+
+**Ninguna prueba lo veía, y ésa es la lección.** TC-112 verifica que la sección y su cabecera
+EXISTAN; TC-120 lee el CONTENIDO del panel, que está en el DOM **abierto o cerrado**. Las dos
+pasaban. **Ver que algo está no es lo mismo que poder alcanzarlo** — y todo lo que el suite
+probaba de esas secciones (informe, EN SUMA, Excel, fugas) seguía andando, porque nada de eso
+necesita abrir el acordeón. Lo cubre **TC-122**, que **cliquea de verdad** las 28 cabeceras de la
+app y exige que la clase `open` cambie en los dos sentidos, más el cruce estático token→id.
+
+`secToggle` ya **no falla en silencio**: un id que no resuelve escribe `console.error`. Es «un id
+inventado no falla, calla» por enésima vez, y acá el coste era una sección clínica completa.
+
+**Al agregar un acordeón a Congénitas: el card es `sacc-cc-X` y la cabecera llama
+`secToggle('cc-X')`.** Los cuatro placeholders nacieron rotos y nadie lo notó **porque están
+vacíos**: un placeholder roto se ve igual que uno que funciona.
+
+**Y el caso de prueba nació con el mismo defecto que venía a cazar.** Su primera versión leía el
+token con `/secToggle\('([^']+)'\)/` dentro del **template literal** del cuerpo del caso: el
+literal se come una barra invertida, el regex emitido quedó con los paréntesis **sin escapar** y
+no matcheó nunca — los 28 acordeones salieron «no llama a secToggle» y el caso acusaba a la app
+de un defecto propio. Es la trampa del `\s` que este archivo ya documenta. **Dentro del cuerpo de
+un caso, partir la cadena con `indexOf`/`slice` en vez de un regex con escapes.**
+
 ### TdF: un umbral que vive en la prosa no es un umbral
 Las tres ramas de `tdfConclusion` decían «el criterio volumétrico se evalúa por RESONANCIA» — y
 **no había campo**. La app nombraba el umbral y **nunca podía aplicarlo**: un asintomático con

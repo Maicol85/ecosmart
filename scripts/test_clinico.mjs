@@ -3151,6 +3151,54 @@ caso('TC-121', 'TdF: el criterio volumetrico del VD vota, y solo medido por reso
   ] };
 `);
 
+/* EL ACORDEON QUE NO ABRE. `secToggle(id)` resuelve `#sacc-<id>`, y el card de Congenitas se
+   llama `sacc-cc-<X>`: siete cabeceras pasaban el token SIN el prefijo `cc-` —marfan, eisen,
+   fontan y los cuatro placeholders— asi que buscaban un id inexistente, `secToggle` salia por su
+   `if (!acc) return` y el boton quedaba MUERTO: visible, clicable, sin efecto.
+   NINGUNA prueba lo veia, y por eso este caso existe: TC-112 verifica que la seccion y su
+   cabecera EXISTAN, y TC-120 lee el CONTENIDO del panel —que esta en el DOM abierto o cerrado—.
+   Ver que algo esta no es lo mismo que poder alcanzarlo. Este caso CLIQUEA de verdad las
+   cabeceras de TODOS los acordeones de la app y exige que la clase `open` cambie. */
+caso('TC-122', 'Todos los acordeones abren de verdad al tocar su cabecera', `
+  const cards = [...document.querySelectorAll('.sacc[id^=sacc-]')];
+  const muertos = [], sinHdr = [], noCierran = [];
+  cards.forEach(function(acc) {
+    const hdr = acc.querySelector('.sacc-hdr');
+    if (!hdr) { sinHdr.push(acc.id); return; }
+    const antes = acc.classList.contains('open');
+    hdr.click();
+    if (acc.classList.contains('open') === antes) { muertos.push(acc.id); return; }
+    /* Y que vuelva: un toggle que solo abre tampoco es un toggle. */
+    hdr.click();
+    if (acc.classList.contains('open') !== antes) noCierran.push(acc.id);
+  });
+  /* El cruce estatico que da el diagnostico exacto cuando alguno falla: que el token que recibe
+     secToggle resuelva a un id que existe. */
+  const rotos = [];
+  cards.forEach(function(acc) {
+    const hdr = acc.querySelector('.sacc-hdr'); if (!hdr) return;
+    /* SIN REGEX A PROPOSITO. La primera version usaba /secToggle\\('([^']+)'\\)/ y el cuerpo de un
+       caso es un TEMPLATE LITERAL: se come una barra invertida, el regex emitido quedo sin los
+       parentesis escapados y no matcheo NUNCA — los 28 acordeones dieron «no llama a secToggle»
+       y el caso acusaba a la app de un defecto que estaba en el caso. Es la misma trampa que ya
+       documenta CLAUDE.md con el \\s. Partir la cadena no tiene escapes que perder. */
+    const oc = hdr.getAttribute('onclick') || '';
+    const i = oc.indexOf("secToggle('");
+    if (i < 0) { rotos.push(acc.id + ': la cabecera no llama a secToggle'); return; }
+    const j = oc.indexOf("'", i + 11);
+    const tok = j > -1 ? oc.slice(i + 11, j) : '';
+    if (!tok) { rotos.push(acc.id + ': no se pudo leer el token de secToggle'); return; }
+    if (!document.getElementById('sacc-' + tok)) rotos.push(acc.id + ': secToggle("' + tok + '") busca #sacc-' + tok + ', que no existe');
+  });
+  return { extra: [
+    ['hay acordeones sobre que medir', cards.length >= 25, 'encontrados: ' + cards.length],
+    ['todos tienen cabecera', sinHdr.length === 0, sinHdr.join(', ')],
+    ['todos ABREN al tocar la cabecera', muertos.length === 0, 'muertos: ' + muertos.join(', ')],
+    ['y todos vuelven a cerrar', noCierran.length === 0, 'no cierran: ' + noCierran.join(', ')],
+    ['ninguna cabecera apunta a un id inexistente', rotos.length === 0, rotos.join(' | ')]
+  ] };
+`);
+
 /* LAS TRES SUPERFICIES DE CARDIO-ONCO TIENEN QUE DECIR LO MISMO. La leyenda de #ref-cardiotox
    (pestaña Referencias), la tabla de farmacos y las tablas nuevas del marco HFA-ICOS viven en
    DOS pestañas distintas y describen al mismo paciente. Las tres estaban desincronizadas, cada
