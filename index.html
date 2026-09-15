@@ -15723,19 +15723,19 @@ window._hfSrcCampos = _hfSrcCampos;
 // desalinearse. Los umbrales de FA son más altos que los de ritmo sinusal.
 // Notación: los MAYORES son > estricto (no >=). Con >= el valor exacto del umbral
 // caería a la vez en el mayor y en el menor, que se solapan por diseño en la tabla.
-// ── DISPUTA ABIERTA: el piso del criterio MENOR de NT-proBNP en FA ──
-// Hoy vale 375, puesto en 2693c48 (2026-08-26) con este argumento: «365 es una errata muy
-// repetida en la literatura secundaria; los cortes de FA son exactamente 3x los de sinusal
-// (35→105, 80→240, 220→660, 125→375) y 365 es el único que rompe ese patrón».
-// El 2026-09-14 Maicol escribió 365 de memoria al pedir otro cambio. Los dos números tienen
-// defensa: 375 es la DERIVACIÓN del patrón 3x, 365 es lo que —según él— imprime la tabla de
-// Pieske 2019. No se cambió: revertir una decisión con justificación escrita apoyándose en otra
-// memoria, sin la fuente delante, es como este archivo ya se dio vuelta una vez.
-// QUEDA PENDIENTE verificar contra el paper. Población afectada: FA con NT-proBNP entre 365 y
-// 375 —una ventana de 10 pg/ml— donde el dominio humoral pasa de 0 a 1 punto, suficiente para
-// mover el total de 4 a 5, o sea de «probabilidad intermedia» a «HFpEF confirmado».
-// Si se cambia, hay que actualizar TAMBIÉN este comentario: el archivo no puede quedar
-// afirmando las dos cosas a dos líneas de distancia.
+// ── El piso del criterio MENOR de NT-proBNP en FA es 375. CERRADO, no volver a darlo vuelta ──
+// Valores exactos del paper (Pieske et al., Eur Heart J 2019;40:3297-3317), confirmados por
+// Maicol contra la fuente el 2026-09-14:
+//     FA      → NT-proBNP: mayor >660 · menor 375-660    BNP: mayor >240 · menor 105-240
+//     sinusal → NT-proBNP: mayor >220 · menor 125-220    BNP: mayor  >80 · menor  35-80
+// **El 365 no existe en la guía.** Es una errata muy repetida en la literatura secundaria, y
+// además rompe el patrón 3x que cumplen los otros tres cortes (35→105, 80→240, 220→660,
+// 125→375). Ya se corrigió una vez en 2693c48 (2026-08-26) y volvió a aparecer el 2026-09-14
+// —lo escribí yo, de memoria, al hacer otro cambio— con un comentario que contradecía a ÉSTE
+// dos líneas más abajo sin tocarlo. Lo agarró el differential-review.
+// Lo que está en juego si alguien lo vuelve a mover: FA con NT-proBNP entre 365 y 375 —una
+// ventana de 10 pg/ml— donde el dominio humoral pasa de 0 a 1 punto, suficiente para mover el
+// total de 4 a 5, o sea de «probabilidad intermedia» a «HFpEF confirmado» en un informe firmado.
 function hfUmbrales(fa) {
   const ntMay = fa ? 660 : 220, ntMenLo = fa ? 375 : 125;
   const bnMay = fa ? 240 : 80,  bnMenLo = fa ? 105 : 35;

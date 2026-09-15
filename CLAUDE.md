@@ -170,6 +170,25 @@ app se cuida de no hacer en las otras cinco superficies («rango, no grado de HT
 por el contrapeso de la salvedad del narrativo; al salir ésa, la tabla quedaba como la única
 lectura y la más afirmativa. Hoy lleva un solo corte de normalidad.
 
+### Un umbral con comentario que lo defiende no se toca de memoria
+El piso del criterio menor de NT-proBNP en FA del HFA-PEFF es **375** (Pieske 2019). El 365 no
+existe en la guía: es una errata muy repetida en la literatura secundaria. Ya se corrigió en
+`2693c48` (2026-08-26), con el argumento escrito arriba de la función, y **volvió a aparecer el
+2026-09-14** — lo escribí yo, de memoria, mientras hacía otro cambio, y encima puse un
+comentario nuevo que decía «estaba en 375 desde siempre» contradiciendo al que estaba dos líneas
+más abajo, sin tocarlo. El `git log -S` tarda diez segundos y lo habría evitado.
+
+Dos reglas:
+- **Antes de cambiar un número clínico, `git log -S "<el valor viejo>"`.** Si alguien lo puso a
+  propósito, la justificación está en el commit o en el comentario de al lado.
+- **Si lo cambiás igual, reescribí el comentario viejo en el MISMO commit.** Un archivo que
+  afirma las dos cosas a dos líneas de distancia garantiza que el próximo pase lo vuelva a dar
+  vuelta, y el que lea primero el de arriba va a creer que el código está mal.
+
+Lo que estaba en juego: FA con NT-proBNP entre 365 y 375 —diez pg/ml— donde el dominio humoral
+pasa de 0 a 1 punto, suficiente para mover el total de 4 a 5, o sea de «probabilidad intermedia»
+a «HFpEF confirmado» en un informe firmado.
+
 ### Si el valor lo pusiste vos, no probaste nada
 Al cerrar la fuga del centro en reimpresión (2026-09-14) monté la prueba escribiendo
 `med-centro.textContent = 'CENTRO AL FIRMAR'` desde la consola, vi la fuga, la arreglé, vi que
