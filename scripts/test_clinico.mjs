@@ -2500,12 +2500,12 @@ caso('TC-111', 'Cardio-onco: el rediseño no perdio ni duplico contenido', `
 caso('TC-112', 'Congenitas: ninguna seccion se perdio en el reparto ni al implementarlas', `
   const T1 = ['vab','coa','marfan','fop','esub','easv','mch','mca','tdf','tv'];
   const T2 = ['shunt','dap','vap','dsav','cvpa','tga','ebs','eisen','fontan'];
-  /* marfan paso de placeholder a seccion real el 2026-09-15: sale de PH y entra en ORIG con su
-     campo caracteristico. Que TC-112 se pusiera en rojo al implementarla es lo correcto —la
-     condicion «ningun placeholder trae campos» es justamente lo que hay que actualizar cuando
-     uno deja de serlo—. */
-  const ORIG = ['tv','shunt','dap','coa','vap','fop','vab','ebs','tdf','tga','mch','mca','marfan','eisen'];
-  const PH   = ['esub','easv','dsav','cvpa','fontan'];
+  /* marfan, eisen y fontan pasaron de placeholder a seccion real el 2026-09-15: salen de PH y
+     entran en ORIG con su campo caracteristico. Que TC-112 se pusiera en rojo al implementarlas
+     es lo correcto —la condicion «ningun placeholder trae campos» es justamente lo que hay que
+     actualizar cuando uno deja de serlo—. */
+  const ORIG = ['tv','shunt','dap','coa','vap','fop','vab','ebs','tdf','tga','mch','mca','marfan','eisen','fontan'];
+  const PH   = ['esub','easv','dsav','cvpa'];
   const t1 = document.getElementById('tab-congenitas');
   const t2 = document.getElementById('tab-congenitas2');
   const de = k => document.getElementById('sacc-cc-' + k);
@@ -2513,7 +2513,7 @@ caso('TC-112', 'Congenitas: ninguna seccion se perdio en el reparto ni al implem
   return { extra: [
     ['existen las dos pestañas', !!t1 && !!t2],
     ['las secciones con contenido siguen existiendo', ORIG.every(k => !!de(k))],
-    ['mas los siete acordeones nuevos, sin repetir id',
+    ['mas los acordeones en desarrollo, sin repetir id',
       PH.every(k => !!de(k)) &&
       document.querySelectorAll('[id^="sacc-cc-"]').length === ORIG.length + PH.length],
     ['cada una esta en la pestaña que le toca',
@@ -2529,7 +2529,7 @@ caso('TC-112', 'Congenitas: ninguna seccion se perdio en el reparto ni al implem
       [['vab','vab_fenotipo'],['coa','coa_istmo'],['fop','fop_tunel'],['mch','mch_espesor'],
        ['mca','mca_tsvd_plax'],['tdf','tdf_civ_grad'],['tv','tv_tipo'],['shunt','ete_cia_tipo'],
        ['dap','dap_diam'],['vap','vap_diam'],['tga','tga_tipo'],['ebs','ebs_area_ad'],
-       ['marfan','marfan_ao_seno'],['eisen','eis_lesion_base']]
+       ['marfan','marfan_ao_seno'],['eisen','eis_lesion_base'],['fontan','fontan_tipo']]
         .every(par => { const s = de(par[0]), c = document.getElementById(par[1]);
           return !!s && !!c && s.contains(c); })],
     ['los placeholders dicen que estan en desarrollo',
@@ -2864,7 +2864,124 @@ caso('TC-117', 'Eisenmenger: las alertas salen en el informe Y en el EN SUMA, y 
       sat93.inf.inf.indexOf('Saturación de oxígeno en cada visita') > -1],
     // El panel de contraindicaciones va SIEMPRE visible, no condicionado a ningun campo.
     ['el panel de contraindicaciones absolutas esta siempre en la seccion',
-      (document.getElementById('sacc-cc-eisen').textContent || '').indexOf('Contraindicaciones absolutas') > -1]
+      (document.getElementById('sacc-cc-eisen').textContent || '').indexOf('Contraindicaciones absolutas') > -1],
+    /* Mismo defecto que Fontan, cerrado el mismo dia: los .calc-row del panel no llevan id y
+       limpiarCampos no pasa por RECALC_MODULOS, asi que la saturacion del paciente anterior
+       seguia en pantalla despues de «Nuevo estudio». */
+    ['el panel del paciente anterior no sobrevive a Nuevo estudio', (function(){
+      __t.limpiar(); __t.set('eis_lesion_base','civ'); __t.set('eis_saturacion_reposo','82');
+      eisenSync();
+      const pan = document.getElementById('eisen-resultado');
+      const antes = (pan.textContent || ''); __t.limpiar();
+      return antes.indexOf('82') > -1 && (pan.textContent || '').indexOf('82') === -1;
+    })()]
+  ] };
+`);
+
+/* FONTAN — LAS COMPLICACIONES TIENEN TRES ESTADOS, NO DOS. «Ninguna casilla marcada» NO es «sin
+   complicaciones»: es «nadie las interrogo». Por eso hay una casilla explicita, y por eso el caso
+   prueba los TRES estados por separado — el que mas importa es el del medio, que no puede afirmar
+   ninguna de las dos cosas. Mismas reglas que Eisenmenger para saturacion y campos vacios. */
+caso('TC-118', 'Fontan: alertas, complicaciones en tres estados y riesgo de embarazo', `
+  function e(o) { __t.limpiar();
+    __t.set('fontan_tipo', o.tipo || 'extra');
+    if (o.fen  != null) __t.set('fontan_fenestracion', o.fen);
+    if (o.sat  != null) __t.set('fontan_saturacion', String(o.sat));
+    if (o.fevi != null) __t.set('fontan_vs_fevi', String(o.fevi));
+    if (o.it   != null) __t.set('fontan_it_grado', o.it);
+    if (o.asc  != null) __t.set('fontan_ascitis', o.asc);
+    if (o.pleu != null) __t.set('fontan_derrame_pleural', o.pleu);
+    if (o.nyha != null) __t.set('fontan_clase_nyha', o.nyha);
+    (o.comp || []).forEach(id => __t.chk(id, true));
+    __t.chk('fontan_incluir_chk', true);
+    const r = fontanEstado();
+    return { r, inf: __t.informe() };
+  }
+  const sat88 = e({ sat:88 }), sat89 = e({ sat:89 }), sat90 = e({ sat:90 }), sat95 = e({ sat:95 });
+  const satMal = e({ sat:9 });                          // 9 por 90: numero ilegible
+  const itSev = e({ sat:95, it:'severa' }), itMod = e({ sat:95, it:'moderada' });
+  const itLev = e({ sat:95, it:'leve' }),   itNo   = e({ sat:95, it:'no' });
+  const ascMod = e({ sat:95, asc:'moderada' }), ascLev = e({ sat:95, asc:'leve' });
+  const pleuSev = e({ sat:95, pleu:'severo' });
+  const epp  = e({ sat:95, comp:['fontan_comp_epp'] });
+  const fald = e({ sat:95, comp:['fontan_comp_fald'] });
+  const ning = e({ sat:95, comp:['fontan_comp_ninguna'] });
+  const vacio = e({ sat:95 });                          // nadie interrogo las complicaciones
+  const feviMal = e({ sat:95, fevi:5 });                // fuera de la banda 10-85
+  return { extra: [
+    // Saturacion: los dos lados del corte, y el numero ilegible.
+    ['sat 88 dispara la alerta de circuito',
+      sat88.inf.inf.indexOf('obstrucción del circuito de Fontan') > -1],
+    ['sat 89 tambien: el corte es <90',
+      sat89.inf.inf.indexOf('obstrucción del circuito de Fontan') > -1],
+    ['sat 90 exactos NO la dispara',
+      sat90.inf.inf.indexOf('obstrucción del circuito') === -1],
+    ['sat 95 tampoco', sat95.inf.inf.indexOf('obstrucción del circuito') === -1],
+    ['y la alerta de saturacion sube al EN SUMA',
+      sat88.inf.suma.indexOf('obstrucción del circuito') > -1],
+    ['una saturacion de 9 % no alerta: es ilegible, no critica',
+      satMal.inf.inf.indexOf('obstrucción del circuito') === -1],
+    ['y se declara fuera de rango en vez de callarse',
+      satMal.inf.inf.indexOf('fuera de rango') > -1],
+    ['la banda tambien corre para la FEVI del ventriculo sistemico',
+      feviMal.inf.inf.indexOf('fuera de rango') > -1 && feviMal.r.feviOk === false],
+    // Insuficiencia AV: moderada y severa alertan; leve y sin IT, no.
+    ['IT severa alerta en el informe',
+      itSev.inf.inf.indexOf('marcador de disfunción del ventrículo sistémico') > -1],
+    ['IT moderada tambien', itMod.inf.inf.indexOf('marcador de disfunción del ventrículo sistémico') > -1],
+    ['IT leve no alerta',   itLev.inf.inf.indexOf('marcador de disfunción') === -1],
+    ['sin IT tampoco',      itNo.inf.inf.indexOf('marcador de disfunción') === -1],
+    // Derrame y ascitis: moderado/severo mandan evaluacion urgente.
+    ['ascitis moderada manda evaluacion urgente',
+      ascMod.inf.inf.indexOf('fallo de Fontan o enteropatía pierdeproteínas') > -1 &&
+      ascMod.inf.inf.indexOf('Evaluación urgente') > -1],
+    ['ascitis leve no',     ascLev.inf.inf.indexOf('fallo de Fontan o enteropatía') === -1],
+    ['derrame pleural severo tambien la manda',
+      pleuSev.inf.inf.indexOf('fallo de Fontan') > -1],
+    // Complicaciones: cada una con su texto propio.
+    ['enteropatia marcada imprime su texto especifico',
+      epp.inf.inf.indexOf('hipoalbuminemia y ascitis') > -1],
+    ['FALD marcado imprime el suyo',
+      fald.inf.inf.indexOf('universal en esta circulación') > -1],
+    ['y cada complicacion sube al EN SUMA, que es donde se actua',
+      epp.inf.suma.indexOf('enteropatía pierdeproteínas') > -1],
+    // LOS TRES ESTADOS. El del medio es el que no puede afirmar nada.
+    ['«Sin complicaciones» marcado lo dice y no lista ninguna',
+      ning.inf.inf.indexOf('Sin complicaciones consignadas') > -1 &&
+      ning.inf.inf.indexOf('hipoalbuminemia') === -1 && ning.r.sinComp === true],
+    ['ninguna casilla marcada NO afirma la ausencia: no dice «sin complicaciones»',
+      vacio.inf.inf.indexOf('Sin complicaciones consignadas') === -1 && vacio.r.sinComp === false],
+    ['y tampoco inventa una alerta', vacio.r.comps.length === 0],
+    // Embarazo: clase IV solo con complicaciones; clase III solo si se interrogaron.
+    ['con complicaciones el embarazo esta contraindicado, clase IV',
+      epp.inf.inf.indexOf('clase IV de la OMS') > -1 &&
+      epp.inf.suma.indexOf('embarazo contraindicado, clase IV de la OMS') > -1],
+    ['sin complicaciones consignadas es clase III, que NO es contraindicacion',
+      ning.inf.inf.indexOf('clase III de la OMS') > -1 &&
+      ning.inf.inf.indexOf('clase IV') === -1],
+    ['la clase III NO sube al EN SUMA: es seguimiento, no contraindicacion',
+      ning.inf.suma.indexOf('clase III') === -1],
+    ['sin interrogar las complicaciones no se declara ninguna clase de riesgo',
+      vacio.inf.inf.indexOf('clase III de la OMS') === -1 &&
+      vacio.inf.inf.indexOf('clase IV de la OMS') === -1],
+    // Linea base y seguimiento.
+    ['el EN SUMA siempre lleva la linea base: un Fontan no es un hallazgo incidental',
+      sat95.inf.suma.indexOf('Circulación de Fontan') > -1],
+    ['y el informe cierra con el seguimiento',
+      sat95.inf.inf.indexOf('Ecocardiograma anual obligatorio') > -1 &&
+      sat95.inf.inf.indexOf('Control hepático periódico') > -1],
+    /* EL PANEL NO PUEDE SOBREVIVIR A «Nuevo estudio». Sus .calc-row no llevan id, asi que el
+       barrido de limpiarCampos no los alcanza: sin la llamada explicita a fontanSync, la
+       saturacion critica y las complicaciones del paciente A quedaban en pantalla con el
+       formulario en blanco. Medido antes y despues del arreglo. */
+    ['el panel del paciente anterior no sobrevive a Nuevo estudio', (function(){
+      __t.limpiar(); __t.set('fontan_tipo','extra'); __t.set('fontan_saturacion','82');
+      __t.chk('fontan_comp_epp', true); fontanSync();
+      const pan = document.getElementById('fontan-resultado');
+      const antes = (pan.textContent || ''); __t.limpiar();
+      const desp = (pan.textContent || '');
+      return antes.indexOf('enteropat') > -1 && desp.indexOf('enteropat') === -1 && desp.indexOf('82') === -1;
+    })()]
   ] };
 `);
 

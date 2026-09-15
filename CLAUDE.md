@@ -188,6 +188,61 @@ distinta hoy. El EN SUMA se reserva para lo accionable.
 `eis_pdap`, `eis_it_vel`, `eis_vd_funcion`, `eis_pericardio`, `eis_clase_nyha`, `eis_sincope`,
 `eis_hemoptisis`, `eisen_incluir_chk`. Con sus once columnas de Excel.
 
+### Fontan: las complicaciones tienen TRES estados, no dos
+Sección implementada el 2026-09-15 (antes era un acordeón vacío). Lo que la separa de las otras
+once no son los campos sino la regla de las complicaciones: **«ninguna casilla marcada» NO es
+«sin complicaciones», es «nadie las interrogó»**. Para afirmar la ausencia hay que marcar «Sin
+complicaciones» explícitamente, y por eso esa casilla existe y es **excluyente** con las cinco
+restantes. Sin esa distinción, el informe de un paciente al que nadie le preguntó por enteropatía
+diría «sin complicaciones»: una afirmación tranquilizadora sobre cero evaluación, firmada.
+
+**La exclusión se impone en el borde (`fontanToggleComp`) Y se resuelve en la evaluación.** El
+borde no alcanza: un import de Excel escribe las seis casillas sin pasar por ahí. Ante la
+contradicción —«sin complicaciones» marcada Y alguna otra también— manda **lo que SÍ está
+consignado**: afirmar la ausencia sobre una contradicción es el lado peligroso.
+
+**El riesgo de embarazo sólo se declara cuando SE SABE si hay complicaciones.** Con complicaciones
+es clase IV de la OMS (contraindicado) y sin ellas clase III; pero **sin interrogarlas no es
+ninguna de las dos**. Publicar «clase III — 19-27 % de eventos» sobre un paciente al que nadie le
+preguntó es exactamente la afirmación que el párrafo de arriba evita. Y al EN SUMA sube **sólo la
+clase IV**: la III es una condición de seguimiento, y meterla en el resumen la hace leer como si
+fuera una contraindicación.
+
+**Tres bandas de plausibilidad, no una** (FEVI 10-85, FAC 10-80, saturación 40-100). Fuera de
+banda el valor se declara y **no vota** — la regla de Eisenmenger.
+
+**Campos:** `fontan_tipo`, `fontan_fenestracion`, `fontan_vs_morfologia`, `fontan_vs_fevi`,
+`fontan_vs_fac`, `fontan_saturacion`, `fontan_it_grado`, `fontan_derrame_pleural`,
+`fontan_ascitis`, `fontan_clase_nyha`, `fontan_arritmia`, las seis casillas `fontan_comp_*`
+(`ninguna`, `epp`, `bronq`, `fald`, `trombo`, `otra`) y `fontan_incluir_chk`. Con sus **17
+columnas de Excel** — las seis complicaciones van como columnas BINARIAS y no como una lista
+separada por comas, para que se puedan reimportar y filtrar.
+
+### Un panel pintado con `.calc-row` sin id sobrevive a «Nuevo estudio»
+El barrido de `limpiarCampos` es `.calc-box .calc-row span[id]:not(.calc-lbl)`: **exige el id**.
+Eisenmenger y Fontan pintan sus filas con `<span>` sin id —igual que los dos paneles de
+cardio-onco, que ya habían pagado esto—, así que el panel del paciente anterior quedaba en
+pantalla con el formulario en blanco: saturación crítica y complicaciones de otra persona.
+
+**Y `limpiarCampos` NO pasa por el embudo de `RECALC_MODULOS`.** Estar en esa lista no alcanza:
+hay que nombrar la función **también** al final de `limpiarCampos`. Son las dos columnas, como ya
+lo documenta `calcCardioOnco`.
+
+Encontrado el 2026-09-15 revisando el diff de Fontan; **Eisenmenger lo tenía desde el día
+anterior** y se cerró en el mismo commit. Lo fijan TC-118 y TC-117, y se verificó por mutación:
+sacando cada una de las dos llamadas, el caso que le corresponde se pone en rojo.
+
+**Al agregar una sección con panel: o los `<span>` llevan id, o la función de pintado se nombra
+en `limpiarCampos`.** Las otras diez secciones de Congénitas no se auditaron para esto.
+
+### Un badge de sección tiene UN solo dueño
+`eteInclSync` deriva el badge de cada sección desde su `*_incluir_chk`
+(`fontan_incluir_chk` → `fontan_badge`) y lo muestra cuando está **integrada**. La primera versión
+de `fontanSync` lo escribía además desde `hayDatos`, o sea **dos escritores con dos significados**,
+y ganaba el que corriera último: retirar la sección la apagaba y el tecleo siguiente la volvía a
+encender. Se quitó de `fontanSync`. **Eisenmenger conserva el escritor duplicado** (`eisenSync`,
+la línea del `eisen_badge`) — es cosmético y quedó declarado, no corregido.
+
 ### Marfan / EHAT: el umbral quirúrgico sale del SÍNDROME, no del diámetro (ESC 2024, Tabla 62)
 Sección implementada el 2026-09-15 (antes era un acordeón vacío). **Loeys-Dietz opera a los 45 mm
 donde el Marfan espera a 50 y la EHAT no sindrómica a 55.** Aplicar el umbral del Marfan a un

@@ -10237,12 +10237,95 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     </div>
   </div>
   <div class="card sacc" id="sacc-cc-fontan">
-    <button type="button" class="sacc-hdr" onclick="secToggle('fontan')" aria-expanded="false">
+    <button type="button" class="sacc-hdr" onclick="secToggle('fontan');fontanSync()" aria-expanded="false">
       <span class="sacc-arrow">&#9654;</span>
       <span style="flex:1;">🫀 Circulacion de Fontan</span>
+      <span id="fontan_badge" class="incl-badge" hidden>&#9679; cargada</span>
     </button>
     <div class="card-body sacc-body">
-      <p style="font-size:12px;color:var(--text2);margin:0;line-height:1.6;">En desarrollo — proximamente.</p>
+      <div class="grid-3">
+        <div class="fg"><label>Tipo de Fontan</label>
+          <select id="fontan_tipo" onchange="fontanSync()">
+            <option value="">&mdash;</option>
+            <option value="tunel">Tunel lateral</option>
+            <option value="extra">Conexion cavopulmonar total extracardiaca</option>
+            <option value="ap">Auricula-pulmonar (antiguo)</option>
+            <option value="noesp">No especificado</option>
+          </select></div>
+        <div class="fg"><label>Fenestracion</label>
+          <select id="fontan_fenestracion" onchange="fontanSync()">
+            <option value="">&mdash;</option>
+            <option value="sin">Sin fenestracion</option>
+            <option value="presente">Fenestracion presente</option>
+            <option value="cerrada">Fenestracion cerrada</option>
+          </select></div>
+        <div class="fg"><label>Morfologia del ventriculo sistemico</label>
+          <select id="fontan_vs_morfologia" onchange="fontanSync()">
+            <option value="">&mdash;</option>
+            <option value="izq">Morfologia izquierda</option>
+            <option value="der">Morfologia derecha</option>
+            <option value="indet">Indeterminado</option>
+          </select></div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>FEVI del ventriculo sistemico (%)</label>
+          <input type="number" id="fontan_vs_fevi" placeholder="%" oninput="fontanSync()"></div>
+        <div class="fg"><label>FAC del ventriculo sistemico (%)</label>
+          <input type="number" id="fontan_vs_fac" placeholder="%" oninput="fontanSync()"></div>
+        <div class="fg"><label>Saturacion O&sub2; (%)</label>
+          <input type="number" id="fontan_saturacion" placeholder="%" oninput="fontanSync()">
+          <span style="font-size:10px;color:var(--text2);">Normal sin fenestracion: &gt;93-95&nbsp;%.</span></div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>Insuficiencia AV sistemica</label>
+          <select id="fontan_it_grado" onchange="fontanSync()">
+            <option value="">&mdash;</option><option value="no">Sin IT</option>
+            <option value="leve">Leve</option><option value="moderada">Moderada</option>
+            <option value="severa">Severa</option>
+          </select>
+          <span style="font-size:10px;color:var(--text2);">En Fontan es marcador de disfuncion del ventriculo sistemico.</span></div>
+        <div class="fg"><label>Derrame pleural</label>
+          <select id="fontan_derrame_pleural" onchange="fontanSync()">
+            <option value="">&mdash;</option><option value="no">No</option>
+            <option value="leve">Si &mdash; leve</option><option value="moderado">Si &mdash; moderado</option>
+            <option value="severo">Si &mdash; severo</option>
+          </select></div>
+        <div class="fg"><label>Ascitis</label>
+          <select id="fontan_ascitis" onchange="fontanSync()">
+            <option value="">&mdash;</option><option value="no">No</option>
+            <option value="leve">Si &mdash; leve</option><option value="moderada">Si &mdash; moderada</option>
+            <option value="severa">Si &mdash; severa</option>
+          </select></div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>Clase funcional NYHA</label>
+          <select id="fontan_clase_nyha" onchange="fontanSync()">
+            <option value="">&mdash;</option><option value="i">I</option><option value="ii">II</option>
+            <option value="iii">III</option><option value="iv">IV</option>
+          </select></div>
+        <div class="fg"><label>Arritmia</label>
+          <select id="fontan_arritmia" onchange="fontanSync()">
+            <option value="">&mdash;</option><option value="no">No</option>
+            <option value="fa">Fibrilacion auricular</option><option value="flutter">Flutter</option>
+            <option value="tsv">TSV</option><option value="tv">TV</option>
+            <option value="brady">Bradicardia sinusal</option><option value="otra">Otra</option>
+          </select></div>
+      </div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--text);margin:12px 0 4px;">Complicaciones</div>
+      <div style="display:flex;flex-direction:column;gap:2px;" id="fontan-complicaciones">
+        <label class="chk-toque" style="min-width:0;justify-content:flex-start;gap:8px;font-size:12px;padding:6px;"><input type="checkbox" id="fontan_comp_ninguna" onchange="fontanToggleComp('fontan_comp_ninguna')" style="width:16px;height:16px;flex:0 0 auto;"><span>Sin complicaciones</span></label>
+        <label class="chk-toque" style="min-width:0;justify-content:flex-start;gap:8px;font-size:12px;padding:6px;"><input type="checkbox" id="fontan_comp_epp" onchange="fontanToggleComp('fontan_comp_epp')" style="width:16px;height:16px;flex:0 0 auto;"><span>Enteropatia pierdeproteinas</span></label>
+        <label class="chk-toque" style="min-width:0;justify-content:flex-start;gap:8px;font-size:12px;padding:6px;"><input type="checkbox" id="fontan_comp_bronq" onchange="fontanToggleComp('fontan_comp_bronq')" style="width:16px;height:16px;flex:0 0 auto;"><span>Bronquitis plastica</span></label>
+        <label class="chk-toque" style="min-width:0;justify-content:flex-start;gap:8px;font-size:12px;padding:6px;"><input type="checkbox" id="fontan_comp_fald" onchange="fontanToggleComp('fontan_comp_fald')" style="width:16px;height:16px;flex:0 0 auto;"><span>Insuficiencia hepatica (FALD)</span></label>
+        <label class="chk-toque" style="min-width:0;justify-content:flex-start;gap:8px;font-size:12px;padding:6px;"><input type="checkbox" id="fontan_comp_trombo" onchange="fontanToggleComp('fontan_comp_trombo')" style="width:16px;height:16px;flex:0 0 auto;"><span>Trombosis del circuito</span></label>
+        <label class="chk-toque" style="min-width:0;justify-content:flex-start;gap:8px;font-size:12px;padding:6px;"><input type="checkbox" id="fontan_comp_otra" onchange="fontanToggleComp('fontan_comp_otra')" style="width:16px;height:16px;flex:0 0 auto;"><span>Otra</span></label>
+      </div>
+      <div id="fontan-resultado" class="calc-box" style="margin-top:12px;"></div>
+      <input type="checkbox" id="fontan_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+      <div style="display:flex;justify-content:center;margin-top:10px;">
+        <button type="button" class="btn btn-integrar" data-ete-chk="fontan_incluir_chk" aria-pressed="false"
+                onclick="eteInclToggle('fontan_incluir_chk')">&#128206; Integrar al informe</button>
+      </div>
     </div>
   </div>
 </div>
@@ -21780,6 +21863,47 @@ function generarInforme(opts) {
       r.alertas.forEach(a => { if (a.suma) sumaCC(a.suma); });
     })();
 
+    /* ── Circulación de Fontan ── */
+    (function(){
+      const chk = document.getElementById('fontan_incluir_chk');
+      if (!chk || !chk.checked) return;
+      if (typeof fontanEstado !== 'function') return;
+      const r = fontanEstado();
+      if (!r.hayDatos) return;
+      const f1 = n => (n == null || !isFinite(n)) ? null : String(Math.round(n * 10) / 10);
+      const enc = [];
+      if (r.tipo) enc.push(FONTAN_TIPO_TXT[r.tipo] || r.tipo);
+      if (r.fen)  enc.push(FONTAN_FEN_TXT[r.fen] || r.fen);
+      const p = ['Circulación de Fontan' + (enc.length ? ' (' + enc.join(', ') + ')' : '')];
+      if (r.vsm) p.push('Ventrículo sistémico de morfología ' + (FONTAN_VS_TXT[r.vsm] || r.vsm));
+      if (r.feviOk) p.push('FEVI del ventrículo sistémico ' + f1(r.fevi) + ' %');
+      if (r.facOk)  p.push('FAC del ventrículo sistémico ' + f1(r.fac) + ' %');
+      if (r.satOk)  p.push('Saturación de oxígeno ' + f1(r.sat) + ' %');
+      if (r.fuera.length) p.push('Valor fuera de rango en ' + r.fuera.join(' y ') + ': revisar antes de concluir');
+      if (r.it)   p.push('Insuficiencia auriculoventricular sistémica ' + (FONTAN_GR_TXT[r.it] || r.it));
+      if (r.pleu) p.push('Derrame pleural ' + (FONTAN_DER_TXT[r.pleu] || r.pleu));
+      if (r.asc)  p.push('Ascitis ' + (FONTAN_ASC_TXT[r.asc] || r.asc));
+      if (r.nyha) p.push('Clase funcional NYHA ' + (FONTAN_NYHA_TXT[r.nyha] || r.nyha));
+      if (r.arr)  p.push(FONTAN_ARR_TXT[r.arr] || r.arr);
+      if (r.comps.length) p.push('Complicaciones consignadas: ' + r.comps.map(c => c.lbl).join(', '));
+      else if (r.sinComp) p.push('Sin complicaciones consignadas');
+      /* Las alertas van como ORACIONES PROPIAS: son lo que cambia la conducta y tienen que poder
+         leerse solas en el párrafo firmado. Mismo criterio que Eisenmenger. */
+      const alertas = r.alertas.map(a => a.txt).join(' ');
+      etePars.push(p.join('. ') + '.' + (alertas ? ' ' + alertas : '') +
+                   (r.embarazo ? ' ' + r.embarazo.txt : '') + ' ' + r.SEGUIMIENTO);
+      ccMarcarParrafo();
+      /* Al EN SUMA: la línea base SIEMPRE —una circulación de Fontan no es un hallazgo
+         incidental— y cada alerta accionable por separado. El embarazo sube SÓLO cuando está
+         contraindicado (clase IV): la clase III es una condición de seguimiento, no una
+         contraindicación, y meterla en el resumen la haría leer como si lo fuera. */
+      sumaCC('Circulación de Fontan' + (r.tipo ? ' (' + (FONTAN_TIPO_TXT[r.tipo] || r.tipo) + ')' : '') +
+             (r.feviOk ? ', FEVI del ventrículo sistémico ' + f1(r.fevi) + ' %' : '') +
+             (r.satOk ? ', saturación ' + f1(r.sat) + ' %' : '') + '.');
+      r.alertas.forEach(a => { if (a.suma) sumaCC(a.suma); });
+      if (r.embarazo && r.embarazo.suma) sumaCC(r.embarazo.suma);
+    })();
+
     /* ── Marfan / EHAT — aortopatía hereditaria ── */
     (function(){
       const chk = document.getElementById('marfan_incluir_chk');
@@ -22182,7 +22306,7 @@ function RECALC_MODULOS() {
          veredicto sí contaba esos criterios;
        · `calcOAI` reconstruye la marca de «área derivada» (ver ahí), sin la cual corregir el
          diámetro en un estudio reabierto dejaba el área vieja. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -22384,6 +22508,14 @@ function limpiarCampos(silencioso) {
      `protMonoc`. Se cierra acá y en RECALC_MODULOS, que son las tres columnas. */
   if (typeof hcSync === 'function') { try { hcSync(); } catch (e) {} }
   if (typeof calcCardioOnco === 'function') { try { calcCardioOnco(); } catch (e) {} }
+  /* Eisenmenger y Fontan pintan su panel con `.calc-row` cuyos <span> NO llevan id, así que el
+     barrido `.calc-box .calc-row span[id]` de más arriba no los alcanza y el panel del paciente
+     anterior sobrevivía a «Nuevo estudio»: saturación crítica y complicaciones de otra persona
+     en pantalla, con el formulario en blanco. Es el mismo defecto que ya se cerró con
+     `calcCardioOnco`, y `limpiarCampos` NO pasa por el embudo de RECALC_MODULOS — por eso van
+     nombradas acá además de estar en esa lista. Medido antes y después. */
+  if (typeof eisenSync === 'function') { try { eisenSync(); } catch (e) {} }
+  if (typeof fontanSync === 'function') { try { fontanSync(); } catch (e) {} }
   if (typeof dptSync === 'function') { try { dptSync(); } catch (e) {} }
   if (typeof cvrSync === 'function') { try { cvrSync(); } catch (e) {} }
   /* Los botones se repintan desde el ESTADO REAL, no a `false` fijo. Las claves del bull's eye
@@ -27582,6 +27714,140 @@ function eisenSync() {
 }
 window.eisenSync = eisenSync;
 
+/* ══ CIRCULACIÓN DE FONTAN (ESC 2020) ════════════════════════════════════════════════════════
+   Mismas reglas que Eisenmenger: ninguna alerta se dispara por un campo VACÍO, y los números se
+   validan por banda antes de votar.
+
+   LAS COMPLICACIONES TIENEN TRES ESTADOS, no dos. «Ninguna casilla marcada» NO es «sin
+   complicaciones»: es «nadie las interrogó». Para afirmar la ausencia hay que marcar «Sin
+   complicaciones» explícitamente, y por eso esa casilla existe y es EXCLUYENTE con las demás —
+   marcarla desmarca el resto y viceversa. Sin esa distinción, el informe de un paciente al que
+   nadie le preguntó por enteropatía diría «sin complicaciones», que es una afirmación
+   tranquilizadora sobre cero evaluación en un documento firmado. */
+const FONTAN_TIPO_TXT = { tunel:'túnel lateral', extra:'conexión cavopulmonar total extracardíaca',
+                          ap:'aurícula-pulmonar (técnica antigua)', noesp:'tipo no especificado' };
+const FONTAN_FEN_TXT  = { sin:'sin fenestración', presente:'con fenestración permeable', cerrada:'con fenestración cerrada' };
+const FONTAN_VS_TXT   = { izq:'izquierda', der:'derecha', indet:'indeterminada' };
+const FONTAN_GR_TXT   = { no:'sin insuficiencia', leve:'leve', moderada:'moderada', severa:'severa' };
+const FONTAN_DER_TXT  = { no:'ausente', leve:'leve', moderado:'moderado', severo:'severo' };
+const FONTAN_ASC_TXT  = { no:'ausente', leve:'leve', moderada:'moderada', severa:'severa' };
+const FONTAN_NYHA_TXT = { i:'I', ii:'II', iii:'III', iv:'IV' };
+const FONTAN_ARR_TXT  = { no:'sin arritmia documentada', fa:'fibrilación auricular', flutter:'flutter auricular',
+                          tsv:'taquicardia supraventricular', tv:'taquicardia ventricular',
+                          brady:'bradicardia sinusal', otra:'otra arritmia' };
+function fontanComplicaciones() {
+  return [
+    { id:'fontan_comp_epp',    lbl:'enteropatía pierdeproteínas',
+      txt:'Enteropatía pierdeproteínas — riesgo de hipoalbuminemia y ascitis. Evaluación urgente.' },
+    { id:'fontan_comp_bronq',  lbl:'bronquitis plástica',
+      txt:'Bronquitis plástica — complicación grave. Derivar a centro especializado.' },
+    { id:'fontan_comp_fald',   lbl:'insuficiencia hepática (FALD)',
+      txt:'Insuficiencia hepática asociada a Fontan (FALD) — universal en esta circulación; vigilar progresión.' },
+    { id:'fontan_comp_trombo', lbl:'trombosis del circuito',
+      txt:'Trombosis del circuito de Fontan — evaluación urgente.' },
+    { id:'fontan_comp_otra',   lbl:'otra complicación', txt:'Otra complicación consignada.' }
+  ];
+}
+window.fontanComplicaciones = fontanComplicaciones;
+/* La casilla «Sin complicaciones» es EXCLUYENTE: marcarla apaga las demás y marcar cualquiera de
+   las demás la apaga a ella. Eso se impone en el BORDE, al tildar. `fontanEstado` no puede
+   confiar en ese borde —un import de Excel escribe las casillas sin pasar por acá, y un
+   invariante que vive sólo en la interfaz no es un invariante (lección de las dos FEVI del
+   HFA-ICOS)—, así que ante la contradicción resuelve del lado seguro: ver `sinComp`. */
+function fontanToggleComp(id) {
+  const ning = document.getElementById('fontan_comp_ninguna');
+  if (id === 'fontan_comp_ninguna') {
+    if (ning && ning.checked) fontanComplicaciones().forEach(c => {
+      const e = document.getElementById(c.id); if (e) e.checked = false; });
+  } else {
+    const e = document.getElementById(id);
+    if (e && e.checked && ning) ning.checked = false;
+  }
+  fontanSync();
+}
+window.fontanToggleComp = fontanToggleComp;
+
+function fontanEstado() {
+  const nv = id => { const e = document.getElementById(id); if (!e) return null;
+    const n = parseFloat(String(e.value).replace(',', '.')); return isFinite(n) ? n : null; };
+  const sv2 = id => (document.getElementById(id) || {}).value || '';
+  const ck  = id => { const e = document.getElementById(id); return !!(e && e.checked); };
+  const tipo = sv2('fontan_tipo'), fen = sv2('fontan_fenestracion'), vsm = sv2('fontan_vs_morfologia');
+  const it = sv2('fontan_it_grado'), pleu = sv2('fontan_derrame_pleural'), asc = sv2('fontan_ascitis');
+  const nyha = sv2('fontan_clase_nyha'), arr = sv2('fontan_arritmia');
+  const fevi = nv('fontan_vs_fevi'), fac = nv('fontan_vs_fac'), sat = nv('fontan_saturacion');
+  const banda = (v, lo, hi) => v != null && v >= lo && v <= hi;
+  const feviOk = banda(fevi, 10, 85), facOk = banda(fac, 10, 80), satOk = banda(sat, 40, 100);
+  const fuera = [];
+  if (fevi != null && !feviOk) fuera.push('FEVI del ventrículo sistémico');
+  if (fac  != null && !facOk)  fuera.push('FAC del ventrículo sistémico');
+  if (sat  != null && !satOk)  fuera.push('saturación');
+  const comps = fontanComplicaciones().filter(c => ck(c.id));
+  /* `sinComp` sólo con la casilla explícita Y ninguna otra marcada. Con las dos cosas marcadas
+     —que la exclusión del borde impide, pero un import de Excel no— manda lo que SÍ está
+     consignado: afirmar la ausencia sobre una contradicción es el lado peligroso. */
+  const sinComp = ck('fontan_comp_ninguna') && comps.length === 0;
+  const hayDatos = !!(tipo || fen || vsm || it || pleu || asc || nyha || arr ||
+                      fevi != null || fac != null || sat != null || comps.length || ck('fontan_comp_ninguna'));
+  if (!hayDatos) return { hayDatos:false, alertas:[], comps:[] };
+  const alertas = [];
+  if (satOk && sat < 90) alertas.push({
+    txt:'Saturación crítica (' + sat + ' %, <90 %). Considerar obstrucción del circuito de Fontan o necesidad de fenestración.',
+    suma:'Fontan con saturación ' + sat + ' % — considerar obstrucción del circuito o fenestración.' });
+  if (it === 'moderada' || it === 'severa') alertas.push({
+    txt:'Insuficiencia auriculoventricular sistémica ' + FONTAN_GR_TXT[it] + ' — marcador de disfunción del ventrículo sistémico en Fontan. Considerar evaluación para intervención.',
+    suma:'Fontan con insuficiencia AV sistémica ' + FONTAN_GR_TXT[it] + ' — marcador de disfunción ventricular.' });
+  const derSig = (pleu === 'moderado' || pleu === 'severo'), ascSig = (asc === 'moderada' || asc === 'severa');
+  if (derSig || ascSig) alertas.push({
+    txt:(derSig && ascSig ? 'Derrame pleural y ascitis' : (derSig ? 'Derrame pleural' : 'Ascitis')) +
+        ' — sugiere fallo de Fontan o enteropatía pierdeproteínas. Evaluación urgente.',
+    suma:'Fontan con ' + (derSig && ascSig ? 'derrame pleural y ascitis' : (derSig ? 'derrame pleural' : 'ascitis')) +
+         ' — sugiere fallo de Fontan; evaluación urgente.' });
+  comps.forEach(c => alertas.push({ txt:c.txt,
+    suma:'Fontan con ' + c.lbl + (c.id === 'fontan_comp_fald' ? ' — vigilar progresión.' : ' — evaluación urgente.') }));
+  /* Riesgo de embarazo: sólo se declara cuando SE SABE si hay complicaciones. Sin esa
+     información no es Clase III ni IV — es una pregunta sin responder, y decir «Clase III
+     (19-27 % de eventos)» sobre un paciente al que nadie le interrogó las complicaciones es
+     exactamente la afirmación tranquilizadora que este archivo evita. */
+  let embarazo = null;
+  if (comps.length) embarazo = { clase:'IV',
+    txt:'Riesgo de embarazo clase IV de la OMS (ESC 2020): contraindicado en Fontan con complicaciones.',
+    suma:'Fontan con complicaciones — embarazo contraindicado, clase IV de la OMS.' };
+  else if (sinComp) embarazo = { clase:'III',
+    txt:'Riesgo de embarazo clase III de la OMS (ESC 2020): 19-27 % de eventos cardíacos; requiere seguimiento en centro especializado.',
+    suma:null };
+  return { hayDatos:true, tipo, fen, vsm, it, pleu, asc, nyha, arr, fevi, fac, sat,
+           feviOk, facOk, satOk, fuera, comps, sinComp, alertas, embarazo,
+           SEGUIMIENTO:'Ecocardiograma anual obligatorio. Control hepático periódico (la enfermedad hepática asociada a Fontan es universal). Anticoagulación según el protocolo del centro. Evaluación en centro especializado en cardiopatías congénitas del adulto cada 1-2 años.' };
+}
+window.fontanEstado = fontanEstado;
+
+function fontanSync() {
+  const el = document.getElementById('fontan-resultado'); if (!el) return;
+  while (el.firstChild) el.removeChild(el.firstChild);
+  const r = fontanEstado();
+  /* El badge «cargada» tiene UN solo dueño: `eteInclSync`, que lo deriva de `fontan_incluir_chk`
+     igual que los otros catorce. Escribirlo también acá lo dejaba con dos escritores y dos
+     significados —«tiene datos» contra «está integrada»—, y ganaba el que corriera último:
+     retirar la sección la apagaba y el siguiente tecleo la volvía a encender. */
+  const fila = (lbl, nodo) => { const row = document.createElement('div'); row.className = 'calc-row';
+    const l = document.createElement('span'); l.className = 'calc-lbl'; l.textContent = lbl;
+    row.appendChild(l); if (nodo) row.appendChild(nodo); el.appendChild(row); };
+  const val = t => { const sp = document.createElement('span'); sp.className = 'calc-val';
+    sp.style.fontWeight = '400'; sp.textContent = t; return sp; };
+  const pill = (cls, t) => { const sp = document.createElement('span');
+    sp.className = 'badge badge-' + (BADGE_CLS_OK.indexOf(cls) >= 0 ? cls : 'gray'); sp.textContent = t; return sp; };
+  if (!r.hayDatos) { fila('Circulación de Fontan', pill('gray', 'Ingresar tipo y saturación')); return; }
+  if (r.fuera.length) fila('Fuera de rango', pill('yellow', r.fuera.join(' y ') + ' — revisar antes de concluir'));
+  if (r.satOk) fila('Saturación', pill(r.sat < 90 ? 'red' : (r.sat < 93 ? 'yellow' : 'green'), r.sat + ' %'));
+  fila('Complicaciones', r.comps.length ? pill('red', r.comps.map(c => c.lbl).join(' · '))
+       : (r.sinComp ? pill('green', 'Ninguna consignada') : pill('gray', 'No interrogadas')));
+  if (r.alertas.length) r.alertas.forEach(a => fila('·', val(a.txt)));
+  if (r.embarazo) fila('Embarazo', pill(r.embarazo.clase === 'IV' ? 'red' : 'orange', 'Clase ' + r.embarazo.clase + ' OMS'));
+  fila('Seguimiento', val(r.SEGUIMIENTO));
+}
+window.fontanSync = fontanSync;
+
 function vabConclusion(){
   const sv2 = id => (document.getElementById(id)?.value || '').trim();
   const nv  = id => { const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; };
@@ -31235,6 +31501,7 @@ const ETE_INCL_LBL = {
   hfaicos_incluir_chk:     'Riesgo CV basal (HFA-ICOS)',
   marfan_incluir_chk:      'Marfan / EHAT',
   eisen_incluir_chk:       'Síndrome de Eisenmenger',
+  fontan_incluir_chk:      'Circulación de Fontan',
   mch_incluir_chk:         'Miocardiopatía hipertrófica',
   ebs_incluir_chk:         'Anomalía de Ebstein',
   tdf_incluir_chk:         'Tetralogía de Fallot reparada',
@@ -42359,6 +42626,26 @@ function _labExcelRow(inf) {
     'Eisenmenger NYHA': ({i:'I',ii:'II',iii:'III',iv:'IV'}[c.eis_clase_nyha] || ''),
     'Eisenmenger síncope': ({no:'No',si:'Sí'}[c.eis_sincope] || ''),
     'Eisenmenger hemoptisis': ({no:'No',si:'Sí'}[c.eis_hemoptisis] || ''),
+    'Fontan tipo': ({tunel:'Túnel lateral',extra:'Cavopulmonar total extracardiaca',ap:'Auriculo-pulmonar',noesp:'No especificado'}[c.fontan_tipo] || ''),
+    'Fontan fenestración': ({sin:'Sin fenestración',presente:'Fenestración presente',cerrada:'Fenestración cerrada'}[c.fontan_fenestracion] || ''),
+    'Fontan morfología VS': ({izq:'Morfología izquierda',der:'Morfología derecha',indet:'Indeterminado'}[c.fontan_vs_morfologia] || ''),
+    'Fontan FEVI VS (%)': rnd(num('fontan_vs_fevi'),1),
+    'Fontan FAC VS (%)': rnd(num('fontan_vs_fac'),1),
+    'Fontan sat O2 (%)': rnd(num('fontan_saturacion'),0),
+    'Fontan insuficiencia AV': ({no:'Sin IT',leve:'Leve',moderada:'Moderada',severa:'Severa'}[c.fontan_it_grado] || ''),
+    'Fontan derrame pleural': ({no:'No',leve:'Leve',moderado:'Moderado',severo:'Severo'}[c.fontan_derrame_pleural] || ''),
+    'Fontan ascitis': ({no:'No',leve:'Leve',moderada:'Moderada',severa:'Severa'}[c.fontan_ascitis] || ''),
+    'Fontan NYHA': ({i:'I',ii:'II',iii:'III',iv:'IV'}[c.fontan_clase_nyha] || ''),
+    'Fontan arritmia': ({no:'No',fa:'Fibrilación auricular',flutter:'Flutter',tsv:'TSV',tv:'TV',brady:'Bradicardia sinusal',otra:'Otra'}[c.fontan_arritmia] || ''),
+    /* Las seis complicaciones van como columnas BINARIAS y no como una lista separada por comas,
+       para que se puedan reimportar y filtrar. «Sin complicaciones» es una columna propia por lo
+       mismo que es una casilla propia: «ninguna marcada» no afirma la ausencia. */
+    'Fontan sin complicaciones': c['fontan_comp_ninguna__chk'] === '1' ? 1 : 0,
+    'Fontan enteropatía pierdeproteínas': c['fontan_comp_epp__chk'] === '1' ? 1 : 0,
+    'Fontan bronquitis plástica': c['fontan_comp_bronq__chk'] === '1' ? 1 : 0,
+    'Fontan insuficiencia hepática (FALD)': c['fontan_comp_fald__chk'] === '1' ? 1 : 0,
+    'Fontan trombosis del circuito': c['fontan_comp_trombo__chk'] === '1' ? 1 : 0,
+    'Fontan otra complicación': c['fontan_comp_otra__chk'] === '1' ? 1 : 0,
     'Marfan/EHAT síndrome': ({marfan:'Marfan',lds:'Loeys-Dietz',turner:'Turner',ehat:'EHAT no sindrómica',otro:'Otro'}[c.marfan_sindrome] || ''),
     'Marfan/EHAT aorta sinusal (mm)': rnd(num('marfan_ao_seno'),1),
     'Marfan/EHAT aorta ascendente (mm)': rnd(num('marfan_ao_ascendente'),1),
@@ -43234,6 +43521,23 @@ const LAB_XLS_MAP = [
   ['Eisenmenger NYHA',            'eis_clase_nyha','vocab'],
   ['Eisenmenger síncope',         'eis_sincope',   'vocab'],
   ['Eisenmenger hemoptisis',      'eis_hemoptisis','vocab'],
+  ['Fontan tipo',                 'fontan_tipo',            'vocab'],
+  ['Fontan fenestración',         'fontan_fenestracion',    'vocab'],
+  ['Fontan morfología VS',        'fontan_vs_morfologia',   'vocab'],
+  ['Fontan FEVI VS (%)',          'fontan_vs_fevi',         'num'],
+  ['Fontan FAC VS (%)',           'fontan_vs_fac',          'num'],
+  ['Fontan sat O2 (%)',           'fontan_saturacion',      'num'],
+  ['Fontan insuficiencia AV',     'fontan_it_grado',        'vocab'],
+  ['Fontan derrame pleural',      'fontan_derrame_pleural', 'vocab'],
+  ['Fontan ascitis',              'fontan_ascitis',         'vocab'],
+  ['Fontan NYHA',                 'fontan_clase_nyha',      'vocab'],
+  ['Fontan arritmia',             'fontan_arritmia',        'vocab'],
+  ['Fontan sin complicaciones',   'fontan_comp_ninguna__chk', 'chk'],
+  ['Fontan enteropatía pierdeproteínas', 'fontan_comp_epp__chk', 'chk'],
+  ['Fontan bronquitis plástica',  'fontan_comp_bronq__chk', 'chk'],
+  ['Fontan insuficiencia hepática (FALD)', 'fontan_comp_fald__chk', 'chk'],
+  ['Fontan trombosis del circuito','fontan_comp_trombo__chk','chk'],
+  ['Fontan otra complicación',    'fontan_comp_otra__chk',  'chk'],
   ['Marfan/EHAT síndrome',        'marfan_sindrome', 'vocab'],
   ['Marfan/EHAT aorta sinusal (mm)',        'marfan_ao_seno',       'num'],
   ['Marfan/EHAT aorta ascendente (mm)',     'marfan_ao_ascendente', 'num'],
@@ -43953,6 +44257,14 @@ const LAB_XLS_OPCIONES = {
   eis_clase_nyha:'I · II · III · IV',
   eis_sincope:'No · Sí',
   eis_hemoptisis:'No · Sí',
+  fontan_tipo:'Túnel lateral · Cavopulmonar total extracardiaca · Auriculo-pulmonar · No especificado',
+  fontan_fenestracion:'Sin fenestración · Fenestración presente · Fenestración cerrada',
+  fontan_vs_morfologia:'Morfología izquierda · Morfología derecha · Indeterminado',
+  fontan_it_grado:'Sin IT · Leve · Moderada · Severa',
+  fontan_derrame_pleural:'No · Leve · Moderado · Severo',
+  fontan_ascitis:'No · Leve · Moderada · Severa',
+  fontan_clase_nyha:'I · II · III · IV',
+  fontan_arritmia:'No · Fibrilación auricular · Flutter · TSV · TV · Bradicardia sinusal · Otra',
   marfan_sindrome:'Marfan · Loeys-Dietz · Turner · EHAT no sindrómica · Otro',
   marfan_factores_riesgo:'No · Sí',
   vab_funcion:'Normofuncionante · Estenosis · Insuficiencia · Mixta',
