@@ -3089,6 +3089,68 @@ caso('TC-120', 'Congenitas: ningun panel de seccion sobrevive a Nuevo estudio', 
   ] };
 `);
 
+/* TdF REPARADA — EL CRITERIO VOLUMETRICO ESTABA EN LA PROSA Y NO PODIA APLICARSE. Las tres ramas
+   de tdfConclusion decian «el criterio volumetrico se evalua por RESONANCIA», y no habia campo:
+   un asintomatico con IP severa y VTDVD indexado de 180 salia «sin criterios de reintervencion
+   por los datos cargados» con el criterio que lo indica impreso dos renglones mas arriba.
+   Umbrales ESC 2020 (Baumgartner, EHJ 2021;42:563): VTDVDi >=160 o VTSVDi >=80.
+   EL METODO IMPORTA TANTO COMO EL NUMERO: estos volumenes no los mide un eco, se transcriben, y
+   el umbral esta validado sobre resonancia. Por eco 3D —que SUBESTIMA— el valor se declara y NO
+   vota. Es la leccion de coaConclusion: el numero correcto medido con el metodo equivocado. */
+caso('TC-121', 'TdF: el criterio volumetrico del VD vota, y solo medido por resonancia', `
+  function e(o) { __t.limpiar();
+    __t.set('tdf_sintomas', o.sint || 'no');
+    __t.set('ip_grado', o.ip || 'IP severa');
+    if (o.vtd != null) __t.set('tdf_vtdvdi', String(o.vtd));
+    if (o.vts != null) __t.set('tdf_vtsvdi', String(o.vts));
+    if (o.fuente != null) __t.set('tdf_vol_fuente', o.fuente);
+    __t.chk('tdf_incluir_chk', true);
+    const c = tdfConclusion();
+    return { c, inf: __t.informe() };
+  }
+  const rmc = 'rmc';
+  const d159 = e({ vtd:159, fuente:rmc }), d160 = e({ vtd:160, fuente:rmc });
+  const s79  = e({ vts:79,  fuente:rmc }), s80  = e({ vts:80,  fuente:rmc });
+  const eco  = e({ vtd:180, fuente:'eco3d' });
+  const sinF = e({ vtd:180 });
+  const tcx  = e({ vtd:180, fuente:'tc' });
+  const bajo = e({ vtd:120, vts:40, fuente:rmc });
+  const ilegible = e({ vtd:1800, fuente:rmc });
+  const conSint = e({ vtd:180, fuente:rmc, sint:'si' });
+  return { extra: [
+    // Los dos lados de cada corte. 159 y 79 no alcanzan; 160 y 80 exactos si.
+    ['VTDVD 160 exactos dan criterio IIa', d160.c.clave === 'reintervencion_iia'],
+    ['VTDVD 159 no', d159.c.clave !== 'reintervencion_iia'],
+    ['VTSVD 80 exactos dan criterio IIa', s80.c.clave === 'reintervencion_iia'],
+    ['VTSVD 79 no', s79.c.clave !== 'reintervencion_iia'],
+    ['el criterio se nombra en el informe con su valor',
+      d160.inf.inf.indexOf('dilatación del ventrículo derecho por resonancia') > -1 &&
+      d160.inf.inf.indexOf('160 ml/m²') > -1],
+    // EL METODO: por eco 3D el valor se declara y NO vota.
+    ['por eco 3D no vota', eco.c.clave !== 'reintervencion_iia'],
+    ['pero el valor SI se describe: es dato clinico',
+      eco.inf.inf.indexOf('180 ml/m²') > -1],
+    ['y se dice por que no cuenta, nombrando la subestimacion',
+      eco.inf.inf.indexOf('SUBESTIMA') > -1],
+    ['sin metodo consignado tampoco vota', sinF.c.clave !== 'reintervencion_iia'],
+    ['y lo declara en vez de callarlo',
+      sinF.inf.inf.indexOf('No consta con qué método se midieron') > -1],
+    ['por tomografia tampoco vota', tcx.c.clave !== 'reintervencion_iia'],
+    // Valores por debajo del umbral: la rama de vigilancia deja de PROMETER la resonancia.
+    ['con volumenes normales por resonancia no hay criterio', bajo.c.clave !== 'reintervencion_iia'],
+    ['y el informe deja de mandar a hacer una resonancia que ya se hizo',
+      bajo.inf.inf.indexOf('se miden por RESONANCIA: VTDVD') === -1 &&
+      bajo.inf.inf.indexOf('por debajo del umbral') > -1],
+    // Banda de plausibilidad: 1800 ml/m2 es ilegible.
+    ['un volumen de 1800 ml/m2 no vota', ilegible.c.clave !== 'reintervencion_iia'],
+    ['y se declara fuera de rango', ilegible.c.clave === 'no_interpretable'],
+    // Con sintomas manda la Clase I: el volumetrico no la degrada.
+    ['con sintomas sigue siendo Clase I', conSint.c.clave === 'reintervencion_i'],
+    ['y ahi el texto no promete una resonancia pendiente',
+      conSint.inf.inf.indexOf('se evalúa por RESONANCIA') === -1]
+  ] };
+`);
+
 /* LAS TRES SUPERFICIES DE CARDIO-ONCO TIENEN QUE DECIR LO MISMO. La leyenda de #ref-cardiotox
    (pestaña Referencias), la tabla de farmacos y las tablas nuevas del marco HFA-ICOS viven en
    DOS pestañas distintas y describen al mismo paciente. Las tres estaban desincronizadas, cada

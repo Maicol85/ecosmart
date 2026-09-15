@@ -9088,6 +9088,23 @@ z
           <input type="text" id="tdf_it_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
       </div>
       <p style="font-size:10px;color:var(--text2);margin:6px 0 0;">Con obstrucción residual del tracto de salida, la presión que estima la IT es la del <b>ventrículo derecho</b> y no la de la arteria pulmonar: las separa el gradiente del TSVD.</p>
+      <div style="font-size:11.5px;font-weight:700;color:var(--text);margin:14px 0 4px;">Volúmenes del ventrículo derecho — criterio volumétrico ESC 2020</div>
+      <div class="grid-3">
+        <div class="fg"><label>VTDVD indexado (ml/m&sup2;)</label>
+          <input type="number" id="tdf_vtdvdi" step="1" placeholder="ml/m²" oninput="tdfSync()">
+          <span style="font-size:10px;color:var(--text2);">Criterio ESC 2020: &ge;160&nbsp;ml/m&sup2;.</span></div>
+        <div class="fg"><label>VTSVD indexado (ml/m&sup2;)</label>
+          <input type="number" id="tdf_vtsvdi" step="1" placeholder="ml/m²" oninput="tdfSync()">
+          <span style="font-size:10px;color:var(--text2);">Criterio ESC 2020: &ge;80&nbsp;ml/m&sup2;.</span></div>
+        <div class="fg"><label>Método de medición</label>
+          <select id="tdf_vol_fuente" onchange="tdfSync()">
+            <option value="">&mdash;</option>
+            <option value="rmc">Resonancia magnética cardíaca</option>
+            <option value="eco3d">Ecocardiografía 3D</option>
+            <option value="tc">Tomografía</option>
+          </select></div>
+      </div>
+      <p style="font-size:10px;color:var(--text2);margin:6px 0 0;">Estos volúmenes <b>no los mide este estudio</b>: se transcriben de la imagen que los midió. Los umbrales de la ESC 2020 están validados sobre <b>resonancia</b>; la ecocardiografía 3D subestima los volúmenes del ventrículo derecho, así que con ese método el informe lo declara y el criterio no vota.</p>
       <div class="grid-3" style="margin-top:10px;">
         <div class="fg"><label>CIV residual</label>
           <select id="tdf_civ_residual" onchange="tdfSync()">
@@ -30699,6 +30716,11 @@ window.ebsSync = ebsSync; window.ebsConclusion = ebsConclusion; window.ebsCelerm
    SERIADAS, no un valor aislado. Nada de eso se puede sostener desde un solo ecocardiograma. */
 function _tdfSv(id){ return (document.getElementById(id)?.value || '').trim(); }
 function _tdfNv(id){ const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; }
+/* Umbrales volumétricos del VD, ESC 2020 (Baumgartner, EHJ 2021;42:563). Constantes y no
+   literales porque los nombran TRES superficies: el criterio que vota, el texto de la rama de
+   vigilancia y la etiqueta de ayuda del campo — y ya hay una entrada en CLAUDE.md sobre lo que
+   pasa cuando un rótulo se queda con el umbral viejo. */
+const TDF_VTDVDI_MIN = 160, TDF_VTSVDI_MIN = 80;
 function tdfConclusion(){
   const civ = _tdfSv('tdf_civ_residual'), civG = _tdfNv('tdf_civ_grad');
   const func = _tdfSv('tdf_func_vd'), ip = _tdfSv('ip_grado');
@@ -30716,6 +30738,24 @@ function tdfConclusion(){
   const sint = _tdfSv('tdf_sintomas'), ejerc = _tdfSv('tdf_ejercicio');
   const ep = _tdfSv('tdf_ep_stent'), it = _tdfSv('it_grado');
   const psvd = _tdfNv('psap_calc');
+  /* ══ CRITERIO VOLUMÉTRICO DEL VD (ESC 2020) ════════════════════════════════════════════════
+     Hasta hoy el umbral vivía sólo en la PROSA de las tres ramas —«el criterio volumétrico se
+     evalúa por resonancia»—, así que la app lo nombraba y **nunca podía aplicarlo**: no había
+     campo. Un paciente asintomático con insuficiencia pulmonar severa y un VTDVD indexado de 180
+     salía «sin criterios de reintervención por los datos cargados» mientras el criterio que lo
+     indica estaba impreso dos renglones más arriba como algo que se hace en otro lado.
+     Los umbrales son los de la ESC 2020 (Baumgartner, EHJ 2021;42:563): VTDVDi >=160 ml/m2 O
+     VTSVDi >=80 ml/m2, dentro de la Clase IIa del asintomático con IP severa.
+     EL MÉTODO IMPORTA TANTO COMO EL NÚMERO. Estos volúmenes NO los mide un ecocardiograma: se
+     transcriben. Los umbrales están validados sobre RESONANCIA, y la ecocardiografía 3D
+     SUBESTIMA los volúmenes del VD —así que un 150 por eco puede ser un 170 real—. Con método
+     no consignado o distinto de resonancia el valor se DECLARA y no vota: es la lección de
+     `coaConclusion`, el número correcto medido con el método equivocado. */
+  const vtdvdi = _tdfNv('tdf_vtdvdi'), vtsvdi = _tdfNv('tdf_vtsvdi');
+  const volFuente = _tdfSv('tdf_vol_fuente');
+  const volOk = v => v != null && v >= 20 && v <= 500;
+  const volPorRMC = volFuente === 'rmc';
+  const volVota = volPorRMC && (volOk(vtdvdi) && vtdvdi >= TDF_VTDVDI_MIN || volOk(vtsvdi) && vtsvdi >= TDF_VTSVDI_MIN);
   /* `ip_grado` NO entra en hayDato: es un campo compartido de Válvulas y su opción «IP leve
      (fisiológica)» está presente en una fracción grande de los estudios normales. Con él adentro,
      cualquier paciente con IP fisiológica hacía que la sección devolviera un objeto cuya primera
@@ -30729,11 +30769,14 @@ function tdfConclusion(){
      líneas más arriba: la sección se despierta con sus campos PROPIOS. La TV sigue sumando al
      párrafo y a los criterios de reintervención una vez que la sección está despierta. */
   const hayDato = !!(civ === 'si' || civG != null || func || gradT != null ||
-                     ep === 'si' || sint === 'si' || sint === 'no');
+                     ep === 'si' || sint === 'si' || sint === 'no' ||
+                     vtdvdi != null || vtsvdi != null);
   if (!hayDato) return null;
   const fuera = [];
   if (gradT != null && (gradT < 0 || gradT > 200)) fuera.push('gradiente del tracto de salida');
   if (civG  != null && (civG  < 0 || civG  > 200)) fuera.push('gradiente de la CIV residual');
+  if (vtdvdi != null && !volOk(vtdvdi)) fuera.push('VTDVD indexado');
+  if (vtsvdi != null && !volOk(vtsvdi)) fuera.push('VTSVD indexado');
 
   /* El párrafo encabeza con la enfermedad. Sin esto el cuerpo del informe describía la
      insuficiencia pulmonar, la función del VD y la conducta sin nombrar nunca la tetralogía:
@@ -30767,6 +30810,25 @@ function tdfConclusion(){
      presión bajo el nombre «PSAP», que es correcto sin obstrucción y engañoso con ella. */
   if (psvd != null) partes.push('Presión sistólica del ventrículo derecho estimada por insuficiencia tricuspídea ' + psvd + ' mmHg' +
     (psvd > 80 ? ' — por encima de 80 mmHg, que la ESC 2020 lista entre los criterios de reintervención' : ''));
+  /* Los volúmenes se describen SIEMPRE que estén cargados, voten o no: son dato clínico. Lo que
+     cambia con el método es si además INDICAN. */
+  const VOLF = { rmc:'resonancia magnética cardíaca', eco3d:'ecocardiografía 3D', tc:'tomografía' };
+  const volTxt = [];
+  if (volOk(vtdvdi)) volTxt.push('volumen de fin de diástole indexado ' + vtdvdi + ' ml/m²');
+  if (volOk(vtsvdi)) volTxt.push('volumen de fin de sístole indexado ' + vtsvdi + ' ml/m²');
+  if (volTxt.length) {
+    const cruza = (volOk(vtdvdi) && vtdvdi >= TDF_VTDVDI_MIN) || (volOk(vtsvdi) && vtsvdi >= TDF_VTSVDI_MIN);
+    partes.push('Volúmenes del ventrículo derecho: ' + volTxt.join(', ') +
+      (volFuente ? ' (por ' + VOLF[volFuente] + ')' : '') +
+      (cruza ? '. Cruza el umbral de la ESC 2020 (VTDVD indexado ≥' + TDF_VTDVDI_MIN +
+               ' ml/m² o VTSVD indexado ≥' + TDF_VTSVDI_MIN + ' ml/m²)' : '') +
+      (cruza && !volPorRMC
+        ? (volFuente === 'eco3d'
+            ? '. Medidos por ecocardiografía 3D, que SUBESTIMA los volúmenes del ventrículo derecho: el umbral de la guía está validado sobre resonancia, de modo que el criterio no se da por cumplido y corresponde confirmarlo por resonancia'
+            : (volFuente ? '. El umbral de la guía está validado sobre resonancia, no sobre ' + VOLF[volFuente] + ': corresponde confirmarlo por resonancia'
+                         : '. No consta con qué método se midieron: el umbral de la guía está validado sobre resonancia, así que el criterio no puede darse por cumplido'))
+        : ''));
+  }
   const ITT = { '1':'leve', '2':'moderada', '3':'moderada-severa', '4':'severa' };
   const itTxt = _ccLbl(ITT, it);
   if (itTxt) partes.push('Insuficiencia tricuspídea ' + itTxt);
@@ -30795,6 +30857,12 @@ function tdfConclusion(){
     /* Sin «progresiva»: no hay campo de progresión en esta sección, así que el adjetivo no lo
        sostiene nada. La ESC pide medidas seriadas para eso, y un solo eco no las tiene. */
     if (func === 'moderada' || func === 'severa') criterios.push('disfunción sistólica del ventrículo derecho');
+    /* El criterio volumétrico, que hasta hoy sólo se nombraba. Vota únicamente medido por
+       resonancia: ver el comentario de `volVota`. */
+    if (volVota) criterios.push('dilatación del ventrículo derecho por resonancia (' +
+      [volOk(vtdvdi) && vtdvdi >= TDF_VTDVDI_MIN ? 'VTDVD indexado ' + vtdvdi + ' ml/m²' : null,
+       volOk(vtsvdi) && vtsvdi >= TDF_VTSVDI_MIN ? 'VTSVD indexado ' + vtsvdi + ' ml/m²' : null]
+        .filter(Boolean).join(' y ') + ')');
     if (it === '2' || it === '3' || it === '4') criterios.push('insuficiencia tricuspídea al menos moderada');
     /* La presión del VD sólo cuenta con obstrucción: en la ESC ese criterio va atado al TSVD, y
        sin obstrucción una presión alta es hipertensión pulmonar, que es otra cosa. */
@@ -30815,12 +30883,15 @@ function tdfConclusion(){
       conducta = enc + (ipSevera ? 'insuficiencia pulmonar severa' : 'obstrucción del tracto de salida') + ' y ' +
         criterios.join('; ') + ' — reemplazo valvular pulmonar a considerar (ESC 2020, Clase IIa)' +
         (sint !== 'no' ? '. No consta la situación clínica: con síntomas la indicación sería Clase I' : '') + '. ' +
-        'El criterio volumétrico (VDFVD indexado ≥160 ml/m² o volumen sistólico final ≥80 ml/m²) se evalúa por RESONANCIA, no por ecocardiografía, y la guía pide medidas seriadas';
+        (volVota ? 'El criterio volumétrico ya está satisfecho con los volúmenes por resonancia de este informe'
+                 : 'El criterio volumétrico (VTDVD indexado ≥' + TDF_VTDVDI_MIN + ' ml/m² o VTSVD indexado ≥' + TDF_VTSVDI_MIN + ' ml/m²) se evalúa por RESONANCIA, no por ecocardiografía, y la guía pide medidas seriadas');
     } else {
       clave = 'vigilancia';
       conducta = (ipSevera ? 'Insuficiencia pulmonar severa' : 'Obstrucción del tracto de salida derecho') +
         ' sin síntomas ni otros criterios de reintervención por los datos cargados — seguimiento. ' +
-        'La decisión se apoya además en los volúmenes del ventrículo derecho, que se miden por RESONANCIA: VDFVD indexado ≥160 ml/m² o volumen sistólico final ≥80 ml/m²' +
+        (volPorRMC && (volOk(vtdvdi) || volOk(vtsvdi))
+          ? 'Los volúmenes del ventrículo derecho por resonancia están por debajo del umbral de la ESC 2020'
+          : 'La decisión se apoya además en los volúmenes del ventrículo derecho, que se miden por RESONANCIA: VTDVD indexado ≥' + TDF_VTDVDI_MIN + ' ml/m² o VTSVD indexado ≥' + TDF_VTSVDI_MIN + ' ml/m²') +
         (sint !== 'no' ? '. No consta la situación clínica, que es lo que define la indicación Clase I' : '');
     }
   } else if (ipModerada) {
@@ -30829,7 +30900,9 @@ function tdfConclusion(){
   } else {
     clave = 'seguimiento';
     conducta = 'Sin criterios de reintervención por los datos cargados — seguimiento clínico y por imagen. ' +
-      'La evaluación completa incluye los volúmenes del ventrículo derecho, que se miden por RESONANCIA y no por ecocardiografía';
+      (volPorRMC && (volOk(vtdvdi) || volOk(vtsvdi))
+        ? 'Los volúmenes del ventrículo derecho por resonancia ya constan en este informe'
+        : 'La evaluación completa incluye los volúmenes del ventrículo derecho, que se miden por RESONANCIA y no por ecocardiografía');
   }
   /* La salvedad de la taquicardia ventricular vive FUERA de la cascada. Estaba dentro de la
      rama `ipSevera || obstrModerada`, que es la única que arma `criterios[]`: por las otras tres
@@ -42635,6 +42708,9 @@ function _labExcelRow(inf) {
     'Eisenmenger NYHA': _labXlsEtiq('eis_clase_nyha', c.eis_clase_nyha),
     'Eisenmenger síncope': _labXlsEtiq('eis_sincope', c.eis_sincope),
     'Eisenmenger hemoptisis': _labXlsEtiq('eis_hemoptisis', c.eis_hemoptisis),
+    'TdF VTDVD indexado (ml/m2)': rnd(num('tdf_vtdvdi'),0),
+    'TdF VTSVD indexado (ml/m2)': rnd(num('tdf_vtsvdi'),0),
+    'TdF metodo volumenes VD': _labXlsEtiq('tdf_vol_fuente', c.tdf_vol_fuente),
     'Fontan tipo': _labXlsEtiq('fontan_tipo', c.fontan_tipo),
     'Fontan fenestración': _labXlsEtiq('fontan_fenestracion', c.fontan_fenestracion),
     'Fontan morfología VS': _labXlsEtiq('fontan_vs_morfologia', c.fontan_vs_morfologia),
@@ -43530,6 +43606,9 @@ const LAB_XLS_MAP = [
   ['Eisenmenger NYHA',            'eis_clase_nyha','vocab'],
   ['Eisenmenger síncope',         'eis_sincope',   'vocab'],
   ['Eisenmenger hemoptisis',      'eis_hemoptisis','vocab'],
+  ['TdF VTDVD indexado (ml/m2)',  'tdf_vtdvdi',      'num'],
+  ['TdF VTSVD indexado (ml/m2)',  'tdf_vtsvdi',      'num'],
+  ['TdF metodo volumenes VD',     'tdf_vol_fuente',  'vocab'],
   ['Fontan tipo',                 'fontan_tipo',            'vocab'],
   ['Fontan fenestración',         'fontan_fenestracion',    'vocab'],
   ['Fontan morfología VS',        'fontan_vs_morfologia',   'vocab'],
@@ -43963,6 +44042,7 @@ const LAB_XLS_ETIQ = {
    etiquetas: con una sola fuente, un ejemplo no puede enseñar un valor que el importador no
    acepte. Los textos son los que ya emite `_labExcelRow`, que además ahora los lee de acá. */
 LAB_XLS_ETIQ.coa_hta          = { no:'No', si:'Sí' };
+LAB_XLS_ETIQ.tdf_vol_fuente   = { rmc:'Resonancia magnética cardíaca', eco3d:'Ecocardiografía 3D', tc:'Tomografía' };
 LAB_XLS_ETIQ.vab_simetria     = { simetrica:'Simétrica', asimetrica:'Asimétrica', no_val:'No valorable' };
 LAB_XLS_ETIQ.marfan_sindrome  = { marfan:'Marfan', lds:'Loeys-Dietz', turner:'Turner',
                                   ehat:'EHAT no sindrómica', otro:'Otro' };
@@ -44272,6 +44352,9 @@ LAB_XLS_VOCAB.im_grado = LAB_XLS_VOCAB.ia_grado = LAB_XLS_VOCAB.it_grado = LAB_X
    etiqueta legible que exporta la propia app. Sembrar `{}` a secas alcanzaría; los alias son
    para el que tipea a mano: «si»/«sí», «cavopulmonar», «moderado»/«moderada». */
 LAB_XLS_VOCAB.coa_hta = { no:'no', si:'si', 'sí':'si' };
+LAB_XLS_VOCAB.tdf_vol_fuente = { rmc:'rmc', resonancia:'rmc', 'resonancia magnetica cardiaca':'rmc',
+  rmn:'rmc', cmr:'rmc', eco3d:'eco3d', 'ecocardiografia 3d':'eco3d', '3d':'eco3d',
+  tc:'tc', tomografia:'tc', 'angiotc':'tc' };
 LAB_XLS_VOCAB.marfan_factores_riesgo = { no:'no', si:'si', 'sí':'si' };
 LAB_XLS_VOCAB.eis_sincope    = { no:'no', si:'si', 'sí':'si' };
 LAB_XLS_VOCAB.eis_hemoptisis = { no:'no', si:'si', 'sí':'si' };

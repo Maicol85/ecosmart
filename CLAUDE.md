@@ -188,6 +188,40 @@ distinta hoy. El EN SUMA se reserva para lo accionable.
 `eis_pdap`, `eis_it_vel`, `eis_vd_funcion`, `eis_pericardio`, `eis_clase_nyha`, `eis_sincope`,
 `eis_hemoptisis`, `eisen_incluir_chk`. Con sus once columnas de Excel.
 
+### TdF: un umbral que vive en la prosa no es un umbral
+Las tres ramas de `tdfConclusion` decían «el criterio volumétrico se evalúa por RESONANCIA» — y
+**no había campo**. La app nombraba el umbral y **nunca podía aplicarlo**: un asintomático con
+insuficiencia pulmonar severa y un VTDVD indexado de 180 salía «sin criterios de reintervención
+por los datos cargados», con el criterio que lo indica impreso dos renglones más arriba como algo
+que se hace en otro lado. Cerrado el 2026-09-15 con `tdf_vtdvdi`, `tdf_vtsvdi` y `tdf_vol_fuente`.
+
+**Umbrales ESC 2020** (Baumgartner, *EHJ* 2021;42:563), Clase IIa del asintomático con IP severa:
+**VTDVDi ≥160 ml/m² O VTSVDi ≥80 ml/m²**. En `TDF_VTDVDI_MIN` / `TDF_VTSVDI_MIN` porque los
+nombran tres superficies.
+
+**El método importa tanto como el número, y acá más que en ningún otro campo: estos volúmenes NO
+los mide un ecocardiograma — se transcriben.** Los umbrales están validados sobre **resonancia**,
+y la **ecocardiografía 3D subestima** los volúmenes del VD, así que un 150 por eco puede ser un
+170 real. Con método no consignado, eco 3D o tomografía el valor **se describe y NO vota**, y el
+informe dice por qué. Es `coaConclusion` otra vez: el número correcto medido con el método
+equivocado. Un campo que se transcribe de otra imagen **necesita un campo de fuente al lado**.
+
+**Y las tres ramas dejaron de prometer lo que ya está.** Antes mandaban «se evalúa por
+resonancia» aunque la resonancia ya estuviera cargada y por debajo del umbral: el informe firmado
+pedía un estudio que el paciente ya tenía hecho. Al agregar el campo que satisface una promesa,
+hay que **apagar la promesa**.
+
+**Pendiente de decisión — hay una guía POSTERIOR.** El **2025 ACC/AHA/HRS/ISACHD/SCAI Guideline
+for the Management of Adults With Congenital Heart Disease** (publicada el **2025-12-18**,
+*Circulation* doi:10.1161/CIR.0000000000001402 · *JACC* doi:10.1016/j.jacc.2025.09.006) **mueve el
+criterio de VTDVD a VTSVD**: usa **VTSVDi >80 ml/m²** y el **cociente de volúmenes VD/VI** como
+criterios primarios, y **abandona el INDICATOR score**. No se implementó: **el texto completo de
+la recomendación, su clase y el valor del cociente están detrás de paywall** y no se aplica un
+umbral clínico sobre una paráfrasis de buscador — es la misma regla por la que se pidió la Tabla
+62 antes de tocar Marfan. Consecuencia concreta de la diferencia: un paciente con **VTDVDi 170 y
+VTSVDi 70** tiene criterio por ESC 2020 y **no** por ACC/AHA 2025. Los dos campos ya se recogen,
+así que migrar es cambiar qué vota, no recolectar de nuevo.
+
 ### Fontan: las complicaciones tienen TRES estados, no dos
 Sección implementada el 2026-09-15 (antes era un acordeón vacío). Lo que la separa de las otras
 once no son los campos sino la regla de las complicaciones: **«ninguna casilla marcada» NO es
