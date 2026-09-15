@@ -108,6 +108,46 @@ se cargaba FEVI 28, y la hoja del PDF seguía diciendo «HFpEF confirmado» mien
 decía «score no aplicable». Cuando cambia la **premisa clínica** —no el dato, la premisa— el
 módulo se retira aunque el texto esté editado, con toast, porque ahí sí se pierde algo escrito.
 
+### Una lista cableada a mano al lado de una lista de datos
+`AO_SEGS` es la fuente de los segmentos aórticos… pero las DOS tablas del PDF enumeraban los
+tres clásicos a mano. Al agregar el cayado y la aorta descendente, el informe firmado quedó
+diciendo «el cayado aórtico se encuentra moderadamente dilatado» en el narrativo mientras la
+celda rotulada «Aorta torácica» resumía `Valsalva 34 · Sinotub. 30 · Ao asc 36` **sin
+asterisco**, que en una celda sin referencias se lee como afirmación de normalidad. Es el mismo
+defecto que el narrativo ya había cerrado para `ao_tub`, reabierto desde la tabla, y otra vez
+del lado de callar el hallazgo. Las dos tablas derivan de `AO_SEGS` desde 2026-09-14.
+
+Antes de agregar un elemento a una lista de datos, `grep` de sus claves para encontrar las
+superficies que las enumeran a mano. Acá el problema **no** era que algo iterara `AO_SEGS`
+asumiendo tres: era que nadie la iteraba.
+
+### Gatear un criterio por tipo de caso puede sacarlo del veredicto
+Al mostrar en el TEER sólo los campos del tipo de IM, metí las longitudes de velo en el bloque
+de IM primaria. Eso las sacó del `veto` en la IM secundaria — y `teer_lva` se puebla **solo**,
+espejado desde la sección ETE. Con `ete_lva = 12`, el criterio cuyo texto de fallo dice
+literalmente «NO apto» dejaba de contar, el valor quedaba oculto en pantalla y la hoja firmada
+pasaba de «❌ NO apto» a «✅ APTO para TEER — criterios cumplidos».
+
+Dos reglas que salieron de ahí:
+- **Ocultar un campo y seguir contándolo, o dejar de contarlo sin decirlo, son las dos caras del
+  mismo error.** La visibilidad tiene que seguir al criterio, no al revés.
+- **Un criterio que NO APLICA no es un criterio que FALTA.** La primera versión dejaba los ocho
+  fijos en `noIngresados`, así que consignar el tipo de IM convertía un estudio completo en
+  «Posiblemente apto — completar datos faltantes».
+
+### La copia del Laboratorio también hay que migrarla
+`TEER_CRIT` (panel ETE del Lab) es una **segunda implementación** de los criterios de
+`teerEstado()`. Al gatear la de pantalla por tipo de IM y no la del Lab, **todo** estudio con el
+tipo consignado salía distinto en las dos superficies: «✅ APTO» en el informe firmado y
+«⚠️ Posiblemente apto — faltan datos» en el PDF de auditoría. Mientras sigan siendo dos, tienen
+que gatear igual — y la de `teerEstado` es la que manda.
+
+### Fuera de rango también tiene que bloquear la cápsula
+El VD ganó `min`/`max` como la aorta, pero la primera versión sólo lo aplicó al informe: un
+longitudinal tipeado en centímetros (9,5 por 95) daba «Verificar la medición» en el informe y
+«Normal (longitudinal 9.5 mm)» en la cápsula, al mismo tiempo. Un valor ilegible bloquea la
+NEGACIÓN en **todas** las superficies, no sólo en la firmada.
+
 ### Si el valor lo pusiste vos, no probaste nada
 Al cerrar la fuga del centro en reimpresión (2026-09-14) monté la prueba escribiendo
 `med-centro.textContent = 'CENTRO AL FIRMAR'` desde la consola, vi la fuga, la arreglé, vi que
@@ -2526,7 +2566,37 @@ criterio». Si aparece, la palanca es juntar las salvedades con la línea de la 
   resultado de `hfapeffScore`. Eso **no** obliga a nadie a mirarlo —el Laboratorio no lo miraba—:
   cualquier consumidor nuevo de `r.total` tiene que preguntarse primero si aplica.
 
+### EAo / VLI / TEER / VD / aorta (2026-09-14, segunda tanda)
+- **`eaEscenario()` es la fuente única del escenario de estenosis aórtica.** El GRADO lo sigue
+  fijando `ea_grado` (decisión de Maicol); el algoritmo aporta el subtipo y los números, y
+  `discordanciaGrado` publica el desacuerdo en vez de resolverlo en silencio. El AVA pasa por
+  `avaEsSevera`/`avaEsModerada`, NO por un `<=` propio.
+- **El VLI decide «paradojal» vs «flujo normal»**, dos conductas opuestas. Está en `vliCalc()`,
+  con campo, cápsula, fila del PDF y columna del Excel, y `_vliPintar` está en `RECALC_MODULOS`.
+- **`calcVD`, `calcTEER` y `calcOAI` están en `RECALC_MODULOS`** aunque sean `calc*`: los tres
+  pintan estado que no es sólo un número (la cápsula de los tres diámetros, los `display` de los
+  bloques del TEER, y la marca de «área derivada» de la orejuela).
+- **La EAo LEVE no va al En Suma** (pedido explícito) pero llama `ccMarcarParrafo()`: el silencio
+  es «no listarla», no «negarla» con el fallback de «sin alteraciones significativas».
+
 **Queda abierto, sin tocar en este commit:**
+- **El área del ostium de la orejuela viaja al Laboratorio sin distinguir estimada de medida.**
+  Desde que se calcula desde el diámetro, `oai_area_ostium` mezcla una estimación CIRCULAR con
+  las mediciones 3D directas en el promedio del panel ETE, y como la marca `derivadoDe` no se
+  persiste, no hay forma de separarlas retroactivamente. Si el dato va a usarse para estadística,
+  necesita bandera propia persistida, del estilo `<id>__tocado`.
+- **`teer_flail_gap` sigue sin leerlo nadie**, y ahora pesa más: con `c4` gateado a IM secundaria,
+  la vía primaria se quedó sin ningún veto de gap/profundidad, con el campo visible al lado. Un
+  flail gap de 20 mm en IM primaria da hoy «APTO».
+- **`c2` evalúa `teer_gap` (rotulado «Longitud coaptación», donde MÁS es mejor) contra `<= 10`,
+  que es el umbral del flail gap.** Vota invertido: una coaptación de 12 mm sale ✗ y una de 0 ✓.
+  Preexistente, pero ahora es uno de los criterios del veto de IM secundaria.
+- **Cambiar el tipo de IM con la hoja TEER integrada y editada a mano** no la retira: es un cambio
+  de PREMISA, igual que la FEVI en el HFA-PEFF, y ahí sí se resolvió.
+- **El panel de indicaciones de CIA sigue preguntando sólo por `vd_bas`.** Puede ser correcto (el
+  criterio ASE de sobrecarga es sobre el basal), pero son dos respuestas a «¿está dilatado el VD?».
+- **`_IG_SECTIONS` no lista `diam_cayado` ni `diam_ao_toracica`**: el detalle del estudio guardado
+  los calla en vez de fallar.
 - **`teer_*` no está en el Excel del Laboratorio.** El módulo ya llega al informe firmado pero
   sus campos no tienen columnas propias; el panel ETE del Lab reconstruye los criterios con su
   propia lista (`TEER_CRIT`), que es una **segunda copia** de los umbrales de `teerEstado()`. La

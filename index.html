@@ -1937,13 +1937,16 @@ window.cerrarSesion = cerrarSesion;
             <label>Diám TSVI (mm)</label>
             <input type="number" id="diam_tsvi_ao" placeholder="mm" oninput="syncTSVI();">
           </div>
+          <!-- Los dos existían desde antes y estaban HUÉRFANOS: sin `oninput`, fuera de
+               AO_SEGS y sin ninguna cápsula. El médico cargaba el cayado y el número
+               desaparecía: no salía en el informe, ni en el EN SUMA, ni en la tabla del PDF. -->
           <div class="fg">
             <label>Diám cayado (mm)</label>
-            <input type="number" id="diam_cayado" placeholder="mm">
+            <input type="number" id="diam_cayado" placeholder="mm" oninput="calcAorta()">
           </div>
           <div class="fg">
-            <label>Diám Ao torácica (mm)</label>
-            <input type="number" id="diam_ao_toracica" placeholder="mm">
+            <label>Diám Ao torácica descendente (mm)</label>
+            <input type="number" id="diam_ao_toracica" placeholder="mm" oninput="calcAorta()">
           </div>
         </div>
         <div class="calc-box">
@@ -1958,6 +1961,14 @@ window.cerrarSesion = cerrarSesion;
           <div class="calc-row">
             <span class="calc-lbl">Ao tubular</span>
             <span id="ao-tub-interp">—</span>
+          </div>
+          <div class="calc-row">
+            <span class="calc-lbl">Cayado aórtico</span>
+            <span id="ao-cay-interp">—</span>
+          </div>
+          <div class="calc-row">
+            <span class="calc-lbl">Ao torácica descendente</span>
+            <span id="ao-desc-interp">—</span>
           </div>
         </div>
       </div>
@@ -2113,13 +2124,17 @@ window.cerrarSesion = cerrarSesion;
           <label>VD basal (mm)</label>
           <input type="number" id="vd_bas" placeholder="mm" oninput="calcVD()">
         </div>
+        <!-- `oninput` en los tres: desde que el medio y el longitudinal deciden «VD dilatado»
+             en el informe firmado, un campo sin recálculo deja la cápsula diciendo «Normal
+             (basal 38)» mientras el informe dice «dilatado (medio 44)». Antes eran decorativos
+             y la omisión no se notaba. -->
         <div class="fg">
           <label>VD medio (mm)</label>
-          <input type="number" id="vd_mid" placeholder="mm">
+          <input type="number" id="vd_mid" placeholder="mm" oninput="calcVD()">
         </div>
         <div class="fg">
           <label>VD longitudinal (mm)</label>
-          <input type="number" id="vd_long" placeholder="mm">
+          <input type="number" id="vd_long" placeholder="mm" oninput="calcVD()">
         </div>
       </div>
       <div class="grid-3" style="margin-top:8px;">
@@ -7518,6 +7533,14 @@ z
         </div>
       </div>
 
+      <!-- Sin tipo de IM elegido se muestran los dos bloques, con este aviso. No se ocultan
+           «por las dudas»: los criterios COAPT y los morfológicos contestan preguntas distintas
+           y esconder los dos dejaría el módulo sin nada que cargar. -->
+      <div id="teer-tipo-aviso" class="mBox mAviso" style="margin:8px 0;display:none;font-size:11px;">
+        Definir tipo de IM para ver criterios específicos.
+      </div>
+
+      <div id="teer-bloque-primaria">
       <div style="font-size:11px; font-weight:700; color:#ef4444; margin:8px 0 4px;">
         🔴 IM Primaria — criterios anatómicos específicos
       </div>
@@ -7530,23 +7553,22 @@ z
           <input type="number" id="teer_ancho_flail" placeholder="mm" oninput="calcTEER()">
           <span style="font-size:10px; color:var(--text2);">Excl: ≥15mm</span>
         </div>
-        <div class="fg"><label>Longitud velo anterior (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← ETE Válvula Mitral</span></label>
-          <input type="number" id="teer_lva" placeholder="mm" oninput="calcTEER()">
-          <span style="font-size:10px; color:var(--text2);">Req: ≥20mm</span>
-        </div>
-        <div class="fg"><label>Longitud velo posterior (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← ETE Válvula Mitral</span></label>
-          <input type="number" id="teer_lvp" placeholder="mm" oninput="calcTEER()">
-          <span style="font-size:10px; color:var(--text2);">Req: ≥7mm (ideal ≥10mm)</span>
-        </div>
       </div>
 
+      </div><!-- /teer-bloque-primaria -->
+
+      <div id="teer-bloque-secundaria">
       <div style="font-size:11px; font-weight:700; color:#f97316; margin:8px 0 4px;">
         🟠 IM Secundaria — criterios anatómicos específicos
       </div>
       <div class="grid-4" style="margin-bottom:10px;">
+        <!-- «Excl: >10mm», no «>11mm»: el criterio que evalúa el código es `<= 10`, así que la
+             ayuda al lado del campo decía que 10,5 mm estaba dentro mientras la hoja firmada lo
+             marcaba como no cumplido. Se alinea el rótulo al umbral que se aplica, no al revés:
+             cambiar el corte es una decisión clínica. -->
         <div class="fg"><label>Profundidad coaptación (mm)</label>
           <input type="number" id="teer_prof_flail" placeholder="mm" oninput="calcTEER()">
-          <span style="font-size:10px; color:var(--text2);">Excl: &gt;11mm</span>
+          <span style="font-size:10px; color:var(--text2);">Excl: &gt;10mm</span>
         </div>
         <div class="fg"><label>Longitud coaptación (mm)</label>
           <input type="number" id="teer_gap" placeholder="mm" oninput="calcTEER()">
@@ -7562,8 +7584,23 @@ z
         </div>
       </div>
 
+      </div><!-- /teer-bloque-secundaria -->
+
       <div style="font-size:11px; font-weight:700; color:var(--accent2); margin:8px 0 4px;">
         ⚪ Criterios comunes — ambos tipos
+      </div>
+      <!-- Las longitudes de velo viven ACÁ y no en el bloque de IM primaria: son factibilidad
+           de agarre del clip, no un criterio de mecanismo, y cuentan en los dos tipos. Estaban
+           en el bloque primaria y al ocultarlo en la IM secundaria dejaban de vetar. -->
+      <div class="grid-2" style="margin-bottom:10px;">
+        <div class="fg"><label>Longitud velo anterior (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← ETE Válvula Mitral</span></label>
+          <input type="number" id="teer_lva" placeholder="mm" oninput="calcTEER()">
+          <span style="font-size:10px; color:var(--text2);">Req: ≥20mm</span>
+        </div>
+        <div class="fg"><label>Longitud velo posterior (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← ETE Válvula Mitral</span></label>
+          <input type="number" id="teer_lvp" placeholder="mm" oninput="calcTEER()">
+          <span style="font-size:10px; color:var(--text2);">Req: ≥7mm (ideal ≥10mm)</span>
+        </div>
       </div>
       <div class="grid-2">
         <!-- Los tres arrancan en «— no evaluado —». Antes su opción 0 era «No», así que en todo
@@ -7600,10 +7637,16 @@ z
         <div class="calc-row"><span class="calc-lbl">Velo posterior ≥7mm (idealmente ≥10mm)</span><span id="teer-c1b">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Gap coaptación ≤10mm</span><span id="teer-c2">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Área mitral ≥4.0cm²</span><span id="teer-c3">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Profundidad flail ≤10mm</span><span id="teer-c4">—</span></div>
+        <!-- «Profundidad de coaptación», igual que el campo y que la hoja del PDF: el mismo
+             criterio tenía tres nombres distintos en tres superficies. -->
+        <div class="calc-row"><span class="calc-lbl">Profundidad de coaptación ≤10mm</span><span id="teer-c4">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Anchura flail ≤15mm</span><span id="teer-c5">—</span></div>
         <div class="calc-row"><span class="calc-lbl">PASP ≤70mmHg</span><span id="teer-c6">—</span></div>
-        <div style="font-size:11px; font-weight:700; color:var(--accent2); margin:8px 0 4px;">CRITERIOS COAPT (IM secundaria)</div>
+        <!-- Se oculta junto con sus dos filas: es un elemento suelto, no una `.calc-row`, así
+             que el barrido de `calcTEER` no lo alcanzaba y quedaba flotando ENCIMA de «Sin
+             calcificación densa» y «Sin clefts», que son criterios COMUNES, rotulándolos como
+             COAPT en el mismo cuadro que decide APTO. -->
+        <div id="teer-hdr-coapt" style="font-size:11px; font-weight:700; color:var(--accent2); margin:8px 0 4px;">CRITERIOS COAPT (IM secundaria)</div>
         <div class="calc-row"><span class="calc-lbl">FEVI 20–50%</span><span id="teer-c7">—</span></div>
         <div class="calc-row"><span class="calc-lbl">DTSVI ≤70mm</span><span id="teer-c8">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Sin calcificación densa en zona clip</span><span id="teer-c9">—</span></div>
@@ -7749,8 +7792,8 @@ z
         <div class="fg"><label>Profundidad OAI (mm)</label>
           <input type="number" id="oai_profundidad" placeholder="mm" oninput="calcOAI()">
         </div>
-        <div class="fg"><label>Área ostium (cm²)</label>
-          <input type="number" id="oai_area_ostium" placeholder="cm²">
+        <div class="fg"><label>Área ostium (cm²) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← diámetro · sobreescribible</span></label>
+          <input type="number" id="oai_area_ostium" placeholder="cm²" oninput="calcOAI()">
         </div>
       </div>
       <div class="calc-box" style="margin-top:10px;">
@@ -13495,7 +13538,12 @@ const UMBRAL_LAVI_DILATADO = 34;   // ml/m² — LAVI >34 → aurícula izquierd
    umbrales QUIRÚRGICOS de la ESC 2024 —45 / 50 / 52 / 55 mm, Clase I B y IIa— y contestan otra
    pregunta. «Dilatada» y «operable» no son lo mismo: cablearlos a esta constante haría que la app
    propusiera criterios de cirugía sobre una aorta de 41 mm. */
-const AO_REF = Object.freeze({ sin: 40, st: 38, tub: 40 });
+/* `cay` y `desc` se agregaron 2026-09-14: los campos ya estaban en el formulario y no los leía
+   nadie. Cortes ESC 2021 para la aorta torácica: cayado >40 mm dilatado —el mismo que la
+   ascendente— y descendente >35 mm, que es más angosta. Los umbrales QUIRÚRGICOS de esos dos
+   segmentos son otros y mucho más altos (≥55-60 mm en la descendente); acá se define
+   «dilatado», no «operable», igual que con los otros tres. */
+const AO_REF = Object.freeze({ sin: 40, st: 38, tub: 40, cay: 40, desc: 35 });
 /* Bandas por segmento. La línea de NORMALIDAD sale de AO_REF y el resto son los grados:
      ao_sin / ao_tub → normal ≤40 · leve 41-45 · moderada 46-50 · severa >50
      ao_st           → normal ≤38 · leve 39-44 · moderada 45-49 · severa ≥50
@@ -13509,7 +13557,13 @@ const AO_REF = Object.freeze({ sin: 40, st: 38, tub: 40 });
 const AO_SEGS = Object.freeze([
   Object.freeze({ k:'ao_sin', lbl:'raíz aórtica',        lblC:'Raíz aórtica',        med:'senos de Valsalva',    ref:AO_REF.sin, leve:45, mod:50,   min:10, max:90 }),
   Object.freeze({ k:'ao_st',  lbl:'unión sinotubular',   lblC:'Unión sinotubular',   med:'unión sinotubular',    ref:AO_REF.st,  leve:44, mod:49,   min:10, max:80 }),
-  Object.freeze({ k:'ao_tub', lbl:'aorta ascendente',    lblC:'Aorta ascendente',    med:'aorta ascendente',     ref:AO_REF.tub, leve:45, mod:50,   min:10, max:90 })
+  Object.freeze({ k:'ao_tub', lbl:'aorta ascendente',    lblC:'Aorta ascendente',    med:'aorta ascendente',     ref:AO_REF.tub, leve:45, mod:50,   min:10, max:90 }),
+  /* `m:true` = sustantivo MASCULINO. Los cuatro segmentos viejos son femeninos («la raíz», «la
+     unión», «la aorta»), así que el narrativo tenía el artículo y el adjetivo cableados en
+     femenino. El cayado es el primero masculino y salía «la cayado aórtico se encuentra
+     levemente dilatada» en el informe firmado. */
+  Object.freeze({ k:'diam_cayado',      lbl:'cayado aórtico',            lblC:'Cayado aórtico',            med:'cayado',                   ref:AO_REF.cay,  leve:45, mod:50, min:10, max:80, m:true }),
+  Object.freeze({ k:'diam_ao_toracica', lbl:'aorta torácica descendente', lblC:'Ao torácica descendente',  med:'aorta torácica descendente', ref:AO_REF.desc, leve:40, mod:45, min:8,  max:70 })
 ]);
 /* Assert de arranque: `ref < leve` y, si hay banda moderada, `leve < mod`. Sin esto, un segmento
    nuevo con las bandas invertidas imprime un rango dado vuelta —«Dilat. leve (34-30mm)»— sin
@@ -13666,7 +13720,8 @@ function getBSA() {
 // ══ AORTA / AI ══
 /* Las tres cápsulas salen del MISMO `aoSegsMedidos()` que el narrativo, así que ya no pueden
    discrepar: si la cápsula dice verde, el informe dice «normal», y al revés. */
-const AO_INTERP_EL = { ao_sin: 'ao-interp', ao_st: 'ao-st-interp', ao_tub: 'ao-tub-interp' };
+const AO_INTERP_EL = { ao_sin: 'ao-interp', ao_st: 'ao-st-interp', ao_tub: 'ao-tub-interp',
+                       diam_cayado: 'ao-cay-interp', diam_ao_toracica: 'ao-desc-interp' };
 const AO_BADGE_COLOR = { normal:'green', leve:'yellow', moderada:'orange', severa:'red' };
 function calcAorta() {
   aoSegsMedidos().forEach(function(m){
@@ -14246,11 +14301,69 @@ function vdBasCat(vd) {
 }
 window.vdBasCat = vdBasCat;
 
+/* ══ Dilatación del VD por los TRES diámetros (ASE 2015) ══════════════════════════════════
+   Basal ≤41 mm · medio ≤35 mm · longitudinal ≤86 mm. Hasta 2026-09-14 la app evaluaba SÓLO el
+   basal: un VD medio de 42 mm y un longitudinal de 95 —los dos francamente dilatados— dejaban
+   el informe firmado diciendo «Ventrículo derecho de dimensiones normales», porque el basal
+   estaba en 38. Medido en el navegador antes de tocarlo.
+
+   El basal conserva su banda intermedia (`vdBasCat`, «leve» entre 42 y 45): es el único con
+   bandas graduadas en la app. Los otros dos son sí/no, que es lo que da la guía.
+
+   Devuelve la lista de los MEDIDOS. Un diámetro vacío no cuenta ni a favor ni en contra —misma
+   regla que la aorta— y un valor no positivo no cuenta como medición. */
+const VD_MID_NORMAL_MAX  = 35;   // mm — VD medio, ASE 2015
+const VD_LONG_NORMAL_MAX = 86;   // mm — VD longitudinal, ASE 2015
+function vdDiamsMedidos() {
+  /* `min`/`max`: ventana de plausibilidad, la misma red que llevan los segmentos de la aorta y
+     por el mismo motivo. Sin ella la cascada falla ABIERTA: un longitudinal tipeado en
+     centímetros —9,5 por 95— es `<= 86`, sale «normal», y como el basal ya no es obligatorio
+     para nombrar el VD, el informe firmado publicaba «Ventrículo derecho de dimensiones
+     normales» sobre un número ilegible. Un valor fuera de rango tiene que bloquear la
+     NEGACIÓN, no colarse como afirmación de normalidad. */
+  const defs = [
+    { k:'vd_bas',  lbl:'diámetro basal',        lblC:'basal',        max:VD_BAS_NORMAL_MAX,  min:10, tope:80 },
+    { k:'vd_mid',  lbl:'diámetro medio',        lblC:'medio',        max:VD_MID_NORMAL_MAX,  min:10, tope:80 },
+    { k:'vd_long', lbl:'diámetro longitudinal', lblC:'longitudinal', max:VD_LONG_NORMAL_MAX, min:25, tope:140 }
+  ];
+  return defs.map(function(d){
+    const x = v(d.k);
+    if (x === null || !isFinite(x) || x <= 0) return null;
+    if (x < d.min || x > d.tope) return { k:d.k, lbl:d.lbl, lblC:d.lblC, val:x, max:d.max, cat:'fuera', dil:false, fuera:true };
+    /* El basal usa `vdBasCat` —la misma función que pinta la cápsula— para no abrir una segunda
+       copia de su banda «leve». Los otros dos no tienen bandas: dilatado o no. */
+    const cat = (d.k === 'vd_bas' && typeof vdBasCat === 'function')
+      ? (vdBasCat(x) || { cat:'normal' }).cat
+      : (x > d.max ? 'dilatado' : 'normal');
+    return { k:d.k, lbl:d.lbl, lblC:d.lblC, val:x, max:d.max, cat:cat, dil:cat !== 'normal', fuera:false };
+  }).filter(Boolean);
+}
+window.vdDiamsMedidos = vdDiamsMedidos;
+
 function calcVD() {
   const vd = v('vd_bas'), tapse = v('tapse'), sp = v('s_prime');
-  if (vd) {
-    const c = vdBasCat(vd);
-    if (c) document.getElementById('vd-tam').innerHTML = badge(c.cls, c.lbl);
+  /* La cápsula pasa a resumir los TRES diámetros, no sólo el basal: es la misma fuente que el
+     informe (`vdDiamsMedidos`), así que pantalla e informe no pueden discrepar. Con el basal
+     normal y el medio dilatado, la cápsula decía «Normal (≤41mm)» — correcta sobre el basal y
+     engañosa sobre el ventrículo. */
+  const _vdTam = document.getElementById('vd-tam');
+  if (_vdTam && typeof vdDiamsMedidos === 'function') {
+    const todos = vdDiamsMedidos();
+    const fuera = todos.filter(d => d.fuera);
+    const ds = todos.filter(d => !d.fuera), dil = ds.filter(d => d.dil);
+    if (!todos.length) _vdTam.textContent = '—';
+    /* Un valor fuera de rango bloquea la afirmación de normalidad también en la cápsula: decía
+       «Normal (longitudinal 9.5 mm)» sobre un número tipeado en centímetros, mientras el informe
+       —ya corregido— pedía verificar la medición. */
+    else if (fuera.length && !dil.length)
+      _vdTam.innerHTML = badge('yellow', 'Verificar la medición — ' + fuera.map(d => d.lblC + ' ' + d.val + ' mm').join(' · ') + ' fuera de rango plausible');
+    else if (!dil.length) _vdTam.innerHTML = badge('green', 'Normal (' + ds.map(d => d.lblC + ' ' + d.val).join(' · ') + ' mm)');
+    else {
+      const soloLeve = dil.length === 1 && dil[0].k === 'vd_bas' && dil[0].cat === 'leve';
+      _vdTam.innerHTML = badge(soloLeve ? 'yellow' : 'red',
+        (soloLeve ? 'Dilatación leve — ' : 'Dilatado — ')
+        + dil.map(d => d.lblC + ' ' + d.val + ' mm (>' + d.max + ')').join(' · '));
+    }
   }
   if (tapse) {
     let t = tapse >= UMBRAL_TAPSE_NORMAL ? badge('green','Normal (≥' + UMBRAL_TAPSE_NORMAL + 'mm)') : badge('red','Disfunción (< ' + UMBRAL_TAPSE_NORMAL + 'mm)');
@@ -19102,24 +19215,34 @@ function generarInforme(opts) {
     /* `> 0` y no `!== null`: `calcVD` y `vdBasCat` rechazan el cero —no hay diámetro cero— pero
        acá un `!== null` lo aceptaba y publicaba «Ventrículo derecho de dimensiones normales»
        sobre un 0 tipeado por error, con la cápsula de pantalla en blanco al mismo tiempo. */
-    const hayTam  = vdBas !== null && vdBas > 0;
+    /* Los TRES diámetros, no sólo el basal (ASE 2015). Ver `vdDiamsMedidos`. */
+    const vdTodos = (typeof vdDiamsMedidos === 'function') ? vdDiamsMedidos() : [];
+    const vdFuera = vdTodos.filter(d => d.fuera);
+    const vdDs    = vdTodos.filter(d => !d.fuera);
+    const vdDils  = vdDs.filter(d => d.dil);
+    /* Un diámetro fuera de rango NO habilita a afirmar normalidad: si no hay ningún otro
+       medido y dilatado, el tamaño queda sin enunciar y se pide verificar la medición. */
+    const hayTam  = vdDs.length > 0 && !(vdFuera.length && !vdDils.length);
     const hayFunc = tapse !== null || sp !== null || facVD !== null;
-    if (hayTam || hayFunc) {
+    // `vdFuera` también entra: un valor ilegible no puede desaparecer del informe en silencio.
+    if (hayTam || hayFunc || vdFuera.length) {
       /* El GRADO sale de `vdBasCat`, la misma función que pinta la cápsula, en vez de un
          `> 41` propio. Con el umbral suelto, un VD basal de 43 mm daba «Leve (>41 y ≤45mm)» en
          pantalla y «Ventrículo derecho dilatado» en el informe firmado — dos respuestas a la
-         misma pregunta. Y este diff lo volvió mucho más alcanzable, porque la oración ya no
-         exige TAPSE ni S'. */
-      const vdCat = (typeof vdBasCat === 'function' && hayTam) ? vdBasCat(vdBas) : null;
-      const vdDilat = !!(vdCat && vdCat.cat !== 'normal');
+         misma pregunta. */
+      const vdDilat = vdDils.length > 0;
+      /* «Levemente dilatado» sólo si el ÚNICO hallazgo es el basal en su banda leve. Con el
+         medio o el longitudinal por encima del corte no hay banda intermedia que aplicar, y
+         degradar a «leve» un VD medio de 42 mm sería suavizar un hallazgo con la etiqueta de
+         otro segmento. */
+      const vdSoloLeve = vdDils.length === 1 && vdDils[0].k === 'vd_bas' && vdDils[0].cat === 'leve';
       // Disfunción sistólica VD: TAPSE < 17 mm, S' < 9.5 cm/s y/o FAC < 35 % (ASE 2015)
       const tapseBajo = tapse !== null ? tapse < UMBRAL_TAPSE_NORMAL : false;
       const spBajo    = sp    !== null ? sp    < 9.5 : false;
       const facBajo   = facVD !== null ? facVD < UMBRAL_FAC_VD_NORMAL : false;
       const vdDisf = tapseBajo || spBajo || facBajo;
 
-      // 'leve' → «levemente dilatado», que es lo que dice la cápsula; 'dilatado' → «dilatado».
-      const tamTxt  = hayTam  ? (vdCat && vdCat.cat === 'leve' ? 'levemente dilatado'
+      const tamTxt  = hayTam  ? (vdSoloLeve ? 'levemente dilatado'
                                  : (vdDilat ? 'dilatado' : 'de dimensiones normales')) : null;
       const funcTxt = hayFunc ? (vdDisf ? 'disfunción sistólica' : 'función sistólica conservada') : null;
 
@@ -19140,18 +19263,27 @@ function generarInforme(opts) {
         vdC = `VD ${tamTxt}`;
         vdE = `Ventrículo derecho ${tamTxt}`;
         vdN = `El ventrículo derecho es ${tamTxt}`;
-      } else {
+      } else if (funcTxt) {
         vdC = `VD con ${funcTxt}`;
         vdE = `Ventrículo derecho con ${funcTxt}`;
         vdN = `El ventrículo derecho presenta ${funcTxt}`;
+      } else {
+        // Sólo hay un diámetro fuera de rango: se nombra el VD sin afirmar nada sobre él.
+        vdC = vdE = vdN = 'Ventrículo derecho';
       }
 
       const medVD = [];
+      /* Los diámetros DILATADOS se nombran uno por uno: «VD dilatado» sin decir cuál obliga al
+         lector a ir a buscarlo a la tabla, y con el basal normal y el medio dilatado —que es
+         justo el caso que esta corrección vino a cubrir— la frase queda sin sustento visible. */
+      vdDils.forEach(d => medVD.push(`${d.lblC} ${d.val} mm`));
       if (tapse !== null) medVD.push(`TAPSE ${tapse} mm`);
       if (sp    !== null) medVD.push(`S' ${sp} cm/s`);
       if (facVD !== null) medVD.push(`FAC ${facVD}%`);
       const datosVDp = medVD.length ? ` (${medVD.join(', ')})` : '';
-      inf.push(estiloPick(`${vdC}${datosVDp}.`, `${vdE}${datosVDp}.`, `${vdN}${datosVDp}.`));
+      const _vdFueraTxt = vdFuera.length
+        ? ` Verificar la medición: ${vdFuera.map(d => d.lblC + ' ' + d.val + ' mm').join(', ')} fuera de rango plausible.` : '';
+      inf.push(estiloPick(`${vdC}${datosVDp}.${_vdFueraTxt}`, `${vdE}${datosVDp}.${_vdFueraTxt}`, `${vdN}${datosVDp}.${_vdFueraTxt}`));
 
       /* Al En Suma sólo lo anormal: un VD normal no es un hallazgo, igual que la geometría
          normal del VI o la AI de dimensiones normales. */
@@ -19606,7 +19738,7 @@ function generarInforme(opts) {
     }
   }
 
-  // ── 12) Aorta torácica (los TRES segmentos) ──
+  // ── 12) Aorta torácica (los CINCO segmentos) ──
   /* Antes esta cascada miraba SÓLO `ao_sin`. Con el seno vacío caía al `else` y afirmaba «Aorta
      torácica de calibre normal» aunque `ao_tub` tuviera 52 mm — y la tabla del PDF, dos páginas
      después, marcaba «Ao asc 52* (* dilatado)» en el mismo informe. El documento firmado se
@@ -19618,7 +19750,10 @@ function generarInforme(opts) {
     const aoM  = aoSegsMedidos().filter(x => !x.fuera);
     const aoF  = aoSegsMedidos().filter(x =>  x.fuera);
     const aoD  = aoM.filter(x => x.dil);
-    const gTxt = { leve:'levemente dilatada', moderada:'moderadamente dilatada', severa:'severamente dilatada' };
+    /* Concordancia de género: el adjetivo sigue al sustantivo del segmento (`sg.m`). */
+    const _gTxtF = { leve:'levemente dilatada', moderada:'moderadamente dilatada', severa:'severamente dilatada' };
+    const _gTxtM = { leve:'levemente dilatado', moderada:'moderadamente dilatado', severa:'severamente dilatado' };
+    const gTxt = m => (m && m.sg && m.sg.m) ? _gTxtM : _gTxtF;
     if (aoF.length && !aoD.length) {
       /* Hay un valor fuera de escala y ninguno dilatado: NO se afirma normalidad. El médico ve
          qué segmento revisar en vez de un informe que dice «normal» sobre un dato ilegible. */
@@ -19638,12 +19773,12 @@ function generarInforme(opts) {
         'Aorta torácica de calibre normal (' + vals + ').',
         'La aorta torácica es de calibre normal, con ' + vals.toLowerCase() + '.'));
     } else {
-      const cad = aoD.map(x => x.sg.lblC + ' ' + x.val + ' mm (' + gTxt[x.grado] + ')').join('; ');
+      const cad = aoD.map(x => x.sg.lblC + ' ' + x.val + ' mm (' + gTxt(x)[x.grado] + ')').join('; ');
       /* Sólo la raíz lleva el «a nivel de …»: su medición se toma en los senos de Valsalva, que
          es un sitio distinto del segmento que se nombra. En los otros dos el sitio y el segmento
          son el mismo y la cláusula quedaba redundante («la unión sinotubular … a nivel de la
          unión sinotubular»). */
-      const nar = aoD.map(x => 'la ' + x.sg.lbl + ' se encuentra ' + gTxt[x.grado] +
+      const nar = aoD.map(x => (x.sg.m ? 'el ' : 'la ') + x.sg.lbl + ' se encuentra ' + gTxt(x)[x.grado] +
                                (x.sg.k === 'ao_sin' ? ', con un diámetro a nivel de los ' + x.sg.med + ' de ' : ', de ') +
                                x.val + ' mm').join('; ');
       /* Los segmentos medidos y NORMALES se citan igual: sin ellos, «aorta ascendente dilatada»
@@ -19656,6 +19791,9 @@ function generarInforme(opts) {
         'A nivel de la aorta torácica, ' + nar + ', hallazgo que amerita control evolutivo del calibre aórtico.' +
           (okM.length ? ' El resto de los segmentos medidos es de calibre normal (' +
             okM.map(x => x.sg.lbl + ' ' + x.val + ' mm').join(', ') + ').' : '')));
+      /* Sin artículo, como las cuatro líneas que ya existían («Dilatación unión sinotubular»).
+         Agregarlo obligaba a reescribir las cuatro para que el En Suma no quedara con dos
+         estilos, y nada lo pedía. */
       aoD.forEach(x => suma.push('Dilatación ' + (x.sg.k === 'ao_sin' ? 'raíz aórtica' : x.sg.lbl) +
                                  ' (' + x.val + ' mm).'));
     }
@@ -20545,7 +20683,16 @@ function RECALC_MODULOS() {
      `vliCalc()` lo computa en vivo. El dato que sostiene «paradojal» vs «flujo normal» estaba
      en el informe firmado y no en la pantalla, que es exactamente lo que el campo vino a
      resolver. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcCardioOnco','indicSyncBoton'];
+  /* `calcVD`, `calcTEER` y `calcOAI` entran acá aunque sean `calc*`. Los tres pasaron a pintar
+     estado que NO es sólo un número derivado:
+       · `calcVD` resume ahora los tres diámetros en la cápsula;
+       · `calcTEER` escribe `display` inline sobre los bloques de IM primaria/secundaria, y eso
+         sobrevive al cambio de paciente: con A en «primaria», «Nuevo estudio» dejaba al paciente
+         B con el bloque de secundaria invisible y sin el aviso «Definir tipo de IM», mientras el
+         veredicto sí contaba esos criterios;
+       · `calcOAI` reconstruye la marca de «área derivada» (ver ahí), sin la cual corregir el
+         diámetro en un estudio reabierto dejaba el área vieja. */
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','indicSyncBoton'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -20597,6 +20744,7 @@ function limpiarCampos(silencioso) {
      Es exactamente lo que este archivo ya hace unas líneas más abajo con `dataset.tocado` y
      `dataset.desdeEstudio`, y por la misma razón. Barrido por atributo y no por lista de ids:
      así una marca nueva queda cubierta sin que nadie tenga que acordarse. */
+  // (`oai_area_ostium` también lleva `derivadoDe`; el barrido es por atributo, así que ya entra.)
   document.querySelectorAll('[data-derivado-de],[data-sugerido],[data-espejo-de]').forEach(el => {
     delete el.dataset.derivadoDe; delete el.dataset.sugerido; delete el.dataset.espejoDe;
   });
@@ -22802,12 +22950,21 @@ function generarPDFReal(_aj) {
     /* Etiquetas abreviadas: la columna es angosta y «Unión sinotubular» sola se llevaba
        media fila, forzando el envoltorio del valor a una segunda línea. El valor de
        referencia al lado desambigua qué es cada una. */
-    {titulo:'Aorta torácica', items:[
-      {lbl:'SV',      ref:'<='+AO_REF.sin+' mm', val:v('ao_sin') ?v('ao_sin') +' mm':null},
-      {lbl:'ST',      ref:'<='+AO_REF.st +' mm', val:v('ao_st')  ?v('ao_st')  +' mm':null},
-      {lbl:'Ao asc',  ref:'<='+AO_REF.tub+' mm', val:v('ao_tub') ?v('ao_tub') +' mm':null},
-      {lbl:'Ø TSVI',  ref:'',        val:v('diam_tsvi_ao')?v('diam_tsvi_ao')+' mm':null},
-    ]},
+    /* Las filas se DERIVAN de AO_SEGS. Estaban cableadas a mano con los tres segmentos
+       clásicos, así que al agregar el cayado y la descendente el informe firmado quedaba
+       diciendo «el cayado aórtico se encuentra moderadamente dilatado» en el narrativo y la
+       tabla, dos páginas después, listaba sólo Valsalva/ST/Ao asc — sin fila de cayado. Es el
+       mismo defecto que el narrativo ya había cerrado para `ao_tub`, reabierto por la tabla.
+       Los rótulos cortos viven acá porque son de esta tabla; el resto sale de la lista. */
+    {titulo:'Aorta torácica', items:(function(){
+      const CORTO = { ao_sin:'SV', ao_st:'ST', ao_tub:'Ao asc', diam_cayado:'Cayado', diam_ao_toracica:'Ao desc' };
+      const filas = AO_SEGS.map(function(sg){
+        const x = v(sg.k);
+        return { lbl: CORTO[sg.k] || sg.lblC, ref: '<=' + sg.ref + ' mm', val: x ? x + ' mm' : null };
+      });
+      filas.push({ lbl:'Ø TSVI', ref:'', val:v('diam_tsvi_ao')?v('diam_tsvi_ao')+' mm':null });
+      return filas;
+    })()},
     {titulo:'Aurícula Izquierda', items:[
       {lbl:'Diám. AP',     ref:'<40 mm',    val:v('ai_diam')?v('ai_diam')+' mm':null},
       {lbl:'Área AI',      ref:'<22 cm2',   val:v('ai_area')?v('ai_area')+' cm2':null},
@@ -22862,9 +23019,12 @@ function generarPDFReal(_aj) {
       {lbl:'TAP',         ref:'>105 ms',    val:v('tvia')   ?v('tvia')   +' ms'  :null},
       {lbl:'TAPSE',       ref:'>=' + UMBRAL_TAPSE_NORMAL + ' mm',     val:v('tapse')  ?v('tapse')  +' mm'  :null},
       {lbl:"S'",          ref:'>9.5 cm/s',  val:v('s_prime')?v('s_prime')+' cm/s':null},
-      {lbl:'Diám. basal', ref:'<=' + VD_BAS_NORMAL_MAX + ' mm',     val:v('vd_bas') ?v('vd_bas') +' mm'  :null},
-      {lbl:'Diám. medio', ref:'',           val:v('vd_mid') ?v('vd_mid') +' mm'  :null},
-      {lbl:'Longitud',    ref:'',           val:v('vd_long')?v('vd_long')+' mm'  :null},
+      /* Los tres diámetros con SU referencia (ASE 2015). El medio y el longitudinal se imprimían
+         sin corte, así que el lector no tenía cómo saber que un VD medio de 42 mm está dilatado
+         — y hasta este commit la app tampoco lo decía en el informe. */
+      {lbl:'Diám. basal', ref:'<=' + VD_BAS_NORMAL_MAX + ' mm',   val:v('vd_bas') ?v('vd_bas') +' mm'  :null},
+      {lbl:'Diám. medio', ref:'<=' + VD_MID_NORMAL_MAX + ' mm',   val:v('vd_mid') ?v('vd_mid') +' mm'  :null},
+      {lbl:'Longitud',    ref:'<=' + VD_LONG_NORMAL_MAX + ' mm',  val:v('vd_long')?v('vd_long')+' mm'  :null},
       /* FAC y FEVD van juntas y con SU propia referencia cada una: son dos medidas distintas de
          lo mismo (2D por áreas vs 3D) y confundir los cortes —35 % y 45 %— convierte un VD
          normal en disfuncionante. La referencia del diámetro basal decía «<42 mm» mientras el
@@ -22957,13 +23117,17 @@ function generarPDFReal(_aj) {
        afirmación de normalidad. Se marca el segmento con un asterisco y se aclara al pie.
        Etiquetas expandidas y no «SV»/«ST»: acá NO va el valor de referencia al lado que las
        desambigüe, y en cardiología «SV» es volumen sistólico y «ST» el segmento del ECG. */
-    // Los umbrales salen de AO_REF, no de literales: eran la tercera copia del mismo criterio.
-    const segs = [['ao_sin','Valsalva',AO_REF.sin], ['ao_st','Sinotub.',AO_REF.st], ['ao_tub','Ao asc',AO_REF.tub]];
+    /* Los segmentos y sus umbrales salen de AO_SEGS, no de una lista propia: era la tercera
+       copia del mismo criterio y, al agregar el cayado y la aorta descendente, esta celda
+       —rotulada «Aorta torácica»— seguía resumiendo sólo tres y se leía como afirmación de
+       normalidad sobre una aorta que el narrativo declaraba dilatada. */
+    const LBL_CORTO = { ao_sin:'Valsalva', ao_st:'Sinotub.', ao_tub:'Ao asc',
+                        diam_cayado:'Cayado', diam_ao_toracica:'Ao desc' };
     const partes = []; let algunoDilatado = false;
-    segs.forEach(([k, lbl, ref]) => {
-      const x = v(k); if (!x) return;
-      const dil = x > ref; if (dil) algunoDilatado = true;
-      partes.push(lbl + ' ' + x + (dil ? '*' : ''));
+    AO_SEGS.forEach(sg => {
+      const x = v(sg.k); if (!x) return;
+      const dil = x > sg.ref; if (dil) algunoDilatado = true;
+      partes.push((LBL_CORTO[sg.k] || sg.lblC) + ' ' + x + (dil ? '*' : ''));
     });
     if (!partes.length) return null;
     return partes.join(' · ') + ' mm' + (algunoDilatado ? ' (* dilatado)' : '');
@@ -24162,16 +24326,38 @@ function teerEstado() {
   const tipoIM = sv('teer_tipo_im');
   const C = (id, lbl, ok, txtOk, txtFail) => ({ id, lbl, ok, txt: ok === null ? 'No ingresado' : (ok ? txtOk : txtFail) });
 
+  /* Los criterios se gatean por el TIPO DE IM, que es un dato del estudio (`teer_tipo_im`, un
+     select que se persiste), NO por si el bloque está visible en pantalla. Ocultar un campo y
+     seguir contándolo es cómo un valor que quedó de otra evaluación decide APTO / NO APTO sin
+     que nadie lo vea; y gatear por visibilidad es la trampa que este archivo ya documenta con
+     `disabled`, que no sobrevive a la reimpresión.
+     Con el tipo SIN elegir se evalúan todos: ahí no hay criterio para descartar ninguno, y la
+     interfaz lo dice con el aviso «Definir tipo de IM».
+     El reparto sigue las dos secciones que el propio formulario ya tenía: la profundidad y la
+     longitud de coaptación son los parámetros de tenting de la IM funcional, y las longitudes
+     de velo y la anchura de flail son los de la degenerativa. c7 y c8 (COAPT) ya se gateaban
+     así desde antes. */
+  const esPrim = tipoIM === 'primaria', esSec = tipoIM === 'secundaria';
+  const aplPrim = !esSec;   // primaria o sin definir
+  const aplSec  = !esPrim;  // secundaria o sin definir
+  /* Las LONGITUDES DE VELO (c1, c1b) son COMUNES a los dos tipos y no se gatean. Una primera
+     versión las metió en el bloque de IM primaria, y eso las sacaba del veredicto en la
+     secundaria: con `ete_lva = 12` espejado desde la sección ETE —el campo se puebla solo, sin
+     que nadie lo tipee en TEER— el criterio cuyo texto de fallo dice literalmente «NO apto»
+     dejaba de contar, el valor quedaba oculto en pantalla y la hoja firmada pasaba de
+     «❌ NO apto» a «✅ APTO para TEER — criterios cumplidos». La longitud de velo es
+     factibilidad de AGARRE, no un criterio de mecanismo: el COAPT también excluía anatomía de
+     velo desfavorable. Por eso sus campos se mudaron al bloque de criterios comunes. */
   const cs = {
     c1:  lva  !== null ? C('teer-c1', 'Velo anterior ≥20 mm', lva >= 20, `${lva}mm ≥20mm`, `${lva}mm <20mm — NO apto`)                          : C('teer-c1', 'Velo anterior ≥20 mm', null),
     c1b: lvp  !== null ? C('teer-c1b','Velo posterior ≥7 mm', lvp >= 7,  `${lvp}mm ≥7mm`,  `${lvp}mm <7mm — agarre difícil`)                    : C('teer-c1b','Velo posterior ≥7 mm', null),
-    c2:  gap  !== null ? C('teer-c2', 'Gap de coaptación ≤10 mm', gap <= 10, `${gap}mm ≤10mm`, `${gap}mm >10mm — evaluar Heart Team`)           : C('teer-c2', 'Gap de coaptación ≤10 mm', null),
+    c2:  (aplSec  && gap  !== null) ? C('teer-c2', 'Gap de coaptación ≤10 mm', gap <= 10, `${gap}mm ≤10mm`, `${gap}mm >10mm — evaluar Heart Team`)           : C('teer-c2', 'Gap de coaptación ≤10 mm', null),
     c3:  area !== null ? C('teer-c3', 'Área mitral ≥4,0 cm²', area >= 4.0, `${area}cm² ≥4cm²`, `${area}cm² <4cm² — NO apto`)                    : C('teer-c3', 'Área mitral ≥4,0 cm²', null),
-    c4:  profFlail  !== null ? C('teer-c4','Profundidad de flail ≤10 mm', profFlail <= 10, `${profFlail}mm ≤10mm`, `${profFlail}mm >10mm — anatomía compleja, Heart Team`) : C('teer-c4','Profundidad de flail ≤10 mm', null),
-    c5:  anchoFlail !== null ? C('teer-c5','Anchura de flail ≤15 mm', anchoFlail <= 15, `${anchoFlail}mm ≤15mm`, `${anchoFlail}mm >15mm — anatomía compleja, Heart Team`) : C('teer-c5','Anchura de flail ≤15 mm', null),
+    c4:  (aplSec  && profFlail  !== null) ? C('teer-c4','Profundidad de coaptación ≤10 mm', profFlail <= 10, `${profFlail}mm ≤10mm`, `${profFlail}mm >10mm — anatomía compleja, Heart Team`) : C('teer-c4','Profundidad de coaptación ≤10 mm', null),
+    c5:  (aplPrim && anchoFlail !== null) ? C('teer-c5','Anchura de flail ≤15 mm', anchoFlail <= 15, `${anchoFlail}mm ≤15mm`, `${anchoFlail}mm >15mm — anatomía compleja, Heart Team`) : C('teer-c5','Anchura de flail ≤15 mm', null),
     c6:  pasp !== null ? C('teer-c6', 'PASP ≤70 mmHg', pasp <= 70, `${pasp}mmHg ≤70mmHg`, `${pasp}mmHg >70mmHg — NO apto`)                      : C('teer-c6', 'PASP ≤70 mmHg', null),
-    c7:  (fevi  !== null && tipoIM === 'secundaria') ? C('teer-c7','FEVI 20-50 % (COAPT)', fevi >= 20 && fevi <= 50, `FEVI ${fevi}% (20-50%)`, `FEVI ${fevi}% fuera rango COAPT`) : C('teer-c7','FEVI 20-50 % (COAPT)', null),
-    c8:  (dtsvi !== null && tipoIM === 'secundaria') ? C('teer-c8','DTSVI ≤70 mm (COAPT)', dtsvi <= 70, `${dtsvi}mm ≤70mm`, `${dtsvi}mm >70mm — NO apto`)                       : C('teer-c8','DTSVI ≤70 mm (COAPT)', null),
+    c7:  (fevi  !== null && esSec) ? C('teer-c7','FEVI 20-50 % (COAPT)', fevi >= 20 && fevi <= 50, `FEVI ${fevi}% (20-50%)`, `FEVI ${fevi}% fuera rango COAPT`) : C('teer-c7','FEVI 20-50 % (COAPT)', null),
+    c8:  (dtsvi !== null && esSec) ? C('teer-c8','DTSVI ≤70 mm (COAPT)', dtsvi <= 70, `${dtsvi}mm ≤70mm`, `${dtsvi}mm >70mm — NO apto`)                       : C('teer-c8','DTSVI ≤70 mm (COAPT)', null),
     /* `'' → null`, no `false`: son los únicos dos criterios que no podían mostrar «No
        ingresado», así que su default se leía como un hallazgo negativo comprobado. */
     c9:  C('teer-c9', 'Sin calcificación densa en zona clip',        calc   === '' ? null : calc   === 'no', 'Sin calcificación densa',    'Calcificación densa — evaluar'),
@@ -24185,7 +24371,14 @@ function teerEstado() {
      «Clefts/perforaciones - limitan agarre» y, dos renglones abajo, «APTO para TEER - criterios
      cumplidos». Y «Faltan N criterio(s)» contaba 6 sobre 8. Con la lista única, agregar un
      criterio deja de exigir acordarse de tres sitios. */
-  const veto = [cs.c1, cs.c2, cs.c3, cs.c4, cs.c5, cs.c6, cs.c9, cs.c10];
+  /* La lista se arma con los criterios que APLICAN a este tipo de IM. Un criterio que no
+     corresponde no es un criterio que falta: con los ocho fijos, elegir «primaria» dejaba a c2
+     y c4 —de la IM funcional— contando como «no ingresados», y un estudio completo pasaba de
+     «APTO» a «Posiblemente apto — completar datos faltantes» sólo por haber consignado el tipo.
+     Medido. */
+  const veto = [cs.c1, cs.c3, cs.c6, cs.c9, cs.c10]
+    .concat(aplPrim ? [cs.c5] : [])
+    .concat(aplSec  ? [cs.c2, cs.c4] : []);
   const evaluados    = veto.filter(c => c.ok !== null);
   const fallos       = veto.filter(c => c.ok === false);
   const noIngresados = veto.filter(c => c.ok === null).length;
@@ -24225,16 +24418,36 @@ function teerEstado() {
   }
 
   return { cs, orden:[cs.c1, cs.c1b, cs.c2, cs.c3, cs.c4, cs.c5, cs.c6, cs.c7, cs.c8, cs.c9, cs.c10],
-           tipoIM, trombo, clave, badgeCls, titulo, nota, fallos: fallos.length, noIngresados,
+           tipoIM, esPrim, esSec, trombo, clave, badgeCls, titulo, nota, fallos: fallos.length, noIngresados,
            hayDatos: evaluados.length > 0 || trombo === 'si' || cs.c1b.ok !== null };
 }
 window.teerEstado = teerEstado;
 
 function calcTEER() {
   const r = teerEstado();
+  /* La interfaz sigue al tipo de IM. Se OCULTA, no se deshabilita ni se borra: los valores se
+     conservan —cambiar de «secundaria» a «primaria» y volver no puede perder lo cargado— y lo
+     que decide si cuentan es el gate de `teerEstado`, no esta línea. */
+  const _mostrar = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
+  _mostrar('teer-bloque-primaria',   !r.esSec);
+  _mostrar('teer-bloque-secundaria', !r.esPrim);
+  _mostrar('teer-tipo-aviso',        !r.tipoIM);
+  _mostrar('teer-hdr-coapt',         r.esSec);
+  /* Las filas de criterio del cuadro de resultados siguen la misma regla: una fila «No
+     ingresado» de un criterio que NO aplica a este tipo de IM se lee como un dato que falta
+     cargar. Las que no aplican se sacan de la vista. */
+  /* c1/c1b son comunes y no se ocultan nunca. c7/c8 (COAPT) sólo pueden EVALUARSE con IM
+     secundaria, así que con el tipo sin definir también se ocultan: imprimirlos como «No
+     ingresado» en la hoja firmada, al lado de un bloque de VI que sí muestra la FEVI, se lee
+     como un dato que falta cargar cuando en realidad no es aplicable todavía. */
+  const _NO_APLICA = { 'teer-c5':r.esSec,
+                       'teer-c2':r.esPrim, 'teer-c4':r.esPrim,
+                       'teer-c7':!r.esSec, 'teer-c8':!r.esSec };
   r.orden.forEach(c => {
     const el = document.getElementById(c.id);
     if (!el) return;
+    const fila = el.closest ? el.closest('.calc-row') : null;
+    if (fila) fila.style.display = _NO_APLICA[c.id] ? 'none' : '';
     el.innerHTML = c.ok === null ? badge('gray', 'No ingresado')
                                  : badge(c.ok ? 'green' : 'red', (c.ok ? '✓ ' : '✗ ') + c.txt);
   });
@@ -29454,6 +29667,38 @@ function calcOAI() {
      salía diciendo «Trombo | no evaluado» junto a «Interpretación | Confirmado —
      contraindicación cardioversión». La opción vacía nueva hizo alcanzable ese camino. */
   const _oaiSet = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+
+  /* Área del ostium desde el diámetro: π·(d/2)², con el diámetro en mm y el área en cm² —de ahí
+     el /100—. El campo estaba en el formulario y no lo calculaba nadie: había que hacer la
+     cuenta a mano o dejarlo vacío.
+
+     Es una ESTIMACIÓN circular, y el ostium de la orejuela es ovalado: por eso la medición
+     directa por 3D manda y el campo se puede sobreescribir. Se usa la marca `derivadoDe` —la
+     misma mecánica que el gradiente pulmonar y la PASP del TEER— para refrescar mientras el
+     número siga siendo el nuestro y no tocarlo en cuanto el médico lo cambie. La marca no se
+     persiste, así que un estudio reabierto trae el área guardada y no se pisa. */
+  const _oaiArea = document.getElementById('oai_area_ostium');
+  if (_oaiArea) {
+    const _areaDe = d => (Math.PI * Math.pow(d / 2, 2) / 100).toFixed(2);
+    /* RECONSTRUCCIÓN de la marca al reabrir un estudio. `dataset` no se persiste, así que sin
+       esto un área que la app había calculado volvía como «medición del médico» y corregir el
+       diámetro dejaba el área vieja: 24 mm / 4.52 cm² guardados, se corrige a 30 mm y el área
+       seguía en 4.52 en vez de 7.07, con el estudio y el Laboratorio contradiciéndose.
+       Si el área guardada es EXACTAMENTE la que corresponde al diámetro guardado, es nuestra.
+       Una medición directa que coincida al centésimo con la fórmula circular se adopta como
+       derivada — y en ese caso da igual, porque el valor es el mismo. */
+    if (_oaiArea.dataset.derivadoDe === undefined && diam !== null && diam > 0
+        && _oaiArea.value !== '' && _oaiArea.value === _areaDe(diam)) {
+      _oaiArea.dataset.derivadoDe = _oaiArea.value;
+    }
+    const esNuestro = _oaiArea.dataset.derivadoDe !== undefined && _oaiArea.dataset.derivadoDe === _oaiArea.value;
+    if (diam !== null && diam > 0) {
+      const area = (Math.PI * Math.pow(diam / 2, 2) / 100).toFixed(2);
+      if (_oaiArea.value === '' || esNuestro) { _oaiArea.value = area; _oaiArea.dataset.derivadoDe = area; }
+    } else if (esNuestro) {
+      _oaiArea.value = ''; delete _oaiArea.dataset.derivadoDe;
+    }
+  }
   if (vel) {
     let vi;
     if (vel >= 40) vi = badge('green', `${vel} cm/s — normal`);
@@ -33087,9 +33332,15 @@ function amiloTextoTEER() {
      la misma confusión entre «negativo» y «no medido» que el resto de la app se cuida de
      evitar. Los dos criterios COAPT sólo aplican a la IM secundaria: con IM primaria salen
      null y se omiten, porque ahí no son «faltantes» sino inaplicables. */
-  const _coapt = new Set(['teer-c7', 'teer-c8']);
+  /* c1/c1b son comunes y no se ocultan nunca. c7/c8 (COAPT) sólo pueden EVALUARSE con IM
+     secundaria, así que con el tipo sin definir también se ocultan: imprimirlos como «No
+     ingresado» en la hoja firmada, al lado de un bloque de VI que sí muestra la FEVI, se lee
+     como un dato que falta cargar cuando en realidad no es aplicable todavía. */
+  const _NO_APLICA = { 'teer-c5':r.esSec,
+                       'teer-c2':r.esPrim, 'teer-c4':r.esPrim,
+                       'teer-c7':!r.esSec, 'teer-c8':!r.esSec };
   r.orden.forEach(c => {
-    if (c.ok === null && _coapt.has(c.id) && r.tipoIM !== 'secundaria') return;
+    if (_NO_APLICA[c.id]) return;
     L.push(_teerAsciiPDF(c.lbl) + ' | ' + _teerAsciiPDF(c.txt));
   });
 
@@ -39598,6 +39849,11 @@ function _labExcelRow(inf) {
     'DD_Sin (Sin disfunción)': (gd === 'sin' || (gd === null && eeDoc)) ? 1 : 0,
     'Vol AI (LAVI) (ml/m²)': rnd(_labLavi(inf),1),
     'TAPSE (mm)': rnd(num('tapse'),0), "S' (cm/s)": rnd(num('s_prime'),1), 'TAP (ms)': rnd(num('tvia'),0), 'Diám. basal VD (mm)': rnd(num('vd_bas'),0),
+    /* El medio y el longitudinal desde que DECIDEN «VD dilatado» en el informe firmado. Sin
+       estas dos columnas, un estudio cuyo único hallazgo de dilatación es el medio, exportado a
+       Excel y reimportado, volvía «de dimensiones normales» con el mismo basal. El commit
+       agregó los dos segmentos de aorta al Excel y había dejado estos dos afuera. */
+    'Diám. medio VD (mm)': rnd(num('vd_mid'),0), 'Long. VD (mm)': rnd(num('vd_long'),0),
     /* FAC: se recalcula desde las áreas en vez de leer `vd_fac`. El campo es un derivado y los
        estudios guardados ANTES de que existiera el cálculo no lo traen, así que leerlo dejaba
        la columna vacía sobre estudios que sí tienen las dos áreas cargadas. La fórmula es la
@@ -39638,6 +39894,10 @@ function _labExcelRow(inf) {
     /* Se renombra de «Ao asc. proximal (mm)» a «Ao tubular (mm)». El importador acepta
        el nombre viejo como alias, así que los Excel ya exportados siguen entrando. */
     'Ao tubular (mm)': rnd(num('ao_tub'),0),
+    /* Los dos segmentos que estaban en el formulario y no salían a ningún lado. Llevan el
+       prefijo «Ao » como los otros tres, así que caen solos en el bloque 2 · AORTA. */
+    'Ao cayado (mm)': rnd(num('diam_cayado'),0),
+    'Ao torácica descendente (mm)': rnd(num('diam_ao_toracica'),0),
     'Diám. AP AI (mm)': rnd(num('ai_diam'),0),
     'Área AI (cm²)': rnd(num('ai_area'),1),
     /* Volumen ABSOLUTO. No confundir con «Vol AI (LAVI) (ml/m²)», que es el indexado por
@@ -39996,6 +40256,7 @@ const LAB_XLS_BLOQUES = [
   { n:'4 · VENTRÍCULO IZQUIERDO', cols:['SIV (mm)','DDVI (mm)','DSVI (mm)','PP (mm)','FEVI Simpson (%)','GLS (%)',
       'Masa VI (g/m²)','RWT','VDFVI idx (ml/m²)','FA (%)'], pre:['Geometría VI','Geom_','Trastornos sectoriales','TS_'] },
   { n:'5 · VENTRÍCULO DERECHO', cols:['TAPSE (mm)',"S' (cm/s)",'TAP (ms)','Diám. basal VD (mm)',
+      'Diám. medio VD (mm)','Long. VD (mm)',
       'Área VD telediast. (cm²)','Área VD telesist. (cm²)','FAC VD (%)','FEVD (%)'] },
   { n:'6 · AURÍCULA DERECHA / VCI', cols:['Área AD (cm²)','VCI diám (mm)','Colapso VCI','PmAD (mmHg)'] },
   { n:'7 · DOPPLER Y DIASTÓLICA', cols:['Onda E (cm/s)','Onda A (cm/s)',"e' septal (cm/s)","e' lateral (cm/s)",
@@ -40436,6 +40697,8 @@ const LAB_XLS_MAP = [
      columna vieja se siguen importando —al campo correcto— en vez de perder el dato en
      silencio, que es exactamente para lo que existe el 4º elemento de estas entradas. */
   ['Ao tubular (mm)',        'ao_tub',         'num', ['Ao asc. proximal (mm)', 'Coartación Ao ascendente (mm)']],
+  ['Ao cayado (mm)',         'diam_cayado',    'num'],
+  ['Ao torácica descendente (mm)', 'diam_ao_toracica', 'num'],
 
   // 5 · Aurícula izquierda
   ['Diám. AP AI (mm)',       'ai_diam',        'num'],
@@ -40466,6 +40729,8 @@ const LAB_XLS_MAP = [
   ["S' (cm/s)",              's_prime',        'num'],
   ['TAP (ms)',               'tvia',           'num'],
   ['Diám. basal VD (mm)',    'vd_bas',         'num'],
+  ['Diám. medio VD (mm)',    'vd_mid',         'num'],
+  ['Long. VD (mm)',          'vd_long',        'num'],
   /* Se importan las dos ÁREAS y NO la columna «FAC VD (%)», que es derivada: escribirla dejaría
      un porcentaje que `calcVD` recalcula desde las áreas en cuanto se toca cualquiera de las
      dos, y con las áreas ausentes quedaría un número sin nada detrás. El Excel la exporta para
@@ -40795,6 +41060,14 @@ const LAB_XLS_MAP = [
 const LAB_XLS_RANGO_PROPIO = {
   peso:[1,400], talla:[30,250], edad:[0,120],
   ao_sin:[10,90], ao_st:[10,80], ao_tub:[10,90],
+  /* Los dos segmentos de aorta y los dos diámetros de VD que pasaron a DECIDIR el informe el
+     2026-09-14. Mismas ventanas que sus `min`/`max` de AO_SEGS y `vdDiamsMedidos`: sin entrada
+     acá, `_labXlsNum` sólo verifica que el valor parsee, y un cayado de 3,5 (cm por mm) entraba,
+     se guardaba y se reexportaba. La invariante «todo numérico nuevo lleva su banda» está
+     declarada arriba; estos cuatro la estaban incumpliendo. */
+  diam_cayado:[10,80], diam_ao_toracica:[8,70],
+  vd_bas:[10,80], vd_mid:[10,80], vd_long:[25,140],
+  vd_area_d:[3,60], vd_area_s:[1,50],
   ai_diam:[10,90], ai_area:[3,60], ai_vol:[5,400], lars:[0,60], ad_area:[3,60],
   /* Bandas de los numéricos agregados el 2026-09-11. Sin entrada acá, `_labXlsNum` sólo
      verifica que el valor PARSEE: una FEVI basal de 580 o un NT-proBNP de 900000 entraban sin
@@ -46531,12 +46804,23 @@ function labEteRender(infs, n) {
        rotular la barra «Longitud coaptación >10 mm» publicaba la frase invertida —una coaptación
        larga es BUENA— en un gráfico titulado «criterios no cumplidos». Hasta que se decida la
        semántica del campo, la barra nombra el campo y no una interpretación. */
-    { k:'gap',  lbl:'teer_gap fuera de rango (>10 mm)', campo:'teer_gap',    ok:v => v <= 10 },
+    { k:'gap',  lbl:'teer_gap fuera de rango (>10 mm)', campo:'teer_gap',    ok:v => v <= 10, tipo:'sec' },
     { k:'area', lbl:'Área mitral <4 cm²',          campo:'teer_area_mitral', ok:v => v >= 4.0 },
-    { k:'prof', lbl:'Profundidad flail >10 mm',    campo:'teer_prof_flail',  ok:v => v <= 10 },
-    { k:'anch', lbl:'Ancho flail >15 mm',          campo:'teer_ancho_flail', ok:v => v <= 15 },
+    { k:'prof', lbl:'Profundidad de coaptación >10 mm', campo:'teer_prof_flail', ok:v => v <= 10, tipo:'sec' },
+    { k:'anch', lbl:'Ancho flail >15 mm',          campo:'teer_ancho_flail', ok:v => v <= 15, tipo:'prim' },
     { k:'pasp', lbl:'PASP >70 mmHg',               campo:'teer_pasp',        ok:v => v <= 70 }
   ];
+  /* `tipo` replica el gateo por tipo de IM de `teerEstado()`. Sin esto el panel contaba los seis
+     criterios SIEMPRE, y desde que la pantalla evalúa sólo los que aplican, TODO estudio con el
+     tipo consignado salía distinto en las dos superficies: un estudio de IM primaria completo
+     daba «✅ APTO» en el informe firmado y «⚠️ Posiblemente apto — faltan datos» en el PDF de
+     auditoría, porque acá seguían faltando `gap` y `prof`. Y al revés: un `teer_gap` residual
+     cargado antes de fijar el tipo hacía que el Laboratorio dijera «Límite» sobre un estudio que
+     el informe da por apto. Son DOS implementaciones del mismo criterio clínico —la trampa de la
+     fórmula duplicada— y hasta que se unifiquen tienen que gatear igual. */
+  const _teerAplica = (c, tipoIM) => !c.tipo
+    || (c.tipo === 'prim' && tipoIM !== 'secundaria')
+    || (c.tipo === 'sec'  && tipoIM !== 'primaria');
   const usaTeer = i => _labCampoRaw(i,'teer_tipo_im') !== '' || TEER_CRIT.some(c => _labNum(i, c.campo) !== null);
 
   const conDatosEte = i => usaTavi(i) || usaOai(i) || usaWilkins(i) || usaEteVM(i) || usaTeer(i);
@@ -46779,17 +47063,25 @@ function labEteRender(infs, n) {
     const fallos = Object.create(null); let apto = 0, posible = 0, limite = 0, noApto = 0, sinDatos = 0;
     teerArr.forEach(i => {
       let ingresados = 0, fallados = 0;
-      TEER_CRIT.forEach(c => {
+      // El tipo de IM del ESTUDIO, no el de la pantalla: decide qué criterios aplican.
+      const _tipoIM = _labCampoRaw(i, 'teer_tipo_im') || '';
+      const _aplican = TEER_CRIT.filter(c => _teerAplica(c, _tipoIM));
+      _aplican.forEach(c => {
         const v = _labNum(i, c.campo);
         if (v === null) return;              // no ingresado: no cuenta ni a favor ni en contra
         ingresados++;
         if (!c.ok(v)) { fallados++; fallos[c.lbl] = (fallos[c.lbl]||0)+1; }
       });
       if (!ingresados) { sinDatos++; return; }
-      // c9 — calcificación densa. El select no tiene opción vacía, así que ausente = 'no'.
+      /* Calcificación y clefts. El select ya NO tiene el «no» de fábrica —se agregó la opción
+         vacía—, así que ausente significa NO EVALUADO y no puede contar como cumplido; los
+         estudios viejos traen el 'no' explícito y siguen leyéndose igual. `clefts` faltaba acá
+         y sí vetaba en pantalla. */
       const calc = _labCampoRaw(i,'teer_calcificacion');
       if (calc && calc !== 'no') { fallados++; fallos['Calcificación densa'] = (fallos['Calcificación densa']||0)+1; }
-      const noIngresados = TEER_CRIT.length - ingresados;
+      const _clefts = _labCampoRaw(i,'teer_clefts');
+      if (_clefts && _clefts !== 'no') { fallados++; fallos['Clefts / perforaciones'] = (fallos['Clefts / perforaciones']||0)+1; }
+      const noIngresados = _aplican.length - ingresados;
       if (fallados === 0 && noIngresados === 0) apto++;
       else if (fallados === 0) posible++;
       else if (fallados === 1) limite++;
