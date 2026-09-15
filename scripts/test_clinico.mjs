@@ -2504,8 +2504,8 @@ caso('TC-112', 'Congenitas: ninguna seccion se perdio en el reparto ni al implem
      entran en ORIG con su campo caracteristico. Que TC-112 se pusiera en rojo al implementarlas
      es lo correcto —la condicion «ningun placeholder trae campos» es justamente lo que hay que
      actualizar cuando uno deja de serlo—. */
-  const ORIG = ['tv','shunt','dap','coa','vap','fop','vab','ebs','tdf','tga','mch','mca','marfan','eisen','fontan','esub'];
-  const PH   = ['easv','dsav','cvpa'];
+  const ORIG = ['tv','shunt','dap','coa','vap','fop','vab','ebs','tdf','tga','mch','mca','marfan','eisen','fontan','esub','easv'];
+  const PH   = ['dsav','cvpa'];
   const t1 = document.getElementById('tab-congenitas');
   const t2 = document.getElementById('tab-congenitas2');
   const de = k => document.getElementById('sacc-cc-' + k);
@@ -2529,7 +2529,7 @@ caso('TC-112', 'Congenitas: ninguna seccion se perdio en el reparto ni al implem
       [['vab','vab_fenotipo'],['coa','coa_istmo'],['fop','fop_tunel'],['mch','mch_espesor'],
        ['mca','mca_tsvd_plax'],['tdf','tdf_civ_grad'],['tv','tv_tipo'],['shunt','ete_cia_tipo'],
        ['dap','dap_diam'],['vap','vap_diam'],['tga','tga_tipo'],['ebs','ebs_area_ad'],
-       ['marfan','marfan_ao_seno'],['eisen','eis_lesion_base'],['fontan','fontan_tipo'],['esub','esub_tipo']]
+       ['marfan','marfan_ao_seno'],['eisen','eis_lesion_base'],['fontan','fontan_tipo'],['esub','esub_tipo'],['easv','easv_tipo']]
         .every(par => { const s = de(par[0]), c = document.getElementById(par[1]);
           return !!s && !!c && s.contains(c); })],
     ['los placeholders dicen que estan en desarrollo',
@@ -3588,6 +3588,71 @@ caso('TC-127', 'Estenosis subaortica: gradua el gradiente MEDIO y no el pico', `
     ['sin ningun dato no hay seccion', vacio.r.hayDatos === false],
     ['un medio de 900 no gradua', ilegible.r.severa === false],
     ['y se declara fuera de rango', ilegible.inf.inf.indexOf('fuera de rango') > -1]
+  ] };
+`);
+
+/* ESTENOSIS SUPRAVALVULAR — mismo criterio de gradiente que la subaortica (ESC 2020: MEDIO >=40
+   a cualquier nivel del tracto de salida), y una cosa propia: LOS OSTIOS CORONARIOS. La lesion
+   esta por ENCIMA de la union sinotubular, asi que los ostios quedan proximales, en la camara de
+   alta presion: es la unica de las tres formas en que la obstruccion puede producir isquemia por
+   si misma. Por eso el compromiso coronario alerta AUNQUE el gradiente no sea severo.
+   Y «no evaluados» no es «normales»: negar el riesgo sin haberlo mirado es la afirmacion
+   tranquilizadora de siempre, y aca lo que se negaria es isquemia. */
+caso('TC-128', 'Supravalvular aortica: gradiente MEDIO, y los ostios alertan solos', `
+  function e(o) { __t.limpiar();
+    __t.set('easv_tipo', o.tipo || 'reloj');
+    if (o.medio != null) __t.set('easv_gradiente_medio', String(o.medio));
+    if (o.pico  != null) __t.set('easv_gradiente_mmhg', String(o.pico));
+    if (o.wil   != null) __t.set('easv_williams', o.wil);
+    if (o.cor   != null) __t.set('easv_coronarias', o.cor);
+    if (o.ep    != null) __t.set('easv_estenosis_pulmonar', o.ep);
+    __t.chk('easv_incluir_chk', true);
+    const r = easvEstado();
+    return { r, inf: __t.informe() };
+  }
+  const m39 = e({ medio:39 }), m40 = e({ medio:40 });
+  const picoAlto = e({ pico:70, medio:22 });
+  const soloPico = e({ pico:70 });
+  const corMal = e({ medio:15, cor:'comprometidos' });
+  const corBien = e({ medio:15, cor:'normales' });
+  const corNo  = e({ medio:15, cor:'no_eval' });
+  const corSin = e({ medio:15 });
+  const wil = e({ medio:15, wil:'si' }), wilNo = e({ medio:15, wil:'no' });
+  const epMod = e({ medio:15, ep:'moderada' }), epLeve = e({ medio:15, ep:'leve' });
+  __t.limpiar();
+  const vacio = { r: easvEstado() };
+  return { extra: [
+    ['medio 40 exactos es severa', m40.r.severa === true],
+    ['medio 39 no', m39.r.severa === false],
+    // El pico no gradua, igual que en la subaortica.
+    ['un pico de 70 con medio 22 NO es severa', picoAlto.r.severa === false],
+    ['sin gradiente medio no se gradua y se dice cual falta',
+      soloPico.r.gradua === false &&
+      soloPico.inf.inf.indexOf('el criterio de la ESC 2020 es el gradiente MEDIO y no consta') > -1],
+    // LOS OSTIOS: alertan con gradiente NO severo, que es lo propio de esta forma.
+    ['el compromiso de ostios alerta aunque el gradiente no sea severo',
+      corMal.r.severa === false && corMal.inf.inf.indexOf('riesgo de isquemia miocárdica') > -1],
+    ['y sube al EN SUMA', corMal.inf.suma.indexOf('compromiso de los ostios coronarios') > -1],
+    ['ostios normales se nombran y no alertan',
+      corBien.inf.inf.indexOf('Ostios coronarios normales') > -1 &&
+      corBien.inf.inf.indexOf('riesgo de isquemia') === -1],
+    ['«no evaluados» NO se publica como normales: se declara pendiente',
+      corNo.inf.inf.indexOf('no evaluados en este estudio') > -1 &&
+      corNo.inf.inf.indexOf('Ostios coronarios normales') === -1],
+    ['y sin contestar nada, tambien se declara pendiente',
+      corSin.inf.inf.indexOf('no evaluados en este estudio') > -1],
+    // Williams-Beuren.
+    ['Williams-Beuren manda a buscar estenosis pulmonar e hipercalcemia',
+      wil.inf.inf.indexOf('hipercalcemia') > -1 && wil.inf.suma.indexOf('Williams-Beuren') > -1],
+    ['«sin sindrome» se nombra y no alerta',
+      wilNo.inf.inf.indexOf('Sin síndrome de Williams-Beuren') > -1 &&
+      wilNo.inf.inf.indexOf('hipercalcemia') === -1],
+    // Estenosis pulmonar asociada.
+    ['EP moderada propone la correccion simultanea',
+      epMod.inf.inf.indexOf('corrección simultánea') > -1],
+    ['EP leve se describe y no lo propone',
+      epLeve.inf.inf.indexOf('asociada leve') > -1 && epLeve.inf.inf.indexOf('corrección simultánea') === -1],
+    ['sin ningun dato no hay seccion', vacio.r.hayDatos === false]
   ] };
 `);
 

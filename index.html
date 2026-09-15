@@ -8714,12 +8714,60 @@ z
     </div>
   </div>
   <div class="card sacc" id="sacc-cc-easv">
-    <button type="button" class="sacc-hdr" onclick="secToggle('cc-easv')" aria-expanded="false">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-easv');easvSync()" aria-expanded="false">
       <span class="sacc-arrow">&#9654;</span>
-      <span style="flex:1;">🫀 Estenosis supravalvular aortica</span>
+      <span style="flex:1;">🫀 Estenosis supravalvular aórtica</span>
+      <span id="easv_badge" class="incl-badge" hidden>&#9679; cargada</span>
     </button>
     <div class="card-body sacc-body">
-      <p style="font-size:12px;color:var(--text2);margin:0;line-height:1.6;">En desarrollo — proximamente.</p>
+      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
+        Obstrucción por encima de la unión sinotubular. Es la única de las tres formas en que los
+        <b>ostios coronarios</b> quedan proximales a la estenosis, en zona de alta presión.
+      </p>
+      <div class="grid-3">
+        <div class="fg"><label>Tipo</label>
+          <select id="easv_tipo" onchange="easvSync()">
+            <option value="">&mdash;</option>
+            <option value="reloj">Reloj de arena (localizada)</option>
+            <option value="difusa">Difusa (hipoplasia tubular)</option>
+            <option value="membranosa">Membranosa</option>
+            <option value="noesp">No especificado</option>
+          </select></div>
+        <div class="fg"><label>Gradiente medio (mmHg)</label>
+          <input type="number" id="easv_gradiente_medio" step="1" placeholder="mmHg" oninput="easvSync()">
+          <span style="font-size:10px;color:var(--text2);">Es el que gradúa: ESC 2020, medio &ge;40&nbsp;mmHg a flujo normal.</span></div>
+        <div class="fg"><label>Gradiente pico (mmHg)</label>
+          <input type="number" id="easv_gradiente_mmhg" step="1" placeholder="mmHg" oninput="easvSync()">
+          <span style="font-size:10px;color:var(--text2);">Se describe; no gradúa por sí solo.</span></div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>Síndrome de Williams-Beuren</label>
+          <select id="easv_williams" onchange="easvSync()">
+            <option value="">&mdash;</option><option value="no_eval">No evaluado</option>
+            <option value="no">Sin síndrome</option><option value="si">Con síndrome</option>
+          </select>
+          <span style="font-size:10px;color:var(--text2);">Asocia retraso cognitivo, hipercalcemia y estenosis pulmonar periférica.</span></div>
+        <div class="fg"><label>Ostios coronarios</label>
+          <select id="easv_coronarias" onchange="easvSync()">
+            <option value="">&mdash;</option><option value="no_eval">No evaluados</option>
+            <option value="normales">Normales</option>
+            <option value="comprometidos">Ostios comprometidos</option>
+            <option value="dilatacion">Dilatación coronaria</option>
+          </select>
+          <span style="font-size:10px;color:var(--text2);">Proximales a la estenosis: riesgo de isquemia.</span></div>
+        <div class="fg"><label>Estenosis pulmonar asociada</label>
+          <select id="easv_estenosis_pulmonar" onchange="easvSync()">
+            <option value="">&mdash;</option><option value="no">No</option>
+            <option value="leve">Sí &mdash; leve</option><option value="moderada">Sí &mdash; moderada</option>
+            <option value="severa">Sí &mdash; severa</option>
+          </select></div>
+      </div>
+      <div id="easv-resultado" class="calc-box" style="margin-top:12px;"></div>
+      <input type="checkbox" id="easv_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+      <div style="display:flex;justify-content:center;margin-top:10px;">
+        <button type="button" class="btn btn-integrar" data-ete-chk="easv_incluir_chk" aria-pressed="false"
+                onclick="eteInclToggle('easv_incluir_chk')">&#128206; Integrar al informe</button>
+      </div>
     </div>
   </div>
 <div class="card sacc" id="sacc-cc-mch">
@@ -21949,6 +21997,37 @@ function generarInforme(opts) {
       r.alertas.forEach(a => { if (a.suma) sumaCC(a.suma); });
     })();
 
+    /* ── Estenosis supravalvular aórtica ── */
+    (function(){
+      const chk = document.getElementById('easv_incluir_chk');
+      if (!chk || !chk.checked) return;
+      if (typeof easvEstado !== 'function') return;
+      const r = easvEstado();
+      if (!r.hayDatos) return;
+      const f1 = n => (n == null || !isFinite(n)) ? null : String(Math.round(n * 10) / 10);
+      const p = ['Estenosis supravalvular aórtica' + (r.tipo ? ' (' + (EASV_TIPO_TXT[r.tipo] || r.tipo) + ')' : '')];
+      if (r.medioOk) p.push('Gradiente medio ' + f1(r.medio) + ' mmHg');
+      if (r.picoOk)  p.push('Gradiente pico ' + f1(r.pico) + ' mmHg');
+      if (r.fuera.length) p.push('Valor fuera de rango en ' + r.fuera.join(' y ') + ': revisar antes de concluir');
+      if (!r.medioOk) p.push('No se gradúa la severidad: el criterio de la ESC 2020 es el gradiente MEDIO y no consta');
+      /* Los ostios se nombran SIEMPRE que se hayan mirado, incluso normales: en esta lesión su
+         estado es parte del hallazgo, no un detalle. Sin evaluar se declara como pendiente. */
+      if (r.cor && r.cor !== 'no_eval') p.push('Ostios coronarios ' + (EASV_COR_TXT[r.cor] || r.cor));
+      else p.push('Ostios coronarios no evaluados en este estudio — en la estenosis supravalvular su evaluación es parte del estudio');
+      if (r.wil === 'no') p.push('Sin síndrome de Williams-Beuren');
+      if (r.ep && r.ep !== 'no') p.push('Estenosis pulmonar asociada ' + (EASV_EP_TXT[r.ep] || r.ep));
+      else if (r.ep === 'no') p.push('Sin estenosis pulmonar asociada');
+      const alertas = r.alertas.map(a => a.txt).join(' ');
+      const salvedadFlujo = (r.gradua && !r.severa)
+        ? ' El criterio de la ESC 2020 supone flujo normal: con gasto cardíaco bajo el gradiente subestima la obstrucción.'
+        : '';
+      etePars.push(p.join('. ') + '.' + (alertas ? ' ' + alertas : '') + salvedadFlujo + ' ' + r.SEGUIMIENTO);
+      ccMarcarParrafo();
+      sumaCC('Estenosis supravalvular aórtica' + (r.tipo ? ' (' + (EASV_TIPO_TXT[r.tipo] || r.tipo) + ')' : '') +
+             (r.medioOk ? ', gradiente medio ' + f1(r.medio) + ' mmHg' + (r.severa ? ' — severa' : '') : '') + '.');
+      r.alertas.forEach(a => { if (a.suma) sumaCC(a.suma); });
+    })();
+
     /* ── Estenosis subaórtica ── */
     (function(){
       const chk = document.getElementById('esub_incluir_chk');
@@ -22428,7 +22507,7 @@ function RECALC_MODULOS() {
          veredicto sí contaba esos criterios;
        · `calcOAI` reconstruye la marca de «área derivada» (ver ahí), sin la cual corregir el
          diámetro en un estudio reabierto dejaba el área vieja. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -22643,6 +22722,7 @@ function limpiarCampos(silencioso) {
   if (typeof eisenSync === 'function') { try { eisenSync(); } catch (e) {} }
   if (typeof fontanSync === 'function') { try { fontanSync(); } catch (e) {} }
   if (typeof esubSync === 'function') { try { esubSync(); } catch (e) {} }
+  if (typeof easvSync === 'function') { try { easvSync(); } catch (e) {} }
   if (typeof dptSync === 'function') { try { dptSync(); } catch (e) {} }
   if (typeof cvrSync === 'function') { try { cvrSync(); } catch (e) {} }
   /* Los botones se repintan desde el ESTADO REAL, no a `false` fijo. Las claves del bull's eye
@@ -31105,6 +31185,84 @@ function esubSync(){
 }
 window.esubSync = esubSync;
 
+/* ══ ESTENOSIS SUPRAVALVULAR AÓRTICA (ESC 2020) ══════════════════════════════════════════════
+   Mismo criterio de gradiente que la subaórtica y por el mismo motivo: la ESC 2020 define la
+   obstrucción SEVERA del tracto de salida izquierdo **a cualquier nivel** por el gradiente MEDIO
+   ≥40 mmHg a flujo normal. El pico se describe y no gradúa.
+
+   LO QUE SEPARA A ESTA FORMA DE LAS OTRAS DOS SON LOS OSTIOS CORONARIOS. La estenosis está por
+   ENCIMA de la unión sinotubular, así que los ostios quedan proximales, en la cámara de alta
+   presión: es la única de las tres en que la obstrucción puede producir isquemia por sí misma.
+   Por eso el compromiso coronario alerta aunque el gradiente no sea severo — no es un dato de
+   contexto, es el que cambia la conducta. */
+const EASV_MEDIO_SEVERO = 40;
+const EASV_TIPO_TXT = { reloj:'forma de reloj de arena, localizada', difusa:'forma difusa con hipoplasia tubular',
+                        membranosa:'forma membranosa', noesp:'tipo no especificado' };
+const EASV_COR_TXT = { no_eval:'no evaluados', normales:'normales',
+                       comprometidos:'con compromiso de los ostios', dilatacion:'con dilatación coronaria' };
+const EASV_EP_TXT = { no:'ausente', leve:'leve', moderada:'moderada', severa:'severa' };
+
+function easvEstado(){
+  const nv = id => { const e = document.getElementById(id); if (!e) return null;
+    const n = parseFloat(String(e.value).replace(',', '.')); return isFinite(n) ? n : null; };
+  const sv = id => (document.getElementById(id) || {}).value || '';
+  const tipo = sv('easv_tipo'), wil = sv('easv_williams'), cor = sv('easv_coronarias'), ep = sv('easv_estenosis_pulmonar');
+  const medio = nv('easv_gradiente_medio'), pico = nv('easv_gradiente_mmhg');
+  const banda = (v, lo, hi) => v != null && v >= lo && v <= hi;
+  const medioOk = banda(medio, 0, 150), picoOk = banda(pico, 0, 200);
+  const fuera = [];
+  if (medio != null && !medioOk) fuera.push('gradiente medio');
+  if (pico  != null && !picoOk)  fuera.push('gradiente pico');
+  const hayDatos = !!(tipo || wil || cor || ep || medio != null || pico != null);
+  if (!hayDatos) return { hayDatos:false, alertas:[] };
+  const severa = medioOk && medio >= EASV_MEDIO_SEVERO;
+  const gradua = medioOk;
+  const alertas = [];
+  if (severa) alertas.push({
+    txt:'Gradiente medio de ' + medio + ' mmHg — obstrucción severa del tracto de salida izquierdo por el criterio de la ESC 2020 (medio ≥' + EASV_MEDIO_SEVERO + ' mmHg a flujo normal). Corresponde evaluar la indicación quirúrgica en centro de cardiopatías congénitas del adulto.',
+    suma:'Estenosis supravalvular aórtica severa (gradiente medio ' + medio + ' mmHg) — evaluar indicación quirúrgica.' });
+  /* Sólo el compromiso DOCUMENTADO alerta. «No evaluados» no es «normales»: afirmar que los
+     ostios están bien sin haberlos mirado es la afirmación tranquilizadora que este archivo
+     persigue, y acá lo que se negaría es un riesgo de isquemia. */
+  if (cor === 'comprometidos') alertas.push({
+    txt:'Compromiso de los ostios coronarios — en la estenosis supravalvular los ostios quedan proximales a la obstrucción, en zona de alta presión, con riesgo de isquemia miocárdica. Evaluación en centro especializado con independencia del gradiente.',
+    suma:'Estenosis supravalvular aórtica con compromiso de los ostios coronarios — riesgo de isquemia, evaluación en centro especializado.' });
+  if (cor === 'dilatacion') alertas.push({
+    txt:'Dilatación de las arterias coronarias, que en esta lesión traduce la exposición a presión sistólica elevada proximal a la obstrucción.', suma:null });
+  if (wil === 'si') alertas.push({
+    txt:'Asociada a síndrome de Williams-Beuren — corresponde evaluar estenosis pulmonar periférica e hipercalcemia, y seguimiento multidisciplinario.',
+    suma:'Estenosis supravalvular aórtica en síndrome de Williams-Beuren.' });
+  if (ep === 'moderada' || ep === 'severa') alertas.push({
+    txt:'Estenosis pulmonar ' + EASV_EP_TXT[ep] + ' asociada — frecuente en el síndrome de Williams-Beuren; si se indica cirugía, considerar la corrección simultánea.',
+    suma:'Estenosis pulmonar ' + EASV_EP_TXT[ep] + ' asociada a la supravalvular aórtica.' });
+  return { hayDatos:true, tipo, wil, cor, ep, medio, pico, medioOk, picoOk, fuera, severa, gradua, alertas,
+           SEGUIMIENTO:'Seguimiento ecocardiográfico anual con evaluación de los ostios coronarios. Derivación a cirugía cardíaca de congénitas del adulto ante gradiente medio ≥' + EASV_MEDIO_SEVERO + ' mmHg o compromiso coronario.' };
+}
+window.easvEstado = easvEstado;
+
+function easvSync(){
+  const el = document.getElementById('easv-resultado'); if (!el) return;
+  while (el.firstChild) el.removeChild(el.firstChild);
+  const r = easvEstado();
+  const fila = (lbl, nodo) => { const row = document.createElement('div'); row.className = 'calc-row';
+    const l = document.createElement('span'); l.className = 'calc-lbl'; l.textContent = lbl;
+    row.appendChild(l); if (nodo) row.appendChild(nodo); el.appendChild(row); };
+  const val = t => { const sp = document.createElement('span'); sp.className = 'calc-val';
+    sp.style.fontWeight = '400'; sp.textContent = t; return sp; };
+  const pill = (cls, t) => { const sp = document.createElement('span');
+    sp.className = 'badge badge-' + (BADGE_CLS_OK.indexOf(cls) >= 0 ? cls : 'gray'); sp.textContent = t; return sp; };
+  if (!r.hayDatos) { fila('Estenosis supravalvular', pill('gray', 'Ingresar tipo y gradiente medio')); return; }
+  if (r.fuera.length) fila('Fuera de rango', pill('yellow', r.fuera.join(' y ') + ' — revisar antes de concluir'));
+  if (r.gradua) fila('Gradiente medio', pill(r.severa ? 'red' : 'green', r.medio + ' mmHg' + (r.severa ? ' — severa (ESC 2020)' : ' — no severa')));
+  else fila('Gradiente medio', pill('gray', 'Sin gradiente medio no se gradúa la severidad'));
+  fila('Ostios coronarios', r.cor === 'comprometidos' ? pill('red', 'Comprometidos')
+    : (r.cor === 'normales' ? pill('green', 'Normales')
+    : (r.cor === 'dilatacion' ? pill('orange', 'Dilatación coronaria') : pill('gray', 'No evaluados'))));
+  if (r.alertas.length) r.alertas.forEach(a => fila('·', val(a.txt)));
+  fila('Seguimiento', val(r.SEGUIMIENTO));
+}
+window.easvSync = easvSync;
+
 function tdfConclusion(){
   const civ = _tdfSv('tdf_civ_residual'), civG = _tdfNv('tdf_civ_grad');
   const func = _tdfSv('tdf_func_vd'), ip = _tdfSv('ip_grado');
@@ -31969,6 +32127,7 @@ const ETE_INCL_LBL = {
   eisen_incluir_chk:       'Síndrome de Eisenmenger',
   fontan_incluir_chk:      'Circulación de Fontan',
   esub_incluir_chk:        'Estenosis subaórtica',
+  easv_incluir_chk:        'Estenosis supravalvular aórtica',
   mch_incluir_chk:         'Miocardiopatía hipertrófica',
   ebs_incluir_chk:         'Anomalía de Ebstein',
   tdf_incluir_chk:         'Tetralogía de Fallot reparada',
@@ -43100,6 +43259,12 @@ function _labExcelRow(inf) {
     'Eisenmenger NYHA': _labXlsEtiq('eis_clase_nyha', c.eis_clase_nyha),
     'Eisenmenger síncope': _labXlsEtiq('eis_sincope', c.eis_sincope),
     'Eisenmenger hemoptisis': _labXlsEtiq('eis_hemoptisis', c.eis_hemoptisis),
+    'Supravalvular tipo': _labXlsEtiq('easv_tipo', c.easv_tipo),
+    'Supravalvular gradiente medio (mmHg)': rnd(num('easv_gradiente_medio'),0),
+    'Supravalvular gradiente pico (mmHg)': rnd(num('easv_gradiente_mmhg'),0),
+    'Supravalvular Williams-Beuren': _labXlsEtiq('easv_williams', c.easv_williams),
+    'Supravalvular ostios coronarios': _labXlsEtiq('easv_coronarias', c.easv_coronarias),
+    'Supravalvular estenosis pulmonar': _labXlsEtiq('easv_estenosis_pulmonar', c.easv_estenosis_pulmonar),
     'Subaortica tipo': _labXlsEtiq('esub_tipo', c.esub_tipo),
     'Subaortica gradiente medio (mmHg)': rnd(num('esub_gradiente_medio'),0),
     'Subaortica gradiente pico (mmHg)': rnd(num('esub_gradiente_mmhg'),0),
@@ -44005,6 +44170,12 @@ const LAB_XLS_MAP = [
   ['Eisenmenger NYHA',            'eis_clase_nyha','vocab'],
   ['Eisenmenger síncope',         'eis_sincope',   'vocab'],
   ['Eisenmenger hemoptisis',      'eis_hemoptisis','vocab'],
+  ['Supravalvular tipo',           'easv_tipo',              'vocab'],
+  ['Supravalvular gradiente medio (mmHg)','easv_gradiente_medio','num'],
+  ['Supravalvular gradiente pico (mmHg)', 'easv_gradiente_mmhg', 'num'],
+  ['Supravalvular Williams-Beuren','easv_williams',          'vocab'],
+  ['Supravalvular ostios coronarios','easv_coronarias',      'vocab'],
+  ['Supravalvular estenosis pulmonar','easv_estenosis_pulmonar','vocab'],
   ['Subaortica tipo',              'esub_tipo',              'vocab'],
   ['Subaortica gradiente medio (mmHg)', 'esub_gradiente_medio', 'num'],
   ['Subaortica gradiente pico (mmHg)',  'esub_gradiente_mmhg',  'num'],
@@ -44452,6 +44623,10 @@ LAB_XLS_ETIQ.tdf_vol_fuente   = { rmc:'Resonancia magnética cardíaca', eco3d:'
 LAB_XLS_ETIQ.esub_tipo        = { membrana:'Membrana subaórtica', tunel:'Túnel subaórtico', noesp:'No especificado' };
 LAB_XLS_ETIQ.esub_ia_asociada = { no:'No', leve:'Leve', moderada:'Moderada', severa:'Severa' };
 LAB_XLS_ETIQ.esub_valsalva    = { no_eval:'No evaluado', sin_cambios:'Sin cambios', aumenta:'Aumenta', disminuye:'Disminuye' };
+LAB_XLS_ETIQ.easv_tipo        = { reloj:'Reloj de arena', difusa:'Difusa', membranosa:'Membranosa', noesp:'No especificado' };
+LAB_XLS_ETIQ.easv_williams    = { no_eval:'No evaluado', no:'Sin sindrome', si:'Con sindrome' };
+LAB_XLS_ETIQ.easv_coronarias  = { no_eval:'No evaluados', normales:'Normales', comprometidos:'Ostios comprometidos', dilatacion:'Dilatacion coronaria' };
+LAB_XLS_ETIQ.easv_estenosis_pulmonar = { no:'No', leve:'Leve', moderada:'Moderada', severa:'Severa' };
 LAB_XLS_ETIQ.vab_simetria     = { simetrica:'Simétrica', asimetrica:'Asimétrica', no_val:'No valorable' };
 LAB_XLS_ETIQ.marfan_sindrome  = { marfan:'Marfan', lds:'Loeys-Dietz', turner:'Turner',
                                   ehat:'EHAT no sindrómica', otro:'Otro' };
@@ -44761,6 +44936,16 @@ LAB_XLS_VOCAB.im_grado = LAB_XLS_VOCAB.ia_grado = LAB_XLS_VOCAB.it_grado = LAB_X
    etiqueta legible que exporta la propia app. Sembrar `{}` a secas alcanzaría; los alias son
    para el que tipea a mano: «si»/«sí», «cavopulmonar», «moderado»/«moderada». */
 LAB_XLS_VOCAB.coa_hta = { no:'no', si:'si', 'sí':'si' };
+LAB_XLS_VOCAB.easv_tipo = { reloj:'reloj', 'reloj de arena':'reloj', localizada:'reloj',
+  difusa:'difusa', 'hipoplasia tubular':'difusa', membranosa:'membranosa',
+  noesp:'noesp', 'no especificado':'noesp' };
+LAB_XLS_VOCAB.easv_williams = { no_eval:'no_eval', 'no evaluado':'no_eval',
+  no:'no', 'sin sindrome':'no', si:'si', 'sí':'si', 'con sindrome':'si', 'williams-beuren':'si' };
+LAB_XLS_VOCAB.easv_coronarias = { no_eval:'no_eval', 'no evaluados':'no_eval',
+  normales:'normales', normal:'normales', comprometidos:'comprometidos', 'ostios comprometidos':'comprometidos',
+  dilatacion:'dilatacion', 'dilatacion coronaria':'dilatacion' };
+LAB_XLS_VOCAB.easv_estenosis_pulmonar = { no:'no', leve:'leve',
+  moderada:'moderada', moderado:'moderada', severa:'severa', severo:'severa' };
 LAB_XLS_VOCAB.esub_tipo = { membrana:'membrana', 'membrana subaortica':'membrana',
   tunel:'tunel', 'tunel subaortico':'tunel', noesp:'noesp', 'no especificado':'noesp' };
 LAB_XLS_VOCAB.esub_ia_asociada = { no:'no', leve:'leve', moderada:'moderada', moderado:'moderada',
@@ -52340,8 +52525,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260915-2041';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789515670989;                 /* eco-build-ms */
+const ECO_BUILD    = '20260915-2044';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789515883468;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -52427,7 +52612,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260915-2041</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260915-2044</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

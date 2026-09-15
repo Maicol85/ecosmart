@@ -335,6 +335,24 @@ igual. Y al final, sacarle la historia familiar al predicado **no cambiaba una p
 historia familiar»: el color y el texto salían de dos expresiones distintas. **Si un caso no
 prueba el lado negativo de cada rama, no prueba la regla.**
 
+### Supravalvular aórtica: lo propio son los ostios coronarios, y alertan solos
+Sección implementada el 2026-09-15. **Mismo criterio de gradiente que la subaórtica** —ESC 2020,
+**medio ≥40 mmHg a flujo normal**, a cualquier nivel del tracto de salida— y por el mismo motivo:
+el pedido graduaba por el pico y eso es una cita falsa. Ver la entrada de la subaórtica.
+
+**Lo que separa a esta forma de las otras dos son los ostios coronarios.** La estenosis está por
+**encima** de la unión sinotubular, así que los ostios quedan **proximales**, en la cámara de alta
+presión: es la única de las tres en que la obstrucción puede producir **isquemia por sí misma**.
+Por eso el compromiso coronario **alerta aunque el gradiente no sea severo** — no es contexto, es
+lo que cambia la conducta.
+
+**«No evaluados» NO es «normales».** El informe declara los ostios como **pendientes** cuando
+nadie los miró, y nombra «normales» sólo cuando se consignó. Negar un riesgo de isquemia sin
+haberlo buscado es la afirmación tranquilizadora que este archivo persigue desde el TEER.
+
+**Campos:** `easv_tipo`, `easv_gradiente_medio`, `easv_gradiente_mmhg` (pico), `easv_williams`,
+`easv_coronarias`, `easv_estenosis_pulmonar`, `easv_incluir_chk`. Con sus **seis columnas**.
+
 ### Estenosis subaórtica: gradúa el gradiente MEDIO, no el pico
 Sección implementada el 2026-09-15. **La ESC 2020 adaptó la definición de obstrucción SEVERA del
 tracto de salida izquierdo —a CUALQUIER nivel: valvular, subvalvular y supravalvular— al gradiente
