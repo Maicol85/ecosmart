@@ -105,6 +105,12 @@ function conectar(wsUrl) {
 }
 
 // ── Caso de prueba ──────────────────────────────────────────────────────────────────────────
+/* ⚠ EL CUERPO DE UN CASO ES UN TEMPLATE LITERAL: NO USES ACENTOS GRAVES ADENTRO, ni siquiera
+   dentro de un comentario. Un solo backtick cierra la cadena en la mitad y el archivo entero
+   deja de parsear con «SyntaxError: missing ) after argument list» apuntando a la linea del
+   `caso(` — que es varias decenas de lineas ANTES del backtick culpable, asi que el mensaje no
+   te lleva al error. Para citar un identificador en un comentario del cuerpo, escribilo pelado:
+   amiloTextoTEER, no el identificador entre acentos graves. Ya se pago cuatro veces. */
 const CASOS = [];
 const caso = (id, nombre, fn) => CASOS.push({ id, nombre, fn });
 
@@ -1142,6 +1148,12 @@ caso('TC-88', 'Cardio-onco: la constante de la leyenda y el umbral que clasifica
     ['la constante de caida de FEVI vale 10 pp',  CO_UMBRAL_FEVI_CAIDA === 10],
     ['la constante de FEVI absoluta vale 50 %',   CO_UMBRAL_FEVI_ABS === 50],
     ['la constante de GLS relativo vale 15 %',    CO_UMBRAL_GLS_REL === 15],
+    ['la constante de la severa vale 40 %',       CO_UMBRAL_FEVI_SEVERA === 40],
+    // El punto donde el clasificador cambia de banda, para que la constante no quede suelta.
+    ['con FEVI 40 todavia NO es severa',
+      fevi(60, 40).indexOf('cardiotoxicidad SEVERA') === -1],
+    ['con 39 ya lo es',
+      fevi(60, 39).indexOf('cardiotoxicidad SEVERA (ESC 2022)') > -1],
     ['con 9 pp el clasificador dice «por debajo del umbral»',
       fevi(60, 51).indexOf('por debajo del umbral de CTRCD') > -1],
     ['con 10 pp exactos ya cruza el umbral',
@@ -1512,8 +1524,10 @@ caso('TC-93', 'Cardio-onco: la tabla de Referencias dice lo mismo que clasifica 
     __t.set('co_fevi_basal', String(fb)); __t.set('co_fevi_actual', String(fa));
     if (tropo) __t.set('co_troponi','si');
     return (__t.txt('co-toxicidad-resultado') || '').replace(/\\s+/g,' '); }
-  const leve   = tox(60, 58, true);   // caida de 2 pp: MENOS de 10, y aun asi es LEVE
-  const mejora = tox(42, 48, true);   // MEJORA hasta 40-49 con troponina: NO es moderada
+  const rapida = (document.getElementById('co-referencia-seccion') || {}).textContent || '';
+  const leve     = tox(60, 58, true);   // caida de 2 pp: MENOS de 10, y aun asi es LEVE
+  const mejora   = tox(42, 48, true);   // MEJORA hasta 40-49 con troponina: NO es moderada
+  const moderada = tox(62, 48, false);  // 14 pp hasta 48: MODERADA, no severa
   return { extra: [
     ['la tabla declara que la leve no exige caida de FEVI',
       tabla.indexOf('No exige caída de FEVI') > -1],
@@ -1535,7 +1549,197 @@ caso('TC-93', 'Cardio-onco: la tabla de Referencias dice lo mismo que clasifica 
     ['la tabla nombra la reduccion NUEVA en la severa',
       tabla.indexOf('nueva') > -1],
     ['y advierte que la app solo puntua troponina',
-      tabla.indexOf('sólo troponina') > -1]
+      tabla.indexOf('sólo troponina') > -1],
+    /* La SEGUNDA tabla, la que vive dentro de la pestaña de Cardio-Oncologia. Es la peor de las
+       dos: esta a dos clics del veredicto que contradecia. Decia «Caida FEVI severa | FEVI <50%
+       o caida >=10pp | Suspender», y el codigo rotula severa solo con FEVI <40 Y reduccion
+       nueva — un basal de 62 que cae a 48 salia MODERADA debajo de una tabla que decia severa. */
+    ['la tabla de la propia pestaña define la severa como FEVI nueva <40%',
+      rapida.indexOf('FEVI nueva <40% (basal >=40%)') > -1 &&
+      rapida.indexOf('FEVI <50% o caida >=10pp') === -1],
+    ['y usa >=15% para el GLS, no >15%',
+      rapida.indexOf('GLS reduccion >=15% relativa') > -1],
+    ['el clasificador confirma: basal 62 a 48 es MODERADA, no severa',
+      moderada.indexOf('cardiotoxicidad MODERADA (ESC 2022)') > -1 &&
+      moderada.indexOf('SEVERA') === -1]
+  ] };
+`);
+
+/* EL SGL SE CLASIFICA CON EL VALOR QUE SE IMPRIME. `_ctrcdGlsRel(-18, -15.3)` daba
+   14.999999999999996 en coma flotante, asi que `>= 15` era FALSO — pero toda la interfaz lo
+   muestra como «15.0 %» por toFixed(1). Ese paciente salia «Sin toxicidad detectada» EN VERDE
+   mientras que -20 → -17, que la app tambien muestra como 15,0 %, salia «cardiotoxicidad LEVE».
+   Dos numeros identicos a la vista, veredictos opuestos en el informe firmado, y el falso
+   negativo del lado tranquilizador. Es la leccion 6 en version coma flotante: aca el crudo ni
+   siquiera es «mas exacto», es el error de representacion de una division que en decimal da 15
+   clavado. El redondeo va DENTRO de `_ctrcdGlsRel` para que los cinco consumidores vean el mismo
+   numero. El caso prueba el par que fallaba, su gemelo, y que el redondeo no corrio la banda. */
+caso('TC-94', 'CTRCD: el SGL se clasifica con el mismo valor que se publica', `
+  function tox(gb, ga) { __t.limpiar();
+    __t.set('co_fevi_basal','60'); __t.set('co_fevi_actual','58');
+    __t.set('co_gls_basal', String(gb)); __t.set('co_gls_actual', String(ga));
+    return (__t.txt('co-toxicidad-resultado') || '').replace(/\\s+/g,' '); }
+  const LEVE = 'cardiotoxicidad LEVE asintomatica (ESC 2022)';
+  return { extra: [
+    ['_ctrcdGlsRel(-18,-15.3) ya no es 14.999999999999996',
+      _ctrcdGlsRel(-18, -15.3) === 15],
+    ['y da exactamente lo mismo que -20 -> -17',
+      _ctrcdGlsRel(-18, -15.3) === _ctrcdGlsRel(-20, -17)],
+    ['los dos pares clasifican igual: LEVE',
+      tox(-18, -15.3).indexOf(LEVE) > -1 && tox(-20, -17).indexOf(LEVE) > -1],
+    ['y ninguno queda en el verde de «sin toxicidad»',
+      tox(-18, -15.3).indexOf('Sin toxicidad detectada') === -1],
+    // El redondeo no puede correr la banda: 14,94 redondea a 14,9 y sigue por debajo.
+    ['14,94 % redondea a 14,9 y NO es toxicidad',
+      _ctrcdGlsRel(-20, -17.012) === 14.9 && tox(-20, -17.012).indexOf('Sin toxicidad detectada') > -1],
+    // Y del otro lado: 14,96 se publica como 15,0, asi que clasifica como 15,0.
+    ['14,96 % se publica 15,0 y por eso clasifica como 15,0',
+      _ctrcdGlsRel(-20, -17.008) === 15 && tox(-20, -17.008).indexOf(LEVE) > -1]
+  ] };
+`);
+
+/* LA MISMA HOJA NO PUEDE IMPRIMIR DOS VECES EL MISMO NUMERO Y QUE DEN DISTINTO. El redondeo de
+   TC-94 entro en `_ctrcdGlsRel`, pero CUATRO superficies tenian su propia copia de la formula y
+   no lo heredaban: la hoja del PDF, el texto del modulo integrado, el PPT y la tabla de
+   evolucion. Mientras todas redondeaban recien al imprimir daba igual; con el redondeo adentro,
+   `Math.round` desempata hacia +infinito y `toFixed` alejandose del cero, asi que discrepan en
+   los empates a .x5 — alcanzables tipeando un GLS de dos decimales, que el campo admite.
+   Medido: con -20 / -16.91 la hoja imprimia «Caída relativa de GLS | 15.4 %» y, ocho renglones
+   abajo, «caida relativa de GLS 15.5% — cardiotoxicidad LEVE». Mismo numero, misma hoja firmada.
+   Y la caida de FEVI tenia el defecto de coma flotante SIN arreglar: 64.1 - 54.1 da
+   9.999999999999993, se imprime «10.0 pp», y el clasificador decia «por debajo del umbral» con
+   el pie de la tabla declarando que el umbral es >=10. Tres afirmaciones incompatibles.
+   Lo encontro el differential-review del arreglo del GLS. */
+caso('TC-97', 'Cardio-onco: el numero que se imprime es el que clasifica', `
+  function hoja(gb, ga, fb, fa) { __t.limpiar();
+    __t.set('co_fevi_basal', String(fb)); __t.set('co_fevi_actual', String(fa));
+    __t.set('co_gls_basal', String(gb)); __t.set('co_gls_actual', String(ga));
+    return { txt: amiloTextoCardioOnco(),
+             cap: (__t.txt('co-toxicidad-resultado') || '').replace(/\\s+/g,' ') }; }
+  // Empate a .x5: el par que separaba Math.round de toFixed.
+  const e = hoja(-20, -16.91, 60, 58);
+  // Caida de FEVI con error de representacion: 64.1 - 54.1
+  const f = hoja(-20, -20, 64.1, 54.1);
+  return { extra: [
+    ['_ctrcdFeviCaida(64.1, 54.1) ya no es 9.999999999999993',
+      _ctrcdFeviCaida(64.1, 54.1) === 10],
+    ['y por eso 10,0 pp YA cruza el umbral, no queda «por debajo»',
+      f.cap.indexOf('por debajo del umbral de CTRCD') === -1],
+    /* amiloTextoCardioOnco() es el TEXTO DEL MODULO INTEGRADO — el que se congela en el
+       textarea y baja al bloque de ETT Avanzado. NO es la hoja que _coFila dibuja con jsPDF:
+       esa es otra superficie, y su copia de la formula tambien se ruteo al helper pero NO la
+       cubre ningun caso (_coFila es un closure dentro de la funcion del PDF, inalcanzable
+       desde el harness). Dicho para que la etiqueta no prometa mas de lo que prueba. */
+    ['el texto del modulo integrado y el clasificador dicen el MISMO 15,5',
+      e.txt.indexOf('Caída relativa de GLS | 15.5 %') > -1 &&
+      e.cap.indexOf('caida relativa de GLS 15.5%') > -1],
+    ['y ya no imprime el 15.4 crudo',
+      e.txt.indexOf('15.4 %') === -1],
+    ['la caida de FEVI del modulo integrado coincide con la del clasificador',
+      hoja(-20,-20,60,45).txt.indexOf('Caída de FEVI | 15.0 pp') > -1],
+    // La tabla de evolucion invierte el signo, y el -0 tiene que salir 0.
+    ['el delta de la tabla de evolucion es el mismo numero, con el signo dado vuelta',
+      (function(){ __t.limpiar();
+        __t.set('co_fevi_basal','60'); __t.set('co_fevi_actual','45');
+        __t.set('co_gls_basal','-20'); __t.set('co_gls_actual','-16.91');
+        const t = coTablaEvolucion(), act = t.find(r => r.actual);
+        return act && act.dFevi === -15 && act.dGls === -15.5; })()],
+    ['y una fila sin cambio da 0, no -0',
+      (function(){ __t.limpiar();
+        __t.set('co_fevi_basal','60'); __t.set('co_fevi_actual','60');
+        const t = coTablaEvolucion(), act = t.find(r => r.actual);
+        return act && Object.is(act.dFevi, 0); })()]
+  ] };
+`);
+
+/* EL FILTRO DE COHORTE CONTRA EL CLASIFICADOR. Los umbrales de cardio-onco del filtro eran
+   literales pelados y con `>` donde el clasificador usa `>=`, asi que el estudio parado en el
+   corte EXACTO quedaba fuera de su propia cohorte: una caida de 10,0 pp se rotula CTRCD en el
+   informe firmado y no aparecia en «Caída FEVI > 10 pp»; un GLS de -20 a -17 —15,0 clavados—
+   se rotula CTRCD LEVE y no aparecia en «Caída GLS > 15 %». Con el redondeo del GLS a un
+   decimal (TC-94) el 15,0 exacto dejo de ser una rareza de coma flotante y paso a ser un valor
+   FRECUENTE, asi que el desacuerdo se volvio alcanzable de verdad.
+   El caso entra por `_labCohorteOk`, que es la funcion real del panel, con `_LAB_COHORTE`
+   puesto a mano — y lo REPONE al salir, porque es estado de modulo y dejarlo puesto filtraria
+   los casos siguientes. */
+caso('TC-96', 'Cohorte: el estudio parado en el umbral entra en su propia cohorte', `
+  const previo = _LAB_COHORTE;
+  /* La cohorte se pone MOVIENDO EL SELECT del panel y leyendola con _labCohorteLeer(), no
+     armando un objeto a mano. Dos motivos: los campos numericos tienen que valer null y no
+     undefined —undefined !== null es CIERTO, asi que un objeto literal activaba el filtro de
+     edad y descartaba todo estudio sin edad cargada, y el caso daba rojo por el motivo
+     equivocado—, y asi se prueba el camino real, select incluido. */
+  function enCohorte(selectId, valor, campos) {
+    __t.set('coh-co-gls',''); __t.set('coh-co-fevi','');
+    __t.set(selectId, valor);
+    _LAB_COHORTE = _labCohorteLeer();
+    return _labCohorteOk({ campos });
+  }
+  try {
+    const G = 'coh-co-gls', F = 'coh-co-fevi';
+    const glsJusto  = enCohorte(G, 'gt15', { co_gls_basal:'-20', co_gls_actual:'-17' });
+    const glsFlotan = enCohorte(G, 'gt15', { co_gls_basal:'-18', co_gls_actual:'-15.3' });
+    const glsMenos  = enCohorte(G, 'gt15', { co_gls_basal:'-20', co_gls_actual:'-17.2' });
+    const feviJusta = enCohorte(F, 'gt10', { co_fevi_basal:'60', co_fevi_actual:'50' });
+    const feviMenos = enCohorte(F, 'gt10', { co_fevi_basal:'60', co_fevi_actual:'51' });
+    // La etiqueta que ve el medico tiene que decir el operador que el filtro usa.
+    const desc = _labCohorteDesc();
+    // El mismo par de GLS que el clasificador rotula LEVE tiene que entrar en la cohorte.
+    __t.limpiar();
+    __t.set('co_fevi_basal','60'); __t.set('co_fevi_actual','58');
+    __t.set('co_gls_basal','-20'); __t.set('co_gls_actual','-17');
+    const rotulado = (__t.txt('co-toxicidad-resultado') || '').indexOf('cardiotoxicidad LEVE') > -1;
+    return { extra: [
+      ['GLS 15,0 % exactos entra en la cohorte',   glsJusto === true],
+      ['y el par que daba 14.999... tambien',      glsFlotan === true],
+      ['14,0 % sigue quedando fuera',              glsMenos === false],
+      ['caida de FEVI de 10,0 pp exactos entra',   feviJusta === true],
+      ['9 pp sigue quedando fuera',                feviMenos === false],
+      ['la etiqueta del filtro dice ≥ y no >',
+        desc.indexOf('Caída FEVI ≥ 10 pp') > -1 && desc.indexOf('Caída FEVI > 10 pp') === -1],
+      ['y el clasificador rotula LEVE ese mismo estudio: cohorte e informe coinciden',
+        rotulado === true && glsJusto === true]
+    ] };
+  } finally { _LAB_COHORTE = previo; }
+`);
+
+/* LOS CINCO CRITERIOS DE TECHO DEL TEER FALLAN ABIERTOS CON EL CERO. `v <= X` es verdadero con
+   0, y ninguno de esos campos tiene `min`: «0mm <=10mm ✓» contaba como criterio CUMPLIDO en la
+   hoja firmada. c6 y c8 se cerraron antes; gap, profundidad y anchura de flail quedaban, y este
+   caso los cierra a los tres. El contraste importa: los criterios de PISO (velo anterior >=20,
+   area mitral >=4) ya fallan CERRADOS con el cero y NO llevan guarda — meterles una los
+   convertiria en «no ingresado» donde hoy dicen, correctamente, que no se cumplen. */
+caso('TC-95', 'TEER: el cero no cumple ningun criterio de techo, y sigue fallando los de piso', `
+  function conCero(campo) { __t.limpiar(); __t.set('teer_tipo_im','secundaria');
+    __t.set('teer_lva','24'); __t.set('teer_lvp','9'); __t.set('teer_gap','6');
+    __t.set('teer_prof_flail','8'); __t.set('teer_ancho_flail','12');
+    __t.set('teer_area_mitral','5.2'); __t.set('teer_pasp','40');
+    __t.set('teer_fevi','35'); __t.set('teer_dtsvi','62');
+    __t.set('teer_calcificacion','no'); __t.set('teer_clefts','no'); __t.set('teer_trombo','no');
+    __t.set(campo, '0');
+    return teerEstado(); }
+  const gap = conCero('teer_gap'), prof = conCero('teer_prof_flail');
+  const pasp = conCero('teer_pasp'), dtsvi = conCero('teer_dtsvi');
+  // La anchura de flail es criterio de IM PRIMARIA, asi que se prueba con ese tipo.
+  __t.limpiar(); __t.set('teer_tipo_im','primaria');
+  __t.set('teer_lva','24'); __t.set('teer_lvp','9'); __t.set('teer_area_mitral','5.2');
+  __t.set('teer_pasp','40'); __t.set('teer_ancho_flail','0');
+  __t.set('teer_calcificacion','no'); __t.set('teer_clefts','no'); __t.set('teer_trombo','no');
+  const anch = teerEstado();
+  // Los DOS de piso, con cero: tienen que seguir diciendo que NO se cumplen.
+  const piso = conCero('teer_lva'), pisoArea = conCero('teer_area_mitral');
+  return { extra: [
+    ['gap 0 no es criterio cumplido',          gap.cs.c2.ok === null],
+    ['profundidad 0 tampoco',                  prof.cs.c4.ok === null],
+    ['anchura de flail 0 tampoco',             anch.cs.c5.ok === null],
+    ['PASP 0 tampoco',                         pasp.cs.c6.ok === null],
+    ['DTSVI 0 tampoco',                        dtsvi.cs.c8.ok === null],
+    ['y ninguno de los cinco deja decir APTO',
+      [gap, prof, anch, pasp, dtsvi].every(e => e.clave !== 'apto')],
+    ['el velo anterior en 0 SIGUE fallando, no se vuelve «no ingresado»',
+      piso.cs.c1.ok === false && piso.fallos === 1],
+    ['y el area mitral en 0 tambien',
+      pisoArea.cs.c3.ok === false && pisoArea.fallos === 1]
   ] };
 `);
 

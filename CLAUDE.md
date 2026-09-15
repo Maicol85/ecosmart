@@ -783,13 +783,13 @@ El script contesta *«nadie lo nombra»*, no *«no tiene destino»*: un id menci
 ### 2 · Test suite clínico
 
 ```bash
-node scripts/test_clinico.mjs            # 93 casos, sin defectos abiertos
+node scripts/test_clinico.mjs            # 97 casos, sin defectos abiertos
 node scripts/test_clinico.mjs --solo TC-04
 node scripts/test_clinico.mjs --ver      # con el navegador a la vista, para depurar
 ```
 
 **Correr antes de cualquier push que toque el informe narrativo, el EN SUMA o una fórmula de
-cálculo. Tienen que pasar los 93. Si alguno falla, corregir antes de seguir.**
+cálculo. Tienen que pasar los 97. Si alguno falla, corregir antes de seguir.**
 
 **TC-01 a TC-17 — los bugs del 2026-09-14.** VD que desaparecía (TC-01/03), gradiente pulmonar
 congelado (TC-04), AD ausente del EN SUMA (TC-06), HFA-PEFF sin compuerta de FEVI (TC-07/08),
@@ -802,12 +802,20 @@ aórtica (46-48), tricúspide y pulmonar (49-51), hemodinámica (52-56), HFA-PEF
 pericardio (59-60), congénitas (61-66), amiloidosis (67-68), cardio-oncología (69-72, 88),
 ETE/TEER/TAVI/orejuela (73-78), derivados y sincronías (79-83).
 
-**TC-84 a TC-93 — los defectos que el propio suite encontró, ya cerrados (2026-09-15).** TEER c7
+**TC-84 a TC-97 — los defectos que el propio suite encontró, ya cerrados (2026-09-15).** TEER c7
 y c8 al `veto` (84/85), el gate `esSec` estricto que evita que el arreglo se coma el caso común
 (89), la AI por diámetro AP en el EN SUMA con su lado normal (87) y los tres bordes que apareció
 el differential-review del arreglo (90: espejo vivo, cero, compuerta). Segunda tanda: c1b como
 advertencia declarada (86), la PASP en cero (91), la reimpresión que no puede recalcular (92) y
-la tabla de Referencias de cardio-onco atada al clasificador (93).
+la tabla de Referencias de cardio-onco atada al clasificador (93). Tercera: el redondeo del SGL a
+la precisión que se publica (94), los cinco criterios de techo del TEER contra el cero (95), el
+estudio parado en el umbral de su propia cohorte (96) y las copias sueltas de las dos fórmulas de
+cardio-onco (97).
+
+**⚠ El cuerpo de un caso es un template literal: NO usar acentos graves adentro**, ni en un
+comentario. Un backtick cierra la cadena y el archivo deja de parsear con un `SyntaxError` que
+apunta a la línea del `caso(`, decenas de líneas ANTES del culpable. Ya se pagó cuatro veces en
+una sola sesión; el aviso está también arriba de `const caso` en el script.
 
 **Dos reglas que rigen los casos nuevos:**
 - El **umbral y el operador** salen del código —`>` y `>=` no son lo mismo—, y se prueban **por
@@ -3037,37 +3045,57 @@ que alguien lo «arregle», o sea que empujaría activamente hacia la conducta d
 
 ### Cardio-Oncología: qué queda sin atar (2026-09-15)
 
-El clasificador lee las constantes y **la tabla de Referencias ya está corregida** (decía que la
-leve exige caída ≥10 % de FEVI; ESC 2022 no la exige y el código tampoco). La ata TC-93, que
-verifica los dos lados en la misma corrida: que la tabla lo diga y que el clasificador lo haga.
-**Lo que todavía no lee las constantes:**
+Cerrado el 2026-09-15: el clasificador, el filtro de cohorte y `CO_UMBRAL_FEVI_SEVERA` (el 40,
+que estaba escrito cuatro veces) leen las constantes; las **dos** tablas estáticas se corrigieron;
+y las cinco copias sueltas de las fórmulas de caída pasan por `_ctrcdGlsRel` / `_ctrcdFeviCaida`.
+Lo atan TC-88, TC-93, TC-96 y TC-97.
 
-- **El filtro de cohorte del Laboratorio** (`if (C.coGls) … !(g > 15)`, y los `gt10`/`gt15` de
-  caída de FEVI): literales pelados, y con `>` donde el clasificador usa `>=`. Mover
-  `CO_UMBRAL_GLS_REL` mueve el veredicto, la leyenda del PDF y la línea de la curva, y deja el
-  filtro «Caída GLS > 15 %» en 15. No se tocó porque `>` contra `>=` es la semántica declarada
-  del filtro y cambiarla altera qué estudios entran a una cohorte ya usada.
-- **El `40` de la CTRCD severa.** Está escrito tres veces: la cascada, el semáforo de
-  `calcCardioOnco` (`feviActual < 40`) y la tabla. Deuda, no diseño.
+**Lo que queda, y por qué se dejó:**
 
-### El redondeo del SGL: dos pares que la app muestra iguales clasifican distinto
+- **La prosa de `calcCardioOnco`** nombra los números al lector: «(40-49)», «(>=50)», «(>= 15%)»
+  y los cuatro que dicen 40 con palabras. No decide nada, pero un rótulo que contradice al
+  veredicto de al lado es un informe firmado que se desmiente solo.
+- **Las dos tablas estáticas** son HTML y no pueden leer una constante. Ya no contradicen al
+  código, pero si alguna constante se mueve hay que tocarlas a mano.
+- **`gt15` del filtro de FEVI** sigue siendo un 15 literal a propósito: es una segunda banda, más
+  estricta, que el clasificador no usa — no hay dos copias que puedan divergir.
 
-`_ctrcdGlsRel(-18, -15.3)` da **14.999999999999996** en coma flotante, así que `>= 15` es
-**false** — pero toda la interfaz lo muestra como «15,0 %» por `toFixed(1)`. Con FEVI 60 → 58 y
-troponina normal ese paciente sale «Sin toxicidad detectada» en verde, y `-20 → -17` —que la app
-también muestra como 15,0 %— sale «cardiotoxicidad LEVE». Dos números idénticos en pantalla, dos
-veredictos opuestos en el informe firmado. Es la trampa de «clasificar el valor que se imprime»
-(lección 6) en su versión de punto flotante. **Sin resolver**: la salida es comparar el valor
-redondeado a la misma precisión que se publica, pero eso mueve la clasificación de pacientes
-reales y es decisión de Maicol.
+**El `n` de las cohortes de cardio-onco cambió.** El filtro pasó de `>` a `>=` para coincidir con
+el clasificador, así que los estudios parados en el corte exacto —una caída de 10,0 pp, un GLS de
+15,0 %— ahora entran donde antes quedaban afuera de su propia cohorte. Las tres etiquetas dicen
+«≥», incluida la del encabezado del PDF de auditoría, así que dos PDF del mismo filtro se
+distinguen por su texto. **Cualquier cohorte exportada antes de hoy tiene un `n` menor sobre los
+mismos datos.**
+
+### El redondeo de cardio-onco ensanchó la banda 0,05 pp — decidido, no descubierto
+
+**Cerrado el 2026-09-15**, pero con una consecuencia que hay que tener escrita. `_ctrcdGlsRel` y
+`_ctrcdFeviCaida` redondean a un decimal, que es la precisión con la que esos números se
+PUBLICAN. El motivo era una contradicción dentro de la misma hoja firmada: `-18 → -15.3` daba
+`14.999999999999996`, fallaba `>= 15`, y el paciente salía «Sin toxicidad detectada» en verde
+mientras la interfaz mostraba «15,0 %». Ídem `64.1 − 54.1 = 9.999999999999993` impreso «10.0 pp»
+bajo un pie que declara el umbral en ≥10.
+
+**El umbral efectivo pasó a ser «crudo ≥ 14,95».** Verificado por barrido: **cero** casos donde el
+redondeo quita un positivo —el falso negativo en verde está cerrado— y **~19 pares** en rango
+clínico donde lo agrega y el crudo está genuinamente por debajo (−29,4 → −25 da 14,966). Para
+esos el crudo sí es más exacto. Es un ensanchamiento de 0,05 pp **aceptado**, coherente con la
+regla de la casa (lección 6: clasificar el valor que se imprime) — pero es una decisión clínica,
+no una corrección aritmética, y el comentario de la función lo dice con esas palabras.
 
 ### TEER: lo que queda reportado y sin tocar (2026-09-15)
 
-- **gap, profundidad de coaptación y anchura de flail fallan ABIERTOS con el cero.** Son
-  criterios de techo (`v <= X`) y un 0 cuenta como cumplido. c6 y c8 ya llevan su guarda
-  (`> 0`), en las dos superficies; estos tres no, **pero fallan igual de los dos lados**, así
-  que no hay divergencia entre el informe y el Laboratorio. Arreglarlo mueve veredictos de
-  estudios guardados.
+- **¿La anchura de flail en 0 es una medición?** Los cinco criterios de techo llevan guarda
+  `> 0` desde el 2026-09-15 (c2, c4, c5, c6, c8), en las dos superficies. Para `pasp` y `dtsvi`
+  la premisa es limpia: no hay PASP 0 ni DTSVI 0. **Para c5 no**: 0 mm de anchura de flail es
+  «no hay flail», el hallazgo habitual de un prolapso sin flail, y satisface genuinamente el
+  «≤15 mm» — o sea anatomía FAVORABLE. Con la guarda ese estudio pasa de «✅ APTO» a
+  «⚠️ Posiblemente apto — completar datos faltantes: Anchura de flail», y el médico va a buscar
+  una medición que ya hizo. c2 y c4 están en zona gris por lo mismo. Se aplicó igual porque la
+  dirección es segura —un `null` nunca entra en `fallos`, así que la guarda sólo puede degradar
+  un APTO, nunca voltear NO APTO → APTO— y porque un 0 tipeado por error es indistinguible de
+  uno medido. **Si Maicol decide que el 0 de flail es una medición, lo que se saca es la guarda
+  de c5, no las otras cuatro.**
 - **`_teerAplica` admite los criterios COAPT por el primer brazo de `usaTeer`.** Con
   `teer_tipo_im='secundaria'` consignado y ningún otro campo TEER cargado, `ingresados` llega a 2
   por los dos espejos y el estudio cae en un veredicto del panel en vez de en «Sin criterios
@@ -3087,6 +3115,14 @@ para que no se lean como cubiertos:
 - **La guarda `cero:'no'` de `TEER_CRIT`.** `TEER_CRIT` es un `const` local dentro de
   `labEteRender`, así que no hay forma de alcanzarlo desde el harness sin renderizar el panel
   con estudios guardados.
+- **La hoja de cardio-onco que `_coFila` dibuja con jsPDF.** Su copia de las fórmulas se ruteó a
+  `_ctrcdGlsRel` / `_ctrcdFeviCaida`, pero `_coFila` es un closure dentro de la función del PDF y
+  no se alcanza desde el harness. TC-97 cubre el TEXTO DEL MÓDULO INTEGRADO, que es otra
+  superficie — la etiqueta del caso lo dice para no prometer de más. Lo mismo el export PPT.
+
+**Cómo se descubrió que no estaba cubierta:** revirtiendo el arreglo en una copia y viendo que el
+suite seguía en verde. Un caso cuya etiqueta nombra una superficie que no toca es peor que no
+tener el caso: se lee como cobertura. La mutación es lo único que lo delata.
 
 ### VD / válvula pulmonar / TEER / HFA-PEFF (2026-09-14) — reglas para no romperlo
 - **El grado del VD sale de `vdBasCat`, no de un `> 41` suelto.** Había dos umbrales sobre la

@@ -11352,9 +11352,16 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     <div class="card-body">
 <table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:10px;">
       <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Hallazgo</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Definicion</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Accion</th></tr>
-      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;color:var(--red);">Caida FEVI severa</td><td style="padding:5px 8px;">FEVI &lt;50% o caida &gt;=10pp</td><td style="padding:5px 8px;">Suspender, cardioproteccion, reevaluar en 2-4 sem</td></tr>
-      <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;color:var(--orange);">Caida FEVI moderada</td><td style="padding:5px 8px;">Caida 10-15pp con FEVI &gt;=50%</td><td style="padding:5px 8px;">Continuar con cardioproteccion y control en 4 sem</td></tr>
-      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;color:var(--yellow);">Caida GLS relativa</td><td style="padding:5px 8px;">Reduccion &gt;15% del GLS basal</td><td style="padding:5px 8px;">Alerta sublinica, cardioproteccion, seguimiento estrecho</td></tr>
+      <!-- Corregida el 2026-09-15, junto con la de la pestaña Referencias. Ésta es la PEOR de
+           las dos: vive en la misma pestaña que la calculadora, a dos clics del veredicto que
+           contradecía. Decía «Caida FEVI severa | FEVI <50% o caida >=10pp | Suspender», y el
+           código rotula severa sólo con FEVI <40 Y reducción NUEVA — así que un basal de 62 que
+           cae a 48 salía «cardiotoxicidad MODERADA» en el informe firmado, en naranja, debajo de
+           una tabla que decía severa y «Suspender». La moderada decía «10-15pp», que no es un
+           rango de la guía. Y el GLS decía «>15%» donde el código compara «>=15». -->
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;color:var(--red);">CTRCD severa</td><td style="padding:5px 8px;">FEVI <b>nueva</b> &lt;40% (basal &gt;=40%)</td><td style="padding:5px 8px;">Suspender, cardioproteccion, reevaluar en 2-4 sem</td></tr>
+      <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;color:var(--orange);">CTRCD moderada</td><td style="padding:5px 8px;">FEVI 40-49% con caida &gt;=10pp<br>o FEVI 40-49% con algun descenso + GLS &gt;=15% rel. o troponina</td><td style="padding:5px 8px;">Continuar con cardioproteccion y control en 4 sem</td></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;color:var(--yellow);">CTRCD leve</td><td style="padding:5px 8px;">FEVI conservada (&gt;=50%) + GLS reduccion &gt;=15% relativa y/o troponina.<br><b>No exige caida de FEVI.</b></td><td style="padding:5px 8px;">Alerta subclinica, cardioproteccion, seguimiento estrecho</td></tr>
       <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;color:var(--yellow);">Troponina elevada</td><td style="padding:5px 8px;">Elevacion nueva durante tto</td><td style="padding:5px 8px;">Confirmar, cardioproteccion, considerar biopsia si persiste</td></tr>
       <tr style="background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;color:var(--purple);">Dosis limite antracicl.</td><td style="padding:5px 8px;">Doxorrubicina &gt;=360 mg/m2</td><td style="padding:5px 8px;">Alto riesgo acumulativo, eco obligatorio</td></tr>
     </table>
@@ -12340,9 +12347,9 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Fármaco</label>
           <select id="coh-co-farmaco"><option value="">Todos</option><option value="antracicline">Antraciclinas</option><option value="otros">Otros</option></select></div>
         <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Caída de FEVI</label>
-          <select id="coh-co-fevi"><option value="">Todas</option><option value="gt10">&gt; 10 puntos</option><option value="gt15">&gt; 15 puntos</option></select></div>
+          <select id="coh-co-fevi"><option value="">Todas</option><option value="gt10">≥ 10 puntos</option><option value="gt15">≥ 15 puntos</option></select></div>
         <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Caída relativa de GLS</label>
-          <select id="coh-co-gls"><option value="">Todas</option><option value="gt15">&gt; 15 %</option></select></div>
+          <select id="coh-co-gls"><option value="">Todas</option><option value="gt15">≥ 15 %</option></select></div>
         <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Cardiotoxicidad</label>
           <select id="coh-co-tox"><option value="">Todos</option><option value="si">CTRCD confirmada</option></select></div>
       </div>
@@ -18383,28 +18390,34 @@ window.coSerieCongelada = coSerieCongelada;
    Van ACÁ y no junto a `coTablaEvolucion`, que es de donde vienen: declaradas ahí abajo quedan
    en zona muerta para todo este bloque, y un `const` leído antes de su línea no da `undefined`,
    LANZA, y se lleva puesto el `<script>` entero.
-   El 40 de la CTRCD severa NO se extrajo: no está en la leyenda ni en la curva, así que no tiene
-   la divergencia entre superficies que motivó esto. Pero tampoco está escrito una sola vez —vive
-   en la cascada de acá arriba, en el semáforo de `calcCardioOnco` (`feviActual < 40`) y en la
-   tabla de Referencias—, así que no es que no haga falta: es deuda, no diseño.
+   El 40 de la CTRCD severa entró el 2026-09-15 (`CO_UMBRAL_FEVI_SEVERA`). No estaba en la
+   leyenda ni en la curva, así que no tenía la divergencia entre superficies que motivó esto —
+   pero sí estaba escrito cuatro veces: las tres ramas de la cascada y el semáforo de
+   `calcCardioOnco`. Que no pudiera divergir ENTRE superficies no lo hacía una sola fuente.
 
-   LO QUE SIGUE SIN LEER ESTAS CONSTANTES, y por lo tanto todavía puede divergir:
-   · El filtro de cohorte del Laboratorio (`if (C.coGls) … !(g > 15)` y los `gt10`/`gt15` de
-     FEVI): literales pelados, y con `>` donde el clasificador usa `>=`. Mover `CO_UMBRAL_GLS_REL`
-     mueve el veredicto, la leyenda y la curva, y deja el filtro en 15. Es el mismo modo de falla
-     que este bloque acaba de cerrar, sobreviviendo en la superficie que arma cohortes.
-   · La tabla de Referencias de la interfaz (~línea 10959), HTML estático que no puede leer una
-     constante — y que HOY YA CONTRADICE al código: dice «Leve: FEVI ≥50% con caída ≥10% +
-     síntomas/biomarcadores» y la cascada devuelve 'leve' con FEVI ≥50 y GLS o troponina, SIN
-     exigir caída. FEVI 60 → 58 con troponina elevada imprime «cardiotoxicidad LEVE» a dos
-     pestañas de una tabla de la misma app que dice que hace falta ≥10 %.
-   · La prosa de `calcCardioOnco`, que nombra los números al lector («(40-49)», «(>=50)»,
-     «(>= 15%)»). No decide nada, pero un rótulo que contradice al veredicto de al lado es un
-     informe firmado que se desmiente solo.
-   `grep -n 'CO_UMBRAL_\|(40-49)\|> 15%\|gt15'` los encuentra a los tres. */
-const CO_UMBRAL_FEVI_CAIDA = 10;   // pp — caída significativa
-const CO_UMBRAL_FEVI_ABS   = 50;   // %  — valor absoluto por debajo del cual hay disfunción
-const CO_UMBRAL_GLS_REL    = 15;   // %  — caída relativa significativa
+   Ya leen estas constantes: la cascada, `calcCardioOnco`, la leyenda del PDF, las líneas de
+   referencia de la curva y el FILTRO DE COHORTE del Laboratorio (que además pasó de `>` a `>=`
+   para coincidir con el clasificador: en el corte exacto un estudio quedaba fuera de su propia
+   cohorte). La cohorte de CTRCD nunca tuvo umbral propio — va por `_ctrcdEstado`.
+
+   LO QUE SIGUE SIN LEERLAS, y por lo tanto todavía puede divergir. Son DOS tablas estáticas y
+   la prosa; el inventario es éste y está completo:
+   · La tabla de Referencias de la pestaña Referencias (~línea 10970).
+   · La tabla «Referencia rápida — criterios ESC 2022» que vive DENTRO de la pestaña de
+     Cardio-Oncología (~línea 11355). Es la más peligrosa de las dos: está a dos clics del
+     veredicto. Las dos se corrigieron el 2026-09-15 —la primera decía que la leve exige caída
+     ≥10 %, la segunda que la severa es «FEVI <50% o caída >=10pp»— y TC-93 ata la primera.
+   · La prosa de `calcCardioOnco`, que nombra los números al lector: «(40-49)», «(>=50)»,
+     «(>= 15%)» y los CUATRO que dicen 40 con palabras («nueva reduccion por debajo de 40»,
+     «un basal ya por debajo de 40», «la reduccion NUEVA a <40», «(por debajo de 40)»). No
+     deciden nada, pero un rótulo que contradice al veredicto de al lado es un informe firmado
+     que se desmiente solo.
+   `grep -n 'CO_UMBRAL_\|(40-49)\|> 15%\|de 40\|<40\|ref-cardiotox\|Referencia rapida'` los
+   encuentra a todos. */
+const CO_UMBRAL_FEVI_CAIDA  = 10;  // pp — caída significativa
+const CO_UMBRAL_FEVI_ABS    = 50;  // %  — valor absoluto por debajo del cual hay disfunción
+const CO_UMBRAL_GLS_REL     = 15;  // %  — caída relativa significativa
+const CO_UMBRAL_FEVI_SEVERA = 40;  // %  — por debajo, y si la reducción es NUEVA, CTRCD severa
 
 /* ── La cascada de CTRCD, extraída como clasificador puro ──────────────────────────────
    Devuelve UNA clave por rama, en el MISMO orden en que la cascada de `calcCardioOnco` las
@@ -18429,10 +18442,10 @@ function _ctrcdEstado(d) {
      que vale la pena nombrar— y no tiene segunda copia en ningún lado. */
   const CAIDA_MENOR = 5;
   if (fb && fa) {
-    const caida = fb - fa;
-    if (fa < 40 && fb >= 40)                                        return 'severa';
-    if (fa < 40 && caida >= CO_UMBRAL_FEVI_CAIDA)                    return 'empeoramiento_sub40';
-    if (fa < 40)                                                     return 'sub40_sin_descenso';
+    const caida = _ctrcdFeviCaida(fb, fa);
+    if (fa < CO_UMBRAL_FEVI_SEVERA && fb >= CO_UMBRAL_FEVI_SEVERA)   return 'severa';
+    if (fa < CO_UMBRAL_FEVI_SEVERA && caida >= CO_UMBRAL_FEVI_CAIDA) return 'empeoramiento_sub40';
+    if (fa < CO_UMBRAL_FEVI_SEVERA)                                  return 'sub40_sin_descenso';
     if (fa < CO_UMBRAL_FEVI_ABS && caida >= CO_UMBRAL_FEVI_CAIDA)    return 'moderada';
     if (fa < CO_UMBRAL_FEVI_ABS && caida > 0 && (gls || tropo))      return 'moderada_menor';
     if (fa < CO_UMBRAL_FEVI_ABS)                                     return 'sub50_sin_criterio';
@@ -18457,7 +18470,46 @@ function _ctrcdEsGrado(k) { return k === 'severa' || k === 'moderada' || k === '
    Es la comparación, no la fórmula: `_ctrcdGlsRel` devuelve el porcentaje y esto decide. */
 function _ctrcdGlsAlterado(rel) { return rel !== null && rel >= CO_UMBRAL_GLS_REL; }
 function _ctrcdGlsRel(gb, ga) {
-  return (gb && ga && Math.abs(gb) > 0) ? (Math.abs(gb) - Math.abs(ga)) / Math.abs(gb) * 100 : null;
+  if (!(gb && ga && Math.abs(gb) > 0)) return null;
+  const r = (Math.abs(gb) - Math.abs(ga)) / Math.abs(gb) * 100;
+  /* REDONDEADO A 1 DECIMAL, que es la precisión con la que este número se PUBLICA (`toFixed(1)`
+     en la pantalla, en la hoja del PDF y en la columna del Excel). Sin esto, la clasificación
+     miraba el flotante crudo y la interfaz mostraba el redondeado:
+         _ctrcdGlsRel(-18, -15.3) = 14.999999999999996  →  `>= 15` FALSO  →  «Sin toxicidad»
+         _ctrcdGlsRel(-20, -17)   = 15                  →  `>= 15` cierto →  «CTRCD LEVE»
+     Los dos salen impresos como «15.0 %». Dos números idénticos a la vista con veredictos
+     opuestos en el informe firmado, y el falso negativo en verde, que es el lado peor.
+     Es la lección 6 —clasificar el valor que SE IMPRIME, no el crudo— en su versión de coma
+     flotante: acá el crudo ni siquiera es «más exacto», es el error de representación de una
+     división que en decimal da 15 clavado.
+     Se redondea ACÁ y no en el comparador para que TODOS los consumidores vean el mismo número:
+     el clasificador, la cápsula, la hoja del PDF, el texto del módulo integrado, el PPT, la
+     tabla de evolución, el filtro de cohorte y la columna del panel de asociaciones. Las cuatro
+     primeras tenían su propia copia de la fórmula y se las hizo pasar por acá en el mismo
+     commit: si no, la hoja del PDF imprimía «15.4 %» ocho renglones arriba de una conclusión
+     calculada sobre 15,5 —`Math.round` desempata hacia +∞ y `toFixed` alejándose del cero, así
+     que discrepan en los empates a .x5, alcanzables tipeando un GLS con dos decimales—.
+
+     LO QUE ESTE REDONDEO HACE CON LA BANDA, dicho sin adornos: el umbral efectivo pasa a ser
+     «crudo ≥ 14,95». No puede quitar un positivo —verificado por barrido, cero casos—, así que
+     el falso negativo en verde está cerrado; pero SÍ agrega ~19 pares en rango clínico donde el
+     crudo está genuinamente por debajo de 15 (por ejemplo −29,4 → −25, que da 14,966). Para
+     esos el crudo sí es más exacto. Es un ensanchamiento de 0,05 pp aceptado a cambio de que el
+     informe no se contradiga consigo mismo, y es la regla declarada de la casa —clasificar el
+     valor que SE IMPRIME—; pero es una decisión clínica, no una corrección aritmética. */
+  return Math.round(r * 10) / 10;
+}
+
+/* La caída de FEVI, en puntos porcentuales, con el MISMO redondeo y por el mismo motivo: la
+   resta también arrastra el error de representación. `64.1 − 54.1 = 9.999999999999993`, y sin
+   esto el informe firmado imprimía, en la misma hoja: «Caída de FEVI | 10.0 pp», «Caida FEVI
+   10.0 pp — por debajo del umbral de CTRCD» y, al pie, «Umbrales: FEVI caída >=10 pp». Tres
+   afirmaciones que no pueden ser las tres ciertas. Son 20 pares alcanzables con FEVI de un
+   decimal. Es exactamente el defecto que se acaba de cerrar del lado del GLS, en el eje de al
+   lado, y lo encontró el differential-review de ese arreglo. */
+function _ctrcdFeviCaida(fb, fa) {
+  if (fb === null || fa === null || fb === undefined || fa === undefined) return null;
+  return Math.round((fb - fa) * 10) / 10;
 }
 
 function calcCardioOnco() {
@@ -18517,7 +18569,7 @@ function calcCardioOnco() {
   if (!feviBasal && feviActual) {
     if (feviActual < CO_UMBRAL_FEVI_ABS) {
       alertas.push('FEVI ' + feviActual + '% — sin FEVI basal cargada no se puede establecer CTRCD, que se define por el descenso. Valorar en contexto y recuperar el estudio basal.');
-      toxCls = feviActual < 40 ? 'red' : 'orange';
+      toxCls = feviActual < CO_UMBRAL_FEVI_SEVERA ? 'red' : 'orange';
     }
   }
   /* GLS y troponina se calculan ANTES de la cascada de FEVI: en ESC 2022 no son hallazgos
@@ -24381,10 +24433,12 @@ function generarPDFReal(_aj) {
         _coSub('4 · EVALUACION ACTUAL');
         const _fa0 = _n('co_fevi_actual'), _ga0 = _n('co_gls_actual');
         _coFila('FEVI actual', _fa0 != null ? _fa0 + ' %' : null);
-        _coFila('Caída de FEVI desde el basal', (_fa0 != null && _fb0 != null) ? (_fb0 - _fa0).toFixed(1) + ' pp' : null);
+        _coFila('Caída de FEVI desde el basal', (_fa0 != null && _fb0 != null) ? _ctrcdFeviCaida(_fb0, _fa0).toFixed(1) + ' pp' : null);
         _coFila('GLS actual', _ga0 != null ? _ga0 + ' %' : null);
+        /* Por `_ctrcdGlsRel`, no por una copia de la fórmula: es la MISMA hoja donde, ocho
+           renglones abajo, se imprime la conclusión que sale del clasificador. */
         _coFila('Caída relativa de GLS', (_ga0 != null && _gb0 != null && Math.abs(_gb0) > 0)
-          ? (((Math.abs(_gb0) - Math.abs(_ga0)) / Math.abs(_gb0)) * 100).toFixed(1) + ' %' : null);
+          ? _ctrcdGlsRel(_gb0, _ga0).toFixed(1) + ' %' : null);
         /* La troponina sólo se nombra si SE EVALUÓ. El select arranca en «— no evaluado —», y
            imprimir «no elevada» por ausencia de dato es una negación fabricada sobre un criterio
            de CTRCD. Mismo cierre que ya tiene la hoja de texto del módulo. */
@@ -24890,10 +24944,33 @@ function teerEstado() {
        Es el reverso de c7/c8: aquéllos decían «NO apto» y no vetaban, que era mentira en la
        otra dirección. Un criterio tiene que decir exactamente cuánto pesa. */
     c1b: lvp  !== null ? C('teer-c1b','Velo posterior ≥7 mm', lvp >= 7,  `${lvp}mm ≥7mm`,  `${lvp}mm <7mm — Advertencia: agarre difícil, evaluar con el operador. No modifica el veredicto.`) : C('teer-c1b','Velo posterior ≥7 mm', null),
-    c2:  (aplSec  && gap  !== null) ? C('teer-c2', 'Gap de coaptación ≤10 mm', gap <= 10, `${gap}mm ≤10mm`, `${gap}mm >10mm — evaluar Heart Team`)           : C('teer-c2', 'Gap de coaptación ≤10 mm', null),
+    /* `> 0` en los CINCO criterios de techo (`v <= X`): c2, c4, c5, c6 y c8. Un criterio de
+       techo falla ABIERTO con el cero —«0mm ≤10mm ✓»— y el cero no es una medición, es un campo
+       sin llenar o un error de tipeo; ninguno de estos campos tiene `min`. c6 y c8 recibieron la
+       guarda antes; estos tres la reciben ahora, y con eso los cinco se comportan igual.
+       Los criterios de PISO (c1 `lva >= 20`, c3 `area >= 4`) y el de RANGO (c7, FEVI 20-50) ya
+       fallan cerrados con el cero y no la necesitan: la asimetría era sólo de los techos.
+       Ojo con c2: la interfaz rotula el campo «Longitud coaptación» —donde más es mejor— y acá
+       se evalúa contra `<=10`, que es el umbral del FLAIL GAP. Esa confusión semántica es
+       preexistente y está documentada en el panel del Laboratorio; el cero está mal en las dos
+       lecturas, así que la guarda es correcta con cualquiera de las dos.
+
+       DÓNDE LA PREMISA NO ES LIMPIA — c5, anchura de flail. Para `pasp` y `dtsvi` el cero no
+       existe como medición. Para la anchura de flail sí: **0 mm es «no hay flail»**, que es el
+       hallazgo habitual de un prolapso sin flail y que satisface genuinamente «≤15 mm» — o sea
+       anatomía FAVORABLE. Con esta guarda ese estudio pasa de «✅ APTO» a «⚠️ Posiblemente
+       apto — completar datos faltantes: Anchura de flail», y el médico va a buscar una medición
+       que ya hizo. c2 y c4 están en zona gris por lo mismo (coaptación 0 = sin coaptación;
+       profundidad 0 = sin tenting).
+       Se aplica igual porque la dirección es SEGURA —un `null` nunca entra en `fallos`, así que
+       la guarda no puede voltear NO APTO → APTO ni al revés; lo único que produce es degradar un
+       APTO— y porque el cero tipeado por error es indistinguible del medido. Pero es una
+       decisión clínica de Maicol, está reportada, y si decide que el 0 de flail es una medición,
+       lo que se saca es la guarda de c5 y no la de las otras cuatro. */
+    c2:  (aplSec  && gap  !== null && gap > 0) ? C('teer-c2', 'Gap de coaptación ≤10 mm', gap <= 10, `${gap}mm ≤10mm`, `${gap}mm >10mm — evaluar Heart Team`) : C('teer-c2', 'Gap de coaptación ≤10 mm', null),
     c3:  area !== null ? C('teer-c3', 'Área mitral ≥4,0 cm²', area >= 4.0, `${area}cm² ≥4cm²`, `${area}cm² <4cm² — NO apto`)                    : C('teer-c3', 'Área mitral ≥4,0 cm²', null),
-    c4:  (aplSec  && profFlail  !== null) ? C('teer-c4','Profundidad de coaptación ≤10 mm', profFlail <= 10, `${profFlail}mm ≤10mm`, `${profFlail}mm >10mm — anatomía compleja, Heart Team`) : C('teer-c4','Profundidad de coaptación ≤10 mm', null),
-    c5:  (aplPrim && anchoFlail !== null) ? C('teer-c5','Anchura de flail ≤15 mm', anchoFlail <= 15, `${anchoFlail}mm ≤15mm`, `${anchoFlail}mm >15mm — anatomía compleja, Heart Team`) : C('teer-c5','Anchura de flail ≤15 mm', null),
+    c4:  (aplSec  && profFlail  !== null && profFlail  > 0) ? C('teer-c4','Profundidad de coaptación ≤10 mm', profFlail <= 10, `${profFlail}mm ≤10mm`, `${profFlail}mm >10mm — anatomía compleja, Heart Team`) : C('teer-c4','Profundidad de coaptación ≤10 mm', null),
+    c5:  (aplPrim && anchoFlail !== null && anchoFlail > 0) ? C('teer-c5','Anchura de flail ≤15 mm', anchoFlail <= 15, `${anchoFlail}mm ≤15mm`, `${anchoFlail}mm >15mm — anatomía compleja, Heart Team`) : C('teer-c5','Anchura de flail ≤15 mm', null),
     /* `pasp > 0` por lo mismo que `c8`: un criterio de TECHO falla ABIERTO con el cero. Con
        `pasp !== null` solo, un `psap_calc` de 0 —o un 0 tipeado— imprimía «0mmHg ≤70mmHg ✓» en
        la hoja firmada y contaba como criterio CUMPLIDO, así que podía dejar `noIngresados` en
@@ -34202,8 +34279,18 @@ function coTablaEvolucion() {
   const num = id => { const n = v(id); return (n === null || !isFinite(n)) ? null : n; };
   const fb = num('co_fevi_basal'), gb = num('co_gls_basal');
   const gbAbs = (gb !== null && Math.abs(gb) > 0) ? Math.abs(gb) : null;
-  const dF = x => (x === null || fb === null) ? null : (x - fb);                    // pp, signo = dirección
-  const dG = x => (x === null || gbAbs === null) ? null : ((Math.abs(x) - gbAbs) / gbAbs) * 100;
+  /* Los dos deltas salen de `_ctrcdFeviCaida` / `_ctrcdGlsRel` —las mismas funciones que usa el
+     clasificador— y se les da vuelta el signo, porque esta columna muestra DIRECCIÓN (negativo =
+     empeoró) y aquéllas devuelven CAÍDA (positivo = empeoró). Tenían fórmula propia, así que no
+     heredaban el redondeo a un decimal y la tabla 2 del PDF podía imprimir «-15.4» a ocho
+     renglones de una conclusión calculada sobre 15,5, en la misma hoja firmada.
+     `-0` se normaliza a `0`: sin eso una fila sin cambio salía «-0.0».
+     Cambio de borde deliberado: con un GLS de 0 en la serie, `_ctrcdGlsRel` devuelve null y la
+     celda queda en «—» en vez del «-100.0» de antes. No hay GLS de cero; «—» es lo que
+     corresponde a un valor que no es una medición. */
+  const _voltear = d => (d === null || d === 0) ? d : -d;
+  const dF = x => (x === null || fb === null) ? null : _voltear(_ctrcdFeviCaida(fb, x));
+  const dG = x => (x === null || gbAbs === null) ? null : _voltear(_ctrcdGlsRel(gb, x));
   const filas = [];
   if (fb !== null || gb !== null) filas.push({ etq:'Basal', fecha:'', fevi:fb, gls:gb, dFevi:null, dGls:null, basal:true });
   (typeof coSerieCongelada === 'function' ? coSerieCongelada() : []).forEach(p => {
@@ -34322,12 +34409,12 @@ function amiloTextoCardioOnco() {
   const fb = num('co_fevi_basal'), fa = num('co_fevi_actual');
   L.push('FEVI basal | '  + (fb !== null ? fb + ' %' : 'no ingresada'));
   L.push('FEVI actual | ' + (fa !== null ? fa + ' %' : 'no ingresada'));
-  if (fb !== null && fa !== null) L.push('Caída de FEVI | ' + (fb - fa).toFixed(1) + ' pp');
+  if (fb !== null && fa !== null) L.push('Caída de FEVI | ' + _ctrcdFeviCaida(fb, fa).toFixed(1) + ' pp');
   const gb = num('co_gls_basal'), ga = num('co_gls_actual');
   L.push('GLS basal | '  + (gb !== null ? gb + ' %' : 'no ingresado'));
   L.push('GLS actual | ' + (ga !== null ? ga + ' %' : 'no ingresado'));
   if (gb !== null && ga !== null && Math.abs(gb) > 0)
-    L.push('Caída relativa de GLS | ' + (((Math.abs(gb) - Math.abs(ga)) / Math.abs(gb)) * 100).toFixed(1) + ' %');
+    L.push('Caída relativa de GLS | ' + _ctrcdGlsRel(gb, ga).toFixed(1) + ' %');
 
   L.push('## Marcadores');
   /* Sólo se afirma si SE EVALUÓ. Con el select arrancando en «No» y sin opción vacía, un estudio
@@ -37729,10 +37816,10 @@ function _pptDesdeFormulario(inf, tema, presentador){
     const fb=_pptNum('co_fevi_basal'), fa=_pptNum('co_fevi_actual');
     const gb=_pptNum('co_gls_basal'),  ga=_pptNum('co_gls_actual');
     fila(F,'FEVI basal', fb, ' %'); fila(F,'FEVI actual', fa, ' %');
-    if (fb!=null && fa!=null) fila(F,'Caída de FEVI', (fb-fa).toFixed(1), ' pp');
+    if (fb!=null && fa!=null) fila(F,'Caída de FEVI', _ctrcdFeviCaida(fb, fa).toFixed(1), ' pp');
     fila(F,'GLS basal', gb, ' %'); fila(F,'GLS actual', ga, ' %');
     if (gb!=null && ga!=null && Math.abs(gb)>0)
-      fila(F,'Caída relativa de GLS', (((Math.abs(gb)-Math.abs(ga))/Math.abs(gb))*100).toFixed(1), ' %');
+      fila(F,'Caída relativa de GLS', _ctrcdGlsRel(gb, ga).toFixed(1), ' %');
     fila(F,'Troponina', _pptSel('co_troponi'));
     fila(F,'Riesgo CV basal estimado', _pptSpan('co-riesgo-resultado'));
     tabla(s, F, 1.05, H-2.35);
@@ -39604,16 +39691,30 @@ function _labCohorteOk(inf) {
     // «Otros» es cualquier fármaco CARGADO que no sea antraciclinas, nunca el campo vacío.
     if (C.coFarmaco === 'otros' && f === 'antracicline') return false;
   }
+  /* Umbrales por CONSTANTE y con `>=`, igual que el clasificador (2026-09-15). Estaban escritos
+     como literales pelados y con `>`, así que un estudio en el corte EXACTO quedaba fuera de su
+     propia cohorte: una caída de 10,0 pp se rotula CTRCD en el informe firmado y no aparecía en
+     «Caída FEVI > 10 pp»; un GLS de −20 a −17 —15,0 % clavados— se rotula CTRCD LEVE y no
+     aparecía en «Caída GLS > 15 %». Con el redondeo del GLS a un decimal el 15,0 exacto dejó de
+     ser una rareza de coma flotante y pasó a ser un valor FRECUENTE, así que el desacuerdo se
+     volvió alcanzable. Las etiquetas de los tres sitios que las muestran —el `<option>`, el
+     `_COH_LBL` y el chip del filtro— dicen «≥» para no prometer otra cosa.
+     `gt15` de FEVI no tiene constante a propósito: es una segunda banda, más estricta, que el
+     clasificador no usa — no hay dos copias que puedan divergir. */
   if (C.coFevi) {
     const d = _labOncoCaidaFevi(inf);
     if (d === null) return false;
-    if (C.coFevi === 'gt10' && !(d > 10)) return false;
-    if (C.coFevi === 'gt15' && !(d > 15)) return false;
+    if (C.coFevi === 'gt10' && !(d >= CO_UMBRAL_FEVI_CAIDA)) return false;
+    if (C.coFevi === 'gt15' && !(d >= 15)) return false;
   }
   if (C.coGls) {
     const g = _labOncoCaidaGls(inf);
-    if (g === null || !(g > 15)) return false;
+    if (g === null || !(g >= CO_UMBRAL_GLS_REL)) return false;
   }
+  /* La cohorte de CTRCD —incluida la severa— NO tiene umbral propio: pasa por `_labCtrcd` →
+     `_ctrcdEstado`, el mismo clasificador que rotula el informe firmado, y `_ctrcdEsGrado`
+     selecciona los cuatro grados de la guía. O sea que el 40 de la severa ya estaba unificado
+     por construcción y no hay literal que sacar de acá. */
   if (C.coTox === 'si' && !_ctrcdEsGrado(_labCtrcd(inf))) return false;
 
   // ── CC / Genéticas ──
@@ -39681,7 +39782,12 @@ const _COH_LBL = {
   psap:     { lt36:'PSAP ' + _cohPsapLbl('lt36'), a3650:'PSAP ' + _cohPsapLbl('a3650'), gt50:'PSAP > 50 mmHg' },
   amil:     { baja:'Amiloidosis score < 6', inter:'Amiloidosis score 6–7', alta:'Amiloidosis score ≥ 8' },
   farmaco:  { antracicline:'Antraciclinas', otros:'Otros fármacos onco' },
-  coFevi:   { gt10:'Caída FEVI > 10 pp', gt15:'Caída FEVI > 15 pp' }
+  /* El 10 se interpola: esta descripción alimenta el ENCABEZADO del PDF de auditoría y la hoja
+     «Cohorte» del Excel que va a CeiboAnalytics. Cableado, mover `CO_UMBRAL_FEVI_CAIDA` hacía
+     que el PDF imprimiera «≥ 10 pp» sobre una cohorte filtrada a otro número — el modo de falla
+     que el bloque de constantes existe para cerrar, en el papel que declara el denominador.
+     El 15 es una segunda banda, más estricta, sin contraparte en el clasificador. */
+  coFevi:   { gt10:'Caída FEVI ≥ ' + CO_UMBRAL_FEVI_CAIDA + ' pp', gt15:'Caída FEVI ≥ 15 pp' }
 };
 function _cohLbl(grupo, k) {
   const m = _COH_LBL[grupo] || {};
@@ -39736,7 +39842,7 @@ function _labCohorteDesc() {
   });
   if (C.tep === 'si') p.push('Con signos de TEP');
   if (C.sparkling === 'si') p.push('Sparkling presente');
-  if (C.coGls === 'gt15') p.push('Caída GLS > 15 %');
+  if (C.coGls === 'gt15') p.push('Caída GLS ≥ ' + CO_UMBRAL_GLS_REL + ' %');
   if (C.coTox === 'si') p.push('CTRCD confirmada');
   if (C.cc && C.cc.length) {
     const ls = C.cc.map(k => (_CC_SEC_POR_K[k] ? _CC_SEC_POR_K[k].lbl : null)).filter(Boolean);
@@ -46750,7 +46856,7 @@ function _labOncoUsado(inf) { return _labCampoRaw(inf, 'co_farmaco') !== '' || _
    falta alguno de los dos términos: sin el par no hay caída, y 0 no es lo mismo que «no sé». */
 function _labOncoCaidaFevi(inf) {
   const b = _labNum(inf, 'co_fevi_basal'), a = _labNum(inf, 'co_fevi_actual');
-  return (b !== null && a !== null) ? (b - a) : null;
+  return _ctrcdFeviCaida(b, a);
 }
 function _labOncoCaidaGls(inf) { return _ctrcdGlsRel(_labNum(inf, 'co_gls_basal'), _labNum(inf, 'co_gls_actual')); }
 /* Grado de CTRCD del estudio guardado, por el MISMO clasificador que puntúa el informe firmado
@@ -47757,19 +47863,19 @@ function labEteRender(infs, n) {
        rotular la barra «Longitud coaptación >10 mm» publicaba la frase invertida —una coaptación
        larga es BUENA— en un gráfico titulado «criterios no cumplidos». Hasta que se decida la
        semántica del campo, la barra nombra el campo y no una interpretación. */
-    { k:'gap',  lbl:'teer_gap fuera de rango (>10 mm)', campo:'teer_gap',    ok:v => v <= 10, tipo:'sec' },
+    { k:'gap',  lbl:'teer_gap fuera de rango (>10 mm)', campo:'teer_gap',    ok:v => v <= 10, tipo:'sec',  cero:'no' },
     { k:'area', lbl:'Área mitral <4 cm²',          campo:'teer_area_mitral', ok:v => v >= 4.0 },
-    { k:'prof', lbl:'Profundidad de coaptación >10 mm', campo:'teer_prof_flail', ok:v => v <= 10, tipo:'sec' },
-    { k:'anch', lbl:'Ancho flail >15 mm',          campo:'teer_ancho_flail', ok:v => v <= 15, tipo:'prim' },
+    { k:'prof', lbl:'Profundidad de coaptación >10 mm', campo:'teer_prof_flail', ok:v => v <= 10, tipo:'sec',  cero:'no' },
+    { k:'anch', lbl:'Ancho flail >15 mm',          campo:'teer_ancho_flail', ok:v => v <= 15, tipo:'prim', cero:'no' },
     /* `cero:'no'` = el cero NO es una medición, es un campo sin llenar. Los criterios de TECHO
        (`v <= X`) fallan ABIERTO con el cero: `_labNum` devuelve 0 para "0", no null, así que
        sin esto el estudio sumaba `ingresados` y el criterio salía CUMPLIDO. Va acá al mismo
        tiempo que la guarda `pasp > 0` / `dtsvi > 0` de `teerEstado`, porque si sólo se arregla
        la pantalla el mismo estudio sale «Posiblemente apto — falta la PASP» en el informe
        firmado y «✅ Apto — criterios completos» en el PDF de auditoría.
-       Los otros tres criterios de techo —gap, profundidad y anchura de flail— tienen el mismo
-       fallo abierto con el cero, en las DOS superficies por igual, así que no divergen. Está
-       reportado en CLAUDE.md; arreglarlo mueve veredictos y es decisión de Maicol. */
+       Desde el 2026-09-15 la llevan los CINCO criterios de techo —gap, profundidad, anchura de
+       flail, PASP y DTSVI—, igual que `teerEstado`. Los de piso (velo anterior, área mitral) no
+       la necesitan: con el cero ya fallan cerrados. */
     { k:'pasp', lbl:'PASP >70 mmHg',               campo:'teer_pasp',        ok:v => v <= 70, cero:'no' },
     /* Los dos criterios de inclusión del COAPT. Entraron acá el mismo día en que entraron al
        `veto` de `teerEstado()`: mientras estuvieron fuera de los dos lados el panel coincidía
