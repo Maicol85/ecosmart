@@ -1657,6 +1657,7 @@ window.cerrarSesion = cerrarSesion;
         <button class="tab-btn tab-special" data-mod="hemodinamica" onclick="showTab('hemodinamica')">🫀 Hemodinámica</button>
         <button class="tab-btn tab-special" data-mod="ete" onclick="showTab('ete')">🔬 ETE</button>
         <button class="tab-btn tab-special" data-mod="congenitas" onclick="showTab('congenitas')">🧬 Congénitas</button>
+        <button class="tab-btn tab-special" data-mod="congenitas2" onclick="showTab('congenitas2')">🫀 CC estructurales</button>
         <button class="tab-btn tab-special" data-mod="amiloidosis" onclick="showTab('amiloidosis')">🧬 Amiloidosis</button>
         <button class="tab-btn tab-special" data-mod="cardioOnco" onclick="showTab('cardioOnco')">❤️ Cardio-Oncología</button>
         <button class="tab-btn tab-special" data-mod="pulmonar" onclick="showTab('pulmonar')">🫁 Eco Pulmonar</button>
@@ -8211,533 +8212,14 @@ z
        El HECHO es uno solo; lo que cambia es qué le pide cada criterio. Por eso hay morfología,
        eje y tipo: el Task Force distingue el eje superior —origen en pared libre del VD— del
        inferior, que es la taquicardia del tracto de salida y tiene otro pronóstico. -->
-  <div class="card sacc" id="sacc-cc-tv">
-    <button type="button" class="sacc-hdr" onclick="secToggle('cc-tv');tvSync();" aria-expanded="false">
-      <span class="sacc-arrow">▶</span>
-      <span style="flex:1;">⚡ Arritmia ventricular <span style="font-weight:400;color:var(--text2);font-size:11px;">— compartido por MCH, Fallot y MCA</span></span>
-      <span id="tv_badge" class="incl-badge" hidden>● cargada</span>
-    </button>
-    <div class="card-body sacc-body">
-      <p style="font-size:10px;color:var(--text2);margin:0 0 10px;line-height:1.5;">
-        Se carga <b>una sola vez</b> y la usan las tres secciones, cada una con su propia regla.
-        La <b>morfología y el eje</b> sólo los necesita el Task Force de la miocardiopatía arritmogénica; si no evaluás esa entidad, alcanza con el hecho y el tipo.
-      </p>
-      <div class="grid-3">
-        <div class="fg"><label>Taquicardia ventricular documentada</label>
-          <select id="tv_documentada" onchange="tvSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>Tipo</label>
-          <select id="tv_tipo" onchange="tvSync()">
-            <option value="">—</option>
-            <option value="no_sostenida">No sostenida</option>
-            <option value="sostenida">Sostenida</option>
-            <option value="ambas">Ambas</option>
-          </select>
-        </div>
-        <div class="fg"><label>Extrasístoles ventriculares en 24 h (Holter)</label><input type="number" id="tv_ev24h" step="1" placeholder="EV/24h" oninput="tvSync()"></div>
-      </div>
-      <div class="grid-2" style="margin-top:10px;">
-        <div class="fg"><label>Morfología y eje</label>
-          <select id="tv_morfologia" onchange="tvSync()">
-            <option value="">—</option>
-            <option value="bcri_sup">BCRI con eje superior — origen en pared libre del VD</option>
-            <option value="bcri_inf">BCRI con eje inferior — tracto de salida del VD</option>
-            <option value="bcri_desc">BCRI con eje no determinado</option>
-            <option value="bcrd">BCRD — origen en el ventrículo izquierdo</option>
-            <option value="no_esp">No especificada</option>
-          </select>
-        </div>
-        <div class="fg"><label>Qué aporta a cada sección</label>
-          <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
-            <span id="tv-aporte" class="calc-val">—</span></div></div>
-        </div>
-      </div>
+    <div class="card" style="margin-bottom:8px;">
+    <div class="card-body" style="padding:12px 14px;">
+      <div style="font-size:15px;font-weight:800;">🧬 Cardiopatias del adulto y miocardiopatias geneticas</div>
+      <div style="font-size:11.5px;color:var(--text2);margin-top:3px;">Valvulopatia congenita del adulto, aortopatias y miocardiopatias hereditarias. Las cardiopatias con shunt y las paliadas estan en «CC estructurales».</div>
     </div>
   </div>
 
-  <!-- ═══ CIA / CIV ═══
-       Vive acá y no en ETE porque el shunt se calcula con TSVI/TSVD. Los campos fuente
-       (diam_tsvi, itv_tsvi, tsvd_diametro, vti_tsvd) siguen en #tab-doppler y #tab-vd — esta
-       sección sólo muestra espejos de sólo lectura (ete_shunt_*_ro) que llena eteShuntSync().
-       El toggle de inclusión NO usa localStorage: se lee del propio checkbox, que
-       guardarInforme captura en `campos` y la reimpresión repone. Las secciones viejas leen
-       una clave global y por eso un estudio reimpreso podía salir sin una sección que el PDF
-       original sí tenía. -->
-  <div class="card sacc" id="sacc-cc-shunt">
-    <button type="button" class="sacc-hdr" onclick="secToggle('cc-shunt');eteShuntSync();" aria-expanded="false">
-      <span class="sacc-arrow">▶</span>
-      <span style="flex:1;">CIA / CIV — Comunicación interauricular e interventricular</span>
-      <span id="ete_shunt_badge" class="incl-badge" hidden>📎 en el informe</span>
-    </button>
-    <div class="card-body sacc-body">
-
-    <div class="subtabs-wrap" style="justify-content:flex-start;margin-bottom:12px;">
-      <div class="tabs-row">
-        <button type="button" class="tab-btn active" id="ete-shunt-tab-cia" onclick="eteShuntTab('cia')">CIA</button>
-        <button type="button" class="tab-btn" id="ete-shunt-tab-civ" onclick="eteShuntTab('civ')">CIV</button>
-      </div>
-    </div>
-
-    <!-- ── CIA ── -->
-    <div id="ete-shunt-pane-cia">
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">Tipo y tamaño</div>
-      <div class="grid-3">
-        <div class="fg"><label>Tipo de CIA</label>
-          <select id="ete_cia_tipo" onchange="eteShuntSync()">
-            <option value="">—</option>
-            <option value="secundum">Ostium secundum</option>
-            <option value="primum">Ostium primum</option>
-            <option value="sv_vcs">Seno venoso VCS</option>
-            <option value="sv_vci">Seno venoso VCI</option>
-            <option value="seno_coronario">Seno coronario</option>
-          </select>
-        </div>
-        <div class="fg"><label>Tamaño máximo (mm)</label><input type="number" id="ete_cia_tam_max" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
-        <div class="fg"><label>Tamaño mínimo (mm)</label><input type="number" id="ete_cia_tam_min" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
-      </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Bordes</div>
-      <div class="grid-3" style="margin-bottom:4px;">
-        <div class="fg"><label>Borde aórtico (mm)</label><input type="number" id="ete_cia_borde_ao" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
-        <div class="fg"><label>Borde AV / mitral (mm)</label><input type="number" id="ete_cia_borde_av" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
-        <div class="fg"><label>Borde VCS (mm)</label><input type="number" id="ete_cia_borde_vcs" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
-        <div class="fg"><label>Borde VCI (mm)</label><input type="number" id="ete_cia_borde_vci" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
-        <div class="fg"><label>Borde posterior (mm)</label><input type="number" id="ete_cia_borde_post" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
-      </div>
-      <div id="ete-cia-borde-min-box" class="calc-box" style="margin-top:8px;display:none;">
-        <div class="calc-row"><span class="calc-lbl">Borde mínimo</span><span id="ete-cia-borde-min">—</span></div>
-      </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Shunt</div>
-      <div class="grid-2">
-        <div class="fg"><label>Dirección</label>
-          <select id="ete_cia_dir" onchange="eteShuntSync()">
-            <option value="">—</option>
-            <option value="id">Izquierda → derecha</option>
-            <option value="di">Derecha → izquierda</option>
-            <option value="bi">Bidireccional</option>
-          </select>
-        </div>
-        <div class="fg"><label>Velocidad pico del jet (m/s)</label><input type="number" id="ete_cia_vel" step="0.1" placeholder="m/s" oninput="eteShuntSync()"></div>
-      </div>
-      <!-- No se deriva PAPs del jet interauricular: esa fórmula (PAS − 4V²) es la del CIV,
-           donde la velocidad refleja el gradiente VI–VD. En una CIA el gradiente es AI–AD y
-           da números sin sentido (PAS 120 con V 1,2 → «PAPs 114»). La PAPs de la CIA se
-           informa por IT, que ya viene calculada más abajo. -->
-      <div class="calc-box" style="margin-top:8px;">
-        <div class="calc-row"><span class="calc-lbl">PAPs por IT (del estudio)</span><span id="ete-cia-paps-it" class="calc-val">—</span></div>
-      </div>
-
-      <!-- Donut a la izquierda, detalle del borde tocado a la derecha. La columna «Ventana ETE»
-           de la tabla anterior se fue al panel, que es donde aparece la del borde que el médico
-           está mirando en vez de las cinco a la vez.
-           Los CINCO INPUTS SIGUEN EXISTIENDO, abajo: son campos persistidos que barre
-           `guardarInforme` por `input[id]`, y sacarlos habría dejado el donut sin forma de
-           cargarle datos y el estudio sin los bordes. «Reemplazar la tabla» es reemplazar su
-           PRESENTACIÓN, no la entrada de datos.
-           El diagrama va al FINAL del panel, debajo de los campos y del shunt: es una LECTURA de
-           lo cargado, no un control de entrada, y arriba empujaba los campos por debajo del
-           pliegue — el médico tenía que scrollear para llegar a lo que tiene que tipear.
-           `overflow:visible` y `width`/`height` explícitos en el <svg>: el UA le pone
-           `overflow:hidden` y Safari no deriva la altura del viewBox — sin las dos cosas el
-           diagrama sale recortado o de alto cero. Ya está documentado en este proyecto. -->
-      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;margin-bottom:12px;">
-        <svg id="cia-donut-svg" width="260" height="260" viewBox="-130 -130 260 260"
-             role="img" aria-label="Bordes de la comunicación interauricular"
-             style="overflow:visible;flex:0 0 auto;max-width:100%;height:auto;aspect-ratio:1/1;"></svg>
-        <div style="flex:1 1 220px;min-width:200px;">
-          <div id="cia-donut-panel" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;"></div>
-          <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:10.5px;color:var(--text2);margin-top:8px;">
-            <span>🟩 ≥5 mm adecuado</span><span>🟧 3–4 mm borderline</span><span>🟥 &lt;3 mm deficiente</span>
-          </div>
-        </div><!-- /columna derecha: panel + leyenda -->
-      </div><!-- /fila donut + panel -->
-    </div>
-
-    <!-- ── CIV ── -->
-    <div id="ete-shunt-pane-civ" style="display:none;">
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">Tipo y tamaño</div>
-      <div class="grid-3">
-        <div class="fg"><label>Tipo de CIV</label>
-          <select id="ete_civ_tipo" onchange="eteShuntSync()">
-            <option value="">—</option>
-            <option value="perimembranosa">Perimembranosa</option>
-            <option value="muscular">Muscular</option>
-            <option value="infundibular">Infundibular</option>
-            <option value="inlet">Inlet</option>
-          </select>
-        </div>
-        <div class="fg"><label>Tamaño máximo (mm)</label><input type="number" id="ete_civ_tam" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
-        <div class="fg"><label>Vista ETE</label><input type="text" id="ete_civ_vista" placeholder="Ej: 4C 0°, eje corto 45°" oninput="eteShuntSync()"></div>
-      </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Gradiente y presión pulmonar</div>
-      <div class="grid-2">
-        <div class="fg"><label>Velocidad pico del jet CIV (m/s)</label><input type="number" id="ete_civ_vel" step="0.1" placeholder="m/s" oninput="eteShuntSync()"></div>
-        <div class="fg"><label>PA sistémica (mmHg)</label><input type="number" id="ete_civ_pas" step="1" placeholder="mmHg" oninput="eteShuntSync()"></div>
-      </div>
-      <div class="calc-box" style="margin-top:8px;">
-        <div class="calc-row"><span class="calc-lbl">PAPs estimada por CIV (PAS − 4V²)</span><span id="ete-civ-paps" class="calc-val">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">PAPs por IT (del estudio)</span><span id="ete-civ-paps-it" class="calc-val">—</span></div>
-      </div>
-    </div>
-
-    <!-- ── Comunes a CIA y CIV ──
-         Qp/Qs y DDVI indexado se cargan UNA vez y valen para las dos pestañas: el Qp/Qs es
-         una propiedad del shunt y el DDVIi del paciente, ninguno de los dos es específico de
-         CIA o CIV. Con dos juegos de campos, un paciente con ambos defectos podía terminar
-         informando dos Qp/Qs distintos. -->
-    <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;border-top:1px solid var(--border);padding-top:12px;">
-      Qp/Qs y DDVI indexado <span style="font-weight:400;color:var(--text2);font-size:11px;">— comunes a CIA y CIV</span>
-    </div>
-    <div class="grid-4">
-      <div class="fg"><label>Ø TSVI (mm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
-        <input type="text" id="ete_shunt_tsvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
-      <div class="fg"><label>VTI TSVI (cm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
-        <input type="text" id="ete_shunt_vtitsvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
-      <!-- Los cuatro son espejos de solo lectura, no sólo los dos izquierdos: el diámetro y
-           el VTI del TSVD se cargan en la tab VD/AD, con el resto de las medidas del
-           ventrículo derecho. Antes el VTI TSVD estaba duplicado —uno acá para el Qp/Qs y
-           otro en VD/AD para la RVP de Abbas, sin sincronizar—, así que un mismo estudio
-           podía informar dos VTI distintos de la misma medición. -->
-      <div class="fg"><label>Ø TSVD (mm) <span style="color:var(--text2);font-size:10px;">— de VD/AD</span></label>
-        <input type="text" id="ete_shunt_tsvd_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
-      <div class="fg"><label>VTI TSVD (cm) <span style="color:var(--text2);font-size:10px;">— de VD/AD</span></label>
-        <input type="text" id="ete_shunt_vtitsvd_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
-    </div>
-    <div style="font-size:10.5px;color:var(--text2);margin-top:4px;">
-      Los cuatro valores del Qp/Qs se cargan en sus tabs: TSVI y VTI-TSVI en <b>〰️ Doppler → Doppler Aórtico (TSVI)</b>, diámetro y VTI del TSVD en <b>VD / AD</b>.
-    </div>
-    <div class="calc-box" style="margin-top:8px;">
-      <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Qp/Qs</span><span id="ete-shunt-qpqs">—</span></div>
-      <div class="calc-row"><span class="calc-lbl">Interpretación</span><span id="ete-shunt-qpqs-interp" style="font-size:11px;color:var(--text2);">—</span></div>
-    </div>
-    <div class="grid-3" style="margin-top:10px;">
-      <div class="fg"><label>DDVI (mm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
-        <input type="text" id="ete_shunt_ddvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
-      <div class="fg"><label>ASC (m²) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
-        <input type="text" id="ete_shunt_asc_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
-      <div class="fg"><label>DDVI indexado</label>
-        <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
-          <span id="ete-shunt-ddvii" class="calc-val">—</span></div></div>
-        <div style="font-size:10px;color:var(--text2);margin-top:3px;">Normal &lt; 32 mm/m²</div>
-      </div>
-    </div>
-    <div style="text-align:center;margin-top:10px;">
-      <!-- El checkbox sigue siendo el estado; el botón es la piel. Oculto y no
-           eliminado: guardarInforme lo captura por `input[type=checkbox][id]`. -->
-      <input type="checkbox" id="ete_shunt_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
-      <button type="button" class="btn btn-integrar" data-ete-chk="ete_shunt_incluir_chk" aria-pressed="false"
-              onclick="eteInclToggle('ete_shunt_incluir_chk')">📎 Integrar al informe</button>
-    </div>
-    </div>
-  </div>
-
-  <!-- ═══ DUCTUS ARTERIOSO PERMEABLE ═══ -->
-  <div class="card sacc" id="sacc-cc-dap">
-    <button type="button" class="sacc-hdr" onclick="secToggle('cc-dap');dapSync();" aria-expanded="false">
-      <span class="sacc-arrow">▶</span>
-      <span style="flex:1;">DAP — Ductus arterioso permeable</span>
-      <span id="ductus_badge" class="incl-badge" hidden>📎 en el informe</span>
-    </button>
-    <div class="card-body sacc-body">
-    <div class="grid-3">
-      <div class="fg"><label>Tipo de ductus</label>
-        <select id="dap_tipo" onchange="dapSync()">
-          <option value="">—</option>
-          <option value="silente">Silente</option>
-          <option value="restrictivo">Restrictivo (pequeño)</option>
-          <option value="no_restrictivo">No restrictivo (grande)</option>
-        </select>
-      </div>
-      <div class="fg"><label>Diámetro mínimo (mm)</label><input type="number" id="dap_diam" step="0.1" placeholder="mm" oninput="dapSync()"></div>
-      <div class="fg"><label>Dirección del shunt</label>
-        <select id="dap_dir" onchange="dapSync()">
-          <option value="">—</option>
-          <option value="id">Izquierda a derecha</option>
-          <option value="bi">Bidireccional</option>
-          <option value="di">Derecha a izquierda</option>
-        </select>
-      </div>
-    </div>
-    <div class="grid-3" style="margin-top:10px;">
-      <div class="fg"><label>Velocidad máxima (m/s)</label><input type="number" id="dap_vmax" step="0.1" placeholder="m/s" oninput="dapSync()"></div>
-      <div class="fg"><label>Gradiente instantáneo máx.</label>
-        <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
-          <span id="dap-gmax" class="calc-val">—</span></div></div>
-        <div style="font-size:10px;color:var(--text2);margin-top:3px;">4 × Vmax²</div>
-      </div>
-      <div class="fg"><label>PAPs estimada (mmHg)</label><input type="number" id="dap_paps" step="1" placeholder="mmHg" oninput="dapSync()"></div>
-    </div>
-    <div class="calc-box" style="margin-top:12px;">
-      <div class="calc-row"><span class="calc-lbl">Qp/Qs</span><span id="dap-qpqs" class="calc-val">—</span></div>
-      <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="dap-concl" class="calc-val">—</span></div>
-    </div>
-    <div style="text-align:center;margin-top:10px;">
-      <input type="checkbox" id="ductus_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
-      <button type="button" class="btn btn-integrar" data-ete-chk="ductus_incluir_chk" aria-pressed="false"
-              onclick="eteInclToggle('ductus_incluir_chk')">📎 Integrar al informe</button>
-    </div>
-    </div>
-  </div>
-
-  <!-- ═══ COARTACIÓN DE AORTA ═══ -->
-  <div class="card sacc" id="sacc-cc-coa">
-    <button type="button" class="sacc-hdr" onclick="secToggle('cc-coa');coaSync();" aria-expanded="false">
-      <span class="sacc-arrow">▶</span>
-      <span style="flex:1;">CoAo — Coartación de aorta</span>
-      <span id="coart_badge" class="incl-badge" hidden>📎 en el informe</span>
-    </button>
-    <div class="card-body sacc-body">
-    <div class="grid-3">
-      <div class="fg"><label>Localización</label>
-        <select id="coa_loc" onchange="coaSync()">
-          <option value="">—</option>
-          <option value="preductal">Preductal</option>
-          <option value="yuxtaductal">Yuxtaductal</option>
-          <option value="posductal">Posductal</option>
-        </select>
-      </div>
-      <div class="fg"><label>Situación</label>
-        <select id="coa_situacion" onchange="coaSync()">
-          <option value="">—</option>
-          <option value="nativa">Coartación nativa</option>
-          <option value="recoartacion">Recoartación post-intervención</option>
-        </select>
-      </div>
-      <div class="fg"><label>Diámetro del istmo (mm)</label><input type="number" id="coa_istmo" step="0.1" placeholder="mm" oninput="coaSync()"></div>
-    </div>
-    <div class="grid-3" style="margin-top:10px;">
-      <!-- Espejo de sólo lectura, no un campo: la aorta ascendente ya se mide en Paciente →
-           Aorta torácica, donde se llama `ao_tub` («Ao tubular») y el PDF la rotula «Ao asc».
-           Este campo nació duplicado el 2026-09-09 y se consolidó el 2026-09-10: dos entradas
-           para el mismo diámetro es la vía más corta a que el informe firmado se contradiga
-           consigo mismo, y la VAB va a necesitar la misma medida para el umbral quirúrgico de
-           45/50 mm. `ao_tub` además ya tiene ventana de plausibilidad (10-90 mm) y este no
-           tenía ninguna. -->
-      <div class="fg"><label>Ao ascendente (mm) — de Aorta torácica</label>
-        <input type="text" id="coa_ao_asc_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-      <div class="fg"><label>Ao descendente (mm)</label><input type="number" id="coa_ao_desc" step="0.1" placeholder="mm" oninput="coaSync()"></div>
-      <div class="fg"><label>Relación istmo / Ao desc.</label>
-        <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
-          <span id="coa-ratio" class="calc-val">—</span></div></div>
-      </div>
-    </div>
-    <div class="grid-3" style="margin-top:10px;">
-      <div class="fg"><label>Vmax coartación (m/s)</label><input type="number" id="coa_vmax" step="0.1" placeholder="m/s" oninput="coaSync()"></div>
-      <div class="fg"><label>Gradiente máximo</label>
-        <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
-          <span id="coa-gmax" class="calc-val">—</span></div></div>
-        <div style="font-size:10px;color:var(--text2);margin-top:3px;">4 × Vmax²</div>
-      </div>
-      <div class="fg"><label>Gradiente medio (mmHg)</label><input type="number" id="coa_gmedio" step="1" placeholder="mmHg" oninput="coaSync()"></div>
-    </div>
-    <div class="fg" style="margin-top:10px;">
-      <label class="cfg-opt-row" style="cursor:pointer;">
-        <input type="checkbox" id="coa_diast_anterogrado" onchange="coaSync()">
-        <span style="font-size:12px;">Flujo diastólico anterógrado en aorta descendente (cola diastólica)</span>
-      </label>
-    </div>
-    <div class="calc-box" style="margin-top:12px;">
-      <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="coa-concl" class="calc-val">—</span></div>
-    </div>
-    <div style="text-align:center;margin-top:10px;">
-      <input type="checkbox" id="coart_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
-      <button type="button" class="btn btn-integrar" data-ete-chk="coart_incluir_chk" aria-pressed="false"
-              onclick="eteInclToggle('coart_incluir_chk')">📎 Integrar al informe</button>
-    </div>
-    </div>
-  </div>
-
-  <!-- ═══ VENTANA AORTOPULMONAR ═══ -->
-  <div class="card sacc" id="sacc-cc-vap">
-    <button type="button" class="sacc-hdr" onclick="secToggle('cc-vap');vapSync();" aria-expanded="false">
-      <span class="sacc-arrow">▶</span>
-      <span style="flex:1;">VAP — Ventana aortopulmonar</span>
-      <span id="vap_badge" class="incl-badge" hidden>📎 en el informe</span>
-    </button>
-    <div class="card-body sacc-body">
-      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
-        Comunicación directa entre la aorta ascendente y la arteria pulmonar principal. Menos del 1 % de las cardiopatías congénitas.
-        A diferencia del ductus no tiene variante restrictiva relevante en el adulto: el defecto es proximal y de gran calibre, así que
-        la repercusión hemodinámica se asume salvo prueba en contra.
-        <b style="color:var(--accent2);">ESC 2020: cierre indicado siempre, salvo hipertensión pulmonar irreversible (Eisenmenger).</b>
-      </p>
-      <div class="grid-3">
-        <div class="fg"><label>Tipo</label>
-          <select id="vap_tipo" onchange="vapSync()">
-            <option value="">—</option>
-            <option value="i">Tipo I — proximal</option>
-            <option value="ii">Tipo II — distal</option>
-            <option value="iii">Tipo III — total</option>
-          </select>
-        </div>
-        <div class="fg"><label>Diámetro (mm)</label><input type="number" id="vap_diam" step="0.1" placeholder="mm" oninput="vapSync()"></div>
-        <div class="fg"><label>Dirección del shunt</label>
-          <select id="vap_dir" onchange="vapSync()">
-            <option value="">—</option>
-            <option value="id">Izquierda a derecha</option>
-            <option value="bi">Bidireccional</option>
-            <option value="di">Derecha a izquierda</option>
-          </select>
-        </div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>Hipertensión pulmonar asociada</label>
-          <select id="vap_htp" onchange="vapSync()">
-            <option value="">—</option>
-            <option value="no_eval">No evaluada</option>
-            <option value="no">No</option>
-            <option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>PAPs estimada — del estudio</label>
-          <input type="text" id="vap_paps_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-        <div class="fg"><label>Qp/Qs</label>
-          <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
-            <span id="vap-qpqs" class="calc-val">—</span></div></div>
-        </div>
-      </div>
-      <div class="calc-box" style="margin-top:12px;">
-        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="vap-concl" class="calc-val">—</span></div>
-      </div>
-      <div style="text-align:center;margin-top:10px;">
-        <input type="checkbox" id="vap_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
-        <button type="button" class="btn btn-integrar" data-ete-chk="vap_incluir_chk" aria-pressed="false"
-                onclick="eteInclToggle('vap_incluir_chk')">📎 Integrar al informe</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══ FORAMEN OVAL PERMEABLE ═══
-       Los campos de contexto clínico son SELECTS de tres estados, no casillas: la diferencia
-       entre «no lo tiene» y «no lo pregunté» decide acá entre no hacer nada e implantar un
-       dispositivo. Ver la nota de fopConclusion(). -->
-  <div class="card sacc" id="sacc-cc-fop">
-    <button type="button" class="sacc-hdr" onclick="secToggle('cc-fop');fopSync();" aria-expanded="false">
-      <span class="sacc-arrow">▶</span>
-      <span style="flex:1;">FOP — Foramen oval permeable</span>
-      <span id="fop_badge" class="incl-badge" hidden>📎 en el informe</span>
-    </button>
-    <div class="card-body sacc-body">
-      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
-        Comunicación interauricular fisiológica que no se cierra tras el nacimiento. Está en aproximadamente el <b>25 % de la población</b>,
-        así que el hallazgo por sí solo no es una enfermedad: lo que decide la conducta es el contexto clínico.
-        <b style="color:var(--accent2);">ESC: cierre percutáneo Clase IIa en el ACV criptogénico del menor de 60 años</b>, tras evaluación conjunta con neurología.
-      </p>
-      <div class="mBoxLike" style="border-left:3px solid var(--red,#b91c1c);background:rgba(185,28,28,.08);padding:8px 12px;border-radius:6px;font-size:11px;line-height:1.5;margin-bottom:12px;">
-        <b>Riesgo asociado.</b> El FOP con ACV criptogénico y sin cierre tiene recurrencia de en torno al 5 % anual. La coexistencia de
-        <b>aneurisma del septum interauricular</b> y <b>shunt severo</b> marca el subgrupo de mayor riesgo embólico.
-      </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:4px 0 8px;">Anatomía</div>
-      <div class="grid-3">
-        <div class="fg"><label>Longitud del túnel (mm)</label><input type="number" id="fop_tunel" step="0.1" placeholder="mm" oninput="fopSync()"></div>
-        <div class="fg"><label>Movilidad del septum</label>
-          <select id="fop_mov" onchange="fopSync()">
-            <option value="">—</option>
-            <option value="no_eval">No evaluada</option>
-            <option value="no">No aumentada</option>
-            <option value="si">Septum móvil</option>
-          </select>
-        </div>
-        <div class="fg"><label>Aneurisma del septum</label>
-          <select id="fop_asa" onchange="fopSync()">
-            <option value="">—</option>
-            <option value="no_eval">No evaluado</option>
-            <option value="no">No</option>
-            <option value="si">Sí</option>
-          </select>
-        </div>
-      </div>
-      <div class="grid-2" style="margin-top:10px;">
-        <div class="fg"><label>Excursión del aneurisma (mm)</label><input type="number" id="fop_asa_mm" step="0.1" placeholder="mm" oninput="fopSync()"></div>
-        <div class="fg"><label>Interpretación</label>
-          <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
-            <span id="fop-asa-interp" class="calc-val">—</span></div></div>
-        </div>
-      </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Shunt</div>
-      <div class="grid-3">
-        <div class="fg"><label>Contraste con burbujas</label>
-          <select id="fop_contraste" onchange="fopSync()">
-            <option value="">—</option>
-            <option value="no">No se realizó</option>
-            <option value="si">Realizado</option>
-          </select>
-        </div>
-        <div class="fg"><label>Shunt en reposo</label>
-          <select id="fop_shunt_reposo" onchange="fopSync()">
-            <option value="">—</option>
-            <option value="no_eval">No evaluado</option>
-            <option value="no">Ausente</option>
-            <option value="si">Presente</option>
-          </select>
-        </div>
-        <div class="fg"><label>Shunt con Valsalva</label>
-          <select id="fop_shunt_valsalva" onchange="fopSync()">
-            <option value="">—</option>
-            <option value="no_eval">No evaluado</option>
-            <option value="no">Ausente</option>
-            <option value="si">Presente</option>
-          </select>
-        </div>
-      </div>
-      <div class="grid-2" style="margin-top:10px;">
-        <div class="fg"><label>Cantidad de burbujas</label>
-          <select id="fop_burbujas" onchange="fopSync()">
-            <option value="">—</option>
-            <option value="pocas">Pocas (&lt;5)</option>
-            <option value="moderado">Moderado (5-20)</option>
-            <option value="abundante">Abundante (&gt;20)</option>
-          </select>
-        </div>
-        <div class="fg"><label>Grado del shunt</label>
-          <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
-            <span id="fop-shunt-grado" class="calc-val">—</span></div></div>
-        </div>
-      </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Contexto clínico</div>
-      <p style="font-size:10px;color:var(--text2);margin:0 0 8px;">Sin esto la app no puede distinguir un hallazgo incidental de una indicación de cierre, y no lo va a suponer.</p>
-      <div class="grid-2">
-        <div class="fg"><label>ACV criptogénico</label>
-          <select id="fop_acv" onchange="fopSync()">
-            <option value="">—</option>
-            <option value="no_eval">No consta</option>
-            <option value="no">No</option>
-            <option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>Trombofilia conocida</label>
-          <select id="fop_trombofilia" onchange="fopSync()">
-            <option value="">—</option>
-            <option value="no_eval">No consta</option>
-            <option value="no">No</option>
-            <option value="si">Sí</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="calc-box" style="margin-top:12px;">
-        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="fop-concl" class="calc-val">—</span></div>
-      </div>
-      <div style="text-align:center;margin-top:10px;">
-        <input type="checkbox" id="fop_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
-        <button type="button" class="btn btn-integrar" data-ete-chk="fop_incluir_chk" aria-pressed="false"
-                onclick="eteInclToggle('fop_incluir_chk')">📎 Integrar al informe</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══ VÁLVULA AÓRTICA BICÚSPIDE ═══
-       La guía que se aplica es la ESC 2024 de AORTA, no la ESC/EACTS de valvulopatías: la 2021
-       está superada por la 2025, y la 2025 borró sus propias filas de 55/50 mm y remite a la de
-       aorta. El texto que imprime la sección nombra la guía y la clase. Ver vabConclusion(). -->
-  <div class="card sacc" id="sacc-cc-vab">
+<div class="card sacc" id="sacc-cc-vab">
     <button type="button" class="sacc-hdr" onclick="secToggle('cc-vab');vabSync();" aria-expanded="false">
       <span class="sacc-arrow">▶</span>
       <span style="flex:1;">VAB — Válvula aórtica bicúspide</span>
@@ -8882,264 +8364,216 @@ z
       </div>
     </div>
   </div>
-
-  <!-- ═══ MIOCARDIOPATÍA HIPERTRÓFICA ═══
-       Dos scores de muerte súbita con criterios distintos, lado a lado, cada uno con su guía y
-       su clase. No se promedian ni se elige uno. Ver mchConclusion(). -->
-  <div class="card sacc" id="sacc-cc-ebs">
-    <button type="button" class="sacc-hdr" onclick="secToggle('cc-ebs');ebsSync();" aria-expanded="false">
+<div class="card sacc" id="sacc-cc-coa">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-coa');coaSync();" aria-expanded="false">
       <span class="sacc-arrow">▶</span>
-      <span style="flex:1;">Ebstein — Anomalía de Ebstein</span>
-      <span id="ebs_badge" class="incl-badge" hidden>📎 en el informe</span>
+      <span style="flex:1;">CoAo — Coartación de aorta</span>
+      <span id="coart_badge" class="incl-badge" hidden>📎 en el informe</span>
+    </button>
+    <div class="card-body sacc-body">
+    <div class="grid-3">
+      <div class="fg"><label>Localización</label>
+        <select id="coa_loc" onchange="coaSync()">
+          <option value="">—</option>
+          <option value="preductal">Preductal</option>
+          <option value="yuxtaductal">Yuxtaductal</option>
+          <option value="posductal">Posductal</option>
+        </select>
+      </div>
+      <div class="fg"><label>Situación</label>
+        <select id="coa_situacion" onchange="coaSync()">
+          <option value="">—</option>
+          <option value="nativa">Coartación nativa</option>
+          <option value="recoartacion">Recoartación post-intervención</option>
+        </select>
+      </div>
+      <div class="fg"><label>Diámetro del istmo (mm)</label><input type="number" id="coa_istmo" step="0.1" placeholder="mm" oninput="coaSync()"></div>
+    </div>
+    <div class="grid-3" style="margin-top:10px;">
+      <!-- Espejo de sólo lectura, no un campo: la aorta ascendente ya se mide en Paciente →
+           Aorta torácica, donde se llama `ao_tub` («Ao tubular») y el PDF la rotula «Ao asc».
+           Este campo nació duplicado el 2026-09-09 y se consolidó el 2026-09-10: dos entradas
+           para el mismo diámetro es la vía más corta a que el informe firmado se contradiga
+           consigo mismo, y la VAB va a necesitar la misma medida para el umbral quirúrgico de
+           45/50 mm. `ao_tub` además ya tiene ventana de plausibilidad (10-90 mm) y este no
+           tenía ninguna. -->
+      <div class="fg"><label>Ao ascendente (mm) — de Aorta torácica</label>
+        <input type="text" id="coa_ao_asc_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+      <div class="fg"><label>Ao descendente (mm)</label><input type="number" id="coa_ao_desc" step="0.1" placeholder="mm" oninput="coaSync()"></div>
+      <div class="fg"><label>Relación istmo / Ao desc.</label>
+        <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+          <span id="coa-ratio" class="calc-val">—</span></div></div>
+      </div>
+    </div>
+    <div class="grid-3" style="margin-top:10px;">
+      <div class="fg"><label>Vmax coartación (m/s)</label><input type="number" id="coa_vmax" step="0.1" placeholder="m/s" oninput="coaSync()"></div>
+      <div class="fg"><label>Gradiente máximo</label>
+        <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+          <span id="coa-gmax" class="calc-val">—</span></div></div>
+        <div style="font-size:10px;color:var(--text2);margin-top:3px;">4 × Vmax²</div>
+      </div>
+      <div class="fg"><label>Gradiente medio (mmHg)</label><input type="number" id="coa_gmedio" step="1" placeholder="mmHg" oninput="coaSync()"></div>
+    </div>
+    <div class="fg" style="margin-top:10px;">
+      <label class="cfg-opt-row" style="cursor:pointer;">
+        <input type="checkbox" id="coa_diast_anterogrado" onchange="coaSync()">
+        <span style="font-size:12px;">Flujo diastólico anterógrado en aorta descendente (cola diastólica)</span>
+      </label>
+    </div>
+    <div class="calc-box" style="margin-top:12px;">
+      <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="coa-concl" class="calc-val">—</span></div>
+    </div>
+    <div style="text-align:center;margin-top:10px;">
+      <input type="checkbox" id="coart_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+      <button type="button" class="btn btn-integrar" data-ete-chk="coart_incluir_chk" aria-pressed="false"
+              onclick="eteInclToggle('coart_incluir_chk')">📎 Integrar al informe</button>
+    </div>
+    </div>
+  </div>
+  <div class="card sacc" id="sacc-cc-marfan">
+    <button type="button" class="sacc-hdr" onclick="secToggle('marfan')" aria-expanded="false">
+      <span class="sacc-arrow">&#9654;</span>
+      <span style="flex:1;">🧬 Marfan / EHAT</span>
+    </button>
+    <div class="card-body sacc-body">
+      <p style="font-size:12px;color:var(--text2);margin:0;line-height:1.6;">En desarrollo — proximamente.</p>
+    </div>
+  </div>
+<div class="card sacc" id="sacc-cc-fop">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-fop');fopSync();" aria-expanded="false">
+      <span class="sacc-arrow">▶</span>
+      <span style="flex:1;">FOP — Foramen oval permeable</span>
+      <span id="fop_badge" class="incl-badge" hidden>📎 en el informe</span>
     </button>
     <div class="card-body sacc-body">
       <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
-        Desplazamiento apical del velo septal tricuspídeo con atrialización del ventrículo derecho. Menos del 1 % de las cardiopatías congénitas,
-        y la principal causa de <b>insuficiencia tricuspídea congénita severa</b>. Asociación frecuente con FOP o CIA y con vías accesorias.
-        <b style="color:var(--accent2);">Umbral diagnóstico: desplazamiento ≥8 mm/m² de superficie corporal.</b>
+        Comunicación interauricular fisiológica que no se cierra tras el nacimiento. Está en aproximadamente el <b>25 % de la población</b>,
+        así que el hallazgo por sí solo no es una enfermedad: lo que decide la conducta es el contexto clínico.
+        <b style="color:var(--accent2);">ESC: cierre percutáneo Clase IIa en el ACV criptogénico del menor de 60 años</b>, tras evaluación conjunta con neurología.
       </p>
+      <div class="mBoxLike" style="border-left:3px solid var(--red,#b91c1c);background:rgba(185,28,28,.08);padding:8px 12px;border-radius:6px;font-size:11px;line-height:1.5;margin-bottom:12px;">
+        <b>Riesgo asociado.</b> El FOP con ACV criptogénico y sin cierre tiene recurrencia de en torno al 5 % anual. La coexistencia de
+        <b>aneurisma del septum interauricular</b> y <b>shunt severo</b> marca el subgrupo de mayor riesgo embólico.
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:4px 0 8px;">Anatomía</div>
       <div class="grid-3">
-        <div class="fg"><label>Desplazamiento del velo septal (mm)</label><input type="number" id="ebs_desplazamiento" step="0.1" placeholder="mm" oninput="ebsSync()"></div>
-        <div class="fg"><label>Indexado por superficie</label>
+        <div class="fg"><label>Longitud del túnel (mm)</label><input type="number" id="fop_tunel" step="0.1" placeholder="mm" oninput="fopSync()"></div>
+        <div class="fg"><label>Movilidad del septum</label>
+          <select id="fop_mov" onchange="fopSync()">
+            <option value="">—</option>
+            <option value="no_eval">No evaluada</option>
+            <option value="no">No aumentada</option>
+            <option value="si">Septum móvil</option>
+          </select>
+        </div>
+        <div class="fg"><label>Aneurisma del septum</label>
+          <select id="fop_asa" onchange="fopSync()">
+            <option value="">—</option>
+            <option value="no_eval">No evaluado</option>
+            <option value="no">No</option>
+            <option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:10px;">
+        <div class="fg"><label>Excursión del aneurisma (mm)</label><input type="number" id="fop_asa_mm" step="0.1" placeholder="mm" oninput="fopSync()"></div>
+        <div class="fg"><label>Interpretación</label>
           <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
-            <span id="ebs-desp-idx" class="calc-val">—</span></div></div>
+            <span id="fop-asa-interp" class="calc-val">—</span></div></div>
         </div>
-        <div class="fg"><label>Atrialización del VD (%)</label><input type="number" id="ebs_atrializacion" step="1" placeholder="%" oninput="ebsSync()"></div>
       </div>
-      <div class="grid-2" style="margin-top:10px;">
-        <div class="fg"><label>Función del VD funcional</label>
-          <select id="ebs_func_vd" onchange="ebsSync()">
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Shunt</div>
+      <div class="grid-3">
+        <div class="fg"><label>Contraste con burbujas</label>
+          <select id="fop_contraste" onchange="fopSync()">
             <option value="">—</option>
-            <option value="normal">Normal</option>
-            <option value="leve">Reducida leve</option>
-            <option value="moderada">Reducida moderada</option>
-            <option value="severa">Reducida severa</option>
+            <option value="no">No se realizó</option>
+            <option value="si">Realizado</option>
           </select>
         </div>
-        <div class="fg"><label>IT — grado (de Válvulas)</label>
-          <input type="text" id="ebs_it_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-      </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Índice de Celermajer</div>
-      <p style="font-size:10px;color:var(--text2);margin:0 0 8px;">Las cinco áreas se trazan en <b>apical 4 cámaras y en TELEDIÁSTOLE</b>. No son las mismas que las áreas auriculares del estudio, que se miden en telesístole (aurícula máxima) para evaluar tamaño de cámara — por eso son campos aparte.</p>
-      <div class="grid-3">
-        <div class="fg"><label>Área AD (cm²)</label><input type="number" id="ebs_area_ad" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
-        <div class="fg"><label>Área VD atrializado (cm²)</label><input type="number" id="ebs_area_vd_atrial" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
-        <div class="fg"><label>Área VD funcional (cm²)</label><input type="number" id="ebs_area_vd_func" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>Área AI (cm²)</label><input type="number" id="ebs_area_ai" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
-        <div class="fg"><label>Área VI (cm²)</label><input type="number" id="ebs_area_vi" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
-        <div class="fg"><label>Áreas del estudio (telesístole)</label>
-          <input type="text" id="ebs_areas_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-      </div>
-      <div class="calc-box" style="margin-top:10px;">
-        <div class="calc-row"><span class="calc-lbl">Índice de Celermajer</span><span id="ebs-celermajer" class="calc-val">—</span></div>
-      </div>
-      <div class="mBoxLike" style="border-left:3px solid var(--red,#b91c1c);background:rgba(185,28,28,.08);padding:8px 12px;border-radius:6px;font-size:10px;line-height:1.5;margin-top:10px;">
-        <b>El índice es orientativo, no una indicación.</b> Por ecocardiografía <b>sobreestima</b> la severidad (concordancia con resonancia κ=0,39; sólo el índice por RMC correlacionó con la capacidad funcional).
-        Se derivó en una serie de <b>28 neonatos</b> — el «100 %» del grado IV son 5 pacientes de 5 — y <b>no figura en la ESC 2020</b>, cuyas indicaciones de cirugía en Ebstein son clínicas.
-        Cortes: I &lt;0,5 · II 0,50-0,99 · III 1,00-1,49 · IV ≥1,5. Origen: Celermajer DS et al., <i>JACC</i> 1992;19:1041-6.
-      </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Arritmias y situación clínica</div>
-      <div class="grid-3">
-        <div class="fg"><label>Taquicardia supraventricular</label>
-          <select id="ebs_tsv" onchange="ebsSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+        <div class="fg"><label>Shunt en reposo</label>
+          <select id="fop_shunt_reposo" onchange="fopSync()">
+            <option value="">—</option>
+            <option value="no_eval">No evaluado</option>
+            <option value="no">Ausente</option>
+            <option value="si">Presente</option>
           </select>
         </div>
-        <div class="fg"><label>Vías accesorias conocidas</label>
-          <select id="ebs_vias" onchange="ebsSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>Síntomas atribuibles</label>
-          <select id="ebs_sintomas" onchange="ebsSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+        <div class="fg"><label>Shunt con Valsalva</label>
+          <select id="fop_shunt_valsalva" onchange="fopSync()">
+            <option value="">—</option>
+            <option value="no_eval">No evaluado</option>
+            <option value="no">Ausente</option>
+            <option value="si">Presente</option>
           </select>
         </div>
       </div>
       <div class="grid-2" style="margin-top:10px;">
-        <div class="fg"><label>Deterioro objetivo de la capacidad de ejercicio</label>
-          <select id="ebs_ejercicio" onchange="ebsSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+        <div class="fg"><label>Cantidad de burbujas</label>
+          <select id="fop_burbujas" onchange="fopSync()">
+            <option value="">—</option>
+            <option value="pocas">Pocas (&lt;5)</option>
+            <option value="moderado">Moderado (5-20)</option>
+            <option value="abundante">Abundante (&gt;20)</option>
           </select>
         </div>
-        <div class="fg"><label>Dilatación progresiva del VD</label>
-          <select id="ebs_progresion" onchange="ebsSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+        <div class="fg"><label>Grado del shunt</label>
+          <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+            <span id="fop-shunt-grado" class="calc-val">—</span></div></div>
+        </div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Contexto clínico</div>
+      <p style="font-size:10px;color:var(--text2);margin:0 0 8px;">Sin esto la app no puede distinguir un hallazgo incidental de una indicación de cierre, y no lo va a suponer.</p>
+      <div class="grid-2">
+        <div class="fg"><label>ACV criptogénico</label>
+          <select id="fop_acv" onchange="fopSync()">
+            <option value="">—</option>
+            <option value="no_eval">No consta</option>
+            <option value="no">No</option>
+            <option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Trombofilia conocida</label>
+          <select id="fop_trombofilia" onchange="fopSync()">
+            <option value="">—</option>
+            <option value="no_eval">No consta</option>
+            <option value="no">No</option>
+            <option value="si">Sí</option>
           </select>
         </div>
       </div>
+
       <div class="calc-box" style="margin-top:12px;">
-        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="ebs-concl" class="calc-val">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="fop-concl" class="calc-val">—</span></div>
       </div>
       <div style="text-align:center;margin-top:10px;">
-        <input type="checkbox" id="ebs_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
-        <button type="button" class="btn btn-integrar" data-ete-chk="ebs_incluir_chk" aria-pressed="false"
-                onclick="eteInclToggle('ebs_incluir_chk')">📎 Integrar al informe</button>
+        <input type="checkbox" id="fop_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+        <button type="button" class="btn btn-integrar" data-ete-chk="fop_incluir_chk" aria-pressed="false"
+                onclick="eteInclToggle('fop_incluir_chk')">📎 Integrar al informe</button>
       </div>
     </div>
   </div>
-
-  <!-- ═══ TETRALOGÍA DE FALLOT REPARADA ═══
-       Sin campos de volumen a propósito: los umbrales de 160/80 ml/m² son de RESONANCIA y la
-       eco 2D no mide volúmenes del VD de forma fiable. Ver tdfConclusion(). -->
-  <div class="card sacc" id="sacc-cc-tdf">
-    <button type="button" class="sacc-hdr" onclick="secToggle('cc-tdf');tdfSync();" aria-expanded="false">
-      <span class="sacc-arrow">▶</span>
-      <span style="flex:1;">TdF — Tetralogía de Fallot reparada</span>
-      <span id="tdf_badge" class="incl-badge" hidden>📎 en el informe</span>
+  <div class="card sacc" id="sacc-cc-esub">
+    <button type="button" class="sacc-hdr" onclick="secToggle('esub')" aria-expanded="false">
+      <span class="sacc-arrow">&#9654;</span>
+      <span style="flex:1;">🫀 Estenosis subaortica</span>
     </button>
     <div class="card-body sacc-body">
-      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
-        La cardiopatía congénita compleja más frecuente en el adulto. El seguimiento gira alrededor de la <b>insuficiencia pulmonar residual</b>
-        y la dilatación del ventrículo derecho, con riesgo de taquicardia ventricular sostenida a largo plazo.
-      </p>
-      <div class="mBoxLike" style="border-left:3px solid var(--accent2);background:rgba(13,148,136,.08);padding:8px 12px;border-radius:6px;font-size:10px;line-height:1.5;margin-bottom:12px;color:var(--text2);">
-        <b>Acá no hay campos de volumen, y es a propósito.</b> Los umbrales que definen la reintervención —VDFVD indexado ≥160 ml/m², volumen sistólico final ≥80 ml/m²— son cifras de <b>resonancia</b>:
-        la ESC 2020 dice que la RMC es el método de elección para el volumen y la función del VD, y la eco 2D no los mide de forma fiable. Esta sección maneja lo que el ecocardiograma sí mide.
-        La guía además advierte que ese corte «puede no correlacionar con beneficio clínico» y pide <b>medidas seriadas</b>.
-      </div>
-      <div class="grid-3">
-        <div class="fg"><label>IP — grado (de Válvulas)</label>
-          <input type="text" id="tdf_ip_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-        <div class="fg"><label>Ø TSVD (de VD / AD)</label>
-          <input type="text" id="tdf_tsvd_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-        <div class="fg"><label>Función del VD</label>
-          <select id="tdf_func_vd" onchange="tdfSync()">
-            <option value="">—</option>
-            <option value="normal">Normal</option>
-            <option value="leve">Disfunción leve</option>
-            <option value="moderada">Disfunción moderada</option>
-            <option value="severa">Disfunción severa</option>
-          </select>
-        </div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>Gradiente TSVD (mmHg) — si difiere del transvalvular</label><input type="number" id="tdf_grad_tsvd" step="1" placeholder="mmHg" oninput="tdfSync()"></div>
-        <div class="fg"><label>Presión sistólica VD (de PSAP por IT)</label>
-          <input type="text" id="tdf_psvd_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-        <div class="fg"><label>IT — grado (de Válvulas)</label>
-          <input type="text" id="tdf_it_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-      </div>
-      <p style="font-size:10px;color:var(--text2);margin:6px 0 0;">Con obstrucción residual del tracto de salida, la presión que estima la IT es la del <b>ventrículo derecho</b> y no la de la arteria pulmonar: las separa el gradiente del TSVD.</p>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>CIV residual</label>
-          <select id="tdf_civ_residual" onchange="tdfSync()">
-            <option value="">—</option><option value="no_eval">No evaluada</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>Gradiente CIV residual (mmHg)</label><input type="number" id="tdf_civ_grad" step="1" placeholder="mmHg" oninput="tdfSync()"></div>
-        <div class="fg"><label>Estenosis pulmonar nativa o stent</label>
-          <select id="tdf_ep_stent" onchange="tdfSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>Síntomas</label>
-          <select id="tdf_sintomas" onchange="tdfSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>Caída objetiva de la capacidad de ejercicio</label>
-          <select id="tdf_ejercicio" onchange="tdfSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>Taquicardia ventricular <span style="font-weight:400;color:var(--text2);font-size:10px;">— derivado</span></label>
-          <select id="tdf_tv" disabled data-espejo title="Se deriva del bloque «⚡ Arritmia ventricular», arriba de esta pestaña.">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-      </div>
-      <div class="calc-box" style="margin-top:12px;">
-        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="tdf-concl" class="calc-val">—</span></div>
-      </div>
-      <div style="text-align:center;margin-top:10px;">
-        <input type="checkbox" id="tdf_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
-        <button type="button" class="btn btn-integrar" data-ete-chk="tdf_incluir_chk" aria-pressed="false"
-                onclick="eteInclToggle('tdf_incluir_chk')">📎 Integrar al informe</button>
-      </div>
+      <p style="font-size:12px;color:var(--text2);margin:0;line-height:1.6;">En desarrollo — proximamente.</p>
     </div>
   </div>
-
-  <!-- ═══ TRANSPOSICIÓN DE GRANDES ARTERIAS CORREGIDA ═══ -->
-  <div class="card sacc" id="sacc-cc-tga">
-    <button type="button" class="sacc-hdr" onclick="secToggle('cc-tga');tgaSync();" aria-expanded="false">
-      <span class="sacc-arrow">▶</span>
-      <span style="flex:1;">TGA — Transposición de grandes arterias corregida</span>
-      <span id="tga_badge" class="incl-badge" hidden>📎 en el informe</span>
+  <div class="card sacc" id="sacc-cc-easv">
+    <button type="button" class="sacc-hdr" onclick="secToggle('easv')" aria-expanded="false">
+      <span class="sacc-arrow">&#9654;</span>
+      <span style="flex:1;">🫀 Estenosis supravalvular aortica</span>
     </button>
     <div class="card-body sacc-body">
-      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
-        El <b>ventrículo derecho es el ventrículo sistémico</b>, y su deterioro progresivo es inevitable y es la principal causa de muerte.
-        La válvula tricúspide de estos pacientes es la auriculoventricular <b>sistémica</b>: su insuficiencia pesa como pesaría una mitral.
-      </p>
-      <div class="grid-3">
-        <div class="fg"><label>Tipo</label>
-          <select id="tga_tipo" onchange="tgaSync()">
-            <option value="">—</option>
-            <option value="cctga">ccTGA — congénitamente corregida</option>
-            <option value="mustard">Post-Mustard</option>
-            <option value="senning">Post-Senning</option>
-          </select>
-        </div>
-        <div class="fg"><label>Función del VD sistémico</label>
-          <select id="tga_func_vd" onchange="tgaSync()">
-            <option value="">—</option>
-            <option value="normal">Normal</option>
-            <option value="leve">Disfunción leve</option>
-            <option value="moderada">Disfunción moderada</option>
-            <option value="severa">Disfunción severa</option>
-          </select>
-        </div>
-        <div class="fg"><label>Diámetro del VD sistémico (de VD / AD)</label>
-          <input type="text" id="tga_dilatacion_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>IT sistémica — grado (de Válvulas)</label>
-          <input type="text" id="tga_it_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-        <div class="fg"><label>Obstrucción subaórtica</label>
-          <select id="tga_obstr_subaortica" onchange="tgaSync()">
-            <option value="">—</option><option value="no_eval">No evaluada</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>Gradiente subaórtico (mmHg)</label><input type="number" id="tga_grad_subaortico" step="1" placeholder="mmHg" oninput="tgaSync()"></div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>Bloqueo AV completo</label>
-          <select id="tga_bav" onchange="tgaSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>CIV residual</label>
-          <select id="tga_civ_residual" onchange="tgaSync()">
-            <option value="">—</option><option value="no_eval">No evaluada</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>Gradiente CIV residual (mmHg)</label><input type="number" id="tga_civ_grad" step="1" placeholder="mmHg" oninput="tgaSync()"></div>
-      </div>
-      <div class="grid-2" style="margin-top:10px;">
-        <div class="fg"><label>Síntomas</label>
-          <select id="tga_sintomas" onchange="tgaSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-      </div>
-      <div class="calc-box" style="margin-top:12px;">
-        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="tga-concl" class="calc-val">—</span></div>
-      </div>
-      <div style="text-align:center;margin-top:10px;">
-        <input type="checkbox" id="tga_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
-        <button type="button" class="btn btn-integrar" data-ete-chk="tga_incluir_chk" aria-pressed="false"
-                onclick="eteInclToggle('tga_incluir_chk')">📎 Integrar al informe</button>
-      </div>
+      <p style="font-size:12px;color:var(--text2);margin:0;line-height:1.6;">En desarrollo — proximamente.</p>
     </div>
   </div>
-
 <div class="card sacc" id="sacc-cc-mch">
     <button type="button" class="sacc-hdr" onclick="secToggle('cc-mch');mchSync();" aria-expanded="false">
       <span class="sacc-arrow">▶</span>
@@ -9343,11 +8777,7 @@ z
       </div>
     </div>
   </div>
-
-  <!-- ═══ MIOCARDIOPATÍA ARRITMOGÉNICA ═══
-       MCA y no MAVD/ARVC: el compromiso puede ser biventricular o predominantemente izquierdo.
-       La regla de conteo es UNO POR CATEGORÍA — ver mcaScore(). -->
-  <div class="card sacc" id="sacc-cc-mca">
+<div class="card sacc" id="sacc-cc-mca">
     <button type="button" class="sacc-hdr" onclick="secToggle('cc-mca');mcaSync();" aria-expanded="false">
       <span class="sacc-arrow">▶</span>
       <span style="flex:1;">MCA — Miocardiopatía arritmogénica</span>
@@ -9528,6 +8958,181 @@ z
       </div>
     </div>
   </div>
+<div class="card sacc" id="sacc-cc-tdf">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-tdf');tdfSync();" aria-expanded="false">
+      <span class="sacc-arrow">▶</span>
+      <span style="flex:1;">TdF — Tetralogía de Fallot reparada</span>
+      <span id="tdf_badge" class="incl-badge" hidden>📎 en el informe</span>
+    </button>
+    <div class="card-body sacc-body">
+      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
+        La cardiopatía congénita compleja más frecuente en el adulto. El seguimiento gira alrededor de la <b>insuficiencia pulmonar residual</b>
+        y la dilatación del ventrículo derecho, con riesgo de taquicardia ventricular sostenida a largo plazo.
+      </p>
+      <div class="mBoxLike" style="border-left:3px solid var(--accent2);background:rgba(13,148,136,.08);padding:8px 12px;border-radius:6px;font-size:10px;line-height:1.5;margin-bottom:12px;color:var(--text2);">
+        <b>Acá no hay campos de volumen, y es a propósito.</b> Los umbrales que definen la reintervención —VDFVD indexado ≥160 ml/m², volumen sistólico final ≥80 ml/m²— son cifras de <b>resonancia</b>:
+        la ESC 2020 dice que la RMC es el método de elección para el volumen y la función del VD, y la eco 2D no los mide de forma fiable. Esta sección maneja lo que el ecocardiograma sí mide.
+        La guía además advierte que ese corte «puede no correlacionar con beneficio clínico» y pide <b>medidas seriadas</b>.
+      </div>
+      <div class="grid-3">
+        <div class="fg"><label>IP — grado (de Válvulas)</label>
+          <input type="text" id="tdf_ip_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+        <div class="fg"><label>Ø TSVD (de VD / AD)</label>
+          <input type="text" id="tdf_tsvd_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+        <div class="fg"><label>Función del VD</label>
+          <select id="tdf_func_vd" onchange="tdfSync()">
+            <option value="">—</option>
+            <option value="normal">Normal</option>
+            <option value="leve">Disfunción leve</option>
+            <option value="moderada">Disfunción moderada</option>
+            <option value="severa">Disfunción severa</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>Gradiente TSVD (mmHg) — si difiere del transvalvular</label><input type="number" id="tdf_grad_tsvd" step="1" placeholder="mmHg" oninput="tdfSync()"></div>
+        <div class="fg"><label>Presión sistólica VD (de PSAP por IT)</label>
+          <input type="text" id="tdf_psvd_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+        <div class="fg"><label>IT — grado (de Válvulas)</label>
+          <input type="text" id="tdf_it_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+      </div>
+      <p style="font-size:10px;color:var(--text2);margin:6px 0 0;">Con obstrucción residual del tracto de salida, la presión que estima la IT es la del <b>ventrículo derecho</b> y no la de la arteria pulmonar: las separa el gradiente del TSVD.</p>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>CIV residual</label>
+          <select id="tdf_civ_residual" onchange="tdfSync()">
+            <option value="">—</option><option value="no_eval">No evaluada</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Gradiente CIV residual (mmHg)</label><input type="number" id="tdf_civ_grad" step="1" placeholder="mmHg" oninput="tdfSync()"></div>
+        <div class="fg"><label>Estenosis pulmonar nativa o stent</label>
+          <select id="tdf_ep_stent" onchange="tdfSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>Síntomas</label>
+          <select id="tdf_sintomas" onchange="tdfSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Caída objetiva de la capacidad de ejercicio</label>
+          <select id="tdf_ejercicio" onchange="tdfSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Taquicardia ventricular <span style="font-weight:400;color:var(--text2);font-size:10px;">— derivado</span></label>
+          <select id="tdf_tv" disabled data-espejo title="Se deriva del bloque «⚡ Arritmia ventricular», arriba de esta pestaña.">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+      <div class="calc-box" style="margin-top:12px;">
+        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="tdf-concl" class="calc-val">—</span></div>
+      </div>
+      <div style="text-align:center;margin-top:10px;">
+        <input type="checkbox" id="tdf_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+        <button type="button" class="btn btn-integrar" data-ete-chk="tdf_incluir_chk" aria-pressed="false"
+                onclick="eteInclToggle('tdf_incluir_chk')">📎 Integrar al informe</button>
+      </div>
+    </div>
+  </div>
+<div class="card sacc" id="sacc-cc-tv">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-tv');tvSync();" aria-expanded="false">
+      <span class="sacc-arrow">▶</span>
+      <span style="flex:1;">⚡ Arritmia ventricular <span style="font-weight:400;color:var(--text2);font-size:11px;">— compartido por MCH, Fallot y MCA</span></span>
+      <span id="tv_badge" class="incl-badge" hidden>● cargada</span>
+    </button>
+    <div class="card-body sacc-body">
+      <p style="font-size:10px;color:var(--text2);margin:0 0 10px;line-height:1.5;">
+        Se carga <b>una sola vez</b> y la usan las tres secciones, cada una con su propia regla.
+        La <b>morfología y el eje</b> sólo los necesita el Task Force de la miocardiopatía arritmogénica; si no evaluás esa entidad, alcanza con el hecho y el tipo.
+      </p>
+      <div class="grid-3">
+        <div class="fg"><label>Taquicardia ventricular documentada</label>
+          <select id="tv_documentada" onchange="tvSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Tipo</label>
+          <select id="tv_tipo" onchange="tvSync()">
+            <option value="">—</option>
+            <option value="no_sostenida">No sostenida</option>
+            <option value="sostenida">Sostenida</option>
+            <option value="ambas">Ambas</option>
+          </select>
+        </div>
+        <div class="fg"><label>Extrasístoles ventriculares en 24 h (Holter)</label><input type="number" id="tv_ev24h" step="1" placeholder="EV/24h" oninput="tvSync()"></div>
+      </div>
+      <div class="grid-2" style="margin-top:10px;">
+        <div class="fg"><label>Morfología y eje</label>
+          <select id="tv_morfologia" onchange="tvSync()">
+            <option value="">—</option>
+            <option value="bcri_sup">BCRI con eje superior — origen en pared libre del VD</option>
+            <option value="bcri_inf">BCRI con eje inferior — tracto de salida del VD</option>
+            <option value="bcri_desc">BCRI con eje no determinado</option>
+            <option value="bcrd">BCRD — origen en el ventrículo izquierdo</option>
+            <option value="no_esp">No especificada</option>
+          </select>
+        </div>
+        <div class="fg"><label>Qué aporta a cada sección</label>
+          <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+            <span id="tv-aporte" class="calc-val">—</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ CIA / CIV ═══
+       Vive acá y no en ETE porque el shunt se calcula con TSVI/TSVD. Los campos fuente
+       (diam_tsvi, itv_tsvi, tsvd_diametro, vti_tsvd) siguen en #tab-doppler y #tab-vd — esta
+       sección sólo muestra espejos de sólo lectura (ete_shunt_*_ro) que llena eteShuntSync().
+       El toggle de inclusión NO usa localStorage: se lee del propio checkbox, que
+       guardarInforme captura en `campos` y la reimpresión repone. Las secciones viejas leen
+       una clave global y por eso un estudio reimpreso podía salir sin una sección que el PDF
+       original sí tenía. -->
+  
+
+  <!-- ═══ DUCTUS ARTERIOSO PERMEABLE ═══ -->
+  
+
+  <!-- ═══ COARTACIÓN DE AORTA ═══ -->
+  
+
+  <!-- ═══ VENTANA AORTOPULMONAR ═══ -->
+  
+
+  <!-- ═══ FORAMEN OVAL PERMEABLE ═══
+       Los campos de contexto clínico son SELECTS de tres estados, no casillas: la diferencia
+       entre «no lo tiene» y «no lo pregunté» decide acá entre no hacer nada e implantar un
+       dispositivo. Ver la nota de fopConclusion(). -->
+  
+
+  <!-- ═══ VÁLVULA AÓRTICA BICÚSPIDE ═══
+       La guía que se aplica es la ESC 2024 de AORTA, no la ESC/EACTS de valvulopatías: la 2021
+       está superada por la 2025, y la 2025 borró sus propias filas de 55/50 mm y remite a la de
+       aorta. El texto que imprime la sección nombra la guía y la clase. Ver vabConclusion(). -->
+  
+
+  <!-- ═══ MIOCARDIOPATÍA HIPERTRÓFICA ═══
+       Dos scores de muerte súbita con criterios distintos, lado a lado, cada uno con su guía y
+       su clase. No se promedian ni se elige uno. Ver mchConclusion(). -->
+  
+
+  <!-- ═══ TETRALOGÍA DE FALLOT REPARADA ═══
+       Sin campos de volumen a propósito: los umbrales de 160/80 ml/m² son de RESONANCIA y la
+       eco 2D no mide volúmenes del VD de forma fiable. Ver tdfConclusion(). -->
+  
+
+  <!-- ═══ TRANSPOSICIÓN DE GRANDES ARTERIAS CORREGIDA ═══ -->
+  
+
+
+
+  <!-- ═══ MIOCARDIOPATÍA ARRITMOGÉNICA ═══
+       MCA y no MAVD/ARVC: el compromiso puede ser biventricular o predominantemente izquierdo.
+       La regla de conteo es UNO POR CATEGORÍA — ver mcaScore(). -->
+  
 
   <!-- ═══ ANOMALÍA DE EBSTEIN ═══
        Las cinco áreas del índice de Celermajer son campos PROPIOS y no reusan ad_area/ai_area:
@@ -9974,6 +9579,507 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
 </script>
 
 <!-- ═══════════════════════ TAB: CALCULADORAS ═══════════════════════ -->
+
+<!-- ═══════════════════════ TAB: CONGENITAS ESTRUCTURALES ═══════════════════════
+     Segunda pestaña (2026-09-15). La division es CLINICA: de un lado lo que se sigue en el
+     adulto por su valvula, su aorta o su miocardio; del otro las cardiopatias con shunt y las
+     paliadas, que se siguen por su fisiologia.
+     NINGUNA seccion cambio de id, de funcion ni de contenido. secToggle, secAutoOpen, los
+     *Sync de RECALC_MODULOS y _CC_SEC_POR_K buscan por id en TODO el documento, asi que no
+     les importa en que pestaña esta cada una. Lo verifica TC-112.
+     COMO SE HIZO, porque importa: cada seccion se reemplazo EN SU POSICION por un marcador y
+     despues se reagruparon. Los dos intentos anteriores RECONSTRUYERON la pestaña desde las
+     secciones extraidas y se comieron DOS bloques de codigo embebido que vivian ENTRE ellas.
+     Lo delato el conteo de esos bloques, no los tests: los 126 casos pasaban igual.
+     Nunca reconstruir una pestaña desde sus partes: mover lo que se muda y dejar el resto
+     quieto. (La marca de apertura no se escribe literal en este comentario: la contarian el
+     chequeo de conteo y el extractor de sintaxis como si fuera un bloque de verdad.) -->
+<div id="tab-congenitas2" class="tab-section">
+  <div class="card" style="margin-bottom:8px;">
+    <div class="card-body" style="padding:12px 14px;">
+      <div style="font-size:15px;font-weight:800;">🫀 Cardiopatias congenitas estructurales</div>
+      <div style="font-size:11.5px;color:var(--text2);margin-top:3px;">Cardiopatias con shunt, conexiones anomalas y circulaciones paliadas. Las aortopatias y miocardiopatias geneticas estan en «Congenitas».</div>
+    </div>
+  </div>
+
+<div class="card sacc" id="sacc-cc-shunt">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-shunt');eteShuntSync();" aria-expanded="false">
+      <span class="sacc-arrow">▶</span>
+      <span style="flex:1;">CIA / CIV — Comunicación interauricular e interventricular</span>
+      <span id="ete_shunt_badge" class="incl-badge" hidden>📎 en el informe</span>
+    </button>
+    <div class="card-body sacc-body">
+
+    <div class="subtabs-wrap" style="justify-content:flex-start;margin-bottom:12px;">
+      <div class="tabs-row">
+        <button type="button" class="tab-btn active" id="ete-shunt-tab-cia" onclick="eteShuntTab('cia')">CIA</button>
+        <button type="button" class="tab-btn" id="ete-shunt-tab-civ" onclick="eteShuntTab('civ')">CIV</button>
+      </div>
+    </div>
+
+    <!-- ── CIA ── -->
+    <div id="ete-shunt-pane-cia">
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">Tipo y tamaño</div>
+      <div class="grid-3">
+        <div class="fg"><label>Tipo de CIA</label>
+          <select id="ete_cia_tipo" onchange="eteShuntSync()">
+            <option value="">—</option>
+            <option value="secundum">Ostium secundum</option>
+            <option value="primum">Ostium primum</option>
+            <option value="sv_vcs">Seno venoso VCS</option>
+            <option value="sv_vci">Seno venoso VCI</option>
+            <option value="seno_coronario">Seno coronario</option>
+          </select>
+        </div>
+        <div class="fg"><label>Tamaño máximo (mm)</label><input type="number" id="ete_cia_tam_max" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+        <div class="fg"><label>Tamaño mínimo (mm)</label><input type="number" id="ete_cia_tam_min" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Bordes</div>
+      <div class="grid-3" style="margin-bottom:4px;">
+        <div class="fg"><label>Borde aórtico (mm)</label><input type="number" id="ete_cia_borde_ao" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+        <div class="fg"><label>Borde AV / mitral (mm)</label><input type="number" id="ete_cia_borde_av" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+        <div class="fg"><label>Borde VCS (mm)</label><input type="number" id="ete_cia_borde_vcs" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+        <div class="fg"><label>Borde VCI (mm)</label><input type="number" id="ete_cia_borde_vci" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+        <div class="fg"><label>Borde posterior (mm)</label><input type="number" id="ete_cia_borde_post" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+      </div>
+      <div id="ete-cia-borde-min-box" class="calc-box" style="margin-top:8px;display:none;">
+        <div class="calc-row"><span class="calc-lbl">Borde mínimo</span><span id="ete-cia-borde-min">—</span></div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Shunt</div>
+      <div class="grid-2">
+        <div class="fg"><label>Dirección</label>
+          <select id="ete_cia_dir" onchange="eteShuntSync()">
+            <option value="">—</option>
+            <option value="id">Izquierda → derecha</option>
+            <option value="di">Derecha → izquierda</option>
+            <option value="bi">Bidireccional</option>
+          </select>
+        </div>
+        <div class="fg"><label>Velocidad pico del jet (m/s)</label><input type="number" id="ete_cia_vel" step="0.1" placeholder="m/s" oninput="eteShuntSync()"></div>
+      </div>
+      <!-- No se deriva PAPs del jet interauricular: esa fórmula (PAS − 4V²) es la del CIV,
+           donde la velocidad refleja el gradiente VI–VD. En una CIA el gradiente es AI–AD y
+           da números sin sentido (PAS 120 con V 1,2 → «PAPs 114»). La PAPs de la CIA se
+           informa por IT, que ya viene calculada más abajo. -->
+      <div class="calc-box" style="margin-top:8px;">
+        <div class="calc-row"><span class="calc-lbl">PAPs por IT (del estudio)</span><span id="ete-cia-paps-it" class="calc-val">—</span></div>
+      </div>
+
+      <!-- Donut a la izquierda, detalle del borde tocado a la derecha. La columna «Ventana ETE»
+           de la tabla anterior se fue al panel, que es donde aparece la del borde que el médico
+           está mirando en vez de las cinco a la vez.
+           Los CINCO INPUTS SIGUEN EXISTIENDO, abajo: son campos persistidos que barre
+           `guardarInforme` por `input[id]`, y sacarlos habría dejado el donut sin forma de
+           cargarle datos y el estudio sin los bordes. «Reemplazar la tabla» es reemplazar su
+           PRESENTACIÓN, no la entrada de datos.
+           El diagrama va al FINAL del panel, debajo de los campos y del shunt: es una LECTURA de
+           lo cargado, no un control de entrada, y arriba empujaba los campos por debajo del
+           pliegue — el médico tenía que scrollear para llegar a lo que tiene que tipear.
+           `overflow:visible` y `width`/`height` explícitos en el <svg>: el UA le pone
+           `overflow:hidden` y Safari no deriva la altura del viewBox — sin las dos cosas el
+           diagrama sale recortado o de alto cero. Ya está documentado en este proyecto. -->
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;margin-bottom:12px;">
+        <svg id="cia-donut-svg" width="260" height="260" viewBox="-130 -130 260 260"
+             role="img" aria-label="Bordes de la comunicación interauricular"
+             style="overflow:visible;flex:0 0 auto;max-width:100%;height:auto;aspect-ratio:1/1;"></svg>
+        <div style="flex:1 1 220px;min-width:200px;">
+          <div id="cia-donut-panel" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;"></div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:10.5px;color:var(--text2);margin-top:8px;">
+            <span>🟩 ≥5 mm adecuado</span><span>🟧 3–4 mm borderline</span><span>🟥 &lt;3 mm deficiente</span>
+          </div>
+        </div><!-- /columna derecha: panel + leyenda -->
+      </div><!-- /fila donut + panel -->
+    </div>
+
+    <!-- ── CIV ── -->
+    <div id="ete-shunt-pane-civ" style="display:none;">
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">Tipo y tamaño</div>
+      <div class="grid-3">
+        <div class="fg"><label>Tipo de CIV</label>
+          <select id="ete_civ_tipo" onchange="eteShuntSync()">
+            <option value="">—</option>
+            <option value="perimembranosa">Perimembranosa</option>
+            <option value="muscular">Muscular</option>
+            <option value="infundibular">Infundibular</option>
+            <option value="inlet">Inlet</option>
+          </select>
+        </div>
+        <div class="fg"><label>Tamaño máximo (mm)</label><input type="number" id="ete_civ_tam" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+        <div class="fg"><label>Vista ETE</label><input type="text" id="ete_civ_vista" placeholder="Ej: 4C 0°, eje corto 45°" oninput="eteShuntSync()"></div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Gradiente y presión pulmonar</div>
+      <div class="grid-2">
+        <div class="fg"><label>Velocidad pico del jet CIV (m/s)</label><input type="number" id="ete_civ_vel" step="0.1" placeholder="m/s" oninput="eteShuntSync()"></div>
+        <div class="fg"><label>PA sistémica (mmHg)</label><input type="number" id="ete_civ_pas" step="1" placeholder="mmHg" oninput="eteShuntSync()"></div>
+      </div>
+      <div class="calc-box" style="margin-top:8px;">
+        <div class="calc-row"><span class="calc-lbl">PAPs estimada por CIV (PAS − 4V²)</span><span id="ete-civ-paps" class="calc-val">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">PAPs por IT (del estudio)</span><span id="ete-civ-paps-it" class="calc-val">—</span></div>
+      </div>
+    </div>
+
+    <!-- ── Comunes a CIA y CIV ──
+         Qp/Qs y DDVI indexado se cargan UNA vez y valen para las dos pestañas: el Qp/Qs es
+         una propiedad del shunt y el DDVIi del paciente, ninguno de los dos es específico de
+         CIA o CIV. Con dos juegos de campos, un paciente con ambos defectos podía terminar
+         informando dos Qp/Qs distintos. -->
+    <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;border-top:1px solid var(--border);padding-top:12px;">
+      Qp/Qs y DDVI indexado <span style="font-weight:400;color:var(--text2);font-size:11px;">— comunes a CIA y CIV</span>
+    </div>
+    <div class="grid-4">
+      <div class="fg"><label>Ø TSVI (mm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
+        <input type="text" id="ete_shunt_tsvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+      <div class="fg"><label>VTI TSVI (cm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
+        <input type="text" id="ete_shunt_vtitsvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+      <!-- Los cuatro son espejos de solo lectura, no sólo los dos izquierdos: el diámetro y
+           el VTI del TSVD se cargan en la tab VD/AD, con el resto de las medidas del
+           ventrículo derecho. Antes el VTI TSVD estaba duplicado —uno acá para el Qp/Qs y
+           otro en VD/AD para la RVP de Abbas, sin sincronizar—, así que un mismo estudio
+           podía informar dos VTI distintos de la misma medición. -->
+      <div class="fg"><label>Ø TSVD (mm) <span style="color:var(--text2);font-size:10px;">— de VD/AD</span></label>
+        <input type="text" id="ete_shunt_tsvd_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+      <div class="fg"><label>VTI TSVD (cm) <span style="color:var(--text2);font-size:10px;">— de VD/AD</span></label>
+        <input type="text" id="ete_shunt_vtitsvd_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+    </div>
+    <div style="font-size:10.5px;color:var(--text2);margin-top:4px;">
+      Los cuatro valores del Qp/Qs se cargan en sus tabs: TSVI y VTI-TSVI en <b>〰️ Doppler → Doppler Aórtico (TSVI)</b>, diámetro y VTI del TSVD en <b>VD / AD</b>.
+    </div>
+    <div class="calc-box" style="margin-top:8px;">
+      <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Qp/Qs</span><span id="ete-shunt-qpqs">—</span></div>
+      <div class="calc-row"><span class="calc-lbl">Interpretación</span><span id="ete-shunt-qpqs-interp" style="font-size:11px;color:var(--text2);">—</span></div>
+    </div>
+    <div class="grid-3" style="margin-top:10px;">
+      <div class="fg"><label>DDVI (mm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
+        <input type="text" id="ete_shunt_ddvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+      <div class="fg"><label>ASC (m²) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
+        <input type="text" id="ete_shunt_asc_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+      <div class="fg"><label>DDVI indexado</label>
+        <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+          <span id="ete-shunt-ddvii" class="calc-val">—</span></div></div>
+        <div style="font-size:10px;color:var(--text2);margin-top:3px;">Normal &lt; 32 mm/m²</div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:10px;">
+      <!-- El checkbox sigue siendo el estado; el botón es la piel. Oculto y no
+           eliminado: guardarInforme lo captura por `input[type=checkbox][id]`. -->
+      <input type="checkbox" id="ete_shunt_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+      <button type="button" class="btn btn-integrar" data-ete-chk="ete_shunt_incluir_chk" aria-pressed="false"
+              onclick="eteInclToggle('ete_shunt_incluir_chk')">📎 Integrar al informe</button>
+    </div>
+    </div>
+  </div>
+<div class="card sacc" id="sacc-cc-dap">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-dap');dapSync();" aria-expanded="false">
+      <span class="sacc-arrow">▶</span>
+      <span style="flex:1;">DAP — Ductus arterioso permeable</span>
+      <span id="ductus_badge" class="incl-badge" hidden>📎 en el informe</span>
+    </button>
+    <div class="card-body sacc-body">
+    <div class="grid-3">
+      <div class="fg"><label>Tipo de ductus</label>
+        <select id="dap_tipo" onchange="dapSync()">
+          <option value="">—</option>
+          <option value="silente">Silente</option>
+          <option value="restrictivo">Restrictivo (pequeño)</option>
+          <option value="no_restrictivo">No restrictivo (grande)</option>
+        </select>
+      </div>
+      <div class="fg"><label>Diámetro mínimo (mm)</label><input type="number" id="dap_diam" step="0.1" placeholder="mm" oninput="dapSync()"></div>
+      <div class="fg"><label>Dirección del shunt</label>
+        <select id="dap_dir" onchange="dapSync()">
+          <option value="">—</option>
+          <option value="id">Izquierda a derecha</option>
+          <option value="bi">Bidireccional</option>
+          <option value="di">Derecha a izquierda</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid-3" style="margin-top:10px;">
+      <div class="fg"><label>Velocidad máxima (m/s)</label><input type="number" id="dap_vmax" step="0.1" placeholder="m/s" oninput="dapSync()"></div>
+      <div class="fg"><label>Gradiente instantáneo máx.</label>
+        <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+          <span id="dap-gmax" class="calc-val">—</span></div></div>
+        <div style="font-size:10px;color:var(--text2);margin-top:3px;">4 × Vmax²</div>
+      </div>
+      <div class="fg"><label>PAPs estimada (mmHg)</label><input type="number" id="dap_paps" step="1" placeholder="mmHg" oninput="dapSync()"></div>
+    </div>
+    <div class="calc-box" style="margin-top:12px;">
+      <div class="calc-row"><span class="calc-lbl">Qp/Qs</span><span id="dap-qpqs" class="calc-val">—</span></div>
+      <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="dap-concl" class="calc-val">—</span></div>
+    </div>
+    <div style="text-align:center;margin-top:10px;">
+      <input type="checkbox" id="ductus_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+      <button type="button" class="btn btn-integrar" data-ete-chk="ductus_incluir_chk" aria-pressed="false"
+              onclick="eteInclToggle('ductus_incluir_chk')">📎 Integrar al informe</button>
+    </div>
+    </div>
+  </div>
+<div class="card sacc" id="sacc-cc-vap">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-vap');vapSync();" aria-expanded="false">
+      <span class="sacc-arrow">▶</span>
+      <span style="flex:1;">VAP — Ventana aortopulmonar</span>
+      <span id="vap_badge" class="incl-badge" hidden>📎 en el informe</span>
+    </button>
+    <div class="card-body sacc-body">
+      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
+        Comunicación directa entre la aorta ascendente y la arteria pulmonar principal. Menos del 1 % de las cardiopatías congénitas.
+        A diferencia del ductus no tiene variante restrictiva relevante en el adulto: el defecto es proximal y de gran calibre, así que
+        la repercusión hemodinámica se asume salvo prueba en contra.
+        <b style="color:var(--accent2);">ESC 2020: cierre indicado siempre, salvo hipertensión pulmonar irreversible (Eisenmenger).</b>
+      </p>
+      <div class="grid-3">
+        <div class="fg"><label>Tipo</label>
+          <select id="vap_tipo" onchange="vapSync()">
+            <option value="">—</option>
+            <option value="i">Tipo I — proximal</option>
+            <option value="ii">Tipo II — distal</option>
+            <option value="iii">Tipo III — total</option>
+          </select>
+        </div>
+        <div class="fg"><label>Diámetro (mm)</label><input type="number" id="vap_diam" step="0.1" placeholder="mm" oninput="vapSync()"></div>
+        <div class="fg"><label>Dirección del shunt</label>
+          <select id="vap_dir" onchange="vapSync()">
+            <option value="">—</option>
+            <option value="id">Izquierda a derecha</option>
+            <option value="bi">Bidireccional</option>
+            <option value="di">Derecha a izquierda</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>Hipertensión pulmonar asociada</label>
+          <select id="vap_htp" onchange="vapSync()">
+            <option value="">—</option>
+            <option value="no_eval">No evaluada</option>
+            <option value="no">No</option>
+            <option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>PAPs estimada — del estudio</label>
+          <input type="text" id="vap_paps_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+        <div class="fg"><label>Qp/Qs</label>
+          <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+            <span id="vap-qpqs" class="calc-val">—</span></div></div>
+        </div>
+      </div>
+      <div class="calc-box" style="margin-top:12px;">
+        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="vap-concl" class="calc-val">—</span></div>
+      </div>
+      <div style="text-align:center;margin-top:10px;">
+        <input type="checkbox" id="vap_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+        <button type="button" class="btn btn-integrar" data-ete-chk="vap_incluir_chk" aria-pressed="false"
+                onclick="eteInclToggle('vap_incluir_chk')">📎 Integrar al informe</button>
+      </div>
+    </div>
+  </div>
+  <div class="card sacc" id="sacc-cc-dsav">
+    <button type="button" class="sacc-hdr" onclick="secToggle('dsav')" aria-expanded="false">
+      <span class="sacc-arrow">&#9654;</span>
+      <span style="flex:1;">🫀 DSAV — Defecto del septo auriculoventricular</span>
+    </button>
+    <div class="card-body sacc-body">
+      <p style="font-size:12px;color:var(--text2);margin:0;line-height:1.6;">En desarrollo — proximamente.</p>
+    </div>
+  </div>
+  <div class="card sacc" id="sacc-cc-cvpa">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cvpa')" aria-expanded="false">
+      <span class="sacc-arrow">&#9654;</span>
+      <span style="flex:1;">🫀 CVPA — Conexion venosa pulmonar anomala</span>
+    </button>
+    <div class="card-body sacc-body">
+      <p style="font-size:12px;color:var(--text2);margin:0;line-height:1.6;">En desarrollo — proximamente.</p>
+    </div>
+  </div>
+<div class="card sacc" id="sacc-cc-tga">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-tga');tgaSync();" aria-expanded="false">
+      <span class="sacc-arrow">▶</span>
+      <span style="flex:1;">TGA — Transposición de grandes arterias corregida</span>
+      <span id="tga_badge" class="incl-badge" hidden>📎 en el informe</span>
+    </button>
+    <div class="card-body sacc-body">
+      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
+        El <b>ventrículo derecho es el ventrículo sistémico</b>, y su deterioro progresivo es inevitable y es la principal causa de muerte.
+        La válvula tricúspide de estos pacientes es la auriculoventricular <b>sistémica</b>: su insuficiencia pesa como pesaría una mitral.
+      </p>
+      <div class="grid-3">
+        <div class="fg"><label>Tipo</label>
+          <select id="tga_tipo" onchange="tgaSync()">
+            <option value="">—</option>
+            <option value="cctga">ccTGA — congénitamente corregida</option>
+            <option value="mustard">Post-Mustard</option>
+            <option value="senning">Post-Senning</option>
+          </select>
+        </div>
+        <div class="fg"><label>Función del VD sistémico</label>
+          <select id="tga_func_vd" onchange="tgaSync()">
+            <option value="">—</option>
+            <option value="normal">Normal</option>
+            <option value="leve">Disfunción leve</option>
+            <option value="moderada">Disfunción moderada</option>
+            <option value="severa">Disfunción severa</option>
+          </select>
+        </div>
+        <div class="fg"><label>Diámetro del VD sistémico (de VD / AD)</label>
+          <input type="text" id="tga_dilatacion_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>IT sistémica — grado (de Válvulas)</label>
+          <input type="text" id="tga_it_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+        <div class="fg"><label>Obstrucción subaórtica</label>
+          <select id="tga_obstr_subaortica" onchange="tgaSync()">
+            <option value="">—</option><option value="no_eval">No evaluada</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Gradiente subaórtico (mmHg)</label><input type="number" id="tga_grad_subaortico" step="1" placeholder="mmHg" oninput="tgaSync()"></div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>Bloqueo AV completo</label>
+          <select id="tga_bav" onchange="tgaSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>CIV residual</label>
+          <select id="tga_civ_residual" onchange="tgaSync()">
+            <option value="">—</option><option value="no_eval">No evaluada</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Gradiente CIV residual (mmHg)</label><input type="number" id="tga_civ_grad" step="1" placeholder="mmHg" oninput="tgaSync()"></div>
+      </div>
+      <div class="grid-2" style="margin-top:10px;">
+        <div class="fg"><label>Síntomas</label>
+          <select id="tga_sintomas" onchange="tgaSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+      <div class="calc-box" style="margin-top:12px;">
+        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="tga-concl" class="calc-val">—</span></div>
+      </div>
+      <div style="text-align:center;margin-top:10px;">
+        <input type="checkbox" id="tga_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+        <button type="button" class="btn btn-integrar" data-ete-chk="tga_incluir_chk" aria-pressed="false"
+                onclick="eteInclToggle('tga_incluir_chk')">📎 Integrar al informe</button>
+      </div>
+    </div>
+  </div>
+<div class="card sacc" id="sacc-cc-ebs">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-ebs');ebsSync();" aria-expanded="false">
+      <span class="sacc-arrow">▶</span>
+      <span style="flex:1;">Ebstein — Anomalía de Ebstein</span>
+      <span id="ebs_badge" class="incl-badge" hidden>📎 en el informe</span>
+    </button>
+    <div class="card-body sacc-body">
+      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
+        Desplazamiento apical del velo septal tricuspídeo con atrialización del ventrículo derecho. Menos del 1 % de las cardiopatías congénitas,
+        y la principal causa de <b>insuficiencia tricuspídea congénita severa</b>. Asociación frecuente con FOP o CIA y con vías accesorias.
+        <b style="color:var(--accent2);">Umbral diagnóstico: desplazamiento ≥8 mm/m² de superficie corporal.</b>
+      </p>
+      <div class="grid-3">
+        <div class="fg"><label>Desplazamiento del velo septal (mm)</label><input type="number" id="ebs_desplazamiento" step="0.1" placeholder="mm" oninput="ebsSync()"></div>
+        <div class="fg"><label>Indexado por superficie</label>
+          <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+            <span id="ebs-desp-idx" class="calc-val">—</span></div></div>
+        </div>
+        <div class="fg"><label>Atrialización del VD (%)</label><input type="number" id="ebs_atrializacion" step="1" placeholder="%" oninput="ebsSync()"></div>
+      </div>
+      <div class="grid-2" style="margin-top:10px;">
+        <div class="fg"><label>Función del VD funcional</label>
+          <select id="ebs_func_vd" onchange="ebsSync()">
+            <option value="">—</option>
+            <option value="normal">Normal</option>
+            <option value="leve">Reducida leve</option>
+            <option value="moderada">Reducida moderada</option>
+            <option value="severa">Reducida severa</option>
+          </select>
+        </div>
+        <div class="fg"><label>IT — grado (de Válvulas)</label>
+          <input type="text" id="ebs_it_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Índice de Celermajer</div>
+      <p style="font-size:10px;color:var(--text2);margin:0 0 8px;">Las cinco áreas se trazan en <b>apical 4 cámaras y en TELEDIÁSTOLE</b>. No son las mismas que las áreas auriculares del estudio, que se miden en telesístole (aurícula máxima) para evaluar tamaño de cámara — por eso son campos aparte.</p>
+      <div class="grid-3">
+        <div class="fg"><label>Área AD (cm²)</label><input type="number" id="ebs_area_ad" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
+        <div class="fg"><label>Área VD atrializado (cm²)</label><input type="number" id="ebs_area_vd_atrial" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
+        <div class="fg"><label>Área VD funcional (cm²)</label><input type="number" id="ebs_area_vd_func" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>Área AI (cm²)</label><input type="number" id="ebs_area_ai" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
+        <div class="fg"><label>Área VI (cm²)</label><input type="number" id="ebs_area_vi" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
+        <div class="fg"><label>Áreas del estudio (telesístole)</label>
+          <input type="text" id="ebs_areas_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+      </div>
+      <div class="calc-box" style="margin-top:10px;">
+        <div class="calc-row"><span class="calc-lbl">Índice de Celermajer</span><span id="ebs-celermajer" class="calc-val">—</span></div>
+      </div>
+      <div class="mBoxLike" style="border-left:3px solid var(--red,#b91c1c);background:rgba(185,28,28,.08);padding:8px 12px;border-radius:6px;font-size:10px;line-height:1.5;margin-top:10px;">
+        <b>El índice es orientativo, no una indicación.</b> Por ecocardiografía <b>sobreestima</b> la severidad (concordancia con resonancia κ=0,39; sólo el índice por RMC correlacionó con la capacidad funcional).
+        Se derivó en una serie de <b>28 neonatos</b> — el «100 %» del grado IV son 5 pacientes de 5 — y <b>no figura en la ESC 2020</b>, cuyas indicaciones de cirugía en Ebstein son clínicas.
+        Cortes: I &lt;0,5 · II 0,50-0,99 · III 1,00-1,49 · IV ≥1,5. Origen: Celermajer DS et al., <i>JACC</i> 1992;19:1041-6.
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Arritmias y situación clínica</div>
+      <div class="grid-3">
+        <div class="fg"><label>Taquicardia supraventricular</label>
+          <select id="ebs_tsv" onchange="ebsSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Vías accesorias conocidas</label>
+          <select id="ebs_vias" onchange="ebsSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Síntomas atribuibles</label>
+          <select id="ebs_sintomas" onchange="ebsSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:10px;">
+        <div class="fg"><label>Deterioro objetivo de la capacidad de ejercicio</label>
+          <select id="ebs_ejercicio" onchange="ebsSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Dilatación progresiva del VD</label>
+          <select id="ebs_progresion" onchange="ebsSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
+      <div class="calc-box" style="margin-top:12px;">
+        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="ebs-concl" class="calc-val">—</span></div>
+      </div>
+      <div style="text-align:center;margin-top:10px;">
+        <input type="checkbox" id="ebs_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+        <button type="button" class="btn btn-integrar" data-ete-chk="ebs_incluir_chk" aria-pressed="false"
+                onclick="eteInclToggle('ebs_incluir_chk')">📎 Integrar al informe</button>
+      </div>
+    </div>
+  </div>
+  <div class="card sacc" id="sacc-cc-eisen">
+    <button type="button" class="sacc-hdr" onclick="secToggle('eisen')" aria-expanded="false">
+      <span class="sacc-arrow">&#9654;</span>
+      <span style="flex:1;">🫁 Sindrome de Eisenmenger</span>
+    </button>
+    <div class="card-body sacc-body">
+      <p style="font-size:12px;color:var(--text2);margin:0;line-height:1.6;">En desarrollo — proximamente.</p>
+    </div>
+  </div>
+  <div class="card sacc" id="sacc-cc-fontan">
+    <button type="button" class="sacc-hdr" onclick="secToggle('fontan')" aria-expanded="false">
+      <span class="sacc-arrow">&#9654;</span>
+      <span style="flex:1;">🫀 Circulacion de Fontan</span>
+    </button>
+    <div class="card-body sacc-body">
+      <p style="font-size:12px;color:var(--text2);margin:0;line-height:1.6;">En desarrollo — proximamente.</p>
+    </div>
+  </div>
+</div>
 <div id="tab-calculadoras" class="tab-section">
   <div class="card">
     <h2 class="card-head">🧮 Calculadoras Clínicas Ecocardiográficas</h2>

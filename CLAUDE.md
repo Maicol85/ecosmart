@@ -146,6 +146,30 @@ tratamiento. Sin la basal cargada no se deduce nada. Ídem el GLS, que además e
 porque el resto de cardio-onco usa `Math.abs` y un `18` tipeado en vez de `-18` no recibe ningún
 aviso en ninguna otra parte de la app.
 
+### Nunca reconstruir una pestaña desde sus partes: mover, y dejar el resto quieto
+Repartir las doce secciones de Congénitas en dos pestañas se hizo **tres veces**. Las dos
+primeras extraían cada `.sacc` y **reconstruían** la pestaña concatenando las secciones en el
+orden nuevo — y con eso se comieron **dos bloques de código embebido que vivían ENTRE las
+secciones**, más los comentarios que los explicaban.
+
+**Los 127 casos pasaban igual.** Lo delató contar los bloques: 55 → 53. Un conteo de una cosa que
+nadie mira es lo único que vio el daño.
+
+La versión que quedó **no reconstruye**: reemplaza cada sección **en su posición** por un
+marcador, arma el grupo en el primer marcador y vacía los demás. Lo que está entre secciones no se
+toca porque nunca se lo levanta.
+
+Dos avisos más de esa mudanza:
+- **`sacc-cc-mch` está en columna 0** y las otras once a dos espacios. Un extractor que confía en
+  el sangrado se saltea justo ésa. Hay que recorrer profundidad de `<div>`.
+- **Escribir la marca de apertura de un bloque de código dentro de un comentario HTML** rompe el
+  conteo Y el extractor de sintaxis: los dos lo leen como bloque real. Pasó igual con la marca de
+  etiqueta en otro comentario el mismo día. En los comentarios, describir; no transcribir marcado.
+
+**TC-112** cuenta las diecinueve secciones, verifica que cada una esté en su pestaña y —esto es lo
+que separa un test útil de uno decorativo— que un **campo característico** de cada una de las doce
+originales siga DENTRO de su sección: una sección vaciada pero con su cabecera pasa todo lo demás.
+
 ### Un signo invertido en un umbral se lee igual de bien que el correcto
 La leyenda de `#ref-cardiotox` decía «SGL normal: más negativo que -18% · **disfunción
 subclínica: <-16%**». Leído literal, «menor que -16» es **-20**, que es un strain normal: la
@@ -941,13 +965,13 @@ El script contesta *«nadie lo nombra»*, no *«no tiene destino»*: un id menci
 ### 2 · Test suite clínico
 
 ```bash
-node scripts/test_clinico.mjs            # 126 casos, sin defectos abiertos
+node scripts/test_clinico.mjs            # 127 casos, sin defectos abiertos
 node scripts/test_clinico.mjs --solo TC-04
 node scripts/test_clinico.mjs --ver      # con el navegador a la vista, para depurar
 ```
 
 **Correr antes de cualquier push que toque el informe narrativo, el EN SUMA o una fórmula de
-cálculo. Tienen que pasar los 126. Si alguno falla, corregir antes de seguir.**
+cálculo. Tienen que pasar los 127. Si alguno falla, corregir antes de seguir.**
 
 **TC-01 a TC-17 — los bugs del 2026-09-14.** VD que desaparecía (TC-01/03), gradiente pulmonar
 congelado (TC-04), AD ausente del EN SUMA (TC-06), HFA-PEFF sin compuerta de FEVI (TC-07/08),

@@ -2491,6 +2491,52 @@ caso('TC-111', 'Cardio-onco: el rediseño no perdio ni duplico contenido', `
   ] };
 `);
 
+/* MOVER 1.800 LINEAS ES DONDE SE PIERDE CONTENIDO EN SILENCIO. Las doce secciones de Congenitas
+   se repartieron en DOS pestañas y se agregaron siete acordeones vacios. Los 126 casos pasaban
+   igual con las dos primeras versiones del movimiento — y las dos se habian comido DOS bloques de
+   codigo embebido que vivian ENTRE las secciones. Lo delato un conteo, no los tests.
+   Este caso cuenta: las doce originales tienen que seguir existiendo, con su id, su cabecera y su
+   cuerpo, y cada una en la pestaña que le toca. */
+caso('TC-112', 'Congenitas: las doce secciones sobrevivieron al reparto en dos pestañas', `
+  const T1 = ['vab','coa','marfan','fop','esub','easv','mch','mca','tdf','tv'];
+  const T2 = ['shunt','dap','vap','dsav','cvpa','tga','ebs','eisen','fontan'];
+  const ORIG = ['tv','shunt','dap','coa','vap','fop','vab','ebs','tdf','tga','mch','mca'];
+  const PH   = ['marfan','esub','easv','dsav','cvpa','eisen','fontan'];
+  const t1 = document.getElementById('tab-congenitas');
+  const t2 = document.getElementById('tab-congenitas2');
+  const de = k => document.getElementById('sacc-cc-' + k);
+  const enTab = (k, t) => { const e = de(k); return !!e && !!t && t.contains(e); };
+  return { extra: [
+    ['existen las dos pestañas', !!t1 && !!t2],
+    ['las DOCE secciones originales siguen existiendo', ORIG.every(k => !!de(k))],
+    ['mas los siete acordeones nuevos, sin repetir id',
+      PH.every(k => !!de(k)) &&
+      document.querySelectorAll('[id^="sacc-cc-"]').length === ORIG.length + PH.length],
+    ['cada una esta en la pestaña que le toca',
+      T1.every(k => enTab(k, t1)) && T2.every(k => enTab(k, t2))],
+    ['ninguna quedo en las dos',  T1.every(k => !enTab(k, t2)) && T2.every(k => !enTab(k, t1))],
+    ['todas conservan cabecera y cuerpo',
+      ORIG.concat(PH).every(k => { const e = de(k);
+        return !!e.querySelector('.sacc-hdr') && !!e.querySelector('.sacc-body'); })],
+    /* Que el CONTENIDO viajo entero, no solo el envoltorio: se toma un campo caracteristico de
+       cada una de las doce y se verifica que siga dentro de SU seccion. Sin esto, una seccion
+       vaciada pero con su cabecera pasaria las condiciones de arriba. */
+    ['y su contenido: cada campo caracteristico sigue dentro de su seccion',
+      [['vab','vab_fenotipo'],['coa','coa_istmo'],['fop','fop_tunel'],['mch','mch_espesor'],
+       ['mca','mca_tsvd_plax'],['tdf','tdf_civ_grad'],['tv','tv_tipo'],['shunt','ete_cia_tipo'],
+       ['dap','dap_diam'],['vap','vap_diam'],['tga','tga_tipo'],['ebs','ebs_area_ad']]
+        .every(par => { const s = de(par[0]), c = document.getElementById(par[1]);
+          return !!s && !!c && s.contains(c); })],
+    ['los placeholders dicen que estan en desarrollo',
+      PH.every(k => (de(k).textContent || '').indexOf('En desarrollo') > -1)],
+    ['y ninguno trae campos, que es lo que los hace placeholder',
+      PH.every(k => de(k).querySelectorAll('input, select, textarea').length === 0)],
+    ['las dos pestañas tienen su boton de navegacion',
+      !!document.querySelector('[onclick*="showTab(\\'congenitas\\')"]') &&
+      !!document.querySelector('[onclick*="showTab(\\'congenitas2\\')"]')]
+  ] };
+`);
+
 /* LAS TRES SUPERFICIES DE CARDIO-ONCO TIENEN QUE DECIR LO MISMO. La leyenda de #ref-cardiotox
    (pestaña Referencias), la tabla de farmacos y las tablas nuevas del marco HFA-ICOS viven en
    DOS pestañas distintas y describen al mismo paciente. Las tres estaban desincronizadas, cada
