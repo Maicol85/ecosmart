@@ -790,6 +790,39 @@ TEER→TC-74.
 **Al agregar un caso, hacer lo mismo:** moverle el umbral a una copia y confirmar que se pone
 rojo. Un caso que no se puede hacer fallar no está probando nada.
 
+#### Qué queda sin cobertura
+
+Medido, no estimado: el suite maneja **111 de los 623 campos del estudio (18 %)** e invoca 18
+funciones de la app directo. El 18 % es de *campos tocados*, que es lo único contable sin
+instrumentar el archivo; la cobertura de **ramas que deciden el informe firmado** es bastante más
+alta, porque los casos se escribieron eligiendo los cortes, no los campos.
+
+**Sin cobertura automática, en orden de lo que más pesa en un informe firmado:**
+
+1. **Motilidad segmentaria** — los 17 segmentos, el bull's eye y `contrFraseNarrativa()`. Es
+   estado de módulo con clics sobre un diagrama, no campos: *requiere verificación manual*.
+2. **Guardado y restauración** — `cargarEstudioPorId`, `editarInforme`, las dos rutas de
+   reimpresión y `RECALC_MODULOS`. Es donde vive la clase de bug más cara de esta app (el
+   derivado que no se recalcula al reabrir). No es imposible de testear: hace falta guardar un
+   estudio y volver a abrirlo dentro del mismo navegador. **Es la brecha que más conviene cerrar.**
+3. **PDF y PPT** — `jsPDF`, el QR, la firma, los saltos de página. El suite prueba los **textos**
+   que alimentan las hojas (`amiloTexto*`), no el dibujo. Para el dibujo ya está la técnica de
+   interceptar `save()` y leer el content stream.
+4. **Laboratorio** — Excel, estadística, asociaciones, panel de cohorte, subtab CC.
+5. **Congénitas incompletas** — sólo CIA, CIV, MCH, MCA (una rama) y VAB. Quedan FOP, Ebstein,
+   Tetralogía de Fallot, TGA, ventana aortopulmonar, ductus y coartación. Los dos últimos se
+   probaron a mano en el navegador y funcionan; no quedaron como caso porque sus checkbox son
+   `ductus_incluir_chk` y `coart_incluir_chk`, no `dap_`/`coa_`.
+6. **Diastólica: sólo el algoritmo por defecto** (ASE 2025) y sólo en ritmo sinusal. BSE 2024,
+   ASE/EACVI 2016 y la rama de FA quedan afuera.
+7. **Score HCM Risk-SCD calculado** — está cubierto que *no se publica incompleto*, no el número
+   con las siete variables cargadas.
+8. **Algoritmo de amiloidosis** — el score ETT sí; el algoritmo diagnóstico (centellograma,
+   proteínas monoclonales) no, porque su estado vive en variables de módulo y no en campos.
+9. **Resto:** Eco Estrés (el bloque ya está inerte), Eco Pulmonar, masas intracardíacas,
+   taquicardia ventricular, historia clínica, frases rápidas, segmentos del ETE, pre-TAVI,
+   panel de indicaciones (`_IG_SECTIONS`), DICOM e imágenes en IndexedDB.
+
 ## LECCIONES APRENDIDAS — 14/09/2026
 
 Retrospectiva de la sesión del 2026-09-14 (commits `762b739` … `61e0bd3`). Las trampas
