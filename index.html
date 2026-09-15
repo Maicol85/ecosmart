@@ -7776,7 +7776,10 @@ z
           </select>
         </div>
         <div class="fg"><label>Número de lóbulos</label>
-          <select id="oai_lobulos">
+          <!-- `onchange` como los otros tres selects de la orejuela. Mientras el campo era
+               huérfano daba igual; ahora gobierna contenido impreso, y sin handler la hoja OAI
+               del PDF —que se congela al integrar— no se enteraba de un cambio de morfología. -->
+          <select id="oai_lobulos" onchange="calcOAI()">
             <option value="">—</option>
             <option value="1">1 lóbulo</option>
             <option value="2">2 lóbulos</option>
@@ -20347,16 +20350,28 @@ function generarInforme(opts) {
        la opción vacía, y un ETE que documenta sólo «Trombo: No» —el caso típico previo a
        cardioversión— se quedaba sin una sola línea sobre la orejuela en el informe, mientras
        la hoja del ETE del mismo PDF sí lo decía. */
-    const hasOAI  = oVel !== null || (oSec && oSec !== '') || (oTrombo && oTrombo !== '');
+    /* Los LOBULOS entran en la compuerta, no sólo en el texto. Si sólo estuvieran en el cuerpo
+       de la oración, un ETE que documenta la morfología y nada más seguiría sin una sola línea
+       sobre la orejuela — que es exactamente el estado del que venimos: `oai_lobulos` estaba en
+       pantalla desde siempre y no lo leía NADIE (lo encontró `scripts/detectar_huerfanos.py`). */
+    const oLob    = sv('oai_lobulos');
+    const hasOAI  = oVel !== null || (oSec && oSec !== '') || (oTrombo && oTrombo !== '') || (oLob && oLob !== '');
     if (hasOAI) {
+      /* La morfología se PLIEGA en el sujeto en vez de ir como oración aparte: el bloque ya
+         empieza con «Orejuela izquierda …», así que una segunda oración que vuelva a nombrarla
+         daba «Orejuela izquierda sin trombo. … Orejuela izquierda bilobulada.» — el mismo
+         sujeto dos veces en el mismo párrafo. */
+      const _OAI_LOB = { '1':'unilobulada', '2':'bilobulada', '3':'multilobulada' };
+      const _lobTxt = _OAI_LOB[oLob] || null;
+      const _suj = 'Orejuela izquierda' + (_lobTxt ? ' ' + _lobTxt : '');
       let s;
-      if (oTrombo === 'si')       s = 'Orejuela izquierda con trombo confirmado.';
-      else if (oTrombo === 'sospecha') s = 'Orejuela izquierda con sospecha de trombo — se sugiere TC cardíaca para confirmación.';
-      else if (oTrombo === 'no')       s = 'Orejuela izquierda sin trombo.';
+      if (oTrombo === 'si')       s = _suj + ' con trombo confirmado.';
+      else if (oTrombo === 'sospecha') s = _suj + ' con sospecha de trombo — se sugiere TC cardíaca para confirmación.';
+      else if (oTrombo === 'no')       s = _suj + ' sin trombo.';
       /* Sin respuesta explícita NO se afirma la ausencia de trombo: se dice que no se
          evaluó. La hoja del ETE del mismo PDF ya imprimía «Trombo | no evaluado» para este
          mismo estado, así que las dos páginas del informe se contradecían entre sí. */
-      else                             s = 'Orejuela izquierda: presencia de trombo no evaluada.';
+      else                             s = _suj + ': presencia de trombo no evaluada.';
       if (oVel !== null) {
         const vi = oVel >= 40 ? 'normal' : oVel >= 20 ? 'estasis leve' : 'estasis severa';
         s += ' Velocidad de vaciamiento ' + oVel + ' cm/s (' + vi + ').';
@@ -20366,6 +20381,18 @@ function generarInforme(opts) {
         s += ' Contraste espontáneo: ' + (sm[oSec] || oSec) + '.';
       }
       if (oTrombo === 'si') s += ' Hallazgo que contraindica cardioversión eléctrica.';
+      /* Sólo con TRES o más lóbulos Y sin trombo pendiente. Es una nota sobre la ANATOMÍA —la
+         orejuela multilobulada complica el sellado del dispositivo—, no una recomendación de
+         conducta: no dice si cerrar ni con qué.
+         El gate del trombo NO es cosmético: el párrafo siguiente («3. Elegibilidad cierre
+         percutáneo OAI») imprime «no apto para cierre percutáneo (trombo presente)» cuando hay
+         ostium cargado, así que sin esto el informe firmado salía con dos párrafos consecutivos
+         donde uno manda a considerar el cierre y el otro declara al paciente no apto para ese
+         mismo cierre. El trombo en orejuela es contraindicación absoluta hasta resolverse con
+         anticoagulación: una nota de planificación técnica encima invierte la prioridad de
+         lectura. La sospecha entra en el mismo gate — todavía no está descartado. */
+      if (oLob === '3' && oTrombo !== 'si' && oTrombo !== 'sospecha')
+        s += ' Considerar mayor complejidad para el cierre percutáneo.';
       const sN = 'En el estudio transesofágico, ' + s.charAt(0).toLowerCase() + s.slice(1);
       etePars.push(estiloInforme === 'narrativo' ? sN : s);
     }
@@ -30308,6 +30335,13 @@ function calcOAI() {
      (puntuar la mitral, integrar, y recién después mirar la orejuela) el aviso de
      contraindicación absoluta nunca aparecía. */
   if (typeof amiloRefrescarSiIntacto === 'function') amiloRefrescarSiIntacto('wilk');
+  /* Y la hoja de la PROPIA orejuela. `calcOAI` refrescaba la de Wilkins y no la suya: el
+     textarea `am-txt-oai` se congela al integrar, así que elegir los lóbulos DESPUÉS de integrar
+     dejaba el narrativo diciendo «orejuela multilobulada» y la hoja OAI del MISMO PDF sin la
+     fila «Lóbulos» — dos páginas del informe firmado describiendo distinta anatomía. La
+     congelación era preexistente para morfología, trombo y velocidad; este cambio le sumaba un
+     campo más sin vía de invalidación. */
+  if (typeof amiloRefrescarSiIntacto === 'function') amiloRefrescarSiIntacto('oai');
 }
 
 // ══ ATEROSCLEROSIS AÓRTICA ══
@@ -33948,6 +33982,10 @@ function amiloTextoOAI() {
   const L = ['## Mediciones de la orejuela izquierda'];
   const filas = [
     _amSelTxt('oai_morfologia') ? 'Morfología | ' + _amSelTxt('oai_morfologia') : null,
+    /* Los lóbulos van junto a la morfología, que es lo que son: forma de la orejuela. La
+       etiqueta sale del propio `<option>` («1 lóbulo», «2 lóbulos», «3 o más lóbulos») en vez de
+       un mapa nuevo, así que no puede desincronizarse del control. */
+    _amSelTxt('oai_lobulos') ? 'Lóbulos | ' + _amSelTxt('oai_lobulos') : null,
     _amFila('Velocidad de vaciado', 'oai_vel_vac', 'cm/s'),
     _amFila('Diámetro del ostium',  'oai_ostium_diam', 'mm'),
     _amFila('Profundidad',          'oai_profundidad', 'mm')
@@ -40837,6 +40875,11 @@ function _labExcelRow(inf) {
     'Etiología mitral ETE': _labXlsEtiq('ete_etiologia', c.ete_etiologia),
     'Área mitral ETE (cm²)': rnd(num('ete_area_mitral'),2),
     'Morfología orejuela': _labXlsEtiq('oai_morfologia', c.oai_morfologia),
+    /* «Lóbulos orejuela» y no «Orejuela lóbulos»: el bloque 16 del libro agrupa por el prefijo
+       «Morfología orejuela» y por nombres exactos, y este entra por nombre. El valor se traduce
+       con `_labXlsEtiq` —igual que los otros tres de la orejuela— para que la planilla no
+       exporte «1», «2», «3» crudos, que en una columna sin contexto se leen como un código. */
+    'Lóbulos orejuela': _labXlsEtiq('oai_lobulos', c.oai_lobulos),
     'Trombo orejuela': _labXlsEtiq('oai_trombo', c.oai_trombo),
     'SEC orejuela': _labXlsEtiq('oai_sec', c.oai_sec),
     'Vel vaciamiento orejuela (cm/s)': rnd(num('oai_vel_vac'),0),
@@ -40979,7 +41022,7 @@ const LAB_XLS_BLOQUES = [
   { n:'14 · MIOCARDIOPATÍAS', avanzada:true, pre:['MCH','MCA','TV ','Edad familiar muerte súbita'] },
   { n:'15 · CARDIOPATÍAS COMPLEJAS', avanzada:true, pre:['Ebstein','TdF','TGA'] },
   { n:'16 · ETE, TAVI Y MÓDULOS CLÍNICOS', avanzada:true, pre:['Es ETE','Etiología mitral ETE','Área mitral ETE',
-      'Morfología orejuela','Trombo orejuela','SEC orejuela','Vel vaciamiento orejuela','Segmento aorta ETE',
+      'Morfología orejuela','Lóbulos orejuela','Trombo orejuela','SEC orejuela','Vel vaciamiento orejuela','Segmento aorta ETE',
       'Grado ateromatosis','TAVI','Fármaco cardiotóxico','Dosis antraciclinas','Riesgo CV basal','FEVI basal onco',
       'GLS basal onco','FEVI actual onco','GLS actual onco','Troponina elevada','Ritmo HFA-PEFF','NT-proBNP','BNP (',
       'Score amiloidosis','Motivo evaluación amiloidosis','Sparkling','Incluir '] },
@@ -41702,6 +41745,7 @@ const LAB_XLS_MAP = [
   ['Etiología mitral ETE',   'ete_etiologia',      'vocab'],
   ['Área mitral ETE (cm²)',  'ete_area_mitral',    'num'],
   ['Morfología orejuela',    'oai_morfologia',     'vocab'],
+  ['Lóbulos orejuela',       'oai_lobulos',        'vocab'],
   ['Trombo orejuela',        'oai_trombo',         'vocab'],
   ['SEC orejuela',           'oai_sec',            'vocab'],
   ['Vel vaciamiento orejuela (cm/s)', 'oai_vel_vac','num'],
@@ -41891,6 +41935,7 @@ const LAB_XLS_ETIQ = {
                    funcional_isq:'Funcional isquémica', funcional_aur:'Funcional auricular (FA)',
                    endocarditis:'Endocarditis', congenita:'Congénita' },
   oai_morfologia: { ala:'Ala de pollo', coliflor:'Coliflor', cactus:'Cactus', veleta:'Veleta' },
+  oai_lobulos: { '1':'1 lóbulo', '2':'2 lóbulos', '3':'3 o más lóbulos' },
   oai_trombo: { no:'No', sospecha:'Sospecha', si:'Sí — confirmado' },
   oai_sec: { ausente:'Ausente', leve:'Leve', moderado:'Moderado', severo:'Severo (barro)' },
   ao_segmento: { ascendente:'Aorta ascendente', arco:'Arco aórtico', descendente:'Aorta descendente proximal',
@@ -41925,6 +41970,14 @@ const LAB_XLS_VOCAB_NUEVOS = {
   ete_etiologia: { '':'', barlow:'barlow', dfe:'dfe', reumatica:'reumatica', funcional_isq:'funcional_isq',
                    funcional_aur:'funcional_aur', endocarditis:'endocarditis', congenita:'congenita' },
   oai_morfologia: { '':'', ala:'ala', 'ala de pollo':'ala', coliflor:'coliflor', cactus:'cactus', veleta:'veleta' },
+  /* Declarar la columna como `vocab` en `LAB_XLS_MAP` y NO poner el vocabulario acá rechaza la
+     FILA ENTERA al reimportar —nombre, CI, FEVI, informe, todo— porque el bucle que propaga las
+     etiquetas sólo AMPLÍA vocabularios existentes, no los crea. Y el error que ve el médico es
+     el peor posible: «"2 lóbulos" no es un valor válido (1 lóbulo · 2 lóbulos · 3 o más
+     lóbulos)», porque `LAB_XLS_OPCIONES` sí se pobló desde `LAB_XLS_ETIQ`. Le dice que su valor
+     no sirve y se lo lista como válido en la misma línea. Lo atrapó el differential-review; hay
+     un assert de arranque abajo para que no vuelva a colarse. */
+  oai_lobulos: { '':'', '1':'1', '2':'2', '3':'3' },
   /* Orejuela: `sospecha` NO se colapsa con `si`. La app trata el trombo CONFIRMADO como
      contraindicación absoluta de valvuloplastia; fusionarlos importaría una contraindicación
      que el informe del paciente no sostiene. */
@@ -42269,6 +42322,26 @@ const LAB_XLS_OPCIONES = {
 };
 
 LAB_XLS_OPCIONES.ia_grado = LAB_XLS_OPCIONES.it_grado = LAB_XLS_OPCIONES.im_grado;
+
+/* ══ Assert de arranque: toda columna «vocab» necesita su vocabulario ═════════════════════
+   Declarar una columna como `'vocab'` en `LAB_XLS_MAP` y olvidarse de `LAB_XLS_VOCAB` hace que
+   el importador RECHACE LA FILA ENTERA —nombre, CI, FEVI, informe, todo— con un mensaje que
+   además lista como válido el valor que acaba de rechazar, porque `LAB_XLS_OPCIONES` sí se
+   deriva de `LAB_XLS_ETIQ`. Pasó con `oai_lobulos` el 2026-09-15.
+   Nada lo veía: el bloque resuelve bien, `_labXlsAssertBloques()` da cero, la plantilla se ve
+   correcta, y la falla aparece recién al reimportar — que es cuando ya se perdió el navegador y
+   el Excel es lo único que queda. Hermano de `_labXlsAssertBloques`, y por el mismo motivo. */
+function _labXlsAssertVocab() {
+  const faltan = [];
+  (typeof LAB_XLS_MAP !== 'undefined' ? LAB_XLS_MAP : []).forEach(function (e) {
+    const col = e[0], dest = e[1], tipo = e[2];
+    if (tipo !== 'vocab') return;
+    if (!LAB_XLS_VOCAB[dest] && !LAB_XLS_LISTAS[dest]) faltan.push(col + ' → ' + dest);
+  });
+  if (faltan.length) console.error('[LAB_XLS] columnas «vocab» SIN vocabulario (la reimportación las rechaza): ', faltan);
+  return faltan;
+}
+window._labXlsAssertVocab = _labXlsAssertVocab;
 // Selects de texto libre acotado: se acepta cualquier opción de la lista, tal cual.
 const LAB_XLS_LISTAS = {
   vm_morf: ['Normal','Mixomatosa / Barlow','Calcificada','Reumática','Prolapso / EVMS','Prótesis'],
@@ -42288,6 +42361,10 @@ const LAB_XLS_LISTAS = {
 const LAB_XLS_MAX_TXT = {
   ete_tavi_pro_marca: 80, centro_nombre: 120, med_solicitante: 120,
 };
+/* Corre acá, DESPUÉS de las tres tablas que lee: `LAB_XLS_VOCAB` ya está ampliada con las
+   etiquetas y `LAB_XLS_LISTAS` declarada. Antes tiraría ReferenceError por zona muerta y se
+   llevaría puesto el bloque `<script>` entero (ver CLAUDE.md). */
+try { _labXlsAssertVocab(); } catch (e) { console.error('[LAB_XLS] assert de vocabularios:', e); }
 // Marca de la fila de ejemplo de la plantilla. Se busca en el Nombre y NUNCA se importa.
 const LAB_XLS_EJEMPLO = '*** FILA DE EJEMPLO — BORRAR ANTES DE IMPORTAR ***';
 
@@ -42522,7 +42599,10 @@ function labPlantillaXLSX(vacia) {
     ['con el rango de columnas de cada uno y el corte de la SECCIÓN AVANZADA.'],
     [''],
     ['UN PASO MANUAL: CONGELÁ LA FILA 1'],
-    ['Con 305 columnas conviene inmovilizar la cabecera (en Excel: Vista → Inmovilizar fila'],
+    /* El número NO va como literal: quedó en «305» mientras la planilla crecía a 337, y es texto
+       que se le entrega al médico dentro del libro exportado. Sale del mapa, que es la fuente. */
+    ['Con ' + (typeof LAB_XLS_MAP !== 'undefined' ? LAB_XLS_MAP.length : 'muchas')
+      + '+ columnas conviene inmovilizar la cabecera (en Excel: Vista → Inmovilizar fila'],
     ['superior). La app no lo puede dejar hecho: la librería con la que genera el archivo no'],
     ['escribe esa propiedad. El autofiltro sí viene puesto.'],
     ['Para cambiar la masa VI, cargá SIV, DDVI y PP. Para el E/e’, Onda E y e’ septal/lateral.'],

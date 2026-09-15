@@ -47,7 +47,9 @@ PREFIJOS_NO_ESTUDIO = (
 # Ids sueltos que se revisaron a mano y son locales A PROPOSITO. Cada uno con su motivo: una
 # lista de exclusiones sin razones se convierte en el lugar donde se esconden los bugs.
 CONOCIDOS_LOCALES = {
-    'oai_lobulos': 'PENDIENTE de decision — ver el reporte, hoy no tiene destino',
+    # Vacia a proposito. `oai_lobulos` —el unico que encontro este script en su primera corrida,
+    # el 2026-09-15— se arreglo el mismo dia: hoy va al informe narrativo, a la hoja OAI del PDF
+    # y al Excel del Laboratorio. Si manana entra uno aca, que sea CON su motivo escrito.
 }
 
 # ── Lectura ──────────────────────────────────────────────────────────────────────────────────

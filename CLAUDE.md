@@ -249,6 +249,23 @@ Dos caras del mismo descuido, las dos pagadas en la hoja de Cardio-Oncología:
 Y si una tabla puede saltar de página, el encabezado de columnas **se repite**: cuatro columnas
 numéricas sin rótulo, donde FEVI, su delta, GLS y su delta se ven todos igual, no son una tabla.
 
+### Una columna «vocab» sin vocabulario rechaza la FILA ENTERA al reimportar
+Declarar una columna como `'vocab'` en `LAB_XLS_MAP` y olvidarse de `LAB_XLS_VOCAB` no falla al
+exportar ni al ver la plantilla: falla al **reimportar**, y descarta el estudio completo —nombre,
+CI, FEVI, informe, todo—, no la celda. El bucle que propaga etiquetas sólo **amplía** vocabularios
+existentes; el de `LAB_XLS_OPCIONES` sí **crea** la entrada desde `LAB_XLS_ETIQ`, así que el
+mensaje que ve el médico queda en el peor estado posible:
+
+> «Lóbulos orejuela»: "2 lóbulos" no es un valor válido (1 lóbulo · 2 lóbulos · 3 o más lóbulos)
+
+le dice que su valor no sirve y se lo lista como válido en la misma línea. Y la plantilla saca su
+ayuda de `LAB_XLS_OPCIONES`, o sea que **enseña el formato que el importador rechaza**.
+
+Pasó con `oai_lobulos` el 2026-09-15 y no lo veía nada: el bloque resolvía bien,
+`_labXlsAssertBloques()` daba cero, la plantilla se veía correcta. Desde entonces hay
+**`_labXlsAssertVocab()`**, que corre al arrancar y lista las columnas `'vocab'` sin vocabulario.
+Si agregás una columna de vocabulario, mirá la consola.
+
 ### Si el valor lo pusiste vos, no probaste nada
 Al cerrar la fuga del centro en reimpresión (2026-09-14) monté la prueba escribiendo
 `med-centro.textContent = 'CENTRO AL FIRMAR'` desde la consola, vi la fuga, la arreglé, vi que
@@ -2874,15 +2891,6 @@ criterio». Si aparece, la palanca es juntar las salvedades con la línea de la 
   es «no listarla», no «negarla» con el fallback de «sin alteraciones significativas».
 
 **Queda abierto, sin tocar en este commit:**
-- **`oai_lobulos` es un campo huérfano.** El select «Lóbulos» de la orejuela izquierda (1 / 2 /
-  3 o más) no lo lee nadie: no entra en `calcOAI`, ni en `amiloTextoOAI`, ni en el informe, ni
-  en las tablas del PDF, ni en el Excel. El médico lo carga y desaparece — exactamente el patrón
-  del cayado aórtico. Lo detectó `scripts/detectar_huerfanos.py` en su primera corrida
-  (2026-09-15). El número de lóbulos es morfología relevante para el cierre percutáneo
-  (Watchman/Amulet: la orejuela multilobulada complica el sellado), así que lo más probable es
-  que corresponda llevarlo a la hoja de OAI. No se tocó porque el pedido era no modificar
-  `index.html`. Mientras tanto está en `CONOCIDOS_LOCALES` del script para que la lista quede en
-  cero y un huérfano NUEVO se vea al toque.
 - **El anillo aórtico del TAVI tiene UN solo diámetro** (`ete_tavi_anillo_diam`, «ETE 120–140°»),
   así que no se puede calcular el área ni el perímetro de la elipse: de un diámetro sale un
   círculo, que es lo que el anillo aórtico no es. Área y perímetro siguen tipeándose a mano,
