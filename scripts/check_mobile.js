@@ -344,11 +344,16 @@ const ORDEN = { ALTA: 0, MEDIA: 1, BAJA: 2 };
       totalAlta += alta;
       console.log(`\n▶ ${ancho} px  —  ${hall.length} hallazgo/s (${alta} ALTA)`);
       if (!hall.length) { console.log('   ✅ sin hallazgos.'); continue; }
+      /* Se agrupa por SEVERIDAD + tipo, no sólo por tipo. Agrupando sólo por tipo, el icono
+         salía del PRIMER elemento del grupo y un hallazgo MEDIA aparecía bajo un 🔴 —o al revés—:
+         el reporte decía «ALTA» sobre cosas que no lo eran, y con eso se pierde la única señal
+         que hace accionable la lista. Se detectó leyendo el propio reporte contra los números. */
       const porTipo = {};
-      hall.forEach(h => { (porTipo[h.tipo] = porTipo[h.tipo] || []).push(h); });
-      Object.keys(porTipo).forEach(tipo => {
-        const g = porTipo[tipo];
-        console.log(`\n   ${ICONO[g[0].sev]} ${tipo} — ${g.length}`);
+      hall.forEach(h => { const k = h.sev + '\u0000' + h.tipo; (porTipo[k] = porTipo[k] || []).push(h); });
+      Object.keys(porTipo).forEach(k => {
+        const g = porTipo[k];
+        const [sev, tipo] = k.split('\u0000');
+        console.log(`\n   ${ICONO[sev]} ${tipo} — ${g.length} (${sev})`);
         g.slice(0, 8).forEach(h => {
           console.log(`      ${h.sel}`);
           console.log(`         ${h.detalle}`);

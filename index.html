@@ -516,6 +516,20 @@
   header .hdr-fi, header .hdr-extra-field, header [contenteditable], header .hdr-sep {
     min-height: 0; min-width: 0; align-self: center;
   }
+  /* EXCEPCIÓN DE LA EXCEPCIÓN: el botón de secciones (≡). La regla de arriba exime a todo el
+     header del mínimo táctil de 44 px, y con razón —estirar sus controles da botones de 112 px—,
+     pero este es el ÚNICO acceso a las secciones del estudio en celular: errarle deja al médico
+     sin navegación, que es peor que un header un poco más ancho.
+     Sólo el ANCHO. El alto queda en 31 px a propósito: subirlo obliga a crecer a toda la fila del
+     header, que es la barra densa que la regla de arriba protege. 44×31 no llega al 44×44 de
+     WCAG 2.5.5 —`check_mobile.js` lo sigue listando, y está bien que lo haga— pero pasa de
+     «difícil de acertar» a «se acierta», sin romper el layout.
+     El selector es `.eco-tabsburger`, que es la clase REAL del botón. No existe en esta app
+     ninguna `.hamburguesa` ni ningún `aria-label="menú"`: una regla escrita contra esos dos
+     habría matcheado CERO elementos y se habría leído como un arreglo aplicado. */
+  header button.eco-tabsburger {
+    min-width: 44px;
+  }
   /* Centrado vertical del contenido en los controles agrandados */
   .btn, .tab-btn, .nav-tab, .chip {
     display: inline-flex; align-items: center; justify-content: center;
