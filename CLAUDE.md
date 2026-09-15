@@ -251,6 +251,41 @@ no matcheó nunca — los 28 acordeones salieron «no llama a secToggle» y el c
 de un defecto propio. Es la trampa del `\s` que este archivo ya documenta. **Dentro del cuerpo de
 un caso, partir la cadena con `indexOf`/`slice` en vez de un regex con escapes.**
 
+### Un panel de referencia NO puede llevar `id` en sus controles
+Los paneles de Marfan (Ghent 2010), Eisenmenger y Fontan se agregaron el 2026-09-15 reusando el
+armazón de MCH/MCA: un solo `#crit-overlay`, registro `CRIT_PANELES {titulo, render}`, y
+`critAbrir`/`critCerrar` con cierre por ✕, clic afuera y Escape. El botón va **al principio del
+`.card-body`**, que es donde está el de MCH — **no dentro del `.sacc-hdr`**, que ya es un
+`<button>`: anidarlos es HTML inválido y el handler de afuera se come el clic.
+
+**Ningún control de estos paneles lleva `id`, y no es estilo.** `guardarInforme` barre
+`input[id]` de **todo el documento**: un checkbox de referencia con id se persistiría en `campos`
+de **cada** estudio —y como `<id>__chk`, en todos, aunque nadie abra el panel—, viajaría al Excel
+y lo contaría `detectar_huerfanos`, indistinguible de un hallazgo del paciente. Se usan atributos
+`data-*` y las consultas se acotan a `#crit-cuerpo`. **TC-125 lo verifica recorriendo el panel
+abierto y exigiendo cero ids** — es la condición que separa «panel de referencia» de «campos
+clínicos disfrazados».
+
+**El panel contesta otra pregunta que la sección, y lo dice.** Ghent 2010 contesta «¿este paciente
+tiene Marfan?»; la sección contesta «¿esta aorta se opera?» (ESC 2024). Sin esa aclaración impresa,
+un score de 7 se lee como una indicación quirúrgica.
+
+**Y el panel de Fontan no publica un corte que la sección no aplica.** El pedido traía «Clase IV
+… o sat <85 %» mientras el clasificador usa **las complicaciones consignadas** y su alerta de
+circuito corta en **90 %**. Tres números para el mismo paciente es el defecto de «tres agendas»
+otra vez: el panel describe el 85 % como marcador de fallo avanzado de la literatura y **declara
+que la sección clasifica por complicaciones**. Lo fija TC-125.
+
+**Lo que costó tres rondas de mutación, y vale para cualquier calculadora de criterios:** un caso
+que prueba sólo el lado POSITIVO deja pasar vías inventadas. Ghent exige **dos** criterios sin
+historia familiar, y el escenario feliz (aorta + score) sobrevivía a agregar «ectopia lentis sola
+→ Marfan». Hubo que agregar el negativo de cada vía. Después, «con historia familiar basta **un**
+criterio mayor» sólo se prueba con **exactamente uno**: el escenario tenía dos y exigir dos pasaba
+igual. Y al final, sacarle la historia familiar al predicado **no cambiaba una palabra** —el
+`!hf` decide el texto y corta antes— pero dejaba el recuadro en **verde** diciendo «Marcá la
+historia familiar»: el color y el texto salían de dos expresiones distintas. **Si un caso no
+prueba el lado negativo de cada rama, no prueba la regla.**
+
 ### Ebstein: la saturación es lo que convertía «hay una comunicación» en «hay un shunt»
 Agregado el 2026-09-15: **`ebs_saturacion`**, banda 40-100 %, y una rama de **cianosis** en la
 cascada. La sección ya detectaba la CIA (desde `ete_cia_*`) y el foramen (desde `fopConclusion`),

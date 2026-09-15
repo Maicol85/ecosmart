@@ -3320,6 +3320,125 @@ caso('TC-124', 'Ebstein: cianosis y los cuatro grados de Celermajer', `
   ] };
 `);
 
+/* LOS TRES PANELES DE REFERENCIA. Reusan el armazon de MCH/MCA: un solo #crit-overlay, registro
+   CRIT_PANELES y critAbrir/critCerrar. Lo que este caso vigila no es que existan sino que:
+   (a) ABRAN Y CIERREN de verdad —el boton de una seccion ya quedo muerto una vez, ver TC-122—;
+   (b) NINGUN control del panel lleve id. guardarInforme barre input[id] de TODO el documento, asi
+       que un checkbox de referencia con id se persistiria en campos de CADA estudio, viajaria al
+       Excel y lo contaria detectar_huerfanos. Es la condicion que separa «panel de referencia» de
+       «campos clinicos disfrazados»;
+   (c) la calculadora de Ghent calcule, por los dos lados del corte de 7. */
+caso('TC-125', 'Paneles de criterios: abren, cierran y no ensucian el estudio', `
+  const ov = document.getElementById('crit-overlay');
+  const cuerpo = document.getElementById('crit-cuerpo');
+  const titulo = document.getElementById('crit-titulo');
+  const abiertos = [], sinBoton = [], conId = [];
+  ['marfan','eisen','fontan'].forEach(function(k) {
+    /* El boton tiene que EXISTIR en su seccion, no en cualquier lado. */
+    const sec = document.getElementById('sacc-cc-' + k);
+    const btn = sec ? [...sec.querySelectorAll('button')].filter(function(b) {
+      return (b.getAttribute('onclick') || '').indexOf("critAbrir('" + k + "')") > -1; })[0] : null;
+    if (!btn) { sinBoton.push(k); return; }
+    btn.click();
+    const vis = ov && ov.style.display === 'block';
+    const tieneTexto = (cuerpo.textContent || '').trim().length > 200;
+    if (vis && tieneTexto) abiertos.push(k);
+    /* NINGUN control del panel puede llevar id. */
+    [...cuerpo.querySelectorAll('input,select,textarea')].forEach(function(e) {
+      if (e.id) conId.push(k + ': ' + e.id); });
+    critCerrar();
+  });
+  const cerroBien = ov && ov.style.display === 'none';
+  /* La calculadora de Ghent, por los dos lados del corte. */
+  critAbrir('marfan');
+  const chks = [...cuerpo.querySelectorAll('[data-mf-p]')];
+  const marcar = n => { chks.forEach(function(c) { c.checked = false; });
+    let acum = 0;
+    chks.forEach(function(c) { const pt = parseFloat(c.getAttribute('data-mf-p'));
+      if (acum + pt <= n) { c.checked = true; acum += pt; } });
+    critMarfanCalc(); return acum; };
+  const seis = marcar(6), msg6 = (cuerpo.querySelector('[data-mf-msg]').textContent || '');
+  const siete = marcar(7), msg7 = (cuerpo.querySelector('[data-mf-msg]').textContent || '');
+  const badge = (cuerpo.querySelector('[data-mf-badge]').textContent || '').trim();
+  /* Aorta Z >= 2 + score >= 7 es una de las cinco vias de Ghent sin historia familiar. */
+  const z = cuerpo.querySelector('[data-mf-z]');
+  z.value = '2.1'; critMarfanCalc();
+  const sf = (cuerpo.querySelector('[data-mf-res-sf]').textContent || '');
+  z.value = '1.5'; critMarfanCalc();
+  const sfNo = (cuerpo.querySelector('[data-mf-res-sf]').textContent || '');
+  /* EL LADO NEGATIVO DE LAS CINCO VIAS. Ghent 2010 exige DOS criterios sin historia familiar:
+     ninguno alcanza solo. Sin estos casos, agregar una via de mas —ectopia lentis sola, que es
+     el error clasico porque la luxacion del cristalino tambien es aislada o de otra entidad—
+     pasaba desapercibido: lo dejo vivo una mutacion. */
+  marcar(0); z.value = ''; cuerpo.querySelector('[data-mf-lentis]').checked = true; critMarfanCalc();
+  const soloLentis = (cuerpo.querySelector('[data-mf-res-sf]').textContent || '');
+  cuerpo.querySelector('[data-mf-lentis]').checked = false; marcar(7); critMarfanCalc();
+  const soloScore = (cuerpo.querySelector('[data-mf-res-sf]').textContent || '');
+  marcar(0); cuerpo.querySelector('[data-mf-fbn1]').checked = true; critMarfanCalc();
+  const soloFbn1 = (cuerpo.querySelector('[data-mf-res-fbn1]') ? '' : (cuerpo.querySelector('[data-mf-res-sf]').textContent || ''));
+  cuerpo.querySelector('[data-mf-fbn1]').checked = false;
+  /* Y se repone el escenario que usan las condiciones de abajo. */
+  marcar(7); z.value = '2.1'; critMarfanCalc();
+  /* Con historia familiar alcanza UN criterio mayor. */
+  cuerpo.querySelector('[data-mf-hf]').checked = true; critMarfanCalc();
+  const cf = (cuerpo.querySelector('[data-mf-res-cf]').textContent || '');
+  /* Con EXACTAMENTE UNO. El escenario de arriba trae dos criterios mayores (aorta y score), asi
+     que exigir dos seguia pasando: lo dejo vivo una mutacion. «Basta UN criterio mayor» solo se
+     prueba con uno solo. */
+  marcar(0); z.value = ''; cuerpo.querySelector('[data-mf-fbn1]').checked = true; critMarfanCalc();
+  const cfUno = (cuerpo.querySelector('[data-mf-res-cf]').textContent || '');
+  cuerpo.querySelector('[data-mf-fbn1]').checked = false; critMarfanCalc();
+  const cfCero = (cuerpo.querySelector('[data-mf-res-cf]').textContent || '');
+  /* Y el lado que faltaba: criterio mayor presente pero SIN historia familiar. Esta columna
+     existe justamente porque la historia familiar cambia la regla; si deja de exigirla,
+     diagnostica Marfan con un solo criterio en un paciente sin familiar afectado. Los dos casos
+     de arriba tenian la historia familiar marcada, asi que sacarla del predicado sobrevivia. */
+  cuerpo.querySelector('[data-mf-hf]').checked = false;
+  cuerpo.querySelector('[data-mf-fbn1]').checked = true; critMarfanCalc();
+  const cfSinHF = (cuerpo.querySelector('[data-mf-res-cf]').textContent || '');
+  cuerpo.querySelector('[data-mf-fbn1]').checked = false;
+  critCerrar();
+  return { extra: [
+    ['los tres botones existen en su seccion', sinBoton.length === 0, 'faltan: ' + sinBoton.join(', ')],
+    ['los tres paneles abren con contenido', abiertos.length === 3, 'abrieron: ' + abiertos.join(', ')],
+    ['y el overlay cierra', cerroBien],
+    ['ningun control del panel lleva id: no se persiste en el estudio',
+      conId.length === 0, conId.join(' | ')],
+    ['el registro tiene los tres, con titulo',
+      !!CRIT_PANELES.marfan && !!CRIT_PANELES.eisen && !!CRIT_PANELES.fontan &&
+      CRIT_PANELES.marfan.titulo.indexOf('Ghent 2010') > -1],
+    ['score 6 no alcanza el compromiso sistemico', seis === 6 && msg6.indexOf('< 7') > -1],
+    ['score 7 exacto si', siete === 7 && msg7.indexOf('≥ 7') > -1],
+    ['el badge publica el score sobre 20', badge === '7 / 20'],
+    ['Z 2.1 + score 7 cumple criterios de Marfan', sf.indexOf('Cumple criterios') > -1],
+    ['Z 1.5 con el mismo score no', sfNo.indexOf('No cumple criterios') > -1],
+    ['con historia familiar alcanza un criterio mayor', cf.indexOf('Cumple criterios') > -1],
+    ['y con UNO SOLO tambien: eso es lo que dice la regla', cfUno.indexOf('Cumple criterios') > -1],
+    ['sin ningun criterio mayor, la historia familiar sola no alcanza',
+      cfCero.indexOf('Falta al menos un criterio mayor') > -1],
+    ['y sin historia familiar la columna no diagnostica, aunque haya criterio mayor',
+      cfSinHF.indexOf('Marcá la historia familiar') > -1 && cfSinHF.indexOf('Cumple') === -1],
+    /* El TINTE tiene que acompañar al texto. El verde lo decide ok y el texto lo decide otro
+       predicado: sacarle la historia familiar a ok no cambiaba una palabra —el !hf corta
+       antes— y dejaba el recuadro en VERDE diciendo «Marcá la historia familiar». Un invariante
+       que vive en dos expresiones se desincroniza sin que se vea. */
+    ['y el recuadro no queda en verde mientras pide el dato', (function(){
+      const el = cuerpo.querySelector('[data-mf-res-cf]');
+      return (el.getAttribute('style') || '').indexOf('16,185,129') === -1;
+    })()],
+    ['ectopia lentis SOLA no diagnostica: Ghent exige dos criterios',
+      soloLentis.indexOf('No cumple criterios') > -1],
+    ['score sistemico >= 7 solo tampoco', soloScore.indexOf('No cumple criterios') > -1],
+    ['mutacion FBN1 sola tampoco', soloFbn1.indexOf('No cumple criterios') > -1],
+    /* El panel de Fontan NO puede publicar un corte que la seccion no aplica. */
+    ['el panel de Fontan declara que la seccion clasifica por complicaciones',
+      critFontan().indexOf('la sección clasifica por las complicaciones consignadas') > -1],
+    ['y los tres declaran que no leen ni escriben la seccion',
+      [critMarfan(), critEisen(), critFontan()].every(function(h) {
+        return h.indexOf('no lee ni escribe ningún campo de la sección') > -1; })]
+  ] };
+`);
+
 /* LAS TRES SUPERFICIES DE CARDIO-ONCO TIENEN QUE DECIR LO MISMO. La leyenda de #ref-cardiotox
    (pestaña Referencias), la tabla de farmacos y las tablas nuevas del marco HFA-ICOS viven en
    DOS pestañas distintas y describen al mismo paciente. Las tres estaban desincronizadas, cada

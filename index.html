@@ -8485,6 +8485,7 @@ z
       <span id="marfan_badge" class="incl-badge" hidden>&#9679; cargada</span>
     </button>
     <div class="card-body sacc-body">
+      <button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 12px;margin:0 0 12px;" onclick="critAbrir('marfan')">📋 Ver criterios</button>
       <p style="font-size:10px;color:var(--text2);margin:0 0 10px;line-height:1.5;">
         El umbral quirurgico depende del SINDROME, no solo del diametro: Loeys-Dietz opera a los
         45&nbsp;mm donde el Marfan espera a 50 y la EHAT no sindromica a 55. Declarar el sindrome
@@ -10181,6 +10182,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       <span id="eisen_badge" class="incl-badge" hidden>&#9679; cargada</span>
     </button>
     <div class="card-body sacc-body">
+      <button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 12px;margin:0 0 12px;" onclick="critAbrir('eisen')">📋 Ver criterios</button>
       <!-- El panel de contraindicaciones va SIEMPRE visible y no condicionado a ningun campo:
            son absolutas por la fisiologia del sindrome, no por el valor de una medicion. Un
            aviso que solo aparece cuando el dato ya esta cargado llega despues de la consulta
@@ -10270,6 +10272,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       <span id="fontan_badge" class="incl-badge" hidden>&#9679; cargada</span>
     </button>
     <div class="card-body sacc-body">
+      <button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 12px;margin:0 0 12px;" onclick="critAbrir('fontan')">📋 Ver criterios</button>
       <div class="grid-3">
         <div class="fg"><label>Tipo de Fontan</label>
           <select id="fontan_tipo" onchange="fontanSync()">
@@ -29830,9 +29833,172 @@ function critMCH(){
   return h;
 }
 
+/* ══ PANELES DE REFERENCIA — Marfan (Ghent 2010), Eisenmenger y Fontan (ESC 2020) ════════════
+   Mismo armazón que los de MCH y MCA: se registran en CRIT_PANELES y los abre `critAbrir`.
+
+   NINGÚN CONTROL DE ESTOS PANELES LLEVA `id`, Y ESO NO ES ESTILO. `guardarInforme` barre
+   `input[id]` de TODO el documento: un checkbox de referencia con id se persistiría en `campos`
+   de cada estudio —y como `__chk`, en todos, incluso sin abrir el panel—, viajaría al Excel, lo
+   contaría `detectar_huerfanos` y quedaría indistinguible de un hallazgo del paciente. Se usan
+   atributos `data-*` y las consultas se acotan a #crit-cuerpo.
+
+   Y NO LEEN NI ESCRIBEN LOS CAMPOS DE LA SECCIÓN. El score de Ghent contesta «¿este paciente
+   tiene Marfan?»; la sección contesta «¿esta aorta se opera?» (ESC 2024). Son preguntas
+   distintas y el panel lo dice, para que un score de 7 no se lea como una indicación. */
+function _critCard(css, titulo, cuerpo){
+  return '<div style="border-radius:8px;padding:9px 11px;margin-bottom:8px;' + css + '">' +
+    '<div style="font-size:11.5px;font-weight:700;margin-bottom:3px;">' + _critEsc(titulo) + '</div>' +
+    '<div style="font-size:11px;color:var(--text2);line-height:1.55;">' + cuerpo + '</div></div>';
+}
+var _CRIT_ROJO   = 'background:rgba(239,68,68,.12);border-left:3px solid #EF4444;';
+var _CRIT_AMBAR  = 'background:rgba(245,158,11,.12);border-left:3px solid #F59E0B;';
+var _CRIT_VERDE  = 'background:rgba(16,185,129,.12);border-left:3px solid #10B981;';
+var _CRIT_AZUL   = 'background:rgba(59,130,246,.12);border-left:3px solid #3B82F6;';
+var _CRIT_GRIS   = 'background:var(--bg3,rgba(255,255,255,.04));border-left:3px solid var(--border);';
+function _critCols(cols){
+  return '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;">' +
+    cols.map(function(c){ return '<div style="flex:1 1 250px;min-width:0;">' +
+      '<div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">' + _critEsc(c[0]) + '</div>' +
+      c[1] + '</div>'; }).join('') + '</div>';
+}
+function _critPie(txt){
+  return '<div style="margin-top:12px;padding-top:9px;border-top:1px solid var(--border);font-size:10.5px;color:var(--text2);line-height:1.5;">' + txt + '</div>';
+}
+/* Los once rasgos del score sistémico de Ghent 2010 con su puntaje. Fuente única del panel: el
+   total, el mensaje del pie y el criterio de «compromiso sistémico» salen de acá. */
+var MARFAN_GHENT = [
+  ['Muñeca Y pulgar (Walker-Murdoch + Steinberg)', 3],
+  ['Luxación del cristalino (ectopia lentis)', 3],
+  ['Neumotórax espontáneo', 2],
+  ['Ectasia dural', 2],
+  ['Protrusión acetabular', 2],
+  ['Pectus carinatum o excavatum que requiere cirugía', 2],
+  ['Muñeca O pulgar (sólo uno de los dos)', 1],
+  ['Pectus excavatum moderado o asimetría torácica', 1],
+  ['Pie plano', 1],
+  ['Estrías cutáneas', 1],
+  ['Miopía mayor de 3 dioptrías', 1]
+];
+var MARFAN_GHENT_MAX = 20, MARFAN_GHENT_SIST = 7;
+
+function critMarfan(){
+  var filas = MARFAN_GHENT.map(function(r, i){
+    return '<label style="display:flex;align-items:flex-start;gap:8px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:11px;line-height:1.45;">' +
+      '<input type="checkbox" data-mf-p="' + r[1] + '" oninput="critMarfanCalc()" onchange="critMarfanCalc()" style="width:15px;height:15px;flex:0 0 auto;margin-top:1px;">' +
+      '<span style="flex:1;">' + _critEsc(r[0]) + '</span>' +
+      '<b style="flex:0 0 auto;color:var(--accent2);">' + r[1] + '</b></label>';
+  }).join('');
+  var c1 = '<div data-mf-badge style="display:inline-block;font-size:12px;font-weight:700;padding:3px 11px;border-radius:999px;margin-bottom:8px;' + _CRIT_GRIS + '">0 / ' + MARFAN_GHENT_MAX + '</div>' +
+    _critCard(_CRIT_AZUL, 'Criterio mayor: raíz aórtica',
+      'Z &ge; 2 en adultos &middot; Z &ge; 3 sin historia familiar &middot; disección de la raíz aórtica.') +
+    '<div style="display:flex;flex-direction:column;gap:1px;">' + filas + '</div>' +
+    '<div data-mf-msg style="margin-top:9px;font-size:11px;font-weight:700;padding:7px 9px;border-radius:7px;' + _CRIT_GRIS + '">Score &lt; 7 &mdash; sin compromiso sistémico significativo</div>';
+  var c2 = '<div style="font-size:11px;color:var(--text2);margin-bottom:7px;line-height:1.5;">Z-score de la raíz aórtica</div>' +
+    '<input type="number" data-mf-z step="0.1" placeholder="Z" oninput="critMarfanCalc()" style="width:100%;box-sizing:border-box;margin-bottom:9px;">' +
+    '<label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;padding:4px 0;"><input type="checkbox" data-mf-lentis onchange="critMarfanCalc()" style="width:15px;height:15px;">Ectopia lentis</label>' +
+    '<label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;padding:4px 0;"><input type="checkbox" data-mf-fbn1 onchange="critMarfanCalc()" style="width:15px;height:15px;">Mutación FBN1 confirmada</label>' +
+    '<div data-mf-res-sf style="margin-top:10px;font-size:11px;font-weight:700;padding:8px 10px;border-radius:7px;line-height:1.5;' + _CRIT_GRIS + '">Completá los datos</div>';
+  var c3 = '<label style="display:flex;align-items:flex-start;gap:8px;font-size:11px;cursor:pointer;padding:4px 0;line-height:1.45;"><input type="checkbox" data-mf-hf onchange="critMarfanCalc()" style="width:15px;height:15px;margin-top:1px;"><span>Familiar de primer grado con síndrome de Marfan confirmado</span></label>' +
+    '<div data-mf-res-cf style="margin-top:10px;font-size:11px;font-weight:700;padding:8px 10px;border-radius:7px;line-height:1.5;' + _CRIT_GRIS + '">Marcá la historia familiar</div>' +
+    _critCard(_CRIT_GRIS, 'Con historia familiar', 'Basta <b>un</b> criterio mayor para el diagnóstico: raíz aórtica dilatada, ectopia lentis, score sistémico &ge; 7 o mutación FBN1.');
+  return _critCols([['Score sistémico', c1], ['Sin historia familiar', c2], ['Con historia familiar', c3]]) +
+    _critPie('<b>Loeys BL et al. &mdash; The revised Ghent nosology for the Marfan syndrome. J Med Genet 2010;47:476-85.</b><br>' +
+      'Panel de <b>referencia</b>: no lee ni escribe ningún campo de la sección y nada de lo que se marque acá viaja con el estudio. ' +
+      'Contesta <b>«¿este paciente tiene Marfan?»</b>. La sección contesta otra pregunta &mdash; <b>«¿esta aorta se opera?»</b>, por los umbrales quirúrgicos de la ESC 2024 &mdash;, así que un score de 7 no es una indicación de cirugía.');
+}
+/* Un solo recalculador para las tres columnas: el score alimenta a las dos reglas diagnósticas,
+   y tenerlo por separado sería la fórmula duplicada de siempre. */
+function critMarfanCalc(){
+  var raiz = document.getElementById('crit-cuerpo'); if (!raiz) return;
+  var q = sel => raiz.querySelector(sel), qa = sel => [].slice.call(raiz.querySelectorAll(sel));
+  var score = qa('[data-mf-p]').reduce(function(a, e){ return a + (e.checked ? (parseFloat(e.getAttribute('data-mf-p')) || 0) : 0); }, 0);
+  var sist = score >= MARFAN_GHENT_SIST;
+  var badge = q('[data-mf-badge]');
+  if (badge) { badge.textContent = score + ' / ' + MARFAN_GHENT_MAX;
+    badge.setAttribute('style', 'display:inline-block;font-size:12px;font-weight:700;padding:3px 11px;border-radius:999px;margin-bottom:8px;' + (sist ? _CRIT_AZUL : _CRIT_GRIS)); }
+  var msg = q('[data-mf-msg]');
+  if (msg) { msg.textContent = sist ? 'Score ≥ 7 — compromiso sistémico significativo' : 'Score < 7 — sin compromiso sistémico significativo';
+    msg.setAttribute('style', 'margin-top:9px;font-size:11px;font-weight:700;padding:7px 9px;border-radius:7px;' + (sist ? _CRIT_AZUL : _CRIT_GRIS)); }
+  var zEl = q('[data-mf-z]');
+  var zRaw = zEl ? String(zEl.value).trim().replace(',', '.') : '';
+  var z = zRaw === '' ? null : parseFloat(zRaw);
+  if (z != null && !isFinite(z)) z = null;
+  var aorta = z != null && z >= 2;
+  var lentis = !!(q('[data-mf-lentis]') && q('[data-mf-lentis]').checked);
+  var fbn1   = !!(q('[data-mf-fbn1]')   && q('[data-mf-fbn1]').checked);
+  var hf     = !!(q('[data-mf-hf]')     && q('[data-mf-hf]').checked);
+  /* Las cinco combinaciones de Ghent 2010 SIN historia familiar. */
+  var vias = [];
+  if (aorta && lentis) vias.push('raíz aórtica Z ≥ 2 + ectopia lentis');
+  if (aorta && sist)   vias.push('raíz aórtica Z ≥ 2 + score sistémico ≥ 7');
+  if (aorta && fbn1)   vias.push('raíz aórtica Z ≥ 2 + mutación FBN1');
+  if (lentis && fbn1)  vias.push('ectopia lentis + mutación FBN1');
+  if (sist && fbn1)    vias.push('score sistémico ≥ 7 + mutación FBN1');
+  var sf = q('[data-mf-res-sf]');
+  if (sf) {
+    var vacio = (z == null && !lentis && !fbn1 && score === 0);
+    var txtSf = vacio ? 'Completá los datos' : (vias.length ? 'Cumple criterios de Marfan — ' + vias[0] : 'No cumple criterios');
+    sf.textContent = txtSf;
+    sf.setAttribute('style', 'margin-top:10px;font-size:11px;font-weight:700;padding:8px 10px;border-radius:7px;line-height:1.5;' + (vias.length ? _CRIT_AZUL : _CRIT_GRIS));
+  }
+  var cf = q('[data-mf-res-cf]');
+  if (cf) {
+    var mayores = [];
+    if (aorta)  mayores.push('raíz aórtica Z ≥ 2');
+    if (lentis) mayores.push('ectopia lentis');
+    if (sist)   mayores.push('score sistémico ≥ 7');
+    if (fbn1)   mayores.push('mutación FBN1');
+    var ok = hf && mayores.length > 0;
+    cf.textContent = !hf ? 'Marcá la historia familiar'
+      : (ok ? 'Cumple criterios de Marfan — historia familiar + ' + mayores[0] : 'Falta al menos un criterio mayor');
+    cf.setAttribute('style', 'margin-top:10px;font-size:11px;font-weight:700;padding:8px 10px;border-radius:7px;line-height:1.5;' + (ok ? _CRIT_VERDE : _CRIT_GRIS));
+  }
+}
+window.critMarfanCalc = critMarfanCalc;
+
+function critEisen(){
+  var c1 = _critCard(_CRIT_ROJO, 'Los tres deben estar presentes', 'El síndrome no se define por la presión pulmonar sola.') +
+    _critCard(_CRIT_GRIS, '1 · Cardiopatía congénita con shunt', 'Comunicación sistémico-pulmonar: CIA, CIV, ductus arterioso persistente, defecto septal auriculoventricular, tronco arterioso u otra.') +
+    _critCard(_CRIT_GRIS, '2 · Hipertensión pulmonar severa', 'Resistencia vascular pulmonar &ge; 2/3 de la resistencia sistémica, o RVP mayor de 5 unidades Wood. <b>Se confirma por cateterismo</b>, no por ecocardiografía.') +
+    _critCard(_CRIT_GRIS, '3 · Shunt invertido', 'Inversión del shunt a derecha-izquierda o bidireccional, con cianosis central.');
+  var fila = (css, rom, txt) => _critCard(css, 'Clase ' + rom, txt);
+  var c2 = fila(_CRIT_VERDE, 'I', 'Sin limitación. La actividad física ordinaria no provoca síntomas.') +
+    fila(_CRIT_AMBAR, 'II', 'Limitación leve. Cómodo en reposo; síntomas con el esfuerzo moderado.') +
+    fila(_CRIT_AMBAR, 'III', 'Limitación marcada. Síntomas con esfuerzos mínimos.') +
+    fila(_CRIT_ROJO, 'IV', 'Síntomas en reposo. Incapacidad para cualquier actividad física.');
+  var c3 = _critCard(_CRIT_ROJO, 'Cierre del defecto', 'Contraindicado. Con la resistencia pulmonar elevada, cerrar el shunt suprime la válvula de escape del ventrículo derecho: la mortalidad perioperatoria es muy alta.') +
+    _critCard(_CRIT_ROJO, 'Embarazo', 'Clase IV de la OMS &mdash; <b>contraindicado</b>, con mortalidad materna del 30-50 %, <b>con independencia de la clase funcional</b>. Una paciente en clase I sigue teniendo esa mortalidad.') +
+    _critCard(_CRIT_AMBAR, 'Cirugía no cardíaca electiva', 'Sólo urgencias vitales, y en centro especializado en cardiopatías congénitas del adulto.') +
+    _critCard(_CRIT_GRIS, 'Seguimiento', 'Ecocardiograma anual, anticoagulación según el protocolo del centro y control en centro especializado.');
+  return _critCols([['Criterios diagnósticos', c1], ['Clase funcional OMS', c2], ['Contraindicaciones absolutas', c3]]) +
+    _critPie('<b>ESC 2020 &mdash; Guidelines for the management of adult congenital heart disease.</b> Baumgartner H et al., Eur Heart J 2021;42:563-645.<br>' +
+      'Panel de <b>referencia</b>: no lee ni escribe ningún campo de la sección.');
+}
+
+function critFontan(){
+  var c1 = _critCard(_CRIT_AZUL, 'Conexión cavopulmonar total extracardíaca', 'Conducto externo entre la vena cava inferior y la arteria pulmonar. <b>Elección actual</b>: menor riesgo de arritmias auriculares.') +
+    _critCard(_CRIT_GRIS, 'Túnel lateral', 'Parche intraatrial. Generación intermedia.') +
+    _critCard(_CRIT_GRIS, 'Aurícula-pulmonar', 'Técnica antigua. Mayor riesgo de dilatación auricular, arritmias y fallo del circuito.') +
+    _critCard(_CRIT_GRIS, 'Fenestración', 'Orificio intencional que permite un shunt derecha-izquierda controlado: baja la presión del circuito a costa de desaturar.');
+  var c2 = _critCard(_CRIT_GRIS, 'Enfermedad hepática asociada a Fontan (FALD)', 'Universal en esta circulación. Control hepático periódico, no sólo ante síntomas.') +
+    _critCard(_CRIT_GRIS, 'Enteropatía pierdeproteínas', 'Hipoalbuminemia, edemas y ascitis. Evaluación urgente.') +
+    _critCard(_CRIT_GRIS, 'Bronquitis plástica', 'Complicación grave. Derivar a centro especializado.') +
+    _critCard(_CRIT_GRIS, 'Trombosis del circuito', 'Evaluación urgente.') +
+    _critCard(_CRIT_ROJO, 'Fallo de Fontan', 'Derrame pleural o ascitis moderados o severos, saturación por debajo de 90 % o clase funcional III-IV. <b>Son los mismos cortes que aplica esta sección</b> para sus alertas.');
+  var c3 = _critCard(_CRIT_AMBAR, 'Sin complicaciones &mdash; Clase III de la OMS', 'Riesgo alto pero <b>no contraindicado</b>: 19-27 % de eventos cardíacos. Seguimiento en centro especializado.') +
+    _critCard(_CRIT_ROJO, 'Con complicaciones &mdash; Clase IV de la OMS', '<b>Contraindicado.</b> Enteropatía pierdeproteínas, FALD avanzado, clase funcional III-IV. La desaturación marcada (por debajo de 85 %) es otro marcador de fallo avanzado descrito en la literatura; <b>la sección clasifica por las complicaciones consignadas</b>, no por la saturación.') +
+    _critCard(_CRIT_GRIS, 'Seguimiento obligatorio', 'Ecocardiograma anual, control hepático periódico, anticoagulación según el protocolo del centro y evaluación en centro especializado cada 1-2 años.');
+  return _critCols([['Tipos de circulación', c1], ['Complicaciones características', c2], ['Riesgo de embarazo', c3]]) +
+    _critPie('<b>ESC 2020 &mdash; Guidelines for the management of adult congenital heart disease.</b> Baumgartner H et al., Eur Heart J 2021;42:563-645.<br>' +
+      'Panel de <b>referencia</b>: no lee ni escribe ningún campo de la sección.');
+}
+
 const CRIT_PANELES = {
   mca: { titulo:'Criterios Task Force 2010 — Miocardiopatía arritmogénica', render: critMCA },
-  mch: { titulo:'Algoritmos de desfibrilador en MCH — AHA/ACC 2020 y ESC 2023', render: critMCH }
+  mch: { titulo:'Algoritmos de desfibrilador en MCH — AHA/ACC 2020 y ESC 2023', render: critMCH },
+  marfan: { titulo:'Criterios diagnósticos — Marfan / EHAT (Ghent 2010)', render: critMarfan },
+  eisen:  { titulo:'Síndrome de Eisenmenger — ESC 2020', render: critEisen },
+  fontan: { titulo:'Circulación de Fontan — ESC 2020', render: critFontan }
 };
 function critAbrir(cual){
   const def = CRIT_PANELES[cual]; if (!def) return;
