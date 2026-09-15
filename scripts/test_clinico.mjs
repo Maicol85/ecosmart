@@ -2504,8 +2504,8 @@ caso('TC-112', 'Congenitas: ninguna seccion se perdio en el reparto ni al implem
      entran en ORIG con su campo caracteristico. Que TC-112 se pusiera en rojo al implementarlas
      es lo correcto —la condicion «ningun placeholder trae campos» es justamente lo que hay que
      actualizar cuando uno deja de serlo—. */
-  const ORIG = ['tv','shunt','dap','coa','vap','fop','vab','ebs','tdf','tga','mch','mca','marfan','eisen','fontan'];
-  const PH   = ['esub','easv','dsav','cvpa'];
+  const ORIG = ['tv','shunt','dap','coa','vap','fop','vab','ebs','tdf','tga','mch','mca','marfan','eisen','fontan','esub'];
+  const PH   = ['easv','dsav','cvpa'];
   const t1 = document.getElementById('tab-congenitas');
   const t2 = document.getElementById('tab-congenitas2');
   const de = k => document.getElementById('sacc-cc-' + k);
@@ -2529,7 +2529,7 @@ caso('TC-112', 'Congenitas: ninguna seccion se perdio en el reparto ni al implem
       [['vab','vab_fenotipo'],['coa','coa_istmo'],['fop','fop_tunel'],['mch','mch_espesor'],
        ['mca','mca_tsvd_plax'],['tdf','tdf_civ_grad'],['tv','tv_tipo'],['shunt','ete_cia_tipo'],
        ['dap','dap_diam'],['vap','vap_diam'],['tga','tga_tipo'],['ebs','ebs_area_ad'],
-       ['marfan','marfan_ao_seno'],['eisen','eis_lesion_base'],['fontan','fontan_tipo']]
+       ['marfan','marfan_ao_seno'],['eisen','eis_lesion_base'],['fontan','fontan_tipo'],['esub','esub_tipo']]
         .every(par => { const s = de(par[0]), c = document.getElementById(par[1]);
           return !!s && !!c && s.contains(c); })],
     ['los placeholders dicen que estan en desarrollo',
@@ -3521,6 +3521,73 @@ caso('TC-126', 'Sello de version: el pie lo publica y el aviso falla hacia no mo
     ['un fetch que lanza NO rompe la app', exploto === false],
     ['fuera de https no se pide nada: no hay con que comparar',
       enHttp ? pidio === false : true, 'protocolo: ' + location.protocol]
+  ] };
+`);
+
+/* ESTENOSIS SUBAORTICA — GRADUA EL GRADIENTE MEDIO, NO EL PICO. La ESC 2020 adapto la definicion
+   de obstruccion SEVERA del tracto de salida izquierdo, a CUALQUIER nivel, al gradiente MEDIO
+   >=40 mmHg a flujo normal. El pedido graduaba por el PICO con cortes 20/40: un pico de 45 con
+   medio de 24 es moderada para la guia, y publicarlo como «severa, evaluar cirugia» al lado de
+   la sigla ESC 2020 es una cita falsa. Es el mismo defecto que ya costo la coartacion. */
+caso('TC-127', 'Estenosis subaortica: gradua el gradiente MEDIO y no el pico', `
+  function e(o) { __t.limpiar();
+    __t.set('esub_tipo', o.tipo || 'membrana');
+    if (o.medio != null) __t.set('esub_gradiente_medio', String(o.medio));
+    if (o.pico  != null) __t.set('esub_gradiente_mmhg', String(o.pico));
+    if (o.ia    != null) __t.set('esub_ia_asociada', o.ia);
+    if (o.vals  != null) __t.set('esub_valsalva', o.vals);
+    if (o.largo != null) __t.set('esub_longitud_mm', String(o.largo));
+    __t.chk('esub_incluir_chk', true);
+    const r = esubEstado();
+    return { r, inf: __t.informe() };
+  }
+  const m39 = e({ medio:39 }), m40 = e({ medio:40 }), m41 = e({ medio:41 });
+  /* EL CASO QUE SEPARA LAS DOS REGLAS: pico alto con medio no severo. */
+  const picoAlto = e({ pico:65, medio:24 });
+  const soloPico = e({ pico:65 });
+  const ilegible = e({ medio:900 });
+  const iaMod = e({ medio:20, ia:'moderada' }), iaLeve = e({ medio:20, ia:'leve' });
+  const vals = e({ medio:20, vals:'aumenta' }), valsNo = e({ medio:20, vals:'sin_cambios' });
+  const tunel = e({ tipo:'tunel', medio:20, largo:14 });
+  const memLargo = e({ tipo:'membrana', medio:20, largo:14 });
+  /* El formulario VACIO de verdad: e() pone 'membrana' por defecto, asi que pasarle tipo:''
+     caia en el default y la seccion tenia datos. Un caso «vacio» que no esta vacio no prueba
+     nada — es el denominador otra vez. */
+  __t.limpiar();
+  const vacio = { r: esubEstado() };
+  return { extra: [
+    ['medio 40 exactos es severa', m40.r.severa === true],
+    ['medio 39 no', m39.r.severa === false],
+    ['medio 41 si', m41.r.severa === true],
+    ['la alerta quirurgica sube al EN SUMA',
+      m40.inf.suma.indexOf('evaluar indicación quirúrgica') > -1],
+    // EL PICO NO GRADUA.
+    ['un pico de 65 con medio 24 NO es severa', picoAlto.r.severa === false],
+    ['y el informe publica los dos gradientes', picoAlto.inf.inf.indexOf('65 mmHg') > -1 && picoAlto.inf.inf.indexOf('24 mmHg') > -1],
+    ['sin gradiente medio no se gradua', soloPico.r.gradua === false && soloPico.r.severa === false],
+    ['y el informe dice cual falta en vez de callarlo',
+      soloPico.inf.inf.indexOf('el criterio de la ESC 2020 es el gradiente MEDIO y no consta') > -1],
+    // La salvedad de flujo normal, solo donde podria tranquilizar de mas.
+    ['al graduar como NO severa se declara el supuesto de flujo normal',
+      m39.inf.inf.indexOf('con gasto cardíaco bajo el gradiente subestima') > -1],
+    ['y no se repite cuando ya es severa',
+      m40.inf.inf.indexOf('con gasto cardíaco bajo el gradiente subestima') === -1],
+    // IA secundaria.
+    ['IA moderada alerta y sube al EN SUMA',
+      iaMod.inf.inf.indexOf('marcador de severidad') > -1 && iaMod.inf.suma.indexOf('insuficiencia aórtica moderada') > -1],
+    ['IA leve se describe y no alerta',
+      iaLeve.inf.inf.indexOf('asociada leve') > -1 && iaLeve.inf.inf.indexOf('marcador de severidad') === -1],
+    // Valsalva: distingue fija de dinamica.
+    ['un gradiente que AUMENTA con Valsalva manda al diferencial con MCH',
+      vals.inf.inf.indexOf('obstrucción DINÁMICA') > -1 && vals.inf.suma.indexOf('aumenta con Valsalva') > -1],
+    ['sin cambios no alerta', valsNo.inf.inf.indexOf('obstrucción DINÁMICA') === -1],
+    // La longitud solo con tunel.
+    ['la longitud se imprime con el tunel', tunel.inf.inf.indexOf('14 mm') > -1],
+    ['y NO con una membrana: ahi no significa nada', memLargo.inf.inf.indexOf('14 mm') === -1],
+    // Vacio e ilegible.
+    ['sin ningun dato no hay seccion', vacio.r.hayDatos === false],
+    ['un medio de 900 no gradua', ilegible.r.severa === false],
+    ['y se declara fuera de rango', ilegible.inf.inf.indexOf('fuera de rango') > -1]
   ] };
 `);
 

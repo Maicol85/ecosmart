@@ -8662,12 +8662,55 @@ z
     </div>
   </div>
   <div class="card sacc" id="sacc-cc-esub">
-    <button type="button" class="sacc-hdr" onclick="secToggle('cc-esub')" aria-expanded="false">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-esub');esubSync()" aria-expanded="false">
       <span class="sacc-arrow">&#9654;</span>
-      <span style="flex:1;">🫀 Estenosis subaortica</span>
+      <span style="flex:1;">🫀 Estenosis subaórtica</span>
+      <span id="esub_badge" class="incl-badge" hidden>&#9679; cargada</span>
     </button>
     <div class="card-body sacc-body">
-      <p style="font-size:12px;color:var(--text2);margin:0;line-height:1.6;">En desarrollo — proximamente.</p>
+      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
+        Obstrucción <b>fija</b> del tracto de salida izquierdo por membrana o túnel fibromuscular. Se distingue de la
+        obstrucción <b>dinámica</b> de la miocardiopatía hipertrófica por su comportamiento con Valsalva.
+      </p>
+      <div class="grid-3">
+        <div class="fg"><label>Tipo</label>
+          <select id="esub_tipo" onchange="esubSync()">
+            <option value="">&mdash;</option>
+            <option value="membrana">Membrana subaórtica</option>
+            <option value="tunel">Túnel subaórtico</option>
+            <option value="noesp">No especificado</option>
+          </select></div>
+        <div class="fg"><label>Gradiente medio (mmHg)</label>
+          <input type="number" id="esub_gradiente_medio" step="1" placeholder="mmHg" oninput="esubSync()">
+          <span style="font-size:10px;color:var(--text2);">Es el que gradúa: la ESC 2020 define severa la obstrucción del TSVI <b>a cualquier nivel</b> con medio &ge;40&nbsp;mmHg a flujo normal.</span></div>
+        <div class="fg"><label>Gradiente pico (mmHg)</label>
+          <input type="number" id="esub_gradiente_mmhg" step="1" placeholder="mmHg" oninput="esubSync()">
+          <span style="font-size:10px;color:var(--text2);">Se describe; no gradúa por sí solo.</span></div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>Insuficiencia aórtica asociada</label>
+          <select id="esub_ia_asociada" onchange="esubSync()">
+            <option value="">&mdash;</option><option value="no">No</option>
+            <option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option>
+          </select>
+          <span style="font-size:10px;color:var(--text2);">Secundaria al chorro sobre los velos: frecuente y progresiva, marcador de severidad.</span></div>
+        <div class="fg"><label>Longitud del túnel (mm)</label>
+          <input type="number" id="esub_longitud_mm" step="1" placeholder="mm" oninput="esubSync()">
+          <span style="font-size:10px;color:var(--text2);">Sólo para el túnel subaórtico.</span></div>
+        <div class="fg"><label>Comportamiento con Valsalva</label>
+          <select id="esub_valsalva" onchange="esubSync()">
+            <option value="">&mdash;</option><option value="no_eval">No evaluado</option>
+            <option value="sin_cambios">Sin cambios</option>
+            <option value="aumenta">Aumenta</option><option value="disminuye">Disminuye</option>
+          </select>
+          <span style="font-size:10px;color:var(--text2);">Un gradiente que <b>aumenta</b> con Valsalva sugiere obstrucción dinámica, no fija.</span></div>
+      </div>
+      <div id="esub-resultado" class="calc-box" style="margin-top:12px;"></div>
+      <input type="checkbox" id="esub_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+      <div style="display:flex;justify-content:center;margin-top:10px;">
+        <button type="button" class="btn btn-integrar" data-ete-chk="esub_incluir_chk" aria-pressed="false"
+                onclick="eteInclToggle('esub_incluir_chk')">&#128206; Integrar al informe</button>
+      </div>
     </div>
   </div>
   <div class="card sacc" id="sacc-cc-easv">
@@ -21906,6 +21949,42 @@ function generarInforme(opts) {
       r.alertas.forEach(a => { if (a.suma) sumaCC(a.suma); });
     })();
 
+    /* ── Estenosis subaórtica ── */
+    (function(){
+      const chk = document.getElementById('esub_incluir_chk');
+      if (!chk || !chk.checked) return;
+      if (typeof esubEstado !== 'function') return;
+      const r = esubEstado();
+      if (!r.hayDatos) return;
+      const f1 = n => (n == null || !isFinite(n)) ? null : String(Math.round(n * 10) / 10);
+      const p = ['Estenosis subaórtica' + (r.tipo ? ' (' + (ESUB_TIPO_TXT[r.tipo] || r.tipo) + ')' : '')];
+      if (r.medioOk) p.push('Gradiente medio ' + f1(r.medio) + ' mmHg');
+      if (r.picoOk)  p.push('Gradiente pico ' + f1(r.pico) + ' mmHg');
+      if (r.fuera.length) p.push('Valor fuera de rango en ' + r.fuera.join(' y ') + ': revisar antes de concluir');
+      /* Sin gradiente medio NO se gradúa, y se dice cuál falta: el pico solo no alcanza para el
+         criterio de la guía, y callarlo dejaría al lector suponiendo que se evaluó. */
+      if (!r.medioOk) p.push('No se gradúa la severidad: el criterio de la ESC 2020 es el gradiente MEDIO y no consta');
+      if (r.ia) p.push('Insuficiencia aórtica asociada ' + (ESUB_IA_TXT[r.ia] || r.ia));
+      /* La longitud sólo se imprime con el túnel: en una membrana no significa nada y el campo
+         puede traer el valor de otro paciente si alguien cambió el tipo después de medirla. */
+      if (r.tipo === 'tunel' && r.largoOk)
+        p.push('Túnel subaórtico de ' + f1(r.largo) + ' mm — forma anatómica más compleja, con mayor riesgo de recurrencia después de la cirugía');
+      else if (r.tipo === 'tunel') p.push('Forma de túnel subaórtico, de mayor riesgo de recurrencia posquirúrgica que la membrana');
+      if (r.vals && r.vals !== 'no_eval') p.push('Con la maniobra de Valsalva el gradiente ' + (ESUB_VALS_TXT[r.vals] || r.vals));
+      const alertas = r.alertas.map(a => a.txt).join(' ');
+      /* «A flujo normal» es parte del criterio: con bajo gasto el gradiente subestima, así que
+         no alcanzar 40 no descarta severidad. Se declara sólo cuando se gradúa como NO severa,
+         que es la afirmación que podría tranquilizar de más. */
+      const salvedadFlujo = (r.gradua && !r.severa)
+        ? ' El criterio de la ESC 2020 supone flujo normal: con gasto cardíaco bajo el gradiente subestima la obstrucción.'
+        : '';
+      etePars.push(p.join('. ') + '.' + (alertas ? ' ' + alertas : '') + salvedadFlujo + ' ' + r.SEGUIMIENTO);
+      ccMarcarParrafo();
+      sumaCC('Estenosis subaórtica' + (r.tipo ? ' (' + (ESUB_TIPO_TXT[r.tipo] || r.tipo) + ')' : '') +
+             (r.medioOk ? ', gradiente medio ' + f1(r.medio) + ' mmHg' + (r.severa ? ' — severa' : '') : '') + '.');
+      r.alertas.forEach(a => { if (a.suma) sumaCC(a.suma); });
+    })();
+
     /* ── Circulación de Fontan ── */
     (function(){
       const chk = document.getElementById('fontan_incluir_chk');
@@ -22349,7 +22428,7 @@ function RECALC_MODULOS() {
          veredicto sí contaba esos criterios;
        · `calcOAI` reconstruye la marca de «área derivada» (ver ahí), sin la cual corregir el
          diámetro en un estudio reabierto dejaba el área vieja. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -22563,6 +22642,7 @@ function limpiarCampos(silencioso) {
   if (typeof marfanSync === 'function') { try { marfanSync(); } catch (e) {} }
   if (typeof eisenSync === 'function') { try { eisenSync(); } catch (e) {} }
   if (typeof fontanSync === 'function') { try { fontanSync(); } catch (e) {} }
+  if (typeof esubSync === 'function') { try { esubSync(); } catch (e) {} }
   if (typeof dptSync === 'function') { try { dptSync(); } catch (e) {} }
   if (typeof cvrSync === 'function') { try { cvrSync(); } catch (e) {} }
   /* Los botones se repintan desde el ESTADO REAL, no a `false` fijo. Las claves del bull's eye
@@ -30948,6 +31028,83 @@ function _tdfNv(id){ const n = (typeof v==='function') ? v(id) : null; return (n
    vigilancia y la etiqueta de ayuda del campo — y ya hay una entrada en CLAUDE.md sobre lo que
    pasa cuando un rótulo se queda con el umbral viejo. */
 const TDF_VTDVDI_MIN = 160, TDF_VTSVDI_MIN = 80;
+/* ══ ESTENOSIS SUBAÓRTICA (ESC 2020) ═════════════════════════════════════════════════════════
+   GRADÚA EL GRADIENTE MEDIO, NO EL PICO. La ESC 2020 adaptó la definición de obstrucción SEVERA
+   del tracto de salida izquierdo —a cualquier nivel: valvular, subvalvular y supravalvular— al
+   **gradiente medio ≥40 mmHg a flujo normal**, para alinearla con la estenosis aórtica valvular.
+   El pedido original graduaba por el gradiente PICO con cortes 20/40; eso es el mismo defecto que
+   ya costó la coartación —el número correcto medido con el método equivocado—: un pico de 45 con
+   medio de 24 es MODERADA para la guía, y publicarla como «severa, evaluar cirugía» junto a la
+   sigla ESC 2020 es una cita falsa. El pico se describe porque es lo que sale del eco, y con el
+   medio ausente el informe lo dice en vez de graduar.
+
+   «A flujo normal» no es decorativo: con bajo gasto el gradiente subestima la obstrucción, así
+   que la ausencia de gradiente severo NO descarta severidad si el flujo es bajo. El informe lo
+   declara cuando gradúa como no severa. */
+const ESUB_MEDIO_SEVERO = 40;
+const ESUB_TIPO_TXT = { membrana:'membrana subaórtica', tunel:'túnel subaórtico', noesp:'tipo no especificado' };
+const ESUB_IA_TXT = { no:'sin insuficiencia aórtica', leve:'leve', moderada:'moderada', severa:'severa' };
+const ESUB_VALS_TXT = { no_eval:'no evaluado', sin_cambios:'sin cambios', aumenta:'aumenta', disminuye:'disminuye' };
+
+function esubEstado(){
+  const nv = id => { const e = document.getElementById(id); if (!e) return null;
+    const n = parseFloat(String(e.value).replace(',', '.')); return isFinite(n) ? n : null; };
+  const sv = id => (document.getElementById(id) || {}).value || '';
+  const tipo = sv('esub_tipo'), ia = sv('esub_ia_asociada'), vals = sv('esub_valsalva');
+  const medio = nv('esub_gradiente_medio'), pico = nv('esub_gradiente_mmhg'), largo = nv('esub_longitud_mm');
+  const banda = (v, lo, hi) => v != null && v >= lo && v <= hi;
+  const medioOk = banda(medio, 0, 150), picoOk = banda(pico, 0, 200), largoOk = banda(largo, 1, 50);
+  const fuera = [];
+  if (medio != null && !medioOk) fuera.push('gradiente medio');
+  if (pico  != null && !picoOk)  fuera.push('gradiente pico');
+  if (largo != null && !largoOk) fuera.push('longitud del túnel');
+  const hayDatos = !!(tipo || ia || vals || medio != null || pico != null || largo != null);
+  if (!hayDatos) return { hayDatos:false, alertas:[] };
+  /* La severidad SÓLO se decide con el medio. Sin él no se gradúa: se dice que falta. */
+  const severa = medioOk && medio >= ESUB_MEDIO_SEVERO;
+  const gradua = medioOk;
+  const alertas = [];
+  if (severa) alertas.push({
+    txt:'Gradiente medio de ' + medio + ' mmHg — obstrucción severa del tracto de salida izquierdo por el criterio de la ESC 2020 (medio ≥' + ESUB_MEDIO_SEVERO + ' mmHg a flujo normal). Corresponde evaluar la indicación quirúrgica en centro de cardiopatías congénitas del adulto.',
+    suma:'Estenosis subaórtica severa (gradiente medio ' + medio + ' mmHg) — evaluar indicación quirúrgica.' });
+  /* La IA secundaria es marcador de severidad y progresión: moderada o severa cambia el
+     intervalo de control y pesa en la decisión quirúrgica, así que sube al EN SUMA. La leve se
+     describe y no alerta — es el hallazgo habitual. */
+  if (ia === 'moderada' || ia === 'severa') alertas.push({
+    txt:'Insuficiencia aórtica ' + ESUB_IA_TXT[ia] + ' asociada — marcador de severidad y de progresión de la lesión subaórtica, y criterio que pesa por sí mismo en la decisión quirúrgica.',
+    suma:'Estenosis subaórtica con insuficiencia aórtica ' + ESUB_IA_TXT[ia] + ' asociada.' });
+  /* Un gradiente que AUMENTA con Valsalva describe una obstrucción DINÁMICA. No se resuelve
+     acá —es un diagnóstico distinto— pero callarlo dejaría el informe llamando «fija» a una
+     lesión que se comporta como dinámica. */
+  if (vals === 'aumenta') alertas.push({
+    txt:'El gradiente aumenta con la maniobra de Valsalva, que es el comportamiento de una obstrucción DINÁMICA y no de una obstrucción fija: revisar el diagnóstico diferencial con miocardiopatía hipertrófica antes de atribuir el gradiente a la lesión subaórtica.',
+    suma:'Gradiente del tracto de salida que aumenta con Valsalva — diferenciar obstrucción dinámica de la subaórtica fija.' });
+  return { hayDatos:true, tipo, ia, vals, medio, pico, largo, medioOk, picoOk, largoOk, fuera,
+           severa, gradua, alertas,
+           SEGUIMIENTO:'Seguimiento ecocardiográfico anual, vigilando la progresión del gradiente y de la insuficiencia aórtica secundaria. Derivación a cirugía cardíaca de congénitas del adulto ante gradiente medio ≥' + ESUB_MEDIO_SEVERO + ' mmHg o insuficiencia aórtica progresiva.' };
+}
+window.esubEstado = esubEstado;
+
+function esubSync(){
+  const el = document.getElementById('esub-resultado'); if (!el) return;
+  while (el.firstChild) el.removeChild(el.firstChild);
+  const r = esubEstado();
+  const fila = (lbl, nodo) => { const row = document.createElement('div'); row.className = 'calc-row';
+    const l = document.createElement('span'); l.className = 'calc-lbl'; l.textContent = lbl;
+    row.appendChild(l); if (nodo) row.appendChild(nodo); el.appendChild(row); };
+  const val = t => { const sp = document.createElement('span'); sp.className = 'calc-val';
+    sp.style.fontWeight = '400'; sp.textContent = t; return sp; };
+  const pill = (cls, t) => { const sp = document.createElement('span');
+    sp.className = 'badge badge-' + (BADGE_CLS_OK.indexOf(cls) >= 0 ? cls : 'gray'); sp.textContent = t; return sp; };
+  if (!r.hayDatos) { fila('Estenosis subaórtica', pill('gray', 'Ingresar tipo y gradiente medio')); return; }
+  if (r.fuera.length) fila('Fuera de rango', pill('yellow', r.fuera.join(' y ') + ' — revisar antes de concluir'));
+  if (r.gradua) fila('Gradiente medio', pill(r.severa ? 'red' : 'green', r.medio + ' mmHg' + (r.severa ? ' — severa (ESC 2020)' : ' — no severa')));
+  else fila('Gradiente medio', pill('gray', 'Sin gradiente medio no se gradúa la severidad'));
+  if (r.alertas.length) r.alertas.forEach(a => fila('·', val(a.txt)));
+  fila('Seguimiento', val(r.SEGUIMIENTO));
+}
+window.esubSync = esubSync;
+
 function tdfConclusion(){
   const civ = _tdfSv('tdf_civ_residual'), civG = _tdfNv('tdf_civ_grad');
   const func = _tdfSv('tdf_func_vd'), ip = _tdfSv('ip_grado');
@@ -31811,6 +31968,7 @@ const ETE_INCL_LBL = {
   marfan_incluir_chk:      'Marfan / EHAT',
   eisen_incluir_chk:       'Síndrome de Eisenmenger',
   fontan_incluir_chk:      'Circulación de Fontan',
+  esub_incluir_chk:        'Estenosis subaórtica',
   mch_incluir_chk:         'Miocardiopatía hipertrófica',
   ebs_incluir_chk:         'Anomalía de Ebstein',
   tdf_incluir_chk:         'Tetralogía de Fallot reparada',
@@ -42942,6 +43100,12 @@ function _labExcelRow(inf) {
     'Eisenmenger NYHA': _labXlsEtiq('eis_clase_nyha', c.eis_clase_nyha),
     'Eisenmenger síncope': _labXlsEtiq('eis_sincope', c.eis_sincope),
     'Eisenmenger hemoptisis': _labXlsEtiq('eis_hemoptisis', c.eis_hemoptisis),
+    'Subaortica tipo': _labXlsEtiq('esub_tipo', c.esub_tipo),
+    'Subaortica gradiente medio (mmHg)': rnd(num('esub_gradiente_medio'),0),
+    'Subaortica gradiente pico (mmHg)': rnd(num('esub_gradiente_mmhg'),0),
+    'Subaortica IA asociada': _labXlsEtiq('esub_ia_asociada', c.esub_ia_asociada),
+    'Subaortica longitud tunel (mm)': rnd(num('esub_longitud_mm'),0),
+    'Subaortica Valsalva': _labXlsEtiq('esub_valsalva', c.esub_valsalva),
     'Ebstein sat O2 reposo (%)': rnd(num('ebs_saturacion'),0),
     'TdF VTDVD indexado (ml/m2)': rnd(num('tdf_vtdvdi'),0),
     'TdF VTSVD indexado (ml/m2)': rnd(num('tdf_vtsvdi'),0),
@@ -43841,6 +44005,12 @@ const LAB_XLS_MAP = [
   ['Eisenmenger NYHA',            'eis_clase_nyha','vocab'],
   ['Eisenmenger síncope',         'eis_sincope',   'vocab'],
   ['Eisenmenger hemoptisis',      'eis_hemoptisis','vocab'],
+  ['Subaortica tipo',              'esub_tipo',              'vocab'],
+  ['Subaortica gradiente medio (mmHg)', 'esub_gradiente_medio', 'num'],
+  ['Subaortica gradiente pico (mmHg)',  'esub_gradiente_mmhg',  'num'],
+  ['Subaortica IA asociada',       'esub_ia_asociada',       'vocab'],
+  ['Subaortica longitud tunel (mm)','esub_longitud_mm',      'num'],
+  ['Subaortica Valsalva',          'esub_valsalva',          'vocab'],
   ['Ebstein sat O2 reposo (%)',   'ebs_saturacion',  'num'],
   ['TdF VTDVD indexado (ml/m2)',  'tdf_vtdvdi',      'num'],
   ['TdF VTSVD indexado (ml/m2)',  'tdf_vtsvdi',      'num'],
@@ -44279,6 +44449,9 @@ const LAB_XLS_ETIQ = {
    acepte. Los textos son los que ya emite `_labExcelRow`, que además ahora los lee de acá. */
 LAB_XLS_ETIQ.coa_hta          = { no:'No', si:'Sí' };
 LAB_XLS_ETIQ.tdf_vol_fuente   = { rmc:'Resonancia magnética cardíaca', eco3d:'Ecocardiografía 3D', tc:'Tomografía' };
+LAB_XLS_ETIQ.esub_tipo        = { membrana:'Membrana subaórtica', tunel:'Túnel subaórtico', noesp:'No especificado' };
+LAB_XLS_ETIQ.esub_ia_asociada = { no:'No', leve:'Leve', moderada:'Moderada', severa:'Severa' };
+LAB_XLS_ETIQ.esub_valsalva    = { no_eval:'No evaluado', sin_cambios:'Sin cambios', aumenta:'Aumenta', disminuye:'Disminuye' };
 LAB_XLS_ETIQ.vab_simetria     = { simetrica:'Simétrica', asimetrica:'Asimétrica', no_val:'No valorable' };
 LAB_XLS_ETIQ.marfan_sindrome  = { marfan:'Marfan', lds:'Loeys-Dietz', turner:'Turner',
                                   ehat:'EHAT no sindrómica', otro:'Otro' };
@@ -44588,6 +44761,13 @@ LAB_XLS_VOCAB.im_grado = LAB_XLS_VOCAB.ia_grado = LAB_XLS_VOCAB.it_grado = LAB_X
    etiqueta legible que exporta la propia app. Sembrar `{}` a secas alcanzaría; los alias son
    para el que tipea a mano: «si»/«sí», «cavopulmonar», «moderado»/«moderada». */
 LAB_XLS_VOCAB.coa_hta = { no:'no', si:'si', 'sí':'si' };
+LAB_XLS_VOCAB.esub_tipo = { membrana:'membrana', 'membrana subaortica':'membrana',
+  tunel:'tunel', 'tunel subaortico':'tunel', noesp:'noesp', 'no especificado':'noesp' };
+LAB_XLS_VOCAB.esub_ia_asociada = { no:'no', leve:'leve', moderada:'moderada', moderado:'moderada',
+  severa:'severa', severo:'severa' };
+LAB_XLS_VOCAB.esub_valsalva = { no_eval:'no_eval', 'no evaluado':'no_eval',
+  sin_cambios:'sin_cambios', 'sin cambios':'sin_cambios',
+  aumenta:'aumenta', disminuye:'disminuye' };
 LAB_XLS_VOCAB.tdf_vol_fuente = { rmc:'rmc', resonancia:'rmc', 'resonancia magnetica cardiaca':'rmc',
   rmn:'rmc', cmr:'rmc', eco3d:'eco3d', 'ecocardiografia 3d':'eco3d', '3d':'eco3d',
   tc:'tc', tomografia:'tc', 'angiotc':'tc' };
@@ -52160,8 +52340,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260915-2032';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789515165137;                 /* eco-build-ms */
+const ECO_BUILD    = '20260915-2041';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789515670989;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -52247,7 +52427,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260915-2032</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260915-2041</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

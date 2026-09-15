@@ -335,6 +335,38 @@ igual. Y al final, sacarle la historia familiar al predicado **no cambiaba una p
 historia familiar»: el color y el texto salían de dos expresiones distintas. **Si un caso no
 prueba el lado negativo de cada rama, no prueba la regla.**
 
+### Estenosis subaórtica: gradúa el gradiente MEDIO, no el pico
+Sección implementada el 2026-09-15. **La ESC 2020 adaptó la definición de obstrucción SEVERA del
+tracto de salida izquierdo —a CUALQUIER nivel: valvular, subvalvular y supravalvular— al gradiente
+MEDIO ≥40 mmHg a flujo normal**, para alinearla con la estenosis aórtica valvular.
+
+**El pedido graduaba por el gradiente PICO con cortes 20/40 y no se aplicó.** Un pico de 45 con
+medio de 24 es **moderada** para la guía; publicarlo como «severa — evaluar cirugía» al lado de la
+sigla ESC 2020 es una **cita falsa**, y el error va hacia **sobre-indicar** cirugía. Es el mismo
+defecto que ya costó la coartación: el número correcto medido con el método equivocado. El pico se
+**describe** —es lo que sale del eco— y **sin el medio no se gradúa**: el informe dice cuál falta.
+
+**«A flujo normal» no es decorativo.** Con gasto bajo el gradiente subestima, así que no alcanzar
+40 **no descarta** severidad. La salvedad se imprime **sólo** cuando se gradúa como NO severa, que
+es la afirmación que podría tranquilizar de más.
+
+**La longitud del túnel se imprime SÓLO con el túnel.** En una membrana no significa nada, y el
+campo puede conservar el valor de otro paciente si alguien cambió el tipo después de medirla.
+
+**Valsalva distingue la lesión fija de la dinámica.** Un gradiente que **aumenta** con Valsalva es
+el comportamiento de una obstrucción **dinámica**: el informe manda al diferencial con
+miocardiopatía hipertrófica antes de atribuir el gradiente a la lesión subaórtica. No se resuelve
+acá —es otro diagnóstico— pero callarlo dejaría al informe llamando «fija» a una lesión que no se
+comporta como tal. Ojo: `mch_grad_reposo` y `mch_grad_valsalva` son el gradiente del **mismo
+tracto** por otra entidad; dos gradientes del mismo tracto en un PDF firmado es el patrón que este
+archivo ya pagó en Fallot.
+
+**La IA secundaria moderada o severa sube al EN SUMA**: es marcador de severidad y progresión y
+pesa por sí misma en la decisión quirúrgica. La leve se describe y no alerta — es lo habitual.
+
+**Campos:** `esub_tipo`, `esub_gradiente_medio`, `esub_gradiente_mmhg` (pico), `esub_ia_asociada`,
+`esub_longitud_mm`, `esub_valsalva`, `esub_incluir_chk`. Con sus **seis columnas de Excel**.
+
 ### Ebstein: la saturación es lo que convertía «hay una comunicación» en «hay un shunt»
 Agregado el 2026-09-15: **`ebs_saturacion`**, banda 40-100 %, y una rama de **cianosis** en la
 cascada. La sección ya detectaba la CIA (desde `ete_cia_*`) y el foramen (desde `fopConclusion`),
