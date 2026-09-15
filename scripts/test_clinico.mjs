@@ -3245,6 +3245,81 @@ caso('TC-123', 'Congenitas I y II: el rotulo dice lo mismo en las cuatro superfi
   ] };
 `);
 
+/* EBSTEIN — LA SATURACION CONVIERTE «HAY UNA COMUNICACION» EN «HAY UN SHUNT QUE DESATURA».
+   La seccion ya detectaba la CIA y el foramen desde sus secciones reales, y su propio comentario
+   decia que «una CIA con shunt derecha-izquierda es lo que produce cianosis y lo que se cierra en
+   el acto quirurgico» — pero no habia con que saber si ese shunt era derecha-izquierda.
+   El indice de Celermajer y sus cuatro grados YA existian (ebsCelermajer), con estos mismos
+   cortes; este caso los fija de paso, por los dos lados de cada uno.
+   EL 90 % NO SE ATRIBUYE A LA GUIA: la ESC 2020 nombra la cianosis entre los desencadenantes de
+   intervencion en Ebstein pero no publica un numero para Ebstein. */
+caso('TC-124', 'Ebstein: cianosis y los cuatro grados de Celermajer', `
+  function e(o) { __t.limpiar();
+    __t.set('ebs_desplazamiento', '25'); __t.set('peso','80'); __t.set('talla','180');
+    if (o.areas) { __t.set('ebs_area_ad', String(o.areas[0])); __t.set('ebs_area_vd_atrial', String(o.areas[1]));
+      __t.set('ebs_area_vd_func', String(o.areas[2])); __t.set('ebs_area_ai', String(o.areas[3]));
+      __t.set('ebs_area_vi', String(o.areas[4])); }
+    if (o.sat != null) __t.set('ebs_saturacion', String(o.sat));
+    if (o.it)   __t.set('it_grado', o.it);
+    if (o.sint) __t.set('ebs_sintomas', o.sint);
+    if (o.cia)  __t.set('ete_cia_tipo', o.cia);
+    __t.chk('ebs_incluir_chk', true);
+    const c = ebsConclusion();
+    return { c, cel: ebsCelermajer(), inf: __t.informe() };
+  }
+  /* Denominador 10 exacto (VDfunc 4 + AI 3 + VI 3), asi el numerador ES diez veces el indice.
+     El atrializado va en 1 y NO en 0: la banda de plausibilidad de ebsCelermajer exige cada area
+     entre 1 y 200 cm2, y con un 0 devolvia fuera — el caso media sobre un indice que nunca se
+     calculo y acusaba a los cortes de estar mal. Elegir los insumos mirando la guarda. */
+  const g = n => ({ areas: [n - 1, 1, 4, 3, 3] });   // (AD + atrializado) / 10 = n / 10
+  const i04 = e(g(4)), i05 = e(g(5)), i099 = e(g(9.9)), i10 = e(g(10)), i149 = e(g(14.9)), i15 = e(g(15));
+  const sat88 = e({ sat:88 }), sat90 = e({ sat:90 }), sat92 = e({ sat:92 });
+  const satMal = e({ sat:9 });
+  const vacio  = e({});
+  const conCia = e({ sat:88, cia:'secundum' });   // token REAL del select, no inventado
+  const claseI = e({ sat:88, it:'4', sint:'si' });
+  return { extra: [
+    // Los cuatro grados, por los dos lados de cada corte.
+    ['indice 0.40 es grado 1', i04.cel.grado === 1],
+    ['indice 0.50 exacto pasa a grado 2', i05.cel.grado === 2],
+    ['indice 0.99 sigue en grado 2', i099.cel.grado === 2],
+    ['indice 1.00 exacto pasa a grado 3', i10.cel.grado === 3],
+    ['indice 1.49 sigue en grado 3', i149.cel.grado === 3],
+    ['indice 1.50 exacto pasa a grado 4', i15.cel.grado === 4],
+    /* EL INDICE DESCRIBE, NO INDICA. Un grado 4 sin sintomas, sin IT severa y sin cianosis NO
+       puede producir una indicacion: la ESC 2020 no contiene este indice —verificado por
+       busqueda de texto completo, ver el comentario de ebsCelermajer— y fue derivado en 28
+       NEONATOS. El informe lo dice con todas las letras. */
+    ['un Celermajer grado 4 aislado NO indica intervencion',
+      i15.c.clave !== 'cirugia' && i15.c.clave !== 'considerar_cirugia' && i15.c.clave !== 'cianosis'],
+    ['y el informe declara que la indicacion de la ESC no depende del indice',
+      i15.inf.inf.indexOf('La indicación quirúrgica de la ESC 2020 es clínica y no depende de este índice') > -1],
+    ['y que el eco sobreestima y la serie era neonatal',
+      i15.inf.inf.indexOf('SOBREESTIMAR') > -1 && i15.inf.inf.indexOf('serie neonatal') > -1],
+    // Cianosis: los dos lados del corte.
+    ['sat 88 da cianosis',  sat88.c.clave === 'cianosis'],
+    ['sat 90 exactos NO',   sat90.c.clave !== 'cianosis'],
+    ['sat 92 tampoco',      sat92.c.clave !== 'cianosis'],
+    ['la cianosis sube al EN SUMA', sat88.inf.suma.indexOf('cianosis') > -1],
+    ['y se nombra a la ESC 2020 como quien la lista, sin inventarle un numero',
+      sat88.inf.inf.indexOf('la ESC 2020 incluye la cianosis entre los desencadenantes') > -1 &&
+      sat88.inf.inf.indexOf('<90 % (ESC 2020)') === -1],
+    // Sin comunicacion documentada no se promete cerrar nada; con ella, si.
+    ['sin CIA documentada manda a buscarla en vez de prometer el cierre',
+      sat88.inf.inf.indexOf('obliga a buscarla') > -1 &&
+      sat88.inf.inf.indexOf('cerrarla en el mismo acto') === -1],
+    ['con CIA documentada nombra el cierre en el mismo acto',
+      conCia.inf.inf.indexOf('cerrarla en el mismo acto') > -1],
+    // Con Clase I por otra via la cianosis no desaparece del informe.
+    ['con indicacion Clase I la cianosis sigue nombrada',
+      claseI.c.clave === 'cirugia' && claseI.inf.inf.indexOf('Cianosis asociada') > -1],
+    // Campo vacio y valor ilegible.
+    ['sin saturacion cargada no hay alerta', vacio.c.clave !== 'cianosis'],
+    ['una saturacion de 9 % no da cianosis', satMal.c.clave !== 'cianosis'],
+    ['y corta antes de publicar conducta', satMal.c.clave === 'no_interpretable']
+  ] };
+`);
+
 /* LAS TRES SUPERFICIES DE CARDIO-ONCO TIENEN QUE DECIR LO MISMO. La leyenda de #ref-cardiotox
    (pestaña Referencias), la tabla de farmacos y las tablas nuevas del marco HFA-ICOS viven en
    DOS pestañas distintas y describen al mismo paciente. Las tres estaban desincronizadas, cada

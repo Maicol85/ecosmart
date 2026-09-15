@@ -10148,6 +10148,11 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         </div>
       </div>
       <div class="grid-2" style="margin-top:10px;">
+        <div class="fg"><label>Saturación de O&#8322; en reposo (%)</label>
+          <input type="number" id="ebs_saturacion" step="1" placeholder="%" oninput="ebsSync()">
+          <span style="font-size:10px;color:var(--text2);">La <b>cianosis</b> es uno de los desencadenantes de intervención que lista la ESC 2020 en la anomalía de Ebstein. Por debajo de 90&nbsp;% indica shunt derecha-izquierda significativo a través de la comunicación interauricular.</span></div>
+      </div>
+      <div class="grid-2" style="margin-top:10px;">
         <div class="fg"><label>Deterioro objetivo de la capacidad de ejercicio</label>
           <select id="ebs_ejercicio" onchange="ebsSync()">
             <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
@@ -29541,6 +29546,12 @@ function ccSumaLinea(sec){
     else if (cel && cel.fuera) l += ' — índice de Celermajer no calculado: ' + cel.fuera.join(' y ') + ' fuera de rango';
     if (it) l += ' — IT ' + it;
     if (fvd) l += ' — VD con ' + fvd;
+    /* La cianosis SUBE al EN SUMA: es lo único de esta sección que cambia una conducta hoy
+       —obliga a buscar la comunicación y decide cerrarla en el acto quirúrgico—. El resto de la
+       línea describe. Se relee del mismo campo que evalúa la conclusión, con su misma banda. */
+    const _sat = _ccNum('ebs_saturacion');
+    if (_sat != null && _sat >= 40 && _sat <= 100 && _sat < 90)
+      l += ' — cianosis (saturación ' + _sat + ' %), desencadenante de intervención según ESC 2020';
     return l;
   }
 
@@ -30564,6 +30575,19 @@ function ebsConclusion(){
   const desp = _ebsNv('ebs_desplazamiento'), atrPct = _ebsNv('ebs_atrializacion');
   const func = _ebsSv('ebs_func_vd'), tsv = _ebsSv('ebs_tsv'), vias = _ebsSv('ebs_vias');
   const sint = _ebsSv('ebs_sintomas'), ejerc = _ebsSv('ebs_ejercicio'), prog = _ebsSv('ebs_progresion');
+  /* ══ SATURACIÓN — la cianosis ES un desencadenante de la ESC 2020 ═══════════════════════════
+     La sección ya detectaba la CIA y el foramen, y el comentario de más abajo dice literalmente
+     que «una CIA con shunt derecha-izquierda es lo que produce cianosis y lo que se cierra en el
+     acto quirúrgico» — pero no había con qué saber si ese shunt era derecha-izquierda. Eso es lo
+     que agrega este campo: convierte «hay una comunicación» en «hay un shunt que desatura».
+     El 90 % es el corte convencional de desaturación significativa y se atribuye COMO TAL, no a
+     la guía: la ESC 2020 nombra la cianosis entre los desencadenantes de intervención en Ebstein
+     y recomienda cerrar la comunicación interauricular en el mismo acto de la cirugía valvular
+     si se prevé hemodinámicamente tolerada, pero no publica un número para Ebstein. Escribir
+     «<90 % (ESC 2020)» sería una cita falsa — el defecto de la nota del NT-proBNP. */
+  const sat = _ebsNv('ebs_saturacion');
+  const satOk = sat != null && sat >= 40 && sat <= 100;
+  const cianosis = satOk && sat < 90;
   const cel = ebsCelermajer();
   const it = _ebsSv('it_grado');
   const hayDato = !!(desp != null || atrPct != null || func || cel.idx != null ||
@@ -30587,6 +30611,12 @@ function ebsConclusion(){
   const ITT = { '1':'leve', '2':'moderada', '3':'moderada-severa', '4':'severa' };
   const itTxt = _ccLbl(ITT, it);
   if (itTxt) partes.push('Insuficiencia tricuspídea ' + itTxt);
+  /* La banda se aplica DENTRO del bloque `fuera`, que es el que corta antes de publicar una
+     conducta: un 9 tipeado por 90 no puede llegar a «cianosis» ni a «sin criterios». */
+  if (sat != null && !satOk) { fuera.push('saturación de oxígeno');
+    partes.push('Saturación de oxígeno de ' + sat + ' % fuera de rango: revisar antes de concluir'); }
+  else if (satOk) partes.push('Saturación de oxígeno en reposo ' + sat + ' %' +
+    (cianosis ? ' — cianosis' : ''));
 
   if (cel.fuera)  { fuera.push('áreas del índice de Celermajer');
     partes.push('Índice de Celermajer no calculado: área de ' + cel.fuera.join(' y ') + ' fuera de rango — revisar unidades'); }
@@ -30626,7 +30656,25 @@ function ebsConclusion(){
   if (itSevera && (sint === 'si' || ejerc === 'si')) {
     clave = 'cirugia';
     conducta = 'Insuficiencia tricuspídea severa con ' + (sint === 'si' ? 'síntomas' : 'deterioro objetivo de la capacidad de ejercicio') +
-      ' — cirugía indicada (ESC 2020, Clase I)';
+      ' — cirugía indicada (ESC 2020, Clase I)' +
+      /* Con la indicación ya dada por otra vía, la cianosis no la cambia — pero no puede
+         DESAPARECER: es lo que decide cerrar la comunicación en el mismo acto. Es el mismo
+         criterio que la salvedad de la TV en Fallot. */
+      (cianosis ? '. Cianosis asociada (saturación ' + sat + ' %): si hay una comunicación interauricular, la ESC 2020 recomienda cerrarla durante la cirugía valvular cuando se prevea hemodinámicamente tolerada' : '');
+  } else if (cianosis) {
+    /* La cianosis va DESPUÉS de la Clase I y ANTES de la IIa por dilatación/función: es un
+       desencadenante que la ESC 2020 nombra, pero no se le pone número de clase porque no pude
+       verificar cuál le corresponde. Se dice lo que la guía sí dice y nada más.
+       Y el cierre de la comunicación sólo se nombra cuando hay UNA DOCUMENTADA: prometer «se
+       cierra en el mismo acto» sobre un paciente al que nadie le encontró una comunicación es
+       describir una cirugía que no corresponde. `hayCia`/`hayFop` salen de sus secciones reales,
+       no de un campo propio de acá. */
+    clave = 'cianosis';
+    conducta = 'Cianosis en reposo (saturación ' + sat + ' %) — la ESC 2020 incluye la cianosis entre los desencadenantes de intervención en la anomalía de Ebstein. Evaluación en centro especializado en cardiopatías congénitas del adulto' +
+      ((hayCia || hayFop)
+        ? '. La ' + (hayCia ? 'comunicación interauricular' : 'permeabilidad del foramen oval') +
+          ' documentada en este estudio explica el shunt derecha-izquierda; si se indica cirugía sobre la válvula tricúspide, la ESC 2020 recomienda cerrarla en el mismo acto cuando se prevea hemodinámicamente tolerada'
+        : '. No consta una comunicación interauricular en este estudio: la cianosis obliga a buscarla');
   } else if (prog === 'si' || func === 'moderada' || func === 'severa') {
     clave = 'considerar_cirugia';
     /* Se nombra el criterio que REALMENTE está presente. Antes decía «Dilatación progresiva del
@@ -42715,6 +42763,7 @@ function _labExcelRow(inf) {
     'Eisenmenger NYHA': _labXlsEtiq('eis_clase_nyha', c.eis_clase_nyha),
     'Eisenmenger síncope': _labXlsEtiq('eis_sincope', c.eis_sincope),
     'Eisenmenger hemoptisis': _labXlsEtiq('eis_hemoptisis', c.eis_hemoptisis),
+    'Ebstein sat O2 reposo (%)': rnd(num('ebs_saturacion'),0),
     'TdF VTDVD indexado (ml/m2)': rnd(num('tdf_vtdvdi'),0),
     'TdF VTSVD indexado (ml/m2)': rnd(num('tdf_vtsvdi'),0),
     'TdF metodo volumenes VD': _labXlsEtiq('tdf_vol_fuente', c.tdf_vol_fuente),
@@ -43613,6 +43662,7 @@ const LAB_XLS_MAP = [
   ['Eisenmenger NYHA',            'eis_clase_nyha','vocab'],
   ['Eisenmenger síncope',         'eis_sincope',   'vocab'],
   ['Eisenmenger hemoptisis',      'eis_hemoptisis','vocab'],
+  ['Ebstein sat O2 reposo (%)',   'ebs_saturacion',  'num'],
   ['TdF VTDVD indexado (ml/m2)',  'tdf_vtdvdi',      'num'],
   ['TdF VTSVD indexado (ml/m2)',  'tdf_vtsvdi',      'num'],
   ['TdF metodo volumenes VD',     'tdf_vol_fuente',  'vocab'],

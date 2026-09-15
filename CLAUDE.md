@@ -251,6 +251,53 @@ no matcheó nunca — los 28 acordeones salieron «no llama a secToggle» y el c
 de un defecto propio. Es la trampa del `\s` que este archivo ya documenta. **Dentro del cuerpo de
 un caso, partir la cadena con `indexOf`/`slice` en vez de un regex con escapes.**
 
+### Ebstein: la saturación es lo que convertía «hay una comunicación» en «hay un shunt»
+Agregado el 2026-09-15: **`ebs_saturacion`**, banda 40-100 %, y una rama de **cianosis** en la
+cascada. La sección ya detectaba la CIA (desde `ete_cia_*`) y el foramen (desde `fopConclusion`),
+y su propio comentario decía que «una CIA con shunt derecha-izquierda es lo que produce cianosis y
+lo que se cierra en el acto quirúrgico» — pero **no había con qué saber si ese shunt era
+derecha-izquierda**. Eso es lo único que faltaba.
+
+**El 90 % se atribuye como corte convencional, NO a la guía.** La ESC 2020 nombra la **cianosis**
+entre los desencadenantes de intervención en Ebstein y recomienda **cerrar la comunicación
+interauricular en el mismo acto de la cirugía valvular** cuando se prevea hemodinámicamente
+tolerada; **no publica un número para Ebstein**. Escribir «<90 % (ESC 2020)» sería una cita falsa
+— el defecto de la nota del NT-proBNP. Por el mismo motivo la rama **no lleva número de clase**:
+no pude verificar cuál le corresponde.
+
+**El cierre sólo se nombra con una comunicación DOCUMENTADA.** Sin ella la conducta dice «la
+cianosis obliga a buscarla», que es lo que corresponde; prometer «se cierra en el mismo acto»
+sobre un paciente al que nadie le encontró una comunicación describe una cirugía que no aplica.
+
+**Y con indicación Clase I por otra vía la cianosis no desaparece**: no cambia la indicación, pero
+es lo que decide cerrar la comunicación durante esa cirugía. Mismo criterio que la salvedad de la
+TV en Fallot.
+
+### Tres partes del pedido de Ebstein NO se implementaron, y por qué
+El pedido del 2026-09-15 traía tres cosas que **ya existían o contradecían el archivo**. Queda
+escrito para que no se «corrijan» de vuelta:
+
+1. **Dos campos de área sumada** (`ebstein_area_atrializada` / `ebstein_area_funcional`). El
+   índice **ya se calcula** en `ebsCelermajer()` desde **cinco** áreas propias, y están separadas
+   **a propósito**: el comentario de esa función explica que Celermajer se mide en **telediástole**
+   mientras las áreas auriculares de tamaño de cámara se miden en telesístole, así que reusarlas
+   inflaría el numerador. Dos campos sumados serían una **segunda vía de entrada** para el mismo
+   dato — la duplicación que este archivo ya pagó con el espesor parietal.
+2. **`ebstein_cia_asociada`** (select Sin CIA / CIA / FOP). CIA y FOP **ya se detectan desde sus
+   secciones reales**. Un select propio acá sería una **tercera** fuente del mismo hecho, capaz de
+   decir «CIA presente» mientras la sección de CIA/CIV dice otra cosa, en el mismo informe.
+3. **«Celermajer grado 3-4 → criterio de intervención ESC 2020».** El índice **no figura en la
+   ESC 2020** —verificado por búsqueda de texto completo, ya documentado arriba de
+   `ebsCelermajer`—, se derivó en **28 neonatos** y por eco **sobreestima** (κ=0,39 contra
+   resonancia; sólo el índice por RMC correlacionó con el VO₂ pico). El informe **ya imprime** que
+   «la indicación quirúrgica de la ESC 2020 es clínica y no depende de este índice». Implementarlo
+   habría hecho que la app publicara «criterios de intervención ESC 2020» sobre un índice que esa
+   guía no contiene. **El índice describe; no indica.** Lo fija TC-124, que verifica que un grado 4
+   aislado NO produzca indicación.
+
+**Campos:** `ebs_saturacion`, con su columna de Excel. Los cinco de áreas, el desplazamiento, la
+atrialización, la función del VD, TSV, vías, síntomas, ejercicio y progresión ya estaban.
+
 ### TdF: un umbral que vive en la prosa no es un umbral
 Las tres ramas de `tdfConclusion` decían «el criterio volumétrico se evalúa por RESONANCIA» — y
 **no había campo**. La app nombraba el umbral y **nunca podía aplicarlo**: un asintomático con
