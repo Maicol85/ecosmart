@@ -527,7 +527,13 @@
      El selector es `.eco-tabsburger`, que es la clase REAL del botón. No existe en esta app
      ninguna `.hamburguesa` ni ningún `aria-label="menú"`: una regla escrita contra esos dos
      habría matcheado CERO elementos y se habría leído como un arreglo aplicado. */
-  header button.eco-tabsburger {
+  /* El otro es `⋮` (`.hdr-burger` / `#ecoHdrBurger`, «Menú de acciones»), con el MISMO argumento:
+     en celular los botones del header se pliegan detrás de él, así que es el único acceso a
+     Informe, Guardados, Nuevo estudio y Laboratorio. Los dos van juntos y con el mismo criterio
+     —sólo ancho— para que no se separen la próxima vez que alguien toque el header.
+     Selector verificado contra el marcado, no supuesto: la clase es `hdr-burger`. */
+  header button.eco-tabsburger,
+  header button.hdr-burger {
     min-width: 44px;
   }
   /* Centrado vertical del contenido en los controles agrandados */
