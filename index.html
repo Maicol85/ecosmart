@@ -8385,6 +8385,8 @@ z
           <option value="">—</option>
           <option value="nativa">Coartación nativa</option>
           <option value="recoartacion">Recoartación post-intervención</option>
+          <option value="post_stent">Post-stent</option>
+          <option value="post_cirugia">Post-cirugía</option>
         </select>
       </div>
       <div class="fg"><label>Diámetro del istmo (mm)</label><input type="number" id="coa_istmo" step="0.1" placeholder="mm" oninput="coaSync()"></div>
@@ -8413,6 +8415,28 @@ z
         <div style="font-size:10px;color:var(--text2);margin-top:3px;">4 × Vmax²</div>
       </div>
       <div class="fg"><label>Gradiente medio (mmHg)</label><input type="number" id="coa_gmedio" step="1" placeholder="mmHg" oninput="coaSync()"></div>
+    </div>
+    <!-- El criterio de la ESC 2020 es el pico-pico INVASIVO. El Doppler de arriba queda como
+         dato diagnóstico —sigue describiendo la lesión— pero dejó de disparar la indicación:
+         se subestima con colaterales extensas y se sobreestima post-stent, así que indicar una
+         intervención con él es indicarla con el número equivocado. -->
+    <div class="grid-3" style="margin-top:10px;">
+      <div class="fg"><label>Gradiente pico-pico invasivo (mmHg)</label>
+        <input type="number" id="coa_gradiente_picopico" placeholder="mmHg" oninput="coaSync()">
+        <span style="font-size:10px;color:var(--text2);">Criterio ESC 2020 para indicar intervención. Confirmar de forma invasiva; la anestesia general puede subestimarlo.</span>
+      </div>
+      <div class="fg"><label>Estenosis relativa al diámetro aórtico a nivel del diafragma (%)</label>
+        <input type="number" id="coa_estenosis_relativa" placeholder="%" oninput="coaSync()">
+        <span style="font-size:10px;color:var(--text2);">Umbral Clase IIb: ≥50 % independiente del gradiente.</span>
+      </div>
+      <div class="fg"><label>HTA confirmada</label>
+        <select id="coa_hta" onchange="coaSync()">
+          <option value="">—</option>
+          <option value="no">No</option>
+          <option value="si">Sí</option>
+        </select>
+        <span style="font-size:10px;color:var(--text2);">Diagnóstico por monitoreo ambulatorio de 24 h en brazo derecho.</span>
+      </div>
     </div>
     <div class="fg" style="margin-top:10px;">
       <label class="cfg-opt-row" style="cursor:pointer;">
@@ -21621,7 +21645,14 @@ function generarInforme(opts) {
          en algo que se lee como descartado, en un documento firmado que otro médico va a leer
          meses después sin poder saber que la casilla nunca se tocó. */
       if (cola) p.push('Flujo diastólico anterógrado presente en aorta descendente');
-      etePars.push(p.join('. ') + '. ' + c.txt + '.'); ccMarcarParrafo();
+      /* El pico-pico invasivo, la estenosis relativa y la HTA se IMPRIMEN: son los datos sobre
+         los que la conclusión indica intervenir, y una indicación sin sus insumos a la vista no
+         es auditable por quien recibe el informe meses después. */
+      if (f1(v('coa_gradiente_picopico'))) p.push('Gradiente pico-pico invasivo ' + f1(v('coa_gradiente_picopico')) + ' mmHg');
+      if (f1(v('coa_estenosis_relativa'))) p.push('Estenosis relativa al diámetro aórtico al diafragma ' + f1(v('coa_estenosis_relativa')) + ' %');
+      if (sv('coa_hta') === 'si') p.push('Hipertensión arterial confirmada');
+      const _coaSeg = (typeof coaSeguimiento === 'function') ? coaSeguimiento() : null;
+      etePars.push(p.join('. ') + '. ' + c.txt + '.' + (_coaSeg ? ' ' + _coaSeg : '')); ccMarcarParrafo();
       /* La significativa y la limítrofe sí van al EN SUMA: la primera indica intervención y la
          segunda manda a pedir una angio-RMN. Dejar una indicación de intervención sólo en el
          cuerpo del informe es exactamente lo que la conclusión existe para evitar. */
@@ -26817,11 +26848,46 @@ function coaConclusion(){
      unidades antes de concluir» en el informe firmado. */
   coaBanda(coaNV('ao_tub'), 2, 60, fuera, 'aorta ascendente');
   const g = coaBanda(gRaw, 0, 150, fuera, 'gradiente máximo'), gm = coaBanda(gmRaw, 0, 100, fuera, 'gradiente medio');
-  const pre = sit === 'recoartacion' ? 'Recoartación post-intervención' : (sit === 'nativa' ? 'Coartación nativa' : 'Coartación de aorta');
-  /* La cola diastólica basta por sí sola: es el escenario en que el gradiente engaña. */
+  const PRE = { recoartacion:'Recoartación post-intervención', nativa:'Coartación nativa',
+                post_stent:'Coartación post-stent', post_cirugia:'Coartación post-cirugía' };
+  const pre = PRE[sit] || 'Coartación de aorta';
+  const postRep = (sit === 'post_stent' || sit === 'post_cirugia' || sit === 'recoartacion');
+  /* ══ INDICACIÓN DE INTERVENCIÓN — SÓLO POR EL PICO-PICO INVASIVO (corregido 2026-09-15) ══
+     Acá el gradiente DOPPLER (`g`) disparaba «indicación de intervención según ESC 2020». Es el
+     número equivocado: la guía indica sobre el pico-pico INVASIVO, y el Doppler se subestima con
+     colaterales extensas —justo el paciente que más las tiene— y se sobreestima post-stent. O
+     sea que fallaba en las dos direcciones, y la primera es la peligrosa: una coartación grave
+     con colaterales salía «sin gradiente significativo — seguimiento clínico».
+     El Doppler NO se borró: sigue describiendo la lesión y sigue mandando a completar estudio.
+     Lo que perdió es la potestad de indicar una intervención. */
+  const pp  = coaNV('coa_gradiente_picopico');
+  const est = coaNV('coa_estenosis_relativa');
+  const hta = sv2('coa_hta');
+  if (pp != null || est != null) {
+    const ppSig = pp != null && pp >= 20, estSig = est != null && est >= 50;
+    if (hta === 'si' && ppSig) return { clave:'indicacion_i',
+      txt: pre + ' con indicación de intervención Clase I ESC 2020 (HTA confirmada + gradiente pico-pico invasivo ' + pp + ' mmHg, ≥20). Preferir stent cuando sea técnicamente factible' };
+    if (hta === 'si' && estSig && !ppSig) return { clave:'indicacion_iia',
+      txt: pre + ' con indicación a considerar Clase IIa ESC 2020 (HTA + estenosis ' + est + ' % del diámetro aórtico al diafragma, con gradiente pico-pico <20 mmHg). Preferir stent cuando sea factible' };
+    if (hta === 'no' && ppSig) return { clave:'indicacion_iia',
+      txt: pre + ' normotensa con indicación a considerar Clase IIa ESC 2020 (gradiente pico-pico invasivo ' + pp + ' mmHg, ≥20, confirmado de forma invasiva)' };
+    if (hta === 'no' && estSig && !ppSig) return { clave:'indicacion_iib',
+      txt: pre + ' con indicación posible Clase IIb ESC 2020 (estenosis ' + est + ' % del diámetro aórtico al diafragma, independiente del gradiente y sin HTA)' };
+    /* Con el pico-pico medido y por debajo del umbral, la negación es FIRME: es el dato que la
+       guía usa. Sin HTA consignada no se concluye —la mitad del criterio Clase I falta— y se
+       pide el dato en vez de suponer que no la tiene. */
+    if (pp != null && !hta) return { clave:'limitrofe',
+      txt: pre + ' con gradiente pico-pico invasivo ' + pp + ' mmHg — falta consignar si hay HTA confirmada para aplicar el criterio ESC 2020' };
+    if (ppSig || estSig) return { clave:'limitrofe',
+      txt: pre + ' con criterios parciales — completar la evaluación antes de concluir' };
+    return { clave:'sin_indicacion',
+      txt: pre + ' sin criterios de intervención actuales según ESC 2020 — seguimiento recomendado' };
+  }
+  /* La cola diastólica basta por sí sola para SOSPECHAR: es el escenario en que el Doppler
+     engaña. Manda a medir el pico-pico, no a intervenir. */
   if ((g!=null && g > 20) || cola) return { clave:'significativa',
-    txt: pre + ' con criterios de significación' + (cola && !(g!=null && g>20) ? ' (cola diastólica con gradiente no concluyente)' : '') +
-         ' — indicación de intervención según ESC 2020' };
+    txt: pre + ' con criterios de significación por Doppler' + (cola && !(g!=null && g>20) ? ' (cola diastólica con gradiente no concluyente)' : '') +
+         ' — medir el gradiente pico-pico invasivo, que es el criterio de indicación de la ESC 2020' };
   /* El gradiente MEDIO vota, pero sólo hacia «completar estudio», nunca hacia la indicación de
      intervención: el criterio de la ESC 2020 es el pico-pico INVASIVO > 20 mmHg, y el medio por
      Doppler no tiene umbral guía equivalente. Antes se pedía el dato, se lo mostraba y no
@@ -26844,6 +26910,20 @@ function coaConclusion(){
   return { clave:'incompleto',
     txt: pre + ' — sin gradiente registrado; completar con Doppler de aorta descendente e imagen' };
 }
+/* Seguimiento del operado. Va aparte de la conclusión porque aplica INDEPENDIENTEMENTE de que
+   haya o no indicación de intervención: un post-stent sin criterios actuales igual necesita el
+   control anual y la imagen cada 3-5 años. Pegado a la conclusión, desaparecía justo en el caso
+   en que la conclusión dice «sin criterios». */
+function coaSeguimiento(){
+  const sit = (document.getElementById('coa_situacion')||{}).value || '';
+  if (sit !== 'post_stent' && sit !== 'post_cirugia' && sit !== 'recoartacion') return null;
+  return 'Paciente post-reparación de coartación de aorta. Seguimiento anual obligatorio. '
+       + 'Imagen aórtica (resonancia cardíaca preferida) cada 3-5 años. Vigilar: recoartación '
+       + '(gradiente sistólico ≥20 mmHg entre miembros superiores e inferiores), aneurismas '
+       + 'aórticos e hipertensión arterial residual.';
+}
+window.coaSeguimiento = coaSeguimiento;
+
 function coaSync(){
   const txt = (id,s) => { const e=document.getElementById(id); if(e) e.textContent = s; };
   const g = coaGmax(), r = coaRatio();
@@ -28581,7 +28661,12 @@ function ccSumaLinea(sec){
     const g = (typeof coaGmax === 'function') ? coaGmax() : null;
     const gm = _ccNum('coa_gmedio'), ist = _ccNum('coa_istmo');
     const cola = !!document.getElementById('coa_diast_anterogrado')?.checked;
-    const DX = { significativa:'criterios de significación', limitrofe:'gradiente limítrofe',
+    const DX = { significativa:'criterios de significación por Doppler — medir el pico-pico invasivo',
+                 indicacion_i:'indicación de intervención Clase I ESC 2020',
+                 indicacion_iia:'indicación a considerar Clase IIa ESC 2020',
+                 indicacion_iib:'indicación posible Clase IIb ESC 2020',
+                 sin_indicacion:'sin criterios de intervención (ESC 2020)',
+                 limitrofe:'gradiente limítrofe',
                  no_significativa:'sin gradiente significativo',
                  no_interpretable:'medidas fuera de rango — revisar unidades',
                  incompleto:'datos incompletos para clasificarla' };
@@ -28589,18 +28674,32 @@ function ccSumaLinea(sec){
        sola para esa clave, y es justo el signo que salva el caso en que el gradiente subestima.
        Con la compuerta puramente numérica, el hallazgo más específico de la sección quedaba sólo
        en el cuerpo. */
-    if (g == null && gm == null && ist == null && c.clave !== 'significativa' && c.clave !== 'no_interpretable') return null;
+    /* Las claves de INDICACIÓN pasan la compuerta aunque no haya istmo ni gradiente Doppler: se
+       sostienen sobre el pico-pico invasivo y la HTA, que son datos propios. Sin esto, el
+       paciente con criterio Clase I y sin medidas por Doppler no llegaba al EN SUMA — se perdía
+       justo la línea que indica intervenir. */
+    const INDICA = ['indicacion_i','indicacion_iia','indicacion_iib'];
+    /* El estado POST-REPARACIÓN pasa la compuerta por sí solo: que este paciente tenga una
+       coartación operada es el hallazgo, aunque hoy no haya gradiente ni indicación. Sin esto,
+       el operado sin criterios actuales no aparecía en el EN SUMA y el lector del informe no
+       tenía cómo saber que necesita control anual de por vida. */
+    const postRep = (sit === 'post_stent' || sit === 'post_cirugia' || sit === 'recoartacion');
+    if (g == null && gm == null && ist == null && c.clave !== 'significativa' &&
+        c.clave !== 'no_interpretable' && INDICA.indexOf(c.clave) === -1 && !postRep) return null;
     /* «Recoartación» y «Coartación nativa» no son lo mismo, y la línea decía «CoAo» para las dos. */
     /* Los valores del select son `nativa` y `recoartacion` — no `operada`. Un valor inventado
        hace que `_ccLbl` devuelva '' y la línea caiga al genérico «CoAo» en silencio, que es
        justo la distinción que esta rama viene a rescatar. */
-    const CAB = { nativa:'Coartación de aorta nativa', recoartacion:'Recoartación post-intervención' };
+    const CAB = { nativa:'Coartación de aorta nativa', recoartacion:'Recoartación post-intervención',
+                  post_stent:'Coartación de aorta post-stent',
+                  post_cirugia:'Coartación de aorta post-cirugía' };
     let l = (L(CAB, sit) || 'CoAo') + (loc ? ' ' + L(COA_LOC_TXT, loc) : '');
     if (ist != null) l += ' — istmo ' + _cc1(ist) + ' mm';
     if (g != null) l += ' — gradiente máx. ' + _cc1(g) + ' mmHg';
     else if (gm != null) l += ' — gradiente medio ' + _cc1(gm) + ' mmHg';
     if (cola) l += ' — cola diastólica presente';
     const dx = L(DX, c.clave);
+    if (postRep && INDICA.indexOf(c.clave) === -1) l += ' — en seguimiento';
     return l + (dx ? ' — ' + dx : '');
   }
 

@@ -146,6 +146,35 @@ tratamiento. Sin la basal cargada no se deduce nada. Ídem el GLS, que además e
 porque el resto de cardio-onco usa `Math.abs` y un `18` tipeado en vez de `-18` no recibe ningún
 aviso en ninguna otra parte de la app.
 
+### El número correcto puede estar medido con el método equivocado
+`coaConclusion` emitía «indicación de intervención según ESC 2020» cuando el gradiente **Doppler**
+pasaba 20 mmHg. El umbral es el de la guía; el método, no. La ESC 2020 indica sobre el
+**pico-pico invasivo**, y el Doppler en coartación **se subestima con colaterales extensas** —el
+paciente que más las tiene es el más grave— y **se sobreestima post-stent**. Fallaba en las dos
+direcciones, y la primera es la peligrosa: una coartación severa con colaterales salía «sin
+gradiente significativo — seguimiento clínico» en un informe firmado.
+
+Corregido el 2026-09-15. El Doppler **no se borró**: sigue describiendo la lesión y sigue mandando
+a completar estudio. Lo que perdió es la potestad de indicar una intervención.
+
+Dos decisiones del algoritmo que no estaban en el pedido y conviene no revertir:
+- **Sin HTA consignada no se concluye.** Con el pico-pico ≥20 y `coa_hta` vacío falta la mitad
+  del criterio Clase I: se pide el dato en vez de suponer que no la tiene. Suponer «no» degrada
+  un Clase I a IIa en silencio.
+- **El seguimiento del operado es un párrafo propio, no una coletilla de la conclusión.** Aplica
+  aunque no haya indicación: un post-stent sin criterios actuales igual necesita control anual e
+  imagen cada 3-5 años. Pegado a la conclusión desaparecía justo cuando ésta dice «sin criterios».
+
+**Campos nuevos:** `coa_gradiente_picopico`, `coa_estenosis_relativa`, `coa_hta`. Y `coa_situacion`
+se **extendió** con `post_stent` y `post_cirugia` en vez de crear un campo paralelo — ya existía
+con `nativa`/`recoartacion`, y dos campos para el mismo concepto es la duplicación que este
+archivo viene pagando.
+
+**Editar por número de línea es cómo se escribe en el módulo de al lado.** El bloque que imprime
+el pico-pico se aplicó primero en el de **ductus**: la línea `etePars.push(p.join('. ') + '. ' +
+c.txt + '.')` aparece **cuatro veces**, idéntica, una por módulo. Lo cazó TC-113, no la lectura.
+Anclar por el comentario de sección, nunca por índice.
+
 ### Nunca reconstruir una pestaña desde sus partes: mover, y dejar el resto quieto
 Repartir las doce secciones de Congénitas en dos pestañas se hizo **tres veces**. Las dos
 primeras extraían cada `.sacc` y **reconstruían** la pestaña concatenando las secciones en el
@@ -965,13 +994,13 @@ El script contesta *«nadie lo nombra»*, no *«no tiene destino»*: un id menci
 ### 2 · Test suite clínico
 
 ```bash
-node scripts/test_clinico.mjs            # 127 casos, sin defectos abiertos
+node scripts/test_clinico.mjs            # 128 casos, sin defectos abiertos
 node scripts/test_clinico.mjs --solo TC-04
 node scripts/test_clinico.mjs --ver      # con el navegador a la vista, para depurar
 ```
 
 **Correr antes de cualquier push que toque el informe narrativo, el EN SUMA o una fórmula de
-cálculo. Tienen que pasar los 127. Si alguno falla, corregir antes de seguir.**
+cálculo. Tienen que pasar los 128. Si alguno falla, corregir antes de seguir.**
 
 **TC-01 a TC-17 — los bugs del 2026-09-14.** VD que desaparecía (TC-01/03), gradiente pulmonar
 congelado (TC-04), AD ausente del EN SUMA (TC-06), HFA-PEFF sin compuerta de FEVI (TC-07/08),

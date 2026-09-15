@@ -2537,6 +2537,75 @@ caso('TC-112', 'Congenitas: las doce secciones sobrevivieron al reparto en dos p
   ] };
 `);
 
+/* EL GRADIENTE DOPPLER YA NO INDICA INTERVENCION. coaConclusion emitia «indicacion de
+   intervencion segun ESC 2020» cuando el gradiente DOPPLER pasaba 20 mmHg. Es el numero
+   equivocado: la guia indica sobre el PICO-PICO INVASIVO, y el Doppler se subestima con
+   colaterales extensas —justo el paciente que mas las tiene— y se sobreestima post-stent. Fallaba
+   en las dos direcciones, y la primera es la peligrosa: una coartacion grave con colaterales
+   salia «sin gradiente significativo — seguimiento clinico» en el informe firmado.
+   Cada clase se prueba por los DOS lados de su corte: 19/20 en el pico-pico y 49/50 en la
+   estenosis relativa. Un caso que mira 10 y 40 pasa igual con los umbrales corridos. */
+caso('TC-113', 'CoAo: la indicacion sale del pico-pico invasivo, no del Doppler', `
+  function coa(o) { __t.limpiar();
+    __t.set('coa_loc','yuxtaductal'); __t.set('coa_situacion', o.sit || 'nativa');
+    if (o.vmax != null) __t.set('coa_vmax', String(o.vmax));
+    if (o.pp   != null) __t.set('coa_gradiente_picopico', String(o.pp));
+    if (o.est  != null) __t.set('coa_estenosis_relativa', String(o.est));
+    if (o.hta  != null) __t.set('coa_hta', o.hta);
+    __t.chk('coart_incluir_chk', true);
+    const c = coaConclusion();
+    return { clave: c && c.clave, txt: (c && c.txt) || '', inf: __t.informe() };
+  }
+  // 4.0 m/s -> 64 mmHg por Doppler: antes esto SOLO ya indicaba intervenir.
+  const soloDoppler = coa({ vmax: 4.0 });
+  const i    = coa({ pp: 20, hta: 'si' });
+  const iNo  = coa({ pp: 19, hta: 'si' });
+  const iia1 = coa({ pp: 10, est: 60, hta: 'si' });
+  const iia1No = coa({ pp: 10, est: 49, hta: 'si' });
+  const iia2 = coa({ pp: 20, hta: 'no' });
+  const iib  = coa({ pp: 10, est: 50, hta: 'no' });
+  const sin  = coa({ pp: 10, est: 40, hta: 'no' });
+  const faltaHta = coa({ pp: 30 });
+  const post = coa({ sit: 'post_stent', pp: 10, est: 20, hta: 'no' });
+  return { extra: [
+    // 1 · El Doppler solo NO indica intervencion.
+    ['un gradiente Doppler de 64 mmHg ya NO indica intervenir',
+      soloDoppler.txt.indexOf('indicación de intervención') === -1],
+    ['manda a medir el pico-pico, que es el criterio de la guia',
+      soloDoppler.txt.indexOf('medir el gradiente pico-pico invasivo') > -1],
+    // 2 · Las cuatro clases, por los dos lados del corte.
+    ['HTA + pico-pico 20 exactos -> Clase I',
+      i.clave === 'indicacion_i' && i.txt.indexOf('Clase I ESC 2020') > -1],
+    ['con 19 NO es Clase I',        iNo.clave !== 'indicacion_i'],
+    ['HTA + estenosis 60 % con pico-pico bajo -> Clase IIa',
+      iia1.clave === 'indicacion_iia' && iia1.txt.indexOf('Clase IIa') > -1],
+    ['con estenosis 49 % no llega',  iia1No.clave !== 'indicacion_iia'],
+    ['normotenso + pico-pico 20 -> Clase IIa',
+      iia2.clave === 'indicacion_iia' && iia2.txt.indexOf('normotensa') > -1],
+    ['estenosis 50 exactos sin HTA ni gradiente -> Clase IIb',
+      iib.clave === 'indicacion_iib' && iib.txt.indexOf('Clase IIb') > -1],
+    ['por debajo de todo -> sin criterios',
+      sin.clave === 'sin_indicacion' && sin.txt.indexOf('Sin criterios'.toLowerCase()) > -1],
+    // 3 · Sin HTA consignada no se concluye: falta la mitad del criterio Clase I.
+    ['con el pico-pico alto y la HTA sin consignar, se pide el dato en vez de suponerlo',
+      faltaHta.clave === 'limitrofe' && faltaHta.txt.indexOf('falta consignar si hay HTA') > -1],
+    ['y NO se declara Clase I',     faltaHta.clave !== 'indicacion_i'],
+    // 4 · Seguimiento del operado, que aplica aunque no haya indicacion.
+    ['el post-stent sin criterios igual lleva su seguimiento',
+      post.clave === 'sin_indicacion' &&
+      post.inf.inf.indexOf('Seguimiento anual obligatorio') > -1 &&
+      post.inf.inf.indexOf('cada 3-5 años') > -1],
+    // 5 · Los insumos de la indicacion se imprimen, para que sea auditable.
+    ['el informe imprime el pico-pico sobre el que indica',
+      i.inf.inf.indexOf('Gradiente pico-pico invasivo 20 mmHg') > -1],
+    ['y la HTA confirmada',        i.inf.inf.indexOf('Hipertensión arterial confirmada') > -1],
+    ['la estenosis relativa tambien', iib.inf.inf.indexOf('Estenosis relativa al diámetro aórtico al diafragma 50 %') > -1],
+    // 6 · El EN SUMA lleva la clase: una indicacion solo en el cuerpo no se ve.
+    ['el EN SUMA declara la Clase I',   i.inf.suma.indexOf('Clase I ESC 2020') > -1],
+    ['y distingue post-stent de nativa', post.inf.suma.indexOf('post-stent') > -1]
+  ] };
+`);
+
 /* LAS TRES SUPERFICIES DE CARDIO-ONCO TIENEN QUE DECIR LO MISMO. La leyenda de #ref-cardiotox
    (pestaña Referencias), la tabla de farmacos y las tablas nuevas del marco HFA-ICOS viven en
    DOS pestañas distintas y describen al mismo paciente. Las tres estaban desincronizadas, cada
