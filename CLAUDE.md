@@ -86,6 +86,51 @@ relectura. Hoy vetan, gateados por `esSec` estricto. La regla que queda: **al ce
 de esta forma, enumerar todo lo que se pinta y cruzarlo contra la lista**, no sólo arreglar el
 que se reportó.
 
+### Dos calculadoras para la misma pregunta, en la misma pestaña — SIN RESOLVER
+La pestaña de Cardio-Oncología tiene ahora **dos** estimadores de riesgo basal: el bloque
+«Riesgo cardiovascular basal estimado» (`calcCardioOnco`, score propio, corta en ≤1/≤3/≤5, baja a
+la **hoja de cardio-oncología del PDF**) y la «Calculadora de Riesgo CV» (marco HFA-ICOS, corta en
+0/1/2-3/≥4, baja al **cuerpo narrativo** si se integra). Para el mismo paciente pueden dar bandas
+distintas, **y las dos pueden quedar en el mismo informe firmado**.
+
+Mientras convivan, las tres superficies lo DECLARAN: el aviso de la calculadora, el de la tabla de
+referencia y el propio párrafo narrativo, que cierra nombrando su marco. Un documento que explica
+por qué trae dos números es defendible; uno que trae dos números sin decirlo, no.
+
+**La salida de fondo es dejar una sola** — decisión clínica de Maicol, porque elegir cuál se va
+mueve la clasificación de pacientes reales. Es la deuda más importante de este módulo.
+
+### Un invariante que vive sólo en la interfaz no es un invariante
+Los dos criterios de FEVI de la calculadora se excluyen: una misma medición no puede estar en
+50-54% y por debajo de 50. La exclusión se escribió en `hfaicosToggle`, o sea en el clic — y
+alcanzaba mientras el único camino fuera el dedo del médico. Pero `hfaicosSyncDesdeEstudio` tilda
+por su cuenta: una casilla marcada a mano, protegida contra la deducción, convivía con la
+deducida. **3 puntos por una sola FEVI**, una banda entera de más, y el informe firmado listando
+la misma FEVI basal en dos rangos disjuntos. Es «bloquear no es recalcular»: la exclusión tiene
+que estar en `hfaicosEstado()`, que es quien suma.
+
+### Una marca que protege una decisión tiene que durar lo que dura la decisión
+«Esta casilla la movió una persona, no la deduzcas de nuevo» vivía en `dataset.manual`. El estado
+del checkbox **se persiste**; `dataset` **no**, y además `limpiarCampos` barre una lista CERRADA
+de atributos (`data-derivado-de`, `data-sugerido`, `data-espejo-de`) donde `data-manual` no
+estaba. Los dos extremos fallaban:
+- el médico destildaba «FEVI <50%», guardaba, y al día siguiente —página nueva— abría la sección
+  de su propio estudio y la deducción se lo volvía a tildar, subiendo de banda un informe firmado;
+- y la marca del paciente A sobrevivía a «Nuevo estudio», así que al paciente B no se le deducía
+  nada y su informe decía «sin factores» sobre una FEVI de 38.
+
+Pasó a un `<input type="hidden">` (`hfaicos_manual`), que viaja con el estudio, lo repone la
+restauración y lo limpia `limpiarCampos` — **a mano**, porque el barrido genérico toma
+`input[type=text]` e `input[type=number]` y los ocultos hay que nombrarlos uno por uno.
+
+### «Basal» quiere decir basal: no caerse al dato de hoy
+La deducción tomaba `co_fevi_basal` y, si estaba vacío, `fevi` — la FEVI **del estudio de hoy**.
+En un control de ciclo 4 esa FEVI puede estar caída *por* el tratamiento, y con ella se tildaba
+«FEVI **basal** <50%»: una afirmación falsa, en un informe firmado, sobre una medición anterior al
+tratamiento. Sin la basal cargada no se deduce nada. Ídem el GLS, que además exige signo negativo
+porque el resto de cardio-onco usa `Math.abs` y un `18` tipeado en vez de `-18` no recibe ningún
+aviso en ninguna otra parte de la app.
+
 ### Un signo invertido en un umbral se lee igual de bien que el correcto
 La leyenda de `#ref-cardiotox` decía «SGL normal: más negativo que -18% · **disfunción
 subclínica: <-16%**». Leído literal, «menor que -16» es **-20**, que es un strain normal: la
@@ -881,13 +926,13 @@ El script contesta *«nadie lo nombra»*, no *«no tiene destino»*: un id menci
 ### 2 · Test suite clínico
 
 ```bash
-node scripts/test_clinico.mjs            # 114 casos + 1 defecto abierto
+node scripts/test_clinico.mjs            # 122 casos + 1 defecto abierto
 node scripts/test_clinico.mjs --solo TC-04
 node scripts/test_clinico.mjs --ver      # con el navegador a la vista, para depurar
 ```
 
 **Correr antes de cualquier push que toque el informe narrativo, el EN SUMA o una fórmula de
-cálculo. Tienen que pasar los 114. Si alguno falla, corregir antes de seguir.**
+cálculo. Tienen que pasar los 122. Si alguno falla, corregir antes de seguir.**
 
 **TC-01 a TC-17 — los bugs del 2026-09-14.** VD que desaparecía (TC-01/03), gradiente pulmonar
 congelado (TC-04), AD ausente del EN SUMA (TC-06), HFA-PEFF sin compuerta de FEVI (TC-07/08),
@@ -899,6 +944,21 @@ invertida del TEER (TC-13), aorta (TC-14/15) y las sincronías de PSAP y e' (TC-
 aórtica (46-48), tricúspide y pulmonar (49-51), hemodinámica (52-56), HFA-PEFF (57-58),
 pericardio (59-60), congénitas (61-66), amiloidosis (67-68), cardio-oncología (69-72, 88),
 ETE/TEER/TAVI/orejuela (73-78), derivados y sincronías (79-83).
+
+**TC-101 a TC-108 — Calculadora de Riesgo CV basal, marco HFA-ICOS (2026-09-15).** Cubren las
+cuatro bandas por los dos lados de cada corte, la exclusión de los dos criterios de FEVI, el piso
+por fármaco (incluida la dirección peligrosa: que NO pueda bajar una banda ganada por puntaje),
+la deducción de FEVI/GLS y su respeto por la decisión del médico, el párrafo del informe, el viaje
+completo con el estudio, y que la tabla de referencia de al lado clasifique igual.
+
+**Campos de la calculadora (viajan con el estudio):** doce checkbox `hfaicos_edad`,
+`hfaicos_sexo_fem`, `hfaicos_hta`, `hfaicos_dm`, `hfaicos_obesidad`, `hfaicos_tabaco`,
+`hfaicos_cv_previa`, `hfaicos_fevi_lim`, `hfaicos_fevi_red`, `hfaicos_gls_alt`,
+`hfaicos_troponina`, `hfaicos_bnp` (como `<id>__chk`); el select `hfaicos_farmaco`; el oculto
+`hfaicos_manual` (qué casillas movió una persona); y la casilla de integración
+`hfaicos_incluir_chk`. Las doce filas son **HTML estático**: si se generaran al abrir la sección,
+en una carga limpia los `<input>` no existirían y `cargarEstudioPorId` —que hace
+`if (el) el.value = val`— no tendría dónde reponer lo guardado.
 
 **TC-100 — las dos pestañas de referencia de cardio-onco dicen lo mismo (2026-09-15).** La
 leyenda de `#ref-cardiotox` (pestaña Referencias) y las tablas de `#co-referencia-seccion`

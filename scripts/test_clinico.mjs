@@ -1910,6 +1910,407 @@ caso('TC-92', 'Reimprimir conserva la hoja TEER firmada; abrir para editar la re
 `);
 
 
+/* ═══ GRUPO 27 — CALCULADORA DE RIESGO CV BASAL (marco HFA-ICOS) ════════════════════════════
+   Cada corte se prueba por los DOS lados. Un caso que mira 0 y 5 pasa igual con las bandas
+   corridas. */
+/* SOLO `__t.limpiar()`, que es `limpiarCampos` de verdad. La primera version tambien destildaba
+   las casillas y borraba las marcas a mano, y eso enmascaraba el defecto: `limpiarCampos` NO
+   limpiaba la marca de «lo movio una persona» —vivia en `dataset`, y el barrido de limpieza usa
+   una lista CERRADA de atributos— asi que la decision del paciente A sobrevivia al siguiente y
+   al paciente B no se le tildaba nada. Es «un test de restauracion que limpia a mano no prueba
+   la limpieza», en el helper. */
+const HFA_LIMPIAR = `__t.limpiar();`;
+
+caso('TC-101', 'HFA-ICOS: el puntaje y las cuatro bandas, por los dos lados de cada corte', `
+  ${HFA_LIMPIAR}
+  const marcar = ids => { ${HFA_LIMPIAR}
+    ids.forEach(id => { document.getElementById(id).checked = true; });
+    return hfaicosEstado(); };
+  const vacio = hfaicosEstado();
+  const p0 = marcar([]);
+  const p1 = marcar(['hfaicos_hta']);
+  const p2 = marcar(['hfaicos_hta','hfaicos_dm']);
+  const p3 = marcar(['hfaicos_hta','hfaicos_dm','hfaicos_obesidad']);
+  const p4 = marcar(['hfaicos_hta','hfaicos_dm','hfaicos_obesidad','hfaicos_tabaco']);
+  const cv = marcar(['hfaicos_cv_previa']);            // vale 2 solo
+  return { extra: [
+    ['el modulo vacio NO publica «riesgo bajo»: no hay evaluacion', vacio.hayDatos === false],
+    ['0 puntos -> BAJO',      p0.pts === 0 && p0.banda === 'BAJO'],
+    ['1 punto  -> MEDIO',     p1.pts === 1 && p1.banda === 'MEDIO'],
+    ['2 puntos -> ALTO',      p2.pts === 2 && p2.banda === 'ALTO'],
+    ['3 puntos todavia ALTO', p3.pts === 3 && p3.banda === 'ALTO'],
+    ['4 puntos ya es MUY ALTO', p4.pts === 4 && p4.banda === 'MUY ALTO'],
+    ['la enfermedad CV previa vale 2 por si sola, y eso ya es ALTO',
+      cv.pts === 2 && cv.banda === 'ALTO'],
+    // El denominador: doce filas NO son doce puntos.
+    ['el maximo se deriva del catalogo y vale 13, no 12', hfaicosMax() === 13],
+    ['y el texto publica ese denominador',
+      marcar(['hfaicos_hta']).pts === 1 && hfaicosTexto().indexOf('1/13 puntos') > -1],
+    /* LAS DOS LISTAS. Las doce filas son HTML estatico —tienen que existir en una carga limpia,
+       si no, cargarEstudioPorId no tiene donde reponer lo guardado— y el puntaje vive en
+       hfaicosFactores(), que es quien suma. Son dos copias de la misma lista, asi que el
+       puntaje que se MUESTRA al lado de cada fila puede divergir del que se CUENTA: el medico
+       marcaria «2 pts» y el score sumaria 1. Esto las ata. */
+    ['las doce filas del catalogo existen en el DOM',
+      hfaicosFactores().every(f => !!document.getElementById(f.id))],
+    ['y no hay filas de mas en el HTML',
+      document.querySelectorAll('#hfaicos-factores input[type=checkbox]').length === hfaicosFactores().length],
+    ['el puntaje que se muestra es el que se cuenta, fila por fila',
+      hfaicosFactores().every(f => {
+        const fila = document.getElementById(f.id).closest('label');
+        const sp = fila ? fila.querySelector('[data-hfa-pts]') : null;
+        return !!sp && Number(sp.dataset.hfaPts) === f.pts &&
+               sp.textContent.trim() === f.pts + ' pt' + (f.pts > 1 ? 's' : '');
+      })]
+  ] };
+`);
+
+/* Los dos criterios de FEVI son mutuamente excluyentes: una misma medicion no puede estar a la
+   vez en 50-54% y por debajo de 50. Marcados los dos sumaban 3 puntos por UNA sola FEVI y
+   empujaban al paciente una banda entera hacia arriba sobre una contradiccion. */
+caso('TC-102', 'HFA-ICOS: los dos criterios de FEVI no pueden estar marcados a la vez', `
+  ${HFA_LIMPIAR}
+  document.getElementById('hfaicos_fevi_lim').checked = true;
+  hfaicosToggle('hfaicos_fevi_lim');
+  const soloLim = hfaicosEstado().pts;
+  document.getElementById('hfaicos_fevi_red').checked = true;
+  hfaicosToggle('hfaicos_fevi_red');
+  const e = hfaicosEstado();
+  return { extra: [
+    ['la FEVI 50-54% sola vale 1', soloLim === 1],
+    ['al marcar «<50%» se destilda «50-54%»',
+      document.getElementById('hfaicos_fevi_lim').checked === false],
+    ['y el puntaje es 2, no 3',    e.pts === 2],
+    ['o sea ALTO y no MUY ALTO',   e.banda === 'ALTO']
+  ] };
+`);
+
+/* El farmaco impone un PISO, no un reemplazo: la banda final es la MAYOR de las dos. Un paciente
+   sin ningun factor que recibe antraciclinas a dosis alta es de muy alto riesgo; y uno que suma
+   cuatro factores lo es con cualquier farmaco. */
+caso('TC-103', 'HFA-ICOS: el farmaco impone un piso, no reemplaza al puntaje', `
+  const conFarmaco = (ids, farm) => { ${HFA_LIMPIAR}
+    ids.forEach(id => { document.getElementById(id).checked = true; });
+    __t.set('hfaicos_farmaco', farm);
+    return hfaicosEstado(); };
+  const ceroMuyAlto = conFarmaco([], 'muy_alto');
+  const ceroAlto    = conFarmaco([], 'alto');
+  const ceroMedio   = conFarmaco([], 'medio');
+  const ceroBajo    = conFarmaco([], 'bajo');
+  const cuatroBajo  = conFarmaco(['hfaicos_hta','hfaicos_dm','hfaicos_obesidad','hfaicos_tabaco'], 'bajo');
+  const unoAlto     = conFarmaco(['hfaicos_hta'], 'alto');
+  /* EL CASO QUE SEPARA «PISO» DE «REEMPLAZO», y es la direccion peligrosa: cuatro factores con
+     un farmaco de riesgo MEDIO. Con piso queda MUY ALTO; con reemplazo BAJA a medio, o sea que
+     el farmaco desclasificaria a un paciente de muy alto riesgo. Los demas casos de este test
+     pasan igual con las dos logicas — lo delato la mutacion, no la lectura. */
+  const cuatroMedio = conFarmaco(['hfaicos_hta','hfaicos_dm','hfaicos_obesidad','hfaicos_tabaco'], 'medio');
+  const dosMedio    = conFarmaco(['hfaicos_hta','hfaicos_dm'], 'medio');
+  return { extra: [
+    ['sin factores, un farmaco de muy alto riesgo da MUY ALTO',
+      ceroMuyAlto.pts === 0 && ceroMuyAlto.banda === 'MUY ALTO' && ceroMuyAlto.mandaFarmaco === true],
+    ['uno de alto riesgo da ALTO',   ceroAlto.banda === 'ALTO'],
+    ['uno de riesgo medio da MEDIO', ceroMedio.banda === 'MEDIO'],
+    ['y uno de riesgo bajo NO sube nada: queda BAJO',
+      ceroBajo.banda === 'BAJO' && ceroBajo.mandaFarmaco === false],
+    ['el farmaco de riesgo bajo tampoco BAJA una banda ganada por puntaje',
+      cuatroBajo.pts === 4 && cuatroBajo.banda === 'MUY ALTO'],
+    ['ni uno de riesgo MEDIO: 4 puntos siguen siendo MUY ALTO',
+      cuatroMedio.pts === 4 && cuatroMedio.banda === 'MUY ALTO' && cuatroMedio.mandaFarmaco === false],
+    ['y 2 puntos con farmaco medio siguen siendo ALTO, que es lo que manda el puntaje',
+      dosMedio.pts === 2 && dosMedio.banda === 'ALTO' && dosMedio.mandaFarmaco === false],
+    ['con 1 punto y farmaco alto manda el farmaco',
+      unoAlto.pts === 1 && unoAlto.banda === 'ALTO' && unoAlto.mandaFarmaco === true],
+    // El seguimiento sale de la banda FINAL, no del puntaje.
+    ['el seguimiento es el de la banda final, no el del puntaje',
+      ceroMuyAlto.seguimiento.indexOf('cada ciclo') > -1 &&
+      ceroMuyAlto.seguimiento.indexOf('troponina y BNP seriados') > -1],
+    ['y cada banda trae el suyo',
+      ceroAlto.seguimiento.indexOf('cada 2 ciclos') > -1 &&
+      ceroMedio.seguimiento.indexOf('Eco a los 12 meses') > -1 &&
+      ceroBajo.seguimiento.indexOf('Control clínico') > -1]
+  ] };
+`);
+
+/* La FEVI y el GLS se deducen del estudio, pero la deduccion NO puede pisar una decision del
+   medico ni rehacerse al reabrir un estudio guardado. «Deteriorado» es MENOS negativo que -16:
+   un -14 es peor que un -20, asi que la comparacion va sobre el valor CON SIGNO — con Math.abs
+   el sentido se invierte y un strain normal quedaria marcado como alterado. */
+caso('TC-104', 'HFA-ICOS: la FEVI y el GLS se deducen del estudio y respetan al medico', `
+  ${HFA_LIMPIAR}
+  __t.set('co_fevi_basal','52'); __t.set('co_gls_basal','-14');
+  hfaicosSyncDesdeEstudio();
+  const a = { lim: __t.val('hfaicos_fevi_lim') !== null && document.getElementById('hfaicos_fevi_lim').checked,
+              red: document.getElementById('hfaicos_fevi_red').checked,
+              gls: document.getElementById('hfaicos_gls_alt').checked, pts: hfaicosEstado().pts };
+  __t.set('co_fevi_basal','44'); hfaicosSyncDesdeEstudio();
+  const b = { lim: document.getElementById('hfaicos_fevi_lim').checked,
+              red: document.getElementById('hfaicos_fevi_red').checked, pts: hfaicosEstado().pts };
+  // El medico destilda a mano: desde aca la deduccion no lo toca mas.
+  document.getElementById('hfaicos_fevi_red').checked = false;
+  hfaicosToggle('hfaicos_fevi_red');
+  __t.set('co_fevi_basal','38'); hfaicosSyncDesdeEstudio();
+  const c = document.getElementById('hfaicos_fevi_red').checked;
+  // Un GLS NORMAL no se marca.
+  ${HFA_LIMPIAR}
+  __t.set('co_gls_basal','-20'); hfaicosSyncDesdeEstudio();
+  const glsNormal = document.getElementById('hfaicos_gls_alt').checked;
+  // Y el borde exacto: -16 no es deteriorado; -15.9 si.
+  ${HFA_LIMPIAR}
+  __t.set('co_gls_basal','-16'); hfaicosSyncDesdeEstudio();
+  const borde = document.getElementById('hfaicos_gls_alt').checked;
+  ${HFA_LIMPIAR}
+  __t.set('co_gls_basal','-15.9'); hfaicosSyncDesdeEstudio();
+  const pasado = document.getElementById('hfaicos_gls_alt').checked;
+  return { extra: [
+    ['FEVI 52 marca «50-54%» y no «<50%»', a.lim === true && a.red === false],
+    ['GLS -14 se marca como deteriorado',  a.gls === true],
+    ['con los dos, 2 puntos',              a.pts === 2],
+    ['FEVI 44 cambia solo al criterio de <50%', b.lim === false && b.red === true && b.pts === 3],
+    ['destildado a mano, la deduccion ya no lo pisa', c === false],
+    ['un GLS de -20 (normal) NO se marca',  glsNormal === false],
+    ['-16 exacto tampoco',                 borde === false],
+    ['-15.9 si',                           pasado === true]
+  ] };
+`);
+
+/* El parrafo entra al informe por la CASILLA, que es el dato que viaja con el estudio — no por
+   si la seccion esta abierta ni por si hay datos cargados. Un modulo con datos que el medico no
+   integro no entra al informe firmado. */
+caso('TC-105', 'HFA-ICOS: el parrafo entra al informe solo si se integro, y dice lo que calcula', `
+  ${HFA_LIMPIAR}
+  document.getElementById('hfaicos_edad').checked = true;
+  document.getElementById('hfaicos_hta').checked = true;
+  document.getElementById('hfaicos_cv_previa').checked = true;
+  calcHFAICOS();
+  __t.chk('hfaicos_incluir_chk', false);
+  const sin = __t.informe();
+  __t.chk('hfaicos_incluir_chk', true);
+  const con = __t.informe();
+  const e = hfaicosEstado();
+  return { extra: [
+    ['sin integrar el parrafo NO esta', sin.inf.indexOf('marco HFA-ICOS ESC 2022') === -1],
+    ['integrado si',                    con.inf.indexOf('Evaluación de riesgo cardiovascular basal (marco HFA-ICOS ESC 2022)') > -1],
+    ['con el puntaje que calcula la capsula',
+      e.pts === 4 && con.inf.indexOf('puntaje 4/13 puntos — riesgo muy alto') > -1],
+    ['y la lista de factores presentes',
+      con.inf.indexOf('Factores presentes: Edad ≥65 años, Hipertensión arterial, Enfermedad CV previa') > -1],
+    ['y el seguimiento de esa banda',
+      con.inf.indexOf('Eco cada ciclo durante el tratamiento') > -1],
+    ['el modulo vacio no mete nada aunque este integrado',
+      (function(){ ${HFA_LIMPIAR} __t.chk('hfaicos_incluir_chk', true);
+        return __t.informe().inf.indexOf('marco HFA-ICOS') === -1; })()],
+    /* ROTULO y no una linea en blanco: inf.filter(Boolean) se come la cadena vacia, asi que
+       inf.push('', t) es codigo muerto —el archivo ya lo documenta para etePars— y el parrafo
+       salia pegado al renglon anterior, sin ninguna separacion entre los hallazgos del eco y la
+       estratificacion oncologica. */
+    ['el parrafo entra con rotulo propio',
+      con.inf.indexOf('Estratificación de riesgo cardio-oncológico:') > -1],
+    /* Sin regex: un salto de linea dentro de un literal de expresion regular, en un template,
+       parte el literal en dos renglones y tira «Invalid regular expression». Se compara con
+       indexOf sobre la cadena armada, que dice lo mismo y no tiene escapes. */
+    ['y el rotulo esta en su propio renglon, no pegado al anterior',
+      con.inf.split('\\n').some(l => l.trim() === 'Estratificación de riesgo cardio-oncológico:')],
+    /* Doce casillas en su estado de fabrica significan «no esta» y «no lo mire» a la vez, y aca
+       esa negacion ademas sostiene una agenda de control. No se afirma la ausencia. */
+    ['con solo el farmaco elegido NO se afirma que no haya factores',
+      (function(){ ${HFA_LIMPIAR} __t.set('hfaicos_farmaco','bajo');
+        const t = hfaicosTexto();
+        return t.indexOf('No se consignaron factores') > -1 &&
+               t.indexOf('Sin factores de riesgo del paciente identificados') === -1; })()],
+    /* toggleCard rota el PRIMER span del encabezado. Con el badge adelante, la flecha no giraba
+       nunca y el badge quedaba de costado. */
+    ['la flecha es el primer span del encabezado, para que toggleCard la rote',
+      (function(){ const h = document.querySelector('h2.card-head[onclick*="hfaicos-seccion"]');
+        return !!h && h.querySelector('span').id === 'hfaicos-seccion-arrow'; })()]
+  ] };
+`);
+
+/* GUARDAR Y REABRIR. Las doce casillas viajan por el barrido de `__chk` y el select por el de
+   inputs; la casilla de integracion la repone `_restaurarChkInclusion` y el boton lo repinta
+   `eteInclSync` desde RECALC_MODULOS. Y lo que NO tiene que pasar: que al reabrir se rehaga la
+   deduccion de FEVI/GLS y pise lo que el medico dejo decidido. */
+caso('TC-106', 'HFA-ICOS: la calculadora entera viaja con el estudio y no se re-deduce al reabrir', `
+  return (async () => {
+    ${HFA_LIMPIAR}
+    __t.set('nombre','HFA-ICOS'); __t.set('ci','1414');
+    __t.set('co_fevi_basal','44');            // deduciria «FEVI <50%»
+    hfaicosSyncDesdeEstudio();
+    // El medico lo destilda: la basal oncologica no es la del eco de hoy.
+    document.getElementById('hfaicos_fevi_red').checked = false;
+    hfaicosToggle('hfaicos_fevi_red');
+    document.getElementById('hfaicos_hta').checked = true;
+    document.getElementById('hfaicos_cv_previa').checked = true;
+    __t.set('hfaicos_farmaco','alto');
+    calcHFAICOS();
+    __t.chk('hfaicos_incluir_chk', true);
+    const antes = hfaicosEstado();
+    const infAntes = __t.informe().inf;
+
+    const g = await __t.guardar();
+    __t.nuevoEstudio();
+    const trasLimpiar = document.getElementById('hfaicos_hta').checked;
+    /* Se deja OTRO paciente en pantalla, con una banda DISTINTA, y se reabre ENCIMA. Sin esto la
+       condicion de la capsula pasaba sin que nada se repintara: «Nuevo estudio» no borra el
+       badge del .calc-box —el barrido generico alcanza a .calc-val, no a este span— asi que la
+       capsula conservaba «Riesgo ALTO» del paciente anterior y el texto viejo coincidia por
+       casualidad con el esperado. Un test que no distingue «se repinto» de «quedo lo de antes»
+       no prueba el repintado. Lo delato la mutacion que saca calcHFAICOS de RECALC_MODULOS. */
+    ['hfaicos_hta','hfaicos_dm','hfaicos_obesidad','hfaicos_tabaco'].forEach(id => {
+      document.getElementById(id).checked = true; });
+    calcHFAICOS();
+    const ruido = (__t.txt('hfaicos-resultado') || '').replace(/\\s+/g,' ').trim();
+    __t.reabrir(g.estudioId);
+    const despues = hfaicosEstado();
+    const infDespues = __t.informe().inf;
+    /* La CAPSULA la repinta calcHFAICOS, que entra por RECALC_MODULOS. hfaicosEstado() y el
+       boton no la cubren —el primero recalcula solo, al segundo lo repinta eteInclSync—, asi que
+       sin esto sacar calcHFAICOS de la lista dejaba el suite en verde: el medico reabre el
+       estudio, el informe trae el parrafo con la banda, y la capsula dice «Ingresar factores». */
+    /* Doble barra en el escape del regex: el cuerpo del caso es un template literal, y ahi una
+       barra sola delante de la s es un escape no reconocido que se evalua como la letra «s». Con una sola barra el regex llegaba a la
+       pagina como /s+/g y BORRABA todas las eses: la capsula decia «Cla ificacion de rie go» y
+       el caso fallaba por eso, no por la app. */
+    const capsula = (__t.txt('hfaicos-resultado') || '').replace(/\\s+/g,' ').trim();
+    const btn = document.querySelector('.btn-integrar[data-ete-chk="hfaicos_incluir_chk"]');
+    const boton = btn ? btn.textContent.trim() : null;
+    const badgeVisible = (function(){ const b = document.getElementById('hfaicos_badge');
+      return !!b && b.hidden === false; })();
+    await __t.borrar(g.estudioId);
+    return { extra: [
+      ['«Nuevo estudio» destilda los factores',  trasLimpiar === false],
+      ['los factores vuelven',
+        document.getElementById('hfaicos_hta').checked === true &&
+        document.getElementById('hfaicos_cv_previa').checked === true],
+      ['el farmaco vuelve',                      __t.val('hfaicos_farmaco') === 'alto'],
+      ['el puntaje y la banda son los mismos',
+        despues.pts === antes.pts && despues.banda === antes.banda],
+      ['la casilla que el medico DESTILDO sigue destildada, no se re-dedujo',
+        document.getElementById('hfaicos_fevi_red').checked === false],
+      ['aunque la FEVI basal del estudio volvio', __t.val('co_fevi_basal') === '44'],
+      ['el boton se repinta al reabrir',          boton === '✓ Integrado al informe'],
+      ['y su badge queda visible',                badgeVisible === true],
+      ['el paciente que quedo en pantalla mostraba OTRA banda', ruido.indexOf('Riesgo MUY ALTO') > -1],
+      ['la CAPSULA se repinto al reabrir, con la banda del estudio',
+        capsula.indexOf('Ingresar factores') === -1 && capsula.indexOf('Riesgo ' + antes.banda) > -1],
+      ['y no quedo con la del paciente que estaba en pantalla', capsula !== ruido],
+      ['con el puntaje del estudio', capsula.indexOf(antes.pts + ' / 13 puntos') > -1],
+      ['el informe reabierto es identico al de antes de guardar', infDespues === infAntes]
+    ] };
+  })();
+`);
+
+/* LO QUE ENCONTRO EL /differential-review DE LA CALCULADORA. Cinco defectos, todos de la misma
+   familia: un invariante que vivia SOLO en la interfaz, o un estado que no se limpiaba. */
+caso('TC-107', 'HFA-ICOS: la exclusion, la marca del medico y la capsula, por las vias que NO son el clic', `
+  return (async () => {
+    // 1 · EXCLUSION EN LA EVALUACION. excluye corria solo en hfaicosToggle, o sea en el dedo
+    //     del medico. La deduccion tilda por su cuenta, asi que una casilla marcada a mano podia
+    //     convivir con la deducida: 3 puntos por UNA sola FEVI, y el informe firmado listando la
+    //     misma medicion en dos rangos disjuntos.
+    __t.limpiar();
+    document.getElementById('hfaicos_fevi_lim').checked = true;
+    hfaicosToggle('hfaicos_fevi_lim');                 // queda marcada como decidida
+    document.getElementById('hfaicos_fevi_red').checked = true;   // como si la tildara la deduccion
+    const ambas = hfaicosEstado();
+    const textoAmbas = hfaicosTexto();
+
+    // 2 · LA DEDUCCION NO SE CAE A LA FEVI DE HOY. En un control de ciclo 4 la FEVI de hoy puede
+    //     estar caida POR el tratamiento; tildar con ella «FEVI BASAL <50%» pone en el informe
+    //     una afirmacion falsa sobre una medicion anterior al tratamiento.
+    __t.limpiar();
+    __t.set('fevi','45');                              // la de HOY, sin basal cargada
+    hfaicosSyncDesdeEstudio();
+    const sinBasal = document.getElementById('hfaicos_fevi_red').checked;
+    __t.set('co_fevi_basal','45');                     // ahora si, la basal
+    hfaicosSyncDesdeEstudio();
+    const conBasal = document.getElementById('hfaicos_fevi_red').checked;
+
+    // 3 · UN GLS POSITIVO ES UN ERROR DE TIPEO. El resto de cardio-onco usa Math.abs, asi que
+    //     nadie avisa; aca un 18 en vez de -18 daria «deteriorado» sobre un strain normal.
+    __t.limpiar(); __t.set('co_gls_basal','18'); hfaicosSyncDesdeEstudio();
+    const glsPositivo = document.getElementById('hfaicos_gls_alt').checked;
+
+    // 4 · LA MARCA DEL MEDICO SOBREVIVE A LA PAGINA. Vivia en dataset, que muere al recargar:
+    //     al dia siguiente el medico abria la seccion de su propio estudio y la deduccion le
+    //     volvia a tildar lo que el habia destildado, subiendo de banda un informe ya firmado.
+    __t.limpiar();
+    __t.set('nombre','HFA marca'); __t.set('ci','1515');
+    __t.set('co_fevi_basal','44'); hfaicosSyncDesdeEstudio();
+    document.getElementById('hfaicos_fevi_red').checked = false;
+    hfaicosToggle('hfaicos_fevi_red');                 // el medico lo destilda a proposito
+    /* Y se deja algun factor tildado para que la capsula muestre una BANDA. Sin esto el estudio
+       quedaba en cero, la capsula ya decia «Ingresar factores» antes de limpiar, y la condicion
+       de mas abajo pasaba sin que limpiarCampos repintara nada: el texto viejo coincidia por
+       casualidad con el esperado. Lo delato la mutacion que saca calcHFAICOS de limpiarCampos. */
+    document.getElementById('hfaicos_cv_previa').checked = true;
+    hfaicosToggle('hfaicos_cv_previa');
+    const capsulaAntes = (__t.txt('hfaicos-resultado') || '').replace(/\\s+/g,' ').trim();
+    const marcaGuardada = __t.val('hfaicos_manual');
+    const g = await __t.guardar();
+    __t.nuevoEstudio();
+    // 5 · Y NO FUGA AL PACIENTE SIGUIENTE. limpiarCampos barre una lista cerrada de atributos y
+    //     el hidden no entra en el barrido de text/number: hubo que limpiarlo a mano.
+    const marcaTrasLimpiar = __t.val('hfaicos_manual');
+    const capsulaTrasLimpiar = (__t.txt('hfaicos-resultado') || '').replace(/\\s+/g,' ').trim();
+    __t.set('co_fevi_basal','38'); hfaicosSyncDesdeEstudio();
+    const pacienteB = document.getElementById('hfaicos_fevi_red').checked;
+    // Y al reabrir el estudio, la decision vuelve y la deduccion sigue sin pisarla.
+    __t.reabrir(g.estudioId);
+    hfaicosAbrir();                                    // el medico abre la seccion a revisarla
+    const traReabrir = document.getElementById('hfaicos_fevi_red').checked;
+    await __t.borrar(g.estudioId);
+    return { extra: [
+      ['con las dos FEVI marcadas gana la MAYOR, no se suman', ambas.pts === 2],
+      ['asi que es ALTO y no MUY ALTO',                        ambas.banda === 'ALTO'],
+      ['y el informe no lista la misma FEVI en dos rangos',
+        textoAmbas.indexOf('FEVI basal 50-54%') === -1 && textoAmbas.indexOf('FEVI basal <50%') > -1],
+      ['sin FEVI basal cargada NO se deduce de la FEVI de hoy', sinBasal === false],
+      ['con la basal cargada si',                              conBasal === true],
+      ['un GLS positivo (error de tipeo) no marca deterioro',  glsPositivo === false],
+      ['la decision del medico se persiste en un campo, no en dataset',
+        (marcaGuardada || '').indexOf('hfaicos_fevi_red') > -1],
+      ['«Nuevo estudio» la borra: no fuga al paciente siguiente', marcaTrasLimpiar === ''],
+      ['y por eso al paciente B si se le deduce',                pacienteB === true],
+      ['antes de limpiar la capsula mostraba una banda', capsulaAntes.indexOf('Riesgo ALTO') > -1],
+      ['«Nuevo estudio» tambien limpia la capsula',
+        capsulaTrasLimpiar.indexOf('Ingresar factores') > -1 && capsulaTrasLimpiar !== capsulaAntes],
+      ['al reabrir, abrir la seccion NO revive lo que el medico destildo', traReabrir === false]
+    ] };
+  })();
+`);
+
+/* LA TABLA DE REFERENCIA Y LA CALCULADORA TIENEN QUE CLASIFICAR IGUAL. Viven en la misma pestaña,
+   a dos clics, y la calculadora dice en su propio aviso que sigue a esa tabla. La seccion C decia
+   «>=4 FACTORES / 2-3 factores / 1 factor» y la seccion A de arriba reparte PUNTOS: hay filas que
+   valen 2. Con enfermedad CV previa + FEVI <50% son 2 FILAS —«Alto» por el texto viejo— y 4
+   PUNTOS, que es «Muy alto»: una banda de diferencia, y otra agenda de control impresa.
+   El caso verifica los DOS lados sobre el mismo paciente. */
+caso('TC-108', 'HFA-ICOS: la tabla de referencia y la calculadora dan la misma banda', `
+  const ref = (document.getElementById('co-referencia-seccion') || {}).textContent || '';
+  const marcar = ids => { __t.limpiar();
+    ids.forEach(id => { document.getElementById(id).checked = true; });
+    return hfaicosEstado(); };
+  const cvYFevi = marcar(['hfaicos_cv_previa','hfaicos_fevi_red']);   // 2 filas, 4 puntos
+  const soloCv  = marcar(['hfaicos_cv_previa']);                      // 1 fila,  2 puntos
+  return { extra: [
+    ['la tabla clasifica por PUNTOS, no por filas',
+      ref.indexOf('>=4 puntos de la seccion A') > -1 && ref.indexOf('2-3 puntos') > -1 &&
+      ref.indexOf('1 punto') > -1 && ref.indexOf('0 puntos') > -1],
+    ['y ya no dice «factores» en la clasificacion global',
+      ref.indexOf('>=4 factores de riesgo') === -1 && ref.indexOf('2-3 factores') === -1],
+    ['CV previa + FEVI <50% son 4 puntos para la calculadora',  cvYFevi.pts === 4],
+    ['y MUY ALTO, que es lo que ahora dice la tabla',           cvYFevi.banda === 'MUY ALTO'],
+    ['CV previa sola son 2 puntos',                             soloCv.pts === 2],
+    ['y ALTO, no MEDIO',                                        soloCv.banda === 'ALTO'],
+    // Los dos criterios que discrepaban fila por fila con el catalogo.
+    ['la tabla usa >=65 para la edad, igual que el catalogo',
+      ref.indexOf('Edad >=65 anos') > -1 && ref.indexOf('Edad >65 anos') === -1],
+    ['y lista el ACV en la enfermedad CV previa, igual que el catalogo',
+      ref.indexOf('Enfermedad CV previa (IC, CAD, FA, ACV)') > -1 &&
+      hfaicosFactores().find(f => f.id === 'hfaicos_cv_previa').lbl.indexOf('ACV') > -1]
+  ] };
+`);
+
 /* LAS TRES SUPERFICIES DE CARDIO-ONCO TIENEN QUE DECIR LO MISMO. La leyenda de #ref-cardiotox
    (pestaña Referencias), la tabla de farmacos y las tablas nuevas del marco HFA-ICOS viven en
    DOS pestañas distintas y describen al mismo paciente. Las tres estaban desincronizadas, cada
@@ -1958,7 +2359,7 @@ caso('TC-100', 'Cardio-onco: las dos pestañas de referencia dicen lo mismo', `
     ['dice que cada marcador vale 2 puntos y deja al paciente en ALTO',
       legenda.indexOf('2 puntos cada uno') > -1 && legenda.indexOf('riesgo alto (2-3 puntos)') > -1],
     ['y que el muy alto empieza en 4, igual que la tabla',
-      legenda.indexOf('muy alto empieza en 4 puntos') > -1 && onco.indexOf('>=4 factores') > -1],
+      legenda.indexOf('muy alto empieza en 4 puntos') > -1 && onco.indexOf('>=4 puntos') > -1],
     ['los dos puntajes de FEVI basal siguen siendo los de la tabla',
       onco.indexOf('FEVI basal 50-54%') > -1 && onco.indexOf('FEVI basal <50%') > -1]
   ] };
@@ -2018,13 +2419,19 @@ caso('TC-99', 'Cardio-onco: las tablas de referencia no contradicen al clasifica
       ref.indexOf('ni puntuan') > -1 && ref.indexOf('edad desde 65 inclusive') > -1],
     ['y que la tabla resuelve tambien por farmaco, no solo por factores',
       ref.indexOf('factores <u>o</u> por el farmaco') === -1 && ref.indexOf('por el farmaco') > -1],
-    ['y dice que lo que viaja al informe firmado es el score de la calculadora',
-      ref.indexOf('viaja al informe firmado es el score de la calculadora') > -1],
+    /* El aviso decia que al informe firmado baja SOLO el score orientativo y que esta tabla «no
+       se imprime». Dejo de ser cierto al agregar la Calculadora de Riesgo CV, que sigue esta
+       tabla y cuya banda va al cuerpo narrativo: ahora son DOS emisores. Un aviso que describe
+       mal lo que pasa es peor que no tener aviso, asi que tiene que nombrar a los dos. */
+    ['el aviso declara que al informe bajan DOS bandas, no una',
+      ref.indexOf('bajan DOS bandas') > -1 && ref.indexOf('cuerpo narrativo') > -1],
+    ['y ya no afirma que esta tabla no se imprime',
+      ref.indexOf('y no se imprime') === -1],
     ['ya NO promete que la tabla manda para decidir', ref.indexOf('manda esta tabla') === -1],
     ['la discrepancia que describe sigue siendo cierta: 3 factores dan MODERADO en la capsula',
       capsula.indexOf('Riesgo MODERADO (3 pts)') > -1],
-    ['mientras la tabla pone 2-3 factores en Alto',
-      ref.indexOf('2-3 factores') > -1],
+    ['mientras la tabla pone 2-3 puntos en Alto',
+      ref.indexOf('2-3 puntos') > -1],
     // ECOS-07: no prestarle a un marco la autoridad de un score unico validado.
     ['la tabla se presenta como MARCO, no como score unico',
       ref.indexOf('Marco</b>, no score unico') > -1 || ref.indexOf('no score unico') > -1],
