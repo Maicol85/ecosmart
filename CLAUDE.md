@@ -723,28 +723,72 @@ El script contesta *«nadie lo nombra»*, no *«no tiene destino»*: un id menci
 ### 2 · Test suite clínico
 
 ```bash
-node scripts/test_clinico.mjs            # los 17 casos
+node scripts/test_clinico.mjs            # 84 casos + 4 defectos abiertos
 node scripts/test_clinico.mjs --solo TC-04
 node scripts/test_clinico.mjs --ver      # con el navegador a la vista, para depurar
 ```
 
 **Correr antes de cualquier push que toque el informe narrativo, el EN SUMA o una fórmula de
-cálculo. Tienen que pasar los 17. Si alguno falla, corregir antes de seguir.**
+cálculo. Tienen que pasar los 84. Si alguno falla, corregir antes de seguir.**
 
-Cubre los bugs del 2026-09-14: VD que desaparecía (TC-01 a TC-03), gradiente pulmonar congelado
-(TC-04), AD ausente del EN SUMA (TC-06), HFA-PEFF sin compuerta de FEVI (TC-07/08), los tres
-escenarios de estenosis aórtica (TC-09/10/11), fuga entre pacientes (TC-12), la contraindicación
+**TC-01 a TC-17 — los bugs del 2026-09-14.** VD que desaparecía (TC-01/03), gradiente pulmonar
+congelado (TC-04), AD ausente del EN SUMA (TC-06), HFA-PEFF sin compuerta de FEVI (TC-07/08),
+los tres escenarios de EAo (TC-09/11), fuga entre pacientes (TC-12), la contraindicación
 invertida del TEER (TC-13), aorta (TC-14/15) y las sincronías de PSAP y e' (TC-16/17).
+
+**TC-18 a TC-88 — barrido por módulo (2026-09-15).** VI dimensiones y FEVI (18-21), geometría
+(22-26), diastólica (27-29), aurículas (30-33), VD (34-38), aorta (39-41), mitral (42-45),
+aórtica (46-48), tricúspide y pulmonar (49-51), hemodinámica (52-56), HFA-PEFF (57-58),
+pericardio (59-60), congénitas (61-66), amiloidosis (67-68), cardio-oncología (69-72, 88),
+ETE/TEER/TAVI/orejuela (73-78), derivados y sincronías (79-83).
+
+**Dos reglas que rigen los casos nuevos:**
+- El **umbral y el operador** salen del código —`>` y `>=` no son lo mismo—, y se prueban **por
+  los dos lados del corte**. Un caso que mira 50 y 70 pasa igual con el umbral corrido tres
+  milímetros.
+- El **texto literal** sale de la **salida real** de la app corrida en Chrome, nunca de memoria
+  ni de un resumen: así no se congela una redacción que nunca existió.
+
+**BSA = 2,00 exacta** con peso 80 / talla 180 (`sqrt(80·180/3600) = 2`). Todo lo indexado —LAVI,
+masa VI, VLI, AVAi— da números redondos y el caso dice qué umbral prueba en vez de arrastrar una
+superficie corporal arbitraria escondida en los insumos.
+
+**`casoAbierto()` — defectos abiertos (xfail).** Describe lo que la app *debería* hacer sobre un
+defecto vivo. Falla a propósito y **no tiñe el resultado**: si contara, el suite quedaría rojo
+para siempre y se dejaría de correr, que es exactamente como un defecto deja de verse. Pero si
+alguno **pasa**, el runner sale con 1 y pide promoverlo a `caso()` — un arreglo silencioso
+también es un cambio del que hay que enterarse. Hoy hay cuatro, los tres del TEER y el de la AI;
+están en «Deuda conocida sin resolver».
 
 **No usa Playwright** — `pip install` está bloqueado en este entorno y bajar un Chromium propio
 son ~150 MB. Node 24 trae `fetch` y `WebSocket` nativos, así que el script habla **CDP directo
 contra el Google Chrome del sistema**: cero dependencias, cero descargas, y prueba sobre el motor
 real en vez de sobre un DOM simulado. Si mañana no hay Chrome, el script lo dice y sale con 2.
 
-**Un suite que no sabe fallar no sirve.** Verificado corriéndolo contra `c055342~1`, el commit
-anterior a los arreglos: da **6/17**, y TC-04 imprime literalmente «valor esperado: 64 ·
-encontrado: 16». Si se agregan casos, hacer lo mismo — probar que el caso nuevo se pone rojo
-sobre el código que tenía el defecto.
+#### Un suite que no sabe fallar no sirve
+
+Los 17 originales se verificaron contra `c055342~1`, el commit anterior a los arreglos: daba
+**6/17**, y TC-04 imprimía «valor esperado: 64 · encontrado: 16».
+
+Para los casos nuevos no hay un commit viejo con el defecto, así que se validaron por
+**mutación**: se copia `index.html` a `/tmp`, se le mueve un umbral y se corre el suite contra la
+copia. **Nunca sobre el archivo real.** Trece umbrales movidos en dos tandas y cada uno lo cazó
+el caso que le corresponde: FEVI→TC-20, LAVI→TC-30, área AD→TC-33, VD medio→TC-35, TAPSE→TC-36,
+FAC severa→TC-37, `AO_REF`→TC-14/39, PmAD→TC-50/52/80, Gmax pulmonar→TC-51, área mitral del
+TEER→TC-74.
+
+**Dos mutaciones NO fueron cazadas, y las dos enseñaron algo:**
+
+1. **NT-proBNP 375 → 365 pasó desapercibido.** Los valores del caso (300, 400, 700) caen del
+   mismo lado de los dos umbrales. Justo la regresión que ya ocurrió en este repo. Se agregó
+   **370**, que es el único valor que los separa: con 375 vale 0 puntos, con 365 vale 1.
+   **Regla: al testear un umbral, elegir el valor que distingue el umbral correcto del error
+   plausible**, no un valor cómodo lejos del corte.
+2. **`CO_UMBRAL_FEVI_CAIDA` de 10 a 20 no puso nada en rojo.** Porque no es el umbral que
+   clasifica: ver abajo, en «Deuda conocida».
+
+**Al agregar un caso, hacer lo mismo:** moverle el umbral a una copia y confirmar que se pone
+rojo. Un caso que no se puede hacer fallar no está probando nada.
 
 ## LECCIONES APRENDIDAS — 14/09/2026
 
@@ -2853,6 +2897,59 @@ hoja. Un estudio exactamente en el borde sí podría volcar, y eso es inherente 
 criterio». Si aparece, la palanca es juntar las salvedades con la línea de la AHA.
 
 ## Deuda conocida sin resolver
+
+### Cuatro defectos abiertos, encontrados al generar el suite (2026-09-15)
+
+Los cuatro salieron de escribir los casos leyendo rama por rama, no de una auditoría aparte.
+Están cubiertos en `test_clinico.mjs` con `casoAbierto()`: el suite los lista como ⊘ en cada
+corrida y el día que se arreglen avisa que hay que promoverlos.
+
+- **TC-84/85/86 — TEER: tres criterios que se pintan y no se cuentan.** `teerEstado` (~L24829)
+  arma `const veto = [cs.c1, cs.c3, cs.c6, cs.c9, cs.c10]` más los gateados por tipo de IM.
+  **`c7` (FEVI fuera del rango COAPT), `c8` (DTSVI >70 mm) y `c1b` (velo posterior <7 mm) no
+  están en esa lista.** Se calculan, se pintan en pantalla y se imprimen en la hoja firmada,
+  pero no suman fallo. Medido en el navegador con IM secundaria y todo lo demás correcto:
+
+  ```
+  DTSVI <=70 mm (COAPT) | 78mm >70mm - NO apto
+  ...
+  ## Conclusión
+  APTO para TEER - criterios cumplidos
+  ```
+
+  Nueve renglones de distancia, en la misma hoja. El texto de fallo de `c8` dice literalmente
+  «NO apto» y la conclusión dice «APTO». Es **el mismo defecto que ya se cerró para `c10`** —el
+  comentario de arriba de la lista lo explica— y estos tres quedaron afuera del arreglo: el
+  comentario dice que antes `fallos` era `[c1..c6, c9]`, o sea que `c7` y `c8` nunca estuvieron.
+  `c1b` es discutible como veto duro —«agarre difícil» no es «no apto»—; `c7` y `c8` no: son los
+  criterios de inclusión del COAPT y su propio texto los declara excluyentes.
+  **Decidir: entran al `veto`, o se los saca de la hoja.** Lo que no puede seguir es que se
+  impriman como criterio y no pesen.
+
+- **TC-87 — la AI dilatada por diámetro AP no llega al EN SUMA.** `generarInforme`, la rama
+  `else if (ai_diam)` (~L19431-19436): **no tiene un solo `suma.push`**. La rama del volumen
+  indexado sí. Con una AI de 45 mm y sin volumen medido, el informe firmado dice «Aurícula
+  izquierda dilatada (diámetro AP 45 mm)» arriba y «Estudio sin alteraciones estructurales ni
+  funcionales significativas» abajo. Es **la asimetría de la lección 9** —la AD dilatada tenía
+  exactamente esta forma— en la vía de medición que queda cuando no hay volumen, que es la más
+  frecuente en un eco de rutina.
+
+### Cardio-Oncología: los umbrales están escritos dos veces (2026-09-15)
+
+`calcCardioOnco` clasifica con **literales propios** (`< 50`, `< 40`, `>= 15`) y las constantes
+`CO_UMBRAL_FEVI_CAIDA` / `CO_UMBRAL_FEVI_ABS` / `CO_UMBRAL_GLS_REL` (L34053-34055) alimentan
+**sólo** la leyenda del PDF (L24280) y las líneas de referencia de la curva de evolución
+(L34148-34153). Hoy los dos juegos coinciden —10 pp, 50 %, 15 % relativo—, así que **no hay error
+clínico**; lo que no hay es nada que los ate.
+
+Se descubrió mutando `CO_UMBRAL_FEVI_CAIDA` a 20 y viendo que **ningún caso del suite se ponía en
+rojo**. Movida sola, la curva dibuja su línea «basal -20pp», la leyenda del PDF promete un umbral
+de 20 pp, y el veredicto impreso al lado sigue marcando cardiotoxicidad a los 10. Es la trampa de
+la fórmula duplicada —pantalla contra informe— con el gráfico haciendo de pantalla.
+
+Mientras no se unifique, **TC-88 ata las dos copias**: verifica el valor de cada constante y, en
+el mismo caso, el punto exacto donde el clasificador cambia de banda (9 pp contra 10; 14 %
+relativo contra 15,0 %). Mover una sola de las dos lo pone en rojo.
 
 ### VD / válvula pulmonar / TEER / HFA-PEFF (2026-09-14) — reglas para no romperlo
 - **El grado del VD sale de `vdBasCat`, no de un `> 41` suelto.** Había dos umbrales sobre la
