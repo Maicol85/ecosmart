@@ -192,6 +192,13 @@
   .foot-actions button.active{background:#16a34a}
   /* ── Estándar encabezado móvil: ≡ tabs · título · ⋮ acciones (≤768px) ── */
   .eco-tabsburger{display:none;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:7px;font-size:19px;line-height:1;padding:5px 11px;cursor:pointer;flex-shrink:0}
+  /* ÁREA TÁCTIL DE 44×44 para los controles que no tienen etiqueta propia (WCAG 2.5.5 / Apple
+     HIG). El tamaño VISUAL del control no cambia: lo que crece es la caja del <label> que lo
+     envuelve, y tocar cualquier parte de ese label activa el control por comportamiento nativo
+     —no hace falta JS—. No se le pone `padding` al propio <input type=checkbox>: es un elemento
+     reemplazado y el navegador escala el dibujo de la casilla con la caja, así que el control
+     se vería enorme. El label es la única forma de agrandar el blanco sin agrandar el control. */
+  .chk-toque{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;cursor:pointer;flex:0 0 auto;}
   .eco-drawer,.eco-drawer-ov{display:none}
   /* Overlay INVISIBLE, no un listener en document: con un listener, el primer toque
      cierra el menú Y activa lo que haya debajo —en un celular el dedo cae sobre la lista
@@ -209,7 +216,9 @@
     .hdr-title{font-size:14px}
     #logo-centro-wrap{display:none!important}
     .rail{display:none!important}
-    .eco-tabsburger{display:inline-flex;align-items:center;order:-1}
+    /* 44×44 mínimo: es el ÚNICO acceso a las secciones del estudio en celular, así que errarle
+       deja al médico sin navegación. Con `padding:5px 11px` y 19 px de glifo daba 35×31. */
+    .eco-tabsburger{display:inline-flex;align-items:center;justify-content:center;order:-1;min-width:44px;min-height:44px}
     .hdr-burger{display:inline-flex;align-items:center;margin-left:auto}
     #hdr-pdf-quick{display:inline-flex;align-items:center;gap:4px;color:#fff;border:none;border-radius:7px;padding:6px 10px;font-size:13px;font-weight:600;cursor:pointer;flex-shrink:0;transition:background .2s;margin-left:auto}
     /* Con el botón PDF presente, el que se pega a la derecha es él; el burger queda a su lado. */
@@ -1633,10 +1642,10 @@ window.cerrarSesion = cerrarSesion;
              revertía). Ahora se editan sólo ahí, con el ✏️ de cada fila. -->
         <p style="font-size:11.5px;color:var(--text2);margin:-4px 0 10px;line-height:1.5;">El <strong>nombre</strong> y la <strong>matrícula</strong> que firman el informe salen del médico marcado como <strong>Principal</strong> en 👨‍⚕️ Médicos (más abajo).</p>
         <div class="grid-2">
-          <div class="fg"><label>Especialidad</label><div class="cfg-opt-row"><input type="checkbox" id="cfg-med-especialidad-on" onchange="cfgToggleOpt('esp',this.checked)" title="Incluir en el PDF"><input type="text" id="cfg-med-especialidad" oninput="cfgSaveOpt('esp',this.value)"></div></div>
-          <div class="fg"><label>Ciudad / Lugar</label><div class="cfg-opt-row"><input type="checkbox" id="cfg-med-lugar-on" onchange="cfgToggleOpt('lugar',this.checked)" title="Incluir en el PDF"><input type="text" id="cfg-med-lugar" oninput="cfgSaveOpt('lugar',this.value)"></div></div>
-          <div class="fg"><label>Dirección del consultorio</label><div class="cfg-opt-row"><input type="checkbox" id="cfg-med-direccion-on" onchange="cfgToggleOpt('dir',this.checked)" title="Incluir en el PDF"><input type="text" id="cfg-med-direccion" oninput="cfgSaveOpt('dir',this.value)"></div></div>
-          <div class="fg"><label>Teléfono</label><div class="cfg-opt-row"><input type="checkbox" id="cfg-med-telefono-on" onchange="cfgToggleOpt('tel',this.checked)" title="Incluir en el PDF"><input type="text" id="cfg-med-telefono" oninput="cfgSaveOpt('tel',this.value)"></div></div>
+          <div class="fg"><label>Especialidad</label><div class="cfg-opt-row"><label class="chk-toque" aria-label="Incluir la especialidad en el PDF"><input type="checkbox" id="cfg-med-especialidad-on" onchange="cfgToggleOpt('esp',this.checked)" title="Incluir en el PDF"></label><input type="text" id="cfg-med-especialidad" oninput="cfgSaveOpt('esp',this.value)"></div></div>
+          <div class="fg"><label>Ciudad / Lugar</label><div class="cfg-opt-row"><label class="chk-toque" aria-label="Incluir la ciudad o lugar en el PDF"><input type="checkbox" id="cfg-med-lugar-on" onchange="cfgToggleOpt('lugar',this.checked)" title="Incluir en el PDF"></label><input type="text" id="cfg-med-lugar" oninput="cfgSaveOpt('lugar',this.value)"></div></div>
+          <div class="fg"><label>Dirección del consultorio</label><div class="cfg-opt-row"><label class="chk-toque" aria-label="Incluir la dirección en el PDF"><input type="checkbox" id="cfg-med-direccion-on" onchange="cfgToggleOpt('dir',this.checked)" title="Incluir en el PDF"></label><input type="text" id="cfg-med-direccion" oninput="cfgSaveOpt('dir',this.value)"></div></div>
+          <div class="fg"><label>Teléfono</label><div class="cfg-opt-row"><label class="chk-toque" aria-label="Incluir el teléfono en el PDF"><input type="checkbox" id="cfg-med-telefono-on" onchange="cfgToggleOpt('tel',this.checked)" title="Incluir en el PDF"></label><input type="text" id="cfg-med-telefono" oninput="cfgSaveOpt('tel',this.value)"></div></div>
         </div>
         <p style="font-size:11px;color:var(--text2);margin-top:2px;">Sólo los campos marcados salen en el PDF. Desmarcar no borra lo escrito.</p>
         <div style="margin-top:10px;"><button class="btn btn-ghost" onclick="firmaOpen()">✏️ Editar firma del centro</button></div>
@@ -12465,7 +12474,13 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   #tab-lab .heart-tbl th{background:var(--bg3);color:var(--text2);text-align:left;padding:7px 10px;font-weight:700;border-bottom:1px solid var(--border);}
   #tab-lab .heart-tbl td{padding:7px 10px;border-bottom:1px solid var(--border);}
   #tab-lab .heart-tbl td:last-child{font-weight:700;color:var(--accent2);text-align:right;white-space:nowrap;}
-  @media(max-width:768px){#tab-lab .heart-lab-grid{grid-template-columns:1fr;}#tab-lab .heart-wrap{margin:0 auto;max-width:100%;}}
+  /* A 360 px la grilla ya colapsa a una columna, pero el `.heart-wrap` tiene 340 px fijos y el
+     <svg> de adentro lleva `width="340"` como atributo, así que `max-width:100%` recorta la caja
+     y NO el dibujo: el corazón y la tabla empujaban la página entera hacia la derecha. Se le da
+     scroll horizontal PROPIO a cada celda de la grilla — la tabla scrollea sola y la página deja
+     de desbordar, que es lo que hace legible una tabla ancha en pantalla angosta. */
+  @media(max-width:768px){#tab-lab .heart-lab-grid{grid-template-columns:1fr;}#tab-lab .heart-wrap{margin:0 auto;max-width:100%;}
+    #tab-lab .heart-lab-grid > div{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}}
 </style>
 
   <div style="display:flex;flex-wrap:wrap;border-bottom:2px solid var(--border);margin-bottom:16px;">
