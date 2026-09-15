@@ -8245,12 +8245,15 @@ z
         <div class="fg"><label>Tipo de fusión</label>
           <select id="vab_tipo" onchange="vabSync()">
             <option value="">—</option>
-            <option value="t0">Tipo 0 — sin rafe</option>
-            <option value="t1rl">Tipo 1 — R-L (la más frecuente)</option>
-            <option value="t1rn">Tipo 1 — R-N</option>
-            <option value="t1nl">Tipo 1 — N-L</option>
-            <option value="t2">Tipo 2 — unicúspide funcional</option>
-          </select>
+            <option value="fused_rl">Fused type R-L — fusión derecha-izquierda (~70 %)</option>
+          <option value="fused_rn">Fused type R-N — fusión derecha-no coronaria (~17 %)</option>
+          <option value="fused_ln">Fused type L-N — fusión izquierda-no coronaria (raro)</option>
+          <option value="dos_senos_ll">2-sinus type — latero-lateral</option>
+          <option value="dos_senos_ap">2-sinus type — antero-posterior</option>
+          <option value="partial">Partial type (forme fruste)</option>
+          <option value="no_clasif">No clasificable</option>
+</select>
+        <span style="font-size:10px;color:var(--text2);">Clasificación del Consenso Internacional VAB 2021 (Michelena et al., JTCVS). Reemplaza a Sievers (2007): se basa en imagen y no en la inspección quirúrgica. Los estudios guardados con la clasificación anterior se migran solos al reabrirlos.</span>
         </div>
         <div class="fg"><label>Rafe calcificado</label>
           <select id="vab_rafe" onchange="vabSync()">
@@ -8260,6 +8263,14 @@ z
             <option value="si">Sí</option>
           </select>
         </div>
+      <div class="fg"><label>Simetría de los senos</label>
+        <select id="vab_simetria" onchange="vabSync()">
+          <option value="">—</option>
+          <option value="simetrica">Simétrica</option>
+          <option value="asimetrica">Asimétrica</option>
+          <option value="no_val">No valorable</option>
+        </select>
+      </div>
         <div class="fg"><label>Función valvular</label>
           <select id="vab_funcion" onchange="vabSync()">
             <option value="">—</option>
@@ -21768,7 +21779,9 @@ function generarInforme(opts) {
       const f1 = n => (n==null || !isFinite(n)) ? null : String(Math.round(n*10)/10);
       const tipo = sv('vab_tipo'), func = sv('vab_funcion'), feno = sv('vab_fenotipo'), rafe = sv('vab_rafe');
       const raiz = v('ao_sin'), asc = v('ao_tub');
-      const p = ['Válvula aórtica bicúspide' + (tipo ? ' ' + (VAB_TIPO_TXT[tipo] || tipo) : '')];
+      const p = ['Válvula aórtica bicúspide' + (tipo ? ' — ' + (VAB_TIPO_TXT[tipo] || tipo) : '')];
+      const _sim = sv('vab_simetria');
+      if (_sim) p.push('Senos ' + (VAB_SIMETRIA_TXT[_sim] || _sim));
       /* Sólo la afirmación explícita: «rafe no calcificado» es un hallazgo, «no evaluado» no. */
       if (rafe === 'si') p.push('Rafe calcificado');
       else if (rafe === 'no') p.push('Rafe no calcificado');
@@ -21779,7 +21792,10 @@ function generarInforme(opts) {
       /* El fenotipo extendido no tiene umbral propio en la ESC 2024. Se dice en el informe en vez
          de que el lector suponga que el cálculo lo contempló. */
       if (feno === 'arco') p.push('El fenotipo extendido no tiene umbral quirúrgico propio en la ESC 2024: la decisión es individual');
-      etePars.push(p.join('. ') + '. ' + c.txt + '.'); ccMarcarParrafo();
+      /* Recordatorio de la coartación. La asociación es de hasta el 85 %, o sea que en una
+         bicúspide la aorta descendente NO es un territorio aparte: es parte de la evaluación.
+         La sección CoAo ya cruza en la otra dirección (ver su bloque); acá se cierra el par. */
+      etePars.push(p.join('. ') + '. ' + c.txt + '. Recordatorio: excluir coartación de aorta asociada, presente en hasta el 85 % de las válvulas aórticas bicúspides — ver la sección de coartación.'); ccMarcarParrafo();
       sumaCC(ccSumaLinea('vab'));
     })();
 
@@ -27150,10 +27166,19 @@ window.fopSync = fopSync; window.fopConclusion = fopConclusion;
      grado. Sin una cifra graduada no se publica un umbral.
    · «Riesgo quirúrgico bajo» es un juicio del Heart Team, no una medida del ecocardiograma. Va
      como campo de tres estados y sin él las ramas IIa no disparan. */
+/* Consenso Internacional VAB 2021 (Michelena et al., JTCVS) desde el 2026-09-15. Reemplazó a
+   Sievers (2007), que clasificaba por inspección QUIRÚRGICA y por eso no se podía aplicar a un
+   paciente sin operar. Las claves viejas (`t0`, `t1rl`, `t1rn`, `t1nl`, `t2`) NO están acá a
+   propósito: las traduce `_migrarCamposLegacy` al reabrir, así que un estudio de antes muestra su
+   tipo en la nomenclatura nueva. Si se dejaran acá además, un estudio migrado y otro sin migrar
+   imprimirían dos nomenclaturas distintas en la misma serie. */
 const VAB_TIPO_TXT = {
-  t0:'tipo 0 (sin rafe)', t1rl:'tipo 1 con fusión derecha-izquierda', t1rn:'tipo 1 con fusión derecha-no coronariana',
-  t1nl:'tipo 1 con fusión no coronariana-izquierda', t2:'tipo 2 (unicúspide funcional)'
+  fused_rl:'fused type R-L (fusión derecha-izquierda)', fused_rn:'fused type R-N (fusión derecha-no coronaria)',
+  fused_ln:'fused type L-N (fusión izquierda-no coronaria)',
+  dos_senos_ll:'2-sinus type latero-lateral', dos_senos_ap:'2-sinus type antero-posterior',
+  partial:'partial type (forme fruste)', no_clasif:'no clasificable'
 };
+const VAB_SIMETRIA_TXT = { simetrica:'simétrica', asimetrica:'asimétrica', no_val:'no valorable' };
 const VAB_FUNC_TXT = { normal:'normofuncionante', estenosis:'con estenosis', insuficiencia:'con insuficiencia', mixta:'con lesión mixta' };
 const VAB_FENO_TXT = { sin:'sin dilatación', raiz:'de raíz', tubular:'tubular (ascendente)', arco:'extendido (con compromiso del arco)' };
 /* Los NUEVE factores de la Tabla 68 de la ESC 2024. Tres se derivan de datos que la app ya
@@ -30702,6 +30727,15 @@ function _migrarCamposLegacy(c){
      estudios guardados en esa ventana lo tienen, y sin esta línea la coartación de un informe
      reimpreso pierde la línea «Aorta ascendente X mm» que el PDF firmado sí tenía. */
   if (!c['ao_tub']        && c['coa_ao_asc'])         c['ao_tub']        = c['coa_ao_asc'];
+  /* `vab_tipo` pasó de Sievers (2007) al Consenso Internacional 2021 el 2026-09-15. Sin esta
+     traducción, un estudio guardado con `t1rl` reabre con el select VACÍO —el valor ya no es una
+     opción— y el informe pierde la morfología de la válvula EN SILENCIO: no hay error, sólo un
+     campo que quedó en blanco. Es la misma pérdida que cerró `coa_ao_asc` dos bloques más arriba.
+     `t2` era «unicúspide funcional», que NO tiene equivalente en el Consenso —es otra entidad, no
+     otra forma de nombrarla— así que va a «no clasificable» y no a una fusión inventada. */
+  const _VAB_SIEVERS = { t0:'dos_senos_ll', t1rl:'fused_rl', t1rn:'fused_rn', t1nl:'fused_ln', t2:'no_clasif' };
+  if (c['vab_tipo'] && Object.prototype.hasOwnProperty.call(_VAB_SIEVERS, c['vab_tipo']))
+    c['vab_tipo'] = _VAB_SIEVERS[c['vab_tipo']];
   /* Arritmia ventricular unificada el 2026-09-10. Antes el hecho vivía en `mch_tvns` (TVNS),
      `tdf_tv` (TV) y tres casillas de MCA marcadas a mano. Sin esto, reabrir un estudio de esa
      época muestra el bloque compartido vacío y los espejos se sobrescriben con '': el informe
@@ -41958,6 +41992,17 @@ function _labExcelRow(inf) {
     'Coartación Vmax (m/s)': rnd(num('coa_vmax'),2),
     'Coartación G. medio (mmHg)': rnd(num('coa_gmedio'),0),
     'Coartación cola diastólica': c['coa_diast_anterogrado__chk'] === '1' ? 1 : 0,
+    /* Los tres de CoAo son los INSUMOS de la indicación de intervención ESC 2020: sin ellos el
+       Laboratorio no puede auditar por qué un estudio quedó en Clase I. Y el pico-pico es el
+       único gradiente sobre el que la guía indica. */
+    'Coartación G. pico-pico invasivo (mmHg)': rnd(num('coa_gradiente_picopico'),0),
+    'Coartación estenosis relativa (%)': rnd(num('coa_estenosis_relativa'),0),
+    'Coartación HTA confirmada': ({no:'No',si:'Sí'}[c.coa_hta] || ''),
+    'VAB tipo (Consenso 2021)': ({fused_rl:'Fused R-L',fused_rn:'Fused R-N',fused_ln:'Fused L-N',dos_senos_ll:'2-sinus latero-lateral',dos_senos_ap:'2-sinus antero-posterior',partial:'Partial (forme fruste)',no_clasif:'No clasificable'}[c.vab_tipo] || ''),
+    'VAB rafe': ({presente:'Presente',ausente:'Ausente',no_val:'No valorable'}[c.vab_rafe] || ''),
+    'VAB simetría de senos': ({simetrica:'Simétrica',asimetrica:'Asimétrica',no_val:'No valorable'}[c.vab_simetria] || ''),
+    'VAB aorta ascendente (mm)': rnd(num('ao_tub'),1),
+    'VAB cirugía valvular prevista': ({no:'No',si:'Sí'}[c.vab_cx_valvular] || ''),
     'Incluir CIA/CIV en informe': c['ete_shunt_incluir_chk__chk'] === '1' ? 1 : 0,
     'Incluir TAVI en informe':    c['ete_tavi_incluir_chk__chk']  === '1' ? 1 : 0,
     'Incluir ductus en informe':     c['ductus_incluir_chk__chk'] === '1' ? 1 : 0,
@@ -42809,6 +42854,10 @@ const LAB_XLS_MAP = [
   ['Coartación localización',    'coa_loc',       'vocab'],
   ['Coartación situación',       'coa_situacion', 'vocab'],
   ['Coartación istmo (mm)',      'coa_istmo',     'num'],
+  ['Coartación G. pico-pico invasivo (mmHg)', 'coa_gradiente_picopico', 'num'],
+  ['Coartación estenosis relativa (%)',       'coa_estenosis_relativa', 'num'],
+  ['Coartación HTA confirmada',   'coa_hta',       'vocab'],
+  ['VAB simetría de senos',       'vab_simetria',  'vocab'],
   ['Coartación Ao descendente (mm)','coa_ao_desc','num'],
   ['Coartación Vmax (m/s)',      'coa_vmax',      'num'],
   ['Coartación G. medio (mmHg)', 'coa_gmedio',    'num'],
@@ -42830,7 +42879,7 @@ const LAB_XLS_MAP = [
   ['FOP cantidad burbujas',      'fop_burbujas',  'vocab'],
   ['FOP ACV criptogénico',       'fop_acv',       'vocab'],
   ['FOP trombofilia',            'fop_trombofilia','vocab'],
-  ['VAB tipo de fusión',         'vab_tipo',      'vocab'],
+  ['VAB tipo (Consenso 2021)',   'vab_tipo',      'vocab'],
   ['VAB rafe calcificado',       'vab_rafe',      'vocab'],
   ['VAB función valvular',       'vab_funcion',   'vocab'],
   ['VAB fenotipo aortopático',   'vab_fenotipo',  'vocab'],
@@ -43510,7 +43559,9 @@ const LAB_XLS_OPCIONES = {
   fop_burbujas:'Pocas (<5) · Moderado (5-20) · Abundante (>20)',
   fop_acv:'Sí · No · No consta',
   fop_trombofilia:'Sí · No · No consta',
-  vab_tipo:'Tipo 0 · Tipo 1 R-L · Tipo 1 R-N · Tipo 1 N-L · Tipo 2',
+  vab_tipo:'Fused R-L · Fused R-N · Fused L-N · 2-sinus latero-lateral · 2-sinus antero-posterior · Partial (forme fruste) · No clasificable',
+  vab_simetria:'Simétrica · Asimétrica · No valorable',
+  coa_hta:'No · Sí',
   vab_funcion:'Normofuncionante · Estenosis · Insuficiencia · Mixta',
   vab_fenotipo:'Sin dilatación · De raíz · Tubular · Extendido',
   vab_rafe:'Sí · No · No evaluado',
@@ -48530,7 +48581,7 @@ function labCCRender(infs, n) {
       stat('Con aorta medida', deBase(aos.length, vabArr.length)) +
       stat('Diámetro aórtico máximo promedio', _promTxt(_prom(aos), 1, ' mm')) +
       stat('Con dilatación (> ' + AO_REF.sin + ' mm)', deBase(dil, aos.length)));
-    barrasDe('lab-cc-vab-bars', distrib(vabArr, 'vab_tipo', { t0:'Tipo 0 — sin rafe', t1rl:'Tipo 1 — R-L', t1rn:'Tipo 1 — R-N', t1nl:'Tipo 1 — N-L', t2:'Tipo 2 — unicúspide' }), vabArr.length);
+    barrasDe('lab-cc-vab-bars', distrib(vabArr, 'vab_tipo', { fused_rl:'Fused R-L', fused_rn:'Fused R-N', fused_ln:'Fused L-N', dos_senos_ll:'2-sinus L-L', dos_senos_ap:'2-sinus A-P', partial:'Partial', no_clasif:'No clasificable' }), vabArr.length);
     barrasDe('lab-cc-vab-func-bars', distrib(vabArr, 'vab_funcion', { normal:'Normofuncionante', estenosis:'Con estenosis', insuficiencia:'Con insuficiencia', mixta:'Lesión mixta' }), vabArr.length);
     /* La nota describía el corte como propio de esta vista. Ya no lo es: sale de `AO_REF`, la
        misma que usa el informe, así que el Laboratorio y el PDF firmado cuentan lo mismo. */

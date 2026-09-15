@@ -2657,6 +2657,60 @@ caso('TC-114', 'Congenitas: las dos pestañas se ven identicas, de dia y de noch
   ] };
 `);
 
+/* VAB: Sievers (2007) -> Consenso Internacional 2021. Sievers clasificaba por inspeccion
+   QUIRURGICA, asi que no se puede aplicar a un paciente sin operar; el Consenso se basa en imagen.
+   LO PELIGROSO DE LA MIGRACION: los estudios guardados tienen `t1rl`, `t0`... Si esos valores no
+   se traducen, el select reabre VACIO —el valor ya no es una opcion— y el informe pierde la
+   morfologia de la valvula EN SILENCIO: no hay error, solo un campo en blanco. */
+caso('TC-115', 'VAB: la migracion a Consenso 2021 no pierde los estudios de Sievers', `
+  return (async () => {
+    // 1 · Los cinco valores viejos se traducen.
+    const M = { t0:'dos_senos_ll', t1rl:'fused_rl', t1rn:'fused_rn', t1nl:'fused_ln', t2:'no_clasif' };
+    const trad = Object.keys(M).map(v => {
+      const c = _migrarCamposLegacy({ vab_tipo: v });
+      return c.vab_tipo === M[v];
+    });
+    // 2 · Y un valor NUEVO no se toca (no se re-migra al reabrir dos veces).
+    const yaNuevo = _migrarCamposLegacy({ vab_tipo: 'fused_rl' }).vab_tipo === 'fused_rl';
+    // 3 · El viaje real: un estudio guardado con Sievers reabre con el tipo puesto.
+    __t.limpiar();
+    __t.set('nombre','VAB Sievers'); __t.set('ci','2121');
+    __t.set('vab_tipo','fused_rl'); __t.set('vab_rafe','presente');
+    __t.set('vab_simetria','asimetrica'); __t.chk('vab_incluir_chk', true);
+    const inf = __t.informe();
+    const g = await __t.guardar();
+    // Se degrada el estudio guardado a la nomenclatura VIEJA, como los de antes del cambio.
+    const todos = getInformes();
+    const est = todos.find(i => i.estudioId === g.estudioId);
+    est.campos.vab_tipo = 't1rl';
+    await CeiboStore.setLocal(todos);
+    __t.nuevoEstudio();
+    __t.reabrir(g.estudioId);
+    const trasReabrir = __t.val('vab_tipo');
+    const infMigrado = __t.informe();
+    await __t.borrar(g.estudioId);
+    return { extra: [
+      ['los cinco valores de Sievers se traducen', trad.every(Boolean)],
+      ['t2 (unicuspide) va a «no clasificable», no a una fusion inventada',
+        _migrarCamposLegacy({ vab_tipo:'t2' }).vab_tipo === 'no_clasif'],
+      ['un valor ya migrado no se vuelve a tocar', yaNuevo === true],
+      ['un estudio guardado con Sievers reabre con el tipo PUESTO, no vacio',
+        trasReabrir === 'fused_rl'],
+      ['y el informe lo imprime en la nomenclatura nueva',
+        infMigrado.inf.indexOf('fused type R-L') > -1],
+      ['el mapa de etiquetas ya no tiene las claves viejas',
+        VAB_TIPO_TXT.t1rl === undefined && VAB_TIPO_TXT.t0 === undefined],
+      // 4 · Lo aditivo.
+      ['la simetria sale en el informe', inf.inf.indexOf('Senos asimétrica') > -1],
+      ['el recordatorio de coartacion tambien',
+        inf.inf.indexOf('excluir coartación de aorta asociada') > -1 &&
+        inf.inf.indexOf('85 %') > -1],
+      ['y el tipo, con la nomenclatura del Consenso',
+        inf.inf.indexOf('Válvula aórtica bicúspide — fused type R-L') > -1]
+    ] };
+  })();
+`);
+
 /* LAS TRES SUPERFICIES DE CARDIO-ONCO TIENEN QUE DECIR LO MISMO. La leyenda de #ref-cardiotox
    (pestaña Referencias), la tabla de farmacos y las tablas nuevas del marco HFA-ICOS viven en
    DOS pestañas distintas y describen al mismo paciente. Las tres estaban desincronizadas, cada

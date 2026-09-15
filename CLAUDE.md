@@ -162,6 +162,44 @@ tema y pasaría sin probar el modo noche (me pasó al verificarlo a mano). Y **l
 `:hover` quedan sin cobertura**: `getComputedStyle` no resuelve pseudo-clases sin hover real, y
 mutarlas no pone nada en rojo — verificado, no supuesto.
 
+### `vab_tipo` usa el Consenso Internacional 2021, no Sievers — y los valores viejos se migran
+Desde el 2026-09-15 `vab_tipo` guarda `fused_rl` · `fused_rn` · `fused_ln` · `dos_senos_ll` ·
+`dos_senos_ap` · `partial` · `no_clasif` (Michelena et al., JTCVS 2021). Antes guardaba Sievers
+(2007), que clasifica por inspección **quirúrgica** y por eso no se puede aplicar a un paciente
+sin operar.
+
+**El mapeo vive en `_migrarCamposLegacy`**, no en el mapa de etiquetas:
+
+| Sievers | Consenso 2021 |
+|---|---|
+| `t0` | `dos_senos_ll` |
+| `t1rl` | `fused_rl` |
+| `t1rn` | `fused_rn` |
+| `t1nl` | `fused_ln` |
+| `t2` | `no_clasif` |
+
+`t2` era «unicúspide funcional» y **no tiene equivalente**: es otra entidad, no otro nombre para
+la misma. Va a «no clasificable» y no a una fusión inventada.
+
+**Por qué la migración y no dejar las claves viejas en `VAB_TIPO_TXT`:** sin traducir, el estudio
+guardado reabre con el select **vacío** —el valor ya no es una opción— y el informe pierde la
+morfología **en silencio**: no hay error, sólo un campo en blanco. Y dejándolas además en el mapa
+de etiquetas, un estudio migrado y otro sin migrar imprimirían dos nomenclaturas en la misma serie.
+
+**Hay que actualizar TRES superficies más, no sólo el `<select>`:** `VAB_TIPO_TXT` (informe y EN
+SUMA), el vocabulario del import de Excel, y las etiquetas del gráfico de distribución del
+Laboratorio —ésa es la que se olvida: con las claves viejas, las barras quedan vacías y el panel
+dice que ningún estudio tiene tipo consignado.
+
+**Campos nuevos:** `vab_simetria`. **Columnas de Excel agregadas (8):** las tres de CoAo
+(`coa_gradiente_picopico`, `coa_estenosis_relativa`, `coa_hta`) y cinco de VAB (tipo, rafe,
+simetría, aorta ascendente y cirugía valvular prevista).
+
+**La aortopatía NO se tocó:** `vabConclusion` ya implementa **ESC 2024**, que es posterior a la
+ESC 2020, y es más estricta donde difieren (fenotipo raíz ≥50 → Clase I, y concomitante desde
+**45** mm y no 50). Bajarla a 2020 habría **desindicado** el reemplazo aórtico en aortas de 45-49
+mm de pacientes que ya van a quirófano.
+
 ### El número correcto puede estar medido con el método equivocado
 `coaConclusion` emitía «indicación de intervención según ESC 2020» cuando el gradiente **Doppler**
 pasaba 20 mmHg. El umbral es el de la guía; el método, no. La ESC 2020 indica sobre el
@@ -1010,13 +1048,13 @@ El script contesta *«nadie lo nombra»*, no *«no tiene destino»*: un id menci
 ### 2 · Test suite clínico
 
 ```bash
-node scripts/test_clinico.mjs            # 129 casos, sin defectos abiertos
+node scripts/test_clinico.mjs            # 130 casos, sin defectos abiertos
 node scripts/test_clinico.mjs --solo TC-04
 node scripts/test_clinico.mjs --ver      # con el navegador a la vista, para depurar
 ```
 
 **Correr antes de cualquier push que toque el informe narrativo, el EN SUMA o una fórmula de
-cálculo. Tienen que pasar los 129. Si alguno falla, corregir antes de seguir.**
+cálculo. Tienen que pasar los 130. Si alguno falla, corregir antes de seguir.**
 
 **TC-01 a TC-17 — los bugs del 2026-09-14.** VD que desaparecía (TC-01/03), gradiente pulmonar
 congelado (TC-04), AD ausente del EN SUMA (TC-06), HFA-PEFF sin compuerta de FEVI (TC-07/08),
