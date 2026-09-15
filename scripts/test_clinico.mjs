@@ -3439,6 +3439,91 @@ caso('TC-125', 'Paneles de criterios: abren, cierran y no ensucian el estudio', 
   ] };
 `);
 
+/* SELLO DE VERSION. Existe porque una pestaña abierta hace dias sirve una copia vieja del HTML
+   SIN UN SOLO ERROR EN CONSOLA —las secciones nuevas no estan— y eso se ve identico a la app
+   rota: ya costo tres diagnosticos.
+   Lo que este caso vigila: que el pie publique el sello, que el aviso salga SOLO cuando el
+   publicado es mas nuevo, que se pueda cerrar y no vuelva en la sesion, y —lo mas importante—
+   que NO BLOQUEE NADA cuando no se puede comparar. Un aviso de actualizacion es una comodidad;
+   romper la app por no poder comprobarlo seria peor que el problema que cierra. */
+caso('TC-126', 'Sello de version: el pie lo publica y el aviso falla hacia no molestar', `
+  const pie = document.getElementById('eco-build-sello');
+  const ban = document.getElementById('eco-ver-banner');
+  const sello = (pie.textContent || '').trim();
+  /* EL BANNER ARRANCA OCULTO — Y SE MIDE LO QUE SE VE, NO EL ATRIBUTO. La primera version
+     comprobaba ban.hidden === true y pasaba mientras el banner se DIBUJABA en cada carga: la
+     regla [hidden]{display:none} del navegador pierde contra un display:flex en linea. Un caso
+     que mira la propiedad en vez del pixel da verde sobre el defecto que viene a cerrar. */
+  const vis = () => getComputedStyle(ban).display !== 'none';
+  const arrancaOculto = ban.hidden === true && !vis();
+  /* Las dos constantes existen y son coherentes entre si. Dos y no una porque una compara contra
+     una fecha en GMT y la otra se muestra en hora local. */
+  const fmtOk = /^[0-9]{8}-[0-9]{4}$/.test(ECO_BUILD);
+  const msOk = typeof ECO_BUILD_MS === 'number' && ECO_BUILD_MS > 1700000000000;
+  /* La cadena tiene que describir el MISMO instante que el epoch: si el script las escribiera
+     por separado, el pie mostraria una fecha y la comparacion usaria otra. */
+  const d = new Date(ECO_BUILD_MS);
+  const z = n => (n < 10 ? '0' : '') + n;
+  const esperado = d.getFullYear() + z(d.getMonth() + 1) + z(d.getDate()) + '-' + z(d.getHours()) + z(d.getMinutes());
+  /* Cierre: oculta y no vuelve en la sesion. */
+  /* Se usa LA RUTA DE LA APP y no se pinta a mano: pintarlo desde el caso probaba el navegador,
+     no el codigo — sacarle el display al pintor sobrevivia. */
+  ecoBannerMostrar();
+  const seVeCuandoSeMuestra = vis() && ban.hidden === false;
+  ecoBannerCerrar();
+  const cerro = ban.hidden === true && !vis();
+  const recordo = (function(){ try { return sessionStorage.getItem('eco_ver_oculto') === '1'; } catch (e) { return false; } })();
+  /* Con la marca de sesion puesta, chequear otra vez no puede volver a mostrarlo. */
+  ecoChequearVersion();
+  const siguioOculto = ban.hidden === true;
+  try { sessionStorage.removeItem('eco_ver_oculto'); } catch (e) {}
+  /* NO BLOQUEA. Se corre con el fetch roto a proposito: si lanzara, la excepcion saldria de aca. */
+  const _f = window.fetch;
+  let exploto = false;
+  window.fetch = function(){ throw new Error('sin red'); };
+  try { ecoChequearVersion(); } catch (e) { exploto = true; }
+  window.fetch = _f;
+  /* Y sobre http/file no se pide nada: no hay con que comparar y pedirlo seria ruido. */
+  let pidio = false;
+  window.fetch = function(){ pidio = true; return Promise.reject(new Error('x')); };
+  ecoChequearVersion();
+  window.fetch = _f;
+  const enHttp = location.protocol !== 'https:';
+  /* LOS DOS LADOS DEL CORTE, sobre el predicado puro: sin esto el caso sólo probaba que el aviso
+     no estalla, no que aparezca cuando corresponde. */
+  const M = ECO_BUILD_MS;
+  const nueva   = ecoVersionMasNueva({ ms: M + 61 * 1000 });
+  const justo   = ecoVersionMasNueva({ ms: M + 60 * 1000 });   // el margen NO alcanza
+  const igual   = ecoVersionMasNueva({ ms: M });
+  const vieja   = ecoVersionMasNueva({ ms: M - 3600 * 1000 }); // esta copia es la mas nueva
+  const dias    = ecoVersionMasNueva({ ms: M + 4 * 86400 * 1000 });
+  const basura  = [null, undefined, {}, { ms: 'x' }, { ms: NaN }, { ms: Infinity }]
+    .map(function(x){ return ecoVersionMasNueva(x); });
+  return { extra: [
+    ['un publicado 61 s mas nuevo avisa', nueva === true],
+    ['exactamente en el margen de 60 s NO avisa', justo === false],
+    ['el mismo sello no avisa', igual === false],
+    ['una copia local MAS NUEVA que la publicada no avisa', vieja === false],
+    ['cuatro dias de diferencia avisa: es el caso que costo medio dia', dias === true],
+    ['un version.json ausente o ilegible no avisa: se calla, no adivina',
+      basura.every(function(x){ return x === false; })],
+    ['el pie publica el sello', /^v[0-9]{8}-[0-9]{4}$/.test(sello), 'dice: ' + sello],
+    ['el aviso arranca oculto, y no solo en el atributo', arrancaOculto],
+    ['y cuando se muestra, se ve de verdad', seVeCuandoSeMuestra],
+    ['el sello tiene formato YYYYMMDD-HHMM', fmtOk, 'ECO_BUILD = ' + ECO_BUILD],
+    ['hay epoch para comparar, y es una fecha real', msOk],
+    ['la cadena y el epoch describen el MISMO instante', ECO_BUILD === esperado,
+      'cadena ' + ECO_BUILD + ' vs epoch ' + esperado],
+    ['el pie muestra exactamente la constante', sello === 'v' + ECO_BUILD],
+    ['la X cierra el aviso', cerro],
+    ['y lo recuerda por la sesion', recordo],
+    ['con la marca puesta no vuelve a aparecer', siguioOculto],
+    ['un fetch que lanza NO rompe la app', exploto === false],
+    ['fuera de https no se pide nada: no hay con que comparar',
+      enHttp ? pidio === false : true, 'protocolo: ' + location.protocol]
+  ] };
+`);
+
 /* LAS TRES SUPERFICIES DE CARDIO-ONCO TIENEN QUE DECIR LO MISMO. La leyenda de #ref-cardiotox
    (pestaña Referencias), la tabla de farmacos y las tablas nuevas del marco HFA-ICOS viven en
    DOS pestañas distintas y describen al mismo paciente. Las tres estaban desincronizadas, cada

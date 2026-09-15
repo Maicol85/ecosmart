@@ -251,6 +251,55 @@ no matcheó nunca — los 28 acordeones salieron «no llama a secToggle» y el c
 de un defecto propio. Es la trampa del `\s` que este archivo ya documenta. **Dentro del cuerpo de
 un caso, partir la cadena con `indexOf`/`slice` en vez de un regex con escapes.**
 
+### Sello de versión: `scripts/sellar_version.py` ANTES de cada `git add`
+Agregado el 2026-09-15 después de que una pestaña con un archivo de **cuatro días** costara medio
+día de diagnóstico — la tercera vez. El pie publica `EcoSmart · v20260915-2032` y, si la copia
+publicada es más nueva, sale un aviso amarillo con una ✕.
+
+```bash
+python3 scripts/sellar_version.py          # sella con la hora actual — CORRER ANTES DE git add
+python3 scripts/sellar_version.py --check  # no escribe; sale 1 si algo quedó desfasado
+```
+
+**El script sella TRES superficies desde el mismo instante** y `--check` verifica que las tres
+coincidan: `ECO_BUILD` (cadena local, para mostrar), `ECO_BUILD_MS` (epoch, para comparar) y el
+`<span id="eco-build-sello">` del pie. Más `version.json`. **Los dos archivos van en el commit.**
+
+**Dos constantes y no una.** La cadena se lee en hora local y la comparación necesita un instante
+absoluto: mezclarlas es un error de tres horas que aparece y desaparece con el huso.
+
+**El pie es HTML ESTÁTICO, no lo pinta JS.** La primera versión lo escribía en `DOMContentLoaded`
+y tenía dos problemas: una **carrera** —el caso leía el pie antes del init y falló 1 de cada 4— y
+uno de fondo, peor: este archivo ya se quedó **sin JavaScript dos veces** por un bloque que dejó
+de parsear, y el sello existe justamente para esos momentos. **Un sello que necesita que la app
+funcione para decir qué versión es no sirve para diagnosticar una app que no funciona.**
+
+**Se compara sello contra sello, NO contra `Last-Modified`.** La fecha de modificación del archivo
+publicado es la del **despliegue** y el sello es la del **commit**: si el push se demora respecto
+del commit —cosa que pasa seguido— la diferencia crece sola y el banner sale **falso para todos
+los que ya tienen la versión buena**. `version.json` son treinta bytes con el mismo sello, así
+que el retraso del despliegue sólo puede hacer que el aviso llegue tarde, nunca de más.
+
+**Falla siempre hacia «no mostrar nada»**: sin red, sin `version.json`, con un JSON ilegible o
+fuera de `https` no se dibuja nada. Fuera de https ni siquiera se pide — en localhost no hay con
+qué comparar. Petición a **ruta relativa**, así que mismo origen por construcción: sin CORS, sin
+terceros y sin enviar un solo dato.
+
+### `[hidden]` pierde contra un `display` en línea — y un test que mira la propiedad no lo ve
+El banner nació con `hidden` **y** `style="display:flex"`. La regla del navegador
+`[hidden]{display:none}` tiene menos peso que un estilo en línea, así que **el banner se dibujaba
+en todas las cargas** con `element.hidden === true`. Y **TC-126 daba verde**, porque comprobaba la
+propiedad. Lo encontró medir la geometría en el navegador, no el caso.
+
+Dos reglas: **mover `hidden` Y `display`** —el primero para el lector de pantalla, el segundo para
+el ojo— y, en los casos, **medir `getComputedStyle(...).display`, no el atributo**.
+
+**Y el pintor se extrajo (`ecoBannerMostrar`).** Mostrar el banner vivía en línea dentro del
+`.then()` del fetch, así que ningún caso podía ejercerlo sin red: sacarle el `display` **no ponía
+nada en rojo**. Un caso que pinta el elemento a mano prueba el navegador, no el código. Es el
+mismo corte evaluación/pintor que `teerEstado`/`calcTEER`, y acá también hay un predicado puro
+—`ecoVersionMasNueva(j)`— que se prueba por los dos lados del umbral sin levantar un servidor.
+
 ### Un panel de referencia NO puede llevar `id` en sus controles
 Los paneles de Marfan (Ghent 2010), Eisenmenger y Fontan se agregaron el 2026-09-15 reusando el
 armazón de MCH/MCA: un solo `#crit-overlay`, registro `CRIT_PANELES {titulo, render}`, y

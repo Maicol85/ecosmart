@@ -1553,6 +1553,19 @@ window.cerrarSesion = cerrarSesion;
     <button class="btn btn-ghost" onclick="cerrarSesion()" title="Cerrar sesión">🔒 Cerrar</button>
   </div>
 </header>
+
+<!-- Aviso de version nueva. Va como HERMANO del header y NO en position:fixed: fijo taparia la
+     barra de acciones —y con ella el boton de PDF— justo en la pantalla mas chica. Arranca
+     oculto; sólo lo muestra `_ecoBannerMostrar` si la copia publicada es mas nueva. -->
+<!-- `display:none` EN LÍNEA y no sólo el atributo `hidden`: la regla del navegador
+     `[hidden]{display:none}` pierde contra un `display:flex` en línea, así que con el estilo
+     puesto acá el banner se dibujaba SIEMPRE, con `hidden` en true. Se ve y se mide. -->
+<div id="eco-ver-banner" role="status" hidden
+     style="display:none;align-items:center;gap:10px;padding:7px 14px;background:#FEF3C7;color:#78350F;font-size:12px;line-height:1.45;border-bottom:1px solid #FCD34D;">
+  <span style="flex:1;">Hay una versión más nueva de EcoSmart disponible — <b>Cmd+Option+R</b> para actualizar.</span>
+  <button type="button" onclick="ecoBannerCerrar()" aria-label="Cerrar el aviso de versión"
+          style="flex:0 0 auto;background:transparent;border:none;color:#78350F;font-size:15px;font-weight:700;cursor:pointer;line-height:1;padding:4px 8px;min-width:44px;min-height:44px;">✕</button>
+</div>
 <!-- Overlay del menú ⋮ del encabezado. Va acá y NO dentro del <header>.
      El motivo NO es el tamaño: el header no tiene transform ni filter ni backdrop-filter,
      así que un position:fixed adentro seguiría midiendo el viewport entero (medido:
@@ -52135,9 +52148,106 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
 
 </script>
 
+<script>
+/* ══ SELLO DE VERSIÓN Y AVISO DE COPIA VIEJA ═══════════════════════════════════════════════════
+   POR QUÉ EXISTE: una pestaña abierta hace días sirve una copia vieja del HTML sin un solo error
+   en consola —las secciones nuevas simplemente NO ESTÁN— y eso se ve idéntico a la app rota. Ya
+   costó tres diagnósticos; el último fue medio día sobre una pestaña con un archivo de cuatro
+   días. El sello convierte ese diagnóstico en un vistazo al pie.
+
+   DOS CONSTANTES Y NO UNA, a propósito. La cadena es para MOSTRAR y el epoch es para COMPARAR:
+   `Last-Modified` viene en GMT y el sello se lee en hora local, así que compararlos como texto
+   —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
+   desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
+   NO EDITAR A MANO. */
+const ECO_BUILD    = '20260915-2032';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789515165137;                 /* eco-build-ms */
+
+/* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
+   así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
+   que es la única forma de saber que el aviso sale cuando tiene que salir — y no sólo que no
+   estalla cuando no hay red.
+   Un minuto de margen cubre el redondeo del sello a minutos. El publicado tiene que ser
+   ESTRICTAMENTE más nuevo: una copia local más nueva que la publicada no avisa nada. */
+function ecoVersionMasNueva(j){
+  if (!j || typeof j.ms !== 'number' || !isFinite(j.ms)) return false;
+  if (!ECO_BUILD_MS) return false;
+  return (j.ms - ECO_BUILD_MS) > 60 * 1000;
+}
+window.ecoVersionMasNueva = ecoVersionMasNueva;
+
+/* Mostrar y cerrar son DOS funciones simétricas, y las dos mueven `hidden` (para el lector de
+   pantalla) y `display` (para el ojo). Mostrar estaba en línea dentro del `.then()` del fetch, y
+   por eso ningún caso podía ejercerlo sin red: se le podía sacar el `display` y nada se ponía en
+   rojo. Es el mismo corte evaluación/pintor del resto del archivo. */
+function ecoBannerMostrar(){
+  const b = document.getElementById('eco-ver-banner');
+  if (b) { b.hidden = false; b.style.display = 'flex'; }
+}
+window.ecoBannerMostrar = ecoBannerMostrar;
+
+function ecoBannerCerrar(){
+  const b = document.getElementById('eco-ver-banner');
+  /* Se mueven LAS DOS cosas: `hidden` para los lectores de pantalla y `display` para el ojo. */
+  if (b) { b.hidden = true; b.style.display = 'none'; }
+  /* `sessionStorage` y no `localStorage`: el aviso se calla por esta sesión, no para siempre. Si
+     el médico lo cierra hoy y mañana abre con una copia vieja otra vez, tiene que volver a
+     avisarle — es el defecto que viene a cerrar, no una preferencia. */
+  try { sessionStorage.setItem('eco_ver_oculto', '1'); } catch (e) {}
+}
+window.ecoBannerCerrar = ecoBannerCerrar;
+
+/* FALLA SIEMPRE HACIA «NO MOSTRAR NADA». Sin red, con un `Last-Modified` ausente o ilegible, o
+   fuera de https, no se dibuja nada y la app sigue igual: un banner de actualización es una
+   comodidad, y bloquear o alarmar por no poder comprobarlo sería peor que el problema. */
+function ecoChequearVersion(){
+  try {
+    if (location.protocol !== 'https:') return;      // en localhost o file:// no hay con qué comparar
+    if (!ECO_BUILD_MS) return;                       // sin sellar todavía
+    try { if (sessionStorage.getItem('eco_ver_oculto') === '1') return; } catch (e) {}
+    const ctl = (typeof AbortController === 'function') ? new AbortController() : null;
+    const t = setTimeout(function(){ if (ctl) ctl.abort(); }, 6000);
+    /* SE COMPARA SELLO CONTRA SELLO, NO CONTRA `Last-Modified`. La fecha de modificación del
+       archivo publicado es la del DESPLIEGUE, y el sello es la del commit: si el push se demora
+       respecto del commit —cosa que pasa— la diferencia crece sola y el banner sale FALSO para
+       todos los que ya tienen la versión buena. `version.json` son treinta bytes con el mismo
+       sello que este archivo, escritos por el mismo script en el mismo momento, así que la
+       comparación es exacta y el retraso del despliegue sólo puede hacer que el aviso llegue
+       tarde — nunca que aparezca de más.
+       Mismo origen por construcción (ruta relativa): no hay CORS, ni terceros, ni se envía
+       ningún dato. */
+    fetch('version.json?_v=' + Date.now(),
+          { cache:'no-store', signal: ctl ? ctl.signal : undefined })
+      .then(function(r){ clearTimeout(t); return (r && r.ok) ? r.json() : null; })
+      .then(function(j){
+        if (!ecoVersionMasNueva(j)) return;
+        ecoBannerMostrar();
+      })
+      .catch(function(){ clearTimeout(t); });
+  } catch (e) { /* nunca bloquear la app */ }
+}
+window.ecoChequearVersion = ecoChequearVersion;
+
+(function(){
+  function init(){
+    /* EL SELLO DEL PIE NO LO ESCRIBE JS. Está en el HTML como texto, puesto por el mismo script
+       que escribe las constantes. La primera versión lo pintaba acá y tenía dos problemas: una
+       carrera —el caso leía el pie antes de que corriera este init, y falló 1 de cada 4— y algo
+       peor de fondo: este archivo ya se quedó sin JS dos veces por un bloque que dejó de
+       parsear, y el sello existe JUSTAMENTE para esos momentos. Un sello que necesita que la app
+       funcione para decir qué versión es no sirve para diagnosticar una app que no funciona.
+       Lo que queda acá es sólo la comprobación de red, que sí es opcional. */
+    ecoChequearVersion();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
+
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260915-2032</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
