@@ -1665,7 +1665,12 @@ window.cerrarSesion = cerrarSesion;
         <button class="tab-btn tab-special" data-mod="hemodinamica" onclick="showTab('hemodinamica')">🫀 Hemodinámica</button>
         <button class="tab-btn tab-special" data-mod="ete" onclick="showTab('ete')">🔬 ETE</button>
         <button class="tab-btn tab-special" data-mod="congenitas" onclick="showTab('congenitas')">🧬 Congénitas</button>
-        <button class="tab-btn tab-special" data-mod="congenitas2" onclick="showTab('congenitas2')">🫀 CC estructurales</button>
+        <button class="tab-btn tab-special" data-mod="congenitas" onclick="showTab('congenitas2')">🫀 CC estructurales</button>
+        <!-- data-mod="congenitas" y NO "congenitas2": las dos pestañas son UN solo modulo,
+             partido en dos por largo. Con data-mod propio, congenitas2 no tenia casilla en
+             Config —cfgRenderModulos solo dibuja las claves de EE_MODULES— asi que no se
+             podia apagar, y destildar "Congenitas" escondia la primera y dejaba la segunda:
+             medio modulo. Lo gritaba el propio arranque de la app. -->
         <button class="tab-btn tab-special" data-mod="amiloidosis" onclick="showTab('amiloidosis')">🧬 Amiloidosis</button>
         <button class="tab-btn tab-special" data-mod="cardioOnco" onclick="showTab('cardioOnco')">❤️ Cardio-Oncología</button>
         <button class="tab-btn tab-special" data-mod="pulmonar" onclick="showTab('pulmonar')">🫁 Eco Pulmonar</button>
@@ -10175,11 +10180,11 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             <option value="otra">Otra CC compleja</option>
           </select>
         </div>
-        <div class="fg"><label>Saturacion O&sub2; en reposo (%)</label>
+        <div class="fg"><label>Saturacion O&#8322; en reposo (%)</label>
           <input type="number" id="eis_saturacion_reposo" placeholder="%" oninput="eisenSync()">
           <span style="font-size:10px;color:var(--text2);">&lt;90&nbsp;% &rarr; riesgo fetal critico. Embarazo practicamente imposible con &lt;85&nbsp;%. Mortalidad materna &gt;50&nbsp;%.</span>
         </div>
-        <div class="fg"><label>Saturacion O&sub2; en ejercicio (%)</label>
+        <div class="fg"><label>Saturacion O&#8322; en ejercicio (%)</label>
           <input type="number" id="eis_saturacion_ejercicio" placeholder="%" oninput="eisenSync()">
         </div>
       </div>
@@ -10272,7 +10277,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
           <input type="number" id="fontan_vs_fevi" placeholder="%" oninput="fontanSync()"></div>
         <div class="fg"><label>FAC del ventriculo sistemico (%)</label>
           <input type="number" id="fontan_vs_fac" placeholder="%" oninput="fontanSync()"></div>
-        <div class="fg"><label>Saturacion O&sub2; (%)</label>
+        <div class="fg"><label>Saturacion O&#8322; (%)</label>
           <input type="number" id="fontan_saturacion" placeholder="%" oninput="fontanSync()">
           <span style="font-size:10px;color:var(--text2);">Normal sin fenestracion: &gt;93-95&nbsp;%.</span></div>
       </div>
@@ -22513,7 +22518,11 @@ function limpiarCampos(silencioso) {
      anterior sobrevivía a «Nuevo estudio»: saturación crítica y complicaciones de otra persona
      en pantalla, con el formulario en blanco. Es el mismo defecto que ya se cerró con
      `calcCardioOnco`, y `limpiarCampos` NO pasa por el embudo de RECALC_MODULOS — por eso van
-     nombradas acá además de estar en esa lista. Medido antes y después. */
+     nombradas acá además de estar en esa lista. Medido antes y después.
+     Marfan tenía la MISMA fuga y se descubrió al auditar las doce secciones de Congénitas de una
+     vez (TC-120) en vez de ir encontrándolas de a una: las otras nueve vuelven solas a su estado
+     vacío porque sus paneles se repintan por otra vía. */
+  if (typeof marfanSync === 'function') { try { marfanSync(); } catch (e) {} }
   if (typeof eisenSync === 'function') { try { eisenSync(); } catch (e) {} }
   if (typeof fontanSync === 'function') { try { fontanSync(); } catch (e) {} }
   if (typeof dptSync === 'function') { try { dptSync(); } catch (e) {} }
@@ -42615,28 +42624,28 @@ function _labExcelRow(inf) {
     /* Los tres de CoAo son los INSUMOS de la indicación de intervención ESC 2020: sin ellos el
        Laboratorio no puede auditar por qué un estudio quedó en Clase I. Y el pico-pico es el
        único gradiente sobre el que la guía indica. */
-    'Eisenmenger lesión de base': ({civ:'CIV',cia:'CIA',dap:'DAP',dsav:'DSAV',tronco:'Tronco arterioso',tga:'TGA',otra:'Otra CC compleja'}[c.eis_lesion_base] || ''),
+    'Eisenmenger lesión de base': _labXlsEtiq('eis_lesion_base', c.eis_lesion_base),
     'Eisenmenger sat O2 reposo (%)': rnd(num('eis_saturacion_reposo'),0),
     'Eisenmenger sat O2 ejercicio (%)': rnd(num('eis_saturacion_ejercicio'),0),
     'Eisenmenger PSAP (mmHg)': rnd(num('eis_psap'),0),
     'Eisenmenger PDAP (mmHg)': rnd(num('eis_pdap'),0),
     'Eisenmenger vel. IT (m/s)': rnd(num('eis_it_vel'),2),
-    'Eisenmenger función VD': ({normal:'Normal',leve:'Levemente reducida',moderada:'Moderadamente reducida',severa:'Severamente reducida'}[c.eis_vd_funcion] || ''),
-    'Eisenmenger derrame pericárdico': ({no:'Sin derrame',leve:'Leve',moderado:'Moderado',severo:'Severo'}[c.eis_pericardio] || ''),
-    'Eisenmenger NYHA': ({i:'I',ii:'II',iii:'III',iv:'IV'}[c.eis_clase_nyha] || ''),
-    'Eisenmenger síncope': ({no:'No',si:'Sí'}[c.eis_sincope] || ''),
-    'Eisenmenger hemoptisis': ({no:'No',si:'Sí'}[c.eis_hemoptisis] || ''),
-    'Fontan tipo': ({tunel:'Túnel lateral',extra:'Cavopulmonar total extracardiaca',ap:'Auriculo-pulmonar',noesp:'No especificado'}[c.fontan_tipo] || ''),
-    'Fontan fenestración': ({sin:'Sin fenestración',presente:'Fenestración presente',cerrada:'Fenestración cerrada'}[c.fontan_fenestracion] || ''),
-    'Fontan morfología VS': ({izq:'Morfología izquierda',der:'Morfología derecha',indet:'Indeterminado'}[c.fontan_vs_morfologia] || ''),
+    'Eisenmenger función VD': _labXlsEtiq('eis_vd_funcion', c.eis_vd_funcion),
+    'Eisenmenger derrame pericárdico': _labXlsEtiq('eis_pericardio', c.eis_pericardio),
+    'Eisenmenger NYHA': _labXlsEtiq('eis_clase_nyha', c.eis_clase_nyha),
+    'Eisenmenger síncope': _labXlsEtiq('eis_sincope', c.eis_sincope),
+    'Eisenmenger hemoptisis': _labXlsEtiq('eis_hemoptisis', c.eis_hemoptisis),
+    'Fontan tipo': _labXlsEtiq('fontan_tipo', c.fontan_tipo),
+    'Fontan fenestración': _labXlsEtiq('fontan_fenestracion', c.fontan_fenestracion),
+    'Fontan morfología VS': _labXlsEtiq('fontan_vs_morfologia', c.fontan_vs_morfologia),
     'Fontan FEVI VS (%)': rnd(num('fontan_vs_fevi'),1),
     'Fontan FAC VS (%)': rnd(num('fontan_vs_fac'),1),
     'Fontan sat O2 (%)': rnd(num('fontan_saturacion'),0),
-    'Fontan insuficiencia AV': ({no:'Sin IT',leve:'Leve',moderada:'Moderada',severa:'Severa'}[c.fontan_it_grado] || ''),
-    'Fontan derrame pleural': ({no:'No',leve:'Leve',moderado:'Moderado',severo:'Severo'}[c.fontan_derrame_pleural] || ''),
-    'Fontan ascitis': ({no:'No',leve:'Leve',moderada:'Moderada',severa:'Severa'}[c.fontan_ascitis] || ''),
-    'Fontan NYHA': ({i:'I',ii:'II',iii:'III',iv:'IV'}[c.fontan_clase_nyha] || ''),
-    'Fontan arritmia': ({no:'No',fa:'Fibrilación auricular',flutter:'Flutter',tsv:'TSV',tv:'TV',brady:'Bradicardia sinusal',otra:'Otra'}[c.fontan_arritmia] || ''),
+    'Fontan insuficiencia AV': _labXlsEtiq('fontan_it_grado', c.fontan_it_grado),
+    'Fontan derrame pleural': _labXlsEtiq('fontan_derrame_pleural', c.fontan_derrame_pleural),
+    'Fontan ascitis': _labXlsEtiq('fontan_ascitis', c.fontan_ascitis),
+    'Fontan NYHA': _labXlsEtiq('fontan_clase_nyha', c.fontan_clase_nyha),
+    'Fontan arritmia': _labXlsEtiq('fontan_arritmia', c.fontan_arritmia),
     /* Las seis complicaciones van como columnas BINARIAS y no como una lista separada por comas,
        para que se puedan reimportar y filtrar. «Sin complicaciones» es una columna propia por lo
        mismo que es una casilla propia: «ninguna marcada» no afirma la ausencia. */
@@ -42646,17 +42655,17 @@ function _labExcelRow(inf) {
     'Fontan insuficiencia hepática (FALD)': c['fontan_comp_fald__chk'] === '1' ? 1 : 0,
     'Fontan trombosis del circuito': c['fontan_comp_trombo__chk'] === '1' ? 1 : 0,
     'Fontan otra complicación': c['fontan_comp_otra__chk'] === '1' ? 1 : 0,
-    'Marfan/EHAT síndrome': ({marfan:'Marfan',lds:'Loeys-Dietz',turner:'Turner',ehat:'EHAT no sindrómica',otro:'Otro'}[c.marfan_sindrome] || ''),
+    'Marfan/EHAT síndrome': _labXlsEtiq('marfan_sindrome', c.marfan_sindrome),
     'Marfan/EHAT aorta sinusal (mm)': rnd(num('marfan_ao_seno'),1),
     'Marfan/EHAT aorta ascendente (mm)': rnd(num('marfan_ao_ascendente'),1),
     'Marfan/EHAT índice tamaño aórtico (mm/m2)': rnd(num('marfan_ita'),1),
-    'Marfan/EHAT factores de riesgo': ({no:'No',si:'Sí'}[c.marfan_factores_riesgo] || ''),
+    'Marfan/EHAT factores de riesgo': _labXlsEtiq('marfan_factores_riesgo', c.marfan_factores_riesgo),
     'Coartación G. pico-pico invasivo (mmHg)': rnd(num('coa_gradiente_picopico'),0),
     'Coartación estenosis relativa (%)': rnd(num('coa_estenosis_relativa'),0),
-    'Coartación HTA confirmada': ({no:'No',si:'Sí'}[c.coa_hta] || ''),
+    'Coartación HTA confirmada': _labXlsEtiq('coa_hta', c.coa_hta),
     'VAB tipo (Consenso 2021)': ({fused_rl:'Fused R-L',fused_rn:'Fused R-N',fused_ln:'Fused L-N',dos_senos_ll:'2-sinus latero-lateral',dos_senos_ap:'2-sinus antero-posterior',partial:'Partial (forme fruste)',no_clasif:'No clasificable'}[c.vab_tipo] || ''),
     'VAB rafe': ({presente:'Presente',ausente:'Ausente',no_val:'No valorable'}[c.vab_rafe] || ''),
-    'VAB simetría de senos': ({simetrica:'Simétrica',asimetrica:'Asimétrica',no_val:'No valorable'}[c.vab_simetria] || ''),
+    'VAB simetría de senos': _labXlsEtiq('vab_simetria', c.vab_simetria),
     'VAB aorta ascendente (mm)': rnd(num('ao_tub'),1),
     'VAB cirugía valvular prevista': ({no:'No',si:'Sí'}[c.vab_cx_valvular] || ''),
     'Incluir CIA/CIV en informe': c['ete_shunt_incluir_chk__chk'] === '1' ? 1 : 0,
@@ -43940,6 +43949,46 @@ const LAB_XLS_ETIQ = {
                     '4':'Grado 4 — Placas complejas', '5':'Grado 5 — Protrusiones móviles' }
 };
 ['tep_mcconnell','tep_signo6060','tep_tabique_d'].forEach(k => { LAB_XLS_ETIQ[k] = LAB_XLS_ETIQ._tep; });
+/* ══ Congénitas 2026-09-15 — LAS TRES SECCIONES NUEVAS NO TENÍAN VOCABULARIO ═══════════════
+   Marfan, Eisenmenger y Fontan entraron al Excel con dieciocho columnas declaradas `vocab` y
+   NINGUNA entrada acá. Las consecuencias no son de una celda: `_labXlsVocab` devuelve null y el
+   importador **descarta la FILA ENTERA** —nombre, cédula, FEVI, informe, todo—, así que un
+   estudio de esas tres secciones no vuelve nunca de su propio Excel. Y como la ayuda de la
+   plantilla se había escrito A MANO en `LAB_XLS_OPCIONES`, el archivo **enseñaba el formato que
+   el importador rechazaba**: el médico leía «Túnel lateral · …» en la plantilla, lo tipeaba, y
+   perdía el estudio completo.
+   Es exactamente lo que ya había pasado con `oai_lobulos`, y lo que `_labXlsAssertVocab()` grita
+   en la consola desde el arranque — tres commits seguidos con el aviso a la vista.
+   Van acá y NO en `LAB_XLS_OPCIONES` porque el bucle de propagación deriva la ayuda de estas
+   etiquetas: con una sola fuente, un ejemplo no puede enseñar un valor que el importador no
+   acepte. Los textos son los que ya emite `_labExcelRow`, que además ahora los lee de acá. */
+LAB_XLS_ETIQ.coa_hta          = { no:'No', si:'Sí' };
+LAB_XLS_ETIQ.vab_simetria     = { simetrica:'Simétrica', asimetrica:'Asimétrica', no_val:'No valorable' };
+LAB_XLS_ETIQ.marfan_sindrome  = { marfan:'Marfan', lds:'Loeys-Dietz', turner:'Turner',
+                                  ehat:'EHAT no sindrómica', otro:'Otro' };
+LAB_XLS_ETIQ.marfan_factores_riesgo = { no:'No', si:'Sí' };
+LAB_XLS_ETIQ.eis_lesion_base  = { civ:'CIV', cia:'CIA', dap:'DAP', dsav:'DSAV',
+                                  tronco:'Tronco arterioso', tga:'TGA', otra:'Otra CC compleja' };
+LAB_XLS_ETIQ.eis_vd_funcion   = { normal:'Normal', leve:'Levemente reducida',
+                                  moderada:'Moderadamente reducida', severa:'Severamente reducida' };
+LAB_XLS_ETIQ.eis_pericardio   = { no:'Sin derrame', leve:'Leve', moderado:'Moderado', severo:'Severo' };
+LAB_XLS_ETIQ.eis_clase_nyha   = { i:'I', ii:'II', iii:'III', iv:'IV' };
+LAB_XLS_ETIQ.eis_sincope      = { no:'No', si:'Sí' };
+LAB_XLS_ETIQ.eis_hemoptisis   = { no:'No', si:'Sí' };
+LAB_XLS_ETIQ.fontan_tipo      = { tunel:'Túnel lateral', extra:'Cavopulmonar total extracardiaca',
+                                  ap:'Auriculo-pulmonar', noesp:'No especificado' };
+LAB_XLS_ETIQ.fontan_fenestracion  = { sin:'Sin fenestración', presente:'Fenestración presente',
+                                      cerrada:'Fenestración cerrada' };
+LAB_XLS_ETIQ.fontan_vs_morfologia = { izq:'Morfología izquierda', der:'Morfología derecha',
+                                      indet:'Indeterminado' };
+LAB_XLS_ETIQ.fontan_it_grado  = { no:'Sin IT', leve:'Leve', moderada:'Moderada', severa:'Severa' };
+LAB_XLS_ETIQ.fontan_derrame_pleural = { no:'No', leve:'Leve', moderado:'Moderado', severo:'Severo' };
+LAB_XLS_ETIQ.fontan_ascitis   = { no:'No', leve:'Leve', moderada:'Moderada', severa:'Severa' };
+LAB_XLS_ETIQ.fontan_clase_nyha = { i:'I', ii:'II', iii:'III', iv:'IV' };
+LAB_XLS_ETIQ.fontan_arritmia  = { no:'No', fa:'Fibrilación auricular', flutter:'Flutter', tsv:'TSV',
+                                  tv:'TV', brady:'Bradicardia sinusal', otra:'Otra' };
+
+
 // Traduce el value guardado a su etiqueta; si no la conoce devuelve el crudo (nunca vacía el dato).
 function _labXlsEtiq(campo, v) {
   const m = LAB_XLS_ETIQ[campo], k = String(v == null ? '' : v).trim();
@@ -44217,6 +44266,60 @@ LAB_XLS_VOCAB.fop_burbujas = { pocas:'pocas', leve:'pocas', '<5':'pocas', 'menos
                                moderado:'moderado', moderada:'moderado', '5-20':'moderado',
                                abundante:'abundante', severo:'abundante', severa:'abundante', '>20':'abundante' };
 LAB_XLS_VOCAB.im_grado = LAB_XLS_VOCAB.ia_grado = LAB_XLS_VOCAB.it_grado = LAB_XLS_VOCAB._grado04;
+/* El bucle de propagación de más abajo dice `if (!voc) return;`: **sólo AMPLÍA vocabularios que
+   ya existen**, no los crea. Por eso las dieciocho columnas nuevas se siembran acá —con el token
+   canónico y los alias que no se derivan de la etiqueta— y el bucle les agrega después la
+   etiqueta legible que exporta la propia app. Sembrar `{}` a secas alcanzaría; los alias son
+   para el que tipea a mano: «si»/«sí», «cavopulmonar», «moderado»/«moderada». */
+LAB_XLS_VOCAB.coa_hta = { no:'no', si:'si', 'sí':'si' };
+LAB_XLS_VOCAB.marfan_factores_riesgo = { no:'no', si:'si', 'sí':'si' };
+LAB_XLS_VOCAB.eis_sincope    = { no:'no', si:'si', 'sí':'si' };
+LAB_XLS_VOCAB.eis_hemoptisis = { no:'no', si:'si', 'sí':'si' };
+/* `no_val`, no `no_valorable`: el token sale del <option value> REAL del select. Inventarlo se
+   cae en silencio —la celda se rechaza y la fila entera con ella— y es el mismo error que ya
+   costo el `escaso` por `pocas` del FOP. Lo cazo TC-119 comparando el select contra el mapa. */
+LAB_XLS_VOCAB.vab_simetria = { simetrica:'simetrica', 'simétrica':'simetrica',
+  asimetrica:'asimetrica', 'asimétrica':'asimetrica',
+  no_val:'no_val', 'no valorable':'no_val', no_valorable:'no_val' };
+LAB_XLS_VOCAB.marfan_sindrome = { marfan:'marfan', 'sindrome de marfan':'marfan',
+  lds:'lds', 'loeys-dietz':'lds', 'loeys dietz':'lds',
+  turner:'turner', 'sindrome de turner':'turner',
+  ehat:'ehat', 'ehat no sindromica':'ehat', 'aortopatia no sindromica':'ehat', otro:'otro' };
+LAB_XLS_VOCAB.eis_lesion_base = { civ:'civ', cia:'cia', dap:'dap', dsav:'dsav',
+  tronco:'tronco', 'tronco arterioso':'tronco', tga:'tga',
+  otra:'otra', 'otra cc compleja':'otra' };
+LAB_XLS_VOCAB.eis_vd_funcion = { normal:'normal', leve:'leve', 'levemente reducida':'leve',
+  moderada:'moderada', 'moderadamente reducida':'moderada',
+  severa:'severa', 'severamente reducida':'severa' };
+/* «Sin derrame» y «no» son el MISMO estado acá; el select no tiene opción vacía distinta. */
+LAB_XLS_VOCAB.eis_pericardio = { no:'no', 'sin derrame':'no', leve:'leve',
+  moderado:'moderado', moderada:'moderado', severo:'severo', severa:'severo' };
+LAB_XLS_VOCAB.eis_clase_nyha = LAB_XLS_VOCAB.fontan_clase_nyha =
+  { i:'i', ii:'ii', iii:'iii', iv:'iv', '1':'i', '2':'ii', '3':'iii', '4':'iv' };
+LAB_XLS_VOCAB.fontan_tipo = { tunel:'tunel', 'tunel lateral':'tunel', 'túnel lateral':'tunel',
+  extra:'extra', 'cavopulmonar':'extra', 'cavopulmonar total extracardiaca':'extra',
+  'conexion cavopulmonar total extracardiaca':'extra', 'tcpc':'extra',
+  ap:'ap', 'auriculo-pulmonar':'ap', 'auriculo pulmonar':'ap', 'auricula-pulmonar':'ap',
+  noesp:'noesp', 'no especificado':'noesp' };
+LAB_XLS_VOCAB.fontan_fenestracion = { sin:'sin', 'sin fenestracion':'sin',
+  presente:'presente', 'fenestracion presente':'presente', 'fenestrado':'presente',
+  cerrada:'cerrada', 'fenestracion cerrada':'cerrada' };
+LAB_XLS_VOCAB.fontan_vs_morfologia = { izq:'izq', izquierda:'izq', 'morfologia izquierda':'izq',
+  der:'der', derecha:'der', 'morfologia derecha':'der',
+  indet:'indet', indeterminado:'indet' };
+/* «Sin IT» y «no» son el mismo estado; ídem el par moderado/moderada, que cambia de género
+   entre derrame (masculino) y ascitis/insuficiencia (femenino) y se tipea de las dos formas. */
+LAB_XLS_VOCAB.fontan_it_grado = { no:'no', 'sin it':'no', 'sin insuficiencia':'no',
+  leve:'leve', moderada:'moderada', moderado:'moderada', severa:'severa', severo:'severa' };
+LAB_XLS_VOCAB.fontan_derrame_pleural = { no:'no', leve:'leve',
+  moderado:'moderado', moderada:'moderado', severo:'severo', severa:'severo' };
+LAB_XLS_VOCAB.fontan_ascitis = { no:'no', leve:'leve',
+  moderada:'moderada', moderado:'moderada', severa:'severa', severo:'severa' };
+LAB_XLS_VOCAB.fontan_arritmia = { no:'no', fa:'fa', 'fibrilacion auricular':'fa',
+  flutter:'flutter', 'aleteo auricular':'flutter', tsv:'tsv', 'taquicardia supraventricular':'tsv',
+  tv:'tv', 'taquicardia ventricular':'tv',
+  brady:'brady', 'bradicardia sinusal':'brady', bradicardia:'brady', otra:'otra' };
+
 // Etiquetas para la fila de ejemplo y la ayuda: se derivan del vocabulario, no se escriben
 // a mano, para que un ejemplo no pueda enseñar un valor que el importador rechaza.
 const LAB_XLS_OPCIONES = {
@@ -44249,24 +44352,6 @@ const LAB_XLS_OPCIONES = {
   fop_acv:'Sí · No · No consta',
   fop_trombofilia:'Sí · No · No consta',
   vab_tipo:'Fused R-L · Fused R-N · Fused L-N · 2-sinus latero-lateral · 2-sinus antero-posterior · Partial (forme fruste) · No clasificable',
-  vab_simetria:'Simétrica · Asimétrica · No valorable',
-  coa_hta:'No · Sí',
-  eis_lesion_base:'CIV · CIA · DAP · DSAV · Tronco arterioso · TGA · Otra CC compleja',
-  eis_vd_funcion:'Normal · Levemente reducida · Moderadamente reducida · Severamente reducida',
-  eis_pericardio:'Sin derrame · Leve · Moderado · Severo',
-  eis_clase_nyha:'I · II · III · IV',
-  eis_sincope:'No · Sí',
-  eis_hemoptisis:'No · Sí',
-  fontan_tipo:'Túnel lateral · Cavopulmonar total extracardiaca · Auriculo-pulmonar · No especificado',
-  fontan_fenestracion:'Sin fenestración · Fenestración presente · Fenestración cerrada',
-  fontan_vs_morfologia:'Morfología izquierda · Morfología derecha · Indeterminado',
-  fontan_it_grado:'Sin IT · Leve · Moderada · Severa',
-  fontan_derrame_pleural:'No · Leve · Moderado · Severo',
-  fontan_ascitis:'No · Leve · Moderada · Severa',
-  fontan_clase_nyha:'I · II · III · IV',
-  fontan_arritmia:'No · Fibrilación auricular · Flutter · TSV · TV · Bradicardia sinusal · Otra',
-  marfan_sindrome:'Marfan · Loeys-Dietz · Turner · EHAT no sindrómica · Otro',
-  marfan_factores_riesgo:'No · Sí',
   vab_funcion:'Normofuncionante · Estenosis · Insuficiencia · Mixta',
   vab_fenotipo:'Sin dilatación · De raíz · Tubular · Extendido',
   vab_rafe:'Sí · No · No evaluado',

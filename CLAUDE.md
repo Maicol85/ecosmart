@@ -218,6 +218,56 @@ banda el valor se declara y **no vota** — la regla de Eisenmenger.
 columnas de Excel** — las seis complicaciones van como columnas BINARIAS y no como una lista
 separada por comas, para que se puedan reimportar y filtrar.
 
+### «No cargan en Safari» era el Excel, y el navegador no tenía nada que ver
+Reportado el 2026-09-15 como «Marfan, Eisenmenger y Fontan no cargan en Safari». **En Chrome no
+había una sola excepción, las quince secciones renderizaban con sus campos, y el sitio desplegado
+era byte por byte idéntico al local.** Safari 26.6 soporta todo lo que usa el archivo (se grepeó
+lookbehind, `Object.hasOwn`, `??=`, `at()`, `structuredClone`: lo único anterior a Safari 16.4 es
+código viejo y compartido por toda la app). Abierta en Safari, la app carga.
+
+Lo que sí estaba roto, y afectaba **exactamente a esas tres secciones**: sus **dieciocho columnas
+de Excel declaradas `vocab` no tenían NINGUNA entrada en `LAB_XLS_VOCAB`**. `_labXlsVocab`
+devuelve `null` y el importador **descarta la FILA ENTERA** —nombre, cédula, FEVI, informe—, así
+que un estudio de esas tres secciones **no vuelve nunca de su propio Excel**. Eso es lo que «no
+carga»: no la pantalla, la reimportación.
+
+Y la ayuda de la plantilla estaba **escrita a mano** en `LAB_XLS_OPCIONES`, así que el archivo
+**enseñaba el formato que el importador rechazaba**: el médico leía «Túnel lateral · …», lo
+tipeaba, y perdía el estudio completo. El propio archivo ya lo decía dos líneas arriba de donde
+se escribió —«se derivan del vocabulario, no se escriben a mano, para que un ejemplo no pueda
+enseñar un valor que el importador rechaza»— y `_labXlsAssertVocab()` lo gritaba en la consola
+**desde el arranque, durante tres commits seguidos**.
+
+**El diagnóstico correcto salió de mirar la consola, no el código.** Las dos primeras hipótesis
+—que Safari no llegara a las pestañas en ventana angosta, y que `congenitas2` quedara oculto por
+`eeModOn`— eran falsas y se descartaron **midiendo**: el desplegable «Sección avanzada» de móvil
+lista las diez especiales, y `eeModOn` falla ABIERTO (`m[k] !== false`).
+
+Cuatro reglas que quedan:
+1. **Al agregar una columna `vocab`, la entrada va en `LAB_XLS_ETIQ` + `LAB_XLS_VOCAB`, nunca en
+   `LAB_XLS_OPCIONES`.** El bucle de propagación **sólo AMPLÍA vocabularios que ya existen**
+   (`if (!voc) return;`), así que hay que **sembrar** `LAB_XLS_VOCAB.<campo>`; el de
+   `LAB_XLS_OPCIONES` sí crea la entrada, pero **respeta la que esté escrita a mano** y por eso
+   una ayuda manual gana y miente.
+2. **Mirar la consola al arrancar la app.** Hay dos asserts de arranque (`_labXlsAssertVocab`,
+   `_labXlsAssertBloques`) y un aviso de módulos. Estaban los tres gritando.
+3. **El token sale del `<option value>` REAL.** Escribí `no_valorable` y el select dice `no_val`:
+   inventado se cae en silencio. Lo cazó TC-119 comparando el select contra el mapa, no la
+   lectura — es el `escaso` por `pocas` del FOP otra vez.
+4. **Un `MAPA[...][c.campo] || ''` inline en `_labExcelRow` es una copia más.** Las dieciocho
+   pasaron a `_labXlsEtiq(campo, valor)`: exportador e importador leen la misma tabla.
+
+**TC-119** fija las tres puntas: cero columnas sin vocabulario, que lo que la app **exporta** el
+importador lo acepte y resuelva al mismo token, y que la ayuda no ofrezca nada que rechace.
+
+### `congenitas2` era medio módulo
+El botón de 🫀 CC estructurales tenía `data-mod="congenitas2"`, clave que **no existe en
+`EE_MODULES`**. Como `cfgRenderModulos` sólo dibuja las claves de esa lista, la pestaña **no
+tenía casilla en Config**: no se podía apagar, y destildar «🧬 Congénitas» escondía la primera
+pestaña y dejaba la segunda. Medio módulo, con Marfan de un lado y Eisenmenger/Fontan del otro.
+Pasó a `data-mod="congenitas"`: son **un** módulo partido en dos por largo, no dos. Lo gritaba el
+arranque de la app.
+
 ### Un panel pintado con `.calc-row` sin id sobrevive a «Nuevo estudio»
 El barrido de `limpiarCampos` es `.calc-box .calc-row span[id]:not(.calc-lbl)`: **exige el id**.
 Eisenmenger y Fontan pintan sus filas con `<span>` sin id —igual que los dos paneles de
@@ -233,7 +283,20 @@ anterior** y se cerró en el mismo commit. Lo fijan TC-118 y TC-117, y se verifi
 sacando cada una de las dos llamadas, el caso que le corresponde se pone en rojo.
 
 **Al agregar una sección con panel: o los `<span>` llevan id, o la función de pintado se nombra
-en `limpiarCampos`.** Las otras diez secciones de Congénitas no se auditaron para esto.
+en `limpiarCampos`.**
+
+**Auditadas las doce el 2026-09-15 (TC-120): fugaban TRES, las mismas tres secciones nuevas** —
+Marfan, Eisenmenger y Fontan—. Las otras nueve vuelven solas a su estado vacío. Las tres están
+nombradas en `limpiarCampos`.
+
+**El caso costó tres pasadas y las tres enseñan algo sobre cómo NO medir esto:**
+- Buscar el valor tipeado dentro de la sección con un entero corto —un `5`, un `4`— matchea los
+  números de las **tablas de referencia** que viven en la misma sección: cuatro falsos positivos.
+- Acotarlo a `.calc-box` dejó **nueve de trece secciones sin medir en silencio**, porque nueve
+  pintan en `<k>-concl` y sólo tres en `<k>-resultado`. El caso pasaba sin probar nada.
+- El invariante que sí sirve es **«el panel vuelve EXACTAMENTE a su estado vacío»**: no necesita
+  valor distinguible y caza cualquier residuo. Y el caso **reporta** la sección que no reacciona
+  al dato en vez de saltearla — el denominador se declara, no se supone.
 
 ### Un badge de sección tiene UN solo dueño
 `eteInclSync` deriva el badge de cada sección desde su `*_incluir_chk`

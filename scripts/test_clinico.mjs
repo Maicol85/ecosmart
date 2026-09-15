@@ -2985,6 +2985,110 @@ caso('TC-118', 'Fontan: alertas, complicaciones en tres estados y riesgo de emba
   ] };
 `);
 
+/* LA PLANTILLA NO PUEDE ENSEÑAR UN VALOR QUE EL IMPORTADOR RECHAZA. Marfan, Eisenmenger y Fontan
+   entraron al Excel con 18 columnas declaradas «vocab» y CERO entradas en LAB_XLS_VOCAB: el
+   importador devolvia null y descartaba la FILA ENTERA —nombre, cedula, FEVI, informe—, asi que
+   un estudio de esas tres secciones no volvia nunca de su propio Excel. Y como la ayuda se habia
+   escrito a mano en LAB_XLS_OPCIONES, la plantilla mostraba el formato que el importador
+   rechazaba. La app lo gritaba en la consola desde el arranque, tres commits seguidos.
+   Este caso cubre las TRES puntas: que no quede ninguna columna sin vocabulario, que lo que la
+   app EXPORTA lo acepte el importador, y que la ayuda no ofrezca nada que no acepte. */
+caso('TC-119', 'Excel: ninguna columna vocab sin vocabulario, y la plantilla no miente', `
+  const sinVocab = _labXlsAssertVocab();
+  const CAMPOS = ['coa_hta','vab_simetria','marfan_sindrome','marfan_factores_riesgo',
+    'eis_lesion_base','eis_vd_funcion','eis_pericardio','eis_clase_nyha','eis_sincope','eis_hemoptisis',
+    'fontan_tipo','fontan_fenestracion','fontan_vs_morfologia','fontan_it_grado',
+    'fontan_derrame_pleural','fontan_ascitis','fontan_clase_nyha','fontan_arritmia'];
+  /* La vuelta que importa: por cada token del <select>, la ETIQUETA que exporta la app tiene que
+     volver a resolver al MISMO token. No es tautologico —era justo lo que estaba roto: el
+     exportador emitia Tunel lateral y el importador no lo conocia—. */
+  const ida = [];
+  CAMPOS.forEach(c => {
+    Object.keys(LAB_XLS_ETIQ[c] || {}).forEach(tok => {
+      const etq = _labXlsEtiq(c, tok);
+      const vuelta = _labXlsVocab(c, etq);
+      if (vuelta !== tok) ida.push(c + ': ' + tok + ' -> ' + etq + ' -> ' + vuelta);
+    });
+  });
+  /* Y que el <select> de la pantalla y el mapa de etiquetas hablen de los mismos valores: un
+     token que exista en el Excel y no en el select es una columna que nadie puede llenar. */
+  const desfasados = [];
+  CAMPOS.forEach(c => {
+    const el = document.getElementById(c); if (!el || el.tagName !== 'SELECT') return;
+    const opts = [...el.options].map(o => o.value).filter(Boolean).sort().join(',');
+    const toks = Object.keys(LAB_XLS_ETIQ[c] || {}).sort().join(',');
+    if (opts !== toks) desfasados.push(c + ' select=[' + opts + '] etiq=[' + toks + ']');
+  });
+  /* La ayuda de la plantilla: cada valor que ofrece tiene que ser aceptado. */
+  const ayudaMentirosa = [];
+  CAMPOS.forEach(c => {
+    (LAB_XLS_OPCIONES[c] || '').split(' · ').filter(Boolean).forEach(op => {
+      if (_labXlsVocab(c, op) === null) ayudaMentirosa.push(c + ': ofrece "' + op + '" y lo rechaza');
+    });
+  });
+  return { extra: [
+    ['ninguna columna vocab quedo sin vocabulario', sinVocab.length === 0, 'faltan: ' + sinVocab.join(' | ')],
+    ['los 18 campos nuevos tienen etiquetas', CAMPOS.every(c => !!LAB_XLS_ETIQ[c])],
+    ['lo que la app exporta, el importador lo acepta y resuelve al mismo token',
+      ida.length === 0, ida.slice(0,4).join(' | ')],
+    ['el select de pantalla y el mapa de Excel manejan los mismos valores',
+      desfasados.length === 0, desfasados.slice(0,3).join(' | ')],
+    ['la ayuda de la plantilla no ofrece nada que el importador rechace',
+      ayudaMentirosa.length === 0, ayudaMentirosa.slice(0,4).join(' | ')]
+  ] };
+`);
+
+/* AUDITORIA DE limpiarCampos SOBRE LAS DOCE SECCIONES DE CONGENITAS. El barrido exige id
+   (.calc-box .calc-row span[id]) y limpiarCampos NO pasa por RECALC_MODULOS, asi que una seccion
+   cuyo panel se pinte con spans sin id deja el del paciente ANTERIOR en pantalla. Eisenmenger y
+   Fontan lo tenian; el commit anterior los cerro nombrandolos en limpiarCampos. Este caso audita
+   las DOCE de una vez, en vez de ir descubriendolas de a una. */
+caso('TC-120', 'Congenitas: ningun panel de seccion sobrevive a Nuevo estudio', `
+  /* EL INVARIANTE: despues de «Nuevo estudio» el panel tiene que volver EXACTAMENTE a su estado
+     vacio. Es mejor que buscar el valor tipeado por dos motivos que ya costaron dos pasadas de
+     este mismo caso: un entero corto —un 5, un 4— matchea los numeros de las tablas de
+     referencia que viven en la misma seccion (cuatro falsos positivos), y una seccion que no
+     reacciona con un solo campo se salteaba en SILENCIO (nueve de trece no median nada).
+     Comparar contra la linea base caza cualquier residuo y no necesita valor distinguible.
+     Los contenedores son los REALES, leidos del archivo: nueve terminan en -concl y tres en
+     -resultado. Inventar el id no falla, calla. */
+  const SECS = [
+    ['vab',    'vab-concl',       { vab_fenotipo:'raiz', vab_tipo:'fused_rl' }],
+    ['coa',    'coa-concl',       { coa_situacion:'nativa', coa_gradiente_picopico:'34' }],
+    ['fop',    'fop-concl',       { fop_burbujas:'abundante', fop_tunel:'12' }],
+    ['mch',    'mch-concl',       { mch_espesor:'22' }],
+    ['mca',    'mca-concl',       { mca_tsvd_plax:'38' }],
+    ['tdf',    'tdf-concl',       { ip_grado:'severa', tdf_civ_grad:'31' }],
+    ['dap',    'dap-concl',       { dap_tipo:'tubular', dap_diam:'4' }],
+    ['vap',    'vap-concl',       { vap_tipo:'simple', vap_diam:'6' }],
+    ['tga',    'tga-concl',       { tga_tipo:'mustard', tga_func_vd:'moderada' }],
+    ['ebs',    'ebs-concl',       { ebs_desplazamiento:'22', ebs_area_vd_atrial:'28', ebs_area_vd_func:'14' }],
+    ['marfan', 'marfan-resultado',{ marfan_sindrome:'marfan', marfan_ao_seno:'47' }],
+    ['eisen',  'eisen-resultado', { eis_lesion_base:'civ', eis_saturacion_reposo:'82' }],
+    ['fontan', 'fontan-resultado',{ fontan_tipo:'extra', fontan_saturacion:'82' }]
+  ];
+  const sinCont = [], mudas = [], sucias = [];
+  SECS.forEach(function(t) {
+    const k = t[0], contId = t[1], campos = t[2];
+    const cont = document.getElementById(contId);
+    if (!cont) { sinCont.push(k + ': no existe #' + contId); return; }
+    __t.limpiar();
+    const base = (cont.textContent || '').trim();
+    Object.keys(campos).forEach(function(id) { __t.set(id, campos[id]); });
+    const vivo = (cont.textContent || '').trim();
+    /* Denominador: si el panel no cambia al cargar datos, este caso no esta probando nada sobre
+       esa seccion. Se REPORTA en vez de saltearse. */
+    if (vivo === base) { mudas.push(k); return; }
+    __t.limpiar();
+    if ((cont.textContent || '').trim() !== base) sucias.push(k);
+  });
+  return { extra: [
+    ['los trece contenedores de conclusion existen', sinCont.length === 0, sinCont.join(' | ')],
+    ['las trece secciones reaccionan al dato: hay sobre que medir', mudas.length === 0, 'mudas: ' + mudas.join(', ')],
+    ['ninguna deja el panel del paciente anterior tras Nuevo estudio', sucias.length === 0, 'sucias: ' + sucias.join(', ')]
+  ] };
+`);
+
 /* LAS TRES SUPERFICIES DE CARDIO-ONCO TIENEN QUE DECIR LO MISMO. La leyenda de #ref-cardiotox
    (pestaña Referencias), la tabla de farmacos y las tablas nuevas del marco HFA-ICOS viven en
    DOS pestañas distintas y describen al mismo paciente. Las tres estaban desincronizadas, cada
