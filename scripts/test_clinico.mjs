@@ -2737,9 +2737,15 @@ caso('TC-116', 'Marfan/EHAT: el umbral quirurgico sale del sindrome, no solo del
   const mar45no = m({ s:'marfan', seno:45, fr:'no' });
   const eh55 = m({ s:'ehat', seno:55 }),      eh54 = m({ s:'ehat', seno:54 });
   const eh50fr = m({ s:'ehat', seno:50, fr:'si' });
-  const tu26fr = m({ s:'turner', ita:25.1, fr:'si' });
+  /* Turner lleva DOS cortes DISTINTOS (ESC 2024, Tabla 62): 23 con factores de riesgo y 25 sin
+     ellos. Cada uno por sus dos lados. El caso que separa las dos versiones es ASI 24 CON
+     factores: con el umbral unico de 25 salia «sin criterios», que es el escenario exacto en que
+     el umbral bajo existe. */
+  const tu24fr = m({ s:'turner', ita:24, fr:'si' });
+  const tu23fr = m({ s:'turner', ita:23, fr:'si' });
+  const tu24no = m({ s:'turner', ita:24, fr:'no' });
   const tu26no = m({ s:'turner', ita:25.1, fr:'no' });
-  const tu25   = m({ s:'turner', ita:25, fr:'si' });
+  const tu25no = m({ s:'turner', ita:25, fr:'no' });
   const tuSinIta = m({ s:'turner', seno:48 });
   const sinSind  = m({ seno:47 });
   const tubular  = m({ s:'marfan', seno:42, asc:52 });
@@ -2754,9 +2760,13 @@ caso('TC-116', 'Marfan/EHAT: el umbral quirurgico sale del sindrome, no solo del
     ['EHAT no sindromica corta en 55',      eh55.c === 'cx_i' && eh54.c !== 'cx_i'],
     ['y en 50 con factores, Clase IIa',     eh50fr.c === 'cx_iia'],
     // Turner: indexado, y las dos clases segun factores.
-    ['Turner con indice 25.1 y factores -> IIa', tu26fr.c === 'cx_iia'],
-    ['sin factores -> IIb',                      tu26no.c === 'cx_iib'],
-    ['25 exactos no pasa (el umbral es >25)',    tu25.c === 'sin_indicacion'],
+    ['Turner con indice 24 Y factores -> IIa (el umbral baja a 23)', tu24fr.c === 'cx_iia'],
+    ['23 exactos con factores no pasa (es >23)',  tu23fr.c === 'sin_indicacion'],
+    ['el mismo 24 SIN factores no indica',        tu24no.c === 'sin_indicacion'],
+    ['pero el texto avisa que con factores seria IIa',
+      tu24no.t.indexOf('con factores de riesgo este índice ya sería Clase IIa') > -1],
+    ['sin factores el umbral es 25: 25.1 -> IIb', tu26no.c === 'cx_iib'],
+    ['25 exactos no pasa',                        tu25no.c === 'sin_indicacion'],
     ['Turner sin el indice no concluye por el diametro absoluto',
       tuSinIta.c === 'falta_ita' && tuSinIta.t.indexOf('se indexa por superficie corporal') > -1],
     // Sin sindrome NO se concluye: es el dato que ELIGE el umbral.
@@ -2769,7 +2779,17 @@ caso('TC-116', 'Marfan/EHAT: el umbral quirurgico sale del sindrome, no solo del
     // Informe y EN SUMA.
     ['el informe imprime los diametros sobre los que indica',
       lds45.inf.inf.indexOf('Aorta sinusal 45 mm') > -1],
-    ['y nombra la guia y el ano',  lds45.inf.inf.indexOf('ESC 2020') > -1],
+    /* El ano se verifica en el informe: el PDF circula solo y «riesgo alto» sin marco no es
+       interpretable por quien lo recibe. Y se verifica que NO quede rastro del anterior. */
+    ['nombra la guia y el ano correctos',
+      lds45.inf.inf.indexOf('ESC 2024') > -1 && lds45.inf.inf.indexOf('ESC 2020') === -1],
+    /* Se normaliza el espacio: la nota usa &nbsp; entre el numero y la unidad para que no se
+       parta el renglon, y en textContent eso NO es un espacio comun — un indexOf con espacio
+       normal da -1 y el caso falla por el caracter, no por el contenido. */
+    ['el factor de progresion dice >5 mm/año, no >3',
+      (function(){ const t = (document.getElementById('sacc-cc-marfan').textContent || '')
+        .replace(/\\u00a0/g, ' ');
+        return t.indexOf('progresion >5 mm/año') > -1 && t.indexOf('>3 mm/año') === -1; })()],
     ['el EN SUMA lleva la clase',  lds45.inf.suma.indexOf('indicación quirúrgica Clase I') > -1],
     ['sin criterios NO llena el EN SUMA',
       mar49.inf.suma.indexOf('indicación quirúrgica') === -1],

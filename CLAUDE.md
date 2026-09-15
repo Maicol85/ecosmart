@@ -162,7 +162,7 @@ tema y pasaría sin probar el modo noche (me pasó al verificarlo a mano). Y **l
 `:hover` quedan sin cobertura**: `getComputedStyle` no resuelve pseudo-clases sin hover real, y
 mutarlas no pone nada en rojo — verificado, no supuesto.
 
-### Marfan / EHAT: el umbral quirúrgico sale del SÍNDROME, no del diámetro
+### Marfan / EHAT: el umbral quirúrgico sale del SÍNDROME, no del diámetro (ESC 2024, Tabla 62)
 Sección implementada el 2026-09-15 (antes era un acordeón vacío). **Loeys-Dietz opera a los 45 mm
 donde el Marfan espera a 50 y la EHAT no sindrómica a 55.** Aplicar el umbral del Marfan a un
 Loeys-Dietz son 5 mm de más sobre una aorta que diseca antes.
@@ -172,9 +172,19 @@ ficha, es el que ELIGE el umbral. Con 47 mm, un Loeys-Dietz tiene indicación Cl
 tiene ninguna. Y ese estado **sube al EN SUMA**, porque no es «sin hallazgo» sino «no se puede
 concluir» — dejarlo sólo en el cuerpo lo vuelve invisible.
 
-**Turner va indexado** (`marfan_ita`, índice de tamaño aórtico >25 mm/m²) y no por diámetro
-absoluto: la talla baja hace que un diámetro normal sea patológico. Sin el índice tampoco se
-concluye, aunque haya un diámetro cargado.
+**Turner va indexado** (`marfan_ita`, índice de tamaño aórtico) y no por diámetro absoluto: la
+talla baja hace que un diámetro normal sea patológico. Sin el índice tampoco se concluye, aunque
+haya un diámetro cargado. Y lleva **DOS cortes distintos**, no uno con dos ramas:
+
+| ASI | Con factores de riesgo | Sin factores |
+|---|---|---|
+| **>23 mm/m²** | **Clase IIa** | sin indicación |
+| **>25 mm/m²** | Clase IIa | **Clase IIb** |
+
+La primera versión usaba 25 para las dos ramas, así que una Turner con **ASI 24 y antecedente
+familiar de disección** salía «sin criterios» — el escenario exacto en que el umbral bajo existe.
+Entre 23 y 25 sin factores el texto nombra el umbral que se cruza con ellos: es lo que decide el
+intervalo del próximo control.
 
 **El diámetro que decide es el MAYOR de seno y ascendente.** Mirar sólo el seno deja fuera el
 fenotipo tubular, que es el que tiene la dilatación en la ascendente.
@@ -182,9 +192,16 @@ fenotipo tubular, que es el que tiene la dilatación en la ascendente.
 **Campos:** `marfan_sindrome`, `marfan_ao_seno`, `marfan_ao_ascendente`, `marfan_ita` (sólo Turner),
 `marfan_factores_riesgo`, `marfan_incluir_chk`. Con sus cinco columnas de Excel.
 
-⚠ **Dos años de guía conviven en aortopatía:** esta sección usa **ESC 2020** (la del pedido) y
-`vabConclusion` usa **ESC 2024**. Son entidades distintas y cada texto nombra su año en el informe,
-pero conviene reconciliarlas — ver la regla «Ante dos guías» acá abajo.
+**Umbrales confirmados contra la Tabla 62 de la ESC/EACTS 2024 por Maicol (2026-09-15)** — la
+misma guía que ya usaba `vabConclusion`, así que **la aortopatía de la app quedó con UNA sola
+referencia**. Los factores de riesgo son los de esa tabla: HTA no controlada, historia familiar de
+disección, **progresión >5 mm/año** (no >3), deseo de embarazo y necesidad de reemplazo valvular
+aórtico.
+
+**CoAo conserva ESC 2020 a propósito**: la coartación se indica por la guía de cardiopatías
+congénitas del adulto, no por la de aorta. Dos años distintos en la app no son una inconsistencia
+si cada uno es el correcto para su entidad — lo que no puede pasar es que **la misma** entidad se
+clasifique con dos.
 
 ### Ante dos guías: la más reciente y la más estricta. Nunca retroceder en seguridad clínica
 Regla permanente de este proyecto (Maicol, 2026-09-15):

@@ -8514,7 +8514,7 @@ z
             <option value="no">No</option>
             <option value="si">Si</option>
           </select>
-          <span style="font-size:10px;color:var(--text2);">HTA no controlada, historia familiar de diseccion, progresion &gt;3&nbsp;mm/año o insuficiencia aortica significativa.</span>
+          <span style="font-size:10px;color:var(--text2);">HTA no controlada, historia familiar de diseccion, progresion &gt;5&nbsp;mm/año, deseo de embarazo o necesidad de reemplazo valvular aortico (ESC 2024, Tabla 62).</span>
         </div>
       </div>
       <div id="marfan-resultado" class="calc-box" style="margin-top:12px;"></div>
@@ -27301,15 +27301,15 @@ function vabFactores(){
   preg.forEach(function(p){ const val = sv2(p[0]); anota(val === 'si', p[1], val === 'si' || val === 'no'); });
   return { presentes: presentes, sinEvaluar: sinEvaluar, n: presentes.length };
 }
-/* ══ MARFAN / EHAT — aortopatía hereditaria (ESC 2020) ═══════════════════════════════════════
+/* ══ MARFAN / EHAT — aortopatía hereditaria (ESC 2024, Tabla 62) ═══════════════════════════════════════
    Evaluación PURA; `marfanSync` sólo pinta y el informe sólo escribe. El umbral depende del
    SÍNDROME y no sólo del diámetro: Loeys-Dietz opera a los 45 mm donde el Marfan espera a 50 y la
    EHAT no sindrómica a 55. Aplicar el umbral del Marfan a un Loeys-Dietz son 5 mm de más sobre
    una aorta que diseca antes — por eso, sin síndrome declarado NO se concluye.
 
-   ⚠ La aortopatía de VAB (`vabConclusion`) usa ESC 2024 y esta sección usa ESC 2020. Son
-   entidades distintas y cada texto dice su año, pero conviene reconciliarlas: ver la regla
-   «Ante dos guías» en CLAUDE.md. */
+   Umbrales confirmados contra la Tabla 62 de la ESC/EACTS 2024 por Maicol (2026-09-15), que es
+   la misma guía que ya usaba `vabConclusion`: la app quedó con UNA sola referencia de aortopatía.
+   Turner lleva DOS cortes distintos —23 con factores, 25 sin ellos— y no uno con dos ramas. */
 const MARFAN_SIND_TXT = { marfan:'síndrome de Marfan', lds:'síndrome de Loeys-Dietz (TGFBR1/2)',
                           turner:'síndrome de Turner', ehat:'aortopatía hereditaria no sindrómica',
                           otro:'aortopatía hereditaria' };
@@ -27335,12 +27335,19 @@ function marfanEstado() {
   if (sind === 'turner') {
     if (ita == null) return Object.assign(base, { clave:'falta_ita',
       txt:'Síndrome de Turner — falta el índice de tamaño aórtico (mm/m²): en Turner el umbral se indexa por superficie corporal, porque la talla baja hace que un diámetro absoluto normal sea patológico' });
-    if (ita > 25) return Object.assign(base, { clave: conFR ? 'cx_iia' : 'cx_iib',
-      txt:'Síndrome de Turner con índice de tamaño aórtico ' + ita + ' mm/m² (>25)' +
-          (conFR ? ' y factores de riesgo — considerar cirugía de la aorta (ESC 2020, Clase IIa)'
-                 : ' sin factores de riesgo — puede considerarse cirugía de la aorta (ESC 2020, Clase IIb)') });
+    /* DOS cortes DISTINTOS, no uno con dos ramas (ESC 2024, Tabla 62): con factores de riesgo el
+       umbral baja a 23, y sin ellos se espera a 25. La versión anterior usaba 25 para las dos
+       ramas, así que una Turner con ASI 24 y antecedente familiar de disección salía «sin
+       criterios» — el escenario exacto en que el umbral bajo existe. */
+    if (ita > 23 && conFR) return Object.assign(base, { clave:'cx_iia',
+      txt:'Síndrome de Turner con índice de tamaño aórtico ' + ita + ' mm/m² (>23) y factores de riesgo — considerar cirugía de la aorta (ESC 2024, Clase IIa)' });
+    if (ita > 25) return Object.assign(base, { clave:'cx_iib',
+      txt:'Síndrome de Turner con índice de tamaño aórtico ' + ita + ' mm/m² (>25) sin factores de riesgo — puede considerarse cirugía de la aorta (ESC 2024, Clase IIb)' });
+    /* Entre 23 y 25 SIN factores no hay indicación, pero el texto nombra el umbral que se cruza
+       con ellos: es la información que decide el intervalo del próximo control. */
     return Object.assign(base, { clave:'sin_indicacion',
-      txt:'Síndrome de Turner con índice de tamaño aórtico ' + ita + ' mm/m² — sin criterios quirúrgicos aórticos actuales (ESC 2020). Seguimiento' });
+      txt:'Síndrome de Turner con índice de tamaño aórtico ' + ita + ' mm/m² — sin criterios quirúrgicos aórticos actuales (ESC 2024)' +
+          (ita > 23 ? '; con factores de riesgo este índice ya sería Clase IIa' : '') + '. Seguimiento' });
   }
   if (maxAo == null) return Object.assign(base, { clave:'falta_diametro',
     txt: base.sindTxt.charAt(0).toUpperCase() + base.sindTxt.slice(1) + ' — sin diámetro aórtico registrado; completar seno y ascendente' });
@@ -27348,14 +27355,14 @@ function marfanEstado() {
   const u = UMBRAL[sind];
   const pre = base.sindTxt.charAt(0).toUpperCase() + base.sindTxt.slice(1) + ' con diámetro aórtico máximo ' + maxAo + ' mm';
   if (maxAo >= u.i) return Object.assign(base, { clave:'cx_i',
-    txt: pre + ' — cirugía de la aorta indicada (ESC 2020, Clase I desde ' + u.i + ' mm para ' + base.sindTxt + ')' });
+    txt: pre + ' — cirugía de la aorta indicada (ESC 2024, Clase I desde ' + u.i + ' mm para ' + base.sindTxt + ')' });
   if (u.iia != null && maxAo >= u.iia && conFR) return Object.assign(base, { clave:'cx_iia',
-    txt: pre + ' con factores de riesgo — considerar cirugía de la aorta (ESC 2020, Clase IIa desde ' + u.iia + ' mm con factores)' });
+    txt: pre + ' con factores de riesgo — considerar cirugía de la aorta (ESC 2024, Clase IIa desde ' + u.iia + ' mm con factores)' });
   if (u.iia != null && maxAo >= u.iia && !conFR) return Object.assign(base, { clave:'umbral_iia_sin_fr',
-    txt: pre + ' — por encima del umbral de ' + u.iia + ' mm en que los factores de riesgo pasan a indicar cirugía (ESC 2020, Clase IIa)' +
+    txt: pre + ' — por encima del umbral de ' + u.iia + ' mm en que los factores de riesgo pasan a indicar cirugía (ESC 2024, Clase IIa)' +
          (fr === 'no' ? ', hoy sin factores consignados' : '; falta consignar si los hay') });
   return Object.assign(base, { clave:'sin_indicacion',
-    txt: pre + ' — sin criterios quirúrgicos aórticos actuales (ESC 2020). Seguimiento por imagen' });
+    txt: pre + ' — sin criterios quirúrgicos aórticos actuales (ESC 2024). Seguimiento por imagen' });
 }
 window.marfanEstado = marfanEstado;
 
@@ -27385,7 +27392,7 @@ function marfanSync() {
   /* El umbral del síndrome se PUBLICA aunque no haya indicación: es lo que le dice al médico a
      qué distancia está este paciente de la cirugía, que es la información que usa para fijar el
      intervalo del próximo control. */
-  const U = { marfan:'50 mm (45 con factores)', lds:'45 mm', turner:'índice >25 mm/m²',
+  const U = { marfan:'50 mm (45 con factores)', lds:'45 mm', turner:'índice >23 mm/m² con factores · >25 sin ellos',
               ehat:'55 mm (50 con factores)', otro:'55 mm (50 con factores)' };
   if (r.sind && U[r.sind]) fila('Umbral de este síndrome', val(U[r.sind]));
 }
