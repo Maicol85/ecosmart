@@ -1159,12 +1159,28 @@ caso('TC-72', 'Cardio-onco: la hoja del PDF trae riesgo basal, funcion y conclus
   __t.limpiar();
   __t.set('co_fevi_basal','60'); __t.set('co_fevi_actual','45');
   __t.set('co_gls_basal','-20'); __t.set('co_gls_actual','-15');
+  const sinFactores = amiloTextoCardioOnco();
+  /* Y con la calculadora cargada: la hoja toma la banda de ahi. Desde que se elimino el segundo
+     score, co-riesgo-resultado —que es lo que lee _amRows para esta hoja— se repuebla desde
+     hfaicosEstado(), asi que el PDF publica la clasificacion HFA-ICOS y no una propia. */
+  document.getElementById('hfaicos_cv_previa').checked = true;
+  hfaicosToggle('hfaicos_cv_previa');
   const txt = amiloTextoCardioOnco();
   return { extra: [
     ['caida de FEVI en pp',      txt.indexOf('Caída de FEVI | 15.0 pp') > -1],
     ['caida relativa de GLS',    txt.indexOf('Caída relativa de GLS | 25.0 %') > -1],
     ['conclusion con el grado',  txt.indexOf('cardiotoxicidad MODERADA (ESC 2022)') > -1],
-    ['la salvedad del score viaja', txt.indexOf('Score orientativo') > -1]
+    ['sin factores cargados la hoja NO inventa una banda: remite a la calculadora',
+      sinFactores.indexOf('Completar en «Calculadora de Riesgo CV»') > -1 &&
+      !/Riesgo (BAJO|MEDIO|ALTO|MUY ALTO)/.test(sinFactores)],
+    ['con la calculadora cargada, la hoja trae SU banda',
+      txt.indexOf('Riesgo CV basal (HFA-ICOS) | Riesgo ALTO (2/13 pts)') > -1],
+    ['con su recomendacion de seguimiento',
+      txt.indexOf('Eco cada 2 ciclos durante el tratamiento') > -1],
+    ['y la salvedad del marco',  txt.indexOf('Marco HFA-ICOS (ESC 2022)') > -1],
+    ['ya no queda rastro del score viejo',
+      txt.indexOf('Score orientativo') === -1 && txt.indexOf('pts)') > -1 &&
+      txt.indexOf('Riesgo MODERADO') === -1]
   ] };
 `);
 
@@ -2311,6 +2327,55 @@ caso('TC-108', 'HFA-ICOS: la tabla de referencia y la calculadora dan la misma b
   ] };
 `);
 
+/* UNA SOLA CALCULADORA DE RIESGO BASAL. Convivieron dos: el score propio de calcCardioOnco
+   (riesgo CV + edad + FEVI + dosis, bandas <=1/<=3/<=5) y el marco HFA-ICOS. Respondian la misma
+   pregunta con otra escala, y las DOS bajaban al mismo informe firmado por caminos distintos —una
+   a la hoja de cardio-oncologia del PDF, la otra al cuerpo narrativo—, asi que un paciente con
+   doxorrubicina 250 mg/m2 y nada mas cargado salia «MODERADO (2 pts)» en una pagina y «MUY ALTO»
+   en otra, con dos agendas de control incompatibles. Se elimino el score propio.
+   Lo que NO se borro: los CAMPOS de entrada, que los leen la cascada de toxicidad, la tabla de
+   evolucion, el Excel y el filtro de cohorte del Laboratorio, y que viven en estudios ya
+   guardados; y el contenedor `co-riesgo-resultado`, que es de donde el PDF, el PPT y el texto del
+   modulo integrado toman la clasificacion — se repuebla desde hfaicosEstado(). */
+caso('TC-109', 'Cardio-onco: quedo UNA sola calculadora de riesgo basal', `
+  __t.limpiar();
+  // El caso exacto en que las dos discrepaban.
+  __t.set('co_farmaco','antracicline'); __t.set('co_dosis_antrac','250');
+  const capsulaSinFactores = (__t.txt('co-riesgo-resultado') || '').replace(/\\s+/g,' ');
+  document.getElementById('hfaicos_cv_previa').checked = true; hfaicosToggle('hfaicos_cv_previa');
+  const e = hfaicosEstado();
+  const capsula = (__t.txt('co-riesgo-resultado') || '').replace(/\\s+/g,' ');
+  const hoja = amiloTextoCardioOnco();
+  return { extra: [
+    // 1 · El score viejo no vuelve por ningun lado.
+    ['la capsula ya no publica un score propio',
+      capsula.indexOf('Riesgo MODERADO') === -1 && capsula.indexOf('Score orientativo') === -1],
+    ['sin factores no inventa una banda: remite a la calculadora',
+      capsulaSinFactores.indexOf('Completar en «Calculadora de Riesgo CV»') > -1],
+    // 2 · Y publica la de la calculadora que queda, con su mismo puntaje.
+    ['la capsula publica la banda HFA-ICOS',
+      capsula.indexOf('Riesgo ' + e.banda + ' (' + e.pts + '/' + e.max + ' pts)') > -1],
+    ['con el seguimiento de esa banda',   capsula.indexOf('Eco cada 2 ciclos') > -1],
+    ['y la hoja del PDF toma lo mismo',   hoja.indexOf('Riesgo ' + e.banda) > -1],
+    // 3 · Tildar un factor repinta AMBOS: el contenedor viejo es el que baja al informe, asi que
+    //     si solo se repintara la capsula nueva el PDF saldria con la banda anterior.
+    ['al tildar otro factor se repinta tambien el contenedor que baja al informe',
+      (function(){ document.getElementById('hfaicos_fevi_red').checked = true;
+        hfaicosToggle('hfaicos_fevi_red');
+        const e2 = hfaicosEstado();
+        const c2 = (__t.txt('co-riesgo-resultado') || '').replace(/\\s+/g,' ');
+        return e2.pts === 4 && e2.banda === 'MUY ALTO' &&
+               c2.indexOf('Riesgo MUY ALTO (4/13 pts)') > -1; })()],
+    // 4 · Los campos de entrada siguen existiendo: los leen otras cinco superficies.
+    ['los campos basales siguen existiendo',
+      ['co_farmaco','co_dosis_antrac','co_fevi_basal','co_gls_basal','co_edad','co_riesgo_cv']
+        .every(id => !!document.getElementById(id))],
+    ['y el aviso de dosis acumulada, que no era parte del score, se conserva',
+      (function(){ __t.set('co_dosis_antrac','400');
+        return (__t.txt('co-riesgo-resultado') || '').indexOf('zona de alto riesgo') > -1; })()]
+  ] };
+`);
+
 /* LAS TRES SUPERFICIES DE CARDIO-ONCO TIENEN QUE DECIR LO MISMO. La leyenda de #ref-cardiotox
    (pestaña Referencias), la tabla de farmacos y las tablas nuevas del marco HFA-ICOS viven en
    DOS pestañas distintas y describen al mismo paciente. Las tres estaban desincronizadas, cada
@@ -2380,9 +2445,6 @@ caso('TC-100', 'Cardio-onco: las dos pestañas de referencia dicen lo mismo', `
 caso('TC-99', 'Cardio-onco: las tablas de referencia no contradicen al clasificador de al lado', `
   const ref = (document.getElementById('co-referencia-seccion') || {}).textContent || '';
   // Tres factores de riesgo: para la tabla es «Alto», para la calculadora «MODERADO».
-  __t.limpiar();
-  __t.set('co_riesgo_cv','3');
-  const capsula = (__t.txt('co-riesgo-resultado') || '').replace(/\\s+/g,' ');
   return { extra: [
     ['la tabla HFA-ICOS esta presente',
       ref.indexOf('marco HFA-ICOS, ESC 2022') > -1 && ref.indexOf('Factores de riesgo del paciente') > -1],
@@ -2419,19 +2481,16 @@ caso('TC-99', 'Cardio-onco: las tablas de referencia no contradicen al clasifica
       ref.indexOf('ni puntuan') > -1 && ref.indexOf('edad desde 65 inclusive') > -1],
     ['y que la tabla resuelve tambien por farmaco, no solo por factores',
       ref.indexOf('factores <u>o</u> por el farmaco') === -1 && ref.indexOf('por el farmaco') > -1],
-    /* El aviso decia que al informe firmado baja SOLO el score orientativo y que esta tabla «no
-       se imprime». Dejo de ser cierto al agregar la Calculadora de Riesgo CV, que sigue esta
-       tabla y cuya banda va al cuerpo narrativo: ahora son DOS emisores. Un aviso que describe
-       mal lo que pasa es peor que no tener aviso, asi que tiene que nombrar a los dos. */
-    ['el aviso declara que al informe bajan DOS bandas, no una',
-      ref.indexOf('bajan DOS bandas') > -1 && ref.indexOf('cuerpo narrativo') > -1],
-    ['y ya no afirma que esta tabla no se imprime',
-      ref.indexOf('y no se imprime') === -1],
+    /* Este aviso ya cambio tres veces en el dia, y cada version describia un estado distinto de
+       la app: primero decia que la tabla «no se imprime» (cierto entonces), despues que al
+       informe bajaban DOS bandas (cierto mientras convivieron las dos calculadoras), y ahora que
+       hay UNA sola. Un aviso que quedo describiendo el estado anterior es peor que no tenerlo. */
+    ['el aviso declara que hay UNA sola banda en el informe',
+      ref.indexOf('Una sola banda en el informe firmado') > -1],
+    ['y ya no habla de dos emisores',
+      ref.indexOf('bajan DOS bandas') === -1 && ref.indexOf('y no se imprime') === -1],
     ['ya NO promete que la tabla manda para decidir', ref.indexOf('manda esta tabla') === -1],
-    ['la discrepancia que describe sigue siendo cierta: 3 factores dan MODERADO en la capsula',
-      capsula.indexOf('Riesgo MODERADO (3 pts)') > -1],
-    ['mientras la tabla pone 2-3 puntos en Alto',
-      ref.indexOf('2-3 puntos') > -1],
+    ['la tabla pone 2-3 puntos en Alto', ref.indexOf('2-3 puntos') > -1],
     // ECOS-07: no prestarle a un marco la autoridad de un score unico validado.
     ['la tabla se presenta como MARCO, no como score unico',
       ref.indexOf('Marco</b>, no score unico') > -1 || ref.indexOf('no score unico') > -1],

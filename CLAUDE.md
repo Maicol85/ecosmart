@@ -86,19 +86,34 @@ relectura. Hoy vetan, gateados por `esSec` estricto. La regla que queda: **al ce
 de esta forma, enumerar todo lo que se pinta y cruzarlo contra la lista**, no sólo arreglar el
 que se reportó.
 
-### Dos calculadoras para la misma pregunta, en la misma pestaña — SIN RESOLVER
-La pestaña de Cardio-Oncología tiene ahora **dos** estimadores de riesgo basal: el bloque
-«Riesgo cardiovascular basal estimado» (`calcCardioOnco`, score propio, corta en ≤1/≤3/≤5, baja a
-la **hoja de cardio-oncología del PDF**) y la «Calculadora de Riesgo CV» (marco HFA-ICOS, corta en
-0/1/2-3/≥4, baja al **cuerpo narrativo** si se integra). Para el mismo paciente pueden dar bandas
-distintas, **y las dos pueden quedar en el mismo informe firmado**.
+### Al borrar una calculadora duplicada, lo que se borra es el SCORE, no el dato
+La pestaña de Cardio-Oncología tuvo dos estimadores de riesgo basal: el score propio de
+`calcCardioOnco` (riesgo CV + edad + FEVI + dosis, bandas ≤1/≤3/≤5) y el marco HFA-ICOS. Bajaban
+al mismo informe firmado por caminos distintos —uno a la hoja del PDF, el otro al narrativo— así
+que un paciente con doxorrubicina 250 mg/m² y nada más cargado salía «MODERADO (2 pts)» en una
+página y «MUY ALTO» en otra, con dos agendas de control incompatibles. **Se eliminó el score
+propio (2026-09-15).** Queda una sola calculadora.
 
-Mientras convivan, las tres superficies lo DECLARAN: el aviso de la calculadora, el de la tabla de
-referencia y el propio párrafo narrativo, que cierra nombrando su marco. Un documento que explica
-por qué trae dos números es defendible; uno que trae dos números sin decirlo, no.
+Lo que hace que borrar esto no rompa media app son dos decisiones:
 
-**La salida de fondo es dejar una sola** — decisión clínica de Maicol, porque elegir cuál se va
-mueve la clasificación de pacientes reales. Es la deuda más importante de este módulo.
+1. **Los CAMPOS de entrada se quedan.** `co_farmaco`, `co_dosis_antrac`, `co_fevi_basal`,
+   `co_gls_basal`, `co_edad` y `co_riesgo_cv` los leen la cascada de toxicidad, la tabla de
+   evolución, la hoja del PDF, el Excel y el filtro de cohorte del Laboratorio — y viven en los
+   estudios ya guardados. Borrarlos habría vaciado columnas de exportaciones históricas. El
+   bloque pasó a llamarse «Datos basales»: sigue siendo entrada de datos, ya no calcula.
+2. **El CONTENEDOR se queda y se repuebla.** `co-riesgo-resultado` es de donde toman la
+   clasificación la hoja del PDF y el texto del módulo integrado (`_amRows`) y el PPT
+   (`_pptSpan`). Borrarlo habría dejado esas tres superficies mudas. Se lo llena desde
+   `hfaicosEstado()`, y con eso las tres pasan a publicar la banda nueva **sin tocar ninguna**.
+
+Y el acoplamiento que hay que no olvidar: el contenedor lo pintan DOS caminos —`calcCardioOnco`,
+que corre con los campos basales, y `calcHFAICOS`, que corre al tildar un factor—. Con un solo
+llamador, tildar un factor repintaba la cápsula de la calculadora y dejaba el contenedor que baja
+al informe con la banda anterior. Un pintor (`hfaicosPublicarBasal`), dos llamadores.
+
+**El aviso que concilia cambió tres veces en el día**, y cada versión describía un estado distinto
+de la app: «esta tabla no se imprime» → «al informe bajan DOS bandas» → «una sola banda». Un aviso
+que quedó describiendo el estado anterior es peor que no tenerlo; TC-99 lo fija.
 
 ### Un invariante que vive sólo en la interfaz no es un invariante
 Los dos criterios de FEVI de la calculadora se excluyen: una misma medición no puede estar en
@@ -926,13 +941,13 @@ El script contesta *«nadie lo nombra»*, no *«no tiene destino»*: un id menci
 ### 2 · Test suite clínico
 
 ```bash
-node scripts/test_clinico.mjs            # 122 casos + 1 defecto abierto
+node scripts/test_clinico.mjs            # 123 casos + 1 defecto abierto
 node scripts/test_clinico.mjs --solo TC-04
 node scripts/test_clinico.mjs --ver      # con el navegador a la vista, para depurar
 ```
 
 **Correr antes de cualquier push que toque el informe narrativo, el EN SUMA o una fórmula de
-cálculo. Tienen que pasar los 122. Si alguno falla, corregir antes de seguir.**
+cálculo. Tienen que pasar los 123. Si alguno falla, corregir antes de seguir.**
 
 **TC-01 a TC-17 — los bugs del 2026-09-14.** VD que desaparecía (TC-01/03), gradiente pulmonar
 congelado (TC-04), AD ausente del EN SUMA (TC-06), HFA-PEFF sin compuerta de FEVI (TC-07/08),
@@ -944,6 +959,12 @@ invertida del TEER (TC-13), aorta (TC-14/15) y las sincronías de PSAP y e' (TC-
 aórtica (46-48), tricúspide y pulmonar (49-51), hemodinámica (52-56), HFA-PEFF (57-58),
 pericardio (59-60), congénitas (61-66), amiloidosis (67-68), cardio-oncología (69-72, 88),
 ETE/TEER/TAVI/orejuela (73-78), derivados y sincronías (79-83).
+
+**TC-109 — quedó una sola calculadora de riesgo basal (2026-09-15).** Verifica que el score
+viejo no vuelva por ningún lado, que la cápsula del bloque «Datos basales» publique la banda
+HFA-ICOS con su mismo puntaje, que tildar un factor repinte **también** el contenedor que baja al
+informe, que los seis campos de entrada sigan existiendo, y que el aviso de dosis acumulada
+—que no era parte del score— se conserve.
 
 **TC-101 a TC-108 — Calculadora de Riesgo CV basal, marco HFA-ICOS (2026-09-15).** Cubren las
 cuatro bandas por los dos lados de cada corte, la exclusión de los dos criterios de FEVI, el piso

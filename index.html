@@ -11232,7 +11232,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 
   <div class="card" style="margin-bottom:6px;">
     <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('co-basal-seccion',this);calcCardioOnco()">
-      📊 Riesgo cardiovascular basal estimado (ESC 2022)
+      📊 Datos basales y riesgo CV (ESC 2022)
       <span id="co-basal-seccion-arrow" style="float:right;transition:transform 0.2s;">▶</span>
     </h2>
   </div>
@@ -11244,10 +11244,11 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
          tablas ESPECÍFICAS por tipo de tratamiento y no existe un score único universal con
          estos cortes. Llamarlo HFA-ICOS le prestaba a un cálculo orientativo la autoridad de
          una herramienta validada, y eso baja al PDF firmado. -->
-    <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">📊 Riesgo Cardiovascular Basal estimado</div>
+    <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">📊 Datos basales del tratamiento</div>
     <div style="font-size:11px;color:var(--text2);background:var(--section-head);border-left:3px solid var(--accent2);padding:8px 10px;border-radius:0 6px 6px 0;margin-bottom:10px;">
-      Este score es <b>orientativo</b>. Para la herramienta HFA-ICOS completa específica por tratamiento,
-      consultar ESC 2022 Cardio-Oncology Guidelines (tabla 4).
+      Estos campos describen el tratamiento y las mediciones basales. La <b>clasificación de riesgo</b>
+      que aparece abajo —y la que baja al informe— sale de la <b>Calculadora de Riesgo CV</b> (marco
+      HFA-ICOS), más abajo en esta misma pestaña. Acá ya no se calcula un score aparte.
     </div>
     <div class="grid-3" style="margin-bottom:10px;">
       <div class="fg"><label>Farmaco oncologico</label>
@@ -11380,13 +11381,12 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     <div style="font-size:11px;color:var(--text2);background:var(--section-head);border-left:3px solid var(--accent2);padding:8px 10px;border-radius:0 6px 6px 0;margin:8px 0 10px;line-height:1.55;">
       Esta calculadora recoge los factores disponibles en el ecocardiograma. El marco HFA-ICOS
       completo incluye factores adicionales clinicos y de laboratorio que deben evaluarse por separado.<br>
-      <b style="color:var(--red);">Ojo: hay DOS calculadoras de riesgo basal en esta pestaña.</b> El
-      bloque «Riesgo cardiovascular basal estimado» de arriba responde la misma pregunta con OTRA
-      escala —suma puntos propios y corta en ≤1/≤3/≤5— y baja a la hoja de cardio-oncología del
-      PDF por su cuenta. Esta calculadora sigue el marco HFA-ICOS y la tabla de Referencia rapida,
-      y si se integra baja al cuerpo narrativo. <b>Para el mismo paciente pueden dar bandas
-      distintas, y las dos pueden quedar en el mismo informe firmado.</b> El parrafo narrativo dice
-      de que marco sale; la salida de fondo es dejar una sola.
+      <b>Esta es la UNICA calculadora de riesgo basal de la app</b> desde el 2026-09-15. El bloque
+      «Datos basales» de arriba tenia un segundo score con otra escala, y las dos bandas podian
+      terminar en el mismo informe firmado por caminos distintos; se elimino. Su clasificacion
+      —la que sale en la capsula de aquel bloque, en la hoja del PDF, en el PPT y en el texto del
+      modulo integrado— es la que se calcula ACA. Si ademas se integra, el mismo resultado entra
+      al cuerpo narrativo.
     </div>
 
     <div style="font-size:11.5px;font-weight:700;color:var(--text);margin-bottom:6px;">1 · Factores del paciente</div>
@@ -11500,12 +11500,10 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       (seccion B), asi que un farmaco de muy alto riesgo la lleva a «muy alto» con cero factores.
       Ejemplo real: con doxorrubicina 250&nbsp;mg/m² y nada mas cargado, la calculadora dice
       «Riesgo MODERADO (2 pts)» y esta tabla, «Muy alto».<br>
-      <b style="color:var(--red);">Al informe firmado bajan DOS bandas, de dos emisores distintos:</b>
-      el score orientativo del bloque «Riesgo cardiovascular basal estimado» va a la hoja de
-      cardio-oncología del PDF, y —si se integra— la banda de la <b>Calculadora de Riesgo CV</b>
-      (que sí sigue esta tabla) va al cuerpo narrativo. Para el mismo paciente pueden no coincidir.
-      Mientras convivan, el párrafo narrativo dice de qué marco sale; la salida de fondo es dejar
-      una sola calculadora.
+      <b>Una sola banda en el informe firmado.</b> La <b>Calculadora de Riesgo CV</b> de esta misma
+      pestaña —que sigue esta tabla— es la única que clasifica, y su resultado es el que aparece en
+      la hoja de cardio-oncología del PDF, en el PPT y, si se integra, en el cuerpo narrativo. El
+      segundo score que convivía con otra escala se eliminó el 2026-09-15.
     </div>
     <div style="font-size:11.5px;font-weight:700;color:var(--text);margin-bottom:4px;">A · Factores de riesgo del paciente</div>
     <table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:10px;">
@@ -18928,6 +18926,10 @@ function calcHFAICOS() {
   fila('Conducta', txt(r.nota, true));
   fila('Seguimiento ecocardiográfico', txt(r.seguimiento, true));
   fila('Salvedad', txt('Recoge sólo los factores disponibles en el ecocardiograma; el HFA-ICOS completo es específico por tratamiento (ESC 2022, tabla 4).', true));
+  /* Y se publica en `co-riesgo-resultado`, que es de donde lo toman el PDF, el PPT y el texto del
+     módulo integrado. Si sólo se pintara acá, tildar un factor dejaría al informe firmado con la
+     banda anterior. */
+  if (typeof hfaicosPublicarBasal === 'function') hfaicosPublicarBasal();
 }
 window.calcHFAICOS = calcHFAICOS;
 
@@ -19029,13 +19031,55 @@ function hfaicosTexto() {
     : 'No se consignaron factores de riesgo del paciente.');
   if (r.mandaFarmaco) p.push('La clasificación la determina el riesgo del fármaco, no el puntaje.');
   p.push('Seguimiento ecocardiográfico recomendado: ' + r.seguimiento);
-  /* El marco se NOMBRA al cerrar además de al abrir. Mientras convivan las dos calculadoras, el
-     informe puede traer dos bandas —ésta en el narrativo y el score orientativo en la hoja de
-     cardio-oncología— y sin decir de dónde sale cada una el lector no tiene cómo reconciliarlas. */
-  p.push('Estratificación según el marco HFA-ICOS; el score orientativo de la hoja de cardio-oncología usa otra escala.');
+  /* El marco se NOMBRA al cerrar además de al abrir. Ya no hay un segundo score con el que
+     confundirlo —se eliminó—, pero el informe circula solo y tiene que decir con qué regla se
+     clasificó: «riesgo alto» sin marco no es interpretable por quien lo recibe. */
+  p.push('Estratificación según el marco HFA-ICOS (ESC 2022); es la única clasificación de riesgo basal de este informe.');
   return p.join(' ');
 }
 window.hfaicosTexto = hfaicosTexto;
+
+/* Publica la clasificación de riesgo basal en `co-riesgo-resultado`, que es el contenedor que
+   leen la hoja del PDF, el PPT y el texto del módulo integrado. La banda sale de
+   `hfaicosEstado()` — la única calculadora que queda. */
+function hfaicosPublicarBasal() {
+  const dosis = v('co_dosis_antrac');
+  const resRiesgo = document.getElementById('co-riesgo-resultado');
+  if (resRiesgo) {
+    while (resRiesgo.firstChild) resRiesgo.removeChild(resRiesgo.firstChild);
+    var _hfa = (typeof hfaicosEstado === 'function') ? hfaicosEstado() : null;
+    var _fila = function (lbl, nodo) {
+      var row = document.createElement('div'); row.className = 'calc-row';
+      var l = document.createElement('span'); l.className = 'calc-lbl'; l.textContent = lbl;
+      row.appendChild(l); if (nodo) row.appendChild(nodo); resRiesgo.appendChild(row);
+    };
+    var _val = function (t) { var sp = document.createElement('span');
+      sp.className = 'calc-val'; sp.style.fontWeight = '400'; sp.textContent = t; return sp; };
+    if (_hfa && _hfa.hayDatos) {
+      var _b = document.createElement('span');
+      _b.className = 'badge badge-' + (BADGE_CLS_OK.indexOf(_hfa.cls) >= 0 ? _hfa.cls : 'gray');
+      _b.textContent = 'Riesgo ' + _hfa.banda + ' (' + _hfa.pts + '/' + _hfa.max + ' pts)';
+      _fila('Riesgo CV basal (HFA-ICOS)', _b);
+      _fila('Seguimiento ecocardiográfico', _val(_hfa.seguimiento));
+      _fila('Salvedad', _val('Marco HFA-ICOS (ESC 2022). Recoge sólo los factores disponibles en el ecocardiograma; el HFA-ICOS completo es específico por tratamiento (tabla 4).'));
+    } else {
+      var _g = document.createElement('span');
+      _g.className = 'badge badge-gray';
+      _g.textContent = 'Completar en «Calculadora de Riesgo CV»';
+      _fila('Riesgo CV basal (HFA-ICOS)', _g);
+    }
+    /* El aviso de dosis se CONSERVA: no era parte del score, es un umbral acumulativo propio y
+       es el único lugar de la app que lo publica. */
+    if (dosis && dosis >= 360) {
+      var rowD = document.createElement('div'); rowD.className = 'calc-row';
+      var lD = document.createElement('span'); lD.className = 'calc-lbl';
+      lD.style.color = 'var(--red)';
+      lD.textContent = '⚠️ Dosis acumulada de antraciclinas en zona de alto riesgo (>=360 mg/m2)';
+      rowD.appendChild(lD); resRiesgo.appendChild(rowD);
+    }
+  }
+}
+window.hfaicosPublicarBasal = hfaicosPublicarBasal;
 
 function calcCardioOnco() {
   var feviBasal = v('co_fevi_basal');
@@ -19043,33 +19087,34 @@ function calcCardioOnco() {
   var glsBasal = v('co_gls_basal');
   var glsActual = v('co_gls_actual');
   var dosis = v('co_dosis_antrac');
-  var riesgoCV = parseInt(sv('co_riesgo_cv') || '0');
   var troponi = sv('co_troponi') || 'no';
   var farmaco = sv('co_farmaco') || '';
   var edad = v('co_edad');
 
-  // Riesgo basal
-  var puntos = riesgoCV;
-  if (edad && edad >= 65) puntos++;
-  if (feviBasal && feviBasal < 54) puntos += 2;
-  if (dosis && dosis >= 250) puntos += 2;
-  if (farmaco === 'antracicline' && dosis && dosis >= 360) puntos += 2;
+  /* ══ RIESGO CV BASAL — UNA SOLA CALCULADORA (2026-09-15) ════════════════════════════════
+     Acá vivía un SEGUNDO score: `puntos` = riesgo CV + edad + FEVI + dosis, con bandas propias
+     (≤1 bajo · ≤3 moderado · ≤5 alto · >5 muy alto). Se eliminó. Respondía la misma pregunta
+     clínica que la Calculadora de Riesgo CV (marco HFA-ICOS) con otra escala, y las DOS bajaban
+     al mismo informe firmado por caminos distintos —ésta a la hoja de cardio-oncología del PDF,
+     la otra al cuerpo narrativo—, así que un mismo paciente podía salir «MODERADO (2 pts)» en
+     una página y «MUY ALTO» en otra, con dos agendas de control incompatibles. Medido: con
+     doxorrubicina 250 mg/m² y nada más cargado daban exactamente eso.
 
-  var riesgoTxt, riesgoCls;
-  if (puntos <= 1) { riesgoTxt = 'Riesgo BAJO'; riesgoCls = 'green'; }
-  else if (puntos <= 3) { riesgoTxt = 'Riesgo MODERADO'; riesgoCls = 'yellow'; }
-  else if (puntos <= 5) { riesgoTxt = 'Riesgo ALTO'; riesgoCls = 'orange'; }
-  else { riesgoTxt = 'Riesgo MUY ALTO'; riesgoCls = 'red'; }
+     Este contenedor NO se borra: es el que leen las cuatro superficies que publican la
+     clasificación —`_amRows('co-riesgo-resultado')` en la hoja del PDF y en el texto del módulo
+     integrado, y `_pptSpan(...)` en el PPT—. Se lo repuebla desde `hfaicosEstado()`, o sea desde
+     la calculadora que queda, y con eso las cuatro pasan a publicar la banda nueva sin tocar
+     ninguna de ellas. Borrar el contenedor habría dejado esas tres superficies mudas.
 
-  var resRiesgo = document.getElementById('co-riesgo-resultado');
-  if (resRiesgo) {
-    /* ECOS-07: el rótulo viaja al PDF vía _amRows('co-riesgo-resultado'), así que el nombre
-       se corrige acá y llega solo al informe firmado. La salvedad va como fila propia para
-       que también baje al PDF y no quede sólo en la pantalla. */
-    resRiesgo.innerHTML = '<div class="calc-row"><span class="calc-lbl">Riesgo CV basal estimado</span><span>' + badge(riesgoCls, riesgoTxt + ' (' + puntos + ' pts)') + '</span></div>' +
-      '<div class="calc-row"><span class="calc-lbl">Salvedad</span><span class="calc-val" style="font-weight:400;">Score orientativo. Para la herramienta HFA-ICOS completa especifica por tratamiento, consultar ESC 2022 Cardio-Oncology Guidelines (tabla 4).</span></div>';
-    if (dosis && dosis >= 360) resRiesgo.innerHTML += '<div class="calc-row"><span class="calc-lbl" style="color:var(--red);">⚠️ Dosis acumulada de antraciclinas en zona de alto riesgo (&gt;=360 mg/m2)</span></div>';
-  }
+     Los CAMPOS de entrada de arriba tampoco se borran: `co_farmaco`, `co_dosis_antrac`,
+     `co_fevi_basal`, `co_gls_basal`, `co_edad` y `co_riesgo_cv` los leen la cascada de toxicidad,
+     la tabla de evolución, la hoja del PDF, el Excel y el filtro de cohorte del Laboratorio, y
+     viven en los estudios ya guardados. Lo que se fue es el SCORE, no el dato. */
+  /* Un solo pintor, dos llamadores: `calcCardioOnco` (que corre con los campos basales) y
+     `calcHFAICOS` (que corre al tildar un factor). Sin esto, tildar un factor repintaba la
+     cápsula de la calculadora y dejaba ESTE contenedor con la banda anterior — y este es el que
+     baja al PDF, al PPT y al texto del módulo integrado. */
+  hfaicosPublicarBasal();
 
   // Toxicidad actual
   var alertas = [];
