@@ -1910,6 +1910,75 @@ caso('TC-92', 'Reimprimir conserva la hoja TEER firmada; abrir para editar la re
 `);
 
 
+/* LAS DOS TABLAS NUEVAS DE REFERENCIA RAPIDA (HFA-ICOS y cardiotoxicidad por clase). Son HTML
+   estatico, sin campos ni calculo — pero este archivo ya pago DOS VECES el mismo defecto hoy:
+   una tabla estatica que contradice al clasificador de al lado. Aca la contradiccion existe y es
+   REAL: la calculadora de «Riesgo CV basal estimado» vive en ESTA MISMA pestaña y puntua con
+   otra escala —cuenta PUNTOS, con items que valen 2, y rotula <=1 bajo / <=3 MODERADO / <=5 alto—
+   mientras la tabla cuenta FACTORES y rotula 1 medio / 2-3 ALTO / >=4 muy alto. Para tres
+   factores una dice «Alto» y la otra «MODERADO».
+   No se alineo el codigo porque cambiar la calculadora mueve la clasificacion de pacientes
+   reales y es decision de Maicol. Lo que SI se hizo es DECLARAR la discrepancia en la tabla.
+   Este caso fija las dos mitades: que el aviso este, y que la discrepancia que describe siga
+   siendo cierta. Si algun dia la calculadora se alinea con HFA-ICOS, el caso se pone en rojo y
+   obliga a borrar el aviso en vez de dejarlo mintiendo al reves. */
+caso('TC-99', 'Cardio-onco: las tablas de referencia no contradicen al clasificador de al lado', `
+  const ref = (document.getElementById('co-referencia-seccion') || {}).textContent || '';
+  // Tres factores de riesgo: para la tabla es «Alto», para la calculadora «MODERADO».
+  __t.limpiar();
+  __t.set('co_riesgo_cv','3');
+  const capsula = (__t.txt('co-riesgo-resultado') || '').replace(/\\s+/g,' ');
+  return { extra: [
+    ['la tabla HFA-ICOS esta presente',
+      ref.indexOf('marco HFA-ICOS, ESC 2022') > -1 && ref.indexOf('Factores de riesgo del paciente') > -1],
+    ['con sus tres secciones',
+      ref.indexOf('Riesgo por farmaco') > -1 && ref.indexOf('Clasificacion de riesgo global') > -1],
+    ['dice que se hace ANTES del tratamiento',
+      ref.indexOf('ANTES') > -1 && ref.indexOf('iniciar el tratamiento') > -1],
+    ['la tabla por clase farmacologica esta presente, con las diez filas',
+      ['Antraciclinas','Anti-HER2','Inhibidores VEGF/VEGFR','ICI','Fluoropirimidinas',
+       'Agentes alquilantes','Inhibidores BCR-ABL','Inhibidores del proteasoma',
+       'Radioterapia toracica','Hormonoterapia'].every(k => ref.indexOf(k) > -1)],
+    ['con la columna de seguimiento eco, que es la que se consulta',
+      ref.indexOf('Eco a los 5 anos post-RT') > -1 &&
+      ref.indexOf('Eco cada 3 meses durante el tto') > -1],
+    ['y las dosis limite de las tres clases que la tienen',
+      ref.indexOf('400 mg/m2') > -1 && ref.indexOf('140 mg/kg') > -1 && ref.indexOf('30-35 Gy') > -1],
+    /* NINGUNA fila puede mandar SUSPENDER por un umbral que la tabla de grados de esta misma
+       seccion resuelve como «Continuar». Reintroducir eso es literalmente el defecto que se
+       cerro hoy en 7357c29, movido de columna: con un basal de 62 que cae a 48 el clasificador
+       dice MODERADA y la tabla de arriba dice «Continuar con cardioproteccion», mientras dos
+       filas nuevas decian «suspender». Lo encontro el differential-review del propio agregado. */
+    ['ninguna fila nueva manda suspender por su cuenta',
+      ref.indexOf('suspender y eco en 2-4 sem') === -1 &&
+      ref.indexOf('suspender y reevaluar en 3-6 sem') === -1],
+    ['las dos filas remiten a la tabla de grados, que es la que define la conducta',
+      (ref.match(/graduar la CTRCD con la primera tabla de esta seccion/g) || []).length === 2],
+    ['y esa tabla sigue reservando «Suspender» para la severa',
+      ref.indexOf('Suspender, cardioproteccion, reevaluar en 2-4 sem') > -1 &&
+      ref.indexOf('Continuar con cardioproteccion y control en 4 sem') > -1],
+    // Las cuatro mitades del aviso de escalas.
+    ['el aviso de que las dos escalas NO coinciden esta',
+      ref.indexOf('NO usan la misma escala') > -1],
+    ['y que tampoco puntuan igual los mismos items',
+      ref.indexOf('ni puntuan') > -1 && ref.indexOf('edad desde 65 inclusive') > -1],
+    ['y que la tabla resuelve tambien por farmaco, no solo por factores',
+      ref.indexOf('factores <u>o</u> por el farmaco') === -1 && ref.indexOf('por el farmaco') > -1],
+    ['y dice que lo que viaja al informe firmado es el score de la calculadora',
+      ref.indexOf('viaja al informe firmado es el score de la calculadora') > -1],
+    ['ya NO promete que la tabla manda para decidir', ref.indexOf('manda esta tabla') === -1],
+    ['la discrepancia que describe sigue siendo cierta: 3 factores dan MODERADO en la capsula',
+      capsula.indexOf('Riesgo MODERADO (3 pts)') > -1],
+    ['mientras la tabla pone 2-3 factores en Alto',
+      ref.indexOf('2-3 factores') > -1],
+    // ECOS-07: no prestarle a un marco la autoridad de un score unico validado.
+    ['la tabla se presenta como MARCO, no como score unico',
+      ref.indexOf('Marco</b>, no score unico') > -1 || ref.indexOf('no score unico') > -1],
+    ['y declara que la app no recoge ocho de los doce factores',
+      ref.indexOf('no tienen campo en este modulo') > -1]
+  ] };
+`);
+
 /* ═══════════════════════════════════════════════════════════════════════════════════════════
    GRUPO 26 — GUARDAR Y RESTAURAR. La brecha mas cara del suite: aca vivieron los bugs de datos
    del paciente anterior viajando al siguiente, los segmentos ETE que no volvian, la serie de

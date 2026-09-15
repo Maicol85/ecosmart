@@ -86,6 +86,30 @@ relectura. Hoy vetan, gateados por `esSec` estricto. La regla que queda: **al ce
 de esta forma, enumerar todo lo que se pinta y cruzarlo contra la lista**, no sólo arreglar el
 que se reportó.
 
+### Una tabla de referencia nueva se revisa contra las tablas que YA están, no sólo contra el código
+Las dos tablas de cardio-onco que se agregaron el 2026-09-15 traían, en su columna de seguimiento
+eco, «Si la FEVI cae >=10 pp o <50%: **suspender**». Los umbrales coinciden con
+`CO_UMBRAL_FEVI_CAIDA` / `CO_UMBRAL_FEVI_ABS`, así que contra el código no chirriaban. Lo que
+contradecían era **la tabla de grados de la misma sección plegable, 91 líneas más arriba**, que
+ese mismo día había quedado diciendo que una FEVI de 48 con caída de 14 pp es CTRCD **moderada**
+→ «Continuar con cardioprotección». Y el caso peor no necesita caída ninguna: una FEVI estable de
+46 satisface «<50%» y salía mandando suspender la quimioterapia.
+
+Es el defecto de `7357c29` reintroducido **el mismo día**, movido de columna. Lo encontró el
+`/differential-review` del agregado, no la lectura.
+
+Tres reglas que quedan:
+1. **Un umbral correcto con una conducta pegada puede seguir siendo un error.** Verificar el
+   número no alcanza: hay que verificar qué se hace con él, y contra qué dice el resto.
+2. **Una tabla que describe conducta remite al clasificador, no lo duplica.** Las dos filas ahora
+   dicen «graduar la CTRCD con la primera tabla de esta sección, que es la que define la
+   conducta».
+3. **Un aviso que concilia dos escalas tiene que ser exacto o no sirve.** El primero decía
+   «cuenta factores» y omitía que la tabla también resuelve por fármaco —con doxorrubicina
+   250 mg/m² y nada más cargado da «Muy alto» mientras la calculadora dice «MODERADO (2 pts)»—, y
+   prometía «manda esta tabla» cuando **al PDF firmado baja el score de la calculadora**. Un aviso
+   que promete lo que el artefacto no hace es peor que no tener aviso.
+
 ### Un test de restauracion que limpia a mano no prueba la limpieza
 Los doce primeros casos de guardado pasaban por «Nuevo estudio» antes de reabrir. Parecia
 correcto —es lo que hace el medico— pero significaba que **ninguno dependia de la limpieza que
@@ -837,13 +861,13 @@ El script contesta *«nadie lo nombra»*, no *«no tiene destino»*: un id menci
 ### 2 · Test suite clínico
 
 ```bash
-node scripts/test_clinico.mjs            # 112 casos + 1 defecto abierto
+node scripts/test_clinico.mjs            # 113 casos + 1 defecto abierto
 node scripts/test_clinico.mjs --solo TC-04
 node scripts/test_clinico.mjs --ver      # con el navegador a la vista, para depurar
 ```
 
 **Correr antes de cualquier push que toque el informe narrativo, el EN SUMA o una fórmula de
-cálculo. Tienen que pasar los 112. Si alguno falla, corregir antes de seguir.**
+cálculo. Tienen que pasar los 113. Si alguno falla, corregir antes de seguir.**
 
 **TC-01 a TC-17 — los bugs del 2026-09-14.** VD que desaparecía (TC-01/03), gradiente pulmonar
 congelado (TC-04), AD ausente del EN SUMA (TC-06), HFA-PEFF sin compuerta de FEVI (TC-07/08),
@@ -855,6 +879,13 @@ invertida del TEER (TC-13), aorta (TC-14/15) y las sincronías de PSAP y e' (TC-
 aórtica (46-48), tricúspide y pulmonar (49-51), hemodinámica (52-56), HFA-PEFF (57-58),
 pericardio (59-60), congénitas (61-66), amiloidosis (67-68), cardio-oncología (69-72, 88),
 ETE/TEER/TAVI/orejuela (73-78), derivados y sincronías (79-83).
+
+**TC-99 — las tablas de referencia contra el clasificador de al lado (2026-09-15).** La pestaña
+de Cardio-Oncología suma dos tablas nuevas de sólo referencia (marco HFA-ICOS y cardiotoxicidad
+por clase con seguimiento eco). TC-99 fija lo que no puede volver a pasar: que una fila mande
+**suspender** por un umbral que la tabla de grados de esa misma sección resuelve como
+«Continuar», y que el aviso de escalas siga describiendo con exactitud lo que hace
+`calcCardioOnco`.
 
 **TC-GR-01 a TC-GR-15 — guardar y restaurar (2026-09-15).** Era la brecha mas grande del
 suite. Entran por las funciones REALES —`guardarInforme` con su card de severidades, y

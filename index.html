@@ -11374,6 +11374,189 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Anti-VEGF</td><td style="padding:5px 8px;">HTA, trombosis, disfuncion VI</td><td style="padding:5px 8px;">PA, eco si sintomas o FEVI limite</td></tr>
       <tr><td style="padding:5px 8px;font-weight:700;">Radioterapia toracica</td><td style="padding:5px 8px;">Pericarditis, EAC, valvulopatia tardia</td><td style="padding:5px 8px;">Eco 5 y 10 anos post-RT</td></tr>
     </table>
+    <!-- ═══ HFA-ICOS y cardiotoxicidad por clase (agregadas 2026-09-15) ═══════════════════
+         SOLO REFERENCIA: ningún campo de entrada, ningún cálculo, nada que baje al PDF. Se
+         agregan DEBAJO de las dos tablas de arriba, que no se tocaron.
+
+         EL AVISO DE ABAJO NO ES DECORACIÓN. La calculadora de «Riesgo CV basal estimado» que
+         vive en esta MISMA pestaña puntúa con otra escala que la tabla HFA-ICOS: cuenta PUNTOS
+         (`co_riesgo_cv` 0-3 + edad + FEVI + dosis, donde un ítem puede valer 2) y rotula
+         ≤1 BAJO / ≤3 MODERADO / ≤5 ALTO / >5 MUY ALTO. La tabla cuenta FACTORES y rotula 1
+         Medio / 2-3 Alto / ≥4 Muy alto. O sea que un paciente con HTA + DM + obesidad lee
+         «Alto» acá y «Riesgo MODERADO (3 pts)» dos tarjetas más arriba — y las dos escalas
+         llaman «Medio»/«MODERADO» a bandas distintas, que es lo que lo hace difícil de ver.
+         Es la misma forma del defecto que se cerró hoy en las otras dos tablas (una tabla
+         estática contradiciendo al clasificador de al lado), sólo que acá la contradicción se
+         DECLARA en vez de quedar latente. Si algún día la calculadora se alinea con HFA-ICOS,
+         este aviso se borra — y TC-99 se pone en rojo para recordarlo. -->
+    <div style="margin-top:16px;font-size:12px;font-weight:700;color:var(--accent2);">Evaluacion de riesgo cardiovascular basal — marco HFA-ICOS, ESC 2022</div>
+    <div style="font-size:11.5px;color:var(--text2);margin:2px 0 8px;">Realizar <b>ANTES</b> de iniciar el tratamiento oncologico.
+      <b>Marco</b>, no score unico: el HFA-ICOS propiamente dicho son tablas ESPECIFICAS por tipo de
+      tratamiento (ESC 2022, tabla 4) — el mismo motivo por el que el bloque calculador de arriba dejo
+      de llamarse asi. Ademas, de los doce factores de la seccion A la app solo recoge cuatro
+      (edad, FEVI basal, el bucket de riesgo CV y la dosis): el GLS basal absoluto, la troponina y el
+      BNP/NT-proBNP basales, el tabaquismo, la obesidad y el sexo no tienen campo en este modulo.</div>
+    <div style="font-size:11.5px;color:var(--yellow);border-left:3px solid var(--yellow);padding:6px 8px;margin-bottom:10px;line-height:1.5;">
+      <b>Esta tabla y la calculadora de arriba NO usan la misma escala, ni cortan igual, ni puntuan
+      igual los mismos items.</b> La calculadora suma <b>puntos</b> con cortes propios
+      (≤1 bajo · ≤3 moderado · ≤5 alto · &gt;5 muy alto) y, entre otras diferencias, da 2 puntos a
+      cualquier FEVI basal &lt;54% donde esta tabla reparte 1 (50-54%) o 2 (&lt;50%), y cuenta la
+      edad desde 65 inclusive. Esta tabla resuelve por <b>factores <u>o</u> por el farmaco</b>
+      (seccion B), asi que un farmaco de muy alto riesgo la lleva a «muy alto» con cero factores.
+      Ejemplo real: con doxorrubicina 250&nbsp;mg/m² y nada mas cargado, la calculadora dice
+      «Riesgo MODERADO (2 pts)» y esta tabla, «Muy alto».<br>
+      <b>Lo que viaja al informe firmado es el score de la calculadora</b>, con su salvedad de que
+      es orientativo. Esta tabla es la referencia para leerlo, y no se imprime.
+    </div>
+    <div style="font-size:11.5px;font-weight:700;color:var(--text);margin-bottom:4px;">A · Factores de riesgo del paciente</div>
+    <table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:10px;">
+      <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Factor</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);width:70px;">Puntos</th></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">Edad &gt;65 anos</td><td style="padding:5px 8px;">1</td></tr>
+      <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">Sexo femenino (antraciclinas / RT)</td><td style="padding:5px 8px;">1</td></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">HTA</td><td style="padding:5px 8px;">1</td></tr>
+      <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">Diabetes mellitus</td><td style="padding:5px 8px;">1</td></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">Obesidad (IMC &gt;30)</td><td style="padding:5px 8px;">1</td></tr>
+      <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">Tabaquismo activo</td><td style="padding:5px 8px;">1</td></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">Enfermedad CV previa (IC, CAD, FA)</td><td style="padding:5px 8px;">2</td></tr>
+      <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">FEVI basal 50-54%</td><td style="padding:5px 8px;">1</td></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">FEVI basal &lt;50%</td><td style="padding:5px 8px;">2</td></tr>
+      <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">GLS basal deteriorado (&gt;-16%)</td><td style="padding:5px 8px;">1</td></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">Troponina basal elevada</td><td style="padding:5px 8px;">1</td></tr>
+      <tr style="background:var(--bg3);"><td style="padding:5px 8px;">BNP / NT-proBNP basal elevado</td><td style="padding:5px 8px;">1</td></tr>
+    </table>
+
+    <div style="font-size:11.5px;font-weight:700;color:var(--text);margin-bottom:4px;">B · Riesgo por farmaco</div>
+    <table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:10px;">
+      <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);width:90px;">Riesgo</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Farmacos</th></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;color:var(--red);">Muy alto</td><td style="padding:5px 8px;">Antraciclinas alta dosis (doxorrubicina &gt;=250 mg/m2), trastuzumab + antraciclinas</td></tr>
+      <!-- El 250 aparece con DOS rotulos en esta seccion: aca es el corte del FARMACO de muy alto
+           riesgo (el eje del HFA-ICOS), y en la tabla de clases de abajo es el inicio de la banda
+           ALTA de dosis acumulada, cuyo muy alto empieza en 400. Son dos ejes distintos con las
+           mismas palabras, asi que se dice; si no, el mismo numero parece dos cosas contradictorias.
+           Y ojo: el que la app calcula y avisa en rojo es 360 mg/m2, que cae en la banda alta. -->
+      <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;color:var(--orange);">Alto</td><td style="padding:5px 8px;">Antraciclinas dosis moderada, anti-HER2 (trastuzumab, pertuzumab), ciclofosfamida alta dosis</td></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;color:var(--yellow);">Medio</td><td style="padding:5px 8px;">Inhibidores VEGF/VEGFR, inhibidores BCR-ABL, ICI (anti-PD1/PD-L1/CTLA-4), inhibidores CDK4/6, fluoropirimidinas</td></tr>
+      <tr style="background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;color:var(--green);">Bajo</td><td style="padding:5px 8px;">Hormonoterapia (tamoxifeno, inhibidores de aromatasa, analogos GnRH), alcaloides de la vinca, taxanos</td></tr>
+    </table>
+
+    <div style="font-size:11.5px;font-weight:700;color:var(--text);margin-bottom:4px;">C · Clasificacion de riesgo global</div>
+    <table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:10px;">
+      <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);width:90px;">Riesgo global</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Criterio</th></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;color:var(--red);">Muy alto</td><td style="padding:5px 8px;">&gt;=4 factores de riesgo <b>o</b> farmaco de muy alto riesgo</td></tr>
+      <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;color:var(--orange);">Alto</td><td style="padding:5px 8px;">2-3 factores <b>o</b> farmaco de alto riesgo</td></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;color:var(--yellow);">Medio</td><td style="padding:5px 8px;">1 factor <b>o</b> farmaco de medio riesgo</td></tr>
+      <tr style="background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;color:var(--green);">Bajo</td><td style="padding:5px 8px;">Sin factores <b>y</b> farmaco de bajo riesgo</td></tr>
+    </table>
+
+    <div style="margin-top:16px;font-size:12px;font-weight:700;color:var(--accent2);">Cardiotoxicidad y seguimiento ecocardiografico por clase farmacologica — ESC 2022</div>
+    <div style="font-size:11.5px;color:var(--text2);margin:2px 0 8px;">Leyenda de toxicidades especificas: <b>-</b> no descrita · <b>&#10003;</b> ocasional · <b>&#10003;&#10003;</b> frecuente · <b>&#10003;&#10003;&#10003;</b> caracteristica de la clase.</div>
+    <!-- `overflow-x:auto` y no una tabla que se comprime: son SIETE columnas de texto, y en un
+         telefono la alternativa es que las celdas se partan en una letra por renglon. Se scrollea
+         en horizontal, que es lo que hace legible una tabla ancha en pantalla angosta. -->
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+    <table style="width:100%;min-width:900px;border-collapse:collapse;font-size:11px;">
+      <tr style="background:var(--section-head);">
+        <th style="padding:6px 8px;text-align:left;color:var(--accent2);min-width:130px;">Clase / Farmaco</th>
+        <th style="padding:6px 8px;text-align:left;color:var(--accent2);min-width:130px;">Toxicidad principal</th>
+        <th style="padding:6px 8px;text-align:left;color:var(--accent2);min-width:110px;">Reversibilidad</th>
+        <th style="padding:6px 8px;text-align:left;color:var(--accent2);min-width:150px;">Toxicidades especificas</th>
+        <th style="padding:6px 8px;text-align:left;color:var(--accent2);min-width:120px;">Dosis limite acumulada</th>
+        <th style="padding:6px 8px;text-align:left;color:var(--accent2);min-width:200px;">Seguimiento ecocardiografico</th>
+        <th style="padding:6px 8px;text-align:left;color:var(--accent2);min-width:180px;">Tipos de cancer</th>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:5px 8px;font-weight:700;">Antraciclinas<br><span style="font-weight:400;color:var(--text2);">doxorrubicina, epirrubicina, daunorrubicina</span></td>
+        <td style="padding:5px 8px;">Disfuncion sistolica VI dosis-dependiente</td>
+        <td style="padding:5px 8px;">Parcialmente irreversible (dosis-dependiente)</td>
+        <td style="padding:5px 8px;">IC &#10003;&#10003;&#10003; · HTA - · Arritmia &#10003; · Isquemia - · QT &#10003; · Pericarditis -</td>
+        <td style="padding:5px 8px;">Doxorrubicina &gt;=250 mg/m2 (alto riesgo); &gt;=400 mg/m2 (muy alto riesgo)</td>
+        <td style="padding:5px 8px;">Basal obligatorio. Si alto riesgo: eco cada 2 ciclos. Al finalizar el tto. A los 12 meses. Si la FEVI cae &gt;=10 pp o baja de 50%: eco en 2-4 sem y graduar la CTRCD con la primera tabla de esta seccion, que es la que define la conducta.</td>
+        <td style="padding:5px 8px;">Mama, linfomas (LNH, Hodgkin), leucemias (LMA, LLC), sarcomas, cancer gastrico, mieloma</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border);background:var(--bg3);">
+        <td style="padding:5px 8px;font-weight:700;">Anti-HER2<br><span style="font-weight:400;color:var(--text2);">trastuzumab, pertuzumab, lapatinib</span></td>
+        <td style="padding:5px 8px;">Disfuncion sistolica VI no dosis-dependiente</td>
+        <td style="padding:5px 8px;">Generalmente reversible al suspender</td>
+        <td style="padding:5px 8px;">IC &#10003;&#10003; · HTA - · Arritmia - · Isquemia - · QT &#10003; · Pericarditis -</td>
+        <td style="padding:5px 8px;">No aplica</td>
+        <td style="padding:5px 8px;">Basal obligatorio. Eco cada 3 meses durante el tto. Si la FEVI cae &gt;=10 pp o baja de 50%: reevaluar en 3-6 sem y graduar la CTRCD con la primera tabla de esta seccion, que es la que define la conducta.</td>
+        <td style="padding:5px 8px;">Mama HER2+, gastrico HER2+</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:5px 8px;font-weight:700;">Inhibidores VEGF/VEGFR<br><span style="font-weight:400;color:var(--text2);">bevacizumab, sunitinib, sorafenib, pazopanib</span></td>
+        <td style="padding:5px 8px;">HTA, disfuncion VI</td>
+        <td style="padding:5px 8px;">Generalmente reversible</td>
+        <td style="padding:5px 8px;">IC &#10003; · HTA &#10003;&#10003;&#10003; · Arritmia - · Isquemia &#10003; · QT &#10003; · Pericarditis -</td>
+        <td style="padding:5px 8px;">No aplica</td>
+        <td style="padding:5px 8px;">Basal + PA. PA en cada visita (la HTA es frecuente). Eco si FEVI limite o sintomas. Eco al finalizar el tto.</td>
+        <td style="padding:5px 8px;">Rinon, pulmon no microcitico, colon, higado, tiroides, ovario, GIST (sunitinib)</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border);background:var(--bg3);">
+        <td style="padding:5px 8px;font-weight:700;">ICI — Inmunoterapia<br><span style="font-weight:400;color:var(--text2);">pembrolizumab, nivolumab, ipilimumab, atezolizumab</span></td>
+        <td style="padding:5px 8px;">Miocarditis autoinmune (rara pero grave)</td>
+        <td style="padding:5px 8px;">Variable — la miocarditis puede ser fatal</td>
+        <td style="padding:5px 8px;">IC &#10003;&#10003; · HTA - · Arritmia &#10003;&#10003; · Isquemia - · QT - · Pericarditis &#10003;&#10003;</td>
+        <td style="padding:5px 8px;">No aplica</td>
+        <td style="padding:5px 8px;">Basal + troponina + ECG. Eco SOLO si sintomas o troponina elevada. Si hay miocarditis: urgente — suspender y hospitalizar.</td>
+        <td style="padding:5px 8px;">Melanoma, pulmon, rinon, vejiga, cabeza y cuello, linfoma de Hodgkin, multiples tumores solidos</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:5px 8px;font-weight:700;">Fluoropirimidinas<br><span style="font-weight:400;color:var(--text2);">5-FU, capecitabina</span></td>
+        <td style="padding:5px 8px;">Vasoespasmo coronario (mecanismo unico)</td>
+        <td style="padding:5px 8px;">Generalmente reversible al suspender</td>
+        <td style="padding:5px 8px;">IC &#10003; · HTA - · Arritmia &#10003;&#10003; · Isquemia &#10003;&#10003;&#10003; · QT - · Pericarditis -</td>
+        <td style="padding:5px 8px;">No aplica</td>
+        <td style="padding:5px 8px;">Basal. ECG durante la infusion IV de 5-FU. Eco URGENTE si hay dolor toracico durante la infusion (vasoespasmo).</td>
+        <td style="padding:5px 8px;">Colorrectal, gastrico, mama, pancreas, esofago, cabeza y cuello</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border);background:var(--bg3);">
+        <td style="padding:5px 8px;font-weight:700;">Agentes alquilantes<br><span style="font-weight:400;color:var(--text2);">ciclofosfamida alta dosis, ifosfamida</span></td>
+        <td style="padding:5px 8px;">Miocarditis hemorragica aguda (dosis altas)</td>
+        <td style="padding:5px 8px;">Parcialmente reversible</td>
+        <td style="padding:5px 8px;">IC &#10003;&#10003; · HTA - · Arritmia &#10003; · Isquemia - · QT - · Pericarditis &#10003;</td>
+        <td style="padding:5px 8px;">Ciclofosfamida &gt;140 mg/kg (trasplante)</td>
+        <td style="padding:5px 8px;">Basal. Eco antes de cada ciclo de alta dosis. Monitoreo durante la infusion en altas dosis.</td>
+        <td style="padding:5px 8px;">Linfomas, leucemias, mieloma (trasplante), mama, ovario, sarcomas</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:5px 8px;font-weight:700;">Inhibidores BCR-ABL<br><span style="font-weight:400;color:var(--text2);">imatinib, dasatinib, nilotinib, ponatinib</span></td>
+        <td style="padding:5px 8px;">Disfuncion VI, derrame pericardico (dasatinib), enfermedad arterial periferica</td>
+        <td style="padding:5px 8px;">Variable</td>
+        <td style="padding:5px 8px;">IC &#10003; · HTA &#10003; · Arritmia - · Isquemia &#10003;&#10003; · QT &#10003; · Pericarditis &#10003;&#10003; (dasatinib)</td>
+        <td style="padding:5px 8px;">No aplica</td>
+        <td style="padding:5px 8px;">Basal. Eco anual o si hay sintomas. Si aparece derrame pericardico: reducir dosis o suspender el dasatinib.</td>
+        <td style="padding:5px 8px;">LMC, LLA Ph+, GIST (imatinib), tumores raros</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border);background:var(--bg3);">
+        <td style="padding:5px 8px;font-weight:700;">Inhibidores del proteasoma<br><span style="font-weight:400;color:var(--text2);">bortezomib, carfilzomib</span></td>
+        <td style="padding:5px 8px;">Insuficiencia cardiaca, HTA (carfilzomib)</td>
+        <td style="padding:5px 8px;">Parcialmente reversible</td>
+        <td style="padding:5px 8px;">IC &#10003;&#10003; · HTA &#10003;&#10003; · Arritmia - · Isquemia - · QT - · Pericarditis -</td>
+        <td style="padding:5px 8px;">No aplica</td>
+        <td style="padding:5px 8px;">Basal. Eco antes de cada ciclo con carfilzomib. PA en cada visita.</td>
+        <td style="padding:5px 8px;">Mieloma multiple, linfoma de manto, amiloidosis AL</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:5px 8px;font-weight:700;">Radioterapia toracica</td>
+        <td style="padding:5px 8px;">Enfermedad coronaria acelerada, valvulopatia tardia, pericarditis (aguda y cronica), constriccion, disfuncion VI</td>
+        <td style="padding:5px 8px;">Irreversible (progresiva con el tiempo)</td>
+        <td style="padding:5px 8px;">IC &#10003; · HTA - · Arritmia &#10003; · Isquemia &#10003;&#10003;&#10003; · QT - · Pericarditis &#10003;&#10003;&#10003;</td>
+        <td style="padding:5px 8px;">&gt;30-35 Gy sobre el corazon aumenta el riesgo</td>
+        <td style="padding:5px 8px;">Basal. Eco a los 5 anos post-RT. Eco a los 10 anos post-RT. Vigilar: valvulopatia, pericarditis constrictiva, coronariopatia tardia.</td>
+        <td style="padding:5px 8px;">Mama izquierda, pulmon, linfomas mediastinales (Hodgkin), esofago, timoma</td>
+      </tr>
+      <tr style="background:var(--bg3);">
+        <td style="padding:5px 8px;font-weight:700;">Hormonoterapia<br><span style="font-weight:400;color:var(--text2);">tamoxifeno, inhibidores de aromatasa, analogos GnRH, enzalutamida</span></td>
+        <td style="padding:5px 8px;">Sindrome metabolico, HTA, dislipemia, trombosis venosa (tamoxifeno)</td>
+        <td style="padding:5px 8px;">Reversible al suspender</td>
+        <td style="padding:5px 8px;">IC - · HTA &#10003; · Arritmia - · Isquemia &#10003; · QT &#10003; · Pericarditis -</td>
+        <td style="padding:5px 8px;">No aplica</td>
+        <td style="padding:5px 8px;">No rutinario. Eco si hay sintomas o FEVI limite previa. Control de PA y perfil metabolico en cada visita.</td>
+        <td style="padding:5px 8px;">Mama RE+, prostata (analogos GnRH, enzalutamida)</td>
+      </tr>
+    </table>
+    </div>
+
     </div>
   </div>
   </div>
