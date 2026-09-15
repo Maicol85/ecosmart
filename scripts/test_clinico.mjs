@@ -1429,28 +1429,167 @@ caso('TC-87', 'AI dilatada por diametro AP llega al EN SUMA, y la normal no', `
     ] };
 `);
 
-/* ═══════════════════════════════════════════════════════════════════════════════════════════
-   DEFECTOS ABIERTOS — casos que describen lo que la app DEBERIA hacer y hoy no hace.
-   Fallan a proposito. Ver el encabezado de `casoAbierto`.
-   ═══════════════════════════════════════════════════════════════════════════════════════════ */
+/* DECISION TOMADA (Maicol, 2026-09-15): c1b es ADVERTENCIA, no veto. Las guias no lo tratan
+   como contraindicacion — es factibilidad tecnica del operador. Este caso dejo de ser
+   `casoAbierto`: mientras la decision estaba pendiente el xfail decia «debe pesar en el
+   veredicto», y sostener eso DESPUES de decidir lo contrario es peor que no tener el caso —
+   el runner exigiria promoverlo el dia que alguien lo «arregle», o sea que empujaria
+   activamente hacia la conducta que se descarto. Ahora fija la decision por el lado correcto.
+   Lo que SI se verifica es que la advertencia se lea como advertencia: su texto lo dice con
+   todas las letras y `vetoIds` la deja fuera, que es de donde sale el color de la capsula.
+   Sin eso, c1b se pintaba en rojo identico a c1 —que si veta— y se leia como un rechazo. */
+caso('TC-86', 'TEER: el velo posterior <7 mm advierte y NO cambia el veredicto', `
+  function base(lvp) { __t.limpiar(); __t.set('teer_tipo_im','secundaria');
+    __t.set('teer_lva','24'); __t.set('teer_lvp', String(lvp)); __t.set('teer_gap','6');
+    __t.set('teer_prof_flail','8'); __t.set('teer_area_mitral','5.2'); __t.set('teer_pasp','40');
+    __t.set('teer_fevi','35'); __t.set('teer_dtsvi','62');
+    __t.set('teer_calcificacion','no'); __t.set('teer_clefts','no'); __t.set('teer_trombo','no');
+    return teerEstado(); }
+  // La hoja se toma con el velo CORTO. Tomarla despues de base(9) la lee sobre un c1b que
+  // cumple, o sea sobre un estudio sin advertencia — el test pasaba a preguntar por otra cosa.
+  const corto = base(4); const hoja = amiloTextoTEER();
+  const largo = base(9);
+  return { extra: [
+    ['4 mm se marca como no cumplido',        corto.cs.c1b.ok === false],
+    ['pero NO suma fallo',                    corto.fallos === 0],
+    ['y el veredicto sigue siendo APTO',      corto.clave === 'apto'],
+    ['identico al del velo normal',           corto.clave === largo.clave],
+    ['el texto se declara advertencia',
+      corto.cs.c1b.txt.indexOf('Advertencia: agarre difícil') > -1],
+    ['y dice que no mueve el veredicto',
+      corto.cs.c1b.txt.indexOf('No modifica el veredicto') > -1],
+    ['c1b queda FUERA de vetoIds, de ahi sale el color',
+      corto.vetoIds.has('teer-c1b') === false],
+    ['mientras que c1, que si veta, esta dentro',
+      corto.vetoIds.has('teer-c1') === true],
+    // Con tilde: _teerAsciiPDF borra lo que cae fuera de \\x20-\\xFF, y la «í» esta DENTRO.
+    // Lo que si convierte es la raya larga en guion. (Sin acentos graves en este comentario:
+    // el cuerpo del caso es un template literal y un backtick lo cierra en la mitad.)
+    ['la hoja del PDF imprime la advertencia',
+      hoja.indexOf('4mm <7mm - Advertencia: agarre difícil') > -1],
+    ['y la conclusion de la hoja sigue siendo APTO',
+      hoja.indexOf('APTO para TEER - criterios cumplidos') > -1]
+  ] };
+`);
 
-/* c1b (velo posterior <7 mm) se pinta y no cuenta, igual que c7 y c8 — pero NO se cerro con
-   ellos, y a proposito. Su texto de fallo dice «agarre difícil», no «NO apto»: es una
-   advertencia de factibilidad tecnica, no un criterio de exclusion del COAPT. Convertirlo en
-   veto cambiaria el veredicto de pacientes reales, asi que es una decision clinica de Maicol,
-   no un arreglo que corresponda hacer por consistencia. El caso queda abierto para que la
-   decision este escrita en algun lado y no se pierda. */
-casoAbierto('TC-86', 'TEER: velo posterior <7 mm debe pesar en el veredicto',
-  'Decision clinica pendiente, no defecto: c1b no esta en `veto` y su texto de fallo dice «agarre difícil». Con 4 mm de velo posterior el estado sigue siendo APTO con cero fallos.', `
+/* c6 (PASP <=70) es un criterio de TECHO: falla ABIERTO con el cero. Con `pasp !== null` solo,
+   un `psap_calc` de 0 imprimia «0mmHg <=70mmHg ✓» en la hoja firmada y contaba como CUMPLIDO,
+   asi que podia dejar noIngresados en cero y publicar «APTO para TEER». Es el mismo patron que
+   ya se cerro para c8; c6 quedo pendiente aquella vez por ser preexistente.
+   Los tres puntos del checklist de Maicol —sin PSAP, 80 mmHg, 60 mmHg— van como los tres
+   lados del corte, mas el cero que es el que importa. */
+caso('TC-91', 'TEER: la PASP en cero no es un criterio cumplido', `
+  function pasp(v) { __t.limpiar(); __t.set('teer_tipo_im','secundaria');
+    __t.set('teer_lva','24'); __t.set('teer_lvp','9'); __t.set('teer_gap','6');
+    __t.set('teer_prof_flail','8'); __t.set('teer_area_mitral','5.2');
+    __t.set('teer_fevi','35'); __t.set('teer_dtsvi','62');
+    if (v !== null) __t.set('teer_pasp', String(v));
+    __t.set('teer_calcificacion','no'); __t.set('teer_clefts','no'); __t.set('teer_trombo','no');
+    return teerEstado(); }
+  const cero = pasp(0), sin = pasp(null), alta = pasp(80), ok = pasp(60), borde = pasp(70);
+  return { extra: [
+    ['PASP 0 no dice ni apto ni no apto',   cero.cs.c6.ok === null],
+    ['y el estudio no puede decir APTO',    cero.clave !== 'apto'],
+    ['sin PSAP cargada, igual',             sin.cs.c6.ok === null],
+    ['PASP 80 no cumple',                   alta.cs.c6.ok === false && alta.fallos === 1],
+    ['PASP 70 exactos todavia cumple',      borde.cs.c6.ok === true],
+    ['PASP 60 cumple y el estudio es APTO', ok.cs.c6.ok === true && ok.clave === 'apto']
+  ] };
+`);
+
+/* LA TABLA DE REFERENCIAS CONTRA EL CLASIFICADOR. Decia «Leve: FEVI >=50% con caída >=10% +
+   síntomas/biomarcadores» y eso NO es ESC 2022 ni lo que calcula la app: la leve asintomatica
+   no exige caida de FEVI. El codigo estaba bien; la tabla, mal — y en la direccion peligrosa,
+   pidiendo MAS de lo que pide la guia, asi que el mismo paciente salia «cardiotoxicidad LEVE»
+   en su informe firmado y no calificaba segun la tabla de la propia app, dos pestañas mas alla.
+   Es prosa HTML estatica que no puede leer las constantes, o sea que nada la ata sola. Este
+   caso es esa atadura: verifica LOS DOS LADOS en la misma corrida — que la tabla lo diga y que
+   el clasificador lo haga— sobre el caso exacto donde diferian. Con un solo lado, la tabla
+   podria volver a la redaccion vieja sin que nada se pusiera en rojo. */
+caso('TC-93', 'Cardio-onco: la tabla de Referencias dice lo mismo que clasifica el codigo', `
+  const tabla = (document.getElementById('ref-cardiotox') || {}).textContent || '';
+  function tox(fb, fa, tropo) { __t.limpiar();
+    __t.set('co_fevi_basal', String(fb)); __t.set('co_fevi_actual', String(fa));
+    if (tropo) __t.set('co_troponi','si');
+    return (__t.txt('co-toxicidad-resultado') || '').replace(/\\s+/g,' '); }
+  const leve   = tox(60, 58, true);   // caida de 2 pp: MENOS de 10, y aun asi es LEVE
+  const mejora = tox(42, 48, true);   // MEJORA hasta 40-49 con troponina: NO es moderada
+  return { extra: [
+    ['la tabla declara que la leve no exige caida de FEVI',
+      tabla.indexOf('No exige caída de FEVI') > -1],
+    ['y ya no pide «caída ≥10%» para la leve',
+      tabla.indexOf('FEVI ≥50% con caída ≥10% + síntomas/biomarcadores') === -1],
+    ['el clasificador rotula LEVE con 2 pp de caida y troponina elevada',
+      leve.indexOf('cardiotoxicidad LEVE asintomatica (ESC 2022)') > -1],
+    // El umbral del SGL es >= 15, no > 15: la tabla tiene que escribir el operador que
+    // el codigo usa. Con «>15%» un GLS de -20 a -17 —15,0 exactos— es LEVE para el
+    // clasificador y no califica segun la tabla, que es la discrepancia que esto cierra.
+    ['la tabla usa ≥15% para el SGL, igual que el codigo',
+      tabla.indexOf('SGL ↓ ≥15% relativo') > -1 && tabla.indexOf('SGL ↓ >15% relativo') === -1],
+    ['la tabla exige descenso para la moderada',
+      tabla.indexOf('Tiene que haber descenso') > -1],
+    ['y el clasificador NO llama moderada a una FEVI que mejora hasta 40-49 con troponina',
+      mejora.indexOf('MODERADA') === -1 && mejora.indexOf('no cumple criterio de CTRCD') > -1],
+    ['la fila «sin graduar» se declara abierta, no una enumeracion cerrada',
+      tabla.indexOf('No es una lista cerrada') > -1],
+    ['la tabla nombra la reduccion NUEVA en la severa',
+      tabla.indexOf('nueva') > -1],
+    ['y advierte que la app solo puntua troponina',
+      tabla.indexOf('sólo troponina') > -1]
+  ] };
+`);
+
+/* REIMPRIMIR NO PUEDE RECALCULAR. El texto de cada modulo de ETT Avanzado se congela al
+   integrar; `amiloRefrescarSiIntacto` lo regenera si sigue siendo el que genero la app, para
+   que cargar un dato DESPUES de integrar no deje la conclusion vieja en el PDF. La reimpresion
+   de un informe firmado esta excluida de eso — pero la exclusion se apoyaba en que el texto
+   restaurado NO coincidiera con `_amiloUltimo`, y `_amiloUltimo` es global a la pagina y solo
+   se vacia en «Nuevo estudio». Asi que abrir un estudio para editar —o por el QR del PDF— y
+   despues reimprimir ESE MISMO estudio hacia coincidir los dos lados y la hoja se REGENERABA:
+   la reimpresion dejaba de reproducir lo firmado justo en el caso mas normal.
+   El caso prueba las DOS direcciones. Sin la segunda, borrar la marca siempre tambien pasaria
+   el test, y eso romperia el refresco que existe por un defecto real ya cerrado. */
+caso('TC-92', 'Reimprimir conserva la hoja TEER firmada; abrir para editar la regenera', `
+  const FIRMADO = '## Conclusión\\nAPTO para TEER - criterios cumplidos\\nAnatomía favorable.';
+  const campos  = { 'am-integrados':'teer', 'am-txt-teer': FIRMADO };
+  function escenario(reimpresion) {
+    __t.limpiar();
+    // Estudio que HOY evalua distinto de lo firmado: DTSVI 78 mm, o sea NO apto.
+    __t.set('teer_tipo_im','secundaria');
+    __t.set('teer_lva','24'); __t.set('teer_lvp','9'); __t.set('teer_gap','6');
+    __t.set('teer_prof_flail','8'); __t.set('teer_area_mitral','5.2'); __t.set('teer_pasp','40');
+    __t.set('teer_fevi','35'); __t.set('teer_dtsvi','78');
+    __t.set('teer_calcificacion','no'); __t.set('teer_clefts','no'); __t.set('teer_trombo','no');
+    // 1) el estudio se abre para EDITAR: deja su marca en _amiloUltimo
+    amiloRestaurarDesdeCampos(campos, false);
+    // 2) y despues se reimprime (o se vuelve a abrir), sin recargar la pagina
+    amiloRestaurarDesdeCampos(campos, reimpresion);
+    calcTEER();
+    return (document.getElementById('am-txt-teer') || {}).value || '';
+  }
+  const reimpreso = escenario(true), reabierto = escenario(false);
+
+  /* El estudio marcado como integrado pero SIN texto guardado. Es el unico caso que separa el
+     borrado de la marca de la guarda hasOwnProperty: borrada la marca, la comparacion de textos
+     ya protege a cualquier hoja con contenido —cadena vacia contra el texto firmado difieren—,
+     pero con el textarea vacio los dos lados valen '' y sin la guarda la reimpresion INYECTA una
+     hoja TEER recien calculada en un informe que no la tenia. Se llega desde un guardado viejo o
+     parcial: am-integrados trae la clave y am-txt-teer no.
+     (Sin acentos graves: el cuerpo del caso es un template literal y un backtick lo parte.) */
   __t.limpiar(); __t.set('teer_tipo_im','secundaria');
-  __t.set('teer_lva','24'); __t.set('teer_lvp','4'); __t.set('teer_gap','6');
-  __t.set('teer_prof_flail','8'); __t.set('teer_area_mitral','5.2'); __t.set('teer_pasp','40');
+  __t.set('teer_lva','24'); __t.set('teer_area_mitral','5.2'); __t.set('teer_pasp','40');
   __t.set('teer_fevi','35'); __t.set('teer_dtsvi','62');
   __t.set('teer_calcificacion','no'); __t.set('teer_clefts','no'); __t.set('teer_trombo','no');
-  const e = teerEstado();
+  amiloRestaurarDesdeCampos({ 'am-integrados':'teer', 'am-txt-teer':'' }, true);
+  calcTEER();
+  const vacio = (document.getElementById('am-txt-teer') || {}).value || '';
+
   return { extra: [
-    ['el criterio se marca como no cumplido', e.cs.c1b.ok === false],
-    ['y cuenta como fallo',                   e.fallos >= 1]
+    ['reimprimir conserva el texto firmado, palabra por palabra', reimpreso === FIRMADO],
+    ['y no cuela el veredicto de hoy',      reimpreso.indexOf('NO apto') === -1],
+    ['abrir para editar SI regenera',       reabierto !== FIRMADO],
+    ['y ahi aparece el criterio que fallaba', reabierto.indexOf('>70mm - NO apto') > -1],
+    ['una hoja guardada VACIA no se rellena al reimprimir', vacio === '']
   ] };
 `);
 

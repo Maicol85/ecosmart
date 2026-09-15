@@ -86,6 +86,28 @@ relectura. Hoy vetan, gateados por `esSec` estricto. La regla que queda: **al ce
 de esta forma, enumerar todo lo que se pinta y cruzarlo contra la lista**, no sólo arreglar el
 que se reportó.
 
+### Si la reimpresión empieza a BORRAR un global, hay que reponerlo — «no escribir» no alcanzaba
+`_pdfDeInformeGuardadoArmar` respalda y repone todo estado global que toca: `imgSlots`,
+`_imgEditado`, `esqSevManual`, `chkEstado`, `dataset.tocado`, `_MARCAS_DERIV`, `_infBase`,
+`_sumaBase`, `amiloSnapshot`. Al arreglar el agujero de la reimpresión (2026-09-15) esa función
+pasó a **borrar** `_amiloUltimo`, que antes sólo se abstenía de escribir — y `_amiloUltimo` no
+estaba en la lista, porque hasta ese día no había nada que reponer.
+
+Consecuencia, encontrada por el `/differential-review` del propio arreglo: el médico reimprime
+cualquier guardado —o exporta el PPT, que pasa por el mismo camino— y **el estudio que tiene en
+pantalla pierde el refresco automático de sus ocho módulos por el resto de la sesión**. Carga el
+trombo de la orejuela después de haber integrado el TEER y la pantalla dice «CONTRAINDICADO»
+mientras la hoja del PDF sigue diciendo «APTO»: exactamente el defecto que `amiloRefrescarSiIntacto`
+existe para cerrar. Y no se recupera desde la interfaz — con la marca borrada, «Retirar» +
+«Integrar» tampoco regenera; sólo «Nuevo estudio».
+
+Dos reglas: **(1)** un arreglo que cambia «no tocar» por «borrar» convierte un global en estado
+que hay que respaldar, aunque la línea que se editó esté a 800 líneas del backup. **(2)** al
+reponerlo, **reemplazar el contenido, no la referencia** (`for…in` + `Object.assign`): es un
+`var` de nivel superior que otros bloques leen por su nombre, y reasignarlo los deja mirando el
+objeto viejo. Sin cobertura automática: probarlo exige generar un PDF real y esperar el
+`setTimeout` de la restauración.
+
 ### Convertir decoración en decisor cambia lo que significan sus insumos
 Al meter `c7`/`c8` en el `veto` del TEER, tres cosas que eran inocuas mientras esos criterios
 sólo se pintaban se volvieron defectos **el mismo commit**, y ninguna está en el diff de la línea
@@ -761,13 +783,13 @@ El script contesta *«nadie lo nombra»*, no *«no tiene destino»*: un id menci
 ### 2 · Test suite clínico
 
 ```bash
-node scripts/test_clinico.mjs            # 89 casos + 1 defecto abierto
+node scripts/test_clinico.mjs            # 93 casos, sin defectos abiertos
 node scripts/test_clinico.mjs --solo TC-04
 node scripts/test_clinico.mjs --ver      # con el navegador a la vista, para depurar
 ```
 
 **Correr antes de cualquier push que toque el informe narrativo, el EN SUMA o una fórmula de
-cálculo. Tienen que pasar los 89. Si alguno falla, corregir antes de seguir.**
+cálculo. Tienen que pasar los 93. Si alguno falla, corregir antes de seguir.**
 
 **TC-01 a TC-17 — los bugs del 2026-09-14.** VD que desaparecía (TC-01/03), gradiente pulmonar
 congelado (TC-04), AD ausente del EN SUMA (TC-06), HFA-PEFF sin compuerta de FEVI (TC-07/08),
@@ -780,10 +802,12 @@ aórtica (46-48), tricúspide y pulmonar (49-51), hemodinámica (52-56), HFA-PEF
 pericardio (59-60), congénitas (61-66), amiloidosis (67-68), cardio-oncología (69-72, 88),
 ETE/TEER/TAVI/orejuela (73-78), derivados y sincronías (79-83).
 
-**TC-84 a TC-90 — los defectos que el propio suite encontró, ya cerrados (2026-09-15).** TEER c7
+**TC-84 a TC-93 — los defectos que el propio suite encontró, ya cerrados (2026-09-15).** TEER c7
 y c8 al `veto` (84/85), el gate `esSec` estricto que evita que el arreglo se coma el caso común
 (89), la AI por diámetro AP en el EN SUMA con su lado normal (87) y los tres bordes que apareció
-el differential-review del arreglo (90: espejo vivo, cero, compuerta). TC-86 sigue abierto.
+el differential-review del arreglo (90: espejo vivo, cero, compuerta). Segunda tanda: c1b como
+advertencia declarada (86), la PASP en cero (91), la reimpresión que no puede recalcular (92) y
+la tabla de Referencias de cardio-onco atada al clasificador (93).
 
 **Dos reglas que rigen los casos nuevos:**
 - El **umbral y el operador** salen del código —`>` y `>=` no son lo mismo—, y se prueban **por
@@ -800,9 +824,15 @@ superficie corporal arbitraria escondida en los insumos.
 defecto vivo. Falla a propósito y **no tiñe el resultado**: si contara, el suite quedaría rojo
 para siempre y se dejaría de correr, que es exactamente como un defecto deja de verse. Pero si
 alguno **pasa**, el runner sale con 1 y pide promoverlo a `caso()` — un arreglo silencioso
-también es un cambio del que hay que enterarse. De los cuatro que abrió el barrido quedó **uno**:
-TC-86 (velo posterior), que no es un defecto sino una decisión clínica pendiente. Está en «Deuda
-conocida sin resolver».
+también es un cambio del que hay que enterarse. De los cuatro que abrió el barrido **no queda
+ninguno**; hoy el helper no tiene usuarios y se conserva para el próximo.
+
+**Un xfail sobrevive a una decisión, y ahí hay que borrarlo, no mantenerlo.** TC-86 decía «el
+velo posterior debe pesar en el veredicto» mientras la decisión estaba pendiente. Cuando se
+decidió lo contrario —c1b es advertencia—, ese xfail dejó de describir un defecto y pasó a
+empujar hacia la conducta descartada: el día que alguien «lo arreglara», el runner habría salido
+con 1 exigiendo promoverlo. Se convirtió en caso normal que fija la decisión por el lado
+correcto. **Al tomar una decisión, revisar si algún `casoAbierto()` afirmaba lo opuesto.**
 
 **No usa Playwright** — `pip install` está bloqueado en este entorno y bajar un Chromium propio
 son ~150 MB. Node 24 trae `fetch` y `WebSocket` nativos, así que el script habla **CDP directo
@@ -2986,67 +3016,77 @@ criterio». Si aparece, la palanca es juntar las salvedades con la línea de la 
 
 ## Deuda conocida sin resolver
 
-### Lo que quedó abierto del barrido del suite (2026-09-15)
+### El barrido del suite: qué quedó abierto (2026-09-15, segunda tanda)
 
-De los cuatro defectos que abrió el barrido quedó **uno**, y no es un defecto: es una decisión
-clínica pendiente. Los otros tres se cerraron el 2026-09-15 y están documentados en «Trampas»:
-c7/c8 del TEER en «Un criterio que se pinta y no se cuenta» y «Convertir decoración en decisor
-cambia lo que significan sus insumos»; la AI por diámetro AP, en la lección de las asimetrías
-entre rutas de medición.
+De los cuatro defectos que abrió el barrido **no queda ninguno**. El suite no tiene casos ⊘.
+Los cuatro están documentados en «Trampas»: c7/c8 del TEER en «Un criterio que se pinta y no se
+cuenta» y «Convertir decoración en decisor cambia lo que significan sus insumos»; la AI por
+diámetro AP, en la lección de las asimetrías entre rutas de medición; y c1b, decidido como
+**advertencia** (ver abajo).
 
-- **TC-86 — TEER: ¿el velo posterior <7 mm debe vetar?** `c1b` se pinta, se imprime en la hoja
-  firmada y **no cuenta**: con 4 mm de velo posterior el estado sigue siendo `✅ APTO` con cero
-  fallos. Tiene la misma forma que c7/c8, y **a propósito no se cerró con ellos**: su texto de
-  fallo dice «agarre difícil», no «NO apto». Es una advertencia de factibilidad técnica, no un
-  criterio de exclusión del COAPT, así que convertirlo en veto cambia el veredicto de pacientes
-  reales — lo decide Maicol, no la consistencia. Queda como `casoAbierto()` para que la decisión
-  esté escrita en algún lado.
+**c1b es advertencia, no veto — decisión de Maicol, 2026-09-15.** Las guías no lo tratan como
+contraindicación: es factibilidad técnica del operador. Lo que cambió con la decisión no es sólo
+que siga fuera del `veto`, sino que **lo diga**: el texto de fallo pasó a «Advertencia: agarre
+difícil, evaluar con el operador. No modifica el veredicto», la cápsula lo pinta en amarillo con
+«⚠» en vez de rojo con «✗» —el color sale de `r.vetoIds`, derivado de la misma lista que decide
+el veredicto, para que no pueda desincronizarse—, la ayuda del campo dice «Ideal» y no «Req», y
+la tabla de Referencias lo saca de «Inclusión» y le da su propia línea. **TC-86 dejó de ser
+`casoAbierto` y pasó a caso normal**: sostener un xfail que dice «debe pesar en el veredicto»
+DESPUÉS de decidir lo contrario es peor que no tenerlo — el runner exigiría promoverlo el día
+que alguien lo «arregle», o sea que empujaría activamente hacia la conducta descartada.
 
-### Cardio-Oncología: quedan tres copias de los umbrales (2026-09-15)
+### Cardio-Oncología: qué queda sin atar (2026-09-15)
 
-El clasificador ya lee las constantes (ver abajo). **Lo que todavía no:**
+El clasificador lee las constantes y **la tabla de Referencias ya está corregida** (decía que la
+leve exige caída ≥10 % de FEVI; ESC 2022 no la exige y el código tampoco). La ata TC-93, que
+verifica los dos lados en la misma corrida: que la tabla lo diga y que el clasificador lo haga.
+**Lo que todavía no lee las constantes:**
 
 - **El filtro de cohorte del Laboratorio** (`if (C.coGls) … !(g > 15)`, y los `gt10`/`gt15` de
   caída de FEVI): literales pelados, y con `>` donde el clasificador usa `>=`. Mover
   `CO_UMBRAL_GLS_REL` mueve el veredicto, la leyenda del PDF y la línea de la curva, y deja el
-  filtro «Caída GLS > 15 %» en 15. Es el mismo modo de falla que se acaba de cerrar,
-  sobreviviendo en la superficie que arma cohortes. No se tocó porque `>` contra `>=` es la
-  semántica declarada del filtro y cambiarla altera qué estudios entran a una cohorte ya usada.
-- **La tabla de Referencias de la interfaz** (~L10959), HTML estático que no puede leer una
-  constante — y que **hoy ya contradice al código**: dice «Leve: FEVI ≥50% con caída ≥10% +
-  síntomas/biomarcadores» y `_ctrcdEstado` devuelve `'leve'` con FEVI ≥50 y GLS o troponina,
-  **sin exigir caída**. Concreto: FEVI 60 → 58 con troponina elevada imprime «cardiotoxicidad
-  LEVE asintomatica (ESC 2022)» a dos pestañas de una tabla de la misma app que dice que hace
-  falta ≥10 %. **Decidir cuál de las dos es la correcta** — no es sólo una copia desactualizada,
-  es una discrepancia clínica.
-- **El `40` de la CTRCD severa.** No se extrajo porque no está en la leyenda ni en la curva, o
-  sea que no tiene la divergencia entre superficies que motivó el cambio. Pero sí está escrito
-  tres veces: la cascada, el semáforo de `calcCardioOnco` (`feviActual < 40`) y esa tabla. Es
-  deuda, no diseño.
+  filtro «Caída GLS > 15 %» en 15. No se tocó porque `>` contra `>=` es la semántica declarada
+  del filtro y cambiarla altera qué estudios entran a una cohorte ya usada.
+- **El `40` de la CTRCD severa.** Está escrito tres veces: la cascada, el semáforo de
+  `calcCardioOnco` (`feviActual < 40`) y la tabla. Deuda, no diseño.
 
-### TEER: tres cosas que el differential-review dejó reportadas y no se tocaron (2026-09-15)
+### El redondeo del SGL: dos pares que la app muestra iguales clasifican distinto
 
-- **`c6` (PASP ≤70) falla ABIERTO con el cero.** `pasp !== null` y `pasp <= 70`: un `psap_calc`
-  de 0 imprime «0mmHg ≤70mmHg ✓» y cuenta como cumplido. Es la misma forma que `c8`, que sí se
-  cerró en esta tanda con `dtsvi > 0`; `c6` quedó igual porque es preexistente y el cambio no lo
-  toca. Arreglarlo es una línea, pero mueve el veredicto de estudios guardados.
-- **Reimprimir y editar+regenerar dan distinta conclusión TEER.** `amiloRestaurarDesdeCampos(c,
-  true)` no setea `_amiloUltimo`, así que reimprimir desde Guardados conserva la hoja firmada;
-  `editarInforme` y `cargarEstudioPorId` (o sea el QR del PDF) sí la setean y `calcTEER` →
-  `amiloRefrescarSiIntacto('teer')` la **regenera** con los criterios de hoy. Es la divergencia
-  que la sección «Reimprimir y editar+regenerar tienen que dar el mismo PDF» ya acepta para
-  `calcVP` — pero acá lo que cambia es la **línea de conclusión**, y el camino más probable es el
-  QR, que es por donde entra un colega.
+`_ctrcdGlsRel(-18, -15.3)` da **14.999999999999996** en coma flotante, así que `>= 15` es
+**false** — pero toda la interfaz lo muestra como «15,0 %» por `toFixed(1)`. Con FEVI 60 → 58 y
+troponina normal ese paciente sale «Sin toxicidad detectada» en verde, y `-20 → -17` —que la app
+también muestra como 15,0 %— sale «cardiotoxicidad LEVE». Dos números idénticos en pantalla, dos
+veredictos opuestos en el informe firmado. Es la trampa de «clasificar el valor que se imprime»
+(lección 6) en su versión de punto flotante. **Sin resolver**: la salida es comparar el valor
+redondeado a la misma precisión que se publica, pero eso mueve la clasificación de pacientes
+reales y es decisión de Maicol.
+
+### TEER: lo que queda reportado y sin tocar (2026-09-15)
+
+- **gap, profundidad de coaptación y anchura de flail fallan ABIERTOS con el cero.** Son
+  criterios de techo (`v <= X`) y un 0 cuenta como cumplido. c6 y c8 ya llevan su guarda
+  (`> 0`), en las dos superficies; estos tres no, **pero fallan igual de los dos lados**, así
+  que no hay divergencia entre el informe y el Laboratorio. Arreglarlo mueve veredictos de
+  estudios guardados.
 - **`_teerAplica` admite los criterios COAPT por el primer brazo de `usaTeer`.** Con
   `teer_tipo_im='secundaria'` consignado y ningún otro campo TEER cargado, `ingresados` llega a 2
   por los dos espejos y el estudio cae en un veredicto del panel en vez de en «Sin criterios
-  anatómicos cargados». Alcance estrecho (exige `psap_calc`, `ete_lva` y `avm_plan`/`avm_ete` los
-  tres vacíos) y no sale del dashboard del Laboratorio.
+  anatómicos cargados». Alcance estrecho y no sale del dashboard del Laboratorio.
 - **La asimetría de `null` en c9/c10 entre pantalla y Laboratorio.** En `teerEstado` un select de
   calcificación/clefts sin evaluar es «no ingresado» y baja el veredicto a «Posiblemente apto»;
   en el Lab sólo puede sumar a `fallados` y nunca entra en `_aplican.length`. Un estudio con los
   siete numéricos y los dos selects en «— no evaluado —» sale «⚠️ Posiblemente apto» en la hoja
   firmada y «✅ Apto» en la estadística. Preexistente.
+
+### Dos arreglos sin cobertura automática (2026-09-15)
+
+Verificados leyendo el código y razonando la cadena, **no** por un caso del suite. Se dice acá
+para que no se lean como cubiertos:
+- **El respaldo de `_amiloUltimo` en la reimpresión.** Probarlo exige generar un PDF real con
+  jsPDF y esperar el `setTimeout` de la restauración; es demasiado frágil para este suite.
+- **La guarda `cero:'no'` de `TEER_CRIT`.** `TEER_CRIT` es un `const` local dentro de
+  `labEteRender`, así que no hay forma de alcanzarlo desde el harness sin renderizar el panel
+  con estudios guardados.
 
 ### VD / válvula pulmonar / TEER / HFA-PEFF (2026-09-14) — reglas para no romperlo
 - **El grado del VD sale de `vdBasCat`, no de un `> 41` suelto.** Había dos umbrales sobre la

@@ -7623,7 +7623,11 @@ z
       </div>
       <!-- Las longitudes de velo viven ACÁ y no en el bloque de IM primaria: son factibilidad
            de agarre del clip, no un criterio de mecanismo, y cuentan en los dos tipos. Estaban
-           en el bloque primaria y al ocultarlo en la IM secundaria dejaban de vetar. -->
+           en el bloque primaria y al ocultarlo en la IM secundaria el velo ANTERIOR dejaba de
+           vetar. El POSTERIOR (c1b) no veta en ninguno de los dos: desde el 2026-09-15 es una
+           advertencia declarada, por decisión clínica —«agarre difícil» es factibilidad del
+           operador, no exclusión del COAPT—. Por eso su ayuda dice «Ideal» y no «Req»: al lado
+           del velo anterior, que sí veta, un «Req:» idéntico contradecía a la propia cápsula. -->
       <div class="grid-2" style="margin-bottom:10px;">
         <div class="fg"><label>Longitud velo anterior (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← ETE Válvula Mitral</span></label>
           <input type="number" id="teer_lva" placeholder="mm" oninput="calcTEER()">
@@ -7631,7 +7635,7 @@ z
         </div>
         <div class="fg"><label>Longitud velo posterior (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← ETE Válvula Mitral</span></label>
           <input type="number" id="teer_lvp" placeholder="mm" oninput="calcTEER()">
-          <span style="font-size:10px; color:var(--text2);">Req: ≥7mm (ideal ≥10mm)</span>
+          <span style="font-size:10px; color:var(--text2);">Ideal: ≥7mm (mejor ≥10mm) — advertencia, no modifica el veredicto</span>
         </div>
       </div>
       <div class="grid-2">
@@ -10605,9 +10609,15 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           </div>
           <div style="margin-top:10px;font-size:12px;font-weight:700;color:var(--accent2);">Criterios TEER — Inclusión / Exclusión</div>
           <div style="font-size:12px;color:var(--text);line-height:1.8;margin-top:4px;">
-            <b>IM Primaria:</b> Flail gap &lt;10mm · Ancho flail &lt;15mm · Velo ant ≥20mm · Velo post ≥7mm · Área mitral ≥4cm²<br>
-            <b>IM Secundaria (COAPT):</b> FEVI 20–50% · DTSVI ≤70mm · PSAP ≤70mmHg · Prof. coaptación &lt;11mm · Long. coaptación &gt;2mm<br>
-            <b>Exclusión ambas:</b> Trombo AI · Calcificación densa zona clip · Clefts en zona agarre · Área mitral &lt;4cm²
+            <!-- Reordenada el 2026-09-15 para que diga lo mismo que evalúa `teerEstado()`. Antes
+                 ponía las dos longitudes de velo sólo bajo «IM Primaria» —y son COMUNES a los dos
+                 tipos desde el arreglo del bloque de criterios— y listaba el velo posterior como
+                 criterio de inclusión, cuando es una advertencia que NO cambia el veredicto. -->
+            <b>Comunes a los dos tipos:</b> Velo ant ≥20mm · Área mitral ≥4cm² · PSAP ≤70mmHg<br>
+            <b>IM Primaria:</b> Ancho flail ≤15mm<br>
+            <b>IM Secundaria (COAPT):</b> FEVI 20–50% · DTSVI ≤70mm · Prof. coaptación ≤10mm · Gap de coaptación ≤10mm<br>
+            <b>Exclusión ambas:</b> Trombo AI (absoluta) · Calcificación densa zona clip · Clefts en zona agarre<br>
+            <b>Advertencia, no exclusión:</b> Velo post ≥7mm (ideal ≥10mm) — factibilidad de agarre; se informa y no modifica el veredicto
           </div>
           <div style="margin-top:10px;font-size:12px;font-weight:700;color:var(--accent2);">Seguimiento eco</div>
           <div style="font-size:12px;color:var(--text);line-height:1.8;margin-top:4px;">• Leve: 3–5 años · Moderada: 1–2 años · Severa asint: 6–12 meses</div>
@@ -10956,12 +10966,21 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     <div id="ref-cardiotox" style="display:none;" class="card-body">
       <table style="width:100%;border-collapse:collapse;font-size:12px;">
         <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Tipo CTRCD</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Criterio</th></tr>
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:#f05454;font-weight:700;">Severa</td><td style="padding:5px 8px;">FEVI &lt;40%</td></tr>
-        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:#f59e42;font-weight:700;">Moderada</td><td style="padding:5px 8px;">FEVI 40–49% con caída ≥10% desde basal</td></tr>
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:#f5c842;font-weight:700;">Leve</td><td style="padding:5px 8px;">FEVI ≥50% con caída ≥10% + síntomas/biomarcadores</td></tr>
-        <tr><td style="padding:5px 8px;color:#9b7fe8;font-weight:700;">Subclínica</td><td style="padding:5px 8px;">SGL relativo ↓ &gt;15% desde basal (FEVI conservada)</td></tr>
+        <!-- Corregida el 2026-09-15. Decía «Leve: FEVI ≥50% con caída ≥10% + síntomas/biomarcadores»
+             y eso NO es lo que dice ESC 2022 ni lo que calcula la app: la leve asintomática NO exige
+             caída de FEVI. La discrepancia la encontró el test suite, y estaba en la dirección peligrosa
+             —la tabla pedía MÁS de lo que pide la guía—, así que un paciente con FEVI 60→58 y troponina
+             elevada salía rotulado «cardiotoxicidad LEVE» en el informe mientras esta tabla, dos
+             pestañas más allá, decía que hacía falta ≥10 %. El código estaba bien; la tabla, mal.
+             Esta tabla es HTML estático y no puede leer las constantes CO_UMBRAL_*: si alguna se mueve,
+             hay que tocar esto a mano. La nota vive junto a su declaración. -->
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:#f05454;font-weight:700;">Severa<br><span style="font-weight:400;font-size:11px;color:var(--text2);">asintomática</span></td><td style="padding:5px 8px;">FEVI <b>nueva</b> &lt;40%<br><span style="font-size:11px;color:var(--text2);">La reducción tiene que ser nueva: con un basal ya &lt;40% no se gradúa, se informa como empeoramiento sobre disfunción previa.</span></td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:#f59e42;font-weight:700;">Moderada<br><span style="font-weight:400;font-size:11px;color:var(--text2);">asintomática</span></td><td style="padding:5px 8px;">FEVI 40–49% con caída ≥10 pp desde basal<br><b>o</b> FEVI 40–49% con <b>algún</b> descenso (&lt;10 pp) <b>+</b> SGL ↓ ≥15% relativo <b>o</b> troponina elevada<br><span style="font-size:11px;color:var(--text2);">Tiene que haber descenso: una FEVI que MEJORA hasta 40–49% con marcadores alterados no es CTRCD, la reducción es parte de la definición.</span></td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:#f5c842;font-weight:700;">Leve<br><span style="font-weight:400;font-size:11px;color:var(--text2);">asintomática</span></td><td style="padding:5px 8px;">FEVI conservada (≥50%) <b>+</b> SGL ↓ ≥15% relativo desde basal <b>y/o</b> biomarcadores elevados<br><b style="color:#f5c842;">No exige caída de FEVI.</b></td></tr>
+        <tr><td style="padding:5px 8px;color:#9b7fe8;font-weight:700;">Sin graduar</td><td style="padding:5px 8px;">Todo lo que no encaja en las tres de arriba la guía <b>no</b> lo gradúa, y la app lo informa describiéndolo sin ponerle grado. Entre otros: caída ≥10 pp con FEVI ≥50% sin SGL ni troponina · caída de 5 a 9 pp con FEVI ≥50% · FEVI &lt;50% con descenso pero sin marcadores · descenso ≥10 pp sobre un basal ya &lt;40% · SGL alterado sin par de FEVI basal/actual · FEVI &lt;40% sin basal cargado.<br><span style="font-size:11px;color:var(--text2);">No es una lista cerrada: la regla es que sin los criterios de arriba no se rotula el grado.</span></td></tr>
       </table>
       <div style="margin-top:10px;font-size:12px;color:var(--text);line-height:1.8;">
+        <b style="color:var(--accent2);">Biomarcadores:</b> la guía admite troponina y péptidos natriuréticos; esta app puntúa <b>sólo troponina</b> (no hay campo de BNP/NT-proBNP en el módulo)<br>
         <b style="color:var(--accent2);">SGL normal:</b> más negativo que -18% · disfunción subclínica: &lt;-16%<br>
         <b style="color:var(--accent2);">Frecuencia eco (riesgo alto):</b> basal → 3m → 6m → anual<br>
         <b style="color:var(--accent2);">Riesgo muy alto HFA-ICOS:</b> FEVI &lt;50% · IC previa · SCA reciente · arritmias severas
@@ -24863,12 +24882,24 @@ function teerEstado() {
      velo desfavorable. Por eso sus campos se mudaron al bloque de criterios comunes. */
   const cs = {
     c1:  lva  !== null ? C('teer-c1', 'Velo anterior ≥20 mm', lva >= 20, `${lva}mm ≥20mm`, `${lva}mm <20mm — NO apto`)                          : C('teer-c1', 'Velo anterior ≥20 mm', null),
-    c1b: lvp  !== null ? C('teer-c1b','Velo posterior ≥7 mm', lvp >= 7,  `${lvp}mm ≥7mm`,  `${lvp}mm <7mm — agarre difícil`)                    : C('teer-c1b','Velo posterior ≥7 mm', null),
+    /* c1b es ADVERTENCIA, no veto — decisión clínica de Maicol (2026-09-15). Las guías no lo
+       tratan como contraindicación: es factibilidad técnica del operador, no un criterio de
+       exclusión. Se pinta y se imprime, y NO cambia APTO / NO APTO. Para que eso se lea sin
+       ambigüedad su texto lo dice con todas las letras: al lado de criterios cuyo texto de
+       fallo termina en «NO apto», un «agarre difícil» a secas se leía como un rechazo más.
+       Es el reverso de c7/c8: aquéllos decían «NO apto» y no vetaban, que era mentira en la
+       otra dirección. Un criterio tiene que decir exactamente cuánto pesa. */
+    c1b: lvp  !== null ? C('teer-c1b','Velo posterior ≥7 mm', lvp >= 7,  `${lvp}mm ≥7mm`,  `${lvp}mm <7mm — Advertencia: agarre difícil, evaluar con el operador. No modifica el veredicto.`) : C('teer-c1b','Velo posterior ≥7 mm', null),
     c2:  (aplSec  && gap  !== null) ? C('teer-c2', 'Gap de coaptación ≤10 mm', gap <= 10, `${gap}mm ≤10mm`, `${gap}mm >10mm — evaluar Heart Team`)           : C('teer-c2', 'Gap de coaptación ≤10 mm', null),
     c3:  area !== null ? C('teer-c3', 'Área mitral ≥4,0 cm²', area >= 4.0, `${area}cm² ≥4cm²`, `${area}cm² <4cm² — NO apto`)                    : C('teer-c3', 'Área mitral ≥4,0 cm²', null),
     c4:  (aplSec  && profFlail  !== null) ? C('teer-c4','Profundidad de coaptación ≤10 mm', profFlail <= 10, `${profFlail}mm ≤10mm`, `${profFlail}mm >10mm — anatomía compleja, Heart Team`) : C('teer-c4','Profundidad de coaptación ≤10 mm', null),
     c5:  (aplPrim && anchoFlail !== null) ? C('teer-c5','Anchura de flail ≤15 mm', anchoFlail <= 15, `${anchoFlail}mm ≤15mm`, `${anchoFlail}mm >15mm — anatomía compleja, Heart Team`) : C('teer-c5','Anchura de flail ≤15 mm', null),
-    c6:  pasp !== null ? C('teer-c6', 'PASP ≤70 mmHg', pasp <= 70, `${pasp}mmHg ≤70mmHg`, `${pasp}mmHg >70mmHg — NO apto`)                      : C('teer-c6', 'PASP ≤70 mmHg', null),
+    /* `pasp > 0` por lo mismo que `c8`: un criterio de TECHO falla ABIERTO con el cero. Con
+       `pasp !== null` solo, un `psap_calc` de 0 —o un 0 tipeado— imprimía «0mmHg ≤70mmHg ✓» en
+       la hoja firmada y contaba como criterio CUMPLIDO, así que podía dejar `noIngresados` en
+       cero y publicar «✅ APTO para TEER». No hay presión pulmonar sistólica cero; el lado
+       seguro es «no ingresado», que no dice ni apto ni no apto. */
+    c6:  (pasp !== null && pasp > 0) ? C('teer-c6', 'PASP ≤70 mmHg', pasp <= 70, `${pasp}mmHg ≤70mmHg`, `${pasp}mmHg >70mmHg — NO apto`) : C('teer-c6', 'PASP ≤70 mmHg', null),
     c7:  (fevi  !== null && esSec) ? C('teer-c7','FEVI 20-50 % (COAPT)', fevi >= 20 && fevi <= 50, `FEVI ${fevi}% (20-50%)`, `FEVI ${fevi}% fuera rango COAPT`) : C('teer-c7','FEVI 20-50 % (COAPT)', null),
     /* `dtsvi > 0` y no `!== null`: un criterio de TECHO falla ABIERTO con el cero. Desde que c8
        veta, un `dsfvi` tipeado 0 por error —el campo no tiene `min`— se espejaba acá e imprimía
@@ -24968,7 +24999,12 @@ function teerEstado() {
     nota = fallos.length + ' criterios no cumplidos. Evaluar cirugía o Heart Team.';
   }
 
-  return { cs, orden:[cs.c1, cs.c1b, cs.c2, cs.c3, cs.c4, cs.c5, cs.c6, cs.c7, cs.c8, cs.c9, cs.c10],
+  /* Qué criterios PESAN, derivado de la lista `veto` y no de una segunda enumeración a mano.
+     La pantalla y la hoja pintan c1b en rojo igual que a c1, que sí veta, así que un criterio
+     que es sólo una advertencia se leía como un rechazo. Sale de acá para que no pueda
+     desincronizarse: el día que c1b entre o salga del `veto`, el color lo sigue solo. */
+  const vetoIds = new Set(veto.map(c => c.id));
+  return { cs, vetoIds, orden:[cs.c1, cs.c1b, cs.c2, cs.c3, cs.c4, cs.c5, cs.c6, cs.c7, cs.c8, cs.c9, cs.c10],
            tipoIM, esPrim, esSec, trombo, clave, badgeCls, titulo, nota, fallos: fallos.length, noIngresados,
            hayDatos: tipeados.length > 0 || trombo === 'si' || cs.c1b.ok !== null };
 }
@@ -24999,8 +25035,14 @@ function calcTEER() {
     if (!el) return;
     const fila = el.closest ? el.closest('.calc-row') : null;
     if (fila) fila.style.display = _NO_APLICA[c.id] ? 'none' : '';
+    /* AMARILLO —no rojo— para el criterio que no está en el `veto`: hoy sólo c1b. El rojo en
+       esta tarjeta significa «este criterio rechaza al paciente», y c1b no lo hace. El signo
+       también cambia: «⚠» y no «✗», porque no es un criterio no cumplido sino una salvedad de
+       factibilidad. Se lee de `r.vetoIds`, que sale de la misma lista que decide el veredicto. */
+    const _pesa = !r.vetoIds || r.vetoIds.has(c.id);
     el.innerHTML = c.ok === null ? badge('gray', 'No ingresado')
-                                 : badge(c.ok ? 'green' : 'red', (c.ok ? '✓ ' : '✗ ') + c.txt);
+                                 : badge(c.ok ? 'green' : (_pesa ? 'red' : 'yellow'),
+                                         (c.ok ? '✓ ' : (_pesa ? '✗ ' : '⚠ ')) + c.txt);
   });
   const res = document.getElementById('teer-resultado');
   const notas = document.getElementById('teer-notas');
@@ -34751,6 +34793,17 @@ function amiloRefrescarSiIntacto(k) {
     const sec = amiloSecs().find(x => x.k === k);
     const ta  = document.getElementById('am-txt-' + k);
     if (!sec || !ta) return;
+    /* SIN MARCA no se toca. `_amiloUltimo[k]` sólo existe si ESTE texto lo generó la app en esta
+       sesión de página: lo escriben `amiloIntegrar` y la restauración para EDITAR. La reimpresión
+       de un informe firmado lo BORRA a propósito, así que acá se sale y el texto queda tal como
+       se firmó.
+       Antes esto se apoyaba en que los dos textos no coincidieran, y eso fallaba en el caso más
+       normal: abrir un estudio para editar —o por el QR del PDF— dejaba su texto en `_amiloUltimo`,
+       y reimprimir ESE MISMO estudio sin recargar la página volvía a poner el mismo texto en el
+       textarea, los dos lados coincidían, y la hoja se REGENERABA con los criterios de hoy. La
+       reimpresión dejaba de reproducir lo firmado justo cuando más se parecía a hacerlo.
+       `hasOwnProperty` y no `|| ''`: sin marca contra un textarea vacío también coincidía. */
+    if (!Object.prototype.hasOwnProperty.call(_amiloUltimo, k)) return;                  // no lo generamos nosotros
     if (String(ta.value || '').trim() !== String(_amiloUltimo[k] || '').trim()) return;  // editado a mano
     const nuevo = sec.gen();
     ta.value = nuevo; _amiloUltimo[k] = nuevo;
@@ -34888,7 +34941,13 @@ function amiloRestaurarDesdeCampos(campos, reimpresion) {
     if (!ta || !w) return;
     var txt = campos ? campos['am-txt-' + s.k] : null;
     ta.value = (typeof txt === 'string') ? txt : '';
-    if (!reimpresion) _amiloUltimo[s.k] = ta.value;
+    /* La reimpresión BORRA la marca, no se limita a no ponerla. Dejar la del estudio anterior
+       ahí era lo que abría el agujero: `_amiloUltimo` es global a la página y `limpiarCampos`
+       sólo lo vacía en «Nuevo estudio», así que después de abrir un estudio para editar su
+       marca sobrevivía, y al reimprimir ESE MISMO estudio volvía a coincidir con el textarea
+       y `amiloRefrescarSiIntacto` regeneraba la hoja. «No escribir» no es «borrar» cuando el
+       estado es global — la misma distinción que la lección 5 (no persistirse ≠ limpiarse). */
+    if (reimpresion) delete _amiloUltimo[s.k]; else _amiloUltimo[s.k] = ta.value;
     var tiene = set ? set.has(s.k) : (String(ta.value).trim() !== '');
     w.style.display = tiene ? '' : 'none';
     if (tiene) { hayAlguno = true; amiloPreview(s.k); }
@@ -38096,6 +38155,15 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
      escrito a mano, y el primer refresco silencioso ya no lo actualizaba. */
   const infBaseBackup  = _infBase  ? _infBase.slice()  : null;
   const sumaBaseBackup = _sumaBase ? _sumaBase.slice() : null;
+  /* `_amiloUltimo` es exactamente el mismo caso que `_infBase`, y entró a esta lista el día en
+     que la reimpresión pasó a BORRARLO (antes sólo se abstenía de escribirlo, así que no había
+     nada que reponer). Es la marca de «este texto lo generó la app», y sin respaldarla el
+     médico volvía a su paciente con los ocho módulos de refresco automático mudos para el
+     resto de la sesión: cargar el trombo de la orejuela DESPUÉS de haber integrado el TEER
+     dejaba la pantalla diciendo «CONTRAINDICADO» y la hoja del PDF diciendo «APTO», que es
+     literalmente el defecto que `amiloRefrescarSiIntacto` existe para cerrar. Y no se recupera
+     desde la interfaz: con la marca borrada, «Retirar» + «Integrar» tampoco regenera. */
+  const amiloUltimoBackup = Object.assign({}, _amiloUltimo);
   // Backup de los checklists del acordeón (checkboxes son class-based, sin id → no entran en el backup anterior)
   const chkBackup = {
     indicaciones: Array.from(document.querySelectorAll('.ind-chk:checked')).map(c => c.dataset.val),
@@ -38318,6 +38386,12 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
     });
     _infBase  = infBaseBackup;
     _sumaBase = sumaBaseBackup;
+    /* Se REEMPLAZA el contenido, no la referencia: `_amiloUltimo` es un `var` de nivel superior
+       que otros bloques leen por su nombre, así que reasignarlo acá dejaría a los lectores
+       mirando el objeto viejo. Mismo motivo por el que `limpiarCampos` lo vacía con un `for…in`
+       en vez de asignarle `{}`. */
+    for (const k in _amiloUltimo) delete _amiloUltimo[k];
+    Object.assign(_amiloUltimo, amiloUltimoBackup);
     ['med-nombre','med-matricula','med-lugar','med-especialidad','med-direccion','med-telefono'].forEach(fid => {
       const el = document.getElementById(fid);
       if (el) el.textContent = ceBackup[fid] || '';
@@ -47687,7 +47761,16 @@ function labEteRender(infs, n) {
     { k:'area', lbl:'Área mitral <4 cm²',          campo:'teer_area_mitral', ok:v => v >= 4.0 },
     { k:'prof', lbl:'Profundidad de coaptación >10 mm', campo:'teer_prof_flail', ok:v => v <= 10, tipo:'sec' },
     { k:'anch', lbl:'Ancho flail >15 mm',          campo:'teer_ancho_flail', ok:v => v <= 15, tipo:'prim' },
-    { k:'pasp', lbl:'PASP >70 mmHg',               campo:'teer_pasp',        ok:v => v <= 70 },
+    /* `cero:'no'` = el cero NO es una medición, es un campo sin llenar. Los criterios de TECHO
+       (`v <= X`) fallan ABIERTO con el cero: `_labNum` devuelve 0 para "0", no null, así que
+       sin esto el estudio sumaba `ingresados` y el criterio salía CUMPLIDO. Va acá al mismo
+       tiempo que la guarda `pasp > 0` / `dtsvi > 0` de `teerEstado`, porque si sólo se arregla
+       la pantalla el mismo estudio sale «Posiblemente apto — falta la PASP» en el informe
+       firmado y «✅ Apto — criterios completos» en el PDF de auditoría.
+       Los otros tres criterios de techo —gap, profundidad y anchura de flail— tienen el mismo
+       fallo abierto con el cero, en las DOS superficies por igual, así que no divergen. Está
+       reportado en CLAUDE.md; arreglarlo mueve veredictos y es decisión de Maicol. */
+    { k:'pasp', lbl:'PASP >70 mmHg',               campo:'teer_pasp',        ok:v => v <= 70, cero:'no' },
     /* Los dos criterios de inclusión del COAPT. Entraron acá el mismo día en que entraron al
        `veto` de `teerEstado()`: mientras estuvieron fuera de los dos lados el panel coincidía
        con la pantalla por casualidad, pero corregir sólo uno deja al informe firmado diciendo
@@ -47695,7 +47778,7 @@ function labEteRender(infs, n) {
        que exige la IM secundaria consignada — es el `esSec` estricto de `teerEstado`, no el
        `aplSec` permisivo de gap y profundidad. */
     { k:'fevi', lbl:'FEVI fuera del rango COAPT (20-50 %)', campo:'teer_fevi', ok:v => v >= 20 && v <= 50, tipo:'coapt' },
-    { k:'dtsvi',lbl:'DTSVI >70 mm (COAPT)',        campo:'teer_dtsvi',       ok:v => v <= 70, tipo:'coapt' }
+    { k:'dtsvi',lbl:'DTSVI >70 mm (COAPT)',        campo:'teer_dtsvi',       ok:v => v <= 70, tipo:'coapt', cero:'no' }
   ];
   /* `tipo` replica el gateo por tipo de IM de `teerEstado()`. Sin esto el panel contaba los seis
      criterios SIEMPRE, y desde que la pantalla evalúa sólo los que aplican, TODO estudio con el
@@ -47984,6 +48067,7 @@ function labEteRender(infs, n) {
       _aplican.forEach(c => {
         const v = _labNum(i, c.campo);
         if (v === null) return;              // no ingresado: no cuenta ni a favor ni en contra
+        if (c.cero === 'no' && v <= 0) return;   // el cero no es una medición — ver la nota de TEER_CRIT
         ingresados++;
         if (!c.ok(v)) { fallados++; fallos[c.lbl] = (fallos[c.lbl]||0)+1; }
       });
