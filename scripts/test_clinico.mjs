@@ -141,7 +141,47 @@ const PRELUDIO = `
       inf: document.getElementById('informe_texto').value,
       suma: document.getElementById('en_suma').value }; },
     txt(id) { const e = document.getElementById(id); return e ? (e.textContent || '') : null; },
-    val(id) { const e = document.getElementById(id); return e ? e.value : null; }
+    val(id) { const e = document.getElementById(id); return e ? e.value : null; },
+
+    /* ── GUARDAR / REABRIR ────────────────────────────────────────────────────────────────
+       Entran por las funciones REALES —\`guardarInforme\` y \`cargarEstudioPorId\`— y no por el
+       store: lo que se quiere probar es justamente el viaje completo, que es donde vivieron
+       los bugs mas caros de esta app (datos del paciente anterior, segmentos ETE que no
+       volvian, la serie de cardio-onco que no viajaba).
+
+       Tres cosas que hay que saber para leer esto:
+       · \`guardarInforme\` EXIGE nombre o documento. Sin eso hace toast y devuelve false, y el
+         caso fallaria por un motivo que no es el que se esta probando.
+       · La primera vez muestra la CARD DE SEVERIDADES VALVULARES y devuelve false; el guardado
+         real ocurre al confirmarla. Se confirma apretando \`#rev-confirm\`, que es el boton de
+         verdad — asi el gate queda ejercitado y no salteado.
+       · Con \`window._ettEditandoId\` puesto sale OTRO modal («sobreescribir / guardar como
+         nuevo»). Se limpia antes: cada caso guarda un estudio nuevo.
+       El guardado es ASINCRONO (IndexedDB con respaldo en localStorage), de ahi el await. */
+    guardar() {
+      window._ettEditandoId = null;
+      const antes = new Set(getInformes().map(i => i.estudioId));
+      return new Promise((resolve) => {
+        const alTerminar = (ok) => {
+          const nuevo = getInformes().find(i => !antes.has(i.estudioId));
+          resolve({ ok: ok === true, estudioId: nuevo ? nuevo.estudioId : null });
+        };
+        try { guardarInforme(alTerminar); } catch (e) { resolve({ ok:false, error:String(e) }); return; }
+        // Si aparecio la card de severidades, confirmarla: el guardado real cuelga de ahi.
+        const cf = document.getElementById('rev-confirm');
+        if (cf) cf.click();
+      });
+    },
+    /* «Nuevo estudio» de verdad es un modal de confirmacion; lo que ese modal termina
+       ejecutando es \`limpiarCampos\`. Se llama directo para no depender del overlay. */
+    nuevoEstudio() { limpiarCampos(true); try { localStorage.removeItem('co_seguimiento'); } catch (e) {} },
+    reabrir(estudioId) { cargarEstudioPorId(estudioId); },
+    /* Cada caso BORRA lo que guardo. Los casos tienen que ser independientes, y un estudio
+       que sobrevive cambia el denominador de cualquier caso posterior que mire la lista. */
+    borrar(estudioId) {
+      if (!estudioId) return Promise.resolve(false);
+      return CeiboStore.setLocal(getInformes().filter(i => i.estudioId !== estudioId));
+    }
   };
 `;
 
@@ -1868,6 +1908,554 @@ caso('TC-92', 'Reimprimir conserva la hoja TEER firmada; abrir para editar la re
     ['una hoja guardada VACIA no se rellena al reimprimir', vacio === '']
   ] };
 `);
+
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════
+   GRUPO 26 — GUARDAR Y RESTAURAR. La brecha mas cara del suite: aca vivieron los bugs de datos
+   del paciente anterior viajando al siguiente, los segmentos ETE que no volvian, la serie de
+   cardio-onco que se perdia y la reimpresion que daba distinto que regenerar.
+
+   Todos entran por las funciones REALES —guardarInforme con su card de severidades, y
+   cargarEstudioPorId— y no por el store: lo que se prueba es el viaje completo. Cada caso BORRA
+   lo que guardo (los casos tienen que ser independientes) y el guardado es asincrono, de ahi el
+   patron `return (async () => { ... })()`.
+   ═══════════════════════════════════════════════════════════════════════════════════════════ */
+
+caso('TC-GR-01', 'Guardar y reabrir: los datos del paciente vuelven completos', `
+  return (async () => {
+    __t.limpiar();
+    __t.set('nombre','Ana Maria Perez'); __t.set('ci','4.321.987-6');
+    __t.set('edad','67'); __t.set('sexo','F');
+    const g = await __t.guardar();
+    __t.nuevoEstudio();
+    const trasLimpiar = __t.val('nombre');
+    __t.reabrir(g.estudioId);
+    const leido = { nombre: __t.val('nombre'), ci: __t.val('ci'),
+                    edad: __t.val('edad'), sexo: __t.val('sexo') };
+    const ficha = getInformes().find(i => i.estudioId === g.estudioId) || {};
+    await __t.borrar(g.estudioId);
+    return { extra: [
+      ['el guardado se persistio de verdad', g.ok === true && !!g.estudioId],
+      ['«Nuevo estudio» dejo el formulario vacio', trasLimpiar === ''],
+      ['el nombre vuelve',     leido.nombre === 'Ana Maria Perez'],
+      ['el documento vuelve',  leido.ci === '4.321.987-6'],
+      ['la edad vuelve',       leido.edad === '67'],
+      ['el sexo vuelve',       leido.sexo === 'F'],
+      ['la ficha del store trae nombre y documento como columnas propias',
+        ficha.nombre === 'Ana Maria Perez' && ficha.ci === '4.321.987-6'],
+      ['y el borrado dejo la lista sin el estudio',
+        getInformes().every(i => i.estudioId !== g.estudioId)]
+    ] };
+  })();
+`);
+
+/* Lo que importa no es que los tres numeros vuelvan —eso lo hace el barrido generico— sino que
+   el INFORME generado despues de reabrir sea identico al de antes de guardar. Un campo puede
+   volver y aun asi el informe cambiar, si algo derivado no se recalculo al restaurar: es
+   exactamente para lo que existe RECALC_MODULOS. */
+caso('TC-GR-02', 'Guardar y reabrir: el informe generado despues es identico al de antes', `
+  return (async () => {
+    __t.limpiar();
+    __t.set('nombre','Control Identidad'); __t.set('ci','111');
+    __t.set('peso','80'); __t.set('talla','180'); __t.set('sexo','M');
+    __t.set('fevi','42'); __t.set('siv','13'); __t.set('pp','11');
+    __t.set('ddvi','58'); __t.set('tapse','16');
+    const antes = __t.informe();
+    const derivAntes = { masa: __t.txt('devereux-val'), geom: __t.txt('geom-val') };
+    const g = await __t.guardar();
+    __t.nuevoEstudio();
+    __t.reabrir(g.estudioId);
+    const despues = __t.informe();
+    const derivDespues = { masa: __t.txt('devereux-val'), geom: __t.txt('geom-val') };
+    await __t.borrar(g.estudioId);
+    return { extra: [
+      ['la FEVI vuelve',   __t.val('fevi') === '42'],
+      ['el septum vuelve', __t.val('siv') === '13'],
+      ['el TAPSE vuelve',  __t.val('tapse') === '16'],
+      ['el informe narrativo es identico, palabra por palabra', antes.inf === despues.inf],
+      ['el EN SUMA tambien',                                    antes.suma === despues.suma],
+      ['y los DERIVADOS se recalcularon: la masa VI coincide y no quedo vacia',
+        derivDespues.masa === derivAntes.masa && (derivDespues.masa || '').length > 0],
+      ['idem la geometria',
+        derivDespues.geom === derivAntes.geom && (derivDespues.geom || '').length > 0]
+    ] };
+  })();
+`);
+
+/* El ESCENARIO de la EAo («severa concordante») NO es un campo: lo recalcula eaEscenario() desde
+   los datos. Si el grado volviera y el escenario no, el informe firmado cambiaria de frase al
+   reabrir el mismo estudio. */
+caso('TC-GR-03', 'Guardar y reabrir: la EAo severa concordante se restaura con su escenario', `
+  return (async () => {
+    __t.limpiar(); __t.set('nombre','EA Severa'); __t.set('ci','222');
+    __t.set('peso','70'); __t.set('talla','170');
+    __t.set('diam_tsvi','20'); __t.set('itv_tsvi','18'); __t.set('itv_ao','71');
+    __t.set('vmax_ao','4.5'); __t.set('gmedio_ao','45'); __t.set('fevi','65');
+    document.getElementById('ea_grado').value = 'severa';
+    const antes = __t.informe();
+    const g = await __t.guardar();
+    __t.nuevoEstudio();
+    __t.reabrir(g.estudioId);
+    const despues = __t.informe();
+    const esc = eaEscenario().clave;
+    await __t.borrar(g.estudioId);
+    return { extra: [
+      ['ea_grado se restauro',                       __t.val('ea_grado') === 'severa'],
+      ['el escenario se RECALCULO como concordante', esc === 'severa_concordante'],
+      ['el informe dice estenosis severa',           despues.inf.indexOf('estenosis severa') > -1],
+      ['con el AVA calculado, no en blanco',         despues.inf.indexOf('AVA 0.80') > -1],
+      ['y no aparece el bajo flujo, que es otro escenario',
+        despues.inf.indexOf('bajo flujo') === -1 && despues.inf.indexOf('paradojal') === -1],
+      ['el informe es identico al de antes de guardar', antes.inf === despues.inf],
+      ['y el EN SUMA tambien',                          antes.suma === despues.suma]
+    ] };
+  })();
+`);
+
+/* El paciente A se GUARDA antes de pasar a B: sin ese paso el caso probaria limpiarCampos a
+   secas, que ya cubre TC-82. Lo que se quiere es la secuencia real —cargar, guardar, estudio
+   nuevo, otro paciente— que es donde aparecio la fuga. */
+caso('TC-GR-04', 'La FEVI reducida del paciente A no aparece en el informe de B', `
+  return (async () => {
+    __t.limpiar(); __t.set('nombre','Paciente A'); __t.set('ci','A1');
+    __t.set('fevi','35'); __t.set('ddvi','62');
+    const a = __t.informe();
+    const g = await __t.guardar();
+    __t.nuevoEstudio();
+    __t.set('nombre','Paciente B'); __t.set('ci','B1');
+    __t.set('tapse','22'); __t.set('vd_bas','35');     // B tiene datos, pero NINGUNA FEVI
+    const b = __t.informe();
+    await __t.borrar(g.estudioId);
+    return { extra: [
+      ['A si tenia la disfuncion',                  a.inf.indexOf('FEVI 35') > -1],
+      ['el campo FEVI de B quedo vacio',            __t.val('fevi') === ''],
+      ['el informe de B no nombra la FEVI del anterior', b.inf.indexOf('FEVI 35') === -1],
+      ['ni habla de disfuncion sistolica',          !/disfunci[oó]n sist[oó]lica/i.test(b.inf)],
+      ['ni arrastra el diametro del anterior',      b.inf.indexOf('62') === -1],
+      ['y el EN SUMA de B no nombra la FEVI',       b.suma.indexOf('FEVI') === -1]
+    ] };
+  })();
+`);
+
+/* La coartacion es de las que mas duelen: el informe de A habla de indicacion de intervencion, y
+   ese parrafo apareciendo en el estudio de otra persona es el caso que cargarEstudioPorId
+   documenta haber cerrado. Se gatea por coart_incluir_chk, o sea que ademas de los campos tiene
+   que limpiarse la CASILLA. */
+caso('TC-GR-05', 'La coartacion del paciente A no aparece en el informe de B', `
+  return (async () => {
+    __t.limpiar(); __t.set('nombre','Paciente A CoAo'); __t.set('ci','A2');
+    __t.set('coa_loc','yuxtaductal'); __t.set('coa_istmo','6');
+    __t.set('coa_vmax','3.4'); __t.set('coa_gmedio','45');
+    __t.set('coa_diast_anterogrado','si');
+    __t.chk('coart_incluir_chk', true);
+    const a = __t.informe();
+    const g = await __t.guardar();
+    __t.nuevoEstudio();
+    __t.set('nombre','Paciente B'); __t.set('ci','B2'); __t.set('fevi','60');
+    const b = __t.informe();
+    const casilla = document.getElementById('coart_incluir_chk');
+    await __t.borrar(g.estudioId);
+    return { extra: [
+      ['A si tenia la coartacion en su informe', /coartaci[oó]n/i.test(a.inf)],
+      ['la casilla de inclusion quedo destildada', !!casilla && casilla.checked === false],
+      ['los campos de la coartacion quedaron vacios',
+        __t.val('coa_gmedio') === '' && __t.val('coa_istmo') === ''],
+      ['el informe de B NO nombra la coartacion', !/coartaci[oó]n/i.test(b.inf)],
+      ['ni el EN SUMA',                           !/coartaci[oó]n/i.test(b.suma)]
+    ] };
+  })();
+`);
+
+caso('TC-GR-06', 'HFA-PEFF integrado: el texto viaja con el estudio y vuelve igual', `
+  return (async () => {
+    __t.limpiar(); __t.set('nombre','HFpEF'); __t.set('ci','333');
+    __t.set('peso','80'); __t.set('talla','180'); __t.set('edad','74'); __t.set('sexo','F');
+    __t.set('fevi','60'); __t.set('siv','13'); __t.set('pp','12'); __t.set('ddvi','45');
+    __t.set('ai_vol','80'); __t.set('vmax_it','3.2'); __t.set('hf_ntprobnp','900');
+    __t.set('ee_prom','14');
+    const score = hfapeffScore(false);
+    amiloIntegrar('hfpeff');
+    const original = (document.getElementById('am-txt-hfpeff') || {}).value || '';
+    const g = await __t.guardar();
+    __t.nuevoEstudio();
+    const trasLimpiar = (document.getElementById('am-txt-hfpeff') || {}).value || '';
+    __t.reabrir(g.estudioId);
+    const vuelto = (document.getElementById('am-txt-hfpeff') || {}).value || '';
+    const integrado = amiloIntegrado('hfpeff');
+    await __t.borrar(g.estudioId);
+    return { extra: [
+      ['el score llego a la banda alta',    score.total >= 5],
+      ['el texto se genero al integrar',    original.length > 50],
+      ['«Nuevo estudio» lo borro',          trasLimpiar === ''],
+      ['y volvio IDENTICO al reabrir',      vuelto === original],
+      ['el modulo sigue marcado como integrado', integrado === true],
+      ['el texto trae la conclusion, no solo el puntaje', vuelto.indexOf('HFpEF') > -1]
+    ] };
+  })();
+`);
+
+caso('TC-GR-07', 'TEER integrado: la hoja viaja con el estudio y vuelve igual', `
+  return (async () => {
+    __t.limpiar(); __t.set('nombre','TEER'); __t.set('ci','444');
+    __t.set('teer_tipo_im','secundaria');
+    __t.set('teer_lva','24'); __t.set('teer_lvp','9'); __t.set('teer_gap','6');
+    __t.set('teer_prof_flail','8'); __t.set('teer_area_mitral','5.2'); __t.set('teer_pasp','40');
+    __t.set('teer_fevi','35'); __t.set('teer_dtsvi','62');
+    __t.set('teer_calcificacion','no'); __t.set('teer_clefts','no'); __t.set('teer_trombo','no');
+    amiloIntegrar('teer');
+    const original = (document.getElementById('am-txt-teer') || {}).value || '';
+    const g = await __t.guardar();
+    __t.nuevoEstudio();
+    __t.reabrir(g.estudioId);
+    const vuelto = (document.getElementById('am-txt-teer') || {}).value || '';
+    const est = teerEstado();
+    /* La CAPSULA de pantalla la repinta calcTEER, que entra por RECALC_MODULOS. teerEstado()
+       recalcula sola cuando se la llama, asi que sin mirar la capsula el caso no distingue
+       «se repinto» de «quedo con lo del paciente anterior». */
+    const capsula = (__t.txt('teer-resultado') || '').trim();
+    await __t.borrar(g.estudioId);
+    return { extra: [
+      ['la hoja se genero con la conclusion',
+        original.indexOf('APTO para TEER - criterios cumplidos') > -1],
+      ['vuelve IDENTICA al reabrir', vuelto === original],
+      ['el modulo sigue integrado',  amiloIntegrado('teer') === true],
+      ['y los campos del TEER se restauraron, no solo el texto',
+        __t.val('teer_dtsvi') === '62' && __t.val('teer_tipo_im') === 'secundaria'],
+      ['asi que el estado recalculado coincide con la hoja guardada', est.clave === 'apto'],
+      ['y la CAPSULA de pantalla se repinto, no quedo en «—»',
+        capsula.indexOf('APTO para TEER') > -1]
+    ] };
+  })();
+`);
+
+/* La serie de seguimiento de cardio-onco vive en co_seguimiento, una clave GLOBAL de
+   localStorage indexada por nombre/documento: NO viaja en campos. Por eso coCongelarSerie la
+   serializa al input oculto co_serie_json al integrar, que es lo que si viaja.
+   El caso prueba las DOS mitades: que la serie congelada vuelva con el estudio, y que sea la
+   CONGELADA y no la viva — un control que llega despues de firmar no puede cambiar un informe
+   ya firmado. */
+caso('TC-GR-08', 'Cardio-onco: la serie congelada viaja y no la pisa un control posterior', `
+  return (async () => {
+    __t.limpiar(); __t.set('nombre','Onco Serie'); __t.set('ci','555');
+    __t.set('co_fevi_basal','60'); __t.set('co_fevi_actual','48');
+    __t.set('co_gls_basal','-20'); __t.set('co_gls_actual','-15');
+    const serie = [{ fecha:'2026-03-10', fevi:58, gls:-19, nota:'ciclo 2' },
+                   { fecha:'2026-06-10', fevi:52, gls:-17, nota:'ciclo 4' }];
+    /* La clave NO es la cedula pelada: _coPacienteKey la arma como 'D:' + documento en
+       minusculas y sin puntos ni guiones. Escribirla mal no da error — coCongelarSerie
+       encuentra cero puntos y deja el campo vacio, o sea que el caso pasaria a probar otra cosa. */
+    localStorage.setItem('co_seguimiento', JSON.stringify({ 'D:555': serie }));
+    coCongelarSerie();
+    const congelado = __t.val('co_serie_json');
+    const g = await __t.guardar();
+    // Despues de firmar llega un control nuevo: la serie VIVA cambia.
+    localStorage.setItem('co_seguimiento', JSON.stringify({
+      'D:555': serie.concat([{ fecha:'2026-09-10', fevi:40, gls:-12, nota:'ciclo 6' }]) }));
+    __t.nuevoEstudio();
+    const trasLimpiar = __t.val('co_serie_json');
+    __t.reabrir(g.estudioId);
+    const vuelto = __t.val('co_serie_json');
+    let pts = []; try { pts = JSON.parse(vuelto || '[]'); } catch (e) {}
+    await __t.borrar(g.estudioId);
+    try { localStorage.removeItem('co_seguimiento'); } catch (e) {}
+    return { extra: [
+      ['la serie se congelo en el campo del estudio', (congelado || '').indexOf('2026-03-10') > -1],
+      ['«Nuevo estudio» la limpio',                   trasLimpiar === ''],
+      ['y vuelve con el estudio al reabrir',          vuelto === congelado],
+      ['con los DOS controles que tenia al firmar',   pts.length === 2],
+      ['sin el control que llego DESPUES de firmar',  (vuelto || '').indexOf('2026-09-10') === -1],
+      ['los datos del punto viajan completos, no solo la fecha',
+        !!pts[0] && pts[0].fevi === 58 && pts[0].nota === 'ciclo 2']
+    ] };
+  })();
+`);
+
+/* Es la otra mitad de TC-92. Reimprimir CONGELA; abrir para EDITAR recalcula, que es lo que hace
+   que corregir un dato despues de reabrir cambie el informe. Si al reabrir quedara el texto
+   guardado, el medico corrige el gradiente y el informe sigue diciendo lo viejo. */
+caso('TC-GR-09', 'Reabrir y corregir: el informe sigue al dato nuevo, no al guardado', `
+  return (async () => {
+    __t.limpiar(); __t.set('nombre','EA Progresa'); __t.set('ci','666');
+    __t.set('peso','70'); __t.set('talla','170');
+    __t.set('vmax_ao','3.2'); __t.set('gmedio_ao','25'); __t.set('fevi','60');
+    document.getElementById('ea_grado').value = 'moderada';
+    const moderada = __t.informe();
+    const g = await __t.guardar();
+    __t.nuevoEstudio();
+    __t.reabrir(g.estudioId);
+    const alReabrir = __t.informe();
+    // El medico corrige: en realidad es severa.
+    __t.set('diam_tsvi','20'); __t.set('itv_tsvi','18'); __t.set('itv_ao','71');
+    __t.set('vmax_ao','4.5'); __t.set('gmedio_ao','45');
+    document.getElementById('ea_grado').value = 'severa';
+    const corregido = __t.informe();
+    await __t.borrar(g.estudioId);
+    return { extra: [
+      ['al reabrir dice lo mismo que se guardo', alReabrir.inf === moderada.inf],
+      ['y eso era moderada',                     moderada.inf.indexOf('estenosis moderada') > -1],
+      ['tras corregir pasa a severa',            corregido.inf.indexOf('estenosis severa') > -1],
+      ['y ya no dice moderada',                  corregido.inf.indexOf('estenosis moderada') === -1],
+      ['el EN SUMA lo sigue',                    corregido.suma.indexOf('EAo severa.') > -1]
+    ] };
+  })();
+`);
+
+/* Los derivados que viven en inputs READONLY —psap_calc, pmad— viajan en `campos` como
+   cualquier otro input, asi que vuelven solos; y el informe narrativo los lee A ELLOS, no a la
+   capsula. Por eso el informe reabierto sale identico aunque la capsula quede vieja (ver
+   TC-GR-13). El caso deja un paciente RUIDOSO en pantalla a proposito y reabre ENCIMA, que es
+   el escenario real de la fuga: si algo no se repusiera, se veria lo de el. */
+caso('TC-GR-10', 'Reabrir encima de otro paciente: los derivados del informe son los del estudio', `
+  return (async () => {
+    __t.limpiar(); __t.set('nombre','Ruido'); __t.set('ci','R1');
+    __t.set('vmax_it','4.2'); __t.set('vci_diam','25'); __t.set('vci_col','<50');
+    const ruido = { calc: __t.val('psap_calc'), pmad: __t.val('pmad'), inf: __t.informe().inf };
+    __t.limpiar(); __t.set('nombre','HTP Leve'); __t.set('ci','777');
+    __t.set('vmax_it','2.9'); __t.set('vci_diam','18'); __t.set('vci_col','>50');
+    const antes = { calc: __t.val('psap_calc'), pmad: __t.val('pmad'), inf: __t.informe().inf };
+    const g = await __t.guardar();
+    // Se vuelve a poner el ruidoso EN PANTALLA y se reabre encima, sin pasar por «Nuevo estudio».
+    __t.limpiar(); __t.set('nombre','Ruido'); __t.set('ci','R1');
+    __t.set('vmax_it','4.2'); __t.set('vci_diam','25'); __t.set('vci_col','<50');
+    __t.reabrir(g.estudioId);
+    const desp = { calc: __t.val('psap_calc'), pmad: __t.val('pmad'), inf: __t.informe().inf };
+    await __t.borrar(g.estudioId);
+    return { extra: [
+      ['los dos pacientes daban PSAP distinta', ruido.calc !== antes.calc],
+      ['la velocidad de IT se restauro',        __t.val('vmax_it') === '2.9'],
+      ['la VCI tambien, select incluido',
+        __t.val('vci_diam') === '18' && __t.val('vci_col') === '>50'],
+      ['la PSAP derivada es la del estudio',    desp.calc === antes.calc],
+      ['y no la del paciente que estaba en pantalla', desp.calc !== ruido.calc],
+      ['la PmAD tambien',                       desp.pmad === antes.pmad],
+      ['y el informe firmado sale identico al original', desp.inf === antes.inf],
+      ['que NO es el del ruidoso',              desp.inf !== ruido.inf]
+    ] };
+  })();
+`);
+
+/* LA LIMPIEZA QUE HACE `cargarEstudioPorId` POR DENTRO. Los casos de arriba pasan por «Nuevo
+   estudio» antes de reabrir, asi que NO dependen de ella: al sacarla de index.html el suite
+   seguia entero en verde. Lo descubrio la mutacion, no la lectura.
+   El escenario que si la necesita es el que documenta la propia funcion: un estudio con `campos`
+   RALO —los importados de Excel y de DICOM construyen el objeto desde cero y traen unas pocas
+   decenas de claves— abierto ENCIMA de un paciente cargado. El bucle de restauracion solo pisa
+   las claves que el estudio TRAE, asi que todo lo demas se queda con lo del anterior. Medido en
+   su momento: la pantalla quedaba con el nombre del estudio nuevo y la coartacion, la valvula
+   bicuspide y las notas del anterior, con la casilla «✓ Integrado al informe» tildada, y el PDF
+   salia recomendando intervenir una coartacion que era de otra persona.
+   El estudio ralo se escribe directo en el store, que es lo que hace un importador. */
+caso('TC-GR-14', 'Abrir un estudio importado encima de otro paciente no hereda sus hallazgos', `
+  return (async () => {
+    // Paciente A EN PANTALLA, con hallazgos que gatean parrafos propios.
+    __t.limpiar(); __t.set('nombre','Paciente Previo'); __t.set('ci','PREV');
+    __t.set('coa_loc','yuxtaductal'); __t.set('coa_istmo','6');
+    __t.set('coa_vmax','3.4'); __t.set('coa_gmedio','45');
+    __t.chk('coart_incluir_chk', true);
+    __t.set('vab_fenotipo','rl'); __t.chk('vab_incluir_chk', true);
+    __t.set('fevi','35');
+    const a = __t.informe();
+
+    /* Estudio IMPORTADO: campos ralo, como lo arma el importador de Excel. No pasa por
+       guardarInforme —que barreria los ~490 inputs— porque el punto es justamente que faltan. */
+    const ralo = { id: 987654321, estudioId: 'test-ralo-001', uuid: '00000000-0000-4000-8000-000000000001',
+                   nombre: 'Importado Excel', ci: 'IMP1', doc_tipo: 'CI',
+                   fecha_estudio: '2026-09-15', fecha_guardado: '2026-09-15T00:00:00.000Z',
+                   campos: { nombre:'Importado Excel', ci:'IMP1', fevi:'60', tapse:'22' } };
+    await CeiboStore.setLocal(getInformes().concat([ralo]));
+
+    __t.reabrir('test-ralo-001');
+    const b = __t.informe();
+    const casilla = document.getElementById('coart_incluir_chk');
+    const vabChk  = document.getElementById('vab_incluir_chk');
+    await __t.borrar('test-ralo-001');
+    return { extra: [
+      ['el paciente previo si tenia la coartacion', /coartaci[oó]n/i.test(a.inf)],
+      ['y la valvula bicuspide',                    /bic[uú]spide/i.test(a.inf)],
+      ['el estudio importado trae su nombre',       __t.val('nombre') === 'Importado Excel'],
+      ['y su FEVI',                                 __t.val('fevi') === '60'],
+      ['los campos de la coartacion, que el importado NO trae, quedaron VACIOS',
+        __t.val('coa_gmedio') === '' && __t.val('coa_istmo') === '' && __t.val('coa_loc') === ''],
+      ['la casilla de inclusion de la coartacion quedo destildada',
+        !!casilla && casilla.checked === false],
+      ['idem la de la valvula bicuspide',           !!vabChk && vabChk.checked === false],
+      ['el informe del importado NO nombra la coartacion del anterior',
+        !/coartaci[oó]n/i.test(b.inf)],
+      ['ni la valvula bicuspide',                   !/bic[uú]spide/i.test(b.inf)],
+      ['ni arrastra su FEVI reducida',              b.inf.indexOf('FEVI 35') === -1],
+      ['y el EN SUMA tampoco',
+        !/coartaci[oó]n/i.test(b.suma) && !/bic[uú]spide/i.test(b.suma)]
+    ] };
+  })();
+`);
+
+/* CONTRACTILIDAD Y STRAIN SEGMENTARIOS. Son los dos estados que NO viven en inputs: son objetos
+   en memoria (contrEstado, strainEstado) que guardarInforme serializa a mano con JSON.stringify
+   y que tres funciones propias reponen. Por eso el barrido generico no los cubre, y por eso el
+   strain ya costo un bug: vivia SOLO en memoria, no se guardaba ni se respaldaba al reimprimir,
+   asi que el bull's eye salia con los colores del paciente que estuviera abierto mientras el
+   numero de GLS y las notas venian del guardado — la combinacion mas engañosa posible.
+   El caso lo delato una mutacion: sacar _restaurarStrain de cargarEstudioPorId dejaba el suite
+   entero en verde.
+   SALVEDAD: los segmentos se pintan CLICKEANDO el diagrama, y eso no se automatiza acá. El caso
+   escribe los objetos en memoria, o sea que prueba el VIAJE (serializar, guardar, reponer) y no
+   la interaccion. Pintar el bull's eye a mano y verificar los colores tras reabrir REQUIERE
+   VERIFICACION MANUAL. */
+caso('TC-GR-15', 'Contractilidad y strain segmentarios viajan con el estudio', `
+  return (async () => {
+    __t.limpiar(); __t.set('nombre','Segmentos'); __t.set('ci','1313');
+    // Segmentos marcados como los dejaria el diagrama: 1 = normal, 2 = hipoquinesia, etc.
+    contrEstado['seg1'] = 2; contrEstado['seg7'] = 3; contrEstado['seg13'] = 1;
+    strainEstado['seg1'] = -8; strainEstado['seg7'] = -12;
+    const g = await __t.guardar();
+
+    // Se deja OTRO juego de segmentos en pantalla: si no se repusieran, se verian estos.
+    __t.limpiar(); __t.set('nombre','Ruido Segmentos'); __t.set('ci','RS');
+    contrEstado['seg1'] = 4; contrEstado['seg2'] = 4;
+    strainEstado['seg1'] = -20; strainEstado['seg3'] = -19;
+
+    __t.reabrir(g.estudioId);
+    const contr  = JSON.parse(JSON.stringify(contrEstado));
+    const strain = JSON.parse(JSON.stringify(strainEstado));
+    const ficha  = getInformes().find(i => i.estudioId === g.estudioId) || {};
+    const guardado = {
+      contr:  (ficha.campos || {}).contractilidad,
+      strain: (ficha.campos || {}).strain_sgl
+    };
+    await __t.borrar(g.estudioId);
+    return { extra: [
+      ['la contractilidad se serializo al estudio, no quedo solo en memoria',
+        (guardado.contr || '').indexOf('seg7') > -1],
+      ['el strain tambien',  (guardado.strain || '').indexOf('seg7') > -1],
+      ['los tres segmentos de contractilidad vuelven con su valor',
+        contr.seg1 === 2 && contr.seg7 === 3 && contr.seg13 === 1],
+      ['y el strain de los dos suyos',  strain.seg1 === -8 && strain.seg7 === -12],
+      ['no quedo NINGUN segmento del paciente que estaba en pantalla',
+        contr.seg2 === undefined && strain.seg3 === undefined],
+      ['ni su valor pisado en el segmento que compartian',
+        contr.seg1 !== 4 && strain.seg1 !== -20]
+    ] };
+  })();
+`);
+
+/* DEFECTO ABIERTO, encontrado al escribir TC-GR-10. `cargarEstudioPorId` recalcula CINCO
+   funciones —calcVI, calcAI, calcAorta, calcVD, calcVEXUS— mas RECALC_MODULOS. La reimpresion,
+   que es la otra ruta de restauracion, recalcula CATORCE, y entre las que le sobran estan
+   calcPSAP, calcSGL y calcBSA. Esas tres escriben capsulas que nadie mas repone, asi que al
+   reabrir un estudio quedan en «—» con los datos de entrada correctamente restaurados al lado.
+   Medido: psap-interp «37 mmHg (PmAD 3 mmHg)» -> «—», sgl-interp «SGL -14%» -> «—»,
+   bsa-val «2.00 m²» -> «— m²». Las demas capsulas (masa VI, geometria, indice de AI, volumen
+   sistolico, FAC, AD) vuelven bien, porque calcVI/calcAI/calcVD si estan en la lista.
+   El INFORME NO se ve afectado: el narrativo lee los inputs readonly (psap_calc, pmad), que
+   viajan en `campos` — por eso TC-GR-10 pasa. Lo que queda mal es la PANTALLA, que muestra «—»
+   mientras el informe de ese mismo estudio dice «PSAP estimada de 37 mmHg». Es la contradiccion
+   capsula/informe que este archivo se cuida de evitar (leccion 6 del 2026-09-14), en la ruta
+   que usa el QR del PDF — o sea la que abre un colega.
+   El arreglo es agregar las tres a la lista de `cargarEstudioPorId`, que es una linea; pero
+   toca index.html y esta tanda es de tests. Queda abierto para que lo decida Maicol. */
+casoAbierto('TC-GR-13', 'Reabrir un estudio deberia refrescar TODAS las capsulas, no solo cinco',
+  'cargarEstudioPorId (~L32394) no llama a calcPSAP, calcSGL ni calcBSA, que si estan en la ruta de reimpresion. Las tres capsulas quedan en «—» con los datos restaurados al lado.', `
+  return (async () => {
+    __t.limpiar(); __t.set('nombre','Capsulas'); __t.set('ci','1212');
+    __t.set('peso','80'); __t.set('talla','180'); __t.set('sexo','M');
+    __t.set('vmax_it','2.9'); __t.set('vci_diam','18'); __t.set('vci_col','>50');
+    __t.set('sgl','-14');
+    const antes = { psap: __t.txt('psap-interp'), sgl: __t.txt('sgl-interp'), bsa: __t.txt('bsa-val') };
+    const g = await __t.guardar();
+    __t.nuevoEstudio();
+    __t.reabrir(g.estudioId);
+    const desp = { psap: __t.txt('psap-interp'), sgl: __t.txt('sgl-interp'), bsa: __t.txt('bsa-val') };
+    await __t.borrar(g.estudioId);
+    return { extra: [
+      ['la capsula de PSAP vuelve con su valor', desp.psap === antes.psap],
+      ['la del SGL tambien',                     desp.sgl === antes.sgl],
+      ['y la de la superficie corporal',         desp.bsa === antes.bsa],
+      ['ninguna quedo en «—»',
+        [desp.psap, desp.sgl, desp.bsa].every(t => (t || '').indexOf('—') === -1)]
+    ] };
+  })();
+`);
+
+caso('TC-GR-11', 'Amiloidosis integrada: vuelve el texto con el score y los puntos del criterio', `
+  return (async () => {
+    __t.limpiar(); __t.set('nombre','Amiloidosis'); __t.set('ci','888');
+    __t.set('peso','80'); __t.set('talla','180');
+    // Los ett-* son PUNTOS, no mediciones: se cargan por la via real de la interfaz.
+    /* Los CINCO criterios del score son estos, con estos puntajes: 3+3+1+1+2 = 10. No existe
+       ningun crit-pw, y toggleCrit con un id que no existe no avisa —hace return en silencio—,
+       asi que un criterio mal escrito baja el score sin que nada lo delate.
+       El total se publica en ett-score-num, no en ett-total. */
+    toggleCrit('crit-rwt','ett-rwt',3);      // 3
+    toggleCrit('crit-sgl','ett-sgl',1);      // 1
+    toggleCrit('crit-ee','ett-ee',1);        // 1
+    toggleCrit('crit-tapse','ett-tapse',2);  // 2  -> 7
+    toggleCrit('crit-apice','ett-apice',3);  // 3  -> 10
+    const total = __t.txt('ett-score-num');
+    amiloIntegrar('ett');
+    const original = (document.getElementById('am-txt-ett') || {}).value || '';
+    const g = await __t.guardar();
+    __t.nuevoEstudio();
+    const trasLimpiar = (document.getElementById('am-txt-ett') || {}).value || '';
+    __t.reabrir(g.estudioId);
+    const vuelto = (document.getElementById('am-txt-ett') || {}).value || '';
+    await __t.borrar(g.estudioId);
+    return { extra: [
+      ['el score sumo los cinco criterios', (total || '').trim() === '10'],
+      ['el texto se genero',            original.length > 50],
+      ['«Nuevo estudio» lo borro',      trasLimpiar === ''],
+      ['vuelve identico al reabrir',    vuelto === original],
+      ['el modulo sigue integrado',     amiloIntegrado('ett') === true],
+      ['los puntos del criterio tambien vuelven', __t.val('ett-rwt') === '3'],
+      ['y el texto trae el puntaje',    vuelto.indexOf('10') > -1]
+    ] };
+  })();
+`);
+
+/* ete_morfo_incluir_chk es la casilla que ya costo un bug. Tiene DOS persistencias: el __chk que
+   viaja con el estudio, y una clave GLOBAL de localStorage (ete_morfo_incluir) que escribe su
+   propio onchange y que lee un script al arrancar la pagina. El caso prueba la que decide el
+   informe —la del estudio— y ADEMAS mira la global, que es por donde una decision de un paciente
+   puede aparecer en el siguiente. */
+caso('TC-GR-12', 'La casilla de morfologia ETE viaja con el estudio y no se pega al siguiente', `
+  return (async () => {
+    __t.limpiar(); __t.set('nombre','ETE Morfo'); __t.set('ci','999');
+    __t.chk('ete_morfo_incluir_chk', true);
+    const g = await __t.guardar();
+    __t.nuevoEstudio();
+    const trasLimpiar = document.getElementById('ete_morfo_incluir_chk').checked;
+    __t.reabrir(g.estudioId);
+    const trasReabrir = document.getElementById('ete_morfo_incluir_chk').checked;
+    /* El BOTON lo repinta eteInclSync, que entra por RECALC_MODULOS — no por
+       _restaurarChkInclusion, que solo mueve el .checked del input oculto. Sin esta condicion,
+       sacar RECALC_MODULOS de cargarEstudioPorId dejaba el suite entero en verde: el medico
+       reabre el estudio, la casilla esta tildada por dentro y el boton sigue diciendo
+       «Integrar al informe», o sea que la pantalla niega lo que el informe hace. Lo delato la
+       mutacion, no la lectura. */
+    const btn = document.querySelector('.btn-integrar[data-ete-chk=\"ete_morfo_incluir_chk\"]');
+    const textoBoton = btn ? btn.textContent.trim() : null;
+    /* Se captura el VALOR, no la referencia: mas abajo el caso abre un segundo estudio que NO
+       tiene la casilla, eteInclSync vuelve a ocultar el badge, y para cuando se evaluan las
+       condiciones un badge.hidden leido en vivo ya dice true. El texto del boton no tenia el
+       problema porque .textContent devuelve una cadena. */
+    const badgeVisible = (function(){ const b = document.getElementById('ete_morfo_badge');
+      return !!b && b.hidden === false; })();
+    // Y ahora un estudio SIN la casilla: no puede heredarla.
+    __t.limpiar(); __t.set('nombre','Otro'); __t.set('ci','1000');
+    const g2 = await __t.guardar();
+    __t.nuevoEstudio(); __t.reabrir(g2.estudioId);
+    const enElOtro = document.getElementById('ete_morfo_incluir_chk').checked;
+    await __t.borrar(g.estudioId); await __t.borrar(g2.estudioId);
+    try { localStorage.removeItem('ete_morfo_incluir'); } catch (e) {}
+    return { extra: [
+      ['«Nuevo estudio» destilda la casilla',               trasLimpiar === false],
+      ['reabrir el estudio que la tenia la vuelve a tildar', trasReabrir === true],
+      ['y el BOTON se repinta, no solo el input oculto',     textoBoton === '✓ Integrado al informe'],
+      ['con su badge visible',                              badgeVisible === true],
+      ['y un estudio que NO la tenia no la hereda',          enElOtro === false]
+    ] };
+  })();
+`);
+
 
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {

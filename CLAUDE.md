@@ -86,6 +86,34 @@ relectura. Hoy vetan, gateados por `esSec` estricto. La regla que queda: **al ce
 de esta forma, enumerar todo lo que se pinta y cruzarlo contra la lista**, no sólo arreglar el
 que se reportó.
 
+### Un test de restauracion que limpia a mano no prueba la limpieza
+Los doce primeros casos de guardado pasaban por «Nuevo estudio» antes de reabrir. Parecia
+correcto —es lo que hace el medico— pero significaba que **ninguno dependia de la limpieza que
+`cargarEstudioPorId` hace por dentro**: al sacarle el `limpiarCampos(true)` a index.html, el
+suite entero seguia en verde. Justo la fuga mas cara de esta app, con doce casos escritos para
+cubrirla, y cubierta por ninguno.
+
+El escenario que si la necesita es el que la propia funcion documenta: un estudio con `campos`
+**ralo** —los importados de Excel y de DICOM construyen el objeto desde cero y traen unas pocas
+decenas de claves— abierto **encima** de un paciente cargado. El bucle de restauracion solo pisa
+las claves que el estudio TRAE. Eso es TC-GR-14, y se escribe metiendo el estudio ralo directo en
+el store, que es lo que hace un importador.
+
+Lo mismo con `RECALC_MODULOS`: quitarlo tampoco ponia nada en rojo, porque lo que repinta son
+**capsulas y botones**, y los casos miraban el informe (que `generarInforme` recalcula solo) y
+los textarea. Se cierra mirando lo que esa lista es la unica en tocar: el texto del boton
+«✓ Integrado al informe» (`eteInclSync`) y la capsula del TEER (`calcTEER`).
+
+**La regla:** un caso de restauracion tiene que depender de la restauracion. Si el caso deja el
+formulario limpio por su cuenta, esta probando el guardado, no el viaje. Y la unica forma de
+saberlo es **romper la funcion en una copia y ver si algo se pone en rojo**.
+
+### Capturar el valor, no la referencia
+En un caso que abre DOS estudios, `const badge = document.getElementById(...)` y despues
+`badge.hidden` en la lista de condiciones lee el estado del SEGUNDO estudio: las condiciones se
+evaluan al final, no donde estan escritas. El texto del boton no tenia el problema porque
+`.textContent` devuelve una cadena. Capturar el valor en el momento en que se quiere observar.
+
 ### El cero se rechaza donde no puede ser una medición, no «en los criterios de techo»
 Los criterios de techo del TEER (`v <= X`) fallan ABIERTOS con el cero: «0mm ≤15mm ✓» cuenta como
 criterio CUMPLIDO en la hoja firmada, y ninguno de esos campos tiene `min`. La tentación es
@@ -809,13 +837,13 @@ El script contesta *«nadie lo nombra»*, no *«no tiene destino»*: un id menci
 ### 2 · Test suite clínico
 
 ```bash
-node scripts/test_clinico.mjs            # 98 casos, sin defectos abiertos
+node scripts/test_clinico.mjs            # 112 casos + 1 defecto abierto
 node scripts/test_clinico.mjs --solo TC-04
 node scripts/test_clinico.mjs --ver      # con el navegador a la vista, para depurar
 ```
 
 **Correr antes de cualquier push que toque el informe narrativo, el EN SUMA o una fórmula de
-cálculo. Tienen que pasar los 98. Si alguno falla, corregir antes de seguir.**
+cálculo. Tienen que pasar los 112. Si alguno falla, corregir antes de seguir.**
 
 **TC-01 a TC-17 — los bugs del 2026-09-14.** VD que desaparecía (TC-01/03), gradiente pulmonar
 congelado (TC-04), AD ausente del EN SUMA (TC-06), HFA-PEFF sin compuerta de FEVI (TC-07/08),
@@ -827,6 +855,19 @@ invertida del TEER (TC-13), aorta (TC-14/15) y las sincronías de PSAP y e' (TC-
 aórtica (46-48), tricúspide y pulmonar (49-51), hemodinámica (52-56), HFA-PEFF (57-58),
 pericardio (59-60), congénitas (61-66), amiloidosis (67-68), cardio-oncología (69-72, 88),
 ETE/TEER/TAVI/orejuela (73-78), derivados y sincronías (79-83).
+
+**TC-GR-01 a TC-GR-15 — guardar y restaurar (2026-09-15).** Era la brecha mas grande del
+suite. Entran por las funciones REALES —`guardarInforme` con su card de severidades, y
+`cargarEstudioPorId`— y no por el store, porque lo que se prueba es el viaje completo. El helper
+`__t.guardar()` / `__t.reabrir()` / `__t.borrar()` esta en el PRELUDIO; cada caso borra lo que
+guardo, porque un estudio que sobrevive cambia el denominador del siguiente.
+
+Cubren: los datos del paciente (01), el informe identico antes y despues (02), la EAo con su
+escenario recalculado (03), la FEVI y la coartacion que no viajan al paciente siguiente (04, 05),
+los modulos integrados HFA-PEFF / TEER / amiloidosis (06, 07, 11), la serie congelada de
+cardio-onco (08), corregir tras reabrir (09), reabrir encima de otro paciente (10), la casilla de
+morfologia ETE con su boton y su badge (12), el estudio IMPORTADO ralo abierto encima de otro
+(14) y la contractilidad y el strain segmentarios (15).
 
 **TC-84 a TC-98 — los defectos que el propio suite encontró, ya cerrados (2026-09-15).** TEER c7
 y c8 al `veto` (84/85), el gate `esSec` estricto que evita que el arreglo se coma el caso común
@@ -3050,6 +3091,22 @@ criterio». Si aparece, la palanca es juntar las salvedades con la línea de la 
 
 ## Deuda conocida sin resolver
 
+### Reabrir un estudio deja tres capsulas en «—» (TC-GR-13, abierto)
+
+`cargarEstudioPorId` (~L32394) recalcula CINCO funciones —`calcVI`, `calcAI`, `calcAorta`,
+`calcVD`, `calcVEXUS`— mas `RECALC_MODULOS`. La reimpresion, que es la otra ruta de restauracion,
+recalcula CATORCE, y entre las que le sobran estan **`calcPSAP`, `calcSGL` y `calcBSA`**. Esas
+tres escriben capsulas que nadie mas repone.
+
+Medido: `psap-interp` «37 mmHg (PmAD 3 mmHg)» → «—», `sgl-interp` «SGL -14%» → «—», `bsa-val`
+«2.00 m²» → «— m²». Las demas vuelven bien porque sus funciones si estan en la lista.
+
+**El informe NO se ve afectado**: el narrativo lee los inputs readonly (`psap_calc`, `pmad`), que
+viajan en `campos` — por eso TC-GR-10 pasa y el PDF reabierto sale identico. Lo que queda mal es
+la PANTALLA, que muestra «—» mientras el informe de ese mismo estudio dice «PSAP estimada de
+37 mmHg». Es la contradiccion capsula/informe que este archivo se cuida de evitar, en la ruta que
+usa el QR del PDF — o sea la que abre un colega. El arreglo son tres nombres en esa lista.
+
 ### El barrido del suite: qué quedó abierto (2026-09-15, segunda tanda)
 
 De los cuatro defectos que abrió el barrido **no queda ninguno**. El suite no tiene casos ⊘.
@@ -3129,6 +3186,16 @@ Verificados leyendo el código y razonando la cadena, **no** por un caso del sui
 para que no se lean como cubiertos:
 - **El respaldo de `_amiloUltimo` en la reimpresión.** Probarlo exige generar un PDF real con
   jsPDF y esperar el `setTimeout` de la restauración; es demasiado frágil para este suite.
+- **Los segmentos del bull's eye, pintados con el mouse.** TC-GR-15 prueba que la
+  contractilidad y el strain VIAJAN con el estudio (serializar, guardar, reponer) escribiendo
+  `contrEstado` / `strainEstado` en memoria. Pintar el diagrama a mano y verificar los colores
+  tras reabrir **requiere verificacion manual**.
+- **La reimpresion a PDF de un estudio guardado.** TC-92 y TC-GR-06/07/11 cubren el TEXTO que
+  baja al PDF; el dibujo con jsPDF y el `setTimeout` de la restauracion posterior, no.
+- **Dos estudios con el mismo `estudioId`.** Poner un id fijo en `guardarInforme` no pone nada en
+  rojo: cada caso guarda uno solo y lo borra. `getInformes` deduplica por `id`, no por
+  `estudioId`, asi que dos estudios con el mismo `estudioId` conviven y `cargarEstudioPorId`
+  abre el primero. Sin cobertura.
 - ~~La guarda `cero:'no'` de `TEER_CRIT`.~~ **Cerrada por TC-98**, que verifica sobre el
   FUENTE que las dos listas coincidan. Es la única verificación textual del suite; ver por qué
   en «El cero se rechaza donde no puede ser una medición».
