@@ -941,13 +941,13 @@ El script contesta *«nadie lo nombra»*, no *«no tiene destino»*: un id menci
 ### 2 · Test suite clínico
 
 ```bash
-node scripts/test_clinico.mjs            # 123 casos + 1 defecto abierto
+node scripts/test_clinico.mjs            # 125 casos, sin defectos abiertos
 node scripts/test_clinico.mjs --solo TC-04
 node scripts/test_clinico.mjs --ver      # con el navegador a la vista, para depurar
 ```
 
 **Correr antes de cualquier push que toque el informe narrativo, el EN SUMA o una fórmula de
-cálculo. Tienen que pasar los 123. Si alguno falla, corregir antes de seguir.**
+cálculo. Tienen que pasar los 125. Si alguno falla, corregir antes de seguir.**
 
 **TC-01 a TC-17 — los bugs del 2026-09-14.** VD que desaparecía (TC-01/03), gradiente pulmonar
 congelado (TC-04), AD ausente del EN SUMA (TC-06), HFA-PEFF sin compuerta de FEVI (TC-07/08),
@@ -959,6 +959,29 @@ invertida del TEER (TC-13), aorta (TC-14/15) y las sincronías de PSAP y e' (TC-
 aórtica (46-48), tricúspide y pulmonar (49-51), hemodinámica (52-56), HFA-PEFF (57-58),
 pericardio (59-60), congénitas (61-66), amiloidosis (67-68), cardio-oncología (69-72, 88),
 ETE/TEER/TAVI/orejuela (73-78), derivados y sincronías (79-83).
+
+**`scripts/check_mobile.js` — usabilidad en celular, MIDIENDO la página (2026-09-15).** Corre la
+app por CDP igual que el suite, en 360 y 390 px, y reporta el selector CSS de cada problema:
+texto que desborda, objetivos táctiles chicos, tablas anchas sin scroll, badges cortados, inputs
+bajos, lo que se sale del viewport y hermanos superpuestos. Complementa —no reemplaza— al
+`check_mobile.py` de la skill, que es estático: «este texto desborda» y «estos dos se pisan» no
+se deducen del HTML, dependen del layout resuelto.
+
+**Abre todas las pestañas y secciones antes de medir.** Lo que está en `display:none` no tiene
+geometría, así que un barrido sobre la app cerrada encuentra CERO problemas y parece impecable —
+el mismo denominador engañoso que contar filas de una tabla colapsada.
+
+**Tres filtros de falso positivo que lo hacen legible** (sin ellos daba 241 hallazgos y no se
+leía): nada dentro de un `<svg>` —los `<path>` de un dibujo se superponen por definición—; nada
+`display:inline` en la comprobación de superposición —el rect de un `<b>` que envuelve dos
+renglones abarca las dos líneas—; y un checkbox dentro de un `<label>` se mide por el label,
+porque tocar el texto también marca. Hoy: **10 hallazgos ALTA**, todos reales.
+
+**TC-110 — los umbrales del filtro de cohorte y sus etiquetas salen de la misma constante.** El
+50 de la banda alta de PSAP estaba escrito cuatro veces (los dos lados del predicado, `_COH_LBL`
+y el texto del `<option>`): ahora sale de `UMBRAL_PSAP_COHORTE_ALTA`. Importa porque esa
+descripción alimenta el encabezado del PDF de auditoría — una etiqueta cableada sobre un
+predicado por constante hace que el papel declare un denominador que no se usó.
 
 **TC-109 — quedó una sola calculadora de riesgo basal (2026-09-15).** Verifica que el score
 viejo no vuelva por ningún lado, que la cápsula del bloque «Datos basales» publique la banda

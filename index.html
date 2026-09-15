@@ -13840,6 +13840,13 @@ const UMBRAL_TAPSE_NORMAL = 17;  // mm (TAPSE ≥17 = normal)
    decía normal ≤40, el Laboratorio ≤35, y el informe tenía su propia cascada—, así que
    una PSAP de 38 era «normal» en una pantalla y «HTP leve» en el informe firmado. */
 const UMBRAL_PSAP_ELEVADA = 35;  // mmHg
+/* El corte ALTO de la banda de cohorte de PSAP. No es un umbral clínico de la guía sino la
+   frontera de la tercera banda del filtro del Laboratorio — pero estaba escrito TRES veces (los
+   dos lados del predicado, la etiqueta de `_COH_LBL` y el texto del `<option>`), así que moverlo
+   dejaba el PDF de auditoría imprimiendo «PSAP > 50 mmHg» sobre una cohorte filtrada a otro
+   número. Es el mismo modo de falla que cerró el bloque de `CO_UMBRAL_*`. `_cohPsapLbl` ya
+   derivaba de la constante las otras dos etiquetas; ahora las tres salen de acá. */
+const UMBRAL_PSAP_COHORTE_ALTA = 50;  // mmHg — frontera superior de la banda intermedia
 window.UMBRAL_PSAP_ELEVADA = UMBRAL_PSAP_ELEVADA;
 
 /* ── Presión capilar pulmonar estimada ──
@@ -32989,7 +32996,17 @@ function cargarEstudioPorId(id) {
   else window.esqSevManual = {};
   if (window.esqPills) try { esqPills.refresh(); } catch(e) {}
   if (typeof renderCentroField === 'function') renderCentroField(inf.campos && inf.campos.centro_nombre);
-  ['calcVI','calcAI','calcAorta','calcVD','calcVEXUS'].forEach(fn => { if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} } });
+  /* `calcBSA`, `calcPSAP` y `calcSGL` entraron el 2026-09-15. Son las ÚNICAS que escriben
+     `bsa-val`, `psap-interp` y `sgl-interp`, y la lista tenía cinco funciones donde la ruta de
+     REIMPRESIÓN tiene catorce: al reabrir un estudio esas tres cápsulas quedaban en «—» con los
+     datos de entrada correctamente restaurados al lado. Medido: «37 mmHg (PmAD 3 mmHg)» → «—»,
+     «SGL -14%» → «—», «2.00 m²» → «— m²».
+     El INFORME no se veía afectado —el narrativo lee los inputs readonly (`psap_calc`, `pmad`),
+     que sí viajan en `campos`— así que el PDF reabierto salía idéntico. Lo que quedaba mal era la
+     PANTALLA, diciendo «—» mientras el informe del mismo estudio decía «PSAP estimada de 37
+     mmHg», en la ruta que usa el QR del PDF: la que abre un colega. Lo encontró TC-GR-13.
+     `calcBSA` va PRIMERA: `calcSGL` y varios derivados indexan por superficie corporal. */
+  ['calcBSA','calcVI','calcAI','calcAorta','calcVD','calcPSAP','calcSGL','calcVEXUS'].forEach(fn => { if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} } });
   _recalcModulos('cargarEstudioPorId');
   window._ettEditandoId = inf.id;
   infBaseDesdeDOM();   // ver nota en editarInforme: base = lo que quedó tras los recálculos
@@ -40275,8 +40292,9 @@ function _labCohorteOk(inf) {
     if (p === null) return false;
     const up = (typeof UMBRAL_PSAP_ELEVADA === 'number') ? UMBRAL_PSAP_ELEVADA : 35;
     if (C.psap === 'lt36'  && !(p <= up)) return false;
-    if (C.psap === 'a3650' && !(p > up && p <= 50)) return false;
-    if (C.psap === 'gt50'  && !(p > 50)) return false;
+    const upA = (typeof UMBRAL_PSAP_COHORTE_ALTA === 'number') ? UMBRAL_PSAP_COHORTE_ALTA : 50;
+    if (C.psap === 'a3650' && !(p > up && p <= upA)) return false;
+    if (C.psap === 'gt50'  && !(p > upA)) return false;
   }
   // «Con signos TEP» exige que el módulo se haya USADO: los tres selects tienen 'ne' = no
   // evaluado, así que «ningún signo en sí» sobre un módulo cerrado no es un negativo medido.
@@ -40383,7 +40401,7 @@ const _COH_LBL = {
   hfpeff:   { bajo:'HFA-PEFF bajo', inter:'HFA-PEFF intermedio', alto:'HFA-PEFF alto' },
   peptido:  { alto:'Péptidos elevados', normal:'Péptidos normales' },
   htp:      { BAJA:'HTP probabilidad baja', INTERMEDIA:'HTP probabilidad intermedia', ALTA:'HTP probabilidad alta' },
-  psap:     { lt36:'PSAP ' + _cohPsapLbl('lt36'), a3650:'PSAP ' + _cohPsapLbl('a3650'), gt50:'PSAP > 50 mmHg' },
+  psap:     { lt36:'PSAP ' + _cohPsapLbl('lt36'), a3650:'PSAP ' + _cohPsapLbl('a3650'), gt50:'PSAP ' + _cohPsapLbl('gt50') },
   amil:     { baja:'Amiloidosis score < 6', inter:'Amiloidosis score 6–7', alta:'Amiloidosis score ≥ 8' },
   farmaco:  { antracicline:'Antraciclinas', otros:'Otros fármacos onco' },
   /* El 10 se interpola: esta descripción alimenta el ENCABEZADO del PDF de auditoría y la hoja
@@ -40479,10 +40497,15 @@ window._labCohorteDesc = _labCohorteDesc;
    función y no una constante para no depender del orden de inicialización del bloque. */
 function _cohPsapLbl(k) {
   const u = (typeof UMBRAL_PSAP_ELEVADA === 'number') ? UMBRAL_PSAP_ELEVADA : 35;
-  return k === 'lt36' ? ('≤ ' + u + ' mmHg') : ((u + 1) + '–50 mmHg');
+  const a = (typeof UMBRAL_PSAP_COHORTE_ALTA === 'number') ? UMBRAL_PSAP_COHORTE_ALTA : 50;
+  if (k === 'lt36')  return '≤ ' + u + ' mmHg';
+  if (k === 'gt50')  return '> ' + a + ' mmHg';
+  return (u + 1) + '–' + a + ' mmHg';
 }
 function _labCohorteCCBox() {
-  ['lt36','a3650'].forEach(k => {
+  /* `gt50` entra acá desde el 2026-09-15: su texto era HTML estático con el 50 escrito a mano,
+     o sea la cuarta copia. Ahora los tres `<option>` salen de `_cohPsapLbl`. */
+  ['lt36','a3650','gt50'].forEach(k => {
     const o = document.querySelector('#coh-psap option[value="' + k + '"]');
     if (o) o.textContent = _cohPsapLbl(k);
   });

@@ -2376,6 +2376,56 @@ caso('TC-109', 'Cardio-onco: quedo UNA sola calculadora de riesgo basal', `
   ] };
 `);
 
+/* LOS UMBRALES DEL FILTRO DE COHORTE SALEN DE CONSTANTES, Y LAS ETIQUETAS DE LAS MISMAS. La
+   descripcion de la cohorte alimenta el ENCABEZADO del PDF de auditoria y la hoja «Cohorte» del
+   Excel que va a CeiboAnalytics: una etiqueta cableada sobre un predicado por constante hace que
+   el papel declare un denominador que no es el que se uso. El 50 de la PSAP estaba escrito CUATRO
+   veces —los dos lados del predicado, _COH_LBL y el texto del <option>—; ahora sale de
+   UMBRAL_PSAP_COHORTE_ALTA. Los demas filtros ya delegaban en clasificadores compartidos. */
+caso('TC-110', 'Cohorte: los umbrales y sus etiquetas salen de la misma constante', `
+  const previo = _LAB_COHORTE;
+  function enCohorte(selectId, valor, campos) {
+    ['coh-psap','coh-fevi'].forEach(id => __t.set(id, ''));
+    __t.set(selectId, valor);
+    _LAB_COHORTE = _labCohorteLeer();
+    return { ok: _labCohorteOk({ campos }), desc: _labCohorteDesc() };
+  }
+  try {
+    const U = UMBRAL_PSAP_ELEVADA, A = UMBRAL_PSAP_COHORTE_ALTA;
+    // El estudio parado en el corte EXACTO de cada banda.
+    const psap = v => ({ vmax_it:'3.0', pmad_manual:'', psap_calc: String(v) });
+    const borde   = enCohorte('coh-psap','a3650', psap(A));      // 50 clavados: banda intermedia
+    const pasado  = enCohorte('coh-psap','gt50',  psap(A + 1));  // 51: banda alta
+    const noPasa  = enCohorte('coh-psap','gt50',  psap(A));      // 50 NO es «> 50»
+    /* Los <option> los repuebla _labCohorteCCBox, que corre cuando se renderiza el panel del
+       Laboratorio — no al cargar la pagina. Se lo invoca igual que lo hace ese render; si no, el
+       caso estaria mirando el texto placeholder del HTML. */
+    _labCohorteCCBox();
+    const opt = document.querySelector('#coh-psap option[value="gt50"]');
+    const optMed = document.querySelector('#coh-psap option[value="a3650"]');
+    return { extra: [
+      ['la constante de la banda alta existe y vale 50', A === 50],
+      ['y la intermedia arranca donde termina la elevada', U === 35],
+      ['la PSAP en el corte exacto cae en la banda intermedia', borde.ok === true],
+      ['uno por encima cae en la alta',                         pasado.ok === true],
+      ['y el corte exacto NO entra en la alta',                 noPasa.ok === false],
+      // Las etiquetas, que son las que se imprimen en el PDF de auditoria.
+      ['la etiqueta de la banda alta sale de la constante',
+        _cohPsapLbl('gt50') === '> ' + A + ' mmHg'],
+      ['la de la intermedia tambien, por los dos extremos',
+        _cohPsapLbl('a3650') === (U + 1) + '–' + A + ' mmHg'],
+      ['la descripcion que va al encabezado del PDF usa esa etiqueta',
+        pasado.desc.indexOf('PSAP > ' + A + ' mmHg') > -1],
+      ['y el texto del <option> tambien se repuebla desde ahi',
+        !!opt && opt.textContent.trim() === '> ' + A + ' mmHg' &&
+        !!optMed && optMed.textContent.trim() === (U + 1) + '–' + A + ' mmHg'],
+      // Los de cardio-onco, que ya se habian unificado, siguen por constante.
+      ['los de cardio-onco siguen leyendo sus constantes',
+        CO_UMBRAL_FEVI_CAIDA === 10 && CO_UMBRAL_GLS_REL === 15]
+    ] };
+  } finally { _LAB_COHORTE = previo; }
+`);
+
 /* LAS TRES SUPERFICIES DE CARDIO-ONCO TIENEN QUE DECIR LO MISMO. La leyenda de #ref-cardiotox
    (pestaña Referencias), la tabla de farmacos y las tablas nuevas del marco HFA-ICOS viven en
    DOS pestañas distintas y describen al mismo paciente. Las tres estaban desincronizadas, cada
@@ -2927,10 +2977,10 @@ caso('TC-GR-15', 'Contractilidad y strain segmentarios viajan con el estudio', `
   })();
 `);
 
-/* DEFECTO ABIERTO, encontrado al escribir TC-GR-10. `cargarEstudioPorId` recalcula CINCO
-   funciones —calcVI, calcAI, calcAorta, calcVD, calcVEXUS— mas RECALC_MODULOS. La reimpresion,
-   que es la otra ruta de restauracion, recalcula CATORCE, y entre las que le sobran estan
-   calcPSAP, calcSGL y calcBSA. Esas tres escriben capsulas que nadie mas repone, asi que al
+/* CERRADO el 2026-09-15. Lo encontro TC-GR-10 y quedo abierto una tanda. `cargarEstudioPorId`
+   recalculaba CINCO funciones —calcVI, calcAI, calcAorta, calcVD, calcVEXUS— mas RECALC_MODULOS,
+   mientras la reimpresion, que es la otra ruta de restauracion, recalcula CATORCE. Entre las que
+   le faltaban estaban calcPSAP, calcSGL y calcBSA. Esas tres escriben capsulas que nadie mas repone, asi que al
    reabrir un estudio quedan en «—» con los datos de entrada correctamente restaurados al lado.
    Medido: psap-interp «37 mmHg (PmAD 3 mmHg)» -> «—», sgl-interp «SGL -14%» -> «—»,
    bsa-val «2.00 m²» -> «— m²». Las demas capsulas (masa VI, geometria, indice de AI, volumen
@@ -2940,10 +2990,9 @@ caso('TC-GR-15', 'Contractilidad y strain segmentarios viajan con el estudio', `
    mientras el informe de ese mismo estudio dice «PSAP estimada de 37 mmHg». Es la contradiccion
    capsula/informe que este archivo se cuida de evitar (leccion 6 del 2026-09-14), en la ruta
    que usa el QR del PDF — o sea la que abre un colega.
-   El arreglo es agregar las tres a la lista de `cargarEstudioPorId`, que es una linea; pero
-   toca index.html y esta tanda es de tests. Queda abierto para que lo decida Maicol. */
-casoAbierto('TC-GR-13', 'Reabrir un estudio deberia refrescar TODAS las capsulas, no solo cinco',
-  'cargarEstudioPorId (~L32394) no llama a calcPSAP, calcSGL ni calcBSA, que si estan en la ruta de reimpresion. Las tres capsulas quedan en «—» con los datos restaurados al lado.', `
+   El arreglo fue agregar las tres a esa lista, con `calcBSA` PRIMERA porque varios derivados
+   indexan por superficie corporal. */
+caso('TC-GR-13', 'Reabrir un estudio refresca TODAS las capsulas, no solo cinco', `
   return (async () => {
     __t.limpiar(); __t.set('nombre','Capsulas'); __t.set('ci','1212');
     __t.set('peso','80'); __t.set('talla','180'); __t.set('sexo','M');
@@ -2960,7 +3009,13 @@ casoAbierto('TC-GR-13', 'Reabrir un estudio deberia refrescar TODAS las capsulas
       ['la del SGL tambien',                     desp.sgl === antes.sgl],
       ['y la de la superficie corporal',         desp.bsa === antes.bsa],
       ['ninguna quedo en «—»',
-        [desp.psap, desp.sgl, desp.bsa].every(t => (t || '').indexOf('—') === -1)]
+        [desp.psap, desp.sgl, desp.bsa].every(t => (t || '').indexOf('—') === -1)],
+      /* Y que traigan EL valor del estudio, no cualquiera: sin esto, una capsula que quedara con
+         lo del paciente anterior pasaria las cuatro condiciones de arriba. */
+      ['la PSAP es la del estudio, con su PmAD', (desp.psap || '').indexOf('37 mmHg (PmAD 3 mmHg)') > -1],
+      ['el SGL es el del estudio',               (desp.sgl || '').indexOf('-14') > -1],
+      ['y la superficie la del peso y la talla guardados',
+        (desp.bsa || '').indexOf('2.00') > -1]
     ] };
   })();
 `);
