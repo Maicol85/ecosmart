@@ -86,6 +86,32 @@ relectura. Hoy vetan, gateados por `esSec` estricto. La regla que queda: **al ce
 de esta forma, enumerar todo lo que se pinta y cruzarlo contra la lista**, no sólo arreglar el
 que se reportó.
 
+### El cero se rechaza donde no puede ser una medición, no «en los criterios de techo»
+Los criterios de techo del TEER (`v <= X`) fallan ABIERTOS con el cero: «0mm ≤15mm ✓» cuenta como
+criterio CUMPLIDO en la hoja firmada, y ninguno de esos campos tiene `min`. La tentación es
+uniformar —los cinco son de techo, los cinco llevan `> 0`— y **es la regla equivocada**.
+
+Llevan guarda **cuatro**: gap, profundidad de coaptación, PASP y DTSVI. No hay PASP de cero ni
+DTSVI de cero; y una coaptación o un tenting de 0 describen un hallazgo **patológico**, así que
+contarlos como cumplidos es el error en la dirección peligrosa.
+
+**La anchura de flail es la excepción, decidida por Maicol (2026-09-15):** 0 mm es «no hay flail»
+—el prolapso sin flail de todos los días— y satisface genuinamente el «≤15 mm». Es anatomía
+**favorable**, no un dato que falta. Con la guarda puesta el estudio pasaba de «✅ APTO» a
+«⚠️ Posiblemente apto — completar datos faltantes: Anchura de flail», mandando al médico a buscar
+una medición que ya había hecho. Lo que se pierde a cambio: un 0 tipeado por error cuenta como
+cumplido. Se acepta porque es indistinguible del medido y el caso frecuente es el medido.
+
+La regla, entonces, es **campo por campo: ¿este cero puede ser una medición?** No «¿es un techo?».
+
+**Y la decisión tiene que estar en las DOS superficies.** `teerEstado` decide el informe firmado y
+`TEER_CRIT` el PDF de auditoría del Laboratorio. TC-98 lo verifica **leyendo el fuente** —única
+verificación textual del suite— porque `TEER_CRIT` es un `const` local dentro de `labEteRender` y
+no se alcanza desde el harness. Se agregó porque la mutación lo pidió: al sacar la guarda de c5
+probé revertirla **sólo** del lado del Laboratorio y el suite siguió en **verde**. Para un
+invariante que es «dos listas tienen que coincidir», mirar el texto es exactamente lo que
+corresponde; por eso no se generaliza a nada más.
+
 ### Si la reimpresión empieza a BORRAR un global, hay que reponerlo — «no escribir» no alcanzaba
 `_pdfDeInformeGuardadoArmar` respalda y repone todo estado global que toca: `imgSlots`,
 `_imgEditado`, `esqSevManual`, `chkEstado`, `dataset.tocado`, `_MARCAS_DERIV`, `_infBase`,
@@ -783,13 +809,13 @@ El script contesta *«nadie lo nombra»*, no *«no tiene destino»*: un id menci
 ### 2 · Test suite clínico
 
 ```bash
-node scripts/test_clinico.mjs            # 97 casos, sin defectos abiertos
+node scripts/test_clinico.mjs            # 98 casos, sin defectos abiertos
 node scripts/test_clinico.mjs --solo TC-04
 node scripts/test_clinico.mjs --ver      # con el navegador a la vista, para depurar
 ```
 
 **Correr antes de cualquier push que toque el informe narrativo, el EN SUMA o una fórmula de
-cálculo. Tienen que pasar los 97. Si alguno falla, corregir antes de seguir.**
+cálculo. Tienen que pasar los 98. Si alguno falla, corregir antes de seguir.**
 
 **TC-01 a TC-17 — los bugs del 2026-09-14.** VD que desaparecía (TC-01/03), gradiente pulmonar
 congelado (TC-04), AD ausente del EN SUMA (TC-06), HFA-PEFF sin compuerta de FEVI (TC-07/08),
@@ -802,7 +828,7 @@ aórtica (46-48), tricúspide y pulmonar (49-51), hemodinámica (52-56), HFA-PEF
 pericardio (59-60), congénitas (61-66), amiloidosis (67-68), cardio-oncología (69-72, 88),
 ETE/TEER/TAVI/orejuela (73-78), derivados y sincronías (79-83).
 
-**TC-84 a TC-97 — los defectos que el propio suite encontró, ya cerrados (2026-09-15).** TEER c7
+**TC-84 a TC-98 — los defectos que el propio suite encontró, ya cerrados (2026-09-15).** TEER c7
 y c8 al `veto` (84/85), el gate `esSec` estricto que evita que el arreglo se coma el caso común
 (89), la AI por diámetro AP en el EN SUMA con su lado normal (87) y los tres bordes que apareció
 el differential-review del arreglo (90: espejo vivo, cero, compuerta). Segunda tanda: c1b como
@@ -810,7 +836,7 @@ advertencia declarada (86), la PASP en cero (91), la reimpresión que no puede r
 la tabla de Referencias de cardio-onco atada al clasificador (93). Tercera: el redondeo del SGL a
 la precisión que se publica (94), los cinco criterios de techo del TEER contra el cero (95), el
 estudio parado en el umbral de su propia cohorte (96) y las copias sueltas de las dos fórmulas de
-cardio-onco (97).
+cardio-onco (97), y las dos listas del cero verificadas sobre el fuente (98).
 
 **⚠ El cuerpo de un caso es un template literal: NO usar acentos graves adentro**, ni en un
 comentario. Un backtick cierra la cadena y el archivo deja de parsear con un `SyntaxError` que
@@ -3085,17 +3111,8 @@ no una corrección aritmética, y el comentario de la función lo dice con esas 
 
 ### TEER: lo que queda reportado y sin tocar (2026-09-15)
 
-- **¿La anchura de flail en 0 es una medición?** Los cinco criterios de techo llevan guarda
-  `> 0` desde el 2026-09-15 (c2, c4, c5, c6, c8), en las dos superficies. Para `pasp` y `dtsvi`
-  la premisa es limpia: no hay PASP 0 ni DTSVI 0. **Para c5 no**: 0 mm de anchura de flail es
-  «no hay flail», el hallazgo habitual de un prolapso sin flail, y satisface genuinamente el
-  «≤15 mm» — o sea anatomía FAVORABLE. Con la guarda ese estudio pasa de «✅ APTO» a
-  «⚠️ Posiblemente apto — completar datos faltantes: Anchura de flail», y el médico va a buscar
-  una medición que ya hizo. c2 y c4 están en zona gris por lo mismo. Se aplicó igual porque la
-  dirección es segura —un `null` nunca entra en `fallos`, así que la guarda sólo puede degradar
-  un APTO, nunca voltear NO APTO → APTO— y porque un 0 tipeado por error es indistinguible de
-  uno medido. **Si Maicol decide que el 0 de flail es una medición, lo que se saca es la guarda
-  de c5, no las otras cuatro.**
+- *(Cerrado el 2026-09-15 — ver «El cero se rechaza donde no puede ser una medición», en
+  Trampas.)*
 - **`_teerAplica` admite los criterios COAPT por el primer brazo de `usaTeer`.** Con
   `teer_tipo_im='secundaria'` consignado y ningún otro campo TEER cargado, `ingresados` llega a 2
   por los dos espejos y el estudio cae en un veredicto del panel en vez de en «Sin criterios
@@ -3112,9 +3129,9 @@ Verificados leyendo el código y razonando la cadena, **no** por un caso del sui
 para que no se lean como cubiertos:
 - **El respaldo de `_amiloUltimo` en la reimpresión.** Probarlo exige generar un PDF real con
   jsPDF y esperar el `setTimeout` de la restauración; es demasiado frágil para este suite.
-- **La guarda `cero:'no'` de `TEER_CRIT`.** `TEER_CRIT` es un `const` local dentro de
-  `labEteRender`, así que no hay forma de alcanzarlo desde el harness sin renderizar el panel
-  con estudios guardados.
+- ~~La guarda `cero:'no'` de `TEER_CRIT`.~~ **Cerrada por TC-98**, que verifica sobre el
+  FUENTE que las dos listas coincidan. Es la única verificación textual del suite; ver por qué
+  en «El cero se rechaza donde no puede ser una medición».
 - **La hoja de cardio-onco que `_coFila` dibuja con jsPDF.** Su copia de las fórmulas se ruteó a
   `_ctrcdGlsRel` / `_ctrcdFeviCaida`, pero `_coFila` es un closure dentro de la función del PDF y
   no se alcanza desde el harness. TC-97 cubre el TEXTO DEL MÓDULO INTEGRADO, que es otra

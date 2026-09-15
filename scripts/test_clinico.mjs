@@ -1652,6 +1652,57 @@ caso('TC-97', 'Cardio-onco: el numero que se imprime es el que clasifica', `
   ] };
 `);
 
+/* LAS DOS LISTAS DE «EL CERO NO CUENTA» TIENEN QUE DECIR LO MISMO. `teerEstado` decide el
+   informe FIRMADO; `TEER_CRIT` decide el PDF de auditoria del Laboratorio. Son dos copias de la
+   misma regla, y CLAUDE.md documenta que divergir entre esas dos superficies es la clase de
+   defecto mas cara de esta app: el mismo estudio sale «Posiblemente apto» en un papel y «Apto»
+   en el otro, y los dos numeros se leen igual de bien.
+   Este caso existe porque la mutacion lo pidio: al sacar la guarda de c5 probe revertirla SOLO
+   del lado del Laboratorio y el suite siguio en VERDE. `TEER_CRIT` es un const local dentro de
+   labEteRender y no se alcanza desde el harness — asi que en vez de dejar el hueco documentado
+   otra vez, se verifica sobre el FUENTE, que para un invariante de «dos listas tienen que
+   coincidir» es exactamente lo que hay que mirar.
+   Es la unica verificacion de este suite que lee texto en vez de comportamiento. Eso la hace
+   fragil al reformateo —si alguien cambia los espacios de esas lineas, da rojo sin que haya un
+   defecto— y por eso no se generaliza: se usa donde el invariante ES textual. */
+caso('TC-98', 'TEER: la pantalla y el Laboratorio rechazan el cero en los MISMOS criterios', `
+  return (async () => {
+    const src = await (await fetch(location.href, { cache:'no-store' })).text();
+    // Lado del informe firmado: la guarda vive en la condicion de cada criterio.
+    const guarda = {
+      gap:   src.indexOf('gap  !== null && gap > 0') > -1,
+      prof:  src.indexOf('profFlail  !== null && profFlail  > 0') > -1,
+      pasp:  src.indexOf('pasp !== null && pasp > 0') > -1,
+      dtsvi: src.indexOf('dtsvi !== null && dtsvi > 0') > -1,
+      anch:  src.indexOf('anchoFlail !== null && anchoFlail > 0') > -1
+    };
+    // Lado del Laboratorio: la marca cero:'no' en la fila de TEER_CRIT de cada campo.
+    const fila = campo => {
+      const i = src.indexOf("campo:'teer_" + campo + "'");
+      if (i < 0) return null;
+      return src.slice(i, src.indexOf('\\n', i));
+    };
+    const marca = {
+      gap:   (fila('gap')         || '').indexOf("cero:'no'") > -1,
+      prof:  (fila('prof_flail')  || '').indexOf("cero:'no'") > -1,
+      pasp:  (fila('pasp')        || '').indexOf("cero:'no'") > -1,
+      dtsvi: (fila('dtsvi')       || '').indexOf("cero:'no'") > -1,
+      anch:  (fila('ancho_flail') || '').indexOf("cero:'no'") > -1
+    };
+    const campos = ['gap','prof','pasp','dtsvi','anch'];
+    return { extra: [
+      ['el fuente se pudo leer', src.length > 100000],
+      ['las cinco filas de TEER_CRIT existen', campos.every(k => fila(k === 'prof' ? 'prof_flail' : k === 'anch' ? 'ancho_flail' : k) !== null)],
+      ['los cuatro que rechazan el cero lo rechazan en las DOS superficies',
+        ['gap','prof','pasp','dtsvi'].every(k => guarda[k] === true && marca[k] === true)],
+      ['y la anchura de flail lo acepta en las DOS',
+        guarda.anch === false && marca.anch === false],
+      ['ninguna de las cinco quedo desparejada',
+        campos.every(k => guarda[k] === marca[k])]
+    ] };
+  })();
+`);
+
 /* EL FILTRO DE COHORTE CONTRA EL CLASIFICADOR. Los umbrales de cardio-onco del filtro eran
    literales pelados y con `>` donde el clasificador usa `>=`, asi que el estudio parado en el
    corte EXACTO quedaba fuera de su propia cohorte: una caida de 10,0 pp se rotula CTRCD en el
@@ -1703,13 +1754,22 @@ caso('TC-96', 'Cohorte: el estudio parado en el umbral entra en su propia cohort
   } finally { _LAB_COHORTE = previo; }
 `);
 
-/* LOS CINCO CRITERIOS DE TECHO DEL TEER FALLAN ABIERTOS CON EL CERO. `v <= X` es verdadero con
-   0, y ninguno de esos campos tiene `min`: «0mm <=10mm ✓» contaba como criterio CUMPLIDO en la
-   hoja firmada. c6 y c8 se cerraron antes; gap, profundidad y anchura de flail quedaban, y este
-   caso los cierra a los tres. El contraste importa: los criterios de PISO (velo anterior >=20,
-   area mitral >=4) ya fallan CERRADOS con el cero y NO llevan guarda — meterles una los
-   convertiria en «no ingresado» donde hoy dicen, correctamente, que no se cumplen. */
-caso('TC-95', 'TEER: el cero no cumple ningun criterio de techo, y sigue fallando los de piso', `
+/* EL CERO SE RECHAZA DONDE NO PUEDE SER UNA MEDICION — que NO es lo mismo que «en los criterios
+   de techo», y la diferencia es todo este caso. `v <= X` es verdadero con 0 y ninguno de esos
+   campos tiene `min`, asi que «0mm <=10mm ✓» contaba como criterio CUMPLIDO en la hoja firmada.
+   Llevan guarda CUATRO: gap, profundidad, PASP y DTSVI. No hay PASP de cero ni DTSVI de cero, y
+   una coaptacion o un tenting de 0 describen un hallazgo PATOLOGICO — contarlos como cumplidos
+   es el error en la direccion peligrosa.
+   **La anchura de flail es la excepcion, decidida por Maicol el 2026-09-15**: 0 mm es «no hay
+   flail», el prolapso sin flail de todos los dias, y satisface genuinamente el «<=15 mm» — es
+   anatomia FAVORABLE, no un dato que falta. Con la guarda puesta ese estudio pasaba de APTO a
+   «Posiblemente apto — completar datos faltantes», y el medico iba a buscar una medicion que ya
+   habia hecho. El caso fija las dos mitades de la decision: las cuatro que rechazan y la que
+   acepta. Si alguien «uniformiza» los cinco, esto se pone en rojo.
+   Y los criterios de PISO (velo anterior >=20, area mitral >=4) tampoco llevan guarda: con el
+   cero ya fallan CERRADOS, y ponersela los convertiria en «no ingresado» donde hoy dicen,
+   correctamente, que no se cumplen. */
+caso('TC-95', 'TEER: el cero se rechaza donde no puede ser una medicion, no en todos los techos', `
   function conCero(campo) { __t.limpiar(); __t.set('teer_tipo_im','secundaria');
     __t.set('teer_lva','24'); __t.set('teer_lvp','9'); __t.set('teer_gap','6');
     __t.set('teer_prof_flail','8'); __t.set('teer_ancho_flail','12');
@@ -1731,11 +1791,23 @@ caso('TC-95', 'TEER: el cero no cumple ningun criterio de techo, y sigue falland
   return { extra: [
     ['gap 0 no es criterio cumplido',          gap.cs.c2.ok === null],
     ['profundidad 0 tampoco',                  prof.cs.c4.ok === null],
-    ['anchura de flail 0 tampoco',             anch.cs.c5.ok === null],
     ['PASP 0 tampoco',                         pasp.cs.c6.ok === null],
     ['DTSVI 0 tampoco',                        dtsvi.cs.c8.ok === null],
-    ['y ninguno de los cinco deja decir APTO',
-      [gap, prof, anch, pasp, dtsvi].every(e => e.clave !== 'apto')],
+    ['y ninguno de los cuatro deja decir APTO',
+      [gap, prof, pasp, dtsvi].every(e => e.clave !== 'apto')],
+    // La excepcion: 0 mm de anchura de flail es «no hay flail», una medicion favorable.
+    ['anchura de flail 0 SI es criterio cumplido', anch.cs.c5.ok === true],
+    ['y el estudio queda APTO, sin pedir datos que ya estan',
+      anch.clave === 'apto' && anch.noIngresados === 0],
+    ['el texto del criterio muestra el valor medido, no «No ingresado»',
+      anch.cs.c5.txt.indexOf('0mm ≤15mm') > -1],
+    // Y sigue rechazando lo que de verdad es un flail ancho.
+    ['un flail de 18 mm sigue siendo criterio NO cumplido',
+      (function(){ __t.limpiar(); __t.set('teer_tipo_im','primaria');
+        __t.set('teer_lva','24'); __t.set('teer_area_mitral','5.2'); __t.set('teer_pasp','40');
+        __t.set('teer_ancho_flail','18');
+        __t.set('teer_calcificacion','no'); __t.set('teer_clefts','no'); __t.set('teer_trombo','no');
+        const e = teerEstado(); return e.cs.c5.ok === false && e.fallos === 1; })()],
     ['el velo anterior en 0 SIGUE fallando, no se vuelve «no ingresado»',
       piso.cs.c1.ok === false && piso.fallos === 1],
     ['y el area mitral en 0 tambien',

@@ -24944,10 +24944,14 @@ function teerEstado() {
        Es el reverso de c7/c8: aquéllos decían «NO apto» y no vetaban, que era mentira en la
        otra dirección. Un criterio tiene que decir exactamente cuánto pesa. */
     c1b: lvp  !== null ? C('teer-c1b','Velo posterior ≥7 mm', lvp >= 7,  `${lvp}mm ≥7mm`,  `${lvp}mm <7mm — Advertencia: agarre difícil, evaluar con el operador. No modifica el veredicto.`) : C('teer-c1b','Velo posterior ≥7 mm', null),
-    /* `> 0` en los CINCO criterios de techo (`v <= X`): c2, c4, c5, c6 y c8. Un criterio de
-       techo falla ABIERTO con el cero —«0mm ≤10mm ✓»— y el cero no es una medición, es un campo
-       sin llenar o un error de tipeo; ninguno de estos campos tiene `min`. c6 y c8 recibieron la
-       guarda antes; estos tres la reciben ahora, y con eso los cinco se comportan igual.
+    /* `> 0` en CUATRO de los cinco criterios de techo (`v <= X`): c2, c4, c6 y c8. Un criterio de
+       techo falla ABIERTO con el cero —«0mm ≤10mm ✓»— y en esos cuatro el cero no es una
+       medición, es un campo sin llenar o un error de tipeo; ninguno de estos campos tiene `min`.
+       c6 y c8 recibieron la guarda antes; c2 y c4 la reciben ahora.
+       **c5 (anchura de flail) es la excepción deliberada** — ver su propia nota más abajo: ahí
+       el cero SÍ es una medición. La regla no es «los techos rechazan el cero», es «el cero se
+       rechaza donde no puede ser una medición», que no es lo mismo y hay que mirarlo campo por
+       campo.
        Los criterios de PISO (c1 `lva >= 20`, c3 `area >= 4`) y el de RANGO (c7, FEVI 20-50) ya
        fallan cerrados con el cero y no la necesitan: la asimetría era sólo de los techos.
        Ojo con c2: la interfaz rotula el campo «Longitud coaptación» —donde más es mejor— y acá
@@ -24955,22 +24959,24 @@ function teerEstado() {
        preexistente y está documentada en el panel del Laboratorio; el cero está mal en las dos
        lecturas, así que la guarda es correcta con cualquiera de las dos.
 
-       DÓNDE LA PREMISA NO ES LIMPIA — c5, anchura de flail. Para `pasp` y `dtsvi` el cero no
-       existe como medición. Para la anchura de flail sí: **0 mm es «no hay flail»**, que es el
-       hallazgo habitual de un prolapso sin flail y que satisface genuinamente «≤15 mm» — o sea
-       anatomía FAVORABLE. Con esta guarda ese estudio pasa de «✅ APTO» a «⚠️ Posiblemente
-       apto — completar datos faltantes: Anchura de flail», y el médico va a buscar una medición
-       que ya hizo. c2 y c4 están en zona gris por lo mismo (coaptación 0 = sin coaptación;
-       profundidad 0 = sin tenting).
-       Se aplica igual porque la dirección es SEGURA —un `null` nunca entra en `fallos`, así que
-       la guarda no puede voltear NO APTO → APTO ni al revés; lo único que produce es degradar un
-       APTO— y porque el cero tipeado por error es indistinguible del medido. Pero es una
-       decisión clínica de Maicol, está reportada, y si decide que el 0 de flail es una medición,
-       lo que se saca es la guarda de c5 y no la de las otras cuatro. */
+       c2 y c4 están en zona gris por el mismo motivo que c5 (una coaptación de 0 es «sin
+       coaptación»; una profundidad de 0, «sin tenting») y sí llevan guarda: a diferencia del
+       flail, esos dos ceros describen un hallazgo PATOLÓGICO, así que contarlos como criterio
+       cumplido es el error en la dirección peligrosa. La dirección igual es segura en los
+       cuatro —un `null` nunca entra en `fallos`, así que la guarda no puede voltear
+       NO APTO → APTO; lo único que produce es degradar un APTO a «faltan datos»—. */
     c2:  (aplSec  && gap  !== null && gap > 0) ? C('teer-c2', 'Gap de coaptación ≤10 mm', gap <= 10, `${gap}mm ≤10mm`, `${gap}mm >10mm — evaluar Heart Team`) : C('teer-c2', 'Gap de coaptación ≤10 mm', null),
     c3:  area !== null ? C('teer-c3', 'Área mitral ≥4,0 cm²', area >= 4.0, `${area}cm² ≥4cm²`, `${area}cm² <4cm² — NO apto`)                    : C('teer-c3', 'Área mitral ≥4,0 cm²', null),
     c4:  (aplSec  && profFlail  !== null && profFlail  > 0) ? C('teer-c4','Profundidad de coaptación ≤10 mm', profFlail <= 10, `${profFlail}mm ≤10mm`, `${profFlail}mm >10mm — anatomía compleja, Heart Team`) : C('teer-c4','Profundidad de coaptación ≤10 mm', null),
-    c5:  (aplPrim && anchoFlail !== null && anchoFlail > 0) ? C('teer-c5','Anchura de flail ≤15 mm', anchoFlail <= 15, `${anchoFlail}mm ≤15mm`, `${anchoFlail}mm >15mm — anatomía compleja, Heart Team`) : C('teer-c5','Anchura de flail ≤15 mm', null),
+    /* c5 NO lleva la guarda `> 0`, y es la única excepción de los criterios de techo — decisión
+       clínica de Maicol (2026-09-15). En los otros cuatro el cero no existe como medición; acá
+       **0 mm es «no hay flail»**, que es el hallazgo de un prolapso sin flail y satisface
+       genuinamente el «≤15 mm»: anatomía FAVORABLE, no un dato que falta. Con la guarda puesta,
+       ese estudio pasaba de «✅ APTO» a «⚠️ Posiblemente apto — completar datos faltantes:
+       Anchura de flail», y el médico iba a buscar una medición que ya había hecho.
+       Lo que se pierde: un 0 tipeado por error se cuenta como criterio cumplido. Se acepta
+       porque es indistinguible del medido y porque el caso frecuente es el medido. */
+    c5:  (aplPrim && anchoFlail !== null) ? C('teer-c5','Anchura de flail ≤15 mm', anchoFlail <= 15, `${anchoFlail}mm ≤15mm`, `${anchoFlail}mm >15mm — anatomía compleja, Heart Team`) : C('teer-c5','Anchura de flail ≤15 mm', null),
     /* `pasp > 0` por lo mismo que `c8`: un criterio de TECHO falla ABIERTO con el cero. Con
        `pasp !== null` solo, un `psap_calc` de 0 —o un 0 tipeado— imprimía «0mmHg ≤70mmHg ✓» en
        la hoja firmada y contaba como criterio CUMPLIDO, así que podía dejar `noIngresados` en
@@ -47866,16 +47872,21 @@ function labEteRender(infs, n) {
     { k:'gap',  lbl:'teer_gap fuera de rango (>10 mm)', campo:'teer_gap',    ok:v => v <= 10, tipo:'sec',  cero:'no' },
     { k:'area', lbl:'Área mitral <4 cm²',          campo:'teer_area_mitral', ok:v => v >= 4.0 },
     { k:'prof', lbl:'Profundidad de coaptación >10 mm', campo:'teer_prof_flail', ok:v => v <= 10, tipo:'sec',  cero:'no' },
-    { k:'anch', lbl:'Ancho flail >15 mm',          campo:'teer_ancho_flail', ok:v => v <= 15, tipo:'prim', cero:'no' },
+    /* `anch` SIN `cero:'no'`, a diferencia de los otros cuatro techos: 0 mm de anchura de flail
+       es «no hay flail», una medición favorable, no un campo vacío. Es la excepción que decidió
+       Maicol, y tiene que estar acá igual que en `teerEstado` — si una de las dos superficies la
+       aplica y la otra no, el mismo estudio sale «Posiblemente apto» en el informe firmado y
+       «Apto» en el PDF de auditoría. */
+    { k:'anch', lbl:'Ancho flail >15 mm',          campo:'teer_ancho_flail', ok:v => v <= 15, tipo:'prim' },
     /* `cero:'no'` = el cero NO es una medición, es un campo sin llenar. Los criterios de TECHO
        (`v <= X`) fallan ABIERTO con el cero: `_labNum` devuelve 0 para "0", no null, así que
        sin esto el estudio sumaba `ingresados` y el criterio salía CUMPLIDO. Va acá al mismo
        tiempo que la guarda `pasp > 0` / `dtsvi > 0` de `teerEstado`, porque si sólo se arregla
        la pantalla el mismo estudio sale «Posiblemente apto — falta la PASP» en el informe
        firmado y «✅ Apto — criterios completos» en el PDF de auditoría.
-       Desde el 2026-09-15 la llevan los CINCO criterios de techo —gap, profundidad, anchura de
-       flail, PASP y DTSVI—, igual que `teerEstado`. Los de piso (velo anterior, área mitral) no
-       la necesitan: con el cero ya fallan cerrados. */
+       Desde el 2026-09-15 la llevan CUATRO criterios de techo —gap, profundidad, PASP y DTSVI—,
+       igual que `teerEstado`. La anchura de flail NO, a propósito: ver su nota. Los de piso
+       (velo anterior, área mitral) no la necesitan: con el cero ya fallan cerrados. */
     { k:'pasp', lbl:'PASP >70 mmHg',               campo:'teer_pasp',        ok:v => v <= 70, cero:'no' },
     /* Los dos criterios de inclusión del COAPT. Entraron acá el mismo día en que entraron al
        `veto` de `teerEstado()`: mientras estuvieron fuera de los dos lados el panel coincidía
