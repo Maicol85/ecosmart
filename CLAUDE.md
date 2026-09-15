@@ -78,6 +78,34 @@ para TEER - criterios cumplidos». Y «Faltan N criterio(s)» contaba sobre 6 de
 sola lista** (`veto`) de la que salen `fallos`, `evaluados` y `noIngresados`, para que agregar un
 criterio no exija acordarse de tres sitios.
 
+**Volvió a pasar, con `c7` y `c8` (2026-09-15).** El arreglo de `c10` unificó la lista pero no
+revisó quién más se estaba pintando sin contar: los dos criterios de inclusión del COAPT —FEVI
+20-50 % y DTSVI ≤70 mm— nunca habían estado, así que la hoja firmada seguía pudiendo decir «78mm
+>70mm - NO apto» y, nueve renglones abajo, «✅ APTO para TEER». Lo encontró el test suite, no una
+relectura. Hoy vetan, gateados por `esSec` estricto. La regla que queda: **al cerrar un defecto
+de esta forma, enumerar todo lo que se pinta y cruzarlo contra la lista**, no sólo arreglar el
+que se reportó.
+
+### Convertir decoración en decisor cambia lo que significan sus insumos
+Al meter `c7`/`c8` en el `veto` del TEER, tres cosas que eran inocuas mientras esos criterios
+sólo se pintaban se volvieron defectos **el mismo commit**, y ninguna está en el diff de la línea
+que se cambió:
+- **El espejo congelado.** `teer_fevi`/`teer_dtsvi` se copiaban con `_syncSiVacio` —escribe una
+  vez, no refresca—, así que corregir la FEVI en su propia tab dejaba al criterio evaluándose
+  contra el valor viejo. Pasaron a `_syncDerivado`, que es lo que `teer_pasp` ya hacía dos líneas
+  más abajo *por este mismo motivo*.
+- **El cero.** `dtsvi <= 70` es un criterio de **techo**: falla abierto con el 0. Un `dsfvi`
+  tipeado 0 imprimía «0mm ≤70mm ✓» y podía dejar `noIngresados` en cero y publicar «APTO».
+- **La compuerta.** `hayDatos` contaba los criterios evaluados, y como esos dos se espejan solos,
+  el botón «Integrar al informe» se destrababa sobre un módulo en el que nadie entró: el PDF
+  firmado se llevaba una hoja TEER entera cuyas únicas filas con dato eran valores auto-copiados.
+  Hoy la compuerta cuenta `tipeados` — **vetar y ser evidencia de intención son dos cosas
+  distintas**.
+
+Antes de ascender un campo de decorativo a decisorio, preguntarse por sus tres bordes: **de dónde
+viene el valor** (¿espejo de una sola vez?), **qué hace con el cero y el vacío**, y **qué
+compuertas lo cuentan** para decidir si el módulo «tiene datos». Cubierto por TC-90.
+
 ### No traduzcas emoji al sanear para el PDF
 `_teerAsciiPDF` mapeaba ✅→«SI» y ❌→«NO». El título «❌ CONTRAINDICADO — trombo en aurícula
 izquierda» salía impreso como **«NO CONTRAINDICADO - trombo en aurícula izquierda»**: la negación
@@ -141,6 +169,16 @@ Dos reglas que salieron de ahí:
 tipo consignado salía distinto en las dos superficies: «✅ APTO» en el informe firmado y
 «⚠️ Posiblemente apto — faltan datos» en el PDF de auditoría. Mientras sigan siendo dos, tienen
 que gatear igual — y la de `teerEstado` es la que manda.
+
+**Y hay que migrarla EN EL MISMO COMMIT.** Al agregar `c7`/`c8` al `veto` (2026-09-15), el
+comentario de `TEER_CRIT` decía textualmente que FEVI y DTSVI quedaban fuera **porque
+`calcTEER` los dejaba fuera**: arreglar sólo la pantalla habría dejado el informe firmado
+diciendo «❌ NO apto» y el PDF de auditoría «✅ Elegible» sobre el mismo estudio. Un comentario
+que explica una exclusión por referencia a otra función es una **dependencia**, no una nota.
+Entraron los dos con un `tipo:'coapt'` nuevo en `_teerAplica`. Ojo con el efecto colateral: el
+predicado `usaTeer` también recorre `TEER_CRIT`, y como esos dos campos se espejan solos, había
+que excluirlos de la compuerta o el denominador del panel crecía con cualquier transtorácico que
+tuviera la FEVI medida.
 
 ### Fuera de rango también tiene que bloquear la cápsula
 El VD ganó `min`/`max` como la aorta, pero la primera versión sólo lo aplicó al informe: un
@@ -723,13 +761,13 @@ El script contesta *«nadie lo nombra»*, no *«no tiene destino»*: un id menci
 ### 2 · Test suite clínico
 
 ```bash
-node scripts/test_clinico.mjs            # 84 casos + 4 defectos abiertos
+node scripts/test_clinico.mjs            # 89 casos + 1 defecto abierto
 node scripts/test_clinico.mjs --solo TC-04
 node scripts/test_clinico.mjs --ver      # con el navegador a la vista, para depurar
 ```
 
 **Correr antes de cualquier push que toque el informe narrativo, el EN SUMA o una fórmula de
-cálculo. Tienen que pasar los 84. Si alguno falla, corregir antes de seguir.**
+cálculo. Tienen que pasar los 89. Si alguno falla, corregir antes de seguir.**
 
 **TC-01 a TC-17 — los bugs del 2026-09-14.** VD que desaparecía (TC-01/03), gradiente pulmonar
 congelado (TC-04), AD ausente del EN SUMA (TC-06), HFA-PEFF sin compuerta de FEVI (TC-07/08),
@@ -741,6 +779,11 @@ invertida del TEER (TC-13), aorta (TC-14/15) y las sincronías de PSAP y e' (TC-
 aórtica (46-48), tricúspide y pulmonar (49-51), hemodinámica (52-56), HFA-PEFF (57-58),
 pericardio (59-60), congénitas (61-66), amiloidosis (67-68), cardio-oncología (69-72, 88),
 ETE/TEER/TAVI/orejuela (73-78), derivados y sincronías (79-83).
+
+**TC-84 a TC-90 — los defectos que el propio suite encontró, ya cerrados (2026-09-15).** TEER c7
+y c8 al `veto` (84/85), el gate `esSec` estricto que evita que el arreglo se coma el caso común
+(89), la AI por diámetro AP en el EN SUMA con su lado normal (87) y los tres bordes que apareció
+el differential-review del arreglo (90: espejo vivo, cero, compuerta). TC-86 sigue abierto.
 
 **Dos reglas que rigen los casos nuevos:**
 - El **umbral y el operador** salen del código —`>` y `>=` no son lo mismo—, y se prueban **por
@@ -757,8 +800,9 @@ superficie corporal arbitraria escondida en los insumos.
 defecto vivo. Falla a propósito y **no tiñe el resultado**: si contara, el suite quedaría rojo
 para siempre y se dejaría de correr, que es exactamente como un defecto deja de verse. Pero si
 alguno **pasa**, el runner sale con 1 y pide promoverlo a `caso()` — un arreglo silencioso
-también es un cambio del que hay que enterarse. Hoy hay cuatro, los tres del TEER y el de la AI;
-están en «Deuda conocida sin resolver».
+también es un cambio del que hay que enterarse. De los cuatro que abrió el barrido quedó **uno**:
+TC-86 (velo posterior), que no es un defecto sino una decisión clínica pendiente. Está en «Deuda
+conocida sin resolver».
 
 **No usa Playwright** — `pip install` está bloqueado en este entorno y bajar un Chromium propio
 son ~150 MB. Node 24 trae `fetch` y `WebSocket` nativos, así que el script habla **CDP directo
@@ -897,6 +941,17 @@ nos pasó dos veces (ver el punto 15).
    la AI dilatada sí. Mismo patrón en pre/post TAVI y en las rutas de restauración.
    **Lección:** al implementar un comportamiento para una cavidad, válvula o módulo, recorrer
    sistemáticamente sus análogos y verificar que tienen el mismo tratamiento.
+
+   **Ampliación (2026-09-15): los análogos no son sólo otras estructuras, son las otras RUTAS DE
+   MEDICIÓN de la misma.** Al arreglar la AD se recorrieron las cavidades, no las vías: dentro de
+   la AI, la rama del **volumen indexado** hacía `suma.push` y la del **diámetro AP** no tenía ni
+   uno, así que la misma aurícula dilatada subía al EN SUMA o no según con qué se la hubiera
+   medido — y la vía sin cobertura era la más frecuente en un eco de rutina. El informe firmado
+   decía «Aurícula izquierda dilatada» arriba y «Estudio sin alteraciones estructurales ni
+   funcionales significativas» abajo. Lo encontró el test suite. Cuando un hallazgo tiene dos
+   formas de medirse, **son dos análogos** y hay que recorrerlos igual. Cubierto por TC-87, que
+   verifica las dos mitades: que el hallazgo suba **y** que la afirmación tranquilizadora deje de
+   emitirse — sin la segunda, un `suma.push` de más seguiría pasando el test.
 
 10. **HFA-PEFF sin compuerta de FEVI.** El score es exclusivo de FEVI ≥50 % y se calculaba con
     cualquiera. Se bloquea en las cinco superficies (pantalla, línea del Doppler, informe, EN
@@ -2931,58 +2986,67 @@ criterio». Si aparece, la palanca es juntar las salvedades con la línea de la 
 
 ## Deuda conocida sin resolver
 
-### Cuatro defectos abiertos, encontrados al generar el suite (2026-09-15)
+### Lo que quedó abierto del barrido del suite (2026-09-15)
 
-Los cuatro salieron de escribir los casos leyendo rama por rama, no de una auditoría aparte.
-Están cubiertos en `test_clinico.mjs` con `casoAbierto()`: el suite los lista como ⊘ en cada
-corrida y el día que se arreglen avisa que hay que promoverlos.
+De los cuatro defectos que abrió el barrido quedó **uno**, y no es un defecto: es una decisión
+clínica pendiente. Los otros tres se cerraron el 2026-09-15 y están documentados en «Trampas»:
+c7/c8 del TEER en «Un criterio que se pinta y no se cuenta» y «Convertir decoración en decisor
+cambia lo que significan sus insumos»; la AI por diámetro AP, en la lección de las asimetrías
+entre rutas de medición.
 
-- **TC-84/85/86 — TEER: tres criterios que se pintan y no se cuentan.** `teerEstado` (~L24829)
-  arma `const veto = [cs.c1, cs.c3, cs.c6, cs.c9, cs.c10]` más los gateados por tipo de IM.
-  **`c7` (FEVI fuera del rango COAPT), `c8` (DTSVI >70 mm) y `c1b` (velo posterior <7 mm) no
-  están en esa lista.** Se calculan, se pintan en pantalla y se imprimen en la hoja firmada,
-  pero no suman fallo. Medido en el navegador con IM secundaria y todo lo demás correcto:
+- **TC-86 — TEER: ¿el velo posterior <7 mm debe vetar?** `c1b` se pinta, se imprime en la hoja
+  firmada y **no cuenta**: con 4 mm de velo posterior el estado sigue siendo `✅ APTO` con cero
+  fallos. Tiene la misma forma que c7/c8, y **a propósito no se cerró con ellos**: su texto de
+  fallo dice «agarre difícil», no «NO apto». Es una advertencia de factibilidad técnica, no un
+  criterio de exclusión del COAPT, así que convertirlo en veto cambia el veredicto de pacientes
+  reales — lo decide Maicol, no la consistencia. Queda como `casoAbierto()` para que la decisión
+  esté escrita en algún lado.
 
-  ```
-  DTSVI <=70 mm (COAPT) | 78mm >70mm - NO apto
-  ...
-  ## Conclusión
-  APTO para TEER - criterios cumplidos
-  ```
+### Cardio-Oncología: quedan tres copias de los umbrales (2026-09-15)
 
-  Nueve renglones de distancia, en la misma hoja. El texto de fallo de `c8` dice literalmente
-  «NO apto» y la conclusión dice «APTO». Es **el mismo defecto que ya se cerró para `c10`** —el
-  comentario de arriba de la lista lo explica— y estos tres quedaron afuera del arreglo: el
-  comentario dice que antes `fallos` era `[c1..c6, c9]`, o sea que `c7` y `c8` nunca estuvieron.
-  `c1b` es discutible como veto duro —«agarre difícil» no es «no apto»—; `c7` y `c8` no: son los
-  criterios de inclusión del COAPT y su propio texto los declara excluyentes.
-  **Decidir: entran al `veto`, o se los saca de la hoja.** Lo que no puede seguir es que se
-  impriman como criterio y no pesen.
+El clasificador ya lee las constantes (ver abajo). **Lo que todavía no:**
 
-- **TC-87 — la AI dilatada por diámetro AP no llega al EN SUMA.** `generarInforme`, la rama
-  `else if (ai_diam)` (~L19431-19436): **no tiene un solo `suma.push`**. La rama del volumen
-  indexado sí. Con una AI de 45 mm y sin volumen medido, el informe firmado dice «Aurícula
-  izquierda dilatada (diámetro AP 45 mm)» arriba y «Estudio sin alteraciones estructurales ni
-  funcionales significativas» abajo. Es **la asimetría de la lección 9** —la AD dilatada tenía
-  exactamente esta forma— en la vía de medición que queda cuando no hay volumen, que es la más
-  frecuente en un eco de rutina.
+- **El filtro de cohorte del Laboratorio** (`if (C.coGls) … !(g > 15)`, y los `gt10`/`gt15` de
+  caída de FEVI): literales pelados, y con `>` donde el clasificador usa `>=`. Mover
+  `CO_UMBRAL_GLS_REL` mueve el veredicto, la leyenda del PDF y la línea de la curva, y deja el
+  filtro «Caída GLS > 15 %» en 15. Es el mismo modo de falla que se acaba de cerrar,
+  sobreviviendo en la superficie que arma cohortes. No se tocó porque `>` contra `>=` es la
+  semántica declarada del filtro y cambiarla altera qué estudios entran a una cohorte ya usada.
+- **La tabla de Referencias de la interfaz** (~L10959), HTML estático que no puede leer una
+  constante — y que **hoy ya contradice al código**: dice «Leve: FEVI ≥50% con caída ≥10% +
+  síntomas/biomarcadores» y `_ctrcdEstado` devuelve `'leve'` con FEVI ≥50 y GLS o troponina,
+  **sin exigir caída**. Concreto: FEVI 60 → 58 con troponina elevada imprime «cardiotoxicidad
+  LEVE asintomatica (ESC 2022)» a dos pestañas de una tabla de la misma app que dice que hace
+  falta ≥10 %. **Decidir cuál de las dos es la correcta** — no es sólo una copia desactualizada,
+  es una discrepancia clínica.
+- **El `40` de la CTRCD severa.** No se extrajo porque no está en la leyenda ni en la curva, o
+  sea que no tiene la divergencia entre superficies que motivó el cambio. Pero sí está escrito
+  tres veces: la cascada, el semáforo de `calcCardioOnco` (`feviActual < 40`) y esa tabla. Es
+  deuda, no diseño.
 
-### Cardio-Oncología: los umbrales están escritos dos veces (2026-09-15)
+### TEER: tres cosas que el differential-review dejó reportadas y no se tocaron (2026-09-15)
 
-`calcCardioOnco` clasifica con **literales propios** (`< 50`, `< 40`, `>= 15`) y las constantes
-`CO_UMBRAL_FEVI_CAIDA` / `CO_UMBRAL_FEVI_ABS` / `CO_UMBRAL_GLS_REL` (L34053-34055) alimentan
-**sólo** la leyenda del PDF (L24280) y las líneas de referencia de la curva de evolución
-(L34148-34153). Hoy los dos juegos coinciden —10 pp, 50 %, 15 % relativo—, así que **no hay error
-clínico**; lo que no hay es nada que los ate.
-
-Se descubrió mutando `CO_UMBRAL_FEVI_CAIDA` a 20 y viendo que **ningún caso del suite se ponía en
-rojo**. Movida sola, la curva dibuja su línea «basal -20pp», la leyenda del PDF promete un umbral
-de 20 pp, y el veredicto impreso al lado sigue marcando cardiotoxicidad a los 10. Es la trampa de
-la fórmula duplicada —pantalla contra informe— con el gráfico haciendo de pantalla.
-
-Mientras no se unifique, **TC-88 ata las dos copias**: verifica el valor de cada constante y, en
-el mismo caso, el punto exacto donde el clasificador cambia de banda (9 pp contra 10; 14 %
-relativo contra 15,0 %). Mover una sola de las dos lo pone en rojo.
+- **`c6` (PASP ≤70) falla ABIERTO con el cero.** `pasp !== null` y `pasp <= 70`: un `psap_calc`
+  de 0 imprime «0mmHg ≤70mmHg ✓» y cuenta como cumplido. Es la misma forma que `c8`, que sí se
+  cerró en esta tanda con `dtsvi > 0`; `c6` quedó igual porque es preexistente y el cambio no lo
+  toca. Arreglarlo es una línea, pero mueve el veredicto de estudios guardados.
+- **Reimprimir y editar+regenerar dan distinta conclusión TEER.** `amiloRestaurarDesdeCampos(c,
+  true)` no setea `_amiloUltimo`, así que reimprimir desde Guardados conserva la hoja firmada;
+  `editarInforme` y `cargarEstudioPorId` (o sea el QR del PDF) sí la setean y `calcTEER` →
+  `amiloRefrescarSiIntacto('teer')` la **regenera** con los criterios de hoy. Es la divergencia
+  que la sección «Reimprimir y editar+regenerar tienen que dar el mismo PDF» ya acepta para
+  `calcVP` — pero acá lo que cambia es la **línea de conclusión**, y el camino más probable es el
+  QR, que es por donde entra un colega.
+- **`_teerAplica` admite los criterios COAPT por el primer brazo de `usaTeer`.** Con
+  `teer_tipo_im='secundaria'` consignado y ningún otro campo TEER cargado, `ingresados` llega a 2
+  por los dos espejos y el estudio cae en un veredicto del panel en vez de en «Sin criterios
+  anatómicos cargados». Alcance estrecho (exige `psap_calc`, `ete_lva` y `avm_plan`/`avm_ete` los
+  tres vacíos) y no sale del dashboard del Laboratorio.
+- **La asimetría de `null` en c9/c10 entre pantalla y Laboratorio.** En `teerEstado` un select de
+  calcificación/clefts sin evaluar es «no ingresado» y baja el veredicto a «Posiblemente apto»;
+  en el Lab sólo puede sumar a `fallados` y nunca entra en `_aplican.length`. Un estudio con los
+  siete numéricos y los dos selects en «— no evaluado —» sale «⚠️ Posiblemente apto» en la hoja
+  firmada y «✅ Apto» en la estadística. Preexistente.
 
 ### VD / válvula pulmonar / TEER / HFA-PEFF (2026-09-14) — reglas para no romperlo
 - **El grado del VD sale de `vdBasCat`, no de un `> 41` suelto.** Había dos umbrales sobre la

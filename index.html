@@ -17238,9 +17238,18 @@ window.emAvmPdfVal = emAvmPdfVal;
    confundir con el «Ø TSVI» del tracto de salida que usan EM y EA, que es otro campo. */
 function sincronizarTEERDesdeGlobal() {
   _syncSiVacio([
-    ['ete_lva','teer_lva'], ['ete_lvp','teer_lvp'],
-    ['fevi','teer_fevi'], ['dsfvi','teer_dtsvi'], ['avm_plan','teer_area_mitral']
+    ['ete_lva','teer_lva'], ['ete_lvp','teer_lvp'], ['avm_plan','teer_area_mitral']
   ]);
+  /* FEVI y DSFVI pasaron de `_syncSiVacio` a `_syncDerivado` el día en que c7 y c8 entraron al
+     `veto` de `teerEstado`. Con el espejo de una sola vez el número se congelaba al abrir el
+     acordeón y no volvía a moverse: corregir la FEVI en su propia tab después dejaba a la hoja
+     firmada evaluando el criterio del COAPT contra el valor viejo. Mientras los dos criterios
+     eran decoración eso sólo desentonaba; desde que deciden APTO / NO APTO es la conclusión la
+     que sale mal, y en las dos direcciones —incluida la tranquilizadora, que es la peor: FEVI
+     tipeada 45 y corregida a 60 seguía imprimiendo «FEVI 45% (20-50%) ✓ APTO».
+     Es el mismo defecto y el mismo arreglo que `psap_calc → teer_pasp`, acá abajo. Sigue
+     respetando el valor tipeado a mano: en cuanto deja de coincidir con la marca, no se toca. */
+  _syncDerivado([['fevi','teer_fevi'], ['dsfvi','teer_dtsvi']]);
   /* PASP: la app ya la calcula en `psap_calc` (4·VIT² + PmAD, en calcPSAP) y este campo no la
      recibía — había que tipearla a mano en un módulo cuyo criterio ≤70 mmHg decide APTO / NO
      APTO para MitraClip. Va por `_syncDerivado` y no por `_syncSiVacio` porque este acordeón
@@ -18344,6 +18353,40 @@ function coSerieCongelada() {
 }
 window.coSerieCongelada = coSerieCongelada;
 
+/* ── Los umbrales de cardio-oncología, UNA sola vez ────────────────────────────────────────
+   Estaban escritos DOS veces: `_ctrcdEstado` y `calcCardioOnco` clasificaban con literales
+   propios y estas constantes alimentaban sólo la leyenda del PDF y las líneas de referencia de
+   la curva de evolución. Los dos juegos coincidían, así que no había error clínico —pero nada
+   los ataba: mover la constante redibujaba la línea «basal -20pp» y reescribía la leyenda
+   mientras el veredicto impreso al lado seguía marcando a los 10. Un informe firmado con la
+   referencia y la conclusión contradiciéndose. Se descubrió mutando `CO_UMBRAL_FEVI_CAIDA` a 20
+   y viendo que NINGÚN caso del suite se ponía en rojo; hoy lo ata TC-88.
+   Van ACÁ y no junto a `coTablaEvolucion`, que es de donde vienen: declaradas ahí abajo quedan
+   en zona muerta para todo este bloque, y un `const` leído antes de su línea no da `undefined`,
+   LANZA, y se lleva puesto el `<script>` entero.
+   El 40 de la CTRCD severa NO se extrajo: no está en la leyenda ni en la curva, así que no tiene
+   la divergencia entre superficies que motivó esto. Pero tampoco está escrito una sola vez —vive
+   en la cascada de acá arriba, en el semáforo de `calcCardioOnco` (`feviActual < 40`) y en la
+   tabla de Referencias—, así que no es que no haga falta: es deuda, no diseño.
+
+   LO QUE SIGUE SIN LEER ESTAS CONSTANTES, y por lo tanto todavía puede divergir:
+   · El filtro de cohorte del Laboratorio (`if (C.coGls) … !(g > 15)` y los `gt10`/`gt15` de
+     FEVI): literales pelados, y con `>` donde el clasificador usa `>=`. Mover `CO_UMBRAL_GLS_REL`
+     mueve el veredicto, la leyenda y la curva, y deja el filtro en 15. Es el mismo modo de falla
+     que este bloque acaba de cerrar, sobreviviendo en la superficie que arma cohortes.
+   · La tabla de Referencias de la interfaz (~línea 10959), HTML estático que no puede leer una
+     constante — y que HOY YA CONTRADICE al código: dice «Leve: FEVI ≥50% con caída ≥10% +
+     síntomas/biomarcadores» y la cascada devuelve 'leve' con FEVI ≥50 y GLS o troponina, SIN
+     exigir caída. FEVI 60 → 58 con troponina elevada imprime «cardiotoxicidad LEVE» a dos
+     pestañas de una tabla de la misma app que dice que hace falta ≥10 %.
+   · La prosa de `calcCardioOnco`, que nombra los números al lector («(40-49)», «(>=50)»,
+     «(>= 15%)»). No decide nada, pero un rótulo que contradice al veredicto de al lado es un
+     informe firmado que se desmiente solo.
+   `grep -n 'CO_UMBRAL_\|(40-49)\|> 15%\|gt15'` los encuentra a los tres. */
+const CO_UMBRAL_FEVI_CAIDA = 10;   // pp — caída significativa
+const CO_UMBRAL_FEVI_ABS   = 50;   // %  — valor absoluto por debajo del cual hay disfunción
+const CO_UMBRAL_GLS_REL    = 15;   // %  — caída relativa significativa
+
 /* ── La cascada de CTRCD, extraída como clasificador puro ──────────────────────────────
    Devuelve UNA clave por rama, en el MISMO orden en que la cascada de `calcCardioOnco` las
    evaluaba. El orden importa y no es evidente: una FEVI de 38 con caída de 12 pp sobre un basal
@@ -18361,17 +18404,22 @@ window.coSerieCongelada = coSerieCongelada;
 function _ctrcdEstado(d) {
   const fb = d.feviBasal, fa = d.feviActual;
   const gls = !!d.glsAlterado, tropo = !!d.tropoElevada;
+  /* Los umbrales salen de las constantes, que son la única fuente de verdad: son los MISMOS
+     números que dibujan las líneas de referencia de la curva y que escriben la leyenda del PDF.
+     `CAIDA_MENOR` es el único literal que queda —un descenso de 5 pp que la guía no gradúa pero
+     que vale la pena nombrar— y no tiene segunda copia en ningún lado. */
+  const CAIDA_MENOR = 5;
   if (fb && fa) {
     const caida = fb - fa;
-    if (fa < 40 && fb >= 40)                      return 'severa';
-    if (fa < 40 && caida >= 10)                   return 'empeoramiento_sub40';
-    if (fa < 40)                                  return 'sub40_sin_descenso';
-    if (fa < 50 && caida >= 10)                   return 'moderada';
-    if (fa < 50 && caida > 0 && (gls || tropo))   return 'moderada_menor';
-    if (fa < 50)                                  return 'sub50_sin_criterio';
-    if (gls || tropo)                             return 'leve';
-    if (caida >= 10)                              return 'caida10_sin_criterio';
-    if (caida >= 5)                               return 'caida5';
+    if (fa < 40 && fb >= 40)                                        return 'severa';
+    if (fa < 40 && caida >= CO_UMBRAL_FEVI_CAIDA)                    return 'empeoramiento_sub40';
+    if (fa < 40)                                                     return 'sub40_sin_descenso';
+    if (fa < CO_UMBRAL_FEVI_ABS && caida >= CO_UMBRAL_FEVI_CAIDA)    return 'moderada';
+    if (fa < CO_UMBRAL_FEVI_ABS && caida > 0 && (gls || tropo))      return 'moderada_menor';
+    if (fa < CO_UMBRAL_FEVI_ABS)                                     return 'sub50_sin_criterio';
+    if (gls || tropo)                                                return 'leve';
+    if (caida >= CO_UMBRAL_FEVI_CAIDA)                               return 'caida10_sin_criterio';
+    if (caida >= CAIDA_MENOR)                                        return 'caida5';
     return null;
   }
   if (gls || tropo) return 'sin_par_con_criterio';
@@ -18385,6 +18433,10 @@ function _ctrcdEsGrado(k) { return k === 'severa' || k === 'moderada' || k === '
    (≥15 % del basal), no absoluto, y el valor se tipea negativo — de ahí los `Math.abs`. Con la
    fórmula escrita otra vez del lado del Lab, un GLS de −18 → −16 sería «11 %» en un lado y
    «2 puntos» en el otro. Devuelve null si falta alguno de los dos. */
+/* El umbral sale de `CO_UMBRAL_GLS_REL` por lo mismo: es el número que la leyenda del PDF
+   escribe («GLS caída >=15 % relativa») y el que dibuja la línea «basal -15% rel.» de la curva.
+   Es la comparación, no la fórmula: `_ctrcdGlsRel` devuelve el porcentaje y esto decide. */
+function _ctrcdGlsAlterado(rel) { return rel !== null && rel >= CO_UMBRAL_GLS_REL; }
 function _ctrcdGlsRel(gb, ga) {
   return (gb && ga && Math.abs(gb) > 0) ? (Math.abs(gb) - Math.abs(ga)) / Math.abs(gb) * 100 : null;
 }
@@ -18444,7 +18496,7 @@ function calcCardioOnco() {
      el estado en verde «Sin toxicidad detectada», y eso salía al PDF firmado. Una afirmación
      tranquilizadora y falsa es lo peor que puede tener un informe. */
   if (!feviBasal && feviActual) {
-    if (feviActual < 50) {
+    if (feviActual < CO_UMBRAL_FEVI_ABS) {
       alertas.push('FEVI ' + feviActual + '% — sin FEVI basal cargada no se puede establecer CTRCD, que se define por el descenso. Valorar en contexto y recuperar el estudio basal.');
       toxCls = feviActual < 40 ? 'red' : 'orange';
     }
@@ -18454,7 +18506,7 @@ function calcCardioOnco() {
      así que la cascada los necesita para decidir. Antes se evaluaban después y sólo servían
      para agregar una línea suelta, por eso los dos grados que dependen de ellos no existían. */
   var glsCaidaRel = _ctrcdGlsRel(glsBasal, glsActual);
-  var glsAlterado  = glsCaidaRel !== null && glsCaidaRel >= 15;
+  var glsAlterado  = _ctrcdGlsAlterado(glsCaidaRel);
   var tropoElevada = (troponi === 'si');
   var glsTxt   = glsAlterado ? 'caida relativa de GLS ' + glsCaidaRel.toFixed(1) + '%' : '';
   var tropoTxt = tropoElevada ? 'troponina elevada' : '';
@@ -19434,6 +19486,17 @@ function generarInforme(opts) {
     const eAI = `Aurícula izquierda ${aiStr} (diámetro AP ${ai_diam} mm).`;
     const nAI = `La aurícula izquierda es ${aiStr}, con un diámetro anteroposterior de ${ai_diam} mm.`;
     inf.push(estiloPick(cAI, eAI, nAI));
+    /* Esta rama no tenía NI UN `suma.push`: la misma aurícula dilatada subía al EN SUMA si se
+       midió por volumen y no subía si se midió por diámetro AP — que es la vía que queda en el
+       eco de rutina, la más frecuente de las dos. El informe firmado terminaba diciendo
+       «Aurícula izquierda dilatada» arriba y «Estudio sin alteraciones estructurales ni
+       funcionales significativas» abajo. Es la asimetría entre rutas de la lección 9, la misma
+       forma que tenía la AD dilatada.
+       El texto es el PARALELO del de la rama del volumen —rótulo + la medida que existe—, no un
+       literal genérico: el EN SUMA de este informe siempre lleva el número que sostiene la
+       afirmación, y acá el número disponible es el diámetro, no el índice. No puede duplicarse
+       con la rama del volumen porque son las dos mitades de un `if/else if`. */
+    if (aiStr !== 'de dimensiones normales') suma.push(`AI ${aiStr} (diámetro AP ${ai_diam} mm).`);
   } else {
     inf.push(estiloPick('AI normal.', 'Aurícula izquierda de dimensiones normales.', 'La aurícula izquierda es de dimensiones normales.'));
   }
@@ -24807,7 +24870,13 @@ function teerEstado() {
     c5:  (aplPrim && anchoFlail !== null) ? C('teer-c5','Anchura de flail ≤15 mm', anchoFlail <= 15, `${anchoFlail}mm ≤15mm`, `${anchoFlail}mm >15mm — anatomía compleja, Heart Team`) : C('teer-c5','Anchura de flail ≤15 mm', null),
     c6:  pasp !== null ? C('teer-c6', 'PASP ≤70 mmHg', pasp <= 70, `${pasp}mmHg ≤70mmHg`, `${pasp}mmHg >70mmHg — NO apto`)                      : C('teer-c6', 'PASP ≤70 mmHg', null),
     c7:  (fevi  !== null && esSec) ? C('teer-c7','FEVI 20-50 % (COAPT)', fevi >= 20 && fevi <= 50, `FEVI ${fevi}% (20-50%)`, `FEVI ${fevi}% fuera rango COAPT`) : C('teer-c7','FEVI 20-50 % (COAPT)', null),
-    c8:  (dtsvi !== null && esSec) ? C('teer-c8','DTSVI ≤70 mm (COAPT)', dtsvi <= 70, `${dtsvi}mm ≤70mm`, `${dtsvi}mm >70mm — NO apto`)                       : C('teer-c8','DTSVI ≤70 mm (COAPT)', null),
+    /* `dtsvi > 0` y no `!== null`: un criterio de TECHO falla ABIERTO con el cero. Desde que c8
+       veta, un `dsfvi` tipeado 0 por error —el campo no tiene `min`— se espejaba acá e imprimía
+       «0mm ≤70mm ✓» en la hoja firmada, y podía dejar `noIngresados` en cero y publicar «✅ APTO
+       para TEER». No hay diámetro telesistólico cero; el lado seguro es «no ingresado». Es la
+       misma guarda que `vd_bas` ya tiene por escrito. (c6 —PASP ≤70— tiene esta misma forma y
+       sigue con `!== null`: es preexistente y está reportado, no lo toca este cambio.) */
+    c8:  (dtsvi !== null && dtsvi > 0 && esSec) ? C('teer-c8','DTSVI ≤70 mm (COAPT)', dtsvi <= 70, `${dtsvi}mm ≤70mm`, `${dtsvi}mm >70mm — NO apto`) : C('teer-c8','DTSVI ≤70 mm (COAPT)', null),
     /* `'' → null`, no `false`: son los únicos dos criterios que no podían mostrar «No
        ingresado», así que su default se leía como un hallazgo negativo comprobado. */
     c9:  C('teer-c9', 'Sin calcificación densa en zona clip',        calc   === '' ? null : calc   === 'no', 'Sin calcificación densa',    'Calcificación densa — evaluar'),
@@ -24826,12 +24895,35 @@ function teerEstado() {
      y c4 —de la IM funcional— contando como «no ingresados», y un estudio completo pasaba de
      «APTO» a «Posiblemente apto — completar datos faltantes» sólo por haber consignado el tipo.
      Medido. */
+  /* c7 y c8 —los dos criterios de inclusión del COAPT— se pintaban y se imprimían SIN contar,
+     que es el mismo defecto de c10 con dos criterios que quedaron afuera de aquel arreglo. La
+     hoja firmada llegaba a decir «78mm >70mm - NO apto» y, nueve renglones abajo, «✅ APTO para
+     TEER - criterios cumplidos». Su propio texto de fallo dice «NO apto»: si el criterio no
+     vetara, esa frase sería mentira. Medido con el test suite antes de tocar esto (TC-84/TC-85).
+     Van por `esSec` ESTRICTO y no por `aplSec`: fuera de la IM secundaria `cs.c7`/`cs.c8` son
+     `null` por construcción, así que con el tipo sin definir entrarían a la lista como
+     «no ingresados» imposibles de completar y todo estudio sin tipo consignado caería de «APTO»
+     a «Posiblemente apto — faltan 2 criterios». Es la trampa que este mismo bloque documenta
+     para c2 y c4.
+     c1b (velo posterior <7 mm) sigue FUERA a propósito: su texto de fallo dice «agarre difícil»,
+     no «NO apto» — es una advertencia de factibilidad, no un criterio de exclusión del COAPT.
+     Convertirlo en veto es una decisión clínica, no un arreglo; queda documentado en CLAUDE.md
+     con su caso abierto (TC-86). */
   const veto = [cs.c1, cs.c3, cs.c6, cs.c9, cs.c10]
     .concat(aplPrim ? [cs.c5] : [])
-    .concat(aplSec  ? [cs.c2, cs.c4] : []);
+    .concat(aplSec  ? [cs.c2, cs.c4] : [])
+    .concat(esSec   ? [cs.c7, cs.c8] : []);
   const evaluados    = veto.filter(c => c.ok !== null);
   const fallos       = veto.filter(c => c.ok === false);
-  const noIngresados = veto.filter(c => c.ok === null).length;
+  const faltantes    = veto.filter(c => c.ok === null);
+  const noIngresados = faltantes.length;
+  /* La COMPUERTA del módulo se queda con los criterios que alguien TIPEÓ. c7 y c8 se espejan
+     solos desde el estudio, así que contarlos acá alcanzaba para que `hayDatos` diera true sobre
+     un módulo en el que nadie entró: el botón «Integrar al informe» se destrababa y el PDF
+     firmado se llevaba una hoja entera «CRITERIOS TEER — MITRACLIP / PASCAL» cuyas dos únicas
+     filas con dato eran valores auto-copiados. Vetar y ser evidencia de intención son dos cosas
+     distintas. */
+  const tipeados = evaluados.filter(c => c !== cs.c7 && c !== cs.c8);
 
   /* Trombo en la aurícula izquierda: contraindicación ABSOLUTA, y el select estaba en el
      formulario sin que nadie lo leyera — la conclusión podía decir «APTO para TEER» con el
@@ -24843,7 +24935,11 @@ function teerEstado() {
     clave = 'contraindicado'; badgeCls = 'red';
     titulo = '❌ CONTRAINDICADO — trombo en aurícula izquierda';
     nota = 'El trombo en aurícula izquierda es contraindicación absoluta del procedimiento, con independencia de los criterios anatómicos. Anticoagulación y reevaluación con ETE antes de considerar TEER.';
-  } else if (evaluados.length === 0) {
+  } else if (tipeados.length === 0) {
+    /* `tipeados` y no `evaluados`, por lo mismo que `hayDatos`: con los dos espejos poblados
+       solos, `evaluados` valía 2 y la tarjeta saltaba de «Ingresar datos para evaluar» a
+       «⚠️ Falta descartar trombo en aurícula izquierda» sobre un módulo en el que nadie entró.
+       La pantalla y la compuerta de integración tienen que contar lo mismo. */
     clave = 'sin_datos'; badgeCls = 'gray'; titulo = 'Ingresar datos para evaluar'; nota = '';
   } else if (trombo === '') {
     /* Trombo sin evaluar: nunca «APTO». El select ya no tiene un «no» de fábrica, así que acá
@@ -24858,7 +24954,12 @@ function teerEstado() {
     nota = tipoIM === 'secundaria' ? 'Optimizar GDMT previo. Evaluar Heart Team.' : 'Anatomía favorable. Evaluar Heart Team.';
   } else if (!fallos.length) {
     clave = 'parcial'; badgeCls = 'yellow'; titulo = '⚠️ Posiblemente apto — completar datos faltantes';
-    nota = 'Faltan ' + noIngresados + ' criterio(s) por ingresar.';
+    /* La nota NOMBRA los criterios que faltan. Decía sólo «Faltan 2 criterio(s) por ingresar» y
+       eso alcanzaba mientras todos vivieran en esta misma tarjeta; desde que c7 y c8 cuentan,
+       los que faltan pueden ser la FEVI y el DSFVI, que se cargan en el bloque de VI —o sea que
+       el médico leía «faltan 2» mirando una pantalla donde estaba todo completo. */
+    nota = 'Faltan ' + noIngresados + ' criterio(s) por ingresar: '
+         + faltantes.map(c => c.lbl).join(', ') + '.';
   } else if (fallos.length === 1) {
     clave = 'borderline'; badgeCls = 'yellow'; titulo = '⚠️ Límite — anatomía borderline';
     nota = 'Un criterio no cumplido. Discutir en Heart Team con imagen multimodal (ETE 3D + TC).';
@@ -24869,7 +24970,7 @@ function teerEstado() {
 
   return { cs, orden:[cs.c1, cs.c1b, cs.c2, cs.c3, cs.c4, cs.c5, cs.c6, cs.c7, cs.c8, cs.c9, cs.c10],
            tipoIM, esPrim, esSec, trombo, clave, badgeCls, titulo, nota, fallos: fallos.length, noIngresados,
-           hayDatos: evaluados.length > 0 || trombo === 'si' || cs.c1b.ok !== null };
+           hayDatos: tipeados.length > 0 || trombo === 'si' || cs.c1b.ok !== null };
 }
 window.teerEstado = teerEstado;
 
@@ -34050,9 +34151,11 @@ function _amRows(contId) {
    según el equipo (`calcCardioOnco` usa `Math.abs` a propósito) y el criterio de la ESC 2022 es
    una caída ≥15 % relativa, no en puntos. La FEVI va en puntos porcentuales. Mezclar las dos
    unidades en una sola columna es el error que esta tabla tiene que evitar. */
-const CO_UMBRAL_FEVI_CAIDA = 10;   // pp — caída significativa
-const CO_UMBRAL_FEVI_ABS   = 50;   // %  — valor absoluto por debajo del cual hay disfunción
-const CO_UMBRAL_GLS_REL    = 15;   // %  — caída relativa significativa
+/* Los CO_UMBRAL_* se declaran arriba, junto a `_ctrcdEstado`, que es su primer consumidor.
+   Estaban acá y eso los dejaba en zona muerta para las ~16.000 líneas anteriores que ya los
+   leen (`_ctrcdEstado`, `calcCardioOnco`, la leyenda del PDF): un `const` de nivel superior
+   leído antes de su línea corta el bloque `<script>` entero, que es la trampa que este archivo
+   documenta. */
 function coTablaEvolucion() {
   const num = id => { const n = v(id); return (n === null || !isFinite(n)) ? null : n; };
   const fb = num('co_fevi_basal'), gb = num('co_gls_basal');
@@ -46583,7 +46686,7 @@ function _labCtrcd(inf) {
   return _ctrcdEstado({
     feviBasal:    _labNum(inf, 'co_fevi_basal'),
     feviActual:   _labNum(inf, 'co_fevi_actual'),
-    glsAlterado:  rel !== null && rel >= 15,
+    glsAlterado:  _ctrcdGlsAlterado(rel),
     tropoElevada: _labCampoRaw(inf, 'co_troponi') === 'si'
   });
 }
@@ -47584,7 +47687,15 @@ function labEteRender(infs, n) {
     { k:'area', lbl:'Área mitral <4 cm²',          campo:'teer_area_mitral', ok:v => v >= 4.0 },
     { k:'prof', lbl:'Profundidad de coaptación >10 mm', campo:'teer_prof_flail', ok:v => v <= 10, tipo:'sec' },
     { k:'anch', lbl:'Ancho flail >15 mm',          campo:'teer_ancho_flail', ok:v => v <= 15, tipo:'prim' },
-    { k:'pasp', lbl:'PASP >70 mmHg',               campo:'teer_pasp',        ok:v => v <= 70 }
+    { k:'pasp', lbl:'PASP >70 mmHg',               campo:'teer_pasp',        ok:v => v <= 70 },
+    /* Los dos criterios de inclusión del COAPT. Entraron acá el mismo día en que entraron al
+       `veto` de `teerEstado()`: mientras estuvieron fuera de los dos lados el panel coincidía
+       con la pantalla por casualidad, pero corregir sólo uno deja al informe firmado diciendo
+       «❌ NO apto» y al PDF de auditoría «✅ Apto» sobre el mismo estudio. Gatean con `coapt`,
+       que exige la IM secundaria consignada — es el `esSec` estricto de `teerEstado`, no el
+       `aplSec` permisivo de gap y profundidad. */
+    { k:'fevi', lbl:'FEVI fuera del rango COAPT (20-50 %)', campo:'teer_fevi', ok:v => v >= 20 && v <= 50, tipo:'coapt' },
+    { k:'dtsvi',lbl:'DTSVI >70 mm (COAPT)',        campo:'teer_dtsvi',       ok:v => v <= 70, tipo:'coapt' }
   ];
   /* `tipo` replica el gateo por tipo de IM de `teerEstado()`. Sin esto el panel contaba los seis
      criterios SIEMPRE, y desde que la pantalla evalúa sólo los que aplican, TODO estudio con el
@@ -47596,8 +47707,28 @@ function labEteRender(infs, n) {
      fórmula duplicada— y hasta que se unifiquen tienen que gatear igual. */
   const _teerAplica = (c, tipoIM) => !c.tipo
     || (c.tipo === 'prim' && tipoIM !== 'secundaria')
-    || (c.tipo === 'sec'  && tipoIM !== 'primaria');
-  const usaTeer = i => _labCampoRaw(i,'teer_tipo_im') !== '' || TEER_CRIT.some(c => _labNum(i, c.campo) !== null);
+    || (c.tipo === 'sec'  && tipoIM !== 'primaria')
+    /* `coapt` es el único gate AFIRMATIVO: los otros dos aplican salvo que el tipo los excluya,
+       éste sólo con la IM secundaria consignada. Con el tipo en blanco, FEVI y DTSVI se espejan
+       solos desde el estudio (`sincronizarTEERDesdeGlobal`) y contarlos ahí marcaría como «no
+       cumplido» un criterio del COAPT sobre un paciente del que todavía no se dijo que tenga IM
+       funcional. */
+    || (c.tipo === 'coapt' && tipoIM === 'secundaria');
+  /* `tipo !== 'coapt'`: la COMPUERTA se quedó con los seis criterios anatómicos, aunque el
+     VEREDICTO ya cuente los ocho. FEVI y DTSVI se espejan solos desde el estudio
+     (`sincronizarTEERDesdeGlobal` copia `fevi` y `dsfvi` con sólo abrir el acordeón), así que
+     contarlos acá metía en «Estudios con evaluación TEER» a cualquier transtorácico con la FEVI
+     medida y nada más, inflando el denominador del panel — y un denominador que crece solo hace
+     bajar todos los porcentajes sin que nadie haya cambiado de práctica.
+     Ojo con el alcance: esta guarda cubre el SEGUNDO brazo. Un estudio con `teer_tipo_im`
+     consignado entra por el primero, y ahí `_teerAplica` sí admite los dos criterios COAPT: si
+     además no tiene ningún otro campo TEER —un ETE de IM funcional sin nada más medido—
+     `ingresados` llega a 2 y el estudio cae en uno de los cuatro veredictos decidido por dos
+     valores que nadie tipeó, en vez de en «Sin criterios anatómicos cargados». Es estrecho
+     (exige `psap_calc`, `ete_lva` y `avm_plan`/`avm_ete` los tres vacíos) y no sale del
+     dashboard, pero está reportado. */
+  const usaTeer = i => _labCampoRaw(i,'teer_tipo_im') !== ''
+    || TEER_CRIT.some(c => c.tipo !== 'coapt' && _labNum(i, c.campo) !== null);
 
   const conDatosEte = i => usaTavi(i) || usaOai(i) || usaWilkins(i) || usaEteVM(i) || usaTeer(i);
 
@@ -47817,10 +47948,11 @@ function labEteRender(infs, n) {
   }
 
   /* ── BLOQUE 5 · TEER ──
-     Se reimplementan los SEIS criterios anatómicos con los mismos umbrales que calcTEER, y se
-     distingue «no cumplido» de «no ingresado»: contar un criterio ausente como fallido daría un
-     ranking falso de qué anatomía rechaza pacientes. Los dos criterios de IM secundaria (FEVI y
-     DTSVI) no entran en el veredicto de calcTEER, así que tampoco acá. */
+     Se reimplementan los OCHO criterios con los mismos umbrales que calcTEER, y se distingue
+     «no cumplido» de «no ingresado»: contar un criterio ausente como fallido daría un ranking
+     falso de qué anatomía rechaza pacientes. Los dos criterios COAPT de IM secundaria (FEVI y
+     DTSVI) entran desde que entraron al veredicto de `teerEstado`, y sólo con el tipo
+     «secundaria» consignado. */
   // TEER_CRIT y usaTeer están declarados arriba, junto al resto de los predicados de bloque.
   const teerArr = eteArr.filter(usaTeer);
   if (!teerArr.length) { empty('lab-ete-teer-stats','evaluación TEER'); empty('lab-ete-teer-im-bars','tipo de IM');
@@ -47832,10 +47964,17 @@ function labEteRender(infs, n) {
        criterios»— e inflaba justamente la conclusión más fuerte de la card. Y colapsaba en «no
        elegible» el «⚠️ Límite — anatomía borderline» de un único fallo, que calcTEER manda a
        Heart Team, no a descartar.
-       La calcificación densa (c9) SÍ entra: `fallos` en calcTEER es [c1..c6, c9]. Quedaba fuera
+       La calcificación densa (c9) SÍ entra: está en el `veto` de `teerEstado`. Quedaba fuera
        y un estudio con los seis anatómicos en rango y calcificación densa salía «NO apto» en
-       pantalla y «Elegible» en la estadística. Los de IM secundaria (FEVI, DTSVI) siguen fuera,
-       que es lo que calcTEER hace. */
+       pantalla y «Elegible» en la estadística. FEVI y DTSVI entran por la misma razón desde que
+       vetan en `teerEstado`: la regla que se persigue es «lo que veta en pantalla cuenta acá»,
+       no una lista propia que haya que acordarse de sincronizar.
+       Todavía NO se cumple para el estado `null` de calcificación y clefts: en `teerEstado` un
+       select sin evaluar es «no ingresado» y baja el veredicto a «Posiblemente apto», mientras
+       que acá sólo pueden sumar a `fallados` y nunca entran en `_aplican.length`, que es de
+       donde sale `noIngresados`. Un estudio con los siete numéricos y los dos selects en
+       «— no evaluado —» sale «⚠️ Posiblemente apto» en la hoja firmada y «✅ Apto» en esta
+       estadística. Es preexistente y está reportado; la regla es la meta, no el estado. */
     const fallos = Object.create(null); let apto = 0, posible = 0, limite = 0, noApto = 0, sinDatos = 0;
     teerArr.forEach(i => {
       let ingresados = 0, fallados = 0;

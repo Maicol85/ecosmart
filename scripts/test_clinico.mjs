@@ -1299,18 +1299,15 @@ caso('TC-83', 'Estudio vacio: el EN SUMA dice que no hay alteraciones, no queda 
     debeSuma: ['Estudio sin alteraciones estructurales ni funcionales significativas.'] };
 `);
 
-/* ═══════════════════════════════════════════════════════════════════════════════════════════
-   DEFECTOS ABIERTOS — casos que describen lo que la app DEBERIA hacer y hoy no hace.
-   Fallan a proposito. Ver el encabezado de `casoAbierto`.
-   ═══════════════════════════════════════════════════════════════════════════════════════════ */
-
-/* `teerEstado`, linea ~24829: `veto = [c1, c3, c6, c9, c10]` + los gateados por tipo. c7 (FEVI
-   fuera del rango COAPT), c8 (DTSVI >70) y c1b (velo posterior <7 mm) se CALCULAN, se pintan en
-   pantalla y se imprimen en la hoja firmada, pero no entran en la lista: no suman fallo.
-   Es exactamente el defecto que se cerro para c10 —«un criterio que se pinta y no se cuenta»—,
-   con tres criterios que quedaron afuera del mismo arreglo. */
-casoAbierto('TC-84', 'TEER: DTSVI >70 mm debe contar como criterio no cumplido',
-  'c8 no esta en la lista `veto` de teerEstado (~L24829). La hoja firmada imprime «78mm >70mm - NO apto» y, nueve renglones abajo, «APTO para TEER - criterios cumplidos».', `
+// ═══ GRUPO 26 — Defectos que el suite encontro y ya estan cerrados ══════════════════════════
+/* CERRADOS. c7 y c8 —los dos criterios de inclusion del COAPT— se CALCULABAN, se pintaban y se
+   imprimian en la hoja firmada sin entrar en la lista `veto` de `teerEstado`: no sumaban fallo.
+   Era el defecto que ya se habia cerrado para c10, con dos criterios que quedaron afuera de
+   aquel arreglo. Hoy vetan, gateados por `esSec` estricto, y el Laboratorio los cuenta con el
+   mismo gate — si se arreglaba uno solo, el informe firmado decia «NO apto» y el PDF de
+   auditoria «Elegible» sobre el mismo estudio.
+   c1b (velo posterior) sigue abierto mas abajo: es una decision clinica, no un arreglo. */
+caso('TC-84', 'TEER: DTSVI >70 mm cuenta como criterio no cumplido', `
   __t.limpiar(); __t.set('teer_tipo_im','secundaria');
   __t.set('teer_lva','24'); __t.set('teer_lvp','9'); __t.set('teer_gap','6');
   __t.set('teer_prof_flail','8'); __t.set('teer_area_mitral','5.2'); __t.set('teer_pasp','40');
@@ -1326,8 +1323,7 @@ casoAbierto('TC-84', 'TEER: DTSVI >70 mm debe contar como criterio no cumplido',
   ] };
 `);
 
-casoAbierto('TC-85', 'TEER: FEVI fuera del rango COAPT debe contar como criterio no cumplido',
-  'c7 tampoco esta en `veto`. Con FEVI 62 % la hoja imprime «FEVI 62% fuera rango COAPT» y concluye «APTO para TEER».', `
+caso('TC-85', 'TEER: FEVI fuera del rango COAPT cuenta como criterio no cumplido', `
   __t.limpiar(); __t.set('teer_tipo_im','secundaria');
   __t.set('teer_lva','24'); __t.set('teer_lvp','9'); __t.set('teer_gap','6');
   __t.set('teer_prof_flail','8'); __t.set('teer_area_mitral','5.2'); __t.set('teer_pasp','40');
@@ -1341,33 +1337,121 @@ casoAbierto('TC-85', 'TEER: FEVI fuera del rango COAPT debe contar como criterio
   ] };
 `);
 
+/* El gate de c7/c8 es `esSec` ESTRICTO, no `aplSec`. Sin ese matiz el arreglo se comia el caso
+   mas comun: con el tipo de IM sin consignar los dos criterios son `null` por construccion, o
+   sea «no ingresados» imposibles de completar, y TODO estudio sin tipo caeria de «APTO» a
+   «Posiblemente apto — faltan 2 criterios». Es la trampa que el propio bloque ya documenta para
+   c2 y c4. Este caso fija el gate: el mismo estudio, con y sin tipo, y en la IM primaria, donde
+   los criterios del COAPT no aplican. */
+caso('TC-89', 'TEER: los criterios COAPT solo cuentan con la IM secundaria consignada', `
+  function base(tipo) { __t.limpiar(); if (tipo) __t.set('teer_tipo_im', tipo);
+    __t.set('teer_lva','24'); __t.set('teer_lvp','9'); __t.set('teer_gap','6');
+    __t.set('teer_prof_flail','8'); __t.set('teer_ancho_flail','12');
+    __t.set('teer_area_mitral','5.2'); __t.set('teer_pasp','40');
+    __t.set('teer_calcificacion','no'); __t.set('teer_clefts','no'); __t.set('teer_trombo','no');
+    return teerEstado(); }
+  const sinTipo = base('');            // sin FEVI ni DTSVI cargados
+  const prim    = base('primaria');
+  const sec     = base('secundaria');  // aca SI faltan, y son exigibles
+  return { extra: [
+    ['sin tipo consignado sigue siendo APTO', sinTipo.clave === 'apto' && sinTipo.noIngresados === 0],
+    ['en IM primaria tampoco cuentan',        prim.clave === 'apto' && prim.noIngresados === 0],
+    ['en IM secundaria son dos datos que faltan',
+      sec.clave === 'parcial' && sec.noIngresados === 2],
+    ['y faltar no es fallar',                 sec.fallos === 0]
+  ] };
+`);
+
+/* Los tres bordes que aparecieron al hacer que c7/c8 veten, cada uno con su forma de fallar:
+   1) El ESPEJO CONGELADO. `teer_fevi`/`teer_dtsvi` se copiaban con `_syncSiVacio` —escribe una
+      vez y no refresca—, asi que corregir la FEVI en su tab dejaba a la hoja firmada evaluando
+      el criterio del COAPT contra el valor viejo. Mientras los criterios eran decoracion eso
+      solo desentonaba; desde que deciden APTO / NO APTO sale mal la conclusion, y en la
+      direccion tranquilizadora tambien.
+   2) El CERO. `dtsvi <= 70` es un criterio de TECHO: falla ABIERTO con el cero. Un `dsfvi`
+      tipeado 0 imprimia «0mm <=70mm ✓» y podia dejar noIngresados en cero.
+   3) La COMPUERTA. `hayDatos` contaba los dos espejos, asi que el boton «Integrar al informe»
+      se destrababa sobre un modulo en el que nadie entro y el PDF firmado se llevaba una hoja
+      TEER completa cuyas unicas filas con dato eran valores auto-copiados. */
+caso('TC-90', 'TEER: los criterios COAPT se espejan vivos, rechazan el cero y no destraban la hoja solos', `
+  __t.limpiar(); __t.set('teer_tipo_im','secundaria');
+  __t.set('fevi','45'); __t.set('dsfvi','62'); sincronizarTEERDesdeGlobal();
+  const espejo1 = __t.val('teer_fevi');
+  __t.set('fevi','60'); sincronizarTEERDesdeGlobal();
+  const espejo2 = __t.val('teer_fevi');
+  const soloEspejo = teerEstado(); const hojaEspejo = amiloTextoTEER();
+
+  __t.limpiar(); __t.set('teer_tipo_im','secundaria');
+  __t.set('teer_lva','24'); __t.set('teer_lvp','9'); __t.set('teer_gap','6');
+  __t.set('teer_prof_flail','8'); __t.set('teer_area_mitral','5.2'); __t.set('teer_pasp','40');
+  __t.set('teer_fevi','35'); __t.set('teer_dtsvi','0');
+  __t.set('teer_calcificacion','no'); __t.set('teer_clefts','no'); __t.set('teer_trombo','no');
+  const cero = teerEstado();
+
+  __t.limpiar(); __t.set('teer_tipo_im','secundaria');
+  __t.set('teer_lva','24'); __t.set('teer_lvp','9'); __t.set('teer_gap','6');
+  __t.set('teer_prof_flail','8'); __t.set('teer_area_mitral','5.2'); __t.set('teer_pasp','40');
+  __t.set('teer_calcificacion','no'); __t.set('teer_clefts','no'); __t.set('teer_trombo','no');
+  const faltan = teerEstado();
+
+  return { extra: [
+    ['el espejo copia la FEVI la primera vez',   espejo1 === '45'],
+    ['y la SIGUE al corregirla, no queda en 45', espejo2 === '60'],
+    ['con solo los espejos la tarjeta no evalua', soloEspejo.clave === 'sin_datos'],
+    ['y la hoja del PDF sale vacia',              hojaEspejo === ''],
+    ['DTSVI 0 no es un criterio cumplido',        cero.cs.c8.ok === null],
+    ['y por eso el estudio no puede decir APTO',  cero.clave !== 'apto'],
+    ['sin FEVI ni DSFVI la nota NOMBRA los dos que faltan',
+      faltan.nota.indexOf('FEVI 20-50 % (COAPT)') > -1 && faltan.nota.indexOf('DTSVI ≤70 mm (COAPT)') > -1]
+  ] };
+`);
+
+/* CERRADO. La rama `else if (ai_diam)` de `generarInforme` no tenia ni un `suma.push`: la misma
+   auricula dilatada subia al EN SUMA si se midio por volumen y no subia si se midio por diametro
+   —la via que queda en el eco de rutina—, asi que el informe firmado decia «Aurícula izquierda
+   dilatada» arriba y «Estudio sin alteraciones estructurales ni funcionales significativas»
+   abajo. Es la asimetria entre rutas de la leccion 9; la AD dilatada tenia esta misma forma.
+   El caso verifica las DOS mitades: que el hallazgo suba, y que la afirmacion tranquilizadora
+   deje de emitirse. Sin la segunda, un `suma.push` de mas seguiria pasando el test. */
+caso('TC-87', 'AI dilatada por diametro AP llega al EN SUMA, y la normal no', `
+  function ai(mm) { __t.limpiar(); __t.set('ai_diam', String(mm)); return __t.informe(); }
+  const r = ai(45), leve = ai(39), normal = ai(38);
+  return { inf: r.inf, suma: r.suma,
+    debe: ['Aurícula izquierda dilatada (diámetro AP 45 mm).'],
+    debeSuma: ['AI dilatada (diámetro AP 45 mm).'],
+    noSuma: ['Estudio sin alteraciones estructurales ni funcionales significativas.'],
+    extra: [
+      ['39 mm sube como levemente dilatada',
+        leve.suma.indexOf('AI levemente dilatada (diámetro AP 39 mm).') > -1],
+      ['38 mm es normal y NO sube al EN SUMA', /AI .*dilatada/.test(normal.suma) === false],
+      ['y ese estudio sigue diciendo que no hay alteraciones',
+        normal.suma.indexOf('Estudio sin alteraciones estructurales ni funcionales significativas.') > -1]
+    ] };
+`);
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════
+   DEFECTOS ABIERTOS — casos que describen lo que la app DEBERIA hacer y hoy no hace.
+   Fallan a proposito. Ver el encabezado de `casoAbierto`.
+   ═══════════════════════════════════════════════════════════════════════════════════════════ */
+
+/* c1b (velo posterior <7 mm) se pinta y no cuenta, igual que c7 y c8 — pero NO se cerro con
+   ellos, y a proposito. Su texto de fallo dice «agarre difícil», no «NO apto»: es una
+   advertencia de factibilidad tecnica, no un criterio de exclusion del COAPT. Convertirlo en
+   veto cambiaria el veredicto de pacientes reales, asi que es una decision clinica de Maicol,
+   no un arreglo que corresponda hacer por consistencia. El caso queda abierto para que la
+   decision este escrita en algun lado y no se pierda. */
 casoAbierto('TC-86', 'TEER: velo posterior <7 mm debe pesar en el veredicto',
-  'c1b no esta en `veto`. Su texto de fallo dice «agarre difícil» y no cambia nada: con 4 mm de velo posterior el estado sigue siendo APTO con cero fallos.', `
+  'Decision clinica pendiente, no defecto: c1b no esta en `veto` y su texto de fallo dice «agarre difícil». Con 4 mm de velo posterior el estado sigue siendo APTO con cero fallos.', `
   __t.limpiar(); __t.set('teer_tipo_im','secundaria');
   __t.set('teer_lva','24'); __t.set('teer_lvp','4'); __t.set('teer_gap','6');
   __t.set('teer_prof_flail','8'); __t.set('teer_area_mitral','5.2'); __t.set('teer_pasp','40');
+  __t.set('teer_fevi','35'); __t.set('teer_dtsvi','62');
   __t.set('teer_calcificacion','no'); __t.set('teer_clefts','no'); __t.set('teer_trombo','no');
   const e = teerEstado();
   return { extra: [
     ['el criterio se marca como no cumplido', e.cs.c1b.ok === false],
     ['y cuenta como fallo',                   e.fallos >= 1]
   ] };
-`);
-
-/* `generarInforme`, lineas 19431-19436: la rama de la AI por diametro AP no tiene ni un solo
-   `suma.push`. La misma auricula dilatada sube al EN SUMA si se midio por volumen y no sube si
-   se midio por diametro, asi que el informe queda diciendo «Aurícula izquierda dilatada» arriba
-   y «Estudio sin alteraciones estructurales ni funcionales significativas» abajo.
-   Es la asimetria de la leccion 9 —la AD dilatada tenia exactamente esta forma— en la via de
-   medicion que queda cuando no hay volumen. */
-casoAbierto('TC-87', 'AI dilatada por diametro AP debe llegar al EN SUMA',
-  'La rama `else if (ai_diam)` de generarInforme (~L19431) no hace ningun suma.push. Con AI de 45 mm el narrativo dice «dilatada» y el EN SUMA declara el estudio sin alteraciones.', `
-  __t.limpiar(); __t.set('ai_diam','45');
-  const r = __t.informe();
-  return { inf: r.inf, suma: r.suma,
-    debe: ['Aurícula izquierda dilatada (diámetro AP 45 mm).'],
-    noSuma: ['Estudio sin alteraciones estructurales ni funcionales significativas.'],
-    extra: [['la AI dilatada aparece en el EN SUMA', /AI .*dilatada/.test(r.suma)]] };
 `);
 
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
