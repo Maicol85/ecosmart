@@ -428,7 +428,10 @@
      `border-bottom`, y `.sacc-hdr` tenía `background:none` y ningún borde, así que al abrir no
      había separación entre el título y el contenido. El cuerpo ya coincidía: `.sacc-body`
      también lleva la clase `.card-body`.
-     Va SCOPEADO a #tab-congenitas a propósito. `.sacc` lo usan SEIS tabs (Config, AI/VI, VD/AD,
+     Va SCOPEADO a #tab-congenitas Y #tab-congenitas2 a propósito — las DOS pestañas de
+     congénitas, desde que se repartieron el 2026-09-15. El id nuevo hay que sumarlo a las
+     CINCO reglas: con una sola sin actualizar, esa pestaña queda con el `.sacc` pelado y se
+     ve con celdas y tipografía distintas del resto de la app. `.sacc` lo usan SEIS tabs (Config, AI/VI, VD/AD,
      Contractilidad, SGL y ésta) con 21 acordeones; tocar el selector pelado repintaría las
      otras cinco, que nadie pidió cambiar y que además están siempre expandidas en PC por la
      media query de abajo — ahí un header con fondo se leería como una barra de sección nueva.
@@ -443,17 +446,22 @@
      que Hemodinámica. O sea que «el estándar es ETE y no Hemodinámica» son la misma regla CSS;
      lo que faltaba de la pasada anterior no era el fondo (ése ya coincidía) sino la TIPOGRAFÍA:
      tamaño, peso, versalitas, interletra, color y padding. */
-  #tab-congenitas .sacc .sacc-hdr { background-color:var(--section-head);border-bottom:1px solid transparent;
+  #tab-congenitas .sacc .sacc-hdr,
+  #tab-congenitas2 .sacc .sacc-hdr { background-color:var(--section-head);border-bottom:1px solid transparent;
     color:var(--accent2);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:8px 14px; }
   /* La flecha hereda `font-size` del header en su regla base (12px fijo), así que al bajar el
      texto a 11px quedaba MÁS GRANDE que el título. Se la acompaña. */
-  #tab-congenitas .sacc .sacc-arrow { font-size:10px; }
-  #tab-congenitas .sacc.open .sacc-hdr { border-bottom-color:var(--border); }
+  #tab-congenitas .sacc .sacc-arrow,
+  #tab-congenitas2 .sacc .sacc-arrow { font-size:10px; }
+  #tab-congenitas .sacc.open .sacc-hdr,
+  #tab-congenitas2 .sacc.open .sacc-hdr { border-bottom-color:var(--border); }
   /* El hover de arriba REEMPLAZA el `background`, así que sin esto el header perdía el fondo
      nuevo al pasar el puntero. Se superpone una capa en vez de sustituir el color, y el signo
      de la capa cambia con el tema: blanco sobre el header oscuro, negro sobre el claro. */
-  #tab-congenitas .sacc .sacc-hdr:hover { background-color:var(--section-head);background-image:linear-gradient(rgba(255,255,255,.055),rgba(255,255,255,.055)); }
-  html.light-mode #tab-congenitas .sacc .sacc-hdr:hover { background-image:linear-gradient(rgba(0,0,0,.045),rgba(0,0,0,.045)); }
+  #tab-congenitas .sacc .sacc-hdr:hover,
+  #tab-congenitas2 .sacc .sacc-hdr:hover { background-color:var(--section-head);background-image:linear-gradient(rgba(255,255,255,.055),rgba(255,255,255,.055)); }
+  html.light-mode #tab-congenitas .sacc .sacc-hdr:hover,
+  html.light-mode #tab-congenitas2 .sacc .sacc-hdr:hover { background-image:linear-gradient(rgba(0,0,0,.045),rgba(0,0,0,.045)); }
   /* PC (>=768px): los acordeones de Paciente/AI-VI/VD-AD/Contractilidad/SGL quedan siempre
      expandidos, ignorando la clase .open y los estilos inline que deja secToggle() (de ahí los
      !important). overflow:visible es obligatorio: con overflow:hidden Safari rompe el hit-test

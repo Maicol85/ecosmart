@@ -2606,6 +2606,57 @@ caso('TC-113', 'CoAo: la indicacion sale del pico-pico invasivo, no del Doppler'
   ] };
 `);
 
+/* LAS DOS PESTAÑAS DE CONGENITAS TIENEN QUE VERSE IGUAL. El estilo de los acordeones esta
+   SCOPEADO a #tab-congenitas a proposito —.sacc lo usan seis pestañas y el selector pelado
+   repintaria las otras cinco—, asi que al crear la segunda quedo con el .sacc crudo: celdas mas
+   altas, texto mas grande y otro fondo. Son CINCO reglas; con una sola sin actualizar la
+   diferencia vuelve.
+   Se comparan propiedades COMPUTADAS y en los DOS temas, no la hoja de estilo: lo que importa es
+   lo que el navegador resuelve, y el fondo sale de una variable que cambia con el tema. */
+caso('TC-114', 'Congenitas: las dos pestañas se ven identicas, de dia y de noche', `
+  const PROPS = ['backgroundColor','color','fontSize','fontWeight','textTransform',
+                 'letterSpacing','paddingTop','paddingLeft','borderBottomWidth'];
+  document.querySelectorAll('.tab-section').forEach(s => s.classList.add('active'));
+  function leer(id) {
+    const h = document.querySelector('#' + id + ' .sacc .sacc-hdr');
+    const a = document.querySelector('#' + id + ' .sacc .sacc-arrow');
+    if (!h || !a) return null;
+    const cs = getComputedStyle(h); const o = {};
+    PROPS.forEach(k => o[k] = cs[k]);
+    o.flecha = getComputedStyle(a).fontSize;
+    return o;
+  }
+  function difs() {
+    const a = leer('tab-congenitas'), b = leer('tab-congenitas2');
+    if (!a || !b) return ['falta alguna pestaña'];
+    return Object.keys(a).filter(k => a[k] !== b[k]).map(k => k + ': ' + a[k] + ' vs ' + b[k]);
+  }
+  const cls = document.documentElement.className;
+  document.documentElement.classList.remove('light-mode');
+  const oscuro = { dif: difs(), bg: leer('tab-congenitas').backgroundColor };
+  document.documentElement.classList.add('light-mode');
+  const claro  = { dif: difs(), bg: leer('tab-congenitas').backgroundColor };
+  document.documentElement.className = cls;
+  return { extra: [
+    ['en tema oscuro no hay ni una diferencia', oscuro.dif.length === 0],
+    ['en tema claro tampoco',                   claro.dif.length === 0],
+    /* Y que el tema SI cambie el fondo: si las dos lecturas dieran lo mismo, el caso estaria
+       comparando dos veces el mismo tema y pasaria sin probar el modo noche. Me paso al
+       verificarlo a mano. */
+    ['el fondo cambia entre los dos temas, o sea que se midieron los dos',
+      oscuro.bg !== claro.bg],
+    /* SIN COBERTURA: las dos reglas de :hover. getComputedStyle no resuelve pseudo-clases sin
+       hover real, asi que mutarlas no pone nada en rojo — verificado. Son las de menor riesgo de
+       las cinco (una capa de fondo al pasar el puntero), pero se dice para que no se lea como
+       cubierto: si alguien saca el id de esas dos, la pestaña nueva pierde el hover y el suite
+       pasa igual. */
+    ['y el estilo scopeado alcanza a la pestaña nueva, no es el .sacc pelado',
+      leer('tab-congenitas2').fontSize === '11px' &&
+      leer('tab-congenitas2').textTransform === 'uppercase' &&
+      leer('tab-congenitas2').flecha === '10px']
+  ] };
+`);
+
 /* LAS TRES SUPERFICIES DE CARDIO-ONCO TIENEN QUE DECIR LO MISMO. La leyenda de #ref-cardiotox
    (pestaña Referencias), la tabla de farmacos y las tablas nuevas del marco HFA-ICOS viven en
    DOS pestañas distintas y describen al mismo paciente. Las tres estaban desincronizadas, cada

@@ -146,6 +146,22 @@ tratamiento. Sin la basal cargada no se deduce nada. Ídem el GLS, que además e
 porque el resto de cardio-onco usa `Math.abs` y un `18` tipeado en vez de `-18` no recibe ningún
 aviso en ninguna otra parte de la app.
 
+### Un estilo acotado por id no viaja con la sección que se muda
+Al repartir Congénitas en dos pestañas, la nueva quedó con celdas más altas, texto más grande y
+otro fondo. El marcado era idéntico —las secciones se movieron enteras— pero **cinco reglas CSS
+estaban acotadas a `#tab-congenitas`**, y a propósito: `.sacc` lo usan seis pestañas y el selector
+pelado repintaría las otras cinco.
+
+El arreglo **no es copiar el bloque** —eso crea una segunda fuente que se desincroniza— sino
+**sumar el id nuevo a las mismas cinco reglas**. Con una sola sin actualizar, la diferencia vuelve.
+
+**TC-114** compara propiedades **computadas** y en **los dos temas**. Dos detalles que lo hacen
+valer: el fondo sale de una variable que cambia con el tema, así que el caso verifica además que
+las dos lecturas **difieran entre sí** — si dieran lo mismo estaría comparando dos veces el mismo
+tema y pasaría sin probar el modo noche (me pasó al verificarlo a mano). Y **las dos reglas de
+`:hover` quedan sin cobertura**: `getComputedStyle` no resuelve pseudo-clases sin hover real, y
+mutarlas no pone nada en rojo — verificado, no supuesto.
+
 ### El número correcto puede estar medido con el método equivocado
 `coaConclusion` emitía «indicación de intervención según ESC 2020» cuando el gradiente **Doppler**
 pasaba 20 mmHg. El umbral es el de la guía; el método, no. La ESC 2020 indica sobre el
@@ -994,13 +1010,13 @@ El script contesta *«nadie lo nombra»*, no *«no tiene destino»*: un id menci
 ### 2 · Test suite clínico
 
 ```bash
-node scripts/test_clinico.mjs            # 128 casos, sin defectos abiertos
+node scripts/test_clinico.mjs            # 129 casos, sin defectos abiertos
 node scripts/test_clinico.mjs --solo TC-04
 node scripts/test_clinico.mjs --ver      # con el navegador a la vista, para depurar
 ```
 
 **Correr antes de cualquier push que toque el informe narrativo, el EN SUMA o una fórmula de
-cálculo. Tienen que pasar los 128. Si alguno falla, corregir antes de seguir.**
+cálculo. Tienen que pasar los 129. Si alguno falla, corregir antes de seguir.**
 
 **TC-01 a TC-17 — los bugs del 2026-09-14.** VD que desaparecía (TC-01/03), gradiente pulmonar
 congelado (TC-04), AD ausente del EN SUMA (TC-06), HFA-PEFF sin compuerta de FEVI (TC-07/08),
