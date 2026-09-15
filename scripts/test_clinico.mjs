@@ -2504,8 +2504,8 @@ caso('TC-112', 'Congenitas: ninguna seccion se perdio en el reparto ni al implem
      campo caracteristico. Que TC-112 se pusiera en rojo al implementarla es lo correcto —la
      condicion «ningun placeholder trae campos» es justamente lo que hay que actualizar cuando
      uno deja de serlo—. */
-  const ORIG = ['tv','shunt','dap','coa','vap','fop','vab','ebs','tdf','tga','mch','mca','marfan'];
-  const PH   = ['esub','easv','dsav','cvpa','eisen','fontan'];
+  const ORIG = ['tv','shunt','dap','coa','vap','fop','vab','ebs','tdf','tga','mch','mca','marfan','eisen'];
+  const PH   = ['esub','easv','dsav','cvpa','fontan'];
   const t1 = document.getElementById('tab-congenitas');
   const t2 = document.getElementById('tab-congenitas2');
   const de = k => document.getElementById('sacc-cc-' + k);
@@ -2529,7 +2529,7 @@ caso('TC-112', 'Congenitas: ninguna seccion se perdio en el reparto ni al implem
       [['vab','vab_fenotipo'],['coa','coa_istmo'],['fop','fop_tunel'],['mch','mch_espesor'],
        ['mca','mca_tsvd_plax'],['tdf','tdf_civ_grad'],['tv','tv_tipo'],['shunt','ete_cia_tipo'],
        ['dap','dap_diam'],['vap','vap_diam'],['tga','tga_tipo'],['ebs','ebs_area_ad'],
-       ['marfan','marfan_ao_seno']]
+       ['marfan','marfan_ao_seno'],['eisen','eis_lesion_base']]
         .every(par => { const s = de(par[0]), c = document.getElementById(par[1]);
           return !!s && !!c && s.contains(c); })],
     ['los placeholders dicen que estan en desarrollo',
@@ -2795,6 +2795,76 @@ caso('TC-116', 'Marfan/EHAT: el umbral quirurgico sale del sindrome, no solo del
       mar49.inf.suma.indexOf('indicación quirúrgica') === -1],
     ['pero «falta el sindrome» SI sube: no es «sin hallazgo», es «no se puede concluir»',
       sinSind.inf.suma.indexOf('falta declarar el síndrome') > -1]
+  ] };
+`);
+
+/* EISENMENGER: LAS ALERTAS SON EL MODULO. Las tres —saturacion critica, sincope y hemoptisis— no
+   describen la lesion: cambian una conducta, y dos son de vida o muerte (embarazo con mortalidad
+   materna >50 %, hemoptisis masiva). Por eso suben al EN SUMA: una alerta que hay que ir a buscar
+   tres parrafos abajo ya fallo.
+   Y las tres condicionan por «si» explicito o por un numero MEDIDO, nunca por la ausencia del
+   dato: un select vacio no dice «no tiene sincope», dice «nadie lo pregunto». */
+caso('TC-117', 'Eisenmenger: las alertas salen en el informe Y en el EN SUMA, y no por defecto', `
+  function e(o) { __t.limpiar();
+    __t.set('eis_lesion_base', o.les || 'civ');
+    if (o.sat  != null) __t.set('eis_saturacion_reposo', String(o.sat));
+    if (o.sinc != null) __t.set('eis_sincope', o.sinc);
+    if (o.hemo != null) __t.set('eis_hemoptisis', o.hemo);
+    if (o.peri != null) __t.set('eis_pericardio', o.peri);
+    if (o.nyha != null) __t.set('eis_clase_nyha', o.nyha);
+    __t.chk('eisen_incluir_chk', true);
+    const r = eisenEstado();
+    return { r, inf: __t.informe() };
+  }
+  const sat85 = e({ sat:85 }), sat89 = e({ sat:89 }), sat90 = e({ sat:90 }), sat93 = e({ sat:93 });
+  const sinc  = e({ sat:95, sinc:'si' }),  sincNo  = e({ sat:95, sinc:'no' });
+  const hemo  = e({ sat:95, hemo:'si' }),  hemoNo  = e({ sat:95, hemo:'no' });
+  const periSev = e({ sat:95, peri:'severo' }), periLev = e({ sat:95, peri:'leve' });
+  const vacio = e({ sat:95 });                       // sin sincope ni hemoptisis consignados
+  const satMal = e({ sat:9 });                       // 9 por 90: numero ilegible
+  return { extra: [
+    // Saturacion: los dos lados del corte.
+    ['sat 89 dispara la alerta de embarazo',
+      sat89.inf.inf.indexOf('Embarazo contraindicado') > -1],
+    ['sat 90 exactos NO la dispara',
+      sat90.inf.inf.indexOf('Embarazo contraindicado') === -1],
+    ['sat 93 tampoco',  sat93.inf.inf.indexOf('Embarazo contraindicado') === -1],
+    ['la alerta nombra la mortalidad materna y la guia',
+      sat85.inf.inf.indexOf('mortalidad materna >50 % (ESC 2020)') > -1],
+    ['y sube al EN SUMA, no se queda en el cuerpo',
+      sat85.inf.suma.indexOf('embarazo contraindicado') > -1],
+    // Sincope y hemoptisis: por «si» explicito.
+    ['sincope Si alerta en informe y EN SUMA',
+      sinc.inf.inf.indexOf('marcador de mal pronóstico') > -1 &&
+      sinc.inf.suma.indexOf('síncope') > -1],
+    ['sincope No no alerta',  sincNo.inf.inf.indexOf('marcador de mal pronóstico') === -1],
+    ['hemoptisis Si alerta en los dos',
+      hemo.inf.inf.indexOf('episodio masivo y fatal') > -1 &&
+      hemo.inf.suma.indexOf('hemoptisis') > -1],
+    ['hemoptisis No no alerta', hemoNo.inf.inf.indexOf('episodio masivo') === -1],
+    // NINGUNA se dispara por el campo vacio: eso seria afirmar una ausencia... o inventarla.
+    ['sin consignar sincope ni hemoptisis no aparece ninguna alerta de esas',
+      vacio.inf.inf.indexOf('marcador de mal pronóstico') === -1 &&
+      vacio.inf.inf.indexOf('episodio masivo') === -1],
+    // Derrame: moderado/severo si, leve no. Y NO sube al EN SUMA: es pronostico, no conducta.
+    ['derrame severo sale en el informe',
+      periSev.inf.inf.indexOf('Derrame pericárdico severo') > -1],
+    ['derrame leve no',  periLev.inf.inf.indexOf('Derrame pericárdico leve —') === -1],
+    ['el derrame no llena el EN SUMA', periSev.inf.suma.indexOf('Derrame pericárdico') === -1],
+    // La saturacion se valida por BANDA: un 9 por 90 no puede publicar «critica».
+    ['una saturacion de 9 % no dispara la alerta: es un numero ilegible',
+      satMal.inf.inf.indexOf('Embarazo contraindicado') === -1],
+    ['y se declara como fuera de rango en vez de callarse',
+      satMal.inf.inf.indexOf('fuera de rango') > -1],
+    // La linea base y el seguimiento.
+    ['el EN SUMA siempre lleva la linea base: no es un hallazgo incidental',
+      sat93.inf.suma.indexOf('Síndrome de Eisenmenger sobre comunicación interventricular') > -1],
+    ['y el informe cierra con el seguimiento',
+      sat93.inf.inf.indexOf('Control cada 6-12 meses') > -1 &&
+      sat93.inf.inf.indexOf('Saturación de oxígeno en cada visita') > -1],
+    // El panel de contraindicaciones va SIEMPRE visible, no condicionado a ningun campo.
+    ['el panel de contraindicaciones absolutas esta siempre en la seccion',
+      (document.getElementById('sacc-cc-eisen').textContent || '').indexOf('Contraindicaciones absolutas') > -1]
   ] };
 `);
 

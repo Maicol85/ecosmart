@@ -162,6 +162,32 @@ tema y pasaría sin probar el modo noche (me pasó al verificarlo a mano). Y **l
 `:hover` quedan sin cobertura**: `getComputedStyle` no resuelve pseudo-clases sin hover real, y
 mutarlas no pone nada en rojo — verificado, no supuesto.
 
+### Eisenmenger: las alertas son el módulo, y suben al EN SUMA
+Sección implementada el 2026-09-15 (antes era un acordeón vacío). Lo que aporta no es la
+descripción de la lesión sino **tres alertas que cambian una conducta**, y dos son de vida o
+muerte: saturación <90 % (**embarazo contraindicado, mortalidad materna >50 %**), síncope y
+hemoptisis. Por eso **suben al EN SUMA** y no se quedan en el cuerpo — una alerta que hay que ir a
+buscar tres párrafos abajo ya falló.
+
+**Ninguna se dispara por un campo vacío.** Condicionan por `=== 'si'` explícito o por un número
+medido: un select en blanco no dice «no tiene síncope», dice «nadie lo preguntó». Es la regla del
+`coa_diast_anterogrado`.
+
+**La saturación se valida por banda (40-100 %).** Un `9` tipeado por `90` publicaría «saturación
+crítica — embarazo contraindicado» sobre un paciente bien saturado, y un `900` no publicaría nada:
+los dos emiten una conducta sobre un número ilegible. Fuera de banda se declara y NO vota.
+
+**El panel de contraindicaciones absolutas va siempre visible**, no condicionado a ningún campo:
+son absolutas por la fisiología del síndrome, no por el valor de una medición. Un aviso que sólo
+aparece cuando el dato ya está cargado llega después de la consulta en que había que darlo.
+
+**El derrame pericárdico sale en el informe pero NO en el EN SUMA**: es pronóstico, no una conducta
+distinta hoy. El EN SUMA se reserva para lo accionable.
+
+**Campos:** `eis_lesion_base`, `eis_saturacion_reposo`, `eis_saturacion_ejercicio`, `eis_psap`,
+`eis_pdap`, `eis_it_vel`, `eis_vd_funcion`, `eis_pericardio`, `eis_clase_nyha`, `eis_sincope`,
+`eis_hemoptisis`, `eisen_incluir_chk`. Con sus once columnas de Excel.
+
 ### Marfan / EHAT: el umbral quirúrgico sale del SÍNDROME, no del diámetro (ESC 2024, Tabla 62)
 Sección implementada el 2026-09-15 (antes era un acordeón vacío). **Loeys-Dietz opera a los 45 mm
 donde el Marfan espera a 50 y la EHAT no sindrómica a 55.** Aplicar el umbral del Marfan a un
@@ -1118,13 +1144,13 @@ El script contesta *«nadie lo nombra»*, no *«no tiene destino»*: un id menci
 ### 2 · Test suite clínico
 
 ```bash
-node scripts/test_clinico.mjs            # 131 casos, sin defectos abiertos
+node scripts/test_clinico.mjs            # 132 casos, sin defectos abiertos
 node scripts/test_clinico.mjs --solo TC-04
 node scripts/test_clinico.mjs --ver      # con el navegador a la vista, para depurar
 ```
 
 **Correr antes de cualquier push que toque el informe narrativo, el EN SUMA o una fórmula de
-cálculo. Tienen que pasar los 131. Si alguno falla, corregir antes de seguir.**
+cálculo. Tienen que pasar los 132. Si alguno falla, corregir antes de seguir.**
 
 **TC-01 a TC-17 — los bugs del 2026-09-14.** VD que desaparecía (TC-01/03), gradiente pulmonar
 congelado (TC-04), AD ausente del EN SUMA (TC-06), HFA-PEFF sin compuerta de FEVI (TC-07/08),

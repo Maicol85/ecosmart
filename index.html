@@ -10148,12 +10148,92 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     </div>
   </div>
   <div class="card sacc" id="sacc-cc-eisen">
-    <button type="button" class="sacc-hdr" onclick="secToggle('eisen')" aria-expanded="false">
+    <button type="button" class="sacc-hdr" onclick="secToggle('eisen');eisenSync()" aria-expanded="false">
       <span class="sacc-arrow">&#9654;</span>
       <span style="flex:1;">🫁 Sindrome de Eisenmenger</span>
+      <span id="eisen_badge" class="incl-badge" hidden>&#9679; cargada</span>
     </button>
     <div class="card-body sacc-body">
-      <p style="font-size:12px;color:var(--text2);margin:0;line-height:1.6;">En desarrollo — proximamente.</p>
+      <!-- El panel de contraindicaciones va SIEMPRE visible y no condicionado a ningun campo:
+           son absolutas por la fisiologia del sindrome, no por el valor de una medicion. Un
+           aviso que solo aparece cuando el dato ya esta cargado llega despues de la consulta
+           en que habia que darlo. -->
+      <div style="font-size:11.5px;border-left:3px solid var(--red);background:var(--section-head);padding:8px 10px;border-radius:0 6px 6px 0;margin-bottom:12px;line-height:1.55;">
+        <b style="color:var(--red);">Contraindicaciones absolutas</b> &mdash; embarazo (mortalidad materna &gt;50&nbsp;%) &middot;
+        correccion quirurgica cardiaca del defecto &middot; ejercicio extenuante.
+      </div>
+      <div class="grid-3">
+        <div class="fg"><label>Lesion de base</label>
+          <select id="eis_lesion_base" onchange="eisenSync()">
+            <option value="">&mdash;</option>
+            <option value="civ">CIV</option>
+            <option value="cia">CIA</option>
+            <option value="dap">DAP</option>
+            <option value="dsav">DSAV</option>
+            <option value="tronco">Tronco arterioso</option>
+            <option value="tga">TGA</option>
+            <option value="otra">Otra CC compleja</option>
+          </select>
+        </div>
+        <div class="fg"><label>Saturacion O&sub2; en reposo (%)</label>
+          <input type="number" id="eis_saturacion_reposo" placeholder="%" oninput="eisenSync()">
+          <span style="font-size:10px;color:var(--text2);">&lt;90&nbsp;% &rarr; riesgo fetal critico. Embarazo practicamente imposible con &lt;85&nbsp;%. Mortalidad materna &gt;50&nbsp;%.</span>
+        </div>
+        <div class="fg"><label>Saturacion O&sub2; en ejercicio (%)</label>
+          <input type="number" id="eis_saturacion_ejercicio" placeholder="%" oninput="eisenSync()">
+        </div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>PSAP estimada (mmHg)</label>
+          <input type="number" id="eis_psap" placeholder="mmHg" oninput="eisenSync()"></div>
+        <div class="fg"><label>PDAP estimada (mmHg)</label>
+          <input type="number" id="eis_pdap" placeholder="mmHg" oninput="eisenSync()"></div>
+        <div class="fg"><label>Velocidad de IT (m/s)</label>
+          <input type="number" id="eis_it_vel" placeholder="m/s" step="0.1" oninput="eisenSync()"></div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>Funcion del VD</label>
+          <select id="eis_vd_funcion" onchange="eisenSync()">
+            <option value="">&mdash;</option>
+            <option value="normal">Normal</option>
+            <option value="leve">Levemente reducida</option>
+            <option value="moderada">Moderadamente reducida</option>
+            <option value="severa">Severamente reducida</option>
+          </select></div>
+        <div class="fg"><label>Derrame pericardico</label>
+          <select id="eis_pericardio" onchange="eisenSync()">
+            <option value="">&mdash;</option>
+            <option value="no">Sin derrame</option>
+            <option value="leve">Derrame leve</option>
+            <option value="moderado">Derrame moderado</option>
+            <option value="severo">Derrame severo</option>
+          </select>
+          <span style="font-size:10px;color:var(--text2);">El derrame pericardico asocia peor pronostico en Eisenmenger.</span></div>
+        <div class="fg"><label>Clase funcional NYHA</label>
+          <select id="eis_clase_nyha" onchange="eisenSync()">
+            <option value="">&mdash;</option>
+            <option value="i">I</option><option value="ii">II</option>
+            <option value="iii">III</option><option value="iv">IV</option>
+          </select></div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>Sincope</label>
+          <select id="eis_sincope" onchange="eisenSync()">
+            <option value="">&mdash;</option><option value="no">No</option><option value="si">Si</option>
+          </select>
+          <span style="font-size:10px;color:var(--text2);">Marcador de mal pronostico.</span></div>
+        <div class="fg"><label>Hemoptisis</label>
+          <select id="eis_hemoptisis" onchange="eisenSync()">
+            <option value="">&mdash;</option><option value="no">No</option><option value="si">Si</option>
+          </select>
+          <span style="font-size:10px;color:var(--text2);">Riesgo de episodio masivo y fatal.</span></div>
+      </div>
+      <div id="eisen-resultado" class="calc-box" style="margin-top:12px;"></div>
+      <input type="checkbox" id="eisen_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+      <div style="display:flex;justify-content:center;margin-top:10px;">
+        <button type="button" class="btn btn-integrar" data-ete-chk="eisen_incluir_chk" aria-pressed="false"
+                onclick="eteInclToggle('eisen_incluir_chk')">&#128206; Integrar al informe</button>
+      </div>
     </div>
   </div>
   <div class="card sacc" id="sacc-cc-fontan">
@@ -21670,6 +21750,36 @@ function generarInforme(opts) {
       sumaCC(ccSumaLinea('dap'));
     })();
 
+    /* ── Síndrome de Eisenmenger ── */
+    (function(){
+      const chk = document.getElementById('eisen_incluir_chk');
+      if (!chk || !chk.checked) return;
+      if (typeof eisenEstado !== 'function') return;
+      const r = eisenEstado();
+      if (!r.hayDatos) return;
+      const f1 = n => (n == null || !isFinite(n)) ? null : String(Math.round(n * 10) / 10);
+      const p = ['Síndrome de Eisenmenger' + (r.lesTxt ? ' sobre ' + r.lesTxt : '')];
+      if (r.satOk)    p.push('Saturación de oxígeno en reposo ' + r.sat + ' %');
+      if (r.satFuera) p.push('Saturación en reposo registrada fuera de rango (' + r.sat + ' %): revisar antes de concluir');
+      if (f1(r.satEj)) p.push('Saturación en ejercicio ' + f1(r.satEj) + ' %');
+      if (f1(r.psap)) p.push('PSAP estimada ' + f1(r.psap) + ' mmHg');
+      if (f1(r.pdap)) p.push('PDAP estimada ' + f1(r.pdap) + ' mmHg');
+      if (f1(r.itv))  p.push('Velocidad de insuficiencia tricuspídea ' + f1(r.itv) + ' m/s');
+      if (r.vd)   p.push('Función del ventrículo derecho ' + (EIS_VD_TXT[r.vd] || r.vd));
+      if (r.nyha) p.push('Clase funcional NYHA ' + (EIS_NYHA_TXT[r.nyha] || r.nyha));
+      /* Las alertas van como ORACIONES PROPIAS, no encadenadas con puntos al resto: son lo que
+         cambia la conducta y tienen que poder leerse solas en el párrafo firmado. */
+      const cuerpo = p.join('. ') + '.';
+      const alertas = r.alertas.map(a => a.txt).join(' ');
+      etePars.push(cuerpo + (alertas ? ' ' + alertas : '') + ' ' + r.SEGUIMIENTO); ccMarcarParrafo();
+      /* Al EN SUMA: la línea base SIEMPRE —un Eisenmenger no es un hallazgo incidental— y cada
+         alerta que cambia una conducta, por separado. El derrame pericárdico no sube: es
+         pronóstico, no una conducta distinta hoy. */
+      sumaCC('Síndrome de Eisenmenger' + (r.lesTxt ? ' sobre ' + r.lesTxt : '') +
+             (r.satOk ? ', saturación ' + r.sat + ' %' : '') + '.');
+      r.alertas.forEach(a => { if (a.suma) sumaCC(a.suma); });
+    })();
+
     /* ── Marfan / EHAT — aortopatía hereditaria ── */
     (function(){
       const chk = document.getElementById('marfan_incluir_chk');
@@ -22072,7 +22182,7 @@ function RECALC_MODULOS() {
          veredicto sí contaba esos criterios;
        · `calcOAI` reconstruye la marca de «área derivada» (ver ahí), sin la cual corregir el
          diámetro en un estudio reabierto dejaba el área vieja. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -27398,6 +27508,80 @@ function marfanSync() {
 }
 window.marfanSync = marfanSync;
 
+/* ══ SÍNDROME DE EISENMENGER (ESC 2020) ══════════════════════════════════════════════════════
+   Evaluación PURA: `eisenSync` sólo pinta y el informe sólo escribe.
+   Las ALERTAS son lo que este módulo aporta. Las tres —saturación crítica, síncope y
+   hemoptisis— no describen la lesión: cambian una conducta, y dos de ellas son de vida o
+   muerte (embarazo con mortalidad materna >50 %, hemoptisis masiva). Por eso suben al EN SUMA
+   y no se quedan en el cuerpo: una alerta que hay que ir a buscar tres párrafos abajo ya falló.
+   Las tres condicionan por «=== 'si'» y por un número MEDIDO: nunca por la ausencia del dato.
+   Un select vacío no dice «no tiene síncope», dice «nadie lo preguntó». */
+const EIS_LESION_TXT = { civ:'comunicación interventricular', cia:'comunicación interauricular',
+  dap:'ductus arterioso permeable', dsav:'defecto del septo auriculoventricular',
+  tronco:'tronco arterioso', tga:'transposición de grandes arterias', otra:'cardiopatía congénita compleja' };
+const EIS_VD_TXT = { normal:'normal', leve:'levemente reducida', moderada:'moderadamente reducida', severa:'severamente reducida' };
+const EIS_PERI_TXT = { no:'sin derrame', leve:'leve', moderado:'moderado', severo:'severo' };
+const EIS_NYHA_TXT = { i:'I', ii:'II', iii:'III', iv:'IV' };
+function eisenEstado() {
+  const nv = id => { const e = document.getElementById(id); if (!e) return null;
+    const n = parseFloat(String(e.value).replace(',', '.')); return isFinite(n) && n > 0 ? n : null; };
+  const sv2 = id => (document.getElementById(id) || {}).value || '';
+  const les = sv2('eis_lesion_base'), vd = sv2('eis_vd_funcion'), peri = sv2('eis_pericardio');
+  const nyha = sv2('eis_clase_nyha'), sinc = sv2('eis_sincope'), hemo = sv2('eis_hemoptisis');
+  const sat = nv('eis_saturacion_reposo'), satEj = nv('eis_saturacion_ejercicio');
+  const psap = nv('eis_psap'), pdap = nv('eis_pdap'), itv = nv('eis_it_vel');
+  const hayDatos = !!(les || vd || peri || nyha || sinc || hemo ||
+                      sat != null || satEj != null || psap != null || pdap != null || itv != null);
+  if (!hayDatos) return { hayDatos:false, alertas:[] };
+  /* La saturación se valida por BANDA. Un 9 tipeado por 90 daría «saturación crítica» sobre un
+     paciente bien saturado, y un 900 no daría nada: los dos publican una conducta sobre un
+     número ilegible. Fuera de banda se declara y NO vota. */
+  const satOk = sat != null && sat >= 40 && sat <= 100;
+  const satFuera = sat != null && !satOk;
+  const alertas = [];
+  if (satOk && sat < 90) alertas.push({ k:'embarazo',
+    txt:'Saturación crítica (' + sat + ' %, <90 %). Embarazo contraindicado — mortalidad materna >50 % (ESC 2020). Evitar deshidratación, hipotensión y anestesia general sin experiencia en hipertensión arterial pulmonar.',
+    suma:'Eisenmenger con saturación ' + sat + ' % — embarazo contraindicado, mortalidad materna >50 %.' });
+  if (sinc === 'si') alertas.push({ k:'sincope',
+    txt:'Síncope presente — marcador de mal pronóstico. Evaluación urgente en centro especializado en hipertensión pulmonar y cardiopatías congénitas del adulto.',
+    suma:'Eisenmenger con síncope — marcador de mal pronóstico, evaluación urgente.' });
+  if (hemo === 'si') alertas.push({ k:'hemoptisis',
+    txt:'Hemoptisis presente — riesgo de episodio masivo y fatal. Evaluación urgente.',
+    suma:'Eisenmenger con hemoptisis — riesgo de episodio masivo, evaluación urgente.' });
+  if (peri === 'moderado' || peri === 'severo') alertas.push({ k:'pericardio',
+    txt:'Derrame pericárdico ' + EIS_PERI_TXT[peri] + ' — asociado a peor pronóstico en el síndrome de Eisenmenger.',
+    suma:null });
+  return { hayDatos:true, les, vd, peri, nyha, sinc, hemo, sat, satEj, psap, pdap, itv,
+           satOk, satFuera, alertas,
+           lesTxt: EIS_LESION_TXT[les] || null,
+           SEGUIMIENTO:'Control cada 6-12 meses en centro especializado en hipertensión pulmonar y cardiopatías congénitas del adulto. Ecocardiograma anual. Saturación de oxígeno en cada visita.' };
+}
+window.eisenEstado = eisenEstado;
+
+function eisenSync() {
+  const el = document.getElementById('eisen-resultado'); if (!el) return;
+  while (el.firstChild) el.removeChild(el.firstChild);
+  const bdg = document.getElementById('eisen_badge');
+  const r = eisenEstado();
+  if (bdg) bdg.hidden = !r.hayDatos;
+  const fila = (lbl, nodo) => { const row = document.createElement('div'); row.className = 'calc-row';
+    const l = document.createElement('span'); l.className = 'calc-lbl'; l.textContent = lbl;
+    row.appendChild(l); if (nodo) row.appendChild(nodo); el.appendChild(row); };
+  const val = t => { const sp = document.createElement('span'); sp.className = 'calc-val';
+    sp.style.fontWeight = '400'; sp.textContent = t; return sp; };
+  const pill = (cls, t) => { const sp = document.createElement('span');
+    sp.className = 'badge badge-' + (BADGE_CLS_OK.indexOf(cls) >= 0 ? cls : 'gray'); sp.textContent = t; return sp; };
+  if (!r.hayDatos) { fila('Síndrome de Eisenmenger', pill('gray', 'Ingresar lesión de base y saturación')); return; }
+  if (r.satFuera) fila('Saturación', pill('yellow', 'Fuera de rango (' + r.sat + ' %) — revisar antes de concluir'));
+  else if (r.satOk) fila('Saturación en reposo', pill(r.sat < 85 ? 'red' : (r.sat < 90 ? 'orange' : 'green'), r.sat + ' %'));
+  if (r.alertas.length) {
+    fila('Alertas', pill('red', r.alertas.length + (r.alertas.length === 1 ? ' hallazgo de alarma' : ' hallazgos de alarma')));
+    r.alertas.forEach(a => fila('·', val(a.txt)));
+  } else fila('Alertas', pill('green', 'Sin hallazgos de alarma consignados'));
+  fila('Seguimiento', val(r.SEGUIMIENTO));
+}
+window.eisenSync = eisenSync;
+
 function vabConclusion(){
   const sv2 = id => (document.getElementById(id)?.value || '').trim();
   const nv  = id => { const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; };
@@ -31050,6 +31234,7 @@ const ETE_INCL_LBL = {
   vab_incluir_chk:         'Válvula aórtica bicúspide',
   hfaicos_incluir_chk:     'Riesgo CV basal (HFA-ICOS)',
   marfan_incluir_chk:      'Marfan / EHAT',
+  eisen_incluir_chk:       'Síndrome de Eisenmenger',
   mch_incluir_chk:         'Miocardiopatía hipertrófica',
   ebs_incluir_chk:         'Anomalía de Ebstein',
   tdf_incluir_chk:         'Tetralogía de Fallot reparada',
@@ -42163,6 +42348,17 @@ function _labExcelRow(inf) {
     /* Los tres de CoAo son los INSUMOS de la indicación de intervención ESC 2020: sin ellos el
        Laboratorio no puede auditar por qué un estudio quedó en Clase I. Y el pico-pico es el
        único gradiente sobre el que la guía indica. */
+    'Eisenmenger lesión de base': ({civ:'CIV',cia:'CIA',dap:'DAP',dsav:'DSAV',tronco:'Tronco arterioso',tga:'TGA',otra:'Otra CC compleja'}[c.eis_lesion_base] || ''),
+    'Eisenmenger sat O2 reposo (%)': rnd(num('eis_saturacion_reposo'),0),
+    'Eisenmenger sat O2 ejercicio (%)': rnd(num('eis_saturacion_ejercicio'),0),
+    'Eisenmenger PSAP (mmHg)': rnd(num('eis_psap'),0),
+    'Eisenmenger PDAP (mmHg)': rnd(num('eis_pdap'),0),
+    'Eisenmenger vel. IT (m/s)': rnd(num('eis_it_vel'),2),
+    'Eisenmenger función VD': ({normal:'Normal',leve:'Levemente reducida',moderada:'Moderadamente reducida',severa:'Severamente reducida'}[c.eis_vd_funcion] || ''),
+    'Eisenmenger derrame pericárdico': ({no:'Sin derrame',leve:'Leve',moderado:'Moderado',severo:'Severo'}[c.eis_pericardio] || ''),
+    'Eisenmenger NYHA': ({i:'I',ii:'II',iii:'III',iv:'IV'}[c.eis_clase_nyha] || ''),
+    'Eisenmenger síncope': ({no:'No',si:'Sí'}[c.eis_sincope] || ''),
+    'Eisenmenger hemoptisis': ({no:'No',si:'Sí'}[c.eis_hemoptisis] || ''),
     'Marfan/EHAT síndrome': ({marfan:'Marfan',lds:'Loeys-Dietz',turner:'Turner',ehat:'EHAT no sindrómica',otro:'Otro'}[c.marfan_sindrome] || ''),
     'Marfan/EHAT aorta sinusal (mm)': rnd(num('marfan_ao_seno'),1),
     'Marfan/EHAT aorta ascendente (mm)': rnd(num('marfan_ao_ascendente'),1),
@@ -43027,6 +43223,17 @@ const LAB_XLS_MAP = [
   ['Coartación localización',    'coa_loc',       'vocab'],
   ['Coartación situación',       'coa_situacion', 'vocab'],
   ['Coartación istmo (mm)',      'coa_istmo',     'num'],
+  ['Eisenmenger lesión de base',  'eis_lesion_base', 'vocab'],
+  ['Eisenmenger sat O2 reposo (%)',    'eis_saturacion_reposo',    'num'],
+  ['Eisenmenger sat O2 ejercicio (%)', 'eis_saturacion_ejercicio', 'num'],
+  ['Eisenmenger PSAP (mmHg)',     'eis_psap',      'num'],
+  ['Eisenmenger PDAP (mmHg)',     'eis_pdap',      'num'],
+  ['Eisenmenger vel. IT (m/s)',   'eis_it_vel',    'num'],
+  ['Eisenmenger función VD',      'eis_vd_funcion','vocab'],
+  ['Eisenmenger derrame pericárdico', 'eis_pericardio', 'vocab'],
+  ['Eisenmenger NYHA',            'eis_clase_nyha','vocab'],
+  ['Eisenmenger síncope',         'eis_sincope',   'vocab'],
+  ['Eisenmenger hemoptisis',      'eis_hemoptisis','vocab'],
   ['Marfan/EHAT síndrome',        'marfan_sindrome', 'vocab'],
   ['Marfan/EHAT aorta sinusal (mm)',        'marfan_ao_seno',       'num'],
   ['Marfan/EHAT aorta ascendente (mm)',     'marfan_ao_ascendente', 'num'],
@@ -43740,6 +43947,12 @@ const LAB_XLS_OPCIONES = {
   vab_tipo:'Fused R-L · Fused R-N · Fused L-N · 2-sinus latero-lateral · 2-sinus antero-posterior · Partial (forme fruste) · No clasificable',
   vab_simetria:'Simétrica · Asimétrica · No valorable',
   coa_hta:'No · Sí',
+  eis_lesion_base:'CIV · CIA · DAP · DSAV · Tronco arterioso · TGA · Otra CC compleja',
+  eis_vd_funcion:'Normal · Levemente reducida · Moderadamente reducida · Severamente reducida',
+  eis_pericardio:'Sin derrame · Leve · Moderado · Severo',
+  eis_clase_nyha:'I · II · III · IV',
+  eis_sincope:'No · Sí',
+  eis_hemoptisis:'No · Sí',
   marfan_sindrome:'Marfan · Loeys-Dietz · Turner · EHAT no sindrómica · Otro',
   marfan_factores_riesgo:'No · Sí',
   vab_funcion:'Normofuncionante · Estenosis · Insuficiencia · Mixta',
