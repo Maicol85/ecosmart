@@ -10981,9 +10981,20 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </table>
       <div style="margin-top:10px;font-size:12px;color:var(--text);line-height:1.8;">
         <b style="color:var(--accent2);">Biomarcadores:</b> la guía admite troponina y péptidos natriuréticos; esta app puntúa <b>sólo troponina</b> (no hay campo de BNP/NT-proBNP en el módulo)<br>
-        <b style="color:var(--accent2);">SGL normal:</b> más negativo que -18% · disfunción subclínica: &lt;-16%<br>
-        <b style="color:var(--accent2);">Frecuencia eco (riesgo alto):</b> basal → 3m → 6m → anual<br>
-        <b style="color:var(--accent2);">Riesgo muy alto HFA-ICOS:</b> FEVI &lt;50% · IC previa · SCA reciente · arritmias severas
+        <!-- Las tres corregidas el 2026-09-15, para que digan lo mismo que la tabla del marco
+             HFA-ICOS de la pestaña de Cardio-Oncología. Las tres estaban mal, cada una a su modo:
+             · El SGL apuntaba al REVÉS. «disfunción subclínica: <-16%» leído literal es «más
+               negativo que -16», o sea -20, que es un strain NORMAL. El deterioro es lo contrario:
+               menos negativo. Un signo invertido en un umbral se lee igual de bien que el correcto.
+             · La frecuencia de eco era una TERCERA agenda: «basal → 3m → 6m → anual» no coincidía
+               ni con la tabla de fármacos de la otra pestaña («c/ciclo si alto riesgo») ni con la
+               del marco HFA-ICOS. Tres calendarios para el mismo paciente.
+             · «Riesgo muy alto: FEVI <50%» contradecía a la tabla: FEVI <50% son 2 puntos, y
+               2-3 puntos es ALTO. Muy alto arranca en 4. La línea confundía «marcador de alto
+               riesgo» con «banda de riesgo global», que es lo que decide la frecuencia de control. -->
+        <b style="color:var(--accent2);">SGL normal:</b> más negativo que -18% · <b>deteriorado: &gt;-16%</b> (menos negativo es peor)<br>
+        <b style="color:var(--accent2);">Frecuencia eco con antraciclinas:</b> riesgo <b>alto</b> → basal + cada 2 ciclos + al finalizar + 12 meses · riesgo <b>muy alto</b> → basal + cada ciclo + al finalizar + 12 meses<br>
+        <b style="color:var(--accent2);">Marcadores de alto riesgo (2 puntos cada uno):</b> FEVI &lt;50% · IC previa · SCA reciente · arritmias severas. Cada uno por sí solo deja al paciente en riesgo <b>alto</b> (2-3 puntos); el <b>muy alto</b> empieza en 4 puntos o con un fármaco de muy alto riesgo — ver el marco HFA-ICOS en la pestaña de Cardio-Oncología
       </div>
     </div>
   </div>
@@ -11368,7 +11379,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 
     <table style="width:100%;border-collapse:collapse;font-size:11.5px;">
       <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Farmaco</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Toxicidad principal</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Monitoreo recomendado</th></tr>
-      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Antraciclinas</td><td style="padding:5px 8px;">Miocardiopatia dosis-dependiente</td><td style="padding:5px 8px;">Eco basal, c/ciclo si alto riesgo, fin tto, 12 meses</td></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Antraciclinas</td><td style="padding:5px 8px;">Miocardiopatia dosis-dependiente</td><td style="padding:5px 8px;">Basal + al finalizar + 12 meses; durante el tto <b>cada 2 ciclos</b> si riesgo alto y <b>cada ciclo</b> si muy alto</td></tr>
       <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Trastuzumab</td><td style="padding:5px 8px;">Disfuncion VI reversible</td><td style="padding:5px 8px;">Eco basal, cada 3 meses durante tto</td></tr>
       <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">ICI (anti-PD1/PDL1)</td><td style="padding:5px 8px;">Miocarditis autoinmune (rara, grave)</td><td style="padding:5px 8px;">ECG y troponina basal y ante sintomas</td></tr>
       <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Anti-VEGF</td><td style="padding:5px 8px;">HTA, trombosis, disfuncion VI</td><td style="padding:5px 8px;">PA, eco si sintomas o FEVI limite</td></tr>
@@ -11470,7 +11481,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <td style="padding:5px 8px;">Parcialmente irreversible (dosis-dependiente)</td>
         <td style="padding:5px 8px;">IC &#10003;&#10003;&#10003; · HTA - · Arritmia &#10003; · Isquemia - · QT &#10003; · Pericarditis -</td>
         <td style="padding:5px 8px;">Doxorrubicina &gt;=250 mg/m2 (alto riesgo); &gt;=400 mg/m2 (muy alto riesgo)</td>
-        <td style="padding:5px 8px;">Basal obligatorio. Si alto riesgo: eco cada 2 ciclos. Al finalizar el tto. A los 12 meses. Si la FEVI cae &gt;=10 pp o baja de 50%: eco en 2-4 sem y graduar la CTRCD con la primera tabla de esta seccion, que es la que define la conducta.</td>
+        <td style="padding:5px 8px;">Basal obligatorio. Durante el tto: cada 2 ciclos si riesgo alto, cada ciclo si muy alto. Al finalizar el tto. A los 12 meses. Si la FEVI cae &gt;=10 pp o baja de 50%: eco en 2-4 sem y graduar la CTRCD con la primera tabla de esta seccion, que es la que define la conducta.</td>
         <td style="padding:5px 8px;">Mama, linfomas (LNH, Hodgkin), leucemias (LMA, LLC), sarcomas, cancer gastrico, mieloma</td>
       </tr>
       <tr style="border-bottom:1px solid var(--border);background:var(--bg3);">

@@ -86,6 +86,26 @@ relectura. Hoy vetan, gateados por `esSec` estricto. La regla que queda: **al ce
 de esta forma, enumerar todo lo que se pinta y cruzarlo contra la lista**, no sólo arreglar el
 que se reportó.
 
+### Un signo invertido en un umbral se lee igual de bien que el correcto
+La leyenda de `#ref-cardiotox` decía «SGL normal: más negativo que -18% · **disfunción
+subclínica: <-16%**». Leído literal, «menor que -16» es **-20**, que es un strain normal: la
+línea describía el deterioro al revés. Sobrevivió porque un `<` y un `>` frente a un número
+negativo se leen los dos como plausibles, y porque nadie compara la frase con el criterio.
+Lo correcto es lo que dice la tabla del marco HFA-ICOS: **deteriorado = >-16%, menos negativo es
+peor**. Al escribir un umbral sobre una magnitud negativa, decir además en qué dirección empeora.
+
+### Tres agendas para el mismo paciente, y ninguna era la de la guía
+«Antraciclinas, riesgo alto» tenía tres calendarios de eco en dos pestañas: «basal → 3m → 6m →
+anual» (Referencias), «c/ciclo si alto riesgo» (tabla de fármacos) y «cada 2 ciclos» (tabla por
+clase). Ninguno estaba marcado como el bueno. Ahora los tres dicen lo mismo y **reparten por
+banda**, que es lo que faltaba: alto → cada 2 ciclos, muy alto → cada ciclo, los dos con basal +
+al finalizar + 12 meses.
+
+**Un marcador de alto riesgo no es una banda de riesgo.** «Riesgo muy alto HFA-ICOS: FEVI <50%»
+confundía las dos cosas: FEVI <50% son 2 puntos, y 2-3 puntos es **alto** — el muy alto empieza
+en 4. La distinción decide la frecuencia de control, así que la línea ahora dice las dos cosas:
+cuánto vale cada marcador y dónde cae el paciente con uno solo.
+
 ### Una tabla de referencia nueva se revisa contra las tablas que YA están, no sólo contra el código
 Las dos tablas de cardio-onco que se agregaron el 2026-09-15 traían, en su columna de seguimiento
 eco, «Si la FEVI cae >=10 pp o <50%: **suspender**». Los umbrales coinciden con
@@ -861,13 +881,13 @@ El script contesta *«nadie lo nombra»*, no *«no tiene destino»*: un id menci
 ### 2 · Test suite clínico
 
 ```bash
-node scripts/test_clinico.mjs            # 113 casos + 1 defecto abierto
+node scripts/test_clinico.mjs            # 114 casos + 1 defecto abierto
 node scripts/test_clinico.mjs --solo TC-04
 node scripts/test_clinico.mjs --ver      # con el navegador a la vista, para depurar
 ```
 
 **Correr antes de cualquier push que toque el informe narrativo, el EN SUMA o una fórmula de
-cálculo. Tienen que pasar los 113. Si alguno falla, corregir antes de seguir.**
+cálculo. Tienen que pasar los 114. Si alguno falla, corregir antes de seguir.**
 
 **TC-01 a TC-17 — los bugs del 2026-09-14.** VD que desaparecía (TC-01/03), gradiente pulmonar
 congelado (TC-04), AD ausente del EN SUMA (TC-06), HFA-PEFF sin compuerta de FEVI (TC-07/08),
@@ -879,6 +899,13 @@ invertida del TEER (TC-13), aorta (TC-14/15) y las sincronías de PSAP y e' (TC-
 aórtica (46-48), tricúspide y pulmonar (49-51), hemodinámica (52-56), HFA-PEFF (57-58),
 pericardio (59-60), congénitas (61-66), amiloidosis (67-68), cardio-oncología (69-72, 88),
 ETE/TEER/TAVI/orejuela (73-78), derivados y sincronías (79-83).
+
+**TC-100 — las dos pestañas de referencia de cardio-onco dicen lo mismo (2026-09-15).** La
+leyenda de `#ref-cardiotox` (pestaña Referencias) y las tablas de `#co-referencia-seccion`
+(pestaña Cardio-Oncología) describen al mismo paciente desde pestañas distintas, y estaban
+desincronizadas en tres cosas: el signo del SGL, el calendario de eco de antraciclinas (había
+**tres** agendas) y la confusión entre «marcador de alto riesgo» y «banda de riesgo global».
+El caso lee los dos contenedores en la misma corrida — nada más las ata, son prosa HTML.
 
 **TC-99 — las tablas de referencia contra el clasificador de al lado (2026-09-15).** La pestaña
 de Cardio-Oncología suma dos tablas nuevas de sólo referencia (marco HFA-ICOS y cardiotoxicidad

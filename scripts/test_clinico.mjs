@@ -1910,6 +1910,60 @@ caso('TC-92', 'Reimprimir conserva la hoja TEER firmada; abrir para editar la re
 `);
 
 
+/* LAS TRES SUPERFICIES DE CARDIO-ONCO TIENEN QUE DECIR LO MISMO. La leyenda de #ref-cardiotox
+   (pestaña Referencias), la tabla de farmacos y las tablas nuevas del marco HFA-ICOS viven en
+   DOS pestañas distintas y describen al mismo paciente. Las tres estaban desincronizadas, cada
+   una a su modo, y las tres se corrigieron el 2026-09-15:
+   · El SGL apuntaba al REVES: «disfuncion subclinica: <-16%» leido literal es «mas negativo que
+     -16», o sea -20, que es un strain NORMAL. Un signo invertido en un umbral se lee igual de
+     bien que el correcto, y por eso sobrevivio.
+   · Habia TRES calendarios de eco para antraciclinas: «basal → 3m → 6m → anual», «c/ciclo si
+     alto riesgo» y «cada 2 ciclos». Ahora los tres dicen lo mismo: alto → cada 2 ciclos, muy
+     alto → cada ciclo, los dos con basal + al finalizar + 12 meses.
+   · «Riesgo muy alto HFA-ICOS: FEVI <50%» contradecia a la tabla del marco, donde FEVI <50% son
+     2 puntos y 2-3 puntos es ALTO. Confundia «marcador de alto riesgo» con «banda de riesgo
+     global», que es lo que decide la frecuencia de control.
+   Este caso mira las DOS pestañas en la misma corrida. Nada mas las ata: son prosa HTML. */
+caso('TC-100', 'Cardio-onco: las dos pestañas de referencia dicen lo mismo', `
+  const legenda = (document.getElementById('ref-cardiotox') || {}).textContent || '';
+  const onco    = (document.getElementById('co-referencia-seccion') || {}).textContent || '';
+  return { extra: [
+    // 1 · El signo del SGL.
+    ['la leyenda dice que el SGL deteriorado es MENOS negativo',
+      legenda.indexOf('deteriorado: >-16%') > -1 && legenda.indexOf('menos negativo es peor') > -1],
+    ['y ya no dice «<-16%», que apuntaba al reves',
+      legenda.indexOf('subclínica: <-16%') === -1],
+    ['la tabla del marco HFA-ICOS usa el mismo signo',
+      onco.indexOf('GLS basal deteriorado (>-16%)') > -1],
+
+    // 2 · Un solo calendario de eco para antraciclinas, en las tres superficies.
+    ['la leyenda trae las dos bandas del calendario',
+      legenda.indexOf('cada 2 ciclos') > -1 && legenda.indexOf('cada ciclo') > -1],
+    ['y ya no la tercera agenda que no coincidia con ninguna',
+      legenda.indexOf('3m → 6m → anual') === -1],
+    /* Cadena EXACTA de la fila de la tabla de farmacos, distinta de la de la tabla por clase
+       (una lleva «y», la otra coma). Asi cada condicion fija SU fila: con un indexOf generico de
+       «cada 2 ciclos» la condicion pasaba por el texto de la otra tabla y no probaba nada. */
+    ['la tabla de farmacos dice lo mismo',
+      onco.indexOf('cada 2 ciclos si riesgo alto y cada ciclo si muy alto') > -1],
+    ['y ya no dice «c/ciclo si alto riesgo»', onco.indexOf('c/ciclo si alto riesgo') === -1],
+    ['la tabla por clase tambien reparte las dos bandas',
+      onco.indexOf('cada 2 ciclos si riesgo alto, cada ciclo si muy alto') > -1],
+    ['las tres coinciden en el resto del calendario',
+      (onco.match(/12 meses/g) || []).length >= 2 && legenda.indexOf('12 meses') > -1],
+
+    // 3 · Marcador de alto riesgo distinto de banda de riesgo global.
+    ['la leyenda ya no llama «muy alto» a la FEVI <50% sola',
+      legenda.indexOf('Riesgo muy alto HFA-ICOS:') === -1],
+    ['dice que cada marcador vale 2 puntos y deja al paciente en ALTO',
+      legenda.indexOf('2 puntos cada uno') > -1 && legenda.indexOf('riesgo alto (2-3 puntos)') > -1],
+    ['y que el muy alto empieza en 4, igual que la tabla',
+      legenda.indexOf('muy alto empieza en 4 puntos') > -1 && onco.indexOf('>=4 factores') > -1],
+    ['los dos puntajes de FEVI basal siguen siendo los de la tabla',
+      onco.indexOf('FEVI basal 50-54%') > -1 && onco.indexOf('FEVI basal <50%') > -1]
+  ] };
+`);
+
 /* LAS DOS TABLAS NUEVAS DE REFERENCIA RAPIDA (HFA-ICOS y cardiotoxicidad por clase). Son HTML
    estatico, sin campos ni calculo — pero este archivo ya pago DOS VECES el mismo defecto hoy:
    una tabla estatica que contradice al clasificador de al lado. Aca la contradiccion existe y es
