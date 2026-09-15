@@ -188,6 +188,41 @@ distinta hoy. El EN SUMA se reserva para lo accionable.
 `eis_pdap`, `eis_it_vel`, `eis_vd_funcion`, `eis_pericardio`, `eis_clase_nyha`, `eis_sincope`,
 `eis_hemoptisis`, `eisen_incluir_chk`. Con sus once columnas de Excel.
 
+### El rótulo de una pestaña vive en CUATRO superficies, y el manual es la que se pudre
+Renombrar «🧬 Congénitas» y «🫀 CC estructurales» a **«🧬 Congénitas I»** y **«🧬 Congénitas II»**
+(2026-09-15) no es cambiar un `<button>`. El texto aparece en:
+1. **el botón** de la pestaña;
+2. **`EE_MODULES`**, que es el rótulo de la casilla de Config;
+3. **`#ecoAdvSelect`**, el desplegable de móvil — éste **deriva** su texto del botón, así que se
+   arregla solo, pero hay que verificarlo;
+4. **`ECO_AYUDA`**, el manual, que **enumera el contenido de cada pestaña**.
+
+**Los IDs no se renombran.** `congenitas` y `congenitas2` los usan `showTab`, `data-mod` y las
+preferencias guardadas en `localStorage` (`ett_modules`): cambiarlos rompería la configuración de
+cada máquina en la que la app ya corrió. Lo que cambia es el texto.
+
+**El rótulo de Config tuvo que decir «I y II».** Desde que las dos pestañas comparten
+`data-mod="congenitas"`, esa única casilla gobierna las dos; con el rótulo viejo prometía menos de
+lo que hacía.
+
+**Y el manual ya tenía DOS afirmaciones falsas desde el reparto**, que este renombre destapó:
+decía que CIA/CIV está en «🧬 Congénitas, **primera de las tres secciones**» cuando está en la
+**II** y las secciones son **diecinueve**. También ubicaba mal el ductus. Ya había una entrada en
+este archivo advirtiendo exactamente esto —«el manual enumera el contenido de cada tab, así que
+una mudanza lo desactualiza en silencio»— y aun así pasó. **Al mover o renombrar una sección,
+`grep` del nombre de la pestaña sobre `ECO_AYUDA` es obligatorio.** Lo fija **TC-123**, que compara
+las cuatro superficies y verifica que el nombre viejo no sobreviva en ninguna parte visible.
+
+**El mapeo verificado, por si hace falta otra vez** (leído del archivo, no de memoria):
+`I` → vab, coa, marfan, fop, esub, easv, mch, mca, tdf, tv · `II` → shunt (CIA/CIV), dap, vap,
+dsav, cvpa, tga, ebs, eisen, fontan.
+
+**Al verificar un renombre en el navegador, forzar carga nueva.** La primera medición en Safari
+devolvió los nombres VIEJOS: `open location` sobre una URL ya abierta **reusa la pestaña**, que
+tenía el archivo anterior. Se resuelve con un parámetro único (`?v=$(date +%s)`). Es el mismo
+caché que ya costó tres diagnósticos — ver [[ecosmart-768px-oculta-todas-las-tabs]] y la entrada
+de la pestaña del 11 de septiembre.
+
 ### `secToggle` recibe `cc-X`, no `X` — y un id que no existe deja el acordeón MUERTO
 `secToggle(id)` resuelve **`#sacc-<id>`**, y los cards de Congénitas se llaman **`sacc-cc-<X>`**:
 la cabecera tiene que pasar **`cc-fontan`**, no `fontan`. **Siete de las diecinueve** pasaban el

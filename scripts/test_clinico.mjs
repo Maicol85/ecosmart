@@ -3199,6 +3199,52 @@ caso('TC-122', 'Todos los acordeones abren de verdad al tocar su cabecera', `
   ] };
 `);
 
+/* EL ROTULO DE UNA PESTAÑA VIVE EN CUATRO SUPERFICIES. El boton, la casilla de Config
+   (EE_MODULES), el desplegable de movil —que deriva su texto del boton— y el MANUAL, que
+   enumera el contenido de cada pestaña y por eso se desactualiza en silencio con cada mudanza:
+   CLAUDE.md ya tenia una entrada sobre esto y aun asi el manual decia que CIA/CIV estaba en la
+   pestaña equivocada y que Congenitas tenia «tres secciones» cuando son diecinueve.
+   Los IDs NO se renombran —congenitas y congenitas2 son los que usan showTab, data-mod y las
+   preferencias guardadas en localStorage—: lo que cambia es el texto. */
+caso('TC-123', 'Congenitas I y II: el rotulo dice lo mismo en las cuatro superficies', `
+  /* SIN COMILLAS ANIDADAS: el cuerpo de un caso es un template literal y se come la barra
+     invertida, asi que el selector emitido quedaba con la cadena cortada y rompia el parseo del
+     archivo ENTERO —«SyntaxError: missing ) after argument list»—. Se busca por indexOf sobre el
+     atributo, que no tiene nada que escapar. Tercera vez esta semana con la misma trampa. */
+  const btns = [...document.querySelectorAll('.tab-btn')];
+  const porTab = id => btns.filter(b => (b.getAttribute('onclick') || '').indexOf("showTab('" + id + "')") > -1)[0];
+  const bI  = porTab('congenitas');
+  const bII = porTab('congenitas2');
+  const txt = b => b ? (b.textContent || '').trim() : '(sin boton)';
+  const sel = document.getElementById('ecoAdvSelect');
+  try { ecoAdvBuild(); } catch (e) {}
+  const ops = sel ? [...sel.options].map(o => (o.textContent || '').trim()) : [];
+  const cfg = (typeof EE_MODULES !== 'undefined')
+    ? (EE_MODULES.filter(m => m.key === 'congenitas')[0] || {}).label : '(sin EE_MODULES)';
+  const manual = (typeof ECO_AYUDA !== 'undefined')
+    ? ECO_AYUDA.map(a => (a.tab || '') + ' ' + (a.html || '')).join(' ') : '';
+  const cuerpo = document.body.textContent || '';
+  return { extra: [
+    ['la primera se llama Congenitas I',  txt(bI)  === '🧬 Congénitas I'],
+    ['la segunda se llama Congenitas II', txt(bII) === '🧬 Congénitas II'],
+    /* Los IDs son contrato: los usan showTab, data-mod y ett_modules en localStorage. */
+    ['los ids NO cambiaron', !!document.getElementById('tab-congenitas') && !!document.getElementById('tab-congenitas2')],
+    ['las dos pestañas siguen compartiendo el modulo, o Config gobierna media',
+      bI.getAttribute('data-mod') === 'congenitas' && bII.getAttribute('data-mod') === 'congenitas'],
+    ['la casilla de Config avisa que gobierna las DOS', /I y II/.test(String(cfg))],
+    ['el desplegable de movil hereda los dos nombres',
+      ops.indexOf('🧬 Congénitas I') > -1 && ops.indexOf('🧬 Congénitas II') > -1],
+    /* El nombre viejo no puede sobrevivir en NINGUNA superficie visible: un manual que nombra
+       una pestaña que ya no existe manda al medico a buscar algo que no va a encontrar. */
+    ['el nombre viejo no queda en el manual', manual.indexOf('CC estructurales') === -1],
+    ['ni en ninguna parte visible de la app', cuerpo.indexOf('CC estructurales') === -1],
+    /* Y las dos afirmaciones del manual que el reparto habia dejado FALSAS. */
+    ['el manual ubica CIA/CIV en la pestaña II, que es donde esta',
+      manual.indexOf('Congénitas II</b>, primera de sus secciones') > -1],
+    ['y ya no dice que Congenitas tiene tres secciones', manual.indexOf('primera de las tres secciones') === -1]
+  ] };
+`);
+
 /* LAS TRES SUPERFICIES DE CARDIO-ONCO TIENEN QUE DECIR LO MISMO. La leyenda de #ref-cardiotox
    (pestaña Referencias), la tabla de farmacos y las tablas nuevas del marco HFA-ICOS viven en
    DOS pestañas distintas y describen al mismo paciente. Las tres estaban desincronizadas, cada
