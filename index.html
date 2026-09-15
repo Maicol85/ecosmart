@@ -310,6 +310,38 @@
   .da-ico { flex:none; width:14px; text-align:center; font-weight:700; }
   .da-crit { flex:1; min-width:0; }
   .da-val { flex:none; font-weight:700; font-variant-numeric:tabular-nums; }
+  /* ── HFA-PEFF en columnas por dominio ──────────────────────────────────────
+     Una columna por dominio REAL del score (morfológico · funcional · humoral) más la del
+     resultado. No hay una quinta de «Doppler»: E/e' y la velocidad de IT son criterios del
+     dominio funcional, y darles columna propia convertía el score en uno de /8 que la ESC 2019
+     no define. Ver el comentario de `hfapeffRender`.
+     `auto-fit` + `minmax`: en pantallas angostas las columnas bajan solas en vez de pedir
+     scroll horizontal, que es lo que rompe esta tabla en el iPhone. Todos los colores salen de
+     las variables del tema, así que el modo día/noche sale gratis. */
+  .hfp-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));
+              gap:10px; margin-top:4px; }
+  .hfp-col  { border:1px solid var(--border); border-radius:8px; padding:10px 11px;
+              background:var(--bg3); display:flex; flex-direction:column; min-width:0; }
+  .hfp-hd   { font-size:10.5px; font-weight:700; color:var(--accent2); text-transform:uppercase;
+              letter-spacing:.4px; display:flex; justify-content:space-between; align-items:baseline;
+              gap:6px; margin-bottom:7px; }
+  .hfp-pts  { font-size:12px; font-variant-numeric:tabular-nums; color:var(--text); }
+  .hfp-sub  { font-size:10px; font-weight:400; color:var(--text2); text-transform:none;
+              letter-spacing:0; margin:-4px 0 7px; line-height:1.35; }
+  .hfp-med  { display:flex; justify-content:space-between; gap:8px; font-size:11px;
+              padding:2px 0; color:var(--text2); min-width:0; }
+  .hfp-med b{ color:var(--text); font-variant-numeric:tabular-nums; flex:none; }
+  .hfp-med span:first-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .hfp-sep  { border-top:1px solid var(--border); margin:7px 0 6px; }
+  .hfp-cr   { display:flex; align-items:baseline; gap:6px; font-size:11px; padding:3px 0;
+              line-height:1.35; }
+  .hfp-cr i { flex:none; width:12px; text-align:center; font-style:normal; font-weight:700; }
+  .hfp-cr u { flex:none; text-decoration:none; font-size:9.5px; text-transform:uppercase;
+              letter-spacing:.3px; opacity:.75; }
+  .hfp-cr em{ flex:1; min-width:0; font-style:normal; }
+  .hfp-na   { color:var(--text2); opacity:.7; }
+  .hfp-si   { color:#ef4444; }
+  .hfp-no   { color:#22c55e; }
   .da-ok   { border-color:rgba(34,197,94,.45); }
   .da-ok   .da-ico, .da-ok .da-val   { color:#22c55e; }
   .da-bad  { border-color:rgba(239,68,68,.45); }
@@ -15691,9 +15723,19 @@ window._hfSrcCampos = _hfSrcCampos;
 // desalinearse. Los umbrales de FA son más altos que los de ritmo sinusal.
 // Notación: los MAYORES son > estricto (no >=). Con >= el valor exacto del umbral
 // caería a la vez en el mayor y en el menor, que se solapan por diseño en la tabla.
-// El límite inferior del menor en FA es 375 (no 365): 365 es una errata muy repetida
-// en la literatura secundaria. Los cortes de FA son exactamente 3x los de sinusal
-// (35→105, 80→240, 220→660, 125→375); 365 es el único que rompe ese patrón.
+// ── DISPUTA ABIERTA: el piso del criterio MENOR de NT-proBNP en FA ──
+// Hoy vale 375, puesto en 2693c48 (2026-08-26) con este argumento: «365 es una errata muy
+// repetida en la literatura secundaria; los cortes de FA son exactamente 3x los de sinusal
+// (35→105, 80→240, 220→660, 125→375) y 365 es el único que rompe ese patrón».
+// El 2026-09-14 Maicol escribió 365 de memoria al pedir otro cambio. Los dos números tienen
+// defensa: 375 es la DERIVACIÓN del patrón 3x, 365 es lo que —según él— imprime la tabla de
+// Pieske 2019. No se cambió: revertir una decisión con justificación escrita apoyándose en otra
+// memoria, sin la fuente delante, es como este archivo ya se dio vuelta una vez.
+// QUEDA PENDIENTE verificar contra el paper. Población afectada: FA con NT-proBNP entre 365 y
+// 375 —una ventana de 10 pg/ml— donde el dominio humoral pasa de 0 a 1 punto, suficiente para
+// mover el total de 4 a 5, o sea de «probabilidad intermedia» a «HFpEF confirmado».
+// Si se cambia, hay que actualizar TAMBIÉN este comentario: el archivo no puede quedar
+// afirmando las dos cosas a dos líneas de distancia.
 function hfUmbrales(fa) {
   const ntMay = fa ? 660 : 220, ntMenLo = fa ? 375 : 125;
   const bnMay = fa ? 240 : 80,  bnMenLo = fa ? 105 : 35;
@@ -16050,57 +16092,100 @@ function hfapeffRender() {
   const val = (x, u, d) => (x === null || x === undefined) ? 'sin dato'
     : (typeof x === 'number' ? x.toFixed(d == null ? 1 : d) : x) + (u ? ' ' + u : '');
 
-  const dom = (nombre, o, medidos) => {
-    let h = '<div class="da-paso">' + nombre + ' — ' + o.pts + ' / 2 pts'
-          + (o.hayDatos ? '' : ' <span style="font-weight:400;text-transform:none;">(sin datos)</span>') + '</div>';
-    h += medidos.map(m => '<div class="da-row ' + (m.v === null ? 'da-na' : '') + '">'
-        + '<span class="da-crit">' + escHtml(m.k) + '</span>'
-        + '<span class="da-val">' + escHtml(val(m.v, m.u, m.d)) + '</span></div>').join('');
+  /* ── Una columna por DOMINIO REAL del score ──────────────────────────────────────────────
+     Tres dominios de 2 puntos (morfológico · funcional · humoral) y una cuarta columna con el
+     resultado. NO hay columna de «Doppler»: E/e' y la velocidad de IT son criterios del dominio
+     FUNCIONAL, igual que e' y el GLS. Dividirlos en dos columnas que puntúen por separado
+     habría llevado el techo de 6 a 8 puntos, y los cortes de la ESC 2019 (≥5 confirma, ≤1 poco
+     probable) están validados sobre /6. Decisión de Maicol tras el reporte, 2026-09-14.
+
+     El cálculo NO se tocó: esto lee el mismo `hfapeffScore()` de antes y sólo cambia cómo se
+     dibuja. Los criterios siguen saliendo de las mediciones; los del dominio humoral siguen
+     siendo los únicos tildables a mano, que es lo que ya hacía `hf-hum-manual`. */
+  const columna = (nombre, sub, o, medidos) => {
+    let h = '<div class="hfp-col"><div class="hfp-hd"><span>' + escHtml(nombre) + '</span>'
+          + '<span class="hfp-pts">' + o.pts + '/2</span></div>';
+    if (sub) h += '<div class="hfp-sub">' + escHtml(sub) + '</div>';
+    h += medidos.map(m => '<div class="hfp-med' + (m.v === null ? ' hfp-na' : '') + '">'
+        + '<span>' + escHtml(m.k) + '</span><b>' + escHtml(val(m.v, m.u, m.d)) + '</b></div>').join('');
+    h += '<div class="hfp-sep"></div>';
     h += o.todos.map(c => {
-      const cls = !c.dato ? 'da-na' : (c.ok ? 'da-bad' : 'da-ok');
+      /* `dato` = el criterio se pudo evaluar; `ok` = se CUMPLE, o sea que es patológico y suma.
+         Por eso el ✓ verde es «no cumple» y la ✗ roja es «cumple»: el ícono habla del paciente,
+         no del formulario. Es la misma convención que tenía el layout anterior. */
+      const cls = !c.dato ? 'hfp-na' : (c.ok ? 'hfp-si' : 'hfp-no');
       const ico = !c.dato ? '–' : (c.ok ? '✗' : '✓');
-      return '<div class="da-row ' + cls + '"><span class="da-ico">' + ico + '</span>'
-           + '<span class="da-crit">' + escHtml(c.txt) + '</span>'
-           + '<span class="da-val">' + (c.tipo === 'mayor' ? 'mayor' : 'menor') + '</span></div>';
+      return '<div class="hfp-cr ' + cls + '"><i>' + ico + '</i>'
+           + '<em>' + escHtml(c.txt) + '</em>'
+           + '<u>' + (c.tipo === 'mayor' ? 'may' : 'men') + '</u></div>';
     }).join('');
-    return h;
+    if (!o.hayDatos) h += '<div class="hfp-cr hfp-na"><i>–</i><em>Sin datos en este dominio.</em></div>';
+    return h + '</div>';
   };
 
   const d = r.d;
-  let h = dom('Dominio funcional', r.func, [
+  /* El ritmo se nombra en la cabecera del dominio humoral CON los umbrales que está aplicando:
+     son ~3× más altos en fibrilación auricular, y sin decirlo el médico ve «NT-proBNP 400 — no
+     cumple» sin saber que el corte se movió de 220 a 660. Sale de `hfUmbrales`, la misma fuente
+     que puntúa, así que el rótulo no puede desincronizarse del cálculo. */
+  const U = (typeof hfUmbrales === 'function') ? hfUmbrales(r.fa) : null;
+  // Los textos de `hfUmbrales` ya vienen con el nombre del péptido adelante: se usan tal cual.
+  const subHum = U ? (r.fa ? 'Fibrilación auricular — ' : 'Ritmo sinusal — ')
+                     + U.ntMen.txt + ' · ' + U.bnMen.txt
+                   : null;
+
+  let h = '<div class="hfp-grid">';
+  h += columna('Morfológico', null, r.morf, [
+    { k:'LAVI', v:d.lavi, u:'ml/m²' }, { k:'IMVI', v:d.imvi, u:'g/m²', d:0 },
+    { k:'RWT', v:d.rwt, u:'', d:2 },   { k:'Pared VI', v:d.pared, u:'mm' }
+  ]);
+  h += columna('Funcional', "e' · E/e' · velocidad de IT · GLS", r.func, [
     { k:"e' septal", v:d.esep, u:'cm/s' }, { k:"e' lateral", v:d.elat, u:'cm/s' },
-    { k:"E/e' promedio", v:d.ee, u:'' },   { k:'Velocidad IT', v:d.it, u:'m/s' },
+    { k:"E/e' prom.", v:d.ee, u:'' },      { k:'Vel. IT', v:d.it, u:'m/s' },
     { k:'GLS', v:d.gls, u:'%' }
   ]);
-  h += dom('Dominio morfológico', r.morf, [
-    { k:'LAVI', v:d.lavi, u:'ml/m²' }, { k:'IMVI', v:d.imvi, u:'g/m²', d:0 },
-    { k:'RWT', v:d.rwt, u:'', d:2 },   { k:'Grosor de pared VI', v:d.pared, u:'mm' }
-  ]);
-  h += dom('Dominio humoral (' + (r.fa ? 'FA' : 'ritmo sinusal') + ')', r.hum, [
+  h += columna('Humoral', subHum, r.hum, [
     { k:'NT-proBNP', v:d.ntprobnp, u:'pg/ml', d:0 }, { k:'BNP', v:d.bnp, u:'pg/ml', d:0 }
   ]);
 
-  /* Bloqueado por FEVI: el detalle de los dominios se deja arriba —sirve para entender POR QUÉ
-     no aplica— pero el resultado NO se muestra. Si el puntaje se imprimiera igual con un cartel
-     al lado, el número es lo que se lee y lo que se copia. */
+  /* ── Cuarta columna: resultado ──
+     Bloqueado por FEVI: las tres columnas de dominios se dejan —sirven para entender POR QUÉ no
+     aplica— pero el PUNTAJE no se muestra. Si se imprimiera igual con un cartel al lado, el
+     número es lo que se lee y lo que se copia. */
+  /* Las dos ramas arman el CUERPO de la columna y el cierre es único, afuera. Con un `</div>`
+     por rama el conteo estático de `<div>` del archivo se desbalancea —cada rama cierra también
+     la grilla— y ese chequeo es una de las redes de este repo: tiene que seguir dando 9. */
+  let res, pie = '';
   if (r.gate && !r.gate.aplica) {
-    h += '<div class="da-res">' + badge('red', 'Score no aplicable') + '<br>'
-       + escHtml(r.gate.msgUI)
-       + '<br><span style="color:var(--text2);">Con FEVI reducida el diagnóstico es insuficiencia cardíaca con fracción de eyección reducida; el HFA-PEFF no se aplica a ese escenario.</span>'
-       + '</div>';
-    host.innerHTML = h;
-    return;
+    res = '<div class="hfp-hd"><span>Resultado</span></div>'
+        + '<div>' + badge('red', 'No aplicable') + '</div>'
+        + '<div class="hfp-sub" style="margin-top:7px;">' + escHtml(r.gate.msgUI) + '</div>'
+        + '<div class="hfp-sub">Con FEVI reducida el diagnóstico es insuficiencia cardíaca con fracción '
+        + 'de eyección reducida; el HFA-PEFF no se aplica a ese escenario.</div>';
+  } else {
+    const col = r.total <= 1 ? 'green' : (r.total <= 4 ? 'yellow' : 'red');
+    res = '<div class="hfp-hd"><span>Resultado</span>'
+        + '<span class="hfp-pts">' + r.total + '/6</span></div>'
+        + '<div>' + badge(col, r.interp.txt) + '</div>'
+        /* Los cortes se imprimen SIEMPRE, no sólo el que salió: el lector tiene que poder ubicar
+           el puntaje en la escala sin ir a buscarla. Son los de la ESC/HFA 2019 —el 2 cae en
+           zona intermedia, no en «descartado»—, decisión de Maicol tras el reporte. */
+        + '<div class="hfp-sep"></div>'
+        + '<div class="hfp-cr ' + (r.total >= 5 ? '' : 'hfp-na') + '"><em>≥ 5 — HFpEF confirmado</em></div>'
+        + '<div class="hfp-cr ' + (r.total >= 2 && r.total <= 4 ? '' : 'hfp-na') + '"><em>2 a 4 — zona gris, completar estudio</em></div>'
+        + '<div class="hfp-cr ' + (r.total <= 1 ? '' : 'hfp-na') + '"><em>≤ 1 — HFpEF poco probable</em></div>'
+        + (r.completo ? '' : '<div class="hfp-sub" style="margin-top:7px;">Faltan datos en algún dominio: el puntaje es parcial.</div>');
+    /* La conclusión va DEBAJO de la tabla, compacta y sin banner de color: el badge de la
+       columna de resultado ya da la señal visual, y repetirla en grande competía con ella.
+       El aviso de «sin FEVI» ya viene DENTRO de `hfapeffConclusion(r)`. */
+    pie = '<div class="hfp-sub" style="margin:10px 2px 0;font-size:11px;">' + escHtml(hfapeffConclusion(r)) + '</div>';
   }
-  const col = r.total <= 1 ? 'green' : (r.total <= 4 ? 'yellow' : 'red');
-  h += '<div class="da-res">' + badge(col, 'HFA-PEFF ' + r.total + ' / 6') + ' <b>' + r.interp.txt + '</b><br>'
-     + escHtml(hfapeffConclusion(r))
-     + (r.completo ? '' : '<br><span style="color:var(--text2);">Faltan datos en algún dominio: el puntaje es parcial.</span>')
-     /* El aviso de «sin FEVI» ya viene DENTRO de hfapeffConclusion(r), que se imprime dos
-        líneas más arriba. Agregarlo otra vez acá lo mostraba duplicado, y con los dos símbolos
-        distintos («>=50%» del texto del informe y «≥50%» del de pantalla), que se lee como si
-        fueran dos avisos diferentes. */
-     + '</div>';
-  host.innerHTML = h;
+  /* Se arma en una variable y recién ahí se asigna. Concatenar DENTRO del `innerHTML =` hace
+     saltar `ceibo-xss-innerhtml-concat` del ruleset local y suma un warning sobre la línea base
+     de 125 — ruido, porque todo lo interpolado pasa por `escHtml` o es numérico, pero la línea
+     base es la red que avisa cuando entra un sink de verdad y no se gasta en esto. */
+  const _html = h + '<div class="hfp-col">' + res + '</div></div>' + pie;
+  host.innerHTML = _html;
 }
 window.hfapeffRender = hfapeffRender;
 
@@ -16130,7 +16215,24 @@ function amiloTextoHFAPEFF() {
   fila('LAVI', d.lavi, 'ml/m2'); fila('IMVI', d.imvi, 'g/m2', 0);
   fila('RWT', d.rwt, '', 2); fila('Grosor de pared VI', d.pared, 'mm');
   fila('GLS', d.gls, '%');
-  fila('NT-proBNP', d.ntprobnp, 'pg/ml', 0); fila('BNP', d.bnp, 'pg/ml', 0);
+  /* Los péptidos van con EL UMBRAL QUE SE LES APLICÓ al lado. Los cortes de fibrilación
+     auricular son ~3× los de ritmo sinusal (NT-proBNP menor desde 365 en vez de 125), así que
+     quien lee «NT-proBNP 400 pg/ml» en la hoja firmada, y ve el dominio humoral en 1 punto en
+     vez de 2, no tiene forma de saber que el corte se movió — ni de auditar el puntaje. El
+     umbral sale de `hfUmbrales`, la MISMA fuente que puntúa: no es una segunda copia.
+     El rótulo `(umbral FA: ...)` lo pidió Maicol explícitamente. */
+  const _U = (typeof hfUmbrales === 'function') ? hfUmbrales(r.fa) : null;
+  /* El umbral se imprime SÓLO al lado de un péptido MEDIDO. Una primera versión lo pegaba
+     siempre, así que la hoja firmada salía con «NT-proBNP | sin dato (umbral RS: mayor > 220
+     pg/ml, menor 125-220 pg/ml)»: `drawTablaCompacta` parte la fila por « | » y manda todo lo
+     de la derecha a la columna de VALOR, o sea que dos cortes numéricos al lado de «sin dato»
+     se leen como que hubo comparación. Es la fila PSAP con sus cuatro bandas, en espejo: allá
+     el problema era graduar de más, acá poner referencia donde no hay medición. */
+  const _rot = (may, men) => _U ? ' (umbral ' + (r.fa ? 'FA' : 'RS') + ': mayor ' + may + ', menor ' + men + ')' : '';
+  L.push('NT-proBNP | ' + (d.ntprobnp === null ? 'sin dato'
+    : d.ntprobnp.toFixed(0) + ' pg/ml' + _rot(_U.ntMay.txt.replace('NT-proBNP ', ''), _U.ntMen.txt.replace('NT-proBNP ', ''))));
+  L.push('BNP | ' + (d.bnp === null ? 'sin dato'
+    : d.bnp.toFixed(0) + ' pg/ml' + _rot(_U.bnMay.txt.replace('BNP ', ''), _U.bnMen.txt.replace('BNP ', ''))));
 
   L.push('## Criterios cumplidos');
   const cumplidos = [].concat(r.func.todos, r.morf.todos, r.hum.todos).filter(c => c.ok);
