@@ -148,6 +148,28 @@ longitudinal tipeado en centímetros (9,5 por 95) daba «Verificar la medición�
 «Normal (longitudinal 9.5 mm)» en la cápsula, al mismo tiempo. Un valor ilegible bloquea la
 NEGACIÓN en **todas** las superficies, no sólo en la firmada.
 
+### Borrar una frase del informe puede romper un conteo del Laboratorio
+`_LAB_HALLAZGOS` clasifica **por texto** sobre `en_suma + informe_texto`. La fila «HTP» matcheaba
+`/hipertensión pulmonar|HTP/`, y en un ETT corriente con PSAP alta, TAP ≥ 105 ms y el módulo
+ESC/ERS sin integrar, la **única** ocurrencia de esas palabras en todo el informe era la salvedad
+«la PSAP estimada no clasifica la HTP por sí sola». Al sacarla (2026-09-14, pedido de Maicol) esos
+estudios dejaron de contar: como `_labHallazgosCuenta` filtra `n > 0`, la fila HTP **desaparecía
+entera** del dashboard y de la sección 3 del PDF de auditoría, mientras en el MISMO documento
+«Distribución de PSAP estimada» seguía mostrando los casos > 35 mmHg.
+
+Antes de borrar o reescribir una frase del informe, `grep` de sus palabras sobre los patrones del
+Laboratorio (`_LAB_HALLAZGOS`, `_labMenciona`, los filtros de cohorte, `_algunaMencion`). Hoy la
+fila HTP va por `byField` con el NÚMERO primero y el texto como segunda vía, que es lo que el
+filtro de cohorte ya hacía.
+
+### Una escala de cuatro bandas en la columna `ref` es una graduación
+La fila PSAP de las tablas del PDF traía `ref: '<35 / 35–50 / 50–70 / >70 mmHg'`. Esa columna es
+la de **umbrales de severidad** —lo dice el comentario de `drawTablaCompacta`—, así que cuatro
+bandas al lado del valor son una clasificación de HTP en todo menos en el nombre, justo lo que la
+app se cuida de no hacer en las otras cinco superficies («rango, no grado de HTP»). Se sostenía
+por el contrapeso de la salvedad del narrativo; al salir ésa, la tabla quedaba como la única
+lectura y la más afirmativa. Hoy lleva un solo corte de normalidad.
+
 ### Si el valor lo pusiste vos, no probaste nada
 Al cerrar la fuga del centro en reimpresión (2026-09-14) monté la prueba escribiendo
 `med-centro.textContent = 'CENTRO AL FIRMAR'` desde la consola, vi la fuga, la arreglé, vi que
@@ -2580,6 +2602,17 @@ criterio». Si aparece, la palanca es juntar las salvedades con la línea de la 
   es «no listarla», no «negarla» con el fallback de «sin alteraciones significativas».
 
 **Queda abierto, sin tocar en este commit:**
+- **El anillo aórtico del TAVI tiene UN solo diámetro** (`ete_tavi_anillo_diam`, «ETE 120–140°»),
+  así que no se puede calcular el área ni el perímetro de la elipse: de un diámetro sale un
+  círculo, que es lo que el anillo aórtico no es. Área y perímetro siguen tipeándose a mano,
+  normalmente desde el TAC, que es el gold standard del sizing. Decisión de Maicol (2026-09-14):
+  no agregar campos. Si mañana se agregan «mayor» y «menor», el perímetro va con **Ramanujan**
+  —`π·[3(a+b) − √((3a+b)(a+3b))]`— y no con `π·√((D1²+D2²)/2)`, que es la aproximación RMS y
+  suele citarse con el nombre equivocado; difieren ~0,3 mm en un anillo de 26×20.
+- **La modalidad de la distancia coronaria no viaja al PDF.** La nota «preferentemente de TAC
+  multicorte» está al lado del campo, pero el párrafo del informe imprime «Distancia al anillo:
+  coronaria izquierda 9 mm» sin decir si salió de TAC o de ETE. Si el número decide riesgo de
+  oclusión, la modalidad debería salir con él — haría falta un select `ete_tavi_cor_fuente`.
 - **El área del ostium de la orejuela viaja al Laboratorio sin distinguir estimada de medida.**
   Desde que se calcula desde el diámetro, `oai_area_ostium` mezcla una estimación CIRCULAR con
   las mediciones 3D directas en el promedio del panel ETE, y como la marca `derivadoDe` no se

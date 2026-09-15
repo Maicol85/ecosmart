@@ -7936,6 +7936,18 @@ z
       </div>
 
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Distancia de las coronarias al anillo</div>
+      <!-- La nota va ACÁ, al lado de los campos, y no en el manual: el riesgo de oclusión
+           coronaria se decide con este número, y quien lo tipea tiene que saber de dónde
+           debería venir en el momento de tipearlo. Los dos campos ya existían; lo que faltaba
+           era decir con qué precisión se los está cargando. -->
+      <!-- Estilo INFORMATIVO (teal), no `mAviso`: el rojo de esta app está reservado a avisos
+           reales —el «Definir tipo de IM» del TEER, las contraindicaciones— y gastarlo en una
+           nota metodológica deja sin señal el día que haga falta una de verdad acá. Es la misma
+           lógica del badge degradado a gris que documenta CLAUDE.md, al revés. -->
+      <div style="margin:0 0 8px;font-size:11px;padding:8px 10px;border-radius:6px;
+                  background:rgba(45,212,191,.08);border:1px solid rgba(45,212,191,.35);color:var(--text2);">
+        Dato preferentemente de <b>TAC multicorte</b>. Se puede estimar por ETE pero con menor precisión.
+      </div>
       <div class="grid-2">
         <div class="fg"><label>Coronaria izquierda (mm)</label><input type="number" id="ete_tavi_cor_izq" step="0.1" placeholder="mm" oninput="eteTaviSync()"></div>
         <div class="fg"><label>Coronaria derecha (mm)</label><input type="number" id="ete_tavi_cor_der" step="0.1" placeholder="mm" oninput="eteTaviSync()"></div>
@@ -19591,17 +19603,33 @@ function generarInforme(opts) {
     // porque más abajo ya se resume el grado de HTP a partir de ese valor.
     if (tapBajo && !psap) suma.push('Elementos indirectos de hipertensión pulmonar (TAP < 105 ms), sin PSAP estimable.');
     // HTP (interpretación del PSAP) — en la misma oración, sin repetir el valor de PSAP (ya expresado arriba)
-    /* NO se gradúa la HTP por la PSAP estimada, y es deliberado: la hipertensión pulmonar
-       es un diagnóstico hemodinámico que se establece por cateterismo derecho. Es la misma
-       decisión que ya había tomado calcPSAP() —que por eso muestra el valor sin clasificarlo—
-       pero el informe la contradecía: la pantalla decía «44 mmHg» y el PDF firmado decía
-       «Hipertensión pulmonar leve», con una cascada >70/>50/>35 que además no coincidía con
-       los umbrales de la tarjeta de Referencias de la propia app (normal <=40).
-       La probabilidad ecocardiográfica se estima en el módulo ESC/ERS 2022 de Hemodinámica,
-       que cruza la velocidad de IT con los signos A, B y C, y ése sí entra al informe. */
-    if (psap && PF(psap) > UMBRAL_PSAP_ELEVADA) {
-      tricLine += ' Ver estimación de probabilidad ecocardiográfica de hipertensión pulmonar (ESC/ERS 2022);'
-        + ' la PSAP estimada por ecocardiografía no clasifica la hipertensión pulmonar por sí sola.';
+    /* NO se gradúa la HTP por la PSAP estimada, y sigue siendo deliberado: la hipertensión
+       pulmonar es un diagnóstico hemodinámico que se establece por cateterismo derecho, y la
+       app nunca escribe «hipertensión pulmonar leve/moderada/severa» a partir de este número.
+       Eso no cambió.
+
+       Lo que SÍ salió (2026-09-14, pedido de Maicol) es la SALVEDAD que se agregaba al informe
+       narrativo cuando la PSAP superaba el umbral: «Ver estimación de probabilidad
+       ecocardiográfica (ESC/ERS 2022); la PSAP estimada por ecocardiografía no clasifica la
+       hipertensión pulmonar por sí sola». El informe básico reporta el VALOR; las salvedades
+       sobre cómo se clasifica la HTP viven en el módulo avanzado de Hemodinámica, que es donde
+       están los criterios y donde el lector puede hacer algo con ellas. Un informe que aclara
+       lo que no dijo termina discutiendo consigo mismo.
+
+       El valor elevado sí se nombra como HALLAZGO en el En Suma, sin grado y sin salvedad: el
+       narrativo lo describía y la conclusión quedaba muda, así que un estudio cuyo único
+       hallazgo era una PSAP de 67 mmHg salía con «Estudio sin alteraciones estructurales ni
+       funcionales significativas». */
+    /* Si el módulo HTP ESC/ERS 2022 está integrado, ÉL manda sobre la presión pulmonar en el
+       En Suma y esta línea no se emite. Sin esta guarda quedaban dos afirmaciones sobre lo
+       mismo en el mismo documento: el cuerpo diciendo «probabilidad baja de hipertensión
+       pulmonar (ESC 2022)» y la conclusión listando «PSAP estimada 37 mmHg» como hallazgo —
+       alcanzable con VRT 2,7 y PmAD 8, que da 37 mmHg y probabilidad BAJA. El módulo cruza la
+       velocidad de IT con los signos A, B y C; esta línea es un número suelto. Gana el módulo.
+       Antes hacía de puente la salvedad que se acaba de sacar. */
+    const _htpIntegrado = typeof amiloIntegrado === 'function' && amiloIntegrado('htp');
+    if (psap && PF(psap) > UMBRAL_PSAP_ELEVADA && !_htpIntegrado) {
+      suma.push(`PSAP estimada ${psap} mmHg.`);
     }
     inf.push(tricLine);
   }
@@ -23058,7 +23086,13 @@ function generarPDFReal(_aj) {
     {titulo:'Tricúspide / PSAP', items:[
       {lbl:'V. máx IT',  ref:'',                    val:v('vmax_it')  ?v('vmax_it')  +' m/s' :null},
       {lbl:'Grad. IT',   ref:'',                    val:gradIT},
-      {lbl:'PSAP',       ref:'<35 / 35–50 / 50–70 / >70 mmHg',      val:v('psap_calc')?v('psap_calc')+' mmHg':null},
+      /* La columna `ref` de esta tabla es la de UMBRALES DE SEVERIDAD, y cuatro bandas al lado
+         de la PSAP son una graduación de hipertensión pulmonar en todo menos en el nombre —
+         justo lo que la app se cuida de no hacer en todas las otras superficies («rango, no
+         grado de HTP»). Se sostenía por el contrapeso de la salvedad del narrativo; al salir
+         ésa (2026-09-14) la tabla quedaba como la única lectura, y la más afirmativa.
+         Queda el corte de normalidad, que sí es un valor de referencia. */
+      {lbl:'PSAP',       ref:'<=' + UMBRAL_PSAP_ELEVADA + ' mmHg',   val:v('psap_calc')?v('psap_calc')+' mmHg':null},
       {lbl:'PAP media',  ref:'',                    val:sv('pap_med')||null},
       {lbl:'V. máx VP',  ref:'', val:v('vp_vmax')?v('vp_vmax')+' m/s' :null},
       {lbl:'G. máx VP',  ref:'', val:v('vp_gmax')?v('vp_gmax')+' mmHg':null},
@@ -23161,7 +23195,8 @@ function generarPDFReal(_aj) {
       {lbl:'VC IT',         ref:'(<3 / 3–7 / >7) mm', val:v('it_vc')?v('it_vc')+' mm':null},
       {lbl:'EROA IT',       ref:'(<20 / 20–40 / ≥40) mm²', val:v('it_eroa')?v('it_eroa')+' mm2':null},
       {lbl:'Grad. VD-AD',   ref:'', val:v('vmax_it')?(4*v('vmax_it')*v('vmax_it')).toFixed(0)+' mmHg':null},
-      {lbl:'PSAP',          ref:'(<35 / 35–50 / 50–70 / >70) mmHg', val:v('psap_calc')?v('psap_calc')+' mmHg':null},
+      // Idem la fila del Bloque 3: un solo corte de normalidad, no una escala de cuatro bandas.
+      {lbl:'PSAP',          ref:'<=' + UMBRAL_PSAP_ELEVADA + ' mmHg', val:v('psap_calc')?v('psap_calc')+' mmHg':null},
     ]},
     {titulo:'Otros', items:[
       {lbl:'Pericardio',    ref:'', val:sv('pericardio')||null},
@@ -39127,7 +39162,21 @@ window._labMenciona = _labMenciona;
    también pasa por `_labMenciona`: su lista de negaciones a mano («sin derrame», «sin
    efusión») era la respuesta correcta escrita una vez y no reutilizada. */
 const _LAB_HALLAZGOS = [
-  { lbl:'HTP', patron:/hipertensi[oó]n\s+pulmonar|HTP/i },
+  /* HTP por NÚMERO y no sólo por texto, igual que el filtro de cohorte (`case 'htp'`). Hasta
+     2026-09-14 el narrativo de un ETT corriente con PSAP alta decía «hipertensión pulmonar» en
+     UN solo lugar: la salvedad «la PSAP estimada no clasifica la HTP por sí sola». Al sacarla
+     —pedido de Maicol— ese estudio dejó de contar acá: el dashboard y la sección 3 del PDF de
+     auditoría perdían la fila HTP entera (`_labHallazgosCuenta` filtra `n > 0`) mientras, en el
+     MISMO documento, «Distribución de PSAP estimada» seguía mostrando los casos > 35 mmHg. Dos
+     números distintos para lo mismo en el mismo PDF, que es justo el defecto que el comentario
+     de arriba dice haber cerrado. Se conserva el texto como segunda vía: cubre los estudios
+     importados y los que nombran la HTP sin PSAP calculable (TAP < 105 ms). */
+  { lbl:'HTP', byField:i => {
+      const p = _labPsap(i);
+      if (p !== null && typeof UMBRAL_PSAP_ELEVADA === 'number' && p > UMBRAL_PSAP_ELEVADA) return true;
+      return _labMenciona(String((i.campos?.en_suma || '') + ' ' + (i.campos?.informe_texto || '')),
+                          /hipertensi[oó]n\s+pulmonar|HTP/i);
+    } },
   { lbl:'Disfunción diastólica', patron:/disfunci[oó]n\s+diast[oó]lica/i },
   { lbl:'Disfunción sistólica VI', patron:/disfunci[oó]n\s+sist[oó]lica|FEVI\s+[<>]?\s*[0-4]\d/i },
   { lbl:'Insuficiencia mitral', patron:/insuficiencia\s+mitral|IM\s+(?:leve|moderada|severa)/i },
