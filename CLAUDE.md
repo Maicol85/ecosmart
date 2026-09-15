@@ -220,6 +220,35 @@ de `eteTaviRPV` y, con ese único parámetro, la cascada salía por el `return` 
 — el informe imprimía «Insuficiencia paravalvular leve, extensión circunferencial 0%», el grado
 contradiciendo al número que lo sostiene dentro del mismo paréntesis.
 
+### `input[type=hidden]` NO entra en el barrido de `limpiarCampos`
+El barrido toma `input[type=text], input[type=number]`. Cada oculto hay que limpiarlo **a mano**,
+y los dos que hay son datos del paciente: `ete_tavi_jet_horas` (horas del jet paravalvular) y
+`co_serie_json` (serie de seguimiento de Cardio-Oncología congelada en el estudio). Medido con la
+segunda: sin la línea explícita, los tres controles del paciente A sobrevivían a «Nuevo estudio»
+y quedaban dentro del estudio del paciente B — guardados en `campos` e impresos en su hoja. Es la
+misma fuga que este archivo ya pagó con los segmentos del ETE.
+
+### Una hoja que se agrega con `addPage()` va DESPUÉS de `_pagCuerpo`
+`generarPDFReal` cuenta `_pagCuerpo` y después hace `if (_AJ.medir) return`. Todo lo que se
+dibuje **antes** de esa línea cuenta como CUERPO, y `_pdfAjustarA4` intenta comprimirlo a una
+hoja. La hoja de Cardio-Oncología nació del lado equivocado: `pagCuerpo <= 1` no se alcanzaba
+nunca, se gastaban cinco generaciones de medición —cada una renderizando el canvas— para volver
+al paso 0, el cuerpo dejaba de comprimirse, y saltaba el toast de «informe muy extenso» en todo
+estudio de cardio-oncología. ETT Avanzado, ETE e imágenes ya viven del lado correcto; el
+comentario de `_pagCuerpo` lo dice y hay que leerlo antes de agregar una hoja.
+
+### `doc.text` no envuelve, y `maxWidth` no avanza `y`
+Dos caras del mismo descuido, las dos pagadas en la hoja de Cardio-Oncología:
+- **Sin `splitTextToSize`**, jsPDF sigue escribiendo hacia la derecha y el visor recorta en el
+  borde del papel, en silencio. La clasificación de toxicidad medía 157 mm sobre los 104
+  disponibles y perdía `otoxicidad SEVERA (ESC 2022)` — o sea el GRADO, lo único que decide
+  suspender o continuar la quimioterapia. La salvedad del score perdía la cita de la guía, que
+  es justo la cláusula que existe para que no se lea como HFA-ICOS validado.
+- **Con `maxWidth`**, el texto sí se parte, pero el llamador avanza `y` como si fuera una línea
+  y lo siguiente se dibuja encima. Ya estaba escrito en Wilkins y en GTP.
+Y si una tabla puede saltar de página, el encabezado de columnas **se repite**: cuatro columnas
+numéricas sin rótulo, donde FEVI, su delta, GLS y su delta se ven todos igual, no son una tabla.
+
 ### Si el valor lo pusiste vos, no probaste nada
 Al cerrar la fuga del centro en reimpresión (2026-09-14) monté la prueba escribiendo
 `med-centro.textContent = 'CENTRO AL FIRMAR'` desde la consola, vi la fuga, la arreglé, vi que

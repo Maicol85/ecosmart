@@ -11307,6 +11307,14 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
     <div id="co-seguimiento-lista" style="margin-bottom:10px;"></div>
     <canvas id="co-chart" style="max-height:220px;display:none;margin-bottom:10px;"></canvas>
+    <!-- La serie CONGELADA del estudio. `co_seguimiento` es una clave global de localStorage
+         indexada por paciente y no viaja en `campos`; este input sí (lo captura `guardarInforme`
+         por `input[id]` y lo reponen las rutas de restauración), así que el PDF reimpreso sale
+         con los controles que había al FIRMAR, no con los de hoy. Se llena al apretar
+         «Integrar al informe» — ver `alIntegrar` en `amiloSecs`. Mismo patrón que
+         `ete_tavi_jet_horas`. -->
+    <input type="hidden" id="co_serie_json" value="">
+    <div id="co-serie-estado" style="font-size:11px;color:var(--text2);line-height:1.5;"></div>
     </div>
   </div>
   </div>
@@ -18285,6 +18293,54 @@ function _coPuntos() {
   return Array.isArray(v) ? v : [];   // un valor no-array en storage no debe tirar
 }
 
+/* ══ Serie CONGELADA dentro del estudio ══════════════════════════════════════════════════
+   `co_seguimiento` es una clave GLOBAL de localStorage indexada por nombre/documento: no viaja
+   en `campos`, no entra al backup del estudio y crece con cada control nuevo. Si la hoja del PDF
+   la leyera en vivo, reimprimir un informe firmado en marzo traería los controles de junio — un
+   documento que ya no es el que se firmó. Decisión de Maicol: se CONGELA al integrar.
+
+   El formato es el mismo array de `{fecha, fevi, gls, nota}` serializado en un input oculto, que
+   `guardarInforme` captura por `input[id]` y las cinco rutas de restauración reponen. Es el
+   patrón de `ete_tavi_jet_horas`. */
+function coCongelarSerie() {
+  const el = document.getElementById('co_serie_json');
+  if (!el) return;
+  const pts = _coPuntos();
+  /* Sólo los cuatro campos que la hoja usa, y normalizados: guardar el objeto crudo metería en
+     el estudio cualquier clave que el storage traiga —de una versión futura o de un JSON editado
+     a mano— y la hoja la imprimiría sin saber qué es. */
+  const limpio = pts.map(p => ({
+    fecha: String((p && p.fecha) || '').slice(0, 10),
+    fevi:  (p && p.fevi  != null && isFinite(p.fevi))  ? Number(p.fevi)  : null,
+    gls:   (p && p.gls   != null && isFinite(p.gls))   ? Number(p.gls)   : null,
+    nota:  String((p && p.nota) || '').slice(0, 300)
+  })).filter(p => p.fecha);
+  try { el.value = limpio.length ? JSON.stringify(limpio) : ''; }
+  catch (e) { el.value = ''; }
+}
+window.coCongelarSerie = coCongelarSerie;
+
+/* Lee la serie congelada. `JSON.parse` sobre un blob de storage SIEMPRE con guarda —hay regla
+   Semgrep para esto— y además con validación de forma: un array de otra cosa haría que la tabla
+   del PDF imprimiera `[object Object]` en la columna de fecha. */
+function coSerieCongelada() {
+  const raw = (document.getElementById('co_serie_json') || {}).value || '';
+  if (!String(raw).trim()) return [];
+  let arr = null;
+  try { arr = JSON.parse(raw); } catch (e) { return []; }
+  if (!Array.isArray(arr)) return [];
+  return arr
+    .filter(p => p && typeof p === 'object' && String(p.fecha || '').trim())
+    .map(p => ({
+      fecha: String(p.fecha).slice(0, 10),
+      fevi:  (p.fevi != null && isFinite(p.fevi)) ? Number(p.fevi) : null,
+      gls:   (p.gls  != null && isFinite(p.gls))  ? Number(p.gls)  : null,
+      nota:  String(p.nota || '')
+    }))
+    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+}
+window.coSerieCongelada = coSerieCongelada;
+
 /* ── La cascada de CTRCD, extraída como clasificador puro ──────────────────────────────
    Devuelve UNA clave por rama, en el MISMO orden en que la cascada de `calcCardioOnco` las
    evaluaba. El orden importa y no es evidente: una FEVI de 38 con caída de 12 pp sobre un basal
@@ -18551,7 +18607,45 @@ function renderSeguimientoLista() {
   });
   html += '</table>';
   lista.innerHTML = html;
+  if (typeof coSerieEstadoUI === 'function') coSerieEstadoUI();
 }
+
+/* Aviso de que la serie CONGELADA del estudio no coincide con la de seguimiento. La hoja del
+   PDF sale de la congelada —a propósito: así el informe reimpreso es el que se firmó— pero sin
+   decirlo, agregar un control y generar el PDF daba una hoja sin ese control y sin ninguna
+   señal. El médico tiene que saber que el botón «Integrar al informe» es lo que la actualiza. */
+function coSerieEstadoUI() {
+  const el = document.getElementById('co-serie-estado');
+  if (!el) return;
+  const integrado = (typeof amiloIntegrado === 'function') && amiloIntegrado('conco');
+  const vivaArr = (typeof _coPuntos === 'function') ? _coPuntos() : [];
+  const congArr = (typeof coSerieCongelada === 'function') ? coSerieCongelada() : [];
+  const viva = vivaArr.length, cong = congArr.length;
+  if (!integrado) {
+    el.textContent = viva
+      ? viva + ' control(es) cargado(s). Se copian al informe al apretar «Integrar al informe» del módulo Cardio-Oncología.'
+      : '';
+    el.style.color = 'var(--text2)';
+    return;
+  }
+  /* Se compara el CONTENIDO, no la cantidad. La lista sólo ofrece «✕»: corregir un control es
+     borrarlo y volver a agregarlo, que deja la misma longitud con datos distintos — y el panel
+     afirmaba «coincide con el seguimiento» mientras el PDF seguía imprimiendo el control borrado
+     y omitiendo el corregido. Tres clics de distancia, en el flujo normal. */
+  const _firma = a => a.map(p => [String(p.fecha||''), p.fevi == null ? '' : p.fevi,
+                                  p.gls == null ? '' : p.gls].join('|')).sort().join('#');
+  if (_firma(vivaArr) === _firma(congArr)) {
+    el.textContent = 'Serie congelada en el informe: ' + cong + ' control(es). Coincide con el seguimiento.';
+    el.style.color = 'var(--text2)';
+  } else {
+    /* El mensaje no puede hablar sólo de cantidades: con la misma cantidad y un control
+       corregido, «tiene 3 y tiene 3» se lee como que están sincronizadas. */
+    el.textContent = '⚠️ La serie congelada en el informe (' + cong + ' control/es) NO coincide con el seguimiento ('
+      + viva + '). El PDF sale con la congelada. Reintegrá el módulo Cardio-Oncología para actualizarla.';
+    el.style.color = 'var(--orange)';
+  }
+}
+window.coSerieEstadoUI = coSerieEstadoUI;
 
 function eliminarPuntoSeg(idx) {
   const k = _coPacienteKey(); if (!k) return;
@@ -23982,6 +24076,7 @@ function generarPDFReal(_aj) {
     y += _aire(6);
   }
 
+
   if (localStorage.getItem('mitral_qx_incluir_pdf') === '1' && typeof eteQxDataURL === 'function') {
     const _mData = eteQxDataURL();
     checkPage(92);
@@ -24036,6 +24131,163 @@ function generarPDFReal(_aj) {
      `guardado:false` distingue esta salida de la que sí bajó el archivo — las dos devolvían
      el mismo objeto y ningún llamador podía notar la diferencia. */
   if (_AJ.medir) return { pagCuerpo: _pagCuerpo, guardado: false };
+
+  /* ══ CARDIO-ONCOLOGÍA — hoja propia ═══════════════════════════════════════════════════════
+     Gateada por el MISMO botón «Integrar al informe» que la hoja de texto del bloque ETT
+     Avanzado (`amiloIntegrado('conco')`), no por la presencia de datos: el médico que no integró
+     el módulo no puede encontrarse una hoja entera de cardio-oncología en el informe.
+     La serie sale CONGELADA (`coSerieCongelada`, campo del estudio), no de la clave global de
+     localStorage: reimprimir un informe firmado en marzo no puede traer los controles de junio.
+     try/catch alrededor de todo: una excepción acá aborta `generarPDFReal` con páginas ya
+     dibujadas y el médico se queda sin archivo y sin mensaje. Mejor el informe sin la hoja. */
+  try {
+    if (typeof amiloIntegrado === 'function' && amiloIntegrado('conco') && typeof coTablaEvolucion === 'function') {
+      const _coF = coTablaEvolucion();
+      /* La compuerta NO es «¿hay tabla?». `_coF` sólo tiene filas si hay FEVI o GLS en algún
+         lado, y un paciente puede tener riesgo basal MUY ALTO por edad, antraciclinas y factores
+         de riesgo, con troponina elevada, y todavía ningún strain ni FEVI cargados: con
+         `_coF.length > 0` se iban también las secciones 1 y 4, o sea el riesgo y la troponina.
+         Cada sección se gatea por SUS datos; la hoja sale si alguna tiene algo. */
+      const _n0 = id => { const x = v(id); return (x === null || !isFinite(x)) ? null : x; };
+      const _coHayBasal = !!(sv('co_farmaco') || sv('co_riesgo_cv') || _n0('co_edad') !== null
+        || _n0('co_dosis_antrac') !== null || _n0('co_fevi_basal') !== null || _n0('co_gls_basal') !== null);
+      const _coHayActual = !!(_n0('co_fevi_actual') !== null || _n0('co_gls_actual') !== null
+        || sv('co_troponi') === 'si' || sv('co_troponi') === 'no');
+      const _coHayAlgo = _coF.length > 0 || _coHayBasal || _coHayActual;
+      if (_coHayAlgo) {
+        doc.addPage(); y = 14;
+        drawBar('CARDIO-ONCOLOGIA - EVOLUCION DE FUNCION VENTRICULAR');
+        y += _aire(3);
+
+        const _coCol = [mL, mL + pgW * 0.46];
+        /* `splitTextToSize` y avance POR LÍNEA. jsPDF no envuelve: `doc.text` sigue escribiendo
+           hacia la derecha y el visor recorta en el borde del papel, en silencio. Medido: la
+           clasificación de toxicidad («FEVI 38% (nueva reduccion…) - cardiotoxicidad SEVERA (ESC
+           2022)») mide 157 mm sobre los 104 que quedan y perdía «otoxicidad SEVERA (ESC 2022)»
+           — o sea el GRADO, lo único que decide suspender o continuar la quimioterapia. Y la
+           salvedad del score perdía «consultar ESC 2022 Cardio-Oncology Guidelines», que es la
+           cláusula que existe para que no se lea como HFA-ICOS validado.
+           La hoja de ETT Avanzado del MISMO PDF ya las imprime completas: le faltaba copiar el
+           `splitTextToSize` junto con la geometría de columna. */
+        const _coAncho = pgW - (_coCol[1] - _coCol[0]);
+        const _coFila = (k, val, negrita) => {
+          if (negrita) fb(8.5); else fn(8.5);
+          const _lns = doc.splitTextToSize(_sanML(val == null ? '—' : String(val)), _coAncho);
+          checkPage(_lns.length * 5 + 2);
+          tc(60,60,60); doc.text(_sanML(k), _coCol[0], y);
+          tc(20,20,20);
+          _lns.forEach((ln, i) => doc.text(ln, _coCol[1], y + i * 4.4));
+          y += Math.max(5, _lns.length * 4.4 + 0.6);
+        };
+        const _coSub = (t) => { y += 1.5; fb(8); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(_sanML(t), mL, y); y += 4.6;
+          doc.setDrawColor(215,215,215); doc.line(mL, y - 3, mL + pgW, y - 3); };
+        const _n = id => { const x = v(id); return (x === null || !isFinite(x)) ? null : x; };
+
+        // ── 1 · Riesgo basal ──
+        _coSub('1 · RIESGO CARDIOVASCULAR BASAL');
+        const _edad = _n('co_edad');
+        _coFila('Edad', _edad != null ? _edad + ' años' : null);
+        /* `_amSelTxt` y no `sv()`: los dos selects guardan un CÓDIGO y lo que hay que imprimir es
+           la etiqueta. Con `sv()` la hoja salía «Riesgo CV previo | 0» — el value del option— en
+           un informe firmado. Es la misma función que usa la hoja de texto del módulo. */
+        const _selTxt = (id) => (typeof _amSelTxt === 'function') ? (_amSelTxt(id) || null) : (sv(id) || null);
+        _coFila('Fármaco oncológico', _selTxt('co_farmaco'));
+        const _dos = _n('co_dosis_antrac');
+        _coFila('Dosis acumulada de antraciclinas', _dos != null ? _dos + ' mg/m2' : null);
+        const _fb0 = _n('co_fevi_basal'), _gb0 = _n('co_gls_basal');
+        _coFila('FEVI basal', _fb0 != null ? _fb0 + ' %' : null);
+        _coFila('GLS basal', _gb0 != null ? _gb0 + ' %' : null);
+        _coFila('Riesgo CV previo', _selTxt('co_riesgo_cv'));
+        /* La clasificación sale de la MISMA tarjeta que la pantalla (`co-riesgo-resultado`), no
+           de una segunda cascada: el PDF no puede clasificar distinto que el módulo. */
+        const _rr = (typeof _amRows === 'function') ? _amRows('co-riesgo-resultado') : [];
+        if (_rr.length) _rr.forEach(p => _coFila(p.k || 'Clasificación', p.v || '', true));
+        else _coFila('Clasificación de riesgo', 'no calculada');
+
+        // ── 2 · Tabla comparativa ──
+        if (_coF.length) {
+        _coSub('2 · EVOLUCION DE FEVI Y GLS');
+        /* Encabezados y signos en ASCII. Las flechas «↓/↑» y la «Δ» que pedía el diseño están
+           fuera de WinAnsi y jsPDF las descarta EN SILENCIO —es el defecto que dejó ilegibles
+           los umbrales de severidad valvular en todos los informes firmados—, así que la
+           dirección la da el signo del número, que además es más preciso. */
+        const _cx = [mL, mL + pgW*0.20, mL + pgW*0.36, mL + pgW*0.54, mL + pgW*0.70, mL + pgW*0.88];
+        /* El encabezado se dibuja en una función para poder REPETIRLO al saltar de página: sin
+           eso, las filas de continuación quedaban como cuatro columnas numéricas sin rótulo,
+           donde la FEVI, su delta, el GLS y su delta se ven todos igual («NN.N»). Hacen falta
+           ~37 controles para llegar ahí, que en un seguimiento oncológico largo no es imposible. */
+        const _coEncab = () => {
+          fb(7.5); tc(TEMA[0],TEMA[1],TEMA[2]);
+          ['Control','Fecha','FEVI','Cambio (pp)','GLS','Cambio (% rel.)'].forEach((t,i) =>
+            doc.text(_sanML(t), _cx[i], y, i >= 2 ? { align:'right' } : undefined));
+          y += 1.8; doc.setDrawColor(200,200,200); doc.line(mL, y, mL + pgW, y); y += 4.2;
+        };
+        _coEncab();
+        const _sgn = (x, d) => x == null ? '—' : ((x > 0 ? '+' : '') + x.toFixed(d == null ? 1 : d));
+        _coF.forEach(f => {
+          const _yAntes = y;
+          checkPage(10);
+          if (y < _yAntes) _coEncab();          // hubo salto de página: el encabezado se repite
+          fn(8); tc(30,30,30);
+          doc.text(_sanML(f.etq), _cx[0], y);
+          tc(90,90,90); doc.text(_sanML(f.fecha || '—'), _cx[1], y);
+          tc(30,30,30);
+          /* `_sanML` en las CUATRO. Sin él, la raya em del «—» de una celda vacía pasa la línea
+             ENTERA a UTF-16 y jsPDF la descarta en silencio: es exactamente cómo quedaron
+             ilegibles los umbrales de severidad valvular en todos los informes firmados. */
+          doc.text(_sanML(f.fevi == null ? '—' : f.fevi.toFixed(0) + ' %'), _cx[2], y, { align:'right' });
+          doc.text(_sanML(_sgn(f.dFevi)), _cx[3], y, { align:'right' });
+          doc.text(_sanML(f.gls == null ? '—' : f.gls.toFixed(1) + ' %'), _cx[4], y, { align:'right' });
+          doc.text(_sanML(_sgn(f.dGls)), _cx[5], y, { align:'right' });
+          y += 5;
+        });
+        y += 1;
+        fn(7); tc(120,120,120);
+        /* `splitTextToSize` y NO `maxWidth`: maxWidth no trunca, parte el texto y dibuja las
+           líneas hacia abajo, pero el llamador avanzaba `y` como si hubiera sido una sola. Esta
+           nota son dos líneas a 7 pt sobre 192 mm, y sin el checkPage las dos podían caer sobre
+           el bloque de firma en una serie larga. Es la regla que este archivo ya escribió dos
+           veces, en Wilkins y en GTP. */
+        const _coNota = doc.splitTextToSize(
+          _sanML('Cambio respecto del BASAL. FEVI en puntos porcentuales; GLS en caída relativa sobre el valor absoluto. '
+          + 'Signo negativo = descenso. Umbrales de cardiotoxicidad: FEVI caída >=' + CO_UMBRAL_FEVI_CAIDA
+          + ' pp o valor <' + CO_UMBRAL_FEVI_ABS + ' %; GLS caída >=' + CO_UMBRAL_GLS_REL + ' % relativa.'), pgW);
+        checkPage(_coNota.length * 3.4 + 4);
+        _coNota.forEach((ln, i) => doc.text(ln, mL, y + i * 3.4));
+        y += _coNota.length * 3.4 + _aire(5);
+        }   // /if (_coF.length) — sin una sola medición no hay tabla que dibujar
+
+        // ── 3 · Curva ──
+        const _coImg = (typeof coCurvaDataURL === 'function') ? coCurvaDataURL(_coF) : null;
+        if (_coImg) {
+          const _cw = Math.min(pgW, 150), _ch = _cw * (300 / 560);
+          checkPage(_BAR_H + 4 + _ch + 8);
+          _coSub('3 · CURVA DE EVOLUCION');
+          doc.addImage(_coImg, 'PNG', mL + (pgW - _cw) / 2, y, _cw, _ch);
+          y += _ch + _aire(5);
+        }
+
+        // ── 4 · Evaluación actual ──
+        checkPage(46);
+        _coSub('4 · EVALUACION ACTUAL');
+        const _fa0 = _n('co_fevi_actual'), _ga0 = _n('co_gls_actual');
+        _coFila('FEVI actual', _fa0 != null ? _fa0 + ' %' : null);
+        _coFila('Caída de FEVI desde el basal', (_fa0 != null && _fb0 != null) ? (_fb0 - _fa0).toFixed(1) + ' pp' : null);
+        _coFila('GLS actual', _ga0 != null ? _ga0 + ' %' : null);
+        _coFila('Caída relativa de GLS', (_ga0 != null && _gb0 != null && Math.abs(_gb0) > 0)
+          ? (((Math.abs(_gb0) - Math.abs(_ga0)) / Math.abs(_gb0)) * 100).toFixed(1) + ' %' : null);
+        /* La troponina sólo se nombra si SE EVALUÓ. El select arranca en «— no evaluado —», y
+           imprimir «no elevada» por ausencia de dato es una negación fabricada sobre un criterio
+           de CTRCD. Mismo cierre que ya tiene la hoja de texto del módulo. */
+        const _tro = sv('co_troponi');
+        _coFila('Troponina', (_tro === 'si' || _tro === 'no') ? (_tro === 'si' ? 'elevada' : 'no elevada') : 'no evaluada');
+        const _tr = (typeof _amRows === 'function') ? _amRows('co-toxicidad-resultado') : [];
+        const _est = (_tr.find(p => /cardiotoxicidad/i.test(p.k)) || {}).v || '';
+        _coFila('Clasificación de toxicidad', _est || 'no determinable', true);
+        y += _aire(4);
+      }
+    }
+  } catch (_eCO) { console.error('[PDF/cardio-onco]', _eCO); }
 
   // ════════════════════════════════════════════════════════════
   // ETT AVANZADO (Amiloidosis) — hoja aparte, tras el EN SUMA y antes de las imágenes
@@ -29446,7 +29698,17 @@ function eteShuntTaviReset(){
      acordeón del paciente siguiente rotulado «● cargada» —que con el acordeón cerrado es la única
      señal de contenido que ve el médico— sobre un formulario vacío. */
   try{ tvSync(); dapSync(); coaSync(); vapSync(); fopSync(); vabSync(); mchSync(); ebsSync(); tdfSync(); tgaSync(); mcaSync(); }catch(e){}
+  /* Los `input[type=hidden]` NO entran en el barrido de arriba, que toma `input[type=text],
+     input[type=number]`. Cada uno hay que limpiarlo a mano acá, y son datos del PACIENTE:
+       · `ete_tavi_jet_horas` — las horas del jet paravalvular
+       · `co_serie_json` — la serie de seguimiento de Cardio-Oncología CONGELADA en el estudio
+     Medido con la serie: sin esta línea, los tres controles del paciente A sobrevivían a «Nuevo
+     estudio» y quedaban dentro del estudio del paciente B —guardados en `campos` e impresos en
+     su hoja de cardio-oncología—. Es la fuga entre pacientes que este archivo ya pagó con los
+     segmentos del ETE y con las horas de acá al lado. */
   const jh=document.getElementById('ete_tavi_jet_horas'); if(jh) jh.value='';
+  const csj=document.getElementById('co_serie_json'); if(csj) csj.value='';
+  try{ if (typeof coSerieEstadoUI === 'function') coSerieEstadoUI(); }catch(e){}
   try{ eteEpcSet([]); eteEpcDibujar(); }catch(e){}
   try{ eteShuntTab('cia'); eteTaviTab('pre'); }catch(e){}
   try{ eteShuntSync(); eteTaviSync(); }catch(e){}
@@ -33740,6 +34002,122 @@ function _amRows(contId) {
   }).filter(p => p.k || p.v);
 }
 
+/* ══ Evolución de FEVI y GLS ══════════════════════════════════════════════════════════════
+   Filas: basal (de `co_fevi_basal`/`co_gls_basal`, sin fecha porque no hay campo), cada control
+   de la serie CONGELADA, y el actual (de `co_fevi_actual`/`co_gls_actual`) si está cargado.
+   Los deltas son SIEMPRE contra el basal —es lo que definen las guías de cardiotoxicidad— y no
+   contra el control anterior.
+
+   El GLS se compara en valor ABSOLUTO y la caída es RELATIVA: el campo admite los dos signos
+   según el equipo (`calcCardioOnco` usa `Math.abs` a propósito) y el criterio de la ESC 2022 es
+   una caída ≥15 % relativa, no en puntos. La FEVI va en puntos porcentuales. Mezclar las dos
+   unidades en una sola columna es el error que esta tabla tiene que evitar. */
+const CO_UMBRAL_FEVI_CAIDA = 10;   // pp — caída significativa
+const CO_UMBRAL_FEVI_ABS   = 50;   // %  — valor absoluto por debajo del cual hay disfunción
+const CO_UMBRAL_GLS_REL    = 15;   // %  — caída relativa significativa
+function coTablaEvolucion() {
+  const num = id => { const n = v(id); return (n === null || !isFinite(n)) ? null : n; };
+  const fb = num('co_fevi_basal'), gb = num('co_gls_basal');
+  const gbAbs = (gb !== null && Math.abs(gb) > 0) ? Math.abs(gb) : null;
+  const dF = x => (x === null || fb === null) ? null : (x - fb);                    // pp, signo = dirección
+  const dG = x => (x === null || gbAbs === null) ? null : ((Math.abs(x) - gbAbs) / gbAbs) * 100;
+  const filas = [];
+  if (fb !== null || gb !== null) filas.push({ etq:'Basal', fecha:'', fevi:fb, gls:gb, dFevi:null, dGls:null, basal:true });
+  (typeof coSerieCongelada === 'function' ? coSerieCongelada() : []).forEach(p => {
+    filas.push({ etq:'Control', fecha:p.fecha, fevi:p.fevi, gls:p.gls, dFevi:dF(p.fevi), dGls:dG(p.gls), nota:p.nota });
+  });
+  const fa = num('co_fevi_actual'), ga = num('co_gls_actual');
+  if (fa !== null || ga !== null) filas.push({ etq:'Actual', fecha:'', fevi:fa, gls:ga, dFevi:dF(fa), dGls:dG(ga), actual:true });
+  return filas;
+}
+window.coTablaEvolucion = coTablaEvolucion;
+
+/* Curva de evolución. DOS paneles apilados con escala propia cada uno, no dos series sobre un
+   mismo eje: la FEVI vive en 50-70 y el |GLS| en 15-22, así que compartiendo eje el GLS queda
+   aplastado contra el piso y su caída —que es el hallazgo precoz— deja de verse. Cada panel
+   lleva su línea de umbral.
+   Recibe las filas ya armadas: no lee el DOM, así que el PDF puede dibujarla fuera de pantalla. */
+function coCurvaDataURL(filas) {
+  const pts = (filas || []).filter(f => f.fevi !== null || f.gls !== null);
+  if (pts.length < 2) return null;                    // una sola medición no es una curva
+  const W = 560, H = 300, k = 2;
+  const cv = document.createElement('canvas');
+  cv.width = W * k; cv.height = H * k;
+  const c = cv.getContext('2d'); c.scale(k, k);
+  c.fillStyle = '#ffffff'; c.fillRect(0, 0, W, H);
+
+  const fbN = (filas.find(f => f.basal) || {}).fevi;
+  const gbN = (filas.find(f => f.basal) || {}).gls;
+  const panel = (y0, alto, serie, umbrales, titulo, color) => {
+    const mL = 44, mR = 12, gY = 16;
+    const vals = serie.map(s => s.v).filter(x => x !== null);
+    const umbV = umbrales.map(u => u.v).filter(x => x !== null && isFinite(x));
+    /* Sin valores se dibuja el TITULO y el aviso, no un rectángulo en blanco: `pts.length >= 2`
+       se satisface sólo con GLS, así que un paciente con controles de strain y sin FEVI daba
+       una imagen cuya mitad superior era blanco liso, sin nada que explicara por qué, dentro de
+       un informe firmado. Un panel vacío sin rótulo se lee como un fallo de impresión. */
+    if (!vals.length) {
+      c.fillStyle = '#333'; c.font = 'bold 11px Helvetica, Arial, sans-serif';
+      c.fillText(titulo, mL, y0 + 11);
+      c.fillStyle = '#999'; c.font = '10px Helvetica, Arial, sans-serif';
+      c.fillText('Sin mediciones cargadas.', mL, y0 + 30);
+      return;
+    }
+    let lo = Math.min.apply(null, vals.concat(umbV)), hi = Math.max.apply(null, vals.concat(umbV));
+    if (hi - lo < 5) { const m = (hi + lo) / 2; lo = m - 3; hi = m + 3; }
+    const pad = (hi - lo) * 0.15; lo -= pad; hi += pad;
+    const px = i => mL + (W - mL - mR) * (serie.length === 1 ? 0.5 : i / (serie.length - 1));
+    const py = val => y0 + gY + (alto - gY - 18) * (1 - (val - lo) / (hi - lo));
+    // marco y título
+    c.fillStyle = '#333'; c.font = 'bold 11px Helvetica, Arial, sans-serif';
+    c.fillText(titulo, mL, y0 + 11);
+    c.strokeStyle = '#d0d0d0'; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(mL, y0 + gY); c.lineTo(mL, y0 + alto - 18); c.lineTo(W - mR, y0 + alto - 18); c.stroke();
+    // umbrales
+    umbrales.forEach(u => {
+      if (u.v === null || !isFinite(u.v) || u.v < lo || u.v > hi) return;
+      const yy = py(u.v);
+      c.strokeStyle = '#ef4444'; c.lineWidth = 1; c.setLineDash([4, 3]);
+      c.beginPath(); c.moveTo(mL, yy); c.lineTo(W - mR, yy); c.stroke(); c.setLineDash([]);
+      c.fillStyle = '#ef4444'; c.font = '9px Helvetica, Arial, sans-serif';
+      c.fillText(u.lbl, mL + 3, yy - 2.5);
+    });
+    // serie
+    c.strokeStyle = color; c.lineWidth = 2; c.beginPath();
+    let primero = true;
+    serie.forEach((s, i) => { if (s.v === null) return;
+      const X = px(i), Y = py(s.v);
+      if (primero) { c.moveTo(X, Y); primero = false; } else c.lineTo(X, Y); });
+    c.stroke();
+    serie.forEach((s, i) => { if (s.v === null) return;
+      const X = px(i), Y = py(s.v);
+      c.fillStyle = color; c.beginPath(); c.arc(X, Y, 3, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#333'; c.font = '9px Helvetica, Arial, sans-serif';
+      c.fillText(String(Math.round(s.v * 10) / 10), X - 7, Y - 7);
+      // etiqueta del eje X: fecha corta o el rótulo
+      c.fillStyle = '#777';
+      const et = s.etq || '';
+      c.fillText(et, X - Math.min(c.measureText(et).width / 2, 22), y0 + alto - 7);
+    });
+    // escala
+    c.fillStyle = '#999'; c.font = '9px Helvetica, Arial, sans-serif';
+    c.fillText(String(Math.round(hi)), 6, y0 + gY + 4);
+    c.fillText(String(Math.round(lo)), 6, y0 + alto - 20);
+  };
+
+  const etq = f => f.basal ? 'Basal' : (f.actual ? 'Actual' : (f.fecha ? f.fecha.slice(5) : ''));
+  panel(4, 146, pts.map(f => ({ v:f.fevi, etq:etq(f) })),
+    [{ v:CO_UMBRAL_FEVI_ABS, lbl:'FEVI ' + CO_UMBRAL_FEVI_ABS + '%' },
+     { v:(fbN != null && isFinite(fbN)) ? fbN - CO_UMBRAL_FEVI_CAIDA : null, lbl:'basal -' + CO_UMBRAL_FEVI_CAIDA + 'pp' }],
+    'FEVI (%)', '#2563eb');
+  panel(152, 146, pts.map(f => ({ v:(f.gls === null ? null : Math.abs(f.gls)), etq:etq(f) })),
+    [{ v:(gbN != null && isFinite(gbN) && Math.abs(gbN) > 0) ? Math.abs(gbN) * (1 - CO_UMBRAL_GLS_REL / 100) : null,
+       lbl:'basal -' + CO_UMBRAL_GLS_REL + '% rel.' }],
+    'GLS (%, valor absoluto)', '#7c3aed');
+  return cv.toDataURL('image/png');
+}
+window.coCurvaDataURL = coCurvaDataURL;
+
 function amiloTextoCardioOnco() {
   const L = [];
   const num = id => { const n = PF(_amV(id)); return (n === null || isNaN(n)) ? null : n; };
@@ -34129,7 +34507,8 @@ function amiloSecs() {
     { k:'aoete',lbl:'Mediciones Aorta (ETE)',          tit:'AORTA TORACICA',                           gen:amiloTextoAortaETE, grupo:'ete' },
     { k:'dpt',  lbl:'Derrame pericárdico / Taponamiento', tit:'DERRAME PERICARDICO - VALORACION HEMODINAMICA', gen:amiloTextoDPT },
     { k:'cvr',  lbl:'Constricción vs Restricción',     tit:'CONSTRICCION vs RESTRICCION',              gen:amiloTextoCVR },
-    { k:'conco',lbl:'Cardio-Oncología',                tit:'CARDIO-ONCOLOGIA - ESC 2022',   gen:amiloTextoCardioOnco },
+    { k:'conco',lbl:'Cardio-Oncología',                tit:'CARDIO-ONCOLOGIA - ESC 2022',   gen:amiloTextoCardioOnco,
+      alIntegrar:function(){ if (typeof coCongelarSerie === 'function') coCongelarSerie(); } },
     /* `hayDatos` es opcional y sólo lo usa `amiloIntegrar` para no dejar integrar una hoja
        vacía. Va acá y no dentro de `amiloIntegrar` con un `if (k === 'pulm')` para que el día
        que otro módulo lo necesite sea agregar una propiedad y no tocar el integrador. */
@@ -34206,6 +34585,12 @@ function amiloSyncBotones() {
   if (li && typeof amiloSecs === 'function') {
     li.value = amiloSecs().filter(s => amiloIntegrado(s.k)).map(s => s.k).join(',');
   }
+  /* El aviso de «serie congelada vs seguimiento» de Cardio-Oncología se repinta acá porque éste
+     es el punto único por el que pasan integrar, retirar y restaurar. Colgado sólo de
+     `renderSeguimientoLista` quedaba viejo justo después de reintegrar —decía «3 congelados y
+     4» sobre una serie que acababa de pasar a 4—, que es el único momento en que alguien lo
+     mira. */
+  if (typeof coSerieEstadoUI === 'function') { try { coSerieEstadoUI(); } catch (e) {} }
 }
 window.amiloSyncBotones = amiloSyncBotones;
 
@@ -34303,6 +34688,16 @@ function amiloIntegrar(k) {
       if (typeof toast === 'function') toast('⚠️ ' + sec.lbl + ': no hay datos cargados para integrar');
       return;
     }
+  }
+  /* `alIntegrar`: se corre ANTES de `gen()` para que la hoja se arme con el estado ya
+     congelado. Lo usa Cardio-Oncología para copiar la serie de seguimiento —que vive en una
+     clave global de localStorage indexada por paciente, NO dentro del estudio— a un campo del
+     formulario. Sin eso, reimprimir un informe firmado traería los controles agregados DESPUÉS
+     de firmarlo. Va acá y no dentro de `gen()` porque `gen()` también lo llaman los refrescos
+     automáticos, y congelar en un refresco sería congelar sin que nadie lo pida.
+     El try/catch es la misma política que `hayDatos`: un módulo no puede tumbar al integrador. */
+  if (typeof sec.alIntegrar === 'function') {
+    try { sec.alIntegrar(); } catch (e) { console.warn('[amiloIntegrar] alIntegrar de ' + k + ' lanzó:', e); }
   }
   const actual = String(ta.value || '').trim();
   if (actual === '' || actual === (_amiloUltimo[k] || '')) {
