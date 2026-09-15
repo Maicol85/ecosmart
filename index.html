@@ -8055,6 +8055,37 @@ z
           <div style="font-size:10.5px;color:var(--text2);margin-top:6px;line-height:1.5;">
             Clasificación orientativa según los parámetros disponibles. La integración clínica es del médico tratante.
           </div>
+
+          <!-- Vista previa de lo que va a salir en el informe.
+               HALLAZGOS y NOTA salen de `taviRpvNarrativa()` y del textarea, que es EXACTAMENTE
+               lo que empuja el párrafo del PDF: esas dos no pueden divergir.
+               DISPOSITIVO no: el PDF arma su propia prosa («Prótesis balón expandible Sapien 3
+               de 25 mm, en posición correcta») y acá se muestra en forma compacta
+               («TAVI Sapien 3 · 25 mm (balón expandible, posición correcta)»). Verificado campo
+               por campo que el CONTENIDO coincide en todos los casos; lo que cambia es la
+               redacción. Si se toca `taviDispositivoTxt()` hay que saber que NO se está
+               editando el PDF. -->
+          <div style="margin-top:12px;padding:10px 11px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);">
+            <div style="font-size:10.5px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">
+              Descripción para el informe
+            </div>
+            <div style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.3px;">Dispositivo</div>
+            <div id="ete-tavi-nar-disp" style="font-size:12px;color:var(--text);margin:2px 0 8px;">—</div>
+            <div style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.3px;">Hallazgos</div>
+            <div id="ete-tavi-nar-hall" style="font-size:12px;color:var(--text);margin:2px 0 0;line-height:1.5;">—</div>
+            <div id="ete-tavi-nar-nota-wrap" style="display:none;margin-top:8px;">
+              <div style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.3px;">Nota del médico</div>
+              <div id="ete-tavi-nar-nota" style="font-size:12px;color:var(--text);margin:2px 0 0;line-height:1.5;white-space:pre-wrap;"></div>
+            </div>
+            <div id="ete-tavi-nar-aviso" style="display:none;margin-top:8px;font-size:11px;line-height:1.45;padding:7px 9px;border-radius:6px;background:rgba(239,68,68,.10);border:1px solid rgba(239,68,68,.35);color:var(--text2);"></div>
+          </div>
+
+          <div class="fg" style="margin-top:10px;">
+            <label>Nota del médico <span style="font-weight:400;color:var(--text2);font-size:10px;">sale en el informe, debajo de los hallazgos</span></label>
+            <!-- `textarea` con id ⇒ lo captura `guardarInforme` en `campos` y lo repone el
+                 autosave: la nota viaja DENTRO del estudio, como las horas del diagrama. -->
+            <textarea id="ete_tavi_nota_medico" rows="2" placeholder="Observaciones sobre la prótesis, la regurgitación o el seguimiento..." oninput="eteTaviSync()"></textarea>
+          </div>
         </div>
       </div>
     </div>
@@ -20419,21 +20450,24 @@ function generarInforme(opts) {
         if(f1(avai)) gr.push('AVA indexada '+f1(avai)+' cm²/m²');
         if(f1(dvi))  gr.push('DVI '+f1(dvi));
         if(gr.length) p.push(gr.join(', ').replace(/^./,c=>c.toUpperCase()));
-        if(rpv){
-          let s='Insuficiencia paravalvular '+rpv.sev.toLowerCase();
-          if(horas.length) s+=', jet localizado en hora '+horas.join(', ');
-          if(f1(ext)) s+=', extensión circunferencial '+f1(ext)+'%';
-          p.push(s);
-        } else if(horas.length){
-          /* Las horas se informan aunque no alcance para graduar: el widget es lo más visible
-             de la sección y, sin esto, marcar el jet y no transcribir el porcentaje a mano
-             hacía desaparecer ese trabajo del informe sin ningún aviso. */
-          p.push('Jet paravalvular localizado en hora '+horas.join(', ')+
-            (f1(ext)?', extensión circunferencial '+f1(ext)+'%':''));
-        }
+        /* La frase de la regurgitación sale de `taviRpvNarrativa()`, la MISMA función que pinta
+           la vista previa de la pantalla, así que las dos no pueden divergir. Antes se armaba
+           acá a mano —con `join(', ')`, que imprimía «en hora 3, 7, 9», una enumeración sin
+           «y»— y la pantalla no la mostraba en ningún lado.
+           La rama `negativa` es nueva y es la única que AFIRMA: está dentro de `hayProtesis`,
+           o sea que sólo se dice «sin insuficiencia paravalvular significativa» en un estudio
+           donde consta la prótesis implantada. Y no puede convivir con la cápsula de severidad,
+           porque `taviRpvNarrativa` sólo devuelve `negativa` con `eteTaviRPV()` en null. */
+        const _nar = (typeof taviRpvNarrativa==='function') ? taviRpvNarrativa() : null;
+        if(_nar) p.push(_nar.txt);
         if(f1(pht)) p.push('PHT '+f1(pht)+' ms');
         if(flujo) p.push('Flujo reverso diastólico en aorta descendente '+(TAVI_TXT.flujo[flujo]||flujo));
         etePars.push(p.join('. ')+'.');
+        /* La nota del médico va en su propio párrafo y al final, debajo de los hallazgos, que es
+           donde la pidió Maicol. Párrafo aparte y no concatenada: es texto libre y puede traer
+           varias oraciones; pegada al resto quedaba colgando de un «. ». */
+        const _notaT = (document.getElementById('ete_tavi_nota_medico')||{}).value || '';
+        if(String(_notaT).trim()) etePars.push(String(_notaT).trim());
       }
 
       if(hayProtesis){
@@ -28937,20 +28971,104 @@ function eteTaviRPV(){
   const flujo=sv('ete_tavi_flujo_rev'), velT=v('ete_tavi_vel_tele');
   const holoSevero = (flujo==='holo' && velT!=null && velT>=20);
   if(ext==null && vc==null && vcA==null && pht==null && !holoSevero) return null;
+  /* Un CERO medido es la constancia de que se buscó el jet y no está, no un jet trivial. Antes
+     caía en `triv` y, con ese único parámetro, la cascada salía por el `return` final con
+     «Leve»: el informe firmado imprimía «Insuficiencia paravalvular leve, extensión
+     circunferencial 0%» — el grado contradiciendo al número que lo sostiene, dentro del mismo
+     paréntesis. Es el `else` mudo de siempre. Los ceros se cuentan aparte y habilitan la única
+     conclusión negativa que este motor emite. */
+  const cero = (x) => x === 0;
+  const _medidoCero = cero(ext) || cero(vc) || cero(vcA);
   const sev=[], mod=[], triv=[];
-  if(ext!=null) (ext>=30?sev:(ext>=10?mod:triv)).push('extensión '+ext+'%');
-  if(vc!=null)  (vc>0.6?sev:(vc>=0.3?mod:triv)).push('vena contracta '+vc+' cm');
+  if(ext) (ext>=30?sev:(ext>=10?mod:triv)).push('extensión '+ext+'%');
+  if(vc)  (vc>0.6?sev:(vc>=0.3?mod:triv)).push('vena contracta '+vc+' cm');
   /* El área de vena contracta también gradúa: es la medida 3D recomendada, y quien la mide
      en vez del ancho se quedaba sin severidad y sin línea de RPV en el informe. */
-  if(vcA!=null) (vcA>=0.30?sev:(vcA>=0.10?mod:triv)).push('área de vena contracta '+vcA+' cm²');
+  if(vcA) (vcA>=0.30?sev:(vcA>=0.10?mod:triv)).push('área de vena contracta '+vcA+' cm²');
   if(pht!=null) (pht<200?sev:(pht<=500?mod:triv)).push('PHT '+pht+' ms');
   if(holoSevero) sev.push('flujo holodiastólico con velocidad tele-diastólica '+velT+' cm/s');
   if(sev.length) return {sev:'Severa',   cls:'red',    motivo:sev.join(' · ')};
   if(mod.length) return {sev:'Moderada', cls:'orange', motivo:mod.join(' · ')};
   if(triv.length>=3) return {sev:'Trivial', cls:'green', motivo:triv.join(' · ')};
-  return {sev:'Leve', cls:'yellow',
+  if(triv.length) return {sev:'Leve', cls:'yellow',
           motivo:triv.join(' · ')+' — faltan parámetros para descartar mayor severidad'};
+  /* Todo lo medido dio cero: se buscó y no hay. `nula` lo distingue de un grado para que el
+     narrativo lo redacte como negación en vez de como «insuficiencia sin rpv». */
+  if(_medidoCero) return {sev:'Sin RPV', cls:'green', nula:true, motivo:'sin jet paravalvular detectable'};
+  return null;
 }
+/* ══ Narrativa de la regurgitación paravalvular ══════════════════════════════════════════
+   UNA sola función para la pantalla y para el PDF. Las horas salen del diagrama
+   (`ete_tavi_jet_horas`) y la severidad de `eteTaviRPV()` —el motor que ya existe, con
+   extensión circunferencial, vena contracta, área de VC, PHT y flujo reverso, que es como
+   gradúa VARC-3—. NO se cuenta segmentos para graduar: sería un segundo motor de severidad al
+   lado del primero, y dos motores dicen cosas distintas sobre el mismo jet en el mismo informe.
+   Decisión de Maicol tras el reporte, 2026-09-14.
+
+   Devuelve `{txt, clave}`; `clave` es para que el llamador sepa qué caso salió sin parsear el
+   texto. `null` = no hay nada que decir, y NO es decorativo: es el caso en que la regurgitación
+   no se evaluó y por lo tanto no se afirma ni se niega. */
+function taviRpvNarrativa(){
+  const horas = (typeof eteEpcHoras==='function') ? eteEpcHoras() : [];
+  const rpv   = (typeof eteTaviRPV==='function')  ? eteTaviRPV()  : null;
+  const ext   = v('ete_tavi_ext_circ');
+  const flujo = sv('ete_tavi_flujo_rev');
+  const f1 = n => (n==null||!isFinite(n)) ? null : String(Math.round(n*10)/10);
+  /* «hora 3» · «horas 3 y 7» · «horas 3, 7 y 9». El «y» antes de la última: con `join(', ')`
+     el informe firmado decía «en hora 3, 7, 9», que se lee como una enumeración truncada. */
+  const listaHoras = () => horas.length === 1 ? 'hora ' + horas[0]
+    : 'horas ' + horas.slice(0,-1).join(', ') + ' y ' + horas[horas.length-1];
+  const extTxt = f1(ext) ? ', extensión circunferencial ' + f1(ext) + '%' : '';
+
+  /* `rpv.nula` = se midió y dio cero. Es la ÚNICA vía por la que este módulo niega, y sale del
+     mismo motor que gradúa, así que la cápsula de pantalla y el informe no pueden discrepar. */
+  if (rpv && rpv.nula && !horas.length) return { clave:'negativa',
+    txt:'Sin insuficiencia paravalvular significativa' };
+  if (rpv && rpv.nula) return { clave:'sin_graduar',
+    txt:'Jet paravalvular localizado en ' + listaHoras() };
+  if (rpv && horas.length) return { clave:'graduada_con_horas',
+    txt:'Insuficiencia paravalvular ' + rpv.sev.toLowerCase() + ', jet localizado en ' + listaHoras() + extTxt };
+  if (rpv) return { clave:'graduada', txt:'Insuficiencia paravalvular ' + rpv.sev.toLowerCase() + extTxt };
+  /* Horas marcadas sin parámetros para graduar: se informa la localización y NO se gradúa.
+     Inventar «leve» porque hay pocas horas sería el segundo motor por la puerta de atrás. */
+  if (horas.length) return { clave:'sin_graduar',
+    txt:'Jet paravalvular localizado en ' + listaHoras() + extTxt };
+  /* Flujo reverso consignado como AUSENTE: es una afirmación explícita del médico —se buscó y
+     no está— y alcanza para negar aunque no se haya medido la vena contracta ni la extensión. */
+  if (flujo === 'ausente') return { clave:'negativa',
+    txt:'Sin insuficiencia paravalvular significativa' };
+  /* NO SE NIEGA. Sin horas, sin un solo parámetro de RPV medido y sin el flujo reverso
+     consignado, nadie evaluó la regurgitación: afirmar «sin insuficiencia paravalvular
+     significativa» acá era el default tranquilizador que este archivo ya documenta con los tres
+     selects del TEER. Peor todavía, podía salir a un punto de distancia de «flujo reverso
+     diastólico en aorta descendente holodiastólico» —que se imprime aparte y es signo de
+     regurgitación al menos moderada— negando y describiendo el mismo hallazgo en la misma
+     oración. Devolver `null` deja el párrafo sin la frase, que es lo que hacía antes del
+     cambio. */
+  return null;
+}
+window.taviRpvNarrativa = taviRpvNarrativa;
+
+/* «TAVI Sapien 25» — tipo, marca y tamaño, en el orden en que se dicta. Sólo lo cargado. */
+function taviDispositivoTxt(){
+  const tipo = sv('ete_tavi_pro_tipo'), marca = (sv('ete_tavi_pro_marca')||'').trim();
+  const tam  = v('ete_tavi_pro_tam'),  pos   = sv('ete_tavi_pro_pos');
+  if (!tipo && !marca && tam == null && !pos) return null;
+  const T = (typeof TAVI_TXT!=='undefined' && TAVI_TXT.tipo) ? TAVI_TXT.tipo : {};
+  const P = (typeof TAVI_TXT!=='undefined' && TAVI_TXT.pos)  ? TAVI_TXT.pos  : {};
+  /* El tamaño va separado y CON unidad. Pegado a la marca daba «TAVI Sapien 3 25»: los modelos
+     llevan número propio —Sapien 3, Evolut R 34— y los dos números seguidos se leen como uno
+     solo o como una versión. */
+  let s = 'TAVI';
+  if (marca) s += ' ' + marca;
+  if (tam != null && isFinite(tam)) s += (marca ? ' · ' : ' ') + (Math.round(tam*10)/10) + ' mm';
+  const det = [];
+  if (tipo) det.push(T[tipo] || tipo);
+  if (pos)  det.push('posición ' + (P[pos] || pos).toLowerCase());
+  return s + (det.length ? ' (' + det.join(', ') + ')' : '');
+}
+window.taviDispositivoTxt = taviDispositivoTxt;
+
 function eteTaviSync(){
   const txt=(id,val)=>{ const e=document.getElementById(id); if(e) e.textContent=val; };
   // La velocidad tele-diastólica sólo aplica al patrón holodiastólico
@@ -28969,6 +29087,38 @@ function eteTaviSync(){
   if(el) el.innerHTML = r ? badge(r.cls, r.sev)
     : '<span style="color:var(--text2);font-size:11px;">Completar parámetros para clasificación automática</span>';
   txt('ete-tavi-rpv-motivo', r ? r.motivo : '—');
+
+  /* Vista previa del narrativo. `textContent` y no `innerHTML`: el texto lleva la marca del
+     dispositivo, que el médico tipea libre en `ete_tavi_pro_marca`. */
+  const disp = (typeof taviDispositivoTxt==='function') ? taviDispositivoTxt() : null;
+  txt('ete-tavi-nar-disp', disp || '— sin prótesis consignada');
+  const nar = (typeof taviRpvNarrativa==='function') ? taviRpvNarrativa() : null;
+  /* EL MISMO PREDICADO QUE EL PDF, no uno por rama. El párrafo firmado entero está dentro de
+     `if(hayProtesis)`, así que sin prótesis consignada NO sale nada: ni la regurgitación ni la
+     nota del médico. Una primera versión gateaba con `!disp` sólo la rama negativa, de modo que
+     un control post-TAVI con la RPV medida y el modelo sin consignar —caso habitual, no siempre
+     se tiene la marca a mano— mostraba «Insuficiencia paravalvular moderada, extensión 15%»
+     bajo el rótulo «Descripción para el informe» y el PDF no imprimía una palabra. El médico
+     leía que el hallazgo viajaba, no lo transcribía, y la RPV moderada desaparecía del documento
+     firmado. Lo introducía esta misma vista previa: antes no había nada que prometiera nada. */
+  const hallEl = document.getElementById('ete-tavi-nar-hall');
+  const avisoEl = document.getElementById('ete-tavi-nar-aviso');
+  if (!disp) {
+    txt('ete-tavi-nar-hall', '—');
+    if (avisoEl) {
+      avisoEl.textContent = 'Falta consignar la prótesis (tipo, marca, tamaño o posición): sin eso, NADA de este bloque sale en el informe, tampoco la nota.';
+      avisoEl.style.display = '';
+    }
+  } else {
+    txt('ete-tavi-nar-hall', nar ? nar.txt + '.' : '— regurgitación paravalvular no evaluada');
+    if (avisoEl) avisoEl.style.display = 'none';
+  }
+  /* La nota se muestra en la vista previa: su etiqueta promete que sale en el informe, y sin
+     verla acá la única señal de que se descartó era la ausencia. */
+  const notaV = ((document.getElementById('ete_tavi_nota_medico')||{}).value || '').trim();
+  const notaWrap = document.getElementById('ete-tavi-nar-nota-wrap');
+  if (notaWrap) notaWrap.style.display = (notaV && disp) ? '' : 'none';
+  txt('ete-tavi-nar-nota', notaV);
 }
 window.eteTaviSync = eteTaviSync;
 

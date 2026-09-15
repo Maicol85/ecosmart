@@ -189,6 +189,37 @@ Lo que estaba en juego: FA con NT-proBNP entre 365 y 375 —diez pg/ml— donde 
 pasa de 0 a 1 punto, suficiente para mover el total de 4 a 5, o sea de «probabilidad intermedia»
 a «HFpEF confirmado» en un informe firmado.
 
+### Una vista previa promete, y si el PDF no cumple es peor que no tenerla
+El bloque «Descripción para el informe» del post-TAVI nació gateando con `!disp` **sólo la rama
+negativa**, mientras el párrafo del PDF entero vive dentro de `if(hayProtesis)`. Resultado: un
+control post-TAVI con la regurgitación medida y el modelo del dispositivo sin consignar —caso
+habitual, no siempre se tiene la marca a mano— mostraba «Insuficiencia paravalvular moderada,
+extensión 15%» bajo un rótulo que dice «para el informe», y el PDF firmado no imprimía **una
+palabra**. El médico lee que el hallazgo viaja, no lo transcribe, y desaparece.
+
+Antes de la vista previa no había falsa garantía: **la regresión la introduce la promesa**. Si
+se agrega una, su compuerta tiene que ser **el mismo predicado** que la del emisor, no uno por
+rama — y cuando no se cumple, decirlo («falta consignar la prótesis: nada de este bloque sale en
+el informe»), no mostrar un guion.
+
+### Negar exige evidencia de haber buscado
+`taviRpvNarrativa()` salió con «Sin insuficiencia paravalvular significativa» para el caso «sin
+horas marcadas y sin ningún parámetro» — que es exactamente el estado de *nadie la evaluó*.
+Tildar «Integrar al informe» y elegir el tipo de prótesis alcanzaba para que el informe firmado
+negara la regurgitación. Y podía salir **a un punto de distancia** de «Flujo reverso diastólico
+en aorta descendente holodiastólico», que se imprime aparte y es signo de regurgitación al menos
+moderada: el mismo párrafo negando y describiendo el hallazgo.
+
+Hoy la negación necesita una de dos evidencias explícitas: un parámetro **medido en cero**
+(`rpv.nula`) o el flujo reverso consignado como **ausente**. Sin eso, `null` y el párrafo se
+calla. Mismo criterio que los tres selects del TEER: el default no puede ser la respuesta
+tranquilizadora.
+
+De paso: un cero medido tampoco es un hallazgo trivial. `ext_circ = 0` caía en la lista `triv`
+de `eteTaviRPV` y, con ese único parámetro, la cascada salía por el `return` final con **«Leve»**
+— el informe imprimía «Insuficiencia paravalvular leve, extensión circunferencial 0%», el grado
+contradiciendo al número que lo sostiene dentro del mismo paréntesis.
+
 ### Si el valor lo pusiste vos, no probaste nada
 Al cerrar la fuga del centro en reimpresión (2026-09-14) monté la prueba escribiendo
 `med-centro.textContent = 'CENTRO AL FIRMAR'` desde la consola, vi la fuga, la arreglé, vi que
