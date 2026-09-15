@@ -675,6 +675,199 @@ que el import de Excel no lo escribe y nada lo recalcula al abrir: importar una 
 corregida deja el gradiente viejo, y ahora el detalle los muestra **juntos**. Es
 «bloquear no es recalcular» otra vez. Sin resolver.
 
+## Antes de cada push — dos scripts
+
+Los dos viven en `ecosmart/scripts/`, no tocan `index.html` y devuelven código de salida 1 si
+hay algo que mirar, así que se pueden enganchar a un pre-push.
+
+### 1 · Campos huérfanos
+
+```bash
+python3 scripts/detectar_huerfanos.py
+```
+
+Busca controles que el médico ve y puede cargar, pero cuyo id **no nombra nadie en el
+JavaScript**: el dato se carga, se guarda en `campos` —porque `guardarInforme` barre `input[id]`
+sin mirar cuál— y después no sale en el informe, ni en el PDF, ni en el Excel. Desaparece sin
+aviso. Es el bug del cayado aórtico (punto 8 de las lecciones de abajo).
+
+**Si aparece un campo nuevo en la lista:** verificar que tiene destino —informe narrativo, EN
+SUMA, tabla del PDF, PPT, Excel del Laboratorio o alguna función de cálculo que alimente a
+esos— o documentar por qué es local, agregándolo a `CONOCIDOS_LOCALES` **con el motivo**. Una
+lista de exclusiones sin razones es donde se esconden los bugs.
+
+Validado contra el commit anterior al arreglo: marca `diam_cayado` y `diam_ao_toracica`, y
+desaparecen al arreglarlos. Hoy: 709 campos, 613 con destino, 9 con id armado por concatenación,
+86 fuera del estudio por prefijo, **1 candidato** (`oai_lobulos`, ver «Deuda conocida»).
+
+El script contesta *«nadie lo nombra»*, no *«no tiene destino»*: un id mencionado una sola vez
+—por ejemplo en `limpiarCampos`— tiene mención y no tiene destino. La decisión final es humana.
+
+### 2 · Test suite clínico
+
+```bash
+node scripts/test_clinico.mjs            # los 17 casos
+node scripts/test_clinico.mjs --solo TC-04
+node scripts/test_clinico.mjs --ver      # con el navegador a la vista, para depurar
+```
+
+**Correr antes de cualquier push que toque el informe narrativo, el EN SUMA o una fórmula de
+cálculo. Tienen que pasar los 17. Si alguno falla, corregir antes de seguir.**
+
+Cubre los bugs del 2026-09-14: VD que desaparecía (TC-01 a TC-03), gradiente pulmonar congelado
+(TC-04), AD ausente del EN SUMA (TC-06), HFA-PEFF sin compuerta de FEVI (TC-07/08), los tres
+escenarios de estenosis aórtica (TC-09/10/11), fuga entre pacientes (TC-12), la contraindicación
+invertida del TEER (TC-13), aorta (TC-14/15) y las sincronías de PSAP y e' (TC-16/17).
+
+**No usa Playwright** — `pip install` está bloqueado en este entorno y bajar un Chromium propio
+son ~150 MB. Node 24 trae `fetch` y `WebSocket` nativos, así que el script habla **CDP directo
+contra el Google Chrome del sistema**: cero dependencias, cero descargas, y prueba sobre el motor
+real en vez de sobre un DOM simulado. Si mañana no hay Chrome, el script lo dice y sale con 2.
+
+**Un suite que no sabe fallar no sirve.** Verificado corriéndolo contra `c055342~1`, el commit
+anterior a los arreglos: da **6/17**, y TC-04 imprime literalmente «valor esperado: 64 ·
+encontrado: 16». Si se agregan casos, hacer lo mismo — probar que el caso nuevo se pone rojo
+sobre el código que tenía el defecto.
+
+## LECCIONES APRENDIDAS — 14/09/2026
+
+Retrospectiva de la sesión del 2026-09-14 (commits `762b739` … `61e0bd3`). Las trampas
+operativas están arriba, en «Trampas», con el detalle técnico; esto es el índice de qué salió
+mal y qué regla queda.
+
+**Tres puntos del pedido original no coincidían con lo verificado en el navegador y se
+corrigieron acá en vez de copiarse.** Están marcados con ⚠︎. Escribir una lección falsa en este
+archivo es peor que no escribirla: es el archivo que la próxima sesión lee como verdad, y hoy ya
+nos pasó dos veces (ver el punto 15).
+
+1. **VD desapareció del informe.** El commit `58fccf6` unificó tamaño y función en una oración y
+   dejó vacía la rama «todo normal», así que un VD medido y normal salía idéntico a uno que nadie
+   miró. Y la compuerta `tapse || sp` hacía desaparecer el VD entero —incluido un basal de
+   48 mm— si no se había medido OTRA cosa. *Precisión: no desaparecía de todos los informes; sí
+   del caso normal siempre, y del dilatado cuando faltaban TAPSE y S'.*
+   **Lección:** al unificar compuertas, enumerar los escenarios, incluido el de campo único. La
+   compuerta correcta era «¿hay alguna medida del VD?», no «¿hay TAPSE o S'?».
+
+2. **Gradiente pulmonar congelado.** `if (vmax && !gmax)` calculaba una sola vez. Con el
+   `oninput` disparando por carácter, tipear «4.5» dejaba el gradiente del «4» intermedio.
+   **Lección:** un campo derivado se recalcula **siempre** que cambia su origen, y se **limpia**
+   cuando el origen desaparece. Si no, el informe publica dos números contradiciéndose dentro del
+   mismo paréntesis. Y antes de creerle al diagnóstico de un bug de cálculo, reproducirlo: el
+   reporte decía «falta elevar al cuadrado» y la fórmula estaba bien desde siempre.
+
+3. **FAC y FEVD no son lo mismo.** FAC = 2D por áreas, corte <35 %. FEVD = 3D/RMC, corte <45 %.
+   **Lección:** documentar el método en el comentario del campo, y no cablear un campo huérfano a
+   un cálculo que mide otra cosa sólo porque el nombre suena parecido.
+
+4. **Contraindicación invertida en el TEER.** `_teerAsciiPDF` mapeaba ❌→«NO» al sanear para
+   jsPDF, así que «❌ CONTRAINDICADO — trombo en aurícula izquierda» se imprimía
+   **«NO CONTRAINDICADO»**. *Lo agarró el `/differential-review`: nunca llegó a un paciente.*
+   **Lección:** al sanear texto para el PDF, los iconos se **borran**, no se traducen — el texto
+   que queda ya dice qué pasa. Y todo estado negativo de seguridad clínica se verifica leyendo la
+   salida real, no el código que la produce.
+
+5. **Fuga de estado entre pacientes.** Dos vías, las dos con id en el DOM:
+   `dataset.derivadoDe` / `sugerido` / `espejoDe` viven en el nodo y `limpiarCampos` sólo vacía
+   `.value`; y los `input[type=hidden]` (`ete_tavi_jet_horas`, `co_serie_json`) no entran en el
+   barrido `input[type=text], input[type=number]`.
+   ⚠︎ *La formulación original decía «todo campo que no tiene id en el DOM». No es eso: los cuatro
+   casos SÍ tienen id. El criterio real es el de abajo.*
+   **Lección:** **no persistirse no es lo mismo que limpiarse.** Todo lo que no lo alcance el
+   barrido de `.value` —marcas de `dataset`, inputs ocultos, `display` inline— se limpia a mano en
+   `limpiarCampos` y se respalda en la reimpresión. Medido: la serie de seguimiento del paciente A
+   terminaba dentro del estudio del paciente B, guardada e impresa en su hoja.
+
+6. **FAC clasificada sobre un número y publicada sobre otro.** La cápsula clasificaba el valor
+   CRUDO (34,5 → «disfunción, <35 %») y el campo guardaba el REDONDEADO (35), que es lo que lee
+   el informe (→ «función conservada»). Pantalla e informe se contradecían.
+   ⚠︎ *La lección original decía «clasificar siempre el valor crudo, no el formateado». Es al
+   revés de lo que se hizo y reintroduciría el bug.*
+   **Lección:** clasificar **el valor que se imprime**. Si se publica redondeado, se clasifica
+   redondeado. Lo que no puede pasar es que el número que decide la banda y el número que sale en
+   el informe sean distintos. Es el mismo cierre que ya tenía `calcGeometriaVI`.
+
+7. **`ea_grado` vs las mediciones — dos fuentes de verdad.** Manda `ea_grado` (la pastilla, que
+   fija el médico y viaja con el estudio); el algoritmo aporta el subtipo y los datos entre
+   paréntesis. Si se contradicen, el informe **lo dice** en vez de elegir por su cuenta.
+   **Lección:** cuando hay dos fuentes para el mismo dato, definir cuál manda, documentarlo, y
+   publicar la discrepancia en vez de resolverla en silencio.
+
+8. **Campos huérfanos — cayado y aorta torácica descendente.** `diam_cayado` y
+   `diam_ao_toracica` existían en pantalla sin `oninput`, fuera de `AO_SEGS`, del informe, de la
+   tabla del PDF y del Excel. El médico los cargaba y desaparecían.
+   **Lección:** todo campo visible necesita un destino —informe, tabla del PDF, Laboratorio o
+   Excel—. Si no lo tiene, es un campo que promete y no cumple. El `grep` de su id es de diez
+   segundos.
+
+9. **Asimetría entre estructuras análogas.** La AD dilatada llegaba al narrativo y no al EN SUMA;
+   la AI dilatada sí. Mismo patrón en pre/post TAVI y en las rutas de restauración.
+   **Lección:** al implementar un comportamiento para una cavidad, válvula o módulo, recorrer
+   sistemáticamente sus análogos y verificar que tienen el mismo tratamiento.
+
+10. **HFA-PEFF sin compuerta de FEVI.** El score es exclusivo de FEVI ≥50 % y se calculaba con
+    cualquiera. Se bloquea en las cinco superficies (pantalla, línea del Doppler, informe, EN
+    SUMA, hoja del PDF) **y en el Laboratorio**, que era la quinta y no lo miraba: el mismo
+    paciente salía HFrEF en su informe y HFpEF en la estadística.
+    **Lección:** documentar las precondiciones clínicas de un score y bloquear el cálculo si no se
+    cumplen. Y que la compuerta viaje dentro del resultado no obliga a nadie a mirarla: hay que
+    recorrer los consumidores uno por uno.
+
+11. **Insuficiencia pulmonar cargada y ausente del informe.** `ip_grado`, `ip_vmax` e `ip_vtd` no
+    los leía nadie del narrativo.
+    **Lección:** todo campo clínico cargado necesita reflejo en el informe. Si no hay texto para
+    él, es un bug, no una decisión.
+
+12. **TEER mostraba criterios de otro tipo de IM.** Los de coaptación (IM funcional) aparecían en
+    la primaria y al revés. Pero el arreglo trajo lo importante: **ocultar un campo y dejar de
+    contarlo son la misma decisión**, y al mover las longitudes de velo al bloque de la primaria
+    dejaron de vetar en la secundaria — un «❌ NO apto» pasó a «✅ APTO» en la hoja firmada.
+    **Lección:** filtrar campos por tipo de patología está bien; hacerlo tiene que gatear por el
+    **dato** (`teer_tipo_im`), nunca por la visibilidad, y un criterio que NO APLICA no es un
+    criterio que FALTA.
+
+13. ⚠︎ **PREMISA FALSA — el pre-TAVI SÍ integra al informe.** Verificado en el navegador: el
+    botón «Integrar al informe» existe (es el mismo `ete_tavi_incluir_chk` para pre y post) y con
+    anillo, senos y coronarias cargados el párrafo pre-TAVI sale completo. Sin tildar no sale
+    nada — que es el comportamiento de todos los módulos del ETE.
+    **Lo que queda de la lección, que sigue valiendo:** los módulos que forman un par
+    (pre/post, basal/seguimiento) tienen que comportarse igual, y eso hay que verificarlo. Acá la
+    verificación dio simétrico.
+
+14. ⚠︎ **PREMISA FALSA — la PSAP normal YA aparece en la tabla del PDF.** Verificado con VRT 2,2
+    y PmAD 3 (PSAP 22, normal): el PDF imprime la fila. Sale siempre que `psap_calc` tenga valor,
+    en las dos tablas, sin mirar si es normal o alta.
+    **Matiz importante de la lección propuesta:** «la compuerta debe ser ¿hay dato?, no ¿el dato
+    es patológico?» vale para **publicar un valor medido**. NO vale para **afirmar una
+    normalidad**: sin medición no se niega nada (aorta sin medir, RPV sin evaluar, VD sin
+    diámetro). Las dos reglas conviven — publicar lo medido, callar lo no medido.
+
+15. **La disputa del NT-proBNP en FA — 375 vs 365.** El valor correcto es **375** (Pieske et al.,
+    Eur Heart J 2019;40:3297-3317; criterio menor en FA 375-660 pg/mL). Ya se había corregido en
+    `2693c48` (2026-08-26) con la justificación escrita arriba de la función, y **lo volví a
+    bajar a 365 en esta sesión**, de memoria, con un comentario nuevo que decía «estaba en 375
+    desde siempre» —falso— contradiciendo al que estaba dos líneas más abajo sin tocarlo. Lo
+    agarró el `/differential-review`.
+    **Regla:** antes de cambiar un número clínico, `git log -S "<el valor viejo>"`. Si hay un
+    comentario que lo justifica, leerlo. Si se cambia igual, **reescribir ese comentario en el
+    mismo commit**: un archivo que afirma las dos cosas a dos líneas de distancia garantiza que
+    el próximo pase lo vuelva a dar vuelta.
+
+16. **La serie de Cardio-Oncología no viajaba con el estudio.** `co_seguimiento` vive en una
+    clave global de localStorage indexada por paciente: reimprimir un informe firmado en marzo
+    traía los controles de junio.
+    **Lección:** todo dato que sale en el PDF firmado tiene que viajar **dentro del estudio**
+    (en `campos`), no en una clave global. La serie se congela al integrar y sólo cambia al
+    reintegrar explícitamente — con aviso en pantalla cuando la congelada y la viva difieren, que
+    se compara por **contenido** y no por cantidad.
+
+**El patrón que atraviesa la sesión:** de las correcciones pedidas, seis partían de premisas que
+no se sostuvieron al abrir el código (gradiente pulmonar, AVA en las tablas, bandas de `ao_st`,
+pre-TAVI, PSAP normal, botón de indicaciones). Verificar la premisa antes de construir ahorró
+trabajo en todos los casos y evitó cambios que habrían roto cosas que funcionaban. Y de los
+defectos GRAVES encontrados en los reviews, la mayoría los había introducido yo en el mismo
+cambio que venía a arreglar otra cosa: **correr `/differential-review` sobre el diff antes de
+cada push no es burocracia, es lo que atrapó la contraindicación invertida.**
+
 ## Tests de regresión
 
 `tests/regresion.json` tiene dos pacientes. **Correr los dos en el navegador antes de cada
@@ -2681,6 +2874,15 @@ criterio». Si aparece, la palanca es juntar las salvedades con la línea de la 
   es «no listarla», no «negarla» con el fallback de «sin alteraciones significativas».
 
 **Queda abierto, sin tocar en este commit:**
+- **`oai_lobulos` es un campo huérfano.** El select «Lóbulos» de la orejuela izquierda (1 / 2 /
+  3 o más) no lo lee nadie: no entra en `calcOAI`, ni en `amiloTextoOAI`, ni en el informe, ni
+  en las tablas del PDF, ni en el Excel. El médico lo carga y desaparece — exactamente el patrón
+  del cayado aórtico. Lo detectó `scripts/detectar_huerfanos.py` en su primera corrida
+  (2026-09-15). El número de lóbulos es morfología relevante para el cierre percutáneo
+  (Watchman/Amulet: la orejuela multilobulada complica el sellado), así que lo más probable es
+  que corresponda llevarlo a la hoja de OAI. No se tocó porque el pedido era no modificar
+  `index.html`. Mientras tanto está en `CONOCIDOS_LOCALES` del script para que la lista quede en
+  cero y un huérfano NUEVO se vea al toque.
 - **El anillo aórtico del TAVI tiene UN solo diámetro** (`ete_tavi_anillo_diam`, «ETE 120–140°»),
   así que no se puede calcular el área ni el perímetro de la elipse: de un diámetro sale un
   círculo, que es lo que el anillo aórtico no es. Área y perímetro siguen tipeándose a mano,
