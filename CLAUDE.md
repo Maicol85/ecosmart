@@ -162,6 +162,35 @@ tema y pasaría sin probar el modo noche (me pasó al verificarlo a mano). Y **l
 `:hover` quedan sin cobertura**: `getComputedStyle` no resuelve pseudo-clases sin hover real, y
 mutarlas no pone nada en rojo — verificado, no supuesto.
 
+### Ante dos guías: la más reciente y la más estricta. Nunca retroceder en seguridad clínica
+Regla permanente de este proyecto (Maicol, 2026-09-15):
+
+1. **La más reciente.**
+2. **La más estricta.**
+3. **Nunca retroceder** en seguridad clínica.
+4. **Documentar qué guía y qué año** — en el texto del informe, no sólo en el comentario: quien
+   lee el PDF meses después necesita saber con qué regla se clasificó.
+5. **Si difieren, gana la más protectora para el paciente.**
+
+Importa porque un pedido puede citar una guía **anterior** a la que el código ya implementa, sin
+que quien lo escribe lo sepa. Aplicarlo al pie de la letra baja el estándar de un documento que se
+firma y se entrega.
+
+Los dos casos del mismo día, uno en cada dirección:
+- **VAB, aortopatía.** El pedido traía ESC 2020 y `vabConclusion` ya tenía **ESC 2024**, más
+  estricta donde difieren (cirugía concomitante desde **45 mm**, no 50). Aplicarlo habría
+  **desindicado** el reemplazo aórtico en aortas de 45-49 mm de pacientes que ya iban a quirófano.
+  → **No se aplicó**, y se reportó la tabla comparativa.
+- **CoAo, indicación de intervención.** El código indicaba con el gradiente **Doppler** cuando la
+  ESC 2020 indica sobre el **pico-pico invasivo**. Lo que estaba era *menos* protector —una
+  coartación severa con colaterales salía «seguimiento clínico»—. → **Se corrigió**.
+
+**Antes de aplicar un umbral pedido**, mirar qué guía y qué año implementa el código
+(`grep "ESC 20"` sobre la función). Si el pedido es anterior o menos estricto: no aplicarlo,
+reportar qué umbrales difieren y **qué paciente concreto queda desprotegido**, y esperar la
+decisión. La comparación va con el caso clínico, no sólo con los números: «45 vs 50 mm» no dice
+nada; «deja de operarse la aorta de 47 mm del paciente que ya está en quirófano» sí.
+
 ### `vab_tipo` usa el Consenso Internacional 2021, no Sievers — y los valores viejos se migran
 Desde el 2026-09-15 `vab_tipo` guarda `fused_rl` · `fused_rn` · `fused_ln` · `dos_senos_ll` ·
 `dos_senos_ap` · `partial` · `no_clasif` (Michelena et al., JTCVS 2021). Antes guardaba Sievers
