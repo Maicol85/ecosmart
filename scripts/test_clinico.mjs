@@ -2426,6 +2426,71 @@ caso('TC-110', 'Cohorte: los umbrales y sus etiquetas salen de la misma constant
   } finally { _LAB_COHORTE = previo; }
 `);
 
+/* EL REDISEÑO NO PUEDE LLEVARSE CONTENIDO PUESTO. Dos reorganizaciones puramente visuales —los
+   doce factores en cuatro columnas y la referencia en cuatro subtabs— y las dos mueven bloques
+   grandes de marcado. Lo que se rompe en un movimiento asi no es la logica: es una fila que se
+   quedo en el portapapeles, un id duplicado al copiar, o un panel que tapa contenido que otros
+   casos creen estar verificando.
+   Los cuatro casos que leen #co-referencia-seccion por textContent siguen valiendo porque
+   display:none NO saca el texto de textContent. Este caso fija ESA dependencia: si alguien pasa
+   a quitar los paneles del DOM, aca da rojo y no en silencio dentro de los otros cuatro. */
+caso('TC-111', 'Cardio-onco: el rediseño no perdio ni duplico contenido', `
+  const sec = document.getElementById('co-referencia-seccion');
+  const ref = sec.textContent || '';
+  const panes = Array.from(document.querySelectorAll('.co-ref-pane'));
+  const botones = Array.from(document.querySelectorAll('.co-ref-tab'));
+  // Los doce factores, cada uno en su columna y todos dentro del contenedor que lee el codigo.
+  const cont = document.getElementById('hfaicos-factores');
+  const cols = Array.from(cont.querySelectorAll('.hfa-col'));
+  const ids = hfaicosFactores().map(f => f.id);
+  return { extra: [
+    // ── Calculadora en columnas ──
+    ['los doce factores siguen dentro de #hfaicos-factores',
+      ids.every(id => { const e = document.getElementById(id); return !!e && cont.contains(e); })],
+    ['repartidos en cuatro columnas',            cols.length === 4],
+    ['ninguna columna quedo vacia',
+      cols.every(c => c.querySelectorAll('input, select').length > 0)],
+    ['cada factor sigue dentro de su etiqueta, con su puntaje visible',
+      hfaicosFactores().every(f => {
+        const l = document.getElementById(f.id).closest('label');
+        const sp = l && l.querySelector('[data-hfa-pts]');
+        return !!sp && Number(sp.dataset.hfaPts) === f.pts; })],
+    ['el selector de farmaco es la cuarta columna y sigue siendo uno solo',
+      document.querySelectorAll('#hfaicos_farmaco').length === 1 &&
+      cont.contains(document.getElementById('hfaicos_farmaco'))],
+    ['y el puntaje sigue saliendo igual',
+      (function(){ __t.limpiar();
+        document.getElementById('hfaicos_cv_previa').checked = true;
+        document.getElementById('hfaicos_hta').checked = true;
+        const e = hfaicosEstado(); return e.pts === 3 && e.banda === 'ALTO'; })()],
+
+    // ── Subtabs ──
+    ['hay cuatro subtabs con su boton',          panes.length === 4 && botones.length === 4],
+    ['arranca con una sola visible',
+      panes.filter(p => p.style.display !== 'none').length === 1],
+    ['y su boton es el marcado como activo',
+      botones.filter(b => b.classList.contains('activa')).length === 1],
+    ['cada panel tiene contenido',
+      panes.every(p => (p.textContent || '').trim().length > 80)],
+    /* display:none NO saca el texto de textContent: de eso dependen TC-93, TC-99, TC-100 y
+       TC-108, que leen el contenedor entero. */
+    ['el contenido oculto SIGUE en textContent, que es de lo que dependen los otros casos',
+      ref.indexOf('CTRCD severa') > -1 && ref.indexOf('marco HFA-ICOS') > -1 &&
+      ref.indexOf('Inhibidores del proteasoma') > -1 && ref.indexOf('Seguimiento ecocardiografico') > -1],
+    ['cambiar de subtab muestra una y esconde las otras tres',
+      (function(){ coRefTab('monit');
+        const vis = panes.filter(p => p.style.display !== 'none');
+        return vis.length === 1 && vis[0].dataset.corefPane === 'monit'; })()],
+    ['la subtab de monitoreo trae las diez clases',
+      (function(){ const p = panes.find(x => x.dataset.corefPane === 'monit');
+        return p.querySelectorAll('tr').length === 11; })()],   // 10 + encabezado
+    ['incluso la que no empieza con «Basal», que es donde fallaba la extraccion',
+      (function(){ const p = panes.find(x => x.dataset.corefPane === 'monit');
+        const t = p.textContent || '';
+        return t.indexOf('Hormonoterapia') > -1 && t.indexOf('No rutinario') > -1; })()]
+  ] };
+`);
+
 /* LAS TRES SUPERFICIES DE CARDIO-ONCO TIENEN QUE DECIR LO MISMO. La leyenda de #ref-cardiotox
    (pestaña Referencias), la tabla de farmacos y las tablas nuevas del marco HFA-ICOS viven en
    DOS pestañas distintas y describen al mismo paciente. Las tres estaban desincronizadas, cada
@@ -2519,8 +2584,13 @@ caso('TC-99', 'Cardio-onco: las tablas de referencia no contradicen al clasifica
     ['ninguna fila nueva manda suspender por su cuenta',
       ref.indexOf('suspender y eco en 2-4 sem') === -1 &&
       ref.indexOf('suspender y reevaluar en 3-6 sem') === -1],
-    ['las dos filas remiten a la tabla de grados, que es la que define la conducta',
-      (ref.match(/graduar la CTRCD con la primera tabla de esta seccion/g) || []).length === 2],
+    /* CUATRO y no dos: la subtab «Monitoreo eco» es una COPIA de la columna de seguimiento de la
+       subtab «Cardiotoxicidad», asi que las dos filas que remiten a la graduacion aparecen dos
+       veces cada una. La duplicacion es deliberada —se consulta el seguimiento sin leer las otras
+       seis columnas— pero es duplicacion: si alguna vez se edita el texto en un solo lado, este
+       numero deja de dar y avisa. */
+    ['las filas remiten a la subtab de grados, que es la que define la conducta',
+      (ref.match(/graduar la CTRCD con la subtab «CTRCD» de esta seccion/g) || []).length === 4],
     ['y esa tabla sigue reservando «Suspender» para la severa',
       ref.indexOf('Suspender, cardioproteccion, reevaluar en 2-4 sem') > -1 &&
       ref.indexOf('Continuar con cardioproteccion y control en 4 sem') > -1],

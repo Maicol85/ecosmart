@@ -199,6 +199,35 @@
      reemplazado y el navegador escala el dibujo de la casilla con la caja, así que el control
      se vería enorme. El label es la única forma de agrandar el blanco sin agrandar el control. */
   .chk-toque{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;cursor:pointer;flex:0 0 auto;}
+  /* ── Calculadora HFA-ICOS: los factores en columnas por ORIGEN DEL DATO ──
+     Lo que se pregunta (demográfico y clínico), lo que se mide en el eco, lo que viene del
+     laboratorio, y el fármaco. En una lista de doce el médico perdía de vista si ya había
+     contestado la mitad de arriba; agrupadas por de dónde sale cada dato, se completan de a
+     bloques. Es sólo layout: los id, el catálogo y la suma no cambian.
+     `align-items:start` para que las columnas NO se estiren a la altura de la más larga —la
+     demográfica tiene siete filas y las otras dos o tres, y estiradas dejaban un hueco que se
+     leía como «acá falta algo». */
+  .hfa-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;align-items:start;}
+  /* ── Subtabs de Referencia rapida. Discretas: el peso visual lo tienen las tablas. ── */
+  .co-ref-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:8px;}
+  .co-ref-tab{background:var(--bg3);color:var(--text2);border:1px solid var(--border);border-radius:7px;
+              padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;min-height:36px;}
+  .co-ref-tab.activa{background:var(--section-head);color:var(--accent2);border-color:var(--accent2);}
+  .hfa-col{min-width:0;}
+  .hfa-col-h{font-size:11px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:.04em;
+             padding:0 6px 5px;margin-bottom:3px;border-bottom:1px solid var(--border);}
+  .hfa-col .chk-toque{min-width:0;}
+  @media(max-width:768px){
+    /* A 2 columnas: demográfico y eco arriba, humoral abajo, y el fármaco a todo el ancho —el
+       <select> lleva textos largos y en media columna queda ilegible. */
+    .hfa-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
+    .hfa-col-farm{grid-column:1 / -1;}
+  }
+  @media(max-width:430px){
+    /* En un teléfono angosto, una sola columna: dos columnas de casillas con etiquetas de hasta
+       «Enfermedad CV previa (IC, CAD, FA, ACV)» parten cada texto en cuatro renglones. */
+    .hfa-grid{grid-template-columns:1fr;}
+  }
   .eco-drawer,.eco-drawer-ov{display:none}
   /* Overlay INVISIBLE, no un listener en document: con un listener, el primer toque
      cierra el menú Y activa lo que haya debajo —en un celular el dedo cae sobre la lista
@@ -11398,7 +11427,6 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       al cuerpo narrativo.
     </div>
 
-    <div style="font-size:11.5px;font-weight:700;color:var(--text);margin-bottom:6px;">1 · Factores del paciente</div>
     <!-- Las doce filas van ESTÁTICAS en el HTML y no las construye el JS al abrir la sección.
          Construirlas al vuelo es lo que le pasó a `amiloBuildCard`: si el médico no abre la
          sección, los <input> NO EXISTEN, y entonces `cargarEstudioPorId` —que hace
@@ -11406,41 +11434,66 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
          guardado. La calculadora entera del estudio desaparecía al reabrirlo, en silencio.
          El puntaje sigue viviendo en `hfaicosFactores()`, que es quien suma; el `data-hfa-pts`
          de cada fila es sólo lo que se MUESTRA, y TC-101 verifica que los dos coincidan. -->
-    <div id="hfaicos-factores" style="display:flex;flex-direction:column;gap:2px;margin-bottom:12px;">
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_edad" onchange="hfaicosToggle('hfaicos_edad')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Edad ≥65 años</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px; background:var(--bg3);"><input type="checkbox" id="hfaicos_sexo_fem" onchange="hfaicosToggle('hfaicos_sexo_fem')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Sexo femenino (antraciclinas / RT)</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_hta" onchange="hfaicosToggle('hfaicos_hta')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Hipertensión arterial</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px; background:var(--bg3);"><input type="checkbox" id="hfaicos_dm" onchange="hfaicosToggle('hfaicos_dm')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Diabetes mellitus</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_obesidad" onchange="hfaicosToggle('hfaicos_obesidad')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Obesidad (IMC &gt;30)</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px; background:var(--bg3);"><input type="checkbox" id="hfaicos_tabaco" onchange="hfaicosToggle('hfaicos_tabaco')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Tabaquismo activo</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_cv_previa" onchange="hfaicosToggle('hfaicos_cv_previa')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Enfermedad CV previa (IC, CAD, FA, ACV)</span><span data-hfa-pts="2" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">2 pts</span></label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px; background:var(--bg3);"><input type="checkbox" id="hfaicos_fevi_lim" onchange="hfaicosToggle('hfaicos_fevi_lim')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">FEVI basal 50-54%</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_fevi_red" onchange="hfaicosToggle('hfaicos_fevi_red')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">FEVI basal &lt;50%</span><span data-hfa-pts="2" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">2 pts</span></label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px; background:var(--bg3);"><input type="checkbox" id="hfaicos_gls_alt" onchange="hfaicosToggle('hfaicos_gls_alt')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">GLS basal deteriorado (&gt;-16%)</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_troponina" onchange="hfaicosToggle('hfaicos_troponina')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Troponina basal elevada</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px; background:var(--bg3);"><input type="checkbox" id="hfaicos_bnp" onchange="hfaicosToggle('hfaicos_bnp')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">BNP / NT-proBNP basal elevado</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
+    <!-- CUATRO COLUMNAS. Son las MISMAS doce filas, con los mismos id y el mismo
+         `data-hfa-pts`: sólo se reagruparon por origen del dato —lo que se pregunta, lo que se
+         mide en el eco y lo que viene del laboratorio— porque en una lista de doce el médico
+         perdía de vista si ya había contestado la mitad de arriba.
+         Siguen DENTRO de `#hfaicos-factores` y cada una dentro de su etiqueta: `hfaicosEstado`
+         (la marca no se escribe literal en este comentario: desbalancearia el conteo de
+         etiquetas que este repo usa como señal de marcado roto)
+         las busca por id, y TC-101 verifica que las doce existan, que no haya de más y que el
+         puntaje mostrado coincida con el que se suma. Reagrupar no puede romper eso, pero el
+         caso está para que si algún día se rompe, se sepa. -->
+    <div id="hfaicos-factores" class="hfa-grid" style="margin-bottom:12px;">
+      <div class="hfa-col">
+        <div class="hfa-col-h">Demográfico y clínico</div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_edad" onchange="hfaicosToggle('hfaicos_edad')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Edad ≥65 años</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_sexo_fem" onchange="hfaicosToggle('hfaicos_sexo_fem')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Sexo femenino (antraciclinas / RT)</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_hta" onchange="hfaicosToggle('hfaicos_hta')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Hipertensión arterial</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_dm" onchange="hfaicosToggle('hfaicos_dm')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Diabetes mellitus</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_obesidad" onchange="hfaicosToggle('hfaicos_obesidad')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Obesidad (IMC &gt;30)</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_tabaco" onchange="hfaicosToggle('hfaicos_tabaco')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Tabaquismo activo</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_cv_previa" onchange="hfaicosToggle('hfaicos_cv_previa')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Enfermedad CV previa (IC, CAD, FA, ACV)</span><span data-hfa-pts="2" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">2 pts</span></label>
+      </div>
+      <div class="hfa-col">
+        <div class="hfa-col-h">Ecocardiográfico</div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_fevi_lim" onchange="hfaicosToggle('hfaicos_fevi_lim')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">FEVI basal 50-54%</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_fevi_red" onchange="hfaicosToggle('hfaicos_fevi_red')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">FEVI basal &lt;50%</span><span data-hfa-pts="2" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">2 pts</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_gls_alt" onchange="hfaicosToggle('hfaicos_gls_alt')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">GLS basal deteriorado (&gt;-16%)</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
+      </div>
+      <div class="hfa-col">
+        <div class="hfa-col-h">Humoral</div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_troponina" onchange="hfaicosToggle('hfaicos_troponina')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Troponina basal elevada</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_bnp" onchange="hfaicosToggle('hfaicos_bnp')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">BNP / NT-proBNP basal elevado</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
+      </div>
+      <div class="hfa-col hfa-col-farm">
+        <div class="hfa-col-h">Fármaco</div>
+        <div class="fg" style="margin:0;">
+          <select id="hfaicos_farmaco" onchange="calcHFAICOS()">
+            <option value="">— No seleccionado —</option>
+            <option value="muy_alto">Muy alto riesgo (antraciclinas alta dosis ≥250 mg/m², trastuzumab + antraciclinas)</option>
+            <option value="alto">Alto riesgo (antraciclinas dosis moderada, anti-HER2, ciclofosfamida alta dosis)</option>
+            <option value="medio">Riesgo medio (inhibidores VEGF, ICI, inhibidores CDK4/6, fluoropirimidinas, BCR-ABL)</option>
+            <option value="bajo">Riesgo bajo (hormonoterapia, taxanos, alcaloides de la vinca)</option>
+          </select>
+        </div>
+        <div style="font-size:10.5px;color:var(--text2);line-height:1.45;margin-top:6px;">
+          El fármaco impone un <b>piso</b> de banda: no reemplaza al puntaje ni puede bajarlo.
+        </div>
+      </div>
     </div>
 
-    <div style="font-size:11.5px;font-weight:700;color:var(--text);margin-bottom:4px;">2 · Riesgo por farmaco</div>
-    <div class="fg" style="margin-bottom:12px;">
-      <select id="hfaicos_farmaco" onchange="calcHFAICOS()">
-        <option value="">— No seleccionado —</option>
-        <option value="muy_alto">Muy alto riesgo (antraciclinas alta dosis ≥250 mg/m², trastuzumab + antraciclinas)</option>
-        <option value="alto">Alto riesgo (antraciclinas dosis moderada, anti-HER2, ciclofosfamida alta dosis)</option>
-        <option value="medio">Riesgo medio (inhibidores VEGF, ICI, inhibidores CDK4/6, fluoropirimidinas, BCR-ABL)</option>
-        <option value="bajo">Riesgo bajo (hormonoterapia, taxanos, alcaloides de la vinca)</option>
-      </select>
-    </div>
-
-    <div style="font-size:11.5px;font-weight:700;color:var(--text);margin-bottom:4px;">3 · Resultado</div>
+    <div style="font-size:11.5px;font-weight:700;color:var(--text);margin-bottom:4px;">Resultado</div>
     <div id="hfaicos-resultado" class="calc-box" style="margin-bottom:10px;"></div>
 
     <!-- Qué casillas movió una PERSONA. Va como input y no como `dataset` para que viaje con el
          estudio, lo limpie el barrido genérico y lo reponga la restauración — ver `hfaicosManual()`. -->
     <input type="hidden" id="hfaicos_manual" value="">
     <input type="checkbox" id="hfaicos_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
-    <button type="button" class="btn btn-integrar" data-ete-chk="hfaicos_incluir_chk" aria-pressed="false"
-            onclick="eteInclToggle('hfaicos_incluir_chk')">📎 Integrar al informe</button>
+    <div style="display:flex;justify-content:center;margin-top:4px;">
+      <button type="button" class="btn btn-integrar" data-ete-chk="hfaicos_incluir_chk" aria-pressed="false"
+              onclick="eteInclToggle('hfaicos_incluir_chk')">📎 Integrar al informe</button>
+    </div>
     </div>
   </div>
   </div>
@@ -11454,6 +11507,19 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   <div id="co-referencia-seccion" style="display:none;">
   <div class="card">
     <div class="card-body">
+    <!-- SUBTABS. El contenido es EL MISMO, solo repartido: la seccion era un scroll de cuatro
+         tablas y para llegar al seguimiento eco habia que pasar por las otras tres.
+         Se ocultan con display:none, que NO saca el texto de textContent — por eso TC-93, TC-99,
+         TC-100 y TC-108, que leen el contenedor entero, siguen valiendo: verifican lo que la
+         seccion DICE, no lo que esta a la vista. Si alguna vez se pasa a QUITAR los paneles del
+         DOM, esos cuatro casos dejan de probar lo que creen probar. -->
+    <div class="co-ref-tabs">
+      <button type="button" class="co-ref-tab activa" data-coref="ctrcd" onclick="coRefTab('ctrcd')">CTRCD</button>
+      <button type="button" class="co-ref-tab" data-coref="hfaicos" onclick="coRefTab('hfaicos')">HFA-ICOS</button>
+      <button type="button" class="co-ref-tab" data-coref="clases" onclick="coRefTab('clases')">Cardiotoxicidad</button>
+      <button type="button" class="co-ref-tab" data-coref="monit" onclick="coRefTab('monit')">Monitoreo eco</button>
+    </div>
+    <div class="co-ref-pane" data-coref-pane="ctrcd">
 <table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:10px;">
       <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Hallazgo</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Definicion</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Accion</th></tr>
       <!-- Corregida el 2026-09-15, junto con la de la pestaña Referencias. Ésta es la PEOR de
@@ -11493,6 +11559,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
          estática contradiciendo al clasificador de al lado), sólo que acá la contradicción se
          DECLARA en vez de quedar latente. Si algún día la calculadora se alinea con HFA-ICOS,
          este aviso se borra — y TC-99 se pone en rojo para recordarlo. -->
+    </div>
+    <div class="co-ref-pane" data-coref-pane="hfaicos" style="display:none;">
     <div style="margin-top:16px;font-size:12px;font-weight:700;color:var(--accent2);">Evaluacion de riesgo cardiovascular basal — marco HFA-ICOS, ESC 2022</div>
     <div style="font-size:11.5px;color:var(--text2);margin:2px 0 8px;">Realizar <b>ANTES</b> de iniciar el tratamiento oncologico.
       <b>Marco</b>, no score unico: el HFA-ICOS propiamente dicho son tablas ESPECIFICAS por tipo de
@@ -11561,6 +11629,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <tr style="background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;color:var(--green);">Bajo</td><td style="padding:5px 8px;">0 puntos <b>y</b> farmaco de bajo riesgo</td></tr>
     </table>
 
+    </div>
+    <div class="co-ref-pane" data-coref-pane="clases" style="display:none;">
     <div style="margin-top:16px;font-size:12px;font-weight:700;color:var(--accent2);">Cardiotoxicidad y seguimiento ecocardiografico por clase farmacologica — ESC 2022</div>
     <div style="font-size:11.5px;color:var(--text2);margin:2px 0 8px;">Leyenda de toxicidades especificas: <b>-</b> no descrita · <b>&#10003;</b> ocasional · <b>&#10003;&#10003;</b> frecuente · <b>&#10003;&#10003;&#10003;</b> caracteristica de la clase.</div>
     <!-- `overflow-x:auto` y no una tabla que se comprime: son SIETE columnas de texto, y en un
@@ -11583,7 +11653,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <td style="padding:5px 8px;">Parcialmente irreversible (dosis-dependiente)</td>
         <td style="padding:5px 8px;">IC &#10003;&#10003;&#10003; · HTA - · Arritmia &#10003; · Isquemia - · QT &#10003; · Pericarditis -</td>
         <td style="padding:5px 8px;">Doxorrubicina &gt;=250 mg/m2 (alto riesgo); &gt;=400 mg/m2 (muy alto riesgo)</td>
-        <td style="padding:5px 8px;">Basal obligatorio. Durante el tto: cada 2 ciclos si riesgo alto, cada ciclo si muy alto. Al finalizar el tto. A los 12 meses. Si la FEVI cae &gt;=10 pp o baja de 50%: eco en 2-4 sem y graduar la CTRCD con la primera tabla de esta seccion, que es la que define la conducta.</td>
+        <td style="padding:5px 8px;">Basal obligatorio. Durante el tto: cada 2 ciclos si riesgo alto, cada ciclo si muy alto. Al finalizar el tto. A los 12 meses. Si la FEVI cae &gt;=10 pp o baja de 50%: eco en 2-4 sem y graduar la CTRCD con la subtab «CTRCD» de esta seccion, que es la que define la conducta.</td>
         <td style="padding:5px 8px;">Mama, linfomas (LNH, Hodgkin), leucemias (LMA, LLC), sarcomas, cancer gastrico, mieloma</td>
       </tr>
       <tr style="border-bottom:1px solid var(--border);background:var(--bg3);">
@@ -11592,7 +11662,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <td style="padding:5px 8px;">Generalmente reversible al suspender</td>
         <td style="padding:5px 8px;">IC &#10003;&#10003; · HTA - · Arritmia - · Isquemia - · QT &#10003; · Pericarditis -</td>
         <td style="padding:5px 8px;">No aplica</td>
-        <td style="padding:5px 8px;">Basal obligatorio. Eco cada 3 meses durante el tto. Si la FEVI cae &gt;=10 pp o baja de 50%: reevaluar en 3-6 sem y graduar la CTRCD con la primera tabla de esta seccion, que es la que define la conducta.</td>
+        <td style="padding:5px 8px;">Basal obligatorio. Eco cada 3 meses durante el tto. Si la FEVI cae &gt;=10 pp o baja de 50%: reevaluar en 3-6 sem y graduar la CTRCD con la subtab «CTRCD» de esta seccion, que es la que define la conducta.</td>
         <td style="padding:5px 8px;">Mama HER2+, gastrico HER2+</td>
       </tr>
       <tr style="border-bottom:1px solid var(--border);">
@@ -11667,6 +11737,23 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <td style="padding:5px 8px;">No rutinario. Eco si hay sintomas o FEVI limite previa. Control de PA y perfil metabolico en cada visita.</td>
         <td style="padding:5px 8px;">Mama RE+, prostata (analogos GnRH, enzalutamida)</td>
       </tr>
+    </table>
+    </div>
+    </div>
+    <div class="co-ref-pane" data-coref-pane="monit" style="display:none;">
+    <div style="font-size:11.5px;color:var(--text2);margin-bottom:10px;line-height:1.5;">Que eco pedir y cuando, por clase. Es la <b>misma</b> columna de la subtab «Cardiotoxicidad», puesta sola para consultarla sin leer las otras seis. Con antraciclinas la frecuencia depende de la banda de riesgo: <b>alto</b> &rarr; cada 2 ciclos &middot; <b>muy alto</b> &rarr; cada ciclo.</div>
+    <table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+      <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);width:32%;">Clase</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Seguimiento ecocardiografico</th></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Antraciclinas</td><td style="padding:5px 8px;">Basal obligatorio. Durante el tto: cada 2 ciclos si riesgo alto, cada ciclo si muy alto. Al finalizar el tto. A los 12 meses. Si la FEVI cae &gt;=10 pp o baja de 50%: eco en 2-4 sem y graduar la CTRCD con la subtab «CTRCD» de esta seccion, que es la que define la conducta.</td></tr>
+      <tr style="border-bottom:1px solid var(--border); background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Anti-HER2</td><td style="padding:5px 8px;">Basal obligatorio. Eco cada 3 meses durante el tto. Si la FEVI cae &gt;=10 pp o baja de 50%: reevaluar en 3-6 sem y graduar la CTRCD con la subtab «CTRCD» de esta seccion, que es la que define la conducta.</td></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Inhibidores VEGF/VEGFR</td><td style="padding:5px 8px;">Basal + PA. PA en cada visita (la HTA es frecuente). Eco si FEVI limite o sintomas. Eco al finalizar el tto.</td></tr>
+      <tr style="border-bottom:1px solid var(--border); background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">ICI — Inmunoterapia</td><td style="padding:5px 8px;">Basal + troponina + ECG. Eco SOLO si sintomas o troponina elevada. Si hay miocarditis: urgente — suspender y hospitalizar.</td></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Fluoropirimidinas</td><td style="padding:5px 8px;">Basal. ECG durante la infusion IV de 5-FU. Eco URGENTE si hay dolor toracico durante la infusion (vasoespasmo).</td></tr>
+      <tr style="border-bottom:1px solid var(--border); background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Agentes alquilantes</td><td style="padding:5px 8px;">Basal. Eco antes de cada ciclo de alta dosis. Monitoreo durante la infusion en altas dosis.</td></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Inhibidores BCR-ABL</td><td style="padding:5px 8px;">Basal. Eco anual o si hay sintomas. Si aparece derrame pericardico: reducir dosis o suspender el dasatinib.</td></tr>
+      <tr style="border-bottom:1px solid var(--border); background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Inhibidores del proteasoma</td><td style="padding:5px 8px;">Basal. Eco antes de cada ciclo con carfilzomib. PA en cada visita.</td></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Radioterapia toracica</td><td style="padding:5px 8px;">Basal. Eco a los 5 anos post-RT. Eco a los 10 anos post-RT. Vigilar: valvulopatia, pericarditis constrictiva, coronariopatia tardia.</td></tr>
+      <tr style=" background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Hormonoterapia</td><td style="padding:5px 8px;">No rutinario. Eco si hay sintomas o FEVI limite previa. Control de PA y perfil metabolico en cada visita.</td></tr>
     </table>
     </div>
 
@@ -19064,6 +19151,19 @@ window.hfaicosTexto = hfaicosTexto;
 /* Publica la clasificación de riesgo basal en `co-riesgo-resultado`, que es el contenedor que
    leen la hoja del PDF, el PPT y el texto del módulo integrado. La banda sale de
    `hfaicosEstado()` — la única calculadora que queda. */
+/* Subtabs de «Referencia rapida». Solo muestra y oculta: no hay estado que guardar ni nada que
+   recalcular, y por eso NO entra en RECALC_MODULOS ni en limpiarCampos — que pestaña de una tabla
+   de consulta estaba abierta no es un dato del paciente. */
+function coRefTab(k) {
+  document.querySelectorAll('.co-ref-pane').forEach(p => {
+    p.style.display = (p.dataset.corefPane === k) ? '' : 'none';
+  });
+  document.querySelectorAll('.co-ref-tab').forEach(b => {
+    b.classList.toggle('activa', b.dataset.coref === k);
+  });
+}
+window.coRefTab = coRefTab;
+
 function hfaicosPublicarBasal() {
   const dosis = v('co_dosis_antrac');
   const resRiesgo = document.getElementById('co-riesgo-resultado');

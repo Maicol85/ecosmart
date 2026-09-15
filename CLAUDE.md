@@ -941,13 +941,13 @@ El script contesta *«nadie lo nombra»*, no *«no tiene destino»*: un id menci
 ### 2 · Test suite clínico
 
 ```bash
-node scripts/test_clinico.mjs            # 125 casos, sin defectos abiertos
+node scripts/test_clinico.mjs            # 126 casos, sin defectos abiertos
 node scripts/test_clinico.mjs --solo TC-04
 node scripts/test_clinico.mjs --ver      # con el navegador a la vista, para depurar
 ```
 
 **Correr antes de cualquier push que toque el informe narrativo, el EN SUMA o una fórmula de
-cálculo. Tienen que pasar los 125. Si alguno falla, corregir antes de seguir.**
+cálculo. Tienen que pasar los 126. Si alguno falla, corregir antes de seguir.**
 
 **TC-01 a TC-17 — los bugs del 2026-09-14.** VD que desaparecía (TC-01/03), gradiente pulmonar
 congelado (TC-04), AD ausente del EN SUMA (TC-06), HFA-PEFF sin compuerta de FEVI (TC-07/08),
@@ -982,6 +982,21 @@ porque tocar el texto también marca. Hoy: **10 hallazgos ALTA**, todos reales.
 y el texto del `<option>`): ahora sale de `UMBRAL_PSAP_COHORTE_ALTA`. Importa porque esa
 descripción alimenta el encabezado del PDF de auditoría — una etiqueta cableada sobre un
 predicado por constante hace que el papel declare un denominador que no se usó.
+
+**TC-111 — el rediseño de Cardio-Oncología no perdió ni duplicó contenido (2026-09-15).** Dos
+reorganizaciones visuales: los doce factores de la calculadora en cuatro columnas por ORIGEN DEL
+DATO (demográfico y clínico · ecocardiográfico · humoral · fármaco) y la Referencia rápida en
+cuatro subtabs (CTRCD · HFA-ICOS · Cardiotoxicidad · Monitoreo eco). Ningún id, ninguna función.
+
+**Los cuatro casos que leen `#co-referencia-seccion` por `textContent` siguen valiendo porque
+`display:none` NO saca el texto de `textContent`.** TC-111 fija esa dependencia: si alguien pasa a
+QUITAR los paneles del DOM, da rojo ahí y no en silencio dentro de TC-93/99/100/108.
+
+**La subtab «Monitoreo eco» es una COPIA** de la columna de seguimiento de «Cardiotoxicidad» —se
+consulta sin leer las otras seis columnas—, así que las frases que remiten a la graduación
+aparecen **cuatro** veces, no dos. TC-99 cuenta cuatro: si alguna vez se edita el texto de un solo
+lado, el número deja de dar y avisa. Extraer esa columna por posición de celda y no buscando
+«Basal»: Hormonoterapia empieza con «No rutinario» y se perdía en silencio.
 
 **TC-109 — quedó una sola calculadora de riesgo basal (2026-09-15).** Verifica que el score
 viejo no vuelva por ningún lado, que la cápsula del bloque «Datos basales» publique la banda
