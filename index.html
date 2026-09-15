@@ -8474,12 +8474,55 @@ z
     </div>
   </div>
   <div class="card sacc" id="sacc-cc-marfan">
-    <button type="button" class="sacc-hdr" onclick="secToggle('marfan')" aria-expanded="false">
+    <button type="button" class="sacc-hdr" onclick="secToggle('marfan');marfanSync()" aria-expanded="false">
       <span class="sacc-arrow">&#9654;</span>
-      <span style="flex:1;">🧬 Marfan / EHAT</span>
+      <span style="flex:1;">🧬 Marfan / EHAT — aortopatia hereditaria</span>
+      <span id="marfan_badge" class="incl-badge" hidden>&#9679; cargada</span>
     </button>
     <div class="card-body sacc-body">
-      <p style="font-size:12px;color:var(--text2);margin:0;line-height:1.6;">En desarrollo — proximamente.</p>
+      <p style="font-size:10px;color:var(--text2);margin:0 0 10px;line-height:1.5;">
+        El umbral quirurgico depende del SINDROME, no solo del diametro: Loeys-Dietz opera a los
+        45&nbsp;mm donde el Marfan espera a 50 y la EHAT no sindromica a 55. Declarar el sindrome
+        es parte de la medicion.
+      </p>
+      <div class="grid-3">
+        <div class="fg"><label>Sindrome</label>
+          <select id="marfan_sindrome" onchange="marfanSync()">
+            <option value="">&mdash;</option>
+            <option value="marfan">Sindrome de Marfan</option>
+            <option value="lds">Loeys-Dietz (TGFBR1/2)</option>
+            <option value="turner">Sindrome de Turner</option>
+            <option value="ehat">EHAT no sindromica</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div class="fg"><label>Aorta sinusal (mm)</label>
+          <input type="number" id="marfan_ao_seno" placeholder="mm" oninput="marfanSync()">
+        </div>
+        <div class="fg"><label>Aorta ascendente (mm)</label>
+          <input type="number" id="marfan_ao_ascendente" placeholder="mm" oninput="marfanSync()">
+        </div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg" id="marfan-ita-wrap" style="display:none;"><label>Indice de tamaño aortico (mm/m&sup2;)</label>
+          <input type="number" id="marfan_ita" placeholder="mm/m2" step="0.1" oninput="marfanSync()">
+          <span style="font-size:10px;color:var(--text2);">Solo para Turner: el umbral se indexa por superficie corporal porque la talla baja hace que un diametro absoluto normal sea patologico.</span>
+        </div>
+        <div class="fg"><label>Factores de riesgo</label>
+          <select id="marfan_factores_riesgo" onchange="marfanSync()">
+            <option value="">&mdash;</option>
+            <option value="no">No</option>
+            <option value="si">Si</option>
+          </select>
+          <span style="font-size:10px;color:var(--text2);">HTA no controlada, historia familiar de diseccion, progresion &gt;3&nbsp;mm/año o insuficiencia aortica significativa.</span>
+        </div>
+      </div>
+      <div id="marfan-resultado" class="calc-box" style="margin-top:12px;"></div>
+      <input type="checkbox" id="marfan_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+      <div style="display:flex;justify-content:center;margin-top:10px;">
+        <button type="button" class="btn btn-integrar" data-ete-chk="marfan_incluir_chk" aria-pressed="false"
+                onclick="eteInclToggle('marfan_incluir_chk')">&#128206; Integrar al informe</button>
+      </div>
     </div>
   </div>
 <div class="card sacc" id="sacc-cc-fop">
@@ -21627,6 +21670,33 @@ function generarInforme(opts) {
       sumaCC(ccSumaLinea('dap'));
     })();
 
+    /* ── Marfan / EHAT — aortopatía hereditaria ── */
+    (function(){
+      const chk = document.getElementById('marfan_incluir_chk');
+      if (!chk || !chk.checked) return;
+      if (typeof marfanEstado !== 'function') return;
+      const r = marfanEstado();
+      if (!r.hayDatos) return;
+      const f1 = n => (n == null || !isFinite(n)) ? null : String(Math.round(n * 10) / 10);
+      const p = [];
+      if (f1(r.seno)) p.push('Aorta sinusal ' + f1(r.seno) + ' mm');
+      if (f1(r.asc))  p.push('Aorta ascendente ' + f1(r.asc) + ' mm');
+      if (f1(r.ita))  p.push('Índice de tamaño aórtico ' + f1(r.ita) + ' mm/m²');
+      if (r.fr === 'si') p.push('Con factores de riesgo de progresión');
+      etePars.push((p.length ? p.join('. ') + '. ' : '') + r.txt + '.'); ccMarcarParrafo();
+      /* Al EN SUMA sólo lo ACCIONABLE: las tres clases de indicación. «Sin criterios» y los
+         estados incompletos quedan en el cuerpo — una conclusión que no cambia ninguna conducta
+         llenaría el resumen y le quitaría peso a las que sí. */
+      if (r.clave === 'cx_i' || r.clave === 'cx_iia' || r.clave === 'cx_iib') {
+        const CL = { cx_i:'Clase I', cx_iia:'Clase IIa', cx_iib:'Clase IIb' };
+        sumaCC('Aortopatía por ' + r.sindTxt + ' con indicación quirúrgica ' + CL[r.clave] + ' (ESC 2020).');
+      } else if (r.clave === 'sin_sindrome' || r.clave === 'falta_ita') {
+        /* Estos dos SÍ suben: no son «sin hallazgo», son «no se puede concluir», y el umbral que
+           falta es el que decide operar. Dejarlos sólo en el cuerpo los vuelve invisibles. */
+        sumaCC(r.txt + '.');
+      }
+    })();
+
     /* ── Coartación de aorta ── */
     (function(){
       const chk = document.getElementById('coart_incluir_chk');
@@ -22002,7 +22072,7 @@ function RECALC_MODULOS() {
          veredicto sí contaba esos criterios;
        · `calcOAI` reconstruye la marca de «área derivada» (ver ahí), sin la cual corregir el
          diámetro en un estudio reabierto dejaba el área vieja. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -27231,6 +27301,96 @@ function vabFactores(){
   preg.forEach(function(p){ const val = sv2(p[0]); anota(val === 'si', p[1], val === 'si' || val === 'no'); });
   return { presentes: presentes, sinEvaluar: sinEvaluar, n: presentes.length };
 }
+/* ══ MARFAN / EHAT — aortopatía hereditaria (ESC 2020) ═══════════════════════════════════════
+   Evaluación PURA; `marfanSync` sólo pinta y el informe sólo escribe. El umbral depende del
+   SÍNDROME y no sólo del diámetro: Loeys-Dietz opera a los 45 mm donde el Marfan espera a 50 y la
+   EHAT no sindrómica a 55. Aplicar el umbral del Marfan a un Loeys-Dietz son 5 mm de más sobre
+   una aorta que diseca antes — por eso, sin síndrome declarado NO se concluye.
+
+   ⚠ La aortopatía de VAB (`vabConclusion`) usa ESC 2024 y esta sección usa ESC 2020. Son
+   entidades distintas y cada texto dice su año, pero conviene reconciliarlas: ver la regla
+   «Ante dos guías» en CLAUDE.md. */
+const MARFAN_SIND_TXT = { marfan:'síndrome de Marfan', lds:'síndrome de Loeys-Dietz (TGFBR1/2)',
+                          turner:'síndrome de Turner', ehat:'aortopatía hereditaria no sindrómica',
+                          otro:'aortopatía hereditaria' };
+function marfanEstado() {
+  const nv = id => { const e = document.getElementById(id); if (!e) return null;
+    const n = parseFloat(String(e.value).replace(',', '.')); return isFinite(n) && n > 0 ? n : null; };
+  const sv2 = id => (document.getElementById(id) || {}).value || '';
+  const sind = sv2('marfan_sindrome'), fr = sv2('marfan_factores_riesgo');
+  const seno = nv('marfan_ao_seno'), asc = nv('marfan_ao_ascendente'), ita = nv('marfan_ita');
+  const hayDatos = !!(sind || seno != null || asc != null || ita != null);
+  if (!hayDatos) return { hayDatos:false };
+  const base = { hayDatos:true, sind, seno, asc, ita, fr,
+                 sindTxt: MARFAN_SIND_TXT[sind] || 'Aortopatía' };
+  /* Sin síndrome no se concluye. No es un dato que falte para completar la ficha: es el que
+     ELIGE el umbral. Con 47 mm, un Loeys-Dietz tiene indicación Clase I y una EHAT no tiene
+     ninguna — suponer el del medio sería inventar la conducta. */
+  if (!sind) return Object.assign(base, { clave:'sin_sindrome',
+    txt:'Aortopatía hereditaria — falta declarar el síndrome: el umbral quirúrgico depende de él (Loeys-Dietz desde 45 mm, Marfan desde 50, no sindrómica desde 55)' });
+  /* El diámetro que decide es el MAYOR de seno y ascendente. Mirar sólo el seno dejaba fuera al
+     paciente con la dilatación en la ascendente, que es el fenotipo tubular. */
+  const maxAo = (seno != null && asc != null) ? Math.max(seno, asc) : (seno != null ? seno : asc);
+  const conFR = fr === 'si';
+  if (sind === 'turner') {
+    if (ita == null) return Object.assign(base, { clave:'falta_ita',
+      txt:'Síndrome de Turner — falta el índice de tamaño aórtico (mm/m²): en Turner el umbral se indexa por superficie corporal, porque la talla baja hace que un diámetro absoluto normal sea patológico' });
+    if (ita > 25) return Object.assign(base, { clave: conFR ? 'cx_iia' : 'cx_iib',
+      txt:'Síndrome de Turner con índice de tamaño aórtico ' + ita + ' mm/m² (>25)' +
+          (conFR ? ' y factores de riesgo — considerar cirugía de la aorta (ESC 2020, Clase IIa)'
+                 : ' sin factores de riesgo — puede considerarse cirugía de la aorta (ESC 2020, Clase IIb)') });
+    return Object.assign(base, { clave:'sin_indicacion',
+      txt:'Síndrome de Turner con índice de tamaño aórtico ' + ita + ' mm/m² — sin criterios quirúrgicos aórticos actuales (ESC 2020). Seguimiento' });
+  }
+  if (maxAo == null) return Object.assign(base, { clave:'falta_diametro',
+    txt: base.sindTxt.charAt(0).toUpperCase() + base.sindTxt.slice(1) + ' — sin diámetro aórtico registrado; completar seno y ascendente' });
+  const UMBRAL = { marfan:{ i:50, iia:45 }, lds:{ i:45, iia:null }, ehat:{ i:55, iia:50 }, otro:{ i:55, iia:50 } };
+  const u = UMBRAL[sind];
+  const pre = base.sindTxt.charAt(0).toUpperCase() + base.sindTxt.slice(1) + ' con diámetro aórtico máximo ' + maxAo + ' mm';
+  if (maxAo >= u.i) return Object.assign(base, { clave:'cx_i',
+    txt: pre + ' — cirugía de la aorta indicada (ESC 2020, Clase I desde ' + u.i + ' mm para ' + base.sindTxt + ')' });
+  if (u.iia != null && maxAo >= u.iia && conFR) return Object.assign(base, { clave:'cx_iia',
+    txt: pre + ' con factores de riesgo — considerar cirugía de la aorta (ESC 2020, Clase IIa desde ' + u.iia + ' mm con factores)' });
+  if (u.iia != null && maxAo >= u.iia && !conFR) return Object.assign(base, { clave:'umbral_iia_sin_fr',
+    txt: pre + ' — por encima del umbral de ' + u.iia + ' mm en que los factores de riesgo pasan a indicar cirugía (ESC 2020, Clase IIa)' +
+         (fr === 'no' ? ', hoy sin factores consignados' : '; falta consignar si los hay') });
+  return Object.assign(base, { clave:'sin_indicacion',
+    txt: pre + ' — sin criterios quirúrgicos aórticos actuales (ESC 2020). Seguimiento por imagen' });
+}
+window.marfanEstado = marfanEstado;
+
+function marfanSync() {
+  const wrap = document.getElementById('marfan-ita-wrap');
+  const sind = (document.getElementById('marfan_sindrome') || {}).value || '';
+  if (wrap) wrap.style.display = (sind === 'turner') ? '' : 'none';
+  const el = document.getElementById('marfan-resultado'); if (!el) return;
+  while (el.firstChild) el.removeChild(el.firstChild);
+  const r = marfanEstado();
+  const fila = (lbl, nodo) => { const row = document.createElement('div'); row.className = 'calc-row';
+    const l = document.createElement('span'); l.className = 'calc-lbl'; l.textContent = lbl;
+    row.appendChild(l); if (nodo) row.appendChild(nodo); el.appendChild(row); };
+  const val = t => { const sp = document.createElement('span'); sp.className = 'calc-val';
+    sp.style.fontWeight = '400'; sp.textContent = t; return sp; };
+  const pill = (cls, t) => { const sp = document.createElement('span');
+    sp.className = 'badge badge-' + (BADGE_CLS_OK.indexOf(cls) >= 0 ? cls : 'gray'); sp.textContent = t; return sp; };
+  if (!r.hayDatos) { fila('Aortopatía hereditaria', pill('gray', 'Ingresar síndrome y diámetros')); return; }
+  const CLS = { cx_i:'red', cx_iia:'orange', cx_iib:'yellow', umbral_iia_sin_fr:'yellow',
+                sin_indicacion:'green', sin_sindrome:'gray', falta_ita:'gray', falta_diametro:'gray' };
+  const ETQ = { cx_i:'Cirugía indicada — Clase I', cx_iia:'Considerar cirugía — Clase IIa',
+                cx_iib:'Puede considerarse — Clase IIb', umbral_iia_sin_fr:'En zona de vigilancia',
+                sin_indicacion:'Sin criterios quirúrgicos', sin_sindrome:'Falta el síndrome',
+                falta_ita:'Falta el índice indexado', falta_diametro:'Falta el diámetro' };
+  fila('Conducta aórtica', pill(CLS[r.clave] || 'gray', ETQ[r.clave] || '—'));
+  fila('Fundamento', val(r.txt));
+  /* El umbral del síndrome se PUBLICA aunque no haya indicación: es lo que le dice al médico a
+     qué distancia está este paciente de la cirugía, que es la información que usa para fijar el
+     intervalo del próximo control. */
+  const U = { marfan:'50 mm (45 con factores)', lds:'45 mm', turner:'índice >25 mm/m²',
+              ehat:'55 mm (50 con factores)', otro:'55 mm (50 con factores)' };
+  if (r.sind && U[r.sind]) fila('Umbral de este síndrome', val(U[r.sind]));
+}
+window.marfanSync = marfanSync;
+
 function vabConclusion(){
   const sv2 = id => (document.getElementById(id)?.value || '').trim();
   const nv  = id => { const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; };
@@ -30882,6 +31042,7 @@ const ETE_INCL_LBL = {
   fop_incluir_chk:         'Foramen oval permeable',
   vab_incluir_chk:         'Válvula aórtica bicúspide',
   hfaicos_incluir_chk:     'Riesgo CV basal (HFA-ICOS)',
+  marfan_incluir_chk:      'Marfan / EHAT',
   mch_incluir_chk:         'Miocardiopatía hipertrófica',
   ebs_incluir_chk:         'Anomalía de Ebstein',
   tdf_incluir_chk:         'Tetralogía de Fallot reparada',
@@ -41995,6 +42156,11 @@ function _labExcelRow(inf) {
     /* Los tres de CoAo son los INSUMOS de la indicación de intervención ESC 2020: sin ellos el
        Laboratorio no puede auditar por qué un estudio quedó en Clase I. Y el pico-pico es el
        único gradiente sobre el que la guía indica. */
+    'Marfan/EHAT síndrome': ({marfan:'Marfan',lds:'Loeys-Dietz',turner:'Turner',ehat:'EHAT no sindrómica',otro:'Otro'}[c.marfan_sindrome] || ''),
+    'Marfan/EHAT aorta sinusal (mm)': rnd(num('marfan_ao_seno'),1),
+    'Marfan/EHAT aorta ascendente (mm)': rnd(num('marfan_ao_ascendente'),1),
+    'Marfan/EHAT índice tamaño aórtico (mm/m2)': rnd(num('marfan_ita'),1),
+    'Marfan/EHAT factores de riesgo': ({no:'No',si:'Sí'}[c.marfan_factores_riesgo] || ''),
     'Coartación G. pico-pico invasivo (mmHg)': rnd(num('coa_gradiente_picopico'),0),
     'Coartación estenosis relativa (%)': rnd(num('coa_estenosis_relativa'),0),
     'Coartación HTA confirmada': ({no:'No',si:'Sí'}[c.coa_hta] || ''),
@@ -42854,6 +43020,11 @@ const LAB_XLS_MAP = [
   ['Coartación localización',    'coa_loc',       'vocab'],
   ['Coartación situación',       'coa_situacion', 'vocab'],
   ['Coartación istmo (mm)',      'coa_istmo',     'num'],
+  ['Marfan/EHAT síndrome',        'marfan_sindrome', 'vocab'],
+  ['Marfan/EHAT aorta sinusal (mm)',        'marfan_ao_seno',       'num'],
+  ['Marfan/EHAT aorta ascendente (mm)',     'marfan_ao_ascendente', 'num'],
+  ['Marfan/EHAT índice tamaño aórtico (mm/m2)', 'marfan_ita',       'num'],
+  ['Marfan/EHAT factores de riesgo', 'marfan_factores_riesgo', 'vocab'],
   ['Coartación G. pico-pico invasivo (mmHg)', 'coa_gradiente_picopico', 'num'],
   ['Coartación estenosis relativa (%)',       'coa_estenosis_relativa', 'num'],
   ['Coartación HTA confirmada',   'coa_hta',       'vocab'],
@@ -43562,6 +43733,8 @@ const LAB_XLS_OPCIONES = {
   vab_tipo:'Fused R-L · Fused R-N · Fused L-N · 2-sinus latero-lateral · 2-sinus antero-posterior · Partial (forme fruste) · No clasificable',
   vab_simetria:'Simétrica · Asimétrica · No valorable',
   coa_hta:'No · Sí',
+  marfan_sindrome:'Marfan · Loeys-Dietz · Turner · EHAT no sindrómica · Otro',
+  marfan_factores_riesgo:'No · Sí',
   vab_funcion:'Normofuncionante · Estenosis · Insuficiencia · Mixta',
   vab_fenotipo:'Sin dilatación · De raíz · Tubular · Extendido',
   vab_rafe:'Sí · No · No evaluado',

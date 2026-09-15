@@ -162,6 +162,30 @@ tema y pasaría sin probar el modo noche (me pasó al verificarlo a mano). Y **l
 `:hover` quedan sin cobertura**: `getComputedStyle` no resuelve pseudo-clases sin hover real, y
 mutarlas no pone nada en rojo — verificado, no supuesto.
 
+### Marfan / EHAT: el umbral quirúrgico sale del SÍNDROME, no del diámetro
+Sección implementada el 2026-09-15 (antes era un acordeón vacío). **Loeys-Dietz opera a los 45 mm
+donde el Marfan espera a 50 y la EHAT no sindrómica a 55.** Aplicar el umbral del Marfan a un
+Loeys-Dietz son 5 mm de más sobre una aorta que diseca antes.
+
+Por eso **sin síndrome declarado NO se concluye**: no es un dato que falte para completar la
+ficha, es el que ELIGE el umbral. Con 47 mm, un Loeys-Dietz tiene indicación Clase I y una EHAT no
+tiene ninguna. Y ese estado **sube al EN SUMA**, porque no es «sin hallazgo» sino «no se puede
+concluir» — dejarlo sólo en el cuerpo lo vuelve invisible.
+
+**Turner va indexado** (`marfan_ita`, índice de tamaño aórtico >25 mm/m²) y no por diámetro
+absoluto: la talla baja hace que un diámetro normal sea patológico. Sin el índice tampoco se
+concluye, aunque haya un diámetro cargado.
+
+**El diámetro que decide es el MAYOR de seno y ascendente.** Mirar sólo el seno deja fuera el
+fenotipo tubular, que es el que tiene la dilatación en la ascendente.
+
+**Campos:** `marfan_sindrome`, `marfan_ao_seno`, `marfan_ao_ascendente`, `marfan_ita` (sólo Turner),
+`marfan_factores_riesgo`, `marfan_incluir_chk`. Con sus cinco columnas de Excel.
+
+⚠ **Dos años de guía conviven en aortopatía:** esta sección usa **ESC 2020** (la del pedido) y
+`vabConclusion` usa **ESC 2024**. Son entidades distintas y cada texto nombra su año en el informe,
+pero conviene reconciliarlas — ver la regla «Ante dos guías» acá abajo.
+
 ### Ante dos guías: la más reciente y la más estricta. Nunca retroceder en seguridad clínica
 Regla permanente de este proyecto (Maicol, 2026-09-15):
 
@@ -1077,13 +1101,13 @@ El script contesta *«nadie lo nombra»*, no *«no tiene destino»*: un id menci
 ### 2 · Test suite clínico
 
 ```bash
-node scripts/test_clinico.mjs            # 130 casos, sin defectos abiertos
+node scripts/test_clinico.mjs            # 131 casos, sin defectos abiertos
 node scripts/test_clinico.mjs --solo TC-04
 node scripts/test_clinico.mjs --ver      # con el navegador a la vista, para depurar
 ```
 
 **Correr antes de cualquier push que toque el informe narrativo, el EN SUMA o una fórmula de
-cálculo. Tienen que pasar los 130. Si alguno falla, corregir antes de seguir.**
+cálculo. Tienen que pasar los 131. Si alguno falla, corregir antes de seguir.**
 
 **TC-01 a TC-17 — los bugs del 2026-09-14.** VD que desaparecía (TC-01/03), gradiente pulmonar
 congelado (TC-04), AD ausente del EN SUMA (TC-06), HFA-PEFF sin compuerta de FEVI (TC-07/08),

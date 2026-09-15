@@ -2497,18 +2497,22 @@ caso('TC-111', 'Cardio-onco: el rediseño no perdio ni duplico contenido', `
    codigo embebido que vivian ENTRE las secciones. Lo delato un conteo, no los tests.
    Este caso cuenta: las doce originales tienen que seguir existiendo, con su id, su cabecera y su
    cuerpo, y cada una en la pestaña que le toca. */
-caso('TC-112', 'Congenitas: las doce secciones sobrevivieron al reparto en dos pestañas', `
+caso('TC-112', 'Congenitas: ninguna seccion se perdio en el reparto ni al implementarlas', `
   const T1 = ['vab','coa','marfan','fop','esub','easv','mch','mca','tdf','tv'];
   const T2 = ['shunt','dap','vap','dsav','cvpa','tga','ebs','eisen','fontan'];
-  const ORIG = ['tv','shunt','dap','coa','vap','fop','vab','ebs','tdf','tga','mch','mca'];
-  const PH   = ['marfan','esub','easv','dsav','cvpa','eisen','fontan'];
+  /* marfan paso de placeholder a seccion real el 2026-09-15: sale de PH y entra en ORIG con su
+     campo caracteristico. Que TC-112 se pusiera en rojo al implementarla es lo correcto —la
+     condicion «ningun placeholder trae campos» es justamente lo que hay que actualizar cuando
+     uno deja de serlo—. */
+  const ORIG = ['tv','shunt','dap','coa','vap','fop','vab','ebs','tdf','tga','mch','mca','marfan'];
+  const PH   = ['esub','easv','dsav','cvpa','eisen','fontan'];
   const t1 = document.getElementById('tab-congenitas');
   const t2 = document.getElementById('tab-congenitas2');
   const de = k => document.getElementById('sacc-cc-' + k);
   const enTab = (k, t) => { const e = de(k); return !!e && !!t && t.contains(e); };
   return { extra: [
     ['existen las dos pestañas', !!t1 && !!t2],
-    ['las DOCE secciones originales siguen existiendo', ORIG.every(k => !!de(k))],
+    ['las secciones con contenido siguen existiendo', ORIG.every(k => !!de(k))],
     ['mas los siete acordeones nuevos, sin repetir id',
       PH.every(k => !!de(k)) &&
       document.querySelectorAll('[id^="sacc-cc-"]').length === ORIG.length + PH.length],
@@ -2524,7 +2528,8 @@ caso('TC-112', 'Congenitas: las doce secciones sobrevivieron al reparto en dos p
     ['y su contenido: cada campo caracteristico sigue dentro de su seccion',
       [['vab','vab_fenotipo'],['coa','coa_istmo'],['fop','fop_tunel'],['mch','mch_espesor'],
        ['mca','mca_tsvd_plax'],['tdf','tdf_civ_grad'],['tv','tv_tipo'],['shunt','ete_cia_tipo'],
-       ['dap','dap_diam'],['vap','vap_diam'],['tga','tga_tipo'],['ebs','ebs_area_ad']]
+       ['dap','dap_diam'],['vap','vap_diam'],['tga','tga_tipo'],['ebs','ebs_area_ad'],
+       ['marfan','marfan_ao_seno']]
         .every(par => { const s = de(par[0]), c = document.getElementById(par[1]);
           return !!s && !!c && s.contains(c); })],
     ['los placeholders dicen que estan en desarrollo',
@@ -2709,6 +2714,68 @@ caso('TC-115', 'VAB: la migracion a Consenso 2021 no pierde los estudios de Siev
         inf.inf.indexOf('Válvula aórtica bicúspide — fused type R-L') > -1]
     ] };
   })();
+`);
+
+/* EL UMBRAL DEPENDE DEL SINDROME, NO DEL DIAMETRO. Loeys-Dietz opera a los 45 mm donde el Marfan
+   espera a 50 y la EHAT no sindromica a 55. Aplicar el umbral del Marfan a un Loeys-Dietz son 5 mm
+   de mas sobre una aorta que diseca antes. Cada corte se prueba por los DOS lados: 44/45, 49/50,
+   54/55 y 25/25.1 en el indice de Turner. */
+caso('TC-116', 'Marfan/EHAT: el umbral quirurgico sale del sindrome, no solo del diametro', `
+  function m(o) { __t.limpiar();
+    if (o.s   != null) __t.set('marfan_sindrome', o.s);
+    if (o.seno!= null) __t.set('marfan_ao_seno', String(o.seno));
+    if (o.asc != null) __t.set('marfan_ao_ascendente', String(o.asc));
+    if (o.ita != null) __t.set('marfan_ita', String(o.ita));
+    if (o.fr  != null) __t.set('marfan_factores_riesgo', o.fr);
+    __t.chk('marfan_incluir_chk', true);
+    const r = marfanEstado();
+    return { c: r.clave, t: r.txt, inf: __t.informe() };
+  }
+  const lds45 = m({ s:'lds', seno:45 }),      lds44 = m({ s:'lds', seno:44 });
+  const mar50 = m({ s:'marfan', seno:50 }),   mar49 = m({ s:'marfan', seno:49 });
+  const mar45fr = m({ s:'marfan', seno:45, fr:'si' });
+  const mar45no = m({ s:'marfan', seno:45, fr:'no' });
+  const eh55 = m({ s:'ehat', seno:55 }),      eh54 = m({ s:'ehat', seno:54 });
+  const eh50fr = m({ s:'ehat', seno:50, fr:'si' });
+  const tu26fr = m({ s:'turner', ita:25.1, fr:'si' });
+  const tu26no = m({ s:'turner', ita:25.1, fr:'no' });
+  const tu25   = m({ s:'turner', ita:25, fr:'si' });
+  const tuSinIta = m({ s:'turner', seno:48 });
+  const sinSind  = m({ seno:47 });
+  const tubular  = m({ s:'marfan', seno:42, asc:52 });
+  return { extra: [
+    // Loeys-Dietz: 45 es Clase I; el Marfan a los 45 todavia no.
+    ['Loeys-Dietz con 45 mm ya es Clase I', lds45.c === 'cx_i'],
+    ['con 44 todavia no',                   lds44.c !== 'cx_i'],
+    ['el mismo 45 en Marfan NO es Clase I', mar45no.c !== 'cx_i'],
+    ['Marfan con 50 si',                    mar50.c === 'cx_i'],
+    ['con 49 no',                           mar49.c !== 'cx_i'],
+    ['Marfan 45 CON factores es Clase IIa', mar45fr.c === 'cx_iia'],
+    ['EHAT no sindromica corta en 55',      eh55.c === 'cx_i' && eh54.c !== 'cx_i'],
+    ['y en 50 con factores, Clase IIa',     eh50fr.c === 'cx_iia'],
+    // Turner: indexado, y las dos clases segun factores.
+    ['Turner con indice 25.1 y factores -> IIa', tu26fr.c === 'cx_iia'],
+    ['sin factores -> IIb',                      tu26no.c === 'cx_iib'],
+    ['25 exactos no pasa (el umbral es >25)',    tu25.c === 'sin_indicacion'],
+    ['Turner sin el indice no concluye por el diametro absoluto',
+      tuSinIta.c === 'falta_ita' && tuSinIta.t.indexOf('se indexa por superficie corporal') > -1],
+    // Sin sindrome NO se concluye: es el dato que ELIGE el umbral.
+    ['sin sindrome declarado no se concluye', sinSind.c === 'sin_sindrome'],
+    ['y el texto dice los tres umbrales, para que se vea por que hace falta',
+      sinSind.t.indexOf('Loeys-Dietz desde 45') > -1 && sinSind.t.indexOf('Marfan desde 50') > -1],
+    // El diametro que decide es el MAYOR: el fenotipo tubular tiene la dilatacion en la ascendente.
+    ['con la dilatacion en la ascendente tambien indica',
+      tubular.c === 'cx_i' && tubular.t.indexOf('52 mm') > -1],
+    // Informe y EN SUMA.
+    ['el informe imprime los diametros sobre los que indica',
+      lds45.inf.inf.indexOf('Aorta sinusal 45 mm') > -1],
+    ['y nombra la guia y el ano',  lds45.inf.inf.indexOf('ESC 2020') > -1],
+    ['el EN SUMA lleva la clase',  lds45.inf.suma.indexOf('indicación quirúrgica Clase I') > -1],
+    ['sin criterios NO llena el EN SUMA',
+      mar49.inf.suma.indexOf('indicación quirúrgica') === -1],
+    ['pero «falta el sindrome» SI sube: no es «sin hallazgo», es «no se puede concluir»',
+      sinSind.inf.suma.indexOf('falta declarar el síndrome') > -1]
+  ] };
 `);
 
 /* LAS TRES SUPERFICIES DE CARDIO-ONCO TIENEN QUE DECIR LO MISMO. La leyenda de #ref-cardiotox
