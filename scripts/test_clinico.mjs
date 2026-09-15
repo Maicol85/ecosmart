@@ -2504,8 +2504,8 @@ caso('TC-112', 'Congenitas: ninguna seccion se perdio en el reparto ni al implem
      entran en ORIG con su campo caracteristico. Que TC-112 se pusiera en rojo al implementarlas
      es lo correcto —la condicion «ningun placeholder trae campos» es justamente lo que hay que
      actualizar cuando uno deja de serlo—. */
-  const ORIG = ['tv','shunt','dap','coa','vap','fop','vab','ebs','tdf','tga','mch','mca','marfan','eisen','fontan','esub','easv'];
-  const PH   = ['dsav','cvpa'];
+  const ORIG = ['tv','shunt','dap','coa','vap','fop','vab','ebs','tdf','tga','mch','mca','marfan','eisen','fontan','esub','easv','dsav'];
+  const PH   = ['cvpa'];
   const t1 = document.getElementById('tab-congenitas');
   const t2 = document.getElementById('tab-congenitas2');
   const de = k => document.getElementById('sacc-cc-' + k);
@@ -2529,7 +2529,7 @@ caso('TC-112', 'Congenitas: ninguna seccion se perdio en el reparto ni al implem
       [['vab','vab_fenotipo'],['coa','coa_istmo'],['fop','fop_tunel'],['mch','mch_espesor'],
        ['mca','mca_tsvd_plax'],['tdf','tdf_civ_grad'],['tv','tv_tipo'],['shunt','ete_cia_tipo'],
        ['dap','dap_diam'],['vap','vap_diam'],['tga','tga_tipo'],['ebs','ebs_area_ad'],
-       ['marfan','marfan_ao_seno'],['eisen','eis_lesion_base'],['fontan','fontan_tipo'],['esub','esub_tipo'],['easv','easv_tipo']]
+       ['marfan','marfan_ao_seno'],['eisen','eis_lesion_base'],['fontan','fontan_tipo'],['esub','esub_tipo'],['easv','easv_tipo'],['dsav','dsav_tipo']]
         .every(par => { const s = de(par[0]), c = document.getElementById(par[1]);
           return !!s && !!c && s.contains(c); })],
     ['los placeholders dicen que estan en desarrollo',
@@ -3652,6 +3652,85 @@ caso('TC-128', 'Supravalvular aortica: gradiente MEDIO, y los ostios alertan sol
       epMod.inf.inf.indexOf('corrección simultánea') > -1],
     ['EP leve se describe y no lo propone',
       epLeve.inf.inf.indexOf('asociada leve') > -1 && epLeve.inf.inf.indexOf('corrección simultánea') === -1],
+    ['sin ningun dato no hay seccion', vacio.r.hayDatos === false]
+  ] };
+`);
+
+/* DSAV — DOS UMBRALES QUE EL PEDIDO TRAIA MAL Y QUE ESTE ARCHIVO YA HABIA RESUELTO. La ESC 2020
+   remite la regurgitacion de la valvula AV IZQUIERDA a las recomendaciones de insuficiencia
+   mitral, y el panel de indicaciones ya implementa DTSI >=40 mm y FEVI <=60 % (ESC/EACTS 2021).
+   El pedido decia DTSVI >=45: el 45 es de la ESC 2017, y va hacia el lado MENOS protector — deja
+   fuera al paciente de 42 mm que la guia opera.
+   Y LA COMPUERTA QUE MAS IMPORTA: el DTSVI y la FEVI SOLO votan con regurgitacion izquierda
+   severa. Solos describen un ventriculo; son criterio de CIRUGIA VALVULAR, y sin valvula severa
+   no hay valvula que operar. */
+caso('TC-129', 'DSAV: el criterio ventricular solo vota con regurgitacion izquierda severa', `
+  function e(o) { __t.limpiar();
+    __t.set('dsav_tipo', o.tipo || 'completo');
+    if (o.izq  != null) __t.set('dsav_regurg_av_izq', o.izq);
+    if (o.der  != null) __t.set('dsav_regurg_av_der', o.der);
+    if (o.fevi != null) __t.set('fevi', String(o.fevi));
+    if (o.dtsi != null) __t.set('dsfvi', String(o.dtsi));
+    if (o.rvp  != null) __t.set('dsav_rvp_uw', String(o.rvp));
+    if (o.htp  != null) __t.set('dsav_htp', o.htp);
+    if (o.down != null) __t.set('dsav_down', o.down);
+    if (o.civ  != null) __t.set('dsav_dssd_mm', String(o.civ));
+    if (o.qp   != null) __t.set('dsav_qp_qs', String(o.qp));
+    __t.chk('dsav_incluir_chk', true);
+    const r = dsavEstado();
+    return { r, inf: __t.informe() };
+  }
+  // EL 40, NO EL 45: los dos lados del corte con regurgitacion severa.
+  const d39 = e({ izq:'severa', dtsi:39, fevi:65 });
+  const d40 = e({ izq:'severa', dtsi:40, fevi:65 });
+  const d42 = e({ izq:'severa', dtsi:42, fevi:65 });   // el paciente que el 45 dejaba fuera
+  const f60 = e({ izq:'severa', dtsi:30, fevi:60 });
+  const f61 = e({ izq:'severa', dtsi:30, fevi:61 });
+  // LA COMPUERTA: los mismos numeros sin regurgitacion severa no pueden indicar cirugia.
+  const sinSev  = e({ izq:'leve',     dtsi:44, fevi:55 });
+  const sinIzq  = e({ dtsi:44, fevi:55 });
+  const modSev  = e({ izq:'moderada', dtsi:44, fevi:55 });
+  // RVP: decide el cierre, y la PSAP del eco no.
+  const rvp5 = e({ izq:'leve', rvp:5 }), rvp4 = e({ izq:'leve', rvp:4 }), rvp2 = e({ izq:'leve', rvp:2 });
+  const htpSinRvp = e({ izq:'leve', htp:'severa' });
+  const down = e({ izq:'leve', down:'si' });
+  const civParcial = e({ tipo:'parcial', izq:'leve', civ:12 });
+  const civCompleto = e({ tipo:'completo', izq:'leve', civ:12 });
+  __t.limpiar();
+  const vacio = { r: dsavEstado() };
+  return { extra: [
+    ['DTSVI 40 exactos cumple', d40.r.dtsiVota === true && d40.r.clave === 'cx_asintomatico'],
+    ['DTSVI 39 no', d39.r.dtsiVota === false],
+    ['DTSVI 42 cumple: es el paciente que el umbral de 45 dejaba fuera', d42.r.dtsiVota === true],
+    ['FEVI 60 exactos cumple', f60.r.feviVota === true],
+    ['FEVI 61 no', f61.r.feviVota === false],
+    ['y con severa sin criterio ventricular manda seguimiento estrecho',
+      f61.r.clave === 'seguimiento_estrecho'],
+    // LA COMPUERTA.
+    ['con regurgitacion LEVE, un DTSVI de 44 y FEVI 55 NO indican cirugia',
+      sinSev.r.dtsiVota === false && sinSev.r.feviVota === false && sinSev.r.clave === null],
+    ['sin regurgitacion consignada tampoco',
+      sinIzq.r.dtsiVota === false && sinIzq.r.clave === null],
+    ['con MODERADA tampoco votan los ventriculares',
+      modSev.r.dtsiVota === false && modSev.r.clave === 'moderada'],
+    ['y el informe no nombra el criterio ventricular cuando no aplica',
+      sinSev.inf.inf.indexOf('criterios ventriculares de cirugía') === -1 &&
+      sinSev.inf.inf.indexOf('Función ventricular izquierda del estudio') === -1],
+    ['con severa SI lo nombra, porque ahi decide',
+      d40.inf.inf.indexOf('Función ventricular izquierda del estudio') > -1],
+    ['la indicacion sube al EN SUMA', d40.inf.suma.indexOf('criterios de cirugía valvular cumplidos') > -1],
+    // RVP.
+    ['RVP 5 contraindica el cierre', rvp5.inf.inf.indexOf('cierre del defecto está contraindicado') > -1],
+    ['RVP 4 manda a cateterismo, no contraindica',
+      rvp4.inf.inf.indexOf('decisión individualizada') > -1 &&
+      rvp4.inf.inf.indexOf('contraindicado') === -1],
+    ['RVP 2 no alerta', rvp2.inf.inf.indexOf('contraindicado') === -1 && rvp2.inf.inf.indexOf('individualizada') === -1],
+    ['HTP severa sin RVP pide la resistencia en vez de decidir con la PSAP',
+      htpSinRvp.inf.inf.indexOf('no con la presión estimada por ecocardiografía') > -1],
+    // Down y componente ventricular.
+    ['el sindrome de Down sube al EN SUMA', down.inf.suma.indexOf('síndrome de Down') > -1],
+    ['el componente ventricular se imprime en el completo', civCompleto.inf.inf.indexOf('12 mm') > -1],
+    ['y NO en el parcial, donde no existe', civParcial.inf.inf.indexOf('12 mm') === -1],
     ['sin ningun dato no hay seccion', vacio.r.hayDatos === false]
   ] };
 `);

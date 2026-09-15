@@ -10089,12 +10089,68 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     </div>
   </div>
   <div class="card sacc" id="sacc-cc-dsav">
-    <button type="button" class="sacc-hdr" onclick="secToggle('cc-dsav')" aria-expanded="false">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-dsav');dsavSync()" aria-expanded="false">
       <span class="sacc-arrow">&#9654;</span>
-      <span style="flex:1;">🫀 DSAV — Defecto del septo auriculoventricular</span>
+      <span style="flex:1;">🫀 Defecto del septo auriculoventricular</span>
+      <span id="dsav_badge" class="incl-badge" hidden>&#9679; cargada</span>
     </button>
     <div class="card-body sacc-body">
-      <p style="font-size:12px;color:var(--text2);margin:0;line-height:1.6;">En desarrollo — proximamente.</p>
+      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
+        La <b>FEVI</b> y el <b>DTSVI</b> de esta sección son los del estudio (<b>AI / VI</b>): no se
+        vuelven a pedir acá. Dos lugares donde escribir el mismo número es la vía más corta a que la
+        pantalla y el informe firmado digan cosas distintas.
+      </p>
+      <div class="grid-3">
+        <div class="fg"><label>Tipo</label>
+          <select id="dsav_tipo" onchange="dsavSync()">
+            <option value="">&mdash;</option>
+            <option value="parcial">Parcial (CIA ostium primum)</option>
+            <option value="completo">Completo (CIA + CIV + válvula AV única)</option>
+            <option value="intermedio">Intermedio</option>
+            <option value="noesp">No especificado</option>
+          </select></div>
+        <div class="fg"><label>Regurgitación de la válvula AV izquierda</label>
+          <select id="dsav_regurg_av_izq" onchange="dsavSync()">
+            <option value="">&mdash;</option><option value="no">Sin regurgitación</option>
+            <option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option>
+          </select>
+          <span style="font-size:10px;color:var(--text2);">Marcador de severidad y principal indicación quirúrgica.</span></div>
+        <div class="fg"><label>Regurgitación de la válvula AV derecha</label>
+          <select id="dsav_regurg_av_der" onchange="dsavSync()">
+            <option value="">&mdash;</option><option value="no">Sin regurgitación</option>
+            <option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option>
+          </select></div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>Tamaño del componente ventricular (mm)</label>
+          <input type="number" id="dsav_dssd_mm" step="1" placeholder="mm" oninput="dsavSync()">
+          <span style="font-size:10px;color:var(--text2);">Sólo en el tipo completo.</span></div>
+        <div class="fg"><label>Qp/Qs estimado</label>
+          <input type="number" id="dsav_qp_qs" step="0.1" placeholder="p. ej. 2,1" oninput="dsavSync()"></div>
+        <div class="fg"><label>Síndrome de Down</label>
+          <select id="dsav_down" onchange="dsavSync()">
+            <option value="">&mdash;</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+          <span style="font-size:10px;color:var(--text2);">Presente en buena parte de los DSAV completos del adulto.</span></div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>Hipertensión pulmonar</label>
+          <select id="dsav_htp" onchange="dsavSync()">
+            <option value="">&mdash;</option><option value="no">Sin HTP</option>
+            <option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option>
+          </select></div>
+        <div class="fg"><label>Resistencia vascular pulmonar (UW)</label>
+          <input type="number" id="dsav_rvp_uw" step="0.1" placeholder="UW" oninput="dsavSync()">
+          <span style="font-size:10px;color:var(--text2);">Por cateterismo. Es lo que decide sobre el cierre, no la PSAP del eco.</span></div>
+        <div class="fg"><label>FEVI y DTSVI</label>
+          <input type="text" id="dsav_vi_ro" readonly tabindex="-1" data-espejo placeholder="—" style="opacity:.7;"></div>
+      </div>
+      <div id="dsav-resultado" class="calc-box" style="margin-top:12px;"></div>
+      <input type="checkbox" id="dsav_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+      <div style="display:flex;justify-content:center;margin-top:10px;">
+        <button type="button" class="btn btn-integrar" data-ete-chk="dsav_incluir_chk" aria-pressed="false"
+                onclick="eteInclToggle('dsav_incluir_chk')">&#128206; Integrar al informe</button>
+      </div>
     </div>
   </div>
   <div class="card sacc" id="sacc-cc-cvpa">
@@ -21997,6 +22053,43 @@ function generarInforme(opts) {
       r.alertas.forEach(a => { if (a.suma) sumaCC(a.suma); });
     })();
 
+    /* ── Defecto del septo auriculoventricular ── */
+    (function(){
+      const chk = document.getElementById('dsav_incluir_chk');
+      if (!chk || !chk.checked) return;
+      if (typeof dsavEstado !== 'function') return;
+      const r = dsavEstado();
+      if (!r.hayDatos) return;
+      const f1 = n => (n == null || !isFinite(n)) ? null : String(Math.round(n * 10) / 10);
+      const p = ['Defecto del septo auriculoventricular' + (r.tipo ? ' ' + (DSAV_TIPO_TXT[r.tipo] || r.tipo) : '')];
+      if (r.izq) p.push('Válvula auriculoventricular izquierda con regurgitación ' + (DSAV_REG_TXT[r.izq] || r.izq));
+      if (r.der) p.push('Válvula auriculoventricular derecha con regurgitación ' + (DSAV_REG_TXT[r.der] || r.der));
+      /* El componente ventricular sólo en el tipo completo: en el parcial no existe, y el campo
+         puede conservar el valor de otro paciente si alguien cambió el tipo después de medirlo. */
+      if (r.tipo === 'completo' && r.civOk) p.push('Componente ventricular de ' + f1(r.civ) + ' mm');
+      if (r.qpOk) p.push('Qp/Qs estimado ' + r.qp.toFixed(2));
+      if (r.htp && r.htp !== 'no') p.push('Hipertensión pulmonar ' + (DSAV_HTP_TXT[r.htp] || r.htp));
+      if (r.rvpOk) p.push('Resistencia vascular pulmonar ' + f1(r.rvp) + ' unidades Wood');
+      /* La FEVI y el DTSVI se nombran SÓLO cuando votan: fuera de la regurgitación severa son el
+         ventrículo del estudio y ya salen en su propio párrafo. Repetirlos acá los convertiría
+         en un criterio que nadie aplicó. */
+      if (r.izqSevera) {
+        const v = [];
+        if (r.feviOk) v.push('FEVI ' + f1(r.fevi) + ' %');
+        if (r.dtsiOk) v.push('diámetro telesistólico del ventrículo izquierdo ' + f1(r.dtsi) + ' mm');
+        if (v.length) p.push('Función ventricular izquierda del estudio: ' + v.join(', '));
+        else p.push('No constan la FEVI ni el diámetro telesistólico del ventrículo izquierdo, que son los criterios ventriculares de cirugía valvular');
+      }
+      if (r.down === 'no') p.push('Sin síndrome de Down');
+      if (r.fuera.length) p.push('Valor fuera de rango en ' + r.fuera.join(' y ') + ': revisar antes de concluir');
+      const alertas = r.alertas.map(a => a.txt).join(' ');
+      etePars.push(p.join('. ') + '.' + (alertas ? ' ' + alertas : '') + ' ' + r.SEGUIMIENTO);
+      ccMarcarParrafo();
+      sumaCC('Defecto del septo auriculoventricular' + (r.tipo ? ' ' + (DSAV_TIPO_TXT[r.tipo] || r.tipo) : '') +
+             (r.izq ? ', regurgitación auriculoventricular izquierda ' + (DSAV_REG_TXT[r.izq] || r.izq) : '') + '.');
+      r.alertas.forEach(a => { if (a.suma) sumaCC(a.suma); });
+    })();
+
     /* ── Estenosis supravalvular aórtica ── */
     (function(){
       const chk = document.getElementById('easv_incluir_chk');
@@ -22507,7 +22600,7 @@ function RECALC_MODULOS() {
          veredicto sí contaba esos criterios;
        · `calcOAI` reconstruye la marca de «área derivada» (ver ahí), sin la cual corregir el
          diámetro en un estudio reabierto dejaba el área vieja. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -22723,6 +22816,7 @@ function limpiarCampos(silencioso) {
   if (typeof fontanSync === 'function') { try { fontanSync(); } catch (e) {} }
   if (typeof esubSync === 'function') { try { esubSync(); } catch (e) {} }
   if (typeof easvSync === 'function') { try { easvSync(); } catch (e) {} }
+  if (typeof dsavSync === 'function') { try { dsavSync(); } catch (e) {} }
   if (typeof dptSync === 'function') { try { dptSync(); } catch (e) {} }
   if (typeof cvrSync === 'function') { try { cvrSync(); } catch (e) {} }
   /* Los botones se repintan desde el ESTADO REAL, no a `false` fijo. Las claves del bull's eye
@@ -31263,6 +31357,126 @@ function easvSync(){
 }
 window.easvSync = easvSync;
 
+/* ══ DEFECTO DEL SEPTO AURICULOVENTRICULAR (ESC 2020) ════════════════════════════════════════
+   DOS UMBRALES QUE EL PEDIDO TRAÍA MAL, Y LOS DOS YA ESTABAN RESUELTOS EN ESTE ARCHIVO.
+   La ESC 2020 remite la regurgitación de la válvula AV IZQUIERDA a las recomendaciones de
+   insuficiencia mitral, y el panel de indicaciones ya implementa las correctas: **DTSI ≥40 mm**
+   y **FEVI ≤60 %** (ESC/EACTS 2021, Clase I). El pedido decía «DTSVI ≥45 mm»: el 45 es el valor
+   de la **ESC 2017**, que la propia guía de 2021 imprime en su tabla de recomendaciones
+   revisadas al bajarlo a 40. Aplicarlo habría dejado fuera al paciente con DTSVI de 42 mm —que
+   la guía opera— y es exactamente la corrección que este archivo ya documenta para la IM
+   primaria. Va hacia el lado MENOS protector, así que no se aplica.
+
+   LA FEVI Y EL DTSVI SON LOS DEL ESTUDIO (`fevi`, `dsfvi`), NO CAMPOS PROPIOS. Crear
+   `dsav_fevi`/`dsav_dtsvi_mm` habría sido la tercera y cuarta entrada de la misma medición: el
+   patrón del espesor parietal, que este archivo lleva pagado tres veces. Se espejan de sólo
+   lectura para que se vea con qué está decidiendo.
+
+   Y NO SE PIDE PRESTADO `eteQpQs()`. Ese Qp/Qs es el flujo global TSVI/TSVD y no dice POR QUÉ
+   defecto pasa: en un paciente con DSAV y además otro shunt lo atribuiría al que esté mirando.
+   Es la lección del ductus. El Qp/Qs de acá es una estimación propia y consignada. */
+const DSAV_DTSI_CX = 40, DSAV_FEVI_CX = 60, DSAV_RVP_CIERRE_NO = 5, DSAV_RVP_DUDA = 3;
+const DSAV_TIPO_TXT = { parcial:'parcial (comunicación interauricular ostium primum)',
+                        completo:'completo (comunicación interauricular, interventricular y válvula auriculoventricular única)',
+                        intermedio:'intermedio', noesp:'tipo no especificado' };
+const DSAV_REG_TXT = { no:'sin regurgitación', leve:'leve', moderada:'moderada', severa:'severa' };
+const DSAV_HTP_TXT = { no:'sin hipertensión pulmonar', leve:'leve', moderada:'moderada', severa:'severa' };
+
+function dsavEstado(){
+  const nv = id => { const e = document.getElementById(id); if (!e) return null;
+    const n = parseFloat(String(e.value).replace(',', '.')); return isFinite(n) ? n : null; };
+  const sv = id => (document.getElementById(id) || {}).value || '';
+  const tipo = sv('dsav_tipo'), izq = sv('dsav_regurg_av_izq'), der = sv('dsav_regurg_av_der');
+  const down = sv('dsav_down'), htp = sv('dsav_htp');
+  const civ = nv('dsav_dssd_mm'), qp = nv('dsav_qp_qs'), rvp = nv('dsav_rvp_uw');
+  /* Del estudio, no de la sección. */
+  const fevi = nv('fevi'), dtsi = nv('dsfvi');
+  const banda = (v, lo, hi) => v != null && v >= lo && v <= hi;
+  const civOk = banda(civ, 1, 40), qpOk = banda(qp, 0.5, 5), rvpOk = banda(rvp, 0, 20);
+  const feviOk = banda(fevi, 10, 85), dtsiOk = banda(dtsi, 10, 80);
+  const fuera = [];
+  if (civ != null && !civOk) fuera.push('tamaño del componente ventricular');
+  if (qp  != null && !qpOk)  fuera.push('Qp/Qs');
+  if (rvp != null && !rvpOk) fuera.push('resistencia vascular pulmonar');
+  const hayDatos = !!(tipo || izq || der || down || htp || civ != null || qp != null || rvp != null);
+  if (!hayDatos) return { hayDatos:false, alertas:[] };
+  const izqSevera = izq === 'severa';
+  const izqModSev = izq === 'moderada' || izq === 'severa';
+  /* EL DTSVI Y LA FEVI SÓLO VOTAN CON REGURGITACIÓN IZQUIERDA SEVERA. Solos describen un
+     ventrículo; son criterio de CIRUGÍA VALVULAR, y sin la válvula severa no hay válvula que
+     operar. Sin esta compuerta, un DTSVI de 44 en una miocardiopatía dilatada sin regurgitación
+     habría publicado «criterios de cirugía valvular cumplidos». */
+  const dtsiVota = izqSevera && dtsiOk && dtsi >= DSAV_DTSI_CX;
+  const feviVota = izqSevera && feviOk && fevi <= DSAV_FEVI_CX;
+  const sint = (document.getElementById('sintomas_disnea') || {}).value || '';
+  const alertas = [];
+  let clave = null;
+  if (izqModSev && izqSevera && (dtsiVota || feviVota)) {
+    clave = 'cx_asintomatico';
+    alertas.push({
+      txt:'Regurgitación severa de la válvula auriculoventricular izquierda con ' +
+        [dtsiVota ? 'diámetro telesistólico del ventrículo izquierdo de ' + dtsi + ' mm (≥' + DSAV_DTSI_CX + ' mm)' : null,
+         feviVota ? 'FEVI de ' + fevi + ' % (≤' + DSAV_FEVI_CX + ' %)' : null].filter(Boolean).join(' y ') +
+        ' — se cumplen los criterios de cirugía valvular del asintomático (ESC/EACTS 2021, Clase I, a los que la ESC 2020 remite en el DSAV). La reparación es preferible al reemplazo.',
+      suma:'DSAV con regurgitación AV izquierda severa y criterios de cirugía valvular cumplidos — reparación preferible al reemplazo.' });
+  } else if (izqSevera) {
+    clave = 'seguimiento_estrecho';
+    alertas.push({
+      txt:'Regurgitación severa de la válvula auriculoventricular izquierda sin criterios ventriculares de cirugía por los datos cargados (el diámetro telesistólico no alcanza ' + DSAV_DTSI_CX + ' mm y la FEVI supera ' + DSAV_FEVI_CX + ' %) — seguimiento ecocardiográfico estrecho, vigilando la progresión de la disfunción ventricular izquierda. Con síntomas atribuibles, la indicación pasa a ser Clase I.',
+      suma:'DSAV con regurgitación AV izquierda severa — seguimiento estrecho de la función ventricular izquierda.' });
+  } else if (izq === 'moderada') {
+    clave = 'moderada';
+    alertas.push({ txt:'Regurgitación moderada de la válvula auriculoventricular izquierda — con síntomas atribuibles la indicación quirúrgica es Clase I; sin ellos, seguimiento.', suma:null });
+  }
+  /* La RVP decide sobre el CIERRE, y es lo único que lo decide: la PSAP del eco no alcanza. */
+  if (rvpOk && rvp >= DSAV_RVP_CIERRE_NO) alertas.push({
+    txt:'Resistencia vascular pulmonar de ' + rvp + ' unidades Wood — el cierre del defecto está contraindicado (ESC 2020, Clase III).',
+    suma:'DSAV con resistencia vascular pulmonar de ' + rvp + ' UW — cierre del defecto contraindicado.' });
+  else if (rvpOk && rvp >= DSAV_RVP_DUDA) alertas.push({
+    txt:'Resistencia vascular pulmonar de ' + rvp + ' unidades Wood — zona de decisión individualizada: corresponde cateterismo derecho con prueba de vasorreactividad en centro especializado antes de plantear el cierre.',
+    suma:'DSAV con resistencia vascular pulmonar de ' + rvp + ' UW — decisión de cierre individualizada con cateterismo.' });
+  else if (htp === 'severa' && !rvpOk) alertas.push({
+    txt:'Hipertensión pulmonar severa sin resistencia vascular pulmonar consignada — la decisión sobre el cierre del defecto se toma con la RESISTENCIA medida por cateterismo, no con la presión estimada por ecocardiografía.',
+    suma:'DSAV con hipertensión pulmonar severa — falta la resistencia vascular pulmonar para decidir sobre el cierre.' });
+  if (down === 'si') alertas.push({
+    txt:'Asociado a síndrome de Down.',
+    suma:'DSAV asociado a síndrome de Down.' });
+  return { hayDatos:true, tipo, izq, der, down, htp, civ, qp, rvp, fevi, dtsi,
+           civOk, qpOk, rvpOk, feviOk, dtsiOk, fuera, izqSevera, dtsiVota, feviVota, clave, alertas,
+           SEGUIMIENTO:'Seguimiento en centro de cardiopatías congénitas del adulto, con ecocardiograma anual centrado en la válvula auriculoventricular izquierda y en la progresión de la hipertensión pulmonar.' };
+}
+window.dsavEstado = dsavEstado;
+
+function dsavSync(){
+  /* El espejo de sólo lectura: muestra con qué está decidiendo la sección, sin volver a pedirlo. */
+  const ro = document.getElementById('dsav_vi_ro');
+  if (ro) { const g = id => { const e = document.getElementById(id); const n = e ? parseFloat(String(e.value).replace(',', '.')) : NaN; return isFinite(n) ? n : null; };
+    const f = g('fevi'), d = g('dsfvi');
+    ro.value = (f != null ? 'FEVI ' + f + ' %' : 'FEVI —') + ' · ' + (d != null ? 'DTSVI ' + d + ' mm' : 'DTSVI —'); }
+  const el = document.getElementById('dsav-resultado'); if (!el) return;
+  while (el.firstChild) el.removeChild(el.firstChild);
+  const r = dsavEstado();
+  const fila = (lbl, nodo) => { const row = document.createElement('div'); row.className = 'calc-row';
+    const l = document.createElement('span'); l.className = 'calc-lbl'; l.textContent = lbl;
+    row.appendChild(l); if (nodo) row.appendChild(nodo); el.appendChild(row); };
+  const val = t => { const sp = document.createElement('span'); sp.className = 'calc-val';
+    sp.style.fontWeight = '400'; sp.textContent = t; return sp; };
+  const pill = (cls, t) => { const sp = document.createElement('span');
+    sp.className = 'badge badge-' + (BADGE_CLS_OK.indexOf(cls) >= 0 ? cls : 'gray'); sp.textContent = t; return sp; };
+  if (!r.hayDatos) { fila('DSAV', pill('gray', 'Ingresar tipo y regurgitación AV izquierda')); return; }
+  if (r.fuera.length) fila('Fuera de rango', pill('yellow', r.fuera.join(' y ') + ' — revisar antes de concluir'));
+  fila('Válvula AV izquierda', r.izq ? pill(r.izqSevera ? 'red' : (r.izq === 'moderada' ? 'orange' : 'green'),
+    DSAV_REG_TXT[r.izq] || r.izq) : pill('gray', 'Sin consignar'));
+  fila('Criterio ventricular', r.izqSevera
+    ? pill((r.dtsiVota || r.feviVota) ? 'red' : 'green',
+        (r.dtsiVota || r.feviVota) ? 'Cumple (DTSVI ≥' + DSAV_DTSI_CX + ' mm o FEVI ≤' + DSAV_FEVI_CX + ' %)' : 'No alcanza los cortes')
+    : pill('gray', 'Sólo vota con regurgitación izquierda severa'));
+  if (r.rvpOk) fila('Resistencia pulmonar', pill(r.rvp >= DSAV_RVP_CIERRE_NO ? 'red' : (r.rvp >= DSAV_RVP_DUDA ? 'orange' : 'green'), r.rvp + ' UW'));
+  if (r.alertas.length) r.alertas.forEach(a => fila('·', val(a.txt)));
+  fila('Seguimiento', val(r.SEGUIMIENTO));
+}
+window.dsavSync = dsavSync;
+
 function tdfConclusion(){
   const civ = _tdfSv('tdf_civ_residual'), civG = _tdfNv('tdf_civ_grad');
   const func = _tdfSv('tdf_func_vd'), ip = _tdfSv('ip_grado');
@@ -32128,6 +32342,7 @@ const ETE_INCL_LBL = {
   fontan_incluir_chk:      'Circulación de Fontan',
   esub_incluir_chk:        'Estenosis subaórtica',
   easv_incluir_chk:        'Estenosis supravalvular aórtica',
+  dsav_incluir_chk:        'Defecto del septo auriculoventricular',
   mch_incluir_chk:         'Miocardiopatía hipertrófica',
   ebs_incluir_chk:         'Anomalía de Ebstein',
   tdf_incluir_chk:         'Tetralogía de Fallot reparada',
@@ -43259,6 +43474,14 @@ function _labExcelRow(inf) {
     'Eisenmenger NYHA': _labXlsEtiq('eis_clase_nyha', c.eis_clase_nyha),
     'Eisenmenger síncope': _labXlsEtiq('eis_sincope', c.eis_sincope),
     'Eisenmenger hemoptisis': _labXlsEtiq('eis_hemoptisis', c.eis_hemoptisis),
+    'DSAV tipo': _labXlsEtiq('dsav_tipo', c.dsav_tipo),
+    'DSAV regurgitacion AV izquierda': _labXlsEtiq('dsav_regurg_av_izq', c.dsav_regurg_av_izq),
+    'DSAV regurgitacion AV derecha': _labXlsEtiq('dsav_regurg_av_der', c.dsav_regurg_av_der),
+    'DSAV componente ventricular (mm)': rnd(num('dsav_dssd_mm'),0),
+    'DSAV Qp/Qs': rnd(num('dsav_qp_qs'),2),
+    'DSAV sindrome de Down': _labXlsEtiq('dsav_down', c.dsav_down),
+    'DSAV hipertension pulmonar': _labXlsEtiq('dsav_htp', c.dsav_htp),
+    'DSAV RVP (UW)': rnd(num('dsav_rvp_uw'),1),
     'Supravalvular tipo': _labXlsEtiq('easv_tipo', c.easv_tipo),
     'Supravalvular gradiente medio (mmHg)': rnd(num('easv_gradiente_medio'),0),
     'Supravalvular gradiente pico (mmHg)': rnd(num('easv_gradiente_mmhg'),0),
@@ -44170,6 +44393,14 @@ const LAB_XLS_MAP = [
   ['Eisenmenger NYHA',            'eis_clase_nyha','vocab'],
   ['Eisenmenger síncope',         'eis_sincope',   'vocab'],
   ['Eisenmenger hemoptisis',      'eis_hemoptisis','vocab'],
+  ['DSAV tipo',                    'dsav_tipo',              'vocab'],
+  ['DSAV regurgitacion AV izquierda','dsav_regurg_av_izq',    'vocab'],
+  ['DSAV regurgitacion AV derecha', 'dsav_regurg_av_der',     'vocab'],
+  ['DSAV componente ventricular (mm)','dsav_dssd_mm',         'num'],
+  ['DSAV Qp/Qs',                   'dsav_qp_qs',             'num'],
+  ['DSAV sindrome de Down',        'dsav_down',              'vocab'],
+  ['DSAV hipertension pulmonar',   'dsav_htp',               'vocab'],
+  ['DSAV RVP (UW)',                'dsav_rvp_uw',            'num'],
   ['Supravalvular tipo',           'easv_tipo',              'vocab'],
   ['Supravalvular gradiente medio (mmHg)','easv_gradiente_medio','num'],
   ['Supravalvular gradiente pico (mmHg)', 'easv_gradiente_mmhg', 'num'],
@@ -44627,6 +44858,11 @@ LAB_XLS_ETIQ.easv_tipo        = { reloj:'Reloj de arena', difusa:'Difusa', membr
 LAB_XLS_ETIQ.easv_williams    = { no_eval:'No evaluado', no:'Sin sindrome', si:'Con sindrome' };
 LAB_XLS_ETIQ.easv_coronarias  = { no_eval:'No evaluados', normales:'Normales', comprometidos:'Ostios comprometidos', dilatacion:'Dilatacion coronaria' };
 LAB_XLS_ETIQ.easv_estenosis_pulmonar = { no:'No', leve:'Leve', moderada:'Moderada', severa:'Severa' };
+LAB_XLS_ETIQ.dsav_tipo = { parcial:'Parcial', completo:'Completo', intermedio:'Intermedio', noesp:'No especificado' };
+LAB_XLS_ETIQ.dsav_regurg_av_izq = { no:'Sin regurgitacion', leve:'Leve', moderada:'Moderada', severa:'Severa' };
+LAB_XLS_ETIQ.dsav_regurg_av_der = LAB_XLS_ETIQ.dsav_regurg_av_izq;
+LAB_XLS_ETIQ.dsav_down = { no:'No', si:'Si' };
+LAB_XLS_ETIQ.dsav_htp  = { no:'Sin HTP', leve:'Leve', moderada:'Moderada', severa:'Severa' };
 LAB_XLS_ETIQ.vab_simetria     = { simetrica:'Simétrica', asimetrica:'Asimétrica', no_val:'No valorable' };
 LAB_XLS_ETIQ.marfan_sindrome  = { marfan:'Marfan', lds:'Loeys-Dietz', turner:'Turner',
                                   ehat:'EHAT no sindrómica', otro:'Otro' };
@@ -44936,6 +45172,15 @@ LAB_XLS_VOCAB.im_grado = LAB_XLS_VOCAB.ia_grado = LAB_XLS_VOCAB.it_grado = LAB_X
    etiqueta legible que exporta la propia app. Sembrar `{}` a secas alcanzaría; los alias son
    para el que tipea a mano: «si»/«sí», «cavopulmonar», «moderado»/«moderada». */
 LAB_XLS_VOCAB.coa_hta = { no:'no', si:'si', 'sí':'si' };
+LAB_XLS_VOCAB.dsav_tipo = { parcial:'parcial', 'cia primum':'parcial', 'ostium primum':'parcial',
+  completo:'completo', intermedio:'intermedio', noesp:'noesp', 'no especificado':'noesp' };
+LAB_XLS_VOCAB.dsav_regurg_av_izq = { no:'no', 'sin regurgitacion':'no', leve:'leve',
+  moderada:'moderada', moderado:'moderada', severa:'severa', severo:'severa' };
+LAB_XLS_VOCAB.dsav_regurg_av_der = { no:'no', 'sin regurgitacion':'no', leve:'leve',
+  moderada:'moderada', moderado:'moderada', severa:'severa', severo:'severa' };
+LAB_XLS_VOCAB.dsav_down = { no:'no', si:'si', 'sí':'si' };
+LAB_XLS_VOCAB.dsav_htp = { no:'no', 'sin htp':'no', leve:'leve',
+  moderada:'moderada', moderado:'moderada', severa:'severa', severo:'severa' };
 LAB_XLS_VOCAB.easv_tipo = { reloj:'reloj', 'reloj de arena':'reloj', localizada:'reloj',
   difusa:'difusa', 'hipoplasia tubular':'difusa', membranosa:'membranosa',
   noesp:'noesp', 'no especificado':'noesp' };
@@ -52525,8 +52770,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260915-2044';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789515883468;                 /* eco-build-ms */
+const ECO_BUILD    = '20260915-2055';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789516512611;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -52612,7 +52857,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260915-2044</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260915-2055</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

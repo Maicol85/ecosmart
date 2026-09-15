@@ -335,6 +335,42 @@ igual. Y al final, sacarle la historia familiar al predicado **no cambiaba una p
 historia familiar»: el color y el texto salían de dos expresiones distintas. **Si un caso no
 prueba el lado negativo de cada rama, no prueba la regla.**
 
+### DSAV: el criterio ventricular sólo vota con regurgitación izquierda severa
+Sección implementada el 2026-09-15. Queda **un** placeholder en la suite: `cvpa`.
+
+**El DTSVI y la FEVI son criterio de CIRUGÍA VALVULAR, no de disfunción.** Sólo votan con
+**regurgitación de la válvula AV izquierda severa**: sin válvula severa no hay válvula que operar.
+Sin esa compuerta, un DTSVI de 44 mm en una miocardiopatía dilatada **sin** regurgitación habría
+publicado «criterios de cirugía valvular cumplidos». Y el informe **no los nombra** cuando no
+aplican — repetirlos ahí los convertiría en un criterio que nadie aplicó.
+
+**El umbral del pedido estaba en 45 mm y no se aplicó.** La ESC 2020 remite la regurgitación AV
+izquierda a las recomendaciones de **insuficiencia mitral**, y el panel de indicaciones de esta
+app **ya implementa las correctas**: **DTSI ≥40 mm** y **FEVI ≤60 %** (ESC/EACTS 2021, Clase I).
+El 45 es de la **ESC 2017**, que la propia guía de 2021 imprime en su tabla de recomendaciones
+revisadas al bajarlo a 40. Va hacia el lado **menos protector**: deja fuera al paciente con DTSVI
+de 42 mm que la guía opera. Es la misma corrección que este archivo ya documenta para la IM
+primaria — la tercera vez que un pedido trae el número viejo.
+
+**La FEVI y el DTSVI son los del ESTUDIO (`fevi`, `dsfvi`), no campos propios.** Crear
+`dsav_fevi`/`dsav_dtsvi_mm` habría sido la tercera y cuarta entrada de la misma medición: el
+patrón del espesor parietal. Se espejan de sólo lectura (`dsav_vi_ro`, con `data-espejo` para que
+no despierten la sección) y así se ve con qué está decidiendo.
+
+**No se pide prestado `eteQpQs()`.** Ese Qp/Qs es el flujo global TSVI/TSVD y **no dice por qué
+defecto pasa**: en un paciente con DSAV y otro shunt lo atribuiría al que se esté mirando. Es la
+lección del ductus. El Qp/Qs de la sección es una estimación propia y consignada.
+
+**Sobre el cierre decide la RESISTENCIA, no la PSAP del eco.** ≥5 UW → contraindicado (ESC 2020,
+Clase III); 3-5 UW → cateterismo con vasorreactividad, decisión individualizada. Y con
+**HTP severa sin RVP consignada** el informe **pide la resistencia** en vez de decidir con la
+presión estimada — negar o afirmar la operabilidad con el eco es exactamente lo que la guía no
+hace.
+
+**Campos:** `dsav_tipo`, `dsav_regurg_av_izq`, `dsav_regurg_av_der`, `dsav_dssd_mm` (sólo se
+imprime en el tipo completo), `dsav_qp_qs`, `dsav_down`, `dsav_htp`, `dsav_rvp_uw`,
+`dsav_incluir_chk`. Con sus **ocho columnas de Excel**.
+
 ### Supravalvular aórtica: lo propio son los ostios coronarios, y alertan solos
 Sección implementada el 2026-09-15. **Mismo criterio de gradiente que la subaórtica** —ESC 2020,
 **medio ≥40 mmHg a flujo normal**, a cualquier nivel del tracto de salida— y por el mismo motivo:
