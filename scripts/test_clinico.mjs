@@ -5431,6 +5431,145 @@ caso('TC-152', 'PPT Lab: ningun color invalido llega al paquete, y las diapositi
   })();
 `);
 
+/* TC-156 - Las tres diapositivas que faltaban: contractilidad, amiloidosis y hemodinamica.
+   OJO CON LA SONDA, que fallo dos veces antes de acusar al codigo:
+   · el texto del informe vive DENTRO de `campos` —guardarInforme barre textarea[id]— y es de ahi
+     que leen _labContrPoblacion y _labHallazgosCuenta. En el nivel superior del estudio, difusa y
+     disquinesia dan 0;
+   · los ids de segmento son basal_anterior / mid_anterior / apical_lateral, no basal_ant: un id
+     inventado no falla, calla, y el bull's eye sale todo gris.
+   · y el Forrester necesita onda_e + e_sep + e_lat, porque la PCP es la de Nagueh. Sin eso todo
+     cae en "No clasificado" y parece que el seam no anda. */
+caso('TC-156', 'PPT Lab: contractilidad con su bulls eye, amiloidosis y hemodinamica', `
+  return (async function(){
+    if (typeof PptxGenJS === 'undefined') {
+      return { extra: [['PptxGenJS cargo por CDN', false, 'la libreria no llego']] };
+    }
+    const mk = function(i, c){
+      const base = { fevi:String(30+i*4), edad:String(50+i), sexo: i%2?'F':'M', talla:'170',
+                     peso:'75', diam_tsvi:'20', itv_tsvi:'20',
+                     en_suma: c._suma || '', informe_texto: c._inf || '' };
+      Object.keys(c).forEach(function(k){ base[k] = c[k]; });
+      return { id:500+i, estudioId:'t156-'+i, fecha_estudio:'2026-0'+((i%4)+1)+'-1'+(i%9), campos: base };
+    };
+    const coh = [
+      mk(1,{'alg-ett-score':'9','ett-sparkling':'si',hemo_fc:'70',hemo_pam:'85',onda_e:'70',e_sep:'9',e_lat:'11'}),
+      mk(2,{'alg-ett-score':'6','ett-sparkling':'no',hemo_fc:'95',hemo_pam:'70',onda_e:'110',e_sep:'5',e_lat:'6'}),
+      mk(3,{'alg-ett-score':'3',hemo_fc:'60',hemo_pam:'95',onda_e:'60',e_sep:'10',e_lat:'12'}),
+      mk(4,{'alg-ett-score':'8','ett-sparkling':'si',hemo_fc:'110',hemo_pam:'60',onda_e:'120',e_sep:'4',e_lat:'5'}),
+      mk(5,{hemo_fc:'80',hemo_pam:'90',contractilidad:JSON.stringify({basal_anterior:1,mid_anterior:2,apex:1}),
+            _suma:'Hipocontractilidad difusa del ventriculo izquierdo.'}),
+      mk(6,{contractilidad:JSON.stringify({basal_inferior:3}), _inf:'Disquinesia septal aislada.'}),
+      mk(7,{_suma:'Sin trastornos de la motilidad segmentaria.'}),
+      mk(8,{'alg-ett-score':'7',contractilidad:JSON.stringify({mid_inferolateral:1})})
+    ];
+    const cp = _labContrPoblacion(coh), am = _labAmilResumen(coh), hm = _labHemoResumen(coh);
+
+    const oD = window._pptxDescargarSaneado, oT = window.toast;
+    /* Los rotulos de una torta viven en el CHART, no en los objetos de texto de la diapositiva:
+       buscarlos en el innerText de la hoja da vacio y el caso acusa al generador. Se intercepta
+       en la FRONTERA DE LA API, que es la tecnica que ya usa TC-150. */
+    const oAdd = PptxGenJS.prototype.addSlide;
+    let charts = [];
+    PptxGenJS.prototype.addSlide = function(){
+      const sl = oAdd.apply(this, arguments), oc = sl.addChart;
+      sl.addChart = function(tipo, datos, op){ charts.push({ datos: datos, op: op || {} }); return oc.apply(this, arguments); };
+      return sl;
+    };
+    let capt = null, toasts = [];
+    window._pptxDescargarSaneado = function(P){ capt = P; return Promise.resolve({saneado:true, quitadas:0}); };
+    window.toast = function(m){ toasts.push(String(m)); };
+    const textoDe = function(sl){ return (sl._slideObjects || []).map(function(o){
+      if (typeof o.text === 'string') return o.text;
+      if (Array.isArray(o.text)) return o.text.map(function(x){ return x && x.text ? x.text : ''; }).join('');
+      return ''; }).filter(function(x){ return x && x.trim(); }); };
+    const run = async function(cl){
+      try { localStorage.setItem('ecosmart_lab_ppt_chk', JSON.stringify(cl.reduce(function(a,k){ a[k]=true; return a; }, {}))); } catch (e) {}
+      capt = null; toasts.length = 0; charts = [];
+      await _labPPTGenerar(coh, { presentador:'X', institucion:'Y', fecha:'2026-09-20', tema:'azul' });
+      const sl = capt ? (capt.slides || []) : [];
+      return { tit: sl.map(function(x){ const t = textoDe(x); return t.length ? t[0] : '(vacia)'; }),
+               txt: sl.map(function(x){ return textoDe(x).join(' | '); }),
+               img: sl.map(function(x){ return (x._slideObjects || []).filter(function(o){ return o._type === 'image' || o.image; }).length; }),
+               toast: toasts.join(' '), charts: charts.slice() };
+    };
+    const c1 = await run(['contractilidad']);
+    const c2 = await run(['amiloidosis']);
+    const c3 = await run(['hemo']);
+    const c4 = await run(['contractilidad','amiloidosis','hemo']);
+    const iMeto = c4.tit.indexOf('Metodología y límites');
+    const meto  = iMeto > -1 ? c4.txt[iMeto] : '';
+    window._pptxDescargarSaneado = oD; window.toast = oT; PptxGenJS.prototype.addSlide = oAdd;
+    try { localStorage.removeItem('ecosmart_lab_ppt_chk'); } catch (e) {}
+    const g = _labPptAssertGrupos();
+    const iContr = c1.tit.indexOf('Contractilidad segmentaria');
+
+    return { extra: [
+      // 1 - CADA TARJETA PRODUCE SU DIAPOSITIVA
+      ['solo contractilidad da su diapositiva', iContr > -1, c1.tit.join(' · ')],
+      ['solo amiloidosis da la suya', c2.tit.indexOf('Amiloidosis — score ecocardiográfico') > -1, c2.tit.join(' · ')],
+      ['solo hemodinamica da la suya', c3.tit.indexOf('Perfil hemodinámico') > -1, c3.tit.join(' · ')],
+      ['y ninguna arrastra a las otras dos',
+        c1.tit.indexOf('Perfil hemodinámico') === -1 && c2.tit.indexOf('Contractilidad segmentaria') === -1,
+        c1.tit.join(' · ') + ' // ' + c2.tit.join(' · ')],
+      ['las tres juntas dan seis diapositivas', c4.tit.length === 6, c4.tit.join(' · ')],
+
+      // 2 - LAS OMISIONES DESAPARECIERON
+      /* Con las tres tildadas y con datos, la metodologia NO puede seguir diciendo que se
+         omitieron: era la declaracion de que todavia no tenian hoja. */
+      ['la metodologia ya no declara omisiones', meto.indexOf('NO se incluy') === -1, meto.slice(-170)],
+      ['ni el toast', c4.toast.indexOf('Se omitieron') === -1, c4.toast.slice(0, 150)],
+
+      // 3 - EL BULLS EYE VA COMO IMAGEN
+      /* addImage de PptxGenJS 3.12 no acepta SVG: va como PNG por _svgToPng, que es el mismo
+         camino que el PDF de auditoria ya usa para ESTA diana. */
+      ['la diapositiva de contractilidad lleva la diana incrustada',
+        iContr > -1 && c1.img[iContr] === 1, JSON.stringify(c1.img)],
+
+      // 4 - LOS NUMEROS SON LOS DEL SEAM
+      ['contractilidad cuenta los tres con segmentos', cp.conTrast === 3, String(cp.conTrast)],
+      ['y separa difusa de disquinesia', cp.difusa === 1 && cp.disqSep === 1, cp.difusa + '/' + cp.disqSep],
+      ['los 17 segmentos estan en pctById', Object.keys(cp.pctById).length === 17, String(Object.keys(cp.pctById).length)],
+      ['amiloidosis cuenta los cinco con score', am.n === 5, String(am.n)],
+      /* El sparkling se cuenta sobre los EVALUADOS: su select arranca en «— no evaluado —» y
+         contar el vacio como ausencia bajaria el porcentaje de presentes en silencio. */
+      ['y el sparkling va sobre los evaluados, no sobre todos',
+        am.sparkEval === 3 && am.spark === 2, am.spark + ' de ' + am.sparkEval],
+      /* LO QUE DISTINGUE «lee el seam» DE «recalcula»: la torta tiene que llevar, valor por
+         valor, lo que devuelve _labAmilResumen. Que la diapositiva exista no prueba nada. */
+      ['la torta lleva los MISMOS valores que el seam',
+        (function(){
+          const ch = c2.charts[0];
+          if (!ch || !ch.datos || !ch.datos.length) return false;
+          const lbls = [].concat.apply([], ch.datos[0].labels).map(String);
+          const vals = ch.datos[0].values;
+          const claves = Object.keys(am.cat);
+          if (lbls.length !== claves.length) return false;
+          return lbls.every(function(l, k){ return am.cat[l] === vals[k]; });
+        })(),
+        c2.charts[0] ? JSON.stringify([c2.charts[0].datos[0].labels, c2.charts[0].datos[0].values, am.cat]) : 'sin chart'],
+      ['hemodinamica reparte el Forrester', hm.forr['II — húmedo-caliente'] === 2, JSON.stringify(hm.forr)],
+      ['con FC y PAM promedio', hm.fc && hm.fc.v === 83 && hm.pam && hm.pam.v === 80,
+        JSON.stringify([hm.fc, hm.pam])],
+
+      // 5 - EL MAPEO DE FORRESTER ES EL CLASICO
+      /* El pedido traia I humedo-caliente / II humedo-frio / III seco-caliente / IV seco-frio,
+         que rota las cuatro: rotularia «I» al congestivo y «IV» al seco-frio. El I es el perfil
+         NORMAL. Si alguien lo cambia, esto se pone en rojo. */
+      ['el I es seco-caliente y el IV humedo-frio',
+        _LAB_FORR_LBL.I.indexOf('seco-caliente') > -1 && _LAB_FORR_LBL.IV.indexOf('húmedo-frío') > -1,
+        JSON.stringify(_LAB_FORR_LBL)],
+      ['y la diapositiva declara que la PCP es estimada',
+        c3.txt.join(' ').indexOf('ESTIMADA') > -1, (c3.txt[1] || '').slice(-160)],
+
+      // 6 - EL REGISTRO SIGUE COMPLETO
+      ['los grupos siguen cubriendo las 53 tarjetas',
+        g.enDom === 53 && g.enGrupo === 53 && !g.sinGrupo.length && !g.dobles.length,
+        g.enDom + '/' + g.enGrupo]
+    ] };
+  })();
+`);
+
 /* TC-155 - El mazo se arma con las CASILLAS, no con el modal (2026-09-16).
    El modal quedo con presentador, institucion, fecha y paleta; el contenido lo deciden las
    casillas de las tarjetas. La condicion que vale NO es "salen N diapositivas" sino que el
@@ -5477,9 +5616,14 @@ caso('TC-155', 'PPT Lab: las casillas deciden el mazo, y lo que no tiene hoja se
     const soloTavi = await corrida(['tavi']);
     const tres     = await corrida(['tavi','eisenmenger','funcion']);
     const nada     = await corrida([]);
-    /* Un grupo que TIENE casilla y todavia no tiene hoja se declara con su motivo: es la leccion
-       del "solo 7 diapositivas", donde el medico tildaba diez y recibia siete sin saber por que. */
-    const pend    = await corrida(['amiloidosis','contractilidad']);
+    /* LA OMISION SE DECLARA CON SU MOTIVO. Hasta el commit anterior el disparador era «este grupo
+       todavia no tiene diapositiva»; amiloidosis y contractilidad ya la tienen, asi que ahora se
+       ejerce por FALTA DE DATOS, que es el otro disparador y el que queda vivo: la cohorte de
+       este caso no tiene ningun estudio marcado como ETE. El mecanismo es el mismo y la leccion
+       tambien —el medico tildo la tarjeta y tiene derecho a saber por que no salio—. Se tilda
+       amiloidosis, que en esta cohorte no tiene un solo score ETT cargado; con TAVI no servia,
+       porque aca SI hay estudios marcados como ETE y la hoja se genera. */
+    const pend    = await corrida(['amiloidosis']);
     const meto    = pend.tit.indexOf('Metodología y límites');
     const txtMeto = meto > -1 ? (capt.slides[meto]._slideObjects || []).map(function(o){
       if (typeof o.text === 'string') return o.text;
@@ -5543,9 +5687,12 @@ caso('TC-155', 'PPT Lab: las casillas deciden el mazo, y lo que no tiene hoja se
         nada.tit.join(' · ')],
 
       // 4 - LO QUE NO TIENE HOJA SE DECLARA
-      ['un grupo tildado sin diapositiva se omite con su motivo',
-        txtMeto.indexOf('Amiloidosis') > -1 && txtMeto.indexOf('Contractilidad') > -1 &&
-        txtMeto.indexOf('NO se incluy') > -1, txtMeto.slice(-260)],
+      ['un grupo tildado sin datos se omite con su motivo',
+        txtMeto.indexOf('Amiloidosis') > -1 && txtMeto.indexOf('NO se incluy') > -1, txtMeto.slice(-260)],
+      /* Y el motivo nombra el DATO que falta, no un generico: sin eso el medico no sabe si
+         corregir el filtro o cargar el campo. */
+      ['y el motivo nombra el dato que falta',
+        txtMeto.indexOf('score ETT') > -1, txtMeto.slice(-200)],
       ['y el toast tambien lo dice', pend.toast.indexOf('Se omitieron') > -1, pend.toast.slice(0, 170)],
 
       // 5 - LA COMPUERTA DE NINGUNA TILDADA

@@ -487,6 +487,87 @@ El Excel pasó de **421 a 429 columnas** y de 128 a **129 básicas**; TC-135 fij
 contenido. Ojo con el `0` de una casilla apagada: **no es lo mismo que ausente**, y el caso lo
 distingue.
 
+### Las tres diapositivas que faltaban, y dos seams de los tres que el pedido pedía — 2026-09-16
+
+Cierra el mazo: contractilidad, amiloidosis y hemodinámica pasaron de «tildás la tarjeta y se
+declara la omisión» a producir su hoja.
+
+**LA PREMISA «sus datos viven inline como innerHTML» ERA FALSA PARA CONTRACTILIDAD.**
+`_labContrPoblacion(infs)` **ya era un seam** —devuelve `{N, sinTrast, conTrast, difusa, disqSep,
+pctById}` con los diecisiete segmentos— y `_labContrRenderDash` ya sólo pintaba: el corte
+evaluación/pintor estaba hecho. Escribir el `_labContrResumen` que pedía la tarea habría sido la
+segunda copia que esta misma tanda persigue. **De los tres seams pedidos, los reales eran dos.**
+
+**EL BULL'S EYE VA COMO PNG Y EL CAMINO YA ESTABA PROBADO.** `addImage` de PptxGenJS 3.12 no
+acepta SVG, pero `_svgToPng` existe y el **PDF de auditoría ya incrusta ESTA MISMA diana** con él.
+La diapositiva la reusa. Si la conversión falla —canvas bloqueado, imagen que no carga— cae a una
+lista de los ocho segmentos con más compromiso **y lo dice en la hoja**: un cuadro en blanco se lee
+como «no hubo trastornos», que es lo contrario de lo que pasó.
+
+#### El mapeo de Forrester del pedido estaba rotado, y no se aplicó
+
+| | La app (y la literatura) | El pedido |
+|---|---|---|
+| I | **seco-caliente** (normal) | húmedo-caliente |
+| II | **húmedo-caliente** (congestión) | húmedo-frío |
+| III | **seco-frío** (hipoperfusión) | seco-caliente |
+| IV | **húmedo-frío** (las dos) | seco-frío |
+
+Aplicarlo habría rotulado **«I» al paciente congestivo y «IV» al seco-frío**: dos conductas
+cambiadas de lugar en una diapositiva que se proyecta, y contradiciendo a la cápsula del
+formulario y al informe firmado, que ya publican el correcto. Es la tercera vez que un pedido trae
+una escala invertida sobre un dato que la app ya clasifica bien —antes fueron el SGL y el signo
+del strain—. **`_LAB_FORR_LBL` es ahora una constante compartida** entre el render y el mazo, así
+que la etiqueta no puede divergir: es la misma cadena. La mutación que lo revierte pone en rojo
+dos condiciones de TC-156.
+
+**`_labAmilResumen` NO tiene una cuarta banda «confirmada».** El pedido la nombraba; el score ETT
+tiene **tres** (`_LAB_AMIL_LBL`: probable ≥8 · intermedio 6-7 · baja <6), porque **confirmar
+amiloidosis exige centellograma y proteínas monoclonales**, que son el ALGORITMO y no el puntaje.
+Inventarla habría hecho que una diapositiva proyectara «confirmada» sobre un score
+ecocardiográfico. La hoja lo declara al pie.
+
+**El sparkling se cuenta sobre los EVALUADOS.** Su select arranca en «— no evaluado —», así que
+contar el vacío como ausencia bajaría el porcentaje de presentes sin que nada lo delate. Es la
+regla del trombo de orejuela, y la mutación que la revierte lo pone en rojo.
+
+#### Lo que costó, y es lo mismo tres veces
+
+**UN «BYTE POR BYTE IDÉNTICO» SOBRE UN ARCHIVO QUE NO SE TOCÓ NO PRUEBA NADA.** La primera pasada
+de la extracción tenía un `assert` que falló a mitad del script de Python, así que **no se escribió
+el archivo** — y la comparación posterior dio «idéntico» y parecía éxito. Lo delató contar las
+referencias (`grep -c` dio 0) y el `git diff --stat`. **Después de una edición, confirmar que el
+archivo CAMBIÓ antes de celebrar que la salida no cambió.** Es el error de denominador otra vez, en
+su forma más pura.
+
+**MI SONDA ESTABA MAL EN LAS DOS COSAS, Y ACUSÓ AL CÓDIGO.** Con la cohorte sembrada,
+contractilidad daba `con=1, difusa=0, disquinesia=0` sobre tres estudios que debían contar:
+- **el texto del informe vive DENTRO de `campos`** —`guardarInforme` barre `textarea[id]` y
+  `informe_texto`/`en_suma` lo son—, que es de donde leen `_labContrPoblacion` **y**
+  `_labHallazgosCuenta`. Ponerlo en el nivel superior del estudio deja las dos en cero;
+- y **los ids de segmento son `basal_anterior` / `mid_anterior` / `apical_lateral`**, no
+  `basal_ant`. Un id inventado no falla: calla, y la diana sale gris.
+
+El Forrester daba todo «No clasificado» por una tercera: la PCP es la de **Nagueh**, así que sin
+`onda_e` + `e_sep` + `e_lat` no hay perfil. **Las tres eran de la sonda.** Verificarlo costó menos
+que el impulso de «arreglar» el seam.
+
+**La condición de la torta no podía mirar el texto de la hoja.** Los rótulos de un `addChart` viven
+en el CHART, no en los objetos de texto de la diapositiva: buscarlos en el `innerText` da vacío y
+el caso acusa al generador. Se intercepta en la **frontera de la API**, que es lo que ya hacía
+TC-150 — y de paso la condición quedó más fuerte: la torta tiene que llevar, **valor por valor**,
+lo que devuelve `_labAmilResumen`. Que la diapositiva exista no prueba nada.
+
+**TC-155 SE PUSO EN ROJO Y ESA ES LA SEÑAL.** Verificaba que amiloidosis y contractilidad se
+declararan como omitidas «porque todavía no tienen hoja»; ahora la tienen. La condición se reapuntó
+al otro disparador del mismo mecanismo —**falta de datos**— y quedó exigiendo que el motivo
+**nombre el dato que falta**, no un genérico: sin eso el médico no sabe si corregir el filtro o
+cargar el campo.
+
+**Tres mutaciones, las tres cazadas:** la diapositiva que recalcula la distribución en vez de leer
+el seam, el sparkling contado sobre todos, y el Forrester revertido al mapeo del pedido. Y el CDN
+volvió a fallar dos veces —una en TC-156 y otra en TC-155— con el rojo del entorno y no del código.
+
 ### El mazo lo arman las CASILLAS, no el modal — 2026-09-16
 
 Commit 3 de tres. `_labPPTGenerar` dejó de mirar `o.mods`/`o.anal` —el selector de seis categorías

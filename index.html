@@ -51580,6 +51580,49 @@ function _labAmilCat(inf) {
   const b = _labAmilBanda(inf);
   return b ? _LAB_AMIL_LBL[b] : null;
 }
+/* ══ AMILOIDOSIS AGREGADA ════════════════════════════════════════════════════════════════════
+   Extraído el 2026-09-16 de `_labAdvancedRender`, que lo calculaba inline, para que la diapositiva
+   de amiloidosis lea los MISMOS números que la tarjeta. Las bandas salen de `_labAmilCat`, que es
+   la que rotula el gráfico del dashboard y la que usa el filtro de cohorte: escribir los cortes
+   acá sería la cuarta copia del mismo umbral.
+   `_LAB_AMIL_LBL` tiene TRES bandas —probable ≥8, intermedio 6-7, baja <6— y NO las cuatro que
+   nombraba el pedido: la app no tiene una categoría «confirmada» en el score ETT, porque confirmar
+   amiloidosis exige centellograma y proteínas monoclonales, que son el ALGORITMO y no el score.
+   Inventar esa cuarta banda haría que una diapositiva proyectara «confirmada» sobre un puntaje
+   ecocardiográfico. */
+function _labAmilResumen(infs) {
+  const arr = infs.filter(i => _labAmilBanda(i) !== null);
+  const cat = Object.create(null);
+  arr.forEach(i => { const c = _labAmilCat(i) || 'No clasificado'; cat[c] = (cat[c] || 0) + 1; });
+  /* El sparkling se cuenta sobre los EVALUADOS. Su select arranca en «— no evaluado —», así que
+     contar el vacío como ausencia bajaría el porcentaje de presentes sin que nada lo delate: es
+     la regla del trombo de orejuela. */
+  const ev = infs.filter(i => { const v = _labCampoRaw(i, 'ett-sparkling'); return v === 'si' || v === 'no'; });
+  return { n: arr.length, cat: cat, sparkEval: ev.length,
+           spark: ev.filter(i => _labCampoRaw(i, 'ett-sparkling') === 'si').length };
+}
+
+/* ══ HEMODINÁMICA AGREGADA ═══════════════════════════════════════════════════════════════════
+   EL MAPEO DE FORRESTER ES EL CLÁSICO Y NO SE TOCA: I seco-caliente (normal) · II húmedo-caliente
+   (congestión) · III seco-frío (hipoperfusión) · IV húmedo-frío (las dos). El pedido del
+   2026-09-16 traía I húmedo-caliente / II húmedo-frío / III seco-caliente / IV seco-frío, que
+   rota las cuatro: rotularía «I» al paciente congestivo y «IV» al seco-frío, o sea dos conductas
+   cambiadas de lugar en una diapositiva que se proyecta. Se conservó el de la app, que además es
+   el que ya publica la cápsula del formulario y el informe firmado.
+   El mapa se COMPARTE con el render: así la etiqueta no puede divergir entre el dashboard y el
+   mazo, porque es la misma cadena. */
+const _LAB_FORR_LBL = { I:'I — seco-caliente', II:'II — húmedo-caliente', III:'III — seco-frío', IV:'IV — húmedo-frío' };
+function _labHemoResumen(infs) {
+  const arr = infs.filter(_labHemoUsado);
+  const forr = Object.create(null);
+  ['I','II','III','IV'].forEach(k => { forr[_LAB_FORR_LBL[k]] = 0; });
+  forr['No clasificado'] = 0;
+  arr.forEach(i => { const f = _labForrester(i); forr[f ? _LAB_FORR_LBL[f] : 'No clasificado']++; });
+  return { n: arr.length, forr: forr,
+           fc:  _prom(arr.map(i => _labNum(i, 'hemo_fc')).filter(v => v !== null)),
+           pam: _prom(arr.map(i => _labNum(i, 'hemo_pam')).filter(v => v !== null)) };
+}
+
 // Cardio-onco: usado si hay fármaco onco o FEVI/GLS basal
 function _labOncoUsado(inf) { return _labCampoRaw(inf, 'co_farmaco') !== '' || _labNum(inf, 'co_fevi_basal') !== null || _labNum(inf, 'co_gls_basal') !== null; }
 /* Caída de FEVI en PUNTOS (basal − actual) y caída RELATIVA de GLS en %. Devuelven null si
@@ -51724,8 +51767,7 @@ function _labAdvancedRender(infs, n) {
   if (!amilArr.length) { empty('lab-adv-amil-stats', 'score de amiloidosis'); setHtml('lab-adv-amil-cat', '<div class="lab-empty">Sin datos</div>'); }
   else {
     setHtml('lab-adv-amil-stats', stat('Estudios con score calculado', amilArr.length + ' (' + pctS(amilArr.length) + ')'));
-    const cat = Object.create(null); amilArr.forEach(i => { const c = _labAmilCat(i) || 'No clasificado'; cat[c] = (cat[c] || 0) + 1; });
-    _labPieDash('lab-adv-amil-cat', Object.entries(cat));
+    _labPieDash('lab-adv-amil-cat', Object.entries(_labAmilResumen(infs).cat));
   }
 
   // ── Cardio-Oncología ──
@@ -51867,18 +51909,15 @@ function labHemoRender(infs, n) {
   const hemoArr = infs.filter(_labHemoUsado);
   if (!hemoArr.length) { empty('lab-adv-hemo-stats', 'perfil hemodinámico'); setHtml('lab-adv-hemo-forr', '<div class="lab-empty">Sin datos</div>'); }
   else {
-    const fcs  = hemoArr.map(i => _labNum(i, 'hemo_fc')).filter(v => v !== null);
-    const pams = hemoArr.map(i => _labNum(i, 'hemo_pam')).filter(v => v !== null);
+    /* Los cuatro números salen de `_labHemoResumen`, que es lo que lee también la diapositiva de
+       hemodinámica. Con dos implementaciones, el mazo y esta tarjeta podrían repartir el mismo
+       Forrester distinto sobre la misma cohorte. */
+    const _hm = _labHemoResumen(infs);
     setHtml('lab-adv-hemo-stats',
       stat('Estudios con perfil hemodinámico', hemoArr.length + ' (' + pctS(hemoArr.length) + ')') +
-      stat('FC promedio', _promTxt(_prom(fcs), 0, ' lpm')) +
-      stat('PAM promedio', _promTxt(_prom(pams), 0, ' mmHg')));
-    const forrMap = { I: 'I — seco-caliente', II: 'II — húmedo-caliente', III: 'III — seco-frío', IV: 'IV — húmedo-frío' };
-    const forr = { 'I — seco-caliente': 0, 'II — húmedo-caliente': 0, 'III — seco-frío': 0, 'IV — húmedo-frío': 0, 'No clasificado': 0 };
-    // `f` sale de _labForrester, que devuelve I/II/III/IV o null — rango cerrado del propio
-    // código, no un valor del estudio. Acá no hace falta _lblDe ni prototipo nulo.
-    hemoArr.forEach(i => { const f = _labForrester(i); forr[f ? forrMap[f] : 'No clasificado']++; });
-    _labPieDash('lab-adv-hemo-forr', Object.entries(forr).filter(e => e[1] > 0));
+      stat('FC promedio', _promTxt(_hm.fc, 0, ' lpm')) +
+      stat('PAM promedio', _promTxt(_hm.pam, 0, ' mmHg')));
+    _labPieDash('lab-adv-hemo-forr', Object.entries(_hm.forr).filter(e => e[1] > 0));
   }
 
   labCCRender(infs, n);
@@ -52729,14 +52768,89 @@ async function _labPPTGenerar(infs, o) {
       }
     }
 
-    /* ── GRUPOS TILDADOS QUE TODAVÍA NO TIENEN HOJA ──
-       Contractilidad, amiloidosis y hemodinámica tienen casilla y todavía no tienen diapositiva:
-       sus números siguen inline en el render del Laboratorio y el mazo no puede leerlos sin
-       escribir una segunda copia. Se DECLARAN uno por uno con su motivo, que es la lección del
-       «sólo 7 diapositivas»: el médico tildó la tarjeta y tiene derecho a saber por qué no salió,
-       en vez de contar hojas y no entender. */
-    [['contr', 'Contractilidad segmentaria'], ['amil', 'Amiloidosis'], ['hemo', 'Perfil hemodinámico']]
-      .forEach(par => { if (G(par[0])) omitir(par[1], 'todavía no tiene diapositiva — sus números siguen dentro del render del Laboratorio'); });
+    /* ── 12c · CONTRACTILIDAD SEGMENTARIA ──
+       `_labContrPoblacion` YA era un seam antes de esta tarea —el corte evaluación/pintor estaba
+       hecho y `_labContrRenderDash` sólo pinta—, así que acá no se extrajo nada: se consume.
+       Escribir un `_labContrResumen` nuevo habría sido la segunda copia que esta tanda persigue.
+       EL BULL'S EYE VA COMO PNG, NO COMO SVG: `addImage` de PptxGenJS 3.12 no acepta SVG, y el
+       camino ya está probado — el PDF de auditoría incrusta ESTA MISMA diana con `_svgToPng`. Si
+       la conversión falla (canvas bloqueado, imagen que no carga) cae a una tabla de los segmentos
+       comprometidos, que dice lo mismo con menos: un cuadro en blanco se lee como «no hubo
+       trastornos», que es lo contrario. */
+    if (G('contr')) {
+      const cp = _labContrPoblacion(infs);
+      const s = nueva('Contractilidad segmentaria');
+      const prc = x => cp.N > 0 ? Math.round(x / cp.N * 100) + ' %' : '—';
+      let y = 1.00;
+      y = dato(s, 0.4, y, 'Estudios analizados', String(cp.N));
+      y = dato(s, 0.4, y, 'Sin trastornos sectoriales', cp.sinTrast + '  (' + prc(cp.sinTrast) + ')');
+      y = dato(s, 0.4, y, 'Con trastornos sectoriales', cp.conTrast + '  (' + prc(cp.conTrast) + ')');
+      y = dato(s, 0.4, y, 'Hipocontractilidad difusa', cp.difusa + '  (' + prc(cp.difusa) + ')');
+      dato(s, 0.4, y, 'Disquinesia septal aislada', cp.disqSep + '  (' + prc(cp.disqSep) + ')');
+      let png = null;
+      try { png = await _svgToPng(_contrPobBullsEyeSVG(cp.pctById), 640, 640); }
+      catch (e) { console.error('[labPPT/bullseye]', e); }
+      if (png) {
+        try { s.addImage({ data: png, x: 5.9, y: 0.88, w: 2.9, h: 2.9 }); }
+        catch (e) { console.error('[labPPT/bullseye]', e); png = null; }
+      }
+      if (!png) {
+        /* Respaldo: los segmentos con compromiso, ordenados. Se nombra el fallo en el mazo, no
+           sólo en la consola: una hoja sin diana y sin explicación se lee como que no hubo nada. */
+        const segs = Object.keys(cp.pctById).filter(k => cp.pctById[k] > 0)
+          .sort((a, b) => cp.pctById[b] - cp.pctById[a]).slice(0, 8)
+          .map(k => k + ' ' + Math.round(cp.pctById[k]) + ' %');
+        s.addText(T(segs.length
+          ? ('El diagrama no se pudo incrustar. Segmentos con más compromiso: ' + segs.join('  ·  '))
+          : 'El diagrama no se pudo incrustar. Ningún segmento con compromiso registrado.'),
+          { x:5.9, y:1.3, w:3.8, h:1.6, fontSize:10, color:C.txt, fontFace:FONT, valign:'top' });
+      }
+      s.addText(T('Cada segmento es el porcentaje de estudios con alguna alteración de la motilidad registrada, sin discriminar el tipo. Gris 0 % · amarillo 1-10 % · celeste 11-25 % · violeta 26-50 % · rojo > 50 %.'),
+        { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
+    }
+
+    /* ── 12d · AMILOIDOSIS ── */
+    if (G('amil')) {
+      const am = _labAmilResumen(infs);
+      if (!am.n) omitir('Amiloidosis', 'ningún estudio del período tiene el score ETT calculado');
+      else {
+        const s = nueva('Amiloidosis — score ecocardiográfico');
+        let y = 1.00;
+        y = dato(s, 0.4, y, 'Estudios con score calculado', am.n + ' de ' + n);
+        dato(s, 0.4, y, 'Patrón «sparkling»', am.sparkEval
+          ? (am.spark + ' de ' + am.sparkEval + ' evaluados (' + Math.round(am.spark / am.sparkEval * 100) + ' %)')
+          : 'sin estudios con el patrón evaluado');
+        const filas = Object.keys(am.cat).map(k => ({ lbl: k, n: am.cat[k] }));
+        if (!gTorta(s, filas, { x:4.9, y:0.92, w:4.8, h:2.5 }, 'Distribución por banda del score'))
+          s.addText('Sin score clasificable.', { x:4.9, y:1.6, w:4.8, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
+        /* El score ETT NO confirma: la confirmación exige centellograma y proteínas monoclonales,
+           que son el algoritmo diagnóstico y no este puntaje. Sin esta línea, «Probable (≥8)» en
+           un proyector se lee como un diagnóstico. */
+        s.addText(T('Bandas del score ecocardiográfico, no del algoritmo diagnóstico: confirmar amiloidosis exige centellograma y estudio de proteínas monoclonales.'),
+          { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.rojo, fontFace:FONT });
+      }
+    }
+
+    /* ── 12e · PERFIL HEMODINÁMICO ── */
+    if (G('hemo')) {
+      const hm = _labHemoResumen(infs);
+      if (!hm.n) omitir('Perfil hemodinámico', 'ningún estudio del período tiene frecuencia cardíaca ni presión arterial media cargadas');
+      else {
+        const s = nueva('Perfil hemodinámico');
+        let y = 1.00;
+        y = dato(s, 0.4, y, 'Estudios con perfil', hm.n + ' de ' + n);
+        y = dato(s, 0.4, y, 'FC promedio', hm.fc ? (hm.fc.v.toFixed(0) + ' lpm (n=' + hm.fc.n + ')') : '—');
+        dato(s, 0.4, y, 'PAM promedio', hm.pam ? (hm.pam.v.toFixed(0) + ' mmHg (n=' + hm.pam.n + ')') : '—');
+        const filas = Object.keys(hm.forr).map(k => ({ lbl: k, n: hm.forr[k] }));
+        if (!gTorta(s, filas, { x:4.9, y:0.92, w:4.8, h:2.5 }, 'Perfil de Forrester'))
+          s.addText('Sin perfil clasificable.', { x:4.9, y:1.6, w:4.8, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
+        /* La PCP de la que sale el Forrester es ESTIMADA por Nagueh. La app lo declara en el
+           formulario y en el informe firmado; el mazo es la superficie que más circula, así que
+           acá también. */
+        s.addText(T('El perfil de Forrester deriva del índice cardíaco y de una PCP ESTIMADA por la fórmula de Nagueh: es orientativo y no reemplaza la medición invasiva.'),
+          { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.rojo, fontFace:FONT });
+      }
+    }
 
     // ── 13 · METODOLOGÍA ──
     {
@@ -55955,8 +56069,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260916-0950';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789563015366;                 /* eco-build-ms */
+const ECO_BUILD    = '20260916-1004';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789563853417;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -56042,7 +56156,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0950</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-1004</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
