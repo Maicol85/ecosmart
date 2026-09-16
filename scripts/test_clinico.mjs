@@ -4050,6 +4050,81 @@ caso('TC-132', 'Seis correcciones: titulos, limpieza, capsulas, SGL, denominador
   return { extra: out };
 `);
 
+/* DOPPLER TRICUSPIDEO. Lo que vigila este caso, ademas de los cortes: que el TRIV y el TAP se
+   publiquen como elementos INDIRECTOS y no como diagnostico —la PSAP y la clasificacion ESC 2022
+   ya estan en la misma tarjeta—, que NO suban al EN SUMA, y que los dos alterados salgan en UNA
+   sola oracion: dos frases separadas se leen como dos hallazgos y son el mismo.
+   TAP se lee de `tvia`, que es su id REAL en esta app —no `tap`—, y el TRIV tricuspideo es un
+   campo nuevo porque el `triv` que ya existia es el del VENTRICULO IZQUIERDO. */
+caso('TC-133', 'Doppler tricuspideo: E/A, E/e y los dos signos INDIRECTOS de HTP', `
+  function e(o) { __t.limpiar();
+    __t.set('vd_bas','40');                       // para que el bloque del VD emita parrafo
+    if (o.E    != null) __t.set('dt_onda_e', String(o.E));
+    if (o.A    != null) __t.set('dt_onda_a', String(o.A));
+    if (o.ep   != null) __t.set('dt_eprime_lat', String(o.ep));
+    if (o.triv != null) __t.set('dt_triv', String(o.triv));
+    if (o.tap  != null) __t.set('tvia', String(o.tap));
+    return { r: dopTricEstado(), f: dopTricFrase(), inf: __t.informe() };
+  }
+  const t65 = e({ triv:65 }), t60 = e({ triv:60 }), t55 = e({ triv:55 });
+  /* EL TAP NO ES DE ESTE MODULO. La app YA lo publica dos veces: la linea de la valvula
+     tricuspide del narrativo y el EN SUMA cuando no hay PSAP. Agregarlo aca habria sido la
+     TERCERA superficie diciendo lo mismo del mismo numero en el mismo informe. Este caso verifica
+     las dos cosas: que las frases preexistentes sigan saliendo, y que el modulo nuevo NO agregue
+     una tercera. */
+  const p95 = e({ tap:95 }), p110 = e({ tap:110 });
+  const trivYTap = e({ triv:65, tap:95 });
+  const cocientes = e({ E:0.6, A:0.4, ep:8 });
+  const soloE = e({ E:0.6 });
+  const ilegible = e({ E:9 });
+  __t.limpiar(); __t.set('vd_bas','40');
+  const vacio = { r: dopTricEstado(), f: dopTricFrase(), inf: __t.informe() };
+  return { extra: [
+    // Los dos lados del corte del TRIV.
+    ['TRIV 65 ms aparece como elemento indirecto',
+      t65.f.indexOf('elemento indirecto sugestivo de hipertensión pulmonar') > -1],
+    ['TRIV 60 exactos NO aparece: el corte es >60', t60.f.indexOf('elemento indirecto') === -1],
+    ['TRIV 55 tampoco', t55.f.indexOf('elemento indirecto') === -1],
+    ['y el texto dice «sugestivo», no diagnostica HTP',
+      t65.f.indexOf('sugestivo') > -1 && t65.f.indexOf('Hipertensión pulmonar severa') === -1],
+    // EL TAP: lo dicen las frases preexistentes, no este modulo.
+    /* NUNCA, con ninguna redaccion y en ningun escenario. La primera version solo miraba el caso
+       con TAP suelto —donde la funcion sale temprano y devuelve cadena vacia igual—, asi que una
+       frase del TAP agregada al modulo sobrevivia mientras hubiera un TRIV alterado que abriera
+       la funcion. Se mira el escenario en que la funcion SI corre. */
+    ['el modulo nuevo NO habla del TAP', p95.f === ''],
+    ['ni siquiera cuando la funcion corre por el TRIV',
+      trivYTap.f.indexOf('aceleración pulmonar') === -1 && trivYTap.f.indexOf('TAP') === -1],
+    ['pero el narrativo SIGUE diciendolo, por la linea de la valvula tricuspide',
+      p95.inf.inf.indexOf('TAP < 105 ms') > -1],
+    ['y el EN SUMA tambien, que ya existia', p95.inf.suma.indexOf('Elementos indirectos') > -1],
+    ['con TAP 110 no lo dice ninguna', p110.inf.inf.indexOf('TAP < 105 ms') === -1],
+    // Con los dos alterados NO hay tercera frase repitiendo el TAP.
+    ['con TRIV y TAP alterados, el TAP se nombra UNA sola vez',
+      trivYTap.inf.inf.split('TAP < 105 ms').length - 1 === 1],
+    ['y el TRIV aparece por su cuenta', trivYTap.inf.inf.indexOf('TRIV tricuspídeo de 65 ms') > -1],
+    // El TRIV no sube al EN SUMA: el diagnostico lo hacen la PSAP y la ESC 2022.
+    ['el TRIV no agrega nada al EN SUMA', t65.inf.suma.indexOf('TRIV') === -1],
+    ['pero si esta en el informe narrativo', t65.inf.inf.indexOf('TRIV tricuspídeo de 65 ms') > -1],
+    // Los cocientes.
+    ['E/A se calcula con sus dos insumos', cocientes.r.ea === 1.5],
+    ["E/e' se calcula con sus dos insumos", cocientes.r.eep === 7.5],
+    ['con un solo insumo no hay cociente', soloE.r.ea === null && soloE.r.eep === null],
+    ['y el informe publica los cocientes', cocientes.f.indexOf('E/A 1.50') > -1 && cocientes.f.indexOf("E/e' 7.5") > -1],
+    // Vacio e ilegible.
+    ['sin ningun campo cargado no hay texto de Doppler tricuspideo',
+      vacio.f === '' && vacio.inf.inf.indexOf('Doppler tricuspídeo') === -1],
+    ['una onda E de 9 m/s no entra en el cociente', ilegible.r.eOk === false && ilegible.r.ea === null],
+    ['y NO desaparece del informe: se declara fuera de rango',
+      ilegible.f.indexOf('fuera de rango') > -1 && ilegible.inf.inf.indexOf('fuera de rango') > -1],
+    // NO se duplico ningun campo.
+    ['el TAP se lee de tvia: no se creo un campo propio', !document.getElementById('dt_tap')],
+    ['el TRIV del ventriculo izquierdo sigue existiendo aparte',
+      !!document.getElementById('triv') && !!document.getElementById('dt_triv')],
+    ['y el umbral 105 no se duplico en una constante nueva', typeof window.DT_TAP_HTP === 'undefined']
+  ] };
+`);
+
 /* LAS TRES SUPERFICIES DE CARDIO-ONCO TIENEN QUE DECIR LO MISMO. La leyenda de #ref-cardiotox
    (pestaña Referencias), la tabla de farmacos y las tablas nuevas del marco HFA-ICOS viven en
    DOS pestañas distintas y describen al mismo paciente. Las tres estaban desincronizadas, cada

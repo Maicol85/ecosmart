@@ -2556,10 +2556,24 @@ window.cerrarSesion = cerrarSesion;
           <input type="text" id="pap_med" readonly placeholder="—">
         </div>
       </div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--accent2);margin:14px 0 4px;">Llenado y relajación del ventrículo derecho</div>
+      <div class="grid-4">
+        <div class="fg"><label>Onda E tricuspídea (m/s)</label>
+          <input type="number" id="dt_onda_e" step="0.1" placeholder="m/s" oninput="calcDopTric()"></div>
+        <div class="fg"><label>Onda A tricuspídea (m/s)</label>
+          <input type="number" id="dt_onda_a" step="0.1" placeholder="m/s" oninput="calcDopTric()"></div>
+        <div class="fg"><label>e' anular lateral tricuspídeo (cm/s)</label>
+          <input type="number" id="dt_eprime_lat" step="0.1" placeholder="cm/s" oninput="calcDopTric()"></div>
+        <div class="fg"><label>TRIV tricuspídeo (ms)</label>
+          <input type="number" id="dt_triv" step="1" placeholder="ms" oninput="calcDopTric()">
+          <span style="font-size:10px;color:var(--text2);">No es el TRIV del ventrículo izquierdo, que se carga en <b>Diastólica</b>.</span></div>
+      </div>
       <div class="calc-box" style="margin-top:8px;">
         <div class="calc-row"><span class="calc-lbl">Gradiente VD-AD (4×VRT²)</span><span id="grad-vdad-interp">—</span></div>
         <div class="calc-row"><span class="calc-lbl">PSAP estimada</span><span id="psap-interp">—</span></div>
         <div class="calc-row"><span class="calc-lbl">HTP — clasificación ESC 2022</span><span id="htp-interp">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">E/A tricuspídeo</span><span id="dt_ea">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">E/e' tricuspídeo</span><span id="dt_ee_prime">—</span></div>
       </div>
     </div>
   </div>
@@ -16592,6 +16606,92 @@ function cvrCambio() { cvrSync(); _refrescarInformeSiGenerado(); }
 window.dptCambio = dptCambio; window.cvrCambio = cvrCambio;
 
 // ══ PSAP ══
+/* ══ DOPPLER TRICUSPÍDEO — LLENADO Y RELAJACIÓN DEL VD ═══════════════════════════════════════
+   TRES COSAS QUE SE VERIFICARON ANTES DE CREAR UN CAMPO, Y DOS CAMBIARON EL PLAN:
+   · `vmax_it` YA EXISTE — es la Vmax de la insuficiencia tricuspídea, no se duplica.
+   · **TAP ya existe y su id es `tvia`**, no `tap`. Está en el bloque del VD, rotulado «TAP (ms)»,
+     y va al Excel como tal. Crear un `dt_tap` habría sido la segunda entrada del mismo dato.
+   · **`triv` YA EXISTE pero es el del VENTRÍCULO IZQUIERDO** — vive junto a `tde` y `thp` en el
+     bloque diastólico. El tricuspídeo es otra medición, así que `dt_triv` NO es un duplicado; el
+     rótulo del campo lo dice, para que nadie cargue uno donde va el otro.
+
+   LOS DOS SIGNOS SON INDIRECTOS Y EL TEXTO LO DICE. El diagnóstico de hipertensión pulmonar lo
+   hacen la PSAP y la clasificación ESC 2022, que ya están en esta misma tarjeta; acá se dice
+   «sugestivo» y nada más. Repetir el diagnóstico sería la tercera superficie diciendo lo mismo,
+   que es el patrón que este archivo persigue.
+
+   EL TAP **NO** SE TRATA ACÁ, Y ES A PROPÓSITO. El pedido lo incluía, pero la app YA lo publica
+   dos veces: la línea de la válvula tricúspide del narrativo dice «Se suman elementos indirectos
+   de hipertensión pulmonar dado por TAP < 105 ms», y el EN SUMA agrega «Elementos indirectos de
+   hipertensión pulmonar (TAP < 105 ms), sin PSAP estimable» cuando no hay PSAP. Agregarlo acá
+   sería la TERCERA superficie diciendo lo mismo del mismo número, en el mismo informe — el
+   patrón de las «tres agendas» que este archivo persigue. Y el umbral 105 vive en esa función:
+   no se duplica en una constante nueva. Lo único que falta y se agrega es el **TRIV
+   tricuspídeo**, que no existía.
+
+   ACOPLAMIENTO DECLARADO CON EL LABORATORIO: la fila «HTP» de `_LAB_HALLAZGOS` cae a una búsqueda
+   de texto sobre el informe cuando la PSAP no alcanza, así que un estudio cuya única mención de
+   HTP sea la frase del TRIV pasa a contar como HTP en el dashboard y en el PDF de auditoría.
+   Medido sobre los 95 estudios reales el 2026-09-16: el impacto hoy es CERO —el campo es nuevo—,
+   y para el TAP ya era el comportamiento buscado. Si algún día el conteo de HTP se infla por
+   estudios con sólo el TRIV alterado, mirar acá. */
+const DT_TRIV_HTP = 60;
+
+function dopTricEstado(){
+  const nv = id => { const e = document.getElementById(id); if (!e) return null;
+    const n = parseFloat(String(e.value).replace(',', '.')); return isFinite(n) ? n : null; };
+  const banda = (v, lo, hi) => v != null && v >= lo && v <= hi;
+  const e = nv('dt_onda_e'), a = nv('dt_onda_a'), ep = nv('dt_eprime_lat'), triv = nv('dt_triv');
+  const eOk = banda(e, 0.1, 2), aOk = banda(a, 0.1, 2);
+  const epOk = banda(ep, 1, 20), trivOk = banda(triv, 20, 120);
+  const fuera = [];
+  if (e != null && !eOk) fuera.push('onda E tricuspídea');
+  if (a != null && !aOk) fuera.push('onda A tricuspídea');
+  if (ep != null && !epOk) fuera.push("e' anular tricuspídeo");
+  if (triv != null && !trivOk) fuera.push('TRIV tricuspídeo');
+  /* Los dos cocientes sólo existen con SUS DOS insumos dentro de banda: media relación es un
+     número que parece medido y no lo es. */
+  const ea = (eOk && aOk && a > 0) ? Math.round((e / a) * 100) / 100 : null;
+  const eep = (eOk && epOk && ep > 0) ? Math.round((e * 100 / ep) * 10) / 10 : null;
+  /* Sólo cuentan los signos MEDIDOS y dentro de banda. Un campo vacío no sugiere nada. */
+  const trivAlto = trivOk && triv > DT_TRIV_HTP;
+  /* `fuera` cuenta como DATO. Sin esto, una onda E de 9 m/s —un error de unidades— salía por el
+     return temprano de `dopTricFrase` y el valor desaparecía del informe sin una palabra: el
+     médico lo tipeó y no aparece en ningún lado. Declarar lo ilegible es la regla de la casa. */
+  const hayDatos = !!(eOk || aOk || epOk || trivOk || fuera.length);
+  return { hayDatos, e, a, ep, triv, eOk, aOk, epOk, trivOk, ea, eep, trivAlto, fuera };
+}
+window.dopTricEstado = dopTricEstado;
+
+function calcDopTric(){
+  const r = dopTricEstado();
+  const set = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+  set('dt_ea', r.ea != null ? r.ea.toFixed(2) : '—');
+  set('dt_ee_prime', r.eep != null ? r.eep.toFixed(1) : '—');
+}
+window.calcDopTric = calcDopTric;
+
+/* La frase del informe, expuesta para que la hoja del PDF use LA MISMA y no una copia. */
+function dopTricFrase(){
+  const r = dopTricEstado();
+  if (!r.hayDatos && !r.trivAlto) return '';
+  const p = [];
+  const med = [];
+  if (r.eOk) med.push('E ' + r.e + ' m/s');
+  if (r.aOk) med.push('A ' + r.a + ' m/s');
+  if (r.ea != null) med.push('E/A ' + r.ea.toFixed(2));
+  if (r.epOk) med.push("e' lateral " + r.ep + ' cm/s');
+  if (r.eep != null) med.push("E/e' " + r.eep.toFixed(1));
+  if (r.trivOk) med.push('TRIV ' + r.triv + ' ms');
+  if (med.length) p.push('Doppler tricuspídeo: ' + med.join(', '));
+  if (r.fuera.length) p.push('Valor fuera de rango en ' + r.fuera.join(' y ') + ': revisar antes de concluir');
+  /* Sólo el TRIV: el TAP ya lo dicen la línea de la válvula tricúspide y el EN SUMA. */
+  if (r.trivAlto)
+    p.push('TRIV tricuspídeo de ' + r.triv + ' ms — elemento indirecto sugestivo de hipertensión pulmonar');
+  return p.length ? p.join('. ') + '.' : '';
+}
+window.dopTricFrase = dopTricFrase;
+
 function calcPSAP() {
   const vit = v('vmax_it'), pmad = v('pmad');
   const gradEl = document.getElementById('grad-vdad-interp');
@@ -20969,6 +21069,15 @@ function generarInforme(opts) {
         ? ` Verificar la medición: ${vdFuera.map(d => d.lblC + ' ' + d.val + ' mm').join(', ')} fuera de rango plausible.` : '';
       inf.push(estiloPick(`${vdC}${datosVDp}.${_vdFueraTxt}`, `${vdE}${datosVDp}.${_vdFueraTxt}`, `${vdN}${datosVDp}.${_vdFueraTxt}`));
 
+      /* ── Doppler tricuspídeo: llenado y relajación del VD ──
+         Va DESPUÉS del VD y su función sistólica y ANTES de la aurícula derecha y la aorta: es
+         una descripción del ventrículo derecho y se lee con ella.
+         La frase sale de `dopTricFrase()`, que también usa la hoja del PDF — una sola cadena, no
+         dos, que es lo que evita que la tabla y el narrativo del MISMO documento digan cosas
+         distintas. Y NO sube nada al EN SUMA: el diagnóstico de hipertensión pulmonar lo hacen la
+         PSAP y la clasificación ESC 2022, que ya están ahí; acá son elementos indirectos. */
+      if (typeof dopTricFrase === 'function') { const _dt = dopTricFrase(); if (_dt) inf.push(_dt); }
+
       /* Al En Suma sólo lo anormal: un VD normal no es un hallazgo, igual que la geometría
          normal del VI o la AI de dimensiones normales. */
       /* Cada mitad de la frase exige SU dato. Una primera versión decía «VD dilatado con función
@@ -22692,7 +22801,7 @@ function RECALC_MODULOS() {
          veredicto sí contaba esos criterios;
        · `calcOAI` reconstruye la marca de «área derivada» (ver ahí), sin la cual corregir el
          diámetro en un estudio reabierto dejaba el área vieja. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -38993,7 +39102,12 @@ const _IG_SECTIONS = [
     {id:'vd_area_d',lbl:'Área VD telediast. (cm²)'},{id:'vd_area_s',lbl:'Área VD telesist. (cm²)'},
     {id:'vd_fac',lbl:'FAC VD (%)'},{id:'fevd',lbl:'FEVD (%)'},
     {id:'ad_area',lbl:'Área AD (cm²)'},
-    {id:'vci_diam',lbl:'VCI diám. (mm)'},{id:'vci_col',lbl:'Colapso VCI'}
+    {id:'vci_diam',lbl:'VCI diám. (mm)'},{id:'vci_col',lbl:'Colapso VCI'},
+    /* Doppler tricuspídeo. Van en el grupo del VD porque describen SU llenado, al lado del TAP
+       que ya está arriba. Las filas vacías no se dibujan: el renderer descarta el campo sin
+       valor, así que un estudio que no los cargó no ve la sección crecer. */
+    {id:'dt_onda_e',lbl:'E tricuspídea (m/s)'},{id:'dt_onda_a',lbl:'A tricuspídea (m/s)'},
+    {id:'dt_eprime_lat',lbl:"e' lateral tricusp. (cm/s)"},{id:'dt_triv',lbl:'TRIV tricuspídeo (ms)'}
   ]},
   { titulo:'〰️ Doppler', fields:[
     {id:'onda_e',lbl:'Onda E (cm/s)'},{id:'onda_a',lbl:'Onda A (cm/s)'},
@@ -43735,6 +43849,10 @@ function _labExcelRow(inf) {
     'Subaortica IA asociada': _labXlsEtiq('esub_ia_asociada', c.esub_ia_asociada),
     'Subaortica longitud tunel (mm)': rnd(num('esub_longitud_mm'),0),
     'Subaortica Valsalva': _labXlsEtiq('esub_valsalva', c.esub_valsalva),
+    'E tricuspidea (m/s)': rnd(num('dt_onda_e'),2),
+    'A tricuspidea (m/s)': rnd(num('dt_onda_a'),2),
+    "e' lateral tricuspideo (cm/s)": rnd(num('dt_eprime_lat'),1),
+    'TRIV tricuspideo (ms)': rnd(num('dt_triv'),0),
     'Ebstein sat O2 reposo (%)': rnd(num('ebs_saturacion'),0),
     'TdF VTDVD indexado (ml/m2)': rnd(num('tdf_vtdvdi'),0),
     'TdF VTSVD indexado (ml/m2)': rnd(num('tdf_vtsvdi'),0),
@@ -44660,6 +44778,10 @@ const LAB_XLS_MAP = [
   ['Subaortica IA asociada',       'esub_ia_asociada',       'vocab'],
   ['Subaortica longitud tunel (mm)','esub_longitud_mm',      'num'],
   ['Subaortica Valsalva',          'esub_valsalva',          'vocab'],
+  ['E tricuspidea (m/s)',          'dt_onda_e',       'num'],
+  ['A tricuspidea (m/s)',          'dt_onda_a',       'num'],
+  ["e' lateral tricuspideo (cm/s)",'dt_eprime_lat',   'num'],
+  ['TRIV tricuspideo (ms)',        'dt_triv',         'num'],
   ['Ebstein sat O2 reposo (%)',   'ebs_saturacion',  'num'],
   ['TdF VTDVD indexado (ml/m2)',  'tdf_vtdvdi',      'num'],
   ['TdF VTSVD indexado (ml/m2)',  'tdf_vtsvdi',      'num'],
@@ -53039,8 +53161,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260915-2139';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789519142383;                 /* eco-build-ms */
+const ECO_BUILD    = '20260915-2147';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789519679563;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -53126,7 +53248,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260915-2139</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260915-2147</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

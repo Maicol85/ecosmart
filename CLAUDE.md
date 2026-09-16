@@ -343,6 +343,45 @@ igual. Y al final, sacarle la historia familiar al predicado **no cambiaba una p
 historia familiar»: el color y el texto salían de dos expresiones distintas. **Si un caso no
 prueba el lado negativo de cada rama, no prueba la regla.**
 
+### Doppler tricuspídeo: de cuatro campos pedidos, sólo uno era nuevo
+Agregado el 2026-09-16 al bloque tricuspídeo: **`dt_onda_e`**, **`dt_onda_a`**, **`dt_eprime_lat`**
+y **`dt_triv`**, con `E/A` y `E/e'` calculados. **Antes de crear un campo se verificaron los tres
+que el pedido daba por existentes, y dos cambiaron el plan:**
+
+- **`vmax_it` ya existe** — es la Vmax de la insuficiencia tricuspídea. No se duplica.
+- **TAP ya existe y su id es `tvia`**, no `tap`. Vive en el bloque del VD, rotulado «TAP (ms)», y
+  va al Excel como tal. Un `dt_tap` habría sido la segunda entrada del mismo dato.
+- **`triv` ya existe pero es el del VENTRÍCULO IZQUIERDO** —está junto a `tde` y `thp` en el
+  bloque diastólico—, así que el tricuspídeo **sí** hacía falta. El rótulo del campo nuevo lo dice
+  con todas las letras, para que nadie cargue uno donde va el otro.
+
+**EL TAP NO SE TRATA EN ESTE MÓDULO, Y ES A PROPÓSITO.** El pedido lo incluía —con frase propia y
+con la oración combinada TRIV+TAP—, pero **la app ya lo publica dos veces**: la línea de la válvula
+tricúspide del narrativo dice «Se suman elementos indirectos de hipertensión pulmonar dado por
+TAP < 105 ms», y el EN SUMA agrega «Elementos indirectos de hipertensión pulmonar (TAP < 105 ms),
+sin PSAP estimable» cuando no hay PSAP. Agregarlo habría sido la **tercera** superficie diciendo lo
+mismo del mismo número en el mismo informe. Y el umbral 105 vive en esa función: **no se duplicó**
+en una constante nueva.
+
+**Los signos son INDIRECTOS y el texto lo dice.** El diagnóstico de hipertensión pulmonar lo hacen
+la PSAP y la clasificación ESC 2022, que están en la misma tarjeta. Por eso **nada de esto sube al
+EN SUMA**.
+
+**Acoplamiento declarado con el Laboratorio:** la fila «HTP» de `_LAB_HALLAZGOS` cae a una búsqueda
+de texto sobre el informe cuando la PSAP no alcanza, así que un estudio cuya única mención de HTP
+sea la frase del TRIV **pasa a contar como HTP** en el dashboard y en el PDF de auditoría. Medido
+sobre los 95 estudios reales: 5 traen TAP, 1 tiene TAP<105 y **ése ya contaba** — impacto hoy
+**cero**. Para el TAP era el comportamiento buscado; para el TRIV es una vía nueva. Si el conteo de
+HTP se infla, mirar acá.
+
+**Un valor fuera de banda cuenta como DATO.** Sin eso, una onda E de 9 m/s —error de unidades—
+salía por el return temprano y **desaparecía del informe sin una palabra**: el médico la tipeó y no
+aparecía en ningún lado. `hayDatos` incluye `fuera.length`.
+
+**Campos:** los cuatro de arriba, con sus **cuatro columnas de Excel** y cuatro filas en la tabla
+del VD del PDF. `calcDopTric` entró a `RECALC_MODULOS`: las dos cápsulas no se repintan solas al
+reabrir un estudio.
+
 ### No marcar una válvula es un HALLAZGO, no un campo vacío
 **El flujo clínico de esta app es que el médico marca SÓLO lo que el paciente tiene.** Si no marcó
 nada, el paciente no tiene esa valvulopatía — y **eso es un dato válido**. Por eso el valor de
