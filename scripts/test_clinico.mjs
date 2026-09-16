@@ -4773,6 +4773,121 @@ caso('TC-147', 'Lab CC/Mediciones: los bloques leen *Estado(), no reimplementan 
   ] };
 `);
 
+/* TC-148 — PPT estadistico del Laboratorio. Se intercepta `writeFile` para LEER las diapositivas
+   reales en vez de descargar un archivo: es la misma tecnica que el archivo ya usa para jsPDF.
+   Sin eso, lo unico verificable seria que la funcion no lanza, que es lo que no importa. */
+caso('TC-148', 'PPT del Laboratorio: 9 diapositivas, rangos de PSAP y no grados, y la compuerta del periodo vacio', `
+  return (async function(){
+    if (typeof PptxGenJS === 'undefined') {
+      return { extra: [['PptxGenJS cargo por CDN (sin esto el caso no prueba nada)', false, 'la libreria no llego']] };
+    }
+    const orig = PptxGenJS.prototype.writeFile;
+    let capt = null;
+    PptxGenJS.prototype.writeFile = function(o){ capt = { self:this, name:(o && o.fileName) || '' }; return Promise.resolve(capt.name); };
+
+    const C = function(f, o){ return { id:0, fecha_estudio:f, campos:o }; };
+    const infs = [
+      C('2026-03-15', { fevi:'62', sexo:'F', edad:'71', psap_calc:'48', tapse:'19', im_grado:'2',
+                        en_suma:'Disfuncion diastolica grado II, pseudonormal.' }),
+      C('2026-04-02', { fevi:'28', sexo:'M', edad:'64', psap_calc:'72', tapse:'14', ia_grado:'4',
+                        en_suma:'Patron restrictivo (grado III).' }),
+      /* Este NIEGA el patron restrictivo. Con el clasificador crudo contaba como grado III. */
+      C('2026-04-20', { fevi:'45', sexo:'F', edad:'58', psap_calc:'30', tapse:'22',
+                        en_suma:'Se descarta patron restrictivo.' })
+    ];
+
+    let toasts = [];
+    const origToast = window.toast;
+    window.toast = function(m){ toasts.push(String(m)); };
+
+    await _labPPTGenerar(infs, { presentador:'Dra. Prueba', institucion:'Centro X', fecha:'2026-09-20', tema:'azul' });
+
+    const P = capt ? capt.self : null;
+    const slides = P ? (P.slides || P._slides || []) : [];
+    const txtDe = function(k){
+      const s2 = slides[k]; if (!s2) return '';
+      const objs = s2._slideObjects || s2.data || [];
+      return objs.map(function(o){
+        if (o.text == null) return '';
+        if (typeof o.text === 'string') return o.text;
+        if (Array.isArray(o.text)) return o.text.map(function(t){ return t && t.text ? t.text : ''; }).join(' ');
+        return '';
+      }).join(' | ');
+    };
+    const tablasDe = function(k){
+      const s2 = slides[k]; if (!s2) return 0;
+      const objs = s2._slideObjects || s2.data || [];
+      return objs.filter(function(o){ return o._type === 'table' || !!o.arrTabRows; }).length;
+    };
+    /* El nombre se guarda ACA: mas abajo "capt" se resetea a null para probar la compuerta del
+       periodo vacio, y leerlo despues daba cadena vacia. */
+    const archivo = capt ? capt.name : '';
+    const portada = txtDe(0), resumen = txtDe(1), valv = txtDe(4), htp = txtDe(5), cierre = txtDe(8);
+    const bgAzul = slides.length ? ((slides[0].background && slides[0].background.color) || (slides[0].bkgd && slides[0].bkgd.color) || '') : '';
+
+    /* COMPUERTA DEL PERIODO VACIO: se llama la ENTRADA real, que es la que decide, con el store
+       filtrado a cero. Probar _labPPTGenerar con [] probaria otra cosa: la compuerta vive antes. */
+    capt = null; toasts = [];
+    const origGet = window.labGetInformes;
+    window.labGetInformes = function(){ return []; };
+    let abrioModal = false;
+    const origModal = window._labPPTModal;
+    window._labPPTModal = function(){ abrioModal = true; };
+    labPPTEstadistico();
+    window.labGetInformes = origGet;
+    window._labPPTModal = origModal;
+    const toastVacio = toasts.join(' ');
+
+    window.toast = origToast;
+    PptxGenJS.prototype.writeFile = orig;
+
+    return { extra: [
+      // 1 · ESTRUCTURA
+      ['el mazo tiene 9 diapositivas', slides.length === 9, String(slides.length)],
+      ['el archivo se llama EcoSmart_Laboratorio_*.pptx', /^EcoSmart_Laboratorio_\\d{8}/.test(archivo), archivo],
+
+      // 2 · PORTADA
+      ['la portada lleva el titulo del laboratorio', portada.indexOf('Laboratorio de Ecocardiograf') > -1, portada.slice(0,140)],
+      ['la portada lleva presentador e institucion', portada.indexOf('Dra. Prueba') > -1 && portada.indexOf('Centro X') > -1, portada.slice(0,140)],
+      ['la portada declara el periodo', portada.indexOf('Per') > -1 && portada.indexOf('odo analizado') > -1, portada.slice(0,140)],
+      ['la portada declara el N', portada.indexOf('3 estudios') > -1, portada.slice(0,180)],
+
+      // 3 · EL N DE LA DIAPO 2 ES EL DE LA COHORTE
+      ['el resumen ejecutivo publica el N correcto', resumen.indexOf('Estudios') > -1 && resumen.indexOf('| 3 |') > -1, resumen.slice(0,200)],
+      ['y el promedio de FEVI de los tres', resumen.indexOf('45.0 %') > -1, resumen.slice(0,240)],
+
+      // 4 · LA DIASTOLICA USA EL CLASIFICADOR CANONICO
+      /* Tres estudios: uno grado II, uno grado III, uno que NIEGA el restrictivo. Con "test()"
+         crudo el negado sumaba a III y la diapositiva diria «Grado III (n=2)». */
+      ['«se descarta patron restrictivo» NO cuenta como grado III', resumen.indexOf('Grado III (n=1)') > -1, resumen.slice(0,320)],
+
+      // 5 · VALVULOPATIAS: TABLA CON LAS OCHO VALVULAS
+      ['la diapositiva de valvulopatias lleva una tabla', tablasDe(4) === 1, String(tablasDe(4))],
+      ['y declara sobre que base son los porcentajes', valv.indexOf('total de estudios') > -1, valv.slice(0,200)],
+
+      // 6 · RANGOS DE PSAP, NO GRADOS DE HTP
+      ['la diapositiva de PSAP declara que son RANGOS y no grados', htp.indexOf('RANGOS') > -1 && htp.indexOf('no grados') > -1, htp.slice(-200)],
+      ['y NO rotula ninguna banda como Leve/Moderada/Severa',
+        htp.indexOf('Leve') === -1 && htp.indexOf('Moderada') === -1 && htp.indexOf('Severa') === -1, htp.slice(0,300)],
+      ['publica la PSAP promedio de los elevados (48 y 72 -> 60)', htp.indexOf('60 mmHg') > -1, htp.slice(0,300)],
+
+      // 7 · CIERRE
+      ['el cierre dice «Preguntas»', cierre.indexOf('Preguntas') > -1, cierre],
+      ['el cierre lleva al presentador', cierre.indexOf('Dra. Prueba') > -1, cierre],
+      ['y la fecha de presentacion sin correrse un dia por UTC', cierre.indexOf('20/09/2026') > -1, cierre],
+
+      // 8 · PALETA
+      ['la paleta elegida se aplica al fondo', String(bgAzul).toUpperCase().indexOf('0F172A') > -1, String(bgAzul)],
+
+      // 9 · SIN ESTUDIOS NO SE GENERA NADA
+      ['sin estudios no se abre el modal', abrioModal === false],
+      ['sin estudios no se genera PPT', capt === null],
+      ['y se avisa por que', toastVacio.indexOf('No hay estudios') > -1, toastVacio]
+    ] };
+  })();
+`);
+
+
 
 /* SOPORTE (nuevo) + LAS INVARIANTES DE IMAGENES (que ya estaban y no tenian NINGUN caso).
    La parte de IndexedDB del pedido ya estaba implementada entera —toggle, tres calidades, barra

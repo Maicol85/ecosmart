@@ -487,6 +487,92 @@ El Excel pasó de **421 a 429 columnas** y de 128 a **129 básicas**; TC-135 fij
 contenido. Ojo con el `0` de una casilla apagada: **no es lo mismo que ausente**, y el caso lo
 distingue.
 
+### PPT estadístico del Laboratorio — y el defecto que destapó la extracción
+Agregado el 2026-09-16 en la subtab Informe. Mazo de **9 diapositivas** con la casuística del
+período. Es INDEPENDIENTE del PPT del estudio individual —aquél cuenta un paciente, éste una
+serie— y comparte con él exactamente tres cosas: las seis paletas de `PPT_TEMAS`, el saneador
+`_pptTxt` y el resolutor de logo. Nada más.
+
+**LA DIASTÓLICA DEL DASHBOARD ESTABA MAL, y lo destapó ir a buscar de dónde sacar el dato.**
+`_labDiastGrado` usa `_labMenciona` (con guarda de negación) y su comentario dice ser «la misma
+heurística que la distribución». **No lo era**: la distribución de `labInit` estaba escrita
+aparte con `.test()` CRUDO. Medido sobre una cohorte de 4 donde dos NIEGAN el patrón restrictivo:
+
+| | III | II | sin | total |
+|---|---|---|---|---|
+| **antes** (`.test()` crudo) | **3** | 1 | 0 | 4 |
+| **ahora** (`_labMenciona`) | **1** | 1 | 1 | 3 |
+
+Un sobreconteo de **3×** en el grado más severo, con el sesgo sistemático de siempre: un
+laboratorio que informa bien nombra lo que descartó, así que se infla justo lo que más se menciona
+para negarlo. Es la misma clase que ya se cerró para hallazgos, geometría y el módulo de
+asociaciones — **esta copia quedó afuera y nadie la vio porque el comentario afirmaba lo
+contrario**. Los conteos del panel BAJAN. Es un cambio de comportamiento, no un refactor.
+
+**SIETE SEAMS extraídos, y la razón no es estética.** `_labFeviDist`, `_labPsapDist`,
+`_labGeomDist`, `_labDiastDist`, `_labSexos`, `_labFreqEntries` y `_labMeses` estaban inline en
+`labInit`/`labRenderExtras`. Un PPT que recalculara esas bandas publicaría, **en un archivo que se
+proyecta y circula sin la app al lado**, números distintos de los de la pantalla sobre la misma
+cohorte. Las etiquetas y los colores se conservaron byte por byte para que el dashboard no cambie.
+Los que ya eran de módulo —`_labValvCounts`, `_labHallazgosCuenta`, `_labFevi`, `_labPsap`,
+`_labTapse`— se usan tal cual.
+
+**RANGOS de PSAP, NO grados de HTP** (decisión de Maicol). El pedido pedía «distribución
+leve/moderada/severa» y eso es exactamente el defecto que el panel de estadística ya cerró: el
+comentario de `_labPsapDist` lo dice — rotular esas bandas así es enseñar desde la estadística la
+clasificación que el informe se niega a hacer. Vale DOBLE en el PPT, que es la superficie que más
+circula de las tres. La diapositiva **lo declara en pantalla**, porque cuatro bandas de color al
+lado de un número se leen como una graduación si nadie dice que no lo son.
+
+**La diapositiva 8 del pedido no era una diapositiva.** Su contenido son los tres campos del
+modal, que el propio pedido describe dos bloques más abajo. Se reemplazó por **actividad por mes**
+(decisión de Maicol), que sale de `_labMeses` y no exige nada nuevo.
+
+**La compuerta del período vacío va ANTES del modal.** Pedirle presentador, institución, fecha y
+paleta para después avisarle que no hay estudios es hacerle llenar un formulario para nada.
+
+**LA COHORTE SE DECLARA EN LA PORTADA**, no en una nota al pie, y el nombre del archivo lleva
+`_cohorte_filtrada`. Un mazo que proyecta «N = 12» sin decir que hay filtros activos publica un
+denominador que la sala lee como «todo el laboratorio en el período». Es la regla que ya cumplen
+el PDF de auditoría y el Excel.
+
+**`_pptLogoDato()` es una FUNCIÓN, no una constante de módulo.** Era un IIFE local de
+`_pptDesdeFormulario`; al subirlo, como `const` se evaluaría una sola vez al cargar la página y el
+logo quedaría congelado hasta recargar. Conserva el fail-closed: si el validador no está, se
+descarta el logo — la forma `typeof X === 'function' && !X(d)` se saltea la validación cuando X no
+existe y manda el dato crudo a `addImage`.
+
+**Dos defectos de mi propio primer borrador, los dos encontrados LEYENDO las diapositivas
+generadas, no el código:**
+- **El cartel de «sin datos» se dibujaba ADEMÁS de las barras en cero**, superpuestos. En HTML el
+  navegador reflowea y se nota; en una diapositiva las dos cosas se dibujan una sobre la otra. El
+  mensaje va en el `else`, no después.
+- **La actividad por mes decía «2 (100 %)»**. Ahí el riel es el mes de MÁS actividad, así que ese
+  100 % se lee como «el 100 % de los estudios fueron en abril». Hoy esa barra muestra sólo el
+  conteo (`sinPct`) y el pie explica contra qué es relativa.
+
+**`_pptFechaLarga` no usa `new Date(str)`.** Ese constructor interpreta `yyyy-mm-dd` como UTC y en
+Uruguay (UTC−3) devuelve **el día anterior**: la fecha del ateneo saldría corrida un día en la
+diapositiva de cierre. Se parte la cadena a mano.
+
+**Cómo se verifica un PPT: interceptando `writeFile`.** Es la técnica que este archivo ya usa para
+`jsPDF.save`. Sin eso lo único verificable es que la función no lanza, que es lo que no importa.
+TC-148 lee las 9 diapositivas reales, cuenta la tabla de valvulopatías y compara el fondo contra
+la paleta elegida. **Cinco mutaciones, las cinco cazadas**, entre ellas la que rotula las bandas de
+PSAP como Leve/Moderada/Severa y la que revierte la diastólica al `.test()` crudo.
+
+**Dos trampas del propio caso:**
+- **Backticks dentro del cuerpo, duodécima y decimotercera vez** — y la segunda fue en el
+  comentario que escribí para *arreglar* la primera. `node --check` las caza, apuntando a la línea
+  del `caso(`, decenas de líneas antes del culpable.
+- **El nombre del archivo hay que guardarlo ANTES** de resetear la captura para probar la
+  compuerta del período vacío. Leído después daba cadena vacía y la condición acusaba al código.
+
+**Verificado que no se usa nada posterior a Safari 15.4** en las 388 líneas nuevas: sin
+optional chaining, sin `??`, sin `.at()`, sin `Object.hasOwn`, sin lookbehind. **La descarga en
+Safari NO se probó**: el navegador está concedido en modo sólo lectura, así que no se puede
+disparar el botón desde acá.
+
 ### El Laboratorio ya muestra las siete secciones nuevas — y cómo se hizo sin replicar reglas
 > Esta entrada REEMPLAZA a «Lo que el Laboratorio todavía NO muestra», que describía el estado
 > anterior al 2026-09-16. Hoy `labCCRender` tiene **17 bloques** y Mediciones dos secciones más.

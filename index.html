@@ -14630,6 +14630,26 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <div id="lab-pdf-preview" style="margin-top:16px;font-size:.8rem;color:var(--text2);"></div>
     </div>
   </div>
+
+  <!-- SECCIÓN: PRESENTACIÓN ESTADÍSTICA (PPT)
+       Mazo de ateneo con la estadística del período. Independiente del PPT del estudio
+       individual: aquél cuenta UN paciente, éste la casuística. Comparten las paletas, el
+       saneador de texto y el logo — nada más. -->
+  <div class="lab-card">
+    <div class="lab-card-hdr">📊 Presentación estadística — Export PPT</div>
+    <div class="lab-card-body">
+      <p style="font-size:.82rem;color:var(--text2);margin:0 0 14px;line-height:1.55;">
+        Genera un PowerPoint de <b>9 diapositivas</b> con la estadística de los estudios del
+        período y los filtros activos: resumen ejecutivo, perfil demográfico, función sistólica,
+        valvulopatías, presión pulmonar, hallazgos más frecuentes y actividad por mes, con
+        portada y diapositiva de cierre. Antes de generar se piden el presentador, la institución,
+        la fecha de la presentación y la paleta.
+      </p>
+      <button class="btn btn-primary" onclick="labPPTEstadistico()">
+        📊 Generar PPT estadístico
+      </button>
+    </div>
+  </div>
 </div>
 
 </div><!-- /tab-lab -->
@@ -40467,6 +40487,24 @@ window.generarPPT = generarPPT;
    quien lo PRESENTA en un ateneo no son siempre la misma persona —un residente presenta el
    caso de su tutor—, y la diapositiva de cierre es lo que queda proyectado mientras se
    responden preguntas. Se precarga con el principal porque es el caso más común. */
+/* Resolutor del logo del centro para el PPT. Estaba como IIFE local de `_pptDesdeFormulario`;
+   se subió acá el 2026-09-16 para que el PPT del Laboratorio use EL MISMO criterio en vez de
+   copiarlo. Sigue siendo una FUNCIÓN y no una constante de módulo a propósito: lee
+   `localStorage` en cada llamada, así que cambiar el logo en Config se ve en el próximo archivo
+   generado. Como constante de módulo se evaluaría una sola vez al cargar la página y el logo
+   quedaría congelado hasta recargar.
+   FALLA CERRADO: si el validador no está, se descarta el logo. La forma `typeof X === 'function'
+   && !X(d)` —la que usa el PDF— se saltea la validación cuando X no existe y manda el dato crudo
+   a `addImage`. Acá se EXIGE que exista. */
+function _pptLogoDato() {
+  try {
+    const d = localStorage.getItem('logo_centro_' + (localStorage.getItem('centro_tipo_activo') || 'default'));
+    if (!d) return null;
+    if (typeof _imgSrcOK !== 'function' || !_imgSrcOK(d)) return null;
+    return d;
+  } catch (e) { return null; }
+}
+
 let _pptQuienAbierto = false;
 function _pptElegirPresentador(inf, cb) {
   if (_pptQuienAbierto) return;              // mismo motivo que en el selector de tema
@@ -40636,19 +40674,7 @@ function _pptDesdeFormulario(inf, tema, presentador){
      saben estampar, y conviene achicarla a png/jpeg para el camino de exportación.
      Sin logo cargado esto es null y no se dibuja nada: la portada y el cierre salen
      exactamente como antes. */
-  const _pptLogo = (() => {
-    try {
-      const d = localStorage.getItem('logo_centro_' + (localStorage.getItem('centro_tipo_activo') || 'default'));
-      if (!d) return null;
-      /* Fail-CLOSED: si el validador no está, se descarta el logo. La forma
-         `typeof X === 'function' && !X(d)` —que es la que usa el PDF— se saltea la validación
-         cuando X no existe y manda el dato crudo a addImage. Acá se exige que exista.
-         `_imgSrcOK` y no `LOGO_DATA_OK` directo: aquél ya encapsula el mismo criterio con el
-         default en `false`, y es el que usan los otros dos consumidores de imágenes. */
-      if (typeof _imgSrcOK !== 'function' || !_imgSrcOK(d)) return null;
-      return d;
-    } catch (e) { return null; }
-  })();
+  const _pptLogo = _pptLogoDato();
   /* Se dibuja discreto, abajo a la derecha y POR ENCIMA de la línea del pie (que va en
      H-0.62), así que no lo pisa ni le pisa el disclaimer.
      `sizing: contain` y no w/h directos: sin eso, un wordmark apaisado de clínica —la forma
@@ -43914,6 +43940,109 @@ function _labDiastGrado(inf) {   // grado desde el texto del resumen (misma heur
   if (_labMenciona(t, /diast[oó]lica\s+normal|llenado\s+(del\s+vi\s+)?normal/i)) return 'sin';
   return null;
 }
+
+/* ══ SEAMS DEL LABORATORIO ═══════════════════════════════════════════════════════════════════
+   Los pinta el dashboard Y los consume el PPT estadístico. Estaban INLINE dentro de `labInit` y
+   `labRenderExtras`; se subieron acá el 2026-09-16 al aparecer el segundo consumidor.
+   NO es cosmético: un PPT que recalculara estas bandas por su cuenta publicaría, en un archivo
+   que circula fuera de la app, números distintos de los que muestra la pantalla sobre la MISMA
+   cohorte — que es el defecto de los denominadores que este archivo ya pagó tres veces. Las
+   etiquetas y los colores se conservan byte por byte para que el dashboard no cambie. */
+
+/* La distribución diastólica pasa a usar `_labDiastGrado`, que es el clasificador CANÓNICO.
+   CAMBIO DE COMPORTAMIENTO DECLARADO: la versión inline usaba `.test()` CRUDO, así que «se
+   descarta patrón restrictivo» contaba como grado III — el sesgo sistemático que `_labMenciona`
+   existe para cerrar, y que ya se cerró para hallazgos, geometría y el módulo de asociaciones.
+   Esta copia quedó afuera, bajo un comentario de `_labDiastGrado` que afirmaba ser «la misma
+   heurística que la distribución». No lo era. Los conteos de grado III y II del panel BAJAN en
+   los laboratorios que informan lo que descartaron, que es como informa un laboratorio bueno. */
+function _labDiastDist(infs) {
+  const cat = { I:0, II:0, III:0, sin:0 };
+  let tot = 0;
+  infs.forEach(i => { const g = _labDiastGrado(i); if (g && Object.prototype.hasOwnProperty.call(cat, g)) { cat[g]++; tot++; } });
+  return { cat: cat, tot: tot, dist: [
+    { lbl:'Grado I (n='   + cat.I   + ')', n: cat.I,   total: tot, color:'#f5c842' },
+    { lbl:'Grado II (n='  + cat.II  + ')', n: cat.II,  total: tot, color:'#f0a500' },
+    { lbl:'Grado III (n=' + cat.III + ')', n: cat.III, total: tot, color:'#f05454' },
+    { lbl:'Sin disfunción (n=' + cat.sin + ')', n: cat.sin, total: tot, color:'#3ecf8e' }
+  ] };
+}
+
+function _labGeomDist(infs) {
+  const cat = { normal:0, remod:0, conc:0, exc:0 };
+  let tot = 0;
+  infs.forEach(i => { const g = _labGeomCat(i); if (g && Object.prototype.hasOwnProperty.call(cat, g)) { cat[g]++; tot++; } });
+  return { cat: cat, tot: tot, dist: [
+    { lbl:'Normal (n=' + cat.normal + ')',                  n: cat.normal, total: tot, color:'#3ecf8e' },
+    { lbl:'Remodelado concéntrico (n=' + cat.remod + ')',   n: cat.remod,  total: tot, color:'#f5c842' },
+    { lbl:'HVI concéntrica (n=' + cat.conc + ')',           n: cat.conc,   total: tot, color:'#f0a500' },
+    { lbl:'HVI excéntrica (n=' + cat.exc + ')',             n: cat.exc,    total: tot, color:'#8a5fd4' }
+  ] };
+}
+
+function _labFeviDist(fevis) {
+  const t = fevis.length;
+  return [
+    { lbl:'Normal / conservada (≥50%)',      n: fevis.filter(v=>v>=50).length,       total:t, color:'#3ecf8e' },
+    { lbl:'Levemente reducida (40–49%)',     n: fevis.filter(v=>v>=40&&v<50).length, total:t, color:'#f5c842' },
+    { lbl:'Moderadamente reducida (30–39%)', n: fevis.filter(v=>v>=30&&v<40).length, total:t, color:'#f0a500' },
+    { lbl:'Severamente reducida (<30%)',     n: fevis.filter(v=>v<30).length,        total:t, color:'#f05454' }
+  ];
+}
+
+/* RANGOS de PSAP, NO grados de hipertensión pulmonar. La app no gradúa la HTP por PSAP estimada
+   —ver `UMBRAL_PSAP_ELEVADA`— y rotular estas bandas «Leve / Moderada / Severa» sería enseñar
+   desde la estadística la clasificación que el informe se niega a hacer. Vale DOBLE acá, porque
+   el PPT es un archivo que se proyecta y circula sin la app al lado para matizarlo. */
+function _labPsapDist(psaps) {
+  const t = psaps.length, U = UMBRAL_PSAP_ELEVADA;
+  const c = (f) => psaps.filter(f).length;
+  return [
+    { lbl:'≤' + U + ' mmHg (n=' + c(v=>v<=U) + ')',        n: c(v=>v<=U),        total:t, color:'#3ecf8e' },
+    { lbl:(U+1) + '–50 mmHg (n=' + c(v=>v>U&&v<=50) + ')', n: c(v=>v>U&&v<=50),  total:t, color:'#f5c842' },
+    { lbl:'51–70 mmHg (n=' + c(v=>v>50&&v<=70) + ')',      n: c(v=>v>50&&v<=70), total:t, color:'#f0a500' },
+    { lbl:'>70 mmHg (n=' + c(v=>v>70) + ')',               n: c(v=>v>70),        total:t, color:'#f05454' }
+  ];
+}
+
+/* El sexo viene como texto libre del formulario, así que la heurística es la que decide el
+   denominador demográfico entero. Extraerla —en vez de copiarla al PPT— evita que la portada
+   diga 62 % de mujeres y la pantalla otra cosa sobre la misma cohorte. */
+function _labSexos(infs) {
+  const sexos = infs.map(i => ((i.campos && i.campos.sexo) || '').toUpperCase()).filter(Boolean);
+  let nF = 0, nM = 0;
+  sexos.forEach(x => {
+    if (x[0]==='F' || x.indexOf('FEM')>=0 || x.indexOf('MUJER')>=0) nF++;
+    else if (x[0]==='M' || x.indexOf('MASC')>=0 || x.indexOf('VAR')>=0 || x.indexOf('HOMBRE')>=0) nM++;
+  });
+  return { nF: nF, nM: nM, t: sexos.length };
+}
+
+/* Las indicaciones y los antecedentes se persisten como ARRAY, y en los estudios importados como
+   cadena JSON: sin el `JSON.parse` de acá el conteo daría cero sin error. Prototipo nulo porque
+   las claves salen del estudio. Devuelve ordenado de mayor a menor, que es lo que pide el top-5. */
+function _labFreqEntries(infs, key) {
+  const counts = Object.create(null);
+  infs.forEach(i => {
+    let arr = i.campos ? i.campos[key] : null;
+    if (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch(e) { arr = arr ? [arr] : []; } }
+    if (!Array.isArray(arr)) return;
+    arr.forEach(v => { const k = String(v).trim(); if (k) counts[k] = (counts[k] || 0) + 1; });
+  });
+  return Object.entries(counts).sort((a,b) => b[1]-a[1]);
+}
+
+/* Últimos 12 meses con actividad, no los últimos 12 del calendario: un laboratorio que no
+   trabajó en agosto no tiene una barra en cero, no tiene barra. Es lo que ya hacía el dashboard. */
+function _labMeses(infs) {
+  const porMes = Object.create(null);
+  infs.forEach(i => {
+    if (!i.fecha_estudio) return;
+    const mes = String(i.fecha_estudio).substring(0,7);
+    porMes[mes] = (porMes[mes] || 0) + 1;
+  });
+  return Object.keys(porMes).sort().slice(-12).map(m => [m, porMes[m]]);
+}
 /* ══ NO MARCAR UNA VÁLVULA ES UN HALLAZGO, NO UN CAMPO VACÍO ═════════════════════════════════
    El flujo clínico de esta app es que el médico marca SÓLO lo que el paciente tiene. Si no marcó
    nada, el paciente no tiene esa valvulopatía — y eso es un dato válido. Por eso el valor de
@@ -44144,10 +44273,9 @@ function labInit() {
     const mes = i.fecha_estudio.substring(0,7);
     porMes[mes] = (porMes[mes] || 0) + 1;
   });
-  const meses = Object.keys(porMes).sort().slice(-12);
-  labBarras('lab-chart-meses', meses.map(m => ({
-    lbl: m.replace('-', '/'),
-    n: porMes[m],
+  labBarras('lab-chart-meses', _labMeses(infs).map(m => ({
+    lbl: m[0].replace('-', '/'),
+    n: m[1],
     total: 0
   })));
 
@@ -44162,12 +44290,7 @@ function labInit() {
      distribución en silencio. El filtro `> 0` se conserva tal cual. */
   const fevis = infs.map(_labFevi).filter(v => v !== null && v > 0);
   const ft = fevis.length;
-  const feviDist = [
-    { lbl:'Normal / conservada (≥50%)',        n: fevis.filter(v=>v>=50).length,          total:ft, color:'#3ecf8e' },
-    { lbl:'Levemente reducida (40–49%)',       n: fevis.filter(v=>v>=40&&v<50).length,    total:ft, color:'#f5c842' },
-    { lbl:'Moderadamente reducida (30–39%)',   n: fevis.filter(v=>v>=30&&v<40).length,    total:ft, color:'#f0a500' },
-    { lbl:'Severamente reducida (<30%)',       n: fevis.filter(v=>v<30).length,           total:ft, color:'#f05454' },
-  ];
+  const feviDist = _labFeviDist(fevis);   // seam: lo consume tambien el PPT estadistico
   labBarras('lab-fevi-dist', feviDist);
   // Línea de elegibilidad para dispositivos (no clasifica severidad)
   {
@@ -44183,23 +44306,11 @@ function labInit() {
   }
 
   // Función diastólica — desglose por grado leído del resumen guardado (en_suma / informe)
-  const diastCat = { I:0, II:0, III:0, sin:0 };
-  let diastTot = 0;
-  infs.forEach(i => {
-    const t = ((i.campos && i.campos.en_suma) || '') + ' ' + ((i.campos && i.campos.informe_texto) || '');
-    if (!t.trim()) return;
-    if (/grado\s*III|restrictivo/i.test(t))                                       { diastCat.III++; diastTot++; }
-    else if (/grado\s*II\b|pseudonormal/i.test(t))                                { diastCat.II++;  diastTot++; }
-    else if (/grado\s*I\b|relajaci[oó]n\s+(alterada|prolongada)/i.test(t))        { diastCat.I++;   diastTot++; }
-    else if (/diast[oó]lica\s+normal|llenado\s+(del\s+vi\s+)?normal/i.test(t))    { diastCat.sin++; diastTot++; }
-  });
-  const diastDist = [
-    { lbl:'Grado I (n='   + diastCat.I   + ')', n: diastCat.I,   total: diastTot, color:'#f5c842' },
-    { lbl:'Grado II (n='  + diastCat.II  + ')', n: diastCat.II,  total: diastTot, color:'#f0a500' },
-    { lbl:'Grado III (n=' + diastCat.III + ')', n: diastCat.III, total: diastTot, color:'#f05454' },
-    { lbl:'Sin disfunción (n=' + diastCat.sin + ')', n: diastCat.sin, total: diastTot, color:'#3ecf8e' },
-  ];
-  labBarras('lab-diast-dist', diastTot > 0 ? diastDist : []);
+  /* Pasa por `_labDiastGrado`, el clasificador canonico. La version que estaba aca usaba
+     `.test()` CRUDO y contaba «se descarta patron restrictivo» como grado III. Ver el comentario
+     de `_labDiastDist`: es un cambio de comportamiento, no un refactor. */
+  const _dia = _labDiastDist(infs), diastTot = _dia.tot;
+  labBarras('lab-diast-dist', diastTot > 0 ? _dia.dist : []);
 
   /* VEXUS — se RECALCULA por estudio con la misma función que usa el informe, en vez de
      leer un grado guardado. Así la auditoría no puede contradecir al informe firmado. */
@@ -44234,14 +44345,9 @@ function labInit() {
     document.getElementById('lab-edad-prom').textContent =
       (edades.reduce((a,b)=>a+b,0)/edades.length).toFixed(0) + ' años (n=' + edades.length + ')';
 
-  const sexos = infs.map(i => (i.campos?.sexo||'').toUpperCase()).filter(Boolean);
-  if (sexos.length) {
-    let nF = 0, nM = 0;
-    sexos.forEach(s => {
-      if (s[0]==='F' || s.indexOf('FEM')>=0 || s.indexOf('MUJER')>=0) nF++;
-      else if (s[0]==='M' || s.indexOf('MASC')>=0 || s.indexOf('VAR')>=0 || s.indexOf('HOMBRE')>=0) nM++;
-    });
-    const t = sexos.length;
+  const _sx = _labSexos(infs);          // seam: lo consume tambien el PPT estadistico
+  if (_sx.t) {
+    const nF = _sx.nF, nM = _sx.nM, t = _sx.t;
     document.getElementById('lab-pct-f').innerHTML =
       '♀ ' + Math.round(nF/t*100) + '% (n=' + nF + ') &nbsp;·&nbsp; ♂ ' + Math.round(nM/t*100) + '% (n=' + nM + ')';
   }
@@ -44455,15 +44561,10 @@ function labRenderExtras(infs, n) {
   // SECCIÓN D — HTP por severidad (PSAP)
   const psapsAll = infs.map(i => _labPsap(i)).filter(v => v !== null && v > 0);
   const ht = psapsAll.length;
-  const htpDist = [
-    /* Rangos de PSAP, NO grados de hipertensión pulmonar: la app no gradúa la HTP por PSAP
-       estimada (ver UMBRAL_PSAP_ELEVADA). Rotularlos «Leve / Moderada / Severa» era enseñar
-       desde el panel de estadística la clasificación que el informe se niega a hacer. */
-    { lbl:`≤${UMBRAL_PSAP_ELEVADA} mmHg (n=${psapsAll.filter(v=>v<=UMBRAL_PSAP_ELEVADA).length})`, n: psapsAll.filter(v=>v<=UMBRAL_PSAP_ELEVADA).length, total:ht, color:'#3ecf8e' },
-    { lbl:`${UMBRAL_PSAP_ELEVADA+1}–50 mmHg (n=${psapsAll.filter(v=>v>UMBRAL_PSAP_ELEVADA&&v<=50).length})`, n: psapsAll.filter(v=>v>UMBRAL_PSAP_ELEVADA&&v<=50).length, total:ht, color:'#f5c842' },
-    { lbl:`51–70 mmHg (n=${psapsAll.filter(v=>v>50&&v<=70).length})`, n: psapsAll.filter(v=>v>50&&v<=70).length, total:ht, color:'#f0a500' },
-    { lbl:`>70 mmHg (n=${psapsAll.filter(v=>v>70).length})`,        n: psapsAll.filter(v=>v>70).length,         total:ht, color:'#f05454' },
-  ];
+  /* Seam `_labPsapDist`: son RANGOS de PSAP y no grados de HTP, y la razón vive en el
+     comentario de esa función — el PPT estadístico consume exactamente estas bandas, así que la
+     decisión de no graduar tiene que estar en UN solo lugar. */
+  const htpDist = _labPsapDist(psapsAll);
   labBarras('lab-htp-dist', ht > 0 ? htpDist : []);
 
   // SECCIÓN G — Volumen AI indexado (LAVI, ml/m²)
@@ -44490,30 +44591,13 @@ function labRenderExtras(infs, n) {
   labBarras('lab-vd-dist', tt > 0 ? vdDist : []);
 
   // SECCIÓN I — Geometría VI (patrón, desde texto del informe / campo geom_vi)
-  const _geomCat = _labGeomCat;   // única implementación, con guarda de negación
-  const geomCat = { normal:0, remod:0, conc:0, exc:0 }; let geomTot = 0;
-  infs.forEach(i => { const g = _geomCat(i); if (g && geomCat[g] !== undefined) { geomCat[g]++; geomTot++; } });
-  const geomDist = [
-    { lbl:`Normal (n=${geomCat.normal})`,                  n: geomCat.normal, total: geomTot, color:'#3ecf8e' },
-    { lbl:`Remodelado concéntrico (n=${geomCat.remod})`,   n: geomCat.remod,  total: geomTot, color:'#f5c842' },
-    { lbl:`HVI concéntrica (n=${geomCat.conc})`,           n: geomCat.conc,   total: geomTot, color:'#f0a500' },
-    { lbl:`HVI excéntrica (n=${geomCat.exc})`,             n: geomCat.exc,    total: geomTot, color:'#8a5fd4' },
-  ];
-  labBarras('lab-geom-dist', geomTot > 0 ? geomDist : []);
+  const _geo = _labGeomDist(infs), geomTot = _geo.tot;   // seam: lo consume tambien el PPT
+  labBarras('lab-geom-dist', geomTot > 0 ? _geo.dist : []);
 
   // SECCIONES E/F — frecuencia por indicación y por antecedente (tortas)
-  const freqEntries = (key) => {
-    const counts = Object.create(null);
-    infs.forEach(i => {
-      let arr = i.campos?.[key];
-      if (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch(e) { arr = arr ? [arr] : []; } }
-      if (!Array.isArray(arr)) return;
-      arr.forEach(v => { const k = String(v).trim(); if (k) counts[k] = (counts[k] || 0) + 1; });
-    });
-    return Object.entries(counts).sort((a,b) => b[1]-a[1]);
-  };
-  _labPieDash('lab-indicaciones-freq', freqEntries('indicaciones'));
-  _labPieDash('lab-antecedentes-freq', freqEntries('antecedentes_sel'));
+  // seam: el PPT estadistico usa el MISMO conteo, con su parseo de arrays y de cadenas JSON.
+  _labPieDash('lab-indicaciones-freq', _labFreqEntries(infs, 'indicaciones'));
+  _labPieDash('lab-antecedentes-freq', _labFreqEntries(infs, 'antecedentes_sel'));
 
   /* Tab Avanzado. Ahora TAMBIÉN en try/catch: era la única de las tres sin protección, y desde
      que aloja el bloque HFA-PEFF puntúa datos arbitrarios de estudios guardados. Un throw acá
@@ -51676,6 +51760,394 @@ function _labEstado(fn, inf, cont) {
   try { return fn(inf.campos || {}) || null; }
   catch (e) { if (cont) cont.n++; console.error('[_labEstado]', fn && fn.name, e); return null; }
 }
+/* ══ PPT ESTADÍSTICO DEL LABORATORIO ═════════════════════════════════════════════════════════
+   Presentación de ateneo con las estadísticas del período. Es INDEPENDIENTE del PPT del estudio
+   individual —otra pregunta, otro mazo— pero comparte con él las tres cosas que no pueden
+   divergir: las seis paletas de `PPT_TEMAS`, el saneador `_pptTxt` y el resolutor de logo
+   `_pptLogoDato()`. Todo lo demás son datos del Laboratorio YA CALCULADOS: cada número sale de
+   un seam (`_labFeviDist`, `_labPsapDist`, `_labGeomDist`, `_labDiastDist`, `_labValvCounts`,
+   `_labHallazgosCuenta`, `_labFreqEntries`, `_labSexos`, `_labMeses`) que el dashboard también
+   consume. Recalcular acá haría que el archivo proyectado y la pantalla publicaran números
+   distintos sobre la misma cohorte, y el .pptx circula sin la app al lado para desmentirlo. */
+const LAB_PPT_W = 10, LAB_PPT_H = 5.625;   // LAYOUT_16x9 en pulgadas
+
+let _labPPTAbierto = false;
+function labPPTEstadistico() {
+  /* La compuerta va ANTES del modal, no después: pedirle al médico presentador, institución,
+     fecha y paleta para después decirle que no hay estudios es hacerle llenar un formulario
+     para nada. */
+  let infs = [];
+  try { infs = labGetInformes(); } catch (e) { console.error('[labPPT]', e); }
+  if (!infs.length) {
+    toast('⚠️ No hay estudios ' + _labPobTxt() + '. Ajustá el período o los filtros antes de generar la presentación.');
+    return;
+  }
+  if (typeof PptxGenJS === 'undefined') {
+    toast('⚠️ La librería de PowerPoint no cargó. Verificá la conexión y recargá la página.');
+    return;
+  }
+  _labPPTModal(infs);
+}
+
+/* Modal único: presentador, institución, fecha y paleta. El pedido lo describe como un solo
+   paso, y encadenar los dos modales que ya existen (`_pptElegirPresentador` + `_pptElegirTema`)
+   habría dado tres pantallas para una acción.
+   createElement y textContent, NUNCA innerHTML: acá entran un nombre y una institución que el
+   médico tipea y que después van al .pptx. Mismo criterio que los otros dos modales del PPT. */
+function _labPPTModal(infs) {
+  if (_labPPTAbierto) return;              // doble clic apilaba overlays y generaba dos archivos
+  _labPPTAbierto = true;
+  const _t = v => String(v == null ? '' : v).trim();
+  const _esTema = k => typeof k === 'string' && Object.prototype.hasOwnProperty.call(PPT_TEMAS, k);
+  let tema = 'dark';
+  try { const v = localStorage.getItem(PPT_TEMA_KEY); if (_esTema(v)) tema = v; } catch (e) {}
+
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto;';
+  const caja = document.createElement('div');
+  caja.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:460px;width:100%;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,0.5);max-height:90vh;overflow:auto;';
+  const h1 = document.createElement('div');
+  h1.style.cssText = 'font-size:15px;font-weight:700;color:var(--accent2);margin-bottom:6px;';
+  h1.textContent = '📊 Presentación estadística del Laboratorio';
+  const sub = document.createElement('p');
+  sub.style.cssText = 'font-size:12px;color:var(--text2);margin:0 0 14px;';
+  sub.textContent = infs.length + ' estudio' + (infs.length !== 1 ? 's' : '') + ' ' + _labPobTxt() + '.';
+  caja.appendChild(h1); caja.appendChild(sub);
+
+  const campo = (lbl, val, ph, tipo) => {
+    const w = document.createElement('div');
+    w.style.cssText = 'margin-bottom:12px;';
+    const l = document.createElement('label');
+    l.style.cssText = 'display:block;font-size:.75rem;font-weight:700;color:var(--text2);margin-bottom:4px;';
+    l.textContent = lbl;
+    const inp = document.createElement('input');
+    inp.type = tipo || 'text';
+    inp.value = val;
+    if (ph) inp.placeholder = ph;
+    if (!tipo) inp.setAttribute('maxlength', '80');   // entra en una línea de la diapositiva
+    inp.setAttribute('aria-label', lbl);
+    inp.style.cssText = 'width:100%;box-sizing:border-box;padding:9px 11px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;font-family:inherit;';
+    w.appendChild(l); w.appendChild(inp); caja.appendChild(w);
+    return inp;
+  };
+  /* Se precargan del Config, que es el caso más común, pero son EDITABLES: quien firma los
+     estudios y quien presenta el ateneo no son siempre la misma persona —un residente presenta
+     la casuística del servicio—. Es el mismo criterio que `_pptElegirPresentador`. */
+  const inPres = campo('Presentador', _t((document.getElementById('med-nombre') || {}).textContent), 'Nombre de quien presenta');
+  const inInst = campo('Institución', _t(typeof ecoGetCentroPrincipal === 'function' ? ecoGetCentroPrincipal() : ''), 'Hospital / Centro médico');
+  /* Fecha de PRESENTACIÓN, no de generación: el ateneo puede ser otro día. La portada lleva la
+     de generación y el cierre ésta; son dos hechos distintos y el mazo dice cuál es cuál. */
+  const hoy = new Date();
+  const iso = hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0') + '-' + String(hoy.getDate()).padStart(2, '0');
+  const inFecha = campo('Fecha de presentación', iso, '', 'date');
+
+  const lt = document.createElement('label');
+  lt.style.cssText = 'display:block;font-size:.75rem;font-weight:700;color:var(--text2);margin:14px 0 6px;';
+  lt.textContent = 'Paleta';
+  caja.appendChild(lt);
+  const botones = [];
+  Object.keys(PPT_TEMAS).forEach(k => {
+    const t = PPT_TEMAS[k];
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.style.cssText = 'display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--bg);border:2px solid var(--border);border-radius:10px;padding:8px 10px;margin-bottom:6px;cursor:pointer;color:var(--text);font-size:13px;';
+    const sw = document.createElement('span');
+    sw.style.cssText = 'width:44px;height:24px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;gap:3px;flex:0 0 auto;border:1px solid rgba(128,128,128,.5);';
+    sw.style.backgroundColor = '#' + t.bg;
+    [t.teal, t.txt].forEach(col => {
+      const p2 = document.createElement('span');
+      p2.style.cssText = 'width:8px;height:8px;border-radius:50%;';
+      p2.style.backgroundColor = '#' + col;
+      sw.appendChild(p2);
+    });
+    const nom = document.createElement('span');
+    nom.textContent = t.nombre;
+    b.appendChild(sw); b.appendChild(nom);
+    b.onclick = () => { tema = k; botones.forEach(x => { x[0].style.borderColor = 'var(--border)'; }); b.style.borderColor = 'var(--accent2)'; };
+    botones.push([b, k]);
+    caja.appendChild(b);
+  });
+  botones.forEach(x => { if (x[1] === tema) x[0].style.borderColor = 'var(--accent2)'; });
+
+  const cerrar = () => { _labPPTAbierto = false; document.removeEventListener('keydown', onEsc); ov.remove(); };
+  const onEsc = ev => { if (ev.key === 'Escape') cerrar(); };
+  const pie = document.createElement('div');
+  pie.style.cssText = 'display:flex;justify-content:flex-end;gap:8px;margin-top:10px;';
+  const canc = document.createElement('button');
+  canc.type = 'button'; canc.className = 'btn btn-ghost'; canc.textContent = 'Cancelar';
+  canc.onclick = cerrar;
+  const gen = document.createElement('button');
+  gen.type = 'button'; gen.className = 'btn'; gen.textContent = 'Generar PPT';
+  gen.onclick = () => {
+    try { localStorage.setItem(PPT_TEMA_KEY, tema); } catch (e) {}   // preferencia, no dato clínico
+    const opts = { presentador: _t(inPres.value), institucion: _t(inInst.value), fecha: _t(inFecha.value), tema: tema };
+    cerrar();
+    _labPPTGenerar(infs, opts);
+  };
+  pie.appendChild(canc); pie.appendChild(gen); caja.appendChild(pie);
+  ov.appendChild(caja);
+  ov.addEventListener('click', ev => { if (ev.target === ov) cerrar(); });
+  document.addEventListener('keydown', onEsc);
+  document.body.appendChild(ov);
+  setTimeout(() => { try { inPres.focus(); inPres.select(); } catch (e) {} }, 30);
+}
+
+let _labPPTEnCurso = false;
+async function _labPPTGenerar(infs, o) {
+  /* Guarda de reentrada + try/catch, por la misma razón que `labAnalisisPDF`: sin el catch un
+     throw queda como promesa rechazada sin manejador y el médico se queda mirando «generando»
+     — una falla total se ve igual que una generación lenta, y el reflejo es apretar otra vez. */
+  if (_labPPTEnCurso) return;
+  _labPPTEnCurso = true;
+  const T = _pptTxt;
+  try {
+    const C = Object.prototype.hasOwnProperty.call(PPT_TEMAS, o.tema) ? PPT_TEMAS[o.tema] : PPT_TEMAS.dark;
+    const HDR_BG = C.hdrBg || C.teal, FONT = C.hdrFont || PPT_FONT;
+    const P = new PptxGenJS();
+    P.layout = 'LAYOUT_16x9';
+    const W = LAB_PPT_W, H = LAB_PPT_H;
+    const n = infs.length;
+    const logo = _pptLogoDato();
+    let logoAvisado = false;
+    const avisos = [];
+
+    const periodo = (() => {
+      const e = document.getElementById('lab-periodo');
+      const t = e && e.selectedIndex >= 0 ? (e.options[e.selectedIndex].textContent || '') : '';
+      return String(t).trim();
+    })();
+    /* LA COHORTE SE DECLARA, y no en una nota al pie. Un mazo que proyecta «N = 12» sin decir
+       que hay filtros activos publica un denominador que la sala lee como «todo el laboratorio
+       en el período». Es la misma regla que ya cumplen el PDF de auditoría y el Excel; el PPT
+       es la superficie que MÁS circula de las tres. */
+    const cohTxt = (typeof _labCohorteDesc === 'function' ? (_labCohorteDesc() || '') : '');
+
+    const ponerLogo = s => {
+      if (!logo) return;
+      const lw = 1.25, lh = 0.55;
+      try {
+        s.addImage({ data: logo, x: W - lw - 0.4, y: H - 1.24, w: lw, h: lh, sizing:{ type:'contain', w: lw, h: lh } });
+      } catch (e) {
+        /* Se AVISA, no sólo se loguea: un logo que pasa la validación pero falla al estampar
+           desaparecía de todos los mazos del centro sin que nadie se entere. */
+        console.error('[labPPT/logo]', e);
+        if (!logoAvisado) { logoAvisado = true; avisos.push('El logo del centro no se pudo incluir en la presentación.'); }
+      }
+    };
+    const pieTxt = 'EcoSmart · CeiboMed' + (o.institucion ? ' · ' + o.institucion : '');
+    const DISC = 'Estadística agregada de apoyo. No constituye una recomendación diagnóstica ni terapéutica.';
+    const conPie = s => {
+      s.addShape(P.ShapeType.line, { x:0.4, y:H-0.62, w:W-0.8, h:0, line:{ color:C.teal, width:1 } });
+      s.addText(T(pieTxt), { x:0.4, y:H-0.56, w:W-2.0, h:0.2, fontSize:10, color:C.txt2, fontFace:FONT });
+      s.addText(T(DISC), { x:0.4, y:H-0.36, w:W-2.0, h:0.2, fontSize:8, color:C.txt2, fontFace:FONT, italic:true });
+    };
+    const nueva = titulo => {
+      const s = P.addSlide();
+      s.background = { color: C.bg };
+      s.addShape(P.ShapeType.rect, { x:0, y:0, w:W, h:0.72, fill:{ color: HDR_BG } });
+      if (C.franjaInf) s.addShape(P.ShapeType.rect, { x:0, y:0.72-C.franjaInf.h, w:W, h:C.franjaInf.h, fill:{ color:C.franjaInf.color } });
+      s.addText(T(titulo), { x:0.4, y:0.12, w:W-0.8, h:0.48, fontSize:24, bold:true, color:C.hdrTxt, fontFace:FONT });
+      conPie(s);
+      return s;
+    };
+    /* Barra horizontal: rótulo, riel, relleno y «n (pct %)». Es presentación pura y por eso se
+       escribe acá y no se comparte con el dashboard, que dibuja en HTML. Lo que SÍ se comparte
+       son los datos: las filas llegan de los seams, ya con sus etiquetas y sus totales. */
+    const barras = (s, x, y, w, filas, alto, sinPct) => {
+      const h = alto || 0.26;
+      filas.forEach((f, k) => {
+        const yy = y + k * (h + 0.1);
+        const tot = f.total || 0;
+        const pct = tot > 0 ? Math.round(f.n / tot * 100) : 0;
+        s.addText(T(f.lbl), { x:x, y:yy, w:w*0.46, h:h, fontSize:11, color:C.txt, fontFace:FONT, valign:'middle' });
+        s.addShape(P.ShapeType.rect, { x:x+w*0.47, y:yy+h*0.22, w:w*0.34, h:h*0.5, fill:{ color:C.fila1 || 'DDDDDD' } });
+        if (pct > 0) s.addShape(P.ShapeType.rect, { x:x+w*0.47, y:yy+h*0.22, w:w*0.34*(pct/100), h:h*0.5, fill:{ color:C.teal } });
+        /* `sinPct` para la actividad por mes: ahi el riel es el mes de MAS actividad, asi que un
+           «(100 %)» al lado de abril se lee como «el 100 % de los estudios fueron en abril».
+           La barra ya comunica la proporcion; el numero al lado tiene que ser el conteo. */
+        s.addText(T(sinPct ? String(f.n) : (tot > 0 ? (f.n + ' (' + pct + ' %)') : '—')), { x:x+w*0.83, y:yy, w:w*0.17, h:h, fontSize:11, bold:true, color:C.txt, fontFace:FONT, valign:'middle' });
+      });
+      return y + filas.length * (h + 0.1);
+    };
+    const dato = (s, x, y, lbl, val) => {
+      s.addText(T(lbl), { x:x, y:y, w:4.3, h:0.22, fontSize:10, color:C.txt2, fontFace:FONT });
+      s.addText(T(val), { x:x, y:y+0.20, w:4.3, h:0.32, fontSize:17, bold:true, color:C.teal, fontFace:FONT });
+      return y + 0.60;
+    };
+    const prom = arr => { const v = arr.filter(x => x !== null && x !== undefined && isFinite(x)); return v.length ? { v: v.reduce((a,b)=>a+b,0)/v.length, n: v.length } : null; };
+    const pTxt = (p, dec, suf) => p ? (p.v.toFixed(dec) + (suf||'') + ' (n=' + p.n + ')') : '—';
+
+    // ── 1 · PORTADA ──
+    {
+      const s = P.addSlide();
+      s.background = { color: C.bg };
+      s.addShape(P.ShapeType.rect, { x:0, y:0, w:W, h:0.22, fill:{ color: HDR_BG } });
+      s.addText('Laboratorio de Ecocardiografía', { x:0.6, y:1.35, w:W-1.2, h:0.85, fontSize:40, bold:true, color:C.txt, fontFace:FONT });
+      s.addText(T([o.presentador, o.institucion].filter(Boolean).join(' · ')), { x:0.6, y:2.28, w:W-1.2, h:0.4, fontSize:17, color:C.teal, fontFace:FONT });
+      s.addText(T(periodo ? 'Período analizado: ' + periodo : 'Período analizado: todos los estudios'), { x:0.6, y:2.72, w:W-1.2, h:0.32, fontSize:14, color:C.txt2, fontFace:FONT });
+      s.addText(T(n + ' estudio' + (n !== 1 ? 's' : '')), { x:0.6, y:3.06, w:W-1.2, h:0.32, fontSize:14, color:C.txt2, fontFace:FONT });
+      if (cohTxt) {
+        s.addText(T('Cohorte filtrada — los totales NO son los del laboratorio completo'), { x:0.6, y:3.46, w:W-1.2, h:0.26, fontSize:11, bold:true, color:C.rojo, fontFace:FONT });
+        s.addText(T(cohTxt), { x:0.6, y:3.70, w:W-1.2, h:0.5, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
+      }
+      s.addText(T('Generado el ' + new Date().toLocaleDateString('es-UY')), { x:0.6, y:H-0.95, w:W-1.2, h:0.28, fontSize:11, color:C.txt2, fontFace:FONT });
+      ponerLogo(s);
+      conPie(s);
+    }
+
+    // ── 2 · RESUMEN EJECUTIVO ──
+    {
+      const s = nueva('Resumen ejecutivo');
+      const fevis = infs.map(_labFevi).filter(v => v !== null && v > 0);
+      let y = 1.05;
+      y = dato(s, 0.4, y, 'Estudios ' + _labPobDe(), String(n));
+      y = dato(s, 0.4, y, 'Período', periodo || 'Todos');
+      y = dato(s, 0.4, y, 'FEVI promedio', pTxt(prom(fevis), 1, ' %'));
+      const geo = _labGeomDist(infs), dia = _labDiastDist(infs);
+      /* El mensaje de «sin datos» va en el ELSE, no después de dibujar: la primera version
+         pintaba las barras en cero Y el cartel encima, superpuestos. En pantalla el navegador
+         reflowea y se nota; en una diapositiva las dos cosas se dibujan una sobre la otra. */
+      s.addText('Geometría del VI', { x:4.9, y:0.95, w:4.7, h:0.26, fontSize:12, bold:true, color:C.teal, fontFace:FONT });
+      let yg = 1.24;
+      if (geo.tot) yg = barras(s, 4.9, 1.24, 4.7, geo.dist, 0.24);
+      else { s.addText('Sin geometría clasificable en la cohorte.', { x:4.9, y:1.24, w:4.7, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT }); yg = 1.60; }
+      s.addText('Función diastólica', { x:4.9, y:yg+0.10, w:4.7, h:0.26, fontSize:12, bold:true, color:C.teal, fontFace:FONT });
+      if (dia.tot) barras(s, 4.9, yg+0.40, 4.7, dia.dist, 0.24);
+      else s.addText('Sin función diastólica clasificable en la cohorte.', { x:4.9, y:yg+0.40, w:4.7, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
+    }
+
+    // ── 3 · PERFIL DEMOGRÁFICO ──
+    {
+      const s = nueva('Perfil demográfico');
+      const sx = _labSexos(infs);
+      const edades = infs.map(i => _labNum(i, 'edad')).filter(v => v !== null && v > 0 && v < 120);
+      let y = 1.05;
+      y = dato(s, 0.4, y, 'Distribución por sexo', sx.t ? ('♀ ' + Math.round(sx.nF/sx.t*100) + ' % (n=' + sx.nF + ')  ·  ♂ ' + Math.round(sx.nM/sx.t*100) + ' % (n=' + sx.nM + ')') : '—');
+      y = dato(s, 0.4, y, 'Edad promedio', pTxt(prom(edades), 0, ' años'));
+      y = dato(s, 0.4, y, 'Rango de edad', edades.length ? (Math.min.apply(null, edades) + ' – ' + Math.max.apply(null, edades) + ' años') : '—');
+      const top = (ent) => ent.slice(0, 5).map(e => ({ lbl: e[0], n: e[1], total: n }));
+      const ind = top(_labFreqEntries(infs, 'indicaciones'));
+      const ant = top(_labFreqEntries(infs, 'antecedentes_sel'));
+      s.addText('Indicaciones (top 5)', { x:4.9, y:0.95, w:4.7, h:0.26, fontSize:12, bold:true, color:C.teal, fontFace:FONT });
+      const yi = ind.length ? barras(s, 4.9, 1.24, 4.7, ind, 0.24)
+                            : (s.addText('Sin indicaciones consignadas.', { x:4.9, y:1.24, w:4.7, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT }), 1.6);
+      s.addText('Antecedentes (top 5)', { x:4.9, y:yi+0.10, w:4.7, h:0.26, fontSize:12, bold:true, color:C.teal, fontFace:FONT });
+      if (ant.length) barras(s, 4.9, yi+0.40, 4.7, ant, 0.24);
+      else s.addText('Sin antecedentes consignados.', { x:4.9, y:yi+0.40, w:4.7, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
+    }
+
+    // ── 4 · FUNCIÓN SISTÓLICA ──
+    {
+      const s = nueva('Función sistólica');
+      const fevis = infs.map(_labFevi).filter(v => v !== null && v > 0);
+      let y = 1.05;
+      y = dato(s, 0.4, y, 'TAPSE promedio', pTxt(prom(infs.map(_labTapse).filter(v => v !== null && v > 0)), 0, ' mm'));
+      y = dato(s, 0.4, y, 'PSAP promedio', pTxt(prom(infs.map(_labPsap).filter(v => v !== null && v > 0)), 0, ' mmHg'));
+      y = dato(s, 0.4, y, 'Con FEVI medida', fevis.length + ' de ' + n);
+      s.addText('FEVI por rangos', { x:4.9, y:0.95, w:4.7, h:0.26, fontSize:12, bold:true, color:C.teal, fontFace:FONT });
+      if (fevis.length) barras(s, 4.9, 1.24, 4.7, _labFeviDist(fevis), 0.30);
+      else s.addText('Sin FEVI medida en la cohorte.', { x:4.9, y:1.24, w:4.7, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
+    }
+
+    // ── 5 · VALVULOPATÍAS ──
+    {
+      const s = nueva('Valvulopatías');
+      const vc = _labValvCounts(infs);
+      const hdr = ['Válvula', 'Sin', 'Leve', 'Moderada', 'Severa'].map(t => ({ text:t, options:{ bold:true, color:C.hdrTxt, fill:{ color:HDR_BG } } }));
+      const celda = (x, base) => ({ text: base > 0 ? (x + ' (' + Math.round(x/base*100) + ' %)') : '—', options:{ color:C.txt } });
+      const filas = _LAB_VALV_LABELS.map((lbl, i) => {
+        const b = vc.bases[i], L = vc.counts.Leve[i], M = vc.counts.Moderada[i], S = vc.counts.Severa[i];
+        /* «Sin» se DERIVA de la base, no se cuenta aparte: con su propio conteo la tabla y las
+           barras del dashboard podrían publicar números distintos. Y con base 0 la celda dice
+           «—» y no «0 %», que es `pctOf(n, 0)` otra vez. */
+        return [{ text:T(lbl), options:{ bold:true, color:C.txt } }, celda(b - (L+M+S), b), celda(L, b), celda(M, b), celda(S, b)];
+      });
+      s.addTable([hdr].concat(filas), { x:0.4, y:1.0, w:W-0.8, fontSize:11, fontFace:FONT,
+        border:{ type:'solid', pt:0.5, color:C.txt2 }, fill:{ color:C.fila2 || C.bg }, autoPage:false });
+      s.addText(T('Porcentajes sobre el total de estudios ' + _labPobDe() + ' (' + n + '). No marcar una válvula indica que fue valorada como normal.'),
+        { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
+    }
+
+    // ── 6 · PRESIÓN PULMONAR ──
+    {
+      const s = nueva('Presión sistólica de la arteria pulmonar');
+      const psaps = infs.map(_labPsap).filter(v => v !== null && v > 0);
+      const alt = psaps.filter(v => v > UMBRAL_PSAP_ELEVADA);
+      let y = 1.05;
+      y = dato(s, 0.4, y, 'Con PSAP estimable', psaps.length + ' de ' + n);
+      y = dato(s, 0.4, y, 'PSAP > ' + UMBRAL_PSAP_ELEVADA + ' mmHg', psaps.length ? (alt.length + ' (' + Math.round(alt.length/psaps.length*100) + ' % de los estimables)') : '—');
+      y = dato(s, 0.4, y, 'PSAP promedio en ese grupo', pTxt(prom(alt), 0, ' mmHg'));
+      s.addText('Distribución por rangos', { x:4.9, y:0.95, w:4.7, h:0.26, fontSize:12, bold:true, color:C.teal, fontFace:FONT });
+      if (psaps.length) barras(s, 4.9, 1.24, 4.7, _labPsapDist(psaps), 0.30);
+      else s.addText('Sin PSAP estimable en la cohorte.', { x:4.9, y:1.24, w:4.7, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
+      /* RANGOS, no grados. La app no clasifica la HTP por PSAP estimada y esta diapositiva lo
+         DICE, porque es la que más se proyecta fuera de contexto. Sin esta línea, cuatro bandas
+         de color al lado de un número se leen como una graduación de severidad. */
+      s.addText(T('Son RANGOS de presión estimada, no grados de hipertensión pulmonar: la PSAP por Doppler no clasifica la HTP por sí sola.'),
+        { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.rojo, fontFace:FONT });
+    }
+
+    // ── 7 · HALLAZGOS DESTACADOS ──
+    {
+      const s = nueva('Hallazgos más frecuentes');
+      let filas = [];
+      try { filas = (_labHallazgosCuenta(infs) || []).slice(0, 5).map(h => ({ lbl: h.lbl || h.label || h[0], n: h.n !== undefined ? h.n : h[1], total: n })); }
+      catch (e) { console.error('[labPPT/hallazgos]', e); }
+      if (filas.length) barras(s, 0.4, 1.15, W-0.8, filas, 0.34);
+      else s.addText('Sin hallazgos clasificables en la cohorte.', { x:0.4, y:1.2, w:W-0.8, h:0.4, fontSize:12, italic:true, color:C.txt2, fontFace:FONT });
+      /* Dice «informe», no «EN SUMA»: `_LAB_HALLAZGOS` clasifica sobre `en_suma + informe_texto`.
+         Rotularlo «EN SUMA» prometería un denominador más chico que el que se usó. */
+      s.addText(T('Clasificación por texto sobre el resumen y el cuerpo del informe, con guarda de negación (un hallazgo descartado no cuenta como presente).'),
+        { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
+    }
+
+    // ── 8 · TENDENCIA TEMPORAL ──
+    {
+      const s = nueva('Actividad por mes');
+      const ms = _labMeses(infs);
+      if (ms.length) {
+        const max = Math.max.apply(null, ms.map(m => m[1]));
+        barras(s, 0.4, 1.15, W-0.8, ms.map(m => ({ lbl: m[0].replace('-', '/'), n: m[1], total: max })), 0.28, true);
+        /* El riel es el mes de MÁS actividad, no el total de la cohorte: con el total, doce meses
+           parejos dan doce barras del 8 % y no se ve nada. El rótulo lo dice para que el largo
+           de la barra no se lea como un porcentaje del período. */
+        s.addText(T('Cada barra es relativa al mes de mayor actividad (' + max + ' estudios). Se muestran los últimos 12 meses CON actividad.'),
+          { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
+      } else {
+        s.addText('Sin fechas de estudio en la cohorte.', { x:0.4, y:1.2, w:W-0.8, h:0.4, fontSize:12, italic:true, color:C.txt2, fontFace:FONT });
+      }
+    }
+
+    // ── 9 · CIERRE ──
+    {
+      const s = P.addSlide();
+      s.background = { color: C.bg };
+      s.addText('¿Preguntas?', { x:0.5, y:1.45, w:W-1, h:1.0, fontSize:54, bold:true, color:C.teal, fontFace:FONT, align:'center' });
+      s.addText(T(o.presentador || ''), { x:0.5, y:2.72, w:W-1, h:0.4, fontSize:20, color:C.txt, fontFace:FONT, align:'center' });
+      s.addText(T([o.institucion, _pptFechaLarga(o.fecha)].filter(Boolean).join('  ·  ')), { x:0.5, y:3.16, w:W-1, h:0.34, fontSize:13, color:C.txt2, fontFace:FONT, align:'center' });
+      ponerLogo(s);
+      conPie(s);
+    }
+
+    const stamp = new Date().toISOString().slice(0,10).replace(/-/g,'');
+    await P.writeFile({ fileName: 'EcoSmart_Laboratorio_' + stamp + (cohTxt ? '_cohorte_filtrada' : '') + '.pptx' });
+    toast('✅ Presentación generada — 9 diapositivas.' + (avisos.length ? ' ⚠️ ' + avisos.join(' ') : ''));
+  } catch (e) {
+    console.error('[labPPT]', e);
+    toast('❌ No se pudo generar la presentación: ' + (e && e.message ? e.message : 'error desconocido'));
+  } finally {
+    _labPPTEnCurso = false;
+  }
+}
+/* dd/mm/aaaa desde el `yyyy-mm-dd` del input date, sin `new Date(str)`: ese constructor
+   interpreta la cadena como UTC y en Uruguay (UTC-3) devuelve el día ANTERIOR. */
+function _pptFechaLarga(f) {
+  const t = String(f == null ? '' : f).trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) return '';
+  const p2 = t.split('-');
+  return p2[2] + '/' + p2[1] + '/' + p2[0];
+}
+
 /* ══ SUBTAB MEDICIONES · Doppler tricuspídeo + morfología/etiología valvular ══════════════════
    Agregadas el 2026-09-16. Función PROPIA y no un tramo más de `labRenderExtras`: allá se
    engancha con `try/catch` para que un throw no se lleve puesta la subtab entera, que es el
@@ -54777,8 +55249,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260916-0206';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789535182954;                 /* eco-build-ms */
+const ECO_BUILD    = '20260916-0227';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789536446657;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -54864,7 +55336,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0206</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0227</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
