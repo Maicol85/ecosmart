@@ -10154,12 +10154,70 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     </div>
   </div>
   <div class="card sacc" id="sacc-cc-cvpa">
-    <button type="button" class="sacc-hdr" onclick="secToggle('cc-cvpa')" aria-expanded="false">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-cvpa');cvpaSync()" aria-expanded="false">
       <span class="sacc-arrow">&#9654;</span>
-      <span style="flex:1;">🫀 CVPA — Conexion venosa pulmonar anomala</span>
+      <span style="flex:1;">🫀 Conexión venosa pulmonar anómala parcial</span>
+      <span id="cvpa_badge" class="incl-badge" hidden>&#9679; cargada</span>
     </button>
     <div class="card-body sacc-body">
-      <p style="font-size:12px;color:var(--text2);margin:0;line-height:1.6;">En desarrollo — proximamente.</p>
+      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
+        En el adulto sólo se ve la forma <b>parcial</b>: la total es una emergencia neonatal. El
+        <b>tipo de CIA</b> y la <b>dilatación del ventrículo derecho</b> son los del estudio
+        (secciones <b>CIA/CIV</b> y <b>VD / AD</b>): no se vuelven a pedir acá.
+      </p>
+      <div class="grid-3">
+        <div class="fg"><label>Número de venas anómalas</label>
+          <select id="cvpa_venas_numero" onchange="cvpaSync()">
+            <option value="">&mdash;</option>
+            <option value="1">1 vena</option><option value="2">2 venas</option>
+            <option value="3">3 venas</option><option value="noesp">No especificado</option>
+          </select></div>
+        <div class="fg"><label>Drenaje</label>
+          <select id="cvpa_conexion" onchange="cvpaSync()">
+            <option value="">&mdash;</option>
+            <option value="vcs">Vena cava superior</option>
+            <option value="vci">Vena cava inferior</option>
+            <option value="ad">Aurícula derecha directa</option>
+            <option value="acigos">Vena ácigos</option>
+            <option value="otra">Otra</option>
+          </select>
+          <span style="font-size:10px;color:var(--text2);">El drenaje a cava superior es el más frecuente y suele asociar CIA de seno venoso.</span></div>
+        <div class="fg"><label>Lado</label>
+          <select id="cvpa_lado" onchange="cvpaSync()">
+            <option value="">&mdash;</option><option value="der">Derecha</option>
+            <option value="izq">Izquierda</option><option value="bil">Bilateral</option>
+          </select></div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="fg"><label>Qp/Qs estimado por eco</label>
+          <input type="number" id="cvpa_qp_qs" step="0.1" placeholder="p. ej. 1,8" oninput="cvpaSync()">
+          <span style="font-size:10px;color:var(--text2);">El eco <b>subestima</b> el shunt en esta lesión: la resonancia es el método de referencia (ESC 2020).</span></div>
+        <div class="fg"><label>Hipertensión pulmonar</label>
+          <select id="cvpa_htp" onchange="cvpaSync()">
+            <option value="">&mdash;</option><option value="no">Sin HTP</option>
+            <option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option>
+          </select></div>
+        <div class="fg"><label>Situación clínica</label>
+          <select id="cvpa_sintomas" onchange="cvpaSync()">
+            <option value="">&mdash;</option><option value="asintomatico">Asintomático</option>
+            <option value="disnea">Disnea de esfuerzo</option>
+            <option value="palpitaciones">Palpitaciones</option>
+            <option value="ic_derecha">Insuficiencia cardíaca derecha</option>
+            <option value="otro">Otro</option>
+          </select></div>
+      </div>
+      <div class="grid-2" style="margin-top:10px;">
+        <div class="fg"><label>CIA asociada (de CIA/CIV)</label>
+          <input type="text" id="cvpa_cia_ro" readonly tabindex="-1" data-espejo placeholder="—" style="opacity:.7;"></div>
+        <div class="fg"><label>Ventrículo derecho (de VD / AD)</label>
+          <input type="text" id="cvpa_vd_ro" readonly tabindex="-1" data-espejo placeholder="—" style="opacity:.7;"></div>
+      </div>
+      <div id="cvpa-resultado" class="calc-box" style="margin-top:12px;"></div>
+      <input type="checkbox" id="cvpa_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+      <div style="display:flex;justify-content:center;margin-top:10px;">
+        <button type="button" class="btn btn-integrar" data-ete-chk="cvpa_incluir_chk" aria-pressed="false"
+                onclick="eteInclToggle('cvpa_incluir_chk')">&#128206; Integrar al informe</button>
+      </div>
     </div>
   </div>
 <div class="card sacc" id="sacc-cc-tga">
@@ -22053,6 +22111,47 @@ function generarInforme(opts) {
       r.alertas.forEach(a => { if (a.suma) sumaCC(a.suma); });
     })();
 
+    /* ── Conexión venosa pulmonar anómala parcial ── */
+    (function(){
+      const chk = document.getElementById('cvpa_incluir_chk');
+      if (!chk || !chk.checked) return;
+      if (typeof cvpaEstado !== 'function') return;
+      const r = cvpaEstado();
+      if (!r.hayDatos) return;
+      const desc = [];
+      if (r.venas) desc.push(CVPA_VENAS_TXT[r.venas] || r.venas);
+      if (r.lado)  desc.push('del lado ' + (CVPA_LADO_TXT[r.lado] || r.lado));
+      if (r.conex) desc.push('con drenaje a ' + (CVPA_CONEX_TXT[r.conex] || r.conex));
+      const p = ['Conexión venosa pulmonar anómala parcial' + (desc.length ? ' (' + desc.join(', ') + ')' : '')];
+      /* El Qp/Qs se nombra SIEMPRE como ecocardiográfico: en esta lesión el eco subestima y la
+         resonancia es el método de referencia. Publicarlo sin decir con qué se midió sería el
+         número correcto medido con el método equivocado. */
+      if (r.qpOk) p.push('Qp/Qs estimado por ecocardiografía ' + r.qp.toFixed(2));
+      if (r.fuera.length) p.push('Qp/Qs fuera de rango: revisar antes de concluir');
+      p.push(r.vdCat ? 'Ventrículo derecho: ' + r.vdCat.lbl.toLowerCase()
+                     : 'Ventrículo derecho sin medir en este estudio');
+      if (r.ciaTipo) p.push('Comunicación interauricular asociada de tipo ' +
+        ((typeof CIA_TIPO_TXT !== 'undefined' && CIA_TIPO_TXT[r.ciaTipo]) || r.ciaTipo) + ', consignada en la sección de CIA/CIV');
+      if (r.htp && r.htp !== 'no') p.push('Hipertensión pulmonar ' + (CVPA_HTP_TXT[r.htp] || r.htp));
+      if (r.sint) p.push('Situación clínica: ' + (CVPA_SINT_TXT[r.sint] || r.sint));
+      /* Las ramas conservadoras son TEXTO y no alerta: no hay nada que accionar. */
+      const cierre = r.clave === 'una_vena'
+          ? 'Una sola vena anómala rara vez genera un shunt significativo — seguimiento clínico.'
+        : r.clave === 'sin_criterios'
+          ? 'Sin criterios de intervención por los datos cargados — seguimiento anual.'
+        : '';
+      const alertas = r.alertas.map(a => a.txt).join(' ');
+      etePars.push(p.join('. ') + '.' + (alertas ? ' ' + alertas : '') + (cierre ? ' ' + cierre : '') + ' ' + r.SEGUIMIENTO);
+      ccMarcarParrafo();
+      sumaCC('Conexión venosa pulmonar anómala parcial' +
+             (r.lado ? ' ' + (CVPA_LADO_TXT[r.lado] || r.lado) : '') +
+             (r.conex ? ', con drenaje a ' + (CVPA_CONEX_TXT[r.conex] || r.conex) : '') +
+             (r.qpOk ? '. Qp/Qs estimado por eco ' + r.qp.toFixed(2) : '') + '.' +
+             (r.ciaTipo ? ' Comunicación interauricular de tipo ' +
+               ((typeof CIA_TIPO_TXT !== 'undefined' && CIA_TIPO_TXT[r.ciaTipo]) || r.ciaTipo) + ' asociada.' : ''));
+      r.alertas.forEach(a => { if (a.suma) sumaCC(a.suma); });
+    })();
+
     /* ── Defecto del septo auriculoventricular ── */
     (function(){
       const chk = document.getElementById('dsav_incluir_chk');
@@ -22600,7 +22699,7 @@ function RECALC_MODULOS() {
          veredicto sí contaba esos criterios;
        · `calcOAI` reconstruye la marca de «área derivada» (ver ahí), sin la cual corregir el
          diámetro en un estudio reabierto dejaba el área vieja. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -22817,6 +22916,7 @@ function limpiarCampos(silencioso) {
   if (typeof esubSync === 'function') { try { esubSync(); } catch (e) {} }
   if (typeof easvSync === 'function') { try { easvSync(); } catch (e) {} }
   if (typeof dsavSync === 'function') { try { dsavSync(); } catch (e) {} }
+  if (typeof cvpaSync === 'function') { try { cvpaSync(); } catch (e) {} }
   if (typeof dptSync === 'function') { try { dptSync(); } catch (e) {} }
   if (typeof cvrSync === 'function') { try { cvrSync(); } catch (e) {} }
   /* Los botones se repintan desde el ESTADO REAL, no a `false` fijo. Las claves del bull's eye
@@ -31477,6 +31577,125 @@ function dsavSync(){
 }
 window.dsavSync = dsavSync;
 
+/* ══ CONEXIÓN VENOSA PULMONAR ANÓMALA PARCIAL (ESC 2020) ═════════════════════════════════════
+   LA INDICACIÓN EXIGE LOS DOS: Qp/Qs ≥1,5 **Y** ventrículo derecho dilatado. Ninguno solo la
+   activa — un Qp/Qs de 1,8 sin repercusión no opera, y un VD dilatado puede serlo por otra cosa.
+
+   EL AGUJERO QUE TENÍA LA CASCADA DEL PEDIDO, Y QUE ACÁ SE CIERRA: «Qp/Qs <1,5 **o no calculado**
+   + VD no dilatado → sin criterios, seguimiento anual» deja sin rama al caso **VD DILATADO SIN
+   Qp/Qs**, que es justamente el paciente en el que hay que cuantificar. Por esa cascada caía en
+   la rama que tranquiliza. Acá tiene rama propia y pide la resonancia. Es la regla de la casa:
+   una negación necesita que se haya medido algo.
+
+   EL VD Y LA CIA SON LOS DEL ESTUDIO, NO CAMPOS PROPIOS. La dilatación sale de `vdBasCat()` sobre
+   `vd_bas` —CLAUDE.md dice literalmente que si aparece un tercer consumidor pase por ahí— y el
+   tipo de CIA de `ete_cia_tipo`, que YA tiene las opciones de seno venoso. Campos propios habrían
+   dejado a esta sección diciendo «CIA de seno venoso» mientras la sección de CIA/CIV dice ostium
+   secundum, en el mismo informe.
+
+   Y EL Qp/Qs SE DECLARA COMO ECOCARDIOGRÁFICO SIEMPRE. En esta lesión el eco SUBESTIMA el shunt
+   —las venas anómalas no atraviesan el plano del TSVD— y la ESC 2020 pone a la resonancia como
+   método de referencia. Publicar «Qp/Qs 1,4 — sin criterios» sin decir con qué se midió es
+   exactamente el número correcto medido con el método equivocado. */
+const CVPA_QP_SIGNIF = 1.5;
+const CVPA_VENAS_TXT = { '1':'una vena', '2':'dos venas', '3':'tres venas', noesp:'número de venas no especificado' };
+const CVPA_CONEX_TXT = { vcs:'vena cava superior', vci:'vena cava inferior', ad:'aurícula derecha',
+                         acigos:'vena ácigos', otra:'otro sitio' };
+const CVPA_LADO_TXT = { der:'derecha', izq:'izquierda', bil:'bilateral' };
+const CVPA_HTP_TXT = { no:'sin hipertensión pulmonar', leve:'leve', moderada:'moderada', severa:'severa' };
+const CVPA_SINT_TXT = { asintomatico:'asintomático', disnea:'disnea de esfuerzo',
+                        palpitaciones:'palpitaciones', ic_derecha:'insuficiencia cardíaca derecha', otro:'otros síntomas' };
+
+function cvpaEstado(){
+  const nv = id => { const e = document.getElementById(id); if (!e) return null;
+    const n = parseFloat(String(e.value).replace(',', '.')); return isFinite(n) ? n : null; };
+  const sv = id => (document.getElementById(id) || {}).value || '';
+  const venas = sv('cvpa_venas_numero'), conex = sv('cvpa_conexion'), lado = sv('cvpa_lado');
+  const htp = sv('cvpa_htp'), sint = sv('cvpa_sintomas');
+  const qp = nv('cvpa_qp_qs');
+  const qpOk = qp != null && qp >= 0.5 && qp <= 5;
+  const fuera = (qp != null && !qpOk) ? ['Qp/Qs'] : [];
+  /* Del estudio. `vdBasCat` devuelve null sin medición: «no dilatado» y «no medido» son cosas
+     distintas y acá la diferencia decide si se tranquiliza o se pide el dato. */
+  const vdCat = (typeof vdBasCat === 'function') ? vdBasCat((document.getElementById('vd_bas') || {}).value) : null;
+  const vdDilatado = !!(vdCat && (vdCat.cat === 'leve' || vdCat.cat === 'dilatado'));
+  const vdMedido = !!vdCat;
+  const ciaTipo = sv('ete_cia_tipo');
+  const hayDatos = !!(venas || conex || lado || htp || sint || qp != null);
+  if (!hayDatos) return { hayDatos:false, alertas:[] };
+  const qpSignif = qpOk && qp >= CVPA_QP_SIGNIF;
+  const alertas = [];
+  let clave;
+  if (qpSignif && vdDilatado) {
+    clave = 'cirugia';
+    alertas.push({
+      txt:'Qp/Qs de ' + qp.toFixed(2) + ' con dilatación del ventrículo derecho — se cumplen los criterios de corrección quirúrgica de la ESC 2020. Como el Qp/Qs de este informe es ECOCARDIOGRÁFICO y el eco subestima el shunt en esta lesión, corresponde confirmarlo por resonancia antes de la indicación definitiva. Derivación a cirugía cardíaca de congénitas del adulto.',
+      suma:'Conexión venosa pulmonar anómala parcial con Qp/Qs ' + qp.toFixed(2) + ' y ventrículo derecho dilatado — criterios de corrección quirúrgica; confirmar el shunt por resonancia.' });
+  } else if (qpSignif) {
+    clave = 'qp_sin_vd';
+    alertas.push({
+      txt:'Qp/Qs de ' + qp.toFixed(2) + ' sin dilatación del ventrículo derecho ' + (vdMedido ? '' : '—y sin medición del ventrículo derecho en este estudio— ') + 'La indicación quirúrgica exige AMBAS cosas: seguimiento semestral vigilando la aparición de dilatación.',
+      suma:null });
+  } else if (vdDilatado && !qpOk) {
+    /* EL CASO QUE LA CASCADA DEL PEDIDO DEJABA CAER EN «sin criterios». */
+    clave = 'vd_sin_qp';
+    alertas.push({
+      txt:'Ventrículo derecho dilatado sin cuantificación del shunt — no se puede afirmar ni descartar la indicación quirúrgica, que exige el Qp/Qs. Corresponde cuantificarlo, preferentemente por resonancia, que es el método de referencia en esta lesión.',
+      suma:'Conexión venosa pulmonar anómala parcial con ventrículo derecho dilatado y shunt sin cuantificar — cuantificar por resonancia.' });
+  } else if (vdDilatado) {
+    clave = 'vd_qp_bajo';
+    alertas.push({
+      txt:'Ventrículo derecho dilatado con un Qp/Qs ecocardiográfico de ' + qp.toFixed(2) + ', por debajo de ' + CVPA_QP_SIGNIF.toFixed(1) + '. Como el eco SUBESTIMA el shunt en esta lesión, la discordancia entre la repercusión y el cálculo justifica cuantificarlo por resonancia antes de descartar la indicación.',
+      suma:'Conexión venosa pulmonar anómala parcial con ventrículo derecho dilatado y Qp/Qs ecocardiográfico no significativo — cuantificar por resonancia.' });
+  } else if (venas === '1' && vdMedido) {
+    clave = 'una_vena';
+  } else if (qpOk || vdMedido) {
+    clave = 'sin_criterios';
+  } else {
+    /* Sin Qp/Qs y sin VD medido no se niega nada: no hay con qué. */
+    clave = 'incompleto';
+    alertas.push({
+      txt:'No constan el Qp/Qs ni la medición del ventrículo derecho: sin ninguno de los dos no se puede valorar la repercusión hemodinámica de la conexión anómala.',
+      suma:null });
+  }
+  if (htp === 'severa') alertas.push({
+    txt:'Hipertensión pulmonar severa — corresponde evaluar la operabilidad con cateterismo derecho antes de cualquier decisión quirúrgica.',
+    suma:'Conexión venosa pulmonar anómala parcial con hipertensión pulmonar severa — evaluar operabilidad por cateterismo.' });
+  return { hayDatos:true, venas, conex, lado, htp, sint, qp, qpOk, fuera, qpSignif,
+           vdCat, vdDilatado, vdMedido, ciaTipo, clave, alertas,
+           SEGUIMIENTO:'Ecocardiograma anual con valoración del tamaño del ventrículo derecho y del Qp/Qs. La resonancia es el método de referencia para cuantificar el shunt cuando el eco no alcanza (ESC 2020). Derivación ante Qp/Qs ≥' + CVPA_QP_SIGNIF.toFixed(1) + ' con dilatación del ventrículo derecho.' };
+}
+window.cvpaEstado = cvpaEstado;
+
+function cvpaSync(){
+  const roC = document.getElementById('cvpa_cia_ro');
+  if (roC) { const t = (document.getElementById('ete_cia_tipo') || {}).value || '';
+    roC.value = t ? ('CIA ' + ((typeof CIA_TIPO_TXT !== 'undefined' && CIA_TIPO_TXT[t]) || t)) : 'Sin CIA consignada'; }
+  const roV = document.getElementById('cvpa_vd_ro');
+  if (roV) { const c = (typeof vdBasCat === 'function') ? vdBasCat((document.getElementById('vd_bas') || {}).value) : null;
+    roV.value = c ? c.lbl : 'Sin medir'; }
+  const el = document.getElementById('cvpa-resultado'); if (!el) return;
+  while (el.firstChild) el.removeChild(el.firstChild);
+  const r = cvpaEstado();
+  const fila = (lbl, nodo) => { const row = document.createElement('div'); row.className = 'calc-row';
+    const l = document.createElement('span'); l.className = 'calc-lbl'; l.textContent = lbl;
+    row.appendChild(l); if (nodo) row.appendChild(nodo); el.appendChild(row); };
+  const val = t => { const sp = document.createElement('span'); sp.className = 'calc-val';
+    sp.style.fontWeight = '400'; sp.textContent = t; return sp; };
+  const pill = (cls, t) => { const sp = document.createElement('span');
+    sp.className = 'badge badge-' + (BADGE_CLS_OK.indexOf(cls) >= 0 ? cls : 'gray'); sp.textContent = t; return sp; };
+  if (!r.hayDatos) { fila('CVPA parcial', pill('gray', 'Ingresar drenaje y Qp/Qs')); return; }
+  if (r.fuera.length) fila('Fuera de rango', pill('yellow', 'Qp/Qs fuera de rango — revisar antes de concluir'));
+  fila('Qp/Qs (eco)', r.qpOk ? pill(r.qpSignif ? 'orange' : 'green', r.qp.toFixed(2) + (r.qpSignif ? ' — significativo' : ''))
+    : pill('gray', 'Sin cuantificar'));
+  fila('Ventrículo derecho', r.vdCat ? pill(r.vdCat.cls, r.vdCat.lbl) : pill('gray', 'Sin medir'));
+  fila('Criterios de cirugía', r.clave === 'cirugia' ? pill('red', 'Qp/Qs ≥' + CVPA_QP_SIGNIF.toFixed(1) + ' con VD dilatado')
+    : pill('gray', 'Exigen Qp/Qs ≥' + CVPA_QP_SIGNIF.toFixed(1) + ' Y VD dilatado'));
+  if (r.alertas.length) r.alertas.forEach(a => fila('·', val(a.txt)));
+  fila('Seguimiento', val(r.SEGUIMIENTO));
+}
+window.cvpaSync = cvpaSync;
+
 function tdfConclusion(){
   const civ = _tdfSv('tdf_civ_residual'), civG = _tdfNv('tdf_civ_grad');
   const func = _tdfSv('tdf_func_vd'), ip = _tdfSv('ip_grado');
@@ -32343,6 +32562,7 @@ const ETE_INCL_LBL = {
   esub_incluir_chk:        'Estenosis subaórtica',
   easv_incluir_chk:        'Estenosis supravalvular aórtica',
   dsav_incluir_chk:        'Defecto del septo auriculoventricular',
+  cvpa_incluir_chk:        'Conexión venosa pulmonar anómala',
   mch_incluir_chk:         'Miocardiopatía hipertrófica',
   ebs_incluir_chk:         'Anomalía de Ebstein',
   tdf_incluir_chk:         'Tetralogía de Fallot reparada',
@@ -43474,6 +43694,12 @@ function _labExcelRow(inf) {
     'Eisenmenger NYHA': _labXlsEtiq('eis_clase_nyha', c.eis_clase_nyha),
     'Eisenmenger síncope': _labXlsEtiq('eis_sincope', c.eis_sincope),
     'Eisenmenger hemoptisis': _labXlsEtiq('eis_hemoptisis', c.eis_hemoptisis),
+    'CVPA numero de venas': _labXlsEtiq('cvpa_venas_numero', c.cvpa_venas_numero),
+    'CVPA drenaje': _labXlsEtiq('cvpa_conexion', c.cvpa_conexion),
+    'CVPA lado': _labXlsEtiq('cvpa_lado', c.cvpa_lado),
+    'CVPA Qp/Qs (eco)': rnd(num('cvpa_qp_qs'),2),
+    'CVPA hipertension pulmonar': _labXlsEtiq('cvpa_htp', c.cvpa_htp),
+    'CVPA situacion clinica': _labXlsEtiq('cvpa_sintomas', c.cvpa_sintomas),
     'DSAV tipo': _labXlsEtiq('dsav_tipo', c.dsav_tipo),
     'DSAV regurgitacion AV izquierda': _labXlsEtiq('dsav_regurg_av_izq', c.dsav_regurg_av_izq),
     'DSAV regurgitacion AV derecha': _labXlsEtiq('dsav_regurg_av_der', c.dsav_regurg_av_der),
@@ -44393,6 +44619,12 @@ const LAB_XLS_MAP = [
   ['Eisenmenger NYHA',            'eis_clase_nyha','vocab'],
   ['Eisenmenger síncope',         'eis_sincope',   'vocab'],
   ['Eisenmenger hemoptisis',      'eis_hemoptisis','vocab'],
+  ['CVPA numero de venas',         'cvpa_venas_numero',      'vocab'],
+  ['CVPA drenaje',                 'cvpa_conexion',          'vocab'],
+  ['CVPA lado',                    'cvpa_lado',              'vocab'],
+  ['CVPA Qp/Qs (eco)',             'cvpa_qp_qs',             'num'],
+  ['CVPA hipertension pulmonar',   'cvpa_htp',               'vocab'],
+  ['CVPA situacion clinica',       'cvpa_sintomas',          'vocab'],
   ['DSAV tipo',                    'dsav_tipo',              'vocab'],
   ['DSAV regurgitacion AV izquierda','dsav_regurg_av_izq',    'vocab'],
   ['DSAV regurgitacion AV derecha', 'dsav_regurg_av_der',     'vocab'],
@@ -44863,6 +45095,13 @@ LAB_XLS_ETIQ.dsav_regurg_av_izq = { no:'Sin regurgitacion', leve:'Leve', moderad
 LAB_XLS_ETIQ.dsav_regurg_av_der = LAB_XLS_ETIQ.dsav_regurg_av_izq;
 LAB_XLS_ETIQ.dsav_down = { no:'No', si:'Si' };
 LAB_XLS_ETIQ.dsav_htp  = { no:'Sin HTP', leve:'Leve', moderada:'Moderada', severa:'Severa' };
+LAB_XLS_ETIQ.cvpa_venas_numero = { '1':'1 vena', '2':'2 venas', '3':'3 venas', noesp:'No especificado' };
+LAB_XLS_ETIQ.cvpa_conexion = { vcs:'Vena cava superior', vci:'Vena cava inferior', ad:'Auricula derecha',
+                               acigos:'Vena acigos', otra:'Otra' };
+LAB_XLS_ETIQ.cvpa_lado = { der:'Derecha', izq:'Izquierda', bil:'Bilateral' };
+LAB_XLS_ETIQ.cvpa_htp  = { no:'Sin HTP', leve:'Leve', moderada:'Moderada', severa:'Severa' };
+LAB_XLS_ETIQ.cvpa_sintomas = { asintomatico:'Asintomatico', disnea:'Disnea de esfuerzo',
+                               palpitaciones:'Palpitaciones', ic_derecha:'IC derecha', otro:'Otro' };
 LAB_XLS_ETIQ.vab_simetria     = { simetrica:'Simétrica', asimetrica:'Asimétrica', no_val:'No valorable' };
 LAB_XLS_ETIQ.marfan_sindrome  = { marfan:'Marfan', lds:'Loeys-Dietz', turner:'Turner',
                                   ehat:'EHAT no sindrómica', otro:'Otro' };
@@ -45172,6 +45411,17 @@ LAB_XLS_VOCAB.im_grado = LAB_XLS_VOCAB.ia_grado = LAB_XLS_VOCAB.it_grado = LAB_X
    etiqueta legible que exporta la propia app. Sembrar `{}` a secas alcanzaría; los alias son
    para el que tipea a mano: «si»/«sí», «cavopulmonar», «moderado»/«moderada». */
 LAB_XLS_VOCAB.coa_hta = { no:'no', si:'si', 'sí':'si' };
+LAB_XLS_VOCAB.cvpa_venas_numero = { '1':'1', '1 vena':'1', '2':'2', '2 venas':'2',
+  '3':'3', '3 venas':'3', noesp:'noesp', 'no especificado':'noesp' };
+LAB_XLS_VOCAB.cvpa_conexion = { vcs:'vcs', 'vena cava superior':'vcs', 'cava superior':'vcs',
+  vci:'vci', 'vena cava inferior':'vci', 'cava inferior':'vci',
+  ad:'ad', 'auricula derecha':'ad', acigos:'acigos', 'vena acigos':'acigos', otra:'otra' };
+LAB_XLS_VOCAB.cvpa_lado = { der:'der', derecha:'der', izq:'izq', izquierda:'izq', bil:'bil', bilateral:'bil' };
+LAB_XLS_VOCAB.cvpa_htp = { no:'no', 'sin htp':'no', leve:'leve',
+  moderada:'moderada', moderado:'moderada', severa:'severa', severo:'severa' };
+LAB_XLS_VOCAB.cvpa_sintomas = { asintomatico:'asintomatico', 'asintomatico':'asintomatico',
+  disnea:'disnea', 'disnea de esfuerzo':'disnea', palpitaciones:'palpitaciones',
+  ic_derecha:'ic_derecha', 'ic derecha':'ic_derecha', 'insuficiencia cardiaca derecha':'ic_derecha', otro:'otro' };
 LAB_XLS_VOCAB.dsav_tipo = { parcial:'parcial', 'cia primum':'parcial', 'ostium primum':'parcial',
   completo:'completo', intermedio:'intermedio', noesp:'noesp', 'no especificado':'noesp' };
 LAB_XLS_VOCAB.dsav_regurg_av_izq = { no:'no', 'sin regurgitacion':'no', leve:'leve',
@@ -52770,8 +53020,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260915-2055';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789516512611;                 /* eco-build-ms */
+const ECO_BUILD    = '20260915-2100';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789516849057;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -52857,7 +53107,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260915-2055</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260915-2100</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

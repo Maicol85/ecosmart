@@ -2504,8 +2504,8 @@ caso('TC-112', 'Congenitas: ninguna seccion se perdio en el reparto ni al implem
      entran en ORIG con su campo caracteristico. Que TC-112 se pusiera en rojo al implementarlas
      es lo correcto —la condicion «ningun placeholder trae campos» es justamente lo que hay que
      actualizar cuando uno deja de serlo—. */
-  const ORIG = ['tv','shunt','dap','coa','vap','fop','vab','ebs','tdf','tga','mch','mca','marfan','eisen','fontan','esub','easv','dsav'];
-  const PH   = ['cvpa'];
+  const ORIG = ['tv','shunt','dap','coa','vap','fop','vab','ebs','tdf','tga','mch','mca','marfan','eisen','fontan','esub','easv','dsav','cvpa'];
+  const PH   = [];   // CERO placeholders: las diecinueve secciones tienen contenido
   const t1 = document.getElementById('tab-congenitas');
   const t2 = document.getElementById('tab-congenitas2');
   const de = k => document.getElementById('sacc-cc-' + k);
@@ -2529,7 +2529,7 @@ caso('TC-112', 'Congenitas: ninguna seccion se perdio en el reparto ni al implem
       [['vab','vab_fenotipo'],['coa','coa_istmo'],['fop','fop_tunel'],['mch','mch_espesor'],
        ['mca','mca_tsvd_plax'],['tdf','tdf_civ_grad'],['tv','tv_tipo'],['shunt','ete_cia_tipo'],
        ['dap','dap_diam'],['vap','vap_diam'],['tga','tga_tipo'],['ebs','ebs_area_ad'],
-       ['marfan','marfan_ao_seno'],['eisen','eis_lesion_base'],['fontan','fontan_tipo'],['esub','esub_tipo'],['easv','easv_tipo'],['dsav','dsav_tipo']]
+       ['marfan','marfan_ao_seno'],['eisen','eis_lesion_base'],['fontan','fontan_tipo'],['esub','esub_tipo'],['easv','easv_tipo'],['dsav','dsav_tipo'],['cvpa','cvpa_conexion']]
         .every(par => { const s = de(par[0]), c = document.getElementById(par[1]);
           return !!s && !!c && s.contains(c); })],
     ['los placeholders dicen que estan en desarrollo',
@@ -3731,6 +3731,80 @@ caso('TC-129', 'DSAV: el criterio ventricular solo vota con regurgitacion izquie
     ['el sindrome de Down sube al EN SUMA', down.inf.suma.indexOf('síndrome de Down') > -1],
     ['el componente ventricular se imprime en el completo', civCompleto.inf.inf.indexOf('12 mm') > -1],
     ['y NO en el parcial, donde no existe', civParcial.inf.inf.indexOf('12 mm') === -1],
+    ['sin ningun dato no hay seccion', vacio.r.hayDatos === false]
+  ] };
+`);
+
+/* CVPA PARCIAL — LA INDICACION EXIGE LOS DOS: Qp/Qs >=1,5 Y ventriculo derecho dilatado. Ninguno
+   solo la activa.
+   Y EL AGUJERO QUE TENIA LA CASCADA DEL PEDIDO: «Qp/Qs <1,5 o NO CALCULADO + VD no dilatado ->
+   sin criterios, seguimiento anual» dejaba sin rama al VD DILATADO SIN Qp/Qs, que es justo el
+   paciente en el que hay que cuantificar, y lo mandaba a la rama que tranquiliza. Aca tiene rama
+   propia y pide la resonancia.
+   El VD sale de vdBasCat() sobre vd_bas y la CIA de ete_cia_tipo: son los del ESTUDIO, no campos
+   propios. vdBasCat devuelve null sin medicion, asi que «no dilatado» y «no medido» no se
+   confunden — y esa diferencia decide si se tranquiliza o se pide el dato. */
+caso('TC-130', 'CVPA parcial: la indicacion exige Qp/Qs Y VD dilatado, y el VD sin Qp/Qs no tranquiliza', `
+  function e(o) { __t.limpiar();
+    __t.set('cvpa_conexion', o.conex || 'vcs');
+    if (o.venas != null) __t.set('cvpa_venas_numero', o.venas);
+    if (o.lado  != null) __t.set('cvpa_lado', o.lado);
+    if (o.qp    != null) __t.set('cvpa_qp_qs', String(o.qp));
+    if (o.vd    != null) __t.set('vd_bas', String(o.vd));
+    if (o.htp   != null) __t.set('cvpa_htp', o.htp);
+    if (o.cia   != null) __t.set('ete_cia_tipo', o.cia);
+    __t.chk('cvpa_incluir_chk', true);
+    const r = cvpaEstado();
+    return { r, inf: __t.informe() };
+  }
+  /* vd_bas: <=41 normal, >41 y <=45 leve, >45 dilatado (vdBasCat). */
+  const ambos   = e({ qp:1.8, vd:50 });
+  const qp15    = e({ qp:1.5, vd:50 });   // el corte exacto
+  const qp149   = e({ qp:1.49, vd:50 });
+  const soloQp  = e({ qp:1.8, vd:38 });
+  const soloVd  = e({ vd:50 });           // EL CASO QUE LA CASCADA DEL PEDIDO DEJABA CAER
+  const vdLeve  = e({ qp:1.8, vd:43 });   // «leve» ya cuenta como dilatado
+  const nada    = e({ conex:'vcs' });
+  const unaVena = e({ venas:'1', vd:38, qp:1.2 });
+  const htpSev  = e({ qp:1.2, vd:38, htp:'severa' });
+  const cia     = e({ qp:1.2, vd:38, cia:'sv_vcs' });
+  const ilegible= e({ qp:9, vd:50 });
+  __t.limpiar();
+  const vacio = { r: cvpaEstado() };
+  return { extra: [
+    ['Qp/Qs 1.8 con VD dilatado da criterios', ambos.r.clave === 'cirugia'],
+    ['1.5 exactos tambien', qp15.r.clave === 'cirugia'],
+    ['1.49 no', qp149.r.clave !== 'cirugia'],
+    ['la dilatacion LEVE ya cuenta', vdLeve.r.clave === 'cirugia'],
+    ['y la alerta sube al EN SUMA', ambos.inf.suma.indexOf('criterios de corrección quirúrgica') > -1],
+    // NINGUNO SOLO ACTIVA LA INDICACION.
+    ['Qp/Qs alto SIN VD dilatado no indica cirugia',
+      soloQp.r.clave === 'qp_sin_vd' && soloQp.inf.inf.indexOf('exige AMBAS cosas') > -1],
+    ['VD dilatado SIN Qp/Qs tampoco', soloVd.r.clave !== 'cirugia'],
+    // EL AGUJERO: no puede caer en la rama que tranquiliza.
+    ['y NO se publica «sin criterios de intervención» sobre el VD dilatado sin cuantificar',
+      soloVd.inf.inf.indexOf('Sin criterios de intervención') === -1],
+    ['se pide cuantificar, y por resonancia',
+      soloVd.inf.inf.indexOf('no se puede afirmar ni descartar') > -1 &&
+      soloVd.inf.suma.indexOf('cuantificar por resonancia') > -1],
+    // El Qp/Qs se declara SIEMPRE como ecocardiografico: en esta lesion el eco subestima.
+    ['el Qp/Qs se publica como ecocardiografico',
+      ambos.inf.inf.indexOf('Qp/Qs estimado por ecocardiografía') > -1],
+    ['y con VD dilatado y Qp/Qs bajo se manda a resonancia en vez de descartar',
+      qp149.r.clave === 'vd_qp_bajo' && qp149.inf.inf.indexOf('SUBESTIMA') > -1],
+    // Sin nada medido no se niega nada.
+    ['sin Qp/Qs ni VD medido no se afirma que no hay repercusion',
+      nada.r.clave === 'incompleto' && nada.inf.inf.indexOf('Sin criterios de intervención') === -1],
+    ['una sola vena con VD normal cierra conservador',
+      unaVena.r.clave === 'una_vena' && unaVena.inf.inf.indexOf('rara vez genera un shunt significativo') > -1],
+    // HTP severa y CIA del estudio.
+    ['HTP severa manda a cateterismo', htpSev.inf.suma.indexOf('evaluar operabilidad por cateterismo') > -1],
+    ['la CIA sale de la seccion de CIA/CIV, no de un campo propio',
+      cia.inf.inf.indexOf('seno venoso de vena cava superior') > -1 &&
+      !document.getElementById('cvpa_cia_asociada')],
+    ['el VD sale de vdBasCat, no de un campo propio', !document.getElementById('cvpa_vd_dilatado')],
+    ['un Qp/Qs de 9 no vota y se declara',
+      ilegible.r.clave !== 'cirugia' && ilegible.inf.inf.indexOf('fuera de rango') > -1],
     ['sin ningun dato no hay seccion', vacio.r.hayDatos === false]
   ] };
 `);

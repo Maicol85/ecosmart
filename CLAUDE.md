@@ -335,6 +335,35 @@ igual. Y al final, sacarle la historia familiar al predicado **no cambiaba una p
 historia familiar»: el color y el texto salían de dos expresiones distintas. **Si un caso no
 prueba el lado negativo de cada rama, no prueba la regla.**
 
+### CVPA parcial: la indicación exige LOS DOS, y el VD dilatado sin Qp/Qs no tranquiliza
+Sección implementada el 2026-09-15. **Con ésta, CERO placeholders**: las diecinueve secciones de
+Congénitas I y II tienen contenido. Lo fija TC-112, cuyo array `PH` quedó vacío.
+
+**La corrección quirúrgica exige Qp/Qs ≥1,5 Y ventrículo derecho dilatado.** Ninguno solo la
+activa: un Qp/Qs de 1,8 sin repercusión no opera, y un VD dilatado puede serlo por otra cosa.
+
+**El agujero que tenía la cascada del pedido.** Decía «Qp/Qs <1,5 **o no calculado** + VD no
+dilatado → sin criterios, seguimiento anual», que deja sin rama al caso **VD DILATADO SIN Qp/Qs**
+— justamente el paciente en el que hay que cuantificar — y lo mandaba a la rama que tranquiliza.
+Acá tiene rama propia y **pide la resonancia**. Es la regla de la casa: una negación necesita que
+se haya medido algo. Y con **nada** medido tampoco se niega: rama `incompleto`.
+
+**El VD y la CIA son los del ESTUDIO.** La dilatación sale de **`vdBasCat()`** sobre `vd_bas`
+—este archivo dice literalmente que si aparece un tercer consumidor pase por ahí— y el tipo de CIA
+de **`ete_cia_tipo`**, que ya trae las opciones de seno venoso. Campos propios habrían dejado a
+esta sección diciendo «CIA de seno venoso» mientras la de CIA/CIV dice ostium secundum, en el
+mismo informe. `vdBasCat` devuelve `null` sin medición, así que **«no dilatado» y «no medido» no
+se confunden** — y esa diferencia es la que decide si se tranquiliza o se pide el dato.
+
+**El Qp/Qs se declara SIEMPRE como ecocardiográfico.** En esta lesión el eco **subestima** el
+shunt y la ESC 2020 pone a la **resonancia** como método de referencia. Por eso, además, con VD
+dilatado y Qp/Qs por debajo de 1,5 el informe **manda a cuantificar por resonancia en vez de
+descartar**: la discordancia entre repercusión y cálculo es esperable, no tranquilizadora.
+
+**Campos:** `cvpa_venas_numero`, `cvpa_conexion`, `cvpa_lado`, `cvpa_qp_qs`, `cvpa_htp`,
+`cvpa_sintomas`, `cvpa_incluir_chk`. Con sus **seis columnas de Excel**. Los dos espejos de sólo
+lectura (`cvpa_cia_ro`, `cvpa_vd_ro`) llevan `data-espejo` para no despertar la sección solos.
+
 ### DSAV: el criterio ventricular sólo vota con regurgitación izquierda severa
 Sección implementada el 2026-09-15. Queda **un** placeholder en la suite: `cvpa`.
 
