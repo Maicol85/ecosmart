@@ -4793,6 +4793,10 @@ caso('TC-148', 'PPT del Laboratorio: rangos de PSAP y no grados, paleta, y la co
     }
     const orig = PptxGenJS.prototype.writeFile;
     let capt = null;
+    /* Se intercepta "_pptxDescargarSaneado", que es por donde sale el mazo desde que hay que
+       podar el [Content_Types].xml. Interceptar writeFile dejo de capturar nada. */
+    const origDesc = window._pptxDescargarSaneado;
+    window._pptxDescargarSaneado = function(P2, nombre){ capt = { self:P2, name:nombre || '' }; return Promise.resolve({ saneado:true, quitadas:0 }); };
     PptxGenJS.prototype.writeFile = function(o){ capt = { self:this, name:(o && o.fileName) || '' }; return Promise.resolve(capt.name); };
 
     const C = function(f, o){ return { id:0, fecha_estudio:f, campos:o }; };
@@ -4861,6 +4865,7 @@ caso('TC-148', 'PPT del Laboratorio: rangos de PSAP y no grados, paleta, y la co
 
     window.toast = origToast;
     PptxGenJS.prototype.writeFile = orig;
+    window._pptxDescargarSaneado = origDesc;
 
     return { extra: [
       // 1 · ESTRUCTURA
@@ -4999,6 +5004,10 @@ caso('TC-150', 'PPT Lab: 14 diapositivas, selector de contenido, graficos nativo
     const orig = PptxGenJS.prototype.writeFile;
     const origAdd = PptxGenJS.prototype.addSlide;
     let capt = null, llamadas = [];
+    /* Se intercepta "_pptxDescargarSaneado", que es por donde sale el mazo desde que hay que
+       podar el [Content_Types].xml. Interceptar writeFile dejo de capturar nada. */
+    const origDesc = window._pptxDescargarSaneado;
+    window._pptxDescargarSaneado = function(P2, nombre){ capt = { self:P2, name:nombre || '' }; return Promise.resolve({ saneado:true, quitadas:0 }); };
     PptxGenJS.prototype.writeFile = function(o){ capt = { self:this, name:(o && o.fileName) || '' }; return Promise.resolve(''); };
     /* Se intercepta en la FRONTERA DE LA API (addChart), no leyendo los internos de la slide:
        los datos del grafico no quedan en el objeto de la diapositiva sino en el registro de la
@@ -5081,6 +5090,7 @@ caso('TC-150', 'PPT Lab: 14 diapositivas, selector de contenido, graficos nativo
     capturadas.forEach(function(c){ const t = c.tipo && (c.tipo.name || c.tipo); if (t) tipos[String(t)] = 1; });
 
     PptxGenJS.prototype.writeFile = orig;
+    window._pptxDescargarSaneado = origDesc;
     PptxGenJS.prototype.addSlide = origAdd;
 
     return { extra: [
@@ -5181,6 +5191,101 @@ caso('TC-150', 'PPT Lab: 14 diapositivas, selector de contenido, graficos nativo
     ] };
   })();
 `);
+
+/* TC-151 — Los dos bugs reportados el 2026-09-16 sobre el archivo REAL.
+   1) PowerPoint pedia reparar: PptxGenJS 3.12.0 declara un slideMaster POR DIAPOSITIVA en
+      [Content_Types].xml y embarca uno solo. Es de la libreria —se reproduce con un mazo
+      vainilla— y afectaba a los DOS exportadores.
+   2) Solo 7 diapositivas: con una cohorte chica se caen todas las compuertas de datos a la vez
+      y el mazo se achicaba SIN DECIR NADA. */
+caso('TC-151', 'PPT: el paquete no pide reparacion y las diapositivas omitidas se declaran', `
+  return (async function(){
+    if (typeof PptxGenJS === 'undefined' || typeof JSZip === 'undefined') {
+      return { extra: [['PptxGenJS y JSZip disponibles', false, 'falta ' + (typeof PptxGenJS === 'undefined' ? 'PptxGenJS' : 'JSZip')]] };
+    }
+    const colgados = async function(buf){
+      const z = await JSZip.loadAsync(buf);
+      const ct = await z.file('[Content_Types].xml').async('string');
+      const decl = (ct.match(/PartName="\\/[^"]+"/g) || []).map(function(m){ return m.slice(11, -1); });
+      return decl.filter(function(pn){ return !z.file(pn); });
+    };
+
+    /* 1 · EL DEFECTO ES DE LA LIBRERIA: un mazo vainilla de 4 diapositivas, sin una linea de
+       esta app, ya declara partes que no existen. Sin esta comprobacion el caso no distingue
+       "lo arregle" de "nunca estuvo roto". */
+    const V = new PptxGenJS(); V.layout = 'LAYOUT_16x9';
+    for (let k = 0; k < 4; k++) { V.addSlide().addText('x' + k, { x:1, y:1, w:2, h:0.4 }); }
+    const colgVanilla = await colgados(await V.write({ outputType:'arraybuffer' }));
+
+    /* 2 · EL HELPER REAL, con la descarga interceptada. */
+    const origCreate = URL.createObjectURL, origClick = HTMLAnchorElement.prototype.click;
+    let blobCapt = null;
+    URL.createObjectURL = function(b){ blobCapt = b; return 'blob:test'; };
+    HTMLAnchorElement.prototype.click = function(){};
+    const P2 = new PptxGenJS(); P2.layout = 'LAYOUT_16x9';
+    for (let k = 0; k < 4; k++) { P2.addSlide().addText('x' + k, { x:1, y:1, w:2, h:0.4 }); }
+    const res = await _pptxDescargarSaneado(P2, 'prueba.pptx');
+    URL.createObjectURL = origCreate; HTMLAnchorElement.prototype.click = origClick;
+    const colgSaneado = blobCapt ? await colgados(await blobCapt.arrayBuffer()) : ['sin blob'];
+
+    /* 3 · LAS OMISIONES SE DECLARAN. Cohorte de DOS estudios: se caen las compuertas de FEVI,
+       diastolica, PSAP, subgrupos y oncologia, que es el caso reportado. */
+    const chica = [];
+    for (let k = 0; k < 2; k++) {
+      chica.push({ id:k, fecha_estudio:'2026-03-0' + (1 + k), campos:{
+        fevi:String(45 + k*5), psap_calc:String(30 + k*5), tapse:String(18 + k), edad:String(60 + k), sexo:'F',
+        en_suma:'Disfuncion diastolica grado II, pseudonormal.' } });
+    }
+    let capt2 = null, toasts = [];
+    const origDesc2 = window._pptxDescargarSaneado, origToast = window.toast;
+    window._pptxDescargarSaneado = function(P3){ capt2 = P3; return Promise.resolve({ saneado:true, quitadas:0 }); };
+    window.toast = function(m){ toasts.push(String(m)); };
+    await _labPPTGenerar(chica, { presentador:'X', institucion:'Y', fecha:'2026-09-20', tema:'dark',
+      mods:{basicos:1,funcion:1,valvulas:1,htpvd:1,cc:1,onco:1}, anal:{descr:1,asoc:1,tend:1,subgr:1} });
+    window._pptxDescargarSaneado = origDesc2; window.toast = origToast;
+    const slides = capt2 ? (capt2.slides || []) : [];
+    /* PptxGenJS guarda el texto como ARRAY DE RUNS cuando lo normaliza, no siempre como cadena.
+       Leyendo solo el caso string, la hoja de metodologia quedaba invisible para el caso. */
+    const textoDe = function(s2){ return (s2._slideObjects || []).map(function(o){
+      if (typeof o.text === 'string') return o.text;
+      if (Array.isArray(o.text)) return o.text.map(function(t){ return t && t.text ? t.text : ''; }).join('');
+      return '';
+    }).join(' | '); };
+    const meto = slides.filter(function(s2){ return textoDe(s2).indexOf('Metodolog') > -1; })[0];
+    const lineasOmit = meto ? textoDe(meto).split(' | ').filter(function(t){ return t.indexOf('NO se incluy') > -1; }) : [];
+    const elToast = toasts.join(' ');
+
+    return { extra: [
+      // 1 · EL DEFECTO EXISTIA Y ERA DE LA LIBRERIA
+      ['un mazo vainilla de PptxGenJS declara partes que no existen',
+        colgVanilla.length > 0, String(colgVanilla.length) + ' colgados: ' + colgVanilla.slice(0,2).join(',')],
+      ['y son overrides de slideMaster',
+        colgVanilla.every(function(x){ return x.indexOf('slideMaster') > -1; }), colgVanilla.slice(0,3).join(',')],
+
+      // 2 · EL HELPER LO CIERRA
+      ['el helper reporta que saneo el paquete', res.saneado === true],
+      ['y cuenta cuantos overrides quito', res.quitadas === colgVanilla.length, res.quitadas + ' vs ' + colgVanilla.length],
+      ['el paquete descargado no tiene NINGUNA parte declarada que falte',
+        colgSaneado.length === 0, colgSaneado.slice(0,3).join(',')],
+
+      // 3 · LAS OMISIONES SE DECLARAN
+      ['con una cohorte chica el mazo se achica', slides.length > 0 && slides.length < 14, String(slides.length)],
+      ['pero el toast dice cuantas se omitieron', elToast.indexOf('Se omitieron') > -1, elToast.slice(0,180)],
+      ['y la hoja de metodologia lista cada una con su motivo',
+        lineasOmit.length >= 3, lineasOmit.length + ': ' + lineasOmit.slice(0,2).join(' // ')],
+      /* Especifico de la linea que produce faltanN. La version anterior buscaba solo
+         "se necesitan al menos", frase que tambien escriben las omisiones de tendencia y de
+         subgrupos —que no pasan por faltanN—, asi que vaciar faltanN no ponia nada en rojo. */
+      ['el motivo nombra el dato que falta y cuantos hacen falta',
+        lineasOmit.some(function(t){
+          return t.indexOf('sist') > -1 && t.indexOf('estudio(s) con FEVI medida') > -1 &&
+                 t.indexOf('se necesitan al menos') > -1;
+        }), lineasOmit.join(' // ').slice(0, 200)],
+      ['la metodologia sigue estando aunque falten diapositivas', !!meto]
+    ] };
+  })();
+`);
+
 
 
 

@@ -41819,7 +41819,11 @@ function _pptDesdeFormulario(inf, tema, presentador){
   _pptLeerImgs
     /* Orden final: imágenes → En Suma → cierre. Los tres se agregan acá porque las de imágenes
        dependen de la lectura de IndexedDB, y En Suma tiene que quedar DESPUÉS de ellas. */
-    .then(imgs => { _pptAgregarImagenes(imgs); _pptEnSuma(); _pptCierre(); return P.writeFile({ fileName: nombreArch }); })
+    /* Va por `_pptxDescargarSaneado` y no por `writeFile` directo: PptxGenJS declara un
+       slideMaster por diapositiva en `[Content_Types].xml` y embarca uno solo, y PowerPoint pide
+       reparar el archivo. Este exportador arrastraba el mismo defecto desde que tiene más de una
+       diapositiva; se descubrió al diagnosticar el del Laboratorio. */
+    .then(imgs => { _pptAgregarImagenes(imgs); _pptEnSuma(); _pptCierre(); return _pptxDescargarSaneado(P, nombreArch); })
     .then(() => {
       if (typeof toast !== 'function') return;
       /* Los avisos ganan sobre el ✅: si algo puede haber quedado fuera del marco, eso es lo
@@ -51953,6 +51957,48 @@ function _labPPTModal(infs) {
   setTimeout(() => { try { inPres.focus(); inPres.select(); } catch (e) {} }, 30);
 }
 
+/* ══ DESCARGA SANEADA DEL .PPTX ══════════════════════════════════════════════════════════════
+   BUG DE LA LIBRERIA, NO DE LA APP. PptxGenJS 3.12.0 escribe en `[Content_Types].xml` un
+   `<Override>` de slideMaster POR DIAPOSITIVA y embarca UN solo master: PowerPoint busca las
+   partes declaradas, no las encuentra y abre con «necesita reparación».
+   Medido sobre un mazo VAINILLA de la propia librería —sin una línea de esta app—: 1 diapositiva
+   declara 1 master (correcto), 3 declaran 3 y 5 declaran 5, con 1 master real siempre. O sea que
+   afecta a los DOS exportadores de la app, no sólo al del Laboratorio; el del estudio individual
+   venía con el mismo defecto desde que tiene más de una diapositiva.
+   Se corrige post-procesando el paquete con el JSZip que el propio bundle expone en `window`:
+   se borra todo `Override` cuya parte no exista en el zip. Es una poda por EXISTENCIA y no una
+   lista de excepciones, así que cubre cualquier otra parte fantasma que la librería invente.
+   FALLA ABIERTO: sin JSZip se descarga por la vía normal —un archivo con advertencia es mejor
+   que ningún archivo— y se declara en el toast. */
+async function _pptxDescargarSaneado(P, nombre) {
+  if (typeof JSZip === 'undefined' || typeof P.write !== 'function') {
+    await P.writeFile({ fileName: nombre });
+    return { saneado: false, quitadas: 0 };
+  }
+  const buf = await P.write({ outputType: 'arraybuffer' });
+  const zip = await JSZip.loadAsync(buf);
+  const CT = '[Content_Types].xml';
+  const f = zip.file(CT);
+  if (!f) { await P.writeFile({ fileName: nombre }); return { saneado: false, quitadas: 0 }; }
+  let ct = await f.async('string'), quitadas = 0;
+  ct = ct.replace(/<Override\s+PartName="\/([^"]+)"[^>]*\/>/g, (m, parte) => {
+    if (zip.file(parte)) return m;
+    quitadas++;
+    return '';
+  });
+  zip.file(CT, ct);
+  const blob = await zip.generateAsync({ type: 'blob',
+    mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
+  /* Descarga por ancla + objectURL, que es lo que hace la librería por dentro. El `revoke` va
+     diferido: en Safari revocar en el mismo tick cancela la descarga que se acaba de disparar. */
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = nombre;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => { try { URL.revokeObjectURL(url); } catch (e) {} }, 4000);
+  return { saneado: true, quitadas: quitadas };
+}
+
 let _labPPTEnCurso = false;
 /* ══ GENERADOR DEL MAZO ═══════════════════════════════════════════════════════════════════════
    Hasta 14 diapositivas, con GRÁFICOS NATIVOS de PowerPoint (`addChart`) y no imágenes: se
@@ -52060,7 +52106,15 @@ async function _labPPTGenerar(infs, o) {
     const psaps = infs.map(_labPsap).filter(v => v !== null && v > 0);
     const prom = a => { const v = a.filter(x => x !== null && x !== undefined && isFinite(x)); return v.length ? { v: v.reduce((x,y)=>x+y,0)/v.length, n: v.length } : null; };
     const pTxt = (p2, dec, suf) => p2 ? (p2.v.toFixed(dec) + (suf||'') + ' (n=' + p2.n + ')') : '—';
-    const MIN_OPC = 3;    // regla del pedido: bajo este N una diapositiva opcional se omite
+    const MIN_OPC = 3;    // bajo este N una diapositiva opcional se omite
+    /* LAS OMISIONES SE DECLARAN. Antes una diapositiva pedida en el modal simplemente no
+       aparecía: el médico tildaba diez casillas, recibía siete hojas y no tenía forma de saber
+       si faltaba un dato, si el filtro estaba mal o si la app se había roto. Con una cohorte de
+       uno o dos estudios se caen TODAS las compuertas de datos a la vez y el mazo queda en 7.
+       Ahora cada omisión dice qué se omitió y por qué, en el toast y en la hoja de metodología. */
+    const omitidas = [];
+    const omitir = (que, porque) => { omitidas.push({ que: que, porque: porque }); };
+    const faltanN = (hay, que, unidad) => { omitir(que, hay + ' ' + unidad + ', se necesitan al menos ' + MIN_OPC); return false; };
 
     // ── 1 · PORTADA ──
     {
@@ -52113,7 +52167,7 @@ async function _labPPTGenerar(infs, o) {
     }
 
     // ── 4 · FUNCIÓN SISTÓLICA ──
-    if (mods.funcion && fevis.length >= MIN_OPC) {
+    if (mods.funcion && (fevis.length >= MIN_OPC || faltanN(fevis.length, 'Función sistólica', 'estudio(s) con FEVI medida'))) {
       const s = nueva('Función sistólica');
       /* Semáforo por RANGO, no por posición: `_labFeviDist` devuelve las bandas de mejor a peor,
          así que el color se ata al índice de esa lista y no a un orden que alguien reordene. */
@@ -52127,7 +52181,7 @@ async function _labPPTGenerar(infs, o) {
     }
 
     // ── 5 · FUNCIÓN DIASTÓLICA ──
-    if (mods.funcion && dia.tot >= MIN_OPC) {
+    if (mods.funcion && (dia.tot >= MIN_OPC || faltanN(dia.tot, 'Función diastólica', 'estudio(s) con grado diastólico clasificable'))) {
       const s = nueva('Función diastólica');
       gBarras(s, dia.dist, { x:0.4, y:0.92, w:5.6, h:2.6 }, 'Grado de disfunción diastólica');
       let y = 1.05;
@@ -52169,7 +52223,7 @@ async function _labPPTGenerar(infs, o) {
     }
 
     // ── 7 · HTP Y FUNCIÓN DEL VD ──
-    if (mods.htpvd && psaps.length >= MIN_OPC) {
+    if (mods.htpvd && (psaps.length >= MIN_OPC || faltanN(psaps.length, 'Presión pulmonar y VD', 'estudio(s) con PSAP estimable'))) {
       const s = nueva('Presión pulmonar y función del VD');
       gBarras(s, _labPsapDist(psaps).map((x, k) => ({ lbl:x.lbl, n:x.n })), { x:0.4, y:0.92, w:5.6, h:2.4 },
         'PSAP estimada por rangos', [SEM.verde, SEM.amarillo, SEM.naranja, SEM.rojo]);
@@ -52233,6 +52287,7 @@ async function _labPPTGenerar(infs, o) {
     // ── 9 · TENDENCIA TEMPORAL ──
     if (anal.tend) {
       const ms = _labMeses(infs);
+      if (ms.length < 2) omitir('Actividad por mes', ms.length + ' mes(es) con actividad, se necesitan al menos 2');
       if (ms.length >= 2) {
         const s = nueva('Actividad por mes');
         const labels = ms.map(m => T(m[0].replace('-', '/')));
@@ -52261,6 +52316,9 @@ async function _labPPTGenerar(infs, o) {
     if (anal.subgr) {
       const baj = infs.filter(i => { const f = _labFevi(i); return f !== null && f > 0 && f < 40; });
       const alt = infs.filter(i => { const f = _labFevi(i); return f !== null && f >= 40; });
+      if (baj.length < MIN_OPC || alt.length < MIN_OPC)
+        omitir('Comparación de subgrupos', 'FEVI < 40 %: ' + baj.length + ' · FEVI ≥ 40 %: ' + alt.length +
+               ' — se necesitan al menos ' + MIN_OPC + ' en cada uno');
       if (baj.length >= MIN_OPC && alt.length >= MIN_OPC) {
         const s = nueva('FEVI < 40 % frente a FEVI ≥ 40 %');
         const dB = _labEstDescriptiva(baj), dA = _labEstDescriptiva(alt);
@@ -52298,6 +52356,7 @@ async function _labPPTGenerar(infs, o) {
     // ── 11 · CARDIOPATÍAS CONGÉNITAS ──
     if (mods.cc) {
       const secs = _CC_SECS.map(sc => ({ lbl: sc.lbl, n: infs.filter(sc.pred).length })).filter(x => x.n > 0);
+      if (!secs.length) omitir('Cardiopatías congénitas', 'ningún estudio del período tiene una sección congénita cargada');
       if (secs.length) {
         const s = nueva('Cardiopatías congénitas');
         gBarras(s, secs.sort((a,b) => b.n - a.n).slice(0, 8), { x:0.4, y:0.92, w:5.4, h:2.7 }, 'Estudios por sección');
@@ -52322,6 +52381,7 @@ async function _labPPTGenerar(infs, o) {
     if (mods.onco) {
       const onc = infs.filter(i => _labCampoRaw(i, 'co_farmaco') !== '' || _labCampoRaw(i, 'co_fevi_basal') !== '' ||
                                    _labCampoRaw(i, 'co_dosis_antrac') !== '');
+      if (onc.length < MIN_OPC) faltanN(onc.length, 'Cardio-Oncología', 'estudio(s) con datos oncológicos');
       if (onc.length >= MIN_OPC) {
         const s = nueva('Cardio-Oncología');
         const rb = _labDistrib(onc, 'co_riesgo_cv', { ninguno:'Ninguno', bajo:'Bajo', moderado:'Moderado', alto:'Alto', muyalto:'Muy alto',
@@ -52350,6 +52410,9 @@ async function _labPPTGenerar(infs, o) {
         'Las asociaciones estadísticas están corregidas por comparaciones múltiples y no implican causalidad.'
       ];
       if (cohTxt) L.push('COHORTE FILTRADA — los totales no son los del laboratorio completo. Filtros: ' + cohTxt);
+      /* Lo pedido que NO se pudo generar, con el motivo. Va en el mazo y no sólo en un toast que
+         se desvanece: quien lo proyecta meses después tiene que poder decir por qué falta. */
+      omitidas.forEach(x => L.push('NO se incluyó «' + x.que + '»: ' + x.porque + '.'));
       let y = 0.95;
       L.forEach(t => { s.addText(T('•  ' + t), { x:0.5, y:y, w:W-1.0, h:0.46, fontSize:11, color:C.txt, fontFace:FONT, valign:'top' }); y += 0.50; });
     }
@@ -52365,8 +52428,11 @@ async function _labPPTGenerar(infs, o) {
     }
 
     const stamp = new Date().toISOString().slice(0,10).replace(/-/g,'');
-    await P.writeFile({ fileName: 'EcoSmart_Laboratorio_' + stamp + (cohTxt ? '_cohorte_filtrada' : '') + '.pptx' });
-    toast('✅ Presentación generada — ' + nSlides + ' diapositivas.' + (avisos.length ? ' ⚠️ ' + avisos.join(' ') : ''));
+    const _res = await _pptxDescargarSaneado(P, 'EcoSmart_Laboratorio_' + stamp + (cohTxt ? '_cohorte_filtrada' : '') + '.pptx');
+    if (!_res.saneado) avisos.push('No se pudo sanear el paquete: PowerPoint puede pedir reparar el archivo al abrirlo.');
+    toast('✅ Presentación generada — ' + nSlides + ' diapositivas.' +
+      (omitidas.length ? ' Se omitieron ' + omitidas.length + ': ' + omitidas.map(x => x.que).join(', ') + '.' : '') +
+      (avisos.length ? ' ⚠️ ' + avisos.join(' ') : ''));
   } catch (e) {
     console.error('[labPPT]', e);
     toast('❌ No se pudo generar la presentación: ' + (e && e.message ? e.message : 'error desconocido'));
@@ -55484,8 +55550,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260916-0304';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789538660793;                 /* eco-build-ms */
+const ECO_BUILD    = '20260916-0346';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789541164355;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -55571,7 +55637,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0304</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0346</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

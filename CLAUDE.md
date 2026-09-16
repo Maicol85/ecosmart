@@ -487,6 +487,63 @@ El Excel pasó de **421 a 429 columnas** y de 128 a **129 básicas**; TC-135 fij
 contenido. Ojo con el `0` de una casilla apagada: **no es lo mismo que ausente**, y el caso lo
 distingue.
 
+### Los dos bugs del .pptx: uno era de la librería y el otro era un silencio
+Reportados el 2026-09-16 desde el archivo REAL, que es lo que los hizo visibles: los dos pasaban
+el suite entero.
+
+**«PowerPoint pide reparar» ES UN BUG DE PptxGenJS 3.12.0, NO DE LA APP.** Escribe en
+`[Content_Types].xml` un `<Override>` de **slideMaster por diapositiva** y embarca **uno solo**:
+PowerPoint busca las partes declaradas, no las encuentra, y abre con la advertencia. Medido sobre
+un mazo **vainilla** de la propia librería —sin una línea de esta app—: 1 diapositiva declara 1
+(correcto), 3 declaran 3, 5 declaran 5, con **1 master real siempre**. El mazo del Laboratorio
+llegaba con **13 overrides colgados**.
+
+**Cómo se diagnostica un .pptx: se descomprime.** El XML estaba **bien formado** y todas las
+relaciones `r:id` resolvían — por ahí no era. La advertencia de reparación es de **esquema y de
+paquete**, no de sintaxis, así que hay que mirar `[Content_Types].xml` y cruzar cada `PartName`
+contra las entradas reales del zip. Para obtener el archivo sin descargarlo:
+`await P.write({outputType:'base64'})` desde el navegador y volcarlo a disco.
+
+**El arreglo poda por EXISTENCIA, no por lista de excepciones.** `_pptxDescargarSaneado(P, nombre)`
+usa el **JSZip que el propio bundle expone en `window`**, borra todo `Override` cuya parte no esté
+en el zip y descarga por ancla + objectURL. Así cubre cualquier otra parte fantasma que la
+librería invente mañana. **Falla abierto**: sin JSZip descarga por la vía normal y lo declara —un
+archivo con advertencia es mejor que ningún archivo—. Y el `revokeObjectURL` va **diferido**:
+revocar en el mismo tick cancela la descarga en Safari.
+
+**AFECTABA A LOS DOS EXPORTADORES.** El PPT del estudio individual arrastraba el mismo defecto
+desde que tiene más de una diapositiva; se descubrió diagnosticando el del Laboratorio y se
+arregló en el mismo commit. Buscar el resto de los llamadores es parte del arreglo.
+
+**«Sólo 7 diapositivas» NO era un bug de lógica: era un SILENCIO.** Reproducido variando el N:
+con **1 o 2 estudios salen 7** y con 3 o más salen 10. Se caen a la vez TODAS las compuertas de
+datos —FEVI, diastólica, PSAP, subgrupos, oncología— y quedan las cinco fijas más las dos
+opcionales que no tienen compuerta (valvulopatías y asociaciones). El selector **funcionaba**: la
+prueba es que esas dos, que dependen sólo del modal, sí salían.
+
+El defecto real es que el médico tildaba diez casillas, recibía siete hojas y **no tenía forma de
+saber** si faltaba un dato, si el filtro estaba mal o si la app se había roto. Hoy cada omisión se
+declara con su motivo y su número —«Función sistólica: 2 estudio(s) con FEVI medida, se necesitan
+al menos 3»— en el toast **y en la hoja de metodología**, que es la que sobrevive al ateneo.
+El conteo final depende de qué datos existen, y eso es correcto; lo que no podía ser es que no se
+dijera.
+
+**Tres trampas de los casos de prueba en este arreglo:**
+- **Cambiar el borde de salida rompe la interceptación.** TC-148 y TC-150 capturaban por
+  `PptxGenJS.prototype.writeFile`; desde que el mazo sale por `_pptxDescargarSaneado`, ese punto
+  dejó de ejecutarse y los dos casos se quedaron sin capturar nada. **Al mover el punto de salida
+  de un artefacto, buscar quién lo estaba interceptando.**
+- **PptxGenJS guarda el texto como ARRAY DE RUNS**, no siempre como cadena. Leyendo sólo el caso
+  `typeof === 'string'`, la hoja de metodología quedaba invisible para el caso.
+- **Una mutación sobrevivió por una frase compartida.** «El motivo pierde el número de estudios»
+  pasaba en verde porque yo buscaba «se necesitan al menos», y esa frase también la escriben las
+  omisiones de tendencia y subgrupos, que **no** pasan por `faltanN`. La condición tiene que ser
+  específica del emisor que se está probando.
+
+**El caso prueba primero que el defecto EXISTÍA.** TC-151 genera un mazo vainilla de la librería y
+exige que declare partes inexistentes, antes de verificar que el helper las quita. Sin esa mitad,
+el caso no distingue «lo arreglé» de «nunca estuvo roto».
+
 ### PPT del Laboratorio rediseñado: gráficos NATIVOS y selector de contenido
 2026-09-16. De 9 diapositivas con barras dibujadas a mano a **14 modulares** con `addChart`.
 Verificado que el bundle 3.12.0 trae `addChart` y los tipos `bar · pie · line · doughnut ·
