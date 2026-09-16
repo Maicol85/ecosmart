@@ -189,6 +189,14 @@ distinta hoy. El EN SUMA se reserva para lo accionable.
 `eis_hemoptisis`, `eisen_incluir_chk`. Con sus once columnas de Excel.
 
 ### El rótulo de una pestaña vive en CUATRO superficies, y el manual es la que se pudre
+> **Las dos pestañas se llaman hoy «🧬 CC frecuentes» y «🧬 CC complejas»** (2026-09-16). Antes
+> fueron «🧬 Congénitas» / «🫀 CC estructurales» y después «Congénitas I / II». **Los IDs nunca
+> cambiaron** —`congenitas` y `congenitas2`—, que es exactamente el punto de esta entrada. En el
+> último renombre el rótulo estaba en **once sitios**: los dos botones, `EE_MODULES`, el subtítulo
+> de la sección VAB que remite a la otra pestaña, **seis** referencias del manual y dos
+> comentarios del código. TC-123 verifica que **ninguno** de los nombres anteriores sobreviva.
+
+
 Renombrar «🧬 Congénitas» y «🫀 CC estructurales» a **«🧬 Congénitas I»** y **«🧬 Congénitas II»**
 (2026-09-15) no es cambiar un `<button>`. El texto aparece en:
 1. **el botón** de la pestaña;

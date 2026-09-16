@@ -3206,7 +3206,7 @@ caso('TC-122', 'Todos los acordeones abren de verdad al tocar su cabecera', `
    pestaña equivocada y que Congenitas tenia «tres secciones» cuando son diecinueve.
    Los IDs NO se renombran —congenitas y congenitas2 son los que usan showTab, data-mod y las
    preferencias guardadas en localStorage—: lo que cambia es el texto. */
-caso('TC-123', 'Congenitas I y II: el rotulo dice lo mismo en las cuatro superficies', `
+caso('TC-123', 'CC frecuentes y CC complejas: el rotulo dice lo mismo en las cuatro superficies', `
   /* SIN COMILLAS ANIDADAS: el cuerpo de un caso es un template literal y se come la barra
      invertida, asi que el selector emitido quedaba con la cadena cortada y rompia el parseo del
      archivo ENTERO —«SyntaxError: missing ) after argument list»—. Se busca por indexOf sobre el
@@ -3225,22 +3225,28 @@ caso('TC-123', 'Congenitas I y II: el rotulo dice lo mismo en las cuatro superfi
     ? ECO_AYUDA.map(a => (a.tab || '') + ' ' + (a.html || '')).join(' ') : '';
   const cuerpo = document.body.textContent || '';
   return { extra: [
-    ['la primera se llama Congenitas I',  txt(bI)  === '🧬 Congénitas I'],
-    ['la segunda se llama Congenitas II', txt(bII) === '🧬 Congénitas II'],
+    ['la primera se llama CC frecuentes', txt(bI)  === '🧬 CC frecuentes'],
+    ['la segunda se llama CC complejas',  txt(bII) === '🧬 CC complejas'],
     /* Los IDs son contrato: los usan showTab, data-mod y ett_modules en localStorage. */
     ['los ids NO cambiaron', !!document.getElementById('tab-congenitas') && !!document.getElementById('tab-congenitas2')],
     ['las dos pestañas siguen compartiendo el modulo, o Config gobierna media',
       bI.getAttribute('data-mod') === 'congenitas' && bII.getAttribute('data-mod') === 'congenitas'],
-    ['la casilla de Config avisa que gobierna las DOS', /I y II/.test(String(cfg))],
+    ['la casilla de Config avisa que gobierna las DOS', /frecuentes y complejas/.test(String(cfg))],
     ['el desplegable de movil hereda los dos nombres',
-      ops.indexOf('🧬 Congénitas I') > -1 && ops.indexOf('🧬 Congénitas II') > -1],
+      ops.indexOf('🧬 CC frecuentes') > -1 && ops.indexOf('🧬 CC complejas') > -1],
     /* El nombre viejo no puede sobrevivir en NINGUNA superficie visible: un manual que nombra
        una pestaña que ya no existe manda al medico a buscar algo que no va a encontrar. */
-    ['el nombre viejo no queda en el manual', manual.indexOf('CC estructurales') === -1],
-    ['ni en ninguna parte visible de la app', cuerpo.indexOf('CC estructurales') === -1],
+    /* NINGUNO de los dos nombres anteriores puede sobrevivir: «CC estructurales» fue el primero
+       y «Congenitas I/II» el segundo. Un manual que nombra una pestaña que ya no existe manda al
+       medico a buscar algo que no va a encontrar. */
+    ['los nombres viejos no quedan en el manual',
+      manual.indexOf('CC estructurales') === -1 && manual.indexOf('Congénitas I') === -1 &&
+      manual.indexOf('Congénitas II') === -1],
+    ['ni en ninguna parte visible de la app',
+      cuerpo.indexOf('CC estructurales') === -1 && cuerpo.indexOf('Congénitas II') === -1],
     /* Y las dos afirmaciones del manual que el reparto habia dejado FALSAS. */
-    ['el manual ubica CIA/CIV en la pestaña II, que es donde esta',
-      manual.indexOf('Congénitas II</b>, primera de sus secciones') > -1],
+    ['el manual ubica CIA/CIV en la pestaña de CC complejas, que es donde esta',
+      manual.indexOf('CC complejas</b>, primera de sus secciones') > -1],
     ['y ya no dice que Congenitas tiene tres secciones', manual.indexOf('primera de las tres secciones') === -1]
   ] };
 `);

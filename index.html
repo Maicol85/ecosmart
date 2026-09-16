@@ -1685,8 +1685,8 @@ window.cerrarSesion = cerrarSesion;
       <div class="tabs-row tabs-special">
         <button class="tab-btn tab-special" data-mod="hemodinamica" onclick="showTab('hemodinamica')">🫀 Hemodinámica</button>
         <button class="tab-btn tab-special" data-mod="ete" onclick="showTab('ete')">🔬 ETE</button>
-        <button class="tab-btn tab-special" data-mod="congenitas" onclick="showTab('congenitas')">🧬 Congénitas I</button>
-        <button class="tab-btn tab-special" data-mod="congenitas" onclick="showTab('congenitas2')">🧬 Congénitas II</button>
+        <button class="tab-btn tab-special" data-mod="congenitas" onclick="showTab('congenitas')">🧬 CC frecuentes</button>
+        <button class="tab-btn tab-special" data-mod="congenitas" onclick="showTab('congenitas2')">🧬 CC complejas</button>
         <!-- data-mod="congenitas" y NO "congenitas2": las dos pestañas son UN solo modulo,
              partido en dos por largo. Con data-mod propio, congenitas2 no tenia casilla en
              Config —cfgRenderModulos solo dibuja las claves de EE_MODULES— asi que no se
@@ -8242,7 +8242,7 @@ z
     <div class="card" style="margin-bottom:8px;">
     <div class="card-body" style="padding:12px 14px;">
       <div style="font-size:15px;font-weight:800;">🧬 Cardiopatias del adulto y miocardiopatias geneticas</div>
-      <div style="font-size:11.5px;color:var(--text2);margin-top:3px;">Valvulopatia congenita del adulto, aortopatias y miocardiopatias hereditarias. Las cardiopatias con shunt y las paliadas estan en «Congenitas II».</div>
+      <div style="font-size:11.5px;color:var(--text2);margin-top:3px;">Valvulopatia congenita del adulto, aortopatias y miocardiopatias hereditarias. Las cardiopatias con shunt y las paliadas estan en «CC complejas».</div>
     </div>
   </div>
 
@@ -11679,7 +11679,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         • <b>Criterio ECO menor:</b> aquinesia o discinesia regional <b>Y</b> 29 a &lt;32 mm · 32 a &lt;36 mm · &gt;33 a ≤40 %<br>
         • <b>La anomalía regional es obligatoria:</b> un tracto de salida dilatado con motilidad normal no es criterio<br>
         • <b>Diagnóstico:</b> 2 mayores / 1 mayor + 2 menores / 4 menores, <b>de categorías distintas</b> — cada una de las seis aporta un solo criterio<br>
-        • <b>Sección propia</b> en 🧬 Congénitas I con las seis categorías y el puntaje automático
+        • <b>Sección propia</b> en 🧬 CC frecuentes con las seis categorías y el puntaje automático
       </div>
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:6px;">MNC — Miocardio No Compactado</div>
       <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:10px;">
@@ -49599,7 +49599,7 @@ function _labCampoRaw(inf, id) { const v = inf.campos ? inf.campos[id] : undefin
    patrón que este archivo ya pagó tres veces: hallazgos frecuentes, el subtítulo de
    valvulopatías y la clasificación diastólica del módulo de asociaciones. */
 
-/* Las diecinueve secciones de Congénitas I y II. El orden es el del panel de filtros.
+/* Las diecinueve secciones de CC frecuentes y CC complejas. El orden es el del panel de filtros.
    `pred` es el predicado de «el médico evaluó esta sección», idéntico al que la subtab CC usa
    como DENOMINADOR de su bloque: si divergieran, filtrar por CIA daría una cohorte cuyo propio
    bloque de CIA informa otro n. */
@@ -50166,7 +50166,7 @@ function labHemoRender(infs, n) {
 window.labHemoRender = labHemoRender;
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   Subtab CC / Genéticas — las secciones de las pestañas «🧬 Congénitas I» y «🧬 Congénitas II»
+   Subtab CC / Genéticas — las secciones de las pestañas «🧬 CC frecuentes» y «🧬 CC complejas»
    ══════════════════════════════════════════════════════════════════════════════
    Recibe `infs` de labRenderExtras, o sea la población YA filtrada por labGetInformes.
 
@@ -53039,8 +53039,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260915-2135';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789518912970;                 /* eco-build-ms */
+const ECO_BUILD    = '20260915-2139';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789519142383;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -53126,7 +53126,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260915-2135</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260915-2139</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -53424,7 +53424,7 @@ var EE_MODULES = [
   {key:'hemodinamica', label:'🩸 Hemodinámica'},
   {key:'ete',          label:'🔬 ETE'},
   {key:'pulmonar',     label:'🫁 Eco Pulmonar'},
-  {key:'congenitas',   label:'🧬 Congénitas I y II'},
+  {key:'congenitas',   label:'🧬 CC frecuentes y complejas'},
   {key:'amiloidosis',  label:'🫀 Amiloidosis'},
   {key:'cardioOnco',   label:'🎗️ Cardio-Oncología'},
   {key:'calculadoras', label:'🧮 Calculadoras'},
@@ -53735,10 +53735,10 @@ const ECO_AYUDA = [
   <p class="mP">Seis módulos de patología y tres herramientas, todos en <b>Modo Avanzado</b>. Se prenden y apagan en Config, todos — incluido Eco Pulmonar, que hasta el 2026-09-10 estaba siempre visible porque le faltaba la casilla.</p>
   <div class="mSub">🫀 Hemodinámica</div>
   <p class="mP">Perfil hemodinámico completo (gasto cardíaco, índice cardíaco, resistencias, presión capilar, perfil de Forrester), probabilidad de HTP según ESC/ERS 2022, score de TEP sobre 7 (McConnell, signo 60/60, tabique en D, relación VD/VI), <b>VEXUS</b>, el score <b>HFA-PEFF</b> para insuficiencia cardíaca con fracción preservada (tres dominios de hasta 2 puntos, máximo 6: 0-1 descarta, 5-6 confirma), y los dos módulos de pericardio: <b>derrame y taponamiento</b> (cuantificación, colapso de cavidades, VCI y variación respiratoria) y <b>constricción vs restricción</b> (annulus reversus y diez criterios con recuento automático). Los dos leen el campo «Pericardio» de la tab 🗂️ Otros, que es donde se consigna la cuantía del derrame.</p>
-  <div class="mSub">🧬 Congénitas I y II</div>
+  <div class="mSub">🧬 CC frecuentes y complejas</div>
   <p class="mP">Pestaña propia, después de ETE. Se llama <b>Cardiopatías congénitas y miocardiopatías genéticas</b> porque incluye las dos cosas: comparten el modo de trabajo —base hereditaria, seguimiento largo, criterios de guía— pero no la taxonomía, y llamarle «congénita» a una miocardiopatía hipertrófica en un informe firmado sería un error.</p>
   <p class="mP">Cada patología es una sección plegable, colapsada al entrar. Las que ya tengan datos cargados <b>se abren solas</b>, así que al reabrir un estudio ves de un vistazo qué se documentó. Hoy están <b>CIA / CIV</b> —dos solapas bajo un mismo botón—, <b>ductus arterioso permeable</b> y <b>coartación de aorta</b>, cada una con su <span class="mKbd">📎 Integrar al informe</span>. Las tres funcionan igual: cargás los campos, la app calcula lo derivado y propone una conclusión, y el botón decide si entra al informe narrativo.</p>
-  <div class="mBox mTip"><b>Los cuatro valores del Qp/Qs se siguen midiendo en sus pestañas.</b> Diámetro y VTI del TSVI en <b>〰️ Doppler → Doppler Aórtico</b>, los del TSVD en <b>VD / AD</b>. La sección de CIA/CIV, en <b>🧬 Congénitas II</b>, los muestra en gris, de sólo lectura, para que veas con qué está calculando: <b>no se cargan ahí</b>. Dos lugares donde escribir el mismo número es la vía más corta a que la pantalla y el informe firmado digan cosas distintas.</div>
+  <div class="mBox mTip"><b>Los cuatro valores del Qp/Qs se siguen midiendo en sus pestañas.</b> Diámetro y VTI del TSVI en <b>〰️ Doppler → Doppler Aórtico</b>, los del TSVD en <b>VD / AD</b>. La sección de CIA/CIV, en <b>🧬 CC complejas</b>, los muestra en gris, de sólo lectura, para que veas con qué está calculando: <b>no se cargan ahí</b>. Dos lugares donde escribir el mismo número es la vía más corta a que la pantalla y el informe firmado digan cosas distintas.</div>
   <div class="mBox mAviso"><b>La app no concluye sobre lo que no cargaste.</b> Con la sección vacía la conclusión queda en «—» y no se imprime nada, aunque el botón esté en «✓ Integrado». Si cargaste algo pero no lo suficiente para sostener una negación —por ejemplo la localización de la coartación sin ningún gradiente—, el informe lo dice así: «sin gradiente registrado; completar con Doppler». Y si un número quedó fuera de escala —la Vmax en cm/s, 300 en vez de 3,0— la conclusión es «revisar unidades antes de concluir» en vez de «sin gradiente significativo». Un error de unidad no puede terminar en una conclusión tranquilizadora.</div>
   <div class="mSub">🔀 Ductus arterioso permeable</div>
   <p class="mP">Tipo (silente / restrictivo / no restrictivo), diámetro mínimo, dirección del shunt, velocidad máxima y PAPs estimada. La app calcula el <b>gradiente instantáneo máximo</b> (4 × Vmax²) y toma el <b>Qp/Qs</b> del mismo cálculo que usa CIA/CIV — sale de los diámetros y VTI de los tractos de salida, así que hay que tenerlos cargados.</p>
@@ -53818,7 +53818,7 @@ const ECO_AYUDA = [
 
   <div class="mBox mTip"><b>El Qp/Qs es del paciente, no de cada defecto.</b> Sale de los flujos del TSVI y el TSVD, así que mide el cortocircuito total. Si hay más de uno cargado —una CIA y una ventana, por ejemplo— las tres secciones muestran <b>«shunt múltiple: el Qp/Qs es del conjunto»</b> en vez del número, ninguna se lo atribuye en su conclusión y tampoco sube al EN SUMA. Repartir el shunt entre dos defectos no se puede hacer con un ecocardiograma. El FOP queda fuera de esa cuenta a propósito: es fisiológico y está en el 25 % de la gente, así que contarlo apagaría el Qp/Qs de la CIA en uno de cada cuatro pacientes.</div>
   <div class="mSub">🔬 ETE</div>
-  <p class="mP">Transesofágico: técnica, morfología mitral con clasificación de Carpentier, criterios de elegibilidad para TEER (MitraClip/PASCAL), score de Wilkins sobre 16, orejuela izquierda para cierre percutáneo y aorta. Sale en <b>hoja propia</b> del PDF. Al final del módulo está <b>TAVI</b>, con su propia solapa del manual, que en cambio se imprime <b>dentro del informe narrativo</b>. CIA / CIV estaba acá hasta el 2026-09-10 y se mudó a <b>🧬 Congénitas II</b>, junto con el ductus; la coartación quedó en <b>🧬 Congénitas I</b>.</p>
+  <p class="mP">Transesofágico: técnica, morfología mitral con clasificación de Carpentier, criterios de elegibilidad para TEER (MitraClip/PASCAL), score de Wilkins sobre 16, orejuela izquierda para cierre percutáneo y aorta. Sale en <b>hoja propia</b> del PDF. Al final del módulo está <b>TAVI</b>, con su propia solapa del manual, que en cambio se imprime <b>dentro del informe narrativo</b>. CIA / CIV estaba acá hasta el 2026-09-10 y se mudó a <b>🧬 CC complejas</b>, junto con el ductus; la coartación quedó en <b>🧬 CC frecuentes</b>.</p>
   <div class="mSub">🧬 Amiloidosis</div>
   <p class="mP">Tres solapas: score ETT según ESC 2021 sobre 10 puntos, algoritmo diagnóstico (incluye Perugini y proteínas monoclonales) y una guía de lectura.</p>
   <div class="mSub">❤️ Cardio-Oncología</div>
@@ -53835,11 +53835,11 @@ const ECO_AYUDA = [
   <p class="mP">El Fonocardiograma es didáctico: dibuja un fonocardiograma sintético según la valvulopatía y la severidad que elijas. <b>No usa el micrófono, no graba nada y no aporta al informe.</b></p>
   <div class="mSub">Cómo entran al informe</div>
   <p class="mP">Todos —salvo el Fonocardiograma— tienen un botón <b>📎 Integrar al informe</b>. Lo integrado aparece en la tarjeta <b>🧬 ETT Avanzado</b> de la pestaña Informe, con botones para editarlo o retirarlo, y sale en <b>hoja aparte del PDF</b>, después del EN SUMA.</p>
-  <div class="mBox mTip"><b>Consejo.</b> Suman líneas al EN SUMA: Hemodinámica (por VEXUS y HFA-PEFF), Eco Pulmonar y <b>Congénitas I y II</b> —el Qp/Qs significativo, el ductus moderado, grande o con hipertensión pulmonar, y la coartación significativa o limítrofe—. ETE, Amiloidosis y Cardio-Oncología aportan su hoja pero no modifican el resumen.</div>` },
+  <div class="mBox mTip"><b>Consejo.</b> Suman líneas al EN SUMA: Hemodinámica (por VEXUS y HFA-PEFF), Eco Pulmonar y <b>CC frecuentes y complejas</b> —el Qp/Qs significativo, el ductus moderado, grande o con hipertensión pulmonar, y la coartación significativa o limítrofe—. ETE, Amiloidosis y Cardio-Oncología aportan su hoja pero no modifican el resumen.</div>` },
 
  { tab: '🧬 CIA / CIV', html: `
   <div class="mBox mTip"><b>¿El estudio es un transesofágico?</b> Marcá <b>«🫀 Este estudio es ETE»</b> arriba de la pestaña ETE. Con eso el título del PDF pasa de «Informe Ecocardiograma Doppler Color» a <b>«Ecocardiograma Transesofágico»</b>. La marca viaja con el estudio, así que reimprimir un ETE guardado mientras trabajás en un transtorácico da el título correcto de cada uno.</div>
-  <p class="mP"><strong style="color:#0D9488">Comunicación interauricular e interventricular.</strong> Está en la pestaña <b>🧬 Congénitas II</b>, primera de sus secciones, como acordeón plegado — hasta el 2026-09-10 vivía dentro del módulo ETE. Se abre tocando el encabezado; adentro, al pie de la sección, el botón <b>📎 Integrar al informe</b> es el que decide si baja al informe. Cuando está integrada, el encabezado muestra la marca <b>📎 en el informe</b>, así que se ve también con la sección cerrada, y la sección se abre sola al reabrir el estudio.</p>
+  <p class="mP"><strong style="color:#0D9488">Comunicación interauricular e interventricular.</strong> Está en la pestaña <b>🧬 CC complejas</b>, primera de sus secciones, como acordeón plegado — hasta el 2026-09-10 vivía dentro del módulo ETE. Se abre tocando el encabezado; adentro, al pie de la sección, el botón <b>📎 Integrar al informe</b> es el que decide si baja al informe. Cuando está integrada, el encabezado muestra la marca <b>📎 en el informe</b>, así que se ve también con la sección cerrada, y la sección se abre sola al reabrir el estudio.</p>
   <div class="mSub">CIA</div>
   <p class="mP">Elegí el <b>tipo</b> (ostium secundum, ostium primum, seno venoso de VCS o de VCI, seno coronario) y cargá el tamaño máximo y mínimo del defecto.</p>
   <p class="mP">La tabla de <b>bordes</b> tiene los cinco rodetes con la ventana ETE donde se mide cada uno: aórtico (30-45°), AV/mitral (0°), VCS y VCI (90° bicava) y posterior (0°). No hace falta cargarlos todos: la app calcula el <b>borde mínimo</b> con los que hayas ingresado y <b>dice cuál es</b>, que es lo que orienta la viabilidad del cierre percutáneo.</p>
