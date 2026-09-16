@@ -4624,6 +4624,106 @@ caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el La
   ] };
 `);
 
+/* REORDENAMIENTO DEL LABORATORIO (2026-09-16).
+   Doce subtabs pasaron a OCHO: Calidad, Por medico y Comparar periodos se plegaron dentro de
+   General, y Hemodinamica dentro de Avanzado. Mas el orden interno de Mediciones y Avanzado, el
+   renombre de «Informe PDF» a «Informe», y la tabla resumen de valvulopatias con sus OCHO filas
+   —posible recien ahora: et_grado, ip_grado y ep_grado ganaron modelo de datos esta misma
+   sesion—. Lo que vigila este caso y que contar <div> no ve: que ningun panel quede huerfano,
+   que el orden sea el pedido, y que los init de los bloques plegados sigan corriendo. */
+caso('TC-142', 'Laboratorio: ocho subtabs, orden nuevo y la tabla de valvulopatias con sus ocho filas', `
+  const subtabs = [].slice.call(document.querySelectorAll('#tab-lab .lab-subtab'))
+    .map(function(b){ return (b.textContent || '').trim(); });
+  const paneles = [].slice.call(document.querySelectorAll('#tab-lab .lab-subpanel'))
+    .map(function(p){ return p.id.replace('lab-sub',''); });
+  const hdr = function(id){ const p = document.getElementById('lab-sub-' + id);
+    return p ? [].slice.call(p.querySelectorAll('.lab-card-hdr')).map(function(h){ return (h.textContent||'').trim(); }) : null; };
+  const tieneEnOrden = function(arr, claves){
+    let k = 0;
+    for (let i = 0; i < arr.length && k < claves.length; i++) if (arr[i].indexOf(claves[k]) > -1) k++;
+    return k === claves.length; };
+
+  /* LA TABLA: ocho filas por cuatro columnas, con el MISMO _labValvCounts que el grafico. */
+  const mk = function(o){ const c = { im_grado:'0', em_grado:'sin', ia_grado:'0', ea_grado:'sin',
+    it_grado:'0', et_grado:'Sin estenosis', ip_grado:'Sin insuficiencia', ep_grado:'sin' };
+    Object.keys(o).forEach(function(k){ c[k] = o[k]; }); return { campos:c }; };
+  const infs = [mk({}), mk({ im_grado:'2' }), mk({ ip_grado:'Severa' }),
+                mk({ ep_grado:'Moderada' }), mk({ et_grado:'Severa' })];
+  labRenderExtras(infs, infs.length);
+  const tab = document.getElementById('lab-valv-tabla');
+  const filas = tab ? [].slice.call(tab.querySelectorAll('tbody tr')).map(function(tr){
+    return [].slice.call(tr.children).map(function(td){ return (td.textContent || '').trim(); }); }) : [];
+  const sigla = filas.map(function(f){ return f[0].split(' ')[0]; });
+  const celda = function(sig, col){ for (let i = 0; i < filas.length; i++)
+    if (filas[i][0].indexOf(sig) === 0) return filas[i][col]; return null; };
+  /* La tabla tiene que ir ANTES de los graficos: es el dato del que salen. */
+  const card = tab ? tab.closest('.lab-card') : null;
+  const barras = card ? card.querySelector('#lab-valv-im') : null;
+  const antesQueBarras = !!(tab && barras &&
+    (tab.compareDocumentPosition(barras) & Node.DOCUMENT_POSITION_FOLLOWING));
+
+  return { extra: [
+    // 1 · OCHO subtabs y ningun panel huerfano.
+    ['quedan ocho subtabs', subtabs.length === 8, subtabs.join(' · ')],
+    ['y ocho paneles', paneles.length === 8, paneles.join(' · ')],
+    ['los cuatro plegados ya no tienen panel propio',
+      ['hemo','calidad','medicos','comparar'].every(function(k){
+        return document.getElementById('lab-sub-' + k) === null; }),
+      ['hemo','calidad','medicos','comparar'].filter(function(k){
+        return document.getElementById('lab-sub-' + k) !== null; }).join(',')],
+    ['ni boton',
+      ['hemo','calidad','medicos','comparar'].every(function(k){
+        return String(labSubTab).indexOf('') > -1 &&
+          !document.querySelector('[onclick*="labSubTab(' + String.fromCharCode(39) + k + String.fromCharCode(39) + '"]'); })],
+    ['la subtab se llama «Informe», no «Informe PDF»',
+      subtabs.indexOf('Informe') > -1 && subtabs.join('').indexOf('Informe PDF') === -1,
+      subtabs.join(' · ')],
+    ['y General arranca activa',
+      (document.querySelector('#tab-lab .lab-subtab.active') || {}).textContent.trim() === 'General'],
+
+    // 2 · ORDEN de las tabs.
+    ['el orden de las subtabs es el pedido',
+      tieneEnOrden(subtabs, ['General','Mediciones','Avanzado','ETE','CC','Filtros','Informe','Asociaciones']),
+      subtabs.join(' · ')],
+
+    // 3 · CONTENIDO plegado, accesible.
+    ['General contiene comparar periodos, calidad y por medico',
+      tieneEnOrden(hdr('general'), ['Comparar Períodos','Calidad','Análisis por Médico']),
+      hdr('general').join(' | ')],
+    ['y el resumen ejecutivo sigue primero',
+      hdr('general')[0].indexOf('Actividad del Laboratorio') > -1, hdr('general')[0]],
+    ['Avanzado contiene el perfil hemodinamico, y va primero',
+      hdr('avanzado')[0].indexOf('Perfil hemodinámico') > -1, hdr('avanzado').join(' | ')],
+    ['con TEP / VD segundo',
+      hdr('avanzado')[1].indexOf('TEP') > -1, hdr('avanzado')[1]],
+    ['los init de los bloques plegados cuelgan de General',
+      String(labSubTab).indexOf('labMedicoInit') > -1 &&
+      String(labSubTab).indexOf('labCompararInit') > -1 &&
+      String(labSubTab).indexOf('medicos') === -1],
+
+    // 4 · ORDEN interno de Mediciones.
+    ['Mediciones sigue el orden pedido',
+      tieneEnOrden(hdr('mediciones'), ['Función sistólica','Contractilidad','Geometría VI',
+        'Volumen AI','Función VD','Hipertensión pulmonar','Valvulopatías','Estadística']),
+      hdr('mediciones').join(' | ')],
+
+    // 5 · LA TABLA DE VALVULOPATIAS.
+    ['tiene las ocho filas, en orden', sigla.join(',') === 'IM,EM,IA,EA,IT,ET,IP,EP', sigla.join(',')],
+    ['y va ANTES de los graficos', antesQueBarras],
+    ['el denominador es el total del periodo: no marcar cuenta como «Sin»',
+      celda('EM', 1) === '5' && celda('IA', 1) === '5', celda('EM',1) + ' / ' + celda('IA',1)],
+    ['cada hallazgo cae en su fila y su columna',
+      celda('IM', 3) === '1' && celda('ET', 4) === '1' &&
+      celda('IP', 4) === '1' && celda('EP', 3) === '1',
+      'IMmod=' + celda('IM',3) + ' ETsev=' + celda('ET',4) + ' IPsev=' + celda('IP',4) + ' EPmod=' + celda('EP',3)],
+    ['y los que no tienen el hallazgo quedan en «Sin»',
+      celda('IM', 1) === '4' && celda('ET', 1) === '4', celda('IM',1) + ' / ' + celda('ET',1)],
+    ['el pie declara el denominador',
+      (tab.querySelector('div') || {}).textContent.indexOf('total de estudios del período (n=5)') > -1,
+      (tab.querySelector('div') || {}).textContent]
+  ] };
+`);
+
 /* ESTENOSIS TRICUSPIDEA COMPLETA (2026-09-16).
    La guia NO gradua la ET: es binaria, y basta UNO de los tres criterios —gradiente medio >= 5
    mmHg, THP >= 190 ms, area <= 1 cm²—. El area sale por continuidad y su numerador vive en OTRA

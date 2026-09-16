@@ -460,6 +460,60 @@ Se recuperó con `git show HEAD:` y se verificó **byte por byte** contra HEAD. 
 entrada «Los reemplazos por rango de líneas son peligrosos» que este archivo ya tenía, aplicada al
 propio suite: **después de un reemplazo por rango, contar los casos.**
 
+### El Laboratorio pasó de DOCE subtabs a OCHO
+2026-09-16. Calidad, Por médico y Comparar períodos se plegaron dentro de **General**;
+Hemodinámica dentro de **Avanzado**. Más el orden interno de Mediciones y Avanzado, el renombre de
+«Informe PDF» a «Informe» y la tabla resumen de valvulopatías.
+
+**LOS PANELES SON CONTENEDORES; el contenido lo pintan funciones por `getElementById`**, que no
+sabe de subtabs. Por eso plegar cuatro paneles dentro de otros dos es mudanza y no lógica: ningún
+render cambió.
+
+**LO QUE SÍ HAY QUE MOVER SON LOS `init`.** `labSubTab` llamaba `labMedicoInit()` y
+`labCompararInit()` al abrir SUS subtabs; plegados dentro de General, esos dos bloques quedaban en
+el DOM, visibles y **vacíos** — el selector de médicos sin opciones y el comparador sin fechas, que
+se ve igual que «este laboratorio no tiene médicos cargados». Es la asimetría que
+`labAsociacionesInit` ya tenía declarada.
+
+**«Informe PDF» vivía en DOS superficies**: el botón y el manual (`ECO_AYUDA`). Es la regla que
+este archivo tiene escrita para los rótulos de pestaña — y el `grep` la encontró antes de que el
+manual quedara describiendo una subtab con otro nombre.
+
+**EN AVANZADO NO SE PODÍA REORDENAR MOVIENDO SÓLO LAS TARJETAS.** Entre ellas vivían un párrafo
+introductorio y cuatro comentarios que explican cada sección: mover las `.lab-card` sueltas los
+habría dejado pegados a la tarjeta equivocada. La unidad que se mueve es **«lo que precede + la
+tarjeta»**. En Mediciones no hacía falta —entre tarjetas sólo hay blancos— pero se verificó antes,
+que es el punto: es exactamente el defecto que se comió dos bloques al repartir Congénitas.
+
+**Y cuatro comentarios quedaron describiendo la subtab que acababa de desaparecer** («se mudó a la
+subtab Hemodinámica»). Un comentario que sobrevive a la mudanza que describe es peor que no
+tenerlo: el siguiente que lea va a buscar una subtab que no existe.
+
+### La tabla resumen de valvulopatías, y por qué recién ahora son OCHO filas
+Ocho válvulas × cuatro columnas, **antes** de los gráficos: es el dato del que salen las barras, y
+quien quiere el número no debería tener que leerlo de una barra.
+
+**Las tres filas que faltaban las habilitó el trabajo de esta misma sesión.** Cuando esta tarea se
+pausó, sólo cinco válvulas tenían modelo de datos utilizable: `et_grado` estaba cableada a
+`() => null` en `_labValvCounts` con un comentario falso, `ip_grado` guardaba cadena vacía mientras
+su etiqueta afirmaba «Sin insuficiencia», y `ep_grado` **no existía** —la estenosis pulmonar vivía
+dentro de `vp_morf` mezclada con la morfología y la insuficiencia—. Las tres se arreglaron antes de
+volver acá; por eso la tabla sale completa y sin filas inventadas.
+
+**Una sola fuente de conteo.** La tabla usa el MISMO `_labValvCounts` que el gráfico: con su propio
+conteo, la tabla y las barras de la misma tarjeta podrían publicar números distintos — el defecto
+del subtítulo de los denominadores que este archivo ya pagó.
+
+**La columna «Sin» se DERIVA de la base**, no se cuenta aparte: `base − (leve + moderada + severa)`.
+El denominador es el total del período porque **no marcar una válvula significa valorarla como
+normal** en el flujo de esta app. Lo que NO se cuenta es el campo **ausente** —un Excel importado
+sin esa columna—: ahí «Sin» sería una afirmación sobre un dato que no existe, y la diferencia se
+declara al pie en vez de repartirse en las celdas. Con base 0 la celda dice «—» y no «0», que es
+`pctOf(n, 0)` otra vez.
+
+**El PPT sigue fuera.** El pedido lo incluye y a la vez dice «no crear nada nuevo todavía»; se
+decidió diferirlo, y esta tarea es sólo reorganización.
+
 ### ET completa: tres criterios con el MISMO peso, y un veredicto binario
 Agregados el 2026-09-16: **`et_thp`** (ms, banda 50-400), **`et_vti_diast`** (cm) y el área
 **`et_avt`** por continuidad, sólo lectura. La guía **no gradúa** la estenosis tricuspídea —no hay
