@@ -4307,7 +4307,7 @@ caso('TC-135', 'GLS y contractilidad son BASICOS del Excel: sin checkbox y siemp
       ['la cuenta del modal declara las basicas reales',
         cuentaTxt.indexOf(basicas.length + ' columnas') === 0, cuentaTxt],
       ['y las basicas crecieron: el total no cambio, lo opcional si',
-        basicas.length === 128 && TODAS.length === 421,   // +4 al completar la ET
+        basicas.length === 129 && TODAS.length === 429,   // +4 ET · +8 al cerrar la brecha del Lab
         basicas.length + ' basicas de ' + TODAS.length],
       // 6 · Una preferencia vieja con el modulo borrado no lo revive.
       ['una preferencia guardada con contr no revive el modulo', (function(){
@@ -4621,6 +4621,64 @@ caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el La
     // FIX 4 — la sexta pastilla.
     ['la pastilla de estenosis tricuspidea se restaura al reabrir',
       pillBloque !== 'none' && pillOn === true, 'display=' + pillBloque + ' encendida=' + pillOn]
+  ] };
+`);
+
+/* LA BRECHA DEL EXCEL EN LAS SECCIONES NUEVAS (2026-09-16).
+   De todo lo construido esta semana faltaban OCHO columnas, no cuarenta: el resto ya estaba.
+   · et_grado — viajaban el THP, el VTI y el area (los tres insumos de la significacion) y NO el
+     grado que el medico consigno.
+   · las SIETE casillas de inclusion de las secciones nuevas, mientras las doce viejas SI estaban.
+     No es cosmetico: esa casilla decide si la seccion SALE en el informe firmado, asi que un
+     estudio reimportado volvia con los datos y sin la decision de integrarlos — la seccion
+     desaparecia del informe sin que nada lo dijera. */
+caso('TC-146', 'Excel: el grado de ET y las siete casillas de inclusion que faltaban', `
+  const cols = Object.keys(_labExcelRow({ id:0, campos:{} }));
+  const CHKS = [['Incluir Marfan en informe','marfan_incluir_chk__chk'],
+                ['Incluir Eisenmenger en informe','eisen_incluir_chk__chk'],
+                ['Incluir Fontan en informe','fontan_incluir_chk__chk'],
+                ['Incluir subaórtica en informe','esub_incluir_chk__chk'],
+                ['Incluir supravalvular en informe','easv_incluir_chk__chk'],
+                ['Incluir DSAV en informe','dsav_incluir_chk__chk'],
+                ['Incluir CVPA en informe','cvpa_incluir_chk__chk']];
+  /* Un estudio con la casilla ENCENDIDA y otro con ella apagada: el 1/0 tiene que distinguirlos,
+     porque lo que se pierde al no viajar es justamente la decision de integrar. */
+  const on = {}, off = {};
+  CHKS.forEach(function(p){ on[p[1]] = '1'; off[p[1]] = '0'; });
+  on.et_grado = 'Severa';
+  const rOn = _labExcelRow({ id:0, campos:on }), rOff = _labExcelRow({ id:0, campos:off });
+
+  return { extra: [
+    // 1 · EL GRADO DE ET.
+    ['ET grado tiene columna', cols.indexOf('ET grado') > -1],
+    ['y sale lo consignado, no lo derivado', rOn['ET grado'] === 'Severa', JSON.stringify(rOn['ET grado'])],
+    /* Es tipo «opcion»: sin entrada en LAB_XLS_LISTAS el importador descarta la FILA ENTERA. */
+    ['el importador acepta las cuatro opciones del grado',
+      ['Sin estenosis','Leve','Moderada','Severa'].every(function(v){ return _labXlsLista('et_grado', v) === v; }),
+      ['Sin estenosis','Leve','Moderada','Severa'].map(function(v){ return v + '->' + _labXlsLista('et_grado', v); }).join(' | ')],
+    ['y rechaza lo que no es una opcion', _labXlsLista('et_grado', 'Gravisima') === null],
+    ['viajan tambien los tres insumos de la significacion',
+      ['ET grad medio (mmHg)','ET THP (ms)','ET VTI diast (cm)','ET área (cm²)']
+        .every(function(c){ return cols.indexOf(c) > -1; })],
+
+    // 2 · LAS SIETE CASILLAS.
+    ['las siete secciones nuevas tienen su columna de inclusion',
+      CHKS.every(function(p){ return cols.indexOf(p[0]) > -1; }),
+      CHKS.filter(function(p){ return cols.indexOf(p[0]) === -1; }).map(function(p){ return p[0]; }).join(', ')],
+    ['encendida exporta 1', CHKS.every(function(p){ return rOn[p[0]] === 1; }),
+      CHKS.map(function(p){ return p[0].replace('Incluir ','').replace(' en informe','') + '=' + rOn[p[0]]; }).join(' ')],
+    ['y apagada exporta 0, que NO es lo mismo que ausente',
+      CHKS.every(function(p){ return rOff[p[0]] === 0; })],
+    /* Las doce viejas siguen estando: agregar las nuevas no podia desplazarlas. */
+    ['las doce casillas anteriores siguen en su lugar',
+      ['Incluir FOP en informe','Incluir VAB en informe','Incluir TAVI en informe','Incluir ductus en informe']
+        .every(function(c){ return cols.indexOf(c) > -1; })],
+
+    // 3 · LOS CUATRO ASSERTS DEL EXCEL.
+    ['listas, vocabularios, bloques y modulos, todos en cero',
+      _labXlsAssertListas().length === 0 && _labXlsAssertVocab().length === 0 &&
+      _labXlsAssertBloques().length === 0 && _labAssertModulos().length === 0,
+      _labXlsAssertListas().concat(_labXlsAssertVocab()).concat(_labXlsAssertBloques()).join(' | ')]
   ] };
 `);
 

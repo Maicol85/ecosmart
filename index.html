@@ -44569,6 +44569,7 @@ function _labExcelRow(inf) {
     'Morfología tricúspide': c.vt_morf || '', 'IT grado': gIT,
     'IT_I (Leve)': bin(gIT,'leve'), 'IT_II (Moderada)': bin(gIT,'moderada'), 'IT_III (Severa)': bin(gIT,'severa'),
     'VC IT (mm)': rnd(num('it_vc','vc_tricusp'),1),
+    'ET grado': c.et_grado || '',
     'ET grad medio (mmHg)': rnd(num('et_gmedio'),1), 'ET THP (ms)': rnd(num('et_thp'),0),
     'ET VTI diast (cm)': rnd(num('et_vti_diast'),1),
     /* CALCULADA: sale de la misma continuidad que la cápsula, con los dos insumos de la
@@ -44815,6 +44816,13 @@ function _labExcelRow(inf) {
     'MCH crecimiento espesor (mm/año)': rnd(num('mch_ctx_crecimiento'),1),
     'MCH deseo de embarazo': _cc3e(c.mch_ctx_embarazo),
     'Incluir VAB en informe':        c['vab_incluir_chk__chk']    === '1' ? 1 : 0,
+    'Incluir Marfan en informe':     c['marfan_incluir_chk__chk'] === '1' ? 1 : 0,
+    'Incluir Eisenmenger en informe':c['eisen_incluir_chk__chk']  === '1' ? 1 : 0,
+    'Incluir Fontan en informe':     c['fontan_incluir_chk__chk'] === '1' ? 1 : 0,
+    'Incluir subaórtica en informe': c['esub_incluir_chk__chk']   === '1' ? 1 : 0,
+    'Incluir supravalvular en informe': c['easv_incluir_chk__chk'] === '1' ? 1 : 0,
+    'Incluir DSAV en informe':       c['dsav_incluir_chk__chk']   === '1' ? 1 : 0,
+    'Incluir CVPA en informe':       c['cvpa_incluir_chk__chk']   === '1' ? 1 : 0,
     'Ebstein desplazamiento (mm)': rnd(num('ebs_desplazamiento'),1),
     'Ebstein atrialización (%)': rnd(num('ebs_atrializacion'),0),
     'Ebstein función VD': _ccLbl({normal:'Normal',leve:'Disfunción leve',moderada:'Disfunción moderada',severa:'Disfunción severa'}, c.ebs_func_vd),
@@ -45757,6 +45765,10 @@ const LAB_XLS_MAP = [
   ['IP etiología',           'ip_etiologia',   'opcion'],
   ['IT grado',               'it_grado',       'vocab'],
   ['VC IT (mm)',             'it_vc',          'num'],
+  /* EL GRADO faltaba mientras el THP, el VTI y el área SÍ viajaban: la planilla traía los tres
+     insumos de la significación y no lo que el médico consignó. Es `opcion` y no `vocab`
+     porque su `value` ES la etiqueta —el select no lleva atributo `value`—. */
+  ['ET grado',               'et_grado',       'opcion'],
   ['ET grad medio (mmHg)',   'et_gmedio',      'num'],
   ['ET THP (ms)',            'et_thp',         'num'],
   ['ET VTI diast (cm)',      'et_vti_diast',   'num'],
@@ -46006,6 +46018,18 @@ const LAB_XLS_MAP = [
   ['Incluir VAP en informe',         'vap_incluir_chk__chk',    'chk'],
   ['Incluir FOP en informe',         'fop_incluir_chk__chk',    'chk'],
   ['Incluir VAB en informe',         'vab_incluir_chk__chk',    'chk'],
+  /* LAS SIETE SECCIONES NUEVAS DE ESTA SEMANA no tenían su casilla de inclusión en el mapa
+     mientras las doce viejas sí. No es cosmético: esa casilla decide si la sección SALE en el
+     informe firmado, así que un estudio reimportado volvía con los datos y sin la decisión de
+     integrarlos — la sección desaparecía del informe sin que nada lo dijera. Es el defecto de
+     `ete_morfo_incluir` que este archivo ya documenta, por la vía del Excel. */
+  ['Incluir Marfan en informe',      'marfan_incluir_chk__chk', 'chk'],
+  ['Incluir Eisenmenger en informe', 'eisen_incluir_chk__chk',  'chk'],
+  ['Incluir Fontan en informe',      'fontan_incluir_chk__chk', 'chk'],
+  ['Incluir subaórtica en informe',  'esub_incluir_chk__chk',   'chk'],
+  ['Incluir supravalvular en informe','easv_incluir_chk__chk',  'chk'],
+  ['Incluir DSAV en informe',        'dsav_incluir_chk__chk',   'chk'],
+  ['Incluir CVPA en informe',        'cvpa_incluir_chk__chk',   'chk'],
   ['Incluir MCH en informe',         'mch_incluir_chk__chk',    'chk'],
   ['Incluir Ebstein en informe',     'ebs_incluir_chk__chk',    'chk'],
   ['Incluir TdF en informe',         'tdf_incluir_chk__chk',    'chk'],
@@ -46835,6 +46859,10 @@ const LAB_XLS_LISTAS = {
   vm_morf: ['Normal','Mixomatosa / Barlow','Calcificada','Reumática','Prolapso / EVMS','Prótesis','Endocarditis','Isquémica (disfunción/rotura músculo papilar)'],
   va_morf: ['Trivalva normal','Bicúspide','Calcificada','Reumática','Prótesis','Endocarditis','Carcinoide'],
   vt_morf: ['Normal','Mixomatosa','Reumática','Prótesis','Carcinoide','Endocarditis','Funcional / dilatación VD'],
+  /* `et_grado` es `opcion` y su `value` ES el texto de la etiqueta —el select no lleva
+     atributo `value`—. Sin esta lista `_labXlsLista` devuelve null y el importador descarta
+     la FILA ENTERA, no la celda. */
+  et_grado: ['Sin estenosis','Leve','Moderada','Severa'],
   vp_morf: ['Normal','Displásica (congénita)','Reumática','Carcinoide','Post-quirúrgica / prótesis','No especificada'],
   /* `ep_grado` guarda «sin» en la opción 0 —su `value` difiere de la etiqueta, único de los
      seis— así que es «sin» lo que va acá: `_labXlsLista` compara contra el VALOR. */
@@ -54329,8 +54357,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260916-0110';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789531833954;                 /* eco-build-ms */
+const ECO_BUILD    = '20260916-0118';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789532322378;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -54416,7 +54444,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0110</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0118</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

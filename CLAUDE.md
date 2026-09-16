@@ -460,6 +460,45 @@ Se recuperó con `git show HEAD:` y se verificó **byte por byte** contra HEAD. 
 entrada «Los reemplazos por rango de líneas son peligrosos» que este archivo ya tenía, aplicada al
 propio suite: **después de un reemplazo por rango, contar los casos.**
 
+### La brecha del Excel eran OCHO columnas, no cuarenta
+Auditoría del 2026-09-16 sobre todo lo construido en la semana. El pedido las daba por ausentes en
+bloque; medido campo por campo, **casi todo ya estaba**: Doppler tricuspídeo 4/4, válvula pulmonar
+6/6, TdF 12/12, Ebstein 15/15, y las demás secciones completas salvo un campo cada una.
+
+**Cómo se mide bien, porque mis dos primeros barridos dieron falsos negativos.** Los checkbox se
+persisten con sufijo **`__chk`**, así que buscar `'fontan_comp_epp'` en `LAB_XLS_MAP` no encuentra
+`'fontan_comp_epp__chk'` y seis columnas que SÍ estaban salían como faltantes. Y un regex sobre
+`'([a-z_0-9]+)'` no matchea `cardioOnco` por la mayúscula. **Comparar con la cadena entrecomillada
+exacta, contemplando el sufijo, y mirar las DOS direcciones** —`LAB_XLS_MAP` es el import y
+`_labExcelRow` el export, y un campo puede estar en una y no en la otra—.
+
+**Lo que faltaba de verdad:**
+- **`et_grado`.** Viajaban el THP, el VTI y el área —los tres insumos de la significación— y **no
+  el grado que el médico consignó**. Entra como `opcion`, así que necesitó su entrada en
+  `LAB_XLS_LISTAS`: sin ella `_labXlsLista` devuelve `null` y el importador **descarta la fila
+  entera**.
+- **Las SIETE casillas de inclusión** de las secciones nuevas (Marfan, Eisenmenger, Fontan,
+  subaórtica, supravalvular, DSAV, CVPA), mientras las **doce viejas sí estaban**. No es
+  cosmético: esa casilla decide si la sección **sale en el informe firmado**, así que un estudio
+  reimportado volvía con los datos y **sin la decisión de integrarlos** — la sección desaparecía
+  del informe sin que nada lo dijera. Es el defecto de `ete_morfo_incluir`, por la vía del Excel.
+
+El Excel pasó de **421 a 429 columnas** y de 128 a **129 básicas**; TC-135 fija los dos y TC-146 el
+contenido. Ojo con el `0` de una casilla apagada: **no es lo mismo que ausente**, y el caso lo
+distingue.
+
+### Lo que el Laboratorio todavía NO muestra de las secciones nuevas
+`labCCRender` tiene trece bloques, y cubren las secciones **viejas**: shunt, ductus, coartación,
+FOP, VAB, MCH, MCA, TGA, VAP, TdF y Ebstein. **Siete no tienen bloque**: Marfan, Eisenmenger,
+Fontan, subaórtica, supravalvular, DSAV y CVPA. Y la subtab Mediciones no muestra el Doppler
+tricuspídeo, la ET completa ni el nivel/etiología de EP/IP. **Los datos viajan al Excel; lo que
+falta es la VISTA.**
+
+Al construirlos, la trampa está documentada arriba: **reimplementar una regla clínica en el
+Laboratorio la desincroniza de la pestaña del paciente sin que nada lo delate** — once defectos
+salieron de eso la vez anterior. Los bloques nuevos tienen que leer los `*Conclusion()`/`*Estado()`
+que ya existen, o extraer el predicado, nunca reescribirlo.
+
 ### Soporte y contacto: cuatro `mailto:` y una decisión de privacidad
 Agregada al final de Config el 2026-09-16. Sin servidor, sin formulario y sin dependencias: el
 cliente de correo del dispositivo hace todo, así que anda igual en escritorio y en móvil y **no
