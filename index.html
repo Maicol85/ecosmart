@@ -49394,9 +49394,9 @@ function _labPptAssertClaves() {
 }
 if (document.readyState === 'loading')
   document.addEventListener('DOMContentLoaded', function () {
-    try { _labPptChkInyectar(); _labPptAssertClaves(); } catch (e) { console.error('[LAB_PPT] init:', e); }
+    try { _labPptChkInyectar(); _labPptAssertClaves(); _labPptAssertGrupos(); } catch (e) { console.error('[LAB_PPT] init:', e); }
   });
-else { try { _labPptChkInyectar(); _labPptAssertClaves(); } catch (e) { console.error('[LAB_PPT] init:', e); } }
+else { try { _labPptChkInyectar(); _labPptAssertClaves(); _labPptAssertGrupos(); } catch (e) { console.error('[LAB_PPT] init:', e); } }
 
 function labSubTab(id, el) {
   document.querySelectorAll('#tab-lab .lab-subtab')
@@ -51973,38 +51973,80 @@ const LAB_PPT_W = 10, LAB_PPT_H = 5.625;   // LAYOUT_16x9 en pulgadas
    hay presentación— y desmarcarlas produciría un archivo que no se puede interpretar.
    Las claves son las que viajan en `opts` y las que se guardan en `localStorage`; NO se derivan de
    la etiqueta, para que cambiar un rótulo no invalide la preferencia de quien ya lo usó. */
-const LAB_PPT_MODULOS = [
-  { k:'basicos',  lbl:'Datos básicos (portada, resumen, demografía)', fijo:true },
-  { k:'funcion',  lbl:'Función sistólica y diastólica', def:true },
-  { k:'valvulas', lbl:'Valvulopatías' },
-  { k:'htpvd',    lbl:'HTP y función del VD' },
-  { k:'cc',       lbl:'Cardiopatías congénitas' },
-  { k:'onco',     lbl:'Cardio-Oncología' }
-];
-const LAB_PPT_ANALISIS = [
-  { k:'descr',   lbl:'Estadística descriptiva', fijo:true },
-  { k:'asoc',    lbl:'Asociaciones clínicas (top 3 del período)' },
-  { k:'tend',    lbl:'Tendencia temporal (evolución mensual)' },
-  { k:'subgr',   lbl:'Comparación de subgrupos (FEVI < 40 % vs ≥ 40 %)' }
-];
-const LAB_PPT_SEL_KEY = 'ecosmart_ppt_lab_sel';
-/* La preferencia se FILTRA contra el catálogo al leerla. Sin eso, una clave de un módulo que
-   mañana se borre resucita en `opts` y el generador la consulta con un `if` que ya no existe —
-   es el mismo filtro que `_labExpLeerPref` aplica a los módulos del Excel. */
-function _labPPTLeerSel() {
-  const sel = { mods: Object.create(null), anal: Object.create(null) };
-  LAB_PPT_MODULOS.forEach(m => { if (m.fijo || m.def) sel.mods[m.k] = true; });
-  LAB_PPT_ANALISIS.forEach(a => { if (a.fijo || a.def) sel.anal[a.k] = true; });
-  try {
-    const g = JSON.parse(localStorage.getItem(LAB_PPT_SEL_KEY) || 'null');
-    if (g && typeof g === 'object') {
-      LAB_PPT_MODULOS.forEach(m => { if (!m.fijo && Object.prototype.hasOwnProperty.call(g.mods || {}, m.k)) sel.mods[m.k] = !!g.mods[m.k]; });
-      LAB_PPT_ANALISIS.forEach(a => { if (!a.fijo && Object.prototype.hasOwnProperty.call(g.anal || {}, a.k)) sel.anal[a.k] = !!g.anal[a.k]; });
-    }
-  } catch (e) {}
-  return sel;
-}
+/* ══ AGRUPACIÓN DEL MAZO POR TEMA ════════════════════════════════════════════════════════════
+   REEMPLAZA a `LAB_PPT_MODULOS` / `LAB_PPT_ANALISIS`, que eran seis categorías gruesas elegidas
+   en el modal sobre 53 tarjetas. Desde el 2026-09-16 la fuente de verdad son las casillas «☐ PPT»
+   de las tarjetas, y este registro dice a qué DIAPOSITIVA va cada una.
 
+   ES UNA LISTA, y no se puede derivar: «esta tarjeta va en la diapositiva de función ventricular»
+   es una decisión editorial, no un hecho del DOM. Lo que sí se puede es impedir que se pudra, y
+   para eso está `_labPptAssertGrupos()`: toda clave `data-ppt` tiene que pertenecer a EXACTAMENTE
+   un grupo. Una tarjeta nueva sin grupo tendría casilla, el médico la tildaría y **no pasaría
+   nada** — que es exactamente el silencio que costó el «sólo 7 diapositivas» de la semana pasada.
+
+   Las trece agrupan las 53. Las tres últimas son las que Maicol decidió conservar del mazo
+   anterior: las asociaciones ya corregidas por comparaciones múltiples, la tendencia temporal y
+   la comparación de subgrupos, que el pedido de la agrupación no mencionaba. */
+const LAB_PPT_GRUPOS = [
+  { k:'actividad', lbl:'Actividad del laboratorio', cards:['actividad','calidad','indicadores','medicos','docencia'] },
+  { k:'demografia',lbl:'Perfil demográfico',        cards:['demografia','indicaciones','antecedentes','anatomico'] },
+  { k:'funcion',   lbl:'Función ventricular',       cards:['funcion','geometria','sgl','volai','descriptiva'] },
+  { k:'vdhtp',     lbl:'VD y presión pulmonar',     cards:['vd','htp','doptric'] },
+  { k:'contr',     lbl:'Contractilidad segmentaria',cards:['contractilidad'] },
+  { k:'valv',      lbl:'Valvulopatías',             cards:['valvulas','etiologias'] },
+  { k:'hemo',      lbl:'Perfil hemodinámico',       cards:['hemo','tep','hfapeff','usoavanzado'] },
+  { k:'amil',      lbl:'Amiloidosis',               cards:['amiloidosis'] },
+  { k:'onco',      lbl:'Cardio-Oncología',          cards:['onco'] },
+  { k:'ete',       lbl:'Ecocardiograma transesofágico', cards:['eteactividad','tavi','wilkins','orejuela','teer'] },
+  { k:'ccestr',    lbl:'Cardiopatías congénitas estructurales',
+    cards:['ccactividad','ciaciv','qpqs','ciabordes','dap','vap','coao','fop','vab','ccotras'] },
+  { k:'cccompl',   lbl:'Cardiopatías congénitas complejas', cards:['eisenmenger','fontan','tdf','ebstein','tga'] },
+  { k:'miocard',   lbl:'Miocardiopatías',           cards:['mch','mca','marfan'] },
+  { k:'asoc',      lbl:'Asociaciones estadísticas', cards:['asoc','asocclin','asoclibre'] },
+  { k:'tend',      lbl:'Tendencia y subgrupos',     cards:['comparar'] }
+];
+/* Índice clave de tarjeta → grupo. Prototipo nulo: las claves salen de un atributo del archivo,
+   pero este objeto se indexa con cadenas y `{}` ya costó un conteo silencioso en el Laboratorio. */
+const _LAB_PPT_GRUPO_DE = (function () {
+  const m = Object.create(null);
+  LAB_PPT_GRUPOS.forEach(g => g.cards.forEach(c => { m[c] = g.k; }));
+  return m;
+})();
+/* Assert de arranque, como `_labXlsAssertBloques` y `_labPptAssertClaves`. Vigila las DOS
+   direcciones: una tarjeta sin grupo tendría casilla y no produciría nada, y un grupo que nombre
+   una tarjeta inexistente es una diapositiva que nunca se puede pedir — los dos son mudos. */
+function _labPptAssertGrupos() {
+  const enDom = [];
+  document.querySelectorAll('#tab-lab .lab-card[data-ppt]').forEach(c => enDom.push(c.getAttribute('data-ppt')));
+  const enGrupo = Object.keys(_LAB_PPT_GRUPO_DE);
+  const sinGrupo = enDom.filter(k => !_LAB_PPT_GRUPO_DE[k]);
+  const sinTarjeta = enGrupo.filter(k => enDom.indexOf(k) === -1);
+  const dobles = [];
+  const vistas = Object.create(null);
+  LAB_PPT_GRUPOS.forEach(g => g.cards.forEach(c => { if (vistas[c]) dobles.push(c); else vistas[c] = 1; }));
+  if (sinGrupo.length)   console.error('[LAB_PPT] tarjetas con casilla y sin diapositiva:', sinGrupo);
+  if (sinTarjeta.length) console.error('[LAB_PPT] grupos que nombran una tarjeta inexistente:', sinTarjeta);
+  if (dobles.length)     console.error('[LAB_PPT] tarjetas en dos grupos:', dobles);
+  return { enDom: enDom.length, enGrupo: enGrupo.length, sinGrupo: sinGrupo, sinTarjeta: sinTarjeta, dobles: dobles };
+}
+/* Cuántos estudios tiene el período SIN los filtros de cohorte. Es el contraste que la portada
+   no puede dar: «N = 12» sin decir que se descartaron 83 publica un denominador que la sala lee
+   como «todo el laboratorio en el período».
+   Apaga `_LAB_COHORTE` y lo repone en un `finally`, que es el patrón `_pcCon` del pericardio.
+   Devuelve null si algo falla: un número de más sería peor que la ausencia. */
+function _labPptNSinCohorte() {
+  const guardado = _LAB_COHORTE;
+  try { _LAB_COHORTE = null; return labGetInformes().length; }
+  catch (e) { return null; }
+  finally { _LAB_COHORTE = guardado; }
+}
+/* Los grupos con al menos una tarjeta tildada. ES LA ÚNICA FUENTE del contenido del mazo: el modal
+   quedó con presentador, institución, fecha y paleta, y no decide qué entra. */
+function _labPptGruposActivos() {
+  const marcadas = _labPptChkMarcadas(), on = Object.create(null);
+  marcadas.forEach(k => { const g = _LAB_PPT_GRUPO_DE[k]; if (g) on[g] = true; });
+  return on;
+}
 let _labPPTAbierto = false;
 function labPPTEstadistico() {
   /* La compuerta va ANTES del modal, no después: pedirle al médico presentador, institución,
@@ -52018,6 +52060,13 @@ function labPPTEstadistico() {
   }
   if (typeof PptxGenJS === 'undefined') {
     toast('⚠️ La librería de PowerPoint no cargó. Verificá la conexión y recargá la página.');
+    return;
+  }
+  /* Y la de «ninguna tarjeta tildada», por el mismo motivo que la del período: un mazo de tres
+     hojas fijas no es una presentación, y descubrirlo después de elegir paleta es peor. El
+     mensaje dice DÓNDE está el control, porque el modal ya no lo tiene. */
+  if (!Object.keys(_labPptGruposActivos()).length) {
+    toast('⚠️ Seleccioná al menos una tarjeta con «☐ PPT» en el Laboratorio: son las que deciden qué diapositivas se generan.');
     return;
   }
   _labPPTModal(infs);
@@ -52075,27 +52124,19 @@ function _labPPTModal(infs) {
   const iso = hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0') + '-' + String(hoy.getDate()).padStart(2, '0');
   const inFecha = campo('Fecha de presentación', iso, '', 'date');
 
-  const sel = _labPPTLeerSel();
-  const grupo = (titulo, defs, destino) => {
-    const l2 = document.createElement('label');
-    l2.style.cssText = 'display:block;font-size:.75rem;font-weight:700;color:var(--text2);margin:14px 0 6px;';
-    l2.textContent = titulo;
-    caja.appendChild(l2);
-    defs.forEach(d => {
-      const w = document.createElement('label');
-      w.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:.84rem;margin-bottom:5px;cursor:pointer;';
-      const c = document.createElement('input');
-      c.type = 'checkbox';
-      c.checked = d.fijo ? true : !!destino[d.k];
-      if (d.fijo) { c.disabled = true; w.style.cursor = 'default'; w.style.opacity = '.75'; }
-      c.onchange = () => { destino[d.k] = c.checked; };
-      const t2 = document.createElement('span');
-      t2.textContent = d.lbl + (d.fijo ? '  (siempre)' : '');
-      w.appendChild(c); w.appendChild(t2); caja.appendChild(w);
-    });
-  };
-  grupo('Módulos a incluir', LAB_PPT_MODULOS, sel.mods);
-  grupo('Tipo de análisis', LAB_PPT_ANALISIS, sel.anal);
+  /* EL MODAL YA NO ELIGE CONTENIDO. Lo eligen las casillas «☐ PPT» de las tarjetas, que es donde
+     el médico está mirando los números que quiere proyectar. Acá sólo queda quién presenta y con
+     qué paleta — y un resumen de lo tildado, para que no haya que volver a recorrer las subtabs
+     para saber qué va a salir. */
+  const _gAct = _labPptGruposActivos();
+  const _gNom = LAB_PPT_GRUPOS.filter(g => _gAct[g.k]).map(g => g.lbl);
+  const lr = document.createElement('div');
+  lr.style.cssText = 'font-size:.78rem;color:var(--text2);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin:14px 0 4px;line-height:1.5;';
+  lr.textContent = _gNom.length
+    ? ('Se incluirán ' + _gNom.length + ' diapositiva(s) temática(s): ' + _gNom.join(' · ') +
+       '. Más portada, metodología y cierre.')
+    : 'Ninguna tarjeta tildada: sólo saldrían portada, metodología y cierre.';
+  caja.appendChild(lr);
 
   const lt = document.createElement('label');
   lt.style.cssText = 'display:block;font-size:.75rem;font-weight:700;color:var(--text2);margin:14px 0 6px;';
@@ -52136,9 +52177,8 @@ function _labPPTModal(infs) {
   gen.type = 'button'; gen.className = 'btn'; gen.textContent = 'Generar PPT';
   gen.onclick = () => {
     try { localStorage.setItem(PPT_TEMA_KEY, tema); } catch (e) {}   // preferencia, no dato clínico
-    try { localStorage.setItem(LAB_PPT_SEL_KEY, JSON.stringify(sel)); } catch (e) {}   // preferencia, no dato clínico
     const opts = { presentador: _t(inPres.value), institucion: _t(inInst.value), fecha: _t(inFecha.value),
-                   tema: tema, mods: sel.mods, anal: sel.anal };
+                   tema: tema };
     cerrar();
     _labPPTGenerar(infs, opts);
   };
@@ -52247,7 +52287,12 @@ async function _labPPTGenerar(infs, o) {
   if (_labPPTEnCurso) return;
   _labPPTEnCurso = true;
   const T = _pptTxt;
-  const mods = o.mods || {}, anal = o.anal || {};
+  /* LA FUENTE DE VERDAD SON LAS CASILLAS. `o.mods`/`o.anal` desaparecieron con el selector del
+     modal; `G(k)` contesta «¿hay alguna tarjeta tildada de este grupo?». Se resuelve UNA vez, al
+     principio: leerlo por diapositiva haría que tildar una casilla a mitad de la generación
+     produjera un mazo mitad y mitad. */
+  const _G = _labPptGruposActivos();
+  const G = k => !!_G[k];
   try {
     const C = Object.prototype.hasOwnProperty.call(PPT_TEMAS, o.tema) ? PPT_TEMAS[o.tema] : PPT_TEMAS.dark;
     const HDR_BG = C.hdrBg || C.teal, FONT = C.hdrFont || PPT_FONT;
@@ -52366,8 +52411,27 @@ async function _labPPTGenerar(infs, o) {
       ponerLogo(s); conPie(s);
     }
 
+    /* ── 1b · FILTROS ACTIVOS ──
+       Sólo con cohorte filtrada. Sin filtros la hoja diría «ninguno», que es una diapositiva
+       entera para no decir nada; y la portada YA declara el período y el N. Lo que esta hoja
+       agrega, y la portada no puede, es el N SIN filtrar al lado del filtrado: sin ese contraste
+       la sala no tiene cómo saber cuánto se descartó. */
+    if (cohTxt) {
+      const s = nueva('Cohorte analizada');
+      let nTodos = null;
+      try { nTodos = _labPptNSinCohorte(); } catch (e) { console.error('[labPPT/filtros]', e); }
+      let y = 1.00;
+      y = dato(s, 0.4, y, 'Período analizado', periodo || 'Todos');
+      y = dato(s, 0.4, y, 'Estudios de la cohorte', String(n));
+      dato(s, 0.4, y, 'Del laboratorio en ese período', nTodos === null ? 'no disponible' : String(nTodos));
+      s.addText(T('Filtros activos'), { x:5.2, y:0.95, w:4.5, h:0.24, fontSize:11, bold:true, color:C.txt2, fontFace:FONT });
+      s.addText(T(cohTxt), { x:5.2, y:1.22, w:4.5, h:2.0, fontSize:11, color:C.txt, fontFace:FONT, valign:'top' });
+      s.addText(T('Todas las diapositivas siguientes son sobre esta cohorte. Los totales NO son los del laboratorio completo.'),
+        { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, bold:true, italic:true, color:C.rojo, fontFace:FONT });
+    }
+
     // ── 2 · RESUMEN EJECUTIVO ──
-    {
+    if (G('actividad')) {
       const s = nueva('Resumen ejecutivo');
       const f = dsc('FEVI (%)');
       let y = 1.00;
@@ -52385,7 +52449,7 @@ async function _labPPTGenerar(infs, o) {
     }
 
     // ── 3 · PERFIL DEMOGRÁFICO ──
-    {
+    if (G('demografia')) {
       const s = nueva('Perfil demográfico');
       const sx = _labSexos(infs), ed = dsc('Edad');
       let y = 1.00;
@@ -52400,7 +52464,7 @@ async function _labPPTGenerar(infs, o) {
     }
 
     // ── 4 · FUNCIÓN SISTÓLICA ──
-    if (mods.funcion && (fevis.length >= MIN_OPC || faltanN(fevis.length, 'Función sistólica', 'estudio(s) con FEVI medida'))) {
+    if (G('funcion') && (fevis.length >= MIN_OPC || faltanN(fevis.length, 'Función sistólica', 'estudio(s) con FEVI medida'))) {
       const s = nueva('Función sistólica');
       /* Semáforo por RANGO, no por posición: `_labFeviDist` devuelve las bandas de mejor a peor,
          así que el color se ata al índice de esa lista y no a un orden que alguien reordene. */
@@ -52414,7 +52478,7 @@ async function _labPPTGenerar(infs, o) {
     }
 
     // ── 5 · FUNCIÓN DIASTÓLICA ──
-    if (mods.funcion && (dia.tot >= MIN_OPC || faltanN(dia.tot, 'Función diastólica', 'estudio(s) con grado diastólico clasificable'))) {
+    if (G('funcion') && (dia.tot >= MIN_OPC || faltanN(dia.tot, 'Función diastólica', 'estudio(s) con grado diastólico clasificable'))) {
       const s = nueva('Función diastólica');
       gBarras(s, dia.dist, { x:0.4, y:0.92, w:5.6, h:2.6 }, 'Grado de disfunción diastólica');
       let y = 1.05;
@@ -52427,7 +52491,7 @@ async function _labPPTGenerar(infs, o) {
     }
 
     // ── 6 · VALVULOPATÍAS ──
-    if (mods.valvulas) {
+    if (G('valv')) {
       const s = nueva('Valvulopatías');
       const vc = _labValvCounts(infs);
       const cel = (x, base, color) => ({ text: base > 0 ? (x + ' (' + Math.round(x/base*100) + ' %)') : '—',
@@ -52456,7 +52520,7 @@ async function _labPPTGenerar(infs, o) {
     }
 
     // ── 7 · HTP Y FUNCIÓN DEL VD ──
-    if (mods.htpvd && (psaps.length >= MIN_OPC || faltanN(psaps.length, 'Presión pulmonar y VD', 'estudio(s) con PSAP estimable'))) {
+    if (G('vdhtp') && (psaps.length >= MIN_OPC || faltanN(psaps.length, 'Presión pulmonar y VD', 'estudio(s) con PSAP estimable'))) {
       const s = nueva('Presión pulmonar y función del VD');
       gBarras(s, _labPsapDist(psaps).map((x, k) => ({ lbl:x.lbl, n:x.n })), { x:0.4, y:0.92, w:5.6, h:2.4 },
         'PSAP estimada por rangos', [SEM.verde, SEM.amarillo, SEM.naranja, SEM.rojo]);
@@ -52472,7 +52536,7 @@ async function _labPPTGenerar(infs, o) {
     }
 
     // ── 8 · ASOCIACIONES CLÍNICAS ──
-    if (anal.asoc) {
+    if (G('asoc')) {
       const s = nueva('Asociaciones estadísticas del período');
       let A = null;
       try { A = _labAsocParaPDF(infs); } catch (e) { console.error('[labPPT/asoc]', e); }
@@ -52518,7 +52582,7 @@ async function _labPPTGenerar(infs, o) {
     }
 
     // ── 9 · TENDENCIA TEMPORAL ──
-    if (anal.tend) {
+    if (G('tend')) {
       const ms = _labMeses(infs);
       if (ms.length < 2) omitir('Actividad por mes', ms.length + ' mes(es) con actividad, se necesitan al menos 2');
       if (ms.length >= 2) {
@@ -52546,7 +52610,7 @@ async function _labPPTGenerar(infs, o) {
     }
 
     // ── 10 · COMPARACIÓN DE SUBGRUPOS ──
-    if (anal.subgr) {
+    if (G('tend')) {
       const baj = infs.filter(i => { const f = _labFevi(i); return f !== null && f > 0 && f < 40; });
       const alt = infs.filter(i => { const f = _labFevi(i); return f !== null && f >= 40; });
       if (baj.length < MIN_OPC || alt.length < MIN_OPC)
@@ -52587,7 +52651,7 @@ async function _labPPTGenerar(infs, o) {
     }
 
     // ── 11 · CARDIOPATÍAS CONGÉNITAS ──
-    if (mods.cc) {
+    if (G('ccestr') || G('cccompl') || G('miocard')) {
       const secs = _CC_SECS.map(sc => ({ lbl: sc.lbl, n: infs.filter(sc.pred).length })).filter(x => x.n > 0);
       if (!secs.length) omitir('Cardiopatías congénitas', 'ningún estudio del período tiene una sección congénita cargada');
       if (secs.length) {
@@ -52611,7 +52675,7 @@ async function _labPPTGenerar(infs, o) {
     }
 
     // ── 12 · CARDIO-ONCOLOGÍA ──
-    if (mods.onco) {
+    if (G('onco')) {
       const onc = infs.filter(i => _labCampoRaw(i, 'co_farmaco') !== '' || _labCampoRaw(i, 'co_fevi_basal') !== '' ||
                                    _labCampoRaw(i, 'co_dosis_antrac') !== '');
       if (onc.length < MIN_OPC) faltanN(onc.length, 'Cardio-Oncología', 'estudio(s) con datos oncológicos');
@@ -52630,6 +52694,49 @@ async function _labPPTGenerar(infs, o) {
           { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
       }
     }
+
+    /* ── 12b · ECOCARDIOGRAMA TRANSESOFÁGICO ──
+       Los cuatro números salen de los seams que se extrajeron de `labEteRender` el 2026-09-16
+       (`_labTaviResumen`, `_labWilkinsResumen`, `_labOaiResumen`, `_labTeerResumen`). NINGUNO se
+       recalcula acá: con una segunda implementación, el mazo y la subtab contarían la misma
+       cohorte distinto, y el proyector es la superficie donde eso no se puede verificar. */
+    if (G('ete')) {
+      const eteArr = infs.filter(_labEsEte);
+      if (!eteArr.length) omitir('Ecocardiograma transesofágico', 'ningún estudio del período tiene la casilla «Es un ETE» marcada');
+      else {
+        const s = nueva('Ecocardiograma transesofágico');
+        const tv = _labTaviResumen(eteArr.filter(_labUsaTavi));
+        const wk = _labWilkinsResumen(eteArr);
+        const oa = _labOaiResumen(eteArr.filter(_labUsaOai));
+        const te = _labTeerResumen(eteArr.filter(_labUsaTeer));
+        let y = 1.00;
+        y = dato(s, 0.4, y, 'Estudios marcados como ETE', String(eteArr.length));
+        y = dato(s, 0.4, y, 'TAVI', tv.n + ' de ' + eteArr.length + (tv.gm ? '  ·  gradiente medio ' + tv.gm.v.toFixed(1) + ' mmHg (n=' + tv.gm.n + ')' : ''));
+        y = dato(s, 0.4, y, 'Score de Wilkins', wk.n ? (wk.prom.v.toFixed(1) + ' / 16 (n=' + wk.n + ')' +
+              '  ·  ≤8: ' + wk.opt + '  9-11: ' + wk.bor + '  ≥12: ' + wk.no) : 'sin scores completos');
+        y = dato(s, 0.4, y, 'Orejuela izquierda', oa.n ? (oa.n + ' evaluada(s)  ·  trombo ' + oa.positivos + ' de ' + oa.evaluados +
+              (oa.sospecha ? '  ·  sospecha ' + oa.sospecha : '')) : 'sin orejuela evaluada');
+        dato(s, 0.4, y, 'TEER', te.n ? (te.n + ' con criterios  ·  apto ' + te.apto + '  ·  límite ' + te.limite + '  ·  no apto ' + te.noApto) : 'sin evaluación TEER');
+        /* El jet paravalvular por hora del reloj, que es lo que el pedido nombraba. Barras y no
+           un reloj dibujado: el mazo usa gráficos NATIVOS, editables en PowerPoint. */
+        const hs = Object.keys(tv.horas).map(Number).sort((a, b) => a - b);
+        if (!gBarras(s, hs.map(h => ({ lbl: h + ' h', n: tv.horas[h] })), { x:6.2, y:0.92, w:3.5, h:2.6 },
+                     'Jet paravalvular por hora'))
+          s.addText(T(tv.n ? 'Sin jet paravalvular consignado.' : 'Sin estudios con TAVI.'),
+            { x:6.2, y:1.6, w:3.5, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
+        s.addText(T('El denominador son los estudios marcados con la casilla «Es un ETE», no los detectados por sus campos: el score de Wilkins y el área mitral también se miden por vía transtorácica.'),
+          { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
+      }
+    }
+
+    /* ── GRUPOS TILDADOS QUE TODAVÍA NO TIENEN HOJA ──
+       Contractilidad, amiloidosis y hemodinámica tienen casilla y todavía no tienen diapositiva:
+       sus números siguen inline en el render del Laboratorio y el mazo no puede leerlos sin
+       escribir una segunda copia. Se DECLARAN uno por uno con su motivo, que es la lección del
+       «sólo 7 diapositivas»: el médico tildó la tarjeta y tiene derecho a saber por qué no salió,
+       en vez de contar hojas y no entender. */
+    [['contr', 'Contractilidad segmentaria'], ['amil', 'Amiloidosis'], ['hemo', 'Perfil hemodinámico']]
+      .forEach(par => { if (G(par[0])) omitir(par[1], 'todavía no tiene diapositiva — sus números siguen dentro del render del Laboratorio'); });
 
     // ── 13 · METODOLOGÍA ──
     {
@@ -55848,8 +55955,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260916-0938';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789562307154;                 /* eco-build-ms */
+const ECO_BUILD    = '20260916-0950';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789563015366;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -55935,7 +56042,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0938</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0950</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -487,6 +487,73 @@ El Excel pasó de **421 a 429 columnas** y de 128 a **129 básicas**; TC-135 fij
 contenido. Ojo con el `0` de una casilla apagada: **no es lo mismo que ausente**, y el caso lo
 distingue.
 
+### El mazo lo arman las CASILLAS, no el modal — 2026-09-16
+
+Commit 3 de tres. `_labPPTGenerar` dejó de mirar `o.mods`/`o.anal` —el selector de seis categorías
+del modal— y pasó a mirar las casillas «☐ PPT» de las 53 tarjetas. El modal quedó con presentador,
+institución, fecha y paleta.
+
+**`LAB_PPT_GRUPOS` ES UNA LISTA Y NO SE PUEDE DERIVAR.** «Esta tarjeta va en la diapositiva de
+función ventricular» es una decisión editorial, no un hecho del DOM. Lo que sí se puede es impedir
+que se pudra: **`_labPptAssertGrupos()`** exige que toda clave `data-ppt` pertenezca a
+**exactamente un** grupo, y vigila las dos direcciones —una tarjeta sin grupo y un grupo que
+nombre una tarjeta inexistente—. Las dos fallan MUDAS: la primera da una casilla que el médico
+tilda y no produce nada, que es literalmente el «sólo 7 diapositivas» de la semana pasada.
+
+**QUINCE GRUPOS PARA 53 TARJETAS.** Trece salen del pedido; las tres últimas —asociaciones,
+tendencia y subgrupos— son las que Maicol decidió conservar del mazo anterior y que la agrupación
+propuesta no mencionaba. Sin esa decisión se habrían perdido las asociaciones ya corregidas por
+comparaciones múltiples, que es lo que más aporta en un ateneo.
+
+**LO QUE TIENE CASILLA Y TODAVÍA NO TIENE HOJA SE DECLARA.** Contractilidad, amiloidosis y
+hemodinámica se tildan y todavía no producen diapositiva —sus números siguen inline en el render
+del Laboratorio—. En vez de callar, cada una emite su omisión con el motivo, en el toast y en la
+hoja de metodología. Es la lección del «sólo 7 diapositivas» aplicada por adelantado: el médico
+tildó la tarjeta y tiene derecho a saber por qué no salió.
+
+**La compuerta de «ninguna tildada» va ANTES del modal**, junto a la del período vacío y por el
+mismo motivo: un mazo de tres hojas fijas no es una presentación, y descubrirlo después de elegir
+la paleta es peor. **El mensaje dice DÓNDE está el control**, porque el modal ya no lo tiene.
+
+**La diapositiva de filtros sólo sale con cohorte activa, y lo que aporta es el N SIN filtrar.**
+La portada ya declara el período y el N; sin filtros esta hoja diría «ninguno», que es una
+diapositiva entera para no decir nada. Lo que la portada no puede dar es el contraste: «N = 12»
+sin decir que se descartaron 83 publica un denominador que la sala lee como todo el laboratorio.
+`_labPptNSinCohorte()` apaga `_LAB_COHORTE` y lo repone en un `finally` —el patrón `_pcCon` del
+pericardio— y devuelve `null` si algo falla: un número de más sería peor que la ausencia.
+
+**La diapositiva de ETE consume los cuatro seams del commit 2**, no recalcula nada. Es la razón
+por la que ese commit existió.
+
+#### Lo que costó
+
+**CUATRO CASOS ANTERIORES SE PUSIERON EN ROJO, Y ESO ES LA SEÑAL, NO EL PROBLEMA.** TC-148, 150,
+151 y 152 pasaban `mods`/`anal` al generador. Se reapuntaron con un helper del preludio,
+`__t.pptSel(claves)`, que escribe las casillas — el mismo movimiento que ya se le hizo a TC-148
+cuando el mazo se volvió modular y a TC-150/151 cuando cambió el punto de salida del `.pptx`.
+
+**TC-150 PERDIÓ SU TEMA.** Se llamaba «14 diapositivas, selector de contenido…» y las dos mitades
+dejaron de existir: el conteo exacto ahora depende de qué se tilde y el selector del modal ya no
+está. Se le quitaron esas condiciones —las cubre TC-155— y quedó con lo que sigue siendo suyo:
+gráficos nativos, semáforo de la FEVI y asociaciones leídas del Lab. **Se renombró.** Un caso cuyo
+título nombra algo que ya no prueba se lee como cobertura que no existe.
+
+**LA CONDICIÓN QUE SEPARA «las casillas mandan» DE «sale todo igual»** no es el conteo sino que con
+sólo TAVI tildado **NO aparezca ninguna hoja de los otros grupos**. La mutación `G = () => true`
+—el generador ignora las casillas— da un mazo de catorce perfectamente plausible; sólo esa
+condición lo caza. **Dos mutaciones, las dos cazadas.**
+
+**Y otra vez la trampa de la red:** la primera corrida de la segunda mutación dio rojo por «la
+librería no llegó». Confirmar por qué condición cayó, no que cayó.
+
+**Medí la compuerta de «ninguna tildada» sobre un store VACÍO y no probé nada:** salía por la
+compuerta del período, que está antes. El caso siembra el store, pone el período en «todo el
+tiempo» y limpia la cohorte antes de ejercerla. Es el denominador otra vez, por tercera vez en
+esta tanda.
+
+**Verificado con el mazo real:** sólo TAVI → **4 diapositivas** (portada · ETE · metodología ·
+cierre); TAVI + Eisenmenger + FEVI → **7**; ninguna tildada → 3 fijas y el generador no se llama.
+
 ### Extraer un seam sin tocar el render: alias locales y comparación byte a byte — 2026-09-16
 
 Commit 2 de tres. La subtab ETE calculaba TAVI, Wilkins, orejuela y TEER **inline** dentro de

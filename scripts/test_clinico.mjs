@@ -181,6 +181,17 @@ const PRELUDIO = `
     borrar(estudioId) {
       if (!estudioId) return Promise.resolve(false);
       return CeiboStore.setLocal(getInformes().filter(i => i.estudioId !== estudioId));
+    },
+    /* Las casillas «☐ PPT» del Laboratorio, que desde el 2026-09-16 son lo que decide el
+       contenido del mazo. Antes esto iba como mods/anal dentro de las opciones del
+       generador; esos dos campos ya no existen. */
+    pptSel(claves) {
+      try { localStorage.setItem('ecosmart_lab_ppt_chk',
+        JSON.stringify((claves || []).reduce((a, k) => { a[k] = true; return a; }, {}))); } catch (e) {}
+    },
+    pptTodo() {
+      this.pptSel(['actividad','demografia','funcion','vd','htp','valvulas','onco','eisenmenger',
+                   'tavi','amiloidosis','asoc','comparar','contractilidad','hemo']);
     }
   };
 `;
@@ -4816,8 +4827,8 @@ caso('TC-148', 'PPT del Laboratorio: rangos de PSAP y no grados, paleta, y la co
 
     /* Se pasa la seleccion COMPLETA: desde el rediseno el mazo es modular y sin "mods"/"anal"
        solo se generan las diapositivas fijas. */
-    await _labPPTGenerar(infs, { presentador:'Dra. Prueba', institucion:'Centro X', fecha:'2026-09-20', tema:'azul',
-      mods:{basicos:1,funcion:1,valvulas:1,htpvd:1,cc:1,onco:1}, anal:{descr:1,asoc:1,tend:1,subgr:1} });
+    __t.pptTodo();
+    await _labPPTGenerar(infs, { presentador:'Dra. Prueba', institucion:'Centro X', fecha:'2026-09-20', tema:'azul' });
 
     const P = capt ? capt.self : null;
     const slides = P ? (P.slides || P._slides || []) : [];
@@ -4996,7 +5007,7 @@ caso('TC-149', 'Manual: 8 pestanas, PDF de 20 paginas o menos, y las advertencia
    Se intercepta writeFile y se inspeccionan los objetos de cada diapositiva: un mazo que "se
    genera sin lanzar" no prueba nada; lo que hay que ver es que la diapositiva opcional NO este
    cuando no se pidio, y que los graficos sean charts y no rectangulos dibujados a mano. */
-caso('TC-150', 'PPT Lab: 14 diapositivas, selector de contenido, graficos nativos y asociaciones leidas del Lab', `
+caso('TC-150', 'PPT Lab: graficos nativos, semaforo de FEVI y asociaciones leidas del Lab', `
   return (async function(){
     if (typeof PptxGenJS === 'undefined') {
       return { extra: [['PptxGenJS cargo por CDN', false, 'la libreria no llego']] };
@@ -5042,9 +5053,14 @@ caso('TC-150', 'PPT Lab: 14 diapositivas, selector de contenido, graficos nativo
       } });
     }
     const base = { presentador:'Dra. Prueba', institucion:'Centro X', fecha:'2026-09-20', tema:'azul' };
-    const corrida = async function(mods, anal){
+    /* Recibe CLAVES DE TARJETA: desde el 2026-09-16 el mazo lo gobiernan las casillas «PPT» y
+       no el selector del modal, que quedo con presentador y paleta. La ESTRUCTURA del mazo la
+       cubre TC-155; lo que sigue siendo de este caso son los graficos nativos, el semaforo de la
+       FEVI y que las asociaciones y la tendencia salgan de los seams del Lab. */
+    const corrida = async function(claves){
+      __t.pptSel(claves);
       capt = null; llamadas = [];
-      await _labPPTGenerar(infs, Object.assign({}, base, { mods:mods, anal:anal }));
+      await _labPPTGenerar(infs, Object.assign({}, base, {}));
       const P2 = capt ? capt.self : null;
       const sl = P2 ? (P2.slides || []) : [];
       return sl.map(function(s2){
@@ -5061,10 +5077,10 @@ caso('TC-150', 'PPT Lab: 14 diapositivas, selector de contenido, graficos nativo
     let capturadas = [];
     const tieneTitulo = function(sl, t){ return sl.some(function(x){ return x.txt.indexOf(t) > -1; }); };
 
-    const TODO = await corrida({basicos:1,funcion:1,valvulas:1,htpvd:1,cc:1,onco:1}, {descr:1,asoc:1,tend:1,subgr:1});
+    const TODO = await corrida(['actividad','demografia','funcion','vd','htp','valvulas','onco','eisenmenger','asoc','comparar']);
     capturadas = llamadas.slice();
-    const MIN  = await corrida({basicos:1}, {descr:1});
-    const SINV = await corrida({basicos:1,funcion:1,htpvd:1}, {descr:1});
+    const MIN  = await corrida(['actividad','demografia']);
+    const SINV = await corrida(['actividad','funcion','vd','htp']);
     /* Sin un solo campo de congenitas: la 11 tiene que omitirse SIN error, no salir vacia. */
     const sinCC = infs.map(function(x){
       const c = Object.assign({}, x.campos);
@@ -5072,7 +5088,8 @@ caso('TC-150', 'PPT Lab: 14 diapositivas, selector de contenido, graficos nativo
       return { id:x.id, fecha_estudio:x.fecha_estudio, campos:c };
     });
     capt = null;
-    await _labPPTGenerar(sinCC, Object.assign({}, base, { mods:{basicos:1,cc:1}, anal:{descr:1} }));
+    __t.pptSel(['actividad','ciaciv','eisenmenger']);
+    await _labPPTGenerar(sinCC, Object.assign({}, base, {}));
     const sinCCsl = capt ? (capt.self.slides || []).map(function(s2){
       const objs = s2._slideObjects || [];
       return objs.map(function(o){ return typeof o.text === 'string' ? o.text : ''; }).join(' ');
@@ -5095,12 +5112,14 @@ caso('TC-150', 'PPT Lab: 14 diapositivas, selector de contenido, graficos nativo
 
     return { extra: [
       // 1 · ESTRUCTURA COMPLETA
-      ['con todo seleccionado son 14 diapositivas', TODO.length === 14, String(TODO.length)],
+      /* El conteo exacto ya no es de este caso: depende de que tarjetas se tilden, y eso lo fija
+         TC-155. Lo que sigue siendo invariante es que haya mas de una tematica. */
+      ['con diez tarjetas tildadas salen varias tematicas', TODO.length > 6, String(TODO.length)],
       ['la metodologia esta siempre', tieneTitulo(TODO, 'Metodolog') && tieneTitulo(MIN, 'Metodolog')],
       ['el cierre dice Preguntas', tieneTitulo(TODO, 'Preguntas')],
 
       // 2 · EL SELECTOR MANDA
-      ['solo basicos + descriptiva deja 5 diapositivas', MIN.length === 5, String(MIN.length)],
+      ['con solo actividad y demografia el mazo se achica', MIN.length < TODO.length, MIN.length + ' vs ' + TODO.length],
       ['sin asociaciones no hay diapositiva de asociaciones', !tieneTitulo(MIN, 'Asociaciones estad')],
       ['sin tendencia no hay diapositiva de actividad por mes', !tieneTitulo(MIN, 'Actividad por mes')],
       ['sin subgrupos no hay comparacion de FEVI', !tieneTitulo(MIN, 'frente a FEVI')],
@@ -5240,8 +5259,8 @@ caso('TC-151', 'PPT: el paquete no pide reparacion y las diapositivas omitidas s
     const origDesc2 = window._pptxDescargarSaneado, origToast = window.toast;
     window._pptxDescargarSaneado = function(P3){ capt2 = P3; return Promise.resolve({ saneado:true, quitadas:0 }); };
     window.toast = function(m){ toasts.push(String(m)); };
-    await _labPPTGenerar(chica, { presentador:'X', institucion:'Y', fecha:'2026-09-20', tema:'dark',
-      mods:{basicos:1,funcion:1,valvulas:1,htpvd:1,cc:1,onco:1}, anal:{descr:1,asoc:1,tend:1,subgr:1} });
+    __t.pptTodo();
+    await _labPPTGenerar(chica, { presentador:'X', institucion:'Y', fecha:'2026-09-20', tema:'dark' });
     window._pptxDescargarSaneado = origDesc2; window.toast = origToast;
     const slides = capt2 ? (capt2.slides || []) : [];
     /* PptxGenJS guarda el texto como ARRAY DE RUNS cuando lo normaliza, no siempre como cadena.
@@ -5355,8 +5374,8 @@ caso('TC-152', 'PPT Lab: ningun color invalido llega al paquete, y las diapositi
     URL.createObjectURL = function(b){ blobCapt = b; return 'blob:test'; };
     HTMLAnchorElement.prototype.click = function(){};
     window.toast = function(){};
-    await _labPPTGenerar(semilla, { presentador:'X', institucion:'Y', fecha:'2026-09-20', tema:'azul',
-      mods:{basicos:1,funcion:1,valvulas:1,htpvd:1,cc:1,onco:1}, anal:{descr:1,asoc:1,tend:1,subgr:1} });
+    __t.pptTodo();
+    await _labPPTGenerar(semilla, { presentador:'X', institucion:'Y', fecha:'2026-09-20', tema:'azul' });
     URL.createObjectURL = origCreate; HTMLAnchorElement.prototype.click = origClick; window.toast = origToast;
     if (!blobCapt) return { extra: [['el mazo del Laboratorio se descargo', false, 'no hubo blob']] };
     const z = await JSZip.loadAsync(await blobCapt.arrayBuffer());
@@ -5408,6 +5427,132 @@ caso('TC-152', 'PPT Lab: ningun color invalido llega al paquete, y las diapositi
       ['la diapositiva 2 conserva sus dos graficos', g2 === 2, String(g2)],
       ['la diapositiva 5 conserva el suyo', g5 === 1, String(g5)],
       ['y la 2 sigue siendo el resumen ejecutivo', txt2.indexOf('Resumen ejecutivo') > -1, txt2.slice(0, 0) + String(txt2.length)]
+    ] };
+  })();
+`);
+
+/* TC-155 - El mazo se arma con las CASILLAS, no con el modal (2026-09-16).
+   El modal quedo con presentador, institucion, fecha y paleta; el contenido lo deciden las
+   casillas de las tarjetas. La condicion que vale NO es "salen N diapositivas" sino que el
+   conjunto de TITULOS siga a lo tildado: un generador que ignorara las casillas y sacara todo
+   igual daria un numero plausible en cualquier corrida. */
+caso('TC-155', 'PPT Lab: las casillas deciden el mazo, y lo que no tiene hoja se declara', `
+  return (async function(){
+    if (typeof PptxGenJS === 'undefined') {
+      return { extra: [['PptxGenJS cargo por CDN', false, 'la libreria no llego']] };
+    }
+    const infs = [];
+    for (let i = 0; i < 14; i++) {
+      infs.push({ id:i, estudioId:'t155-'+i, fecha_estudio:'2026-0'+(1+(i%4))+'-1'+(i%9), campos:{
+        fevi:String(25+i*4), psap_calc:String(22+i*4), onda_e:String(70+i*2), e_prima_sept:String(11-i*0.4),
+        tapse:String(13+i), edad:String(45+i*2), sexo: i%2?'F':'M', peso:'80', talla:'180',
+        vol_ai:String(50+i*3), im_grado:String(1+(i%4)),
+        'ete-es-ete__chk': i<5 ? '1':'0',
+        ete_tavi_gmedio: i<3 ? String(10+i):'', ete_tavi_pro_tipo: i<3 ? 'balon':'', ete_tavi_jet_horas: i<3 ? String(3+i):'',
+        wilkins_movilidad: i<4?'2':'', wilkins_engrosamiento: i<4?'2':'', wilkins_calcificacion: i<4?'2':'', wilkins_subvalvular: i<4?'2':'',
+        eis_lesion_base: i<4?'civ':'', eis_clase_nyha: i<4?'iii':'',
+        en_suma:(i%3===0?'Disfuncion diastolica grado II, pseudonormal. ':'Patron restrictivo (grado III). ')+
+                (i%2===0?'Hipertrofia ventricular izquierda concentrica.':'Remodelado concentrico del ventriculo izquierdo.') } });
+    }
+    const origD = window._pptxDescargarSaneado, origT = window.toast;
+    let capt = null, toasts = [];
+    window._pptxDescargarSaneado = function(P){ capt = P; return Promise.resolve({saneado:true, quitadas:0}); };
+    window.toast = function(m){ toasts.push(String(m)); };
+    const titulos = function(){
+      return (capt ? (capt.slides || []) : []).map(function(sl){
+        const t = (sl._slideObjects || []).map(function(o){
+          if (typeof o.text === 'string') return o.text;
+          if (Array.isArray(o.text)) return o.text.map(function(x){ return x && x.text ? x.text : ''; }).join('');
+          return '';
+        }).filter(function(x){ return x && x.trim(); });
+        return t.length ? t[0] : '(vacia)';
+      });
+    };
+    const corrida = async function(claves){
+      try { localStorage.setItem('ecosmart_lab_ppt_chk', JSON.stringify(claves.reduce(function(a,k){ a[k]=true; return a; }, {}))); } catch (e) {}
+      capt = null; toasts.length = 0;
+      await _labPPTGenerar(infs, { presentador:'X', institucion:'Y', fecha:'2026-09-20', tema:'azul' });
+      return { tit: titulos(), toast: toasts.join(' ') };
+    };
+    const soloTavi = await corrida(['tavi']);
+    const tres     = await corrida(['tavi','eisenmenger','funcion']);
+    const nada     = await corrida([]);
+    /* Un grupo que TIENE casilla y todavia no tiene hoja se declara con su motivo: es la leccion
+       del "solo 7 diapositivas", donde el medico tildaba diez y recibia siete sin saber por que. */
+    const pend    = await corrida(['amiloidosis','contractilidad']);
+    const meto    = pend.tit.indexOf('Metodología y límites');
+    const txtMeto = meto > -1 ? (capt.slides[meto]._slideObjects || []).map(function(o){
+      if (typeof o.text === 'string') return o.text;
+      if (Array.isArray(o.text)) return o.text.map(function(x){ return x && x.text ? x.text : ''; }).join('');
+      return '';
+    }).join(' | ') : '';
+
+    /* LA COMPUERTA DE "NINGUNA TILDADA" vive en labPPTEstadistico, ANTES del modal. Hay que
+       SEMBRAR EL STORE: con la base vacia sale por la compuerta del periodo y el caso no prueba
+       la suya. Ya me paso midiendo esto a mano. */
+    const antes = getInformes();
+    await CeiboStore.setLocal(infs.map(function(x, k){
+      return { id:600+k, estudioId:'t155b-'+k, uuid:'u155-'+k, nombre:'P'+k, ci:'C'+k,
+               fecha_estudio:x.fecha_estudio, fecha_guardado:'2026-04-01T09:00:00',
+               informe_texto:'', en_suma:'', campos:x.campos };
+    }));
+    const selP = document.getElementById('lab-periodo'); if (selP) selP.value = '0';
+    if (typeof labCohorteLimpiar === 'function') { try { labCohorteLimpiar(true); } catch (e) {} }
+    let abrio = 0;
+    const origModal = window._labPPTModal;
+    window._labPPTModal = function(){ abrio++; };
+    try { localStorage.setItem('ecosmart_lab_ppt_chk', '{}'); } catch (e) {}
+    toasts.length = 0;
+    labPPTEstadistico();
+    const toastVacio = toasts.join(' '), abrioSinNada = abrio;
+    try { localStorage.setItem('ecosmart_lab_ppt_chk', JSON.stringify({ tavi:true })); } catch (e) {}
+    labPPTEstadistico();
+    const abrioConUna = abrio - abrioSinNada;
+    window._labPPTModal = origModal;
+    window._pptxDescargarSaneado = origD; window.toast = origT;
+    await CeiboStore.setLocal(antes);
+    try { localStorage.removeItem('ecosmart_lab_ppt_chk'); } catch (e) {}
+
+    const g = _labPptAssertGrupos();
+    const tieneTit = function(r, t){ return r.tit.indexOf(t) > -1; };
+
+    return { extra: [
+      // 1 - EL REGISTRO NO SE PUDRE
+      ['toda tarjeta con casilla tiene diapositiva', g.sinGrupo.length === 0, g.sinGrupo.join(',')],
+      ['ningun grupo nombra una tarjeta que no existe', g.sinTarjeta.length === 0, g.sinTarjeta.join(',')],
+      ['y ninguna tarjeta esta en dos grupos', g.dobles.length === 0, g.dobles.join(',')],
+      ['las 53 con casilla estan agrupadas', g.enDom === 53 && g.enGrupo === 53, g.enDom + '/' + g.enGrupo],
+
+      // 2 - LAS CASILLAS DECIDEN
+      ['solo TAVI da cuatro diapositivas', soloTavi.tit.length === 4, soloTavi.tit.join(' · ')],
+      ['y son portada + ETE + metodologia + cierre',
+        tieneTit(soloTavi,'Ecocardiograma transesofágico') && tieneTit(soloTavi,'Metodología y límites') &&
+        tieneTit(soloTavi,'¿Preguntas?'), soloTavi.tit.join(' · ')],
+      /* Lo que separa "las casillas mandan" de "sale todo igual": con solo TAVI NO puede haber
+         ninguna hoja de los otros grupos. */
+      ['y NO sale nada de los grupos que no se tildaron',
+        !tieneTit(soloTavi,'Función sistólica') && !tieneTit(soloTavi,'Valvulopatías') &&
+        !tieneTit(soloTavi,'Cardiopatías congénitas') && !tieneTit(soloTavi,'Perfil demográfico'),
+        soloTavi.tit.join(' · ')],
+      ['tres grupos dan sus tres temas', tieneTit(tres,'Ecocardiograma transesofágico') &&
+        tieneTit(tres,'Función sistólica') && tieneTit(tres,'Cardiopatías congénitas'), tres.tit.join(' · ')],
+
+      // 3 - LAS FIJAS SIEMPRE
+      ['portada, metodologia y cierre estan aun sin tildar nada',
+        nada.tit.length === 3 && tieneTit(nada,'Metodología y límites') && tieneTit(nada,'¿Preguntas?'),
+        nada.tit.join(' · ')],
+
+      // 4 - LO QUE NO TIENE HOJA SE DECLARA
+      ['un grupo tildado sin diapositiva se omite con su motivo',
+        txtMeto.indexOf('Amiloidosis') > -1 && txtMeto.indexOf('Contractilidad') > -1 &&
+        txtMeto.indexOf('NO se incluy') > -1, txtMeto.slice(-260)],
+      ['y el toast tambien lo dice', pend.toast.indexOf('Se omitieron') > -1, pend.toast.slice(0, 170)],
+
+      // 5 - LA COMPUERTA DE NINGUNA TILDADA
+      ['sin ninguna tildada NO se abre el modal', abrioSinNada === 0, String(abrioSinNada)],
+      ['y el mensaje dice donde esta el control',
+        toastVacio.indexOf('al menos una tarjeta') > -1 && toastVacio.indexOf('PPT') > -1, toastVacio.slice(0, 180)],
+      ['con una tildada si se abre', abrioConUna === 1, String(abrioConUna)]
     ] };
   })();
 `);
