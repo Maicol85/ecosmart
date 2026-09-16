@@ -4146,6 +4146,88 @@ caso('TC-133', 'Doppler tricuspideo: E/A, E/e y los dos signos INDIRECTOS de HTP
   ] };
 `);
 
+/* EXPORTADOR CON FILTROS POR MODULO. Lo que vigila este caso: que los DATOS BASICOS no se puedan
+   sacar, que el filtro de columnas y el de filas sean INDEPENDIENTES, y el borde que convierte un
+   filtro en un archivo vacio —«solo con datos» SIN ningun modulo elegido daria cero filas y un
+   Excel que parece un error de la app—.
+   Los modulos se DERIVAN de LAB_XLS_BLOQUES: el assert de arranque verifica que ningun prefijo
+   quede sin matchear, porque un prefijo mal escrito no da error, da un modulo VACIO que se ve
+   igual que uno bien definido y se lleva sus columnas a los basicos. */
+caso('TC-134', 'Exportador Excel: modulos, filas y la plantilla comparten filtro', `
+  const TODAS = _labOrdenarCols(Object.keys(_labExcelRow({ id:0, campos:{} })));
+  const basicas = _labColsFiltradas(TODAS, []);
+  const conSgl  = _labColsFiltradas(TODAS, ['contr']);
+  const conPeri = _labColsFiltradas(TODAS, ['peri']);
+  const todas   = _labColsFiltradas(TODAS, LAB_XLS_MODULOS.map(function(m){ return m.k; }));
+  /* Estudios sinteticos: uno con datos de pericardio y otro sin nada avanzado. */
+  /* El select pericardio distinto de normal es lo que abre la compuerta del modulo (_pcHayDpt),
+     y dpt_local es un campo propio suyo. Un id inventado no falla: da columnas vacias y el caso
+     mide sobre cero. */
+  const conDato = { campos:{ nombre:'A', pericardio:'Derrame leve (<10mm)', dpt_local:'circ' } };
+  const sinDato = { campos:{ nombre:'B', fevi:'55' } };
+  const dos = [conDato, sinDato];
+  return { extra: [
+    ['el assert de modulos no encuentra nada mal', _labAssertModulos().length === 0,
+      _labAssertModulos().join(' | ')],
+    // Los basicos no se pueden sacar.
+    ['sin ningun modulo quedan solo los basicos, y son muchos menos',
+      basicas.length > 50 && basicas.length < TODAS.length],
+    ['y los basicos incluyen paciente, FEVI e informe',
+      basicas.indexOf('Nombre') > -1 && basicas.indexOf('FEVI Simpson (%)') > -1 &&
+      basicas.indexOf('Informe (texto completo)') > -1],
+    ['con TODOS los modulos vuelven todas las columnas', todas.length === TODAS.length],
+    // Marcar un modulo agrega SUS columnas y ninguna otra.
+    ['marcar pericardio agrega solo sus columnas',
+      conPeri.length > basicas.length &&
+      conPeri.filter(function(c){ return basicas.indexOf(c) === -1; })
+             .every(function(c){ return c.indexOf('DPT ') === 0 || c.indexOf('CVR ') === 0; })],
+    ['y no arrastra las de otro modulo', conPeri.indexOf('Fontan tipo') === -1],
+    ['marcar contractilidad agrega las suyas', conSgl.length > basicas.length],
+    // FILAS: independiente de columnas.
+    ['«todos» devuelve las dos filas', _labFilasFiltradas(dos, ['peri'], false).length === 2],
+    ['«solo con datos» deja solo la que tiene pericardio',
+      _labFilasFiltradas(dos, ['peri'], true).length === 1 &&
+      _labFilasFiltradas(dos, ['peri'], true)[0].campos.nombre === 'A'],
+    ['y con otro modulo elegido, ninguna de las dos',
+      _labFilasFiltradas(dos, ['onco'], true).length === 0],
+    // EL BORDE: sin modulos, el filtro de filas NO se aplica.
+    ['«solo con datos» SIN modulos exporta a todos igual',
+      _labFilasFiltradas(dos, [], true).length === 2],
+    // El predicado de «tiene datos» no confunde un 0 con vacio.
+    /* La linea base: las cuatro casillas de pericardio salen «No» en un estudio VACIO, asi que
+       la prueba ingenua daba «tiene datos» para todos. Se compara contra esa linea base. */
+    ['un valor distinto del de un estudio vacio cuenta como dato',
+      _labInfTieneModulo({ campos:{ pericardio:'Derrame leve (<10mm)', dpt_col_vd:'no' } }, 'peri') === true],
+    ['y un campo vacio no', _labInfTieneModulo({ campos:{} }, 'peri') === false],
+    // Preferencias.
+    ['las preferencias se recuerdan', (function(){
+      _labExpGuardarPref(['peri','onco'], false);
+      const p = _labExpLeerPref();
+      return p.sel.length === 2 && p.sel.indexOf('peri') > -1 && p.solo === false;
+    })()],
+    ['y una clave basura no rompe nada', (function(){
+      try { localStorage.setItem('ett_lab_export_pref', '{no es json'); } catch(e){}
+      const p = _labExpLeerPref();
+      try { localStorage.removeItem('ett_lab_export_pref'); } catch(e){}
+      return Array.isArray(p.sel) && p.sel.length === 0;
+    })()],
+    // El modal existe y arranca oculto.
+    ['el modal existe y no se dibuja al cargar', (function(){
+      const ov = document.getElementById('lab-exp-overlay');
+      return !!ov && getComputedStyle(ov).display === 'none';
+    })()],
+    ['la casilla de datos basicos esta deshabilitada', (function(){
+      const ov = document.getElementById('lab-exp-overlay');
+      const c = ov.querySelector('input[type=checkbox][disabled]');
+      return !!c && c.checked === true;
+    })()],
+    /* La plantilla usa EL MISMO filtro que el export: si enseñara columnas que el export no
+       emite, el medico la rellena y reimporta datos que no tienen destino. */
+    ['la plantilla comparte el filtro con el export',
+      String(labPlantillaXLSX).indexOf('_labColsFiltradas') > -1]
+  ] };
+`);
+
 /* LAS TRES SUPERFICIES DE CARDIO-ONCO TIENEN QUE DECIR LO MISMO. La leyenda de #ref-cardiotox
    (pestaña Referencias), la tabla de farmacos y las tablas nuevas del marco HFA-ICOS viven en
    DOS pestañas distintas y describen al mismo paciente. Las tres estaban desincronizadas, cada

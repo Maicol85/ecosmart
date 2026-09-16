@@ -343,6 +343,40 @@ igual. Y al final, sacarle la historia familiar al predicado **no cambiaba una p
 historia familiar»: el color y el texto salían de dos expresiones distintas. **Si un caso no
 prueba el lado negativo de cada rama, no prueba la regla.**
 
+### Exportador de Excel con filtros por módulo — y el default constante otra vez
+Agregado el 2026-09-16. `labExpAbrir()` abre un modal antes de exportar: ocho módulos con casilla,
+dos radios de filas, cuenta en vivo y preferencias en `localStorage` (`ett_lab_export_pref`).
+Medido: **411 columnas → 116** sin ningún módulo, un 72 % menos.
+
+**LOS MÓDULOS SE DERIVAN DE `LAB_XLS_BLOQUES`**, que ya declaraba cuáles bloques son `avanzada`.
+Escribir una segunda lista de 300 nombres de columna habría sido la lista paralela de siempre: al
+agregar una columna caería sola en su bloque y **no** en su módulo, y desaparecería del Excel sin
+que nada lo diga. Donde un bloque abarca dos módulos clínicos —el **16** tiene ETE y
+cardio-oncología juntos— se desempata por **prefijo**, y **los prefijos ganan sobre los bloques**.
+
+**`_labAssertModulos()` corre al arrancar**, como `_labXlsAssertBloques`: un prefijo mal escrito no
+da error, da un **módulo vacío** que se ve igual que uno bien definido y se lleva sus columnas a
+los básicos. Verifica que cada prefijo matchee, que cada bloque exista y que cada módulo reclame
+al menos una columna.
+
+**EL DEFAULT CONSTANTE, POR TERCERA VEZ.** «¿Este estudio tiene datos del módulo?» no se puede
+contestar con «alguna columna no vacía»: **cuatro columnas de pericardio salen «No» en un estudio
+en blanco** —igual que los grados valvulares salen «Sin»—, así que «sólo con datos» devolvía
+**todos** los estudios y el filtro no filtraba nada. Se compara contra la fila de un **estudio
+vacío** (`_labRowVacia()`), lo que cubre la clase entera: cualquier columna futura con default
+constante queda cubierta sola, sin lista de excepciones.
+
+**Sin ningún módulo elegido, «sólo con datos» se IGNORA.** Filtrar por «tiene datos de los módulos
+elegidos» cuando no se eligió ninguno daría **cero filas** y un Excel vacío que parece un error de
+la app. El modal lo dice en la cuenta.
+
+**La plantilla comparte el filtro y no se escribió un segundo generador**: `labPlantillaXLSX(true,
+sel)` — la «plantilla virgen» ya existía. Si la plantilla enseñara columnas que el export no
+emite, el médico la rellena y reimporta datos que no tienen destino.
+
+**`GLS (%)` se queda en los básicos** a propósito: es un número global que se lee junto a la FEVI.
+El módulo de contractilidad son los segmentos.
+
 ### Buscar una frase encuentra lo que ya sabías que estaba
 Las dos pestañas de congénitas tenían **dos** bloques de título, no uno. El lote del 2026-09-16
 sacó el de «🧬 Cardiopatías congénitas y miocardiopatías genéticas» y **dejó vivo** un segundo,

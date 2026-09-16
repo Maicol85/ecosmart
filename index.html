@@ -1605,6 +1605,39 @@ window.cerrarSesion = cerrarSesion;
      entran dos diagramas lado a lado y una tabla de seis categorías.
      El contenido lo genera `critRender` DESDE las mismas constantes que puntúan: un panel que
      copiara los umbrales sería una segunda fuente que se pudre sin que se vea desde la app. -->
+<!-- Modal del exportador de Excel. Mismo armazón que #crit-overlay: cierra al clic afuera,
+     cabecera pegajosa con ✕ y cuerpo scrolleable. -->
+<div id="lab-exp-overlay" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.55);" onclick="if(event.target===this)labExpCerrar();">
+  <div role="dialog" aria-label="Exportar a Excel"
+       style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:560px;max-width:calc(100vw - 24px);max-height:calc(100vh - 48px);overflow:auto;background:var(--bg2);border:1px solid var(--border);border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.6);">
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg2);z-index:1;">
+      <span style="flex:1;font-weight:700;font-size:13px;color:var(--accent2);">📊 Exportar a Excel</span>
+      <button type="button" class="btn btn-ghost" style="font-size:12px;padding:3px 10px;font-weight:700;" onclick="labExpCerrar()">✕</button>
+    </div>
+    <div style="padding:12px 14px;">
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:6px;">Columnas a incluir</div>
+      <label style="display:flex;align-items:flex-start;gap:8px;padding:6px;border-radius:6px;font-size:11.5px;line-height:1.45;opacity:.75;">
+        <input type="checkbox" checked disabled style="width:15px;height:15px;flex:0 0 auto;margin-top:1px;">
+        <span><b>Datos básicos</b> — siempre incluidos: paciente, fecha, indicación, antecedentes, médico y centro; FEVI, geometría, diastólica; TAPSE, PSAP y clasificación de HTP; valvulopatías; informe narrativo y EN SUMA.</span>
+      </label>
+      <div id="lab-exp-mods" style="display:flex;flex-direction:column;gap:1px;margin-top:4px;"></div>
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 6px;">Filas a incluir</div>
+      <label style="display:flex;align-items:center;gap:8px;padding:5px 6px;font-size:11.5px;cursor:pointer;">
+        <input type="radio" name="lab-exp-filas" value="todos" onchange="labExpRefrescar()" style="width:15px;height:15px;">
+        <span>Todos los estudios del período</span></label>
+      <label style="display:flex;align-items:center;gap:8px;padding:5px 6px;font-size:11.5px;cursor:pointer;">
+        <input type="radio" name="lab-exp-filas" value="solo" onchange="labExpRefrescar()" style="width:15px;height:15px;">
+        <span>Sólo los que tienen datos en los módulos elegidos</span></label>
+      <div id="lab-exp-cuenta" style="margin-top:12px;font-size:12px;font-weight:700;padding:8px 10px;border-radius:7px;background:var(--bg3,rgba(255,255,255,.04));border-left:3px solid var(--accent2);">—</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:14px;">
+        <button type="button" class="btn btn-ghost" style="font-size:11.5px;" onclick="labExpPlantilla()">📋 Descargar plantilla vacía</button>
+        <button type="button" class="btn btn-ghost" style="font-size:11.5px;" onclick="labExpCerrar()">Cancelar</button>
+        <button type="button" class="btn btn-primary" style="font-size:11.5px;" onclick="labExpConfirmar()">📊 Exportar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="crit-overlay" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.55);" onclick="if(event.target===this)critCerrar();">
   <div id="crit-card" role="dialog" aria-label="Criterios"
        style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:900px;max-width:calc(100vw - 24px);max-height:calc(100vh - 48px);overflow:auto;background:var(--bg2);border:1px solid var(--border);border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.6);">
@@ -12566,7 +12599,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
                       onclick="igIOToggle('exp')" title="Exportar estudios">📤 Exportar <span class="igio-chev">▾</span></button>
               <div class="igio-menu" id="igio-menu-exp" role="menu">
                 <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();exportarInformesJSON()">📋 JSON<small>Backup completo — todos los campos de cada estudio</small></button>
-                <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();labExportarXLSX()">📊 Excel<small id="igio-exp-xlsx-sub">Datos del laboratorio</small></button>
+                <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();labExpAbrir()">📊 Excel<small id="igio-exp-xlsx-sub">Datos del laboratorio</small></button>
                 <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();dcmExportarSR()">🏥 DICOM SR<small id="igio-exp-dcm-sub">Estudio del formulario, para PACS</small></button>
                 <div class="igio-sep"></div>
                 <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();exportarEcoAnalytics()">📈 Para Analytics<small>Abrir después en CeiboAnalytics</small></button>
@@ -44139,6 +44172,185 @@ function _labExcelRow(inf) {
     })()
   };
 }
+/* ══ MÓDULOS DEL EXPORTADOR ══════════════════════════════════════════════════════════════════
+   Con 400+ columnas un Excel «de todo» no sirve para un análisis focalizado. El modal deja
+   elegir qué módulos entran; los DATOS BÁSICOS siempre van y no se pueden desmarcar — un Excel
+   sin paciente, sin FEVI y sin informe no es un export, es un fragmento.
+
+   LOS MÓDULOS SE DERIVAN DE `LAB_XLS_BLOQUES`, que ya declara cuáles bloques son `avanzada`.
+   Escribir acá una segunda lista de 200 nombres de columna sería la lista paralela que este
+   archivo persigue: al agregar una columna caería sola en su bloque y NO en su módulo, y el
+   modo de falla es que desaparezca del Excel sin que nada lo diga. Donde un bloque abarca dos
+   módulos clínicos —el 16 tiene ETE y cardio-oncología juntos— se desempata por PREFIJO, y los
+   prefijos ganan sobre los bloques.
+
+   `GLS (%)` se queda en los básicos a propósito: es un número global que se lee junto a la FEVI.
+   El módulo de contractilidad son los SEGMENTOS, que son diecisiete columnas.
+
+   La pertenencia y el «¿este estudio tiene datos del módulo?» salen los dos de `_labExcelRow`,
+   que es la misma fuente que arma el export y la plantilla. Un predicado aparte por módulo sería
+   una segunda derivación del mismo hecho. */
+const LAB_XLS_MODULOS = [
+  { k:'contr',   lbl:'Contractilidad segmentaria', pre:['Trastornos sectoriales','TS_'] },
+  { k:'hemo',    lbl:'Hemodinámica y VEXUS',       bloques:['10 · HEMODINÁMICA Y VEXUS','11 · TEP / SOBRECARGA VD'] },
+  { k:'onco',    lbl:'Cardio-Oncología',
+    pre:['Fármaco cardiotóxico','Dosis antraciclinas','Riesgo CV basal','FEVI basal onco',
+         'GLS basal onco','FEVI actual onco','GLS actual onco','Troponina elevada'] },
+  { k:'ete',     lbl:'ETE y TAVI',                 bloques:['16 · ETE, TAVI Y MÓDULOS CLÍNICOS'] },
+  { k:'ccfrec',  lbl:'CC frecuentes',              bloques:['13 · AORTA CONGÉNITA Y VÁLVULA BICÚSPIDE','14 · MIOCARDIOPATÍAS'],
+    pre:['Marfan','Subaortica','Supravalvular','FOP '] },
+  { k:'cccompl', lbl:'CC complejas',               bloques:['12 · SHUNT Y CORTOCIRCUITOS','15 · CARDIOPATÍAS COMPLEJAS'],
+    pre:['Fontan','Eisenmenger','DSAV','CVPA'] },
+  { k:'peri',    lbl:'Pericardio avanzado',        bloques:['17 · PERICARDIO AVANZADO'] },
+  { k:'dtric',   lbl:'Doppler tricuspídeo',        pre:['E tricuspidea','A tricuspidea',"e' lateral tricuspideo",'TRIV tricuspideo'] }
+];
+/* Los PREFIJOS mandan sobre los bloques: el bloque 16 contiene ETE y cardio-onco, y sin esta
+   precedencia las columnas oncológicas quedarían dentro de «ETE y TAVI». */
+function _labModDeCol(col){
+  for (const m of LAB_XLS_MODULOS) if (m.pre && m.pre.some(p => col.indexOf(p) === 0)) return m.k;
+  const b = _labXlsBloqueDe(col);
+  for (const m of LAB_XLS_MODULOS) if (m.bloques && m.bloques.indexOf(b) >= 0) return m.k;
+  return null;   // null = DATO BÁSICO, siempre va
+}
+/* Assert de arranque, como `_labXlsAssertBloques`: un prefijo mal escrito no crea un error, crea
+   un módulo VACÍO que se ve igual que uno bien definido y se lleva sus columnas a los básicos. */
+function _labAssertModulos(){
+  const row = _labExcelRow({ campos:{} });
+  const cols = Object.keys(row);
+  const malas = [];
+  LAB_XLS_MODULOS.forEach(m => {
+    (m.pre || []).forEach(p => { if (!cols.some(c => c.indexOf(p) === 0)) malas.push('prefijo «' + p + '» (' + m.k + ') no matchea ninguna columna'); });
+    (m.bloques || []).forEach(b => { if (!LAB_XLS_BLOQUES.some(x => x.n === b)) malas.push('bloque «' + b + '» (' + m.k + ') no existe'); });
+    if (!cols.some(c => _labModDeCol(c) === m.k)) malas.push('el módulo «' + m.k + '» no reclama ninguna columna');
+  });
+  if (malas.length) console.error('[xlsx] módulos mal definidos:\n  ' + malas.join('\n  '));
+  return malas;
+}
+window._labAssertModulos = _labAssertModulos;
+
+/* Un estudio «tiene datos» de un módulo si alguna de SUS columnas trae algo. Se mide sobre la
+   fila real, no con un predicado propio. Ojo con el 0: `rnd(0)` es un dato, así que la prueba es
+   contra cadena vacía y null, no truthiness — el defecto de `pctOf(n,0)` por otra cara. */
+/* SE COMPARA CONTRA LA FILA DE UN ESTUDIO VACÍO, no contra «cadena vacía».
+   Varias columnas emiten un valor CONSTANTE aunque nadie haya tocado el módulo: las cuatro
+   casillas de pericardio salen «No» en un estudio en blanco, igual que los grados valvulares
+   salen «Sin». Con la prueba ingenua, «sólo con datos» devolvía TODOS los estudios para esos
+   módulos y el filtro no filtraba nada — el mismo defecto que acabó con el denominador de las
+   válvulas, acá disfrazado de filtro de exportación.
+   La línea base se deriva de `_labExcelRow({campos:{}})`, así que cubre la clase entera: cualquier
+   columna futura con default constante queda cubierta sola, sin una lista de excepciones. */
+let _LAB_ROW_VACIA = null;
+function _labRowVacia(){ if (!_LAB_ROW_VACIA) _LAB_ROW_VACIA = _labExcelRow({ id:0, campos:{} }); return _LAB_ROW_VACIA; }
+function _labInfTieneModulo(inf, k, rowCache){
+  const row = rowCache || _labExcelRow(inf);
+  const base = _labRowVacia();
+  return Object.keys(row).some(c => _labModDeCol(c) === k &&
+    row[c] !== '' && row[c] !== null && row[c] !== undefined &&
+    String(row[c]) !== String(base[c] === undefined ? '' : base[c]));
+}
+window._labInfTieneModulo = _labInfTieneModulo;
+
+/* El filtro de COLUMNAS. `null` (básico) siempre pasa. */
+function _labColsFiltradas(headers, sel){
+  return headers.filter(c => { const m = _labModDeCol(c); return !m || sel.indexOf(m) >= 0; });
+}
+window._labColsFiltradas = _labColsFiltradas;
+
+/* El filtro de FILAS, independiente del de columnas.
+   SIN NINGÚN MÓDULO SELECCIONADO, «sólo con datos» se IGNORA: filtrar por «tiene datos de los
+   módulos elegidos» cuando no se eligió ninguno daría CERO filas y un Excel vacío que parece un
+   error de la app. Se exporta a todos con los básicos, que es lo que el usuario quiso decir. */
+function _labFilasFiltradas(infs, sel, soloConDatos){
+  if (!soloConDatos || !sel.length) return infs;
+  return infs.filter(inf => { const row = _labExcelRow(inf);
+    return sel.some(k => _labInfTieneModulo(inf, k, row)); });
+}
+window._labFilasFiltradas = _labFilasFiltradas;
+
+const _LAB_EXP_PREF = 'ett_lab_export_pref';
+function _labExpLeerPref(){
+  try { const j = JSON.parse(localStorage.getItem(_LAB_EXP_PREF) || '{}');
+    const sel = Array.isArray(j.sel) ? j.sel.filter(k => LAB_XLS_MODULOS.some(m => m.k === k)) : [];
+    return { sel, solo: j.solo !== false };
+  } catch (e) { return { sel:[], solo:true }; }
+}
+function _labExpGuardarPref(sel, solo){
+  try { localStorage.setItem(_LAB_EXP_PREF, JSON.stringify({ sel, solo })); } catch (e) {}
+}
+
+/* ══ MODAL DEL EXPORTADOR ════════════════════════════════════════════════════════════════════ */
+function labExpAbrir(){
+  const infs = labGetInformes();
+  if (!infs.length) { toast('⚠️ Sin estudios para exportar'); return; }
+  if (typeof XLSX === 'undefined') { toast('❌ Librería Excel (XLSX) no disponible'); return; }
+  const pref = _labExpLeerPref();
+  const cont = document.getElementById('lab-exp-mods');
+  if (cont) {
+    while (cont.firstChild) cont.removeChild(cont.firstChild);
+    /* Se construye con nodos y no con innerHTML: las etiquetas salen de una constante de este
+       archivo, pero la regla de la casa es no pintar por innerHTML si alcanza con texto. */
+    LAB_XLS_MODULOS.forEach(m => {
+      const lab = document.createElement('label');
+      lab.setAttribute('style', 'display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;font-size:11.5px;cursor:pointer;');
+      const chk = document.createElement('input');
+      chk.type = 'checkbox'; chk.setAttribute('data-exp-mod', m.k);
+      chk.checked = pref.sel.indexOf(m.k) >= 0;
+      chk.setAttribute('style', 'width:15px;height:15px;flex:0 0 auto;');
+      chk.addEventListener('change', labExpRefrescar);
+      const sp = document.createElement('span'); sp.textContent = m.lbl;
+      lab.appendChild(chk); lab.appendChild(sp); cont.appendChild(lab);
+    });
+  }
+  const r = document.querySelector('input[name="lab-exp-filas"][value="' + (pref.solo ? 'solo' : 'todos') + '"]');
+  if (r) r.checked = true;
+  const ov = document.getElementById('lab-exp-overlay'); if (ov) ov.style.display = 'block';
+  labExpRefrescar();
+}
+window.labExpAbrir = labExpAbrir;
+function labExpCerrar(){ const ov = document.getElementById('lab-exp-overlay'); if (ov) ov.style.display = 'none'; }
+window.labExpCerrar = labExpCerrar;
+
+function labExpSeleccion(){
+  return [].slice.call(document.querySelectorAll('[data-exp-mod]'))
+    .filter(c => c.checked).map(c => c.getAttribute('data-exp-mod'));
+}
+function labExpSoloConDatos(){
+  const r = document.querySelector('input[name="lab-exp-filas"]:checked');
+  return !!(r && r.value === 'solo');
+}
+/* La cuenta se recalcula en cada cambio y es la MISMA que usa el export: si dijera otra cosa que
+   el archivo que sale, sería peor que no mostrarla. */
+function labExpRefrescar(){
+  const sel = labExpSeleccion(), solo = labExpSoloConDatos();
+  const infs = labGetInformes();
+  const cols = _labColsFiltradas(_labOrdenarCols(Object.keys(_labExcelRow({ id:0, campos:{} }))), sel);
+  const filas = _labFilasFiltradas(infs, sel, solo);
+  const el = document.getElementById('lab-exp-cuenta');
+  if (el) el.textContent = cols.length + ' columnas · ' + filas.length +
+    (filas.length === 1 ? ' estudio' : ' estudios') +
+    (solo && !sel.length ? ' — sin módulos elegidos, el filtro de filas no se aplica' : '');
+  _labExpGuardarPref(sel, solo);
+}
+window.labExpRefrescar = labExpRefrescar;
+
+function labExpConfirmar(){
+  const sel = labExpSeleccion(), solo = labExpSoloConDatos();
+  const infs = _labFilasFiltradas(labGetInformes(), sel, solo);
+  if (!infs.length) { toast('⚠️ Ningún estudio cumple el filtro'); return; }
+  labExpCerrar();
+  _labPreguntarAnonimo(anon => _labExportarXLSXReal(infs, anon, sel));
+}
+window.labExpConfirmar = labExpConfirmar;
+
+function labExpPlantilla(){
+  const sel = labExpSeleccion();
+  labExpCerrar();
+  /* `true` = plantilla VIRGEN, sin la fila de ejemplo. Es la que ya existía; no se escribió un
+     segundo generador. */
+  labPlantillaXLSX(true, sel);
+}
+window.labExpPlantilla = labExpPlantilla;
+
 function labExportarXLSX() {
   const infs = labGetInformes();
   if (!infs.length) { toast('⚠️ Sin estudios para exportar'); return; }
@@ -44349,7 +44561,9 @@ function _labXlsComentarEncabezados(ws, headers) {
   });
 }
 
-function _labExportarXLSXReal(infs, anon) {
+function _labExportarXLSXReal(infs, anon, sel) {
+  /* `sel` es la lista de módulos elegidos; sin ella se exporta TODO, que es el comportamiento
+     histórico y el que usa el round-trip de TC-131. */
   const rows = infs.map(_labExcelRow).map(r => {
     if (!anon) return r;
     r['Nombre'] = 'Paciente anónimo';
@@ -44363,7 +44577,8 @@ function _labExportarXLSXReal(infs, anon) {
      otro y las pega en los campos equivocados.
      Las columnas que el export tiene y el mapa no (las ~40 derivadas y las binarias de
      severidad) van después, en el orden en que las escribe _labExcelRow. */
-  const headers = _labOrdenarCols(Object.keys(rows[0]));
+  const headers = sel ? _labColsFiltradas(_labOrdenarCols(Object.keys(rows[0])), sel)
+                      : _labOrdenarCols(Object.keys(rows[0]));
   const aoa = [headers, ...rows.map(r => headers.map(h => r[h]))];
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws['!cols'] = headers.map(h => ({ wch: Math.min(46, Math.max(10, h.length + 2)) }));
@@ -45889,7 +46104,11 @@ function labPlantillaXLSX(vacia) {
      comentario seguía pidiendo que coincidieran sin que nada lo garantizara.
      Ahora coinciden POR CONSTRUCCIÓN: si mañana se agrega una columna al export, aparece sola
      en la plantilla. Las derivadas salen vacías y su comentario dice que no se reimportan. */
-  const cols = _labOrdenarCols(Object.keys(_labExcelRow({ id:0, campos:{} })));
+  /* La plantilla honra la MISMA selección de módulos que el export: si se pide una plantilla de
+     «sólo Fontan», rellenarla y reimportarla tiene que dar lo mismo que exportar ese módulo.
+     Dos filtros distintos harían que la plantilla enseñara columnas que el export no emite. */
+  const cols = (function(){ const base = _labOrdenarCols(Object.keys(_labExcelRow({ id:0, campos:{} })));
+    return sel ? _labColsFiltradas(base, sel) : base; })();
   const ejemplo = {
     'Nombre': LAB_XLS_EJEMPLO, 'CI': '1.234.567-8', 'Fecha estudio': '2026-03-15', 'Edad': 64, 'Sexo': 'M',
     'Centro / Institución': 'Hospital de ejemplo', 'Médico solicitante': 'Dr. Ejemplo',
@@ -53154,8 +53373,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260915-2152';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789519965631;                 /* eco-build-ms */
+const ECO_BUILD    = '20260915-2204';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789520687474;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -53241,7 +53460,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260915-2152</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260915-2204</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
