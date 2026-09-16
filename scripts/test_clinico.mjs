@@ -3998,30 +3998,42 @@ caso('TC-132', 'Seis correcciones: titulos, limpieza, capsulas, SGL, denominador
   out.push(['FIX4 · y el informe publica el ultimo valor, no el de la otra pestaña',
     inf4.inf.indexOf('11') > -1 && inf4.inf.indexOf('-18') === -1, inf4.inf.slice(0, 200)]);
 
-  // ── FIX 5 — el denominador del Laboratorio ──
-  const base = { campos:{} };
-  const conDefault = { campos:{ im_grado:'0', ea_grado:'sin', et_grado:'Sin estenosis' } };
+  // ── FIX 5 — NO MARCAR UNA VALVULA ES UN HALLAZGO ──
+  /* El flujo clinico es que el medico marca SOLO lo que el paciente tiene: si no marco nada, el
+     paciente no tiene esa valvulopatia, y eso es un dato. Por eso el valor de fabrica se traduce
+     a «Sin» —que es un grado— y el denominador de las barras es el TOTAL del periodo.
+     LA PRIMERA VERSION DE ESTE CASO AFIRMABA LO CONTRARIO. Se habia agregado una compuerta que
+     exigia una bandera o un valor distinto del de fabrica; medido sobre los 95 estudios reales,
+     el denominador de la IM caia de 95 a 44 y el grafico pasaba a decir «Sin: 0 %» — ningun
+     paciente con mitral normal, 100 % de los evaluados con insuficiencia. Revertido. */
+  const conFabrica = { campos:{ im_grado:'0', ea_grado:'sin', et_grado:'Sin estenosis' } };
   const conValor   = { campos:{ im_grado:'3', ea_grado:'severa' } };
-  const conBandera = { campos:{ im_grado:'0', im_grado__tocado:'1', ea_grado:'sin', ea_grado__tocado:'1' } };
-  out.push(['FIX5 · el valor de fabrica NO cuenta como valvula evaluada',
-    _labRegurgSev(conDefault,'im_grado') === null &&
-    _labEstenSev(conDefault,'ea_grado') === null &&
-    _labEstenSev(conDefault,'et_grado') === null]);
-  out.push(['FIX5 · un valor real si cuenta',
+  const sinCampo   = { campos:{} };
+  out.push(['FIX5 · el valor de fabrica es «Sin», que es un HALLAZGO y cuenta',
+    _labRegurgSev(conFabrica,'im_grado') === 'Sin' &&
+    _labEstenSev(conFabrica,'ea_grado') === 'Sin' &&
+    _labEstenSev(conFabrica,'et_grado') === 'Sin']);
+  out.push(['FIX5 · un valor real se lee como el grado que es',
     _labRegurgSev(conValor,'im_grado') === 'Moderada' && _labEstenSev(conValor,'ea_grado') === 'Severa']);
-  /* LA DISTINCION QUE PEDIA EL ARREGLO: «el medico eligio Sin» cuenta, y devuelve «Sin». */
-  out.push(['FIX5 · con la bandera, «Sin» es un hallazgo y entra al denominador',
-    _labRegurgSev(conBandera,'im_grado') === 'Sin' && _labEstenSev(conBandera,'ea_grado') === 'Sin']);
-  out.push(['FIX5 · el campo ausente tampoco cuenta',
-    _labRegurgSev(base,'im_grado') === null && _labEstenSev(base,'ea_grado') === null]);
-  /* La bandera es un hidden: el barrido generico no la toca, asi que limpiarCampos la nombra. */
-  __t.limpiar();
-  _valvTocar('im_grado');
-  const marcada = (document.getElementById('im_grado__tocado') || {}).value;
-  __t.limpiar();
-  const trasLimpiar = (document.getElementById('im_grado__tocado') || {}).value;
-  out.push(['FIX5 · la bandera se pone', marcada === '1']);
-  out.push(['FIX5 · y NO sobrevive a Nuevo estudio', trasLimpiar === '']);
+  /* Lo UNICO que no cuenta es el campo ausente: un Excel importado sin esa columna no trae dato
+     ni de presencia ni de ausencia. */
+  out.push(['FIX5 · el campo AUSENTE sigue sin contar: ahi no hay dato',
+    _labRegurgSev(sinCampo,'im_grado') === null && _labEstenSev(sinCampo,'ea_grado') === null]);
+  /* Y la compuerta que se habia agregado no puede volver por ninguna puerta. */
+  out.push(['FIX5 · no quedo ninguna compuerta ni bandera __tocado',
+    typeof window._labValvEvaluada === 'undefined' &&
+    typeof window._valvTocar === 'undefined' &&
+    !document.getElementById('im_grado__tocado')]);
+  /* EL DEFECTO REAL ERA EL ROTULO: prometia un filtro que no existe. */
+  /* SE MIDE LA CADENA QUE SE EMITE, no document.body.textContent: ese INCLUYE el contenido de
+     los <script>, asi que la frase vieja citada en un COMENTARIO del codigo lo hacia fallar —el
+     caso acusaba a la app de un texto que ya no publica. */
+  out.push(['FIX5 · el rotulo dice sobre que base esta calculando', (function(){
+    const src = String(labRenderExtras);
+    return src.indexOf('con esa válvula evaluada') === -1 &&
+           src.indexOf('total de estudios del período') > -1 &&
+           src.indexOf('fue valorada como normal') > -1;
+  })()]);
 
   // ── FIX 6 — la hamburguesa se anuncia y es tocable ──
   const bg = document.querySelector('.eco-tabsburger');

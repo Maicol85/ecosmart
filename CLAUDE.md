@@ -335,37 +335,43 @@ igual. Y al final, sacarle la historia familiar al predicado **no cambiaba una p
 historia familiar»: el color y el texto salían de dos expresiones distintas. **Si un caso no
 prueba el lado negativo de cada rama, no prueba la regla.**
 
-### Los seis grados valvulares: la bandera `__tocado`, medida sobre 95 estudios
-**CENSO REAL (2026-09-16, 95 estudios):** `im_grado`, `ia_grado`, `it_grado`, `em_grado`,
-`ea_grado` y `et_grado` estaban presentes en **los 95**, mientras los que traían un valor distinto
-del de fábrica eran **44, 8, 59, 8, 10 y CERO**. O sea que «estudios con esa válvula evaluada»
-valía 95 para las seis. `ip_grado` no está en la lista porque su primera opción **sí** es vacía —
-es la prueba de cuál era el arreglo.
+### No marcar una válvula es un HALLAZGO, no un campo vacío
+**El flujo clínico de esta app es que el médico marca SÓLO lo que el paciente tiene.** Si no marcó
+nada, el paciente no tiene esa valvulopatía — y **eso es un dato válido**. Por eso el valor de
+fábrica de `im_grado`/`ia_grado`/`it_grado` (`'0'`), `em_grado`/`ea_grado` (`'sin'`) y `et_grado`
+(`'Sin estenosis'`) se traduce a **`'Sin'`**, que es un grado, y el denominador de las barras de
+valvulopatías es el **total de estudios del período**.
 
-**La corrección es del LABORATORIO, no del modelo de datos ni del informe.** `_labValvEvaluada`
-cuenta como evaluada, en este orden: **(1)** la bandera **`<id>__tocado`**, que ponen sólo dos
-gestos inequívocos de una persona —mover uno de los tres `<select>` de estenosis, o confirmar la
-tarjeta de severidades—; **(2)** un valor **distinto del de fábrica**, que cubre los estudios
-previos y los importados. Queda fuera el estudio viejo con el valor de fábrica y sin bandera:
-**no sabemos** si se miró, y contarlo era el defecto.
+**El 2026-09-16 se implementó lo contrario y estaba mal. Revertido el mismo día.** Se agregó una
+compuerta (`_labValvEvaluada`) que exigía una bandera `<id>__tocado` o un valor distinto del de
+fábrica. **Medido sobre los 95 estudios reales**, el denominador de la insuficiencia mitral caía
+de **95 a 44** y el gráfico pasaba a decir **«Sin: 0 %»** — o sea que **ningún** paciente del
+laboratorio tenía una mitral normal y el **100 %** de los evaluados tenía insuficiencia. Un número
+que se lee como real y es falso. La estenosis tricuspídea quedaba en **n = 0** y desaparecía de la
+sección, cuando en realidad se valoró como normal en los 95.
 
-**NO se marca desde el auto-cálculo de `calcIM_ESC`**: ése corre en cada tecleo, también con el
-formulario vacío, así que marcaría «evaluada» sobre cero mediciones y reintroduciría el defecto
-por otra puerta. Lo que el auto-cálculo deja es un valor ≠ fábrica, y eso ya cuenta por la vía 2.
+**El defecto real estaba en el RÓTULO, no en el denominador.** La sección decía «Porcentajes sobre
+los estudios con esa válvula evaluada — **no** sobre los N del período» mientras el `n` **era** el
+del período: prometía un filtro que no existe y que, con este flujo, **no debe existir**. Hoy las
+dos superficies —pantalla y PDF de auditoría— dicen *«Porcentajes sobre el total de estudios del
+período. No marcar una válvula indica que fue valorada como normal.»* El PDF además llevaba un
+AVISO que leía el default como una duda («puede incluir estudios donde nadie la miró»): en un
+documento de auditoría esa frase hace que el lector descuente los números enteros.
 
-**NO se cambiaron los defaults del HTML a vacío**, aunque sea la corrección «de manual». Un
-`INSUF_TXT[''] || 'Severa'` publicaría **«Severa»** en un informe firmado: es el patrón
-`MAPA[k] || fallback` que este archivo persigue. Con la bandera se obtiene la distinción **sin
-tocar una sola línea de lo que lee el informe**.
+**La entrada anterior de este archivo leyó la contradicción al revés** —asumió que el denominador
+estaba mal en vez del cartel— y de ahí salió el intento fallido. **Antes de «arreglar» un
+denominador, preguntarse qué significa el valor de fábrica en el flujo de trabajo real**, y
+medirlo: acá bastó calcular la distribución resultante para ver que el arreglo producía un 0 %
+imposible.
 
-**Las seis banderas son `input[type=hidden]` y `limpiarCampos` las nombra A MANO** — el barrido
-genérico toma `text` y `number`. Sin eso, la marca del paciente A sobrevivía a «Nuevo estudio» y
-el estudio de B entraba al denominador sin que nadie mirara su válvula. Es la fuga que ya
-costaron `ete_tavi_jet_horas` y `co_serie_json`.
+**Lo único que sigue sin contar es el campo AUSENTE** (`undefined` o cadena vacía), que es el caso
+de un Excel importado sin esa columna: ahí no hay dato, ni de presencia ni de ausencia. En la base
+real, **ausentes = 0** para los seis.
 
-**Consecuencia asumida:** el médico que revisó una válvula normal **antes de hoy** sale del
-denominador. Se eligió ese lado: mejor un denominador más chico y verdadero que un 95 que sólo
-dice que el formulario tiene un valor por defecto.
+**Censo del 2026-09-16 (95 estudios), por si hace falta otra vez:** los seis presentes en los 95;
+con valor distinto del de fábrica **44** (IM), **8** (IA), **59** (IT), **8** (EM), **10** (EA) y
+**0** (ET). `ip_grado` sólo aparece en 6 porque su primera opción **sí** es vacía — es el único de
+los siete que no comparte este modelo.
 
 ### Tres de seis correcciones ya estaban hechas — verificar antes de rehacer
 Del lote del 2026-09-16, **la mitad ya estaba resuelta** y la «Deuda conocida» de este archivo
@@ -2909,7 +2915,16 @@ narrativo, con contador «(1/3)» en el título. Once secciones dan tres diaposi
 12,4:1 en el dato), 1 a 12 secciones, el reparto en dos columnas, la paginación con fuzz de 4.000
 casos sin perder ni duplicar secciones, y que retirar un módulo del informe lo saca del PPT.
 
-### BLOQUEANTE — los cinco grados valvulares nunca están vacíos (2026-09-10)
+### ~~BLOQUEANTE~~ — CERRADO Y MAL PLANTEADO: los grados valvulares nunca están vacíos (2026-09-10)
+> **Cerrado el 2026-09-16, y la premisa era equivocada.** Que los seis grados estén en todos los
+> estudios **no es un defecto**: en este flujo el médico marca sólo lo que el paciente tiene, así
+> que el valor de fábrica significa «valorada como normal» y el denominador del período es el
+> correcto. Lo que estaba mal era el **rótulo**, que prometía un filtro inexistente — corregido en
+> la pantalla y en el PDF de auditoría. Implementar lo que esta entrada pedía hizo que la
+> insuficiencia mitral saliera «Sin: 0 %» sobre 95 estudios. Ver «No marcar una válvula es un
+> HALLAZGO, no un campo vacío». Lo de abajo se conserva como registro de cómo se leyó mal.
+
+
 
 **Descubierto en la auditoría del Laboratorio y sin resolver.** Invalida todo el bloque de
 valvulopatías en pantalla y en el PDF de auditoría, y contamina las asociaciones.
