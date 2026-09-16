@@ -335,6 +335,39 @@ igual. Y al final, sacarle la historia familiar al predicado **no cambiaba una p
 historia familiar»: el color y el texto salían de dos expresiones distintas. **Si un caso no
 prueba el lado negativo de cada rama, no prueba la regla.**
 
+### El round-trip de Excel está verificado — y por qué NO es tautológico
+**TC-131** (2026-09-16) cierra la brecha más grande que quedaba: guarda un estudio real con valor
+en **57 campos** de las nueve secciones de congénitas, lo exporta con **`_labExportarXLSXReal`**
+—el mismo camino del botón—, deja que **SheetJS** serialice el `.xlsx`, arma un `File` y se lo da
+a **`labImportarXLSX`**, que es el mismo camino del import. Después compara campo por campo.
+Medido: **100 claves en la vuelta, 57 comparadas, cero diferencias**, y los decimales sobreviven
+(`2.4`, `1.9`, `23.5`).
+
+**Este archivo documenta que «ida y vuelta exacto no prueba nada» cuando exportador e importador
+son espejo. Acá NO lo son**, y por eso el caso vale: el export va **token → etiqueta legible**
+(`LAB_XLS_ETIQ`) y el import va **celda → normalización → vocabulario → token**
+(`LAB_XLS_VOCAB`), que son **dos tablas distintas**; más el parseo numérico con su ventana de
+plausibilidad, más la serialización de SheetJS —que es donde vivió el defecto de los id en
+notación científica—. Si alguna pieza se desalinea, el token no vuelve.
+
+**Se prueba con valor en TODOS los campos**: uno vacío pasa el round-trip siempre, así que un
+caso con huecos mide sobre un denominador falso.
+
+**Los espejos se verifican por ausencia.** `dsav_fevi`, `dsav_dtsvi_mm`, `cvpa_vd_dilatado` y
+`cvpa_cia_asociada` **no existen** —esas secciones leen `fevi`, `dsfvi`, `vd_bas` y
+`ete_cia_tipo`—, y el caso exige que **no vuelvan** como campo propio ni tengan columna. Sin esa
+condición, agregar una columna para un espejo pasaría desapercibido y crearía la segunda entrada
+de la misma medición.
+
+**Mutación que SOBREVIVE y está bien que sobreviva**: renombrar una etiqueta de `LAB_XLS_ETIQ`
+(«Derecha» → «Lado derecho») **no rompe el round-trip**, porque el bucle de propagación agrega la
+etiqueta nueva al vocabulario. Es la fuente única funcionando; no hay nada que arreglar.
+
+**DEPENDE DE RED: SheetJS llega por CDN.** El caso **espera hasta 6 s** a que cargue —sin esa
+espera daba rojo intermitente, que es peor que no tener el caso— y si no llega **falla con el
+motivo escrito**, nunca se saltea en silencio. Un caso que se saltea solo es cobertura que no
+existe.
+
 ### CVPA parcial: la indicación exige LOS DOS, y el VD dilatado sin Qp/Qs no tranquiliza
 Sección implementada el 2026-09-15. **Con ésta, CERO placeholders**: las diecinueve secciones de
 Congénitas I y II tienen contenido. Lo fija TC-112, cuyo array `PH` quedó vacío.

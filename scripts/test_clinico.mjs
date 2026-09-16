@@ -3809,6 +3809,126 @@ caso('TC-130', 'CVPA parcial: la indicacion exige Qp/Qs Y VD dilatado, y el VD s
   ] };
 `);
 
+/* ROUND-TRIP DE EXCEL, POR LAS FUNCIONES REALES. TC-119 verifica el MAPA: que la etiqueta que la
+   app emite resuelva al mismo token. Esto es la otra mitad: se guarda un estudio de verdad, se
+   exporta con `_labExportarXLSXReal` —el mismo camino del boton—, SheetJS serializa el .xlsx, se
+   construye un File y se lo come `labImportarXLSX`, que es el mismo camino del import. Despues se
+   comparan los campos.
+
+   NO ES TAUTOLOGICO, y eso importa porque este archivo ya documenta que «ida y vuelta exacto no
+   prueba nada» cuando exportador e importador son espejo. Aca NO lo son: el export va
+   token -> etiqueta legible (LAB_XLS_ETIQ) y el import va celda -> normalizacion -> vocabulario
+   -> token (LAB_XLS_VOCAB), que son dos tablas distintas, mas el parseo numerico con su ventana
+   de plausibilidad, mas la serializacion de SheetJS —que es donde vivio el defecto de los id en
+   notacion cientifica—. Si alguna de esas piezas se desalinea, el token no vuelve.
+
+   Se prueban los campos de las NUEVE secciones de congenitas que entraron esta semana, con valor
+   en todos: un campo vacio pasa el round-trip siempre. */
+caso('TC-131', 'Excel: un estudio de congenitas vuelve entero de su propio archivo', `
+  return (async function(){
+    /* LA DEPENDENCIA SE DECLARA. SheetJS se sirve por CDN, asi que sin red este caso no puede
+       correr — y tiene que decirlo como ROJO con el motivo, no tirar un ReferenceError crudo ni,
+       peor, saltearse en silencio: un caso que se saltea solo es cobertura que no existe. */
+    /* Se ESPERA a que cargue antes de rendirse: el <script> del CDN puede no haber terminado
+       cuando arranca el caso, y eso daba rojo intermitente — que es peor que no tener el caso,
+       porque un suite que falla a veces se deja de mirar. */
+    for (let i = 0; i < 60 && typeof XLSX === 'undefined'; i++) await new Promise(function(r){ setTimeout(r, 100); });
+    if (typeof XLSX === 'undefined') return { extra: [
+      ['la libreria XLSX esta disponible (llega por CDN: este caso necesita red)', false,
+       'sin red o CDN inaccesible tras 6 s de espera']] };
+    /* Valores elegidos para que no sean cómodos: decimales en los Qp/Qs y el Z, tokens largos en
+       los selects, y numeros pegados a los bordes de las bandas de plausibilidad. */
+    const CAMPOS = {
+      nombre:'Roundtrip Excel', ci:'55667788', edad:'44', peso:'80', talla:'180',
+      fevi:'52', dsfvi:'41', vd_bas:'47', ete_cia_tipo:'sv_vcs',
+      marfan_sindrome:'lds', marfan_ao_seno:'46.5', marfan_ao_ascendente:'44.2',
+      marfan_ita:'23.5', marfan_factores_riesgo:'si',
+      eis_lesion_base:'dsav', eis_saturacion_reposo:'86', eis_saturacion_ejercicio:'74',
+      eis_psap:'92', eis_pdap:'41', eis_it_vel:'4.6', eis_vd_funcion:'moderada',
+      eis_pericardio:'leve', eis_clase_nyha:'iii', eis_sincope:'si', eis_hemoptisis:'no',
+      fontan_tipo:'extra', fontan_fenestracion:'presente', fontan_vs_morfologia:'der',
+      fontan_vs_fevi:'44', fontan_vs_fac:'31', fontan_saturacion:'88',
+      fontan_it_grado:'moderada', fontan_derrame_pleural:'moderado', fontan_ascitis:'leve',
+      fontan_clase_nyha:'ii', fontan_arritmia:'flutter',
+      tdf_vtdvdi:'172', tdf_vtsvdi:'84', tdf_vol_fuente:'rmc',
+      ebs_saturacion:'91',
+      esub_tipo:'tunel', esub_gradiente_medio:'44', esub_gradiente_mmhg:'78',
+      esub_ia_asociada:'moderada', esub_longitud_mm:'16', esub_valsalva:'sin_cambios',
+      easv_tipo:'difusa', easv_gradiente_medio:'38', easv_gradiente_mmhg:'66',
+      easv_williams:'si', easv_coronarias:'comprometidos', easv_estenosis_pulmonar:'moderada',
+      dsav_tipo:'completo', dsav_regurg_av_izq:'severa', dsav_regurg_av_der:'moderada',
+      dsav_dssd_mm:'18', dsav_qp_qs:'2.4', dsav_down:'si', dsav_htp:'moderada', dsav_rvp_uw:'3.6',
+      cvpa_venas_numero:'2', cvpa_conexion:'vcs', cvpa_lado:'der', cvpa_qp_qs:'1.9',
+      cvpa_htp:'leve', cvpa_sintomas:'disnea'
+    };
+    const COMPS = ['fontan_comp_epp','fontan_comp_fald'];
+    __t.limpiar();
+    const noExisten = [];
+    Object.keys(CAMPOS).forEach(function(k){ if (__t.set(k, CAMPOS[k]) !== 1) noExisten.push(k); });
+    COMPS.forEach(function(k){ if (__t.chk(k, true) !== 1) noExisten.push(k); });
+    const g = await __t.guardar();
+    const inf = getInformes().find(function(i){ return i.estudioId === g.estudioId; });
+    if (!inf) return { extra:[['se guardo el estudio', false, JSON.stringify(g)]] };
+
+    /* EXPORT por la ruta real: se intercepta writeFile para quedarse con el libro en vez de
+       bajarlo, y se serializa con el mismo SheetJS. */
+    const _wf = XLSX.writeFile; let wb = null;
+    XLSX.writeFile = function(libro){ wb = libro; };
+    try { _labExportarXLSXReal([inf], false); } finally { XLSX.writeFile = _wf; }
+    if (!wb) { __t.borrar(g.estudioId); return { extra:[['el export produjo un libro', false]] }; }
+    const buf = XLSX.write(wb, { type:'array', bookType:'xlsx' });
+    const file = new File([buf], 'roundtrip.xlsx',
+      { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+    /* IMPORT por la ruta real. FileReader es asincrono: se espera a que aparezca el resultado. */
+    _labImpDatos = null;
+    labImportarXLSX(file);
+    for (let i = 0; i < 100 && !_labImpDatos; i++) await new Promise(function(r){ setTimeout(r, 50); });
+    const d = _labImpDatos;
+    __t.borrar(g.estudioId);
+    if (!d) return { extra:[['el import produjo resultado', false, 'timeout de 5 s']] };
+    if (!d.filas.length) return { extra:[['la fila se importo', false,
+      'errores: ' + JSON.stringify(d.errores).slice(0,600)]] };
+
+    const vuelta = d.filas[0].inf.campos || {};
+    const dif = [];
+    Object.keys(CAMPOS).forEach(function(k){
+      /* Los espejos NO son campos propios de sus secciones y no tienen columna: se verifican
+         aparte, mas abajo. */
+      if (['fevi','dsfvi','vd_bas','ete_cia_tipo','nombre','ci','edad','peso','talla'].indexOf(k) >= 0) return;
+      const ida = CAMPOS[k], vta = vuelta[k];
+      if (vta === undefined) { dif.push(k + ': NO VOLVIO (ida=' + ida + ')'); return; }
+      /* Numerico contra numerico: '2.4' y '2.40' son el mismo valor y compararlos como texto
+         seria exigir un formato, no un dato. */
+      const a = parseFloat(String(ida).replace(',','.')), b = parseFloat(String(vta).replace(',','.'));
+      if (isFinite(a) && isFinite(b)) { if (Math.abs(a-b) > 1e-9) dif.push(k + ': ida=' + ida + ' vuelta=' + vta); }
+      else if (String(ida) !== String(vta)) dif.push(k + ': ida=' + ida + ' vuelta=' + vta);
+    });
+    COMPS.forEach(function(k){ if (vuelta[k + '__chk'] !== '1') dif.push(k + '__chk: ida=1 vuelta=' + vuelta[k + '__chk']); });
+    /* Que la que NO se marco no vuelva marcada. */
+    const falsoPositivo = vuelta['fontan_comp_trombo__chk'] === '1';
+    /* LOS ESPEJOS: no pueden tener columna propia ni volver como campo de la seccion. */
+    const cols = Object.keys(_labExcelRow(inf));
+    const espejosConColumna = ['dsav_fevi','dsav_dtsvi_mm','dsav_vi_ro','cvpa_vd_ro','cvpa_cia_ro',
+      'cvpa_vd_dilatado','cvpa_cia_asociada','esub_severidad']
+      .filter(function(id){ return vuelta[id] !== undefined; });
+    return { extra: [
+      ['los campos del estudio existen', noExisten.length === 0, 'no existen: ' + noExisten.join(', ')],
+      ['la fila se importo sin errores', d.errores.length === 0,
+        JSON.stringify(d.errores).slice(0,600)],
+      ['los ' + Object.keys(CAMPOS).length + ' campos vuelven identicos', dif.length === 0,
+        dif.slice(0,10).join(' | ')],
+      ['las complicaciones marcadas vuelven marcadas',
+        COMPS.every(function(k){ return vuelta[k + '__chk'] === '1'; })],
+      ['y la que no se marco no vuelve marcada', falsoPositivo === false],
+      ['ningun espejo volvio como campo propio de su seccion',
+        espejosConColumna.length === 0, espejosConColumna.join(', ')],
+      ['y el export no inventa una columna para ellos',
+        !cols.some(function(c){ return /dsav (FEVI|DTSVI)|CVPA (VD|CIA)/i.test(c); })]
+    ] };
+  })();
+`);
+
 /* LAS TRES SUPERFICIES DE CARDIO-ONCO TIENEN QUE DECIR LO MISMO. La leyenda de #ref-cardiotox
    (pestaña Referencias), la tabla de farmacos y las tablas nuevas del marco HFA-ICOS viven en
    DOS pestañas distintas y describen al mismo paciente. Las tres estaban desincronizadas, cada
