@@ -51999,6 +51999,46 @@ async function _pptxDescargarSaneado(P, nombre) {
   return { saneado: true, quitadas: quitadas };
 }
 
+/* ══ COLOR HACIA POWERPOINT ═══════════════════════════════════════════════════════════════════
+   OOXML exige `ST_HexColorRGB`: SEIS dígitos hexadecimales y NADA más. Un `#` adelante no es un
+   atributo que PowerPoint ignore — invalida la parte entera: pide reparar el archivo y, al
+   reparar, BORRA LA DIAPOSITIVA COMPLETA, con su texto y sus otros gráficos. Así se veían los dos
+   bugs reportados el 2026-09-16 («sigue pidiendo reparar» y «las diapositivas 2 y 5 salen
+   vacías»): eran el MISMO defecto, y las dos hojas en blanco eran lo que la reparación se llevó.
+   De dónde venía el `#`: los seams `_labDiastDist`, `_labGeomDist`, `_labFeviDist` y
+   `_labPsapDist` guardan el color en formato CSS porque los consume el dashboard, donde el `#` es
+   obligatorio. Se sanea ACÁ, en el borde, y no en los seams — allá el `#` es correcto.
+   Por qué sólo caían dos gráficos y no todos: PptxGenJS normaliza el color en la ruta de la
+   TORTA (`createColorElement` le saca el `#`) y NO en la de las barras, que lo interpola crudo en
+   `<a:srgbClr val="...">`. Las dos únicas barras que reciben un seam con color propio son la
+   diastólica del resumen (hoja 2) y la de la hoja 5. */
+const _PPT_HEX_NEUTRO = '808080';
+function _pptHex(c) {
+  const t = String(c == null ? '' : c).trim().replace(/^#/, '');
+  if (/^[0-9a-fA-F]{3}$/.test(t)) return (t[0] + t[0] + t[1] + t[1] + t[2] + t[2]).toUpperCase();
+  return /^[0-9a-fA-F]{6}$/.test(t) ? t.toUpperCase() : null;
+}
+/* ÚNICO punto por el que el mazo llega a `addChart`. Sanea TODO color que entre —la paleta de
+   series, las opciones `*Color` y el relleno del área— en vez de enumerar cuáles pueden traer
+   `#`: así queda cubierto el color que alguien agregue mañana, que es exactamente cómo entró éste.
+   Un color ilegible se REEMPLAZA por gris y no se descarta: filtrar la paleta correría las
+   categorías una posición y pintaría de verde la FEVI severamente reducida, que es el defecto
+   contra el que TC-150 ya tiene una condición. */
+function _pptAddChart(s, tipo, datos, op) {
+  const o = Object.assign({}, op || {});
+  if (Array.isArray(o.chartColors)) o.chartColors = o.chartColors.map(c => _pptHex(c) || _PPT_HEX_NEUTRO);
+  Object.keys(o).forEach(k => {
+    if (!/Color$/.test(k) || o[k] == null) return;
+    const h = _pptHex(o[k]);
+    if (h) o[k] = h; else delete o[k];
+  });
+  if (o.chartArea && o.chartArea.fill && o.chartArea.fill.color != null) {
+    const h = _pptHex(o.chartArea.fill.color);
+    o.chartArea = h ? { fill: { color: h } } : {};
+  }
+  return s.addChart(tipo, datos, o);
+}
+
 let _labPPTEnCurso = false;
 /* ══ GENERADOR DEL MAZO ═══════════════════════════════════════════════════════════════════════
    Hasta 14 diapositivas, con GRÁFICOS NATIVOS de PowerPoint (`addChart`) y no imágenes: se
@@ -52072,7 +52112,7 @@ async function _labPPTGenerar(infs, o) {
     const gBarras = (s, filas, box, titulo, colores) => {
       const f = filas.filter(x => x && x.n > 0);
       if (!f.length) return false;
-      s.addChart(P.ChartType.bar, [{ name: box.serie || 'Estudios', labels: f.map(x => T(x.lbl)), values: f.map(x => x.n) }], {
+      _pptAddChart(s, P.ChartType.bar, [{ name: box.serie || 'Estudios', labels: f.map(x => T(x.lbl)), values: f.map(x => x.n) }], {
         x:box.x, y:box.y, w:box.w, h:box.h, barDir:'bar',
         chartColors: colores || f.map((x, k) => x.color || [C.teal, SEM.amarillo, SEM.naranja, SEM.rojo, SEM.lila][k % 5]),
         showTitle: !!titulo, title: titulo ? T(titulo) : '', titleColor: C.txt, titleFontSize: 12, titleFontFace: FONT,
@@ -52086,7 +52126,7 @@ async function _labPPTGenerar(infs, o) {
     const gTorta = (s, filas, box, titulo) => {
       const f = filas.filter(x => x && x.n > 0);
       if (!f.length) return false;
-      s.addChart(P.ChartType.pie, [{ name: titulo || '', labels: f.map(x => T(x.lbl)), values: f.map(x => x.n) }], {
+      _pptAddChart(s, P.ChartType.pie, [{ name: titulo || '', labels: f.map(x => T(x.lbl)), values: f.map(x => x.n) }], {
         x:box.x, y:box.y, w:box.w, h:box.h,
         chartColors: f.map((x, k) => x.color || [SEM.verde, SEM.amarillo, SEM.naranja, SEM.lila, C.teal][k % 5]),
         showTitle: !!titulo, title: titulo ? T(titulo) : '', titleColor: C.txt, titleFontSize: 12, titleFontFace: FONT,
@@ -52270,7 +52310,7 @@ async function _labPPTGenerar(infs, o) {
              comparables entre sí: con el máximo automático, un coeficiente de 0,3 llenaría la
              barra y se leería como un efecto grande. */
           const cf = Math.abs(r.coef || 0);
-          s.addChart(P.ChartType.bar, [{ name:'Tamaño de efecto', labels:[T(r.fuerza || '')], values:[Math.round(cf * 100) / 100] }], {
+          _pptAddChart(s, P.ChartType.bar, [{ name:'Tamaño de efecto', labels:[T(r.fuerza || '')], values:[Math.round(cf * 100) / 100] }], {
             x:6.0, y:y, w:3.1, h:0.82, barDir:'bar', chartColors:[C.teal],
             valAxisMinVal:0, valAxisMaxVal:1, showValue:true, dataLabelColor:C.txt, dataLabelFontSize:10,
             dataLabelFontFace:FONT, dataLabelPosition:'outEnd', catAxisLabelColor:C.txt2, catAxisLabelFontSize:10,
@@ -52299,7 +52339,7 @@ async function _labPPTGenerar(infs, o) {
           return v.length ? Math.round(v.reduce((a,b)=>a+b,0)/v.length) : null;
         });
         if (feviMes.every(v => v !== null)) series.push({ name:'FEVI promedio (%)', labels: labels, values: feviMes });
-        s.addChart(P.ChartType.line, series, {
+        _pptAddChart(s, P.ChartType.line, series, {
           x:0.4, y:0.92, w:W-0.8, h:3.2, chartColors:[C.teal, SEM.naranja], lineDataSymbol:'circle', lineDataSymbolSize:7,
           showValue:true, dataLabelColor:C.txt, dataLabelFontSize:10, dataLabelFontFace:FONT,
           catAxisLabelColor:C.txt, catAxisLabelFontSize:10, catAxisLabelFontFace:FONT,
@@ -52328,7 +52368,7 @@ async function _labPPTGenerar(infs, o) {
         /* DOS gráficos y no uno agrupado: la PSAP ronda 40 mmHg y el E/e' ronda 10, así que en un
            mismo eje el segundo queda como una raya invisible. Y una distribución en porcentaje no
            comparte escala con ninguno de los dos. */
-        s.addChart(P.ChartType.bar, [
+        _pptAddChart(s, P.ChartType.bar, [
           { name:'FEVI < 40 %', labels:['PSAP (mmHg)', "E/e'"], values:[m(dB,'PSAP (mmHg)'), m(dB,"E/e' (ratio)")] },
           { name:'FEVI ≥ 40 %', labels:['PSAP (mmHg)', "E/e'"], values:[m(dA,'PSAP (mmHg)'), m(dA,"E/e' (ratio)")] }
         ], { x:0.4, y:1.20, w:4.6, h:2.5, barDir:'col', chartColors:[SEM.rojo, SEM.verde],
@@ -52339,7 +52379,7 @@ async function _labPPTGenerar(infs, o) {
              chartArea:{ fill:{ color:C.bg } } });
         const gb = _labDiastDist(baj), ga = _labDiastDist(alt);
         const cats = gb.dist.map(x => T(String(x.lbl).replace(/\s*\(n=\d+\)/, '')));
-        s.addChart(P.ChartType.bar, [
+        _pptAddChart(s, P.ChartType.bar, [
           { name:'FEVI < 40 %', labels:cats, values:gb.dist.map(x => x.n) },
           { name:'FEVI ≥ 40 %', labels:cats, values:ga.dist.map(x => x.n) }
         ], { x:5.2, y:1.20, w:4.5, h:2.5, barDir:'col', chartColors:[SEM.rojo, SEM.verde],
@@ -55550,8 +55590,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260916-0346';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789541164355;                 /* eco-build-ms */
+const ECO_BUILD    = '20260916-0801';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789556484635;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -55637,7 +55677,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0346</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0801</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -487,7 +487,80 @@ El Excel pasó de **421 a 429 columnas** y de 128 a **129 básicas**; TC-135 fij
 contenido. Ojo con el `0` de una casilla apagada: **no es lo mismo que ausente**, y el caso lo
 distingue.
 
+### Un `#` en un color borró dos diapositivas enteras — 2026-09-16
+
+**Reabre el «PowerPoint pide reparar» que la entrada de abajo daba por cerrado: era sólo LA MITAD.**
+Podar los `Override` colgados del `[Content_Types].xml` era necesario y no suficiente. El segundo
+defecto —independiente, y el que seguía disparando la advertencia— era un **color**.
+
+**OOXML exige `ST_HexColorRGB`: seis dígitos hexadecimales y nada más.** Un `#` adelante no es un
+carácter que PowerPoint ignore: invalida la parte entera. Y lo que hace al reparar no es descartar
+el color, es **borrar la diapositiva completa**, con su texto y sus otros gráficos.
+
+**POR ESO «LAS DIAPOSITIVAS 2 Y 5 SALEN VACÍAS» Y «SIGUE PIDIENDO REPARAR» ERAN EL MISMO BUG.** Se
+reportaron como dos y se diagnosticaron como dos hasta abrir el archivo en PowerPoint: las dos
+hojas en blanco eran lo que la reparación se había llevado. **Dos síntomas simultáneos en el mismo
+artefacto son un solo defecto hasta que se demuestre lo contrario.**
+
+**De dónde venía el `#`:** los seams `_labDiastDist`, `_labGeomDist`, `_labFeviDist` y
+`_labPsapDist` guardan el color en formato **CSS**, porque los consume el dashboard y allá el `#`
+es obligatorio. El comentario de la extracción decía —correctamente— que «las etiquetas y los
+colores se conservan byte por byte para que el dashboard no cambie»: el defecto no fue conservar el
+`#`, fue que el segundo consumidor necesitaba otro formato y nadie tradujo en el borde.
+
+**Por qué caían DOS gráficos y no los diez.** PptxGenJS normaliza el color en la ruta de la
+**torta** (`createColorElement` le saca el `#`) y **no** en la de las **barras**, que lo interpola
+crudo en `<a:srgbClr val="…">`. Las dos únicas barras que reciben un seam con su color propio son
+la diastólica del resumen (hoja 2) y la de la hoja 5. La de FEVI pasa `cols` explícito y la de PSAP
+descarta el color: por eso las hojas 4 y 7 salían bien. **Un defecto que aparece en dos de diez
+llamadas parece un caso raro y es una asimetría de la librería.**
+
+**Cómo se encontró, y por qué ningún chequeo automático alcanzaba.** El XML estaba **bien formado**,
+las **relaciones `r:id` resolvían todas**, el `[Content_Types].xml` no tenía ni una parte colgada, y
+`docProps/app.xml` era consistente. Siete comprobaciones estructurales en verde sobre un archivo que
+PowerPoint rompe. **La advertencia de reparación es de ESQUEMA, y un `xsd:sequence` o un
+`ST_HexColorRGB` no los ve ningún parser genérico.** Lo que lo encontró fue **abrir el archivo en
+PowerPoint** —está instalado en esta máquina— y, con el síntoma reproducido, barrer el paquete
+entero buscando `srgbClr val=` que no fueran seis hex: **cuatro apariciones, todas en chart2 y
+chart6, o sea exactamente las hojas 2 y 5**. El barrido tardó menos que cualquiera de las
+verificaciones que habían dado verde.
+
+**El arreglo va en el BORDE, no en los seams.** `_pptHex(c)` normaliza (saca el `#`, expande el de
+tres dígitos, pasa a mayúsculas, devuelve `null` para lo que no es un color) y `_pptAddChart(s, …)`
+es el **único** punto por el que el mazo llega a `addChart`: sanea la paleta de series, toda opción
+`*Color` y el relleno del área. Es poda por EXISTENCIA y no una lista de cuáles pueden traer `#`,
+así que cubre el color que alguien agregue mañana — que es exactamente cómo entró éste.
+
+**Un color ilegible se REEMPLAZA por gris, no se descarta.** Filtrar la paleta correría las
+categorías una posición y pintaría de **verde la FEVI severamente reducida**, que es el defecto
+contra el que TC-150 ya tiene una condición. Un color equivocado es cosmético; una escala corrida
+es una lectura clínica invertida en una sala.
+
+**TC-152 lo fija, y su condición es GENÉRICA: cero `srgbClr` fuera de seis hexadecimales en TODO el
+paquete**, leído del `.pptx` real. Buscar el `#` en los dos gráficos que fallaron pasaría en verde
+el día que un seam nuevo entre por otra hoja. Prueba además que el defecto EXISTÍA —un mazo
+vainilla con `chartColors:['#f05454']` en una barra escribe el inválido tal cual—, que el seam
+**sigue** devolviendo el color con `#` para el dashboard, y que las hojas 2 y 5 conservan su
+`graphicFrame`. **Tres mutaciones, las tres cazadas**: quitar el saneo de la paleta, descartar en
+vez de reemplazar, y hacer que `gBarras` vuelva a `addChart` directo.
+
+**Y otra vez la trampa de la red:** la primera corrida de la mutación M1 dio rojo por «falta
+PptxGenJS» —el CDN no llegó— y no por la mutación. **Al mutar sobre casos que dependen de red,
+confirmar por qué condición cayó**, no que cayó.
+
+**Verificado en PowerPoint, que es el único oráculo que decide esto:** el archivo anterior abría con
+«PowerPoint encontró un problema con el contenido», reparaba, avisaba «no pudo leer algún contenido
+y tuvo que quitarlo», y dejaba **2 y 5 en blanco** con 3, 4 y 6 intactas. El corregido abre **sin
+advertencia**, con las 14 diapositivas y el semáforo de la diastólica en su orden (Grado II ámbar,
+Grado III rojo).
+
 ### Los dos bugs del .pptx: uno era de la librería y el otro era un silencio
+> **⚠ ESTA ENTRADA DA POR CERRADO EL «PowerPoint pide reparar» Y ERA SÓLO LA MITAD.** La poda de
+> `Override` que describe es correcta y necesaria, y **no alcanzaba**: el archivo seguía pidiendo
+> reparación por un `#` en un color de gráfico. Ver la entrada de arriba, que es la que cierra el
+> defecto. Lo de acá abajo sigue siendo válido para lo que describe — el `[Content_Types].xml` y
+> el silencio de las omisiones.
+
 Reportados el 2026-09-16 desde el archivo REAL, que es lo que los hizo visibles: los dos pasaban
 el suite entero.
 

@@ -5286,6 +5286,132 @@ caso('TC-151', 'PPT: el paquete no pide reparacion y las diapositivas omitidas s
   })();
 `);
 
+/* TC-152 - "Sigue pidiendo reparar" + "las diapositivas 2 y 5 salen vacias" (2026-09-16).
+   ERAN EL MISMO DEFECTO. Los seams del Laboratorio guardan el color en formato CSS -con
+   almohadilla- porque los consume el dashboard; PptxGenJS normaliza eso en la ruta de la TORTA y
+   no en la de las BARRAS, asi que el hexadecimal invalido llegaba crudo a srgbClr. OOXML exige
+   seis digitos y PowerPoint no ignora el atributo: pide reparar y AL REPARAR BORRA LA DIAPOSITIVA
+   ENTERA. Las dos unicas barras que reciben un seam con color propio son la diastolica del resumen
+   (hoja 2) y la de la hoja 5 - exactamente las dos que salian en blanco.
+   La condicion que vale es la GENERICA: cero srgbClr fuera de seis hex en TODO el paquete. Buscar
+   la almohadilla en dos graficos concretos pasaria en verde el dia que un seam nuevo entre por
+   otra hoja, que es como entro este. */
+caso('TC-152', 'PPT Lab: ningun color invalido llega al paquete, y las diapositivas 2 y 5 traen su grafico', `
+  return (async function(){
+    if (typeof PptxGenJS === 'undefined' || typeof JSZip === 'undefined') {
+      return { extra: [['PptxGenJS y JSZip disponibles', false, 'falta ' + (typeof PptxGenJS === 'undefined' ? 'PptxGenJS' : 'JSZip')]] };
+    }
+    /* Sin regex: el escape se lo come el template literal del caso, y ya se pago siete veces. */
+    const coloresDe = function(xml){
+      const out = [], p = xml.split('srgbClr val="');
+      for (let i = 1; i < p.length; i++) out.push(p[i].slice(0, p[i].indexOf('"')));
+      return out;
+    };
+    const SEIS = /^[0-9A-Fa-f]{6}$/;
+
+    /* 1 - EL DEFECTO ES REAL Y ES DE LA LIBRERIA: un mazo vainilla con una barra a la que se le
+       pasa el color en formato CSS escribe el hexadecimal invalido tal cual. Sin esta mitad el
+       caso no distingue "lo arregle" de "nunca estuvo roto". */
+    const V = new PptxGenJS(); V.layout = 'LAYOUT_16x9';
+    const sv = V.addSlide();
+    sv.addChart(V.ChartType.bar, [{ name:'x', labels:['a','b'], values:[1,2] }],
+      { x:1, y:1, w:4, h:2, barDir:'bar', chartColors:['#f05454', '#f0a500'] });
+    const zv = await JSZip.loadAsync(await V.write({ outputType:'arraybuffer' }));
+    let crudos = [];
+    const nomsV = Object.keys(zv.files).filter(function(f){ return f.indexOf('.xml') > -1 && !zv.files[f].dir; });
+    for (let i = 0; i < nomsV.length; i++) {
+      crudos = crudos.concat(coloresDe(await zv.file(nomsV[i]).async('string')).filter(function(c){ return !SEIS.test(c); }));
+    }
+
+    /* 2 - EL SANEADOR. */
+    const hex = [_pptHex('#f05454'), _pptHex('F05454'), _pptHex('#fff'), _pptHex('rojo'), _pptHex(null), _pptHex('#F05454  ')];
+
+    /* 3 - UN COLOR ILEGIBLE SE REEMPLAZA, NO SE DESCARTA. Filtrarlo correria las categorias una
+       posicion y pintaria de verde la FEVI severamente reducida - el defecto que TC-150 vigila. */
+    let paleta = null;
+    const P0 = new PptxGenJS(); P0.layout = 'LAYOUT_16x9';
+    const s0 = P0.addSlide();
+    const och = s0.addChart;
+    s0.addChart = function(t, d, o){ paleta = (o || {}).chartColors; return och.apply(this, arguments); };
+    _pptAddChart(s0, P0.ChartType.bar, [{ name:'x', labels:['a','b','c'], values:[1,2,3] }],
+      { x:1, y:1, w:4, h:2, chartColors:['#3ecf8e', 'no-es-un-color', '#f05454'] });
+
+    /* 4 - EL ARREGLO ESTA EN EL BORDE, NO EN EL SEAM: el dashboard necesita la almohadilla. */
+    const semilla = [];
+    for (let k = 0; k < 6; k++) {
+      semilla.push({ id:k, fecha_estudio:'2026-0' + (1 + (k % 3)) + '-1' + k, campos:{
+        fevi:String(28 + k*8), psap_calc:String(25 + k*8), onda_e:String(80 + k*3), e_prima_sept:String(10 - k*0.5),
+        tapse:String(15 + k), edad:String(50 + k*3), sexo: k%2 ? 'F':'M', peso:'80', talla:'180',
+        vol_ai:String(45 + k*4), im_grado:String(1 + (k%4)),
+        en_suma: (k%2===0 ? 'Disfuncion diastolica grado II, pseudonormal. ' : 'Patron restrictivo (grado III). ') +
+                 (k%2===0 ? 'Hipertrofia ventricular izquierda concentrica.' : 'Remodelado concentrico del ventriculo izquierdo.') } });
+    }
+    const seamConNumeral = _labDiastDist(semilla).dist.every(function(x){ return String(x.color).charAt(0) === '#'; });
+
+    /* 5 - EL MAZO REAL. Se intercepta la DESCARGA y no "_pptxDescargarSaneado", porque lo que hay
+       que mirar es el paquete que sale, no el que entra al saneador del [Content_Types]. */
+    const origCreate = URL.createObjectURL, origClick = HTMLAnchorElement.prototype.click, origToast = window.toast;
+    let blobCapt = null;
+    URL.createObjectURL = function(b){ blobCapt = b; return 'blob:test'; };
+    HTMLAnchorElement.prototype.click = function(){};
+    window.toast = function(){};
+    await _labPPTGenerar(semilla, { presentador:'X', institucion:'Y', fecha:'2026-09-20', tema:'azul',
+      mods:{basicos:1,funcion:1,valvulas:1,htpvd:1,cc:1,onco:1}, anal:{descr:1,asoc:1,tend:1,subgr:1} });
+    URL.createObjectURL = origCreate; HTMLAnchorElement.prototype.click = origClick; window.toast = origToast;
+    if (!blobCapt) return { extra: [['el mazo del Laboratorio se descargo', false, 'no hubo blob']] };
+    const z = await JSZip.loadAsync(await blobCapt.arrayBuffer());
+    const noms = Object.keys(z.files).filter(function(f){ return f.indexOf('.xml') > -1 && !z.files[f].dir; });
+    let malos = [];
+    for (let i = 0; i < noms.length; i++) {
+      const cs = coloresDe(await z.file(noms[i]).async('string')).filter(function(c){ return !SEIS.test(c); });
+      if (cs.length) malos.push(noms[i] + ': ' + cs.join(','));
+    }
+    /* 6 - LAS HOJAS 2 Y 5 NO PUEDEN QUEDAR SIN SU GRAFICO. Es el sintoma que se reporto, y se
+       verifica sobre el paquete y no sobre los objetos de PptxGenJS. */
+    const graficosDe = async function(n){
+      const f = z.file('ppt/slides/slide' + n + '.xml');
+      if (!f) return -1;
+      return (await f.async('string')).split('<p:graphicFrame>').length - 1;
+    };
+    const g2 = await graficosDe(2), g5 = await graficosDe(5);
+    const txt2 = z.file('ppt/slides/slide2.xml') ? (await z.file('ppt/slides/slide2.xml').async('string')) : '';
+
+    return { extra: [
+      // 1 - EL DEFECTO EXISTIA Y ERA DE LA LIBRERIA
+      ['PptxGenJS escribe el color de una BARRA sin normalizarlo',
+        crudos.length > 0, crudos.join(',') || 'ninguno: la libreria ya lo normaliza y este caso no prueba nada'],
+      ['y el invalido es exactamente el que traen los seams del Lab',
+        crudos.indexOf('#f05454') > -1, crudos.join(',')],
+
+      // 2 - EL SANEADOR
+      ['saca la almohadilla y pasa a mayusculas', hex[0] === 'F05454', String(hex[0])],
+      ['deja igual el que ya estaba bien', hex[1] === 'F05454', String(hex[1])],
+      ['expande el hexadecimal de tres digitos', hex[2] === 'FFFFFF', String(hex[2])],
+      ['y devuelve null para lo que no es un color', hex[3] === null && hex[4] === null, hex[3] + ' / ' + hex[4]],
+      ['tolera espacios alrededor', hex[5] === 'F05454', String(hex[5])],
+
+      // 3 - SE REEMPLAZA, NO SE DESCARTA
+      ['la paleta conserva su largo aunque un color sea ilegible',
+        !!paleta && paleta.length === 3, paleta ? paleta.join(',') : 'sin paleta'],
+      ['y cada color queda en SU posicion',
+        !!paleta && paleta[0] === '3ECF8E' && paleta[2] === 'F05454', paleta ? paleta.join(',') : ''],
+
+      // 4 - EL ARREGLO VA EN EL BORDE
+      ['el seam del Lab sigue devolviendo el color con almohadilla para el dashboard',
+        seamConNumeral, JSON.stringify(_labDiastDist(semilla).dist.map(function(x){ return x.color; }))],
+
+      // 5 - EL PAQUETE REAL
+      ['ningun srgbClr del paquete queda fuera de seis hexadecimales',
+        malos.length === 0, malos.slice(0, 3).join(' // ')],
+
+      // 6 - LAS DOS HOJAS DEL REPORTE
+      ['la diapositiva 2 conserva sus dos graficos', g2 === 2, String(g2)],
+      ['la diapositiva 5 conserva el suyo', g5 === 1, String(g5)],
+      ['y la 2 sigue siendo el resumen ejecutivo', txt2.indexOf('Resumen ejecutivo') > -1, txt2.slice(0, 0) + String(txt2.length)]
+    ] };
+  })();
+`);
+
 
 
 
