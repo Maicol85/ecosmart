@@ -2658,11 +2658,15 @@ window.cerrarSesion = cerrarSesion;
         <div class="calc-row"><span class="calc-lbl">PAP media (IP proto-diast.)</span><span class="calc-val" id="ip-papm-row">—</span></div>
         <div class="calc-row"><span class="calc-lbl">PAP diastólica (IP tele-diast.)</span><span class="calc-val" id="ip-papd-row">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Grado IP <span style="font-weight:400;color:var(--text2);font-size:10px;">— manual: evaluación integral (densidad jet CW, tiempo de desaceleración, vena contracta)</span></span>
-          <select id="ip_grado" style="min-width:180px;">
-            <option value="Sin insuficiencia">Sin insuficiencia</option>
-            <option value="IP leve (fisiológica)">IP leve (fisiológica)</option>
-            <option value="IP moderada">IP moderada</option>
-            <option value="IP severa">IP severa</option>
+          <!-- SIN EL PREFIJO «IP» Y SIN «(fisiológica)». El prefijo obligaba a cada consumidor a
+               desarmarlo con `replace(/^IP\s*/i,'')` para no escribir «insuficiencia pulmonar IP
+               moderada», y «fisiológica» era una ETIOLOGÍA metida dentro del grado — ahora vive
+               en `ip_etiologia`. Los valores viejos los traduce `_migrarCamposLegacy`. -->
+          <select id="ip_grado" style="min-width:180px;" onchange="vpSync()">
+            <option>Sin insuficiencia</option>
+            <option>Leve</option>
+            <option>Moderada</option>
+            <option>Severa</option>
           </select>
         </div>
       </div>
@@ -3175,13 +3179,73 @@ window.cerrarSesion = cerrarSesion;
   <div id="ete-seccion-valv-pulmonar" style="display:none;">
   <div class="card">
     <div class="card-body">
-      <div class="fg"><label>Válvula pulmonar</label>
-        <!-- «Estenosis moderada/severa» queda al final como opción HEREDADA: los estudios
-             guardados antes de separar las bandas la traen persistida, y sacarla del select
-             haría que reabrirlos mostrara el campo vacío — el informe firmado diría una cosa y
-             la app otra. No la sugiere el cálculo; sólo sobrevive para leer lo viejo. -->
-        <select id="vp_morf"><option>Normal</option><option>Insuficiencia leve (fisiológica)</option><option>Estenosis leve</option><option>Estenosis moderada</option><option>Estenosis severa</option><option>Estenosis moderada/severa</option></select>
+      <!-- MORFOLOGÍA, ESTENOSIS E INSUFICIENCIA SON TRES COSAS Y ANTES ERAN UN SOLO SELECT.
+           `vp_morf` mezclaba las tres, así que elegir «Insuficiencia leve» borraba la
+           posibilidad de consignar estenosis y viceversa — mutuamente excluyentes por
+           construcción, cuando clínicamente coexisten. Desde el 2026-09-16 la morfología queda
+           en `vp_morf`, la estenosis en `ep_grado` y la insuficiencia sigue en `ip_grado` (que
+           vive en el Doppler Pulmonar). Los valores viejos los traduce `_migrarCamposLegacy`:
+           sacar una opción sin migrar hace que el estudio reabra con el select en BLANCO
+           —`selectedIndex = -1`, no la primera opción— y ese hueco se persiste al guardar. -->
+      <div class="fg"><label>Morfología pulmonar</label>
+        <select id="vp_morf" onchange="vpSync()"><option>Normal</option><option>Displásica (congénita)</option><option>Reumática</option><option>Carcinoide</option><option>Post-quirúrgica / prótesis</option><option>No especificada</option></select>
+      </div>
+      <div class="fg"><label>Estenosis pulmonar</label>
+        <select id="ep_grado" onchange="vpSync()">
+          <option value="sin">Sin estenosis</option>
+          <option>Leve</option>
+          <option>Moderada</option>
+          <option>Moderada-severa</option>
+          <option>Severa</option>
+        </select>
         <div id="vp-sev-badge" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
+      </div>
+      <!-- Nivel y etiología sólo con estenosis consignada: preguntarle al médico la etiología de
+           una estenosis que declaró ausente es pedir un dato que no existe, y un select visible
+           con valor de fábrica es justamente cómo se cuela una afirmación que nadie hizo. -->
+      <div id="bloque-ep-detalle" style="display:none;">
+        <div class="grid-2">
+          <div class="fg"><label>Nivel de la obstrucción</label>
+            <select id="ep_nivel">
+              <option>No especificado</option>
+              <option>Valvular</option>
+              <option>Subvalvular (infundibular)</option>
+              <option>Supravalvular</option>
+              <option>Ramas pulmonares</option>
+              <option>Mixto</option>
+            </select>
+          </div>
+          <div class="fg"><label>Etiología de la estenosis</label>
+            <!-- «No especificada» PRIMERA: es el valor de fábrica y el que deja «Nuevo estudio».
+                 Con «Congénita valvular» en la opción 0, marcar una estenosis y no tocar este
+                 select publicaba «de etiología congénita valvular» en el informe firmado — una
+                 afirmación que nadie hizo. Es el defecto de los tres selects del TEER. -->
+            <select id="ep_etiologia">
+              <option>No especificada</option>
+              <option>Congénita valvular</option>
+              <option>Displasia valvular (Noonan)</option>
+              <option>Supravalvular (Williams)</option>
+              <option>Carcinoide</option>
+              <option>Post-quirúrgica</option>
+              <option>Ramas pulmonares</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <!-- La etiología de la INSUFICIENCIA vive acá aunque su grado esté en el Doppler Pulmonar:
+           `ip_grado` no se mudó de pestaña en este commit (ver CLAUDE.md). `vpSync` la muestra
+           leyendo ese grado, que está en otra tab pero en el mismo documento. -->
+      <div id="bloque-ip-detalle" class="fg" style="display:none;"><label>Etiología de la insuficiencia pulmonar</label>
+        <!-- Ídem: la opción 0 no puede ser un hallazgo. -->
+        <select id="ip_etiologia">
+          <option>No especificada</option>
+          <option>Fisiológica (traza)</option>
+          <option>HTP (dilatación anular)</option>
+          <option>Endocarditis</option>
+          <option>Post-quirúrgica</option>
+          <option>Carcinoide</option>
+          <option>Displasia valvular</option>
+        </select>
       </div>
     </div>
   </div>
@@ -19407,11 +19471,15 @@ function calcVP() {
   }
 
   const badgeEl = document.getElementById('vp-sev-badge');
-  const sel = document.getElementById('vp_morf');
-  /* Sólo se pisa el select si el valor actual es uno de los que ESTE cálculo produce. Con
-     «Insuficiencia leve (fisiológica)» elegida a mano, cargar una velocidad normal la
-     convertía en «Normal» y borraba la insuficiencia del informe sin avisar. */
-  const _pisable = !!sel && (sel.value === '' || /^(Normal|Estenosis )/.test(sel.value));
+  /* EL AUTO-GRADO ESCRIBE `ep_grado`, NO `vp_morf`. Hasta el 2026-09-16 `vp_morf` era un select
+     único que mezclaba morfología, estenosis e insuficiencia, así que el cálculo tenía que
+     pisarlo; hoy la morfología es del médico y la severidad tiene campo propio. */
+  const sel = document.getElementById('ep_grado');
+  /* Sólo se pisa el select si trae el valor de fábrica o el que sugerimos NOSOTROS en esta
+     carga. Un grado elegido a mano no se toca — incluida «Moderada-severa», que el auto-grado
+     NO puede producir (ver abajo) y que por lo tanto nunca es `dataset.sugerido`. */
+  const _sug = sel && sel.dataset.sugerido;
+  const _pisable = !!sel && (sel.value === '' || sel.value === 'sin' || (_sug && sel.value === _sug));
 
   /* `opcion === null` cubre el gradiente ausente Y el no clasificable en una sola guarda: la
      función de clasificación es la única que decide qué es un gradiente, y acá no se repite el
@@ -19421,23 +19489,58 @@ function calcVP() {
   if (opcion === null) {
     /* Sin gradiente utilizable, un grado que quedó de una medición borrada es una estenosis
        afirmada en el informe firmado sin nada que la sostenga —medido: borrar la velocidad
-       dejaba «Válvula pulmonar estenosis severa.»—. Se devuelve a «Normal», que es lo que la
-       app ya dice de toda válvula pulmonar que nadie midió, y sólo si el valor es EXACTAMENTE
-       el que sugerimos nosotros en ESTA carga (la marca se borra en `limpiarCampos` y no se
-       persiste, así que un estudio reabierto nunca coincide y el grado guardado no se toca). */
-    if (sel && _pisable && sel.dataset.sugerido && sel.value === sel.dataset.sugerido) {
-      sel.value = 'Normal'; delete sel.dataset.sugerido;
-    }
+       dejaba «Válvula pulmonar estenosis severa.»—. Se devuelve al valor de fábrica, y sólo si
+       es EXACTAMENTE el que sugerimos nosotros en ESTA carga (la marca se borra en
+       `limpiarCampos` y no se persiste, así que un estudio reabierto nunca coincide y el grado
+       guardado jamás se toca). */
+    if (sel && _sug && sel.value === _sug) { sel.value = 'sin'; delete sel.dataset.sugerido; }
     if (badgeEl) badgeEl.textContent = '';
+    if (typeof vpSync === 'function') vpSync();
     return;
   }
   const origen = (vmax !== null && vmax > 0) ? `Vmax ${vmax} m/s → Gmax ${gmax} mmHg` : `Gmax ${gmax} mmHg`;
-  if (_pisable) { sel.value = opcion; sel.dataset.sugerido = opcion; }
-  if (badgeEl) badgeEl.textContent = _pisable
+  /* `epGradoPorGmax` devuelve «Normal» / «Estenosis leve» / «Estenosis moderada» / «Estenosis
+     severa» —con la palabra adentro— y las opciones de `ep_grado` son «sin» / «Leve» /
+     «Moderada» / «Moderada-severa» / «Severa». La traducción vive acá y en un solo lugar: un
+     valor inventado no falla, deja el select sin selección y el grado desaparece en silencio. */
+  const _EP_AUTO = { 'Normal':'sin', 'Estenosis leve':'Leve',
+                     'Estenosis moderada':'Moderada', 'Estenosis severa':'Severa' };
+  const opcionSel = Object.prototype.hasOwnProperty.call(_EP_AUTO, opcion) ? _EP_AUTO[opcion] : null;
+  if (_pisable && opcionSel !== null) { sel.value = opcionSel; sel.dataset.sugerido = opcionSel; }
+  if (typeof vpSync === 'function') vpSync();
+  /* LA BANDA «Moderada-severa» NO LA PRODUCE EL AUTO-GRADO Y LA CÁPSULA LO DICE. `epGradoPorGmax`
+     tiene TRES bandas de estenosis (leve <36 · moderada 36-64 · severa >64 mmHg, ESC/ASE) y el
+     select tiene cuatro. Partir la banda 36-64 exigiría un corte que ninguna guía publica, y el
+     informe lo citaría al lado de «ESC/ASE». Queda para elección manual, declarado en pantalla
+     para que su ausencia no se lea como que el cálculo la descartó. */
+  if (badgeEl) badgeEl.textContent = (_pisable
     ? `Sugerido automáticamente por ${origen}. Podés cambiarlo manualmente si lo creés necesario.`
-    : `Por ${origen} correspondería «${opcion}», pero se respeta la opción elegida a mano.`;
+    : `Por ${origen} correspondería «${opcion}», pero se respeta la opción elegida a mano.`)
+    + ' El auto-grado sólo alcanza Leve, Moderada o Severa: «Moderada-severa» es elección manual.';
 }
 window.calcVP = calcVP;
+
+/* ══ VISIBILIDAD DE NIVEL Y ETIOLOGÍAS ═══════════════════════════════════════════════════════
+   Nivel y etiología de la estenosis sólo con estenosis consignada, y etiología de la
+   insuficiencia sólo con insuficiencia consignada. Un select visible con su valor de fábrica es
+   cómo se cuela en el informe una afirmación que nadie hizo — el patrón de los tres selects del
+   TEER, que este archivo ya pagó.
+
+   VA EN `RECALC_MODULOS` **Y** AL FINAL DE `limpiarCampos`, que son las dos columnas: las rutas
+   de restauración reponen asignando `.value`, y eso NO dispara `onchange`, así que sin el primero
+   un estudio reabierto mostraba la etiología escondida con valor adentro; y `limpiarCampos` no
+   pasa por ese embudo, así que sin el segundo el bloque del paciente anterior quedaba abierto.
+
+   `ip_grado` vive en el Doppler Pulmonar y su etiología en Válvulas: son pestañas distintas pero
+   el mismo documento, y `getElementById` no sabe de pestañas. */
+function vpSync(){
+  const g = id => { const e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; };
+  const ver = (id, on) => { const e = document.getElementById(id); if (e) e.style.display = on ? '' : 'none'; };
+  const ep = g('ep_grado');
+  ver('bloque-ep-detalle', !!(ep && ep !== 'sin'));
+  ver('bloque-ip-detalle', typeof ipHayInsuf === 'function' ? ipHayInsuf(g('ip_grado')) : false);
+}
+window.vpSync = vpSync;
 
 /* ══ ¿HAY INSUFICIENCIA PULMONAR? UN SOLO PREDICADO ══════════════════════════════════════════
    `ip_grado` era el ÚNICO de los siete grados valvulares cuya primera opción llevaba
@@ -21834,20 +21937,73 @@ function generarInforme(opts) {
        compuerta dejaba de disparar — o sea que la frase de normalidad de la válvula pulmonar
        desaparecía de todos los informes. */
     const hayIP = !!(ipHayInsuf(ipGrado) || ipProto !== null || ipTele !== null);
-    if (vpMorf === 'Normal' && !vpVmax && !vpGmax && !hayIP) {
+    /* ── MORFOLOGÍA Y ESTENOSIS, YA SEPARADAS ──────────────────────────────────────────────
+       `vp_morf` dejó de graduar: hoy sólo describe la válvula. La estenosis vive en `ep_grado`,
+       con su nivel y su etiología, y ninguno de los tres genera texto si está vacío.
+       «No especificada» es un valor de MIGRACIÓN —el campo viejo mezclaba morfología con
+       severidad, así que no decía nada de la forma— y por eso no se nombra: afirmarla sería
+       publicar que se evaluó algo que no se evaluó. */
+    const epG = sv('ep_grado') || 'sin';
+    const epHay = epG !== 'sin' && epG !== '';
+    const vpMorfHay = vpMorf && vpMorf !== 'Normal' && vpMorf !== 'No especificada';
+    const epNivel = epHay ? (sv('ep_nivel') || '') : '';
+    const epEtio  = epHay ? (sv('ep_etiologia') || '') : '';
+    /* El nivel «No especificado» y la etiología «No especificada» son los valores de fábrica de
+       sus selects: NO se imprimen. Es la regla del default constante — un select que nadie tocó
+       no es una respuesta. */
+    const epNivelTxt = (epNivel && epNivel !== 'No especificado') ? ` a nivel ${epNivel.toLowerCase()}` : '';
+    /* La etiología NO se pasa a minúsculas: «HTP» salía «htp» y «Noonan»/«Williams» son nombres
+       propios. Y va con «de etiología» en vez de entre paréntesis porque varias etiquetas YA
+       traen un paréntesis —«Displasia valvular (Noonan)»— y anidarlos queda ilegible. */
+    const epEtioTxt  = (epEtio  && epEtio  !== 'No especificada') ? `, de etiología ${epEtio}` : '';
+
+    /* LA NORMALIDAD EXIGE «Normal» EXPLÍCITO, no «no es anormal». Con `!vpMorfHay` alcanzaba
+       también «No especificada» —que es el valor al que MIGRAN los estudios viejos y el que
+       elige el médico cuando no valoró la morfología— y el informe firmado salía «Válvula
+       pulmonar normal.» sobre una válvula que nadie miró. Es la negación sin evidencia de
+       siempre, y acá entraba por la puerta de la migración. Sin morfología consignada y sin
+       ninguna medición, la válvula NO se nombra: mismo criterio que la aorta. */
+    if (vpMorf === 'Normal' && !epHay && !vpVmax && !vpGmax && !hayIP) {
       inf.push(estiloPick('VP normal.', 'Válvula pulmonar normal.', 'La válvula pulmonar presenta morfología y flujo dentro de límites normales.'));
-    } else if (vpMorf === 'Normal' && !vpVmax && !vpGmax) {
+    } else if (!vpMorfHay && !epHay && !vpVmax && !vpGmax) {
       /* Con IP cargada y sin datos de estenosis, la válvula se describe SÓLO por lo que se
          midió: la frase de la insuficiencia sale justo abajo y ésta sería redundante o
          contradictoria. No se escribe nada acá. */
     } else {
-      inf.push(estiloPick(
-        `VP ${vpMorf.toLowerCase()}${datosVPp}.`,
-        `Válvula pulmonar ${vpMorf.toLowerCase()}${datosVPp}.`,
-        `La válvula pulmonar presenta ${vpMorf.toLowerCase()}${datosVPp}.`));
-      /* Guion corto, no raya em: el En Suma se dibuja con jsPDF y la helvetica WinAnsi descarta
+      /* UNA SOLA FRASE cuando hay morfología Y estenosis: dos oraciones consecutivas abriendo
+         las dos con «Válvula pulmonar» es lo que ya hubo que corregir en la tricúspide. */
+      const morfFrag = vpMorfHay ? valvMorfDe(vpMorf) : '';
+      /* La preposición depende de si hay morfología delante: sola, la estenosis necesita «con»;
+         detrás de una morfología que YA empieza con «con» —«con afectación carcinoide»— repetirla
+         daba «con afectación carcinoide, con estenosis severa». */
+      const epCuerpo = epHay ? `estenosis ${epG.toLowerCase()}${epNivelTxt}${epEtioTxt}` : '';
+      const cuerpo = (morfFrag && epCuerpo) ? `${morfFrag} y ${epCuerpo}`
+                   : (epCuerpo ? `con ${epCuerpo}` : morfFrag);
+      if (cuerpo) {
+        inf.push(estiloPick(
+          `VP ${cuerpo}${datosVPp}.`,
+          `Válvula pulmonar ${cuerpo}${datosVPp}.`,
+          `La válvula pulmonar se encuentra ${cuerpo}${datosVPp}.`));
+      } else if (datosVPp) {
+        /* SÓLO MEDICIONES, SIN GRADO NI MORFOLOGÍA ANORMAL. Acá la normalidad SÍ se afirma
+           cuando la morfología dice «Normal», porque hay una medición que la sostiene: con
+           Vmax 1,4 m/s el gradiente es 7,8 mmHg y `epGradoPorGmax` lo clasificó como normal.
+           Antes esta palabra la aportaba `vp_morf`, que graduaba; al separarlo se perdía y el
+           informe pasaba de «Válvula pulmonar normal (Vmax 1.4 m/s…)» a «Válvula pulmonar
+           (Vmax 1.4 m/s…)» — el lector ya no sabía si alguien la había valorado.
+           Con «No especificada» NO se afirma nada: ahí nadie miró la morfología. */
+        const _norm = (vpMorf === 'Normal') ? ' normal' : '';
+        inf.push(estiloPick(`VP${_norm}${datosVPp}.`, `Válvula pulmonar${_norm}${datosVPp}.`,
+          `La válvula pulmonar${_norm ? ' es normal y' : ''} presenta${datosVPp}.`));
+      }
+      /* AL EN SUMA SÓLO LA ESTENOSIS MODERADA O MAYOR. La leve no es un hallazgo de conclusión,
+         igual que la IP leve. Y la MORFOLOGÍA no sube —simetría con mitral, aórtica y
+         tricúspide, donde tampoco sube— pero sí marca que hubo párrafo, para que el fallback no
+         termine negando lo que el cuerpo acaba de describir.
+         Guion corto, no raya em: el En Suma se dibuja con jsPDF y la helvetica WinAnsi descarta
          la raya en silencio — el PDF firmado salía «VP  Estenosis moderada.» con doble espacio. */
-      if (vpMorf !== 'Normal') suma.push(`VP - ${vpMorf}.`);
+      if (epHay && /moderada|severa/i.test(epG)) suma.push(`Estenosis pulmonar ${epG.toLowerCase()}${epNivelTxt}.`);
+      if (vpMorfHay || epHay) ccMarcarParrafo();
     }
 
     /* ── 10b) Insuficiencia pulmonar ──
@@ -21866,7 +22022,17 @@ function generarInforme(opts) {
          desarma para no escribir «insuficiencia pulmonar IP moderada». Sin grado elegido pero
          con velocidades cargadas se dice sólo que está presente: el grado es una evaluación
          integral que el médico hace a mano, y deducirlo de una velocidad sería inventarlo. */
-      const ipDesc = ipHayInsuf(ipGrado) ? ipGrado.replace(/^IP\s*/i, '').trim() : '';
+      /* `ip_grado` ya no trae el prefijo «IP» —se lo sacamos al separar el modelo— pero el
+         `replace` se conserva: un estudio legado que no haya pasado por `_migrarCamposLegacy`
+         (hay rutas que leen `campos` crudo) seguiría trayéndolo, y sin esto el informe diría
+         «insuficiencia pulmonar IP moderada». */
+      /* `.toLowerCase()`: los tokens nuevos son «Moderada»/«Severa» con mayúscula inicial y
+         acá van a mitad de oración — «Insuficiencia pulmonar Moderada» salía con la mayúscula
+         adentro. Los viejos («IP moderada») ya venían en minúscula, así que esto sólo se nota
+         desde que el modelo se separó. */
+      const ipDesc = ipHayInsuf(ipGrado) ? ipGrado.replace(/^IP\s*/i, '').trim().toLowerCase() : '';
+      const ipEtio = ipHayInsuf(ipGrado) ? (sv('ip_etiologia') || '') : '';
+      const ipEtioTxt = (ipEtio && ipEtio !== 'No especificada') ? `, de etiología ${ipEtio}` : '';
       const pres = [];
       if (ipProto !== null && ipPmad !== null) pres.push(`PAP media ${(4 * ipProto * ipProto + ipPmad).toFixed(0)} mmHg`);
       if (ipTele  !== null && ipPmad !== null) pres.push(`PAP diastólica ${(4 * ipTele  * ipTele  + ipPmad).toFixed(0)} mmHg`);
@@ -21879,11 +22045,14 @@ function generarInforme(opts) {
         ? ' Para estimar las presiones pulmonares por la insuficiencia pulmonar falta la PmAD (diámetro y colapso de la VCI).' : '';
       if (ipDesc) {
         inf.push(estiloPick(
-          `IP ${ipDesc}${presP}.${faltaPmad}`,
-          `Insuficiencia pulmonar ${ipDesc}${presP}.${faltaPmad}`,
-          `Se observa insuficiencia pulmonar ${ipDesc}${presP}.${faltaPmad}`));
-        // Al En Suma sólo lo que no es fisiológico: una IP leve fisiológica no es un hallazgo.
-        if (!/leve|fisiol/i.test(ipDesc)) suma.push(`Insuficiencia pulmonar ${ipDesc}.`);
+          `IP ${ipDesc}${ipEtioTxt}${presP}.${faltaPmad}`,
+          `Insuficiencia pulmonar ${ipDesc}${ipEtioTxt}${presP}.${faltaPmad}`,
+          `Se observa insuficiencia pulmonar ${ipDesc}${ipEtioTxt}${presP}.${faltaPmad}`));
+        /* Al EN SUMA sólo moderada o severa. Antes el filtro era `/leve|fisiol/`, que dependía de
+           que la palabra «fisiológica» viniera DENTRO del grado; hoy la etiología es campo propio
+           y el grado dice sólo el grado, así que la regla se escribe sobre lo que la regla mira. */
+        if (/moderada|severa/i.test(ipDesc)) suma.push(`Insuficiencia pulmonar ${ipDesc}.`);
+        ccMarcarParrafo();
       } else {
         inf.push(estiloPick(
           `IP presente${presP}.${faltaPmad}`,
@@ -23202,7 +23371,7 @@ function RECALC_MODULOS() {
          veredicto sí contaba esos criterios;
        · `calcOAI` reconstruye la marca de «área derivada» (ver ahí), sin la cual corregir el
          diámetro en un estudio reabierto dejaba el área vieja. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','vpSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -23420,6 +23589,10 @@ function limpiarCampos(silencioso) {
   if (typeof easvSync === 'function') { try { easvSync(); } catch (e) {} }
   if (typeof dsavSync === 'function') { try { dsavSync(); } catch (e) {} }
   if (typeof cvpaSync === 'function') { try { cvpaSync(); } catch (e) {} }
+  /* La segunda columna: `limpiarCampos` NO pasa por el embudo de `RECALC_MODULOS`, así que sin
+     esta línea el bloque de nivel/etiología del paciente anterior quedaba abierto sobre un
+     formulario en blanco. */
+  if (typeof vpSync === 'function') { try { vpSync(); } catch (e) {} }
   if (typeof dptSync === 'function') { try { dptSync(); } catch (e) {} }
   if (typeof cvrSync === 'function') { try { cvrSync(); } catch (e) {} }
   /* Los botones se repintan desde el ESTADO REAL, no a `false` fijo. Las claves del bull's eye
@@ -30445,7 +30618,8 @@ function ccSumaLinea(sec){
     if (!ipHayInsuf(ip) && !fvd && g == null && civ !== 'si' && ep !== 'si') return null;
     let l = cab;
     /* El valor de `ip_grado` YA empieza con «IP» —«IP severa»— así que anteponerlo daba «IP ip». */
-    if (ipHayInsuf(ip)) l += ' — ' + ip;
+    /* «— Moderada» no dice de qué: con el prefijo «IP» viejo se entendía solo. */
+    if (ipHayInsuf(ip)) l += ' — insuficiencia pulmonar ' + ip.replace(/^IP\s*/i, '').trim().toLowerCase();
     if (g != null) l += ' — gradiente TSVD ' + _cc1(g) + ' mmHg';
     if (ep === 'si') l += ' — estenosis o stent pulmonar';
     if (civ === 'si') l += ' — CIV residual' + (civG != null ? ' (gradiente ' + _cc1(civG) + ' mmHg)' : '');
@@ -32269,7 +32443,11 @@ function tdfConclusion(){
   const ipSevera = /severa/i.test(ip), ipModerada = /moderada/i.test(ip);
   /* `ipHayInsuf` y no `ip ?`: con el token «Sin insuficiencia» la rama truthy pasaba a emitir
      un «Sin» suelto como cláusula del párrafo de Fallot. */
-  const ipTxt = ipHayInsuf(ip) ? ip.replace(/^IP\s*/i, 'insuficiencia pulmonar ') : '';
+  /* Con los tokens nuevos («Moderada») el `replace` no encuentra prefijo que cambiar y el
+     párrafo publicaba «Moderada» suelto como cláusula. Se antepone el nombre de la entidad y se
+     saca el prefijo legado si viniera de un estudio sin migrar — las dos formas, una sola vez. */
+  const ipTxt = ipHayInsuf(ip)
+    ? 'insuficiencia pulmonar ' + ip.replace(/^IP\s*/i, '').trim().toLowerCase() : '';
   if (ipTxt) partes.push(ipTxt.charAt(0).toUpperCase() + ipTxt.slice(1));
   if (civ === 'si') partes.push('Comunicación interventricular residual' + (civG != null ? ' con gradiente de ' + civG + ' mmHg' : ''));
   else if (civ === 'no') partes.push('Sin comunicación interventricular residual');
@@ -32920,6 +33098,48 @@ function _migrarCamposLegacy(c){
      EXISTE: un estudio que nunca tuvo el campo se queda sin él, que es «no hay dato». */
   if (Object.prototype.hasOwnProperty.call(c, 'ip_grado') &&
       String(c['ip_grado'] == null ? '' : c['ip_grado']).trim() === '') c['ip_grado'] = 'Sin insuficiencia';
+  /* ══ VÁLVULA PULMONAR: `vp_morf` se partió en tres (2026-09-16) ═══════════════════════════
+     Era un select único que mezclaba morfología, estenosis e insuficiencia. Hoy la morfología
+     queda en `vp_morf`, la estenosis en `ep_grado` y la insuficiencia en `ip_grado`.
+
+     LOS CUATRO VALORES DE ESTENOSIS MIGRAN A «No especificada», NO a «Normal». El campo viejo
+     las MEZCLABA: «Estenosis leve» no decía absolutamente nada sobre la morfología, así que
+     escribir «Normal» ahí inventaría un hallazgo que nadie registró — y el informe reimpreso
+     afirmaría «válvula pulmonar de morfología normal» sobre un estudio donde no se evaluó.
+     «Insuficiencia leve (fisiológica)» sí migra a «Normal»: esa opción describía una válvula
+     morfológicamente normal con una traza fisiológica, que es el hallazgo habitual.
+
+     Sin esto, un estudio guardado reabre con el select en BLANCO —asignar un `.value` que ya no
+     es ninguna opción deja `selectedIndex = -1`, no la primera— y ese hueco se persiste al
+     volver a guardar. Es la misma pérdida silenciosa de `_VAB_SIEVERS`, y el propio comentario
+     del select viejo ya advertía que por eso se había conservado la opción heredada. */
+  const _VP_LEGACY = {
+    'Estenosis leve':            { vp_morf:'No especificada', ep_grado:'Leve' },
+    'Estenosis moderada':        { vp_morf:'No especificada', ep_grado:'Moderada' },
+    'Estenosis moderada/severa': { vp_morf:'No especificada', ep_grado:'Moderada-severa' },
+    'Estenosis severa':          { vp_morf:'No especificada', ep_grado:'Severa' },
+    'Insuficiencia leve (fisiológica)': { vp_morf:'Normal', ip_grado:'Leve', ip_etiologia:'Fisiológica (traza)' }
+  };
+  { const _vm = String(c['vp_morf'] == null ? '' : c['vp_morf']).trim();
+    if (Object.prototype.hasOwnProperty.call(_VP_LEGACY, _vm)) {
+      const _d = _VP_LEGACY[_vm];
+      /* Los campos destino se escriben SÓLO si no traen ya un valor propio: un estudio que pasó
+         por la app nueva y volvió a guardarse tiene `ep_grado` real, y pisarlo con el derivado
+         del campo viejo sería revertir lo que el médico corrigió. */
+      Object.keys(_d).forEach(function(k){
+        if (k === 'vp_morf' || !c[k] || String(c[k]).trim() === '' || String(c[k]).trim() === 'sin') c[k] = _d[k];
+      });
+    } }
+  /* `ip_grado` perdió el prefijo «IP» y el «(fisiológica)», que era una etiología metida dentro
+     del grado. El pedido no listaba estas tres y sin ellas el select reabre en blanco igual que
+     arriba. La etiología sólo se escribe si el campo no trae una propia. */
+  { const _ip = String(c['ip_grado'] == null ? '' : c['ip_grado']).trim();
+    const _IP_LEGACY = { 'IP leve (fisiológica)':'Leve', 'IP moderada':'Moderada', 'IP severa':'Severa' };
+    if (Object.prototype.hasOwnProperty.call(_IP_LEGACY, _ip)) {
+      c['ip_grado'] = _IP_LEGACY[_ip];
+      if (_ip === 'IP leve (fisiológica)' && (!c['ip_etiologia'] || String(c['ip_etiologia']).trim() === ''))
+        c['ip_etiologia'] = 'Fisiológica (traza)';
+    } }
   /* `vab_tipo` pasó de Sievers (2007) al Consenso Internacional 2021 el 2026-09-15. Sin esta
      traducción, un estudio guardado con `t1rl` reabre con el select VACÍO —el valor ya no es una
      opción— y el informe pierde la morfología de la válvula EN SILENCIO: no hay error, sólo un
@@ -41448,7 +41668,10 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
      firmado como «APTO» se reimprime como «Posiblemente apto»—; y al volver, la marca del
      estudio reimpreso se le queda al paciente en pantalla. Se limpian ANTES de cargar y se
      reponen al restaurar, que es lo mismo que ya se hace con `dataset.tocado`. */
-  const _MARCAS_DERIV = ['vp_gmax','vp_morf','teer_pasp'];
+  /* `vp_morf` salió y entró `ep_grado`: desde el 2026-09-16 el auto-grado escribe el segundo.
+     Dejarlo apuntando al viejo habría hecho que la reimpresión respaldara una marca que ya
+     nadie escribe y perdiera la que sí. */
+  const _MARCAS_DERIV = ['vp_gmax','ep_grado','teer_pasp'];
   const marcaEstado = {};
   _MARCAS_DERIV.forEach(id => {
     const el = document.getElementById(id);
@@ -44146,6 +44369,9 @@ function _labExcelRow(inf) {
     'Morfología tricúspide': c.vt_morf || '', 'IT grado': gIT,
     'IT_I (Leve)': bin(gIT,'leve'), 'IT_II (Moderada)': bin(gIT,'moderada'), 'IT_III (Severa)': bin(gIT,'severa'),
     'VC IT (mm)': rnd(num('it_vc','vc_tricusp'),1),
+    'Morfología pulmonar': c.vp_morf || '',
+    'EP grado': c.ep_grado || '', 'EP nivel': c.ep_nivel || '', 'EP etiología': c.ep_etiologia || '',
+    'IP grado': c.ip_grado || '', 'IP etiología': c.ip_etiologia || '',
     'Grad VD-AD (mmHg)': rnd(gradVDAD,0), 'PSAP (mmHg)': rnd(psapV,0),
     /* Rangos, no grados, y con la constante: era el ÚNICO lugar que seguía diciendo «Leve /
        Moderada / Severa» sobre una PSAP estimada, y el que más lejos viaja —el nombre de la
@@ -44811,7 +45037,11 @@ const LAB_XLS_BLOQUES = [
          bloque 8 ya se lleva por delante todo lo que empiece con «AVA» o «AVm», y agregar un
          prefijo corto más es cómo se coló «Morfología » sobre la orejuela. */
       'VLI (ml/m²)',
-      'G. medio Ao','PHT IAo','EROA','Vol R IM','Wilkins','Score Wilkins','PSAP','PAP media','Grad VD-AD','Pericardio'] },
+      'G. medio Ao','PHT IAo','EROA','Vol R IM','Wilkins','Score Wilkins','PSAP','PAP media','Grad VD-AD','Pericardio',
+      /* Pulmonar: nombrados y no por prefijo corto. «EP » y «IP » son dos letras y este bloque
+         ya se lleva por delante todo lo que empiece con «IM» o «IT» — agregar un prefijo de dos
+         caracteres es exactamente cómo «Morfología » se tragó «Morfología orejuela». */
+      'Morfología pulmonar','EP grado','EP nivel','EP etiología','IP grado','IP etiología'] },
   { n:'9 · INFORME', cols:['Informe (texto completo)','EN SUMA (texto completo)'] },
 
   // ▼ SECCIÓN AVANZADA ▼ — de acá en adelante son módulos que no todo estudio usa
@@ -45306,6 +45536,14 @@ const LAB_XLS_MAP = [
 
   // 12 · Válvula tricúspide y presiones pulmonares
   ['Morfología tricúspide',  'vt_morf',        'opcion'],
+  /* Pulmonar (2026-09-16). Las SEIS van juntas: exportar la etiología de una insuficiencia
+     cuyo grado no viaja daría una planilla que no se puede leer sola. */
+  ['Morfología pulmonar',    'vp_morf',        'opcion'],
+  ['EP grado',               'ep_grado',       'opcion'],
+  ['EP nivel',               'ep_nivel',       'opcion'],
+  ['EP etiología',           'ep_etiologia',   'opcion'],
+  ['IP grado',               'ip_grado',       'opcion'],
+  ['IP etiología',           'ip_etiologia',   'opcion'],
   ['IT grado',               'it_grado',       'vocab'],
   ['VC IT (mm)',             'it_vc',          'num'],
   ['PSAP (mmHg)',            'psap_calc',      'num'],
@@ -46380,6 +46618,14 @@ const LAB_XLS_LISTAS = {
   vm_morf: ['Normal','Mixomatosa / Barlow','Calcificada','Reumática','Prolapso / EVMS','Prótesis','Endocarditis','Isquémica (disfunción/rotura músculo papilar)'],
   va_morf: ['Trivalva normal','Bicúspide','Calcificada','Reumática','Prótesis','Endocarditis','Carcinoide'],
   vt_morf: ['Normal','Mixomatosa','Reumática','Prótesis','Carcinoide','Endocarditis','Funcional / dilatación VD'],
+  vp_morf: ['Normal','Displásica (congénita)','Reumática','Carcinoide','Post-quirúrgica / prótesis','No especificada'],
+  /* `ep_grado` guarda «sin» en la opción 0 —su `value` difiere de la etiqueta, único de los
+     seis— así que es «sin» lo que va acá: `_labXlsLista` compara contra el VALOR. */
+  ep_grado: ['sin','Leve','Moderada','Moderada-severa','Severa'],
+  ep_nivel: ['No especificado','Valvular','Subvalvular (infundibular)','Supravalvular','Ramas pulmonares','Mixto'],
+  ep_etiologia: ['No especificada','Congénita valvular','Displasia valvular (Noonan)','Supravalvular (Williams)','Carcinoide','Post-quirúrgica','Ramas pulmonares'],
+  ip_grado: ['Sin insuficiencia','Leve','Moderada','Severa'],
+  ip_etiologia: ['No especificada','Fisiológica (traza)','HTP (dilatación anular)','Endocarditis','Post-quirúrgica','Carcinoide','Displasia valvular'],
   pericardio: ['Normal, sin derrame','Derrame mínimo','Derrame leve (5-10mm)','Derrame moderado (10-20mm)','Derrame severo (>20mm)','Engrosamiento / calcificación'],
   /* `alg-motivo` va por LISTA y no por vocabulario porque su `option value` ES la etiqueta,
      paréntesis incluidos — y `_labXlsVocab` parte por `(` para su fallback de etiqueta larga,
@@ -50150,8 +50396,8 @@ window._LAB_PIE_PAL = _LAB_PIE_PAL;
 
 // ══ Gráfica apilada de valvulopatías (dashboard + PDF) ══
 // Orden de columnas y color base por válvula (Mitral azul · Aórtica naranja · Tricuspídea verde)
-const _LAB_VALV_LABELS = ['Insuf. Mitral','Esten. Mitral','Insuf. Aórtica','Esten. Aórtica','Insuf. Tricusp.','Esten. Tricusp.'];
-const _LAB_VALV_BASE   = ['#1565c0','#1565c0','#e65100','#e65100','#2e7d32','#2e7d32'];
+const _LAB_VALV_LABELS = ['Insuf. Mitral','Esten. Mitral','Insuf. Aórtica','Esten. Aórtica','Insuf. Tricusp.','Esten. Tricusp.','Esten. Pulmonar'];
+const _LAB_VALV_BASE   = ['#1565c0','#1565c0','#e65100','#e65100','#2e7d32','#2e7d32','#6a1b9a'];
 function _labRgba(hex, a) {
   const h = hex.replace('#','');
   return `rgba(${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)},${a})`;
@@ -50176,7 +50422,13 @@ function _labValvCounts(infs) {
     i => _labRegurgSev(i, 'ia_grado'),
     i => _labEstenSev(i, 'ea_grado'),
     i => _labRegurgSev(i, 'it_grado'),
-    i => _labEstenSev(i, 'et_grado')
+    i => _labEstenSev(i, 'et_grado'),
+    /* SÉPTIMA: la estenosis pulmonar, que hasta el 2026-09-16 no tenía campo propio —vivía
+       dentro de `vp_morf` mezclada con la morfología y la insuficiencia, así que no se podía
+       contar—. `_labEstenSev` la lee sin cambios: su rama `/sin|esclerosis/` matchea el valor
+       de fábrica «sin», y «Moderada-severa» cae en `/severa/` antes que en `/moderada/`, que
+       es el orden correcto —la cascada prueba severa primero—. */
+    i => _labEstenSev(i, 'ep_grado')
   ];
   const counts = { Leve: [], Moderada: [], Severa: [] };
   /* Base POR VÁLVULA: los estudios donde ESA válvula tiene severidad registrada, incluidos
@@ -51499,7 +51751,13 @@ function labCCRender(infs, n) {
        mapa (`if (!lbl) return;`), así que el token nuevo de la opción 0 queda fuera y «Con IP
        consignada» sigue contando los que TIENEN insuficiencia. Agregarlo cambiaría el
        significado del `n` de la tarjeta sin que nada lo declare. */
-    const IP_L = { 'IP leve (fisiológica)':'Leve (fisiológica)', 'IP moderada':'Moderada', 'IP severa':'Severa' };
+    /* Las claves son los VALORES del select. Cambiaron el 2026-09-16 (sin prefijo «IP» y sin
+       «fisiológica», que pasó a `ip_etiologia`); se conservan las viejas porque `distrib` lee
+       `campos` CRUDO y hay estudios sin migrar — un valor que no esté acá se descarta en
+       silencio y la categoría desaparece del gráfico. «Sin insuficiencia» sigue sin entrada a
+       propósito: «Con IP consignada» cuenta los que TIENEN insuficiencia. */
+    const IP_L = { 'Leve':'Leve', 'Moderada':'Moderada', 'Severa':'Severa',
+                   'IP leve (fisiológica)':'Leve', 'IP moderada':'Moderada', 'IP severa':'Severa' };
     const ip = distrib(tdfArr, 'ip_grado', IP_L);
     const conIp = Object.keys(ip).reduce((a, k) => a + ip[k], 0);
     const modSev = (ip['Moderada'] || 0) + (ip['Severa'] || 0);
@@ -53840,8 +54098,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260915-2336';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789526214867;                 /* eco-build-ms */
+const ECO_BUILD    = '20260916-0004';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789527847778;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -53927,7 +54185,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260915-2336</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0004</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

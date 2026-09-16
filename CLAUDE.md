@@ -460,6 +460,88 @@ Se recuperó con `git show HEAD:` y se verificó **byte por byte** contra HEAD. 
 entrada «Los reemplazos por rango de líneas son peligrosos» que este archivo ya tenía, aplicada al
 propio suite: **después de un reemplazo por rango, contar los casos.**
 
+### Válvula pulmonar: `vp_morf` era UN select para tres cosas
+Separado el 2026-09-16 (commit 2a: modelo de datos y lógica; las solapas y la mudanza de pestaña
+van aparte). `vp_morf` mezclaba **morfología, estenosis e insuficiencia** en un solo select, así
+que elegir «Insuficiencia leve» **borraba la posibilidad de consignar estenosis** y viceversa —
+mutuamente excluyentes por construcción cuando clínicamente coexisten. Hoy: morfología en
+`vp_morf`, estenosis en **`ep_grado`** (+ `ep_nivel`, `ep_etiologia`) e insuficiencia en
+`ip_grado` (+ `ip_etiologia`).
+
+**`calcVP` escribe `ep_grado` y `_MARCAS_DERIV` tuvo que seguirlo.** Esa lista respalda las marcas
+`dataset` durante la reimpresión: dejarla apuntando a `vp_morf` habría respaldado una marca que ya
+nadie escribe y perdido la que sí.
+
+**La traducción del auto-grado vive en UN lugar.** `epGradoPorGmax` devuelve «Estenosis leve» —con
+la palabra adentro— y las opciones son «sin»/«Leve»/… Un valor inventado no falla: deja el select
+**sin selección** y el grado desaparece en silencio.
+
+**«Moderada-severa» no la produce el auto-grado, y la cápsula lo dice.** `epGradoPorGmax` tiene
+TRES bandas de estenosis (ESC/ASE) y el select tiene cuatro. Partir la banda 36-64 exigiría un
+corte que ninguna guía publica y el informe lo citaría al lado de «ESC/ASE». Es elección manual, y
+se declara **en pantalla** para que su ausencia no se lea como que el cálculo la descartó.
+
+**LA OPCIÓN 0 DE LAS DOS ETIOLOGÍAS ERA UN HALLAZGO.** `ep_etiologia` arrancaba en «Congénita
+valvular» e `ip_etiologia` en «Fisiológica (traza)»: consignar un grado y **no tocar el select**
+publicaba esa etiología en el informe firmado. Es el defecto de los tres selects del TEER. Hoy
+«No especificada» es la primera en las dos, y ni ella ni «No especificado» del nivel se imprimen.
+
+**LA NORMALIDAD EXIGE «Normal» EXPLÍCITO.** La compuerta era «no es anormal», que dejaba pasar
+**«No especificada»** —el valor al que MIGRAN los estudios viejos— y el informe salía «Válvula
+pulmonar normal.» sobre una válvula que nadie miró. La negación sin evidencia entrando por la
+puerta de la migración. Sin morfología consignada y sin mediciones, la válvula no se nombra.
+
+**Pero con mediciones normales la palabra «normal» SÍ va.** Antes la aportaba `vp_morf`; al
+separarlo, un estudio con Vmax 1,4 m/s pasó de «Válvula pulmonar normal (Vmax 1.4 m/s…)» a
+«Válvula pulmonar (Vmax 1.4 m/s…)» y el lector dejaba de saber si se había valorado. Ahí la
+normalidad **está sostenida por una medición**, que es lo que la separa del caso de arriba.
+
+**LA MIGRACIÓN TIENE OCHO MAPEOS, NO CINCO.** El pedido listaba los cinco de `vp_morf`; faltaban
+los **tres de `ip_grado`**, que también cambió de valores —perdió el prefijo «IP» y el
+«(fisiológica)», que era una **etiología metida dentro del grado**—. Sin ellos el select reabre
+**en blanco** (`selectedIndex = -1`) y el hueco se persiste al guardar. Y los cuatro valores de
+estenosis migran a **«No especificada», no a «Normal»**: el campo viejo las mezclaba, así que
+«Estenosis leve» no decía nada de la forma y escribir «Normal» inventaría un hallazgo.
+Medido sobre los 95 reales: **3 estudios** con `vp_morf` fisiológica y **1** con el `ip_grado`
+viejo. La migración **no pisa** un campo destino que ya traiga valor propio.
+
+**Tres consumidores dependían del prefijo «IP».** `tdfConclusion` hacía
+`replace(/^IP\s*/i, 'insuficiencia pulmonar ')` — con «Moderada» no hay prefijo que cambiar y el
+párrafo de Fallot publicaba **«Moderada» suelto**; la línea del EN SUMA de Fallot quedaba en
+«— Moderada», que no dice de qué; e `IP_L` del Laboratorio indexa por el valor del select, así que
+conserva las claves viejas **y** las nuevas porque `distrib` lee `campos` CRUDO y hay estudios sin
+migrar.
+
+**`ep_grado` es la SÉPTIMA válvula del Laboratorio.** `_labEstenSev` la lee sin cambios. Ojo:
+«Moderada-severa» cae en `/severa/` **antes** que en `/moderada/`, así que el Lab la cuenta como
+**Severa**, mientras `_labRegurgSev` mapea el grado 3 de las regurgitaciones a **Moderada**. Es una
+asimetría entre los dos helpers; se eligió el lado que **no degrada** la severidad, y ninguna otra
+estenosis tiene esa banda, así que no cambia ningún conteo existente. Declarado.
+
+**Seis columnas nuevas de Excel, no cuatro.** El pedido listaba `ep_grado`, `ep_nivel`,
+`ep_etiologia` e `ip_etiologia`; se agregaron también **`vp_morf` e `ip_grado`**, porque exportar
+la etiología de una insuficiencia cuyo **grado** no viaja da una planilla que no se puede leer
+sola. Van nombradas y **no por prefijo**: «EP » e «IP » son dos letras y el bloque 8 ya se lleva
+todo lo que empiece con «IM» o «IT» — es como «Morfología » se tragó «Morfología orejuela».
+El Excel pasó de **411 a 417 columnas** y de 118 a **124 básicas**; TC-135 fija los dos números.
+
+**`vpSync` va en las DOS columnas** —`RECALC_MODULOS` y el final de `limpiarCampos`— porque las
+rutas de restauración reponen asignando `.value` y eso no dispara `onchange`, y `limpiarCampos` no
+pasa por ese embudo.
+
+**Tres trampas de los casos de prueba:**
+- **TC-137 derivaba el índice de la válvula como `length - 1`.** Al agregar la pulmonar como
+  séptima, ese índice pasó a apuntar a otra columna. **Indexar por nombre**, no por posición.
+- **TC-51 y TC-137 usaban el token viejo `'IP severa'`**, que ya no es opción: asignarlo deja el
+  select sin selección y el caso mide sobre un campo vacío.
+- **Backticks en un comentario dentro del cuerpo de un caso**, décima vez. `node --check` lo caza
+  antes de correr nada.
+
+**Lo que NO se hizo, y por qué.** El pedido decía «Gradiente medio VP (ya existe)» — **no existe**.
+Hay `em_gmedio`, `ea_gmedio` y `et_gmedio`, no pulmonar. Y no es un olvido menor: `epGradoPorGmax`
+gradúa por el gradiente **PICO**, así que un campo de gradiente medio nuevo no lo graduaría nada y
+nacería huérfano. Queda fuera hasta decidir qué lo consume.
+
 ### Etiologías en VM/VA/VT: tres trampas, y ninguna estaba en el pedido
 Agregadas el 2026-09-16: **VM** + Endocarditis, Isquémica (disfunción/rotura músculo papilar);
 **VA** + Endocarditis, Carcinoide; **VT** + Carcinoide, Endocarditis, Funcional / dilatación VD.

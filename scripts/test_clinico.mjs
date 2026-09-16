@@ -833,16 +833,29 @@ caso('TC-50', 'IT con PSAP: la PSAP alta sube al EN SUMA', `
 `);
 
 /* epGradoPorGmax: <9 normal, <36 leve, <=64 moderada, >64 severa. Los cuatro cortes. */
+/* Las BANDAS no cambiaron (ESC/ASE: <9 normal · <36 leve · 36-64 moderada · >64 severa); lo que
+   cambio el 2026-09-16 es DONDE aterriza el grado —`ep_grado`, no `vp_morf`— y que al EN SUMA
+   sube desde moderada, no desde leve. El caso prueba las dos cosas por los dos lados del corte. */
 caso('TC-51', 'Estenosis pulmonar: las cuatro bandas de Gmax en sus cortes', `
   function ep(vmax) { __t.limpiar(); __t.set('vp_vmax', String(vmax));
-    return { g: __t.val('vp_gmax'), r: __t.informe() }; }
+    return { g: __t.val('vp_gmax'), sel: __t.val('ep_grado'), r: __t.informe() }; }
   const a = ep(1.4), b = ep(1.6), c = ep(3.1), d = ep(4.0), e = ep(4.1);
   return { extra: [
-    ['Gmax 7.8 normal',    a.g === '7.8'  && /Válvula pulmonar normal/.test(a.r.inf) && a.r.suma.indexOf('VP -') === -1],
-    ['Gmax 10.2 leve',     b.g === '10.2' && b.r.suma.indexOf('VP - Estenosis leve.') > -1],
-    ['Gmax 38.4 moderada', c.g === '38.4' && c.r.suma.indexOf('VP - Estenosis moderada.') > -1],
-    ['Gmax 64 sigue moderada (corte <=64)', d.g === '64' && d.r.suma.indexOf('VP - Estenosis moderada.') > -1],
-    ['Gmax 67.2 severa',   e.g === '67.2' && e.r.suma.indexOf('VP - Estenosis severa.') > -1]
+    ['Gmax 7.8 normal',    a.g === '7.8'  && a.sel === 'sin' &&
+      /Válvula pulmonar normal/.test(a.r.inf) && a.r.suma.indexOf('stenosis pulmonar') === -1, a.sel],
+    ['Gmax 10.2 leve',     b.g === '10.2' && b.sel === 'Leve' &&
+      b.r.inf.indexOf('con estenosis leve') > -1, b.sel + ' | ' + b.g],
+    ['y la LEVE no sube al EN SUMA', b.r.suma.indexOf('stenosis pulmonar') === -1, b.r.suma],
+    ['Gmax 38.4 moderada', c.g === '38.4' && c.sel === 'Moderada' &&
+      c.r.suma.indexOf('Estenosis pulmonar moderada.') > -1, c.sel],
+    ['Gmax 64 sigue moderada (corte <=64)', d.g === '64' && d.sel === 'Moderada' &&
+      d.r.suma.indexOf('Estenosis pulmonar moderada.') > -1, d.sel + ' | ' + d.g],
+    ['Gmax 67.2 severa',   e.g === '67.2' && e.sel === 'Severa' &&
+      e.r.suma.indexOf('Estenosis pulmonar severa.') > -1, e.sel],
+    /* El auto-grado NO puede producir «Moderada-severa»: la guia tiene tres bandas y el select
+       cuatro. Si alguna vez la produce, es que alguien invento un umbral. */
+    ['ninguna banda automatica produce Moderada-severa',
+      [a,b,c,d,e].every(function(x){ return x.sel !== 'Moderada-severa'; })]
   ] };
 `);
 
@@ -3103,7 +3116,7 @@ caso('TC-120', 'Congenitas: ningun panel de seccion sobrevive a Nuevo estudio', 
 caso('TC-121', 'TdF: el criterio volumetrico del VD vota, y solo medido por resonancia', `
   function e(o) { __t.limpiar();
     __t.set('tdf_sintomas', o.sint || 'no');
-    __t.set('ip_grado', o.ip || 'IP severa');
+    __t.set('ip_grado', o.ip || 'Severa');
     if (o.vtd != null) __t.set('tdf_vtdvdi', String(o.vtd));
     if (o.vts != null) __t.set('tdf_vtsvdi', String(o.vts));
     if (o.fuente != null) __t.set('tdf_vol_fuente', o.fuente);
@@ -4294,7 +4307,7 @@ caso('TC-135', 'GLS y contractilidad son BASICOS del Excel: sin checkbox y siemp
       ['la cuenta del modal declara las basicas reales',
         cuentaTxt.indexOf(basicas.length + ' columnas') === 0, cuentaTxt],
       ['y las basicas crecieron: el total no cambio, lo opcional si',
-        basicas.length === 118 && TODAS.length === 411,
+        basicas.length === 124 && TODAS.length === 417,
         basicas.length + ' basicas de ' + TODAS.length],
       // 6 · Una preferencia vieja con el modulo borrado no lo revive.
       ['una preferencia guardada con contr no revive el modulo', (function(){
@@ -4506,20 +4519,25 @@ caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el La
   const mk = function(et){ return { campos:{ im_grado:'0', em_grado:'sin', ia_grado:'0',
     ea_grado:'sin', it_grado:'0', et_grado: et } }; };
   const vc = _labValvCounts([mk('Sin estenosis'), mk('Sin estenosis'), mk('Moderada'), mk('Severa')]);
-  const iET = _LAB_VALV_LABELS.length - 1;       // la estenosis tricuspidea es la ultima
+  /* POR NOMBRE, no por posicion: era length - 1 y al agregar la estenosis pulmonar como
+     septima valvula ese indice paso a apuntar a OTRA columna — el caso seguia verde midiendo
+     la valvula equivocada hasta que los conteos no dieron. */
+  const iET = _LAB_VALV_LABELS.indexOf('Esten. Tricusp.');
 
   // ── FIX 3 · ip_grado ────────────────────────────────────────────────────────────────────
   const op0 = document.getElementById('ip_grado').options[0];
   const mig = function(c){ _migrarCamposLegacy(c); return c; };
   const mVacio = mig({ ip_grado:'' });
   const mAusente = mig({});
-  const mReal = mig({ ip_grado:'IP severa' });
+  const mReal = mig({ ip_grado:'Severa' });        // token nuevo: la migracion no lo toca
   __t.limpiar(); set('vd_bas','38'); const vpOp0 = __t.informe();
-  __t.limpiar(); set('vd_bas','38'); set('ip_grado','IP severa'); const vpSev = __t.informe();
+  /* Token NUEVO: «IP severa» dejo de ser una opcion al separar el modelo (2026-09-16) y
+     asignarlo deja el select sin seleccion. La migracion de ese valor se prueba abajo. */
+  __t.limpiar(); set('vd_bas','38'); set('ip_grado','Severa'); const vpSev = __t.informe();
   /* Fallot: con la opcion 0 el parrafo NO puede arrastrar un «Sin» suelto. */
   __t.limpiar(); set('tdf_civ_grad','31'); set('ip_grado','Sin insuficiencia');
   const tdfSin = __t.informe();
-  __t.limpiar(); set('tdf_civ_grad','31'); set('ip_grado','IP severa');
+  __t.limpiar(); set('tdf_civ_grad','31'); set('ip_grado','Severa');
   const tdfSev = __t.informe();
   __t.limpiar();
 
@@ -4582,7 +4600,7 @@ caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el La
     ['la migracion traduce la cadena vacia', mVacio.ip_grado === 'Sin insuficiencia'],
     ['NO inventa el campo donde nunca estuvo',
       !Object.prototype.hasOwnProperty.call(mAusente, 'ip_grado')],
-    ['y no toca un valor real', mReal.ip_grado === 'IP severa'],
+    ['y no toca un valor ya migrado', mReal.ip_grado === 'Severa'],
     /* LA REGRESION QUE ESTE CAMBIO PODIA CAUSAR: con el token truthy, hayIP daba siempre
        verdadero y la frase de normalidad de la valvula pulmonar desaparecia de TODO informe. */
     ['«Válvula pulmonar normal.» sigue saliendo con la opcion 0',
@@ -4600,6 +4618,169 @@ caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el La
     // FIX 4 — la sexta pastilla.
     ['la pastilla de estenosis tricuspidea se restaura al reabrir',
       pillBloque !== 'none' && pillOn === true, 'display=' + pillBloque + ' encendida=' + pillOn]
+  ] };
+`);
+
+/* VALVULA PULMONAR: EP E IP SEPARADAS (2026-09-16).
+   vp_morf era UN SOLO select que mezclaba morfologia, estenosis e insuficiencia — elegir
+   «Insuficiencia leve» borraba la posibilidad de consignar estenosis y viceversa, mutuamente
+   excluyentes por construccion cuando clinicamente coexisten. Hoy: morfologia en vp_morf,
+   estenosis en ep_grado (+ nivel y etiologia), insuficiencia en ip_grado (+ etiologia).
+   Lo que este caso vigila y no es obvio:
+   · la MIGRACION, sin la cual un estudio viejo reabre con el select en blanco;
+   · que las opciones 0 de las dos etiologias NO se impriman (valor de fabrica);
+   · que al EN SUMA suba desde moderada, no desde leve;
+   · que el importador acepte las seis columnas nuevas. */
+caso('TC-139', 'Valvula pulmonar: morfologia, EP con nivel y etiologia, IP con etiologia, y la migracion', `
+  const set = function(id, v){ const e = document.getElementById(id); if (!e) return 'NO EXISTE ' + id;
+    e.value = v; e.dispatchEvent(new Event('change', { bubbles:true })); return 1; };
+  const esc = function(o){ __t.limpiar(); set('vd_bas','38');
+    const faltan = Object.keys(o).filter(function(k){ return set(k, o[k]) !== 1; });
+    const r = __t.informe();
+    const li = r.inf.split(String.fromCharCode(10)).filter(function(l){ return l.indexOf('ulmonar') > -1; }).join(' // ');
+    return { li: li, suma: r.suma, faltan: faltan }; };
+  const mig = function(o){ _migrarCamposLegacy(o); return o; };
+  const ops = function(id){ const e = document.getElementById(id);
+    return e ? [].slice.call(e.options).map(function(o){ return o.value; }) : []; };
+
+  const vacio   = esc({});
+  const completo = esc({ vp_morf:'Carcinoide', ep_grado:'Severa', ep_nivel:'Valvular', ep_etiologia:'Carcinoide' });
+  const ipMod   = esc({ ip_grado:'Moderada', ip_etiologia:'HTP (dilatación anular)' });
+  const epLeve  = esc({ ep_grado:'Leve' });
+  const ipLeve  = esc({ ip_grado:'Leve', ip_etiologia:'Fisiológica (traza)' });
+  const epModSev = esc({ ep_grado:'Moderada-severa' });
+  const soloMorf = esc({ vp_morf:'Displásica (congénita)' });
+  const noEspec  = esc({ vp_morf:'No especificada' });
+  __t.limpiar();
+
+  /* AUTO-GRADO: escribe ep_grado, respeta lo manual, y NUNCA produce Moderada-severa. */
+  const g = document.getElementById('ep_grado');
+  const auto = function(vmax){ g.value = 'sin'; delete g.dataset.sugerido;
+    set('vp_vmax', vmax); calcVP(); return g.value; };
+  const a25 = auto('2.5'), a45 = auto('4.5');
+  g.value = 'Moderada-severa'; set('vp_vmax','4.5'); calcVP();
+  const manual = g.value;
+  const capsula = (document.getElementById('vp-sev-badge').textContent || '');
+  g.value = 'sin'; delete g.dataset.sugerido; set('vp_vmax',''); calcVP();
+  __t.limpiar();
+
+  /* VISIBILIDAD: nivel y etiologia solo con el grado consignado. */
+  set('ep_grado','sin'); set('ip_grado','Sin insuficiencia'); vpSync();
+  const ocultoEP = getComputedStyle(document.getElementById('bloque-ep-detalle')).display;
+  const ocultoIP = getComputedStyle(document.getElementById('bloque-ip-detalle')).display;
+  set('ep_grado','Severa'); set('ip_grado','Moderada'); vpSync();
+  const visibleEP = getComputedStyle(document.getElementById('bloque-ep-detalle')).display;
+  const visibleIP = getComputedStyle(document.getElementById('bloque-ip-detalle')).display;
+  __t.limpiar();
+
+  const iEP = _LAB_VALV_LABELS.indexOf('Esten. Pulmonar');
+  const mk = function(ep){ return { campos:{ im_grado:'0', em_grado:'sin', ia_grado:'0',
+    ea_grado:'sin', it_grado:'0', et_grado:'Sin estenosis', ep_grado: ep } }; };
+  const vc = _labValvCounts([mk('sin'), mk('Leve'), mk('Moderada'), mk('Severa')]);
+
+  return { extra: [
+    ['ningun id del caso esta inventado',
+      completo.faltan.length === 0 && ipMod.faltan.length === 0,
+      completo.faltan.concat(ipMod.faltan).join(',')],
+
+    // 1 · SIN DATOS: la salida no cambia respecto de antes del rediseno.
+    ['sin nada sigue diciendo «Válvula pulmonar normal.»',
+      vacio.li.indexOf('Válvula pulmonar normal.') > -1, vacio.li],
+    ['y no aparece ninguna estenosis ni etiologia',
+      vacio.li.indexOf('stenosis') === -1 && vacio.li.indexOf('etiología') === -1, vacio.li],
+
+    // 2 · EL CASO COMPLETO: morfologia + grado + nivel + etiologia en UNA frase.
+    ['morfologia, grado, nivel y etiologia salen juntos y sin repetir «Válvula pulmonar»',
+      completo.li.indexOf('Válvula pulmonar con afectación carcinoide y estenosis severa a nivel valvular, de etiología Carcinoide.') > -1 &&
+      completo.li.split('Válvula pulmonar').length - 1 === 1, completo.li],
+    ['y la severa sube al EN SUMA con su nivel',
+      completo.suma.indexOf('Estenosis pulmonar severa a nivel valvular.') > -1, completo.suma],
+
+    // 3 · EL DEFAULT CONSTANTE: la opcion 0 de cada etiologia NO puede imprimirse.
+    /* ep_etiologia arrancaba en «Congénita valvular» e ip_etiologia en «Fisiológica (traza)»:
+       consignar un grado y no tocar el select publicaba una etiologia que nadie eligio. */
+    ['la opcion 0 de las dos etiologias es «No especificada»',
+      ops('ep_etiologia')[0] === 'No especificada' && ops('ip_etiologia')[0] === 'No especificada',
+      ops('ep_etiologia')[0] + ' | ' + ops('ip_etiologia')[0]],
+    ['y con el grado puesto y la etiologia sin tocar NO se imprime etiologia',
+      epLeve.li.indexOf('con estenosis leve.') > -1 && epLeve.li.indexOf('etiología') === -1, epLeve.li],
+
+    // 4 · IP con etiologia, y el acronimo intacto.
+    ['IP moderada con su etiologia, en minuscula el grado y sin destrozar la sigla',
+      ipMod.li.indexOf('Insuficiencia pulmonar moderada, de etiología HTP (dilatación anular)') > -1,
+      ipMod.li],
+    ['y sube al EN SUMA', ipMod.suma.indexOf('Insuficiencia pulmonar moderada.') > -1, ipMod.suma],
+
+    // 5 · QUE SUBE Y QUE NO. Moderada o mas; la leve se describe y se calla.
+    ['EP leve NO sube', epLeve.suma.indexOf('stenosis pulmonar') === -1, epLeve.suma],
+    ['IP leve NO sube', ipLeve.suma.indexOf('nsuficiencia pulmonar') === -1, ipLeve.suma],
+    ['EP moderada-severa SI sube',
+      epModSev.suma.indexOf('Estenosis pulmonar moderada-severa.') > -1, epModSev.suma],
+    ['pero ninguna de las dos leves queda NEGADA por el fallback',
+      epLeve.suma.indexOf('Estudio sin alteraciones') === -1 &&
+      ipLeve.suma.indexOf('Estudio sin alteraciones') === -1, epLeve.suma],
+
+    // 6 · MORFOLOGIA SOLA, y «No especificada» que no afirma nada.
+    ['una morfologia sola se nombra',
+      soloMorf.li.indexOf('Válvula pulmonar de morfología displásica (congénita).') > -1, soloMorf.li],
+    ['«No especificada» NO se nombra ni afirma normalidad',
+      noEspec.li.indexOf('No especificada') === -1 && noEspec.li.indexOf('no especificada') === -1 &&
+      noEspec.li.indexOf('Válvula pulmonar normal') === -1, noEspec.li],
+
+    // 7 · AUTO-GRADO sobre ep_grado.
+    ['el auto-grado escribe ep_grado, no vp_morf', a25 === 'Leve' && a45 === 'Severa', a25 + ' / ' + a45],
+    ['no pisa una eleccion manual', manual === 'Moderada-severa', manual],
+    ['y la capsula declara que Moderada-severa es manual',
+      capsula.indexOf('«Moderada-severa» es elección manual') > -1, capsula.slice(-90)],
+
+    // 8 · VISIBILIDAD condicional.
+    ['nivel y etiologia ocultos sin grado', ocultoEP === 'none' && ocultoIP === 'none',
+      ocultoEP + ' / ' + ocultoIP],
+    ['y visibles con el grado puesto', visibleEP !== 'none' && visibleIP !== 'none',
+      visibleEP + ' / ' + visibleIP],
+
+    // 9 · MIGRACION. Sin esto el select reabre en BLANCO y el hueco se persiste al guardar.
+    ['las cuatro estenosis migran a «No especificada» + su grado', (function(){
+      const M = { 'Estenosis leve':'Leve', 'Estenosis moderada':'Moderada',
+                  'Estenosis moderada/severa':'Moderada-severa', 'Estenosis severa':'Severa' };
+      return Object.keys(M).every(function(k){ const o = mig({ vp_morf:k });
+        return o.vp_morf === 'No especificada' && o.ep_grado === M[k]; });
+    })()],
+    ['la IP fisiologica migra a Normal + grado + etiologia', (function(){
+      const o = mig({ vp_morf:'Insuficiencia leve (fisiológica)' });
+      return o.vp_morf === 'Normal' && o.ip_grado === 'Leve' && o.ip_etiologia === 'Fisiológica (traza)';
+    })()],
+    /* Estas TRES no estaban en el pedido y sin ellas el select de IP reabre vacio. */
+    ['los tres tokens viejos de ip_grado tambien migran', (function(){
+      const M = { 'IP leve (fisiológica)':'Leve', 'IP moderada':'Moderada', 'IP severa':'Severa' };
+      return Object.keys(M).every(function(k){ return mig({ ip_grado:k }).ip_grado === M[k]; });
+    })()],
+    ['y la migracion NO pisa un valor ya corregido a mano', (function(){
+      const o = mig({ vp_morf:'Estenosis severa', ep_grado:'Leve' });
+      return o.ep_grado === 'Leve';
+    })()],
+
+    // 10 · LABORATORIO Y EXCEL.
+    ['la estenosis pulmonar es la septima valvula del Lab', iEP > -1 && vc.bases[iEP] === 4,
+      'idx ' + iEP + ' base ' + (vc.bases[iEP])],
+    ['y cuenta cada banda donde corresponde',
+      vc.counts.Leve[iEP] === 1 && vc.counts.Moderada[iEP] === 1 && vc.counts.Severa[iEP] === 1],
+    ['los asserts del Excel pasan: listas, bloques y vocabularios',
+      _labXlsAssertListas().length === 0 && _labXlsAssertBloques().length === 0 &&
+      _labXlsAssertVocab().length === 0,
+      _labXlsAssertListas().concat(_labXlsAssertBloques()).join(' | ')],
+    /* Si una opcion no esta en LAB_XLS_LISTAS, el importador descarta la FILA ENTERA. */
+    ['el importador acepta las opciones nuevas', (function(){
+      const P = [['vp_morf','Displásica (congénita)'], ['ep_grado','Moderada-severa'],
+                 ['ep_nivel','Subvalvular (infundibular)'], ['ep_etiologia','Displasia valvular (Noonan)'],
+                 ['ip_grado','Moderada'], ['ip_etiologia','HTP (dilatación anular)']];
+      return P.every(function(p){ return _labXlsLista(p[0], p[1]) === p[1]; });
+    })()],
+    ['y las seis columnas salen en el export', (function(){
+      const cols = Object.keys(_labExcelRow({ id:0, campos:{} }));
+      return ['Morfología pulmonar','EP grado','EP nivel','EP etiología','IP grado','IP etiología']
+        .every(function(c){ return cols.indexOf(c) > -1; });
+    })()]
   ] };
 `);
 
