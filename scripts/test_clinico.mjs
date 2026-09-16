@@ -4786,7 +4786,7 @@ caso('TC-147', 'Lab CC/Mediciones: los bloques leen *Estado(), no reimplementan 
 /* TC-148 — PPT estadistico del Laboratorio. Se intercepta `writeFile` para LEER las diapositivas
    reales en vez de descargar un archivo: es la misma tecnica que el archivo ya usa para jsPDF.
    Sin eso, lo unico verificable seria que la funcion no lanza, que es lo que no importa. */
-caso('TC-148', 'PPT del Laboratorio: 9 diapositivas, rangos de PSAP y no grados, y la compuerta del periodo vacio', `
+caso('TC-148', 'PPT del Laboratorio: rangos de PSAP y no grados, paleta, y la compuerta del periodo vacio', `
   return (async function(){
     if (typeof PptxGenJS === 'undefined') {
       return { extra: [['PptxGenJS cargo por CDN (sin esto el caso no prueba nada)', false, 'la libreria no llego']] };
@@ -4810,7 +4810,10 @@ caso('TC-148', 'PPT del Laboratorio: 9 diapositivas, rangos de PSAP y no grados,
     const origToast = window.toast;
     window.toast = function(m){ toasts.push(String(m)); };
 
-    await _labPPTGenerar(infs, { presentador:'Dra. Prueba', institucion:'Centro X', fecha:'2026-09-20', tema:'azul' });
+    /* Se pasa la seleccion COMPLETA: desde el rediseno el mazo es modular y sin "mods"/"anal"
+       solo se generan las diapositivas fijas. */
+    await _labPPTGenerar(infs, { presentador:'Dra. Prueba', institucion:'Centro X', fecha:'2026-09-20', tema:'azul',
+      mods:{basicos:1,funcion:1,valvulas:1,htpvd:1,cc:1,onco:1}, anal:{descr:1,asoc:1,tend:1,subgr:1} });
 
     const P = capt ? capt.self : null;
     const slides = P ? (P.slides || P._slides || []) : [];
@@ -4832,7 +4835,15 @@ caso('TC-148', 'PPT del Laboratorio: 9 diapositivas, rangos de PSAP y no grados,
     /* El nombre se guarda ACA: mas abajo "capt" se resetea a null para probar la compuerta del
        periodo vacio, y leerlo despues daba cadena vacia. */
     const archivo = capt ? capt.name : '';
-    const portada = txtDe(0), resumen = txtDe(1), valv = txtDe(4), htp = txtDe(5), cierre = txtDe(8);
+    /* POR TITULO Y NO POR INDICE. La version anterior usaba txtDe(4)/txtDe(8) sobre un mazo de
+       nueve fijas; al volverse modular esos indices pasaron a apuntar a otra diapositiva y el
+       caso acusaba al generador de perder el cierre. Un indice posicional es lo primero que se
+       rompe cuando el mazo gana o pierde una hoja. */
+    const idxDe = function(t){ for (let k = 0; k < slides.length; k++) { if (txtDe(k).indexOf(t) > -1) return k; } return -1; };
+    const porTitulo = function(t){ const k = idxDe(t); return k < 0 ? '' : txtDe(k); };
+    const portada = txtDe(0), resumen = porTitulo('Resumen ejecutivo');
+    const valv = porTitulo('Valvulopat'), htp = porTitulo('Presión pulmonar');
+    const cierre = txtDe(slides.length - 1);
     const bgAzul = slides.length ? ((slides[0].background && slides[0].background.color) || (slides[0].bkgd && slides[0].bkgd.color) || '') : '';
 
     /* COMPUERTA DEL PERIODO VACIO: se llama la ENTRADA real, que es la que decide, con el store
@@ -4853,7 +4864,7 @@ caso('TC-148', 'PPT del Laboratorio: 9 diapositivas, rangos de PSAP y no grados,
 
     return { extra: [
       // 1 · ESTRUCTURA
-      ['el mazo tiene 9 diapositivas', slides.length === 9, String(slides.length)],
+      ['con todos los modulos el mazo pasa de 9 diapositivas', slides.length > 9, String(slides.length)],
       ['el archivo se llama EcoSmart_Laboratorio_*.pptx', /^EcoSmart_Laboratorio_\\d{8}/.test(archivo), archivo],
 
       // 2 · PORTADA
@@ -4864,22 +4875,29 @@ caso('TC-148', 'PPT del Laboratorio: 9 diapositivas, rangos de PSAP y no grados,
 
       // 3 · EL N DE LA DIAPO 2 ES EL DE LA COHORTE
       ['el resumen ejecutivo publica el N correcto', resumen.indexOf('Estudios') > -1 && resumen.indexOf('| 3 |') > -1, resumen.slice(0,200)],
+      ['el titulo de la diapositiva de PSAP sigue existiendo', htp.length > 0, String(idxDe('Presión pulmonar'))],
       ['y el promedio de FEVI de los tres', resumen.indexOf('45.0 %') > -1, resumen.slice(0,240)],
 
       // 4 · LA DIASTOLICA USA EL CLASIFICADOR CANONICO
       /* Tres estudios: uno grado II, uno grado III, uno que NIEGA el restrictivo. Con "test()"
          crudo el negado sumaba a III y la diapositiva diria «Grado III (n=2)». */
-      ['«se descarta patron restrictivo» NO cuenta como grado III', resumen.indexOf('Grado III (n=1)') > -1, resumen.slice(0,320)],
+      /* Se verifica sobre el SEAM y no sobre el texto de la diapositiva: desde el rediseno la
+       distribucion diastolica es un grafico nativo, asi que su rotulo ya no esta en el innerText.
+       El invariante es el mismo y ahora no depende de como se presente. */
+    ['«se descarta patron restrictivo» NO cuenta como grado III',
+      _labDiastDist(infs).cat.III === 1, JSON.stringify(_labDiastDist(infs).cat)],
 
       // 5 · VALVULOPATIAS: TABLA CON LAS OCHO VALVULAS
-      ['la diapositiva de valvulopatias lleva una tabla', tablasDe(4) === 1, String(tablasDe(4))],
+      ['la diapositiva de valvulopatias lleva una tabla', tablasDe(idxDe('Valvulopat')) === 1, String(idxDe('Valvulopat'))],
       ['y declara sobre que base son los porcentajes', valv.indexOf('total de estudios') > -1, valv.slice(0,200)],
 
       // 6 · RANGOS DE PSAP, NO GRADOS DE HTP
       ['la diapositiva de PSAP declara que son RANGOS y no grados', htp.indexOf('RANGOS') > -1 && htp.indexOf('no grados') > -1, htp.slice(-200)],
       ['y NO rotula ninguna banda como Leve/Moderada/Severa',
         htp.indexOf('Leve') === -1 && htp.indexOf('Moderada') === -1 && htp.indexOf('Severa') === -1, htp.slice(0,300)],
-      ['publica la PSAP promedio de los elevados (48 y 72 -> 60)', htp.indexOf('60 mmHg') > -1, htp.slice(0,300)],
+      /* «PSAP promedio de los elevados» salio de esta diapositiva en el rediseno: la especificacion
+       la reemplazo por TAPSE y patron diastolico del VD. Se verifica lo que SI publica. */
+    ['la diapositiva de PSAP declara cuantos estudios la tienen estimable', htp.indexOf('Con PSAP estimable') > -1, htp.slice(0,300)],
 
       // 7 · CIERRE
       ['el cierre dice «Preguntas»', cierre.indexOf('Preguntas') > -1, cierre],
@@ -4968,6 +4986,202 @@ caso('TC-149', 'Manual: 8 pestanas, PDF de 20 paginas o menos, y las advertencia
       M.indexOf('no tiene columna propia') === -1]
   ] };
 `);
+
+/* TC-150 — PPT del Laboratorio rediseñado: selector de contenido y graficos NATIVOS.
+   Se intercepta writeFile y se inspeccionan los objetos de cada diapositiva: un mazo que "se
+   genera sin lanzar" no prueba nada; lo que hay que ver es que la diapositiva opcional NO este
+   cuando no se pidio, y que los graficos sean charts y no rectangulos dibujados a mano. */
+caso('TC-150', 'PPT Lab: 14 diapositivas, selector de contenido, graficos nativos y asociaciones leidas del Lab', `
+  return (async function(){
+    if (typeof PptxGenJS === 'undefined') {
+      return { extra: [['PptxGenJS cargo por CDN', false, 'la libreria no llego']] };
+    }
+    const orig = PptxGenJS.prototype.writeFile;
+    const origAdd = PptxGenJS.prototype.addSlide;
+    let capt = null, llamadas = [];
+    PptxGenJS.prototype.writeFile = function(o){ capt = { self:this, name:(o && o.fileName) || '' }; return Promise.resolve(''); };
+    /* Se intercepta en la FRONTERA DE LA API (addChart), no leyendo los internos de la slide:
+       los datos del grafico no quedan en el objeto de la diapositiva sino en el registro de la
+       presentacion, y las opciones viven en "options" y no en "opts". Envolviendo la llamada se
+       captura exactamente lo que la app pasa: tipo, series y opciones. */
+    PptxGenJS.prototype.addSlide = function(){
+      const sl = origAdd.apply(this, arguments);
+      const oc = sl.addChart;
+      sl.addChart = function(tipo, datos, opciones){
+        llamadas.push({ tipo: tipo, datos: datos, opciones: opciones || {} });
+        return oc.apply(this, arguments);
+      };
+      return sl;
+    };
+
+    const infs = [];
+    for (let i = 0; i < 16; i++) {
+      infs.push({ id:i, fecha_estudio:'2026-0' + (1 + (i % 4)) + '-1' + (i % 9), campos:{
+        fevi:String(25 + i*4), psap_calc:String(22 + i*4), onda_e:String(70 + i*2), e_prima_sept:String(11 - i*0.4),
+        tapse:String(13 + i), sgl:String(-(9 + i*0.7)), edad:String(45 + i*2), sexo: i%2 ? 'F':'M',
+        peso:'80', talla:'180', vol_ai:String(50 + i*3), ai_diam:String(34 + i),
+        im_grado:String(1 + (i%4)), ea_grado: i%3===0 ? 'Severa':'sin', vm_morf: i%4===0 ? 'Endocarditis':'Normal',
+        dt_onda_e:String(50 + i), dt_onda_a:String(60 - i), dt_eprime_lat:'7.5',
+        indicaciones:['Disnea','Control'][i%2], antecedentes_sel:['HTA','DM'][i%2],
+        eis_lesion_base: i<4 ? 'civ':'', eis_saturacion_reposo: i<4 ? String(84+i):'', eis_clase_nyha: i<4 ? 'iii':'',
+        co_farmaco: i<6 ? 'antraciclina':'', co_fevi_basal: i<6 ? String(58+i):'', co_riesgo_cv: i<6 ? ['bajo','alto','moderado'][i%3]:'',
+        /* El texto de geometria alimenta _labGeomCat, que es de donde sale la TORTA de la
+           diapositiva 2. Sin el, esa torta se omite (correctamente) y el caso no podria
+           verificar que se usan los tres tipos de grafico nativo. */
+        en_suma: (i%3===0 ? 'Disfuncion diastolica grado II, pseudonormal. Hipertension pulmonar. ' : 'Patron restrictivo (grado III). ') +
+                 (i%2===0 ? 'Hipertrofia ventricular izquierda concentrica.' : 'Remodelado concentrico del ventriculo izquierdo.')
+      } });
+    }
+    const base = { presentador:'Dra. Prueba', institucion:'Centro X', fecha:'2026-09-20', tema:'azul' };
+    const corrida = async function(mods, anal){
+      capt = null; llamadas = [];
+      await _labPPTGenerar(infs, Object.assign({}, base, { mods:mods, anal:anal }));
+      const P2 = capt ? capt.self : null;
+      const sl = P2 ? (P2.slides || []) : [];
+      return sl.map(function(s2){
+        const objs = s2._slideObjects || [];
+        const txt = objs.map(function(o){
+          if (typeof o.text === 'string') return o.text;
+          if (Array.isArray(o.text)) return o.text.map(function(t){ return t && t.text ? t.text : ''; }).join(' ');
+          return '';
+        }).filter(Boolean).join(' | ');
+        const charts = objs.filter(function(o){ return o._type === 'chart' || !!o.chartRid; });
+        return { txt: txt, charts: charts, tablas: objs.filter(function(o){ return o._type === 'table' || !!o.arrTabRows; }).length };
+      });
+    };
+    let capturadas = [];
+    const tieneTitulo = function(sl, t){ return sl.some(function(x){ return x.txt.indexOf(t) > -1; }); };
+
+    const TODO = await corrida({basicos:1,funcion:1,valvulas:1,htpvd:1,cc:1,onco:1}, {descr:1,asoc:1,tend:1,subgr:1});
+    capturadas = llamadas.slice();
+    const MIN  = await corrida({basicos:1}, {descr:1});
+    const SINV = await corrida({basicos:1,funcion:1,htpvd:1}, {descr:1});
+    /* Sin un solo campo de congenitas: la 11 tiene que omitirse SIN error, no salir vacia. */
+    const sinCC = infs.map(function(x){
+      const c = Object.assign({}, x.campos);
+      c.eis_lesion_base = ''; c.eis_saturacion_reposo = ''; c.eis_clase_nyha = '';
+      return { id:x.id, fecha_estudio:x.fecha_estudio, campos:c };
+    });
+    capt = null;
+    await _labPPTGenerar(sinCC, Object.assign({}, base, { mods:{basicos:1,cc:1}, anal:{descr:1} }));
+    const sinCCsl = capt ? (capt.self.slides || []).map(function(s2){
+      const objs = s2._slideObjects || [];
+      return objs.map(function(o){ return typeof o.text === 'string' ? o.text : ''; }).join(' ');
+    }) : [];
+
+    /* Los colores del grafico de FEVI. El semaforo tiene que ir de VERDE (>=50) a ROJO (<30),
+       en el orden en que _labFeviDist devuelve las bandas. Invertirlo pinta de verde la FEVI
+       severamente reducida, y en una sala eso se lee antes que el rotulo. */
+    const chFevi = capturadas.filter(function(c){ return String(c.opciones.title || '').indexOf('FEVI por rangos') > -1; })[0];
+    const colFevi = chFevi ? (chFevi.opciones.chartColors || []) : [];
+
+    const sAsoc = TODO.filter(function(x){ return x.txt.indexOf('Asociaciones estad') > -1; })[0];
+    const sTend = TODO.filter(function(x){ return x.txt.indexOf('Actividad por mes') > -1; })[0];
+    const tipos = {};
+    capturadas.forEach(function(c){ const t = c.tipo && (c.tipo.name || c.tipo); if (t) tipos[String(t)] = 1; });
+
+    PptxGenJS.prototype.writeFile = orig;
+    PptxGenJS.prototype.addSlide = origAdd;
+
+    return { extra: [
+      // 1 · ESTRUCTURA COMPLETA
+      ['con todo seleccionado son 14 diapositivas', TODO.length === 14, String(TODO.length)],
+      ['la metodologia esta siempre', tieneTitulo(TODO, 'Metodolog') && tieneTitulo(MIN, 'Metodolog')],
+      ['el cierre dice Preguntas', tieneTitulo(TODO, 'Preguntas')],
+
+      // 2 · EL SELECTOR MANDA
+      ['solo basicos + descriptiva deja 5 diapositivas', MIN.length === 5, String(MIN.length)],
+      ['sin asociaciones no hay diapositiva de asociaciones', !tieneTitulo(MIN, 'Asociaciones estad')],
+      ['sin tendencia no hay diapositiva de actividad por mes', !tieneTitulo(MIN, 'Actividad por mes')],
+      ['sin subgrupos no hay comparacion de FEVI', !tieneTitulo(MIN, 'frente a FEVI')],
+      ['sin el modulo de valvulas no hay tabla de valvulopatias', !tieneTitulo(SINV, 'Valvulopat')],
+      ['pero si los modulos que si se pidieron', tieneTitulo(SINV, 'Función sistólica') && tieneTitulo(SINV, 'Presión pulmonar')],
+      ['sin datos de congenitas la diapositiva se omite sin error',
+        sinCCsl.length > 0 && !sinCCsl.some(function(t){ return t.indexOf('Cardiopat') > -1; }), String(sinCCsl.length)],
+
+      // 3 · GRAFICOS NATIVOS, NO DIBUJOS
+      ['los graficos son charts nativos de PowerPoint', Object.keys(tipos).length > 0, Object.keys(tipos).join(',')],
+      ['se usan barras y torta y linea', !!tipos.bar && !!tipos.pie && !!tipos.line, Object.keys(tipos).join(',')],
+      ['la tabla de valvulopatias sigue siendo tabla nativa',
+        TODO.filter(function(x){ return x.txt.indexOf('Valvulopat') > -1; })[0].tablas === 1],
+
+      // 4 · SEMAFORO DE LA FEVI
+      ['el grafico de FEVI lleva cuatro colores', colFevi.length === 4, colFevi.join(',')],
+      ['verde para FEVI conservada y rojo para la severamente reducida',
+        String(colFevi[0]).toUpperCase() === '3ECF8E' && String(colFevi[3]).toUpperCase() === 'F05454', colFevi.join(',')],
+
+      // 5 · LAS ASOCIACIONES SE LEEN DEL LAB
+      ['la diapositiva de asociaciones existe', !!sAsoc],
+      ['y declara que corrige por comparaciones multiples',
+        !!sAsoc && sAsoc.txt.indexOf('comparaciones m') > -1, sAsoc ? sAsoc.txt.slice(-160) : ''],
+      /* LO QUE DISTINGUE "lee del Lab" DE "recalcula": el mazo tiene que mostrar EXACTAMENTE las
+         asociaciones que _labAsocParaPDF marca como establecidas, ni una mas ni una menos, y con
+         sus mismos rotulos. Verificar que la diapositiva existe y lleva las salvedades NO alcanza
+         — un generador que recalcula por su cuenta las escribe igual. */
+      ['muestra tantas asociaciones como establecidas reporta el Lab (hasta 3)',
+        (function(){
+          const A2 = _labAsocParaPDF(infs);
+          const ok = (A2.clinicas || []).concat(A2.general || []).filter(function(r){ return r && r.ok; });
+          const barras = capturadas.filter(function(c){ return c.opciones.valAxisMaxVal === 1; });
+          return barras.length === Math.min(3, ok.length);
+        })(),
+        (function(){
+          const A2 = _labAsocParaPDF(infs);
+          const ok = (A2.clinicas || []).concat(A2.general || []).filter(function(r){ return r && r.ok; });
+          return 'lab=' + ok.length + ' mazo=' + capturadas.filter(function(c){ return c.opciones.valAxisMaxVal === 1; }).length;
+        })()],
+      ['y sus tamanos de efecto son los que calculo el Lab, no otros',
+        (function(){
+          const A2 = _labAsocParaPDF(infs);
+          const ok = (A2.clinicas || []).concat(A2.general || []).filter(function(r){ return r && r.ok; })
+            .sort(function(a, b){ return Math.abs(b.coef || 0) - Math.abs(a.coef || 0); }).slice(0, 3);
+          const barras = capturadas.filter(function(c){ return c.opciones.valAxisMaxVal === 1; });
+          if (!barras.length || barras.length !== ok.length) return false;
+          return ok.every(function(r, k){
+            const esperado = Math.round(Math.abs(r.coef || 0) * 100) / 100;
+            /* El rotulo pasa por _pptTxt (saneador de XML) antes de entrar al grafico, asi que
+               se compara contra la forma saneada y no contra la cruda. */
+            /* PptxGenJS normaliza "labels" a array ANIDADO (soporta categorias multinivel), asi
+               que labels[0] es ['Fuerte'] y no 'Fuerte'. Se aplana antes de comparar. */
+            const lbl0 = String([].concat(barras[k].datos[0].labels[0])[0]);
+            return barras[k].datos[0].values[0] === esperado && lbl0 === _pptTxt(r.fuerza || '');
+          });
+        })(),
+        (function(){
+          const A2 = _labAsocParaPDF(infs);
+          const ok = (A2.clinicas || []).concat(A2.general || []).filter(function(r){ return r && r.ok; })
+            .sort(function(a, b){ return Math.abs(b.coef || 0) - Math.abs(a.coef || 0); }).slice(0, 3);
+          const barras = capturadas.filter(function(c){ return c.opciones.valAxisMaxVal === 1; });
+          return 'lab=' + JSON.stringify(ok.map(function(r){ return [Math.round(Math.abs(r.coef||0)*100)/100, r.fuerza]; })) +
+                 ' mazo=' + JSON.stringify(barras.map(function(b){ return [b.datos[0].values[0], b.datos[0].labels[0]]; }));
+        })()],
+      ['y los rotulos de las asociaciones salen del Lab',
+        (function(){
+          const A2 = _labAsocParaPDF(infs);
+          const lbls = (A2.clinicas || []).concat(A2.general || []).filter(function(r){ return r && r.ok; }).map(function(r){ return r.lbl; });
+          if (!sAsoc) return false;
+          const barras = capturadas.filter(function(c){ return c.opciones.valAxisMaxVal === 1; });
+          if (!barras.length) return false;
+          return lbls.some(function(l){ return sAsoc.txt.indexOf(l) > -1; });
+        })()],
+      ['y que asociacion no implica causalidad (o que ninguna alcanzo significacion)',
+        !!sAsoc && (sAsoc.txt.indexOf('no implica causalidad') > -1 || sAsoc.txt.indexOf('Ninguna asociaci') > -1), sAsoc ? sAsoc.txt.slice(0,160) : ''],
+
+      // 6 · LA TENDENCIA SALE DE _labMeses
+      /* La serie tiene que ser, valor por valor, la que devuelve _labMeses. Es la unica forma de
+         distinguir "lee el seam" de "cuenta por su cuenta y da parecido". */
+      ['la tendencia usa la funcion del Lab y no un conteo propio',
+        (function(){
+          const c = capturadas.filter(function(x){ return String(x.tipo && (x.tipo.name || x.tipo)) === 'line'; })[0];
+          if (!c || !c.datos || !c.datos.length) return false;
+          const meses = _labMeses(infs);
+          return c.datos[0].values.length === meses.length &&
+                 c.datos[0].values.every(function(v, k){ return v === meses[k][1]; });
+        })(), String(capturadas.length)]
+    ] };
+  })();
+`);
+
 
 
 

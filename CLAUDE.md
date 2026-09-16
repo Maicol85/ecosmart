@@ -487,6 +487,66 @@ El Excel pasó de **421 a 429 columnas** y de 128 a **129 básicas**; TC-135 fij
 contenido. Ojo con el `0` de una casilla apagada: **no es lo mismo que ausente**, y el caso lo
 distingue.
 
+### PPT del Laboratorio rediseñado: gráficos NATIVOS y selector de contenido
+2026-09-16. De 9 diapositivas con barras dibujadas a mano a **14 modulares** con `addChart`.
+Verificado que el bundle 3.12.0 trae `addChart` y los tipos `bar · pie · line · doughnut ·
+scatter · radar · area · bubble`; la app **nunca lo había usado** (cero llamadas).
+
+**GREPEAR DECLARACIONES NO ENCUENTRA LO QUE SE EXPORTA DESDE UN IIFE.** Mi primer diagnóstico
+dijo que `_labAsocParaPDF` y `_labEstDescriptiva` **no existían** — CLAUDE.md afirmaba lo
+contrario y tenía razón: se asignan a `window` desde dentro del IIFE de estadística, así que
+`function X`/`const X` no matchea. **La lista de lo alcanzable se saca del navegador**, con
+`typeof` sobre el scope global, no del archivo. Y confirmó lo contrario para los estadísticos:
+`spearman`, `chi2p`, `_bh`, `interpTxt` y `sigLight` **no** son alcanzables — recalcular una
+asociación desde el PPT no es una tentación, es imposible.
+
+**Los seams que consume el mazo, todos ya existentes:** `_labEstDescriptiva` (once medidas con
+su n, media, rango y percentiles), `_labAsocParaPDF` (asociaciones YA corregidas por
+comparaciones múltiples), `_labMeses`, `_labFeviDist`, `_labPsapDist`, `_labGeomDist`,
+`_labDiastDist`, `_labValvCounts`, `_labHallazgosCuenta`, `_labFreqEntries`, `_labSexos`.
+
+**Sólo se publican las asociaciones que el Lab marca como establecidas** (`ok`, o sea después de
+la corrección), y si no hay ninguna **la diapositiva se genera igual y lo declara** con cuántas
+se probaron (decisión de Maicol). Publicar la de mayor coeficiente sin ese filtro proyectaría
+«fuerte» sobre lo que el propio Lab considera ruido — es la regla de `_asocEstablecida`.
+
+**LA MUTACIÓN QUE EL PEDIDO EXIGÍA SOBREVIVIÓ A LA PRIMERA VERSIÓN DEL CASO.** «El PPT recalcula
+las asociaciones» pasaba en verde, porque mis condiciones verificaban que la diapositiva
+existiera y llevara las salvedades — y un generador que recalcula **las escribe igual**. Lo que
+distingue leer de recalcular es comparar **los datos**: cuántas asociaciones se muestran contra
+cuántas marca el Lab, y que cada tamaño de efecto y cada rótulo de fuerza sean los suyos. Misma
+técnica para la tendencia: la serie tiene que coincidir **valor por valor** con `_labMeses`.
+
+**Instrumentar por la FRONTERA DE LA API, no por los internos.** Leer los objetos de la
+diapositiva no sirve: los datos del gráfico no quedan ahí sino en el registro de la presentación,
+y las opciones viven en `options` y no en `opts`. Envolviendo `addSlide` para envolver el
+`addChart` de la slide se captura exactamente lo que la app pasa — tipo, series y opciones. Ojo:
+**PptxGenJS normaliza `labels` a array ANIDADO** (soporta categorías multinivel), así que
+`labels[0]` es `['Fuerte']` y no `'Fuerte'`.
+
+**Dos escalas incompatibles en un gráfico agrupado.** La comparación de subgrupos pedía PSAP
+(~40 mmHg), E/e' (~10) y una distribución (%) en uno solo: el E/e' quedaría como una raya y el
+porcentaje no comparte eje con ninguno. Van **dos** gráficos, medias y distribución.
+
+**Un gráfico de ceros NO es un gráfico vacío: es peor.** `gBarras`/`gTorta` devuelven `false`
+sin dibujar cuando ninguna categoría tiene valor, y el llamador pone el cartel en el `else` —
+nunca los dos, que es el defecto de superposición que ya se pagó en la versión anterior.
+
+**TC-148 FIJABA LAS DIAPOSITIVAS POR ÍNDICE Y SE ROMPIÓ.** Usaba `txtDe(4)`/`txtDe(8)` sobre un
+mazo de nueve fijas; al volverse modular esos índices pasaron a otra hoja y el caso acusaba al
+generador de haber perdido el cierre. Pasó a buscar **por título**. Y dos de sus condiciones
+quedaron obsoletas *a propósito*: la distribución diastólica ahora es un gráfico y su rótulo ya
+no está en el `innerText` —se verifica sobre `_labDiastDist`, que es el invariante real y no
+depende de la presentación—, y «PSAP promedio de los elevados» la sacó la especificación nueva.
+**Un índice posicional es lo primero que se rompe cuando el mazo gana una hoja.**
+
+**Backticks dentro del cuerpo de un caso: van catorce**, y la decimocuarta fue en el comentario
+que escribí para explicar la decimotercera.
+
+**El caso depende de RED** (PptxGenJS por CDN) y falla **con el motivo escrito**, nunca se saltea:
+en una corrida de mutación el CDN no llegó y el resultado rojo era del entorno, no de la mutación.
+Al mutar sobre casos que dependen de red, **confirmar por qué condición cayó**.
+
 ### El manual: de 20 pestañas y 32 páginas a 8 y 14 — y el marcado es un contrato
 Reescrito el 2026-09-16. **El PDF del manual ya existía** (`generarManualPDF` → `_manualPDFArmar`)
 y **deriva de `ECO_AYUDA`** vía `_manualAplanar()`: reescribir el manual reescribió el PDF solo.

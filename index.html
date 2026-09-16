@@ -51771,6 +51771,43 @@ function _labEstado(fn, inf, cont) {
    distintos sobre la misma cohorte, y el .pptx circula sin la app al lado para desmentirlo. */
 const LAB_PPT_W = 10, LAB_PPT_H = 5.625;   // LAYOUT_16x9 en pulgadas
 
+/* Catálogo del selector de contenido. `fijo:true` = la casilla se dibuja marcada y deshabilitada:
+   son las diapositivas que dan sentido al mazo —sin portada, resumen, demografía y metodología no
+   hay presentación— y desmarcarlas produciría un archivo que no se puede interpretar.
+   Las claves son las que viajan en `opts` y las que se guardan en `localStorage`; NO se derivan de
+   la etiqueta, para que cambiar un rótulo no invalide la preferencia de quien ya lo usó. */
+const LAB_PPT_MODULOS = [
+  { k:'basicos',  lbl:'Datos básicos (portada, resumen, demografía)', fijo:true },
+  { k:'funcion',  lbl:'Función sistólica y diastólica', def:true },
+  { k:'valvulas', lbl:'Valvulopatías' },
+  { k:'htpvd',    lbl:'HTP y función del VD' },
+  { k:'cc',       lbl:'Cardiopatías congénitas' },
+  { k:'onco',     lbl:'Cardio-Oncología' }
+];
+const LAB_PPT_ANALISIS = [
+  { k:'descr',   lbl:'Estadística descriptiva', fijo:true },
+  { k:'asoc',    lbl:'Asociaciones clínicas (top 3 del período)' },
+  { k:'tend',    lbl:'Tendencia temporal (evolución mensual)' },
+  { k:'subgr',   lbl:'Comparación de subgrupos (FEVI < 40 % vs ≥ 40 %)' }
+];
+const LAB_PPT_SEL_KEY = 'ecosmart_ppt_lab_sel';
+/* La preferencia se FILTRA contra el catálogo al leerla. Sin eso, una clave de un módulo que
+   mañana se borre resucita en `opts` y el generador la consulta con un `if` que ya no existe —
+   es el mismo filtro que `_labExpLeerPref` aplica a los módulos del Excel. */
+function _labPPTLeerSel() {
+  const sel = { mods: Object.create(null), anal: Object.create(null) };
+  LAB_PPT_MODULOS.forEach(m => { if (m.fijo || m.def) sel.mods[m.k] = true; });
+  LAB_PPT_ANALISIS.forEach(a => { if (a.fijo || a.def) sel.anal[a.k] = true; });
+  try {
+    const g = JSON.parse(localStorage.getItem(LAB_PPT_SEL_KEY) || 'null');
+    if (g && typeof g === 'object') {
+      LAB_PPT_MODULOS.forEach(m => { if (!m.fijo && Object.prototype.hasOwnProperty.call(g.mods || {}, m.k)) sel.mods[m.k] = !!g.mods[m.k]; });
+      LAB_PPT_ANALISIS.forEach(a => { if (!a.fijo && Object.prototype.hasOwnProperty.call(g.anal || {}, a.k)) sel.anal[a.k] = !!g.anal[a.k]; });
+    }
+  } catch (e) {}
+  return sel;
+}
+
 let _labPPTAbierto = false;
 function labPPTEstadistico() {
   /* La compuerta va ANTES del modal, no después: pedirle al médico presentador, institución,
@@ -51841,6 +51878,28 @@ function _labPPTModal(infs) {
   const iso = hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0') + '-' + String(hoy.getDate()).padStart(2, '0');
   const inFecha = campo('Fecha de presentación', iso, '', 'date');
 
+  const sel = _labPPTLeerSel();
+  const grupo = (titulo, defs, destino) => {
+    const l2 = document.createElement('label');
+    l2.style.cssText = 'display:block;font-size:.75rem;font-weight:700;color:var(--text2);margin:14px 0 6px;';
+    l2.textContent = titulo;
+    caja.appendChild(l2);
+    defs.forEach(d => {
+      const w = document.createElement('label');
+      w.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:.84rem;margin-bottom:5px;cursor:pointer;';
+      const c = document.createElement('input');
+      c.type = 'checkbox';
+      c.checked = d.fijo ? true : !!destino[d.k];
+      if (d.fijo) { c.disabled = true; w.style.cursor = 'default'; w.style.opacity = '.75'; }
+      c.onchange = () => { destino[d.k] = c.checked; };
+      const t2 = document.createElement('span');
+      t2.textContent = d.lbl + (d.fijo ? '  (siempre)' : '');
+      w.appendChild(c); w.appendChild(t2); caja.appendChild(w);
+    });
+  };
+  grupo('Módulos a incluir', LAB_PPT_MODULOS, sel.mods);
+  grupo('Tipo de análisis', LAB_PPT_ANALISIS, sel.anal);
+
   const lt = document.createElement('label');
   lt.style.cssText = 'display:block;font-size:.75rem;font-weight:700;color:var(--text2);margin:14px 0 6px;';
   lt.textContent = 'Paleta';
@@ -51880,7 +51939,9 @@ function _labPPTModal(infs) {
   gen.type = 'button'; gen.className = 'btn'; gen.textContent = 'Generar PPT';
   gen.onclick = () => {
     try { localStorage.setItem(PPT_TEMA_KEY, tema); } catch (e) {}   // preferencia, no dato clínico
-    const opts = { presentador: _t(inPres.value), institucion: _t(inInst.value), fecha: _t(inFecha.value), tema: tema };
+    try { localStorage.setItem(LAB_PPT_SEL_KEY, JSON.stringify(sel)); } catch (e) {}   // preferencia, no dato clínico
+    const opts = { presentador: _t(inPres.value), institucion: _t(inInst.value), fecha: _t(inFecha.value),
+                   tema: tema, mods: sel.mods, anal: sel.anal };
     cerrar();
     _labPPTGenerar(infs, opts);
   };
@@ -51893,13 +51954,21 @@ function _labPPTModal(infs) {
 }
 
 let _labPPTEnCurso = false;
+/* ══ GENERADOR DEL MAZO ═══════════════════════════════════════════════════════════════════════
+   Hasta 14 diapositivas, con GRÁFICOS NATIVOS de PowerPoint (`addChart`) y no imágenes: se
+   pueden editar, recolorear y copiar a otra presentación. Verificado que el bundle 3.12.0 trae
+   `addChart` y los tipos bar / pie / line.
+   NINGÚN número se calcula acá. Todo sale de seams del Laboratorio: `_labEstDescriptiva` (las
+   once medidas con su n), `_labAsocParaPDF` (las asociaciones YA corregidas por comparaciones
+   múltiples), `_labMeses`, `_labFeviDist`, `_labPsapDist`, `_labGeomDist`, `_labDiastDist`,
+   `_labValvCounts`, `_labHallazgosCuenta` y `_labFreqEntries`. Los estadísticos de las
+   asociaciones (`spearman`, `_bh`, `interpTxt`) NO son alcanzables desde acá —viven dentro del
+   IIFE de estadística— así que recalcularlos no es una tentación: es imposible. */
 async function _labPPTGenerar(infs, o) {
-  /* Guarda de reentrada + try/catch, por la misma razón que `labAnalisisPDF`: sin el catch un
-     throw queda como promesa rechazada sin manejador y el médico se queda mirando «generando»
-     — una falla total se ve igual que una generación lenta, y el reflejo es apretar otra vez. */
   if (_labPPTEnCurso) return;
   _labPPTEnCurso = true;
   const T = _pptTxt;
+  const mods = o.mods || {}, anal = o.anal || {};
   try {
     const C = Object.prototype.hasOwnProperty.call(PPT_TEMAS, o.tema) ? PPT_TEMAS[o.tema] : PPT_TEMAS.dark;
     const HDR_BG = C.hdrBg || C.teal, FONT = C.hdrFont || PPT_FONT;
@@ -51910,29 +51979,23 @@ async function _labPPTGenerar(infs, o) {
     const logo = _pptLogoDato();
     let logoAvisado = false;
     const avisos = [];
+    /* Semáforo. Se declara una vez y lo usan la FEVI, los rangos de PSAP y la tabla de válvulas,
+       para que «rojo» signifique lo mismo en las tres diapositivas. */
+    const SEM = { verde:'3ECF8E', amarillo:'F5C842', naranja:'F0A500', rojo:'F05454', lila:'8A5FD4' };
 
     const periodo = (() => {
       const e = document.getElementById('lab-periodo');
       const t = e && e.selectedIndex >= 0 ? (e.options[e.selectedIndex].textContent || '') : '';
       return String(t).trim();
     })();
-    /* LA COHORTE SE DECLARA, y no en una nota al pie. Un mazo que proyecta «N = 12» sin decir
-       que hay filtros activos publica un denominador que la sala lee como «todo el laboratorio
-       en el período». Es la misma regla que ya cumplen el PDF de auditoría y el Excel; el PPT
-       es la superficie que MÁS circula de las tres. */
     const cohTxt = (typeof _labCohorteDesc === 'function' ? (_labCohorteDesc() || '') : '');
 
     const ponerLogo = s => {
       if (!logo) return;
       const lw = 1.25, lh = 0.55;
-      try {
-        s.addImage({ data: logo, x: W - lw - 0.4, y: H - 1.24, w: lw, h: lh, sizing:{ type:'contain', w: lw, h: lh } });
-      } catch (e) {
-        /* Se AVISA, no sólo se loguea: un logo que pasa la validación pero falla al estampar
-           desaparecía de todos los mazos del centro sin que nadie se entere. */
-        console.error('[labPPT/logo]', e);
-        if (!logoAvisado) { logoAvisado = true; avisos.push('El logo del centro no se pudo incluir en la presentación.'); }
-      }
+      try { s.addImage({ data: logo, x: W - lw - 0.4, y: H - 1.24, w: lw, h: lh, sizing:{ type:'contain', w: lw, h: lh } }); }
+      catch (e) { console.error('[labPPT/logo]', e);
+        if (!logoAvisado) { logoAvisado = true; avisos.push('El logo del centro no se pudo incluir.'); } }
     };
     const pieTxt = 'EcoSmart · CeiboMed' + (o.institucion ? ' · ' + o.institucion : '');
     const DISC = 'Estadística agregada de apoyo. No constituye una recomendación diagnóstica ni terapéutica.';
@@ -51941,197 +52004,369 @@ async function _labPPTGenerar(infs, o) {
       s.addText(T(pieTxt), { x:0.4, y:H-0.56, w:W-2.0, h:0.2, fontSize:10, color:C.txt2, fontFace:FONT });
       s.addText(T(DISC), { x:0.4, y:H-0.36, w:W-2.0, h:0.2, fontSize:8, color:C.txt2, fontFace:FONT, italic:true });
     };
+    let nSlides = 0;
     const nueva = titulo => {
-      const s = P.addSlide();
+      const s = P.addSlide(); nSlides++;
       s.background = { color: C.bg };
       s.addShape(P.ShapeType.rect, { x:0, y:0, w:W, h:0.72, fill:{ color: HDR_BG } });
       if (C.franjaInf) s.addShape(P.ShapeType.rect, { x:0, y:0.72-C.franjaInf.h, w:W, h:C.franjaInf.h, fill:{ color:C.franjaInf.color } });
-      s.addText(T(titulo), { x:0.4, y:0.12, w:W-0.8, h:0.48, fontSize:24, bold:true, color:C.hdrTxt, fontFace:FONT });
+      s.addText(T(titulo), { x:0.4, y:0.12, w:W-0.8, h:0.48, fontSize:23, bold:true, color:C.hdrTxt, fontFace:FONT });
       conPie(s);
       return s;
     };
-    /* Barra horizontal: rótulo, riel, relleno y «n (pct %)». Es presentación pura y por eso se
-       escribe acá y no se comparte con el dashboard, que dibuja en HTML. Lo que SÍ se comparte
-       son los datos: las filas llegan de los seams, ya con sus etiquetas y sus totales. */
-    const barras = (s, x, y, w, filas, alto, sinPct) => {
-      const h = alto || 0.26;
-      filas.forEach((f, k) => {
-        const yy = y + k * (h + 0.1);
-        const tot = f.total || 0;
-        const pct = tot > 0 ? Math.round(f.n / tot * 100) : 0;
-        s.addText(T(f.lbl), { x:x, y:yy, w:w*0.46, h:h, fontSize:11, color:C.txt, fontFace:FONT, valign:'middle' });
-        s.addShape(P.ShapeType.rect, { x:x+w*0.47, y:yy+h*0.22, w:w*0.34, h:h*0.5, fill:{ color:C.fila1 || 'DDDDDD' } });
-        if (pct > 0) s.addShape(P.ShapeType.rect, { x:x+w*0.47, y:yy+h*0.22, w:w*0.34*(pct/100), h:h*0.5, fill:{ color:C.teal } });
-        /* `sinPct` para la actividad por mes: ahi el riel es el mes de MAS actividad, asi que un
-           «(100 %)» al lado de abril se lee como «el 100 % de los estudios fueron en abril».
-           La barra ya comunica la proporcion; el numero al lado tiene que ser el conteo. */
-        s.addText(T(sinPct ? String(f.n) : (tot > 0 ? (f.n + ' (' + pct + ' %)') : '—')), { x:x+w*0.83, y:yy, w:w*0.17, h:h, fontSize:11, bold:true, color:C.txt, fontFace:FONT, valign:'middle' });
-      });
-      return y + filas.length * (h + 0.1);
-    };
     const dato = (s, x, y, lbl, val) => {
-      s.addText(T(lbl), { x:x, y:y, w:4.3, h:0.22, fontSize:10, color:C.txt2, fontFace:FONT });
-      s.addText(T(val), { x:x, y:y+0.20, w:4.3, h:0.32, fontSize:17, bold:true, color:C.teal, fontFace:FONT });
-      return y + 0.60;
+      s.addText(T(lbl), { x:x, y:y, w:4.2, h:0.22, fontSize:10, color:C.txt2, fontFace:FONT });
+      s.addText(T(val), { x:x, y:y+0.20, w:4.2, h:0.32, fontSize:16, bold:true, color:C.teal, fontFace:FONT });
+      return y + 0.58;
     };
-    const prom = arr => { const v = arr.filter(x => x !== null && x !== undefined && isFinite(x)); return v.length ? { v: v.reduce((a,b)=>a+b,0)/v.length, n: v.length } : null; };
-    const pTxt = (p, dec, suf) => p ? (p.v.toFixed(dec) + (suf||'') + ' (n=' + p.n + ')') : '—';
+    /* Barras horizontales nativas. `barDir:'bar'` es lo que las vuelve horizontales; con 'col'
+       salen verticales y los rótulos largos se apilan girados. Devuelve false SIN dibujar cuando
+       no hay ninguna categoría con valor: un gráfico de ceros se lee como «lo medimos y dio
+       cero», que es lo contrario de «no hay datos». */
+    const gBarras = (s, filas, box, titulo, colores) => {
+      const f = filas.filter(x => x && x.n > 0);
+      if (!f.length) return false;
+      s.addChart(P.ChartType.bar, [{ name: box.serie || 'Estudios', labels: f.map(x => T(x.lbl)), values: f.map(x => x.n) }], {
+        x:box.x, y:box.y, w:box.w, h:box.h, barDir:'bar',
+        chartColors: colores || f.map((x, k) => x.color || [C.teal, SEM.amarillo, SEM.naranja, SEM.rojo, SEM.lila][k % 5]),
+        showTitle: !!titulo, title: titulo ? T(titulo) : '', titleColor: C.txt, titleFontSize: 12, titleFontFace: FONT,
+        showValue: true, dataLabelColor: C.txt, dataLabelFontSize: 10, dataLabelFontFace: FONT, dataLabelPosition: 'outEnd',
+        catAxisLabelColor: C.txt, catAxisLabelFontSize: 10, catAxisLabelFontFace: FONT,
+        valAxisLabelColor: C.txt2, valAxisLabelFontSize: 10, valAxisHidden: true,
+        showLegend: false, barGapWidthPct: 40, chartArea: { fill: { color: C.bg } }
+      });
+      return true;
+    };
+    const gTorta = (s, filas, box, titulo) => {
+      const f = filas.filter(x => x && x.n > 0);
+      if (!f.length) return false;
+      s.addChart(P.ChartType.pie, [{ name: titulo || '', labels: f.map(x => T(x.lbl)), values: f.map(x => x.n) }], {
+        x:box.x, y:box.y, w:box.w, h:box.h,
+        chartColors: f.map((x, k) => x.color || [SEM.verde, SEM.amarillo, SEM.naranja, SEM.lila, C.teal][k % 5]),
+        showTitle: !!titulo, title: titulo ? T(titulo) : '', titleColor: C.txt, titleFontSize: 12, titleFontFace: FONT,
+        showPercent: true, dataLabelColor: 'FFFFFF', dataLabelFontSize: 10, dataLabelFontFace: FONT,
+        showLegend: true, legendPos: 'r', legendColor: C.txt, legendFontSize: 10, legendFontFace: FONT,
+        chartArea: { fill: { color: C.bg } }
+      });
+      return true;
+    };
+
+    // ══ SEAMS DEL LABORATORIO — se leen UNA vez y se reparten entre las diapositivas ══
+    const desc = _labEstDescriptiva(infs);
+    const dsc = lbl => { const r = desc.find(x => x.lbl === lbl); return (r && r.n > 0) ? r : null; };
+    const dTxt = (lbl, dec, suf) => { const r = dsc(lbl); return r ? (r.mean.toFixed(dec) + (suf||'') + ' (n=' + r.n + ')') : '—'; };
+    const geo = _labGeomDist(infs), dia = _labDiastDist(infs);
+    const fevis = infs.map(_labFevi).filter(v => v !== null && v > 0);
+    const psaps = infs.map(_labPsap).filter(v => v !== null && v > 0);
+    const prom = a => { const v = a.filter(x => x !== null && x !== undefined && isFinite(x)); return v.length ? { v: v.reduce((x,y)=>x+y,0)/v.length, n: v.length } : null; };
+    const pTxt = (p2, dec, suf) => p2 ? (p2.v.toFixed(dec) + (suf||'') + ' (n=' + p2.n + ')') : '—';
+    const MIN_OPC = 3;    // regla del pedido: bajo este N una diapositiva opcional se omite
 
     // ── 1 · PORTADA ──
     {
-      const s = P.addSlide();
+      const s = P.addSlide(); nSlides++;
       s.background = { color: C.bg };
       s.addShape(P.ShapeType.rect, { x:0, y:0, w:W, h:0.22, fill:{ color: HDR_BG } });
-      s.addText('Laboratorio de Ecocardiografía', { x:0.6, y:1.35, w:W-1.2, h:0.85, fontSize:40, bold:true, color:C.txt, fontFace:FONT });
-      s.addText(T([o.presentador, o.institucion].filter(Boolean).join(' · ')), { x:0.6, y:2.28, w:W-1.2, h:0.4, fontSize:17, color:C.teal, fontFace:FONT });
-      s.addText(T(periodo ? 'Período analizado: ' + periodo : 'Período analizado: todos los estudios'), { x:0.6, y:2.72, w:W-1.2, h:0.32, fontSize:14, color:C.txt2, fontFace:FONT });
-      s.addText(T(n + ' estudio' + (n !== 1 ? 's' : '')), { x:0.6, y:3.06, w:W-1.2, h:0.32, fontSize:14, color:C.txt2, fontFace:FONT });
+      s.addText('Laboratorio de Ecocardiografía', { x:0.6, y:1.30, w:W-1.2, h:0.85, fontSize:38, bold:true, color:C.txt, fontFace:FONT });
+      s.addText(T([o.presentador, o.institucion].filter(Boolean).join(' · ')), { x:0.6, y:2.22, w:W-1.2, h:0.4, fontSize:17, color:C.teal, fontFace:FONT });
+      s.addText(T(periodo ? 'Período analizado: ' + periodo : 'Período analizado: todos los estudios'), { x:0.6, y:2.66, w:W-1.2, h:0.3, fontSize:14, color:C.txt2, fontFace:FONT });
+      s.addText(T(n + ' estudio' + (n !== 1 ? 's' : '')), { x:0.6, y:2.98, w:W-1.2, h:0.3, fontSize:14, color:C.txt2, fontFace:FONT });
       if (cohTxt) {
-        s.addText(T('Cohorte filtrada — los totales NO son los del laboratorio completo'), { x:0.6, y:3.46, w:W-1.2, h:0.26, fontSize:11, bold:true, color:C.rojo, fontFace:FONT });
-        s.addText(T(cohTxt), { x:0.6, y:3.70, w:W-1.2, h:0.5, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
+        s.addText(T('Cohorte filtrada — los totales NO son los del laboratorio completo'), { x:0.6, y:3.38, w:W-1.2, h:0.26, fontSize:11, bold:true, color:C.rojo, fontFace:FONT });
+        s.addText(T(cohTxt), { x:0.6, y:3.62, w:W-1.2, h:0.5, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
       }
       s.addText(T('Generado el ' + new Date().toLocaleDateString('es-UY')), { x:0.6, y:H-0.95, w:W-1.2, h:0.28, fontSize:11, color:C.txt2, fontFace:FONT });
-      ponerLogo(s);
-      conPie(s);
+      ponerLogo(s); conPie(s);
     }
 
     // ── 2 · RESUMEN EJECUTIVO ──
     {
       const s = nueva('Resumen ejecutivo');
-      const fevis = infs.map(_labFevi).filter(v => v !== null && v > 0);
-      let y = 1.05;
+      const f = dsc('FEVI (%)');
+      let y = 1.00;
       y = dato(s, 0.4, y, 'Estudios ' + _labPobDe(), String(n));
       y = dato(s, 0.4, y, 'Período', periodo || 'Todos');
-      y = dato(s, 0.4, y, 'FEVI promedio', pTxt(prom(fevis), 1, ' %'));
-      const geo = _labGeomDist(infs), dia = _labDiastDist(infs);
-      /* El mensaje de «sin datos» va en el ELSE, no después de dibujar: la primera version
-         pintaba las barras en cero Y el cartel encima, superpuestos. En pantalla el navegador
-         reflowea y se nota; en una diapositiva las dos cosas se dibujan una sobre la otra. */
-      s.addText('Geometría del VI', { x:4.9, y:0.95, w:4.7, h:0.26, fontSize:12, bold:true, color:C.teal, fontFace:FONT });
-      let yg = 1.24;
-      if (geo.tot) yg = barras(s, 4.9, 1.24, 4.7, geo.dist, 0.24);
-      else { s.addText('Sin geometría clasificable en la cohorte.', { x:4.9, y:1.24, w:4.7, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT }); yg = 1.60; }
-      s.addText('Función diastólica', { x:4.9, y:yg+0.10, w:4.7, h:0.26, fontSize:12, bold:true, color:C.teal, fontFace:FONT });
-      if (dia.tot) barras(s, 4.9, yg+0.40, 4.7, dia.dist, 0.24);
-      else s.addText('Sin función diastólica clasificable en la cohorte.', { x:4.9, y:yg+0.40, w:4.7, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
+      y = dato(s, 0.4, y, 'FEVI promedio', f ? (f.mean.toFixed(1) + ' % (rango ' + f.min + '–' + f.max + ', n=' + f.n + ')') : '—');
+      let top = null;
+      try { const h = _labHallazgosCuenta(infs) || []; if (h.length) top = h[0]; } catch (e) { console.error('[labPPT/hallazgos]', e); }
+      const topN = top ? (top.n !== undefined ? top.n : top[1]) : 0;
+      dato(s, 0.4, y, 'Hallazgo más frecuente', top ? (T(top.lbl || top.label || top[0]) + ' — ' + topN + ' de ' + n) : '—');
+      if (!gTorta(s, geo.dist, { x:3.5, y:0.92, w:3.2, h:2.1 }, 'Geometría del VI'))
+        s.addText('Sin geometría clasificable.', { x:3.5, y:1.6, w:3.2, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
+      if (!gBarras(s, dia.dist, { x:6.6, y:0.92, w:3.1, h:2.1 }, 'Función diastólica'))
+        s.addText('Sin función diastólica clasificable.', { x:6.6, y:1.6, w:3.1, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
     }
 
     // ── 3 · PERFIL DEMOGRÁFICO ──
     {
       const s = nueva('Perfil demográfico');
-      const sx = _labSexos(infs);
-      const edades = infs.map(i => _labNum(i, 'edad')).filter(v => v !== null && v > 0 && v < 120);
-      let y = 1.05;
-      y = dato(s, 0.4, y, 'Distribución por sexo', sx.t ? ('♀ ' + Math.round(sx.nF/sx.t*100) + ' % (n=' + sx.nF + ')  ·  ♂ ' + Math.round(sx.nM/sx.t*100) + ' % (n=' + sx.nM + ')') : '—');
-      y = dato(s, 0.4, y, 'Edad promedio', pTxt(prom(edades), 0, ' años'));
-      y = dato(s, 0.4, y, 'Rango de edad', edades.length ? (Math.min.apply(null, edades) + ' – ' + Math.max.apply(null, edades) + ' años') : '—');
-      const top = (ent) => ent.slice(0, 5).map(e => ({ lbl: e[0], n: e[1], total: n }));
-      const ind = top(_labFreqEntries(infs, 'indicaciones'));
-      const ant = top(_labFreqEntries(infs, 'antecedentes_sel'));
-      s.addText('Indicaciones (top 5)', { x:4.9, y:0.95, w:4.7, h:0.26, fontSize:12, bold:true, color:C.teal, fontFace:FONT });
-      const yi = ind.length ? barras(s, 4.9, 1.24, 4.7, ind, 0.24)
-                            : (s.addText('Sin indicaciones consignadas.', { x:4.9, y:1.24, w:4.7, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT }), 1.6);
-      s.addText('Antecedentes (top 5)', { x:4.9, y:yi+0.10, w:4.7, h:0.26, fontSize:12, bold:true, color:C.teal, fontFace:FONT });
-      if (ant.length) barras(s, 4.9, yi+0.40, 4.7, ant, 0.24);
-      else s.addText('Sin antecedentes consignados.', { x:4.9, y:yi+0.40, w:4.7, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
+      const sx = _labSexos(infs), ed = dsc('Edad');
+      let y = 1.00;
+      y = dato(s, 0.4, y, 'Distribución por sexo', sx.t ? ('F ' + Math.round(sx.nF/sx.t*100) + ' % (n=' + sx.nF + ')   M ' + Math.round(sx.nM/sx.t*100) + ' % (n=' + sx.nM + ')') : '—');
+      y = dato(s, 0.4, y, 'Edad promedio', ed ? (ed.mean.toFixed(0) + ' años (n=' + ed.n + ')') : '—');
+      dato(s, 0.4, y, 'Rango de edad', ed ? (ed.min + ' – ' + ed.max + ' años') : '—');
+      const top5 = k => _labFreqEntries(infs, k).slice(0, 5).map(e => ({ lbl: e[0], n: e[1] }));
+      if (!gBarras(s, top5('indicaciones'), { x:3.5, y:0.92, w:3.2, h:2.3 }, 'Indicaciones (top 5)'))
+        s.addText('Sin indicaciones consignadas.', { x:3.5, y:1.6, w:3.2, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
+      if (!gBarras(s, top5('antecedentes_sel'), { x:6.6, y:0.92, w:3.1, h:2.3 }, 'Antecedentes (top 5)'))
+        s.addText('Sin antecedentes consignados.', { x:6.6, y:1.6, w:3.1, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
     }
 
     // ── 4 · FUNCIÓN SISTÓLICA ──
-    {
+    if (mods.funcion && fevis.length >= MIN_OPC) {
       const s = nueva('Función sistólica');
-      const fevis = infs.map(_labFevi).filter(v => v !== null && v > 0);
+      /* Semáforo por RANGO, no por posición: `_labFeviDist` devuelve las bandas de mejor a peor,
+         así que el color se ata al índice de esa lista y no a un orden que alguien reordene. */
+      const fd = _labFeviDist(fevis);
+      const cols = [SEM.verde, SEM.amarillo, SEM.naranja, SEM.rojo];
+      gBarras(s, fd.map((x, k) => ({ lbl:x.lbl, n:x.n, color:cols[k] })), { x:0.4, y:0.92, w:5.6, h:2.6 }, 'FEVI por rangos', cols);
       let y = 1.05;
-      y = dato(s, 0.4, y, 'TAPSE promedio', pTxt(prom(infs.map(_labTapse).filter(v => v !== null && v > 0)), 0, ' mm'));
-      y = dato(s, 0.4, y, 'PSAP promedio', pTxt(prom(infs.map(_labPsap).filter(v => v !== null && v > 0)), 0, ' mmHg'));
-      y = dato(s, 0.4, y, 'Con FEVI medida', fevis.length + ' de ' + n);
-      s.addText('FEVI por rangos', { x:4.9, y:0.95, w:4.7, h:0.26, fontSize:12, bold:true, color:C.teal, fontFace:FONT });
-      if (fevis.length) barras(s, 4.9, 1.24, 4.7, _labFeviDist(fevis), 0.30);
-      else s.addText('Sin FEVI medida en la cohorte.', { x:4.9, y:1.24, w:4.7, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
+      y = dato(s, 6.3, y, 'FEVI promedio', dTxt('FEVI (%)', 1, ' %'));
+      y = dato(s, 6.3, y, 'TAPSE promedio', dTxt('TAPSE (mm)', 0, ' mm'));
+      dato(s, 6.3, y, 'SGL promedio', pTxt(prom(infs.map(_labGls).filter(v => v !== null && v !== 0).map(Math.abs)), 1, ' %'));
     }
 
-    // ── 5 · VALVULOPATÍAS ──
-    {
+    // ── 5 · FUNCIÓN DIASTÓLICA ──
+    if (mods.funcion && dia.tot >= MIN_OPC) {
+      const s = nueva('Función diastólica');
+      gBarras(s, dia.dist, { x:0.4, y:0.92, w:5.6, h:2.6 }, 'Grado de disfunción diastólica');
+      let y = 1.05;
+      y = dato(s, 6.3, y, "E/e' promedio", dTxt("E/e' (ratio)", 1, ''));
+      y = dato(s, 6.3, y, 'Volumen AI indexado', dTxt('Vol AI indexado (ml/m²)', 1, ' ml/m²'));
+      const pvd = _labDistribDe(infs, i => { const r = _labEstado(dtDiastEstado, i); return r ? r.patron : null; },
+        { normal:'Normal', relajacion:'Relajación', pseudonormal:'Pseudonormal', restrictivo:'Restrictivo', indeterminado:'Indeterminado' });
+      const nvd = _labCuenta(pvd);
+      dato(s, 6.3, y, 'Patrón diastólico del VD', nvd ? (Object.keys(pvd).map(k => k + ' ' + pvd[k]).join(' · ') + '  (n=' + nvd + ')') : 'sin Doppler tricuspídeo');
+    }
+
+    // ── 6 · VALVULOPATÍAS ──
+    if (mods.valvulas) {
       const s = nueva('Valvulopatías');
       const vc = _labValvCounts(infs);
+      const cel = (x, base, color) => ({ text: base > 0 ? (x + ' (' + Math.round(x/base*100) + ' %)') : '—',
+        options:{ color: base > 0 && x > 0 ? '111111' : C.txt2, fill:{ color: base > 0 && x > 0 ? color : (C.fila2 || C.bg) } } });
       const hdr = ['Válvula', 'Sin', 'Leve', 'Moderada', 'Severa'].map(t => ({ text:t, options:{ bold:true, color:C.hdrTxt, fill:{ color:HDR_BG } } }));
-      const celda = (x, base) => ({ text: base > 0 ? (x + ' (' + Math.round(x/base*100) + ' %)') : '—', options:{ color:C.txt } });
-      const filas = _LAB_VALV_LABELS.map((lbl, i) => {
-        const b = vc.bases[i], L = vc.counts.Leve[i], M = vc.counts.Moderada[i], S = vc.counts.Severa[i];
-        /* «Sin» se DERIVA de la base, no se cuenta aparte: con su propio conteo la tabla y las
-           barras del dashboard podrían publicar números distintos. Y con base 0 la celda dice
-           «—» y no «0 %», que es `pctOf(n, 0)` otra vez. */
-        return [{ text:T(lbl), options:{ bold:true, color:C.txt } }, celda(b - (L+M+S), b), celda(L, b), celda(M, b), celda(S, b)];
+      const filas = _LAB_VALV_LABELS.map((lbl, k) => {
+        const b = vc.bases[k], L = vc.counts.Leve[k], M = vc.counts.Moderada[k], Sv = vc.counts.Severa[k];
+        return [{ text:T(lbl), options:{ bold:true, color:C.txt } },
+                cel(b - (L+M+Sv), b, SEM.verde), cel(L, b, SEM.amarillo), cel(M, b, SEM.naranja), cel(Sv, b, SEM.rojo)];
       });
-      s.addTable([hdr].concat(filas), { x:0.4, y:1.0, w:W-0.8, fontSize:11, fontFace:FONT,
-        border:{ type:'solid', pt:0.5, color:C.txt2 }, fill:{ color:C.fila2 || C.bg }, autoPage:false });
+      s.addTable([hdr].concat(filas), { x:0.4, y:0.92, w:W-0.8, fontSize:10, fontFace:FONT,
+        border:{ type:'solid', pt:0.5, color:C.txt2 }, autoPage:false });
+      /* Etiología más frecuente por válvula, sólo las que tienen algún caso. «No especificada»
+         queda fuera: es la opción por defecto y el destino de la migración, no un hallazgo. */
+      const ETI = [['Mitral','vm_morf'], ['Aórtica','va_morf'], ['Tricúspide','vt_morf'], ['Pulmonar','vp_morf']];
+      const lin = ETI.map(e => {
+        const c = Object.create(null);
+        infs.forEach(i => { const v = _labCampoRaw(i, e[1]); if (!v || v === 'No especificada') return; c[v] = (c[v] || 0) + 1; });
+        const ks = Object.keys(c).sort((a, b) => c[b] - c[a]);
+        return ks.length ? (e[0] + ': ' + ks[0] + ' (' + c[ks[0]] + ')') : null;
+      }).filter(Boolean);
+      s.addText(T(lin.length ? 'Morfología/etiología más frecuente — ' + lin.join('  ·  ') : 'Sin morfología valvular consignada.'),
+        { x:0.4, y:H-1.05, w:W-0.8, h:0.22, fontSize:9, color:C.txt2, fontFace:FONT });
       s.addText(T('Porcentajes sobre el total de estudios ' + _labPobDe() + ' (' + n + '). No marcar una válvula indica que fue valorada como normal.'),
-        { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
+        { x:0.4, y:H-0.84, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
     }
 
-    // ── 6 · PRESIÓN PULMONAR ──
-    {
-      const s = nueva('Presión sistólica de la arteria pulmonar');
-      const psaps = infs.map(_labPsap).filter(v => v !== null && v > 0);
-      const alt = psaps.filter(v => v > UMBRAL_PSAP_ELEVADA);
+    // ── 7 · HTP Y FUNCIÓN DEL VD ──
+    if (mods.htpvd && psaps.length >= MIN_OPC) {
+      const s = nueva('Presión pulmonar y función del VD');
+      gBarras(s, _labPsapDist(psaps).map((x, k) => ({ lbl:x.lbl, n:x.n })), { x:0.4, y:0.92, w:5.6, h:2.4 },
+        'PSAP estimada por rangos', [SEM.verde, SEM.amarillo, SEM.naranja, SEM.rojo]);
       let y = 1.05;
-      y = dato(s, 0.4, y, 'Con PSAP estimable', psaps.length + ' de ' + n);
-      y = dato(s, 0.4, y, 'PSAP > ' + UMBRAL_PSAP_ELEVADA + ' mmHg', psaps.length ? (alt.length + ' (' + Math.round(alt.length/psaps.length*100) + ' % de los estimables)') : '—');
-      y = dato(s, 0.4, y, 'PSAP promedio en ese grupo', pTxt(prom(alt), 0, ' mmHg'));
-      s.addText('Distribución por rangos', { x:4.9, y:0.95, w:4.7, h:0.26, fontSize:12, bold:true, color:C.teal, fontFace:FONT });
-      if (psaps.length) barras(s, 4.9, 1.24, 4.7, _labPsapDist(psaps), 0.30);
-      else s.addText('Sin PSAP estimable en la cohorte.', { x:4.9, y:1.24, w:4.7, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
-      /* RANGOS, no grados. La app no clasifica la HTP por PSAP estimada y esta diapositiva lo
-         DICE, porque es la que más se proyecta fuera de contexto. Sin esta línea, cuatro bandas
-         de color al lado de un número se leen como una graduación de severidad. */
-      s.addText(T('Son RANGOS de presión estimada, no grados de hipertensión pulmonar: la PSAP por Doppler no clasifica la HTP por sí sola.'),
+      y = dato(s, 6.3, y, 'Con PSAP estimable', psaps.length + ' de ' + n);
+      y = dato(s, 6.3, y, 'TAPSE promedio', dTxt('TAPSE (mm)', 0, ' mm'));
+      const pvd = _labDistribDe(infs, i => { const r = _labEstado(dtDiastEstado, i); return r ? r.patron : null; },
+        { normal:'Normal', relajacion:'Relajación', pseudonormal:'Pseudonormal', restrictivo:'Restrictivo', indeterminado:'Indeterminado' });
+      const nvd = _labCuenta(pvd);
+      dato(s, 6.3, y, 'Patrón diastólico del VD', nvd ? (Object.keys(pvd).map(k => k + ' ' + pvd[k]).join(' · ')) : 'sin datos');
+      s.addText(T('Son RANGOS de presión estimada, no grados de hipertensión pulmonar: la PSAP por eco no clasifica la HTP por sí sola.'),
         { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.rojo, fontFace:FONT });
     }
 
-    // ── 7 · HALLAZGOS DESTACADOS ──
-    {
-      const s = nueva('Hallazgos más frecuentes');
-      let filas = [];
-      try { filas = (_labHallazgosCuenta(infs) || []).slice(0, 5).map(h => ({ lbl: h.lbl || h.label || h[0], n: h.n !== undefined ? h.n : h[1], total: n })); }
-      catch (e) { console.error('[labPPT/hallazgos]', e); }
-      if (filas.length) barras(s, 0.4, 1.15, W-0.8, filas, 0.34);
-      else s.addText('Sin hallazgos clasificables en la cohorte.', { x:0.4, y:1.2, w:W-0.8, h:0.4, fontSize:12, italic:true, color:C.txt2, fontFace:FONT });
-      /* Dice «informe», no «EN SUMA»: `_LAB_HALLAZGOS` clasifica sobre `en_suma + informe_texto`.
-         Rotularlo «EN SUMA» prometería un denominador más chico que el que se usó. */
-      s.addText(T('Clasificación por texto sobre el resumen y el cuerpo del informe, con guarda de negación (un hallazgo descartado no cuenta como presente).'),
-        { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
-    }
-
-    // ── 8 · TENDENCIA TEMPORAL ──
-    {
-      const s = nueva('Actividad por mes');
-      const ms = _labMeses(infs);
-      if (ms.length) {
-        const max = Math.max.apply(null, ms.map(m => m[1]));
-        barras(s, 0.4, 1.15, W-0.8, ms.map(m => ({ lbl: m[0].replace('-', '/'), n: m[1], total: max })), 0.28, true);
-        /* El riel es el mes de MÁS actividad, no el total de la cohorte: con el total, doce meses
-           parejos dan doce barras del 8 % y no se ve nada. El rótulo lo dice para que el largo
-           de la barra no se lea como un porcentaje del período. */
-        s.addText(T('Cada barra es relativa al mes de mayor actividad (' + max + ' estudios). Se muestran los últimos 12 meses CON actividad.'),
-          { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
+    // ── 8 · ASOCIACIONES CLÍNICAS ──
+    if (anal.asoc) {
+      const s = nueva('Asociaciones estadísticas del período');
+      let A = null;
+      try { A = _labAsocParaPDF(infs); } catch (e) { console.error('[labPPT/asoc]', e); }
+      const todas = A ? (A.clinicas || []).concat(A.general || []) : [];
+      /* SÓLO las que el Laboratorio marca como establecidas (`ok`), que es su veredicto DESPUÉS
+         de corregir por comparaciones múltiples. Publicar la de mayor coeficiente sin ese filtro
+         proyectaría «fuerte» sobre algo que el propio Lab considera ruido — es la regla que este
+         archivo ya aplica a las rectas de tendencia y al texto direccional. */
+      const top = todas.filter(r => r && r.ok).sort((a, b) => Math.abs(b.coef || 0) - Math.abs(a.coef || 0)).slice(0, 3);
+      const mTot = (A ? (A.mClinicas || 0) + (A.mGeneral || 0) : 0);
+      if (!top.length) {
+        /* La diapositiva se genera IGUAL y lo declara: en un ateneo, «se buscaron M asociaciones
+           y ninguna sobrevivió a la corrección» es información, y su ausencia se leería como que
+           nadie miró. */
+        s.addText(T('Ninguna asociación alcanzó significación estadística tras corregir por comparaciones múltiples.'),
+          { x:0.4, y:1.3, w:W-0.8, h:0.5, fontSize:16, bold:true, color:C.txt, fontFace:FONT });
+        s.addText(T('Se evaluaron ' + mTot + ' asociaciones sobre ' + n + ' estudios' +
+          (A && A.nMin ? '. Las que no alcanzan n = ' + A.nMin + ' no se prueban.' : '.')),
+          { x:0.4, y:1.95, w:W-0.8, h:0.4, fontSize:12, color:C.txt2, fontFace:FONT });
       } else {
-        s.addText('Sin fechas de estudio en la cohorte.', { x:0.4, y:1.2, w:W-0.8, h:0.4, fontSize:12, italic:true, color:C.txt2, fontFace:FONT });
+        let y = 0.95;
+        top.forEach(r => {
+          s.addText(T(r.lbl), { x:0.4, y:y, w:5.3, h:0.26, fontSize:13, bold:true, color:C.txt, fontFace:FONT });
+          s.addText(T(r.stat + '   ·   p = ' + (r.p < 0.001 ? '< 0,001' : r.p.toFixed(3)) + '   ·   n = ' + r.n),
+            { x:0.4, y:y+0.26, w:5.3, h:0.22, fontSize:10, color:C.txt2, fontFace:FONT });
+          s.addText(T(r.interp || ''), { x:0.4, y:y+0.48, w:5.3, h:0.42, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
+          /* Barra del tamaño de efecto, 0 a 1. El eje se fija en 1 para que las tres barras sean
+             comparables entre sí: con el máximo automático, un coeficiente de 0,3 llenaría la
+             barra y se leería como un efecto grande. */
+          const cf = Math.abs(r.coef || 0);
+          s.addChart(P.ChartType.bar, [{ name:'Tamaño de efecto', labels:[T(r.fuerza || '')], values:[Math.round(cf * 100) / 100] }], {
+            x:6.0, y:y, w:3.1, h:0.82, barDir:'bar', chartColors:[C.teal],
+            valAxisMinVal:0, valAxisMaxVal:1, showValue:true, dataLabelColor:C.txt, dataLabelFontSize:10,
+            dataLabelFontFace:FONT, dataLabelPosition:'outEnd', catAxisLabelColor:C.txt2, catAxisLabelFontSize:10,
+            catAxisLabelFontFace:FONT, valAxisHidden:true, showLegend:false, chartArea:{ fill:{ color:C.bg } }
+          });
+          y += 1.02;
+        });
+        s.addText(T('Asociación no implica causalidad — correlación estadística sobre la cohorte analizada. Se evaluaron ' +
+          mTot + ' asociaciones y el valor de p está corregido por comparaciones múltiples.'),
+          { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
       }
     }
 
-    // ── 9 · CIERRE ──
+    // ── 9 · TENDENCIA TEMPORAL ──
+    if (anal.tend) {
+      const ms = _labMeses(infs);
+      if (ms.length >= 2) {
+        const s = nueva('Actividad por mes');
+        const labels = ms.map(m => T(m[0].replace('-', '/')));
+        const series = [{ name:'Estudios', labels: labels, values: ms.map(m => m[1]) }];
+        /* Segunda serie sólo si TODOS los meses tienen FEVI medida: una línea con huecos se
+           dibuja como una caída a cero y se lee como un desplome de la función ventricular. */
+        const feviMes = ms.map(m => {
+          const v = infs.filter(i => String(i.fecha_estudio || '').substring(0,7) === m[0]).map(_labFevi).filter(x => x !== null && x > 0);
+          return v.length ? Math.round(v.reduce((a,b)=>a+b,0)/v.length) : null;
+        });
+        if (feviMes.every(v => v !== null)) series.push({ name:'FEVI promedio (%)', labels: labels, values: feviMes });
+        s.addChart(P.ChartType.line, series, {
+          x:0.4, y:0.92, w:W-0.8, h:3.2, chartColors:[C.teal, SEM.naranja], lineDataSymbol:'circle', lineDataSymbolSize:7,
+          showValue:true, dataLabelColor:C.txt, dataLabelFontSize:10, dataLabelFontFace:FONT,
+          catAxisLabelColor:C.txt, catAxisLabelFontSize:10, catAxisLabelFontFace:FONT,
+          valAxisLabelColor:C.txt2, valAxisLabelFontSize:10, valAxisLabelFontFace:FONT,
+          showLegend: series.length > 1, legendPos:'b', legendColor:C.txt, legendFontSize:10, legendFontFace:FONT,
+          chartArea:{ fill:{ color:C.bg } }
+        });
+        s.addText(T('Últimos 12 meses CON actividad' + (series.length > 1 ? '. La FEVI promedio sólo se grafica si todos los meses tienen mediciones.' : '.')),
+          { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
+      }
+    }
+
+    // ── 10 · COMPARACIÓN DE SUBGRUPOS ──
+    if (anal.subgr) {
+      const baj = infs.filter(i => { const f = _labFevi(i); return f !== null && f > 0 && f < 40; });
+      const alt = infs.filter(i => { const f = _labFevi(i); return f !== null && f >= 40; });
+      if (baj.length >= MIN_OPC && alt.length >= MIN_OPC) {
+        const s = nueva('FEVI < 40 % frente a FEVI ≥ 40 %');
+        const dB = _labEstDescriptiva(baj), dA = _labEstDescriptiva(alt);
+        const m = (d, lbl) => { const r = d.find(x => x.lbl === lbl); return (r && r.n > 0) ? Math.round(r.mean * 10) / 10 : 0; };
+        s.addText(T('FEVI < 40 %: n = ' + baj.length + '     ·     FEVI ≥ 40 %: n = ' + alt.length),
+          { x:0.4, y:0.85, w:W-0.8, h:0.26, fontSize:12, bold:true, color:C.teal, fontFace:FONT });
+        /* DOS gráficos y no uno agrupado: la PSAP ronda 40 mmHg y el E/e' ronda 10, así que en un
+           mismo eje el segundo queda como una raya invisible. Y una distribución en porcentaje no
+           comparte escala con ninguno de los dos. */
+        s.addChart(P.ChartType.bar, [
+          { name:'FEVI < 40 %', labels:['PSAP (mmHg)', "E/e'"], values:[m(dB,'PSAP (mmHg)'), m(dB,"E/e' (ratio)")] },
+          { name:'FEVI ≥ 40 %', labels:['PSAP (mmHg)', "E/e'"], values:[m(dA,'PSAP (mmHg)'), m(dA,"E/e' (ratio)")] }
+        ], { x:0.4, y:1.20, w:4.6, h:2.5, barDir:'col', chartColors:[SEM.rojo, SEM.verde],
+             showTitle:true, title:T('Medias por subgrupo'), titleColor:C.txt, titleFontSize:12, titleFontFace:FONT,
+             showValue:true, dataLabelColor:C.txt, dataLabelFontSize:10, dataLabelFontFace:FONT,
+             catAxisLabelColor:C.txt, catAxisLabelFontSize:10, catAxisLabelFontFace:FONT, valAxisHidden:true,
+             showLegend:true, legendPos:'b', legendColor:C.txt, legendFontSize:10, legendFontFace:FONT,
+             chartArea:{ fill:{ color:C.bg } } });
+        const gb = _labDiastDist(baj), ga = _labDiastDist(alt);
+        const cats = gb.dist.map(x => T(String(x.lbl).replace(/\s*\(n=\d+\)/, '')));
+        s.addChart(P.ChartType.bar, [
+          { name:'FEVI < 40 %', labels:cats, values:gb.dist.map(x => x.n) },
+          { name:'FEVI ≥ 40 %', labels:cats, values:ga.dist.map(x => x.n) }
+        ], { x:5.2, y:1.20, w:4.5, h:2.5, barDir:'col', chartColors:[SEM.rojo, SEM.verde],
+             showTitle:true, title:T('Función diastólica por subgrupo'), titleColor:C.txt, titleFontSize:12, titleFontFace:FONT,
+             showValue:true, dataLabelColor:C.txt, dataLabelFontSize:10, dataLabelFontFace:FONT,
+             catAxisLabelColor:C.txt, catAxisLabelFontSize:9, catAxisLabelFontFace:FONT, valAxisHidden:true,
+             showLegend:true, legendPos:'b', legendColor:C.txt, legendFontSize:10, legendFontFace:FONT,
+             chartArea:{ fill:{ color:C.bg } } });
+        s.addText(T('Los subgrupos se arman con la FEVI del estudio. El n de cada medida puede ser menor que el del subgrupo: sólo entran los estudios que la tienen cargada.'),
+          { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
+      }
+    }
+
+    // ── 11 · CARDIOPATÍAS CONGÉNITAS ──
+    if (mods.cc) {
+      const secs = _CC_SECS.map(sc => ({ lbl: sc.lbl, n: infs.filter(sc.pred).length })).filter(x => x.n > 0);
+      if (secs.length) {
+        const s = nueva('Cardiopatías congénitas');
+        gBarras(s, secs.sort((a,b) => b.n - a.n).slice(0, 8), { x:0.4, y:0.92, w:5.4, h:2.7 }, 'Estudios por sección');
+        const eis = infs.filter(_ccSecPred('eisen')), fon = infs.filter(_ccSecPred('fontan'));
+        let y = 1.05;
+        if (eis.length) {
+          const ny = _labDistrib(eis, 'eis_clase_nyha', { i:'I', ii:'II', iii:'III', iv:'IV' });
+          const sat = prom(eis.map(i => { const r = _labEstado(eisenEstado, i); return (r && r.hayDatos && r.satOk) ? r.sat : null; }));
+          y = dato(s, 6.1, y, 'Eisenmenger (n=' + eis.length + ')',
+            (_labCuenta(ny) ? 'NYHA ' + Object.keys(ny).map(k => k + ':' + ny[k]).join(' ') : 'sin clase') + '  ·  Sat ' + pTxt(sat, 0, ' %'));
+        }
+        if (fon.length) {
+          const tp = _labDistrib(fon, 'fontan_tipo', { tunel:'Túnel lateral', extra:'Extracardíaco', ap:'Atriopulmonar', noesp:'No especificado' });
+          const sat = prom(fon.map(i => { const r = _labEstado(fontanEstado, i); return (r && r.hayDatos && r.satOk) ? r.sat : null; }));
+          dato(s, 6.1, y, 'Fontan (n=' + fon.length + ')',
+            (_labCuenta(tp) ? Object.keys(tp).map(k => k + ':' + tp[k]).join(' · ') : 'sin tipo') + '  ·  Sat ' + pTxt(sat, 0, ' %'));
+        }
+      }
+    }
+
+    // ── 12 · CARDIO-ONCOLOGÍA ──
+    if (mods.onco) {
+      const onc = infs.filter(i => _labCampoRaw(i, 'co_farmaco') !== '' || _labCampoRaw(i, 'co_fevi_basal') !== '' ||
+                                   _labCampoRaw(i, 'co_dosis_antrac') !== '');
+      if (onc.length >= MIN_OPC) {
+        const s = nueva('Cardio-Oncología');
+        const rb = _labDistrib(onc, 'co_riesgo_cv', { ninguno:'Ninguno', bajo:'Bajo', moderado:'Moderado', alto:'Alto', muyalto:'Muy alto',
+                                                     Ninguno:'Ninguno', Bajo:'Bajo', Moderado:'Moderado', Alto:'Alto' });
+        const nrb = _labCuenta(rb);
+        let y = 1.05;
+        y = dato(s, 0.4, y, 'Estudios en seguimiento oncológico', onc.length + ' de ' + n);
+        y = dato(s, 0.4, y, 'FEVI basal promedio', pTxt(prom(onc.map(i => _labNum(i, 'co_fevi_basal'))), 1, ' %'));
+        dato(s, 0.4, y, 'FEVI actual promedio', pTxt(prom(onc.map(_labFevi).filter(v => v !== null && v > 0)), 1, ' %'));
+        if (nrb) gBarras(s, Object.keys(rb).map(k => ({ lbl:k, n:rb[k] })), { x:4.6, y:0.92, w:5.1, h:2.5 }, 'Riesgo cardiovascular basal');
+        else s.addText('Sin riesgo basal consignado.', { x:4.6, y:1.6, w:5.1, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
+        s.addText(T('El riesgo basal se consigna en el estudio; la graduación de cardiotoxicidad depende de la FEVI basal, que no todos los estudios traen.'),
+          { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
+      }
+    }
+
+    // ── 13 · METODOLOGÍA ──
     {
-      const s = P.addSlide();
+      const s = nueva('Metodología y límites');
+      const L = [
+        'Población: ' + n + ' estudio' + (n !== 1 ? 's' : '') + ' ' + _labPobTxt() + (periodo ? ' (' + periodo + ')' : '') + '.',
+        'Los denominadores DIFIEREN entre medidas: cada una se calcula sobre los estudios que tienen ese campo cargado, y el n se declara junto a cada número.',
+        'No marcar una válvula significa que fue valorada como normal en ese estudio; por eso el denominador de las valvulopatías es el total del período.',
+        'La PSAP estimada por ecocardiografía se informa como RANGO y no clasifica la hipertensión pulmonar por sí sola.',
+        'Los grados valvulares y diastólicos se informan como distribución y nunca como promedio: son escalas ordinales.',
+        'Las asociaciones estadísticas están corregidas por comparaciones múltiples y no implican causalidad.'
+      ];
+      if (cohTxt) L.push('COHORTE FILTRADA — los totales no son los del laboratorio completo. Filtros: ' + cohTxt);
+      let y = 0.95;
+      L.forEach(t => { s.addText(T('•  ' + t), { x:0.5, y:y, w:W-1.0, h:0.46, fontSize:11, color:C.txt, fontFace:FONT, valign:'top' }); y += 0.50; });
+    }
+
+    // ── 14 · CIERRE ──
+    {
+      const s = P.addSlide(); nSlides++;
       s.background = { color: C.bg };
       s.addText('¿Preguntas?', { x:0.5, y:1.45, w:W-1, h:1.0, fontSize:54, bold:true, color:C.teal, fontFace:FONT, align:'center' });
       s.addText(T(o.presentador || ''), { x:0.5, y:2.72, w:W-1, h:0.4, fontSize:20, color:C.txt, fontFace:FONT, align:'center' });
       s.addText(T([o.institucion, _pptFechaLarga(o.fecha)].filter(Boolean).join('  ·  ')), { x:0.5, y:3.16, w:W-1, h:0.34, fontSize:13, color:C.txt2, fontFace:FONT, align:'center' });
-      ponerLogo(s);
-      conPie(s);
+      ponerLogo(s); conPie(s);
     }
 
     const stamp = new Date().toISOString().slice(0,10).replace(/-/g,'');
     await P.writeFile({ fileName: 'EcoSmart_Laboratorio_' + stamp + (cohTxt ? '_cohorte_filtrada' : '') + '.pptx' });
-    toast('✅ Presentación generada — 9 diapositivas.' + (avisos.length ? ' ⚠️ ' + avisos.join(' ') : ''));
+    toast('✅ Presentación generada — ' + nSlides + ' diapositivas.' + (avisos.length ? ' ⚠️ ' + avisos.join(' ') : ''));
   } catch (e) {
     console.error('[labPPT]', e);
     toast('❌ No se pudo generar la presentación: ' + (e && e.message ? e.message : 'error desconocido'));
@@ -55249,8 +55484,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260916-0244';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789537482865;                 /* eco-build-ms */
+const ECO_BUILD    = '20260916-0304';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789538660793;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -55336,7 +55571,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0244</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0304</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
