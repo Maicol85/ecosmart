@@ -344,9 +344,10 @@ historia familiar»: el color y el texto salían de dos expresiones distintas. *
 prueba el lado negativo de cada rama, no prueba la regla.**
 
 ### Exportador de Excel con filtros por módulo — y el default constante otra vez
-Agregado el 2026-09-16. `labExpAbrir()` abre un modal antes de exportar: ocho módulos con casilla,
-dos radios de filas, cuenta en vivo y preferencias en `localStorage` (`ett_lab_export_pref`).
-Medido: **411 columnas → 116** sin ningún módulo, un 72 % menos.
+Agregado el 2026-09-16. `labExpAbrir()` abre un modal antes de exportar: **siete** módulos con
+casilla, dos radios de filas, cuenta en vivo y preferencias en `localStorage`
+(`ett_lab_export_pref`). Medido: **411 columnas → 118** sin ningún módulo, un 71 % menos.
+(Nacieron ocho; `contr` pasó a básico el mismo día — ver la entrada de abajo.)
 
 **LOS MÓDULOS SE DERIVAN DE `LAB_XLS_BLOQUES`**, que ya declaraba cuáles bloques son `avanzada`.
 Escribir una segunda lista de 300 nombres de columna habría sido la lista paralela de siempre: al
@@ -374,8 +375,34 @@ la app. El modal lo dice en la cuenta.
 sel)` — la «plantilla virgen» ya existía. Si la plantilla enseñara columnas que el export no
 emite, el médico la rellena y reimporta datos que no tienen destino.
 
-**`GLS (%)` se queda en los básicos** a propósito: es un número global que se lee junto a la FEVI.
-El módulo de contractilidad son los segmentos.
+### GLS y contractilidad son BÁSICOS — y el comentario que defendía lo contrario era falso
+El 2026-09-16 se eliminó el módulo `contr` del exportador: sus columnas pasaron a básicas y el
+checkbox desapareció. Quedan **siete** módulos opcionales; las básicas suben de **116 a 118** y el
+total sigue en **411**.
+
+**El argumento no es «GLS es importante» sino que el BLOQUE ya era básico.** `GLS (%)`,
+`Trastornos sectoriales` y `TS_Presente` viven las tres en el bloque **`4 · VENTRÍCULO IZQUIERDO`**,
+entre `FEVI Simpson (%)` y `Masa VI (g/m²)`. El módulo sacaba **dos de las diecisiete** columnas de
+ese bloque mientras las otras quince nunca fueron opcionales: un Excel de ventrículo izquierdo sin
+la motilidad no es un export focalizado, es uno incompleto.
+
+**El comentario que justificaba el módulo afirmaba un número falso.** Decía que era «los SEGMENTOS,
+que son diecisiete columnas». Son **DOS** —un texto resumen y su binario— y lo desmintió el conteo,
+no la lectura. **Los diecisiete segmentos no tienen columna en el Excel por ningún camino**:
+`_labExcelRow` no los emite, ni los de contractilidad ni los de strain. Están en la lista de
+columnas ausentes que este archivo ya tenía, y el comentario del exportador la contradecía a 300
+líneas de distancia. Es «un comentario que afirma una invariante no la garantiza», otra vez.
+
+**El invariante que fija TC-135 NO es «estas tres columnas son básicas».** Nombrar tres deja
+abierto que mañana alguien module una cuarta del mismo bloque. La condición es **«ninguna columna
+del bloque 4 tiene módulo»**, y eso es lo que separa un caso útil de uno decorativo: la mutación
+que agrega un módulo `geom` sobre `Geometría VI` —una columna del bloque 4 que NO está en el
+núcleo— **sólo la caza esa condición**; las que nombran las tres pasan en verde.
+
+**Una preferencia guardada con un módulo borrado no lo revive**: `_labExpLeerPref` ya filtraba
+`sel` contra `LAB_XLS_MODULOS`, así que un `{sel:['contr','peri']}` en disco vuelve como `['peri']`.
+Al borrar un módulo, verificar que ese filtro exista — sin él, la preferencia resucita una clave
+que `_labModDeCol` ya no reconoce y el filtro de filas empieza a descartar estudios en silencio.
 
 ### Buscar una frase encuentra lo que ya sabías que estaba
 Las dos pestañas de congénitas tenían **dos** bloques de título, no uno. El lote del 2026-09-16

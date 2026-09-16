@@ -4159,7 +4159,7 @@ caso('TC-133', 'Doppler tricuspideo: E/A, E/e y los dos signos INDIRECTOS de HTP
 caso('TC-134', 'Exportador Excel: modulos, filas y la plantilla comparten filtro', `
   const TODAS = _labOrdenarCols(Object.keys(_labExcelRow({ id:0, campos:{} })));
   const basicas = _labColsFiltradas(TODAS, []);
-  const conSgl  = _labColsFiltradas(TODAS, ['contr']);
+  const conDtr  = _labColsFiltradas(TODAS, ['dtric']);
   const conPeri = _labColsFiltradas(TODAS, ['peri']);
   const todas   = _labColsFiltradas(TODAS, LAB_XLS_MODULOS.map(function(m){ return m.k; }));
   /* Estudios sinteticos: uno con datos de pericardio y otro sin nada avanzado. */
@@ -4185,7 +4185,7 @@ caso('TC-134', 'Exportador Excel: modulos, filas y la plantilla comparten filtro
       conPeri.filter(function(c){ return basicas.indexOf(c) === -1; })
              .every(function(c){ return c.indexOf('DPT ') === 0 || c.indexOf('CVR ') === 0; })],
     ['y no arrastra las de otro modulo', conPeri.indexOf('Fontan tipo') === -1],
-    ['marcar contractilidad agrega las suyas', conSgl.length > basicas.length],
+    ['marcar Doppler tricuspideo agrega las suyas', conDtr.length > basicas.length],
     // FILAS: independiente de columnas.
     ['«todos» devuelve las dos filas', _labFilasFiltradas(dos, ['peri'], false).length === 2],
     ['«solo con datos» deja solo la que tiene pericardio',
@@ -4229,6 +4229,82 @@ caso('TC-134', 'Exportador Excel: modulos, filas y la plantilla comparten filtro
     ['la plantilla comparte el filtro con el export',
       String(labPlantillaXLSX).indexOf('_labColsFiltradas') > -1]
   ] };
+`);
+
+/* GLS Y CONTRACTILIDAD SON BASICOS (2026-09-16).
+   El modulo 'contr' sacaba del export dos columnas del bloque 4 (VENTRICULO IZQUIERDO) mientras
+   las otras diez de ese mismo bloque nunca fueron opcionales. El invariante que se fija NO es
+   «estas tres columnas son basicas» —nombrar tres deja abierto que manana se module una cuarta—
+   sino que NINGUNA columna del bloque 4 tiene modulo. */
+caso('TC-135', 'GLS y contractilidad son BASICOS del Excel: sin checkbox y siempre presentes', `
+  return (async function(){
+    const NUCLEO = ['GLS (%)', 'Trastornos sectoriales', 'TS_Presente'];
+    const TODAS = _labOrdenarCols(Object.keys(_labExcelRow({ id:0, campos:{} })));
+    const basicas = _labColsFiltradas(TODAS, []);
+    const claves = LAB_XLS_MODULOS.map(function(m){ return m.k; });
+    const conTodo = _labColsFiltradas(TODAS, claves);
+    const bloque4 = TODAS.filter(function(c){ return _labXlsBloqueDe(c).indexOf('4 · ') === 0; });
+    /* El modal se construye desde LAB_XLS_MODULOS, asi que hay que ABRIRLO para probar que el
+       checkbox no se dibuja: leer la constante prueba la constante, no la pantalla. Necesita un
+       estudio guardado y la libreria del CDN — las dos se declaran, no se saltean. */
+    for (let i = 0; i < 60 && typeof XLSX === 'undefined'; i++) await new Promise(function(r){ setTimeout(r, 100); });
+    if (typeof XLSX === 'undefined') return { extra: [
+      ['la libreria XLSX esta disponible (llega por CDN: este caso necesita red)', false,
+       'sin red o CDN inaccesible tras 6 s de espera']] };
+    try { localStorage.removeItem('ett_lab_export_pref'); } catch(e){}
+    __t.limpiar(); __t.set('nombre','Export Basicos'); __t.set('fevi','55');
+    const gid = __t.guardar();
+    labExpAbrir();
+    const cont = document.getElementById('lab-exp-mods');
+    const chks = [].slice.call(cont.querySelectorAll('[data-exp-mod]'));
+    const rotulos = [].slice.call(cont.querySelectorAll('label')).map(function(l){ return l.textContent; });
+    const cuentaTxt = document.getElementById('lab-exp-cuenta').textContent;
+    labExpCerrar();
+    __t.borrar(gid);
+    const nombra = function(t){ const u = t.toUpperCase();
+      return u.indexOf('CONTRACTILIDAD') > -1 || u.indexOf('SGL') > -1 || u.indexOf('GLS') > -1 ||
+             u.indexOf('SECTORIAL') > -1 || u.indexOf('MOTILIDAD') > -1; };
+    return { extra: [
+      // 1 · El modulo dejo de existir, y nada quedo huerfano.
+      ['ya no hay un modulo contr', claves.indexOf('contr') === -1, claves.join(',')],
+      ['el assert de modulos sigue en cero', _labAssertModulos().length === 0,
+        _labAssertModulos().join(' | ')],
+      // 2 · LA PANTALLA: ningun checkbox nombra contractilidad ni el strain.
+      ['el modal dibuja un checkbox por modulo y ninguno mas', chks.length === claves.length,
+        chks.length + ' vs ' + claves.length],
+      ['y ninguna etiqueta del modal nombra contractilidad ni SGL',
+        !rotulos.some(nombra), rotulos.join(' | ')],
+      // 3 · LAS COLUMNAS: las tres del nucleo salen sin elegir nada.
+      ['las tres del nucleo no tienen modulo',
+        NUCLEO.every(function(c){ return _labModDeCol(c) === null; }),
+        NUCLEO.map(function(c){ return c + '=' + _labModDeCol(c); }).join(' | ')],
+      ['y estan en el export SIN ningun modulo elegido',
+        NUCLEO.every(function(c){ return basicas.indexOf(c) > -1; })],
+      ['tambien con todos los modulos, y sin duplicarse',
+        NUCLEO.every(function(c){ return conTodo.indexOf(c) > -1; }) &&
+        conTodo.length === new Set(conTodo).size],
+      // 4 · EL INVARIANTE FUERTE: el bloque 4 entero es basico.
+      ['el bloque 4 tiene las tres y ademas la FEVI', bloque4.length >= 12 &&
+        NUCLEO.every(function(c){ return bloque4.indexOf(c) > -1; }) &&
+        bloque4.indexOf('FEVI Simpson (%)') > -1, bloque4.join(' | ')],
+      ['NINGUNA columna del bloque 4 es opcional',
+        bloque4.every(function(c){ return _labModDeCol(c) === null; }),
+        bloque4.filter(function(c){ return _labModDeCol(c) !== null; }).join(' | ')],
+      // 5 · LA CUENTA del modal es la que sale del export, no un numero aparte.
+      ['la cuenta del modal declara las basicas reales',
+        cuentaTxt.indexOf(basicas.length + ' columnas') === 0, cuentaTxt],
+      ['y las basicas crecieron: el total no cambio, lo opcional si',
+        basicas.length === 118 && TODAS.length === 411,
+        basicas.length + ' basicas de ' + TODAS.length],
+      // 6 · Una preferencia vieja con el modulo borrado no lo revive.
+      ['una preferencia guardada con contr no revive el modulo', (function(){
+        try { localStorage.setItem('ett_lab_export_pref', JSON.stringify({ sel:['contr','peri'], solo:true })); } catch(e){}
+        const p = _labExpLeerPref();
+        try { localStorage.removeItem('ett_lab_export_pref'); } catch(e){}
+        return p.sel.length === 1 && p.sel[0] === 'peri';
+      })()]
+    ] };
+  })();
 `);
 
 /* LAS TRES SUPERFICIES DE CARDIO-ONCO TIENEN QUE DECIR LO MISMO. La leyenda de #ref-cardiotox
