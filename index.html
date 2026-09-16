@@ -13270,6 +13270,23 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     #tab-lab .lab-2col > .lab-card{width:100%;}
   }
   #tab-lab .lab-card-hdr{background:var(--bg3);color:var(--accent2);padding:10px 16px;font-size:.84rem;font-weight:700;display:flex;align-items:center;gap:8px;}
+  /* Casilla «☐ PPT» de cada tarjeta. Mismo idioma visual que el `.chk-inline` de InfectSmart,
+     adaptado a este header: allá el label va con `float:right` sobre un `<h4>`, y acá el header
+     es un contenedor FLEX, donde el float no hace nada — empuja con `margin-left:auto`.
+     Va con `onchange` y NUNCA con `onclick`: la regla táctil global matchea por el ATRIBUTO
+     (`[onclick]{min-height:44px;min-width:44px}`) e inflaría la casilla a tres veces el alto de
+     la fila. Ya está documentado en CLAUDE.md y pasó una vez. */
+  /* El área táctil llega a 44 px con márgenes negativos, que es el mismo recurso que ya usa
+     `.asoc-info-btn` dos reglas más abajo: sin ellos el header crece 16 px en las 52 tarjetas.
+     Sin esto el label medía 39×14 —medido— y `check_mobile.js` lo reporta con razón. */
+  #tab-lab .lab-ppt-chk{margin:-11px 0 -11px auto;min-height:44px;min-width:44px;justify-content:flex-end;
+    display:inline-flex;align-items:center;gap:5px;
+    font-size:11px;font-weight:400;color:var(--text2);cursor:pointer;flex-shrink:0;user-select:none;}
+  #tab-lab .lab-ppt-chk input{width:auto;margin:0;flex:0 0 auto;cursor:pointer;}
+  #tab-lab .lab-ppt-chk:hover{color:var(--accent);}
+  /* Marcada se destaca, porque es la que decide qué entra al mazo: con las 52 iguales no se ve
+     de un vistazo cuáles quedaron seleccionadas al volver a la pestaña. */
+  #tab-lab .lab-card[data-ppt-on] > .lab-card-hdr .lab-ppt-chk{color:var(--accent);font-weight:600;}
   /* Botón ℹ️ de ayuda del header. El área táctil se mantiene en 44x44 (regla global de
      accesibilidad) pero el círculo visible es el <span> de 26px, así que se ve chico
      sin romper el touch target. */
@@ -13585,7 +13602,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   <!-- PILAR 1: ACTIVIDAD -->
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="actividad">
     <div class="lab-card-hdr">📈 Actividad del Laboratorio</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -13616,7 +13633,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   <!-- SECCIÓN A: PERFIL DE POBLACIÓN (demografía + hallazgos) -->
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="demografia">
     <div class="lab-card-hdr">👥 Perfil de la Población</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -13637,7 +13654,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   <!-- SECCIÓN A-bis: CORAZÓN ANATÓMICO CON DATOS SUPERPUESTOS -->
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="anatomico">
     <div class="lab-card-hdr">🫀 Corazón anatómico — promedios del período</div>
     <div class="lab-card-body">
       <div class="heart-lab-grid">
@@ -13743,7 +13760,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 
   <!-- SECCIONES E y F: INDICACIONES | ANTECEDENTES (en paralelo; se apilan en móvil) -->
   <div class="lab-2col">
-    <div class="lab-card">
+    <div class="lab-card" data-ppt="indicaciones">
       <div class="lab-card-hdr">📋 Indicaciones del estudio</div>
       <div class="lab-card-body">
         <div class="lab-pob-sub" data-lab-pob="Frecuencia por indicación" style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Frecuencia por indicación (sobre el total de estudios del período).</div>
@@ -13751,7 +13768,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
     </div>
 
-    <div class="lab-card">
+    <div class="lab-card" data-ppt="antecedentes">
       <div class="lab-card-hdr">🩺 Antecedentes</div>
       <div class="lab-card-body">
         <div class="lab-pob-sub" data-lab-pob="Frecuencia por antecedente" style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Frecuencia por antecedente (sobre el total de estudios del período).</div>
@@ -13762,7 +13779,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 
 
   <!-- ══ COMPARAR PERIODOS — plegado desde su propia subtab el 2026-09-16 ══ -->
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="comparar">
     <div class="lab-card-hdr">🔀 Comparar Períodos</div>
     <div class="lab-card-body">
       <div class="lab-grid" style="margin-bottom:16px;">
@@ -13802,7 +13819,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   <!-- ══ CALIDAD ══ -->
 
   <!-- PILAR 3: CALIDAD DEL LABORATORIO -->
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="calidad">
     <div class="lab-card-hdr">✅ Calidad del Laboratorio</div>
     <div class="lab-card-body">
       <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">
@@ -13813,7 +13830,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   <!-- PILAR 4: INDICADORES AUTOMÁTICOS -->
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="indicadores">
     <div class="lab-card-hdr">⚠️ Indicadores Automáticos — Oportunidades clínicas</div>
     <div class="lab-card-body">
       <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">
@@ -13834,7 +13851,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   <!-- PILAR 5: DOCENCIA -->
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="docencia">
     <div class="lab-card-hdr">🎓 Docencia — Casos de interés</div>
     <div class="lab-card-body">
       <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">
@@ -13845,7 +13862,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   <!-- ══ COMPARAR MEDICOS ══ -->
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="medicos">
     <div class="lab-card-hdr">👨‍⚕️ Análisis por Médico</div>
     <div class="lab-card-body">
       <div class="fg" style="margin-bottom:16px;">
@@ -13884,7 +13901,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   <div id="lab-sub-mediciones" class="lab-subpanel">
 
   <!-- SECCIÓN B: FUNCIÓN SISTÓLICA Y DIASTÓLICA -->
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="funcion">
     <div class="lab-card-hdr">📊 Función sistólica y diastólica</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -13906,8 +13923,24 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
+  <!-- SECCIÓN: SGL — el promedio es de |SGL|, y la distribución NO se gradúa. El porqué está
+       arriba de `_labSglResumen`: esta app borró la graduación del SGL a propósito y su único
+       corte vivo es el −16 % del HFA-ICOS. -->
+  <div class="lab-card" data-ppt="sgl">
+    <div class="lab-card-hdr">📉 Strain global longitudinal (SGL)</div>
+    <div class="lab-card-body">
+      <div class="lab-grid" style="margin-bottom:12px;">
+        <div class="lab-stat"><span class="lab-stat-lbl">|SGL| promedio</span><span class="lab-stat-val" id="lab-sgl-prom">—</span></div>
+        <div class="lab-stat"><span class="lab-stat-lbl">Mediana</span><span class="lab-stat-val" id="lab-sgl-med">—</span></div>
+        <div class="lab-stat"><span class="lab-stat-lbl">Rango</span><span class="lab-stat-val" id="lab-sgl-rango">—</span></div>
+      </div>
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Distribución por intervalos de 2 puntos porcentuales sobre el valor absoluto. <b>No es una graduación de severidad:</b> esta app no clasifica el SGL en bandas — el único umbral que aplica es el <b>16 %</b> del marco HFA-ICOS, en Cardio-Oncología.</div>
+      <div class="lab-bar-wrap" id="lab-sgl-dist"></div>
+    </div>
+  </div>
+
   <!-- SECCIÓN: CONTRACTILIDAD SEGMENTARIA — POBLACIÓN -->
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="contractilidad">
     <div class="lab-card-hdr">🎯 Contractilidad Segmentaria — Población</div>
     <div class="lab-card-body">
       <div id="lab-contr-tabla"></div>
@@ -13917,7 +13950,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   <!-- SECCIÓN I: GEOMETRÍA VI -->
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="geometria">
     <div class="lab-card-hdr">📐 Geometría VI</div>
     <div class="lab-card-body">
       <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Patrón geométrico del ventrículo izquierdo (según texto del informe / campo de geometría).</div>
@@ -13926,7 +13959,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   <!-- SECCIÓN G: VOLUMEN AI Y FUNCIÓN VD -->
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="volai">
     <div class="lab-card-hdr">🫀 Volumen AI indexado</div>
     <div class="lab-card-body">
       <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Normal (≤34) · Leve (35–41) · Moderada (42–48) · Severa (&gt;48) ml/m².</div>
@@ -13935,7 +13968,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   <!-- SECCIÓN H: FUNCIÓN VD (TAPSE) -->
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="vd">
     <div class="lab-card-hdr">🫀 Función VD (TAPSE)</div>
     <div class="lab-card-body">
       <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Normal (≥17) · Levemente reducida (14–16) · Reducida (&lt;14) mm.</div>
@@ -13944,7 +13977,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   <!-- SECCIÓN D: HIPERTENSIÓN PULMONAR -->
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="htp">
     <div class="lab-card-hdr">🫁 Hipertensión pulmonar (PSAP)</div>
     <div class="lab-card-body">
       <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Distribución por rango de PSAP estimada (mmHg). No son grados de hipertensión pulmonar: la PSAP estimada no la clasifica.</div>
@@ -13953,7 +13986,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   <!-- SECCIÓN C: VALVULOPATÍAS -->
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="valvulas">
     <div class="lab-card-hdr">🫀 Valvulopatías</div>
     <div class="lab-card-body">
       <!-- TABLA RESUMEN — va ANTES de los gráficos: es el dato crudo del que salen, y un lector
@@ -13989,7 +14022,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   <!-- SECCIÓN: DOPPLER TRICUSPÍDEO -->
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="doptric">
     <div class="lab-card-hdr">🔺 Doppler tricuspídeo y función diastólica del VD</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -14001,7 +14034,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   <!-- SECCIÓN: MORFOLOGÍA Y ETIOLOGÍA VALVULAR -->
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="etiologias">
     <div class="lab-card-hdr">🫀 Morfología y etiología valvular</div>
     <div class="lab-card-body">
       <div id="lab-med-etiol-cont"></div>
@@ -14010,7 +14043,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
   <!-- SECCIÓN: ESTADÍSTICA DESCRIPTIVA -->
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="descriptiva">
     <div class="lab-card-hdr">📈 Estadística descriptiva</div>
     <div class="lab-card-body">
       <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Resumen por variable continua (todos los estudios guardados). N&lt;5 → datos insuficientes.</div>
@@ -14021,7 +14054,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 
   <!-- ═══ SUBTAB: ASOCIACIONES ═══ -->
   <div id="lab-sub-asociaciones" class="lab-subpanel">
-    <div class="lab-card">
+    <div class="lab-card" data-ppt="asoc">
       <div class="lab-card-hdr">📊 Asociaciones estadísticas
         <button type="button" class="asoc-info-btn" id="asoc-info-btn" onclick="asocInfoToggle()"
                 aria-expanded="false" aria-controls="asoc-info" title="Cómo leer esta tabla"
@@ -14074,7 +14107,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
 
     <!-- ══ BLOQUE A — Asociaciones clínicas predefinidas ══ -->
-    <div class="lab-card">
+    <div class="lab-card" data-ppt="asocclin">
       <div class="lab-card-hdr">🩺 Asociaciones clínicas predefinidas</div>
       <div class="lab-card-body">
         <div style="font-size:.78rem;color:var(--text2);line-height:1.6;margin-bottom:10px;">
@@ -14095,7 +14128,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
 
     <!-- ══ BLOQUE B — Asociación libre ══ -->
-    <div class="lab-card">
+    <div class="lab-card" data-ppt="asoclibre">
       <div class="lab-card-hdr">🔬 Asociación libre</div>
       <div class="lab-card-body">
         <div style="font-size:.78rem;color:var(--text2);line-height:1.6;margin-bottom:10px;">
@@ -14145,7 +14178,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   <!-- Perfil hemodinámico — vino de la subtab Avanzado. Los ids conservan el prefijo
        `lab-adv-` a propósito: renombrarlos no aporta nada y rompería cualquier referencia
        externa, y el prefijo que importa para `_noVaciar` es `lab-`, que se mantiene. -->
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="hemo">
     <div class="lab-card-hdr">🩺 Perfil hemodinámico</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -14164,7 +14197,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
          existe — un comentario que sobrevive a la mudanza que describe es peor que no tenerlo. -->
 
     <!-- TEP / Sobrecarga VD -->
-    <div class="lab-card">
+    <div class="lab-card" data-ppt="tep">
       <div class="lab-card-hdr">🫁 TEP / Sobrecarga VD</div>
       <div class="lab-card-body">
         <div class="lab-grid">
@@ -14181,7 +14214,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
 
     <!-- Uso general del módulo avanzado -->
-    <div class="lab-card">
+    <div class="lab-card" data-ppt="usoavanzado">
       <div class="lab-card-hdr">🧩 Uso del módulo avanzado</div>
       <div class="lab-card-body">
         <div class="lab-grid">
@@ -14198,7 +14231,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
 
     <!-- Amiloidosis -->
-    <div class="lab-card">
+    <div class="lab-card" data-ppt="amiloidosis">
       <div class="lab-card-hdr">🧬 Amiloidosis</div>
       <div class="lab-card-body">
         <div class="lab-grid">
@@ -14212,7 +14245,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
 
     <!-- Cardio-Oncología -->
-    <div class="lab-card">
+    <div class="lab-card" data-ppt="onco">
       <div class="lab-card-hdr">🎗️ Cardio-Oncología</div>
       <div class="lab-card-body">
         <div class="lab-grid">
@@ -14227,7 +14260,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     <!-- HFA-PEFF — va acá, junto a E/e', LAVI, RWT y geometría VI, que son sus propios
          insumos: el score no es un módulo aparte sino la lectura integrada de lo que esta
          subtab ya muestra suelto. -->
-    <div class="lab-card">
+    <div class="lab-card" data-ppt="hfapeff">
       <div class="lab-card-hdr">🫀 Score HFA-PEFF (ESC/HFA 2019)</div>
       <div class="lab-card-body">
         <div class="lab-grid">
@@ -14266,7 +14299,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
      derivación de los mismos hechos. -->
 <div id="lab-sub-cc" class="lab-subpanel">
 
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="ccactividad">
     <div class="lab-card-hdr">🧬 Actividad en cardiopatías congénitas y miocardiopatías genéticas</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -14282,7 +14315,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="ciaciv">
     <div class="lab-card-hdr">🫀 CIA / CIV — shunt congénito</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -14297,7 +14330,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="qpqs">
     <div class="lab-card-hdr">📈 Qp/Qs — magnitud del shunt</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -14311,7 +14344,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="ciabordes">
     <div class="lab-card-hdr">📐 Bordes de la CIA</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -14325,7 +14358,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="dap">
     <div class="lab-card-hdr">🩸 DAP — ductus arterioso permeable</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -14336,7 +14369,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="vap">
     <div class="lab-card-hdr">🔀 Ventana aortopulmonar</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -14346,7 +14379,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="coao">
     <div class="lab-card-hdr">🫁 CoAo — coartación de aorta</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -14357,7 +14390,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="fop">
     <div class="lab-card-hdr">🕳️ FOP — foramen oval permeable</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -14368,7 +14401,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="vab">
     <div class="lab-card-hdr">🔺 VAB — válvula aórtica bicúspide</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -14379,7 +14412,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="mch">
     <div class="lab-card-hdr">🫀 MCH — miocardiopatía hipertrófica</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -14390,7 +14423,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="mca">
     <div class="lab-card-hdr">⚡ MCA — miocardiopatía arritmogénica</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -14401,7 +14434,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="tdf">
     <div class="lab-card-hdr">💠 Tetralogía de Fallot reparada</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -14412,7 +14445,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="tga">
     <div class="lab-card-hdr">🔁 TGA — transposición de grandes arterias</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -14423,7 +14456,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="ebstein">
     <div class="lab-card-hdr">🍃 Anomalía de Ebstein</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -14435,7 +14468,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 
 
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="marfan">
     <div class="lab-card-hdr">🧬 Marfan / aortopatía hereditaria</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -14446,7 +14479,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="eisenmenger">
     <div class="lab-card-hdr">🫁 Síndrome de Eisenmenger</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -14457,7 +14490,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="fontan">
     <div class="lab-card-hdr">🔄 Circulación de Fontan</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -14468,7 +14501,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="ccotras">
     <div class="lab-card-hdr">📋 Subaórtica · Supravalvular · DSAV · CVPA</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -14489,7 +14522,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
      sin filtro de scope (de hecho eso ya deja el filtro #lab-periodo en «30» tras Nuevo estudio). -->
 <div id="lab-sub-ete" class="lab-subpanel">
 
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="eteactividad">
     <div class="lab-card-hdr">🔬 Actividad ETE</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -14503,7 +14536,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="tavi">
     <div class="lab-card-hdr">🫀 TAVI</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -14520,7 +14553,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="wilkins">
     <div class="lab-card-hdr">📊 Score de Wilkins</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -14533,7 +14566,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="orejuela">
     <div class="lab-card-hdr">🫁 Orejuela izquierda</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -14546,7 +14579,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
-  <div class="lab-card">
+  <div class="lab-card" data-ppt="teer">
     <div class="lab-card-hdr">🔗 TEER — MitraClip / PASCAL</div>
     <div class="lab-card-body">
       <div class="lab-grid">
@@ -14566,7 +14599,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 
 
 <div id="lab-sub-informe" class="lab-subpanel">
-  <div class="lab-card">
+  <div class="lab-card" data-ppt-no="es el exportador del PDF, no una tarjeta de datos">
     <div class="lab-card-hdr">📄 Informe de Auditoría — Export PDF</div>
     <div class="lab-card-body">
       <div class="lab-grid" style="margin-bottom:16px;">
@@ -14635,7 +14668,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
        Mazo de ateneo con la estadística del período. Independiente del PPT del estudio
        individual: aquél cuenta UN paciente, éste la casuística. Comparten las paletas, el
        saneador de texto y el logo — nada más. -->
-  <div class="lab-card">
+  <div class="lab-card" data-ppt-no="es el exportador del propio PPT">
     <div class="lab-card-hdr">📊 Presentación estadística — Export PPT</div>
     <div class="lab-card-body">
       <p style="font-size:.82rem;color:var(--text2);margin:0 0 14px;line-height:1.55;">
@@ -43972,6 +44005,43 @@ function _labDiastDist(infs) {
   ] };
 }
 
+/* ══ SGL — PROMEDIO Y DISTRIBUCIÓN, SIN GRADUAR ══════════════════════════════════════════════
+   Agregado el 2026-09-16 con su tarjeta en Mediciones. Lo consumen esa tarjeta, el «GLS promedio»
+   de «Corazón anatómico» —que antes calculaba lo mismo por su cuenta— y el PPT.
+
+   NO DEVUELVE BANDAS «Normal / Leve / Moderado / Severo», Y ES UNA DECISIÓN, NO UN FALTANTE.
+   El pedido traía los cortes 18/15/10, y esta app ya BORRÓ la graduación del SGL a propósito:
+   `calcSGL` lo dice con todas las letras —convivían TRES umbrales (20/16 en el badge, −18 en la
+   referencia impresa) y el informe firmado salía «SGL (>=-18%): -18% - Zona gris», o sea la
+   referencia diciendo que alcanza y la etiqueta pegada al lado diciendo que no—. Hoy el único
+   corte vivo es **−16 %** (HFA-ICOS y cardio-oncología). Publicar 18/15/10 sería la CUARTA escala
+   del mismo dato, y en la superficie que más circula. La tarjeta describe la distribución y deja
+   la lectura al médico, que es lo mismo que hace la cápsula del formulario.
+   Los cortes del pedido además estaban invertidos —«Normal (> -18 %)» leído literal es −10, que es
+   el peor valor— y dejaban un hueco entre −14 y −15. Es «un signo invertido en un umbral se lee
+   igual de bien que el correcto», que este archivo ya documenta.
+
+   LOS BINS SON DESCRIPTIVOS: dos puntos porcentuales, derivados del mínimo y el máximo
+   observados. No nombran severidad y no se anclan a ningún umbral clínico, justamente para que
+   nadie lea una graduación donde no la hay.
+
+   SIN BANDA DE PLAUSIBILIDAD, y también es deliberado: `sgl` no tiene `min`/`max` en su input ni
+   entrada en `LAB_XLS_RANGO`, así que inventar una acá sería la divergencia de bandas que este
+   archivo ya pagó en seis campos. El filtro (`!== null && !== 0`) y el `Math.abs` se conservan
+   BYTE POR BYTE del cálculo que ya hacía «Corazón anatómico», para que ese número no cambie. */
+function _labSglResumen(infs) {
+  const v = infs.map(_labGls).filter(x => x !== null && x !== 0).map(Math.abs);
+  if (!v.length) return { n: 0, prom: null, mediana: null, min: null, max: null, dist: [] };
+  const ord = v.slice().sort((a, b) => a - b), m = ord.length;
+  const mediana = m % 2 ? ord[(m - 1) / 2] : (ord[m / 2 - 1] + ord[m / 2]) / 2;
+  const lo = Math.floor(ord[0] / 2) * 2, hi = Math.floor(ord[m - 1] / 2) * 2;
+  const dist = [];
+  for (let b = lo; b <= hi; b += 2)
+    dist.push({ lbl: b + '–' + (b + 2) + ' %', n: v.filter(x => x >= b && x < b + 2).length, total: m });
+  return { n: m, prom: v.reduce((a, b) => a + b, 0) / m, mediana: mediana,
+           min: ord[0], max: ord[m - 1], dist: dist };
+}
+
 function _labGeomDist(infs) {
   const cat = { normal:0, remod:0, conc:0, exc:0 };
   let tot = 0;
@@ -44356,13 +44426,14 @@ function labInit() {
       '♀ ' + Math.round(nF/t*100) + '% (n=' + nF + ') &nbsp;·&nbsp; ♂ ' + Math.round(nM/t*100) + '% (n=' + nM + ')';
   }
 
-       /* |GLS| como en el PDF de auditoría y en Comparar: sin esto la pantalla decía -1,2 %
-         y el PDF firmado 18,4 % sobre la MISMA cohorte. */
-      // `_labGls` resuelve el alias `gls_global`. Filtro y Math.abs sin cambios.
-      const glss = infs.map(_labGls).filter(v => v !== null && v !== 0).map(Math.abs);
-  if (glss.length)
+  /* |GLS| como en el PDF de auditoría y en Comparar: sin esto la pantalla decía -1,2 % y el PDF
+     firmado 18,4 % sobre la MISMA cohorte. El cálculo pasó al seam `_labSglResumen`, que lo
+     comparte con la tarjeta de SGL de Mediciones: con dos copias, las dos tarjetas del mismo
+     Laboratorio podían publicar promedios distintos sobre la misma cohorte. */
+  const _sgl = _labSglResumen(infs);
+  if (_sgl.n)
     document.getElementById('lab-gls-prom').textContent =
-      (glss.reduce((a,b)=>a+b,0)/glss.length).toFixed(1) + '% (n=' + glss.length + ')';
+      _sgl.prom.toFixed(1) + '% (n=' + _sgl.n + ')';
 
   const psaps = infs.map(i => numCampo(i,'psap_calc')).filter(v => v !== null && v > 0);
   if (psaps.length)
@@ -44597,6 +44668,19 @@ function labRenderExtras(infs, n) {
   // SECCIÓN I — Geometría VI (patrón, desde texto del informe / campo geom_vi)
   const _geo = _labGeomDist(infs), geomTot = _geo.tot;   // seam: lo consume tambien el PPT
   labBarras('lab-geom-dist', geomTot > 0 ? _geo.dist : []);
+
+  /* SGL. Se vuelve a pedir el seam en vez de compartir la variable con `labInit`: el «GLS
+     promedio» de Corazón anatómico se pinta ALLÁ y esta tarjeta ACÁ, que son dos funciones
+     distintas —`labInit` y `labRenderExtras`—, y pasar el objeto entre ellas exigiría cambiar la
+     firma. Recalcular no puede divergir porque es la MISMA función sobre la MISMA cohorte; eso es
+     exactamente lo que el seam compra. El rango va con un decimal, que es la precisión con la que
+     la app publica este número. */
+  const _sgl = _labSglResumen(infs);
+  const _sglTxt = (id, t) => { const e = document.getElementById(id); if (e) e.textContent = t; };
+  _sglTxt('lab-sgl-prom',  _sgl.n ? _sgl.prom.toFixed(1) + ' % (n=' + _sgl.n + ')' : '—');
+  _sglTxt('lab-sgl-med',   _sgl.n ? _sgl.mediana.toFixed(1) + ' %' : '—');
+  _sglTxt('lab-sgl-rango', _sgl.n ? _sgl.min.toFixed(1) + ' – ' + _sgl.max.toFixed(1) + ' %' : '—');
+  labBarras('lab-sgl-dist', _sgl.dist);
 
   // SECCIONES E/F — frecuencia por indicación y por antecedente (tortas)
   // seam: el PPT estadistico usa el MISMO conteo, con su parseo de arrays y de cadenas JSON.
@@ -49205,6 +49289,115 @@ window.dcmExportarSR = dcmExportarSR;
 window.dcmImpCerrar  = dcmImpCerrar;
 
 // ── Lab subtabs ──
+/* ══ CASILLA «☐ PPT» DE CADA TARJETA DEL LABORATORIO ═════════════════════════════════════════
+   Agregada el 2026-09-16. Es el selector de contenido del PPT estadístico: la tarjeta marcada
+   entra al mazo, la desmarcada no. Reemplaza al selector de módulos del modal, que ofrecía seis
+   categorías gruesas sobre 54 tarjetas.
+
+   PATRÓN TOMADO DE INFECTSMART, CON LAS DOS SEMÁNTICAS INVERTIDAS — y queda declarado porque el
+   parecido visual invita a suponer lo contrario. Allá `statSecOn(k)` es `window._statSec[k] !==
+   false`: arranca MARCADA y vive en memoria, así que se pierde al recargar. Acá arranca
+   DESMARCADA y se persiste, porque el mazo lo arma el médico una vez y lo repite en cada ateneo.
+
+   LA CLAVE VIVE EN EL ATRIBUTO `data-ppt` DE LA TARJETA, no en una lista aparte ni derivada del
+   rótulo. Derivarla del texto del header sería atar una clave funcional a una cadena que se
+   renombra —este archivo ya documenta que el rótulo de una pestaña vive en cuatro superficies y
+   se pudre— y un renombre perdería la preferencia guardada EN SILENCIO. Un índice posicional es
+   todavía peor: es lo primero que se rompe cuando el Laboratorio gana una tarjeta.
+
+   Las DOS tarjetas de la subtab Informe llevan `data-ppt-no` con el motivo: son los exportadores
+   (el del PDF y el de este mismo PPT), no datos, y una casilla «incluir en el PPT» sobre el botón
+   que genera el PPT no significa nada. Es una excepción declarada, no un olvido — y por eso el
+   assert exige uno de los dos atributos en las 54, en vez de mirar sólo las que tienen clave. */
+const LAB_PPT_CHK_KEY = 'ecosmart_lab_ppt_chk';
+function _labPptChkLeer() {
+  /* Prototipo nulo: las claves salen del atributo, que es un literal del archivo, pero este
+     objeto se indexa con cadenas y `{}` ya costó un conteo silencioso en el Laboratorio. */
+  const out = Object.create(null);
+  try {
+    const g = JSON.parse(localStorage.getItem(LAB_PPT_CHK_KEY) || 'null');
+    if (g && typeof g === 'object') Object.keys(g).forEach(k => { if (g[k] === true) out[k] = true; });
+  } catch (e) {}
+  return out;
+}
+function _labPptChkOn(k) { return _labPptChkLeer()[k] === true; }
+/* Devuelve las claves marcadas que TODAVÍA existen como tarjeta. Filtrar contra el DOM es lo
+   mismo que `_labExpLeerPref` hace contra el catálogo de módulos del Excel: sin ese filtro, la
+   preferencia de una tarjeta que mañana se borre resucita y el generador la consulta con un `if`
+   que ya no existe. */
+function _labPptChkMarcadas() {
+  const g = _labPptChkLeer(), vivas = [];
+  document.querySelectorAll('#tab-lab .lab-card[data-ppt]').forEach(c => {
+    const k = c.getAttribute('data-ppt');
+    if (g[k] === true) vivas.push(k);
+  });
+  return vivas;
+}
+function _labPptChkSet(k, on) {
+  const g = _labPptChkLeer();
+  if (on) g[k] = true; else delete g[k];
+  // Preferencia de presentación, no dato clínico: si el disco está lleno se pierde y no pasa nada.
+  try { localStorage.setItem(LAB_PPT_CHK_KEY, JSON.stringify(g)); } catch (e) {}
+  const card = document.querySelector('#tab-lab .lab-card[data-ppt="' + k + '"]');
+  if (card) { if (on) card.setAttribute('data-ppt-on', '1'); else card.removeAttribute('data-ppt-on'); }
+}
+function labPptChkToggle(k, on) { _labPptChkSet(k, !!on); }
+
+/* Inyecta la casilla en el header de cada tarjeta con `data-ppt`. Una sola pasada alcanza: las 54
+   tarjetas son HTML ESTÁTICO y ningún render del Laboratorio reescribe un `.lab-card-hdr` —
+   verificado, todos escriben dentro del `.lab-card-body`. Si algún día un render pasa a repintar
+   un header, esa tarjeta pierde su casilla sin ningún error: volver a llamar acá. */
+function _labPptChkInyectar() {
+  document.querySelectorAll('#tab-lab .lab-card[data-ppt]').forEach(card => {
+    const hdr = card.querySelector('.lab-card-hdr');
+    if (!hdr || hdr.querySelector('.lab-ppt-chk')) return;
+    const k = card.getAttribute('data-ppt'), on = _labPptChkOn(k);
+    /* Se construye con la API del DOM y no con `innerHTML`: la clave es un literal del archivo,
+       pero un header armado por concatenación es exactamente el patrón que el ruleset marca, y
+       acá no hay nada que ganar escribiéndolo así. */
+    const lab = document.createElement('label');
+    lab.className = 'lab-ppt-chk';
+    lab.title = 'Incluir esta tarjeta en la presentación estadística (PPT)';
+    const inp = document.createElement('input');
+    inp.type = 'checkbox';
+    inp.checked = on;
+    inp.setAttribute('data-ppt-chk', k);
+    inp.addEventListener('change', function () { labPptChkToggle(k, this.checked); });
+    lab.appendChild(inp);
+    lab.appendChild(document.createTextNode('PPT'));
+    hdr.appendChild(lab);
+    if (on) card.setAttribute('data-ppt-on', '1');
+  });
+}
+
+/* Assert de arranque, como `_labXlsAssertBloques` y `_labAssertModulos`. Una tarjeta nueva sin
+   `data-ppt` no da error: da una tarjeta MUDA, que se ve igual que una bien declarada y nunca
+   puede entrar al mazo. Y dos tarjetas con la misma clave comparten casilla, así que marcar una
+   marca la otra. Los dos son invisibles sin esto. */
+function _labPptAssertClaves() {
+  const cards = document.querySelectorAll('#tab-lab .lab-card');
+  const sinDeclarar = [], vistas = Object.create(null), dup = [];
+  cards.forEach(c => {
+    const k = c.getAttribute('data-ppt');
+    if (!k) {
+      if (!c.getAttribute('data-ppt-no')) {
+        const h = c.querySelector('.lab-card-hdr');
+        sinDeclarar.push(h ? (h.textContent || '').trim().slice(0, 40) : '(sin header)');
+      }
+      return;
+    }
+    if (vistas[k]) dup.push(k); else vistas[k] = true;
+  });
+  if (sinDeclarar.length) console.error('[LAB_PPT] tarjetas sin data-ppt ni data-ppt-no:', sinDeclarar);
+  if (dup.length) console.error('[LAB_PPT] claves data-ppt repetidas:', dup);
+  return { total: cards.length, conClave: Object.keys(vistas).length, sinDeclarar: sinDeclarar, dup: dup };
+}
+if (document.readyState === 'loading')
+  document.addEventListener('DOMContentLoaded', function () {
+    try { _labPptChkInyectar(); _labPptAssertClaves(); } catch (e) { console.error('[LAB_PPT] init:', e); }
+  });
+else { try { _labPptChkInyectar(); _labPptAssertClaves(); } catch (e) { console.error('[LAB_PPT] init:', e); } }
+
 function labSubTab(id, el) {
   document.querySelectorAll('#tab-lab .lab-subtab')
     .forEach(b => b.classList.remove('active'));
@@ -55590,8 +55783,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260916-0801';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789556484635;                 /* eco-build-ms */
+const ECO_BUILD    = '20260916-0923';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789561406159;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -55677,7 +55870,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0801</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0923</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -487,6 +487,119 @@ El Excel pasó de **421 a 429 columnas** y de 128 a **129 básicas**; TC-135 fij
 contenido. Ojo con el `0` de una casilla apagada: **no es lo mismo que ausente**, y el caso lo
 distingue.
 
+### La casilla «☐ PPT» de cada tarjeta, y el SGL que NO se gradúa — 2026-09-16
+
+Commit 1 de tres. Las 55 tarjetas del Laboratorio ganan una casilla que decide qué entra al PPT
+estadístico, y Mediciones gana una tarjeta de SGL. El generador agrupado va en el commit 3.
+
+**EL PATRÓN VISUAL ES EL DE INFECTSMART Y LAS DOS SEMÁNTICAS ESTÁN INVERTIDAS.** Allá
+(`infectsmart/index.html:3576`) el label es `.chk-inline` con `float:right` dentro de un `<h4>`, y
+`statSecOn(k)` es `window._statSec[k] !== false`: arranca **marcada** y vive **en memoria**, así
+que se pierde al recargar. Acá arranca **desmarcada** y se **persiste** — el mazo se arma una vez
+y se repite en cada ateneo. El parecido invita a suponer lo contrario, por eso está declarado.
+Y el `float:right` no se copió: este header es **flex**, donde el float no hace nada; va
+`margin-left:auto`, igual que el `.asoc-info-btn` que ya vivía ahí.
+
+**LA CLAVE VIVE EN `data-ppt` DE LA TARJETA.** No en una lista aparte, no derivada del rótulo y no
+por posición. Derivarla del texto del header ataría una clave funcional a una cadena que se
+renombra —este archivo ya documenta que el rótulo de una pestaña vive en cuatro superficies y se
+pudre— y un renombre perdería la preferencia guardada **en silencio**; un índice posicional es lo
+primero que se rompe cuando el Laboratorio gana una tarjeta. El atributo viaja PEGADO a la tarjeta,
+así que no es una lista paralela: mover la tarjeta mueve su clave.
+
+**Las DOS tarjetas de la subtab Informe llevan `data-ppt-no` con el motivo**: son los exportadores
+—el del PDF y el de este mismo PPT—, no datos, y una casilla «incluir en el PPT» sobre el botón que
+genera el PPT no significa nada. Es una excepción DECLARADA, y por eso `_labPptAssertClaves()` exige
+**uno de los dos atributos en las 55**: una tarjeta nueva sin ninguno no da error, da una tarjeta
+**muda** que jamás puede entrar al mazo y se ve igual que una bien declarada.
+
+**LA CASILLA NO LLEVA `id`, Y NO ES ESTILO.** `guardarInforme` barre `input[id]` de TODO el
+documento: con id se persistiría en `campos` de **cada** estudio como `<id>__chk`, viajaría al
+Excel y la contaría `detectar_huerfanos`, indistinguible de un dato del paciente. Es la misma regla
+que los paneles de referencia de Marfan/Fontan. Se identifica con `data-ppt-chk`.
+
+**`onchange` y NUNCA `onclick`.** La regla táctil global matchea por el **atributo**
+(`[onclick]{min-height:44px;min-width:44px}`) e inflaría la casilla a tres veces el alto de la fila.
+Ya está escrito en este archivo y ya pasó una vez.
+
+**El área táctil llega a 44×44 con márgenes negativos** (`margin:-11px 0 -11px auto`), que es el
+mismo recurso que ya usaba `.asoc-info-btn` dos reglas más abajo. Medido: sin ellos el label daba
+**39×14** y el header crecía 16 px en las 53 tarjetas; con ellos la casilla mide 44 y el header
+sigue en 42. Verificado además que **no se superpone** con el botón ℹ️ de la tarjeta de
+Asociaciones, que es la única que ya tenía un control en el header. `check_mobile.js` no reporta
+ninguna de las 53.
+
+**LA PREFERENCIA SE FILTRA CONTRA EL DOM AL LEERLA** (`_labPptChkMarcadas`), igual que
+`_labExpLeerPref` contra el catálogo de módulos del Excel. Sin ese filtro, la clave de una tarjeta
+que mañana se borre resucita y el generador la consulta con un `if` que ya no existe.
+
+#### El SGL: promedio y distribución, SIN graduar
+
+**EL PEDIDO TRAÍA BANDAS 18/15/10 Y NO SE APLICARON — decisión de Maicol.** Tres motivos, en orden:
+
+1. **La app ya BORRÓ la graduación del SGL a propósito.** `calcSGL` lo dice con todas las letras:
+   convivían TRES umbrales —20/16 en el badge y −18 en la referencia impresa— y el informe firmado
+   salía «SGL (>=-18%): -18% - Zona gris», o sea la referencia diciendo que alcanza y la etiqueta
+   pegada al lado diciendo que no. Hoy el único corte vivo es el **−16 %** del HFA-ICOS, que usan
+   la calculadora de riesgo y cardio-oncología. Publicar 18/15/10 sería la **cuarta** escala del
+   mismo dato, y en la superficie que más circula.
+2. **Los cortes estaban invertidos.** «Normal (> -18 %)» leído literal es −10, que es el PEOR
+   valor; «Severo (< -10 %)» es −20, que es normal. Es «un signo invertido en un umbral se lee
+   igual de bien que el correcto», que este archivo ya documenta sobre esta misma magnitud.
+3. **Y dejaban un hueco** entre −14 y −15: un |SGL| de 14,5 no caía en ninguna banda.
+
+La tarjeta publica **|SGL| promedio, mediana, rango** y una distribución por **intervalos de dos
+puntos porcentuales** derivados del mínimo y el máximo observados. Los rótulos no nombran
+severidad, y la tarjeta **declara en pantalla** que no es una graduación y cuál es el único umbral
+que la app sí aplica — porque siete barras de colores se leen como una escala si nadie dice que no
+lo son, que es la misma razón por la que la diapositiva de PSAP lleva su salvedad.
+
+**NO SE TOCÓ `VARS` NI `_labEstDescriptiva`, y es deliberado.** `LIBRE` ya tiene una entrada `gls`
+que usa `_labGls` **sin `Math.abs`**, mientras `lab-gls-prom` sí lo aplica. Agregar `gls` a `VARS`
+habría dejado dos definiciones del mismo dato —una con signo y otra sin— porque `LIBRE` pisa la
+heredada. En su lugar hay un seam propio, `_labSglResumen`, **y el «GLS promedio» de Corazón
+anatómico pasó a consumirlo**: con dos copias, dos tarjetas del mismo Laboratorio podían publicar
+promedios distintos sobre la misma cohorte. Verificado en el navegador: las dos dicen 15,7 %.
+
+**SIN BANDA DE PLAUSIBILIDAD, también deliberado.** `sgl` no tiene `min`/`max` en su input ni
+entrada en `LAB_XLS_RANGO`; inventar una acá sería la divergencia de bandas que este archivo ya
+pagó en seis campos. El filtro (`!== null && !== 0`) y el `Math.abs` se conservan **byte por byte**
+del cálculo que ya hacía Corazón anatómico, para que ese número no cambie.
+
+#### Lo que costó, y la regla que queda
+
+**`const _sgl` en `labInit` y su uso en `labRenderExtras` son DOS FUNCIONES DISTINTAS.** El «GLS
+promedio» se pinta en `labInit` y la distribución de geometría en `labRenderExtras`; puse la
+variable en una y la leí en la otra, y salió `ReferenceError: _sgl is not defined`. **El chequeo de
+sintaxis dio verde** —es error de ejecución— y **el suite de 167 casos siguió en verde**, porque
+ninguno ejercitaba ese render. Lo cazó correr `labInit()` con una cohorte sembrada. Hoy el seam se
+vuelve a pedir en cada función: recalcular no puede divergir porque es la MISMA función sobre la
+MISMA cohorte, y eso es exactamente lo que el seam compra.
+
+**LA PRIMERA CORRIDA DE UNA MUTACIÓN DIO ROJO EN TRES CONDICIONES QUE NO ERAN LA SUYA, Y LA SEGUNDA
+EN UNA SOLA.** No era la mutación: era una **carrera**. La inyección cuelga de `DOMContentLoaded` y
+con `--solo` el caso puede medir antes. Es la misma que costó el sello de versión. Cerrada llamando
+`_labPptChkInyectar()` al principio del caso —idempotente, y de paso la ejercita—; verificado
+corriéndolo tres veces seguidas. **Un rojo colateral que no se puede explicar no se da por bueno:
+la mutación sólo vale si cae la condición que la vigila.**
+
+**Los intervalos suman exactamente el `n`**, y hay una condición que lo fija. Sin ella, un valor
+que cayera fuera de todos los bins haría que la distribución publique menos casos que el promedio
+de arriba, en la misma tarjeta, sin que nada lo diga.
+
+**Cuatro mutaciones, las cuatro cazadas y cada una sólo por su condición:** una tarjeta que pierde
+`data-ppt`, el seam que deja de filtrar el cero, la distribución que vuelve a graduar
+leve/moderado/severo, y la preferencia que deja de filtrarse contra el DOM.
+
+**El inventario del pedido no coincidía con el Laboratorio, y la diferencia es grande.** El mensaje
+enumeraba ~45 tarjetas; hay **54**. No existen como tarjeta «Resumen ejecutivo», «SGL», «ET
+significativa» ni «EP/IP nivel y etiología»; **VEXUS tampoco** —vive dentro de «Función sistólica y
+diastólica»—; FEVI y diastólica son **una sola** tarjeta, igual que Doppler tricuspídeo y función
+diastólica del VD; y quedaban fuera trece que sí existen (Corazón anatómico, Indicaciones,
+Antecedentes, Indicadores automáticos, Docencia, Análisis por médico, Estadística descriptiva, Uso
+del módulo avanzado, las tres de Asociaciones, Qp/Qs, Bordes de la CIA, Ventana aortopulmonar).
+**Derivar las casillas del DOM en vez de escribir la lista es lo que hace que eso no importe.**
+
 ### Un `#` en un color borró dos diapositivas enteras — 2026-09-16
 
 **Reabre el «PowerPoint pide reparar» que la entrada de abajo daba por cerrado: era sólo LA MITAD.**

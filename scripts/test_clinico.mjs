@@ -5412,6 +5412,124 @@ caso('TC-152', 'PPT Lab: ningun color invalido llega al paquete, y las diapositi
   })();
 `);
 
+/* TC-153 - La casilla PPT de cada tarjeta del Laboratorio, y la tarjeta de SGL (2026-09-16).
+   La clave vive en el atributo `data-ppt` de la tarjeta, no en una lista aparte ni derivada del
+   rotulo: derivarla del texto del header ataria una clave funcional a una cadena que se renombra,
+   y un renombre perderia la preferencia guardada EN SILENCIO.
+   La condicion que vale NO es "hay 53 casillas" sino que NINGUNA tarjeta quede sin declarar: una
+   tarjeta nueva sin data-ppt no da error, da una tarjeta MUDA que jamas puede entrar al mazo y se
+   ve igual que una bien declarada. */
+caso('TC-153', 'Laboratorio: casilla PPT en cada tarjeta, persistida, y SGL sin graduar', `
+  const btnLab = [].slice.call(document.querySelectorAll('[onclick*="showTab"]'))
+    .filter(function(b){ return (b.getAttribute('onclick') || '').indexOf("'lab'") > -1; })[0];
+  if (btnLab) btnLab.click();
+  /* La inyeccion cuelga de DOMContentLoaded, asi que con --solo el caso puede medir ANTES de que
+     haya corrido: la primera corrida de una mutacion dio rojo en tres condiciones que no tenian
+     nada que ver, y la segunda en una sola. Es la misma carrera que costo el sello de version.
+     Llamarla aca es idempotente -tiene guarda por casilla ya presente- y de paso la ejercita. */
+  _labPptChkInyectar();
+
+  const cards = [].slice.call(document.querySelectorAll('#tab-lab .lab-card'));
+  const conClave = cards.filter(function(c){ return c.getAttribute('data-ppt'); });
+  const exceptuadas = cards.filter(function(c){ return !c.getAttribute('data-ppt') && c.getAttribute('data-ppt-no'); });
+  const mudas = cards.filter(function(c){ return !c.getAttribute('data-ppt') && !c.getAttribute('data-ppt-no'); });
+  const claves = conClave.map(function(c){ return c.getAttribute('data-ppt'); });
+  const dup = claves.filter(function(k, i){ return claves.indexOf(k) !== i; });
+
+  /* La casilla NO lleva id, y no es un descuido: guardarInforme barre input[id] de TODO el
+     documento, asi que una casilla con id se persistiria en campos de CADA estudio como
+     <id>__chk, viajaria al Excel y la contaria detectar_huerfanos. Es la misma regla que los
+     paneles de referencia de Marfan/Fontan. */
+  const inputs = [].slice.call(document.querySelectorAll('#tab-lab .lab-ppt-chk input'));
+  const conId = inputs.filter(function(e){ return e.id; });
+
+  /* PERSISTENCIA: se escribe por el camino real y se relee por el camino real. */
+  try { localStorage.removeItem('ecosmart_lab_ppt_chk'); } catch (e) {}
+  const limpio = _labPptChkMarcadas();
+  labPptChkToggle('tavi', true);
+  labPptChkToggle('sgl', true);
+  const trasMarcar = _labPptChkMarcadas().slice().sort();
+  const enDisco = localStorage.getItem('ecosmart_lab_ppt_chk') || '';
+  labPptChkToggle('tavi', false);
+  const trasDesmarcar = _labPptChkMarcadas().slice().sort();
+  /* Una clave guardada que ya no tiene tarjeta NO revive: es el mismo filtro que
+     _labExpLeerPref aplica a los modulos del Excel. Sin el, el generador la consulta con un if
+     que ya no existe. */
+  try { localStorage.setItem('ecosmart_lab_ppt_chk', JSON.stringify({ sgl:true, tarjeta_borrada:true })); } catch (e) {}
+  const conFantasma = _labPptChkMarcadas().slice().sort();
+  try { localStorage.removeItem('ecosmart_lab_ppt_chk'); } catch (e) {}
+
+  /* SGL: el seam, con el cero y el vacio fuera y el alias adentro. */
+  const est = function(i, c){ return { id:800+i, estudioId:'t153-'+i, campos:c }; };
+  const coh = [est(1,{sgl:'-18.4'}), est(2,{sgl:'-12.1'}), est(3,{gls_global:'-21.0'}),
+               est(4,{sgl:'-9.5'}), est(5,{sgl:'0'}), est(6,{sgl:''}),
+               est(7,{sgl:'-15.0'}), est(8,{sgl:'-18.0'})];
+  const r = _labSglResumen(coh);
+  const vacio = _labSglResumen([]);
+  const sumaBins = r.dist.reduce(function(a, b){ return a + b.n; }, 0);
+  const tSgl = document.querySelector('#tab-lab .lab-card[data-ppt="sgl"]');
+  const txtSgl = tSgl ? (tSgl.textContent || '') : '';
+
+  return { extra: [
+    // 1 - NINGUNA TARJETA MUDA
+    ['ninguna tarjeta del Laboratorio queda sin declarar',
+      mudas.length === 0, mudas.map(function(c){ var h=c.querySelector('.lab-card-hdr'); return h?(h.textContent||'').trim().slice(0,30):'?'; }).join(' // ')],
+    ['y las claves no se repiten', dup.length === 0, dup.join(',')],
+    ['las dos exceptuadas declaran su motivo',
+      exceptuadas.length === 2 && exceptuadas.every(function(c){ return (c.getAttribute('data-ppt-no') || '').length > 10; }),
+      exceptuadas.map(function(c){ return c.getAttribute('data-ppt-no'); }).join(' // ')],
+    ['y son las de la subtab Informe, que son los exportadores',
+      exceptuadas.every(function(c){ return c.closest('#lab-sub-informe') !== null; }),
+      String(exceptuadas.length)],
+
+    // 2 - LA CASILLA
+    ['cada tarjeta con clave tiene su casilla',
+      conClave.every(function(c){ return !!c.querySelector('.lab-ppt-chk'); }),
+      conClave.filter(function(c){ return !c.querySelector('.lab-ppt-chk'); })
+        .map(function(c){ return c.getAttribute('data-ppt'); }).join(',')],
+    ['y las exceptuadas NO la tienen',
+      exceptuadas.every(function(c){ return !c.querySelector('.lab-ppt-chk'); })],
+    ['ninguna casilla lleva id, para no persistirse en campos de cada estudio',
+      conId.length === 0, conId.map(function(e){ return e.id; }).join(',')],
+    ['la casilla reacciona a change y no a click, que la inflaria a 44x44 por la regla tactil',
+      inputs.length > 0 && inputs.every(function(e){ return !e.getAttribute('onclick'); })],
+
+    // 3 - PERSISTENCIA
+    ['arranca DESMARCADA, al reves que el patron de InfectSmart', limpio.length === 0, String(limpio.length)],
+    ['marcar dos deja esas dos', trasMarcar.join(',') === 'sgl,tavi', trasMarcar.join(',')],
+    ['y quedan en localStorage', enDisco.indexOf('tavi') > -1 && enDisco.indexOf('sgl') > -1, enDisco],
+    ['desmarcar una deja la otra', trasDesmarcar.join(',') === 'sgl', trasDesmarcar.join(',')],
+    ['una clave guardada sin tarjeta no revive',
+      conFantasma.join(',') === 'sgl', conFantasma.join(',')],
+
+    // 4 - SGL
+    ['la tarjeta de SGL existe en Mediciones',
+      !!tSgl && tSgl.closest('#lab-sub-mediciones') !== null],
+    ['el seam ignora el cero y el vacio, y resuelve el alias gls_global',
+      r.n === 6, String(r.n)],
+    ['el promedio es el de |SGL|', Math.abs(r.prom - 15.6666667) < 0.001, String(r.prom)],
+    ['la mediana promedia los dos centrales', r.mediana === 16.5, String(r.mediana)],
+    ['el rango sale de los extremos', r.min === 9.5 && r.max === 21, r.min + ' - ' + r.max],
+    /* Los bins tienen que sumar el n: si un valor cae fuera de todos, la distribucion publica
+       menos casos que el promedio y nada lo dice. */
+    ['los intervalos suman exactamente el n', sumaBins === r.n, sumaBins + ' vs ' + r.n],
+    ['sin datos devuelve n=0 y ninguna barra, no un cero medido',
+      vacio.n === 0 && vacio.prom === null && vacio.dist.length === 0, JSON.stringify(vacio)],
+
+    // 5 - NO SE GRADUA, Y LA TARJETA LO DICE
+    /* Esta es la condicion que importa: la app borro la graduacion del SGL a proposito y su
+       unico corte vivo es el 16 % del HFA-ICOS. Cuatro bandas de severidad serian la CUARTA
+       escala del mismo dato. */
+    ['ninguna etiqueta de la distribucion nombra una severidad',
+      r.dist.every(function(d){ return !/normal|leve|moderad|severo|severa/i.test(d.lbl); }),
+      r.dist.map(function(d){ return d.lbl; }).join(' | ')],
+    ['y la tarjeta declara que NO es una graduacion',
+      txtSgl.indexOf('No es una graduaci') > -1, txtSgl.slice(0, 40)],
+    ['nombrando el unico umbral que la app si aplica',
+      txtSgl.indexOf('16') > -1 && txtSgl.indexOf('HFA-ICOS') > -1, String(txtSgl.indexOf('HFA-ICOS'))]
+  ] };
+`);
+
 
 
 
