@@ -4458,6 +4458,151 @@ caso('TC-136', 'Diastolica del VD: el patron sale del E/A, el E/e desempata solo
   ] };
 `);
 
+/* CUATRO DEFECTOS DE VALVULA TRICUSPIDE Y PULMONAR (2026-09-16).
+   1 calcET no tenia rama de normalidad: un gradiente medio de 1-2 mmHg —que es NORMAL— se
+     escribia como 'Leve' en et_grado y bajaba al informe firmado. Y no se deshacia.
+   2 _labValvCounts tenia et_grado en () => null con un comentario que decia que no existia en
+     el modelo de datos. Era falso: esta en los 95 estudios.
+   3 ip_grado era el unico grado valvular con value="" en su opcion 0: la ETIQUETA afirmaba
+     «Sin insuficiencia» y el VALOR negaba. Cambiarlo rompe CINCO consumidores que preguntaban
+     por verdad/falsedad — el peor borraba «Valvula pulmonar normal.» de todos los informes.
+   4 cargarValvPills excluia la pastilla de estenosis tricuspidea al restaurar. */
+caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el Lab, ip_grado y la pastilla', `
+  const G = function(){ return document.getElementById('et_grado').value; };
+  const set = function(id, v){ const e = document.getElementById(id); if (!e) return 'NO EXISTE ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles:true })); return 1; };
+  const gm = function(v){ set('et_gmedio', v); calcET(); return G(); };
+  const limpio = function(){ const g = document.getElementById('et_grado');
+    g.value = 'Sin estenosis'; delete g.dataset.sugerido; set('et_gmedio',''); calcET(); };
+
+  // ── FIX 1 · calcET ──────────────────────────────────────────────────────────────────────
+  limpio();
+  const g1 = gm('1'), g3 = gm('3'), g49 = gm('4.9'), g50 = gm('5'), g6 = gm('6');
+  const sev6 = (document.getElementById('et-sev').textContent || '').trim();
+  /* Al borrar el gradiente NO hay grado que revertir —calcET solo sugiere el valor de reposo—
+     pero la CAPSULA tiene que quedar limpia: si no, «Significativa (8 mmHg)» sigue en pantalla
+     sobre un campo vacio. Eso si es alcanzable y es lo que se prueba. */
+  limpio(); gm('8');
+  const sevAntes = (document.getElementById('et-sev').textContent || '').trim();
+  const gBorrado = gm('');
+  const sevDespues = (document.getElementById('et-sev').textContent || '').trim();
+  const msgDespues = (document.getElementById('et-gmedio-badge').textContent || '').trim();
+  limpio();
+  document.getElementById('et_grado').value = 'Moderada';
+  const gManual = gm('1');                       // eleccion manual: no se pisa
+  limpio();
+
+  // ── FIX 1 · el informe emite la significacion DESDE EL GRADIENTE ────────────────────────
+  const esc = function(gmed, grado){ __t.limpiar(); set('vd_bas','38'); set('et_gmedio', gmed);
+    document.getElementById('et_grado').value = grado;
+    const r = __t.informe();
+    const li = r.inf.split(String.fromCharCode(10)).filter(function(l){ return l.indexOf('ricusp') > -1; }).join(' // ');
+    return { inf: li, suma: r.suma }; };
+  const i3 = esc('3','Sin estenosis');
+  const i6 = esc('6','Sin estenosis');
+  const i8 = esc('8','Moderada');
+
+  // ── FIX 2 · _labValvCounts ──────────────────────────────────────────────────────────────
+  const mk = function(et){ return { campos:{ im_grado:'0', em_grado:'sin', ia_grado:'0',
+    ea_grado:'sin', it_grado:'0', et_grado: et } }; };
+  const vc = _labValvCounts([mk('Sin estenosis'), mk('Sin estenosis'), mk('Moderada'), mk('Severa')]);
+  const iET = _LAB_VALV_LABELS.length - 1;       // la estenosis tricuspidea es la ultima
+
+  // ── FIX 3 · ip_grado ────────────────────────────────────────────────────────────────────
+  const op0 = document.getElementById('ip_grado').options[0];
+  const mig = function(c){ _migrarCamposLegacy(c); return c; };
+  const mVacio = mig({ ip_grado:'' });
+  const mAusente = mig({});
+  const mReal = mig({ ip_grado:'IP severa' });
+  __t.limpiar(); set('vd_bas','38'); const vpOp0 = __t.informe();
+  __t.limpiar(); set('vd_bas','38'); set('ip_grado','IP severa'); const vpSev = __t.informe();
+  /* Fallot: con la opcion 0 el parrafo NO puede arrastrar un «Sin» suelto. */
+  __t.limpiar(); set('tdf_civ_grad','31'); set('ip_grado','Sin insuficiencia');
+  const tdfSin = __t.informe();
+  __t.limpiar(); set('tdf_civ_grad','31'); set('ip_grado','IP severa');
+  const tdfSev = __t.informe();
+  __t.limpiar();
+
+  // ── FIX 4 · la pastilla se restaura ─────────────────────────────────────────────────────
+  localStorage.setItem('valv-pill-esten-tricuspide','1');
+  document.getElementById('bloque-esten-tricuspide').style.display = 'none';
+  document.getElementById('pill-esten-tricuspide').className = 'btn btn-ghost valv-pill';
+  cargarValvPills();
+  const pillBloque = getComputedStyle(document.getElementById('bloque-esten-tricuspide')).display;
+  const pillOn = document.getElementById('pill-esten-tricuspide').className.indexOf('btn-primary') > -1;
+  try { localStorage.removeItem('valv-pill-esten-tricuspide'); } catch(e){}
+
+  return { extra: [
+    // FIX 1 — la bomba: un gradiente normal no puede escribir un grado.
+    ['1 mmHg NO produce «Leve»', g1 === 'Sin estenosis', g1],
+    ['3 mmHg tampoco', g3 === 'Sin estenosis', g3],
+    ['el umbral es 5 y se prueba por los dos lados: 4.9 no es significativa',
+      g49 === 'Sin estenosis', g49],
+    ['5.0 ya lo es, y calcET NO inventa un grado por encima del umbral',
+      g50 === 'Sin estenosis' && ET_GMEDIO_SIGNIF === 5, g50 + ' / umbral ' + ET_GMEDIO_SIGNIF],
+    ['a 6 mmHg la capsula declara la significacion',
+      sev6.indexOf('Significativa') > -1 && sev6.indexOf('6') > -1, sev6],
+    ['borrar el gradiente deja el select en reposo y LIMPIA la capsula',
+      gBorrado === 'Sin estenosis' && sevAntes.indexOf('Significativa') > -1 &&
+      sevDespues.indexOf('Significativa') === -1 && msgDespues === '',
+      'antes=' + sevAntes + ' | despues=' + sevDespues + ' | msg=' + JSON.stringify(msgDespues)],
+    ['y un grado elegido a mano NO se pisa', gManual === 'Moderada', gManual],
+
+    // FIX 1 — el informe: la significacion sale del gradiente, no del grado.
+    ['3 mmHg no genera texto de estenosis tricuspidea',
+      i3.inf.indexOf('Estenosis tricusp') === -1, i3.inf],
+    ['y tampoco sube al EN SUMA', i3.suma.indexOf('ET ') === -1 &&
+      i3.suma.indexOf('Estenosis tricusp') === -1, i3.suma],
+    ['6 mmHg con el grado en «Sin estenosis» NO queda en silencio',
+      i6.inf.indexOf('clínicamente significativa') > -1 &&
+      i6.inf.indexOf('6 mmHg') > -1, i6.inf],
+    ['y sube al EN SUMA', i6.suma.indexOf('Estenosis tricuspídea clínicamente significativa') > -1, i6.suma],
+    ['con grado manual Y gradiente alto salen los dos',
+      i8.inf.indexOf('moderada') > -1 && i8.inf.indexOf('clínicamente significativa') > -1 &&
+      i8.suma.indexOf('ET moderada, clínicamente significativa') > -1, i8.inf + ' // ' + i8.suma],
+
+    // FIX 2 — et_grado deja de estar cableado a null.
+    ['la ultima columna del Lab es la estenosis tricuspidea',
+      _LAB_VALV_LABELS[iET].indexOf('Tricusp') > -1, _LAB_VALV_LABELS[iET]],
+    ['y ya no sale con base 0: «Sin estenosis» es un hallazgo, no ausencia de dato',
+      vc.bases[iET] === 4, 'base ' + vc.bases[iET]],
+    ['cuenta la moderada y la severa donde corresponde',
+      vc.counts.Moderada[iET] === 1 && vc.counts.Severa[iET] === 1 && vc.counts.Leve[iET] === 0,
+      'L' + vc.counts.Leve[iET] + ' M' + vc.counts.Moderada[iET] + ' S' + vc.counts.Severa[iET]],
+    ['y no se le mezclan las otras cinco valvulas',
+      vc.counts.Moderada.slice(0, iET).every(function(n){ return n === 0; })],
+
+    // FIX 3 — el token, el predicado y la migracion.
+    ['la opcion 0 de ip_grado ya no vale cadena vacia',
+      op0.value === 'Sin insuficiencia', 'value=' + JSON.stringify(op0.value)],
+    ['y su value coincide con lo que el medico lee', op0.value === op0.textContent.trim()],
+    ['ipHayInsuf distingue las cuatro',
+      ipHayInsuf('Sin insuficiencia') === false && ipHayInsuf('') === false &&
+      ipHayInsuf('IP leve (fisiológica)') === true && ipHayInsuf('IP severa') === true],
+    ['la migracion traduce la cadena vacia', mVacio.ip_grado === 'Sin insuficiencia'],
+    ['NO inventa el campo donde nunca estuvo',
+      !Object.prototype.hasOwnProperty.call(mAusente, 'ip_grado')],
+    ['y no toca un valor real', mReal.ip_grado === 'IP severa'],
+    /* LA REGRESION QUE ESTE CAMBIO PODIA CAUSAR: con el token truthy, hayIP daba siempre
+       verdadero y la frase de normalidad de la valvula pulmonar desaparecia de TODO informe. */
+    ['«Válvula pulmonar normal.» sigue saliendo con la opcion 0',
+      vpOp0.inf.indexOf('Válvula pulmonar normal') > -1 ||
+      vpOp0.inf.indexOf('morfología y flujo dentro de límites normales') > -1,
+      vpOp0.inf.slice(0, 200)],
+    ['y con IP severa se describe la insuficiencia',
+      vpSev.inf.indexOf('nsuficiencia pulmonar severa') > -1, vpSev.inf.slice(0, 200)],
+    ['Fallot con la opcion 0 no arrastra un «Sin» suelto',
+      tdfSin.inf.indexOf('Sin insuficiencia') === -1 && tdfSin.suma.indexOf('Sin insuficiencia') === -1,
+      tdfSin.suma],
+    ['y con IP severa Fallot sigue nombrandola',
+      tdfSev.inf.indexOf('nsuficiencia pulmonar severa') > -1, tdfSev.inf.slice(0, 250)],
+
+    // FIX 4 — la sexta pastilla.
+    ['la pastilla de estenosis tricuspidea se restaura al reabrir',
+      pillBloque !== 'none' && pillOn === true, 'display=' + pillBloque + ' encendida=' + pillOn]
+  ] };
+`);
+
 /* LAS TRES SUPERFICIES DE CARDIO-ONCO TIENEN QUE DECIR LO MISMO. La leyenda de #ref-cardiotox
    (pestaña Referencias), la tabla de farmacos y las tablas nuevas del marco HFA-ICOS viven en
    DOS pestañas distintas y describen al mismo paciente. Las tres estaban desincronizadas, cada

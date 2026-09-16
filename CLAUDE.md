@@ -460,6 +460,89 @@ Se recuperó con `git show HEAD:` y se verificó **byte por byte** contra HEAD. 
 entrada «Los reemplazos por rango de líneas son peligrosos» que este archivo ya tenía, aplicada al
 propio suite: **después de un reemplazo por rango, contar los casos.**
 
+### `calcET` era una bomba armada: no tenía rama de normalidad
+Corregido el 2026-09-16. La cascada era `<2 → Leve · <=5 → Moderada · else → Severa`, **sin
+ninguna rama de normalidad**: un gradiente medio tricuspídeo **normal —1 a 2 mmHg—** se escribía
+como **`'Leve'`** en `et_grado` y de ahí bajaba al informe firmado y al EN SUMA («ET leve.»).
+Y contradecía a la leyenda que la propia app imprime **dos renglones más abajo**, que ya decía
+«≥5 mmHg sugiere ET clínicamente significativa». **No lo cobró nadie sólo porque `et_gmedio` está
+vacío en los 6 estudios que traen el campo** — medido, no supuesto.
+
+**La guía define UN umbral, no tres bandas.** EAE/ASE 2009 (Baumgartner, *JASE* 2009) y ESC/EACTS
+2021: ET hemodinámicamente significativa = **gradiente medio ≥5 mmHg** (más VTI de entrada >60 cm,
+T½ ≥190 ms y área ≤1 cm², **ninguno de los cuales esta app recoge**). **No hay graduación
+leve/moderada/severa publicada** para la tricúspide: es binaria. `ET_GMEDIO_SIGNIF = 5`.
+
+**Por encima del umbral `calcET` NO escribe un grado, y es deliberado.** Cualquier grado sería
+inventado. Y agregar una opción «Significativa» al select tampoco sirve: la pastilla de severidad
+deriva su nivel con `nivelDe()`, que sólo reconoce leve/moderada/severa, así que esa opción
+dejaría **la pastilla diciendo «Sin est.» sobre un select que dice «Significativa»** — dos
+respuestas a la misma pregunta en la misma tarjeta. Se declara la significación en la cápsula y en
+el informe, **que la emite desde el gradiente medido**, y el grado queda para el médico.
+
+**Esa emisión desde el gradiente no es opcional.** Sin ella, 8 mmHg con el select en «Sin
+estenosis» —que es justo el estado que deja `calcET`— salía en **silencio**: el número que define
+la enfermedad, medido y cargado, no aparecía en el informe firmado.
+
+**EL «DESHACER» QUE PEDÍ ERA CÓDIGO MUERTO, Y LO DELATÓ LA MUTACIÓN.** Escribí la rama de
+`dataset.sugerido` igual que la de `calcVP` y **sacarla no ponía nada en rojo**. `calcVP` la
+necesita porque sugiere **tres** valores distintos del de reposo, así que borrar la velocidad
+dejaba una estenosis afirmada; `calcET` sólo puede sugerir **`'Sin estenosis'`, que ES el valor de
+reposo** — revertirlo es escribir encima lo mismo. Un resguardo que no se puede hacer fallar se
+lee como protección y no lo es. Lo que sí hay que limpiar, y sí es alcanzable, es la **cápsula**:
+sin eso queda «Significativa (8 mmHg)» en pantalla sobre un campo de gradiente ya vacío.
+
+### `et_grado` sí tiene modelo de datos — el comentario que decía lo contrario era falso
+`_labValvCounts` lo tenía en `() => null` con el comentario «Esten. Tricúspidea no existe en el
+modelo de datos actual». **Falso**: `et_grado` es un `<select>` cuya primera opción es
+`<option>Sin estenosis</option>` —sin atributo `value`, así que el valor **es** el texto—, el
+mismo modelo que `em_grado`/`ea_grado` (`'sin'`). Medido: **presente en los 95 estudios reales**.
+`_labEstenSev` ya sabía leerlo (su rama `/sin|esclerosis/` matchea «Sin estenosis»): era **una
+línea**. Mientras estuvo en `null`, `pctOf(n, 0)` mandaba la mini-tabla del PDF de auditoría a
+imprimir «— (sin datos)» — un documento firmado declarando que este laboratorio no tiene una sola
+tricúspide valorada, cuando las 95 lo estaban.
+
+### `ip_grado`: la etiqueta afirmaba y el valor negaba
+Era el **único** de los siete grados valvulares con `value=""` en su opción 0. La **etiqueta**
+decía «Sin insuficiencia» y el **valor** era cadena vacía: el médico veía el select afirmando y lo
+que se guardaba era «nadie contestó», así que el paciente con la pulmonar valorada normal no
+contaba en ningún denominador. Es la **inversa** de «un default tranquilizador es una afirmación»
+— acá la afirmación estaba en la pantalla y no en el dato. Hoy el valor es el mismo texto que la
+etiqueta, como `et_grado` («Sin estenosis») y `vp_morf` («Normal»).
+
+**CAMBIAR EL TOKEN ROMPE CINCO CONSUMIDORES**, todos los cuales preguntaban «¿hay IP?» con la
+simple verdad/falsedad de `ip_grado` —que con la cadena vacía funcionaba **por accidente**—:
+
+| consumidor | qué pasaba con el token nuevo |
+|---|---|
+| `hayIP` (informe) | siempre verdadero → **«Válvula pulmonar normal.» desaparecía de TODOS los informes** |
+| bloque 10b del informe | «insuficiencia pulmonar **sin insuficiencia**» |
+| `tdfConclusion` | un **«Sin»** suelto como cláusula del párrafo de Fallot |
+| EN SUMA de Fallot | « — Sin insuficiencia» colgando de cada línea |
+| `distrib(…, IP_L)` | categoría no mapeada |
+
+Por eso existe **`ipHayInsuf(val)`**, la única definición: acepta la cadena vacía como «no hay»
+para que un legado sin migrar se comporte igual que uno migrado. **Si aparece un sexto consumidor,
+usa ésa.** `IP_L` **no** lleva entrada para el token nuevo a propósito: `distrib` descarta lo que
+no está en el mapa, así que «Con IP consignada» sigue contando los que **tienen** insuficiencia.
+
+**Y necesita migración.** Sin ella un estudio con `''` reabre **mostrando un hueco** —asignar un
+`.value` que ya no es ninguna opción deja `selectedIndex = -1`, no la primera— y al volver a
+guardar se persiste ese hueco. Es la misma pérdida silenciosa que cerró `_VAB_SIEVERS`. La
+traducción **no inventa un hallazgo**: la etiqueta que el médico tenía delante decía exactamente
+eso. Sólo se toca la clave **si existe**: un estudio que nunca tuvo el campo se queda sin él.
+
+**`et_grado`, `ip_grado`, `vp_morf`, `et_gmedio`, `vp_vmax` e `ip_vmax` NO están en el mapa de
+Excel** — verificado contra `LAB_XLS_MAP`. Por eso este cambio de token **no toca el round-trip**
+ni necesita entrada en `LAB_XLS_VOCAB`.
+
+### La sexta pastilla no se restauraba
+`cargarValvPills()` tenía `if (valvula === 'tricuspide' && tipo === 'esten') return;` — la única
+de las seis que no volvía al reabrir. El botón existe (`pill-esten-tricuspide`) y funciona al
+clickearlo, pero al recargar el bloque se cerraba y `et_gmedio` dejaba de verse, **con el grado
+todavía en el informe**: «Estenosis tricuspídea moderada» con el gradiente que la sostiene fuera
+de la vista.
+
 ### Diastólica del VD: el patrón sale del E/A solo — y exigir E/e' abría dos silencios
 Agregada el 2026-09-16. Guía aplicada: **ASE 2025** (Mukherjee et al., *JASE* 2025;38(3):141-186,
 **Tabla 6**), que **reemplaza a la ASE 2010** (Rudski, *JASE* 2010;23:685-713) — la que se cita

@@ -2659,7 +2659,7 @@ window.cerrarSesion = cerrarSesion;
         <div class="calc-row"><span class="calc-lbl">PAP diastólica (IP tele-diast.)</span><span class="calc-val" id="ip-papd-row">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Grado IP <span style="font-weight:400;color:var(--text2);font-size:10px;">— manual: evaluación integral (densidad jet CW, tiempo de desaceleración, vena contracta)</span></span>
           <select id="ip_grado" style="min-width:180px;">
-            <option value="">Sin insuficiencia</option>
+            <option value="Sin insuficiencia">Sin insuficiencia</option>
             <option value="IP leve (fisiológica)">IP leve (fisiológica)</option>
             <option value="IP moderada">IP moderada</option>
             <option value="IP severa">IP severa</option>
@@ -19380,6 +19380,32 @@ function calcVP() {
 }
 window.calcVP = calcVP;
 
+/* ══ ¿HAY INSUFICIENCIA PULMONAR? UN SOLO PREDICADO ══════════════════════════════════════════
+   `ip_grado` era el ÚNICO de los siete grados valvulares cuya primera opción llevaba
+   `value=""`: la ETIQUETA afirmaba («Sin insuficiencia») y el VALOR negaba (cadena vacía). El
+   médico veía el select diciendo «Sin insuficiencia» y lo que se guardaba era «nadie contestó»,
+   así que el paciente con la pulmonar valorada normal no contaba en ningún denominador. Es la
+   inversa exacta de «un default tranquilizador es una afirmación»: acá la afirmación estaba en
+   la pantalla y no en el dato. Desde el 2026-09-16 el valor es el mismo texto que la etiqueta,
+   como en `et_grado` («Sin estenosis») y `vp_morf` («Normal»).
+
+   Y POR ESO HACE FALTA ESTE PREDICADO. Cinco consumidores preguntaban «¿hay IP?» con la simple
+   verdad/falsedad de `ip_grado`, que con la cadena vacía funcionaba por accidente. Con un token
+   real, `if (ip)` pasa a ser SIEMPRE verdadero y rompe los cinco — el peor, `hayIP`, borraba la
+   oración «La válvula pulmonar presenta morfología y flujo dentro de límites normales.» de
+   TODOS los informes. Acá está la única definición; si aparece un sexto consumidor, usa ésta.
+
+   Acepta la cadena vacía como «no hay» para que un estudio legado sin migrar se comporte igual
+   que uno migrado: la migración corre en `_migrarCamposLegacy`, pero hay rutas que leen
+   `campos` crudo. */
+const IP_SIN_INSUF = 'Sin insuficiencia';
+function ipHayInsuf(val){
+  const s = String(val == null ? '' : val).trim();
+  return s !== '' && s.toLowerCase() !== IP_SIN_INSUF.toLowerCase();
+}
+window.ipHayInsuf = ipHayInsuf;
+window.IP_SIN_INSUF = IP_SIN_INSUF;
+
 // ══ INSUFICIENCIA PULMONAR — PAP media y diastólica ══
 function calcIP() {
   const vmax  = v('ip_vmax');   // Vmax proto-diastólica IP (m/s)
@@ -19418,27 +19444,78 @@ function calcIP() {
     if (papdRow)  papdRow.textContent = '—';
   }
 
+
   // El grado de IP se elige manualmente en el select #ip_grado (evaluación integral:
   // densidad del jet por CW, tiempo de desaceleración, vena contracta). La Vmax
   // telediastólica/proto-diastólica sólo alimenta las presiones (PAPm/PAPd), no el grado.
 }
 window.calcIP = calcIP;
 
+/* ══ ESTENOSIS TRICUSPÍDEA — la guía define UN UMBRAL, no tres bandas ════════════════════════
+   EAE/ASE 2009 (Baumgartner, JASE 2009) y ESC/EACTS 2021: la ET hemodinámicamente significativa
+   es **gradiente medio >= 5 mmHg** (más VTI de entrada > 60 cm, T1/2 >= 190 ms y área <= 1 cm²,
+   ninguno de los cuales esta app recoge todavía). **No hay graduación leve/moderada/severa
+   publicada** para la tricúspide: es binaria.
+
+   LO QUE HABÍA ERA UNA BOMBA ARMADA. La cascada anterior era:
+       if (gmedio < 2) 'Leve'; else if (gmedio <= 5) 'Moderada'; else 'Severa';
+   o sea que NO TENÍA RAMA DE NORMALIDAD: un gradiente medio tricuspídeo normal —1 a 2 mmHg—
+   se escribía como **'Leve'** en `et_grado`, y de ahí bajaba al informe firmado y al EN SUMA
+   («ET leve.»). Y contradecía a la leyenda que la propia app imprime dos renglones más abajo,
+   que ya decía «>= 5 mmHg sugiere ET clínicamente significativa». Nadie lo cobró todavía sólo
+   porque `et_gmedio` está vacío en los 6 estudios que traen el campo.
+
+   ADEMÁS NO SE DESHACÍA. `calcVP` tiene toda la maquinaria de `dataset.sugerido` justamente
+   porque borrar la velocidad dejaba «Válvula pulmonar estenosis severa» colgada; `calcET` no la
+   tenía, así que una vez escrito el grado quedaba para siempre. Acá va la misma.
+
+   POR QUÉ >= 5 NO ESCRIBE UN GRADO. El select tiene cuatro opciones y la guía no gradúa, así
+   que cualquier grado que pusiéramos sería inventado. Y agregar una opción «Significativa»
+   tampoco sirve: la pastilla de severidad deriva su nivel con `nivelDe()`, que sólo reconoce
+   leve/moderada/severa, así que esa opción dejaría la pastilla diciendo «Sin est.» sobre un
+   select que dice «Significativa» — dos respuestas a la misma pregunta en la misma tarjeta.
+   Por encima del umbral se DECLARA la significación (cápsula, leyenda y el informe, que la
+   emite desde el gradiente medido) y el grado se deja al médico. */
+const ET_GMEDIO_SIGNIF = 5;   // mmHg — EAE/ASE 2009 · ESC/EACTS 2021
 function calcET() {
   const gmedio = v('et_gmedio');
-  if (!gmedio) return;
-  let opcion, sevBadge;
-  if (gmedio < 2) { opcion = 'Leve'; sevBadge = badge('green', `Leve (${gmedio} mmHg)`); }
-  else if (gmedio <= 5) { opcion = 'Moderada'; sevBadge = badge('yellow', `Moderada (${gmedio} mmHg)`); }
-  else { opcion = 'Severa'; sevBadge = badge('red', `Severa (${gmedio} mmHg)`); }
   const sel = document.getElementById('et_grado');
-  if (sel) sel.value = opcion;
   const sevEl = document.getElementById('et-sev');
-  if (sevEl) sevEl.innerHTML = sevBadge;
   const badgeEl = document.getElementById('et-gmedio-badge');
-  if (badgeEl) badgeEl.textContent = `Sugerido automáticamente por gradiente medio (${gmedio} mmHg). Podés cambiarlo manualmente si lo creés necesario.`;
+  const _sev = h => { if (sevEl) sevEl.innerHTML = h; };
+  const _msg = t => { if (badgeEl) badgeEl.textContent = t; };
+  /* Mismo `_pisable` que `calcVP`: sólo se toca el select si trae el valor de fábrica o el que
+     sugerimos NOSOTROS en esta carga. Un grado elegido a mano no se pisa. */
+  const _sug = sel && sel.dataset.sugerido;
+  const _pisable = !!sel && (sel.value === '' || sel.value === 'Sin estenosis' ||
+                             (_sug && sel.value === _sug));
+  if (gmedio === null) {
+    /* NO HAY NADA QUE DESHACER, y eso es una consecuencia del diseño, no un olvido.
+       `calcVP` necesita revertir porque sugiere TRES valores distintos del de reposo
+       («Estenosis leve/moderada/severa»), así que borrar la velocidad dejaba una estenosis
+       afirmada sin nada que la sostuviera. `calcET` sólo puede sugerir **'Sin estenosis'**, que
+       ES el valor de reposo: revertirlo sería escribir encima lo mismo. Se escribió la rama
+       igual que en `calcVP` y la MUTACIÓN LA DELATÓ — sacarla no ponía nada en rojo, porque no
+       hace nada. Un resguardo que no se puede hacer fallar se lee como protección y no lo es.
+       Si algún día `calcET` vuelve a sugerir un grado, acá va el `dataset.sugerido` de `calcVP`.
+
+       Lo que sí hay que limpiar es la CÁPSULA: sin esto queda «Significativa (8 mmHg)» en
+       pantalla sobre un campo de gradiente ya vacío. */
+    if (sel && _sug) delete sel.dataset.sugerido;
+    _sev('—'); _msg('');
+    return;
+  }
+  if (gmedio < ET_GMEDIO_SIGNIF) {
+    if (_pisable) { sel.value = 'Sin estenosis'; sel.dataset.sugerido = 'Sin estenosis'; }
+    _sev(badge('green', `Sin estenosis significativa (${gmedio} mmHg)`));
+    _msg(`Gradiente medio ${gmedio} mmHg: por debajo de ${ET_GMEDIO_SIGNIF} mmHg no alcanza el umbral de estenosis tricuspídea clínicamente significativa (ESC/EACTS 2021).`);
+    return;
+  }
+  _sev(badge('red', `Significativa (${gmedio} mmHg)`));
+  _msg(`Gradiente medio ≥ ${ET_GMEDIO_SIGNIF} mmHg: estenosis tricuspídea clínicamente significativa (ESC/EACTS 2021). La guía no gradúa la ET en leve/moderada/severa — si querés consignar un grado, elegilo a mano.`);
 }
 window.calcET = calcET;
+window.ET_GMEDIO_SIGNIF = ET_GMEDIO_SIGNIF;
 
 function calcIT_ESC() {
   const vc = v('it_vc');
@@ -21552,9 +21629,23 @@ function generarInforme(opts) {
     const hayIT = itG > 0 || itTrv > 0 || pillOn('tricuspide','insuf');
     const gradVDAD = itTrv > 0 ? (4 * itTrv * itTrv).toFixed(0) : null;
     const etPill = !etDesc && pillOn('tricuspide','esten');
-    if (etDesc) suma.push(`ET ${etDesc}.`);
+    /* LA SIGNIFICACIÓN SALE DEL GRADIENTE MEDIDO, no del grado. La guía define la ET por
+       gradiente medio >= 5 mmHg y NO la gradúa, así que `calcET` deliberadamente no escribe
+       ningún grado por encima del umbral. Sin esta rama, un gradiente de 8 mmHg con el select
+       en «Sin estenosis» —que es el estado que deja el propio `calcET`— salía en SILENCIO: el
+       número que define la enfermedad, medido y cargado, no aparecía en el informe firmado.
+       Es el mismo agujero que se acaba de cerrar en la diastólica del VD. */
+    const etGm = v('et_gmedio');
+    const _etUmb = (typeof window.ET_GMEDIO_SIGNIF === 'number') ? window.ET_GMEDIO_SIGNIF : 5;
+    const etSignif = etGm !== null && etGm >= _etUmb;
+    const etGmTxt = etGm !== null ? ` (gradiente medio ${etGm} mmHg)` : '';
+    if (etDesc) suma.push(`ET ${etDesc}${etSignif ? ', clínicamente significativa' : ''}.`);
+    else if (etSignif) suma.push('Estenosis tricuspídea clínicamente significativa.');
     else if (etPill) suma.push('Estenosis tricuspídea.');
-    const etFrag = etDesc ? `Estenosis tricuspídea ${etDesc}. ` : (etPill ? 'Estenosis tricuspídea. ' : '');
+    const etFrag = etDesc
+      ? `Estenosis tricuspídea ${etDesc}${etGmTxt}${etSignif ? ', clínicamente significativa (ESC/EACTS 2021)' : ''}. `
+      : (etSignif ? `Estenosis tricuspídea clínicamente significativa${etGmTxt} — gradiente medio ≥ ${_etUmb} mmHg (ESC/EACTS 2021). `
+      : (etPill ? 'Estenosis tricuspídea. ' : ''));
     const tapBajo = tap !== null && tap < 105;
     let tricLine;
     if (hayIT) {
@@ -21636,7 +21727,11 @@ function generarInforme(opts) {
        segunda describe. Es el caso típico de la IP postquirúrgica. */
     const ipGrado = sv('ip_grado');
     const ipProto = v('ip_vmax'), ipTele = v('ip_vtd'), ipPmad = v('pmad');
-    const hayIP = !!(ipGrado || ipProto !== null || ipTele !== null);
+    /* `ipHayInsuf` y NO la verdad/falsedad de `ipGrado`: desde que la opción 0 tiene token real
+       («Sin insuficiencia» en vez de cadena vacía), `!!ipGrado` es SIEMPRE verdadero y esta
+       compuerta dejaba de disparar — o sea que la frase de normalidad de la válvula pulmonar
+       desaparecía de todos los informes. */
+    const hayIP = !!(ipHayInsuf(ipGrado) || ipProto !== null || ipTele !== null);
     if (vpMorf === 'Normal' && !vpVmax && !vpGmax && !hayIP) {
       inf.push(estiloPick('VP normal.', 'Válvula pulmonar normal.', 'La válvula pulmonar presenta morfología y flujo dentro de límites normales.'));
     } else if (vpMorf === 'Normal' && !vpVmax && !vpGmax) {
@@ -21669,7 +21764,7 @@ function generarInforme(opts) {
          desarma para no escribir «insuficiencia pulmonar IP moderada». Sin grado elegido pero
          con velocidades cargadas se dice sólo que está presente: el grado es una evaluación
          integral que el médico hace a mano, y deducirlo de una velocidad sería inventarlo. */
-      const ipDesc = ipGrado ? ipGrado.replace(/^IP\s*/i, '').trim() : '';
+      const ipDesc = ipHayInsuf(ipGrado) ? ipGrado.replace(/^IP\s*/i, '').trim() : '';
       const pres = [];
       if (ipProto !== null && ipPmad !== null) pres.push(`PAP media ${(4 * ipProto * ipProto + ipPmad).toFixed(0)} mmHg`);
       if (ipTele  !== null && ipPmad !== null) pres.push(`PAP diastólica ${(4 * ipTele  * ipTele  + ipPmad).toFixed(0)} mmHg`);
@@ -30242,10 +30337,13 @@ function ccSumaLinea(sec){
     const civG = B(_ccNum('tdf_civ_grad'), 0, 200, 'gradiente de la CIV residual');
     const cab = 'Tetralogía de Fallot reparada';
     const fz = cierraFuera(cab); if (fz) return fz;
-    if (!ip && !fvd && g == null && civ !== 'si' && ep !== 'si') return null;
+    /* `ipHayInsuf` en las DOS: la compuerta de «¿esta línea tiene algo que decir?» y la que
+       agrega el grado. Con el token «Sin insuficiencia» truthy, toda línea de Fallot arrastraba
+       un « — Sin insuficiencia» y la compuerta dejaba de poder devolver null por ese lado. */
+    if (!ipHayInsuf(ip) && !fvd && g == null && civ !== 'si' && ep !== 'si') return null;
     let l = cab;
     /* El valor de `ip_grado` YA empieza con «IP» —«IP severa»— así que anteponerlo daba «IP ip». */
-    if (ip) l += ' — ' + ip;
+    if (ipHayInsuf(ip)) l += ' — ' + ip;
     if (g != null) l += ' — gradiente TSVD ' + _cc1(g) + ' mmHg';
     if (ep === 'si') l += ' — estenosis o stent pulmonar';
     if (civ === 'si') l += ' — CIV residual' + (civG != null ? ' (gradiente ' + _cc1(civG) + ' mmHg)' : '');
@@ -32067,7 +32165,9 @@ function tdfConclusion(){
   /* `ip_grado` es un <select> con TEXTO («IP severa»), no un código. `.toLowerCase()` sobre eso
      daba «ip severa» en el informe firmado, con la sigla en minúscula. Se expande la sigla. */
   const ipSevera = /severa/i.test(ip), ipModerada = /moderada/i.test(ip);
-  const ipTxt = ip ? ip.replace(/^IP\s*/i, 'insuficiencia pulmonar ') : '';
+  /* `ipHayInsuf` y no `ip ?`: con el token «Sin insuficiencia» la rama truthy pasaba a emitir
+     un «Sin» suelto como cláusula del párrafo de Fallot. */
+  const ipTxt = ipHayInsuf(ip) ? ip.replace(/^IP\s*/i, 'insuficiencia pulmonar ') : '';
   if (ipTxt) partes.push(ipTxt.charAt(0).toUpperCase() + ipTxt.slice(1));
   if (civ === 'si') partes.push('Comunicación interventricular residual' + (civG != null ? ' con gradiente de ' + civG + ' mmHg' : ''));
   else if (civ === 'no') partes.push('Sin comunicación interventricular residual');
@@ -32707,6 +32807,17 @@ function _migrarCamposLegacy(c){
      estudios guardados en esa ventana lo tienen, y sin esta línea la coartación de un informe
      reimpreso pierde la línea «Aorta ascendente X mm» que el PDF firmado sí tenía. */
   if (!c['ao_tub']        && c['coa_ao_asc'])         c['ao_tub']        = c['coa_ao_asc'];
+  /* `ip_grado`: la opción 0 pasó de `value=""` a `value="Sin insuficiencia"` el 2026-09-16.
+     Sin esta línea, un estudio guardado con la cadena vacía reabre con el select MOSTRANDO UN
+     HUECO —asignar un `.value` que ya no es ninguna opción deja `selectedIndex = -1`, no la
+     primera— y al volver a guardar se persiste ese hueco. Es la misma pérdida silenciosa que
+     cerró `_VAB_SIEVERS` dos bloques más abajo.
+     Traducir la cadena vacía a «Sin insuficiencia» NO inventa un hallazgo: la etiqueta que el
+     médico tenía delante decía exactamente eso, y es el mismo criterio de «no marcar una
+     válvula es valorarla como normal» que rige a las otras seis. Sólo se toca la clave si
+     EXISTE: un estudio que nunca tuvo el campo se queda sin él, que es «no hay dato». */
+  if (Object.prototype.hasOwnProperty.call(c, 'ip_grado') &&
+      String(c['ip_grado'] == null ? '' : c['ip_grado']).trim() === '') c['ip_grado'] = 'Sin insuficiencia';
   /* `vab_tipo` pasó de Sievers (2007) al Consenso Internacional 2021 el 2026-09-15. Sin esta
      traducción, un estudio guardado con `t1rl` reabre con el select VACÍO —el valor ya no es una
      opción— y el informe pierde la morfología de la válvula EN SILENCIO: no hay error, sólo un
@@ -32994,9 +33105,14 @@ function toggleValvPill(valvula, tipo) {
   localStorage.setItem('valv-pill-' + tipo + '-' + valvula, activo ? '0' : '1');
 }
 function cargarValvPills() {
+  /* LAS SEIS PASTILLAS SE RESTAURAN. Había una exclusión explícita para tricúspide/estenosis
+     —`if (valvula === 'tricuspide' && tipo === 'esten') return;`— que la dejaba como la única
+     de las seis que no volvía al reabrir: el botón existe (`pill-esten-tricuspide`) y funciona
+     al clickearlo, pero al recargar el bloque se cerraba y `et_gmedio` dejaba de verse. El
+     grado seguía en `et_grado` y en el informe, así que el síntoma era un informe que dice
+     «Estenosis tricuspídea moderada» con el gradiente que la sostiene fuera de la vista. */
   ['mitral','aortica','tricuspide'].forEach(valvula => {
     ['insuf','esten'].forEach(tipo => {
-      if (valvula === 'tricuspide' && tipo === 'esten') return;
       const guardado = localStorage.getItem('valv-pill-' + tipo + '-' + valvula);
       if (guardado === '1') toggleValvPill(valvula, tipo);
     });
@@ -49891,8 +50007,19 @@ function _labRgba(hex, a) {
   const h = hex.replace('#','');
   return `rgba(${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)},${a})`;
 }
-// Cuenta severidades (Leve/Moderada/Severa) por válvula, en el orden de _LAB_VALV_LABELS.
-// Nota: "Esten. Tricúspidea" no existe en el modelo de datos actual → siempre 0.
+/* Cuenta severidades (Leve/Moderada/Severa) por válvula, en el orden de _LAB_VALV_LABELS.
+
+   LA ESTENOSIS TRICUSPÍDEA SÍ TIENE MODELO DE DATOS. Estaba cableada a `() => null` con el
+   comentario «no existe en el modelo de datos actual», y ese comentario era FALSO: `et_grado`
+   es un `<select>` cuya primera opción es `<option>Sin estenosis</option>` —sin atributo
+   `value`, así que el valor ES el texto—, exactamente el mismo modelo que `em_grado`/`ea_grado`
+   (`'sin'`). Medido sobre los 95 estudios reales el 2026-09-16: presente en los 95.
+
+   Mientras estuvo en `null`, la columna salía vacía en el gráfico y `pctOf(n, 0)` mandaba a la
+   mini-tabla del PDF de auditoría a imprimir «— (sin datos)» — o sea que un documento firmado
+   declaraba que este laboratorio no tiene una sola tricúspide valorada, cuando las 95 lo
+   estaban. `_labEstenSev` ya sabía leerlo: su rama `/sin|esclerosis/` matchea «Sin estenosis»
+   sin tocar nada. Era una línea. */
 function _labValvCounts(infs) {
   const defs = [
     i => _labRegurgSev(i, 'im_grado'),
@@ -49900,7 +50027,7 @@ function _labValvCounts(infs) {
     i => _labRegurgSev(i, 'ia_grado'),
     i => _labEstenSev(i, 'ea_grado'),
     i => _labRegurgSev(i, 'it_grado'),
-    () => null
+    i => _labEstenSev(i, 'et_grado')
   ];
   const counts = { Leve: [], Moderada: [], Severa: [] };
   /* Base POR VÁLVULA: los estudios donde ESA válvula tiene severidad registrada, incluidos
@@ -51219,6 +51346,10 @@ function labCCRender(infs, n) {
   // ── BLOQUE 11 · Tetralogía de Fallot reparada ──
   if (!tdfArr.length) { empty('lab-cc-tdf-stats', 'tetralogía de Fallot'); empty('lab-cc-tdf-bars', 'función del VD'); empty('lab-cc-tdf-ip-bars', 'insuficiencia pulmonar'); setHtml('lab-cc-tdf-nota', ''); }
   else {
+    /* «Sin insuficiencia» NO lleva entrada a propósito: `distrib` descarta lo que no está en el
+       mapa (`if (!lbl) return;`), así que el token nuevo de la opción 0 queda fuera y «Con IP
+       consignada» sigue contando los que TIENEN insuficiencia. Agregarlo cambiaría el
+       significado del `n` de la tarjeta sin que nada lo declare. */
     const IP_L = { 'IP leve (fisiológica)':'Leve (fisiológica)', 'IP moderada':'Moderada', 'IP severa':'Severa' };
     const ip = distrib(tdfArr, 'ip_grado', IP_L);
     const conIp = Object.keys(ip).reduce((a, k) => a + ip[k], 0);
@@ -53560,8 +53691,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260915-2242';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789522944768;                 /* eco-build-ms */
+const ECO_BUILD    = '20260915-2313';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789524802619;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -53647,7 +53778,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260915-2242</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260915-2313</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
