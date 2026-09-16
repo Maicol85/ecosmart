@@ -4624,6 +4624,99 @@ caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el La
   ] };
 `);
 
+/* S3 y S4 — XSS ALMACENADO, CERRADOS DESDE ANTES Y SIN COBERTURA HASTA HOY (2026-09-16).
+   S3: en_suma iba a innerHTML sin escapar en la vista de un estudio guardado.
+   S4: nombre y documento se interpolaban dentro del onclick de «Evolución», asi que un
+       apostrofe en el nombre rompia la llamada y abria la puerta a inyectar codigo.
+   Los dos estaban corregidos —escHtml en el detalle, y data-* + verEvolucionEl(this) en el
+   boton— pero NADA lo verificaba: la unica prueba era un procedimiento manual en
+   tests/regresion.json. Un arreglo sin caso es un arreglo que se puede deshacer sin que nadie
+   se entere, y este ya volvio a aparecer en un informe de auditoria.
+
+   OJO CON EL DENOMINADOR: si la lista no renderizo filas, contar scripts inyectados da cero y
+   parece seguro. Por eso la primera condicion cuenta las filas. */
+caso('TC-143', 'XSS almacenado: el nombre con apostrofe y el EN SUMA envenenado no ejecutan nada', `
+  return (async () => {
+    const PAY = '<img src=x onerror="window.__xssHit=(window.__xssHit||0)+1">';
+    const NOM = 'O' + String.fromCharCode(39) + 'Brien & <script>alert(1)</script>';
+    const CI  = '12' + String.fromCharCode(39) + '345-6';
+    const SUMA = 'Conclusion con ' + PAY + ' y & y > literales.';
+    window.__xssHit = 0;
+    const alertOrig = window.alert; window.alert = function(){ window.__xssHit++; };
+    const prev = CeiboStore.getLocal();
+    const mk = function(id, f, fevi){ return { id:id, uuid:'u'+id, nombre:NOM, ci:CI, doc_tipo:'CI',
+      fecha_estudio:f, fecha_guardado:f + 'T10:00:00Z', informe_texto:'t', en_suma:SUMA,
+      campos:{ nombre:NOM, ci:CI, fevi:fevi, en_suma:SUMA } }; };
+    /* Entra por escritura directa al store: validarInformeImportado rechaza esto, y la
+       escritura directa es justamente el vector que queda abierto. */
+    CeiboStore.setLocal([mk(999000000000101,'2026-01-10','55'), mk(999000000000102,'2026-06-10','40')]);
+    renderInformesGuardados();
+    const filas = document.querySelectorAll('.ig-item');
+    const btn = document.querySelector('.ig-item [data-nombre]');
+    const nomVis = (document.querySelector('.ig-item-nombre') || {}).textContent || '';
+    const scriptsLista = document.querySelectorAll('.ig-item script').length;
+
+    /* S4 · el handler NO puede llevar datos del paciente. */
+    const onclickBtn = btn ? (btn.getAttribute('onclick') || '') : '';
+    const dsNom = btn ? btn.dataset.nombre : null;
+    let rompio = null;
+    try { verEvolucionEl(btn); } catch (e) { rompio = e.message; }
+    const modal = document.getElementById('modal-evolucion');
+    const titulo = (document.getElementById('evol-nombre-titulo') || {}).textContent || '';
+    const scriptsModal = modal ? modal.querySelectorAll('script').length : -1;
+    const imgsModal = modal ? modal.querySelectorAll('img[onerror]').length : -1;
+    /* Los on* del modal son SUYOS (cerrar, y los checkbox de metricas): ninguno puede llevar
+       el nombre ni el documento. */
+    const onsConDato = modal ? [].slice.call(modal.querySelectorAll('*')).filter(function(n){
+      return [].slice.call(n.attributes).some(function(a){
+        return /^on/i.test(a.name) && (a.value.indexOf('Brien') > -1 || a.value.indexOf('345') > -1); }); }).length : -1;
+    if (modal) modal.style.display = 'none';
+
+    /* S3 · el EN SUMA guardado al DOM. */
+    verDetalleInforme(999000000000101);
+    const det = document.getElementById('ig-detalle-contenido');
+    const scriptsDet = det.querySelectorAll('script').length;
+    const imgsDet = det.querySelectorAll('img[onerror]').length;
+    const txtDet = det.textContent || '';
+
+    CeiboStore.setLocal(prev); renderInformesGuardados();
+    window.alert = alertOrig;
+    const hits = window.__xssHit;
+
+    return { extra: [
+      // 0 · EL DENOMINADOR. Sin filas, todo lo de abajo cuenta cero y parece seguro.
+      ['la lista renderizo las dos filas', filas.length === 2, 'filas=' + filas.length],
+      ['y el boton de evolucion existe', !!btn],
+
+      // S4 · nada del paciente dentro del handler.
+      ['el onclick NO lleva el nombre ni el documento',
+        onclickBtn.indexOf('Brien') === -1 && onclickBtn.indexOf('345') === -1 &&
+        onclickBtn.indexOf('verEvolucionEl(this)') > -1, onclickBtn],
+      ['el nombre viaja por data-* y vuelve INTACTO por dataset', dsNom === NOM, JSON.stringify(dsNom)],
+      ['un apostrofe en el nombre NO rompe verEvolucion',
+        rompio === null, 'error: ' + rompio],
+      ['la evolucion abre y titula con el nombre literal',
+        !!modal && titulo.indexOf('Brien') > -1 && titulo.indexOf('2 estudios') > -1, titulo],
+      ['ningun on* del modal lleva datos del paciente', onsConDato === 0, 'con dato: ' + onsConDato],
+
+      // S3 · el EN SUMA al DOM.
+      ['el nombre se ve como TEXTO en la lista, no como marcado',
+        nomVis.indexOf('<script>') > -1 && scriptsLista === 0,
+        JSON.stringify(nomVis) + ' scripts=' + scriptsLista],
+      ['el EN SUMA envenenado no inyecta nada en el detalle',
+        scriptsDet === 0 && imgsDet === 0, 'script=' + scriptsDet + ' img=' + imgsDet],
+      ['y el payload se lee como texto literal',
+        txtDet.indexOf('<img src=x onerror=') > -1, txtDet.slice(0, 120)],
+      ['los & y > se muestran bien, sin doble escape',
+        txtDet.indexOf(' y & y > literales') > -1 && txtDet.indexOf('&amp;') === -1,
+        txtDet.slice(0, 160)],
+
+      // EL VEREDICTO.
+      ['CERO ejecuciones de XSS en todo el recorrido', hits === 0, 'hits=' + hits]
+    ] };
+  })();
+`);
+
 /* REORDENAMIENTO DEL LABORATORIO (2026-09-16).
    Doce subtabs pasaron a OCHO: Calidad, Por medico y Comparar periodos se plegaron dentro de
    General, y Hemodinamica dentro de Avanzado. Mas el orden interno de Mediciones y Avanzado, el

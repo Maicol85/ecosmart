@@ -460,6 +460,39 @@ Se recuperó con `git show HEAD:` y se verificó **byte por byte** contra HEAD. 
 entrada «Los reemplazos por rango de líneas son peligrosos» que este archivo ya tenía, aplicada al
 propio suite: **después de un reemplazo por rango, contar los casos.**
 
+### Un hallazgo de auditoría por NÚMERO DE LÍNEA apunta a otro archivo
+El 2026-09-16 volvieron S3 y S4 —los dos XSS almacenados— citando las líneas **16162** y **13273**.
+Los dos estaban cerrados hace rato, y esas líneas hoy son **un comentario del módulo de pericardio
+y CSS del Laboratorio**: el archivo creció miles de líneas desde el informe. **Antes de reabrir un
+hallazgo por número de línea, mirar qué hay HOY en esa línea.** Cuesta diez segundos y evita media
+sesión arreglando algo que no existe — es la misma clase que la lista de «Hallazgos de auditoría
+verificados como FALSOS» de más abajo.
+
+**Cómo se verifica que un XSS está cerrado, y por qué leer el código no alcanza:**
+1. **Barrido del archivo**, no de las dos líneas citadas: interpolaciones de dato de estudio hacia
+   `innerHTML` sin escape, y handlers `on*` con datos de usuario. Hoy: cero de las primeras —los
+   dos candidatos arman una variable cruda y la insertan como `title="${escHtml(tit)}"`— y cero de
+   los segundos: lo que queda en `on*` es un número calculado y un índice de bucle.
+2. **Paciente envenenado en el navegador.** `O'Brien & <script>alert(1)</script>`, documento con
+   apóstrofe, EN SUMA con `<img src=x onerror=…>`. Se cuentan scripts inyectados, `img[onerror]`,
+   atributos de evento que lleven el nombre, y se intercepta `alert`. **Confirmando primero que la
+   lista renderizó filas**: sin denominador, contar inyecciones da cero y parece seguro.
+3. **Semgrep contra la línea base** (123), mirando además que ningún hallazgo caiga en esas rutas.
+
+**El patrón correcto para el handler, que es el que está implementado:** `data-nombre` y `data-ci`
+escapados + `onclick="verEvolucionEl(this)"`, y la función lee `el.dataset`. Nada del paciente
+entra al atributo que el navegador compila — que es donde `escHtml` NO protege, porque el parser
+decodifica la entidad ANTES de compilar el handler.
+
+**Estaban cerrados y sin una sola prueba automática.** La única cobertura era el procedimiento
+manual de `tests/regresion.json`. Un arreglo sin caso es un arreglo que se deshace sin que nadie se
+entere — y éste ya volvió a aparecer en un informe. Lo fija **TC-143**, verificado por mutación:
+reintroducir S3, reintroducir S4 y sacar el escape del nombre de la lista lo ponen en rojo.
+
+**`#evol-tabla` es marcado muerto.** Aparece una sola vez en el archivo —su declaración— y nadie lo
+llena: la evolución longitudinal es un **gráfico** (Chart.js sobre `#chart-evolucion`), no una
+tabla. Anotado al pasar; no se tocó en un commit de seguridad.
+
 ### El Laboratorio pasó de DOCE subtabs a OCHO
 2026-09-16. Calidad, Por médico y Comparar períodos se plegaron dentro de **General**;
 Hemodinámica dentro de **Avanzado**. Más el orden interno de Mediciones y Avanzado, el renombre de
