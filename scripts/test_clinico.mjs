@@ -4307,6 +4307,157 @@ caso('TC-135', 'GLS y contractilidad son BASICOS del Excel: sin checkbox y siemp
   })();
 `);
 
+/* FUNCION DIASTOLICA DEL VD — ASE 2025 Tabla 6 (Mukherjee, JASE 2025;38:141-186).
+   EL PATRON SALE DEL E/A SOLO; el E/e desempata unicamente la banda 0,8-2,1. Las dos bandas
+   externas NO lo necesitan —en la Tabla 6 esa celda esta en blanco para relajacion y para
+   restrictivo—, y exigirlo dejaba dos combinaciones sin ninguna rama, o sea en SILENCIO:
+   E/A<0,8 con E/e>6, y E/A>2,1 con E/e<=6, que es el patron mas grave. Las dos estan acá. */
+caso('TC-136', 'Diastolica del VD: el patron sale del E/A, el E/e desempata solo la banda del medio', `
+  const V = function(o){ const faltan = [];
+    Object.keys(o).forEach(function(k){ if (__t.set(k, o[k]) !== 1) faltan.push(k); });
+    return faltan; };
+  const esc = function(o){ __t.limpiar(); const f = V(o); const r = __t.informe();
+    const lineas = r.inf.split(String.fromCharCode(10));
+    let vd = '';
+    for (let i = 0; i < lineas.length; i++)
+      if (lineas[i].indexOf('culo derecho') > -1) { vd = lineas[i]; break; }
+    return { vd: vd, inf: r.inf, suma: r.suma, faltan: f }; };
+  const VDN = { vd_bas:'38', tapse:'20' };
+  const con = function(extra){ const o = {}; Object.keys(VDN).forEach(function(k){ o[k] = VDN[k]; });
+    Object.keys(extra).forEach(function(k){ o[k] = extra[k]; }); return o; };
+
+  /* CLASIFICACION COMPLETA (E/A + E/e). Valores elegidos para que el cociente sea exacto. */
+  const relaj  = esc(con({ dt_onda_e:'30',  dt_onda_a:'50', dt_eprime_lat:'6'    })); // E/A 0.60 · E/e 5.0
+  const pseudo = esc(con({ dt_onda_e:'60',  dt_onda_a:'50', dt_eprime_lat:'7.5'  })); // E/A 1.20 · E/e 8.0
+  const restr  = esc(con({ dt_onda_e:'100', dt_onda_a:'40', dt_eprime_lat:'11'   })); // E/A 2.50 · E/e 9.1
+  const normal = esc(con({ dt_onda_e:'50',  dt_onda_a:'50', dt_eprime_lat:'12.5' })); // E/A 1.00 · E/e 4.0
+  /* SOLO E/A: se nombra el patron y NO se gradua. */
+  const relajS = esc(con({ dt_onda_e:'30',  dt_onda_a:'50' }));
+  const restrS = esc(con({ dt_onda_e:'100', dt_onda_a:'40' }));
+  const indet  = esc(con({ dt_onda_e:'60',  dt_onda_a:'50' }));   // banda del medio sin E/e
+  const soloEp = esc(con({ dt_eprime_lat:'7' }));                 // E/e sin E/A: no se clasifica
+  const nada   = esc(con({}));
+  /* LOS DOS AGUJEROS que cerraria una cascada que exigiera E/e en las bandas externas. */
+  const hoyoA  = esc(con({ dt_onda_e:'40',  dt_onda_a:'70', dt_eprime_lat:'5'  })); // E/A 0.57 · E/e 8.0
+  const hoyoB  = esc(con({ dt_onda_e:'100', dt_onda_a:'40', dt_eprime_lat:'20' })); // E/A 2.50 · E/e 5.0
+  /* COMBINACIONES con el resto de la oracion del VD. */
+  const dilSev = esc({ vd_bas:'48', tapse:'14', dt_onda_e:'100', dt_onda_a:'40', dt_eprime_lat:'11' });
+  const todoOk = esc({ vd_bas:'38', tapse:'20', s_prime:'14' });
+  const sinVD  = esc({ dt_onda_e:'100', dt_onda_a:'40', dt_eprime_lat:'11' });
+  /* UMBRALES POR LOS DOS LADOS. El operador sale del codigo: < 0.8, > 2.1, > 6. */
+  const ea079 = esc(con({ dt_onda_e:'79',  dt_onda_a:'100', dt_eprime_lat:'5' })); // 0.79 -> relajacion
+  const ea080 = esc(con({ dt_onda_e:'80',  dt_onda_a:'100', dt_eprime_lat:'5' })); // 0.80 -> NO relajacion
+  const ea210 = esc(con({ dt_onda_e:'189', dt_onda_a:'90',  dt_eprime_lat:'5' })); // 2.10 -> NO restrictivo
+  const ea211 = esc(con({ dt_onda_e:'190', dt_onda_a:'90',  dt_eprime_lat:'5' })); // 2.11 -> restrictivo
+  const ee60  = esc(con({ dt_onda_e:'60',  dt_onda_a:'50',  dt_eprime_lat:'10' })); // E/e 6.0 -> normal
+  const ee61  = esc(con({ dt_onda_e:'61',  dt_onda_a:'50',  dt_eprime_lat:'10' })); // E/e 6.1 -> pseudonormal
+  /* SALVEDAD DE IT SIGNIFICATIVA (it_grado 3 = mod-severa). */
+  __t.limpiar(); V(con({ dt_onda_e:'100', dt_onda_a:'40', dt_eprime_lat:'11' }));
+  __t.set('it_grado','3'); const itSig = __t.informe();
+  __t.limpiar(); V(con({ dt_onda_e:'100', dt_onda_a:'40', dt_eprime_lat:'11' }));
+  __t.set('it_grado','1'); const itLeve = __t.informe();
+  __t.limpiar(); V(con({ dt_onda_e:'50', dt_onda_a:'50', dt_eprime_lat:'12.5' }));
+  __t.set('it_grado','4'); const itNormal = __t.informe();
+  const SALV = 'puede invalidar estos par';
+
+  return { extra: [
+    // 0 · Ningun id inventado: asignar sobre un elemento inexistente no falla, calla.
+    ['todos los ids del caso existen', relaj.faltan.length === 0 && dilSev.faltan.length === 0,
+      relaj.faltan.concat(dilSev.faltan).join(',')],
+
+    // 1 · CLASIFICACION COMPLETA — patron en el cuerpo, grado en el EN SUMA.
+    ['E/A 0.60 + E/e 5.0 -> relajacion anormal',
+      relaj.vd.indexOf('patrón de relajación anormal (E/A 0.60, E/e\\' 5.0)') > -1, relaj.vd],
+    ['y al EN SUMA va el grado LEVE',
+      relaj.suma.indexOf('disfunción diastólica leve') > -1, relaj.suma],
+    ['E/A 1.20 + E/e 8.0 -> pseudonormal',
+      pseudo.vd.indexOf('patrón pseudonormal (E/A 1.20, E/e\\' 8.0)') > -1, pseudo.vd],
+    ['y al EN SUMA va MODERADA',
+      pseudo.suma.indexOf('disfunción diastólica moderada') > -1, pseudo.suma],
+    ['E/A 2.50 + E/e 9.1 -> restrictivo',
+      restr.vd.indexOf('patrón restrictivo (E/A 2.50, E/e\\' 9.1)') > -1, restr.vd],
+    ['y al EN SUMA va SEVERA',
+      restr.suma.indexOf('disfunción diastólica severa') > -1, restr.suma],
+
+    // 2 · EL PATRON NORMAL SE DESCRIBE Y NO SUBE. Las dos mitades: que este en el cuerpo Y que
+    //     NO este en el resumen. Sin la segunda, un push de mas seguiria pasando el caso.
+    ['E/A 1.00 + E/e 4.0 se describe como patron normal',
+      normal.vd.indexOf('patrón normal (E/A 1.00, E/e\\' 4.0)') > -1, normal.vd],
+    ['y NO sube ninguna disfuncion al EN SUMA',
+      normal.suma.indexOf('diastólica') === -1 && normal.suma.indexOf('VD') === -1, normal.suma],
+
+    // 3 · SOLO E/A: patron sugestivo, SIN grado.
+    ['E/A 0.60 sin e -> sugestivo de relajacion anormal',
+      relajS.vd.indexOf('patrón sugestivo de relajación anormal (E/A 0.60)') > -1, relajS.vd],
+    ['E/A 2.50 sin e -> sugestivo de llenado restrictivo',
+      restrS.vd.indexOf('patrón sugestivo de llenado restrictivo (E/A 2.50)') > -1, restrS.vd],
+    ['y ninguno de los dos publica un GRADO',
+      relajS.suma.indexOf('leve') === -1 && restrS.suma.indexOf('severa') === -1 &&
+      relajS.suma.indexOf('patrón sugestivo de disfunción diastólica') > -1 &&
+      restrS.suma.indexOf('patrón sugestivo de disfunción diastólica') > -1,
+      relajS.suma + ' // ' + restrS.suma],
+    ['sin E/e no se imprime un E/e inventado', relajS.vd.indexOf("E/e'") === -1, relajS.vd],
+
+    // 4 · LA BANDA DEL MEDIO SIN E/e ES INDETERMINADA, y no afirma disfuncion.
+    ['E/A 1.20 sin e -> normal o pseudonormal, sin decidir',
+      indet.vd.indexOf('patrón sugestivo de llenado normal o pseudonormal (E/A 1.20)') > -1, indet.vd],
+    ['y NO sube al EN SUMA: podria ser normal',
+      indet.suma.indexOf('diastólica') === -1, indet.suma],
+
+    // 5 · SIN E/A NO SE CLASIFICA NADA, tenga o no e.
+    ['con e y sin E/A no hay texto diastolico',
+      soloEp.vd.indexOf('diastólica') === -1, soloEp.vd],
+    ['y sin ningun dato tricuspideo tampoco',
+      nada.vd.indexOf('diastólica') === -1, nada.vd],
+
+    // 6 · LOS DOS AGUJEROS. Son el corazon de este caso: con la cascada que pedia E/e en las
+    //     bandas externas, los dos salian en SILENCIO — y el segundo es el patron mas grave.
+    ['E/A < 0.8 con E/e > 6 NO queda en silencio',
+      hoyoA.vd.indexOf('relajación anormal') > -1 &&
+      hoyoA.suma.indexOf('disfunción diastólica leve') > -1, hoyoA.vd + ' // ' + hoyoA.suma],
+    ['E/A > 2.1 con E/e <= 6 sigue siendo RESTRICTIVO',
+      hoyoB.vd.indexOf('patrón restrictivo') > -1 &&
+      hoyoB.suma.indexOf('disfunción diastólica severa') > -1, hoyoB.vd + ' // ' + hoyoB.suma],
+
+    // 7 · LA ORACION DEL VD: la diastolica se suma, no reemplaza.
+    ['VD dilatado + disfuncion sistolica + restrictivo: los tres en el cuerpo',
+      dilSev.vd.indexOf('dilatado con disfunción sistólica') > -1 &&
+      dilSev.vd.indexOf('patrón restrictivo') > -1, dilSev.vd],
+    ['y los tres en el EN SUMA, en una sola linea',
+      dilSev.suma.indexOf('VD dilatado con disfunción sistólica, disfunción diastólica severa.') > -1,
+      dilSev.suma],
+    ['VD normal con la diastolica alterada tiene linea propia',
+      pseudo.suma.indexOf('VD de dimensiones normales, disfunción diastólica moderada.') > -1,
+      pseudo.suma],
+    ['VD normal y todo normal: silencio en el EN SUMA',
+      todoOk.suma.indexOf('VD') === -1, todoOk.suma],
+    /* LA COMPUERTA DEL BLOQUE. Sin el dato del VD, la oracion entera no se emitia y la
+       diastolica —y la linea del Doppler tricuspideo— desaparecian sin una palabra. */
+    ['con SOLO Doppler tricuspideo el VD igual se nombra',
+      sinVD.vd.indexOf('Ventrículo derecho: función diastólica con patrón restrictivo') > -1, sinVD.vd],
+    ['y la linea del Doppler tricuspideo tambien sale',
+      sinVD.inf.indexOf('Doppler tricuspídeo:') > -1, sinVD.inf.slice(0, 300)],
+
+    // 8 · UMBRALES POR LOS DOS LADOS. El operador es < 0.8, > 2.1 y > 6, no <= ni >=.
+    ['E/A 0.79 es relajacion y 0.80 ya no',
+      ea079.vd.indexOf('relajación anormal') > -1 && ea080.vd.indexOf('relajación anormal') === -1,
+      ea079.vd + ' // ' + ea080.vd],
+    ['E/A 2.11 es restrictivo y 2.10 ya no',
+      ea211.vd.indexOf('patrón restrictivo') > -1 && ea210.vd.indexOf('patrón restrictivo') === -1,
+      ea211.vd + ' // ' + ea210.vd],
+    ['E/e 6.1 es pseudonormal y 6.0 es normal',
+      ee61.vd.indexOf('patrón pseudonormal') > -1 && ee60.vd.indexOf('patrón normal') > -1,
+      ee61.vd + ' // ' + ee60.vd],
+
+    // 9 · LA SALVEDAD DE LA IT SIGNIFICATIVA (ASE: estos parametros pueden no ser validos).
+    ['con IT mod-severa y patron anormal se imprime la salvedad',
+      itSig.inf.indexOf(SALV) > -1, itSig.inf.slice(0, 200)],
+    ['con IT leve NO se imprime', itLeve.inf.indexOf(SALV) === -1],
+    ['y sobre un patron NORMAL tampoco, aunque la IT sea severa',
+      itNormal.inf.indexOf(SALV) === -1]
+  ] };
+`);
+
 /* LAS TRES SUPERFICIES DE CARDIO-ONCO TIENEN QUE DECIR LO MISMO. La leyenda de #ref-cardiotox
    (pestaña Referencias), la tabla de farmacos y las tablas nuevas del marco HFA-ICOS viven en
    DOS pestañas distintas y describen al mismo paciente. Las tres estaban desincronizadas, cada

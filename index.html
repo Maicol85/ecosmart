@@ -16718,6 +16718,119 @@ function calcDopTric(){
 }
 window.calcDopTric = calcDopTric;
 
+/* ══ FUNCIÓN DIASTÓLICA DEL VD — ASE 2025, Tabla 6 ═══════════════════════════════════════════
+   Guía aplicada: **Mukherjee et al., «Guidelines for the Echocardiographic Assessment of the
+   Right Heart in Adults and Special Considerations in Pulmonary Hypertension», JASE marzo 2025;
+   38(3):141-186**. REEMPLAZA a la ASE 2010 (Rudski, JASE 2010;23:685-713), que es la que se cita
+   casi siempre para esto. Los cortes de los patrones NO cambiaron entre las dos ediciones; lo que
+   cambió es que 2025 los publica como TABLA con una columna por patrón, y esa tabla contesta la
+   pregunta que la prosa de 2010 dejaba ambigua (ver abajo).
+
+   EL PATRÓN SALE DEL E/A SOLO. El `E/e'` desempata ÚNICAMENTE la banda del medio:
+
+     | Tabla 6      | Normal        | Relajación | Pseudonormal | Restrictivo |
+     | E/A          | >=0,8 a <2,0  |   <0,8     |  0,8 a 2,1   |    >2,1     |
+     | E/e'         |    <6,0       |   (vacío)  |     >6       |   (vacío)   |
+
+   La celda de `E/e'` está **en blanco** para relajación y para restrictivo: la guía dice, en su
+   propia maquetación, que ahí el cociente no participa. Por eso ninguno de los dos exige `E/e'`.
+
+   DOS AGUJEROS QUE ESTO CIERRA, y los dos silenciaban al paciente MÁS enfermo:
+   · `E/A < 0,8` + `E/e' > 6` — relajación anormal con presiones de llenado elevadas. Con una
+     cascada que pida `E/e' <= 6` para la relajación, este caso no matchea NINGUNA rama y el
+     informe no dice una palabra de la diastólica.
+   · `E/A > 2,1` + `E/e' <= 6` — patrón RESTRICTIVO, el más grave, sin rama y en silencio. La
+     guía lo define con `E/A > 2,1` y tiempo de desaceleración < 120 ms; el `E/e'` no entra.
+   Es el «else mudo» que este archivo ya pagó tres veces: lo que no matchea no se calla, y una
+   negación —o un silencio, que se lee igual— necesita evidencia.
+
+   LO QUE NO SE IMPLEMENTA, Y POR QUÉ. La Tabla 6 sostiene el patrón con cinco filas más:
+   tiempo de desaceleración tricuspídeo, flujo anterógrado diastólico en la arteria pulmonar,
+   relación S/D y predominio diastólico en venas suprahepáticas, y `e'/a'`. **La app no recoge
+   ninguna**, así que acá se clasifica con el subconjunto que sí tiene. Con `E/A` entre 0,8 y 2,1
+   y sin `E/e'`, la guía NO permite decidir entre normal y pseudonormal — y el texto lo dice en
+   vez de elegir. Afirmar «normal» ahí sería la negación sin evidencia de siempre.
+
+   EL TRIV TRICUSPÍDEO NO ENTRA EN ESTA CLASIFICACIÓN AUNQUE LA TABLA 6 LO LISTE. `dt_triv` ya
+   existe y la tabla marca `RV IVRT > 73 ms` como criterio de pseudonormal, pero en esta app ese
+   mismo número ya gobierna OTRA pregunta —signo indirecto de hipertensión pulmonar, corte 60 ms,
+   `DT_TRIV_HTP`—. Son dos umbrales sobre la misma medición para dos preguntas distintas, igual
+   que `VD_BAS_NORMAL_MAX` (41) y `vdBasCat` (>45): este archivo dice explícitamente que NO hay
+   que unificarlos. Sumarlo como segundo criterio de pseudonormal cambiaría la clasificación de
+   estudios que hoy salen indeterminados, y eso no se pidió. Queda declarado.
+
+   ALCANCE (Recomendación 1 de la guía, textual): «Although RV diastolic function is generally
+   feasible in most patients, standardized assessment and reporting are limited mostly to select
+   populations such as patients with or at risk for PH.» No se gatea por eso —la app no puede
+   saber de forma fiable si el paciente está en riesgo de HTP— pero explica por qué esto describe
+   y no diagnostica.
+
+   LA INSUFICIENCIA TRICUSPÍDEA SIGNIFICATIVA SE DECLARA. La ASE 2010 lo dice con todas las
+   letras sobre estos mismos parámetros: «they may not be valid in the presence of significant
+   tricuspid regurgitation». Una IT importante infla la onda E, así que empuja el E/A hacia
+   restrictivo y el E/e' hacia pseudonormal: el sesgo es hacia SOBREDIAGNOSTICAR disfunción. Por
+   eso la salvedad se imprime sólo cuando se afirma un patrón anormal, que es cuando puede
+   engañar — el criterio del «a flujo normal» de la estenosis subaórtica. No bloquea: un gate que
+   grita de más se deja de leer. */
+const DT_EA_RELAJ = 0.8, DT_EA_RESTR = 2.1, DT_EEP_ELEV = 6;
+/* `it_grado` es el hidden de la pastilla: 0 sin · 1 Leve · 2 Moderada · 3 Mod-severa · 4 Severa
+   (`INSUF_TXT`). «Significativa» arranca en mod-severa: con el corte en «moderada» la salvedad
+   saldría en buena parte de los estudios y dejaría de leerse. */
+const DT_IT_SIGNIF = 3;
+
+function dtDiastEstado(){
+  const r = (typeof dopTricEstado === 'function') ? dopTricEstado() : null;
+  /* SIN E/A NO SE CLASIFICA NADA, tenga o no `E/e'`. `dopTricEstado` ya devuelve `ea` en `null`
+     si falta cualquiera de las dos ondas o si alguna cayó fuera de su banda de plausibilidad. */
+  if (!r || r.ea == null) return null;
+  const ea = r.ea, eep = r.eep;
+  const completo = eep != null;
+  let patron, grado = null;
+  if (ea < DT_EA_RELAJ)        { patron = 'relajacion';    grado = 'leve'; }
+  else if (ea > DT_EA_RESTR)   { patron = 'restrictivo';   grado = 'severa'; }
+  else if (!completo)          { patron = 'indeterminado'; }
+  else if (eep > DT_EEP_ELEV)  { patron = 'pseudonormal';  grado = 'moderada'; }
+  else                         { patron = 'normal'; }
+  /* El GRADO exige la clasificación completa. Con el E/A solo, la guía igual nombra el patrón en
+     las dos bandas externas, pero graduar «leve/moderada/severa» sobre un único cociente afirma
+     más de lo que se midió: se nombra el patrón como sugestivo y no se gradúa. */
+  if (!completo) grado = null;
+  const itEl = document.getElementById('it_grado');
+  const itG = itEl ? (parseInt(itEl.value, 10) || 0) : 0;
+  const anormal = patron === 'relajacion' || patron === 'pseudonormal' || patron === 'restrictivo';
+  return { patron, grado, completo, ea, eep, anormal,
+           itSignif: itG >= DT_IT_SIGNIF,
+           /* `indeterminado` NO es anormal: la banda del medio sin `E/e'` puede ser normal, y
+              mandarla al EN SUMA afirmaría una disfunción que no se estableció. */
+           indet: patron === 'indeterminado' };
+}
+window.dtDiastEstado = dtDiastEstado;
+
+/* Las etiquetas viven acá y no repartidas: el cuerpo del informe y el EN SUMA leen las mismas. */
+function dtDiastPatronLbl(r){
+  if (!r) return '';
+  if (r.patron === 'relajacion')    return r.completo ? 'de relajación anormal' : 'sugestivo de relajación anormal';
+  if (r.patron === 'restrictivo')   return r.completo ? 'restrictivo' : 'sugestivo de llenado restrictivo';
+  if (r.patron === 'pseudonormal')  return 'pseudonormal';
+  if (r.patron === 'indeterminado') return 'sugestivo de llenado normal o pseudonormal';
+  return 'normal';
+}
+window.dtDiastPatronLbl = dtDiastPatronLbl;
+
+/* La cláusula que se cuelga de la oración del VD. `hayPrevia` dice si la oración ya trae una
+   cláusula de tamaño o de función sistólica: sin ella, «Ventrículo derecho y función diastólica…»
+   queda sin sujeto y «con … con …» se repite, así que se usa dos puntos. */
+function dtDiastClausula(hayPrevia){
+  const r = dtDiastEstado();
+  if (!r) return '';
+  const med = [];
+  med.push('E/A ' + r.ea.toFixed(2));                 // mismo formato que la cápsula (`calcDopTric`)
+  if (r.eep != null) med.push("E/e' " + r.eep.toFixed(1));
+  const txt = 'función diastólica con patrón ' + dtDiastPatronLbl(r) + ' (' + med.join(', ') + ')';
+  return hayPrevia ? ' y ' + txt : ': ' + txt;
+}
+window.dtDiastClausula = dtDiastClausula;
+
 /* La frase del informe, expuesta para que la hoja del PDF use LA MISMA y no una copia. */
 function dopTricFrase(){
   const r = dopTricEstado();
@@ -21055,8 +21168,18 @@ function generarInforme(opts) {
        medido y dilatado, el tamaño queda sin enunciar y se pide verificar la medición. */
     const hayTam  = vdDs.length > 0 && !(vdFuera.length && !vdDils.length);
     const hayFunc = tapse !== null || sp !== null || facVD !== null;
+    /* LA DIASTÓLICA ENTRA EN LA COMPUERTA, y cierra un agujero preexistente.
+       `dopTricFrase()` se empuja DENTRO de este bloque, así que hasta hoy un estudio con el
+       Doppler tricuspídeo cargado y ningún diámetro ni TAPSE ni S' ni FAC perdía la línea entera
+       —«Doppler tricuspídeo: E …, A …, E/A …»— sin una palabra: el médico la tipeó y no aparecía
+       en ningún lado. Es exactamente el defecto que el comentario de arriba describe para
+       `tapse || sp`, reintroducido por la puerta de al lado al agregar el bloque tricuspídeo.
+       Con la diastólica colgando de la misma compuerta habría heredado el mismo silencio, y ahí
+       lo que se pierde es un patrón restrictivo. */
+    const _dd = (typeof dtDiastEstado === 'function') ? dtDiastEstado() : null;
+    const _dtHay = (typeof dopTricFrase === 'function') && !!dopTricFrase();
     // `vdFuera` también entra: un valor ilegible no puede desaparecer del informe en silencio.
-    if (hayTam || hayFunc || vdFuera.length) {
+    if (hayTam || hayFunc || vdFuera.length || _dd || _dtHay) {
       /* El GRADO sale de `vdBasCat`, la misma función que pinta la cápsula, en vez de un
          `> 41` propio. Con el umbral suelto, un VD basal de 43 mm daba «Leve (>41 y ≤45mm)» en
          pantalla y «Ventrículo derecho dilatado» en el informe firmado — dos respuestas a la
@@ -21114,7 +21237,16 @@ function generarInforme(opts) {
       const datosVDp = medVD.length ? ` (${medVD.join(', ')})` : '';
       const _vdFueraTxt = vdFuera.length
         ? ` Verificar la medición: ${vdFuera.map(d => d.lblC + ' ' + d.val + ' mm').join(', ')} fuera de rango plausible.` : '';
-      inf.push(estiloPick(`${vdC}${datosVDp}.${_vdFueraTxt}`, `${vdE}${datosVDp}.${_vdFueraTxt}`, `${vdN}${datosVDp}.${_vdFueraTxt}`));
+      /* La diastólica se cuelga al final de la oración, DESPUÉS de la función sistólica y de sus
+         medidas entre paréntesis. El conector depende de que haya una cláusula previa. */
+      const _ddCl = (typeof dtDiastClausula === 'function') ? dtDiastClausula(!!(tamTxt || funcTxt)) : '';
+      /* La salvedad sólo cuando se AFIRMA un patrón anormal: es cuando el sesgo de la IT puede
+         engañar. Sobre un patrón normal no aporta y agrega ruido. */
+      const _ddItTxt = (_dd && _dd.anormal && _dd.itSignif)
+        ? ' La insuficiencia tricuspídea significativa puede invalidar estos parámetros de llenado (ASE).' : '';
+      inf.push(estiloPick(`${vdC}${datosVDp}${_ddCl}.${_vdFueraTxt}${_ddItTxt}`,
+                          `${vdE}${datosVDp}${_ddCl}.${_vdFueraTxt}${_ddItTxt}`,
+                          `${vdN}${datosVDp}${_ddCl}.${_vdFueraTxt}${_ddItTxt}`));
 
       /* ── Doppler tricuspídeo: llenado y relajación del VD ──
          Va DESPUÉS del VD y su función sistólica y ANTES de la aurícula derecha y la aorta: es
@@ -21130,11 +21262,29 @@ function generarInforme(opts) {
       /* Cada mitad de la frase exige SU dato. Una primera versión decía «VD dilatado con función
          sistólica conservada» sobre un estudio con el VD basal medido y ni TAPSE ni S' ni FAC:
          la conclusión afirmaba una función que nadie evaluó. Medido en el barrido. */
-      if (vdDilat && vdDisf)                suma.push(`VD ${tamTxt} con disfunción sistólica.`);
-      else if (vdDilat && hayFunc)          suma.push(`VD ${tamTxt} con función sistólica conservada.`);
-      else if (vdDilat)                     suma.push(`VD ${tamTxt}.`);
-      else if (vdDisf && hayTam)            suma.push('VD de dimensiones normales con disfunción sistólica.');
-      else if (vdDisf)                      suma.push('VD con disfunción sistólica.');
+      /* La diastólica se SUMA a la línea existente en vez de crear una segunda: tamaño, sistólica
+         y diastólica son tres propiedades del mismo ventrículo y en el resumen se leen juntas.
+         Cada una entra SÓLO si está alterada — un patrón normal no es un hallazgo, igual que un
+         VD de dimensiones normales o la geometría normal del VI.
+         `indeterminado` NO entra: la banda 0,8-2,1 sin `E/e'` puede ser normal, y publicar
+         «patrón sugestivo de disfunción diastólica» sobre eso es afirmar lo que no se estableció.
+         Sin `E/e'` se nombra el patrón y NO el grado: graduar con un solo cociente afirma de más.
+         La redacción sin diastólica queda EXACTAMENTE como estaba: este cambio no reescribe el
+         EN SUMA de ningún estudio que no tenga el Doppler tricuspídeo cargado. */
+      const _ddSuma = (_dd && _dd.anormal)
+        ? (_dd.grado ? `disfunción diastólica ${_dd.grado}` : 'patrón sugestivo de disfunción diastólica')
+        : '';
+      const _ddCola = _ddSuma ? `, ${_ddSuma}` : '';
+      if (vdDilat && vdDisf)                suma.push(`VD ${tamTxt} con disfunción sistólica${_ddCola}.`);
+      else if (vdDilat && hayFunc)          suma.push(`VD ${tamTxt} con función sistólica conservada${_ddCola}.`);
+      else if (vdDilat)                     suma.push(`VD ${tamTxt}${_ddCola}.`);
+      else if (vdDisf && hayTam)            suma.push(`VD de dimensiones normales con disfunción sistólica${_ddCola}.`);
+      else if (vdDisf)                      suma.push(`VD con disfunción sistólica${_ddCola}.`);
+      /* El VD normal —o sin medir— con la diastólica alterada necesita línea propia: sin estas
+         dos ramas el hallazgo se perdía, porque las cinco de arriba exigen dilatación o
+         disfunción sistólica. */
+      else if (_ddSuma && hayTam)           suma.push(`VD de dimensiones normales, ${_ddSuma}.`);
+      else if (_ddSuma)                     suma.push(`VD con ${_ddSuma}.`);
       /* La FAC severa va como línea PROPIA y no reemplaza a la de arriba: la de arriba dice
          tamaño y función, ésta gradúa. Lleva el número porque es el que sostiene la palabra
          «severa» y sin él la afirmación no se puede auditar. */
@@ -53410,8 +53560,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260915-2225';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789521909073;                 /* eco-build-ms */
+const ECO_BUILD    = '20260915-2242';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789522944768;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -53497,7 +53647,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260915-2225</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260915-2242</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

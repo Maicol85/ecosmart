@@ -460,6 +460,79 @@ Se recuperó con `git show HEAD:` y se verificó **byte por byte** contra HEAD. 
 entrada «Los reemplazos por rango de líneas son peligrosos» que este archivo ya tenía, aplicada al
 propio suite: **después de un reemplazo por rango, contar los casos.**
 
+### Diastólica del VD: el patrón sale del E/A solo — y exigir E/e' abría dos silencios
+Agregada el 2026-09-16. Guía aplicada: **ASE 2025** (Mukherjee et al., *JASE* 2025;38(3):141-186,
+**Tabla 6**), que **reemplaza a la ASE 2010** (Rudski, *JASE* 2010;23:685-713) — la que se cita
+casi siempre para esto. Los cortes no cambiaron entre ediciones; lo que cambió es que 2025 los
+publica como tabla con **una columna por patrón**, y esa tabla contesta lo que la prosa de 2010
+dejaba ambiguo.
+
+| Tabla 6 | Normal | Relajación | Pseudonormal | Restrictivo |
+|---|---|---|---|---|
+| **E/A** | ≥0,8 a <2,0 | **<0,8** | **0,8 a 2,1** | **>2,1** |
+| **E/e'** | <6,0 | *(vacío)* | **>6** | *(vacío)* |
+
+**La celda de `E/e'` está EN BLANCO para relajación y para restrictivo.** La guía dice, en su
+propia maquetación, que ahí el cociente no participa: el patrón sale del **E/A solo** y el `E/e'`
+desempata **únicamente** la banda del medio.
+
+**El pedido traía una cascada que exigía `E/e'` en las tres bandas, y eso dejaba DOS
+combinaciones sin ninguna rama — las dos en silencio, las dos del paciente más enfermo:**
+- **`E/A < 0,8` + `E/e' > 6`** — relajación anormal *con presiones de llenado elevadas*. No
+  matcheaba «E/A<0,8 + E/e'≤6» ni ninguna otra: el informe no decía una palabra de la diastólica.
+- **`E/A > 2,1` + `E/e' ≤ 6`** — **patrón restrictivo, el más grave**, sin rama. La guía lo define
+  por `E/A > 2,1` y tiempo de desaceleración < 120 ms; el `E/e'` no entra en ese renglón.
+
+Es el «else mudo» que este archivo ya pagó tres veces. **Los cuatro escenarios que el pedido
+enumeraba dan exactamente el mismo resultado con una cascada y con la otra** — la diferencia son
+sólo esos dos huecos, y los dos se cierran hacia NOMBRAR el hallazgo.
+
+**El grado exige la clasificación completa.** Con el `E/A` solo la guía igual nombra el patrón en
+las bandas externas, pero graduar «leve/moderada/severa» sobre un único cociente afirma más de lo
+medido: se dice «patrón sugestivo de…» y **no se gradúa**. Decisión editorial del pedido, honrada.
+
+**`indeterminado` NO sube al EN SUMA.** La banda 0,8-2,1 sin `E/e'` **puede ser normal**, así que
+publicar «patrón sugestivo de disfunción diastólica» ahí afirma lo que no se estableció. Se
+describe en el cuerpo («patrón sugestivo de llenado normal o pseudonormal») y no se resume.
+
+**LA COMPUERTA DEL BLOQUE DEL VD TENÍA UN AGUJERO PREEXISTENTE, y lo destapó esto.**
+`dopTricFrase()` se empuja **dentro** de `if (hayTam || hayFunc || vdFuera.length)`, así que un
+estudio con el Doppler tricuspídeo cargado y **ningún** diámetro, TAPSE, S' ni FAC perdía la línea
+entera —«Doppler tricuspídeo: E …, A …, E/A …»— sin una palabra. Es el mismo defecto que el
+comentario de esa función describe para `tapse || sp`, reintroducido por la puerta de al lado al
+agregar el bloque tricuspídeo dos tareas antes. Hoy la compuerta incluye el estado diastólico y la
+frase tricuspídea; sin eso, la diastólica habría heredado el silencio y ahí lo que se pierde es un
+patrón restrictivo.
+
+**La IT significativa se DECLARA, no bloquea.** La ASE 2010 lo dice textual sobre estos mismos
+parámetros: *«they may not be valid in the presence of significant tricuspid regurgitation»*. Una
+IT importante infla la onda E, así que empuja el `E/A` hacia restrictivo y el `E/e'` hacia
+pseudonormal: **el sesgo es hacia sobrediagnosticar**. La salvedad se imprime **sólo cuando se
+afirma un patrón anormal** —que es cuando puede engañar— y el corte es `it_grado ≥ 3`
+(mod-severa): con el corte en «moderada» saldría en media base y dejaría de leerse.
+
+**EL TRIV TRICUSPÍDEO NO ENTRA, aunque la Tabla 6 lo liste.** `dt_triv` existe y la tabla marca
+`RV IVRT > 73 ms` como criterio de pseudonormal — pero en esta app ese mismo número ya gobierna
+**otra** pregunta: signo indirecto de HTP con corte **60 ms** (`DT_TRIV_HTP`). Son dos umbrales
+sobre la misma medición para dos preguntas distintas, igual que `VD_BAS_NORMAL_MAX` (41) y
+`vdBasCat` (>45), que este archivo dice explícitamente que **no** hay que unificar. Sumarlo
+cambiaría la clasificación de los estudios que hoy salen indeterminados. **Declarado, no hecho.**
+
+**Las otras cinco filas de la Tabla 6 tampoco están**: tiempo de desaceleración tricuspídeo, flujo
+anterógrado diastólico en la arteria pulmonar, relación S/D y predominio diastólico de venas
+suprahepáticas, y `e'/a'`. La app no recoge ninguna. Por eso la banda del medio sin `E/e'` queda
+indeterminada en vez de resolverse.
+
+**Alcance, textual (Recomendación 1):** *«Although RV diastolic function is generally feasible in
+most patients, standardized assessment and reporting are limited mostly to select populations such
+as patients with or at risk for PH.»* No se gatea por eso —la app no puede saber si el paciente
+está en riesgo de HTP— pero explica por qué esto describe y no diagnostica.
+
+**Lo fija TC-136** con 28 condiciones y **siete mutaciones**, entre ellas la que reintroduce la
+cascada del pedido: pone en rojo exactamente las dos condiciones de los huecos. Los umbrales se
+prueban **por los dos lados** (`0,79`/`0,80` · `2,10`/`2,11` · `6,0`/`6,1`) porque el operador es
+`<`, `>` y `>`, no `<=` ni `>=`.
+
 ### Doppler tricuspídeo: de cuatro campos pedidos, sólo uno era nuevo
 Agregado el 2026-09-16 al bloque tricuspídeo: **`dt_onda_e`**, **`dt_onda_a`**, **`dt_eprime_lat`**
 y **`dt_triv`**, con `E/A` y `E/e'` calculados. **Antes de crear un campo se verificaron los tres
