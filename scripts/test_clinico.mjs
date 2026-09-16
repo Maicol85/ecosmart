@@ -4624,6 +4624,86 @@ caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el La
   ] };
 `);
 
+/* ORDEN DE LAS TABS AVANZADAS (2026-09-16).
+   TC-123 NO cubre esto: busca los botones por showTab('id'), asi que es independiente del orden
+   y pasaba igual antes y despues. Lo unico que cambia acá es la POSICION, y tres superficies la
+   derivan: la fila de botones, el desplegable de movil (ecoAdvBuild recorre el DOM) y las
+   casillas de Config (cfgRenderModulos dibuja en el orden de EE_MODULES, que NO se deriva del
+   DOM y hay que mantener a mano).
+   Lo que este caso protege es que reordenar no rompa lo que cuelga de las CLAVES: ids, data-mod
+   y las preferencias de localStorage, que son por clave y no por posicion. */
+caso('TC-144', 'Tabs avanzadas: el orden nuevo en las tres superficies, y las claves intactas', `
+  const leer = function(sel){ return [].slice.call(document.querySelectorAll(sel)).map(function(b){
+    const m = (b.getAttribute('onclick') || '').match(/showTab\\('([^']+)'\\)/);
+    return { txt:(b.textContent||'').trim(), id:m?m[1]:null, mod:b.getAttribute('data-mod') }; }); };
+  const f1 = leer('.tabs-special .tab-btn'), f2 = leer('.tabs-tools .tab-btn');
+  const ORDEN_IDS = ['hemodinamica','pulmonar','ete','cardioOnco','amiloidosis','congenitas','congenitas2'];
+  const ORDEN_TOOLS = ['calculadoras','fono','refs'];
+  /* Las claves que NO pueden cambiar: son las de ett_modules en localStorage y las de data-mod. */
+  const MOD = { hemodinamica:'hemodinamica', pulmonar:'pulmonar', ete:'ete', cardioOnco:'cardioOnco',
+    amiloidosis:'amiloidosis', congenitas:'congenitas', congenitas2:'congenitas',
+    calculadoras:'calculadoras', fono:'fono', refs:'refs' };
+
+  /* Cada boton abre SU panel — lo que el reorden podria haber cruzado. */
+  const noAbren = [];
+  f1.concat(f2).forEach(function(x){ showTab(x.id);
+    const p = document.getElementById('tab-' + x.id);
+    if (!p || getComputedStyle(p).display === 'none') noAbren.push(x.id); });
+  showTab('datos');
+
+  try { ecoAdvBuild(); } catch(e) {}
+  const sel = document.getElementById('ecoAdvSelect');
+  const opts = sel ? [].slice.call(sel.options).slice(1).map(function(o){ return o.value; }) : [];
+
+  /* PREFERENCIAS POR CLAVE, no por posicion: apagar un modulo tiene que seguir ocultando SU
+     boton despues de moverlo de lugar. */
+  const prevLS = localStorage.getItem('ett_modules');
+  localStorage.setItem('ett_modules', JSON.stringify({ pulmonar:false }));
+  applyViewMode();
+  const btnPul = [].slice.call(document.querySelectorAll('.tabs-special .tab-btn'))
+    .filter(function(b){ return b.getAttribute('data-mod') === 'pulmonar'; })[0];
+  const ocultoPul = btnPul ? getComputedStyle(btnPul).display === 'none' : null;
+  const btnHemo = [].slice.call(document.querySelectorAll('.tabs-special .tab-btn'))
+    .filter(function(b){ return b.getAttribute('data-mod') === 'hemodinamica'; })[0];
+  const visibleHemo = btnHemo ? getComputedStyle(btnHemo).display !== 'none' : null;
+  if (prevLS === null) { try { localStorage.removeItem('ett_modules'); } catch(e){} }
+  else { try { localStorage.setItem('ett_modules', prevLS); } catch(e){} }
+  applyViewMode();
+
+  return { extra: [
+    // 1 · EL ORDEN, en las tres superficies.
+    ['la fila de patologias esta en el orden nuevo',
+      f1.map(function(x){ return x.id; }).join(',') === ORDEN_IDS.join(','),
+      f1.map(function(x){ return x.id; }).join(',')],
+    ['y la de herramientas no se movio',
+      f2.map(function(x){ return x.id; }).join(',') === ORDEN_TOOLS.join(','),
+      f2.map(function(x){ return x.id; }).join(',')],
+    ['son diez botones', f1.length + f2.length === 10, String(f1.length + f2.length)],
+    /* El desplegable de movil DERIVA del DOM, asi que sigue solo — pero es la unica via a las
+       avanzadas por debajo de 768px y si dejara de seguirlo nadie lo notaria en escritorio. */
+    ['el desplegable de movil sigue el mismo orden',
+      opts.join(',') === ORDEN_IDS.concat(ORDEN_TOOLS).join(','), opts.join(',')],
+    /* EE_MODULES no se deriva del DOM: es la copia a mano que ordena las casillas de Config. */
+    ['las casillas de Config siguen el orden de los botones',
+      EE_MODULES.map(function(m){ return m.key; }).join(',') ===
+        ['hemodinamica','pulmonar','ete','cardioOnco','amiloidosis','congenitas','calculadoras','fono','refs'].join(','),
+      EE_MODULES.map(function(m){ return m.key; }).join(',')],
+
+    // 2 · LAS CLAVES NO SE TOCARON. Es lo que cuelga de localStorage y de showTab.
+    ['ningun data-mod cambio',
+      f1.concat(f2).every(function(x){ return MOD[x.id] === x.mod; }),
+      f1.concat(f2).map(function(x){ return x.id + '=' + x.mod; }).join(' ')],
+    ['las dos CC comparten data-mod: son UN modulo partido en dos',
+      f1.filter(function(x){ return x.id.indexOf('congenitas') === 0; })
+        .every(function(x){ return x.mod === 'congenitas'; })],
+    ['cada boton abre su propio panel', noAbren.length === 0, noAbren.join(',')],
+
+    // 3 · LAS PREFERENCIAS SON POR CLAVE, no por posicion.
+    ['apagar un modulo sigue ocultando SU boton tras el reorden', ocultoPul === true],
+    ['y no toca a los demas', visibleHemo === true]
+  ] };
+`);
+
 /* S3 y S4 — XSS ALMACENADO, CERRADOS DESDE ANTES Y SIN COBERTURA HASTA HOY (2026-09-16).
    S3: en_suma iba a innerHTML sin escapar en la vista de un estudio guardado.
    S4: nombre y documento se interpolaban dentro del onclick de «Evolución», asi que un

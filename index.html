@@ -1717,7 +1717,10 @@ window.cerrarSesion = cerrarSesion;
       <!-- FILA SUPERIOR — Patologías especiales (visible solo en Modo Avanzado) -->
       <div class="tabs-row tabs-special">
         <button class="tab-btn tab-special" data-mod="hemodinamica" onclick="showTab('hemodinamica')">🫀 Hemodinámica</button>
+        <button class="tab-btn tab-special" data-mod="pulmonar" onclick="showTab('pulmonar')">🫁 Eco Pulmonar</button>
         <button class="tab-btn tab-special" data-mod="ete" onclick="showTab('ete')">🔬 ETE</button>
+        <button class="tab-btn tab-special" data-mod="cardioOnco" onclick="showTab('cardioOnco')">❤️ Cardio-Oncología</button>
+        <button class="tab-btn tab-special" data-mod="amiloidosis" onclick="showTab('amiloidosis')">🧬 Amiloidosis</button>
         <button class="tab-btn tab-special" data-mod="congenitas" onclick="showTab('congenitas')">🧬 CC frecuentes</button>
         <button class="tab-btn tab-special" data-mod="congenitas" onclick="showTab('congenitas2')">🧬 CC complejas</button>
         <!-- data-mod="congenitas" y NO "congenitas2": las dos pestañas son UN solo modulo,
@@ -1725,9 +1728,6 @@ window.cerrarSesion = cerrarSesion;
              Config —cfgRenderModulos solo dibuja las claves de EE_MODULES— asi que no se
              podia apagar, y destildar "Congenitas" escondia la primera y dejaba la segunda:
              medio modulo. Lo gritaba el propio arranque de la app. -->
-        <button class="tab-btn tab-special" data-mod="amiloidosis" onclick="showTab('amiloidosis')">🧬 Amiloidosis</button>
-        <button class="tab-btn tab-special" data-mod="cardioOnco" onclick="showTab('cardioOnco')">❤️ Cardio-Oncología</button>
-        <button class="tab-btn tab-special" data-mod="pulmonar" onclick="showTab('pulmonar')">🫁 Eco Pulmonar</button>
       </div>
       <!-- FILA INFERIOR — Herramientas de apoyo (siempre visible) -->
       <div class="tabs-row tabs-tools">
@@ -13348,8 +13348,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <div class="card-body">
         <div style="font-size:.78rem;color:var(--text2);line-height:1.6;margin-bottom:4px;">
           Los filtros definen una <b>cohorte</b>: al aplicarlos, <b>todas</b> las pestañas del Laboratorio
-          —General, Mediciones, Asociaciones, Calidad, Avanzado, Hemodinámica, CC/Genéticas, ETE,
-          Por médico, Comparar períodos y el PDF de auditoría— se recalculan sobre ella.
+          —General, Mediciones, Avanzado, ETE, CC/Genéticas, Informe y Asociaciones— y el PDF de
+          auditoría se recalculan sobre ella.
           El <b>período</b> y los <b>centros</b> se siguen eligiendo en la pestaña General y se combinan con esto.
         </div>
         <div style="font-size:.75rem;color:var(--text2);background:var(--bg3);border-left:3px solid var(--accent);border-radius:6px;padding:8px 10px;line-height:1.55;">
@@ -54321,8 +54321,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260916-0043';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789530188243;                 /* eco-build-ms */
+const ECO_BUILD    = '20260916-0102';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789531333985;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -54408,7 +54408,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0043</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0102</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -54702,13 +54702,17 @@ window.ecoMedToggle=ecoMedToggle;
    abierta y muda. Se agregó 2026-09-10.
    Al sumar una tab modular: entrada acá Y `data-mod` en el botón. El chequeo de arranque de
    más abajo avisa por consola si vuelven a separarse. */
+/* EL ORDEN ES EL DE LOS BOTONES, a propósito: `cfgRenderModulos` dibuja las casillas en el orden
+   de este array, así que si diverge del de la fila de pestañas el médico busca «Eco Pulmonar» en
+   Config donde la vio arriba y no está. Las CLAVES no se tocan nunca — son las de `ett_modules`
+   en localStorage y las de `data-mod`; lo único que se reordena es la lista. */
 var EE_MODULES = [
   {key:'hemodinamica', label:'🩸 Hemodinámica'},
-  {key:'ete',          label:'🔬 ETE'},
   {key:'pulmonar',     label:'🫁 Eco Pulmonar'},
-  {key:'congenitas',   label:'🧬 CC frecuentes y complejas'},
-  {key:'amiloidosis',  label:'🫀 Amiloidosis'},
+  {key:'ete',          label:'🔬 ETE'},
   {key:'cardioOnco',   label:'🎗️ Cardio-Oncología'},
+  {key:'amiloidosis',  label:'🫀 Amiloidosis'},
+  {key:'congenitas',   label:'🧬 CC frecuentes y complejas'},
   {key:'calculadoras', label:'🧮 Calculadoras'},
   {key:'fono',         label:'🔊 Fonocardiograma'},
   {key:'refs',         label:'📚 Referencias'}
@@ -54942,7 +54946,7 @@ const ECO_AYUDA = [
   <div class="mSub">Cómo está organizada la pantalla</div>
   <ul class="mUl">
     <li><b>Rail izquierdo</b> — el estudio en sí: Paciente, AI/VI, VD/AD, Doppler, Válvulas, Contractilidad, SGL, Otros, Imágenes, y Config abajo. Siempre visible.</li>
-    <li><b>Fila de arriba a la derecha</b> — patologías especiales: Hemodinámica, ETE, Amiloidosis, Cardio-Oncología, Eco Pulmonar. Sólo en Modo Avanzado.</li>
+    <li><b>Fila de arriba a la derecha</b> — patologías especiales, en este orden: Hemodinámica, Eco Pulmonar, ETE, Cardio-Oncología, Amiloidosis, CC frecuentes y CC complejas. Sólo en Modo Avanzado.</li>
     <li><b>Segunda fila</b> — herramientas: Calculadoras, Fonocardiograma, Referencias. También sólo en Modo Avanzado.</li>
     <li><b>Barra de abajo</b> — Informe, Guardados, Nuevo Estudio y Laboratorio. Siempre visibles, en los dos modos.</li>
   </ul>

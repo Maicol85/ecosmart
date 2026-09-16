@@ -460,6 +460,39 @@ Se recuperó con `git show HEAD:` y se verificó **byte por byte** contra HEAD. 
 entrada «Los reemplazos por rango de líneas son peligrosos» que este archivo ya tenía, aplicada al
 propio suite: **después de un reemplazo por rango, contar los casos.**
 
+### El orden de las tabs avanzadas vive en TRES superficies, y sólo dos se derivan
+Reordenadas el 2026-09-16 a: **Hemodinámica · Eco Pulmonar · ETE · Cardio-Oncología · Amiloidosis ·
+CC frecuentes · CC complejas** (patologías) y **Calculadoras · Fonocardiograma · Referencias**
+(herramientas, sin cambios).
+
+**Nada de lo que cuelga de las tabs es posicional**, y eso es lo que hace que reordenar sea seguro:
+`showTab` va por id, `data-mod` por clave, y `ett_modules` en `localStorage` es un objeto
+clave→booleano. Verificado apagando «pulmonar» **después** de moverla: sigue ocultando su botón y
+no toca a los demás.
+
+**El desplegable de móvil se deriva solo**: `ecoAdvBuild` recorre `.subtabs-wrap .tab-btn` en orden
+del DOM. Importa verificarlo igual, porque por debajo de 768 px **es la única vía** a las avanzadas
+y si dejara de seguir el orden nadie lo notaría desde el escritorio.
+
+**`EE_MODULES` NO se deriva del DOM** — es la copia a mano que ordena las casillas de Config, y hay
+que reordenarla en paralelo. La guarda de arranque que ya existe compara los CONJUNTOS de claves,
+no el orden, así que una divergencia de orden es muda: el médico busca «Eco Pulmonar» en Config
+donde la vio arriba y no está. **Las claves no se tocan nunca.**
+
+**El comentario de las dos CC viaja con ellas.** Explica por qué `congenitas2` lleva
+`data-mod="congenitas"` —son un módulo partido en dos, y con `data-mod` propio la segunda no tenía
+casilla en Config—, así que se mueve junto a los dos botones que describe. Es la misma regla que en
+el reorden de Avanzado del Laboratorio.
+
+**TC-123 NO cubría el orden**: busca los botones por `showTab('id')`, así que pasaba igual antes y
+después. No había que actualizarlo — lo que faltaba era un caso del orden, y es **TC-144**.
+
+**Y el reorden destapó una frase vieja de la tarea anterior.** El panel de Filtros del Laboratorio
+enumera, en TEXTO VISIBLE, las pestañas que la cohorte recalcula: seguía diciendo «Calidad,
+Hemodinámica, Por médico, Comparar períodos» cuatro commits después de que las plegara. Un
+enumerado en prosa no lo cubre ningún test y no lo mueve ningún grep de código — al plegar o
+renombrar una pestaña hay que buscar también **el texto que la nombra para el usuario**.
+
 ### Un hallazgo de auditoría por NÚMERO DE LÍNEA apunta a otro archivo
 El 2026-09-16 volvieron S3 y S4 —los dos XSS almacenados— citando las líneas **16162** y **13273**.
 Los dos estaban cerrados hace rato, y esas líneas hoy son **un comentario del módulo de pericardio
