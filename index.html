@@ -13988,6 +13988,27 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
   </div>
 
+  <!-- SECCIÓN: DOPPLER TRICUSPÍDEO -->
+  <div class="lab-card">
+    <div class="lab-card-hdr">🔺 Doppler tricuspídeo y función diastólica del VD</div>
+    <div class="lab-card-body">
+      <div class="lab-grid">
+        <div id="lab-med-dt-stats"></div>
+        <div><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:0 0 8px;text-transform:uppercase;letter-spacing:.4px;">Patrón diastólico del VD</div><div class="lab-bar-wrap" id="lab-med-dt-bars"></div></div>
+      </div>
+      <div id="lab-med-dt-nota" style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.5;"></div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN: MORFOLOGÍA Y ETIOLOGÍA VALVULAR -->
+  <div class="lab-card">
+    <div class="lab-card-hdr">🫀 Morfología y etiología valvular</div>
+    <div class="lab-card-body">
+      <div id="lab-med-etiol-cont"></div>
+      <div id="lab-med-etiol-nota" style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.5;"></div>
+    </div>
+  </div>
+
   <!-- SECCIÓN: ESTADÍSTICA DESCRIPTIVA -->
   <div class="lab-card">
     <div class="lab-card-hdr">📈 Estadística descriptiva</div>
@@ -14410,6 +14431,51 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <div><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:0 0 8px;text-transform:uppercase;letter-spacing:.4px;">Grado de Celermajer</div><div class="lab-bar-wrap" id="lab-cc-ebs-bars"></div><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:12px 0 8px;text-transform:uppercase;letter-spacing:.4px;">Insuficiencia tricuspídea</div><div class="lab-bar-wrap" id="lab-cc-ebs-it-bars"></div></div>
       </div>
       <div id="lab-cc-ebs-nota" style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.5;"></div>
+    </div>
+  </div>
+
+
+  <div class="lab-card">
+    <div class="lab-card-hdr">🧬 Marfan / aortopatía hereditaria</div>
+    <div class="lab-card-body">
+      <div class="lab-grid">
+        <div id="lab-cc-marfan-stats"></div>
+        <div><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:0 0 8px;text-transform:uppercase;letter-spacing:.4px;">Síndrome</div><div class="lab-bar-wrap" id="lab-cc-marfan-bars"></div><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:12px 0 8px;text-transform:uppercase;letter-spacing:.4px;">Indicación quirúrgica (ESC 2024)</div><div class="lab-bar-wrap" id="lab-cc-marfan-cx-bars"></div></div>
+      </div>
+      <div id="lab-cc-marfan-nota" style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.5;"></div>
+    </div>
+  </div>
+
+  <div class="lab-card">
+    <div class="lab-card-hdr">🫁 Síndrome de Eisenmenger</div>
+    <div class="lab-card-body">
+      <div class="lab-grid">
+        <div id="lab-cc-eisen-stats"></div>
+        <div><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:0 0 8px;text-transform:uppercase;letter-spacing:.4px;">Clase funcional NYHA</div><div class="lab-bar-wrap" id="lab-cc-eisen-bars"></div><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:12px 0 8px;text-transform:uppercase;letter-spacing:.4px;">Lesión de base</div><div class="lab-bar-wrap" id="lab-cc-eisen-les-bars"></div></div>
+      </div>
+      <div id="lab-cc-eisen-nota" style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.5;"></div>
+    </div>
+  </div>
+
+  <div class="lab-card">
+    <div class="lab-card-hdr">🔄 Circulación de Fontan</div>
+    <div class="lab-card-body">
+      <div class="lab-grid">
+        <div id="lab-cc-fontan-stats"></div>
+        <div><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:0 0 8px;text-transform:uppercase;letter-spacing:.4px;">Tipo de circulación</div><div class="lab-bar-wrap" id="lab-cc-fontan-bars"></div><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:12px 0 8px;text-transform:uppercase;letter-spacing:.4px;">Riesgo de embarazo OMS</div><div class="lab-bar-wrap" id="lab-cc-fontan-oms-bars"></div></div>
+      </div>
+      <div id="lab-cc-fontan-nota" style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.5;"></div>
+    </div>
+  </div>
+
+  <div class="lab-card">
+    <div class="lab-card-hdr">📋 Subaórtica · Supravalvular · DSAV · CVPA</div>
+    <div class="lab-card-body">
+      <div class="lab-grid">
+        <div id="lab-cc-otras-stats"></div>
+        <div><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:0 0 8px;text-transform:uppercase;letter-spacing:.4px;">DSAV — tipo</div><div class="lab-bar-wrap" id="lab-cc-otras-bars"></div></div>
+      </div>
+      <div id="lab-cc-otras-nota" style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.5;"></div>
     </div>
   </div>
 
@@ -16790,9 +16856,10 @@ function htpIndirectosFrase(){
 }
 window.htpIndirectosFrase = htpIndirectosFrase;
 
-function dopTricEstado(){
-  const nv = id => { const e = document.getElementById(id); if (!e) return null;
-    const n = parseFloat(String(e.value).replace(',', '.')); return isFinite(n) ? n : null; };
+function dopTricEstado(src){
+  const nv = id => { const r = src ? src[id] : (document.getElementById(id) || {}).value;
+    if (r === undefined || r === null || r === '') return null;
+    const n = parseFloat(String(r).replace(',', '.')); return isFinite(n) ? n : null; };
   const banda = (v, lo, hi) => v != null && v >= lo && v <= hi;
   const e = nv('dt_onda_e'), a = nv('dt_onda_a'), ep = nv('dt_eprime_lat'), triv = nv('dt_triv');
   const tap = nv('tvia');                       // TAP: id real del bloque VD, no un campo propio
@@ -16891,8 +16958,8 @@ const DT_EA_RELAJ = 0.8, DT_EA_RESTR = 2.1, DT_EEP_ELEV = 6;
    saldría en buena parte de los estudios y dejaría de leerse. */
 const DT_IT_SIGNIF = 3;
 
-function dtDiastEstado(){
-  const r = (typeof dopTricEstado === 'function') ? dopTricEstado() : null;
+function dtDiastEstado(src){
+  const r = (typeof dopTricEstado === 'function') ? dopTricEstado(src) : null;
   /* SIN E/A NO SE CLASIFICA NADA, tenga o no `E/e'`. `dopTricEstado` ya devuelve `ea` en `null`
      si falta cualquiera de las dos ondas o si alguna cayó fuera de su banda de plausibilidad. */
   if (!r || r.ea == null) return null;
@@ -16908,8 +16975,8 @@ function dtDiastEstado(){
      las dos bandas externas, pero graduar «leve/moderada/severa» sobre un único cociente afirma
      más de lo que se midió: se nombra el patrón como sugestivo y no se gradúa. */
   if (!completo) grado = null;
-  const itEl = document.getElementById('it_grado');
-  const itG = itEl ? (parseInt(itEl.value, 10) || 0) : 0;
+  const _itRaw = src ? src['it_grado'] : (document.getElementById('it_grado') || {}).value;
+  const itG = parseInt(_itRaw, 10) || 0;
   const anormal = patron === 'relajacion' || patron === 'pseudonormal' || patron === 'restrictivo';
   return { patron, grado, completo, ea, eep, anormal,
            itSignif: itG >= DT_IT_SIGNIF,
@@ -28766,16 +28833,38 @@ function vabFactores(){
 const MARFAN_SIND_TXT = { marfan:'síndrome de Marfan', lds:'síndrome de Loeys-Dietz (TGFBR1/2)',
                           turner:'síndrome de Turner', ehat:'aortopatía hereditaria no sindrómica',
                           otro:'aortopatía hereditaria' };
-function marfanEstado() {
-  const nv = id => { const e = document.getElementById(id); if (!e) return null;
-    const n = parseFloat(String(e.value).replace(',', '.')); return isFinite(n) && n > 0 ? n : null; };
-  const sv2 = id => (document.getElementById(id) || {}).value || '';
+/* ¿el mapa tiene ESTA clave? — no «¿qué devuelve?». Con un valor que viene de un estudio guardado,
+   `MAPA[k]` puede resolver a una propiedad del PROTOTIPO (`constructor`, `toString`), que es truthy
+   y no es una etiqueta de este archivo. `.call` y no `mapa.hasOwnProperty`, porque hay mapas de
+   prototipo nulo. NO se reusa `_lblDe`: aquél devuelve la cadena 'Otro' ante una clave ausente
+   —sirve para ROTULAR, no para preguntar— y además vive en el bloque 42, a 22.000 líneas de acá:
+   una dependencia cruzada entre bloques sin respaldo se vuelve ReferenceError el día que el bloque
+   grande deja de parsear, y este archivo ya se quedó sin JavaScript dos veces por eso. */
+const _tieneClave = (mapa, k) => Object.prototype.hasOwnProperty.call(mapa, k);
+/* ══ FUENTE INYECTABLE ═══════════════════════════════════════════════════════════════════════
+   `src` opcional: `null`/ausente = el FORMULARIO en pantalla, como siempre. Con un objeto
+   `campos` de un estudio guardado, los accesores leen de ahí.
+
+   POR QUÉ. El Laboratorio itera sobre estudios guardados, donde no hay formulario que leer, así
+   que hasta hoy `labCCRender` NO llamaba a una sola de estas funciones: REPLICABA sus reglas
+   leyendo `campos` crudo. Su propio comentario lo dice —«acá se replica su regla»—, y de ahí
+   salieron once defectos la vez que se auditó ese panel: una regla clínica reimplementada en el
+   Laboratorio se desincroniza de la pestaña del paciente sin que nada lo delate, y el daño no es
+   un informe mal hecho sino un número agregado que no significa lo que su rótulo dice.
+
+   Cuesta tres líneas porque los accesores ya estaban aislados arriba y el resto es lógica pura.
+   Es el mismo patrón que `_pcSrc`/`_pcCon` del módulo de pericardio, sin el estado global. */
+function marfanEstado(src) {
+  const _raw = id => src ? src[id] : (document.getElementById(id) || {}).value;
+  const nv = id => { const r = _raw(id); if (r === undefined || r === null || r === '') return null;
+    const n = parseFloat(String(r).replace(',', '.')); return isFinite(n) && n > 0 ? n : null; };
+  const sv2 = id => { const r = _raw(id); return (r === undefined || r === null) ? '' : String(r); };
   const sind = sv2('marfan_sindrome'), fr = sv2('marfan_factores_riesgo');
   const seno = nv('marfan_ao_seno'), asc = nv('marfan_ao_ascendente'), ita = nv('marfan_ita');
   const hayDatos = !!(sind || seno != null || asc != null || ita != null);
   if (!hayDatos) return { hayDatos:false };
   const base = { hayDatos:true, sind, seno, asc, ita, fr,
-                 sindTxt: MARFAN_SIND_TXT[sind] || 'Aortopatía' };
+                 sindTxt: _tieneClave(MARFAN_SIND_TXT, sind) ? MARFAN_SIND_TXT[sind] : 'Aortopatía' };
   /* Sin síndrome no se concluye. No es un dato que falte para completar la ficha: es el que
      ELIGE el umbral. Con 47 mm, un Loeys-Dietz tiene indicación Clase I y una EHAT no tiene
      ninguna — suponer el del medio sería inventar la conducta. */
@@ -28805,6 +28894,17 @@ function marfanEstado() {
   if (maxAo == null) return Object.assign(base, { clave:'falta_diametro',
     txt: base.sindTxt.charAt(0).toUpperCase() + base.sindTxt.slice(1) + ' — sin diámetro aórtico registrado; completar seno y ascendente' });
   const UMBRAL = { marfan:{ i:50, iia:45 }, lds:{ i:45, iia:null }, ehat:{ i:55, iia:50 }, otro:{ i:55, iia:50 } };
+  /* Un token que no está en el mapa NO elige umbral, y antes eso LANZABA (`u.i` sobre undefined).
+     Desde el formulario era inalcanzable —el select sólo puede tener sus cinco opciones— pero esta
+     función ahora lee también los `campos` de un estudio guardado, que llegan de un Excel, de un
+     backup JSON o del store: ahí el valor es arbitrario. Y el llamador es el Laboratorio, que
+     itera N estudios, así que UNO con un token raro se llevaba puesta la subtab entera. Se
+     declara, no se supone un umbral del medio: es la misma razón por la que `!sind` no concluye. */
+  /* `_lblDe` NO sirve acá: devuelve la cadena 'Otro' para una clave ausente, que es truthy y
+     dejaría pasar la guarda con `u` siendo un string. Ese helper es para ROTULAR, no para buscar. */
+  if (!_tieneClave(UMBRAL, sind)) return Object.assign(base, { clave:'sindrome_no_reconocido',
+    txt:'Aortopatía hereditaria — el síndrome registrado no corresponde a ninguno de los previstos, ' +
+        'así que no se puede elegir el umbral quirúrgico. Volver a consignarlo' });
   const u = UMBRAL[sind];
   const pre = base.sindTxt.charAt(0).toUpperCase() + base.sindTxt.slice(1) + ' con diámetro aórtico máximo ' + maxAo + ' mm';
   if (maxAo >= u.i) return Object.assign(base, { clave:'cx_i',
@@ -28865,10 +28965,11 @@ const EIS_LESION_TXT = { civ:'comunicación interventricular', cia:'comunicació
 const EIS_VD_TXT = { normal:'normal', leve:'levemente reducida', moderada:'moderadamente reducida', severa:'severamente reducida' };
 const EIS_PERI_TXT = { no:'sin derrame', leve:'leve', moderado:'moderado', severo:'severo' };
 const EIS_NYHA_TXT = { i:'I', ii:'II', iii:'III', iv:'IV' };
-function eisenEstado() {
-  const nv = id => { const e = document.getElementById(id); if (!e) return null;
-    const n = parseFloat(String(e.value).replace(',', '.')); return isFinite(n) && n > 0 ? n : null; };
-  const sv2 = id => (document.getElementById(id) || {}).value || '';
+function eisenEstado(src) {
+  const _raw = id => src ? src[id] : (document.getElementById(id) || {}).value;
+  const nv = id => { const r = _raw(id); if (r === undefined || r === null || r === '') return null;
+    const n = parseFloat(String(r).replace(',', '.')); return isFinite(n) && n > 0 ? n : null; };
+  const sv2 = id => { const r = _raw(id); return (r === undefined || r === null) ? '' : String(r); };
   const les = sv2('eis_lesion_base'), vd = sv2('eis_vd_funcion'), peri = sv2('eis_pericardio');
   const nyha = sv2('eis_clase_nyha'), sinc = sv2('eis_sincope'), hemo = sv2('eis_hemoptisis');
   const sat = nv('eis_saturacion_reposo'), satEj = nv('eis_saturacion_ejercicio');
@@ -28978,11 +29079,14 @@ function fontanToggleComp(id) {
 }
 window.fontanToggleComp = fontanToggleComp;
 
-function fontanEstado() {
-  const nv = id => { const e = document.getElementById(id); if (!e) return null;
-    const n = parseFloat(String(e.value).replace(',', '.')); return isFinite(n) ? n : null; };
-  const sv2 = id => (document.getElementById(id) || {}).value || '';
-  const ck  = id => { const e = document.getElementById(id); return !!(e && e.checked); };
+function fontanEstado(src) {
+  const _raw = id => src ? src[id] : (document.getElementById(id) || {}).value;
+  const nv = id => { const r = _raw(id); if (r === undefined || r === null || r === '') return null;
+    const n = parseFloat(String(r).replace(',', '.')); return isFinite(n) ? n : null; };
+  const sv2 = id => { const r = _raw(id); return (r === undefined || r === null) ? '' : String(r); };
+  /* Las casillas se PERSISTEN como `<id>__chk` con '1'/'0'; en el DOM son `.checked`. */
+  const ck  = id => src ? (String(src[id + '__chk']) === '1')
+                        : !!(document.getElementById(id) || {}).checked;
   const tipo = sv2('fontan_tipo'), fen = sv2('fontan_fenestracion'), vsm = sv2('fontan_vs_morfologia');
   const it = sv2('fontan_it_grado'), pleu = sv2('fontan_derrame_pleural'), asc = sv2('fontan_ascitis');
   const nyha = sv2('fontan_clase_nyha'), arr = sv2('fontan_arritmia');
@@ -44423,6 +44527,10 @@ function labRenderExtras(infs, n) {
      también valvulopatías, HTP, VD y las dos tortas—. Mismo patrón que el bloque de
      asociaciones. Se engancha acá y no sólo en labSubTab para que cambiar el filtro con la
      subtab ETE abierta la actualice: es el bug que ya se corrigió una vez para asociaciones. */
+  /* Mismo envoltorio y por la misma razón que la línea de abajo: estas dos secciones viven en
+     la subtab Mediciones, así que un throw acá se llevaría puesta la estadística descriptiva y
+     todo lo que se pinte después. Van ANTES de `labEteRender` sólo por orden de pantalla. */
+  try { labMedTricValvRender(infs, n); } catch (e) { console.error('[labMedTricValvRender]', e); }
   try { labEteRender(infs, n); } catch (e) { console.error('[labEteRender]', e); }
 }
 
@@ -50931,7 +51039,31 @@ const _CC_SECS = [
                                         _labCampoRaw(i,'mca_tsvd_plax') !== '' || _labCampoRaw(i,'mca_tsvd_psax') !== '' ||
                                         _labCampoRaw(i,'mca_fac') !== '' },
   { k:'tdf', lbl:'TdF',      pred: i => _labCampoRaw(i,'tdf_func_vd') !== '' || _labCampoRaw(i,'tdf_grad_tsvd') !== '' },
-  { k:'tga', lbl:'TGA',      pred: i => _labCampoRaw(i,'tga_tipo') !== '' }
+  { k:'tga', lbl:'TGA',      pred: i => _labCampoRaw(i,'tga_tipo') !== '' },
+  /* ── Las SIETE de abajo se agregaron el 2026-09-16, al ganar bloque en el Laboratorio ──
+     Van en ESTA lista y no como predicados sueltos de `labCCRender` porque es la fuente UNICA:
+     el panel de cohorte genera sus casillas con `_CC_SECS.map`, asi que una segunda copia haria
+     que el «N estudios encontrados» del filtro y el «n» de la tarjeta discrepen sin que nada lo
+     delate. Es el defecto que este archivo ya pago con los denominadores.
+     CONSECUENCIA DECLARADA: el filtro de cohorte gana siete casillas nuevas. Es deseable —hasta
+     hoy no se podia filtrar por estas secciones— pero es un cambio de la pantalla de Filtros.
+     Los campos elegidos son los que DESCRIBEN el hallazgo, y los nueve `select` involucrados se
+     verificaron uno por uno: los nueve tienen opcion 0 VACIA. Un select con default no vacio
+     haria que el predicado matcheara los 95 estudios y la seccion dijera que la tiene todo el
+     mundo — es el defecto de `fop_acv` y el de `pericardio`, los dos ya documentados. */
+  { k:'marfan', lbl:'Marfan/EHAT', pred: i => _labCampoRaw(i,'marfan_sindrome') !== '' || _labCampoRaw(i,'marfan_ao_seno') !== '' ||
+                                        _labCampoRaw(i,'marfan_ao_ascendente') !== '' || _labCampoRaw(i,'marfan_ita') !== '' },
+  { k:'eisen', lbl:'Eisenmenger',  pred: i => _labCampoRaw(i,'eis_lesion_base') !== '' || _labCampoRaw(i,'eis_saturacion_reposo') !== '' ||
+                                        _labCampoRaw(i,'eis_vd_funcion') !== '' },
+  { k:'fontan', lbl:'Fontan',      pred: i => _labCampoRaw(i,'fontan_tipo') !== '' || _labCampoRaw(i,'fontan_vs_fevi') !== '' ||
+                                        _labCampoRaw(i,'fontan_saturacion') !== '' },
+  { k:'esub', lbl:'Est. subaortica', pred: i => _labCampoRaw(i,'esub_tipo') !== '' || _labCampoRaw(i,'esub_gradiente_medio') !== '' ||
+                                        _labCampoRaw(i,'esub_gradiente_mmhg') !== '' },
+  { k:'easv', lbl:'Est. supravalvular', pred: i => _labCampoRaw(i,'easv_tipo') !== '' || _labCampoRaw(i,'easv_gradiente_medio') !== '' ||
+                                        _labCampoRaw(i,'easv_gradiente_mmhg') !== '' },
+  { k:'dsav', lbl:'DSAV',          pred: i => _labCampoRaw(i,'dsav_tipo') !== '' || _labCampoRaw(i,'dsav_regurg_av_izq') !== '' },
+  { k:'cvpa', lbl:'CVPA parcial',  pred: i => _labCampoRaw(i,'cvpa_venas_numero') !== '' || _labCampoRaw(i,'cvpa_conexion') !== '' ||
+                                        _labCampoRaw(i,'cvpa_lado') !== '' }
 ];
 /* ── Derivaciones de congénitas que el Laboratorio calcula sobre estudios GUARDADOS ──
    Vivían dentro de `labCCRender` como constantes locales, razonadas y comentadas. Se extraen
@@ -51495,6 +51627,157 @@ window.labHemoRender = labHemoRender;
    «0» no distingue «no hay insuficiencia» de «nadie miró la válvula». Los bloques de Ebstein,
    Fallot y TGA cuentan sólo los grados 1-4 y declaran el denominador; el 0 se reporta aparte
    como «sin IT o no evaluada», que es lo único que el dato sostiene. */
+/* ══ COMPARTIDO POR labCCRender Y labMedTricValvRender ══════════════════════════════════════
+   Estos tres eran `const` locales de `labCCRender`; se subieron acá el 2026-09-16, al aparecer
+   el segundo consumidor. El que OBLIGA a compartir es `_labDistrib`: sus claves vienen de los
+   `campos` del estudio, y por eso lleva prototipo nulo + `hasOwnProperty` — una segunda copia
+   que se olvide de eso reabre el agujero de `__proto__`/`constructor` que este archivo ya cerro.
+   NO se subieron `setHtml`/`stat`/`empty`: esos ya estan declarados CUATRO veces, uno por
+   funcion de render del Laboratorio, asi que unificarlos es refactorizar cuatro funciones y no
+   pertenece a este cambio. `_labBarrasDe` recibe el `empty` del llamador para no crear una
+   quinta copia de ese helper de formato. */
+const _labCuenta = c => Object.keys(c).reduce((a, k) => a + c[k], 0);
+const _labDistrib = (arr, campo, mapa) => {
+  const c = Object.create(null);
+  arr.forEach(i => {
+    const k = _labCampoRaw(i, campo);
+    if (!k) return;
+    const lbl = Object.prototype.hasOwnProperty.call(mapa, k) ? mapa[k] : null;
+    if (!lbl) return;                       // valor desconocido: no se inventa una categoria
+    c[lbl] = (c[lbl] || 0) + 1;
+  });
+  return c;
+};
+/* Distribucion sobre un valor YA CALCULADO por la seccion clinica, no sobre un campo crudo.
+   Misma allowlist y mismo prototipo nulo, por el mismo motivo: la clave sale de un estudio. */
+const _labDistribDe = (arr, fn, mapa) => {
+  const c = Object.create(null);
+  arr.forEach(i => {
+    const k = fn(i);
+    if (k === null || k === undefined || k === '') return;
+    const lbl = Object.prototype.hasOwnProperty.call(mapa, k) ? mapa[k] : null;
+    if (!lbl) return;
+    c[lbl] = (c[lbl] || 0) + 1;
+  });
+  return c;
+};
+const _labBarrasDe = (id, cuenta, total, vaciar) => {
+  const filas = Object.keys(cuenta).map(k => ({ lbl: k, n: cuenta[k], total: total }))
+    .filter(f => f.n > 0).sort((a, b) => b.n - a.n);
+  if (!filas.length) { if (vaciar) vaciar(id, 'esa clasificación'); return 0; }
+  labBarras(id, filas.map((f, k) => Object.assign(f, { color: _LAB_PIE_PAL[k % _LAB_PIE_PAL.length] })));
+  return filas.reduce((a, f) => a + f.n, 0);
+};
+/* Un estudio no puede tumbar una tarjeta. `campos` llega de un Excel, de un backup JSON o del
+   store, asi que un valor imposible puede hacer lanzar una cascada clinica; sin esto se pierde
+   la tarjeta entera y con ella las otras N-1 filas que estaban bien. Se CUENTA y se declara al
+   pie: un fallo mudo vuelve «no hubo casos» indistinguible de «no se pudo evaluar». */
+function _labEstado(fn, inf, cont) {
+  try { return fn(inf.campos || {}) || null; }
+  catch (e) { if (cont) cont.n++; console.error('[_labEstado]', fn && fn.name, e); return null; }
+}
+/* ══ SUBTAB MEDICIONES · Doppler tricuspídeo + morfología/etiología valvular ══════════════════
+   Agregadas el 2026-09-16. Función PROPIA y no un tramo más de `labRenderExtras`: allá se
+   engancha con `try/catch` para que un throw no se lleve puesta la subtab entera, que es el
+   patrón que esa función ya aplica con `labEteRender` y cuya razón está escrita ahí.
+   Igual que los bloques 14-17: NO se reimplementa una regla clínica. El patrón diastólico del VD
+   lo decide `dtDiastEstado()` —que es la que publica el informe del paciente— y el E/A lo calcula
+   `dopTricEstado()`. Recalcular el cociente acá sería una segunda definición del mismo número. */
+function labMedTricValvRender(infs, n) {
+  const setHtml = (id, h) => { const e = document.getElementById(id); if (e) e.innerHTML = h; };
+  const stat = (lbl, val) => `<div class="lab-stat"><span class="lab-stat-lbl">${lbl}</span><span class="lab-stat-val">${val}</span></div>`;
+  const empty = (id, mod) => setHtml(id, `<div class="lab-empty">Sin estudios con ${mod} registrado ${_labPobTxt()}.</div>`);
+  const pctS = x => n > 0 ? Math.round(x / n * 100) + '%' : '— (sin datos)';
+  const deBase = (x, d) => d > 0 ? (x + ' de ' + d + ' (' + Math.round(x / d * 100) + '%)') : '— (sin datos)';
+  const barrasDe = (id, cuenta, total) => _labBarrasDe(id, cuenta, total, empty);
+  const F = { n: 0 };
+  const notaFall = () => F.n ? ' <b>' + F.n + ' estudio(s) no se pudieron evaluar</b> y quedan fuera de estos conteos.' : '';
+
+  // ── Doppler tricuspídeo y función diastólica del VD ──
+  const dt = infs.map(i => ({ d: _labEstado(dopTricEstado, i, F), dd: _labEstado(dtDiastEstado, i, F) }))
+                 .filter(x => x.d && x.d.hayDatos);
+  if (!dt.length) { empty('lab-med-dt-stats', 'Doppler tricuspídeo'); empty('lab-med-dt-bars', 'patrón diastólico del VD'); setHtml('lab-med-dt-nota', ''); }
+  else {
+    /* Los cinco patrones que devuelve `dtDiastEstado`. `indeterminado` tiene barra PROPIA: es la
+       banda E/A 0,8-2,1 sin E/e', que la guía deja sin resolver y que PUEDE ser normal — meterla
+       con los normales afirmaría lo que no se estableció, y con los anormales, lo contrario. */
+    const PAT_L = { normal:'Llenado normal', relajacion:'Relajación anormal', pseudonormal:'Pseudonormal',
+                    restrictivo:'Restrictivo', indeterminado:'Indeterminado (falta E/e&#39;)' };
+    const pat = _labDistribDe(dt, x => x.dd ? x.dd.patron : null, PAT_L);
+    const conPat = _labCuenta(pat);
+    const anormal = dt.filter(x => !!(x.dd && x.dd.anormal)).length;
+    const conIt = dt.filter(x => !!(x.dd && x.dd.itSignif)).length;
+    const pEA = _prom(dt.map(x => x.d.ea).filter(v => v !== null && v !== undefined));
+    const pTriv = _prom(dt.map(x => x.d.trivOk ? x.d.triv : null).filter(v => v !== null && v !== undefined));
+    const pEep = _prom(dt.map(x => x.d.eep).filter(v => v !== null && v !== undefined));
+    setHtml('lab-med-dt-stats',
+      stat('Estudios con Doppler tricuspídeo', dt.length + ' (' + pctS(dt.length) + ' ' + _labPobDe() + ')') +
+      stat('E/A tricuspídeo promedio', _promTxt(pEA, 2, '')) +
+      stat('E/e&#39; tricuspídeo promedio', _promTxt(pEep, 1, '')) +
+      stat('TRIV tricuspídeo promedio', _promTxt(pTriv, 0, ' ms')) +
+      stat('Con patrón clasificado', deBase(conPat, dt.length)) +
+      stat('Con patrón anormal', deBase(anormal, conPat)) +
+      stat('Con IT significativa (salvedad)', deBase(conIt, dt.length)));
+    if (conPat) barrasDe('lab-med-dt-bars', pat, conPat); else empty('lab-med-dt-bars', 'patrón diastólico del VD');
+    setHtml('lab-med-dt-nota', 'El patrón lo decide <b>dtDiastEstado()</b> (ASE 2025, Tabla 6), la misma función que ' +
+      'escribe el informe: acá no se reclasifica nada. <b>«Indeterminado» tiene barra propia</b> — es la banda E/A 0,8–2,1 ' +
+      'sin E/e&#39;, que la guía deja sin resolver y que <i>puede</i> ser normal: repartirla entre normales o anormales ' +
+      'afirmaría algo que no se estableció. El <b>TRIV</b> se promedia sólo sobre los valores dentro de banda. La fila de ' +
+      '<b>IT significativa</b> no descuenta a nadie: una insuficiencia tricuspídea importante infla la onda E y sesga el ' +
+      'patrón hacia el lado grave, así que la app la <i>declara</i> junto al hallazgo en vez de bloquearlo.' + notaFall());
+  }
+
+  // ── Morfología y etiología valvular ──
+  /* La allowlist se escribe A MANO y NO se deriva del DOM. Dos motivos: es la misma decisión que
+     `LAB_XLS_LISTAS` —derivarla haría que un cambio del HTML ensanchara en silencio lo que se
+     cuenta— y además protege de las claves del prototipo, porque `_labDistrib` sólo acepta lo que
+     esté acá. Los seis selects guardan el TEXTO como valor (no llevan atributo `value`). */
+  const VALV = [
+    { id:'vm_morf', lbl:'Válvula mitral', tipo:'morfología / etiología',
+      vals:['Normal', 'Mixomatosa / Barlow', 'Calcificada', 'Reumática', 'Prolapso / EVMS', 'Prótesis', 'Endocarditis', 'Isquémica (disfunción/rotura músculo papilar)'] },
+    { id:'va_morf', lbl:'Válvula aórtica', tipo:'morfología / etiología',
+      vals:['Trivalva normal', 'Bicúspide', 'Calcificada', 'Reumática', 'Prótesis', 'Endocarditis', 'Carcinoide'] },
+    { id:'vt_morf', lbl:'Válvula tricúspide', tipo:'morfología / etiología',
+      vals:['Normal', 'Mixomatosa', 'Reumática', 'Prótesis', 'Carcinoide', 'Endocarditis', 'Funcional / dilatación VD'] },
+    { id:'vp_morf', lbl:'Válvula pulmonar', tipo:'morfología',
+      vals:['Normal', 'Displásica (congénita)', 'Reumática', 'Carcinoide', 'Post-quirúrgica / prótesis'], sinEsp:['No especificada'] },
+    { id:'ep_etiologia', lbl:'Estenosis pulmonar', tipo:'etiología',
+      vals:['Congénita valvular', 'Displasia valvular (Noonan)', 'Supravalvular (Williams)', 'Carcinoide', 'Post-quirúrgica', 'Ramas pulmonares'], sinEsp:['No especificada'] },
+    { id:'ip_etiologia', lbl:'Insuficiencia pulmonar', tipo:'etiología',
+      vals:['Fisiológica (traza)', 'HTP (dilatación anular)', 'Endocarditis', 'Post-quirúrgica', 'Carcinoide', 'Displasia valvular'], sinEsp:['No especificada'] }
+  ];
+  let sinEspTotal = 0;
+  const bloques = VALV.map(v => {
+    const mapa = Object.create(null);
+    (v.vals).concat(v.sinEsp || []).forEach(x => { mapa[x] = x; });
+    const c = _labDistrib(infs, v.id, mapa);
+    /* «No especificada» NO cuenta como etiología: es la opción 0 de esos tres selects Y el valor
+       al que MIGRAN los estudios viejos, así que contarla sería leer un default como si fuera un
+       hallazgo — el defecto que este archivo persigue desde el TEER. Se informa aparte. */
+    const sinEsp = (v.sinEsp || []).reduce((a, k) => a + (c[k] || 0), 0);
+    sinEspTotal += sinEsp;
+    const filas = v.vals.filter(k => (c[k] || 0) > 0).sort((a, b) => c[b] - c[a]);
+    return { v: v, c: c, filas: filas, base: _labCuenta(c) - sinEsp, sinEsp: sinEsp };
+  }).filter(b => b.filas.length > 0);   // sólo las que tienen al menos un caso
+
+  if (!bloques.length) { empty('lab-med-etiol-cont', 'morfología valvular'); setHtml('lab-med-etiol-nota', ''); }
+  else {
+    setHtml('lab-med-etiol-cont', bloques.map(b =>
+      `<div style="margin-bottom:14px;"><div style="font-size:.78rem;font-weight:700;color:var(--text2);margin:0 0 6px;text-transform:uppercase;letter-spacing:.4px;">${escHtml(b.v.lbl)} <span style="font-weight:400;text-transform:none;letter-spacing:0;">— ${escHtml(b.v.tipo)} (n=${b.base})</span></div>` +
+      b.filas.map(k => stat(escHtml(k), b.c[k] + ' (' + Math.round(b.c[k] / (b.base || 1) * 100) + '%)')).join('') +
+      `</div>`).join(''));
+    setHtml('lab-med-etiol-nota', 'Se listan <b>sólo las categorías con al menos un caso</b>, y sólo las válvulas que ' +
+      'tienen alguna. En mitral, aórtica y tricúspide <b>un mismo campo guarda la morfología y la etiología</b> ' +
+      '(«Calcificada» y «Endocarditis» conviven en el mismo desplegable), por eso el rótulo dice las dos cosas; en la ' +
+      'pulmonar el rediseño las separó y por eso van en tres filas. <b>«No especificada» no cuenta como etiología</b>: es ' +
+      'la opción por defecto de esos tres campos <i>y</i> el valor al que migran los estudios viejos, así que contarla ' +
+      'sería leer un default como si fuera un hallazgo' +
+      (sinEspTotal ? ' — hoy son <b>' + sinEspTotal + '</b> y quedan fuera de los denominadores.' : '.') +
+      ' El denominador de cada válvula son los estudios que <i>tienen</i> ese campo: los importados de un Excel sin esa ' +
+      'columna no suman ni al numerador ni al denominador.' + notaFall());
+  }
+}
+
 function labCCRender(infs, n) {
   const setHtml = (id, h) => { const e = document.getElementById(id); if (e) e.innerHTML = h; };
   const stat = (lbl, val) => `<div class="lab-stat"><span class="lab-stat-lbl">${lbl}</span><span class="lab-stat-val">${val}</span></div>`;
@@ -51711,24 +51994,9 @@ function labCCRender(infs, n) {
   /* Distribución por etiqueta, con prototipo nulo y `hasOwnProperty`: las claves vienen de los
      `campos` del estudio y una importada como `constructor` devolvería la función del prototipo
      en vez del rótulo. Es la trampa que este archivo ya documentó. */
-  const distrib = (arr, campo, mapa) => {
-    const c = Object.create(null);
-    arr.forEach(i => {
-      const k = _labCampoRaw(i, campo);
-      if (!k) return;
-      const lbl = Object.prototype.hasOwnProperty.call(mapa, k) ? mapa[k] : null;
-      if (!lbl) return;                       // valor desconocido: no se inventa una categoría
-      c[lbl] = (c[lbl] || 0) + 1;
-    });
-    return c;
-  };
-  const barrasDe = (id, cuenta, total) => {
-    const filas = Object.keys(cuenta).map(k => ({ lbl: k, n: cuenta[k], total: total }))
-      .filter(f => f.n > 0).sort((a, b) => b.n - a.n);
-    if (!filas.length) { empty(id, 'esa clasificación'); return 0; }
-    labBarras(id, filas.map((f, k) => Object.assign(f, { color: _LAB_PIE_PAL[k % _LAB_PIE_PAL.length] })));
-    return filas.reduce((a, f) => a + f.n, 0);
-  };
+  // Alias: una sola definición, a nivel de módulo (la comparte la subtab Mediciones).
+  const distrib = _labDistrib;
+  const barrasDe = (id, cuenta, total) => _labBarrasDe(id, cuenta, total, empty);
   const cuantos = (arr, campo, val) => arr.filter(i => _labCampoRaw(i, campo) === val).length;
   /* Denominador de un sí/no de TRES estados: sólo los que contestaron. Un «no consta» no es un
      «no», y contarlo como tal subdeclara el hallazgo en toda la cohorte. */
@@ -52087,6 +52355,158 @@ function labCCRender(infs, n) {
     if (idx.length) barrasDe('lab-cc-ebs-bars', gr, idx.length); else empty('lab-cc-ebs-bars', 'índice calculable');
     setHtml('lab-cc-ebs-nota', 'El índice se recalcula desde las <b>cinco áreas</b> guardadas; los estudios a los que les falta ' +
       'alguna no entran y no cuentan como grado bajo. Los cortes son los de Celermajer 1992. ' + SALVEDAD_IT);
+  }
+
+  /* ══════════ BLOQUES 14-17 · LAS SIETE SECCIONES QUE NO TENIAN VISTA ══════════
+     REGLA DE ESTOS CUATRO BLOQUES: acá NO se reimplementa una sola regla clínica. Los trece de
+     arriba leen `campos` crudo y REPLICAN las cascadas de la pestaña del paciente —el de MCH lo
+     dice en su propio comentario— y eso ya costó once defectos: una copia se desincroniza de la
+     original sin que nada lo delate, y un número agregado mal calculado se lee exactamente igual
+     de bien que uno correcto. Estos llaman a `marfanEstado`, `eisenEstado` y `fontanEstado` con
+     los `campos` del estudio, que es para lo que se les agregó la fuente inyectable.
+     LOS PROMEDIOS SALEN DEL OBJETO QUE DEVUELVE CADA FUNCIÓN, no de `promDe(arr, campo, lo, hi)`:
+     ninguno de estos campos tiene banda en `LAB_XLS_RANGO` ni `min`/`max` en su input —verificado
+     uno por uno—, así que la plausibilidad vive DENTRO de la cascada (saturación 40-100, FEVI
+     10-85). Escribir esos cortes acá sería la divergencia de bandas entre el Laboratorio y la
+     pestaña que este archivo ya pagó en seis campos. */
+  const _ccFall = { n: 0 };
+  const est = (fn, i) => _labEstado(fn, i, _ccFall);
+  const estOk = (fn, i) => { const r = est(fn, i); return (r && r.hayDatos) ? r : null; };
+  const promFn = (arr, fn) => _prom(arr.map(fn).filter(v => v !== null && v !== undefined));
+  const notaFall = () => _ccFall.n ? ' <b>' + _ccFall.n + ' estudio(s) no se pudieron evaluar</b> y quedan fuera de estos conteos.' : '';
+
+  // ── BLOQUE 14 · Marfan / aortopatía hereditaria ──
+  const marfanArr = _sec('marfan');
+  if (!marfanArr.length) { empty('lab-cc-marfan-stats', 'aortopatía hereditaria'); empty('lab-cc-marfan-bars', 'síndrome'); empty('lab-cc-marfan-cx-bars', 'indicación quirúrgica'); setHtml('lab-cc-marfan-nota', ''); }
+  else {
+    const SIND_L = { marfan:'Marfan', lds:'Loeys-Dietz', turner:'Turner', ehat:'EHAT no sindrómica', otro:'Otra aortopatía' };
+    /* Las CLAVES que devuelve la cascada, no una clasificación nueva. Las cuatro «no concluible»
+       tienen fila propia y no se agrupan en un «otros»: son el resultado más útil de este bloque
+       —cuántos estudios tienen la aorta medida y NO se les puede dar umbral— y agruparlas las
+       volvería invisibles. `sin_indicacion` es distinto: ahí sí se concluyó. */
+    const CX_CRIT = { cx_i:'Clase I — cirugía indicada', cx_iia:'Clase IIa — considerar cirugía',
+                      cx_iib:'Clase IIb — puede considerarse' };
+    const CX_NOCONCL = { sin_sindrome:'No concluible — falta el síndrome', falta_ita:'No concluible — falta el índice (Turner)',
+                         falta_diametro:'No concluible — falta el diámetro', sindrome_no_reconocido:'No concluible — síndrome no reconocido' };
+    /* `umbral_iia_sin_fr` es la NOVENA clave y casi se pierde: `_labDistribDe` descarta en
+       silencio lo que no esté en el mapa, así que sin esta entrada cuatro estudios se contaban
+       como tres y el porcentaje se repartía entre los otros. Por eso la fila
+       «Con indicación clasificada» existe y el caso de prueba exige que sea N de N: es lo único
+       que pone en rojo una clave nueva que nadie mapeó. */
+    const CX_RESTO = { sin_indicacion:'Sin criterios quirúrgicos actuales',
+                       umbral_iia_sin_fr:'Sobre el umbral IIa — según factores de riesgo' };
+    const CX_L = Object.assign({}, CX_CRIT, CX_NOCONCL, CX_RESTO);
+    const sind = distrib(marfanArr, 'marfan_sindrome', SIND_L), conSind = _labCuenta(sind);
+    const cx = _labDistribDe(marfanArr, i => { const r = estOk(marfanEstado, i); return r ? r.clave : null; }, CX_L);
+    const conCx = _labCuenta(cx);
+    /* Por conjunto explícito y NO por resta: la resta hace que cualquier clave nueva sin mapear
+       aparezca como «no concluible» sin serlo — un numero mal atribuido que se lee igual de bien. */
+    const sumaDe = m => Object.keys(m).reduce((a, k) => a + (cx[m[k]] || 0), 0);
+    const conCrit = sumaDe(CX_CRIT), noConcl = sumaDe(CX_NOCONCL);
+    const pSeno = promFn(marfanArr, i => { const r = estOk(marfanEstado, i); return r ? r.seno : null; });
+    const pAsc = promFn(marfanArr, i => { const r = estOk(marfanEstado, i); return r ? r.asc : null; });
+    setHtml('lab-cc-marfan-stats',
+      stat('Estudios con aortopatía hereditaria', marfanArr.length + ' (' + pctS(marfanArr.length) + ' ' + _labPobDe() + ')') +
+      stat('Con síndrome declarado', deBase(conSind, marfanArr.length)) +
+      stat('Con criterio quirúrgico (I / IIa / IIb)', deBase(conCrit, conCx)) +
+      stat('No concluibles — falta un dato', deBase(noConcl, conCx)) +
+      stat('Con indicación clasificada', deBase(conCx, marfanArr.length)) +
+      stat('Seno de Valsalva promedio', _promTxt(pSeno, 1, ' mm')) +
+      stat('Aorta ascendente promedio', _promTxt(pAsc, 1, ' mm')));
+    barrasDe('lab-cc-marfan-bars', sind, conSind || 1);
+    if (conCx) barrasDe('lab-cc-marfan-cx-bars', cx, conCx); else empty('lab-cc-marfan-cx-bars', 'indicación quirúrgica');
+    setHtml('lab-cc-marfan-nota', 'La indicación se lee de <b>marfanEstado()</b>, la misma función que escribe el informe ' +
+      'del paciente: acá no se reimplementa ningún umbral. <b>El umbral lo elige el SÍNDROME</b> (Loeys-Dietz desde 45 mm, ' +
+      'Marfan desde 50, EHAT desde 55; Turner va indexada por superficie corporal), así que un estudio con la aorta medida ' +
+      'y el síndrome en blanco sale <b>«no concluible»</b> y no «sin criterios» — son cosas distintas y por eso tienen filas ' +
+      'separadas. <b>No se informan «confirmados»:</b> el panel de criterios de Ghent 2010 no persiste ninguna respuesta a ' +
+      'propósito —sus controles no llevan <code>id</code> para no contaminar los campos del estudio—, así que el diagnóstico ' +
+      'no es computable desde esta base. <b>Tampoco hay Z-score</b>: la app no recoge ese campo. Los dos diámetros se ' +
+      'promedian <b>sin banda de plausibilidad</b>, igual que en la pestaña del paciente.' + notaFall());
+  }
+
+  // ── BLOQUE 15 · Síndrome de Eisenmenger ──
+  const eisenArr = _sec('eisen');
+  if (!eisenArr.length) { empty('lab-cc-eisen-stats', 'síndrome de Eisenmenger'); empty('lab-cc-eisen-bars', 'clase funcional'); empty('lab-cc-eisen-les-bars', 'lesión de base'); setHtml('lab-cc-eisen-nota', ''); }
+  else {
+    /* «Clase funcional NYHA» y NO «clase OMS»: el campo guardado es `eis_clase_nyha` y sus valores
+       son i/ii/iii/iv. La de la OMS es otra escala —riesgo de embarazo— y en esta app sólo la
+       produce `fontanEstado().embarazo`. Rotular NYHA como OMS sería una etiqueta que miente
+       sobre lo que se contó. */
+    const NYHA_L = { i:'Clase I', ii:'Clase II', iii:'Clase III', iv:'Clase IV' };
+    const LES_L = { civ:'CIV', cia:'CIA', dap:'Ductus', dsav:'DSAV', tronco:'Tronco arterioso', tga:'TGA', otra:'Otra' };
+    const nyha = distrib(eisenArr, 'eis_clase_nyha', NYHA_L), conNyha = _labCuenta(nyha);
+    const les = distrib(eisenArr, 'eis_lesion_base', LES_L), conLes = _labCuenta(les);
+    const conSat = eisenArr.filter(i => { const r = estOk(eisenEstado, i); return !!(r && r.satOk); }).length;
+    const critica = eisenArr.filter(i => { const r = estOk(eisenEstado, i); return !!(r && r.satOk && r.sat < 90); }).length;
+    setHtml('lab-cc-eisen-stats',
+      stat('Estudios con Eisenmenger', eisenArr.length + ' (' + pctS(eisenArr.length) + ' ' + _labPobDe() + ')') +
+      stat('Con clase funcional consignada', deBase(conNyha, eisenArr.length)) +
+      stat('Saturación basal promedio', _promTxt(promFn(eisenArr, i => { const r = estOk(eisenEstado, i); return r && r.satOk ? r.sat : null; }), 0, ' %')) +
+      stat('Con saturación &lt; 90 %', deBase(critica, conSat)) +
+      stat('PSAP promedio', _promTxt(promFn(eisenArr, i => { const r = estOk(eisenEstado, i); return r ? r.psap : null; }), 0, ' mmHg')) +
+      stat('TAPSE promedio', _promTxt(promFn(eisenArr, i => _labNum(i, 'tapse')), 0, ' mm')));
+    barrasDe('lab-cc-eisen-bars', nyha, conNyha || 1);
+    if (conLes) barrasDe('lab-cc-eisen-les-bars', les, conLes); else empty('lab-cc-eisen-les-bars', 'lesión de base');
+    setHtml('lab-cc-eisen-nota', 'La saturación y la PSAP se leen de <b>eisenEstado()</b>, que ya aplica su banda de ' +
+      'plausibilidad (<b>40–100 %</b>): un «9» tipeado por «90» se declara y <b>no vota</b> en el informe del paciente, así ' +
+      'que tampoco entra acá — por eso el denominador de «saturación &lt; 90 %» son los estudios con saturación <i>válida</i> ' +
+      'y no todos. <b>La PSAP no se recalcula</b>: es la que la sección tomó. El <b>TAPSE</b> es el del estudio, no un campo ' +
+      'propio de la sección. La escala rotulada es <b>NYHA</b>, que es la que el campo guarda; el riesgo de embarazo de la ' +
+      'OMS es otra escala y en esta app sólo la produce la sección de Fontan.' + notaFall());
+  }
+
+  // ── BLOQUE 16 · Circulación de Fontan ──
+  const fontanArr = _sec('fontan');
+  if (!fontanArr.length) { empty('lab-cc-fontan-stats', 'circulación de Fontan'); empty('lab-cc-fontan-bars', 'tipo de circulación'); empty('lab-cc-fontan-oms-bars', 'riesgo de embarazo'); setHtml('lab-cc-fontan-nota', ''); }
+  else {
+    const TIPO_L = { tunel:'Túnel lateral', extra:'Conducto extracardíaco', ap:'Atriopulmonar (clásico)', noesp:'No especificado' };
+    /* TRES estados, no dos. `fontanEstado().embarazo` es `null` cuando nadie interrogó las
+       complicaciones, y eso NO es «sin riesgo»: es la regla que la propia sección documenta
+       —«ninguna casilla marcada» significa «nadie preguntó»—. Por eso «no interrogado» tiene
+       barra PROPIA en vez de repartirse entre III y IV. */
+    const OMS_L = { III:'Clase III (OMS)', IV:'Clase IV (OMS) — embarazo contraindicado', _ni:'No interrogado' };
+    const tipo = distrib(fontanArr, 'fontan_tipo', TIPO_L), conTipo = _labCuenta(tipo);
+    const oms = _labDistribDe(fontanArr, i => { const r = estOk(fontanEstado, i); if (!r) return null;
+      return (r.embarazo && r.embarazo.clase) ? r.embarazo.clase : '_ni'; }, OMS_L);
+    const conOms = _labCuenta(oms);
+    const conComp = fontanArr.filter(i => { const r = estOk(fontanEstado, i); return !!(r && r.comps && r.comps.length); }).length;
+    setHtml('lab-cc-fontan-stats',
+      stat('Estudios con circulación de Fontan', fontanArr.length + ' (' + pctS(fontanArr.length) + ' ' + _labPobDe() + ')') +
+      stat('Con tipo de circulación consignado', deBase(conTipo, fontanArr.length)) +
+      stat('FEVI del ventrículo único promedio', _promTxt(promFn(fontanArr, i => { const r = estOk(fontanEstado, i); return r && r.feviOk ? r.fevi : null; }), 0, ' %')) +
+      stat('Saturación promedio', _promTxt(promFn(fontanArr, i => { const r = estOk(fontanEstado, i); return r && r.satOk ? r.sat : null; }), 0, ' %')) +
+      stat('Con alguna complicación consignada', deBase(conComp, fontanArr.length)));
+    barrasDe('lab-cc-fontan-bars', tipo, conTipo || 1);
+    if (conOms) barrasDe('lab-cc-fontan-oms-bars', oms, conOms); else empty('lab-cc-fontan-oms-bars', 'riesgo de embarazo');
+    setHtml('lab-cc-fontan-nota', 'La FEVI y la saturación se leen de <b>fontanEstado()</b> con sus bandas ' +
+      '(<b>FEVI 10–85 %</b>, <b>saturación 40–100 %</b>): fuera de banda el valor se declara y no vota, igual que en el ' +
+      'informe. El riesgo de embarazo es la <b>clase de la OMS</b> que calcula esa misma función, y tiene <b>tres</b> ' +
+      'estados y no dos: sin complicaciones interrogadas no es clase III ni IV, es <b>«no interrogado»</b> — publicar ' +
+      '«clase III» sobre un paciente al que nadie le preguntó es exactamente la afirmación tranquilizadora que la sección ' +
+      'evita, y repartir esos casos entre III y IV la reintroduciría acá.' + notaFall());
+  }
+
+  // ── BLOQUE 17 · Subaórtica · Supravalvular · DSAV · CVPA ──
+  {
+    const esubArr = _sec('esub'), easvArr = _sec('easv'), dsavArr = _sec('dsav'), cvpaArr = _sec('cvpa');
+    const filas = [['Estenosis subaórtica', esubArr.length], ['Estenosis supravalvular aórtica', easvArr.length],
+                   ['Defecto septal auriculoventricular', dsavArr.length], ['Conexión venosa pulmonar anómala parcial', cvpaArr.length]]
+                  .filter(f => f[1] > 0);
+    if (!filas.length) { empty('lab-cc-otras-stats', 'ninguna de estas cuatro secciones'); empty('lab-cc-otras-bars', 'tipo de DSAV'); setHtml('lab-cc-otras-nota', ''); }
+    else {
+      const DSAV_L = { parcial:'Parcial', completo:'Completo', intermedio:'Intermedio', noesp:'No especificado' };
+      const dt = distrib(dsavArr, 'dsav_tipo', DSAV_L), conDt = _labCuenta(dt);
+      setHtml('lab-cc-otras-stats', filas.map(f => stat(f[0], f[1] + ' (' + pctS(f[1]) + ' ' + _labPobDe() + ')')).join(''));
+      if (conDt) barrasDe('lab-cc-otras-bars', dt, conDt); else empty('lab-cc-otras-bars', 'tipo de DSAV');
+      setHtml('lab-cc-otras-nota', 'Sólo se listan las secciones con <b>al menos un caso</b> en la población vigente: una ' +
+        'fila «0 de N» sobre una entidad que este laboratorio no ve nunca no es un dato, y <code>deBase</code> con base 0 ' +
+        'devuelve «— (sin datos)», que ahí se leería como si faltara el dato en vez de no haber casos. Las cuatro van como ' +
+        '<b>contador</b> y no con distribución de severidad: la subaórtica y la supravalvular se gradúan por el gradiente ' +
+        '<b>medio</b> (ESC 2020) y ese criterio ya lo publica el informe de cada estudio; agregar acá una segunda ' +
+        'clasificación sería la copia que se desincroniza. El <b>tipo de DSAV</b> sí se distribuye porque es la variable ' +
+        'que decide la conducta quirúrgica.');
+    }
   }
 
   // ── BLOQUE 1 · Actividad (va al final del código, primero en la pantalla) ──
@@ -54357,8 +54777,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260916-0118';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789532322378;                 /* eco-build-ms */
+const ECO_BUILD    = '20260916-0206';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789535182954;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -54444,7 +54864,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0118</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0206</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

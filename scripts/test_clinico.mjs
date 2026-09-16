@@ -4682,6 +4682,98 @@ caso('TC-146', 'Excel: el grado de ET y las siete casillas de inclusion que falt
   ] };
 `);
 
+/* TC-147 — Los bloques nuevos del Laboratorio LEEN las funciones clinicas, no las reimplementan.
+   La condicion que vale es la del UMBRAL POR SINDROME: un Loeys-Dietz de 47 mm tiene indicacion
+   Clase I y un Marfan de 47 mm NO la tiene (su corte es 50). Cualquier reimplementacion que
+   cablee un umbral unico -que es lo que hacen los trece bloques viejos- se pone en rojo ahi, y
+   ninguna condicion que solo cuente estudios lo detecta. */
+caso('TC-147', 'Lab CC/Mediciones: los bloques leen *Estado(), no reimplementan la regla', `
+  const C = function(o){ return { id: 0, campos: o }; };
+  const infs = [
+    C({ marfan_sindrome:'lds',    marfan_ao_seno:'47' }),
+    C({ marfan_sindrome:'marfan', marfan_ao_seno:'47' }),
+    C({ marfan_sindrome:'marfan', marfan_ao_seno:'47', marfan_factores_riesgo:'si' }),
+    C({ marfan_ao_seno:'47' }),
+    C({ eis_lesion_base:'civ', eis_saturacion_reposo:'86', eis_clase_nyha:'iii', eis_psap:'80', tapse:'16' }),
+    C({ eis_lesion_base:'cia', eis_saturacion_reposo:'9' }),
+    C({ fontan_tipo:'extra', fontan_vs_fevi:'42', fontan_saturacion:'88', fontan_comp_epp__chk:'1' }),
+    C({ fontan_tipo:'tunel', fontan_vs_fevi:'50', fontan_saturacion:'94' }),
+    C({ esub_tipo:'membrana' }), C({ easv_tipo:'reloj' }),
+    C({ dsav_tipo:'parcial' }), C({ dsav_tipo:'completo' }), C({ cvpa_venas_numero:'1' }),
+    C({ dt_onda_e:'60', dt_onda_a:'50', dt_eprime_lat:'7.5', dt_triv:'70', vm_morf:'Endocarditis', vt_morf:'Carcinoide', ep_etiologia:'Carcinoide' }),
+    C({ dt_onda_e:'40', dt_onda_a:'80', vm_morf:'Endocarditis', ip_etiologia:'No especificada' }),
+    C({ dt_onda_e:'120', dt_onda_a:'40', va_morf:'Bicúspide' })
+  ];
+  labCCRender(infs, infs.length);
+  labMedTricValvRender(infs, infs.length);
+  const T = function(id){ const e = document.getElementById(id); return e ? e.innerText.replace(/\\s+/g,' ') : ''; };
+  const marfan = T('lab-cc-marfan-cx-bars'), eisen = T('lab-cc-eisen-stats');
+  const fontan = T('lab-cc-fontan-oms-bars'), etiol = T('lab-med-etiol-cont');
+  const patron = T('lab-med-dt-bars'), dtst = T('lab-med-dt-stats');
+
+  /* Un estudio que hace LANZAR una cascada no puede tumbar la tarjeta: se cuenta y se declara.
+     Se prueba con un getter hostil, que es lo que puede llegar de un backup JSON manipulado. */
+  /* Se prueba el SEAM que se construyo (_labEstado), no un estudio-bomba armado a mano: un
+     getter que lanza no puede venir de JSON.parse, asi que probarlo con eso seria probar el
+     mecanismo y no la alcanzabilidad. Lo que se fija es que el envoltorio devuelva null, cuente
+     el fallo y no propague. */
+  const cont = { n: 0 };
+  const capturado = _labEstado(function reventar(){ throw new Error('boom'); }, { id:0, campos:{} }, cont);
+
+  return { extra: [
+    // 1 · EL UMBRAL LO ELIGE EL SINDROME — es lo que separa leer de reimplementar.
+    /* 'Clase I' es SUBSTRING de 'Clase IIa': la condicion pasaria con la rama equivocada.
+       Se busca el texto que solo produce cx_i. Tercera vez en la sesion que muerde esto. */
+    ['Loeys-Dietz 47mm sale Clase I (su corte es 45)', marfan.indexOf('cirug') > -1 && marfan.indexOf('indicada') > -1, marfan],
+    /* La cascada tiene rama PROPIA para esto (umbral_iia_sin_fr): 47mm esta sobre el corte de
+       45 en que los factores pasan a indicar cirugia, pero no hay factores consignados. No es
+       'sin criterios' ni es criterio cumplido. Mi expectativa inicial estaba mal, no el codigo. */
+    ['Marfan 47mm SIN factores queda sobre el umbral IIa, no en criterio cumplido',
+      marfan.indexOf('Sobre el umbral IIa') > -1, marfan],
+    ['Marfan 47mm CON factores sale Clase IIa', marfan.indexOf('Clase IIa') > -1, marfan],
+    ['aorta medida sin sindrome es NO CONCLUIBLE, no "sin criterios"', marfan.indexOf('falta el s') > -1, marfan],
+
+    // 2 · LA BANDA DE PLAUSIBILIDAD ES LA DE LA SECCION CLINICA, no una escrita en el Lab.
+    ['saturacion 9 (fuera de banda 40-100) NO entra al promedio', eisen.indexOf('86 % (n=1)') > -1, eisen],
+    ['el denominador de "<90 %" son las saturaciones VALIDAS, no todos', eisen.indexOf('1 de 1') > -1, eisen],
+    ['la PSAP se lee, no se recalcula', eisen.indexOf('80 mmHg') > -1, eisen],
+
+    // 3 · TRES ESTADOS EN EL RIESGO OMS DE FONTAN, no dos.
+    ['Fontan con complicaciones sale clase IV', fontan.indexOf('Clase IV') > -1, fontan],
+    ['Fontan sin complicaciones interrogadas sale NO INTERROGADO', fontan.indexOf('No interrogado') > -1, fontan],
+    ['"no interrogado" no se reparte entre III y IV', fontan.indexOf('Clase III') === -1, fontan],
+
+    // 4 · EL PATRON DIASTOLICO DEL VD SALE DE dtDiastEstado.
+    ['E/A 1,2 con E/e-prima 8 -> pseudonormal', patron.indexOf('Pseudonormal') > -1, patron],
+    ['E/A 0,5 -> relajacion anormal', patron.indexOf('Relajaci') > -1, patron],
+    ['E/A 3,0 -> restrictivo', patron.indexOf('Restrictivo') > -1, patron],
+    ['el E/A promedio lo calcula dopTricEstado (1,57)', dtst.indexOf('1.57') > -1, dtst],
+
+    // 5 · "No especificada" NO es una etiologia: es el default Y el destino de la migracion.
+    ['la insuficiencia pulmonar NO aparece: su unico valor era "No especificada"',
+      etiol.indexOf('Insuficiencia pulmonar') === -1, etiol],
+    ['la estenosis pulmonar SI aparece: tiene una etiologia real', etiol.indexOf('Estenosis pulmonar') > -1, etiol],
+    ['solo se listan valvulas con al menos un caso (pulmonar sin morfologia, ausente)',
+      etiol.indexOf('Válvula pulmonar') === -1, etiol],
+    ['la mitral cuenta sus dos endocarditis', etiol.indexOf('Endocarditis') > -1, etiol],
+
+    // 6 · LOS SIETE PREDICADOS NUEVOS NO MATCHEAN UN ESTUDIO VACIO.
+    ['las 7 secciones nuevas estan en _CC_SECS',
+      ['marfan','eisen','fontan','esub','easv','dsav','cvpa'].every(function(k){ return !!_ccSecPred(k); })],
+    ['ningun predicado nuevo matchea un estudio en blanco (no dice que la tenga todo el mundo)',
+      ['marfan','eisen','fontan','esub','easv','dsav','cvpa'].every(function(k){ return !_ccSecPred(k)({ id:0, campos:{} }); })],
+
+    // 7 · GUARDAS DE BORDE: token ajeno y estudio que lanza.
+    ['un sindrome que el select no puede producir NO lanza y se declara',
+      (function(){ try { return marfanEstado({ marfan_sindrome:'constructor', marfan_ao_seno:'47' }).clave === 'sindrome_no_reconocido'; } catch (e) { return false; } })()],
+    ['una cascada que lanza devuelve null y no propaga', capturado === null],
+    ['y el fallo se CUENTA para poder declararlo al pie', cont.n === 1, String(cont.n)],
+    ['todas las claves de marfanEstado tienen etiqueta (si aparece una decima, esto se pone rojo)',
+      T('lab-cc-marfan-stats').indexOf('4 de 4') > -1, T('lab-cc-marfan-stats')]
+  ] };
+`);
+
+
 /* SOPORTE (nuevo) + LAS INVARIANTES DE IMAGENES (que ya estaban y no tenian NINGUN caso).
    La parte de IndexedDB del pedido ya estaba implementada entera —toggle, tres calidades, barra
    de storage, borrado—, pero sin una sola prueba: un modulo que guarda dato clinico en disco y

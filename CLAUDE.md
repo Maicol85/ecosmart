@@ -487,17 +487,101 @@ El Excel pasó de **421 a 429 columnas** y de 128 a **129 básicas**; TC-135 fij
 contenido. Ojo con el `0` de una casilla apagada: **no es lo mismo que ausente**, y el caso lo
 distingue.
 
-### Lo que el Laboratorio todavía NO muestra de las secciones nuevas
-`labCCRender` tiene trece bloques, y cubren las secciones **viejas**: shunt, ductus, coartación,
-FOP, VAB, MCH, MCA, TGA, VAP, TdF y Ebstein. **Siete no tienen bloque**: Marfan, Eisenmenger,
-Fontan, subaórtica, supravalvular, DSAV y CVPA. Y la subtab Mediciones no muestra el Doppler
-tricuspídeo, la ET completa ni el nivel/etiología de EP/IP. **Los datos viajan al Excel; lo que
-falta es la VISTA.**
+### El Laboratorio ya muestra las siete secciones nuevas — y cómo se hizo sin replicar reglas
+> Esta entrada REEMPLAZA a «Lo que el Laboratorio todavía NO muestra», que describía el estado
+> anterior al 2026-09-16. Hoy `labCCRender` tiene **17 bloques** y Mediciones dos secciones más.
 
-Al construirlos, la trampa está documentada arriba: **reimplementar una regla clínica en el
-Laboratorio la desincroniza de la pestaña del paciente sin que nada lo delate** — once defectos
-salieron de eso la vez anterior. Los bloques nuevos tienen que leer los `*Conclusion()`/`*Estado()`
-que ya existen, o extraer el predicado, nunca reescribirlo.
+**La fuente inyectable es lo que hizo posible no replicar nada.** `marfanEstado`, `eisenEstado`,
+`fontanEstado`, `dopTricEstado` y `dtDiastEstado` aceptan ahora un `src` opcional: sin argumento
+leen el FORMULARIO como siempre, y con el objeto `campos` de un estudio guardado leen de ahí. Es
+el patrón `_pcSrc`/`_pcCon` del pericardio sin el estado global. Los trece bloques viejos leen
+`campos` crudo y **replican** las cascadas —el de MCH lo dice en su propio comentario—, que es lo
+que costó once defectos; los cuatro nuevos llaman a la función.
+
+**La equivalencia se verificó en las dos rutas antes de construir nada encima**, y hay que
+hacerlo así: poblar el formulario, leer por la ruta de siempre, leer lo mismo por la inyectada y
+exigir JSON idéntico. **Tres veces seguidas la diferencia fue mi sonda, no el código**, y las
+tres enseñan lo mismo —*el token sale del `<option value>` real*—:
+- `loeys` no existe; el valor es **`lds`**. Con el inválido el `<select>` queda sin selección y
+  la ruta del formulario devuelve vacío, así que el «DIFIEREN» acusaba al código.
+- Las clases funcionales se guardan en **minúscula** (`i`/`ii`/`iii`/`iv`), y el tipo de Fontan
+  es **`extra`**, no `tcpe_extra`.
+- Los checkbox viven en `campos` como **`<id>__chk`**. Pasar `fontan_comp_epp` sin el sufijo hace
+  que la ruta inyectada no vea la complicación — y de ahí cuelga `embarazo`, que pasa a `null`.
+
+**`_lblDe` NO sirve para preguntar si una clave existe: devuelve la cadena `'Otro'`.** Es para
+ROTULAR. Lo usé como guarda (`if (!u)`) y la guarda **nunca habría disparado**, porque `'Otro'` es
+truthy y `'Otro'.i` es `undefined`; y puesto sobre `MARFAN_SIND_TXT[sind] || 'Aortopatía'` cambiaba
+el texto del **informe firmado** de «Aortopatía» a «Otro» en el caso común de una aorta medida sin
+síndrome. Para preguntar está `_tieneClave(mapa, k)`, que se agregó **en el bloque 19** y no se
+tomó prestado del 42: una dependencia cruzada entre bloques sin respaldo se vuelve
+`ReferenceError` el día que el bloque grande deja de parsear, y este archivo ya se quedó sin
+JavaScript dos veces por eso.
+
+**`UMBRAL[sind]` lanzaba, y la parameterización lo volvió alcanzable.** Desde el formulario el
+`select` sólo puede tener sus cinco opciones; desde `campos` el valor es arbitrario —Excel, backup
+JSON, store—. Y el llamador es el Laboratorio, que **itera N estudios**: uno con un token raro se
+llevaba la subtab entera. Hoy hay rama `sindrome_no_reconocido`, y **no se supone un umbral del
+medio**: es la misma razón por la que `!sind` no concluye. Verificado con `constructor`,
+`__proto__`, `toString` y un token inventado.
+
+**LA NOVENA CLAVE SE PERDÍA EN SILENCIO.** `marfanEstado` devuelve nueve, y mi mapa tenía ocho:
+faltaba **`umbral_iia_sin_fr`** («por encima del umbral en que los factores de riesgo pasan a
+indicar cirugía; falta consignar si los hay»). `_labDistribDe` descarta lo que no esté en la
+allowlist, así que **cuatro estudios se contaban como tres** y el porcentaje se repartía entre los
+otros. Peor: yo calculaba «no concluibles» **por resta** (`conCx − criterios − sin_indicacion`),
+así que la clave sin mapear se atribuía a una categoría clínica que no le correspondía. Hoy se
+cuenta por **conjuntos explícitos** y existe la fila «Con indicación clasificada», cuyo invariante
+—**N de N**— es lo único que pone en rojo una décima clave que nadie mapeó. **Al distribuir sobre
+las claves de una cascada, contar cuántas quedaron sin etiqueta.**
+
+**LOS PROMEDIOS SALEN DEL OBJETO QUE DEVUELVE LA CASCADA, no de `promDe(arr, campo, lo, hi)`.**
+Verificado campo por campo: ninguno de estos tiene banda en `LAB_XLS_RANGO` **ni** `min`/`max` en
+su input — la plausibilidad vive **dentro** de la función (saturación 40-100, FEVI 10-85). Escribir
+los cortes en el Laboratorio sería la divergencia de bandas que este archivo ya pagó en seis
+campos. Efecto medido: una saturación de `9` (tipeada por 90) **no entra** al promedio, y el
+denominador de «< 90 %» son las saturaciones válidas y no todos los estudios.
+
+**`_CC_SECS` pasó de 12 a 19 claves, y eso TOCA OTRA PANTALLA.** Es la fuente única: el panel de
+Filtros genera sus casillas con `_CC_SECS.map`, así que **el filtro de cohorte gana siete casillas
+nuevas**. Es deseable —hasta hoy no se podía filtrar por estas secciones— pero es un cambio de una
+pantalla que nadie pidió tocar, y por eso está declarado. Escribir los predicados sueltos en
+`labCCRender` habría sido la lista paralela de siempre. Los nueve `select` implicados se
+verificaron uno por uno: **los nueve tienen opción 0 vacía**, así que ningún predicado matchea un
+estudio en blanco — sin esa verificación el bloque habría dicho que todo el laboratorio tiene
+Fontan, que es el defecto de `fop_acv` y el de `pericardio`.
+
+**«No especificada» no cuenta como etiología.** Es la opción 0 de `ep_etiologia`/`ip_etiologia`
+**y** el valor al que migran los estudios viejos: contarla es leer un default como hallazgo. Se
+informa aparte. En cambio en VM/VA/VT **un mismo campo guarda morfología y etiología**
+—«Calcificada» y «Endocarditis» conviven en el desplegable— así que el rótulo dice las dos cosas
+en vez de prometer sólo etiologías.
+
+**`setHtml`/`stat`/`empty` ya estaban declarados CUATRO veces**, uno por función de render del
+Laboratorio. Unificarlos es refactorizar cuatro funciones y no pertenecía a este cambio: se
+subieron a nivel de módulo **sólo** `_labDistrib`, `_labDistribDe`, `_labBarrasDe`, `_labCuenta` y
+`_labEstado`, que tenían **una sola copia**. El que obliga es `_labDistrib`, por su guarda de
+prototipo nulo; `_labBarrasDe` recibe el `empty` del llamador para no crear una quinta copia.
+
+**Un estudio no puede tumbar una tarjeta: `_labEstado(fn, inf, contador)`.** Y el caso de prueba
+**no** usa un estudio-bomba: un getter que lanza **no puede venir de `JSON.parse`**, así que
+probarlo con eso sería probar el mecanismo y no la alcanzabilidad — la regla de «si el valor lo
+pusiste vos, no probaste nada». Se prueba el seam directamente: devuelve `null`, cuenta el fallo y
+no propaga.
+
+**Colisión de substring, tercera vez en la sesión: `'Clase I'` está dentro de `'Clase IIa'`.** La
+condición pasaba con la rama equivocada. Se busca el texto que **sólo** produce esa rama.
+
+**`_labCampoRaw` puede lanzar y nadie lo envuelve — PREEXISTENTE, no tocado.** Hace
+`String(v).trim()` sobre `inf.campos[id]`, y `JSON.parse('{"x":{"toString":null}}')` produce
+exactamente el valor que hace lanzar a `String()`. Lo atraviesan **los diecinueve predicados** de
+`_CC_SECS` y casi todo el Laboratorio. Es la misma clase que `_sanearIds` ya cerró con `_str()`.
+Queda declarado; cerrarlo es un cambio de radio mayor que esta tarea.
+
+**TC-147** lo fija con 23 condiciones y **cinco mutaciones verificadas**, entre ellas la que pidió
+el pedido: el bloque Marfan reimplementando el diagnóstico con un umbral cableado en 50 **se pone
+en rojo** — porque un Loeys-Dietz de 47 mm tiene Clase I y un Marfan de 47 mm no. Ninguna condición
+que sólo cuente estudios lo detecta.
 
 ### Soporte y contacto: cuatro `mailto:` y una decisión de privacidad
 Agregada al final de Config el 2026-09-16. Sin servidor, sin formulario y sin dependencias: el
