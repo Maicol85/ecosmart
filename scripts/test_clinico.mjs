@@ -3942,11 +3942,32 @@ caso('TC-132', 'Seis correcciones: titulos, limpieza, capsulas, SGL, denominador
   // ── FIX 1 — los dos bloques de titulo no existen en ninguna de las dos pestañas ──
   const t1 = (document.getElementById('tab-congenitas').textContent || '');
   const t2 = (document.getElementById('tab-congenitas2').textContent || '');
-  out.push(['FIX1 · el titulo de Congenitas I no esta',
-    t1.indexOf('Cada patología es una sección plegable') === -1]);
-  out.push(['FIX1 · el de Congenitas II tampoco',
-    t2.indexOf('Cardiopatias congenitas estructurales') === -1 &&
-    t2.indexOf('conexiones anomalas y circulaciones paliadas') === -1]);
+  /* SE MIDE POR ESTRUCTURA, NO POR FRASE. La primera version buscaba textos concretos y dejo
+     pasar un SEGUNDO bloque de titulo en CC frecuentes: estaba escrito SIN acentos
+     —«Cardiopatias del adulto y miocardiopatias geneticas»— y el grep de la frase acentuada no
+     lo encontro. Buscar cadenas encuentra lo que uno ya sabe que esta; lo que hay que exigir es
+     que ANTES de la primera seccion no haya NADA que renderice. */
+  /* Se saltean los nodos de COMENTARIO (nodeType 8): textContent devuelve su contenido, asi que
+     el comentario de cabecera de la pestaña —que es largo— se contaba como texto visible.
+     Y NO se usa una regex con \\s: el cuerpo de un caso es un template literal y se come la
+     barra, con lo que /\\s+/ quedaba en /s+/ y borraba todas las eses del texto. Se ve en el
+     diagnostico: «la do co a a propo ito». Septima vez con esta trampa. Alcanza con trim(). */
+  const primero = tab => { const e = document.getElementById(tab);
+    const sec = e.querySelector('.sacc');
+    let txt = '';
+    for (let n = e.firstChild; n && n !== sec; n = n.nextSibling) {
+      if (n.nodeType === 8) continue;
+      txt += (n.textContent || '');
+    }
+    return txt.trim(); };
+  out.push(['FIX1 · CC frecuentes arranca directo en su primera seccion',
+    primero('tab-congenitas') === '', 'sobra: ' + primero('tab-congenitas').slice(0,140)]);
+  out.push(['FIX1 · CC complejas tambien',
+    primero('tab-congenitas2') === '', 'sobra: ' + primero('tab-congenitas2').slice(0,140)]);
+  out.push(['FIX1 · y ninguna frase de titulo sobrevive, con acentos o sin ellos',
+    !/Cada patolog[ií]a es una secci[oó]n plegable/i.test(t1) &&
+    !/Cardiopat[ií]as? congenitas estructurales/i.test(t2) &&
+    !/miocardiopat[ií]as? gen[eé]ticas/i.test(t1.slice(0, 400))]);
   out.push(['FIX1 · y las secciones siguen ahi', t1.indexOf('Marfan') > -1 && t2.indexOf('Fontan') > -1]);
 
   // ── FIX 2 — los campos de las diez secciones se limpian ──

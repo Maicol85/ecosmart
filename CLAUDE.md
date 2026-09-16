@@ -343,6 +343,24 @@ igual. Y al final, sacarle la historia familiar al predicado **no cambiaba una p
 historia familiar»: el color y el texto salían de dos expresiones distintas. **Si un caso no
 prueba el lado negativo de cada rama, no prueba la regla.**
 
+### Buscar una frase encuentra lo que ya sabías que estaba
+Las dos pestañas de congénitas tenían **dos** bloques de título, no uno. El lote del 2026-09-16
+sacó el de «🧬 Cardiopatías congénitas y miocardiopatías genéticas» y **dejó vivo** un segundo,
+escrito **sin acentos** —«🧬 Cardiopatias del adulto y miocardiopatias geneticas»—, que el grep de
+la forma acentuada no encontró. TC-132 lo daba por resuelto porque **buscaba frases concretas**.
+
+**La condición correcta no es «no aparece este texto» sino «antes de la primera sección no hay
+NADA que renderice».** Hoy TC-132 recorre los hijos de cada pestaña hasta el primer `.sacc` y
+exige texto vacío, en las dos. Con eso, cualquier bloque nuevo —con acentos, sin acentos o en
+otro idioma— se pone en rojo solo.
+
+**Dos trampas del propio caso al escribirlo:**
+- **`textContent` incluye los nodos de COMENTARIO.** El comentario de cabecera de la pestaña es
+  largo y se contaba como texto visible. Hay que saltear `nodeType === 8`.
+- **El `\s` se lo volvió a comer el template literal**, por séptima vez: quedó en `/s+/g` y borró
+  **todas las eses** del texto. Se ve en el diagnóstico —«la do co a a propo ito»—. Acá ni hacía
+  falta la regex: alcanzaba con `trim()`.
+
 ### Doppler tricuspídeo: de cuatro campos pedidos, sólo uno era nuevo
 Agregado el 2026-09-16 al bloque tricuspídeo: **`dt_onda_e`**, **`dt_onda_a`**, **`dt_eprime_lat`**
 y **`dt_triv`**, con `E/A` y `E/e'` calculados. **Antes de crear un campo se verificaron los tres
