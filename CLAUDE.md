@@ -460,6 +460,45 @@ Se recuperó con `git show HEAD:` y se verificó **byte por byte** contra HEAD. 
 entrada «Los reemplazos por rango de líneas son peligrosos» que este archivo ya tenía, aplicada al
 propio suite: **después de un reemplazo por rango, contar los casos.**
 
+### Soporte y contacto: cuatro `mailto:` y una decisión de privacidad
+Agregada al final de Config el 2026-09-16. Sin servidor, sin formulario y sin dependencias: el
+cliente de correo del dispositivo hace todo, así que anda igual en escritorio y en móvil y **no
+agrega una superficie de red** a una app que no tiene ninguna.
+
+**TODO SE CODIFICA CON `encodeURIComponent`, y no es cosmético.** Los cuerpos llevan **saltos de
+línea** —que en una URL van como `%0A`— y el asunto lleva corchetes. Armado por concatenación
+cruda, el primer `&` o `#` de un texto **corta el resto de la URL** y el correo se abre con el
+cuerpo a la mitad, sin ningún error visible. Lo fija la mutación «se arma por concatenación».
+
+**NO SE ADJUNTA UN SOLO DATO DE PACIENTE, y es una decisión.** Sería trivial meter el nombre del
+estudio abierto o un volcado de `localStorage` para «facilitar el diagnóstico», y sería **sacar
+dato clínico de la máquina por un canal que ni siquiera es de la app**: el correo queda en los
+enviados del médico y en el servidor de su proveedor. Lo único automático es la VERSIÓN, que es lo
+que hace falta para reproducir un error y no identifica a nadie. Hay un caso que lo vigila —la
+mutación que empieza a adjuntar el nombre lo pone en rojo—.
+
+**La versión sale de `ECO_BUILD`**, la constante que sella `scripts/sellar_version.py` en el commit
+—la misma del pie—, con respaldo: un asunto sin versión sigue siendo un reporte útil, y una
+excepción ahí dejaría la sección entera sin dibujar.
+
+### El guardado de imágenes ya estaba entero — lo que faltaba era cobertura
+El pedido del 2026-09-16 traía IndexedDB, toggle, tres calidades, barra de almacenamiento y
+borrado **como si no existieran**. Está todo implementado desde antes: `CeiboImg` sobre la base
+`ceibomed_img`, `cfg-guardar-imagenes` apagado por defecto, `IMG_CAL` con `mini`/`media`/`orig` y
+un `rank` que ordena —así la calidad **sólo puede bajar**—, `imgStorageRender` midiendo contra
+`navigator.storage.estimate()`, y `cfgBorrarTodasImagenes` con su recolector.
+
+**La barra NO está en Config y eso es deliberado**: vive en la cabecera de Informes Guardados,
+que es donde el médico está cuando el espacio le importa —viendo la lista que lo ocupa—. En Config
+quedaba enterrada bajo una preferencia que se toca una vez. Está escrito en el comentario, al lado
+del toggle, para que el próximo pedido no la «agregue» de nuevo.
+
+**Lo que sí faltaba: ningún caso lo probaba.** Un módulo que escribe dato clínico en disco y cuyo
+único resguardo es «falla cerrado» merece que eso esté fijado. **TC-145** cubre ahora el toggle
+apagado por defecto, el orden de los rangos de calidad, la barra contra la cuota del origen, que
+el borrado vaya por recolector, y que `CeiboImg.leer` distinga «no pude leer» (`null`) de «no
+tiene» (`[]`) — la diferencia que evita que un error transitorio se traduzca en un borrado.
+
 ### El orden de las tabs avanzadas vive en TRES superficies, y sólo dos se derivan
 Reordenadas el 2026-09-16 a: **Hemodinámica · Eco Pulmonar · ETE · Cardio-Oncología · Amiloidosis ·
 CC frecuentes · CC complejas** (patologías) y **Calculadoras · Fonocardiograma · Referencias**

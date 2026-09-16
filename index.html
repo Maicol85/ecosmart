@@ -1891,6 +1891,14 @@ window.cerrarSesion = cerrarSesion;
         <div id="cfg-modulos" style="display:none;"></div>
       </div>
 
+      <!-- Soporte y contacto — va ÚLTIMO y discreto: no interrumpe el flujo de configuración.
+           Los enlaces los arma `cfgSoporteRender` porque el asunto lleva la versión sellada, que
+           es una constante de JS. -->
+      <div style="margin-bottom:22px;border-top:1px solid var(--border);padding-top:16px;">
+        <div class="cfg-sec-title">✉️ Soporte y contacto — CeiboMed</div>
+        <p style="font-size:11px;color:var(--text2);margin:0 0 10px;line-height:1.5;">Abren el correo del dispositivo con el asunto y el cuerpo ya escritos. No se envía nada solo, y <b>no se adjunta ningún dato de paciente</b>: lo que escribas vos es lo único que viaja.</p>
+        <div id="cfg-soporte" style="display:flex;flex-direction:column;gap:7px;"></div>
+      </div>
 
     </div>
   </div>
@@ -54321,8 +54329,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260916-0102';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789531333985;                 /* eco-build-ms */
+const ECO_BUILD    = '20260916-0110';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789531833954;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -54408,7 +54416,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0102</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0110</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -54776,9 +54784,70 @@ function cfgLoadMed(){
   // destildado está vacío a propósito, y se perdería lo que el usuario escribió.
   if (typeof firmaRefreshUI === 'function') firmaRefreshUI();
 }
+/* ══ SOPORTE Y CONTACTO ══════════════════════════════════════════════════════════════════════
+   Cuatro enlaces `mailto:` con asunto y cuerpo precargados. Sin servidor, sin formulario y sin
+   dependencias: el cliente de correo del dispositivo hace todo, así que funciona igual en
+   escritorio y en móvil y no agrega una superficie de red a una app que no tiene ninguna.
+
+   TODO SE CODIFICA CON `encodeURIComponent`, y no es cosmético. Los cuerpos llevan **saltos de
+   línea** —que en una URL tienen que ir como `%0A`— y el asunto lleva corchetes. Armado por
+   concatenación cruda, el primer `&` o `#` de un texto corta el resto de la URL y el correo se
+   abre con el cuerpo a la mitad, sin ningún error visible.
+
+   NO SE ADJUNTA UN SOLO DATO DE PACIENTE, y es una decisión, no un olvido. Sería trivial meter el
+   nombre del estudio abierto o el `localStorage` para «facilitar el diagnóstico», y sería sacar
+   dato clínico de la máquina por un canal que ni siquiera es de la app: el correo queda en los
+   enviados del médico y en el servidor de su proveedor. Lo único que viaja automático es la
+   VERSIÓN, que es lo que hace falta para reproducir un error y no identifica a nadie.
+
+   La versión sale de `ECO_BUILD`, la constante que sella `scripts/sellar_version.py` en el commit
+   — la misma que muestra el pie. Con respaldo, porque un asunto sin versión sigue siendo un
+   reporte útil y una excepción acá dejaría la sección entera sin dibujar. */
+const SOPORTE_CONTACTOS = [
+  { lbl:'🐞 Reportar un error',            to:'errores@ceibomed.com',     asunto:'Reporte de error',
+    cuerpo:'Descripción del error:\n\n\nPasos para reproducir:\n\n\nLo que esperaba:\n\n\nLo que ocurrió:\n\n\nDispositivo / navegador:\n' },
+  { lbl:'💡 Sugerir una mejora',           to:'sugerencias@ceibomed.com', asunto:'Sugerencia',
+    cuerpo:'Sugerencia:\n\n\nContexto clínico:\n' },
+  { lbl:'❓ Consulta sobre uso',            to:'soporte@ceibomed.com',     asunto:'Consulta',
+    cuerpo:'Consulta:\n' },
+  { lbl:'✨ Solicitar funcionalidad',       to:'ideas@ceibomed.com',       asunto:'Solicitud de funcionalidad',
+    cuerpo:'Funcionalidad solicitada:\n\n\nContexto clínico donde la usaría:\n' }
+];
+function soporteVersion(){
+  try { return (typeof ECO_BUILD === 'string' && ECO_BUILD) ? 'v' + ECO_BUILD : 'version desconocida'; }
+  catch (e) { return 'version desconocida'; }
+}
+function soporteMailto(c){
+  const asunto = '[EcoSmart ' + soporteVersion() + '] ' + c.asunto;
+  return 'mailto:' + c.to + '?subject=' + encodeURIComponent(asunto) +
+         '&body=' + encodeURIComponent(c.cuerpo);
+}
+window.soporteMailto = soporteMailto;
+/* Con nodos y no con `innerHTML`: el `href` lleva una URL construida y la regla de la casa es no
+   pintar por innerHTML si alcanza con crear el elemento. Además `textContent` deja el rótulo
+   fuera de cualquier parseo. */
+function cfgSoporteRender(){
+  const cont = document.getElementById('cfg-soporte');
+  if (!cont) return;
+  while (cont.firstChild) cont.removeChild(cont.firstChild);
+  SOPORTE_CONTACTOS.forEach(function(c){
+    const a = document.createElement('a');
+    a.className = 'btn btn-ghost';
+    a.href = soporteMailto(c);
+    a.textContent = c.lbl;
+    a.setAttribute('style','text-align:left;text-decoration:none;display:block;');
+    /* `rel` aunque sea `mailto:`: no abre ventana, pero si mañana alguno pasa a `https` el
+       atributo ya está puesto y no hay que acordarse. */
+    a.rel = 'noopener noreferrer';
+    a.title = c.to;
+    cont.appendChild(a);
+  });
+}
+window.cfgSoporteRender = cfgSoporteRender;
+
 function eeQrEnabled(){ return localStorage.getItem('ett_qr_enabled') !== '0'; } // por defecto activado
 function cfgToggleQr(on){ try { localStorage.setItem('ett_qr_enabled', on ? '1' : '0'); } catch(e){} }
-function cfgOnShow(){ cfgRenderModulos(); cfgLoadMed(); if(typeof cfgRenderCentros==='function')cfgRenderCentros(); if(typeof cfgRenderMedicos==='function')cfgRenderMedicos(); if(typeof initPdfPlantillas==='function')initPdfPlantillas(); var q=document.getElementById('cfg-qr'); if(q) q.checked = eeQrEnabled(); var mi=document.getElementById('cfg-modo-inst'); if(mi) mi.checked=(localStorage.getItem('ett_modo_institucional')==='1');
+function cfgOnShow(){ cfgRenderModulos(); cfgSoporteRender(); cfgLoadMed(); if(typeof cfgRenderCentros==='function')cfgRenderCentros(); if(typeof cfgRenderMedicos==='function')cfgRenderMedicos(); if(typeof initPdfPlantillas==='function')initPdfPlantillas(); var q=document.getElementById('cfg-qr'); if(q) q.checked = eeQrEnabled(); var mi=document.getElementById('cfg-modo-inst'); if(mi) mi.checked=(localStorage.getItem('ett_modo_institucional')==='1');
   var gi=document.getElementById('cfg-guardar-imagenes'); if(gi && typeof imgGuardadoActivo==='function') gi.checked=imgGuardadoActivo();
   /* La fila del logo se repinta al abrir Config, como todo lo demás de este panel. Los cuatro
      escritores de `logo_centro_*` ya la repintan, así que dentro de una pestaña esto es

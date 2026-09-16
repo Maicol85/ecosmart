@@ -4624,6 +4624,78 @@ caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el La
   ] };
 `);
 
+/* SOPORTE (nuevo) + LAS INVARIANTES DE IMAGENES (que ya estaban y no tenian NINGUN caso).
+   La parte de IndexedDB del pedido ya estaba implementada entera —toggle, tres calidades, barra
+   de storage, borrado—, pero sin una sola prueba: un modulo que guarda dato clinico en disco y
+   cuyo unico resguardo es «falla cerrado» merece que eso este fijado. Lo nuevo de este commit es
+   la seccion de soporte. */
+caso('TC-145', 'Soporte: cuatro mailto con la version sellada, y las invariantes del guardado de imagenes', `
+  showTab('config'); try { cfgOnShow(); } catch(e) {}
+  const links = [].slice.call(document.querySelectorAll('#cfg-soporte a'));
+  const parse = function(a){ const u = new URL(a.href), sp = new URLSearchParams(u.search);
+    return { to:u.pathname, asunto:sp.get('subject'), cuerpo:sp.get('body'), raw:a.getAttribute('href') }; };
+  const P = links.map(parse);
+  const DEST = ['errores@ceibomed.com','sugerencias@ceibomed.com','soporte@ceibomed.com','ideas@ceibomed.com'];
+  const ASU  = ['Reporte de error','Sugerencia','Consulta','Solicitud de funcionalidad'];
+  const ver  = soporteVersion();
+  const todoDecodificado = P.map(function(x){ return decodeURIComponent(x.raw); }).join(' ');
+
+  return { extra: [
+    // 1 · LOS CUATRO BOTONES.
+    ['son cuatro enlaces', links.length === 4, String(links.length)],
+    ['a las cuatro direcciones, en orden',
+      P.map(function(x){ return x.to; }).join(',') === DEST.join(','),
+      P.map(function(x){ return x.to; }).join(',')],
+    ['todos son mailto:', P.every(function(x){ return x.raw.indexOf('mailto:') === 0; }),
+      P.map(function(x){ return x.raw.slice(0,12); }).join(' ')],
+
+    // 2 · EL ASUNTO LLEVA LA VERSION SELLADA.
+    ['el asunto lleva la version y el rotulo de cada uno',
+      P.every(function(x, i){ return x.asunto === '[EcoSmart ' + ver + '] ' + ASU[i]; }),
+      P.map(function(x){ return x.asunto; }).join(' | ')],
+    ['y la version sale de ECO_BUILD, no de un literal',
+      ver === 'v' + ECO_BUILD && ver.length > 5, ver + ' vs ' + ECO_BUILD],
+
+    // 3 · LA CODIFICACION. Sin esto el cuerpo llega cortado y sin ningun error visible.
+    /* Los cuerpos llevan saltos de linea —que en una URL van como %0A— y el asunto corchetes.
+       Un & o un # sin codificar corta el resto de la URL. */
+    ['los saltos de linea viajan codificados',
+      P.every(function(x){ return x.raw.indexOf('%0A') > -1; }),
+      P.map(function(x){ return x.raw.indexOf('%0A') > -1; }).join(',')],
+    ['y los corchetes del asunto tambien',
+      P.every(function(x){ return x.raw.indexOf('%5BEcoSmart') > -1; })],
+    ['el cuerpo se decodifica con sus saltos intactos',
+      P[0].cuerpo.indexOf('Pasos para reproducir:') > -1 &&
+      P[0].cuerpo.indexOf(String.fromCharCode(10)) > -1, JSON.stringify(P[0].cuerpo.slice(0, 60))],
+    ['cada cuerpo pide lo suyo',
+      P[1].cuerpo.indexOf('Contexto clínico:') > -1 &&
+      P[2].cuerpo.indexOf('Consulta:') > -1 &&
+      P[3].cuerpo.indexOf('Funcionalidad solicitada:') > -1],
+
+    // 4 · NINGUN DATO DE PACIENTE VIAJA. Es el limite de privacidad de esta seccion.
+    ['no se adjunta ningun dato del paciente ni del almacenamiento',
+      !/paciente|localStorage|\\bci\\b|documento:/i.test(todoDecodificado),
+      todoDecodificado.slice(0, 80)],
+
+    // 5 · INVARIANTES DEL GUARDADO DE IMAGENES — ya estaban, no tenian caso.
+    ['el toggle existe y arranca APAGADO',
+      !!document.getElementById('cfg-guardar-imagenes') && imgGuardadoActivo() === false],
+    ['hay tres calidades y su rango ORDENA (la calidad solo puede bajar)',
+      IMG_CAL.mini.rank < IMG_CAL.media.rank && IMG_CAL.media.rank < IMG_CAL.orig.rank,
+      Object.keys(IMG_CAL).map(function(k){ return k + '=' + IMG_CAL[k].rank; }).join(' ')],
+    ['la barra de almacenamiento existe y mide contra la cuota del origen',
+      !!document.getElementById('ig-img-storage') && typeof imgStorageRender === 'function' &&
+      !!(navigator.storage && navigator.storage.estimate)],
+    ['el borrado es un boton explicito y va por recolector',
+      typeof cfgBorrarTodasImagenes === 'function' && typeof imgRecolectarHuerfanas === 'function'],
+    /* Falla CERRADO: sin IndexedDB no hay imagenes persistidas y la app sigue andando. Sin esta
+       guarda, un navegador en modo privado tiraba al abrir. */
+    ['CeiboImg distingue «no pude leer» de «no tiene»: null vs array',
+      typeof CeiboImg === 'object' && typeof CeiboImg.leer === 'function' &&
+      String(CeiboImg.leer).indexOf('null') > -1]
+  ] };
+`);
+
 /* ORDEN DE LAS TABS AVANZADAS (2026-09-16).
    TC-123 NO cubre esto: busca los botones por showTab('id'), asi que es independiente del orden
    y pasaba igual antes y despues. Lo unico que cambia acá es la POSICION, y tres superficies la
