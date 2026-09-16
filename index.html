@@ -2612,67 +2612,6 @@ window.cerrarSesion = cerrarSesion;
   </div>
   </div>
 
-  <!-- Doppler Pulmonar -->
-  <div class="card" style="margin-bottom:6px;">
-    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('dop-pulmonar',this)">〰️ Doppler Pulmonar<span id="dop-pulmonar-arrow" style="float:right;transition:transform 0.2s;">▶</span></h2>
-  </div>
-  <div id="dop-pulmonar" style="display:none;">
-  <div class="card">
-    <div class="card-body">
-      <!-- Fila 1: Estenosis pulmonar -->
-      <div class="grid-2" style="margin-bottom:6px;">
-        <div class="fg">
-          <label>Vmax pulmonar (m/s) — Estenosis</label>
-          <input type="number" id="vp_vmax" placeholder="m/s" oninput="calcVP()">
-        </div>
-        <div class="fg">
-          <label>G. Máx pulmonar (mmHg) — auto</label>
-          <input type="number" id="vp_gmax" placeholder="mmHg" oninput="calcVP()">
-        </div>
-      </div>
-      <div class="divider"></div>
-      <!-- Fila 2: Insuficiencia pulmonar → PAP media y diastólica -->
-      <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:6px 0 4px;">💨 Insuficiencia Pulmonar — Presiones Pulmonares</div>
-      <div style="font-size:10px;color:var(--text2);margin-bottom:6px;">
-        PAPm = 4 × Vmax-IP² + PmAD &nbsp;·&nbsp; PAPd = 4 × Vmax-TD-IP² + PmAD
-      </div>
-      <div class="grid-4">
-        <div class="fg">
-          <label>Vmax proto-diast. IP (m/s) <span style="font-weight:400;color:var(--text2);font-size:10px;">Vmax-PD-IP</span></label>
-          <input type="number" id="ip_vmax" placeholder="m/s" step="0.1" oninput="calcIP()">
-        </div>
-        <div class="fg">
-          <label>PmAD (mmHg) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← VCI</span></label>
-          <input type="text" id="ip_pmad_display" readonly style="color:var(--accent2);" placeholder="— completar VCI">
-        </div>
-        <div class="fg">
-          <label>Vmax telediastólica IP (m/s)</label>
-          <input type="number" id="ip_vtd" placeholder="m/s" step="0.1" oninput="calcIP()">
-        </div>
-        <div class="fg">
-          <label>PAP diastólica — auto (mmHg)</label>
-          <input type="text" id="ip_papd" readonly style="font-weight:700;">
-        </div>
-      </div>
-      <div class="calc-box" style="margin-top:8px;">
-        <div class="calc-row"><span class="calc-lbl">PAP media (IP proto-diast.)</span><span class="calc-val" id="ip-papm-row">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">PAP diastólica (IP tele-diast.)</span><span class="calc-val" id="ip-papd-row">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Grado IP <span style="font-weight:400;color:var(--text2);font-size:10px;">— manual: evaluación integral (densidad jet CW, tiempo de desaceleración, vena contracta)</span></span>
-          <!-- SIN EL PREFIJO «IP» Y SIN «(fisiológica)». El prefijo obligaba a cada consumidor a
-               desarmarlo con `replace(/^IP\s*/i,'')` para no escribir «insuficiencia pulmonar IP
-               moderada», y «fisiológica» era una ETIOLOGÍA metida dentro del grado — ahora vive
-               en `ip_etiologia`. Los valores viejos los traduce `_migrarCamposLegacy`. -->
-          <select id="ip_grado" style="min-width:180px;" onchange="vpSync()">
-            <option>Sin insuficiencia</option>
-            <option>Leve</option>
-            <option>Moderada</option>
-            <option>Severa</option>
-          </select>
-        </div>
-      </div>
-    </div>
-  </div>
-  </div>
 
 </div>
 
@@ -3179,6 +3118,20 @@ window.cerrarSesion = cerrarSesion;
   <div id="ete-seccion-valv-pulmonar" style="display:none;">
   <div class="card">
     <div class="card-body">
+      <!-- ══ SOLAPAS ══ Mismo patrón que eteShuntTab/eteTaviTab: subtabs-wrap + tabs-row + dos
+           botones, y los paneles con display. La válvula pulmonar estaba PARTIDA entre dos
+           pestañas —morfología y etiologías en Válvulas, mediciones en el acordeón «Doppler
+           Pulmonar» de la pestaña Doppler—, así que cargar un caso obligaba a saltar y volver.
+           Las dos pestañas son .tab-btn del rail SIN data-mod, o sea el MISMO régimen de
+           visibilidad: esta mudanza no cambia quién puede llegar a los campos, a diferencia de
+           la de Pericardio que este archivo documenta. -->
+      <div class="subtabs-wrap" style="justify-content:flex-start;margin-bottom:12px;">
+        <div class="tabs-row">
+          <button type="button" class="tab-btn active" id="vp-tab-morf" onclick="vpTab('morf')">Morfología y etiologías</button>
+          <button type="button" class="tab-btn" id="vp-tab-med" onclick="vpTab('med')">Mediciones</button>
+        </div>
+      </div>
+      <div id="vp-pane-morf">
       <!-- MORFOLOGÍA, ESTENOSIS E INSUFICIENCIA SON TRES COSAS Y ANTES ERAN UN SOLO SELECT.
            `vp_morf` mezclaba las tres, así que elegir «Insuficiencia leve» borraba la
            posibilidad de consignar estenosis y viceversa — mutuamente excluyentes por
@@ -3246,6 +3199,64 @@ window.cerrarSesion = cerrarSesion;
           <option>Carcinoide</option>
           <option>Displasia valvular</option>
         </select>
+      </div>
+      <!-- El GRADO de la insuficiencia vive con las etiologías, no con las mediciones: es una
+           evaluación integral del médico, no un número derivado. -->
+      <div class="calc-box" style="margin-top:8px;">
+        <div class="calc-row"><span class="calc-lbl">Grado IP <span style="font-weight:400;color:var(--text2);font-size:10px;">— manual: evaluación integral (densidad jet CW, tiempo de desaceleración, vena contracta)</span></span>
+          <!-- SIN EL PREFIJO «IP» Y SIN «(fisiológica)». El prefijo obligaba a cada consumidor a
+               desarmarlo con `replace(/^IP\s*/i,'')` para no escribir «insuficiencia pulmonar IP
+               moderada», y «fisiológica» era una ETIOLOGÍA metida dentro del grado — ahora vive
+               en `ip_etiologia`. Los valores viejos los traduce `_migrarCamposLegacy`. -->
+          <select id="ip_grado" style="min-width:180px;" onchange="vpSync()">
+            <option>Sin insuficiencia</option>
+            <option>Leve</option>
+            <option>Moderada</option>
+            <option>Severa</option>
+          </select>
+        </div>
+      </div>
+      </div>
+      <div id="vp-pane-med" style="display:none;">
+      <!-- Fila 1: Estenosis pulmonar -->
+      <div class="grid-2" style="margin-bottom:6px;">
+        <div class="fg">
+          <label>Vmax pulmonar (m/s) — Estenosis</label>
+          <input type="number" id="vp_vmax" placeholder="m/s" oninput="calcVP()">
+        </div>
+        <div class="fg">
+          <label>G. Máx pulmonar (mmHg) — auto</label>
+          <input type="number" id="vp_gmax" placeholder="mmHg" oninput="calcVP()">
+        </div>
+      </div>
+      <div class="divider"></div>
+      <!-- Fila 2: Insuficiencia pulmonar → PAP media y diastólica -->
+      <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:6px 0 4px;">💨 Insuficiencia Pulmonar — Presiones Pulmonares</div>
+      <div style="font-size:10px;color:var(--text2);margin-bottom:6px;">
+        PAPm = 4 × Vmax-IP² + PmAD &nbsp;·&nbsp; PAPd = 4 × Vmax-TD-IP² + PmAD
+      </div>
+      <div class="grid-4">
+        <div class="fg">
+          <label>Vmax proto-diast. IP (m/s) <span style="font-weight:400;color:var(--text2);font-size:10px;">Vmax-PD-IP</span></label>
+          <input type="number" id="ip_vmax" placeholder="m/s" step="0.1" oninput="calcIP()">
+        </div>
+        <div class="fg">
+          <label>PmAD (mmHg) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← VCI</span></label>
+          <input type="text" id="ip_pmad_display" readonly style="color:var(--accent2);" placeholder="— completar VCI">
+        </div>
+        <div class="fg">
+          <label>Vmax telediastólica IP (m/s)</label>
+          <input type="number" id="ip_vtd" placeholder="m/s" step="0.1" oninput="calcIP()">
+        </div>
+        <div class="fg">
+          <label>PAP diastólica — auto (mmHg)</label>
+          <input type="text" id="ip_papd" readonly style="font-weight:700;">
+        </div>
+      </div>
+      <div class="calc-box" style="margin-top:8px;">
+        <div class="calc-row"><span class="calc-lbl">PAP media (IP proto-diast.)</span><span class="calc-val" id="ip-papm-row">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">PAP diastólica (IP tele-diast.)</span><span class="calc-val" id="ip-papd-row">—</span></div>
+      </div>
       </div>
     </div>
   </div>
@@ -19533,6 +19544,26 @@ window.calcVP = calcVP;
 
    `ip_grado` vive en el Doppler Pulmonar y su etiología en Válvulas: son pestañas distintas pero
    el mismo documento, y `getElementById` no sabe de pestañas. */
+/* Solapas de la válvula pulmonar. Copia exacta del patrón de `eteShuntTab`/`eteTaviTab`: mostrar
+   un pane, ocultar el otro, y mover la clase `active` entre los dos botones.
+
+   NO toca los VALORES: los dos paneles están siempre en el DOM y sólo cambia su `display`, así
+   que `guardarInforme` —que barre `input[id]`/`select[id]` de TODO el documento sin mirar
+   visibilidad— sigue leyendo los siete campos esté abierta la solapa que esté. Por el mismo
+   motivo `limpiarCampos` los limpia y `calcVP`/`calcIP` los leen: `getElementById` no sabe de
+   pestañas ni de paneles ocultos. Eso es lo que hace que esta mudanza sea de presentación. */
+function vpTab(cual){
+  const morf = cual === 'morf';
+  const p1 = document.getElementById('vp-pane-morf'), p2 = document.getElementById('vp-pane-med');
+  if (p1) p1.style.display = morf ? '' : 'none';
+  if (p2) p2.style.display = morf ? 'none' : '';
+  const b1 = document.getElementById('vp-tab-morf'), b2 = document.getElementById('vp-tab-med');
+  if (b1) b1.classList.toggle('active', morf);
+  if (b2) b2.classList.toggle('active', !morf);
+  if (typeof vpSync === 'function') vpSync();
+}
+window.vpTab = vpTab;
+
 function vpSync(){
   const g = id => { const e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; };
   const ver = (id, on) => { const e = document.getElementById(id); if (e) e.style.display = on ? '' : 'none'; };
@@ -54098,8 +54129,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260916-0004';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789527847778;                 /* eco-build-ms */
+const ECO_BUILD    = '20260916-0019';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789528767573;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -54185,7 +54216,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0004</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0019</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

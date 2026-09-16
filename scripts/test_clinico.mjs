@@ -4621,6 +4621,138 @@ caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el La
   ] };
 `);
 
+/* MUDANZA DE LA VALVULA PULMONAR (2026-09-16, commit 2b).
+   Los siete campos de medicion vivian en el acordeon «Doppler Pulmonar» de tab-doppler y la
+   morfologia con sus etiologias en tab-valvulas: la valvula estaba PARTIDA entre dos pestanas.
+   Hoy todo vive en el acordeon de Valvula Pulmonar, en dos solapas.
+   Lo que este caso vigila, y que contar <div> NO detecta:
+   · que cada campo este en la pestana Y en el panel que le toca;
+   · que no quede ningun huerfano de pulmonar en tab-doppler;
+   · que los calculos, la limpieza y el barrido de guardado sigan alcanzandolos — cambio el
+     HTML de lugar, no los ids, y getElementById no sabe de pestanas. */
+caso('TC-140', 'Valvula pulmonar: los siete campos se mudaron a tab-valvulas y quedaron en dos solapas', `
+  return (async () => {
+    const SIETE = ['vp_vmax','vp_gmax','ip_vmax','ip_vtd','ip_papd','ip_pmad_display','ip_grado'];
+    /* Devuelve el objeto SIEMPRE, con nulos adentro: las condiciones de un caso se evaluan
+       todas al construir el array, asi que un return null hacia que la siguiente reventara con
+       «cannot read properties of null» ANTES de que se reportara «falta este id». Un id perdido
+       en la mudanza tiene que leerse como condicion roja, no como excepcion. */
+    const donde = function(id){ const e = document.getElementById(id);
+      if (!e) return { existe:false, tab:null, pane:null };
+      const t = e.closest('.tab-section'), p = e.closest('[id^=vp-pane-]');
+      return { existe:true, tab: t ? t.id : null, pane: p ? p.id : null }; };
+    const ubic = {}; SIETE.forEach(function(id){ ubic[id] = donde(id); });
+    /* Las dos superficies que calcIP pinta viajan con las mediciones. */
+    const spanM = donde('ip-papm-row'), spanD = donde('ip-papd-row');
+
+    const dop = document.getElementById('tab-doppler');
+    const restos = [].slice.call(dop.querySelectorAll('[id]')).map(function(x){ return x.id; })
+      .filter(function(i){ return i.indexOf('vp_') === 0 || i.indexOf('ip_') === 0 ||
+                                  i.indexOf('ip-pap') === 0 || i.indexOf('dop-pulmonar') === 0; });
+
+    /* SOLAPAS: el acordeon se abre a mano porque display:none no invalida getComputedStyle de los
+       hijos para esta comprobacion —se mide el estilo del pane, no su visibilidad efectiva—. */
+    const acc = document.getElementById('ete-seccion-valv-pulmonar');
+    const accPrev = acc.style.display; acc.style.display = 'block';
+    const dsp = function(id){ return getComputedStyle(document.getElementById(id)).display; };
+    vpTab('morf');
+    const m1 = dsp('vp-pane-morf'), m2 = dsp('vp-pane-med');
+    const mAct = document.getElementById('vp-tab-morf').classList.contains('active');
+    vpTab('med');
+    const d1 = dsp('vp-pane-morf'), d2 = dsp('vp-pane-med');
+    const dAct = document.getElementById('vp-tab-med').classList.contains('active');
+
+    /* LOS DATOS PERSISTEN AL CAMBIAR DE SOLAPA: los dos paneles estan siempre en el DOM y solo
+       cambia su display, asi que nada se pierde. */
+    __t.limpiar();
+    __t.set('vp_vmax','4.5'); __t.set('ip_vmax','2.1'); __t.set('ip_grado','Moderada');
+    vpTab('morf'); vpTab('med'); vpTab('morf');
+    const tras = SIETE.map(function(i){ return __t.val(i); });
+    const gmaxTrasSolapa = __t.val('vp_gmax'), epTrasSolapa = __t.val('ep_grado');
+
+    /* CALCULOS desde la ubicacion nueva. */
+    __t.limpiar();
+    __t.set('vci_diam','18'); __t.set('vci_col','>50');
+    __t.set('vp_vmax','4.5');
+    const gmax = __t.val('vp_gmax'), epG = __t.val('ep_grado');
+    __t.set('ip_vmax','2.1'); __t.set('ip_vtd','1.5');
+    const pmad = __t.val('ip_pmad_display'), papd = __t.val('ip_papd');
+    const papm = __t.txt('ip-papm-row');
+
+    /* GUARDAR Y REABRIR: los siete tienen que volver. ip_grado se carga ACA y no antes: el
+       bloque de arriba termina con un limpiar, y la primera version del caso daba rojo porque
+       guardaba el grado vacio y despues exigia que volviera «Moderada» — el caso midiendo su
+       propio descuido. */
+    __t.set('ip_grado','Moderada');
+    __t.set('nombre','Mudanza VP'); __t.set('ci','99887766');
+    /* __t.guardar() devuelve una PROMESA con {ok, estudioId}: sin el await, reabrir
+       recibia la promesa, no abria nada y los campos volvian vacios — el caso media sobre un
+       formulario en blanco y culpaba a la mudanza. */
+    const g = await __t.guardar();
+    __t.nuevoEstudio();
+    const vacios = SIETE.map(function(i){ return __t.val(i); });
+    __t.reabrir(g.estudioId);
+    const vueltos = SIETE.map(function(i){ return __t.val(i); });
+    const ubicTrasReabrir = donde('vp_vmax');
+    await __t.borrar(g.estudioId);
+    acc.style.display = accPrev;
+    __t.limpiar();
+
+    return { extra: [
+      // 1 · UBICACION. No alcanza con que existan: tienen que estar donde corresponde.
+      ['los siete existen', SIETE.every(function(i){ return ubic[i].existe; }),
+        'faltan: ' + SIETE.filter(function(i){ return !ubic[i].existe; }).join(',')],
+      ['y los siete estan en tab-valvulas',
+        SIETE.every(function(i){ return ubic[i].tab === 'tab-valvulas'; }),
+        SIETE.map(function(i){ return i + '=' + ubic[i].tab; }).join(' ')],
+      ['las seis mediciones en la solapa de mediciones',
+        ['vp_vmax','vp_gmax','ip_vmax','ip_vtd','ip_papd','ip_pmad_display']
+          .every(function(i){ return ubic[i].pane === 'vp-pane-med'; }),
+        SIETE.map(function(i){ return i + '=' + ubic[i].pane; }).join(' ')],
+      ['y el GRADO de la IP en la de morfologia y etiologias: es evaluacion, no medicion',
+        ubic['ip_grado'].pane === 'vp-pane-morf', ubic['ip_grado'].pane],
+      ['las dos filas de PAP viajaron con las mediciones',
+        spanM.pane === 'vp-pane-med' && spanD.pane === 'vp-pane-med',
+        spanM.pane + ' / ' + spanD.pane],
+
+      // 2 · NINGUN HUERFANO EN LA PESTANA DE ORIGEN.
+      ['tab-doppler no conserva ningun id de pulmonar', restos.length === 0, restos.join(', ')],
+      ['y el acordeon «Doppler Pulmonar» ya no existe',
+        document.getElementById('dop-pulmonar') === null],
+
+      // 3 · LAS SOLAPAS.
+      ['la solapa de morfologia muestra su panel y oculta el otro',
+        m1 !== 'none' && m2 === 'none' && mAct === true, m1 + '/' + m2],
+      ['y la de mediciones al reves',
+        d1 === 'none' && d2 !== 'none' && dAct === true, d1 + '/' + d2],
+      ['cambiar de solapa NO pierde los datos',
+        tras[0] === '4.5' && tras[2] === '2.1' && tras[6] === 'Moderada', JSON.stringify(tras)],
+      ['y tampoco lo derivado', gmaxTrasSolapa === '81' && epTrasSolapa === 'Severa',
+        gmaxTrasSolapa + ' / ' + epTrasSolapa],
+
+      // 4 · LOS CALCULOS ALCANZAN LA UBICACION NUEVA.
+      ['calcVP deriva el gradiente y el grado desde la solapa de mediciones',
+        gmax === '81' && epG === 'Severa', gmax + ' / ' + epG],
+      ['calcIP calcula PmAD y PAP diastolica',
+        pmad.indexOf('3') > -1 && papd.indexOf('mmHg') > -1 && papm.indexOf('mmHg') > -1,
+        pmad + ' | ' + papd + ' | ' + papm],
+
+      // 5 · LIMPIAR Y GUARDAR siguen alcanzandolos.
+      ['limpiarCampos deja los siete vacios',
+        vacios.every(function(v, k){ return v === '' || (SIETE[k] === 'ip_grado' && v === 'Sin insuficiencia'); }),
+        JSON.stringify(vacios)],
+      ['el guardado se persistio de verdad', g.ok === true],
+      ['guardar y reabrir devuelve los siete',
+        vueltos[0] === '4.5' && vueltos[2] === '2.1' && vueltos[3] === '1.5' && vueltos[6] === 'Moderada',
+        JSON.stringify(vueltos)],
+      ['y siguen en su pestana despues de reabrir',
+        ubicTrasReabrir.tab === 'tab-valvulas' && ubicTrasReabrir.pane === 'vp-pane-med',
+        JSON.stringify(ubicTrasReabrir)]
+    ] };
+  })();
+
+`);
+
 /* VALVULA PULMONAR: EP E IP SEPARADAS (2026-09-16).
    vp_morf era UN SOLO select que mezclaba morfologia, estenosis e insuficiencia — elegir
    «Insuficiencia leve» borraba la posibilidad de consignar estenosis y viceversa, mutuamente
@@ -5604,7 +5736,14 @@ function evaluar(r) {
     fallos.push(['valor esperado', r.esperado, String(r.valor)]);
   if (r.noEsperado !== undefined && igual(r.valor, r.noEsperado))
     fallos.push(['valor NO esperado', r.noEsperado, String(r.valor)]);
-  (r.extra || []).forEach(([desc, ok]) => { if (!ok) fallos.push(['condicion', desc, '']); });
+  /* EL TERCER ELEMENTO ES EL DIAGNOSTICO Y SE ESTABA TIRANDO. Decenas de casos lo escriben
+     —`['la capsula dice X', cond, valorReal]`— y este forEach solo desestructuraba dos, asi que
+     al fallar una condicion el runner imprimia el nombre y nada mas. El render de abajo YA sabe
+     mostrarlo (`if (enc)`); lo que faltaba era pasarselo. Sin esto, cada rojo obligaba a montar
+     un probe aparte para ver el valor que el caso ya tenia en la mano. */
+  (r.extra || []).forEach(([desc, ok, diag]) => {
+    if (!ok) fallos.push(['condicion', desc, diag === undefined || diag === null ? '' : String(diag)]);
+  });
   return fallos;
 }
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);

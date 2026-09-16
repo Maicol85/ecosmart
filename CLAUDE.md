@@ -460,6 +460,54 @@ Se recuperó con `git show HEAD:` y se verificó **byte por byte** contra HEAD. 
 entrada «Los reemplazos por rango de líneas son peligrosos» que este archivo ya tenía, aplicada al
 propio suite: **después de un reemplazo por rango, contar los casos.**
 
+### La mudanza de la válvula pulmonar, y por qué esta vez NO cambió el régimen
+Commit 2b (2026-09-16). Los siete campos de medición vivían en el acordeón «Doppler Pulmonar» de
+**`tab-doppler`** y la morfología con sus etiologías en **`tab-valvulas`**: la válvula estaba
+partida entre dos pestañas y cargar un caso obligaba a saltar y volver. Hoy todo vive en el
+acordeón de Válvula Pulmonar, en dos solapas (`vpTab`, copia del patrón `eteShuntTab`).
+
+**LAS DOS PESTAÑAS SON `.tab-btn` DEL RAIL SIN `data-mod`, o sea el MISMO régimen de
+visibilidad.** Eso es lo que hace que esta mudanza sea segura y la distingue de la de Pericardio
+—que este archivo documenta— donde el módulo pasó de «siempre alcanzable» a «sólo en Avanzado con
+el módulo tildado». Acá nadie pierde acceso a nada. **Verificarlo es el primer paso de cualquier
+mudanza entre pestañas**, antes de mover una línea.
+
+**El GRADO de la IP quedó en la solapa de morfología, no en la de mediciones**: es una evaluación
+integral del médico (densidad del jet, tiempo de desaceleración, vena contracta), no un número
+derivado. Las dos filas de PAP que pinta `calcIP` sí viajaron con las mediciones.
+
+**Las solapas NO tocan valores: sólo `display`.** Los dos paneles están siempre en el DOM, así que
+`guardarInforme` —que barre `input[id]`/`select[id]` de todo el documento sin mirar visibilidad—
+sigue viendo los siete, `limpiarCampos` los limpia y `calcVP`/`calcIP` los leen. `getElementById`
+no sabe de pestañas ni de paneles ocultos: por eso esto es presentación y no lógica.
+
+**Contar `<div>` no habría detectado nada de esto.** Lo que se verificó es el **conjunto de ids**
+antes y después —perdidos: sólo `dop-pulmonar` y `dop-pulmonar-arrow`, que son el acordeón que
+desaparece; nuevos: los cuatro de las solapas— y después, en el navegador, **en qué pestaña y en
+qué panel cayó cada campo**. TC-140 lo fija, más que `tab-doppler` no conserve ningún id de
+pulmonar.
+
+### EL RUNNER TIRABA EL DIAGNÓSTICO DE CADA CONDICIÓN
+`(r.extra || []).forEach(([desc, ok]) => ...)` desestructuraba **dos** elementos de una tupla de
+**tres**. Decenas de casos escriben el valor real como tercer elemento —`['la cápsula dice X',
+cond, valorReal]`— y el runner lo descartaba, así que al fallar una condición imprimía el nombre
+y **nada más**. El render de abajo ya sabía mostrarlo (`if (enc)`); lo que faltaba era pasárselo.
+
+Costó varias vueltas de probe en la misma sesión: cada rojo obligaba a montar un script aparte
+para leer un valor que el caso **ya tenía en la mano**. Arreglado el 2026-09-16. Con eso, un id
+perdido en la mudanza ahora se lee como «faltan: ip_vtd» en vez de como una excepción muda.
+
+**Y un caso tiene que poder reportar el campo que falta sin reventar.** Las condiciones de un
+`extra` se evalúan TODAS al construir el array, así que un helper que devuelve `null` para un id
+inexistente hace que la condición siguiente lance **antes** de que se reporte «falta este id».
+Devolver el objeto con nulos adentro convierte la excepción en condición roja legible.
+
+**Dos trampas propias, otra vez las mismas:** `__t.guardar()` devuelve una **promesa** con
+`{ok, estudioId}` —sin `await`, `reabrir` recibe la promesa, no abre nada y los campos vuelven
+vacíos: el caso midiendo sobre un formulario en blanco y culpando a la mudanza—; y **backticks en
+un comentario dentro del cuerpo de un caso**, que ya van once. `node --check` los caza antes de
+correr nada, pero apuntando a la línea del `caso(`, decenas de líneas antes del culpable.
+
 ### Válvula pulmonar: `vp_morf` era UN select para tres cosas
 Separado el 2026-09-16 (commit 2a: modelo de datos y lógica; las solapas y la mudanza de pestaña
 van aparte). `vp_morf` mezclaba **morfología, estenosis e insuficiencia** en un solo select, así
