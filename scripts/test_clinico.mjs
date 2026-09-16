@@ -3929,6 +3929,109 @@ caso('TC-131', 'Excel: un estudio de congenitas vuelve entero de su propio archi
   })();
 `);
 
+/* LAS SEIS CORRECCIONES DEL 2026-09-16. Tres ya estaban hechas y el caso las FIJA para que no se
+   deshagan; tres se hicieron ahora. */
+caso('TC-132', 'Seis correcciones: titulos, limpieza, capsulas, SGL, denominadores y navegacion', `
+  const out = [];
+  // ── FIX 1 — los dos bloques de titulo no existen en ninguna de las dos pestañas ──
+  const t1 = (document.getElementById('tab-congenitas').textContent || '');
+  const t2 = (document.getElementById('tab-congenitas2').textContent || '');
+  out.push(['FIX1 · el titulo de Congenitas I no esta',
+    t1.indexOf('Cada patología es una sección plegable') === -1]);
+  out.push(['FIX1 · el de Congenitas II tampoco',
+    t2.indexOf('Cardiopatias congenitas estructurales') === -1 &&
+    t2.indexOf('conexiones anomalas y circulaciones paliadas') === -1]);
+  out.push(['FIX1 · y las secciones siguen ahi', t1.indexOf('Marfan') > -1 && t2.indexOf('Fontan') > -1]);
+
+  // ── FIX 2 — los campos de las diez secciones se limpian ──
+  const SECS = {
+    marfan:['marfan_sindrome','marfan_ao_seno'], eisen:['eis_lesion_base','eis_saturacion_reposo'],
+    fontan:['fontan_tipo','fontan_saturacion'],  tdf:['tdf_func_vd','tdf_vtdvdi'],
+    ebs:['ebs_desplazamiento','ebs_saturacion'], esub:['esub_tipo','esub_gradiente_medio'],
+    easv:['easv_tipo','easv_gradiente_medio'],   dsav:['dsav_tipo','dsav_qp_qs'],
+    cvpa:['cvpa_conexion','cvpa_qp_qs'],         fop:['fop_tunel','fop_burbujas']
+  };
+  const VALOR = { marfan_sindrome:'lds', eis_lesion_base:'cia', fontan_tipo:'extra', tdf_func_vd:'moderada',
+    esub_tipo:'tunel', easv_tipo:'difusa', dsav_tipo:'completo', cvpa_conexion:'vcs', fop_burbujas:'abundante' };
+  const sucios = [], faltan = [];
+  __t.limpiar();
+  Object.keys(SECS).forEach(function(k){ SECS[k].forEach(function(id){
+    const v = VALOR[id] || '33';
+    if (__t.set(id, v) !== 1) { faltan.push(id); return; }
+  }); });
+  __t.limpiar();
+  Object.keys(SECS).forEach(function(k){ SECS[k].forEach(function(id){
+    const e = document.getElementById(id); if (!e) return;
+    if (String(e.value || '').trim() !== '') sucios.push(k + '/' + id + '="' + e.value + '"');
+  }); });
+  out.push(['FIX2 · los veinte campos existen', faltan.length === 0, faltan.join(', ')]);
+  out.push(['FIX2 · y ninguno sobrevive a limpiarCampos', sucios.length === 0, sucios.join(' | ')]);
+  /* Los espejos NO son campos propios: se limpian por su seccion de origen. Que existan como
+     readonly y con data-espejo es lo que los mantiene fuera de secAutoOpen. */
+  const ESP = ['dsav_vi_ro','cvpa_cia_ro','cvpa_vd_ro','tdf_psvd_ro','tdf_it_ro'];
+  out.push(['FIX2 · los espejos son readonly y llevan data-espejo o son _ro',
+    ESP.every(function(id){ const e = document.getElementById(id);
+      return !!e && e.readOnly === true; }), ESP.filter(function(id){
+      const e = document.getElementById(id); return !e || !e.readOnly; }).join(', ')]);
+
+  // ── FIX 3 — las tres capsulas estan en el recalculo al reabrir ──
+  const src = String(cargarEstudioPorId);
+  out.push(['FIX3 · calcBSA, calcPSAP y calcSGL se recalculan al reabrir',
+    ['calcBSA','calcPSAP','calcSGL'].every(function(f){ return src.indexOf(f) > -1; })]);
+
+  // ── FIX 4 — el SGL sincroniza en las DOS direcciones ──
+  __t.limpiar();
+  __t.set('sgl', '-18');
+  const g1 = (document.getElementById('sgl_gls') || {}).value;
+  __t.set('sgl_gls', '-13');
+  const s1 = (document.getElementById('sgl') || {}).value;
+  out.push(['FIX4 · escribir en sgl actualiza sgl_gls', String(g1) === '-18', 'sgl_gls=' + g1]);
+  out.push(['FIX4 · y escribir en sgl_gls actualiza sgl', String(s1) === '-13', 'sgl=' + s1]);
+  /* UNA SOLA FUENTE. La primera version de esta condicion miraba el texto del informe y fallaba
+     por el CASO, no por el codigo: sin FEVI ni contexto el narrativo no emite la linea de strain,
+     asi que buscaba un numero que nunca iba a estar. Lo que hay que probar es que las dos
+     entradas quedan con EL MISMO valor —el ultimo escrito— y que lo que lee el informe (#sgl) es
+     ese. Con FEVI cargada, ademas, se comprueba que la linea salga con el valor correcto. */
+  out.push(['FIX4 · las dos entradas quedan con el mismo valor', String(s1) === String((document.getElementById('sgl_gls')||{}).value)]);
+  __t.set('fevi', '58'); __t.set('sgl_gls', '-11');
+  const inf4 = __t.informe();
+  out.push(['FIX4 · y el informe publica el ultimo valor, no el de la otra pestaña',
+    inf4.inf.indexOf('11') > -1 && inf4.inf.indexOf('-18') === -1, inf4.inf.slice(0, 200)]);
+
+  // ── FIX 5 — el denominador del Laboratorio ──
+  const base = { campos:{} };
+  const conDefault = { campos:{ im_grado:'0', ea_grado:'sin', et_grado:'Sin estenosis' } };
+  const conValor   = { campos:{ im_grado:'3', ea_grado:'severa' } };
+  const conBandera = { campos:{ im_grado:'0', im_grado__tocado:'1', ea_grado:'sin', ea_grado__tocado:'1' } };
+  out.push(['FIX5 · el valor de fabrica NO cuenta como valvula evaluada',
+    _labRegurgSev(conDefault,'im_grado') === null &&
+    _labEstenSev(conDefault,'ea_grado') === null &&
+    _labEstenSev(conDefault,'et_grado') === null]);
+  out.push(['FIX5 · un valor real si cuenta',
+    _labRegurgSev(conValor,'im_grado') === 'Moderada' && _labEstenSev(conValor,'ea_grado') === 'Severa']);
+  /* LA DISTINCION QUE PEDIA EL ARREGLO: «el medico eligio Sin» cuenta, y devuelve «Sin». */
+  out.push(['FIX5 · con la bandera, «Sin» es un hallazgo y entra al denominador',
+    _labRegurgSev(conBandera,'im_grado') === 'Sin' && _labEstenSev(conBandera,'ea_grado') === 'Sin']);
+  out.push(['FIX5 · el campo ausente tampoco cuenta',
+    _labRegurgSev(base,'im_grado') === null && _labEstenSev(base,'ea_grado') === null]);
+  /* La bandera es un hidden: el barrido generico no la toca, asi que limpiarCampos la nombra. */
+  __t.limpiar();
+  _valvTocar('im_grado');
+  const marcada = (document.getElementById('im_grado__tocado') || {}).value;
+  __t.limpiar();
+  const trasLimpiar = (document.getElementById('im_grado__tocado') || {}).value;
+  out.push(['FIX5 · la bandera se pone', marcada === '1']);
+  out.push(['FIX5 · y NO sobrevive a Nuevo estudio', trasLimpiar === '']);
+
+  // ── FIX 6 — la hamburguesa se anuncia y es tocable ──
+  const bg = document.querySelector('.eco-tabsburger');
+  out.push(['FIX6 · la hamburguesa dice que ahi estan las secciones',
+    (bg.textContent || '').indexOf('Secciones') > -1]);
+  out.push(['FIX6 · conserva la etiqueta para lector de pantalla',
+    (bg.getAttribute('aria-label') || '').indexOf('Secciones del estudio') > -1]);
+  return { extra: out };
+`);
+
 /* LAS TRES SUPERFICIES DE CARDIO-ONCO TIENEN QUE DECIR LO MISMO. La leyenda de #ref-cardiotox
    (pestaña Referencias), la tabla de farmacos y las tablas nuevas del marco HFA-ICOS viven en
    DOS pestañas distintas y describen al mismo paciente. Las tres estaban desincronizadas, cada

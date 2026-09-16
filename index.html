@@ -247,7 +247,15 @@
     .rail{display:none!important}
     /* 44×44 mínimo: es el ÚNICO acceso a las secciones del estudio en celular, así que errarle
        deja al médico sin navegación. Con `padding:5px 11px` y 19 px de glifo daba 35×31. */
-    .eco-tabsburger{display:inline-flex;align-items:center;justify-content:center;order:-1;min-width:44px;min-height:44px}
+    /* CON RÓTULO, no sólo el glifo. Por debajo de 768 px el rail y la fila de pestañas especiales
+       se ocultan y ÉSTE es el único camino a las diez secciones del estudio; un «≡» pelado no
+       dice que ahí haya navegación, y el médico no lo descubre. El texto es la convención del
+       resto de la app —todas las pestañas llevan rótulo— así que no inventa un patrón nuevo.
+       `min-height` en 44 estaba escrito y no se aplicaba: medía 44×31. Se fija también el alto
+       de línea, que era lo que lo achataba. */
+    .eco-tabsburger{display:inline-flex;align-items:center;justify-content:center;gap:6px;order:-1;
+      min-width:44px;min-height:44px;height:44px;line-height:1;font-size:15px;font-weight:700;padding:5px 12px}
+    .eco-burger-txt{font-size:12.5px;font-weight:700;letter-spacing:.2px}
     .hdr-burger{display:inline-flex;align-items:center;margin-left:auto}
     #hdr-pdf-quick{display:inline-flex;align-items:center;gap:4px;color:#fff;border:none;border-radius:7px;padding:6px 10px;font-size:13px;font-weight:600;cursor:pointer;flex-shrink:0;transition:background .2s;margin-left:auto}
     /* Con el botón PDF presente, el que se pega a la derecha es él; el burger queda a su lado. */
@@ -1479,7 +1487,7 @@ window.cerrarSesion = cerrarSesion;
 
 <!-- HEADER -->
 <header>
-  <button class="eco-tabsburger" aria-label="Secciones del estudio" onclick="ecoDrawerToggle()">≡</button>
+  <button class="eco-tabsburger" aria-label="Secciones del estudio" onclick="ecoDrawerToggle()">≡ <span class="eco-burger-txt">Secciones</span></button>
   <div class="hdr-icon">🫀</div>
   <!-- `hdr-titulo-wrap`: el título es la pieza ELÁSTICA del header. Sin esto entraba en una
        línea con cero holgura a 1280 px y flexbox lo envolvía igual por redondeo subpíxel; y
@@ -8218,13 +8226,6 @@ z
        con el cruce Wilkins × trombo de orejuela. Con `data-ete-chk` el checkbox viaja en
        `campos` y el texto se recalcula en cada generarInforme.
        ═══════════════════════════════════════════════════════════════════════════════════ -->
-  <div class="card" style="margin-bottom:8px;">
-    <div class="card-body" style="padding:12px 14px;">
-      <div style="font-size:15px;font-weight:800;">🧬 Cardiopatías congénitas y miocardiopatías genéticas</div>
-      <p style="font-size:11px;color:var(--text2);margin:6px 0 0;">Cada patología es una sección plegable. Las que ya tengan datos cargados se abren solas al entrar a la pestaña. Cada una decide por separado si entra al informe.</p>
-    </div>
-  </div>
-
   <!-- ═══ ARRITMIA VENTRICULAR — BLOQUE COMPARTIDO ═══
        La taquicardia ventricular estaba en tres campos sin relación: `mch_tvns` (binario, que
        vota en el HCM Risk-SCD con coeficiente 0,826), `tdf_tv` (binario) y las dos filas de
@@ -8707,6 +8708,16 @@ z
       </div>
       <div id="esub-resultado" class="calc-box" style="margin-top:12px;"></div>
       <input type="checkbox" id="esub_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+      <!-- Banderas «una persona movió este control». Van como <input type=hidden> para que
+           viajen con el estudio: `dataset` no se persiste, y el estado del control tampoco
+           alcanza porque su valor de fábrica es indistinguible de una decisión. Las limpia
+           `limpiarCampos` A MANO — el barrido genérico toma text y number, no hidden. -->
+      <input type="hidden" id="im_grado__tocado" value="">
+      <input type="hidden" id="ia_grado__tocado" value="">
+      <input type="hidden" id="it_grado__tocado" value="">
+      <input type="hidden" id="em_grado__tocado" value="">
+      <input type="hidden" id="ea_grado__tocado" value="">
+      <input type="hidden" id="et_grado__tocado" value="">
       <div style="display:flex;justify-content:center;margin-top:10px;">
         <button type="button" class="btn btn-integrar" data-ete-chk="esub_incluir_chk" aria-pressed="false"
                 onclick="eteInclToggle('esub_incluir_chk')">&#128206; Integrar al informe</button>
@@ -9808,13 +9819,6 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
      quieto. (La marca de apertura no se escribe literal en este comentario: la contarian el
      chequeo de conteo y el extractor de sintaxis como si fuera un bloque de verdad.) -->
 <div id="tab-congenitas2" class="tab-section">
-  <div class="card" style="margin-bottom:8px;">
-    <div class="card-body" style="padding:12px 14px;">
-      <div style="font-size:15px;font-weight:800;">🫀 Cardiopatias congenitas estructurales</div>
-      <div style="font-size:11.5px;color:var(--text2);margin-top:3px;">Cardiopatias con shunt, conexiones anomalas y circulaciones paliadas. Las aortopatias y miocardiopatias geneticas estan en «Congenitas».</div>
-    </div>
-  </div>
-
 <div class="card sacc" id="sacc-cc-shunt">
     <button type="button" class="sacc-hdr" onclick="secToggle('cc-shunt');eteShuntSync();" aria-expanded="false">
       <span class="sacc-arrow">▶</span>
@@ -22729,6 +22733,12 @@ function limpiarCampos(silencioso) {
   document.querySelectorAll('input[type=text], input[type=number]').forEach(el => { el.value = ''; });
   // Grados de severidad ocultos → 0
   ['im_grado','ia_grado','it_grado'].forEach(id => { const el = document.getElementById(id); if (el) el.value = '0'; });
+  /* Las banderas de «una persona movió esto» son `input[type=hidden]` y el barrido genérico toma
+     text y number: hay que nombrarlas. Sin esto, la marca del paciente A sobrevivía a «Nuevo
+     estudio» y el estudio de B entraba al denominador del Laboratorio sin que nadie mirara su
+     válvula — la misma fuga que ya costaron `ete_tavi_jet_horas` y `co_serie_json`. */
+  ['im_grado','ia_grado','it_grado','em_grado','ea_grado','et_grado']
+    .forEach(id => { const el = document.getElementById(id + '__tocado'); if (el) el.value = ''; });
   /* `defaultValue` y no '': hoy todos los textarea tienen '' por defecto —la plantilla del
      ETE pasó a ser `placeholder`—, así que no cambia nada, pero deja el reset alineado con
      la guarda de _autosaveRestore, que también compara contra defaultValue. Si mañana algún
@@ -23568,6 +23578,10 @@ function mostrarCardSeveridadValvular(onConfirm) {
   ov.querySelector('#rev-confirm').onclick = () => {
     const setGrade = (hid, rev) => { const el = document.getElementById(hid), r = ov.querySelector('#' + rev); if (el && r) el.value = r.value; };
     setGrade('im_grado','rev-im'); setGrade('ia_grado','rev-ia'); setGrade('it_grado','rev-it');
+    /* Confirmar la tarjeta ES la decisión: el médico repasó las tres regurgitaciones. Marca
+       aunque el grado quede en «sin» — eso es «la miré y está normal», que es justamente lo que
+       el denominador del Laboratorio no podía distinguir. */
+    ['im_grado','ia_grado','it_grado'].forEach(function(k){ if (typeof _valvTocar === 'function') _valvTocar(k); });
     CLONADOS.forEach(id => {
       const dst = document.getElementById(id);
       const src = ov.querySelector('select[data-target="' + id + '"]');
@@ -42924,7 +42938,62 @@ function _labDiastGrado(inf) {   // grado desde el texto del resumen (misma heur
   if (_labMenciona(t, /diast[oó]lica\s+normal|llenado\s+(del\s+vi\s+)?normal/i)) return 'sin';
   return null;
 }
+/* ══ ¿ESTA VÁLVULA SE EVALUÓ? ════════════════════════════════════════════════════════════════
+   LOS SEIS GRADOS VALVULARES NUNCA ESTÁN VACÍOS. `im_grado`, `ia_grado` e `it_grado` son
+   `<input type="hidden" value="0">`; `em_grado` y `ea_grado` arrancan en `'sin'`; `et_grado` en
+   `'Sin estenosis'`. Como `guardarInforme` barre TODO `input[id]`/`select[id]`, cada estudio
+   guardado los lleva aunque nadie haya mirado la válvula.
+
+   MEDIDO SOBRE LA BASE REAL (95 estudios, 2026-09-16): los seis están presentes en los 95,
+   mientras los que traen un valor DISTINTO del de fábrica son 44 (IM), 8 (IA), 59 (IT), 8 (EM),
+   10 (EA) y **0** (ET). O sea que «estudios con esa válvula evaluada» valía 95 para las seis, y
+   el subtítulo que el propio Laboratorio imprime —«el n de cada barra es su propio numerador, no
+   sobre los N del período»— se contradecía a sí mismo. `ip_grado` no está en la lista porque su
+   primera opción SÍ es vacía: es la prueba de que el arreglo correcto es éste.
+
+   QUÉ SE CUENTA COMO EVALUADO, en este orden:
+   1. La bandera `<id>__tocado` — la escribe el control cuando una PERSONA lo mueve. Es el mismo
+      mecanismo que este archivo ya usa para el selector de AVm, y por el mismo motivo: una
+      bandera propia es la única forma de distinguir «dijo que no» de «no decidió».
+   2. Un valor DISTINTO del de fábrica — cubre los estudios anteriores a la bandera y los
+      importados de Excel, donde el valor real es evidencia de que alguien lo consignó.
+   Lo que queda fuera: el estudio viejo con el valor de fábrica y sin bandera. **No sabemos** si
+   se miró, y contarlo como evaluado es justamente el defecto. Se pierde el caso del médico que
+   revisó una válvula normal antes de hoy; se gana que el denominador diga lo que promete.
+
+   NO SE TOCAN NI EL HTML NI LO QUE LEE EL INFORME. Cambiar los defaults a vacío haría que un
+   `INSUF_TXT[''] || 'Severa'` publique «Severa» en un informe firmado — el patrón `MAPA[k] ||
+   fallback` que este archivo persigue. El informe sigue leyendo exactamente lo mismo. */
+/* La bandera la ponen SÓLO dos gestos inequívocos de una persona: mover uno de los tres
+   `<select>` de estenosis, y confirmar la tarjeta de severidades —que es donde el médico repasa
+   IM, IA e IT antes de guardar—. NO se marca desde el auto-cálculo de `calcIM_ESC`: ése corre en
+   cada tecleo, también con el formulario vacío, así que marcaría «evaluada» sobre cero
+   mediciones y reintroduciría el defecto por otra puerta. Lo que el auto-cálculo sí deja es un
+   VALOR distinto del de fábrica, y eso ya cuenta por la segunda vía de `_labValvEvaluada`. */
+function _valvTocar(id){ const e = document.getElementById(id + '__tocado'); if (e) e.value = '1'; }
+window._valvTocar = _valvTocar;
+document.addEventListener('change', function(ev){
+  const t = ev.target; if (!t || !t.id) return;
+  if (['em_grado','ea_grado','et_grado'].indexOf(t.id) >= 0) _valvTocar(t.id);
+});
+
+const _LAB_VALV_FABRICA = { im_grado:'0', ia_grado:'0', it_grado:'0',
+                            em_grado:'sin', ea_grado:'sin', et_grado:'Sin estenosis' };
+function _labValvEvaluada(inf, key) {
+  const c = inf.campos || {};
+  if (c[key + '__tocado'] === '1') return true;
+  const raw = c[key];
+  if (raw === undefined || raw === null || String(raw).trim() === '') return false;
+  const fab = _LAB_VALV_FABRICA[key];
+  if (fab === undefined) return true;   // campo sin default de fábrica: su presencia ya es dato
+  return String(raw).trim().toLowerCase() !== String(fab).toLowerCase();
+}
+window._labValvEvaluada = _labValvEvaluada;
+
 function _labRegurgSev(inf, key) {   // im_grado/ia_grado/it_grado: numérico 0-4 (form) o texto (importado)
+  /* Sin evidencia de que la válvula se haya evaluado NO se devuelve grado: `null` es «no entra en
+     el denominador», que es distinto de «Sin», que es un hallazgo. */
+  if (!_labValvEvaluada(inf, key)) return null;
   const raw = inf.campos?.[key];
   if (raw === undefined || raw === null || String(raw).trim() === '') return null;
   const s = String(raw).trim().toLowerCase();
@@ -42936,6 +43005,10 @@ function _labRegurgSev(inf, key) {   // im_grado/ia_grado/it_grado: numérico 0-
   return null;
 }
 function _labEstenSev(inf, key) {   // ea_grado/em_grado: select sin/esclerosis/leve/moderada/severa
+  /* Misma compuerta que en `_labRegurgSev`, y por el mismo motivo: `em_grado` y `ea_grado`
+     arrancan en 'sin' y `et_grado` en 'Sin estenosis', así que sin esto los tres estaban en el
+     denominador de los 95 estudios. Ver el comentario de `_labValvEvaluada`. */
+  if (!_labValvEvaluada(inf, key)) return null;
   const raw = String(inf.campos?.[key] || '').trim().toLowerCase();
   if (!raw) return null;
   if (/severa/.test(raw)) return 'Severa';
@@ -53020,8 +53093,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260915-2112';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789517566014;                 /* eco-build-ms */
+const ECO_BUILD    = '20260915-2126';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789518392288;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -53107,7 +53180,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260915-2112</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260915-2126</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

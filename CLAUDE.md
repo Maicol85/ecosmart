@@ -335,6 +335,61 @@ igual. Y al final, sacarle la historia familiar al predicado **no cambiaba una p
 historia familiar»: el color y el texto salían de dos expresiones distintas. **Si un caso no
 prueba el lado negativo de cada rama, no prueba la regla.**
 
+### Los seis grados valvulares: la bandera `__tocado`, medida sobre 95 estudios
+**CENSO REAL (2026-09-16, 95 estudios):** `im_grado`, `ia_grado`, `it_grado`, `em_grado`,
+`ea_grado` y `et_grado` estaban presentes en **los 95**, mientras los que traían un valor distinto
+del de fábrica eran **44, 8, 59, 8, 10 y CERO**. O sea que «estudios con esa válvula evaluada»
+valía 95 para las seis. `ip_grado` no está en la lista porque su primera opción **sí** es vacía —
+es la prueba de cuál era el arreglo.
+
+**La corrección es del LABORATORIO, no del modelo de datos ni del informe.** `_labValvEvaluada`
+cuenta como evaluada, en este orden: **(1)** la bandera **`<id>__tocado`**, que ponen sólo dos
+gestos inequívocos de una persona —mover uno de los tres `<select>` de estenosis, o confirmar la
+tarjeta de severidades—; **(2)** un valor **distinto del de fábrica**, que cubre los estudios
+previos y los importados. Queda fuera el estudio viejo con el valor de fábrica y sin bandera:
+**no sabemos** si se miró, y contarlo era el defecto.
+
+**NO se marca desde el auto-cálculo de `calcIM_ESC`**: ése corre en cada tecleo, también con el
+formulario vacío, así que marcaría «evaluada» sobre cero mediciones y reintroduciría el defecto
+por otra puerta. Lo que el auto-cálculo deja es un valor ≠ fábrica, y eso ya cuenta por la vía 2.
+
+**NO se cambiaron los defaults del HTML a vacío**, aunque sea la corrección «de manual». Un
+`INSUF_TXT[''] || 'Severa'` publicaría **«Severa»** en un informe firmado: es el patrón
+`MAPA[k] || fallback` que este archivo persigue. Con la bandera se obtiene la distinción **sin
+tocar una sola línea de lo que lee el informe**.
+
+**Las seis banderas son `input[type=hidden]` y `limpiarCampos` las nombra A MANO** — el barrido
+genérico toma `text` y `number`. Sin eso, la marca del paciente A sobrevivía a «Nuevo estudio» y
+el estudio de B entraba al denominador sin que nadie mirara su válvula. Es la fuga que ya
+costaron `ete_tavi_jet_horas` y `co_serie_json`.
+
+**Consecuencia asumida:** el médico que revisó una válvula normal **antes de hoy** sale del
+denominador. Se eligió ese lado: mejor un denominador más chico y verdadero que un 95 que sólo
+dice que el formulario tiene un valor por defecto.
+
+### Tres de seis correcciones ya estaban hechas — verificar antes de rehacer
+Del lote del 2026-09-16, **la mitad ya estaba resuelta** y la «Deuda conocida» de este archivo
+estaba **vieja**:
+- **Las tres cápsulas al reabrir** (`psap-interp`, `sgl-interp`, `bsa-val`): `calcBSA`, `calcPSAP`
+  y `calcSGL` **ya estaban** en la lista de recálculo de `cargarEstudioPorId`. La entrada
+  «TC-GR-13, abierto» describía un estado anterior.
+- **La sincronía del SGL**: `sgl` ↔ `sgl_gls` ya funcionaba en **las dos direcciones** —la ida por
+  `calcSGL`, la vuelta por el `oninput` inline de `sgl_gls`—. Medido: escribir −18 en uno deja −18
+  en el otro, y al revés.
+- **La limpieza de las diez secciones de Congénitas**: ninguna fuga; los veinte campos probados
+  quedan vacíos tras `limpiarCampos`.
+
+Las tres quedan **fijadas por TC-132** para que no se deshagan. **Antes de rehacer un arreglo,
+medirlo**: la sección «Deuda conocida» describe el estado del día que se escribió, no el de hoy.
+
+### La hamburguesa lleva RÓTULO, no sólo el glifo
+Por debajo de 768 px el rail y la fila de pestañas especiales se ocultan, y el `≡` es el **único**
+camino a las diez secciones del estudio. Un glifo pelado no dice que ahí haya navegación. Ahora
+dice **«≡ Secciones»** —la convención del resto de la app, no un patrón nuevo— y mide **104×44 px**
+a 760, 700 y 390; en escritorio sigue `display:none`, así que el layout no cambia. De paso: el
+`min-height:44px` estaba escrito y **no se aplicaba** —medía 44×**31**— porque el `line-height`
+heredado lo achataba.
+
 ### El round-trip de Excel está verificado — y por qué NO es tautológico
 **TC-131** (2026-09-16) cierra la brecha más grande que quedaba: guarda un estudio real con valor
 en **57 campos** de las nueve secciones de congénitas, lo exporta con **`_labExportarXLSXReal`**
