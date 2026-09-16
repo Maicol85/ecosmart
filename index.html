@@ -53566,49 +53566,34 @@ window.labCCRender = labCCRender;
    (período, rango de fechas y centros). Llamarla con getInformes() daría números que no cierran
    con el resto del Laboratorio, y la causa sería invisible: labGetInformes además descarta los
    estudios sin `fecha_estudio` válido y getInformes no. */
-function labEteRender(infs, n) {
-  const setHtml = (id, h) => { const e = document.getElementById(id); if (e) e.innerHTML = h; };
-  const stat = (lbl, val) => `<div class="lab-stat"><span class="lab-stat-lbl">${lbl}</span><span class="lab-stat-val">${val}</span></div>`;
-  const empty = (id, mod) => setHtml(id, `<div class="lab-empty">Sin estudios con ${mod} registrado ${_labPobTxt()}.</div>`);
-  const pctS = x => n > 0 ? Math.round(x / n * 100) + '%' : '0%';
-  const pctDe = (x, d) => d > 0 ? Math.round(x / d * 100) + '%' : '0%';
-
-  /* ── BLOQUE 1 · Actividad ──
-     Dos números, no uno, porque ninguno solo es el total real:
-       · «Marcados» cuenta `ete-es-ete__chk === '1'`. Es un PISO: los estudios anteriores al
-         checkbox no lo traen, y el mapa de importación de Excel NO incluye esa clave — se
-         puede importar un TAVI completo sin la bandera. También falta cuando el médico anota
-         un ETE ajeno sin marcar la casilla, que el diseño admite a propósito.
-       · «Con datos» cuenta evidencia por campos. Es un TECHO: incluye esos ETE ajenos.
-     Ojo con dos campos que NO sirven como evidencia: `ete_cia_*`/`ete_civ_*` se mudaron a la
-     tab Hemodinámica, así que su presencia no implica transesofágico; y la orejuela lleva
-     prefijo `oai_`, no `ete_`, así que un filtro por /^ete_/ se la perdería entera. */
-  // `_labEsEte` vive a nivel de módulo: el panel de cohorte filtra «Solo ETEs marcados» con ÉL.
-  const esEte = _labEsEte;
-  /* UN predicado por bloque, y conDatosEte es su unión. Antes eran dos listas paralelas y ya
-     habían divergido: `teerArr` admitía cualquiera de los seis criterios y la evidencia sólo
-     miraba tres, así que «Estudios con evaluación TEER» podía SUPERAR al «Total considerado»
-     del mismo panel — una contradicción visible en pantalla. Ídem orejuela, que promediaba
-     ostium/profundidad/área sin admitirlos en su propio filtro: un sizing de Watchman quedaba
-     fuera del denominador y sus medidas nunca entraban al promedio. */
-  const _algunNum = _labAlgunNum;
-  const _algunTxt = _labAlgunTxt;
+/* ══ SEAMS DE LA SUBTAB ETE ═══════════════════════════════════════════════════════════════════
+   Subidos a nivel de módulo el 2026-09-16, junto con `_labUsaTavi`/`_labEsEte` que ya estaban.
+   Los consume `labEteRender` —con alias locales, para que su cuerpo no cambie ni un carácter— y
+   los va a consumir el PPT agrupado. Un PPT que reimplementara estos predicados publicaría, en un
+   archivo que se proyecta sin la app al lado, un denominador distinto del de la pantalla sobre la
+   MISMA cohorte: es el defecto de los denominadores que este archivo ya pagó tres veces.
+   `_LAB_TEER_CRIT` es además la SEGUNDA implementación de los criterios de `teerEstado()` —eso
+   es deuda declarada, no se cierra acá— y por eso importa que haya UNA sola copia de este lado:
+   con dos, el dashboard y el mazo contarían cohortes distintas además de discrepar con el
+   informe firmado. */
+const _labAlgunNumA = _labAlgunNum;
+const _labAlgunTxtA = _labAlgunTxt;
   // TAVI: se miran los dos panes. Antes sólo el post, así que un laboratorio que hace sizing
   // pre-TAVI y no controla los post veía «Estudios con TAVI: 0».
   // `_labUsaTavi` está a nivel de módulo porque el panel de cohorte filtra «Con TAVI» con ÉL.
-  const usaTavi = _labUsaTavi;
-  const usaOai = i => _algunTxt(i, ['oai_morfologia','oai_trombo','oai_sec','oai_patron']) ||
-    _algunNum(i, ['oai_vel_vac','oai_vel_llen','oai_ostium_diam','oai_profundidad','oai_area_ostium']);
-  const usaWilkins = i => ['wilkins_movilidad','wilkins_engrosamiento','wilkins_calcificacion','wilkins_subvalvular']
+/* `_labUsaTavi` ya vive a nivel de modulo. */
+const _labUsaOai = i => _labAlgunTxtA(i, ['oai_morfologia','oai_trombo','oai_sec','oai_patron']) ||
+    _labAlgunNumA(i, ['oai_vel_vac','oai_vel_llen','oai_ostium_diam','oai_profundidad','oai_area_ostium']);
+const _labUsaWilkins = i => ['wilkins_movilidad','wilkins_engrosamiento','wilkins_calcificacion','wilkins_subvalvular']
     // > 0 porque el valor 0 de esos selects es el «—» de sin puntuar, igual que en calcWilkins.
     .some(k => { const v = _labNum(i, k); return v !== null && v > 0; });
-  const usaEteVM = i => _algunTxt(i, ['ete_etiologia','ete_carpentier','ete_mecanismo','ete_tecnica']) ||
-    _algunNum(i, ['ete_lva','ete_lvp','ete_area_mitral']);
+const _labUsaEteVM = i => _labAlgunTxtA(i, ['ete_etiologia','ete_carpentier','ete_mecanismo','ete_tecnica']) ||
+    _labAlgunNumA(i, ['ete_lva','ete_lvp','ete_area_mitral']);
   /* TEER_CRIT y usaTeer se declaran ACÁ, no junto a su bloque, porque conDatosEte los usa y se
      ejecuta antes. Con la declaración abajo, `typeof usaTeer` habría LANZADO ReferenceError —en
      zona muerta `typeof` sobre un `const` no devuelve 'undefined', tira— y se habría llevado
      puesto el render entero. Es la trampa que este archivo ya documenta. */
-  const TEER_CRIT = [
+const _LAB_TEER_CRIT = [
     { k:'lva',  lbl:'Velo anterior <20 mm',        campo:'teer_lva',         ok:v => v >= 20 },
     /* Rótulo NEUTRO a propósito. calcTEER lee `teer_gap` —que la interfaz rotula «Longitud
        coaptación (mm)» con la ayuda «Req: >2mm», o sea más es mejor— y lo evalúa contra `<=10`,
@@ -53653,7 +53638,7 @@ function labEteRender(infs, n) {
      cargado antes de fijar el tipo hacía que el Laboratorio dijera «Límite» sobre un estudio que
      el informe da por apto. Son DOS implementaciones del mismo criterio clínico —la trampa de la
      fórmula duplicada— y hasta que se unifiquen tienen que gatear igual. */
-  const _teerAplica = (c, tipoIM) => !c.tipo
+const _labTeerAplica = (c, tipoIM) => !c.tipo
     || (c.tipo === 'prim' && tipoIM !== 'secundaria')
     || (c.tipo === 'sec'  && tipoIM !== 'primaria')
     /* `coapt` es el único gate AFIRMATIVO: los otros dos aplican salvo que el tipo los excluya,
@@ -53675,8 +53660,172 @@ function labEteRender(infs, n) {
      valores que nadie tipeó, en vez de en «Sin criterios anatómicos cargados». Es estrecho
      (exige `psap_calc`, `ete_lva` y `avm_plan`/`avm_ete` los tres vacíos) y no sale del
      dashboard, pero está reportado. */
-  const usaTeer = i => _labCampoRaw(i,'teer_tipo_im') !== ''
-    || TEER_CRIT.some(c => c.tipo !== 'coapt' && _labNum(i, c.campo) !== null);
+const _labUsaTeer = i => _labCampoRaw(i,'teer_tipo_im') !== ''
+    || _LAB_TEER_CRIT.some(c => c.tipo !== 'coapt' && _labNum(i, c.campo) !== null);
+
+
+/* Los números de TAVI de la subtab ETE. Extraído de `labEteRender` el 2026-09-16: lo consume el
+   render y lo va a consumir el PPT agrupado. Nada se recalcula del lado del mazo — la severidad de
+   la regurgitación paravalvular sale de los CAMPOS guardados y no del span de la pantalla, que
+   daría la del estudio abierto para todos los de la lista. */
+function _labTaviResumen(taviArr) {
+  const gm = _promPos(taviArr.map(i => _labNum(i,'ete_tavi_gmedio')));
+  const vm = _promPos(taviArr.map(i => _labNum(i,'ete_tavi_vmax')));
+  const ava = _promPos(taviArr.map(i => _labNum(i,'ete_tavi_ava')));
+  /* Object.create(null) y no `{}` porque la clave es un valor del estudio. Sobre un objeto
+     normal, `op['__proto__'] = 1` NO crea una propiedad: el setter de __proto__ ignora los no
+     objetos en silencio, así que Object.entries no lo ve y ese estudio desaparece de la
+     distribución sin dejar rastro —el gráfico queda coherente y con un caso de menos, que es
+     peor que romperse—. Con prototipo nulo, __proto__ es una clave más. */
+  const op = Object.create(null);
+  taviArr.forEach(i => { const t=_labCampoRaw(i,'ete_tavi_pro_tipo'); if(t) op[t]=(op[t]||0)+1; });
+  const rpv = Object.create(null); let nR = 0;
+  taviArr.forEach(i => {
+    const ext=_labNum(i,'ete_tavi_ext_circ'), vc=_labNum(i,'ete_tavi_vc_ancho'),
+          vcA=_labNum(i,'ete_tavi_vc_area'), pht=_labNum(i,'ete_tavi_pht');
+    const flujo=_labCampoRaw(i,'ete_tavi_flujo_rev'), velT=_labNum(i,'ete_tavi_vel_tele');
+    const holo = (flujo==='holo' && velT!==null && velT>=20);
+    if (ext===null && vc===null && vcA===null && pht===null && !holo) return;
+    let sev=0, mod=0, triv=0;
+    if(ext!==null) (ext>=30?sev++:(ext>=10?mod++:triv++));
+    if(vc!==null)  (vc>0.6?sev++:(vc>=0.3?mod++:triv++));
+    if(vcA!==null) (vcA>=0.30?sev++:(vcA>=0.10?mod++:triv++));
+    if(pht!==null) (pht<200?sev++:(pht<=500?mod++:triv++));
+    if(holo) sev++;
+    const g = sev ? 'Severa' : (mod ? 'Moderada' : (triv>=3 ? 'Trivial' : 'Leve'));
+    rpv[g] = (rpv[g]||0)+1; nR++;
+  });
+  /* Mapa explícito y no `{}`: _barras hace `mapa[k] || 'Otro'`, así que con el mapa vacío las
+     cuatro severidades se mostraban como «Otro (n=1) · Otro (n=1)» — la distribución existía
+     pero no se podía leer. Defecto preexistente, detectado al mover el bloque. Las claves son
+     literales de este mismo código, no datos del estudio, así que nombrarlas es seguro. */
+  const horas = Object.create(null); let nJet = 0;
+  taviArr.forEach(i => {
+    const crudo = _labCampoRaw(i,'ete_tavi_jet_horas');
+    if (!crudo) return;
+    const hs = String(crudo).split(',').map(x => parseInt(x,10))
+      .filter((h,idx,a) => !isNaN(h) && h>=1 && h<=12 && a.indexOf(h)===idx);
+    if (!hs.length) return;
+    nJet++; hs.forEach(h => { horas[h] = (horas[h]||0)+1; });
+  });
+  return { n: taviArr.length, gm: gm, vm: vm, ava: ava, pro: op, rpv: rpv, nR: nR, horas: horas, nJet: nJet };
+}
+
+/* Score de Wilkins agregado. Los PARCIALES se excluyen y se cuentan aparte: `calcWilkins` se
+   niega a interpretar un score de menos de cuatro criterios porque está sesgado hacia abajo, o
+   sea hacia «favorable», y promediarlos con los completos inflaría el grupo de candidatos
+   óptimos. Las bandas son las de `calcWilkins` (≤8 / 9-11 / ≥12) y NO las de la literatura: el
+   agregado no puede contradecir el badge que el paciente ya vio en su informe. */
+function _labWilkinsResumen(eteArr) {
+const W_IDS = ['wilkins_movilidad','wilkins_engrosamiento','wilkins_calcificacion','wilkins_subvalvular'];
+let wParciales = 0;
+const wTot = [];
+/* `eteArr` y no `infs`, como los otros tres bloques. El score de Wilkins se puntúa también
+   por vía transtorácica, así que sobre `infs` esta sección contaba estudios que la subtab ya
+   no considera ETE: en la cohorte de prueba anunciaba «48 estudio(s) tienen el score
+   incompleto» dentro de una subtab cuyo denominador declarado son 2. */
+eteArr.forEach(i => {
+  const vs = W_IDS.map(k => _labNum(i, k)).filter(v => v !== null && v > 0);
+  if (!vs.length) return;                       // no se evaluó Wilkins en este estudio
+  if (vs.length < 4) { wParciales++; return; }  // parcial: no se interpreta
+  wTot.push(vs.reduce((a,b) => a+b, 0));
+});
+  const opt = wTot.filter(t => t <= 8).length;
+  const bor = wTot.filter(t => t >= 9 && t <= 11).length;
+  const no  = wTot.filter(t => t >= 12).length;
+  return { n: wTot.length, parciales: wParciales, totales: wTot,
+           prom: wTot.length ? _prom(wTot) : null, opt: opt, bor: bor, no: no };
+}
+
+/* Orejuela izquierda. El denominador del trombo son los EVALUADOS —los que tienen el select en
+   'si', 'no' o 'sospecha'—, no todos los que tienen alguna medida: contar un campo vacío como
+   negativo bajaría el porcentaje de positivos sin que nada lo delate. */
+function _labOaiResumen(oaiArr) {
+  const evaluados = oaiArr.filter(i => { const t = _labCampoRaw(i,'oai_trombo'); return t === 'no' || t === 'si' || t === 'sospecha'; });
+  const positivos = evaluados.filter(i => _labCampoRaw(i,'oai_trombo') === 'si').length;
+  const sospecha  = evaluados.filter(i => _labCampoRaw(i,'oai_trombo') === 'sospecha').length;
+  const om = Object.create(null);
+  oaiArr.forEach(i => { const m = _labCampoRaw(i,'oai_morfologia'); if (m) om[m] = (om[m]||0)+1; });
+  return { n: oaiArr.length, evaluados: evaluados.length, positivos: positivos, sospecha: sospecha,
+           morf: om,
+           velVac: _promPos(oaiArr.map(i => _labNum(i,'oai_vel_vac'))),
+           ostium: _promPos(oaiArr.map(i => _labNum(i,'oai_ostium_diam'))),
+           prof:   _promPos(oaiArr.map(i => _labNum(i,'oai_profundidad'))),
+           area:   _promPos(oaiArr.map(i => _labNum(i,'oai_area_ostium'))) };
+}
+
+/* Veredictos TEER agregados. Reimplementa los ocho criterios de `teerEstado()` con sus mismos
+   umbrales —es la SEGUNDA copia, deuda declarada— y distingue «no cumplido» de «no ingresado»:
+   contar un criterio ausente como fallido daría un ranking falso de qué anatomía rechaza
+   pacientes. Que viva acá y no dentro del render es lo que impide que el mazo escriba una TERCERA
+   copia. */
+function _labTeerResumen(teerArr) {
+  const fallos = Object.create(null); let apto = 0, posible = 0, limite = 0, noApto = 0, sinDatos = 0;
+  teerArr.forEach(i => {
+    let ingresados = 0, fallados = 0;
+    // El tipo de IM del ESTUDIO, no el de la pantalla: decide qué criterios aplican.
+    const _tipoIM = _labCampoRaw(i, 'teer_tipo_im') || '';
+    const _aplican = _LAB_TEER_CRIT.filter(c => _labTeerAplica(c, _tipoIM));
+    _aplican.forEach(c => {
+      const v = _labNum(i, c.campo);
+      if (v === null) return;              // no ingresado: no cuenta ni a favor ni en contra
+      if (c.cero === 'no' && v <= 0) return;   // el cero no es una medición — ver la nota de TEER_CRIT
+      ingresados++;
+      if (!c.ok(v)) { fallados++; fallos[c.lbl] = (fallos[c.lbl]||0)+1; }
+    });
+    if (!ingresados) { sinDatos++; return; }
+    /* Calcificación y clefts. El select ya NO tiene el «no» de fábrica —se agregó la opción
+       vacía—, así que ausente significa NO EVALUADO y no puede contar como cumplido; los
+       estudios viejos traen el 'no' explícito y siguen leyéndose igual. `clefts` faltaba acá
+       y sí vetaba en pantalla. */
+    const calc = _labCampoRaw(i,'teer_calcificacion');
+    if (calc && calc !== 'no') { fallados++; fallos['Calcificación densa'] = (fallos['Calcificación densa']||0)+1; }
+    const _clefts = _labCampoRaw(i,'teer_clefts');
+    if (_clefts && _clefts !== 'no') { fallados++; fallos['Clefts / perforaciones'] = (fallos['Clefts / perforaciones']||0)+1; }
+    const noIngresados = _aplican.length - ingresados;
+    if (fallados === 0 && noIngresados === 0) apto++;
+    else if (fallados === 0) posible++;
+    else if (fallados === 1) limite++;
+    else noApto++;
+  });
+  const oi = Object.create(null);
+  teerArr.forEach(i => { const t = _labCampoRaw(i,'teer_tipo_im'); if (t) oi[t] = (oi[t]||0)+1; });
+  return { n: teerArr.length, fallos: fallos, apto: apto, posible: posible, limite: limite,
+           noApto: noApto, sinDatos: sinDatos, conVeredicto: apto + posible + limite + noApto, im: oi };
+}
+
+function labEteRender(infs, n) {
+  const setHtml = (id, h) => { const e = document.getElementById(id); if (e) e.innerHTML = h; };
+  const stat = (lbl, val) => `<div class="lab-stat"><span class="lab-stat-lbl">${lbl}</span><span class="lab-stat-val">${val}</span></div>`;
+  const empty = (id, mod) => setHtml(id, `<div class="lab-empty">Sin estudios con ${mod} registrado ${_labPobTxt()}.</div>`);
+  const pctS = x => n > 0 ? Math.round(x / n * 100) + '%' : '0%';
+  const pctDe = (x, d) => d > 0 ? Math.round(x / d * 100) + '%' : '0%';
+
+  /* ── BLOQUE 1 · Actividad ──
+     Dos números, no uno, porque ninguno solo es el total real:
+       · «Marcados» cuenta `ete-es-ete__chk === '1'`. Es un PISO: los estudios anteriores al
+         checkbox no lo traen, y el mapa de importación de Excel NO incluye esa clave — se
+         puede importar un TAVI completo sin la bandera. También falta cuando el médico anota
+         un ETE ajeno sin marcar la casilla, que el diseño admite a propósito.
+       · «Con datos» cuenta evidencia por campos. Es un TECHO: incluye esos ETE ajenos.
+     Ojo con dos campos que NO sirven como evidencia: `ete_cia_*`/`ete_civ_*` se mudaron a la
+     tab Hemodinámica, así que su presencia no implica transesofágico; y la orejuela lleva
+     prefijo `oai_`, no `ete_`, así que un filtro por /^ete_/ se la perdería entera. */
+  // `_labEsEte` vive a nivel de módulo: el panel de cohorte filtra «Solo ETEs marcados» con ÉL.
+  const esEte = _labEsEte;
+  /* UN predicado por bloque, y conDatosEte es su unión. Antes eran dos listas paralelas y ya
+     habían divergido: `teerArr` admitía cualquiera de los seis criterios y la evidencia sólo
+     miraba tres, así que «Estudios con evaluación TEER» podía SUPERAR al «Total considerado»
+     del mismo panel — una contradicción visible en pantalla. Ídem orejuela, que promediaba
+     ostium/profundidad/área sin admitirlos en su propio filtro: un sizing de Watchman quedaba
+     fuera del denominador y sus medidas nunca entraban al promedio. */
+
+
+  /* Alias locales de los seams de módulo. El cuerpo de esta función quedó BYTE POR BYTE igual
+     que antes de la extracción: es lo que permite verificar que el dashboard no cambió. */
+  const usaOai = _labUsaOai, usaWilkins = _labUsaWilkins, usaEteVM = _labUsaEteVM;
+  const TEER_CRIT = _LAB_TEER_CRIT, _teerAplica = _labTeerAplica, usaTeer = _labUsaTeer;
+  const usaTavi = _labUsaTavi;
 
   const conDatosEte = i => usaTavi(i) || usaOai(i) || usaWilkins(i) || usaEteVM(i) || usaTeer(i);
 
@@ -53757,46 +53906,17 @@ function labEteRender(infs, n) {
   if (!taviArr.length) { empty('lab-tavi-stats','TAVI'); empty('lab-tavi-pro-bars','TAVI');
                          empty('lab-tavi-rpv-bars','TAVI'); empty('lab-ete-jet-bars','jet paravalvular'); }
   else {
-    const gm = _promPos(taviArr.map(i => _labNum(i,'ete_tavi_gmedio')));
-    const vm = _promPos(taviArr.map(i => _labNum(i,'ete_tavi_vmax')));
-    const ava = _promPos(taviArr.map(i => _labNum(i,'ete_tavi_ava')));
+    const { gm, vm, ava, pro: op, rpv, nR, horas, nJet } = _labTaviResumen(taviArr);
     setHtml('lab-tavi-stats',
       stat('Estudios con TAVI', taviArr.length + ' (' + pctE(taviArr.length) + ' de los ETE)') +
       stat('Gradiente medio post-TAVI', _promTxt(gm, 1, ' mmHg')) +
       stat('Velocidad máxima', _promTxt(vm, 2, ' m/s')) +
       stat('Área valvular (AVA)', _promTxt(ava, 2, ' cm²')));
     const PRO_L = { balon:'Balón expandible', auto:'Auto expandible' };
-    /* Object.create(null) y no `{}` porque la clave es un valor del estudio. Sobre un objeto
-       normal, `op['__proto__'] = 1` NO crea una propiedad: el setter de __proto__ ignora los no
-       objetos en silencio, así que Object.entries no lo ve y ese estudio desaparece de la
-       distribución sin dejar rastro —el gráfico queda coherente y con un caso de menos, que es
-       peor que romperse—. Con prototipo nulo, __proto__ es una clave más. */
-    const op = Object.create(null);
-    taviArr.forEach(i => { const t=_labCampoRaw(i,'ete_tavi_pro_tipo'); if(t) op[t]=(op[t]||0)+1; });
     if (Object.keys(op).length) _barras('lab-tavi-pro-bars', PRO_L, op, taviArr.length); else empty('lab-tavi-pro-bars','tipo de prótesis');
     /* La severidad de RPV se recalcula con la MISMA regla que la pantalla (gana el criterio
        más severo), a partir de los campos guardados. Leerla de un span daría la del estudio
        abierto para todos los de la lista. */
-    const rpv = Object.create(null); let nR = 0;
-    taviArr.forEach(i => {
-      const ext=_labNum(i,'ete_tavi_ext_circ'), vc=_labNum(i,'ete_tavi_vc_ancho'),
-            vcA=_labNum(i,'ete_tavi_vc_area'), pht=_labNum(i,'ete_tavi_pht');
-      const flujo=_labCampoRaw(i,'ete_tavi_flujo_rev'), velT=_labNum(i,'ete_tavi_vel_tele');
-      const holo = (flujo==='holo' && velT!==null && velT>=20);
-      if (ext===null && vc===null && vcA===null && pht===null && !holo) return;
-      let sev=0, mod=0, triv=0;
-      if(ext!==null) (ext>=30?sev++:(ext>=10?mod++:triv++));
-      if(vc!==null)  (vc>0.6?sev++:(vc>=0.3?mod++:triv++));
-      if(vcA!==null) (vcA>=0.30?sev++:(vcA>=0.10?mod++:triv++));
-      if(pht!==null) (pht<200?sev++:(pht<=500?mod++:triv++));
-      if(holo) sev++;
-      const g = sev ? 'Severa' : (mod ? 'Moderada' : (triv>=3 ? 'Trivial' : 'Leve'));
-      rpv[g] = (rpv[g]||0)+1; nR++;
-    });
-    /* Mapa explícito y no `{}`: _barras hace `mapa[k] || 'Otro'`, así que con el mapa vacío las
-       cuatro severidades se mostraban como «Otro (n=1) · Otro (n=1)» — la distribución existía
-       pero no se podía leer. Defecto preexistente, detectado al mover el bloque. Las claves son
-       literales de este mismo código, no datos del estudio, así que nombrarlas es seguro. */
     const RPV_L = { Trivial:'Trivial', Leve:'Leve', Moderada:'Moderada', Severa:'Severa' };
     if (nR) _barras('lab-tavi-rpv-bars', RPV_L, rpv, nR); else empty('lab-tavi-rpv-bars','regurgitación paravalvular');
 
@@ -53804,15 +53924,6 @@ function labEteRender(infs, n) {
        deduplica por estudio igual que eteEpcHoras, porque un «3,3,3» de un importado contaría
        tres veces la misma hora. El denominador es el nº de ESTUDIOS con jet, no el de jets:
        un estudio con tres jets no vale por tres. */
-    const horas = Object.create(null); let nJet = 0;
-    taviArr.forEach(i => {
-      const crudo = _labCampoRaw(i,'ete_tavi_jet_horas');
-      if (!crudo) return;
-      const hs = String(crudo).split(',').map(x => parseInt(x,10))
-        .filter((h,idx,a) => !isNaN(h) && h>=1 && h<=12 && a.indexOf(h)===idx);
-      if (!hs.length) return;
-      nJet++; hs.forEach(h => { horas[h] = (horas[h]||0)+1; });
-    });
     if (nJet) {
       // Orden horario 1→12, no por frecuencia: es un reloj, y reordenarlo pierde el sentido
       // anatómico de dónde está el jet.
@@ -53830,19 +53941,7 @@ function labEteRender(infs, n) {
      con menos de 4 criterios está sesgado hacia abajo, o sea hacia «favorable», y promediarlos
      junto a los completos subestimaría el laboratorio e inflaría el grupo «≤8 candidatos
      óptimos». Se informa cuántos quedaron afuera. */
-  const W_IDS = ['wilkins_movilidad','wilkins_engrosamiento','wilkins_calcificacion','wilkins_subvalvular'];
-  let wParciales = 0;
-  const wTot = [];
-  /* `eteArr` y no `infs`, como los otros tres bloques. El score de Wilkins se puntúa también
-     por vía transtorácica, así que sobre `infs` esta sección contaba estudios que la subtab ya
-     no considera ETE: en la cohorte de prueba anunciaba «48 estudio(s) tienen el score
-     incompleto» dentro de una subtab cuyo denominador declarado son 2. */
-  eteArr.forEach(i => {
-    const vs = W_IDS.map(k => _labNum(i, k)).filter(v => v !== null && v > 0);
-    if (!vs.length) return;                       // no se evaluó Wilkins en este estudio
-    if (vs.length < 4) { wParciales++; return; }  // parcial: no se interpreta
-    wTot.push(vs.reduce((a,b) => a+b, 0));
-  });
+  const { n: _wN, parciales: wParciales, totales: wTot, opt, bor, no } = _labWilkinsResumen(eteArr);
   if (!wTot.length) {
     empty('lab-ete-wilkins-stats','Score de Wilkins completo'); empty('lab-ete-wilkins-bars','Wilkins');
     if (wParciales) setHtml('lab-ete-wilkins-stats',
@@ -53855,9 +53954,6 @@ function labEteRender(infs, n) {
        «borderline». El agregado no puede contradecir el informe individual.
        Si se decide adoptar el corte de la literatura, hay que cambiar calcWilkins —lo que
        reinterpreta pacientes ya informados— y no sólo esta línea. */
-    const opt = wTot.filter(t => t <= 8).length;
-    const bor = wTot.filter(t => t >= 9 && t <= 11).length;
-    const no  = wTot.filter(t => t >= 12).length;
     setHtml('lab-ete-wilkins-stats',
       stat('Scores completos', String(wTot.length)) +
       stat('Score promedio', _promTxt(_prom(wTot), 1, ' / 16')) +
@@ -53875,9 +53971,8 @@ function labEteRender(infs, n) {
   else {
     /* Trombo: el denominador son los EVALUADOS, no todos los con orejuela. Un «— no evaluado»
        contado como negativo bajaría el porcentaje de positivos sin que nada lo delate. */
-    const evaluados = oaiArr.filter(i => { const t = _labCampoRaw(i,'oai_trombo'); return t === 'no' || t === 'si' || t === 'sospecha'; });
-    const positivos = evaluados.filter(i => _labCampoRaw(i,'oai_trombo') === 'si').length;
-    const sospecha  = evaluados.filter(i => _labCampoRaw(i,'oai_trombo') === 'sospecha').length;
+    const _oai = _labOaiResumen(oaiArr);
+    const evaluados = { length: _oai.evaluados }, positivos = _oai.positivos, sospecha = _oai.sospecha;
     setHtml('lab-ete-oai-stats',
       stat('Estudios con orejuela evaluada', oaiArr.length + ' (' + pctE(oaiArr.length) + ' de los ETE)') +
       stat('Trombo confirmado', evaluados.length ? (positivos + ' de ' + evaluados.length + ' (' + pctDe(positivos, evaluados.length) + ')') : '—') +
@@ -53888,8 +53983,7 @@ function labEteRender(infs, n) {
       stat('Área del ostium', _promTxt(_promPos(oaiArr.map(i => _labNum(i,'oai_area_ostium'))), 2, ' cm²')));
     const MORF_L = { ala:'Ala de pollo', coliflor:'Coliflor', cactus:'Cactus', veleta:'Veleta' };
     // Mismo motivo que `op` en el bloque TAVI: la clave es un valor del estudio.
-    const om = Object.create(null);
-    oaiArr.forEach(i => { const m = _labCampoRaw(i,'oai_morfologia'); if (m) om[m] = (om[m]||0)+1; });
+    const om = _oai.morf;
     if (Object.keys(om).length && typeof _labPieDash === 'function') {
       _labPieDash('lab-ete-oai-morf', Object.entries(om).map(([k,c]) => [ _lblDe(MORF_L, k), c ]));
     } else empty('lab-ete-oai-morf','morfología');
@@ -53923,34 +54017,7 @@ function labEteRender(infs, n) {
        donde sale `noIngresados`. Un estudio con los siete numéricos y los dos selects en
        «— no evaluado —» sale «⚠️ Posiblemente apto» en la hoja firmada y «✅ Apto» en esta
        estadística. Es preexistente y está reportado; la regla es la meta, no el estado. */
-    const fallos = Object.create(null); let apto = 0, posible = 0, limite = 0, noApto = 0, sinDatos = 0;
-    teerArr.forEach(i => {
-      let ingresados = 0, fallados = 0;
-      // El tipo de IM del ESTUDIO, no el de la pantalla: decide qué criterios aplican.
-      const _tipoIM = _labCampoRaw(i, 'teer_tipo_im') || '';
-      const _aplican = TEER_CRIT.filter(c => _teerAplica(c, _tipoIM));
-      _aplican.forEach(c => {
-        const v = _labNum(i, c.campo);
-        if (v === null) return;              // no ingresado: no cuenta ni a favor ni en contra
-        if (c.cero === 'no' && v <= 0) return;   // el cero no es una medición — ver la nota de TEER_CRIT
-        ingresados++;
-        if (!c.ok(v)) { fallados++; fallos[c.lbl] = (fallos[c.lbl]||0)+1; }
-      });
-      if (!ingresados) { sinDatos++; return; }
-      /* Calcificación y clefts. El select ya NO tiene el «no» de fábrica —se agregó la opción
-         vacía—, así que ausente significa NO EVALUADO y no puede contar como cumplido; los
-         estudios viejos traen el 'no' explícito y siguen leyéndose igual. `clefts` faltaba acá
-         y sí vetaba en pantalla. */
-      const calc = _labCampoRaw(i,'teer_calcificacion');
-      if (calc && calc !== 'no') { fallados++; fallos['Calcificación densa'] = (fallos['Calcificación densa']||0)+1; }
-      const _clefts = _labCampoRaw(i,'teer_clefts');
-      if (_clefts && _clefts !== 'no') { fallados++; fallos['Clefts / perforaciones'] = (fallos['Clefts / perforaciones']||0)+1; }
-      const noIngresados = _aplican.length - ingresados;
-      if (fallados === 0 && noIngresados === 0) apto++;
-      else if (fallados === 0) posible++;
-      else if (fallados === 1) limite++;
-      else noApto++;
-    });
+    const { fallos, apto, posible, limite, noApto, sinDatos, im: oi } = _labTeerResumen(teerArr);
     const conVeredicto = apto + posible + limite + noApto;
     setHtml('lab-ete-teer-stats',
       stat('Estudios con evaluación TEER', teerArr.length + ' (' + pctS(teerArr.length) + ')') +
@@ -53960,8 +54027,6 @@ function labEteRender(infs, n) {
       stat('❌ No apto — dos o más', conVeredicto ? (noApto + ' de ' + conVeredicto + ' (' + pctDe(noApto, conVeredicto) + ')') : '—') +
       stat('Sin criterios anatómicos cargados', sinDatos ? String(sinDatos) : '—'));
     const IM_L = { primaria:'IM primaria (orgánica)', secundaria:'IM secundaria (funcional)' };
-    const oi = Object.create(null);
-    teerArr.forEach(i => { const t = _labCampoRaw(i,'teer_tipo_im'); if (t) oi[t] = (oi[t]||0)+1; });
     if (Object.keys(oi).length) _barras('lab-ete-teer-im-bars', IM_L, oi, teerArr.length); else empty('lab-ete-teer-im-bars','tipo de IM');
     // Ordenadas de mayor a menor: las etiquetas son literales de TEER_CRIT, no datos del estudio.
     const fe = Object.entries(fallos).sort((a,b) => b[1]-a[1]);
@@ -55783,8 +55848,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260916-0923';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789561406159;                 /* eco-build-ms */
+const ECO_BUILD    = '20260916-0938';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789562307154;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -55870,7 +55935,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0923</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0938</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

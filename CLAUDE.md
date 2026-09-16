@@ -487,6 +487,69 @@ El Excel pasó de **421 a 429 columnas** y de 128 a **129 básicas**; TC-135 fij
 contenido. Ojo con el `0` de una casilla apagada: **no es lo mismo que ausente**, y el caso lo
 distingue.
 
+### Extraer un seam sin tocar el render: alias locales y comparación byte a byte — 2026-09-16
+
+Commit 2 de tres. La subtab ETE calculaba TAVI, Wilkins, orejuela y TEER **inline** dentro de
+`labEteRender` —405 líneas de cálculo y pintura entrelazados—, así que el PPT no tenía cómo leer
+esos números sin escribir una segunda copia. Hoy hay cuatro seams de módulo: `_labTaviResumen`,
+`_labWilkinsResumen`, `_labOaiResumen`, `_labTeerResumen`, más los predicados de pertenencia
+(`_labUsaOai`, `_labUsaWilkins`, `_labUsaEteVM`, `_labUsaTeer`, `_LAB_TEER_CRIT`, `_labTeerAplica`).
+
+**LA TÉCNICA QUE HIZO QUE ESTO FUERA SEGURO, Y QUE CONVIENE REPETIR.** Partir una función de 405
+líneas con comentarios críticos cada dos es exactamente el cambio que este archivo documenta que
+se comió dos bloques al repartir Congénitas. Dos recursos lo evitaron:
+
+1. **Alias locales.** Los predicados se subieron a módulo con nombre nuevo y dentro de
+   `labEteRender` quedó `const usaOai = _labUsaOai, TEER_CRIT = _LAB_TEER_CRIT, …`. El cuerpo de
+   400 líneas **no cambió ni un carácter**, así que el diff es sólo el bloque que se movió.
+2. **Destructuring con renombrado.** El cálculo se reemplazó por
+   `const { gm, vm, ava, pro: op, rpv, nR, horas, nJet } = _labTaviResumen(taviArr);` — los
+   nombres locales son los mismos, así que **las líneas de pintura tampoco cambiaron**.
+
+**LA VERIFICACIÓN ES LA COMPARACIÓN BYTE A BYTE DEL `innerHTML`, Y ES LA QUE CAZÓ EL ERROR.** Se
+sembró una cohorte ETE de 13 estudios con valores en bandas distintas, se capturó el `innerHTML`
+de los **15 contenedores** ANTES de tocar nada, y se comparó después. La primera pasada dio
+**tres contenedores del TEER VACÍOS**: `_labTeerResumen` había quedado usando `TEER_CRIT` y
+`_teerAplica`, que son los **alias locales** de `labEteRender` y a nivel de módulo no existen.
+
+Lo importante es **cómo se veía ese fallo**: `labEteRender` está envuelta en try/catch, así que no
+hubo error visible; el bloque simplemente no pintaba, y un contenedor vacío se lee exactamente
+igual que *«este período no tiene TEER»*. **El chequeo de sintaxis dio verde y los 168 casos
+siguieron en verde.** Sin la comparación byte a byte se habría commiteado una subtab que perdió un
+tercio de su contenido.
+
+**Al subir un bloque a nivel de módulo, buscar qué nombres LOCALES usaba.** Es el mismo error que
+`_sgl` en el commit anterior, por la puerta contraria: allá leí una variable de otra función, acá
+me llevé el cuerpo y dejé las referencias.
+
+**TC-154 prueba que el render CONSUME el seam, no sólo que el seam calcula bien.** Esa distinción
+es todo el punto: si `labEteRender` siguiera calculando por su cuenta, el seam sería una **tercera**
+copia y un caso que sólo verificara sus números pasaría en verde. Por eso cada bloque compara el
+seam contra lo que quedó **pintado en la pantalla**. **Tres mutaciones, las tres cazadas**, y la
+que lo demuestra es la que hace que el render de TAVI recalcule el gradiente por su cuenta: los
+números del seam siguen bien y sólo cae la condición «el dashboard publica ESE gradiente».
+
+**EL CASO PASABA CON `--solo` Y FALLABA EN EL SUITE, con los CINCO bloques vacíos.** No era la
+extracción: un caso anterior deja el selector de período en otra ventana y la cohorte sembrada
+—marzo de 2026— queda fuera. Otra vez «un contenedor vacío se lee igual que no hay datos». Hoy el
+caso **fija su propio denominador** —período «todo el tiempo», cohorte limpia— y **comprueba que
+quedó en 10 antes de mirar una sola cifra**. Sin esa condición, los cinco bloques midiendo sobre
+cero habrían pasado como «no hay datos» en vez de como un caso que no probó nada.
+
+**Backtick dentro del cuerpo de un caso: van dieciséis**, y ésta fue en el comentario que escribí
+para explicar la forma de `_promPos`.
+
+**Lo que ya estaba extraído y no hizo falta tocar** —verificado uno por uno, no supuesto—:
+`_ccQpQs`, `_ccCoaGradMax`, `_ccMchGradMax`, `_ccMcaTF`, `_hcmRiskSCD`, `_ctrcdEstado`,
+`_ctrcdGlsRel`, `_ctrcdFeviCaida`, `_labAmilBanda`, `_labValvCounts`, `_labHallazgosCuenta`,
+`_labTapse`, `_labEsEte`, `_labUsaTavi`, `_labOaiTromboSi`, `_CC_SECS`, `_ccSecPred`. Diecisiete
+de los que el plan daba por faltantes ya existían: **el pedido estimaba ~15 seams nuevos y los
+reales eran cuatro más los predicados.** Medir antes de construir ahorró el 70 % del trabajo.
+
+**Queda sin extraer la contractilidad de población** (`lab-contr-tabla` / `lab-contr-be`, que
+`labRenderExtras` calcula inline). Es el único hueco que le queda al mazo agrupado, y está
+declarado, no olvidado.
+
 ### La casilla «☐ PPT» de cada tarjeta, y el SGL que NO se gradúa — 2026-09-16
 
 Commit 1 de tres. Las 55 tarjetas del Laboratorio ganan una casilla que decide qué entra al PPT

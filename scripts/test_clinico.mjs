@@ -5412,6 +5412,124 @@ caso('TC-152', 'PPT Lab: ningun color invalido llega al paquete, y las diapositi
   })();
 `);
 
+/* TC-154 - Los seams de la subtab ETE (2026-09-16). TAVI, Wilkins, orejuela y TEER se calculaban
+   INLINE dentro de labEteRender, asi que el PPT no tenia como leerlos sin escribir una segunda
+   copia: dos superficies contando la misma cohorte con dos implementaciones es el defecto de los
+   denominadores que este archivo ya pago tres veces.
+   LA CONDICION QUE VALE ES QUE EL RENDER LOS CONSUMA. Que el seam devuelva el numero correcto no
+   prueba nada por si solo: si el render siguiera calculando por su cuenta, el seam seria una
+   tercera copia y el caso pasaria igual. Por eso cada bloque compara el seam contra lo que HAY
+   PINTADO en la pantalla. */
+caso('TC-154', 'Subtab ETE: los cuatro seams existen y el dashboard los consume', `
+  return (async function(){
+    const mk = function(i, c){
+      const base = { 'ete-es-ete__chk':'1', fevi:String(30+i*5), edad:String(50+i), sexo:'F' };
+      Object.keys(c).forEach(function(k){ base[k] = c[k]; });
+      return { id:700+i, estudioId:'t154-'+i, uuid:'u154-'+i, nombre:'E'+i, ci:'C'+i,
+               fecha_estudio:'2026-03-0'+((i%9)+1), fecha_guardado:'2026-04-01T09:00:00',
+               informe_texto:'', en_suma:'', campos: base };
+    };
+    const coh = [
+      mk(1, { ete_tavi_gmedio:'12', ete_tavi_vmax:'2.4', ete_tavi_ava:'1.6', ete_tavi_pro_tipo:'balon',
+              ete_tavi_ext_circ:'35', ete_tavi_jet_horas:'3,3,9' }),
+      mk(2, { ete_tavi_gmedio:'8', ete_tavi_pro_tipo:'auto', ete_tavi_ext_circ:'15', ete_tavi_jet_horas:'6' }),
+      mk(3, { wilkins_movilidad:'2', wilkins_engrosamiento:'2', wilkins_calcificacion:'1', wilkins_subvalvular:'2' }),
+      mk(4, { wilkins_movilidad:'4', wilkins_engrosamiento:'4', wilkins_calcificacion:'3', wilkins_subvalvular:'4' }),
+      /* Score PARCIAL: tres criterios. No se interpreta y se cuenta aparte. */
+      mk(5, { wilkins_movilidad:'3', wilkins_engrosamiento:'3', wilkins_calcificacion:'3' }),
+      mk(6, { oai_morfologia:'ala', oai_trombo:'si', oai_vel_vac:'25', oai_ostium_diam:'21' }),
+      mk(7, { oai_morfologia:'cactus', oai_trombo:'no', oai_vel_vac:'45' }),
+      /* Con alguna medida y el select SIN contestar: entra al n de orejuela y NO al denominador
+         del trombo. Contarlo como negativo bajaria el porcentaje de positivos en silencio. */
+      mk(8, { oai_ostium_diam:'19' }),
+      mk(9, { teer_tipo_im:'primaria', teer_lva:'22', teer_area_mitral:'4.5', teer_ancho_flail:'12', teer_pasp:'55' }),
+      mk(10,{ teer_tipo_im:'secundaria', teer_gap:'12', teer_prof_flail:'11', teer_pasp:'80', teer_fevi:'18', teer_dtsvi:'75' })
+    ];
+    const tavi = _labTaviResumen(coh.filter(_labUsaTavi));
+    const wilk = _labWilkinsResumen(coh);
+    const oai  = _labOaiResumen(coh.filter(_labUsaOai));
+    const teer = _labTeerResumen(coh.filter(_labUsaTeer));
+
+    /* EL RENDER TIENE QUE CONSUMIRLOS: se siembra la cohorte, se pinta la subtab y se compara
+       contra lo que quedo en pantalla. Si labEteRender volviera a calcular por su cuenta, esta
+       mitad se pone en rojo aunque los seams sigan bien. */
+    await CeiboStore.setLocal(coh);
+    const btn = [].slice.call(document.querySelectorAll('[onclick*="showTab"]'))
+      .filter(function(b){ return (b.getAttribute('onclick') || '').indexOf("'lab'") > -1; })[0];
+    if (btn) btn.click();
+    await new Promise(function(r){ setTimeout(r, 400); });
+    /* EL CASO FIJA SU PROPIO DENOMINADOR. Corriendo con --solo pasaba y dentro del suite los cinco
+       bloques salian vacios: un caso anterior deja el selector de periodo en otra ventana y la
+       cohorte sembrada queda fuera. Un contenedor vacio se lee igual que "este periodo no tiene
+       TEER", asi que sin esto el caso mide sobre cero y acusa a la extraccion. Se pone "todo el
+       tiempo", se limpia la cohorte de filtros, y se COMPRUEBA que el denominador quedo en 10
+       antes de mirar una sola cifra. */
+    const selP = document.getElementById('lab-periodo');
+    if (selP) { selP.value = '0'; }
+    if (typeof labCohorteLimpiar === 'function') { try { labCohorteLimpiar(true); } catch (e) {} }
+    labInit();
+    await new Promise(function(r){ setTimeout(r, 1500); });
+    const denom = (typeof labGetInformes === 'function') ? labGetInformes().length : -1;
+    const txt = function(id){ const e = document.getElementById(id); return e ? (e.textContent || '') : ''; };
+    const pantTavi = txt('lab-tavi-stats'), pantWilk = txt('lab-ete-wilkins-stats'),
+          pantOai = txt('lab-ete-oai-stats'), pantTeer = txt('lab-ete-teer-stats'),
+          pantJet = txt('lab-ete-jet-bars');
+    await CeiboStore.setLocal([]);
+
+    return { extra: [
+      // 1 - LOS CUATRO SEAMS SON ALCANZABLES
+      ['los cuatro seams del ETE estan a nivel de modulo',
+        typeof _labTaviResumen === 'function' && typeof _labWilkinsResumen === 'function' &&
+        typeof _labOaiResumen === 'function' && typeof _labTeerResumen === 'function'],
+      ['y tambien los predicados de pertenencia',
+        typeof _labUsaOai === 'function' && typeof _labUsaWilkins === 'function' &&
+        typeof _labUsaTeer === 'function' && Array.isArray(_LAB_TEER_CRIT)],
+
+      /* Sin esta condicion, los cinco bloques de pantalla midiendo sobre cero pasarian como
+         "no hay datos" en vez de como un caso que no probo nada. */
+      ['el denominador del dashboard son los 10 estudios sembrados', denom === 10, String(denom)],
+
+      // 2 - TAVI
+      ['TAVI cuenta los dos estudios', tavi.n === 2, String(tavi.n)],
+      /* _promPos devuelve {v, n}, no un numero: el promedio viene con su denominador para que
+         ninguna superficie publique una media sin decir sobre cuantos esta. */
+      ['y el gradiente medio viene con su n', tavi.gm !== null && Math.abs(tavi.gm.v - 10) < 0.01 && tavi.gm.n === 2,
+        JSON.stringify(tavi.gm)],
+      ['el tipo de protesis se cuenta por clave', tavi.pro.balon === 1 && tavi.pro.auto === 1, JSON.stringify(tavi.pro)],
+      /* Un estudio con tres jets no vale por tres, y el "3,3" duplicado se deduplica. */
+      ['el jet se deduplica por estudio', tavi.nJet === 2 && tavi.horas[3] === 1 && tavi.horas[9] === 1,
+        'nJet=' + tavi.nJet + ' horas=' + JSON.stringify(tavi.horas)],
+      ['y el dashboard publica ESE gradiente', pantTavi.indexOf('10.0 mmHg') > -1, pantTavi.slice(0, 160)],
+      ['y ESAS horas de jet', pantJet.indexOf('3 h (n=1)') > -1 && pantJet.indexOf('9 h (n=1)') > -1, pantJet.slice(0, 120)],
+
+      // 3 - WILKINS
+      ['Wilkins interpreta solo los completos', wilk.n === 2, String(wilk.n)],
+      ['y cuenta aparte el parcial', wilk.parciales === 1, String(wilk.parciales)],
+      ['las bandas son las de calcWilkins, no las de la literatura',
+        wilk.opt === 1 && wilk.bor === 0 && wilk.no === 1, wilk.opt + '/' + wilk.bor + '/' + wilk.no],
+      ['el promedio de Wilkins tambien viene con su n',
+        wilk.prom !== null && Math.abs(wilk.prom.v - 11) < 0.01 && wilk.prom.n === 2, JSON.stringify(wilk.prom)],
+      ['y el dashboard publica ESE promedio y ESE excluido',
+        pantWilk.indexOf('11.0 / 16') > -1 && pantWilk.indexOf('Excluidos por incompletos') > -1,
+        pantWilk.slice(0, 200)],
+
+      // 4 - OREJUELA
+      ['la orejuela cuenta los tres con alguna medida', oai.n === 3, String(oai.n)],
+      ['pero el denominador del trombo son los EVALUADOS', oai.evaluados === 2, String(oai.evaluados)],
+      ['con un positivo', oai.positivos === 1 && oai.sospecha === 0, oai.positivos + '/' + oai.sospecha],
+      ['y el dashboard publica ese denominador, no el otro',
+        pantOai.indexOf('1 de 2') > -1, pantOai.slice(0, 220)],
+
+      // 5 - TEER
+      ['TEER cuenta los dos con criterios', teer.n === 2, String(teer.n)],
+      ['el de dos fallos sale NO APTO', teer.noApto === 1, String(teer.noApto)],
+      ['el tipo de IM se cuenta por clave', teer.im.primaria === 1 && teer.im.secundaria === 1, JSON.stringify(teer.im)],
+      ['y el dashboard publica ESE veredicto',
+        pantTeer.indexOf('Estudios con evaluaci') > -1 && pantTeer.indexOf('de 2') > -1, pantTeer.slice(0, 220)]
+    ] };
+  })();
+`);
+
 /* TC-153 - La casilla PPT de cada tarjeta del Laboratorio, y la tarjeta de SGL (2026-09-16).
    La clave vive en el atributo `data-ppt` de la tarjeta, no en una lista aparte ni derivada del
    rotulo: derivarla del texto del header ataria una clave funcional a una cadena que se renombra,
