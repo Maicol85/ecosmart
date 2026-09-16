@@ -487,6 +487,66 @@ El Excel pasó de **421 a 429 columnas** y de 128 a **129 básicas**; TC-135 fij
 contenido. Ojo con el `0` de una casilla apagada: **no es lo mismo que ausente**, y el caso lo
 distingue.
 
+### El manual: de 20 pestañas y 32 páginas a 8 y 14 — y el marcado es un contrato
+Reescrito el 2026-09-16. **El PDF del manual ya existía** (`generarManualPDF` → `_manualPDFArmar`)
+y **deriva de `ECO_AYUDA`** vía `_manualAplanar()`: reescribir el manual reescribió el PDF solo.
+Antes de «agregar» el PDF que pedía la tarea, conviene mirar — ya estaba, y con fuente única.
+
+**La medida que vale es el CONTEO DE PÁGINAS DEL PDF REAL, no el tamaño del HTML.** Medido
+envolviendo el **constructor** de jsPDF, porque `save()` es propiedad de la instancia: **32
+páginas antes, 14 después**. El HTML bajó de 102,8 a 36,6 KB, pero ese número no era el criterio.
+
+**EL MARCADO ES UN CONTRATO CON EL APLANADOR.** `_manualAplanar()` reconoce por NOMBRE DE CLASE:
+`mBox mAviso` → «ATENCION:», `mBox mTip` → «CONSEJO:», `mBox mCaso` → «EJEMPLO:», `mSub` abre
+sección, y `mP`/`mUl`/`mOl`/`mTbl`/`mKbd`. Una clase nueva **no rompe nada en pantalla**: rompe el
+PDF, en silencio, y sólo se ve descargándolo y leyéndolo entero. TC-149 lo fija enumerando las
+clases usadas y exigiendo que todas estén en la lista conocida.
+
+**DOS «DEFECTOS» QUE REPORTÉ Y NO EXISTÍAN.** Vale escribirlos porque el error fue de método:
+- **«Las filas de las tablas se pegan con una coma».** La coma era de **mi propia sonda**:
+  `_manualAplanar` devuelve un **array de bloques** (`.split('\n\n').map().filter()`) y yo lo
+  concatené a una cadena, que es una conversión implícita con separador coma. Las filas ya se
+  separaban bien — hay una regla `</tr>` → `\n\n` **antes** de la de celdas.
+- **«Las entidades HTML salen literales en el PDF».** Cierto en abstracto, falso en concreto: el
+  manual sólo usa `&lt;` y `&gt;`, y las dos ya estaban cubiertas. Escribí un decodificador de
+  dieciocho entidades **y lo revertí**, porque nada lo ejercitaba — la convención del manual es
+  escribir los símbolos LITERALES (`≥`, `≤`, `—`) y `_pdfSafe` los translitera. Un resguardo que
+  no se puede hacer fallar se lee como protección y no lo es; es la misma razón por la que se
+  borró el «deshacer» de `calcET`. **El aplanador quedó byte por byte como estaba.**
+
+**TRES ADVERTENCIAS DEL MANUAL HABÍAN QUEDADO FALSAS**, y las tres describían el estado anterior a
+esta semana: que Fallot «no tiene campos de volumen, y es deliberado» (los tiene desde el 15/9),
+que la válvula pulmonar «no tiene columna propia» (tiene seis desde el rediseño) y que el Excel
+«se lleva 94 columnas» (son **429**, 129 básicas). **Al inventariar las 44 advertencias antes de
+reescribir aparecieron solas**; leyendo el manual de corrido no se habrían notado, porque las tres
+están redactadas con la misma seguridad que las que sí son ciertas.
+
+**TC-123 PINABA UNA ORACIÓN LITERAL Y HUBO QUE CAMBIARLO.** Exigía la frase exacta
+`CC complejas</b>, primera de sus secciones`, que era la redacción de un manual concreto: bloqueaba
+cualquier reescritura legítima sin que el dato hubiera dejado de ser cierto. Pasó a verificar el
+**hecho** —CIA/CIV se describe bajo el encabezado de CC complejas y NO bajo el de CC frecuentes,
+por posición en el texto—. **Verificado por mutación**: mover ese `<li>` a la otra lista lo pone en
+rojo. Es la misma corrección que ya se le hizo a TC-132: *la condición correcta no es «aparece este
+texto» sino el invariante que ese texto representa*.
+
+**La octava pestaña —«Referencia clínica»— es lo que MÁS comprimió.** Siete tablas con todos los
+cortes, su guía y su año. Hasta ahora esos números estaban repetidos en cinco pestañas distintas;
+ahora están una sola vez, y eso es a la vez menos texto y menos superficies donde un umbral puede
+quedar viejo. Decisión de Maicol; se eliminó «Preguntas frecuentes» y sus respuestas útiles se
+absorbieron donde corresponden.
+
+**Qué se conservó, explícitamente:** los umbrales con su guía y su año, las advertencias que
+cambian una conducta (HTP no se gradúa por PSAP, ET binaria, VEXUS por el vaso peor y sus
+confusores, TdF por resonancia, Marfan por síndrome, Fontan tres estados, FA → BSE 2024, caída de
+FEVI en puntos porcentuales), las instrucciones de flujo no obvias (backup JSON como única copia,
+modo avanzado que no borra, imágenes apagadas de fábrica, el Excel no es backup) y los disclaimers.
+Se eliminaron los consejos que repetían lo que el campo ya dice y **los párrafos que explicaban
+decisiones de diseño**, que son documentación interna y no manual de usuario.
+
+**Sin probar en Safari**: el navegador está concedido en modo sólo lectura. Verificado en Chrome
+que las 8 pestañas dibujan su botón, que las 8 tienen contenido distinto y no vacío, que las 7
+tablas de la referencia se construyen y que los recuadros de advertencia se renderizan.
+
 ### PPT estadístico del Laboratorio — y el defecto que destapó la extracción
 Agregado el 2026-09-16 en la subtab Informe. Mazo de **9 diapositivas** con la casuística del
 período. Es INDEPENDIENTE del PPT del estudio individual —aquél cuenta un paciente, éste una

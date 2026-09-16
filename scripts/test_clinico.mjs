@@ -3261,8 +3261,18 @@ caso('TC-123', 'CC frecuentes y CC complejas: el rotulo dice lo mismo en las cua
     ['ni en ninguna parte visible de la app',
       cuerpo.indexOf('CC estructurales') === -1 && cuerpo.indexOf('Congénitas II') === -1],
     /* Y las dos afirmaciones del manual que el reparto habia dejado FALSAS. */
-    ['el manual ubica CIA/CIV en la pestaña de CC complejas, que es donde esta',
-      manual.indexOf('CC complejas</b>, primera de sus secciones') > -1],
+    /* Se verifica el HECHO —CIA/CIV se describe bajo el encabezado de CC complejas y NO bajo el
+       de CC frecuentes— y no una oracion literal. La version anterior exigia la frase exacta
+       «CC complejas</b>, primera de sus secciones», que era la redaccion de un manual concreto:
+       cualquier reescritura legitima la ponia en rojo sin que el dato hubiera dejado de ser
+       cierto. El invariante nuevo sigue cayendo si alguien mueve CIA/CIV de pestaña. */
+    ['el manual describe CIA/CIV bajo CC complejas y no bajo CC frecuentes',
+      (function(){
+        const iF = manual.indexOf('🧬 CC frecuentes'), iC = manual.lastIndexOf('🧬 CC complejas');
+        if (iF < 0 || iC < 0 || iC <= iF) return false;
+        const enFrec = manual.slice(iF, iC), enComp = manual.slice(iC);
+        return enComp.indexOf('CIA / CIV') > -1 && enFrec.indexOf('CIA / CIV') === -1;
+      })()],
     ['y ya no dice que Congenitas tiene tres secciones', manual.indexOf('primera de las tres secciones') === -1]
   ] };
 `);
@@ -4886,6 +4896,79 @@ caso('TC-148', 'PPT del Laboratorio: 9 diapositivas, rangos de PSAP y no grados,
     ] };
   })();
 `);
+
+/* TC-149 — Manual interactivo y su PDF. El invariante que manda es el CONTEO DE PAGINAS del PDF
+   REAL: el criterio del pedido era "<= 20 paginas" y eso no se deduce del tamano del HTML.
+   Se mide envolviendo el CONSTRUCTOR de jsPDF, porque save() es propiedad de la instancia. */
+caso('TC-149', 'Manual: 8 pestanas, PDF de 20 paginas o menos, y las advertencias clinicas intactas', `
+  const M = ECO_AYUDA.map(function(a){ return (a.tab || '') + ' ' + (a.html || ''); }).join(' ');
+
+  let pags = null;
+  if (typeof window.jspdf !== 'undefined') {
+    const Orig = window.jspdf.jsPDF;
+    window.jspdf.jsPDF = function(){ const d = new Orig(arguments[0]);
+      d.save = function(){ try { pags = d.internal.getNumberOfPages(); } catch(e){} return d; }; return d; };
+    window.jspdf.jsPDF.prototype = Orig.prototype;
+    try { _manualPDFArmar(); } catch(e){ pags = 'EXC: ' + e.message; }
+    window.jspdf.jsPDF = Orig;
+  }
+
+  /* El aplanador reconoce las clases por NOMBRE. Una clase m* que no este en esta lista no
+     rompe nada en pantalla: rompe el PDF en silencio, porque su recuadro pierde el prefijo. */
+  const CONOCIDAS = ['mP','mSub','mBox','mAviso','mTip','mCaso','mUl','mOl','mTbl','mKbd'];
+  const usadas = {};
+  (M.match(/class="([^"]*)"/g) || []).forEach(function(c){
+    c.replace(/class="|"/g,'').split(/\\s+/).forEach(function(x){ if (x.indexOf('m') === 0) usadas[x] = 1; });
+  });
+  const desconocidas = Object.keys(usadas).filter(function(k){ return CONOCIDAS.indexOf(k) < 0; });
+
+  /* Umbrales que el pedido declara intocables. Se eligen de modulos distintos a proposito. */
+  const UMBRALES = [
+    ['ET significativa', '5 mmHg'], ['THP tricuspideo', '190 ms'],
+    ['Loeys-Dietz', '45 mm'], ['Marfan', '50 mm'], ['no sindromica', '55 mm'],
+    ['caida de FEVI', '10 puntos porcentuales'], ['NT-proBNP en FA', '375 pg/mL'],
+    ['CIA resistencia', '3 UW'], ['Fallot VTDVD', '160 ml/m'], ['LAVI', '34 ml/m']
+  ];
+  const faltan = UMBRALES.filter(function(u){ return M.indexOf(u[1]) === -1; }).map(function(u){ return u[0]; });
+
+  const tabsOk = ECO_AYUDA.every(function(a){ return a.tab && a.html && a.html.length > 400; });
+  const sinBackticks = ECO_AYUDA.every(function(a){ return a.html.indexOf(String.fromCharCode(96)) === -1; });
+
+  return { extra: [
+    // 1 · ESTRUCTURA
+    ['el manual tiene 8 pestanas', ECO_AYUDA.length === 8, String(ECO_AYUDA.length)],
+    ['ninguna pestana quedo vacia', tabsOk],
+    ['existe la pestana de referencia clinica', M.indexOf('Referencia cl') > -1],
+
+    // 2 · EL CRITERIO DEL PEDIDO, MEDIDO SOBRE EL PDF REAL
+    ['el PDF del manual entra en 20 paginas o menos', typeof pags === 'number' && pags <= 20, String(pags)],
+    ['y sigue teniendo contenido (no se vacio)', typeof pags === 'number' && pags >= 8, String(pags)],
+
+    // 3 · EL MARCADO ES UN CONTRATO CON EL APLANADOR
+    ['no hay clases m* que el aplanador no reconozca', desconocidas.length === 0, desconocidas.join(', ')],
+    ['ningun html lleva backticks (romperian el template literal)', sinBackticks],
+
+    // 4 · LO QUE NO SE PUEDE PERDER
+    ['estan los umbrales de modulos distintos', faltan.length === 0, faltan.join(' · ')],
+    ['esta el disclaimer medico-legal', M.indexOf('No reemplaza el juicio cl') > -1],
+    ['esta el aviso de que el JSON es la unica copia', M.indexOf('backup JSON') > -1],
+    ['esta la advertencia de que la app no gradua la HTP por PSAP',
+      M.indexOf('no grad') > -1 && M.indexOf('PSAP') > -1],
+    ['esta la diferencia entre modo basico y avanzado',
+      M.indexOf('Avanzado') > -1 && M.indexOf('no borra lo cargado') > -1],
+    ['esta la advertencia de VEXUS sobre graduar por el vaso peor', M.indexOf('vaso peor') > -1],
+    ['cada umbral nombra su guia', M.indexOf('ESC 2020') > -1 && M.indexOf('ASE 2025') > -1 && M.indexOf('ESC/EACTS 2024') > -1],
+
+    // 5 · LAS TRES AFIRMACIONES QUE HABIAN QUEDADO FALSAS
+    ['ya no dice que el Excel son 94 columnas', M.indexOf('94 columnas') === -1],
+    ['dice las 429 columnas reales', M.indexOf('429') > -1],
+    ['ya no dice que Fallot no tiene campos de volumen',
+      M.indexOf('no tiene campos de volumen') === -1 && M.indexOf('VTDVD indexado') > -1],
+    ['ya no dice que la valvula pulmonar no tiene columna propia',
+      M.indexOf('no tiene columna propia') === -1]
+  ] };
+`);
+
 
 
 
