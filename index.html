@@ -2591,10 +2591,10 @@ window.cerrarSesion = cerrarSesion;
       </div>
       <div style="font-size:11.5px;font-weight:700;color:var(--accent2);margin:14px 0 4px;">Llenado y relajación del ventrículo derecho</div>
       <div class="grid-4">
-        <div class="fg"><label>Onda E tricuspídea (m/s)</label>
-          <input type="number" id="dt_onda_e" step="0.1" placeholder="m/s" oninput="calcDopTric()"></div>
-        <div class="fg"><label>Onda A tricuspídea (m/s)</label>
-          <input type="number" id="dt_onda_a" step="0.1" placeholder="m/s" oninput="calcDopTric()"></div>
+        <div class="fg"><label>Onda E tricuspídea (cm/s)</label>
+          <input type="number" id="dt_onda_e" step="1" placeholder="cm/s" oninput="calcDopTric()"></div>
+        <div class="fg"><label>Onda A tricuspídea (cm/s)</label>
+          <input type="number" id="dt_onda_a" step="1" placeholder="cm/s" oninput="calcDopTric()"></div>
         <div class="fg"><label>e' anular lateral tricuspídeo (cm/s)</label>
           <input type="number" id="dt_eprime_lat" step="0.1" placeholder="cm/s" oninput="calcDopTric()"></div>
         <div class="fg"><label>TRIV tricuspídeo (ms)</label>
@@ -16646,14 +16646,11 @@ window.dptCambio = dptCambio; window.cvrCambio = cvrCambio;
    «sugestivo» y nada más. Repetir el diagnóstico sería la tercera superficie diciendo lo mismo,
    que es el patrón que este archivo persigue.
 
-   EL TAP **NO** SE TRATA ACÁ, Y ES A PROPÓSITO. El pedido lo incluía, pero la app YA lo publica
-   dos veces: la línea de la válvula tricúspide del narrativo dice «Se suman elementos indirectos
-   de hipertensión pulmonar dado por TAP < 105 ms», y el EN SUMA agrega «Elementos indirectos de
-   hipertensión pulmonar (TAP < 105 ms), sin PSAP estimable» cuando no hay PSAP. Agregarlo acá
-   sería la TERCERA superficie diciendo lo mismo del mismo número, en el mismo informe — el
-   patrón de las «tres agendas» que este archivo persigue. Y el umbral 105 vive en esa función:
-   no se duplica en una constante nueva. Lo único que falta y se agrega es el **TRIV
-   tricuspídeo**, que no existía.
+   NI EL TAP NI EL TRIV SE NOMBRAN EN ESTE BLOQUE. Los dos son signos indirectos de hipertensión
+   pulmonar y viven en UNA sola frase, `htpIndirectosFrase()`, que usa la línea de la válvula
+   tricúspide del narrativo y el EN SUMA. Este bloque describe el LLENADO del ventrículo derecho.
+   Antes el TAP estaba escrito a mano en las dos ramas de esa línea con dos redacciones distintas
+   —«Se suman…» y «Se evidencian…»— y el TRIV no aparecía en ninguna aunque se cargara.
 
    ACOPLAMIENTO DECLARADO CON EL LABORATORIO: la fila «HTP» de `_LAB_HALLAZGOS` cae a una búsqueda
    de texto sobre el informe cuando la PSAP no alcanza, así que un estudio cuya única mención de
@@ -16661,14 +16658,37 @@ window.dptCambio = dptCambio; window.cvrCambio = cvrCambio;
    Medido sobre los 95 estudios reales el 2026-09-16: el impacto hoy es CERO —el campo es nuevo—,
    y para el TAP ya era el comportamiento buscado. Si algún día el conteo de HTP se infla por
    estudios con sólo el TRIV alterado, mirar acá. */
-const DT_TRIV_HTP = 60;
+const DT_TRIV_HTP = 60, DT_TAP_HTP = 105;
+
+/* ══ LA FRASE ÚNICA DE LOS SIGNOS INDIRECTOS ═════════════════════════════════════════════════
+   Devuelve «(TAP < 105 ms)», «(TRIV tricuspídeo > 60 ms)», los dos unidos por «y», o '' si no
+   hay ninguno MEDIDO. Existe para que los tres sitios que la nombran —las dos ramas de la línea
+   de la válvula tricúspide y el EN SUMA— digan exactamente lo mismo: antes el TAP estaba escrito
+   a mano en las dos ramas con dos redacciones distintas («Se suman…» y «Se evidencian…»), y el
+   TRIV no estaba en ninguna aunque se cargara.
+   El umbral 105 vive acá y no en un literal repartido: estaba escrito suelto en la cascada. */
+function htpIndirectosFrase(){
+  const r = (typeof dopTricEstado === 'function') ? dopTricEstado() : null;
+  if (!r) return '';
+  const p = [];
+  if (r.tapBajo)  p.push('TAP < ' + DT_TAP_HTP + ' ms');
+  if (r.trivAlto) p.push('TRIV tricuspídeo > ' + DT_TRIV_HTP + ' ms');
+  return p.length ? '(' + p.join(' y ') + ')' : '';
+}
+window.htpIndirectosFrase = htpIndirectosFrase;
 
 function dopTricEstado(){
   const nv = id => { const e = document.getElementById(id); if (!e) return null;
     const n = parseFloat(String(e.value).replace(',', '.')); return isFinite(n) ? n : null; };
   const banda = (v, lo, hi) => v != null && v >= lo && v <= hi;
   const e = nv('dt_onda_e'), a = nv('dt_onda_a'), ep = nv('dt_eprime_lat'), triv = nv('dt_triv');
-  const eOk = banda(e, 0.1, 2), aOk = banda(a, 0.1, 2);
+  const tap = nv('tvia');                       // TAP: id real del bloque VD, no un campo propio
+  /* EN cm/s, como las ondas E y A de la mitral. Estaban en m/s y el cambio NO es sólo la
+     etiqueta: `E/e'` se calculaba como `e * 100 / ep` justamente porque E venía en m/s y e' en
+     cm/s. Con E ya en cm/s ese ×100 sobra, y dejarlo habría publicado un E/e' CIEN VECES mayor
+     —un 7,5 saliendo 750— en el informe y en el PDF. El cociente E/A no cambia: es una razón
+     entre dos magnitudes de la misma unidad. */
+  const eOk = banda(e, 10, 200), aOk = banda(a, 10, 200);
   const epOk = banda(ep, 1, 20), trivOk = banda(triv, 20, 120);
   const fuera = [];
   if (e != null && !eOk) fuera.push('onda E tricuspídea');
@@ -16678,14 +16698,15 @@ function dopTricEstado(){
   /* Los dos cocientes sólo existen con SUS DOS insumos dentro de banda: media relación es un
      número que parece medido y no lo es. */
   const ea = (eOk && aOk && a > 0) ? Math.round((e / a) * 100) / 100 : null;
-  const eep = (eOk && epOk && ep > 0) ? Math.round((e * 100 / ep) * 10) / 10 : null;
+  const eep = (eOk && epOk && ep > 0) ? Math.round((e / ep) * 10) / 10 : null;
   /* Sólo cuentan los signos MEDIDOS y dentro de banda. Un campo vacío no sugiere nada. */
   const trivAlto = trivOk && triv > DT_TRIV_HTP;
+  const tapBajo  = tap != null && isFinite(tap) && tap < DT_TAP_HTP;
   /* `fuera` cuenta como DATO. Sin esto, una onda E de 9 m/s —un error de unidades— salía por el
      return temprano de `dopTricFrase` y el valor desaparecía del informe sin una palabra: el
      médico lo tipeó y no aparece en ningún lado. Declarar lo ilegible es la regla de la casa. */
   const hayDatos = !!(eOk || aOk || epOk || trivOk || fuera.length);
-  return { hayDatos, e, a, ep, triv, eOk, aOk, epOk, trivOk, ea, eep, trivAlto, fuera };
+  return { hayDatos, e, a, ep, triv, tap, eOk, aOk, epOk, trivOk, ea, eep, trivAlto, tapBajo, fuera };
 }
 window.dopTricEstado = dopTricEstado;
 
@@ -16703,17 +16724,17 @@ function dopTricFrase(){
   if (!r.hayDatos && !r.trivAlto) return '';
   const p = [];
   const med = [];
-  if (r.eOk) med.push('E ' + r.e + ' m/s');
-  if (r.aOk) med.push('A ' + r.a + ' m/s');
+  if (r.eOk) med.push('E ' + r.e + ' cm/s');
+  if (r.aOk) med.push('A ' + r.a + ' cm/s');
   if (r.ea != null) med.push('E/A ' + r.ea.toFixed(2));
   if (r.epOk) med.push("e' lateral " + r.ep + ' cm/s');
   if (r.eep != null) med.push("E/e' " + r.eep.toFixed(1));
   if (r.trivOk) med.push('TRIV ' + r.triv + ' ms');
   if (med.length) p.push('Doppler tricuspídeo: ' + med.join(', '));
   if (r.fuera.length) p.push('Valor fuera de rango en ' + r.fuera.join(' y ') + ': revisar antes de concluir');
-  /* Sólo el TRIV: el TAP ya lo dicen la línea de la válvula tricúspide y el EN SUMA. */
-  if (r.trivAlto)
-    p.push('TRIV tricuspídeo de ' + r.triv + ' ms — elemento indirecto sugestivo de hipertensión pulmonar');
+  /* NI el TAP NI el TRIV se nombran acá: los dos van en la frase única de la línea de la válvula
+     tricúspide (`htpIndirectosFrase`). Este bloque describe el llenado del VD; los signos
+     indirectos de hipertensión pulmonar viven en un solo lugar. */
   return p.length ? p.join('. ') + '.' : '';
 }
 window.dopTricFrase = dopTricFrase;
@@ -21396,19 +21417,26 @@ function generarInforme(opts) {
       } else {
         tricLine = `${etFrag}Insuficiencia tricuspídea${itGrad}. Sin registro de velocidad de regurgitación que permita estimar PSAP.`;
       }
-      if (tapBajo) tricLine += ` Se suman elementos indirectos de hipertensión pulmonar dado por TAP < 105 ms.`;
+      /* UNA frase para los dos signos. Antes esto decía sólo el TAP, y el TRIV tricuspídeo no
+         aparecía aunque estuviera cargado. Ver `htpIndirectosFrase`. */
+      { const _ind = (typeof htpIndirectosFrase === 'function') ? htpIndirectosFrase() : '';
+        if (_ind) tricLine += ` Presenta elementos indirectos de HTP ${_ind}.`; }
     } else {
-      if (tapBajo) {
-        tricLine = `${etFrag}No se obtiene valor de PSAP por ausencia de insuficiencia tricuspídea valorable. Se evidencian elementos indirectos de hipertensión pulmonar dado por TAP < 105 ms.`;
-      } else {
-        tricLine = `${etFrag}Válvula tricúspide sin insuficiencia valorable. No es posible estimar PSAP.`;
-      }
+      /* La MISMA frase que la rama de arriba. Antes eran dos redacciones distintas del mismo
+         hecho —«Se suman…» y «Se evidencian…»— escritas a mano en cada rama. */
+      { const _ind = (typeof htpIndirectosFrase === 'function') ? htpIndirectosFrase() : '';
+        tricLine = _ind
+          ? `${etFrag}No se obtiene valor de PSAP por ausencia de insuficiencia tricuspídea valorable. Presenta elementos indirectos de HTP ${_ind}.`
+          : `${etFrag}Válvula tricúspide sin insuficiencia valorable. No es posible estimar PSAP.`; }
     }
     // Al En Suma sólo cuando NO se pudo estimar la PSAP: ahí el TAP es el único indicio
     // de HTP y sin esta línea el resumen decía "sin alteraciones significativas" pese a
     // que el informe narrativo describía el hallazgo. Con PSAP estimada sería redundante,
     // porque más abajo ya se resume el grado de HTP a partir de ese valor.
-    if (tapBajo && !psap) suma.push('Elementos indirectos de hipertensión pulmonar (TAP < 105 ms), sin PSAP estimable.');
+    /* Al EN SUMA sólo sin PSAP estimable, como antes: con PSAP el resumen ya gradúa por ella y
+       esto sería redundante. Lo que cambia es que la frase ahora incluye AMBOS signos. */
+    { const _ind = (typeof htpIndirectosFrase === 'function') ? htpIndirectosFrase() : '';
+      if (_ind && !psap) suma.push('Presenta elementos indirectos de HTP ' + _ind + ', sin PSAP estimable.'); }
     // HTP (interpretación del PSAP) — en la misma oración, sin repetir el valor de PSAP (ya expresado arriba)
     /* NO se gradúa la HTP por la PSAP estimada, y sigue siendo deliberado: la hipertensión
        pulmonar es un diagnóstico hemodinámico que se establece por cateterismo derecho, y la
@@ -39132,7 +39160,7 @@ const _IG_SECTIONS = [
     /* Doppler tricuspídeo. Van en el grupo del VD porque describen SU llenado, al lado del TAP
        que ya está arriba. Las filas vacías no se dibujan: el renderer descarta el campo sin
        valor, así que un estudio que no los cargó no ve la sección crecer. */
-    {id:'dt_onda_e',lbl:'E tricuspídea (m/s)'},{id:'dt_onda_a',lbl:'A tricuspídea (m/s)'},
+    {id:'dt_onda_e',lbl:'E tricuspídea (cm/s)'},{id:'dt_onda_a',lbl:'A tricuspídea (cm/s)'},
     {id:'dt_eprime_lat',lbl:"e' lateral tricusp. (cm/s)"},{id:'dt_triv',lbl:'TRIV tricuspídeo (ms)'}
   ]},
   { titulo:'〰️ Doppler', fields:[
@@ -43875,8 +43903,8 @@ function _labExcelRow(inf) {
     'Subaortica IA asociada': _labXlsEtiq('esub_ia_asociada', c.esub_ia_asociada),
     'Subaortica longitud tunel (mm)': rnd(num('esub_longitud_mm'),0),
     'Subaortica Valsalva': _labXlsEtiq('esub_valsalva', c.esub_valsalva),
-    'E tricuspidea (m/s)': rnd(num('dt_onda_e'),2),
-    'A tricuspidea (m/s)': rnd(num('dt_onda_a'),2),
+    'E tricuspidea (cm/s)': rnd(num('dt_onda_e'),0),
+    'A tricuspidea (cm/s)': rnd(num('dt_onda_a'),0),
     "e' lateral tricuspideo (cm/s)": rnd(num('dt_eprime_lat'),1),
     'TRIV tricuspideo (ms)': rnd(num('dt_triv'),0),
     'Ebstein sat O2 reposo (%)': rnd(num('ebs_saturacion'),0),
@@ -44986,8 +45014,8 @@ const LAB_XLS_MAP = [
   ['Subaortica IA asociada',       'esub_ia_asociada',       'vocab'],
   ['Subaortica longitud tunel (mm)','esub_longitud_mm',      'num'],
   ['Subaortica Valsalva',          'esub_valsalva',          'vocab'],
-  ['E tricuspidea (m/s)',          'dt_onda_e',       'num'],
-  ['A tricuspidea (m/s)',          'dt_onda_a',       'num'],
+  ['E tricuspidea (cm/s)',         'dt_onda_e',       'num'],
+  ['A tricuspidea (cm/s)',         'dt_onda_a',       'num'],
   ["e' lateral tricuspideo (cm/s)",'dt_eprime_lat',   'num'],
   ['TRIV tricuspideo (ms)',        'dt_triv',         'num'],
   ['Ebstein sat O2 reposo (%)',   'ebs_saturacion',  'num'],
@@ -53373,8 +53401,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260915-2204';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789520687474;                 /* eco-build-ms */
+const ECO_BUILD    = '20260915-2211';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789521106367;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -53460,7 +53488,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260915-2204</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260915-2211</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

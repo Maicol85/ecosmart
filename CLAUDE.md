@@ -395,6 +395,44 @@ otro idioma— se pone en rojo solo.
   **todas las eses** del texto. Se ve en el diagnóstico —«la do co a a propo ito»—. Acá ni hacía
   falta la regex: alcanzaba con `trim()`.
 
+### Cambiar la unidad de un campo NO es cambiar la etiqueta
+`dt_onda_e` y `dt_onda_a` pasaron de **m/s a cm/s** el 2026-09-16, como las ondas E y A de la
+mitral. El pedido decía «E/A automático: sin cambio en la fórmula» —correcto, es una razón entre
+magnitudes de la misma unidad— **y no mencionaba `E/e'`**, que se calculaba como **`e * 100 / ep`**
+justamente porque E venía en **m/s** y e' en **cm/s**. Dejar ese `×100` habría publicado un `E/e'`
+**cien veces mayor** —un 7,5 saliendo 750— en el informe firmado y en el PDF. **Al mover una
+unidad, buscar todas las fórmulas que la convertían.**
+
+Banda nueva: **10–200 cm/s**. Y las etiquetas cambian en CUATRO sitios: el campo, la frase del
+informe, la fila de la tabla del PDF y la columna del Excel.
+
+### Los signos indirectos de HTP viven en UNA frase: `htpIndirectosFrase()`
+El TAP estaba escrito **a mano en las dos ramas** de la línea de la válvula tricúspide, con **dos
+redacciones distintas** —«Se suman elementos indirectos…» y «Se evidencian elementos
+indirectos…»— más una tercera en el EN SUMA. Y el **TRIV tricuspídeo no aparecía en ninguna**
+aunque estuviera cargado.
+
+Hoy hay una sola función que devuelve `(TAP < 105 ms)`, `(TRIV tricuspídeo > 60 ms)` o los dos
+unidos por «y», y la usan los tres sitios. El texto es **«Presenta elementos indirectos de HTP …»**
+y el umbral 105 dejó de estar suelto en la cascada.
+
+**La línea tiene DOS ramas —con PSAP calculable y sin ella— y hay que probar las dos.** Los casos
+que sólo cargan el TAP no miden IT, así que ejercen únicamente la segunda: una redacción vieja
+dejada en la primera **sobrevivía a la mutación**. Hace falta un escenario con `vmax_it` y VCI.
+
+**Al EN SUMA sigue yendo sólo sin PSAP estimable**, como antes: con PSAP el resumen ya gradúa por
+ella.
+
+### Un reemplazo por rango se comió el caso siguiente
+Al reescribir TC-133 con `s[:i] + nuevo + s[j:]`, el marcador de fin `j` era el cierre de
+**TC-134**, no el de TC-133: el reemplazo **borró el caso entero**, 4.478 bytes y sus 25
+condiciones. El suite pasó de **149 a 148 sin una sola falla**, porque un caso que no existe no
+falla. Lo delató el CONTEO, no el resultado.
+
+Se recuperó con `git show HEAD:` y se verificó **byte por byte** contra HEAD. Es exactamente la
+entrada «Los reemplazos por rango de líneas son peligrosos» que este archivo ya tenía, aplicada al
+propio suite: **después de un reemplazo por rango, contar los casos.**
+
 ### Doppler tricuspídeo: de cuatro campos pedidos, sólo uno era nuevo
 Agregado el 2026-09-16 al bloque tricuspídeo: **`dt_onda_e`**, **`dt_onda_a`**, **`dt_eprime_lat`**
 y **`dt_triv`**, con `E/A` y `E/e'` calculados. **Antes de crear un campo se verificaron los tres

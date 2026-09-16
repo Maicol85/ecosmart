@@ -814,9 +814,12 @@ caso('TC-49', 'TAP < 105 ms sin IT: elementos indirectos de HTP, sin inventar PS
   __t.limpiar(); __t.set('tvia','90');
   const r = __t.informe();
   return { inf: r.inf, suma: r.suma,
+    /* La redaccion cambio el 2026-09-16: las dos ramas de esta linea y el EN SUMA pasaron a usar
+       UNA sola frase (htpIndirectosFrase), que ademas incluye el TRIV tricuspideo. Antes el TAP
+       estaba escrito a mano en cada rama con dos redacciones distintas. */
     debe: ['No se obtiene valor de PSAP por ausencia de insuficiencia tricuspídea valorable',
-           'elementos indirectos de hipertensión pulmonar dado por TAP < 105 ms'],
-    debeSuma: ['Elementos indirectos de hipertensión pulmonar (TAP < 105 ms), sin PSAP estimable.'] };
+           'Presenta elementos indirectos de HTP (TAP < 105 ms).'],
+    debeSuma: ['Presenta elementos indirectos de HTP (TAP < 105 ms), sin PSAP estimable.'] };
 `);
 
 caso('TC-50', 'IT con PSAP: la PSAP alta sube al EN SUMA', `
@@ -4087,72 +4090,72 @@ caso('TC-133', 'Doppler tricuspideo: E/A, E/e y los dos signos INDIRECTOS de HTP
     if (o.tap  != null) __t.set('tvia', String(o.tap));
     return { r: dopTricEstado(), f: dopTricFrase(), inf: __t.informe() };
   }
-  const t65 = e({ triv:65 }), t60 = e({ triv:60 }), t55 = e({ triv:55 });
-  /* EL TAP NO ES DE ESTE MODULO. La app YA lo publica dos veces: la linea de la valvula
-     tricuspide del narrativo y el EN SUMA cuando no hay PSAP. Agregarlo aca habria sido la
-     TERCERA superficie diciendo lo mismo del mismo numero en el mismo informe. Este caso verifica
-     las dos cosas: que las frases preexistentes sigan saliendo, y que el modulo nuevo NO agregue
-     una tercera. */
+  const t70 = e({ triv:70 }), t60 = e({ triv:60 }), t55 = e({ triv:55 });
   const p95 = e({ tap:95 }), p110 = e({ tap:110 });
-  const trivYTap = e({ triv:65, tap:95 });
-  const cocientes = e({ E:0.6, A:0.4, ep:8 });
-  const soloE = e({ E:0.6 });
-  const ilegible = e({ E:9 });
+  const ambos = e({ triv:70, tap:95 });
+  const nada  = e({ triv:55, tap:110 });
+  /* LA OTRA RAMA. La linea de la valvula tricuspide tiene DOS: con PSAP calculable y sin ella.
+     Los casos de arriba no miden IT, asi que solo ejercian la segunda — una redaccion vieja
+     dejada en la primera sobrevivia. Con vmax_it y VCI la PSAP se calcula y entra la otra. */
+  __t.limpiar(); __t.set('vd_bas','40'); __t.set('vmax_it','2.8');
+  __t.set('vci_diam','18'); __t.set('vci_col','>50');
+  __t.set('dt_triv','70'); __t.set('tvia','95');
+  const conPsap = { inf: __t.informe() };
+  const cocientes = e({ E:90, A:70, ep:8 });
+  const soloE = e({ E:90 });
+  const ilegible = e({ E:9 });          // 9 cm/s: por debajo de la banda 10-200
   __t.limpiar(); __t.set('vd_bas','40');
   const vacio = { r: dopTricEstado(), f: dopTricFrase(), inf: __t.informe() };
+  const FR = 'Presenta elementos indirectos de HTP';
   return { extra: [
-    // Los dos lados del corte del TRIV.
-    ['TRIV 65 ms aparece como elemento indirecto',
-      t65.f.indexOf('elemento indirecto sugestivo de hipertensión pulmonar') > -1],
-    ['TRIV 60 exactos NO aparece: el corte es >60', t60.f.indexOf('elemento indirecto') === -1],
-    ['TRIV 55 tampoco', t55.f.indexOf('elemento indirecto') === -1],
-    ['y el texto dice «sugestivo», no diagnostica HTP',
-      t65.f.indexOf('sugestivo') > -1 && t65.f.indexOf('Hipertensión pulmonar severa') === -1],
-    // EL TAP: lo dicen las frases preexistentes, no este modulo.
-    /* NUNCA, con ninguna redaccion y en ningun escenario. La primera version solo miraba el caso
-       con TAP suelto —donde la funcion sale temprano y devuelve cadena vacia igual—, asi que una
-       frase del TAP agregada al modulo sobrevivia mientras hubiera un TRIV alterado que abriera
-       la funcion. Se mira el escenario en que la funcion SI corre. */
-    ['el modulo nuevo NO habla del TAP', p95.f === ''],
-    ['ni siquiera cuando la funcion corre por el TRIV',
-      trivYTap.f.indexOf('aceleración pulmonar') === -1 && trivYTap.f.indexOf('TAP') === -1],
-    ['pero el narrativo SIGUE diciendolo, por la linea de la valvula tricuspide',
-      p95.inf.inf.indexOf('TAP < 105 ms') > -1],
-    ['y el EN SUMA tambien, que ya existia', p95.inf.suma.indexOf('Elementos indirectos') > -1],
-    ['con TAP 110 no lo dice ninguna', p110.inf.inf.indexOf('TAP < 105 ms') === -1],
-    // Con los dos alterados NO hay tercera frase repitiendo el TAP.
-    ['con TRIV y TAP alterados, el TAP se nombra UNA sola vez',
-      trivYTap.inf.inf.split('TAP < 105 ms').length - 1 === 1],
-    ['y el TRIV aparece por su cuenta', trivYTap.inf.inf.indexOf('TRIV tricuspídeo de 65 ms') > -1],
-    // El TRIV no sube al EN SUMA: el diagnostico lo hacen la PSAP y la ESC 2022.
-    ['el TRIV no agrega nada al EN SUMA', t65.inf.suma.indexOf('TRIV') === -1],
-    ['pero si esta en el informe narrativo', t65.inf.inf.indexOf('TRIV tricuspídeo de 65 ms') > -1],
-    // Los cocientes.
-    ['E/A se calcula con sus dos insumos', cocientes.r.ea === 1.5],
-    ["E/e' se calcula con sus dos insumos", cocientes.r.eep === 7.5],
+    // LA FRASE UNICA, en sus cuatro combinaciones.
+    ['solo TAP 95 ms', p95.inf.inf.indexOf(FR + ' (TAP < 105 ms).') > -1],
+    ['solo TRIV 70 ms', t70.inf.inf.indexOf(FR + ' (TRIV tricuspídeo > 60 ms).') > -1],
+    ['los dos, en una sola frase',
+      ambos.inf.inf.indexOf(FR + ' (TAP < 105 ms y TRIV tricuspídeo > 60 ms).') > -1],
+    ['y el TAP se nombra UNA sola vez', ambos.inf.inf.split('TAP < 105 ms').length - 1 === 1],
+    ['con TAP 110 y TRIV 55 no aparece nada', nada.inf.inf.indexOf(FR) === -1],
+    ['con los campos vacios tampoco', vacio.inf.inf.indexOf(FR) === -1],
+    // Los dos lados de cada corte.
+    ['TRIV 60 exactos NO cuenta: el corte es >60', t60.inf.inf.indexOf('TRIV tricuspídeo') === -1],
+    ['TRIV 55 tampoco', t55.inf.inf.indexOf('TRIV tricuspídeo') === -1],
+    ['TAP 110 no cuenta', p110.inf.inf.indexOf('TAP < 105') === -1],
+    // El texto viejo no vuelve, en ninguna de las dos ramas.
+    ['no queda la redaccion vieja',
+      ambos.inf.inf.indexOf('Se suman elementos indirectos') === -1 &&
+      ambos.inf.inf.indexOf('Se evidencian elementos indirectos') === -1],
+    ['y tampoco en la rama con PSAP calculable, que es la otra mitad',
+      conPsap.inf.inf.indexOf('Se suman elementos indirectos') === -1 &&
+      conPsap.inf.inf.indexOf('Presenta elementos indirectos de HTP (TAP < 105 ms y TRIV tricuspídeo > 60 ms).') > -1],
+    // EN SUMA: la misma frase, y solo sin PSAP estimable — como antes.
+    ['al EN SUMA va la frase nueva con los dos signos',
+      ambos.inf.suma.indexOf(FR + ' (TAP < 105 ms y TRIV tricuspídeo > 60 ms), sin PSAP estimable.') > -1],
+    ['y el TRIV solo tambien llega al EN SUMA',
+      t70.inf.suma.indexOf('TRIV tricuspídeo > 60 ms') > -1],
+    // UNIDADES: cm/s.
+    ['el campo dice cm/s, no m/s', (function(){
+      const l = document.querySelector('label[for], .fg label');
+      return (document.getElementById('dt_onda_e').placeholder === 'cm/s');
+    })()],
+    ['E 90 y A 70 dan E/A 1.29', cocientes.r.ea === 1.29],
+    /* EL ×100 TENIA QUE SALIR. E/e' se calculaba como e*100/ep porque E venia en m/s y e' en
+       cm/s. Con E ya en cm/s, dejarlo habria publicado un E/e' CIEN VECES mayor. */
+    ["E 90 y e' 8 dan E/e' 11.3, no 1125", cocientes.r.eep === 11.3],
+    ['y el informe los publica en cm/s',
+      cocientes.f.indexOf('E 90 cm/s') > -1 && cocientes.f.indexOf('A 70 cm/s') > -1],
+    ['la banda es 10-200: un 9 no entra', ilegible.r.eOk === false],
+    ['y se declara en vez de desaparecer', ilegible.f.indexOf('fuera de rango') > -1],
     ['con un solo insumo no hay cociente', soloE.r.ea === null && soloE.r.eep === null],
-    ['y el informe publica los cocientes', cocientes.f.indexOf('E/A 1.50') > -1 && cocientes.f.indexOf("E/e' 7.5") > -1],
-    // Vacio e ilegible.
-    ['sin ningun campo cargado no hay texto de Doppler tricuspideo',
-      vacio.f === '' && vacio.inf.inf.indexOf('Doppler tricuspídeo') === -1],
-    ['una onda E de 9 m/s no entra en el cociente', ilegible.r.eOk === false && ilegible.r.ea === null],
-    ['y NO desaparece del informe: se declara fuera de rango',
-      ilegible.f.indexOf('fuera de rango') > -1 && ilegible.inf.inf.indexOf('fuera de rango') > -1],
-    // NO se duplico ningun campo.
+    // El modulo sigue sin duplicar campos ni frases.
     ['el TAP se lee de tvia: no se creo un campo propio', !document.getElementById('dt_tap')],
     ['el TRIV del ventriculo izquierdo sigue existiendo aparte',
       !!document.getElementById('triv') && !!document.getElementById('dt_triv')],
-    ['y el umbral 105 no se duplico en una constante nueva', typeof window.DT_TAP_HTP === 'undefined']
+    ['y el bloque de llenado no repite los signos indirectos',
+      ambos.f.indexOf('indirecto') === -1 && ambos.f.indexOf('TAP') === -1]
   ] };
 `);
 
-/* EXPORTADOR CON FILTROS POR MODULO. Lo que vigila este caso: que los DATOS BASICOS no se puedan
-   sacar, que el filtro de columnas y el de filas sean INDEPENDIENTES, y el borde que convierte un
-   filtro en un archivo vacio —«solo con datos» SIN ningun modulo elegido daria cero filas y un
-   Excel que parece un error de la app—.
-   Los modulos se DERIVAN de LAB_XLS_BLOQUES: el assert de arranque verifica que ningun prefijo
-   quede sin matchear, porque un prefijo mal escrito no da error, da un modulo VACIO que se ve
-   igual que uno bien definido y se lleva sus columnas a los basicos. */
+/* EXPORTADOR CON FILTROS POR MODULO — ver el comentario original arriba de TC-134. */
 caso('TC-134', 'Exportador Excel: modulos, filas y la plantilla comparten filtro', `
   const TODAS = _labOrdenarCols(Object.keys(_labExcelRow({ id:0, campos:{} })));
   const basicas = _labColsFiltradas(TODAS, []);
