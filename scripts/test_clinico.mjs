@@ -4799,6 +4799,11 @@ caso('TC-147', 'Lab CC/Mediciones: los bloques leen *Estado(), no reimplementan 
    Sin eso, lo unico verificable seria que la funcion no lanza, que es lo que no importa. */
 caso('TC-148', 'PPT del Laboratorio: rangos de PSAP y no grados, paleta, y la compuerta del periodo vacio', `
   return (async function(){
+    /* ESPERA A QUE CARGUE, como TC-131 con SheetJS. El bundle de pptxgenjs son 477 KB y es el
+       ultimo de los seis scripts externos: sin esta espera el caso da rojo intermitente por el
+       ENTORNO —medido, la libreria si estaba a los 6 s— y eso es peor que no tener el caso,
+       porque se deja de creerle al rojo. Si igual no llega, falla con el motivo escrito. */
+    for (let _i = 0; _i < 80 && typeof PptxGenJS === 'undefined'; _i++) await new Promise(function(r){ setTimeout(r, 100); });
     if (typeof PptxGenJS === 'undefined') {
       return { extra: [['PptxGenJS cargo por CDN (sin esto el caso no prueba nada)', false, 'la libreria no llego']] };
     }
@@ -5009,6 +5014,11 @@ caso('TC-149', 'Manual: 8 pestanas, PDF de 20 paginas o menos, y las advertencia
    cuando no se pidio, y que los graficos sean charts y no rectangulos dibujados a mano. */
 caso('TC-150', 'PPT Lab: graficos nativos, semaforo de FEVI y asociaciones leidas del Lab', `
   return (async function(){
+    /* ESPERA A QUE CARGUE, como TC-131 con SheetJS. El bundle de pptxgenjs son 477 KB y es el
+       ultimo de los seis scripts externos: sin esta espera el caso da rojo intermitente por el
+       ENTORNO —medido, la libreria si estaba a los 6 s— y eso es peor que no tener el caso,
+       porque se deja de creerle al rojo. Si igual no llega, falla con el motivo escrito. */
+    for (let _i = 0; _i < 80 && typeof PptxGenJS === 'undefined'; _i++) await new Promise(function(r){ setTimeout(r, 100); });
     if (typeof PptxGenJS === 'undefined') {
       return { extra: [['PptxGenJS cargo por CDN', false, 'la libreria no llego']] };
     }
@@ -5219,6 +5229,11 @@ caso('TC-150', 'PPT Lab: graficos nativos, semaforo de FEVI y asociaciones leida
       y el mazo se achicaba SIN DECIR NADA. */
 caso('TC-151', 'PPT: el paquete no pide reparacion y las diapositivas omitidas se declaran', `
   return (async function(){
+    /* ESPERA A QUE CARGUE, como TC-131 con SheetJS. El bundle de pptxgenjs son 477 KB y es el
+       ultimo de los seis scripts externos: sin esta espera el caso da rojo intermitente por el
+       ENTORNO —medido, la libreria si estaba a los 6 s— y eso es peor que no tener el caso,
+       porque se deja de creerle al rojo. Si igual no llega, falla con el motivo escrito. */
+    for (let _i = 0; _i < 80 && typeof PptxGenJS === 'undefined'; _i++) await new Promise(function(r){ setTimeout(r, 100); });
     if (typeof PptxGenJS === 'undefined' || typeof JSZip === 'undefined') {
       return { extra: [['PptxGenJS y JSZip disponibles', false, 'falta ' + (typeof PptxGenJS === 'undefined' ? 'PptxGenJS' : 'JSZip')]] };
     }
@@ -5317,6 +5332,11 @@ caso('TC-151', 'PPT: el paquete no pide reparacion y las diapositivas omitidas s
    otra hoja, que es como entro este. */
 caso('TC-152', 'PPT Lab: ningun color invalido llega al paquete, y las diapositivas 2 y 5 traen su grafico', `
   return (async function(){
+    /* ESPERA A QUE CARGUE, como TC-131 con SheetJS. El bundle de pptxgenjs son 477 KB y es el
+       ultimo de los seis scripts externos: sin esta espera el caso da rojo intermitente por el
+       ENTORNO —medido, la libreria si estaba a los 6 s— y eso es peor que no tener el caso,
+       porque se deja de creerle al rojo. Si igual no llega, falla con el motivo escrito. */
+    for (let _i = 0; _i < 80 && typeof PptxGenJS === 'undefined'; _i++) await new Promise(function(r){ setTimeout(r, 100); });
     if (typeof PptxGenJS === 'undefined' || typeof JSZip === 'undefined') {
       return { extra: [['PptxGenJS y JSZip disponibles', false, 'falta ' + (typeof PptxGenJS === 'undefined' ? 'PptxGenJS' : 'JSZip')]] };
     }
@@ -5431,6 +5451,144 @@ caso('TC-152', 'PPT Lab: ningun color invalido llega al paquete, y las diapositi
   })();
 `);
 
+/* TC-157 - Diagrama de Forrester: interactivo en el Lab, PNG en la diapositiva (2026-09-16).
+   LA DIVISORIA QUE SE DIBUJA Y EL OPERADOR QUE CLASIFICA SON EL MISMO NUMERO. El pedido proponia
+   la linea en PCP 18 y la app clasifica en 15 —y lo imprime: la capsula dice «con congestion
+   (PCP >15)»—; con 18, todo punto entre 15 y 18 saldria pintado de «humedo» por DEBAJO de la
+   linea de «seco». Se conservo el 15 y se extrajo a UMBRAL_PCP_HUMEDO, que ahora gobierna los
+   cuatro sitios.
+   Aritmetica de la cohorte, para que los valores no sean magicos: con D=20 mm, VTI=20 cm,
+   talla 170 y peso 75, vs = pi*1^2*20 = 62.83 mL y BSA = 1.882, asi que IC = 62.83*FC/1000/1.882
+   — FC 84 da 2.80 (caliente) y FC 54 da 1.80 (frio). PCP = 1.24*(E/e')+1.9: E 60 con e' 11 da
+   8.7 (seco) y E 110 con e' 5.5 da 26.7 (humedo). */
+caso('TC-157', 'Forrester: cuadrantes, puntos por paciente y el diagrama en la diapositiva', `
+  return (async function(){
+    const mk = function(i, c, nom){
+      const base = { talla:'170', peso:'75', diam_tsvi:'20', itv_tsvi:'20' };
+      Object.keys(c).forEach(function(k){ base[k] = c[k]; });
+      return { id:400+i, estudioId:'t157-'+i, uuid:'u157-'+i, nombre: nom || ('Pac ' + i), ci:'C'+i,
+               fecha_estudio:'2026-03-0'+i, fecha_guardado:'2026-04-01T09:00:00',
+               informe_texto:'', en_suma:'', campos: base };
+    };
+    const SECO   = { onda_e:'60',  e_sep:'10', e_lat:'12' };
+    const HUMEDO = { onda_e:'110', e_sep:'5',  e_lat:'6'  };
+    const coh = [
+      mk(1, Object.assign({ hemo_fc:'84' }, SECO),   "O'Brien & <b>X</b>"),
+      mk(2, Object.assign({ hemo_fc:'54' }, HUMEDO)),
+      mk(3, Object.assign({ hemo_fc:'84' }, HUMEDO)),
+      mk(4, Object.assign({ hemo_fc:'54' }, SECO)),
+      mk(5, SECO),                      // sin FC  -> sin IC
+      mk(6, { hemo_fc:'84' })           // sin E/e -> sin PCP
+    ];
+    const r = coh.map(_labICPCP);
+    const pts = _labForrPuntos(coh);
+
+    await CeiboStore.setLocal(coh);
+    const b = [].slice.call(document.querySelectorAll('[onclick*="showTab"]'))
+      .filter(function(x){ return (x.getAttribute('onclick') || '').indexOf("'lab'") > -1; })[0];
+    if (b) b.click();
+    await new Promise(function(x){ setTimeout(x, 400); });
+    const selP = document.getElementById('lab-periodo'); if (selP) selP.value = '0';
+    if (typeof labCohorteLimpiar === 'function') { try { labCohorteLimpiar(true); } catch (e) {} }
+    labInit();
+    await new Promise(function(x){ setTimeout(x, 1600); });
+    const cont = document.getElementById('lab-adv-hemo-diag');
+    const svg  = cont ? cont.querySelector('svg') : null;
+    const circ = svg ? [].slice.call(svg.querySelectorAll('circle[data-eid]')) : [];
+    const tip0 = circ.length ? (circ[0].querySelector('title') || {}).textContent : '';
+    const torta = document.getElementById('lab-adv-hemo-forr');
+    const debajo = (torta && cont) ? (cont.getBoundingClientRect().top >= torta.getBoundingClientRect().top) : false;
+    const denom = (typeof labGetInformes === 'function') ? labGetInformes().length : -1;
+    const fondo1 = svg ? (svg.querySelector('rect') || {}).getAttribute('fill') : null;
+    /* Modo dia/noche: el fondo tiene que CAMBIAR. Si diera lo mismo estaria comparando dos veces
+       el mismo tema y pasaria sin probar nada — la trampa que ya costo TC-114. */
+    const htmlEl = document.documentElement;
+    if (typeof toggleTheme === 'function') { try { toggleTheme(); } catch (e) {} }
+    else { htmlEl.setAttribute('data-theme', 'light'); }
+    labInit(); await new Promise(function(x){ setTimeout(x, 900); });
+    const svg2 = document.getElementById('lab-adv-hemo-diag').querySelector('svg');
+    const fondo2 = svg2 ? (svg2.querySelector('rect') || {}).getAttribute('fill') : null;
+    if (typeof toggleTheme === 'function') { try { toggleTheme(); } catch (e) {} }
+
+    /* EL ESTADO VACIO: sin ningun estudio estimable el diagrama sale IGUAL, con sus cuadrantes y
+       el mensaje. Un contenedor en blanco se lee como que el modulo se rompio. */
+    const vacio = _labForrSVG([], _FORR_PAL_PPT, {});
+    /* Y un estudio SIN IC no puede aparecer en el origen, que se leeria como shock. */
+    const sinIC = _labForrPuntos([mk(9, SECO)]);
+
+    let pptOk = false, tienePng = false;
+    if (typeof PptxGenJS !== 'undefined') {
+      const oD = window._pptxDescargarSaneado, oT = window.toast;
+      let capt = null;
+      window._pptxDescargarSaneado = function(P){ capt = P; return Promise.resolve({saneado:true, quitadas:0}); };
+      window.toast = function(){};
+      try { localStorage.setItem('ecosmart_lab_ppt_chk', JSON.stringify({ hemo:true })); } catch (e) {}
+      await _labPPTGenerar(coh, { presentador:'X', institucion:'Y', fecha:'2026-09-20', tema:'azul' });
+      window._pptxDescargarSaneado = oD; window.toast = oT;
+      try { localStorage.removeItem('ecosmart_lab_ppt_chk'); } catch (e) {}
+      const sl = capt ? (capt.slides || []) : [];
+      const hoja = sl.filter(function(x){
+        return (x._slideObjects || []).some(function(o){
+          const t = typeof o.text === 'string' ? o.text : (Array.isArray(o.text) ? o.text.map(function(z){ return z && z.text ? z.text : ''; }).join('') : '');
+          return t.indexOf('Perfil hemodinámico') > -1; }); })[0];
+      pptOk = !!hoja;
+      if (hoja) tienePng = (hoja._slideObjects || []).filter(function(o){ return o._type === 'image' || o.image; }).length === 1;
+    }
+    await CeiboStore.setLocal([]);
+
+    return { extra: [
+      // 1 - LOS CUATRO CUADRANTES, POR LOS DOS EJES
+      ['IC 2.80 y PCP 8.7 cae en I (seco-caliente)',  r[0].perfil === 'I',   JSON.stringify(r[0])],
+      ['IC 1.80 y PCP 26.7 cae en IV (humedo-frio)',  r[1].perfil === 'IV',  JSON.stringify(r[1])],
+      ['IC 2.80 y PCP 26.7 cae en II (humedo-caliente)', r[2].perfil === 'II',  JSON.stringify(r[2])],
+      ['IC 1.80 y PCP 8.7 cae en III (seco-frio)',    r[3].perfil === 'III', JSON.stringify(r[3])],
+
+      // 2 - LO QUE NO SE PUEDE ESTIMAR NO SE DIBUJA
+      ['sin frecuencia cardiaca no hay IC', r[4].ic === null && r[4].pcp !== null, JSON.stringify(r[4])],
+      ['sin E/e no hay PCP',                r[5].pcp === null && r[5].ic !== null, JSON.stringify(r[5])],
+      ['y ninguno de los dos entra como punto', pts.length === 4, String(pts.length)],
+      ['un estudio sin IC no aparece en el origen', sinIC.length === 0, JSON.stringify(sinIC)],
+
+      // 3 - EL DIAGRAMA EN EL LABORATORIO
+      ['el diagrama esta debajo de la torta de Forrester', debajo],
+      ['el denominador del dashboard son los seis sembrados', denom === 6, String(denom)],
+      ['dibuja un circulo por punto estimable', circ.length === 4, String(circ.length)],
+      ['el tooltip trae paciente, fecha, IC, PCP y perfil',
+        tip0.indexOf('IC 2.80') > -1 && tip0.indexOf('PCP 8.7') > -1 && tip0.indexOf('seco-caliente') > -1, tip0],
+      /* El nombre del paciente entra al SVG: se escapa. Y el click NO va por onclick inline —el
+         atributo se compila DESPUES de decodificar entidades, asi que ahi el escape no protege—
+         sino por data-eid con listener delegado, que es la regla del donut de la CIA. */
+      ['el nombre del paciente sale escapado en el marcado',
+        svg.innerHTML.indexOf('&lt;b&gt;') > -1 && svg.querySelectorAll('b').length === 0,
+        svg.innerHTML.indexOf('&lt;b&gt;') > -1 ? 'escapado' : 'CRUDO'],
+      ['y el punto no lleva onclick inline', svg.innerHTML.indexOf('onclick') === -1],
+      ['lleva data-eid para abrir el estudio', circ[0].getAttribute('data-eid') === 't157-1',
+        String(circ[0].getAttribute('data-eid'))],
+
+      // 4 - LOS CORTES SON LOS DE LA APP
+      /* Si alguien mueve la linea a 18 sin mover el clasificador, esto se pone en rojo. */
+      ['la divisoria de congestion es la que aplica la app', UMBRAL_PCP_HUMEDO === 15, String(UMBRAL_PCP_HUMEDO)],
+      ['y la de hipoperfusion tambien', FORR_IC_CORTE === 2.2, String(FORR_IC_CORTE)],
+      ['los rotulos salen de _LAB_FORR_LBL y no de una copia',
+        svg.innerHTML.indexOf('seco-caliente') > -1 && svg.innerHTML.indexOf('húmedo-frío') > -1],
+
+      // 5 - MODO DIA/NOCHE
+      ['el fondo del diagrama cambia con el tema', !!fondo1 && !!fondo2 && fondo1 !== fondo2,
+        fondo1 + ' vs ' + fondo2],
+
+      // 6 - ESTADO VACIO
+      ['sin estudios estimables el diagrama igual dibuja sus cuadrantes',
+        vacio.indexOf('seco-caliente') > -1 && vacio.indexOf('<circle') === -1,
+        String(vacio.length)],
+      ['y lo dice', vacio.indexOf('Sin estudios con IC y PCP estimables') > -1],
+
+      // 7 - LA DIAPOSITIVA
+      ['la hoja de hemodinamica se genera', pptOk],
+      ['y lleva el diagrama incrustado como imagen', tienePng]
+    ] };
+  })();
+`);
+
 /* TC-156 - Las tres diapositivas que faltaban: contractilidad, amiloidosis y hemodinamica.
    OJO CON LA SONDA, que fallo dos veces antes de acusar al codigo:
    · el texto del informe vive DENTRO de `campos` —guardarInforme barre textarea[id]— y es de ahi
@@ -5442,6 +5600,11 @@ caso('TC-152', 'PPT Lab: ningun color invalido llega al paquete, y las diapositi
      cae en "No clasificado" y parece que el seam no anda. */
 caso('TC-156', 'PPT Lab: contractilidad con su bulls eye, amiloidosis y hemodinamica', `
   return (async function(){
+    /* ESPERA A QUE CARGUE, como TC-131 con SheetJS. El bundle de pptxgenjs son 477 KB y es el
+       ultimo de los seis scripts externos: sin esta espera el caso da rojo intermitente por el
+       ENTORNO —medido, la libreria si estaba a los 6 s— y eso es peor que no tener el caso,
+       porque se deja de creerle al rojo. Si igual no llega, falla con el motivo escrito. */
+    for (let _i = 0; _i < 80 && typeof PptxGenJS === 'undefined'; _i++) await new Promise(function(r){ setTimeout(r, 100); });
     if (typeof PptxGenJS === 'undefined') {
       return { extra: [['PptxGenJS cargo por CDN', false, 'la libreria no llego']] };
     }
@@ -5559,8 +5722,14 @@ caso('TC-156', 'PPT Lab: contractilidad con su bulls eye, amiloidosis y hemodina
       ['el I es seco-caliente y el IV humedo-frio',
         _LAB_FORR_LBL.I.indexOf('seco-caliente') > -1 && _LAB_FORR_LBL.IV.indexOf('húmedo-frío') > -1,
         JSON.stringify(_LAB_FORR_LBL)],
-      ['y la diapositiva declara que la PCP es estimada',
-        c3.txt.join(' ').indexOf('ESTIMADA') > -1, (c3.txt[1] || '').slice(-160)],
+      /* La condicion es el HECHO, no la palabra: que la hoja declare que esto no reemplaza la
+         medicion invasiva y con que corte separa humedo de seco. Pinar «ESTIMADA» en mayusculas
+         bloqueaba una reescritura legitima de la nota sin que el dato hubiera dejado de ser
+         cierto — es la correccion que ya se le hizo a TC-123 y a TC-132. */
+      ['la diapositiva declara que no reemplaza la medicion invasiva',
+        c3.txt.join(' ').indexOf('no equivalen a medición invasiva') > -1, (c3.txt[1] || '').slice(-200)],
+      ['y nombra la divisoria de congestion que aplica',
+        c3.txt.join(' ').indexOf('PCP > 15') > -1, (c3.txt[1] || '').slice(-200)],
 
       // 6 - EL REGISTRO SIGUE COMPLETO
       ['los grupos siguen cubriendo las 53 tarjetas',
@@ -5577,6 +5746,11 @@ caso('TC-156', 'PPT Lab: contractilidad con su bulls eye, amiloidosis y hemodina
    igual daria un numero plausible en cualquier corrida. */
 caso('TC-155', 'PPT Lab: las casillas deciden el mazo, y lo que no tiene hoja se declara', `
   return (async function(){
+    /* ESPERA A QUE CARGUE, como TC-131 con SheetJS. El bundle de pptxgenjs son 477 KB y es el
+       ultimo de los seis scripts externos: sin esta espera el caso da rojo intermitente por el
+       ENTORNO —medido, la libreria si estaba a los 6 s— y eso es peor que no tener el caso,
+       porque se deja de creerle al rojo. Si igual no llega, falla con el motivo escrito. */
+    for (let _i = 0; _i < 80 && typeof PptxGenJS === 'undefined'; _i++) await new Promise(function(r){ setTimeout(r, 100); });
     if (typeof PptxGenJS === 'undefined') {
       return { extra: [['PptxGenJS cargo por CDN', false, 'la libreria no llego']] };
     }

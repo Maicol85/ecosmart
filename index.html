@@ -14188,6 +14188,9 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           <div id="lab-adv-hemo-forr"></div>
         </div>
       </div>
+      <!-- Diagrama IC vs PCP. Va DEBAJO de la torta: la torta dice cuántos hay en cada perfil y
+           el diagrama dónde cae cada uno — el segundo se lee después del primero. -->
+      <div id="lab-adv-hemo-diag" style="margin-top:16px;"></div>
     </div>
   </div>
 
@@ -14999,6 +15002,16 @@ const RVP_ELEVADA_UW = 2;
 window.RVP_ELEVADA_UW = RVP_ELEVADA_UW;
 
 const PCP_COEF_A = 1.24, PCP_COEF_B = 1.9;
+/* Corte de CONGESTIÓN. Estaba escrito como literal en tres sitios —las dos ramas de `calcHemo` y
+   `_labForrester`— y además DENTRO de la cadena que imprime la cápsula («con congestión (PCP
+   >15)»), que es la forma más segura de que el rótulo y el operador se separen. El diagrama de
+   Forrester lo necesita como número para dibujar la divisoria, así que se extrae acá y los cuatro
+   lo leen. Mismo valor: no es un cambio clínico.
+   EL PEDIDO DEL 2026-09-16 PROPONÍA 18 y NO se aplicó: con la línea en 18 y los colores saliendo
+   de `_labForrester` —que corta en 15— todo punto entre 15 y 18 saldría pintado de «húmedo» por
+   debajo de la línea de «seco», o sea un diagrama que se contradice solo. */
+const UMBRAL_PCP_HUMEDO = 15;
+window.UMBRAL_PCP_HUMEDO = UMBRAL_PCP_HUMEDO;
 const PCP_FORMULA_TXT = "1.24 × (E/e') + 1.9";
 /* Guion CORTO a propósito: generarPDFReal es la única ruta de PDF sin saneador, y la
    helvetica WinAnsi de jsPDF descarta la raya em en silencio. Con «—» el informe firmado
@@ -15395,7 +15408,7 @@ function calcHemo() {
     if (ic === null || pcp === null) {
       forEl.innerHTML = badge('gray', 'Requiere IC + PCP estimada');
     } else {
-      const humedo = pcp > 15;   // congestión
+      const humedo = pcp > UMBRAL_PCP_HUMEDO;   // congestión
       const frio   = ic < 2.2;   // hipoperfusión
       let cls, txt;
       if (!frio && !humedo)     { cls = 'green';  txt = 'Perfil A (tibio-seco) — Normal, sin congestión ni hipoperfusión'; }
@@ -15412,7 +15425,7 @@ function calcHemo() {
     if (ic === null || rvs === null) {
       perfilEl.innerHTML = badge('gray', 'Requiere IC + RVS (VFD/VFS, FC, PAM, PVC, ASC)');
     } else if (ic < 2.2 && rvs > 1200) {
-      const cong = (pcp !== null && pcp > 15) ? ' con congestión (PCP >15)' : '';
+      const cong = (pcp !== null && pcp > UMBRAL_PCP_HUMEDO) ? (' con congestión (PCP >' + UMBRAL_PCP_HUMEDO + ')') : '';
       perfilEl.innerHTML = badge('red', 'Shock cardiogénico — GC bajo + RVS elevada' + cong);
     } else if (rvs < 800 && ic >= 2.2) {
       perfilEl.innerHTML = badge('orange', 'Perfil distributivo/vasodilatado — RVS baja + GC conservado');
@@ -51454,7 +51467,158 @@ function _labTepSignos(i) {
 // Hemodinámica: usado si hemo_fc o hemo_pam tienen valor
 function _labHemoUsado(inf) { return _labCampoRaw(inf, 'hemo_fc') !== '' || _labCampoRaw(inf, 'hemo_pam') !== ''; }
 // Recomputa IC (GC/BSA) y PCP (Nagueh) desde campos → perfil Forrester I/II/III/IV o null
-function _labForrester(inf) {
+/* ══ DIAGRAMA DE FORRESTER ═══════════════════════════════════════════════════════════════════
+   Los dos cortes, como constantes: la divisoria que se DIBUJA y el operador que CLASIFICA tienen
+   que ser el mismo número, o el diagrama publica puntos del color de un cuadrante dentro de otro.
+   `FORR_IC_CORTE` es el 2,2 que ya usaban `_labForrester` y la cápsula de `calcHemo`. */
+const FORR_IC_CORTE = 2.2;
+const FORR_EJE = { icMin: 1.0, icMax: 4.0, pcpMin: 0, pcpMax: 30 };
+
+/* UN SOLO GENERADOR, con la paleta INYECTADA. El SVG de pantalla y el PNG de la diapositiva salen
+   de acá: con dos generadores, el día que se mueva un cuadrante hay que acordarse de los dos.
+   La paleta se pasa como parámetro y no se leen `var(--x)` adentro porque **un `var()` dentro de
+   un SVG serializado no se resuelve**: el PNG saldría sin color. En el Laboratorio se pasan las
+   variables ya resueltas con `getComputedStyle` —así respeta el modo día/noche— y para el PPT una
+   paleta clara fija, que es lo correcto sobre una diapositiva.
+   `interactivo` agrega `<title>` (tooltip nativo del navegador, sin JS) y `data-eid` para el
+   listener delegado. NO se usa `onclick` inline: el atributo se compila DESPUÉS de decodificar
+   entidades, así que ahí el escape no protege — es la regla que este archivo ya aplica al donut
+   de la CIA. */
+function _labForrSVG(puntos, pal, opts) {
+  const o = opts || {}, W = o.w || 460, H = o.h || 330;
+  const ML = 52, MR = 14, MT = 34, MB = 42;
+  const px = ic  => ML + (Math.min(Math.max(ic, FORR_EJE.icMin), FORR_EJE.icMax) - FORR_EJE.icMin)
+                       / (FORR_EJE.icMax - FORR_EJE.icMin) * (W - ML - MR);
+  const py = pcp => (H - MB) - (Math.min(Math.max(pcp, FORR_EJE.pcpMin), FORR_EJE.pcpMax) - FORR_EJE.pcpMin)
+                       / (FORR_EJE.pcpMax - FORR_EJE.pcpMin) * (H - MT - MB);
+  const xC = px(FORR_IC_CORTE), yC = py(UMBRAL_PCP_HUMEDO);
+  const esc = t => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  let h = '<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="' + pal.fondo + '"/>';
+  /* Cuadrantes. El eje Y crece hacia ARRIBA —PCP alta arriba—, que es la convención del diagrama
+     de Forrester: I abajo-derecha (normal), IV arriba-izquierda (congestión + hipoperfusión). */
+  const cuad = [
+    { k:'III', x:ML,  y:yC,  w:xC-ML,      hh:(H-MB)-yC, col:pal.III },
+    { k:'I',   x:xC,  y:yC,  w:(W-MR)-xC,  hh:(H-MB)-yC, col:pal.I   },
+    { k:'IV',  x:ML,  y:MT,  w:xC-ML,      hh:yC-MT,     col:pal.IV  },
+    { k:'II',  x:xC,  y:MT,  w:(W-MR)-xC,  hh:yC-MT,     col:pal.II  }
+  ];
+  cuad.forEach(c => { h += '<rect x="' + c.x + '" y="' + c.y + '" width="' + c.w + '" height="' + c.hh +
+    '" fill="' + c.col + '" opacity="0.30"/>'; });
+  /* Los rótulos salen de `_LAB_FORR_LBL`, que es la única fuente de los nombres de perfil: el
+     gráfico de torta, la diapositiva y este diagrama dicen la MISMA cadena. */
+  cuad.forEach(c => {
+    const lbl = _LAB_FORR_LBL[c.k] || c.k;
+    const nom = lbl.indexOf('—') > -1 ? lbl.split('—')[1].trim() : lbl;
+    h += '<text x="' + (c.x + c.w / 2) + '" y="' + (c.y + 15) + '" text-anchor="middle" font-size="12" font-weight="700" fill="' + pal.texto + '">' + esc(c.k) + '</text>';
+    h += '<text x="' + (c.x + c.w / 2) + '" y="' + (c.y + 28) + '" text-anchor="middle" font-size="9.5" fill="' + pal.texto + '" opacity="0.85">' + esc(nom) + '</text>';
+  });
+  h += '<line x1="' + xC + '" y1="' + MT + '" x2="' + xC + '" y2="' + (H - MB) + '" stroke="' + pal.eje + '" stroke-width="1.4" stroke-dasharray="4 3"/>';
+  h += '<line x1="' + ML + '" y1="' + yC + '" x2="' + (W - MR) + '" y2="' + yC + '" stroke="' + pal.eje + '" stroke-width="1.4" stroke-dasharray="4 3"/>';
+  h += '<line x1="' + ML + '" y1="' + MT + '" x2="' + ML + '" y2="' + (H - MB) + '" stroke="' + pal.eje + '" stroke-width="1"/>';
+  h += '<line x1="' + ML + '" y1="' + (H - MB) + '" x2="' + (W - MR) + '" y2="' + (H - MB) + '" stroke="' + pal.eje + '" stroke-width="1"/>';
+  [1.0, 2.2, 3.0, 4.0].forEach(t => {
+    h += '<text x="' + px(t) + '" y="' + (H - MB + 14) + '" text-anchor="middle" font-size="9" fill="' + pal.texto + '">' + t.toFixed(1) + '</text>'; });
+  [0, 15, 30].forEach(t => {
+    h += '<text x="' + (ML - 6) + '" y="' + (py(t) + 3) + '" text-anchor="end" font-size="9" fill="' + pal.texto + '">' + t + '</text>'; });
+  h += '<text x="' + ((ML + W - MR) / 2) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="10" fill="' + pal.texto + '">Índice cardíaco (L/min/m²)</text>';
+  h += '<text transform="translate(13,' + ((MT + H - MB) / 2) + ') rotate(-90)" text-anchor="middle" font-size="10" fill="' + pal.texto + '">PCP estimada (mmHg)</text>';
+  h += '<text x="' + (W / 2) + '" y="16" text-anchor="middle" font-size="11.5" font-weight="700" fill="' + pal.texto + '">Diagrama de Forrester (estimación ecocardiográfica)</text>';
+  /* JITTER DETERMINISTA, derivado del índice y no de `Math.random`: con azar el mismo estudio
+     salta de lugar en cada repintado y dos capturas del mismo período no se pueden comparar. */
+  (puntos || []).forEach((p, k) => {
+    const jx = ((k % 5) - 2) * 1.6, jy = ((k % 3) - 1) * 1.6;
+    const cxp = px(p.ic) + jx, cyp = py(p.pcp) + jy;
+    const col = pal[p.perfil] || pal.eje;
+    h += '<circle cx="' + cxp.toFixed(1) + '" cy="' + cyp.toFixed(1) + '" r="5" fill="' + col +
+         '" stroke="' + pal.punto + '" stroke-width="1.2"' +
+         (o.interactivo && p.eid ? (' data-eid="' + esc(p.eid) + '" style="cursor:pointer"') : '') + '>' +
+         (o.interactivo ? ('<title>' + esc(p.tip) + '</title>') : '') + '</circle>';
+  });
+  if (!(puntos || []).length)
+    h += '<text x="' + (W / 2) + '" y="' + ((MT + H - MB) / 2) + '" text-anchor="middle" font-size="11" font-style="italic" fill="' + pal.texto + '">Sin estudios con IC y PCP estimables en este período</text>';
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '">' + h + '</svg>';
+}
+
+/* Los puntos del período. Un estudio SIN IC o SIN PCP no entra: un punto en el origen se leería
+   como un paciente en shock, que es la peor lectura posible de un dato que falta. */
+function _labForrPuntos(infs) {
+  const out = [];
+  (infs || []).forEach(i => {
+    const r = _labICPCP(i);
+    if (r.ic === null || r.pcp === null) return;
+    const f = String(i.fecha_estudio || '').trim();
+    out.push({ eid: i.estudioId || i.id, perfil: r.perfil, ic: r.ic, pcp: r.pcp,
+      tip: (i.nombre || 'Sin nombre') + (f ? ' · ' + f : '') +
+           ' · IC ' + r.ic.toFixed(2) + ' · PCP ' + r.pcp.toFixed(1) + ' · ' + (_LAB_FORR_LBL[r.perfil] || '—') });
+  });
+  return out;
+}
+/* Paleta clara fija para el PNG de la diapositiva. No sale de las CSS vars: el tema oscuro del
+   Laboratorio sobre una diapositiva blanca daría un rectángulo negro en el medio de la hoja. */
+const _FORR_PAL_PPT = { I:'#3ECF8E', II:'#F0A500', III:'#F5C842', IV:'#F05454',
+                        eje:'#64748B', texto:'#1F2937', fondo:'#FFFFFF', punto:'#FFFFFF' };
+
+/* Pinta el diagrama en el Laboratorio. La paleta sale de las CSS VARIABLES RESUELTAS con
+   `getComputedStyle`, así que el diagrama cambia con el modo día/noche sin una segunda copia de
+   los colores — y sin meter `var()` dentro del SVG, que no sobreviviría a la exportación a PNG.
+   Falla hacia una paleta de respaldo: sin colores el diagrama no se lee, y un cuadrante invisible
+   es peor que uno de otro tono. */
+function _labForrPal() {
+  const cs = getComputedStyle(document.documentElement);
+  const g = (v, def) => { const x = (cs.getPropertyValue(v) || '').trim(); return x || def; };
+  return { I: g('--green', '#3ECF8E'), II: g('--orange', '#F0A500'),
+           III: g('--yellow', '#F5C842'), IV: g('--red', '#F05454'),
+           eje: g('--text2', '#94A3B8'), texto: g('--text', '#E2E8F0'),
+           fondo: g('--bg2', '#111827'), punto: g('--bg', '#0F172A') };
+}
+let _forrEnganchado = false;
+function _labForrRenderDash(infs) {
+  const cont = document.getElementById('lab-adv-hemo-diag');
+  if (!cont) return;
+  const pts = _labForrPuntos(infs);
+  /* Se arma con la API del DOM y el SVG se asigna SOLO, sin concatenar. `_labForrSVG` ya escapa
+     el nombre del paciente —verificado en el navegador con «O'Brien & <b>X</b>»: sale como
+     entidad y cero elementos inyectados—, así que el `innerHTML + concatenación` era un falso
+     positivo de la misma clase que los 69 que el ruleset ya tiene triageados. Pero la regla de la
+     casa es no sumar warnings a la línea base, y escrito así no hay nada que triagear. */
+  cont.textContent = '';
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;justify-content:center;';
+  const caja = document.createElement('div');
+  caja.style.cssText = 'width:100%;max-width:470px;';
+  caja.innerHTML = _labForrSVG(pts, _labForrPal(), { interactivo: true })
+    .replace('width="460" height="330"', 'style="width:100%;height:auto;display:block;"');
+  wrap.appendChild(caja);
+  cont.appendChild(wrap);
+  const pie = document.createElement('div');
+  pie.style.cssText = 'font-size:11px;color:var(--text2);font-style:italic;line-height:1.5;max-width:520px;margin:10px auto 0;text-align:center;';
+  pie.textContent = 'IC y PCP estimados por ecocardiografía — no equivalen a medición invasiva. ' +
+    'Forrester ecocardiográfico de orientación. La divisoria de congestión es PCP > ' + UMBRAL_PCP_HUMEDO +
+    ' mmHg, que es el corte que aplica el resto de la app.' +
+    (pts.length ? (' Un punto por estudio con los dos estimables: ' + pts.length + ' de ' + (infs || []).length + '.') : '');
+  cont.appendChild(pie);
+  /* Listener DELEGADO y registrado UNA vez: `innerHTML` se reescribe en cada repintado, así que
+     enganchar por círculo acumularía un listener por cada vez que se pinta el Laboratorio. */
+  if (!_forrEnganchado) {
+    _forrEnganchado = true;
+    cont.addEventListener('click', ev => {
+      const c = ev.target && ev.target.closest ? ev.target.closest('[data-eid]') : null;
+      if (!c) return;
+      const id = c.getAttribute('data-eid');
+      if (id && typeof cargarEstudioPorId === 'function') { try { cargarEstudioPorId(id); } catch (e) { console.error('[forrester]', e); } }
+    });
+  }
+}
+
+/* IC y PCP de un estudio, con su perfil. Extraído de `_labForrester` el 2026-09-16: el diagrama
+   de Forrester necesita los NÚMEROS para ubicar el punto, y aquella devolvía sólo la letra. Con
+   dos implementaciones, el punto podría caer en un cuadrante y el color decir otro — que es
+   exactamente lo que un diagrama no puede hacer.
+   Devuelve `ic`/`pcp` en null por separado: «no se pudo estimar el IC» y «no se pudo estimar la
+   PCP» son cosas distintas y el que dibuja necesita distinguirlas para no poner un punto en el
+   origen, que se leería como un paciente en shock. */
+function _labICPCP(inf) {
   const num = id => _labNum(inf, id);
   const fc = num('hemo_fc'), dtsvi = num('diam_tsvi'), vti = num('itv_tsvi'), talla = num('talla'), peso = num('peso');
   let ic = null;
@@ -51466,19 +51630,17 @@ function _labForrester(inf) {
   }
   const e = num('onda_e'), esep = num('e_sep'), elat = num('e_lat');
   let pcp = null;
-  /* Truthiness, no `!== null`: _labNum devuelve 0 para un campo con «0», y con los dos e' en
-     cero el E/e' daba Infinity y el estudio se clasificaba «húmedo» en el gráfico del
-     Laboratorio sin ningún aviso. El fallback con los coeficientes escritos a mano se quitó:
-     era inalcanzable —pcpNagueh está hoisted, lo que estaba en zona muerta eran las
-     constantes— y volvía a duplicar el número que esta unificación vino a eliminar. */
+  /* Truthiness, no `!== null`: `_labNum` devuelve 0 para un campo con «0», y con los dos e' en
+     cero el E/e' daba Infinity y el estudio se clasificaba «húmedo» sin ningún aviso. */
   if (e && esep && elat) { pcp = pcpNagueh(e / ((esep + elat) / 2)); }
-  if (ic === null || pcp === null) return null;
-  const humedo = pcp > 15, frio = ic < 2.2;
-  if (!frio && !humedo) return 'I';    // seco-caliente
-  if (humedo && !frio)  return 'II';   // húmedo-caliente
-  if (frio && !humedo)  return 'III';  // seco-frío
-  return 'IV';                          // húmedo-frío
+  let perfil = null;
+  if (ic !== null && pcp !== null) {
+    const humedo = pcp > UMBRAL_PCP_HUMEDO, frio = ic < FORR_IC_CORTE;
+    perfil = (!frio && !humedo) ? 'I' : (humedo && !frio) ? 'II' : (frio && !humedo) ? 'III' : 'IV';
+  }
+  return { ic: ic, pcp: pcp, perfil: perfil };
 }
+function _labForrester(inf) { return _labICPCP(inf).perfil; }
 // TEP: usado si algún signo fue evaluado (si/no) o VD/VI cargado. Los selects tienen 'ne' = no evaluado.
 function _labTepUsado(inf) {
   const ev = id => { const v = _labCampoRaw(inf, id); return v === 'si' || v === 'no'; };
@@ -51907,7 +52069,10 @@ function labHemoRender(infs, n) {
   // Vino tal cual de _labAdvancedRender. `_labHemoUsado` y `_labForrester` son de scope de
   // módulo, así que la mudanza no duplicó ninguna regla de clasificación.
   const hemoArr = infs.filter(_labHemoUsado);
-  if (!hemoArr.length) { empty('lab-adv-hemo-stats', 'perfil hemodinámico'); setHtml('lab-adv-hemo-forr', '<div class="lab-empty">Sin datos</div>'); }
+  /* El diagrama se pinta en las DOS ramas: sin estudios sale vacío CON sus cuadrantes y el
+     mensaje, que es lo que pide el diseño — un contenedor en blanco se lee como que el módulo se
+     rompió. */
+  if (!hemoArr.length) { empty('lab-adv-hemo-stats', 'perfil hemodinámico'); setHtml('lab-adv-hemo-forr', '<div class="lab-empty">Sin datos</div>'); _labForrRenderDash(infs); }
   else {
     /* Los cuatro números salen de `_labHemoResumen`, que es lo que lee también la diapositiva de
        hemodinámica. Con dos implementaciones, el mazo y esta tarjeta podrían repartir el mismo
@@ -51918,6 +52083,7 @@ function labHemoRender(infs, n) {
       stat('FC promedio', _promTxt(_hm.fc, 0, ' lpm')) +
       stat('PAM promedio', _promTxt(_hm.pam, 0, ' mmHg')));
     _labPieDash('lab-adv-hemo-forr', Object.entries(_hm.forr).filter(e => e[1] > 0));
+    _labForrRenderDash(infs);
   }
 
   labCCRender(infs, n);
@@ -52842,12 +53008,25 @@ async function _labPPTGenerar(infs, o) {
         y = dato(s, 0.4, y, 'FC promedio', hm.fc ? (hm.fc.v.toFixed(0) + ' lpm (n=' + hm.fc.n + ')') : '—');
         dato(s, 0.4, y, 'PAM promedio', hm.pam ? (hm.pam.v.toFixed(0) + ' mmHg (n=' + hm.pam.n + ')') : '—');
         const filas = Object.keys(hm.forr).map(k => ({ lbl: k, n: hm.forr[k] }));
-        if (!gTorta(s, filas, { x:4.9, y:0.92, w:4.8, h:2.5 }, 'Perfil de Forrester'))
-          s.addText('Sin perfil clasificable.', { x:4.9, y:1.6, w:4.8, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
+        if (!gTorta(s, filas, { x:4.1, y:0.92, w:2.9, h:2.5 }, 'Perfil de Forrester'))
+          s.addText('Sin perfil clasificable.', { x:4.1, y:1.6, w:2.9, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
+        /* El diagrama IC vs PCP, con los puntos del período. Va como PNG por el MISMO camino que
+           el bull's eye de contractilidad (`_svgToPng`): `addImage` de PptxGenJS 3.12 no acepta
+           SVG. La paleta es la clara fija y no las CSS vars del Laboratorio: el tema oscuro sobre
+           una diapositiva blanca daría un rectángulo negro en el medio de la hoja.
+           Si la conversión falla se DICE, en vez de dejar un hueco que se lee como «no había
+           pacientes que ubicar». */
+        let dpng = null;
+        try { dpng = await _svgToPng(_labForrSVG(_labForrPuntos(infs), _FORR_PAL_PPT, { w:460, h:330 }), 920, 660); }
+        catch (e) { console.error('[labPPT/forrester]', e); }
+        if (dpng) { try { s.addImage({ data: dpng, x: 7.0, y: 0.95, w: 2.75, h: 1.97 }); } catch (e) { dpng = null; } }
+        if (!dpng)
+          s.addText(T('El diagrama de Forrester no se pudo incrustar.'),
+            { x:7.0, y:1.7, w:2.7, h:0.5, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
         /* La PCP de la que sale el Forrester es ESTIMADA por Nagueh. La app lo declara en el
            formulario y en el informe firmado; el mazo es la superficie que más circula, así que
            acá también. */
-        s.addText(T('El perfil de Forrester deriva del índice cardíaco y de una PCP ESTIMADA por la fórmula de Nagueh: es orientativo y no reemplaza la medición invasiva.'),
+        s.addText(T('IC y PCP estimados por ecocardiografía — no equivalen a medición invasiva. La PCP sale de la fórmula de Nagueh y la divisoria de congestión es PCP > ' + UMBRAL_PCP_HUMEDO + ' mmHg, el mismo corte que aplica el resto de la app. Forrester ecocardiográfico de orientación.'),
           { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.rojo, fontFace:FONT });
       }
     }
@@ -56069,8 +56248,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260916-1004';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789563853417;                 /* eco-build-ms */
+const ECO_BUILD    = '20260916-1212';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789571571501;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -56156,7 +56335,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-1004</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-1212</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

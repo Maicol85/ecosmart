@@ -487,6 +487,85 @@ El Excel pasó de **421 a 429 columnas** y de 128 a **129 básicas**; TC-135 fij
 contenido. Ojo con el `0` de una casilla apagada: **no es lo mismo que ausente**, y el caso lo
 distingue.
 
+### Diagrama de Forrester: la línea que se dibuja ES el operador que clasifica — 2026-09-16
+
+IC vs PCP con los cuatro cuadrantes, un punto por estudio, interactivo en el Laboratorio y como PNG
+en la diapositiva de hemodinámica.
+
+**LA DIVISORIA DEL PEDIDO ERA 18 mmHg Y LA APP CLASIFICA EN 15.** Con la línea en 18 y los colores
+saliendo de `_labForrester`, **todo punto entre 15 y 18 saldría pintado de «húmedo» por debajo de
+la línea de «seco»**: un diagrama que se contradice solo. Y el 15 no es una elección interna — la
+cápsula del formulario **lo imprime**: «con congestión (PCP >15)». Se conservó el 15 (decisión de
+Maicol) y se extrajo a **`UMBRAL_PCP_HUMEDO`**, que ahora gobierna los cuatro sitios: las dos ramas
+de `calcHemo`, `_labICPCP` y la divisoria del diagrama — incluida **la cadena de la cápsula**, que
+antes llevaba el número escrito adentro, que es la forma más segura de que el rótulo y el operador
+se separen. Mismo valor: no es un cambio clínico. **Es la tercera escala invertida o corrida que
+llega en un pedido sobre un dato que la app ya clasifica bien** (antes el SGL y el Forrester).
+
+**`_labICPCP(inf)` devuelve los NÚMEROS; `_labForrester` quedó como una línea que lee su `perfil`.**
+El diagrama necesita ubicar el punto, y aquella devolvía sólo la letra: con dos implementaciones el
+punto podría caer en un cuadrante y el color decir otro. `ic` y `pcp` van en null **por separado**
+—«no se pudo estimar el IC» y «no se pudo estimar la PCP» son cosas distintas— porque el que dibuja
+necesita distinguirlas para **no poner un punto en el origen, que se leería como un paciente en
+shock**. Un estudio al que le falte cualquiera de los dos no entra.
+
+**UN PUNTO EXIGE OCHO CAMPOS:** `hemo_fc`, `diam_tsvi`, `itv_tsvi`, `talla`, `peso` para el IC, y
+`onda_e`, `e_sep`, `e_lat` para la PCP de Nagueh. Es exigente, así que en una base real el diagrama
+puede salir con pocos puntos o vacío — **por eso el estado vacío es lo más importante del diseño**:
+sin estudios estimables se dibuja igual, con sus cuadrantes y el mensaje. Un contenedor en blanco
+se lee como que el módulo se rompió.
+
+#### La paleta se INYECTA, y es lo que hace que un solo generador sirva para las dos superficies
+
+**Un `var(--x)` dentro de un SVG serializado no se resuelve: el PNG sale sin color.** El pedido
+quería CSS variables (para el modo día/noche) **y** el mismo SVG exportado a PNG — las dos cosas no
+conviven si el `var()` va adentro. `_labForrSVG(puntos, pal, opts)` recibe la paleta: en el
+Laboratorio se pasan las variables **ya resueltas con `getComputedStyle`** —así respeta el tema— y
+para la diapositiva `_FORR_PAL_PPT`, una paleta clara fija, porque el tema oscuro sobre una
+diapositiva blanca daría un rectángulo negro en el medio de la hoja. **Un generador, sin lista
+paralela.** Medido: el fondo pasa de `#181c27` a `#ffffff` al cambiar de tema, y el caso exige que
+los dos valores **difieran** — si dieran lo mismo estaría comparando dos veces el mismo tema, que
+es la trampa que ya costó TC-114.
+
+**Sin `onclick` inline: `data-eid` + listener delegado registrado UNA vez.** Dos motivos, los mismos
+del donut de la CIA: el atributo se compila **después** de decodificar entidades, así que ahí el
+escape no protege; y `innerHTML` se reescribe en cada repintado, así que enganchar por círculo
+acumularía un listener por cada pintada. El tooltip es un `<title>` nativo de SVG — sin JS.
+Verificado con «O'Brien & \<b\>X\</b\>»: sale como entidad en el marcado y **cero elementos
+inyectados**.
+
+**El jitter es DETERMINISTA, derivado del índice.** Con `Math.random` el mismo estudio salta de
+lugar en cada repintado y dos capturas del mismo período no se pueden comparar.
+
+#### Lo que costó
+
+**SEMGREP SUBIÓ A 124 Y HABÍA QUE MIRARLO.** El hallazgo nuevo era `ceibo-xss-innerhtml-concat`
+sobre el `cont.innerHTML = '…' + _labForrSVG(…)` del render. **Triageado: falso positivo de la
+misma clase que los 69 que el ruleset ya tiene** —lo que se interpola es SVG con el nombre ya
+escapado adentro de `_labForrSVG`, y la regla es sintáctica—. Pero la regla de la casa es no sumar
+warnings, así que se reescribió con la API del DOM y el SVG se asigna **solo, sin concatenar**: de
+vuelta en 123 y sin nada que triagear. **Para aislar cuál era el nuevo, correr el scan sobre
+`git show HEAD:index.html` y diffear (regla, texto)** — el reporte del ruleset es de julio y no
+sirve como línea base.
+
+**EL CDN EMPEZÓ A FALLAR SEGUIDO Y NO ERA LA RED.** `curl` daba 200 en 0,87 s y el caso decía «la
+librería no llegó»; medido en el navegador, **PptxGenJS estaba a los 6 s**. Es una carrera: el
+bundle son 477 KB, es el último de los seis scripts externos, y el archivo creció. Cerrado como ya
+lo hacía TC-131 con SheetJS: **los seis casos que dependen de PptxGenJS esperan hasta 8 s** antes
+de rendirse, y si igual no llega fallan con el motivo escrito. **Un rojo intermitente del entorno
+es peor que no tener el caso: se deja de creerle al rojo.** Verificado con tres corridas completas
+seguidas: 172/172 las tres.
+
+**TC-156 se puso en rojo por pinar la palabra «ESTIMADA»** en una nota que reescribí a propósito.
+Se reapuntó al HECHO —que la hoja declare que no reemplaza la medición invasiva y con qué corte
+separa húmedo de seco—, que es la misma corrección que ya se les hizo a TC-123 y TC-132.
+
+**Backtick dentro del cuerpo de un caso: van diecisiete**, y ésta fue en el comentario que escribí
+para explicar la espera del CDN.
+
+**Tres mutaciones, las tres cazadas:** rotar los cuadrantes, mover la divisoria a 18 dejando el
+clasificador en 15, y dejar entrar un estudio sin IC con el punto en el origen.
+
 ### Las tres diapositivas que faltaban, y dos seams de los tres que el pedido pedía — 2026-09-16
 
 Cierra el mazo: contractilidad, amiloidosis y hemodinámica pasaron de «tildás la tarjeta y se
