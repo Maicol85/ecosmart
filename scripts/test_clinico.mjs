@@ -4307,7 +4307,7 @@ caso('TC-135', 'GLS y contractilidad son BASICOS del Excel: sin checkbox y siemp
       ['la cuenta del modal declara las basicas reales',
         cuentaTxt.indexOf(basicas.length + ' columnas') === 0, cuentaTxt],
       ['y las basicas crecieron: el total no cambio, lo opcional si',
-        basicas.length === 124 && TODAS.length === 417,
+        basicas.length === 128 && TODAS.length === 421,   // +4 al completar la ET
         basicas.length + ' basicas de ' + TODAS.length],
       // 6 · Una preferencia vieja con el modulo borrado no lo revive.
       ['una preferencia guardada con contr no revive el modulo', (function(){
@@ -4558,8 +4558,11 @@ caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el La
       g49 === 'Sin estenosis', g49],
     ['5.0 ya lo es, y calcET NO inventa un grado por encima del umbral',
       g50 === 'Sin estenosis' && ET_GMEDIO_SIGNIF === 5, g50 + ' / umbral ' + ET_GMEDIO_SIGNIF],
+    /* La capsula dice solo «Significativa» desde que integra los TRES criterios: el numero que
+       la sostiene se movio al mensaje de abajo, porque ahora puede ser el gradiente, el THP o el
+       area y ponerlos todos en la pastilla la volvia ilegible. */
     ['a 6 mmHg la capsula declara la significacion',
-      sev6.indexOf('Significativa') > -1 && sev6.indexOf('6') > -1, sev6],
+      sev6.indexOf('Significativa') > -1, sev6],
     ['borrar el gradiente deja el select en reposo y LIMPIA la capsula',
       gBorrado === 'Sin estenosis' && sevAntes.indexOf('Significativa') > -1 &&
       sevDespues.indexOf('Significativa') === -1 && msgDespues === '',
@@ -4572,12 +4575,12 @@ caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el La
     ['y tampoco sube al EN SUMA', i3.suma.indexOf('ET ') === -1 &&
       i3.suma.indexOf('Estenosis tricusp') === -1, i3.suma],
     ['6 mmHg con el grado en «Sin estenosis» NO queda en silencio',
-      i6.inf.indexOf('clínicamente significativa') > -1 &&
+      i6.inf.indexOf('Estenosis tricuspídea significativa') > -1 &&
       i6.inf.indexOf('6 mmHg') > -1, i6.inf],
-    ['y sube al EN SUMA', i6.suma.indexOf('Estenosis tricuspídea clínicamente significativa') > -1, i6.suma],
+    ['y sube al EN SUMA', i6.suma.indexOf('ET significativa.') > -1, i6.suma],
     ['con grado manual Y gradiente alto salen los dos',
-      i8.inf.indexOf('moderada') > -1 && i8.inf.indexOf('clínicamente significativa') > -1 &&
-      i8.suma.indexOf('ET moderada, clínicamente significativa') > -1, i8.inf + ' // ' + i8.suma],
+      i8.inf.indexOf('moderada') > -1 && i8.inf.indexOf('significativa') > -1 &&
+      i8.suma.indexOf('ET moderada, significativa') > -1, i8.inf + ' // ' + i8.suma],
 
     // FIX 2 — et_grado deja de estar cableado a null.
     ['la ultima columna del Lab es la estenosis tricuspidea',
@@ -4618,6 +4621,123 @@ caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el La
     // FIX 4 — la sexta pastilla.
     ['la pastilla de estenosis tricuspidea se restaura al reabrir',
       pillBloque !== 'none' && pillOn === true, 'display=' + pillBloque + ' encendida=' + pillOn]
+  ] };
+`);
+
+/* ESTENOSIS TRICUSPIDEA COMPLETA (2026-09-16).
+   La guia NO gradua la ET: es binaria, y basta UNO de los tres criterios —gradiente medio >= 5
+   mmHg, THP >= 190 ms, area <= 1 cm²—. El area sale por continuidad y su numerador vive en OTRA
+   pestana (tsvd_diametro y vti_tsvd son de tab-vd), con el diametro en MILIMETROS. */
+caso('TC-141', 'ET completa: gradiente, THP y area por continuidad, los tres con el mismo peso', `
+  const set = function(id, v){ const e = document.getElementById(id); if (!e) return 'NO EXISTE ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles:true }));
+    e.dispatchEvent(new Event('change', { bubbles:true })); return 1; };
+  const esc = function(o){ __t.limpiar(); set('vd_bas','38');
+    const faltan = Object.keys(o).filter(function(k){ return set(k, o[k]) !== 1; });
+    const r = __t.informe();
+    const li = r.inf.split(String.fromCharCode(10))
+      .filter(function(l){ return l.indexOf('ET signif') > -1 || l.indexOf('stenosis tricusp') > -1 ||
+                                  l.indexOf('criterios de ET') > -1; }).join(' // ');
+    return { li: li, suma: r.suma, avt: __t.val('et_avt'), faltan: faltan }; };
+
+  /* AREA: TSVD 25 mm + VTI-TSVD 12 cm + VTI diast 60 cm -> pi*(25/20)^2 = 4.909 cm², x12/60 = 0.98 */
+  const AREA = { tsvd_diametro:'25', vti_tsvd:'12', et_vti_diast:'60' };
+  const con = function(extra){ const o = {}; Object.keys(extra).forEach(function(k){ o[k]=extra[k]; }); return o; };
+
+  const soloGm  = esc({ et_gmedio:'6' });
+  const soloThp = esc({ et_thp:'200' });
+  const soloAvt = esc(AREA);
+  const losTres = esc({ et_gmedio:'6', et_thp:'200', tsvd_diametro:'25', vti_tsvd:'12', et_vti_diast:'60' });
+  const sinCrit = esc({ et_gmedio:'3', et_thp:'180' });
+  const nada    = esc({});
+  const fuera   = esc({ et_thp:'4000' });
+  /* LOS DOS LADOS DE CADA CORTE. Los operadores son >=, >= y <=. */
+  const gm49 = esc({ et_gmedio:'4.9' }), gm50 = esc({ et_gmedio:'5' });
+  const th189 = esc({ et_thp:'189' }),  th190 = esc({ et_thp:'190' });
+  /* area justo en 1.00 y justo por encima: con TSVD 25 y VTI-TSVD 12, VTI diast 58.9 -> 1.00 */
+  const a100 = esc({ tsvd_diametro:'25', vti_tsvd:'12', et_vti_diast:'58.9' });
+  const a102 = esc({ tsvd_diametro:'25', vti_tsvd:'12', et_vti_diast:'57' });
+
+  /* EL AREA DESAPARECE al borrar cualquiera de sus tres insumos. */
+  __t.limpiar(); set('tsvd_diametro','25'); set('vti_tsvd','12'); set('et_vti_diast','60');
+  const avtCon = __t.val('et_avt');
+  set('et_vti_diast','');
+  const avtSin = __t.val('et_avt');
+  const estSin = etEstado().avt;
+  __t.limpiar();
+
+  return { extra: [
+    ['ningun id del caso esta inventado',
+      losTres.faltan.length === 0 && soloAvt.faltan.length === 0,
+      losTres.faltan.concat(soloAvt.faltan).join(',')],
+
+    // 1 · CADA CRITERIO SOLO ALCANZA. Ninguno manda sobre los otros.
+    ['el gradiente solo publica ET significativa',
+      soloGm.li.indexOf('Estenosis tricuspídea significativa (gradiente medio 6 mmHg') > -1 &&
+      soloGm.suma.indexOf('ET significativa.') > -1, soloGm.li],
+    ['el THP solo tambien',
+      soloThp.li.indexOf('Estenosis tricuspídea significativa (THP 200 ms') > -1 &&
+      soloThp.suma.indexOf('ET significativa.') > -1, soloThp.li],
+    ['y el area sola tambien',
+      soloAvt.li.indexOf('Estenosis tricuspídea significativa (área valvular 0.98 cm²') > -1 &&
+      soloAvt.suma.indexOf('ET significativa.') > -1, soloAvt.li],
+
+    // 2 · CON LOS TRES, LOS TRES ENTRE PARENTESIS y una sola cita.
+    ['con los tres cargados salen los tres',
+      losTres.li.indexOf('(gradiente medio 6 mmHg, THP 200 ms, área valvular 0.98 cm² — EAE/ASE 2009)') > -1,
+      losTres.li],
+    ['y no quedan dos parentesis seguidos', losTres.li.indexOf(') (') === -1, losTres.li],
+
+    // 3 · CON DATOS Y SIN CRITERIOS se DECLARA, pero NO sube al EN SUMA.
+    ['con datos y sin criterios se dice que no alcanzan',
+      sinCrit.li.indexOf('Sin criterios de ET significativa con los datos disponibles') > -1 &&
+      sinCrit.li.indexOf('gradiente medio 3 mmHg, THP 180 ms') > -1, sinCrit.li],
+    ['y NO sube al EN SUMA', sinCrit.suma.indexOf('ET signif') === -1, sinCrit.suma],
+    ['sin ningun dato, silencio',
+      nada.li === '' && nada.suma.indexOf('ET') === -1, nada.li + ' // ' + nada.suma],
+
+    // 4 · FUERA DE BANDA se declara y no vota.
+    /* Se busca la forma AFIRMATIVA completa: «significativa» a secas esta dentro de «Sin
+       criterios de ET significativa», que es justo la frase que esta condicion espera ver.
+       Segunda vez en la sesion que una palabra corta choca con la frase que viene a verificar. */
+    ['un THP de 4000 ms no vota y se nombra',
+      fuera.li.indexOf('fuera de rango en THP tricuspídeo') > -1 &&
+      fuera.li.indexOf('Estenosis tricuspídea significativa') === -1 &&
+      fuera.suma.indexOf('ET significativa') === -1, fuera.li],
+
+    // 5 · LOS DOS LADOS DE CADA CORTE.
+    ['gradiente 4.9 no y 5.0 si',
+      gm49.suma.indexOf('ET significativa') === -1 && gm50.suma.indexOf('ET significativa.') > -1,
+      gm49.suma + ' | ' + gm50.suma],
+    ['THP 189 no y 190 si',
+      th189.suma.indexOf('ET significativa') === -1 && th190.suma.indexOf('ET significativa.') > -1,
+      th189.suma + ' | ' + th190.suma],
+    ['area 1.00 SI cumple (el operador es <=) y 1.03 no',
+      a100.suma.indexOf('ET significativa.') > -1 && a102.suma.indexOf('ET significativa') === -1,
+      a100.avt + ' -> ' + a100.suma + '  ||  ' + a102.avt + ' -> ' + a102.suma],
+
+    // 6 · EL AREA: continuidad con el diametro en MILIMETROS, y desaparece sin sus insumos.
+    ['el area se calcula con el patron de la mitral', avtCon === '0.98 cm²', avtCon],
+    ['y al borrar el VTI diastolico desaparece',
+      avtSin === '' && estSin === null, JSON.stringify(avtSin) + ' / ' + estSin],
+
+    // 7 · EXCEL.
+    ['las cuatro columnas salen en el export', (function(){
+      const cols = Object.keys(_labExcelRow({ id:0, campos:{} }));
+      return ['ET grad medio (mmHg)','ET THP (ms)','ET VTI diast (cm)','ET área (cm²)']
+        .every(function(c){ return cols.indexOf(c) > -1; });
+    })()],
+    ['el area del Excel se RECALCULA y no lee el campo de pantalla', (function(){
+      /* El campo readonly no se repinta al reabrir: leerlo publicaria el area del paciente
+         anterior. Se le pasa un estudio con los insumos y SIN et_avt. */
+      const row = _labExcelRow({ id:0, campos:{ tsvd_diametro:'25', vti_tsvd:'12', et_vti_diast:'60' } });
+      return row['ET área (cm²)'] === 0.98;
+    })(), JSON.stringify(_labExcelRow({ id:0, campos:{ tsvd_diametro:'25', vti_tsvd:'12', et_vti_diast:'60' } })['ET área (cm²)'])],
+    ['y no se importa: es derivada', LAB_XLS_SOLO_EXPORT.has('et_avt')],
+    ['los asserts del Excel pasan',
+      _labXlsAssertListas().length === 0 && _labXlsAssertVocab().length === 0 &&
+      _labXlsAssertBloques().length === 0,
+      _labXlsAssertListas().concat(_labXlsAssertVocab()).concat(_labXlsAssertBloques()).join(' | ')]
   ] };
 `);
 

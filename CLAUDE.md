@@ -460,6 +460,62 @@ Se recuperó con `git show HEAD:` y se verificó **byte por byte** contra HEAD. 
 entrada «Los reemplazos por rango de líneas son peligrosos» que este archivo ya tenía, aplicada al
 propio suite: **después de un reemplazo por rango, contar los casos.**
 
+### ET completa: tres criterios con el MISMO peso, y un veredicto binario
+Agregados el 2026-09-16: **`et_thp`** (ms, banda 50-400), **`et_vti_diast`** (cm) y el área
+**`et_avt`** por continuidad, sólo lectura. La guía **no gradúa** la estenosis tricuspídea —no hay
+leve/moderada/severa validada—: es significativa o no, y basta con que se cumpla **UNO** de
+`ET_GMEDIO_SIGNIF` 5 mmHg · `ET_THP_SIGNIF` 190 ms · `ET_AVT_SIGNIF` 1 cm² (EAE/ASE 2009 ·
+ESC/EACTS 2021). Por eso el veredicto es un `some`, no una cascada: ninguno manda sobre los otros.
+
+**El área reusa el patrón de la mitral, y el diámetro está en MILÍMETROS.** `avm_cont` hace
+`PI * (D/20)^2` —dividir por 20 pasa a cm y saca el radio en un solo paso—. Escribirlo como
+`D^2 * PI/4` con D en mm da un número **cien veces mayor**, y el error se ve plausible: un área
+tricuspídea de 490 cm² es absurda, pero una de 4,9 cm² —la del TSVD, si uno se olvida de dividir
+por el VTI— es exactamente un valor normal. Lo fija la mutación «el diámetro se toma en cm».
+
+**LOS DOS INSUMOS DEL NUMERADOR VIVEN EN OTRA PESTAÑA.** `tsvd_diametro` y `vti_tsvd` son de
+`tab-vd`. La ayuda del campo **nombra la fuente**, no su posición: este archivo ya pagó tres
+cadenas que decían «el campo de arriba» cuando el bloque cambió de pestaña.
+
+**`et_vti_diast` va 5-100 cm, NO 5-60 como pedía el prompt.** En una ET severa el flujo de entrada
+se acelera y el tiempo diastólico se alarga: un VTI de 60-70 cm es el de un paciente **real** con
+estenosis severa. Con el techo en 60 ese valor cae fuera de banda y el criterio del área **deja de
+votar justo en el caso más grave** — la banda habría rechazado lo que vino a medir.
+
+**La aritmética del pedido estaba mal por un factor de diez, y encima invertía la conclusión.**
+Decía «Ø TSVD 2,5 cm + VTI-TSVD 15 + VTI diast 10 → AVT ≈ 0,74 cm² → ET significativa». El cálculo
+real da **7,36 cm²**, que es un área tricuspídea **normal** (lo normal es 7-9 cm²); 0,74 sería
+estenosis severa. El caso habría fijado un número equivocado **y** el veredicto contrario. Para
+probar el criterio del área con valores fisiológicos: TSVD 25 mm + VTI-TSVD 12 + VTI diast 60 →
+**0,98 cm²**, que sí es significativa.
+
+**`it_vti` NO es `et_vti_diast`.** El primero es el VTI del jet de regurgitación y vive quince
+líneas más abajo, en el bloque de insuficiencia: mismas unidades, rango parecido. Cargar uno donde
+va el otro no da error — da un área por continuidad plausible y equivocada. El campo lo advierte.
+
+**Corte evaluación/pintor**: `etEstado()` decide y `calcET` sólo pinta. El informe lee `etEstado`,
+así que pantalla y PDF no pueden divergir — antes el narrativo recalculaba la significación desde
+`et_gmedio` por su cuenta, y al sumar dos criterios habrían quedado dos definiciones del mismo
+hecho en el mismo documento.
+
+**Con datos y sin ningún criterio cumplido se DECLARA** («Sin criterios de ET significativa con los
+datos disponibles»), pero **no sube al EN SUMA**: el médico midió tres cosas y el informe tiene que
+decir qué dieron, sin que eso sea un hallazgo. Sin ningún dato, silencio.
+
+**El área del Excel se RECALCULA, no lee el campo de pantalla.** Ese `readonly` no se repinta al
+reabrir, así que la planilla publicaría el área del paciente anterior — la lección de `gmax_calc`.
+Y entra en `LAB_XLS_SOLO_EXPORT`: es derivada y no se importa. `calcET` entró a `RECALC_MODULOS`,
+sin lo cual el área y la cápsula no vuelven al reabrir un estudio.
+
+**Dos casos anteriores fijaban la redacción vieja** y dieron rojo, correctamente: TC-137 pinaba
+«clínicamente significativa» —que cambió al integrar los tres criterios— y TC-135 el conteo de
+columnas (417/124 → **421/128**). Un caso que fija texto es un caso que hay que actualizar cuando
+el texto cambia a propósito; que se ponga rojo es la señal, no el problema.
+
+**Y la colisión de substring, segunda vez en la sesión:** `indexOf('significativa')` matchea dentro
+de **«Sin criterios de ET significativa»**, que es justo la frase que la condición esperaba ver. Al
+verificar una ausencia, buscar la forma AFIRMATIVA completa.
+
 ### La mudanza de la válvula pulmonar, y por qué esta vez NO cambió el régimen
 Commit 2b (2026-09-16). Los siete campos de medición vivían en el acordeón «Doppler Pulmonar» de
 **`tab-doppler`** y la morfología con sus etiologías en **`tab-valvulas`**: la válvula estaba

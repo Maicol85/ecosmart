@@ -3073,8 +3073,29 @@ window.cerrarSesion = cerrarSesion;
               <input type="number" id="et_gmedio" placeholder="mmHg" oninput="calcET()">
             </div>
           </div>
+          <div class="grid-2" style="margin-bottom:8px;">
+            <div class="fg"><label>THP tricuspídeo (ms)</label>
+              <input type="number" id="et_thp" placeholder="ms" oninput="calcET()">
+              <span style="font-size:10px;color:var(--text2);">THP ≥ 190 ms sugiere ET significativa (EAE/ASE 2009).</span>
+            </div>
+            <div class="fg"><label>VTI diastólico tricuspídeo (cm)</label>
+              <input type="number" id="et_vti_diast" placeholder="cm" step="0.1" oninput="calcET()">
+              <!-- El aviso NO es decorativo: `it_vti` está a quince líneas de acá, en el bloque de
+                   INSUFICIENCIA, y es el VTI del jet de regurgitación — otra medición, mismas
+                   unidades y rango parecido. Cargar uno donde va el otro no da error: da un área
+                   por continuidad plausible y equivocada. -->
+              <span style="font-size:10px;color:var(--text2);">Flujo anterógrado de entrada. NO es el «VTI IT» del bloque de insuficiencia.</span>
+            </div>
+          </div>
+          <div class="fg"><label>Área valvular tricuspídea — auto (cm²)</label>
+            <input type="text" id="et_avt" readonly style="color:var(--accent2);" placeholder="— completar Ø y VTI del TSVD">
+            <!-- Los dos insumos del numerador viven en la pestaña VD. Se NOMBRA la fuente y no su
+                 posición: este archivo ya pagó tres cadenas que decían «el campo de arriba»
+                 cuando el bloque cambió de pestaña. -->
+            <span style="font-size:10px;color:var(--text2);">Continuidad: área del TSVD × VTI-TSVD ÷ VTI diastólico tricuspídeo. El Ø y el VTI del TSVD se cargan en la pestaña VD. Normal &gt;1 cm² · significativa ≤1 cm².</span>
+          </div>
           <div class="calc-box">
-            <div class="calc-row"><span class="calc-lbl">Referencia</span><span style="font-size:11px;color:var(--text2);">Gradiente medio ≥5 mmHg sugiere ET clínicamente significativa (ESC 2021)</span></div>
+            <div class="calc-row"><span class="calc-lbl">Referencia</span><span style="font-size:11px;color:var(--text2);">ET significativa con CUALQUIERA de: gradiente medio ≥5 mmHg · THP ≥190 ms · área ≤1 cm² (EAE/ASE 2009 · ESC/EACTS 2021). La guía no gradúa la ET: es binaria.</span></div>
             <div class="calc-row"><span class="calc-lbl">Severidad sugerida</span><span id="et-sev">—</span></div>
           </div>
           <div id="et-gmedio-badge" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
@@ -19669,46 +19690,99 @@ window.calcIP = calcIP;
    select que dice «Significativa» — dos respuestas a la misma pregunta en la misma tarjeta.
    Por encima del umbral se DECLARA la significación (cápsula, leyenda y el informe, que la
    emite desde el gradiente medido) y el grado se deja al médico. */
-const ET_GMEDIO_SIGNIF = 5;   // mmHg — EAE/ASE 2009 · ESC/EACTS 2021
+const ET_GMEDIO_SIGNIF = 5;    // mmHg — EAE/ASE 2009 · ESC/EACTS 2021
+const ET_THP_SIGNIF    = 190;  // ms   — EAE/ASE 2009
+const ET_AVT_SIGNIF    = 1;    // cm²  — EAE/ASE 2009
+
+/* ══ ET: TRES CRITERIOS, UN SOLO VEREDICTO BINARIO ═══════════════════════════════════════════
+   La guía NO gradúa la estenosis tricuspídea: no hay leve/moderada/severa validada. Es
+   significativa o no lo es, y basta con que se cumpla UNO de los tres criterios —gradiente medio
+   >= 5 mmHg, THP >= 190 ms o área <= 1 cm²—. Los tres tienen el mismo peso; ninguno manda sobre
+   los otros. Por eso el veredicto es un `some`, no una cascada.
+
+   EL ÁREA SALE POR CONTINUIDAD y su numerador vive en OTRA PESTAÑA: `tsvd_diametro` y `vti_tsvd`
+   son de la pestaña VD. Se reusa el patrón exacto de la mitral (`avm_cont`): el diámetro está en
+   MILÍMETROS, así que `PI * (D/20)^2` da el área en cm² —dividir por 20 es pasar a cm y sacar el
+   radio en un solo paso—. Escribirlo como `D^2 * PI/4` con D en mm daría un número CIEN veces
+   mayor, y el error se ve plausible: un área tricuspídea de 490 cm² es absurda, pero una de
+   4,9 cm² —la del TSVD, si uno se olvida de dividir por el VTI— es exactamente un valor normal.
+
+   BANDAS DE PLAUSIBILIDAD. El THP va 50-400 ms. El VTI diastólico va **5-100 cm** y no 5-60: en
+   una ET severa el flujo de entrada se acelera y el tiempo diastólico se alarga, así que un VTI
+   de 60-70 cm es el de un paciente REAL con estenosis severa. Con el techo en 60 ese valor queda
+   fuera de banda y el criterio del área deja de votar justo en el caso más grave — la banda
+   habría rechazado lo que vino a medir. Es la regla del piso de `DCM_RANGO`, por el otro lado.
+
+   FUERA DE BANDA SE DECLARA Y NO VOTA, como en el Doppler tricuspídeo y en Eisenmenger: un valor
+   ilegible no puede sostener una afirmación, pero tampoco puede desaparecer sin una palabra. */
+function etEstado(){
+  const nv = id => { const e = document.getElementById(id); if (!e) return null;
+    const n = parseFloat(String(e.value).replace(',', '.')); return isFinite(n) ? n : null; };
+  const banda = (v, lo, hi) => v != null && v >= lo && v <= hi;
+  const gm = nv('et_gmedio'), thp = nv('et_thp'), vtiD = nv('et_vti_diast');
+  const dTsvd = nv('tsvd_diametro'), vtiTsvd = nv('vti_tsvd');   // pestaña VD
+  const gmOk = banda(gm, 0, 40), thpOk = banda(thp, 50, 400), vtiOk = banda(vtiD, 5, 100);
+  const dOk = banda(dTsvd, 5, 60), vtOk = banda(vtiTsvd, 2, 60);
+  const fuera = [];
+  if (gm   != null && !gmOk)  fuera.push('gradiente medio tricuspídeo');
+  if (thp  != null && !thpOk) fuera.push('THP tricuspídeo');
+  if (vtiD != null && !vtiOk) fuera.push('VTI diastólico tricuspídeo');
+  /* El área exige sus TRES insumos dentro de banda y el denominador > 0: media ecuación de
+     continuidad es un número que parece medido y no lo es. */
+  const avt = (dOk && vtOk && vtiOk && vtiD > 0)
+    ? Math.round(((Math.PI * Math.pow(dTsvd / 20, 2) * vtiTsvd) / vtiD) * 100) / 100 : null;
+  const cGm  = gmOk  && gm  >= ET_GMEDIO_SIGNIF;
+  const cThp = thpOk && thp >= ET_THP_SIGNIF;
+  const cAvt = avt != null && avt <= ET_AVT_SIGNIF;
+  const signif = cGm || cThp || cAvt;
+  /* `hayDatos` incluye `fuera`: sin eso, un THP de 4000 ms —error de tipeo— salía por el return
+     temprano y desaparecía del informe sin que nadie lo nombrara. */
+  const hayDatos = !!(gmOk || thpOk || vtiOk || avt !== null || fuera.length);
+  return { gm, thp, vtiD, avt, gmOk, thpOk, vtiOk, cGm, cThp, cAvt, signif, hayDatos, fuera };
+}
+window.etEstado = etEstado;
+
+/* El PINTOR. Sólo pinta: el veredicto lo decide `etEstado`, que es lo que también lee el
+   informe. Dos derivaciones del mismo hecho es como se desincronizan la pantalla y el PDF. */
 function calcET() {
-  const gmedio = v('et_gmedio');
+  const r = etEstado();
   const sel = document.getElementById('et_grado');
   const sevEl = document.getElementById('et-sev');
   const badgeEl = document.getElementById('et-gmedio-badge');
+  const avtEl = document.getElementById('et_avt');
   const _sev = h => { if (sevEl) sevEl.innerHTML = h; };
   const _msg = t => { if (badgeEl) badgeEl.textContent = t; };
-  /* Mismo `_pisable` que `calcVP`: sólo se toca el select si trae el valor de fábrica o el que
-     sugerimos NOSOTROS en esta carga. Un grado elegido a mano no se pisa. */
+  if (avtEl) avtEl.value = r.avt !== null ? r.avt.toFixed(2) + ' cm²' : '';
+  /* `_pisable` como en `calcVP`: un grado elegido a mano no se pisa. `calcET` sigue sin inventar
+     grados —la guía no los tiene— y sólo devuelve el select al reposo. */
   const _sug = sel && sel.dataset.sugerido;
   const _pisable = !!sel && (sel.value === '' || sel.value === 'Sin estenosis' ||
                              (_sug && sel.value === _sug));
-  if (gmedio === null) {
-    /* NO HAY NADA QUE DESHACER, y eso es una consecuencia del diseño, no un olvido.
-       `calcVP` necesita revertir porque sugiere TRES valores distintos del de reposo
-       («Estenosis leve/moderada/severa»), así que borrar la velocidad dejaba una estenosis
-       afirmada sin nada que la sostuviera. `calcET` sólo puede sugerir **'Sin estenosis'**, que
-       ES el valor de reposo: revertirlo sería escribir encima lo mismo. Se escribió la rama
-       igual que en `calcVP` y la MUTACIÓN LA DELATÓ — sacarla no ponía nada en rojo, porque no
-       hace nada. Un resguardo que no se puede hacer fallar se lee como protección y no lo es.
-       Si algún día `calcET` vuelve a sugerir un grado, acá va el `dataset.sugerido` de `calcVP`.
-
-       Lo que sí hay que limpiar es la CÁPSULA: sin esto queda «Significativa (8 mmHg)» en
-       pantalla sobre un campo de gradiente ya vacío. */
+  const fueraTxt = r.fuera.length ? ' Fuera de rango: ' + r.fuera.join(' y ') + '.' : '';
+  if (!r.hayDatos) {
     if (sel && _sug) delete sel.dataset.sugerido;
     _sev('—'); _msg('');
     return;
   }
-  if (gmedio < ET_GMEDIO_SIGNIF) {
-    if (_pisable) { sel.value = 'Sin estenosis'; sel.dataset.sugerido = 'Sin estenosis'; }
-    _sev(badge('green', `Sin estenosis significativa (${gmedio} mmHg)`));
-    _msg(`Gradiente medio ${gmedio} mmHg: por debajo de ${ET_GMEDIO_SIGNIF} mmHg no alcanza el umbral de estenosis tricuspídea clínicamente significativa (ESC/EACTS 2021).`);
+  if (r.signif) {
+    const q = [];
+    if (r.cGm)  q.push(`gradiente medio ${r.gm} mmHg`);
+    if (r.cThp) q.push(`THP ${r.thp} ms`);
+    if (r.cAvt) q.push(`área ${r.avt.toFixed(2)} cm²`);
+    _sev(badge('red', 'Significativa'));
+    _msg('Estenosis tricuspídea clínicamente significativa por ' + q.join(', ') +
+         ' (EAE/ASE 2009 · ESC/EACTS 2021). La guía no la gradúa en leve/moderada/severa.' + fueraTxt);
     return;
   }
-  _sev(badge('red', `Significativa (${gmedio} mmHg)`));
-  _msg(`Gradiente medio ≥ ${ET_GMEDIO_SIGNIF} mmHg: estenosis tricuspídea clínicamente significativa (ESC/EACTS 2021). La guía no gradúa la ET en leve/moderada/severa — si querés consignar un grado, elegilo a mano.`);
+  if (_pisable) { sel.value = 'Sin estenosis'; sel.dataset.sugerido = 'Sin estenosis'; }
+  _sev(badge('green', 'Sin criterios de significación'));
+  _msg('Ninguno de los tres criterios alcanza el umbral con los datos disponibles: gradiente medio ≥ ' +
+       ET_GMEDIO_SIGNIF + ' mmHg, THP ≥ ' + ET_THP_SIGNIF + ' ms o área ≤ ' + ET_AVT_SIGNIF + ' cm².' + fueraTxt);
 }
 window.calcET = calcET;
 window.ET_GMEDIO_SIGNIF = ET_GMEDIO_SIGNIF;
+window.ET_THP_SIGNIF = ET_THP_SIGNIF;
+window.ET_AVT_SIGNIF = ET_AVT_SIGNIF;
 
 function calcIT_ESC() {
   const vc = v('it_vc');
@@ -21841,17 +21915,37 @@ function generarInforme(opts) {
        en «Sin estenosis» —que es el estado que deja el propio `calcET`— salía en SILENCIO: el
        número que define la enfermedad, medido y cargado, no aparecía en el informe firmado.
        Es el mismo agujero que se acaba de cerrar en la diastólica del VD. */
-    const etGm = v('et_gmedio');
-    const _etUmb = (typeof window.ET_GMEDIO_SIGNIF === 'number') ? window.ET_GMEDIO_SIGNIF : 5;
-    const etSignif = etGm !== null && etGm >= _etUmb;
-    const etGmTxt = etGm !== null ? ` (gradiente medio ${etGm} mmHg)` : '';
-    if (etDesc) suma.push(`ET ${etDesc}${etSignif ? ', clínicamente significativa' : ''}.`);
-    else if (etSignif) suma.push('Estenosis tricuspídea clínicamente significativa.');
+    /* EL VEREDICTO LO DA `etEstado()`, el mismo que pinta la cápsula. Antes esta línea
+       recalculaba la significación desde `et_gmedio` por su cuenta, y al sumar el THP y el área
+       habrían quedado dos definiciones del mismo hecho en el mismo documento — el defecto que
+       este archivo persigue desde las dos copias de los criterios del TEER. */
+    const _et = (typeof etEstado === 'function') ? etEstado() : null;
+    const etSignif = !!(_et && _et.signif);
+    /* SÓLO LOS PARÁMETROS QUE SOSTIENEN EL VEREDICTO, y sólo los cargados. Publicar un THP que
+       no alcanza el umbral al lado de «significativa» invita a leerlo como si lo sostuviera. */
+    const _etPar = [];
+    if (_et) {
+      if (_et.gmOk)        _etPar.push(`gradiente medio ${_et.gm} mmHg`);
+      if (_et.thpOk)       _etPar.push(`THP ${_et.thp} ms`);
+      if (_et.avt !== null) _etPar.push(`área valvular ${_et.avt.toFixed(2)} cm²`);
+    }
+    /* La cita entra en el MISMO paréntesis que los parámetros: en dos seguidos salía
+       «significativa (gradiente medio 6 mmHg) (EAE/ASE 2009).», que se lee como dos apartes. */
+    const etParTxt = _etPar.length
+      ? ` (${_etPar.join(', ')}${etSignif ? ' — EAE/ASE 2009' : ''})` : '';
+    const etFueraTxt = (_et && _et.fuera.length)
+      ? ` Valor fuera de rango en ${_et.fuera.join(' y ')}: revisar antes de concluir.` : '';
+    if (etDesc) suma.push(`ET ${etDesc}${etSignif ? ', significativa' : ''}.`);
+    else if (etSignif) suma.push('ET significativa.');
     else if (etPill) suma.push('Estenosis tricuspídea.');
+    /* Con datos y sin ningún criterio cumplido se DECLARA que no alcanzan, en vez de callar: el
+       médico midió tres cosas y el informe tiene que decir qué dieron. Al EN SUMA no sube — no
+       es un hallazgo— pero en el cuerpo se dice. Sin ningún dato, silencio, como hasta hoy. */
     const etFrag = etDesc
-      ? `Estenosis tricuspídea ${etDesc}${etGmTxt}${etSignif ? ', clínicamente significativa (ESC/EACTS 2021)' : ''}. `
-      : (etSignif ? `Estenosis tricuspídea clínicamente significativa${etGmTxt} — gradiente medio ≥ ${_etUmb} mmHg (ESC/EACTS 2021). `
-      : (etPill ? 'Estenosis tricuspídea. ' : ''));
+      ? `Estenosis tricuspídea ${etDesc}${etSignif ? ', significativa' : ''}${etParTxt}.${etFueraTxt} `
+      : (etSignif ? `Estenosis tricuspídea significativa${etParTxt}.${etFueraTxt} `
+      : (etPill ? 'Estenosis tricuspídea. '
+      : ((_et && _et.hayDatos) ? `Sin criterios de ET significativa con los datos disponibles${etParTxt}.${etFueraTxt} ` : '')));
     /* `vt_morf` NO LLEGABA AL NARRATIVO. Vivía sólo en la tabla del PDF y en la columna del
        Excel, así que una afectación carcinoide o una endocarditis de la tricúspide se cargaban
        y NO aparecían en el informe firmado — y la carcinoide afecta característicamente a esta
@@ -23402,7 +23496,7 @@ function RECALC_MODULOS() {
          veredicto sí contaba esos criterios;
        · `calcOAI` reconstruye la marca de «área derivada» (ver ahí), sin la cual corregir el
          diámetro en un estudio reabierto dejaba el área vieja. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','vpSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','vpSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -44400,6 +44494,16 @@ function _labExcelRow(inf) {
     'Morfología tricúspide': c.vt_morf || '', 'IT grado': gIT,
     'IT_I (Leve)': bin(gIT,'leve'), 'IT_II (Moderada)': bin(gIT,'moderada'), 'IT_III (Severa)': bin(gIT,'severa'),
     'VC IT (mm)': rnd(num('it_vc','vc_tricusp'),1),
+    'ET grad medio (mmHg)': rnd(num('et_gmedio'),1), 'ET THP (ms)': rnd(num('et_thp'),0),
+    'ET VTI diast (cm)': rnd(num('et_vti_diast'),1),
+    /* CALCULADA: sale de la misma continuidad que la cápsula, con los dos insumos de la
+       pestaña VD. Se recalcula al exportar en vez de leer el campo readonly, porque ese campo
+       NO se repinta al reabrir un estudio y la planilla publicaría el área del paciente
+       anterior — la lección de `gmax_calc`. */
+    'ET área (cm²)': (function(){ const d = num('tsvd_diametro'), vt = num('vti_tsvd'), vd = num('et_vti_diast');
+      if (d === null || vt === null || vd === null || vd <= 0) return null;
+      if (!(d >= 5 && d <= 60) || !(vt >= 2 && vt <= 60) || !(vd >= 5 && vd <= 100)) return null;
+      return rnd((Math.PI * Math.pow(d / 20, 2) * vt) / vd, 2); })(),
     'Morfología pulmonar': c.vp_morf || '',
     'EP grado': c.ep_grado || '', 'EP nivel': c.ep_nivel || '', 'EP etiología': c.ep_etiologia || '',
     'IP grado': c.ip_grado || '', 'IP etiología': c.ip_etiologia || '',
@@ -45072,7 +45176,8 @@ const LAB_XLS_BLOQUES = [
       /* Pulmonar: nombrados y no por prefijo corto. «EP » y «IP » son dos letras y este bloque
          ya se lleva por delante todo lo que empiece con «IM» o «IT» — agregar un prefijo de dos
          caracteres es exactamente cómo «Morfología » se tragó «Morfología orejuela». */
-      'Morfología pulmonar','EP grado','EP nivel','EP etiología','IP grado','IP etiología'] },
+      'Morfología pulmonar','EP grado','EP nivel','EP etiología','IP grado','IP etiología',
+      'ET grad medio','ET THP','ET VTI diast','ET área'] },
   { n:'9 · INFORME', cols:['Informe (texto completo)','EN SUMA (texto completo)'] },
 
   // ▼ SECCIÓN AVANZADA ▼ — de acá en adelante son módulos que no todo estudio usa
@@ -45405,7 +45510,7 @@ function _labPreguntarAnonimo(cb) {
    cero y `mcaConclusion` devolvía null: badge encendido sobre un informe sin la sección. Con más
    columnas era peor: el informe imprimía «Task Force 2010: 2 puntos» sobre una fila que sostenía
    4. Lo que se importa es la fuente; los espejos se recalculan. */
-const LAB_XLS_SOLO_EXPORT = new Set(['pmad', 'avm_thp', 'gmax_calc', 'psap_calc', 'pap_med',
+const LAB_XLS_SOLO_EXPORT = new Set(['pmad', 'avm_thp', 'gmax_calc', 'psap_calc', 'pap_med', 'et_avt',
   'mch_tvns', 'tdf_tv', 'mca_v_may', 'mca_v_men1', 'mca_v_men2']);
 
 /* ── Severidad valvular fijada a mano ──
@@ -45577,6 +45682,12 @@ const LAB_XLS_MAP = [
   ['IP etiología',           'ip_etiologia',   'opcion'],
   ['IT grado',               'it_grado',       'vocab'],
   ['VC IT (mm)',             'it_vc',          'num'],
+  ['ET grad medio (mmHg)',   'et_gmedio',      'num'],
+  ['ET THP (ms)',            'et_thp',         'num'],
+  ['ET VTI diast (cm)',      'et_vti_diast',   'num'],
+  /* El área NO se importa: es derivada. Entra al mapa para que el preview de importación la
+     liste como calculada —esa es la única razón de las entradas `SOLO_EXPORT`—. */
+  ['ET área (cm²)',          'et_avt',         'num'],
   ['PSAP (mmHg)',            'psap_calc',      'num'],
   ['PAP media (mmHg)',       'pap_med',        'num'],
 
@@ -54129,8 +54240,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260916-0019';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789528767573;                 /* eco-build-ms */
+const ECO_BUILD    = '20260916-0031';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789529503338;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -54216,7 +54327,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0019</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-0031</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
