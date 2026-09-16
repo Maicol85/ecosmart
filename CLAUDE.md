@@ -460,6 +460,71 @@ Se recuperó con `git show HEAD:` y se verificó **byte por byte** contra HEAD. 
 entrada «Los reemplazos por rango de líneas son peligrosos» que este archivo ya tenía, aplicada al
 propio suite: **después de un reemplazo por rango, contar los casos.**
 
+### Etiologías en VM/VA/VT: tres trampas, y ninguna estaba en el pedido
+Agregadas el 2026-09-16: **VM** + Endocarditis, Isquémica (disfunción/rotura músculo papilar);
+**VA** + Endocarditis, Carcinoide; **VT** + Carcinoide, Endocarditis, Funcional / dilatación VD.
+
+**1 · `LAB_XLS_LISTAS` es una lista PARALELA a las opciones del select, y decide qué acepta el
+importador.** Los tres selects entran al Excel con tipo `'opcion'`; su lista de valores válidos
+está escrita a mano y **`_labXlsAssertVocab` sólo audita las columnas `vocab`**, así que nada la
+vigilaba. Una opción que esté en el select y no en la lista **exporta bien** y al reimportar cae
+en `errs` → **descarta la FILA ENTERA** (nombre, cédula, FEVI, informe). Es el defecto que costó
+la sesión de «no cargan en Safari», por la otra mitad del mapa. Hoy lo vigila
+**`_labXlsAssertListas()`**, que compara contra el DOM **en las dos direcciones** y corre en
+`DOMContentLoaded` —no en línea— porque el bloque se evalúa antes de que existan los selects y un
+assert sobre un DOM a medias reporta divergencias falsas. **No deriva la lista del DOM a
+propósito:** la lista es el CONTRATO del importador, y derivarla haría que un cambio en el HTML
+ensanchara en silencio lo que se acepta desde un archivo externo.
+
+**2 · Endocarditis no es una morfología.** La plantilla que ya existía es «Válvula mitral **de
+morfología** X», así que las etiologías nuevas salían como «de morfología endocarditis». Y cada
+válvula usa una construcción distinta —«Válvula aórtica X», «La válvula aórtica **es** X», «(X)»—,
+así que `VALV_MORF_ETIOL` devuelve **cuatro formas** (`de`/`presenta`/`adj`/`es`). **Para toda
+opción que no esté en el mapa la salida es byte por byte la de antes**, que es lo que permite
+agregar etiologías sin tocar la redacción de las seis morfologías que ya estaban.
+
+**3 · `vt_morf` NO LLEGABA AL NARRATIVO.** Vivía sólo en la tabla del PDF y en la columna del
+Excel: una afectación carcinoide de la tricúspide —que es la válvula que la carcinoide afecta
+característicamente— se cargaba y **no aparecía en el informe firmado**. `detectar_huerfanos` no
+lo marcaba porque el id sí está nombrado; lo que no tenía era **destino narrativo**, que es
+justamente la distinción que ese script declara no poder hacer.
+
+**La opción «Funcional / dilatación VD» se contradecía sola.** Es el MECANISMO de una
+insuficiencia, no una morfología suelta: sobre un estudio sin IT producía «Válvula tricúspide con
+insuficiencia funcional por dilatación del ventrículo derecho. Válvula tricúspide **sin
+insuficiencia valorable**.» en la misma línea. Hoy ahí se declara la inconsistencia («sin grado de
+insuficiencia cargado») en vez de publicar las dos mitades. Y en la rama sin IT la morfología se
+**pliega** en la oración, porque si no «Válvula tricúspide» abría dos oraciones seguidas.
+
+**La nota didáctica va FUERA de la etiqueta de la opción.** El pedido traía «Funcional / dilatación
+VD **(causa más frecuente de IT)**». El valor de la opción es lo que se persiste, lo que imprime la
+tabla del PDF y lo que viaja a la celda del Excel: esa frase de manual habría quedado dentro de un
+documento firmado y dentro de un dato. La nota se puso como línea de ayuda bajo el select, que es
+el idioma que el archivo ya usa (el de Williams).
+
+**EL EN SUMA NEGABA LA ENDOCARDITIS.** Medido: con `vm_morf = 'Endocarditis'` el cuerpo decía
+«Válvula mitral con endocarditis» y el resumen —la superficie que se lee y se copia— decía
+**«Estudio sin alteraciones estructurales ni funcionales significativas.»**. Es el defecto que
+`ccMarcarParrafo` ya cerraba para congénitas, sobre otra pestaña. Las cuatro etiologías lo llaman;
+**no se empuja una línea nueva al resumen**, sólo se marca que hubo párrafo y el fallback pasa a
+«Sin OTRAS alteraciones — ver los hallazgos descritos en el cuerpo». **«Calcificada», «Reumática»,
+«Prótesis» y «Mixomatosa» siguen sin marcar**: son descriptores crónicos que esta app nunca
+resumió y cambiarlos tocaría informes existentes — declarado, no hecho.
+
+**Dos trampas del propio caso de prueba:**
+- **`indexOf('funcional')` matchea «funcionales»** del propio fallback, así que la condición que
+  verificaba que la morfología no se repitiera en el EN SUMA daba rojo contra la frase que venía a
+  comprobar. Al buscar una palabra corta en el resumen, mirar de qué otra es prefijo.
+- **La línea de la tricúspide tiene DOS ramas y los casos sólo ejercían la de sin insuficiencia.**
+  Borrar `vtFrag` entero —la rama CON IT— **no ponía nada en rojo**. Hace falta un escenario con
+  `vmax_it` y VCI. Es la misma trampa que la rama con PSAP de la diastólica del VD, dos tareas
+  antes.
+
+**Y las menciones de marcado en los comentarios rompen el conteo de balance.** Escribir la etiqueta
+de opción o de select literal dentro de un comentario hace que `count('<option') - count('</option>')`
+se mueva sin que el markup haya cambiado, y ese conteo es el control que detecta desbalances
+reales. En los comentarios, describir; no transcribir marcado.
+
 ### `calcET` era una bomba armada: no tenía rama de normalidad
 Corregido el 2026-09-16. La cascada era `<2 → Leve · <=5 → Moderada · else → Severa`, **sin
 ninguna rama de normalidad**: un gradiente medio tricuspídeo **normal —1 a 2 mmHg—** se escribía

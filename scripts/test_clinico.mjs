@@ -4603,6 +4603,126 @@ caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el La
   ] };
 `);
 
+/* ETIOLOGIAS EN VM / VA / VT (2026-09-16).
+   Tres cosas que este caso fija y que no son obvias:
+   1 LAB_XLS_LISTAS es una copia A MANO de los option del select y es la que decide que acepta
+     el importador. Una opcion que este en el select y no ahi se EXPORTA bien y al reimportar
+     descarta la FILA ENTERA. Lo vigila _labXlsAssertListas().
+   2 Endocarditis, Isquemica, Carcinoide y Funcional son ETIOLOGIAS, no morfologias: metidas en
+     la plantilla vieja salia «de morfologia endocarditis». Las redacta VALV_MORF_ETIOL, y para
+     toda opcion que no este en ese mapa la salida es la de antes PALABRA POR PALABRA.
+   3 vt_morf NO llegaba al narrativo — vivia solo en la tabla del PDF y en el Excel. */
+caso('TC-138', 'Etiologias valvulares: el importador las acepta, el informe las redacta y vt_morf deja de ser huerfano', `
+  const set = function(id, v){ const e = document.getElementById(id); if (!e) return 'NO EXISTE ' + id;
+    e.value = v; e.dispatchEvent(new Event('change', { bubbles:true })); return 1; };
+  const linea = function(campo, val, filtro){ __t.limpiar(); set('vd_bas','38');
+    const ok = set(campo, val); const r = __t.informe();
+    const li = r.inf.split(String.fromCharCode(10)).filter(function(l){ return l.indexOf(filtro) > -1; }).join(' // ');
+    return { ok: ok, li: li, suma: r.suma }; };
+  const opciones = function(id){ const s = document.getElementById(id);
+    return s ? [].slice.call(s.options).map(function(o){ return o.value; }) : []; };
+
+  const NUEVAS = [
+    ['vm_morf','Endocarditis'], ['vm_morf','Isquémica (disfunción/rotura músculo papilar)'],
+    ['va_morf','Endocarditis'], ['va_morf','Carcinoide'],
+    ['vt_morf','Carcinoide'], ['vt_morf','Endocarditis'], ['vt_morf','Funcional / dilatación VD']
+  ];
+  const vmEndo = linea('vm_morf','Endocarditis','mitral');
+  const vmIsq  = linea('vm_morf','Isquémica (disfunción/rotura músculo papilar)','mitral');
+  const vmNorm = linea('vm_morf','Normal','mitral');
+  const vaCarc = linea('va_morf','Carcinoide','aórtica');
+  const vaEndo = linea('va_morf','Endocarditis','aórtica');
+  const vaTri  = linea('va_morf','Trivalva normal','aórtica');
+  const vtCarc = linea('vt_morf','Carcinoide','tricúspide');
+  const vtEndo = linea('vt_morf','Endocarditis','tricúspide');
+  const vtFunc = linea('vt_morf','Funcional / dilatación VD','tricúspide');
+  const vtNorm = linea('vt_morf','Normal','tricúspide');
+  /* LA LINEA DE LA TRICUSPIDE TIENE DOS RAMAS y los casos de arriba solo ejercen la de SIN
+     insuficiencia — no cargan IT. Sin este escenario, borrar vtFrag entero (la rama CON IT) no
+     ponia nada en rojo: la mutacion sobrevivia. Es la misma trampa que la rama con PSAP de la
+     diastolica del VD. */
+  __t.limpiar(); set('vd_bas','38'); set('vt_morf','Carcinoide');
+  __t.set('vmax_it','2.8'); __t.set('vci_diam','18'); __t.set('vci_col','>50');
+  const rIT = __t.informe();
+  const vtCarcIT = rIT.inf.split(String.fromCharCode(10))
+    .filter(function(l){ return l.indexOf('tricúspide') > -1; }).join(' // ');
+  __t.limpiar();
+
+  return { extra: [
+    // 1 · EL IMPORTADOR. Si esto falla, un estudio con la morfologia nueva no vuelve del Excel.
+    ['el assert de listas no encuentra divergencias', _labXlsAssertListas().length === 0,
+      _labXlsAssertListas().join(' | ')],
+    ['las siete opciones nuevas existen en su select',
+      NUEVAS.every(function(p){ return opciones(p[0]).indexOf(p[1]) > -1; }),
+      NUEVAS.filter(function(p){ return opciones(p[0]).indexOf(p[1]) === -1; }).join(' | ')],
+    ['y el importador las acepta tal cual (si no, descarta la FILA entera)',
+      NUEVAS.every(function(p){ return _labXlsLista(p[0], p[1]) === p[1]; }),
+      NUEVAS.map(function(p){ return p[1] + '->' + _labXlsLista(p[0], p[1]); }).join(' | ')],
+    ['ningun id del caso esta inventado',
+      [vmEndo, vaCarc, vtCarc].every(function(r){ return r.ok === 1; })],
+
+    // 2 · REDACCION. Las etiologias no entran en «de morfologia X».
+    ['VM endocarditis se redacta como etiologia, no como morfologia',
+      vmEndo.li.indexOf('Válvula mitral con endocarditis') > -1 &&
+      vmEndo.li.indexOf('de morfología endocarditis') === -1, vmEndo.li],
+    ['VM isquemica nombra el mecanismo',
+      vmIsq.li.indexOf('compromiso isquémico (disfunción o rotura de músculo papilar)') > -1, vmIsq.li],
+    ['VA carcinoide', vaCarc.li.indexOf('Válvula aórtica con afectación carcinoide') > -1, vaCarc.li],
+    ['VA endocarditis', vaEndo.li.indexOf('Válvula aórtica con endocarditis') > -1, vaEndo.li],
+
+    // 3 · LAS QUE YA ESTABAN NO CAMBIAN UNA PALABRA.
+    ['VM normal sigue diciendo «de morfología normal»',
+      vmNorm.li.indexOf('Válvula mitral de morfología normal, sin estenosis ni insuficiencia.') > -1, vmNorm.li],
+    ['VA trivalva sigue igual',
+      vaTri.li.indexOf('Válvula aórtica trivalva normal, sin estenosis ni insuficiencia.') > -1, vaTri.li],
+    ['y la tricuspide sin morfologia consignada tampoco cambia',
+      vtNorm.li.indexOf('Válvula tricúspide sin insuficiencia valorable. No es posible estimar PSAP.') > -1 &&
+      vtNorm.li.indexOf('Válvula tricúspide,') === -1, vtNorm.li],
+
+    // 4 · vt_morf DEJA DE SER HUERFANO. Antes vivia solo en la tabla del PDF y el Excel.
+    ['VT carcinoide APARECE en el informe',
+      vtCarc.li.indexOf('con afectación carcinoide') > -1, vtCarc.li],
+    ['VT endocarditis tambien', vtEndo.li.indexOf('con endocarditis') > -1, vtEndo.li],
+    ['y tambien en la rama CON insuficiencia tricuspidea (la otra mitad de la linea)',
+      vtCarcIT.indexOf('Válvula tricúspide con afectación carcinoide.') > -1 &&
+      vtCarcIT.indexOf('PSAP') > -1, vtCarcIT],
+    ['y la morfologia se pliega: «Válvula tricúspide» no abre dos oraciones seguidas',
+      vtCarc.li.indexOf('Válvula tricúspide con afectación carcinoide, sin insuficiencia valorable') > -1 &&
+      vtCarc.li.split('Válvula tricúspide').length - 1 === 1, vtCarc.li],
+
+    // 5 · LA CONTRADICCION QUE LA OPCION FUNCIONAL PODIA PRODUCIR.
+    /* «Funcional / dilatacion VD» es el MECANISMO de una insuficiencia: sin IT cargada, la
+       version ingenua imprimia «con insuficiencia funcional ... sin insuficiencia valorable»
+       en la misma oracion. Se declara la inconsistencia en vez de publicar las dos mitades. */
+    ['VT funcional sin IT NO se contradice',
+      !(vtFunc.li.indexOf('con insuficiencia funcional') > -1 &&
+        vtFunc.li.indexOf('sin insuficiencia valorable') > -1), vtFunc.li],
+    ['y declara que falta el grado',
+      vtFunc.li.indexOf('sin grado de insuficiencia cargado') > -1, vtFunc.li],
+
+    // 6 · La morfologia NO sube al EN SUMA, por simetria con mitral y aortica.
+    /* NO se empuja una linea nueva al resumen: la morfologia no se repite ahi. Ojo con el
+       substring — «funcional» esta dentro de «funcionales» del propio fallback, asi que la
+       primera version de esta condicion daba rojo contra la frase que venia a verificar. */
+    ['la morfologia no se repite en el EN SUMA',
+      [vmEndo, vaCarc, vtCarc, vtFunc].every(function(r){
+        return r.suma.indexOf('carcinoide') === -1 && r.suma.indexOf('endocarditis') === -1 &&
+               r.suma.indexOf('isquémico') === -1 && r.suma.indexOf('insuficiencia funcional') === -1; }),
+      vmEndo.suma + ' // ' + vtCarc.suma],
+    /* PERO TAMPOCO PUEDE QUEDAR NEGADA. El fallback decia «Estudio sin alteraciones» sobre una
+       endocarditis descrita en el cuerpo. */
+    ['y el EN SUMA ya no NIEGA la etiologia descrita en el cuerpo',
+      [vmEndo, vmIsq, vaCarc, vaEndo, vtCarc, vtEndo].every(function(r){
+        return r.suma.indexOf('Estudio sin alteraciones') === -1; }),
+      vmEndo.suma],
+    ['y remite al cuerpo en vez de callar',
+      vmEndo.suma.indexOf('ver los hallazgos descritos en el cuerpo') > -1, vmEndo.suma],
+    ['con morfologia normal el fallback sigue siendo el de siempre',
+      vmNorm.suma.indexOf('Estudio sin alteraciones estructurales ni funcionales significativas.') > -1,
+      vmNorm.suma]
+  ] };
+`);
+
 /* LAS TRES SUPERFICIES DE CARDIO-ONCO TIENEN QUE DECIR LO MISMO. La leyenda de #ref-cardiotox
    (pestaña Referencias), la tabla de farmacos y las tablas nuevas del marco HFA-ICOS viven en
    DOS pestañas distintas y describen al mismo paciente. Las tres estaban desincronizadas, cada

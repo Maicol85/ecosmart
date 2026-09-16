@@ -2699,7 +2699,10 @@ window.cerrarSesion = cerrarSesion;
       <div class="sev-pills" id="sevpills-mitral"></div>
       <div class="grid-2" style="margin-bottom:8px;">
         <div class="fg"><label>Morfología VM</label>
-          <select id="vm_morf" onchange="showProlapsoPanel()"><option>Normal</option><option>Mixomatosa / Barlow</option><option>Calcificada</option><option>Reumática</option><option>Prolapso / EVMS</option><option>Prótesis</option></select>
+          <!-- Las dos últimas son ETIOLOGÍAS, no morfologías, y por eso el narrativo NO las mete
+               en «de morfología …»: ver `VALV_MORF_ETIOL`. Van al final para no mover el orden
+               de las que ya estaban — el valor persistido es el texto de la opción. -->
+          <select id="vm_morf" onchange="showProlapsoPanel()"><option>Normal</option><option>Mixomatosa / Barlow</option><option>Calcificada</option><option>Reumática</option><option>Prolapso / EVMS</option><option>Prótesis</option><option>Endocarditis</option><option>Isquémica (disfunción/rotura músculo papilar)</option></select>
         </div>
         <div id="bloque-prolapso-vm" class="fg" style="display:none;">
           <label style="font-weight:600">🔍 Detalle morfológico — Prolapso / Barlow</label>
@@ -2971,7 +2974,7 @@ window.cerrarSesion = cerrarSesion;
       <div class="sev-pills" id="sevpills-aortica"></div>
       <div class="grid-2" style="margin-bottom:8px;">
         <div class="fg"><label>Morfología VA</label>
-          <select id="va_morf"><option>Trivalva normal</option><option>Bicúspide</option><option>Calcificada</option><option>Reumática</option><option>Prótesis</option></select>
+          <select id="va_morf"><option>Trivalva normal</option><option>Bicúspide</option><option>Calcificada</option><option>Reumática</option><option>Prótesis</option><option>Endocarditis</option><option>Carcinoide</option></select>
         </div>
         <div id="bloque-esten-aortica" style="display:none;">
         <div class="fg"><label>Estenosis a&oacute;rtica &mdash; grado final</label>
@@ -3106,7 +3109,12 @@ window.cerrarSesion = cerrarSesion;
       <div class="sev-pills" id="sevpills-tricuspide"></div>
       <div class="grid-2" style="margin-bottom:8px;">
         <div class="fg"><label>Morfología VT</label>
-          <select id="vt_morf"><option>Normal</option><option>Mixomatosa</option><option>Reumática</option><option>Prótesis</option></select>
+          <select id="vt_morf"><option>Normal</option><option>Mixomatosa</option><option>Reumática</option><option>Prótesis</option><option>Carcinoide</option><option>Endocarditis</option><option>Funcional / dilatación VD</option></select>
+          <!-- La nota didáctica va ACÁ y no dentro de la etiqueta de la opción. El valor de la
+               opción es lo que se persiste, lo que imprime la tabla del PDF y lo que viaja al
+               Excel: «Funcional / dilatación VD (causa más frecuente de IT)» habría puesto una
+               frase de manual dentro de un documento firmado y dentro de una celda de datos. -->
+          <span style="font-size:10px;color:var(--text2);">Funcional / dilatación VD es la causa más frecuente de insuficiencia tricuspídea.</span>
         </div>
         <div id="bloque-esten-tricuspide" style="display:none;">
           <div class="grid-2" style="margin-bottom:8px;">
@@ -19096,6 +19104,57 @@ function calcIA_ESC() {
   document.getElementById('ia-discordancia').textContent = sevs.length > 1 ? '⚠️ Discordancia: ' + params.map(p=>`${p.p}:${p.sev}`).join(', ') : '';
 }
 
+/* ══ MORFOLOGÍA VALVULAR: ALGUNAS OPCIONES SON ETIOLOGÍAS, NO MORFOLOGÍAS ═══════════════════
+   Los selects de morfología ganaron el 2026-09-16 opciones que no describen la FORMA de la
+   válvula sino su CAUSA: endocarditis, compromiso isquémico, afectación carcinoide y la
+   insuficiencia funcional por dilatación del VD. Metidas en la plantilla que ya existía
+   —«Válvula mitral **de morfología** X»— salía «de morfología endocarditis», que no es
+   castellano ni es cierto: la endocarditis no es una morfología.
+
+   Cada frase del informe usa una construcción distinta y hay que respetarlas, así que el mapa
+   devuelve las CUATRO formas que los narrativos ya venían usando:
+     · `de`       → «Válvula mitral **de morfología normal**» / «**con endocarditis**»
+     · `presenta` → «La válvula mitral presenta **morfología normal**» / «**endocarditis**»
+     · `adj`      → «Válvula aórtica **trivalva normal**» / «**con endocarditis**»
+     · `es`       → «La válvula aórtica **es trivalva normal**» / «**presenta endocarditis**»
+
+   PARA TODA OPCIÓN QUE NO ESTÉ EN EL MAPA LA SALIDA ES BYTE POR BYTE LA DE ANTES. Eso es lo que
+   permite agregar etiologías sin tocar la redacción de las seis morfologías que ya estaban, que
+   es lo que se pidió. Si mañana se agrega otra etiología, va acá — no en una rama nueva del
+   narrativo. */
+const VALV_MORF_ETIOL = {
+  'Endocarditis': {
+    de:'con endocarditis', presenta:'endocarditis', adj:'con endocarditis', es:'presenta endocarditis' },
+  'Isquémica (disfunción/rotura músculo papilar)': {
+    de:'con compromiso isquémico (disfunción o rotura de músculo papilar)',
+    presenta:'compromiso isquémico (disfunción o rotura de músculo papilar)',
+    adj:'con compromiso isquémico (disfunción o rotura de músculo papilar)',
+    es:'presenta compromiso isquémico (disfunción o rotura de músculo papilar)' },
+  'Carcinoide': {
+    de:'con afectación carcinoide', presenta:'afectación carcinoide',
+    adj:'con afectación carcinoide', es:'presenta afectación carcinoide' },
+  /* Sólo existe en `vt_morf`, así que la redacción se ajusta a ese contexto: lo que dilata es
+     el ventrículo, no la válvula, y lo que la opción describe es una IT funcional. */
+  'Funcional / dilatación VD': {
+    de:'con insuficiencia funcional por dilatación del ventrículo derecho',
+    presenta:'insuficiencia funcional por dilatación del ventrículo derecho',
+    adj:'con insuficiencia funcional por dilatación del ventrículo derecho',
+    es:'presenta insuficiencia funcional por dilatación del ventrículo derecho' }
+};
+function _valvMorfF(val){
+  const k = String(val == null ? '' : val).trim();
+  const e = Object.prototype.hasOwnProperty.call(VALV_MORF_ETIOL, k) ? VALV_MORF_ETIOL[k] : null;
+  const low = k.toLowerCase();
+  return e || { de:'de morfología ' + low, presenta:'morfología ' + low, adj:low, es:'es ' + low };
+}
+function valvMorfDe(v){ return _valvMorfF(v).de; }
+function valvMorfPresenta(v){ return _valvMorfF(v).presenta; }
+function valvMorfAdj(v){ return _valvMorfF(v).adj; }
+function valvMorfEs(v){ return _valvMorfF(v).es; }
+window.valvMorfDe = valvMorfDe; window.valvMorfPresenta = valvMorfPresenta;
+window.valvMorfAdj = valvMorfAdj; window.valvMorfEs = valvMorfEs;
+window.VALV_MORF_ETIOL = VALV_MORF_ETIOL;
+
 /* Estenosis pulmonar por gradiente pico (ESC/ASE): leve <36 mmHg · moderada 36-64 · severa
    >64. Los cortes por velocidad que suelen citarse —3 y 4 m/s— son EXACTAMENTE éstos vistos
    por el otro lado (4·3² = 36, 4·4² = 64), así que se clasifica siempre por gradiente y hay
@@ -21400,6 +21459,17 @@ function generarInforme(opts) {
   // ── 7) Válvula mitral (morfología + estenosis + insuficiencia) ──
   {
     const vmMorf = sv('vm_morf') || 'normal';
+    const _vmDe = valvMorfDe(vmMorf), _vmPres = valvMorfPresenta(vmMorf);
+    /* UNA ETIOLOGÍA ACTIVA NO PUEDE QUEDAR NEGADA POR EL FALLBACK. Medido: con
+       `vm_morf = 'Endocarditis'` el cuerpo decía «Válvula mitral con endocarditis» y el EN SUMA
+       —que es la superficie que se lee y se copia— decía «Estudio sin alteraciones estructurales
+       ni funcionales significativas». Es el defecto que `ccMarcarParrafo` ya cierra para
+       congénitas, sobre otra pestaña. NO se empuja una línea nueva al resumen: se marca que hubo
+       párrafo, y el fallback pasa a «Sin OTRAS alteraciones — ver los hallazgos descritos en el
+       cuerpo». Alcanza sólo a las cuatro de `VALV_MORF_ETIOL`: «Calcificada», «Reumática»,
+       «Prótesis» y «Mixomatosa» son descriptores crónicos que esta app nunca resumió, y
+       cambiarles el comportamiento tocaría informes existentes — queda declarado, no hecho. */
+    if (Object.prototype.hasOwnProperty.call(VALV_MORF_ETIOL, String(vmMorf).trim())) ccMarcarParrafo();
     const emDesc = emG && emG !== 'sin' ? emG.toLowerCase() : null;
     const estE = emDesc ? `estenosis ${emDesc}` : (pillOn('mitral','esten') ? 'estenosis' : null);
     const insE = (imG > 0) ? `insuficiencia ${imTxt[imG]}` : (pillOn('mitral','insuf') ? 'insuficiencia' : null);
@@ -21412,13 +21482,13 @@ function generarInforme(opts) {
     if (!estE && !insE) {
       vmSent = estiloPick(
         `VM normal.`,
-        `Válvula mitral de morfología ${vmMorf.toLowerCase()}, ${cE}.`,
-        `La válvula mitral presenta morfología ${vmMorf.toLowerCase()}, ${cE} significativas.`);
+        `Válvula mitral ${_vmDe}, ${cE}.`,
+        `La válvula mitral presenta ${_vmPres}, ${cE} significativas.`);
     } else {
       vmSent = estiloPick(
         `VM ${cC}.`,
-        `Válvula mitral de morfología ${vmMorf.toLowerCase()}, ${cE}.`,
-        `La válvula mitral, de morfología ${vmMorf.toLowerCase()}, ${cE}; hallazgo de relevancia clínica que requiere seguimiento ecocardiográfico periódico y evaluación de indicación de intervención según evolución clínica.`);
+        `Válvula mitral ${_vmDe}, ${cE}.`,
+        `La válvula mitral, ${_vmDe}, ${cE}; hallazgo de relevancia clínica que requiere seguimiento ecocardiográfico periódico y evaluación de indicación de intervención según evolución clínica.`);
     }
     // Detalle de prolapso / Barlow — integrado en la MISMA oración de la mitral
     if (vmMorf === 'Prolapso / EVMS' || vmMorf === 'Mixomatosa / Barlow') {
@@ -21442,6 +21512,8 @@ function generarInforme(opts) {
   // ── 8) Válvula aórtica (morfología + estenosis + insuficiencia) ──
   {
     const vaMorf = sv('va_morf') || 'trivalva';
+    const _vaAdj = valvMorfAdj(vaMorf), _vaEs = valvMorfEs(vaMorf);
+    if (Object.prototype.hasOwnProperty.call(VALV_MORF_ETIOL, String(vaMorf).trim())) ccMarcarParrafo();
     // FIX: comparar contra el VALUE del <select> ('sin'/'esclerosis'), no contra el texto de la opción.
     const esclerosis = eaG === 'esclerosis';
     const eaDesc = (eaG && eaG !== 'sin' && eaG !== 'esclerosis') ? eaG.toLowerCase() : null;
@@ -21532,13 +21604,13 @@ function generarInforme(opts) {
     if (esclerosis && !estE && !insE) {
       inf.push(estiloPick(
         `VAo con esclerosis valvular.`,
-        `Válvula aórtica ${vaMorf.toLowerCase()}, con esclerosis valvular, sin estenosis significativa ni insuficiencia.`,
-        `La válvula aórtica (${vaMorf.toLowerCase()}) presenta esclerosis valvular, sin estenosis significativa ni insuficiencia.`));
+        `Válvula aórtica ${_vaAdj}, con esclerosis valvular, sin estenosis significativa ni insuficiencia.`,
+        `La válvula aórtica (${_vaAdj}) presenta esclerosis valvular, sin estenosis significativa ni insuficiencia.`));
     } else if (!estE && !insE) {
       inf.push(estiloPick(
         `VAo normal.`,
-        `Válvula aórtica ${vaMorf.toLowerCase()}, ${cE}.`,
-        `La válvula aórtica es ${vaMorf.toLowerCase()}, ${cE} significativas.`));
+        `Válvula aórtica ${_vaAdj}, ${cE}.`,
+        `La válvula aórtica ${_vaEs}, ${cE} significativas.`));
     } else {
       const escC = esclerosis ? 'esclerosis valvular; ' : '';
       /* Los números que SOSTIENEN la estenosis van en la misma oración que la nombra. Antes el
@@ -21561,8 +21633,8 @@ function generarInforme(opts) {
       const medEAp = (estE && _eaR && !_eaDiscordante) ? eaDatosTxt(_eaR, false) : '';
       inf.push(estiloPick(
         `VAo ${escC}${cC}${medEAp}.`,
-        `Válvula aórtica ${vaMorf.toLowerCase()}, ${escC}${cE}${medEAp}.`,
-        `La válvula aórtica (${vaMorf.toLowerCase()}), ${escC}${cE}${medEAp}.`));
+        `Válvula aórtica ${_vaAdj}, ${escC}${cE}${medEAp}.`,
+        `La válvula aórtica (${_vaAdj}), ${escC}${cE}${medEAp}.`));
     }
     /* ── Escenario hemodinámico del bajo gradiente ──
        Se DESCRIBE el escenario y se nombra el estudio que lo confirma. No se sugiere conducta
@@ -21646,17 +21718,41 @@ function generarInforme(opts) {
       ? `Estenosis tricuspídea ${etDesc}${etGmTxt}${etSignif ? ', clínicamente significativa (ESC/EACTS 2021)' : ''}. `
       : (etSignif ? `Estenosis tricuspídea clínicamente significativa${etGmTxt} — gradiente medio ≥ ${_etUmb} mmHg (ESC/EACTS 2021). `
       : (etPill ? 'Estenosis tricuspídea. ' : ''));
+    /* `vt_morf` NO LLEGABA AL NARRATIVO. Vivía sólo en la tabla del PDF y en la columna del
+       Excel, así que una afectación carcinoide o una endocarditis de la tricúspide se cargaban
+       y NO aparecían en el informe firmado — y la carcinoide afecta característicamente a esta
+       válvula. `detectar_huerfanos` no lo marcaba porque el id sí está nombrado; lo que no
+       tenía era destino narrativo, que es la distinción que ese script declara no poder hacer.
+       Se nombra sólo cuando NO es «Normal»: una tricúspide de morfología normal no es un
+       hallazgo, igual que la geometría normal del VI o la AI de dimensiones normales. Y NO sube
+       al EN SUMA, por simetría con la mitral y la aórtica, donde la morfología tampoco sube. */
+    const vtMorf = sv('vt_morf') || '';
+    const vtDe = (vtMorf && vtMorf !== 'Normal') ? valvMorfDe(vtMorf) : '';
+    /* «Funcional / dilatación VD» NO es una morfología suelta: es el MECANISMO de una
+       insuficiencia, así que sólo tiene sentido al lado de una IT consignada. Puesta sobre un
+       estudio sin IT producía la línea «Válvula tricúspide con insuficiencia funcional por
+       dilatación del ventrículo derecho. Válvula tricúspide sin insuficiencia valorable.» — una
+       contradicción dentro de la misma oración, y del tipo que este archivo persigue. Ahí se
+       declara la inconsistencia en vez de publicar las dos mitades como si nada. */
+    if (Object.prototype.hasOwnProperty.call(VALV_MORF_ETIOL, String(vtMorf).trim())) ccMarcarParrafo();
+    const vtFuncSinIT = vtDe && vtMorf === 'Funcional / dilatación VD' && !hayIT;
+    const vtFrag = (vtDe && hayIT) ? `Válvula tricúspide ${vtDe}. ` : '';
+    /* En la rama SIN insuficiencia la morfología se PLIEGA en la oración en vez de anteponerse:
+       si no, «Válvula tricúspide» abría dos oraciones consecutivas. */
+    const vtSinIT = vtFuncSinIT
+      ? 'Válvula tricúspide: se consignó insuficiencia funcional por dilatación del ventrículo derecho, sin grado de insuficiencia cargado.'
+      : `Válvula tricúspide${vtDe ? ' ' + vtDe + ',' : ''} sin insuficiencia valorable.`;
     const tapBajo = tap !== null && tap < 105;
     let tricLine;
     if (hayIT) {
       const itGrad = itG > 0 ? ` ${imTxt[itG]}` : '';
       suma.push(itG > 0 ? `IT ${imTxt[itG]}.` : 'IT presente.');
       if (gradVDAD !== null && pmadV !== null && psap) {
-        tricLine = `${etFrag}IT${itGrad} con gradiente VD-AD de ${gradVDAD} mmHg, PSAP estimada de ${psap} mmHg (PmAD ${pmadV} mmHg).`;
+        tricLine = `${vtFrag}${etFrag}IT${itGrad} con gradiente VD-AD de ${gradVDAD} mmHg, PSAP estimada de ${psap} mmHg (PmAD ${pmadV} mmHg).`;
       } else if (gradVDAD !== null) {
-        tricLine = `${etFrag}IT${itGrad} con gradiente VD-AD de ${gradVDAD} mmHg. PSAP no calculable sin medición de VCI.`;
+        tricLine = `${vtFrag}${etFrag}IT${itGrad} con gradiente VD-AD de ${gradVDAD} mmHg. PSAP no calculable sin medición de VCI.`;
       } else {
-        tricLine = `${etFrag}Insuficiencia tricuspídea${itGrad}. Sin registro de velocidad de regurgitación que permita estimar PSAP.`;
+        tricLine = `${vtFrag}${etFrag}Insuficiencia tricuspídea${itGrad}. Sin registro de velocidad de regurgitación que permita estimar PSAP.`;
       }
       /* UNA frase para los dos signos. Antes esto decía sólo el TAP, y el TRIV tricuspídeo no
          aparecía aunque estuviera cargado. Ver `htpIndirectosFrase`. */
@@ -21666,9 +21762,15 @@ function generarInforme(opts) {
       /* La MISMA frase que la rama de arriba. Antes eran dos redacciones distintas del mismo
          hecho —«Se suman…» y «Se evidencian…»— escritas a mano en cada rama. */
       { const _ind = (typeof htpIndirectosFrase === 'function') ? htpIndirectosFrase() : '';
+        /* SIN morfología consignada la salida es la de siempre, palabra por palabra: este
+           cambio no reescribe el informe de ningún estudio que no la tenga. */
         tricLine = _ind
-          ? `${etFrag}No se obtiene valor de PSAP por ausencia de insuficiencia tricuspídea valorable. Presenta elementos indirectos de HTP ${_ind}.`
-          : `${etFrag}Válvula tricúspide sin insuficiencia valorable. No es posible estimar PSAP.`; }
+          ? (vtDe || vtFuncSinIT
+              ? `${etFrag}${vtSinIT} No se obtiene valor de PSAP. Presenta elementos indirectos de HTP ${_ind}.`
+              : `${etFrag}No se obtiene valor de PSAP por ausencia de insuficiencia tricuspídea valorable. Presenta elementos indirectos de HTP ${_ind}.`)
+          : (vtDe || vtFuncSinIT
+              ? `${etFrag}${vtSinIT} No es posible estimar PSAP.`
+              : `${etFrag}Válvula tricúspide sin insuficiencia valorable. No es posible estimar PSAP.`); }
     }
     // Al En Suma sólo cuando NO se pudo estimar la PSAP: ahí el TAP es el único indicio
     // de HTP y sin esta línea el resumen decía "sin alteraciones significativas" pese a
@@ -46270,9 +46372,14 @@ function _labXlsAssertVocab() {
 window._labXlsAssertVocab = _labXlsAssertVocab;
 // Selects de texto libre acotado: se acepta cualquier opción de la lista, tal cual.
 const LAB_XLS_LISTAS = {
-  vm_morf: ['Normal','Mixomatosa / Barlow','Calcificada','Reumática','Prolapso / EVMS','Prótesis'],
-  va_morf: ['Trivalva normal','Bicúspide','Calcificada','Reumática','Prótesis'],
-  vt_morf: ['Normal','Mixomatosa','Reumática','Prótesis'],
+  /* ESTA LISTA ES PARALELA A LAS OPCIONES DEL SELECT, y es la que decide qué acepta el
+     importador. Un valor que esté en el select y no acá se EXPORTA bien y al reimportar cae en
+     `errs`, que descarta la FILA ENTERA —nombre, cédula, FEVI, informe—: el defecto que costó la
+     sesión de «no cargan en Safari». `_labXlsAssertVocab` sólo audita las columnas `vocab`, así
+     que hasta el 2026-09-16 nada vigilaba ésta; hoy lo hace `_labXlsAssertListas()`. */
+  vm_morf: ['Normal','Mixomatosa / Barlow','Calcificada','Reumática','Prolapso / EVMS','Prótesis','Endocarditis','Isquémica (disfunción/rotura músculo papilar)'],
+  va_morf: ['Trivalva normal','Bicúspide','Calcificada','Reumática','Prótesis','Endocarditis','Carcinoide'],
+  vt_morf: ['Normal','Mixomatosa','Reumática','Prótesis','Carcinoide','Endocarditis','Funcional / dilatación VD'],
   pericardio: ['Normal, sin derrame','Derrame mínimo','Derrame leve (5-10mm)','Derrame moderado (10-20mm)','Derrame severo (>20mm)','Engrosamiento / calcificación'],
   /* `alg-motivo` va por LISTA y no por vocabulario porque su `option value` ES la etiqueta,
      paréntesis incluidos — y `_labXlsVocab` parte por `(` para su fallback de etiqueta larga,
@@ -46291,6 +46398,48 @@ const LAB_XLS_MAX_TXT = {
    etiquetas y `LAB_XLS_LISTAS` declarada. Antes tiraría ReferenceError por zona muerta y se
    llevaría puesto el bloque `<script>` entero (ver CLAUDE.md). */
 try { _labXlsAssertVocab(); } catch (e) { console.error('[LAB_XLS] assert de vocabularios:', e); }
+
+/* ══ LAB_XLS_LISTAS CONTRA EL DOM ════════════════════════════════════════════════════════════
+   `LAB_XLS_LISTAS` es una copia a mano de las opciones de cada select y es la que decide qué
+   acepta el importador. Agregar una opción al select y olvidarse de acá NO falla al exportar ni
+   al ver la plantilla: falla al REIMPORTAR, y descarta la fila entera. Es la misma clase de
+   defecto que `_labXlsAssertVocab` cierra para las columnas `vocab`, sobre la otra mitad del
+   mapa — y hasta hoy no la vigilaba nadie.
+
+   Compara en las DOS direcciones: una opción del select que falte en la lista (el importador la
+   rechaza) y una entrada de la lista que ya no exista en el select (la plantilla enseña un valor
+   que el médico no puede elegir). Normaliza con `_labXlsNorm`, que es el mismo criterio con el
+   que `_labXlsLista` compara, para no gritar por una raya o un acento.
+
+   No DERIVA la lista del DOM a propósito: la lista es el CONTRATO del importador, y derivarla
+   haría que un cambio en el HTML ensanchara en silencio lo que se acepta desde un archivo
+   externo. Mejor que el contrato sea explícito y que la divergencia grite. */
+function _labXlsAssertListas() {
+  const problemas = [];
+  Object.keys(LAB_XLS_LISTAS).forEach(function (campo) {
+    const sel = document.getElementById(campo);
+    if (!sel || !sel.options) return;          // no es un select del DOM: nada que comparar
+    const enDom = [].slice.call(sel.options).map(function (o) { return _labXlsNorm(o.value); });
+    const enLista = LAB_XLS_LISTAS[campo].map(function (o) { return _labXlsNorm(o); });
+    enDom.forEach(function (o, i) {
+      if (o && enLista.indexOf(o) < 0)
+        problemas.push(campo + ': la opción «' + sel.options[i].value + '» NO está en LAB_XLS_LISTAS — la reimportación rechazaría la fila entera');
+    });
+    enLista.forEach(function (o, i) {
+      if (o && enDom.indexOf(o) < 0)
+        problemas.push(campo + ': «' + LAB_XLS_LISTAS[campo][i] + '» está en LAB_XLS_LISTAS y ya no es una opción del select');
+    });
+  });
+  if (problemas.length) console.error('[LAB_XLS] LAB_XLS_LISTAS divergió del select:\n  ' + problemas.join('\n  '));
+  return problemas;
+}
+window._labXlsAssertListas = _labXlsAssertListas;
+/* En `DOMContentLoaded` y no acá: este bloque corre antes de que existan algunos de los selects
+   que compara, y un assert que mide sobre un DOM a medias reporta divergencias falsas — el
+   error de denominador de siempre. */
+if (document.readyState === 'loading')
+  document.addEventListener('DOMContentLoaded', function(){ try { _labXlsAssertListas(); } catch (e) { console.error('[LAB_XLS] assert de listas:', e); } });
+else { try { _labXlsAssertListas(); } catch (e) { console.error('[LAB_XLS] assert de listas:', e); } }
 // Marca de la fila de ejemplo de la plantilla. Se busca en el Nombre y NUNCA se importa.
 const LAB_XLS_EJEMPLO = '*** FILA DE EJEMPLO — BORRAR ANTES DE IMPORTAR ***';
 
@@ -53691,8 +53840,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260915-2313';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789524802619;                 /* eco-build-ms */
+const ECO_BUILD    = '20260915-2336';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789526214867;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -53778,7 +53927,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260915-2313</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260915-2336</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
