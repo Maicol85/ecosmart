@@ -4295,6 +4295,7 @@ window.cerrarSesion = cerrarSesion;
             <div class="calc-row"><span class="calc-lbl">Índice cardíaco (GC / SC)</span><span id="pop-sw-ic">—</span></div>
             <div class="calc-row"><span class="calc-lbl">RVS (PAM − PAD) × 80 / GC</span><span id="pop-sw-rvs">—</span></div>
             <div class="calc-row"><span class="calc-lbl">RVP (PAPm − PCP) / GC</span><span id="pop-sw-rvp">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">Volumen sistólico (GC / FC)</span><span id="pop-sw-vs">—</span></div>
             <div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;" id="pop-sw-nota"></div>
           </div>
         </div>
@@ -24081,10 +24082,26 @@ function popHemoSync() {
     setH('pop-sw-rvp', r.uw.toFixed(1) + ' UW (' + r.dyn.toFixed(0) + ' dinas·s·cm⁻⁵) ' + badge(r.cls, r.txt)
          + ' <span style="color:var(--text2);font-size:10px;">PAPm ' + papm.toFixed(0) + '</span>');
   } else setH('pop-sw-rvp', '—');
+  /* `pop_sw_fc` existia en el marcado y NO lo leia nadie: el medico lo cargaba y desaparecia.
+     Lo cazo `detectar_huerfanos`, que es para lo que esta. Se usa para dos cosas: mostrar el
+     volumen sistolico por termodilucion (GC/FC), que es lo que el Swan aporta y el eco estima, y
+     declarar si difiere de la FC del estudio — dos frecuencias distintas en la misma hoja sin
+     decirlo es el defecto de los dos denominadores. */
+  const fcSw = v('pop_sw_fc');
+  if (gcS !== null && gcS > 0 && fcSw !== null && fcSw > 0) {
+    const vsSw = gcS * 1000 / fcSw;
+    const fcEco = v('hemo_fc');
+    setH('pop-sw-vs', vsSw.toFixed(0) + ' ml'
+      + (fcEco !== null && Math.abs(fcEco - fcSw) > 5
+         ? ' <span style="color:var(--text2);font-size:10px;">· FC del estudio ' + fcEco + ' lpm</span>' : ''));
+  } else setH('pop-sw-vs', '—');
   set('pop-sw-nota', 'La RVS usa la PAD MEDIDA por el catéter; la cápsula «Perfil hemodinámico» de arriba usa la PVC estimada por VCI. Las dos son correctas y pueden diferir: la del catéter es el dato directo.');
 
   /* ── PiCCO ── Bandas del pedido; ninguna colisiona con algo que la app ya publique. */
+  /* El GC del PiCCO se MUESTRA sin banda propia: el que gradua es el IC, que es el indexado.
+     Estaba en el marcado y no lo leia nadie — otro huerfano que cazo el detector. */
   const pb = [
+    ['GC', v('pop_picco_gc'), 'L/min', () => null],
     ['IC', v('pop_picco_ic'), 'L/min/m²', x => _icBanda(x)],
     ['ITBVI', v('pop_picco_itbvi'), 'ml/m²', x => x < 850 ? {cls:'orange',txt:'bajo'} : x <= 1000 ? {cls:'green',txt:'normal'} : {cls:'yellow',txt:'elevado'}],
     ['EVLWI', v('pop_picco_evlwi'), 'ml/kg', x => x < 10 ? {cls:'green',txt:'normal'} : {cls:'red',txt:'agua extravascular elevada'}],
@@ -57784,8 +57801,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260918-1650';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789761037905;                 /* eco-build-ms */
+const ECO_BUILD    = '20260918-1653';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789761186221;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -57871,7 +57888,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1650</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1653</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

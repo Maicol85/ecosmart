@@ -541,6 +541,16 @@ resolvió con `String.fromCharCode(10)`. Es la novena de esta familia.
 
 **TC-164 quedó corto** al aparecer la décima tarjeta de Avanzado: la lista esperada se actualizó.
 
+**`detectar_huerfanos` CAZÓ DOS CAMPOS QUE NO LEÍA NADIE**, y eran de verdad: `pop_sw_fc` —la FC
+del catéter— y `pop_picco_gc` —el gasto del PiCCO— existían en el marcado desde POP-1 y POP-2 y
+ninguna función los tocaba. El médico los cargaba y desaparecían: el bug del cayado aórtico, otra
+vez. Hoy la FC del Swan calcula el **volumen sistólico por termodilución** (GC/FC) y **declara si
+difiere en más de 5 lpm de la FC del estudio** —dos frecuencias en la misma hoja sin decirlo es el
+defecto de los dos denominadores—, y el GC del PiCCO se muestra sin banda propia, porque el que
+gradúa es el IC, que es el indexado. **El detector se corrió DESPUÉS de commitear y por eso el
+hallazgo entró en un segundo commit**: va antes del `git add`, como dice la propia sección de
+este archivo.
+
 ### POP-3: el POCUS no inventa cortes, y el `\s` se comió las eses por octava vez — 2026-09-18
 
 Bloque 4 con sus cuatro subsecciones. **Las dos sincronizadas no tienen criterios propios**, que
