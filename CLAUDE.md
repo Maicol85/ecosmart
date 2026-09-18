@@ -487,6 +487,112 @@ El Excel pasó de **421 a 429 columnas** y de 128 a **129 básicas**; TC-135 fij
 contenido. Ojo con el `0` de una casilla apagada: **no es lo mismo que ausente**, y el caso lo
 distingue.
 
+### La salvedad era una CELDA, y el PPT ya hacía tres de las seis cosas pedidas — 2026-09-18
+
+Seis tareas. **Dos ya estaban hechas, una lo estaba a medias y tres eran reales.**
+
+#### PDF · el tipo `nota`, y el defecto eran SEIS hojas y no una
+
+El pedido decía que «la conclusión y la Salvedad están dentro de la tabla». Medido en el content
+stream: **la conclusión ya salía a ancho completo** (`x = 31,2 pt`) — la línea de `VEXUS_INTERP`
+no tiene ` | `, así que cae en la rama `txt`. La que estaba rota era **la Salvedad**, empujada
+como `'Salvedad | ' + texto`, o sea una fila `kv`: 230 caracteres exprimidos en la columna del
+VALOR, que mide el 46 % del ancho. En HEAD se dibujaba en `x = 308,5 pt` y **cuatro** líneas.
+
+**Y no era sólo VEXUS: son SEIS hojas** —TEP, VEXUS, derrame/taponamiento, constricción (×2) y
+Wilkins—. Se reportó la que el médico miró. Al arreglar un defecto de formato, `grep` del patrón
+que lo produce.
+
+`amiloDibujarSecciones` ganó el tipo **`nota`** con marcador `!!`: ancho completo, itálica, fondo
+al 7 % del tema y filete de color. **Los tres a la vez porque cada uno falla por su lado** — el
+fondo desaparece en una fotocopia, el filete solo se lee como decoración, y la itálica sola no
+separa el bloque de la tabla de arriba. Hoy: `x = 38,3 pt` y dos líneas.
+
+**Un marcador y no «si el valor es largo, sacalo de la tabla»**: el umbral sería arbitrario y el
+formato quedaría dependiendo de cuánto escribió alguien. Lo decide quien redacta la hoja, que es
+quien sabe si eso es un dato o una advertencia. Y `_NOTA_PAD` se usa en `plan()` **y** en el
+bucle: si se mide un alto y se dibuja otro, el autoajuste A4 elige el cuerpo sobre un alto que no
+existe — es el defecto que esta misma función ya documenta para el hueco entre secciones.
+
+#### PPT · lo que ya estaba
+
+- **La portada ya mostraba** presentador · institución, período, N, fecha de generación y el
+  aviso de cohorte filtrada. **El modal ya se precargaba de Config** (`med-nombre` +
+  `ecoGetCentroPrincipal`). Lo único que faltaba era el **rango real**: `periodo` es la etiqueta
+  del selector, así que con doce estudios de marzo y abril la portada decía «Último año» y la
+  sala entendía doce meses de actividad.
+- **La diapositiva de tendencia ya existía**, gateada en ≥2 meses, que es la condición que el
+  pedido pedía. Lo que cambió es la forma.
+- **Las diapositivas ya eran condicionales** y las omisiones **ya se declaraban** con su motivo.
+
+**El rango se ordena como CADENA.** `fecha_estudio` es ISO, y ahí el orden lexicográfico ES el
+cronológico; `new Date('2026-03-05')` lo interpreta como UTC y en Uruguay devuelve el día
+anterior — el defecto que este archivo ya documenta para `_pptFechaLarga`.
+
+#### PPT · dos gráficos y no dos series
+
+Volumen de estudios y FEVI promedio compartían eje. Con 4 estudios y una FEVI de 58, la línea de
+actividad quedaba aplastada contra el piso. Es «dos escalas incompatibles», que ya obligó a
+partir la comparación de subgrupos. Hoy: **barras** para el conteo, **línea** para la FEVI, y
+título dinámico «Evolución — 2026/02 — 2026/04». La regla de no graficar la FEVI con huecos se
+conserva: el eje X es el mismo y una línea con huecos se lee como un desplome.
+
+#### `MIN_OPC` de 3 a 1, y por qué el aviso no es opcional
+
+Decisión de Maicol. Con el umbral en 3, una cohorte chica —que es cuando más se usa este mazo—
+perdía casi todas las hojas de una vez. El costo es real: con uno o dos casos una torta es una
+porción del 100 % y un promedio es el valor de ese paciente. **Por eso toda hoja con n < 3 lleva
+impresa la salvedad**, y va ARRIBA, debajo del título: el pie de estas hojas ya está ocupado por
+las salvedades metodológicas y una advertencia apilada al final se lee último, o no se lee.
+**El umbral decide si la hoja SALE; el aviso decide cómo se lee.**
+
+**«Resumen general siempre presente» NO se aplicó** (decisión de Maicol): sigue gateado por su
+casilla, porque el checkbox es la única fuente de verdad del mazo. Fijas quedan portada,
+metodología y cierre.
+
+#### ETE y hemodinámica
+
+ETE eran cinco `dato` seguidos a 16 pt con el mismo paso: las líneas largas de Wilkins y TEER se
+salían de la columna y el rótulo de cada tema quedaba pegado al valor del anterior. Hoy **cuatro
+bloques** separados por un filete al 18 %, valores a 12 pt y columna de 5,5" (el gráfico arranca
+en 6,2, hay sitio). Hemodinámica: el Forrester pasa de 2,75×1,97 a **4,3×3,08** y la torta baja a
+2,2×1,9 — **el diagrama ES la hoja**, ubica a cada paciente en su cuadrante; la torta cuenta
+cuántos hay en cada uno, que es el mismo dato agregado. Se conservó la proporción 460:330.
+
+#### Lo que costó
+
+**DOS CASOS ANTERIORES SE PUSIERON EN ROJO, Y ESO ES LA SEÑAL.** TC-150 tomaba el primer gráfico
+de **línea** y exigía que sus valores fueran los de `_labMeses`; desde que el volumen va en
+barras, ese primer `line` es la FEVI. Y TC-151 exigía la omisión de la hoja sistólica sobre una
+cohorte de dos, que con el umbral en 1 **ya no se omite**: la condición que vigila el formato de
+`faltanN` se quedó **sin denominador**. Se le agregó una corrida con una cohorte SIN NINGUNA
+FEVI, que es donde `faltanN` dispara ahora. Los dos invariantes siguen intactos; lo que cambió es
+dónde mirarlos.
+
+**MI SONDA MIDIÓ TRES VECES SOBRE LA NADA, Y LAS TRES PARECÍAN VERDES:**
+1. `VEXUS_VASOS` es un `const` de módulo y **no existe en `window`**, así que el bucle que
+   sembraba los vasos no seteó ninguno: `score` en null, la salvedad nunca se emitió y
+   `xDeLaSalvedad` salió `[]`. Un array vacío se lee igual que «no hay problema».
+2. Después medí `amiloImprimirPDF('ett')`, que imprime la hoja del score de amiloidosis y no la
+   de VEXUS. **23 objetos de texto en todo el documento** — el denominador lo gritaba.
+3. Un `assert` del script de parcheo falló, **el archivo no se escribió**, y la corrida siguiente
+   usó la sonda vieja con el mismo resultado de antes. Tercera vez en dos sesiones: **después de
+   parchear, confirmar que el archivo cambió.**
+
+**El control negativo es lo que la validó**: contra HEAD la salvedad sale en `x = 308,5` y cuatro
+líneas; con el arreglo, `38,3` y dos.
+
+**Y la condición de los dos gráficos daba rojo contra un generador correcto.** La escribí contra
+el texto de la diapositiva, y **los títulos de un gráfico viven en el CHART**, no en sus objetos
+de texto. Es la misma corrección que ya se les hizo a TC-150 y a la torta de amiloidosis.
+
+**Backtick dentro del cuerpo de un caso: van DIECINUEVE**, y fue en el comentario que escribí
+para explicar por qué se reapuntaba TC-151.
+
+**Cuatro mutaciones, las cuatro cazadas:** la salvedad de vuelta a fila de tabla (cae por tres
+condiciones, con `308.5` en el diagnóstico), el volumen de vuelta a línea, el Forrester de vuelta
+a 2,75×1,97 y la portada sin el rango real.
+
 ### Config en siete tarjetas, y la séptima el pedido no la nombraba — 2026-09-18
 
 Reorganización visual: cada sección pasó a una tarjeta con borde propio dentro de una grilla de

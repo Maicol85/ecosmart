@@ -5208,10 +5208,15 @@ caso('TC-150', 'PPT Lab: graficos nativos, semaforo de FEVI y asociaciones leida
 
       // 6 · LA TENDENCIA SALE DE _labMeses
       /* La serie tiene que ser, valor por valor, la que devuelve _labMeses. Es la unica forma de
-         distinguir "lee el seam" de "cuenta por su cuenta y da parecido". */
+         distinguir "lee el seam" de "cuenta por su cuenta y da parecido".
+         DESDE EL 2026-09-18 EL VOLUMEN VA EN BARRAS, no en linea: la hoja de evolucion se partio
+         en dos graficos porque conteo y porcentaje compartian eje. Este caso miraba el primer
+         'line', que hoy es la FEVI promedio — y ahi los valores son otros. Se reapunta al
+         grafico que lleva el conteo; el invariante no cambio. */
       ['la tendencia usa la funcion del Lab y no un conteo propio',
         (function(){
-          const c = capturadas.filter(function(x){ return String(x.tipo && (x.tipo.name || x.tipo)) === 'line'; })[0];
+          const c = capturadas.filter(function(x){ return String(x.tipo && (x.tipo.name || x.tipo)) === 'bar'
+                        && String((x.opciones && x.opciones.title) || '').indexOf('Estudios por mes') > -1; })[0];
           if (!c || !c.datos || !c.datos.length) return false;
           const meses = _labMeses(infs);
           return c.datos[0].values.length === meses.length &&
@@ -5277,6 +5282,20 @@ caso('TC-151', 'PPT: el paquete no pide reparacion y las diapositivas omitidas s
     __t.pptTodo();
     await _labPPTGenerar(chica, { presentador:'X', institucion:'Y', fecha:'2026-09-20', tema:'dark' });
     window._pptxDescargarSaneado = origDesc2; window.toast = origToast;
+    /* Segunda corrida SIN NINGUNA FEVI. Con MIN_OPC en 1 la hoja sistolica ya no se omite por
+       tener dos estudios —sale, con su aviso de cohorte chica—, asi que el escenario anterior
+       dejo de ejercer faltanN y la condicion que vigila su FORMATO se quedo sin denominador.
+       Para probar que el motivo nombra el dato y el numero hace falta que faltanN dispare, y
+       con el umbral en 1 eso ocurre cuando no hay NI UNA medicion.
+       (Sin acentos graves: el cuerpo de un caso es un template literal y un backtick lo cierra.
+        Van DIECINUEVE, y esta fue en el comentario que explica por que se reapunto el caso.) */
+    const sinFevi = [{ id:90, fecha_estudio:'2026-03-01', campos:{ edad:'60', sexo:'F' } }];
+    let capt3 = null;
+    window._pptxDescargarSaneado = function(P4){ capt3 = P4; return Promise.resolve({ saneado:true, quitadas:0 }); };
+    window.toast = function(){};
+    __t.pptTodo();
+    await _labPPTGenerar(sinFevi, { presentador:'X', institucion:'Y', fecha:'2026-09-20', tema:'dark' });
+    window._pptxDescargarSaneado = origDesc2; window.toast = origToast;
     const slides = capt2 ? (capt2.slides || []) : [];
     /* PptxGenJS guarda el texto como ARRAY DE RUNS cuando lo normaliza, no siempre como cadena.
        Leyendo solo el caso string, la hoja de metodologia quedaba invisible para el caso. */
@@ -5288,6 +5307,7 @@ caso('TC-151', 'PPT: el paquete no pide reparacion y las diapositivas omitidas s
     const meto = slides.filter(function(s2){ return textoDe(s2).indexOf('Metodolog') > -1; })[0];
     const lineasOmit = meto ? textoDe(meto).split(' | ').filter(function(t){ return t.indexOf('NO se incluy') > -1; }) : [];
     const elToast = toasts.join(' ');
+    let _tc151om = '';
 
     return { extra: [
       // 1 · EL DEFECTO EXISTIA Y ERA DE LA LIBRERIA
@@ -5311,10 +5331,16 @@ caso('TC-151', 'PPT: el paquete no pide reparacion y las diapositivas omitidas s
          "se necesitan al menos", frase que tambien escriben las omisiones de tendencia y de
          subgrupos —que no pasan por faltanN—, asi que vaciar faltanN no ponia nada en rojo. */
       ['el motivo nombra el dato que falta y cuantos hacen falta',
-        lineasOmit.some(function(t){
-          return t.indexOf('sist') > -1 && t.indexOf('estudio(s) con FEVI medida') > -1 &&
-                 t.indexOf('se necesitan al menos') > -1;
-        }), lineasOmit.join(' // ').slice(0, 200)],
+        (function(){
+          const sl3 = capt3 ? (capt3.slides || []) : [];
+          const m3 = sl3.filter(function(s4){ return textoDe(s4).indexOf('Metodolog') > -1; })[0];
+          const om3 = m3 ? textoDe(m3).split(' | ').filter(function(t){ return t.indexOf('NO se incluy') > -1; }) : [];
+          _tc151om = om3.join(' // ');
+          return om3.some(function(t){
+            return t.indexOf('sist') > -1 && t.indexOf('estudio(s) con FEVI medida') > -1 &&
+                   t.indexOf('se necesitan al menos') > -1;
+          });
+        })(), _tc151om],
       ['la metodologia sigue estando aunque falten diapositivas', !!meto]
     ] };
   })();
@@ -7932,6 +7958,175 @@ caso('TC-161', 'Config conserva sus siete secciones y todos sus controles', `
       ['y todos siguen dentro de la tab',               fuera.length === 0, fuera.join(', ')],
       ['las ocho plantillas de PDF siguen ofreciendose', opciones === 8, opciones],
       ['el formato de nombre de archivo conserva sus cinco opciones', !!fmt && fmt.options.length === 5, fmt && fmt.options.length]
+    ] };
+  })();
+`);
+
+
+/* Portada con el rango REAL de fechas, hoja de evolucion con dos graficos y solo con dos meses
+   o mas, aviso de cohorte chica, y el Forrester mas grande que la torta. */
+caso('TC-162', 'PPT Lab: portada con rango real, evolucion temporal y pesos de la hoja hemodinamica', `
+  return (async function(){
+    for (let _i = 0; _i < 80 && typeof PptxGenJS === 'undefined'; _i++) await new Promise(function(r){ setTimeout(r, 100); });
+    if (typeof PptxGenJS === 'undefined') return { extra: [['PptxGenJS cargo por CDN', false, 'no llego']] };
+
+    const mk = function(i, fecha, extra){
+      const base = { fevi:String(45+i), edad:String(50+i), sexo: i%2?'F':'M', talla:'170', peso:'75',
+                     diam_tsvi:'20', itv_tsvi:'20', hemo_fc:String(60+i*4), hemo_pam:String(75+i),
+                     onda_e:'90', e_sep:'7', e_lat:'8' };
+      Object.keys(extra || {}).forEach(function(k){ base[k] = extra[k]; });
+      return { id:700+i, estudioId:'t162-'+i, fecha_estudio: fecha, campos: base };
+    };
+    // Tres meses distintos -> la hoja de evolucion CORRESPONDE
+    const multi = [ mk(1,'2026-02-05'), mk(2,'2026-02-18'), mk(3,'2026-03-07'),
+                    mk(4,'2026-03-22'), mk(5,'2026-04-02'), mk(6,'2026-04-19') ];
+    // Todos del MISMO mes -> NO corresponde
+    const unMes = [ mk(1,'2026-03-03'), mk(2,'2026-03-11'), mk(3,'2026-03-25') ];
+    // Dos estudios -> la hoja sale (MIN_OPC=1) pero tiene que DECLARAR que es chica
+    const chica = [ mk(1,'2026-03-03'), mk(2,'2026-03-11') ];
+
+    const oD = window._pptxDescargarSaneado, oT = window.toast, oAdd = PptxGenJS.prototype.addSlide;
+    let charts = [];
+    PptxGenJS.prototype.addSlide = function(){
+      const sl = oAdd.apply(this, arguments), oc = sl.addChart;
+      sl.addChart = function(tipo, datos, op){ charts.push({ tipo: String(tipo), op: op || {} }); return oc.apply(this, arguments); };
+      return sl;
+    };
+    let capt = null;
+    window._pptxDescargarSaneado = function(P){ capt = P; return Promise.resolve({saneado:true, quitadas:0}); };
+    window.toast = function(){};
+    const textoDe = function(sl){ return (sl._slideObjects || []).map(function(o){
+      if (typeof o.text === 'string') return o.text;
+      if (Array.isArray(o.text)) return o.text.map(function(x){ return x && x.text ? x.text : ''; }).join('');
+      return ''; }).filter(function(x){ return x && x.trim(); }); };
+    const imgsDe = function(sl){ return (sl._slideObjects || [])
+      .filter(function(o){ return o._type === 'image' || o.image; })
+      .map(function(o){ const op = o.options || o; return { w: op.w, h: op.h }; }); };
+
+    const run = async function(coh, claves){
+      try { localStorage.setItem('ecosmart_lab_ppt_chk', JSON.stringify(claves.reduce(function(a,k){ a[k]=true; return a; }, {}))); } catch (e) {}
+      capt = null; charts = [];
+      await _labPPTGenerar(coh, { presentador:'Dra. X', institucion:'Centro Y', fecha:'2026-09-20', tema:'azul' });
+      const sl = capt ? (capt.slides || []) : [];
+      return { tit: sl.map(function(x){ const t = textoDe(x); return t.length ? t[0] : '(vacia)'; }),
+               txt: sl.map(function(x){ return textoDe(x).join(' | '); }),
+               img: sl.map(imgsDe), charts: charts.slice() };
+    };
+
+    const A = await run(multi, ['comparar','funcion']);
+    const B = await run(unMes, ['comparar','funcion']);
+    const C = await run(chica, ['funcion']);
+    const D = await run(multi, ['hemo']);
+    window._pptxDescargarSaneado = oD; window.toast = oT; PptxGenJS.prototype.addSlide = oAdd;
+
+    const iEvo = A.tit.findIndex(function(t){ return t.indexOf('Evolución') === 0; });
+    const evoTxt = iEvo > -1 ? A.txt[iEvo] : '';
+    /* POR LA FRONTERA DE LA API, no por el texto de la hoja. La primera version de esta
+       condicion buscaba los titulos en los objetos de texto de la diapositiva y daba rojo
+       contra un generador correcto: los rotulos de un grafico viven en el CHART. Es la misma
+       correccion que ya se le hizo a TC-150 y a la torta de amiloidosis. */
+    const tituloDe = function(c){ return String((c.op && c.op.title) || ''); };
+    const lineaFevi = A.charts.filter(function(c){ return c.tipo === 'line' && tituloDe(c).indexOf('FEVI promedio por mes') > -1; });
+    const barrasVol = A.charts.filter(function(c){ return c.tipo === 'bar' && tituloDe(c).indexOf('Estudios por mes') > -1; });
+    const iHemo = D.tit.indexOf('Perfil hemodinámico');
+    const imgsHemo = iHemo > -1 ? D.img[iHemo] : [];
+    const forr = imgsHemo.length ? imgsHemo[0] : null;
+    const areaForr = forr ? forr.w * forr.h : 0;
+    /* La torta no es una imagen sino un chart: su caja sale de las opciones con que se la pidio. */
+    const opTorta = D.charts.filter(function(c){ return /pie|doughnut/.test(c.tipo); }).map(function(c){ return c.op; })[0];
+    const areaTorta = opTorta ? opTorta.w * opTorta.h : 0;
+    const iFunc = C.tit.indexOf('Función sistólica');
+    const avisoChica = iFunc > -1 ? C.txt[iFunc] : '';
+
+    return { extra: [
+      ['la portada declara el rango REAL de fechas',   A.txt[0].indexOf('05/02/2026 — 19/04/2026') > -1, A.txt[0].slice(0,190)],
+      ['  y sigue declarando el N',                    A.txt[0].indexOf('6 estudios') > -1, A.txt[0].slice(0,190)],
+      ['con 3 meses sale la hoja de evolucion',        iEvo > -1, A.tit.join(' / ')],
+      ['  con el periodo en el titulo',                iEvo > -1 && A.tit[iEvo].indexOf('2026/02 — 2026/04') > -1, iEvo > -1 ? A.tit[iEvo] : ''],
+      ['  la FEVI va en un grafico de LINEA',          lineaFevi.length === 1, A.charts.map(function(c){ return c.tipo + ':' + tituloDe(c); }).join(' / ')],
+      ['  y el volumen en uno de BARRAS aparte',       barrasVol.length === 1, A.charts.map(function(c){ return c.tipo + ':' + tituloDe(c); }).join(' / ')],
+      /* La mitad que impide "sacarla siempre": con un solo mes no hay evolucion que mostrar. */
+      ['con 1 solo mes NO sale',                       B.tit.every(function(t){ return t.indexOf('Evolución') !== 0; }), B.tit.join(' / ')],
+      ['una cohorte de 2 se declara chica',            avisoChica.indexOf('demasiado chica') > -1, avisoChica.slice(0,150)],
+      ['el Forrester es la imagen mas grande de su hoja', areaForr > 8, JSON.stringify(imgsHemo)],
+      ['  y le gana a la torta en area',               areaForr > areaTorta * 1.5, areaForr.toFixed(2) + ' vs ' + areaTorta.toFixed(2)]
+    ] };
+  })();
+`);
+
+
+/* Las salvedades de las hojas de modulos avanzados se empujaban como "Salvedad | <parrafo>", o
+   sea como fila de DOS columnas: 230 caracteres exprimidos en la columna del valor, que mide el
+   46 % del ancho. Pasaron al tipo 'nota' (marcador !!), a ancho completo y en italica.
+   Se mide la COORDENADA X en el content stream del PDF real: es lo unico que distingue un
+   bloque a ancho completo de una celda de tabla. Que el texto este no prueba nada — antes
+   tambien estaba, deformado. */
+caso('TC-163', 'La salvedad de las hojas avanzadas sale como bloque, no como celda de tabla', `
+  return (async () => {
+    for (let i = 0; i < 80 && (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF); i++) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+    if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) {
+      return { extra: [['jsPDF cargo por CDN', false, 'no llego en 8 s']] };
+    }
+    __t.limpiar();
+    __t.set('nombre', 'VEXUS Nota'); __t.set('ci', '3131313-1');
+    __t.set('vci_diam', '24');
+    /* Por ID y no recorriendo VEXUS_VASOS: es un const de modulo, no existe en window, y el
+       bucle no seteaba nada — el caso media sobre un score null y parecia verde. */
+    ['vexus_sh','vexus_pv','vexus_ir'].forEach(id => {
+      const sel = document.getElementById(id);
+      if (sel && sel.options.length > 1) { sel.selectedIndex = sel.options.length - 1;
+        sel.dispatchEvent(new Event('change', { bubbles: true })); }
+    });
+    try { calcVEXUS(); } catch (e) {}
+    const st = vexusEstado();
+    const txt = (typeof amiloTextoVEXUS === 'function') ? amiloTextoVEXUS() : '';
+    try { amiloIntegrar('vexus'); } catch (e) {}
+
+    const Orig = window.jspdf.jsPDF;
+    let doc = null;
+    function W() { const d = new Orig(...arguments); d.save = function(){ return Promise.resolve(); }; doc = d; return d; }
+    W.prototype = Orig.prototype; window.jspdf.jsPDF = W;
+    try { await generarPDFReal({}); } catch (e) {}
+    window.jspdf.jsPDF = Orig;
+
+    let salvX = [], venaX = [], conclX = [], nLineas = 0;
+    if (doc) {
+      const raw = atob(doc.output('datauristring').split(',')[1]);
+      /* Token a token: jsPDF alterna Td y Tm y el Tj usa la ULTIMA coordenada emitida. Un
+         regex que exija Td pegado al Tj se pierde la mitad de las lineas. */
+      const tok = /([0-9.-]+) ([0-9.-]+) Td|1 0 0 1 ([0-9.-]+) ([0-9.-]+) Tm|\\((.*?)\\) ?Tj/g;
+      let m, cx = null; const pos = [];
+      while ((m = tok.exec(raw))) {
+        if (m[1] !== undefined) cx = parseFloat(m[1]);
+        else if (m[3] !== undefined) cx = parseFloat(m[3]);
+        else if (m[5] !== undefined && cx !== null) pos.push({ x: cx, t: m[5] });
+      }
+      const uniq = a => Array.from(new Set(a.map(p => Math.round(p.x * 10) / 10)));
+      const frag = ['integrarse con la cl', 'patrones venosos', 'Beaubien', 'fibrilaci'];
+      const sal = pos.filter(p => frag.some(f => p.t.indexOf(f) > -1));
+      nLineas = sal.length;
+      salvX = uniq(sal);
+      venaX = uniq(pos.filter(p => p.t.indexOf('Vena ') > -1));
+      conclX = uniq(pos.filter(p => p.t.indexOf('Congesti') > -1));
+    }
+    __t.limpiar();
+    /* 38,3 pt = 13,5 mm = margen + filete + sangria del bloque de nota.
+       31,2 pt = 11 mm   = columna de la ETIQUETA de una fila de tabla.
+       308,5 pt = 108,8 mm = columna del VALOR, que es donde caia antes. */
+    const X_NOTA = 38.3, X_LBL = 31.2, X_VALOR = 308.5;
+    return { extra: [
+      ['el escenario tiene score VEXUS (denominador)', !!st && st.score !== null, st && st.score],
+      ['el texto marca la salvedad como nota',         txt.indexOf('!! Salvedad.') > -1, txt.split('\\n').slice(-1)[0].slice(0, 60)],
+      ['el PDF se genero',                             !!doc],
+      ['la salvedad se dibujo',                        nLineas > 0, nLineas],
+      ['  a ancho completo, no en la columna del valor', salvX.length === 1 && Math.abs(salvX[0] - X_NOTA) < 1.5, salvX.join(',')],
+      ['  y NINGUNA linea suya cae en esa columna',    salvX.every(x => Math.abs(x - X_VALOR) > 1.5), salvX.join(',')],
+      /* La otra mitad: las filas de datos SIGUEN siendo tabla. Sin esto, el arreglo podria ser
+         "sacar todo de la tabla" y la hoja perderia su estructura de dos columnas. */
+      ['las filas de vasos siguen en la tabla',        venaX.length === 1 && Math.abs(venaX[0] - X_LBL) < 1.5, venaX.join(',')],
+      ['la conclusion va a ancho completo',            conclX.length === 1 && Math.abs(conclX[0] - X_LBL) < 1.5, conclX.join(',')]
     ] };
   })();
 `);
