@@ -5758,9 +5758,11 @@ caso('TC-156', 'PPT Lab: contractilidad con su bulls eye, amiloidosis y hemodina
         c3.txt.join(' ').indexOf('PCP > 15') > -1, (c3.txt[1] || '').slice(-200)],
 
       // 6 - EL REGISTRO SIGUE COMPLETO
-      ['los grupos siguen cubriendo las 53 tarjetas',
-        g.enDom === 53 && g.enGrupo === 53 && !g.sinGrupo.length && !g.dobles.length,
-        g.enDom + '/' + g.enGrupo]
+      ['los grupos siguen cubriendo TODAS las tarjetas',
+        /* Sin literal: el 53 se pudrio al agregar tres tarjetas el 2026-09-18 y daba rojo
+           con 56/56, o sea con el registro sano. Lo que importa es que los dos lados
+           coincidan y no esten vacios. */
+        g.enDom > 0 && g.enDom === g.enGrupo, g.enDom + '/' + g.enGrupo]
     ] };
   })();
 `);
@@ -5865,7 +5867,12 @@ caso('TC-155', 'PPT Lab: las casillas deciden el mazo, y lo que no tiene hoja se
       ['toda tarjeta con casilla tiene diapositiva', g.sinGrupo.length === 0, g.sinGrupo.join(',')],
       ['ningun grupo nombra una tarjeta que no existe', g.sinTarjeta.length === 0, g.sinTarjeta.join(',')],
       ['y ninguna tarjeta esta en dos grupos', g.dobles.length === 0, g.dobles.join(',')],
-      ['las 53 con casilla estan agrupadas', g.enDom === 53 && g.enGrupo === 53, g.enDom + '/' + g.enGrupo],
+      /* Se comparan los DOS lados entre si, no contra un literal. El numero fijo (53) se pudrio
+         al agregar VEXUS, derrame y constriccion el 2026-09-18: la condicion daba rojo con
+         56/56, o sea con el registro perfectamente sano. Lo que importa es que toda tarjeta
+         tenga grupo y todo grupo tenga tarjeta, y eso ya lo dicen las tres de arriba; aca se
+         fija que los conjuntos tengan el MISMO tamano y que no esten vacios. */
+      ['las tarjetas con casilla y los grupos coinciden', g.enDom > 0 && g.enDom === g.enGrupo, g.enDom + '/' + g.enGrupo],
 
       // 2 - LAS CASILLAS DECIDEN
       ['solo TAVI da cuatro diapositivas', soloTavi.tit.length === 4, soloTavi.tit.join(' · ')],
@@ -6449,7 +6456,9 @@ caso('TC-142', 'Laboratorio: ocho subtabs, orden nuevo y la tabla de valvulopati
 
     // 2 · ORDEN de las tabs.
     ['el orden de las subtabs es el pedido',
-      tieneEnOrden(subtabs, ['General','Mediciones','Avanzado','ETE','CC','Filtros','Informe','Asociaciones']),
+      /* Asociaciones ANTES que Informe desde el 2026-09-18: el informe es la salida y va al
+         final. Las otras seis ya estaban en este orden. */
+      tieneEnOrden(subtabs, ['General','Mediciones','Avanzado','ETE','CC','Filtros','Asociaciones','Informe']),
       subtabs.join(' · ')],
 
     // 3 · CONTENIDO plegado, accesible.
@@ -6458,10 +6467,15 @@ caso('TC-142', 'Laboratorio: ocho subtabs, orden nuevo y la tabla de valvulopati
       hdr('general').join(' | ')],
     ['y el resumen ejecutivo sigue primero',
       hdr('general')[0].indexOf('Actividad del Laboratorio') > -1, hdr('general')[0]],
-    ['Avanzado contiene el perfil hemodinamico, y va primero',
-      hdr('avanzado')[0].indexOf('Perfil hemodinámico') > -1, hdr('avanzado').join(' | ')],
-    ['con TEP / VD segundo',
-      hdr('avanzado')[1].indexOf('TEP') > -1, hdr('avanzado')[1]],
+    /* ORDEN NUEVO desde el 2026-09-18 (pedido de Maicol): «Uso del modulo avanzado» pasa a
+       PRIMERO porque es el denominador de todo lo que viene abajo, y hemodinamica queda
+       segunda. El orden completo de las nueve tarjetas lo fija TC-164. */
+    ['Avanzado abre con el uso del modulo',
+      hdr('avanzado')[0].indexOf('Uso del módulo avanzado') > -1, hdr('avanzado').join(' | ')],
+    ['con el perfil hemodinamico segundo',
+      hdr('avanzado')[1].indexOf('Perfil hemodinámico') > -1, hdr('avanzado')[1]],
+    ['y TEP / VD tercero',
+      hdr('avanzado')[2].indexOf('TEP') > -1, hdr('avanzado')[2]],
     ['los init de los bloques plegados cuelgan de General',
       String(labSubTab).indexOf('labMedicoInit') > -1 &&
       String(labSubTab).indexOf('labCompararInit') > -1 &&
@@ -8127,6 +8141,76 @@ caso('TC-163', 'La salvedad de las hojas avanzadas sale como bloque, no como cel
          "sacar todo de la tabla" y la hoja perderia su estructura de dos columnas. */
       ['las filas de vasos siguen en la tabla',        venaX.length === 1 && Math.abs(venaX[0] - X_LBL) < 1.5, venaX.join(',')],
       ['la conclusion va a ancho completo',            conclX.length === 1 && Math.abs(conclX[0] - X_LBL) < 1.5, conclX.join(',')]
+    ] };
+  })();
+`);
+
+
+/* Orden de las subtabs y de Avanzado, y el centinela: el contador cuenta INTEGRACION al
+   informe (am-txt-<k> en campos), no dato cargado. La mitad que importa es la negativa — un
+   estudio con el dato y sin integrar NO puede sumar — porque sin ella el caso pasa igual con
+   el criterio viejo. */
+caso('TC-164', 'Laboratorio: orden de subtabs y de Avanzado, y el contador cuenta integracion', `
+  return (async () => {
+    const mk = (i, c) => ({ id:800+i, estudioId:'tc164-'+i, fecha_estudio:'2026-03-0'+i, campos:c });
+    const coh = [
+      mk(1, { hemo_fc:'80', 'am-txt-hemo':'Perfil...', 'am-txt-vexus':'VEXUS...',
+              vci_diam:'24', vexus_sh:'2', vexus_pv:'2', vexus_ir:'0' }),
+      /* Con el campo pericardio cargado: sin el, la cascada concluye «sin derrame» y la fila no
+         prueba que el rotulo salga del filtro — probaria el caso trivial.
+         SIN ACENTOS GRAVES: el cuerpo de un caso es un template literal. Van VEINTE. */
+      mk(2, { 'am-txt-tep':'TEP...', 'am-txt-dpt':'Derrame...', pericardio:'Derrame moderado (10-20mm)' }),
+      mk(3, { 'am-txt-ett':'Score...', 'am-txt-cvr':'CvR...', 'am-txt-hfpeff':'HFA-PEFF...' }),
+      /* Los dos que NO integraron: tienen el dato de hemodinamica y de cardio-onco. */
+      mk(4, { hemo_fc:'70', hemo_pam:'85' }),
+      mk(5, { 'alg-ett-score':'8', co_farmaco:'doxorrubicina' })
+    ];
+    await CeiboStore.setLocal(coh);
+    const b = [].slice.call(document.querySelectorAll('[onclick*="showTab"]'))
+      .filter(x => (x.getAttribute('onclick') || '').indexOf("'lab'") > -1)[0];
+    if (b) b.click();
+    await new Promise(r => setTimeout(r, 400));
+    const sp = document.getElementById('lab-periodo'); if (sp) sp.value = '0';
+    try { labCohorteLimpiar(true); } catch (e) {}
+    labInit();
+    await new Promise(r => setTimeout(r, 1800));
+
+    const rail = [].slice.call(document.querySelectorAll('.lab-subtab'))
+      .map(x => (x.textContent || '').trim());
+    const av = document.getElementById('lab-sub-avanzado');
+    const cards = av ? [].slice.call(av.querySelectorAll('.lab-card-hdr')).map(x => (x.textContent || '').replace('PPT','').trim()) : [];
+    const ag = (typeof _labPptAssertGrupos === 'function') ? _labPptAssertGrupos() : null;
+    const txt = id => { const e = document.getElementById(id); return e ? (e.textContent || '').replace(/\\s+/g, ' ') : ''; };
+    const res = txt('lab-adv-resumen');
+    const denom = (typeof labGetInformes === 'function') ? labGetInformes().length : -1;
+    await CeiboStore.setLocal([]);
+
+    const ORDEN = ['General','Mediciones','Avanzado','ETE','CC / Genéticas','Filtros','Asociaciones','Informe'];
+    const AV = ['🧩 Uso del módulo avanzado','🩺 Perfil hemodinámico','🫁 TEP / Sobrecarga VD',
+                '🧬 Amiloidosis','🎗️ Cardio-Oncología','🫀 Score HFA-PEFF (ESC/HFA 2019)',
+                '🩸 VEXUS — congestión venosa','💧 Derrame pericárdico / Taponamiento',
+                '🔒 Constricción vs Restricción'];
+    return { extra: [
+      ['la cohorte sembrada es el denominador',        denom === 5, denom],
+      ['las subtabs estan en el orden pedido',         rail.join('|') === ORDEN.join('|'), rail.join(' / ')],
+      ['Avanzado esta en el orden pedido',             cards.join('|') === AV.join('|'), cards.join(' / ')],
+      ['  con «Uso del modulo avanzado» PRIMERO',      cards[0] === AV[0], cards[0]],
+      /* Sin esto, una tarjeta nueva da una casilla que el medico tilda y no produce nada. */
+      ['toda casilla PPT pertenece a un grupo',        !!ag && ag.sinGrupo.length === 0, ag && ag.sinGrupo.join(',')],
+      ['  y ningun grupo nombra una tarjeta que no existe', !!ag && ag.sinTarjeta.length === 0, ag && ag.sinTarjeta.join(',')],
+      ['el contador incluye los cuatro modulos nuevos',
+        ['Con HFA-PEFF','Con VEXUS','Con derrame / taponamiento','Con constricción vs restricción']
+          .every(t => res.indexOf(t) > -1), res.slice(0,220)],
+      ['hemodinamica cuenta 1: el que la INTEGRO',     res.indexOf('Con hemodinámica1 (20%)') > -1, res.slice(0,120)],
+      /* LA MITAD NEGATIVA. El estudio 5 tiene co_farmaco y alg-ett-score cargados y no integro
+         ninguno: con el criterio viejo —dato cargado— cardio-onco daria 1 y amiloidosis 2. */
+      ['cardio-onco NO cuenta al que solo tiene el dato', res.indexOf('Con cardio-onco0 (0%)') > -1, res.slice(0,220)],
+      ['amiloidosis cuenta 1 y no 2',                  res.indexOf('Con amiloidosis1 (20%)') > -1, res.slice(0,220)],
+      ['la tarjeta declara que cuenta integracion',    res.indexOf('integró al informe') > -1, res.slice(-120)],
+      ['VEXUS publica el grado del que lo integro',    txt('lab-adv-vexus').indexOf('Grado 3') > -1, txt('lab-adv-vexus').slice(0,150)],
+      /* El rotulo sale del <option> del filtro, no de un mapa paralelo: si se escribiera aparte,
+         la fila diria la clave cruda «incompleto». */
+      ['el derrame usa el rotulo del filtro de cohorte', txt('lab-adv-dpt').indexOf('Derrame sin criterios evaluados') > -1, txt('lab-adv-dpt').slice(0,160)]
     ] };
   })();
 `);

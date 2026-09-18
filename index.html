@@ -13386,8 +13386,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     <button class="lab-subtab" onclick="labSubTab('ete',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>ETE</button>
     <button class="lab-subtab" onclick="labSubTab('cc',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a4 4 0 0 0 8 0V3"/><path d="M8 21v-3a4 4 0 0 1 8 0v3"/><line x1="7" y1="12" x2="17" y2="12"/></svg>CC / Genéticas</button>
     <button class="lab-subtab" onclick="labSubTab('filtros',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Filtros<span id="lab-coh-badge" style="display:none;margin-left:6px;background:var(--orange,#f0a500);color:#111;border-radius:9px;padding:1px 7px;font-size:.68rem;font-weight:800;"></span></button>
-    <button class="lab-subtab" onclick="labSubTab('informe',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>Informe</button>
     <button class="lab-subtab" onclick="labSubTab('asociaciones',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>Asociaciones</button>
+    <button class="lab-subtab" onclick="labSubTab('informe',this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>Informe</button>
   </div>
 
   <!-- ══ PANEL DE FILTROS — define la cohorte de las once subtabs ══ -->
@@ -14196,6 +14196,29 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
          Ninguna se duplica acá a propósito — dos vistas del mismo dato divergen en cuanto una
          se toque. -->
 
+    <!-- «Uso del módulo avanzado» va PRIMERO (2026-09-18): es el resumen de CUÁNTOS estudios
+         usaron cada módulo, o sea el denominador de todo lo que viene abajo. Estaba tercera,
+         después de hemodinámica y TEP, así que se leía como una sección más.
+         Se mueve con su comentario pegado: en esta subtab viven párrafos y comentarios ENTRE las
+         tarjetas, y mover una tarjeta suelta los deja explicando la equivocada — es la trampa
+         que este archivo documenta del reordenamiento anterior. -->
+    <div class="lab-card" data-ppt="usoavanzado">
+      <div class="lab-card-hdr">🧩 Uso del módulo avanzado</div>
+      <div class="lab-card-body">
+        <div class="lab-grid">
+          <div>
+            <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Resumen del período</div>
+            <div id="lab-adv-resumen"></div>
+          </div>
+          <div>
+            <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Uso por módulo</div>
+            <div class="lab-bar-wrap" id="lab-adv-uso"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
   <!-- ══ HEMODINAMICA — plegada desde su propia subtab el 2026-09-16 ══ -->
 
   <!-- Perfil hemodinámico — vino de la subtab Avanzado. Los ids conservan el prefijo
@@ -14237,23 +14260,6 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     </div>
     <div style="font-size:.8rem;color:var(--text2);margin-bottom:14px;line-height:1.5;">
       Uso de los módulos especiales (Hemodinámica, TEP, Amiloidosis, Cardio-Oncología) en los estudios del período. Detectado automáticamente según los campos registrados en cada estudio.
-    </div>
-
-    <!-- Uso general del módulo avanzado -->
-    <div class="lab-card" data-ppt="usoavanzado">
-      <div class="lab-card-hdr">🧩 Uso del módulo avanzado</div>
-      <div class="lab-card-body">
-        <div class="lab-grid">
-          <div>
-            <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Resumen del período</div>
-            <div id="lab-adv-resumen"></div>
-          </div>
-          <div>
-            <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Uso por módulo</div>
-            <div class="lab-bar-wrap" id="lab-adv-uso"></div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- Amiloidosis -->
@@ -14303,6 +14309,25 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <div id="lab-hfpeff-nota" style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.5;"></div>
       </div>
     </div>
+
+    <!-- VEXUS · Derrame/taponamiento · Constricción vs restricción (2026-09-18).
+         Van al final y en este orden porque es el que pidió Maicol. Los tres cuentan por
+         INTEGRACIÓN al informe (`am-txt-<k>`), no por dato cargado — ver `_labIntegrado`. -->
+    <div class="lab-card" data-ppt="vexus">
+      <div class="lab-card-hdr">🩸 VEXUS — congestión venosa</div>
+      <div class="lab-card-body"><div id="lab-adv-vexus"></div></div>
+    </div>
+
+    <div class="lab-card" data-ppt="dpt">
+      <div class="lab-card-hdr">💧 Derrame pericárdico / Taponamiento</div>
+      <div class="lab-card-body"><div id="lab-adv-dpt"></div></div>
+    </div>
+
+    <div class="lab-card" data-ppt="cvr">
+      <div class="lab-card-hdr">🔒 Constricción vs Restricción</div>
+      <div class="lab-card-body"><div id="lab-adv-cvr"></div></div>
+    </div>
+
   </div><!-- /lab-sub-avanzado -->
 
 <!-- ══ Subtab Hemodinámica ══
@@ -51663,6 +51688,30 @@ function _labTepSignos(i) {
 }
 
 // Hemodinámica: usado si hemo_fc o hemo_pam tienen valor
+/* ══ CENTINELA «INTEGRADO AL INFORME» ═══════════════════════════════════════════════════════
+   `amiloIntegrar(k)` escribe el texto del módulo en el `<textarea id="am-txt-<k>">` de la card,
+   y `guardarInforme` barre `textarea[id]`: por eso `campos['am-txt-<k>']` NO vacío es la marca
+   PERSISTIDA de que el médico integró ese módulo. `amiloIntegrado(k)` no sirve acá — mira el
+   `display` de un div del DOM vivo, o sea el estudio abierto, no el guardado.
+
+   POR QUÉ ES UN PREDICADO NUEVO Y NO SE CAMBIARON LOS `_lab*Usado` (2026-09-18).
+   El pedido decía que Hemodinámica, TEP, Amiloidosis y Cardio-Onco «ya cuentan por Integrar al
+   informe». Medido: **no**. Los cuatro cuentan por DATO CARGADO. Y esos cuatro predicados
+   tienen otros consumidores que NECESITAN ese significado:
+     · `_labOncoUsado` gatea la columna «Riesgo CV basal» del Excel — con el criterio de
+       integración, todo estudio con datos oncológicos sin integrar perdería esa celda;
+     · `_labOncoUsado` y `_labAmilUsado` definen la POBLACIÓN de las asociaciones estadísticas
+       (`A_POBL`), así que cambiarlos mueve los p-valores de un PDF de auditoría firmado;
+     · `_labTepUsado` es el predicado del filtro de cohorte.
+   Nada de eso se pidió. El contador «Uso del módulo avanzado» pasa a contar INTEGRACIÓN —que
+   es la regla que se decidió— y los `_lab*Usado` quedan como están para sus otros lectores.
+   Los dos significados conviven porque son dos preguntas distintas: «¿se cargó el dato?» y
+   «¿bajó al informe firmado?». La tarjeta lo dice en pantalla. */
+function _labIntegrado(inf, k) { return _labCampoRaw(inf, 'am-txt-' + k) !== ''; }
+/* Amiloidosis son DOS claves —el score ETT y el algoritmo— y se integran por separado: basta
+   una para que el estudio cuente como «tiene amiloidosis en el informe». */
+function _labAmilIntegrado(inf) { return _labIntegrado(inf, 'ett') || _labIntegrado(inf, 'alg'); }
+
 function _labHemoUsado(inf) { return _labCampoRaw(inf, 'hemo_fc') !== '' || _labCampoRaw(inf, 'hemo_pam') !== ''; }
 // Recomputa IC (GC/BSA) y PCP (Nagueh) desde campos → perfil Forrester I/II/III/IV o null
 /* ══ DIAGRAMA DE FORRESTER ═══════════════════════════════════════════════════════════════════
@@ -52085,19 +52134,102 @@ function _labAdvancedRender(infs, n) {
   const amilArr = infs.filter(_labAmilUsado);
   const oncoArr = infs.filter(_labOncoUsado);
 
-  // ── Uso general ──
+  /* ── Uso general — cuenta INTEGRACIÓN AL INFORME, no datos cargados ──
+     Los ocho módulos por el mismo criterio: `am-txt-<k>` no vacío en `campos`. Antes eran
+     cuatro y cada uno contaba «tiene el dato», que es otra pregunta — un estudio con la FC
+     cargada y el módulo nunca integrado sumaba igual. Con dos criterios en la misma barra
+     los números no son comparables entre módulos, así que se unificó hacia el que el médico
+     controla con un clic. Ver `_labIntegrado`. */
+  const intArr = k => infs.filter(i => _labIntegrado(i, k));
+  const amilIntArr = infs.filter(_labAmilIntegrado);
+  const hemoInt = intArr('hemo'), tepInt = intArr('tep'), oncoInt = intArr('conco');
+  const hfpInt  = intArr('hfpeff'), vexInt = intArr('vexus'), dptInt = intArr('dpt'), cvrInt = intArr('cvr');
   setHtml('lab-adv-resumen',
     stat('Total de estudios ' + _labPobTxt(), String(n)) +
-    stat('Con hemodinámica', hemoArr.length + ' (' + pctS(hemoArr.length) + ')') +
-    stat('Con evaluación TEP', tepArr.length + ' (' + pctS(tepArr.length) + ')') +
-    stat('Con amiloidosis', amilArr.length + ' (' + pctS(amilArr.length) + ')') +
-    stat('Con cardio-onco', oncoArr.length + ' (' + pctS(oncoArr.length) + ')'));
+    stat('Con hemodinámica', hemoInt.length + ' (' + pctS(hemoInt.length) + ')') +
+    stat('Con evaluación TEP', tepInt.length + ' (' + pctS(tepInt.length) + ')') +
+    stat('Con amiloidosis', amilIntArr.length + ' (' + pctS(amilIntArr.length) + ')') +
+    stat('Con cardio-onco', oncoInt.length + ' (' + pctS(oncoInt.length) + ')') +
+    stat('Con HFA-PEFF', hfpInt.length + ' (' + pctS(hfpInt.length) + ')') +
+    stat('Con VEXUS', vexInt.length + ' (' + pctS(vexInt.length) + ')') +
+    stat('Con derrame / taponamiento', dptInt.length + ' (' + pctS(dptInt.length) + ')') +
+    stat('Con constricción vs restricción', cvrInt.length + ' (' + pctS(cvrInt.length) + ')') +
+    '<div class="lab-empty" style="margin-top:8px;">Cuenta los estudios en los que el módulo se <b>integró al informe</b>, no los que tienen el dato cargado.</div>');
   labBarras('lab-adv-uso', [
-    { lbl: `Hemodinámica (n=${hemoArr.length})`, n: hemoArr.length, total: n, color: '#4f8ef7' },
-    { lbl: `TEP / sobrecarga VD (n=${tepArr.length})`, n: tepArr.length, total: n, color: '#8a5fd4' },
-    { lbl: `Amiloidosis (n=${amilArr.length})`, n: amilArr.length, total: n, color: '#2dd4bf' },
-    { lbl: `Cardio-oncología (n=${oncoArr.length})`, n: oncoArr.length, total: n, color: '#f472b6' }
+    { lbl: `Hemodinámica (n=${hemoInt.length})`, n: hemoInt.length, total: n, color: '#4f8ef7' },
+    { lbl: `TEP / sobrecarga VD (n=${tepInt.length})`, n: tepInt.length, total: n, color: '#8a5fd4' },
+    { lbl: `Amiloidosis (n=${amilIntArr.length})`, n: amilIntArr.length, total: n, color: '#2dd4bf' },
+    { lbl: `Cardio-oncología (n=${oncoInt.length})`, n: oncoInt.length, total: n, color: '#f472b6' },
+    { lbl: `HFA-PEFF (n=${hfpInt.length})`, n: hfpInt.length, total: n, color: '#f59e0b' },
+    { lbl: `VEXUS (n=${vexInt.length})`, n: vexInt.length, total: n, color: '#38bdf8' },
+    { lbl: `Derrame / taponamiento (n=${dptInt.length})`, n: dptInt.length, total: n, color: '#a3e635' },
+    { lbl: `Constricción vs restricción (n=${cvrInt.length})`, n: cvrInt.length, total: n, color: '#fb7185' }
   ]);
+
+  /* ── Las tres secciones nuevas (2026-09-18) ──
+     Mismo patrón que Hemodinámica y TEP: población = los que INTEGRARON el módulo, y la
+     distribución sale de la MISMA función que gobierna el informe firmado, apuntada al `campos`
+     del estudio. Nada se reimplementa acá: `vexusGrado` es la que usa la pantalla, y `dptEstado`
+     / `cvrEstado` se leen por la fuente inyectable `_pcCon`, que es para lo que existe. */
+  const _distrib = arr => { const o = Object.create(null); arr.forEach(k => { o[k] = (o[k] || 0) + 1; }); return o; };
+  /* Los rótulos de las conclusiones de pericardio NO se escriben acá: salen de los `<option>`
+     del filtro de cohorte, que ya son la traducción de esas mismas claves y llevan su propio
+     comentario explicando que los `value` son las que devuelve la cascada. Un segundo mapa se
+     desincroniza el día que alguien reescriba una opción, y acá el síntoma sería mudo: una fila
+     rotulada con la clave cruda («incipiente_cuantia») en vez de con su texto.
+     Sin entrada en el select se muestra la clave — `cvrEstado` tiene `sin_datos`, que el filtro
+     no ofrece porque filtrar por «no se pudo concluir» no tiene sentido, pero contarlo sí. */
+  const _lblSel = (selId, val) => {
+    const s = document.getElementById(selId);
+    if (!s) return val;
+    const o = Array.prototype.find.call(s.options, x => x.value === val);
+    return o ? o.textContent.trim() : val;
+  };
+  const _mapaDe = (selId, claves) => {
+    const m = Object.create(null);
+    claves.forEach(k => { m[k] = _lblSel(selId, k); });
+    return m;
+  };
+  const _filas = (o, mapa) => Object.keys(o).sort((a, b) => o[b] - o[a])
+    .map(k => stat(mapa && mapa[k] ? mapa[k] : k, o[k] + ' (' + (Math.round(o[k] / Math.max(1, Object.values(o).reduce((x,y)=>x+y,0)) * 100)) + '%)')).join('');
+
+  // VEXUS
+  if (!vexInt.length) empty('lab-adv-vexus', 'VEXUS integrado al informe');
+  else {
+    const gr = vexInt.map(i => {
+      try { const st = vexusGrado(_labNum(i, 'vci_diam'), _labCampoRaw(i, 'vexus_sh'),
+                                  _labCampoRaw(i, 'vexus_pv'), _labCampoRaw(i, 'vexus_ir'));
+        return (st && st.score !== null) ? String(st.score) : null; } catch (e) { return null; }
+    }).filter(x => x !== null);
+    const conCong = gr.filter(g => g !== '0').length;
+    setHtml('lab-adv-vexus',
+      stat('Estudios con VEXUS en el informe', String(vexInt.length)) +
+      stat('Con grado calculable', String(gr.length)) +
+      stat('Con congestión (grado ≥ 1)', gr.length ? conCong + ' de ' + gr.length : '—') +
+      _filas(_distrib(gr), { '0':'Grado 0 — sin congestión', '1':'Grado 1 — leve', '2':'Grado 2 — moderada', '3':'Grado 3 — severa' }));
+  }
+
+  // Derrame pericárdico / taponamiento
+  if (!dptInt.length) empty('lab-adv-dpt', 'derrame pericárdico integrado al informe');
+  else {
+    const cl = dptInt.map(i => { try { return _pcCon(i.campos || {}, () => (dptEstado() || {}).clave || null); }
+                                 catch (e) { return null; } }).filter(Boolean);
+    setHtml('lab-adv-dpt',
+      stat('Estudios con derrame en el informe', String(dptInt.length)) +
+      stat('Con conclusión clasificable', String(cl.length)) +
+      _filas(_distrib(cl), _mapaDe('coh-dpt-con', Object.keys(_distrib(cl)))));
+  }
+
+  // Constricción vs restricción
+  if (!cvrInt.length) empty('lab-adv-cvr', 'constricción vs restricción integrado al informe');
+  else {
+    const cl = cvrInt.map(i => { try { return _pcCon(i.campos || {}, () => (cvrEstado() || {}).clave || null); }
+                                 catch (e) { return null; } }).filter(Boolean);
+    setHtml('lab-adv-cvr',
+      stat('Estudios con el módulo en el informe', String(cvrInt.length)) +
+      stat('Con conclusión clasificable', String(cl.length)) +
+      _filas(_distrib(cl), _mapaDe('coh-cvr-con', Object.keys(_distrib(cl)))));
+  }
 
   /* El bloque «Hemodinámica» se mudó a labHemoRender. `hemoArr` se conserva acá porque la barra
      «Uso del módulo avanzado» de arriba sigue contando cuántos estudios lo usan, que es una
@@ -52397,7 +52529,11 @@ const LAB_PPT_GRUPOS = [
   { k:'vdhtp',     lbl:'VD y presión pulmonar',     cards:['vd','htp','doptric'] },
   { k:'contr',     lbl:'Contractilidad segmentaria',cards:['contractilidad'] },
   { k:'valv',      lbl:'Valvulopatías',             cards:['valvulas','etiologias'] },
-  { k:'hemo',      lbl:'Perfil hemodinámico',       cards:['hemo','tep','hfapeff','usoavanzado'] },
+  /* Se suman vexus, dpt y cvr al grupo que ya existía en vez de abrir uno nuevo: los tres son
+     evaluación avanzada y una casilla propia por tarjeta ya los gobierna. `_labPptAssertGrupos`
+     exige que TODA clave data-ppt pertenezca a exactamente un grupo, y una tarjeta sin grupo
+     no da error: da una casilla que el médico tilda y no produce nada. */
+  { k:'hemo',      lbl:'Hemodinámica y pericardio', cards:['hemo','tep','hfapeff','usoavanzado','vexus','dpt','cvr'] },
   { k:'amil',      lbl:'Amiloidosis',               cards:['amiloidosis'] },
   { k:'onco',      lbl:'Cardio-Oncología',          cards:['onco'] },
   { k:'ete',       lbl:'Ecocardiograma transesofágico', cards:['eteactividad','tavi','wilkins','orejuela','teer'] },
@@ -56522,8 +56658,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260918-1058';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789739887390;                 /* eco-build-ms */
+const ECO_BUILD    = '20260918-1348';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789750114637;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -56609,7 +56745,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1058</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1348</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

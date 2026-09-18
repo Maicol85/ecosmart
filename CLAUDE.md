@@ -487,6 +487,85 @@ El Excel pasó de **421 a 429 columnas** y de 128 a **129 básicas**; TC-135 fij
 contenido. Ojo con el `0` de una casilla apagada: **no es lo mismo que ausente**, y el caso lo
 distingue.
 
+### El contador del Laboratorio NO contaba «Integrar al informe» — 2026-09-18
+
+Reordenamiento de subtabs y de Avanzado, y el centinela de integración. **Los reordenamientos
+eran casi nada y el centinela era otra cosa de la que decía el pedido.**
+
+**El rail ya estaba en el orden pedido salvo las dos últimas**: sólo hubo que intercambiar
+Informe ↔ Asociaciones. Y **Avanzado sólo tenía «Uso del módulo avanzado» tercera en vez de
+primera**; las otras cinco ya estaban. La tarjeta se movió **con su comentario pegado**: en esta
+subtab viven párrafos y comentarios ENTRE las tarjetas, y mover una suelta los deja explicando
+la equivocada — la trampa que el reordenamiento anterior ya documentó.
+
+#### «Hoy esto funciona para Hemodinámica, TEP, Amiloidosis y Cardio-Onco» era falso
+
+Los cuatro contaban por **DATO CARGADO**, no por integración: `_labHemoUsado` mira `hemo_fc` o
+`hemo_pam`, `_labAmilUsado` mira `alg-ett-score`, `_labOncoUsado` mira `co_farmaco`. Ninguno mira
+el botón.
+
+**El centinela persistido SÍ existe y es `campos['am-txt-<k>']`.** `amiloIntegrar(k)` escribe el
+texto del módulo en un `<textarea id="am-txt-<k>">` y `guardarInforme` barre `textarea[id]`.
+**`amiloIntegrado(k)` NO sirve para esto**: mira el `display` de un div del DOM vivo, o sea el
+estudio abierto, no el guardado.
+
+**NO SE CAMBIARON LOS `_lab*Usado`, Y ESA ES LA DECISIÓN QUE IMPORTA.** La respuesta elegida fue
+«los ocho por integración», pero esos cuatro predicados tienen otros consumidores que necesitan
+el significado viejo:
+- `_labOncoUsado` gatea la columna **«Riesgo CV basal» del Excel** — con el criterio nuevo, todo
+  estudio con datos oncológicos sin integrar perdería esa celda;
+- `_labOncoUsado` y `_labAmilUsado` definen la **población de las asociaciones estadísticas**
+  (`A_POBL`), así que cambiarlos mueve los p-valores de un PDF de auditoría firmado;
+- `_labTepUsado` es el predicado del **filtro de cohorte**.
+
+Nada de eso se pidió. Se agregó `_labIntegrado(inf, k)` y **el contador pasa a usarlo**; los
+`_lab*Usado` quedan intactos para sus otros lectores. Los dos significados conviven porque son
+dos preguntas distintas —«¿se cargó el dato?» y «¿bajó al informe firmado?»— y la tarjeta lo
+**declara en pantalla**. Antes de cambiar un predicado compartido, `grep` de sus consumidores:
+acá eran cuatro y tres estaban fuera del Laboratorio.
+
+**Amiloidosis son DOS claves** (`ett` y `alg`) y se integran por separado: basta una.
+
+**Consecuencia declarada**: los conteos de los cuatro módulos que ya estaban **BAJAN**. Medido
+sobre la cohorte del caso: hemodinámica pasa de 2 a 1 y cardio-onco de 1 a 0, porque los estudios
+con el dato y sin integrar dejan de sumar.
+
+#### Las tres tarjetas nuevas
+
+VEXUS, derrame/taponamiento y constricción-vs-restricción. **Sus claves `data-ppt` se registraron
+en `LAB_PPT_GRUPOS`**: `_labPptAssertGrupos()` exige que toda clave pertenezca a exactamente un
+grupo, y una tarjeta sin grupo **no da error** — da una casilla que el médico tilda y no produce
+nada. Se sumaron al grupo `hemo`, que pasó a llamarse «Hemodinámica y pericardio».
+
+**Los rótulos de las conclusiones salen de los `<option>` del filtro de cohorte**
+(`#coh-dpt-con`, `#coh-cvr-con`), que ya son la traducción de esas mismas claves. Un segundo mapa
+se desincroniza y el síntoma sería mudo: una fila rotulada `incipiente_cuantia` en vez de con su
+texto. Lo que el filtro no ofrece —`sin_datos` de `cvrEstado`— cae a la clave cruda, a propósito.
+
+#### Lo que costó
+
+**CUATRO CASOS ANTERIORES SE PUSIERON EN ROJO, Y LOS CUATRO TENÍAN RAZÓN.** TC-142 pinaba el
+orden viejo de las subtabs y de Avanzado; TC-155 y TC-156 pinaban **el literal 53** de tarjetas
+con casilla, que daba rojo con **56/56** —o sea con el registro perfectamente sano—. Los dos
+conteos pasaron a comparar los dos lados entre sí en vez de contra un número fijo: *que toda
+tarjeta tenga grupo y todo grupo tenga tarjeta* ya lo dicen las tres condiciones de arriba.
+
+**MI SONDA LEYÓ `.length` DE UN OBJETO.** `_labPptAssertGrupos()` devuelve
+`{enDom, enGrupo, sinGrupo, …}`, no un array: `.length` daba `undefined` y `JSON.stringify`
+**omite las claves undefined**, así que las dos líneas del assert simplemente no aparecieron en
+la salida y no lo noté hasta buscarlas. Lo que sí probaba algo era `console.error: ninguno`.
+
+**Un reemplazo por regex se comió una sola línea de una condición de dos** y dejó un `]`
+colgando: el suite pasó de 179 a «178/179 con excepción SyntaxError». Es la entrada «los
+reemplazos por rango son peligrosos» otra vez, y el que la caza es el chequeo de sintaxis.
+
+**Backtick dentro del cuerpo de un caso: van VEINTE**, segunda vez en dos turnos, otra vez en el
+comentario que explicaba el cambio.
+
+**Una mutación, cazada:** el contador de vuelta a dato cargado pone en rojo las dos condiciones
+negativas —hemodinámica sube a 2 y cardio-onco a 1—, que son las que separan «cuenta integración»
+de «cuenta cualquier cosa».
+
 ### La salvedad era una CELDA, y el PPT ya hacía tres de las seis cosas pedidas — 2026-09-18
 
 Seis tareas. **Dos ya estaban hechas, una lo estaba a medias y tres eran reales.**
