@@ -487,6 +487,84 @@ El Excel pasó de **421 a 429 columnas** y de 128 a **129 básicas**; TC-135 fij
 contenido. Ojo con el `0` de una casilla apagada: **no es lo mismo que ausente**, y el caso lo
 distingue.
 
+### El formulario ya salía en blanco: lo que se filtraba era el diagrama del ETE — 2026-09-18
+
+El pedido era «al abrir la app, si no hay un estudio en edición, llamar `limpiarCampos()` en
+`DOMContentLoaded`», y traía tres premisas. **Las tres se midieron antes de tocar nada y las tres
+fallaron**, cada una en una dirección distinta.
+
+**1 · «Los campos no salen en blanco» — FALSO.** En una apertura limpia hay **cero** campos de
+texto/número/textarea fuera de su valor por defecto. `nombre` y `fevi` vacíos. Lo único que puede
+llenar el formulario al arrancar es la restauración del borrador del autosave, que **es**
+exactamente «un estudio en edición activa» — o sea, lo que el propio pedido quería preservar.
+
+**2 · «Verificar qué flag existe en localStorage para detectar edición activa» — NO EXISTE
+NINGUNA.** El censo completo de claves no tiene nada parecido: sólo configuración del médico y del
+centro, tema, y `ecosmart_autosave`. La sesión (`ett_auth`) vive en `sessionStorage`.
+`eeCurrentInformeId` es una variable de módulo, no se persiste.
+
+**3 · `limpiarCampos()` EN EL ARRANQUE DEJA SIN FIRMA TODOS LOS PDF.** Medido sobre una copia en
+`/tmp`, que es la única forma de saberlo: `limpiarCampos` barre
+`input[type=text], input[type=number]` **de todo el documento y sin excluir los readonly** —su
+propio comentario dice «(incluye readonly calculados)»— así que corriendo después de
+`aplicarMedico()` vacía `firma-nombre` y `firma-cjpp`. El bloque de firma queda en blanco hasta
+que el médico vuelva a entrar a Config. De paso se lleva `lab-pdf-titulo` y pone `lab-periodo` en
+30 (`selectedIndex = 0`), o sea que el Laboratorio arranca con otra ventana temporal y otro
+denominador. **No se aplicó.**
+
+#### Lo que sí estaba roto, y no era un campo del formulario
+
+`ete_seg_A1`…`ete_seg_P3` eran claves **GLOBALES** de localStorage —no por estudio— y un
+`setTimeout(300)` del arranque las volcaba a los espejos en **cada carga de la app**. La tapa que
+este archivo daba por suficiente (`limpiarCampos` → `eteLimpiarSegmentos()`) sólo corre en «Nuevo
+estudio»: **no cubría el arranque**. Reproducido: formulario en blanco y el resumen del diagrama
+diciendo «🔴 Hallazgos: A1: Flail · A2: Flail · A3: Flail» del paciente anterior.
+
+**El arreglo es sacar la clave, no limpiarla.** El estado no se pierde porque los espejos son
+`input[type=hidden][id]`: viajan en `campos` por el barrido de `guardarInforme`, los repone
+`eteSegSync` desde `RECALC_MODULOS`, y el autosave los guarda porque barre `input[id]`. Este
+archivo ya lo declaraba —«la clave global ya no tiene consumidor legítimo y se podría sacar»— y lo
+que faltaba era medir que la tapa no alcanzaba. Se **purgan** además las que hayan quedado en
+disco: son hallazgos clínicos sin cifrar y sin dueño, y sin la purga sobreviven en cada máquina
+donde la app ya corrió.
+
+#### Y el hallazgo que apareció de paso: la restauración del borrador estaba MUERTA otra vez
+
+La guarda «formulario vacío» de `_autosaveRestore` excluye los `readonly`, y su comentario dice
+haber cerrado exactamente este defecto nombrando cuatro campos. **Quedaron dos afuera**:
+`firma-esp` y `cfg-med-especialidad` son `input[type=text]` **sin** `readonly` que la configuración
+del médico llena al arrancar. Medido: con especialidad cargada el borrador **no vuelve nunca**; sin
+especialidad vuelve. O sea que para cualquier médico configurado de verdad, cerrar la pestaña a
+mitad de un estudio perdía todo, con la app prometiendo lo contrario en cada tecla.
+
+**La condición correcta no es «no es readonly» sino «es un campo del estudio».** Eso ya estaba
+escrito: `_noVaciar`, dentro de `editarInforme`, con el comentario «prefijos de campos que NO son
+del estudio». Se subió a nivel de módulo como **`_CAMPOS_FUERA_DEL_ESTUDIO`** y `editarInforme`
+quedó con un **alias local**, así que su cuerpo no cambió ni un carácter. Una sola expresión, dos
+preguntas: qué no vaciar al abrir un estudio, y qué no cuenta como evidencia de formulario empezado.
+
+#### Lo que costó
+
+**LA TAREA 1 YA ESTABA HECHA POR OTRO AGENTE, Y SE HABÍA LLEVADO `version.json`.** Los tres JSON de
+prueba aparecieron en `tests/` solos, minutos antes —hay sesiones concurrentes sobre este repo—, y
+el movimiento arrastró **`version.json`**, que es el único `.json` versionado de la raíz y **no es
+un fixture**: el banner de versión hace `fetch('version.json?_v=…')` a **ruta relativa**, así que
+desde `tests/` da 404. Y como ese chequeo *falla hacia no mostrar nada*, el mecanismo entero muere
+**en silencio** — justo el que existe porque una pestaña con un archivo viejo ya costó medio día de
+diagnóstico tres veces. Restaurado byte a byte desde HEAD; `sellar_version.py --check` en verde.
+**Al mover archivos en lote, mirar cuáles están versionados**: un `mv *.json` no distingue un
+fixture de un artefacto de despliegue.
+
+**Cuatro mutaciones, las cuatro cazadas y cada una sólo por sus condiciones:** `eteClick` volviendo
+a escribir la clave global, `eteSegSync` volviendo a consultarla (el diagnóstico imprime literal
+«🔴 Hallazgos: A1: Flail», que es el síntoma), el espejo convertido en no-op —que es la regresión
+que NO hay que introducir al sacar la clave— y la guarda `empty` revertida. En esta última, la
+condición del **denominador** («los tres campos de configuración están fuera de su default») se
+mantuvo verde: el caso probó lo que dice probar.
+
+**Un caso que sólo verifica que el borrador vuelve puede arreglarse «ignorando todo».** TC-159
+lleva el contrapeso: sobre un formulario YA EMPEZADO la restauración **no pisa** nada.
+
 ### Diagrama de Forrester: la línea que se dibuja ES el operador que clasifica — 2026-09-16
 
 IC vs PCP con los cuatro cuadrantes, un punto por estudio, interactivo en el Laboratorio y como PNG
@@ -5079,7 +5157,8 @@ ecocardiográfico de categoría A —el límite superior de lo normal— y `vdBa
 desde >45. Son dos criterios distintos sobre la misma medida y **no hay que unificarlos**.
 
 **Al verificar este panel, cuidado con el denominador.** El paciente ficticio «completo»
-(`paciente_ficticio_completo.json`) enciende **dos** de las nueve secciones: estenosis mitral y CIA.
+(`tests/paciente_ficticio_completo.json`) enciende **dos** de las nueve secciones: estenosis mitral
+y CIA.
 Verificar sólo con él no dice nada sobre las otras siete. Hace falta un estudio adversario que las
 encienda a la vez, y el formulario vacío para el mensaje de «sin criterios».
 
@@ -5951,12 +6030,13 @@ de arriba— no tiene compuerta ni avisa. Si se agregan más secciones conviene 
 opt-out (`sinCompuerta:true`) con un `console.warn` de arranque para las que no declaren ninguna
 de las dos, como hace `_labXlsAssertBloques()`.
 
-### Segmentos del ETE — la clave global de localStorage sigue teniendo un escritor
-`eteClick` escribe **las dos** representaciones: el espejo por estudio (`#ete_seg_*`, que es el
-que viaja en el backup) y la clave global `ete_seg_*`, que fugaba entre pacientes. Hoy la fuga
-está tapada porque `limpiarCampos` llama a `eteLimpiarSegmentos()`, que pone las seis en 0. La
-tapa depende de que ese llamado siga ahí. Con el espejo en su lugar, la clave global ya no tiene
-consumidor legítimo y se podría sacar — no se hizo hoy para no ampliar el diff.
+### ~~Segmentos del ETE — la clave global de localStorage sigue teniendo un escritor~~
+**CERRADO 2026-09-18, y la tapa no tapaba lo que importaba.** Esta entrada decía que la fuga
+estaba cubierta porque `limpiarCampos` llama a `eteLimpiarSegmentos()`. Cierto y **insuficiente**:
+ese llamado sólo corre en «Nuevo estudio», y la clave se leía **en el arranque**, que es el camino
+de cada mañana. Medido en el navegador: con el paciente anterior marcado con flail en A1/A2/A3,
+abrir EcoSmart de cero dejaba el diagrama pintado y el resumen diciendo **«🔴 Hallazgos: A1: Flail ·
+A2: Flail · A3: Flail»** sobre un formulario en blanco. Ver la entrada de la fecha.
 
 - **`med-centro` es un span huérfano y le gana al centro de Config en TODO PDF.** El encabezado
   resuelve `_medCentro || centroStr || 'CeiboMed'` (~21244) y `_medCentro` es `sv('med-centro')`,

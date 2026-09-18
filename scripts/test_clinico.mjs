@@ -7676,6 +7676,125 @@ caso('TC-GR-12', 'La casilla de morfologia ETE viaja con el estudio y no se pega
 `);
 
 
+/* Los segmentos del ETE vivian en claves GLOBALES de localStorage (ete_seg_A1...P3) y el
+   arranque las volcaba a los espejos en cada carga: abrir la app de cero dejaba el diagrama
+   pintado con los hallazgos del paciente anterior. La tapa que existia —limpiarCampos llama a
+   eteLimpiarSegmentos— solo corre en «Nuevo estudio», o sea que NO cubria el arranque.
+   Este caso fija las dos mitades: que la clave global no se escriba mas, y que el estado
+   SIGA viajando por los espejos, que es lo que no se puede romper al sacarla. */
+caso('TC-158', 'Los segmentos del ETE no dejan rastro en localStorage y viajan con el estudio', `
+  return (async () => {
+    const SEGS = ['A1','A2','A3','P1','P2','P3'];
+    const esp = () => SEGS.map(s => (document.getElementById('ete_seg_' + s) || {}).value).join(',');
+    const enDisco = () => SEGS.filter(s => localStorage.getItem('ete_seg_' + s) !== null);
+    const resumen = () => (document.getElementById('ete-seg-resumen') || {}).textContent || '';
+    SEGS.forEach(s => { try { localStorage.removeItem('ete_seg_' + s); } catch (e) {} });
+    __t.limpiar();
+
+    /* 1) Una clave global envenenada NO puede repintar el diagrama. eteSegSync lee los
+       ESPEJOS; si volviera a consultar localStorage, este bloque se pone en rojo. */
+    localStorage.setItem('ete_seg_A1', '2');
+    eteSegSync();
+    const trasEnvenenar = esp();
+    const resumenEnvenenado = resumen();
+    SEGS.forEach(s => { try { localStorage.removeItem('ete_seg_' + s); } catch (e) {} });
+
+    /* 2) Pintar de verdad: el espejo se llena y el disco queda limpio. */
+    eteClick('A1'); eteClick('A1'); eteClick('A3');
+    const espPintado = esp();
+    const a1 = (document.getElementById('ete_seg_A1') || {}).value;
+    const discoTrasPintar = enDisco();
+    const resumenPintado = resumen();
+
+    /* 3) El estado viaja con el estudio: guardar, «Nuevo estudio», reabrir. */
+    __t.set('nombre', 'SEG ETE'); __t.set('ci', '9090909-0');
+    const g = await __t.guardar();
+    const campoGuardado = (function () {
+      const e = getInformes().find(i => i.estudioId === g.estudioId);
+      return e && e.campos ? e.campos.ete_seg_A1 : null;
+    })();
+    __t.nuevoEstudio();
+    const espTrasLimpiar = esp();
+    const discoTrasLimpiar = enDisco();
+    __t.reabrir(g.estudioId);
+    const espTrasReabrir = esp();
+    const resumenTrasReabrir = resumen();
+    await __t.borrar(g.estudioId);
+
+    /* 4) Y el boton «Limpiar» del diagrama tampoco escribe en disco. */
+    eteClick('P1');
+    eteLimpiarSegmentos();
+    const discoTrasLimpiarBoton = enDisco();
+    const espTrasLimpiarBoton = esp();
+    __t.limpiar();
+
+    return { extra: [
+      ['una clave global envenenada no pinta nada',        trasEnvenenar === '0,0,0,0,0,0', trasEnvenenar],
+      ['  ni aparece en el resumen de hallazgos',          resumenEnvenenado.indexOf('Hallazgos') === -1, resumenEnvenenado.trim()],
+      ['pintar un segmento llena su espejo',               a1 !== '0' && a1 !== '' && a1 != null, espPintado],
+      ['  y el resumen lo publica',                        resumenPintado.indexOf('Hallazgos') > -1, resumenPintado.trim()],
+      ['  SIN escribir una sola clave en localStorage',    discoTrasPintar.length === 0, discoTrasPintar.join(',')],
+      ['el espejo viaja dentro de campos del estudio',     campoGuardado === a1, String(campoGuardado) + ' vs ' + String(a1)],
+      ['«Nuevo estudio» deja el diagrama en cero',         espTrasLimpiar === '0,0,0,0,0,0', espTrasLimpiar],
+      ['  y no deja rastro en disco',                      discoTrasLimpiar.length === 0, discoTrasLimpiar.join(',')],
+      ['reabrir el estudio repone los segmentos',          espTrasReabrir === espPintado, espTrasReabrir + ' vs ' + espPintado],
+      ['  con su resumen de hallazgos',                    resumenTrasReabrir.indexOf('Hallazgos') > -1, resumenTrasReabrir.trim()],
+      ['el boton Limpiar deja el diagrama en cero',        espTrasLimpiarBoton === '0,0,0,0,0,0', espTrasLimpiarBoton],
+      ['  sin escribir en localStorage',                   discoTrasLimpiarBoton.length === 0, discoTrasLimpiarBoton.join(',')]
+    ] };
+  })();
+`);
+
+/* La guarda «formulario vacio» de _autosaveRestore excluia los readonly, y eso dejaba afuera
+   firma-esp y cfg-med-especialidad: son input[type=text] SIN readonly que la configuracion del
+   medico llena al arrancar. Con especialidad cargada —o sea, todo medico configurado de
+   verdad— la restauracion del borrador estaba MUERTA: cerrar la pestaña a mitad de un estudio
+   perdia todo, con la app prometiendo lo contrario en cada tecla.
+   La condicion correcta no es «no es readonly» sino «es un campo del estudio». */
+caso('TC-159', 'El borrador sin guardar vuelve aunque haya configuracion del medico cargada', `
+  return (async () => {
+    __t.limpiar();
+    /* Se poblan DESPUES de limpiar, que es el orden real: aplicarMedico corre al arrancar y
+       limpiarCampos barre input[type=text] sin mirar a quien pertenece el campo. */
+    const fe = document.getElementById('firma-esp');
+    const ce = document.getElementById('cfg-med-especialidad');
+    if (fe) fe.value = 'Cardiologia';
+    if (ce) ce.value = 'Cardiologia';
+    /* Los tres tienen que estar fuera de su valor por defecto para que el caso pruebe algo:
+       sin denominador, «se restauro» no distingue el arreglo de un formulario que ya estaba
+       limpio. lab-pdf-titulo trae texto en el HTML y limpiarCampos se lo lleva, asi que ya
+       quedo distinto de su defaultValue. */
+    const fueraDeDefault = ['firma-esp','cfg-med-especialidad','lab-pdf-titulo'].filter(id => {
+      const e = document.getElementById(id);
+      return e && !e.readOnly && !e.disabled && e.value !== e.defaultValue;
+    });
+
+    localStorage.setItem('ecosmart_autosave', JSON.stringify({
+      nombre: 'BORRADOR Perez', ci: '4545454-5', fevi: '38', ddfvi: '62'
+    }));
+    _autosaveRestore();
+    const nombre = __t.val('nombre');
+    const fevi = __t.val('fevi');
+
+    /* Y el contrapeso: un formulario YA EMPEZADO no se pisa. Sin esta mitad, el arreglo podria
+       ser «ignorar todo» y el borrador del paciente anterior aterrizaria encima del actual. */
+    __t.limpiar();
+    __t.set('nombre', 'Paciente EN CURSO');
+    _autosaveRestore();
+    const noPisa = __t.val('nombre');
+
+    try { localStorage.removeItem('ecosmart_autosave'); } catch (e) {}
+    __t.limpiar();
+    return { extra: [
+      ['los tres campos de configuracion estan fuera de su default', fueraDeDefault.length === 3, fueraDeDefault.join(',')],
+      ['y aun asi el borrador se restaura',                          nombre === 'BORRADOR Perez', nombre],
+      ['  con sus mediciones',                                       fevi === '38', fevi],
+      ['un formulario ya empezado NO se pisa',                       noPisa === 'Paciente EN CURSO', noPisa]
+    ] };
+  })();
+`);
+
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];

@@ -24317,6 +24317,13 @@ function autoSave(){
   }catch(e){}
 }
 function _autoSaveDebounced(){ clearTimeout(_autosaveTimer); _autosaveTimer = setTimeout(autoSave, 1500); }
+/* Prefijos de campos que NO pertenecen al estudio: configuración del médico y del centro,
+   filtros y controles de interfaz. Vive a nivel de módulo porque lo necesitan DOS funciones
+   con la misma pregunta —«¿este campo es del paciente?»— y escribirlo dos veces es la lista
+   paralela de siempre: `editarInforme` lo usa para decidir qué NO vaciar al abrir un estudio,
+   y `_autosaveRestore` para decidir qué NO cuenta como evidencia de formulario empezado.
+   Los dos están en el bloque 8, así que se comparte por referencia y no por `window`. */
+var _CAMPOS_FUERA_DEL_ESTUDIO = /^(cfg-|firma-|lab-|ig-|med-|logo|lgal-|tema|pdf-|filtro-|adv-|asoc-|exp-|alg-|ett-|rwt-|ee-|ap-|rev-|login-|fcg-|centro_tipo$|ecoAdvSelect$)/;
 function _autosaveRestore(){
   var raw; try{ raw = localStorage.getItem(AUTOSAVE_KEY); }catch(e){ return; }
   if (!raw) return;
@@ -24344,9 +24351,18 @@ function _autosaveRestore(){
      que su contenido no dice nada sobre si este formulario está empezado. Sin esa
      exclusión, comparar contra defaultValue no alcanzaba y la restauración seguía muerta
      en cualquier equipo con un médico configurado. */
+  /* Y no alcanzaba con excluir los readonly. `firma-esp` y `cfg-med-especialidad` son
+     `input[type=text]` SIN readonly que la configuración del médico llena al arrancar
+     (`aplicarMedico` → `firmaAdoptFromHeader`), así que en cuanto el médico principal tenía
+     especialidad cargada la guarda daba `empty = false` y la restauración volvía a estar
+     MUERTA — el mismo defecto que el párrafo de arriba dice haber cerrado, entrando por los
+     dos campos que la exclusión de readonly no cubre. Medido: con especialidad el borrador no
+     vuelve nunca; sin especialidad vuelve. La condición correcta no es «no es readonly» sino
+     «es un campo del estudio», que es lo que contesta `_CAMPOS_FUERA_DEL_ESTUDIO`. */
   var empty = true;
   document.querySelectorAll('input[type=text], input[type=number], textarea').forEach(function(el){
     if (!el.id || el.readOnly || el.disabled) return;
+    if (_CAMPOS_FUERA_DEL_ESTUDIO.test(el.id)) return;
     if (el.value !== el.defaultValue) empty = false;
   });
   if (!empty) return;
@@ -27871,12 +27887,12 @@ function toggleRef(id, headEl) {
       }
     }
     eteActualizarResumen();
-    localStorage.setItem("ete_seg_" + seg, ete_estado[seg]);
     _eteSegEspejo(seg);
   };
-  /* El espejo se escribe en el MISMO lugar que la clave de localStorage, y no colgado de un
-     evento: el diagrama se pinta con SVG y clicks, no con controles de formulario, así que no
-     hay ningún `change` del que colgarse. */
+  /* El espejo se escribe acá y no colgado de un evento: el diagrama se pinta con SVG y clicks,
+     no con controles de formulario, así que no hay ningún `change` del que colgarse.
+     Es la ÚNICA representación del estado; la clave global `ete_seg_*` de localStorage se
+     eliminó el 2026-09-18 (ver el comentario del arranque, más abajo). */
   function _eteSegEspejo(seg) {
     const h = document.getElementById("ete_seg_" + seg);
     if (h) h.value = String(ete_estado[seg] || 0);
@@ -27908,7 +27924,6 @@ function toggleRef(id, headEl) {
         qx.style.removeProperty("stroke");
         qx.style.removeProperty("stroke-width");
       }
-      localStorage.setItem("ete_seg_" + seg, 0);
       _eteSegEspejo(seg);
     });
     eteActualizarResumen();
@@ -27931,15 +27946,27 @@ function toggleRef(id, headEl) {
       window.eteClick(seg);
     });
   };
-  /* El arranque vuelca localStorage a los espejos y deja que `eteSegSync` haga el resto: antes
-     repetía el truco SIN la guarda de rango, así que un valor rancio de una versión con más
-     estados —un "7"— no caía a «Normal» sino a un diagnóstico ARBITRARIO («Prolapso», por
-     `(6+1)%6`). Una sola implementación de la guarda, y no dos parecidas. */
+  /* EL ARRANQUE YA NO LEE localStorage, Y ÉSA ERA UNA FUGA ENTRE PACIENTES (2026-09-18).
+     `ete_seg_A1`…`ete_seg_P3` eran claves GLOBALES —no por estudio—, y este bloque las volcaba
+     a los espejos en cada carga de la app. Medido en el navegador: con el paciente anterior
+     marcado con flail en A1/A2/A3, abrir EcoSmart de cero dejaba el diagrama pintado y el
+     resumen diciendo «🔴 Hallazgos: A1: Flail · A2: Flail · A3: Flail» sobre un formulario en
+     blanco. La tapa que existía —`limpiarCampos` llama a `eteLimpiarSegmentos()`— sólo corre
+     en «Nuevo estudio», o sea que NO cubría el arranque, que es el caso de cada mañana.
+
+     El estado no se pierde: los espejos son `input[type=hidden][id]`, así que viajan en
+     `campos` por el barrido de `guardarInforme`, los repone `eteSegSync` desde RECALC_MODULOS,
+     y el autosave los guarda porque barre `input[id]`. La clave global no tenía ningún
+     consumidor que los espejos no cubrieran — este archivo ya lo declaraba como resto a sacar.
+
+     Se purgan además las que hayan quedado en disco: son hallazgos clínicos de un paciente
+     guardados sin cifrar y sin dueño, y sin la purga sobreviven en cada máquina donde la app
+     ya corrió. La guarda de rango de `eteSegSync` se conserva: un valor rancio de una versión
+     con más estados —un "7"— no puede caer en un diagnóstico ARBITRARIO. */
   setTimeout(function() {
-    ["A1","A2","A3","P1","P2","P3"].forEach(function(s) {
-      const h = document.getElementById("ete_seg_" + s);
-      if (h) h.value = String(parseInt(localStorage.getItem("ete_seg_" + s), 10) || 0);
-    });
+    try {
+      ["A1","A2","A3","P1","P2","P3"].forEach(function(s) { localStorage.removeItem("ete_seg_" + s); });
+    } catch (e) {}
     window.eteSegSync();
   }, 300);
 
@@ -42080,7 +42107,9 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
   /* Prefijos de campos que NO son del estudio: configuración, filtros y controles de UI.
      `centro-tipo` estaba con guion y el id real es `centro_tipo`, así que se vaciaba y el
      encabezado del PDF perdía el prefijo del centro. */
-  const _noVaciar = /^(cfg-|firma-|lab-|ig-|med-|logo|lgal-|tema|pdf-|filtro-|adv-|asoc-|exp-|alg-|ett-|rwt-|ee-|ap-|rev-|login-|fcg-|centro_tipo$|ecoAdvSelect$)/;
+  /* Alias local de la constante de módulo: el cuerpo de esta función no cambia ni un carácter
+     y la expresión deja de estar escrita dos veces. La comparte `_autosaveRestore`. */
+  const _noVaciar = _CAMPOS_FUERA_DEL_ESTUDIO;
   document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
     if (_noVaciar.test(el.id)) { if (c[el.id] !== undefined) el.value = c[el.id]; return; }
     /* `.checked`, no `.value`: la rama anterior escribía «on» sobre «on» y no tocaba el
@@ -56248,8 +56277,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260916-1212';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789571571501;                 /* eco-build-ms */
+const ECO_BUILD    = '20260918-0946';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789735612268;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -56335,7 +56364,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260916-1212</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-0946</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
