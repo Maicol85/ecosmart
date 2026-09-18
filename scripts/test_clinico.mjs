@@ -8379,6 +8379,50 @@ caso('TC-166', 'POP Cirugia Cardiaca: los campos viajan y la dosis oculta no sob
 `);
 
 
+/* POP-2. Caso de numeros REDONDOS: peso 80 / talla 180 da SC = 2,00 exacta, asi que todo lo
+   indexado se puede verificar a mano. Lo que fija el caso no es que calcule sino que calcule LO
+   MISMO que la capsula de Hemodinamica, que esta en la misma pestaña. */
+caso('TC-167', 'POP-2: hemodinamica con las bandas de la app, y el eco concuerda con su capsula', `
+  return (async () => {
+    __t.limpiar();
+    __t.set('peso','80'); __t.set('talla','180');
+    __t.set('pop_monitor','swan');
+    __t.set('pop_sw_gc','5'); __t.set('pop_sw_pam','80'); __t.set('pop_sw_pad','10');
+    __t.set('pop_sw_paps','40'); __t.set('pop_sw_papd','20'); __t.set('pop_sw_pcp','15');
+    /* TSVI 20 mm -> radio 1 cm -> area PI. VTI 20 -> VS 62,83 ml. FC 70 -> GC 4,40 L/min. */
+    __t.set('diam_tsvi','20'); __t.set('itv_tsvi','20'); __t.set('hemo_fc','70');
+    popHemoSync();
+    const t = id => (__t.txt(id) || '').replace(/\\s+/g, ' ').trim();
+    const sc = (typeof getBSA === 'function') ? getBSA() : null;
+    const swIc = t('pop-sw-ic'), swRvs = t('pop-sw-rvs'), swRvp = t('pop-sw-rvp');
+    const ecoGc = t('pop-eco-gc'), ecoIc = t('pop-eco-ic');
+    const capGc = t('hemo-gc'), capIc = t('hemo-ic');
+    const dif = t('pop-comp-dif');
+    /* La mitad negativa: sin GC del cateter no hay concordancia que mostrar. Comparar contra un
+       hueco daria 100 % de diferencia y se leeria como discordancia total. */
+    __t.set('pop_sw_gc',''); popHemoSync();
+    const compOculta = (function(){ const e = document.getElementById('pop-comp-wrap');
+      return !e || getComputedStyle(e).display === 'none'; })();
+    __t.limpiar();
+    return { extra: [
+      ['la SC del caso es 2,00 exacta',          sc === 2, sc],
+      ['IC del cateter = GC / SC',               swIc.indexOf('2.50') === 0, swIc],
+      ['  con la banda de la app, no la del pedido', swIc.indexOf('normal') > -1, swIc],
+      ['RVS = (PAM - PAD) x 80 / GC',            swRvs.indexOf('1120') === 0, swRvs],
+      ['RVP en UW Y en dyn, con UN corte',       swRvp.indexOf('2.3 UW') === 0 && swRvp.indexOf('187') > -1, swRvp],
+      ['  y el corte es el de la app (ESC/ERS 2022)', swRvp.indexOf('ESC/ERS 2022') > -1, swRvp],
+      /* El diametro del TSVI esta en MILIMETROS: con la formula del pedido esto daria 440. */
+      ['GC eco = 4,40 y no 440',                 ecoGc.indexOf('4.40') === 0, ecoGc],
+      /* LA CONDICION QUE IMPIDE LA SEGUNDA IMPLEMENTACION. */
+      ['la capsula de la app publica el MISMO GC', capGc.indexOf('4.40') === 0, capGc + ' vs ' + ecoGc],
+      ['  y el MISMO IC con la misma banda',     capIc.slice(0, 4) === ecoIc.slice(0, 4), capIc + ' vs ' + ecoIc],
+      ['la concordancia da 12 %',                dif.indexOf('12 %') === 0, dif],
+      ['sin GC del cateter no se muestra',       compOculta === true]
+    ] };
+  })();
+`);
+
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];

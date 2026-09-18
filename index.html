@@ -4173,7 +4173,7 @@ window.cerrarSesion = cerrarSesion;
           <div class="fg"><label for="pop_cx_horas">Horas post-CEC</label>
             <input type="number" id="pop_cx_horas" step="1" min="0" inputmode="decimal" placeholder="h"></div>
           <div class="fg"><label for="pop_monitor">Dispositivo de monitoreo</label>
-            <select id="pop_monitor">
+            <select id="pop_monitor" onchange="popSync()">
               <option value="" selected>— no consignado —</option>
               <option value="ninguno">Ninguno</option>
               <option value="swan">Swan-Ganz</option>
@@ -4275,8 +4275,59 @@ window.cerrarSesion = cerrarSesion;
     </div>
     <div id="pop-hemo" class="pop-panel" style="display:none;">
       <div class="card"><div class="card-body">
-        <!-- TODO: POP-2 -->
-        <p style="font-size:12px;color:var(--text2);margin:0;">Pendiente.</p>
+        <!-- Las tres subsecciones se muestran segun pop_monitor. La de ECO va SIEMPRE: es la
+             que esta app sabe medir, y con «Ninguno» es la unica. -->
+        <div id="pop_sw_wrap" style="display:none;margin-bottom:14px;">
+          <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Swan-Ganz — valores medidos</div>
+          <div class="grid-3">
+            <div class="fg"><label for="pop_sw_gc">GC termodilución (L/min)</label><input type="number" id="pop_sw_gc" step="0.1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            <div class="fg"><label for="pop_sw_fc">FC (lpm)</label><input type="number" id="pop_sw_fc" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            <div class="fg"><label for="pop_sw_pam">PAM (mmHg)</label><input type="number" id="pop_sw_pam" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            <div class="fg"><label for="pop_sw_paps">PAPs (mmHg)</label><input type="number" id="pop_sw_paps" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            <div class="fg"><label for="pop_sw_papd">PAPd (mmHg)</label><input type="number" id="pop_sw_papd" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            <div class="fg"><label for="pop_sw_pcp">PCP (mmHg)</label><input type="number" id="pop_sw_pcp" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            <div class="fg"><label for="pop_sw_pad">PAD (mmHg)</label><input type="number" id="pop_sw_pad" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+          </div>
+          <!-- Peso y talla NO se vuelven a pedir: se leen de los campos del estudio. Dos campos
+               para la misma medida es el patron del espesor parietal, que este archivo ya pago
+               tres veces. La SC sale de getBSA(), la misma que usa toda la app. -->
+          <div class="calc-box" style="margin-top:10px;">
+            <div class="calc-row"><span class="calc-lbl">Índice cardíaco (GC / SC)</span><span id="pop-sw-ic">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">RVS (PAM − PAD) × 80 / GC</span><span id="pop-sw-rvs">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">RVP (PAPm − PCP) / GC</span><span id="pop-sw-rvp">—</span></div>
+            <div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;" id="pop-sw-nota"></div>
+          </div>
+        </div>
+
+        <div id="pop_picco_wrap" style="display:none;margin-bottom:14px;">
+          <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">PiCCO — valores medidos</div>
+          <div class="grid-3">
+            <div class="fg"><label for="pop_picco_gc">GC (L/min)</label><input type="number" id="pop_picco_gc" step="0.1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            <div class="fg"><label for="pop_picco_ic">IC (L/min/m²)</label><input type="number" id="pop_picco_ic" step="0.1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            <div class="fg"><label for="pop_picco_itbvi">ITBVI (ml/m²)</label><input type="number" id="pop_picco_itbvi" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            <div class="fg"><label for="pop_picco_evlwi">EVLWI (ml/kg)</label><input type="number" id="pop_picco_evlwi" step="0.1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            <div class="fg"><label for="pop_picco_svri">SVRI (dyn·s·cm⁻⁵·m²)</label><input type="number" id="pop_picco_svri" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+          </div>
+          <div class="calc-box" style="margin-top:10px;" id="pop-picco-box"></div>
+        </div>
+
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Ecocardiografía</div>
+        <div class="calc-box">
+          <div class="calc-row"><span class="calc-lbl">TSVI · VTI · FC (de Hemodinámica)</span><span id="pop-eco-src">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">GC estimado</span><span id="pop-eco-gc">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">IC estimado</span><span id="pop-eco-ic">—</span></div>
+          <div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">Estimación ecocardiográfica — sale de los MISMOS campos y la misma fórmula que la cápsula «Perfil hemodinámico» de esta pestaña. Si falta alguno, el valor no se inventa.</div>
+        </div>
+
+        <div id="pop-comp-wrap" style="display:none;margin-top:12px;">
+          <div class="calc-box">
+            <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;">Concordancia Swan vs Eco</div>
+            <div class="calc-row"><span class="calc-lbl">GC Swan</span><span id="pop-comp-sw">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">GC Eco</span><span id="pop-comp-eco">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">Diferencia</span><span id="pop-comp-dif">—</span></div>
+            <div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;" id="pop-comp-nota"></div>
+          </div>
+        </div>
       </div></div>
     </div>
     <div class="card" style="margin-bottom:10px;">
@@ -15559,6 +15610,55 @@ function calcSGL() {
 }
 
 // ══ HEMODINÁMICA VI ══
+/* ══ SEAMS HEMODINÁMICOS COMPARTIDOS — 2026-09-18 ═════════════════════════════════════════
+   Existen porque el bloque POP necesita las MISMAS bandas y la MISMA fórmula que la cápsula de
+   Hemodinámica, y las dos viven en la misma pestaña: con dos implementaciones, un IC de 2,3
+   saldría «límite» en una cápsula y verde en la de abajo, a dos centímetros. El pedido de POP-2
+   traía su propia escala (1.8 / 2.2) y NO se aplicó — decisión de Maicol: manda la de la app.
+
+   EL DIÁMETRO DEL TSVI ESTÁ EN MILÍMETROS. `(d/10/2)` pasa a cm y saca el radio en un solo
+   paso. Escribirlo como `PI*(d/2)^2` con d en mm da un volumen CIEN VECES mayor, y el error se
+   ve plausible — es la misma trampa que este archivo documenta para el área tricuspídea. La
+   fórmula del pedido venía escrita así. */
+function _hemoVSEco(dtsvi, itv) {
+  if (!dtsvi || !itv) return null;
+  return Math.PI * Math.pow(dtsvi / 10 / 2, 2) * itv;   // mL
+}
+function _hemoGCEco(dtsvi, itv, fc) {
+  const vs = _hemoVSEco(dtsvi, itv);
+  return (vs !== null && fc) ? vs * fc / 1000 : null;    // L/min
+}
+/* Banda del índice cardíaco. UNA sola en toda la app: la usan la cápsula de Hemodinámica y el
+   bloque POP. `FORR_IC_CORTE` (2,2) es el mismo borde inferior, y es deliberado. */
+function _icBanda(ic) {
+  if (ic === null || ic === undefined || !isFinite(ic)) return null;
+  if (ic < 2.2) return { cls:'red',    txt:'bajo' };
+  if (ic < 2.5) return { cls:'yellow', txt:'límite' };
+  if (ic <= 4.0) return { cls:'green', txt:'normal' };
+  return { cls:'yellow', txt:'elevado' };
+}
+/* Banda de RVS, también compartida. La diferencia entre las dos superficies NO es la banda sino
+   de dónde sale la presión auricular derecha: la cápsula usa la PVC estimada por VCI y el
+   bloque POP la PAD MEDIDA por el Swan, que es mejor dato. Eso se declara en pantalla. */
+function _rvsBanda(rvs) {
+  if (rvs === null || !isFinite(rvs)) return null;
+  if (rvs < 800)  return { cls:'orange', txt:'baja (vasodilatación)' };
+  if (rvs <= 1200) return { cls:'green',  txt:'normal' };
+  if (rvs <= 1400) return { cls:'yellow', txt:'límite alta' };
+  return { cls:'red', txt:'elevada (vasoconstricción)' };
+}
+/* RVP: se muestran las DOS unidades y el semáforo lo decide UN solo corte, el de la app
+   (`RVP_ELEVADA_UW`, ESC/ERS 2022). El pedido traía «normal < 250 dyn», que son 3,1 UW: con esa
+   escala un paciente de 2,5 UW salía «normal» acá y «elevada» en el módulo de HTP, en la misma
+   pantalla. 80 dyn·s·cm⁻⁵ = 1 UW. */
+function _rvpTxt(uw) {
+  if (uw === null || !isFinite(uw)) return null;
+  const lim = (typeof RVP_ELEVADA_UW !== 'undefined') ? RVP_ELEVADA_UW : 2;
+  return { uw: uw, dyn: uw * 80,
+           cls: uw <= lim ? 'green' : 'red',
+           txt: (uw <= lim ? '\u2264' : '>') + lim + ' UW — ' + (uw <= lim ? 'normal' : 'elevada (ESC/ERS 2022)') };
+}
+
 function calcHemo() {
   const fc  = v('hemo_fc');
   const pam = v('hemo_pam');
@@ -15571,7 +15671,7 @@ function calcHemo() {
   // VS ← TSVI: π × (DTSVI/2)² × VTI-TSVI. Ø en mm → cm (/10) para resultado en mL
   const dtsvi = v('diam_tsvi'), vtitsvi = v('itv_tsvi');
   let vs = null;
-  if (dtsvi && vtitsvi) vs = Math.PI * ((dtsvi / 10 / 2) ** 2) * vtitsvi;   // mL
+  if (dtsvi && vtitsvi) vs = _hemoVSEco(dtsvi, vtitsvi);   // mL — seam compartido con POP
   setv('hemo_vs', vs !== null ? vs.toFixed(0) + ' ml' : '— (requiere DTSVI y VTI-TSVI)');
 
   // E/e' promedio (reutiliza Doppler diastólico)
@@ -15595,8 +15695,7 @@ function calcHemo() {
   let ic = null;
   if (gc !== null && asc) {
     ic = gc / asc;
-    let cls = ic < 2.2 ? 'red' : ic < 2.5 ? 'yellow' : ic <= 4.0 ? 'green' : 'yellow';
-    let et  = ic < 2.2 ? 'bajo' : ic < 2.5 ? 'límite' : ic <= 4.0 ? 'normal' : 'elevado';
+    const _b = _icBanda(ic); const cls = _b.cls, et = _b.txt;   // seam compartido con POP
     setH('hemo-ic', ic.toFixed(2) + ' L/min/m² ' + badge(cls, et));
   } else setH('hemo-ic', '—');
 
@@ -15604,8 +15703,7 @@ function calcHemo() {
   let rvs = null;
   if (pam !== null && pvc !== null && gc !== null && gc > 0) {
     rvs = (pam - pvc) / gc * 80;
-    let cls = rvs < 800 ? 'orange' : rvs <= 1200 ? 'green' : rvs <= 1400 ? 'yellow' : 'red';
-    let et  = rvs < 800 ? 'baja (vasodilatación)' : rvs <= 1200 ? 'normal' : rvs <= 1400 ? 'límite alta' : 'elevada (vasoconstricción)';
+    const _br = _rvsBanda(rvs); const cls = _br.cls, et = _br.txt;   // seam compartido con POP
     setH('hemo-rvs', rvs.toFixed(0) + ' dinas·s·cm⁻⁵ ' + badge(cls, et));
   } else setH('hemo-rvs', '—');
 
@@ -23862,6 +23960,83 @@ function _noEsDelEstudio(id) {
      el final de `limpiarCampos`, que NO pasa por ese embudo. Con una sola, «Nuevo estudio»
      dejaba las filas de dosis del paciente anterior abiertas. */
 var POP_DROGAS = ['nor','adr','dob','mil','vaso','levo'];
+/* ══ POP · BLOQUE 3 — datos hemodinámicos (2026-09-18) ══
+   TRES cosas que NO se reimplementaron, y son la mitad del trabajo:
+   · el GC por eco sale de `_hemoGCEco`, el MISMO seam que usa la cápsula de Hemodinámica;
+   · la banda del IC sale de `_icBanda` y la de RVS de `_rvsBanda`, las mismas de esa cápsula —
+     el pedido traía 1.8/2.2 y no se aplicó: dos semáforos del mismo número en la misma pestaña;
+   · la RVP se muestra en UW y en dyn, con UN solo corte, el de `RVP_ELEVADA_UW` (ESC/ERS 2022).
+     El «normal <250 dyn» del pedido son 3,1 UW, y habría contradicho al módulo de HTP.
+   Los ids del pedido —`tsvi`, `vti`, `fc`— NO EXISTEN: los reales son `diam_tsvi`, `itv_tsvi` y
+   `hemo_fc`, y viven en Hemodinámica, no en AI/VI. Verificado antes de escribir una línea. */
+function popHemoSync() {
+  const set = (id, txt) => { const e = document.getElementById(id); if (e) e.textContent = txt; };
+  const setH = (id, h) => { const e = document.getElementById(id); if (e) e.innerHTML = h; };
+  const mon = (document.getElementById('pop_monitor') || {}).value || '';
+  const vis = (id, on) => { const e = document.getElementById(id); if (e) e.style.display = on ? 'block' : 'none'; };
+  vis('pop_sw_wrap', mon === 'swan');
+  vis('pop_picco_wrap', mon === 'picco');
+
+  const asc = (typeof getBSA === 'function') ? getBSA() : null;
+  /* ── ECO ── Los tres campos son los del estudio; no se duplican acá. */
+  const d = v('diam_tsvi'), it = v('itv_tsvi'), fce = v('hemo_fc');
+  set('pop-eco-src', [d ? d + ' mm' : null, it ? it + ' cm' : null, fce ? fce + ' lpm' : null]
+      .filter(Boolean).join(' · ') || '— faltan datos en Hemodinámica');
+  const gcEco = _hemoGCEco(d, it, fce);
+  set('pop-eco-gc', gcEco !== null ? gcEco.toFixed(2) + ' L/min' : '—');
+  const icEco = (gcEco !== null && asc) ? gcEco / asc : null;
+  const bE = _icBanda(icEco);
+  setH('pop-eco-ic', bE ? icEco.toFixed(2) + ' L/min/m² ' + badge(bE.cls, bE.txt)
+       : (gcEco !== null ? '— (requiere peso y talla)' : '—'));
+
+  /* ── SWAN ── */
+  const gcS = v('pop_sw_gc'), pam = v('pop_sw_pam'), pad = v('pop_sw_pad');
+  const paps = v('pop_sw_paps'), papd = v('pop_sw_papd'), pcp = v('pop_sw_pcp');
+  let icS = null;
+  if (gcS !== null && gcS > 0 && asc) { icS = gcS / asc;
+    const b = _icBanda(icS); setH('pop-sw-ic', icS.toFixed(2) + ' L/min/m² ' + badge(b.cls, b.txt)); }
+  else setH('pop-sw-ic', gcS !== null ? '— (requiere peso y talla)' : '—');
+  if (gcS !== null && gcS > 0 && pam !== null && pad !== null) {
+    const rvs = (pam - pad) / gcS * 80; const b = _rvsBanda(rvs);
+    setH('pop-sw-rvs', rvs.toFixed(0) + ' dinas·s·cm⁻⁵ ' + badge(b.cls, b.txt));
+  } else setH('pop-sw-rvs', '—');
+  if (gcS !== null && gcS > 0 && paps !== null && papd !== null && pcp !== null) {
+    const papm = (paps + 2 * papd) / 3;
+    const uw = (papm - pcp) / gcS;            // unidades Wood
+    const r = _rvpTxt(uw);
+    setH('pop-sw-rvp', r.uw.toFixed(1) + ' UW (' + r.dyn.toFixed(0) + ' dinas·s·cm⁻⁵) ' + badge(r.cls, r.txt)
+         + ' <span style="color:var(--text2);font-size:10px;">PAPm ' + papm.toFixed(0) + '</span>');
+  } else setH('pop-sw-rvp', '—');
+  set('pop-sw-nota', 'La RVS usa la PAD MEDIDA por el catéter; la cápsula «Perfil hemodinámico» de arriba usa la PVC estimada por VCI. Las dos son correctas y pueden diferir: la del catéter es el dato directo.');
+
+  /* ── PiCCO ── Bandas del pedido; ninguna colisiona con algo que la app ya publique. */
+  const pb = [
+    ['IC', v('pop_picco_ic'), 'L/min/m²', x => _icBanda(x)],
+    ['ITBVI', v('pop_picco_itbvi'), 'ml/m²', x => x < 850 ? {cls:'orange',txt:'bajo'} : x <= 1000 ? {cls:'green',txt:'normal'} : {cls:'yellow',txt:'elevado'}],
+    ['EVLWI', v('pop_picco_evlwi'), 'ml/kg', x => x < 10 ? {cls:'green',txt:'normal'} : {cls:'red',txt:'agua extravascular elevada'}],
+    ['SVRI', v('pop_picco_svri'), 'dyn·s·cm⁻⁵·m²', x => x < 1700 ? {cls:'orange',txt:'bajo'} : x <= 2400 ? {cls:'green',txt:'normal'} : {cls:'red',txt:'elevado'}]
+  ].filter(r => r[1] !== null)
+   .map(r => { const b = r[3](r[1]); return '<div class="calc-row"><span class="calc-lbl">' + r[0] +
+     '</span><span>' + r[1] + ' ' + r[2] + ' ' + (b ? badge(b.cls, b.txt) : '') + '</span></div>'; }).join('');
+  setH('pop-picco-box', pb || '<div style="font-size:11px;color:var(--text2);">Sin valores cargados.</div>');
+
+  /* ── CONCORDANCIA ── Sólo con los DOS gastos: comparar contra un hueco no es una diferencia. */
+  const hay = gcS !== null && gcS > 0 && gcEco !== null && gcEco > 0;
+  vis('pop-comp-wrap', hay && mon === 'swan');
+  if (hay) {
+    set('pop-comp-sw', gcS.toFixed(2) + ' L/min');
+    set('pop-comp-eco', gcEco.toFixed(2) + ' L/min');
+    /* El denominador es el del CATÉTER, que es la referencia. Con el promedio de los dos el
+       porcentaje cambia y deja de ser «cuánto se aparta el eco de la termodilución». */
+    const dif = Math.abs(gcS - gcEco) / gcS * 100;
+    const b = dif < 15 ? {cls:'green',txt:'concordantes'} : dif <= 25 ? {cls:'yellow',txt:'discordancia moderada'} : {cls:'red',txt:'discordancia'};
+    setH('pop-comp-dif', dif.toFixed(0) + ' % ' + badge(b.cls, b.txt));
+    set('pop-comp-nota', dif > 25
+      ? 'Diferencia > 25 % — revisar la posición del catéter o la ventana ecocardiográfica antes de decidir con cualquiera de los dos.'
+      : 'Porcentaje sobre el gasto por termodilución, que es la referencia.');
+  }
+}
+window.popHemoSync = popHemoSync;
 function popSync() {
   POP_DROGAS.forEach(function (k) {
     var chk = document.getElementById('pop_' + k + '_activa');
@@ -23882,6 +24057,8 @@ function popSync() {
     w.style.display = vis[id] ? 'block' : 'none';
     if (!vis[id]) { var c = document.getElementById(campo[id]); if (c) c.value = ''; }
   });
+  /* El bloque 3 depende de `pop_monitor`, que vive en el bloque 1: un solo punto de entrada. */
+  try { popHemoSync(); } catch (e) { console.error('[popSync] popHemoSync:', e); }
 }
 window.popSync = popSync;
 window.POP_DROGAS = POP_DROGAS;
@@ -57115,8 +57292,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260918-1446';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789753602187;                 /* eco-build-ms */
+const ECO_BUILD    = '20260918-1455';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789754134967;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -57202,7 +57379,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1446</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1455</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

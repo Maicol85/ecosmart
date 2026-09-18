@@ -487,6 +487,50 @@ El Excel pasó de **421 a 429 columnas** y de 128 a **129 básicas**; TC-135 fij
 contenido. Ojo con el `0` de una casilla apagada: **no es lo mismo que ausente**, y el caso lo
 distingue.
 
+### POP-2: tres escalas del mismo número, y una fórmula 100× — 2026-09-18
+
+Bloque 3 del módulo POP. **Lo que más valor tuvo fue lo que NO se implementó.**
+
+**LA FÓRMULA DEL GC POR ECO QUE TRAÍA EL PEDIDO DABA UN GASTO DE 440 L/min.**
+`π × (TSVI/2)² × VTI × FC / 1000` con el TSVI en **milímetros** —que es como lo guarda esta
+app— da un volumen cien veces mayor. La app ya lo hacía bien (`dtsvi / 10 / 2`: a cm y a radio en
+un paso). Es la misma trampa que este archivo documenta para el área tricuspídea, y la mutación
+que la reintroduce imprime **439,82 L/min** en la cápsula.
+
+**EL SEMÁFORO DE IC DEL PEDIDO ERA UNA TERCERA ESCALA.** `calcHemo` ya publica, **en esa misma
+pestaña**, <2,2 rojo · <2,5 límite · ≤4,0 verde; y `FORR_IC_CORTE` usa el 2,2 para el diagrama de
+Forrester. El pedido traía 🟢>2,2 / 🟡1,8-2,2 / 🔴<1,8: un IC de **2,3** habría salido verde en
+POP y «límite» dos centímetros más arriba, y uno de **2,0**, amarillo acá y ROJO allá. Decisión
+de Maicol: **manda la de la app**, extraída a `_icBanda` y compartida. Ídem `_rvsBanda`.
+
+**LA RVP TENÍA DOS UNIDADES Y DOS CORTES.** La app la publica en Wood con corte >2 UW (ESC/ERS
+2022); el pedido, en dyn·s·cm⁻⁵ con normal <250, que son **3,1 UW**. Un paciente de 2,5 UW salía
+«normal» acá y «elevada» en el módulo de HTP. Decisión: **las dos unidades, UN solo corte** — el
+de la app. Se muestra «2,3 UW (187 dinas·s·cm⁻⁵)» con el semáforo decidido por las UW.
+
+**TRES IDS DEL PEDIDO NO EXISTEN.** `tsvi`, `vti` y `fc` — los reales son `diam_tsvi`,
+`itv_tsvi` y `hemo_fc`, y viven en Hemodinámica, no en AI/VI. Verificado antes de escribir una
+línea; un id inventado no falla, calla.
+
+**Peso y talla no se vuelven a pedir**: la SC sale de `getBSA()`, la misma de toda la app. Dos
+campos para la misma medida es el patrón del espesor parietal, que este archivo ya pagó tres
+veces.
+
+**La RVS de POP usa la PAD MEDIDA por el catéter y la de la cápsula la PVC estimada por VCI.**
+Las dos son correctas y pueden diferir; la diferencia se **declara en pantalla** en vez de dejar
+dos números con el mismo nombre.
+
+**El denominador de la concordancia es el gasto por termodilución**, no el promedio de los dos:
+lo que se quiere medir es cuánto se aparta el eco de la referencia. Y sin GC del catéter el
+bloque no se muestra — comparar contra un hueco daría 100 % y se leería como discordancia total.
+
+**Verificado con un caso de números redondos** (peso 80 / talla 180 → SC = 2,00 exacta): IC 2,50
+· RVS 1120 · RVP 2,33 UW = 187 dyn · GC eco 4,40 · IC eco 2,20 · diferencia 12 %. Los seis dan
+exacto, y **la cápsula de la app publica el mismo GC y el mismo IC** que el bloque POP — que es
+la condición que impide la segunda implementación.
+
+**POP-3 y POP-4 no se empezaron.** POP-4 toca seis superficies, incluida la del informe firmado.
+
 ### POP Cirugía Cardíaca (POP-1): estructura, y no es una subtab — 2026-09-18
 
 Bloques 1 y 2 con sus 19 campos, placeholders declarados para 3, 4 y 5, y el botón de integrar
