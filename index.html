@@ -29538,31 +29538,60 @@ window.dapSync = dapSync; window.dapConclusion = dapConclusion; window.dapGmax =
    número sobreestima. Se deja explícito en la conclusión en vez de corregirlo en silencio:
    la corrección exige medir la velocidad preestenótica, que no es un campo de esta sección. */
 const COA_LOC_TXT = { preductal:'preductal', yuxtaductal:'yuxtaductal', posductal:'posductal' };
-function coaGmax(){
-  const v = (typeof PF==='function') ? PF(document.getElementById('coa_vmax')?.value) : null;
+function coaGmax(src){
+  const raw = src ? src['coa_vmax'] : document.getElementById('coa_vmax')?.value;
+  const v = (typeof PF==='function') ? PF(raw) : null;
   return (v==null || !isFinite(v) || v<=0) ? null : 4*v*v;
 }
 /* coaNV() y coaBanda() replican lo de dapConclusion, por el mismo motivo: PF() devuelve NaN con
    el campo vacío y NaN nunca es == null, así que la sección concluía sobre un formulario en
    blanco. `fuera` es el mismo mecanismo: lo que quedó fuera de escala corta la cascada antes de
    la rama que niega, en vez de desaparecer y dejar que la negación hable por él. */
-function coaNV(id){ const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; }
+/* `src` opcional: sin el, el formulario, igual que siempre. Los tres helpers de la coartacion
+   tuvieron que volverse source-aware junto con `coaConclusion`, porque un clasificador a medias
+   —los selects del estudio guardado y el gradiente del formulario en pantalla— mezcla dos
+   pacientes y no lo dice. Lo cazo TC-171 antes de que saliera. */
+function coaNV(id, src){
+  if (src) { const r = src[id];
+    if (r === undefined || r === null || r === '') return null;
+    const x = (typeof PF === 'function') ? PF(r) : parseFloat(String(r).replace(',', '.'));
+    return (x != null && isFinite(x)) ? x : null; }
+  const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null;
+}
 function coaBanda(n, lo, hi, fuera, lbl){
   if (n == null) return null;
   if (n >= lo && n <= hi) return n;
   if (fuera && lbl) fuera.push(lbl);
   return null;
 }
-function coaRatio(fuera){
-  const i = coaBanda(coaNV('coa_istmo'), 2, 60, fuera, 'diámetro del istmo');
-  const d = coaBanda(coaNV('coa_ao_desc'), 2, 60, fuera, 'aorta descendente');
+function coaRatio(fuera, src){
+  const i = coaBanda(coaNV('coa_istmo', src), 2, 60, fuera, 'diámetro del istmo');
+  const d = coaBanda(coaNV('coa_ao_desc', src), 2, 60, fuera, 'aorta descendente');
   return (i!=null && d!=null && d>0) ? i/d : null;
 }
-function coaConclusion(){
-  const sv2 = id => (document.getElementById(id)?.value || '').trim();
+function coaConclusion(src){
+  /* `src` es un estudio GUARDADO (`inf.campos`); sin el se lee el formulario, exactamente como
+     antes. Es el patron que ya usaban `eisenEstado(src)`, `dptEstado` y `cvrEstado`, y es lo que
+     permite que el Laboratorio corra ESTE clasificador en vez de reimplementar el criterio: dos
+     implementaciones del mismo umbral divergen, y aca lo que divergiria es una conducta clinica.
+     La rama sin `src` queda LITERAL —mismo `?.value`, mismo `v()`— para no cambiar en nada el
+     comportamiento del informe firmado al agregar una capacidad nueva. */
+  const sv2 = id => src ? String(src[id] == null ? '' : src[id]).trim()
+                        : (document.getElementById(id)?.value || '').trim();
+  const nv = id => {
+    if (!src) { const n = (typeof v === 'function') ? v(id) : null; return (n != null && isFinite(n)) ? n : null; }
+    const r = src[id];
+    if (r === undefined || r === null || r === '') return null;
+    const x = (typeof PF === 'function') ? PF(r) : parseFloat(String(r).replace(',', '.'));
+    return (x != null && isFinite(x)) ? x : null;
+  };
+  /* Checkbox de un estudio guardado: la convencion del archivo es `<id>__chk` con '1' (ver el
+     `chk:` del bloque de derrame). Sin `src`, la casilla viva. */
+  const ck = id => src ? (String(src[id + '__chk'] == null ? '' : src[id + '__chk']) === '1')
+                       : !!(document.getElementById(id) || {}).checked;
   const fuera = [];
-  const gRaw = coaGmax(), gmRaw = coaNV('coa_gmedio'), r = coaRatio(fuera);
-  const cola = !!document.getElementById('coa_diast_anterogrado')?.checked;
+  const gRaw = coaGmax(src), gmRaw = coaNV('coa_gmedio', src), r = coaRatio(fuera, src);
+  const cola = ck('coa_diast_anterogrado');
   const sit = sv2('coa_situacion');
   /* hayDato usa los valores CRUDOS: un número fuera de banda sigue siendo un dato que el
      médico escribió; lo que no hace es votar en las ramas de abajo.
@@ -29575,8 +29604,8 @@ function coaConclusion(){
      que cualquier paciente con la aorta medida y la casilla tildada imprimiera un párrafo de
      coartación. (Quién ABRE la sección es otra cosa: eso lo decide secAutoOpen leyendo el DOM, y
      ya está resuelto porque el espejo lleva `readonly`.) */
-  const hayDato = !!(sv2('coa_loc') || sit || coaNV('coa_istmo')!=null ||
-                     coaNV('coa_ao_desc')!=null || gRaw!=null || gmRaw!=null || cola);
+  const hayDato = !!(sv2('coa_loc') || sit || coaNV('coa_istmo', src)!=null ||
+                     coaNV('coa_ao_desc', src)!=null || gRaw!=null || gmRaw!=null || cola);
   if (!hayDato) return null;
   /* Banda 2-60, NO la 10-90 de LAB_XLS_RANGO_PROPIO. Copiar esa fue un error de un minuto: es la
      ventana del importador de Excel, pensada para el adulto, y el comentario que la encabeza dice
@@ -29584,7 +29613,7 @@ function coaConclusion(){
      por definición— rechaza los casos legítimos. Con piso 10 mm, un lactante con recoartación y
      aorta ascendente de 9 mm (medición correcta) sacaba «aorta ascendente fuera de rango: revisar
      unidades antes de concluir» en el informe firmado. */
-  coaBanda(coaNV('ao_tub'), 2, 60, fuera, 'aorta ascendente');
+  coaBanda(coaNV('ao_tub', src), 2, 60, fuera, 'aorta ascendente');
   const g = coaBanda(gRaw, 0, 150, fuera, 'gradiente máximo'), gm = coaBanda(gmRaw, 0, 100, fuera, 'gradiente medio');
   const PRE = { recoartacion:'Recoartación post-intervención', nativa:'Coartación nativa',
                 post_stent:'Coartación post-stent', post_cirugia:'Coartación post-cirugía' };
@@ -29598,8 +29627,8 @@ function coaConclusion(){
      con colaterales salía «sin gradiente significativo — seguimiento clínico».
      El Doppler NO se borró: sigue describiendo la lesión y sigue mandando a completar estudio.
      Lo que perdió es la potestad de indicar una intervención. */
-  const pp  = coaNV('coa_gradiente_picopico');
-  const est = coaNV('coa_estenosis_relativa');
+  const pp  = coaNV('coa_gradiente_picopico', src);
+  const est = coaNV('coa_estenosis_relativa', src);
   const hta = sv2('coa_hta');
   if (pp != null || est != null) {
     const ppSig = pp != null && pp >= 20, estSig = est != null && est >= 50;
@@ -29690,9 +29719,22 @@ window.coaGmax = coaGmax; window.coaRatio = coaRatio;
    escenario elimina la única vía de descarga del ventrículo derecho. */
 const VAP_TIPO_TXT = { i:'tipo I (proximal)', ii:'tipo II (distal)', iii:'tipo III (total)' };
 const VAP_DIR_TXT  = { id:'izquierda a derecha', bi:'bidireccional', di:'derecha a izquierda' };
-function vapConclusion(){
-  const sv2 = id => (document.getElementById(id)?.value || '').trim();
-  const nv = id => { const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; };
+function vapConclusion(src){
+  /* `src` es un estudio GUARDADO (`inf.campos`); sin el se lee el formulario, exactamente como
+     antes. Es el patron que ya usaban `eisenEstado(src)`, `dptEstado` y `cvrEstado`, y es lo que
+     permite que el Laboratorio corra ESTE clasificador en vez de reimplementar el criterio: dos
+     implementaciones del mismo umbral divergen, y aca lo que divergiria es una conducta clinica.
+     La rama sin `src` queda LITERAL —mismo `?.value`, mismo `v()`— para no cambiar en nada el
+     comportamiento del informe firmado al agregar una capacidad nueva. */
+  const sv2 = id => src ? String(src[id] == null ? '' : src[id]).trim()
+                        : (document.getElementById(id)?.value || '').trim();
+  const nv = id => {
+    if (!src) { const n = (typeof v === 'function') ? v(id) : null; return (n != null && isFinite(n)) ? n : null; }
+    const r = src[id];
+    if (r === undefined || r === null || r === '') return null;
+    const x = (typeof PF === 'function') ? PF(r) : parseFloat(String(r).replace(',', '.'));
+    return (x != null && isFinite(x)) ? x : null;
+  };
   const fuera = [];
   const banda = (n, lo, hi, lbl) => { if (n==null) return null; if (n>=lo && n<=hi) return n; if(lbl) fuera.push(lbl); return null; };
   const tipo = sv2('vap_tipo'), dir = sv2('vap_dir'), htp = sv2('vap_htp');
@@ -29754,9 +29796,22 @@ window.vapSync = vapSync; window.vapConclusion = vapConclusion;
    diferencia entre no hacer nada y implantar un dispositivo. La app no puede firmar «FOP
    asintomático» sobre un paciente al que nadie le preguntó por qué se le pidió el estudio. */
 const FOP_BURB_TXT = { pocas:'shunt leve (<5 burbujas)', moderado:'shunt moderado (5-20 burbujas)', abundante:'shunt severo (>20 burbujas)' };
-function fopConclusion(){
-  const sv2 = id => (document.getElementById(id)?.value || '').trim();
-  const nv = id => { const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; };
+function fopConclusion(src){
+  /* `src` es un estudio GUARDADO (`inf.campos`); sin el se lee el formulario, exactamente como
+     antes. Es el patron que ya usaban `eisenEstado(src)`, `dptEstado` y `cvrEstado`, y es lo que
+     permite que el Laboratorio corra ESTE clasificador en vez de reimplementar el criterio: dos
+     implementaciones del mismo umbral divergen, y aca lo que divergiria es una conducta clinica.
+     La rama sin `src` queda LITERAL —mismo `?.value`, mismo `v()`— para no cambiar en nada el
+     comportamiento del informe firmado al agregar una capacidad nueva. */
+  const sv2 = id => src ? String(src[id] == null ? '' : src[id]).trim()
+                        : (document.getElementById(id)?.value || '').trim();
+  const nv = id => {
+    if (!src) { const n = (typeof v === 'function') ? v(id) : null; return (n != null && isFinite(n)) ? n : null; }
+    const r = src[id];
+    if (r === undefined || r === null || r === '') return null;
+    const x = (typeof PF === 'function') ? PF(r) : parseFloat(String(r).replace(',', '.'));
+    return (x != null && isFinite(x)) ? x : null;
+  };
   /* Banda de plausibilidad, igual que en ductus, coartación y ventana. Faltaba acá, y el modo
      de falla es el mismo: una excursión del aneurisma tipeada en cm (1,2 por 12 mm) dejaba de
      superar el umbral de 10 mm, desaparecía la característica de alto riesgo, y la cascada
@@ -29790,7 +29845,7 @@ function fopConclusion(){
   /* Aneurisma del septum interauricular: la excursión ≥10 mm es el umbral clásico. Si el
      médico marcó «sí» sin medir, se cree la clasificación; si midió, manda la medida. */
   const hayASA = asa === 'si' || (asaMm != null && asaMm >= 10);
-  const edad = (typeof v==='function') ? v('edad') : null;
+  const edad = nv('edad');
 
   /* 1 · El antecedente manda sobre la anatomía. */
   if (acv === 'si') {
@@ -58276,8 +58331,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260918-1910';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789769428672;                 /* eco-build-ms */
+const ECO_BUILD    = '20260918-1920';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789770038960;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -58363,7 +58418,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1910</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1920</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

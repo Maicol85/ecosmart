@@ -8552,6 +8552,71 @@ caso('TC-170', 'CIA/CIV: la cascada es exhaustiva y la contraindicacion gana', `
   })();
 `);
 
+caso('TC-171', 'Los clasificadores de CC dan lo MISMO leyendo el form o un estudio guardado', `
+  return (async () => {
+    __t.limpiar();
+    /* Se llena el formulario, se arma campos con la MISMA convencion que usa guardarInforme
+       —id del control, y <id>__chk con '1' para las casillas— y se compara la conclusion por
+       las dos rutas. Si divergen, el Laboratorio publicaria una conducta distinta de la del
+       informe firmado del mismo paciente, que es exactamente lo que el refactor evita. */
+    __t.set('nombre','EQUIV'); __t.set('ci','7777777-7'); __t.set('edad','52');
+    __t.set('peso','72'); __t.set('talla','172');
+    const F = {
+      dap_tipo:'no_restrictivo', dap_dir:'id', dap_diam:'6', dap_vmax:'2.1', psap_calc:'52',
+      vap_tipo:'tipo1', vap_dir:'id', vap_diam:'9', vap_htp:'si',
+      coa_situacion:'nativa', coa_vmax:'3.6', coa_gmedio:'22', coa_istmo:'7', coa_ao_desc:'18',
+      fop_tunel:'9', fop_asa:'si', fop_asa_mm:'12', fop_mov:'si', fop_burbujas:'si',
+      fop_shunt_reposo:'moderado', fop_shunt_valsalva:'severo'
+    };
+    const puestos = [], faltantes = [];
+    Object.keys(F).forEach((k) => {
+      const r = __t.set(k, F[k]);
+      if (typeof r === 'string' && r.indexOf('NO EXISTE') === 0) faltantes.push(k); else puestos.push(k);
+    });
+    /* La casilla de flujo diastolico anterogrado es el unico control no-texto de los cuatro
+       modulos, y es justo el que el refactor tuvo que resolver aparte. */
+    const cb = document.getElementById('coa_diast_anterogrado');
+    let casilla = 'NO EXISTE';
+    if (cb) { cb.checked = true; cb.dispatchEvent(new Event('change', { bubbles:true })); casilla = 'ok'; }
+    /* campos se arma leyendo los controles reales, no la tabla de arriba: asi el test tambien
+       cubre los campos calculados que la cascada mira y que nadie tipeo. */
+    const campos = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach((el) => {
+      if (el.type === 'checkbox' || el.type === 'radio') { if (el.checked) campos[el.id + '__chk'] = '1'; }
+      else if (String(el.value || '') !== '') campos[el.id] = el.value;
+    });
+    const J = (x) => JSON.stringify(x === undefined ? null : x);
+    const par = (fn) => ({ dom: J(fn()), src: J(fn(campos)) });
+    /* dapConclusion NO entra: sigue leyendo el DOM para el Qp/Qs (ccQpQsDe / eteQpQsMotivo), asi
+       que pasarle campos da el mismo resultado por las dos ramas y el aserto seria vacuo -- que
+       es peor que no tenerlo. Queda pendiente, con su entrada en CLAUDE.md. */
+    const vap = par(vapConclusion);
+    const coa = par(coaConclusion), fop = par(fopConclusion);
+    /* Denominador: si las dos rutas devuelven null el caso pasaria trivialmente, que es medir
+       sobre vacio. Se exige que la ruta DOM haya concluido ALGO en las cuatro. */
+    const concluyen = [vap.dom, coa.dom, fop.dom].filter((x) => x !== 'null' && x !== null).length;
+    return { extra: [
+      ['los ids del formulario existen',            faltantes.length === 0, faltantes.join(',')],
+      ['la casilla de la coartacion existe',        casilla === 'ok', casilla],
+      ['las tres cascadas concluyen algo',         concluyen === 3, concluyen + ' de 3'],
+      ['el ductus sigue leyendo el DOM: no se afirma equivalencia', dapConclusion.length === 0, 'aridad=' + dapConclusion.length],
+      ['ventana: la misma conclusion por las dos rutas',  vap.dom === vap.src, 'dom=' + vap.dom.slice(0,70) + ' src=' + vap.src.slice(0,70)],
+      ['coartacion: la misma conclusion por las dos rutas', coa.dom === coa.src, 'dom=' + coa.dom.slice(0,70) + ' src=' + coa.src.slice(0,70)],
+      ['FOP: la misma conclusion por las dos rutas',      fop.dom === fop.src, 'dom=' + fop.dom.slice(0,70) + ' src=' + fop.src.slice(0,70)],
+      /* La cola diastolica solo DECIDE cuando el gradiente no es concluyente: con Vmax 3,6 el
+         gradiente ya supera 20 mmHg y la casilla no mueve nada. Para probar que el __chk viaja
+         de verdad hace falta el escenario donde manda, que es sin gradiente. */
+      ['la casilla viaja: sin gradiente, el __chk decide',
+        (function () {
+          const base = { coa_situacion:'nativa', coa_ao_desc:'18' };
+          const sin = J(coaConclusion(base));
+          const con = J(coaConclusion(Object.assign({}, base, { coa_diast_anterogrado__chk:'1' })));
+          return sin !== con && con.indexOf('significativa') > -1;
+        })(), 'ver cascada de coaConclusion']
+    ] };
+  })();
+`);
+
 caso('TC-169', 'POP-4: el patron sale de los seams y el EN SUMA no invierte el hallazgo', `
   return (async () => {
     __t.limpiar();

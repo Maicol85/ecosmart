@@ -4239,6 +4239,55 @@ alta, porque los casos se escribieron eligiendo los cortes, no los campos.
    taquicardia ventricular, historia clínica, frases rápidas, segmentos del ETE, pre-TAVI,
    panel de indicaciones (`_IG_SECTIONS`), DICOM e imágenes en IndexedDB.
 
+## Las demás CC: el refactor que hay que hacer ANTES, y un clasificador a medias que casi sale
+
+Para replicar el patrón de CIA/CIV en las otras doce cardiopatías hace falta que el Laboratorio
+pueda correr **el clasificador que ya tiene la app** sobre un estudio guardado. La regla de no
+definir criterios propios no deja la alternativa: reimplementar el umbral en el Lab produce dos
+implementaciones que divergen, y lo que divergiría es una conducta clínica.
+
+### El bloqueo real
+`_labEstado(fn, inf)` llama `fn(inf.campos)`. De los doce clasificadores, **sólo `eisenEstado(src)`
+y `fontanEstado(src)` aceptan el objeto**; los otros diez son `xxxConclusion()` sin parámetros y
+leen el DOM. Auditados uno por uno, están casi limpios: siete no leen el DOM fuera de sus helpers
+`sv2`/`nv`, y los sitios sueltos son cuatro —dos en `dapConclusion`, uno en `coaConclusion` (la
+casilla) y uno en `fopConclusion` (la edad)—. El shim es el de `eisenEstado`: `src ? src[id] : …`,
+con la rama sin `src` **literal** para no mover el informe firmado.
+
+### Hecho en este turno
+`vapConclusion(src)`, `coaConclusion(src)` y `fopConclusion(src)`. La coartación arrastró a sus
+tres helpers —`coaNV`, `coaGmax`, `coaRatio`— que también leían el DOM; `coaBanda` es pura y no
+se tocó. Cubierto por **TC-171**, que llena el formulario, arma `campos` con la convención de
+`guardarInforme` (id del control, y el sufijo de casilla con '1') y exige que la conclusión sea
+idéntica por las dos rutas.
+
+### El clasificador a medias — lo que el test cazó
+La primera versión del refactor dejó `coaConclusion(src)` llamando a `coaGmax()` y `coaNV()` sin
+`src`. Resultado: los **selects** salían del estudio guardado y el **gradiente** del formulario en
+pantalla. Un clasificador a medias mezcla dos pacientes y no lo dice — y el aserto de equivalencia
+pasaba igual, porque en el test el formulario y `campos` tenían los mismos datos. Lo delató la
+condición de la casilla, que sólo decide cuando el gradiente NO es concluyente.
+
+Dos reglas que quedan:
+- **Un shim en la función de entrada no alcanza**: hay que seguir la cadena de helpers. `src` que
+  no se propaga es peor que no tenerlo, porque el resultado parece plausible.
+- **Un aserto de equivalencia entre dos rutas no prueba nada si las dos leen la misma fuente.**
+  El escenario tiene que ser uno donde el dato exista SÓLO en la ruta que se quiere probar.
+
+### `dapConclusion` queda pendiente, revertida a propósito
+No es un shim: depende de `ccQpQsDe` / `ccShuntsConDatos` / `eteQpQsMotivo`, y toda esa maquinaria
+de atribución del Qp/Qs lee el DOM. El equivalente source-aware ya existe para el Laboratorio
+—`_ccQpQsAtrib(i)`, del bloque de CIA/CIV—, así que el trabajo es unificar las dos, no parchear.
+Se revirtió al estado commiteado para no dejar un clasificador a medias. TC-171 lo declara con un
+aserto sobre su aridad en vez de afirmar una equivalencia que hoy sería vacua.
+
+### Lo que falta para cerrar el pedido de las doce
+1. `dapConclusion` + unificar la atribución del Qp/Qs.
+2. Las seis limpias: `vab`, `ebs`, `mch`, `mca`, `tdf`, `tga` — shim mecánico, sin helpers sucios.
+3. El motor genérico: una tabla de configuración con una fila por CC (predicado, campo de tipo,
+   campo de tamaño, clasificador) que alimente PDF y PPT, para que agregar una CC sea un dato y no
+   código nuevo. **Ninguna de las doce tiene todavía su sección ni su hoja.**
+
 ## CIA y CIV en el PDF y el PPT del Laboratorio — y cuatro criterios que no se implementaron como venían
 
 Prototipo de estadística clínica por cardiopatía congénita: una sección del PDF y una hoja del
