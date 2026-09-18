@@ -487,6 +487,43 @@ El Excel pasó de **421 a 429 columnas** y de 128 a **129 básicas**; TC-135 fij
 contenido. Ojo con el `0` de una casilla apagada: **no es lo mismo que ausente**, y el caso lo
 distingue.
 
+### POP: la conversión del TSVI verificada con casos reales, y el taponamiento sale de `dptEstado()` — 2026-09-18
+
+**LA CONVERSIÓN ESTÁ BIEN Y AHORA ESTÁ FIJADA CON CASOS DE POST-OPERATORIO, no con el caso de
+números redondos.** `_hemoVSEco` hace `PI * (d/10/2)^2 * itv`: el diámetro pasa de mm a cm y a
+radio en un solo paso, el VTI ya viene en cm y no se toca. Medido sobre cinco pacientes
+plausibles, comparando contra la aritmética escrita aparte (`d/20`):
+
+| caso | TSVI | VTI | FC | VS | GC | IC |
+|---|---|---|---|---|---|---|
+| mujer 1,60 m taquicárdica | 18 mm | 16 | 95 | 40,7 ml | 3,87 | 2,37 límite |
+| varón estándar POP CABG | 21 mm | 18 | 80 | 62,3 ml | 4,99 | 2,53 normal |
+| varón grande bradicárdico | 24 mm | 22 | 62 | 99,5 ml | 6,17 | 2,79 normal |
+| bajo gasto POP | 20 mm | 11 | 88 | 34,6 ml | 3,04 | 1,62 bajo |
+| hiperdinámico / vasoplejia | 22 mm | 24 | 105 | 91,2 ml | **9,58** | 4,82 elevado |
+
+**Los cinco coinciden con el cálculo a mano.** Cuatro caen en 3-8 L/min y **el quinto no, a
+propósito**: una vasoplejia post-CEC con VTI 24 y FC 105 corre de verdad a 9-10 L/min, y la banda
+lo rotula «elevado». **3-8 no es un techo fisiológico, es el rango habitual** — usarlo como
+validación habría rechazado al paciente vasopléjico, que es justo el que este módulo viene a
+describir. Los volúmenes sistólicos (34-100 ml) son todos plausibles.
+
+TC-167 fija ahora los cuatro casos de rango habitual contra la aritmética independiente, más el
+volumen sistólico. La mutación con la fórmula del pedido —`(d/2)^2` con d en mm— sigue dando
+**439,82 L/min**.
+
+**TAPONAMIENTO EN POP-4: SALE DE `dptEstado()`, y la decisión quedó escrita EN EL PLACEHOLDER**,
+no sólo acá — es donde va a mirar quien retome. Esa cascada clasifica en siete claves
+(`taponamiento`, `incipiente`, `incipiente_cuantia`, `sin_compromiso`, `incompleto`, `parcial`,
+`sin_derrame`) y es la que ya firma el informe; para leerla sobre un estudio guardado existe
+`_pcCon(campos, fn)`.
+
+Definir «colapso VD + VCI dilatada» dentro de POP —como lo describía el pedido— habría puesto
+**dos definiciones de taponamiento en el mismo documento**: una que exige tres criterios mayores
+y distingue «compromiso incipiente» de «derrame sin criterios evaluados», y otra de dos
+condiciones. Sobre la conducta más urgente que este módulo puede emitir. **Corolario registrado:
+«Falla VD» tampoco inventa cortes** — TAPSE y VD/VI ya tienen los suyos y POP-3 los sincroniza.
+
 ### POP-2: tres escalas del mismo número, y una fórmula 100× — 2026-09-18
 
 Bloque 3 del módulo POP. **Lo que más valor tuvo fue lo que NO se implementó.**

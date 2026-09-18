@@ -4350,7 +4350,24 @@ window.cerrarSesion = cerrarSesion;
     </div>
     <div id="pop-concl" class="pop-panel" style="display:none;">
       <div class="card"><div class="card-body">
-        <!-- TODO: POP-4 -->
+        <!-- TODO: POP-4 — conclusión hemodinámica e integración al informe.
+
+             DECISIÓN TOMADA Y NO NEGOCIABLE (Maicol, 2026-09-18): el patrón «Taponamiento» de
+             este bloque NO define criterios propios. Se lee de `dptEstado()`, que es la cascada
+             que ya firma el informe y que clasifica en siete claves (`taponamiento`,
+             `incipiente`, `incipiente_cuantia`, `sin_compromiso`, `incompleto`, `parcial`,
+             `sin_derrame`). Para leerla sobre un estudio guardado existe la fuente inyectable
+             `_pcCon(campos, fn)`.
+
+             Escribir acá «colapso VD + VCI dilatada» —que es como lo describía el pedido— habría
+             puesto DOS definiciones de taponamiento en la misma app y, peor, en el mismo
+             documento: la del módulo de pericardio, que exige tres criterios mayores y distingue
+             «compromiso incipiente» de «derrame sin criterios evaluados», y una de dos
+             condiciones acá. Es el defecto de «tres agendas para el mismo paciente» que este
+             archivo persigue, y sobre la conducta más urgente de todas.
+
+             Corolario: el patrón «Falla VD» tampoco inventa cortes — TAPSE y VD/VI ya tienen los
+             suyos en la app, y el bloque 4 (POP-3) los sincroniza. -->
         <p style="font-size:12px;color:var(--text2);margin:0;">Pendiente.</p>
       </div></div>
     </div>
@@ -57292,8 +57309,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260918-1455';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789754134967;                 /* eco-build-ms */
+const ECO_BUILD    = '20260918-1529';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789756166842;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -57379,7 +57396,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1455</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1529</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

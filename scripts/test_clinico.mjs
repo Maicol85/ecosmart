@@ -8417,7 +8417,23 @@ caso('TC-167', 'POP-2: hemodinamica con las bandas de la app, y el eco concuerda
       ['la capsula de la app publica el MISMO GC', capGc.indexOf('4.40') === 0, capGc + ' vs ' + ecoGc],
       ['  y el MISMO IC con la misma banda',     capIc.slice(0, 4) === ecoIc.slice(0, 4), capIc + ' vs ' + ecoIc],
       ['la concordancia da 12 %',                dif.indexOf('12 %') === 0, dif],
-      ['sin GC del cateter no se muestra',       compOculta === true]
+      ['sin GC del cateter no se muestra',       compOculta === true],
+      /* LA CONVERSION mm->cm, sobre casos de post-operatorio y no sobre el caso redondo. El VS
+         y el GC se comparan contra la aritmetica escrita aparte (d/20 = a cm y a radio en un
+         paso). Con la formula del pedido —(d/2)^2 con d en mm— cada GC sale cien veces mayor. */
+      ['la conversion del TSVI da gastos fisiologicos', (function(){
+        const CASOS = [[18,16,95],[21,18,80],[24,22,62],[20,11,88]];
+        return CASOS.every(function(c){
+          const gc = _hemoGCEco(c[0], c[1], c[2]);
+          const r = c[0] / 20, mano = Math.PI * r * r * c[1] * c[2] / 1000;
+          return Math.abs(gc - mano) < 1e-9 && gc >= 3 && gc <= 8;
+        });
+      })(), [[18,16,95],[21,18,80],[24,22,62],[20,11,88]].map(function(c){
+        return c.join('/') + '=' + _hemoGCEco(c[0], c[1], c[2]).toFixed(2); }).join('  ')],
+      ['el volumen sistolico tambien es fisiologico', (function(){
+        const vs = _hemoVSEco(21, 18);
+        return vs > 30 && vs < 120;
+      })(), _hemoVSEco(21, 18).toFixed(1) + ' ml']
     ] };
   })();
 `);
