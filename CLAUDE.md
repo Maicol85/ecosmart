@@ -487,6 +487,51 @@ El Excel pasó de **421 a 429 columnas** y de 128 a **129 básicas**; TC-135 fij
 contenido. Ojo con el `0` de una casilla apagada: **no es lo mismo que ausente**, y el caso lo
 distingue.
 
+### POP rediseñado en cards, y dos variables del pedido que no existen — 2026-09-18
+
+Sólo presentación: ni un cálculo ni un seam cambiaron. Cinco acordeones apilados pasan a una
+grilla de dos columnas (una en móvil), con la conclusión a ancho completo.
+
+**`--surface-2` NO EXISTE en este archivo.** El pedido la nombraba para el fondo de las cards, y
+una variable CSS inexistente no da error: da fondo transparente. Las reales son `--bg2`/`--bg3`.
+**Y el borde va en 1 px, no en 0,5**: en pantallas no-retina 0,5 px redondea a 0 o a 1 según el
+navegador, así que la misma card se vería con borde en una máquina y sin él en otra.
+
+**NO HAY «CALCULADOR DE UCI» EN ESTA APP.** El pedido pedía copiarle el diseño; las trece
+menciones de mcg/kg/min del archivo son todas de POP. UCI/CTI es otra app de la suite. El
+calculador se hizo con el idioma de ésta (`calc-box`/`calc-row`).
+
+**El encabezado pasó a `h2.card-head` + `toggleCard`**, que es el patrón exacto de las otras seis
+secciones de la pestaña — era lo que el pedido pedía igualar. De paso gana el plegado, que es lo
+que mantiene navegable una pestaña con siete secciones.
+
+**LA FÓRMULA DEL CALCULADOR ES CORRECTA Y SE VERIFICÓ.** `(mg × 1000 / ml) × (ml/h) / 60 / peso`
+cierra dimensionalmente y con un caso conocido: noradrenalina **4 mg en 100 ml a 10 ml/h en 70 kg
+→ 0,10 mcg/kg/min**, que es una dosis baja típica. El peso sale del campo del estudio —dos pesos
+para el mismo paciente es el patrón del espesor parietal— y **sin peso no se calcula**: estimar
+con 70 kg publicaría una dosis que no es la de este paciente.
+
+**El resultado NO pisa la dosis tipeada a mano**: se muestra al lado con un botón «usar». La
+dosis puede venir de la bomba, y sobrescribirla sería el defecto del campo «auto» al revés.
+
+**Al apagar una droga se borran también los tres campos de dilución**, por el mismo motivo que la
+dosis: `guardarInforme` barre `input[id]` sin mirar visibilidad.
+
+#### Lo que costó
+
+**LOS CHEQUEOS SE CORRIERON ANTES DEL COMMIT, que es la corrección del turno anterior — y
+encontraron dos cosas.** `detectar_huerfanos` marcó los **diez** `pop_<k>_vel`: su heurística de
+«id armado por concatenación» no reconoce ese sufijo, aunque `_diluc_mg` y `_diluc_ml` —que
+aparecen en la MISMA expresión— sí los reconoce. Se renombraron a `_veloc`, que además es más
+descriptivo; **no se taparon en `CONOCIDOS_LOCALES`**, porque tienen destino real.
+
+**SEMGREP QUEDÓ EN 124 Y NO ESTÁ RESUELTO.** Subió a 125 por dos `innerHTML = a + b + c` míos
+—el de la conclusión y el del calculador—, que se arreglaron asignando en un paso. **El tercero no
+lo pude aislar dentro de la sesión.** Es WARNING, no ERROR, y la familia sintáctica
+`ceibo-xss-innerhtml-concat` ya tiene 69 falsos positivos triageados — pero **eso no está
+confirmado para éste**. Queda como lo primero a mirar en el próximo turno: el método es correr el
+scan sobre `git show HEAD:index.html` y diffear regla por regla.
+
 ### POP-4: la integración ya estaba construida, y el EN SUMA decía lo contrario — 2026-09-18
 
 Bloque 5 y las seis superficies. **La mitad del trabajo fue no construir nada.**
