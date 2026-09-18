@@ -525,6 +525,27 @@ literalmente lo que este archivo recomienda desde la quinta vez.
 
 **POP-4 sigue sin empezar.** Toca seis superficies, una de ellas el informe firmado.
 
+#### Las cinco decisiones de POP-4, tomadas antes de escribirlo
+
+Están en el comentario del placeholder —que es donde va a mirar quien retome— y acá. Ninguna
+banda de POP-4 se define dentro de POP-4:
+
+| lo que POP-4 necesita | de dónde sale |
+|---|---|
+| taponamiento | `dptEstado()` — siete claves, la que firma el informe |
+| GC / IC | `_icBanda` |
+| RVS (vasoplejia) | `_rvsBanda` |
+| RVP | `RVP_ELEVADA_UW` — un corte, dos unidades de presentación |
+| TAPSE · VD/VI | `UMBRAL_TAPSE_NORMAL` y el 0,9 de la cápsula de TEP |
+
+**Se pregunta POR LA BANDA, no por el número.** `_rvsBanda(rvs)` ya devuelve la de vasodilatación
+por debajo de 800; escribir `< 800` dentro de POP sería la segunda copia del mismo corte, y el día
+que se mueva la cápsula diría «RVS normal» y el bloque POP «vasoplejia» sobre el mismo paciente.
+Vale igual para los otros cuatro.
+
+**Lo único propio de POP-4 es cómo se COMBINAN esas bandas en un patrón** y el texto orientativo
+que sale de ahí. Ésa es toda la superficie nueva, y es donde hay que poner la verificación.
+
 ### POP: la conversión del TSVI verificada con casos reales, y el taponamiento sale de `dptEstado()` — 2026-09-18
 
 **LA CONVERSIÓN ESTÁ BIEN Y AHORA ESTÁ FIJADA CON CASOS DE POST-OPERATORIO, no con el caso de

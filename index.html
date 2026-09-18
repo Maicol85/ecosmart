@@ -4389,7 +4389,23 @@ window.cerrarSesion = cerrarSesion;
              archivo persigue, y sobre la conducta más urgente de todas.
 
              Corolario: el patrón «Falla VD» tampoco inventa cortes — TAPSE y VD/VI ya tienen los
-             suyos en la app, y el bloque 4 (POP-3) los sincroniza. -->
+             suyos en la app, y el bloque 4 (POP-3) los sincroniza.
+
+             IDEM «VASOPLEJIA» (Maicol, 2026-09-18): el criterio de RVS baja sale de `_rvsBanda`,
+             que es la banda que ya usan la cápsula «Perfil hemodinámico» y el bloque 3. Se
+             pregunta POR LA BANDA, no por el número: `_rvsBanda(rvs)` devuelve la de
+             vasodilatación por debajo de 800, y comparar contra un `< 800` escrito acá sería la
+             segunda copia del mismo corte — el día que se mueva, la cápsula diría «RVS normal» y
+             este bloque «vasoplejia» sobre el mismo paciente.
+
+             RESUMEN DE LO QUE POP-4 NO PUEDE DEFINIR POR SU CUENTA:
+               · taponamiento  -> `dptEstado()`
+               · IC / GC       -> `_icBanda`
+               · RVS           -> `_rvsBanda`
+               · RVP           -> `RVP_ELEVADA_UW` (una unidad de corte, dos de presentación)
+               · TAPSE, VD/VI  -> `UMBRAL_TAPSE_NORMAL` y el 0,9 de la cápsula de TEP
+             Lo único propio de POP-4 es cómo se COMBINAN esas bandas en un patrón, y el texto
+             orientativo que sale de ahí. -->
         <p style="font-size:12px;color:var(--text2);margin:0;">Pendiente.</p>
       </div></div>
     </div>
@@ -57444,8 +57460,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260918-1535';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789756512030;                 /* eco-build-ms */
+const ECO_BUILD    = '20260918-1632';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789759950425;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -57531,7 +57547,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1535</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1632</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
