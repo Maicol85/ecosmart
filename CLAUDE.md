@@ -487,6 +487,44 @@ El Excel pasó de **421 a 429 columnas** y de 128 a **129 básicas**; TC-135 fij
 contenido. Ojo con el `0` de una casilla apagada: **no es lo mismo que ausente**, y el caso lo
 distingue.
 
+### POP-3: el POCUS no inventa cortes, y el `\s` se comió las eses por octava vez — 2026-09-18
+
+Bloque 4 con sus cuatro subsecciones. **Las dos sincronizadas no tienen criterios propios**, que
+era la regla del pedido y la decisión ya tomada para el taponamiento.
+
+**Pericardio lee `dptEstado()`** y publica su conclusión con el rótulo del filtro de cohorte.
+Verificado: con derrame moderado y los tres criterios mayores, `dptEstado` dice `taponamiento` y
+el POP publica «Taponamiento (3 criterios mayores)». No se reevalúa nada acá.
+
+**LOS DOS SEMÁFOROS DE TRES BANDAS DEL PEDIDO NO SE APLICARON — tercera vez en este módulo.**
+La app ya publica los dos parámetros en la cápsula de TEP, **dos acordeones más arriba en la
+misma pestaña**:
+
+| | la app | el pedido | el caso que choca |
+|---|---|---|---|
+| TAPSE | binario, `UMBRAL_TAPSE_NORMAL` = 17 | 🟢≥17 / 🟡12-16 / 🔴<12 | **14 mm**: rojo arriba, amarillo acá |
+| VD/VI | ≥0,9 = dilatación (criterio de TEP) | 🟢<0,6 / 🟡0,6-1,0 / 🔴>1,0 | **0,95**: rojo arriba, amarillo acá · **0,7**: verde arriba, amarillo acá |
+
+Se conservan los de la app y el bloque **lo declara en pantalla**. Si algún día se gradúa el
+TAPSE en tres bandas, se mueve en `UMBRAL_TAPSE_NORMAL` y en la cápsula de TEP, no acá.
+
+**El hemotórax se declara y NO cambia la banda de conducta**: la decide el equipo quirúrgico y
+depende del débito, que esta app no recoge. Callarlo sería peor que no graduarlo.
+
+#### Lo que costó
+
+**`dptTamano()` DEVUELVE UN OBJETO, no una cadena.** Interpolarlo directo imprimía
+**«Tamaño del derrame[object Object]»**. Lo cazó la sonda, no la lectura — es el mismo error de
+tipo que `_lblDe` devolviendo `'Otro'`.
+
+**EL `\s` SE LO COMIÓ EL TEMPLATE LITERAL, POR OCTAVA VEZ.** El caso normalizaba con `/\s+/g`,
+quedó en `/s+/g` y **borró todas las eses**: el diagnóstico decía «di función», «Pre ente»,
+«Conclu ión», «de cartar». El caso daba rojo acusando al código de un defecto propio. Se quitó el
+regex: acá no hacía falta normalizar nada, alcanza con `indexOf` sobre el `textContent` crudo. Es
+literalmente lo que este archivo recomienda desde la quinta vez.
+
+**POP-4 sigue sin empezar.** Toca seis superficies, una de ellas el informe firmado.
+
 ### POP: la conversión del TSVI verificada con casos reales, y el taponamiento sale de `dptEstado()` — 2026-09-18
 
 **LA CONVERSIÓN ESTÁ BIEN Y AHORA ESTÁ FIJADA CON CASOS DE POST-OPERATORIO, no con el caso de

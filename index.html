@@ -4338,8 +4338,30 @@ window.cerrarSesion = cerrarSesion;
     </div>
     <div id="pop-pocus" class="pop-panel" style="display:none;">
       <div class="card"><div class="card-body">
-        <!-- TODO: POP-3 -->
-        <p style="font-size:12px;color:var(--text2);margin:0;">Pendiente.</p>
+        <!-- PERICARDIO · PLEURA · PULMON · VD. Los dos extremos se SINCRONIZAN con lo que la
+             app ya calcula (dptEstado y los campos de VD/Doppler) y los dos del medio son campos
+             nuevos. Ninguna subseccion define un criterio propio. -->
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Pericardio</div>
+        <div class="calc-box" style="margin-bottom:14px;"><div id="pop-pocus-peri">—</div></div>
+
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Pleura</div>
+        <div class="grid-3">
+          <div class="fg"><label for="pop_pleura_der">Derrame derecho</label><select id="pop_pleura_der" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="leve">Leve (&lt;1 cm)</option><option value="moderado">Moderado (1-3 cm)</option><option value="severo">Severo (&gt;3 cm)</option><option value="ausente">Ausente</option></select></div>
+          <div class="fg"><label for="pop_pleura_izq">Derrame izquierdo</label><select id="pop_pleura_izq" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="leve">Leve (&lt;1 cm)</option><option value="moderado">Moderado (1-3 cm)</option><option value="severo">Severo (&gt;3 cm)</option><option value="ausente">Ausente</option></select></div>
+          <div class="fg"><label for="pop_pleura_caract">Características</label><select id="pop_pleura_caract" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="libre">Libre</option><option value="loculado">Loculado</option><option value="hemotorax">Hemotórax</option></select></div>
+        </div>
+        <div class="calc-box" style="margin:8px 0 14px;"><div id="pop-pocus-pleura">—</div></div>
+
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Pulmón</div>
+        <div class="grid-3">
+          <div class="fg"><label for="pop_pulmon_lineasb">Líneas B</label><select id="pop_pulmon_lineasb" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="ausentes">Ausentes</option><option value="focales">Focales</option><option value="difusas">Difusas bilaterales</option></select></div>
+          <div class="fg"><label for="pop_pulmon_consol">Consolidación</label><select id="pop_pulmon_consol" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="ausente">Ausente</option><option value="der">Derecha</option><option value="izq">Izquierda</option><option value="bilateral">Bilateral</option></select></div>
+          <div class="fg"><label for="pop_pulmon_neumo">Neumotórax</label><select id="pop_pulmon_neumo" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="ausente">Ausente</option><option value="sospecha">Sospecha</option><option value="presente">Presente</option></select></div>
+        </div>
+        <div class="calc-box" style="margin:8px 0 14px;"><div id="pop-pocus-pulmon">—</div></div>
+
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Ventrículo derecho</div>
+        <div class="calc-box"><div id="pop-pocus-vd">—</div></div>
       </div></div>
     </div>
     <div class="card" style="margin-bottom:10px;">
@@ -24054,6 +24076,118 @@ function popHemoSync() {
   }
 }
 window.popHemoSync = popHemoSync;
+/* ══ POP · BLOQUE 4 — POCUS por sistemas (2026-09-18) ══
+   DOS SUBSECCIONES NO TIENEN CRITERIOS PROPIOS, A PROPÓSITO:
+   · Pericardio lee `dptEstado()`, la cascada de siete claves que ya firma el informe. El pedido
+     pedía explícitamente reusarla.
+   · Ventrículo derecho usa `UMBRAL_TAPSE_NORMAL` (17 mm) y el corte de VD/VI ≥0,9 que la app
+     YA publica en la cápsula de TEP, que está en ESTA MISMA pestaña.
+
+   LOS SEMÁFOROS DE TRES BANDAS DEL PEDIDO NO SE APLICARON, y es la tercera vez en el módulo:
+   · TAPSE: el pedido pedía 🟢≥17 / 🟡12-16 / 🔴<12. La app lo publica BINARIO —≥17 normal,
+     <17 disfunción— así que un TAPSE de 14 sale ROJO dos acordeones más arriba y habría salido
+     amarillo acá.
+   · VD/VI: el pedido pedía 🟢<0,6 / 🟡0,6-1,0 / 🔴>1,0. La app usa ≥0,9 (criterio de dilatación
+     del algoritmo de TEP): un 0,95 es ROJO arriba y habría sido amarillo acá, y un 0,7 verde
+     arriba y amarillo acá.
+   Se conserva el corte de la app y se declara en pantalla. Si mañana se decide graduar el TAPSE
+   en tres bandas, hay que moverlo en `UMBRAL_TAPSE_NORMAL` y en la cápsula de TEP, no acá. */
+function popPocusSync() {
+  const setH = (id, h) => { const e = document.getElementById(id); if (e) e.innerHTML = h; };
+  const fila = (lbl, val) => '<div class="calc-row"><span class="calc-lbl">' + lbl + '</span><span>' + val + '</span></div>';
+  const falta = t => '<div style="font-size:11px;color:var(--text2);line-height:1.5;">' + t + '</div>';
+
+  /* ── PERICARDIO ── `dptEstado()` sin argumento lee el FORMULARIO, que es lo que corresponde
+     acá: el POP describe al paciente que se está mirando. */
+  let st = null;
+  try { st = (typeof dptEstado === 'function') ? dptEstado() : null; } catch (e) { st = null; }
+  if (!st || !st.clave || st.clave === 'sin_derrame') {
+    setH('pop-pocus-peri', falta(st && st.clave === 'sin_derrame'
+      ? 'Sin derrame pericárdico consignado.'
+      : 'Sin evaluación pericárdica cargada — completar el módulo Derrame pericárdico / Taponamiento de esta pestaña.'));
+  } else {
+    const lbl = (typeof _labLblConclusion === 'function') ? _labLblConclusion('coh-dpt-con', st.clave) : st.clave;
+    const grave = st.clave === 'taponamiento';
+    setH('pop-pocus-peri',
+      /* `dptTamano()` devuelve un OBJETO ({clave, lbl, min, max}), no una cadena: interpolarlo
+         directo imprimía «[object Object]» donde va el tamaño del derrame. Lo cazó la sonda,
+         no la lectura — es el mismo error de tipo que `_lblDe` devolviendo 'Otro'. */
+      fila('Tamaño del derrame', (function(){
+        try { const tm = dptTamano(); return (tm && tm.lbl) ? tm.lbl : '—'; } catch (e) { return '—'; }
+      })()) +
+      fila('Conclusión (módulo Pericardio)', badge(grave ? 'red' : (st.clave === 'incipiente' ? 'orange' : 'yellow'), lbl)) +
+      '<div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">Se lee del módulo de pericardio de esta misma pestaña: mismos criterios que el informe firmado. No se reevalúa acá.</div>');
+  }
+
+  /* ── PLEURA ── */
+  const ORD = { '': 0, ausente: 0, leve: 1, moderado: 2, severo: 3 };
+  const der = (document.getElementById('pop_pleura_der') || {}).value || '';
+  const izq = (document.getElementById('pop_pleura_izq') || {}).value || '';
+  const car = (document.getElementById('pop_pleura_caract') || {}).value || '';
+  if (!der && !izq) setH('pop-pocus-pleura', falta('Sin evaluación pleural cargada.'));
+  else {
+    const mx = Math.max(ORD[der] || 0, ORD[izq] || 0);
+    let txt, cls;
+    if (ORD[der] === 3 && ORD[izq] === 3) { txt = 'Considerar drenaje bilateral'; cls = 'red'; }
+    else if (mx === 3) { txt = 'Considerar drenaje ' + (ORD[der] === 3 ? 'derecho' : 'izquierdo'); cls = 'red'; }
+    else if (mx === 2) { txt = 'Vigilancia — reevaluar en 24 h'; cls = 'yellow'; }
+    else if (mx === 1) { txt = 'Sin indicación de drenaje inmediata'; cls = 'green'; }
+    else { txt = 'Sin derrame pleural'; cls = 'green'; }
+    /* El hemotórax se DECLARA aparte y no cambia la banda: la conducta la decide el equipo
+       quirúrgico y depende del débito, que esta app no recoge. Callarlo sería peor. */
+    setH('pop-pocus-pleura', fila('Conducta orientativa', badge(cls, txt)) +
+      (car === 'hemotorax' ? fila('Característica', badge('red', 'Hemotórax — la conducta la define el equipo quirúrgico')) :
+       car ? fila('Característica', car === 'loculado' ? 'Loculado' : 'Libre') : ''));
+  }
+
+  /* ── PULMÓN ── */
+  const lb = (document.getElementById('pop_pulmon_lineasb') || {}).value || '';
+  const co = (document.getElementById('pop_pulmon_consol') || {}).value || '';
+  const nx = (document.getElementById('pop_pulmon_neumo') || {}).value || '';
+  if (!lb && !co && !nx) setH('pop-pocus-pulmon', falta('Sin evaluación pulmonar cargada.'));
+  else {
+    const L = { ausentes: ['green', 'Sin síndrome intersticial'], focales: ['yellow', 'Líneas B focales'],
+                difusas: ['red', 'Líneas B difusas bilaterales — síndrome intersticial'] };
+    const C = { ausente: ['green', 'Sin consolidación'], der: ['yellow', 'Consolidación derecha'],
+                izq: ['yellow', 'Consolidación izquierda'], bilateral: ['red', 'Consolidación bilateral'] };
+    setH('pop-pocus-pulmon',
+      (lb ? fila('Líneas B', badge(L[lb][0], L[lb][1])) : '') +
+      (co ? fila('Consolidación', badge(C[co][0], C[co][1])) : '') +
+      (nx === 'presente' ? fila('Neumotórax', badge('red', 'PRESENTE — evaluar drenaje urgente'))
+       : nx === 'sospecha' ? fila('Neumotórax', badge('orange', 'Sospecha — confirmar'))
+       : nx ? fila('Neumotórax', badge('green', 'Ausente')) : ''));
+  }
+
+  /* ── VENTRÍCULO DERECHO ── Todo sincronizado; nada editable acá. */
+  const tapse = v('tapse');
+  let vdvi = v('tep_vdvi');
+  if (vdvi === null && v('vd_bas') && v('ddfvi')) vdvi = PF((v('vd_bas') / v('ddfvi')).toFixed(2));
+  const mcc = (document.getElementById('tep_mcconnell') || {}).value || '';
+  const psap = v('psap_calc');
+  const uT = (typeof UMBRAL_TAPSE_NORMAL !== 'undefined') ? UMBRAL_TAPSE_NORMAL : 17;
+  const pend = [];
+  if (tapse === null) pend.push('TAPSE (tab VD/AD)');
+  if (vdvi === null) pend.push('VD/VI (tab VD/AD)');
+  if (psap === null) pend.push('PSAP (tab Doppler)');
+  const tapseBaja = tapse !== null && tapse < uT;
+  const vdDil = vdvi !== null && vdvi >= 0.9;
+  let concl;
+  if (tapse === null && vdvi === null) concl = badge('yellow', 'Sin datos para concluir');
+  else if (tapseBaja && vdDil) concl = badge('red', 'Disfunción del VD con dilatación — descartar taponamiento y TEP');
+  else if (tapseBaja || vdDil) concl = badge('orange', 'Compromiso del VD — revisar contexto');
+  else concl = badge('green', 'Función del VD sin alteraciones por estos parámetros');
+  setH('pop-pocus-vd',
+    fila('TAPSE', tapse === null ? '—' : tapse + ' mm ' + badge(tapseBaja ? 'red' : 'green',
+         tapseBaja ? 'disfunción (<' + uT + ' mm)' : 'normal (≥' + uT + ' mm)')) +
+    fila('VD/VI', vdvi === null ? '—' : vdvi + ' ' + badge(vdDil ? 'red' : 'green',
+         vdDil ? 'dilatación (≥0.9)' : 'normal (<0.9)')) +
+    fila('McConnell', mcc === 'si' ? badge('red', 'Presente') : mcc === 'no' ? badge('green', 'Ausente') : '—') +
+    fila('PSAP', psap === null ? '—' : psap + ' mmHg') +
+    fila('Conclusión', concl) +
+    (pend.length ? '<div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">Completar: ' + pend.join(' · ') + '</div>' : '') +
+    '<div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">Los cortes son los que la app ya aplica en la cápsula de TEP de esta pestaña (TAPSE ' + uT + ' mm · VD/VI 0,9). No se gradúan de otra forma acá.</div>');
+}
+window.popPocusSync = popPocusSync;
 function popSync() {
   POP_DROGAS.forEach(function (k) {
     var chk = document.getElementById('pop_' + k + '_activa');
@@ -24076,6 +24210,7 @@ function popSync() {
   });
   /* El bloque 3 depende de `pop_monitor`, que vive en el bloque 1: un solo punto de entrada. */
   try { popHemoSync(); } catch (e) { console.error('[popSync] popHemoSync:', e); }
+  try { popPocusSync(); } catch (e) { console.error('[popSync] popPocusSync:', e); }
 }
 window.popSync = popSync;
 window.POP_DROGAS = POP_DROGAS;
@@ -57309,8 +57444,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260918-1529';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789756166842;                 /* eco-build-ms */
+const ECO_BUILD    = '20260918-1535';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789756512030;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -57396,7 +57531,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1529</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1535</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

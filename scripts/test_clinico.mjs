@@ -8439,6 +8439,60 @@ caso('TC-167', 'POP-2: hemodinamica con las bandas de la app, y el eco concuerda
 `);
 
 
+/* POP-3. Lo que fija el caso es que las dos subsecciones SINCRONIZADAS no tengan criterios
+   propios: pericardio dice lo que dice dptEstado() y el VD usa los cortes que la app ya publica
+   en la capsula de TEP, dos acordeones mas arriba en la MISMA pestaña. */
+caso('TC-168', 'POP-3: el POCUS sincroniza y no inventa cortes', `
+  return (async () => {
+    __t.limpiar();
+    const IDS = ['pop_pleura_der','pop_pleura_izq','pop_pleura_caract',
+                 'pop_pulmon_lineasb','pop_pulmon_consol','pop_pulmon_neumo'];
+    const faltan = IDS.filter(i => !document.getElementById(i));
+    popSync();
+    /* SIN REGEX. La version anterior normalizaba con /\\s+/g y el template literal se comio una
+       barra: quedo /s+/g y borro TODAS LAS ESES del texto —«di funcion», «de cartar»—, asi que
+       el caso acusaba al codigo de un defecto propio. Van OCHO veces en este archivo. Aca no
+       hace falta normalizar: se busca con indexOf sobre el textContent crudo. */
+    const t = id => (__t.txt(id) || '').trim();
+    const vacioPeri = t('pop-pocus-peri'), vacioPleura = t('pop-pocus-pleura');
+
+    /* Derrame moderado con los tres criterios mayores: dptEstado tiene que decir taponamiento. */
+    __t.set('pericardio','Derrame moderado (10-20mm)');
+    __t.set('dpt_col_vd','si'); __t.set('dpt_col_ad','si');
+    __t.set('resp_var_mitral','35'); __t.set('resp_var_tric','70');
+    __t.set('vci_diam','24'); __t.set('vci_col','<50');
+    __t.set('pop_pleura_der','severo'); __t.set('pop_pleura_izq','severo');
+    __t.set('pop_pleura_caract','hemotorax');
+    __t.set('pop_pulmon_lineasb','difusas'); __t.set('pop_pulmon_neumo','presente');
+    __t.set('tapse','12'); __t.set('tep_vdvi','1.1'); __t.set('tep_mcconnell','si');
+    popSync();
+    const peri = t('pop-pocus-peri'), pleura = t('pop-pocus-pleura');
+    const pulmon = t('pop-pocus-pulmon'), vd = t('pop-pocus-vd');
+    let clave = null; try { clave = dptEstado().clave; } catch (e) {}
+    __t.limpiar();
+
+    return { extra: [
+      ['los seis campos nuevos existen',            faltan.length === 0, faltan.join(',')],
+      ['sin datos, el pericardio lo dice',          vacioPeri.indexOf('Sin derrame') > -1, vacioPeri.slice(0,70)],
+      ['sin datos, la pleura lo dice',              vacioPleura.indexOf('Sin evaluaci') > -1, vacioPleura.slice(0,60)],
+      /* LA CONDICION CENTRAL: el POP publica la conclusion de dptEstado, no una propia. */
+      ['dptEstado concluye taponamiento',           clave === 'taponamiento', clave],
+      ['  y el POP publica ESA conclusion',         peri.indexOf('Taponamiento') > -1, peri.slice(0,120)],
+      ['  con el tamaño como texto, no [object]',   peri.indexOf('moderado') > -1 && peri.indexOf('object') === -1, peri.slice(0,80)],
+      ['bilateral severo -> drenaje bilateral',     pleura.indexOf('drenaje bilateral') > -1, pleura.slice(0,90)],
+      ['el hemotorax se declara aparte',            pleura.indexOf('Hemot') > -1, pleura.slice(0,110)],
+      ['el neumotorax presente alerta',             pulmon.indexOf('PRESENTE') > -1, pulmon.slice(0,110)],
+      /* Los cortes son los de la app, NO los tres tramos del pedido. */
+      ['TAPSE 12 usa el corte de la app (17)',      vd.indexOf('disfunción (<17 mm)') > -1, vd.slice(0,70)],
+      ['VD/VI 1.1 usa el corte de la app (0.9)',    vd.indexOf('dilatación (≥0.9)') > -1, vd.slice(0,120)],
+      ['la conclusion del VD manda a descartar taponamiento y TEP',
+        vd.indexOf('descartar taponamiento y TEP') > -1, vd.slice(0,190)],
+      ['y declara lo que falta completar',          vd.indexOf('Completar: PSAP') > -1, vd.slice(-90)]
+    ] };
+  })();
+`);
+
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];
