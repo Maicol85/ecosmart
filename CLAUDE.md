@@ -4239,6 +4239,51 @@ alta, porque los casos se escribieron eligiendo los cortes, no los campos.
    taquicardia ventricular, historia clínica, frases rápidas, segmentos del ETE, pre-TAVI,
    panel de indicaciones (`_IG_SECTIONS`), DICOM e imágenes en IndexedDB.
 
+## POP — layout final (2×2 + fila completa) y un renombre que se llevó tres campos ajenos
+
+Rediseño visual del subtab POP, sin tocar lógica ni seams. La grilla quedó
+`repeat(2, minmax(0,1fr))` con `gap:10px`, el orden de DOM Contexto → Datos hemodinámicos →
+Soporte → POCUS → Conclusión (`grid-column:1/-1`), `.pop-integrar-wrap` centrando el botón y
+`.pop-pocus-grid` finalmente **aplicado al marcado** — estaba definido en el CSS del turno
+anterior pero nunca envuelto alrededor del contenido, así que el POCUS salía a una columna en
+escritorio. Medido a 1280 (dos columnas, subgrilla de POCUS en 2) y a 390 (una columna,
+subgrilla en 1), sin scroll horizontal en ninguno.
+
+### El centro del viewport no es el centro del contenido
+La sonda dio `botonCentrado:false` en escritorio y `true` en móvil sobre un botón
+perfectamente centrado. Comparaba contra `vw/2` = 640, pero el contenido de la pestaña arranca
+en `left:176` por el rail lateral y mide 1088: su centro está en 720. La diferencia de 80 px
+superaba la tolerancia de 40. **La referencia de una medición de centrado es el contenedor, no
+la ventana** — en móvil coinciden y el error no se ve, que es lo que lo hace traicionero.
+Tercera vez en la sesión que el defecto está en la sonda y no en el código.
+
+### Un renombre por sufijo se llevó tres campos que no eran suyos
+Para cerrar los huérfanos `pop_<k>_vel` del turno anterior renombré `_vel'` → `_veloc'` y
+`_vel"` → `_veloc"` sobre el archivo entero. El sufijo no es exclusivo de POP: se llevó
+**`eis_it_vel`** (velocidad de IT de Eisenmenger), **`ete_cia_vel`** y **`ete_civ_vel`** —
+tres campos preexistentes del estudio, con columna de Excel y con destino clínico (el de CIA/CIV
+alimenta el gradiente). Los estudios guardados con el nombre viejo habrían dejado de restaurar
+ese campo, en silencio y sin error.
+
+Lo atrapó el suite —«los 66 campos vuelven idénticos» marcó `eis_it_vel: NO VOLVIÓ (ida=4.6)`—
+pero **sólo ese**: `ete_cia_vel` y `ete_civ_vel` no tienen caso que los cubra y salieron por
+inspección de `grep -o "[a-z_]*_veloc"`. Reglas que quedan:
+
+- Un renombre masivo se acota por **prefijo del módulo** (`pop_`), no por sufijo compartido.
+- Antes de escribir, listar qué matchea: `grep -o` del patrón y mirar la lista completa. Son
+  quince segundos y acá habría mostrado los tres intrusos de entrada.
+- Después de escribir, listar qué quedó con el nombre nuevo y confirmar que **todos** pertenecen
+  al módulo que se quería tocar.
+- Un campo que viaja en el estudio y no tiene caso de ida y vuelta se rompe sin ruido. Los dos
+  del ETE quedan como deuda de cobertura.
+
+### Semgrep: el handler inline del calculador
+El hallazgo 124 pendiente del turno anterior era `ceibo-interp-en-string-de-handler`: el botón
+«usar» del calculador de dilución emitía `onclick="popDosisCopiar('<k>')"` con `k` interpolado
+dentro del handler, donde `esc()` no protege porque el parser decodifica la entidad antes de
+compilar. Reemplazado por el patrón que el archivo ya usa en `#pltz-grid`: `data-pop-usar` con
+`escHtml()` y **un** listener delegado registrado una sola vez. Vuelta a 123 / 0 ERROR.
+
 ## LECCIONES APRENDIDAS — 14/09/2026
 
 Retrospectiva de la sesión del 2026-09-14 (commits `762b739` … `61e0bd3`). Las trampas

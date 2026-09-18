@@ -873,9 +873,11 @@
      transparente, fallando en silencio. Las variables reales son `--bg2`/`--bg3`.
      Y el borde va en 1px, no en 0,5: en pantallas no-retina 0,5px redondea a 0 o a 1 según el
      navegador, así que la misma card se vería con borde en una máquina y sin él en otra. */
-  .pop-grid { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:12px; align-items:start; }
+  .pop-grid { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:10px; align-items:start; }
   .pop-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px;
-              padding:14px 16px; min-width:0; }
+              padding:12px 14px; min-width:0; }
+  /* El botón centrado y fuera de las cards, con el disclaimer debajo. */
+  .pop-integrar-wrap { display:flex; justify-content:center; margin:12px auto 0; }
   .pop-card-wide { grid-column: 1 / -1; }
   .pop-card-tit { font-size:11px; text-transform:uppercase; letter-spacing:.4px; font-weight:700;
                   color:var(--text2); margin-bottom:10px; }
@@ -4181,7 +4183,7 @@ window.cerrarSesion = cerrarSesion;
        Antes era un `div` suelto con estilo propio, así que se leía como un rótulo y no como una
        sección: el pedido pedía justamente igualarlo. Al copiar el patrón se gana el plegado,
        que es lo que hace que la pestaña siga navegable con siete secciones. -->
-  <div class="card" style="margin-top:18px;">
+  <div class="card">
     <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('pop-seccion',this)">
       &#129728; POP Cirugía Cardíaca
       <span id="pop-seccion-arrow" style="float:right;transition:transform 0.2s;">&#9654;</span>
@@ -4219,7 +4221,63 @@ window.cerrarSesion = cerrarSesion;
              documenta tres veces (los selects del TEER, las etiologías de la válvula pulmonar).
              «Ninguna cirugía» y «nadie lo consignó» no son lo mismo en un post-operatorio. -->
     </section>
+    <section class="pop-card" data-pop="pop-hemo">
+      <div class="pop-card-tit">📈 Datos hemodinámicos</div>
+        <!-- Las tres subsecciones se muestran segun pop_monitor. La de ECO va SIEMPRE: es la
+             que esta app sabe medir, y con «Ninguno» es la unica. -->
+        <div id="pop_sw_wrap" style="display:none;margin-bottom:14px;">
+          <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Swan-Ganz — valores medidos</div>
+          <div class="grid-3">
+            <div class="fg"><label for="pop_sw_gc">GC termodilución (L/min)</label><input type="number" id="pop_sw_gc" step="0.1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            <div class="fg"><label for="pop_sw_fc">FC (lpm)</label><input type="number" id="pop_sw_fc" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            <div class="fg"><label for="pop_sw_pam">PAM (mmHg)</label><input type="number" id="pop_sw_pam" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            <div class="fg"><label for="pop_sw_paps">PAPs (mmHg)</label><input type="number" id="pop_sw_paps" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            <div class="fg"><label for="pop_sw_papd">PAPd (mmHg)</label><input type="number" id="pop_sw_papd" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            <div class="fg"><label for="pop_sw_pcp">PCP (mmHg)</label><input type="number" id="pop_sw_pcp" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            <div class="fg"><label for="pop_sw_pad">PAD (mmHg)</label><input type="number" id="pop_sw_pad" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+          </div>
+          <!-- Peso y talla NO se vuelven a pedir: se leen de los campos del estudio. Dos campos
+               para la misma medida es el patron del espesor parietal, que este archivo ya pago
+               tres veces. La SC sale de getBSA(), la misma que usa toda la app. -->
+          <div class="calc-box" style="margin-top:10px;">
+            <div class="calc-row"><span class="calc-lbl">Índice cardíaco (GC / SC)</span><span id="pop-sw-ic">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">RVS (PAM − PAD) × 80 / GC</span><span id="pop-sw-rvs">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">RVP (PAPm − PCP) / GC</span><span id="pop-sw-rvp">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">Volumen sistólico (GC / FC)</span><span id="pop-sw-vs">—</span></div>
+            <div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;" id="pop-sw-nota"></div>
+          </div>
+        </div>
 
+        <div id="pop_picco_wrap" style="display:none;margin-bottom:14px;">
+          <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">PiCCO — valores medidos</div>
+          <div class="grid-3">
+            <div class="fg"><label for="pop_picco_gc">GC (L/min)</label><input type="number" id="pop_picco_gc" step="0.1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            <div class="fg"><label for="pop_picco_ic">IC (L/min/m²)</label><input type="number" id="pop_picco_ic" step="0.1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            <div class="fg"><label for="pop_picco_itbvi">ITBVI (ml/m²)</label><input type="number" id="pop_picco_itbvi" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            <div class="fg"><label for="pop_picco_evlwi">EVLWI (ml/kg)</label><input type="number" id="pop_picco_evlwi" step="0.1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            <div class="fg"><label for="pop_picco_svri">SVRI (dyn·s·cm⁻⁵·m²)</label><input type="number" id="pop_picco_svri" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+          </div>
+          <div class="calc-box" style="margin-top:10px;" id="pop-picco-box"></div>
+        </div>
+
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Ecocardiografía</div>
+        <div class="calc-box">
+          <div class="calc-row"><span class="calc-lbl">TSVI · VTI · FC (de Hemodinámica)</span><span id="pop-eco-src">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">GC estimado</span><span id="pop-eco-gc">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">IC estimado</span><span id="pop-eco-ic">—</span></div>
+          <div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">Estimación ecocardiográfica — sale de los MISMOS campos y la misma fórmula que la cápsula «Perfil hemodinámico» de esta pestaña. Si falta alguno, el valor no se inventa.</div>
+        </div>
+
+        <div id="pop-comp-wrap" style="display:none;margin-top:12px;">
+          <div class="calc-box">
+            <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;">Concordancia Swan vs Eco</div>
+            <div class="calc-row"><span class="calc-lbl">GC Swan</span><span id="pop-comp-sw">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">GC Eco</span><span id="pop-comp-eco">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">Diferencia</span><span id="pop-comp-dif">—</span></div>
+            <div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;" id="pop-comp-nota"></div>
+          </div>
+        </div>
+    </section>
     <section class="pop-card" data-pop="pop-soporte">
       <div class="pop-card-tit">💉 Soporte y drogas vasoactivas</div>
         <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Drogas vasoactivas</div>
@@ -4385,66 +4443,9 @@ window.cerrarSesion = cerrarSesion;
             <input type="number" id="pop_ecmo_flujo" step="0.1" min="0" inputmode="decimal" placeholder="L/min"></div>
         </div>
     </section>
-
-    <section class="pop-card" data-pop="pop-hemo">
-      <div class="pop-card-tit">📈 Datos hemodinámicos</div>
-        <!-- Las tres subsecciones se muestran segun pop_monitor. La de ECO va SIEMPRE: es la
-             que esta app sabe medir, y con «Ninguno» es la unica. -->
-        <div id="pop_sw_wrap" style="display:none;margin-bottom:14px;">
-          <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Swan-Ganz — valores medidos</div>
-          <div class="grid-3">
-            <div class="fg"><label for="pop_sw_gc">GC termodilución (L/min)</label><input type="number" id="pop_sw_gc" step="0.1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
-            <div class="fg"><label for="pop_sw_fc">FC (lpm)</label><input type="number" id="pop_sw_fc" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
-            <div class="fg"><label for="pop_sw_pam">PAM (mmHg)</label><input type="number" id="pop_sw_pam" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
-            <div class="fg"><label for="pop_sw_paps">PAPs (mmHg)</label><input type="number" id="pop_sw_paps" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
-            <div class="fg"><label for="pop_sw_papd">PAPd (mmHg)</label><input type="number" id="pop_sw_papd" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
-            <div class="fg"><label for="pop_sw_pcp">PCP (mmHg)</label><input type="number" id="pop_sw_pcp" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
-            <div class="fg"><label for="pop_sw_pad">PAD (mmHg)</label><input type="number" id="pop_sw_pad" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
-          </div>
-          <!-- Peso y talla NO se vuelven a pedir: se leen de los campos del estudio. Dos campos
-               para la misma medida es el patron del espesor parietal, que este archivo ya pago
-               tres veces. La SC sale de getBSA(), la misma que usa toda la app. -->
-          <div class="calc-box" style="margin-top:10px;">
-            <div class="calc-row"><span class="calc-lbl">Índice cardíaco (GC / SC)</span><span id="pop-sw-ic">—</span></div>
-            <div class="calc-row"><span class="calc-lbl">RVS (PAM − PAD) × 80 / GC</span><span id="pop-sw-rvs">—</span></div>
-            <div class="calc-row"><span class="calc-lbl">RVP (PAPm − PCP) / GC</span><span id="pop-sw-rvp">—</span></div>
-            <div class="calc-row"><span class="calc-lbl">Volumen sistólico (GC / FC)</span><span id="pop-sw-vs">—</span></div>
-            <div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;" id="pop-sw-nota"></div>
-          </div>
-        </div>
-
-        <div id="pop_picco_wrap" style="display:none;margin-bottom:14px;">
-          <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">PiCCO — valores medidos</div>
-          <div class="grid-3">
-            <div class="fg"><label for="pop_picco_gc">GC (L/min)</label><input type="number" id="pop_picco_gc" step="0.1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
-            <div class="fg"><label for="pop_picco_ic">IC (L/min/m²)</label><input type="number" id="pop_picco_ic" step="0.1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
-            <div class="fg"><label for="pop_picco_itbvi">ITBVI (ml/m²)</label><input type="number" id="pop_picco_itbvi" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
-            <div class="fg"><label for="pop_picco_evlwi">EVLWI (ml/kg)</label><input type="number" id="pop_picco_evlwi" step="0.1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
-            <div class="fg"><label for="pop_picco_svri">SVRI (dyn·s·cm⁻⁵·m²)</label><input type="number" id="pop_picco_svri" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
-          </div>
-          <div class="calc-box" style="margin-top:10px;" id="pop-picco-box"></div>
-        </div>
-
-        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Ecocardiografía</div>
-        <div class="calc-box">
-          <div class="calc-row"><span class="calc-lbl">TSVI · VTI · FC (de Hemodinámica)</span><span id="pop-eco-src">—</span></div>
-          <div class="calc-row"><span class="calc-lbl">GC estimado</span><span id="pop-eco-gc">—</span></div>
-          <div class="calc-row"><span class="calc-lbl">IC estimado</span><span id="pop-eco-ic">—</span></div>
-          <div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">Estimación ecocardiográfica — sale de los MISMOS campos y la misma fórmula que la cápsula «Perfil hemodinámico» de esta pestaña. Si falta alguno, el valor no se inventa.</div>
-        </div>
-
-        <div id="pop-comp-wrap" style="display:none;margin-top:12px;">
-          <div class="calc-box">
-            <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;">Concordancia Swan vs Eco</div>
-            <div class="calc-row"><span class="calc-lbl">GC Swan</span><span id="pop-comp-sw">—</span></div>
-            <div class="calc-row"><span class="calc-lbl">GC Eco</span><span id="pop-comp-eco">—</span></div>
-            <div class="calc-row"><span class="calc-lbl">Diferencia</span><span id="pop-comp-dif">—</span></div>
-            <div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;" id="pop-comp-nota"></div>
-          </div>
-        </div>
-    </section>
     <section class="pop-card" data-pop="pop-pocus">
       <div class="pop-card-tit">🔎 Evaluación POCUS</div>
+      <div class="pop-pocus-grid">
         <!-- PERICARDIO · PLEURA · PULMON · VD. Los dos extremos se SINCRONIZAN con lo que la
              app ya calcula (dptEstado y los campos de VD/Doppler) y los dos del medio son campos
              nuevos. Ninguna subseccion define un criterio propio. -->
@@ -4469,6 +4470,7 @@ window.cerrarSesion = cerrarSesion;
 
         <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Ventrículo derecho</div>
         <div class="calc-box"><div id="pop-pocus-vd">—</div></div>
+      </div><!-- /.pop-pocus-grid -->
     </section>
     <section class="pop-card pop-card-wide" data-pop="pop-concl">
       <div class="pop-card-tit">🧠 Conclusión hemodinámica</div>
@@ -4514,7 +4516,7 @@ window.cerrarSesion = cerrarSesion;
 
     <!-- El botón va FUERA de las cards y a ancho completo, con el disclaimer debajo. Se habilita
          solo cuando hay índice cardíaco calculable: lo gobierna `popConclSync`. -->
-    <div style="margin-top:14px;">
+    <div class="pop-integrar-wrap">
       <!-- Entra por `amiloIntegrar('pop')`, que es el MISMO camino que los otros dieciocho
            módulos: así el POP hereda la hoja del PDF, el PPT del paciente, el centinela
            persistido `am-txt-pop` y el conteo del Laboratorio sin una sola vía nueva. -->
@@ -10442,7 +10444,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             <option value="bi">Bidireccional</option>
           </select>
         </div>
-        <div class="fg"><label>Velocidad pico del jet (m/s)</label><input type="number" id="ete_cia_veloc" step="0.1" placeholder="m/s" oninput="eteShuntSync()"></div>
+        <div class="fg"><label>Velocidad pico del jet (m/s)</label><input type="number" id="ete_cia_vel" step="0.1" placeholder="m/s" oninput="eteShuntSync()"></div>
       </div>
       <!-- No se deriva PAPs del jet interauricular: esa fórmula (PAS − 4V²) es la del CIV,
            donde la velocidad refleja el gradiente VI–VD. En una CIA el gradiente es AI–AD y
@@ -10497,7 +10499,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
 
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Gradiente y presión pulmonar</div>
       <div class="grid-2">
-        <div class="fg"><label>Velocidad pico del jet CIV (m/s)</label><input type="number" id="ete_civ_veloc" step="0.1" placeholder="m/s" oninput="eteShuntSync()"></div>
+        <div class="fg"><label>Velocidad pico del jet CIV (m/s)</label><input type="number" id="ete_civ_vel" step="0.1" placeholder="m/s" oninput="eteShuntSync()"></div>
         <div class="fg"><label>PA sistémica (mmHg)</label><input type="number" id="ete_civ_pas" step="1" placeholder="mmHg" oninput="eteShuntSync()"></div>
       </div>
       <div class="calc-box" style="margin-top:8px;">
@@ -11008,7 +11010,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <div class="fg"><label>PDAP estimada (mmHg)</label>
           <input type="number" id="eis_pdap" placeholder="mmHg" oninput="eisenSync()"></div>
         <div class="fg"><label>Velocidad de IT (m/s)</label>
-          <input type="number" id="eis_it_veloc" placeholder="m/s" step="0.1" oninput="eisenSync()"></div>
+          <input type="number" id="eis_it_vel" placeholder="m/s" step="0.1" oninput="eisenSync()"></div>
       </div>
       <div class="grid-3" style="margin-top:10px;">
         <div class="fg"><label>Funcion del VD</label>
@@ -23345,7 +23347,7 @@ function generarInforme(opts) {
          cardiopatía con shunt, PAPs por IT y PAPs por jet de CIV no son intercambiables. */
       const cTipo=sv('ete_cia_tipo'), cMax=v('ete_cia_tam_max'), cMin=v('ete_cia_tam_min');
       const bm=(typeof eteCiaBordeMin==='function')?eteCiaBordeMin():null;
-      const cDir=sv('ete_cia_dir'), cVel=v('ete_cia_veloc');
+      const cDir=sv('ete_cia_dir'), cVel=v('ete_cia_vel');
       let emitido = false;
       if(cTipo||cMax!=null||cMin!=null||bm||cDir){
         const p=[];
@@ -23364,7 +23366,7 @@ function generarInforme(opts) {
 
       // ── CIV ──
       const vTipo=sv('ete_civ_tipo'), vTam=v('ete_civ_tam'), vVista=(sv('ete_civ_vista')||'').trim();
-      const vVel=v('ete_civ_veloc'), vPas=v('ete_civ_pas');
+      const vVel=v('ete_civ_vel'), vPas=v('ete_civ_pas');
       if(vTipo||vTam!=null||vVel!=null||vVista){
         const p=[];
         p.push('CIV'+(vTipo ? ' '+(CIV_TIPO_TXT[vTipo]||vTipo) : '')+(f1(vTam) ? ', '+f1(vTam)+' mm' : ''));
@@ -24503,9 +24505,14 @@ function popDosisDilucion(k) {
      del ruleset, y la línea base es 123 — la casa no suma warnings aunque el hallazgo sea falso
      positivo. Lo interpolado es un número con toFixed y la clave de la droga, que es un literal
      de `POP_DROGAS`. */
+  /* SIN `onclick` INLINE: la clave viaja en `data-pop-usar` y el clic se atiende por delegación.
+     Interpolar dentro de un handler es lo que la regla `ceibo-interp-en-string-de-handler` existe
+     para atajar —el parser decodifica la entidad ANTES de compilar el handler, así que ahí el
+     escape no protege—. Hoy `k` es un literal de `POP_DROGAS` y sería inocuo, pero es el mismo
+     patrón que `#pltz-grid` ya resolvió así, y el ruleset no suma warnings. */
   const _hd = '≈ <b>' + d.toFixed(2) + '</b> mcg/kg/min &nbsp;'
-    + '<button type="button" class="btn btn-ghost" style="padding:1px 7px;font-size:10px;" '
-    + 'onclick="popDosisCopiar(\'' + k + '\')">usar</button>';
+    + '<button type="button" class="btn btn-ghost" data-pop-usar="' + escHtml(k) + '" '
+    + 'style="padding:1px 7px;font-size:10px;">usar</button>';
   out.innerHTML = _hd;
 }
 window.popDosisDilucion = popDosisDilucion;
@@ -24517,6 +24524,13 @@ function popDosisCopiar(k) {
   if (e) { e.value = ((mg * 1000 / ml) * vel / 60 / peso).toFixed(2); e.dispatchEvent(new Event('input', { bubbles: true })); }
 }
 window.popDosisCopiar = popDosisCopiar;
+/* Delegación sobre el contenedor de drogas, registrada UNA vez: `popDosisDilucion` reescribe el
+   `innerHTML` de cada fila en cada tecla, así que enganchar por botón acumularía un listener por
+   pulsación. Es la misma guarda de idempotencia que `initPdfPlantillas`. */
+document.addEventListener('click', function (ev) {
+  const b = ev.target && ev.target.closest ? ev.target.closest('[data-pop-usar]') : null;
+  if (b) popDosisCopiar(b.getAttribute('data-pop-usar'));
+});
 function popSync() {
   POP_DROGAS.forEach(function (k) {
     var chk = document.getElementById('pop_' + k + '_activa');
@@ -27712,7 +27726,7 @@ function generarPDFReal(_aj) {
     const _cTabX = mL + _cL + _cGap, _cTabW = pgW - _cL - _cGap;
     const _bm = (typeof eteCiaBordeMin === 'function') ? eteCiaBordeMin() : null;
     const _cq = (typeof ccQpQsDe === 'function') ? ccQpQsDe('cia') : null;
-    const _cdir = sv('ete_cia_dir'), _cvel = v('ete_cia_veloc');
+    const _cdir = sv('ete_cia_dir'), _cvel = v('ete_cia_vel');
     /* La interpretación del Qp/Qs sale de `eteQpQsInterp`, que es la que ya publica el cuerpo
        del informe. La especificación traía su propia escala («Mínimo/Moderado/Significativo»),
        que es una CUARTA copia del mismo corte: la app diría «Shunt pequeño» dos párrafos más
@@ -29354,8 +29368,8 @@ function eteQpQsInterp(q){
    devuelve null y cada sección concluye con su evidencia propia — que es lo honesto: el dato
    para repartir el shunt entre dos defectos no está en un ecocardiograma. */
 const CC_SHUNTS = {
-  cia: ['ete_cia_tipo','ete_cia_dir','ete_cia_tam_max','ete_cia_tam_min','ete_cia_veloc'],
-  civ: ['ete_civ_tipo','ete_civ_tam','ete_civ_veloc'],
+  cia: ['ete_cia_tipo','ete_cia_dir','ete_cia_tam_max','ete_cia_tam_min','ete_cia_vel'],
+  civ: ['ete_civ_tipo','ete_civ_tam','ete_civ_vel'],
   dap: ['dap_tipo','dap_dir','dap_diam','dap_vmax'],
   vap: ['vap_tipo','vap_dir','vap_diam']
 };
@@ -30079,7 +30093,7 @@ function eisenEstado(src) {
   const les = sv2('eis_lesion_base'), vd = sv2('eis_vd_funcion'), peri = sv2('eis_pericardio');
   const nyha = sv2('eis_clase_nyha'), sinc = sv2('eis_sincope'), hemo = sv2('eis_hemoptisis');
   const sat = nv('eis_saturacion_reposo'), satEj = nv('eis_saturacion_ejercicio');
-  const psap = nv('eis_psap'), pdap = nv('eis_pdap'), itv = nv('eis_it_veloc');
+  const psap = nv('eis_psap'), pdap = nv('eis_pdap'), itv = nv('eis_it_vel');
   const hayDatos = !!(les || vd || peri || nyha || sinc || hemo ||
                       sat != null || satEj != null || psap != null || pdap != null || itv != null);
   if (!hayDatos) return { hayDatos:false, alertas:[] };
@@ -31691,7 +31705,7 @@ function ccSumaLinea(sec){
   case 'civ': {
     const tipo = _ccS('ete_civ_tipo');
     const tam = B(_ccNum('ete_civ_tam'), 0.5, 60, 'tamaño de la CIV');
-    const vel = B(_ccNum('ete_civ_veloc'), 0.3, 9, 'velocidad del jet de la CIV');
+    const vel = B(_ccNum('ete_civ_vel'), 0.3, 9, 'velocidad del jet de la CIV');
     const cab = 'CIV' + (tipo ? ' ' + L(CIV_TIPO_TXT, tipo) : '');
     const fz = cierraFuera(cab); if (fz) return fz;
     if (tam == null && vel == null) return null;
@@ -33192,7 +33206,7 @@ function ebsConclusion(){
      Y un foramen oval NO es una comunicación interauricular: en Ebstein la diferencia importa,
      porque una CIA con shunt derecha-izquierda es lo que produce cianosis y lo que se cierra en
      el acto quirúrgico. Se nombran por separado. */
-  const hayCia = !!(_ebsSv('ete_cia_tipo') || _ebsSv('ete_cia_tam_max') || _ebsSv('ete_cia_veloc'));
+  const hayCia = !!(_ebsSv('ete_cia_tipo') || _ebsSv('ete_cia_tam_max') || _ebsSv('ete_cia_vel'));
   const fopC = (typeof fopConclusion === 'function') ? fopConclusion() : null;
   const FOP_CONFIRMA = ['cierre_iia','acv_mayor','acv_sin_edad','trombofilia','alto_riesgo_sin_evento','incidental'];
   const hayFop = !!(fopC && FOP_CONFIRMA.indexOf(fopC.clave) >= 0);
@@ -34094,7 +34108,7 @@ function eteShuntSync(){
      informe firmado salía con «PAPs estimada por CIV −24 mmHg». Peor que el negativo obvio
      es la franja 0–5, que se lee como presión pulmonar normal y puede desescalar la
      conducta. Fuera de rango se muestra el motivo, no el número. */
-  const vC=v('ete_civ_veloc'), pas=v('ete_civ_pas');
+  const vC=v('ete_civ_vel'), pas=v('ete_civ_pas');
   let papsCiv=null, papsCivMsg='—';
   if(vC!=null && pas!=null){
     const r = pas - 4*vC*vC;
@@ -41306,10 +41320,10 @@ const _IG_SECTIONS = [
     {id:'ete_cia_borde_ao',lbl:'Borde aórtico (mm)'},{id:'ete_cia_borde_av',lbl:'Borde AV/mitral (mm)'},
     {id:'ete_cia_borde_vcs',lbl:'Borde VCS (mm)'},{id:'ete_cia_borde_vci',lbl:'Borde VCI (mm)'},
     {id:'ete_cia_borde_post',lbl:'Borde posterior (mm)'},
-    {id:'ete_cia_dir',lbl:'Dirección del shunt',map:_IG_DIR},{id:'ete_cia_veloc',lbl:'Velocidad del jet (m/s)'},
+    {id:'ete_cia_dir',lbl:'Dirección del shunt',map:_IG_DIR},{id:'ete_cia_vel',lbl:'Velocidad del jet (m/s)'},
     {id:'ete_civ_tipo',lbl:'Tipo de CIV',map:{perimembranosa:'Perimembranosa',muscular:'Muscular',infundibular:'Infundibular',inlet:'Inlet'}},
     {id:'ete_civ_tam',lbl:'Tamaño CIV (mm)'},{id:'ete_civ_vista',lbl:'Vista'},
-    {id:'ete_civ_veloc',lbl:'Velocidad CIV (m/s)'},{id:'ete_civ_pas',lbl:'PA sistémica (mmHg)'}
+    {id:'ete_civ_vel',lbl:'Velocidad CIV (m/s)'},{id:'ete_civ_pas',lbl:'PA sistémica (mmHg)'}
   ]},
   { titulo:'🔀 Ductus arterioso permeable', fields:[
     {id:'dap_tipo',lbl:'Tipo',map:{silente:'Silente',restrictivo:'Restrictivo',no_restrictivo:'No restrictivo'}},
@@ -46196,7 +46210,7 @@ function _labExcelRow(inf) {
     'Eisenmenger sat O2 ejercicio (%)': rnd(num('eis_saturacion_ejercicio'),0),
     'Eisenmenger PSAP (mmHg)': rnd(num('eis_psap'),0),
     'Eisenmenger PDAP (mmHg)': rnd(num('eis_pdap'),0),
-    'Eisenmenger vel. IT (m/s)': rnd(num('eis_it_veloc'),2),
+    'Eisenmenger vel. IT (m/s)': rnd(num('eis_it_vel'),2),
     'Eisenmenger función VD': _labXlsEtiq('eis_vd_funcion', c.eis_vd_funcion),
     'Eisenmenger derrame pericárdico': _labXlsEtiq('eis_pericardio', c.eis_pericardio),
     'Eisenmenger NYHA': _labXlsEtiq('eis_clase_nyha', c.eis_clase_nyha),
@@ -47346,7 +47360,7 @@ const LAB_XLS_MAP = [
   ['Eisenmenger sat O2 ejercicio (%)', 'eis_saturacion_ejercicio', 'num'],
   ['Eisenmenger PSAP (mmHg)',     'eis_psap',      'num'],
   ['Eisenmenger PDAP (mmHg)',     'eis_pdap',      'num'],
-  ['Eisenmenger vel. IT (m/s)',   'eis_it_veloc',    'num'],
+  ['Eisenmenger vel. IT (m/s)',   'eis_it_vel',    'num'],
   ['Eisenmenger función VD',      'eis_vd_funcion','vocab'],
   ['Eisenmenger derrame pericárdico', 'eis_pericardio', 'vocab'],
   ['Eisenmenger NYHA',            'eis_clase_nyha','vocab'],
@@ -57950,8 +57964,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260918-1700';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789761627417;                 /* eco-build-ms */
+const ECO_BUILD    = '20260918-1722';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789762945956;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -58037,7 +58051,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1700</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1722</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
