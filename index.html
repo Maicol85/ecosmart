@@ -855,6 +855,16 @@
      disponible y en un monitor grande salían cinco o seis miniaturas por fila, cada vez más
      angostas. Cuatro en escritorio y dos en móvil son las dos únicas formas en que la grilla
      de ocho queda pareja (2×4 y 4×2), sin una fila última con huecos. */
+  /* ══ POP CIRUGÍA CARDÍACA ══
+     Una fila por droga: casilla a la izquierda y dosis a la derecha, y la dosis sólo aparece
+     con la droga marcada. `min-width:0` en la columna de la dosis porque un hijo de grid no
+     baja de su min-content y el `placeholder` la ensanchaba. */
+  .pop-drogas { display:grid; gap:6px; }
+  .pop-droga { display:grid; grid-template-columns: minmax(0,1fr) minmax(0,150px); gap:10px; align-items:center; }
+  .pop-droga-chk { display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; color:var(--text); min-height:32px; }
+  .pop-droga-chk input { width:16px; height:16px; cursor:pointer; flex:0 0 auto; }
+  .pop-droga-dosis input { width:100%; box-sizing:border-box; }
+  @media (max-width: 768px) { .pop-droga { grid-template-columns: 1fr; gap:4px; } }
   /* ══ CONFIGURACIÓN — siete tarjetas temáticas ══
      Dos columnas en escritorio y una apilada en móvil. `align-items:start` evita que una
      tarjeta corta se estire al alto de la larga y deje un hueco; `minmax(0,1fr)` y no `1fr`
@@ -4122,6 +4132,186 @@ window.cerrarSesion = cerrarSesion;
        La tarjeta que anunciaba esto en pantalla se sacó el 2026-09-13 (ocupaba espacio y no
        aportaba); la nota se conserva acá porque lo que documenta —POR QUÉ no hay espejo— es
        justamente lo que no se puede deducir leyendo el código. -->
+
+
+  <!-- ══ POP CIRUGÍA CARDÍACA — 2026-09-18 ══════════════════════════════════════════════════
+       SOLO ESTRUCTURA: campos y acordeones, sin una sola línea de cálculo. Los bloques 3, 4 y 5
+       son placeholders declarados (POP-2, POP-3, POP-4) y el botón de integrar está deshabilitado.
+
+       NO ES UNA SUBTAB, y el pedido la describía así. Esta pestaña NO TIENE subtabs: tiene seis
+       acordeones `toggleCard` (Perfil hemodinámico, HTP, TEP, VEXUS, HFA-PEFF, derrame). Montar
+       un rail de subtabs habría obligado a reestructurar los seis, que es exactamente lo que la
+       regla «sin tocar nada de lo existente» prohíbe. POP se agrega con el MISMO patrón y al
+       mismo nivel — que es lo que «al lado de» puede significar acá sin romper nada.
+
+       Los ids llevan prefijo `pop_`, que NO está en la allowlist `_noVaciar` de editarInforme:
+       por eso se tratan como campos del estudio y los barren solos `guardarInforme`
+       (input/select/textarea por id), `limpiarCampos` y las rutas de restauración. Verificado
+       contra esa expresión antes de elegir el prefijo. -->
+  <div style="margin-top:18px;padding-top:14px;border-top:2px solid var(--border);">
+    <div style="font-size:.78rem;font-weight:700;color:var(--accent2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px;">&#129728; POP Cirugía Cardíaca</div>
+    <div class="card" style="margin-bottom:10px;">
+      <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('pop-ctx',this)">
+        1 &middot; Contexto quirúrgico
+        <span id="pop-ctx-arrow" style="float:right;transition:transform 0.2s;">&#9654;</span>
+      </h2>
+    </div>
+    <div id="pop-ctx" class="pop-panel" style="display:none;">
+      <div class="card"><div class="card-body">
+        <div class="grid-3">
+          <div class="fg"><label for="pop_cx_tipo">Tipo de cirugía</label>
+            <select id="pop_cx_tipo">
+              <option value="" selected>— no consignada —</option>
+              <option value="ninguna">Ninguna</option>
+              <option value="cabg">CABG</option>
+              <option value="valvular">Valvular</option>
+              <option value="aorta">Aorta</option>
+              <option value="trasplante">Trasplante</option>
+              <option value="congenita">Congénita</option>
+              <option value="combinada">Combinada</option>
+            </select></div>
+          <div class="fg"><label for="pop_cx_horas">Horas post-CEC</label>
+            <input type="number" id="pop_cx_horas" step="1" min="0" inputmode="decimal" placeholder="h"></div>
+          <div class="fg"><label for="pop_monitor">Dispositivo de monitoreo</label>
+            <select id="pop_monitor">
+              <option value="" selected>— no consignado —</option>
+              <option value="ninguno">Ninguno</option>
+              <option value="swan">Swan-Ganz</option>
+              <option value="picco">PiCCO</option>
+              <option value="vigileo">Vigileo</option>
+              <option value="pai">Presión arterial invasiva solamente</option>
+            </select></div>
+        </div>
+        <!-- La opción 0 es VACÍA y no «Ninguna»: un default que afirma es lo que este archivo
+             documenta tres veces (los selects del TEER, las etiologías de la válvula pulmonar).
+             «Ninguna cirugía» y «nadie lo consignó» no son lo mismo en un post-operatorio. -->
+      </div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:10px;">
+      <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('pop-soporte',this)">
+        2 &middot; Soporte y drogas vasoactivas
+        <span id="pop-soporte-arrow" style="float:right;transition:transform 0.2s;">&#9654;</span>
+      </h2>
+    </div>
+    <div id="pop-soporte" class="pop-panel" style="display:none;">
+      <div class="card"><div class="card-body">
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Drogas vasoactivas</div>
+        <div class="pop-drogas">
+        <div class="pop-droga">
+          <label class="pop-droga-chk"><input type="checkbox" id="pop_nor_activa" onchange="popSync()"><span>Noradrenalina</span></label>
+          <div class="pop-droga-dosis" id="pop_nor_wrap" style="display:none;">
+            <input type="number" id="pop_nor_dosis" step="0.01" min="0" inputmode="decimal" placeholder="mcg/kg/min" aria-label="Dosis de Noradrenalina en mcg/kg/min">
+          </div>
+        </div>
+        <div class="pop-droga">
+          <label class="pop-droga-chk"><input type="checkbox" id="pop_adr_activa" onchange="popSync()"><span>Adrenalina</span></label>
+          <div class="pop-droga-dosis" id="pop_adr_wrap" style="display:none;">
+            <input type="number" id="pop_adr_dosis" step="0.01" min="0" inputmode="decimal" placeholder="mcg/kg/min" aria-label="Dosis de Adrenalina en mcg/kg/min">
+          </div>
+        </div>
+        <div class="pop-droga">
+          <label class="pop-droga-chk"><input type="checkbox" id="pop_dob_activa" onchange="popSync()"><span>Dobutamina</span></label>
+          <div class="pop-droga-dosis" id="pop_dob_wrap" style="display:none;">
+            <input type="number" id="pop_dob_dosis" step="0.01" min="0" inputmode="decimal" placeholder="mcg/kg/min" aria-label="Dosis de Dobutamina en mcg/kg/min">
+          </div>
+        </div>
+        <div class="pop-droga">
+          <label class="pop-droga-chk"><input type="checkbox" id="pop_mil_activa" onchange="popSync()"><span>Milrinona</span></label>
+          <div class="pop-droga-dosis" id="pop_mil_wrap" style="display:none;">
+            <input type="number" id="pop_mil_dosis" step="0.01" min="0" inputmode="decimal" placeholder="mcg/kg/min" aria-label="Dosis de Milrinona en mcg/kg/min">
+          </div>
+        </div>
+        <div class="pop-droga">
+          <label class="pop-droga-chk"><input type="checkbox" id="pop_vaso_activa" onchange="popSync()"><span>Vasopresina</span></label>
+          <div class="pop-droga-dosis" id="pop_vaso_wrap" style="display:none;">
+            <input type="number" id="pop_vaso_dosis" step="0.01" min="0" inputmode="decimal" placeholder="mcg/kg/min" aria-label="Dosis de Vasopresina en mcg/kg/min">
+          </div>
+        </div>
+        <div class="pop-droga">
+          <label class="pop-droga-chk"><input type="checkbox" id="pop_levo_activa" onchange="popSync()"><span>Levosimendan</span></label>
+          <div class="pop-droga-dosis" id="pop_levo_wrap" style="display:none;">
+            <input type="number" id="pop_levo_dosis" step="0.01" min="0" inputmode="decimal" placeholder="mcg/kg/min" aria-label="Dosis de Levosimendan en mcg/kg/min">
+          </div>
+        </div>
+        </div>
+        <p style="font-size:11px;color:var(--text2);margin:8px 0 0;line-height:1.5;">La dosis aparece al marcar la droga. Al desmarcarla se <b>borra</b>: una dosis escondida viajaría igual dentro del estudio y podría llegar al informe sin que nadie la vea.</p>
+
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:16px 0 8px;text-transform:uppercase;letter-spacing:.4px;">Asistencia circulatoria</div>
+        <div class="grid-2">
+          <div class="fg"><label for="pop_asist_tipo">Tipo de asistencia</label>
+            <select id="pop_asist_tipo" onchange="popSync()">
+              <option value="" selected>— no consignada —</option>
+              <option value="ninguna">Ninguna</option>
+              <option value="bcia">BCIA</option>
+              <option value="impella">Impella</option>
+              <option value="ecmo_va">ECMO VA</option>
+              <option value="ecmo_vv">ECMO VV</option>
+              <option value="otro">Otro</option>
+            </select></div>
+          <div class="fg" id="pop_bcia_wrap" style="display:none;"><label for="pop_bcia_ratio">Ratio de asistencia (BCIA)</label>
+            <select id="pop_bcia_ratio">
+              <option value="" selected>— no consignado —</option>
+              <option value="1:1">1:1</option><option value="1:2">1:2</option><option value="1:3">1:3</option>
+            </select></div>
+          <div class="fg" id="pop_impella_wrap" style="display:none;"><label for="pop_impella_nivel">Nivel (Impella)</label>
+            <select id="pop_impella_nivel">
+              <option value="" selected>— no consignado —</option>
+              <option value="P1">P1</option><option value="P2">P2</option><option value="P3">P3</option>
+              <option value="P4">P4</option><option value="P5">P5</option><option value="P6">P6</option>
+              <option value="P7">P7</option><option value="P8">P8</option><option value="P9">P9</option>
+            </select></div>
+          <div class="fg" id="pop_ecmo_wrap" style="display:none;"><label for="pop_ecmo_flujo">Flujo (ECMO)</label>
+            <input type="number" id="pop_ecmo_flujo" step="0.1" min="0" inputmode="decimal" placeholder="L/min"></div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:10px;">
+      <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('pop-hemo',this)">
+        3 &middot; Datos hemodinámicos
+        <span id="pop-hemo-arrow" style="float:right;transition:transform 0.2s;">&#9654;</span>
+      </h2>
+    </div>
+    <div id="pop-hemo" class="pop-panel" style="display:none;">
+      <div class="card"><div class="card-body">
+        <!-- TODO: POP-2 -->
+        <p style="font-size:12px;color:var(--text2);margin:0;">Pendiente.</p>
+      </div></div>
+    </div>
+    <div class="card" style="margin-bottom:10px;">
+      <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('pop-pocus',this)">
+        4 &middot; Evaluación POCUS
+        <span id="pop-pocus-arrow" style="float:right;transition:transform 0.2s;">&#9654;</span>
+      </h2>
+    </div>
+    <div id="pop-pocus" class="pop-panel" style="display:none;">
+      <div class="card"><div class="card-body">
+        <!-- TODO: POP-3 -->
+        <p style="font-size:12px;color:var(--text2);margin:0;">Pendiente.</p>
+      </div></div>
+    </div>
+    <div class="card" style="margin-bottom:10px;">
+      <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('pop-concl',this)">
+        5 &middot; Conclusión hemodinámica
+        <span id="pop-concl-arrow" style="float:right;transition:transform 0.2s;">&#9654;</span>
+      </h2>
+    </div>
+    <div id="pop-concl" class="pop-panel" style="display:none;">
+      <div class="card"><div class="card-body">
+        <!-- TODO: POP-4 -->
+        <p style="font-size:12px;color:var(--text2);margin:0;">Pendiente.</p>
+      </div></div>
+    </div>
+
+    <!-- El botón va FUERA de los acordeones y deshabilitado: el módulo todavía no genera texto,
+         y un botón que no hace nada se lee como que la app se colgó. -->
+    <div style="text-align:center;margin-top:12px;">
+      <button type="button" class="btn btn-integrar" id="pop_integrar" disabled
+              title="Disponible cuando el módulo genere su conclusión (POP-4)"
+              style="opacity:.55;cursor:not-allowed;">Integrar al informe</button>
+    </div>
+  </div>
 
 </div>
 <div id="tab-contractilidad" class="tab-section">
@@ -23656,6 +23846,62 @@ function _noEsDelEstudio(id) {
    nivel superior leído antes de su línea corta el bloque `<script>` entero (ver CLAUDE.md).
    Los `calc*` NO entran acá: son estables y cada sitio llama los suyos. Lo que crece con cada
    módulo nuevo es esta lista, y por eso tiene que estar en un solo lugar. */
+/* ══ POP CIRUGÍA CARDÍACA — sincronía de visibilidad (2026-09-18) ══
+   Sin una sola regla de cálculo: sólo decide QUÉ campos se ven. Lo que hace falta saber:
+
+   · LA DOSIS SE BORRA AL DESMARCAR LA DROGA, no sólo se oculta. Este archivo ya pagó la versión
+     contraria —«los selectores del VEXUS no se deshabilitan porque dejaba los valores cargados
+     escondidos»— y acá es peor: `guardarInforme` barre `input[id]` sin mirar visibilidad, así
+     que una dosis oculta viaja DENTRO del estudio y puede llegar al informe cuando el módulo
+     genere texto (POP-4). Se borra en el momento en que deja de aplicar.
+   · Lo mismo con los tres sub-campos de asistencia: cambiar de BCIA a ECMO borra el ratio.
+   · NO se usa `disabled` como compuerta. `disabled` no se persiste ni lo repone ninguna ruta de
+     restauración, así que un estudio reabierto lo perdería — está documentado en este archivo.
+   · Va en las DOS columnas: `RECALC_MODULOS` —que es el embudo de editar, abrir por ?estudio=,
+     el autosave y las dos reimpresiones, donde reponer asigna `.value` sin disparar eventos— y
+     el final de `limpiarCampos`, que NO pasa por ese embudo. Con una sola, «Nuevo estudio»
+     dejaba las filas de dosis del paciente anterior abiertas. */
+var POP_DROGAS = ['nor','adr','dob','mil','vaso','levo'];
+function popSync() {
+  POP_DROGAS.forEach(function (k) {
+    var chk = document.getElementById('pop_' + k + '_activa');
+    var wrap = document.getElementById('pop_' + k + '_wrap');
+    var dosis = document.getElementById('pop_' + k + '_dosis');
+    if (!chk || !wrap) return;
+    var on = !!chk.checked;
+    wrap.style.display = on ? 'block' : 'none';
+    if (!on && dosis) dosis.value = '';
+  });
+  var t = (document.getElementById('pop_asist_tipo') || {}).value || '';
+  var vis = { pop_bcia_wrap: t === 'bcia', pop_impella_wrap: t === 'impella',
+              pop_ecmo_wrap: t === 'ecmo_va' || t === 'ecmo_vv' };
+  var campo = { pop_bcia_wrap: 'pop_bcia_ratio', pop_impella_wrap: 'pop_impella_nivel',
+                pop_ecmo_wrap: 'pop_ecmo_flujo' };
+  Object.keys(vis).forEach(function (id) {
+    var w = document.getElementById(id); if (!w) return;
+    w.style.display = vis[id] ? 'block' : 'none';
+    if (!vis[id]) { var c = document.getElementById(campo[id]); if (c) c.value = ''; }
+  });
+}
+window.popSync = popSync;
+window.POP_DROGAS = POP_DROGAS;
+/* Acordeones abiertos en escritorio y cerrados en móvil, que es lo que pidió el pedido. Se
+   decide por ANCHO y una sola vez al arrancar: `cardAutoOpen` no sirve acá porque abre por
+   «tiene datos», que es otra pregunta. Se repinta la flecha además del panel — abrir por código
+   sin tocarla deja el afford diciendo «cerrado» sobre una sección abierta, que es el defecto que
+   ese mismo helper documenta. */
+function popAbrirEnEscritorio() {
+  if (window.innerWidth < 768) return;
+  ['pop-ctx','pop-soporte','pop-hemo','pop-pocus','pop-concl'].forEach(function (id) {
+    var p = document.getElementById(id); if (!p || p.style.display !== 'none') return;
+    p.style.display = 'block';
+    var a = document.getElementById(id + '-arrow'); if (a) a.style.transform = 'rotate(90deg)';
+  });
+}
+if (document.readyState === 'loading')
+  document.addEventListener('DOMContentLoaded', function () { popAbrirEnEscritorio(); popSync(); });
+else { popAbrirEnEscritorio(); popSync(); }
+
 function RECALC_MODULOS() {
   /* `tvSync` va PRIMERO: repone los cinco espejos de arritmia ventricular, y `mchSync`,
      `tdfSync` y `mcaSync` pintan a partir de ellos. Al final igual, porque tvSync los vuelve a
@@ -23686,7 +23932,7 @@ function RECALC_MODULOS() {
          veredicto sí contaba esos criterios;
        · `calcOAI` reconstruye la marca de «área derivada» (ver ahí), sin la cual corregir el
          diámetro en un estudio reabierto dejaba el área vieja. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','vpSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','vpSync','popSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -23959,6 +24205,8 @@ function limpiarCampos(silencioso) {
      Perugini y proteínas monoclonales— en el informe del actual. Reproducido. */
   if (typeof resetAlgoritmo === 'function') {
     try { resetAlgoritmo(); } catch (e) { console.error('[limpiarCampos] resetAlgoritmo:', e); }
+  /* Segunda columna: limpiarCampos NO pasa por el embudo de RECALC_MODULOS. */
+  try { popSync(); } catch (e) { console.error('[limpiarCampos] popSync:', e); }
   }
   // Módulos de ETT Avanzado: el bucle de arriba vacía los am-txt-*, pero los bloques
   // seguían VISIBLES, así que el paciente nuevo arrancaba con los módulos del anterior
@@ -56867,8 +57115,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260918-1413';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789751602203;                 /* eco-build-ms */
+const ECO_BUILD    = '20260918-1446';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789753602187;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -56954,7 +57202,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1413</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1446</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

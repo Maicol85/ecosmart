@@ -487,6 +487,54 @@ El Excel pasó de **421 a 429 columnas** y de 128 a **129 básicas**; TC-135 fij
 contenido. Ojo con el `0` de una casilla apagada: **no es lo mismo que ausente**, y el caso lo
 distingue.
 
+### POP Cirugía Cardíaca (POP-1): estructura, y no es una subtab — 2026-09-18
+
+Bloques 1 y 2 con sus 19 campos, placeholders declarados para 3, 4 y 5, y el botón de integrar
+deshabilitado. **Sin una sola línea de cálculo**, que es lo que pedía la tarea.
+
+**NO ES UNA SUBTAB, y el pedido la describía así** («al lado de las subtabs existentes»).
+`tab-hemodinamica` **no tiene subtabs**: tiene seis acordeones `toggleCard` —perfil
+hemodinámico, HTP, TEP, VEXUS, HFA-PEFF y derrame—. Montar un rail habría obligado a
+reestructurar los seis, que es exactamente lo que la regla «sin tocar nada de lo existente»
+prohíbe. POP se agregó con el MISMO patrón y al mismo nivel.
+
+**El prefijo `pop_` se eligió DESPUÉS de verificarlo contra `_noVaciar`**, la allowlist de
+`editarInforme`: no matchea, así que los campos se tratan como del estudio y los barren solos
+`guardarInforme`, `limpiarCampos` y las rutas de restauración. Medido: **25 claves en `campos`**
+—19 ids más los 6 `__chk` de las casillas—, y reabrir repone valores y visibilidad.
+
+**LA DOSIS SE BORRA AL DESMARCAR LA DROGA, no sólo se oculta.** `guardarInforme` barre
+`input[id]` **sin mirar visibilidad**, así que una dosis escondida viaja DENTRO del estudio y
+puede llegar al informe el día que el módulo genere texto (POP-4). Es la misma lección que este
+archivo ya tiene escrita para los selectores del VEXUS —«deshabilitarlos parecía prolijo pero
+dejaba los valores cargados escondidos»—. Ídem el ratio de BCIA al cambiar a ECMO. La mutación
+que sólo oculta pone en rojo dos condiciones, con el `5` de la dobutamina en el diagnóstico.
+
+**No se usó `disabled` como compuerta**: no se persiste ni lo repone ninguna ruta de
+restauración. Está documentado en este archivo y acá sólo se usa en el botón, que es cosmético.
+
+**`popSync` va en las DOS columnas** —`RECALC_MODULOS` y el final de `limpiarCampos`—. Sin la
+segunda, «Nuevo estudio» dejaba abiertas las filas de dosis del paciente anterior.
+
+**Los acordeones se abren por ANCHO, no por datos.** `cardAutoOpen` abre «los que tienen datos»,
+que es otra pregunta; acá el pedido era móvil cerrado / escritorio abierto. Medido a 1280 (los
+cinco abiertos) y a 390 (los tres cerrados, sin scroll horizontal). Se repinta la flecha además
+del panel.
+
+**La opción 0 de los tres selects es VACÍA, no «Ninguna».** «Ninguna cirugía» y «nadie lo
+consignó» no son lo mismo en un post-operatorio, y un default que afirma es el defecto que este
+archivo documenta tres veces.
+
+**DEUDA DECLARADA: `detectar_huerfanos` marca tres candidatos** —`pop_cx_tipo`, `pop_cx_horas`,
+`pop_monitor`—. Es **correcto y esperado**: POP-1 es sólo estructura y esos campos todavía no
+tienen destino. **No se agregaron a `CONOCIDOS_LOCALES`**: hacerlo taparía el aviso justo cuando
+POP-4 tenga que darles salida. Los de drogas y asistencia no aparecen porque `popSync` arma sus
+ids por concatenación.
+
+**Mi sonda midió sobre la nada una vez más:** le pasé `est.id` a `cargarEstudioPorId`, que espera
+el **`estudioId`**, y todos los campos volvieron vacíos — parecía que la restauración estaba
+rota. Es la quinta vez en la sesión.
+
 ### Los cuatro módulos en las tres superficies, por un seam cada uno — 2026-09-18
 
 HFA-PEFF, VEXUS, derrame/taponamiento y constricción-vs-restricción pasan al PDF de auditoría y

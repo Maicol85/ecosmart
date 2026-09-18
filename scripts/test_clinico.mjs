@@ -8308,6 +8308,77 @@ caso('TC-165', 'HFA-PEFF, VEXUS, derrame y constriccion: mismo n en tarjeta, PDF
 `);
 
 
+/* POP Cirugia Cardiaca — SOLO estructura. Lo que hay que fijar no es que los campos existan
+   sino que (a) viajen con el estudio, (b) la dosis oculta se BORRE en vez de quedar escondida
+   dentro de campos, y (c) Hemodinamica siga entera. */
+caso('TC-166', 'POP Cirugia Cardiaca: los campos viajan y la dosis oculta no sobrevive', `
+  return (async () => {
+    const IDS = ['pop_cx_tipo','pop_cx_horas','pop_monitor','pop_asist_tipo','pop_bcia_ratio',
+                 'pop_impella_nivel','pop_ecmo_flujo']
+      .concat(['nor','adr','dob','mil','vaso','levo']
+        .reduce((a,k) => a.concat(['pop_'+k+'_activa','pop_'+k+'_dosis']), []));
+    const faltan = IDS.filter(i => !document.getElementById(i));
+    /* Hemodinamica no se toco: sus seis acordeones siguen ahi. */
+    const hemo = ['hemo-vi','htp2022-seccion','tep-seccion','vexus-seccion','hfapeff-seccion']
+      .filter(i => !document.getElementById(i));
+    const btn = document.getElementById('pop_integrar');
+    const vis = id => { const e = document.getElementById(id); return e ? getComputedStyle(e).display !== 'none' : null; };
+
+    __t.limpiar();
+    const ocultaAlInicio = !vis('pop_nor_wrap');
+    __t.set('nombre','POP Test'); __t.set('ci','5555555-5');
+    __t.set('pop_cx_tipo','cabg'); __t.set('pop_cx_horas','8'); __t.set('pop_monitor','swan');
+    __t.chk('pop_nor_activa', true); __t.set('pop_nor_dosis','0.25');
+    __t.chk('pop_dob_activa', true); __t.set('pop_dob_dosis','5');
+    const visTrasMarcar = vis('pop_nor_wrap');
+    __t.set('pop_asist_tipo','bcia'); __t.set('pop_bcia_ratio','1:1');
+    const bciaVisible = vis('pop_bcia_wrap');
+    /* LA MITAD QUE IMPORTA: al desmarcar, la dosis no puede quedar escondida con valor —
+       guardarInforme barre input[id] sin mirar visibilidad y viajaria dentro del estudio. */
+    __t.chk('pop_dob_activa', false);
+    const dobTrasDesmarcar = __t.val('pop_dob_dosis');
+    __t.set('pop_asist_tipo','ecmo_va');
+    const bciaTrasCambiar = __t.val('pop_bcia_ratio');
+    __t.set('pop_ecmo_flujo','4.2');
+
+    const g = await __t.guardar();
+    const est = getInformes().find(i => i.estudioId === g.estudioId);
+    const enCampos = Object.keys((est && est.campos) || {}).filter(k => k.indexOf('pop_') === 0);
+    const dobEnCampos = (est && est.campos || {})['pop_dob_dosis'];
+    __t.nuevoEstudio();
+    const trasLimpiar = ['pop_cx_tipo','pop_cx_horas','pop_nor_dosis'].map(i => __t.val(i));
+    __t.reabrir(g.estudioId);
+    await new Promise(r => setTimeout(r, 700));
+    const reab = { tipo: __t.val('pop_cx_tipo'), horas: __t.val('pop_cx_horas'),
+                   nor: __t.val('pop_nor_dosis'), norVis: vis('pop_nor_wrap'),
+                   ecmoVis: vis('pop_ecmo_wrap'), flujo: __t.val('pop_ecmo_flujo') };
+    await __t.borrar(g.estudioId);
+    __t.limpiar();
+
+    return { extra: [
+      ['los 19 campos existen',                    faltan.length === 0, faltan.join(',')],
+      ['Hemodinamica sigue con sus acordeones',    hemo.length === 0, hemo.join(',')],
+      ['el boton de integrar esta deshabilitado',  !!btn && btn.disabled === true],
+      ['la dosis arranca oculta',                  ocultaAlInicio === true],
+      ['  y aparece al marcar la droga',           visTrasMarcar === true],
+      ['el subcampo de BCIA aparece con BCIA',     bciaVisible === true],
+      /* Las dos condiciones que separan "ocultar" de "limpiar". */
+      ['al desmarcar, la dosis se BORRA',          dobTrasDesmarcar === '', dobTrasDesmarcar],
+      ['  y no viaja dentro del estudio',          !dobEnCampos, dobEnCampos],
+      ['cambiar a ECMO borra el ratio de BCIA',    bciaTrasCambiar === '', bciaTrasCambiar],
+      ['los campos viajan con el estudio',         enCampos.length >= 19, enCampos.length],
+      ['«Nuevo estudio» los limpia',               trasLimpiar.every(v => v === ''), trasLimpiar.join('|')],
+      ['reabrir repone los valores',               reab.tipo === 'cabg' && reab.horas === '8' && reab.nor === '0.25',
+        JSON.stringify(reab)],
+      /* Y la VISIBILIDAD se repone: popSync entra por RECALC_MODULOS. Sin eso el estudio vuelve
+         con la dosis cargada y la fila cerrada, que se lee como que no hay droga. */
+      ['  y tambien la visibilidad',               reab.norVis === true && reab.ecmoVis === true && reab.flujo === '4.2',
+        JSON.stringify(reab)]
+    ] };
+  })();
+`);
+
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];
