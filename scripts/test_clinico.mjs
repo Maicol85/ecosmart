@@ -5706,8 +5706,19 @@ caso('TC-156', 'PPT Lab: contractilidad con su bulls eye, amiloidosis y hemodina
       // 2 - LAS OMISIONES DESAPARECIERON
       /* Con las tres tildadas y con datos, la metodologia NO puede seguir diciendo que se
          omitieron: era la declaracion de que todavia no tenian hoja. */
-      ['la metodologia ya no declara omisiones', meto.indexOf('NO se incluy') === -1, meto.slice(-170)],
-      ['ni el toast', c4.toast.indexOf('Se omitieron') === -1, c4.toast.slice(0, 150)],
+      /* ACOTADO A LOS TRES MODULOS DE ESTE CASO (2026-09-18). La condicion era «la metodologia
+         no declara NINGUNA omision», y desde que el grupo hemo incorporo HFA-PEFF, VEXUS,
+         derrame y constriccion, esos cuatro se declaran omitidos cuando nadie los integro —
+         que es correcto y es justamente lo que su propio caso verifica. Lo que este caso
+         prueba es que contractilidad, amiloidosis y hemodinamica YA tienen hoja: se exige
+         que ninguno de los TRES aparezca omitido, no que la lista este vacia. */
+      ['los tres modulos de este caso ya no se declaran omitidos',
+        ['Contractilidad', 'Amiloidosis', 'Perfil hemodin'].every(function(m){
+          return meto.split('NO se incluy').slice(1).every(function(t){ return t.indexOf(m) === -1; });
+        }), meto.slice(-220)],
+      ['ni el toast los nombra',
+        ['Contractilidad', 'Amiloidosis', 'Perfil hemodin'].every(function(m){ return c4.toast.indexOf(m) === -1; }),
+        c4.toast.slice(0, 190)],
 
       // 3 - EL BULLS EYE VA COMO IMAGEN
       /* addImage de PptxGenJS 3.12 no acepta SVG: va como PNG por _svgToPng, que es el mismo
@@ -8211,6 +8222,87 @@ caso('TC-164', 'Laboratorio: orden de subtabs y de Avanzado, y el contador cuent
       /* El rotulo sale del <option> del filtro, no de un mapa paralelo: si se escribiera aparte,
          la fila diria la clave cruda «incompleto». */
       ['el derrame usa el rotulo del filtro de cohorte', txt('lab-adv-dpt').indexOf('Derrame sin criterios evaluados') > -1, txt('lab-adv-dpt').slice(0,160)]
+    ] };
+  })();
+`);
+
+
+/* Los cuatro modulos integrables en las TRES superficies. Lo que el caso fija no es que la
+   diapositiva exista —eso pasa con cualquier generador— sino que los numeros salgan del MISMO
+   seam: tarjeta, PDF de auditoria y PPT tienen que publicar el mismo n sobre la misma cohorte. */
+caso('TC-165', 'HFA-PEFF, VEXUS, derrame y constriccion: mismo n en tarjeta, PDF y PPT', `
+  return (async () => {
+    for (let i = 0; i < 80 && typeof PptxGenJS === 'undefined'; i++) await new Promise(r => setTimeout(r, 100));
+    if (typeof PptxGenJS === 'undefined') return { extra: [['PptxGenJS cargo por CDN', false, 'no llego']] };
+    for (let i = 0; i < 80 && (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF); i++) await new Promise(r => setTimeout(r, 100));
+    if (typeof window.jspdf === 'undefined') return { extra: [['jsPDF cargo por CDN', false, 'no llego']] };
+
+    const mk = (i, c) => ({ id:900+i, estudioId:'tc165-'+i, fecha_estudio:'2026-03-0'+i, campos:c });
+    const coh = [
+      mk(1, { 'am-txt-vexus':'V', 'am-txt-hfpeff':'H', vci_diam:'24', vexus_sh:'2', vexus_pv:'2', vexus_ir:'0',
+              fevi:'58', onda_e:'110', e_sep:'5', e_lat:'6', ai_vol:'80', talla:'170', peso:'75', ntprobnp:'900' }),
+      mk(2, { 'am-txt-vexus':'V', vci_diam:'18', vexus_sh:'0', vexus_pv:'0', vexus_ir:'0' }),
+      mk(3, { 'am-txt-dpt':'D', pericardio:'Derrame moderado (10-20mm)' }),
+      mk(4, { 'am-txt-cvr':'C' }),
+      /* El que tiene el DATO y no lo integro: no puede contar en ninguna de las tres. */
+      mk(5, { vci_diam:'24', vexus_sh:'2' })
+    ];
+    const hf = _labHfpeffResumen(coh), vx = _labVexusResumen(coh);
+    const dp = _labDptResumen(coh), cv = _labCvrResumen(coh);
+
+    await CeiboStore.setLocal(coh);
+    const b = [].slice.call(document.querySelectorAll('[onclick*="showTab"]'))
+      .filter(x => (x.getAttribute('onclick') || '').indexOf("'lab'") > -1)[0];
+    if (b) b.click();
+    await new Promise(r => setTimeout(r, 400));
+    const sp = document.getElementById('lab-periodo'); if (sp) sp.value = '0';
+    try { labCohorteLimpiar(true); } catch (e) {}
+    labInit();
+    await new Promise(r => setTimeout(r, 1800));
+    const txt = id => { const e = document.getElementById(id); return e ? (e.textContent || '').replace(/\\s+/g, ' ') : ''; };
+    const tVex = txt('lab-adv-vexus');
+
+    // PPT
+    const oD = window._pptxDescargarSaneado, oT = window.toast;
+    let capt = null;
+    window._pptxDescargarSaneado = P => { capt = P; return Promise.resolve({ saneado:true, quitadas:0 }); };
+    window.toast = function(){};
+    try { localStorage.setItem('ecosmart_lab_ppt_chk', JSON.stringify({ hemo:true })); } catch (e) {}
+    await _labPPTGenerar(coh, { presentador:'X', institucion:'Y', fecha:'2026-09-20', tema:'azul' });
+    window._pptxDescargarSaneado = oD; window.toast = oT;
+    const textoDe = sl => (sl._slideObjects || []).map(o => typeof o.text === 'string' ? o.text
+      : (Array.isArray(o.text) ? o.text.map(t => t && t.text ? t.text : '').join('') : '')).filter(x => x && x.trim());
+    const slides = capt ? (capt.slides || []) : [];
+    const tit = slides.map(x => { const t = textoDe(x); return t.length ? t[0] : '(vacia)'; });
+    const hojaVex = slides.filter(x => (textoDe(x)[0] || '').indexOf('VEXUS') > -1)[0];
+    const txtVex = hojaVex ? textoDe(hojaVex).join(' | ') : '';
+
+    // PDF de auditoria
+    const Orig = window.jspdf.jsPDF; let doc = null;
+    function W(){ const d = new Orig(...arguments); d.save = function(){ return Promise.resolve(); }; doc = d; return d; }
+    W.prototype = Orig.prototype; window.jspdf.jsPDF = W;
+    try { await labGenerarPDF(); } catch (e) {}
+    window.jspdf.jsPDF = Orig;
+    let pdf = '';
+    if (doc) { const raw = atob(doc.output('datauristring').split(',')[1]);
+      pdf = (raw.match(/\\((.*?)\\) ?Tj/g) || []).map(x => x.slice(1, -4)).join(' '); }
+    await CeiboStore.setLocal([]);
+
+    const enPPT = t => tit.some(x => x.indexOf(t) > -1);
+    return { extra: [
+      ['el PDF de auditoria se genero',           pdf.length > 500, pdf.length],
+      /* El seam excluye al que tiene el dato sin integrar: VEXUS son 2, no 3. */
+      ['VEXUS cuenta 2, no el que no integro',    vx.n === 2, vx.n],
+      ['HFA-PEFF cuenta 1',                       hf.n === 1, hf.n],
+      ['derrame cuenta 1 y constriccion 1',       dp.n === 1 && cv.n === 1, dp.n + '/' + cv.n],
+      ['la tarjeta publica el n del seam',        tVex.indexOf('informe' + vx.n) > -1 || tVex.indexOf('informe ' + vx.n) > -1, tVex.slice(0, 90)],
+      ['el PPT tiene las cuatro hojas',
+        ['HFA-PEFF','VEXUS','Derrame peric','Constricci'].every(enPPT), tit.join(' / ')],
+      ['la hoja de VEXUS publica el MISMO n',     txtVex.indexOf(String(vx.n)) > -1, txtVex.slice(0, 140)],
+      ['el PDF tiene las cuatro secciones',
+        ['HFA-PEFF','VEXUS','Derrame pericardico','Constriccion vs'].every(t => pdf.indexOf(t) > -1), pdf.slice(0, 160)],
+      /* PDF >= PPT: el PDF trae ademas los promedios de peptidos, que la diapositiva no lleva. */
+      ['el PDF trae mas detalle que el PPT',      pdf.indexOf('NT-proBNP promedio') > -1, pdf.indexOf('NT-proBNP promedio')]
     ] };
   })();
 `);

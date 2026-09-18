@@ -52121,6 +52121,89 @@ const _barras = (id, mapa, obj, total) => {
     color: _LAB_PIE_PAL[idx % _LAB_PIE_PAL.length] })));
 };
 
+/* ══ SEAMS DE LOS CUATRO MÓDULOS INTEGRABLES ═════════════════════════════════════════════════
+   Los consumen la tarjeta del Laboratorio, la sección del PDF de auditoría y la diapositiva del
+   PPT. NINGUNO de los tres recalcula: con una segunda implementación, el papel firmado y el
+   proyector contarían la misma cohorte distinto, y el proyector es donde eso no se puede
+   verificar. Es la razón por la que existen `_labAmilResumen` y `_labHemoResumen`.
+
+   LA POBLACIÓN SE FILTRA ADENTRO, no en el llamador (decisión de Maicol, 2026-09-18): los tres
+   consumidores reciben `infs` y el seam se queda con los que INTEGRARON el módulo. Dejar el
+   filtro afuera es lo que permite que una superficie pase otra población — y ya pasó con
+   HFA-PEFF, cuya tarjeta calculaba sobre «score calculable» mientras el contador de al lado
+   contaba integrados: dos números del mismo módulo en la misma pantalla. */
+function _labModIntegrados(infs, k) { return (infs || []).filter(i => _labIntegrado(i, k)); }
+/* Conteo por clave con prototipo nulo: las claves salen de las cascadas clínicas y un `{}` ya
+   costó un estudio perdido en silencio (`__proto__` no crea propiedad). */
+function _labDistribClaves(arr) {
+  const o = Object.create(null);
+  arr.forEach(k => { if (k !== null && k !== undefined) o[k] = (o[k] || 0) + 1; });
+  return o;
+}
+function _labVexusResumen(infs) {
+  const arr = _labModIntegrados(infs, 'vexus');
+  const grados = arr.map(i => {
+    try {
+      const st = vexusGrado(_labNum(i, 'vci_diam'), _labCampoRaw(i, 'vexus_sh'),
+                            _labCampoRaw(i, 'vexus_pv'), _labCampoRaw(i, 'vexus_ir'));
+      return (st && st.score !== null) ? String(st.score) : null;
+    } catch (e) { return null; }
+  }).filter(x => x !== null);
+  return { n: arr.length, conGrado: grados.length,
+           conCongestion: grados.filter(g => g !== '0').length,
+           dist: _labDistribClaves(grados) };
+}
+/* Derrame y constricción se leen por la fuente inyectable `_pcCon`, que es exactamente para lo
+   que se construyó: apunta `dptEstado`/`cvrEstado` al `campos` de un estudio guardado en vez de
+   al formulario. Envueltos uno por uno: un estudio con un campo ilegible no puede tumbar la
+   sección entera, que es la regla de `_labEstado`. */
+function _labDptResumen(infs) {
+  const arr = _labModIntegrados(infs, 'dpt');
+  const cl = arr.map(i => { try { return _pcCon(i.campos || {}, () => (dptEstado() || {}).clave || null); }
+                            catch (e) { return null; } }).filter(Boolean);
+  return { n: arr.length, conClave: cl.length, dist: _labDistribClaves(cl) };
+}
+function _labCvrResumen(infs) {
+  const arr = _labModIntegrados(infs, 'cvr');
+  const cl = arr.map(i => { try { return _pcCon(i.campos || {}, () => (cvrEstado() || {}).clave || null); }
+                            catch (e) { return null; } }).filter(Boolean);
+  return { n: arr.length, conClave: cl.length, dist: _labDistribClaves(cl) };
+}
+/* HFA-PEFF sobre los INTEGRADOS. La puntuación y el piso de dos dominios siguen saliendo de
+   `_labHfPeff`, que es la misma que usa el filtro de cohorte: acá sólo se agrega la población. */
+function _labHfpeffResumen(infs) {
+  const arr = _labModIntegrados(infs, 'hfpeff');
+  const hfR = arr.map(_labHfPeff).filter(Boolean);
+  const completos = hfR.filter(x => x.doms === 3);
+  const hist = [0,0,0,0,0,0,0];
+  completos.forEach(x => { const t = x.r.total; if (t >= 0 && t <= 6) hist[t]++; });
+  return {
+    arr: hfR, arrCompletos: completos,
+    n: arr.length, calculables: hfR.length, completos: completos.length,
+    parciales: hfR.length - completos.length,
+    prom: _prom(completos.map(x => x.r.total)),
+    nt: _prom(hfR.map(x => x.r.d.ntprobnp).filter(x => x !== null)),
+    bn: _prom(hfR.map(x => x.r.d.bnp).filter(x => x !== null)),
+    hist: hist,
+    alto:  completos.filter(x => x.prob === 'alto').length,
+    inter: completos.filter(x => x.prob === 'inter').length,
+    bajo:  completos.filter(x => x.prob === 'bajo').length
+  };
+}
+/* Rótulo de una clave de conclusión, leído de los `<option>` del filtro de cohorte — que ya son
+   la traducción de esas mismas claves. Un segundo mapa se desincroniza y el síntoma es mudo:
+   una fila rotulada `incipiente_cuantia` en vez de con su texto. Sin `<option>` cae a la clave
+   cruda (`cvrEstado` tiene `sin_datos`, que el filtro no ofrece porque filtrar por «no se pudo
+   concluir» no tiene sentido, pero contarlo sí). */
+function _labLblConclusion(selId, val) {
+  const s = document.getElementById(selId);
+  if (!s) return val;
+  const o = Array.prototype.find.call(s.options, x => x.value === val);
+  return o ? o.textContent.trim() : val;
+}
+const _LAB_VEXUS_LBL = { '0':'Grado 0 — sin congestión', '1':'Grado 1 — leve',
+                         '2':'Grado 2 — moderada', '3':'Grado 3 — severa' };
+
 // Render de la tab Avanzado (maneja n=0 → mensajes "Sin estudios…")
 function _labAdvancedRender(infs, n) {
   const setHtml = (id, h) => { const e = document.getElementById(id); if (e) e.innerHTML = h; };
@@ -52166,70 +52249,37 @@ function _labAdvancedRender(infs, n) {
     { lbl: `Constricción vs restricción (n=${cvrInt.length})`, n: cvrInt.length, total: n, color: '#fb7185' }
   ]);
 
-  /* ── Las tres secciones nuevas (2026-09-18) ──
-     Mismo patrón que Hemodinámica y TEP: población = los que INTEGRARON el módulo, y la
-     distribución sale de la MISMA función que gobierna el informe firmado, apuntada al `campos`
-     del estudio. Nada se reimplementa acá: `vexusGrado` es la que usa la pantalla, y `dptEstado`
-     / `cvrEstado` se leen por la fuente inyectable `_pcCon`, que es para lo que existe. */
-  const _distrib = arr => { const o = Object.create(null); arr.forEach(k => { o[k] = (o[k] || 0) + 1; }); return o; };
-  /* Los rótulos de las conclusiones de pericardio NO se escriben acá: salen de los `<option>`
-     del filtro de cohorte, que ya son la traducción de esas mismas claves y llevan su propio
-     comentario explicando que los `value` son las que devuelve la cascada. Un segundo mapa se
-     desincroniza el día que alguien reescriba una opción, y acá el síntoma sería mudo: una fila
-     rotulada con la clave cruda («incipiente_cuantia») en vez de con su texto.
-     Sin entrada en el select se muestra la clave — `cvrEstado` tiene `sin_datos`, que el filtro
-     no ofrece porque filtrar por «no se pudo concluir» no tiene sentido, pero contarlo sí. */
-  const _lblSel = (selId, val) => {
-    const s = document.getElementById(selId);
-    if (!s) return val;
-    const o = Array.prototype.find.call(s.options, x => x.value === val);
-    return o ? o.textContent.trim() : val;
+  /* ── Las tres tarjetas nuevas: SOLO PINTAN ──
+     Los números salen de `_labVexusResumen`, `_labDptResumen` y `_labCvrResumen`, los mismos
+     seams que consumen el PDF de auditoría y el PPT. Acá no se filtra ni se clasifica nada: el
+     corte evaluación/pintor es lo que impide que las tres superficies cuenten distinto. */
+  const _filasDist = (dist, lbl) => {
+    const tot = Object.keys(dist).reduce((a, k) => a + dist[k], 0);
+    return Object.keys(dist).sort((a, b) => dist[b] - dist[a])
+      .map(k => stat(lbl(k), dist[k] + ' (' + Math.round(dist[k] / Math.max(1, tot) * 100) + '%)')).join('');
   };
-  const _mapaDe = (selId, claves) => {
-    const m = Object.create(null);
-    claves.forEach(k => { m[k] = _lblSel(selId, k); });
-    return m;
-  };
-  const _filas = (o, mapa) => Object.keys(o).sort((a, b) => o[b] - o[a])
-    .map(k => stat(mapa && mapa[k] ? mapa[k] : k, o[k] + ' (' + (Math.round(o[k] / Math.max(1, Object.values(o).reduce((x,y)=>x+y,0)) * 100)) + '%)')).join('');
 
-  // VEXUS
-  if (!vexInt.length) empty('lab-adv-vexus', 'VEXUS integrado al informe');
-  else {
-    const gr = vexInt.map(i => {
-      try { const st = vexusGrado(_labNum(i, 'vci_diam'), _labCampoRaw(i, 'vexus_sh'),
-                                  _labCampoRaw(i, 'vexus_pv'), _labCampoRaw(i, 'vexus_ir'));
-        return (st && st.score !== null) ? String(st.score) : null; } catch (e) { return null; }
-    }).filter(x => x !== null);
-    const conCong = gr.filter(g => g !== '0').length;
-    setHtml('lab-adv-vexus',
-      stat('Estudios con VEXUS en el informe', String(vexInt.length)) +
-      stat('Con grado calculable', String(gr.length)) +
-      stat('Con congestión (grado ≥ 1)', gr.length ? conCong + ' de ' + gr.length : '—') +
-      _filas(_distrib(gr), { '0':'Grado 0 — sin congestión', '1':'Grado 1 — leve', '2':'Grado 2 — moderada', '3':'Grado 3 — severa' }));
-  }
+  const vx = _labVexusResumen(infs);
+  if (!vx.n) empty('lab-adv-vexus', 'VEXUS integrado al informe');
+  else setHtml('lab-adv-vexus',
+    stat('Estudios con VEXUS en el informe', String(vx.n)) +
+    stat('Con grado calculable', String(vx.conGrado)) +
+    stat('Con congestión (grado ≥ 1)', vx.conGrado ? vx.conCongestion + ' de ' + vx.conGrado : '—') +
+    _filasDist(vx.dist, k => _LAB_VEXUS_LBL[k] || k));
 
-  // Derrame pericárdico / taponamiento
-  if (!dptInt.length) empty('lab-adv-dpt', 'derrame pericárdico integrado al informe');
-  else {
-    const cl = dptInt.map(i => { try { return _pcCon(i.campos || {}, () => (dptEstado() || {}).clave || null); }
-                                 catch (e) { return null; } }).filter(Boolean);
-    setHtml('lab-adv-dpt',
-      stat('Estudios con derrame en el informe', String(dptInt.length)) +
-      stat('Con conclusión clasificable', String(cl.length)) +
-      _filas(_distrib(cl), _mapaDe('coh-dpt-con', Object.keys(_distrib(cl)))));
-  }
+  const dp = _labDptResumen(infs);
+  if (!dp.n) empty('lab-adv-dpt', 'derrame pericárdico integrado al informe');
+  else setHtml('lab-adv-dpt',
+    stat('Estudios con derrame en el informe', String(dp.n)) +
+    stat('Con conclusión clasificable', String(dp.conClave)) +
+    _filasDist(dp.dist, k => _labLblConclusion('coh-dpt-con', k)));
 
-  // Constricción vs restricción
-  if (!cvrInt.length) empty('lab-adv-cvr', 'constricción vs restricción integrado al informe');
-  else {
-    const cl = cvrInt.map(i => { try { return _pcCon(i.campos || {}, () => (cvrEstado() || {}).clave || null); }
-                                 catch (e) { return null; } }).filter(Boolean);
-    setHtml('lab-adv-cvr',
-      stat('Estudios con el módulo en el informe', String(cvrInt.length)) +
-      stat('Con conclusión clasificable', String(cl.length)) +
-      _filas(_distrib(cl), _mapaDe('coh-cvr-con', Object.keys(_distrib(cl)))));
-  }
+  const cv = _labCvrResumen(infs);
+  if (!cv.n) empty('lab-adv-cvr', 'constricción vs restricción integrado al informe');
+  else setHtml('lab-adv-cvr',
+    stat('Estudios con el módulo en el informe', String(cv.n)) +
+    stat('Con conclusión clasificable', String(cv.conClave)) +
+    _filasDist(cv.dist, k => _labLblConclusion('coh-cvr-con', k)));
 
   /* El bloque «Hemodinámica» se mudó a labHemoRender. `hemoArr` se conserva acá porque la barra
      «Uso del módulo avanzado» de arriba sigue contando cuántos estudios lo usan, que es una
@@ -52297,9 +52347,18 @@ function _labAdvancedRender(infs, n) {
     /* La puntuación, la regla de «dominio evaluado» y el piso de dos dominios se mudaron a
        `_labHfPeff`, a nivel de módulo, con su comentario: el panel de cohorte filtra por la
        banda de probabilidad y necesita EXACTAMENTE esta clasificación. */
-    const hfR = infs.map(_labHfPeff).filter(Boolean);
-    const completos = hfR.filter(x => x.doms === 3);
-    const parciales = hfR.length - completos.length;
+    /* POBLACIÓN = LOS QUE INTEGRARON EL MÓDULO (decisión de Maicol, 2026-09-18). Antes era
+       «todos los que tienen score calculable», así que esta tarjeta y el contador «Uso del
+       módulo avanzado» publicaban dos n distintos del MISMO módulo en la misma pantalla.
+       Los números de este bloque BAJAN: un estudio con los tres dominios medidos y el
+       módulo nunca integrado ya no cuenta.
+       Los arrays salen del seam —no se recalculan acá— porque el PDF y el PPT consumen ese
+       mismo objeto: con dos expresiones equivalentes, mover una deja las tres superficies
+       contando distinto sin que nada lo diga. */
+    const _hf = _labHfpeffResumen(infs);
+    const hfR = _hf.arr;
+    const completos = _hf.arrCompletos;
+    const parciales = _hf.parciales;
     if (!hfR.length) {
       empty('lab-hfpeff-stats', 'score HFA-PEFF calculable');
       empty('lab-hfpeff-dist-bars', 'HFA-PEFF'); empty('lab-hfpeff-prob-bars', 'HFA-PEFF');
@@ -53438,6 +53497,76 @@ async function _labPPTGenerar(infs, o) {
            acá también. */
         s.addText(T('IC y PCP estimados por ecocardiografía — no equivalen a medición invasiva. La PCP sale de la fórmula de Nagueh y la divisoria de congestión es PCP > ' + UMBRAL_PCP_HUMEDO + ' mmHg, el mismo corte que aplica el resto de la app. Forrester ecocardiográfico de orientación.'),
           { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.rojo, fontFace:FONT });
+      }
+    }
+
+    /* ── 12d · LOS CUATRO MÓDULOS INTEGRABLES ──
+       HFA-PEFF, VEXUS, derrame/taponamiento y constricción vs restricción. Consumen los MISMOS
+       seams que la tarjeta del Laboratorio y la sección del PDF de auditoría: acá no se
+       recalcula nada. Cada hoja sale sólo con al menos un caso INTEGRADO al informe —una torta
+       de ceros se lee como «lo medimos y dio cero»— y con n < 3 lleva el aviso de cohorte
+       chica, igual que el resto del mazo. */
+    if (G('hemo')) {
+      const _dist2filas = (dist, lbl) => Object.keys(dist).sort((a, b) => dist[b] - dist[a])
+        .map(k => ({ lbl: lbl(k), n: dist[k] }));
+
+      const hf = _labHfpeffResumen(infs);
+      if (!hf.n) omitir('HFA-PEFF', 'ningún estudio del período tiene el score integrado al informe');
+      else {
+        const s2 = nueva('HFA-PEFF — score HFpEF (ESC/HFA 2019)'); avisoN(s2, hf.n);
+        let y2 = 1.00;
+        y2 = dato(s2, 0.4, y2, 'Estudios con el módulo en el informe', String(hf.n));
+        y2 = dato(s2, 0.4, y2, 'Con los 3 dominios', hf.completos + ' de ' + hf.calculables + ' calculables');
+        dato(s2, 0.4, y2, 'Puntaje promedio (3 dominios)', _promTxt(hf.prom, 1, ' / 6'));
+        if (!gBarras(s2, [
+              { lbl:'0-1 — poco probable', n: hf.bajo }, { lbl:'2-4 — intermedia', n: hf.inter },
+              { lbl:'≥5 — confirmado', n: hf.alto }
+            ], { x:4.6, y:0.92, w:5.1, h:2.5 }, 'Probabilidad de HFpEF',
+            ['3ECF8E','F5C842','F05454']))
+          s2.addText(T('Ningún estudio tiene los tres dominios evaluados.'),
+            { x:4.6, y:1.6, w:5.1, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
+        s2.addText(T('El score exige FEVI ≥ 50 % y al menos dos dominios evaluados. Los parciales se declaran y no se puntúan.'),
+          { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
+      }
+
+      const vx = _labVexusResumen(infs);
+      if (!vx.n) omitir('VEXUS', 'ningún estudio del período tiene el módulo integrado al informe');
+      else {
+        const s2 = nueva('VEXUS — congestión venosa sistémica'); avisoN(s2, vx.n);
+        let y2 = 1.00;
+        y2 = dato(s2, 0.4, y2, 'Estudios con el módulo en el informe', String(vx.n));
+        y2 = dato(s2, 0.4, y2, 'Con grado calculable', String(vx.conGrado));
+        dato(s2, 0.4, y2, 'Con congestión (grado ≥ 1)', vx.conGrado ? vx.conCongestion + ' de ' + vx.conGrado : '—');
+        if (!gTorta(s2, _dist2filas(vx.dist, k => _LAB_VEXUS_LBL[k] || k), { x:4.6, y:0.92, w:3.0, h:2.5 }, 'Grado VEXUS'))
+          s2.addText(T('Sin grado calculable.'), { x:4.6, y:1.6, w:3.0, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
+        s2.addText(T('Con VCI < 20 mm el grado es 0 aunque los vasos estén alterados — es el protocolo, no un dato faltante.'),
+          { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
+      }
+
+      const dp = _labDptResumen(infs);
+      if (!dp.n) omitir('Derrame pericárdico / taponamiento', 'ningún estudio del período tiene el módulo integrado al informe');
+      else {
+        const s2 = nueva('Derrame pericárdico / Taponamiento'); avisoN(s2, dp.n);
+        let y2 = 1.00;
+        y2 = dato(s2, 0.4, y2, 'Estudios con el módulo en el informe', String(dp.n));
+        dato(s2, 0.4, y2, 'Con conclusión clasificable', String(dp.conClave));
+        if (!gBarras(s2, _dist2filas(dp.dist, k => _labLblConclusion('coh-dpt-con', k)), { x:4.6, y:0.92, w:5.1, h:2.6 }, 'Conclusión'))
+          s2.addText(T('Sin conclusión clasificable.'), { x:4.6, y:1.6, w:5.1, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
+        s2.addText(T('Un derrame sin criterios evaluados NO es «sin compromiso»: se cuenta aparte.'),
+          { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
+      }
+
+      const cv = _labCvrResumen(infs);
+      if (!cv.n) omitir('Constricción vs restricción', 'ningún estudio del período tiene el módulo integrado al informe');
+      else {
+        const s2 = nueva('Constricción vs Restricción'); avisoN(s2, cv.n);
+        let y2 = 1.00;
+        y2 = dato(s2, 0.4, y2, 'Estudios con el módulo en el informe', String(cv.n));
+        dato(s2, 0.4, y2, 'Con conclusión clasificable', String(cv.conClave));
+        if (!gBarras(s2, _dist2filas(cv.dist, k => _labLblConclusion('coh-cvr-con', k)), { x:4.6, y:0.92, w:5.1, h:2.6 }, 'Conclusión'))
+          s2.addText(T('Sin conclusión clasificable.'), { x:4.6, y:1.6, w:5.1, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
+        s2.addText(T('«Mixto» (vota por las dos) y «no concluyente» (no alcanza para ninguna) son conclusiones distintas.'),
+          { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
       }
     }
 
@@ -55628,6 +55757,86 @@ async function labGenerarPDF() {
     // (Indicaciones, Antecedentes y Hallazgos frecuentes van al principio de este bloque)
   }
 
+  /* ══════════ 12b. MÓDULOS AVANZADOS INTEGRADOS AL INFORME ══════════
+     HFA-PEFF, VEXUS, derrame/taponamiento y constricción vs restricción. Los cuatro salen de
+     los MISMOS seams que pinta la tarjeta del Laboratorio y consume la diapositiva del PPT
+     —`_labHfpeffResumen`, `_labVexusResumen`, `_labDptResumen`, `_labCvrResumen`—: acá no se
+     recalcula nada. Con una segunda implementación, el papel firmado y el proyector contarían
+     la misma cohorte distinto.
+     POBLACIÓN: los estudios que INTEGRARON el módulo al informe, no los que tienen el dato
+     cargado. Es el mismo criterio del contador «Uso del módulo avanzado», y la sección lo
+     declara — dos denominadores sin rótulo es el defecto que este archivo ya pagó.
+     Cada sección sale SÓLO con al menos un caso: una tabla de ceros se lee como «lo medimos y
+     dio cero», que es lo contrario de «nadie integró este módulo». */
+  {
+    const _pctDe = (x, t) => t > 0 ? ' (' + Math.round(x / t * 100) + '%)' : '';
+    const _filasDe = (dist, lbl) => {
+      const tot = Object.keys(dist).reduce((a, k) => a + dist[k], 0);
+      return Object.keys(dist).sort((a, b) => dist[b] - dist[a])
+        .map(k => [lbl(k), dist[k] + _pctDe(dist[k], tot)]);
+    };
+    const _nota = t => { ensure(8); doc.setFont('helvetica', 'italic'); doc.setFontSize(8);
+      doc.setTextColor(90, 90, 90);
+      doc.text(S(t), M, y, { maxWidth: CW }); doc.setTextColor(0, 0, 0);
+      doc.setFont('helvetica', 'normal'); y += 6; };
+
+    const hf = _labHfpeffResumen(infs);
+    if (hf.n) {
+      await sectionChart('HFA-PEFF — score HFpEF (ESC/HFA 2019)',
+        ['Medida', 'Valor'],
+        [['Estudios con el módulo en el informe', String(hf.n)],
+         ['Con >=2 dominios evaluados', hf.calculables + _pctDe(hf.calculables, hf.n)],
+         ['Con los 3 dominios', String(hf.completos)],
+         ['Excluidos por dominio faltante', hf.parciales ? String(hf.parciales) : '-'],
+         ['Puntaje promedio (3 dominios)', _promTxt(hf.prom, 1, ' / 6')],
+         ['NT-proBNP promedio', _promTxt(hf.nt, 0, ' pg/ml')],
+         ['BNP promedio', _promTxt(hf.bn, 0, ' pg/ml')],
+         ['0-1 - HFpEF poco probable', hf.bajo + _pctDe(hf.bajo, hf.completos)],
+         ['2-4 - probabilidad intermedia', hf.inter + _pctDe(hf.inter, hf.completos)],
+         ['>=5 - HFpEF confirmado', hf.alto + _pctDe(hf.alto, hf.completos)]],
+        hf.completos ? { labels: ['0-1', '2-4', '>=5'], values: [hf.bajo, hf.inter, hf.alto],
+                         colors: ['#3ecf8e', '#f5c842', '#f05454'] } : null);
+      _nota('Poblacion: los ' + hf.n + ' estudio(s) que integraron el modulo al informe. El score exige FEVI >=50% y al menos dos dominios evaluados; los parciales se declaran y no se puntuan.');
+    }
+
+    const vx = _labVexusResumen(infs);
+    if (vx.n) {
+      const fil = _filasDe(vx.dist, k => (_LAB_VEXUS_LBL[k] || k));
+      await sectionChart('VEXUS — congestion venosa sistemica',
+        ['Medida', 'n (%)'],
+        [['Estudios con el modulo en el informe', String(vx.n)],
+         ['Con grado calculable', String(vx.conGrado)],
+         ['Con congestion (grado >=1)', vx.conGrado ? vx.conCongestion + _pctDe(vx.conCongestion, vx.conGrado) : '-']].concat(fil),
+        fil.length ? { labels: fil.map(f => f[0]), values: fil.map(f => vx.dist[Object.keys(vx.dist).find(k => (_LAB_VEXUS_LBL[k] || k) === f[0])]),
+                       colors: ['#3ecf8e', '#f5c842', '#f0a500', '#f05454'] } : null);
+      _nota('El grado VEXUS se recalcula sobre los campos guardados de cada estudio con la misma funcion que la pantalla. Con VCI <20 mm el grado es 0 aunque los vasos esten alterados.');
+    }
+
+    const dp = _labDptResumen(infs);
+    if (dp.n) {
+      const fil = _filasDe(dp.dist, k => _labLblConclusion('coh-dpt-con', k));
+      await sectionChart('Derrame pericardico / Taponamiento',
+        ['Conclusion', 'n (%)'],
+        [['Estudios con el modulo en el informe', String(dp.n)],
+         ['Con conclusion clasificable', String(dp.conClave)]].concat(fil),
+        fil.length ? { labels: fil.map(f => f[0]), values: fil.map(f => dp.dist[Object.keys(dp.dist).find(k => _labLblConclusion('coh-dpt-con', k) === f[0])]),
+                       colors: ['#f05454', '#f0a500', '#f5c842', '#3ecf8e', '#8a5fd4', '#4f8ef7', '#2dd4bf'] } : null);
+      _nota('La conclusion se recalcula por estudio con la misma cascada que firma el informe. Un derrame sin criterios evaluados NO es "sin compromiso": se declara aparte.');
+    }
+
+    const cv = _labCvrResumen(infs);
+    if (cv.n) {
+      const fil = _filasDe(cv.dist, k => _labLblConclusion('coh-cvr-con', k));
+      await sectionChart('Constriccion vs Restriccion',
+        ['Conclusion', 'n (%)'],
+        [['Estudios con el modulo en el informe', String(cv.n)],
+         ['Con conclusion clasificable', String(cv.conClave)]].concat(fil),
+        fil.length ? { labels: fil.map(f => f[0]), values: fil.map(f => cv.dist[Object.keys(cv.dist).find(k => _labLblConclusion('coh-cvr-con', k) === f[0])]),
+                       colors: ['#8a5fd4', '#4f8ef7', '#f0a500', '#f5c842', '#3ecf8e'] } : null);
+      _nota('"Mixto" (vota por las dos) y "no concluyente" (no alcanza para ninguna) son conclusiones DISTINTAS y se cuentan por separado.');
+    }
+  }
+
   // ══════════ 13. CALIDAD DEL LABORATORIO ══════════
   if (document.getElementById('lab-pdf-calidad')?.checked) {
     const n = infs.length;
@@ -56658,8 +56867,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260918-1348';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789750114637;                 /* eco-build-ms */
+const ECO_BUILD    = '20260918-1413';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789751602203;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -56745,7 +56954,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1348</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1413</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

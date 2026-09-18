@@ -487,6 +487,58 @@ El Excel pasó de **421 a 429 columnas** y de 128 a **129 básicas**; TC-135 fij
 contenido. Ojo con el `0` de una casilla apagada: **no es lo mismo que ausente**, y el caso lo
 distingue.
 
+### Los cuatro módulos en las tres superficies, por un seam cada uno — 2026-09-18
+
+HFA-PEFF, VEXUS, derrame/taponamiento y constricción-vs-restricción pasan al PDF de auditoría y
+al PPT del Laboratorio. **Lo primero que se hizo no fue escribir la sección ni la diapositiva:
+fue extraer los cuatro seams** —`_labHfpeffResumen`, `_labVexusResumen`, `_labDptResumen`,
+`_labCvrResumen`— y hacer que la tarjeta del Laboratorio los consuma. Con tres implementaciones,
+el papel firmado y el proyector cuentan la misma cohorte distinto, y el proyector es la
+superficie donde eso no se puede verificar.
+
+**LA POBLACIÓN SE FILTRA ADENTRO DEL SEAM, no en el llamador.** Los tres consumidores reciben
+`infs` y el seam se queda con los que integraron. Dejar el filtro afuera es lo que permite que
+una superficie pase otra población — y ya había pasado: **la tarjeta de HFA-PEFF calculaba sobre
+«score calculable» mientras el contador de dos tarjetas más arriba contaba integrados**, o sea
+dos n del mismo módulo en la misma pantalla. Se alineó a integrados (decisión de Maicol) y **sus
+números BAJAN**: un estudio con los tres dominios medidos y el módulo nunca integrado ya no
+cuenta.
+
+**El seam expone también los ARRAYS** (`arr`, `arrCompletos`), no sólo los totales: la tarjeta
+los recorre para el histograma y los dominios, y con sólo los totales habría tenido que
+recalcularlos — la segunda copia por la puerta de al lado.
+
+**Cada superficie sale sólo con ≥1 caso integrado**, y las hojas del PPT con n < 3 llevan el
+aviso de cohorte chica que ya existía (`avisoN`). Las omisiones se declaran con su motivo, como
+el resto del mazo.
+
+**PDF ≥ PPT, verificado y no afirmado**: la sección del PDF trae además los promedios de
+NT-proBNP y BNP y el desglose de dominios, que la diapositiva no lleva. TC-165 lo fija buscando
+esa cadena en el content stream.
+
+**Los rótulos de las conclusiones salen de los `<option>` del filtro de cohorte**
+(`_labLblConclusion`), que ya son la traducción de esas claves. Lo que el filtro no ofrece
+—`sin_datos` de `cvrEstado`— cae a la clave cruda, a propósito.
+
+#### Lo que costó
+
+**TRES ASERCIONES DE MI PROPIO SCRIPT ME FRENARON, Y LAS TRES TENÍAN RAZÓN.** Conté
+`'lab-card '` con espacio sobre un marcado que dice `class="lab-card"`; después `s.index()`
+encontró una ocurrencia ANTERIOR del ancla de fin y el bloque salió invertido; y a la tercera el
+rango abarcaba 18 referencias en vez de 6. **Ninguna escribió el archivo.** Un `assert` antes del
+`write` es lo que separa «no se aplicó» de «se aplicó mal», que es el error que este archivo ya
+documenta tres veces.
+
+**TC-156 DABA ROJO POR UNA CONDICIÓN DEMASIADO AMPLIA.** Exigía que la metodología «no declare
+NINGUNA omisión»; desde que el grupo `hemo` incorporó los cuatro módulos nuevos, esos cuatro se
+declaran omitidos cuando nadie los integró — que es correcto y es justo lo que TC-165 verifica.
+Se acotó a los tres módulos que ese caso prueba. **Una condición que habla de «ninguno» se rompe
+cuando el conjunto crece.**
+
+**La mutación que lo vigila** es el seam que deja de filtrar por integración: los cuatro n pasan
+de 1/2/1/1 a 5 y caen tres condiciones. Es la que distingue «cuenta a los que integraron» de
+«cuenta a todos», que es la única diferencia que importa acá.
+
 ### El contador del Laboratorio NO contaba «Integrar al informe» — 2026-09-18
 
 Reordenamiento de subtabs y de Avanzado, y el centinela de integración. **Los reordenamientos
