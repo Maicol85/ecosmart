@@ -3,3 +3,20 @@
 
 # Claude Flow tooling
 .claude-flow/
+
+# Datos de prueba: NO se versionan.
+# Este repo es PÚBLICO y GitHub Pages sirve todo lo que esté commiteado, así que
+# un fixture con nombres y cédulas —aunque sean generados— quedaría descargable en
+# ecosmart.ceibomed.com/tests/ y en el historial de git para siempre.
+# `tests/regresion.json` SÍ va versionado: son dos pacientes sintéticos mínimos
+# (el envenenado y el de valores extremos) que documentan el procedimiento de
+# regresión, sin nombres ni documentos plausibles.
+tests/casos_congenitos_ficticios.json
+tests/casos_ete_ficticios.json
+tests/paciente_ficticio_completo.json
+tests/ecosmart_demo_*.json
+
+# version.json vive en la RAÍZ, no acá: el banner de versión hace
+# fetch('version.json') a ruta relativa. Una copia en tests/ es una sobra de un
+# movimiento en lote y no debe volver al repo.
+tests/version.json
