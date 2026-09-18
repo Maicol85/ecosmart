@@ -487,6 +487,60 @@ El Excel pasó de **421 a 429 columnas** y de 128 a **129 básicas**; TC-135 fij
 contenido. Ojo con el `0` de una casilla apagada: **no es lo mismo que ausente**, y el caso lo
 distingue.
 
+### POP-4: la integración ya estaba construida, y el EN SUMA decía lo contrario — 2026-09-18
+
+Bloque 5 y las seis superficies. **La mitad del trabajo fue no construir nada.**
+
+**EL MÓDULO ENTRA POR `amiloSecs()`, que es el camino de los otros dieciocho.** Registrar
+`{ k:'pop', gen:amiloTextoPOP, hayDatos:… }` le da, sin una sola vía nueva: la hoja del PDF del
+paciente, la diapositiva del PPT del paciente (`amiloEnInforme()` ya la alimenta), el centinela
+persistido `am-txt-pop` y el conteo del Laboratorio por `_labIntegrado`. Lo único que hubo que
+escribir aparte fue la línea del EN SUMA y las dos superficies del Laboratorio.
+
+**`popPatron()` DEVUELVE DATOS, NO HTML**, y lo consumen las cinco superficies. Ninguna banda se
+define adentro: IC por `_icBanda`, RVS por `_rvsBanda`, taponamiento por `dptEstado()`, TAPSE por
+`UMBRAL_TAPSE_NORMAL`, VD/VI por el 0,9 de la cápsula de TEP. Lo único propio es cómo se
+**combinan**, que es exactamente lo que el cuadro del placeholder anticipaba.
+
+**LA PCP PREFIERE LA MEDIDA Y LO DECLARA.** Con Swan-Ganz usa `pop_sw_pcp`; sin él cae a la
+estimada por Nagueh, y la hoja dice cuál. Mezclarlas sin decirlo publicaría un patrón sostenido
+en una estimación como si fuera medición.
+
+**El taponamiento se evalúa PRIMERO y no se diluye en un «mixto»**: es la conducta más urgente.
+Y «datos insuficientes» no es «sin patrón» — sin IC calculable no se clasifica nada, y el botón
+**no se habilita**: una hoja PostCEC sobre un módulo en blanco describiría una evaluación que no
+se hizo, en un informe firmado.
+
+#### El defecto que casi entra al resumen firmado
+
+**LA LÍNEA DEL EN SUMA DECÍA «Gasto cardíaco adecuado» SOBRE UN IC DE 1,60.** La primera versión
+tomaba el texto de la PREGUNTA de la primera respuesta roja y le quitaba los signos: una respuesta
+ROJA a «¿Gasto cardíaco adecuado?» salía al resumen como la afirmación contraria. Es el defecto
+del «❌ CONTRAINDICADO» → «NO CONTRAINDICADO» que este archivo documenta, en el campo que más se
+lee y se copia. Hoy cada pregunta lleva su `hallazgo` en forma AFIRMATIVA («bajo gasto»,
+«congestión», «taponamiento») y el resumen usa ése. La mutación que revierte lo pone en rojo con
+la frase completa en el diagnóstico.
+
+**Verificado con una falla de VI de manual**: GC 3,2 con SC 2,00 → IC 1,60 (bajo), PCP medida 24
+(alta), RVS (80−12)/3,2×80 = 1700 (elevada). Clasifica `falla_vi`, el botón se habilita, el
+módulo entra por `amiloEnInforme`, el EN SUMA sale «PostCEC CABG — hora 6 h — Patrón: Falla del
+ventrículo izquierdo — IC 1.60 L/min/m² — bajo gasto.» y la hoja lleva el disclaimer como nota a
+ancho completo y la concordancia Swan vs eco.
+
+#### Lo que costó
+
+**SEMGREP SUBIÓ A 124 Y ERA MÍO.** `popConclSync` hacía `e.innerHTML = a + b + c`, que es lo que
+matchea `ceibo-xss-innerhtml-concat`. Se arma la cadena y se asigna una vez: de vuelta en 123. De
+paso se escapó con `escHtml` el tipo de cirugía y el patrón en la tarjeta del Laboratorio —salen
+del ESTUDIO, no de un literal, y un backup JSON trae claves arbitrarias—, que era correcto
+independientemente del contador.
+
+**EL `\n` DEL CASO CORRIÓ LA SUERTE DEL `\s`.** `suma.split('\n')` dentro del template literal
+quedó como un salto REAL dentro de una cadena de comillas simples y el caso **ni parseaba**. Se
+resolvió con `String.fromCharCode(10)`. Es la novena de esta familia.
+
+**TC-164 quedó corto** al aparecer la décima tarjeta de Avanzado: la lista esperada se actualizó.
+
 ### POP-3: el POCUS no inventa cortes, y el `\s` se comió las eses por octava vez — 2026-09-18
 
 Bloque 4 con sus cuatro subsecciones. **Las dos sincronizadas no tienen criterios propios**, que

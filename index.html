@@ -4372,7 +4372,8 @@ window.cerrarSesion = cerrarSesion;
     </div>
     <div id="pop-concl" class="pop-panel" style="display:none;">
       <div class="card"><div class="card-body">
-        <!-- TODO: POP-4 — conclusión hemodinámica e integración al informe.
+        <div id="pop-concl-box">—</div>
+        <!-- Decisiones de seams de este bloque, conservadas: NO definir criterios propios.
 
              DECISIÓN TOMADA Y NO NEGOCIABLE (Maicol, 2026-09-18): el patrón «Taponamiento» de
              este bloque NO define criterios propios. Se lee de `dptEstado()`, que es la cascada
@@ -4413,8 +4414,12 @@ window.cerrarSesion = cerrarSesion;
     <!-- El botón va FUERA de los acordeones y deshabilitado: el módulo todavía no genera texto,
          y un botón que no hace nada se lee como que la app se colgó. -->
     <div style="text-align:center;margin-top:12px;">
-      <button type="button" class="btn btn-integrar" id="pop_integrar" disabled
-              title="Disponible cuando el módulo genere su conclusión (POP-4)"
+      <!-- Entra por `amiloIntegrar('pop')`, que es el MISMO camino que los otros dieciocho
+           módulos: así el POP hereda la hoja del PDF, el PPT del paciente, el centinela
+           persistido `am-txt-pop` y el conteo del Laboratorio sin una sola vía nueva. -->
+      <button type="button" class="btn btn-integrar" id="pop_integrar" data-am-k="pop" disabled
+              onclick="amiloIntegrar('pop')"
+              title="Sin índice cardíaco calculable no hay patrón que integrar"
               style="opacity:.55;cursor:not-allowed;">Integrar al informe</button>
     </div>
   </div>
@@ -14624,6 +14629,11 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <div class="lab-card-body"><div id="lab-adv-cvr"></div></div>
     </div>
 
+    <div class="lab-card" data-ppt="pop">
+      <div class="lab-card-hdr">🫀 PostCEC — Cirugía Cardíaca</div>
+      <div class="lab-card-body"><div id="lab-adv-pop"></div></div>
+    </div>
+
   </div><!-- /lab-sub-avanzado -->
 
 <!-- ══ Subtab Hemodinámica ══
@@ -23930,6 +23940,15 @@ function generarInforme(opts) {
     sumaCCLineas.forEach(function(l){ suma.push(l); });
   }
 
+  /* ── PostCEC ── Sólo si el médico INTEGRÓ el módulo: la línea del resumen no puede aparecer
+     por tener datos cargados, igual que la hoja del PDF. Y sale de `popSumaLinea()`, que
+     consume el mismo `popPatron()` que la hoja: con una segunda derivación, el EN SUMA y el
+     cuerpo del informe podrían publicar patrones distintos del mismo paciente. */
+  if (typeof amiloIntegrado === 'function' && amiloIntegrado('pop') && typeof popSumaLinea === 'function') {
+    try { const _pl = popSumaLinea(); if (_pl) { suma.push(_pl); ccMarcarParrafo(); } }
+    catch (e) { console.error('[EN SUMA] popSumaLinea:', e); }
+  }
+
   // Escribir En Suma
   /* El fallback NO puede correr si el cuerpo describió algo. `suma.length === 0` significaba
      «sin hallazgos» y también «los hallazgos no pasaron su filtro», y las dos cosas producían
@@ -24204,6 +24223,143 @@ function popPocusSync() {
     '<div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">Los cortes son los que la app ya aplica en la cápsula de TEP de esta pestaña (TAPSE ' + uT + ' mm · VD/VI 0,9). No se gradúan de otra forma acá.</div>');
 }
 window.popPocusSync = popPocusSync;
+/* ══ POP · BLOQUE 5 — patrón hemodinámico (2026-09-18) ══
+   `popPatron()` es un SEAM: devuelve DATOS, no HTML. Lo consumen la pantalla, la hoja del PDF,
+   el EN SUMA, el PPT del paciente y el Laboratorio. Es la única forma de que las cinco
+   superficies no cuenten distinto — la lección de `_labHemoResumen` y compañía.
+
+   NINGUNA BANDA SE DEFINE ACÁ. Se pregunta POR LA BANDA, no por el número:
+     · IC  -> `_icBanda`            · RVS -> `_rvsBanda`
+     · taponamiento -> `dptEstado()`  · TAPSE -> `UMBRAL_TAPSE_NORMAL`  · VD/VI -> 0,9
+   Lo único propio de este bloque es cómo se COMBINAN, y el texto orientativo que sale de ahí.
+
+   LA PCP PREFIERE LA MEDIDA. Con Swan-Ganz se usa `pop_sw_pcp`, que es un dato directo; sin él
+   se cae a la estimada por Nagueh, que es la que la app ya publica, y SE DECLARA cuál se usó.
+   Mezclarlas sin decirlo publicaría un patrón sostenido en una estimación como si fuera medición.
+   Los cortes 12/18 de precarga son los del pedido y no colisionan con nada que la app publique. */
+function popPatron() {
+  const swGc = v('pop_sw_gc'), swPcp = v('pop_sw_pcp'), swPam = v('pop_sw_pam'), swPad = v('pop_sw_pad');
+  const asc = (typeof getBSA === 'function') ? getBSA() : null;
+
+  let ic = null, icFuente = null;
+  if (swGc !== null && swGc > 0 && asc) { ic = swGc / asc; icFuente = 'termodilución'; }
+  else {
+    const gcE = _hemoGCEco(v('diam_tsvi'), v('itv_tsvi'), v('hemo_fc'));
+    if (gcE !== null && asc) { ic = gcE / asc; icFuente = 'ecocardiografía'; }
+  }
+  const icB = _icBanda(ic);
+
+  let pcp = null, pcpFuente = null;
+  if (swPcp !== null) { pcp = swPcp; pcpFuente = 'medida (Swan-Ganz)'; }
+  else {
+    const e = v('onda_e'), es = v('e_sep'), el = v('e_lat');
+    if (e && es && el && typeof pcpNagueh === 'function') { pcp = pcpNagueh(e / ((es + el) / 2)); pcpFuente = 'estimada (Nagueh)'; }
+  }
+
+  let rvs = null, rvsFuente = null;
+  if (swGc !== null && swGc > 0 && swPam !== null && swPad !== null) {
+    rvs = (swPam - swPad) / swGc * 80; rvsFuente = 'PAD medida';
+  } else {
+    const pam = v('hemo_pam'), pvc = v('pmad');
+    const gcE = _hemoGCEco(v('diam_tsvi'), v('itv_tsvi'), v('hemo_fc'));
+    if (pam !== null && pvc !== null && gcE !== null && gcE > 0) { rvs = (pam - pvc) / gcE * 80; rvsFuente = 'PVC estimada por VCI'; }
+  }
+  const rvsB = _rvsBanda(rvs);
+
+  const tapse = v('tapse');
+  let vdvi = v('tep_vdvi');
+  if (vdvi === null && v('vd_bas') && v('ddfvi')) vdvi = PF((v('vd_bas') / v('ddfvi')).toFixed(2));
+  const uT = (typeof UMBRAL_TAPSE_NORMAL !== 'undefined') ? UMBRAL_TAPSE_NORMAL : 17;
+  const tapseBaja = tapse !== null && tapse < uT;
+  const vdDil = vdvi !== null && vdvi >= 0.9;
+
+  let tapo = false;
+  try { tapo = (typeof dptEstado === 'function') && (dptEstado() || {}).clave === 'taponamiento'; } catch (e) {}
+
+  const lb = (document.getElementById('pop_pulmon_lineasb') || {}).value || '';
+
+  /* ── PREGUNTAS BINARIAS ── Cada una nombra de dónde sale su banda. */
+  const preg = [];
+  /* `hallazgo` es la forma AFIRMATIVA de la respuesta, y existe porque el EN SUMA la usa. La
+     primera versión tomaba el texto de la PREGUNTA y le sacaba los signos: una respuesta ROJA a
+     «¿Gasto cardíaco adecuado?» salía al resumen firmado como «Gasto cardíaco adecuado», o sea
+     diciendo exactamente lo contrario. Es el defecto del «NO CONTRAINDICADO» que este archivo
+     documenta, en el campo que más se lee y se copia. */
+  preg.push({ q:'¿Gasto cardíaco adecuado?', cls: icB ? (icB.cls === 'green' ? 'green' : icB.cls) : 'yellow',
+              hallazgo:'bajo gasto',
+              r: icB ? ('IC ' + ic.toFixed(2) + ' L/min/m² — ' + icB.txt) : 'sin IC calculable' });
+  preg.push({ q:'¿Precarga adecuada?',
+              hallazgo: pcp === null ? '' : (pcp < 12 ? 'precarga baja' : pcp > 18 ? 'congestión' : ''),
+              cls: pcp === null ? 'yellow' : (pcp >= 12 && pcp <= 18) ? 'green' : 'yellow',
+              r: pcp === null ? 'sin PCP' : (pcp.toFixed(0) + ' mmHg — ' +
+                 (pcp < 12 ? 'sugiere hipovolemia' : pcp > 18 ? 'sugiere congestión' : 'en rango') +
+                 ' (' + pcpFuente + ')') });
+  preg.push({ q:'¿Taponamiento?', cls: tapo ? 'red' : 'green', hallazgo:'taponamiento',
+              r: tapo ? 'sí — por el módulo de pericardio' : 'no por los criterios del módulo de pericardio' });
+  preg.push({ q:'¿Falla del VD?', cls: (tapseBaja && vdDil) ? 'red' : (tapseBaja || vdDil) ? 'orange' : 'green',
+              hallazgo:'falla del ventrículo derecho',
+              r: (tapse === null && vdvi === null) ? 'sin TAPSE ni VD/VI'
+                 : ('TAPSE ' + (tapse === null ? '—' : tapse + ' mm') + ' · VD/VI ' + (vdvi === null ? '—' : vdvi)) });
+  const congest = lb === 'difusas' && pcp !== null && pcp > 18;
+  preg.push({ q:'¿Congestión pulmonar?', cls: congest ? 'red' : 'green', hallazgo:'congestión pulmonar',
+              r: congest ? 'líneas B difusas con PCP > 18' : (lb === 'difusas' ? 'líneas B difusas sin PCP elevada' : 'no') });
+
+  /* ── PATRÓN ── El taponamiento se evalúa PRIMERO: es la conducta más urgente y no se diluye
+     en un «mixto». Los demás se acumulan y si hay más de uno, el patrón es mixto. */
+  const pats = [];
+  if (tapo) pats.push({ k:'taponamiento', lbl:'Taponamiento', cls:'red' });
+  const icBajo = icB && (icB.txt === 'bajo' || icB.txt === 'límite');
+  const rvsAlta = rvsB && (rvsB.cls === 'red' || rvsB.cls === 'yellow');
+  const rvsBaja = rvsB && rvsB.cls === 'orange';
+  if (icBajo && pcp !== null && pcp < 12 && rvsAlta) pats.push({ k:'hipovolemia', lbl:'Hipovolemia', cls:'orange' });
+  if (icBajo && pcp !== null && pcp > 18 && rvsAlta) pats.push({ k:'falla_vi', lbl:'Falla del ventrículo izquierdo', cls:'red' });
+  if (icBajo && tapseBaja && vdDil) pats.push({ k:'falla_vd', lbl:'Falla del ventrículo derecho', cls:'red' });
+  if (icB && !icBajo && rvsBaja) pats.push({ k:'vasoplejia', lbl:'Vasoplejia', cls:'orange' });
+
+  /* «Datos insuficientes» NO es lo mismo que «sin patrón»: sin IC no se clasifica nada, y decir
+     «sin alteraciones» sobre una evaluación que no se hizo es la afirmación tranquilizadora que
+     este archivo persigue desde el TEER. */
+  let pat;
+  if (!icB && !tapo) pat = { k:'insuficiente', lbl:'Datos insuficientes para clasificar — completar los bloques 3 y 4', cls:'yellow' };
+  else if (!pats.length) pat = { k:'sin_patron', lbl:'Sin patrón de bajo gasto ni vasoplejia por los datos cargados', cls:'green' };
+  else if (pats.length === 1) pat = pats[0];
+  else pat = { k:'mixto', lbl:'Mixto — ' + pats.map(x => x.lbl.toLowerCase()).join(' + '), cls:'red' };
+
+  return { pat: pat, patrones: pats, preguntas: preg,
+           ic: ic, icBanda: icB, icFuente: icFuente,
+           pcp: pcp, pcpFuente: pcpFuente, rvs: rvs, rvsBanda: rvsB, rvsFuente: rvsFuente,
+           tapse: tapse, vdvi: vdvi, taponamiento: tapo,
+           suficiente: !!icB || tapo };
+}
+window.popPatron = popPatron;
+const POP_DISCLAIMER = 'Orientación clínica — no reemplaza el juicio médico ni las guías vigentes.';
+window.POP_DISCLAIMER = POP_DISCLAIMER;
+
+function popConclSync() {
+  const e = document.getElementById('pop-concl-box'); if (!e) return;
+  const r = popPatron();
+  const fila = (l, v2) => '<div class="calc-row"><span class="calc-lbl">' + l + '</span><span>' + v2 + '</span></div>';
+  /* Se arma la cadena y se asigna UNA vez. `innerHTML = a + b + c` es lo que matchea la regla
+     sintáctica `ceibo-xss-innerhtml-concat`, y la línea base del ruleset es 123: la casa no suma
+     warnings aunque el hallazgo sea falso positivo —acá todo lo interpolado sale de `badge()` y
+     de literales de este archivo—, porque un contador que crece deja de mirarse. */
+  const _h =
+    fila('Patrón hemodinámico', badge(r.pat.cls, r.pat.lbl)) +
+    r.preguntas.map(q => fila(q.q, badge(q.cls, q.r))).join('') +
+    (r.icFuente ? '<div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">IC por ' + r.icFuente +
+      (r.rvsFuente ? ' · RVS con ' + r.rvsFuente : '') + '. Las bandas son las que la app ya aplica en esta pestaña.</div>' : '') +
+    '<div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;"><b>' + POP_DISCLAIMER + '</b></div>';
+  e.innerHTML = _h;
+  const btn = document.getElementById('pop_integrar');
+  if (btn) {
+    btn.disabled = !r.suficiente;
+    btn.style.opacity = r.suficiente ? '' : '.55';
+    btn.style.cursor = r.suficiente ? '' : 'not-allowed';
+    btn.title = r.suficiente ? 'Agrega la hoja PostCEC al PDF y la línea al EN SUMA'
+                             : 'Sin índice cardíaco calculable no hay patrón que integrar';
+  }
+}
+window.popConclSync = popConclSync;
 function popSync() {
   POP_DROGAS.forEach(function (k) {
     var chk = document.getElementById('pop_' + k + '_activa');
@@ -24227,6 +24383,7 @@ function popSync() {
   /* El bloque 3 depende de `pop_monitor`, que vive en el bloque 1: un solo punto de entrada. */
   try { popHemoSync(); } catch (e) { console.error('[popSync] popHemoSync:', e); }
   try { popPocusSync(); } catch (e) { console.error('[popSync] popPocusSync:', e); }
+  try { popConclSync(); } catch (e) { console.error('[popSync] popConclSync:', e); }
 }
 window.popSync = popSync;
 window.POP_DROGAS = POP_DROGAS;
@@ -38502,6 +38659,87 @@ function amiloTextoVEXUS() {
   return L.join('\n');
 }
 
+/* Texto de la hoja «PostCEC» del PDF. Consume `popPatron()` — no reclasifica — y usa el
+   marcador `!!` para la salvedad, que es el tipo de fila «nota» que sale a ancho completo en vez
+   de exprimida en la columna del valor. */
+function amiloTextoPOP() {
+  const L = [];
+  const sv2 = id => { const e = document.getElementById(id); return e && e.value ? (e.options ? e.options[e.selectedIndex].text : e.value) : ''; };
+  const r = popPatron();
+
+  L.push('## Contexto quirúrgico');
+  L.push('Tipo de cirugía | ' + (sv2('pop_cx_tipo') || 'no consignado'));
+  const h = v('pop_cx_horas');
+  L.push('Horas post-CEC | ' + (h !== null ? h + ' h' : 'no consignadas'));
+  L.push('Monitoreo | ' + (sv2('pop_monitor') || 'no consignado'));
+  const asis = sv2('pop_asist_tipo');
+  if (asis) {
+    const det = sv2('pop_bcia_ratio') || sv2('pop_impella_nivel') || (v('pop_ecmo_flujo') !== null ? v('pop_ecmo_flujo') + ' L/min' : '');
+    L.push('Asistencia circulatoria | ' + asis + (det ? ' — ' + det : ''));
+  }
+  const drogas = (window.POP_DROGAS || []).map(function (k) {
+    const c = document.getElementById('pop_' + k + '_activa');
+    if (!c || !c.checked) return null;
+    const lbl = c.parentNode ? (c.parentNode.textContent || '').trim() : k;
+    const d = v('pop_' + k + '_dosis');
+    return lbl + (d !== null ? ' ' + d + ' mcg/kg/min' : '');
+  }).filter(Boolean);
+  L.push('Vasoactivos | ' + (drogas.length ? drogas.join(' · ') : 'ninguno activo'));
+
+  L.push('## Hemodinamia');
+  if (r.ic !== null) L.push('Índice cardíaco | ' + r.ic.toFixed(2) + ' L/min/m² — ' + r.icBanda.txt + ' (' + r.icFuente + ')');
+  const gcS = v('pop_sw_gc');
+  if (gcS !== null) L.push('GC termodilución | ' + gcS.toFixed(2) + ' L/min');
+  const gcE = _hemoGCEco(v('diam_tsvi'), v('itv_tsvi'), v('hemo_fc'));
+  if (gcE !== null) L.push('GC ecocardiográfico | ' + gcE.toFixed(2) + ' L/min');
+  /* La concordancia sólo con los DOS: comparar contra un hueco daría 100 % y se leería como
+     discordancia total. Mismo criterio que la pantalla. */
+  if (gcS !== null && gcS > 0 && gcE !== null) {
+    const dif = Math.abs(gcS - gcE) / gcS * 100;
+    L.push('Concordancia Swan vs eco | ' + dif.toFixed(0) + ' %' + (dif > 25 ? ' — revisar posición del catéter o la ventana' : ''));
+  }
+  if (r.pcp !== null) L.push('PCP | ' + r.pcp.toFixed(0) + ' mmHg (' + r.pcpFuente + ')');
+  if (r.rvs !== null) L.push('RVS | ' + r.rvs.toFixed(0) + ' dinas·s·cm⁻⁵ — ' + r.rvsBanda.txt + ' (' + r.rvsFuente + ')');
+
+  L.push('## Evaluación POCUS');
+  let dpt = null; try { dpt = dptEstado(); } catch (e) {}
+  L.push('Pericardio | ' + (dpt && dpt.clave && dpt.clave !== 'sin_derrame'
+    ? _labLblConclusion('coh-dpt-con', dpt.clave) : 'sin derrame consignado'));
+  const pl = [sv2('pop_pleura_der') ? 'derecho ' + sv2('pop_pleura_der') : '',
+              sv2('pop_pleura_izq') ? 'izquierdo ' + sv2('pop_pleura_izq') : ''].filter(Boolean).join(' · ');
+  L.push('Pleura | ' + (pl || 'sin evaluación') + (sv2('pop_pleura_caract') ? ' — ' + sv2('pop_pleura_caract') : ''));
+  const pu = [sv2('pop_pulmon_lineasb') ? 'líneas B ' + sv2('pop_pulmon_lineasb') : '',
+              sv2('pop_pulmon_consol') ? 'consolidación ' + sv2('pop_pulmon_consol') : '',
+              sv2('pop_pulmon_neumo') ? 'neumotórax ' + sv2('pop_pulmon_neumo') : ''].filter(Boolean).join(' · ');
+  L.push('Pulmón | ' + (pu || 'sin evaluación'));
+  L.push('Ventrículo derecho | TAPSE ' + (r.tapse === null ? '—' : r.tapse + ' mm') +
+         ' · VD/VI ' + (r.vdvi === null ? '—' : r.vdvi));
+
+  L.push('## Patrón hemodinámico');
+  L.push(r.pat.lbl + '.');
+  r.preguntas.forEach(function (q) { L.push(q.q + ' | ' + q.r); });
+  L.push('!! ' + POP_DISCLAIMER);
+  return L.join('\n');
+}
+window.amiloTextoPOP = amiloTextoPOP;
+/* Línea del EN SUMA. Sale del MISMO `popPatron()` que la hoja: con una segunda derivación, el
+   resumen y el cuerpo del informe podrían decir patrones distintos del mismo paciente. */
+function popSumaLinea() {
+  const r = popPatron();
+  if (!r.suficiente) return '';
+  const sv2 = id => { const e = document.getElementById(id); return e && e.value ? e.options[e.selectedIndex].text : ''; };
+  const h = v('pop_cx_horas');
+  /* El hallazgo, NO la pregunta. Ver la nota de `hallazgo` en popPatron. */
+  const princ = r.taponamiento ? 'taponamiento' :
+                (r.preguntas.filter(function (q) { return q.cls === 'red' && q.hallazgo; })[0] || {}).hallazgo || '';
+  return 'PostCEC' + (sv2('pop_cx_tipo') ? ' ' + sv2('pop_cx_tipo') : '') +
+         (h !== null ? ' — hora ' + h + ' h' : '') +
+         ' — Patrón: ' + r.pat.lbl +
+         (r.ic !== null ? ' — IC ' + r.ic.toFixed(2) + ' L/min/m²' : '') +
+         (princ ? ' — ' + princ : '') + '.';
+}
+window.popSumaLinea = popSumaLinea;
+
 /* Derrame pericárdico / Taponamiento — hoja de ETT Avanzado.
    Las frases clínicas salen de `dptFrases()`, la MISMA que usa el narrativo: no hay una
    segunda redacción que pueda divergir. Acá se les antepone la tabla de campos. */
@@ -39291,6 +39529,13 @@ function amiloSecs() {
     { k:'aoete',lbl:'Mediciones Aorta (ETE)',          tit:'AORTA TORACICA',                           gen:amiloTextoAortaETE, grupo:'ete' },
     { k:'dpt',  lbl:'Derrame pericárdico / Taponamiento', tit:'DERRAME PERICARDICO - VALORACION HEMODINAMICA', gen:amiloTextoDPT },
     { k:'cvr',  lbl:'Constricción vs Restricción',     tit:'CONSTRICCION vs RESTRICCION',              gen:amiloTextoCVR },
+    /* POP entra por el MISMO registro que los otros dieciocho: con eso hereda la hoja del PDF,
+       el PPT del paciente, el centinela persistido `am-txt-pop` y el conteo del Laboratorio.
+       `hayDatos` es la compuerta REAL —sin IC calculable no hay patrón— y no falla abierto como
+       el default: una hoja «PostCEC» sobre un módulo en blanco describiría una evaluación que no
+       se hizo, en un informe firmado. */
+    { k:'pop',  lbl:'PostCEC — Cirugía Cardíaca',        tit:'POSTCEC - CIRUGIA CARDIACA',               gen:amiloTextoPOP,
+      hayDatos:function(){ try { return popPatron().suficiente; } catch (e) { return false; } } },
     { k:'conco',lbl:'Cardio-Oncología',                tit:'CARDIO-ONCOLOGIA - ESC 2022',   gen:amiloTextoCardioOnco,
       alIntegrar:function(){ if (typeof coCongelarSerie === 'function') coCongelarSerie(); } },
     /* `hayDatos` es opcional y sólo lo usa `amiloIntegrar` para no dejar integrar una hoja
@@ -52764,6 +53009,30 @@ function _labCvrResumen(infs) {
 }
 /* HFA-PEFF sobre los INTEGRADOS. La puntuación y el piso de dos dominios siguen saliendo de
    `_labHfPeff`, que es la misma que usa el filtro de cohorte: acá sólo se agrega la población. */
+function _labPopResumen(infs) {
+  const arr = _labModIntegrados(infs, 'pop');
+  const cx = Object.create(null), pat = Object.create(null), sop = Object.create(null);
+  const ics = [];
+  arr.forEach(function (i) {
+    const c = i.campos || {};
+    const t = _labCampoRaw(i, 'pop_cx_tipo'); if (t) cx[t] = (cx[t] || 0) + 1;
+    /* El patrón se lee del TEXTO integrado y no se reclasifica: `popPatron()` mira el
+       formulario vivo, y acá se recorren estudios guardados. El texto es lo que se firmó. */
+    const txt = String(c['am-txt-pop'] || '');
+    const m = txt.match(/## Patrón hemodinámico\n([^\n]+)/);
+    const p = m ? m[1].replace(/\.$/, '').trim() : null;
+    if (p) pat[p] = (pat[p] || 0) + 1;
+    ['nor','adr','dob','mil','vaso','levo'].forEach(function (k) {
+      if (c['pop_' + k + '_activa__chk'] === '1') { const n = k; sop[n] = (sop[n] || 0) + 1; }
+    });
+    const mi = txt.match(/Índice cardíaco \| ([0-9.]+)/);
+    if (mi) { const x = parseFloat(mi[1]); if (isFinite(x)) ics.push(x); }
+  });
+  return { n: arr.length, cx: cx, patrones: pat, soporte: sop,
+           icProm: ics.length ? ics.reduce(function (a, b) { return a + b; }, 0) / ics.length : null,
+           icN: ics.length };
+}
+
 function _labHfpeffResumen(infs) {
   const arr = _labModIntegrados(infs, 'hfpeff');
   const hfR = arr.map(_labHfPeff).filter(Boolean);
@@ -52820,6 +53089,7 @@ function _labAdvancedRender(infs, n) {
   const amilIntArr = infs.filter(_labAmilIntegrado);
   const hemoInt = intArr('hemo'), tepInt = intArr('tep'), oncoInt = intArr('conco');
   const hfpInt  = intArr('hfpeff'), vexInt = intArr('vexus'), dptInt = intArr('dpt'), cvrInt = intArr('cvr');
+  const popInt = intArr('pop');
   setHtml('lab-adv-resumen',
     stat('Total de estudios ' + _labPobTxt(), String(n)) +
     stat('Con hemodinámica', hemoInt.length + ' (' + pctS(hemoInt.length) + ')') +
@@ -52830,6 +53100,7 @@ function _labAdvancedRender(infs, n) {
     stat('Con VEXUS', vexInt.length + ' (' + pctS(vexInt.length) + ')') +
     stat('Con derrame / taponamiento', dptInt.length + ' (' + pctS(dptInt.length) + ')') +
     stat('Con constricción vs restricción', cvrInt.length + ' (' + pctS(cvrInt.length) + ')') +
+    stat('Con PostCEC (cirugía cardíaca)', popInt.length + ' (' + pctS(popInt.length) + ')') +
     '<div class="lab-empty" style="margin-top:8px;">Cuenta los estudios en los que el módulo se <b>integró al informe</b>, no los que tienen el dato cargado.</div>');
   labBarras('lab-adv-uso', [
     { lbl: `Hemodinámica (n=${hemoInt.length})`, n: hemoInt.length, total: n, color: '#4f8ef7' },
@@ -52839,7 +53110,8 @@ function _labAdvancedRender(infs, n) {
     { lbl: `HFA-PEFF (n=${hfpInt.length})`, n: hfpInt.length, total: n, color: '#f59e0b' },
     { lbl: `VEXUS (n=${vexInt.length})`, n: vexInt.length, total: n, color: '#38bdf8' },
     { lbl: `Derrame / taponamiento (n=${dptInt.length})`, n: dptInt.length, total: n, color: '#a3e635' },
-    { lbl: `Constricción vs restricción (n=${cvrInt.length})`, n: cvrInt.length, total: n, color: '#fb7185' }
+    { lbl: `Constricción vs restricción (n=${cvrInt.length})`, n: cvrInt.length, total: n, color: '#fb7185' },
+    { lbl: `PostCEC (n=${popInt.length})`, n: popInt.length, total: n, color: '#c084fc' }
   ]);
 
   /* ── Las tres tarjetas nuevas: SOLO PINTAN ──
@@ -52866,6 +53138,25 @@ function _labAdvancedRender(infs, n) {
     stat('Estudios con derrame en el informe', String(dp.n)) +
     stat('Con conclusión clasificable', String(dp.conClave)) +
     _filasDist(dp.dist, k => _labLblConclusion('coh-dpt-con', k)));
+
+  const pp = _labPopResumen(infs);
+  if (!pp.n) empty('lab-adv-pop', 'PostCEC integrado al informe');
+  else {
+    const DRG = { nor:'Noradrenalina', adr:'Adrenalina', dob:'Dobutamina', mil:'Milrinona', vaso:'Vasopresina', levo:'Levosimendan' };
+    setHtml('lab-adv-pop',
+      stat('Estudios con PostCEC en el informe', String(pp.n)) +
+      stat('IC promedio al momento del eco', pp.icN ? pp.icProm.toFixed(2) + ' L/min/m² (n=' + pp.icN + ')' : '—') +
+      '<div style="font-size:.72rem;font-weight:700;color:var(--text2);margin:10px 0 4px;text-transform:uppercase;">Tipo de cirugía</div>' +
+      /* `escHtml` en las dos: la clave del tipo de cirugía y el patrón salen del ESTUDIO
+         —`campos.pop_cx_tipo` y el texto integrado—, no de un literal de este archivo, y acá
+         terminan dentro de innerHTML. Un estudio que entre por import de backup JSON trae claves
+         arbitrarias. Es la misma frontera que `_labDistrib` ya cuida con el prototipo nulo. */
+      (Object.keys(pp.cx).length ? _filasDist(pp.cx, k => escHtml(k)) : '<div class="lab-empty">Sin tipo consignado.</div>') +
+      '<div style="font-size:.72rem;font-weight:700;color:var(--text2);margin:10px 0 4px;text-transform:uppercase;">Patrón hemodinámico</div>' +
+      (Object.keys(pp.patrones).length ? _filasDist(pp.patrones, k => escHtml(k)) : '<div class="lab-empty">Sin patrón registrado.</div>') +
+      '<div style="font-size:.72rem;font-weight:700;color:var(--text2);margin:10px 0 4px;text-transform:uppercase;">Vasoactivo más usado</div>' +
+      (Object.keys(pp.soporte).length ? _filasDist(pp.soporte, k => DRG[k] || k) : '<div class="lab-empty">Sin vasoactivos activos.</div>'));
+  }
 
   const cv = _labCvrResumen(infs);
   if (!cv.n) empty('lab-adv-cvr', 'constricción vs restricción integrado al informe');
@@ -53185,7 +53476,7 @@ const LAB_PPT_GRUPOS = [
      evaluación avanzada y una casilla propia por tarjeta ya los gobierna. `_labPptAssertGrupos`
      exige que TODA clave data-ppt pertenezca a exactamente un grupo, y una tarjeta sin grupo
      no da error: da una casilla que el médico tilda y no produce nada. */
-  { k:'hemo',      lbl:'Hemodinámica y pericardio', cards:['hemo','tep','hfapeff','usoavanzado','vexus','dpt','cvr'] },
+  { k:'hemo',      lbl:'Hemodinámica y pericardio', cards:['hemo','tep','hfapeff','usoavanzado','vexus','dpt','cvr','pop'] },
   { k:'amil',      lbl:'Amiloidosis',               cards:['amiloidosis'] },
   { k:'onco',      lbl:'Cardio-Oncología',          cards:['onco'] },
   { k:'ete',       lbl:'Ecocardiograma transesofágico', cards:['eteactividad','tavi','wilkins','orejuela','teer'] },
@@ -54146,6 +54437,22 @@ async function _labPPTGenerar(infs, o) {
         if (!gBarras(s2, _dist2filas(dp.dist, k => _labLblConclusion('coh-dpt-con', k)), { x:4.6, y:0.92, w:5.1, h:2.6 }, 'Conclusión'))
           s2.addText(T('Sin conclusión clasificable.'), { x:4.6, y:1.6, w:5.1, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
         s2.addText(T('Un derrame sin criterios evaluados NO es «sin compromiso»: se cuenta aparte.'),
+          { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
+      }
+
+      const pp = _labPopResumen(infs);
+      if (!pp.n) omitir('PostCEC — cirugía cardíaca', 'ningún estudio del período tiene el módulo integrado al informe');
+      else {
+        const s2 = nueva('PostCEC — Cirugía Cardíaca'); avisoN(s2, pp.n);
+        const DRG = { nor:'Noradrenalina', adr:'Adrenalina', dob:'Dobutamina', mil:'Milrinona', vaso:'Vasopresina', levo:'Levosimendan' };
+        let y2 = 1.00;
+        y2 = dato(s2, 0.4, y2, 'Estudios con el módulo en el informe', String(pp.n));
+        y2 = dato(s2, 0.4, y2, 'IC promedio al momento del eco', pp.icN ? pp.icProm.toFixed(2) + ' L/min/m² (n=' + pp.icN + ')' : '—');
+        const sop = Object.keys(pp.soporte).sort((a2, b2) => pp.soporte[b2] - pp.soporte[a2])[0];
+        dato(s2, 0.4, y2, 'Vasoactivo más usado', sop ? (DRG[sop] || sop) + ' (' + pp.soporte[sop] + ')' : '—');
+        if (!gBarras(s2, _dist2filas(pp.patrones, k => k), { x:4.6, y:0.92, w:5.1, h:2.6 }, 'Patrón hemodinámico'))
+          s2.addText(T('Sin patrón registrado.'), { x:4.6, y:1.6, w:5.1, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
+        s2.addText(T('El patrón se lee del texto que se integró al informe firmado; no se reclasifica sobre el estudio guardado.'),
           { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
       }
 
@@ -56417,6 +56724,23 @@ async function labGenerarPDF() {
       _nota('La conclusion se recalcula por estudio con la misma cascada que firma el informe. Un derrame sin criterios evaluados NO es "sin compromiso": se declara aparte.');
     }
 
+    const pp = _labPopResumen(infs);
+    if (pp.n) {
+      const DRG = { nor:'Noradrenalina', adr:'Adrenalina', dob:'Dobutamina', mil:'Milrinona', vaso:'Vasopresina', levo:'Levosimendan' };
+      const filasCx = _filasDe(pp.cx, k => k);
+      await sectionChart('PostCEC - Cirugia cardiaca',
+        ['Medida', 'n (%)'],
+        [['Estudios con el modulo en el informe', String(pp.n)],
+         ['IC promedio al momento del eco', pp.icN ? pp.icProm.toFixed(2) + ' L/min/m2 (n=' + pp.icN + ')' : '-']]
+          .concat(filasCx)
+          .concat(_filasDe(pp.patrones, k => k))
+          .concat(_filasDe(pp.soporte, k => DRG[k] || k)),
+        filasCx.length ? { labels: filasCx.map(f => f[0]),
+                           values: filasCx.map(f => pp.cx[f[0]]),
+                           colors: ['#4f8ef7','#8a5fd4','#2dd4bf','#f472b6','#f59e0b','#a3e635','#fb7185'] } : null);
+      _nota('Poblacion: los ' + pp.n + ' estudio(s) que integraron el modulo al informe. El patron se lee del texto que se firmo, no se reclasifica.');
+    }
+
     const cv = _labCvrResumen(infs);
     if (cv.n) {
       const fil = _filasDe(cv.dist, k => _labLblConclusion('coh-cvr-con', k));
@@ -57460,8 +57784,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260918-1632';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789759950425;                 /* eco-build-ms */
+const ECO_BUILD    = '20260918-1650';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789761037905;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -57547,7 +57871,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1632</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1650</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

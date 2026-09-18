@@ -8200,7 +8200,7 @@ caso('TC-164', 'Laboratorio: orden de subtabs y de Avanzado, y el contador cuent
     const AV = ['🧩 Uso del módulo avanzado','🩺 Perfil hemodinámico','🫁 TEP / Sobrecarga VD',
                 '🧬 Amiloidosis','🎗️ Cardio-Oncología','🫀 Score HFA-PEFF (ESC/HFA 2019)',
                 '🩸 VEXUS — congestión venosa','💧 Derrame pericárdico / Taponamiento',
-                '🔒 Constricción vs Restricción'];
+                '🔒 Constricción vs Restricción','🫀 PostCEC — Cirugía Cardíaca'];
     return { extra: [
       ['la cohorte sembrada es el denominador',        denom === 5, denom],
       ['las subtabs estan en el orden pedido',         rail.join('|') === ORDEN.join('|'), rail.join(' / ')],
@@ -8488,6 +8488,69 @@ caso('TC-168', 'POP-3: el POCUS sincroniza y no inventa cortes', `
       ['la conclusion del VD manda a descartar taponamiento y TEP',
         vd.indexOf('descartar taponamiento y TEP') > -1, vd.slice(0,190)],
       ['y declara lo que falta completar',          vd.indexOf('Completar: PSAP') > -1, vd.slice(-90)]
+    ] };
+  })();
+`);
+
+
+/* POP-4. Caso de FALLA DE VI de manual: GC 3,2 con SC 2,00 da IC 1,60 (bajo), PCP medida 24
+   (alta) y RVS (80-12)/3,2*80 = 1700 (elevada). Es la combinacion que define el patron.
+   Lo que fija el caso: que el patron salga de las BANDAS de la app, que el boton se habilite
+   solo con IC calculable, y que el EN SUMA no invierta el sentido del hallazgo. */
+caso('TC-169', 'POP-4: el patron sale de los seams y el EN SUMA no invierte el hallazgo', `
+  return (async () => {
+    __t.limpiar();
+    __t.set('nombre','POP4'); __t.set('ci','4444444-4');
+    /* Sin IC calculable el boton NO puede habilitarse: una hoja PostCEC sobre un modulo en
+       blanco describiria una evaluacion que no se hizo, en un informe firmado. */
+    popSync();
+    const btnVacio = document.getElementById('pop_integrar');
+    const deshabVacio = !!btnVacio && btnVacio.disabled === true;
+    const patVacio = popPatron();
+
+    __t.set('peso','80'); __t.set('talla','180');
+    __t.set('pop_cx_tipo','cabg'); __t.set('pop_cx_horas','6'); __t.set('pop_monitor','swan');
+    __t.chk('pop_nor_activa', true); __t.set('pop_nor_dosis','0.3');
+    __t.set('pop_sw_gc','3.2'); __t.set('pop_sw_pam','80'); __t.set('pop_sw_pad','12');
+    __t.set('pop_sw_pcp','24'); __t.set('pop_sw_paps','45'); __t.set('pop_sw_papd','22');
+    __t.set('pop_pulmon_lineasb','difusas');
+    __t.set('diam_tsvi','20'); __t.set('itv_tsvi','14'); __t.set('hemo_fc','90');
+    popSync();
+    const r = popPatron();
+    const btn = document.getElementById('pop_integrar');
+    const habil = !!btn && btn.disabled === false;
+    amiloIntegrar('pop');
+    const enInf = (amiloEnInforme() || []).some(x => x.k === 'pop');
+    generarInforme();
+    const suma = __t.val('en_suma') || '';
+    /* String.fromCharCode(10) y NO un salto escapado: el cuerpo de un caso es un template
+       literal y se come una barra, asi que el escape quedaba como un salto REAL dentro de
+       una cadena de comillas simples y el caso ni parseaba. Misma familia que el \\s que ya
+       borro todas las eses. */
+    const NL = String.fromCharCode(10);
+    const linea = suma.split(NL).filter(l => l.indexOf('PostCEC') > -1)[0] || '';
+    const hoja = amiloTextoPOP();
+    __t.limpiar();
+
+    return { extra: [
+      ['sin datos no hay patron',                  patVacio.pat.k === 'insuficiente', patVacio.pat.k],
+      ['  y el boton esta deshabilitado',          deshabVacio === true],
+      ['IC 1,60 por termodilucion',                r.ic !== null && r.ic.toFixed(2) === '1.60', r.ic],
+      ['RVS 1700 con la banda de la app',          r.rvs !== null && r.rvs.toFixed(0) === '1700' && r.rvsBanda.cls === 'red',
+        r.rvs + ' / ' + (r.rvsBanda && r.rvsBanda.txt)],
+      ['la PCP usada es la MEDIDA, no la estimada', r.pcpFuente === 'medida (Swan-Ganz)', r.pcpFuente],
+      ['el patron es falla del VI',                r.pat.k === 'falla_vi', r.pat.k + ' — ' + r.pat.lbl],
+      ['el boton se habilita con IC calculable',   habil === true],
+      ['el modulo entra al PDF por amiloEnInforme', enInf === true],
+      ['el EN SUMA lleva la linea PostCEC',        linea.indexOf('PostCEC CABG') === 0, linea.slice(0,120)],
+      ['  con el patron y el IC',                  linea.indexOf('Falla del ventrículo izquierdo') > -1 && linea.indexOf('1.60') > -1, linea.slice(0,140)],
+      /* LA CONDICION QUE IMPIDE LA INVERSION. La version anterior tomaba el texto de la PREGUNTA
+         y le quitaba los signos, asi que una respuesta ROJA a «¿Gasto cardiaco adecuado?» salia
+         al resumen firmado como «Gasto cardiaco adecuado». */
+      ['el hallazgo es afirmativo y no la pregunta',
+        linea.indexOf('bajo gasto') > -1 && linea.indexOf('Gasto cardíaco adecuado') === -1, linea.slice(-60)],
+      ['la hoja del PDF lleva el disclaimer como nota', hoja.indexOf('!! Orientación clínica') > -1],
+      ['y la concordancia Swan vs eco',            hoja.indexOf('Concordancia Swan vs eco') > -1]
     ] };
   })();
 `);
