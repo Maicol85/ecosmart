@@ -4268,8 +4268,16 @@ duplicarse; `_ccDdviIdx` subió de local de `labCCRender` a nivel de módulo por
 4. **La indicación de cerrar se decide antes que la vía.** «Borde deficiente → quirúrgico»
    leído literal manda a cirugía una CIA de 6 mm con Qp/Qs 1,1 y VD normal, que no hay que
    cerrar de ninguna manera. La cascada evalúa primero si hay indicación (Qp/Qs ≥1,5 o
-   sobrecarga de VD) y recién después elige vía. **Esta reestructuración es la única que va más
-   allá de reusar un seam existente y necesita tu visto bueno clínico.**
+   sobrecarga de VD) y recién después elige vía. **Aprobada el 2026-09-18**: la cascada es la de
+   la ESC 2020 —primero si hay indicación de cerrar, después por qué vía— y las dos superficies
+   la citan así.
+
+### Encuadre: sugerencia orientativa, no recomendación
+Agrupar pacientes por criterio ecocardiográfico **no es indicar una conducta**, y una tabla
+titulada «criterios terapéuticos» proyectada en una sala se lee como si lo fuera. El encuadre va
+donde se lee primero, no en el pie: en el PPT como subtítulo rojo debajo del encabezado del
+bloque, y en el PDF **en el título de la sección** y abriendo la nota, antes del detalle
+metodológico. Quien lee un informe firmado no siempre llega al final del párrafo.
 
 ### El Qp/Qs del Bloque D respeta la negativa del informe individual
 `_ccQpQs` no aplica la atribución de `ccQpQsDe`: con dos shunts documentados el informe firmado
@@ -4298,23 +4306,43 @@ content stream: buscar `'Comunicacion interauricular (CIA)'` da cero.
 Los tres son la misma lección y ya está escrita arriba: **confirmar que hay denominador antes de
 contar**. Un `false` sobre una superficie vacía se lee igual que un defecto real.
 
-### Cobertura: TC-170 pasa, pero su mutación NO está verificada
-El caso cubre la cascada completa —contraindicación por dirección y por Qp/Qs<1, percutáneo,
-borderline, las dos rutas a quirúrgico, expectante, exhaustividad (`suma === condN`), la
-atribución con dos shunts y los denominadores propios de cada dilatación—. Pasa sobre el archivo
-real. **Pero la verificación por mutación quedó sin cerrar:** con la compuerta de dirección
-removida en una copia de `/tmp`, una sonda propia confirma que `_ciaConducta` devuelve `perc` en
-vez de `contra` —o sea, el defecto ES observable—, y sin embargo `test_clinico.mjs` lanzado desde
-esa copia siguió reportando TC-170 en verde, incluso con un segundo canario que borraba la rama
-expectante. El harness no estaba sirviendo el mutante y no se diagnosticó por qué. **Antes de
-confiar en TC-170 como red de contención hay que cerrar eso**, y de paso revisar si el resto de
-las mutaciones hechas con el mismo procedimiento (copiar a `/tmp`, editar, correr desde ahí)
-estaban midiendo lo que se creía.
+### El caso que no probaba nada — y por qué salía verde
+TC-170 se escribió pasando las condiciones como **cuarto argumento de `caso()`**. `caso()` toma
+**tres** (`id`, `nombre`, `fn`): el cuarto se descartaba en silencio. Las condiciones van DENTRO
+del objeto que devuelve el cuerpo —`extra: [[desc, ok, diag]]`, o `debe`/`noDebe`/`debeSuma`/
+`noSuma`/`esperado`/`noEsperado`—, y sin ninguna de esas claves `evaluar()` no encuentra nada que
+comprobar y devuelve cero fallos. **Verde vacío.** Pasaba igual sobre un mutante con la compuerta
+de contraindicación removida, y se commiteó afirmando que «cubre la cascada».
+
+Un verde vacío es peor que un rojo: ocupa el lugar de la cobertura que uno cree tener. Ahora
+`evaluar()` **rechaza el caso que no declara ninguna condición**, con el mensaje que explica
+dónde van. Corrida sobre los 185: ningún otro caso era vacío, así que era el único.
+
+Dos cosas más que enturbiaron el diagnóstico y conviene no repetir:
+- **`grep -c` que devuelve 0 sale con estado 1 y corta la cadena `&&`.** En la primera
+  investigación, un `grep -c ... && ls && python3 …` se interrumpió en el grep que contaba las
+  ocurrencias restantes del código mutado —cero, que era justo lo que se quería confirmar—, así
+  que el canario nunca se aplicó y el `ls` nunca corrió. Pareció que el harness ignoraba la
+  mutación. Para verificar una ausencia, `grep -c` va suelto o con `|| true`.
+- El harness **sí** respeta la copia: `RAIZ = dirname(dirname(import.meta.url))`, así que correr
+  `node /tmp/mut/scripts/test_clinico.mjs` sirve `/tmp/mut/index.html`. No hace falta pasarle la
+  ruta —el argumento posicional se ignora— y no era ahí el problema.
+
+### Mutaciones: tres, tres rojos
+Con TC-170 reescrito, cada mutación cae en su condición y con el valor real en el diagnóstico:
+- quitar `if (dir === 'di' || dir === 'bi') return 'contra'` → «el shunt derecha a izquierda se
+  contraindica pese a bordes anchos», encontrado `perc`;
+- colapsar la banda borderline en percutáneo → «el borde de 4 mm no se pierde», encontrado `perc`;
+- quitar el `g.size > 1` de la atribución → «con dos shunts el Qp/Qs no se atribuye»,
+  encontrado `1.953125`.
 
 ### Verificado con datos reales
 PDF: 7 páginas, secciones de CIA y CIV, tabla de criterios a tres columnas con la guía al lado de
 cada conducta, nota de atribución, PSAP y el aviso «COHORTE INSUFICIENTE» como primera fila.
 PPT: 12 diapositivas, hoja por defecto, criterios con ESC 2020 GUCH y ESC 2023 GUCH.
+El encuadre se verificó en los artefactos generados, no en el código: «SUGERENCIA ORIENTATIVA, NO
+RECOMENDACION» en el título de la sección del PDF, la nota abriendo con él, y «Sugerencia
+orientativa, no recomendación terapéutica» en la hoja del PPT.
 Suite 185/185 · Semgrep 123 / 0 ERROR · sin huérfanos nuevos.
 
 ## POP — layout final (2×2 + fila completa) y un renombre que se llevó tres campos ajenos

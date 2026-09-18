@@ -8499,7 +8499,7 @@ caso('TC-168', 'POP-3: el POCUS sincroniza y no inventa cortes', `
    solo con IC calculable, y que el EN SUMA no invierta el sentido del hallazgo. */
 caso('TC-170', 'CIA/CIV: la cascada es exhaustiva y la contraindicacion gana', `
   return (async () => {
-    /* Objetos de estudio sintéticos: lo que se prueba es el CLASIFICADOR, y los ids salen de un
+    /* Objetos de estudio sinteticos: lo que se prueba es el CLASIFICADOR, y los ids salen de un
        grep del propio index.html. La alcanzabilidad de la seccion del PDF y de la hoja del PPT
        se verifico aparte, generando los dos artefactos con estos mismos datos. */
     const B = (mm) => ({ ete_cia_borde_ao:mm, ete_cia_borde_av:mm, ete_cia_borde_vcs:mm,
@@ -8508,7 +8508,7 @@ caso('TC-170', 'CIA/CIV: la cascada es exhaustiva y la contraindicacion gana', `
     const QB = { diam_tsvi:'20', itv_tsvi:'20', tsvd_diametro:'20', vti_tsvd:'21' };  // Qp/Qs 1,05
     const QI = { diam_tsvi:'25', itv_tsvi:'25', tsvd_diametro:'20', vti_tsvd:'20' };  // Qp/Qs 0,51
     const mk = (c) => ({ campos: Object.assign({ sexo:'M', edad:'44', peso:'70', talla:'170' }, c) });
-    const casos = {
+    const C = {
       /* El caso que da sentido a la compuerta: bordes anchos y Qp/Qs alto, pero shunt invertido.
          Sin la rama contraindicado evaluada PRIMERO, este paciente sale rotulado percutaneo. */
       contraDir:  mk(Object.assign({ete_cia_tipo:'secundum',ete_cia_dir:'di',vd_bas:'50'},QA,B('8'))),
@@ -8517,40 +8517,40 @@ caso('TC-170', 'CIA/CIV: la cascada es exhaustiva y la contraindicacion gana', `
       borde4:     mk(Object.assign({ete_cia_tipo:'secundum',ete_cia_dir:'id',vd_bas:'50'},QA,B('4'))),
       cxBorde:    mk(Object.assign({ete_cia_tipo:'secundum',ete_cia_dir:'id',vd_bas:'50'},QA,B('2'))),
       cxTam:      mk(Object.assign({ete_cia_tipo:'secundum',ete_cia_dir:'id',vd_bas:'50',ete_cia_tam_max:'40'},QA,B('8'))),
+      /* Indicacion por sobrecarga de VD SIN Qp/Qs: la rama que el pedido original no tenia. */
+      vdSolo:     mk(Object.assign({ete_cia_tipo:'secundum',ete_cia_dir:'id',vd_bas:'50'},B('8'))),
       exp:        mk(Object.assign({ete_cia_tipo:'secundum',ete_cia_dir:'id',vd_bas:'38'},QB,B('8'))),
       conDap:     mk(Object.assign({ete_cia_tipo:'secundum',ete_cia_dir:'id',vd_bas:'50',dap_tipo:'restrictivo'},QA,B('8')))
     };
-    const got = {};
-    Object.keys(casos).forEach((k) => { got[k] = _ciaConducta(casos[k]); });
-    const lista = Object.keys(casos).map((k) => casos[k]);
+    const g = {};
+    Object.keys(C).forEach((k) => { g[k] = _ciaConducta(C[k]); });
+    const lista = Object.keys(C).map((k) => C[k]);
     const R = _labShuntResumen(lista, 'cia');
     let suma = 0; Object.keys(R.cond).forEach((k) => { suma += R.cond[k]; });
-    const civ = mk(Object.assign({ ete_civ_tipo:'muscular', ddfvi:'62' }, QB));
-    return {
-      contraDir: got.contraDir, contraQinv: got.contraQinv, perc: got.perc,
-      borde4: got.borde4, cxBorde: got.cxBorde, cxTam: got.cxTam, exp: got.exp,
-      sumaCond: suma, condN: R.condN, fuera: R.fuera, n: R.n,
-      qpAtribConDap: _ccQpQsAtrib(casos.conDap),
-      qpCrudoConDap: _ccQpQs(casos.conDap) !== null,
-      dilVdDe: R.dilVd ? R.dilVd.de : null,
-      dilViNull: R.dilVi === null,
-      civCierre: _civConducta(civ)
-    };
+    const civDil = mk(Object.assign({ ete_civ_tipo:'muscular', ddfvi:'62' }, QB));
+    const civExp = mk(Object.assign({ ete_civ_tipo:'muscular', ddfvi:'45' }, QB));
+    const cv = _civConducta(civDil), cve = _civConducta(civExp);
+    const qAtrib = _ccQpQsAtrib(C.conDap), qCrudo = _ccQpQs(C.conDap);
+    return { extra: [
+      ['el shunt derecha a izquierda se contraindica pese a bordes anchos', g.contraDir === 'contra', g.contraDir],
+      ['un Qp/Qs menor a 1 tambien contraindica',                          g.contraQinv === 'contra', g.contraQinv],
+      ['con indicacion y bordes de 8 mm la via es percutanea',             g.perc === 'perc', g.perc],
+      ['el borde de 4 mm no se pierde: cae en borderline',                 g.borde4 === 'borde', g.borde4],
+      ['borde deficiente manda a quirurgico',                              g.cxBorde === 'cx', g.cxBorde],
+      ['diametro mayor a 38 mm manda a quirurgico',                        g.cxTam === 'cx', g.cxTam],
+      ['la sobrecarga de VD sola alcanza como indicacion',                 g.vdSolo === 'perc', g.vdSolo],
+      ['sin indicacion y con VD normal queda expectante',                  g.exp === 'exp', g.exp],
+      ['la cascada es exhaustiva: las ramas suman el denominador',         suma === R.condN, suma + ' vs ' + R.condN],
+      ['con dos shunts el Qp/Qs no se atribuye',                           qAtrib === null, String(qAtrib)],
+      ['pero el Qp/Qs crudo de ese estudio existe',                        qCrudo !== null, String(qCrudo)],
+      ['ese estudio sale del Bloque D y se declara',                       R.fuera === 1 && R.condN === R.n - 1, 'fuera=' + R.fuera + ' condN=' + R.condN + ' n=' + R.n],
+      ['sin DDVI la dilatacion del VI es null y no 0 por ciento',          R.dilVi === null, JSON.stringify(R.dilVi)],
+      ['la dilatacion del VD tiene su propio denominador',                 R.dilVd !== null && R.dilVd.de === 9, JSON.stringify(R.dilVd)],
+      ['la CIV con DDVI indexado mayor a 32 indica cierre',                cv === 'cierre', cv],
+      ['la CIV con DDVI normal y Qp/Qs bajo queda expectante',             cve === 'exp', cve]
+    ] };
   })();
-`, {
-  'el shunt derecha a izquierda se contraindica pese a bordes anchos': r => r.contraDir === 'contra',
-  'el Qp/Qs menor a 1 tambien contraindica':                           r => r.contraQinv === 'contra',
-  'bordes mayores o iguales a 5 con indicacion van a percutaneo':      r => r.perc === 'perc',
-  'el borde de 4 mm no se pierde: cae en borderline':                  r => r.borde4 === 'borde',
-  'borde deficiente y diametro mayor a 38 van a quirurgico':           r => r.cxBorde === 'cx' && r.cxTam === 'cx',
-  'sin indicacion y con VD normal queda expectante':                   r => r.exp === 'exp',
-  'la cascada es exhaustiva: las ramas suman el denominador':          r => r.sumaCond === r.condN,
-  'con dos shunts el Qp/Qs no se atribuye, pero crudo existe':         r => r.qpAtribConDap === null && r.qpCrudoConDap === true,
-  'ese estudio sale del Bloque D y se declara':                        r => r.fuera === 1 && r.condN === r.n - 1,
-  'sin DDVI la dilatacion del VI es null y no 0 por ciento':           r => r.dilViNull === true,
-  'la dilatacion del VD tiene su propio denominador':                  r => r.dilVdDe === 8,
-  'la CIV con DDVI indexado mayor a 32 indica cierre':                 r => r.civCierre === 'cierre'
-});
+`);
 
 caso('TC-169', 'POP-4: el patron sale de los seams y el EN SUMA no invierte el hallazgo', `
   return (async () => {
@@ -8614,6 +8614,23 @@ caso('TC-169', 'POP-4: el patron sale de los seams y el EN SUMA no invierte el h
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];
+  /* UN CASO SIN NINGUNA CONDICION ES UN CASO QUE NO PRUEBA NADA, y sale verde. Paso con TC-170:
+     las condiciones se escribieron como CUARTO argumento de `caso()` —que solo toma tres— asi
+     que el runner las descartaba en silencio, el caso pasaba, y pasaba igual sobre un mutante
+     con la compuerta de contraindicacion removida. Un verde vacio es peor que un rojo: ocupa el
+     lugar de la cobertura que uno cree tener.
+     Las condiciones van DENTRO del objeto que devuelve el cuerpo: `extra: [[desc, ok, diag]]`,
+     o `debe` / `noDebe` / `debeSuma` / `noSuma` / `esperado` / `noEsperado`. */
+  const CLAVES = ['debe','noDebe','debeSuma','noSuma','extra'];
+  const tieneAlgo = (r && typeof r === 'object')
+    && (CLAVES.some(k => Array.isArray(r[k]) && r[k].length)
+        || r.esperado !== undefined || r.noEsperado !== undefined);
+  if (!tieneAlgo) {
+    fallos.push(['el caso no declara NINGUNA condicion',
+                 'las condiciones van dentro del objeto devuelto (extra/debe/esperado), no como 4to argumento de caso()',
+                 recorte(JSON.stringify(r))]);
+    return fallos;
+  }
   const enInf = (s) => (r.inf || '').indexOf(s) > -1;
   const enSum = (s) => (r.suma || '').indexOf(s) > -1;
   (r.debe || []).forEach(s => { if (!enInf(s)) fallos.push(['el informe debe contener', s, recorte(r.inf)]); });

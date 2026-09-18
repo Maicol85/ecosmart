@@ -54637,16 +54637,23 @@ async function _labPPTGenerar(infs, o) {
         /* El Bloque D va como TEXTO y no como barras: el criterio y la guía tienen que verse
            debajo de cada conducta. Una barra rotulada «Cierre percutáneo 40 %» proyectada en una
            sala es una indicación terapéutica sin su criterio al lado. */
-        s2.addText(T('Criterios terapéuticos  ·  n = ' + R.condN + (R.fuera ? '  (' + R.fuera + ' con más de un shunt, Qp/Qs no atribuible)' : '')),
-          { x:4.7, y:2.32, w:5.0, h:0.24, fontSize:12, bold:true, color:C.txt, fontFace:FONT });
-        let yd = 2.60;
+        /* «Sugerencia orientativa, no recomendación» va en el ENCABEZADO y no en el pie: el pie
+           de estas hojas ya lleva la salvedad metodológica, y en una sala proyectada la tabla se
+           lee antes que cualquier cosa que esté abajo. La cascada es la de la ESC 2020 —primero
+           si hay indicación de cerrar, después por qué vía—, pero agrupar por criterio
+           ecocardiográfico no es indicar: la decisión es del Heart Team con el paciente delante. */
+        s2.addText(T('Orientación terapéutica — cascada ESC 2020  ·  n = ' + R.condN + (R.fuera ? '  (' + R.fuera + ' con más de un shunt, Qp/Qs no atribuible)' : '')),
+          { x:4.7, y:2.26, w:5.0, h:0.22, fontSize:12, bold:true, color:C.txt, fontFace:FONT });
+        s2.addText(T('Sugerencia orientativa, no recomendación terapéutica.'),
+          { x:4.7, y:2.47, w:5.0, h:0.18, fontSize:8.5, bold:true, italic:true, color:C.rojo, fontFace:FONT });
+        let yd = 2.68;
         CC.filas.forEach(function (f) {
           const c = R.cond[f.k] || 0;
           s2.addText(T(f.lbl + '  —  ' + c + ' (' + pct(c, R.condN) + ')'),
             { x:4.7, y:yd, w:5.0, h:0.20, fontSize:10, bold:true, color: c > 0 ? C.teal : C.txt2, fontFace:FONT });
           s2.addText(T(f.crit),
             { x:4.7, y:yd + 0.17, w:5.0, h:0.18, fontSize:7.5, italic:true, color:C.txt2, fontFace:FONT });
-          yd += 0.37;
+          yd += 0.35;
         });
         s2.addText(T(CC.pie),
           { x:0.4, y:H-0.86, w:W-0.8, h:0.30, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
@@ -57225,11 +57232,15 @@ async function labGenerarPDF() {
       /* Tabla a TRES columnas: `sectionChart` cablea dos anchos, y el criterio con su guia no
          entra en el rotulo de la conducta sin abreviarlo justo donde importa. Se dibuja directo
          con `drawTable`, que acepta cualquier cantidad de columnas. */
-      sectionTitle(CC.tit + ' - criterios terapeuticos');
+      sectionTitle(CC.tit + ' - orientacion terapeutica (cascada ESC 2020) - SUGERENCIA ORIENTATIVA, NO RECOMENDACION');
       drawTable(M, [44, 110, 26], ['Conducta', 'Criterio (guia y ano)', 'n (%)'],
         CC.filas.map(f => [f.lbl, f.crit, (R.cond[f.k] || 0) + ' (' + pct(R.cond[f.k] || 0, R.condN) + ')']));
       y += 2;
-      _nota('Denominador de esta tabla: n = ' + R.condN +
+      /* El encuadre ABRE la nota: quien lee un informe firmado no siempre llega al final del
+         parrafo, y lo primero que tiene que quedar claro es que esto agrupa por criterio
+         ecocardiografico y no indica una conducta. */
+      _nota('Sugerencia orientativa, NO una recomendacion terapeutica: la tabla agrupa por criterio ecocardiografico segun la cascada ESC 2020 -- primero si hay indicacion de cierre (Qp/Qs >= 1,5 o sobrecarga de volumen del VD), despues por que via --, y la decision es del Heart Team con el paciente delante. ' +
+            'Denominador de esta tabla: n = ' + R.condN +
             (R.fuera ? ' -- se excluyeron ' + R.fuera + ' estudio(s) con mas de un cortocircuito documentado, donde el Qp/Qs global no es atribuible a este defecto.' : '.') +
             ' ' + CC.nota);
     }
@@ -58265,8 +58276,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260918-1844';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789767874592;                 /* eco-build-ms */
+const ECO_BUILD    = '20260918-1910';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789769428672;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -58352,7 +58363,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1844</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1910</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
