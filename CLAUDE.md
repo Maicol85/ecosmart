@@ -487,6 +487,73 @@ El Excel pasó de **421 a 429 columnas** y de 128 a **129 básicas**; TC-135 fij
 contenido. Ojo con el `0` de una casilla apagada: **no es lo mismo que ausente**, y el caso lo
 distingue.
 
+### El color del PDF: la premisa era cierta, y el defecto vivía en DOS superficies — 2026-09-18
+
+«El encabezado toma el color de la plantilla y los módulos avanzados el del header» resultó
+**cierto**, que no es lo habitual en esta serie de pedidos. Medido: `amiloDibujarSecciones`
+recibe `tema: TEMA` —el color elegido— y `_hdrModerno` cableaba `[198,40,40]`, así que un
+informe con Moderno salía con el encabezado **rojo** y las hojas siguientes del color del
+médico. Elegante igual, con `[212,160,23]`.
+
+**PERO EL CABLEADO NO ESTABA SÓLO EN EL ENCABEZADO.** `_TBL_ESTILOS` —el estilo de las tablas,
+las barras de sección, el bloque del informe, el EN SUMA y la firma— tenía el rojo en **siete**
+claves de Moderno y el oro/crema en **once** de Elegante. Arreglar sólo las dos funciones de
+encabezado habría **mudado** la inconsistencia del encabezado al cuerpo en vez de cerrarla: la
+banda del título obedeciendo al selector y el párrafo del EN SUMA todavía rojo. Al cerrar un
+defecto de color, enumerar TODAS las superficies que pintan, no la que se reportó.
+
+**La infraestructura ya existía y no hubo que inventarla.** `_C` resolvía centinelas
+(`'TEMA'`, `'TEMA_30'`, `'TEMA_08'`) desde que se hizo Bicolor; faltaban dos tintes
+(`'TEMA_15'`, `'TEMA_04'`). Las dos plantillas pasaron de arrays a centinelas.
+
+**`TEMA_04` no es un número elegido a ojo:** es el mismo tinte que usa el fondo del encabezado
+de Elegante (`_mezclar(TEMA, blanco, 0.96)`). Con dos valores distintos, la banda del título y
+la franja de la tabla se ven como dos cremas diferentes en la misma hoja.
+
+**EL MAPA DE COLORES ESTABA ESCRITO TRES VECES** —`_temaPDF` en `generarPDFReal`, `TEMA_PDF` en
+`amiloImprimirPDF` y `PDF_BTN_COLORS` en hex dentro de `setPdfColor`— y las tres coincidían por
+suerte, no por construcción. Hoy hay una sola, `PDF_TEMA_RGB` + `pdfTemaRGB()`, con validación
+contra el mapa: un `pdf_color` desconocido cae al 1 y no llega un `undefined` a
+`setFillColor`, que en jsPDF **no lanza** — pinta negro y arrastra el resto de la página.
+
+#### Lo que NO se cambió, y es una decisión
+
+**Minimalista, Académico y Compacto siguen sin color** (decisión de Maicol). Tomado al pie de la
+letra, «las plantillas no definen el color» las habría pintado también — y la **ausencia** de
+color es su diseño: Minimalista se llama así y su descripción dice «Sin color. Una línea fina y
+nada más». Quien la elige quiere un informe sobrio. TC-160 lo fija por el lado negativo, y la
+mutación que las pinta lo pone en rojo.
+
+**Las descripciones y las miniaturas se actualizaron, porque si no mienten.** Moderno decía
+«Banda **roja** a todo el ancho» y Elegante «**Crema y dorado**»; las miniaturas los dibujaban.
+Las miniaturas ahora llevan **tokens** (`%A%`, `%A15%`, `%A55%`, `%A82%`, `%A96%`, `%AD%`) que
+`_pltzSvgTeñido` resuelve contra el color elegido — y de paso se cierra un desfase preexistente:
+Clásico, Bicolor e Institucional mostraban el azul por defecto aunque el médico hubiera elegido
+bordó. **Token y no un mapa hex→hex**: un mapa deja de matchear EN SILENCIO el día que alguien
+retoca un color del dibujo; un token mal escrito se ve, queda literal en el atributo.
+**`%A%` se reemplaza ÚLTIMO**: es prefijo de todos los demás y hacerlo primero dejaría `%A15%`
+como `<hex>15%`. Es la colisión de substring, cuarta vez.
+
+#### Lo que costó
+
+**MI PRIMERA MEDICIÓN NO MEDÍA NADA Y PARECÍA VERDE.** La sonda imprimía con
+`console.log('%-14s …')` y **`%-14s` no es un especificador de Node** —sólo existen `%s`, `%d`,
+`%j`…—, así que se imprimió literal y corrió todos los argumentos una posición: la columna que
+decía si quedaban colores viejos salió como `NaN`, que se lee igual con hallazgos y sin ellos.
+**Un formato roto convierte una verificación en un adorno.** Reescrita con concatenación.
+
+**El control negativo contra HEAD es lo que la validó:** ahí la sonda imprime
+`>>> rojo Moderno` y `>>> oro oscuro Elegante`, y con el arreglo, ninguno. Sin esa mitad, «cero
+colores viejos» no distingue «lo arreglé» de «la sonda no busca bien».
+
+**LA CONDICIÓN «Moderno usa el color elegido» PASABA CON EL DEFECTO REINTRODUCIDO.** Preguntaba
+si el color del tema APARECE en la hoja, y las tablas ya lo aportan por su cuenta: revertir el
+encabezado a rojo la dejaba en verde. Se cuenta en vez de preguntar por la presencia — medido, 4
+apariciones con las dos mitades obedeciendo y 1 al revertir. **Presencia no es obediencia.**
+
+**Tres mutaciones, las tres cazadas:** el encabezado de Moderno revertido, las barras de sección
+de Elegante revertidas, y Minimalista pintada con el tema.
+
 ### El formulario ya salía en blanco: lo que se filtraba era el diagrama del ETE — 2026-09-18
 
 El pedido era «al abrir la app, si no hay un estudio en edición, llamar `limpiarCampos()` en

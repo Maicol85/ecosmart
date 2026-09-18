@@ -7795,6 +7795,102 @@ caso('TC-159', 'El borrador sin guardar vuelve aunque haya configuracion del med
 `);
 
 
+/* El color del header es la UNICA fuente de verdad del PDF. Moderno cableaba [198,40,40] y
+   Elegante [212,160,23]/[160,118,10], en el encabezado Y en los estilos de tabla, mientras la
+   parte 2 —las hojas de modulos avanzados— recibia el color elegido: el mismo documento salia
+   con el encabezado rojo y las hojas siguientes del color del medico.
+   Se lee el CONTENT STREAM del PDF real, que es el unico oraculo: los operadores "r g b rg" son
+   lo que se imprime. Verificar que la funcion no lanza no prueba nada. */
+caso('TC-160', 'El color del header manda en todo el PDF y las plantillas no lo pisan', `
+  return (async () => {
+    /* jsPDF llega por CDN. Sin esta espera el caso da rojo intermitente por la red, que es peor
+       que no tenerlo: se deja de creerle al rojo. Mismo patron que TC-131 con SheetJS. */
+    for (let i = 0; i < 80 && (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF); i++) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+    if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) {
+      return { extra: [['la libreria jsPDF llego por CDN', false, 'no cargo en 8 s']] };
+    }
+    const TEMAS = { '1':[26,58,92], '4':[123,45,66] };
+    /* Los cuatro literales que estaban cableados. Si alguno vuelve al PDF, vuelve el defecto. */
+    const VIEJOS = { 'rojo Moderno':[198,40,40], 'oro Elegante':[212,160,23],
+                     'oro oscuro Elegante':[160,118,10], 'crema Elegante':[255,253,245] };
+    const op = c => c.map(v => (v/255).toFixed(3)).join(' ');
+
+    const Orig = window.jspdf.jsPDF;
+    let ultimo = null;
+    function Envuelto() {
+      const d = new Orig(...arguments);
+      /* save() es propiedad de la INSTANCIA, no del prototipo: se anula aca o el caso deja una
+         descarga por cada PDF que genera. */
+      d.save = function () { return Promise.resolve(); };
+      ultimo = d; return d;
+    }
+    Envuelto.prototype = Orig.prototype;
+    window.jspdf.jsPDF = Envuelto;
+
+    const plantillaPrev = localStorage.getItem('ett_pdf_plantilla');
+    const colorPrev = localStorage.getItem('pdf_color');
+    __t.limpiar();
+    __t.set('nombre', 'COLOR Test'); __t.set('ci', '7777777-7');
+    __t.set('fevi', '58'); __t.set('ddfvi', '48');
+    generarInforme();
+
+    const medir = async (pltz, colorIdx) => {
+      localStorage.setItem('pdf_color', colorIdx);
+      localStorage.setItem('ett_pdf_plantilla', pltz);
+      ultimo = null;
+      await generarPDFReal({});
+      if (!ultimo) return null;
+      const txt = atob(ultimo.output('datauristring').split(',')[1]);
+      const ops = txt.match(/[0-9.]+ [0-9.]+ [0-9.]+ (?:rg|RG)/g) || [];
+      const set = Object.create(null);
+      ops.forEach(o => { const k = o.replace(/ (rg|RG)$/, ''); set[k] = (set[k] || 0) + 1; });
+      return {
+        tema: !!set[op(TEMAS[colorIdx])],
+        temaN: set[op(TEMAS[colorIdx])] || 0,
+        distintos: Object.keys(set).length,
+        viejos: Object.keys(VIEJOS).filter(n => set[op(VIEJOS[n])])
+      };
+    };
+
+    /* Se prueba con el color 4 (bordo) porque es el que mas se separa de los cuatro literales
+       viejos: con el 1 (azul) una coincidencia parcial seria mas facil de confundir. */
+    const mod  = await medir('moderno', '4');
+    const ele  = await medir('elegante', '4');
+    const mini = await medir('minimalista', '4');
+    const bic  = await medir('bicolor', '4');
+    // Y el mismo Moderno con OTRO color: el encabezado tiene que seguir al selector.
+    const mod1 = await medir('moderno', '1');
+
+    window.jspdf.jsPDF = Orig;
+    if (plantillaPrev) localStorage.setItem('ett_pdf_plantilla', plantillaPrev);
+    else localStorage.removeItem('ett_pdf_plantilla');
+    if (colorPrev) localStorage.setItem('pdf_color', colorPrev); else localStorage.removeItem('pdf_color');
+    __t.limpiar();
+
+    const todos = [mod, ele, mini, bic, mod1];
+    const viejosTotales = todos.filter(Boolean).reduce((a, r) => a.concat(r.viejos), []);
+    return { extra: [
+      ['los cinco PDF se generaron',                      todos.every(Boolean), todos.map(x => !!x).join(',')],
+      /* Se cuenta, no se pregunta si ESTA. Con la presencia sola, revertir el encabezado de
+         Moderno a su rojo cableado pasaba en verde: las TABLAS ya aportan el color del tema, y
+         el caso no distinguia «el encabezado obedece» de «alguien en la hoja lo usa». Medido:
+         Moderno emite 4 con las dos mitades obedeciendo y baja al revertir el encabezado. */
+      ['Moderno usa el color elegido en toda la hoja',    !!mod && mod.temaN >= 4, mod && mod.temaN],
+      ['Moderno sigue al selector con otro color (azul)', !!mod1 && mod1.temaN >= 4, mod1 && mod1.temaN],
+      ['Elegante usa el color elegido',                   !!ele && ele.temaN >= 4, ele && ele.temaN],
+      ['Bicolor sigue usandolo (no era el defecto)',      !!bic && bic.tema === true],
+      /* La mitad que impide "arreglarlo" pintando todo: las tres sin color son un DISEÑO, y su
+         descripcion lo promete. Minimalista dice «Sin color. Una linea fina y nada mas». */
+      ['Minimalista sigue SIN el color del tema',         !!mini && mini.tema === false],
+      ['  y sin ningun color: un solo tono en la hoja',   !!mini && mini.distintos <= 2, mini && mini.distintos],
+      ['ninguna plantilla emite los colores cableados',   viejosTotales.length === 0, viejosTotales.join(', ')]
+    ] };
+  })();
+`);
+
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];

@@ -24654,8 +24654,21 @@ function generarPDFReal(_aj) {
   function dc(r,g,b){ doc.setDrawColor(r,g,b); }
 
   // ─── tema de color según centro seleccionado (TAREA 3) ───────
-  const _temaPDF = { '1':[26,58,92], '2':[26,92,58], '3':[74,26,122], '4':[123,45,66] };
-  const TEMA = _temaPDF[String(localStorage.getItem('pdf_color') || '1')] || _temaPDF['1'];
+  /* Era una copia local del mapa de colores. Hoy sale de `pdfTemaRGB()`, que es la fuente
+     única —la misma que leen las hojas de módulos avanzados, el PDF de «Imprimir resultado» y
+     las miniaturas de Config—. Se sigue leyendo UNA vez acá arriba: el encabezado y las tablas
+     están a ~900 líneas de distancia y releerlo abría la puerta a que dos partes del mismo
+     documento salieran de colores distintos. */
+  const TEMA = pdfTemaRGB();
+  /* Mezcla lineal hacia blanco o hacia negro, para derivar los tonos de una plantilla DEL
+     color elegido en vez de cablearlos. Existe desde que el color del header es la única
+     fuente de verdad del PDF: Elegante necesitaba su fondo tenue y sus dos tonos de texto, y
+     escribirlos fijos habría devuelto el problema por la puerta de al lado —un crema cálido
+     al lado de un acento bordó—. Se redondea porque jsPDF espera enteros 0-255. */
+  function _mezclar(rgb, hacia, f) {
+    return [0,1,2].map(i => Math.max(0, Math.min(255, Math.round(rgb[i] + (hacia[i] - rgb[i]) * f))));
+  }
+  const _BLANCO = [255,255,255], _NEGRO = [0,0,0];
 
   /* ─── plantilla del informe ───────────────────────────────────
      Se lee UNA vez, acá arriba, porque la consumen dos cosas muy separadas: el encabezado
@@ -24702,7 +24715,12 @@ function generarPDFReal(_aj) {
     if (!v) return v;
     if (v === 'TEMA')      return TEMA;
     if (v === 'TEMA_30')   return _mezcla(TEMA, 0.30);
+    if (v === 'TEMA_15')   return _mezcla(TEMA, 0.15);
     if (v === 'TEMA_08')   return _mezcla(TEMA, 0.08);
+    /* 0.04 es el mismo tinte que usa el fondo del encabezado de Elegante (`_mezclar(TEMA,
+       blanco, 0.96)`): las dos superficies tienen que dar el MISMO píxel o la banda del título
+       y la franja de la tabla se ven como dos cremas distintos en la misma hoja. */
+    if (v === 'TEMA_04')   return _mezcla(TEMA, 0.04);
     if (v === 'TEMA2')     return TEMA2;
     if (v === 'TEMA2_30')  return _mezcla(TEMA2, 0.30);
     if (v === 'TEMA2_05')  return _mezcla(TEMA2, 0.05);
@@ -24733,15 +24751,20 @@ function generarPDFReal(_aj) {
     tituloInforme:'INFORME', tituloSuma:'EN SUMA:',
     firmaSerif:false, firmaMonoMatr:false, firmaCirculo:null, firmaCierre:false
   };
+  /* EL ROJO ERA CABLEADO EN SIETE CLAVES Y PASÓ A CENTINELAS (2026-09-18). Es la otra mitad del
+     mismo defecto que `_hdrModerno`: sin esto, el encabezado obedecía al color del header y las
+     tablas, las barras de sección y el párrafo del EN SUMA seguían rojos — la inconsistencia se
+     habría mudado del encabezado al cuerpo en vez de cerrarse. `_C` ya sabía resolver `TEMA`;
+     lo único que faltaba eran los tintes. */
   _TBL_ESTILOS.moderno = {
     // Sin bordes verticales ni exterior: «sólo líneas horizontales finas».
-    serif:false, hdrFill:[198,40,40], hdrText:[255,255,255], hdrUpper:false, hdrTrack:0,
-    zebra:[255,245,245], lblCol:[13,13,13], valCol:[45,45,45], rowPad:1.5,
-    bordeExt:null, sepHdr:null, divH:[232,205,205], divV:null,
-    barFill:[198,40,40], barText:[255,255,255], barSerif:false, barUpper:true, barLinea:null,
-    infBorde:[198,40,40], infFondo:[255,245,245], infSerif:false, infCol:[13,13,13], sumaCol:[198,40,40],
+    serif:false, hdrFill:'TEMA', hdrText:[255,255,255], hdrUpper:false, hdrTrack:0,
+    zebra:'TEMA_04', lblCol:[13,13,13], valCol:[45,45,45], rowPad:1.5,
+    bordeExt:null, sepHdr:null, divH:'TEMA_30', divV:null,
+    barFill:'TEMA', barText:[255,255,255], barSerif:false, barUpper:true, barLinea:null,
+    infBorde:'TEMA', infFondo:'TEMA_04', infSerif:false, infCol:[13,13,13], sumaCol:'TEMA',
     tituloInforme:'INFORME', tituloSuma:'EN SUMA:',
-    firmaSerif:false, firmaMonoMatr:false, firmaCirculo:[198,40,40], firmaCierre:false
+    firmaSerif:false, firmaMonoMatr:false, firmaCirculo:'TEMA', firmaCierre:false
   };
   _TBL_ESTILOS.minimalista = {
     /* Sin relleno de encabezado y sin divisores: la única decoración es la línea bajo el
@@ -24794,17 +24817,21 @@ function generarPDFReal(_aj) {
     firmaSerif:false, firmaMonoMatr:false, firmaCirculo:null, firmaCierre:false
   };
 
-  // ── PLANTILLA 6 · ELEGANTE ── crema #FFFDF5, dorado #D4A017, borde suave #E8D89A.
-  // `times` y no Georgia: jsPDF sólo trae helvetica/times/courier sin embeber un binario.
+  /* ── PLANTILLA 6 · ELEGANTE ──
+     ERA crema #FFFDF5 y dorado #D4A017 CABLEADOS en once claves. Hoy los dos salen del color
+     del header, igual que su encabezado: lo que define a esta plantilla es el serif, el fondo
+     tenue entre filetes y el aire (rowPad 1,6), no que ese fondo sea crema.
+     Y el problema de contraste que el comentario anterior resolvía DESAPARECE con el cambio:
+     había que oscurecer el oro a (160,118,10) porque el dorado claro daba 2,33:1 sobre el
+     crema. Los cuatro colores del selector son oscuros de entrada —dan 8:1 a 13:1 sobre el
+     tinte al 4%— así que el texto va con `TEMA` directo y sin tono aparte que mantener.
+     `times` y no Georgia: jsPDF sólo trae helvetica/times/courier sin embeber un binario. */
   _TBL_ESTILOS.elegante = {
-    /* Oro OSCURO (160,118,10) y no el claro (212,160,23) para el texto: sobre el crema daba
-       2,33:1 y son los títulos de sección, la navegación del informe y lo primero que se
-       pierde en una fotocopia. Es el mismo tono que esta plantilla ya usa en `sumaCol`. */
-    serif:true, hdrFill:[255,253,245], hdrText:[160,118,10], hdrUpper:false, hdrTrack:0,
-    zebra:[255,253,245], lblCol:[40,35,20], valCol:[55,50,35], rowPad:1.6,
-    bordeExt:[232,216,154], sepHdr:[212,160,23], divH:[240,230,190], divV:[232,216,154],
-    barFill:[255,253,245], barText:[160,118,10], barSerif:true, barUpper:false, barLinea:[212,160,23],
-    infBorde:[212,160,23], infFondo:null, infSerif:true, infCol:[35,30,18], sumaCol:[160,118,10],
+    serif:true, hdrFill:'TEMA_04', hdrText:'TEMA', hdrUpper:false, hdrTrack:0,
+    zebra:'TEMA_04', lblCol:[38,38,38], valCol:[52,52,52], rowPad:1.6,
+    bordeExt:'TEMA_30', sepHdr:'TEMA', divH:'TEMA_15', divV:'TEMA_30',
+    barFill:'TEMA_04', barText:'TEMA', barSerif:true, barUpper:false, barLinea:'TEMA',
+    infBorde:'TEMA', infFondo:null, infSerif:true, infCol:[35,35,35], sumaCol:'TEMA',
     tituloInforme:'Informe narrativo', tituloSuma:'En suma',
     firmaSerif:true, firmaMonoMatr:false, firmaCirculo:null, firmaCierre:false
   };
@@ -25504,10 +25531,18 @@ function generarPDFReal(_aj) {
 
   // ─── PLANTILLA 2 · MODERNO ───────────────────────────────────────────────
   function _hdrModerno() {
-    const ROJO = [198,40,40];
+    /* ERA `[198,40,40]` CABLEADO, Y ÉSA ERA LA MITAD DEL PDF QUE NO OBEDECÍA (2026-09-18).
+       La parte 2 —las hojas de módulos avanzados de `amiloDibujarSecciones`— recibe `tema:
+       TEMA`, o sea el color del header. Con Moderno elegido, el mismo documento salía con el
+       encabezado ROJO y las hojas siguientes del color que el médico había elegido: dos
+       identidades visuales en un informe firmado. La plantilla define la DISTRIBUCIÓN —banda a
+       todo el ancho, fecha como etiqueta, onda de pulso—, no el color.
+       El nombre cambió a `ACENTO` a propósito: una constante llamada ROJO que ya no es roja es
+       la clase de rótulo que este archivo documenta que se pudre. */
+    const ACENTO = TEMA;
     const dos = !!_hdrLine;
     const hdrH = dos ? 20 : 15;
-    fc(ROJO[0],ROJO[1],ROJO[2]); doc.rect(0,0,210,hdrH,'F');
+    fc(ACENTO[0],ACENTO[1],ACENTO[2]); doc.rect(0,0,210,hdrH,'F');
     /* Onda de pulso a todo el ancho, blanca al 25 %. Va INMEDIATAMENTE después de la banda y
        antes del título y del logo: en jsPDF lo último dibujado queda encima, así que invertir
        el orden pondría el trazo sobre el texto.
@@ -25556,7 +25591,7 @@ function generarPDFReal(_aj) {
       tc(255,255,255); doc.text(_sanML(fTxt), bx + w/2, dos ? 9.5 : 9.1, {align:'center'});
     }
     if (logoW) _hdrDibujarLogo(mR, 3, hdrH - 6, logoW);
-    return _hdrCajaPaciente(hdrH + 4, ROJO);
+    return _hdrCajaPaciente(hdrH + 4, ACENTO);
   }
 
   // ─── PLANTILLA 3 · MINIMALISTA ───────────────────────────────────────────
@@ -25741,7 +25776,21 @@ function generarPDFReal(_aj) {
 
   // ─── PLANTILLA 6 · ELEGANTE ──────────────────────────────────────────────
   function _hdrElegante() {
-    const ORO = [212,160,23], CREMA = [255,253,245];
+    /* ERAN `[212,160,23]` y `[255,253,245]` CABLEADOS — ver la nota de `_hdrModerno`: es el
+       mismo defecto. Lo que define a esta plantilla es la ESTRUCTURA —serif, fondo tenue entre
+       dos filetes finos, disco con iniciales—, no que ese fondo sea crema ni que el filete sea
+       dorado. Los cuatro tonos se DERIVAN del color elegido, porque un crema cálido al lado de
+       un acento bordó habría reintroducido la mezcla por la puerta de al lado.
+       Los dos tonos de texto se verificaron por CONTRASTE contra el fondo derivado, en los
+       cuatro colores del selector, no a ojo. El subtítulo arrancó en 0.25 y el verde daba
+       3,99:1 —PEOR que el marrón original, que da 4,30— así que el factor bajó a 0.18: ahí los
+       cuatro superan al original (4,77 · 6,36 · 6,88 · 5,38). El título va de 10,99 a 14,34
+       contra los 12,43 de antes. Medir el peor caso, no el primero que se prueba. */
+    const ACENTO = TEMA;
+    const FONDO  = _mezclar(TEMA, _BLANCO, 0.96);
+    const TXT    = _mezclar(TEMA, _NEGRO,  0.30);
+    const TXT2   = _mezclar(TEMA, _BLANCO, 0.18);
+    const ORO = ACENTO, CREMA = FONDO;
     const fs2 = (sz, st) => { doc.setFont('times', st || 'normal'); doc.setFontSize(sz * _FS); };
     fs2(15,'bold');
     const anchoTit = pgW - 30;
@@ -25768,9 +25817,9 @@ function generarPDFReal(_aj) {
         doc.text(ini, cx, cy + 1.2, { align:'center' });
       }
     }
-    fs2(15,'bold'); tc(60,50,20);
+    fs2(15,'bold'); tc(TXT[0],TXT[1],TXT[2]);
     titLn.forEach((ln, i) => doc.text(ln, mL, yTit + i * 5.6));
-    if (_hdrLine) { fs2(9); tc(130,120,95);
+    if (_hdrLine) { fs2(9); tc(TXT2[0],TXT2[1],TXT2[2]);
       doc.text(_sanML(_hdrLine), mL, yTit + (titLn.length - 1) * 5.6 + 5.0); }
     return _hdrCajaPaciente(hdrH + 4, ORO);
   }
@@ -33909,6 +33958,37 @@ function pillOn(valvula, tipo) {
 window.pillOn = pillOn;
 setTimeout(cargarValvPills, 150);
 
+/* ══ COLOR DEL PDF — FUENTE ÚNICA ══════════════════════════════════════════
+   El color que el médico elige en el header es lo único que decide de qué color sale el PDF,
+   entero. Este mapa estaba escrito TRES veces —`_temaPDF` dentro de `generarPDFReal`,
+   `TEMA_PDF` dentro de `amiloImprimirPDF` y `PDF_BTN_COLORS` acá abajo en hex— y las tres
+   coincidían por suerte, no por construcción: eran la lista paralela esperando divergir.
+   Las plantillas definen la DISTRIBUCIÓN (encabezado, tipografía, estructura); ninguna define
+   ni pisa el color. Las tres que no llevan color —Minimalista, Académico, Compacto— siguen sin
+   él: la ausencia de color ES su diseño, y lo dicen en su descripción. */
+const PDF_TEMA_RGB = { '1':[26,58,92], '2':[26,92,58], '3':[74,26,122], '4':[123,45,66] };
+/* Validado contra el mapa, no el string crudo: `pdf_color` sale de localStorage, lo escribe el
+   usuario y sobrevive a versiones viejas. Un valor desconocido cae al 1 y no deja el PDF con
+   `setFillColor(undefined)`, que en jsPDF no lanza — pinta negro y arrastra el resto de la
+   página. Mismo criterio que `pdfPlantillaGet`. */
+function pdfTemaRGB() {
+  let v = '1';
+  try { v = String(localStorage.getItem('pdf_color') || '1'); } catch (e) {}
+  return PDF_TEMA_RGB[v] || PDF_TEMA_RGB['1'];
+}
+function pdfTemaHex(rgb) {
+  const c = rgb || pdfTemaRGB();
+  return '#' + [0,1,2].map(i => ('0' + Math.max(0, Math.min(255, c[i] | 0)).toString(16)).slice(-2)).join('');
+}
+/* Mezcla hacia blanco o negro. Gemela de la `_mezclar` de `generarPDFReal` —aquella trabaja en
+   el scope del PDF y ésta en el de la interfaz— y las dos derivan del MISMO `pdfTemaRGB`, así
+   que la miniatura y el papel no pueden mostrar tonos distintos del mismo color. */
+function pdfTemaMezcla(f, haciaNegro) {
+  const c = pdfTemaRGB(), h = haciaNegro ? 0 : 255;
+  return pdfTemaHex([0,1,2].map(i => Math.round(c[i] + (h - c[i]) * f)));
+}
+window.pdfTemaRGB = pdfTemaRGB;
+
 // ══ COLOR DEL PDF (selector de 4 cuadrados en el header) ══
 function setPdfColor(idx) {
   try { localStorage.setItem('pdf_color', idx); } catch(e){}
@@ -33919,9 +33999,16 @@ function setPdfColor(idx) {
   });
   // El acceso directo del header móvil sigue el color de PDF elegido.
   // initPdfColor() llama a setPdfColor() al arrancar, así que toma el color guardado.
-  const PDF_BTN_COLORS = { '1':'#1a3a5c', '2':'#1a5c3a', '3':'#4a1a7a', '4':'#7B2D42' };
+  /* Tercera copia del mapa, eliminada: el hex se DERIVA del mismo `PDF_TEMA_RGB`. La copia en
+     hex que había acá tenía además los valores escritos a mano en otro formato, o sea dos
+     oportunidades de divergir del PDF que este botón promete abrir. */
   const quickBtn = document.getElementById('hdr-pdf-quick');
-  if (quickBtn) quickBtn.style.background = PDF_BTN_COLORS[String(idx)] || PDF_BTN_COLORS['1'];
+  if (quickBtn) quickBtn.style.background = pdfTemaHex(PDF_TEMA_RGB[String(idx)] || PDF_TEMA_RGB['1']);
+  /* Las miniaturas de Config se repintan con el color elegido: dibujan «así va a salir el
+     papel», y mostrando siempre el azul por defecto mentían en tres de las cinco que llevan
+     color. Es idempotente y sale sola si la grilla todavía no existe (arranque, o Config sin
+     abrir), así que se puede llamar sin condición. */
+  if (typeof initPdfPlantillas === 'function') { try { initPdfPlantillas(); } catch (e) {} }
 }
 function initPdfColor() {
   let saved = '1';
@@ -33942,11 +34029,11 @@ setTimeout(initPdfColor, 60);
    encabezado clásico sin que nada lo avisara. */
 const PDF_PLANTILLAS = [
   { id:'clasico',      nom:'Clásico',      desc:'El de siempre: banda de color con el trazo de ECG.' },
-  { id:'moderno',      nom:'Moderno',      desc:'Banda roja a todo el ancho, fecha como etiqueta.' },
+  { id:'moderno',      nom:'Moderno',      desc:'Banda a todo el ancho con onda de pulso, fecha como etiqueta.' },
   { id:'minimalista',  nom:'Minimalista',  desc:'Sin color. Una línea fina y nada más.' },
   { id:'academico',    nom:'Académico',    desc:'Serif, fondo gris claro y datos en tabla.' },
   { id:'compacto',     nom:'Compacto',     desc:'Todo en una línea, filas apretadas, sin bordes.' },
-  { id:'elegante',     nom:'Elegante',     desc:'Crema y dorado, serif, filetes finos.' },
+  { id:'elegante',     nom:'Elegante',     desc:'Serif, fondo tenue entre dos filetes finos.' },
   { id:'bicolor',      nom:'Bicolor',      desc:'Tu color del PDF más un segundo color a elección.' },
   { id:'institucional',nom:'Institucional',desc:'Logo grande centrado y todo en el color del centro.' }
 ];
@@ -33955,23 +34042,23 @@ const PDF_PLANTILLAS = [
    Todo literal de este archivo: nada de acá viene de un dato del estudio. */
 const _PLTZ_SVG = Object.assign(Object.create(null), {
   clasico: `<rect x="0" y="0" width="148" height="84" fill="#ffffff"/>
-    <rect x="0" y="0" width="148" height="20" fill="#1a3a5c"/>
-    <path d="M0 11 H30 l3 -6 l3 12 l3 -6 H60 l3 -3 l3 3 H148" fill="none" stroke="#31547b" stroke-width="1.1"/>
+    <rect x="0" y="0" width="148" height="20" fill="%A%"/>
+    <path d="M0 11 H30 l3 -6 l3 12 l3 -6 H60 l3 -3 l3 3 H148" fill="none" stroke="%A15%" stroke-width="1.1"/>
     <rect x="40" y="6" width="56" height="4" rx="1" fill="#ffffff"/>
-    <rect x="52" y="13" width="32" height="2.6" rx="1" fill="#c8ddf5"/>
+    <rect x="52" y="13" width="32" height="2.6" rx="1" fill="%A82%"/>
     <rect x="118" y="5" width="24" height="10" rx="1.5" fill="#ffffff" opacity="0.9"/>
-    <rect x="0" y="20" width="148" height="1.4" fill="#5b9bd5"/>
+    <rect x="0" y="20" width="148" height="1.4" fill="%A55%"/>
     <rect x="8" y="27" width="132" height="26" rx="1.5" fill="#ffffff" stroke="#aab9d2" stroke-width="1"/>
-    <g fill="#1a3a5c"><rect x="12" y="31" width="14" height="2.4" rx="1"/><rect x="46" y="31" width="14" height="2.4" rx="1"/><rect x="80" y="31" width="14" height="2.4" rx="1"/><rect x="114" y="31" width="14" height="2.4" rx="1"/></g>
+    <g fill="%A%"><rect x="12" y="31" width="14" height="2.4" rx="1"/><rect x="46" y="31" width="14" height="2.4" rx="1"/><rect x="80" y="31" width="14" height="2.4" rx="1"/><rect x="114" y="31" width="14" height="2.4" rx="1"/></g>
     <g fill="#c9d2e2"><rect x="12" y="40" width="24" height="2.4" rx="1"/><rect x="46" y="40" width="24" height="2.4" rx="1"/><rect x="80" y="40" width="20" height="2.4" rx="1"/><rect x="114" y="40" width="20" height="2.4" rx="1"/></g>
     <g fill="#e4e9f2"><rect x="12" y="60" width="124" height="2.2" rx="1"/><rect x="12" y="67" width="110" height="2.2" rx="1"/><rect x="12" y="74" width="118" height="2.2" rx="1"/></g>`,
   moderno: `<rect x="0" y="0" width="148" height="84" fill="#ffffff"/>
-    <rect x="0" y="0" width="148" height="24" fill="#C62828"/>
+    <rect x="0" y="0" width="148" height="24" fill="%A%"/>
     <rect x="10" y="6" width="60" height="5" rx="1.5" fill="#ffffff"/>
     <rect x="10" y="15" width="38" height="3" rx="1.5" fill="#ffffff" opacity="0.75"/>
     <rect x="104" y="8" width="34" height="9" rx="4.5" fill="#ffffff" opacity="0.28"/>
     <rect x="110" y="11" width="22" height="3" rx="1.5" fill="#ffffff"/>
-    <g fill="#C62828"><rect x="10" y="32" width="16" height="2.6" rx="1"/><rect x="80" y="32" width="16" height="2.6" rx="1"/><rect x="10" y="42" width="16" height="2.6" rx="1"/><rect x="80" y="42" width="16" height="2.6" rx="1"/></g>
+    <g fill="%A%"><rect x="10" y="32" width="16" height="2.6" rx="1"/><rect x="80" y="32" width="16" height="2.6" rx="1"/><rect x="10" y="42" width="16" height="2.6" rx="1"/><rect x="80" y="42" width="16" height="2.6" rx="1"/></g>
     <g fill="#cfcfcf"><rect x="30" y="32" width="34" height="2.6" rx="1"/><rect x="100" y="32" width="34" height="2.6" rx="1"/><rect x="30" y="42" width="28" height="2.6" rx="1"/><rect x="100" y="42" width="30" height="2.6" rx="1"/></g>
     <g fill="#e6e6e6"><rect x="10" y="60" width="128" height="2.2" rx="1"/><rect x="10" y="67" width="112" height="2.2" rx="1"/><rect x="10" y="74" width="120" height="2.2" rx="1"/></g>`,
   minimalista: `<rect x="0" y="0" width="148" height="84" fill="#ffffff"/>
@@ -33993,25 +34080,25 @@ const _PLTZ_SVG = Object.assign(Object.create(null), {
       <rect x="13" y="52" width="24" height="2" rx="1"/><rect x="45" y="52" width="20" height="2" rx="1"/><rect x="77" y="52" width="24" height="2" rx="1"/><rect x="109" y="52" width="18" height="2" rx="1"/></g>
     <g fill="#e8e8e8"><rect x="10" y="64" width="128" height="2" rx="1"/><rect x="10" y="70" width="116" height="2" rx="1"/><rect x="10" y="76" width="124" height="2" rx="1"/></g>`,
   elegante: `<rect x="0" y="0" width="148" height="84" fill="#ffffff"/>
-    <rect x="0" y="0" width="148" height="30" fill="#FFFDF5"/>
-    <rect x="0" y="0" width="148" height="1.5" fill="#D4A017"/>
-    <rect x="0" y="28.5" width="148" height="1.5" fill="#D4A017"/>
-    <rect x="10" y="9" width="64" height="6" rx="1" fill="#3c3214"/>
-    <rect x="10" y="19" width="42" height="3" rx="1" fill="#82785f"/>
-    <circle cx="128" cy="15" r="8" fill="#D4A017"/>
-    <rect x="10" y="37" width="128" height="7" fill="#FFFDF5" stroke="#E8D89A" stroke-width="0.8"/>
-    <g fill="#D4A017"><rect x="14" y="39.5" width="20" height="2.2" rx="1"/><rect x="58" y="39.5" width="20" height="2.2" rx="1"/><rect x="102" y="39.5" width="20" height="2.2" rx="1"/></g>
+    <rect x="0" y="0" width="148" height="30" fill="%A96%"/>
+    <rect x="0" y="0" width="148" height="1.5" fill="%A%"/>
+    <rect x="0" y="28.5" width="148" height="1.5" fill="%A%"/>
+    <rect x="10" y="9" width="64" height="6" rx="1" fill="%AD%"/>
+    <rect x="10" y="19" width="42" height="3" rx="1" fill="%A55%"/>
+    <circle cx="128" cy="15" r="8" fill="%A%"/>
+    <rect x="10" y="37" width="128" height="7" fill="%A96%" stroke="#E8D89A" stroke-width="0.8"/>
+    <g fill="%A%"><rect x="14" y="39.5" width="20" height="2.2" rx="1"/><rect x="58" y="39.5" width="20" height="2.2" rx="1"/><rect x="102" y="39.5" width="20" height="2.2" rx="1"/></g>
     <rect x="10" y="44" width="128" height="7" fill="#ffffff"/>
-    <rect x="10" y="51" width="128" height="7" fill="#FFFDF5"/>
+    <rect x="10" y="51" width="128" height="7" fill="%A96%"/>
     <g fill="#cfc7ad"><rect x="14" y="46.5" width="26" height="2.2" rx="1"/><rect x="58" y="46.5" width="26" height="2.2" rx="1"/><rect x="102" y="46.5" width="22" height="2.2" rx="1"/>
       <rect x="14" y="53.5" width="22" height="2.2" rx="1"/><rect x="58" y="53.5" width="24" height="2.2" rx="1"/><rect x="102" y="53.5" width="26" height="2.2" rx="1"/></g>
-    <rect x="10" y="66" width="2" height="14" fill="#D4A017"/>
+    <rect x="10" y="66" width="2" height="14" fill="%A%"/>
     <g fill="#e6e0cc"><rect x="16" y="68" width="120" height="2.2" rx="1"/><rect x="16" y="75" width="104" height="2.2" rx="1"/></g>`,
   bicolor: `<rect x="0" y="0" width="148" height="84" fill="#ffffff"/>
-    <rect x="0" y="0" width="148" height="21" fill="#1a3a5c"/>
+    <rect x="0" y="0" width="148" height="21" fill="%A%"/>
     <rect x="0" y="21" width="148" height="3" fill="#E67E22"/>
     <rect x="10" y="6" width="60" height="5" rx="1" fill="#ffffff"/>
-    <rect x="10" y="14" width="36" height="3" rx="1" fill="#c8ddf5"/>
+    <rect x="10" y="14" width="36" height="3" rx="1" fill="%A82%"/>
     <rect x="118" y="6" width="22" height="10" rx="1.5" fill="#ffffff" opacity="0.85"/>
     <rect x="10" y="31" width="128" height="7" fill="#E67E22"/>
     <g fill="#ffffff"><rect x="14" y="33.5" width="20" height="2.2" rx="1"/><rect x="58" y="33.5" width="20" height="2.2" rx="1"/><rect x="102" y="33.5" width="20" height="2.2" rx="1"/></g>
@@ -34019,21 +34106,21 @@ const _PLTZ_SVG = Object.assign(Object.create(null), {
     <rect x="10" y="45" width="128" height="7" fill="#fdf3ea"/>
     <g fill="#cfcfcf"><rect x="14" y="40.5" width="26" height="2.2" rx="1"/><rect x="58" y="40.5" width="24" height="2.2" rx="1"/><rect x="102" y="40.5" width="22" height="2.2" rx="1"/>
       <rect x="14" y="47.5" width="22" height="2.2" rx="1"/><rect x="58" y="47.5" width="26" height="2.2" rx="1"/><rect x="102" y="47.5" width="24" height="2.2" rx="1"/></g>
-    <rect x="10" y="60" width="2" height="14" fill="#1a3a5c"/>
+    <rect x="10" y="60" width="2" height="14" fill="%A%"/>
     <g fill="#e8e8e8"><rect x="16" y="62" width="120" height="2.2" rx="1"/><rect x="16" y="69" width="102" height="2.2" rx="1"/></g>
     <rect x="10" y="77" width="128" height="4" fill="#E67E22"/>`,
   institucional: `<rect x="0" y="0" width="148" height="84" fill="#ffffff"/>
     <rect x="60" y="4" width="28" height="12" rx="1.5" fill="#c9d6e5"/>
-    <rect x="38" y="20" width="72" height="5" rx="1" fill="#1a3a5c"/>
+    <rect x="38" y="20" width="72" height="5" rx="1" fill="%A%"/>
     <rect x="52" y="28" width="44" height="2.6" rx="1" fill="#9a9a9a"/>
-    <rect x="10" y="34" width="128" height="0.8" fill="#1a3a5c"/>
-    <rect x="10" y="37" width="128" height="7" fill="#1a3a5c"/>
+    <rect x="10" y="34" width="128" height="0.8" fill="%A%"/>
+    <rect x="10" y="37" width="128" height="7" fill="%A%"/>
     <rect x="49" y="39.5" width="50" height="2.4" rx="1" fill="#ffffff"/>
-    <rect x="10" y="47" width="128" height="14" fill="#ffffff" stroke="#1a3a5c" stroke-width="0.8"/>
-    <g fill="#1a3a5c"><rect x="14" y="50" width="16" height="2.2" rx="1"/><rect x="78" y="50" width="16" height="2.2" rx="1"/><rect x="14" y="55" width="16" height="2.2" rx="1"/><rect x="78" y="55" width="16" height="2.2" rx="1"/></g>
+    <rect x="10" y="47" width="128" height="14" fill="#ffffff" stroke="%A%" stroke-width="0.8"/>
+    <g fill="%A%"><rect x="14" y="50" width="16" height="2.2" rx="1"/><rect x="78" y="50" width="16" height="2.2" rx="1"/><rect x="14" y="55" width="16" height="2.2" rx="1"/><rect x="78" y="55" width="16" height="2.2" rx="1"/></g>
     <g fill="#cfd7e3"><rect x="34" y="50" width="34" height="2.2" rx="1"/><rect x="98" y="50" width="30" height="2.2" rx="1"/><rect x="34" y="55" width="30" height="2.2" rx="1"/><rect x="98" y="55" width="32" height="2.2" rx="1"/></g>
     <g fill="#e8e8e8"><rect x="10" y="66" width="128" height="2.2" rx="1"/><rect x="10" y="73" width="112" height="2.2" rx="1"/></g>
-    <rect x="96" y="78" width="42" height="4" rx="1" fill="none" stroke="#1a3a5c" stroke-width="0.6"/>`,
+    <rect x="96" y="78" width="42" height="4" rx="1" fill="none" stroke="%A%" stroke-width="0.6"/>`,
   academico: `<rect x="0" y="0" width="148" height="84" fill="#ffffff"/>
     <rect x="0" y="0" width="148" height="30" fill="#f8f8f8"/>
     <rect x="10" y="5" width="44" height="2.2" rx="1" fill="#9a9a9a"/>
@@ -34119,6 +34206,26 @@ function _pltzPintarColor2() {
   }
 }
 
+/* Las miniaturas llevan TOKENS (`%A%`, `%A15%`…) en vez del hex del color, y se resuelven acá
+   contra `pdfTemaRGB()`. Antes tenían el azul por defecto escrito adentro, así que elegir bordó
+   dejaba cinco miniaturas prometiendo un papel azul — y desde que Moderno y Elegante dejaron de
+   cablear su paleta, las suyas habrían quedado prometiendo rojo y dorado sobre un PDF que ya no
+   los usa.
+   Token y no un mapa hex→hex: un mapa es una lista paralela que deja de matchear EN SILENCIO el
+   día que alguien retoca un color del dibujo. Un token mal escrito, en cambio, se ve — queda
+   literal en el atributo y el navegador no pinta nada.
+   Las tres sin color —Minimalista, Académico, Compacto— no tienen ningún token, a propósito.
+   `%A%` va ÚLTIMO: es prefijo de todos los demás y reemplazarlo primero dejaría `%A15%` como
+   `<hex>15%`, que es la colisión de substring que este archivo ya pagó tres veces. */
+function _pltzSvgTeñido(id) {
+  let svg = _PLTZ_SVG[id] || '';
+  if (svg.indexOf('%A') === -1) return svg;
+  [['%A96%', pdfTemaMezcla(0.96)], ['%A82%', pdfTemaMezcla(0.82)],
+   ['%A55%', pdfTemaMezcla(0.55)], ['%A15%', pdfTemaMezcla(0.15)],
+   ['%AD%',  pdfTemaMezcla(0.30, true)], ['%A%', pdfTemaHex()]]
+    .forEach(([tok, hex]) => { svg = svg.split(tok).join(hex); });
+  return svg;
+}
 function initPdfPlantillas() {
   const grid = document.getElementById('pltz-grid');
   if (!grid) return;
@@ -34137,7 +34244,7 @@ function initPdfPlantillas() {
     <button type="button" role="radio" aria-checked="false" data-pltz="${escHtml(p.id)}"
             title="${escHtml(p.desc)}"
             style="display:block;width:100%;text-align:left;border:2px solid var(--border);background:var(--bg2);cursor:pointer;font-family:inherit;transition:.15s;">
-      <svg viewBox="0 0 148 84" aria-hidden="true">${_PLTZ_SVG[p.id] || ''}</svg>
+      <svg viewBox="0 0 148 84" aria-hidden="true">${_pltzSvgTeñido(p.id)}</svg>
       <div class="pltz-nom">${escHtml(p.nom)}<span class="pltz-chk" style="display:none;color:var(--accent);"> ✓</span></div>
       <div class="pltz-desc">${escHtml(p.desc)}</div>
     </button>`).join('');
@@ -39016,8 +39123,8 @@ function amiloImprimirPDF(cual) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
   const mL = 9, pgW = 192;
-  const TEMA_PDF = { '1':[26,58,92], '2':[26,92,58], '3':[74,26,122], '4':[123,45,66] };
-  const T = TEMA_PDF[String(localStorage.getItem('pdf_color') || '1')] || TEMA_PDF['1'];
+  // Segunda copia del mapa de colores, ahora también por `pdfTemaRGB()`. Ver la fuente única.
+  const T = pdfTemaRGB();
 
   const esETT = (cual === 'ett');
   // Si el bloque ya está integrado al informe se imprime ESE texto, que puede
@@ -56277,8 +56384,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260918-0946';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789735612268;                 /* eco-build-ms */
+const ECO_BUILD    = '20260918-1026';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789737981883;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -56364,7 +56471,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-0946</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1026</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
