@@ -855,16 +855,36 @@
      disponible y en un monitor grande salían cinco o seis miniaturas por fila, cada vez más
      angostas. Cuatro en escritorio y dos en móvil son las dos únicas formas en que la grilla
      de ocho queda pareja (2×4 y 4×2), sin una fila última con huecos. */
+  /* ══ CONFIGURACIÓN — siete tarjetas temáticas ══
+     Dos columnas en escritorio y una apilada en móvil. `align-items:start` evita que una
+     tarjeta corta se estire al alto de la larga y deje un hueco; `minmax(0,1fr)` y no `1fr`
+     porque un hijo de grid no baja de su min-content y la tarjeta del PDF —que adentro tiene
+     su propia grilla de cuatro— desbordaba la columna en vez de encogerse. Ese desborde es
+     scroll horizontal en móvil, que es justo lo que el rediseño venía a evitar. */
+  .cfg-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+              gap: 14px; align-items: start; }
+  .cfg-card { border: 1px solid var(--border); border-radius: 10px; padding: 14px 14px 16px;
+              background: var(--bg2); min-width: 0; }
+  /* La tarjeta del PDF NO se extiende a las dos columnas, y es deliberado: a ancho completo las
+     ocho miniaturas quedaban en celdas de ~280 px con el dibujo de 130 px centrado y el resto
+     aire, que es exactamente la «tarjeta grande» que el rediseño venía a achicar. En media fila
+     la celda da ~135 px y la miniatura la llena. */
+  @media (max-width: 768px) { .cfg-grid { grid-template-columns: 1fr; gap: 12px; } }
+
   #pltz-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
   #pltz-grid > button { padding: 6px; border-radius: 8px; }
   /* El SVG se acota por ALTO y no por ancho: con `width:100%` crecía con la card —259 px en un
      monitor de 1280— y arrastraba el alto a 150 px por la relación 148:84. Fijando la altura y
      dejando el ancho automático se conserva la proporción, la miniatura queda legible y la card
      baja a poco más de la mitad. `display:block` + `margin:auto` la centra en la card ancha. */
-  #pltz-grid svg { height: 74px; width: auto; max-width: 100%; display: block; margin: 0 auto;
+  /* 54 px y no 74: desde que la sección vive en una tarjeta de media fila, la celda mide ~135 px
+     y con el alto anterior la miniatura tocaba los bordes. Se acota por ALTO —no por ancho— para
+     conservar la proporción 148:84; `max-width:100%` es la red por si la columna se angosta más
+     que eso, y ahí manda el ancho. */
+  #pltz-grid svg { height: 54px; width: auto; max-width: 100%; display: block; margin: 0 auto;
                    border-radius: 4px; border: 1px solid var(--border); background: #fff; }
-  #pltz-grid .pltz-nom  { margin-top: 5px; font-size: 11px; font-weight: 700; color: var(--text); line-height: 1.25; }
-  #pltz-grid .pltz-desc { font-size: 9.5px; color: var(--text2); line-height: 1.3; margin-top: 1px; }
+  #pltz-grid .pltz-nom  { margin-top: 4px; font-size: 10.5px; font-weight: 700; color: var(--text); line-height: 1.2; }
+  #pltz-grid .pltz-desc { font-size: 9px; color: var(--text2); line-height: 1.25; margin-top: 1px; }
   @media (max-width: 768px) { #pltz-grid { grid-template-columns: repeat(2, 1fr); } }
 
   /* ══ RESPONSIVE ══ */
@@ -1743,16 +1763,21 @@ window.cerrarSesion = cerrarSesion;
     <h2 class="card-head">⚙️ Configuración</h2>
     <div class="card-body">
 
-      <!-- ══ BLOQUE 1 · dos columnas ══
-           Izquierda: los datos que se escriben una vez y salen en el pie del PDF.
-           Derecha: las dos listas (centros y médicos), que son del mismo tipo de tarea.
-           `grid-2` ya colapsa a una columna en ≤768px, así que en móvil se apilan solas —
-           no hace falta un breakpoint nuevo. `align-items:start` evita que la columna corta
-           se estire al alto de la larga y deje un hueco raro. -->
-      <div class="grid-2" style="align-items:start;">
-        <div>
-      <!-- Institución y firma -->
-      <div style="margin-bottom:22px;">
+      <!-- ══ SIETE TARJETAS TEMÁTICAS ══
+           Cada sección es un elemento `section` con la clase `cfg-card` —borde propio— dentro
+           de una grilla de dos columnas que colapsa a una en ≤768px (ver `.cfg-grid`).
+           NO se transcribe la etiqueta de apertura en este comentario: este archivo ya se comió
+           dos bloques por eso, porque el conteo de balance y el extractor de sintaxis la leen
+           como marcado real. Describir, no transcribir. Antes había un
+           `grid-2` que sólo agrupaba las tres primeras y el resto iba a lo ancho separado por
+           `border-top`, así que la página se leía como una lista larga y no como secciones.
+           NADA del contenido cambió: los mismos campos, los mismos ids y los mismos handlers.
+           Los `border-top`/`padding-top` que separaban las secciones se fueron porque ahora el
+           borde de la tarjeta hace ese trabajo; los `border-top` INTERNOS —los que separan
+           «Modo institucional» y «Logo del centro» dentro de la primera— se conservan. -->
+      <div class="cfg-grid">
+      <!-- 1 · Institución y firma -->
+      <section class="cfg-card">
         <div class="cfg-sec-title">🏥 Institución y firma</div>
         <!-- Nombre y matrícula NO van acá: eran una segunda fuente de verdad que se
              pisaba con la lista de "👨‍⚕️ Médicos" de más abajo (marcar Principal los
@@ -1794,11 +1819,9 @@ window.cerrarSesion = cerrarSesion;
           <button type="button" id="cfg-logo-chg" class="btn btn-ghost" style="display:none" onclick="openLogoGallery()">Cambiar</button>
           <button type="button" id="cfg-logo-del" class="btn btn-ghost" style="display:none" onclick="logoDelete(event)">Eliminar</button>
         </div>
-      </div>
-        </div>
-        <div>
-      <!-- Centros de trabajo -->
-      <div style="margin-bottom:18px;">
+      </section>
+      <!-- 2 · Centros de trabajo -->
+      <section class="cfg-card">
         <div class="cfg-sec-title">🏥 Centros de trabajo</div>
         <p style="font-size:11.5px;color:var(--text2);margin-bottom:10px;line-height:1.5;">Definí tus centros (máx. 10). El centro <strong>principal</strong> se selecciona por defecto en cada estudio nuevo.</p>
         <div style="display:flex;gap:8px;margin-bottom:10px;">
@@ -1806,9 +1829,10 @@ window.cerrarSesion = cerrarSesion;
           <button class="btn btn-primary" onclick="cfgAddCentro()">+ Agregar</button>
         </div>
         <div id="cfg-centros-lista"></div>
-      </div>
-      <!-- Médicos -->
-      <div style="margin-bottom:18px;">
+      </section>
+      <!-- 3 · Médicos — es quien decide el nombre y la matrícula que firman el informe, así
+           que va pegada a Institución y firma, que lo dice en su primer párrafo. -->
+      <section class="cfg-card">
         <div class="cfg-sec-title">👨‍⚕️ Médicos</div>
         <p style="font-size:11.5px;color:var(--text2);margin-bottom:10px;line-height:1.5;">Definí tus médicos (máx. 5). El que marques como <strong>Principal</strong> es el que firma el informe y el que se muestra en el encabezado. Para cambiar de médico, marcá otro como Principal.</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
@@ -1818,9 +1842,7 @@ window.cerrarSesion = cerrarSesion;
           <button class="btn btn-primary" onclick="cfgAddMedico()">+ Agregar</button>
         </div>
         <div id="cfg-medicos-lista"></div>
-      </div>
-        </div>
-      </div>
+      </section>
 
       <!-- Diseño del informe PDF ──────────────────────────────────────────────
            Botones y no <input>/<select>: limpiarCampos() barre TODOS los input/select del
@@ -1828,7 +1850,7 @@ window.cerrarSesion = cerrarSesion;
            apretar «Nuevo estudio». Los ids llevan prefijo `pltz-` para no cruzarse con ningún
            campo del estudio. Las miniaturas son SVG inline —sin recursos externos— y sólo
            muestran la SILUETA del encabezado: bandas, líneas y bloques, no texto legible. -->
-      <div style="margin-bottom:22px;border-top:1px solid var(--border);padding-top:16px;">
+      <section class="cfg-card">
         <div class="cfg-sec-title">📄 Diseño del informe PDF</div>
         <p style="font-size:11.5px;color:var(--text2);margin-bottom:12px;line-height:1.5;">
           Cambia <b>la presentación</b> del informe — encabezado, tablas de mediciones, bloque de informe, En Suma y firma.
@@ -1863,10 +1885,10 @@ window.cerrarSesion = cerrarSesion;
           <span style="font-size:12.5px;color:var(--text);"><b>🎨 Color secundario</b> — franjas y encabezados de tabla</span>
           <span id="pltz-color2-sw" style="display:inline-flex;gap:6px;"></span>
         </div>
-      </div>
+      </section>
 
-      <!-- Guardado de imágenes -->
-      <div style="margin-bottom:22px;border-top:1px solid var(--border);padding-top:16px;">
+      <!-- 5 · Guardado de imágenes -->
+      <section class="cfg-card">
         <div class="cfg-sec-title">🖼️ Imágenes del estudio</div>
         <label style="display:flex;align-items:center;gap:9px;cursor:pointer;">
           <input type="checkbox" id="cfg-guardar-imagenes" onchange="cfgToggleGuardarImagenes(this.checked)" style="width:16px;height:16px;cursor:pointer">
@@ -1878,10 +1900,10 @@ window.cerrarSesion = cerrarSesion;
              y en Config quedaba enterrada bajo una preferencia que se toca una vez. Config
              conserva el toggle y el borrado. -->
         <div style="margin-top:10px;"><button class="btn btn-ghost" onclick="cfgBorrarTodasImagenes()">🗑️ Borrar todas las imágenes guardadas</button></div>
-      </div>
+      </section>
 
-      <!-- Modo de visualización -->
-      <div style="margin-bottom:22px;border-top:1px solid var(--border);padding-top:16px;">
+      <!-- 6 · Modo de visualización -->
+      <section class="cfg-card">
         <div class="cfg-sec-title">🖥️ Modo de visualización</div>
         <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
           <button class="btn" id="cfg-mode-basico" onclick="cfgSetMode('basico')">Modo Básico</button>
@@ -1889,16 +1911,17 @@ window.cerrarSesion = cerrarSesion;
         </div>
         <div style="font-size:11.5px;color:var(--text2);margin-bottom:12px;line-height:1.5;">Básico muestra solo el estudio principal (fila 1). Avanzado suma módulos especiales y herramientas — elegí cuáles ver.</div>
         <div id="cfg-modulos" style="display:none;"></div>
-      </div>
+      </section>
 
       <!-- Soporte y contacto — va ÚLTIMO y discreto: no interrumpe el flujo de configuración.
            Los enlaces los arma `cfgSoporteRender` porque el asunto lleva la versión sellada, que
            es una constante de JS. -->
-      <div style="margin-bottom:22px;border-top:1px solid var(--border);padding-top:16px;">
+      <section class="cfg-card">
         <div class="cfg-sec-title">✉️ Soporte y contacto — CeiboMed</div>
         <p style="font-size:11px;color:var(--text2);margin:0 0 10px;line-height:1.5;">Abren el correo del dispositivo con el asunto y el cuerpo ya escritos. No se envía nada solo, y <b>no se adjunta ningún dato de paciente</b>: lo que escribas vos es lo único que viaja.</p>
         <div id="cfg-soporte" style="display:flex;flex-direction:column;gap:7px;"></div>
-      </div>
+      </section>
+      </div><!-- /.cfg-grid -->
 
     </div>
   </div>
@@ -56384,8 +56407,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260918-1026';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789737981883;                 /* eco-build-ms */
+const ECO_BUILD    = '20260918-1033';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789738420040;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -56471,7 +56494,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1026</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1033</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

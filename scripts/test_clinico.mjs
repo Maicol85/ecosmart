@@ -7891,6 +7891,52 @@ caso('TC-160', 'El color del header manda en todo el PDF y las plantillas no lo 
 `);
 
 
+/* Config pasó a siete tarjetas temáticas. La regla del rediseño era «no eliminar ningun campo,
+   opcion ni funcionalidad», y el modo de fallo de una reorganizacion de markup es MUDO: una
+   seccion que se cae en un reemplazo por rango no rompe nada visible —la pagina sigue
+   dibujando— y lo unico que pasa es que el medico ya no puede configurar algo. Este archivo ya
+   se comio dos bloques asi al repartir Congenitas.
+   Por eso el caso enumera los CONTROLES, no las tarjetas: contar siete no distingue una tarjeta
+   completa de una vaciada que conserva su titulo. */
+caso('TC-161', 'Config conserva sus siete secciones y todos sus controles', `
+  return (async () => {
+    const tab = document.getElementById('tab-config');
+    const cards = Array.from(document.querySelectorAll('#tab-config .cfg-card'));
+    const titulos = cards.map(c => ((c.querySelector('.cfg-sec-title') || {}).textContent || '').trim());
+    const grid = document.querySelector('#tab-config .cfg-grid');
+    /* Los treinta ids que el medico puede tocar, mas los contenedores que pinta el JS. Si uno
+       desaparece, el control existe en la cabeza de quien edito y no en la pagina. */
+    const IDS = ['cfg-med-especialidad-on','cfg-med-especialidad','cfg-med-lugar-on','cfg-med-lugar',
+      'cfg-med-direccion-on','cfg-med-direccion','cfg-med-telefono-on','cfg-med-telefono',
+      'cfg-modo-inst','cfg-logo-thumb','cfg-logo-vacio','cfg-logo-add','cfg-logo-chg','cfg-logo-del',
+      'cfg-centro-nuevo','cfg-centros-lista','cfg-medico-nombre','cfg-medico-matricula',
+      'cfg-medico-especialidad','cfg-medicos-lista','pltz-grid','pltz-nota','pdf-fmt-sel',
+      'pltz-color2-row','pltz-color2-sw','cfg-guardar-imagenes','cfg-mode-basico','cfg-mode-avanzado',
+      'cfg-modulos','cfg-soporte'];
+    const faltan = IDS.filter(id => !document.getElementById(id));
+    /* Y que sigan DENTRO de la tab: un id que quedo suelto en otra parte del documento existe
+       para getElementById y es inalcanzable para el medico. */
+    const fuera = IDS.filter(id => { const e = document.getElementById(id); return e && !tab.contains(e); });
+    const vacias = cards.filter(c => c.querySelectorAll('input,select,textarea,button,[id]').length === 0).length;
+    if (typeof initPdfPlantillas === 'function') { try { initPdfPlantillas(); } catch (e) {} }
+    const pg = document.getElementById('pltz-grid');
+    const opciones = pg ? pg.querySelectorAll('[data-pltz]').length : 0;
+    const fmt = document.getElementById('pdf-fmt-sel');
+    return { extra: [
+      ['la grilla de Config existe',                    !!grid],
+      ['hay siete tarjetas',                            cards.length === 7, cards.length],
+      ['cada una tiene su titulo',                      titulos.every(t => t.length > 0), titulos.join(' | ')],
+      ['ninguna quedo vacia',                           vacias === 0, vacias],
+      ['Medicos sigue teniendo tarjeta propia',         titulos.some(t => t.indexOf('Médicos') > -1), titulos.join(' | ')],
+      ['no falta ningun control',                       faltan.length === 0, faltan.join(', ')],
+      ['y todos siguen dentro de la tab',               fuera.length === 0, fuera.join(', ')],
+      ['las ocho plantillas de PDF siguen ofreciendose', opciones === 8, opciones],
+      ['el formato de nombre de archivo conserva sus cinco opciones', !!fmt && fmt.options.length === 5, fmt && fmt.options.length]
+    ] };
+  })();
+`);
+
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];

@@ -487,6 +487,67 @@ El Excel pasó de **421 a 429 columnas** y de 128 a **129 básicas**; TC-135 fij
 contenido. Ojo con el `0` de una casilla apagada: **no es lo mismo que ausente**, y el caso lo
 distingue.
 
+### Config en siete tarjetas, y la séptima el pedido no la nombraba — 2026-09-18
+
+Reorganización visual: cada sección pasó a una tarjeta con borde propio dentro de una grilla de
+dos columnas (`.cfg-grid` / `.cfg-card`), que colapsa a una en ≤768 px. **Ningún campo, id ni
+handler cambió** — lo único que se tocó del contenido son los `border-top`/`padding-top` que
+separaban las secciones, porque ahora ese trabajo lo hace el borde de la tarjeta. Los
+`border-top` **internos** de «Institución y firma» —los que separan Modo institucional y Logo—
+se conservan.
+
+**EL PEDIDO ENUMERABA SEIS TARJETAS Y CONFIG TIENE SIETE SECCIONES.** La que faltaba es
+**👨‍⚕️ Médicos**, que no es una lista más: el médico marcado como **Principal** es de donde
+salen el nombre y la matrícula que **firman el informe** — la propia tarjeta de Institución lo
+dice en su primer párrafo. Construir las seis del pedido la habría dejado sin destino, contra la
+regla explícita de no eliminar nada. Decisión de Maicol: **tarjeta propia**, pegada a Centros.
+
+**LAS MINIATURAS DEL PDF YA ESTABAN EN 4/2 COLUMNAS** — el pedido las pedía y estaban desde
+antes, con un comentario que explicaba por qué (2×4 y 4×2 son las dos únicas formas en que ocho
+quedan parejas). Lo que sí cambió es el TAMAÑO: de 74 a 54 px de alto. Y la tarjeta del PDF **no**
+se extiende a las dos columnas, que fue lo primero que probé: a ancho completo las celdas quedan
+en ~280 px con el dibujo de 130 px centrado y el resto aire, o sea la «tarjeta grande» que el
+rediseño venía a achicar. En media fila la celda da ~135 px y la miniatura la llena.
+
+**`minmax(0, 1fr)` y no `1fr`.** Un hijo de grid no baja de su min-content, y la tarjeta del PDF
+tiene adentro su propia grilla de cuatro: con `1fr` desbordaba la columna en vez de encogerse, y
+eso es scroll horizontal en móvil — justo lo que el rediseño venía a evitar.
+
+**Medido en cuatro anchos, no mirado:** 1280 → 2 columnas, 7 tarjetas, miniaturas en 4, svg
+94×54; 768, 390 y 360 → 1 columna y miniaturas en 2. **Cero scroll horizontal y cero elementos
+fuera del viewport en los cuatro.** `check_mobile.js` sigue en los 2 hallazgos ALTA de la línea
+base y **ninguno** sale de Config.
+
+**A 768 EXACTOS la grilla ya es de una columna**, no de dos. El pedido decía «≥768 px: dos
+columnas». Se conservó `max-width:768px` porque es el breakpoint de **todas** las grillas del
+archivo (`.grid-2`, `.grid-3`, `.grid-4`, `#pltz-grid`): cambiar sólo ésta a 767 habría dejado
+Config comportándose distinto del resto de la app en el ancho exacto de un iPad vertical.
+
+#### Lo que costó
+
+**ESCRIBÍ MARCADO LITERAL DENTRO DE UN COMENTARIO HTML, que es lo que este archivo advierte dos
+veces que no hay que hacer.** El comentario de cabecera decía «cada sección es una
+`<section class=...>`» y el conteo de balance pasó a ver **8 aperturas y 7 cierres**: una
+etiqueta descrita en prosa se cuenta como marcado real. Lo delató el conteo, no la lectura.
+En los comentarios, describir.
+
+**LA PRIMERA MUTACIÓN NO SE APLICÓ Y EL CASO DIO VERDE.** El script de Python lanzó
+`ValueError: substring not found`, así que la copia quedó **idéntica** al archivo real — y un
+caso que pasa sobre el código sin mutar no prueba nada. Es el mismo error de denominador que ya
+está documentado para la extracción de seams. **Después de mutar, confirmar que el archivo
+CAMBIÓ** —acá, −1141 bytes— antes de leer el resultado.
+
+**El caso enumera los CONTROLES, no las tarjetas.** Contar siete no distingue una tarjeta
+completa de una vaciada que conserva su título, y el modo de fallo de una reorganización de
+markup es mudo: la página sigue dibujando y lo único que pasa es que el médico ya no puede
+configurar algo. TC-161 verifica los **treinta** ids, que sigan **dentro** de la tab —un id
+suelto en otra parte del documento existe para `getElementById` y es inalcanzable para el
+médico—, las ocho plantillas y las cinco opciones del nombre de archivo. La mutación que borra
+la tarjeta de Médicos cae por tres condiciones.
+
+**Sin probar en Safari**: el navegador está concedido en modo sólo lectura, así que no se puede
+navegar hasta Config para mirarlo. Verificado en Chrome a 1280, 768, 390 y 360.
+
 ### El color del PDF: la premisa era cierta, y el defecto vivía en DOS superficies — 2026-09-18
 
 «El encabezado toma el color de la plantilla y los módulos avanzados el del header» resultó
