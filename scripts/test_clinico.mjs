@@ -8497,6 +8497,61 @@ caso('TC-168', 'POP-3: el POCUS sincroniza y no inventa cortes', `
    (alta) y RVS (80-12)/3,2*80 = 1700 (elevada). Es la combinacion que define el patron.
    Lo que fija el caso: que el patron salga de las BANDAS de la app, que el boton se habilite
    solo con IC calculable, y que el EN SUMA no invierta el sentido del hallazgo. */
+caso('TC-170', 'CIA/CIV: la cascada es exhaustiva y la contraindicacion gana', `
+  return (async () => {
+    /* Objetos de estudio sintéticos: lo que se prueba es el CLASIFICADOR, y los ids salen de un
+       grep del propio index.html. La alcanzabilidad de la seccion del PDF y de la hoja del PPT
+       se verifico aparte, generando los dos artefactos con estos mismos datos. */
+    const B = (mm) => ({ ete_cia_borde_ao:mm, ete_cia_borde_av:mm, ete_cia_borde_vcs:mm,
+                         ete_cia_borde_vci:mm, ete_cia_borde_post:mm });
+    const QA = { diam_tsvi:'20', itv_tsvi:'20', tsvd_diametro:'25', vti_tsvd:'25' };  // Qp/Qs 1,95
+    const QB = { diam_tsvi:'20', itv_tsvi:'20', tsvd_diametro:'20', vti_tsvd:'21' };  // Qp/Qs 1,05
+    const QI = { diam_tsvi:'25', itv_tsvi:'25', tsvd_diametro:'20', vti_tsvd:'20' };  // Qp/Qs 0,51
+    const mk = (c) => ({ campos: Object.assign({ sexo:'M', edad:'44', peso:'70', talla:'170' }, c) });
+    const casos = {
+      /* El caso que da sentido a la compuerta: bordes anchos y Qp/Qs alto, pero shunt invertido.
+         Sin la rama contraindicado evaluada PRIMERO, este paciente sale rotulado percutaneo. */
+      contraDir:  mk(Object.assign({ete_cia_tipo:'secundum',ete_cia_dir:'di',vd_bas:'50'},QA,B('8'))),
+      contraQinv: mk(Object.assign({ete_cia_tipo:'secundum',ete_cia_dir:'id',vd_bas:'50'},QI,B('8'))),
+      perc:       mk(Object.assign({ete_cia_tipo:'secundum',ete_cia_dir:'id',vd_bas:'50'},QA,B('8'))),
+      borde4:     mk(Object.assign({ete_cia_tipo:'secundum',ete_cia_dir:'id',vd_bas:'50'},QA,B('4'))),
+      cxBorde:    mk(Object.assign({ete_cia_tipo:'secundum',ete_cia_dir:'id',vd_bas:'50'},QA,B('2'))),
+      cxTam:      mk(Object.assign({ete_cia_tipo:'secundum',ete_cia_dir:'id',vd_bas:'50',ete_cia_tam_max:'40'},QA,B('8'))),
+      exp:        mk(Object.assign({ete_cia_tipo:'secundum',ete_cia_dir:'id',vd_bas:'38'},QB,B('8'))),
+      conDap:     mk(Object.assign({ete_cia_tipo:'secundum',ete_cia_dir:'id',vd_bas:'50',dap_tipo:'restrictivo'},QA,B('8')))
+    };
+    const got = {};
+    Object.keys(casos).forEach((k) => { got[k] = _ciaConducta(casos[k]); });
+    const lista = Object.keys(casos).map((k) => casos[k]);
+    const R = _labShuntResumen(lista, 'cia');
+    let suma = 0; Object.keys(R.cond).forEach((k) => { suma += R.cond[k]; });
+    const civ = mk(Object.assign({ ete_civ_tipo:'muscular', ddfvi:'62' }, QB));
+    return {
+      contraDir: got.contraDir, contraQinv: got.contraQinv, perc: got.perc,
+      borde4: got.borde4, cxBorde: got.cxBorde, cxTam: got.cxTam, exp: got.exp,
+      sumaCond: suma, condN: R.condN, fuera: R.fuera, n: R.n,
+      qpAtribConDap: _ccQpQsAtrib(casos.conDap),
+      qpCrudoConDap: _ccQpQs(casos.conDap) !== null,
+      dilVdDe: R.dilVd ? R.dilVd.de : null,
+      dilViNull: R.dilVi === null,
+      civCierre: _civConducta(civ)
+    };
+  })();
+`, {
+  'el shunt derecha a izquierda se contraindica pese a bordes anchos': r => r.contraDir === 'contra',
+  'el Qp/Qs menor a 1 tambien contraindica':                           r => r.contraQinv === 'contra',
+  'bordes mayores o iguales a 5 con indicacion van a percutaneo':      r => r.perc === 'perc',
+  'el borde de 4 mm no se pierde: cae en borderline':                  r => r.borde4 === 'borde',
+  'borde deficiente y diametro mayor a 38 van a quirurgico':           r => r.cxBorde === 'cx' && r.cxTam === 'cx',
+  'sin indicacion y con VD normal queda expectante':                   r => r.exp === 'exp',
+  'la cascada es exhaustiva: las ramas suman el denominador':          r => r.sumaCond === r.condN,
+  'con dos shunts el Qp/Qs no se atribuye, pero crudo existe':         r => r.qpAtribConDap === null && r.qpCrudoConDap === true,
+  'ese estudio sale del Bloque D y se declara':                        r => r.fuera === 1 && r.condN === r.n - 1,
+  'sin DDVI la dilatacion del VI es null y no 0 por ciento':           r => r.dilViNull === true,
+  'la dilatacion del VD tiene su propio denominador':                  r => r.dilVdDe === 8,
+  'la CIV con DDVI indexado mayor a 32 indica cierre':                 r => r.civCierre === 'cierre'
+});
+
 caso('TC-169', 'POP-4: el patron sale de los seams y el EN SUMA no invierte el hallazgo', `
   return (async () => {
     __t.limpiar();

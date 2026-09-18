@@ -4239,6 +4239,84 @@ alta, porque los casos se escribieron eligiendo los cortes, no los campos.
    taquicardia ventricular, historia clínica, frases rápidas, segmentos del ETE, pre-TAVI,
    panel de indicaciones (`_IG_SECTIONS`), DICOM e imágenes en IndexedDB.
 
+## CIA y CIV en el PDF y el PPT del Laboratorio — y cuatro criterios que no se implementaron como venían
+
+Prototipo de estadística clínica por cardiopatía congénita: una sección del PDF y una hoja del
+PPT para cada una, con demografía, distribución por tipo, características estructurales y
+criterios terapéuticos. Un solo seam —`_labShuntResumen(infs, cual)`— alimenta las dos
+superficies, que es la única forma de que «PDF ≥ PPT» signifique algo.
+
+### Lo que ya existía y NO se reimplementó
+`_ccSecPred('cia'/'civ')`, `_ccQpQs` (recalcula desde los cuatro campos guardados),
+`colorBordeCIA()` con sus cuatro bandas, `_CIA_BORDES`, `vdBasCat()` + `VD_BAS_NORMAL_MAX`,
+el corte de 32 mm/m² del DDVI indexado y `CC_SHUNTS`. Las dos listas que el Laboratorio habría
+tenido que copiar —`CC_SHUNTS` y `_CIA_BORDES`— se **exportaron a `window`** en vez de
+duplicarse; `_ccDdviIdx` subió de local de `labCCRender` a nivel de módulo por lo mismo.
+
+### Los cuatro criterios del pedido que no se implementaron literales
+1. **FOP no es un tipo de CIA.** Es entidad propia con su `fopArr`, y `CC_SHUNTS` lo excluye a
+   propósito con su comentario. Como fila de la tabla de tipos se contaba dos veces contra un
+   denominador que lo excluye. Queda fuera.
+2. **Las tres conductas de CIA dejaban un hueco.** Borde de 4 mm —la banda *borderline* de
+   `colorBordeCIA`— con Qp/Qs 1,8 no caía en percutáneo (pide ≥5), ni en quirúrgico (pide
+   deficiente <3), ni en expectante (pide Qp/Qs <1,5). El `else` mudo otra vez. Se agregó fila
+   propia, y otra de «no clasificable» para cuando falta el dato que decide.
+3. **No había compuerta de contraindicación.** Un shunt derecha→izquierda o bidireccional con
+   Qp/Qs 1,95 y bordes de 8 mm salía rotulado **«cierre percutáneo»**, que es donde el cierre
+   está contraindicado. Se agregó fila propia evaluada PRIMERO, como el taponamiento en
+   `popPatron()`. Verificado: ese paciente da `contra`, no `perc`.
+4. **La indicación de cerrar se decide antes que la vía.** «Borde deficiente → quirúrgico»
+   leído literal manda a cirugía una CIA de 6 mm con Qp/Qs 1,1 y VD normal, que no hay que
+   cerrar de ninguna manera. La cascada evalúa primero si hay indicación (Qp/Qs ≥1,5 o
+   sobrecarga de VD) y recién después elige vía. **Esta reestructuración es la única que va más
+   allá de reusar un seam existente y necesita tu visto bueno clínico.**
+
+### El Qp/Qs del Bloque D respeta la negativa del informe individual
+`_ccQpQs` no aplica la atribución de `ccQpQsDe`: con dos shunts documentados el informe firmado
+se niega a atribuir el cociente y el Laboratorio lo atribuía igual. Para describir es discutible;
+para **clasificar conducta** significa que el agregado afirma más que el informe del que salió.
+`_ccQpQsAtrib()` aplica la misma regla y esos estudios salen del Bloque D —se declara cuántos y
+por qué—, pero siguen contando en los Bloques A, B y C.
+
+### Lo que no es computable y se dice en vez de simularse
+- La **CIV no tiene campo de dirección del shunt** (cero ocurrencias de `ete_civ_dir`): su
+  contraindicación se apoya sólo en el Qp/Qs < 1. Va en la salvedad.
+- **«DDVI dilatado sin otra causa»**: un ecocardiograma no excluye las otras causas de VI
+  dilatado. La fila de cierre indicado puede incluir estudios cuya dilatación tenga otro origen,
+  y la nota lo dice.
+
+### Tres denominadores vacíos en un mismo turno
+El PDF de prueba salió con **0 páginas y 0 Tj**, y los diez chequeos dieron `false`. Ninguno
+significaba nada: `_labFiltrarBase` filtra por **`inf.fecha_estudio`**, no por `inf.fecha`, así
+que los cinco estudios sintéticos no llegaban al Laboratorio. Con el campo correcto: 7 páginas,
+355 Tj y las dos secciones completas.
+El PPT salió con **3 diapositivas** —sólo las fijas— porque el estado de las casillas «☐ PPT»
+**no vive en el DOM**: `_labPptChkMarcadas()` lee `_labPptChkLeer()`. Tildar el `input` no
+cambia nada. Con `_labPptChkSet()`: 12 diapositivas, con la hoja de CIA y sus criterios.
+Y `seccionCIA:false` con la sección presente, porque **jsPDF escapa los paréntesis** en el
+content stream: buscar `'Comunicacion interauricular (CIA)'` da cero.
+Los tres son la misma lección y ya está escrita arriba: **confirmar que hay denominador antes de
+contar**. Un `false` sobre una superficie vacía se lee igual que un defecto real.
+
+### Cobertura: TC-170 pasa, pero su mutación NO está verificada
+El caso cubre la cascada completa —contraindicación por dirección y por Qp/Qs<1, percutáneo,
+borderline, las dos rutas a quirúrgico, expectante, exhaustividad (`suma === condN`), la
+atribución con dos shunts y los denominadores propios de cada dilatación—. Pasa sobre el archivo
+real. **Pero la verificación por mutación quedó sin cerrar:** con la compuerta de dirección
+removida en una copia de `/tmp`, una sonda propia confirma que `_ciaConducta` devuelve `perc` en
+vez de `contra` —o sea, el defecto ES observable—, y sin embargo `test_clinico.mjs` lanzado desde
+esa copia siguió reportando TC-170 en verde, incluso con un segundo canario que borraba la rama
+expectante. El harness no estaba sirviendo el mutante y no se diagnosticó por qué. **Antes de
+confiar en TC-170 como red de contención hay que cerrar eso**, y de paso revisar si el resto de
+las mutaciones hechas con el mismo procedimiento (copiar a `/tmp`, editar, correr desde ahí)
+estaban midiendo lo que se creía.
+
+### Verificado con datos reales
+PDF: 7 páginas, secciones de CIA y CIV, tabla de criterios a tres columnas con la guía al lado de
+cada conducta, nota de atribución, PSAP y el aviso «COHORTE INSUFICIENTE» como primera fila.
+PPT: 12 diapositivas, hoja por defecto, criterios con ESC 2020 GUCH y ESC 2023 GUCH.
+Suite 185/185 · Semgrep 123 / 0 ERROR · sin huérfanos nuevos.
+
 ## POP — layout final (2×2 + fila completa) y un renombre que se llevó tres campos ajenos
 
 Rediseño visual del subtab POP, sin tocar lógica ni seams. La grilla quedó

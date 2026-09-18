@@ -29401,6 +29401,10 @@ function ccQpQsDe(cual){
   return eteQpQs();
 }
 window.ccQpQsDe = ccQpQsDe; window.ccShuntsConDatos = ccShuntsConDatos;
+/* La TABLA y la lista de bordes se exportan, no se copian en el Laboratorio: son el mismo
+   criterio y dos copias se desincronizan en el primer campo que se agregue -- que es lo que ya
+   pasó con las tres copias de la lista de campos que originaron `CC_SHUNTS`. */
+window.CC_SHUNTS = CC_SHUNTS; window._CIA_BORDES = _CIA_BORDES;
 
 /* ══ DUCTUS ARTERIOSO PERMEABLE ══════════════════════════════════════════════════════════
    Umbrales ESC 2020 de cardiopatías congénitas del adulto / AHA-ACC 2018.
@@ -52617,6 +52621,198 @@ function _ccQpQs(i) {
   const q = (dD * dD * vD) / den;
   return (isFinite(q) && q >= 0.2 && q <= 10) ? q : null;   // mismo rango que eteQpQs
 }
+/* DDVI indexado = DDVI / ASC. Sube a nivel de módulo porque ahora lo leen la tarjeta del
+   Laboratorio, el Bloque D de la CIV y las dos superficies de salida: era un local de
+   `labCCRender` y la segunda copia habría dicho otra cosa. El corte de 32 mm/m² no se inventa
+   acá — es el que la pantalla de Hemodinámica imprime bajo el valor («Normal < 32 mm/m²»).
+   Sin peso o sin talla no hay ASC y devuelve null, que NO es «no dilatado». */
+function _ccDdviIdx(i) {
+  const dd = _labNum(i,'ddfvi','ddvi'), p = _labNum(i,'peso'), t = _labNum(i,'talla');
+  if (dd === null || !(p > 0) || !(t > 0)) return null;
+  const asc = Math.sqrt((p * t) / 3600);
+  const x = dd / asc;
+  return isFinite(x) ? x : null;
+}
+
+/* ══ CIA / CIV — el resumen que consumen la tarjeta, el PDF y el PPT ═══════════════════════
+   Mismo patrón que `_labAmilResumen` y `_labHemoResumen`: devuelve DATOS, no HTML ni texto de
+   diapositiva, para que las tres superficies no puedan contar distinto.
+
+   ATRIBUCIÓN DEL Qp/Qs — la decisión que separa describir de indicar. `_ccQpQs` sale de los
+   flujos TSVI/TSVD: mide el shunt TOTAL del paciente y no sabe por qué defecto pasa. El informe
+   firmado ya se niega a atribuírselo a una sección cuando hay más de un cortocircuito
+   documentado (`ccQpQsDe`, con su comentario). El Bloque D clasifica CONDUCTA, así que tiene que
+   respetar esa negativa: un agregado que decide «cierre percutáneo» con un cociente que el
+   informe individual considera no atribuible afirma MÁS que el informe del que salió.
+   Los Bloques A, B y C siguen contando a ese estudio — describir un defecto no es indicar nada. */
+function _ccShuntGruposDe(i) {
+  const T = (typeof window !== 'undefined') ? window.CC_SHUNTS : null;
+  /* Sin la tabla no se adivina: devolver un Set vacío haría pasar a TODOS por «shunt único» y
+     el Bloque D clasificaría conducta justo cuando perdió la información para gatearla. */
+  if (!T) return null;
+  const g = new Set();
+  Object.keys(T).forEach(function (k) {
+    const hay = T[k].some(function (id) { return _labCampoRaw(i, id) !== ''; });
+    if (hay) g.add((k === 'cia' || k === 'civ') ? 'shunt' : k);
+  });
+  return g;
+}
+function _ccQpQsAtrib(i) {
+  const g = _ccShuntGruposDe(i);
+  if (!g || g.size > 1) return null;
+  if (g.size === 1 && !g.has('shunt')) return null;
+  return _ccQpQs(i);
+}
+/* Borde MÍNIMO de la CIA en un estudio guardado. Recorre `_CIA_BORDES`, la misma lista de cinco
+   que usa `eteCiaBordeMin()` en pantalla. El mínimo es el que manda: un dispositivo se suelta
+   por el borde más corto, no por el promedio. */
+function _ciaBordeMinDe(i) {
+  const L = (typeof window !== 'undefined') ? window._CIA_BORDES : null;
+  if (!L) return null;
+  let min = null;
+  L.forEach(function (b) { const x = _labNum(i, b[0]); if (x !== null && (min === null || x < min)) min = x; });
+  return min;
+}
+/* Sobrecarga de volumen del VD por `vdBasCat`, el clasificador ASE que ya publica la app
+   (≤41 normal · >41 y ≤45 leve · >45 dilatado). Cuenta como sobrecarga TODO lo que no es normal:
+   la ESC pide «evidencia de sobrecarga de volumen del VD», no un grado. Devuelve null sin el
+   VD basal — y null NO es «no dilatado», por eso las ramas de abajo comparan contra `false`. */
+function _ccVdDilatado(i) {
+  const vd = _labNum(i, 'vd_bas');
+  if (vd === null) return null;
+  const f = (typeof window !== 'undefined' && typeof window.vdBasCat === 'function') ? window.vdBasCat : null;
+  if (!f) return null;
+  const c = f(vd);
+  return c ? (c.cat !== 'normal') : null;
+}
+
+/* ══ CONDUCTA DE LA CIA ═══════════════════════════════════════════════════════════════════
+   Cascada EXHAUSTIVA y disjunta: toda CIA cae en exactamente una rama. SEIS ramas y no las tres
+   del pedido, por tres motivos que se verificaron contra el código antes de calcular un solo
+   porcentaje:
+
+   · CONTRAINDICADO va PRIMERO, igual que el taponamiento en `popPatron()`. Un shunt derecha a
+     izquierda o bidireccional (`ete_cia_dir`), o un Qp/Qs < 1 —flujo neto invertido, fisiología
+     de Eisenmenger—, es exactamente donde el cierre está contraindicado. Sin esta rama ese
+     paciente salía rotulado «cierre percutáneo» si además tenía bordes anchos: el peor error
+     que esta tabla puede cometer. `eteQpQsInterp` ya trata la banda < 1 aparte en el informe
+     individual, y la tarjeta del Laboratorio le da barra propia.
+   · BORDERLINE existe porque `colorBordeCIA` tiene CUATRO bandas y no dos: 3 a 5 mm es
+     «evaluar complementariamente», ni adecuado ni deficiente. Con tres conductas, una CIA de
+     borde 4 mm y Qp/Qs 1,8 no caía en ninguna y desaparecía del denominador sin que nada lo
+     dijera — el `else` mudo documentado en CLAUDE.md.
+   · La indicación de CERRAR se decide ANTES que la vía. «Borde deficiente → quirúrgico» leído
+     literal manda a cirugía una CIA de 6 mm con Qp/Qs 1,1 y VD normal, que no hay que cerrar de
+     ninguna manera. Primero hay indicación (Qp/Qs ≥ 1,5 o sobrecarga de VD), después se elige
+     la vía. Es el orden de la ESC 2020, no una reordenación cosmética.
+
+   `null` es una rama VISIBLE («no clasificable»), no un descarte silencioso: falta el dato que
+   decide, que no es lo mismo que «expectante». */
+function _ciaConducta(i) {
+  const dir = _labCampoRaw(i, 'ete_cia_dir');
+  const q   = _ccQpQsAtrib(i);
+  if (dir === 'di' || dir === 'bi') return 'contra';
+  if (q !== null && q < 1)          return 'contra';
+  const vdDil = _ccVdDilatado(i);
+  const indic = (q !== null && q >= 1.5) || vdDil === true;
+  if (indic) {
+    const borde = _ciaBordeMinDe(i), tam = _labNum(i, 'ete_cia_tam_max');
+    if ((borde !== null && borde < 3) || (tam !== null && tam > 38)) return 'cx';
+    if (borde === null) return null;          // sin un solo borde medido no se elige vía
+    if (borde >= 5) return 'perc';
+    return 'borde';
+  }
+  if (q !== null && q < 1.5 && vdDil === false) return 'exp';
+  return null;
+}
+/* ══ CONDUCTA DE LA CIV (ESC 2023) ════════════════════════════════════════════════════════
+   La CIV NO tiene campo de dirección del shunt en esta app —se verificó: cero ocurrencias de
+   `ete_civ_dir`—, así que la contraindicación se apoya sólo en el Qp/Qs < 1. Queda dicho en la
+   salvedad de las dos superficies en vez de simularse con otro campo.
+   «Sin otra causa» del criterio de dilatación tampoco es computable desde estos campos: un
+   ecocardiograma no excluye las otras causas de VI dilatado. También va en la salvedad. */
+function _civConducta(i) {
+  const q = _ccQpQsAtrib(i);
+  if (q !== null && q < 1) return 'contra';
+  const d = _ccDdviIdx(i);
+  if ((q !== null && q >= 1.5) || (d !== null && d > 32)) return 'cierre';
+  if (q !== null && q < 1.5 && d !== null && d <= 32) return 'exp';
+  return null;
+}
+/* Las filas de las dos tablas, con su criterio y su guía. Una sola lista por defecto: el PDF y
+   el PPT la recorren igual, así que no pueden mostrar conductas distintas ni criterios distintos
+   para la misma conducta. El orden es el de la cascada. */
+const CIA_CONDUCTAS = [
+  { k:'contra', lbl:'Cierre contraindicado', crit:'Shunt derecha a izquierda o bidireccional, o Qp/Qs < 1 (ESC 2020 GUCH)' },
+  { k:'cx',     lbl:'Cierre quirurgico',     crit:'Con indicacion de cierre + borde deficiente < 3 mm o diametro > 38 mm (ESC 2020 / AHA-ACC 2018)' },
+  { k:'perc',   lbl:'Cierre percutaneo',     crit:'Con indicacion de cierre + todos los bordes >= 5 mm (ESC 2020 / AHA-ACC 2018)' },
+  { k:'borde',  lbl:'Borde borderline',      crit:'Con indicacion de cierre + borde minimo 3 a 5 mm - evaluar complementariamente' },
+  { k:'exp',    lbl:'Conducta expectante',   crit:'Qp/Qs < 1,5 sin sobrecarga de volumen del VD (ESC 2020 GUCH)' },
+  { k:'nc',     lbl:'No clasificable',       crit:'Falta el Qp/Qs atribuible, el borde o el VD basal que deciden la rama' }
+];
+const CIV_CONDUCTAS = [
+  { k:'contra', lbl:'Cierre contraindicado', crit:'Qp/Qs < 1 - shunt neto invertido (ESC 2023 GUCH)' },
+  { k:'cierre', lbl:'Cierre indicado',       crit:'Qp/Qs >= 1,5 o DDVI indexado > 32 mm/m2 (ESC 2023 GUCH)' },
+  { k:'exp',    lbl:'Conducta expectante',   crit:'Qp/Qs < 1,5 sin dilatacion del VI (ESC 2023 GUCH)' },
+  { k:'nc',     lbl:'No clasificable',       crit:'Sin Qp/Qs atribuible ni DDVI indexado calculable' }
+];
+const CIA_TIPOS_LBL = { secundum:'Ostium secundum', primum:'Ostium primum',
+  sv_vcs:'Seno venoso VCS', sv_vci:'Seno venoso VCI', seno_coronario:'Seno coronario' };
+const CIV_TIPOS_LBL = { perimembranosa:'Perimembranosa', muscular:'Muscular',
+  infundibular:'Infundibular', inlet:'Inlet' };
+/* Desvío estándar MUESTRAL (n-1). Con un solo caso devuelve null y no 0: un «± 0» sobre n=1
+   afirma una dispersión nula que nadie midió. */
+function _ds(arr) {
+  const ns = arr.filter(x => x !== null && x !== undefined && isFinite(x));
+  if (ns.length < 2) return null;
+  const m = ns.reduce((a, b) => a + b, 0) / ns.length;
+  return Math.sqrt(ns.reduce((a, b) => a + (b - m) * (b - m), 0) / (ns.length - 1));
+}
+/* `cual` es 'cia' o 'civ'. Un solo cuerpo para los dos: lo que cambia es el predicado de
+   pertenencia, el campo de tipo, el campo de tamaño y el clasificador de conducta. */
+function _labShuntResumen(infs, cual) {
+  const esCia = (cual === 'cia');
+  const arr = (infs || []).filter(_ccSecPred(cual));
+  const num = id => arr.map(i => _labNum(i, id)).filter(x => x !== null);
+  // ── A · demografía ──
+  const sexos = arr.map(i => String((i.campos && i.campos.sexo) || '').toLowerCase()).filter(Boolean);
+  const nF = sexos.filter(x => x.indexOf('f') > -1 || x.indexOf('mujer') > -1).length;
+  const edades = arr.map(i => _labNum(i, 'edad')).filter(x => x !== null && x > 0 && x < 120);
+  // ── B · distribución por tipo ──
+  const tipos = Object.create(null);   // prototipo nulo: la clave sale de un valor del estudio
+  arr.forEach(i => { const t = _labCampoRaw(i, esCia ? 'ete_cia_tipo' : 'ete_civ_tipo'); if (t) tipos[t] = (tipos[t] || 0) + 1; });
+  // ── C · estructura ──
+  const tam  = num(esCia ? 'ete_cia_tam_max' : 'ete_civ_tam');
+  const qs   = arr.map(_ccQpQs).filter(x => x !== null);
+  const psap = arr.map(i => _labNum(i, 'psap_calc', 'psap')).filter(x => x !== null);
+  const ddv  = arr.map(_ccDdviIdx).filter(x => x !== null);
+  const vdE  = arr.map(_ccVdDilatado).filter(x => x !== null);
+  // ── D · conducta ──
+  const cond = Object.create(null);
+  (esCia ? CIA_CONDUCTAS : CIV_CONDUCTAS).forEach(f => { cond[f.k] = 0; });
+  /* El denominador del Bloque D NO es `arr`: sólo entran los estudios cuyo Qp/Qs es atribuible
+     a ESTE shunt, que es la negativa que respeta el informe individual. Se cuenta cuántos
+     quedaron fuera para poder declararlo — un denominador más chico sin explicación se lee
+     como que faltaban datos. */
+  let fuera = 0;
+  arr.forEach(i => {
+    const g = _ccShuntGruposDe(i);
+    if (!g || g.size > 1) { fuera++; return; }
+    const k = esCia ? _ciaConducta(i) : _civConducta(i);
+    cond[k || 'nc']++;
+  });
+  return {
+    n: arr.length, nF: nF, nM: sexos.length - nF, sexN: sexos.length,
+    edad: _prom(edades), edadDs: _ds(edades),
+    tipos: tipos,
+    tam: _prom(tam), tamDs: _ds(tam),
+    qs: _prom(qs), psap: _prom(psap),
+    dilVi: ddv.length ? { n: ddv.filter(x => x > 32).length, de: ddv.length } : null,
+    dilVd: vdE.length ? { n: vdE.filter(x => x === true).length, de: vdE.length } : null,
+    cond: cond, condN: arr.length - fuera, fuera: fuera
+  };
+}
+
 /* Gradiente máximo de la coartación. La ventana efectiva es la del GRADIENTE (0-150 mmHg), no la
    de la velocidad: `coaConclusion` banda el gradiente ya calculado, así que acotar sólo la
    velocidad a 9 m/s dejaba pasar hasta 324 mmHg, mientras el informe de ese mismo paciente lo
@@ -54397,6 +54593,66 @@ async function _labPPTGenerar(infs, o) {
       }
     }
 
+    /* ── 11b · CIA y CIV — una hoja por defecto ──
+       Se generan por separado y no en una hoja compartida: cada una tiene su distribución por
+       tipo y su tabla de conductas con criterios de guías distintas (ESC 2020 para la CIA, ESC
+       2023 para la CIV), y apilarlas obligaba a abreviar justamente los criterios, que son lo
+       que impide leer la tabla como una indicación validada.
+       Los números salen de `_labShuntResumen`, el MISMO seam que alimenta la sección del PDF:
+       la regla «PDF ≥ PPT» sólo se sostiene si las dos superficies leen el mismo objeto. */
+    if (G('ccestr')) {
+      for (const CC of [
+        { k:'cia', tit:'Comunicación interauricular (CIA)', lbls:CIA_TIPOS_LBL, filas:CIA_CONDUCTAS,
+          tamLbl:'Tamaño máximo promedio',
+          pie:'El Qp/Qs del Bloque D sólo se atribuye a la CIA cuando es el único cortocircuito documentado, igual que en el informe individual. La sobrecarga de VD usa el VD basal (ASE, normal ≤41 mm). La indicación de cierre se evalúa antes que la vía.' },
+        { k:'civ', tit:'Comunicación interventricular (CIV)', lbls:CIV_TIPOS_LBL, filas:CIV_CONDUCTAS,
+          tamLbl:'Tamaño promedio',
+          pie:'La CIV no registra dirección del shunt en esta app: la contraindicación se apoya sólo en el Qp/Qs < 1. «Sin otra causa» de dilatación del VI no es computable desde estos campos.' }
+      ]) {
+        const R = _labShuntResumen(infs, CC.k);
+        if (R.n < MIN_OPC) { faltanN(R.n, CC.tit, 'estudio(s) con la sección cargada'); continue; }
+        const s2 = nueva(CC.tit); avisoN(s2, R.n);
+        const pct = (x, d) => d > 0 ? Math.round(x / d * 100) + ' %' : '—';
+        const pm  = (pr, ds, dec, suf) => pr
+          ? (pr.v.toFixed(dec) + (ds !== null ? ' ± ' + ds.toFixed(dec) : '') + (suf || '') + ' (n=' + pr.n + ')')
+          : '—';
+        const X = [0.4, 2.45, 4.5, 6.55], WD = 1.95;
+        let y1 = 1.00;
+        dato(s2, X[0], y1, 'Estudios con ' + CC.k.toUpperCase(), R.n + ' de ' + n, 15, WD);
+        dato(s2, X[1], y1, 'Sexo', R.sexN ? (pct(R.nM, R.sexN) + ' M · ' + pct(R.nF, R.sexN) + ' F') : '—', 15, WD);
+        dato(s2, X[2], y1, 'Edad promedio', pm(R.edad, R.edadDs, 0, ' a'), 15, WD);
+        dato(s2, X[3], y1, CC.tamLbl, pm(R.tam, R.tamDs, 1, ' mm'), 15, WD);
+        let y2 = 1.62;
+        dato(s2, X[0], y2, 'Qp/Qs promedio', R.qs ? (R.qs.v.toFixed(2) + ' (n=' + R.qs.n + ')') : '—', 15, WD);
+        dato(s2, X[1], y2, 'PSAP promedio', R.psap ? (R.psap.v.toFixed(0) + ' mmHg (n=' + R.psap.n + ')') : '—', 15, WD);
+        /* `x de d` y no sólo el porcentaje: el denominador de cada dilatación es distinto -- el
+           DDVI indexado necesita peso y talla, el VD basal no -- y un «33 %» suelto se lee sobre
+           el N de la hoja, que no es el que se usó. */
+        dato(s2, X[2], y2, 'Dilatación del VI', R.dilVi ? (R.dilVi.n + ' de ' + R.dilVi.de + ' (' + pct(R.dilVi.n, R.dilVi.de) + ')') : '—', 15, WD);
+        dato(s2, X[3], y2, 'Dilatación del VD', R.dilVd ? (R.dilVd.n + ' de ' + R.dilVd.de + ' (' + pct(R.dilVd.n, R.dilVd.de) + ')') : '—', 15, WD);
+        const tf = Object.keys(R.tipos).map(k => ({ lbl: _lblDe(CC.lbls, k), n: R.tipos[k] }));
+        if (!gBarras(s2, tf, { x:0.4, y:2.32, w:4.0, h:1.9 }, 'Distribución por tipo'))
+          s2.addText(T('Ningún estudio con el tipo consignado.'),
+            { x:0.4, y:2.9, w:4.0, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
+        /* El Bloque D va como TEXTO y no como barras: el criterio y la guía tienen que verse
+           debajo de cada conducta. Una barra rotulada «Cierre percutáneo 40 %» proyectada en una
+           sala es una indicación terapéutica sin su criterio al lado. */
+        s2.addText(T('Criterios terapéuticos  ·  n = ' + R.condN + (R.fuera ? '  (' + R.fuera + ' con más de un shunt, Qp/Qs no atribuible)' : '')),
+          { x:4.7, y:2.32, w:5.0, h:0.24, fontSize:12, bold:true, color:C.txt, fontFace:FONT });
+        let yd = 2.60;
+        CC.filas.forEach(function (f) {
+          const c = R.cond[f.k] || 0;
+          s2.addText(T(f.lbl + '  —  ' + c + ' (' + pct(c, R.condN) + ')'),
+            { x:4.7, y:yd, w:5.0, h:0.20, fontSize:10, bold:true, color: c > 0 ? C.teal : C.txt2, fontFace:FONT });
+          s2.addText(T(f.crit),
+            { x:4.7, y:yd + 0.17, w:5.0, h:0.18, fontSize:7.5, italic:true, color:C.txt2, fontFace:FONT });
+          yd += 0.37;
+        });
+        s2.addText(T(CC.pie),
+          { x:0.4, y:H-0.86, w:W-0.8, h:0.30, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
+      }
+    }
+
     // ── 12 · CARDIO-ONCOLOGÍA ──
     if (G('onco')) {
       const onc = infs.filter(i => _labCampoRaw(i, 'co_farmaco') !== '' || _labCampoRaw(i, 'co_fevi_basal') !== '' ||
@@ -54835,13 +55091,7 @@ function labCCRender(infs, n) {
   /* DDVI indexado = DDVI / ASC, igual que eteDDVIi(). El corte de 32 mm/m² NO es inventado acá:
      es el que la propia pantalla de Hemodinámica imprime bajo el valor («Normal < 32 mm/m²»).
      Sin peso o sin talla no hay ASC y devuelve null, que NO es lo mismo que «no dilatado». */
-  const ddviIdx = i => {
-    const dd = _labNum(i,'ddfvi','ddvi'), p = _labNum(i,'peso'), t = _labNum(i,'talla');
-    if (dd === null || !(p > 0) || !(t > 0)) return null;
-    const asc = Math.sqrt((p * t) / 3600);
-    const x = dd / asc;
-    return isFinite(x) ? x : null;
-  };
+  const ddviIdx = _ccDdviIdx;   // subió a nivel de módulo: lo lee también el Bloque D de la CIV
 
   // ── BLOQUE 1 · CIA / CIV ──
   /* El panel se muestra si hay CUALQUIERA de los cuatro defectos, no sólo CIA/CIV: con la
@@ -56932,6 +57182,57 @@ async function labGenerarPDF() {
                        colors: ['#8a5fd4', '#4f8ef7', '#f0a500', '#f5c842', '#3ecf8e'] } : null);
       _nota('"Mixto" (vota por las dos) y "no concluyente" (no alcanza para ninguna) son conclusiones DISTINTAS y se cuentan por separado.');
     }
+
+    /* ── CIA y CIV — demografia, tipos, estructura y criterios terapeuticos ──
+       Mismo objeto que la diapositiva: `_labShuntResumen`. La regla "PDF >= PPT" no se cumple
+       comparando dos textos parecidos, se cumple leyendo el mismo seam -- y aca el PDF agrega lo
+       que la hoja no puede: la tabla de criterios a tres columnas, con la guia al lado de cada
+       conducta en vez de en el pie. */
+    for (const CC of [
+      { k:'cia', tit:'Comunicacion interauricular (CIA)', lbls:CIA_TIPOS_LBL, filas:CIA_CONDUCTAS,
+        tamLbl:'Tamano maximo promedio',
+        nota:'El Qp/Qs del bloque de criterios solo se atribuye a la CIA cuando es el unico cortocircuito documentado, la misma negativa que aplica el informe individual. La sobrecarga de volumen del VD se evalua con el VD basal (ASE: normal <=41 mm) y cuenta cualquier grado, no solo el severo. La indicacion de cierre se decide antes que la via: un borde deficiente sobre una CIA sin repercusion no es una indicacion quirurgica.' },
+      { k:'civ', tit:'Comunicacion interventricular (CIV)', lbls:CIV_TIPOS_LBL, filas:CIV_CONDUCTAS,
+        tamLbl:'Tamano promedio',
+        nota:'Esta app no registra la direccion del shunt en la CIV, asi que la contraindicacion se apoya unicamente en el Qp/Qs < 1. El criterio "DDVI indexado dilatado SIN OTRA CAUSA" no es computable desde estos campos: un ecocardiograma no excluye las otras causas de dilatacion del VI, de modo que la fila de cierre indicado puede incluir estudios cuya dilatacion tenga otro origen.' }
+    ]) {
+      const R = _labShuntResumen(infs, CC.k);
+      if (!R.n) continue;                      // seccion condicional: solo con >=1 caso
+      const pct = (x, d) => d > 0 ? Math.round(x / d * 100) + '%' : '-- (sin datos)';
+      const pm  = (pr, ds, dec, suf) => pr
+        ? (pr.v.toFixed(dec) + (ds !== null ? ' +/- ' + ds.toFixed(dec) : '') + (suf || '') + ' (n=' + pr.n + ')')
+        : '-- (sin datos)';
+      const filas = [
+        ['Estudios con ' + CC.k.toUpperCase(), R.n + ' de ' + infs.length],
+        ['Sexo masculino', R.sexN ? (R.nM + ' (' + pct(R.nM, R.sexN) + ')') : '-- (sin datos)'],
+        ['Sexo femenino', R.sexN ? (R.nF + ' (' + pct(R.nF, R.sexN) + ')') : '-- (sin datos)'],
+        ['Edad promedio', pm(R.edad, R.edadDs, 0, ' anos')],
+        [CC.tamLbl, pm(R.tam, R.tamDs, 1, ' mm')],
+        ['Qp/Qs promedio', R.qs ? (R.qs.v.toFixed(2) + ' (n=' + R.qs.n + ')') : '-- (sin datos)'],
+        ['PSAP promedio', R.psap ? (R.psap.v.toFixed(0) + ' mmHg (n=' + R.psap.n + ')') : '-- (sin datos)'],
+        ['Con dilatacion del VI', R.dilVi ? (R.dilVi.n + ' de ' + R.dilVi.de + ' (' + pct(R.dilVi.n, R.dilVi.de) + ')') : '-- (sin datos)'],
+        ['Con dilatacion del VD', R.dilVd ? (R.dilVd.n + ' de ' + R.dilVd.de + ' (' + pct(R.dilVd.n, R.dilVd.de) + ')') : '-- (sin datos)']
+      ];
+      /* El aviso de cohorte chica va como PRIMERA fila de la tabla y no al pie: el pie de estas
+         secciones ya lleva la salvedad metodologica, y una advertencia apilada al final se lee
+         ultima -- o no se lee. Mismo criterio que `avisoN` en la diapositiva. */
+      if (R.n < 3) filas.unshift(['COHORTE INSUFICIENTE para lectura estadistica', 'n = ' + R.n]);
+      const tipoEnt = Object.keys(R.tipos).map(k => [_lblDe(CC.lbls, k), R.tipos[k]]);
+      tipoEnt.forEach(([l, c]) => filas.push(['Tipo: ' + l, c + ' (' + pct(c, R.n) + ')']));
+      await sectionChart(CC.tit, ['Indicador', 'Valor'], filas,
+        tipoEnt.length ? { labels: tipoEnt.map(t => t[0]), values: tipoEnt.map(t => t[1]),
+                           colors: ['#4f8ef7', '#3ecf8e', '#f5c842', '#f0a500', '#8a5fd4'], type: 'pie' } : null);
+      /* Tabla a TRES columnas: `sectionChart` cablea dos anchos, y el criterio con su guia no
+         entra en el rotulo de la conducta sin abreviarlo justo donde importa. Se dibuja directo
+         con `drawTable`, que acepta cualquier cantidad de columnas. */
+      sectionTitle(CC.tit + ' - criterios terapeuticos');
+      drawTable(M, [44, 110, 26], ['Conducta', 'Criterio (guia y ano)', 'n (%)'],
+        CC.filas.map(f => [f.lbl, f.crit, (R.cond[f.k] || 0) + ' (' + pct(R.cond[f.k] || 0, R.condN) + ')']));
+      y += 2;
+      _nota('Denominador de esta tabla: n = ' + R.condN +
+            (R.fuera ? ' -- se excluyeron ' + R.fuera + ' estudio(s) con mas de un cortocircuito documentado, donde el Qp/Qs global no es atribuible a este defecto.' : '.') +
+            ' ' + CC.nota);
+    }
   }
 
   // ══════════ 13. CALIDAD DEL LABORATORIO ══════════
@@ -57964,8 +58265,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260918-1722';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789762945956;                 /* eco-build-ms */
+const ECO_BUILD    = '20260918-1844';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789767874592;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -58051,7 +58352,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1722</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1844</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
