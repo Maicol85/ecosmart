@@ -4239,6 +4239,72 @@ alta, porque los casos se escribieron eligiendo los cortes, no los campos.
    taquicardia ventricular, historia clínica, frases rápidas, segmentos del ETE, pre-TAVI,
    panel de indicaciones (`_IG_SECTIONS`), DICOM e imágenes en IndexedDB.
 
+## PDF de auditoría: antecedentes combinados y filas que se pisaban
+
+Dos arreglos, y en los dos el diagnóstico del pedido no era el correcto.
+
+### 1 · «La tabla cuenta combinaciones» — la cuenta ya era individual
+`freqData` del PDF **ya recorría el array y contaba cada antecedente por separado**. Creado desde
+el formulario, `antecedentes_sel` es un array con un elemento por casilla y la tabla salía bien.
+
+El problema está en los estudios **importados**: el importador de Excel parte la celda **sólo por
+`|`** (`tipo === 'lista'`). Una planilla que escriba «HTA, DM» o «HTA + Dislipemia» deja las dos
+cosas en **un** elemento, y la rama `arr = [a]` lo convierte en una entrada más. De ahí las filas
+«HTA + DM» que se ven mezcladas con las sueltas: el recuento nunca estuvo mal, los **datos** venían
+pegados.
+
+Mutante que revierte el arreglo — reproduce el síntoma exacto del pedido:
+`{"HTA, DM":1, "HTA + Dislipemia + DM":1, "HTA":1, "DM; Tabaquismo":1}`.
+
+**El separador `/` NO entra, y es lo que más importa.** Seis de los dieciocho antecedentes
+canónicos lo llevan adentro: «FA / flutter», «ACV / AIT», «EPOC / asma», «Cardiopatía isquémica /
+IAM previo», «Quimioterapia / radioterapia», «Dispositivo implantado (MPP/CDI/CRT)». Partir por
+`/` inventaría «FA», «flutter», «ACV», «AIT»… antecedentes que nadie registró — peor que la tabla
+larga que se quiere arreglar.
+
+**Pero la protección real no es el separador: es la regla todo-o-nada.** Se parte sólo si **todos**
+los fragmentos son del vocabulario. Lo descubrí por mutación: agregar `/` al separador **no mató
+ningún test**, porque «FA» y «flutter» no son canónicos y la entrada vuelve entera igual. El `/`
+queda excluido como segunda línea —si alguien relaja la guarda, no se lleva puestos seis
+antecedentes—, y el test que de verdad pinta la regla es otro: `'HTA, Amiloidosis rara'` tiene que
+quedar **entero**, porque partir lo reconocible daría «HTA» + «Amiloidosis rara», o sea un
+antecedente inventado a partir de texto libre. Ese mutante sí muere.
+
+También se cuenta **por estudio** con un `Set`: con la casilla HTA marcada *y* una celda «HTA, DM»,
+el mismo paciente sumaba dos veces y el porcentaje se pasaba del 100 %.
+
+**Alcance ampliado a propósito:** el arreglo va en el seam `_labFreqEntries` y el PDF pasó a
+delegar en él. Su `freqData` era el **mismo cuerpo letra por letra** — el defecto de las dos cuentas
+del mismo dato que este archivo ya pagó cuatro veces. Con la copia viva, el dashboard y el PDF
+habrían publicado tablas de antecedentes distintas sobre la misma cohorte.
+
+### 2 · «El texto se corta» — se superponía
+`drawTable` tenía `rowH` fijo en 6,4 mm y dibujaba cada celda con `{maxWidth}`. Ese `maxWidth`
+**sí** parte el texto en varias líneas —jsPDF lo hace solo— pero el recuadro seguía midiendo 6,4,
+así que los renglones sobrantes se dibujaban **encima de la fila de abajo**. No se cortaba nada: se
+pisaba. En las tablas de conducta de las CC eso arruinaba justamente la columna del criterio, que
+es la que impide leer la tabla como una indicación validada.
+
+Ahora la fila se **mide** antes de dibujarse: se baja el cuerpo de 9 a 7 pt mientras eso alcance
+para entrar en dos líneas, y si a 7 pt sigue necesitando más, la fila **crece**. Se mide con el
+mismo estilo con que se dibuja —la negrita de la última columna es más ancha, y medirla en normal
+daba una línea de menos justo en la celda que se desborda—. Con una sola línea el texto cae donde
+caía antes (y0+4,1 contra y0+4,2), así que las tablas de dos columnas no se mueven.
+
+### Cómo se verificó — midiendo posiciones, no texto
+El texto completo **ya salía** antes del arreglo, así que buscarlo en el PDF no distingue nada.
+TC-174 parsea el content stream con **coordenadas** (`Td`/`Tm`) y mide el salto vertical entre dos
+filas consecutivas de la tabla de conductas de la CIA. Mutante con alto fijo:
+`salto=18.1 pt · fijo=18.1 pt` (6,4 mm exactos). Con el arreglo: 28,6 pt, o sea dos renglones.
+
+Dos correcciones al propio test antes de que midiera lo que decía:
+- La ventana `y > a2.y - 1` se tragaba renglones de la fila siguiente.
+- El filtro «x mayor que el rótulo» metía también la columna de n(%). La tabla es
+  `drawTable(M, [44, 110, 26], …)`, así que la columna del criterio está a 44 mm exactos.
+
+Y el backtick dentro del template literal de un caso, **cuarta vez en esta sesión**, otra vez en un
+comentario recién escrito.
+
 ## TdF — y el cierre: las doce fichas, con dos CC que a propósito no la tienen
 
 Duodécima ficha. **Y la que yo había anunciado mal.** Dije que TdF arrastraba `calcVP()` (84 L) y

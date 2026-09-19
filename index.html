@@ -45609,13 +45609,71 @@ function _labSexos(infs) {
 /* Las indicaciones y los antecedentes se persisten como ARRAY, y en los estudios importados como
    cadena JSON: sin el `JSON.parse` de acá el conteo daría cero sin error. Prototipo nulo porque
    las claves salen del estudio. Devuelve ordenado de mayor a menor, que es lo que pide el top-5. */
+/* ══ ENTRADAS COMBINADAS EN LOS CHECKLIST DEL PANEL PACIENTE ═══════════════════════════════════
+   Creado desde el formulario, `antecedentes_sel` es un ARRAY con un elemento por casilla, y esta
+   cuenta ya era por antecedente. El problema aparece con los estudios IMPORTADOS: el importador
+   de Excel parte la celda SÓLO por « | » (`tipo === 'lista'`), así que una planilla que escriba
+   «HTA, DM» o «HTA + Dislipemia» deja UN elemento con las dos cosas adentro — y la rama
+   `arr = [a]` de acá abajo lo convierte en una entrada más. Resultado: la tabla del PDF mezcla
+   antecedentes sueltos con combinaciones, y una cohorte con varias combinaciones se vuelve
+   ilegible sin que el recuento esté mal en ningún lado.
+
+   EL SEPARADOR « / » NO ENTRA, Y ES LO IMPORTANTE. Seis de los dieciocho antecedentes canónicos
+   lo llevan ADENTRO —«FA / flutter», «ACV / AIT», «EPOC / asma», «Cardiopatía isquémica / IAM
+   previo», «Quimioterapia / radioterapia», «Dispositivo implantado (MPP/CDI/CRT)»—. Partir por
+   «/» inventaría «FA», «flutter», «ACV», «AIT»… o sea antecedentes que nadie registró, que es
+   peor que la tabla larga que se quiere arreglar.
+
+   Y se parte SÓLO si TODOS los fragmentos son del vocabulario. Un «Otro» de texto libre como
+   «Amiloidosis, en estudio» se deja entero: partirlo daría «Amiloidosis» y «en estudio» como si
+   fueran dos antecedentes. La regla es conservadora a propósito — ante la duda, no se parte. */
+const _LAB_SEP_COMB = /\s*[|;,]\s*|\s+\+\s+/;
+/* El rango va con escapes \u y no con los caracteres literales: son marcas combinantes, o sea
+   invisibles en el fuente, y un editor que normalice el archivo las borraría sin dejar rastro. */
+const _labNorm = s => String(s).trim().toLowerCase()
+  .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ');
+/* El vocabulario sale del DOM —las casillas del panel Paciente— y no de una constante copiada:
+   con una copia, agregar una casilla nueva al HTML la dejaría fuera del normalizador y esa
+   combinación volvería a contarse entera, sin que nada lo delate. */
+const _LAB_VOCAB_CLASE = { antecedentes_sel:'ant-chk', indicaciones:'ind-chk' };
+function _labVocab(key) {
+  const cls = _LAB_VOCAB_CLASE[key];
+  if (!cls || typeof document === 'undefined') return null;
+  const m = Object.create(null);
+  document.querySelectorAll('.' + cls).forEach(function (c) {
+    const v = c.dataset ? c.dataset.val : null;
+    if (v) m[_labNorm(v)] = String(v).trim();
+  });
+  return Object.keys(m).length ? m : null;
+}
+function _labSepararComb(txt, vocab) {
+  if (!vocab) return [txt];
+  const partes = String(txt).split(_LAB_SEP_COMB).map(x => x.trim()).filter(Boolean);
+  if (partes.length < 2) return [txt];
+  const canon = partes.map(p => vocab[_labNorm(p)]);
+  return canon.every(Boolean) ? canon : [txt];
+}
 function _labFreqEntries(infs, key) {
   const counts = Object.create(null);
+  const vocab = _labVocab(key);
   infs.forEach(i => {
     let arr = i.campos ? i.campos[key] : null;
     if (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch(e) { arr = arr ? [arr] : []; } }
     if (!Array.isArray(arr)) return;
-    arr.forEach(v => { const k = String(v).trim(); if (k) counts[k] = (counts[k] || 0) + 1; });
+    /* Un mismo antecedente no puede contar DOS veces por el mismo paciente: si la planilla trae
+       «HTA, DM» y además la casilla HTA marcada, el porcentaje pasaría del 100 %. Se cuenta por
+       ESTUDIO, con un Set por estudio. */
+    const vistos = new Set();
+    arr.forEach(v => {
+      const bruto = String(v).trim();
+      if (!bruto) return;
+      _labSepararComb(bruto, vocab).forEach(function (k) {
+        const kk = String(k).trim();
+        if (!kk || vistos.has(kk)) return;
+        vistos.add(kk);
+        counts[kk] = (counts[kk] || 0) + 1;
+      });
+    });
   });
   return Object.entries(counts).sort((a,b) => b[1]-a[1]);
 }
@@ -57381,14 +57439,45 @@ async function labGenerarPDF() {
   };
 
   // Tabla: header azul + filas alternas + bordes 0.3pt
+  /* ── TABLA DE ALTO VARIABLE ───────────────────────────────────────────────────────────────
+     Antes `rowH` era fijo en 6,4 mm y cada celda se dibujaba con `{maxWidth}`. Ese maxWidth SÍ
+     parte el texto en varias líneas —jsPDF lo hace solo— pero el recuadro seguía midiendo 6,4,
+     así que los renglones sobrantes se PISABAN con la fila de abajo. O sea que el defecto no era
+     que el texto se cortara: era que se superponía, y en las tablas de conducta de las CC —donde
+     la columna del criterio lleva la guía y el año— eso dejaba ilegibles justamente los renglones
+     que impiden leer la tabla como una indicación validada.
+     Ahora la fila se MIDE antes de dibujarse: se baja el cuerpo de 9 a 7 pt mientras eso alcance
+     para entrar en dos líneas, y si a 7 pt sigue necesitando más, la fila CRECE. Nunca se trunca. */
   const drawTable = (x, colW, headers, rows) => {
     const tW = colW.reduce((a, b) => a + b, 0);
     const rowH = 6.4, padX = 2.1;
-    const cellBorders = (y0) => {
+    const FS_MAX = 9, FS_MIN = 7;          // piso de 7 pt
+    const PT_MM = 0.3528, INTERL = 1.18;   // pt → mm, e interlineado
+    const anchoCel = ci => Math.max(3, colW[ci] - padX * 1.6);
+    const boldLast = (rows[0] || []).length === 2;
+    const estilo = ci => (boldLast && ci === 1) ? 'bold' : 'normal';
+    /* Se mide con el MISMO estilo con que se va a dibujar: la negrita de la última columna es
+       más ancha, y medirla en normal daba una línea de menos justo en la celda que se desborda. */
+    const medir = (r, fs) => {
+      doc.setFontSize(fs);
+      const cel = r.map((cell, ci) => {
+        doc.setFont('helvetica', estilo(ci));
+        return doc.splitTextToSize(S(String(cell)), anchoCel(ci));
+      });
+      doc.setFont('helvetica', 'normal');
+      return { cel: cel, lineas: cel.reduce((a, l) => Math.max(a, l.length), 0) };
+    };
+    const plan = (r) => {
+      let fs = FS_MAX, m = medir(r, fs);
+      while (fs > FS_MIN && m.lineas > 2) { fs -= 1; m = medir(r, fs); }
+      const lh = fs * PT_MM * INTERL;
+      return { fs: fs, lh: lh, cel: m.cel, h: Math.max(rowH, m.lineas * lh + 2.6) };
+    };
+    const cellBorders = (y0, h) => {
       doc.setDrawColor(BORD[0], BORD[1], BORD[2]); doc.setLineWidth(0.106);
-      doc.rect(x, y0, tW, rowH);
+      doc.rect(x, y0, tW, h);
       let cx = x;
-      for (let i = 0; i < colW.length - 1; i++) { cx += colW[i]; doc.line(cx, y0, cx, y0 + rowH); }
+      for (let i = 0; i < colW.length - 1; i++) { cx += colW[i]; doc.line(cx, y0, cx, y0 + h); }
     };
     const drawHeader = () => {
       const y0 = y;
@@ -57396,27 +57485,35 @@ async function labGenerarPDF() {
       doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
       let cx = x;
       headers.forEach((h, i) => { doc.text(S(h), cx + padX, y0 + rowH - 2.2); cx += colW[i]; });
-      cellBorders(y0);
+      cellBorders(y0, rowH);
       doc.setTextColor(0, 0, 0); doc.setFont('helvetica', 'normal');
       y = y0 + rowH;
     };
     ensure(rowH * 2);
     drawHeader();
-    const boldLast = (rows[0] || []).length === 2;
     rows.forEach((r, ri) => {
-      if (y + rowH > CONTENT_BOTTOM) { doc.addPage(); y = 20; drawHeader(); }
+      const P = plan(r);
+      /* `if` y no `while`: una fila más alta que la página entera se dibuja igual en la página
+         nueva en vez de encadenar saltos para siempre. Con el piso de 7 pt haría falta un
+         criterio de ~40 renglones para llegar a eso. */
+      if (y + P.h > CONTENT_BOTTOM) { doc.addPage(); y = 20; drawHeader(); }
       const y0 = y;
-      if (ri % 2 === 1) { doc.setFillColor(ALT[0], ALT[1], ALT[2]); doc.rect(x, y0, tW, rowH, 'F'); }
-      doc.setFontSize(9);
+      if (ri % 2 === 1) { doc.setFillColor(ALT[0], ALT[1], ALT[2]); doc.rect(x, y0, tW, P.h, 'F'); }
+      doc.setFontSize(P.fs);
       let cx = x;
-      r.forEach((cell, ci) => {
-        doc.setFont('helvetica', (boldLast && ci === 1) ? 'bold' : 'normal');
-        doc.text(S(String(cell)), cx + padX, y0 + rowH - 2.2, { maxWidth: Math.max(3, colW[ci] - padX * 1.6) });
+      P.cel.forEach((lineas, ci) => {
+        doc.setFont('helvetica', estilo(ci));
+        /* Centrado vertical: con una sola línea cae donde caía antes (y0+4,1 contra y0+4,2), así
+           que las tablas de dos columnas no se mueven; con varias, reparte el aire arriba y abajo. */
+        const topPad = (P.h - lineas.length * P.lh) / 2;
+        lineas.forEach((ln, k) => {
+          doc.text(ln, cx + padX, y0 + topPad + (k + 1) * P.lh - P.lh * 0.25);
+        });
         cx += colW[ci];
       });
-      doc.setFont('helvetica', 'normal');
-      cellBorders(y0);
-      y = y0 + rowH;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+      cellBorders(y0, P.h);
+      y = y0 + P.h;
     });
   };
 
@@ -57650,11 +57747,12 @@ async function labGenerarPDF() {
     const N = infs.length;
 
     // Frecuencia por array (indicaciones / antecedentes)
-    const freqData = (key) => {
-      const counts = Object.create(null);
-      infs.forEach(i => { let a = i.campos?.[key]; if (typeof a === 'string') { try { a = JSON.parse(a); } catch (e) { a = a ? [a] : []; } } if (!Array.isArray(a)) return; a.forEach(v => { const k = String(v).trim(); if (k) counts[k] = (counts[k] || 0) + 1; }); });
-      return Object.entries(counts).sort((a, b) => b[1] - a[1]);
-    };
+    /* `_labFreqEntries` y NO una copia local. Esta funcion ERA el mismo cuerpo que el seam, letra
+       por letra, y es el defecto que este archivo ya pago cuatro veces: dos cuentas del mismo
+       dato que se separan en cuanto una se toca. Paso justo aca -- la separacion de entradas
+       combinadas se hizo en el seam, y con la copia viva el dashboard y el PDF habrian publicado
+       tablas de antecedentes distintas sobre la misma cohorte. */
+    const freqData = (key) => _labFreqEntries(infs, key);
     const freqBlock = (title, hdr, entries) => entries.length ? {
       title, headers: [hdr, 'n (%)'],
       rows: entries.map(([l, cn]) => [l, _labCel(cn, N)]),
@@ -59141,8 +59239,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260919-1036';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789825016175;                 /* eco-build-ms */
+const ECO_BUILD    = '20260919-1055';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789826155331;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -59228,7 +59326,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-1036</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-1055</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

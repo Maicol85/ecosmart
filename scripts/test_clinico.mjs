@@ -9190,6 +9190,143 @@ caso('TC-173', 'VAP y FOP: cascadas, denominadores propios y la fila que NO exis
 `);
 
 
+
+caso('TC-174', 'PDF de auditoria: antecedentes individuales y filas que crecen sin pisarse', `
+  return (async () => {
+    // ══ PARTE 1 · antecedentes individuales ══
+    const mkA = (ants) => ({ campos: { antecedentes_sel: ants } });
+    /* Importado desde Excel: el importador parte SOLO por « | », asi que una planilla con coma
+       o con « + » deja las dos cosas en UN elemento. */
+    const combinados = _labFreqEntries([
+      mkA(['HTA, DM']),
+      mkA(['HTA + Dislipemia + DM']),
+      mkA(['HTA']),
+      mkA(['DM; Tabaquismo'])
+    ], 'antecedentes_sel');
+    const mapa = Object.create(null);
+    combinados.forEach((e) => { mapa[e[0]] = e[1]; });
+
+    /* El vocabulario tiene SEIS antecedentes con « / » adentro. Partir por ahi inventaria
+       antecedentes que nadie registro. */
+    const conBarra = _labFreqEntries([mkA(['FA / flutter']), mkA(['ACV / AIT']),
+                                      mkA(['EPOC / asma'])], 'antecedentes_sel');
+    const clavesBarra = conBarra.map((e) => e[0]);
+
+    /* Texto libre por la via de «Otro»: no todos los fragmentos son del vocabulario, asi que
+       NO se parte. Partirlo daria «Amiloidosis» y «en estudio» como dos antecedentes. */
+    const libre = _labFreqEntries([mkA(['Amiloidosis, en estudio'])], 'antecedentes_sel');
+    /* EL CASO QUE PINTA LA REGLA «TODO O NADA», y el que de verdad protege a los seis
+       antecedentes canonicos que llevan « / » adentro. Aca el primer fragmento SI es del
+       vocabulario y el segundo no: si la regla fuera «parto lo que reconozca», esto daria
+       «HTA» mas «Amiloidosis rara» -- un antecedente inventado a partir de texto libre. */
+    const mixto = _labFreqEntries([mkA(['HTA, Amiloidosis rara'])], 'antecedentes_sel');
+
+    /* Un mismo antecedente no puede contar dos veces por el mismo paciente: con la casilla HTA
+       marcada Y la celda «HTA, DM», el porcentaje se pasaria del 100 %. */
+    const dup = _labFreqEntries([mkA(['HTA, DM', 'HTA'])], 'antecedentes_sel');
+    const dupMapa = Object.create(null);
+    dup.forEach((e) => { dupMapa[e[0]] = e[1]; });
+
+    const ordenado = combinados.every((e, i) => i === 0 || combinados[i-1][1] >= e[1]);
+
+    // ══ PARTE 2 · la fila crece en vez de pisarse ══
+    for (let i=0;i<80 && (typeof window.jspdf==='undefined'||!window.jspdf.jsPDF);i++) await new Promise(r=>setTimeout(r,100));
+    const hoy = new Date();
+    const f = hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-'+String(hoy.getDate()).padStart(2,'0');
+    const QB = { diam_tsvi:'20', itv_tsvi:'20', tsvd_diametro:'20', vti_tsvd:'21' };
+    const est = [{ id:1, fecha:f, fecha_estudio:f, nombre:'PA',
+      campos: Object.assign({ sexo:'M', edad:'44', peso:'70', talla:'170', fevi:'60', tapse:'21',
+        ete_cia_tipo:'secundum', ete_cia_dir:'id', vd_bas:'50',
+        ete_cia_borde_ao:'8', ete_cia_borde_av:'8', ete_cia_borde_vcs:'8',
+        ete_cia_borde_vci:'8', ete_cia_borde_post:'8',
+        antecedentes_sel:['HTA, DM'] }, QB) }];
+    const origGet = window.getInformes;
+    window.getInformes = function(){ return est; };
+    const Orig = window.jspdf.jsPDF; let doc = null;
+    function W(){ const d = new Orig(...arguments); d.save = function(){ return Promise.resolve(); }; doc = d; return d; }
+    W.prototype = Orig.prototype; window.jspdf.jsPDF = W;
+    try { await labGenerarPDF(); } catch(e) {}
+    window.jspdf.jsPDF = Orig; window.getInformes = origGet;
+    if (!doc) return { extra:[['se capturo el documento', false, 'no se capturo']] };
+
+    /* Token a token, con POSICION: lo que fallaba no era que faltara texto -- el texto completo
+       salia igual-- sino que los renglones sobrantes se dibujaban encima de la fila siguiente.
+       Eso solo se ve midiendo. OJO: el content stream va en PUNTOS, no en mm. */
+    const raw = atob(doc.output('datauristring').split(',')[1]);
+    const tok = /([0-9.-]+) ([0-9.-]+) Td|1 0 0 1 ([0-9.-]+) ([0-9.-]+) Tm|\\(((?:\\\\[\\s\\S]|[^()\\\\])*)\\)\\s?Tj/g;
+    let m, cx = null, cy = null; const pos = [];
+    while ((m = tok.exec(raw))) {
+      if (m[1] !== undefined) { cx = parseFloat(m[1]); cy = parseFloat(m[2]); }
+      else if (m[3] !== undefined) { cx = parseFloat(m[3]); cy = parseFloat(m[4]); }
+      else if (m[5] !== undefined && cy !== null) pos.push({ x: cx, y: cy, t: m[5] });
+    }
+    const buscar = (s) => pos.find((p) => p.t.indexOf(s) === 0);
+    /* Dos filas CONSECUTIVAS de la tabla de conductas de la CIA. La de arriba lleva un criterio
+       largo que no entra en una linea; la separacion entre las dos es el alto real de la fila. */
+    const a1 = buscar('Cierre quirurgico');
+    const a2 = buscar('Cierre percutaneo');
+    // En PDF el eje Y crece hacia ARRIBA: la fila de abajo tiene y MENOR.
+    const salto = (a1 && a2) ? (a1.y - a2.y) : null;
+    const MM = 2.8346;                       // puntos por mm
+    /* Con el alto fijo de 6,4 mm el salto era exactamente 18,1 pt y el criterio se desbordaba.
+       Al crecer la fila el salto TIENE que ser mayor. */
+    const saltoFijo = 6.4 * MM;
+    /* Los renglones del criterio de la fila de ARRIBA: columna 2 (x mayor que el rotulo) y con
+       la y ESTRICTAMENTE entre los dos rotulos. La primera version usaba y > a2.y - 1 y se
+       tragaba los renglones de la fila de abajo, asi que medía otra cosa de la que decía. */
+    /* La tabla de conductas es drawTable(M, [44, 110, 26], ...): la columna del criterio arranca
+       44 mm a la derecha de la del rotulo. Filtrar por "x mayor que el rotulo" metia tambien la
+       columna de n(%) y contaba renglones de mas. */
+    const X_CRIT = 44 * 2.8346;
+    const colCrit = (a1 && a2) ? pos.filter((p) => p.y <= a1.y + 0.5 && p.y > a2.y + 0.5
+                                                && Math.abs(p.x - (a1.x + X_CRIT)) < 5) : [];
+    /* Piso del alto de un renglon: 7 pt (el minimo del pedido) por el interlineado. Si la fila
+       mide al menos eso por cada renglon que contiene, los renglones ENTRAN -- que es la
+       definicion operativa de "no se pisan". Antes la fila media 18,1 pt fijos con tres
+       renglones adentro: 8,3 pt por renglon, o sea superpuestos. */
+    const LH_MIN = 7 * 1.18;
+    const alcanza = (salto !== null) && (salto >= colCrit.length * LH_MIN);
+
+    return { extra: [
+      ['HTA se cuenta en los cuatro estudios',        mapa['HTA'] === 3, JSON.stringify(mapa)],
+      ['DM tambien, pese a venir combinado',          mapa['DM'] === 3, JSON.stringify(mapa)],
+      ['Dislipemia sale de la combinacion de tres',   mapa['Dislipemia'] === 1, JSON.stringify(mapa)],
+      ['Tabaquismo sale del separador punto y coma',  mapa['Tabaquismo'] === 1, JSON.stringify(mapa)],
+      ['NINGUNA entrada combinada sobrevive',
+        Object.keys(mapa).every((k) => k.indexOf(',') < 0 && k.indexOf('+') < 0 && k.indexOf(';') < 0),
+        Object.keys(mapa).join(' | ')],
+      ['la tabla va de mayor a menor',                ordenado === true, JSON.stringify(combinados)],
+      ['los antecedentes con barra NO se parten',
+        clavesBarra.length === 3 && clavesBarra.indexOf('FA / flutter') > -1
+        && clavesBarra.indexOf('ACV / AIT') > -1 && clavesBarra.indexOf('EPOC / asma') > -1,
+        clavesBarra.join(' | ')],
+      ['y no aparecen los fragmentos inventados',
+        clavesBarra.indexOf('FA') < 0 && clavesBarra.indexOf('flutter') < 0
+        && clavesBarra.indexOf('ACV') < 0 && clavesBarra.indexOf('AIT') < 0,
+        clavesBarra.join(' | ')],
+      ['el texto libre queda entero',
+        libre.length === 1 && libre[0][0] === 'Amiloidosis, en estudio', JSON.stringify(libre)],
+      ['con UN fragmento fuera del vocabulario NO se parte nada',
+        mixto.length === 1 && mixto[0][0] === 'HTA, Amiloidosis rara', JSON.stringify(mixto)],
+      ['un antecedente no cuenta dos veces en el mismo estudio',
+        dupMapa['HTA'] === 1 && dupMapa['DM'] === 1, JSON.stringify(dupMapa)],
+
+      ['el PDF trae las dos filas de conducta de la CIA', !!a1 && !!a2,
+        'cx=' + JSON.stringify(a1 || null) + ' perc=' + JSON.stringify(a2 || null)],
+      ['la fila con criterio largo CRECE: no mide 6,4 mm',
+        salto !== null && salto > saltoFijo + 1,
+        'salto=' + (salto === null ? 'n/a' : salto.toFixed(1)) + ' pt · fijo=' + saltoFijo.toFixed(1) + ' pt'],
+      ['el criterio ocupa mas de un renglon dentro de su fila',
+        colCrit.length >= 2, colCrit.length + ' renglones · y=' + JSON.stringify(colCrit.map((p) => Math.round(p.y*10)/10))],
+      ['la fila es lo bastante alta para todos sus renglones',
+        alcanza === true,
+        'salto=' + (salto === null ? 'n/a' : salto.toFixed(1)) + ' pt para ' + colCrit.length +
+        ' renglones (piso ' + (colCrit.length * LH_MIN).toFixed(1) + ' pt)']
+    ] };
+  })();
+`);
+
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];
