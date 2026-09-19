@@ -8656,7 +8656,12 @@ caso('TC-172', 'El encuadre orientativo sale en el PDF, una vez por tabla de con
       mk(2, Object.assign({ fevi:'35', tapse:'15', ete_civ_tipo:'muscular', ddfvi:'62' }, QB)),
       mk(3, Object.assign({ fevi:'45', tapse:'19', dap_tipo:'no_restrictivo', dap_dir:'id', dap_diam:'6', dap_paps:'52' }, QB)),
       mk(4, { fevi:'38', tapse:'14', coa_situacion:'nativa', coa_vmax:'3.6', coa_istmo:'7', coa_ao_desc:'18',
-              coa_hta:'si', coa_gradiente_picopico:'28' })
+              coa_hta:'si', coa_gradiente_picopico:'28' }),
+      /* Ventana y foramen: sin un estudio de cada uno la seccion no se dibuja —es condicional
+         por >=1 caso— y las condiciones de abajo darian false sobre un PDF que simplemente no
+         las tiene. Es el denominador vacio, otra vez. */
+      mk(5, Object.assign({ fevi:'50', tapse:'20', vap_tipo:'i', vap_dir:'id', vap_htp:'no', vap_diam:'7' }, QB)),
+      mk(6, { fevi:'55', tapse:'21', fop_burbujas:'abundante', fop_acv:'si', fop_asa:'si', fop_tunel:'12' })
     ];
     const origGet = window.getInformes;
     window.getInformes = function(){ return datos; };
@@ -8668,7 +8673,27 @@ caso('TC-172', 'El encuadre orientativo sale en el PDF, una vez por tabla de con
     window.jspdf.jsPDF = Orig; window.getInformes = origGet;
     if (!doc) return { extra:[['se capturo el documento', false, String(err)]] };
     const raw = atob(doc.output('datauristring').split(',')[1]);
-    const re = /\((.*?)\) ?Tj/g; let m; const out = [];
+    /* OJO CON LAS BARRAS: el cuerpo del caso es un TEMPLATE LITERAL, asi que se le comen los
+       escapes. Lo que habia escrito aca era /\\((.*?)\\) ?Tj/g, que parece anclado en parentesis
+       literales, y al llegar a la pagina quedaba /((.*?)) ?Tj/g -- SIN un solo parentesis
+       literal: un grupo vacio seguido de ' ?Tj'. O sea que esta extraccion nunca leyo "la
+       cadena entre parentesis": leia desde donde cayera hasta el Tj siguiente. Funcionaba de
+       casualidad, porque el texto buscado igual caia adentro de lo capturado.
+       Las dos consecuencias: (1) la regla documentada de que un marcador con '(' da cero
+       coincidencias era cierta por OTRO motivo del que decia el comentario; y (2) un .*? lazy
+       sin ancla sobre el stream de un PDF con graficas PNG embebidas -- cientos de miles de
+       bytes binarios-- es cuadratico. El costo no esta en los matches sino en la ULTIMA
+       llamada a exec(), la que ya no encuentra nada y recorre todo el binario con backtracking.
+       Por eso el sintoma aparecio recien al crecer el documento con la ventana y el foramen, y
+       por eso NO se ve como un test en rojo sino como una corrida que no vuelve: minutos sin
+       terminar, sin una sola linea de salida.
+       La version de abajo duplica las barras para que sobrevivan al template, y la alternancia
+       es determinista --una rama empieza por barra y la otra la excluye-- asi que no hay
+       backtracking. Captura la cadena completa, parentesis escapados incluidos.
+       Las otras dos extracciones del archivo (~8124 y ~8288) SI llevan las barras dobles, asi
+       que esas estan ancladas de verdad; el riesgo cuadratico igual existe si sus documentos
+       crecen, porque tambien usan .*? lazy. */
+    const re = /\\(((?:\\\\[\\s\\S]|[^()\\\\])*)\\)\\s?Tj/g; let m; const out = [];
     while ((m = re.exec(raw))) out.push(m[1]);
     const txt = out.join(' ');
     const paginas = doc.internal.getNumberOfPages();
@@ -8680,10 +8705,24 @@ caso('TC-172', 'El encuadre orientativo sale en el PDF, una vez por tabla de con
       ['el PDF tiene paginas: hay denominador', paginas > 0, 'paginas=' + paginas],
       ['sale la seccion de conductas de la CIA', txt.indexOf('Cierre percutaneo') > -1, ''],
       ['sale la seccion de conductas de la CIV', txt.indexOf('Cierre indicado') > -1, ''],
-      ['el encuadre aparece una vez por tabla', cuenta(abre) === 4, cuenta(abre) + ' veces'],
-      ['la frase entra completa, no truncada', cuenta(cierra) === 4, cuenta(cierra) + ' veces'],
+      /* SEIS, una por ficha con tabla de conductas. El numero es la compuerta: si una ficha
+         nueva entra a CC_ORDEN sin encuadre, o si una lo pierde, esto cae. */
+      ['el encuadre aparece una vez por tabla', cuenta(abre) === 6, cuenta(abre) + ' veces'],
+      ['la frase entra completa, no truncada', cuenta(cierra) === 6, cuenta(cierra) + ' veces'],
       ['sale la seccion del ductus', txt.indexOf('Ductus arterioso permeable') > -1, ''],
       ['sale la seccion de la coartacion', txt.indexOf('Coartacion de aorta') > -1, ''],
+      ['sale la seccion de la ventana aortopulmonar', txt.indexOf('Ventana aortopulmonar') > -1, ''],
+      ['sale la seccion del foramen oval', txt.indexOf('Foramen oval permeable') > -1, ''],
+      /* La ventana exige que la HTP se haya evaluado ANTES de indicar el cierre: la fila tiene
+         que estar impresa con su criterio, no abreviada. */
+      ['la ventana publica la fila de HTP no evaluada', txt.indexOf('HTP no evaluada') > -1, ''],
+      /* El FOP no distribuye un "tipo": lo que se cuenta es el grado de shunt por burbujas.
+         Si el rotulo vuelve a decir "Tipo:", esta nombrando una clasificacion que no existe. */
+      ['el FOP rotula grado de shunt y no tipo',
+        txt.indexOf('Grado de shunt:') > -1 && txt.indexOf('Tipo: Abundante') === -1, ''],
+      /* La fila inalcanzable no puede reaparecer: un "FOP descartado: 0 (0%)" afirma que se
+         conto y que a nadie le dio, cuando esos estudios nunca entran al denominador. */
+      ['la tabla del FOP no lleva la fila inalcanzable', txt.indexOf('FOP descartado') === -1, ''],
       /* La coartacion no funde el Doppler con la clase de indicacion: TC-113 ya fija que la
          indicacion sale del pico-pico INVASIVO. Si alguna vez se fusionan, esto cae. */
       ['la coartacion separa Doppler de clase de indicacion',
@@ -8764,6 +8803,120 @@ caso('TC-169', 'POP-4: el patron sale de los seams y el EN SUMA no invierte el h
         linea.indexOf('bajo gasto') > -1 && linea.indexOf('Gasto cardíaco adecuado') === -1, linea.slice(-60)],
       ['la hoja del PDF lleva el disclaimer como nota', hoja.indexOf('!! Orientación clínica') > -1],
       ['y la concordancia Swan vs eco',            hoja.indexOf('Concordancia Swan vs eco') > -1]
+    ] };
+  })();
+`);
+
+caso('TC-173', 'VAP y FOP: cascadas, denominadores propios y la fila que NO existe', `
+  return (async () => {
+    /* Estudios sinteticos con los ids reales, como TC-170. Lo que se prueba es el clasificador
+       que firma el informe individual corriendo sobre un estudio GUARDADO, mas el motor de
+       fichas que lo cuenta. */
+    const mk = (c) => ({ campos: Object.assign({ sexo:'M', edad:'44', peso:'70', talla:'170' }, c) });
+    /* Sin edad: es la unica forma de alcanzar la rama que la reclama, y el mk de arriba la
+       inyecta siempre. Un fixture que trae el dato no puede probar la rama que lo pide. */
+    const mkSinEdad = (c) => ({ campos: Object.assign({ sexo:'M', peso:'70', talla:'170' }, c) });
+
+    // ── VAP ──
+    const V = {
+      /* Direccion invertida CON la HTP declarada en 'no': si la contraindicacion no se evaluara
+         PRIMERO este paciente saldria rotulado "cierre indicado", que es la peor frase que la
+         seccion puede imprimir — cerrar el shunt elimina la descarga del VD. */
+      eisen:   mk({ vap_tipo:'i',  vap_dir:'di', vap_htp:'no' }),
+      /* Y con el diametro fuera de banda ademas: la contraindicacion tiene que ganarle tambien
+         al corte de "no interpretable", que esta mas abajo en la cascada. */
+      eisenFu: mk({ vap_tipo:'i',  vap_dir:'di', vap_htp:'no', vap_diam:'99' }),
+      htpBi:   mk({ vap_tipo:'ii', vap_dir:'bi' }),
+      htpSi:   mk({ vap_tipo:'ii', vap_dir:'id', vap_htp:'si' }),
+      /* HTP sin evaluar NO puede caer en "cierre indicado": la rama que afirma exige un 'no'
+         explicito, no la mera ausencia de 'si'. */
+      noEval:  mk({ vap_tipo:'i',  vap_dir:'id' }),
+      noEval2: mk({ vap_tipo:'i',  vap_dir:'id', vap_htp:'no_eval' }),
+      cierre:  mk({ vap_tipo:'i',  vap_dir:'id', vap_htp:'no' }),
+      fuera:   mk({ vap_tipo:'i',  vap_dir:'id', vap_htp:'no', vap_diam:'99' }),
+      /* Ventana + ductus: dos cortocircuitos. La conducta de la ventana NO depende del Qp/Qs,
+         asi que este estudio tiene que seguir contando en el Bloque D; lo que se apaga es la
+         METRICA del cociente, que es donde la atribucion si corresponde. */
+      conDap:  mk({ vap_tipo:'i', vap_dir:'id', vap_htp:'no', dap_tipo:'restrictivo',
+                    diam_tsvi:'20', itv_tsvi:'20', tsvd_diametro:'25', vti_tsvd:'25' })
+    };
+    const gv = {}; Object.keys(V).forEach((k) => { gv[k] = _claveDe(vapConclusion)(V[k]); });
+    const RV = _labCCResumen(Object.keys(V).map((k) => V[k]), 'vap');
+    let sumaV = 0; Object.keys(RV.cond).forEach((k) => { sumaV += RV.cond[k]; });
+
+    // ── FOP ──
+    const F = {
+      iia:      mk({ fop_burbujas:'abundante', fop_acv:'si' }),
+      mayor:    mk({ fop_burbujas:'abundante', fop_acv:'si', edad:'70' }),
+      sinEdad:  mkSinEdad({ fop_burbujas:'abundante', fop_acv:'si' }),
+      trombo:   mk({ fop_burbujas:'pocas', fop_acv:'no', fop_trombofilia:'si' }),
+      altoSin:  mk({ fop_burbujas:'abundante', fop_acv:'no' }),
+      sinCtx:   mk({ fop_burbujas:'pocas' }),
+      incid:    mk({ fop_burbujas:'pocas', fop_acv:'no', fop_contraste:'si', fop_shunt_reposo:'si' }),
+      noInterp: mk({ fop_burbujas:'pocas', fop_acv:'no', fop_asa_mm:'99' }),
+      /* Los tres del aneurisma. Sin ellos props.asa daba de=0 y la condicion que exige un
+         denominador propio pasaba sobre una proporcion vacia — la trampa del denominador que
+         este archivo ya documenta. El 99 de noInterp NO cuenta: cae fuera de banda y vale
+         null, que es "no se pudo evaluar" y no "sin aneurisma". */
+      asaSi:    mk({ fop_burbujas:'pocas', fop_acv:'no', fop_asa:'si' }),
+      asaMm:    mk({ fop_burbujas:'pocas', fop_acv:'no', fop_asa_mm:'12' }),
+      asaNo:    mk({ fop_burbujas:'pocas', fop_acv:'no', fop_asa:'no', fop_contraste:'si', fop_shunt_reposo:'si' }),
+      /* FOP + CIA. El FOP esta FUERA de CC_SHUNTS a proposito, asi que con soloShuntUnico:true
+         este estudio saldria del denominador y la tabla del FOP perderia a todo paciente que
+         ademas tenga una CIA. */
+      conCia:   mk({ fop_burbujas:'pocas', fop_acv:'no', fop_contraste:'si', fop_shunt_reposo:'si',
+                     ete_cia_tipo:'secundum' })
+    };
+    const gf = {}; Object.keys(F).forEach((k) => { gf[k] = _claveDe(fopConclusion)(F[k]); });
+    const RF = _labCCResumen(Object.keys(F).map((k) => F[k]), 'fop');
+    let sumaF = 0; Object.keys(RF.cond).forEach((k) => { sumaF += RF.cond[k]; });
+
+    /* La rama 'descartado' del clasificador es inalcanzable desde el Laboratorio: el predicado
+       de la seccion pide tunel, excursion o burbujas, y la rama pide los tres vacios. Se
+       comprueba que el clasificador SI la produce y que el motor NUNCA la cuenta. */
+    const desc = _claveDe(fopConclusion)(mk({ fop_contraste:'si', fop_shunt_reposo:'no', fop_shunt_valsalva:'no' }));
+    const descEnSeccion = _labCCResumen([mk({ fop_contraste:'si', fop_shunt_reposo:'no', fop_shunt_valsalva:'no' })], 'fop').n;
+    const descEnTabla = FOP_CONDUCTAS.some((f) => f.k === 'descartado');
+
+    const ordenOk = CC_ORDEN.every((k) => !!CC_FICHAS[k]) &&
+                    Object.keys(CC_FICHAS).every((k) => CC_ORDEN.indexOf(k) > -1);
+
+    return { extra: [
+      ['VAP: el shunt invertido contraindica pese a HTP en no', gv.eisen === 'eisenmenger', gv.eisen],
+      ['VAP: y le gana tambien al valor fuera de rango',        gv.eisenFu === 'eisenmenger', gv.eisenFu],
+      ['VAP: el shunt bidireccional es HTP',                    gv.htpBi === 'htp', gv.htpBi],
+      ['VAP: la HTP declarada es HTP',                          gv.htpSi === 'htp', gv.htpSi],
+      ['VAP: sin evaluar la HTP no se indica el cierre',        gv.noEval === 'htp_no_eval', gv.noEval],
+      ['VAP: "no evaluada" tampoco habilita el cierre',         gv.noEval2 === 'htp_no_eval', gv.noEval2],
+      ['VAP: con HTP descartada el cierre esta indicado',       gv.cierre === 'cierre', gv.cierre],
+      ['VAP: el diametro fuera de banda corta',                 gv.fuera === 'no_interpretable', gv.fuera],
+      ['VAP: la cascada es exhaustiva',                         sumaV === RV.condN, sumaV + ' vs ' + RV.condN],
+      ['VAP: con dos shunts el estudio SIGUE en el Bloque D',   RV.fuera === 0 && RV.condN === RV.n, 'fuera=' + RV.fuera + ' condN=' + RV.condN + ' n=' + RV.n],
+      ['VAP: pero su Qp/Qs no se atribuye a la ventana',        _ccQpQsAtrib(V.conDap, 'vap') === null, String(_ccQpQsAtrib(V.conDap, 'vap'))],
+      ['VAP: ninguna clave queda fuera de la tabla',            RV.otras === 0, String(RV.otras)],
+
+      ['FOP: ACV criptogenico bajo 60 es Clase IIa',            gf.iia === 'cierre_iia', gf.iia],
+      ['FOP: a los 60 o mas la indicacion no esta establecida', gf.mayor === 'acv_mayor', gf.mayor],
+      ['FOP: sin la edad se reclama el dato, no se indica',     gf.sinEdad === 'acv_sin_edad', gf.sinEdad],
+      ['FOP: la trombofilia tiene rama propia',                 gf.trombo === 'trombofilia', gf.trombo],
+      ['FOP: alto riesgo sin evento no indica cierre',          gf.altoSin === 'alto_riesgo_sin_evento', gf.altoSin],
+      ['FOP: sin el contexto clinico se dice que no consta',    gf.sinCtx === 'sin_contexto', gf.sinCtx],
+      ['FOP: sin ACV ni alto riesgo es incidental',             gf.incid === 'incidental', gf.incid],
+      ['FOP: la excursion fuera de banda corta',                gf.noInterp === 'no_interpretable', gf.noInterp],
+      ['FOP: la cascada es exhaustiva',                         sumaF === RF.condN, sumaF + ' vs ' + RF.condN],
+      ['FOP: con una CIA ademas NO se pierde del denominador',  RF.fuera === 0 && RF.condN === RF.n, 'fuera=' + RF.fuera + ' condN=' + RF.condN + ' n=' + RF.n],
+      ['FOP: ninguna clave queda fuera de la tabla',            RF.otras === 0, String(RF.otras)],
+      ['FOP: el aneurisma marcado y el medido cuentan igual',   gf.asaSi === 'alto_riesgo_sin_evento' && gf.asaMm === 'alto_riesgo_sin_evento', gf.asaSi + ' / ' + gf.asaMm],
+      ['FOP: el aneurisma tiene denominador propio (3 de 12)',  RF.props.asa.de === 3 && RF.props.asa.n === 2, JSON.stringify(RF.props.asa)],
+      ['FOP: la excursion ilegible NO cuenta como sin aneurisma', RF.props.asa.de < RF.n, 'de=' + RF.props.asa.de + ' n=' + RF.n],
+      ['FOP: el ACV tambien, y excluye al que no consta',       RF.props.acv.de === RF.n - 1, JSON.stringify(RF.props.acv)],
+
+      ['el clasificador SI produce la clave descartado',        desc === 'descartado', String(desc)],
+      ['pero ese estudio no entra a la seccion del FOP',        descEnSeccion === 0, String(descEnSeccion)],
+      ['asi que la tabla NO lista esa fila',                    descEnTabla === false, String(descEnTabla)],
+
+      ['CC_ORDEN y CC_FICHAS coinciden en las dos direcciones', ordenOk === true, CC_ORDEN.join(',') + ' | ' + Object.keys(CC_FICHAS).join(',')],
+      ['VAP y FOP estan en el orden',                           CC_ORDEN.indexOf('vap') > -1 && CC_ORDEN.indexOf('fop') > -1, CC_ORDEN.join(',')]
     ] };
   })();
 `);

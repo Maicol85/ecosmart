@@ -29767,7 +29767,12 @@ function vapConclusion(src){
   const hayDato = !!(tipo || dir || (htp && htp !== 'no_eval') || diamRaw != null);
   if (!hayDato) return null;
   const diam = banda(diamRaw, 1, 40, 'diámetro');
-  const q = ccQpQsDe('vap');
+  /* Acá vivía `const q = ccQpQsDe('vap')`, sin `src` y sin un solo uso: ninguna rama de abajo lo
+     mira. Era una lectura MUERTA del formulario dentro de una función que ya acepta un estudio
+     guardado — justo la trampa que este archivo pagó con `coaGmax()`/`coaNV()`, donde los
+     selects salían del estudio y el gradiente de la pantalla. Como `q` no votaba, no hubo
+     resultado contaminado; lo que había era la mecha puesta para el próximo que agregue una rama
+     por Qp/Qs y la escriba sobre el paciente equivocado. Si hace falta, se pide con `src`. */
   /* Eisenmenger primero. El shunt invertido es evidencia PROPIA de la ventana —el flujo pasa
      por ella—, así que no hace falta que además esté marcada la HTP: un flujo de derecha a
      izquierda a través de una comunicación sistémico-pulmonar ya significa que la resistencia
@@ -52824,8 +52829,11 @@ function _ccShuntGruposDe(i) {
 }
 /* Y la atribución, por `ccQpQsDe` — la MISMA negativa que aplica el informe firmado cuando hay
    más de un cortocircuito documentado. Era una reimplementación; ahora es una delegación. */
-function _ccQpQsAtrib(i) {
-  return (typeof ccQpQsDe === 'function') ? ccQpQsDe('cia', (i && i.campos) || {}) : null;
+/* `cual` por defecto 'cia' para no tocar a los dos llamadores que ya existían. CIA y CIV mapean
+   al MISMO grupo ('shunt') dentro de `ccQpQsDe`, así que pasar una u otra da idéntico resultado;
+   'vap' y 'dap' son grupos propios y sí cambian la negativa. */
+function _ccQpQsAtrib(i, cual) {
+  return (typeof ccQpQsDe === 'function') ? ccQpQsDe(cual || 'cia', (i && i.campos) || {}) : null;
 }
 /* Borde MÍNIMO de la CIA en un estudio guardado. Recorre `_CIA_BORDES`, la misma lista de cinco
    que usa `eteCiaBordeMin()` en pantalla. El mínimo es el que manda: un dispositivo se suelta
@@ -52977,6 +52985,50 @@ const DAP_TIPOS_LBL = { silente:'Silente', restrictivo:'Restrictivo (pequeno)', 
 const COA_TIPOS_LBL = { nativa:'Coartacion nativa', recoartacion:'Recoartacion post-intervencion',
                         post_stent:'Post-stent', post_cirugia:'Post-cirugia' };
 
+/* ── VAP · ventana aortopulmonar ──
+   El orden de las filas es el de la CASCADA de `vapConclusion`, y ahi la contraindicacion se
+   evalua PRIMERO: en la ventana el cierre esta indicado siempre EXCEPTO con fisiologia de
+   Eisenmenger, asi que la unica rama peligrosa es la que afirma. `htp_no_eval` no es relleno:
+   es una fila con contenido clinico —la indicacion no se puede establecer sin descartar el
+   Eisenmenger— y por eso se lista en vez de caer en «no clasificable». */
+const VAP_CONDUCTAS = [
+  { k:'eisenmenger',      lbl:'Cierre contraindicado',      crit:'Shunt derecha a izquierda - fisiologia de Eisenmenger (ESC 2020 GUCH)' },
+  { k:'htp',              lbl:'Con hipertension pulmonar',  crit:'Shunt bidireccional o HTP declarada: evaluar resistencias y vasorreactividad; la operabilidad no se define por ecocardiografia (ESC 2020)' },
+  { k:'htp_no_eval',      lbl:'HTP no evaluada',            crit:'Sin descartar la fisiologia de Eisenmenger la indicacion de cierre no puede establecerse' },
+  { k:'cierre',           lbl:'Cierre indicado',            crit:'Sin hipertension pulmonar establecida (ESC 2020 GUCH)' },
+  { k:'no_interpretable', lbl:'No interpretable',           crit:'Algun valor fuera de rango: revisar unidades antes de concluir' },
+  { k:'nc',               lbl:'No clasificable',            crit:'El clasificador no devolvio una conclusion para este estudio' }
+];
+/* ── FOP · foramen oval permeable ──
+   Diez filas porque el clasificador tiene diez ramas, y NINGUNA se funde: la diferencia entre
+   `acv_sin_edad` y `cierre_iia` es exactamente el dato del que depende la indicacion, y
+   `sin_contexto` frente a `incidental` es la diferencia entre «no consta» y «descartado».
+   Colapsarlas para que la tabla entre en menos renglones borraria las salvedades. */
+const FOP_CONDUCTAS = [
+  { k:'cierre_iia',             lbl:'Cierre percutaneo - Clase IIa', crit:'ACV criptogenico en menor de 60 anos, tras evaluacion conjunta con neurologia (ESC)' },
+  { k:'acv_mayor',              lbl:'ACV criptogenico - 60 anos o mas', crit:'La indicacion ESC esta establecida por debajo de los 60: decision individual en equipo con neurologia' },
+  { k:'acv_sin_edad',           lbl:'ACV criptogenico sin edad cargada', crit:'Falta la edad, que es de lo que depende la indicacion - completar' },
+  { k:'trombofilia',            lbl:'Trombofilia conocida',       crit:'La conducta antitrombotica la define hematologia; el cierre no sustituye a la anticoagulacion' },
+  { k:'alto_riesgo_sin_evento', lbl:'Alto riesgo embolico sin evento', crit:'Aneurisma del septum o shunt severo sin evento: sin indicacion en prevencion primaria - seguimiento' },
+  { k:'sin_contexto',           lbl:'Sin contexto clinico',       crit:'No consta el ACV criptogenico ni la edad: la conducta depende de ellos' },
+  { k:'sin_contraste',          lbl:'Shunt no interrogado',       crit:'Sin estudio con burbujas y Valsalva solo se documento la anatomia - completar' },
+  { k:'incidental',             lbl:'Hallazgo incidental',        crit:'Sin ACV criptogenico ni caracteristicas de alto riesgo - sin indicacion de cierre' },
+  /* La rama `descartado` del clasificador NO se lista, y no es un olvido: es INALCANZABLE desde
+     el Laboratorio. La seccion se cuenta por `fop_tunel`, `fop_asa_mm` o `fop_burbujas`, y
+     `descartado` exige que los tres esten vacios —contraste negativo sin anatomia—, asi que
+     ningun estudio puede cumplir el predicado de pertenencia Y esa rama a la vez. Una fila
+     «FOP descartado: 0 (0%)» afirmaria que se conto y que a nadie le dio, cuando lo cierto es
+     que esos estudios nunca entran al denominador. Si algun dia entrara uno, cae en el contador
+     `otras`, que el pie declara -- que es justamente para lo que existe. */
+  { k:'no_interpretable',       lbl:'No interpretable',           crit:'Algun valor fuera de rango: revisar unidades antes de concluir' },
+  { k:'nc',                     lbl:'No clasificable',            crit:'El clasificador no devolvio una conclusion para este estudio' }
+];
+const VAP_TIPOS_LBL = { i:'Tipo I (proximal)', ii:'Tipo II (distal)', iii:'Tipo III (total)' };
+/* El FOP no tiene campo de «tipo»: no hay una clasificacion anatomica en la seccion. Lo que se
+   distribuye es el GRADO DE SHUNT por burbujas, que es la variable que describe el hallazgo y la
+   que entra en la definicion de alto riesgo embolico. El rotulo del bloque lo dice. */
+const FOP_TIPOS_LBL = { pocas:'Pocas burbujas (<5)', moderado:'Moderado (5-20)', abundante:'Abundante (>20)' };
+
 const _mQpQs = { k:'qs',   lbl:'Qp/Qs promedio',  get:_ccQpQs, dec:2, suf:'' };
 const _mPsap = { k:'psap', lbl:'PSAP promedio',   get:i => _labNum(i, 'psap_calc', 'psap'), dec:0, suf:' mmHg' };
 const _pDilVi = { k:'dilVi', lbl:'Con dilatacion del VI', get:i => { const d = _ccDdviIdx(i); return d === null ? null : d > 32; } };
@@ -53011,8 +53063,70 @@ const CC_FICHAS = Object.assign(Object.create(null), {
     conductas:COA_CONDUCTAS, clasif:_claveDe(coaConclusion), soloShuntUnico:false,
     /* TC-113: la indicacion de la coartacion sale del pico-pico INVASIVO, no del Doppler. Por eso
        significativa / no_significativa son filas propias y no se funden con las clases ESC. */
-    pie:'La indicacion de intervencion sale del gradiente pico-pico INVASIVO, no del Doppler: las filas de significacion por Doppler describen el estudio y no equivalen a una clase de indicacion. El gradiente Doppler sobreestima con colaterales extensas.' }
+    pie:'La indicacion de intervencion sale del gradiente pico-pico INVASIVO, no del Doppler: las filas de significacion por Doppler describen el estudio y no equivalen a una clase de indicacion. El gradiente Doppler sobreestima con colaterales extensas.' },
+  vap: { tit:'Ventana aortopulmonar (VAP)', titAcc:'Ventana aortopulmonar (VAP)',
+    tipoCampo:'vap_tipo', tipos:VAP_TIPOS_LBL, tamCampo:'vap_diam', tamLbl:'Diametro promedio',
+    /* Qp/Qs ATRIBUIDO a la ventana, no el cociente global: con otro cortocircuito documentado
+       `ccQpQsDe` devuelve null, que es la misma negativa que aplica el informe firmado. La PAPs
+       sale de `psap_calc` y NO de `vap_paps_ro`, que es un espejo de solo lectura de la PAPs del
+       estudio —no un campo propio— y por eso ni siquiera se guarda. */
+    metricas:[ { k:'qs', lbl:'Qp/Qs promedio (atribuido)', get:i => _ccQpQsAtrib(i, 'vap'), dec:2, suf:'' }, _mPsap ],
+    props:[_pDilVi, _pDilVd],
+    conductas:VAP_CONDUCTAS, clasif:_claveDe(vapConclusion),
+    /* false, como la coartacion: el criterio de la ventana es la DIRECCION del shunt y la HTP,
+       no un cociente de flujos. Excluir del denominador a los que tienen mas de un shunt
+       descartaria estudios por una razon que esta rama no usa. La atribucion del Qp/Qs ya se
+       aplica donde corresponde —en la metrica del bloque C—, que es el unico lugar donde el
+       cociente se publica. */
+    soloShuntUnico:false,
+    pie:'En la ventana aortopulmonar el cierre esta indicado siempre EXCEPTO con fisiologia de Eisenmenger, asi que la contraindicacion se evalua primero y la rama que afirma exige que la hipertension pulmonar haya sido evaluada de forma explicita. El Qp/Qs se muestra solo cuando la ventana es el unico cortocircuito documentado.' },
+  fop: { tit:'Foramen oval permeable (FOP)', titAcc:'Foramen oval permeable (FOP)',
+    /* No hay campo de tipo: lo que se distribuye es el GRADO DE SHUNT por burbujas. `tipoTit`
+       cambia el rotulo del bloque B en las dos superficies para que no diga «tipo» sobre algo
+       que no lo es. */
+    tipoCampo:'fop_burbujas', tipos:FOP_TIPOS_LBL, tipoTit:'Distribucion por grado de shunt',
+    tamCampo:'fop_tunel', tamLbl:'Longitud del tunel',
+    metricas:[ { k:'asa', lbl:'Excursion del aneurisma', get:i => { const x = _labNum(i, 'fop_asa_mm'); return (x !== null && x >= 2 && x <= 40) ? x : null; }, dec:1, suf:' mm' } ],
+    props:[ { k:'asa', lbl:'Con aneurisma del septum', get:i => { const s = _labCampoRaw(i, 'fop_asa');
+                const mm = _labNum(i, 'fop_asa_mm');
+                /* Misma regla que `fopConclusion`: si el medico marco «si» se le cree, y si
+                   midio manda la medida (>=10 mm). «No evaluado» no es «no» — devuelve null y
+                   sale del denominador, que es de lo que se trata tener uno propio. */
+                if (s === 'si' || (mm !== null && mm >= 10 && mm <= 40)) return true;
+                if (s === 'no') return false;
+                return null; } },
+            { k:'acv', lbl:'Con ACV criptogenico', get:i => { const x = _labCampoRaw(i, 'fop_acv');
+                return (x === 'si') ? true : (x === 'no' ? false : null); } } ],
+    conductas:FOP_CONDUCTAS, clasif:_claveDe(fopConclusion),
+    /* false, y NO por la misma razon que la ventana: el FOP esta deliberadamente FUERA de
+       `CC_SHUNTS` —es un shunt fisiologico presente en el 25 % de la poblacion— asi que
+       `_ccShuntGruposDe` nunca lo nombra y con true el denominador de esta tabla seria cero en
+       todo estudio que tenga ademas una CIA. */
+    soloShuntUnico:false,
+    /* El pie NO puede decir "se cuenta como FOP descartado": esos estudios no entran a esta
+       seccion --el predicado pide tunel, excursion o burbujas, y esa rama exige los tres
+       vacios--, asi que quedan fuera del denominador entero. Decir que se cuentan seria
+       describir una fila que la tabla no tiene y un recuento que no ocurre. */
+    pie:'La conducta del FOP la decide el CONTEXTO CLINICO —ACV criptogenico y edad—, no la anatomia: por eso las filas «sin contexto» y «sin edad» no son relleno sino el aviso de que falta el dato del que depende la indicacion. Los estudios en los que el foramen quedo DESCARTADO —contraste negativo y sin hallazgo anatomico— no entran a esta seccion: no aportan al denominador ni figuran como una conducta.' }
 });
+
+/* El ORDEN de las secciones, en un solo lugar. `Object.keys(CC_FICHAS)` daría el mismo resultado
+   hoy, pero deja el orden del PDF y del PPT a merced de dónde se pegue la próxima ficha — y la
+   ficha se agrega pensando en el criterio clínico, no en el índice del informe. Escrito una vez
+   y leído por las DOS superficies: con una copia por superficie, agregar una CC y olvidarse de
+   una lista produce una sección que está en el PDF y no en el PPT, que es exactamente lo que la
+   regla «PDF >= PPT» prohíbe y lo que nadie ve hasta que falta. */
+const CC_ORDEN = ['cia', 'civ', 'dap', 'vap', 'coa', 'fop'];
+/* Assert de arranque: toda clave del orden tiene ficha, y toda ficha está en el orden. Sin esto,
+   una ficha nueva sin su entrada acá no da error — da una sección que simplemente no se imprime,
+   y el modo de falla es el silencio. */
+(function () {
+  const F = Object.keys(CC_FICHAS);
+  const falta = F.filter(k => CC_ORDEN.indexOf(k) < 0);
+  const sobra = CC_ORDEN.filter(k => !CC_FICHAS[k]);
+  if (falta.length || sobra.length)
+    console.error('[CC_ORDEN] fichas sin orden:', falta, '· orden sin ficha:', sobra);
+})();
 
 /* Un solo cuerpo para todas las fichas. `k` es la clave de `CC_FICHAS`. */
 function _labCCResumen(infs, k) {
@@ -53042,6 +53156,23 @@ function _labCCResumen(infs, k) {
     props[pp.k] = vs.length ? { lbl:pp.lbl, n:vs.filter(x => x === true).length, de:vs.length } : { lbl:pp.lbl, n:0, de:0 };
   });
   // ── D · conducta, por el clasificador que firma el informe individual ──
+  /* OPCIONAL, y por eso sale por su propio `return`. No todas las cardiopatías tienen una
+     conducta que publicar: `eisenEstado` y `fontanEstado` devuelven ALERTAS y un plan de
+     seguimiento, no una clave de conducta, y los seis clasificadores que todavía leen el DOM no
+     se pueden correr sobre un estudio guardado. Sin ficha de conductas la sección sale igual con
+     los bloques A, B y C —que son datos reales— y `cond` vuelve null para que las dos
+     superficies omitan la tabla. Lo que NO puede pasar es rellenar el hueco con un criterio
+     escrito acá: sería una conducta terapéutica que el informe individual no afirma. */
+  if (!cfg.conductas || !cfg.clasif) {
+    return {
+      k: k, cfg: cfg,
+      n: arr.length, nF: nF, nM: sexos.length - nF, sexN: sexos.length,
+      edad: _prom(edades), edadDs: _ds(edades),
+      tipos: tipos, tam: _prom(tam), tamDs: _ds(tam),
+      metr: metr, props: props,
+      cond: null, condN: 0, fuera: 0, otras: 0
+    };
+  }
   const cond = Object.create(null);
   cfg.conductas.forEach(f => { cond[f.k] = 0; });
   let fuera = 0, otras = 0;
@@ -54856,7 +54987,7 @@ async function _labPPTGenerar(infs, o) {
        la regla «PDF ≥ PPT» sólo se sostiene si las dos superficies leen el mismo objeto.
        La lista de claves es la de la tabla: agregar una CC es agregar una ficha, no una hoja. */
     if (G('ccestr')) {
-      for (const _k of ['cia', 'civ', 'dap', 'coa']) {
+      for (const _k of CC_ORDEN) {
         const R = _labCCResumen(infs, _k);
         if (!R) continue;
         const CF = R.cfg;
@@ -54887,15 +55018,24 @@ async function _labPPTGenerar(infs, o) {
         let y2 = 1.62;
         celdas.slice(0, 4).forEach((c, ix) => dato(s2, X[ix], y2, c[0], c[1], 15, WD));
         const tf = Object.keys(R.tipos).map(t => ({ lbl: _lblDe(CF.tipos, t), n: R.tipos[t] }));
-        if (!gBarras(s2, tf, { x:0.4, y:2.32, w:4.0, h:1.9 }, 'Distribución por tipo'))
-          s2.addText(T('Ningún estudio con el tipo consignado.'),
-            { x:0.4, y:2.9, w:4.0, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
+        /* `tipoTit` cuando la ficha no distribuye un «tipo»: el FOP no tiene clasificación
+           anatómica y lo que se cuenta es el grado de shunt por burbujas. Rotularlo «por tipo»
+           sería nombrar una variable que la sección no registra. */
+        const tipoTit = CF.tipoTit || 'Distribución por tipo';
+        /* Sin tabla de conductas la barra ocupa la hoja ENTERA en vez de dejar media diapositiva
+           en blanco al lado de un hueco: el lector de un mazo proyectado lee el blanco como un
+           dato que falta, no como una sección que no aplica. */
+        const _anchoTf = R.cond ? 4.0 : (W - 0.8);
+        if (!gBarras(s2, tf, { x:0.4, y:2.32, w:_anchoTf, h:1.9 }, tipoTit))
+          s2.addText(T('Ningún estudio con el dato consignado.'),
+            { x:0.4, y:2.9, w:_anchoTf, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
         /* El bloque de conductas va como TEXTO y no como barras: el criterio y la guía tienen que
            verse debajo de cada fila. Una barra rotulada «Cierre percutáneo 40 %» proyectada en
            una sala es una indicación terapéutica sin su criterio al lado.
            Con más de seis filas —la coartación tiene diez— el paso se achica para que entren sin
            pisar el pie, en vez de truncar la lista: una conducta que no se muestra desaparece del
            denominador visible y el resto de los porcentajes deja de sumar. */
+        if (R.cond) {
         const NF = CF.conductas.length;
         const PASO = NF <= 6 ? 0.32 : Math.max(0.185, 1.92 / NF);
         s2.addText(T('Orientación terapéutica  ·  n = ' + R.condN
@@ -54914,13 +55054,18 @@ async function _labPPTGenerar(infs, o) {
             { x:4.7, y:yd + PASO * 0.52, w:5.0, h:PASO * 0.48, fontSize: NF <= 6 ? 7.5 : 6, italic:true, color:C.txt2, fontFace:FONT });
           yd += PASO;
         });
+        }
         s2.addText(T(CF.pie),
-          { x:0.4, y:4.30, w:4.0, h:0.44, fontSize:7.5, italic:true, color:C.txt2, fontFace:FONT, valign:'top' });
+          { x:0.4, y:4.30, w: R.cond ? 4.0 : (W - 0.8), h:0.44, fontSize:7.5, italic:true, color:C.txt2, fontFace:FONT, valign:'top' });
+        /* El encuadre «sugerencia orientativa» va SOLO con tabla de conductas. Sin ella la hoja
+           no publica ninguna sugerencia, y firmar un descargo sobre algo que no se dijo hace
+           creer al lector que en algún lado hubo una recomendación. */
         /* Mismo slot, mismo cuerpo y mismo rojo que el disclaimer de las hojas de amiloidosis y
            cardio-oncología: en un mazo proyectado, dos advertencias del mismo peso con formatos
            distintos se leen como si una fuera menos importante. */
-        s2.addText(T('Sugerencia orientativa según guías ESC/AHA — no reemplaza el juicio clínico del médico.'),
-          { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.rojo, fontFace:FONT });
+        if (R.cond)
+          s2.addText(T('Sugerencia orientativa según guías ESC/AHA — no reemplaza el juicio clínico del médico.'),
+            { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.rojo, fontFace:FONT });
       }
     }
 
@@ -57568,7 +57713,7 @@ async function labGenerarPDF() {
        "PDF >= PPT" no se cumple comparando dos textos parecidos: se cumple leyendo el mismo
        objeto. Lo que el PDF agrega es la tabla a tres columnas, con el criterio y su guia al
        lado de cada conducta en vez de abreviados al pie. */
-    for (const _k of ['cia', 'civ', 'dap', 'coa']) {
+    for (const _k of CC_ORDEN) {
       const R = _labCCResumen(infs, _k);
       if (!R || !R.n) continue;                // seccion condicional: solo con >=1 caso
       const CF = R.cfg;
@@ -57599,13 +57744,26 @@ async function labGenerarPDF() {
          ultima -- o no se lee. Mismo criterio que `avisoN` en la diapositiva. */
       if (R.n < 3) filas.unshift(['COHORTE INSUFICIENTE para lectura estadistica', 'n = ' + R.n]);
       const tipoEnt = Object.keys(R.tipos).map(t => [_lblDe(CF.tipos, t), R.tipos[t]]);
-      tipoEnt.forEach(([l, c]) => filas.push(['Tipo: ' + l, c + ' (' + pct(c, R.n) + ')']));
+      /* El prefijo sale de la ficha: el FOP no distribuye un «tipo» sino el grado de shunt por
+         burbujas, y una fila «Tipo: Abundante (>20)» nombra una clasificacion anatomica que esta
+         seccion no registra. Mismo dato que `tipoTit` en la diapositiva. */
+      const tipoPref = CF.tipoTit ? 'Grado de shunt: ' : 'Tipo: ';
+      tipoEnt.forEach(([l, c]) => filas.push([tipoPref + l, c + ' (' + pct(c, R.n) + ')']));
       await sectionChart(CF.tit, ['Indicador', 'Valor'], filas,
         tipoEnt.length ? { labels: tipoEnt.map(t => t[0]), values: tipoEnt.map(t => t[1]),
                            colors: ['#4f8ef7', '#3ecf8e', '#f5c842', '#f0a500', '#8a5fd4'], type: 'pie' } : null);
       /* Tabla a TRES columnas: `sectionChart` cablea dos anchos, y el criterio con su guia no
          entra en el rotulo de la conducta sin abreviarlo justo donde importa. Se dibuja directo
          con `drawTable`, que acepta cualquier cantidad de columnas. */
+      /* Sin clasificador corrible sobre un estudio guardado NO hay tabla de conductas, y la
+         seccion sale con los bloques A, B y C. La alternativa —una tabla con las conductas en
+         cero— seria peor que no tenerla: un «Cierre indicado: 0 (0%)» afirma que se evaluo el
+         criterio y que ningun paciente lo cumple, cuando lo que pasa es que nadie lo evaluo.
+         El pie de la ficha dice por que falta. */
+      if (!R.cond) {
+        _nota(CF.pie);
+        continue;
+      }
       sectionTitle(CF.tit + ' - orientacion terapeutica - SUGERENCIA ORIENTATIVA, NO RECOMENDACION');
       drawTable(M, [44, 110, 26], ['Conducta', 'Criterio (guia y ano)', 'n (%)'],
         CF.conductas.map(f => [f.lbl, f.crit, (R.cond[f.k] || 0) + ' (' + pct(R.cond[f.k] || 0, R.condN) + ')']));
@@ -58654,8 +58812,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260919-0602';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789808566364;                 /* eco-build-ms */
+const ECO_BUILD    = '20260919-0727';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789813621491;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -58741,7 +58899,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-0602</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-0727</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

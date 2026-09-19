@@ -4239,6 +4239,147 @@ alta, porque los casos se escribieron eligiendo los cortes, no los campos.
    taquicardia ventricular, historia clínica, frases rápidas, segmentos del ETE, pre-TAVI,
    panel de indicaciones (`_IG_SECTIONS`), DICOM e imágenes en IndexedDB.
 
+## VAP y FOP en el Laboratorio — y por qué las otras ocho CC no son «lo mismo otra vez»
+
+Se agregaron **dos fichas**: ventana aortopulmonar y foramen oval. Las dos completas —bloques A,
+B, C y D— porque `vapConclusion(src)` y `fopConclusion(src)` ya aceptaban un estudio guardado.
+Con eso el Laboratorio pasa de cuatro cardiopatías a seis. **No** se agregaron las otras ocho, y
+la razón no es falta de tiempo: son tres problemas distintos que el pedido trata como uno solo.
+
+### El pedido dice «ocho CC restantes» y en realidad son tres grupos
+
+1. **Dos que NO tienen conducta que publicar.** `eisenEstado` y `fontanEstado` no devuelven una
+   clave de conducta: devuelven **alertas** (embarazo contraindicado, síncope, hemoptisis) y un
+   plan de seguimiento. No hay cascada terapéutica que contar. Inventarle una tabla de conductas
+   sería escribir un criterio que el informe individual no afirma — que es exactamente lo que la
+   regla crítica del pedido prohíbe. Además **ya están representadas**: la diapositiva 11 del PPT
+   les da su bloque con NYHA y saturación promedio.
+2. **Seis que necesitan un refactor, no una ficha.** `vabConclusion`, `mchConclusion`,
+   `mcaConclusion`, `ebsConclusion`, `tdfConclusion` y `tgaConclusion` leen el DOM. No
+   directamente —eso sería un shim de dos líneas— sino a través de sus helpers: `_mchSv`/`_mchNv`,
+   `_mcaSv`/`_mcaNv`, `_tvSv`/`_tvNv`, `_ebsSv`/`_ebsNv`, `_tdfSv`/`_tdfNv`, `_tgaSv`/`_tgaNv`,
+   más `mchExclusiones()` (45 L), `vabFactores()` (46 L), `getBSA()` y `calcVP()` (84 L).
+   Medido con cierre transitivo, no leyendo la primera línea de cada función.
+3. **Los dos que sí se hicieron.**
+
+### El motor ahora admite una CC sin Bloque D
+`_labCCResumen` devuelve `cond: null` cuando la ficha no trae `clasif`/`conductas`, y las dos
+superficies omiten la tabla. La alternativa era peor que no tenerla: **una tabla con todas las
+conductas en cero afirma que se evaluó el criterio y que ningún paciente lo cumple**, cuando lo
+que pasa es que nadie lo evaluó. En el PPT la barra de distribución pasa a ocupar la hoja entera
+—media diapositiva en blanco al lado de un hueco se lee como un dato que falta— y el encuadre
+«sugerencia orientativa» **no** se imprime: firmar un descargo sobre algo que no se dijo hace
+creer que en algún lado hubo una recomendación.
+
+### Una fila que no podía existir: `FOP descartado`
+La tabla del FOP tenía once filas, una por rama del clasificador. Una de ellas es **inalcanzable
+desde el Laboratorio** y se sacó. `_CC_SECS` cuenta la sección por `fop_tunel`, `fop_asa_mm` o
+`fop_burbujas`; la rama `descartado` exige que los tres estén vacíos (contraste negativo sin
+anatomía). **Ningún estudio puede cumplir el predicado de pertenencia y esa rama a la vez.** Un
+«FOP descartado: 0 (0%)» impreso en el PDF afirma que se contó y que a nadie le dio — y lo cierto
+es que esos estudios nunca entran al denominador. Si alguna vez entrara uno cae en `otras`, que
+el pie declara. TC-173 fija las tres mitades: que el clasificador **sí** produce la clave, que el
+estudio **no** entra a la sección, y que la tabla **no** lista la fila.
+
+No se ensanchó el predicado para incluirlos: traería al denominador «Estudios con FOP» a
+pacientes en los que el FOP fue **descartado**.
+
+### Una lectura muerta del formulario dentro de un clasificador source-aware
+`vapConclusion` tenía `const q = ccQpQsDe('vap')` — sin `src` y **sin un solo uso**. Ninguna rama
+lo mira. Como no votaba no hubo resultado contaminado; lo que había era la mecha puesta para el
+próximo que agregue una rama por Qp/Qs y la escriba sobre el paciente de la pantalla en vez del
+del estudio. Es el mismo defecto que este archivo ya pagó con `coaGmax()`/`coaNV()`, sólo que
+detenido antes de costar algo. Se borró.
+
+### `soloShuntUnico:false` en las dos, por razones DISTINTAS
+- **VAP:** su criterio es la **dirección** del shunt y la HTP, no un cociente de flujos. Excluir
+  del denominador a los que tienen más de un shunt descartaría estudios por una razón que esa
+  rama no usa. La atribución del Qp/Qs se aplica donde sí corresponde: en la métrica del bloque C,
+  vía `_ccQpQsAtrib(i, 'vap')` — que ahora toma la CC como parámetro.
+- **FOP:** está **deliberadamente fuera de `CC_SHUNTS`** (es un shunt fisiológico del 25 % de la
+  población, y contarlo apagaría el Qp/Qs de la CIA en uno de cada cuatro pacientes). Por eso
+  `_ccShuntGruposDe` nunca lo nombra, y con `true` el denominador sería **cero en todo estudio que
+  además tenga una CIA**. Confirmado por mutación: el caso pasa a `fuera=1`.
+
+Poner el mismo valor por el mismo motivo habría sido la conclusión cómoda y equivocada.
+
+### `CC_ORDEN` con assert de arranque
+El orden de las secciones estaba escrito como literal `['cia','civ','dap','coa']` **en las dos
+superficies**. Ahora es una constante leída por las dos, con un assert que compara contra
+`Object.keys(CC_FICHAS)` en las **dos direcciones**. Sin él, una ficha nueva sin entrada en el
+orden no da error: da una sección que simplemente no se imprime — y una que está en el PDF y no en
+el PPT viola «PDF ≥ PPT» sin que nada lo delate.
+
+### El FOP no distribuye un «tipo»
+No hay clasificación anatómica en la sección. Lo que se distribuye es el **grado de shunt por
+burbujas**. `tipoTit` cambia el rótulo en las dos superficies; el PDF prefija `Grado de shunt:` en
+vez de `Tipo:`. Rotularlo «tipo» nombraría una variable que la sección no registra.
+
+### La trampa cara: un test que no falla, se cuelga — y una regex que nunca fue lo que decía
+
+Agregar la ventana y el foramen a TC-172 dejó la suite **colgada**. No en rojo: sin una sola
+línea de salida, minutos. El primer diagnóstico —«hay 22 Chrome huérfanos, es la máquina»— era
+falso; con el entorno limpio volvió a colgarse a los 18 minutos.
+
+Tres sondas con `Promise.race` y timeout acotaron el problema hasta descartar lo obvio:
+`labGenerarPDF()` termina bien con los seis estudios, y la extracción de texto también. Lo que
+colgaba estaba **entre medio**, y el motivo resultó ser doble:
+
+**1. La regex nunca estuvo anclada en paréntesis.** El cuerpo de un `caso()` es un **template
+literal**, así que se come los escapes. Lo escrito era:
+
+    const re = /\((.*?)\) ?Tj/g;      // lo que se lee en el fuente
+
+y lo que llegaba a la página era:
+
+    /((.*?)) ?Tj/g                     // sin UN SOLO paréntesis literal
+
+Un grupo vacío seguido de ` ?Tj`. Esta extracción **nunca leyó «la cadena entre paréntesis»**:
+leía desde donde cayera hasta el `Tj` siguiente. Funcionaba de casualidad, porque el texto
+buscado caía igual adentro de lo capturado. Corolario: la regla ya documentada de que «un
+marcador con `(` da cero coincidencias» era cierta **por otro motivo** del que afirmaba su
+comentario.
+
+**2. Sin ancla, el `.*?` lazy es cuadrático sobre el stream de un PDF con PNG embebidos.** El
+costo no está en los matches sino en la **última** llamada a `exec()`: la que ya no encuentra
+nada y recorre cientos de miles de bytes binarios con backtracking. Por eso el síntoma apareció
+recién al crecer el documento —dos secciones y dos gráficas más—, y por eso no se manifestó como
+un test en rojo sino como **una corrida que no vuelve**.
+
+La corrección duplica las barras para que sobrevivan al template y usa una alternancia
+determinista (una rama empieza por barra, la otra la excluye), así que no hay backtracking:
+
+    const re = /\\(((?:\\\\[\\s\\S]|[^()\\\\])*)\\)\\s?Tj/g;
+
+**Las otras dos extracciones del archivo (~8124 y ~8288) sí llevan las barras dobles**, así que
+esas están ancladas de verdad — pero también usan `.*?` lazy, o sea que el riesgo cuadrático
+sigue ahí si sus documentos crecen. Queda anotado, no corregido: no se tocan tests que pasan.
+
+Reglas que deja:
+- **Un test que se cuelga no es un test lento.** No hay timeout por caso: `awaitPromise:true`
+  espera para siempre. Ante una corrida sin salida, sondear con `Promise.race` en vez de esperar.
+- **Una regex dentro de un template literal no es la regex que se lee.** Verificar imprimiendo
+  la cadena resultante antes de creerle al fuente.
+
+### Trampas de esta tanda
+- **El backtick dentro del template literal de un caso, otra vez.** En un comentario que acababa
+  de escribir. Rompe el archivo entero con `missing ) after argument list`.
+- **Un pie que contradecía a su propia tabla.** El `pie` del FOP decía que un estudio con el
+  foramen descartado «se cuenta como FOP descartado» — y acababa de establecerse que esos
+  estudios **no entran a la sección**. Lo cazó la condición que exige que la frase no aparezca en
+  el PDF. El texto se corrigió para decir lo que de verdad pasa: quedan fuera del denominador.
+- **Un denominador vacío que pasaba el test.** La primera versión de TC-173 exigía que
+  `props.asa` tuviera denominador propio y daba `de=0`: **ningún fixture cargaba el aneurisma**.
+  La condición estaba bien escrita y no probaba nada. Se agregaron tres estudios (marcado, medido
+  y negado) y la condición pasó a ser `de===3 && n===2`.
+- **Un fixture que trae el dato no puede probar la rama que lo pide.** `acv_sin_edad` necesitó un
+  constructor propio: el `mk` genérico inyecta `edad` siempre.
+
+Verificado: TC-173 (29 condiciones) más VAP y FOP agregados a TC-172, que genera el **PDF real**.
+Cuatro mutaciones, cada una en rojo donde le toca: FOP a `soloShuntUnico:true`, la
+contraindicación de la VAP dejando de evaluarse primero, la fila inalcanzable reapareciendo, y
+`vap` fuera de `CC_ORDEN`.
+
 ## PPT del estudio individual: la hoja PostCEC que faltaba, y tres premisas del pedido que eran falsas
 
 El pedido describía un PPT de **seis diapositivas** con texto que se corta, fuente demasiado
