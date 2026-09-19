@@ -8644,15 +8644,18 @@ caso('TC-172', 'El encuadre orientativo sale en el PDF, una vez por tabla de con
     const QB = { diam_tsvi:'20', itv_tsvi:'20', tsvd_diametro:'20', vti_tsvd:'21' };
     /* fecha_estudio y NO fecha: _labFiltrarBase filtra por ese campo, y con el otro los estudios
        no llegan al Laboratorio -- el PDF sale de cero paginas y todo da false sobre vacio. */
+    /* FEVI y TAPSE se agregan a los cuatro estudios para que el PDF traiga tambien los pies
+       interpretativos de esas secciones sin generar un segundo documento. Los tres valores dan
+       una distribucion mixta (una conservada, una levemente reducida, dos reducidas). */
     const mk = (id, c) => ({ id:id, fecha:f, fecha_estudio:f, nombre:'P'+id,
       campos: Object.assign({ sexo:'M', edad:'44', peso:'70', talla:'170' }, c) });
     const datos = [
-      mk(1, Object.assign({ ete_cia_tipo:'secundum', ete_cia_dir:'id', vd_bas:'50',
+      mk(1, Object.assign({ fevi:'62', tapse:'22', ete_cia_tipo:'secundum', ete_cia_dir:'id', vd_bas:'50',
                             ete_cia_borde_ao:'8', ete_cia_borde_av:'8', ete_cia_borde_vcs:'8',
                             ete_cia_borde_vci:'8', ete_cia_borde_post:'8' }, QB)),
-      mk(2, Object.assign({ ete_civ_tipo:'muscular', ddfvi:'62' }, QB)),
-      mk(3, Object.assign({ dap_tipo:'no_restrictivo', dap_dir:'id', dap_diam:'6', dap_paps:'52' }, QB)),
-      mk(4, { coa_situacion:'nativa', coa_vmax:'3.6', coa_istmo:'7', coa_ao_desc:'18',
+      mk(2, Object.assign({ fevi:'35', tapse:'15', ete_civ_tipo:'muscular', ddfvi:'62' }, QB)),
+      mk(3, Object.assign({ fevi:'45', tapse:'19', dap_tipo:'no_restrictivo', dap_dir:'id', dap_diam:'6', dap_paps:'52' }, QB)),
+      mk(4, { fevi:'38', tapse:'14', coa_situacion:'nativa', coa_vmax:'3.6', coa_istmo:'7', coa_ao_desc:'18',
               coa_hta:'si', coa_gradiente_picopico:'28' })
     ];
     const origGet = window.getInformes;
@@ -8690,7 +8693,19 @@ caso('TC-172', 'El encuadre orientativo sale en el PDF, una vez por tabla de con
       ['el ductus no inventa conducta donde la app no la publica',
         txt.indexOf('La app describe la repercusion y NO publica conducta') > -1, ''],
       ['el titulo de la seccion tambien lo dice', txt.indexOf('SUGERENCIA ORIENTATIVA') > -1, ''],
-      ['sigue la salvedad metodologica del denominador', txt.indexOf('Denominador de esta tabla') > -1, '']
+      ['sigue la salvedad metodologica del denominador', txt.indexOf('Denominador de esta tabla') > -1, ''],
+      /* PIES INTERPRETATIVOS. Los marcadores NO llevan parentesis: jsPDF los escapa en el content
+         stream y un marcador con '(' da cero sobre un pie que si esta impreso. */
+      ['la seccion de FEVI trae su pie interpretativo',
+        txt.indexOf('Distribucion mixta:') > -1 || txt.indexOf('poblacion ambulatoria de bajo riesgo') > -1
+        || txt.indexOf('cohorte de alto riesgo cardiovascular') > -1, ''],
+      ['la seccion del VD trae su pie interpretativo',
+        txt.indexOf('Disfuncion del VD presente en') > -1 || txt.indexOf('ventricular derecha conservada en la mayoria') > -1
+        || txt.indexOf('TAPSE normal en') > -1, ''],
+      /* El pie no puede afirmar mas que la grafica: la seccion de PSAP declara que la app NO
+         clasifica HTP por PSAP estimada, asi que el pie habla de PSAP, no de hipertension. */
+      ['el pie de PSAP no nombra hipertension pulmonar',
+        txt.indexOf('PSAP estimada por encima de') === -1 || txt.indexOf('hipertension pulmonar en') === -1, '']
     ] };
   })();
 `);

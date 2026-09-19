@@ -56862,6 +56862,38 @@ async function labGenerarPDF() {
   };
 
   // Sección: tabla (izq 55%) + gráfica (der 40%), separación 8pt
+  /* ── PIE INTERPRETATIVO DE UNA GRAFICA ──
+     Una linea, debajo de la grafica y ANTES de cualquier nota metodologica. Mismo estilo que
+     `_nota` del bloque avanzado (italica, 8 pt, gris, ancho completo) pero definido aca arriba
+     porque las secciones 4 a 11 estan fuera de aquel bloque y no lo ven.
+
+     DOS reglas que valen para todos los pies:
+     · Con menos de 3 casos NO se emite. Una frase como «predominio de funcion conservada» sobre
+       dos estudios describe a dos pacientes, no a una poblacion, y en un informe firmado se lee
+       como una caracterizacion del laboratorio.
+     · Los numeros salen de las MISMAS variables que alimentan la tabla y la grafica de arriba.
+       Recalcular desde los informes daria un pie que puede contradecir a la grafica que esta
+       describiendo, que es peor que no tenerlo. */
+  const PIE_MIN = 3;
+  const _pie = (n, txt) => {
+    if (!(n >= PIE_MIN) || !txt) return;
+    ensure(8);
+    doc.setFont('helvetica', 'italic'); doc.setFontSize(8);
+    doc.setTextColor(GRY[0], GRY[1], GRY[2]);
+    doc.text(S(txt), M, y, { maxWidth: CW });
+    doc.setTextColor(0, 0, 0); doc.setFont('helvetica', 'normal');
+    y += 6;
+  };
+  /* Categoria mas frecuente de un {etiqueta: n}. Devuelve null con todo en cero: un «predominio»
+     sobre un conteo vacio nombraria una categoria que nadie midio. El desempate es por el ORDEN
+     de las claves, que en estas secciones es el clinico (normal primero). */
+  const _moda = obj => {
+    let k = null, mx = 0;
+    Object.keys(obj).forEach(x => { if (obj[x] > mx) { mx = obj[x]; k = x; } });
+    return k === null ? null : { k: k, n: mx };
+  };
+  const _pc = (x, d) => d > 0 ? Math.round(x / d * 100) : 0;
+
   const sectionChart = async (title, headers, rows, chart) => {
     let img = null;
     if (chart && chart.labels && chart.labels.length) {
@@ -57106,6 +57138,17 @@ async function labGenerarPDF() {
        ['Moderadamente reducida (30-39%)', _labCel(feviN[2], ft)],
        ['Severamente reducida (<30%)', _labCel(feviN[3], ft)]],
       { labels: ['Normal (≥50)', 'Leve (40-49)', 'Moderada (30-39)', 'Severa (<30)'], values: feviN, colors: ['#3ecf8e', '#f5c842', '#f0a500', '#f05454'] });
+    /* «Reducida» es < 40 % —moderada mas severa— y NO todo lo que baja de 50: la propia tabla de
+       arriba separa «levemente reducida» como banda propia, y fundirlas aca haria que el pie y la
+       grafica cuenten distinto sobre la misma cohorte. */
+    (function () {
+      const cons = _pc(feviN[0], ft), leve = _pc(feviN[1], ft), red = _pc(feviN[2] + feviN[3], ft);
+      let t;
+      if (cons > 60)     t = 'Predominio de funcion sistolica conservada (' + cons + '%) - compatible con poblacion ambulatoria de bajo riesgo.';
+      else if (red > 40) t = 'Alta prevalencia de disfuncion sistolica (' + red + '%) - cohorte de alto riesgo cardiovascular.';
+      else               t = 'Distribucion mixta: ' + cons + '% conservada, ' + leve + '% levemente reducida, ' + red + '% reducida.';
+      _pie(ft, t);
+    })();
 
     // 6. Función diastólica
     const dg = { I: 0, II: 0, III: 0, sin: 0 }; let dt = 0;
@@ -57117,6 +57160,13 @@ async function labGenerarPDF() {
        ['Grado III', _labCel(dg.III, dt)],
        ['Sin disfunción', _labCel(dg.sin, dt)]],
       { labels: ['Grado I', 'Grado II', 'Grado III', 'Sin disf.'], values: [dg.I, dg.II, dg.III, dg.sin], colors: ['#f5c842', '#f0a500', '#f05454', '#3ecf8e'] });
+    (function () {
+      const md = _moda({ 'Sin disfuncion':dg.sin, 'Grado I':dg.I, 'Grado II':dg.II, 'Grado III':dg.III });
+      if (!md) return;
+      _pie(dt, md.k === 'Sin disfuncion'
+        ? ('Funcion diastolica predominantemente normal (' + _pc(md.n, dt) + '%).')
+        : ('Disfuncion diastolica ' + md.k + ' predominante (' + _pc(md.n, dt) + '%).'));
+    })();
 
     // 7. Geometría VI
     const _labGeom = _labGeomCat;   // misma función que el dashboard
@@ -57129,6 +57179,11 @@ async function labGenerarPDF() {
        ['HVI concéntrica', _labCel(gm.conc, gmt)],
        ['HVI excéntrica', _labCel(gm.exc, gmt)]],
       { labels: ['Normal', 'Remod.', 'HVI conc.', 'HVI exc.'], values: [gm.normal, gm.remod, gm.conc, gm.exc], colors: ['#3ecf8e', '#f5c842', '#f0a500', '#8a5fd4'] });
+    (function () {
+      const md = _moda({ 'normal':gm.normal, 'remodelado concentrico':gm.remod,
+                         'hipertrofia concentrica':gm.conc, 'hipertrofia excentrica':gm.exc });
+      if (md) _pie(gmt, 'Patron geometrico mas frecuente: ' + md.k + ' (' + _pc(md.n, gmt) + '%).');
+    })();
 
     // 8. Contractilidad segmentaria + Bull's Eye
     {
@@ -57162,6 +57217,11 @@ async function labGenerarPDF() {
         doc.setTextColor(0, 0, 0); doc.text(lbl2, lx + 5, y); lx += wtxt;
       });
       y += 8;
+      /* El pie va ANTES de la nota metodologica: primero que dice la cohorte, despues como se
+         construyo el diagrama. `cp.N` es el denominador que la tabla y el bull's eye ya declaran. */
+      _pie(cp.N, cp.conTrast > 0
+        ? ('Trastornos sectoriales presentes en ' + _pc(cp.conTrast, cp.N) + '% de los estudios - evaluar cardiopatia isquemica subyacente.')
+        : 'Motilidad segmentaria normal en todos los estudios del periodo.');
       noteLine('Cada segmento muestra el porcentaje de estudios de la población donde fue registrada alguna alteración de la motilidad (hipoquinesia, aquinesia, disquinesia o aneurisma), sin discriminar el tipo. Escala: gris = sin compromiso (0%) - amarillo = bajo (1-10%) - celeste = moderado (11-25%) - violeta = alto (26-50%) - rojo intenso = muy alto (>50%).');
       y += 4;
     }
@@ -57227,6 +57287,32 @@ async function labGenerarPDF() {
       y = Math.max(yL, yR) + 6;
     }
 
+    /* Se compara la PROPORCION y no el conteo: cada valvula tiene su propio denominador -- el
+       subtitulo de esta seccion lo declara-- y la que mas veces se evaluo ganaria siempre por
+       tener la base mas grande. «Significativa» es moderada o severa: la leve no cambia conducta
+       y contarla haria que casi toda cohorte tenga una valvulopatia «mas frecuente».
+       El pie declara su base, porque no es la de la seccion ni la de la cohorte. */
+    (function () {
+      let mejor = null;
+      vstats6.forEach(v => {
+        if (!(v.t >= PIE_MIN)) return;
+        const sig = v.b.Moderada + v.b.Severa;
+        if (sig <= 0) return;
+        const pr = sig / v.t;
+        if (!mejor || pr > mejor.pr) mejor = { v: v, sig: sig, pr: pr };
+      });
+      if (!mejor) {
+        const base = vstats6.reduce((a2, v) => Math.max(a2, v.t), 0);
+        _pie(base, 'Sin valvulopatia moderada ni severa en las valvulas evaluadas del periodo.');
+        return;
+      }
+      const b = mejor.v.b;
+      const sev = b.Severa > b.Moderada ? 'severa' : (b.Severa === b.Moderada ? 'moderada a severa' : 'moderada');
+      _pie(mejor.v.t, 'Valvulopatia significativa mas frecuente: ' + mejor.v.name + ' ' + sev
+        + ' en ' + mejor.sig + ' de ' + mejor.v.t + ' estudios con esa valvula evaluada ('
+        + _pc(mejor.sig, mejor.v.t) + '%).');
+    })();
+
     // 10. Función VD (TAPSE)
     const tapses = infs.map(_labTapse).filter(v => v !== null && v > 0);
     const tt = tapses.length;
@@ -57237,6 +57323,17 @@ async function labGenerarPDF() {
        ['Levemente reducida (14-16)', _labCel(tapN[1], tt)],
        ['Reducida (<14)', _labCel(tapN[2], tt)]],
       { labels: ['Normal', 'Leve', 'Reducida'], values: tapN, colors: ['#3ecf8e', '#f5c842', '#f05454'] });
+    /* Las dos reglas del pedido dejan un hueco justo en 80/20 —«>80 conservada» y «>20 alterado»
+       son las dos falsas—, asi que la tercera rama describe la distribucion en vez de callarse:
+       una grafica sin pie, entre otras seis que lo tienen, se lee como que falto el dato. */
+    (function () {
+      const norm = _pc(tapN[0], tt), alt = _pc(tapN[1] + tapN[2], tt);
+      let t;
+      if (norm > 80)     t = 'Funcion ventricular derecha conservada en la mayoria de los estudios (' + norm + '%).';
+      else if (alt > 20) t = 'Disfuncion del VD presente en ' + alt + '% de los estudios evaluados.';
+      else               t = 'TAPSE normal en ' + norm + '% y reducido en ' + alt + '% de los estudios evaluados.';
+      _pie(tt, t);
+    })();
 
     // 11. HTP / PSAP
     const psaps = infs.map(_labPsap).filter(v => v !== null && v > 0);
@@ -57252,6 +57349,18 @@ async function labGenerarPDF() {
        ['51-70', _labCel(hN[2], ht)],
        ['>70', _labCel(hN[3], ht)]],
       { labels: ['<=' + _uP, (_uP + 1) + '-50', '51-70', '>70'], values: hN, colors: ['#3ecf8e', '#f5c842', '#f0a500', '#f05454'] });
+    /* «PSAP elevada», no «hipertension pulmonar»: la seccion de arriba ya declara que la app NO
+       clasifica HTP por PSAP estimada, y el pie no puede afirmar mas que la grafica que describe.
+       El umbral es `UMBRAL_PSAP_ELEVADA`, el mismo que reparte las bandas. */
+    (function () {
+      const alt = hN[1] + hN[2] + hN[3];
+      const prom = psaps.length ? Math.round(psaps.reduce((a2, b) => a2 + b, 0) / psaps.length) : null;
+      _pie(ht, alt > 0
+        ? ('PSAP estimada por encima de ' + _uP + ' mmHg en ' + alt + ' de ' + ht + ' estudios (' + _pc(alt, ht) + '%)'
+           + (prom !== null ? ', con un promedio de ' + prom + ' mmHg.' : '.'))
+        : ('PSAP estimada dentro de rango en los ' + ht + ' estudios con tricuspidea medible'
+           + (prom !== null ? ', con un promedio de ' + prom + ' mmHg.' : '.')));
+    })();
 
     // 12. Vol AI
     const lavis = infs.map(_labLavi).filter(v => v !== null && v > 0);
@@ -58455,8 +58564,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260918-2245';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789782311223;                 /* eco-build-ms */
+const ECO_BUILD    = '20260918-2327';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789784848265;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -58542,7 +58651,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-2245</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-2327</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

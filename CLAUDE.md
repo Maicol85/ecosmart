@@ -4239,6 +4239,64 @@ alta, porque los casos se escribieron eligiendo los cortes, no los campos.
    taquicardia ventricular, historia clínica, frases rápidas, segmentos del ETE, pre-TAVI,
    panel de indicaciones (`_IG_SECTIONS`), DICOM e imágenes en IndexedDB.
 
+## Pie interpretativo por gráfica en el PDF de auditoría — y dos secciones que no se hicieron
+
+Siete pies, uno debajo de cada gráfica y **antes** de la nota metodológica: FEVI, diastólica,
+geometría del VI, TAPSE, PSAP, valvulopatías y contractilidad. Helper `_pie(n, txt)` junto a
+`sectionChart` —no dentro del bloque avanzado, porque las secciones 4 a 11 no ven aquel `_nota`—.
+
+Dos reglas que valen para todos: **con menos de 3 casos no se emite** —una frase como «predominio
+de función conservada» sobre dos estudios describe a dos pacientes, no a una población—, y los
+números salen de **las mismas variables** que alimentan la tabla y la gráfica de arriba, nunca
+recalculados: un pie que contradice a la gráfica que describe es peor que no tenerlo.
+
+### SGL: no se implementó, y no por falta de datos
+El pedido traía «SGL promedio [X]% — normal si >-18% / reducido entre -12 y -18% / severamente
+reducido si <-12%». Tres problemas, cada uno suficiente:
+1. **No hay sección de SGL en el PDF de auditoría.** La única aparición de «SGL» en
+   `labGenerarPDF` está dentro de un comentario. Sin gráfica no hay pie que poner debajo.
+2. **`_labSglResumen` se niega a graduar, a propósito.** Su comentario: los bins «no nombran
+   severidad y no se anclan a ningún umbral clínico, justamente para que nadie lea una graduación
+   donde no la hay». Y hay una tarea cerrada —«Tarjeta SGL en Mediciones, sin graduar»— que lo
+   decidió. Agregar la graduación revierte esa decisión sin decirlo.
+3. **Las comparaciones están invertidas para el convenio del archivo.** El SGL se normaliza a
+   NEGATIVO en el borde (`-Math.abs(x)`) y el Lab usa `ref:-20`. Con eso, «normal si > -18»
+   clasifica un −20 —perfectamente normal— como fuera de rango, y «severamente reducido si < −12»
+   lo captura a él. Y si se leyera de `_labSglResumen`, que devuelve `Math.abs`, **toda** cohorte
+   daría «normal» porque 18,4 > −18 siempre. La app ya publica su propio corte en otro lado
+   (`Math.abs(sgl) < 16` = reducida), que tampoco es −18/−12.
+
+### Forrester: tampoco hay gráfica en este PDF
+Cero apariciones de «Forrester» en `labGenerarPDF`. El diagrama vive en el **PPT** del
+Laboratorio, no en el PDF de auditoría. Nada que anotar.
+
+### Decisiones de contenido
+- **FEVI**: «reducida» es < 40 % —moderada más severa— y no todo lo que baja de 50, porque la
+  tabla de arriba separa «levemente reducida» como banda propia. Fundirlas haría que el pie y la
+  gráfica cuenten distinto sobre la misma cohorte.
+- **TAPSE**: las dos reglas del pedido dejan un hueco exacto en 80/20 —«>80 conservada» y «>20
+  alterado» son las dos falsas—. Se agregó una tercera rama descriptiva: una gráfica sin pie,
+  entre otras seis que lo tienen, se lee como que faltó el dato.
+- **PSAP**: el pie dice «PSAP elevada», no «hipertensión pulmonar». La sección ya declara que la
+  app no clasifica HTP por PSAP estimada, y el pie no puede afirmar más que la gráfica.
+- **Valvulopatías**: se compara la **proporción**, no el conteo. Cada válvula tiene su propio
+  denominador —el subtítulo de la sección lo declara— y la más evaluada ganaría siempre por tener
+  la base más grande. «Significativa» es moderada o severa; contar la leve haría que casi toda
+  cohorte tenga una «más frecuente». El pie declara su base porque no es la de la sección.
+
+### Cuatro marcadores falsos en la verificación
+El primer barrido dio 6 pies y dos apareciendo con n=2. Ninguna de las dos cosas era cierta:
+- «PSAP estimada» es el **título de la sección**, así que daba positivo donde el pie no se emitió.
+- «Disfuncion diastolica Grado» aparece en el narrativo de los propios estudios.
+- Los ausentes eran **ids inventados en la sonda**: `_labPsap` lee `psap_calc`, y `_labGeomCat` /
+  `_labDiastGrado` leen el **texto** del informe (`en_suma` + `informe_texto`), no campos
+  numéricos. Con los ids reales aparecieron los tres.
+- Y el último: **jsPDF escapa los paréntesis** en el content stream, así que el marcador
+  `'predominante ('` daba cero sobre un pie impreso. Ya había pasado con el encuadre orientativo.
+
+Con los marcadores corregidos: **7 pies con la cohorte, 0 con n=2**, sobre un PDF de n=2 que sí
+tiene contenido —si saliera vacío, el cero no probaría nada—.
+
 ## DAP y CoAo en el Laboratorio, y el motor de fichas que reemplaza al copiar-pegar
 
 ### `CC_FICHAS` — una fila por cardiopatía, no una función por cardiopatía
