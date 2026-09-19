@@ -9801,8 +9801,14 @@ caso('TC-179', 'Importar DICOM: extrae el JPEG, rechaza lo que no puede abrir y 
     const rDesc = (() => { try { _dcmImgLeer(mk({ ts:'1.2.840.10008.1.2.4.99' })); return null; } catch(e){ return 'exc'; } })();
     const dDesc = _dcmImgLeer(mk({ ts:'1.2.840.10008.1.2.4.99' }));
 
-    // ── 5. el multi-frame se DETECTA (lo rechaza dcmImgImportar, no el lector) ──
+    // ── 5. el multi-frame se DETECTA ──
     const dMulti = _dcmImgLeer(mk({ frames:4, frags:[JPG,JPG,JPG,JPG], offsets:4 }));
+    /* Un cineloop que declara 4 cuadros pero trae 2 fragmentos: el estandar PERMITE repartir
+       un cuadro en varios fragmentos, y ahi hay que leer la tabla de offsets para saber donde
+       empieza cada uno. Ningun archivo del pendrive es asi, o sea que no hay con que probar
+       ese reparto -- por eso se rechaza en vez de adivinar. Adivinar mal no da error: muestra
+       cuadros mezclados, que no se ven como una falla sino como un eco raro. */
+    const dRaro = _dcmImgLeer(mk({ frames:4, frags:[JPG,JPG], offsets:4 }));
 
     // ── 6. de punta a punta: el archivo entra al slot en el formato que viaja al PDF ──
     __t.limpiar();
@@ -9895,6 +9901,12 @@ caso('TC-179', 'Importar DICOM: extrae el JPEG, rechaza lo que no puede abrir y 
          igual sin la rama que lo reconoce. Lo delato una mutacion. */
       var dirRech = dichos.length === 1 && dichos[0].indexOf('no una imagen') > -1;
 
+      // (b2) cineloop con un reparto de fragmentos que no se sabe leer
+      dichos.length = 0;
+      await dcmImgImportar([new File([new Uint8Array(mk({ frames:4, frags:[JPG,JPG], offsets:4 }))], 'raro.dcm')]);
+      var repartoRech = dichos.length === 1 && dichos[0].indexOf('reparto') > -1;
+      try { cineCerrar(); } catch (e) {}
+
       // (c) veinte archivos ajenos: la lista se recorta y el recorte se dice
       dichos.length = 0;
       const muchos = [];
@@ -9928,6 +9940,8 @@ caso('TC-179', 'Importar DICOM: extrae el JPEG, rechaza lo que no puede abrir y 
       ['un archivo sin DICM se rechaza',                 rNoDcm && rNoDcm.indexOf('excepcion') === 0, rNoDcm],
       ['una sintaxis DESCONOCIDA tambien se rechaza',    !!dDesc.rechazo, dDesc.rechazo],
       ['el multi-frame se detecta',                      dMulti.nFrames === 4 && dMulti.frags.length === 4, 'frames=' + dMulti.nFrames + ' frags=' + dMulti.frags.length],
+      ['un reparto de fragmentos desconocido se lee igual', dRaro.nFrames === 4 && dRaro.frags.length === 2, 'frames=' + dRaro.nFrames + ' frags=' + dRaro.frags.length],
+      ['pero se RECHAZA en vez de adivinar',             repartoRech, repartoRech],
       ['los .dcm llegan al slot',                        llenos.length >= 3, llenos.length + ' (antes ' + antesLlenos + ')'],
       ['con un dataURL que la app sabe mostrar',         todosOK, todosOK],
       ['y con la forma {dataURL, ampliada, calidad}',    forma, JSON.stringify(Object.keys(imgSlots.find(s=>s&&s.dataURL)||{}))],
@@ -10144,7 +10158,7 @@ caso('TC-181', 'Pendrive del Vivid: archivos SIN extension, un cineloop real y e
       urls = imgSlots.filter(s => s && s.dataURL).map(s => s.dataURL);
       fijasOK = urls.length >= P.fijas.length && urls.every(u => _imgSrcOK(u)) && dichos.length === 0;
 
-      // ── el cineloop real: se rechaza y se dice cuantos cuadros tiene ──
+      // ── el cineloop real: se LEE (antes se rechazaba; desde que hay reproductor, entra) ──
       if (P.loop) {
         const bin = atob(P.loop.b64); const u = new Uint8Array(bin.length);
         for (let i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i);
@@ -10153,6 +10167,11 @@ caso('TC-181', 'Pendrive del Vivid: archivos SIN extension, un cineloop real y e
         dichos.length = 0;
         await dcmImgImportar([aFile(P.loop)]);
         loopRech = dichos.join(' ');
+        var loopSinAviso = dichos.length === 0;
+        var loopAbrio = !!document.getElementById('cine-ov') &&
+                        document.getElementById('cine-ov').style.display !== 'none';
+        var unFragPorCuadro = d.frags.length === d.nFrames && d.offsets === d.nFrames;
+        cineCerrar();
       }
       // ── el DICOMDIR de la raiz, que ahora que el selector muestra todo es lo primero que se ve ──
       if (P.dicomdir) {
@@ -10168,8 +10187,279 @@ caso('TC-181', 'Pendrive del Vivid: archivos SIN extension, un cineloop real y e
       ['cada uno queda con un dataURL que la app muestra', urls.length > 0 && urls.every(u => u.indexOf('data:image/') === 0), urls.length],
       ['el pendrive SI trae cineloops',                   !!P.loop, P.loop ? P.loop.nombre : 'ninguno'],
       ['el cineloop se lee y se le cuentan los cuadros',  nCuadros > 1, nCuadros],
-      ['y se rechaza diciendo cuantos cuadros tiene',     !P.loop || (loopRech.indexOf('cineloop') > -1 && loopRech.indexOf(String(nCuadros)) > -1), loopRech.slice(0,150)],
+      ['el cineloop ya NO se rechaza',                    !P.loop || loopSinAviso, loopRech.slice(0,150)],
+      ['abre el reproductor',                             !P.loop || loopAbrio, loopAbrio],
+      ['trae un fragmento por cuadro, y el BOT coincide', !P.loop || unFragPorCuadro, nCuadros],
       ['el DICOMDIR se reconoce y se nombra',             !P.dicomdir || ddRech.indexOf('no una imagen') > -1, ddRech.slice(0,150)]
+    ] };
+  })();
+`);
+
+/* ══ TC-183 · Los 22 cineloops del pendrive ══════════════════════════════════════════════════
+   EL ALCANCE, DICHO CON PRECISION, porque la verificacion esta PARTIDA y un «probado con los
+   22» a secas seria mentira:
+   · Los 22 se recorren con un extractor INDEPENDIENTE escrito en Node (el mismo de TC-180):
+     cuadros, un fragmento por cuadro, tabla de offsets coincidente, cada fragmento arrancando
+     en SOI y FrameTime declarado.
+   · En la PAGINA, con el lector de la app, se corren los CUATRO mas chicos. No los 22 por una
+     razon material: los archivos suman ~250 MB y viajan a la pagina en base64 dentro de la
+     expresion del caso. Los cuatro cubren de 41 a 110 cuadros y tres velocidades distintas.
+   · Donde se solapan, los dos tienen que coincidir. Eso es lo que hace que el barrido de Node
+     valga para el lector de la app y no sea otra cosa medida aparte.                          */
+const LOOPS22 = await (async () => {
+  const { readdir, stat } = await import('node:fs/promises');
+  const raiz = process.env.ECO_PENDRIVE || '/Volumes/DISK_IMG';
+  async function hojas(dir, prof) {
+    if (prof > 5) return [];
+    let ns = [];
+    try { ns = await readdir(dir, { withFileTypes: true }); } catch (e) { return []; }
+    const r = [];
+    for (const n of ns) { if (n.name.startsWith('.')) continue;
+      const p = join(dir, n.name);
+      if (n.isDirectory()) r.push(...await hojas(p, prof + 1)); else r.push(p); }
+    return r;
+  }
+  const L4 = new Set(['OB','OW','OF','OD','OL','SQ','UT','UN','UC','UR']);
+  /* Extractor independiente: mismo estandar, otro codigo. */
+  const mirar = (b) => {
+    if (b.slice(128,132).toString('ascii') !== 'DICM') return null;
+    let o = 132;
+    while (o + 8 <= b.length) { const g = b.readUInt16LE(o), vr = b.slice(o+4,o+6).toString('ascii');
+      if (g !== 2) break;
+      const l = L4.has(vr) ? b.readUInt32LE(o+8) : b.readUInt16LE(o+6);
+      o = (L4.has(vr) ? o+12 : o+8) + l; }
+    const d = { nf:1, frags:0, bot:0, soi:true, ms:0 };
+    while (o + 8 <= b.length) {
+      const g = b.readUInt16LE(o), e = b.readUInt16LE(o+2), vr = b.slice(o+4,o+6).toString('ascii');
+      if (!/^[A-Z]{2}$/.test(vr)) return null;
+      const ln = L4.has(vr) ? b.readUInt32LE(o+8) : b.readUInt16LE(o+6);
+      const val = L4.has(vr) ? o+12 : o+8;
+      if (g === 0x7FE0 && e === 0x0010) {
+        if (ln !== 0xFFFFFFFF) return null;
+        let q = val, i = 0;
+        while (q + 8 <= b.length) {
+          const tg = b.readUInt16LE(q), te = b.readUInt16LE(q+2), fl = b.readUInt32LE(q+4);
+          if (tg === 0xFFFE && te === 0xE0DD) break;
+          if (i === 0) d.bot = fl / 4;
+          else { d.frags++; if (!(b[q+8] === 0xFF && b[q+9] === 0xD8)) d.soi = false; }
+          i++; q += 8 + fl;
+        }
+        return d;
+      }
+      if (ln === 0xFFFFFFFF) {
+        let q = val, prof = 1;
+        while (q + 8 <= b.length && prof > 0) {
+          const tg = b.readUInt16LE(q), te = b.readUInt16LE(q+2), fl = b.readUInt32LE(q+4);
+          if (tg === 0xFFFE) { q += 8; if (te === 0xE0DD) prof--; else if (te === 0xE000 && fl !== 0xFFFFFFFF) q += fl; continue; }
+          const v2 = b.slice(q+4,q+6).toString('ascii');
+          if (!/^[A-Z]{2}$/.test(v2)) { q = b.length; break; }
+          const l2 = L4.has(v2) ? b.readUInt32LE(q+8) : b.readUInt16LE(q+6);
+          q = (L4.has(v2) ? q+12 : q+8) + l2;
+        }
+        o = q; continue;
+      }
+      if (g === 0x0028 && e === 0x0008) d.nf = parseInt(b.slice(val,val+ln).toString('ascii').trim(), 10) || 1;
+      if (g === 0x0018 && e === 0x1063) d.ms = parseFloat(b.slice(val,val+ln).toString('ascii').trim()) || 0;
+      o = val + ln;
+    }
+    return null;
+  };
+  const todos = await hojas(join(raiz, 'GEMS_IMG'), 0);
+  const conTam = [];
+  for (const p of todos) { try { conTam.push({ p, n: (await stat(p)).size }); } catch (e) {} }
+  conTam.sort((a, b) => a.n - b.n);
+  const ref = [], enPagina = [];
+  for (const { p } of conTam) {
+    const b = await readFile(p);
+    if (b.slice(128,132).toString('ascii') !== 'DICM') continue;
+    if (b.indexOf(Buffer.from('1.2.840.10008.5.1.4.1.1.3.1')) === -1) continue;   // solo multi-frame
+    const d = mirar(b);
+    if (!d) continue;
+    const nombre = p.split('/').pop();
+    ref.push({ nombre, ...d });
+    if (enPagina.length < 4) enPagina.push({ nombre, b64: b.toString('base64') });
+  }
+  return { ref, enPagina };
+})();
+
+caso('TC-183', 'Los 22 cineloops: estructura pareja, y el lector de la app coincide con el independiente', `
+  return (async () => {
+    const R = ${JSON.stringify(LOOPS22.ref)};
+    const E = ${JSON.stringify(LOOPS22.enPagina)};
+    if (!R.length) return { extra: [[
+      'hace falta el pendrive montado para barrer los cineloops', false,
+      'no se encontro ninguno: quedaron SIN verificar']] };
+    const leidos = E.map(x => {
+      const bin = atob(x.b64); const u = new Uint8Array(bin.length);
+      for (let i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i);
+      const d = _dcmImgLeer(u.buffer);
+      return { nombre:x.nombre, nf:d.nFrames, frags:d.frags.length, bot:d.offsets, ms:d.msCuadro || 0,
+               soi:d.frags.every(f => f[0]===0xFF && f[1]===0xD8), rechazo:d.rechazo || '' };
+    });
+    const porNombre = {}; R.forEach(r => { porNombre[r.nombre] = r; });
+    const coinciden = leidos.every(l => { const r = porNombre[l.nombre];
+      return r && r.nf === l.nf && r.frags === l.frags && r.bot === l.bot && Math.abs(r.ms - l.ms) < 0.001; });
+    const fps = R.map(r => r.ms ? 1000/r.ms : 0);
+    return { extra: [
+      ['se barrieron los 22 cineloops',                  R.length === 22, R.length],
+      ['todos: un fragmento por cuadro',                 R.every(r => r.frags === r.nf), R.filter(r=>r.frags!==r.nf).length + ' distintos'],
+      ['todos: la tabla de offsets coincide',            R.every(r => r.bot === r.nf), R.filter(r=>r.bot!==r.nf).length + ' distintos'],
+      ['todos: cada cuadro arranca en SOI',              R.every(r => r.soi), R.filter(r=>!r.soi).length + ' sin SOI'],
+      ['todos declaran su velocidad',                    R.every(r => r.ms > 0), R.filter(r=>!r.ms).length + ' sin FrameTime'],
+      /* Si todos rondaran 25 fps, fijar 25 no se notaria y la condicion de TC-182 no probaria
+         nada. Se afirma el rango real, que es lo que hace que la lectura del archivo importe. */
+      ['la velocidad VARIA entre archivos',              Math.max(...fps) - Math.min(...fps) > 10,
+        Math.min(...fps).toFixed(1) + ' a ' + Math.max(...fps).toFixed(1) + ' cuadros/s'],
+      ['y ninguno es 25 fps',                            fps.every(f => Math.abs(f - 25) > 1), fps.map(f=>f.toFixed(0)).join(' ')],
+      ['el lector de la app leyo los cuatro mas chicos', leidos.length === 4 && leidos.every(l => !l.rechazo), leidos.length],
+      ['cubren un rango de tamanos',                     Math.max(...leidos.map(l=>l.nf)) - Math.min(...leidos.map(l=>l.nf)) > 30, leidos.map(l=>l.nf).join(' ')],
+      ['y COINCIDE con el extractor independiente',      coinciden, leidos.map(l => l.nombre + ':' + l.nf + '/' + l.frags).join(' ')]
+    ] };
+  })();
+`);
+
+/* ══ TC-182 · El reproductor de cineloop, sobre un archivo real ══════════════════════════════
+   Lo que hay que atrapar aca es una sola cosa, y es la que termina en el informe firmado: que
+   CAPTURAR guarde el cuadro que el medico esta viendo y no otro. Un reproductor que navega
+   bien pero captura el cuadro 0 se ve perfecto en pantalla y mete en el PDF una imagen que
+   nadie eligio. Por eso la condicion central compara el dataURL guardado contra el cuadro N
+   decodificado por afuera, byte a byte, y ademas exige que difiera del cuadro 0.
+   Usa el cineloop real del pendrive; sin el, lo dice.                                         */
+caso('TC-182', 'Cineloop: navegar, reproducir a la velocidad del archivo y capturar EL cuadro que se ve', `
+  return (async () => {
+    const P = ${JSON.stringify(PENDRIVE)};
+    if (!P.loop) return { extra: [[
+      'hace falta un cineloop real del pendrive para verificar el reproductor',
+      false, 'no se encontro ninguno: el reproductor quedo SIN verificar']] };
+    const bin = atob(P.loop.b64); const u = new Uint8Array(bin.length);
+    for (let i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i);
+    const d = _dcmImgLeer(u.buffer);
+    const N = d.nFrames;
+    const medio = Math.floor(N / 2);
+
+    __t.limpiar();
+    imgSlots.length = 0; imgSlots.push(null, null); imgSlotCount = 2;
+    const alertOrig = window.alert; window.alert = () => {};
+    let res = {};
+    try {
+      await dcmImgImportar([new File([u], P.loop.nombre)]);
+      const ov = document.getElementById('cine-ov');
+      res.abrio = !!ov && ov.style.display !== 'none';
+      res.enPausa = !!_cineDatos && !_cineDatos.timer;
+      res.arrancaEn0 = !!_cineDatos && _cineDatos.cuadro === 0;
+      res.sliderMax = ov ? +ov.querySelector('#cine-slider').max : -1;
+      res.ayuda = ov ? ov.querySelector('#cine-ayuda').textContent : '';
+      res.botonPlay = ov ? ov.querySelector('#cine-play').textContent : '';
+
+      /* ── la velocidad sale del ARCHIVO, no de una constante ── */
+      const v = _cineFps(d);
+      res.fpsCalc = v.fps; res.msArchivo = d.msCuadro;
+
+      /* ── navegar: el canvas tiene que mostrar EL cuadro pedido ── */
+      /* Se muestrea el CENTRO, no la esquina. La primera version comparaba los 200x200 de
+         arriba a la izquierda, que en un eco son fondo negro: el cuadro 0 y el del medio
+         salian identicos ahi y la condicion 'no se quedo en el cuadro 0' pasaba sin probar
+         nada. Un denominador vacio otra vez. */
+      const region = (c) => { const w = Math.min(400, c.width), h = Math.min(300, c.height);
+        return c.getContext('2d').getImageData(((c.width-w)/2)|0, ((c.height-h)/2)|0, w, h).data; };
+      const pinta = async (n) => {
+        const b = await createImageBitmap(new Blob([d.frags[n]], {type:'image/jpeg'}));
+        const c = document.createElement('canvas'); c.width=b.width; c.height=b.height;
+        c.getContext('2d').drawImage(b,0,0); b.close();
+        return region(c);
+      };
+      const delCanvas = () => region(ov.querySelector('#cine-cv'));
+      const igual = (a,b2) => { if (a.length!==b2.length) return false;
+        for (let i=0;i<a.length;i++) if (a[i]!==b2[i]) return false; return true; };
+
+      /* EL DENOMINADOR, explicito: si el cuadro 0 y el del medio fueran iguales en la region
+         muestreada, 'no se quedo en el 0' no probaria nada aunque diera verde. Se verifica
+         que sean distintos ANTES de sacar conclusiones. */
+      const px0 = await pinta(0), pxM = await pinta(medio);
+      res.cuadrosDistintos = !igual(px0, pxM);
+      await cineIr(medio);
+      await new Promise(r=>setTimeout(r,250));
+      res.canvasEsMedio = igual(delCanvas(), pxM);
+      res.canvasNoEs0   = !igual(delCanvas(), px0);
+      res.numTexto      = ov.querySelector('#cine-num').textContent;
+
+      /* ── reproducir y pausar ── */
+      cineToggle();
+      res.corriendo = !!(_cineDatos && _cineDatos.timer);
+      res.botonPausa = ov.querySelector('#cine-play').textContent;
+      const antes = _cineDatos.cuadro;
+      await new Promise(r=>setTimeout(r, Math.max(400, v.ms*6)));
+      res.avanzo = _cineDatos.cuadro !== antes;
+      cineToggle();
+      const trasPausa = _cineDatos.cuadro;
+      await new Promise(r=>setTimeout(r,300));
+      res.pauso = !_cineDatos.timer && _cineDatos.cuadro === trasPausa;
+
+      /* ── CAPTURAR: la condicion que importa ── */
+      await cineIr(medio);
+      await new Promise(r=>setTimeout(r,200));
+      const llenosAntes = imgSlots.filter(s=>s&&s.dataURL).length;
+      cineCapturar();
+      await new Promise(r => { const t=setInterval(()=>{ if (imgSlots.filter(s=>s&&s.dataURL).length > llenosAntes) { clearInterval(t); r(); } },60); setTimeout(()=>{clearInterval(t);r();},8000); });
+      const slot = imgSlots.filter(s=>s&&s.dataURL).slice(-1)[0];
+      res.capturo = !!slot && !!slot.dataURL && _imgSrcOK(slot.dataURL);
+      res.forma = !!slot && typeof slot.ampliada === 'boolean' && !!IMG_CAL[slot.calidad];
+
+      /* El _orig del slot es el dataURL del JPEG original. Se arma el mismo por afuera desde
+         el cuadro N y desde el cuadro 0: tiene que coincidir con el N y diferir del 0. */
+      const url = async (n) => new Promise(r => { const fr = new FileReader();
+        fr.onload = () => r(fr.result); fr.readAsDataURL(new Blob([d.frags[n]], {type:'image/jpeg'})); });
+      const uMedio = await url(medio), uCero = await url(0);
+      res.esElCuadroVisto = !!slot && slot._orig === uMedio;
+      res.noEsElCuadro0   = !!slot && slot._orig !== uCero;
+
+      /* ── y ese cuadro sale en el PDF ── */
+      __t.set('nombre','CINEPDF'); __t.set('ci','3333333-3'); __t.set('edad','60');
+      generarInforme();
+      for (let i=0;i<80 && (typeof window.jspdf==='undefined'||!window.jspdf.jsPDF);i++) await new Promise(r=>setTimeout(r,100));
+      const Orig = window.jspdf.jsPDF; const vistas = [];
+      function W(){ const dd = new Orig(...arguments);
+        const ai = dd.addImage.bind(dd);
+        dd.addImage = function(data){ try { vistas.push(String(data)); } catch(e){} return ai.apply(dd, arguments); };
+        dd.save = function(){ return Promise.resolve(); }; return dd; }
+      W.prototype = Orig.prototype; window.jspdf.jsPDF = W;
+      res.errPdf = null;
+      try { await generarPDFReal(); } catch(e) { res.errPdf = e && e.message; }
+      window.jspdf.jsPDF = Orig;
+      res.enPDF = vistas.indexOf(slot.dataURL) > -1;
+
+      /* ── cerrar suelta los 17 MB del cineloop ── */
+      cineCerrar();
+      res.cerro = _cineDatos === null &&
+                  document.getElementById('cine-ov').style.display === 'none';
+    } finally { window.alert = alertOrig; try { cineCerrar(); } catch(e){} }
+
+    return { extra: [
+      ['el cineloop abre el reproductor',                 res.abrio, res.abrio],
+      ['arranca EN PAUSA',                                res.enPausa, res.enPausa],
+      ['y en el cuadro 0',                                res.arrancaEn0, res.arrancaEn0],
+      ['el boton dice Reproducir',                        res.botonPlay.indexOf('Reproducir') > -1, res.botonPlay],
+      ['el slider cubre todos los cuadros',               res.sliderMax === N - 1, res.sliderMax + ' vs ' + (N-1)],
+      ['el texto dice cuantos cuadros hay y que hay que capturar',
+        res.ayuda.indexOf(String(N) + ' cuadros') > -1 && res.ayuda.indexOf('captur') > -1, res.ayuda.slice(0,90)],
+      /* La velocidad la declara el archivo. Un 25 fijo mostraria este loop a otra velocidad,
+         y en un eco la velocidad con la que se mueve la pared es parte de lo que se mira. */
+      ['la velocidad sale del archivo, no de un 25 fijo', !!res.msArchivo && Math.abs(res.fpsCalc - 1000/res.msArchivo) < 0.01, res.fpsCalc.toFixed(1) + ' fps · FrameTime=' + res.msArchivo],
+      ['el texto declara la velocidad real',              res.ayuda.indexOf(res.fpsCalc.toFixed(1)) > -1, res.ayuda.slice(-70)],
+      ['los dos cuadros comparados SON distintos',        res.cuadrosDistintos, 'cuadro 1 vs ' + (medio+1)],
+      ['navegar dibuja EL cuadro pedido',                 res.canvasEsMedio, res.canvasEsMedio],
+      ['y no se quedo en el cuadro 0',                    res.canvasNoEs0, res.canvasNoEs0],
+      ['el contador muestra la posicion',                 res.numTexto === (medio+1) + ' / ' + N, res.numTexto],
+      ['reproducir arranca el avance',                    res.corriendo && res.avanzo, res.corriendo + '/' + res.avanzo],
+      ['el boton pasa a Pausa',                           res.botonPausa.indexOf('Pausa') > -1, res.botonPausa],
+      ['pausar detiene de verdad',                        res.pauso, res.pauso],
+      ['capturar deja un slot con dataURL valido',        res.capturo, res.capturo],
+      ['con la forma {dataURL, ampliada, calidad}',       res.forma, res.forma],
+      ['LO CAPTURADO ES EL CUADRO QUE SE ESTABA VIENDO',  res.esElCuadroVisto, 'cuadro ' + (medio+1) + ' de ' + N],
+      ['y NO el cuadro 0',                                res.noEsElCuadro0, res.noEsElCuadro0],
+      ['el PDF real se genera sin errores',               res.errPdf === null, res.errPdf],
+      ['y ese cuadro SALE en el PDF firmado',             res.enPDF, res.enPDF],
+      ['cerrar suelta el cineloop de la memoria',         res.cerro, res.cerro]
     ] };
   })();
 `);

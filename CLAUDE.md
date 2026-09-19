@@ -7679,6 +7679,15 @@ sea un número y nada más. Ojo al probarlo — **la primera versión del test p
 porque el 0 igual quedaba afuera por el rango. La condición que la fija usa un valor marcado
 inválido pero **plausible** (`12.5*`), que es el único que distingue las dos defensas.
 
+**SAFARI SIGUE SIN VERIFICARSE, en todo el módulo DICOM.** Ni el importador, ni el visor de
+imágenes, ni el reproductor de cineloop se probaron nunca en Safari: en estas sesiones el
+navegador está concedido a nivel «lectura» y no se puede manejar. Todo lo verificado corre en
+Chrome vía CDP. El código no usa nada exótico —`arrayBuffer`, `Blob`, `FileReader`, `DataView`,
+`createImageBitmap`, `canvas`— pero eso es un argumento, no una medición. Dos cosas a mirar
+primero cuando se pueda: `createImageBitmap` sobre un `Blob` de JPEG (Safari lo soporta desde la
+15, pero ignora `resizeWidth` en algunas versiones — acá no se usa) y que el modal del
+reproductor no quede atrapado por el `overflow:hidden` del acordeón, que ya mordió antes.
+
 **Sin PHI en el repo.** El CHM es de un paciente real y este repo es público: TC-177 y TC-178
 leen el archivo del disco (`~/Desktop/*.chm` o `ECO_CHM=/ruta`) y **dicen que no corrieron** si no
 está. Las conversiones se verifican contra el crudo del propio archivo (relación, no literal), y
@@ -7714,17 +7723,61 @@ ejecutarlo. Versiones reales y SHA-512:
 **Ojo con el nombre del worker:** `cornerstoneWADOImageLoaderWebWorker.min.js` es de la v3 y **da
 404** en la 4.13.2; el archivo real es `index.worker.bundle.min.worker.js`.
 
-**El multi-frame se RECHAZA, no se implementa a medias.** Se detecta y se dice cuántos cuadros
-tiene.
+### Cineloop — reproductor (2026-09-19)
+Un `.dcm` multi-frame abre un **reproductor en modal** con slider, play/pause y «📸 Capturar
+cuadro». El cineloop **no se guarda ni va al PDF**: va el cuadro que el médico captura, que entra
+por `imgCompressLoad` como cualquier otra imagen.
 
-> **CORRECCIÓN (2026-09-19, mismo día).** Acá decía que no había ningún archivo multi-frame con
-> qué probar. Eso era cierto **de la base Horos**, y por eso se difirió el reproductor — pero es
-> **falso del pendrive**: `/Volumes/DISK_IMG/GEMS_IMG` tiene **22 cineloops** reales del Vivid iq,
-> de 41 a 172 cuadros, SOP Class `US Multi-frame`, todos JPEG Baseline. Horos había importado
-> sólo las imágenes fijas.
-> **El material para implementar el cineloop existe y está a mano.** TC-181 ya corre sobre uno
-> real (el de 41 cuadros, 3,9 MB) para verificar el rechazo. La lección: *la base de datos de un
-> visor no es el export del ecógrafo* — mirar el origen, no la copia.
+- **Es un modal y no va adentro del slot, y el pedido decía adentro.** `imgRender()` reconstruye
+  la grilla entera con `cell.innerHTML = …` en cada redibujo, y la llaman `imgSetCount`,
+  `imgAddSlot`, `imgSwap`, `imgRemove` e `imgSetCalidad`. Un canvas dentro de una celda lo borra
+  el primer redibujo, con el reproductor andando y **sin ningún error a la vista**. Sostenerlo
+  exigiría modificar `imgRender`, que estaba fuera de alcance. El modal además da lugar al slider,
+  que en una celda de 150 px no entra.
+- **No se escribe nada en el slot hasta capturar.** Poner el cuadro 0 «por las dudas» sería lo
+  contrario de lo pedido: el PDF saldría con un cuadro que nadie miró.
+- **Los cuadros NO se predecodifican.** Se guardan los JPEG comprimidos y se decodifica el que se
+  muestra. Medido: `createImageBitmap` tarda **2,0 ms** a 1016×708, contra un presupuesto de
+  17,9 ms en el loop más rápido. Predecodificar 172 cuadros a RGBA serían ~495 MB para nada.
+- **La compuerta es «más de un cuadro», NO «más de un cuadro Y SOP Class de US Multi-frame».**
+  Exigir las dos cosas rechazaría en silencio un multi-frame legítimo con otra SOP Class —un
+  Secondary Capture multicuadro—, que es justo el caso para el que esto tiene que servir cuando
+  llegue un Philips o un Canon. La SOP Class se muestra, no decide.
+- **Se exige un fragmento por cuadro.** En los 22 del pendrive se cumple siempre y el BOT
+  coincide, pero el estándar permite repartir un cuadro en varios fragmentos y ahí hay que leer
+  la tabla para saber dónde empieza cada uno. No hay archivo así con qué probarlo: se rechaza
+  con el motivo. Adivinar mal el reparto **no da error** — muestra cuadros mezclados, que no se
+  ven como una falla sino como un eco raro.
+
+**LA VELOCIDAD SALE DEL ARCHIVO, y los «25 fps por defecto» del pedido son falsos para estos
+archivos.** `FrameTime` (0018,1063) está declarado en los 22 y va de **17,86 ms (56 cuadros/s) a
+78,37 ms (12,8 cuadros/s)**. Reproducir todo a 25 muestra el de 56 a menos de la mitad de
+velocidad y el de 12,8 al doble — y en un eco **la velocidad con la que se mueve la pared es parte
+de lo que se está mirando**. Los 25 fps quedan como último recurso, sólo si el archivo no declara
+nada, y la interfaz dice cuál se está usando y de dónde salió.
+
+**Lo que hay que no romper nunca: capturar tiene que guardar el cuadro que se está viendo.** Un
+reproductor que navega bien pero captura el cuadro 0 se ve perfecto en pantalla y mete en el PDF
+una imagen que nadie eligió. TC-182 lo fija comparando el `_orig` del slot contra el cuadro N
+decodificado por afuera, y exigiendo que difiera del cuadro 0. La mutación que captura el 0 lo
+pone en rojo.
+
+**Al comparar cuadros, mirar el CENTRO.** La primera versión de TC-182 muestreaba los 200×200 de
+arriba a la izquierda: en un eco eso es fondo negro, el cuadro 0 y el del medio salían idénticos
+y la condición «no se quedó en el cuadro 0» pasaba sin probar nada. Hoy muestrea el centro **y
+además afirma que los dos cuadros comparados son distintos**, que es el denominador.
+
+**Semgrep: la línea base pasó de 123 a 124.** El hallazgo nuevo es `ceibo-xss-innerhtml-concat`
+sobre el `ov.innerHTML` del modal. Es falso positivo verificado: **todo lo concatenado son
+literales** y cada texto que viene del archivo se escribe con `textContent`. Es la misma forma
+que ya tiene `_dcmRenderPreview`, que está en la base desde antes. Si algún día alguien
+interpola un dato del DICOM ahí, deja de ser falso positivo — la regla es amplia a propósito.
+
+> **CORRECCIÓN (2026-09-19, mismo día).** Antes decía acá que no había ningún archivo multi-frame
+> con qué probar y por eso el reproductor estaba diferido. Eso era cierto **de la base Horos** y
+> **falso del pendrive**: `/Volumes/DISK_IMG/GEMS_IMG` tiene **22 cineloops** reales. Horos había
+> importado sólo las imágenes fijas. La lección: *la base de datos de un visor no es el export del
+> ecógrafo* — mirar el origen, no la copia.
 
 **Sin el filtro del selector (2026-09-19).** El input **no lleva `accept`**, y es a propósito: el
 Vivid escribe los 296 archivos del pendrive **sin ninguna extensión** (`GEMS_IMG/…/Q9JGCGT0`), así

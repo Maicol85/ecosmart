@@ -45140,6 +45140,14 @@ function _dcmImgLeer(buf) {
     if (g === 0x0028 && e === 0x0008) { const n = parseInt(_dcmImgAscii(u8, val, ln), 10); if (isFinite(n) && n > 0) d.nFrames = n; }
     if (g === 0x0028 && e === 0x0010) d.filas = dv.getUint16(val, true);
     if (g === 0x0028 && e === 0x0011) d.cols  = dv.getUint16(val, true);
+    /* (0018,1063) FrameTime: MILISEGUNDOS POR CUADRO, que es lo que declara el Vivid, y
+       (0008,2144) RecommendedDisplayFrameRate, que son cuadros por segundo. No es un detalle
+       de confort: en los 22 cineloops del pendrive el FrameTime va de 17,86 ms (56 cuadros/s)
+       a 78,37 ms (12,8 cuadros/s). Reproducir todo a 25 como si fuera una constante muestra el
+       de 56 a menos de la mitad de velocidad y el de 12,8 al doble — y en un eco la velocidad
+       con la que se mueve la pared ES parte de lo que se está mirando. */
+    if (g === 0x0018 && e === 0x1063) { const t = parseFloat(_dcmImgAscii(u8, val, ln).replace(',', '.')); if (isFinite(t) && t > 0) d.msCuadro = t; }
+    if (g === 0x0008 && e === 0x2144) { const r = parseFloat(_dcmImgAscii(u8, val, ln).replace(',', '.')); if (isFinite(r) && r > 0) d.fpsDeclarado = r; }
     o = val + ln;
     if (ln % 2) o++;                       // los elementos van a longitud par
   }
@@ -45168,7 +45176,7 @@ window.dcmImgPick = dcmImgPick;
 
 async function dcmImgImportar(fileList) {
   const files = [...fileList];
-  const listos = [], fallos = [];
+  const listos = [], fallos = [], loops = [];
   for (const f of files) {
     /* ── LA MARCA PRIMERO, EL ARCHIVO DESPUÉS ──────────────────────────────────────────
        Se leen 132 bytes y recién si dicen «DICM» se carga el resto. Importa desde que el
@@ -45199,11 +45207,31 @@ async function dcmImgImportar(fileList) {
                   'Hoy sólo se importa JPEG Baseline, que es lo que exporta el GE Vivid.');
       continue;
     }
-    /* Multi-frame: se detecta y se dice. Ver la nota de arriba — no hay archivo con qué
-       probar un reproductor, y un cineloop a medias termina en el informe igual. */
-    if (d.nFrames > 1 || d.offsets > 1) {
-      fallos.push(f.name + ': es un cineloop de ' + Math.max(d.nFrames, d.offsets || 0) +
-                  ' cuadros. Todavía no se importan: por ahora exportá el cuadro que quieras desde el ecógrafo como imagen fija.');
+    /* ── CINELOOP ────────────────────────────────────────────────────────────────────────
+       La compuerta es «más de un cuadro», NO «más de un cuadro Y SOP Class de US
+       Multi-frame». Exigir las dos cosas rechazaría en silencio un multi-frame legítimo de
+       un equipo que use otra SOP Class —un Secondary Capture multicuadro, por ejemplo—, que
+       es justo el caso para el que esto tiene que servir cuando llegue un Philips o un
+       Canon. La SOP Class se muestra, no decide.
+
+       Lo que SÍ se exige es que haya un fragmento por cuadro. En los 22 cineloops del
+       pendrive se cumple siempre (y la tabla de offsets coincide), pero el estándar permite
+       repartir un cuadro en varios fragmentos y ahí hace falta leer la tabla para saber
+       dónde empieza cada uno. No hay ningún archivo así con qué probarlo, así que se dice
+       en vez de adivinar el reparto: adivinar mal muestra cuadros mezclados, que no se ven
+       como un error sino como un eco raro. */
+    const nCuadros = Math.max(d.nFrames, d.offsets || 0);
+    if (nCuadros > 1) {
+      if (d.frags.length !== nCuadros) {
+        fallos.push(f.name + ': es un cineloop de ' + nCuadros + ' cuadros pero trae ' + d.frags.length +
+                    ' fragmento(s) de imagen. Ese reparto todavía no se sabe leer — avisá con este archivo a mano.');
+        continue;
+      }
+      if (!(d.frags[0][0] === 0xFF && d.frags[0][1] === 0xD8)) {
+        fallos.push(f.name + ': dice ser un cineloop JPEG pero el primer cuadro no arranca con la marca de un JPEG');
+        continue;
+      }
+      loops.push({ nombre:f.name, d, cuadros:nCuadros });
       continue;
     }
     if (!d.frags.length) { fallos.push(f.name + ': el archivo no trae imagen (sin fragmentos de pixel data)'); continue; }
@@ -45243,20 +45271,202 @@ async function dcmImgImportar(fileList) {
   const TOPE = 12;
   const detalle = (lista) => lista.slice(0, TOPE).map(s => '· ' + s).join('\n\n') +
     (lista.length > TOPE ? '\n\n… y ' + (lista.length - TOPE) + ' archivo(s) más con problemas parecidos.' : '');
-  const equipos = [...new Set(listos.map(x => [x.d.fabricante, x.d.modelo].filter(Boolean).join(' ')).filter(Boolean))];
-  if (listos.length && !fallos.length) {
-    toast('✅ ' + listos.length + ' imagen(es) DICOM importada(s)' + (equipos.length ? ' · ' + equipos.join(' · ') : ''));
-  } else if (listos.length) {
-    toast('⚠️ ' + listos.length + ' de ' + files.length + ' importada(s) — mirá el detalle');
-    alert('Se importaron ' + listos.length + ' de ' + files.length + ' archivo(s)' +
+  const equipos = [...new Set(listos.concat(loops).map(x => [x.d.fabricante, x.d.modelo].filter(Boolean).join(' ')).filter(Boolean))];
+  const nEnt = listos.length + loops.length;
+  const resumen = (listos.length ? listos.length + ' imagen(es)' : '') +
+                  (listos.length && loops.length ? ' y ' : '') +
+                  (loops.length ? loops.length + ' cineloop(s)' : '');
+  if (nEnt && !fallos.length) {
+    toast('✅ ' + resumen + (equipos.length ? ' · ' + equipos.join(' · ') : ''));
+  } else if (nEnt) {
+    toast('⚠️ ' + nEnt + ' de ' + files.length + ' — mirá el detalle');
+    alert('Se leyeron ' + resumen + ', de ' + files.length + ' archivo(s) elegido(s)' +
           (equipos.length ? '\nEquipo: ' + equipos.join(' · ') : '') +
           '\n\nNo se pudieron importar ' + fallos.length + ':\n\n' + detalle(fallos));
   } else {
     toast('❌ No se importó ninguna imagen');
     alert('No se pudo importar ningún archivo (' + files.length + ' elegido/s).\n\n' + detalle(fallos));
   }
+  /* El reproductor se abre AL FINAL, después de los avisos: si abriera antes, el alert de
+     los rechazos quedaría tapado por el modal y el médico no se enteraría de lo que no entró. */
+  if (loops.length) _cineAbrir(loops);
 }
 window.dcmImgImportar = dcmImgImportar;
+
+/* ══════════════════════════════════════════════════════════════════════════════════════
+   REPRODUCTOR DE CINELOOP
+   ══════════════════════════════════════════════════════════════════════════════════════
+
+   POR QUÉ ES UN MODAL Y NO VA ADENTRO DEL SLOT. El pedido dice «en canvas dentro del slot
+   existente», y no se hizo así por una razón concreta: `imgRender()` reconstruye la grilla
+   entera con `cell.innerHTML = …` en cada redibujo, y la llaman imgSetCount, imgAddSlot,
+   imgSwap, imgRemove e imgSetCalidad. Un canvas puesto adentro de una celda lo borra el
+   primer redibujo — con el reproductor andando y sin ningún error a la vista. Sostenerlo
+   exigiría modificar `imgRender`, que este trabajo tiene prohibido tocar. El modal además
+   da lugar para el slider y los controles, que en una celda de 150 px de alto no entran.
+
+   POR QUÉ NO SE ESCRIBE NADA EN EL SLOT HASTA QUE SE CAPTURA. Es lo que pide el flujo: el
+   cineloop no va al PDF, va el cuadro que el médico elige. Poner el cuadro 0 «por las
+   dudas» sería exactamente lo contrario — el PDF saldría con un cuadro que nadie miró.
+
+   MEMORIA Y VELOCIDAD, MEDIDAS. Los cuadros NO se predecodifican: se guardan los JPEG
+   comprimidos (13-17 MB el loop más largo) y se decodifica el cuadro que se muestra.
+   Medido sobre un cineloop real: `createImageBitmap` tarda 2,0 ms a resolución plena
+   (1016×708), contra un presupuesto de 17,9 ms en el loop más rápido del pendrive.
+   Predecodificar los 172 cuadros a RGBA serían ~495 MB para no ganar nada. */
+
+let _cineDatos = null;   // { loops, i, cuadro, timer, bmp }
+
+function _cineFps(d) {
+  /* El archivo manda. FrameTime está en ms por cuadro; RecommendedDisplayFrameRate, en
+     cuadros por segundo. Los 25 fps son el ÚLTIMO recurso, no el valor por omisión: en el
+     pendrive el rango real va de 12,8 a 56 cuadros/s. */
+  if (d.msCuadro)     return { fps: 1000 / d.msCuadro, ms: d.msCuadro, fuente: 'del archivo' };
+  if (d.fpsDeclarado) return { fps: d.fpsDeclarado, ms: 1000 / d.fpsDeclarado, fuente: 'del archivo' };
+  return { fps: 25, ms: 40, fuente: 'por omisión — el archivo no la declara' };
+}
+
+function _cineAbrir(loops) {
+  _cineDetener();
+  _cineDatos = { loops, i: 0, cuadro: 0, timer: null };
+  let ov = document.getElementById('cine-ov');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'cine-ov';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.72);display:flex;' +
+                       'align-items:center;justify-content:center;padding:14px;';
+    /* Chrome estático por innerHTML; TODO lo que viene del archivo se escribe después con
+       textContent. Nada del DICOM se interpola como HTML. */
+    ov.innerHTML =
+      '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:900px;width:100%;max-height:92vh;overflow:auto;padding:16px;">' +
+        '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px;">' +
+          '<h3 style="margin:0;font-size:15px;">🎞️ Cineloop</h3>' +
+          '<span id="cine-cual" style="font-size:12px;color:var(--text2);"></span></div>' +
+        '<div id="cine-ayuda" style="font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.5;"></div>' +
+        '<div style="background:#000;border-radius:9px;display:flex;align-items:center;justify-content:center;min-height:220px;">' +
+          '<canvas id="cine-cv" style="max-width:100%;max-height:58vh;display:block;"></canvas></div>' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap;">' +
+          '<button type="button" class="btn btn-ghost" id="cine-play" style="padding:5px 14px;min-width:92px;">▶ Reproducir</button>' +
+          '<input type="range" id="cine-slider" min="0" value="0" style="flex:1;min-width:160px;">' +
+          '<span id="cine-num" style="font-size:12px;color:var(--text2);font-variant-numeric:tabular-nums;white-space:nowrap;"></span>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:12px;flex-wrap:wrap;">' +
+          '<div style="display:flex;gap:8px;">' +
+            '<button type="button" class="btn btn-ghost" id="cine-prev" style="padding:5px 12px;">‹ Anterior</button>' +
+            '<button type="button" class="btn btn-ghost" id="cine-next" style="padding:5px 12px;">Siguiente ›</button></div>' +
+          '<div style="display:flex;gap:8px;">' +
+            '<button type="button" class="btn btn-primary" id="cine-cap" style="padding:5px 14px;">📸 Capturar cuadro</button>' +
+            '<button type="button" class="btn btn-ghost" id="cine-cerrar" style="padding:5px 12px;">Cerrar</button></div>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(ov);
+    ov.querySelector('#cine-play').onclick   = cineToggle;
+    ov.querySelector('#cine-cap').onclick    = cineCapturar;
+    ov.querySelector('#cine-cerrar').onclick = cineCerrar;
+    ov.querySelector('#cine-prev').onclick   = () => cineLoop(-1);
+    ov.querySelector('#cine-next').onclick   = () => cineLoop(1);
+    ov.querySelector('#cine-slider').oninput = (e) => { _cineDetener(); cineIr(+e.target.value); };
+  }
+  ov.style.display = 'flex';
+  _cineCargarLoop();
+}
+
+function _cineCargarLoop() {
+  const D = _cineDatos; if (!D) return;
+  const L = D.loops[D.i];
+  const v = _cineFps(L.d);
+  D.cuadro = 0;
+  const ov = document.getElementById('cine-ov');
+  const cv = ov.querySelector('#cine-cv');
+  cv.width = L.d.cols || 640; cv.height = L.d.filas || 480;
+  const sl = ov.querySelector('#cine-slider');
+  sl.max = String(L.cuadros - 1); sl.value = '0';
+  ov.querySelector('#cine-cual').textContent =
+    (D.loops.length > 1 ? 'Cineloop ' + (D.i + 1) + ' de ' + D.loops.length + '  ·  ' : '') + L.nombre;
+  ov.querySelector('#cine-ayuda').textContent =
+    L.cuadros + ' cuadros — navegá y capturá el cuadro que querés incluir en el informe. ' +
+    'Arranca en pausa. Sólo el cuadro que captures va al PDF; el cineloop no se guarda. ' +
+    'Velocidad: ' + v.fps.toFixed(1) + ' cuadros/s (' + v.fuente + ').';
+  ov.querySelector('#cine-prev').style.display = D.loops.length > 1 ? '' : 'none';
+  ov.querySelector('#cine-next').style.display = D.loops.length > 1 ? '' : 'none';
+  cineIr(0);
+}
+
+function cineLoop(paso) {
+  const D = _cineDatos; if (!D || D.loops.length < 2) return;
+  _cineDetener();
+  D.i = (D.i + paso + D.loops.length) % D.loops.length;
+  _cineCargarLoop();
+}
+
+/* Dibuja un cuadro. `_cineGen` evita que un decodificado que llega tarde pise al cuadro que
+   el médico ya eligió: con el slider arrastrado rápido se disparan decenas de decodificados
+   y el último en terminar no es el último en pedirse. */
+let _cineGen = 0;
+async function cineIr(n) {
+  const D = _cineDatos; if (!D) return;
+  const L = D.loops[D.i];
+  n = Math.max(0, Math.min(L.cuadros - 1, n | 0));
+  D.cuadro = n;
+  const ov = document.getElementById('cine-ov'); if (!ov) return;
+  ov.querySelector('#cine-num').textContent = (n + 1) + ' / ' + L.cuadros;
+  ov.querySelector('#cine-slider').value = String(n);
+  const gen = ++_cineGen;
+  let bmp;
+  try { bmp = await createImageBitmap(new Blob([L.d.frags[n]], { type:'image/jpeg' })); }
+  catch (e) { return; }
+  if (gen !== _cineGen || !_cineDatos) { bmp.close(); return; }
+  const cv = ov.querySelector('#cine-cv');
+  if (cv.width !== bmp.width || cv.height !== bmp.height) { cv.width = bmp.width; cv.height = bmp.height; }
+  cv.getContext('2d').drawImage(bmp, 0, 0);
+  bmp.close();
+}
+
+function _cineDetener() {
+  if (_cineDatos && _cineDatos.timer) { clearInterval(_cineDatos.timer); _cineDatos.timer = null; }
+  const b = document.getElementById('cine-play');
+  if (b) b.textContent = '▶ Reproducir';
+}
+
+function cineToggle() {
+  const D = _cineDatos; if (!D) return;
+  if (D.timer) { _cineDetener(); return; }
+  const L = D.loops[D.i];
+  const v = _cineFps(L.d);
+  D.timer = setInterval(() => {
+    if (!_cineDatos) return;
+    cineIr((_cineDatos.cuadro + 1) % L.cuadros);
+  }, Math.max(20, Math.round(v.ms)));
+  const b = document.getElementById('cine-play');
+  if (b) b.textContent = '⏸ Pausa';
+}
+
+/* Captura el cuadro que se está viendo, a RESOLUCIÓN PLENA y desde el JPEG original — no
+   desde el canvas. El canvas puede estar mostrando un tamaño distinto por el CSS, y además
+   el JPEG del archivo es la fuente: reencodear lo que ya se dibujó agrega una generación de
+   pérdida para nada. De acá en adelante es un JPEG igual a cualquier otro y entra por
+   `imgCompressLoad`, la misma puerta que una foto elegida a mano. */
+function cineCapturar() {
+  const D = _cineDatos; if (!D) return;
+  const L = D.loops[D.i];
+  const n = D.cuadro;
+  const jpeg = L.d.frags[n];
+  if (!jpeg || !(jpeg[0] === 0xFF && jpeg[1] === 0xD8)) { toast('❌ Ese cuadro no se pudo leer'); return; }
+  const idx = _dcmImgReservar(1)[0];
+  imgCompressLoad(new Blob([jpeg], { type:'image/jpeg' }), idx);
+  toast('✅ Cuadro ' + (n + 1) + ' de ' + L.cuadros + ' agregado a las imágenes del estudio');
+}
+
+function cineCerrar() {
+  _cineDetener();
+  const ov = document.getElementById('cine-ov');
+  if (ov) ov.style.display = 'none';
+  /* Se suelta la referencia a los fragmentos. Son vistas sobre el ArrayBuffer del archivo
+     entero, así que mientras `_cineDatos` viva, los 17 MB del cineloop viven con él. */
+  _cineDatos = null;
+}
+window.cineToggle = cineToggle; window.cineCapturar = cineCapturar;
+window.cineCerrar = cineCerrar; window.cineIr = cineIr; window.cineLoop = cineLoop;
 
 // Pegar desde portapapeles (sólo con el tab de Imágenes activo)
 function imgPasteHandler(e){
@@ -60333,8 +60543,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260919-1903';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789855412399;                 /* eco-build-ms */
+const ECO_BUILD    = '20260919-1949';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789858183866;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -60420,7 +60630,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-1903</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-1949</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
