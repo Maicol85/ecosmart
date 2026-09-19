@@ -11803,9 +11803,14 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
         <span style="font-size:12px;color:var(--text2);font-weight:600;">Cantidad de slots:</span>
         <div id="img-count-btns" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+        <button type="button" class="btn btn-ghost" style="padding:5px 12px;margin-left:auto;"
+                title="Importar imágenes desde archivos .dcm del ecógrafo"
+                onclick="dcmImgPick()">🩻 Importar DICOM</button>
       </div>
       <div id="img-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"></div>
       <input type="file" id="img-file-input" accept="image/jpeg,image/png,image/webp,image/*" style="display:none" onchange="imgFileChosen(event)">
+      <input type="file" id="dcmimg-file-input" accept=".dcm,.DCM,application/dicom" multiple style="display:none"
+             onchange="if(this.files&&this.files.length){dcmImgImportar(this.files);}this.value='';">
     </div>
   </div>
 </div>
@@ -44974,6 +44979,252 @@ function imgCompressLoad(file, idx){
   reader.readAsDataURL(file);
 }
 
+/* ══════════════════════════════════════════════════════════════════════════════════════
+   IMPORTAR IMÁGENES DESDE .dcm — sólo la tab Imágenes
+   ══════════════════════════════════════════════════════════════════════════════════════
+
+   QUÉ HACE Y QUÉ NO: saca el JPEG que ya viene adentro del .dcm y se lo entrega a
+   `imgCompressLoad`, que es la MISMA puerta por la que entra una foto elegida a mano o
+   pegada con Ctrl+V. Desde ahí todo lo de siempre funciona sin tocarse: el selector de
+   calidad, el `_orig` en memoria, el token `_imgGen`, la persistencia en IndexedDB y —lo
+   que importa— la salida al PDF firmado. No hay un segundo camino que pueda desincronizarse.
+
+   POR QUÉ NO HAY NINGUNA LIBRERÍA ACÁ. Medido sobre los 274 .dcm del Vivid iq que hay en
+   el equipo: los 274 son `1.2.840.10008.1.2.4.50` (JPEG Baseline) y el fragmento de
+   píxeles es un JFIF estándar COMPLETO —arranca en FFD8, trae su APP0 y decodifica solo—.
+   El navegador lo abre sin ayuda. Meter Cornerstone (2,78 MB entre el bundle y su worker)
+   para esto sería cargar un decodificador que el navegador ya tiene. Decisión de Maicol
+   (2026-09-19): las librerías se bajan BAJO DEMANDA y sólo cuando haga falta de verdad,
+   que es el multi-frame; las imágenes fijas no bajan nada y andan sin conexión.
+
+   POR QUÉ EL MULTI-FRAME SE RECHAZA EN VEZ DE IMPLEMENTARSE A MEDIAS. En el equipo no hay
+   NI UN archivo multi-frame: los 274 del Vivid declaran un solo cuadro —SOP Class «US
+   Image», que es la clase monocuadro; `NumberOfFrames` ausente; un fragmento; tabla de
+   offsets con una entrada—. Escribir el reproductor sin un archivo con qué probarlo sería
+   poner código sin verificar en el camino que termina en un informe firmado. Se detecta,
+   se dice claramente, y se espera un .dcm real de Philips/Siemens/Canon/Mindray.
+
+   SEGURIDAD: el archivo no sale del equipo —se lee con `arrayBuffer()` y se procesa en
+   memoria—, no hay `eval`, y nada del contenido del .dcm se inserta como HTML: el
+   fabricante y el modelo van por `toast`/`alert`, que son texto. */
+
+/* Sintaxis de transferencia (0002,0010). Se nombran también las NO soportadas: «formato no
+   soportado» a secas manda al médico a adivinar, y el dato que lo explica está en el
+   archivo. */
+const DCMIMG_TS = {
+  '1.2.840.10008.1.2.4.50': { ok:true,  nom:'JPEG Baseline' },
+  '1.2.840.10008.1.2':      { ok:false, nom:'Implicit VR LE (sin comprimir)' },
+  '1.2.840.10008.1.2.1':    { ok:false, nom:'Explicit VR LE (sin comprimir)' },
+  '1.2.840.10008.1.2.2':    { ok:false, nom:'Explicit VR BE (sin comprimir)' },
+  '1.2.840.10008.1.2.4.51': { ok:false, nom:'JPEG Extended (12 bits)' },
+  '1.2.840.10008.1.2.4.57': { ok:false, nom:'JPEG Lossless' },
+  '1.2.840.10008.1.2.4.70': { ok:false, nom:'JPEG Lossless SV1' },
+  '1.2.840.10008.1.2.4.80': { ok:false, nom:'JPEG-LS sin pérdida' },
+  '1.2.840.10008.1.2.4.81': { ok:false, nom:'JPEG-LS con pérdida' },
+  '1.2.840.10008.1.2.4.90': { ok:false, nom:'JPEG 2000 sin pérdida' },
+  '1.2.840.10008.1.2.4.91': { ok:false, nom:'JPEG 2000' },
+  '1.2.840.10008.1.2.4.100':{ ok:false, nom:'MPEG-2' },
+  '1.2.840.10008.1.2.4.102':{ ok:false, nom:'H.264' },
+  '1.2.840.10008.1.2.5':    { ok:false, nom:'RLE' }
+};
+/* VR con longitud de 4 bytes (llevan 2 bytes reservados antes). El resto usa 2. */
+const _DCMIMG_VR4 = { OB:1, OW:1, OF:1, OD:1, OL:1, SQ:1, UT:1, UN:1, UC:1, UR:1 };
+
+function _dcmImgAscii(u8, o, n) {
+  let s = '';
+  for (let i = 0; i < n; i++) { const c = u8[o + i]; if (c) s += String.fromCharCode(c); }
+  return s.replace(/\0/g, '').trim();
+}
+
+/* Salta una secuencia de longitud INDEFINIDA y devuelve el offset justo después de su
+   delimitador.
+
+   Lo que hace falta entender acá, y que costó una vuelta: adentro de un ítem de longitud
+   indefinida el contenido son ELEMENTOS normales (con su VR y su longitud), no más ítems.
+   Un recorrido que asuma estructura de ítem en todo el tramo lee la longitud donde en
+   realidad está el VR, salta a cualquier lado y se pierde el pixel data — se veía como
+   «el archivo no trae imagen» sobre un archivo perfectamente válido. */
+function _dcmImgSaltarSQ(dv, u8, q, fin) {
+  let prof = 1;
+  while (q + 8 <= fin && prof > 0) {
+    const g = dv.getUint16(q, true), e = dv.getUint16(q + 2, true);
+    if (g === 0xFFFE) {
+      const fl = dv.getUint32(q + 4, true);
+      q += 8;
+      if (e === 0xE0DD) { prof--; continue; }                     // fin de la secuencia
+      if (e === 0xE00D) continue;                                 // fin de un ítem
+      if (e === 0xE000 && fl !== 0xFFFFFFFF) q += fl;             // ítem con largo: se saltea
+      continue;                                                   // ítem indefinido: se entra
+    }
+    const vr = _dcmImgAscii(u8, q + 4, 2);
+    if (!/^[A-Z]{2}$/.test(vr)) return fin;                       // ilegible: se corta acá
+    let ln, val;
+    if (_DCMIMG_VR4[vr]) { ln = dv.getUint32(q + 8, true); val = q + 12; }
+    else                 { ln = dv.getUint16(q + 6, true); val = q + 8; }
+    q = (ln === 0xFFFFFFFF) ? _dcmImgSaltarSQ(dv, u8, val, fin)   // secuencia anidada
+                            : val + ln;
+  }
+  return q;
+}
+
+/* Lector PLANO y mínimo, a propósito separado de `_dcmLeerP10` del importador de
+   mediciones: aquel arma el árbol recursivo de un SR con sus secuencias, y acá hacen falta
+   ocho tags sueltos y los fragmentos del pixel data. Son trabajos distintos, y además ese
+   módulo está fuera del alcance de este cambio. */
+function _dcmImgLeer(buf) {
+  const dv = new DataView(buf), u8 = new Uint8Array(buf);
+  if (buf.byteLength < 140) throw new Error('el archivo es demasiado corto para ser un DICOM');
+  if (_dcmImgAscii(u8, 128, 4) !== 'DICM')
+    throw new Error('no tiene la marca «DICM» en el byte 128: no es un DICOM Parte 10');
+
+  /* El meta header SIEMPRE es Explicit VR LE, sea cual sea la sintaxis del dataset. */
+  let o = 132, ts = '';
+  while (o + 8 <= buf.byteLength) {
+    const g = dv.getUint16(o, true), e = dv.getUint16(o + 2, true);
+    if (g !== 0x0002) break;
+    const vr = _dcmImgAscii(u8, o + 4, 2);
+    let ln, val;
+    if (_DCMIMG_VR4[vr]) { ln = dv.getUint32(o + 8, true); val = o + 12; o = val + ln; }
+    else                 { ln = dv.getUint16(o + 6, true); val = o + 8;  o = val + ln; }
+    if (g === 0x0002 && e === 0x0010) ts = _dcmImgAscii(u8, val, ln);
+    if (o > buf.byteLength) throw new Error('el meta header del DICOM está truncado');
+  }
+  if (!ts) throw new Error('el archivo no declara sintaxis de transferencia (0002,0010)');
+
+  const d = { ts, nFrames: 1, fabricante: '', modelo: '', foto: '', filas: 0, cols: 0, frags: [] };
+  const CONOCIDA = DCMIMG_TS[ts];
+  /* Las sintaxis comprimidas son todas Explicit VR LE; las no comprimidas pueden ser
+     implícitas. Se rechazan antes de recorrer el dataset, así que de acá en adelante se
+     puede asumir explícita sin adivinar. */
+  if (!CONOCIDA || !CONOCIDA.ok) { d.rechazo = CONOCIDA ? CONOCIDA.nom : ts; return d; }
+
+  while (o + 8 <= buf.byteLength) {
+    const g = dv.getUint16(o, true), e = dv.getUint16(o + 2, true);
+    const vr = _dcmImgAscii(u8, o + 4, 2);
+    if (!/^[A-Z]{2}$/.test(vr)) throw new Error('el dataset del DICOM no se pudo recorrer (VR inesperado en el byte ' + o + ')');
+    let ln, val;
+    if (_DCMIMG_VR4[vr]) { ln = dv.getUint32(o + 8, true); val = o + 12; }
+    else                 { ln = dv.getUint16(o + 6, true); val = o + 8; }
+
+    if (g === 0x7FE0 && e === 0x0010) {
+      if (ln !== 0xFFFFFFFF)
+        throw new Error('el pixel data no viene encapsulado, cosa que no corresponde a ' + CONOCIDA.nom);
+      /* Fragmentos: el ítem 0 es SIEMPRE la Basic Offset Table —puede estar vacía o traer
+         una entrada por cuadro— y los de imagen son el 1 en adelante. Contarla como
+         fragmento de imagen fue el primer error al mirar estos archivos: el «JPEG» salía
+         sin su FFD8 porque en realidad era la tabla. */
+      let q = val, primero = true;
+      while (q + 8 <= buf.byteLength) {
+        const tg = dv.getUint16(q, true), te = dv.getUint16(q + 2, true);
+        const fl = dv.getUint32(q + 4, true);
+        if (tg === 0xFFFE && te === 0xE0DD) break;                  // fin de la secuencia
+        if (tg !== 0xFFFE || te !== 0xE000) throw new Error('fragmento de pixel data inesperado');
+        if (q + 8 + fl > buf.byteLength) throw new Error('un fragmento del pixel data apunta más allá del final del archivo');
+        if (primero) { d.offsets = fl / 4; primero = false; }        // tabla de offsets
+        else d.frags.push(u8.subarray(q + 8, q + 8 + fl));
+        q += 8 + fl;
+      }
+      break;
+    }
+    if (ln === 0xFFFFFFFF) { o = _dcmImgSaltarSQ(dv, u8, val, buf.byteLength); continue; }
+    if (g === 0x0008 && e === 0x0070) d.fabricante = _dcmImgAscii(u8, val, ln);
+    if (g === 0x0008 && e === 0x1090) d.modelo     = _dcmImgAscii(u8, val, ln);
+    if (g === 0x0028 && e === 0x0004) d.foto       = _dcmImgAscii(u8, val, ln);
+    if (g === 0x0028 && e === 0x0008) { const n = parseInt(_dcmImgAscii(u8, val, ln), 10); if (isFinite(n) && n > 0) d.nFrames = n; }
+    if (g === 0x0028 && e === 0x0010) d.filas = dv.getUint16(val, true);
+    if (g === 0x0028 && e === 0x0011) d.cols  = dv.getUint16(val, true);
+    o = val + ln;
+    if (ln % 2) o++;                       // los elementos van a longitud par
+  }
+  return d;
+}
+
+/* Reserva N slots libres AHORA, de forma sincrónica, y devuelve sus índices en orden.
+   `imgCompressLoad` elige slot dentro de su `.then()`, así que sin reservar antes el orden
+   en que aparecen las imágenes depende de cuál termine de comprimirse primero — y ese es
+   el orden en que salen en el PDF. */
+function _dcmImgReservar(n) {
+  const idxs = [];
+  for (let i = 0; i < imgSlots.length && idxs.length < n; i++) if (!imgSlots[i]) idxs.push(i);
+  while (idxs.length < n) { imgSlots.push(null); idxs.push(imgSlots.length - 1); }
+  imgSlotCount = imgSlots.length;
+  imgEnsureLen();
+  imgRender();
+  return idxs;
+}
+
+/* Abre el selector. Mismo patrón que `imgPick`, y no un getElementById dentro del onclick:
+   así el id queda nombrado desde el JavaScript y `detectar_huerfanos.py` —que no mira los
+   manejadores inline— no lo reporta como campo sin destino. */
+function dcmImgPick(){ const inp = document.getElementById('dcmimg-file-input'); if (inp) { inp.value=''; inp.click(); } }
+window.dcmImgPick = dcmImgPick;
+
+async function dcmImgImportar(fileList) {
+  const files = [...fileList];
+  const listos = [], fallos = [];
+  for (const f of files) {
+    let buf;
+    try { buf = await f.arrayBuffer(); }
+    catch (e) { fallos.push(f.name + ': no se pudo leer el archivo'); continue; }
+    let d;
+    try { d = _dcmImgLeer(buf); }
+    catch (e) { fallos.push(f.name + ': ' + e.message); continue; }
+    if (d.rechazo) {
+      fallos.push(f.name + ': está comprimido en ' + d.rechazo + ', que el navegador no sabe abrir por su cuenta. ' +
+                  'Hoy sólo se importa JPEG Baseline, que es lo que exporta el GE Vivid.');
+      continue;
+    }
+    /* Multi-frame: se detecta y se dice. Ver la nota de arriba — no hay archivo con qué
+       probar un reproductor, y un cineloop a medias termina en el informe igual. */
+    if (d.nFrames > 1 || d.offsets > 1) {
+      fallos.push(f.name + ': es un cineloop de ' + Math.max(d.nFrames, d.offsets || 0) +
+                  ' cuadros. Todavía no se importan: por ahora exportá el cuadro que quieras desde el ecógrafo como imagen fija.');
+      continue;
+    }
+    if (!d.frags.length) { fallos.push(f.name + ': el archivo no trae imagen (sin fragmentos de pixel data)'); continue; }
+    /* Un cuadro puede venir PARTIDO en varios fragmentos —es legal y el estándar lo
+       contempla—: se concatenan en orden. Quedarse con el primero daría un JPEG cortado,
+       que el navegador dibuja a medias en vez de fallar. */
+    let jpeg;
+    if (d.frags.length === 1) jpeg = d.frags[0];
+    else {
+      const total = d.frags.reduce((n, x) => n + x.length, 0);
+      jpeg = new Uint8Array(total);
+      let p = 0; d.frags.forEach(x => { jpeg.set(x, p); p += x.length; });
+    }
+    if (!(jpeg[0] === 0xFF && jpeg[1] === 0xD8)) {
+      fallos.push(f.name + ': el archivo dice JPEG Baseline pero los píxeles no arrancan con la marca de un JPEG');
+      continue;
+    }
+    listos.push({ nombre:f.name, jpeg, d });
+  }
+
+  if (listos.length) {
+    const idxs = _dcmImgReservar(listos.length);
+    listos.forEach((x, i) => {
+      /* Entra por la MISMA puerta que una foto elegida a mano. El Blob lleva su tipo para
+         que el `data:` que produce FileReader salga como image/jpeg y pase `_imgSrcOK`. */
+      imgCompressLoad(new Blob([x.jpeg], { type:'image/jpeg' }), idxs[i]);
+    });
+  }
+
+  /* Un solo aviso al final, con el denominador a la vista: «se importaron 3» sin decir que
+     eran 7 archivos deja creer que entraron todos. */
+  const equipos = [...new Set(listos.map(x => [x.d.fabricante, x.d.modelo].filter(Boolean).join(' ')).filter(Boolean))];
+  if (listos.length && !fallos.length) {
+    toast('✅ ' + listos.length + ' imagen(es) DICOM importada(s)' + (equipos.length ? ' · ' + equipos.join(' · ') : ''));
+  } else if (listos.length) {
+    toast('⚠️ ' + listos.length + ' de ' + files.length + ' importada(s) — mirá el detalle');
+    alert('Se importaron ' + listos.length + ' de ' + files.length + ' archivo(s)' +
+          (equipos.length ? '\nEquipo: ' + equipos.join(' · ') : '') +
+          '\n\nNo se pudieron importar:\n\n' + fallos.map(s => '· ' + s).join('\n\n'));
+  } else {
+    toast('❌ No se importó ninguna imagen');
+    alert('No se pudo importar ningún archivo.\n\n' + fallos.map(s => '· ' + s).join('\n\n'));
+  }
+}
+window.dcmImgImportar = dcmImgImportar;
+
 // Pegar desde portapapeles (sólo con el tab de Imágenes activo)
 function imgPasteHandler(e){
   const tab = document.getElementById('tab-imagenes');
@@ -60049,8 +60300,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260919-1707';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789848428929;                 /* eco-build-ms */
+const ECO_BUILD    = '20260919-1846';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789854366090;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -60136,7 +60387,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-1707</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-1846</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

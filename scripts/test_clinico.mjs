@@ -9720,6 +9720,304 @@ caso('TC-178', 'UI de punta a punta: File real por dcmImportarSR, vista previa y
   })();
 `);
 
+/* ══ TC-179 · Importar DICOM en la tab Imagenes: lector, guardas y entrada al slot ═══════════
+   SINTETICO. Arma archivos DICOM byte a byte dentro de la pagina, segun el estandar, con un
+   JPEG de 1x1 generado por un codificador normal. No hay un solo dato de paciente, asi que el
+   caso corre siempre y es versionable.
+   Lo que fija: que el lector saque el JPEG correcto (y NO la tabla de offsets, que fue el
+   primer error al mirar estos archivos), que las sintaxis que el navegador no sabe abrir se
+   rechacen POR NOMBRE, que el multi-frame se rechace en vez de entrar a medias, y que la
+   imagen termine en el slot con el formato que viaja al PDF.                                 */
+caso('TC-179', 'Importar DICOM: extrae el JPEG, rechaza lo que no puede abrir y llega al slot', `
+  return (async () => {
+    const JPG = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,219,0,67,0,8,6,6,7,6,5,8,7,7,7,9,9,8,10,12,20,13,12,11,11,12,25,18,19,15,20,29,26,31,30,29,26,28,28,32,36,46,39,32,34,44,35,28,28,40,55,41,44,48,49,52,52,52,31,39,57,61,56,50,60,46,51,52,50,255,192,0,11,8,0,1,0,1,1,1,17,0,255,196,0,20,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,255,196,0,20,16,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,218,0,8,1,1,0,0,63,0,42,159,255,217]);
+
+    // ── constructor de DICOM Parte 10, Explicit VR LE ──
+    const B = (arr) => { const o=[]; arr.forEach(x=>{ if (typeof x==='number') o.push(x); else x.forEach(y=>o.push(y)); }); return o; };
+    const u16 = n => [n & 255, (n>>8) & 255];
+    const u32 = n => [n & 255, (n>>8)&255, (n>>16)&255, (n>>24)&255];
+    const txt = s => { const a=[]; for (let i=0;i<s.length;i++) a.push(s.charCodeAt(i)); if (a.length%2) a.push(0); return a; };
+    const el  = (g,e,vr,val) => {
+      const L4 = ['OB','OW','SQ','UN','UT'].indexOf(vr) > -1;
+      return B([u16(g),u16(e),txt(vr).slice(0,2), L4 ? B([0,0,u32(val.length)]) : u16(val.length), val]);
+    };
+    function mk(op) {
+      const o = op || {};
+      const ts = o.ts || '1.2.840.10008.1.2.4.50';
+      let b = [];
+      for (let i=0;i<128;i++) b.push(0);
+      b = b.concat(txt(o.sinDICM ? 'XXXX' : 'DICM'));
+      b = b.concat(el(0x0002,0x0010,'UI',txt(ts)));
+      b = b.concat(el(0x0008,0x0070,'LO',txt(o.fab || 'GE Vingmed Ultrasound')));
+      b = b.concat(el(0x0008,0x1090,'LO',txt(o.mod || 'Vivid iq')));
+      if (o.conSQ) {
+        /* Secuencia de longitud INDEFINIDA antes del pixel data. Si el lector no la saltea
+           entera, se mete adentro y confunde un tag de la secuencia con uno de nivel
+           superior -- por ejemplo leyendo un NumberOfFrames que no es del estudio. */
+        b = b.concat(B([u16(0x0008),u16(0x1140),txt('SQ'),0,0,u32(0xFFFFFFFF)]));
+        b = b.concat(B([u16(0xFFFE),u16(0xE000),u32(0xFFFFFFFF)]));
+        b = b.concat(el(0x0028,0x0008,'IS',txt('99')));          // trampa: frames FALSO
+        b = b.concat(B([u16(0xFFFE),u16(0xE00D),u32(0)]));
+        b = b.concat(B([u16(0xFFFE),u16(0xE0DD),u32(0)]));
+      }
+      b = b.concat(el(0x0028,0x0004,'CS',txt('YBR_FULL_422')));
+      if (o.frames && o.frames > 1) b = b.concat(el(0x0028,0x0008,'IS',txt(String(o.frames))));
+      b = b.concat(el(0x0028,0x0010,'US',u16(o.filas || 1)));
+      b = b.concat(el(0x0028,0x0011,'US',u16(o.cols  || 1)));
+      // pixel data encapsulado
+      b = b.concat(B([u16(0x7FE0),u16(0x0010),txt('OB'),0,0,u32(0xFFFFFFFF)]));
+      const tabla = o.offsets === 0 ? [] : B(new Array(o.offsets || 1).fill(0).map(()=>u32(0)));
+      b = b.concat(B([u16(0xFFFE),u16(0xE000),u32(tabla.length),tabla]));
+      (o.frags || [JPG]).forEach(fr => {
+        const a = Array.from(fr);
+        if (a.length % 2) a.push(0);
+        b = b.concat(B([u16(0xFFFE),u16(0xE000),u32(a.length),a]));
+      });
+      b = b.concat(B([u16(0xFFFE),u16(0xE0DD),u32(0)]));
+      const u8 = new Uint8Array(o.truncar ? b.slice(0, o.truncar) : b);
+      return u8.buffer;
+    }
+    const hex = a => Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join('');
+
+    // ── 1. archivo normal de un cuadro ──
+    const d1 = _dcmImgLeer(mk());
+    const jpegOK = d1.frags.length === 1 && hex(d1.frags[0]) === hex(JPG);
+    const esTabla = d1.frags.length && d1.frags[0][0] === 0 && d1.frags[0][1] === 0;
+
+    // ── 2. la secuencia indefinida NO envenena NumberOfFrames ──
+    const dSQ = _dcmImgLeer(mk({ conSQ:true }));
+
+    // ── 3. un cuadro PARTIDO en dos fragmentos se concatena, no se trunca ──
+    const mitad = Math.floor(JPG.length/2) + (Math.floor(JPG.length/2) % 2);
+    const dPart = _dcmImgLeer(mk({ frags:[JPG.slice(0,mitad), JPG.slice(mitad)] }));
+
+    // ── 4. rechazos ──
+    const rej = (op) => { try { const d=_dcmImgLeer(mk(op)); return d.rechazo ? ('rechazo:'+d.rechazo) : null; } catch(e){ return 'excepcion:'+e.message; } };
+    const rJ2K  = rej({ ts:'1.2.840.10008.1.2.4.91' });
+    const rSinC = rej({ ts:'1.2.840.10008.1.2.1' });
+    const rRLE  = rej({ ts:'1.2.840.10008.1.2.5' });
+    const rNoDcm= rej({ sinDICM:true });
+    const rDesc = (() => { try { _dcmImgLeer(mk({ ts:'1.2.840.10008.1.2.4.99' })); return null; } catch(e){ return 'exc'; } })();
+    const dDesc = _dcmImgLeer(mk({ ts:'1.2.840.10008.1.2.4.99' }));
+
+    // ── 5. el multi-frame se DETECTA (lo rechaza dcmImgImportar, no el lector) ──
+    const dMulti = _dcmImgLeer(mk({ frames:4, frags:[JPG,JPG,JPG,JPG], offsets:4 }));
+
+    // ── 6. de punta a punta: el archivo entra al slot en el formato que viaja al PDF ──
+    __t.limpiar();
+    if (typeof imgSlots !== 'undefined') { imgSlots.length = 0; imgSlots.push(null, null); imgSlotCount = 2; }
+    const antesLlenos = imgSlots.filter(Boolean).length;
+    // una imagen normal primero, para probar que la de DICOM no la rompe
+    await new Promise(r => { imgCompressLoad(new Blob([JPG],{type:'image/jpeg'}), 0); const t=setInterval(()=>{ if (imgSlots[0]) { clearInterval(t); r(); } },50); setTimeout(()=>{clearInterval(t);r();},4000); });
+    const normalOK = !!(imgSlots[0] && imgSlots[0].dataURL);
+
+    const f1 = new File([new Uint8Array(mk())], 'uno.dcm');
+    const f2 = new File([new Uint8Array(mk())], 'dos.dcm');
+    await dcmImgImportar([f1, f2]);
+    await new Promise(r => { const t=setInterval(()=>{ if (imgSlots.filter(s=>s&&s.dataURL).length >= 3) { clearInterval(t); r(); } },50); setTimeout(()=>{clearInterval(t);r();},6000); });
+    const llenos = imgSlots.filter(s => s && s.dataURL);
+    const todosOK = llenos.length >= 3 && llenos.every(s => _imgSrcOK(s.dataURL));
+    const forma = llenos.every(s => typeof s.dataURL === 'string' && s.dataURL.indexOf('data:image/') === 0 &&
+                                    typeof s.ampliada === 'boolean' && !!IMG_CAL[s.calidad]);
+    // la imagen normal del slot 0 sigue intacta
+    const normalIntacta = normalOK && !!(imgSlots[0] && imgSlots[0].dataURL);
+
+    /* ── 6b. el cuadro PARTIDO, de punta a punta ──
+       Hubo que agregar esto por mutacion: la condicion de mas arriba prueba que el LECTOR
+       devuelve dos fragmentos, no que dcmImgImportar los CONCATENE. Sacar la concatenacion
+       dejaba el caso en verde. Con el JPEG cortado al medio, quedarse con el primer
+       fragmento da un archivo truncado que no decodifica, asi que el slot queda vacio. */
+    imgSlots.length = 0; imgSlots.push(null, null); imgSlotCount = 2;
+    const fPart = new File([new Uint8Array(mk({ frags:[JPG.slice(0,mitad), JPG.slice(mitad)] }))], 'partido.dcm');
+    await dcmImgImportar([fPart]);
+    await new Promise(r => { const t=setInterval(()=>{ if (imgSlots.filter(s=>s&&s.dataURL).length >= 1) { clearInterval(t); r(); } },50); setTimeout(()=>{clearInterval(t);r();},5000); });
+    const partidoEntro = imgSlots.filter(s => s && s.dataURL).length >= 1;
+
+    /* ── 7. la reserva de slots es DETERMINISTA ──
+       imgCompressLoad elige slot adentro de su .then(), asi que si no se reservan los
+       indices antes, el orden en que aparecen las imagenes depende de cual termine de
+       comprimirse primero -- y ese es el orden en que salen en el PDF firmado. */
+    imgSlots.length = 0; imgSlots.push(null, null, null, null); imgSlotCount = 4;
+    imgSlots[1] = { dataURL:'data:image/jpeg;base64,x', ampliada:false, calidad:'media' };
+    const res3 = _dcmImgReservar(3);
+    const ordenOK = res3.length === 3 && res3.every((v,i)=> i===0 || v > res3[i-1]) &&
+                    res3.every(v => !imgSlots[v]) && res3.indexOf(1) === -1;
+
+    /* ── 7b. LA IMAGEN DICOM SALE EN EL PDF FIRMADO ──
+       Que entre por la misma puerta que una foto es un argumento, no una medicion. Se
+       genera el PDF de verdad y se espia addImage: tiene que recibir el dataURL del slot.
+       Sin esto, el unico respaldo de "viaja al PDF" seria el razonamiento. */
+    imgSlots.length = 0; imgSlots.push(null, null); imgSlotCount = 2;
+    const fPdf = new File([new Uint8Array(mk())], 'pdf.dcm');
+    await dcmImgImportar([fPdf]);
+    await new Promise(r => { const t=setInterval(()=>{ if (imgSlots.some(s=>s&&s.dataURL)) { clearInterval(t); r(); } },50); setTimeout(()=>{clearInterval(t);r();},5000); });
+    const urlSlot = (imgSlots.find(s=>s&&s.dataURL)||{}).dataURL || '';
+    __t.set('nombre','DICOMPDF'); __t.set('ci','4444444-4'); __t.set('edad','55');
+    generarInforme();
+    for (let i=0;i<80 && (typeof window.jspdf==='undefined'||!window.jspdf.jsPDF);i++) await new Promise(r=>setTimeout(r,100));
+    const Orig = window.jspdf.jsPDF; const vistas = [];
+    function W(){ const d = new Orig(...arguments);
+      const ai = d.addImage.bind(d);
+      d.addImage = function(data){ try { vistas.push(String(data)); } catch(e){} return ai.apply(d, arguments); };
+      d.save = function(){ return Promise.resolve(); }; return d; }
+    W.prototype = Orig.prototype; window.jspdf.jsPDF = W;
+    let errPdf = null;
+    try { await generarPDFReal(); } catch(e) { errPdf = e && e.message; }
+    window.jspdf.jsPDF = Orig;
+    const enPDF = !!urlSlot && vistas.indexOf(urlSlot) > -1;
+
+    // ── 8. el boton y el input existen y estan bien configurados ──
+    const btn = [...document.querySelectorAll('#tab-imagenes button')].filter(b => b.textContent.indexOf('Importar DICOM') > -1);
+    const inp = document.getElementById('dcmimg-file-input');
+
+    return { extra: [
+      ['saca el JPEG y NO la tabla de offsets',          jpegOK && !esTabla, d1.frags.length + ' frag · ' + (d1.frags[0] ? hex(d1.frags[0].slice(0,2)) : '-')],
+      ['lee fabricante y modelo',                        d1.fabricante === 'GE Vingmed Ultrasound' && d1.modelo === 'Vivid iq', d1.fabricante + ' / ' + d1.modelo],
+      ['un cuadro sin NumberOfFrames es 1',              d1.nFrames === 1, d1.nFrames],
+      ['una secuencia indefinida se saltea entera',      dSQ.nFrames === 1 && dSQ.frags.length === 1, 'frames=' + dSQ.nFrames + ' frags=' + dSQ.frags.length],
+      ['un cuadro partido se concatena entero',          dPart.frags.length === 2 && hex(dPart.frags[0]) + hex(dPart.frags[1]) === hex(JPG), dPart.frags.length],
+      ['JPEG 2000 se rechaza POR NOMBRE',                rJ2K === 'rechazo:JPEG 2000', rJ2K],
+      ['sin comprimir se rechaza por nombre',            rSinC === 'rechazo:Explicit VR LE (sin comprimir)', rSinC],
+      ['RLE se rechaza por nombre',                      rRLE === 'rechazo:RLE', rRLE],
+      ['un archivo sin DICM se rechaza',                 rNoDcm && rNoDcm.indexOf('excepcion') === 0, rNoDcm],
+      ['una sintaxis DESCONOCIDA tambien se rechaza',    !!dDesc.rechazo, dDesc.rechazo],
+      ['el multi-frame se detecta',                      dMulti.nFrames === 4 && dMulti.frags.length === 4, 'frames=' + dMulti.nFrames + ' frags=' + dMulti.frags.length],
+      ['los .dcm llegan al slot',                        llenos.length >= 3, llenos.length + ' (antes ' + antesLlenos + ')'],
+      ['con un dataURL que la app sabe mostrar',         todosOK, todosOK],
+      ['y con la forma {dataURL, ampliada, calidad}',    forma, JSON.stringify(Object.keys(imgSlots.find(s=>s&&s.dataURL)||{}))],
+      ['no rompe una imagen normal ya cargada',          normalIntacta, normalIntacta],
+      ['un .dcm con el cuadro partido llega entero al slot', partidoEntro, partidoEntro],
+      ['el PDF real se genera sin errores',               errPdf === null, errPdf],
+      ['y la imagen DICOM SALE en el PDF firmado',        enPDF, vistas.length + ' addImage · slot ' + urlSlot.slice(0,28)],
+      ['reserva slots libres, en orden y sin pisar los ocupados', ordenOK, JSON.stringify(res3)],
+      ['el boton existe en la tab Imagenes',             btn.length === 1, btn.length],
+      ['el input acepta .dcm y es multiple',             !!inp && inp.multiple && inp.accept.indexOf('.dcm') > -1, inp ? inp.accept : 'ausente']
+    ] };
+  })();
+`);
+
+/* ══ TC-180 · Los .dcm REALES del Vivid iq ═══════════════════════════════════════════════════
+   El caso sintetico prueba que el lector cumple el estandar; este prueba que cumple lo que
+   realmente escribe el ecografo, que no siempre es lo mismo. Lee los archivos del disco: son
+   de pacientes y este repo es publico, asi que nada de eso queda versionado, y si no estan,
+   el caso LO DICE en vez de pasar en verde.
+   La extraccion se contrasta contra un extractor independiente escrito en Node (abajo), no
+   contra si misma: dos implementaciones distintas del mismo formato tienen que dar el mismo
+   JPEG byte a byte.                                                                          */
+const DCM_REALES = await (async () => {
+  const { readdir } = await import('node:fs/promises');
+  const dirs = [];
+  if (process.env.ECO_DCM_DIR) dirs.push(process.env.ECO_DCM_DIR);
+  const horos = join(process.env.HOME || '', 'Documents', 'Horos Data.nosync', 'Horos Data', 'DATABASE.noindex');
+  try { for (const d of await readdir(horos)) dirs.push(join(horos, d)); } catch (e) {}
+  const out = [];
+  for (const d of dirs) {
+    let ns = [];
+    try { ns = (await readdir(d)).filter(n => /\.dcm$/i.test(n)).sort(); } catch (e) { continue; }
+    for (const n of ns) {
+      if (out.length >= 3) break;
+      const b = await readFile(join(d, n));
+      /* Extractor INDEPENDIENTE, en Node: recorre el meta header, saltea el dataset y corta
+         los fragmentos del pixel data. Comparte el estandar con el de la pagina, no el
+         codigo. Si los dos coinciden byte a byte, el de la pagina lee bien. */
+      const ref = (() => {
+        if (b.slice(128,132).toString('ascii') !== 'DICM') return null;
+        let o = 132, ts = '';
+        const L4 = new Set(['OB','OW','OF','OD','OL','SQ','UT','UN','UC','UR']);
+        while (o + 8 <= b.length) {
+          const g = b.readUInt16LE(o), e = b.readUInt16LE(o+2), vr = b.slice(o+4,o+6).toString('ascii');
+          if (g !== 2) break;
+          let ln, val;
+          if (L4.has(vr)) { ln = b.readUInt32LE(o+8); val = o+12; } else { ln = b.readUInt16LE(o+6); val = o+8; }
+          if (g === 2 && e === 0x0010) ts = b.slice(val, val+ln).toString('ascii').replace(/\\0/g,'').trim();
+          o = val + ln;
+        }
+        while (o + 8 <= b.length) {
+          const g = b.readUInt16LE(o), e = b.readUInt16LE(o+2), vr = b.slice(o+4,o+6).toString('ascii');
+          if (!/^[A-Z]{2}$/.test(vr)) return null;
+          let ln, val;
+          if (L4.has(vr)) { ln = b.readUInt32LE(o+8); val = o+12; } else { ln = b.readUInt16LE(o+6); val = o+8; }
+          if (g === 0x7FE0 && e === 0x0010) {
+            if (ln !== 0xFFFFFFFF) return null;
+            let q = val, i = 0; const frs = [];
+            while (q + 8 <= b.length) {
+              const tg = b.readUInt16LE(q), te = b.readUInt16LE(q+2), fl = b.readUInt32LE(q+4);
+              if (tg === 0xFFFE && te === 0xE0DD) break;
+              if (i++ > 0) frs.push(b.slice(q+8, q+8+fl));
+              q += 8 + fl;
+            }
+            return { ts, frs };
+          }
+          if (ln === 0xFFFFFFFF) {
+            let q = val, prof = 1;
+            while (q + 8 <= b.length && prof > 0) {
+              const tg = b.readUInt16LE(q), te = b.readUInt16LE(q+2), fl = b.readUInt32LE(q+4);
+              if (tg === 0xFFFE && te === 0xE0DD) prof--;
+              else if (tg === 0xFFFE && te === 0xE000 && fl === 0xFFFFFFFF) prof++;
+              q += 8 + (fl === 0xFFFFFFFF ? 0 : fl);
+            }
+            o = q; continue;
+          }
+          o = val + ln;
+        }
+        return null;
+      })();
+      if (!ref || !ref.frs.length) continue;
+      const { createHash } = await import('node:crypto');
+      out.push({ nombre: n, b64: b.toString('base64'), ts: ref.ts,
+                 sha: createHash('sha256').update(Buffer.concat(ref.frs)).digest('hex') });
+    }
+    if (out.length >= 3) break;
+  }
+  return out;
+})();
+
+caso('TC-180', 'Los .dcm reales del Vivid iq: mismo JPEG que un extractor independiente', `
+  return (async () => {
+    const R = ${JSON.stringify(DCM_REALES)};
+    if (!R.length) return { extra: [[
+      'hacen falta .dcm reales para verificar el lector (base Horos, o ECO_DCM_DIR=/ruta)',
+      false, 'no se encontro ninguno: el lector quedo SIN verificar contra archivos de verdad']] };
+    const dig = async (u8) => {
+      const h = await crypto.subtle.digest('SHA-256', u8.slice(0));
+      return Array.from(new Uint8Array(h)).map(x=>x.toString(16).padStart(2,'0')).join('');
+    };
+    const res = [];
+    for (const r of R) {
+      const bin = atob(r.b64); const u8 = new Uint8Array(bin.length);
+      for (let i=0;i<bin.length;i++) u8[i] = bin.charCodeAt(i);
+      const d = _dcmImgLeer(u8.buffer);
+      let todo;
+      if (d.frags.length === 1) todo = d.frags[0];
+      else { const n = d.frags.reduce((a,x)=>a+x.length,0); todo = new Uint8Array(n); let p=0; d.frags.forEach(x=>{todo.set(x,p);p+=x.length;}); }
+      res.push({ nombre:r.nombre, ts:d.ts, tsRef:r.ts, sha:await dig(todo), shaRef:r.sha,
+                 soi: todo[0]===0xFF && todo[1]===0xD8, frames:d.nFrames, fab:d.fabricante,
+                 filas:d.filas, cols:d.cols, rechazo:d.rechazo || '' });
+    }
+    // el JPEG extraido tiene que ser decodificable por el navegador, sin ninguna libreria
+    const prim = res[0];
+    const bin0 = atob(R[0].b64); const u80 = new Uint8Array(bin0.length);
+    for (let i=0;i<bin0.length;i++) u80[i] = bin0.charCodeAt(i);
+    const d0 = _dcmImgLeer(u80.buffer);
+    const bmp = await createImageBitmap(new Blob([d0.frags[0]], {type:'image/jpeg'})).catch(e => null);
+
+    return { extra: [
+      ['se leyeron archivos reales',                     res.length >= 1, res.length],
+      ['ninguno fue rechazado',                          res.every(x=>!x.rechazo), res.map(x=>x.rechazo).filter(Boolean).join(', ')],
+      ['la sintaxis coincide con la del extractor Node', res.every(x=>x.ts===x.tsRef), res.map(x=>x.ts+'|'+x.tsRef).join(' ')],
+      ['todos son JPEG Baseline',                        res.every(x=>x.ts==='1.2.840.10008.1.2.4.50'), res.map(x=>x.ts).join(' ')],
+      ['el JPEG extraido es IDENTICO al del extractor independiente',
+                                                         res.every(x=>x.sha===x.shaRef), res.map(x=>x.sha.slice(0,8)+'/'+x.shaRef.slice(0,8)).join(' ')],
+      ['arranca con la marca de un JPEG',                res.every(x=>x.soi), res.map(x=>x.soi).join(' ')],
+      ['el ecografo los declara de un solo cuadro',      res.every(x=>x.frames===1), res.map(x=>x.frames).join(' ')],
+      ['se identifica el equipo',                        res.every(x=>x.fab.length>0), res[0].fab],
+      ['las dimensiones se leen',                        res.every(x=>x.filas>0 && x.cols>0), res.map(x=>x.cols+'x'+x.filas).join(' ')],
+      ['el navegador lo decodifica SIN ninguna libreria', !!bmp && bmp.width>0 && bmp.height>0, bmp ? (bmp.width+'x'+bmp.height) : 'no decodifico'],
+      ['y lo decodificado mide lo que dice el DICOM',    !!bmp && bmp.width===d0.cols && bmp.height===d0.filas, bmp ? (bmp.width+'x'+bmp.height+' vs '+d0.cols+'x'+d0.filas) : '-']
+    ] };
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];

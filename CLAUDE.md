@@ -7684,7 +7684,74 @@ leen el archivo del disco (`~/Desktop/*.chm` o `ECO_CHM=/ruta`) y **dicen que no
 está. Las conversiones se verifican contra el crudo del propio archivo (relación, no literal), y
 lo único versionado es un SHA-256.
 
-### DICOM — visor de imágenes (pendiente, 2026-09-14)
+### Importar imágenes .dcm en la tab Imágenes (2026-09-19) — reemplaza al «visor pendiente»
+Botón **🩻 Importar DICOM** en la tab Imágenes. Saca el JPEG que ya viene adentro del `.dcm` y
+se lo entrega a **`imgCompressLoad`**, que es la misma puerta por la que entra una foto elegida
+a mano o pegada con Ctrl+V. Por eso el selector de calidad, el `_orig` en memoria, el token
+`_imgGen`, la persistencia en IndexedDB y la salida al PDF funcionan sin tocarse: **no hay un
+segundo camino que pueda desincronizarse**.
+
+**No hay ninguna librería, y es una decisión medida — no una omisión.** Los 274 `.dcm` del Vivid
+iq que hay en el equipo son `1.2.840.10008.1.2.4.50` (JPEG Baseline) y el fragmento de píxeles es
+un **JFIF estándar completo**: arranca en `FFD8`, trae su APP0 y `createImageBitmap` lo abre sin
+ayuda, con las dimensiones exactas que declara el DICOM (verificado en TC-180). Cornerstone son
+**2,78 MB** entre el bundle y su worker — un decodificador que el navegador ya tiene.
+Decisión de Maicol (2026-09-19): las librerías quedan para el multi-frame y se bajarían **bajo
+demanda**; las imágenes fijas no bajan nada y andan sin conexión.
+
+Si alguna vez hace falta Cornerstone, los datos ya están verificados contra **dos CDN
+independientes** (jsDelivr y unpkg dan bytes idénticos), y el `integrity` NO se puede poner en un
+worker cargado por `fetch`+blob: hay que verificar el hash a mano con `crypto.subtle` antes de
+ejecutarlo. Versiones reales y SHA-512:
+
+| archivo | tamaño | sha512 |
+|---|---|---|
+| `dicom-parser@1.8.21/dist/dicomParser.min.js` | 32 KB | `ib39OnNMTCR2Kpiycx…` |
+| `cornerstone-core@2.6.1/dist/cornerstone.min.js` | 92 KB | `Vz3JxG7+MpSVab9qNJ…` |
+| `cornerstone-wado-image-loader@4.13.2/dist/cornerstoneWADOImageLoader.bundle.min.js` | 1,39 MB | `y3Ecm4OSRBS8F+R0S7…` |
+| `…@4.13.2/dist/index.worker.bundle.min.worker.js` | 1,27 MB | `7vOSZ56MtkfsHloxar…` |
+
+**Ojo con el nombre del worker:** `cornerstoneWADOImageLoaderWebWorker.min.js` es de la v3 y **da
+404** en la 4.13.2; el archivo real es `index.worker.bundle.min.worker.js`.
+
+**El multi-frame se RECHAZA, no se implementa a medias.** En el equipo no hay ni un archivo
+multi-frame: los 274 del Vivid declaran un cuadro —SOP Class «US Image», que es la clase
+monocuadro; `NumberOfFrames` ausente; un fragmento; tabla de offsets con una entrada—. Escribir
+el reproductor sin nada con qué probarlo sería poner código sin verificar en el camino que
+termina en un informe firmado. Se detecta y se dice. Espera un `.dcm` real de
+Philips/Siemens/Canon/Mindray.
+
+**Tres trampas del formato que costaron una vuelta cada una:**
+
+- **El ítem 0 del pixel data encapsulado es SIEMPRE la Basic Offset Table**, no un fragmento de
+  imagen. Contarla como imagen da un «JPEG» que no arranca con `FFD8`. Fue el primer error al
+  mirar estos archivos.
+- **Adentro de un ítem de longitud indefinida el contenido son ELEMENTOS, no más ítems.** Un
+  recorrido que asuma estructura de ítem lee la longitud donde está el VR, salta a cualquier lado
+  y se pierde el pixel data: se ve como «el archivo no trae imagen» sobre un archivo válido.
+  Por eso `_dcmImgSaltarSQ` es un recorrido de verdad y no un barrido de delimitadores.
+- **Un cuadro puede venir partido en varios fragmentos** —es legal—: se concatenan. Quedarse con
+  el primero da un JPEG truncado, que el navegador dibuja **a medias** en vez de fallar.
+
+**`_dcmImgReservar` reserva los slots de forma sincrónica y eso no es cosmético:**
+`imgCompressLoad` elige slot dentro de su `.then()`, así que sin reservar antes el orden de las
+imágenes depende de cuál termine de comprimirse primero — y ese es el orden en que salen en el
+PDF.
+
+**Tests.** TC-179 sintético: construye DICOM byte a byte dentro de la página con un JPEG de 1×1,
+así que corre siempre y **no lleva un solo dato de paciente**. Cubre extracción, las tres trampas
+de arriba, el rechazo por nombre de cada sintaxis, el multi-frame, la reserva de slots y —lo que
+importa— que la imagen **sale en el PDF real**, espiando `addImage`. TC-180 corre sobre los `.dcm`
+reales y contrasta el JPEG extraído contra un **extractor independiente escrito en Node**: dos
+implementaciones del mismo estándar, mismo hash. Lee del disco y **avisa si no encuentra
+archivos**, porque son de pacientes y este repo es público.
+
+Siete mutaciones verificadas en rojo. Una sobrevivió a la primera versión: la condición del
+cuadro partido probaba que **el lector** devuelve dos fragmentos, no que `dcmImgImportar` los
+**concatene** — el mismo error de «verificar el hecho de al lado» que ya había pasado con el
+`0.0*` del importador CHM. Se agregó la prueba de punta a punta.
+
+### DICOM — visor de imágenes (pendiente, 2026-09-14) — SUPERADO, ver la entrada de arriba
 Investigado y **no implementado**, esperando un archivo real del **Vivid Q7**.
 - `https://cdnjs.cloudflare.com/ajax/libs/dcmjs/0.29.0/dcmjs.min.js` da **404**. dcmjs NO está
   en cdnjs (la API responde «Library not found») y no hay ninguna librería DICOM ahí.
