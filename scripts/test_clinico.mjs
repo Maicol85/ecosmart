@@ -8568,7 +8568,10 @@ caso('TC-171', 'Los clasificadores de CC dan lo MISMO leyendo el form o un estud
       fop_tunel:'9', fop_asa:'si', fop_asa_mm:'12', fop_mov:'si', fop_burbujas:'si',
       fop_shunt_reposo:'moderado', fop_shunt_valsalva:'severo',
       tga_tipo:'cctga', tga_func_vd:'moderada', tga_sintomas:'si', tga_bav:'si',
-      tga_obstr_subaortica:'no'
+      tga_obstr_subaortica:'no',
+      ebs_desplazamiento:'22', ebs_func_vd:'moderada', ebs_sintomas:'si', ebs_tsv:'si',
+      ebs_saturacion:'94', ebs_area_ad:'30', ebs_area_vd_atrial:'14', ebs_area_vd_func:'18',
+      ebs_area_ai:'20', ebs_area_vi:'26'
     };
     const puestos = [], faltantes = [];
     Object.keys(F).forEach((k) => {
@@ -8593,13 +8596,14 @@ caso('TC-171', 'Los clasificadores de CC dan lo MISMO leyendo el form o un estud
        es source-aware, que era lo que lo tenia afuera. */
     const dap = par(dapConclusion), vap = par(vapConclusion);
     const coa = par(coaConclusion), fop = par(fopConclusion), tga = par(tgaConclusion);
+    const ebs = par(ebsConclusion);
     /* Denominador: si las dos rutas devuelven null el caso pasaria trivialmente, que es medir
-       sobre vacio. Se exige que la ruta DOM haya concluido ALGO en las cinco. */
-    const concluyen = [dap.dom, vap.dom, coa.dom, fop.dom, tga.dom].filter((x) => x !== 'null' && x !== null).length;
+       sobre vacio. Se exige que la ruta DOM haya concluido ALGO en las seis. */
+    const concluyen = [dap.dom, vap.dom, coa.dom, fop.dom, tga.dom, ebs.dom].filter((x) => x !== 'null' && x !== null).length;
     return { extra: [
       ['los ids del formulario existen',            faltantes.length === 0, faltantes.join(',')],
       ['la casilla de la coartacion existe',        casilla === 'ok', casilla],
-      ['las cinco cascadas concluyen algo',        concluyen === 5, concluyen + ' de 5'],
+      ['las seis cascadas concluyen algo',         concluyen === 6, concluyen + ' de 6'],
       ['ductus: la misma conclusion por las dos rutas',    dap.dom === dap.src, 'dom=' + dap.dom.slice(0,70) + ' src=' + dap.src.slice(0,70)],
       /* EL aserto que de verdad prueba que el ductus lee el estudio. Los dos de arriba son
          vacuos por construccion: el formulario y campos tienen los MISMOS datos, asi que una
@@ -8624,6 +8628,37 @@ caso('TC-171', 'Los clasificadores de CC dan lo MISMO leyendo el form o un estud
       ['coartacion: la misma conclusion por las dos rutas', coa.dom === coa.src, 'dom=' + coa.dom.slice(0,70) + ' src=' + coa.src.slice(0,70)],
       ['FOP: la misma conclusion por las dos rutas',      fop.dom === fop.src, 'dom=' + fop.dom.slice(0,70) + ' src=' + fop.src.slice(0,70)],
       ['TGA: la misma conclusion por las dos rutas',      tga.dom === tga.src, 'dom=' + tga.dom.slice(0,70) + ' src=' + tga.src.slice(0,70)],
+      ['Ebstein: la misma conclusion por las dos rutas',  ebs.dom === ebs.src, 'dom=' + ebs.dom.slice(0,70) + ' src=' + ebs.src.slice(0,70)],
+      /* Ebstein, aserto NO vacuo 1 de 2: la SATURACION. El formulario tiene 94 -- sin cianosis--
+         y el objeto 85. Si la sombra no propagara src, conSat leeria el 94 del DOM y nunca daria
+         la rama de cianosis. */
+      ['la saturacion del estudio abre la rama de cianosis',
+        (function () {
+          const base = { ebs_desplazamiento:'22', ebs_sintomas:'no' };
+          const conSat = ebsConclusion(Object.assign({}, base, { ebs_saturacion:'85' }));
+          const sinSat = ebsConclusion(base);
+          return conSat && sinSat && conSat.clave === 'cianosis' && sinSat.clave === 'seguimiento';
+        })(),
+        'conSat=' + J((ebsConclusion({ ebs_desplazamiento:'22', ebs_sintomas:'no', ebs_saturacion:'85' }) || {}).clave) +
+        ' sinSat=' + J((ebsConclusion({ ebs_desplazamiento:'22', ebs_sintomas:'no' }) || {}).clave)],
+      /* Aserto NO vacuo 2 de 2, y este es el que prueba que el HELPER tambien recibe src:
+         ebsCelermajer() es una funcion aparte, con su propio ambito, asi que la sombra de
+         ebsConclusion NO la alcanza. El formulario tiene las cinco areas VALIDAS; el objeto trae
+         una de 900 cm2. Si el helper siguiera leyendo el DOM calcularia un indice valido, no
+         habria valor fuera de rango y la cascada terminaria en 'seguimiento' en vez de cortar.
+         Es el defecto coaGmax()/coaNV() que este archivo ya pago una vez. */
+      ['el area ilegible del estudio corta la cascada de Ebstein',
+        (function () {
+          const base = { ebs_desplazamiento:'22', ebs_sintomas:'no',
+                         ebs_area_vd_atrial:'14', ebs_area_vd_func:'18', ebs_area_ai:'20', ebs_area_vi:'26' };
+          const mala = ebsConclusion(Object.assign({}, base, { ebs_area_ad:'900' }));
+          const buena = ebsConclusion(Object.assign({}, base, { ebs_area_ad:'30' }));
+          return mala && buena && mala.clave === 'no_interpretable' && buena.clave === 'seguimiento';
+        })(),
+        'mala=' + J((ebsConclusion({ ebs_desplazamiento:'22', ebs_sintomas:'no', ebs_area_ad:'900',
+            ebs_area_vd_atrial:'14', ebs_area_vd_func:'18', ebs_area_ai:'20', ebs_area_vi:'26' }) || {}).clave) +
+        ' buena=' + J((ebsConclusion({ ebs_desplazamiento:'22', ebs_sintomas:'no', ebs_area_ad:'30',
+            ebs_area_vd_atrial:'14', ebs_area_vd_func:'18', ebs_area_ai:'20', ebs_area_vi:'26' }) || {}).clave)],
       /* EL aserto NO VACUO de la TGA, por el mismo motivo que el del ductus: el de arriba
          compara dos rutas que leen los MISMOS datos, asi que una tgaConclusion que siguiera
          mirando el DOM daria identico. Aca el escenario se arma con un objeto limpio donde
@@ -8681,7 +8716,11 @@ caso('TC-172', 'El encuadre orientativo sale en el PDF, una vez por tabla de con
       mk(5, Object.assign({ fevi:'50', tapse:'20', vap_tipo:'i', vap_dir:'id', vap_htp:'no', vap_diam:'7' }, QB)),
       mk(6, { fevi:'55', tapse:'21', fop_burbujas:'abundante', fop_acv:'si', fop_asa:'si', fop_tunel:'12' }),
       mk(7, { fevi:'48', tapse:'17', tga_tipo:'cctga', tga_func_vd:'moderada', tga_sintomas:'si',
-              vd_bas:'46', tga_bav:'si', tga_civ_residual:'no' })
+              vd_bas:'46', tga_bav:'si', tga_civ_residual:'no' }),
+      mk(8, { fevi:'52', tapse:'16', ebs_desplazamiento:'24', ebs_func_vd:'moderada',
+              ebs_sintomas:'si', ebs_tsv:'no', ebs_saturacion:'93', it_grado:'4',
+              ebs_area_ad:'32', ebs_area_vd_atrial:'15', ebs_area_vd_func:'17',
+              ebs_area_ai:'21', ebs_area_vi:'25' })
     ];
     const origGet = window.getInformes;
     window.getInformes = function(){ return datos; };
@@ -8725,15 +8764,20 @@ caso('TC-172', 'El encuadre orientativo sale en el PDF, una vez por tabla de con
       ['el PDF tiene paginas: hay denominador', paginas > 0, 'paginas=' + paginas],
       ['sale la seccion de conductas de la CIA', txt.indexOf('Cierre percutaneo') > -1, ''],
       ['sale la seccion de conductas de la CIV', txt.indexOf('Cierre indicado') > -1, ''],
-      /* SIETE, una por ficha con tabla de conductas. El numero es la compuerta: si una ficha
+      /* OCHO, una por ficha con tabla de conductas. El numero es la compuerta: si una ficha
          nueva entra a CC_ORDEN sin encuadre, o si una lo pierde, esto cae. */
-      ['el encuadre aparece una vez por tabla', cuenta(abre) === 7, cuenta(abre) + ' veces'],
-      ['la frase entra completa, no truncada', cuenta(cierra) === 7, cuenta(cierra) + ' veces'],
+      ['el encuadre aparece una vez por tabla', cuenta(abre) === 8, cuenta(abre) + ' veces'],
+      ['la frase entra completa, no truncada', cuenta(cierra) === 8, cuenta(cierra) + ' veces'],
       ['sale la seccion del ductus', txt.indexOf('Ductus arterioso permeable') > -1, ''],
       ['sale la seccion de la coartacion', txt.indexOf('Coartacion de aorta') > -1, ''],
       ['sale la seccion de la ventana aortopulmonar', txt.indexOf('Ventana aortopulmonar') > -1, ''],
       ['sale la seccion del foramen oval', txt.indexOf('Foramen oval permeable') > -1, ''],
       ['sale la seccion de la transposicion', txt.indexOf('Transposicion de grandes arterias') > -1, ''],
+      ['sale la seccion de Ebstein', txt.indexOf('Anomalia de Ebstein') > -1, ''],
+      /* La cianosis de Ebstein va SIN numero de clase: la ESC 2020 la nombra entre los
+         desencadenantes pero no publica cual le corresponde, y ponerle uno seria cita falsa. */
+      ['la cianosis de Ebstein no se atribuye una clase',
+        txt.indexOf('Cianosis en reposo') > -1 && txt.indexOf('Cianosis en reposo - Clase') === -1, ''],
       /* El rotulo del "tamano" de la TGA dice ventriculo SISTEMICO: el mismo numero leido como
          "VD basal" de un corazon normal significa otra cosa.
          SIN el "(VD)" final: jsPDF escapa los parentesis en el content stream, asi que un

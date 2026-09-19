@@ -4239,6 +4239,49 @@ alta, porque los casos se escribieron eligiendo los cortes, no los campos.
    taquicardia ventricular, historia clínica, frases rápidas, segmentos del ETE, pre-TAVI,
    panel de indicaciones (`_IG_SECTIONS`), DICOM e imágenes en IndexedDB.
 
+## Ebstein — y la corrección a «MCA y Ebstein son las chicas»
+
+Octava ficha. Y una corrección a lo que yo mismo había reportado: **MCA no es de las chicas.**
+El recuento de helpers que di contaba los de una línea y se le escapó lo importante —
+`mcaVI()` lee `contrEstado`, `contrDifusa` y `contrDisqSep`, que son **variables de módulo del
+bloque de Contractilidad**, no campos. Se persisten (`campos['contractilidad']` y `contr_flags`,
+como JSON), así que la versión source-aware tiene que **parsear ese snapshot**, no leer el
+estado vivo. Ebstein sí era chica y se hizo primero.
+
+Dato que acota el trabajo de MCA cuando le toque: **el `clave` de `mcaConclusion` no depende de
+`mcaVI()`** — sale sólo de `mcaScore()` y de la guarda `sc.catI.fuera`. `vi` es narrativo. Aun
+así hay que sourcearlo: un narrativo armado con la contractilidad del paciente en pantalla es el
+«clasificador a medias» con otro nombre.
+
+### Lo que Ebstein necesitó más allá de la sombra
+La sombra **no alcanza a los helpers**: tienen ámbito propio y siguen apuntando al binding de
+módulo. Hubo que threadear tres:
+- `ebsCelermajer(src)` — con su propia sombra de `_ebsNv`.
+- `getBSA(src)` — parámetro opcional; la rama sin `src` queda literal porque la usan decenas de
+  llamadores en pantalla.
+- `fopConclusion(src)` — ya era source-aware, sólo faltaba pasarle el argumento.
+
+### El aserto que prueba el helper, separado del que prueba la sombra
+Dos condiciones distintas, y **cada mutación mata la suya**:
+- **Sombra:** el formulario tiene `ebs_saturacion:'94'` (sin cianosis) y el objeto `'85'`. Sin
+  sombra, el mutante devolvió `conSat="considerar_cirugia" sinSat="considerar_cirugia"`.
+- **Helper:** el formulario tiene las cinco áreas **válidas** y el objeto una de 900 cm². Si
+  `ebsCelermajer()` sigue leyendo el DOM calcula un índice válido, no hay valor fuera de rango y
+  la cascada termina en `seguimiento` en vez de cortar. El mutante devolvió
+  `mala="seguimiento" buena="seguimiento"`.
+
+Sin el segundo aserto, el primero pasa con el helper roto — que es exactamente cómo se coló el
+`coaGmax()`/`coaNV()` la primera vez.
+
+### Decisiones de la ficha
+- **No hay campo de «tipo»:** lo que clasifica es el **grado de Celermajer**, un índice calculado.
+  Se distribuye por la función del VD, con `tipoTit` rotulándolo como lo que es.
+- **La cianosis va sin número de clase.** La ESC 2020 la nombra entre los desencadenantes de
+  intervención pero no publica la clase; ponerle una sería cita falsa — el defecto de la nota del
+  NT-proBNP. TC-172 lo fija: la fila existe y `'Cianosis en reposo - Clase'` **no** aparece.
+- **El índice se promedia sobre los estudios con las cinco áreas**, no sobre la cohorte: falta
+  una y devuelve null. El pie lo dice.
+
 ## TGA: el shim por SOMBRA, que es el patrón para las cinco que faltan
 
 Séptima ficha. `tgaConclusion` pasó a aceptar un estudio guardado, y el modo de hacerlo importa

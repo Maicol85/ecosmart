@@ -15578,8 +15578,14 @@ function calcBSA() {
   if (typeof _vliPintar === 'function') _vliPintar();
 }
 
-function getBSA() {
-  const p = v('peso'), t = v('talla');
+/* `src` opcional: con un estudio guardado el peso y la talla salen de ahi. Sin el, `v()` — la
+   rama de siempre, literal, porque la usan decenas de llamadores en pantalla. Existe porque los
+   clasificadores de congenitas que indexan por superficie tienen que poder correr sobre un
+   estudio de la base; un `getBSA()` sin `src` adentro de uno de ellos indexaria la medida de un
+   paciente con el peso del que esta cargado en pantalla. */
+function getBSA(src) {
+  const p = src ? _ccNv('peso', src) : v('peso');
+  const t = src ? _ccNv('talla', src) : v('talla');
   if (!p || !t) return null;
   return Math.sqrt((p * t) / 3600);
 }
@@ -33201,7 +33207,8 @@ window.indicHayCriterios = indicHayCriterios; window.indicSyncBoton = indicSyncB
      de la función sistólica del VD (Clase IIa C). El índice describe, no indica. */
 function _ebsSv(id){ return (document.getElementById(id)?.value || '').trim(); }
 function _ebsNv(id){ const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; }
-function ebsCelermajer(){
+function ebsCelermajer(src){
+  const _ebsNv = id => _ccNv(id, src);
   const ad  = _ebsNv('ebs_area_ad'),   atr = _ebsNv('ebs_area_vd_atrial');
   const vdf = _ebsNv('ebs_area_vd_func'), ai = _ebsNv('ebs_area_ai'), vi = _ebsNv('ebs_area_vi');
   const faltan = [];
@@ -33227,7 +33234,8 @@ function ebsCelermajer(){
   const grado = idx < 0.5 ? 1 : (idx < 1.0 ? 2 : (idx < 1.5 ? 3 : 4));
   return { idx: idx, grado: grado };
 }
-function ebsConclusion(){
+function ebsConclusion(src){
+  const _ebsSv = id => _ccSv(id, src), _ebsNv = id => _ccNv(id, src);
   /* `fuera` es la red que dap/coa/fop/vab/mch ya tienen y que estas tres secciones no heredaron:
      sin ella, un valor ilegible anotaba una salvedad y la cascada seguía hasta una rama benigna
      —«sin criterios de intervención, seguimiento»— sobre un estudio que no se pudo leer. */
@@ -33248,14 +33256,18 @@ function ebsConclusion(){
   const sat = _ebsNv('ebs_saturacion');
   const satOk = sat != null && sat >= 40 && sat <= 100;
   const cianosis = satOk && sat < 90;
-  const cel = ebsCelermajer();
+  /* Los TRES helpers se llaman CON src. Un shim que se queda en la firma y deja los helpers
+     leyendo el DOM es el «clasificador a medias» que este archivo ya documenta con
+     coaGmax()/coaNV(): los selects saldrian del estudio guardado y las areas de la pantalla, o
+     sea dos pacientes mezclados en una sola conclusion, y el resultado parece plausible. */
+  const cel = ebsCelermajer(src);
   const it = _ebsSv('it_grado');
   const hayDato = !!(desp != null || atrPct != null || func || cel.idx != null ||
                      tsv === 'si' || vias === 'si');
   if (!hayDato) return null;
 
   const partes = [];
-  const bsa = (typeof getBSA === 'function') ? getBSA() : null;
+  const bsa = (typeof getBSA === 'function') ? getBSA(src) : null;
   if (desp != null) {
     if (desp < 1 || desp > 80) { fuera.push('desplazamiento del velo septal');
       partes.push('Desplazamiento del velo septal de ' + desp + ' mm fuera de rango: revisar unidades'); }
@@ -33296,7 +33308,7 @@ function ebsConclusion(){
      porque una CIA con shunt derecha-izquierda es lo que produce cianosis y lo que se cierra en
      el acto quirúrgico. Se nombran por separado. */
   const hayCia = !!(_ebsSv('ete_cia_tipo') || _ebsSv('ete_cia_tam_max') || _ebsSv('ete_cia_vel'));
-  const fopC = (typeof fopConclusion === 'function') ? fopConclusion() : null;
+  const fopC = (typeof fopConclusion === 'function') ? fopConclusion(src) : null;
   const FOP_CONFIRMA = ['cierre_iia','acv_mayor','acv_sin_edad','trombofilia','alto_riesgo_sin_evento','incidental'];
   const hayFop = !!(fopC && FOP_CONFIRMA.indexOf(fopC.clave) >= 0);
   if (hayCia) partes.push('Comunicación interauricular asociada documentada en este estudio');
@@ -53062,6 +53074,25 @@ const TGA_CONDUCTAS = [
   { k:'nc',               lbl:'No clasificable',              crit:'El clasificador no devolvio una conclusion para este estudio' }
 ];
 const TGA_TIPOS_LBL = { cctga:'ccTGA (congenitamente corregida)', mustard:'Post-Mustard', senning:'Post-Senning' };
+/* ── Ebstein ──
+   El orden es el de la cascada. La CIANOSIS va DESPUES de la Clase I y ANTES de la IIa, y va sin
+   numero de clase a proposito: la ESC 2020 la nombra entre los desencadenantes de intervencion
+   pero no publica la clase que le corresponde, y escribirla seria una cita falsa. */
+const EBS_CONDUCTAS = [
+  { k:'cirugia',                lbl:'Cirugia indicada - Clase I', crit:'IT severa CON sintomas o deterioro objetivo de la capacidad de ejercicio (ESC 2020)' },
+  { k:'cianosis',               lbl:'Cianosis en reposo',         crit:'Saturacion < 90 %: desencadenante de intervencion segun ESC 2020 - evaluar en centro especializado' },
+  { k:'considerar_cirugia',     lbl:'A considerar - Clase IIa',   crit:'Dilatacion progresiva del VD o caida de su funcion, con independencia de los sintomas (ESC 2020)' },
+  { k:'it_severa_asintomatica', lbl:'IT severa asintomatica',     crit:'Seguimiento estrecho: la indicacion se apoya en sintomas, ejercicio y evolucion del VD' },
+  { k:'sin_contexto',           lbl:'Sin situacion clinica',      crit:'No constan sintomas ni capacidad de ejercicio, de lo que dependen las indicaciones' },
+  { k:'seguimiento',            lbl:'Sin criterios de intervencion', crit:'Seguimiento clinico y por imagen' },
+  { k:'no_interpretable',       lbl:'No interpretable',           crit:'Algun valor fuera de rango: revisar unidades antes de concluir' },
+  { k:'nc',                     lbl:'No clasificable',            crit:'El clasificador no devolvio una conclusion para este estudio' }
+];
+/* Ebstein no tiene campo de "tipo": lo que clasifica el estudio es el GRADO DE CELERMAJER, un
+   indice calculado, no un select. Se distribuye por la FUNCION del VD, que es el select que
+   describe el hallazgo y el que mueve la cascada a la rama IIa. */
+const EBS_TIPOS_LBL = { normal:'Funcion VD normal', leve:'Disfuncion leve',
+                        moderada:'Disfuncion moderada', severa:'Disfuncion severa' };
 const VAP_TIPOS_LBL = { i:'Tipo I (proximal)', ii:'Tipo II (distal)', iii:'Tipo III (total)' };
 /* El FOP no tiene campo de «tipo»: no hay una clasificacion anatomica en la seccion. Lo que se
    distribuye es el GRADO DE SHUNT por burbujas, que es la variable que describe el hallazgo y la
@@ -53161,7 +53192,28 @@ const CC_FICHAS = Object.assign(Object.create(null), {
     conductas:TGA_CONDUCTAS, clasif:_claveDe(tgaConclusion),
     /* La TGA no es un cortocircuito: no hay Qp/Qs que atribuir ni denominador que recortar. */
     soloShuntUnico:false,
-    pie:'En la transposicion corregida el ventriculo DERECHO es el ventriculo sistemico y la valvula tricuspide es la auriculoventricular sistemica: su insuficiencia pesa como pesaria una mitral. La cascada evalua la disfuncion del ventriculo sistemico ANTES que el gradiente subaortico, y la rama de obstruccion exige que la obstruccion este marcada y no solo el gradiente tipeado.' }
+    pie:'En la transposicion corregida el ventriculo DERECHO es el ventriculo sistemico y la valvula tricuspide es la auriculoventricular sistemica: su insuficiencia pesa como pesaria una mitral. La cascada evalua la disfuncion del ventriculo sistemico ANTES que el gradiente subaortico, y la rama de obstruccion exige que la obstruccion este marcada y no solo el gradiente tipeado.' },
+  ebs: { tit:'Anomalia de Ebstein', titAcc:'Anomalía de Ebstein',
+    /* Sin campo de tipo: lo que clasifica es el grado de Celermajer, que es un indice calculado.
+       Se distribuye por la FUNCION del VD -- el select que describe el hallazgo y el que mueve la
+       cascada a la rama IIa-- y `tipoTit` lo rotula como lo que es. */
+    tipoCampo:'ebs_func_vd', tipos:EBS_TIPOS_LBL, tipoTit:'Distribucion por funcion del VD',
+    tamCampo:'ebs_desplazamiento', tamLbl:'Desplazamiento del velo septal',
+    metricas:[ { k:'cel', lbl:'Indice de Celermajer', get:i => { const r = _labEstado(ebsCelermajer, i); return (r && r.idx != null) ? r.idx : null; }, dec:2, suf:'' },
+               { k:'sat', lbl:'Saturacion promedio', get:i => { const x = _labNum(i, 'ebs_saturacion'); return (x !== null && x >= 40 && x <= 100) ? x : null; }, dec:0, suf:' %' } ],
+    props:[ { k:'cianosis', lbl:'Con cianosis en reposo', get:i => { const x = _labNum(i, 'ebs_saturacion');
+                /* Fuera de banda es null -- "no se pudo evaluar"-- y NO "sin cianosis": el mismo
+                   criterio que aplica el clasificador, que exige la banda 40-100 antes de mirar
+                   el corte de 90. */
+                return (x === null || x < 40 || x > 100) ? null : x < 90; } },
+            { k:'tsv', lbl:'Con taquicardia supraventricular', get:i => { const x = _labCampoRaw(i, 'ebs_tsv');
+                return x === 'si' ? true : (x === 'no' ? false : null); } } ],
+    conductas:EBS_CONDUCTAS, clasif:_claveDe(ebsConclusion),
+    /* La comunicacion interauricular importa en Ebstein -- decide cerrarla en el mismo acto-- pero
+       la conducta NO sale de un Qp/Qs, asi que recortar el denominador por multiplicidad de
+       shunts descartaria estudios por una razon que esta cascada no usa. */
+    soloShuntUnico:false,
+    pie:'El indice de Celermajer se calcula con las cinco areas y devuelve null si falta una: el promedio se publica sobre los estudios que las tienen completas, no sobre la cohorte. La CIANOSIS entra en la cascada entre la Clase I y la IIa, y va SIN numero de clase a proposito: la ESC 2020 la nombra entre los desencadenantes de intervencion pero no publica la clase que le corresponde. El cierre de la comunicacion interauricular solo se nombra cuando hay una documentada en el estudio.' }
 });
 
 /* El ORDEN de las secciones, en un solo lugar. `Object.keys(CC_FICHAS)` daría el mismo resultado
@@ -53170,7 +53222,7 @@ const CC_FICHAS = Object.assign(Object.create(null), {
    y leído por las DOS superficies: con una copia por superficie, agregar una CC y olvidarse de
    una lista produce una sección que está en el PDF y no en el PPT, que es exactamente lo que la
    regla «PDF >= PPT» prohíbe y lo que nadie ve hasta que falta. */
-const CC_ORDEN = ['cia', 'civ', 'dap', 'vap', 'coa', 'fop', 'tga'];
+const CC_ORDEN = ['cia', 'civ', 'dap', 'vap', 'coa', 'fop', 'ebs', 'tga'];
 /* Assert de arranque: toda clave del orden tiene ficha, y toda ficha está en el orden. Sin esto,
    una ficha nueva sin su entrada acá no da error — da una sección que simplemente no se imprime,
    y el modo de falla es el silencio. */
@@ -58866,8 +58918,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260919-0733';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789813980003;                 /* eco-build-ms */
+const ECO_BUILD    = '20260919-0742';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789814572526;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -58953,7 +59005,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-0733</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-0742</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
