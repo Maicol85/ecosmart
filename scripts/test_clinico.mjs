@@ -8566,7 +8566,9 @@ caso('TC-171', 'Los clasificadores de CC dan lo MISMO leyendo el form o un estud
       vap_tipo:'tipo1', vap_dir:'id', vap_diam:'9', vap_htp:'si',
       coa_situacion:'nativa', coa_vmax:'3.6', coa_gmedio:'22', coa_istmo:'7', coa_ao_desc:'18',
       fop_tunel:'9', fop_asa:'si', fop_asa_mm:'12', fop_mov:'si', fop_burbujas:'si',
-      fop_shunt_reposo:'moderado', fop_shunt_valsalva:'severo'
+      fop_shunt_reposo:'moderado', fop_shunt_valsalva:'severo',
+      tga_tipo:'cctga', tga_func_vd:'moderada', tga_sintomas:'si', tga_bav:'si',
+      tga_obstr_subaortica:'no'
     };
     const puestos = [], faltantes = [];
     Object.keys(F).forEach((k) => {
@@ -8590,14 +8592,14 @@ caso('TC-171', 'Los clasificadores de CC dan lo MISMO leyendo el form o un estud
     /* El ductus ya entra: su cadena del Qp/Qs (ccQpQsDe -> ccShuntsConDatos -> eteQpQs) tambien
        es source-aware, que era lo que lo tenia afuera. */
     const dap = par(dapConclusion), vap = par(vapConclusion);
-    const coa = par(coaConclusion), fop = par(fopConclusion);
+    const coa = par(coaConclusion), fop = par(fopConclusion), tga = par(tgaConclusion);
     /* Denominador: si las dos rutas devuelven null el caso pasaria trivialmente, que es medir
-       sobre vacio. Se exige que la ruta DOM haya concluido ALGO en las cuatro. */
-    const concluyen = [dap.dom, vap.dom, coa.dom, fop.dom].filter((x) => x !== 'null' && x !== null).length;
+       sobre vacio. Se exige que la ruta DOM haya concluido ALGO en las cinco. */
+    const concluyen = [dap.dom, vap.dom, coa.dom, fop.dom, tga.dom].filter((x) => x !== 'null' && x !== null).length;
     return { extra: [
       ['los ids del formulario existen',            faltantes.length === 0, faltantes.join(',')],
       ['la casilla de la coartacion existe',        casilla === 'ok', casilla],
-      ['las cuatro cascadas concluyen algo',       concluyen === 4, concluyen + ' de 4'],
+      ['las cinco cascadas concluyen algo',        concluyen === 5, concluyen + ' de 5'],
       ['ductus: la misma conclusion por las dos rutas',    dap.dom === dap.src, 'dom=' + dap.dom.slice(0,70) + ' src=' + dap.src.slice(0,70)],
       /* EL aserto que de verdad prueba que el ductus lee el estudio. Los dos de arriba son
          vacuos por construccion: el formulario y campos tienen los MISMOS datos, asi que una
@@ -8621,6 +8623,22 @@ caso('TC-171', 'Los clasificadores de CC dan lo MISMO leyendo el form o un estud
       ['ventana: la misma conclusion por las dos rutas',  vap.dom === vap.src, 'dom=' + vap.dom.slice(0,70) + ' src=' + vap.src.slice(0,70)],
       ['coartacion: la misma conclusion por las dos rutas', coa.dom === coa.src, 'dom=' + coa.dom.slice(0,70) + ' src=' + coa.src.slice(0,70)],
       ['FOP: la misma conclusion por las dos rutas',      fop.dom === fop.src, 'dom=' + fop.dom.slice(0,70) + ' src=' + fop.src.slice(0,70)],
+      ['TGA: la misma conclusion por las dos rutas',      tga.dom === tga.src, 'dom=' + tga.dom.slice(0,70) + ' src=' + tga.src.slice(0,70)],
+      /* EL aserto NO VACUO de la TGA, por el mismo motivo que el del ductus: el de arriba
+         compara dos rutas que leen los MISMOS datos, asi que una tgaConclusion que siguiera
+         mirando el DOM daria identico. Aca el escenario se arma con un objeto limpio donde
+         tga_func_vd existe SOLO en el objeto de sinF, y el FORMULARIO tiene 'moderada'
+         cargado: si el shim no propagara src, sinF leeria el DOM y daria 'disfuncion' igual
+         que conF, y esto cae. No hace falta limpiar el formulario -- al contrario, que tenga
+         un valor DISTINTO del que se quiere probar es lo que hace discriminante al aserto. */
+      ['la funcion del VS del estudio cambia la conclusion de la TGA',
+        (function () {
+          const conF = tgaConclusion({ tga_tipo:'cctga', tga_func_vd:'severa', tga_sintomas:'no' });
+          const sinF = tgaConclusion({ tga_tipo:'cctga', tga_sintomas:'no' });
+          return conF && sinF && conF.clave === 'disfuncion' && sinF.clave === 'sin_funcion';
+        })(),
+        'conF=' + J((tgaConclusion({ tga_tipo:'cctga', tga_func_vd:'severa', tga_sintomas:'no' }) || {}).clave) +
+        ' sinF=' + J((tgaConclusion({ tga_tipo:'cctga', tga_sintomas:'no' }) || {}).clave)],
       /* La cola diastolica solo DECIDE cuando el gradiente no es concluyente: con Vmax 3,6 el
          gradiente ya supera 20 mmHg y la casilla no mueve nada. Para probar que el __chk viaja
          de verdad hace falta el escenario donde manda, que es sin gradiente. */
@@ -8661,7 +8679,9 @@ caso('TC-172', 'El encuadre orientativo sale en el PDF, una vez por tabla de con
          por >=1 caso— y las condiciones de abajo darian false sobre un PDF que simplemente no
          las tiene. Es el denominador vacio, otra vez. */
       mk(5, Object.assign({ fevi:'50', tapse:'20', vap_tipo:'i', vap_dir:'id', vap_htp:'no', vap_diam:'7' }, QB)),
-      mk(6, { fevi:'55', tapse:'21', fop_burbujas:'abundante', fop_acv:'si', fop_asa:'si', fop_tunel:'12' })
+      mk(6, { fevi:'55', tapse:'21', fop_burbujas:'abundante', fop_acv:'si', fop_asa:'si', fop_tunel:'12' }),
+      mk(7, { fevi:'48', tapse:'17', tga_tipo:'cctga', tga_func_vd:'moderada', tga_sintomas:'si',
+              vd_bas:'46', tga_bav:'si', tga_civ_residual:'no' })
     ];
     const origGet = window.getInformes;
     window.getInformes = function(){ return datos; };
@@ -8705,14 +8725,21 @@ caso('TC-172', 'El encuadre orientativo sale en el PDF, una vez por tabla de con
       ['el PDF tiene paginas: hay denominador', paginas > 0, 'paginas=' + paginas],
       ['sale la seccion de conductas de la CIA', txt.indexOf('Cierre percutaneo') > -1, ''],
       ['sale la seccion de conductas de la CIV', txt.indexOf('Cierre indicado') > -1, ''],
-      /* SEIS, una por ficha con tabla de conductas. El numero es la compuerta: si una ficha
+      /* SIETE, una por ficha con tabla de conductas. El numero es la compuerta: si una ficha
          nueva entra a CC_ORDEN sin encuadre, o si una lo pierde, esto cae. */
-      ['el encuadre aparece una vez por tabla', cuenta(abre) === 6, cuenta(abre) + ' veces'],
-      ['la frase entra completa, no truncada', cuenta(cierra) === 6, cuenta(cierra) + ' veces'],
+      ['el encuadre aparece una vez por tabla', cuenta(abre) === 7, cuenta(abre) + ' veces'],
+      ['la frase entra completa, no truncada', cuenta(cierra) === 7, cuenta(cierra) + ' veces'],
       ['sale la seccion del ductus', txt.indexOf('Ductus arterioso permeable') > -1, ''],
       ['sale la seccion de la coartacion', txt.indexOf('Coartacion de aorta') > -1, ''],
       ['sale la seccion de la ventana aortopulmonar', txt.indexOf('Ventana aortopulmonar') > -1, ''],
       ['sale la seccion del foramen oval', txt.indexOf('Foramen oval permeable') > -1, ''],
+      ['sale la seccion de la transposicion', txt.indexOf('Transposicion de grandes arterias') > -1, ''],
+      /* El rotulo del "tamano" de la TGA dice ventriculo SISTEMICO: el mismo numero leido como
+         "VD basal" de un corazon normal significa otra cosa.
+         SIN el "(VD)" final: jsPDF escapa los parentesis en el content stream, asi que un
+         marcador que los incluya da cero coincidencias sobre un texto que SI esta impreso.
+         Es la regla que este archivo ya documenta, y que aca se volvio a pagar. */
+      ['la TGA nombra el ventriculo sistemico', txt.indexOf('Diametro basal del ventriculo sistemico') > -1, ''],
       /* La ventana exige que la HTP se haya evaluado ANTES de indicar el cierre: la fila tiene
          que estar impresa con su criterio, no abreviada. */
       ['la ventana publica la fila de HTP no evaluada', txt.indexOf('HTP no evaluada') > -1, ''],

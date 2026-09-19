@@ -34065,7 +34065,30 @@ window.tdfSync = tdfSync; window.tdfConclusion = tdfConclusion;
    la AURICULOVENTRICULAR SISTÉMICA, así que su insuficiencia pesa como pesaría una mitral. */
 function _tgaSv(id){ return (document.getElementById(id)?.value || '').trim(); }
 function _tgaNv(id){ const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; }
-function tgaConclusion(){
+/* ── Lectores source-aware compartidos por los clasificadores de CC ──────────────────────────
+   `src` es un estudio GUARDADO (`inf.campos`); sin él se lee el formulario, exactamente como
+   antes. Existen para que el Laboratorio pueda correr EL MISMO clasificador que firma el informe
+   individual sobre un estudio de la base, en vez de reimplementar el umbral: dos implementaciones
+   del mismo criterio divergen, y lo que divergiría acá es una conducta clínica.
+
+   Se usan SOMBREANDO el nombre del helper de módulo dentro de la función —`const _tgaSv = id =>
+   _ccSv(id, src)`— y no renombrando cada sitio de llamada. El motivo no es comodidad: renombrar
+   ~40 llamadas a mano es exactamente el tipo de barrido que en este archivo ya se llevó por
+   delante tres campos ajenos. Con la sombra, un sitio que se olvide NO existe: o la función
+   entera lee del estudio, o no compila. */
+function _ccSv(id, src) {
+  if (!src) return (document.getElementById(id)?.value || '').trim();
+  return String(src[id] == null ? '' : src[id]).trim();
+}
+function _ccNv(id, src) {
+  if (!src) { const n = (typeof v === 'function') ? v(id) : null; return (n != null && isFinite(n)) ? n : null; }
+  const r = src[id];
+  if (r === undefined || r === null || r === '') return null;
+  const x = (typeof PF === 'function') ? PF(r) : parseFloat(String(r).replace(',', '.'));
+  return (x != null && isFinite(x)) ? x : null;
+}
+function tgaConclusion(src){
+  const _tgaSv = id => _ccSv(id, src), _tgaNv = id => _ccNv(id, src);
   /* El diámetro sale de `vd_bas` («VD basal»), que la app ya mide: un segundo campo para la
      misma medida es el patrón que ya costó tres correcciones. */
   const tipo = _tgaSv('tga_tipo'), func = _tgaSv('tga_func_vd'), dil = _tgaNv('vd_bas');
@@ -53023,6 +53046,22 @@ const FOP_CONDUCTAS = [
   { k:'no_interpretable',       lbl:'No interpretable',           crit:'Algun valor fuera de rango: revisar unidades antes de concluir' },
   { k:'nc',                     lbl:'No clasificable',            crit:'El clasificador no devolvio una conclusion para este estudio' }
 ];
+/* ── TGA · transposicion de grandes arterias ──
+   El orden es el de la cascada, y esa cascada pone la DISFUNCION del ventriculo sistemico por
+   encima del gradiente subaortico: con las dos presentes, publicar solo la obstruccion dejaba
+   sin imprimir el tratamiento de insuficiencia cardiaca y la resincronizacion, para lo que la
+   propia seccion llama la principal causa de muerte en esta poblacion. */
+const TGA_CONDUCTAS = [
+  { k:'cirugia_it',       lbl:'Cirugia valvular a considerar', crit:'Insuficiencia tricuspidea sistemica severa Y sintomatica (ESC 2020 GUCH)' },
+  { k:'disfuncion',       lbl:'Disfuncion del ventriculo sistemico', crit:'Funcion moderada o severamente deprimida: optimizar tratamiento de IC y evaluar resincronizacion (ESC 2020)' },
+  { k:'obstr_subaortica', lbl:'Obstruccion subaortica',       crit:'Gradiente > 50 mmHg CON la obstruccion marcada: intervencion a considerar (ESC 2020)' },
+  { k:'it_severa',        lbl:'IT sistemica severa sin sintomas', crit:'Seguimiento estrecho: la reparacion da mejor resultado antes de que caiga la funcion sistemica' },
+  { k:'sin_contexto',     lbl:'Sin situacion clinica',        crit:'No consta si hay sintomas, de lo que dependen las indicaciones de intervencion' },
+  { k:'seguimiento',      lbl:'Funcion conservada',           crit:'Ventriculo sistemico normal - seguimiento anual' },
+  { k:'sin_funcion',      lbl:'Disfuncion leve o funcion sin constar', crit:'La rama que afirma "conservada" exige que se haya medido - completar la evaluacion' },
+  { k:'nc',               lbl:'No clasificable',              crit:'El clasificador no devolvio una conclusion para este estudio' }
+];
+const TGA_TIPOS_LBL = { cctga:'ccTGA (congenitamente corregida)', mustard:'Post-Mustard', senning:'Post-Senning' };
 const VAP_TIPOS_LBL = { i:'Tipo I (proximal)', ii:'Tipo II (distal)', iii:'Tipo III (total)' };
 /* El FOP no tiene campo de «tipo»: no hay una clasificacion anatomica en la seccion. Lo que se
    distribuye es el GRADO DE SHUNT por burbujas, que es la variable que describe el hallazgo y la
@@ -53107,7 +53146,22 @@ const CC_FICHAS = Object.assign(Object.create(null), {
        seccion --el predicado pide tunel, excursion o burbujas, y esa rama exige los tres
        vacios--, asi que quedan fuera del denominador entero. Decir que se cuentan seria
        describir una fila que la tabla no tiene y un recuento que no ocurre. */
-    pie:'La conducta del FOP la decide el CONTEXTO CLINICO —ACV criptogenico y edad—, no la anatomia: por eso las filas «sin contexto» y «sin edad» no son relleno sino el aviso de que falta el dato del que depende la indicacion. Los estudios en los que el foramen quedo DESCARTADO —contraste negativo y sin hallazgo anatomico— no entran a esta seccion: no aportan al denominador ni figuran como una conducta.' }
+    pie:'La conducta del FOP la decide el CONTEXTO CLINICO —ACV criptogenico y edad—, no la anatomia: por eso las filas «sin contexto» y «sin edad» no son relleno sino el aviso de que falta el dato del que depende la indicacion. Los estudios en los que el foramen quedo DESCARTADO —contraste negativo y sin hallazgo anatomico— no entran a esta seccion: no aportan al denominador ni figuran como una conducta.' },
+  tga: { tit:'Transposicion de grandes arterias (TGA)', titAcc:'Transposición de grandes arterias (TGA)',
+    tipoCampo:'tga_tipo', tipos:TGA_TIPOS_LBL,
+    /* El "tamano" de esta ficha es el VD basal, porque en la TGA corregida el ventriculo derecho
+       ES el ventriculo sistemico: no hay un campo propio de diametro y la app mide ese. El
+       rotulo lo dice entero para que nadie lo lea como el VD de un corazon normal. */
+    tamCampo:'vd_bas', tamLbl:'Diametro basal del ventriculo sistemico (VD)',
+    metricas:[ { k:'grad', lbl:'Gradiente subaortico promedio', get:i => { const x = _labNum(i, 'tga_grad_subaortico'); return (x !== null && x >= 0 && x <= 200) ? x : null; }, dec:0, suf:' mmHg' } ],
+    props:[ { k:'bav', lbl:'Con bloqueo AV completo', get:i => { const x = _labCampoRaw(i, 'tga_bav');
+                return x === 'si' ? true : (x === 'no' ? false : null); } },
+            { k:'civ', lbl:'Con CIV residual', get:i => { const x = _labCampoRaw(i, 'tga_civ_residual');
+                return x === 'si' ? true : (x === 'no' ? false : null); } } ],
+    conductas:TGA_CONDUCTAS, clasif:_claveDe(tgaConclusion),
+    /* La TGA no es un cortocircuito: no hay Qp/Qs que atribuir ni denominador que recortar. */
+    soloShuntUnico:false,
+    pie:'En la transposicion corregida el ventriculo DERECHO es el ventriculo sistemico y la valvula tricuspide es la auriculoventricular sistemica: su insuficiencia pesa como pesaria una mitral. La cascada evalua la disfuncion del ventriculo sistemico ANTES que el gradiente subaortico, y la rama de obstruccion exige que la obstruccion este marcada y no solo el gradiente tipeado.' }
 });
 
 /* El ORDEN de las secciones, en un solo lugar. `Object.keys(CC_FICHAS)` daría el mismo resultado
@@ -53116,7 +53170,7 @@ const CC_FICHAS = Object.assign(Object.create(null), {
    y leído por las DOS superficies: con una copia por superficie, agregar una CC y olvidarse de
    una lista produce una sección que está en el PDF y no en el PPT, que es exactamente lo que la
    regla «PDF >= PPT» prohíbe y lo que nadie ve hasta que falta. */
-const CC_ORDEN = ['cia', 'civ', 'dap', 'vap', 'coa', 'fop'];
+const CC_ORDEN = ['cia', 'civ', 'dap', 'vap', 'coa', 'fop', 'tga'];
 /* Assert de arranque: toda clave del orden tiene ficha, y toda ficha está en el orden. Sin esto,
    una ficha nueva sin su entrada acá no da error — da una sección que simplemente no se imprime,
    y el modo de falla es el silencio. */
@@ -58812,8 +58866,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260919-0727';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789813621491;                 /* eco-build-ms */
+const ECO_BUILD    = '20260919-0733';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789813980003;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -58899,7 +58953,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-0727</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-0733</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

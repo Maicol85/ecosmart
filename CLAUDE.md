@@ -4239,6 +4239,46 @@ alta, porque los casos se escribieron eligiendo los cortes, no los campos.
    taquicardia ventricular, historia clínica, frases rápidas, segmentos del ETE, pre-TAVI,
    panel de indicaciones (`_IG_SECTIONS`), DICOM e imágenes en IndexedDB.
 
+## TGA: el shim por SOMBRA, que es el patrón para las cinco que faltan
+
+Séptima ficha. `tgaConclusion` pasó a aceptar un estudio guardado, y el modo de hacerlo importa
+más que el resultado: es la plantilla de las cinco que quedan.
+
+### La sombra, y por qué no se renombra cada llamada
+Dos lectores nuevos a nivel de módulo, `_ccSv(id, src)` y `_ccNv(id, src)` —sin `src` leen el
+formulario, **literal**, para no mover el informe firmado—. Y dentro de la función:
+
+    function tgaConclusion(src){
+      const _tgaSv = id => _ccSv(id, src), _tgaNv = id => _ccNv(id, src);
+
+El `const` local **sombrea** el helper de módulo del mismo nombre en todo el cuerpo, así que los
+~15 sitios de llamada quedan **intactos**. La alternativa era renombrarlos uno por uno — que es
+exactamente el barrido que en este archivo ya se llevó por delante tres campos ajenos con el
+`_vel` → `_veloc`. Con la sombra, **un sitio que se olvide no existe**: o la función entera lee
+del estudio, o no compila. Y `tgaSync()` sigue llamando al helper de módulo con un argumento, o
+sea al DOM, sin cambio alguno.
+
+Lo que la sombra **no** resuelve: los helpers externos. `mchExclusiones()`, `vabFactores()`,
+`calcVP()` y `getBSA()` tienen su propio ámbito y siguen apuntando al binding de módulo. Esas
+cinco necesitan threading explícito — es el trabajo que queda.
+
+### El aserto no vacuo, otra vez
+La comparación DOM↔`src` **no prueba nada** cuando las dos rutas leen los mismos datos. El aserto
+que discrimina usa un escenario donde el campo que decide existe **sólo en el objeto** y el
+formulario tiene un valor **distinto**: `tga_func_vd` ausente del objeto pero `'moderada'` en
+pantalla. Con el shim, `sinF` cae en `sin_funcion`; sin el shim lee el DOM y colapsa en
+`disfuncion` junto con `conF`. Verificado por mutación — quitar la línea de la sombra da
+`conF="disfuncion" sinF="disfuncion"`.
+
+No hace falta limpiar el formulario; **al contrario**: que tenga un valor distinto del que se
+quiere probar es lo que hace discriminante al aserto.
+
+### Dos trampas conocidas, pagadas de nuevo
+- **El backtick dentro del template literal**, tercera vez en esta sesión, en un comentario mío.
+- **Un marcador de PDF con paréntesis.** `'ventriculo sistemico (VD)'` da cero coincidencias
+  sobre un texto que **sí** está impreso: jsPDF escapa los paréntesis en el content stream. El
+  marcador se cortó antes del paréntesis.
+
 ## VAP y FOP en el Laboratorio — y por qué las otras ocho CC no son «lo mismo otra vez»
 
 Se agregaron **dos fichas**: ventana aortopulmonar y foramen oval. Las dos completas —bloques A,
