@@ -30592,7 +30592,8 @@ function _ccParrafos(partes, cortes){
 }
 window._ccParrafos = _ccParrafos;
 
-function mchEspesor(){
+function mchEspesor(src){
+  const _mchSv = id => _ccSv(id, src), _mchNv = id => _ccNv(id, src);
   const n = _mchNv('mch_espesor');
   if (n == null) return { valor:null, fuera:false, crudo:null };
   if (n < 5 || n > 60) return { valor:null, fuera:true, crudo:n };
@@ -30600,7 +30601,8 @@ function mchEspesor(){
 }
 /* FEVI con banda, por lo mismo: un 0,45 tipeado por 45 encendía «disfunción sistólica del VI
    (FEVI <50 %)» como factor mayor de la AHA. */
-function mchFevi(){
+function mchFevi(src){
+  const _mchSv = id => _ccSv(id, src), _mchNv = id => _ccNv(id, src);
   const n = _mchNv('fevi');
   if (n == null) return { valor:null, fuera:false };
   if (n < 5 || n > 90) return { valor:null, fuera:true };
@@ -30610,12 +30612,13 @@ function mchFevi(){
    afirmaba «sin obstrucción significativa en reposo NI CON VALSALVA» con la Valsalva sin hacer
    — que es justo el fenotipo de obstrucción latente, el único para el que existe la maniobra.
    Es la misma regla que el módulo de FOP ya aplica separando reposo de Valsalva. */
-function mchGrad(){
+function mchGrad(src){
+  const _mchSv = id => _ccSv(id, src), _mchNv = id => _ccNv(id, src);
   const r = _mchNv('mch_grad_reposo'), val = _mchNv('mch_grad_valsalva');
   const max = (r == null && val == null) ? null : (r == null ? val : (val == null ? r : Math.max(r, val)));
   return { max: max, reposo: r, valsalva: val, hayReposo: r != null, hayValsalva: val != null };
 }
-function mchGradMax(){ return mchGrad().max; }
+function mchGradMax(src){ return mchGrad(src).max; }
 /* Las seis exclusiones del HCM Risk-SCD.
    `activas` son las marcadas «sí»: sólo el sí explícito excluye. `pendientes` son las que nadie
    contestó, y NO son decorativas: hasta el 2026-09-10 se calculaban y no las leía nadie, así que
@@ -30627,7 +30630,8 @@ function mchGradMax(){ return mchGrad().max; }
    no sólo en una. La asimetría con los tres binarios del score es deliberada: aquellos entran en
    la ecuación y un «no consta» tratado como 0 cambia el número; una exclusión sin contestar no
    cambia el número, cambia si el número corresponde. */
-function mchExclusiones(){
+function mchExclusiones(src){
+  const _mchSv = id => _ccSv(id, src), _mchNv = id => _ccNv(id, src);
   const edad = _mchNv('edad');
   const act = [], pend = [];
   const chequear = (id, txt) => {
@@ -30644,9 +30648,12 @@ function mchExclusiones(){
      lo contrario de que esté confirmada — se usa justamente para descartarla. Derivar una
      exclusión de «alguien miró» sería inventar un diagnóstico. Lo que sí se hace es avisar: si el
      módulo tiene datos y esta pregunta quedó sin contestar, se dice con todas las letras. */
-  const _amHayDatos = ['ett-septo','ett-pp'].some(function(id){
-    const e = document.getElementById(id); return !!e && String(e.value || '').trim() !== '';
-  });
+  /* Por `_ccSv` y no por getElementById: es la unica lectura directa del DOM que le quedaba a
+     esta cadena, y sobre un estudio guardado decidia con los campos del paciente CARGADO EN
+     PANTALLA si el modulo de amiloidosis "tiene datos" -- o sea si se avisa que la fenocopia
+     quedo sin contestar. El aviso es justamente el que impide publicar "riesgo bajo,
+     desfibrilador no indicado" sobre un modelo que no aplica a una fenocopia infiltrativa. */
+  const _amHayDatos = ['ett-septo','ett-pp'].some(function(id){ return _ccSv(id, src) !== ''; });
   const _fen = _mchSv('mch_ex_fenocopia');
   if (_fen === 'si') act.push('fenocopia metabólica o infiltrativa (Fabry, amiloidosis)');
   else if (_fen !== 'no') pend.push('fenocopia metabólica o infiltrativa (Fabry, amiloidosis)' +
@@ -30658,7 +30665,7 @@ function mchExclusiones(){
      estudio puede ser el episodio índice. La diferencia decide si se publica o no un porcentaje
      de riesgo de muerte súbita, así que la contesta el médico. Lo que no puede pasar es que la
      pregunta quede en blanco al lado de una TV sostenida cargada: eso se dice. */
-  { const _val = _mchSv('mch_ex_parada'), _tv = tvEstado();
+  { const _val = _mchSv('mch_ex_parada'), _tv = tvEstado(src);
     if (_val === 'si') act.push('parada cardíaca o taquicardia ventricular sostenida previa');
     else if (_val !== 'no') pend.push('parada cardíaca o taquicardia ventricular sostenida previa' +
       (_tv.sostenida ? ' — hay taquicardia ventricular SOSTENIDA cargada en el bloque de arritmia ventricular: confirmar si es un antecedente, porque en ese caso el score no es aplicable' : '')); }
@@ -30697,15 +30704,16 @@ function _hcmRiskSCD(esp, ai, grad, edad, fhx, tvns, sinc){
   return (isFinite(pct) && pct >= 0 && pct <= 100) ? pct : null;
 }
 /* ESC HCM Risk-SCD. Devuelve el porcentaje, o la lista de lo que falta. Nunca un número a medias. */
-function mchScoreESC(){
-  const espH = mchEspesor(), esp = espH.valor;
+function mchScoreESC(src){
+  const _mchSv = id => _ccSv(id, src), _mchNv = id => _ccNv(id, src);
+  const espH = mchEspesor(src), esp = espH.valor;
   const ai   = _mchNv('ai_diam');
-  const grad = mchGradMax();
+  const grad = mchGradMax(src);
   const edad = _mchNv('edad');
   const sinc = _mchSv('mch_sincope');
   /* Historia familiar con el umbral de la ESC (<40 años, o cualquier edad con MCH establecida),
      no el binario crudo: ver mchFamMS. */
-  const _fam = mchFamMS();
+  const _fam = mchFamMS(src);
   const fhx = _fam.motivo === 'no' ? 'no'
             : (_fam.esc.motivo === 'cumple' || _fam.esc.motivo === 'familiar_con_mch') ? 'si'
             : _fam.esc.motivo === 'edad_mayor' ? 'no' : '';
@@ -30715,7 +30723,7 @@ function mchScoreESC(){
                   : _fam.esc.motivo === 'sin_mch'  ? '¿el familiar tenía MCH establecida? — con ' + _fam.edad + ' años el criterio de la ESC sólo se cumple por esa vía'
                   : 'historia familiar de muerte súbita';
   /* La TVNS sale del bloque compartido de arritmia ventricular, no del espejo `mch_tvns`. */
-  const tvns = tvEstado().mchTvns;
+  const tvns = tvEstado(src).mchTvns;
   const faltan = [];
   if (espH.crudo == null) faltan.push('espesor máximo de pared');
   if (ai   == null) faltan.push('diámetro anteroposterior de aurícula izquierda (tab AI / VI)');
@@ -30761,7 +30769,8 @@ function mchScoreESC(){
    índice de la ESC eso son 0,4583 puntos que el paciente no tiene, y en la AHA es un factor mayor
    inventado que sube la conducta a Clase IIa. Sólo MCA aplicaba su umbral.
    Sin la edad cargada no se afirma ni se niega: se declara que falta. */
-function mchFamMS(){
+function mchFamMS(src){
+  const _mchSv = id => _ccSv(id, src), _mchNv = id => _ccNv(id, src);
   const hay = _mchSv('mch_fam_ms');
   const ed  = _mchNv('fam_ms_edad');
   const conMCH = _mchSv('mch_fam_ms_mch');
@@ -30810,14 +30819,15 @@ function mchFamMS(){
    La respuesta tensional al ejercicio ya estaba fuera del conteo, y es correcto: la guía la
    RETIRÓ explícitamente de la evaluación de rutina en 2020 («the removal of abnormal blood
    pressure response to exercise as a routine part of the SCD risk evaluation»). */
-function mchAHA(){
+function mchAHA(src){
+  const _mchSv = id => _ccSv(id, src), _mchNv = id => _ccNv(id, src);
   const pres = [], pend = [];
   /* Las MISMAS bandas que el score de la ESC. Un valor fuera de rango no cuenta como presente
      ni como evaluado: entra en pendientes, que es lo que es. */
-  const espH = mchEspesor(), feviH = mchFevi();
+  const espH = mchEspesor(src), feviH = mchFevi(src);
   const chequear = (cond, txt, evaluado) => { if (cond) pres.push(txt); else if (!evaluado) pend.push(txt); };
   const bin = (id, txt) => { const val = _mchSv(id); chequear(val === 'si', txt, val === 'si' || val === 'no'); };
-  const fam = mchFamMS();
+  const fam = mchFamMS(src);
   chequear(fam.aha.cumple, 'historia familiar de muerte súbita por MCH en familiar de primer grado o cercano ≤50 años',
            fam.motivo === 'no' || fam.aha.motivo === 'cumple' || fam.aha.motivo === 'edad_mayor');
   chequear(espH.valor != null && espH.valor >= 30, 'espesor máximo ≥30 mm', espH.valor != null);
@@ -30826,7 +30836,7 @@ function mchAHA(){
   chequear(feviH.valor != null && feviH.valor < 50, 'disfunción sistólica del VI (FEVI <50 %)', feviH.valor != null);
   /* Los dos árbitros de la recomendación 6, en su propia lista y con su propia clase. */
   const arb = [], arbPend = [];
-  { const _tv = tvEstado().mchTvns;
+  { const _tv = tvEstado(src).mchTvns;
     if (_tv === 'si') arb.push('taquicardia ventricular no sostenida');
     else if (_tv !== 'no') arbPend.push('taquicardia ventricular no sostenida'); }
   /* El árbitro NO cuantifica más que la etiqueta del campo. Decía «(≥15 % de la masa del VI)»
@@ -30851,9 +30861,10 @@ function mchAHA(){
 /* Cuántos factores mayores tiene la lista de la AHA/ACC 2020. Se lee en cuatro sitios; escrito
    como literal en tres de ellos y como constante en uno era peor que el literal a secas. */
 const MCH_AHA_N_MAYORES = 5;
-function mchConclusion(){
-  const espH = mchEspesor(), esp = espH.valor;
-  const gr = mchGrad(), grad = gr.max;
+function mchConclusion(src){
+  const _mchSv = id => _ccSv(id, src), _mchNv = id => _ccNv(id, src);
+  const espH = mchEspesor(src), esp = espH.valor;
+  const gr = mchGrad(src), grad = gr.max;
   const loc = _mchSv('mch_loc'), patron = _mchSv('mch_patron');
   /* Con una fenocopia o una forma sindrómica marcada, la hipertrofia TIENE causa conocida y por
      definición no es una miocardiopatía hipertrófica. La app no puede afirmar el diagnóstico que
@@ -30917,13 +30928,13 @@ function mchConclusion(){
   /* 3 · Los dos scores. Las exclusiones sólo apagan el de la ESC —es el que está validado en
      una población concreta—; el conteo de la AHA es una lista de factores y sigue siendo
      informativo. */
-  const ex = mchExclusiones();
-  const esc = mchScoreESC();
-  const aha = mchAHA();
+  const ex = mchExclusiones(src);
+  const esc = mchScoreESC(src);
+  const aha = mchAHA(src);
   /* Los dos hallazgos que la ESC 2023 valora DENTRO de la banda de bajo riesgo (Clase IIb). Se
      calculan acá arriba y no dentro del `else` porque los lee también el `resumen`: declarados
      dentro de la rama, el EN SUMA tiraba `ReferenceError` y eso corta el bloque `<script>`. */
-  const _feviB = mchFevi(), _lgeB = _mchSv('mch_fibrosis_rmn');
+  const _feviB = mchFevi(src), _lgeB = _mchSv('mch_fibrosis_rmn');
   const _mod = [], _modPend = [];
   if (_lgeB === 'si') _mod.push('realce tardío extenso');
   if (_feviB.valor != null && _feviB.valor < 50) _mod.push('FEVI ' + _feviB.valor + ' %');
@@ -31047,11 +31058,11 @@ function mchConclusion(){
      razonable: pregunta por un ANTECEDENTE, y la TV puede ser el episodio índice de este estudio)
      dejaba el informe con «riesgo bajo — desfibrilador no indicado de rutina» y cero menciones de
      la taquicardia ventricular sostenida que sí se había registrado. */
-  { const _f = (typeof tvFrase === 'function') ? tvFrase() : null;
+  { const _f = (typeof tvFrase === 'function') ? tvFrase(src) : null;
     if (_f) partes.push(_f); }
   /* Y el aviso de aplicabilidad va con INDEPENDENCIA de cómo se haya contestado la exclusión:
      lo que decide si el porcentaje corresponde es que haya una TV sostenida, no la respuesta. */
-  { const _tv = tvEstado();
+  { const _tv = tvEstado(src);
     if (_tv.sostenida && !ex.activas.length) partes.push('Se registró taquicardia ventricular sostenida en este estudio. El HCM Risk-SCD se desarrolló en prevención primaria y no está validado en pacientes con arritmia ventricular sostenida documentada: revisar si corresponde publicar el porcentaje y si el desfibrilador está indicado en prevención secundaria'); }
 
   let resumen;
@@ -31091,7 +31102,7 @@ function mchConclusion(){
     resumen += '. No consta resonancia, que es uno de los factores mayores de la AHA y el eco no evalúa';
   /* La TV sostenida sube al EN SUMA por la misma razón que la resonancia: cambia si el número
      de arriba corresponde, y el EN SUMA es donde se lee la conducta. */
-  { const _tv = tvEstado();
+  { const _tv = tvEstado(src);
     if (_tv.sostenida && !ex.activas.length)
       resumen += '. Taquicardia ventricular sostenida documentada: el score de la ESC no está validado en ese escenario'; }
   /* Y la aplicabilidad no verificada del modelo europeo. */
@@ -53122,6 +53133,27 @@ const EBS_CONDUCTAS = [
   { k:'no_interpretable',       lbl:'No interpretable',           crit:'Algun valor fuera de rango: revisar unidades antes de concluir' },
   { k:'nc',                     lbl:'No clasificable',            crit:'El clasificador no devolvio una conclusion para este estudio' }
 ];
+/* ── MCH · miocardiopatia hipertrofica ──
+   ESTO NO SON CONDUCTAS, como en la MCA: son las BANDAS DE RIESGO del HCM Risk-SCD a 5 anos. La
+   diferencia con la MCA es que la ESC 2023 SI ata una clase de recomendacion a cada banda, y esa
+   clase es la que la app ya publica en el informe individual -- se copia de ahi, no se redacta.
+   Cortes verificados en el codigo: <4 bajo, <6 intermedio, >=6 alto. El >=6 es deliberado y esta
+   comentado en la fuente: en 6,00 exacto la diferencia entre IIa y IIb es un implante.
+   `no_aplicable` es la fila clinicamente critica: con una exclusion del modelo activa el score
+   NO corresponde, y publicar una banda igual es lo que hacia salir "riesgo bajo, desfibrilador
+   no indicado" sobre un paciente en estudio por amiloidosis. */
+const MCH_CONDUCTAS = [
+  { k:'alto',             lbl:'Riesgo alto',            crit:'HCM Risk-SCD >= 6 % a 5 anos - desfibrilador a considerar (Clase IIa, ESC 2023)' },
+  { k:'intermedio',       lbl:'Riesgo intermedio',      crit:'4 a 6 % - desfibrilador puede considerarse (Clase IIb, ESC 2023)' },
+  { k:'bajo',             lbl:'Riesgo bajo',            crit:'< 4 % - desfibrilador no indicado de rutina; con realce tardio extenso, aneurisma apical o FEVI < 50 % la ESC 2023 lo sitúa en Clase IIb' },
+  { k:'no_aplicable',     lbl:'Modelo NO aplicable',    crit:'Hay una exclusion del HCM Risk-SCD activa: el score no esta validado en ese escenario y no se estratifica' },
+  { k:'incompleto',       lbl:'Datos insuficientes',    crit:'Falta alguna de las siete variables del modelo - no se publica porcentaje' },
+  { k:'no_interpretable', lbl:'No interpretable',       crit:'Algun valor fuera de rango: revisar unidades antes de puntuar' },
+  { k:'nc',               lbl:'No clasificable',        crit:'El clasificador no devolvio una conclusion para este estudio' }
+];
+const MCH_TIPOS_LBL = { sept_ant:'Septal anterosuperior', sept_post:'Septal posterior',
+                        apical:'Apical', lateral:'Lateral', concentrica:'Concentrica',
+                        medioventricular:'Medioventricular' };
 /* ── VAB · valvula aortica bicuspide ──
    El orden es el de la cascada, y arranca con CONTRADICCION: si la morfologia registrada en
    Valvulas -`va_morf`, la fuente canonica- dice otra cosa que esta seccion, no se elige una en
@@ -53333,7 +53365,32 @@ const CC_FICHAS = Object.assign(Object.create(null), {
             { k:'cx', lbl:'Con cirugia valvular prevista', get:i => { const x = _labCampoRaw(i, 'vab_cx_valvular');
                 return x === 'si' ? true : (x === 'no' ? false : null); } } ],
     conductas:VAB_CONDUCTAS, clasif:_claveDe(vabConclusion), soloShuntUnico:false,
-    pie:'El umbral quirurgico de la ESC 2024 no sale del diametro solo: depende del FENOTIPO (la raiz opera a 50 donde la ascendente espera a 55), del RIESGO QUIRURGICO -que tiene que constar como bajo- y de los factores de riesgo, uno de los cuales es la coartacion, que se deriva de la conclusion de su propia seccion y no de un campo aparte. Por eso hay filas de "umbral sin riesgo evaluado" y "riesgo no bajo": alcanzar el diametro no es alcanzar la indicacion. La morfologia se lee de la tab Valvulas, que es la fuente canonica, y si discrepa con esta seccion se declara en vez de elegir una.' }
+    pie:'El umbral quirurgico de la ESC 2024 no sale del diametro solo: depende del FENOTIPO (la raiz opera a 50 donde la ascendente espera a 55), del RIESGO QUIRURGICO -que tiene que constar como bajo- y de los factores de riesgo, uno de los cuales es la coartacion, que se deriva de la conclusion de su propia seccion y no de un campo aparte. Por eso hay filas de "umbral sin riesgo evaluado" y "riesgo no bajo": alcanzar el diametro no es alcanzar la indicacion. La morfologia se lee de la tab Valvulas, que es la fuente canonica, y si discrepa con esta seccion se declara en vez de elegir una.' },
+  mch: { tit:'Miocardiopatia hipertrofica (MCH)', titAcc:'Miocardiopatía hipertrófica (MCH)',
+    tipoCampo:'mch_loc', tipos:MCH_TIPOS_LBL, tipoTit:'Distribucion por localizacion',
+    tamCampo:'mch_espesor', tamLbl:'Espesor parietal maximo',
+    /* El gradiente sale de `_ccMchGradMax`, la derivacion source-aware que el Laboratorio ya
+       tenia; el porcentaje, de `mchScoreESC` -- el MISMO score que firma el informe individual-
+       y no de una segunda implementacion de la ecuacion. */
+    metricas:[ { k:'grad', lbl:'Gradiente TSVI maximo', get:_ccMchGradMax, dec:0, suf:' mmHg' },
+               { k:'scd', lbl:'HCM Risk-SCD a 5 anos', get:i => { const r = _labEstado(mchScoreESC, i); return (r && r.pct != null) ? r.pct : null; }, dec:1, suf:' %' } ],
+    props:[ { k:'obst', lbl:'Con obstruccion significativa', get:i => { const g = _ccMchGradMax(i);
+                /* >=30 mmHg es el corte de obstruccion. null es "no se midio el gradiente", que
+                   NO es "sin obstruccion": sale del denominador. */
+                return g === null ? null : g >= 30; } },
+            { k:'sam', lbl:'Con SAM', get:i => { const x = _labCampoRaw(i, 'mch_sam');
+                return x === 'si' ? true : (x === 'no' ? false : null); } } ],
+    conductas:MCH_CONDUCTAS, clasif:_claveDe(mchConclusion), soloShuntUnico:false,
+    /* Como la MCA: la tabla estratifica RIESGO, no publica conducta. La diferencia es que la ESC
+       2023 SI ata una clase a cada banda, asi que la columna de criterio la lleva -- copiada de
+       lo que el informe individual ya imprime. */
+    condTit:' - estratificacion de riesgo de muerte subita (HCM Risk-SCD) - NO ES UNA CONDUCTA',
+    condCol:'Banda de riesgo',
+    condTitPpt:'Estratificación de riesgo de muerte súbita (HCM Risk-SCD)',
+    encuadre:'Estratificacion de RIESGO segun el HCM Risk-SCD, no una indicacion de implante: la clase de recomendacion que acompana a cada banda es la que publica la ESC 2023 y la decision es del medico tratante en decision compartida con el paciente. El modelo NO esta validado con una exclusion activa -- esos estudios se cuentan aparte y no se estratifican.',
+    encuadrePpt:'Estratificación de riesgo, no una indicación de implante.',
+    piePpt:'HCM Risk-SCD (ESC 2023) — con una exclusión activa el modelo no aplica y no se estratifica.',
+    pie:'Los cortes son <4 % riesgo bajo, 4 a 6 % intermedio y >=6 % alto. El >=6 es deliberado: en 6,00 exacto la diferencia entre Clase IIa y IIb es un implante. La fila "modelo no aplicable" no es relleno: con una de las seis exclusiones del HCM Risk-SCD activa el score no esta validado, y publicar una banda igual es lo que hacia salir "riesgo bajo, desfibrilador no indicado" sobre un paciente en estudio por amiloidosis. El espesor y el gradiente llevan banda de plausibilidad: fuera de ella el estudio cae en no interpretable en vez de puntuar con un numero ilegible.' }
 });
 
 /* El ORDEN de las secciones, en un solo lugar. `Object.keys(CC_FICHAS)` daría el mismo resultado
@@ -53342,7 +53399,7 @@ const CC_FICHAS = Object.assign(Object.create(null), {
    y leído por las DOS superficies: con una copia por superficie, agregar una CC y olvidarse de
    una lista produce una sección que está en el PDF y no en el PPT, que es exactamente lo que la
    regla «PDF >= PPT» prohíbe y lo que nadie ve hasta que falta. */
-const CC_ORDEN = ['cia', 'civ', 'dap', 'vap', 'coa', 'fop', 'vab', 'ebs', 'tga', 'mca'];
+const CC_ORDEN = ['cia', 'civ', 'dap', 'vap', 'coa', 'fop', 'vab', 'ebs', 'tga', 'mch', 'mca'];
 /* Assert de arranque: toda clave del orden tiene ficha, y toda ficha está en el orden. Sin esto,
    una ficha nueva sin su entrada acá no da error — da una sección que simplemente no se imprime,
    y el modo de falla es el silencio. */
@@ -59043,8 +59100,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260919-1010';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789823448367;                 /* eco-build-ms */
+const ECO_BUILD    = '20260919-1029';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789824541574;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -59130,7 +59187,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-1010</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-1029</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

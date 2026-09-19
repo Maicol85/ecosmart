@@ -4239,6 +4239,48 @@ alta, porque los casos se escribieron eligiendo los cortes, no los campos.
    taquicardia ventricular, historia clínica, frases rápidas, segmentos del ETE, pre-TAVI,
    panel de indicaciones (`_IG_SECTIONS`), DICOM e imágenes en IndexedDB.
 
+## MCH: la cadena más larga, y la fila que impide estratificar donde el modelo no aplica
+
+Undécima ficha. **Quince funciones** en el cierre transitivo, nueve de ellas threadeadas:
+`mchConclusion`, `mchAHA`, `mchScoreESC`, `mchExclusiones`, `mchFamMS`, `mchEspesor`, `mchFevi`,
+`mchGrad`, `mchGradMax`. `tvEstado`/`tvFrase` ya aceptaban `src` de la tanda de MCA.
+
+### La tabla estratifica riesgo — y acá la ESC sí ata una clase
+Como la MCA, la MCH **no publica conducta**: publica las bandas del HCM Risk-SCD. Pero a
+diferencia de la MCA, la ESC 2023 **sí** ata una clase de recomendación a cada banda, y esa clase
+es la que la app ya imprime en el informe individual. Se **copió de ahí**, no se redactó: `alto` →
+desfibrilador a considerar (IIa), `intermedio` → puede considerarse (IIb), `bajo` → no indicado
+de rutina, con la salvedad de los modificadores.
+
+Cortes **verificados en el código**, no de memoria: `<4` bajo, `<6` intermedio, `>=6` alto. El
+`>=6` está comentado en la fuente como deliberado — en 6,00 exacto la diferencia entre IIa y IIb
+es un implante.
+
+### La fila `no_aplicable` es la razón de ser de la ficha
+Con una de las seis exclusiones del HCM Risk-SCD activa, el modelo **no está validado**. Publicar
+una banda igual es lo que hacía salir «riesgo bajo, desfibrilador no indicado» sobre un paciente
+en estudio por sospecha de amiloidosis — defecto que la sección ya documentaba. La fila lo
+declara en vez de estratificar.
+
+Y ése es el aserto que discrimina: formulario con `mch_ex_fenocopia:'no'`, objeto con `'si'`.
+Mutante (`mchExclusiones` leyendo el DOM): `conEx="bajo" sinEx="bajo"` — el Laboratorio
+estratificando riesgo sobre un paciente en el que el score no corresponde.
+
+### Tres tropiezos del test, todos del mismo tipo: medir sobre algo que no se calculó
+1. **`incompleto` contra `incompleto`.** La TVNS es la séptima variable del modelo y **no es un
+   campo propio de MCH** — sale de `tvEstado`. Sin `tv_documentada` en el fixture, el score no se
+   calcula y el aserto comparaba dos bandas inexistentes.
+2. **`bajo` contra `bajo`.** Con las siete variables, 16 contra 32 mm en un paciente joven mueve
+   el score pero **no cruza el corte de 4 %**. Medir la *banda* daba un aserto que pasaría igual
+   con la cadena rota. Se pasó a comparar el **porcentaje**, que es el seam real. Mutante
+   (`mchEspesor` sin `src`): los dos dan `pct 2.503506599243932` — el de los 21 mm del formulario.
+3. **Dos asertos duplicados**, dos veces, por splices por índice que insertaron sin borrar. Los
+   delató que la misma condición apareciera repetida en la salida del mutante.
+
+La regla que dejan las tres: **antes de creerle a un aserto que pasa, mirar que el valor medido
+exista.** Un `incompleto` o un `bajo` de los dos lados no es una comparación, es un empate sobre
+vacío.
+
 ## VAB: la cadena larga, y un factor de riesgo que venía del paciente equivocado
 
 Décima ficha. `vabConclusion(src)` → `vabFactores(src)` → `coaConclusion(src)`: **tres niveles**,

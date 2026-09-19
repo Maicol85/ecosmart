@@ -8575,7 +8575,10 @@ caso('TC-171', 'Los clasificadores de CC dan lo MISMO leyendo el form o un estud
       mca_fenotipo:'derecho', mca_mov_regional:'aqui_disc', mca_tsvd_plax:'34', mca_fac:'30',
       mca_ii_may:'si', tv_documentada:'si', tv_tipo:'no_sostenida', tv_morfologia:'bcri',
       vab_tipo:'fused_rl', vab_fenotipo:'tubular', vab_funcion:'estenosis', vab_rafe:'si',
-      vab_riesgo_qx:'si', vab_cx_valvular:'no', ao_sin:'40', ao_tub:'51'
+      vab_riesgo_qx:'si', vab_cx_valvular:'no', ao_sin:'40', ao_tub:'51',
+      mch_espesor:'21', mch_loc:'sept_ant', mch_patron:'reversa', mch_grad_reposo:'40',
+      mch_sam:'si', mch_fam_ms:'no', mch_sincope:'no', ai_diam:'44',
+      mch_ex_fenocopia:'no', mch_ex_sindromica:'no', mch_ex_parada:'no'
     };
     const puestos = [], faltantes = [];
     Object.keys(F).forEach((k) => {
@@ -8601,13 +8604,14 @@ caso('TC-171', 'Los clasificadores de CC dan lo MISMO leyendo el form o un estud
     const dap = par(dapConclusion), vap = par(vapConclusion);
     const coa = par(coaConclusion), fop = par(fopConclusion), tga = par(tgaConclusion);
     const ebs = par(ebsConclusion), mca = par(mcaConclusion), vab = par(vabConclusion);
+    const mch = par(mchConclusion);
     /* Denominador: si las dos rutas devuelven null el caso pasaria trivialmente, que es medir
        sobre vacio. Se exige que la ruta DOM haya concluido ALGO en las siete. */
-    const concluyen = [dap.dom, vap.dom, coa.dom, fop.dom, tga.dom, ebs.dom, mca.dom, vab.dom].filter((x) => x !== 'null' && x !== null).length;
+    const concluyen = [dap.dom, vap.dom, coa.dom, fop.dom, tga.dom, ebs.dom, mca.dom, vab.dom, mch.dom].filter((x) => x !== 'null' && x !== null).length;
     return { extra: [
       ['los ids del formulario existen',            faltantes.length === 0, faltantes.join(',')],
       ['la casilla de la coartacion existe',        casilla === 'ok', casilla],
-      ['las ocho cascadas concluyen algo',         concluyen === 8, concluyen + ' de 8'],
+      ['las nueve cascadas concluyen algo',        concluyen === 9, concluyen + ' de 9'],
       ['ductus: la misma conclusion por las dos rutas',    dap.dom === dap.src, 'dom=' + dap.dom.slice(0,70) + ' src=' + dap.src.slice(0,70)],
       /* EL aserto que de verdad prueba que el ductus lee el estudio. Los dos de arriba son
          vacuos por construccion: el formulario y campos tienen los MISMOS datos, asi que una
@@ -8635,6 +8639,53 @@ caso('TC-171', 'Los clasificadores de CC dan lo MISMO leyendo el form o un estud
       ['Ebstein: la misma conclusion por las dos rutas',  ebs.dom === ebs.src, 'dom=' + ebs.dom.slice(0,70) + ' src=' + ebs.src.slice(0,70)],
       ['MCA: la misma conclusion por las dos rutas',      mca.dom === mca.src, 'dom=' + mca.dom.slice(0,70) + ' src=' + mca.src.slice(0,70)],
       ['VAB: la misma conclusion por las dos rutas',      vab.dom === vab.src, 'dom=' + vab.dom.slice(0,70) + ' src=' + vab.src.slice(0,70)],
+      ['MCH: la misma conclusion por las dos rutas',      mch.dom === mch.src, 'dom=' + mch.dom.slice(0,70) + ' src=' + mch.src.slice(0,70)],
+      /* MCH, aserto NO vacuo 1 de 2 y el CLINICAMENTE importante: la EXCLUSION del modelo. El
+         formulario tiene mch_ex_fenocopia en 'no'; el objeto de conEx la marca 'si'. Con una
+         exclusion activa el HCM Risk-SCD no esta validado y la banda no se publica. Si la
+         cadena no propagara src, conEx leeria el 'no' del DOM y el Laboratorio estratificaria
+         riesgo sobre un paciente en el que el modelo no aplica -- que es exactamente el defecto
+         que la seccion ya documenta ("riesgo bajo, desfibrilador no indicado" sobre una
+         sospecha de amiloidosis). */
+      ['la exclusion del modelo guardada apaga la banda de MCH',
+        (function () {
+          const base = { mch_espesor:'21', mch_loc:'sept_ant', mch_grad_reposo:'40',
+                         mch_fam_ms:'no', mch_sincope:'no', ai_diam:'44', edad:'52',
+                         tv_documentada:'no' };
+          const conEx = mchConclusion(Object.assign({}, base, { mch_ex_fenocopia:'si' }));
+          const sinEx = mchConclusion(Object.assign({}, base, { mch_ex_fenocopia:'no', mch_ex_sindromica:'no', mch_ex_parada:'no' }));
+          return conEx && sinEx && conEx.clave === 'no_aplicable' && sinEx.clave !== 'no_aplicable';
+        })(),
+        'conEx=' + J((mchConclusion({ mch_espesor:'21', mch_loc:'sept_ant', mch_grad_reposo:'40',
+            mch_fam_ms:'no', mch_sincope:'no', ai_diam:'44', edad:'52', tv_documentada:'no',
+            mch_ex_fenocopia:'si' }) || {}).clave) +
+        ' sinEx=' + J((mchConclusion({ mch_espesor:'21', mch_loc:'sept_ant', mch_grad_reposo:'40',
+            mch_fam_ms:'no', mch_sincope:'no', ai_diam:'44', edad:'52', tv_documentada:'no',
+            mch_ex_fenocopia:'no', mch_ex_sindromica:'no', mch_ex_parada:'no' }) || {}).clave)],
+      /* MCH, aserto NO vacuo 2 de 2: el ESPESOR, que prueba que mchEspesor(src) ->
+         mchScoreESC(src) reciben el estudio. Se compara el PORCENTAJE y no la banda: 16 contra
+         32 mm en un paciente joven mueve el score pero no cruza el corte de 4 %, asi que medir
+         la banda daba "bajo" contra "bajo" -- un aserto que pasaria igual con la cadena rota.
+         El formulario tiene 21 mm, distinto de los dos, para que la comparacion discrimine. */
+      ['el espesor guardado mueve el HCM Risk-SCD',
+        (function () {
+          const base = { mch_loc:'sept_ant', mch_grad_reposo:'10', mch_fam_ms:'no',
+                         mch_sincope:'no', ai_diam:'38', edad:'30', tv_documentada:'no',
+                         mch_ex_fenocopia:'no', mch_ex_sindromica:'no', mch_ex_parada:'no' };
+          const g = mchScoreESC(Object.assign({}, base, { mch_espesor:'32' }));
+          const f = mchScoreESC(Object.assign({}, base, { mch_espesor:'16' }));
+          return g && f && g.pct != null && f.pct != null && g.pct > f.pct;
+        })(),
+        (function () {
+          const base = { mch_loc:'sept_ant', mch_grad_reposo:'10', mch_fam_ms:'no',
+                         mch_sincope:'no', ai_diam:'38', edad:'30', tv_documentada:'no',
+                         mch_ex_fenocopia:'no', mch_ex_sindromica:'no', mch_ex_parada:'no' };
+          return 'gordo=' + J(mchScoreESC(Object.assign({}, base, { mch_espesor:'32' }))) +
+                 ' fino=' + J(mchScoreESC(Object.assign({}, base, { mch_espesor:'16' })));
+        })()],
+      ['MCA: la misma conclusion por las dos rutas',      mca.dom === mca.src, 'dom=' + mca.dom.slice(0,70) + ' src=' + mca.src.slice(0,70)],
+      ['VAB: la misma conclusion por las dos rutas',      vab.dom === vab.src, 'dom=' + vab.dom.slice(0,70) + ' src=' + vab.src.slice(0,70)],
+      ['MCH: la misma conclusion por las dos rutas',      mch.dom === mch.src, 'dom=' + mch.dom.slice(0,70) + ' src=' + mch.src.slice(0,70)],
       /* VAB, aserto NO vacuo 1 de 2: el DIAMETRO. El formulario tiene ao_tub 51; el objeto de
          chico trae 42. Sin la propagacion de src las dos ramas leerian el 51 del DOM. */
       ['el diametro aortico del estudio cambia la rama de VAB',
@@ -8793,7 +8844,13 @@ caso('TC-172', 'El encuadre orientativo sale en el PDF, una vez por tabla de con
               mca_tsvd_plax:'35', mca_fac:'28', mca_ii_may:'si' }),
       mk(10, { fevi:'58', tapse:'20', vab_tipo:'fused_rl', vab_fenotipo:'tubular',
                vab_funcion:'estenosis', vab_rafe:'si', vab_riesgo_qx:'si', vab_cx_valvular:'no',
-               ao_sin:'41', ao_tub:'53' })
+               ao_sin:'41', ao_tub:'53' }),
+      /* Las siete variables del HCM Risk-SCD: sin una sola, la banda sale 'incompleto' y la
+         tabla del PDF se llena de ceros sobre una cohorte que si tiene datos. */
+      mk(11, { fevi:'62', tapse:'21', mch_espesor:'22', mch_loc:'sept_ant', mch_patron:'reversa',
+               mch_grad_reposo:'45', mch_sam:'si', mch_fam_ms:'no', mch_sincope:'no',
+               ai_diam:'45', tv_documentada:'no',
+               mch_ex_fenocopia:'no', mch_ex_sindromica:'no', mch_ex_parada:'no' })
     ];
     const origGet = window.getInformes;
     window.getInformes = function(){ return datos; };
@@ -8837,7 +8894,8 @@ caso('TC-172', 'El encuadre orientativo sale en el PDF, una vez por tabla de con
       ['el PDF tiene paginas: hay denominador', paginas > 0, 'paginas=' + paginas],
       ['sale la seccion de conductas de la CIA', txt.indexOf('Cierre percutaneo') > -1, ''],
       ['sale la seccion de conductas de la CIV', txt.indexOf('Cierre indicado') > -1, ''],
-      /* NUEVE sobre DIEZ fichas: la MCA lleva encuadre propio porque su tabla es diagnostica.
+      /* NUEVE sobre ONCE fichas: la MCA y la MCH llevan encuadre propio porque sus tablas no
+         publican conducta -- una clasifica diagnostico y la otra estratifica riesgo.
          El numero es la compuerta: si una ficha nueva entra a CC_ORDEN sin encuadre, si una lo
          pierde, o si a la MCA le ponen el generico, esto cae. */
       ['el encuadre aparece una vez por tabla', cuenta(abre) === 9, cuenta(abre) + ' veces'],
@@ -8850,6 +8908,19 @@ caso('TC-172', 'El encuadre orientativo sale en el PDF, una vez por tabla de con
       ['sale la seccion de Ebstein', txt.indexOf('Anomalia de Ebstein') > -1, ''],
       ['sale la seccion de la MCA', txt.indexOf('Miocardiopatia arritmogenica') > -1, ''],
       ['sale la seccion de la VAB', txt.indexOf('Valvula aortica bicuspide') > -1, ''],
+      ['sale la seccion de la MCH', txt.indexOf('Miocardiopatia hipertrofica') > -1, ''],
+      /* Como la MCA: la MCH estratifica RIESGO, no publica conducta. La diferencia es que la ESC
+         2023 SI ata una clase a cada banda, y esa clase se copia de lo que el informe individual
+         ya imprime -- por eso las Clases IIa/IIb tienen que aparecer en la columna de criterio. */
+      ['la MCH se rotula como estratificacion de riesgo',
+        txt.indexOf('estratificacion de riesgo de muerte subita') > -1 &&
+        txt.indexOf('Banda de riesgo') > -1, ''],
+      ['y NO como orientacion terapeutica',
+        txt.indexOf('Miocardiopatia hipertrofica (MCH) - orientacion terapeutica') === -1, ''],
+      /* LA FILA CRITICA: con una exclusion activa el modelo no aplica. Si desaparece, el PDF
+         estratifica riesgo sobre pacientes en los que el score no esta validado. */
+      ['la MCH declara cuando el modelo NO aplica',
+        txt.indexOf('Modelo NO aplicable') > -1, ''],
       /* Los rotulos de VAB llevan el DIAMETRO que dispara cada umbral: cinco criterios distintos
          bajo un solo rotulo "cirugia" son indistinguibles en el papel firmado. */
       ['los umbrales de VAB salen con su diametro',
