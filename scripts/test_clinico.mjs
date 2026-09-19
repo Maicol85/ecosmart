@@ -8573,7 +8573,9 @@ caso('TC-171', 'Los clasificadores de CC dan lo MISMO leyendo el form o un estud
       ebs_saturacion:'94', ebs_area_ad:'30', ebs_area_vd_atrial:'14', ebs_area_vd_func:'18',
       ebs_area_ai:'20', ebs_area_vi:'26',
       mca_fenotipo:'derecho', mca_mov_regional:'aqui_disc', mca_tsvd_plax:'34', mca_fac:'30',
-      mca_ii_may:'si', tv_documentada:'si', tv_tipo:'no_sostenida', tv_morfologia:'bcri'
+      mca_ii_may:'si', tv_documentada:'si', tv_tipo:'no_sostenida', tv_morfologia:'bcri',
+      vab_tipo:'fused_rl', vab_fenotipo:'tubular', vab_funcion:'estenosis', vab_rafe:'si',
+      vab_riesgo_qx:'si', vab_cx_valvular:'no', ao_sin:'40', ao_tub:'51'
     };
     const puestos = [], faltantes = [];
     Object.keys(F).forEach((k) => {
@@ -8598,14 +8600,14 @@ caso('TC-171', 'Los clasificadores de CC dan lo MISMO leyendo el form o un estud
        es source-aware, que era lo que lo tenia afuera. */
     const dap = par(dapConclusion), vap = par(vapConclusion);
     const coa = par(coaConclusion), fop = par(fopConclusion), tga = par(tgaConclusion);
-    const ebs = par(ebsConclusion), mca = par(mcaConclusion);
+    const ebs = par(ebsConclusion), mca = par(mcaConclusion), vab = par(vabConclusion);
     /* Denominador: si las dos rutas devuelven null el caso pasaria trivialmente, que es medir
        sobre vacio. Se exige que la ruta DOM haya concluido ALGO en las siete. */
-    const concluyen = [dap.dom, vap.dom, coa.dom, fop.dom, tga.dom, ebs.dom, mca.dom].filter((x) => x !== 'null' && x !== null).length;
+    const concluyen = [dap.dom, vap.dom, coa.dom, fop.dom, tga.dom, ebs.dom, mca.dom, vab.dom].filter((x) => x !== 'null' && x !== null).length;
     return { extra: [
       ['los ids del formulario existen',            faltantes.length === 0, faltantes.join(',')],
       ['la casilla de la coartacion existe',        casilla === 'ok', casilla],
-      ['las siete cascadas concluyen algo',        concluyen === 7, concluyen + ' de 7'],
+      ['las ocho cascadas concluyen algo',         concluyen === 8, concluyen + ' de 8'],
       ['ductus: la misma conclusion por las dos rutas',    dap.dom === dap.src, 'dom=' + dap.dom.slice(0,70) + ' src=' + dap.src.slice(0,70)],
       /* EL aserto que de verdad prueba que el ductus lee el estudio. Los dos de arriba son
          vacuos por construccion: el formulario y campos tienen los MISMOS datos, asi que una
@@ -8632,6 +8634,35 @@ caso('TC-171', 'Los clasificadores de CC dan lo MISMO leyendo el form o un estud
       ['TGA: la misma conclusion por las dos rutas',      tga.dom === tga.src, 'dom=' + tga.dom.slice(0,70) + ' src=' + tga.src.slice(0,70)],
       ['Ebstein: la misma conclusion por las dos rutas',  ebs.dom === ebs.src, 'dom=' + ebs.dom.slice(0,70) + ' src=' + ebs.src.slice(0,70)],
       ['MCA: la misma conclusion por las dos rutas',      mca.dom === mca.src, 'dom=' + mca.dom.slice(0,70) + ' src=' + mca.src.slice(0,70)],
+      ['VAB: la misma conclusion por las dos rutas',      vab.dom === vab.src, 'dom=' + vab.dom.slice(0,70) + ' src=' + vab.src.slice(0,70)],
+      /* VAB, aserto NO vacuo 1 de 2: el DIAMETRO. El formulario tiene ao_tub 51; el objeto de
+         chico trae 42. Sin la propagacion de src las dos ramas leerian el 51 del DOM. */
+      ['el diametro aortico del estudio cambia la rama de VAB',
+        (function () {
+          const base = { vab_tipo:'fused_rl', vab_fenotipo:'tubular', vab_riesgo_qx:'no_eval' };
+          const grande = vabConclusion(Object.assign({}, base, { ao_tub:'56' }));
+          const chico  = vabConclusion(Object.assign({}, base, { ao_tub:'42' }));
+          return grande && chico && grande.clave === 'cx_55' && chico.clave === 'dilatacion_leve';
+        })(),
+        'grande=' + J((vabConclusion({ vab_tipo:'fused_rl', vab_fenotipo:'tubular', vab_riesgo_qx:'no_eval', ao_tub:'56' }) || {}).clave) +
+        ' chico=' + J((vabConclusion({ vab_tipo:'fused_rl', vab_fenotipo:'tubular', vab_riesgo_qx:'no_eval', ao_tub:'42' }) || {}).clave)],
+      /* VAB, aserto NO vacuo 2 de 2, y el que prueba la cadena LARGA: vabConclusion ->
+         vabFactores -> coaConclusion. La coartacion es un FACTOR DE RIESGO que baja el umbral
+         quirurgico de 52 a 50 mm. Con 51 mm y riesgo bajo, un estudio CON coartacion concluida
+         cae en cx_50_fr y uno SIN ella en vigilancia_50. Si coaConclusion() se llamara sin src
+         -el defecto coaGmax()/coaNV()- el factor saldria del formulario, que en este caso tiene
+         la coartacion cargada, y los dos darian cx_50_fr. */
+      ['la coartacion del estudio baja el umbral quirurgico de VAB',
+        (function () {
+          const base = { vab_tipo:'fused_rl', vab_fenotipo:'tubular', vab_riesgo_qx:'si', ao_tub:'51' };
+          const conCoa = vabConclusion(Object.assign({}, base,
+            { coa_situacion:'nativa', coa_vmax:'3.6', coa_istmo:'7', coa_ao_desc:'18', coa_hta:'si', coa_gradiente_picopico:'28' }));
+          const sinCoa = vabConclusion(base);
+          return conCoa && sinCoa && conCoa.clave === 'cx_50_fr' && sinCoa.clave === 'vigilancia_50';
+        })(),
+        'conCoa=' + J((vabConclusion({ vab_tipo:'fused_rl', vab_fenotipo:'tubular', vab_riesgo_qx:'si', ao_tub:'51',
+            coa_situacion:'nativa', coa_vmax:'3.6', coa_istmo:'7', coa_ao_desc:'18', coa_hta:'si', coa_gradiente_picopico:'28' }) || {}).clave) +
+        ' sinCoa=' + J((vabConclusion({ vab_tipo:'fused_rl', vab_fenotipo:'tubular', vab_riesgo_qx:'si', ao_tub:'51' }) || {}).clave)],
       /* MCA, aserto NO vacuo 1 de 2: el criterio ESTRUCTURAL. El formulario tiene
          mca_tsvd_plax 34 y aqui_disc -criterio mayor, 2 puntos-. El objeto de sinE no trae
          ninguno de los dos, asi que sin la propagacion de src por mcaCatI() el puntaje leeria
@@ -8759,7 +8790,10 @@ caso('TC-172', 'El encuadre orientativo sale en el PDF, una vez por tabla de con
               ebs_area_ad:'32', ebs_area_vd_atrial:'15', ebs_area_vd_func:'17',
               ebs_area_ai:'21', ebs_area_vi:'25' }),
       mk(9, { fevi:'44', tapse:'15', mca_fenotipo:'derecho', mca_mov_regional:'aqui_disc',
-              mca_tsvd_plax:'35', mca_fac:'28', mca_ii_may:'si' })
+              mca_tsvd_plax:'35', mca_fac:'28', mca_ii_may:'si' }),
+      mk(10, { fevi:'58', tapse:'20', vab_tipo:'fused_rl', vab_fenotipo:'tubular',
+               vab_funcion:'estenosis', vab_rafe:'si', vab_riesgo_qx:'si', vab_cx_valvular:'no',
+               ao_sin:'41', ao_tub:'53' })
     ];
     const origGet = window.getInformes;
     window.getInformes = function(){ return datos; };
@@ -8803,11 +8837,11 @@ caso('TC-172', 'El encuadre orientativo sale en el PDF, una vez por tabla de con
       ['el PDF tiene paginas: hay denominador', paginas > 0, 'paginas=' + paginas],
       ['sale la seccion de conductas de la CIA', txt.indexOf('Cierre percutaneo') > -1, ''],
       ['sale la seccion de conductas de la CIV', txt.indexOf('Cierre indicado') > -1, ''],
-      /* OCHO sobre NUEVE fichas: la MCA lleva encuadre propio porque su tabla es diagnostica.
+      /* NUEVE sobre DIEZ fichas: la MCA lleva encuadre propio porque su tabla es diagnostica.
          El numero es la compuerta: si una ficha nueva entra a CC_ORDEN sin encuadre, si una lo
          pierde, o si a la MCA le ponen el generico, esto cae. */
-      ['el encuadre aparece una vez por tabla', cuenta(abre) === 8, cuenta(abre) + ' veces'],
-      ['la frase entra completa, no truncada', cuenta(cierra) === 8, cuenta(cierra) + ' veces'],
+      ['el encuadre aparece una vez por tabla', cuenta(abre) === 9, cuenta(abre) + ' veces'],
+      ['la frase entra completa, no truncada', cuenta(cierra) === 9, cuenta(cierra) + ' veces'],
       ['sale la seccion del ductus', txt.indexOf('Ductus arterioso permeable') > -1, ''],
       ['sale la seccion de la coartacion', txt.indexOf('Coartacion de aorta') > -1, ''],
       ['sale la seccion de la ventana aortopulmonar', txt.indexOf('Ventana aortopulmonar') > -1, ''],
@@ -8815,6 +8849,15 @@ caso('TC-172', 'El encuadre orientativo sale en el PDF, una vez por tabla de con
       ['sale la seccion de la transposicion', txt.indexOf('Transposicion de grandes arterias') > -1, ''],
       ['sale la seccion de Ebstein', txt.indexOf('Anomalia de Ebstein') > -1, ''],
       ['sale la seccion de la MCA', txt.indexOf('Miocardiopatia arritmogenica') > -1, ''],
+      ['sale la seccion de la VAB', txt.indexOf('Valvula aortica bicuspide') > -1, ''],
+      /* Los rotulos de VAB llevan el DIAMETRO que dispara cada umbral: cinco criterios distintos
+         bajo un solo rotulo "cirugia" son indistinguibles en el papel firmado. */
+      ['los umbrales de VAB salen con su diametro',
+        txt.indexOf('Cirugia - 55 mm o mas') > -1 && txt.indexOf('Cirugia - raiz >= 50 mm') > -1, ''],
+      /* Alcanzar el diametro NO es alcanzar la indicacion: el riesgo quirurgico tiene que
+         constar como bajo, y por eso existen las dos filas de abajo. */
+      ['VAB separa el umbral de la indicacion',
+        txt.indexOf('Umbral sin riesgo evaluado') > -1 && txt.indexOf('Riesgo quirurgico no bajo') > -1, ''],
       /* LA CONDICION CLINICA DE ESTA TANDA. La MCA publica la banda DIAGNOSTICA del Task Force
          2010, no una conducta. Si la tabla sale bajo el rotulo de siempre, el PDF firmado
          convierte un diagnostico en una indicacion terapeutica. */

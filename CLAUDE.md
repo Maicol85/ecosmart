@@ -4239,6 +4239,46 @@ alta, porque los casos se escribieron eligiendo los cortes, no los campos.
    taquicardia ventricular, historia clínica, frases rápidas, segmentos del ETE, pre-TAVI,
    panel de indicaciones (`_IG_SECTIONS`), DICOM e imágenes en IndexedDB.
 
+## VAB: la cadena larga, y un factor de riesgo que venía del paciente equivocado
+
+Décima ficha. `vabConclusion(src)` → `vabFactores(src)` → `coaConclusion(src)`: **tres niveles**,
+y el del medio es el que hace interesante el caso.
+
+### La coartación no es un campo de VAB: es la conclusión de otra sección
+`vabFactores` deriva «coartación de aorta documentada» de `coaConclusion()`, no de un desplegable
+propio — decisión ya documentada y correcta, porque preguntar dos veces el mismo hecho es cómo el
+informe se contradice consigo mismo. Pero esa llamada **leía el DOM**. Y la coartación es un
+factor de riesgo que **baja el umbral quirúrgico de la aorta de 52 a 50 mm**.
+
+O sea: un estudio guardado de 51 mm, sin coartación, corriendo en el Laboratorio mientras otro
+paciente con coartación estaba cargado en pantalla, salía con **cirugía indicada**. No un número
+distinto — una indicación quirúrgica que ese paciente no tiene.
+
+Medido, no supuesto. Mutante con `coaConclusion()` sin `src`:
+`conCoa="cx_50_fr" sinCoa="cx_50_fr"`. Con el arreglo: `cx_50_fr` / `vigilancia_50`.
+
+### Dos asertos, dos profundidades
+- **Diámetro** (prueba la sombra): formulario con `ao_tub:'51'`, objetos con 56 y 42 → `cx_55` vs
+  `dilatacion_leve`. Mutante que revierte la sombra: los dos dan `contradiccion`.
+- **Coartación** (prueba la cadena de tres): el único que baja hasta `coaConclusion`.
+
+El primero pasa con la cadena rota. Por eso hacen falta los dos.
+
+### El barrido tuvo un falso positivo y hubo que arreglarlo
+El detector de la tanda anterior marcó cuatro problemas —`coaGmax()`/`coaNV()` sin `src` en
+`vabFactores` y en `ebsConclusion`— y **los cuatro eran texto dentro de mis propios comentarios**,
+que mencionan esos nombres al explicar el defecto. El detector salteaba líneas que *empiezan* con
+`/*`, no las continuaciones de un bloque. Se reescribió con un despojador real de comentarios y
+literales de cadena; recién ahí dio limpio. Un detector con falsos positivos se empieza a ignorar,
+y entonces deja de servir para los verdaderos.
+
+### Rótulos con el número adentro
+Los cinco umbrales de la ESC 2024 son criterios **distintos** —55, raíz ≥50, 52 con riesgo bajo,
+50 con factores, 45 con cirugía concomitante— y bajo un solo rótulo «Cirugía» quedan
+indistinguibles en el papel firmado. Cada fila lleva su diámetro. Y existen `umbral_sin_riesgo` y
+`riesgo_no_bajo` porque **alcanzar el diámetro no es alcanzar la indicación**: el riesgo
+quirúrgico tiene que constar como bajo. TC-172 fija las dos cosas.
+
 ## MCA: una tabla que NO son conductas, y el estado de módulo que no es un campo
 
 Novena ficha, y la que obligó a cambiar el motor. Dos cosas la separan de las ocho anteriores.

@@ -29990,9 +29990,9 @@ const VAB_FENO_TXT = { sin:'sin dilatación', raiz:'de raíz', tubular:'tubular 
    tiene —edad, talla y la propia sección de coartación de esta misma pestaña— y seis se
    preguntan. Cada uno devuelve `true` sólo con evidencia AFIRMATIVA: un factor «no evaluado»
    no cuenta, ni a favor ni en contra, y eso se dice en la conclusión. */
-function vabFactores(){
-  const sv2 = id => (document.getElementById(id)?.value || '').trim();
-  const nv  = id => { const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; };
+function vabFactores(src){
+  const sv2 = id => _ccSv(id, src);
+  const nv  = id => _ccNv(id, src);
   const edad = nv('edad'), talla = nv('talla');
   const presentes = [], sinEvaluar = [];
   const anota = (cond, txt, evaluado) => {
@@ -30019,7 +30019,11 @@ function vabFactores(){
      afirmaba «coartación documentada en este estudio», que es justo lo que `coaConclusion` se
      niega a decir sin gradiente. Ahora manda la conclusión de esa sección: si ella no concluye,
      acá no cuenta, y se anota como pendiente en vez de desaparecer. */
-  const coaC = (typeof coaConclusion === 'function') ? coaConclusion() : null;
+  /* CON src: la coartacion es un FACTOR DE RIESGO que mueve el umbral quirurgico de la aorta, y
+     si esta llamada siguiera leyendo el DOM el factor saldria del paciente cargado en pantalla.
+     Es el mismo defecto de coaGmax()/coaNV(), pero peor: aca no cambia un numero sino que suma
+     un factor que puede llevar el informe de «vigilancia» a «cirugia a considerar». */
+  const coaC = (typeof coaConclusion === 'function') ? coaConclusion(src) : null;
   const coaConcluye = !!(coaC && coaC.clave !== 'incompleto' && coaC.clave !== 'no_interpretable');
   const coaTocada = !!(sv2('coa_loc') || sv2('coa_situacion'));
   if (coaConcluye) presentes.push('coartación de aorta documentada en este estudio');
@@ -30378,9 +30382,9 @@ function fontanSync() {
 }
 window.fontanSync = fontanSync;
 
-function vabConclusion(){
-  const sv2 = id => (document.getElementById(id)?.value || '').trim();
-  const nv  = id => { const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; };
+function vabConclusion(src){
+  const sv2 = id => _ccSv(id, src);
+  const nv  = id => _ccNv(id, src);
   const fuera = [];
   const banda = (n, lo, hi, lbl) => { if (n==null) return null; if (n>=lo && n<=hi) return n; if(lbl) fuera.push(lbl); return null; };
   const tipo = sv2('vab_tipo'), func = sv2('vab_funcion'), feno = sv2('vab_fenotipo');
@@ -30413,7 +30417,7 @@ function vabConclusion(){
     txt:'La morfología aórtica registrada en Válvulas es «' + morf + '» y esta sección describe una válvula bicúspide — resolver la discrepancia antes de firmar' };
 
   const maxAo = (raiz != null && asc != null) ? Math.max(raiz, asc) : (raiz != null ? raiz : asc);
-  const fr = vabFactores();
+  const fr = vabFactores(src);
   /* Sin el tipo de fusión: el párrafo del informe ya encabeza con él y el panel lo muestra en su
      propio campo, así que repetirlo daba «…tipo 1 con fusión derecha-izquierda. Rafe calcificado.
      […] Válvula aórtica bicúspide tipo 1 con fusión derecha-izquierda con fenotipo de raíz…».
@@ -53118,6 +53122,35 @@ const EBS_CONDUCTAS = [
   { k:'no_interpretable',       lbl:'No interpretable',           crit:'Algun valor fuera de rango: revisar unidades antes de concluir' },
   { k:'nc',                     lbl:'No clasificable',            crit:'El clasificador no devolvio una conclusion para este estudio' }
 ];
+/* ── VAB · valvula aortica bicuspide ──
+   El orden es el de la cascada, y arranca con CONTRADICCION: si la morfologia registrada en
+   Valvulas -`va_morf`, la fuente canonica- dice otra cosa que esta seccion, no se elige una en
+   silencio. Las filas de umbral llevan el diametro que las dispara porque es lo que las separa:
+   55, 50 con fenotipo de raiz, 52 con riesgo bajo, 50 con factores, y 45 si hay cirugia valvular
+   concomitante. Un rotulo sin el numero convierte cinco criterios distintos en "cirugia". */
+const VAB_CONDUCTAS = [
+  { k:'contradiccion',     lbl:'Discrepancia con Valvulas',   crit:'La morfologia aortica de la tab Valvulas no coincide con esta seccion - resolver antes de firmar' },
+  { k:'cx_55',             lbl:'Cirugia - 55 mm o mas',       crit:'Diametro aortico maximo >= 55 mm, con independencia del fenotipo y del riesgo (ESC 2024)' },
+  { k:'cx_raiz_50',        lbl:'Cirugia - raiz >= 50 mm',     crit:'Fenotipo de raiz con diametro >= 50 mm (ESC 2024)' },
+  { k:'cx_52',             lbl:'Cirugia - 52 mm riesgo bajo', crit:'Aorta ascendente > 52 mm en paciente de riesgo quirurgico bajo (ESC 2024)' },
+  { k:'cx_50_fr',          lbl:'Cirugia - 50 mm con factores', crit:'>= 50 mm con al menos un factor de riesgo y riesgo quirurgico bajo (ESC 2024)' },
+  { k:'concomitante_45',   lbl:'Cirugia concomitante - 45 mm', crit:'>= 45 mm con cirugia valvular aortica prevista: reemplazo de la aorta en el mismo acto (ESC 2024)' },
+  { k:'vigilancia_50',     lbl:'Vigilancia estrecha - 50 mm', crit:'>= 50 mm sin factores o sin riesgo bajo confirmado - control por imagen' },
+  { k:'vigilancia_45',     lbl:'Vigilancia - 45 a 49 mm',     crit:'Dilatacion moderada - control por imagen' },
+  { k:'dilatacion_leve',   lbl:'Dilatacion leve - 40 a 44 mm', crit:'Control periodico' },
+  { k:'sin_dilatacion',    lbl:'Sin dilatacion',              crit:'Diametro aortico por debajo de 40 mm' },
+  { k:'riesgo_no_bajo',    lbl:'Riesgo quirurgico no bajo',   crit:'Alcanza el umbral pero el riesgo quirurgico NO es bajo - decision en equipo' },
+  { k:'umbral_sin_riesgo', lbl:'Umbral sin riesgo evaluado',  crit:'Alcanza el umbral pero no consta el riesgo quirurgico, del que depende la indicacion' },
+  { k:'feno_discrepante',  lbl:'Fenotipo discrepante',        crit:'El fenotipo declarado no coincide con los diametros medidos - revisar' },
+  { k:'feno_sin_declarar', lbl:'Fenotipo sin declarar',       crit:'Raiz entre 50 y 54 mm sin fenotipo consignado, que es lo que decide el umbral' },
+  { k:'sin_aorta',         lbl:'Sin diametros aorticos',      crit:'No hay raiz ni aorta ascendente medidas - completar' },
+  { k:'no_interpretable',  lbl:'No interpretable',            crit:'Algun valor fuera de rango: revisar unidades antes de concluir' },
+  { k:'nc',                lbl:'No clasificable',             crit:'El clasificador no devolvio una conclusion para este estudio' }
+];
+const VAB_TIPOS_LBL = { fused_rl:'Fusion derecha-izquierda', fused_rn:'Fusion derecha-no coronaria',
+                        fused_ln:'Fusion izquierda-no coronaria', dos_senos_ll:'2 senos latero-lateral',
+                        dos_senos_ap:'2 senos antero-posterior', partial:'Partial (forme fruste)',
+                        no_clasif:'No clasificable' };
 /* ── MCA · miocardiopatia arritmogenica ──
    ESTO NO SON CONDUCTAS: son las BANDAS DIAGNOSTICAS del Task Force 2010, y la ficha las rotula
    como tales en las dos superficies. La app no publica conducta para la MCA —no hay una rama que
@@ -53282,7 +53315,25 @@ const CC_FICHAS = Object.assign(Object.create(null), {
     encuadrePpt:'Clasificación diagnóstica, no una conducta terapéutica.',
     piePpt:'Criterios Task Force 2010 — la banda es parcial: el eco no aporta histología, ECG ni genética.',
     /* SIN comillas invertidas: este texto se IMPRIME en el PDF y saldrian literales. */
-    pie:'La banda sale del mismo puntaje que firma el informe individual, con la regla operativa de UN criterio por categoria -el de mayor jerarquia-: sumar todas las filas marcadas sobrediagnostica. El criterio estructural usa el TSVD paraesternal propio de la seccion y no el del Qp/Qs, porque se miden en otro nivel y con otra convencion. Un valor fuera de rango invalida la categoria entera y cae en no interpretable, no se ignora para seguir puntuando.' }
+    pie:'La banda sale del mismo puntaje que firma el informe individual, con la regla operativa de UN criterio por categoria -el de mayor jerarquia-: sumar todas las filas marcadas sobrediagnostica. El criterio estructural usa el TSVD paraesternal propio de la seccion y no el del Qp/Qs, porque se miden en otro nivel y con otra convencion. Un valor fuera de rango invalida la categoria entera y cae en no interpretable, no se ignora para seguir puntuando.' },
+  vab: { tit:'Valvula aortica bicuspide (VAB)', titAcc:'Válvula aórtica bicúspide (VAB)',
+    tipoCampo:'vab_tipo', tipos:VAB_TIPOS_LBL, tipoTit:'Distribucion por tipo de fusion',
+    /* El "tamano" es el MAXIMO de raiz y ascendente, que es la variable que decide el umbral.
+       No hay un campo unico con ese valor -- son dos segmentos aorticos-- asi que se deriva, con
+       la MISMA banda de plausibilidad (10-90 mm) que aplica el clasificador: fuera de banda es
+       null y no un numero que arrastra el promedio. */
+    tamCampo:'ao_tub', tamLbl:'Aorta ascendente',
+    metricas:[ { k:'maxao', lbl:'Diametro aortico maximo', get:i => {
+                   const b = (x) => (x !== null && x >= 10 && x <= 90) ? x : null;
+                   const r = b(_labNum(i, 'ao_sin')), a = b(_labNum(i, 'ao_tub'));
+                   if (r === null && a === null) return null;
+                   return (r !== null && a !== null) ? Math.max(r, a) : (r !== null ? r : a); }, dec:1, suf:' mm' },
+               { k:'raiz', lbl:'Raiz aortica promedio', get:i => { const x = _labNum(i, 'ao_sin'); return (x !== null && x >= 10 && x <= 90) ? x : null; }, dec:1, suf:' mm' } ],
+    props:[ { k:'fr', lbl:'Con al menos un factor de riesgo', get:i => { const r = _labEstado(vabFactores, i); return r ? r.n > 0 : null; } },
+            { k:'cx', lbl:'Con cirugia valvular prevista', get:i => { const x = _labCampoRaw(i, 'vab_cx_valvular');
+                return x === 'si' ? true : (x === 'no' ? false : null); } } ],
+    conductas:VAB_CONDUCTAS, clasif:_claveDe(vabConclusion), soloShuntUnico:false,
+    pie:'El umbral quirurgico de la ESC 2024 no sale del diametro solo: depende del FENOTIPO (la raiz opera a 50 donde la ascendente espera a 55), del RIESGO QUIRURGICO -que tiene que constar como bajo- y de los factores de riesgo, uno de los cuales es la coartacion, que se deriva de la conclusion de su propia seccion y no de un campo aparte. Por eso hay filas de "umbral sin riesgo evaluado" y "riesgo no bajo": alcanzar el diametro no es alcanzar la indicacion. La morfologia se lee de la tab Valvulas, que es la fuente canonica, y si discrepa con esta seccion se declara en vez de elegir una.' }
 });
 
 /* El ORDEN de las secciones, en un solo lugar. `Object.keys(CC_FICHAS)` daría el mismo resultado
@@ -53291,7 +53342,7 @@ const CC_FICHAS = Object.assign(Object.create(null), {
    y leído por las DOS superficies: con una copia por superficie, agregar una CC y olvidarse de
    una lista produce una sección que está en el PDF y no en el PPT, que es exactamente lo que la
    regla «PDF >= PPT» prohíbe y lo que nadie ve hasta que falta. */
-const CC_ORDEN = ['cia', 'civ', 'dap', 'vap', 'coa', 'fop', 'ebs', 'tga', 'mca'];
+const CC_ORDEN = ['cia', 'civ', 'dap', 'vap', 'coa', 'fop', 'vab', 'ebs', 'tga', 'mca'];
 /* Assert de arranque: toda clave del orden tiene ficha, y toda ficha está en el orden. Sin esto,
    una ficha nueva sin su entrada acá no da error — da una sección que simplemente no se imprime,
    y el modo de falla es el silencio. */
@@ -58992,8 +59043,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260919-0750';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789815032210;                 /* eco-build-ms */
+const ECO_BUILD    = '20260919-1010';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789823448367;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -59079,7 +59130,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-0750</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-1010</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
