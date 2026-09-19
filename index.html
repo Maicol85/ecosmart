@@ -11808,6 +11808,11 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
                 onclick="dcmImgPick()">🩻 Importar DICOM</button>
       </div>
       <div id="img-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"></div>
+      <!-- Los cineloops van en su PROPIA tira y no adentro de la grilla. Dos razones: la grilla
+           la reconstruye imgRender() en cada redibujo —que este trabajo no toca— y, sobre todo,
+           un slot es «lo que sale en el PDF». El cineloop NO sale; sale el cuadro que se captura.
+           Mezclarlos rompería el único significado que hoy tienen los slots. -->
+      <div id="cine-strip" style="margin-top:14px;"></div>
       <input type="file" id="img-file-input" accept="image/jpeg,image/png,image/webp,image/*" style="display:none" onchange="imgFileChosen(event)">
       <!-- SIN `accept`, a propósito. El GE Vivid escribe los archivos del pendrive SIN NINGUNA
            extensión (GEMS_IMG/…/Q9JGCGT0), así que `accept=".dcm"` los mostraba en gris y no se
@@ -45289,7 +45294,21 @@ async function dcmImgImportar(fileList) {
   }
   /* El reproductor se abre AL FINAL, después de los avisos: si abriera antes, el alert de
      los rechazos quedaría tapado por el modal y el médico no se enteraría de lo que no entró. */
-  if (loops.length) _cineAbrir(loops);
+  if (loops.length) {
+    _cineAbrir(loops);
+    /* Guardado automático SÓLO si las dos condiciones ya se cumplen. Si no, no se intenta y
+       no se miente: el botón del reproductor queda para cuando se cumplan, y dice cuál
+       falta. Guardar «por las dudas» con el toggle apagado sería escribir en disco
+       justamente lo que ese toggle promete que no se escribe. */
+    if (_cinePuedeGuardar().ok) {
+      for (let k = 0; k < loops.length; k++) {
+        _cineDatos.i = k;
+        await cineGuardarActual();
+      }
+      _cineDatos.i = 0;
+      _cineCargarLoop();
+    }
+  }
 }
 window.dcmImgImportar = dcmImgImportar;
 
@@ -45355,12 +45374,18 @@ function _cineAbrir(loops) {
             '<button type="button" class="btn btn-ghost" id="cine-prev" style="padding:5px 12px;">‹ Anterior</button>' +
             '<button type="button" class="btn btn-ghost" id="cine-next" style="padding:5px 12px;">Siguiente ›</button></div>' +
           '<div style="display:flex;gap:8px;">' +
+            /* ÚNICO agregado al reproductor de ad8d48d, y es aditivo: sin un disparador no hay
+               forma de guardar un cineloop cuyas condiciones no se cumplían al importarlo
+               —toggle apagado, o estudio todavía sin guardar—, y obligar a reimportar el
+               archivo del pendrive para eso sería exactamente lo que esta tarea viene a evitar. */
+            '<button type="button" class="btn btn-ghost" id="cine-guardar" style="padding:5px 12px;">💾 Guardar en el estudio</button>' +
             '<button type="button" class="btn btn-primary" id="cine-cap" style="padding:5px 14px;">📸 Capturar cuadro</button>' +
             '<button type="button" class="btn btn-ghost" id="cine-cerrar" style="padding:5px 12px;">Cerrar</button></div>' +
         '</div>' +
       '</div>';
     document.body.appendChild(ov);
     ov.querySelector('#cine-play').onclick   = cineToggle;
+    ov.querySelector('#cine-guardar').onclick = cineGuardarActual;
     ov.querySelector('#cine-cap').onclick    = cineCapturar;
     ov.querySelector('#cine-cerrar').onclick = cineCerrar;
     ov.querySelector('#cine-prev').onclick   = () => cineLoop(-1);
@@ -45467,6 +45492,353 @@ function cineCerrar() {
 }
 window.cineToggle = cineToggle; window.cineCapturar = cineCapturar;
 window.cineCerrar = cineCerrar; window.cineIr = cineIr; window.cineLoop = cineLoop;
+
+/* ══════════════════════════════════════════════════════════════════════════════════════
+   PERSISTENCIA DEL CINELOOP
+   ══════════════════════════════════════════════════════════════════════════════════════
+
+   LO QUE SE GUARDA NO ES EL .dcm. Se guardan los CUADROS JPEG y cuatro números —cantidad,
+   velocidad, ancho y alto—, y se tira la cabecera DICOM. No es una optimización: medido
+   sobre el pendrive, esos archivos traen `PatientName`, `PatientID` e `InstitutionName` EN
+   CLARO en la cabecera, y `BurnedInAnnotation` = YES en 41 de 60. Hoy los slots guardan un
+   JPEG reencodeado por canvas, o sea SIN cabecera: guardar el archivo crudo pondría el
+   nombre y la cédula en texto plano dentro de IndexedDB por primera vez en esta app, y eso
+   choca de frente con la regla de no guardar datos clínicos sensibles sin cifrar.
+   Los cuadros son ~99 % del archivo, así que no se pierde nada del reproductor.
+   El nombre DIBUJADO en los píxeles queda — eso no se puede quitar, y es exactamente la
+   misma exposición que ya tienen las imágenes fijas guardadas.
+
+   BASE APARTE, no un store nuevo en `ceibomed_img`. Agregar un object store ahí obliga a
+   subir DB_VER y a tocar `CeiboImg`, que está fuera del alcance: un `onupgradeneeded` mal
+   resuelto se lleva puestas las imágenes de todos los estudios.
+
+   UN REGISTRO POR CINELOOP, con índice por estudio. Con un registro por estudio, abrir un
+   loop cargaría TODOS los del estudio a memoria —50 MB para mirar 4—. */
+const CeiboCine = (function () {
+  const DB_NAME = 'ceibomed_cine', DB_VER = 1, STORE = 'cineloops';
+  let _intento = null;
+  function _abrir() {
+    if (_intento) return _intento;
+    _intento = new Promise(resolve => {
+      let listo = false;
+      const fin = v => { if (!listo) { listo = true; resolve(v); } };
+      let req;
+      try {
+        if (!window.indexedDB) return fin(null);
+        req = indexedDB.open(DB_NAME, DB_VER);
+      } catch (e) { return fin(null); }
+      req.onupgradeneeded = ev => {
+        const db = ev.target.result;
+        if (!db.objectStoreNames.contains(STORE)) {
+          const os = db.createObjectStore(STORE, { keyPath: 'id' });
+          os.createIndex('uuid', 'uuid', { unique: false });
+        }
+      };
+      req.onsuccess = () => fin(req.result);
+      req.onerror = () => fin(null);
+      req.onblocked = () => fin(null);
+      setTimeout(() => fin(null), 3000);
+    });
+    return _intento;
+  }
+  /* `_tx` devuelve el ERROR además del resultado. `CeiboImg._tx` resuelve en null y basta,
+     porque una imagen que no entra es una imagen; acá el fallo típico es QuotaExceededError
+     sobre 15 MB y el médico tiene que saber que fue por espacio y no por otra cosa. */
+  function _tx(modo, fn) {
+    return _abrir().then(db => new Promise(resolve => {
+      if (!db) return resolve({ ok:false, err:'no se pudo abrir el almacenamiento del navegador' });
+      let tx;
+      try { tx = db.transaction(STORE, modo); } catch (e) { return resolve({ ok:false, err:String(e && e.message || e) }); }
+      let out = null;
+      try { fn(tx.objectStore(STORE), v => { out = v; }); }
+      catch (e) { return resolve({ ok:false, err:String(e && e.message || e) }); }
+      tx.oncomplete = () => resolve({ ok:true, val:out });
+      tx.onerror = () => resolve({ ok:false, err:(tx.error && tx.error.name) || 'error de escritura' });
+      tx.onabort = () => resolve({ ok:false, err:(tx.error && tx.error.name) || 'transacción abortada' });
+    }));
+  }
+  return {
+    disponible: () => _abrir().then(db => !!db),
+    guardar(rec) { return _tx('readwrite', (os, ok) => { os.put(rec); ok(true); }); },
+    listar(uuid) {
+      if (!_uuidValido(uuid)) return Promise.resolve([]);
+      return _tx('readonly', (os, ok) => {
+        const q = os.index('uuid').getAll(uuid);
+        q.onsuccess = () => ok(q.result || []);
+      }).then(r => (r.ok && r.val) ? r.val : []);
+    },
+    leer(id) {
+      return _tx('readonly', (os, ok) => { const q = os.get(id); q.onsuccess = () => ok(q.result || null); })
+        .then(r => (r.ok ? r.val : null));
+    },
+    borrar(id) { return _tx('readwrite', (os, ok) => { os.delete(id); ok(true); }).then(r => r.ok); },
+    /* Mismo contrato que `CeiboImg.recolectar`: se borra lo que ya no tiene estudio dueño.
+       Sin esto, eliminar un estudio dejaría sus cineloops ocupando disco para siempre — y
+       son de MB, no de KB. */
+    recolectar(uuidsVivos) {
+      const vivos = new Set((uuidsVivos || []).filter(_uuidValido));
+      return _tx('readwrite', (os, ok) => {
+        const q = os.getAll();
+        q.onsuccess = () => {
+          const muertos = (q.result || []).filter(r => !vivos.has(r.uuid));
+          muertos.forEach(r => os.delete(r.id));
+          ok(muertos.length);
+        };
+      }).then(r => (r.ok && r.val) || 0);
+    },
+    uso() {
+      return _tx('readonly', (os, ok) => {
+        const q = os.getAll();
+        q.onsuccess = () => ok({ n: (q.result || []).length,
+                                 bytes: (q.result || []).reduce((a, r) => a + (r.bytes || 0), 0) });
+      }).then(r => (r.ok && r.val) ? r.val : { n:0, bytes:0 });
+    }
+  };
+})();
+window.CeiboCine = CeiboCine;
+
+const CINE_AVISO_MB = 50;          // el umbral del pedido, por archivo
+
+/* El almacenamiento del navegador es «best-effort»: medido acá, `persisted` arranca en
+   false, y con el disco lleno el navegador puede desalojar el origen ENTERO sin avisar.
+   Se pide la promoción una vez; Chrome la concede sola según el uso del sitio. Lo que se
+   devuelve se dice tal cual: prometer permanencia sin tenerla es peor que no prometer. */
+let _cinePersistPedido = false;
+async function _cinePersistir() {
+  try {
+    if (!navigator.storage || !navigator.storage.persist) return null;
+    if (await navigator.storage.persisted()) return true;
+    if (_cinePersistPedido) return false;
+    _cinePersistPedido = true;
+    return await navigator.storage.persist();
+  } catch (e) { return null; }
+}
+
+const _cineMB = b => (b / 1048576).toFixed(b < 10485760 ? 1 : 0) + ' MB';
+
+/* Arma el registro a guardar: los cuadros concatenados en UN solo buffer más la tabla de
+   offsets. Guardar 172 objetos sueltos es más lento de leer y de escribir, y la tabla es
+   exactamente lo que el formato ya usaba adentro del .dcm. */
+function _cineRegistro(uuid, loop, poster) {
+  const frags = loop.d.frags;
+  let total = 0; frags.forEach(f => { total += f.length; });
+  const datos = new Uint8Array(total);
+  const offs = new Int32Array(frags.length);
+  let p = 0;
+  frags.forEach((f, i) => { offs[i] = p; datos.set(f, p); p += f.length; });
+  return {
+    id: (typeof _uuidNuevo === 'function' ? _uuidNuevo() : String(Date.now()) + Math.random()),
+    uuid, nombre: loop.nombre, cuadros: loop.cuadros,
+    ms: loop.d.msCuadro || 0, cols: loop.d.cols || 0, filas: loop.d.filas || 0,
+    poster: poster || '', datos, offs, bytes: total, ts: new Date().toISOString()
+  };
+}
+
+/* Reconstruye la forma que consume el reproductor. `_cineAbrir` no se toca: recibe lo mismo
+   que recibe desde un archivo recién importado. */
+function _cineDesdeRegistro(r) {
+  const frags = [];
+  for (let i = 0; i < r.offs.length; i++) {
+    const fin = (i + 1 < r.offs.length) ? r.offs[i + 1] : r.datos.length;
+    frags.push(r.datos.subarray(r.offs[i], fin));
+  }
+  return { nombre: r.nombre, cuadros: r.cuadros,
+           d: { frags, cols: r.cols, filas: r.filas, msCuadro: r.ms, fabricante:'', modelo:'' } };
+}
+
+/* Las DOS condiciones para que guardar signifique algo, explicadas por separado: el toggle
+   («Guardar imágenes con los estudios», apagado por defecto) y que el estudio tenga uuid,
+   que sólo aparece al guardarlo. Sin distinguirlas, el médico ve «no se guardó» y no sabe
+   cuál de las dos le falta. */
+function _cinePuedeGuardar() {
+  if (!imgGuardadoActivo())
+    return { ok:false, motivo:'Activá «Guardar imágenes con los estudios» en ⚙️ Config. Está apagado, así que nada se escribe en este dispositivo.' };
+  if (!_uuidValido(_imgUuidActual))
+    return { ok:false, motivo:'Guardá el estudio primero: el cineloop se guarda asociado a un estudio, y este todavía no tiene uno.' };
+  return { ok:true };
+}
+
+/* Guarda el cineloop que está abierto en el reproductor. */
+async function cineGuardarActual() {
+  const D = _cineDatos;
+  if (!D) { toast('⚠️ No hay ningún cineloop abierto'); return false; }
+  const loop = D.loops[D.i];
+  const puede = _cinePuedeGuardar();
+  if (!puede.ok) { alert('El cineloop no se puede guardar todavía.\n\n' + puede.motivo); return false; }
+
+  const bytes = loop.d.frags.reduce((a, f) => a + f.length, 0);
+  if (bytes > CINE_AVISO_MB * 1048576) {
+    if (!confirm('Este cineloop pesa ' + _cineMB(bytes) + ', más de ' + CINE_AVISO_MB + ' MB.\n\n' +
+                 'Se guarda en este dispositivo y ocupa ese espacio hasta que lo borres.\n\n¿Guardarlo igual?')) return false;
+  }
+  /* Se mira la cuota ANTES de escribir. Si no entra, el mensaje lo dice con los números; sin
+     esto el fallo llega como un QuotaExceededError seco y parece que la app se rompió. */
+  try {
+    const c = await CeiboImg.cuota();
+    if (c.total && (c.usado + bytes) > c.total * 0.95) {
+      alert('No hay espacio suficiente en este dispositivo.\n\n' +
+            'El cineloop pesa ' + _cineMB(bytes) + ' y el navegador tiene ' +
+            _cineMB(Math.max(0, c.total - c.usado)) + ' libres de ' + _cineMB(c.total) + '.\n\n' +
+            'Borrá cineloops o imágenes guardadas desde ⚙️ Config y volvé a intentar.');
+      return false;
+    }
+  } catch (e) {}
+
+  let poster = '';
+  try {
+    const url = await new Promise(r => { const fr = new FileReader();
+      fr.onload = () => r(fr.result); fr.onerror = () => r('');
+      fr.readAsDataURL(new Blob([loop.d.frags[0]], { type:'image/jpeg' })); });
+    if (url) poster = await _imgComprimir(url, 'mini');
+  } catch (e) { poster = ''; }
+
+  const rec = _cineRegistro(_imgUuidActual, loop, poster);
+  const r = await CeiboCine.guardar(rec);
+  if (!r.ok) {
+    const esCuota = /quota/i.test(r.err || '');
+    alert(esCuota
+      ? 'No se pudo guardar: el navegador se quedó sin espacio (' + _cineMB(bytes) + ' no entran).\n\n' +
+        'Borrá cineloops o imágenes guardadas desde ⚙️ Config y volvé a intentar.'
+      : 'No se pudo guardar el cineloop en este dispositivo.\n\nMotivo: ' + (r.err || 'desconocido'));
+    return false;
+  }
+  const perm = await _cinePersistir();
+  await cineStripRender();
+  toast('✅ Cineloop guardado (' + _cineMB(bytes) + ')' +
+        (perm === true ? ' · almacenamiento protegido' :
+         perm === false ? ' · el navegador puede borrarlo si falta espacio: el pendrive sigue siendo el respaldo' : ''));
+  return true;
+}
+window.cineGuardarActual = cineGuardarActual;
+
+async function cineAbrirGuardado(id) {
+  const r = await CeiboCine.leer(id);
+  if (!r) { toast('❌ No se pudo leer el cineloop guardado'); return; }
+  _cineAbrir([_cineDesdeRegistro(r)]);
+}
+window.cineAbrirGuardado = cineAbrirGuardado;
+
+async function cineBorrarGuardado(id) {
+  const r = await CeiboCine.leer(id);
+  if (!r) { toast('❌ No se encontró ese cineloop'); return; }
+  if (!confirm('¿Eliminar el cineloop de ' + r.cuadros + ' cuadros (' + _cineMB(r.bytes || 0) + ')?\n\n' +
+               'Se libera ese espacio en este dispositivo. Los cuadros que ya capturaste a las imágenes del estudio NO se tocan.')) return;
+  const ok = await CeiboCine.borrar(id);
+  await cineStripRender();
+  toast(ok ? '🗑️ Cineloop eliminado' : '❌ No se pudo eliminar');
+}
+window.cineBorrarGuardado = cineBorrarGuardado;
+
+/* Dibuja la tira. Todo lo que viene del archivo pasa por escHtml; el poster es un dataURL
+   producido por el canvas de la app, y aun así se valida con `_imgSrcOK` antes de usarlo. */
+async function cineStripRender() {
+  const cont = document.getElementById('cine-strip');
+  if (!cont || typeof CeiboCine === 'undefined') return;
+  const E = (typeof escHtml === 'function') ? escHtml : (s => String(s == null ? '' : s));
+  let recs = [];
+  try { recs = await CeiboCine.listar(_imgUuidActual); } catch (e) { recs = []; }
+  recs = recs.filter(r => r && _uuidValido(r.id));    // guarda de borde: ver la nota de `tarjeta`
+  if (!recs.length) { cont.innerHTML = ''; return; }
+  const total = recs.reduce((a, r) => a + (r.bytes || 0), 0);
+  /* El id va por `data-cine-id` y NO interpolado adentro de un `onclick`.
+     Escapar no alcanza ahí: el parser decodifica la entidad ANTES de compilar el handler, así
+     que `escHtml` no protege una interpolación dentro de un atributo de evento — es
+     exactamente el agujero que documenta la entrada de CardioSalud en CLAUDE.md y lo que
+     cazaron las reglas `ceibo-xss-inline-event-dynamic` al correr Semgrep sobre esto.
+     Hoy el id lo genera `_uuidNuevo()` y sería inofensivo, pero «es seguro por dónde viene»
+     es justo el argumento que se cae el día que el registro llegue de otro lado.
+     Además se filtra por `_uuidValido` en el borde: un registro con id raro no se dibuja. */
+  const tarjeta = r => {
+    const src = _imgSrcOK(r.poster) ? r.poster : '';
+    return '<div data-cine-id="' + E(r.id) + '" style="position:relative;border:1.5px solid var(--border);' +
+      'border-radius:10px;background:var(--bg2);overflow:hidden;width:150px;flex:0 0 auto;">' +
+      '<div class="cine-abrir" style="position:relative;cursor:pointer;" title="Abrir el reproductor">' +
+        (src ? '<img src="' + E(src) + '" loading="lazy" alt="Cineloop de ' + E(r.cuadros) + ' cuadros" style="width:100%;display:block;">'
+             : '<div style="height:96px;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:11px;">sin miniatura</div>') +
+        '<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px;' +
+        'text-shadow:0 1px 6px rgba(0,0,0,.8);pointer-events:none;">▶️</span></div>' +
+      '<div style="padding:5px 7px;font-size:10px;color:var(--text2);line-height:1.45;">' +
+        '<b>' + E(r.cuadros) + ' cuadros</b> · ' + E(_cineMB(r.bytes || 0)) + '<br>' +
+        E(r.nombre || '') + '</div>' +
+      '<button type="button" class="cine-borrar" title="Eliminar este cineloop" ' +
+        'style="position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:50%;border:none;' +
+        'background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1;">✕</button>' +
+      '</div>';
+  };
+  cont.innerHTML =
+    '<div style="font-size:12px;color:var(--text2);font-weight:600;margin-bottom:6px;">' +
+      '🎞️ Cineloops guardados en este estudio · ' + E(_cineMB(total)) + '</div>' +
+    '<div style="font-size:11px;color:var(--text2);margin-bottom:8px;line-height:1.5;">' +
+      'Se guardan en este dispositivo, asociados al estudio, y <b>no salen en el PDF</b>: lo que sale es el ' +
+      'cuadro que captures desde el reproductor. Tampoco viajan en el backup ni en el export. ' +
+      'Del archivo se guardan sólo los cuadros — el nombre y el documento que trae la cabecera DICOM se descartan.</div>' +
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;">' + recs.map(tarjeta).join('') + '</div>';
+  /* Los manejadores se ENGANCHAN acá, contra el `data-cine-id` de la tarjeta. Es el mismo
+     patrón que ya usa la app en `verEvolucionEl(this)`: ningún dato entra al HTML de un
+     atributo de evento. */
+  cont.querySelectorAll('[data-cine-id]').forEach(card => {
+    const id = card.getAttribute('data-cine-id');
+    const abrir = card.querySelector('.cine-abrir');
+    const borrar = card.querySelector('.cine-borrar');
+    if (abrir)  abrir.onclick  = () => cineAbrirGuardado(id);
+    if (borrar) borrar.onclick = () => cineBorrarGuardado(id);
+  });
+}
+window.cineStripRender = cineStripRender;
+
+/* Borra los cineloops cuyo estudio ya no existe. Mismas guardas que
+   `imgRecolectarHuerfanas`, y por la misma razón: si la lista de estudios no se pudo leer,
+   o si alguno está vivo pero sin uuid válido, NO se recolecta — ese estudio quedaría fuera
+   del conjunto de vivos y se le borrarían los cineloops a un estudio que existe.
+
+   Corre al entrar a la tab y no justo después de eliminar un estudio, porque engancharse ahí
+   exigiría modificar `eliminarInforme`, que está fuera de alcance. La consecuencia es que un
+   cineloop huérfano puede sobrevivir un rato ocupando MB; lo que NO puede pasar —y esto sí
+   está cubierto— es que se borre uno que todavía tiene dueño. */
+/* La DECISIÓN, separada de la acción y sin tocar nada: devuelve la lista de uuid vivos, o
+   **null** para «no recolectar». Está afuera porque es la parte que hay que poder probar sin
+   depender de cuántos estudios haya en el navegador en ese momento — la primera versión de
+   TC-184 asumía la lista vacía, pasaba con --solo y fallaba dentro del suite, donde los casos
+   anteriores ya habían guardado estudios.
+
+   LISTA VACÍA → null. «No hay estudios» y «no se pudo leer la lista» llegan acá exactamente
+   iguales, los dos como `[]`, y la diferencia importa: en el primer caso borrar está bien, en
+   el segundo destruye megabytes de video clínico por un fallo transitorio. El costo de
+   equivocarse para el lado seguro es disco ocupado hasta la próxima vez que sí haya estudios;
+   el del otro lado no tiene vuelta. Es la misma lección que `CeiboImg.leer` ya pagó al
+   devolver null en vez de []. */
+function _cineVivosParaRecolectar(infs) {
+  if (!Array.isArray(infs) || !infs.length) return null;
+  if (infs.some(i => !_uuidValido(i && i.uuid))) return null;
+  return infs.map(i => i.uuid);
+}
+window._cineVivosParaRecolectar = _cineVivosParaRecolectar;
+
+function cineRecolectarHuerfanos() {
+  try {
+    if (typeof CeiboStore === 'undefined' || !CeiboStore.lista() || CeiboStore.modo() !== 'indexedDB') return Promise.resolve(0);
+    const vivos = _cineVivosParaRecolectar(getInformes());
+    if (!vivos) return Promise.resolve(0);
+    return CeiboCine.recolectar(vivos).catch(() => 0);
+  } catch (e) { return Promise.resolve(0); }
+}
+window.cineRecolectarHuerfanos = cineRecolectarHuerfanos;
+
+/* La tira se redibuja al ENTRAR a la tab Imágenes. Se observa la clase del panel en vez de
+   engancharse al cambio de tab o a `imgRestaurar`: las dos cosas viven en módulos que este
+   trabajo no toca, y sin refresco la tira mostraría los cineloops del estudio anterior. */
+document.addEventListener('DOMContentLoaded', function () {
+  const tab = document.getElementById('tab-imagenes');
+  if (!tab || typeof MutationObserver === 'undefined') return;
+  const alEntrar = () => { cineRecolectarHuerfanos().then(cineStripRender).catch(() => cineStripRender()); };
+  let activa = tab.classList.contains('active');
+  new MutationObserver(() => {
+    const ahora = tab.classList.contains('active');
+    if (ahora && !activa) alEntrar();
+    activa = ahora;
+  }).observe(tab, { attributes:true, attributeFilter:['class'] });
+  if (activa) alEntrar();
+});
 
 // Pegar desde portapapeles (sólo con el tab de Imágenes activo)
 function imgPasteHandler(e){
@@ -60543,8 +60915,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260919-1949';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789858183866;                 /* eco-build-ms */
+const ECO_BUILD    = '20260919-2058';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789862288592;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -60630,7 +61002,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-1949</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-2058</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

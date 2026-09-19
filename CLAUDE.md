@@ -7767,6 +7767,56 @@ arriba a la izquierda: en un eco eso es fondo negro, el cuadro 0 y el del medio 
 y la condición «no se quedó en el cuadro 0» pasaba sin probar nada. Hoy muestrea el centro **y
 además afirma que los dos cuadros comparados son distintos**, que es el denominador.
 
+### Cineloop — persistencia (2026-09-19)
+Los cineloops se guardan en **`ceibomed_cine`**, una base aparte de `ceibomed_img`, un registro
+por loop con índice por estudio. Aparte y no un store nuevo en la base de imágenes porque eso
+obliga a subir `DB_VER` y tocar `CeiboImg`: un `onupgradeneeded` mal resuelto se lleva puestas
+las imágenes de todos los estudios. Un registro por loop y no por estudio porque si no, abrir
+uno cargaría todos los del estudio a memoria — 50 MB para mirar 4.
+
+**NO SE GUARDA EL `.dcm`. Se guardan los cuadros JPEG y cuatro números** (cantidad, velocidad,
+ancho, alto). Medido sobre el pendrive: esos archivos traen **`PatientName`, `PatientID` e
+`InstitutionName` en claro** en la cabecera, y **`BurnedInAnnotation` = YES** en 41 de 60. Hoy
+los slots guardan un JPEG reencodeado por canvas, o sea **sin** cabecera; guardar el archivo
+crudo pondría el nombre y la cédula en texto plano dentro de IndexedDB por primera vez en esta
+app. Los cuadros son ~99 % del archivo, así que el reproductor no pierde nada. El nombre
+**dibujado en los píxeles** queda — eso no se puede quitar, y es la misma exposición que ya
+tienen las imágenes fijas guardadas. TC-184 lo fija buscando `DICM`, la raíz de UID
+`1.2.840.10008` y el `PatientName` real del archivo **dentro de los bytes guardados**.
+
+**Dos condiciones para guardar, y se dicen por separado:** el toggle «Guardar imágenes con los
+estudios» (apagado por defecto) y que el estudio tenga uuid, que sólo aparece al guardarlo. Si
+falta alguna no se escribe nada y el aviso dice **cuál** falta. Guardar «por las dudas» con el
+toggle apagado sería escribir en disco justamente lo que ese interruptor promete que no escribe.
+
+**El almacenamiento es best-effort.** Medido: `persisted` arranca en `false` y la cuota del
+origen es de 10 GB. Se pide `navigator.storage.persist()` la primera vez que se guarda un loop y
+**se dice lo que el navegador contestó**: si la niega, el aviso avisa que puede borrarlo y que el
+pendrive sigue siendo el respaldo. Prometer permanencia sin tenerla es peor que no prometer.
+
+**El umbral de 50 MB del pedido casi nunca dispara**: el cineloop más grande del pendrive es
+17 MB. El aviso que sirve es el de cuota, que se chequea **antes** de escribir y dice los números;
+sin eso el fallo llega como un `QuotaExceededError` seco y parece que la app se rompió.
+
+**`_cineVivosParaRecolectar` está separada de la acción a propósito.** Devuelve la lista de uuid
+vivos o **`null` = no recolectar**, y `null` incluye el caso de **lista vacía**: «no hay estudios»
+y «no se pudo leer la lista» llegan iguales, los dos como `[]`, y lo segundo destruiría megabytes
+de video clínico por un fallo transitorio. Está afuera además porque es la parte que hay que poder
+probar sin depender de cuántos estudios haya — la primera versión de TC-184 asumía la lista vacía,
+**pasaba con `--solo` y fallaba dentro del suite**, donde los casos anteriores ya habían guardado
+estudios. El caso no fijaba su propio denominador.
+
+**El id NO se interpola dentro de un `onclick`.** Va por `data-cine-id` y el manejador se ata
+desde JS. Escapar no alcanza en un atributo de evento: el parser decodifica la entidad **antes**
+de compilar el handler — es el mismo agujero que documenta la entrada de CardioSalud. Lo cazó
+Semgrep (`ceibo-xss-inline-event-dynamic`) sobre la primera versión de la tira, que usaba
+`onclick="cineAbrirGuardado('" + escHtml(id) + "')"`. Hoy además se filtra por `_uuidValido` en el
+borde. Al tocar la tira: **no volver a meter datos en un atributo `on*`**, por escapados que estén.
+
+**Semgrep: la línea base pasó de 124 a 125** con esto (el `cont.innerHTML` de la tira, misma forma
+que el modal). Las dos de `inline-event-dynamic` que habían aparecido **se arreglaron, no se
+documentaron como falso positivo** — eran reales.
+
 **Semgrep: la línea base pasó de 123 a 124.** El hallazgo nuevo es `ceibo-xss-innerhtml-concat`
 sobre el `ov.innerHTML` del modal. Es falso positivo verificado: **todo lo concatenado son
 literales** y cada texto que viene del archivo se escribe con `textContent`. Es la misma forma

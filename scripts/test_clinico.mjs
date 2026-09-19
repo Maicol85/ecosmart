@@ -10464,6 +10464,228 @@ caso('TC-182', 'Cineloop: navegar, reproducir a la velocidad del archivo y captu
   })();
 `);
 
+/* ══ TC-184 · Persistencia del cineloop ══════════════════════════════════════════════════════
+   Dos cosas se fijan aca por encima del resto:
+   1) QUE LA CABECERA DICOM NO LLEGUE AL DISCO. Los archivos del pendrive traen PatientName,
+      PatientID e InstitutionName en claro, y lo que se guarda son solo los cuadros. La
+      condicion busca esas cadenas DENTRO de los bytes guardados: si alguien cambia el
+      registro por el ArrayBuffer completo, se pone en rojo.
+   2) QUE EL TOGGLE APAGADO SIGNIFIQUE ALGO. Con la opcion de guardar imagenes en off no se
+      escribe NADA -- es lo que ese interruptor promete, y romperlo seria escribir en disco
+      justamente lo que dice que no escribe.
+   Usa el cineloop real del pendrive.                                                          */
+caso('TC-184', 'Cineloop guardado: sin cabecera DICOM, gateado por el toggle, y vuelve desde el disco', `
+  return (async () => {
+    const P = ${JSON.stringify(PENDRIVE)};
+    if (!P.loop) return { extra: [[
+      'hace falta un cineloop real del pendrive', false, 'no se encontro: quedo SIN verificar']] };
+    const bin = atob(P.loop.b64); const u = new Uint8Array(bin.length);
+    for (let i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i);
+
+    const TOG = 'cfg-guardar-imagenes';
+    const togPrevio = localStorage.getItem(TOG);
+    const alertOrig = window.alert, confirmOrig = window.confirm;
+    const dichos = []; window.alert = m => { dichos.push(String(m)); }; window.confirm = () => true;
+    const R = {};
+    try {
+      /* ── 1. toggle APAGADO: no se escribe nada ── */
+      localStorage.setItem(TOG, '0');
+      __t.limpiar();
+      imgSlots.length = 0; imgSlots.push(null, null); imgSlotCount = 2;
+      dichos.length = 0;
+      await dcmImgImportar([new File([u], P.loop.nombre)]);
+      R.puedeOff = _cinePuedeGuardar();
+      const guardoOff = await cineGuardarActual();
+      R.noGuardaSinToggle = guardoOff === false;
+      R.motivoToggle = dichos.join(' ');
+      cineCerrar();
+
+      /* ── 2. toggle encendido pero SIN estudio guardado ── */
+      localStorage.setItem(TOG, '1');
+      /* Cadena VACIA, no 'no-es-un-uuid': esa pasaba _uuidValido —14 caracteres
+         alfanumericos— asi que el estudio contaba como guardado y la condicion no probaba
+         lo que decia probar. */
+      await imgRestaurar('');                   // deja _imgUuidActual en null
+      await dcmImgImportar([new File([u], P.loop.nombre)]);
+      dichos.length = 0;
+      const guardoSinUuid = await cineGuardarActual();
+      R.noGuardaSinEstudio = guardoSinUuid === false;
+
+      R.motivoEstudio = dichos.join(' ');
+      cineCerrar();
+
+      /* ── 3. las dos condiciones: guarda ── */
+      const uuid = _uuidNuevo();
+      await imgPersistir(uuid);                 // ademas deja _imgUuidActual = uuid
+      dichos.length = 0;
+      await dcmImgImportar([new File([u], P.loop.nombre)]);
+      R.autoGuardo = (await CeiboCine.listar(uuid)).length === 1;
+      const recs = await CeiboCine.listar(uuid);
+      const rec = recs[0] || null;
+      R.hayRec = !!rec;
+      R.cuadros = rec ? rec.cuadros : 0;
+      R.ms = rec ? rec.ms : 0;
+      R.poster = !!(rec && rec.poster && _imgSrcOK(rec.poster));
+
+      /* ── LA CONDICION DE PHI: los identificadores NO estan en lo guardado ── */
+      /* Se busca la CABECERA, no un valor puntual: la primera version buscaba el nombre de
+         la institucion, que no esta en todos los archivos, y daba falso sobre uno que SI
+         traia identificadores.
+         'DICM' y la raiz de UID '1.2.840.10008' estan en TODA cabecera DICOM y no pueden
+         aparecer por casualidad como ASCII contiguo dentro de datos JPEG.
+         Ademas se extrae el PatientName real del archivo y se exige que no este. */
+      const dec = new TextDecoder('latin1');
+      const txtArchivo = dec.decode(u);
+      const txtGuardado = rec ? dec.decode(rec.datos) : '';
+      const dv0 = new DataView(u.buffer); let o0 = 132, pn = '';
+      const L4s = { OB:1, OW:1, OF:1, OD:1, OL:1, SQ:1, UT:1, UN:1, UC:1, UR:1 };
+      while (o0 + 8 <= u.length) {
+        const g = dv0.getUint16(o0, true), e = dv0.getUint16(o0+2, true);
+        const vr = String.fromCharCode(u[o0+4], u[o0+5]);
+        if (!/^[A-Z]{2}$/.test(vr)) break;
+        const ln = L4s[vr] ? dv0.getUint32(o0+8, true) : dv0.getUint16(o0+6, true);
+        const val = L4s[vr] ? o0+12 : o0+8;
+        if (g === 0x0010 && e === 0x0010) { pn = dec.decode(u.subarray(val, val+ln)).replace(/\\0/g,'').trim(); break; }
+        if (ln === 0xFFFFFFFF) break;
+        o0 = val + ln;
+      }
+      R.pn = pn;
+      R.archivoTraeIds = txtArchivo.indexOf('DICM') > -1 && txtArchivo.indexOf('1.2.840.10008') > -1 && pn.length > 0;
+      R.guardadoSinIds = !!rec && txtGuardado.indexOf('DICM') === -1 &&
+                         txtGuardado.indexOf('1.2.840.10008') === -1 &&
+                         (pn.length < 3 || txtGuardado.indexOf(pn) === -1);
+      R.guardadoArrancaEnJPEG = !!rec && rec.datos[0] === 0xFF && rec.datos[1] === 0xD8;
+      R.pesaMenosQueElArchivo = !!rec && rec.bytes < u.length;
+
+      /* ── 4. vuelve desde el DISCO, por una conexion nueva a IndexedDB ──
+         No se usa CeiboCine, que memoiza la conexion: se abre la base de cero, que es lo
+         mas parecido a reabrir la app que se puede hacer sin perder el contexto del caso. */
+      const desdeDisco = await new Promise(res => {
+        const req = indexedDB.open('ceibomed_cine', 1);
+        req.onsuccess = () => { const db = req.result;
+          const q = db.transaction('cineloops','readonly').objectStore('cineloops').get(rec.id);
+          q.onsuccess = () => { res(q.result || null); db.close(); };
+          q.onerror = () => { res(null); db.close(); }; };
+        req.onerror = () => res(null);
+      });
+      R.enDisco = !!desdeDisco && desdeDisco.cuadros === rec.cuadros && desdeDisco.datos.length === rec.datos.length;
+
+      /* los cuadros que vuelven son los MISMOS que los del archivo */
+      const d = _dcmImgLeer(u.buffer);
+      const l = _cineDesdeRegistro(desdeDisco);
+      let iguales = l.d.frags.length === d.frags.length;
+      if (iguales) for (let i=0;i<d.frags.length;i+=17) {
+        if (l.d.frags[i].length !== d.frags[i].length) { iguales = false; break; }
+        for (let k=0;k<l.d.frags[i].length;k+=997) if (l.d.frags[i][k] !== d.frags[i][k]) { iguales = false; break; }
+        if (!iguales) break;
+      }
+      R.cuadrosIdenticos = iguales;
+      R.velocidadVuelve = Math.abs((desdeDisco.ms || 0) - (d.msCuadro || 0)) < 0.001;
+
+      /* ── 5. la tira lo muestra ── */
+      await cineStripRender();
+      const strip = document.getElementById('cine-strip');
+      R.tira = strip ? strip.innerHTML : '';
+      R.tiraMuestra = R.tira.indexOf('▶️') > -1 && R.tira.indexOf('cuadros') > -1;
+      /* Se comprueba el ENGANCHE real, no que el nombre de la funcion este en el HTML: el id
+         ya no se interpola dentro de un onclick —escapar no protege ahi— sino que va por
+         data-cine-id y el manejador se ata desde JS. Buscar el texto en el HTML daria rojo
+         sobre la version correcta y verde sobre la insegura. */
+      const card = strip.querySelector('[data-cine-id]');
+      R.tiraAbre  = !!(card && card.querySelector('.cine-abrir') && typeof card.querySelector('.cine-abrir').onclick === 'function');
+      R.tiraBorra = !!(card && card.querySelector('.cine-borrar') && typeof card.querySelector('.cine-borrar').onclick === 'function');
+      R.sinIdEnHandler = R.tira.indexOf('onclick="cineAbrirGuardado') === -1 &&
+                         R.tira.indexOf('onclick="cineBorrarGuardado') === -1;
+      R.idEnDataAttr = !!card && card.getAttribute('data-cine-id') === rec.id;
+      R.tiraDicePeso = /\\d+(\\.\\d+)?\\s*MB/.test(R.tira);
+
+      /* ── 6. abrir desde lo guardado usa el MISMO reproductor ── */
+      cineCerrar();
+      await cineAbrirGuardado(rec.id);
+      R.reabre = !!_cineDatos && _cineDatos.loops.length === 1 && _cineDatos.loops[0].cuadros === rec.cuadros;
+      R.reabreEnPausa = !!_cineDatos && !_cineDatos.timer && _cineDatos.cuadro === 0;
+      cineCerrar();
+
+      /* ── 7. el recolector NO borra lo que tiene dueno vivo ── */
+      /* ── LA DECISION DEL RECOLECTOR, sobre el helper puro ──
+         Se prueba asi y no llamando a cineRecolectarHuerfanos porque esa funcion lee la lista
+         REAL de estudios del navegador: la primera version de este caso asumia que estaba
+         vacia, pasaba con --solo y fallaba dentro del suite, donde los casos anteriores ya
+         habian guardado estudios. El caso no fijaba su propio denominador. */
+      const uuidA = _uuidNuevo(), uuidB = _uuidNuevo();
+      R.vaciaNoRecolecta   = _cineVivosParaRecolectar([]) === null;
+      R.noArrayNoRecolecta = _cineVivosParaRecolectar(null) === null;
+      R.uuidMaloNoRecolecta = _cineVivosParaRecolectar([{uuid:uuidA},{uuid:'x'}]) === null;
+      const vivos = _cineVivosParaRecolectar([{uuid:uuidA},{uuid:uuidB}]);
+      R.conEstudiosDaLaLista = Array.isArray(vivos) && vivos.length === 2 && vivos.indexOf(uuidA) > -1;
+
+      /* y el borrado en si: lo que tiene dueno vivo sobrevive, lo huerfano se va */
+      const antesRec = (await CeiboCine.listar(uuid)).length;
+      const idOtro = _uuidNuevo();
+      await CeiboCine.guardar({ id:idOtro, uuid:_uuidNuevo(), nombre:'x', cuadros:2, ms:40,
+        cols:1, filas:1, poster:'', datos:new Uint8Array([255,216]), offs:new Int32Array([0]), bytes:2, ts:'' });
+      await CeiboCine.recolectar([uuid]);
+      R.noBorraVivos = (await CeiboCine.listar(uuid)).length === antesRec;
+      R.recolectaDeVerdad = (await CeiboCine.leer(idOtro)) === null;
+
+      /* ── 8. eliminar ── */
+      await CeiboCine.borrar(rec.id);
+      R.borro = (await CeiboCine.listar(uuid)).length === 0;
+      await cineStripRender();
+      R.tiraVacia = (document.getElementById('cine-strip').innerHTML || '') === '';
+
+      /* ── 9. las imagenes fijas no se vieron afectadas ── */
+      imgSlots.length = 0; imgSlots.push(null, null); imgSlotCount = 2;
+      await dcmImgImportar([new File([(()=>{ const b=atob(P.fijas[0].b64); const a=new Uint8Array(b.length);
+        for(let i=0;i<b.length;i++) a[i]=b.charCodeAt(i); return a; })()], P.fijas[0].nombre)]);
+      await new Promise(r => { const t=setInterval(()=>{ if (imgSlots.some(s=>s&&s.dataURL)) { clearInterval(t); r(); } },60); setTimeout(()=>{clearInterval(t);r();},8000); });
+      R.fijasOK = imgSlots.some(s => s && s.dataURL && _imgSrcOK(s.dataURL));
+    } finally {
+      window.alert = alertOrig; window.confirm = confirmOrig;
+      if (togPrevio === null) localStorage.removeItem(TOG); else localStorage.setItem(TOG, togPrevio);
+      try { cineCerrar(); } catch (e) {}
+    }
+
+    return { extra: [
+      ['con el toggle APAGADO no se guarda nada',        R.noGuardaSinToggle, R.noGuardaSinToggle],
+      ['y el aviso dice que falta el toggle',            R.motivoToggle.indexOf('Config') > -1, R.motivoToggle.slice(0,110)],
+      ['sin estudio guardado tampoco',                   R.noGuardaSinEstudio, R.noGuardaSinEstudio],
+      ['y el aviso dice que hay que guardar el estudio', R.motivoEstudio.indexOf('estudio') > -1, R.motivoEstudio.slice(0,110)],
+      ['con las dos condiciones, guarda solo al importar', R.autoGuardo, R.autoGuardo],
+      ['queda un registro con sus cuadros',              R.hayRec && R.cuadros > 1, R.cuadros],
+      ['y con la velocidad del archivo',                 R.ms > 0, R.ms],
+      ['con miniatura para la tira',                     R.poster, R.poster],
+      /* ── PHI ── */
+      ['el ARCHIVO trae identificadores en claro',       R.archivoTraeIds, 'PatientName de ' + R.pn.length + ' car.'],
+      ['lo GUARDADO no los tiene',                       R.guardadoSinIds, R.guardadoSinIds],
+      ['lo guardado arranca directo en un JPEG',         R.guardadoArrancaEnJPEG, R.guardadoArrancaEnJPEG],
+      ['y pesa menos que el archivo entero',             R.pesaMenosQueElArchivo, R.pesaMenosQueElArchivo],
+      /* ── durabilidad ── */
+      ['esta en IndexedDB, leido por una conexion nueva', R.enDisco, R.enDisco],
+      ['los cuadros que vuelven son los del archivo',    R.cuadrosIdenticos, R.cuadrosIdenticos],
+      ['y la velocidad tambien vuelve',                  R.velocidadVuelve, R.velocidadVuelve],
+      /* ── interfaz ── */
+      ['la tira lo muestra con el icono de video',       R.tiraMuestra, R.tira.slice(0,60)],
+      ['se puede abrir desde la tira',                   R.tiraAbre, R.tiraAbre],
+      ['se puede eliminar desde la tira',                R.tiraBorra, R.tiraBorra],
+      ['el id NO se interpola dentro de un onclick',     R.sinIdEnHandler, R.sinIdEnHandler],
+      ['va por data-cine-id y el manejador se ata desde JS', R.idEnDataAttr, R.idEnDataAttr],
+      ['la tira dice cuanto ocupa',                      R.tiraDicePeso, R.tiraDicePeso],
+      ['abrir lo guardado usa el mismo reproductor',     R.reabre, R.reabre],
+      ['y arranca en pausa igual que desde el archivo',  R.reabreEnPausa, R.reabreEnPausa],
+      ['con la lista de estudios VACIA no recolecta',     R.vaciaNoRecolecta, R.vaciaNoRecolecta],
+      ['si la lista no se pudo leer, tampoco',            R.noArrayNoRecolecta, R.noArrayNoRecolecta],
+      ['con un uuid invalido en la lista, tampoco',       R.uuidMaloNoRecolecta, R.uuidMaloNoRecolecta],
+      ['con estudios validos SI devuelve la lista',       R.conEstudiosDaLaLista, R.conEstudiosDaLaLista],
+      ['lo que tiene dueno vivo sobrevive',               R.noBorraVivos, R.noBorraVivos],
+      ['y lo huerfano se borra',                          R.recolectaDeVerdad, R.recolectaDeVerdad],
+      ['eliminar lo saca de la base',                    R.borro, R.borro],
+      ['y la tira queda vacia',                          R.tiraVacia, R.tiraVacia],
+      ['las imagenes fijas siguen entrando igual',       R.fijasOK, R.fijasOK]
+    ] };
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];
