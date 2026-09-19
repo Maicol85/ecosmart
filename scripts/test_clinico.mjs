@@ -8617,6 +8617,53 @@ caso('TC-171', 'Los clasificadores de CC dan lo MISMO leyendo el form o un estud
   })();
 `);
 
+caso('TC-172', 'El encuadre orientativo sale en el PDF, una vez por tabla de conductas', `
+  return (async () => {
+    for (let i=0;i<80 && (typeof window.jspdf==='undefined'||!window.jspdf.jsPDF);i++) await new Promise(r=>setTimeout(r,100));
+    if (typeof window.jspdf==='undefined') return { extra:[['jsPDF cargo', false, 'no cargo']] };
+    const hoy = new Date();
+    const f = hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-'+String(hoy.getDate()).padStart(2,'0');
+    const QB = { diam_tsvi:'20', itv_tsvi:'20', tsvd_diametro:'20', vti_tsvd:'21' };
+    /* fecha_estudio y NO fecha: _labFiltrarBase filtra por ese campo, y con el otro los estudios
+       no llegan al Laboratorio -- el PDF sale de cero paginas y todo da false sobre vacio. */
+    const mk = (id, c) => ({ id:id, fecha:f, fecha_estudio:f, nombre:'P'+id,
+      campos: Object.assign({ sexo:'M', edad:'44', peso:'70', talla:'170' }, c) });
+    const datos = [
+      mk(1, Object.assign({ ete_cia_tipo:'secundum', ete_cia_dir:'id', vd_bas:'50',
+                            ete_cia_borde_ao:'8', ete_cia_borde_av:'8', ete_cia_borde_vcs:'8',
+                            ete_cia_borde_vci:'8', ete_cia_borde_post:'8' }, QB)),
+      mk(2, Object.assign({ ete_civ_tipo:'muscular', ddfvi:'62' }, QB))
+    ];
+    const origGet = window.getInformes;
+    window.getInformes = function(){ return datos; };
+    const Orig = window.jspdf.jsPDF; let doc = null;
+    function W(){ const d = new Orig(...arguments); d.save = function(){ return Promise.resolve(); }; doc = d; return d; }
+    W.prototype = Orig.prototype; window.jspdf.jsPDF = W;
+    let err = null;
+    try { await labGenerarPDF(); } catch(e) { err = e.message; }
+    window.jspdf.jsPDF = Orig; window.getInformes = origGet;
+    if (!doc) return { extra:[['se capturo el documento', false, String(err)]] };
+    const raw = atob(doc.output('datauristring').split(',')[1]);
+    const re = /\((.*?)\) ?Tj/g; let m; const out = [];
+    while ((m = re.exec(raw))) out.push(m[1]);
+    const txt = out.join(' ');
+    const paginas = doc.internal.getNumberOfPages();
+    const cuenta = (x) => txt.split(x).length - 1;
+    /* El texto del saneador: _labSanPDF despoja los acentos, asi que se busca SIN ellos. */
+    const abre  = 'Sugerencia orientativa basada en guias vigentes';
+    const cierra = 'decide la conducta segun el contexto del paciente';
+    return { extra: [
+      ['el PDF tiene paginas: hay denominador', paginas > 0, 'paginas=' + paginas],
+      ['sale la seccion de conductas de la CIA', txt.indexOf('Cierre percutaneo') > -1, ''],
+      ['sale la seccion de conductas de la CIV', txt.indexOf('Cierre indicado') > -1, ''],
+      ['el encuadre aparece una vez por tabla', cuenta(abre) === 2, cuenta(abre) + ' veces'],
+      ['la frase entra completa, no truncada', cuenta(cierra) === 2, cuenta(cierra) + ' veces'],
+      ['el titulo de la seccion tambien lo dice', txt.indexOf('SUGERENCIA ORIENTATIVA') > -1, ''],
+      ['sigue la salvedad metodologica del denominador', txt.indexOf('Denominador de esta tabla') > -1, '']
+    ] };
+  })();
+`);
+
 caso('TC-169', 'POP-4: el patron sale de los seams y el EN SUMA no invierte el hallazgo', `
   return (async () => {
     __t.limpiar();

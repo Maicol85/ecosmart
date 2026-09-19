@@ -4239,6 +4239,45 @@ alta, porque los casos se escribieron eligiendo los cortes, no los campos.
    taquicardia ventricular, historia clínica, frases rápidas, segmentos del ETE, pre-TAVI,
    panel de indicaciones (`_IG_SECTIONS`), DICOM e imágenes en IndexedDB.
 
+## Encuadre «sugerencia orientativa» en las tablas de conductas de CC
+
+Texto, no lógica. La tabla de conductas agrupa por criterio ecocardiográfico; leída sin encuadre
+—sobre todo proyectada— pasa por indicación terapéutica.
+
+- **PDF**: una `_nota` propia inmediatamente debajo de cada tabla, antes del detalle
+  metodológico. Van separadas a propósito: la salvedad médico-legal y el denominador son cosas
+  distintas, y mezclarlas diluye la primera.
+- **PPT**: línea en el pie, en el slot y con el rojo del disclaimer de amiloidosis y
+  cardio-oncología. Dos advertencias del mismo peso con formatos distintos se leen como si una
+  importara menos.
+
+Hoy aplica a **CIA y CIV**, que son las dos únicas con tabla de conductas. Las otras doce todavía
+no tienen sección ni hoja; cuando se agreguen, el encuadre va con ellas.
+
+### Los acentos NO llegan al PDF — y por eso ninguna `_nota` los tiene
+Se escribió la nota con acentos y se midió el content stream: sale «guias vigentes»,
+«recomendacion clinica», «medico tratante». No es mojibake: `_labSanPDF` los despoja a propósito,
+porque la helvetica/WinAnsi de jsPDF no los soporta —el mismo saneador que existe porque los
+umbrales de severidad valvular salieron ilegibles en TODOS los PDF firmados—. Se devolvió el
+fuente a ASCII: escribir acentos ahí no los hace aparecer, sólo hace creer al que lea el código
+que aparecen. **En el PPT sí van acentuados** y se verificó que llegan intactos; PptxGenJS no
+tiene esa limitación.
+
+### El pie de una diapositiva es UNA línea
+`conPie` dibuja su filete en `H-0.62`, así que el slot de contenido es `H-0.86` con alto `0.22`
+—termina justo en `H-0.64`—. La hoja de CIA/CIV usaba `0.30` ahí y se metía debajo del filete.
+Al entrar el disclaimer, la salvedad metodológica bajó a la columna izquierda debajo de las
+barras y el paso de las filas del Bloque D se ajustó de `0.35` a `0.32` para no chocar.
+
+### Cobertura
+**TC-172** genera el PDF del Laboratorio con una CIA y una CIV y exige que el encuadre aparezca
+**exactamente dos veces** —una por tabla— y que la frase entre completa: el texto envuelve en dos
+líneas y buscar la oración entera de un saque da cero. Primero confirma que el PDF tiene páginas,
+porque contar apariciones sobre un documento vacío da cero y parece un defecto.
+Verificado por mutación: sin la `_nota`, el caso cae en «el encuadre aparece una vez por tabla»
+con «0 veces». La corrida del mutante tarda bastante —genera el PDF con sus gráficos—; parece
+colgada y no lo está.
+
 ## Las demás CC: el refactor que hay que hacer ANTES, y un clasificador a medias que casi sale
 
 Para replicar el patrón de CIA/CIV en las otras doce cardiopatías hace falta que el Laboratorio

@@ -54708,10 +54708,20 @@ async function _labPPTGenerar(infs, o) {
             { x:4.7, y:yd, w:5.0, h:0.20, fontSize:10, bold:true, color: c > 0 ? C.teal : C.txt2, fontFace:FONT });
           s2.addText(T(f.crit),
             { x:4.7, y:yd + 0.17, w:5.0, h:0.18, fontSize:7.5, italic:true, color:C.txt2, fontFace:FONT });
-          yd += 0.35;
+          yd += 0.32;
         });
+        /* La salvedad METODOLÓGICA baja a la columna izquierda, debajo de las barras: el pie de
+           ancho completo queda libre para el disclaimer, que es el que tiene que verse.
+           `conPie` dibuja su filete en H-0.62, así que abajo entra UNA sola línea de contenido
+           (H-0.86 con alto 0.22 termina justo en H-0.64). La versión anterior usaba 0.30 ahí y
+           se metía debajo del filete. */
         s2.addText(T(CC.pie),
-          { x:0.4, y:H-0.86, w:W-0.8, h:0.30, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
+          { x:0.4, y:4.30, w:4.0, h:0.44, fontSize:7.5, italic:true, color:C.txt2, fontFace:FONT, valign:'top' });
+        /* Mismo slot, mismo cuerpo y mismo rojo que el disclaimer de las hojas de amiloidosis y
+           cardio-oncología: en un mazo proyectado, dos advertencias del mismo peso con formatos
+           distintos se leen como si una fuera menos importante. */
+        s2.addText(T('Sugerencia orientativa según guías ESC/AHA — no reemplaza el juicio clínico del médico.'),
+          { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.rojo, fontFace:FONT });
       }
     }
 
@@ -57291,9 +57301,17 @@ async function labGenerarPDF() {
       drawTable(M, [44, 110, 26], ['Conducta', 'Criterio (guia y ano)', 'n (%)'],
         CC.filas.map(f => [f.lbl, f.crit, (R.cond[f.k] || 0) + ' (' + pct(R.cond[f.k] || 0, R.condN) + ')']));
       y += 2;
-      /* El encuadre ABRE la nota: quien lee un informe firmado no siempre llega al final del
-         parrafo, y lo primero que tiene que quedar claro es que esto agrupa por criterio
-         ecocardiografico y no indica una conducta. */
+      /* Nota propia, inmediatamente DEBAJO de la tabla y antes del detalle metodologico: es la
+         salvedad medico-legal, no una aclaracion tecnica, y mezclarla con el denominador la
+         diluye. Mismo `_nota` que el resto de las salvedades del PDF del Laboratorio -- ancho
+         completo, italica, 8 pt -- para que no se lea como un elemento de otra clase. */
+      /* SIN acentos, como todas las _nota del archivo: `_labSanPDF` los despoja igual -- la
+         helvetica/WinAnsi de jsPDF no los tiene, y es el mismo saneador que existe porque los
+         umbrales de severidad valvular salieron ilegibles en TODOS los PDF firmados. Escribirlos
+         en el fuente no los hace aparecer; solo hace creer al que lo lea que aparecen.
+         En el PPT si van acentuados: PptxGenJS no tiene esa limitacion y se verifico. */
+      _nota('Sugerencia orientativa basada en guias vigentes (ESC/AHA). No constituye una recomendacion clinica individual. El medico tratante es quien decide la conducta segun el contexto del paciente.');
+      /* Y el detalle metodologico aparte: cuantos entraron al denominador y por que. */
       _nota('Sugerencia orientativa, NO una recomendacion terapeutica: la tabla agrupa por criterio ecocardiografico segun la cascada ESC 2020 -- primero si hay indicacion de cierre (Qp/Qs >= 1,5 o sobrecarga de volumen del VD), despues por que via --, y la decision es del Heart Team con el paciente delante. ' +
             'Denominador de esta tabla: n = ' + R.condN +
             (R.fuera ? ' -- se excluyeron ' + R.fuera + ' estudio(s) con mas de un cortocircuito documentado, donde el Qp/Qs global no es atribuible a este defecto.' : '.') +
@@ -58331,8 +58349,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260918-1920';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789770038960;                 /* eco-build-ms */
+const ECO_BUILD    = '20260918-2104';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789776240919;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -58418,7 +58436,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-1920</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-2104</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
