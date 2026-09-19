@@ -42292,6 +42292,7 @@ function _pptDesdeFormulario(inf, tema, presentador){
     let n = IZQ.length;
     fila(IZQ,'FEVI', _pptNum('fevi'), ' %');
     fila(IZQ,'DDVI', _pptNum('ddfvi'), ' mm');
+    fila(IZQ,'DSVI', _pptNum('dsfvi'), ' mm');   // telesistolico; el id real es dsfvi
     fila(IZQ,'SIV',  _pptNum('siv'), ' mm');
     fila(IZQ,'PP',   _pptNum('ppvi'), ' mm');
     fila(IZQ,'Masa VI indexada', _pptSpan('devereux-val'));
@@ -42306,6 +42307,9 @@ function _pptDesdeFormulario(inf, tema, presentador){
     fila(IZQ,"e' septal", _pptNum('e_sep'), ' cm/s');
     fila(IZQ,"e' lateral", _pptNum('e_lat'), ' cm/s');
     fila(IZQ,"E/e'", _pptSpan('ee-val'));
+    /* La VRT es el CUARTO criterio de la diastolica (ASE 2016) y no estaba en la hoja: sin
+       ella la tabla muestra tres de los cuatro parametros que el grado usa. */
+    fila(IZQ,'VRT', _pptNum('vmax_it'), ' m/s');
     fila(IZQ,'Función diastólica', _pptSpan('dd-interp'));
     grupo(IZQ,'Doppler / función diastólica', n);
 
@@ -42316,6 +42320,7 @@ function _pptDesdeFormulario(inf, tema, presentador){
     fila(DER,'Área AD', _pptNum('ad_area'), ' cm²');
     fila(DER,'PSAP estimada', _pptNum('psap_calc'), ' mmHg');
     fila(DER,'PmAD', _pptNum('pmad'), ' mmHg');
+    fila(DER,'Pericardio', _pptSpan('pericardio'));
     grupo(DER,'Ventrículo derecho / AD', n);
     n = DER.length;
     fila(DER,'Seno de Valsalva', _pptNum('ao_sin'), ' mm');
@@ -42939,6 +42944,91 @@ function _pptDesdeFormulario(inf, tema, presentador){
         { x:0.5, y:H-1.05, w:W-1, h:0.35, fontSize:9, color:PPT_C.txt2, fontFace:PPT_FONT });
     }
     conPie(s);
+  }
+
+  /* ══ PostCEC — Cirugía cardíaca ══
+     Condicional, como el resto de los módulos: sólo si el médico integró POP al informe
+     (`integrado('pop')`, la misma casilla que gobierna su hoja del PDF). El PPT individual no
+     tenía NINGUNA aparición de POP —cero ocurrencias antes de esto— así que un estudio con el
+     módulo integrado se presentaba sin su bloque hemodinámico.
+
+     Todo sale de `popPatron()`, el mismo seam que pinta la conclusión en pantalla y escribe la
+     hoja del PDF. Las cinco preguntas ya vienen con su `cls` —green / yellow / orange / red—,
+     así que el semáforo NO se decide acá: se traduce. Reimplementar el color sería la tercera
+     copia del mismo criterio. */
+  if (integrado('pop')) {
+    let R = null;
+    try { R = (typeof popPatron === 'function') ? popPatron() : null; } catch (e) { console.error('[ppt/pop]', e); }
+    if (R && R.suficiente) {
+      const s = nueva();
+      titulo(s, 'PostCEC — Cirugía cardíaca');
+      /* Un solo glifo por banda. `orange` cae en el mismo amarillo que `yellow`: la escala del
+         pedido tiene tres luces y el clasificador cuatro bandas, y mapear naranja a rojo diría
+         «actuar» sobre un hallazgo que la app marca como intermedio. */
+      const _sem = c => c === 'green' ? '🟢' : c === 'red' ? '🔴' : '🟡';
+      const CTX = [], HEMO = [];
+      let n0 = CTX.length;
+      fila(CTX, 'Tipo de cirugía', _pptSpan('pop_cx_tipo'));
+      fila(CTX, 'Horas de postoperatorio', _pptNum('pop_cx_horas'), ' h');
+      fila(CTX, 'Monitoreo', _pptSpan('pop_monitor'));
+      /* Sólo las drogas ACTIVAS, y con su dosis. Enumerar las diez gastaría la tabla en decir
+         siete veces que no se está infundiendo nada — es la misma regla que la franja de
+         válvulas de la hoja de mediciones. */
+      const _act = [];
+      (typeof POP_DROGAS !== 'undefined' ? POP_DROGAS : []).forEach(function (k) {
+        const el = document.getElementById('pop_' + k + '_activa');
+        if (!el || !el.checked) return;
+        const nom = (document.querySelector('label[for="pop_' + k + '_activa"]') || {}).textContent || k;
+        const d = _pptNum('pop_' + k + '_dosis');
+        _act.push(String(nom).trim() + (d !== null ? ' ' + d : ''));
+      });
+      fila(CTX, 'Drogas vasoactivas', _act.length ? _act.join(' · ') : 'sin infusión activa');
+      grupo(CTX, 'Contexto quirúrgico', n0);
+
+      n0 = HEMO.length;
+      /* Los cuatro con su FUENTE entre paréntesis: el IC puede venir del Swan, del PiCCO o del
+         eco, y un «IC 1,9» sin decir de dónde sale no se puede auditar. `popPatron` ya resuelve
+         la precedencia y publica cuál gano. */
+      const _cf = (val, f, suf) => val === null || val === undefined ? ''
+        : (Number(val).toFixed(suf === ' UW' ? 2 : (suf === ' L/min/m²' || suf === ' L/min' ? 2 : 0)) + (suf || '') + (f ? '  (' + f + ')' : ''));
+      fila(HEMO, 'Índice cardíaco', _cf(R.ic, R.icFuente, ' L/min/m²'));
+      fila(HEMO, 'PCP', _cf(R.pcp, R.pcpFuente, ' mmHg'));
+      fila(HEMO, 'RVS', _cf(R.rvs, R.rvsFuente, ' dyn·s·cm⁻⁵'));
+      fila(HEMO, 'TAPSE', _pptNum('tapse'), ' mm');
+      fila(HEMO, 'VD/VI', _pptNum('vd_vi'));
+      grupo(HEMO, 'Hemodinámica', n0);
+
+      const _colW = (W - 1.15) / 2;
+      const _yTab = 0.90;
+      /* El patrón va en una franja propia y no como fila: es la conclusión de la hoja, y como
+         una fila más de la tabla se lee igual que «Monitoreo». */
+      const _yPat = H - 2.30;
+      const _est = _pptFsQueEntra([CTX, HEMO], _yPat - _yTab - 0.10, _colW);
+      _est.sinCabecera = true;
+      tabla(s, CTX,  _yTab, undefined, 0.5, _colW, _est);
+      tabla(s, HEMO, _yTab, undefined, 0.5 + _colW + 0.15, _colW, _est);
+
+      /* `R.pat` es un OBJETO {k, lbl, cls}, no una cadena: concatenarlo imprime
+         «[object Object]» en la diapositiva. Es el mismo defecto que este archivo ya pago con
+         dptTamano(). Se usa `.lbl`, que es el texto que la pantalla y el PDF publican. */
+      s.addText(_pptTxt('Patrón hemodinámico: ' + ((R.pat && R.pat.lbl) || 'no concluyente')),
+        { x:0.5, y:_yPat, w:W-1, h:0.30, fontSize:15, bold:true, color:PPT_C.teal, fontFace:_HDR_FONT });
+      /* Las cinco preguntas en una sola linea cada una: glifo + pregunta + respuesta. Como tabla
+         de tres columnas el texto de la respuesta —«IC 1,60 L/min/m² (Swan)»— se partia en dos
+         renglones y la hoja pasaba de cinco filas a diez. */
+      let yq = _yPat + 0.36;
+      const _fsQ = (R.preguntas || []).length > 5 ? 10 : 11;
+      (R.preguntas || []).forEach(function (q) {
+        s.addText(_pptTxt(_sem(q.cls) + '  ' + String(q.q).replace(/^¿|\?$/g, '') + ': ' + (q.r || '—')),
+          { x:0.55, y:yq, w:W-1.1, h:0.22, fontSize:_fsQ, color:PPT_C.txt, fontFace:PPT_FONT });
+        yq += 0.24;
+      });
+      /* El disclaimer del propio módulo, no uno redactado acá: es el que ya firma la hoja del
+         PDF y la conclusión en pantalla. */
+      if (typeof POP_DISCLAIMER === 'string')
+        s.addText(_pptTxt(POP_DISCLAIMER),
+          { x:0.5, y:H-0.92, w:W-1, h:0.20, fontSize:9, italic:true, color:PPT_C.txt2 || PPT_C.txt, fontFace:PPT_FONT });
+    }
   }
 
   // ══ Informe narrativo (se parte si no entra) ══
@@ -58564,8 +58654,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260918-2327';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789784848265;                 /* eco-build-ms */
+const ECO_BUILD    = '20260919-0602';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789808534052;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -58651,7 +58741,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-2327</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-0602</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

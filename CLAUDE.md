@@ -4239,6 +4239,47 @@ alta, porque los casos se escribieron eligiendo los cortes, no los campos.
    taquicardia ventricular, historia clínica, frases rápidas, segmentos del ETE, pre-TAVI,
    panel de indicaciones (`_IG_SECTIONS`), DICOM e imágenes en IndexedDB.
 
+## PPT del estudio individual: la hoja PostCEC que faltaba, y tres premisas del pedido que eran falsas
+
+El pedido describía un PPT de **seis diapositivas** con texto que se corta, fuente demasiado
+grande y disposición pobre. Medido contra el generador real (`_pptDesdeFormulario`, 1194 líneas,
+13 llamadas a `nueva()`), tres de esas premisas no se sostienen:
+
+- **«Seis diapositivas» habría BORRADO módulos.** Las hojas de ETE, congénitas, amiloidosis,
+  cardio-onco, eco pulmonar y hemodinámica son condicionales (`integrado(k)`), no relleno: salen
+  sólo si el médico integró ese módulo al informe. Colapsar a seis las elimina de los estudios que
+  sí las tienen. Se leyó el pedido como **la columna vertebral**, no como un mandato de borrar.
+- **La hoja de Mediciones ya tenía dos columnas y autoajuste.** `_pptFsQueEntra([IZQ, DER], …)`
+  mide el contenido y elige el cuerpo de letra que entra. No había nada que arreglar ahí.
+- **El narrativo ya está en 10 pt y se parte en varias hojas** — por DEBAJO del piso de 11 pt que
+  pedía el prompt. Bajarlo no aplicaba y subirlo lo habría hecho cortarse. Se dejó como estaba.
+
+**Lo que sí faltaba: POP tenía CERO ocurrencias en el PPT individual.** Un estudio con el módulo
+de cirugía cardíaca integrado se presentaba sin su bloque hemodinámico. Esa es la hoja nueva, y
+sale entera de `popPatron()` —el mismo seam que pinta la conclusión en pantalla y escribe la hoja
+del PDF—. Las cinco preguntas ya vienen con su `cls`, así que el semáforo se **traduce**, no se
+decide: reimplementar el color habría sido la tercera copia del criterio. `orange` se mapea a 🟡 y
+no a 🔴, porque decir «actuar» sobre lo que la app marca como intermedio es un cambio clínico
+disfrazado de detalle de formato.
+
+Tres mediciones agregadas a la hoja de Mediciones: **DSVI** (el id real es `dsfvi`), **VRT**
+(`vmax_it` — es el cuarto criterio ASE 2016 de la diastólica, y sin él la tabla mostraba tres de
+los cuatro parámetros que el grado usa) y **Pericardio**.
+
+### Dos trampas que costaron una pasada
+- **`R.pat` es un OBJETO `{k, lbl, cls}`.** Concatenarlo imprime `[object Object]` en la
+  diapositiva firmada. Es exactamente el defecto que este archivo ya pagó con `dptTamano()`. Se
+  usa `.lbl`.
+- **`tabla()` emite por `addTable`, no por `addText`.** La sonda que interceptaba sólo `addText`
+  reportaba **todas** las filas de tabla como ausentes — un falso «no se dibujó» sobre una hoja
+  completa. Hay que interceptar las dos.
+
+Verificado sobre un PPT real con POP integrado: `totalHojas:4`, `indicePostCEC:2`, y en esa hoja
+`tipoCx/horas/monitor/droga/ic/pcp/rvs/patron` todos presentes, `patronTextoOk:true`,
+`verde:2 amarillo:2 rojo:1`, disclaimer presente. 187/187, huérfanos limpio, Semgrep 123/0 ERROR.
+**Safari no se verificó** — el navegador está concedido en nivel «read» y no se puede navegar.
+Sin test de regresión todavía para esta hoja.
+
 ## Pie interpretativo por gráfica en el PDF de auditoría — y dos secciones que no se hicieron
 
 Siete pies, uno debajo de cada gráfica y **antes** de la nota metodológica: FEVI, diastólica,
