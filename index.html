@@ -11804,12 +11804,17 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <span style="font-size:12px;color:var(--text2);font-weight:600;">Cantidad de slots:</span>
         <div id="img-count-btns" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
         <button type="button" class="btn btn-ghost" style="padding:5px 12px;margin-left:auto;"
-                title="Importar imágenes desde archivos .dcm del ecógrafo"
+                title="Importar imágenes del ecógrafo. Los archivos del pendrive del GE Vivid no tienen extensión (carpeta GEMS_IMG): elegilos igual, el formato se reconoce por el contenido."
                 onclick="dcmImgPick()">🩻 Importar DICOM</button>
       </div>
       <div id="img-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"></div>
       <input type="file" id="img-file-input" accept="image/jpeg,image/png,image/webp,image/*" style="display:none" onchange="imgFileChosen(event)">
-      <input type="file" id="dcmimg-file-input" accept=".dcm,.DCM,application/dicom" multiple style="display:none"
+      <!-- SIN `accept`, a propósito. El GE Vivid escribe los archivos del pendrive SIN NINGUNA
+           extensión (GEMS_IMG/…/Q9JGCGT0), así que `accept=".dcm"` los mostraba en gris y no se
+           podían elegir: el filtro del selector es por extensión y estos no tienen. El formato
+           se valida adentro, por los bytes —«DICM» en el byte 128—, que es lo único que
+           realmente dice si un archivo es DICOM. -->
+      <input type="file" id="dcmimg-file-input" multiple style="display:none"
              onchange="if(this.files&&this.files.length){dcmImgImportar(this.files);}this.value='';">
     </div>
   </div>
@@ -45078,7 +45083,7 @@ function _dcmImgLeer(buf) {
     throw new Error('no tiene la marca «DICM» en el byte 128: no es un DICOM Parte 10');
 
   /* El meta header SIEMPRE es Explicit VR LE, sea cual sea la sintaxis del dataset. */
-  let o = 132, ts = '';
+  let o = 132, ts = '', sop = '';
   while (o + 8 <= buf.byteLength) {
     const g = dv.getUint16(o, true), e = dv.getUint16(o + 2, true);
     if (g !== 0x0002) break;
@@ -45086,12 +45091,14 @@ function _dcmImgLeer(buf) {
     let ln, val;
     if (_DCMIMG_VR4[vr]) { ln = dv.getUint32(o + 8, true); val = o + 12; o = val + ln; }
     else                 { ln = dv.getUint16(o + 6, true); val = o + 8;  o = val + ln; }
-    if (g === 0x0002 && e === 0x0010) ts = _dcmImgAscii(u8, val, ln);
+    if (g === 0x0002 && e === 0x0010) ts  = _dcmImgAscii(u8, val, ln);
+    if (g === 0x0002 && e === 0x0002) sop = _dcmImgAscii(u8, val, ln);   // Media Storage SOP Class
     if (o > buf.byteLength) throw new Error('el meta header del DICOM está truncado');
   }
   if (!ts) throw new Error('el archivo no declara sintaxis de transferencia (0002,0010)');
 
-  const d = { ts, nFrames: 1, fabricante: '', modelo: '', foto: '', filas: 0, cols: 0, frags: [] };
+  const d = { ts, sop, nFrames: 1, fabricante: '', modelo: '', foto: '', filas: 0, cols: 0, frags: [],
+              dicomdir: sop === '1.2.840.10008.1.3.10' };   // Media Storage Directory (el DICOMDIR)
   const CONOCIDA = DCMIMG_TS[ts];
   /* Las sintaxis comprimidas son todas Explicit VR LE; las no comprimidas pueden ser
      implícitas. Se rechazan antes de recorrer el dataset, así que de acá en adelante se
@@ -45163,12 +45170,30 @@ async function dcmImgImportar(fileList) {
   const files = [...fileList];
   const listos = [], fallos = [];
   for (const f of files) {
+    /* ── LA MARCA PRIMERO, EL ARCHIVO DESPUÉS ──────────────────────────────────────────
+       Se leen 132 bytes y recién si dicen «DICM» se carga el resto. Importa desde que el
+       input no tiene `accept`: el selector muestra TODO, así que alcanza con que alguien
+       marque una carpeta con un video adentro para que un `arrayBuffer()` de varios GB
+       entre a memoria antes de poder rechazarlo. Con el recorte, un archivo ajeno cuesta
+       132 bytes. */
+    let cab;
+    try { cab = new Uint8Array(await f.slice(0, 132).arrayBuffer()); }
+    catch (e) { fallos.push(f.name + ': no se pudo leer el archivo'); continue; }
+    if (cab.length < 132 || _dcmImgAscii(cab, 128, 4) !== 'DICM') {
+      fallos.push(f.name + ': no es un archivo DICOM (le falta la marca «DICM» en el byte 128)');
+      continue;
+    }
     let buf;
     try { buf = await f.arrayBuffer(); }
     catch (e) { fallos.push(f.name + ': no se pudo leer el archivo'); continue; }
     let d;
     try { d = _dcmImgLeer(buf); }
     catch (e) { fallos.push(f.name + ': ' + e.message); continue; }
+    /* El DICOMDIR está en la raíz del pendrive y ahora que el selector muestra todo es de
+       lo primero que se ve. Es DICOM de verdad —tiene su marca— pero es el índice del
+       disco, no una imagen: sin nombrarlo, el motivo sería «no trae imagen», que suena a
+       archivo roto. */
+    if (d.dicomdir) { fallos.push(f.name + ': es el índice DICOMDIR del pendrive, no una imagen. Entrá a las carpetas y elegí los estudios.'); continue; }
     if (d.rechazo) {
       fallos.push(f.name + ': está comprimido en ' + d.rechazo + ', que el navegador no sabe abrir por su cuenta. ' +
                   'Hoy sólo se importa JPEG Baseline, que es lo que exporta el GE Vivid.');
@@ -45209,7 +45234,15 @@ async function dcmImgImportar(fileList) {
   }
 
   /* Un solo aviso al final, con el denominador a la vista: «se importaron 3» sin decir que
-     eran 7 archivos deja creer que entraron todos. */
+     eran 7 archivos deja creer que entraron todos.
+
+     La lista se RECORTA y el recorte se dice. Desde que el input no tiene `accept` se puede
+     marcar una carpeta entera —el pendrive del Vivid trae casi 300 archivos—, y un alert de
+     300 renglones no se lee: se cierra. Un recorte mudo sería peor, porque el que lo cierra
+     cree que vio todo. */
+  const TOPE = 12;
+  const detalle = (lista) => lista.slice(0, TOPE).map(s => '· ' + s).join('\n\n') +
+    (lista.length > TOPE ? '\n\n… y ' + (lista.length - TOPE) + ' archivo(s) más con problemas parecidos.' : '');
   const equipos = [...new Set(listos.map(x => [x.d.fabricante, x.d.modelo].filter(Boolean).join(' ')).filter(Boolean))];
   if (listos.length && !fallos.length) {
     toast('✅ ' + listos.length + ' imagen(es) DICOM importada(s)' + (equipos.length ? ' · ' + equipos.join(' · ') : ''));
@@ -45217,10 +45250,10 @@ async function dcmImgImportar(fileList) {
     toast('⚠️ ' + listos.length + ' de ' + files.length + ' importada(s) — mirá el detalle');
     alert('Se importaron ' + listos.length + ' de ' + files.length + ' archivo(s)' +
           (equipos.length ? '\nEquipo: ' + equipos.join(' · ') : '') +
-          '\n\nNo se pudieron importar:\n\n' + fallos.map(s => '· ' + s).join('\n\n'));
+          '\n\nNo se pudieron importar ' + fallos.length + ':\n\n' + detalle(fallos));
   } else {
     toast('❌ No se importó ninguna imagen');
-    alert('No se pudo importar ningún archivo.\n\n' + fallos.map(s => '· ' + s).join('\n\n'));
+    alert('No se pudo importar ningún archivo (' + files.length + ' elegido/s).\n\n' + detalle(fallos));
   }
 }
 window.dcmImgImportar = dcmImgImportar;
@@ -60300,8 +60333,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260919-1846';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789854366090;                 /* eco-build-ms */
+const ECO_BUILD    = '20260919-1903';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789855412399;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -60387,7 +60420,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-1846</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-1903</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

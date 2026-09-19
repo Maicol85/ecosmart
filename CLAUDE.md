@@ -7714,12 +7714,37 @@ ejecutarlo. Versiones reales y SHA-512:
 **Ojo con el nombre del worker:** `cornerstoneWADOImageLoaderWebWorker.min.js` es de la v3 y **da
 404** en la 4.13.2; el archivo real es `index.worker.bundle.min.worker.js`.
 
-**El multi-frame se RECHAZA, no se implementa a medias.** En el equipo no hay ni un archivo
-multi-frame: los 274 del Vivid declaran un cuadro —SOP Class «US Image», que es la clase
-monocuadro; `NumberOfFrames` ausente; un fragmento; tabla de offsets con una entrada—. Escribir
-el reproductor sin nada con qué probarlo sería poner código sin verificar en el camino que
-termina en un informe firmado. Se detecta y se dice. Espera un `.dcm` real de
-Philips/Siemens/Canon/Mindray.
+**El multi-frame se RECHAZA, no se implementa a medias.** Se detecta y se dice cuántos cuadros
+tiene.
+
+> **CORRECCIÓN (2026-09-19, mismo día).** Acá decía que no había ningún archivo multi-frame con
+> qué probar. Eso era cierto **de la base Horos**, y por eso se difirió el reproductor — pero es
+> **falso del pendrive**: `/Volumes/DISK_IMG/GEMS_IMG` tiene **22 cineloops** reales del Vivid iq,
+> de 41 a 172 cuadros, SOP Class `US Multi-frame`, todos JPEG Baseline. Horos había importado
+> sólo las imágenes fijas.
+> **El material para implementar el cineloop existe y está a mano.** TC-181 ya corre sobre uno
+> real (el de 41 cuadros, 3,9 MB) para verificar el rechazo. La lección: *la base de datos de un
+> visor no es el export del ecógrafo* — mirar el origen, no la copia.
+
+**Sin el filtro del selector (2026-09-19).** El input **no lleva `accept`**, y es a propósito: el
+Vivid escribe los 296 archivos del pendrive **sin ninguna extensión** (`GEMS_IMG/…/Q9JGCGT0`), así
+que `accept=".dcm"` los mostraba en gris y no se podían elegir — el filtro del selector es por
+extensión y estos no tienen. El formato se valida por los bytes, que es lo único que dice si algo
+es DICOM. Tres cosas que se siguen de eso y que no son cosméticas:
+
+- **Se leen 132 bytes antes de cargar el archivo.** Con el selector mostrando todo, alcanza con
+  marcar una carpeta con un video adentro para que un `arrayBuffer()` de varios GB entre a memoria
+  antes de poder rechazarlo. Con el recorte, un archivo ajeno cuesta 132 bytes.
+- **La lista de errores se recorta a 12 y el recorte se dice.** Se puede marcar el pendrive entero:
+  un alert de 296 renglones no se lee, se cierra — y el que lo cierra cree que vio todo.
+- **El DICOMDIR se reconoce por su SOP Class** (`1.2.840.10008.1.3.10`) y se nombra. Está en la
+  raíz del pendrive y ahora es de lo primero que se ve; sin esa rama el motivo sería «está
+  comprimido en Explicit VR LE», que manda a mirar donde no es.
+
+**Al probar el DICOMDIR, cuidado con el nombre del archivo.** La primera versión del test buscaba
+la palabra «DICOMDIR» en el mensaje de rechazo — y el mensaje **arranca con el nombre del
+archivo**, que justamente se llama DICOMDIR. La condición pasaba con la rama borrada. Lo delató
+una mutación. Hoy busca «no una imagen», que sólo produce esa rama.
 
 **Tres trampas del formato que costaron una vuelta cada una:**
 

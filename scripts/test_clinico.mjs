@@ -9747,6 +9747,7 @@ caso('TC-179', 'Importar DICOM: extrae el JPEG, rechaza lo que no puede abrir y 
       let b = [];
       for (let i=0;i<128;i++) b.push(0);
       b = b.concat(txt(o.sinDICM ? 'XXXX' : 'DICM'));
+      if (o.sopMeta) b = b.concat(el(0x0002,0x0002,'UI',txt(o.sopMeta)));
       b = b.concat(el(0x0002,0x0010,'UI',txt(ts)));
       b = b.concat(el(0x0008,0x0070,'LO',txt(o.fab || 'GE Vingmed Ultrasound')));
       b = b.concat(el(0x0008,0x1090,'LO',txt(o.mod || 'Vivid iq')));
@@ -9866,6 +9867,51 @@ caso('TC-179', 'Importar DICOM: extrae el JPEG, rechaza lo que no puede abrir y 
     window.jspdf.jsPDF = Orig;
     const enPDF = !!urlSlot && vistas.indexOf(urlSlot) > -1;
 
+    /* ── 7c. lo que cambia al sacar el filtro del selector ──
+       Sin el atributo accept el selector muestra TODO, asi que el rechazo por bytes deja de ser un
+       detalle y pasa a ser la unica defensa. La funcion alert se intercepta: en headless bloquea la
+       pagina y el runner NO tiene timeout por caso -- se colgaria para siempre. */
+    const alertOrig = window.alert; const dichos = [];
+    window.alert = (m) => { dichos.push(String(m)); };
+    try {
+      // (a) un archivo cualquiera, y ademas se comprueba que NO se cargue entero
+      let pidioTodo = false, pidioCabecera = false;
+      const grande = new Uint8Array(400); grande[0] = 77;
+      const falso = {
+        name: 'video.mp4',
+        slice: (a, b2) => { pidioCabecera = true; return new Blob([grande.slice(a, b2)]); },
+        arrayBuffer: () => { pidioTodo = true; return Promise.resolve(grande.buffer); }
+      };
+      dichos.length = 0;
+      await dcmImgImportar([falso]);
+      var noDicom = dichos.length === 1 && dichos[0].indexOf('marca') > -1 && dichos[0].indexOf('DICM') > -1;
+      var leidoParcial = pidioCabecera && !pidioTodo;
+
+      // (b) el DICOMDIR del pendrive
+      dichos.length = 0;
+      await dcmImgImportar([new File([new Uint8Array(mk({ sopMeta:'1.2.840.10008.1.3.10' }))], 'DICOMDIR')]);
+      /* 'no una imagen' y NO la palabra DICOMDIR: el mensaje arranca con el nombre del
+         archivo, que justamente se llama DICOMDIR, asi que buscar esa palabra pasaba
+         igual sin la rama que lo reconoce. Lo delato una mutacion. */
+      var dirRech = dichos.length === 1 && dichos[0].indexOf('no una imagen') > -1;
+
+      // (c) veinte archivos ajenos: la lista se recorta y el recorte se dice
+      dichos.length = 0;
+      const muchos = [];
+      for (let i = 0; i < 20; i++) muchos.push(new File([new Uint8Array(300)], 'x' + i + '.bin'));
+      await dcmImgImportar(muchos);
+      /* Se busca un trozo SIN acentos ni parentesis y se cuentan los renglones. Un regex
+         aca no sirve: dentro de un template literal el escape \\( pierde la barra y el (s)
+         del mensaje pasa a ser un grupo de captura, asi que el patron deja de coincidir con
+         el texto que si esta. Es la misma trampa que la extraccion del PDF. */
+      /* Se verifica QUE se listo y QUE no, en vez de contar renglones: un contador se rompe
+         con cualquier cambio de formato y ademas no dice nada. El tope es 12, asi que x11
+         tiene que estar y x12 no. */
+      var recorteOK = dichos.length === 1 && dichos[0].indexOf('y 8 archivo') > -1 &&
+                      dichos[0].indexOf('x11.bin') > -1 && dichos[0].indexOf('x12.bin') === -1;
+      var dichosUlt = dichos.slice();
+    } finally { window.alert = alertOrig; }
+
     // ── 8. el boton y el input existen y estan bien configurados ──
     const btn = [...document.querySelectorAll('#tab-imagenes button')].filter(b => b.textContent.indexOf('Importar DICOM') > -1);
     const inp = document.getElementById('dcmimg-file-input');
@@ -9891,7 +9937,14 @@ caso('TC-179', 'Importar DICOM: extrae el JPEG, rechaza lo que no puede abrir y 
       ['y la imagen DICOM SALE en el PDF firmado',        enPDF, vistas.length + ' addImage · slot ' + urlSlot.slice(0,28)],
       ['reserva slots libres, en orden y sin pisar los ocupados', ordenOK, JSON.stringify(res3)],
       ['el boton existe en la tab Imagenes',             btn.length === 1, btn.length],
-      ['el input acepta .dcm y es multiple',             !!inp && inp.multiple && inp.accept.indexOf('.dcm') > -1, inp ? inp.accept : 'ausente']
+      /* SIN filtro de extension, a proposito: el GE Vivid escribe los archivos del pendrive
+         sin ninguna extension (GEMS_IMG/.../Q9JGCGT0) y un accept de .dcm los mostraba en gris.
+         El formato se valida por los bytes, que es lo unico que dice si algo es DICOM. */
+      ['el input NO filtra por extension y es multiple',  !!inp && inp.multiple && !inp.getAttribute('accept'), inp ? ('accept=' + inp.getAttribute('accept')) : 'ausente'],
+      ['un archivo que no es DICOM se rechaza por los bytes', noDicom, noDicom],
+      ['y se rechaza SIN cargarlo entero en memoria',     leidoParcial, leidoParcial],
+      ['el DICOMDIR se reconoce y se nombra',             dirRech, dirRech],
+      ['la lista de errores se recorta y lo dice',        recorteOK, JSON.stringify(dichosUlt)]
     ] };
   })();
 `);
@@ -10014,6 +10067,109 @@ caso('TC-180', 'Los .dcm reales del Vivid iq: mismo JPEG que un extractor indepe
       ['las dimensiones se leen',                        res.every(x=>x.filas>0 && x.cols>0), res.map(x=>x.cols+'x'+x.filas).join(' ')],
       ['el navegador lo decodifica SIN ninguna libreria', !!bmp && bmp.width>0 && bmp.height>0, bmp ? (bmp.width+'x'+bmp.height) : 'no decodifico'],
       ['y lo decodificado mide lo que dice el DICOM',    !!bmp && bmp.width===d0.cols && bmp.height===d0.filas, bmp ? (bmp.width+'x'+bmp.height+' vs '+d0.cols+'x'+d0.filas) : '-']
+    ] };
+  })();
+`);
+
+/* ══ TC-181 · El pendrive del Vivid, tal como sale del ecografo ══════════════════════════════
+   Esto es lo que hace falta para poder afirmar que sacar el filtro del selector sirvio. Los
+   296 archivos del pendrive NO TIENEN EXTENSION —se llaman Q9JGCGT0 y viven en GEMS_IMG—, asi
+   que el accept de .dcm los mostraba en gris y no se podian elegir. Que el input ya no filtre
+   se verifica en TC-179; lo que se verifica aca es lo que viene despues: que esos archivos, tal
+   cual estan en el disco, se reconozcan por sus bytes y entren.
+   Incluye ademas las dos cosas que el pendrive tiene y la base Horos no tenia: un CINELOOP real
+   y el DICOMDIR. Lee del disco, no versiona nada, y si el pendrive no esta montado LO DICE.     */
+const PENDRIVE = await (async () => {
+  const { readdir, stat } = await import('node:fs/promises');
+  const raiz = process.env.ECO_PENDRIVE || '/Volumes/DISK_IMG';
+  const out = { fijas: [], loop: null, dicomdir: null };
+  async function hojas(dir, prof) {
+    if (prof > 5) return [];
+    let ns = [];
+    try { ns = await readdir(dir, { withFileTypes: true }); } catch (e) { return []; }
+    const r = [];
+    for (const n of ns) {
+      if (n.name.startsWith('.')) continue;
+      const p = join(dir, n.name);
+      if (n.isDirectory()) r.push(...await hojas(p, prof + 1));
+      else r.push(p);
+    }
+    return r;
+  }
+  const todos = await hojas(join(raiz, 'GEMS_IMG'), 0);
+  /* Se eligen los mas CHICOS: el contenido va por CDP dentro de la expresion del caso, y un
+     cineloop de 172 cuadros son ~20 MB que en base64 pasan de 26. El de 41 cuadros alcanza
+     para probar lo mismo. */
+  const conTam = [];
+  for (const p of todos) { try { conTam.push({ p, n: (await stat(p)).size }); } catch (e) {} }
+  conTam.sort((a, b) => a.n - b.n);
+  for (const { p } of conTam) {
+    const b = await readFile(p);
+    if (b.slice(128,132).toString('ascii') !== 'DICM') continue;
+    const multi = b.indexOf(Buffer.from('1.2.840.10008.5.1.4.1.1.3.1')) > -1;  // US Multi-frame
+    const nombre = p.split('/').pop();
+    if (multi) { if (!out.loop) out.loop = { nombre, b64: b.toString('base64') }; }
+    else if (out.fijas.length < 3) out.fijas.push({ nombre, b64: b.toString('base64') });
+    if (out.fijas.length >= 3 && out.loop) break;
+  }
+  try {
+    const dd = await readFile(join(raiz, 'DICOMDIR'));
+    if (dd.slice(128,132).toString('ascii') === 'DICM') out.dicomdir = { nombre:'DICOMDIR', b64: dd.toString('base64') };
+  } catch (e) {}
+  return out;
+})();
+
+caso('TC-181', 'Pendrive del Vivid: archivos SIN extension, un cineloop real y el DICOMDIR', `
+  return (async () => {
+    const P = ${JSON.stringify(PENDRIVE)};
+    if (!P.fijas.length) return { extra: [[
+      'hace falta el pendrive del Vivid montado para verificar esto (o ECO_PENDRIVE=/ruta)',
+      false, 'no se encontro /Volumes/DISK_IMG/GEMS_IMG: quedo SIN verificar con archivos del ecografo']] };
+    const aFile = (x) => { const bin = atob(x.b64); const u = new Uint8Array(bin.length);
+      for (let i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i); return new File([u], x.nombre); };
+
+    // NINGUNO tiene extension: es exactamente la razon del cambio
+    const sinExt = P.fijas.every(x => x.nombre.indexOf('.') === -1);
+
+    const alertOrig = window.alert; const dichos = [];
+    window.alert = (m) => { dichos.push(String(m)); };
+    let fijasOK = false, urls = [], loopRech = '', ddRech = '', nCuadros = 0;
+    try {
+      // ── las imagenes fijas, tal cual salen del ecografo ──
+      __t.limpiar();
+      imgSlots.length = 0; imgSlots.push(null, null); imgSlotCount = 2;
+      dichos.length = 0;
+      await dcmImgImportar(P.fijas.map(aFile));
+      await new Promise(r => { const t=setInterval(()=>{ if (imgSlots.filter(s=>s&&s.dataURL).length >= P.fijas.length) { clearInterval(t); r(); } },60); setTimeout(()=>{clearInterval(t);r();},15000); });
+      urls = imgSlots.filter(s => s && s.dataURL).map(s => s.dataURL);
+      fijasOK = urls.length >= P.fijas.length && urls.every(u => _imgSrcOK(u)) && dichos.length === 0;
+
+      // ── el cineloop real: se rechaza y se dice cuantos cuadros tiene ──
+      if (P.loop) {
+        const bin = atob(P.loop.b64); const u = new Uint8Array(bin.length);
+        for (let i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i);
+        const d = _dcmImgLeer(u.buffer);
+        nCuadros = d.nFrames;
+        dichos.length = 0;
+        await dcmImgImportar([aFile(P.loop)]);
+        loopRech = dichos.join(' ');
+      }
+      // ── el DICOMDIR de la raiz, que ahora que el selector muestra todo es lo primero que se ve ──
+      if (P.dicomdir) {
+        dichos.length = 0;
+        await dcmImgImportar([aFile(P.dicomdir)]);
+        ddRech = dichos.join(' ');
+      }
+    } finally { window.alert = alertOrig; }
+
+    return { extra: [
+      ['los archivos del pendrive NO tienen extension',   sinExt, P.fijas.map(x=>x.nombre).join(', ')],
+      ['se reconocen por sus bytes y entran',             fijasOK, urls.length + '/' + P.fijas.length + ' · avisos: ' + dichos.length],
+      ['cada uno queda con un dataURL que la app muestra', urls.length > 0 && urls.every(u => u.indexOf('data:image/') === 0), urls.length],
+      ['el pendrive SI trae cineloops',                   !!P.loop, P.loop ? P.loop.nombre : 'ninguno'],
+      ['el cineloop se lee y se le cuentan los cuadros',  nCuadros > 1, nCuadros],
+      ['y se rechaza diciendo cuantos cuadros tiene',     !P.loop || (loopRech.indexOf('cineloop') > -1 && loopRech.indexOf(String(nCuadros)) > -1), loopRech.slice(0,150)],
+      ['el DICOMDIR se reconoce y se nombra',             !P.dicomdir || ddRech.indexOf('no una imagen') > -1, ddRech.slice(0,150)]
     ] };
   })();
 `);
