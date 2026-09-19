@@ -21967,6 +21967,11 @@ function generarInforme(opts) {
      bandera en true y el EN SUMA salía diciendo «Sin OTRAS alteraciones significativas — ver los
      hallazgos descritos en el cuerpo», que implica hallazgos que no existen y manda a buscarlos. */
   let _ccHuboParrafo = false;
+  /* Vacia las catorce hojas de CC ANTES de recorrer las secciones. Va junto a la bandera y no
+     dentro de cada bloque: destildar una CC no ejecuta su bloque, asi que si el vaciado viviera
+     ahi adentro la hoja quedaria en el PDF para siempre con el texto de la ultima vez que si
+     estuvo. Es el defecto que `am-integrados` vino a cerrar del lado de amiloidosis. */
+  if (typeof ccHojaReset === 'function') ccHojaReset();
   const sumaCC = function(linea){
     /* Acepta un array para las secciones que suben VARIAS líneas. Va como array y no como un
        string con `\n`: `_infEscribir` trata `lineasNuevas` como array de LÍNEAS y `_infMerge`
@@ -23368,6 +23373,7 @@ function generarInforme(opts) {
         if(f1(di)) p.push('DDVI indexado '+f1(di)+' mm/m²');
         if(f1(paps)) p.push('PAPs por IT '+f1(paps)+' mmHg');
         etePars.push(p.join('. ')+'.'); emitido = true; ccMarcarParrafo();
+        ccHoja('cia', p, null, null);   // la app no publica conducta de CIA en el informe individual
       }
 
       // ── CIV ──
@@ -23385,6 +23391,7 @@ function generarInforme(opts) {
         if(pc!=null && isFinite(pc) && pc>=5 && pc<=150) p.push('PAPs estimada por CIV '+f1(pc)+' mmHg');
         else if(f1(paps)) p.push('PAPs por IT '+f1(paps)+' mmHg');
         etePars.push(p.join('. ')+'.'); emitido = true; ccMarcarParrafo();
+        ccHoja('civ', p, null, null);   // idem CIA: sin linea de guia porque no hay conducta publicada
       }
 
       /* El EN SUMA sólo habla del shunt si el CUERPO describió alguno: con el checkbox
@@ -23523,6 +23530,7 @@ function generarInforme(opts) {
       if (q != null) p.push('Qp/Qs global ' + q.toFixed(2));
       if (f1(paps)) p.push('PAPs estimada ' + f1(paps) + ' mmHg');
       etePars.push(p.join('. ') + '. ' + c.txt + '.'); ccMarcarParrafo();
+      ccHoja('dap', p, c.txt, null);
       /* Al EN SUMA sólo las conclusiones ACCIONABLES. Mismo criterio que el shunt —que sólo
          resume si el cuerpo describió un defecto— pero además filtrado por relevancia: un
          ductus silente o pequeño sin repercusión no cambia ninguna conducta y llenaría la
@@ -23553,6 +23561,7 @@ function generarInforme(opts) {
       const cuerpo = p.join('. ') + '.';
       const alertas = r.alertas.map(a => a.txt).join(' ');
       etePars.push(cuerpo + (alertas ? ' ' + alertas : '') + ' ' + r.SEGUIMIENTO); ccMarcarParrafo();
+      ccHoja('eisen', p, alertas, r.SEGUIMIENTO);
       /* Al EN SUMA: la línea base SIEMPRE —un Eisenmenger no es un hallazgo incidental— y cada
          alerta que cambia una conducta, por separado. El derrame pericárdico no sube: es
          pronóstico, no una conducta distinta hoy. */
@@ -23736,6 +23745,7 @@ function generarInforme(opts) {
       etePars.push(p.join('. ') + '.' + (alertas ? ' ' + alertas : '') +
                    (r.embarazo ? ' ' + r.embarazo.txt : '') + ' ' + r.SEGUIMIENTO);
       ccMarcarParrafo();
+      ccHoja('fontan', p, (alertas || '') + (r.embarazo ? ' ' + r.embarazo.txt : ''), r.SEGUIMIENTO);
       /* Al EN SUMA: la línea base SIEMPRE —una circulación de Fontan no es un hallazgo
          incidental— y cada alerta accionable por separado. El embarazo sube SÓLO cuando está
          contraindicado (clase IV): la clase III es una condición de seguimiento, no una
@@ -23819,6 +23829,9 @@ function generarInforme(opts) {
       if (sv('coa_hta') === 'si') p.push('Hipertensión arterial confirmada');
       const _coaSeg = (typeof coaSeguimiento === 'function') ? coaSeguimiento() : null;
       etePars.push(p.join('. ') + '. ' + c.txt + '.' + (_coaSeg ? ' ' + _coaSeg : '')); ccMarcarParrafo();
+      /* La hoja recibe LAS MISMAS oraciones y LA MISMA conclusion que la linea de arriba: el
+         narrativo y la hoja no pueden discrepar porque no hay dos textos, hay uno repartido. */
+      ccHoja('coa', p, c.txt, _coaSeg);
       /* La significativa y la limítrofe sí van al EN SUMA: la primera indica intervención y la
          segunda manda a pedir una angio-RMN. Dejar una indicación de intervención sólo en el
          cuerpo del informe es exactamente lo que la conclusión existe para evitar. */
@@ -23872,6 +23885,7 @@ function generarInforme(opts) {
       if (htp === 'si') p.push('Con hipertensión pulmonar asociada');
       else if (htp === 'no') p.push('Sin hipertensión pulmonar asociada');
       etePars.push(p.join('. ') + '. ' + c.txt + '.'); ccMarcarParrafo();
+      ccHoja('vap', p, c.txt, null);
       sumaCC(ccSumaLinea('vap'));
     })();
 
@@ -23908,6 +23922,7 @@ function generarInforme(opts) {
         p.push('No se realizó estudio con contraste');
       }
       etePars.push(p.join('. ') + '. ' + c.txt + '.'); ccMarcarParrafo();
+      ccHoja('fop', p, c.txt, null);
       /* Al EN SUMA sólo lo que cambia una conducta. `incidental` no: un FOP sin contexto es un
          hallazgo de uno de cada cuatro adultos y llenaría la conclusión de ruido.
          `sin_contexto` SÍ sube, aunque no sea una indicación: le está diciendo al médico que
@@ -23943,6 +23958,7 @@ function generarInforme(opts) {
          bicúspide la aorta descendente NO es un territorio aparte: es parte de la evaluación.
          La sección CoAo ya cruza en la otra dirección (ver su bloque); acá se cierra el par. */
       etePars.push(p.join('. ') + '. ' + c.txt + '. Recordatorio: excluir coartación de aorta asociada, presente en hasta el 85 % de las válvulas aórticas bicúspides — ver la sección de coartación.'); ccMarcarParrafo();
+      ccHoja('vab', p, c.txt, null);
       sumaCC(ccSumaLinea('vab'));
     })();
 
@@ -23975,6 +23991,7 @@ function generarInforme(opts) {
       etePars.push(p.join('. ') + '.');
       (c.parrafos || [c.txt + '.']).forEach(function(pp){ etePars.push(pp); });
       ccMarcarParrafo();
+      ccHoja('mch', p, c.resumen || c.txt, null);
       sumaCC(ccSumaLinea('mch'));
     })();
 
@@ -23998,6 +24015,7 @@ function generarInforme(opts) {
       const c = sec[1]();
       if (!c) return;
       (c.parrafos || [c.txt + '.']).forEach(function(pp){ etePars.push(pp); }); ccMarcarParrafo();
+      ccHoja(sec[3], c.parrafos || [], c.resumen || null, null);
       /* `clave !== 'no_interpretable'` YA NO gatea. Ese filtro borraba del EN SUMA afirmaciones
          que el cuerpo sí publicaba: con `mca_tsvd_plax` cargado en cm en vez de mm, el cuerpo
          imprimía «Task Force 2010: 4 puntos — diagnóstico DEFINITIVO» y el EN SUMA quedaba mudo.
@@ -28082,6 +28100,19 @@ function generarPDFReal(_aj) {
        la identificara. */
     y = amiloDibujarSecciones(doc, _amEtt, { mL, pgW, tema: TEMA, yIni: 20, yFin: _yMax, fsa: _FSA,
       titPagina: 'ECOCARDIOGRAMA TRANSTORACICO - ESTUDIO AVANZADO' });
+  }
+
+  /* ── HOJA DE CARDIOPATIAS CONGENITAS ──
+     Condicional: sólo si al menos una sección de CC dejó texto. Sale del MISMO dibujante que las
+     otras hojas avanzadas, así que hereda el estilo, el saneador sin acentos y el autoajuste A4.
+     El contenido viene de los `cc-txt-*`, que se guardan y se reponen con el estudio: por eso
+     reimprimir un guardado da la hoja de ESE paciente y no la del que esté en pantalla. */
+  const _ccSecs = (typeof ccEnInforme === 'function') ? (ccEnInforme() || []) : [];
+  if (_ccSecs.length) {
+    doc.addPage();
+    y = amiloDibujarSecciones(doc, _ccSecs.map(d => ({ tit: d.tit, txt: d.txt })),
+      { mL, pgW, tema: TEMA, yIni: 20, yFin: _yMax, fsa: _FSA,
+        titPagina: 'ESTUDIO AVANZADO - CARDIOPATIAS CONGENITAS' });
   }
 
   // ── HOJA DEL ECOCARDIOGRAMA TRANSESOFÁGICO ──
@@ -39852,6 +39883,130 @@ window.pulAvanzadoIntegrado = pulAvanzadoIntegrado;
 // ── Catálogo de módulos del bloque ETT Avanzado ───────────────────
 // Un solo lugar define el orden (Amiloidosis primero, después Hemodinámica),
 // las etiquetas de la card y los títulos de sección del PDF.
+/* ══ HOJA DE CARDIOPATIAS CONGENITAS DEL PDF DEL INFORME ══════════════════════════════════════
+   Una seccion por CC con subtitulos, en hoja aparte, en vez del parrafo corrido del narrativo.
+
+   POR QUE UN TEXTAREA PERSISTIDO Y NO UN ARRAY EN MEMORIA. `generarInforme` se dispara por un
+   listener con debounce sobre `input`, y las rutas de restauracion pueblan el formulario
+   asignando `.value`, que NO dispara `input` -- esta escrito en RECALC_MODULOS. O sea que al
+   reimprimir un estudio guardado la funcion no vuelve a correr, y un array de modulo habria
+   quedado con las secciones del PACIENTE ANTERIOR dentro de un PDF firmado. Es el mismo patron
+   que ya usan los modulos avanzados con `am-txt-*`: el texto vive en un <textarea> con id, asi
+   que el barrido de `capturarForm` lo guarda solo y el de restauracion lo repone -- y, lo que
+   importa, lo VACIA cuando la clave no esta (`el.value = c[el.id] !== undefined ? c[el.id] : ''`).
+   El prefijo `cc-` no esta en `_CAMPOS_FUERA_DEL_ESTUDIO`, verificado, asi que entra al estudio.
+
+   Los textareas se construyen al arrancar y NO al integrar: si no existen cuando corre la
+   restauracion, el barrido los saltea en silencio y la hoja desaparece del PDF reimpreso sin
+   que nada lo avise. Es el defecto que `amiloRestaurarDesdeCampos` documenta para `am-txt-*`. */
+const CC_HOJA_TIT = {
+  cia:   'COMUNICACION INTERAURICULAR (CIA)',
+  civ:   'COMUNICACION INTERVENTRICULAR (CIV)',
+  dap:   'DUCTUS ARTERIOSO PERMEABLE (DAP)',
+  vap:   'VENTANA AORTOPULMONAR (VAP)',
+  coa:   'COARTACION DE AORTA',
+  fop:   'FORAMEN OVAL PERMEABLE (FOP)',
+  vab:   'VALVULA AORTICA BICUSPIDE (VAB)',
+  ebs:   'ANOMALIA DE EBSTEIN',
+  tdf:   'TETRALOGIA DE FALLOT OPERADA',
+  tga:   'TRANSPOSICION DE GRANDES ARTERIAS',
+  mch:   'MIOCARDIOPATIA HIPERTROFICA',
+  mca:   'MIOCARDIOPATIA ARRITMOGENICA',
+  eisen: 'SINDROME DE EISENMENGER',
+  fontan:'CIRCULACION DE FONTAN'
+};
+const CC_HOJA_ORDEN = ['cia','civ','dap','vap','coa','fop','vab','ebs','tdf','tga','mch','mca','eisen','fontan'];
+function ccHojaBuild() {
+  if (typeof document === 'undefined' || document.getElementById('cc-txt-wrap')) return;
+  const cont = document.createElement('div');
+  cont.id = 'cc-txt-wrap';
+  cont.style.display = 'none';
+  CC_HOJA_ORDEN.forEach(function (k) {
+    const ta = document.createElement('textarea');
+    ta.id = 'cc-txt-' + k;
+    cont.appendChild(ta);
+  });
+  (document.body || document.documentElement).appendChild(cont);
+}
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ccHojaBuild, { once:true });
+  else ccHojaBuild();
+}
+window.ccHojaBuild = ccHojaBuild;
+/* Vacia las catorce. La llama `generarInforme` ANTES de recorrer las secciones: sin esto,
+   destildar una CC dejaba su hoja en el PDF para siempre -- el textarea conserva lo ultimo que
+   se escribio, que es justo el defecto que `am-integrados` vino a cerrar del lado de amiloides. */
+function ccHojaReset() {
+  ccHojaBuild();
+  CC_HOJA_ORDEN.forEach(function (k) {
+    const ta = document.getElementById('cc-txt-' + k);
+    if (ta) ta.value = '';
+  });
+}
+window.ccHojaReset = ccHojaReset;
+/* Lo que el PDF consume. Devuelve [{tit, txt}] en el orden del registro y NO en el de escritura:
+   el documento firmado tiene que salir igual para el mismo estudio, con independencia de en que
+   orden el medico toco las pestanas. */
+function ccEnInforme() {
+  const out = [];
+  CC_HOJA_ORDEN.forEach(function (k) {
+    const ta = document.getElementById('cc-txt-' + k);
+    const t = ta ? String(ta.value || '').trim() : '';
+    if (t) out.push({ k: k, tit: CC_HOJA_TIT[k] || k.toUpperCase(), txt: t });
+  });
+  return out;
+}
+window.ccEnInforme = ccEnInforme;
+
+/* Arma la seccion de UNA cardiopatia y la deja en su textarea. NO recalcula nada: recibe las
+   MISMAS oraciones que la seccion acaba de empujar al informe y la MISMA conclusion del
+   clasificador. Reescribir el criterio aca serian dos textos del mismo hecho en el mismo
+   documento firmado, que es como el informe se contradice consigo mismo.
+
+   LA LINEA DE GUIA SE COPIA, NO SE ARMA. El pedido traia una plantilla fija -- «se recomienda
+   [conducta] (Clase [I/IIa/IIb]) porque [criterio]» -- y no es implementable sin inventar:
+   medido sobre los catorce clasificadores, solo coa, fop, vab, ebs, mch, tdf y fontan citan una
+   clase, y solo en ALGUNAS de sus ramas; dap, vap, tga, mca y eisen no publican ninguna. Poner
+   «(Clase IIa)» donde la app no la afirma es la cita falsa que este archivo ya documenta con la
+   nota del NT-proBNP y con la cianosis de Ebstein, que va sin clase A PROPOSITO porque la ESC
+   2020 no publica cual le corresponde. Va el texto del clasificador tal cual: donde hay clase la
+   lleva, donde no, no se inventa.
+
+   LO MISMO CON EL SEGUIMIENTO: solo seis modulos publican uno y coa lo calcula en
+   `coaSeguimiento()`. Para el resto la app no tiene periodicidad de controles, y escribirla
+   seria contenido clinico NUEVO en un informe firmado. La linea sale solo cuando existe. */
+/* Reparto por palabra inicial. Es una heuristica DECLARADA, y su peor caso es cosmetico -- una
+   oracion bajo el subtitulo vecino -- nunca un numero ni una conducta mal. */
+const _CC_HOJA_HEMO = /^(velocidad|gradiente|qp\/qs|flujo|shunt|cortocircuito|relaci|psap|presi|dilataci|sobrecarga|insuficiencia|estenosis|saturaci|indice de celermajer|puntaje|hcm risk|fevi|funcion)/i;
+function ccHoja(k, oraciones, conclusion, seguimiento) {
+  if (!CC_HOJA_TIT[k]) { console.error('[ccHoja] clave sin ficha:', k); return; }
+  ccHojaBuild();
+  const ta = document.getElementById('cc-txt-' + k);
+  if (!ta) return;
+  const ors = (Array.isArray(oraciones) ? oraciones : [oraciones])
+    .map(function (s) { return String(s == null ? '' : s).trim().replace(/\.$/, ''); })
+    .filter(Boolean);
+  const L = [];
+  if (ors.length) {
+    L.push('## Morfologia / Tipo');
+    L.push(ors[0] + '.');
+    const resto = ors.slice(1);
+    const hemo = resto.filter(function (s) { return _CC_HOJA_HEMO.test(s); });
+    const med  = resto.filter(function (s) { return !_CC_HOJA_HEMO.test(s); });
+    if (med.length)  { L.push('## Mediciones');   L.push(med.join('. ') + '.'); }
+    if (hemo.length) { L.push('## Hemodinamica'); L.push(hemo.join('. ') + '.'); }
+  }
+  const cc = String(conclusion == null ? '' : conclusion).trim().replace(/\.$/, '');
+  /* `!!` = bloque de nota: italica, ancho completo y filete de color. Es el marcador que ya usan
+     las salvedades de las otras hojas, y la conclusion es justo lo que no puede quedar exprimido
+     en la columna de un valor. */
+  if (cc) L.push('!!Segun la guia: ' + cc + '.');
+  const sg = String(seguimiento == null ? '' : seguimiento).trim().replace(/\.$/, '');
+  if (sg) { L.push('## Seguimiento'); L.push(sg + '.'); }
+  ta.value = L.join('\n');
+}
+window.ccHoja = ccHoja;
+
 function amiloSecs() {
   return [
     { k:'ett',  lbl:'Score Amiloidosis por ETT',       tit:'SCORE DE PROBABILIDAD DE AMILOIDOSIS CARDÍACA — ESC 2021',            gen:amiloTextoETT },
@@ -59239,8 +59394,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260919-1055';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789826155331;                 /* eco-build-ms */
+const ECO_BUILD    = '20260919-1249';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789832962953;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -59326,7 +59481,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-1055</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-1249</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -4239,6 +4239,74 @@ alta, porque los casos se escribieron eligiendo los cortes, no los campos.
    taquicardia ventricular, historia clínica, frases rápidas, segmentos del ETE, pre-TAVI,
    panel de indicaciones (`_IG_SECTIONS`), DICOM e imágenes en IndexedDB.
 
+## Hoja de cardiopatías congénitas en el PDF del informe
+
+Página condicional al final, una sección por CC con subtítulos, en vez del párrafo corrido.
+Catorce CC conectadas por once sitios de llamada (la tabla de Ebstein/TdF/TGA/MCA cubre cuatro).
+
+### Por qué un textarea persistido y no un array en memoria
+Fue la decisión de diseño del turno, y se tomó **antes** de escribir el código: `generarInforme`
+se dispara por un listener con *debounce* sobre `input`, y las rutas de restauración pueblan el
+formulario asignando `.value`, **que no dispara `input`** — está escrito en `RECALC_MODULOS`. O
+sea que al reimprimir un estudio guardado la función **no vuelve a correr**, y un array de módulo
+habría quedado con las secciones del **paciente anterior** dentro de un PDF firmado.
+
+La solución es el patrón que ya usan los módulos avanzados con `am-txt-*`: el texto vive en un
+`<textarea>` con id, así que `capturarForm` lo guarda solo y el barrido de restauración lo repone
+—y, lo que importa, lo **vacía** cuando la clave no está (`el.value = c[el.id] !== undefined ?
+c[el.id] : ''`)—. Verificado que `cc-` no cae en `_noEsDelEstudio` ni en
+`_CAMPOS_FUERA_DEL_ESTUDIO`; si cayera, la hoja desaparecería del PDF reimpreso **en silencio**.
+
+Los textareas se construyen **al arrancar** y no al integrar: si no existen cuando corre la
+restauración, el barrido los saltea sin avisar. Es el defecto que `amiloRestaurarDesdeCampos`
+documenta para `am-txt-*`.
+
+`ccHojaReset()` vacía las catorce al principio de `generarInforme`. Sin él, destildar una CC
+dejaba su hoja en el PDF para siempre con el texto de la última vez que sí estuvo — el defecto
+que `am-integrados` cerró del lado de amiloidosis. Mutante sin reset: la hoja de CoAo sobrevive
+al destildado.
+
+### Dos premisas del pedido que medí como falsas
+- **La plantilla de clase no es implementable para las catorce.** Sólo `coa`, `fop`, `vab`, `ebs`,
+  `mch`, `tdf` y `fontan` citan una clase, y sólo en algunas ramas; `dap`, `vap`, `tga`, `mca` y
+  `eisen` no publican ninguna. Poner «(Clase IIa)» donde la app no la afirma es la cita falsa que
+  este archivo ya documenta con la nota del NT-proBNP y con la cianosis de Ebstein, que va **sin
+  clase a propósito** porque la ESC 2020 no publica cuál le corresponde. La línea de guía se
+  **copia** del clasificador, no se arma.
+- **El seguimiento tampoco.** Sólo seis módulos publican uno, más `coaSeguimiento()`. Para el
+  resto la app no tiene periodicidad de controles, y escribirla sería contenido clínico nuevo en
+  un informe firmado. La línea sale sólo cuando existe.
+
+### El bug que costó el turno: un `const` local que sombreaba al global
+La primera versión del helper vivía **dentro** de `generarInforme`. Al cambiar de diseño lo
+«revertí» con un corte por índices que dejó la definición local viva. A partir de ahí, los once
+sitios de llamada resolvían `ccHoja` contra el **local** —que escribía en un array muerto— y no
+contra la función de módulo que escribe el textarea.
+
+El síntoma era desconcertante: el bloque corría, el escritor funcionaba llamado a mano, y el
+textarea quedaba vacío. Lo resolvió instrumentar **dentro** de la función y comparar la traza:
+`["reset","coa-llamada","coa-post:0"]` contra `dentro=["k=coa","ors=3","val=158"]`. El `ors=3`
+era la llamada directa de la sonda, no la del bloque — o sea que la del bloque **nunca entró a la
+función instrumentada**. Ahí quedó claro que eran dos funciones distintas.
+
+Reglas que deja:
+- **Revertir por corte de índices no es revertir.** Verificar con un `grep` de la definición, no
+  del uso.
+- **Ante «se llama y no hace nada», instrumentar adentro y comparar la traza con la de una
+  llamada directa.** Si las dos no coinciden, no es la misma función.
+
+### La trampa cuadrática cobró la deuda que yo mismo había anotado
+Al agregar una página, el PDF del informe creció y **la suite se colgó**: veinte minutos sin
+salida, clavada después de TC-151. Eran las dos extracciones que en la tanda anterior dejé
+anotadas como «el riesgo cuadrático sigue ahí si sus documentos crecen» — y creció por mi propio
+cambio, en el turno siguiente. Las dos pasaron a la alternancia determinista.
+
+**Anotar una deuda no la contiene.** Si el arreglo es mecánico y ya está validado en otro sitio,
+aplicarlo a los tres sitios cuesta lo mismo que documentarlo en uno.
+
+Y el backtick dentro del template literal de un caso, **quinta vez en la sesión**, otra vez en un
+comentario recién escrito — esta vez en un `slice(1,-4)` entre comillas invertidas.
+
 ## PDF de auditoría: antecedentes combinados y filas que se pisaban
 
 Dos arreglos, y en los dos el diagnóstico del pedido no era el correcto.

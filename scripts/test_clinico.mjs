@@ -8121,7 +8121,10 @@ caso('TC-163', 'La salvedad de las hojas avanzadas sale como bloque, no como cel
       const raw = atob(doc.output('datauristring').split(',')[1]);
       /* Token a token: jsPDF alterna Td y Tm y el Tj usa la ULTIMA coordenada emitida. Un
          regex que exija Td pegado al Tj se pierde la mitad de las lineas. */
-      const tok = /([0-9.-]+) ([0-9.-]+) Td|1 0 0 1 ([0-9.-]+) ([0-9.-]+) Tm|\\((.*?)\\) ?Tj/g;
+      /* Alternancia determinista en vez de .*? lazy: el grupo sigue siendo el 5 porque el
+         (?:...) no captura. El lazy era cuadratico sobre el binario de las imagenes
+         embebidas y colgaba la suite al crecer el documento -- ya paso en TC-172. */
+      const tok = /([0-9.-]+) ([0-9.-]+) Td|1 0 0 1 ([0-9.-]+) ([0-9.-]+) Tm|\\(((?:\\\\[\\s\\S]|[^()\\\\])*)\\)\\s?Tj/g;
       let m, cx = null; const pos = [];
       while ((m = tok.exec(raw))) {
         if (m[1] !== undefined) cx = parseFloat(m[1]);
@@ -8285,7 +8288,11 @@ caso('TC-165', 'HFA-PEFF, VEXUS, derrame y constriccion: mismo n en tarjeta, PDF
     window.jspdf.jsPDF = Orig;
     let pdf = '';
     if (doc) { const raw = atob(doc.output('datauristring').split(',')[1]);
-      pdf = (raw.match(/\\((.*?)\\) ?Tj/g) || []).map(x => x.slice(1, -4)).join(' '); }
+      /* Idem: lineal, no lazy. El slice(1,-4) ya no sirve porque el separador final puede
+         ser un espacio o no, asi que se extrae por grupo con exec. */
+      { const _re = /\\(((?:\\\\[\\s\\S]|[^()\\\\])*)\\)\\s?Tj/g; let _m; const _o = [];
+        while ((_m = _re.exec(raw))) _o.push(_m[1]);
+        pdf = _o.join(' '); } }
     await CeiboStore.setLocal([]);
 
     const enPPT = t => tit.some(x => x.indexOf(t) > -1);
@@ -9325,6 +9332,96 @@ caso('TC-174', 'PDF de auditoria: antecedentes individuales y filas que crecen s
     ] };
   })();
 `);
+
+
+
+caso('TC-175', 'Hoja de CC en el PDF del informe: estructura, y que NO hereda del paciente anterior', `
+  return (async () => {
+    __t.limpiar();
+    // ── los catorce textarea existen desde el arranque ──
+    if (typeof ccHojaBuild === 'function') ccHojaBuild();
+    const faltan = CC_HOJA_ORDEN.filter((k) => !document.getElementById('cc-txt-' + k));
+    /* LA PIEZA QUE HACE FUNCIONAR LA OPCION 1: el id tiene que entrar al estudio. Si el prefijo
+       cayera en _noEsDelEstudio, capturarForm no lo guardaria y la hoja desapareceria del PDF
+       reimpreso EN SILENCIO -- el mismo modo de falla que documenta amiloRestaurarDesdeCampos. */
+    const entraAlEstudio = (typeof _noEsDelEstudio === 'function') && !_noEsDelEstudio('cc-txt-coa');
+
+    // ── CoAo cargada ──
+    __t.set('nombre','CCHOJA'); __t.set('ci','5555555-5'); __t.set('edad','41');
+    __t.set('peso','75'); __t.set('talla','175');
+    __t.set('coa_situacion','nativa'); __t.set('coa_loc','yuxtaductal');
+    __t.set('coa_istmo','7'); __t.set('ao_tub','30'); __t.set('coa_ao_desc','18');
+    __t.set('coa_vmax','3.6'); __t.set('coa_hta','si'); __t.set('coa_gradiente_picopico','28');
+    __t.chk('coart_incluir_chk', true);
+    generarInforme();
+    const tCoa = (document.getElementById('cc-txt-coa') || {}).value || '';
+    const secs = (typeof ccEnInforme === 'function') ? ccEnInforme() : [];
+    const elCoa = secs.find((s) => s.k === 'coa');
+
+    /* NO HEREDA. Se destilda la CC y se vuelve a generar: el textarea tiene que quedar VACIO.
+       Sin el reset, destildar dejaba la hoja en el PDF para siempre con el texto de la ultima
+       vez que si estuvo -- el defecto que am-integrados cerro del lado de amiloidosis. */
+    __t.chk('coart_incluir_chk', false);
+    generarInforme();
+    const tTrasDestildar = (document.getElementById('cc-txt-coa') || {}).value || '';
+    const secsTras = (typeof ccEnInforme === 'function') ? ccEnInforme() : [];
+
+    // ── el PDF real ──
+    __t.chk('coart_incluir_chk', true);
+    generarInforme();
+    for (let i=0;i<80 && (typeof window.jspdf==='undefined'||!window.jspdf.jsPDF);i++) await new Promise(r=>setTimeout(r,100));
+    const Orig = window.jspdf.jsPDF; let doc = null;
+    function W(){ const d = new Orig(...arguments); d.save = function(){ return Promise.resolve(); }; doc = d; return d; }
+    W.prototype = Orig.prototype; window.jspdf.jsPDF = W;
+    let err = null;
+    try { await generarPDFReal(); } catch(e) { err = e && e.message; }
+    window.jspdf.jsPDF = Orig;
+    let txt = '';
+    if (doc) {
+      const raw = atob(doc.output('datauristring').split(',')[1]);
+      const re = /\\(((?:\\\\[\\s\\S]|[^()\\\\])*)\\)\\s?Tj/g; let m; const out = [];
+      while ((m = re.exec(raw))) out.push(m[1]);
+      txt = out.join(' ');
+    }
+
+    return { extra: [
+      ['los catorce cc-txt existen al arrancar', faltan.length === 0, faltan.join(',')],
+      ['el id entra al estudio (no lo excluye _noEsDelEstudio)', entraAlEstudio === true, ''],
+      ['con CoAo cargada la hoja tiene contenido', tCoa.length > 0, tCoa.slice(0,60)],
+      ['lleva el subtitulo de morfologia', tCoa.indexOf('## Morfologia / Tipo') > -1, ''],
+      ['lleva mediciones o hemodinamica',
+        tCoa.indexOf('## Mediciones') > -1 || tCoa.indexOf('## Hemodinamica') > -1, ''],
+      ['lleva la linea de guia como bloque de nota', tCoa.indexOf('!!Segun la guia:') > -1, ''],
+      /* La conclusion es la MISMA que publica el clasificador, no una reescrita: se compara
+         contra coaConclusion() en vivo. Dos textos del mismo hecho en el mismo documento es
+         como el informe se contradice consigo mismo. */
+      ['la linea de guia es la del clasificador, no una copia reescrita',
+        (function () {
+          const c = (typeof coaConclusion === 'function') ? coaConclusion() : null;
+          if (!c || !c.txt) return false;
+          return tCoa.indexOf(String(c.txt).replace(/\\.$/, '')) > -1;
+        })(), ''],
+      ['ccEnInforme la devuelve con su titulo',
+        !!elCoa && elCoa.tit === 'COARTACION DE AORTA', JSON.stringify(elCoa || null)],
+
+      ['al destildar la CC el textarea queda VACIO', tTrasDestildar === '', tTrasDestildar.slice(0,60)],
+      ['y ccEnInforme ya no la lista', !secsTras.some((s) => s.k === 'coa'), JSON.stringify(secsTras.map((s)=>s.k))],
+
+      ['el PDF se genero', !!doc, String(err)],
+      ['sale la pagina de congenitas',
+        txt.indexOf('ESTUDIO AVANZADO - CARDIOPATIAS CONGENITAS') > -1, ''],
+      ['con el titulo de la CoAo', txt.indexOf('COARTACION DE AORTA') > -1, ''],
+      ['y los subtitulos impresos en la hoja',
+        txt.indexOf('Morfologia / Tipo') > -1 && txt.indexOf('Segun la guia') > -1, ''],
+      /* Los marcadores NO pueden salir impresos: amiloDibujarSecciones los consume. Si aparecen
+         en el papel, la hoja esta mostrando la sintaxis interna al medico. */
+      ['los marcadores ## y !! no se imprimen',
+        txt.indexOf('## Morfologia') === -1 && txt.indexOf('!!Segun') === -1, '']
+    ] };
+  })();
+`);
+
+
 
 
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
