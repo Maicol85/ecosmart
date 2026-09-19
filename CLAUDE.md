@@ -4239,6 +4239,59 @@ alta, porque los casos se escribieron eligiendo los cortes, no los campos.
    taquicardia ventricular, historia clínica, frases rápidas, segmentos del ETE, pre-TAVI,
    panel de indicaciones (`_IG_SECTIONS`), DICOM e imágenes en IndexedDB.
 
+## MCA: una tabla que NO son conductas, y el estado de módulo que no es un campo
+
+Novena ficha, y la que obligó a cambiar el motor. Dos cosas la separan de las ocho anteriores.
+
+### 1 · Las bandas del Task Force NO son conductas
+`mcaConclusion` devuelve `definitivo / limitrofe / posible / sin_criterios`: son **categorías
+diagnósticas**, no indicaciones terapéuticas. La app **no publica conducta** para la MCA — no hay
+una rama que diga qué hacer. Imprimir esas bandas bajo una columna titulada «Conducta», con el
+encuadre «sugerencia orientativa… el médico decide la conducta», **convierte un diagnóstico en
+una indicación de tratamiento** en un PDF firmado. Son afirmaciones clínicas distintas.
+
+La ficha trae cuatro rótulos propios y el motor los respeta con `||` sobre los de siempre:
+`condTit`, `condCol`, `condTitPpt`, `encuadre`/`encuadrePpt`/`piePpt`. El PDF sale con
+«clasificación diagnóstica Task Force 2010 — NO ES UNA CONDUCTA» y la columna dice «Categoría
+diagnóstica».
+
+Efecto colateral útil y **verificado**: con nueve fichas, el encuadre genérico aparece **ocho**
+veces. TC-172 lo fija en 8. Si alguien le pone el genérico a la MCA, el conteo pasa a 9 y caen
+cuatro condiciones a la vez — comprobado por mutación.
+
+El encuadre propio además declara la limitación real: el diagnóstico definitivo exige histología,
+ECG, arritmias y genética, que el ecocardiograma no aporta. **La banda calculada acá es parcial
+por construcción**, y el papel tiene que decirlo.
+
+### 2 · La contractilidad no es un campo
+`mcaVI()` leía `contrEstado`, `contrDifusa` y `contrDisqSep`: **variables de módulo**, o sea el
+paciente que esté cargado en pantalla. Se persisten como JSON en `campos.contractilidad` y
+`campos.contr_flags`. El nuevo `_ccContr(src)` parsea ese snapshot replicando exactamente lo que
+hace `_restaurarContractilidad` (string-o-objeto, `JSON.parse` con guarda, `Number(x) || 0`); si
+las dos lecturas divergieran, el Laboratorio y el informe firmado describirían motilidades
+distintas del mismo estudio.
+
+Esto es lo que hacía a la MCA **no** una de las chicas: el resto del trabajo eran sombras
+mecánicas; esto es un módulo entero que había que sourcear.
+
+### La cadena completa, y cómo se verificó que no quedó nada suelto
+Siete funciones threadeadas: `mcaConclusion`, `mcaScore`, `mcaCatI`, `mcaVI`, `_mcaChk`,
+`mcaFamMuerteSubita` y `tvEstado`/`tvFrase` (el módulo de TV, compartido con MCH).
+
+No se auditó leyendo: se escribió un **barrido** que recorre el cuerpo de cada función de la
+cadena y marca (a) toda llamada a un helper de la cadena sin `src`, (b) todo `_mcaChk` sin su
+segundo argumento y (c) toda lectura de `getElementById` / `v(` / `contrEstado`. **Encontró una
+que la lectura a ojo había dejado pasar** — `mcaFamMuerteSubita()` dentro de `mcaConclusion` —,
+y recién después dio limpio. Un shim que se queda a mitad de camino produce un resultado
+plausible, que es por lo que no alcanza con revisar.
+
+### Los dos asertos no vacuos de la MCA
+- **Estructural:** el formulario tiene `mca_tsvd_plax:'34'` + `aqui_disc`; el objeto de `sinE` no
+  trae ninguno. Sin propagar `src` por `mcaCatI()`, las dos bandas colapsan.
+- **Contractilidad:** dos objetos que difieren **sólo** en el snapshot JSON. Mutante
+  (`_ccContr` ignorando `src.contractilidad`): `conAneur=[] conNada=[]` — los dos narrativos
+  idénticos y vacíos.
+
 ## Ebstein — y la corrección a «MCA y Ebstein son las chicas»
 
 Octava ficha. Y una corrección a lo que yo mismo había reportado: **MCA no es de las chicas.**

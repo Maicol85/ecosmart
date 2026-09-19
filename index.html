@@ -31189,7 +31189,8 @@ const MCA_FENO_TXT = {
    declaración de divergencia que hacía falta mientras no fuera así. */
 function _tvSv(id){ return (document.getElementById(id)?.value || '').trim(); }
 function _tvNv(id){ const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; }
-function tvEstado(){
+function tvEstado(src){
+  const _tvSv = id => _ccSv(id, src), _tvNv = id => _ccNv(id, src);
   const doc  = _tvSv('tv_documentada');
   const tipo = _tvSv('tv_tipo');
   const morf = _tvSv('tv_morfologia');
@@ -31258,8 +31259,8 @@ const TV_MORF_TXT = { bcri_sup:'bloqueo de rama izquierda con eje superior', bcr
 const TV_TIPO_TXT = { sostenida:'sostenida', no_sostenida:'no sostenida', ambas:'sostenida y no sostenida' };
 /* Frase para el informe. Se emite desde la sección que corresponda, no por su cuenta: el bloque
    compartido no es una sección del informe. */
-function tvFrase(){
-  const t = tvEstado();
+function tvFrase(src){
+  const t = tvEstado(src);
   /* Sin TV pero con extrasistolia que alcanza el criterio, la frase igual existe: si no, el
      informe de MCA sumaría un punto por un hallazgo que no menciona en ningún lado. */
   if (!t.hay) return t.menorEV
@@ -31327,7 +31328,8 @@ function _mcaNv(id){ const n = (typeof v==='function') ? v(id) : null; return (n
    El Task Force además pide que la muerte se atribuya a sospecha de MCA; esa es una valoración
    clínica que hace el médico al evaluar al paciente, y el informe imprime la base (el hecho y la
    edad) para que quien lo lea pueda juzgarla. */
-function mcaFamMuerteSubita(){
+function mcaFamMuerteSubita(src){
+  const _mcaSv = id => _ccSv(id, src), _mcaNv = id => _ccNv(id, src);
   const hay = _mcaSv('mch_fam_ms');
   const ed  = _mcaNv('fam_ms_edad');
   if (hay !== 'si') return { cumple:false, motivo: hay === 'no' ? 'no' : 'sin_dato' };
@@ -31336,14 +31338,14 @@ function mcaFamMuerteSubita(){
   if (!(ed > 0 && ed <= 120)) return { cumple:false, motivo:'edad_fuera' };
   return { cumple: ed < 35, edad: ed, motivo: ed < 35 ? 'cumple' : 'edad_mayor' };
 }
-function _mcaChk(id){
-  if (id === 'mca_vi_men2') return mcaFamMuerteSubita().cumple;
+function _mcaChk(id, src){
+  if (id === 'mca_vi_men2') return mcaFamMuerteSubita(src).cumple;
   /* Las tres filas de arritmias se DERIVAN del bloque compartido, no del input espejo: leer el
      espejo dejaría el puntaje a merced de que `tvSync` haya corrido. */
-  if (id === 'mca_v_may')  return tvEstado().mayor;
-  if (id === 'mca_v_men1') return tvEstado().menorTSVD;
-  if (id === 'mca_v_men2') return tvEstado().menorEV;
-  return _mcaSv(id) === 'si';
+  if (id === 'mca_v_may')  return tvEstado(src).mayor;
+  if (id === 'mca_v_men1') return tvEstado(src).menorTSVD;
+  if (id === 'mca_v_men2') return tvEstado(src).menorEV;
+  return _ccSv(id, src) === 'si';
 }
 
 /* CATEGORÍA I — estructural por ecocardiografía.
@@ -31363,7 +31365,8 @@ const MCA_UMBRAL = {
   psax: { mayor:36, menorLo:32 },   // TSVD paraesternal eje corto, mm
   fac:  { mayor:33, menorHi:40 }    // fracción de acortamiento de área del VD, %
 };
-function mcaCatI(){
+function mcaCatI(src){
+  const _mcaSv = id => _ccSv(id, src), _mcaNv = id => _ccNv(id, src);
   const mov = _mcaSv('mca_mov_regional');
   /* `mca_tsvd_plax` es un campo PROPIO y no reusa `tsvd_diametro`. Aquel existe desde antes
      para alimentar el Qp/Qs junto con el VTI del TSVD, y ese diametro se toma en el anillo
@@ -31440,15 +31443,15 @@ const MCA_CATS = [
            ['mca_vi_men2','Muerte súbita prematura (<35 años) en familiar de primer grado'],
            ['mca_vi_men3','MCA confirmada por criterios o anatomía patológica en familiar de segundo grado']] }
 ];
-function mcaScore(){
+function mcaScore(src){
   const cats = [];
-  const catI = mcaCatI();
+  const catI = mcaCatI(src);
   cats.push({ k:'i', nom:'Estructural por ecocardiografía', pts:catI.pts, nivel:catI.nivel,
               detalle: catI.nivel === 'mayor' ? 'criterio mayor' : (catI.nivel === 'menor' ? 'criterio menor' : null),
               info: catI });
   MCA_CATS.forEach(function(c){
-    const may = c.mayor.filter(function(x){ return _mcaChk(x[0]); });
-    const men = c.menor.filter(function(x){ return _mcaChk(x[0]); });
+    const may = c.mayor.filter(function(x){ return _mcaChk(x[0], src); });
+    const men = c.menor.filter(function(x){ return _mcaChk(x[0], src); });
     /* El de mayor jerarquía, y se ANOTA cuántos se marcaron: el médico tiene que poder ver que
        marcó dos y que contó uno, o el número parece un error de la app. */
     const nivel = may.length ? 'mayor' : (men.length ? 'menor' : 'ninguno');
@@ -31463,27 +31466,26 @@ function mcaScore(){
 /* Compromiso del ventrículo izquierdo. NO puntúa: los TFC 2010 no lo contemplan. Se deriva de lo
    que la app ya tiene —la FEVI y el módulo de contractilidad segmentaria, que registra
    hipocinesia, aquinesia, discinesia y aneurisma por segmento— en vez de preguntarlo otra vez. */
-function mcaVI(){
+function mcaVI(src){
+  const _mcaSv = id => _ccSv(id, src), _mcaNv = id => _ccNv(id, src);
   const hallazgos = [];
   const fevi = _mcaNv('fevi');
   if (fevi != null && fevi >= 5 && fevi <= 90 && fevi < 50) hallazgos.push('disfunción sistólica del ventrículo izquierdo (FEVI ' + fevi + ' %)');
-  /* `contrEstado` es un const de nivel superior y NO cuelga de window: se lee por el identificador
-     léxico, con guarda. Códigos: 0 normal · 1 hipoquinesia · 2 aquinesia · 3 discinesia · 4 aneurisma. */
-  let peor = 0;
-  try {
-    if (typeof contrEstado !== 'undefined' && contrEstado) {
-      Object.keys(contrEstado).forEach(function(k){ const n = Number(contrEstado[k]) || 0; if (n > peor) peor = n; });
-    }
-  } catch(e){}
+  /* La motilidad sale de `_ccContr(src)`: con un estudio guardado parsea el snapshot JSON de
+     `campos.contractilidad`, y sin `src` lee `contrEstado` —el const de nivel superior, que NO
+     cuelga de window— igual que antes. Acá vivían las tres lecturas del estado VIVO del módulo;
+     dejarlas habría hecho que el Laboratorio describiera la motilidad del paciente cargado en
+     pantalla dentro de la conclusión de otro. Códigos: 0 normal · 1 hipoquinesia · 2 aquinesia ·
+     3 discinesia · 4 aneurisma. */
+  const _contr = _ccContr(src);
+  const peor = _contr.peor;
   /* DIFUSA no es REGIONAL, y la palabra es todo el peso diagnóstico acá: la alteración regional
      del VI es el rasgo del fenotipo de dominancia izquierda. `toggleContrDifusa` pinta los 17
      segmentos en 1, así que tomar el máximo convertía una hipocinesia GLOBAL de una miocardiopatía
      dilatada en «alteración regional». Se leen también las banderas del módulo, que es donde vive
      esa distinción — y de paso la disquinesia septal, que no pinta ningún segmento y quedaba
      invisible. */
-  let difusa = false, disqSep = false;
-  try { if (typeof contrDifusa !== 'undefined') difusa = !!contrDifusa; } catch(e){}
-  try { if (typeof contrDisqSep !== 'undefined') disqSep = !!contrDisqSep; } catch(e){}
+  const difusa = _contr.difusa, disqSep = _contr.disqSep;
   if (difusa && peor <= 1) hallazgos.push('hipocontractilidad difusa del ventrículo izquierdo (no es una alteración regional)');
   else if (peor >= 1 && peor <= 3) hallazgos.push('alteración regional de la motilidad del ventrículo izquierdo documentada en Contractilidad');
   if (disqSep) hallazgos.push('disquinesia septal documentada en Contractilidad');
@@ -31493,14 +31495,15 @@ function mcaVI(){
      que el párrafo de MCH lo nombre y el de MCA lo omita sería el informe contradiciéndose. */
   const aneurMch = _mcaSv('mch_aneurisma_apical') === 'si';
   if (peor >= 4) hallazgos.push('aneurisma del ventrículo izquierdo documentado en Contractilidad');
-  else if (_mcaChk('mca_vi_aneurisma') || aneurMch) hallazgos.push('aneurisma del ventrículo izquierdo' +
-    (aneurMch && !_mcaChk('mca_vi_aneurisma') ? ' (registrado en la sección de miocardiopatía hipertrófica)' : ''));
+  else if (_mcaChk('mca_vi_aneurisma', src) || aneurMch) hallazgos.push('aneurisma del ventrículo izquierdo' +
+    (aneurMch && !_mcaChk('mca_vi_aneurisma', src) ? ' (registrado en la sección de miocardiopatía hipertrófica)' : ''));
   return { hallazgos: hallazgos, hay: hallazgos.length > 0 };
 }
-function mcaConclusion(){
+function mcaConclusion(src){
+  const _mcaSv = id => _ccSv(id, src), _mcaNv = id => _ccNv(id, src);
   const feno = _mcaSv('mca_fenotipo');
-  const sc = mcaScore();
-  const vi = mcaVI();
+  const sc = mcaScore(src);
+  const vi = mcaVI(src);
   /* La categoría V queda FUERA de `alguno`: desde que se deriva del bloque compartido dejó de
      ser un campo propio de esta sección. Con ella adentro, un recuento de 800 extrasístoles
      —que el bloque pide con independencia de la TV, porque la extrasistolia aislada es la
@@ -31556,12 +31559,12 @@ function mcaConclusion(){
      por las que la categoría queda SIN puntuar —morfología no especificada, bloqueo de rama
      derecha— para que el rótulo «Task Force 2010» del puntaje no quede solo al lado de un cero
      que el lector no puede explicarse. */
-  { const _tv = tvEstado(); const _f = tvFrase();
+  { const _tv = tvEstado(src); const _f = tvFrase(src);
     if (_f) partes.push(_f);
     _tv.notas.forEach(function(n){ partes.push(n); }); }
   /* La base de la derivación se imprime: quien lea el informe tiene que poder juzgar si esa
      muerte súbita se atribuye a MCA, que es la parte del criterio que la app no puede decidir. */
-  { const fam = mcaFamMuerteSubita();
+  { const fam = mcaFamMuerteSubita(src);
     if (fam.motivo === 'cumple') partes.push('El criterio familiar se sostiene en la muerte súbita de un familiar de primer grado a los ' + fam.edad + ' años; los criterios Task Force piden además que se atribuya a sospecha de miocardiopatía arritmogénica, que es una valoración clínica');
     else if (fam.motivo === 'sin_edad') partes.push('Consta historia familiar de muerte súbita pero no la edad del familiar: el criterio Task Force exige que haya sido antes de los 35 años, así que la categoría familiar no puede puntuarse por esa vía');
     else if (fam.motivo === 'edad_mayor') partes.push('La muerte súbita familiar ocurrió a los ' + fam.edad + ' años, por encima del corte de 35 del criterio Task Force');
@@ -31599,7 +31602,7 @@ function mcaConclusion(){
      Es la misma asimetría que ya se cerró para los factores sin evaluar de la AHA, colgando la
      salvedad del resumen y no sólo del párrafo. */
   let resumenF = resumen;
-  { const _tv = tvEstado();
+  { const _tv = tvEstado(src);
     /* Las dos vías por las que la categoría queda sin puntuar suben al EN SUMA. No son
        divergencia con la guía —sin morfología el Task Force tampoco puntúa— pero el EN SUMA
        lleva el rótulo y el puntaje, y los dos textarea se editan por separado. */
@@ -34098,6 +34101,33 @@ function _ccNv(id, src) {
   if (r === undefined || r === null || r === '') return null;
   const x = (typeof PF === 'function') ? PF(r) : parseFloat(String(r).replace(',', '.'));
   return (x != null && isFinite(x)) ? x : null;
+}
+/* ── Contractilidad segmentaria, source-aware ────────────────────────────────────────────────
+   El modulo de Contractilidad NO vive en campos del formulario: vive en `contrEstado` (objeto de
+   modulo, segmento -> codigo 0..4) y en tres booleanos sueltos. Se PERSISTE como JSON en
+   `campos.contractilidad` y `campos.contr_flags`, asi que un clasificador que corre sobre un
+   estudio guardado tiene que parsear ESO y no mirar el estado vivo — que es el del paciente que
+   este cargado en pantalla, o sea otro paciente.
+   El parseo replica el de `_restaurarContractilidad` (string o ya-objeto, JSON.parse con guarda,
+   `Number(x) || 0`): si las dos lecturas divergen, el Laboratorio y el informe firmado
+   describirian motilidades distintas del mismo estudio.
+   Codigos: 0 normal · 1 hipoquinesia · 2 aquinesia · 3 discinesia · 4 aneurisma. */
+function _ccContr(src) {
+  let peor = 0, difusa = false, disqSep = false;
+  if (!src) {
+    try { if (typeof contrEstado !== 'undefined' && contrEstado)
+      Object.keys(contrEstado).forEach(function (k) { const n = Number(contrEstado[k]) || 0; if (n > peor) peor = n; }); } catch (e) {}
+    try { if (typeof contrDifusa !== 'undefined') difusa = !!contrDifusa; } catch (e) {}
+    try { if (typeof contrDisqSep !== 'undefined') disqSep = !!contrDisqSep; } catch (e) {}
+    return { peor: peor, difusa: difusa, disqSep: disqSep };
+  }
+  let segs = src.contractilidad;
+  if (typeof segs === 'string') { try { segs = JSON.parse(segs); } catch (e) { segs = null; } }
+  if (segs && typeof segs === 'object')
+    Object.keys(segs).forEach(function (k) { const n = Number(segs[k]) || 0; if (n > peor) peor = n; });
+  let fl = src.contr_flags;
+  if (typeof fl === 'string') { try { fl = JSON.parse(fl); } catch (e) { fl = null; } }
+  return { peor: peor, difusa: !!(fl && fl.difusa), disqSep: !!(fl && fl.disqSep) };
 }
 function tgaConclusion(src){
   const _tgaSv = id => _ccSv(id, src), _tgaNv = id => _ccNv(id, src);
@@ -53088,6 +53118,22 @@ const EBS_CONDUCTAS = [
   { k:'no_interpretable',       lbl:'No interpretable',           crit:'Algun valor fuera de rango: revisar unidades antes de concluir' },
   { k:'nc',                     lbl:'No clasificable',            crit:'El clasificador no devolvio una conclusion para este estudio' }
 ];
+/* ── MCA · miocardiopatia arritmogenica ──
+   ESTO NO SON CONDUCTAS: son las BANDAS DIAGNOSTICAS del Task Force 2010, y la ficha las rotula
+   como tales en las dos superficies. La app no publica conducta para la MCA —no hay una rama que
+   diga que hacer— y convertir «definitivo / limitrofe / posible» en una columna titulada
+   "Conducta" seria afirmar una indicacion terapeutica donde el informe individual afirma un
+   diagnostico. Son cosas distintas y el papel firmado tiene que poder distinguirlas. */
+const MCA_CONDUCTAS = [
+  { k:'definitivo',       lbl:'Diagnostico definitivo',  crit:'4 puntos o mas: 2 mayores, o 1 mayor + 2 menores, o 4 menores de categorias distintas (Task Force 2010)' },
+  { k:'limitrofe',        lbl:'Diagnostico limitrofe',   crit:'3 puntos: 1 mayor + 1 menor, o 3 menores de categorias distintas (Task Force 2010)' },
+  { k:'posible',          lbl:'Diagnostico posible',     crit:'2 puntos: 1 mayor, o 2 menores de categorias distintas (Task Force 2010)' },
+  { k:'sin_criterios',    lbl:'Sin criterios',           crit:'Menos de 2 puntos - no se alcanzan los criterios diagnosticos' },
+  { k:'no_interpretable', lbl:'No interpretable',        crit:'Valor del criterio estructural fuera de rango: revisar unidades antes de puntuar' },
+  { k:'nc',               lbl:'No clasificable',         crit:'El clasificador no devolvio una conclusion para este estudio' }
+];
+const MCA_TIPOS_LBL = { derecho:'Dominante derecho (clasico)', biventricular:'Biventricular',
+                        izquierdo:'Dominante izquierdo', no_det:'No determinado' };
 /* Ebstein no tiene campo de "tipo": lo que clasifica el estudio es el GRADO DE CELERMAJER, un
    indice calculado, no un select. Se distribuye por la FUNCION del VD, que es el select que
    describe el hallazgo y el que mueve la cascada a la rama IIa. */
@@ -53213,7 +53259,30 @@ const CC_FICHAS = Object.assign(Object.create(null), {
        la conducta NO sale de un Qp/Qs, asi que recortar el denominador por multiplicidad de
        shunts descartaria estudios por una razon que esta cascada no usa. */
     soloShuntUnico:false,
-    pie:'El indice de Celermajer se calcula con las cinco areas y devuelve null si falta una: el promedio se publica sobre los estudios que las tienen completas, no sobre la cohorte. La CIANOSIS entra en la cascada entre la Clase I y la IIa, y va SIN numero de clase a proposito: la ESC 2020 la nombra entre los desencadenantes de intervencion pero no publica la clase que le corresponde. El cierre de la comunicacion interauricular solo se nombra cuando hay una documentada en el estudio.' }
+    pie:'El indice de Celermajer se calcula con las cinco areas y devuelve null si falta una: el promedio se publica sobre los estudios que las tienen completas, no sobre la cohorte. La CIANOSIS entra en la cascada entre la Clase I y la IIa, y va SIN numero de clase a proposito: la ESC 2020 la nombra entre los desencadenantes de intervencion pero no publica la clase que le corresponde. El cierre de la comunicacion interauricular solo se nombra cuando hay una documentada en el estudio.' },
+  mca: { tit:'Miocardiopatia arritmogenica (MCA)', titAcc:'Miocardiopatía arritmogénica (MCA)',
+    tipoCampo:'mca_fenotipo', tipos:MCA_TIPOS_LBL, tipoTit:'Distribucion por fenotipo',
+    tamCampo:'mca_tsvd_plax', tamLbl:'TSVD paraesternal eje largo',
+    /* El puntaje sale de `_ccMcaTF`, la derivacion source-aware que el Laboratorio YA tenia
+       —alimenta el indicador `mca_tf`— y no de una segunda cuenta escrita aca. */
+    metricas:[ { k:'tf', lbl:'Puntaje Task Force 2010', get:i => _ccMcaTF(i), dec:1, suf:' pts' },
+               { k:'fac', lbl:'FAC del VD promedio', get:i => { const x = _labNum(i, 'mca_fac'); return (x !== null && x >= 1 && x <= 80) ? x : null; }, dec:0, suf:' %' } ],
+    props:[ { k:'mov', lbl:'Con aquinesia, discinesia o aneurisma', get:i => { const x = _labCampoRaw(i, 'mca_mov_regional');
+                /* La HIPOCINESIA aislada NO es criterio —es inespecifica de cualquier sobrecarga
+                   derecha— asi que cuenta como false, no como true ni como null: fue evaluada. */
+                if (x === 'aqui_disc' || x === 'aneurisma') return true;
+                if (x === 'normal' || x === 'hipo') return false;
+                return null; } } ],
+    conductas:MCA_CONDUCTAS, clasif:_claveDe(mcaConclusion), soloShuntUnico:false,
+    /* Los CUATRO rotulos que cambian, porque esta tabla NO publica conducta sino diagnostico. */
+    condTit:' - clasificacion diagnostica Task Force 2010 - NO ES UNA CONDUCTA',
+    condCol:'Categoria diagnostica',
+    condTitPpt:'Clasificación diagnóstica (Task Force 2010)',
+    encuadre:'Clasificacion DIAGNOSTICA segun los criterios Task Force 2010, no una conducta terapeutica: esta app no publica indicacion de tratamiento para la miocardiopatia arritmogenica. El diagnostico definitivo exige criterios que el ecocardiograma no aporta -histologia, ECG, arritmias y genetica- asi que la banda calculada aca es parcial por construccion.',
+    encuadrePpt:'Clasificación diagnóstica, no una conducta terapéutica.',
+    piePpt:'Criterios Task Force 2010 — la banda es parcial: el eco no aporta histología, ECG ni genética.',
+    /* SIN comillas invertidas: este texto se IMPRIME en el PDF y saldrian literales. */
+    pie:'La banda sale del mismo puntaje que firma el informe individual, con la regla operativa de UN criterio por categoria -el de mayor jerarquia-: sumar todas las filas marcadas sobrediagnostica. El criterio estructural usa el TSVD paraesternal propio de la seccion y no el del Qp/Qs, porque se miden en otro nivel y con otra convencion. Un valor fuera de rango invalida la categoria entera y cae en no interpretable, no se ignora para seguir puntuando.' }
 });
 
 /* El ORDEN de las secciones, en un solo lugar. `Object.keys(CC_FICHAS)` daría el mismo resultado
@@ -53222,7 +53291,7 @@ const CC_FICHAS = Object.assign(Object.create(null), {
    y leído por las DOS superficies: con una copia por superficie, agregar una CC y olvidarse de
    una lista produce una sección que está en el PDF y no en el PPT, que es exactamente lo que la
    regla «PDF >= PPT» prohíbe y lo que nadie ve hasta que falta. */
-const CC_ORDEN = ['cia', 'civ', 'dap', 'vap', 'coa', 'fop', 'ebs', 'tga'];
+const CC_ORDEN = ['cia', 'civ', 'dap', 'vap', 'coa', 'fop', 'ebs', 'tga', 'mca'];
 /* Assert de arranque: toda clave del orden tiene ficha, y toda ficha está en el orden. Sin esto,
    una ficha nueva sin su entrada acá no da error — da una sección que simplemente no se imprime,
    y el modo de falla es el silencio. */
@@ -55144,11 +55213,11 @@ async function _labPPTGenerar(infs, o) {
         if (R.cond) {
         const NF = CF.conductas.length;
         const PASO = NF <= 6 ? 0.32 : Math.max(0.185, 1.92 / NF);
-        s2.addText(T('Orientación terapéutica  ·  n = ' + R.condN
+        s2.addText(T((CF.condTitPpt || 'Orientación terapéutica') + '  ·  n = ' + R.condN
             + (R.fuera ? '  (' + R.fuera + ' con más de un shunt, Qp/Qs no atribuible)' : '')
             + (R.otras ? '  (' + R.otras + ' con una clave fuera de la tabla)' : '')),
           { x:4.7, y:2.26, w:5.0, h:0.22, fontSize:12, bold:true, color:C.txt, fontFace:FONT });
-        s2.addText(T('Sugerencia orientativa, no recomendación terapéutica.'),
+        s2.addText(T(CF.encuadrePpt || 'Sugerencia orientativa, no recomendación terapéutica.'),
           { x:4.7, y:2.47, w:5.0, h:0.18, fontSize:8.5, bold:true, italic:true, color:C.rojo, fontFace:FONT });
         let yd = 2.68;
         CF.conductas.forEach(function (f) {
@@ -55170,7 +55239,7 @@ async function _labPPTGenerar(infs, o) {
            cardio-oncología: en un mazo proyectado, dos advertencias del mismo peso con formatos
            distintos se leen como si una fuera menos importante. */
         if (R.cond)
-          s2.addText(T('Sugerencia orientativa según guías ESC/AHA — no reemplaza el juicio clínico del médico.'),
+          s2.addText(T(CF.piePpt || 'Sugerencia orientativa según guías ESC/AHA — no reemplaza el juicio clínico del médico.'),
             { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.rojo, fontFace:FONT });
       }
     }
@@ -57870,8 +57939,13 @@ async function labGenerarPDF() {
         _nota(CF.pie);
         continue;
       }
-      sectionTitle(CF.tit + ' - orientacion terapeutica - SUGERENCIA ORIENTATIVA, NO RECOMENDACION');
-      drawTable(M, [44, 110, 26], ['Conducta', 'Criterio (guia y ano)', 'n (%)'],
+      /* El rotulo NO es fijo. La MCA no publica una CONDUCTA: publica la banda diagnostica del
+         Task Force 2010. Imprimir «definitivo / limitrofe / posible» bajo una columna que dice
+         «Conducta» convierte una categoria DIAGNOSTICA en una indicacion terapeutica, que es
+         una afirmacion clinica distinta de la que hace el informe individual. La ficha trae su
+         propio titulo y su propia cabecera cuando corresponde. */
+      sectionTitle(CF.tit + (CF.condTit || ' - orientacion terapeutica - SUGERENCIA ORIENTATIVA, NO RECOMENDACION'));
+      drawTable(M, [44, 110, 26], [CF.condCol || 'Conducta', 'Criterio (guia y ano)', 'n (%)'],
         CF.conductas.map(f => [f.lbl, f.crit, (R.cond[f.k] || 0) + ' (' + pct(R.cond[f.k] || 0, R.condN) + ')']));
       y += 2;
       /* SIN acentos, como todas las _nota del archivo: `_labSanPDF` los despoja igual -- la
@@ -57879,7 +57953,7 @@ async function labGenerarPDF() {
          umbrales de severidad valvular salieron ilegibles en TODOS los PDF firmados. Escribirlos
          en el fuente no los hace aparecer; solo hace creer al que lo lea que aparecen.
          En el PPT si van acentuados: PptxGenJS no tiene esa limitacion y se verifico. */
-      _nota('Sugerencia orientativa basada en guias vigentes (ESC/AHA). No constituye una recomendacion clinica individual. El medico tratante es quien decide la conducta segun el contexto del paciente.');
+      _nota(CF.encuadre || 'Sugerencia orientativa basada en guias vigentes (ESC/AHA). No constituye una recomendacion clinica individual. El medico tratante es quien decide la conducta segun el contexto del paciente.');
       /* Y el detalle metodologico aparte: cuantos entraron al denominador y por que. */
       _nota('Denominador de esta tabla: n = ' + R.condN +
             (R.fuera ? ' -- se excluyeron ' + R.fuera + ' estudio(s) con mas de un cortocircuito documentado, donde el Qp/Qs global no es atribuible a este defecto.' : '') +
@@ -58918,8 +58992,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260919-0742';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789814572526;                 /* eco-build-ms */
+const ECO_BUILD    = '20260919-0750';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789815032210;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -59005,7 +59079,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-0742</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-0750</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

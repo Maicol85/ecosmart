@@ -8571,7 +8571,9 @@ caso('TC-171', 'Los clasificadores de CC dan lo MISMO leyendo el form o un estud
       tga_obstr_subaortica:'no',
       ebs_desplazamiento:'22', ebs_func_vd:'moderada', ebs_sintomas:'si', ebs_tsv:'si',
       ebs_saturacion:'94', ebs_area_ad:'30', ebs_area_vd_atrial:'14', ebs_area_vd_func:'18',
-      ebs_area_ai:'20', ebs_area_vi:'26'
+      ebs_area_ai:'20', ebs_area_vi:'26',
+      mca_fenotipo:'derecho', mca_mov_regional:'aqui_disc', mca_tsvd_plax:'34', mca_fac:'30',
+      mca_ii_may:'si', tv_documentada:'si', tv_tipo:'no_sostenida', tv_morfologia:'bcri'
     };
     const puestos = [], faltantes = [];
     Object.keys(F).forEach((k) => {
@@ -8596,14 +8598,14 @@ caso('TC-171', 'Los clasificadores de CC dan lo MISMO leyendo el form o un estud
        es source-aware, que era lo que lo tenia afuera. */
     const dap = par(dapConclusion), vap = par(vapConclusion);
     const coa = par(coaConclusion), fop = par(fopConclusion), tga = par(tgaConclusion);
-    const ebs = par(ebsConclusion);
+    const ebs = par(ebsConclusion), mca = par(mcaConclusion);
     /* Denominador: si las dos rutas devuelven null el caso pasaria trivialmente, que es medir
-       sobre vacio. Se exige que la ruta DOM haya concluido ALGO en las seis. */
-    const concluyen = [dap.dom, vap.dom, coa.dom, fop.dom, tga.dom, ebs.dom].filter((x) => x !== 'null' && x !== null).length;
+       sobre vacio. Se exige que la ruta DOM haya concluido ALGO en las siete. */
+    const concluyen = [dap.dom, vap.dom, coa.dom, fop.dom, tga.dom, ebs.dom, mca.dom].filter((x) => x !== 'null' && x !== null).length;
     return { extra: [
       ['los ids del formulario existen',            faltantes.length === 0, faltantes.join(',')],
       ['la casilla de la coartacion existe',        casilla === 'ok', casilla],
-      ['las seis cascadas concluyen algo',         concluyen === 6, concluyen + ' de 6'],
+      ['las siete cascadas concluyen algo',        concluyen === 7, concluyen + ' de 7'],
       ['ductus: la misma conclusion por las dos rutas',    dap.dom === dap.src, 'dom=' + dap.dom.slice(0,70) + ' src=' + dap.src.slice(0,70)],
       /* EL aserto que de verdad prueba que el ductus lee el estudio. Los dos de arriba son
          vacuos por construccion: el formulario y campos tienen los MISMOS datos, asi que una
@@ -8629,6 +8631,41 @@ caso('TC-171', 'Los clasificadores de CC dan lo MISMO leyendo el form o un estud
       ['FOP: la misma conclusion por las dos rutas',      fop.dom === fop.src, 'dom=' + fop.dom.slice(0,70) + ' src=' + fop.src.slice(0,70)],
       ['TGA: la misma conclusion por las dos rutas',      tga.dom === tga.src, 'dom=' + tga.dom.slice(0,70) + ' src=' + tga.src.slice(0,70)],
       ['Ebstein: la misma conclusion por las dos rutas',  ebs.dom === ebs.src, 'dom=' + ebs.dom.slice(0,70) + ' src=' + ebs.src.slice(0,70)],
+      ['MCA: la misma conclusion por las dos rutas',      mca.dom === mca.src, 'dom=' + mca.dom.slice(0,70) + ' src=' + mca.src.slice(0,70)],
+      /* MCA, aserto NO vacuo 1 de 2: el criterio ESTRUCTURAL. El formulario tiene
+         mca_tsvd_plax 34 y aqui_disc -criterio mayor, 2 puntos-. El objeto de sinE no trae
+         ninguno de los dos, asi que sin la propagacion de src por mcaCatI() el puntaje leeria
+         el DOM y las dos bandas colapsarian. */
+      ['el criterio estructural del estudio cambia la banda de MCA',
+        (function () {
+          const conE = mcaConclusion({ mca_fenotipo:'derecho', mca_mov_regional:'aqui_disc', mca_tsvd_plax:'34' });
+          const sinE = mcaConclusion({ mca_fenotipo:'derecho' });
+          return conE && sinE && conE.clave === 'posible' && sinE.clave === 'sin_criterios';
+        })(),
+        'conE=' + J((mcaConclusion({ mca_fenotipo:'derecho', mca_mov_regional:'aqui_disc', mca_tsvd_plax:'34' }) || {}).clave) +
+        ' sinE=' + J((mcaConclusion({ mca_fenotipo:'derecho' }) || {}).clave)],
+      /* MCA, aserto NO vacuo 2 de 2, y el que cubre lo que NO es un campo: la CONTRACTILIDAD.
+         mcaVI() leia contrEstado/contrDifusa/contrDisqSep, que son variables de modulo del
+         bloque de Contractilidad y valen para el paciente CARGADO EN PANTALLA. En un estudio
+         guardado eso viaja como JSON en campos.contractilidad. Se comparan dos objetos que solo
+         difieren en ese snapshot: si _ccContr no parseara el JSON, los dos narrativos serian
+         identicos porque los dos estarian mirando el mismo estado vivo. */
+      ['la contractilidad guardada del estudio cambia el narrativo de MCA',
+        (function () {
+          const base = { mca_fenotipo:'derecho', mca_mov_regional:'aqui_disc', mca_tsvd_plax:'34' };
+          const conAneur = mcaConclusion(Object.assign({}, base, { contractilidad: JSON.stringify({ s1:4 }) }));
+          const conNada  = mcaConclusion(Object.assign({}, base, { contractilidad: JSON.stringify({ s1:0 }) }));
+          if (!conAneur || !conNada) return false;
+          const a = (conAneur.vi && conAneur.vi.hallazgos) ? conAneur.vi.hallazgos.join(' ') : '';
+          const b = (conNada.vi && conNada.vi.hallazgos) ? conNada.vi.hallazgos.join(' ') : '';
+          return a.indexOf('aneurisma') > -1 && b.indexOf('aneurisma') === -1;
+        })(),
+        (function () {
+          const base = { mca_fenotipo:'derecho', mca_mov_regional:'aqui_disc', mca_tsvd_plax:'34' };
+          const x = mcaConclusion(Object.assign({}, base, { contractilidad: JSON.stringify({ s1:4 }) }));
+          const y = mcaConclusion(Object.assign({}, base, { contractilidad: JSON.stringify({ s1:0 }) }));
+          return 'conAneur=' + J(x && x.vi && x.vi.hallazgos) + ' conNada=' + J(y && y.vi && y.vi.hallazgos);
+        })()],
       /* Ebstein, aserto NO vacuo 1 de 2: la SATURACION. El formulario tiene 94 -- sin cianosis--
          y el objeto 85. Si la sombra no propagara src, conSat leeria el 94 del DOM y nunca daria
          la rama de cianosis. */
@@ -8720,7 +8757,9 @@ caso('TC-172', 'El encuadre orientativo sale en el PDF, una vez por tabla de con
       mk(8, { fevi:'52', tapse:'16', ebs_desplazamiento:'24', ebs_func_vd:'moderada',
               ebs_sintomas:'si', ebs_tsv:'no', ebs_saturacion:'93', it_grado:'4',
               ebs_area_ad:'32', ebs_area_vd_atrial:'15', ebs_area_vd_func:'17',
-              ebs_area_ai:'21', ebs_area_vi:'25' })
+              ebs_area_ai:'21', ebs_area_vi:'25' }),
+      mk(9, { fevi:'44', tapse:'15', mca_fenotipo:'derecho', mca_mov_regional:'aqui_disc',
+              mca_tsvd_plax:'35', mca_fac:'28', mca_ii_may:'si' })
     ];
     const origGet = window.getInformes;
     window.getInformes = function(){ return datos; };
@@ -8764,8 +8803,9 @@ caso('TC-172', 'El encuadre orientativo sale en el PDF, una vez por tabla de con
       ['el PDF tiene paginas: hay denominador', paginas > 0, 'paginas=' + paginas],
       ['sale la seccion de conductas de la CIA', txt.indexOf('Cierre percutaneo') > -1, ''],
       ['sale la seccion de conductas de la CIV', txt.indexOf('Cierre indicado') > -1, ''],
-      /* OCHO, una por ficha con tabla de conductas. El numero es la compuerta: si una ficha
-         nueva entra a CC_ORDEN sin encuadre, o si una lo pierde, esto cae. */
+      /* OCHO sobre NUEVE fichas: la MCA lleva encuadre propio porque su tabla es diagnostica.
+         El numero es la compuerta: si una ficha nueva entra a CC_ORDEN sin encuadre, si una lo
+         pierde, o si a la MCA le ponen el generico, esto cae. */
       ['el encuadre aparece una vez por tabla', cuenta(abre) === 8, cuenta(abre) + ' veces'],
       ['la frase entra completa, no truncada', cuenta(cierra) === 8, cuenta(cierra) + ' veces'],
       ['sale la seccion del ductus', txt.indexOf('Ductus arterioso permeable') > -1, ''],
@@ -8774,6 +8814,20 @@ caso('TC-172', 'El encuadre orientativo sale en el PDF, una vez por tabla de con
       ['sale la seccion del foramen oval', txt.indexOf('Foramen oval permeable') > -1, ''],
       ['sale la seccion de la transposicion', txt.indexOf('Transposicion de grandes arterias') > -1, ''],
       ['sale la seccion de Ebstein', txt.indexOf('Anomalia de Ebstein') > -1, ''],
+      ['sale la seccion de la MCA', txt.indexOf('Miocardiopatia arritmogenica') > -1, ''],
+      /* LA CONDICION CLINICA DE ESTA TANDA. La MCA publica la banda DIAGNOSTICA del Task Force
+         2010, no una conducta. Si la tabla sale bajo el rotulo de siempre, el PDF firmado
+         convierte un diagnostico en una indicacion terapeutica. */
+      ['la MCA se rotula como clasificacion diagnostica',
+        txt.indexOf('clasificacion diagnostica Task Force 2010') > -1 &&
+        txt.indexOf('Categoria diagnostica') > -1, ''],
+      ['y NO como orientacion terapeutica',
+        txt.indexOf('Miocardiopatia arritmogenica (MCA) - orientacion terapeutica') === -1, ''],
+      /* El encuadre de la MCA es el suyo, no el generico: por eso el conteo de abajo sigue en 8
+         con NUEVE fichas. Si alguien le pusiera el generico, este aserto y el del conteo caen
+         juntos -- que es lo que se quiere. */
+      ['la MCA lleva su propio encuadre diagnostico',
+        txt.indexOf('Clasificacion DIAGNOSTICA segun los criterios Task Force 2010') > -1, ''],
       /* La cianosis de Ebstein va SIN numero de clase: la ESC 2020 la nombra entre los
          desencadenantes pero no publica cual le corresponde, y ponerle uno seria cita falsa. */
       ['la cianosis de Ebstein no se atribuye una clase',
