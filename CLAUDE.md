@@ -4280,6 +4280,52 @@ Verificado sobre un PPT real con POP integrado: `totalHojas:4`, `indicePostCEC:2
 **Safari no se verificó** — el navegador está concedido en nivel «read» y no se puede navegar.
 Sin test de regresión todavía para esta hoja.
 
+## PPT del estudio individual: hoja PostCEC y tres mediciones — y lo que NO se toco
+
+### POP no existia en el PPT individual
+Cero ocurrencias de `pop` en `_pptDesdeFormulario`: un estudio con el modulo integrado se
+presentaba sin su bloque hemodinamico, aunque el PDF si lo traia. Ahora hay hoja condicional por
+`integrado('pop')` —la misma casilla que gobierna la hoja del PDF—: contexto quirurgico (tipo,
+horas, monitoreo, drogas ACTIVAS con su dosis), hemodinamica con la FUENTE de cada valor entre
+parentesis —el IC puede venir del Swan, del PiCCO o del eco—, el patron en franja propia y las
+cinco preguntas de `popPatron()` con semaforo.
+
+El semaforo se TRADUCE, no se decide: las preguntas ya vienen con su `cls`. El clasificador tiene
+cuatro bandas y la escala pedida tres, asi que `orange` cae en amarillo y no en rojo — mapearlo a
+rojo diria «actuar» sobre un hallazgo que la app marca como intermedio.
+
+### `R.pat` es un objeto, no una cadena
+La primera version hacia `'Patrón hemodinámico: ' + R.pat` y eso imprime **«[object Object]»** en
+la diapositiva. `popPatron().pat` es `{k, lbl, cls}`; el texto que publican la pantalla y el PDF
+es `.lbl`. Es el mismo defecto que este archivo ya pago con `dptTamano()`. Lo caza la sonda
+porque compara contra `'object Object'`, no solo contra la presencia de la palabra «Patron».
+
+### Las filas de tabla NO pasan por addText
+La sonda interceptaba `addSlide().addText` y daba `false` en las siete filas de la hoja —parecia
+que la tabla no existia—. `tabla()` emite por **`addTable`**. Interceptando las dos: las siete
+filas estan. Tercera vez en la sesion que el defecto esta en la sonda: **antes de reportar un
+elemento ausente, confirmar que el metodo por el que se dibuja es el que se esta mirando.**
+
+### Tres mediciones que faltaban
+`DSVI` (el id real es `dsfvi`, no `dsvi`), `VRT` (`vmax_it`) y `Pericardio`. La VRT es el CUARTO
+criterio de la diastolica ASE 2016 y su ausencia dejaba la tabla mostrando tres de los cuatro
+parametros que el grado usa.
+
+### Lo que NO se hizo, y por que
+- **No se colapso a 6 diapositivas.** El generador produce hasta 13, con ETE, congenitas,
+  amiloidosis, cardio-oncologia, eco pulmonar y hemodinamica gateadas por `integrado(...)`. La
+  estructura de 6 describe el ESQUELETO —portada, mediciones, informe, en suma, PostCEC,
+  preguntas— y aplicarla al pie de la letra habria borrado seis hojas de contenido clinico de un
+  documento que circula. Las condicionales quedan.
+- **La hoja de mediciones YA tenia** dos columnas y autoajuste (`_pptFsQueEntra`), que es lo que
+  el pedido describe como faltante.
+- **El informe narrativo ya va a 10 pt y se PARTE en varias hojas** cuando no entra. El pedido
+  pide autoajustar «hasta 11 pt», que es MAS grande que lo actual: subir el piso haria que
+  desborde justo el caso que hoy se resuelve partiendo. No se toco.
+- **Sin caso de regresion para la hoja PostCEC.** Verificada con un PPT generado de verdad
+  (4 hojas, PostCEC en el indice 2, 2 verdes / 2 amarillos / 1 rojo, disclaimer del modulo), pero
+  sin cobertura automatica. Queda como deuda.
+
 ## Pie interpretativo por gráfica en el PDF de auditoría — y dos secciones que no se hicieron
 
 Siete pies, uno debajo de cada gráfica y **antes** de la nota metodológica: FEVI, diastólica,
