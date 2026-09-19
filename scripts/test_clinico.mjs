@@ -8525,7 +8525,7 @@ caso('TC-170', 'CIA/CIV: la cascada es exhaustiva y la contraindicacion gana', `
     const g = {};
     Object.keys(C).forEach((k) => { g[k] = _ciaConducta(C[k]); });
     const lista = Object.keys(C).map((k) => C[k]);
-    const R = _labShuntResumen(lista, 'cia');
+    const R = _labCCResumen(lista, 'cia');
     let suma = 0; Object.keys(R.cond).forEach((k) => { suma += R.cond[k]; });
     const civDil = mk(Object.assign({ ete_civ_tipo:'muscular', ddfvi:'62' }, QB));
     const civExp = mk(Object.assign({ ete_civ_tipo:'muscular', ddfvi:'45' }, QB));
@@ -8544,8 +8544,8 @@ caso('TC-170', 'CIA/CIV: la cascada es exhaustiva y la contraindicacion gana', `
       ['con dos shunts el Qp/Qs no se atribuye',                           qAtrib === null, String(qAtrib)],
       ['pero el Qp/Qs crudo de ese estudio existe',                        qCrudo !== null, String(qCrudo)],
       ['ese estudio sale del Bloque D y se declara',                       R.fuera === 1 && R.condN === R.n - 1, 'fuera=' + R.fuera + ' condN=' + R.condN + ' n=' + R.n],
-      ['sin DDVI la dilatacion del VI es null y no 0 por ciento',          R.dilVi === null, JSON.stringify(R.dilVi)],
-      ['la dilatacion del VD tiene su propio denominador',                 R.dilVd !== null && R.dilVd.de === 9, JSON.stringify(R.dilVd)],
+      ['sin DDVI la dilatacion del VI no afirma 0 por ciento',            R.props.dilVi.de === 0, JSON.stringify(R.props.dilVi)],
+      ['la dilatacion del VD tiene su propio denominador',                 R.props.dilVd.de === 9, JSON.stringify(R.props.dilVd)],
       ['la CIV con DDVI indexado mayor a 32 indica cierre',                cv === 'cierre', cv],
       ['la CIV con DDVI normal y Qp/Qs bajo queda expectante',             cve === 'exp', cve]
     ] };
@@ -8587,19 +8587,37 @@ caso('TC-171', 'Los clasificadores de CC dan lo MISMO leyendo el form o un estud
     });
     const J = (x) => JSON.stringify(x === undefined ? null : x);
     const par = (fn) => ({ dom: J(fn()), src: J(fn(campos)) });
-    /* dapConclusion NO entra: sigue leyendo el DOM para el Qp/Qs (ccQpQsDe / eteQpQsMotivo), asi
-       que pasarle campos da el mismo resultado por las dos ramas y el aserto seria vacuo -- que
-       es peor que no tenerlo. Queda pendiente, con su entrada en CLAUDE.md. */
-    const vap = par(vapConclusion);
+    /* El ductus ya entra: su cadena del Qp/Qs (ccQpQsDe -> ccShuntsConDatos -> eteQpQs) tambien
+       es source-aware, que era lo que lo tenia afuera. */
+    const dap = par(dapConclusion), vap = par(vapConclusion);
     const coa = par(coaConclusion), fop = par(fopConclusion);
     /* Denominador: si las dos rutas devuelven null el caso pasaria trivialmente, que es medir
        sobre vacio. Se exige que la ruta DOM haya concluido ALGO en las cuatro. */
-    const concluyen = [vap.dom, coa.dom, fop.dom].filter((x) => x !== 'null' && x !== null).length;
+    const concluyen = [dap.dom, vap.dom, coa.dom, fop.dom].filter((x) => x !== 'null' && x !== null).length;
     return { extra: [
       ['los ids del formulario existen',            faltantes.length === 0, faltantes.join(',')],
       ['la casilla de la coartacion existe',        casilla === 'ok', casilla],
-      ['las tres cascadas concluyen algo',         concluyen === 3, concluyen + ' de 3'],
-      ['el ductus sigue leyendo el DOM: no se afirma equivalencia', dapConclusion.length === 0, 'aridad=' + dapConclusion.length],
+      ['las cuatro cascadas concluyen algo',       concluyen === 4, concluyen + ' de 4'],
+      ['ductus: la misma conclusion por las dos rutas',    dap.dom === dap.src, 'dom=' + dap.dom.slice(0,70) + ' src=' + dap.src.slice(0,70)],
+      /* EL aserto que de verdad prueba que el ductus lee el estudio. Los dos de arriba son
+         vacuos por construccion: el formulario y campos tienen los MISMOS datos, asi que una
+         dapConclusion que volviera a mirar el DOM daria igual. Aca el Qp/Qs existe SOLO en el
+         objeto -- el formulario de este caso nunca cargo diam_tsvi ni sus tres companeros--,
+         de modo que si la cadena no es source-aware las dos conclusiones se vuelven identicas
+         y esto cae. Verificado por mutacion. */
+      ['el Qp/Qs del estudio cambia la conclusion del ductus',
+        (function () {
+          /* SIN tipo consignado: ahi es donde el cociente decide. Con Qp/Qs > 2,2 la cascada
+             da 'grande'; sin el cae en 'moderado' por diametro. Con dap_tipo cargado el tipo
+             manda y el aserto seria vacuo -- ya paso. */
+          const base = { dap_dir:'id', dap_diam:'6' };
+          const conQ = Object.assign({}, base, { diam_tsvi:'20', itv_tsvi:'20', tsvd_diametro:'28', vti_tsvd:'25' });
+          const a1 = dapConclusion(conQ), a2 = dapConclusion(base);
+          return a1 && a2 && a1.clave === 'grande' && a2.clave === 'moderado';
+        })(), 'conQ=' + J((dapConclusion({ dap_dir:'id', dap_diam:'6', diam_tsvi:'20', itv_tsvi:'20', tsvd_diametro:'28', vti_tsvd:'25' }) || {}).clave) + ' sinQ=' + J((dapConclusion({ dap_dir:'id', dap_diam:'6' }) || {}).clave)],
+      ['el formulario de este caso NO tiene los campos del Qp/Qs',
+        ['diam_tsvi','itv_tsvi','tsvd_diametro','vti_tsvd'].every(function (id) {
+          const e = document.getElementById(id); return !e || String(e.value || '') === ''; }), ''],
       ['ventana: la misma conclusion por las dos rutas',  vap.dom === vap.src, 'dom=' + vap.dom.slice(0,70) + ' src=' + vap.src.slice(0,70)],
       ['coartacion: la misma conclusion por las dos rutas', coa.dom === coa.src, 'dom=' + coa.dom.slice(0,70) + ' src=' + coa.src.slice(0,70)],
       ['FOP: la misma conclusion por las dos rutas',      fop.dom === fop.src, 'dom=' + fop.dom.slice(0,70) + ' src=' + fop.src.slice(0,70)],
@@ -8632,7 +8650,10 @@ caso('TC-172', 'El encuadre orientativo sale en el PDF, una vez por tabla de con
       mk(1, Object.assign({ ete_cia_tipo:'secundum', ete_cia_dir:'id', vd_bas:'50',
                             ete_cia_borde_ao:'8', ete_cia_borde_av:'8', ete_cia_borde_vcs:'8',
                             ete_cia_borde_vci:'8', ete_cia_borde_post:'8' }, QB)),
-      mk(2, Object.assign({ ete_civ_tipo:'muscular', ddfvi:'62' }, QB))
+      mk(2, Object.assign({ ete_civ_tipo:'muscular', ddfvi:'62' }, QB)),
+      mk(3, Object.assign({ dap_tipo:'no_restrictivo', dap_dir:'id', dap_diam:'6', dap_paps:'52' }, QB)),
+      mk(4, { coa_situacion:'nativa', coa_vmax:'3.6', coa_istmo:'7', coa_ao_desc:'18',
+              coa_hta:'si', coa_gradiente_picopico:'28' })
     ];
     const origGet = window.getInformes;
     window.getInformes = function(){ return datos; };
@@ -8656,8 +8677,18 @@ caso('TC-172', 'El encuadre orientativo sale en el PDF, una vez por tabla de con
       ['el PDF tiene paginas: hay denominador', paginas > 0, 'paginas=' + paginas],
       ['sale la seccion de conductas de la CIA', txt.indexOf('Cierre percutaneo') > -1, ''],
       ['sale la seccion de conductas de la CIV', txt.indexOf('Cierre indicado') > -1, ''],
-      ['el encuadre aparece una vez por tabla', cuenta(abre) === 2, cuenta(abre) + ' veces'],
-      ['la frase entra completa, no truncada', cuenta(cierra) === 2, cuenta(cierra) + ' veces'],
+      ['el encuadre aparece una vez por tabla', cuenta(abre) === 4, cuenta(abre) + ' veces'],
+      ['la frase entra completa, no truncada', cuenta(cierra) === 4, cuenta(cierra) + ' veces'],
+      ['sale la seccion del ductus', txt.indexOf('Ductus arterioso permeable') > -1, ''],
+      ['sale la seccion de la coartacion', txt.indexOf('Coartacion de aorta') > -1, ''],
+      /* La coartacion no funde el Doppler con la clase de indicacion: TC-113 ya fija que la
+         indicacion sale del pico-pico INVASIVO. Si alguna vez se fusionan, esto cae. */
+      ['la coartacion separa Doppler de clase de indicacion',
+        txt.indexOf('Significativa por Doppler') > -1 && txt.indexOf('pico-pico invasivo') > -1, ''],
+      /* El ductus publica conducta en tres ramas y en el resto describe. La fila de moderado no
+         puede empezar a afirmar una conducta que el informe individual no afirma. */
+      ['el ductus no inventa conducta donde la app no la publica',
+        txt.indexOf('La app describe la repercusion y NO publica conducta') > -1, ''],
       ['el titulo de la seccion tambien lo dice', txt.indexOf('SUGERENCIA ORIENTATIVA') > -1, ''],
       ['sigue la salvedad metodologica del denominador', txt.indexOf('Denominador de esta tabla') > -1, '']
     ] };

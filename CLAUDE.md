@@ -4239,6 +4239,67 @@ alta, porque los casos se escribieron eligiendo los cortes, no los campos.
    taquicardia ventricular, historia clínica, frases rápidas, segmentos del ETE, pre-TAVI,
    panel de indicaciones (`_IG_SECTIONS`), DICOM e imágenes en IndexedDB.
 
+## DAP y CoAo en el Laboratorio, y el motor de fichas que reemplaza al copiar-pegar
+
+### `CC_FICHAS` — una fila por cardiopatía, no una función por cardiopatía
+`_labShuntResumen` era un cuerpo con un `esCia ? … : …` en cada línea. Con doce CC eso se vuelve
+una cascada de ternarios ilegible, así que pasó a `_labCCResumen(infs, k)` leyendo `CC_FICHAS`:
+predicado de pertenencia, campo de tipo, campo de tamaño, **métricas** promediables, **proporciones**
+con denominador propio, lista de conductas y clasificador. Agregar una CC es agregar una fila —el
+PDF y el PPT la recorren sin tocarse—. Las ocho que faltan son ocho filas.
+
+Una clave que el clasificador devuelve y la ficha no lista se **cuenta aparte** (`otras`) en vez
+de silenciarse: si aparece, la lista quedó vieja respecto del clasificador y hay que enterarse.
+
+### Los criterios NO se escribieron: salen del clasificador que firma el informe
+- **CoAo ya publicaba clases de indicación ESC 2020** — `indicacion_i`, `iia`, `iib`,
+  `sin_indicacion`, `limitrofe`—. El Bloque D es contar `coaConclusion(src).clave`. No hubo nada
+  que inventar. `significativa` / `no_significativa` quedan como **filas propias** y no se funden
+  con las clases: TC-113 ya fija que la indicación sale del **pico-pico invasivo**, no del Doppler.
+- **DAP publica FISIOLOGÍA, no conducta.** De sus siete ramas, sólo tres traen conducta explícita
+  (`htp` → evaluar operabilidad antes de indicar cierre; `grande` → considerar cierre; `silente` →
+  no requiere cierre). En `moderado` y `pequeno` la app describe la repercusión y no indica nada.
+  La columna de criterio **lo dice** en vez de completar el hueco con una conducta que el informe
+  individual no afirma. TC-172 lo vigila.
+
+### El enabler quedó cerrado: toda la cadena del Qp/Qs es source-aware
+`eteQpQs(src)`, `ccShuntsConDatos(src)` y `ccQpQsDe(cual, src)`, y con eso `dapConclusion(src)`,
+que era lo que lo tenía pendiente. Los **alias** de ids viejos (`ete_shunt_tsvd`,
+`ete_shunt_vti_tsvd`) se mudaron a `eteQpQs` y **`_ccQpQs` ahora delega**: era una segunda
+implementación del mismo cociente con su propia lista de alias. `_ccQpQsAtrib` delega en
+`ccQpQsDe` y `_ccShuntGruposDe` en `ccShuntsConDatos`. Tres duplicados menos.
+De paso: `eteQpQsMotivo` aparecía en mi auditoría como dependencia DOM de `dapConclusion` y era
+un **falso positivo** — sólo figura en un comentario. Auditar por `grep` sobre el cuerpo cuenta
+también lo que está comentado.
+
+### Dos asertos vacuos en el mismo caso, otra vez
+TC-171 comparaba `dapConclusion()` contra `dapConclusion(campos)` con el formulario y `campos`
+cargados con **los mismos datos**: una función que volviera a leer el DOM daba idéntico y el
+aserto pasaba. El segundo llamaba a `ccQpQsDe` directo, sin pasar por `dapConclusion`, así que
+tampoco veía la mutación. **Las dos mutaciones dieron verde.**
+
+Lo que sí prueba: un `campos` donde el Qp/Qs existe **sólo** en el objeto —el formulario de ese
+caso nunca cargó `diam_tsvi` ni sus tres compañeros— y una rama donde el cociente **decide**.
+Con `dap_tipo` consignado el tipo manda y vuelve a ser vacuo; sin tipo, un Qp/Qs > 2,2 da
+`grande` y su ausencia da `moderado` por diámetro. Mutado: `conQ="moderado" sinQ="moderado"`.
+
+**La regla, ahora con dos casos:** un aserto de equivalencia entre dos rutas no prueba nada si
+las dos leen la misma fuente, y uno de sensibilidad no prueba nada si el valor que se mueve no
+llega a cambiar el resultado. Hay que elegir el escenario donde el dato es el que decide.
+
+### Verificado con datos reales
+PDF: cuatro secciones —CIA, CIV, DAP, CoAo—, el encuadre **cuatro veces** (una por tabla), la
+tabla de tres columnas con la guía al lado de cada conducta, CoAo con su Clase I por gradiente
+invasivo y las filas Doppler separadas. PPT: **14 diapositivas**, una hoja por CC.
+Con más de seis conductas —CoAo tiene diez— el paso de las filas se achica en vez de truncar la
+lista: una conducta que no se muestra desaparece del denominador visible y el resto de los
+porcentajes deja de sumar.
+
+### Faltan ocho
+VAP, FOP, VAB, Ebstein, MCH, MCA, TdF, TGA, Eisenmenger y Fontan. `vapConclusion(src)`,
+`fopConclusion(src)`, `eisenEstado(src)` y `fontanEstado(src)` ya aceptan el estudio; las seis
+restantes son el shim mecánico, sin helpers sucios. Después, una fila en `CC_FICHAS` cada una.
+
 ## Encuadre «sugerencia orientativa» en las tablas de conductas de CC
 
 Texto, no lógica. La tabla de conductas agrupa por criterio ecocardiográfico; leída sin encuadre

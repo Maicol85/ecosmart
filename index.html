@@ -29308,10 +29308,23 @@ window.ciaDonutDataURL = ciaDonutDataURL;
    en los DOS términos, así que las unidades se cancelan y el cociente es adimensional.
    Devuelve null —nunca NaN ni Infinity— si falta un dato o si el denominador es 0: un
    «Qp/Qs Infinity» impreso en un informe firmado es peor que un guion. */
-function eteQpQs(){
-  const dI = v('diam_tsvi'), vI = v('itv_tsvi');
+function eteQpQs(src){
+  /* `src` es un estudio GUARDADO. Los ALIAS viven acá y no en el Laboratorio: el Lab leia
+     `ete_shunt_tsvd` / `ete_shunt_vti_tsvd` en su propia copia del cociente, y una copia del
+     mismo calculo con una lista de alias distinta es exactamente como los dos Qp/Qs terminan
+     divergiendo. Ahora `_ccQpQs` delega acá. El formulario no tiene los ids viejos, asi que la
+     rama sin `src` no los mira — queda literal. */
+  const _n = (id, alias) => {
+    if (!src) { const x = v(id); return (x != null && isFinite(x)) ? x : null; }
+    let r = src[id];
+    if ((r === undefined || r === null || r === '') && alias) r = src[alias];
+    if (r === undefined || r === null || r === '') return null;
+    const x = (typeof PF === 'function') ? PF(r) : parseFloat(String(r).replace(',', '.'));
+    return (x != null && isFinite(x)) ? x : null;
+  };
+  const dI = _n('diam_tsvi'), vI = _n('itv_tsvi');
   // Campos canónicos de la tab VD/AD; CIA/CIV sólo los espeja en gris.
-  const dD = v('tsvd_diametro'), vD = v('vti_tsvd');
+  const dD = _n('tsvd_diametro', 'ete_shunt_tsvd'), vD = _n('vti_tsvd', 'ete_shunt_vti_tsvd');
   if(dI==null||vI==null||dD==null||vD==null) return null;
   const den = dI*dI*vI;
   if(!(den>0)) return null;
@@ -29377,10 +29390,11 @@ const CC_SHUNTS = {
    población, casi siempre sin repercusión de flujo, y contarlo como «otro shunt» apagaría el
    Qp/Qs de la CIA en uno de cada cuatro pacientes. Si el FOP tiene shunt de verdad, lo que
    corresponde es reclasificarlo como CIA, no repartir el cociente. */
-function ccShuntsConDatos(){
+function ccShuntsConDatos(src){
   const con = [];
   Object.keys(CC_SHUNTS).forEach(function(k){
     const hay = CC_SHUNTS[k].some(function(id){
+      if (src) return String(src[id] == null ? '' : src[id]).trim() !== '';
       const el = document.getElementById(id);
       return !!el && String(el.value || '').trim() !== '';
     });
@@ -29388,9 +29402,9 @@ function ccShuntsConDatos(){
   });
   return con;
 }
-function ccQpQsDe(cual){
+function ccQpQsDe(cual, src){
   if (typeof eteQpQs !== 'function') return null;
-  const con = ccShuntsConDatos();
+  const con = ccShuntsConDatos(src);
   /* CIA y CIV comparten una sola sección y un solo botón de integrar, así que para esta
      decisión cuentan como uno: un paciente con CIA y CIV es un paciente con «el shunt del
      ETE», y esa sección ya publica el Qp/Qs global con ese nombre. */
@@ -29398,7 +29412,7 @@ function ccQpQsDe(cual){
   const mio = (cual === 'cia' || cual === 'civ') ? 'shunt' : cual;
   if (grupos.size > 1) return null;
   if (grupos.size === 1 && !grupos.has(mio)) return null;
-  return eteQpQs();
+  return eteQpQs(src);
 }
 window.ccQpQsDe = ccQpQsDe; window.ccShuntsConDatos = ccShuntsConDatos;
 /* La TABLA y la lista de bordes se exportan, no se copian en el Laboratorio: son el mismo
@@ -29421,13 +29435,24 @@ function dapGmax(){
    El orden de las ramas es clínico, no cosmético: la HTP y el shunt invertido MANDAN sobre el
    tamaño, porque un ductus grande que además invirtió el flujo ya no es «considerar cierre»
    sino una contraindicación potencial —Eisenmenger—, y decir «cerrar» ahí sería peligroso. */
-function dapConclusion(){
-  const sv2 = id => (document.getElementById(id)?.value || '').trim();
+function dapConclusion(src){
+  /* Igual que `eisenEstado(src)` y las otras tres de CC: sin `src`, el formulario, literal.
+     El ductus necesitaba ademas que TODA la cadena del Qp/Qs fuera source-aware —`ccQpQsDe`,
+     `ccShuntsConDatos`, `eteQpQs`—, y por eso quedo pendiente un turno: un shim en la funcion de
+     entrada dejaba los selects del estudio guardado con el cociente del formulario en pantalla. */
+  const sv2 = id => src ? String(src[id] == null ? '' : src[id]).trim()
+                        : (document.getElementById(id)?.value || '').trim();
   /* nv() va por v(), que es el helper canónico y devuelve null con el campo vacío.
      PF() devuelve NaN, y NaN nunca es == null: con `nv = PF(...)` el `hayDato` de abajo daba
      true SIEMPRE y el formulario en blanco afirmaba «ductus pequeño restrictivo» en pantalla
      y en el informe firmado. */
-  const nv = id => { const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; };
+  const nv = id => {
+    if (!src) { const n = (typeof v === 'function') ? v(id) : null; return (n != null && isFinite(n)) ? n : null; }
+    const r = src[id];
+    if (r === undefined || r === null || r === '') return null;
+    const x = (typeof PF === 'function') ? PF(r) : parseFloat(String(r).replace(',', '.'));
+    return (x != null && isFinite(x)) ? x : null;
+  };
   /* Banda de plausibilidad. Descartar el valor fuera de rango NO alcanza: la cascada termina
      en una AFIRMACIÓN («sin repercusión hemodinámica»), así que un número descartado cae solo
      en la rama que niega y «no pude leer esto» se convierte en «esto es normal». El caso real
@@ -29463,8 +29488,8 @@ function dapConclusion(){
   const papsDap = banda(papsRaw, 5, 150, 'PAPs');
   const ductusGrande = tipo === 'no_restrictivo' || (diam != null && diam >= 3);
   const paps = papsDap != null ? papsDap
-             : (ductusGrande ? banda((typeof v==='function') ? v('psap_calc') : null, 5, 150) : null);
-  const q = ccQpQsDe('dap');
+             : (ductusGrande ? banda(nv('psap_calc'), 5, 150) : null);
+  const q = ccQpQsDe('dap', src);
   const htp = (paps!=null && paps >= 50) || dir === 'di' || dir === 'bi';
   if (htp) return { clave:'htp',
     txt:'Ductus con hipertensión pulmonar — evaluar operabilidad (resistencias pulmonares y test de vasorreactividad) antes de indicar cierre' };
@@ -52667,14 +52692,13 @@ const _CC_SECS = [
 
 /* Qp/Qs RECALCULADO desde los cuatro campos guardados, no leído del span: el span es del estudio
    que esté cargado en pantalla, así que leerlo daría el mismo número para los 60 de la lista. */
+/* DELEGA en `eteQpQs(src)`, que ahora acepta un estudio guardado y se lleva los alias de los
+   ids viejos consigo. Antes era una SEGUNDA implementación del mismo cociente —con su propia
+   lista de alias y su propio rango de plausibilidad— y el archivo ya documenta cómo terminan
+   dos copias del mismo cálculo: divergiendo, y el síntoma es un número distinto en el papel
+   firmado y en la pantalla. */
 function _ccQpQs(i) {
-  const dI = _labNum(i,'diam_tsvi'), vI = _labNum(i,'itv_tsvi');
-  // Alias a los ids viejos: el Lab lee `campos` directo, sin pasar por la migración del formulario.
-  const dD = _labNum(i,'tsvd_diametro','ete_shunt_tsvd'), vD = _labNum(i,'vti_tsvd','ete_shunt_vti_tsvd');
-  if (dI === null || vI === null || dD === null || vD === null) return null;
-  const den = dI * dI * vI; if (!(den > 0)) return null;
-  const q = (dD * dD * vD) / den;
-  return (isFinite(q) && q >= 0.2 && q <= 10) ? q : null;   // mismo rango que eteQpQs
+  return (typeof eteQpQs === 'function') ? eteQpQs((i && i.campos) || {}) : null;
 }
 /* DDVI indexado = DDVI / ASC. Sube a nivel de módulo porque ahora lo leen la tarjeta del
    Laboratorio, el Bloque D de la CIV y las dos superficies de salida: era un local de
@@ -52700,23 +52724,18 @@ function _ccDdviIdx(i) {
    respetar esa negativa: un agregado que decide «cierre percutáneo» con un cociente que el
    informe individual considera no atribuible afirma MÁS que el informe del que salió.
    Los Bloques A, B y C siguen contando a ese estudio — describir un defecto no es indicar nada. */
+/* Los grupos de shunt de un estudio guardado, por `ccShuntsConDatos(src)` — la misma función
+   que usa el informe individual. Recorría `CC_SHUNTS` por su cuenta; con la tabla exportada y
+   la función ya source-aware, la copia sobra. */
 function _ccShuntGruposDe(i) {
-  const T = (typeof window !== 'undefined') ? window.CC_SHUNTS : null;
-  /* Sin la tabla no se adivina: devolver un Set vacío haría pasar a TODOS por «shunt único» y
-     el Bloque D clasificaría conducta justo cuando perdió la información para gatearla. */
-  if (!T) return null;
-  const g = new Set();
-  Object.keys(T).forEach(function (k) {
-    const hay = T[k].some(function (id) { return _labCampoRaw(i, id) !== ''; });
-    if (hay) g.add((k === 'cia' || k === 'civ') ? 'shunt' : k);
-  });
-  return g;
+  if (typeof ccShuntsConDatos !== 'function') return null;
+  const con = ccShuntsConDatos((i && i.campos) || {});
+  return new Set(con.map(function (k) { return (k === 'cia' || k === 'civ') ? 'shunt' : k; }));
 }
+/* Y la atribución, por `ccQpQsDe` — la MISMA negativa que aplica el informe firmado cuando hay
+   más de un cortocircuito documentado. Era una reimplementación; ahora es una delegación. */
 function _ccQpQsAtrib(i) {
-  const g = _ccShuntGruposDe(i);
-  if (!g || g.size > 1) return null;
-  if (g.size === 1 && !g.has('shunt')) return null;
-  return _ccQpQs(i);
+  return (typeof ccQpQsDe === 'function') ? ccQpQsDe('cia', (i && i.campos) || {}) : null;
 }
 /* Borde MÍNIMO de la CIA en un estudio guardado. Recorre `_CIA_BORDES`, la misma lista de cinco
    que usa `eteCiaBordeMin()` en pantalla. El mínimo es el que manda: un dispositivo se suelta
@@ -52825,48 +52844,139 @@ function _ds(arr) {
 }
 /* `cual` es 'cia' o 'civ'. Un solo cuerpo para los dos: lo que cambia es el predicado de
    pertenencia, el campo de tipo, el campo de tamaño y el clasificador de conducta. */
-function _labShuntResumen(infs, cual) {
-  const esCia = (cual === 'cia');
-  const arr = (infs || []).filter(_ccSecPred(cual));
-  const num = id => arr.map(i => _labNum(i, id)).filter(x => x !== null);
+/* ══ FICHAS DE CARDIOPATÍA CONGÉNITA ══════════════════════════════════════════════════════
+   UNA tabla, una fila por CC. Agregar una cardiopatía es agregar un dato acá — no código nuevo
+   en el PDF y otro en el PPT, que es como las dos superficies terminan contando distinto.
+   `_labShuntResumen` era el mismo cuerpo con un `esCia ? … : …` en cada línea; con doce CC eso
+   se vuelve una cascada de ternarios que nadie puede leer.
+
+   `clasif` devuelve la clave de conducta de UN estudio. Todas salen de `*Conclusion(src)` — el
+   MISMO clasificador que firma el informe individual—, nunca de un criterio reescrito acá.
+   `soloShuntUnico` aplica la negativa de `ccQpQsDe`: con más de un cortocircuito documentado el
+   Qp/Qs no se atribuye, así que ese estudio no clasifica conducta. La coartación no la necesita
+   —su criterio es el gradiente, no un cociente de flujos— y por eso va en false. */
+/* Clave de descarte cuando el clasificador no concluye. Va ARRIBA de `_labCCResumen`: es un
+   `const`, y leer un const declarado mas abajo lanza por zona muerta -- este archivo ya lo pago
+   con un const que cortaba el script entero. */
+const _CC_NC = 'nc';
+const _claveDe = fn => i => { const r = _labEstado(fn, i); return r ? (r.clave || null) : null; };
+
+const DAP_CONDUCTAS = [
+  { k:'htp',              lbl:'Con hipertension pulmonar',        crit:'Evaluar operabilidad (RVP y test de vasorreactividad) antes de indicar cierre (ESC 2020 GUCH)' },
+  { k:'grande',           lbl:'Grande no restrictivo',            crit:'Considerar cierre (ESC 2020 GUCH)' },
+  { k:'moderado',         lbl:'Moderado con sobrecarga izquierda', crit:'La app describe la repercusion y NO publica conducta para esta banda' },
+  { k:'pequeno',          lbl:'Pequeno restrictivo',              crit:'Sin repercusion hemodinamica - la app no publica conducta' },
+  { k:'silente',          lbl:'Silente',                          crit:'No requiere cierre (ESC 2020 GUCH)' },
+  { k:'no_interpretable', lbl:'No interpretable',                 crit:'Algun valor fuera de rango: revisar unidades antes de concluir' },
+  { k:'incompleto',       lbl:'Datos insuficientes',              crit:'Sin datos para estimar la repercusion hemodinamica' },
+  { k:'nc',               lbl:'No clasificable',                  crit:'El clasificador no devolvio una conclusion para este estudio' }
+];
+const COA_CONDUCTAS = [
+  { k:'indicacion_i',     lbl:'Indicacion Clase I',        crit:'HTA confirmada + gradiente pico-pico invasivo >= 20 mmHg (ESC 2020)' },
+  { k:'indicacion_iia',   lbl:'A considerar - Clase IIa',  crit:'HTA + estenosis significativa con gradiente, o normotensa con pico-pico >= 20 confirmado (ESC 2020)' },
+  { k:'indicacion_iib',   lbl:'Posible - Clase IIb',       crit:'Estenosis significativa respecto de la aorta al diafragma, independiente del gradiente (ESC 2020)' },
+  { k:'sin_indicacion',   lbl:'Sin indicacion actual',     crit:'Sin criterios de intervencion segun ESC 2020 - seguimiento' },
+  { k:'significativa',    lbl:'Significativa por Doppler', crit:'Criterios de significacion por Doppler, sin gradiente invasivo que aplique el criterio ESC' },
+  { k:'no_significativa', lbl:'No significativa',          crit:'Sin gradiente significativo - seguimiento clinico y por imagen' },
+  { k:'limitrofe',        lbl:'Limitrofe / a completar',   crit:'Criterios parciales: falta la HTA, gradiente limitrofe o istmo hipoplasico - completar evaluacion' },
+  { k:'no_interpretable', lbl:'No interpretable',          crit:'Algun valor fuera de rango: revisar unidades antes de concluir' },
+  { k:'incompleto',       lbl:'Datos insuficientes',       crit:'Sin gradiente registrado - completar con Doppler e imagen' },
+  { k:'nc',               lbl:'No clasificable',           crit:'El clasificador no devolvio una conclusion para este estudio' }
+];
+const DAP_TIPOS_LBL = { silente:'Silente', restrictivo:'Restrictivo (pequeno)', no_restrictivo:'No restrictivo (grande)' };
+const COA_TIPOS_LBL = { nativa:'Coartacion nativa', recoartacion:'Recoartacion post-intervencion',
+                        post_stent:'Post-stent', post_cirugia:'Post-cirugia' };
+
+const _mQpQs = { k:'qs',   lbl:'Qp/Qs promedio',  get:_ccQpQs, dec:2, suf:'' };
+const _mPsap = { k:'psap', lbl:'PSAP promedio',   get:i => _labNum(i, 'psap_calc', 'psap'), dec:0, suf:' mmHg' };
+const _pDilVi = { k:'dilVi', lbl:'Con dilatacion del VI', get:i => { const d = _ccDdviIdx(i); return d === null ? null : d > 32; } };
+const _pDilVd = { k:'dilVd', lbl:'Con dilatacion del VD', get:_ccVdDilatado };
+
+const CC_FICHAS = Object.assign(Object.create(null), {
+  cia: { tit:'Comunicacion interauricular (CIA)', titAcc:'Comunicación interauricular (CIA)',
+    tipoCampo:'ete_cia_tipo', tipos:CIA_TIPOS_LBL, tamCampo:'ete_cia_tam_max', tamLbl:'Tamano maximo promedio',
+    metricas:[_mQpQs, _mPsap], props:[_pDilVi, _pDilVd],
+    conductas:CIA_CONDUCTAS, clasif:i => _ciaConducta(i), soloShuntUnico:true,
+    pie:'El Qp/Qs del bloque de criterios solo se atribuye a la CIA cuando es el unico cortocircuito documentado, la misma negativa que aplica el informe individual. La sobrecarga de volumen del VD se evalua con el VD basal (ASE: normal <=41 mm) y cuenta cualquier grado. La indicacion de cierre se decide antes que la via.' },
+  civ: { tit:'Comunicacion interventricular (CIV)', titAcc:'Comunicación interventricular (CIV)',
+    tipoCampo:'ete_civ_tipo', tipos:CIV_TIPOS_LBL, tamCampo:'ete_civ_tam', tamLbl:'Tamano promedio',
+    metricas:[_mQpQs, _mPsap], props:[_pDilVi, _pDilVd],
+    conductas:CIV_CONDUCTAS, clasif:i => _civConducta(i), soloShuntUnico:true,
+    pie:'Esta app no registra la direccion del shunt en la CIV, asi que la contraindicacion se apoya unicamente en el Qp/Qs < 1. El criterio de DDVI indexado dilatado SIN OTRA CAUSA no es computable desde estos campos: un ecocardiograma no excluye las otras causas de dilatacion del VI.' },
+  dap: { tit:'Ductus arterioso permeable (DAP)', titAcc:'Ductus arterioso permeable (DAP)',
+    tipoCampo:'dap_tipo', tipos:DAP_TIPOS_LBL, tamCampo:'dap_diam', tamLbl:'Diametro promedio',
+    metricas:[_mQpQs, { k:'psap', lbl:'PAPs promedio', get:i => _labNum(i, 'dap_paps', 'psap_calc'), dec:0, suf:' mmHg' }],
+    props:[_pDilVi, _pDilVd],
+    conductas:DAP_CONDUCTAS, clasif:_claveDe(dapConclusion), soloShuntUnico:true,
+    /* Las bandas del ductus son FISIOLOGIA, no conducta: la app publica una conducta explicita
+       en tres de sus siete ramas —htp, grande y silente— y en las otras describe la repercusion
+       sin indicar nada. La tabla lo dice en la columna de criterio en vez de completar el hueco
+       con una conducta que el informe individual no afirma. */
+    pie:'Las bandas del ductus son de repercusion hemodinamica: la app publica conducta explicita solo en tres de ellas y en el resto describe sin indicar. El Qp/Qs solo se atribuye al ductus cuando es el unico cortocircuito documentado.' },
+  coa: { tit:'Coartacion de aorta (CoAo)', titAcc:'Coartación de aorta (CoAo)',
+    tipoCampo:'coa_situacion', tipos:COA_TIPOS_LBL, tamCampo:'coa_istmo', tamLbl:'Diametro del istmo',
+    metricas:[ { k:'grad', lbl:'Gradiente maximo Doppler', get:_ccCoaGradMax, dec:0, suf:' mmHg' },
+               { k:'pp',   lbl:'Gradiente pico-pico invasivo', get:i => _labNum(i, 'coa_gradiente_picopico'), dec:0, suf:' mmHg' } ],
+    props:[ { k:'hta', lbl:'Con HTA confirmada', get:i => { const x = _labCampoRaw(i, 'coa_hta'); return x === '' ? null : x === 'si'; } } ],
+    conductas:COA_CONDUCTAS, clasif:_claveDe(coaConclusion), soloShuntUnico:false,
+    /* TC-113: la indicacion de la coartacion sale del pico-pico INVASIVO, no del Doppler. Por eso
+       significativa / no_significativa son filas propias y no se funden con las clases ESC. */
+    pie:'La indicacion de intervencion sale del gradiente pico-pico INVASIVO, no del Doppler: las filas de significacion por Doppler describen el estudio y no equivalen a una clase de indicacion. El gradiente Doppler sobreestima con colaterales extensas.' }
+});
+
+/* Un solo cuerpo para todas las fichas. `k` es la clave de `CC_FICHAS`. */
+function _labCCResumen(infs, k) {
+  const cfg = CC_FICHAS[k];
+  if (!cfg) return null;
+  const arr = (infs || []).filter(_ccSecPred(k));
   // ── A · demografía ──
   const sexos = arr.map(i => String((i.campos && i.campos.sexo) || '').toLowerCase()).filter(Boolean);
   const nF = sexos.filter(x => x.indexOf('f') > -1 || x.indexOf('mujer') > -1).length;
   const edades = arr.map(i => _labNum(i, 'edad')).filter(x => x !== null && x > 0 && x < 120);
   // ── B · distribución por tipo ──
   const tipos = Object.create(null);   // prototipo nulo: la clave sale de un valor del estudio
-  arr.forEach(i => { const t = _labCampoRaw(i, esCia ? 'ete_cia_tipo' : 'ete_civ_tipo'); if (t) tipos[t] = (tipos[t] || 0) + 1; });
-  // ── C · estructura ──
-  const tam  = num(esCia ? 'ete_cia_tam_max' : 'ete_civ_tam');
-  const qs   = arr.map(_ccQpQs).filter(x => x !== null);
-  const psap = arr.map(i => _labNum(i, 'psap_calc', 'psap')).filter(x => x !== null);
-  const ddv  = arr.map(_ccDdviIdx).filter(x => x !== null);
-  const vdE  = arr.map(_ccVdDilatado).filter(x => x !== null);
-  // ── D · conducta ──
+  arr.forEach(i => { const t = _labCampoRaw(i, cfg.tipoCampo); if (t) tipos[t] = (tipos[t] || 0) + 1; });
+  // ── C · estructura: tamaño, métricas promediables y proporciones ──
+  const tam = arr.map(i => _labNum(i, cfg.tamCampo)).filter(x => x !== null);
+  const metr = Object.create(null);
+  (cfg.metricas || []).forEach(m => {
+    const vs = arr.map(m.get).filter(x => x !== null && x !== undefined && isFinite(x));
+    metr[m.k] = { lbl:m.lbl, dec:m.dec, suf:m.suf || '', prom:_prom(vs) };
+  });
+  /* Cada proporción lleva su PROPIO denominador: el DDVI indexado necesita peso y talla, el VD
+     basal no, y la HTA es un select. Un porcentaje suelto se lee sobre el n de la ficha, que no
+     es el que se uso. `null` no es «no», es «no se pudo evaluar». */
+  const props = Object.create(null);
+  (cfg.props || []).forEach(pp => {
+    const vs = arr.map(pp.get).filter(x => x !== null && x !== undefined);
+    props[pp.k] = vs.length ? { lbl:pp.lbl, n:vs.filter(x => x === true).length, de:vs.length } : { lbl:pp.lbl, n:0, de:0 };
+  });
+  // ── D · conducta, por el clasificador que firma el informe individual ──
   const cond = Object.create(null);
-  (esCia ? CIA_CONDUCTAS : CIV_CONDUCTAS).forEach(f => { cond[f.k] = 0; });
-  /* El denominador del Bloque D NO es `arr`: sólo entran los estudios cuyo Qp/Qs es atribuible
-     a ESTE shunt, que es la negativa que respeta el informe individual. Se cuenta cuántos
-     quedaron fuera para poder declararlo — un denominador más chico sin explicación se lee
-     como que faltaban datos. */
-  let fuera = 0;
+  cfg.conductas.forEach(f => { cond[f.k] = 0; });
+  let fuera = 0, otras = 0;
   arr.forEach(i => {
-    const g = _ccShuntGruposDe(i);
-    if (!g || g.size > 1) { fuera++; return; }
-    const k = esCia ? _ciaConducta(i) : _civConducta(i);
-    cond[k || 'nc']++;
+    if (cfg.soloShuntUnico) {
+      const g = _ccShuntGruposDe(i);
+      const mio = (k === 'cia' || k === 'civ') ? 'shunt' : k;
+      if (!g || g.size > 1 || (g.size === 1 && !g.has(mio))) { fuera++; return; }
+    }
+    const cv = cfg.clasif(i);
+    /* Una clave que el clasificador devuelve y la tabla no lista se CUENTA aparte, no se
+       silencia: si aparece, la lista de conductas quedo vieja respecto del clasificador. */
+    if (cv !== null && cv !== undefined && cond[cv] === undefined) { otras++; return; }
+    cond[cv || _CC_NC] = (cond[cv || _CC_NC] || 0) + 1;
   });
   return {
+    k: k, cfg: cfg,
     n: arr.length, nF: nF, nM: sexos.length - nF, sexN: sexos.length,
     edad: _prom(edades), edadDs: _ds(edades),
-    tipos: tipos,
-    tam: _prom(tam), tamDs: _ds(tam),
-    qs: _prom(qs), psap: _prom(psap),
-    dilVi: ddv.length ? { n: ddv.filter(x => x > 32).length, de: ddv.length } : null,
-    dilVd: vdE.length ? { n: vdE.filter(x => x === true).length, de: vdE.length } : null,
-    cond: cond, condN: arr.length - fuera, fuera: fuera
+    tipos: tipos, tam: _prom(tam), tamDs: _ds(tam),
+    metr: metr, props: props,
+    cond: cond, condN: arr.length - fuera - otras, fuera: fuera, otras: otras
   };
 }
+
 
 /* Gradiente máximo de la coartación. La ventana efectiva es la del GRADIENTE (0-150 mmHg), no la
    de la velocidad: `coaConclusion` banda el gradiente ya calculado, así que acotar sólo la
@@ -54648,74 +54758,73 @@ async function _labPPTGenerar(infs, o) {
       }
     }
 
-    /* ── 11b · CIA y CIV — una hoja por defecto ──
-       Se generan por separado y no en una hoja compartida: cada una tiene su distribución por
-       tipo y su tabla de conductas con criterios de guías distintas (ESC 2020 para la CIA, ESC
-       2023 para la CIV), y apilarlas obligaba a abreviar justamente los criterios, que son lo
-       que impide leer la tabla como una indicación validada.
-       Los números salen de `_labShuntResumen`, el MISMO seam que alimenta la sección del PDF:
-       la regla «PDF ≥ PPT» sólo se sostiene si las dos superficies leen el mismo objeto. */
+    /* ── 11b · CARDIOPATÍAS CONGÉNITAS — una hoja por ficha ──
+       Una hoja por CC y no una compartida: cada una tiene su distribución por tipo y su tabla de
+       conductas con criterios de guías distintas, y apilarlas obligaba a abreviar justamente los
+       criterios, que son lo que impide leer la tabla como una indicación validada.
+       Todo sale de `CC_FICHAS` y `_labCCResumen`, el MISMO seam que alimenta la sección del PDF:
+       la regla «PDF ≥ PPT» sólo se sostiene si las dos superficies leen el mismo objeto.
+       La lista de claves es la de la tabla: agregar una CC es agregar una ficha, no una hoja. */
     if (G('ccestr')) {
-      for (const CC of [
-        { k:'cia', tit:'Comunicación interauricular (CIA)', lbls:CIA_TIPOS_LBL, filas:CIA_CONDUCTAS,
-          tamLbl:'Tamaño máximo promedio',
-          pie:'El Qp/Qs del Bloque D sólo se atribuye a la CIA cuando es el único cortocircuito documentado, igual que en el informe individual. La sobrecarga de VD usa el VD basal (ASE, normal ≤41 mm). La indicación de cierre se evalúa antes que la vía.' },
-        { k:'civ', tit:'Comunicación interventricular (CIV)', lbls:CIV_TIPOS_LBL, filas:CIV_CONDUCTAS,
-          tamLbl:'Tamaño promedio',
-          pie:'La CIV no registra dirección del shunt en esta app: la contraindicación se apoya sólo en el Qp/Qs < 1. «Sin otra causa» de dilatación del VI no es computable desde estos campos.' }
-      ]) {
-        const R = _labShuntResumen(infs, CC.k);
-        if (R.n < MIN_OPC) { faltanN(R.n, CC.tit, 'estudio(s) con la sección cargada'); continue; }
-        const s2 = nueva(CC.tit); avisoN(s2, R.n);
+      for (const _k of ['cia', 'civ', 'dap', 'coa']) {
+        const R = _labCCResumen(infs, _k);
+        if (!R) continue;
+        const CF = R.cfg;
+        if (R.n < MIN_OPC) { faltanN(R.n, CF.titAcc, 'estudio(s) con la sección cargada'); continue; }
+        const s2 = nueva(CF.titAcc); avisoN(s2, R.n);
         const pct = (x, d) => d > 0 ? Math.round(x / d * 100) + ' %' : '—';
         const pm  = (pr, ds, dec, suf) => pr
           ? (pr.v.toFixed(dec) + (ds !== null ? ' ± ' + ds.toFixed(dec) : '') + (suf || '') + ' (n=' + pr.n + ')')
           : '—';
         const X = [0.4, 2.45, 4.5, 6.55], WD = 1.95;
         let y1 = 1.00;
-        dato(s2, X[0], y1, 'Estudios con ' + CC.k.toUpperCase(), R.n + ' de ' + n, 15, WD);
+        dato(s2, X[0], y1, 'Estudios con ' + _k.toUpperCase(), R.n + ' de ' + n, 15, WD);
         dato(s2, X[1], y1, 'Sexo', R.sexN ? (pct(R.nM, R.sexN) + ' M · ' + pct(R.nF, R.sexN) + ' F') : '—', 15, WD);
         dato(s2, X[2], y1, 'Edad promedio', pm(R.edad, R.edadDs, 0, ' a'), 15, WD);
-        dato(s2, X[3], y1, CC.tamLbl, pm(R.tam, R.tamDs, 1, ' mm'), 15, WD);
+        dato(s2, X[3], y1, CF.tamLbl, pm(R.tam, R.tamDs, 1, ' mm'), 15, WD);
+        /* La segunda fila se arma de la FICHA: las métricas promediables primero y después las
+           proporciones, hasta cuatro columnas. Con dos métricas y dos proporciones queda igual
+           que antes; con otra combinación no hay que tocar este código. */
+        const celdas = [];
+        (CF.metricas || []).forEach(m => {
+          const M = R.metr[m.k];
+          celdas.push([M.lbl, M.prom ? (M.prom.v.toFixed(M.dec) + M.suf + ' (n=' + M.prom.n + ')') : '—']);
+        });
+        (CF.props || []).forEach(pp => {
+          const P = R.props[pp.k];
+          celdas.push([P.lbl, P.de ? (P.n + ' de ' + P.de + ' (' + pct(P.n, P.de) + ')') : '—']);
+        });
         let y2 = 1.62;
-        dato(s2, X[0], y2, 'Qp/Qs promedio', R.qs ? (R.qs.v.toFixed(2) + ' (n=' + R.qs.n + ')') : '—', 15, WD);
-        dato(s2, X[1], y2, 'PSAP promedio', R.psap ? (R.psap.v.toFixed(0) + ' mmHg (n=' + R.psap.n + ')') : '—', 15, WD);
-        /* `x de d` y no sólo el porcentaje: el denominador de cada dilatación es distinto -- el
-           DDVI indexado necesita peso y talla, el VD basal no -- y un «33 %» suelto se lee sobre
-           el N de la hoja, que no es el que se usó. */
-        dato(s2, X[2], y2, 'Dilatación del VI', R.dilVi ? (R.dilVi.n + ' de ' + R.dilVi.de + ' (' + pct(R.dilVi.n, R.dilVi.de) + ')') : '—', 15, WD);
-        dato(s2, X[3], y2, 'Dilatación del VD', R.dilVd ? (R.dilVd.n + ' de ' + R.dilVd.de + ' (' + pct(R.dilVd.n, R.dilVd.de) + ')') : '—', 15, WD);
-        const tf = Object.keys(R.tipos).map(k => ({ lbl: _lblDe(CC.lbls, k), n: R.tipos[k] }));
+        celdas.slice(0, 4).forEach((c, ix) => dato(s2, X[ix], y2, c[0], c[1], 15, WD));
+        const tf = Object.keys(R.tipos).map(t => ({ lbl: _lblDe(CF.tipos, t), n: R.tipos[t] }));
         if (!gBarras(s2, tf, { x:0.4, y:2.32, w:4.0, h:1.9 }, 'Distribución por tipo'))
           s2.addText(T('Ningún estudio con el tipo consignado.'),
             { x:0.4, y:2.9, w:4.0, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
-        /* El Bloque D va como TEXTO y no como barras: el criterio y la guía tienen que verse
-           debajo de cada conducta. Una barra rotulada «Cierre percutáneo 40 %» proyectada en una
-           sala es una indicación terapéutica sin su criterio al lado. */
-        /* «Sugerencia orientativa, no recomendación» va en el ENCABEZADO y no en el pie: el pie
-           de estas hojas ya lleva la salvedad metodológica, y en una sala proyectada la tabla se
-           lee antes que cualquier cosa que esté abajo. La cascada es la de la ESC 2020 —primero
-           si hay indicación de cerrar, después por qué vía—, pero agrupar por criterio
-           ecocardiográfico no es indicar: la decisión es del Heart Team con el paciente delante. */
-        s2.addText(T('Orientación terapéutica — cascada ESC 2020  ·  n = ' + R.condN + (R.fuera ? '  (' + R.fuera + ' con más de un shunt, Qp/Qs no atribuible)' : '')),
+        /* El bloque de conductas va como TEXTO y no como barras: el criterio y la guía tienen que
+           verse debajo de cada fila. Una barra rotulada «Cierre percutáneo 40 %» proyectada en
+           una sala es una indicación terapéutica sin su criterio al lado.
+           Con más de seis filas —la coartación tiene diez— el paso se achica para que entren sin
+           pisar el pie, en vez de truncar la lista: una conducta que no se muestra desaparece del
+           denominador visible y el resto de los porcentajes deja de sumar. */
+        const NF = CF.conductas.length;
+        const PASO = NF <= 6 ? 0.32 : Math.max(0.185, 1.92 / NF);
+        s2.addText(T('Orientación terapéutica  ·  n = ' + R.condN
+            + (R.fuera ? '  (' + R.fuera + ' con más de un shunt, Qp/Qs no atribuible)' : '')
+            + (R.otras ? '  (' + R.otras + ' con una clave fuera de la tabla)' : '')),
           { x:4.7, y:2.26, w:5.0, h:0.22, fontSize:12, bold:true, color:C.txt, fontFace:FONT });
         s2.addText(T('Sugerencia orientativa, no recomendación terapéutica.'),
           { x:4.7, y:2.47, w:5.0, h:0.18, fontSize:8.5, bold:true, italic:true, color:C.rojo, fontFace:FONT });
         let yd = 2.68;
-        CC.filas.forEach(function (f) {
+        CF.conductas.forEach(function (f) {
           const c = R.cond[f.k] || 0;
           s2.addText(T(f.lbl + '  —  ' + c + ' (' + pct(c, R.condN) + ')'),
-            { x:4.7, y:yd, w:5.0, h:0.20, fontSize:10, bold:true, color: c > 0 ? C.teal : C.txt2, fontFace:FONT });
+            { x:4.7, y:yd, w:5.0, h:PASO * 0.55, fontSize: NF <= 6 ? 10 : 8.5, bold:true,
+              color: c > 0 ? C.teal : C.txt2, fontFace:FONT });
           s2.addText(T(f.crit),
-            { x:4.7, y:yd + 0.17, w:5.0, h:0.18, fontSize:7.5, italic:true, color:C.txt2, fontFace:FONT });
-          yd += 0.32;
+            { x:4.7, y:yd + PASO * 0.52, w:5.0, h:PASO * 0.48, fontSize: NF <= 6 ? 7.5 : 6, italic:true, color:C.txt2, fontFace:FONT });
+          yd += PASO;
         });
-        /* La salvedad METODOLÓGICA baja a la columna izquierda, debajo de las barras: el pie de
-           ancho completo queda libre para el disclaimer, que es el que tiene que verse.
-           `conPie` dibuja su filete en H-0.62, así que abajo entra UNA sola línea de contenido
-           (H-0.86 con alto 0.22 termina justo en H-0.64). La versión anterior usaba 0.30 ahí y
-           se metía debajo del filete. */
-        s2.addText(T(CC.pie),
+        s2.addText(T(CF.pie),
           { x:0.4, y:4.30, w:4.0, h:0.44, fontSize:7.5, italic:true, color:C.txt2, fontFace:FONT, valign:'top' });
         /* Mismo slot, mismo cuerpo y mismo rojo que el disclaimer de las hojas de amiloidosis y
            cardio-oncología: en un mazo proyectado, dos advertencias del mismo peso con formatos
@@ -57255,56 +57364,53 @@ async function labGenerarPDF() {
       _nota('"Mixto" (vota por las dos) y "no concluyente" (no alcanza para ninguna) son conclusiones DISTINTAS y se cuentan por separado.');
     }
 
-    /* ── CIA y CIV — demografia, tipos, estructura y criterios terapeuticos ──
-       Mismo objeto que la diapositiva: `_labShuntResumen`. La regla "PDF >= PPT" no se cumple
-       comparando dos textos parecidos, se cumple leyendo el mismo seam -- y aca el PDF agrega lo
-       que la hoja no puede: la tabla de criterios a tres columnas, con la guia al lado de cada
-       conducta en vez de en el pie. */
-    for (const CC of [
-      { k:'cia', tit:'Comunicacion interauricular (CIA)', lbls:CIA_TIPOS_LBL, filas:CIA_CONDUCTAS,
-        tamLbl:'Tamano maximo promedio',
-        nota:'El Qp/Qs del bloque de criterios solo se atribuye a la CIA cuando es el unico cortocircuito documentado, la misma negativa que aplica el informe individual. La sobrecarga de volumen del VD se evalua con el VD basal (ASE: normal <=41 mm) y cuenta cualquier grado, no solo el severo. La indicacion de cierre se decide antes que la via: un borde deficiente sobre una CIA sin repercusion no es una indicacion quirurgica.' },
-      { k:'civ', tit:'Comunicacion interventricular (CIV)', lbls:CIV_TIPOS_LBL, filas:CIV_CONDUCTAS,
-        tamLbl:'Tamano promedio',
-        nota:'Esta app no registra la direccion del shunt en la CIV, asi que la contraindicacion se apoya unicamente en el Qp/Qs < 1. El criterio "DDVI indexado dilatado SIN OTRA CAUSA" no es computable desde estos campos: un ecocardiograma no excluye las otras causas de dilatacion del VI, de modo que la fila de cierre indicado puede incluir estudios cuya dilatacion tenga otro origen.' }
-    ]) {
-      const R = _labShuntResumen(infs, CC.k);
-      if (!R.n) continue;                      // seccion condicional: solo con >=1 caso
+    /* ── CARDIOPATIAS CONGENITAS — demografia, tipos, estructura y orientacion terapeutica ──
+       Mismas fichas y mismo seam que la diapositiva (`CC_FICHAS` / `_labCCResumen`). La regla
+       "PDF >= PPT" no se cumple comparando dos textos parecidos: se cumple leyendo el mismo
+       objeto. Lo que el PDF agrega es la tabla a tres columnas, con el criterio y su guia al
+       lado de cada conducta en vez de abreviados al pie. */
+    for (const _k of ['cia', 'civ', 'dap', 'coa']) {
+      const R = _labCCResumen(infs, _k);
+      if (!R || !R.n) continue;                // seccion condicional: solo con >=1 caso
+      const CF = R.cfg;
       const pct = (x, d) => d > 0 ? Math.round(x / d * 100) + '%' : '-- (sin datos)';
       const pm  = (pr, ds, dec, suf) => pr
         ? (pr.v.toFixed(dec) + (ds !== null ? ' +/- ' + ds.toFixed(dec) : '') + (suf || '') + ' (n=' + pr.n + ')')
         : '-- (sin datos)';
       const filas = [
-        ['Estudios con ' + CC.k.toUpperCase(), R.n + ' de ' + infs.length],
+        ['Estudios con ' + _k.toUpperCase(), R.n + ' de ' + infs.length],
         ['Sexo masculino', R.sexN ? (R.nM + ' (' + pct(R.nM, R.sexN) + ')') : '-- (sin datos)'],
         ['Sexo femenino', R.sexN ? (R.nF + ' (' + pct(R.nF, R.sexN) + ')') : '-- (sin datos)'],
         ['Edad promedio', pm(R.edad, R.edadDs, 0, ' anos')],
-        [CC.tamLbl, pm(R.tam, R.tamDs, 1, ' mm')],
-        ['Qp/Qs promedio', R.qs ? (R.qs.v.toFixed(2) + ' (n=' + R.qs.n + ')') : '-- (sin datos)'],
-        ['PSAP promedio', R.psap ? (R.psap.v.toFixed(0) + ' mmHg (n=' + R.psap.n + ')') : '-- (sin datos)'],
-        ['Con dilatacion del VI', R.dilVi ? (R.dilVi.n + ' de ' + R.dilVi.de + ' (' + pct(R.dilVi.n, R.dilVi.de) + ')') : '-- (sin datos)'],
-        ['Con dilatacion del VD', R.dilVd ? (R.dilVd.n + ' de ' + R.dilVd.de + ' (' + pct(R.dilVd.n, R.dilVd.de) + ')') : '-- (sin datos)']
+        [CF.tamLbl, pm(R.tam, R.tamDs, 1, ' mm')]
       ];
+      /* Metricas y proporciones salen de la FICHA, no de una lista escrita a mano: con una copia
+         por superficie, agregar una medida a la CC obliga a acordarse de dos lugares -- y el que
+         se olvida no da error, da una seccion que dice menos que la otra. */
+      (CF.metricas || []).forEach(m => {
+        const MM = R.metr[m.k];
+        filas.push([MM.lbl, MM.prom ? (MM.prom.v.toFixed(MM.dec) + MM.suf + ' (n=' + MM.prom.n + ')') : '-- (sin datos)']);
+      });
+      (CF.props || []).forEach(pp => {
+        const PP = R.props[pp.k];
+        filas.push([PP.lbl, PP.de ? (PP.n + ' de ' + PP.de + ' (' + pct(PP.n, PP.de) + ')') : '-- (sin datos)']);
+      });
       /* El aviso de cohorte chica va como PRIMERA fila de la tabla y no al pie: el pie de estas
          secciones ya lleva la salvedad metodologica, y una advertencia apilada al final se lee
          ultima -- o no se lee. Mismo criterio que `avisoN` en la diapositiva. */
       if (R.n < 3) filas.unshift(['COHORTE INSUFICIENTE para lectura estadistica', 'n = ' + R.n]);
-      const tipoEnt = Object.keys(R.tipos).map(k => [_lblDe(CC.lbls, k), R.tipos[k]]);
+      const tipoEnt = Object.keys(R.tipos).map(t => [_lblDe(CF.tipos, t), R.tipos[t]]);
       tipoEnt.forEach(([l, c]) => filas.push(['Tipo: ' + l, c + ' (' + pct(c, R.n) + ')']));
-      await sectionChart(CC.tit, ['Indicador', 'Valor'], filas,
+      await sectionChart(CF.tit, ['Indicador', 'Valor'], filas,
         tipoEnt.length ? { labels: tipoEnt.map(t => t[0]), values: tipoEnt.map(t => t[1]),
                            colors: ['#4f8ef7', '#3ecf8e', '#f5c842', '#f0a500', '#8a5fd4'], type: 'pie' } : null);
       /* Tabla a TRES columnas: `sectionChart` cablea dos anchos, y el criterio con su guia no
          entra en el rotulo de la conducta sin abreviarlo justo donde importa. Se dibuja directo
          con `drawTable`, que acepta cualquier cantidad de columnas. */
-      sectionTitle(CC.tit + ' - orientacion terapeutica (cascada ESC 2020) - SUGERENCIA ORIENTATIVA, NO RECOMENDACION');
+      sectionTitle(CF.tit + ' - orientacion terapeutica - SUGERENCIA ORIENTATIVA, NO RECOMENDACION');
       drawTable(M, [44, 110, 26], ['Conducta', 'Criterio (guia y ano)', 'n (%)'],
-        CC.filas.map(f => [f.lbl, f.crit, (R.cond[f.k] || 0) + ' (' + pct(R.cond[f.k] || 0, R.condN) + ')']));
+        CF.conductas.map(f => [f.lbl, f.crit, (R.cond[f.k] || 0) + ' (' + pct(R.cond[f.k] || 0, R.condN) + ')']));
       y += 2;
-      /* Nota propia, inmediatamente DEBAJO de la tabla y antes del detalle metodologico: es la
-         salvedad medico-legal, no una aclaracion tecnica, y mezclarla con el denominador la
-         diluye. Mismo `_nota` que el resto de las salvedades del PDF del Laboratorio -- ancho
-         completo, italica, 8 pt -- para que no se lea como un elemento de otra clase. */
       /* SIN acentos, como todas las _nota del archivo: `_labSanPDF` los despoja igual -- la
          helvetica/WinAnsi de jsPDF no los tiene, y es el mismo saneador que existe porque los
          umbrales de severidad valvular salieron ilegibles en TODOS los PDF firmados. Escribirlos
@@ -57312,10 +57418,10 @@ async function labGenerarPDF() {
          En el PPT si van acentuados: PptxGenJS no tiene esa limitacion y se verifico. */
       _nota('Sugerencia orientativa basada en guias vigentes (ESC/AHA). No constituye una recomendacion clinica individual. El medico tratante es quien decide la conducta segun el contexto del paciente.');
       /* Y el detalle metodologico aparte: cuantos entraron al denominador y por que. */
-      _nota('Sugerencia orientativa, NO una recomendacion terapeutica: la tabla agrupa por criterio ecocardiografico segun la cascada ESC 2020 -- primero si hay indicacion de cierre (Qp/Qs >= 1,5 o sobrecarga de volumen del VD), despues por que via --, y la decision es del Heart Team con el paciente delante. ' +
-            'Denominador de esta tabla: n = ' + R.condN +
-            (R.fuera ? ' -- se excluyeron ' + R.fuera + ' estudio(s) con mas de un cortocircuito documentado, donde el Qp/Qs global no es atribuible a este defecto.' : '.') +
-            ' ' + CC.nota);
+      _nota('Denominador de esta tabla: n = ' + R.condN +
+            (R.fuera ? ' -- se excluyeron ' + R.fuera + ' estudio(s) con mas de un cortocircuito documentado, donde el Qp/Qs global no es atribuible a este defecto.' : '') +
+            (R.otras ? ' -- ' + R.otras + ' estudio(s) devolvieron una clave que esta tabla no lista.' : '') +
+            ' ' + CF.pie);
     }
   }
 
@@ -58349,8 +58455,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260918-2104';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789776240919;                 /* eco-build-ms */
+const ECO_BUILD    = '20260918-2245';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789782311223;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -58436,7 +58542,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-2104</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260918-2245</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
