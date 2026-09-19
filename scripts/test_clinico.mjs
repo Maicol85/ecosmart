@@ -8578,7 +8578,9 @@ caso('TC-171', 'Los clasificadores de CC dan lo MISMO leyendo el form o un estud
       vab_riesgo_qx:'si', vab_cx_valvular:'no', ao_sin:'40', ao_tub:'51',
       mch_espesor:'21', mch_loc:'sept_ant', mch_patron:'reversa', mch_grad_reposo:'40',
       mch_sam:'si', mch_fam_ms:'no', mch_sincope:'no', ai_diam:'44',
-      mch_ex_fenocopia:'no', mch_ex_sindromica:'no', mch_ex_parada:'no'
+      mch_ex_fenocopia:'no', mch_ex_sindromica:'no', mch_ex_parada:'no',
+      tdf_func_vd:'moderada', tdf_grad_tsvd:'40', tdf_sintomas:'no', tdf_ejercicio:'no',
+      ip_grado:'Severa'
     };
     const puestos = [], faltantes = [];
     Object.keys(F).forEach((k) => {
@@ -8604,14 +8606,14 @@ caso('TC-171', 'Los clasificadores de CC dan lo MISMO leyendo el form o un estud
     const dap = par(dapConclusion), vap = par(vapConclusion);
     const coa = par(coaConclusion), fop = par(fopConclusion), tga = par(tgaConclusion);
     const ebs = par(ebsConclusion), mca = par(mcaConclusion), vab = par(vabConclusion);
-    const mch = par(mchConclusion);
+    const mch = par(mchConclusion), tdf = par(tdfConclusion);
     /* Denominador: si las dos rutas devuelven null el caso pasaria trivialmente, que es medir
        sobre vacio. Se exige que la ruta DOM haya concluido ALGO en las siete. */
-    const concluyen = [dap.dom, vap.dom, coa.dom, fop.dom, tga.dom, ebs.dom, mca.dom, vab.dom, mch.dom].filter((x) => x !== 'null' && x !== null).length;
+    const concluyen = [dap.dom, vap.dom, coa.dom, fop.dom, tga.dom, ebs.dom, mca.dom, vab.dom, mch.dom, tdf.dom].filter((x) => x !== 'null' && x !== null).length;
     return { extra: [
       ['los ids del formulario existen',            faltantes.length === 0, faltantes.join(',')],
       ['la casilla de la coartacion existe',        casilla === 'ok', casilla],
-      ['las nueve cascadas concluyen algo',        concluyen === 9, concluyen + ' de 9'],
+      ['las diez cascadas concluyen algo',         concluyen === 10, concluyen + ' de 10'],
       ['ductus: la misma conclusion por las dos rutas',    dap.dom === dap.src, 'dom=' + dap.dom.slice(0,70) + ' src=' + dap.src.slice(0,70)],
       /* EL aserto que de verdad prueba que el ductus lee el estudio. Los dos de arriba son
          vacuos por construccion: el formulario y campos tienen los MISMOS datos, asi que una
@@ -8640,6 +8642,22 @@ caso('TC-171', 'Los clasificadores de CC dan lo MISMO leyendo el form o un estud
       ['MCA: la misma conclusion por las dos rutas',      mca.dom === mca.src, 'dom=' + mca.dom.slice(0,70) + ' src=' + mca.src.slice(0,70)],
       ['VAB: la misma conclusion por las dos rutas',      vab.dom === vab.src, 'dom=' + vab.dom.slice(0,70) + ' src=' + vab.src.slice(0,70)],
       ['MCH: la misma conclusion por las dos rutas',      mch.dom === mch.src, 'dom=' + mch.dom.slice(0,70) + ' src=' + mch.src.slice(0,70)],
+      ['TdF: la misma conclusion por las dos rutas',      tdf.dom === tdf.src, 'dom=' + tdf.dom.slice(0,70) + ' src=' + tdf.src.slice(0,70)],
+      /* TdF, aserto NO vacuo: el ESTADO SINTOMATICO, que es EXACTAMENTE lo que separa la Clase I
+         de la IIa. El formulario tiene tdf_sintomas en 'no'; el objeto de conSint lo marca 'si'.
+         Si la sombra no propagara src, conSint leeria el 'no' del DOM y la indicacion bajaria de
+         Clase I a Clase IIa sobre un paciente sintomatico. */
+      ['el estado sintomatico del estudio decide la clase en TdF',
+        (function () {
+          const base = { tdf_func_vd:'moderada', tdf_grad_tsvd:'40', ip_grado:'Severa' };
+          const conSint = tdfConclusion(Object.assign({}, base, { tdf_sintomas:'si' }));
+          const sinSint = tdfConclusion(Object.assign({}, base, { tdf_sintomas:'no' }));
+          return conSint && sinSint
+                 && conSint.clave === 'reintervencion_i'
+                 && sinSint.clave === 'reintervencion_iia';
+        })(),
+        'conSint=' + J((tdfConclusion({ tdf_func_vd:'moderada', tdf_grad_tsvd:'40', ip_grado:'Severa', tdf_sintomas:'si' }) || {}).clave) +
+        ' sinSint=' + J((tdfConclusion({ tdf_func_vd:'moderada', tdf_grad_tsvd:'40', ip_grado:'Severa', tdf_sintomas:'no' }) || {}).clave)],
       /* MCH, aserto NO vacuo 1 de 2 y el CLINICAMENTE importante: la EXCLUSION del modelo. El
          formulario tiene mch_ex_fenocopia en 'no'; el objeto de conEx la marca 'si'. Con una
          exclusion activa el HCM Risk-SCD no esta validado y la banda no se publica. Si la
@@ -8683,9 +8701,6 @@ caso('TC-171', 'Los clasificadores de CC dan lo MISMO leyendo el form o un estud
           return 'gordo=' + J(mchScoreESC(Object.assign({}, base, { mch_espesor:'32' }))) +
                  ' fino=' + J(mchScoreESC(Object.assign({}, base, { mch_espesor:'16' })));
         })()],
-      ['MCA: la misma conclusion por las dos rutas',      mca.dom === mca.src, 'dom=' + mca.dom.slice(0,70) + ' src=' + mca.src.slice(0,70)],
-      ['VAB: la misma conclusion por las dos rutas',      vab.dom === vab.src, 'dom=' + vab.dom.slice(0,70) + ' src=' + vab.src.slice(0,70)],
-      ['MCH: la misma conclusion por las dos rutas',      mch.dom === mch.src, 'dom=' + mch.dom.slice(0,70) + ' src=' + mch.src.slice(0,70)],
       /* VAB, aserto NO vacuo 1 de 2: el DIAMETRO. El formulario tiene ao_tub 51; el objeto de
          chico trae 42. Sin la propagacion de src las dos ramas leerian el 51 del DOM. */
       ['el diametro aortico del estudio cambia la rama de VAB',
@@ -8850,7 +8865,11 @@ caso('TC-172', 'El encuadre orientativo sale en el PDF, una vez por tabla de con
       mk(11, { fevi:'62', tapse:'21', mch_espesor:'22', mch_loc:'sept_ant', mch_patron:'reversa',
                mch_grad_reposo:'45', mch_sam:'si', mch_fam_ms:'no', mch_sincope:'no',
                ai_diam:'45', tv_documentada:'no',
-               mch_ex_fenocopia:'no', mch_ex_sindromica:'no', mch_ex_parada:'no' })
+               mch_ex_fenocopia:'no', mch_ex_sindromica:'no', mch_ex_parada:'no' }),
+      /* ip_grado va por TEXTO: sus <option> no tienen atributo value. Y el gradiente en 40 para
+         superar EP_GMAX_LEVE_MAX (36), que es lo que hace "obstruccion al menos moderada". */
+      mk(12, { fevi:'55', tapse:'17', tdf_func_vd:'moderada', tdf_grad_tsvd:'40',
+               tdf_sintomas:'si', tdf_ejercicio:'no', ip_grado:'Severa', psap_calc:'55' })
     ];
     const origGet = window.getInformes;
     window.getInformes = function(){ return datos; };
@@ -8894,12 +8913,13 @@ caso('TC-172', 'El encuadre orientativo sale en el PDF, una vez por tabla de con
       ['el PDF tiene paginas: hay denominador', paginas > 0, 'paginas=' + paginas],
       ['sale la seccion de conductas de la CIA', txt.indexOf('Cierre percutaneo') > -1, ''],
       ['sale la seccion de conductas de la CIV', txt.indexOf('Cierre indicado') > -1, ''],
-      /* NUEVE sobre ONCE fichas: la MCA y la MCH llevan encuadre propio porque sus tablas no
-         publican conducta -- una clasifica diagnostico y la otra estratifica riesgo.
+      /* DIEZ sobre DOCE fichas: la MCA y la MCH llevan encuadre propio porque sus tablas no
+         publican conducta -- una clasifica diagnostico y la otra estratifica riesgo. La TdF SI
+         publica conducta (la ESC 2020 da Clase I y IIa), asi que lleva el generico.
          El numero es la compuerta: si una ficha nueva entra a CC_ORDEN sin encuadre, si una lo
          pierde, o si a la MCA le ponen el generico, esto cae. */
-      ['el encuadre aparece una vez por tabla', cuenta(abre) === 9, cuenta(abre) + ' veces'],
-      ['la frase entra completa, no truncada', cuenta(cierra) === 9, cuenta(cierra) + ' veces'],
+      ['el encuadre aparece una vez por tabla', cuenta(abre) === 10, cuenta(abre) + ' veces'],
+      ['la frase entra completa, no truncada', cuenta(cierra) === 10, cuenta(cierra) + ' veces'],
       ['sale la seccion del ductus', txt.indexOf('Ductus arterioso permeable') > -1, ''],
       ['sale la seccion de la coartacion', txt.indexOf('Coartacion de aorta') > -1, ''],
       ['sale la seccion de la ventana aortopulmonar', txt.indexOf('Ventana aortopulmonar') > -1, ''],
@@ -8909,6 +8929,15 @@ caso('TC-172', 'El encuadre orientativo sale en el PDF, una vez por tabla de con
       ['sale la seccion de la MCA', txt.indexOf('Miocardiopatia arritmogenica') > -1, ''],
       ['sale la seccion de la VAB', txt.indexOf('Valvula aortica bicuspide') > -1, ''],
       ['sale la seccion de la MCH', txt.indexOf('Miocardiopatia hipertrofica') > -1, ''],
+      ['sale la seccion de la TdF', txt.indexOf('Tetralogia de Fallot operada') > -1, ''],
+      /* La diferencia entre Clase I y IIa en TdF ES el estado sintomatico: las dos filas tienen
+         que estar separadas en el papel, o el criterio que decide la clase desaparece. */
+      ['la TdF separa Clase I de Clase IIa',
+        txt.indexOf('Reemplazo valvular - Clase I') > -1 && txt.indexOf('A considerar - Clase IIa') > -1, ''],
+      /* La salvedad que atraviesa la ficha: el criterio volumetrico es de RESONANCIA, y esta app
+         es de eco. Si desaparece, la tabla se lee como si el eco lo hubiera evaluado. */
+      ['la TdF declara que el criterio volumetrico es por resonancia',
+        txt.indexOf('se mide por RESONANCIA y no por ecocardiografia') > -1, ''],
       /* Como la MCA: la MCH estratifica RIESGO, no publica conducta. La diferencia es que la ESC
          2023 SI ata una clase a cada banda, y esa clase se copia de lo que el informe individual
          ya imprime -- por eso las Clases IIa/IIb tienen que aparecer en la columna de criterio. */

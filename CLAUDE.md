@@ -4239,6 +4239,51 @@ alta, porque los casos se escribieron eligiendo los cortes, no los campos.
    taquicardia ventricular, historia clínica, frases rápidas, segmentos del ETE, pre-TAVI,
    panel de indicaciones (`_IG_SECTIONS`), DICOM e imágenes en IndexedDB.
 
+## TdF — y el cierre: las doce fichas, con dos CC que a propósito no la tienen
+
+Duodécima ficha. **Y la que yo había anunciado mal.** Dije que TdF arrastraba `calcVP()` (84 L) y
+`vpSync()`; los dos salen **sólo dentro de un comentario** de `tdfConclusion`. Ese dato vino del
+detector viejo, el que no despojaba comentarios — el **mismo falso positivo** que ya había
+encontrado y corregido en VAB, y que igual volví a propagar porque reporté sin re-medir. TdF era
+la más chica de las tres: sombra + cuatro llamadas a `tvEstado`/`tvFrase`.
+
+### El aserto: el estado sintomático ES la clase
+La diferencia entre Clase I y Clase IIa en el reemplazo valvular pulmonar **es** que el paciente
+tenga síntomas. Formulario con `tdf_sintomas:'no'`, objeto con `'si'`. Mutante sin la sombra:
+`conSint="reintervencion_iia" sinSint="reintervencion_iia"` — un paciente sintomático **bajado de
+Clase I a IIa** porque el formulario decía que no.
+
+### Dos ids que me inventé, cazados antes de commitear
+- **`tdf_psvd` no existe.** La sección lee `psap_calc`, el campo compartido. Un id inventado no da
+  error: da una métrica vacía que se lee como «nadie lo midió».
+- **`ip_grado` no tiene atributo `value`**: el valor **es el texto** («Sin insuficiencia» / «Leve»
+  / «Moderada» / «Severa»), igual que `et_grado` —ya documentado—. Mi `=== '4'` no matchearía
+  nunca y la proporción habría dado 0 % sobre una cohorte con insuficiencias severas. Y el corte
+  de obstrucción es `EP_GMAX_LEVE_MAX = 36`, no 30.
+
+Los tres los cazó el fixture dando `seguimiento` donde esperaba reintervención, más un `grep -c`
+de cada id contra el archivo. **Verificar los ids contra el fuente antes de escribir la ficha**, no
+después.
+
+### El estado final: DOCE fichas, y dos ausencias deliberadas
+`CC_ORDEN` = cia · civ · dap · vap · coa · fop · vab · ebs · tdf · tga · mch · mca.
+
+**Eisenmenger y Fontan NO tienen ficha, y no es un pendiente.** `eisenEstado` y `fontanEstado` no
+devuelven una clave de conducta: devuelven **alertas** (embarazo contraindicado, síncope,
+hemoptisis) y un plan de seguimiento. No hay cascada que tabular, e inventarle una sería escribir
+un criterio que el informe individual no afirma. Ya están representadas en la diapositiva 11 del
+PPT con NYHA y saturación promedio.
+
+De las doce, **diez publican conducta** y llevan el encuadre genérico; **dos no**: la MCA
+clasifica diagnóstico (Task Force 2010) y la MCH estratifica riesgo (HCM Risk-SCD), y cada una
+lleva rótulo, columna y encuadre propios. TC-172 fija el número en **10 sobre 12**: si a una de
+esas dos le ponen el genérico, el conteo se va a 11 y caen varias condiciones juntas.
+
+### La auditoría final
+27 funciones de la cadena de CC barridas con el detector corregido: **cero** helpers sin `src`,
+**cero** lecturas del DOM fuera de las 9 ramas `!src` deliberadas (el camino literal de los
+clasificadores viejos cuando no se les pasa estudio).
+
 ## MCH: la cadena más larga, y la fila que impide estratificar donde el modelo no aplica
 
 Undécima ficha. **Quince funciones** en el cierre transitivo, nueve de ellas threadeadas:

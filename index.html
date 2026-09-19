@@ -33853,7 +33853,8 @@ function cvpaSync(){
 }
 window.cvpaSync = cvpaSync;
 
-function tdfConclusion(){
+function tdfConclusion(src){
+  const _tdfSv = id => _ccSv(id, src), _tdfNv = id => _ccNv(id, src);
   const civ = _tdfSv('tdf_civ_residual'), civG = _tdfNv('tdf_civ_grad');
   const func = _tdfSv('tdf_func_vd'), ip = _tdfSv('ip_grado');
   /* El gradiente del tracto de salida: `vp_gmax` («G. Máx pulmonar — auto») ya lo calcula
@@ -33866,7 +33867,7 @@ function tdfConclusion(){
   const gradProp = _tdfNv('tdf_grad_tsvd'), gradVP = _tdfNv('vp_gmax');
   const gradT = gradProp != null ? gradProp : gradVP;
   const gradDiscrepa = (gradProp != null && gradVP != null && Math.abs(gradProp - gradVP) >= 10);
-  const tv = tvEstado().tdfTv;   // bloque compartido de arritmia ventricular
+  const tv = tvEstado(src).tdfTv;   // bloque compartido de arritmia ventricular
   const sint = _tdfSv('tdf_sintomas'), ejerc = _tdfSv('tdf_ejercicio');
   const ep = _tdfSv('tdf_ep_stent'), it = _tdfSv('it_grado');
   const psvd = _tdfNv('psap_calc');
@@ -33970,7 +33971,7 @@ function tdfConclusion(){
   const ITT = { '1':'leve', '2':'moderada', '3':'moderada-severa', '4':'severa' };
   const itTxt = _ccLbl(ITT, it);
   if (itTxt) partes.push('Insuficiencia tricuspídea ' + itTxt);
-  if (tv === 'si') { const _f = (typeof tvFrase === 'function') ? tvFrase() : null;
+  if (tv === 'si') { const _f = (typeof tvFrase === 'function') ? tvFrase(src) : null;
     partes.push((_f || 'Taquicardia ventricular documentada') + ', que la ESC 2020 vincula al mapeo e istmos anatómicos antes de una eventual reintervención'); }
 
   /* Conducta según la tabla de la ESC 2020 para TdF reparada. */
@@ -34012,7 +34013,7 @@ function tdfConclusion(){
        el informe afirmaba un hallazgo que nadie había registrado, y sostenía sobre él una
        indicación Clase IIa de recambio valvular pulmonar. Ahora el tipo viene del bloque
        compartido. Sin tipo cargado no se afirma nada: se pide el dato. */
-    if (tvEstado().sostenida) criterios.push('taquicardia ventricular sostenida documentada');
+    if (tvEstado(src).sostenida) criterios.push('taquicardia ventricular sostenida documentada');
     if (criterios.length) {
       clave = 'reintervencion_iia';
       /* «Asintomático» sólo con el «No» explícito. La diferencia entre Clase I y IIa ES el estado
@@ -34047,7 +34048,7 @@ function tdfConclusion(){
      —insuficiencia pulmonar moderada, seguimiento y la sintomática Clase I— el cuerpo describía
      «Taquicardia ventricular documentada, sostenida…» y dos oraciones después «Sin criterios de
      reintervención por los datos cargados», sin decir por qué no contó. Acá se dice siempre. */
-  const _tvT = tvEstado();
+  const _tvT = tvEstado(src);
   let salvedadTV = '';
   if (_tvT.hay && _tvT.faltaTipo) salvedadTV = 'Consta taquicardia ventricular pero no si fue sostenida: la ESC 2020 lista como criterio de reintervención la taquicardia ventricular SOSTENIDA, de modo que sin ese dato el criterio no puede aplicarse';
   else if (_tvT.noSostenida && !_tvT.sostenida) salvedadTV = 'La taquicardia ventricular documentada es no sostenida, que no figura entre los criterios de reintervención de la ESC 2020';
@@ -53133,6 +53134,24 @@ const EBS_CONDUCTAS = [
   { k:'no_interpretable',       lbl:'No interpretable',           crit:'Algun valor fuera de rango: revisar unidades antes de concluir' },
   { k:'nc',                     lbl:'No clasificable',            crit:'El clasificador no devolvio una conclusion para este estudio' }
 ];
+/* ── TdF · tetralogia de Fallot operada ──
+   Estas SI son conductas: la ESC 2020 publica Clase I y IIa para el reemplazo valvular pulmonar.
+   La diferencia entre las dos filas de reintervencion es el ESTADO SINTOMATICO, asi que se
+   separan y no se funden: fundirlas borraria justamente el dato que decide la clase.
+   La salvedad que atraviesa la ficha: el criterio VOLUMETRICO del VD se mide por RESONANCIA, no
+   por ecocardiografia, y esta app es de eco. Por eso ninguna fila afirma que el criterio
+   volumetrico este evaluado salvo que los volumenes por RMC esten cargados. */
+const TDF_CONDUCTAS = [
+  { k:'reintervencion_i',   lbl:'Reemplazo valvular - Clase I', crit:'Sintomatico con insuficiencia pulmonar severa u obstruccion al menos moderada del TSVD (ESC 2020)' },
+  { k:'reintervencion_iia', lbl:'A considerar - Clase IIa',     crit:'IP severa u obstruccion MAS otro criterio: caida del ejercicio, disfuncion del VD, dilatacion por RMC, IT al menos moderada, PSVD > 80 mmHg con obstruccion, o TV sostenida (ESC 2020)' },
+  { k:'vigilancia',         lbl:'Vigilancia',                   crit:'IP severa u obstruccion SIN sintomas ni otros criterios - seguimiento' },
+  { k:'ip_moderada',        lbl:'Insuficiencia pulmonar moderada', crit:'Vigilar volumenes y funcion del VD por resonancia' },
+  { k:'seguimiento',        lbl:'Sin criterios de reintervencion', crit:'Seguimiento clinico y por imagen' },
+  { k:'no_interpretable',   lbl:'No interpretable',             crit:'Algun valor fuera de rango: revisar unidades antes de concluir' },
+  { k:'nc',                 lbl:'No clasificable',              crit:'El clasificador no devolvio una conclusion para este estudio' }
+];
+const TDF_TIPOS_LBL = { normal:'Funcion VD normal', leve:'Disfuncion leve',
+                        moderada:'Disfuncion moderada', severa:'Disfuncion severa' };
 /* ── MCH · miocardiopatia hipertrofica ──
    ESTO NO SON CONDUCTAS, como en la MCA: son las BANDAS DE RIESGO del HCM Risk-SCD a 5 anos. La
    diferencia con la MCA es que la ESC 2023 SI ata una clase de recomendacion a cada banda, y esa
@@ -53348,6 +53367,28 @@ const CC_FICHAS = Object.assign(Object.create(null), {
     piePpt:'Criterios Task Force 2010 — la banda es parcial: el eco no aporta histología, ECG ni genética.',
     /* SIN comillas invertidas: este texto se IMPRIME en el PDF y saldrian literales. */
     pie:'La banda sale del mismo puntaje que firma el informe individual, con la regla operativa de UN criterio por categoria -el de mayor jerarquia-: sumar todas las filas marcadas sobrediagnostica. El criterio estructural usa el TSVD paraesternal propio de la seccion y no el del Qp/Qs, porque se miden en otro nivel y con otra convencion. Un valor fuera de rango invalida la categoria entera y cae en no interpretable, no se ignora para seguir puntuando.' },
+  tdf: { tit:'Tetralogia de Fallot operada (TdF)', titAcc:'Tetralogía de Fallot operada (TdF)',
+    tipoCampo:'tdf_func_vd', tipos:TDF_TIPOS_LBL, tipoTit:'Distribucion por funcion del VD',
+    tamCampo:'tdf_grad_tsvd', tamLbl:'Gradiente del TSVD',
+    /* `psap_calc` y NO un `tdf_psvd`, que no existe: la seccion lee la PSVD estimada por la
+       insuficiencia tricuspidea, el mismo campo compartido que usa el clasificador. Un id
+       inventado no da error -- da una metrica vacia que se lee como "nadie lo midio". */
+    metricas:[ { k:'psvd', lbl:'PSVD estimada promedio', get:i => { const x = _labNum(i, 'psap_calc', 'psap'); return (x !== null && x > 0 && x <= 200) ? x : null; }, dec:0, suf:' mmHg' },
+               /* Los volumenes son de RESONANCIA. Se publican con el rotulo que lo dice: leidos
+                  como una medida de eco serian una medida que esta app no hace. */
+               { k:'vtdvdi', lbl:'VTDVD indexado por RMC', get:i => { const x = _labNum(i, 'tdf_vtdvdi'); return (x !== null && x > 0 && x <= 500) ? x : null; }, dec:0, suf:' ml/m2' } ],
+    props:[ { k:'ipsev', lbl:'Con insuficiencia pulmonar severa', get:i => { const x = _labCampoRaw(i, 'ip_grado');
+                /* `ip_grado` es un <select> cuyas opciones NO tienen atributo `value`: el valor
+                   ES el texto ("Sin insuficiencia" / "Leve" / "Moderada" / "Severa"). Mismo
+                   modelo que `et_grado`, ya documentado. Por eso se testea el TEXTO y no un
+                   codigo numerico -- un `=== '4'` no matchearia nunca y la proporcion daria 0 %
+                   sobre una cohorte que si tiene insuficiencias severas. */
+                if (x === '' || x === undefined || x === null) return null;
+                return /severa/i.test(String(x)); } },
+            { k:'sint', lbl:'Sintomaticos', get:i => { const x = _labCampoRaw(i, 'tdf_sintomas');
+                return x === 'si' ? true : (x === 'no' ? false : null); } } ],
+    conductas:TDF_CONDUCTAS, clasif:_claveDe(tdfConclusion), soloShuntUnico:false,
+    pie:'La diferencia entre Clase I y Clase IIa es el ESTADO SINTOMATICO, por eso son dos filas y no una: fundirlas borraria el dato que decide la clase. El criterio VOLUMETRICO del ventriculo derecho -VTDVD indexado >= 160 o VTSVD indexado >= 80 ml/m2- se mide por RESONANCIA y no por ecocardiografia: solo vota cuando esos volumenes estan cargados, y el promedio de arriba sale de los estudios que los traen, no de la cohorte. La taquicardia ventricular cuenta como criterio unicamente cuando consta el tipo SOSTENIDA: sin el tipo no se afirma.' },
   vab: { tit:'Valvula aortica bicuspide (VAB)', titAcc:'Válvula aórtica bicúspide (VAB)',
     tipoCampo:'vab_tipo', tipos:VAB_TIPOS_LBL, tipoTit:'Distribucion por tipo de fusion',
     /* El "tamano" es el MAXIMO de raiz y ascendente, que es la variable que decide el umbral.
@@ -53399,7 +53440,7 @@ const CC_FICHAS = Object.assign(Object.create(null), {
    y leído por las DOS superficies: con una copia por superficie, agregar una CC y olvidarse de
    una lista produce una sección que está en el PDF y no en el PPT, que es exactamente lo que la
    regla «PDF >= PPT» prohíbe y lo que nadie ve hasta que falta. */
-const CC_ORDEN = ['cia', 'civ', 'dap', 'vap', 'coa', 'fop', 'vab', 'ebs', 'tga', 'mch', 'mca'];
+const CC_ORDEN = ['cia', 'civ', 'dap', 'vap', 'coa', 'fop', 'vab', 'ebs', 'tdf', 'tga', 'mch', 'mca'];
 /* Assert de arranque: toda clave del orden tiene ficha, y toda ficha está en el orden. Sin esto,
    una ficha nueva sin su entrada acá no da error — da una sección que simplemente no se imprime,
    y el modo de falla es el silencio. */
@@ -59100,8 +59141,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260919-1029';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789824541574;                 /* eco-build-ms */
+const ECO_BUILD    = '20260919-1036';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789825016175;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -59187,7 +59228,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-1029</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-1036</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
