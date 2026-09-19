@@ -9424,6 +9424,302 @@ caso('TC-175', 'Hoja de CC en el PDF del informe: estructura, y que NO hereda de
 
 
 
+/* ══ TC-176 · Importador CHM del GE Vivid: unidades, guardas y destinos ═══════════════════════
+   SINTETICO A PROPOSITO. No toca ningun archivo: le da de comer a _chmMapearMedicion entradas
+   armadas a mano. Dos razones:
+   · El CHM real es de un paciente real y este repo es publico. Nada de ese archivo —ni el
+     base64, ni sus mediciones, ni su nombre— puede quedar versionado.
+   · Lo que hay que fijar acá es la TRANSFORMACION, no el dato. Un test que afirma «siv sale 6»
+     se rompe con otro paciente; uno que afirma «cm por diez da mm» vale para todos.
+   La trampa que cubre es la mas cara del modulo: un factor de unidad equivocado no rompe nada,
+   guarda un septum de 0,6 mm en vez de 6 y el informe sale firmado.                          */
+caso('TC-176', 'CHM del GE: conversiones de unidad, valores invalidos y destinos que existen', `
+  const M = (nombre, unidad, valor) => _chmMapearMedicion(nombre, '', unidad, valor);
+  const v = (nombre, unidad, valor) => { const r = M(nombre, unidad, valor); return r.ok ? r.valor : null; };
+
+  /* ── Las tres reglas de unidad, cada una con su testigo ──
+     No alcanza con probar una: el pedido original traia SOLO la regla de m/s a cm/s, y de las
+     otras dos una estaba ausente (cm a mm) y la otra invertida (AR Vmax se pedia directo sobre
+     un campo que esta en cm/s). */
+  const cmAmm   = v('2D/IVSd', 'cm', '0.6');            // 0,6 cm de septum = 6 mm
+  const msAcms  = v('MV E Velocity', 'm/s', '0.70');    // 0,70 m/s = 70 cm/s
+  const msDirec = v('TR Vmax', 'm/s', '2.43');          // vmax_it esta en m/s: no se toca
+  const arVmax  = v('AR Vmax', 'm/s', '3.18');          // ia_vmax_cw esta en cm/s: x100
+  const areaDir = v('2D/LA Area', 'cm2', '16.0');       // cm2 a cm2
+  const msDir   = v('IVRT', 'ms', '45');                // ms a ms
+  const pctDir  = v('EF(Biplane)_03', '%', '61');       // % a %
+
+  /* La unidad la manda el ARCHIVO, no una constante: el mismo parametro en mm tiene que entrar
+     igual. Si alguien reemplaza la tabla por un x10 fijo, esta condicion se pone roja. */
+  const mmTambien = v('2D/IVSd', 'mm', '6');
+  const cm2Acento = v('2D/LA Area', 'cm\\u00b2', '16.0');   // el GE escribe cm con superindice
+
+  /* Unidad que la tabla no conoce: se DESCARTA con el motivo, no se supone. */
+  const rInesp = M('2D/IVSd', 'pulgadas', '0.6');
+
+  /* ── El valor invalido del GE ──
+     El archivo real trae «0.0*» en tres mediciones de modo M. parseFloat devuelve 0 y ese 0
+     entra como dato: un septum de 0 mm no es un faltante, es un hallazgo inventado. */
+  const rAst   = M('2D/IVSd', 'cm', '0.0*');
+  const rVacio = M('2D/IVSd', 'cm', '');
+  const rTexto = M('2D/IVSd', 'cm', 'n/a');
+  const rComa  = M('2D/IVSd', 'cm', '0,6');             // coma decimal: SI es un numero
+  /* ESTA es la condicion que fija la guarda del asterisco, y hubo que agregarla por mutacion:
+     con «0.0*» el valor igual quedaba afuera, pero por el RANGO (0 < 3 mm), no por la guarda.
+     Sacar la guarda dejaba el caso en verde. Con un valor marcado invalido que cae DENTRO del
+     rango —12,5 mm de septum es perfectamente posible— la unica cosa que lo frena es la guarda,
+     y sin ella un valor que el ecografo declara no valido entra al informe como si fuera bueno. */
+  const rAstEnRango = M('2D/IVSd', 'mm', '12.5*');
+
+  /* ── Rango de plausibilidad: atrapa el error de orden de magnitud ── */
+  const rDiez = M('MM/TAPSE', 'cm', '24');              // 24 cm de TAPSE = 240 mm, imposible
+  const rBien = M('MM/TAPSE', 'cm', '2.4');
+
+  /* ── Parametro que EcoSmart no mapea: se descarta, no rompe ── */
+  const rDesc = M('MM/HeartRate', 'BPM', '369');
+  const rNulo = M('', '', '');
+
+  /* ── INVARIANTE ESTRUCTURAL: todo destino de CHM_MAPA existe en el formulario ──
+     Un id inventado no escribe y no avisa. Esta condicion es la unica que lo delata. */
+  const claves  = Object.keys(CHM_MAPA);
+  const sinCampo = claves.filter((k) => !document.getElementById(CHM_MAPA[k].campo));
+  const sinUcum  = claves.filter((k) => !CHM_MAPA[k].ucum && !_chmDefDe(CHM_MAPA[k].campo));
+  /* Y que ninguno pise un campo CALCULADO: vd_fac y qp_qs se derivan de lo que sí se importa.
+     Escribirlos seria pisar el calculo con un dato externo que el proximo recalculo borra. */
+  const calculados = claves.filter((k) => ['vd_fac','qp_qs'].indexOf(CHM_MAPA[k].campo) > -1);
+  /* Colision: dos parametros del GE al mismo campo. En el archivo real Pulmonic/Systemic Diam
+     y RVOT/LVOT Diam traen valores distintos, y mapear los cuatro hace ganar al primero del
+     XML — que no es un criterio clinico. */
+  const destinos = claves.map((k) => CHM_MAPA[k].campo);
+  const repetidos = destinos.filter((c, i) => destinos.indexOf(c) !== i);
+
+  /* Fechas INVENTADAS. Las del archivo real son de un paciente y este repo es publico; para
+     probar la aritmetica sirve cualquier par, mientras cubra el cumpleanios no cumplido. */
+  const edadOK  = (typeof _chmEdad === 'function') && _chmEdad('1950-03-15', '2026-09-19') === 76;
+  const edadPre = (typeof _chmEdad === 'function') && _chmEdad('1950-12-15', '2026-09-19') === 75;
+  const edadMal = (typeof _chmEdad === 'function') && _chmEdad('', '2026-09-19') === null;
+
+  return { extra: [
+    ['cm a mm: 0,6 cm de septum entra como 6 mm',        cmAmm === 6, cmAmm],
+    ['m/s a cm/s: 0,70 entra como 70',                   msAcms === 70, msAcms],
+    ['m/s directo: Vmax IT 2,43 no se toca',             msDirec === 2.43, msDirec],
+    ['AR Vmax a cm/s: 3,18 m/s entra como 318',          arVmax === 318, arVmax],
+    ['cm2 directo',                                      areaDir === 16, areaDir],
+    ['ms directo',                                       msDir === 45, msDir],
+    ['% directo',                                        pctDir === 61, pctDir],
+    ['la unidad la manda el archivo: mm entra sin x10',  mmTambien === 6, mmTambien],
+    ['cm con superindice se normaliza',                  cm2Acento === 16, cm2Acento],
+    ['unidad desconocida se descarta',                   !rInesp.ok && /inesperada/.test(rInesp.motivo), rInesp.motivo],
+    ['el 0.0* del GE NO entra como cero',                !rAst.ok, rAst.ok ? rAst.valor : rAst.motivo],
+    ['un valor marcado invalido PERO plausible tampoco entra',
+                                                         !rAstEnRango.ok, rAstEnRango.ok ? rAstEnRango.valor : rAstEnRango.motivo],
+    ['valor vacio no entra',                             !rVacio.ok, rVacio.motivo],
+    ['texto no entra',                                   !rTexto.ok, rTexto.motivo],
+    ['coma decimal SI es un numero',                     rComa.ok && rComa.valor === 6, rComa.ok ? rComa.valor : rComa.motivo],
+    ['TAPSE de 24 cm se rechaza por imposible',          !rDiez.ok && /fuera de lo posible/.test(rDiez.motivo), rDiez.motivo],
+    ['TAPSE de 2,4 cm entra como 24 mm',                 rBien.ok && rBien.valor === 24, rBien.ok ? rBien.valor : rBien.motivo],
+    ['parametro sin equivalente se descarta sin romper', !rDesc.ok && /sin equivalente/.test(rDesc.motivo), rDesc.motivo],
+    ['parametro vacio no rompe',                         !rNulo.ok, rNulo.motivo],
+    ['CHM_MAPA no esta vacio',                           claves.length >= 30, claves.length],
+    ['todos los destinos existen en el formulario',      sinCampo.length === 0, sinCampo.join(', ')],
+    ['todos tienen tabla de unidades',                   sinUcum.length === 0, sinUcum.join(', ')],
+    ['ningun destino es un campo calculado',             calculados.length === 0, calculados.join(', ')],
+    ['ningun campo recibe dos parametros del GE',        repetidos.length === 0, repetidos.join(', ')],
+    ['edad: 15/03/1950 al 19/09/2026 son 76',            edadOK, edadOK],
+    ['edad: cumpleanios posterior resta un anio',        edadPre, edadPre],
+    ['sin fecha de nacimiento la edad es null',          edadMal, edadMal]
+  ] };
+`);
+
+/* ══ TC-177 · LZX: descompresion byte a byte contra el CHM real ═══════════════════════════════
+   Este caso NO puede ser sintetico: lo que verifica es el descompresor, y no hay forma de
+   fabricar un flujo LZX sin un compresor. Lee el archivo REAL del disco y lo pasa a la pagina
+   en memoria; nada de eso queda versionado. Si el archivo no esta, el caso lo DICE — no pasa
+   en verde, porque un test que no corrio no es un test que paso.
+
+   Lo que se fija es el SHA-256 de los 133.996 bytes descomprimidos. Un digesto no es contenido
+   clinico y es la unica forma de afirmar «byte a byte» en una condicion.
+   Por que importa tanto: un decodificador LZX con un defecto sutil NO tira excepcion. Durante
+   el desarrollo, sin la realineacion de bitstream al final de cada marco de 32 KB, el primer
+   marco salia perfecto —HTML valido, con BOM— y la corrupcion empezaba a mitad del segundo.
+   El largo y el XML bien formado son comprobaciones estructurales; el hash es la prueba.       */
+const CHM_REAL = await (async () => {
+  const { readdir } = await import('node:fs/promises');
+  const cand = [];
+  if (process.env.ECO_CHM) cand.push(process.env.ECO_CHM);
+  const esc = join(process.env.HOME || '', 'Desktop');
+  try { (await readdir(esc)).filter(n => /\.chm$/i.test(n)).forEach(n => cand.push(join(esc, n))); } catch (e) {}
+  for (const p of cand) {
+    try { return { ruta: p, b64: (await readFile(p)).toString('base64') }; } catch (e) {}
+  }
+  return null;
+})();
+
+caso('TC-177', 'CHM real del Vivid IQ: LZX byte a byte, XML bien formado y mapeo de punta a punta', `
+  return (async () => {
+    const B64 = ${JSON.stringify(CHM_REAL ? CHM_REAL.b64 : '')};
+    if (!B64) return { extra: [[
+      'hace falta el CHM real para verificar el LZX (ponelo en ~/Desktop o pasa ECO_CHM=/ruta)',
+      false, 'archivo no encontrado: el descompresor quedo SIN verificar en esta corrida']] };
+    const bin = atob(B64);
+    const u8 = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    const buf = u8.buffer;
+
+    const esCHM = _chmEsCHM(buf);
+    const chm = _chmDirectorio(buf);
+    const xmlBytes = _chmExtraer(chm, '/patient_exam_data.xml');
+    /* El hash se toma sobre la SECCION ENTERA descomprimida, no sobre el XML: asi cubre los
+       tres intervalos de reset, incluido el ultimo de 2.924 bytes. Un desfasaje que empiece
+       tarde igual lo rompe. */
+    const entera = _chmExtraer(chm, '/temp_report.htm');
+    const dig = async (b) => {
+      const h = await crypto.subtle.digest('SHA-256', b.slice(0));
+      return Array.from(new Uint8Array(h)).map(x => x.toString(16).padStart(2,'0')).join('');
+    };
+    const hXml = await dig(xmlBytes);
+
+    const est = _chmLeerEstudio(buf, 'prueba.chm');
+    const porCampo = {};
+    est.mapeadas.forEach(r => { if (porCampo[r.campo] === undefined) porCampo[r.campo] = r.valor; });
+
+    /* ── LAS CONVERSIONES SE VERIFICAN CONTRA EL CRUDO DEL PROPIO ARCHIVO ──
+       No contra literales: el valor de este paciente no va en el repo, y ademas un literal
+       solo probaria este archivo. Se relee el XML y se compara la relacion. */
+    let txt = new TextDecoder('utf-8').decode(xmlBytes);
+    if (txt.charCodeAt(0) === 0xFEFF) txt = txt.slice(1);
+    const doc = new DOMParser().parseFromString(txt, 'text/xml');
+    const crudo = (nombre) => {
+      const ps = doc.getElementsByTagName('parameter');
+      for (let i = 0; i < ps.length; i++) if (ps[i].getAttribute('NAME') === nombre) {
+        const a = ps[i].getElementsByTagName('aver')[0];
+        return a ? parseFloat(String(a.textContent).trim()) : null;
+      }
+      return null;
+    };
+    const rel = (nombre, campo, factor) => {
+      const c = crudo(nombre), g = porCampo[campo];
+      return { ok: c != null && g != null && Math.abs(g - c * factor) < 1e-9, c, g, factor };
+    };
+    const rSiv  = rel('2D/IVSd', 'siv', 10);
+    const rTap  = rel('MM/TAPSE', 'tapse', 10);
+    const rOndaE= rel('MV E Velocity', 'onda_e', 100);
+    const rIT   = rel('TR Vmax', 'vmax_it', 1);
+    const rIA   = rel('AR Vmax', 'ia_vmax_cw', 100);
+    const rFevi = rel('EF(Biplane)_03', 'fevi', 1);
+    const rArea = rel('2D/LA Area', 'ai_area', 1);
+    const rVti  = rel('Pulmonic VTI', 'vti_tsvd', 1);
+
+    /* El FAC del VD NO se importa y la app lo calcula desde las areas: si el calculo coincide
+       con el que publica el GE, las dos areas entraron bien y con la unidad correcta. */
+    const facGE = crudo('2D/RV FAC General');
+    const ad = porCampo.vd_area_d, as = porCampo.vd_area_s;
+    const facCalc = (ad && as) ? Math.round((ad - as) / ad * 100) : null;
+
+    /* ── El asterisco del GE ──
+       El archivo marca las mediciones invalidas con un asterisco pegado al numero: «0.0*».
+       En ESTE archivo los tres casos caen en parametros que EcoSmart no mapea (MM/IVSs,
+       MM/LVIDs, MM/LVPWs), asi que se descartan por «sin equivalente» y la guarda numerica
+       no llega a correr — la ejercita TC-176, sinteticamente.
+       Lo que se afirma aca es lo unico que se puede afirmar sobre ESTE archivo y es lo que
+       importa clinicamente: existen valores con asterisco, y ninguno entro. */
+    const ps = doc.getElementsByTagName('parameter');
+    const conAst = [];
+    for (let i = 0; i < ps.length; i++) {
+      const a = ps[i].getElementsByTagName('aver')[0];
+      if (a && /\\*/.test(String(a.textContent))) conAst.push(ps[i].getAttribute('NAME'));
+    }
+    const astImportados = est.mapeadas.filter(r => conAst.indexOf(r.cod.v) > -1).length;
+    const hayCero = est.mapeadas.filter(r => r.valor === 0).length;
+
+    return { extra: [
+      ['el archivo se reconoce como CHM por sus bytes',   esCHM === true, esCHM],
+      ['el directorio ITSP lista los archivos internos',  chm.entradas.length >= 8, chm.entradas.length],
+      ['el XML descomprimido mide lo que declara el CHM', xmlBytes.length === 60977, xmlBytes.length],
+      ['el informe HTM tambien sale del mismo flujo',     entera.length === 56442, entera.length],
+      ['SHA-256 del XML: descompresion byte a byte',
+        hXml === '0a4563ed0d4231be509803a489599bf765b3bd77a17172c6c9b4ca2537db4f5c', hXml],
+      ['el XML parsea y la raiz es <measurements>',       doc.documentElement.nodeName === 'measurements' && !doc.getElementsByTagName('parsererror')[0], doc.documentElement.nodeName],
+      ['se mapearon al menos 30 mediciones',              est.mapeadas.length >= 30, est.mapeadas.length],
+      ['SIV: el archivo dice cm y entra x10',             rSiv.ok, JSON.stringify(rSiv)],
+      ['TAPSE: cm a mm',                                  rTap.ok, JSON.stringify(rTap)],
+      ['Onda E: m/s a cm/s',                              rOndaE.ok, JSON.stringify(rOndaE)],
+      ['Vmax IT: m/s directo',                            rIT.ok, JSON.stringify(rIT)],
+      ['Vmax IAo: m/s a cm/s (el campo esta en cm/s)',    rIA.ok, JSON.stringify(rIA)],
+      ['FEVI biplano: sin prefijo 2D/ y en % directo',    rFevi.ok, JSON.stringify(rFevi)],
+      ['Area AI: cm2 directo',                            rArea.ok, JSON.stringify(rArea)],
+      ['VTI pulmonar: cm directo',                        rVti.ok, JSON.stringify(rVti)],
+      ['el FAC que calcula la app coincide con el del GE', facCalc !== null && facGE !== null && Math.abs(facCalc - facGE) <= 1, facCalc + ' vs ' + facGE],
+      ['el FAC NO se importa: lo calcula la app',         porCampo.vd_fac === undefined, porCampo.vd_fac],
+      ['el archivo SI trae valores marcados invalidos',   conAst.length >= 3, conAst.join(', ')],
+      ['ninguno de esos valores se importo',              astImportados === 0, astImportados],
+      ['ninguna medicion importada vale cero',            hayCero === 0, hayCero],
+      ['el nombre pierde la coma sobrante del GE',        !/[,\\s]$/.test(est.pac.nombre) && est.pac.nombre.length > 0, est.pac.nombre ? est.pac.nombre.length : 0],
+      ['la fecha del estudio sale en ISO',                /^\\d{4}-\\d{2}-\\d{2}$/.test(est.pac.fecha_estudio), est.pac.fecha_estudio],
+      ['el equipo se identifica',                         est.pac.equipo.length > 0, est.pac.equipo],
+      ['la institucion se lee pero NO se mapea a campo',  est.pac.institucion.length > 0 && est.mapeadas.every(r => r.campo !== 'centro_nombre'), est.pac.institucion.length],
+      ['el id institucional NO entra como cedula',        est.mapeadas.every(r => r.campo !== 'ci'), est.pac.idInstitucional.length]
+    ] };
+  })();
+`);
+
+/* ══ TC-178 · El camino que recorre el medico ════════════════════════════════════════════════
+   TC-176 y TC-177 prueban las funciones; este prueba el BOTON. Arma un File real, lo pasa por
+   dcmImportarSR, mira la vista previa y aprieta «Importar seleccionados». Sin esto quedaba sin
+   cubrir justo el tramo donde vive el estado: que filas llegan tildadas, que el XML no inyecta
+   nada en el DOM, y que lo que se guarda es lo que la vista previa mostraba.
+   Depende del CHM real igual que TC-177: sin el archivo, lo dice.                             */
+caso('TC-178', 'UI de punta a punta: File real por dcmImportarSR, vista previa y guardado', `
+  return (async () => {
+    const B64 = ${JSON.stringify(CHM_REAL ? CHM_REAL.b64 : '')};
+    if (!B64) return { extra: [['falta el CHM real', false, '']] };
+    const bin = atob(B64); const u8 = new Uint8Array(bin.length);
+    for (let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
+    const f = new File([u8], 'estudio.chm', { type:'application/octet-stream' });
+
+    const antes = getInformes().length;
+    await dcmImportarSR([f]);
+    const ov = document.getElementById('dcm-imp-ov');
+    const abierto = !!ov && ov.style.display !== 'none';
+    const html = ov ? ov.innerHTML : '';
+    const filas = ov ? ov.querySelectorAll('.dcm-chk').length : 0;
+    const tildadas = ov ? ov.querySelectorAll('.dcm-chk:checked').length : 0;
+    // el payload del archivo llega escapado: no hay etiquetas inyectadas desde el XML
+    const scripts = ov ? ov.querySelectorAll('script').length : 0;
+    const dice = html.indexOf('GE Vivid CHM') > -1;
+    const _est0 = _dcmDatos && _dcmDatos.estudios[0];
+    const _vit = _est0 ? (_est0.filas.filter(function(r){return r.campo==='vmax_it';})[0] || null) : null;
+    const diceInst = html.indexOf('No se importa') > -1;
+
+    ov.querySelector('#dcm-imp-ok').click();
+    for (let i=0;i<60 && getInformes().length===antes;i++) await new Promise(r=>setTimeout(r,100));
+    const lista = getInformes(); const nuevo = lista[lista.length-1];
+    const c = (nuevo && nuevo.campos) || {};
+    const cerrado = !document.getElementById('dcm-imp-ov') || document.getElementById('dcm-imp-ov').style.display === 'none';
+    return { extra: [
+      ['la vista previa abre desde un File real', abierto, abierto],
+      ['muestra filas tildadas', filas > 25 && tildadas > 20, filas + ' filas / ' + tildadas + ' tildadas'],
+      ['el modal dice de donde vino', dice, dice],
+      ['avisa que la institucion no se importa', diceInst, diceInst],
+      ['cero <script> inyectados desde el archivo', scripts === 0, scripts],
+      ['se guardo un estudio nuevo', getInformes().length === antes + 1, getInformes().length - antes],
+      ['el estudio trae el septum en mm', parseFloat(c.siv) >= 3 && parseFloat(c.siv) <= 35, c.siv],
+      ['trae la onda E en cm/s', parseFloat(c.onda_e) >= 10 && parseFloat(c.onda_e) <= 250, c.onda_e],
+      ['la Vmax IT aparece en la vista previa', _vit !== null, _vit ? _vit.valor : 'ausente'],
+      ['y llega DESTILDADA, como en el SR (alimenta la PSAP)', _vit && _vit.usar === false, _vit ? _vit.usar : 'ausente'],
+      ['con el aviso de que hay que confirmar el jet', html.indexOf('jet regurgitante') > -1, html.indexOf('jet regurgitante') > -1],
+      ['por eso NO se guardo sin tildarla a mano', c.vmax_it === undefined, c.vmax_it],
+      ['trae la Vmax IAo en cm/s', parseFloat(c.ia_vmax_cw) > 50, c.ia_vmax_cw],
+      ['trae la FEVI', parseFloat(c.fevi) > 5 && parseFloat(c.fevi) < 90, c.fevi],
+      ['trae la edad calculada', parseFloat(c.edad) > 0 && parseFloat(c.edad) < 130, c.edad],
+      ['NO trae el FAC (lo calcula la app)', c.vd_fac === undefined, c.vd_fac],
+      ['NO trae cedula', !nuevo.ci, nuevo.ci],
+      ['la fecha viaja en el estudio', /^\\d{4}-\\d{2}-\\d{2}$/.test(nuevo.fecha_estudio||''), nuevo.fecha_estudio],
+      ['el modal se cerro', cerrado, cerrado]
+    ] };
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];

@@ -13090,7 +13090,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
                  Los inputs de archivo se quedan acá, ocultos: los dispara el menú. -->
             <input type="file" id="ig-import-file" accept=".json,application/json" style="display:none" onchange="if(this.files&&this.files[0]){importarInformesJSON(this.files[0]);this.value='';}">
             <input type="file" id="lab-import-xlsx" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none" onchange="if(this.files&&this.files[0]){labImportarXLSX(this.files[0]);this.value='';}">
-            <input type="file" id="ig-import-dcm" accept=".dcm,.DCM,application/dicom" multiple style="display:none" onchange="if(this.files&&this.files.length){dcmImportarSR(this.files);this.value='';}">
+            <input type="file" id="ig-import-dcm" accept=".dcm,.DCM,.chm,.CHM,application/dicom" multiple style="display:none" onchange="if(this.files&&this.files.length){dcmImportarSR(this.files);this.value='';}">
             <button class="btn btn-danger" onclick="limpiarTodosInformes()" title="Eliminar todos los informes">🗑️ Eliminar todos</button>
           </div>
         </div>
@@ -50426,6 +50426,619 @@ function _dcmRed(x) {
   return String(r);
 }
 
+/* ══════════════════════════════════════════════════════════════════════════════════════
+   SEGUNDO MODO DEL IMPORTADOR — GE Vivid: informe CHM con un XML adentro
+   ══════════════════════════════════════════════════════════════════════════════════════
+
+   El Vivid IQ no exporta las mediciones en el .dcm de informe: exporta un CHM (el formato
+   de ayuda de Windows) que adentro trae `/patient_exam_data.xml` con la lista completa de
+   parámetros. El archivo llega con nombre de UID DICOM, así que por la extensión no se
+   distingue de un SR: la detección es por los primeros cuatro bytes.
+
+   TRES COSAS QUE HAY QUE SABER ANTES DE TOCAR ESTO:
+
+   · El XML NO está en claro. Vive en la sección `MSCompressed` del CHM, comprimida con
+     LZX (LZXC v2, ventana de 64 KB). Un barrido de bytes buscando «<measurements» no
+     encuentra nada — medido sobre el archivo real: cero coincidencias. Por eso hay un
+     descompresor entero acá abajo y no un `indexOf`.
+
+   · El descompresor NO falla ruidosamente si está mal. Devuelve bytes. Durante el
+     desarrollo, olvidar la REALINEACIÓN del bitstream al final de cada marco de 32 KB
+     producía un primer marco perfecto —HTML válido, con BOM— y corrupción progresiva
+     desde la mitad del segundo. El archivo de prueba salía «casi bien». Por eso las
+     comprobaciones estructurales de `_chmExtraer` no son decorativas: el largo total
+     contra la ResetTable y el XML bien formado son lo único que separa «descomprimido»
+     de «descomprimido mal».
+
+   · Las unidades del GE NO son las de EcoSmart, y no en una sola dirección. El archivo
+     real trae `2D/IVSd` con unidad `cm` y valor 0.6: asignarlo directo guarda un septum
+     de 0,6 mm en vez de 6 mm. Y al revés, `AR Vmax` viene en `m/s` mientras que el campo
+     `ia_vmax_cw` de la app está en cm/s (mirá su etiqueta: «Vmax IAo CW (cm/s)»).
+     La conversión NO se hardcodea: se lee la unidad que declara CADA medición y se busca
+     el factor en la tabla `ucum` del campo, igual que hace el lector de SR. Un equipo
+     configurado en otra unidad convierte igual, y una unidad que no esté en la tabla
+     DESCARTA la medición en vez de suponerla.                                            */
+
+/* ── Contenedor ITSF/ITSP ───────────────────────────────────────────────────────────── */
+const _chmU32 = (dv, o) => dv.getUint32(o, true);
+/* Los tamaños de un CHM entran de sobra en los 53 bits exactos de un Number. */
+const _chmU64 = (dv, o) => dv.getUint32(o, true) + dv.getUint32(o + 4, true) * 4294967296;
+
+/* ENCINT: base 128, bit alto = «sigue». El tope de vueltas es una guarda contra un
+   archivo hostil o truncado: sin él, un byte 0x80 repetido hace un bucle infinito que
+   cuelga la pestaña sin mensaje. */
+function _chmEncint(u8, o, fin) {
+  let v = 0, n = 0;
+  for (;;) {
+    if (o >= fin || n++ > 8) throw new Error('el directorio del CHM está truncado o corrupto');
+    const c = u8[o++];
+    v = v * 128 + (c & 0x7F);
+    if (!(c & 0x80)) return [v, o];
+  }
+}
+
+function _chmEsCHM(buf) {
+  if (buf.byteLength < 4) return false;
+  const u = new Uint8Array(buf, 0, 4);
+  return u[0] === 0x49 && u[1] === 0x54 && u[2] === 0x53 && u[3] === 0x46;   // «ITSF»
+}
+
+function _chmDirectorio(buf) {
+  const u8 = new Uint8Array(buf), dv = new DataView(buf);
+  if (u8.length < 0x60) throw new Error('el archivo es demasiado corto para ser un CHM');
+  const ver = _chmU32(dv, 4);
+  const s1off = _chmU64(dv, 0x48), s1len = _chmU64(dv, 0x50);
+  /* En ITSF v3 el offset de la sección de contenido es explícito (0x58). En v2 hay que
+     derivarlo: arranca donde termina el directorio. */
+  const content0 = (ver >= 3) ? _chmU64(dv, 0x58) : (s1off + s1len);
+  if (s1off + s1len > u8.length) throw new Error('el directorio del CHM apunta más allá del final del archivo');
+  const itsp = new Uint8Array(buf, s1off, s1len);
+  if (!(itsp[0] === 0x49 && itsp[1] === 0x54 && itsp[2] === 0x53 && itsp[3] === 0x50))
+    throw new Error('el CHM no tiene directorio ITSP');
+  const idv = new DataView(buf, s1off, s1len);
+  const dirhlen = _chmU32(idv, 0x08), chunksize = _chmU32(idv, 0x10);
+  if (chunksize <= 20) throw new Error('el directorio del CHM declara un tamaño de chunk inválido');
+  /* La cantidad de chunks se DERIVA del tamaño real del directorio en vez de creerle al
+     campo de la cabecera. Las implementaciones no coinciden en qué offset lo guarda, y
+     leerlo del lugar equivocado devuelve un número plausible: se recorren menos chunks de
+     los que hay y faltan archivos, sin ningún error. */
+  const nchunks = Math.floor((s1len - dirhlen) / chunksize);
+  const entradas = [];
+  for (let i = 0; i < nchunks; i++) {
+    const base = dirhlen + i * chunksize;
+    if (!(itsp[base] === 0x50 && itsp[base+1] === 0x4D && itsp[base+2] === 0x47 && itsp[base+3] === 0x4C)) continue;  // «PMGL»
+    const libre = _chmU32(idv, base + 4);
+    const fin = base + chunksize - libre;
+    let o = base + 20;                                   // cabecera PMGL
+    while (o < fin) {
+      let nlen, sec, off, ln;
+      [nlen, o] = _chmEncint(itsp, o, fin);
+      if (o + nlen > fin) break;
+      let nombre = '';
+      for (let k = 0; k < nlen; k++) nombre += String.fromCharCode(itsp[o + k]);
+      try { nombre = decodeURIComponent(escape(nombre)); } catch (e) { /* nombre no UTF-8: queda tal cual */ }
+      o += nlen;
+      [sec, o] = _chmEncint(itsp, o, fin);
+      [off, o] = _chmEncint(itsp, o, fin);
+      [ln,  o] = _chmEncint(itsp, o, fin);
+      entradas.push({ nombre, sec, off, ln });
+    }
+  }
+  return { u8, dv, content0, entradas };
+}
+
+function _chmSec0(chm, nombre) {
+  const e = chm.entradas.find(x => x.nombre === nombre && x.sec === 0);
+  if (!e) return null;
+  const ini = chm.content0 + e.off;
+  if (ini + e.ln > chm.u8.length) return null;
+  return new Uint8Array(chm.u8.buffer, ini, e.ln);
+}
+
+/* ── LZX ────────────────────────────────────────────────────────────────────────────── */
+const _LZX_PRIMARIAS = 7, _LZX_SECUNDARIAS = 249, _LZX_MIN_MATCH = 2, _LZX_MARCO = 32768;
+const _LZX_SLOTS = { 15:30, 16:32, 17:34, 18:36, 19:38, 20:42, 21:50 };
+const _LZX_EXTRA = (() => { const a = []; let j = 0;
+  for (let i = 0; i < 52; i += 2) { a[i] = j; a[i+1] = j; if (i !== 0 && j < 17) j++; }
+  return a; })();
+const _LZX_BASE = (() => { const a = []; let acc = 0;
+  for (let i = 0; i < 51; i++) { a[i] = acc; acc += Math.pow(2, _LZX_EXTRA[i]); }
+  return a; })();
+const _LZX_P2 = (() => { const a = []; for (let i = 0; i <= 48; i++) a[i] = Math.pow(2, i); return a; })();
+
+/* Bitstream LZX: palabras de 16 bits little-endian, bits de mayor a menor dentro de cada
+   palabra. El buffer se lleva en aritmética de punto flotante y no con operadores de bits
+   porque en JS esos operadores truncan a 32 bits CON SIGNO: al llenar dos palabras el
+   acumulador llega a 2^32 y un `|` lo devuelve negativo. */
+function _chmBits(u8, ini, fin) {
+  let p = ini, buf = 0, n = 0;
+  function llenar() {
+    while (n <= 16) {
+      const lo = p < fin ? u8[p] : 0, hi = (p + 1) < fin ? u8[p + 1] : 0;
+      p += 2;
+      buf = buf * 65536 + (lo | (hi << 8));
+      n += 16;
+    }
+  }
+  return {
+    leer(k) {
+      if (k === 0) return 0;
+      llenar();
+      const v = Math.floor(buf / _LZX_P2[n - k]) % _LZX_P2[k];
+      n -= k; buf = buf % _LZX_P2[n];
+      return v;
+    },
+    realinear16() { const k = n & 15; if (k) { n -= k; buf = buf % _LZX_P2[n]; } },
+    posBytes() { const q = p - (n >> 3); n = 0; buf = 0; return q; },
+    saltarA(q) { p = q; n = 0; buf = 0; }
+  };
+}
+
+/* Huffman canónico a partir de longitudes de código. Decodifica bit a bit: es lo más
+   directo de auditar, y sobre 134 KB de salida el costo no se nota. */
+function _chmHuff(lens) {
+  let maxlen = 0;
+  for (let i = 0; i < lens.length; i++) if (lens[i] > maxlen) maxlen = lens[i];
+  const porLen = [], primero = [];
+  for (let L = 0; L <= maxlen; L++) porLen[L] = [];
+  for (let s = 0; s < lens.length; s++) if (lens[s] > 0) porLen[lens[s]].push(s);
+  let code = 0;
+  for (let L = 1; L <= maxlen; L++) { primero[L] = code; code = (code + porLen[L].length) * 2; }
+  return {
+    decode(br) {
+      let c = 0;
+      for (let L = 1; L <= maxlen; L++) {
+        c = c * 2 + br.leer(1);
+        const g = porLen[L], d = c - primero[L];
+        if (g.length && d >= 0 && d < g.length) return g[d];
+      }
+      throw new Error('símbolo Huffman inválido: el flujo comprimido no es LZX válido');
+    }
+  };
+}
+
+/* Longitudes de código, delta-codificadas contra las del bloque ANTERIOR (por eso el
+   array `lens` se conserva entre bloques) con un pre-árbol de 20 símbolos de 4 bits. */
+function _chmLeerLens(br, lens, ini, fin) {
+  const pre = [];
+  for (let i = 0; i < 20; i++) pre.push(br.leer(4));
+  const ph = _chmHuff(pre);
+  let i = ini;
+  while (i < fin) {
+    const s = ph.decode(br);
+    if (s === 17) {
+      let z = br.leer(4) + 4;
+      while (z-- > 0 && i < fin) lens[i++] = 0;
+    } else if (s === 18) {
+      let z = br.leer(5) + 20;
+      while (z-- > 0 && i < fin) lens[i++] = 0;
+    } else if (s === 19) {
+      let z = br.leer(1) + 4;
+      const y = ph.decode(br);
+      const v = ((lens[i] - y) % 17 + 17) % 17;
+      while (z-- > 0 && i < fin) lens[i++] = v;
+    } else {
+      lens[i] = ((lens[i] - s) % 17 + 17) % 17;
+      i++;
+    }
+  }
+}
+
+function _chmLZX(u8, ini, fin, salidaLen, wbits) {
+  const nslots = _LZX_SLOTS[wbits];
+  if (!nslots) throw new Error('ventana LZX no soportada (' + wbits + ' bits)');
+  const mainElems = 256 + (nslots << 3);
+  const br = _chmBits(u8, ini, fin);
+  const out = new Uint8Array(salidaLen);
+  let len = 0;
+  let R0 = 1, R1 = 1, R2 = 1;
+  const mainLens = new Array(mainElems).fill(0);
+  const lenLens = new Array(_LZX_SECUNDARIAS).fill(0);
+  let mainH = null, lenH = null, alH = null, btype = 0, resto = 0;
+
+  /* Cabecera del flujo: un bit dice si sigue el tamaño de archivo de la traducción E8.
+     En un CHM de texto viene en 0 y la traducción no se aplica; se implementa igual
+     porque el bit es del formato, no del contenido. */
+  let intelFilesize = 0;
+  if (br.leer(1)) intelFilesize = br.leer(16) * 65536 + br.leer(16);
+
+  let proxMarco = _LZX_MARCO;
+  while (len < salidaLen) {
+    /* ── LA REALINEACIÓN. Al terminar cada marco de 32 KB el bitstream se alinea al
+       próximo límite de palabra de 16 bits. Sin esto el decodificador arrastra un
+       desfasaje de pocos bits y SIGUE produciendo bytes: el primer marco sale perfecto y
+       la corrupción empieza a mitad del segundo. No hay excepción que avise. */
+    if (len >= proxMarco) { br.realinear16(); proxMarco += _LZX_MARCO; }
+    if (resto <= 0) {
+      btype = br.leer(3);
+      resto = br.leer(8) * 65536 + br.leer(16);
+      if (btype === 3) {                                  // bloque sin comprimir
+        let q = br.posBytes();
+        if (q + 12 + resto > fin) throw new Error('bloque LZX sin comprimir fuera de rango');
+        const dv = new DataView(u8.buffer, u8.byteOffset);
+        R0 = dv.getUint32(q, true); R1 = dv.getUint32(q + 4, true); R2 = dv.getUint32(q + 8, true);
+        q += 12;
+        out.set(u8.subarray(q, q + resto), len);
+        len += resto; q += resto;
+        if (resto & 1) q++;                               // relleno a palabra par
+        br.saltarA(q);
+        resto = 0;
+        continue;
+      }
+      if (btype === 2) {                                  // aligned offset
+        const al = [];
+        for (let i = 0; i < 8; i++) al.push(br.leer(3));
+        alH = _chmHuff(al);
+      } else if (btype === 1) {
+        alH = null;
+      } else {
+        throw new Error('tipo de bloque LZX desconocido (' + btype + ')');
+      }
+      _chmLeerLens(br, mainLens, 0, 256);
+      _chmLeerLens(br, mainLens, 256, mainElems);
+      mainH = _chmHuff(mainLens);
+      _chmLeerLens(br, lenLens, 0, _LZX_SECUNDARIAS);
+      lenH = _chmHuff(lenLens);
+    }
+    const s = mainH.decode(br);
+    if (s < 256) { out[len++] = s; resto--; continue; }
+    const m = s - 256;
+    const lf = m & _LZX_PRIMARIAS, ps = m >> 3;
+    const ml = (lf === _LZX_PRIMARIAS)
+      ? lenH.decode(br) + _LZX_PRIMARIAS + _LZX_MIN_MATCH
+      : lf + _LZX_MIN_MATCH;
+    let off;
+    if (ps === 0) { off = R0; }
+    else if (ps === 1) { off = R1; R1 = R0; R0 = off; }
+    else if (ps === 2) { off = R2; R2 = R0; R0 = off; }
+    else {
+      const eb = _LZX_EXTRA[ps];
+      let vb = 0, ab = 0;
+      if (btype === 2 && eb >= 3) { vb = br.leer(eb - 3) * 8; ab = alH.decode(br); }
+      else if (eb > 0) { vb = br.leer(eb); }
+      off = _LZX_BASE[ps] - 2 + vb + ab;
+      R2 = R1; R1 = R0; R0 = off;
+    }
+    if (off > len || off <= 0) throw new Error('referencia LZX fuera de la ventana: el flujo está corrupto');
+    if (len + ml > salidaLen + 65536) throw new Error('el flujo LZX pide más salida de la declarada');
+    let src = len - off;
+    for (let k = 0; k < ml && len < salidaLen; k++) out[len++] = out[src++];
+    resto -= ml;
+  }
+  return { datos: out, intelFilesize };
+}
+
+/* Traducción E8 inversa, por marcos de 32 KB. En los CHM de texto `filesize` es 0 y esto
+   no hace nada; existe porque el formato lo permite y un no-op silencioso sería peor. */
+function _chmE8(d, filesize, baseAbs) {
+  if (!filesize) return d;
+  const dv = new DataView(d.buffer, d.byteOffset, d.byteLength);
+  for (let marco = 0; marco * _LZX_MARCO < d.length; marco++) {
+    const base = marco * _LZX_MARCO;
+    const flen = Math.min(_LZX_MARCO, d.length - base);
+    if (flen <= 10) continue;
+    let i = 0;
+    while (i < flen - 10) {
+      if (d[base + i] !== 0xE8) { i++; continue; }
+      const p = base + i + 1;
+      const ab = dv.getInt32(p, true);
+      const fs = baseAbs + base + i;
+      if (ab >= -fs && ab < filesize) dv.setInt32(p, ab >= 0 ? ab - fs : ab + filesize, true);
+      i += 5;
+    }
+  }
+  return d;
+}
+
+/* Descomprime la sección MSCompressed entera y devuelve el archivo pedido.
+   Las comprobaciones de acá son la única defensa contra un descompresor que anda «casi»:
+   sin ellas, bytes corruptos entran al formulario como mediciones. */
+function _chmExtraer(chm, ruta) {
+  const ctrl = _chmSec0(chm, '::DataSpace/Storage/MSCompressed/ControlData');
+  const rt   = _chmSec0(chm, '::DataSpace/Storage/MSCompressed/Transform/' +
+                             '{7FC28940-9D31-11D0-9B27-00A0C91E9C7C}/InstanceData/ResetTable');
+  const cont = _chmSec0(chm, '::DataSpace/Storage/MSCompressed/Content');
+  if (!ctrl || !rt || !cont) throw new Error('el CHM no trae la sección comprimida completa (ControlData / ResetTable / Content)');
+  if (!(ctrl[4] === 0x4C && ctrl[5] === 0x5A && ctrl[6] === 0x58 && ctrl[7] === 0x43))   // «LZXC»
+    throw new Error('la sección comprimida no es LZX: este lector sólo abre CHM con LZXC');
+  const cdv = new DataView(ctrl.buffer, ctrl.byteOffset, ctrl.byteLength);
+  const resetInterval = _chmU32(cdv, 12), windowSize = _chmU32(cdv, 16);
+  const ventana = windowSize * 32768;
+  const wbits = Math.round(Math.log(ventana) / Math.LN2);
+  if (!resetInterval || !windowSize) throw new Error('el CHM declara parámetros LZX inválidos');
+
+  const rdv = new DataView(rt.buffer, rt.byteOffset, rt.byteLength);
+  const nblk = _chmU32(rdv, 4);
+  const ulen = _chmU64(rdv, 16), clen = _chmU64(rdv, 24), bsize = _chmU64(rdv, 32);
+  if (nblk < 1 || 40 + 8 * nblk > rt.length) throw new Error('la ResetTable del CHM es inconsistente');
+  if (ulen > 64 * 1024 * 1024) throw new Error('el CHM declara un contenido de ' + Math.round(ulen / 1048576) + ' MB: se rechaza por tamaño');
+  const offs = [];
+  for (let i = 0; i < nblk; i++) offs.push(_chmU64(rdv, 40 + 8 * i));
+
+  const salida = new Uint8Array(ulen);
+  let hecho = 0;
+  for (let i = 0; i < nblk; i += resetInterval) {
+    const cini = offs[i];
+    const cfin = (i + resetInterval < nblk) ? offs[i + resetInterval] : clen;
+    const objetivo = Math.min(resetInterval * bsize, ulen - hecho);
+    if (objetivo <= 0) break;
+    /* Los índices van RELATIVOS A LA VISTA, sin sumar `byteOffset`. `cont` es un Uint8Array
+       que ya arranca en la sección de contenido, y indexar una vista es relativo a ella:
+       sumarle el offset hace leer 12 KB más adelante, dentro de datos ajenos. Se probó al
+       revés y el descompresor tiró «símbolo Huffman inválido» — tuvo suerte de explotar;
+       con otro desplazamiento habría devuelto bytes. */
+    const r = _chmLZX(cont, cini, cfin, objetivo, wbits);
+    _chmE8(r.datos, r.intelFilesize, hecho);
+    salida.set(r.datos, hecho);
+    hecho += r.datos.length;
+  }
+  /* Comprobación 1: el largo total tiene que coincidir EXACTO con lo que declara la
+     ResetTable. Un decodificador desfasado casi nunca aterriza en el byte justo. */
+  if (hecho !== ulen) throw new Error('la descompresión dio ' + hecho + ' bytes y la ResetTable declara ' + ulen + ': el archivo está dañado');
+
+  const e = chm.entradas.find(x => x.nombre === ruta && x.sec === 1);
+  if (!e) throw new Error('el CHM no contiene ' + ruta);
+  if (e.off + e.ln > ulen) throw new Error('la entrada ' + ruta + ' apunta fuera del contenido descomprimido');
+  return salida.subarray(e.off, e.off + e.ln);
+}
+
+/* ── Diccionario GE → EcoSmart ──────────────────────────────────────────────────────────
+   La clave es el atributo NAME del elemento <parameter>, verificado contra el
+   patient_exam_data.xml de un Vivid IQ real (BT08). El valor apunta al `campo` de
+   EcoSmart, y cuando ese campo ya existe en DCM_MAPA se HEREDAN de ahí la etiqueta, la
+   tabla de unidades y los dos rangos: así el lector de CHM y el de SR no pueden opinar
+   distinto sobre el mismo campo. Sólo los campos que el SR no cubre traen `etiq`/`ucum`
+   propios.
+
+   LO QUE NO ESTÁ ACÁ, Y POR QUÉ:
+
+   · `2D/RV FAC General` (el archivo real trae 57 %). `vd_fac` es READONLY y lo calcula la
+     app desde las áreas del VD, que sí se importan: 15,6 y 6,7 dan 57 %. Escribirlo sería
+     pisar un calculado con un dato externo que el próximo recálculo borra. Es la misma
+     regla que ya aplica el lector de SR con la PSAP y el E/e'.
+
+   · `Qp/Qs` (1.04 en el archivo real). NO existe ningún campo con ese id en la app —
+     verificado—. Se importan las dos VTI que lo alimentan (`vti_tsvd`, `itv_tsvi`) y la
+     app lo calcula.
+
+   · `2D/Pulmonic Diam` y `2D/Systemic Diam`. Son los diámetros que el Vivid usa para su
+     propio Qp/Qs y CHOCAN con `2D/RVOT Diam` y `2D/LVOT Diam`: en el archivo real los
+     cuatro están presentes y con valores distintos (1,5 vs 2,0 y 1,4 vs 2,4). Mapear los
+     cuatro al mismo par de campos hace que gane el que aparezca primero en el XML, que no
+     es un criterio clínico. Quedan los TSVD/TSVI, que son los que mide el formulario.
+
+   · Todo lo demás que trae el archivo (≈100 parámetros más: PISA, Teichholz, volúmenes
+     MOD, frecuencias cardíacas, aorta abdominal) aparece listado en la vista previa bajo
+     «leídas y NO importadas», para que la omisión se vea en vez de suponerse.             */
+const CHM_MAPA = {
+  // ── 2D ──
+  '2D/IVSd':            { campo:'siv' },
+  '2D/LVIDd':           { campo:'ddfvi' },
+  '2D/LVPWd':           { campo:'ppvi' },
+  '2D/LVIDs':           { campo:'dsfvi' },
+  /* SIN el prefijo «2D/», aunque las otras medidas 2D lo lleven: en el archivo real el
+     parámetro se llama «EF(Biplane)_03» pelado, igual que los volúmenes MOD y las EF
+     monoplano. Escrito como «2D/EF(Biplane)_03» no matchea nada y la FEVI —el dato más
+     importante del estudio— simplemente no se importa, sin ningún error. */
+  'EF(Biplane)_03':     { campo:'fevi' },
+  '2D/Ao Sinus':        { campo:'ao_sin' },
+  '2D/Ao Asc Diam':     { campo:'ao_tub' },
+  '2D/Ao st junct':     { campo:'ao_st' },
+  '2D/LVOT Diam':       { campo:'diam_tsvi' },
+  '2D/RVOT Diam':       { campo:'tsvd_diametro' },
+  '2D/LA Area':         { campo:'ai_area',   etiq:'Área AI',                ucum:{ 'cm2':1 } },
+  '2D/RA Area':         { campo:'ad_area',   etiq:'Área AD',                ucum:{ 'cm2':1 } },
+  '2D/RVA diastole':    { campo:'vd_area_d', etiq:'Área VD telediastólica', ucum:{ 'cm2':1 } },
+  '2D/RVA systole':     { campo:'vd_area_s', etiq:'Área VD telesistólica',  ucum:{ 'cm2':1 } },
+  '2D/MVA Planimetry':  { campo:'avm_plan',  etiq:'AVM por planimetría',    ucum:{ 'cm2':1 } },
+  // ── Modo M ──
+  'MM/TAPSE':           { campo:'tapse' },
+  // ── Doppler mitral ──
+  'MV E Velocity':              { campo:'onda_e' },
+  'MV A Velocity':              { campo:'onda_a' },
+  'MV Dec Time':                { campo:'tde' },
+  'MV Eprime Septal Velocity':  { campo:'e_sep' },
+  'MV Eprime Lateral Velocity': { campo:'e_lat' },
+  // ── Doppler aórtico ──
+  'AV Vmax P':          { campo:'vmax_ao' },
+  'AV meanPG':          { campo:'gmedio_ao' },
+  /* `ia_vmax_cw` está en cm/s —lo dice su etiqueta en el formulario— y el GE manda m/s.
+     El factor sale de acá, no de una constante suelta. */
+  'AR Vmax':            { campo:'ia_vmax_cw', etiq:'Vmax IAo (CW)', ucum:{ 'cm/s':1, 'm/s':100 } },
+  'AR PHT':             { campo:'ia_pht',     etiq:'PHT de la IAo', ucum:{ 'ms':1 } },
+  // ── Doppler tricuspídeo ──
+  'TR Vmax':            { campo:'vmax_it' },
+  'TV E Velocity':      { campo:'dt_onda_e', etiq:'Onda E tricuspídea', ucum:{ 'cm/s':1, 'm/s':100 } },
+  'TV A Velocity':      { campo:'dt_onda_a', etiq:'Onda A tricuspídea', ucum:{ 'cm/s':1, 'm/s':100 } },
+  'RV Sprime Velocity': { campo:'s_prime' },
+  'IVRT':               { campo:'triv' },
+  // ── Doppler pulmonar ──
+  'PV Vmax P':          { campo:'vp_vmax',   etiq:'Vmax pulmonar', ucum:{ 'cm/s':0.01, 'm/s':1 } },
+  'PV Acc Time':        { campo:'tango_tac' },
+  // ── Shunts ──
+  'Pulmonic VTI':       { campo:'vti_tsvd' },
+  'Systemic VTI':       { campo:'itv_tsvi' }
+};
+
+/* Plausibilidad para los campos que NO están en DCM_MAPA. Mismo criterio que allá: son
+   los valores FÍSICAMENTE posibles, deliberadamente anchos, para atrapar un error de
+   orden de magnitud — no una banda de normalidad. No se agregaron a DCM_RANGO a propósito:
+   esa tabla la consume además el importador de Excel (vía LAB_XLS_RANGO) y tocarla
+   cambiaría el comportamiento de una vía que este trabajo no mira. */
+const CHM_RANGO = {
+  ai_area:[2,80], ad_area:[2,80], vd_area_d:[2,80], vd_area_s:[1,70], avm_plan:[0.2,15],
+  ia_vmax_cw:[50,800], ia_pht:[50,1500], dt_onda_e:[5,200], dt_onda_a:[5,200],
+  vp_vmax:[0.2,8]
+};
+
+/* Las unidades del GE llegan con la ortografía de pantalla; las tablas `ucum` usan tokens
+   UCUM, que es lo que declara un SR. Se traduce acá para que exista UNA sola tabla de
+   factores por campo. */
+function _chmUnidad(u) {
+  const t = String(u == null ? '' : u).trim();
+  if (t === 'cm²' || t === 'cm2' || t === 'cm^2') return 'cm2';
+  if (t === 'mmHg' || t === 'mm Hg') return 'mm[Hg]';
+  if (t === 'mL') return 'ml';
+  return t;
+}
+
+const _chmDefDe = campo => DCM_MAPA.find(d => d.campo === campo) || null;
+
+/* Assert de arranque: un id de destino que no exista en el formulario no rompe nada — no
+   escribe y no avisa. Es exactamente el modo de falla que hay que hacer ruidoso. */
+document.addEventListener('DOMContentLoaded', function () {
+  const faltan = Object.keys(CHM_MAPA).filter(k => !document.getElementById(CHM_MAPA[k].campo));
+  if (faltan.length) console.error('[CHM_MAPA] destinos inexistentes en el formulario:',
+    faltan.map(k => k + ' → ' + CHM_MAPA[k].campo).join(', '));
+  const sinUcum = Object.keys(CHM_MAPA).filter(k => !CHM_MAPA[k].ucum && !_chmDefDe(CHM_MAPA[k].campo));
+  if (sinUcum.length) console.error('[CHM_MAPA] sin tabla de unidades ni definición en DCM_MAPA:', sinUcum.join(', '));
+});
+
+/* ── Lectura del XML ────────────────────────────────────────────────────────────────── */
+function _chmTexto(nodo, tag) {
+  const e = nodo ? nodo.getElementsByTagName(tag)[0] : null;
+  return e ? String(e.textContent || '').trim() : '';
+}
+
+function _chmPaciente(doc) {
+  const pa = doc.getElementsByTagName('Patient')[0] || null;
+  const ex = pa ? (pa.getElementsByTagName('Exam')[0] || null) : null;
+  const sd = ex ? ex.getElementsByTagName('StudyDate')[0] : null;
+  const bd = pa ? pa.getElementsByTagName('birthdate')[0] : null;
+  const fecha = sd ? String(sd.getAttribute('iso-date') || '').trim() : '';
+  const nac   = bd ? String(bd.getAttribute('iso-date') || '').trim() : '';
+  /* El Vivid escribe el apellido con la coma de separación PEGADA y sin nombre de pila:
+     «Apellido, ». La app guarda «Apellido, Nombre», así que si no hay nombre la coma sobra
+     y quedaría un nombre terminado en coma en la cabecera de todos los informes. */
+  const ape = _chmTexto(pa, 'lastName').replace(/[,\s]+$/, '').trim();
+  const nom = _chmTexto(pa, 'firstName').replace(/^[,\s]+/, '').trim();
+  const fab = _chmTexto(ex, 'Manufacturer'), est = _chmTexto(ex, 'StationName');
+  return {
+    nombre: (ape && nom) ? (ape + ', ' + nom) : (ape || nom),
+    /* Igual que en el lector de SR: `patientId` es el número de historia de la institución,
+       NO una cédula. Guardarlo en `ci` lo mete en la clave de deduplicación y un número que
+       coincida con el documento de otro paciente en la misma fecha hace que «Actualizar»
+       fusione dos historias. Se muestra para que se cargue a mano si corresponde. */
+    idInstitucional: _chmTexto(pa, 'patientId'),
+    /* La institución NO se escribe en `centro_nombre`: ese control es un <select> que la app
+       reconstruye desde la lista de centros del usuario, y asignarle un valor sin <option>
+       FALLA EN SILENCIO (está documentado en CLAUDE.md, es la causa de que el pie del PDF
+       caiga al copyright genérico). Se muestra, no se asigna. */
+    institucion: _chmTexto(ex, 'InstitutionName'),
+    nacimiento: nac,
+    edadTexto: _chmTexto(pa, 'age'),
+    fecha_estudio: /^\d{4}-\d{2}-\d{2}$/.test(fecha) ? fecha : '',
+    equipo: [fab, est].filter(Boolean).join(' ').trim(),
+    sexo: ''
+  };
+}
+
+function _chmEdad(nacIso, fechaIso) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(nacIso) || !/^\d{4}-\d{2}-\d{2}$/.test(fechaIso)) return null;
+  const n = nacIso.split('-').map(Number), f = fechaIso.split('-').map(Number);
+  let a = f[0] - n[0];
+  if (f[1] < n[1] || (f[1] === n[1] && f[2] < n[2])) a--;
+  return (a >= 0 && a <= 130) ? a : null;
+}
+
+/* Convierte una medición del XML a una fila con la MISMA forma que devuelve `_dcmMapear`,
+   para que la vista previa, la deduplicación y el ejecutor sean los mismos. */
+function _chmMapearMedicion(nombreParam, etiqGE, unidadGE, valorTexto) {
+  const cod = { v: nombreParam, e: 'GE Vivid', m: etiqGE || '' };
+  const ent = CHM_MAPA[nombreParam];
+  if (!ent) return { ok:false, cod, motivo:'parámetro del GE sin equivalente en EcoSmart' };
+  const def = _chmDefDe(ent.campo);
+  const etiq = ent.etiq || (def ? def.etiq : ent.campo);
+  const ucum = ent.ucum || (def ? def.ucum : null);
+  if (!ucum) return { ok:false, cod, motivo:'el campo ' + ent.campo + ' no tiene tabla de unidades' };
+  /* El archivo real marca las mediciones inválidas con un asterisco pegado al número:
+     «0.0*» en MM/IVSs, MM/LVIDs y MM/LVPWs. `parseFloat` devuelve 0 y ese 0 pasa como un
+     dato — un septum de 0 mm no es un dato faltante, es un hallazgo inventado. Por eso se
+     exige que el texto sea un número y nada más. */
+  const crudo = String(valorTexto == null ? '' : valorTexto).trim().replace(',', '.');
+  if (!/^-?\d+(\.\d+)?$/.test(crudo))
+    return { ok:false, cod, motivo:'el archivo marca el valor como no válido («' + crudo + '»)' };
+  const n = parseFloat(crudo);
+  if (!isFinite(n)) return { ok:false, cod, motivo:'el valor no es numérico' };
+  const u = _chmUnidad(unidadGE);
+  if (!u) return { ok:false, cod, motivo:'la medición no declara unidad' };
+  const factor = ucum[u];
+  if (factor === undefined)
+    return { ok:false, cod, valor:n, unidad:u,
+             motivo:'unidad «' + u + '» inesperada para ' + etiq + ' (se esperaba ' + Object.keys(ucum).join(' o ') + ')' };
+  let conv = n * factor;
+  if (!isFinite(conv)) return { ok:false, cod, motivo:'el valor convertido no es finito' };
+  let signoGLS = false;
+  if (ent.campo === 'sgl' && conv > 0) { conv = -Math.abs(conv); signoGLS = true; }
+  const rg = (DCM_RANGO[ent.campo] !== undefined) ? DCM_RANGO[ent.campo] : CHM_RANGO[ent.campo];
+  if (rg && (conv < rg[0] || conv > rg[1]))
+    return { ok:false, cod, valor:n, unidad:u,
+             motivo: etiq + ' = ' + _dcmRed(conv) + ' queda fuera de lo posible (' + rg[0] + '–' + rg[1] +
+                     '): el archivo declara «' + u + '» pero el número no lo parece' };
+  const rgc = DCM_RANGO_CLIN[ent.campo];
+  const _uApp = Object.keys(ucum).find(k => ucum[k] === 1) || '';
+  const _fuera = rgc && ((rgc[0] != null && conv < rgc[0]) || (rgc[1] != null && conv > rgc[1]));
+  const _banda = rgc ? (rgc[0] == null ? 'hasta ' + rgc[1] : (rgc[1] == null ? 'desde ' + rgc[0] : rgc[0] + '–' + rgc[1])) : '';
+  return {
+    ok:true, campo:ent.campo, etiq, metodo:'', pref:0, cod,
+    unidadOrig:u, valorOrig:n, valor:conv, derivacion:'', signoGLS, porEtiqueta:false,
+    avClin: _fuera
+      ? etiq + ' = ' + _dcmRed(conv) + (_uApp ? ' ' + _uApp : '') + ' queda fuera del rango normal (' +
+        _banda + (_uApp ? ' ' + _uApp : '') + '). Se importa igual: revisá que sea un hallazgo y no un error de carga del equipo.'
+      : '',
+    dudoso: !!(def && def.psap)
+  };
+}
+
+/* Lee un CHM del GE y devuelve el mismo objeto «estudio» que produce el lector de SR. */
+function _chmLeerEstudio(buf, nombreArchivo) {
+  const chm = _chmDirectorio(buf);
+  const bytes = _chmExtraer(chm, '/patient_exam_data.xml');
+  /* Decodificado como UTF-8 y sin BOM: el archivo real arranca con BOM y `DOMParser` lo
+     toma como carácter de contenido antes de la declaración XML, lo que da error de
+     parseo sobre un archivo perfectamente válido. */
+  let txt = new TextDecoder('utf-8').decode(bytes);
+  if (txt.charCodeAt(0) === 0xFEFF) txt = txt.slice(1);
+  /* Comprobación 2: si la descompresión salió mal, esto falla. `DOMParser` con
+     'text/xml' no ejecuta scripts ni resuelve entidades externas, y de acá en adelante
+     sólo se leen nodos de texto: nada del archivo llega al DOM sin pasar por escHtml. */
+  const doc = new DOMParser().parseFromString(txt, 'text/xml');
+  const err = doc.getElementsByTagName('parsererror')[0];
+  if (err || !doc.documentElement || doc.documentElement.nodeName !== 'measurements')
+    throw new Error('el XML del CHM no se pudo leer' + (err ? ': ' + String(err.textContent || '').slice(0, 120) :
+      ' (raíz <' + (doc.documentElement ? doc.documentElement.nodeName : '?') + '>, se esperaba <measurements>)'));
+
+  const pac = _chmPaciente(doc);
+  const mapeadas = [], descartes = [];
+  const params = doc.getElementsByTagName('parameter');
+  for (let i = 0; i < params.length; i++) {
+    const p = params[i];
+    const nombre = String(p.getAttribute('NAME') || '').trim();
+    const mps = p.getElementsByTagName('measpar');
+    for (let k = 0; k < mps.length; k++) {
+      const mp = mps[k];
+      const r = _chmMapearMedicion(nombre, _chmTexto(mp, 'name'), _chmTexto(mp, 'unit'),
+                                   _chmTexto(mp, 'aver') || _chmTexto(mp, 'value'));
+      if (r.ok) mapeadas.push(r);
+      else descartes.push({ cod:r.cod, motivo:r.motivo, valor:r.valor != null ? r.valor : null, unidad:r.unidad || '' });
+    }
+  }
+  /* La edad no es un <parameter>: sale de la fecha de nacimiento y la del estudio. Entra
+     como una fila más para que se vea y se pueda destildar, no por la puerta de atrás. */
+  const ed = _chmEdad(pac.nacimiento, pac.fecha_estudio);
+  if (ed != null) mapeadas.push({
+    ok:true, campo:'edad', etiq:'Edad', metodo:'', pref:0,
+    cod:{ v:'birthdate', e:'GE Vivid', m:'Fecha de nacimiento' },
+    unidadOrig:'', valorOrig:ed, valor:ed, derivacion:'', signoGLS:false,
+    porEtiqueta:false, avClin:'', dudoso:false
+  });
+  if (!mapeadas.length && !descartes.length)
+    throw new Error('el XML del CHM no contiene ninguna medición');
+
+  return { pac, mapeadas, descartes, archivo:nombreArchivo,
+           ts:'GE Vivid CHM · LZX', fuente:'GE Vivid CHM' };
+}
+
 let _dcmDatos = null;   // { estudios:[{pac, filas, descartes, archivo}] }
 
 async function dcmImportarSR(fileList) {
@@ -50435,25 +51048,56 @@ async function dcmImportarSR(fileList) {
     let buf;
     try { buf = await f.arrayBuffer(); }
     catch (e) { fallos.push({ archivo:f.name, motivo:'no se pudo leer el archivo' }); continue; }
-    let p;
-    try { p = _dcmLeerP10(buf); }
-    catch (e) { fallos.push({ archivo:f.name, motivo:e.message }); continue; }
-    const pac = _dcmPaciente(p.ds);
-    if (pac.modalidad && pac.modalidad !== 'SR') {
-      fallos.push({ archivo:f.name, motivo:'la modalidad es «' + pac.modalidad + '», no SR — este importador lee informes estructurados, no imágenes' });
-      continue;
+
+    /* ── Ruteo por CONTENIDO, no por extensión ────────────────────────────────────────
+       El Vivid IQ nombra su CHM con el UID DICOM del estudio, así que por el nombre los
+       dos formatos son indistinguibles. Se miran los bytes: «ITSF» al principio es CHM;
+       «DICM» en el byte 128 es DICOM Parte 10. Lo que no sea ninguno de los dos se
+       rechaza con el motivo dicho, no con un parser que se arrastra sobre basura. */
+    let pac, mapeadas, descartes, ts, fuente, truncado = false;
+    if (_chmEsCHM(buf)) {
+      let est;
+      try { est = _chmLeerEstudio(buf, f.name); }
+      catch (e) { fallos.push({ archivo:f.name, motivo:'CHM del GE Vivid: ' + e.message }); continue; }
+      pac = est.pac; mapeadas = est.mapeadas; descartes = est.descartes;
+      ts = est.ts; fuente = est.fuente;
+      if (!mapeadas.length) {
+        fallos.push({ archivo:f.name, motivo:'el CHM se leyó bien pero ninguna de sus ' + descartes.length +
+                      ' mediciones tiene equivalente en EcoSmart' });
+        continue;
+      }
+    } else {
+      let p;
+      try { p = _dcmLeerP10(buf); }
+      catch (e) {
+        const u = new Uint8Array(buf, 0, Math.min(4, buf.byteLength));
+        const firma = Array.from(u).map(b => (b >= 32 && b < 127) ? String.fromCharCode(b) : '.').join('');
+        fallos.push({ archivo:f.name, motivo: e.message +
+          '. Los primeros bytes son «' + firma + '»: no es un SR DICOM (empieza con «DICM» en el byte 128) ' +
+          'ni un informe CHM del GE Vivid (empieza con «ITSF»)' });
+        continue;
+      }
+      pac = _dcmPaciente(p.ds);
+      if (pac.modalidad && pac.modalidad !== 'SR') {
+        fallos.push({ archivo:f.name, motivo:'la modalidad es «' + pac.modalidad + '», no SR — este importador lee informes estructurados, no imágenes' });
+        continue;
+      }
+      const nums = _dcmRecorrer(p.ds, 0, []);
+      if (!nums.length) {
+        fallos.push({ archivo:f.name, motivo:'el informe no contiene ninguna medición numérica (NUM)' });
+        continue;
+      }
+      descartes = []; mapeadas = [];
+      nums.forEach(n => {
+        const r = _dcmMapear(n);
+        if (!r.ok) descartes.push({ cod:r.cod, motivo:r.motivo, valor:n.valor, unidad:n.unidad ? n.unidad.v : '' });
+        else mapeadas.push(r);
+      });
+      ts = p.ts.nom; fuente = 'SR DICOM estándar'; truncado = !!p.truncado;
     }
-    const nums = _dcmRecorrer(p.ds, 0, []);
-    if (!nums.length) {
-      fallos.push({ archivo:f.name, motivo:'el informe no contiene ninguna medición numérica (NUM)' });
-      continue;
-    }
-    const descartes = [], mapeadas = [];
-    nums.forEach(n => {
-      const r = _dcmMapear(n);
-      if (!r.ok) descartes.push({ cod:r.cod, motivo:r.motivo, valor:n.valor, unidad:n.unidad ? n.unidad.v : '' });
-      else mapeadas.push(r);
-    });
+    /* De acá en adelante los dos formatos comparten TODO: preferencia de método, empate,
+       cruce contra lo ya guardado y vista previa. Duplicar esta parte para el CHM habría
+       sido la forma más rápida de que las dos vías empiecen a decidir distinto. */
     /* Un eco trae la MISMA medición varias veces: por método, por ciclo cardíaco y por
        repetición. Se elige por orden de preferencia del método (el de DCM_MAPA) y, a
        igual método, la primera. Las demás NO se tiran en silencio: se muestran en un
@@ -50508,7 +51152,7 @@ async function dcmImportarSR(fileList) {
       });
     }
     estudios.push({ archivo:f.name, pac, filas:elegidas, repetidas, descartes,
-                    ts:p.ts.nom, truncado:!!p.truncado, previo:!!previo });
+                    ts, fuente, truncado, previo:!!previo });
   }
   if (!estudios.length) {
     const det = fallos.map(f => '· ' + f.archivo + ': ' + f.motivo).join('\n');
@@ -50577,7 +51221,8 @@ function _dcmRenderPreview() {
       '<div style="font-weight:700;font-size:13px;">' + E(est.pac.nombre || '(sin nombre)') + '</div>' +
       '<div style="font-size:11px;color:var(--text2);margin-bottom:8px;">' +
         E(est.pac.fecha_estudio || 'sin fecha') + (est.pac.equipo ? '  ·  ' + E(est.pac.equipo) : '') +
-        '  ·  ' + E(est.archivo) + '  ·  ' + E(est.ts) + '</div>' +
+        '  ·  ' + E(est.archivo) + '  ·  <b>' + E(est.fuente || '') + '</b>  ·  ' + E(est.ts) + '</div>' +
+      (est.pac.institucion ? '<div style="font-size:11px;color:var(--text2);margin-bottom:6px;">El archivo declara la institución <b>' + E(est.pac.institucion) + '</b>. No se importa: el campo «Centro» de EcoSmart es una lista desplegable armada con tus centros, y asignarle un valor que no esté en la lista falla sin avisar — el informe saldría con el pie genérico. Seleccionalo a mano si corresponde.</div>' : '') +
       (est.truncado ? '<div style="font-size:11px;color:#fca5a5;background:rgba(127,29,29,.22);border:1px solid #7f1d1d;border-radius:7px;padding:6px 8px;margin-bottom:6px;">🔴 <b>El archivo se cortó antes del final.</b> Lo que aparece abajo es lo que se alcanzó a leer; puede haber mediciones que no se leyeron y que no figuran ni siquiera como descartadas. Conviene volver a exportarlo del ecógrafo antes de usarlo.</div>' : '') +
       (est.pac.fecha_estudio ? '' : '<div style="font-size:11px;color:#f59e0b;margin-bottom:6px;">⚠️ Sin fecha de estudio: la deduplicación por documento+fecha no puede funcionar y el estudio no va a aparecer en el Laboratorio, que filtra por fecha.</div>') +
       (est.pac.idInstitucional ? '<div style="font-size:11px;color:var(--text2);margin-bottom:6px;">El archivo trae el identificador <b>' + E(est.pac.idInstitucional) + '</b> (0010,0020). No se importa como documento: en un ecógrafo de hospital es el número de historia clínica de esa institución, no una cédula, y usarlo como documento haría que se cruce con el de otro paciente. Si corresponde, cargalo a mano.</div>' : '') +
@@ -50594,9 +51239,9 @@ function _dcmRenderPreview() {
   ov.innerHTML =
     '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:820px;width:100%;' +
     'max-height:90vh;overflow:auto;padding:16px;">' +
-      '<h3 style="margin:0 0 4px;font-size:15px;">🏥 Importar DICOM SR</h3>' +
+      '<h3 style="margin:0 0 4px;font-size:15px;">🏥 Importar mediciones del ecógrafo</h3>' +
       '<div style="font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.5;">' +
-        'Sólo se escribe lo que esté tildado. Las unidades se convierten según la unidad UCUM que declara ' +
+        'Sólo se escribe lo que esté tildado. Las unidades se convierten según la unidad que declara ' +
         'cada medición en el archivo, no según una tabla fija. Los campos calculados de EcoSmart ' +
         '(PSAP, gradiente máximo, E/e\') no se importan: se importan las mediciones que los alimentan y ' +
         'la app los recalcula.</div>' +
@@ -50692,7 +51337,17 @@ async function dcmImpEjecutar() {
   if (ok === false) return;                       // guardarInformesSeguro ya avisó de la cuota
   if (typeof renderInformesGuardados === 'function') renderInformesGuardados();
   if (typeof labInit === 'function') labInit();
-  toast('✅ ' + campos + ' campos importados · ' + noReconocidos + ' campos no reconocidos · ' +
+  /* El origen y el equipo van en el aviso porque el archivo ya se cerró: si el número de
+     campos no es el esperado, sin esto no queda ni rastro de cuál de los dos lectores
+     corrió ni sobre qué estudio. Se listan los formatos realmente usados, no el del
+     primer archivo: un lote puede mezclar un CHM del Vivid con SR de otras marcas. */
+  const _fuentes = [...new Set(d.estudios.map(e => e.fuente).filter(Boolean))].join(' + ');
+  const _equipos = [...new Set(d.estudios.map(e => e.pac.equipo).filter(Boolean))].join(' · ');
+  const _fechas  = [...new Set(d.estudios.map(e => e.pac.fecha_estudio).filter(Boolean))].join(' · ');
+  toast('✅ ' + campos + ' campos importados desde ' + (_fuentes || 'el archivo') +
+        (_equipos ? ' · Equipo: ' + _equipos : '') +
+        (_fechas ? ' · Estudio del ' + _fechas : '') +
+        ' · ' + noReconocidos + ' campos no reconocidos · ' +
         nuevos + ' estudio(s) nuevo(s)' +
         (actualizados ? ' · ' + actualizados + ' actualizado(s)' : '') +
         (omitidos ? ' · ' + omitidos + ' omitido(s) por duplicado' : ''));
@@ -59394,8 +60049,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260919-1249';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789832962953;                 /* eco-build-ms */
+const ECO_BUILD    = '20260919-1707';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789848428929;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -59481,7 +60136,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-1249</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-1707</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -7624,6 +7624,66 @@ marcados `soloExport:true`, que se emiten y no se importan.
   Las últimas cinco son derivadas; las nueve primeras EcoSmart no las recoge. Para exportarlas
   hay que **agregar los campos al formulario** primero.
 
+### CHM del GE Vivid — segundo modo del importador (2026-09-19)
+El botón «Importar → DICOM SR» ahora rutea **por los bytes del archivo**, no por la extensión:
+`ITSF` al inicio → lector CHM; `DICM` en el byte 128 → lector SR. El Vivid IQ nombra su CHM con
+el UID DICOM del estudio, así que por el nombre los dos formatos son indistinguibles.
+
+**El XML está comprimido y hay un descompresor LZX completo en el archivo.** No es una decisión
+de estilo: se midió sobre el CHM real y hay **cero** apariciones en claro de `measurements`,
+`measpar` o `<Patient`. La sección es `MSCompressed` con `LZXC v2`, ventana de 64 KB, y una
+ResetTable de 5 bloques (133.996 B → 12.004 B). Un `indexOf` no puede funcionar.
+
+- **El modo de falla del LZX es silencioso, y ya mordió dos veces durante el desarrollo.**
+  1) Sin la **realineación del bitstream a 16 bits al terminar cada marco de 32 KB**, el primer
+  marco sale perfecto —HTML válido, con BOM— y la corrupción arranca a mitad del segundo. No hay
+  excepción. 2) Sumarle `byteOffset` a índices que ya son relativos a la vista `Uint8Array` hacía
+  leer 12 KB más adelante; ahí sí tiró «símbolo Huffman inválido», pero fue suerte: con otro
+  desplazamiento habría devuelto bytes. Por eso las comprobaciones de `_chmExtraer` (largo total
+  contra la ResetTable) y el `DOMParser` no son decorativas.
+- **La verificación es el SHA-256, en TC-177.** Largo correcto y XML bien formado son
+  estructurales; el hash es lo único que afirma «byte a byte». Cubre los tres intervalos de
+  reset, incluido el último de 2.924 bytes.
+- **No hay oráculo externo todavía.** `brew install p7zip` quedó bloqueado en la sesión, así que
+  la descompresión está verificada contra un prototipo propio en Python **más** una redundancia
+  interna del archivo: `temp_report.htm` (que sale del principio del flujo) y
+  `patient_exam_data.xml` (que sale del final) traen los mismos números, y coinciden en 10/10 de
+  las mediciones cruzadas. Es evidencia fuerte, no es un tercero. Si algún día hay `7z`, correr
+  `7z e` sobre el CHM y comparar el hash con el de TC-177 cierra el punto.
+
+**Cuatro cosas del diccionario que NO son obvias y cuestan un error clínico silencioso:**
+
+| Parámetro GE | Campo | Trampa |
+|---|---|---|
+| `EF(Biplane)_03` | `fevi` | **SIN el prefijo `2D/`**, aunque las otras medidas 2D lo lleven. Escrito con prefijo no matchea y la FEVI no se importa, sin ningún error. Lo cazó el cruce XML↔HTML, no la lectura. |
+| `AR Vmax` | `ia_vmax_cw` | El GE manda **m/s** y ese campo de la app está en **cm/s** (lo dice su etiqueta). Directo, un jet de 3,18 entra como 3,18 cm/s. |
+| `2D/IVSd` y las demás lineales | `siv`… | GE en **cm**, EcoSmart en **mm**. Un septum de 0,6 cm entra como 0,6 mm. |
+| `2D/Pulmonic Diam` / `2D/Systemic Diam` | — | **Colisionan** con `RVOT Diam` / `LVOT Diam`: en el archivo real los cuatro están, con valores distintos. No se mapean. |
+
+**La conversión NO está hardcodeada.** Se lee el `<unit>` que declara cada medición y el factor
+sale de la tabla `ucum` del campo —la misma que usa el lector de SR—, así que un equipo
+configurado en otra unidad convierte igual y una unidad desconocida **descarta** en vez de
+suponer. Los campos que el SR no cubre traen su `ucum` y su rango en `CHM_MAPA` / `CHM_RANGO`;
+**no se tocó `DCM_RANGO`** porque esa tabla la consume además el importador de Excel.
+
+**Lo que a propósito NO se importa:** `vd_fac` y `Qp/Qs` (calculados: entran las áreas y las VTI
+que los alimentan — el FAC que calcula la app coincide con el que publica el GE, y eso es parte
+de TC-177); `patientId` como `ci` (es el número de historia, misma razón que en el SR:
+envenena `_dupKeys`); `InstitutionName` como `centro_nombre` (ese control es un `<select>`
+reconstruido desde la lista del usuario y **asignarle un valor sin `<option>` falla en silencio**
+— está documentado más abajo). Los tres se **muestran** en la vista previa.
+
+**`0.0*`.** El GE marca las mediciones inválidas con un asterisco pegado al número. `parseFloat`
+devuelve 0 y un septum de 0 mm no es un faltante, es un hallazgo inventado: se exige que el texto
+sea un número y nada más. Ojo al probarlo — **la primera versión del test pasaba sin la guarda**,
+porque el 0 igual quedaba afuera por el rango. La condición que la fija usa un valor marcado
+inválido pero **plausible** (`12.5*`), que es el único que distingue las dos defensas.
+
+**Sin PHI en el repo.** El CHM es de un paciente real y este repo es público: TC-177 y TC-178
+leen el archivo del disco (`~/Desktop/*.chm` o `ECO_CHM=/ruta`) y **dicen que no corrieron** si no
+está. Las conversiones se verifican contra el crudo del propio archivo (relación, no literal), y
+lo único versionado es un SHA-256.
+
 ### DICOM — visor de imágenes (pendiente, 2026-09-14)
 Investigado y **no implementado**, esperando un archivo real del **Vivid Q7**.
 - `https://cdnjs.cloudflare.com/ajax/libs/dcmjs/0.29.0/dcmjs.min.js` da **404**. dcmjs NO está
