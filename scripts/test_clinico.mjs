@@ -134,7 +134,7 @@ const PRELUDIO = `
     herr(id, pfx) {
       const G = { 'cine-med-dist':'2d', 'cine-med-area':'2d', 'cine-med-simp':'2d',
                   'cine-med-vel':'dop', 'cine-med-t':'dop', 'cine-med-fc':'dop',
-                  'cine-med-str':'def', 'cine-med-lars':'def' };
+                  'cine-med-str':'def', 'cine-med-lars':'def', 'cine-med-vd':'def' };
       if (G[id]) { _medGrupo = G[id]; _medEstado(); }
       const b = document.getElementById((pfx || '') + id);
       if (!b) return 'NO EXISTE ' + (pfx || '') + id;
@@ -14707,6 +14707,222 @@ caso('TC-204', 'Visor: grupos colapsables, guia del momento del ciclo y LARS por
       ['sobre Doppler no se traza',                  R.dopRechaza && R.dopAvisa, R.dopRechaza],
       ['el strain del VI sigue funcionando',         R.strainSigue, R.strainSigue],
       ['cerrar el visor repone el grupo y limpia LARS', R.cerrarVuelveGrupo, R.cerrarVuelveGrupo]
+    ] };
+  })();
+`);
+
+
+/* ══ TC-205 · Strain de pared libre del VD ═══════════════════════════════════════════════════
+   Lo que mas importa fijar es la CLASIFICACION POR SEXO y su sentido. "Normal si es mas
+   negativo que -20 %" quiere decir que -25 es normal y -18 no; escrito "< -20" es correcto y
+   se lee al reves -este archivo documenta la leyenda de #ref-cardiotox, que decia
+   "disfuncion subclinica: <-16%" y leida literal significaba lo contrario-. El caso prueba
+   los DOS lados de cada corte, y la franja de -20 a -21, que es donde el sexo cambia el
+   veredicto sobre el MISMO numero.
+
+   Y sin sexo consignado NO se clasifica: un campo vacio no es una respuesta.
+   NO DEPENDE DEL PENDRIVE.                                                                    */
+caso('TC-205', 'Strain VD pared libre: calculo, clasificacion por sexo y la franja donde el sexo decide', `
+  return (async () => {
+    const R = {};
+    const alertOrig = window.alert; const dichos = [];
+    window.alert = m => dichos.push(String(m));
+    try {
+      const mkJpeg = () => {
+        const c = document.createElement('canvas'); c.width = 600; c.height = 500;
+        const g = c.getContext('2d'); g.fillStyle = '#223'; g.fillRect(0,0,600,500);
+        const b64 = c.toDataURL('image/jpeg').split(',')[1];
+        const bin = atob(b64); const u = new Uint8Array(bin.length);
+        for (let i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i);
+        return u;
+      };
+      const jpeg = mkJpeg();
+      const DX = 0.05;
+      const reg2d = { tipo:1, x0:20, y0:20, x1:580, y1:480, ux:3, uy:3, dx:DX, dy:DX,
+                      rx0:20, ry0:20, rvx:0, rvy:0 };
+      const regDop = { tipo:1, x0:20, y0:20, x1:580, y1:480, ux:4, uy:7, dx:0.004, dy:-1.3,
+                       rx0:20, ry0:100, rvx:0, rvy:0 };
+      const mkLoop = (nom, regs) => ({ nombre:nom, cuadros:4,
+        d:{ frags:[jpeg,jpeg,jpeg,jpeg], cols:600, filas:500, msCuadro:40, regiones:regs } });
+      const cvm = () => document.getElementById('cine-med');
+      const ac = (x,y) => { const c = cvm(), r = c.getBoundingClientRect();
+        return { clientX: r.left + x*(r.width/c.width), clientY: r.top + y*(r.height/c.height) }; };
+      const trazar = async pts => { const c = cvm();
+        c.dispatchEvent(new MouseEvent('mousedown', Object.assign({bubbles:true}, ac(pts[0].x,pts[0].y))));
+        for (let i=1;i<pts.length;i++)
+          c.dispatchEvent(new MouseEvent('mousemove', Object.assign({bubbles:true}, ac(pts[i].x,pts[i].y))));
+        document.dispatchEvent(new MouseEvent('mouseup', {bubbles:true}));
+        await new Promise(r=>setTimeout(r,130)); };
+      /* "Pared libre": una L de dos tramos rectos, largo conocido = a + b. */
+      const pared = (x0,y0,a,b,n) => { const p=[]; n=n||40;
+        for (let i=0;i<=n;i++) p.push({x:Math.round(x0), y:Math.round(y0 - a*i/n)});
+        for (let i=1;i<=n;i++) p.push({x:Math.round(x0 + b*i/n), y:Math.round(y0 - a)});
+        return p; };
+      const barra = () => document.getElementById('cine-med-barra').innerHTML;
+      const montar = async (nom, regs) => { _cineAbrir([ mkLoop(nom, regs||[reg2d]) ]);
+        await new Promise(r=>setTimeout(r,210));
+        if (!_medOn) medToggle(); await new Promise(r=>setTimeout(r,130)); };
+      /* Traza un par con largos conocidos y devuelve el resultado. */
+      const parVD = async (ad,bd,as_,bs) => {
+        medVdReiniciar(); await new Promise(r=>setTimeout(r,100));
+        await trazar(pared(200,420,ad,bd)); medVdConfirmar(); await new Promise(r=>setTimeout(r,110));
+        await trazar(pared(200,420,as_,bs)); medVdConfirmar(); await new Promise(r=>setTimeout(r,140));
+        return _vdCalcular();
+      };
+      const setSexo = v => { const e = document.getElementById('sexo'); e.value = v;
+        e.dispatchEvent(new Event('change', { bubbles:true })); };
+
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      await montar('vd.dcm');
+
+      /* ── 1 · la herramienta esta en el grupo Deformacion ── */
+      R.gDefCerrado = !document.getElementById('cine-med-vd');
+      __t.herr('cine-med-vd');
+      await new Promise(r=>setTimeout(r,140));
+      R.herrVd = _medHerr === 'vd';
+      R.convive = !!document.getElementById('cine-med-str') && !!document.getElementById('cine-med-lars') &&
+                  !!document.getElementById('cine-med-vd');
+      R.explica = /pared libre del VD/.test(barra()) && /RV-focused A4C/.test(barra());
+      R.avisaSepto = /No incluyas el septo/.test(barra());
+      R.pideDiastole = /Diástole — VD en tamaño MÁXIMO/.test(barra()) && /inicio del QRS/.test(barra());
+
+      /* ── 2 · CALCULO contra geometria conocida ──
+         Pared de 300+200=500 px en diastole y 240+160=400 px en sistole: -20 % exacto. */
+      setSexo('');
+      const Rm = await parVD(300,200, 240,160);
+      R.hay = !!Rm;
+      if (Rm) {
+        const T = _vd.trazos;
+        R.usaBorde = Math.abs(Rm.Ld - T.d.bordeCm) < 1e-12 && Math.abs(Rm.Ls - T.s.bordeCm) < 1e-12;
+        R.formula = Math.abs(Rm.pct - (T.s.bordeCm - T.d.bordeCm)/T.d.bordeCm*100) < 1e-12;
+        R.pct = Rm.pct;
+        R.cercaDeMenos20 = Math.abs(Rm.pct + 20) < 1.5;   // la cuantizacion del clic
+        /* SIN SEXO no se clasifica, y se dice. */
+        R.sinSexoNoClasifica = Rm.normal === null && Rm.umbral === null;
+      }
+      R.sinSexoAvisa = /El campo Sexo del estudio está vacío/.test(barra());
+      R.muestraLosDosCortes = /−20 ?%/.test(barra()) && /−21 ?%/.test(barra());
+
+      /* ── 3 · CLASIFICACION, los dos lados de cada corte ──
+         ⚠️ SE PREGUNTA A _vdCalcular, NO se recalcula aca. Mi primera version tenia un helper
+         que hacia pct < umbral por su cuenta: una COPIA PARALELA de la regla que el caso
+         viene a probar, asi que la mutacion que INVIERTE la desigualdad del codigo sobrevivia
+         entera -y esa es la peor de todas, porque -18 pasaria a leerse normal-.
+         Los trazos se arman trazando de verdad y despues se les fija bordeCm al valor que
+         hace falta: la estructura es real y el numero es exacto, sin la cuantizacion del clic
+         que impediria probar el borde de -20 contra -21. */
+      const clasificar = (pct, sexo) => {
+        setSexo(sexo);
+        if (!_vd || !_vd.trazos.d || !_vd.trazos.s) return 'sin trazos';
+        _vd.trazos.d.bordeCm = 100;
+        _vd.trazos.s.bordeCm = 100 * (1 + pct / 100);
+        const Rc = _vdCalcular();
+        return Rc ? Rc.normal : 'sin calculo';
+      };
+      /* Hace falta un par YA confirmado para poder fijarle los bordes. */
+      await parVD(300,200, 240,160);
+      R.h_25  = clasificar(-25, 'M');   // normal
+      R.h_18  = clasificar(-18, 'M');   // anormal
+      R.h_20  = clasificar(-20, 'M');   // el corte EXACTO no es normal (estricto)
+      R.m_25  = clasificar(-25, 'F');
+      R.m_18  = clasificar(-18, 'F');
+      R.m_21  = clasificar(-21, 'F');
+      R.ladosM = R.h_25 === true && R.h_18 === false && R.h_20 === false;
+      R.ladosF = R.m_25 === true && R.m_18 === false && R.m_21 === false;
+      /* LA FRANJA QUE IMPORTA: -20,5 % es NORMAL en hombre y ANORMAL en mujer. Sin esto, los
+         dos umbrales podrian ser el mismo numero y nada lo notaria. */
+      R.franjaH = clasificar(-20.5, 'M');
+      R.franjaM = clasificar(-20.5, 'F');
+      R.sexoDecide = R.franjaH === true && R.franjaM === false;
+      /* Y sin sexo, en la misma franja, sigue sin clasificar. */
+      R.franjaSinSexo = clasificar(-20.5, '');
+
+      /* ── 4 · con sexo consignado SI clasifica, y lo dice ── */
+      setSexo('M');
+      const Rh = await parVD(300,200, 240,160);
+      R.conSexoClasifica = !!(Rh && Rh.sexo === 'M' && Rh.umbral === -20 && Rh.normal !== null);
+      R.panelDiceSexo = /consignado como <b>masculino/.test(barra());
+      R.panelDiceCorte = /corte aplicado es <b>-20|corte aplicado es <b>−20/.test(barra().replace(/\\u2212/g,'-'));
+      /* El texto usa PALABRAS, no el operador solo. */
+      R.textoConPalabras = /más negativo que/.test(barra());
+
+      /* ── 5 · plausibilidad e inversion ── */
+      const Rx = await parVD(300,200, 60,40);            // -80 %
+      R.xPct = Rx && Rx.pct;
+      R.xNoPlausible = !!(Rx && Rx.plausible === false && Rx.invertido === false);
+      R.xAvisa = /fuera de −60 % a 0 %/.test(barra());
+      R.xDisc = /dos contornos manuales/.test(barra());
+      const Ri = await parVD(240,160, 300,200);          // invertido
+      R.iPositivo = !!(Ri && Ri.pct > 0 && Ri.invertido === true);
+      R.iAvisa = /MÁS LARGA en sístole/.test(barra());
+
+      /* ── 6 · disclaimer y que NO escribe el informe ── */
+      const Rok = await parVD(300,200, 240,160);
+      R.disc = /Sólo la pared libre — el septo no está incluido/.test(barra()) &&
+               /No se integra al informe firmado/.test(barra());
+      R.sugiereEtiqueta = /Strain VD<\\/b>/.test(barra());
+      R.sglVacio = (document.getElementById('sgl')||{}).value === '';
+
+      /* ── 7 · no se traza sobre Doppler ── */
+      medVdReiniciar();
+      await montar('dop.dcm', [regDop]);
+      __t.herr('cine-med-vd');
+      await new Promise(r=>setTimeout(r,140));
+      dichos.length = 0;
+      await trazar(pared(200,420,300,200));
+      R.dopRechaza = !_vd.pendiente;
+      R.dopAvisa = /TIEMPO|Doppler/i.test(dichos.join(' '));
+
+      /* ── 8 · VI y LARS siguen andando ── */
+      await montar('vi.dcm');
+      __t.herr('cine-med-str');
+      await new Promise(r=>setTimeout(r,140));
+      const tri = (cx0,yb,Wi,Wd,H) => { const p=[], ya=yb-H;
+        const n1=Math.ceil(Math.hypot(Wi,H)/10), n2=Math.ceil(Math.hypot(Wd,H)/10);
+        for(let i=0;i<=n1;i++)p.push({x:Math.round(cx0-Wi+Wi*i/n1),y:Math.round(yb+(ya-yb)*i/n1)});
+        for(let i=1;i<=n2;i++)p.push({x:Math.round(cx0+Wd*i/n2),y:Math.round(ya+(yb-ya)*i/n2)});
+        return p; };
+      await trazar(tri(300,440,100,100,300));
+      R.viSigue = !!(_strain && _strain.pendiente && _strain.pendiente.bordeCm > 0);
+      __t.herr('cine-med-lars');
+      await new Promise(r=>setTimeout(r,140));
+      await trazar(pared(200,420,300,200));
+      R.larsSigue = !!(_lars && _lars.pendiente && _lars.pendiente.bordeCm > 0);
+
+      cineCerrar();
+      await new Promise(r=>setTimeout(r,120));
+      R.cerrarLimpia = _vistaA.vd === null;
+      setSexo('');
+    } finally { window.alert = alertOrig; }
+
+    return { extra: [
+      ['la herramienta vive en Deformacion',        R.gDefCerrado && R.herrVd && R.convive, R.convive],
+      ['explica el metodo y la vista',              R.explica, R.explica],
+      ['y avisa de NO incluir el septo',            R.avisaSepto, R.avisaSepto],
+      ['guia el paso de diastole',                  R.pideDiastole, R.pideDiastole],
+      ['usa bordeCm de los dos trazados (exacto)',  R.usaBorde, R.hay],
+      ['la formula es (Ls-Ld)/Ld (exacto)',         R.formula, R.pct],
+      ['y coincide con la geometria conocida',      R.cercaDeMenos20, 'medido ' + (R.pct||0).toFixed(2) + ' esperado -20'],
+      ['SIN sexo consignado NO clasifica',          R.sinSexoNoClasifica, R.sinSexoNoClasifica],
+      ['y lo declara mostrando los dos cortes',     R.sinSexoAvisa && R.muestraLosDosCortes, R.sinSexoAvisa],
+      ['hombre: -25 normal, -18 y -20 no',          R.ladosM, 'h25=' + R.h_25 + ' h18=' + R.h_18 + ' h20=' + R.h_20],
+      ['mujer: -25 normal, -18 y -21 no',           R.ladosF, 'm25=' + R.m_25 + ' m18=' + R.m_18 + ' m21=' + R.m_21],
+      ['EN LA FRANJA -20/-21 EL SEXO DECIDE',       R.sexoDecide, '-20,5 %: hombre ' + R.franjaH + ' / mujer ' + R.franjaM],
+      ['y sin sexo en esa franja no clasifica',     R.franjaSinSexo === null, R.franjaSinSexo],
+      ['con sexo consignado clasifica y lo dice',   R.conSexoClasifica && R.panelDiceSexo, R.panelDiceSexo],
+      ['el corte aplicado se nombra',               R.panelDiceCorte, R.panelDiceCorte],
+      ['el texto usa palabras, no el operador solo', R.textoConPalabras, R.textoConPalabras],
+      ['un acortamiento imposible se declara',      R.xNoPlausible && R.xAvisa, R.xPct],
+      ['y el disclaimer sigue ahi',                 R.xDisc, R.xDisc],
+      ['fases invertidas dan POSITIVO y se avisan', R.iPositivo && R.iAvisa, R.iPositivo],
+      ['el disclaimer nombra que el septo no entra', R.disc, R.disc],
+      ['sugiere la etiqueta Strain VD',             R.sugiereEtiqueta, R.sugiereEtiqueta],
+      ['NO escribe el campo sgl',                   R.sglVacio, R.sglVacio],
+      ['sobre Doppler no se traza',                 R.dopRechaza && R.dopAvisa, R.dopRechaza],
+      ['el strain del VI sigue funcionando',        R.viSigue, R.viSigue],
+      ['y el LARS tambien',                         R.larsSigue, R.larsSigue],
+      ['cerrar el visor limpia la sesion',          R.cerrarLimpia, R.cerrarLimpia]
     ] };
   })();
 `);

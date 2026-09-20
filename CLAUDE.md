@@ -8133,6 +8133,57 @@ y TC-193 se puso en rojo solo.
 **Sin verificar en Safari**, como todo el módulo DICOM: el navegador está concedido a nivel
 «lectura». Todo corrió en Chrome por CDP, con el pendrive montado.
 
+### Strain de pared libre del VD, y el caso que probaba su propia copia (2026-09-20)
+
+Tercera variante del método de contornos manuales. Fuente: ASE 2025 corazón derecho
+(Mukherjee/Rudski, JASE 2025;38(3):141-186) — **la misma guía que esta app ya cita** para la
+función diastólica del VD, así que el corazón derecho queda con una sola referencia.
+
+**EL SEPTO NO ENTRA, y no es redacción.** «Strain de pared libre» y «strain global del VD» son
+magnitudes distintas: el global promedia pared libre y septo y da valores **menos negativos**.
+Publicar uno con los cortes del otro es comparar contra la tabla equivocada. Se dice en el paso
+y en el descargo.
+
+**LOS UMBRALES SON POR SEXO y salen del campo `sexo` del estudio** —más negativo que −20 % en
+hombres, que −21 % en mujeres—. **Sin sexo consignado NO se clasifica**: se muestran los dos
+cortes y se dice cuál falta. Suponer uno cambiaría el veredicto de un paciente en la franja de
+−20 a −21 sin que nadie lo haya decidido. Es la regla del `coa_diast_anterogrado`: un campo
+vacío no es una respuesta. El campo sólo se **lee**; no se escribe nada del informe.
+
+**⚠️ EL SENTIDO DE LA DESIGUALDAD, en palabras y nunca con el operador solo.** «Normal si es más
+negativo que −20 %» quiere decir que −25 es normal y −18 no. Escrito «< −20 %» es correcto y se
+lee al revés — este archivo documenta la leyenda de `#ref-cardiotox`, que decía «disfunción
+subclínica: <-16%» y leída literal significaba lo contrario.
+
+**`_contornoLargo` se extrajo para que no haya una tercera copia de las mismas tres guardas.**
+El LARS y el VD sólo necesitan la compuerta 2D, la guarda de píxeles cuadrados y `bordeCm`; el
+eje largo lo necesitan Simpson y el strain del VI, no éstos. Con tres copias, la que se quede
+sin la guarda de isotropía mide mal sin ningún síntoma.
+
+#### El caso probaba su propia copia de la regla — y la peor mutación sobrevivía
+
+Mi primera versión de TC-205 tenía un helper `clasificar(pct, sexo)` que hacía `pct < umbral`
+**por su cuenta**. O sea: una **copia paralela de la regla que el caso venía a probar**. La
+mutación que **invierte la desigualdad** del código —la más peligrosa de todas, porque deja a
+−18 leyéndose como normal— pasaba **entera en verde**.
+
+Hoy se le pregunta a `_vdCalcular`. Los trazos se arman trazando de verdad y después se les
+fija `bordeCm` al valor exacto que hace falta: la estructura es real y el número no arrastra la
+cuantización del clic, que impediría probar el borde de −20 contra −21. Con eso la mutación cae
+y el diagnóstico imprime la inversión: `h25=false h18=true`.
+
+**Es la tercera vez en tres turnos que un caso no prueba el camino que dice probar** —el botón
+de la barra, `medStrain3Confirmar`, y ahora esto—. El patrón es siempre el mismo: **el caso
+rehace el trabajo en vez de pedírselo al código**. La condición correcta interroga a la función
+que decide, no a una reconstrucción de lo que debería decidir.
+
+**Y la condición que separa dos umbrales de uno** es la franja de −20 a −21: ahí el MISMO número
+—−20,5 %— es normal en hombre y anormal en mujer. Sin ella, la mutación que iguala los dos
+cortes pasa, porque todas las demás condiciones usan valores lejos del borde.
+
+**Backtick dentro del cuerpo de un caso: van VEINTIDÓS**, y otra vez en el comentario que
+acababa de escribir para explicar la trampa de arriba.
+
 ### Grupos colapsables, guía del ciclo y LARS (2026-09-20)
 
 Tres cambios del mismo panel. Lo que hay que saber antes de tocarlo:

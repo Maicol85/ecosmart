@@ -45594,7 +45594,8 @@ function _vNueva(pfx, rot) {
     gen: 0,                // token anti-carrera del decodificado
     medOn: false, medPuntos: [], medLineas: [], medHerr: 'dist', medAreas: [],
     medTrazo: null, medVels: [], medTiempos: [], medCalib: null, medCalibrando: false,
-    medCalibVel: null, medCalibrandoVel: false, medEtiqueta: '', medGrupo: '2d', lars: null,
+    medCalibVel: null, medCalibrandoVel: false, medEtiqueta: '', medGrupo: '2d',
+    lars: null, vd: null,
     medUltimoCuadro: '', simp: null, strain: null, obsPuesto: false
   };
 }
@@ -45623,7 +45624,7 @@ const _vBind = (V, fn) => function () { const a = arguments; return _vCon(V, () 
     _medAreas:'medAreas', _medTrazo:'medTrazo', _medVels:'medVels', _medTiempos:'medTiempos',
     _medCalib:'medCalib', _medCalibrando:'medCalibrando', _medUltimoCuadro:'medUltimoCuadro',
     _medCalibVel:'medCalibVel', _medCalibrandoVel:'medCalibrandoVel', _strain:'strain',
-    _medEtiqueta:'medEtiqueta', _medGrupo:'medGrupo', _lars:'lars'
+    _medEtiqueta:'medEtiqueta', _medGrupo:'medGrupo', _lars:'lars', _vd:'vd'
   };
   for (const g in MAPA) {
     const k = MAPA[g];
@@ -46008,7 +46009,7 @@ function _vMontarUp() {
 
 function _medAreaDown(ev) {
   if ((_medHerr !== 'area' && _medHerr !== 'simpson' && _medHerr !== 'strain' &&
-       _medHerr !== 'lars') || _medCalibrando) return;
+       _medHerr !== 'lars' && _medHerr !== 'vd') || _medCalibrando) return;
   /* En modo 3 puntos el arrastre mueve un punto de CONTROL, no dibuja un contorno nuevo. */
   if (_medHerr === 'strain' && _strain && _strain.modo === '3pt') {
     const q = _medPuntoCanvas(ev);
@@ -46027,6 +46028,7 @@ function _medAreaDown(ev) {
   if (_simp) { _simp.ocultar = false; _simp.avisoCuadro = false; }
   if (_strain) { _strain.ocultar = false; _strain.avisoCuadro = false; }
   if (_lars) { _lars.ocultar = false; _lars.avisoCuadro = false; }
+  if (_vd) { _vd.ocultar = false; _vd.avisoCuadro = false; }
   _medTrazo = [p];
 }
 
@@ -46070,6 +46072,12 @@ function _medAreaUp() {
   }
   /* Strain: igual que Simpson, el trazado queda PENDIENTE de confirmación y no se guarda
      como área. El cierre se dibuja pero no se mide — ver la nota del módulo. */
+  if (_medHerr === 'vd') {
+    const motivo = _vdAceptar(pts);
+    if (motivo) { alert(motivo); _vd.pendiente = null; }
+    _medPintar(); _medEstado();
+    return;
+  }
   if (_medHerr === 'lars') {
     const motivo = _larsAceptar(pts);
     if (motivo) { alert(motivo); _lars.pendiente = null; }
@@ -47095,16 +47103,28 @@ const _larsCompleto = () => !!(_lars && _lars.trazos.min && _lars.trazos.max && 
 
 /* Acepta el contorno en curso. Reusa `_medAreaValidar` —la compuerta 2D, la misma del área y
    del strain del VI— y `_strainLargoPx`. No se reimplementa ninguna de las dos. */
-function _larsAceptar(pts) {
+/* Acepta un contorno del que sólo interesa su LARGO: la compuerta 2D, la guarda de píxeles
+   cuadrados y `bordeCm`. Lo comparten el LARS y el strain del VD —y cualquier otro que venga—
+   porque escribir la tercera copia de las mismas tres guardas es exactamente cómo divergen:
+   una se queda sin la guarda de isotropía y mide mal sin síntoma.
+   Devuelve `{ok:true, dato}` o `{ok:false, motivo}`. El eje largo NO se calcula: lo necesitan
+   Simpson y el strain del VI, no éstos. */
+function _contornoLargo(pts, queEs) {
   const v = _medAreaValidar(pts);
-  if (!v.ok) return v.motivo;
+  if (!v.ok) return { ok:false, motivo:v.motivo };
   if (Math.abs(v.esc.mmPorPx - v.esc.mmPorPxY) > 1e-12)
-    return 'Esta imagen tiene píxeles no cuadrados y el trazado necesita una sola escala. No se puede medir acá.';
+    return { ok:false, motivo:'Esta imagen tiene píxeles no cuadrados y el trazado necesita una sola escala. No se puede medir acá.' };
   const cmPorPx = v.esc.mmPorPx / 10;
   const borde = _strainLargoPx(pts) * cmPorPx;
-  if (!(borde > 0)) return 'El trazado es demasiado chico para medir la aurícula.';
-  _lars.pendiente = { pts, cmPorPx, bordeCm: borde,
-                      imagen: (_cineDatos && _cineDatos.loops[_cineDatos.i].nombre) || '' };
+  if (!(borde > 0)) return { ok:false, motivo:'El trazado es demasiado chico para medir ' + (queEs || 'esta estructura') + '.' };
+  return { ok:true, dato: { pts, cmPorPx, bordeCm: borde,
+                            imagen: (_cineDatos && _cineDatos.loops[_cineDatos.i].nombre) || '' } };
+}
+
+function _larsAceptar(pts) {
+  const r = _contornoLargo(pts, 'la aurícula');
+  if (!r.ok) return r.motivo;
+  _lars.pendiente = r.dato;
   return null;
 }
 
@@ -47123,6 +47143,200 @@ window.medLarsConfirmar = medLarsConfirmar;
 
 function medLarsReiniciar() { _larsIniciar(); _medPintar(); _medEstado(); }
 window.medLarsReiniciar = medLarsReiniciar;
+/* ══ STRAIN DE PARED LIBRE DEL VD ════════════════════════════════════════════════════════════
+
+   Mismo método que el strain del VI y el LARS —contornos manuales— sobre la **pared libre**
+   del ventrículo derecho, en dos momentos del ciclo. Fuente de los valores normales: ASE 2025
+   corazón derecho (Mukherjee/Rudski, JASE 2025;38(3):141-186) — la misma guía que esta app ya
+   cita para la función diastólica del VD, así que el corazón derecho queda con UNA referencia.
+
+   EL SEPTO NO ENTRA, y no es un detalle de redacción: el «strain de pared libre» es una
+   magnitud distinta del «strain global del VD», que promedia pared libre y septo y da valores
+   MENOS negativos. Publicar uno con los cortes del otro es comparar contra la tabla
+   equivocada. El panel lo dice en el paso y en el descargo.
+
+   LOS UMBRALES SON POR SEXO —más negativo que −20 % en hombres y que −21 % en mujeres— y salen
+   del campo `sexo` del estudio. Sin sexo consignado NO se clasifica: se muestran los dos
+   cortes y se dice cuál falta. Suponer uno cambiaría la clasificación de un paciente en la
+   franja de −20 a −21 sin que nadie lo haya decidido. Es la regla del `coa_diast_anterogrado`:
+   un campo vacío no es una respuesta.
+
+   ⚠️ CUIDADO CON EL SENTIDO DE LA DESIGUALDAD. «Normal si es más negativo que −20 %» quiere
+   decir que −25 es normal y −18 no. Escrito como «< −20» es correcto y se lee mal —este
+   archivo documenta la leyenda de `#ref-cardiotox`, que decía «disfunción subclínica: <-16%»
+   y leída literal significaba lo contrario—. Por eso en pantalla va con palabras y nunca con
+   el operador solo. */
+
+const VD_STRAIN_NORMAL = { M: -20, F: -21 };     // % — ASE 2025, pared libre
+
+function _vdIniciar() {
+  _vd = { fase:'d', trazos:{ d:null, s:null }, pendiente:null,
+          ocultar:false, avisoCuadro:false, avisoImagen:false };
+}
+const _vdCompleto = () => !!(_vd && _vd.trazos.d && _vd.trazos.s);
+
+function _vdAceptar(pts) {
+  const r = _contornoLargo(pts, 'la pared libre del VD');
+  if (!r.ok) return r.motivo;
+  _vd.pendiente = r.dato;
+  return null;
+}
+
+function medVdConfirmar() {
+  if (!_vd || !_vd.pendiente) {
+    alert('Trazá primero la pared libre del VD: mantené apretado y recorré del anillo tricuspídeo lateral, por el ápex del VD, hasta el anillo septal.');
+    return;
+  }
+  _vd.trazos[_vd.fase] = _vd.pendiente;
+  _vd.pendiente = null;
+  _vd.avisoCuadro = false; _vd.ocultar = false;
+  _vd.fase = (_vd.fase === 'd') ? 's' : 'd';
+  _medPintar(); _medEstado();
+}
+window.medVdConfirmar = medVdConfirmar;
+
+function medVdReiniciar() { _vdIniciar(); _medPintar(); _medEstado(); }
+window.medVdReiniciar = medVdReiniciar;
+
+/* El sexo del estudio. Devuelve 'M', 'F' o null — y `null` es una respuesta, no un default. */
+function _vdSexo() {
+  const e = document.getElementById('sexo');
+  const v = e ? String(e.value || '').trim().toUpperCase() : '';
+  return (v === 'M' || v === 'F') ? v : null;
+}
+
+function _vdCalcular() {
+  if (!_vdCompleto()) return null;
+  const D = _vd.trazos.d, S = _vd.trazos.s;
+  if (!(D.bordeCm > 0) || !(S.bordeCm > 0)) return null;
+  const pct = (S.bordeCm - D.bordeCm) / D.bordeCm * 100;
+  const sexo = _vdSexo();
+  const umbral = sexo ? VD_STRAIN_NORMAL[sexo] : null;
+  return {
+    Ld: D.bordeCm, Ls: S.bordeCm, pct, sexo, umbral,
+    /* `normal` es null sin sexo: no se clasifica lo que no se puede clasificar. */
+    normal: (umbral === null) ? null : (pct < umbral),
+    invertido: pct >= 0,
+    /* Banda de PLAUSIBILIDAD, no de severidad. Fuera de ahí lo habitual es que el contorno no
+       sea el de la pared libre —que se haya incluido el septo, o que los dos trazados no
+       recorran la misma extensión—. */
+    plausible: pct < 0 && pct > -60,
+    mismaImagen: !!(D.imagen && S.imagen && D.imagen === S.imagen)
+  };
+}
+window._vdCalcular = _vdCalcular;
+
+const _VD_DISCLAIMER =
+  '<div style="margin-top:7px;padding:7px 9px;border-radius:7px;border-left:3px solid #fbbf24;' +
+    'background:rgba(251,191,36,.07);font-size:10px;line-height:1.55;color:var(--text2);">' +
+    '<b>Strain de pared libre del VD calculado por método de dos contornos manuales.</b> ' +
+    'No equivalente al speckle tracking automático. <b>Sólo la pared libre — el septo no está ' +
+    'incluido</b>, así que no se compara con los cortes del strain global del VD. Usar como ' +
+    'orientación clínica. <b>No se integra al informe firmado.</b>' +
+    '<div style="margin-top:4px;">Para mayor precisión:<br>' +
+    '— <b>Diástole:</b> inicio del QRS<br>' +
+    '— <b>Sístole:</b> final de la onda T</div>' +
+  '</div>';
+
+const _VD_PASOS = {
+  d: { tit:'Diástole — VD en tamaño MÁXIMO',
+       guia:'Buscá el <b>inicio del QRS</b> en el ECG, o cuando el VD se ve <b>más grande</b>.' },
+  s: { tit:'Sístole — VD en tamaño MÍNIMO',
+       guia:'Avanzá hasta el <b>final de la onda T</b>, o cuando el VD se ve <b>más pequeño</b>. Recorré <b>el mismo trayecto</b> que en diástole.' }
+};
+
+function _vdPanel() {
+  if (!_vd) return '';
+  const E = (typeof escHtml === 'function') ? escHtml : (x => String(x == null ? '' : x));
+  const b = (id, cls, txt, extra) => '<button type="button" class="btn ' + cls + '" id="' + _V.pfx + id +
+    '" style="padding:3px 10px;font-size:11px;' + (extra || '') + '">' + txt + '</button>';
+
+  let cab = '<div style="font-size:10px;color:var(--text2);line-height:1.5;margin-bottom:6px;">' +
+    'El <b>strain de pared libre del VD</b> mide la deformación de la pared lateral del ' +
+    'ventrículo derecho. Usá la <b>apical 4 cámaras enfocada en el VD</b> (RV-focused A4C).<br>' +
+    'Trazá <b>sólo la pared libre</b>: del <b>anillo tricuspídeo lateral</b>, por el <b>ápex del ' +
+    'VD</b>, hasta el <b>anillo septal</b>. <b style="color:#fbbf24;">No incluyas el septo ' +
+    'interventricular</b> — con el septo adentro el número es otra magnitud y los cortes de ' +
+    'abajo no le corresponden.</div>';
+  const fila = (k, rot) => {
+    const T = _vd.trazos[k];
+    return '<div style="font-size:11px;line-height:1.6;' + (T ? '' : 'color:var(--text2);') + '">' +
+      (T ? '✅' : (_vd.fase === k ? '▶️' : '⬜')) + ' <b>' + rot + '</b>' +
+      (T ? ' — ' + T.bordeCm.toFixed(1) + ' cm' +
+           (T.imagen ? ' · <span style="opacity:.75;">' + E(T.imagen) + '</span>' : '') : '') +
+    '</div>';
+  };
+  cab += fila('d', 'Diástole') + fila('s', 'Sístole');
+
+  let paso = '';
+  if (!_vdCompleto()) {
+    const P = _VD_PASOS[_vd.fase];
+    paso = '<div style="font-size:12px;line-height:1.6;margin-top:7px;">' +
+      '<b>📍 ' + P.tit + '</b>' +
+      '<div style="margin-top:4px;padding:6px 8px;border-radius:6px;border-left:3px solid ' +
+        (_vd.fase === 'd' ? '#22d36a' : '#60a5fa') + ';background:rgba(120,140,170,.07);' +
+        'font-size:10px;line-height:1.55;">' + P.guia +
+        '<br>Trazá la pared libre: anillo lateral → ápex del VD → anillo septal.</div>' +
+      '<div style="font-size:10px;color:var(--text2);margin-top:3px;">' +
+        'Mantené apretado y recorré la pared. ' +
+        (_vd.pendiente ? '<b style="color:#fbbf24;">Trazado listo — apretá «Confirmar».</b>' : '') +
+        (_vd.avisoCuadro
+          ? '<br><b style="color:#fbbf24;">Cambiaste de cuadro.</b> Lo confirmado <b>sigue guardado</b>; se dejó de dibujar. Cambiar de cuadro es parte del método.'
+          : '') +
+        (_vd.avisoImagen
+          ? '<br><b style="color:#22d36a;">Cambiaste de imagen y lo confirmado sigue ahí.</b>'
+          : '') +
+      '</div></div>';
+  }
+
+  let res = '';
+  const R = _vdCalcular();
+  if (R) {
+    const col = !R.plausible ? '#fbbf24' : (R.normal === null ? '#e5e7eb' : (R.normal ? '#22d36a' : '#fb923c'));
+    /* Los cortes van con PALABRAS y no con el operador solo: «más negativo que −20 %» no se
+       puede leer al revés, y «< −20 %» sí. */
+    const refs = '<div style="font-size:10px;color:var(--text2);margin-top:4px;line-height:1.55;">' +
+      'Normal (ASE 2025, pared libre): <b>más negativo que −20 %</b> en hombres y que <b>−21 %</b> ' +
+      'en mujeres. Menos negativo que ese valor es anormal.' +
+      (R.sexo
+        ? ' Este estudio está consignado como <b>' + (R.sexo === 'M' ? 'masculino' : 'femenino') +
+          '</b>, así que el corte aplicado es <b>' + R.umbral + ' %</b>.'
+        : ' <b style="color:#fbbf24;">El campo Sexo del estudio está vacío</b>, así que no se ' +
+          'clasifica: se muestran los dos cortes y el médico aplica el que corresponda.') +
+    '</div>';
+    res = '<div style="margin-top:9px;padding-top:8px;border-top:1px solid var(--border);">' +
+      '<div style="font-size:13px;line-height:1.7;">Strain VD pared libre ' +
+        '<b style="font-size:19px;color:' + col + ';">' + R.pct.toFixed(1) + ' %</b>' +
+        (R.normal === null ? '' :
+          ' — <b style="color:' + col + ';">' + (R.normal ? 'normal' : 'por debajo de lo normal') + '</b>') +
+      '</div>' +
+      '<div style="font-size:11px;color:var(--text2);">Perímetro de pared libre ' +
+        R.Ld.toFixed(1) + ' → ' + R.Ls.toFixed(1) + ' cm</div>' +
+      refs +
+      (R.invertido
+        ? '<div style="font-size:10px;color:#f87171;margin-top:5px;line-height:1.5;"><b>⚠️ La pared salió MÁS LARGA en sístole que en diástole.</b> ' +
+          'O los contornos no recorren la misma extensión, o se confirmaron las fases al revés.</div>'
+        : (!R.plausible
+            ? '<div style="font-size:10px;color:#fbbf24;margin-top:5px;line-height:1.5;"><b>⚠️ Un acortamiento fuera de −60 % a 0 % casi nunca es real.</b> ' +
+              'Lo habitual es que el contorno no sea el de la pared libre —que se haya incluido el septo— ' +
+              'o que los dos trazados no recorran la misma extensión.</div>'
+            : '')) +
+      (!R.mismaImagen
+        ? '<div style="font-size:10px;color:#fbbf24;margin-top:5px;line-height:1.5;"><b>⚠️ Los dos trazados salieron de imágenes distintas.</b> ' +
+          'Las dos fases tienen que ser dos cuadros del mismo cineloop.</div>'
+        : '') +
+      '<div style="font-size:10px;color:var(--text2);margin-top:5px;">Se puede capturar con ' +
+        '<b>📸 Capturar con medición</b>, con la etiqueta <b>Strain VD</b>.</div>' +
+      _VD_DISCLAIMER +
+    '</div>';
+  }
+
+  const conf = _vdCompleto() ? '' : b('cine-vd-conf', 'btn-primary',
+    'Confirmar ' + (_vd.fase === 'd' ? 'diástole' : 'sístole'));
+  const reset = b('cine-vd-reset', 'btn-ghost', 'Empezar de nuevo', conf ? 'margin-left:6px;' : '');
+  return cab + paso + res + '<div style="margin-top:7px;">' + conf + reset + '</div>';
+}
+
 
 function _larsCalcular() {
   if (!_larsCompleto()) return null;
@@ -47332,7 +47546,7 @@ function _medManejador() {
 
 function medHerramienta(h) {
   _medHerr = (h === 'area' || h === 'simpson' || h === 'strain' || h === 'lars' ||
-              h === 'vel' || h === 'tiempo' || h === 'fc') ? h : 'dist';
+              h === 'vd' || h === 'vel' || h === 'tiempo' || h === 'fc') ? h : 'dist';
   _medTrazo = null; _medPuntos = [];
   /* Simpson arranca de cero cada vez que se entra: los cuatro trazados son de UNA medición,
      y mezclar dos series daría una FEVI hecha con diástole de un lado y sístole del otro. */
@@ -47341,6 +47555,7 @@ function medHerramienta(h) {
   if (_MED_GRUPO_DE[_medHerr]) _medGrupo = _MED_GRUPO_DE[_medHerr];
   if (_medHerr === 'strain' && !_strain) _strainIniciar();
   if (_medHerr === 'lars' && !_lars) _larsIniciar();
+  if (_medHerr === 'vd' && !_vd) _vdIniciar();
   /* Se entra sola SÓLO si la imagen no declara NINGUNA región — los 15 archivos de 301 que
      no traen ninguna, más otras marcas y las capturas de pantalla.
 
@@ -47570,6 +47785,37 @@ function _medPintar() {
     if (_lars.pendiente) dibujarAI(_lars.pendiente, '#fbbf24', null);
   }
 
+  /* ── Strain del VD: la pared libre en las dos fases ──
+     Va ABIERTO, sin cerrar el contorno: la pared libre es una curva de anillo a anillo, no un
+     área. Cerrarla dibujaría una recta que cruza la cavidad y se leería como parte de la
+     pared, que es justo lo que el método excluye. */
+  if (_medHerr === 'vd' && _vd) {
+    const CV = { d:'#22d36a', s:'#60a5fa' };
+    const dibujarVD = (T, col, rot) => {
+      if (!T) return;
+      cx.strokeStyle = col; cx.fillStyle = col; cx.lineWidth = 2 * esc;
+      cx.beginPath(); cx.moveTo(T.pts[0].x, T.pts[0].y);
+      for (let i = 1; i < T.pts.length; i++) cx.lineTo(T.pts[i].x, T.pts[i].y);
+      cx.stroke();
+      [T.pts[0], T.pts[T.pts.length-1]].forEach(q => {
+        cx.beginPath(); cx.arc(q.x, q.y, 4*esc, 0, 6.2832); cx.fill(); });
+      if (rot) {
+        const t2 = rot + '  ' + T.bordeCm.toFixed(1) + ' cm';
+        const w2 = cx.measureText(t2).width;
+        const q = T.pts[0];
+        cx.fillStyle = 'rgba(0,0,0,.7)';
+        cx.fillRect(q.x + 7*esc, q.y - 16*esc, w2 + 8*esc, 18*esc);
+        cx.fillStyle = col;
+        cx.fillText(t2, q.x + 11*esc, q.y - 2*esc);
+      }
+    };
+    if (!_vd.ocultar) {
+      dibujarVD(_vd.trazos.d, CV.d, 'Diástole');
+      dibujarVD(_vd.trazos.s, CV.s, 'Sístole');
+    }
+    if (_vd.pendiente) dibujarVD(_vd.pendiente, '#fbbf24', null);
+  }
+
   /* Velocidades: cruz en el punto, línea punteada hasta la base y la etiqueta. La línea
      hasta el cero es lo que deja VER de dónde sale el número: en la mitad de las regiones
      medidas el cero cae fuera del recuadro visible, así que sin la línea el valor parece
@@ -47743,6 +47989,7 @@ const _MED_COMO = {
   fc:     'Dos clics sobre la MISMA onda de dos latidos seguidos: sale el intervalo RR y la frecuencia (60.000 / RR).',
   strain: 'Mantené apretado y recorré el borde del VI, del anillo mitral septal al lateral pasando por el ápex. Se traza en diástole y en sístole.',
   lars:   'Mantené apretado y recorré el contorno interno de la aurícula izquierda. Se traza en tres momentos del ciclo.',
+  vd:     'Mantené apretado y recorré SÓLO la pared libre del VD, del anillo tricuspídeo lateral al septal pasando por el ápex. Se traza en diástole y en sístole.',
   dist:   'Hacé clic en dos puntos para medir.'
 };
 const _medComo = () => _MED_COMO[_medHerr] || _MED_COMO.dist;
@@ -47755,7 +48002,7 @@ const _medComo = () => _MED_COMO[_medHerr] || _MED_COMO.dist;
    cerrar el visor, porque `medApagar` limpia la vista entera. */
 const _MED_GRUPO_DE = { dist:'2d', area:'2d', simpson:'2d',
                         vel:'dop', tiempo:'dop', fc:'dop',
-                        strain:'def', lars:'def' };
+                        strain:'def', lars:'def', vd:'def' };
 const _MED_GRUPO_DEF = '2d';
 
 /* UNO solo abierto a la vez. Cuál, lo decide el médico — y al ELEGIR una herramienta se abre
@@ -47813,7 +48060,8 @@ function _medEstado() {
       btH('cine-med-fc', 'fc', '💓 FC')) +
     grupo('def', '💚 Deformación',
       btH('cine-med-str', 'strain', '💚 Strain VI', true) +
-      btH('cine-med-lars', 'lars', '🫧 LARS'));
+      btH('cine-med-lars', 'lars', '🫧 LARS') +
+      btH('cine-med-vd', 'vd', '🫀 Strain VD'));
   const bot = sel +
               (_medHerr === 'vel'
                 ? '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-med-calvel" style="padding:3px 9px;font-size:11px;margin-left:14px;">' +
@@ -47883,7 +48131,8 @@ function _medEstado() {
   }
   _medBarra((_medHerr === 'simpson' ? _simpPanel()
              : _medHerr === 'strain' ? _strainPanel()
-             : _medHerr === 'lars' ? _larsPanel() : txt + (n ? '  ·  <b>' + n + '</b> medición(es) en pantalla.' : '')) +
+             : _medHerr === 'lars' ? _larsPanel()
+             : _medHerr === 'vd' ? _vdPanel() : txt + (n ? '  ·  <b>' + n + '</b> medición(es) en pantalla.' : '')) +
             '<div style="margin-top:6px;">' + bot + '</div>');
   /* ⚠️ TODOS los controles de la barra se atan A SU VISTA. Atados pelados corren con la vista
      ACTIVA al momento del clic —la A por omisión—, así que un clic en la barra de la B movía
@@ -47913,6 +48162,9 @@ function _medEstado() {
   _on(_medEl('cine-med-lars'), () => medHerramienta('lars'));
   _on(_medEl('cine-lars-conf'),  medLarsConfirmar);
   _on(_medEl('cine-lars-reset'), medLarsReiniciar);
+  _on(_medEl('cine-med-vd'), () => medHerramienta('vd'));
+  _on(_medEl('cine-vd-conf'),  medVdConfirmar);
+  _on(_medEl('cine-vd-reset'), medVdReiniciar);
   _on(_medEl('cine-str-m-libre'), () => medStrainModo('libre'));
   _on(_medEl('cine-str-m-3pt'),   () => medStrainModo('3pt'));
   _on(_medEl('cine-str-3conf'), medStrain3Confirmar);
@@ -48211,6 +48463,12 @@ function medReset() {
     if (_lars.trazos.min || _lars.trazos.max || _lars.trazos.preA) _lars.avisoCuadro = true;
     _lars.ocultar = true;
   }
+  /* El strain del VD también exige dos cuadros: se oculta, no se borra. */
+  if (_vd) {
+    if (_vd.pendiente) _vd.pendiente = null;
+    if (_vd.trazos.d || _vd.trazos.s) _vd.avisoCuadro = true;
+    _vd.ocultar = true;
+  }
   if (_strain) {
     /* ⚠️ ACÁ EL AVISO NO SE COPIA DE SIMPSON, y la diferencia importa. Simpson avisa sólo si
        había un trazado sin confirmar. En strain, CAMBIAR DE CUADRO ES PARTE DEL MÉTODO —el
@@ -48253,6 +48511,7 @@ function medCambioDeImagen() {
     _strain.avisoImagen = true;
   }
   if (_lars) { _lars.pendiente = null; _lars.ocultar = false; _lars.avisoImagen = true; }
+  if (_vd) { _vd.pendiente = null; _vd.ocultar = false; _vd.avisoImagen = true; }
   if (_medOn) { _medPintar(); _medEstado(); }
 }
 window.medCambioDeImagen = medCambioDeImagen;
@@ -48264,7 +48523,7 @@ function medApagar() {
   _medGrupo = _MED_GRUPO_DEF;        // los grupos vuelven al estado por omisión
   _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null; _medVels = []; _medTiempos = []; _medHerr = 'dist';
   _simp = null;                      // otra imagen: los cuatro trazados no aplican
-  _strain = null; _lars = null;
+  _strain = null; _lars = null; _vd = null;
   const cv = _medEl('cine-med'), b = _medEl('cine-medir');
   if (cv) { cv.style.display = 'none'; cv.onclick = null; cv.onmousedown = null; cv.onmousemove = null; }
   if (_vArrastre === _V) _vArrastre = null;   // el oyente es compartido: no se quita, se desmarca
@@ -64079,8 +64338,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260920-1139';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789915162499;                 /* eco-build-ms */
+const ECO_BUILD    = '20260920-1220';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789917617303;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -64166,7 +64425,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1139</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1220</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
