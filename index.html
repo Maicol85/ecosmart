@@ -45120,9 +45120,15 @@ function _dcmImgRegiones(dv, u8, ini, fin) {
       const ln  = _DCMIMG_VR4[vr] ? dv.getUint32(o + 8, true) : dv.getUint16(o + 6, true);
       const val = _DCMIMG_VR4[vr] ? o + 12 : o + 8;
       if (val + ln > sub) break;
+      /* SL y SS son CON SIGNO. Leerlos como sin signo convierte un −2 en 4.294.967.294, y
+         (0018,6022) Reference Pixel Y0 es SL: un píxel de referencia negativo —legal cuando
+         la línea de base cae por encima del recuadro— se volvía un número astronómico y la
+         velocidad salía absurda en vez de fallar. */
       const num = () => (vr === 'FD') ? dv.getFloat64(val, true)
                      : (vr === 'FL') ? dv.getFloat32(val, true)
-                     : (vr === 'UL' || vr === 'SL') ? dv.getUint32(val, true)
+                     : (vr === 'SL') ? dv.getInt32(val, true)
+                     : (vr === 'UL') ? dv.getUint32(val, true)
+                     : (vr === 'SS') ? dv.getInt16(val, true)
                      : dv.getUint16(val, true);
       if (g === 0x0018) {
         if (e === 0x6014) r.tipo = num();
@@ -45130,8 +45136,14 @@ function _dcmImgRegiones(dv, u8, ini, fin) {
         else if (e === 0x601A) r.y0 = num();
         else if (e === 0x601C) r.x1 = num();
         else if (e === 0x601E) r.y1 = num();
+        /* Píxel de referencia y su valor físico: el origen del sistema de coordenadas de la
+           región. Para un trazo espectral, ESE es el cero de velocidad. */
+        else if (e === 0x6020) r.rx0 = num();
+        else if (e === 0x6022) r.ry0 = num();
         else if (e === 0x6024) r.ux = num();
         else if (e === 0x6026) r.uy = num();
+        else if (e === 0x6028) r.rvx = num();
+        else if (e === 0x602A) r.rvy = num();
         else if (e === 0x602C) r.dx = num();
         else if (e === 0x602E) r.dy = num();
       }
@@ -45149,6 +45161,31 @@ function _dcmImgRegiones(dv, u8, ini, fin) {
    número salga igual de prolijo. */
 function _dcmImgRegionMedible(r) {
   return !!(r && r.dx > 0 && r.dy > 0 && r.ux === DCMIMG_UNI_CM && r.uy === DCMIMG_UNI_CM);
+}
+
+/* ¿Se puede medir una VELOCIDAD en esta región? Hacen falta tres cosas, y la primera es la
+   que separa un trazo Doppler de uno que sólo se le parece:
+
+   · El eje Y tiene que estar en cm/s. Medido sobre el pendrive: de las 157 regiones
+     espectrales, **25 tienen el eje Y en CENTÍMETROS** —son trazos de modo M, distancia
+     contra tiempo— y ahí «velocidad» devolvería una distancia con nombre de velocidad.
+     Por eso la compuerta no es «es Doppler» sino «el eje Y son cm/s».
+   · Tiene que existir el píxel de referencia (0018,6022): sin él no se sabe dónde está el
+     cero y no hay forma de convertir una altura en una velocidad. En las 132 regiones de
+     velocidad del pendrive está siempre.
+   · Y la escala del eje, que además trae el SIGNO: `PhysicalDeltaY` es negativo en las 132,
+     o sea que arriba de la línea es positivo. Eso NO se asume — sale del archivo. */
+const DCMIMG_UNI_CMS = 7;           // (0018,6024/6026) Physical Units: 7 = cm/s
+
+function _dcmImgRegionVelocidad(r) {
+  return !!(r && r.uy === DCMIMG_UNI_CMS && r.dy && isFinite(r.dy) && r.dy !== 0 &&
+            r.ry0 != null && isFinite(r.ry0));
+}
+
+/* cm/s en el punto, según la propia región. `rvy` es el valor físico en el píxel de
+   referencia: es 0 en los 132 casos medidos, pero se usa igual en vez de suponerlo. */
+function _dcmImgVelocidadEn(r, y) {
+  return (r.rvy || 0) + (y - r.ry0) * r.dy;
 }
 
 /* La región que contiene al punto, en píxeles de la imagen. Si hay varias superpuestas gana
@@ -45677,6 +45714,7 @@ let _medLineas = [];           // [{ax,ay,bx,by,mm,aviso}] en píxeles de la IMA
 let _medHerr = 'dist';         // 'dist' | 'area'
 let _medAreas = [];            // [{pts:[{x,y}], cm2}] en píxeles de la IMAGEN
 let _medTrazo = null;          // trazo en curso mientras se arrastra
+let _medVels = [];             // [{x,y,cms,mmHg,region}] en píxeles de la IMAGEN
 let _medCalib = null;          // { mmPorPx } de la calibración manual, si se hizo
 let _medCalibrando = false;
 let _medUltimoCuadro = '';
@@ -46021,7 +46059,7 @@ function medSimpsonReiniciar() {
 window.medSimpsonReiniciar = medSimpsonReiniciar;
 
 function medHerramienta(h) {
-  _medHerr = (h === 'area' || h === 'simpson') ? h : 'dist';
+  _medHerr = (h === 'area' || h === 'simpson' || h === 'vel') ? h : 'dist';
   _medTrazo = null; _medPuntos = [];
   /* Simpson arranca de cero cada vez que se entra: los cuatro trazados son de UNA medición,
      y mezclar dos series daría una FEVI hecha con diástole de un lado y sístole del otro. */
@@ -46031,7 +46069,7 @@ function medHerramienta(h) {
     /* Las herramientas no pueden escuchar a la vez: el `mouseup` de un arrastre dispara
        también un `click`, así que con la regla viva cada contorno dejaba además un punto
        suelto. */
-    cv.onclick = (_medHerr === 'dist') ? _medClic : null;
+    cv.onclick = (_medHerr === 'dist') ? _medClic : (_medHerr === 'vel' ? _medVelClic : null);
     cv.style.cursor = 'crosshair';
   }
   _medPintar(); _medEstado();
@@ -46132,6 +46170,27 @@ function _medPintar() {
         cx.beginPath(); cx.arc(x, y, 4*esc, 0, 6.2832); cx.fill(); });
     }
   }
+
+  /* Velocidades: cruz en el punto, línea punteada hasta la base y la etiqueta. La línea
+     hasta el cero es lo que deja VER de dónde sale el número: en la mitad de las regiones
+     medidas el cero cae fuera del recuadro visible, así que sin la línea el valor parece
+     salir de la nada. */
+  _medVels.forEach(v => {
+    const col = '#60a5fa';
+    cx.strokeStyle = col; cx.fillStyle = col;
+    const b2 = 7 * esc;
+    cx.beginPath(); cx.moveTo(v.x - b2, v.y); cx.lineTo(v.x + b2, v.y);
+    cx.moveTo(v.x, v.y - b2); cx.lineTo(v.x, v.y + b2); cx.stroke();
+    cx.setLineDash([4*esc, 4*esc]); cx.globalAlpha = .6;
+    cx.beginPath(); cx.moveTo(v.x, v.y); cx.lineTo(v.x, v.ry0); cx.stroke();
+    cx.setLineDash([]); cx.globalAlpha = 1;
+    const txt = v.cms.toFixed(0) + ' cm/s · ' + Math.abs(v.mmHg).toFixed(1) + ' mmHg';
+    const w = cx.measureText(txt).width;
+    cx.fillStyle = 'rgba(0,0,0,.7)';
+    cx.fillRect(v.x + 9*esc, v.y - 16*esc, w + 8*esc, 18*esc);
+    cx.fillStyle = col;
+    cx.fillText(txt, v.x + 13*esc, v.y - 1*esc);
+  });
 
   _medLineas.forEach(l => dibujar(l, l.calibracion ? '#fbbf24' : '#22d36a'));
   if (_medPuntos.length === 1) {
@@ -46242,7 +46301,9 @@ function _simpPanel() {
 
 const _medComo = () => (_medHerr === 'area')
   ? 'Mantené apretado y recorré el borde: al soltar, el contorno se cierra solo y sale el área en cm².'
-  : 'Hacé clic en dos puntos para medir.';
+  : (_medHerr === 'vel')
+    ? 'Hacé clic en el pico del trazo espectral: sale la velocidad y el gradiente (ΔP = 4·V²). Sólo funciona sobre Doppler con el eje en cm/s.'
+    : 'Hacé clic en dos puntos para medir.';
 
 /* Todo lo que se muestra acá lo escribe la app: los únicos números que vienen del archivo
    son la escala y las coordenadas, y salen formateados con toFixed. Nada del DICOM se
@@ -46257,6 +46318,8 @@ function _medEstado() {
                 (_medHerr === 'dist' ? act : '') + '">📏 Distancia</button>' +
               '<button type="button" class="btn btn-ghost" id="cine-med-area" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
                 (_medHerr === 'area' ? act : '') + '">✏️ Área</button>' +
+              '<button type="button" class="btn btn-ghost" id="cine-med-vel" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
+                (_medHerr === 'vel' ? act : '') + '">〰️ Velocidad</button>' +
               '<button type="button" class="btn btn-ghost" id="cine-med-simp" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
                 (_medHerr === 'simpson' ? act : '') + '">🫀 Simpson</button>';
   const bot = sel +
@@ -46278,7 +46341,16 @@ function _medEstado() {
     txt = 'Este archivo <b>no trae la escala</b>. Calibrá a mano: dibujá una línea sobre una ' +
           'referencia conocida y decí cuánto mide.';
   }
-  const n = _medLineas.filter(l => !l.calibracion).length + _medAreas.length;
+  const n = _medLineas.filter(l => !l.calibracion).length + _medAreas.length + _medVels.length;
+  if (_medHerr === 'vel') {
+    const vr = regs.filter(_dcmImgRegionVelocidad);
+    const mm = regs.filter(r => !_dcmImgRegionVelocidad(r) && r.uy === DCMIMG_UNI_CM && r.ux !== DCMIMG_UNI_CM).length;
+    txt = vr.length
+      ? 'Escala de velocidad <b>tomada del archivo</b>: ' +
+        vr.map(r => Math.abs(r.dy).toFixed(3)).filter((v,k,a)=>a.indexOf(v)===k).join(' y ') + ' cm/s por píxel. ' + _medComo() +
+        (mm ? ' Hay además un trazo de modo M, con el eje en cm: ahí no se mide velocidad.' : '')
+      : 'Esta imagen <b>no tiene ningún trazo con el eje en cm/s</b>, así que no hay velocidad para medir acá.';
+  }
   _medBarra((_medHerr === 'simpson' ? _simpPanel() : txt + (n ? '  ·  <b>' + n + '</b> medición(es) en pantalla.' : '')) +
             '<div style="margin-top:6px;">' + bot + '</div>');
   const rc = _medEl('cine-med-recal'), bb = _medEl('cine-med-borrar');
@@ -46287,14 +46359,48 @@ function _medEstado() {
   if (bb) bb.onclick = medBorrar;
   if (bd) bd.onclick = () => medHerramienta('dist');
   if (ba) ba.onclick = () => medHerramienta('area');
-  const bs = _medEl('cine-med-simp');
+  const bs = _medEl('cine-med-simp'), bv = _medEl('cine-med-vel');
   if (bs) bs.onclick = () => medHerramienta('simpson');
+  if (bv) bv.onclick = () => medHerramienta('vel');
   const sc = _medEl('cine-simp-conf'), sr = _medEl('cine-simp-reset');
   if (sc) sc.onclick = medSimpsonConfirmar;
   if (sr) sr.onclick = medSimpsonReiniciar;
   const s2 = _medEl('cine-simp-2v'), si = _medEl('cine-simp-integ');
   if (s2) s2.onclick = medSimpsonSegundaVista;
   if (si) si.onclick = medSimpsonIntegrar;
+}
+
+/* ── VELOCIDAD SOBRE UN TRAZO ESPECTRAL ──────────────────────────────────────────────────
+   Se marca el pico y sale la velocidad y el gradiente. El gradiente es la ecuación de
+   Bernoulli simplificada, ΔP = 4·V², con V en m/s — por eso los cm/s se dividen por 100
+   antes de elevar al cuadrado. Se usa el VALOR ABSOLUTO: un jet que se aleja del transductor
+   da velocidad negativa y su gradiente es el mismo, el signo sólo dice la dirección. */
+function _medVelClic(ev) {
+  const cv = _medEl('cine-med');
+  const p = _medPunto(ev, cv);
+  if (!p) return;
+  const regs = _medRegs();
+  const r = _dcmImgRegionEn(regs, p.x, p.y);
+  if (!r) {
+    alert('Ese punto cae fuera de las zonas que el equipo declara, así que no hay escala de velocidad.');
+    return;
+  }
+  if (!_dcmImgRegionVelocidad(r)) {
+    /* Se distingue el 2D del modo M: son dos motivos distintos y mandan a hacer dos cosas
+       distintas. Decir «no es Doppler» en los dos casos sería falso en uno de ellos. */
+    if (_dcmImgRegionMedible(r)) {
+      alert('Esta herramienta es para Doppler.\n\nAcá los dos ejes son distancia: usá 📏 Distancia para medir en la imagen 2D.');
+    } else if (r.uy === DCMIMG_UNI_CM) {
+      alert('Este trazo tiene el eje vertical en CENTÍMETROS, no en cm/s: es un modo M —distancia contra tiempo—, no un Doppler espectral.\n\nUna velocidad medida acá sería en realidad una distancia.');
+    } else {
+      alert('Esta zona no declara una escala de velocidad, así que no se puede medir acá.');
+    }
+    return;
+  }
+  const cms = _dcmImgVelocidadEn(r, p.y);
+  const ms = cms / 100;
+  _medVels.push({ x:p.x, y:p.y, cms, ms, mmHg: 4 * ms * ms, ry0: r.ry0 });
+  _medPintar(); _medEstado();
 }
 
 function _medClic(ev) {
@@ -46379,7 +46485,7 @@ function medToggle() {
     /* Se pausa: medir sobre un cineloop corriendo es marcar un punto en un cuadro y el otro
        en el siguiente. */
     _cineDetener();
-    cv.onclick = (_medHerr === 'dist') ? _medClic : null;
+    cv.onclick = (_medHerr === 'dist') ? _medClic : (_medHerr === 'vel' ? _medVelClic : null);
     cv.onmousedown = _medAreaDown;
     cv.onmousemove = _medAreaMove;
     /* El `mouseup` se escucha en el DOCUMENTO y no en el canvas: si el médico suelta el
@@ -46400,7 +46506,7 @@ window.medToggle = medToggle;
 
 function medBorrar() {
   _medLineas = _medLineas.filter(l => l.calibracion);   // la de calibración no es una medición
-  _medAreas = []; _medTrazo = null;
+  _medAreas = []; _medTrazo = null; _medVels = [];
   _medPuntos = [];
   _medPintar(); _medEstado();
 }
@@ -46420,7 +46526,7 @@ window.medRecalibrar = medRecalibrar;
    Se detecta observando `#cine-num`, que el reproductor actualiza en cada `cineIr`. */
 function medReset() {
   _medPuntos = []; _medLineas = _medLineas.filter(l => l.calibracion);
-  _medAreas = []; _medTrazo = null;
+  _medAreas = []; _medTrazo = null; _medVels = [];
   /* SIMPSON NO SE BORRA AL CAMBIAR DE CUADRO, y es la única medición que no.
      El método EXIGE cambiar de cuadro: la diástole y la sístole están en cuadros distintos,
      así que borrar los trazados confirmados haría imposible completar los cuatro pasos.
@@ -46445,7 +46551,7 @@ window.medReset = medReset;
    Cada trazado lleva la escala de SU imagen, así que mezclar dos loops con profundidades
    distintas sigue dando bien. */
 function medCambioDeImagen() {
-  _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null;
+  _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null; _medVels = [];
   _medCalib = null; _medCalibrando = false;        // la calibración es de la imagen que se deja
   if (_simp) {
     _simp.pendiente = null;                        // el trazado sin confirmar era de la otra imagen
@@ -46459,7 +46565,7 @@ window.medCambioDeImagen = medCambioDeImagen;
 /* Al CERRAR el visor se va todo, Simpson incluido: se terminó la medición. */
 function medApagar() {
   _medOn = false; _medCalibrando = false; _medCalib = null;
-  _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null; _medHerr = 'dist';
+  _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null; _medVels = []; _medHerr = 'dist';
   _simp = null;                      // otra imagen: los cuatro trazados no aplican
   const cv = _medEl('cine-med'), b = _medEl('cine-medir');
   if (cv) { cv.style.display = 'none'; cv.onclick = null; cv.onmousedown = null; cv.onmousemove = null; }
@@ -62096,8 +62202,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260920-0136';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789878997481;                 /* eco-build-ms */
+const ECO_BUILD    = '20260920-0150';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789879803683;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -62183,7 +62289,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-0136</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-0150</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

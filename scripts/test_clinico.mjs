@@ -12233,6 +12233,259 @@ caso('TC-192', 'Simpson cruzando dos imagenes: la sesion sobrevive y cada trazad
   })();
 `);
 
+/* ══ TC-193 · Velocidad sobre Doppler espectral ══════════════════════════════════════════════
+   COMO SE VERIFICA UNA VELOCIDAD SIN PODER LEER LA ESCALA DIBUJADA: por el PIXEL DE
+   REFERENCIA. El archivo declara (0018,6022) Reference Pixel Y0 y (0018,602A) su valor fisico,
+   que en las 132 regiones de velocidad del pendrive es 0. O sea que ahi la velocidad tiene que
+   dar EXACTAMENTE cero, y desde ahi la escala es lineal: N pixeles mas abajo son N x dy.
+   Esas dos cosas se pueden afirmar con exactitud contra los metadatos.
+
+   Y la compuerta, que es lo que evita el numero con nombre equivocado: de las 157 regiones
+   espectrales del pendrive, 25 tienen el eje Y en CENTIMETROS --modo M, distancia contra
+   tiempo-- y ahi "velocidad" devolveria una distancia. La herramienta pide cm/s, no "es
+   Doppler".                                                                                  */
+const DOP_VEL = await (async () => {
+  const { readdir, stat } = await import('node:fs/promises');
+  const raiz = process.env.ECO_PENDRIVE || '/Volumes/DISK_IMG';
+  async function hojas(dir, prof) {
+    if (prof > 5) return [];
+    let ns = [];
+    try { ns = await readdir(dir, { withFileTypes: true }); } catch (e) { return []; }
+    const r = [];
+    for (const n of ns) { if (n.name.startsWith('.')) continue;
+      const p = join(dir, n.name);
+      if (n.isDirectory()) r.push(...await hojas(p, prof + 1)); else r.push(p); }
+    return r;
+  }
+  const todos = await hojas(join(raiz, 'GEMS_IMG'), 0);
+  const conTam = [];
+  for (const p of todos) { try { conTam.push({ p, n: (await stat(p)).size }); } catch (e) {} }
+  conTam.sort((a, b) => a.n - b.n);
+  // (0018,6026) Physical Units Y = 7 (cm/s)  ->  18 00 26 60 'U' 'S' 02 00 07 00
+  const pat = Buffer.from([0x18,0x00,0x26,0x60,0x55,0x53,0x02,0x00,0x07,0x00]);
+  for (const { p } of conTam) {
+    const b = await readFile(p);
+    if (b.slice(128,132).toString('ascii') !== 'DICM') continue;
+    if (b.indexOf(pat) === -1) continue;
+    return { nombre: p.split('/').pop(), b64: b.toString('base64') };
+  }
+  return null;
+})();
+
+caso('TC-193', 'Velocidad: cero en el pixel de referencia, 4V2, y no mide sobre 2D ni sobre modo M', `
+  return (async () => {
+    const D = ${JSON.stringify(DOP_VEL)};
+    if (!D) return { extra: [[
+      'hace falta un archivo con trazo espectral en cm/s', false, 'no se encontro: quedo SIN verificar']] };
+    const bin = atob(D.b64); const u = new Uint8Array(bin.length);
+    for (let i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i);
+    const d0 = _dcmImgLeer(u.buffer);
+    const vr = (d0.regiones || []).filter(_dcmImgRegionVelocidad)[0];
+    if (!vr) return { extra: [['el archivo declara region de velocidad', false, 'no la declara']] };
+    const esperar = async (c, n) => { for (let i=0;i<(n||60);i++) { if (c()) return true; await new Promise(r=>setTimeout(r,60)); } return c(); };
+    const alertOrig = window.alert; const dichos = [];
+    window.alert = m => dichos.push(String(m));
+    const R = {};
+    try {
+      R.unidadesY = vr.uy; R.dy = vr.dy; R.ry0 = vr.ry0; R.rvy = vr.rvy;
+      R.esCms = vr.uy === DCMIMG_UNI_CMS;
+      R.dyNegativo = vr.dy < 0;                       // arriba de la linea = positivo
+      R.ceroDeclarado = (vr.rvy || 0) === 0;
+      R.baseFueraDelRecuadro = !(vr.y0 <= vr.ry0 && vr.ry0 <= vr.y1);
+
+      /* ── EL PIXEL DE REFERENCIA ES SL: CON SIGNO ──
+         (0018,6022) tiene VR = SL. Leerlo sin signo convierte un -25 en 4.294.967.271 y la
+         velocidad sale absurda en vez de fallar. En el pendrive el minimo es 10 --ninguno
+         negativo-- asi que esto NO es alcanzable con los archivos de hoy; es legal igual, y
+         la guarda se prueba sobre el parser con bytes armados a mano. Sin esto, la mutacion
+         que lee SL como UL sobrevivia. */
+      {
+        const B = [];
+        const u16 = n => { B.push(n & 255, (n>>8) & 255); };
+        const u32 = n => { B.push(n & 255, (n>>8)&255, (n>>16)&255, (n>>24)&255); };
+        const vrs = t => { B.push(t.charCodeAt(0), t.charCodeAt(1)); };
+        const f64 = n => { const b8 = new Uint8Array(8); new DataView(b8.buffer).setFloat64(0, n, true); b8.forEach(x => B.push(x)); };
+        const elUS = (g,e,v) => { u16(g); u16(e); vrs('US'); u16(2); u16(v); };
+        const elUL = (g,e,v) => { u16(g); u16(e); vrs('UL'); u16(4); u32(v); };
+        const elSL = (g,e,v) => { u16(g); u16(e); vrs('SL'); u16(4); u32(v >>> 0); };
+        const elFD = (g,e,v) => { u16(g); u16(e); vrs('FD'); u16(8); f64(v); };
+        /* Con x0/x1 y dx: _dcmImgRegiones descarta el item si no trae ni dx ni x1
+           --es la guarda que evita quedarse con items vacios-- y sin ellos la region no
+           entraba, asi que el caso fallaba por el fixture y no por el codigo. */
+        elUS(0x0018,0x6014,3);
+        elUL(0x0018,0x6018,10);  elUL(0x0018,0x601A,100);
+        elUL(0x0018,0x601C,800); elUL(0x0018,0x601E,400);
+        elSL(0x0018,0x6022,-25);
+        elUS(0x0018,0x6024,4);   elUS(0x0018,0x6026,7);
+        elFD(0x0018,0x602A,0);
+        elFD(0x0018,0x602C,0.004); elFD(0x0018,0x602E,-0.5);
+        const contenido = B.slice();
+        const todo = [];
+        const u16b = (arr,n) => { arr.push(n & 255, (n>>8) & 255); };
+        const u32b = (arr,n) => { arr.push(n & 255, (n>>8)&255, (n>>16)&255, (n>>24)&255); };
+        u16b(todo,0xFFFE); u16b(todo,0xE000); u32b(todo,contenido.length);
+        contenido.forEach(x => todo.push(x));
+        const u8s = new Uint8Array(todo);
+        const rs = _dcmImgRegiones(new DataView(u8s.buffer), u8s, 0, u8s.length);
+        R.parseoSL = rs.length === 1 ? rs[0].ry0 : null;
+        R.slConSigno = R.parseoSL === -25;
+        /* y con ese cero por encima del recuadro, un punto adentro da una velocidad sensata */
+        R.velConSLNeg = rs.length === 1 ? _dcmImgVelocidadEn(rs[0], 100) : null;
+        R.velSensata = rs.length === 1 && Math.abs(R.velConSLNeg - (100 - (-25)) * -0.5) < 1e-12;
+      }
+
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      /* Se monta el archivo en el visor con TODAS sus regiones, que es lo que ve el medico. */
+      _cineAbrir([{ nombre: D.nombre, cuadros: 1,
+        d: { frags: d0.frags.length ? d0.frags : [new Uint8Array([255,216])],
+             cols: d0.cols, filas: d0.filas, msCuadro: 0, regiones: d0.regiones } }]);
+      await new Promise(r => setTimeout(r, 250));
+      medToggle();
+      document.getElementById('cine-med-vel').click();
+      await new Promise(r => setTimeout(r, 90));
+      R.herrVel = _medHerr === 'vel';
+      R.barra = (document.getElementById('cine-med-barra').textContent || '');
+      R.barraDiceEscala = R.barra.indexOf('cm/s por píxel') > -1;
+
+      const cv = document.getElementById('cine-med');
+      const clic = (x, y) => { const r = cv.getBoundingClientRect();
+        cv.dispatchEvent(new MouseEvent('click', { bubbles:true,
+          clientX: r.left + x * (r.width / cv.width), clientY: r.top + y * (r.height / cv.height) })); };
+
+      /* ── ANCLA 1: en el pixel de referencia la velocidad es CERO ──
+         Se llama a la funcion directo para que la cuantizacion del clic no ensucie el cero. */
+      R.enLaBase = _dcmImgVelocidadEn(vr, vr.ry0);
+      R.baseEsCero = Math.abs(R.enLaBase) < 1e-12;
+      /* ── ANCLA 2: linealidad exacta ── */
+      R.a100 = _dcmImgVelocidadEn(vr, vr.ry0 + 100);
+      R.linealOK = Math.abs(R.a100 - 100 * vr.dy) < 1e-12;
+      /* ── ANCLA 3: el signo sale del archivo ── */
+      R.arribaPositivo = _dcmImgVelocidadEn(vr, vr.ry0 - 50) > 0;
+      R.abajoNegativo  = _dcmImgVelocidadEn(vr, vr.ry0 + 50) < 0;
+
+      /* ── clic real dentro de la region de velocidad ── */
+      const yMed = Math.round((Math.max(vr.y0, Math.min(vr.y1, vr.ry0)) + vr.y1) / 2);
+      const xMed = Math.round((vr.x0 + vr.x1) / 2);
+      dichos.length = 0;
+      clic(xMed, yMed);
+      await new Promise(r => setTimeout(r, 120));
+      R.marco = _medVels.length === 1;
+      if (_medVels.length) {
+        const v = _medVels[0];
+        R.sinAviso = dichos.length === 0;
+        /* la velocidad guardada tiene que ser la de la formula en ESE pixel */
+        R.vExacta = Math.abs(v.cms - _dcmImgVelocidadEn(vr, v.y)) < 1e-9;
+        /* ── GRADIENTE = 4 V^2, con V en m/s y en valor absoluto ── */
+        R.msOK = Math.abs(v.ms - v.cms / 100) < 1e-12;
+        R.gradOK = Math.abs(v.mmHg - 4 * (v.cms/100) * (v.cms/100)) < 1e-12;
+        R.gradPositivo = v.mmHg >= 0;
+        R.cms = v.cms; R.mmHg = v.mmHg;
+        /* un valor de referencia a mano: 2 m/s -> 16 mmHg */
+        R.grad2ms = Math.abs(4 * 2 * 2 - 16) < 1e-12;
+      }
+      /* varios puntos */
+      clic(xMed + 30, yMed - 20);
+      await new Promise(r => setTimeout(r, 120));
+      R.varios = _medVels.length === 2;
+
+      /* ── sobre una region 2D: mensaje que manda a la regla ── */
+      const r2d = (d0.regiones || []).filter(_dcmImgRegionMedible)[0];
+      if (r2d) {
+        dichos.length = 0;
+        clic(Math.round((r2d.x0 + r2d.x1) / 2), Math.round(r2d.y0 + 15));
+        await new Promise(r => setTimeout(r, 120));
+        R.enDosDNoMide = _medVels.length === 2;
+        R.avisoDosD = dichos.join(' ');
+        R.mandaALaRegla = /Distancia/.test(R.avisoDosD);
+      }
+
+      /* ── sobre un MODO M (eje Y en cm): otro mensaje, y no mide ──
+         Se arma la region a mano porque este archivo puede no traerla; en el pendrive hay 25
+         reales. Lo que se fija es que NO se confunda con un Doppler. */
+      medApagar(); cineCerrar();
+      const mm = Object.assign({}, vr, { uy: DCMIMG_UNI_CM, ux: 4, dy: Math.abs(vr.dy) });
+      _cineAbrir([{ nombre:'modo-m', cuadros:1,
+        d: { frags: d0.frags.length ? d0.frags : [new Uint8Array([255,216])],
+             cols: d0.cols, filas: d0.filas, msCuadro:0, regiones:[mm] } }]);
+      await new Promise(r => setTimeout(r, 250));
+      medToggle();
+      document.getElementById('cine-med-vel').click();
+      await new Promise(r => setTimeout(r, 90));
+      R.mmNoEsVelocidad = !_dcmImgRegionVelocidad(mm);
+      const cv2 = document.getElementById('cine-med');
+      dichos.length = 0;
+      const r2 = cv2.getBoundingClientRect();
+      cv2.dispatchEvent(new MouseEvent('click', { bubbles:true,
+        clientX: r2.left + xMed * (r2.width / cv2.width), clientY: r2.top + yMed * (r2.height / cv2.height) }));
+      await new Promise(r => setTimeout(r, 120));
+      R.mmNoMide = _medVels.length === 0;
+      R.avisoMm = dichos.join(' ');
+      R.avisoDiceCentimetros = /CENT[IÍ]METROS/i.test(R.avisoMm);
+
+      /* ── las otras herramientas intactas ── */
+      medApagar(); cineCerrar();
+      _cineAbrir([{ nombre: D.nombre, cuadros: 1,
+        d: { frags: d0.frags.length ? d0.frags : [new Uint8Array([255,216])],
+             cols: d0.cols, filas: d0.filas, msCuadro: 0, regiones: d0.regiones } }]);
+      await new Promise(r => setTimeout(r, 250));
+      medToggle();
+      if (r2d) {
+        medHerramienta('dist');
+        const cv3 = document.getElementById('cine-med');
+        const c3 = (x,y) => { const r = cv3.getBoundingClientRect();
+          cv3.dispatchEvent(new MouseEvent('click', { bubbles:true,
+            clientX: r.left + x*(r.width/cv3.width), clientY: r.top + y*(r.height/cv3.height) })); };
+        c3(Math.round(r2d.x0+15), Math.round(r2d.y0+15));
+        c3(Math.round(r2d.x0+115), Math.round(r2d.y0+15));
+        await new Promise(r => setTimeout(r, 120));
+        R.reglaSigue = _medLineas.filter(l => !l.calibracion).length === 1;
+      } else R.reglaSigue = true;
+      /* borrar limpia tambien las velocidades */
+      medHerramienta('vel');
+      clic(xMed, yMed);
+      await new Promise(r => setTimeout(r, 120));
+      R.antesDeBorrar = _medVels.length;
+      medBorrar();
+      R.borro = _medVels.length === 0;
+    } finally {
+      window.alert = alertOrig;
+      try { medApagar(); cineCerrar(); } catch (e) {}
+    }
+
+    return { extra: [
+      ['la region declara el eje Y en cm/s',             R.esCms, 'uy=' + R.unidadesY],
+      ['y trae el pixel de referencia',                  R.ry0 != null, 'ry0=' + R.ry0],
+      ['cuyo valor fisico declarado es cero',            R.ceroDeclarado, R.rvy],
+      ['PhysicalDeltaY es NEGATIVO (arriba = positivo)', R.dyNegativo, R.dy],
+      ['la herramienta Velocidad se activa',             R.herrVel, R.herrVel],
+      ['y la barra muestra la escala del archivo',       R.barraDiceEscala, R.barra.slice(0,70)],
+      ['EN EL PIXEL DE REFERENCIA LA VELOCIDAD ES CERO', R.baseEsCero, R.enLaBase],
+      ['la escala es lineal: 100 px son 100 x dy',       R.linealOK, (R.a100||0).toFixed(4) + ' vs ' + (100*(R.dy||0)).toFixed(4)],
+      ['arriba de la linea da positivo',                 R.arribaPositivo, R.arribaPositivo],
+      ['y abajo negativo',                               R.abajoNegativo, R.abajoNegativo],
+      ['un clic marca un punto',                         R.marco, R.marco],
+      ['sin ningun aviso',                               R.sinAviso, R.sinAviso],
+      ['la velocidad es la de la formula en ese pixel',  R.vExacta, (R.cms||0).toFixed(1) + ' cm/s'],
+      ['m/s son cm/s dividido 100',                      R.msOK, R.msOK],
+      ['EL GRADIENTE ES 4 x V AL CUADRADO',              R.gradOK, (R.mmHg||0).toFixed(1) + ' mmHg'],
+      ['y siempre positivo, aunque la velocidad sea negativa', R.gradPositivo, R.gradPositivo],
+      ['4 x 2^2 = 16 mmHg (comprobacion a mano)',        R.grad2ms, R.grad2ms],
+      ['se pueden marcar varios puntos',                 R.varios, R.varios],
+      ['sobre una zona 2D NO mide',                      R.enDosDNoMide, R.enDosDNoMide],
+      ['y el mensaje manda a usar Distancia',            R.mandaALaRegla, (R.avisoDosD||'').slice(0,70)],
+      ['un modo M no cuenta como region de velocidad',   R.mmNoEsVelocidad, R.mmNoEsVelocidad],
+      ['no se mide velocidad sobre el modo M',           R.mmNoMide, R.mmNoMide],
+      ['y el aviso dice que el eje esta en centimetros', R.avisoDiceCentimetros, (R.avisoMm||'').slice(0,70)],
+      ['el pixel de referencia se lee CON SIGNO',        R.slConSigno, 'ry0 = ' + R.parseoSL],
+      ['y un cero por encima del recuadro da velocidad sensata', R.velSensata, (R.velConSLNeg||0).toFixed(2) + ' cm/s'],
+      ['la regla sigue funcionando',                     R.reglaSigue, R.reglaSigue],
+      ['habia velocidades antes de borrar',              R.antesDeBorrar > 0, R.antesDeBorrar],
+      ['y «Borrar mediciones» tambien las limpia',       R.borro, R.borro]
+    ] };
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];

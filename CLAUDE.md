@@ -7814,6 +7814,38 @@ superpuesto y se entera de los cambios observando `#cine-num` (cuadro), `#cine-c
 cineloop) y el `display` de `#cine-ov` (cierre). Al cambiar de cuadro se borran las mediciones
 pero **se conserva la calibración manual**: es una propiedad de la imagen, no del cuadro.
 
+### Velocidad sobre Doppler espectral (2026-09-20)
+Cuarta herramienta. Clic en el pico → velocidad en cm/s y m/s, y gradiente por Bernoulli
+simplificada **ΔP = 4·V²** con V en m/s. Es lo inverso de la regla: ahí el Doppler se bloquea,
+acá es lo único donde se mide.
+
+**La compuerta NO es «es Doppler», es «el eje Y está en cm/s».** Medido: de las **157 regiones
+espectrales** del pendrive, **25 tienen el eje Y en CENTÍMETROS** — son trazos de **modo M**,
+distancia contra tiempo. Ahí «velocidad» devolvería una distancia con nombre de velocidad, y el
+número saldría igual de prolijo. Cada rechazo dice **cuál** es el motivo: sobre 2D manda a usar
+📏, sobre modo M explica que el eje está en centímetros.
+
+**De dónde sale el cero.** Del **píxel de referencia** (0018,6022) y su valor físico
+(0018,602A). Verificado: los 132 regiones de velocidad del pendrive lo traen, y el valor físico
+es **0 en las 132**. La velocidad es `rvy + (y − ry0)·dy`, y el **signo sale del archivo**:
+`PhysicalDeltaY` es negativo en las 132, o sea que arriba de la línea es positivo. No se asume.
+
+- **La línea de base cae FUERA del recuadro visible en 65 de 132.** Es normal —un trazo CW
+  mostrado entero hacia abajo— y por eso el dibujo traza una punteada del punto hasta el cero:
+  sin ella el número parece salir de la nada. Y por eso tampoco sirve ninguna heurística del
+  tipo «el cero está en el medio de la región».
+- **`PhysicalDeltaX` está en SEGUNDOS, no en ms** (0,004632 s/px en el ejemplo). El pedido decía
+  ms.
+- **(0018,6022) tiene VR = SL, o sea CON SIGNO.** Leerlo sin signo convierte un −25 en
+  4.294.967.271 y la velocidad sale absurda en vez de fallar. En el pendrive el mínimo es 10
+  —ninguno negativo— así que **no es alcanzable con los archivos de hoy**; es legal igual, y la
+  guarda se prueba sobre el parser con bytes armados a mano. Sin eso, la mutación que lee SL
+  como UL sobrevivía.
+
+**Cómo se verifica una velocidad sin poder leer la escala dibujada:** por el píxel de referencia.
+Ahí tiene que dar **exactamente cero**, y desde ahí la escala es lineal — N píxeles son N·dy.
+Las dos cosas se afirman con exactitud contra los metadatos, sin depender de OCR ni del ojo.
+
 ### Simpson biplano en el visor (2026-09-20)
 Tercera herramienta: cuatro trazados guiados (4C diástole, 4C sístole, 2C diástole, 2C sístole)
 → VFD, VFS y FEVI. **No va al PDF.**
