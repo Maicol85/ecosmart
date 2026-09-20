@@ -13799,6 +13799,185 @@ caso('TC-200', 'Strain: SGL por territorios de pared con 1, 2 y 3 vistas, sin to
   })();
 `);
 
+
+/* ══ TC-201 · Bull's eye de territorios del VISOR ════════════════════════════════════════════
+   LO QUE MAS IMPORTA FIJAR, y es lo que casi entra mal: el bull's eye que la app YA imprime en
+   el informe usa la paleta GE, donde NORMAL ES ROJO (#DC2626) y la discinesia es AZUL. El
+   pedido pedia verde=normal / rojo=anormal, que lo habria dejado INVERTIDO respecto de aquel
+   --y los dos pueden terminar en el MISMO PDF con el mismo aspecto: un sector rojo
+   significando "normal" en uno y "severamente anormal" en el otro--. Se uso una rampa de
+   INTENSIDAD en un tono que no existe en la paleta GE.
+
+   Se verifica sobre los PIXELES DIBUJADOS y no sobre el codigo: leer que la funcion existe no
+   dice donde cayo el gris.
+
+   NO DEPENDE DEL PENDRIVE.                                                                    */
+caso('TC-201', 'Bull.s eye del visor: sextantes grises donde faltan vistas, y NO toca el del informe', `
+  return (async () => {
+    const R = {};
+    const alertOrig = window.alert; window.alert = () => {};
+    try {
+      /* ── 0 · EL BULL'S EYE DEL INFORME, ANTES DE TOCAR NADA ── */
+      const svgAntes = (document.getElementById('sgl-svg-bullseye')||{}).innerHTML || '';
+      const estAntes = JSON.stringify(strainEstado);
+      R.geNormalEsRojo = GE_STRAIN[0].color.toUpperCase() === '#DC2626';
+      R.geUltimoEsAzul = GE_STRAIN[GE_STRAIN.length-1].color.toUpperCase() === '#1D4ED8';
+
+      const mkJpeg = () => {
+        const c = document.createElement('canvas'); c.width = 600; c.height = 500;
+        const g = c.getContext('2d'); g.fillStyle = '#223'; g.fillRect(0,0,600,500);
+        const b64 = c.toDataURL('image/jpeg').split(',')[1];
+        const bin = atob(b64); const u = new Uint8Array(bin.length);
+        for (let i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i);
+        return u;
+      };
+      const jpeg = mkJpeg();
+      const DX = 0.05;
+      const reg2d = { tipo:1, x0:20, y0:20, x1:580, y1:480, ux:3, uy:3, dx:DX, dy:DX,
+                      rx0:20, ry0:20, rvx:0, rvy:0 };
+      const mkLoop = nom => ({ nombre:nom, cuadros:4,
+        d:{ frags:[jpeg,jpeg,jpeg,jpeg], cols:600, filas:500, msCuadro:40, regiones:[reg2d] } });
+      const cv = () => document.getElementById('cine-med');
+      const ac = (x,y) => { const c = cv(), r = c.getBoundingClientRect();
+        return { clientX: r.left + x*(r.width/c.width), clientY: r.top + y*(r.height/c.height) }; };
+      const trazar = async pts => { const c = cv();
+        c.dispatchEvent(new MouseEvent('mousedown', Object.assign({bubbles:true}, ac(pts[0].x,pts[0].y))));
+        for (let i=1;i<pts.length;i++)
+          c.dispatchEvent(new MouseEvent('mousemove', Object.assign({bubbles:true}, ac(pts[i].x,pts[i].y))));
+        document.dispatchEvent(new MouseEvent('mouseup', { bubbles:true }));
+        await new Promise(r => setTimeout(r, 120)); };
+      const vent = (cx, yb, Wi, Wd, H) => { const p=[], ya=yb-H;
+        const n1=Math.ceil(Math.hypot(Wi,H)/10), n2=Math.ceil(Math.hypot(Wd,H)/10);
+        for (let i=0;i<=n1;i++) p.push({x:Math.round(cx-Wi+Wi*i/n1), y:Math.round(yb+(ya-yb)*i/n1)});
+        for (let i=1;i<=n2;i++) p.push({x:Math.round(cx+Wd*i/n2), y:Math.round(ya+(yb-ya)*i/n2)});
+        return p; };
+      const CX=300, YB=440;
+      const montar = async nom => { _cineAbrir([ mkLoop(nom) ]);
+        await new Promise(r=>setTimeout(r,200));
+        if (!_medOn) medToggle(); await new Promise(r=>setTimeout(r,120)); };
+      const parEn = async (nom,di,dd,dh,si,sd,sh) => { await montar(nom);
+        await trazar(vent(CX,YB,di,dd,dh)); medStrainConfirmar(); await new Promise(r=>setTimeout(r,100));
+        await trazar(vent(CX,YB,si,sd,sh)); medStrainConfirmar(); await new Promise(r=>setTimeout(r,120)); };
+
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      await montar('a4c.dcm');
+      medHerramienta('strain'); medStrainReiniciar();
+      await new Promise(r=>setTimeout(r,120));
+
+      /* ── 1 · UNA vista: los sextantes anterior e inferior quedan en GRIS ── */
+      await trazar(vent(CX,YB,100,100,300)); medStrainConfirmar(); await new Promise(r=>setTimeout(r,100));
+      await trazar(vent(CX,YB,60,88,240));   medStrainConfirmar(); await new Promise(r=>setTimeout(r,160));
+      R.hayCanvas = !!document.getElementById('cine-str-be');
+      R.tituloPanel = /Strain por territorios \\(método manual\\)/.test(document.getElementById('cine-med-barra').innerHTML);
+
+      /* Se lee el PIXEL en el medio de cada sextante. 0 = arriba, horario. */
+      const leer = () => {
+        const c = document.getElementById('cine-str-be');
+        const g = c.getContext('2d'), S = c.width, cx0 = S/2, cy0 = S/2, r0 = S*0.40;
+        const out = {};
+        _STR_SEXT.forEach(s6 => {
+          const am = ((s6.a[0]+s6.a[1])/2 - 90) * Math.PI/180;
+          /* Se muestrea ENTRE el circulo central (0,30 r) y los rotulos (0,66 r y sus tres
+             lineas de texto). Afuera de esa banda el pixel cae sobre una letra y el color
+             leido es el del texto, no el del sector -- me paso, y la condicion de que la
+             pared ancha pinte igual sus dos sextantes daba false sobre un dibujo correcto. */
+          const rr = r0 * 0.46;
+          const px = Math.round(cx0 + Math.cos(am)*rr), py = Math.round(cy0 + Math.sin(am)*rr);
+          const d = g.getImageData(px,py,1,1).data;
+          out[s6.k] = 'rgb(' + d[0] + ',' + d[1] + ',' + d[2] + ')';
+        });
+        return out;
+      };
+      const GRIS = 'rgb(158,158,158)';
+      const p1 = leer();
+      R.px1 = JSON.stringify(p1);
+      R.g1_anterior = p1.anterior === GRIS;
+      R.g1_inferior = p1.inferior === GRIS;
+      R.c1_septo    = p1.inferoseptal !== GRIS && p1.anteroseptal !== GRIS;
+      R.c1_lateral  = p1.anterolateral !== GRIS && p1.inferolateral !== GRIS;
+      /* La pared ancha pinta SUS DOS sextantes con el mismo valor. */
+      R.septoIgual   = p1.inferoseptal === p1.anteroseptal;
+      R.lateralIgual = p1.anterolateral === p1.inferolateral;
+      /* Y NO usa la paleta GE: el rojo de "normal" de aquel no puede aparecer aca. */
+      R.sinRojoGE = Object.keys(p1).every(k => p1[k] !== 'rgb(220,38,38)');
+      R.sinAzulGE = Object.keys(p1).every(k => p1[k] !== 'rgb(29,78,216)');
+
+      /* ── 2 · DOS vistas: anterior e inferior dejan de ser grises ── */
+      medStrainVistaSiguiente(); await new Promise(r=>setTimeout(r,110));
+      await parEn('a2c.dcm',100,100,300,70,78,250);
+      const p2 = leer();
+      R.g2_anteriorYaNo = p2.anterior !== GRIS;
+      R.g2_inferiorYaNo = p2.inferior !== GRIS;
+      R.sinGrisEn2 = Object.keys(p2).every(k => p2[k] !== GRIS);
+
+      /* ── 3 · TRES vistas: anteroseptal e inferolateral toman valor PROPIO ── */
+      medStrainVistaSiguiente(); await new Promise(r=>setTimeout(r,110));
+      await parEn('a3c.dcm',100,100,300,40,95,255);
+      const p3 = leer();
+      R.septoYaNoIgual   = p3.inferoseptal !== p3.anteroseptal;
+      R.lateralYaNoIgual = p3.anterolateral !== p3.inferolateral;
+      R.px3 = JSON.stringify(p3);
+
+      /* ── 4 · intensidad = magnitud: mas acortamiento, mas oscuro ── */
+      const lum = c => { const m = c.match(/\\d+/g); return (+m[0]) + (+m[1]) + (+m[2]); };
+      const Rc = _strainCalcular();
+      const porPared = {}; Rc.terr.forEach(t => porPared[t.pared] = t.pct);
+      const masCorto = Math.abs(porPared['Anteroseptal']) > Math.abs(porPared['Inferolateral']);
+      R.magnitudes = 'anteroseptal ' + porPared['Anteroseptal'].toFixed(1) +
+                     ' vs inferolateral ' + porPared['Inferolateral'].toFixed(1);
+      R.masOscuroElMasCorto = masCorto
+        ? lum(p3.anteroseptal) < lum(p3.inferolateral)
+        : lum(p3.inferolateral) < lum(p3.anteroseptal);
+
+      /* ── 5 · captura al slot, con el descargo QUEMADO en la imagen ── */
+      const slotsAntes = imgSlots.filter(Boolean).length;
+      let dibujado = '';
+      const fo = CanvasRenderingContext2D.prototype.fillText;
+      CanvasRenderingContext2D.prototype.fillText = function (t) { dibujado += ' ' + t; return fo.apply(this, arguments); };
+      medStrainCapturar();
+      CanvasRenderingContext2D.prototype.fillText = fo;
+      await new Promise(r=>setTimeout(r,900));
+      R.textoQuemado = dibujado;
+      R.imgTieneTitulo = /Strain por territorios \\(método manual\\)/.test(dibujado);
+      R.imgTieneDescargo = /NO equivalente al speckle tracking/.test(dibujado);
+      R.imgDiceVistas = /3 vistas/.test(dibujado);
+      R.slotsDespues = imgSlots.filter(Boolean).length;
+      R.capturoAlSlot = R.slotsDespues > slotsAntes;
+
+      /* ── 6 · EL BULL'S EYE DEL INFORME, INTACTO ── */
+      R.svgIgual = ((document.getElementById('sgl-svg-bullseye')||{}).innerHTML || '') === svgAntes;
+      R.estadoIgual = JSON.stringify(strainEstado) === estAntes;
+
+      cineCerrar();
+    } finally { window.alert = alertOrig; }
+
+    return { extra: [
+      ['el bull.s eye del informe usa ROJO = normal (denominador)', R.geNormalEsRojo && R.geUltimoEsAzul, R.geNormalEsRojo],
+      ['el canvas del visor existe y se rotula',     R.hayCanvas && R.tituloPanel, R.hayCanvas],
+      ['1 vista: anterior en GRIS',                  R.g1_anterior, R.px1],
+      ['1 vista: inferior en GRIS',                  R.g1_inferior, R.g1_inferior],
+      ['1 vista: los dos sextantes septales pintados', R.c1_septo, R.c1_septo],
+      ['1 vista: los dos laterales pintados',        R.c1_lateral, R.c1_lateral],
+      ['la pared ancha pinta sus DOS sextantes igual', R.septoIgual && R.lateralIgual, R.septoIgual],
+      ['NO aparece el rojo de la paleta GE',         R.sinRojoGE, R.sinRojoGE],
+      ['ni su azul',                                 R.sinAzulGE, R.sinAzulGE],
+      ['2 vistas: anterior deja de ser gris',        R.g2_anteriorYaNo, R.g2_anteriorYaNo],
+      ['2 vistas: inferior deja de ser gris',        R.g2_inferiorYaNo, R.g2_inferiorYaNo],
+      ['2 vistas: no queda ningun sextante gris',    R.sinGrisEn2, R.sinGrisEn2],
+      ['3 vistas: el anteroseptal toma valor propio', R.septoYaNoIgual, R.px3],
+      ['3 vistas: el inferolateral tambien',         R.lateralYaNoIgual, R.lateralYaNoIgual],
+      ['mas acortamiento = mas oscuro',              R.masOscuroElMasCorto, R.magnitudes],
+      ['capturar manda la imagen al slot',           R.capturoAlSlot, R.slotsAntes + ' -> ' + R.slotsDespues],
+      ['la imagen lleva el titulo quemado',          R.imgTieneTitulo, R.imgTieneTitulo],
+      ['y el descargo quemado',                      R.imgTieneDescargo, R.imgTieneDescargo],
+      ['y cuantas vistas la sostienen',              R.imgDiceVistas, R.imgDiceVistas],
+      ['el SVG del bull.s eye del informe NO cambio', R.svgIgual, R.svgIgual],
+      ['ni su estado strainEstado',                  R.estadoIgual, R.estadoIgual]
+    ] };
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];

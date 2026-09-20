@@ -46555,6 +46555,15 @@ function _strainPanel() {
         ? '<div style="font-size:10px;color:#fbbf24;margin-top:5px;line-height:1.5;"><b>⚠️ Alguna vista tiene diástole y sístole en imágenes distintas.</b> ' +
           'Las dos fases de una misma vista tienen que salir del mismo cineloop, en dos cuadros.</div>'
         : '') +
+      /* El diagrama va DESPUÉS del desglose y ANTES del descargo: se mira, y el descargo
+         sigue pegado al resultado. El canvas se pinta aparte —`_strBullsRepintar`— porque la
+         barra se reconstruye por innerHTML y el contexto 2D se va con ella. */
+      '<div style="margin-top:8px;text-align:center;">' +
+        '<div style="font-size:11px;color:var(--text2);margin-bottom:3px;">Strain por territorios (método manual)</div>' +
+        '<canvas id="' + _V.pfx + 'cine-str-be" width="300" height="300" ' +
+          'style="max-width:100%;border-radius:8px;"></canvas><br>' +
+        b('cine-str-cap', 'btn-ghost', '📸 Capturar diagrama', 'margin-top:5px;') +
+      '</div>' +
       _STR_DISCLAIMER +
       '</div>';
   }
@@ -46583,6 +46592,213 @@ function medStrainVistaSiguiente() {
   _medPintar(); _medEstado();
 }
 window.medStrainVistaSiguiente = medStrainVistaSiguiente;
+/* ══ BULL'S EYE DE TERRITORIOS — DEL VISOR, NO DEL INFORME ═══════════════════════════════════
+
+   ⚠️ NO TOCA `strainEstado` NI `#sgl-svg-bullseye`. Aquél es el bull's eye de 17 segmentos del
+   informe, que el médico pinta a mano y que baja al PDF firmado con su leyenda. Éste es otro
+   diagrama, de otro módulo, con otros datos.
+
+   POR QUÉ NO SE PARECE AL OTRO, Y ES DELIBERADO. El del informe usa la paleta GE, donde
+   **NORMAL ES ROJO** (`#DC2626`) y la discinesia es AZUL (`#1D4ED8`). Pintar éste de
+   verde→rojo —normal verde, anormal rojo— lo dejaría INVERTIDO respecto de aquél, y los dos
+   pueden terminar en el MISMO PDF con el mismo aspecto: un sector rojo significaría «normal»
+   en uno y «severamente anormal» en el otro. Es el defecto de las dos escalas incompatibles
+   que este archivo ya documenta tres veces, sobre un documento firmado.
+
+   POR ESO LA ESCALA ES DE INTENSIDAD Y NO DE BANDAS: un solo tono —teal, que no existe en la
+   paleta GE— cuya oscuridad crece con la MAGNITUD del acortamiento, más el número impreso en
+   cada territorio. No nombra severidad y no se ancla a ningún umbral. Decisión de Maicol
+   (2026-09-20), y es además lo que ya hace `_labSglResumen`: esta app **borró a propósito** la
+   graduación del SGL, y el único corte que aplica —el −16 % del HFA-ICOS— está definido para
+   speckle tracking, que no es este método.
+
+   TAMPOCO PUBLICA ATRIBUCIÓN CORONARIA. El método resuelve PAREDES ENTERAS, no basal/medio/
+   apical: la pared septal de la A4C abarca anteroseptal (DA) e inferoseptal (CD), que son
+   arterias distintas, y no hay forma de separarlas con dos contornos. El diagrama muestra los
+   territorios y la atribución la hace el médico. Decisión de Maicol (2026-09-20).
+
+   UN SOLO DIBUJANTE para la pantalla y para la captura, parametrizado por tamaño. Con dos
+   —uno en SVG y otro en canvas— se desincronizan, que es lo que el donut de la CIA resolvió
+   compartiendo la geometría. Acá se dibuja siempre en canvas con la API 2D: es el camino que
+   `bullseyeDataURL` ya usa, y `html2canvas` no existe en este proyecto. */
+
+/* SEIS SEXTANTES FIJOS, en la orientación del bull's eye anatómico —anterior arriba, septo a
+   la izquierda, lateral a la derecha— y en grados con 0 = arriba, sentido horario.
+
+   SON SIEMPRE SEIS, tengan dato o no: los que no lo tienen van en GRIS. Repartir el disco en
+   tantos sectores como territorios haya —media pantalla cada pared con una vista sola— dibuja
+   un ventrículo completo sobre media medición y no deja ver lo que falta. */
+const _STR_SEXT = [
+  { k:'anterior',      rot:'Anterior',      a:[330,390] },
+  { k:'anterolateral', rot:'Anterolateral', a:[30,90]   },
+  { k:'inferolateral', rot:'Inferolateral', a:[90,150]  },
+  { k:'inferior',      rot:'Inferior',      a:[150,210] },
+  { k:'inferoseptal',  rot:'Inferoseptal',  a:[210,270] },
+  { k:'anteroseptal',  rot:'Anteroseptal',  a:[270,330] }
+];
+
+/* De qué territorio toma su valor cada sextante, el específico primero y la pared ancha
+   después. Es lo que hace anatómicamente correcto el caso de una sola vista: la «pared
+   septal» de la A4C abarca anteroseptal e inferoseptal —por eso no se le puede atribuir una
+   sola coronaria—, así que pinta los DOS sextantes con el mismo número hasta que la A3C
+   aporte el anteroseptal por separado. Ídem la lateral. */
+const _STR_FUENTE = {
+  anterior:      ['Anterior'],
+  anterolateral: ['Lateral'],
+  inferolateral: ['Inferolateral', 'Lateral'],
+  inferior:      ['Inferior'],
+  inferoseptal:  ['Septal'],
+  anteroseptal:  ['Anteroseptal', 'Septal']
+};
+const _STR_GRIS = '#9E9E9E';
+
+/* Intensidad por MAGNITUD del acortamiento. 0 % → casi blanco, 30 % o más → teal oscuro.
+   El 30 no es un umbral clínico: es el tope de la rampa, y el número va impreso al lado. */
+function _strTono(pct) {
+  const m = Math.max(0, Math.min(30, Math.abs(pct))) / 30;
+  const l = Math.round(238 - 200 * m), v = Math.round(250 - 160 * m), z = Math.round(247 - 160 * m);
+  return 'rgb(' + Math.round(l * 0.35) + ',' + v + ',' + z + ')';
+}
+
+/* Dibuja el diagrama completo en un contexto 2D. `S` es el tamaño del lado. */
+function _strBullsDibujar(cx2, S, R, conTitulo) {
+  const cx = S / 2, cy = S * (conTitulo ? 0.55 : 0.5), r = S * (conTitulo ? 0.33 : 0.40);
+  const rad = g => (g - 90) * Math.PI / 180;
+  cx2.clearRect(0, 0, S, S);
+  cx2.fillStyle = '#ffffff'; cx2.fillRect(0, 0, S, S);   // base blanca, como el resto de las imágenes
+  const esc = S / 320;
+
+  if (conTitulo) {
+    cx2.fillStyle = '#111827'; cx2.textAlign = 'center';
+    cx2.font = 'bold ' + Math.round(15 * esc) + 'px system-ui, sans-serif';
+    cx2.fillText('Strain por territorios (método manual)', cx, 22 * esc);
+  }
+
+  const porPared = {};
+  if (R) R.terr.forEach(t => { porPared[t.pared] = t; });
+  const deSextante = k => {
+    const fuentes = _STR_FUENTE[k] || [];
+    for (let i = 0; i < fuentes.length; i++) if (porPared[fuentes[i]]) return porPared[fuentes[i]];
+    return null;
+  };
+
+  _STR_SEXT.forEach(S6 => {
+    const a = S6.a, t = deSextante(S6.k);
+    cx2.beginPath();
+    cx2.moveTo(cx, cy);
+    cx2.arc(cx, cy, r, rad(a[0]), rad(a[1]));
+    cx2.closePath();
+    cx2.fillStyle = t ? _strTono(t.pct) : _STR_GRIS;
+    cx2.fill();
+    cx2.strokeStyle = '#cfd6e6'; cx2.lineWidth = 1.2 * esc; cx2.stroke();
+    /* Rótulo y número, a media distancia del radio. */
+    const am = rad((a[0] + a[1]) / 2), rr = r * 0.66;
+    const px = cx + Math.cos(am) * rr, py = cy + Math.sin(am) * rr;
+    cx2.textAlign = 'center';
+    cx2.fillStyle = '#111827';
+    cx2.font = Math.round(9 * esc) + 'px system-ui, sans-serif';
+    cx2.fillText(S6.rot, px, py - 5 * esc);
+    if (t) {
+      cx2.font = 'bold ' + Math.round(13 * esc) + 'px system-ui, sans-serif';
+      cx2.fillText(t.pct.toFixed(1) + ' %', px, py + 10 * esc);
+      /* Si el valor viene de una pared ANCHA —la septal o la lateral de la A4C, que abarcan
+         dos sextantes— se marca: si no, dos sextantes con el mismo número se leen como dos
+         mediciones independientes que dieron igual. */
+      if (t.pared !== S6.rot) {
+        cx2.font = Math.round(7.5 * esc) + 'px system-ui, sans-serif';
+        cx2.fillStyle = '#4b5563';
+        cx2.fillText('(pared ' + t.pared.toLowerCase() + ')', px, py + 20 * esc);
+      }
+    } else {
+      cx2.font = Math.round(9 * esc) + 'px system-ui, sans-serif';
+      cx2.fillStyle = '#4b5563';
+      cx2.fillText('Sin datos', px, py + 10 * esc);
+    }
+  });
+
+  /* Centro: el SGL y cuántas vistas lo sostienen. */
+  const rc = r * 0.30;
+  cx2.beginPath(); cx2.arc(cx, cy, rc, 0, 6.2832);
+  cx2.fillStyle = '#ffffff'; cx2.fill();
+  cx2.strokeStyle = '#cfd6e6'; cx2.lineWidth = 1.2 * esc; cx2.stroke();
+  cx2.textAlign = 'center'; cx2.fillStyle = '#111827';
+  if (R) {
+    cx2.font = 'bold ' + Math.round(16 * esc) + 'px system-ui, sans-serif';
+    cx2.fillText(R.sgl.toFixed(1) + '%', cx, cy + 1 * esc);
+    cx2.font = Math.round(8.5 * esc) + 'px system-ui, sans-serif';
+    cx2.fillStyle = '#4b5563';
+    cx2.fillText('SGL', cx, cy - 11 * esc);
+    cx2.fillText(R.nVistas + (R.nVistas === 1 ? ' vista' : ' vistas'), cx, cy + 13 * esc);
+  } else {
+    cx2.font = Math.round(9 * esc) + 'px system-ui, sans-serif';
+    cx2.fillStyle = '#4b5563';
+    cx2.fillText('sin datos', cx, cy + 3 * esc);
+  }
+
+  /* Leyenda: rampa de intensidad. Dice qué codifica el color —magnitud— y qué NO —severidad—,
+     porque una rampa de color al lado de un número se lee como una escala clínica si nadie
+     aclara que no lo es. */
+  const ly = cy + r + 22 * esc, lw = S * 0.46, lx = cx - lw / 2;
+  for (let i = 0; i <= 40; i++) {
+    cx2.fillStyle = _strTono(30 * i / 40);
+    cx2.fillRect(lx + lw * i / 41, ly, lw / 40 + 1, 9 * esc);
+  }
+  cx2.strokeStyle = '#cfd6e6'; cx2.lineWidth = 0.8 * esc;
+  cx2.strokeRect(lx, ly, lw, 9 * esc);
+  cx2.fillStyle = _STR_GRIS;
+  cx2.fillRect(lx + lw + 8 * esc, ly, 14 * esc, 9 * esc);
+  cx2.strokeRect(lx + lw + 8 * esc, ly, 14 * esc, 9 * esc);
+  cx2.fillStyle = '#4b5563';
+  cx2.font = Math.round(8 * esc) + 'px system-ui, sans-serif';
+  cx2.textAlign = 'left';  cx2.fillText('0 %', lx, ly + 19 * esc);
+  cx2.textAlign = 'right'; cx2.fillText('−30 %', lx + lw, ly + 19 * esc);
+  cx2.textAlign = 'left';  cx2.fillText('sin datos', lx + lw + 8 * esc, ly + 19 * esc);
+  cx2.textAlign = 'center';
+  cx2.font = Math.round(8 * esc) + 'px system-ui, sans-serif';
+  cx2.fillText('la intensidad es la MAGNITUD del acortamiento, no una graduación de severidad',
+               cx, ly + 30 * esc);
+  return { ly: ly + 30 * esc, esc: esc };
+}
+
+/* Repinta el canvas del panel. Se llama después de cada `_medEstado`, porque la barra se
+   reconstruye por innerHTML y el canvas viejo se va con ella. */
+function _strBullsRepintar() {
+  const cv = _medEl('cine-str-be');
+  if (!cv) return;
+  const S = 300;
+  if (cv.width !== S) { cv.width = S; cv.height = S; }
+  _strBullsDibujar(cv.getContext('2d'), S, _strainCalcular(), false);
+}
+
+/* Captura: MISMO dibujante, al doble de tamaño, con el título y el descargo QUEMADOS en la
+   imagen. Sin eso, el PNG que llega al PDF es un bull's eye indistinguible del validado —el
+   del informe— y nadie que lo mire después sabe con qué método salió. Entra por
+   `imgCompressLoad`, la misma puerta que una foto. */
+function medStrainCapturar() {
+  const R = _strainCalcular();
+  if (!R) { toast('❌ Todavía no hay territorios para dibujar'); return; }
+  const S = 640;
+  const cv = document.createElement('canvas');
+  cv.width = S; cv.height = S;
+  const c2 = cv.getContext('2d');
+  const fin = _strBullsDibujar(c2, S, R, true);
+  const e = fin.esc;
+  c2.textAlign = 'center'; c2.fillStyle = '#92400e';
+  c2.font = 'bold ' + Math.round(9 * e) + 'px system-ui, sans-serif';
+  c2.fillText('Calculado por método de dos contornos manuales — NO equivalente al speckle tracking automático.',
+              S / 2, fin.ly + 16 * e);
+  c2.fillStyle = '#4b5563';
+  c2.font = Math.round(9 * e) + 'px system-ui, sans-serif';
+  c2.fillText('Orientativo, requiere correlación clínica. ' + R.etiqueta + '.', S / 2, fin.ly + 28 * e);
+  cv.toBlob(b => {
+    if (!b) { toast('❌ No se pudo generar la imagen'); return; }
+    const idx = _dcmImgReservar(1)[0];
+    imgCompressLoad(b, idx);
+    toast('✅ Diagrama de territorios agregado a las imágenes del estudio');
+  }, 'image/jpeg', 0.92);
+}
+window.medStrainCapturar = medStrainCapturar;
+
 window.medSimpsonConfirmar = medSimpsonConfirmar;
 
 function medSimpsonReiniciar() {
@@ -47037,10 +47253,14 @@ function _medEstado() {
   const bst = _medEl('cine-med-str');
   if (bst) bst.onclick = () => medHerramienta('strain');
   const sxc = _medEl('cine-str-conf'), sxr = _medEl('cine-str-reset');
-  const sxm = _medEl('cine-str-mas');
+  const sxm = _medEl('cine-str-mas'), sxb = _medEl('cine-str-cap');
   if (sxc) sxc.onclick = medStrainConfirmar;
   if (sxr) sxr.onclick = medStrainReiniciar;
   if (sxm) sxm.onclick = medStrainVistaSiguiente;
+  if (sxb) sxb.onclick = medStrainCapturar;
+  /* El canvas del diagrama se repinta DESPUÉS de reconstruida la barra: el elemento es nuevo
+     en cada pasada y nace en blanco. */
+  if (_medHerr === 'strain') _strBullsRepintar();
   if (bs) bs.onclick = () => medHerramienta('simpson');
   if (bv) bv.onclick = () => medHerramienta('vel');
   const bt = _medEl('cine-med-t'), bf = _medEl('cine-med-fc');
@@ -63186,8 +63406,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260920-1039';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789911598533;                 /* eco-build-ms */
+const ECO_BUILD    = '20260920-1103';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789912982624;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -63273,7 +63493,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1039</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1103</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

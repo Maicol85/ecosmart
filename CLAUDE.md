@@ -8214,6 +8214,56 @@ correcto»** —lo sería con las dos convenciones— **sino que sea el del bord
 perímetro cerrado**, calculado aparte dentro del propio caso. Con la mutación los dos colapsan
 al mismo valor y el diagnóstico lo imprime: «abierto=−22.70 % cerrado=−22.70 %».
 
+#### El bull's eye del visor, y la escala que casi queda INVERTIDA
+
+Diagrama polar propio del visor. **No toca `strainEstado` ni `#sgl-svg-bullseye`** — aquél es
+el de 17 segmentos del informe, que el médico pinta a mano y que baja al PDF firmado.
+
+**EL PEDIDO TRAÍA VERDE = NORMAL / ROJO = ANORMAL, Y ESO LO DEJABA AL REVÉS DEL OTRO.** El
+bull's eye del informe usa la paleta GE, donde **normal es ROJO** (`#DC2626`) y la discinesia
+es AZUL (`#1D4ED8`). Los dos pueden terminar en el **mismo PDF** con el mismo aspecto: un
+sector rojo significaría «normal» en uno y «severamente anormal» en el otro. Es el defecto de
+las dos escalas incompatibles que este archivo ya documenta tres veces —el SGL con signo
+invertido, el mapeo de Forrester rotado, las tres agendas de cardio-onco— y acá sobre un
+documento firmado.
+
+**La escala es de INTENSIDAD, no de bandas**, en un tono que no existe en la paleta GE: la
+oscuridad crece con la MAGNITUD del acortamiento y el número va impreso en cada sextante. No
+nombra severidad y no se ancla a ningún umbral — que es lo que ya hace `_labSglResumen`, y lo
+que corresponde a un método al que el corte de −16 % no aplica. Decisión de Maicol
+(2026-09-20). Las bandas −18/−16 que pedía el pedido son, además, la graduación que `calcSGL`
+**borró a propósito**: convivían tres umbrales y el informe salía «SGL (>=-18%): -18% - Zona
+gris». La mutación que las reintroduce con la paleta GE cae por «no aparece el rojo de GE».
+
+**SON SIEMPRE SEIS SEXTANTES, y los que no tienen dato van en GRIS.** Repartir el disco en
+tantos sectores como territorios haya —media pantalla por pared con una sola vista— dibuja un
+ventrículo completo sobre media medición y no deja ver lo que falta. Con una vista quedan
+grises el anterior y el inferior; con dos, ninguno.
+
+**Y una pared ancha pinta SUS DOS sextantes**: la «septal» de la A4C abarca anteroseptal e
+inferoseptal —por eso no se le puede atribuir una sola coronaria— hasta que la A3C aporte el
+anteroseptal por separado. Cuando un sextante hereda de una pared ancha **se marca**: si no,
+dos sextantes con el mismo número se leen como dos mediciones independientes que dieron igual.
+La mutación que hace ganar a la pared ancha sobre el territorio específico borra el aporte de
+la A3C y cae por tres condiciones.
+
+**NO SE PUBLICA ATRIBUCIÓN CORONARIA**, que era el punto 4 del pedido. El método resuelve
+paredes enteras, no basal/medio/apical: la septal de la A4C abarca anteroseptal (DA) e
+inferoseptal (CD), que son arterias distintas. Y el mapeo pedido **omitía la pared anterior**,
+que es territorio de la DA. Decisión de Maicol (2026-09-20): el diagrama muestra los
+territorios y la atribución la hace el médico.
+
+**LA IMAGEN CAPTURADA LLEVA EL TÍTULO Y EL DESCARGO QUEMADOS.** Sin eso, el PNG que llega al
+PDF es un bull's eye indistinguible del validado —el del informe— y nadie que lo mire después
+sabe con qué método salió. Un solo dibujante para la pantalla y para la captura, parametrizado
+por tamaño: con dos se desincronizan.
+
+**TC-201 verifica sobre los PÍXELES DIBUJADOS**, no sobre el código: leer que la función existe
+no dice dónde cayó el gris. Trampa propia al escribirlo: el muestreo caía **sobre el texto** de
+los rótulos y devolvía el color de una letra, así que «la pared ancha pinta sus dos sextantes
+igual» daba false sobre un dibujo correcto. Se muestrea en la banda libre entre el círculo
+central y los rótulos.
+
 #### Dos contornos libres NO resuelven 6/12/17 segmentos — medido antes de implementar
 
 El pedido traía `strain_i = (L_sist_i − L_diast_i)/L_diast_i` sobre la grilla del modelo AHA:
