@@ -13519,7 +13519,9 @@ caso('TC-199', 'Strain: trazado guiado, eje largo compartido con Simpson, y el b
       document.getElementById('cine-str-conf').click();
       await new Promise(r => setTimeout(r, 140));
       R.confirmoS = !!_strain.pares.s;
-      R.panelListo = /Trazados listos/.test(document.getElementById('cine-med-barra').innerHTML);
+      /* El panel pasa a mostrar el RESULTADO. Se pina el hecho --que aparezca el acortamiento
+         medido-- y no una frase, que es lo que ya obligo a reapuntar TC-123 y TC-132. */
+      R.panelListo = /Acortamiento del borde/.test(document.getElementById('cine-med-barra').innerHTML);
       R.sistoleMasCorta = !!(_strain.pares.s && _strain.pares.d) &&
                           _strain.pares.s.bordeCm < _strain.pares.d.bordeCm;
 
@@ -13586,7 +13588,7 @@ caso('TC-199', 'Strain: trazado guiado, eje largo compartido con Simpson, y el b
       ['cambiar de cuadro NO borra lo confirmado',     R.sigueGuardado, R.sigueGuardado],
       ['pero lo oculta y lo avisa',                    R.ocultado && R.avisaCuadro, R.ocultado],
       ['y oculto no dibuja nada (denominador al lado)', R.ocultarNoDibuja, 'oculto=' + R.dibujaOculto + ' visible=' + R.dibujaVisible],
-      ['confirmar sistole cierra el flujo',            R.confirmoS && R.panelListo, R.panelListo],
+      ['confirmar sistole cierra el flujo y muestra el resultado', R.confirmoS && R.panelListo, R.panelListo],
       ['la sistole da un borde mas corto',             R.sistoleMasCorta, R.sistoleMasCorta],
       ['sobre Doppler NO se traza',                    R.rechazoDoppler, R.rechazoDoppler],
       ['y el aviso dice por que',                      R.avisoNombraTiempo, (R.avisoDoppler||'').slice(0,80)],
@@ -13595,6 +13597,153 @@ caso('TC-199', 'Strain: trazado guiado, eje largo compartido con Simpson, y el b
       ['cada vista guarda SU trazado',                 R.bTrazo && R.ajenos, 'A=' + R.cuerdaA + ' B=' + R.cuerdaB],
       ['confirmar en A no confirma en B',              R.confirmarAnoTocaB, R.confirmarAnoTocaB],
       ['cerrar el visor limpia la sesion',             R.cerrarLimpia, R.cerrarLimpia]
+    ] };
+  })();
+`);
+
+
+/* ══ TC-200 · El calculo del strain ══════════════════════════════════════════════════════════
+   LA DECISION QUE FIJA: el strain sale del BORDE ENDOCARDICO (bordeCm), sin la recta que
+   cierra el contorno. Esa recta atraviesa la cavidad y no es pared miocardica. La condicion
+   que lo discrimina no es "el numero es correcto" --lo seria con las dos convenciones-- sino
+   que el numero sea el del borde abierto y NO el del perimetro cerrado, que esta calculado
+   aparte en el propio caso.
+
+   Y LO QUE NO HACE, que importa tanto como lo que hace:
+   · no fuerza el signo -- un par de fases invertido tiene que poder delatarse solo;
+   · no gradua en bandas -- esta app borro a proposito la graduacion del SGL;
+   · no aplica el corte de -16 % del HFA-ICOS, que esta definido para speckle tracking;
+   · y no escribe el campo sgl del informe.
+   NO DEPENDE DEL PENDRIVE.                                                                   */
+caso('TC-200', 'Strain: el calculo sale del borde endocardico, sin la cuerda del anillo', `
+  return (async () => {
+    const R = {};
+    const alertOrig = window.alert; window.alert = () => {};
+    try {
+      const mkJpeg = () => {
+        const c = document.createElement('canvas'); c.width = 600; c.height = 500;
+        const g = c.getContext('2d'); g.fillStyle = '#223'; g.fillRect(0,0,600,500);
+        const b64 = c.toDataURL('image/jpeg').split(',')[1];
+        const bin = atob(b64); const u = new Uint8Array(bin.length);
+        for (let i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i);
+        return u;
+      };
+      const jpeg = mkJpeg();
+      const DX = 0.05;
+      const reg2d = { tipo:1, x0:20, y0:20, x1:580, y1:480, ux:3, uy:3, dx:DX, dy:DX,
+                      rx0:20, ry0:20, rvx:0, rvy:0 };
+      const mkLoop = nom => ({ nombre:nom, cuadros:4,
+        d: { frags:[jpeg,jpeg,jpeg,jpeg], cols:600, filas:500, msCuadro:40, regiones:[reg2d] } });
+
+      const cvDe = p => document.getElementById(p + 'cine-med');
+      const acDe = (p,x,y) => { const c = cvDe(p), r = c.getBoundingClientRect();
+        return { clientX: r.left + x*(r.width/c.width), clientY: r.top + y*(r.height/c.height) }; };
+      const trazarEn = async (p, pts) => { const c = cvDe(p);
+        c.dispatchEvent(new MouseEvent('mousedown', Object.assign({bubbles:true}, acDe(p,pts[0].x,pts[0].y))));
+        for (let i=1;i<pts.length;i++)
+          c.dispatchEvent(new MouseEvent('mousemove', Object.assign({bubbles:true}, acDe(p,pts[i].x,pts[i].y))));
+        document.dispatchEvent(new MouseEvent('mouseup', { bubbles:true }));
+        await new Promise(r => setTimeout(r, 130)); };
+      const tri = (cx, yb, W, H) => { const p=[], x0=cx-W/2, x1=cx+W/2, ya=yb-H;
+        const n1 = Math.ceil(Math.hypot(W/2,H)/10);
+        for (let i=0;i<=n1;i++) p.push({x:Math.round(x0+(cx-x0)*i/n1), y:Math.round(yb+(ya-yb)*i/n1)});
+        for (let i=1;i<=n1;i++) p.push({x:Math.round(cx+(x1-cx)*i/n1), y:Math.round(ya+(yb-ya)*i/n1)});
+        return p; };
+      const CX = 300, YB = 440;
+
+      const montar = async () => {
+        __t.limpiar(); imgVaciar();
+        localStorage.setItem('cfg-guardar-imagenes','0');
+        _cineAbrir([ mkLoop('2d.dcm') ]);
+        await new Promise(r => setTimeout(r, 220));
+        if (!_medOn) medToggle();
+        await new Promise(r => setTimeout(r, 140));
+        medHerramienta('strain');
+        medStrainReiniciar();
+        await new Promise(r => setTimeout(r, 120));
+      };
+      const par = async (Wd,Hd,Ws,Hs) => {
+        await trazarEn('', tri(CX, YB, Wd, Hd)); medStrainConfirmar();
+        await new Promise(r => setTimeout(r, 110));
+        await trazarEn('', tri(CX, YB, Ws, Hs)); medStrainConfirmar();
+        await new Promise(r => setTimeout(r, 130));
+      };
+
+      /* ── 1 · el caso normal ── */
+      await montar();
+      document.getElementById('fevi').value = '';
+      const sglEl = document.getElementById('sgl');
+      if (sglEl) sglEl.value = '';
+      await par(200, 300, 140, 240);
+      const D = _strain.pares.d, S = _strain.pares.s;
+      const Rc = _strainCalcular();
+      R.hayCalculo = !!Rc;
+      if (Rc) {
+        R.Ld = Rc.Ld; R.Ls = Rc.Ls; R.pct = Rc.pct;
+        /* Aritmetica EXACTA contra lo registrado -- la cuantizacion del trazo entra en Ld y Ls
+           por igual, asi que el cociente no depende de ella. */
+        R.formulaOk = Math.abs(Rc.pct - (S.bordeCm - D.bordeCm)/D.bordeCm*100) < 1e-12;
+        R.usaBorde = Math.abs(Rc.Ld - D.bordeCm) < 1e-12 && Math.abs(Rc.Ls - S.bordeCm) < 1e-12;
+        /* LA CONDICION QUE DISCRIMINA: con el perimetro CERRADO el numero seria otro. */
+        const LdC = D.bordeCm + D.cuerdaCm, LsC = S.bordeCm + S.cuerdaCm;
+        R.pctCerrado = (LsC - LdC)/LdC*100;
+        R.difConCerrado = Math.abs(Rc.pct - R.pctCerrado);
+        R.noUsaCerrado = R.difConCerrado > 1;      // los dos difieren de sobra en esta geometria
+        R.negativo = Rc.pct < 0;
+        R.plausible = Rc.plausible === true;
+        R.noInvertido = Rc.invertido === false;
+        R.mismaImagen = Rc.mismaImagen === true;
+      }
+      const barra = () => document.getElementById('cine-med-barra').innerHTML;
+      R.panelMuestra = /Acortamiento del borde/.test(barra());
+      R.panelDiceNoEsGLS = /No es un GLS por speckle tracking/.test(barra());
+      R.panelDiceNoVaAlInforme = /No va al informe/.test(barra());
+      R.panelDiceCorteNoAplica = /no corresponde acá/.test(barra());
+      /* NO GRADUA: la app borro la graduacion del SGL a proposito. */
+      R.sinBandas = !/levemente|moderadamente|severamente|deprimid|conservad/i.test(barra());
+      /* NO ESCRIBE el campo del informe. */
+      R.sglCampo = sglEl ? String(sglEl.value || '') : '(sin campo)';
+      R.noIntegro = !sglEl || sglEl.value === '';
+
+      /* ── 2 · fases invertidas: el signo NO se fuerza ── */
+      await montar();
+      await par(140, 240, 200, 300);          // "diastole" mas chica que "sistole"
+      const Ri = _strainCalcular();
+      R.invPct = Ri && Ri.pct;
+      R.invPositivo = !!(Ri && Ri.pct > 0);
+      R.invMarcado = !!(Ri && Ri.invertido === true);
+      R.invAvisa = /MÁS LARGO que el de diástole/.test(barra());
+
+      /* ── 3 · acortamiento imposible: se declara, sin graduarlo ── */
+      await montar();
+      await par(200, 300, 40, 60);
+      const Rx = _strainCalcular();
+      R.xPct = Rx && Rx.pct;
+      R.xNoPlausible = !!(Rx && Rx.plausible === false && Rx.invertido === false);
+      R.xAvisa = /casi nunca es real/.test(barra());
+      R.xSigueSinBandas = !/levemente|moderadamente|severamente/i.test(barra());
+
+    } finally { window.alert = alertOrig; }
+
+    return { extra: [
+      ['con los dos contornos sale el calculo',        R.hayCalculo, R.pct],
+      ['L diastole y L sistole son los bordeCm',       R.usaBorde, 'Ld=' + R.Ld + ' Ls=' + R.Ls],
+      ['la formula es (Ls-Ld)/Ld x 100 (exacto)',      R.formulaOk, R.pct],
+      ['el resultado es negativo',                     R.negativo, R.pct],
+      ['NO es el del perimetro cerrado',               R.noUsaCerrado, 'abierto=' + (R.pct||0).toFixed(2) + '% cerrado=' + (R.pctCerrado||0).toFixed(2) + '%'],
+      ['los dos trazados son de la misma imagen',      R.mismaImagen, R.mismaImagen],
+      ['el valor cae en la banda plausible',           R.plausible && R.noInvertido, R.plausible],
+      ['el panel muestra el acortamiento',             R.panelMuestra, R.panelMuestra],
+      ['y declara que NO es un GLS por speckle tracking', R.panelDiceNoEsGLS, R.panelDiceNoEsGLS],
+      ['y que el corte de -16 % no corresponde',       R.panelDiceCorteNoAplica, R.panelDiceCorteNoAplica],
+      ['y que no va al informe',                       R.panelDiceNoVaAlInforme, R.panelDiceNoVaAlInforme],
+      ['NO gradua en bandas de severidad',             R.sinBandas, R.sinBandas],
+      ['NO escribe el campo sgl del informe',          R.noIntegro, R.sglCampo],
+      ['fases invertidas dan POSITIVO, no se fuerza',  R.invPositivo && R.invMarcado, R.invPct],
+      ['y el panel lo declara',                        R.invAvisa, R.invAvisa],
+      ['un acortamiento imposible se marca no plausible', R.xNoPlausible, R.xPct],
+      ['y se declara como problema de trazado',        R.xAvisa, R.xAvisa],
+      ['sin graduarlo tampoco',                        R.xSigueSinBandas, R.xSigueSinBandas]
     ] };
   })();
 `);

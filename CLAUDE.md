@@ -8133,11 +8133,11 @@ y TC-193 se puso en rojo solo.
 **Sin verificar en Safari**, como todo el módulo DICOM: el navegador está concedido a nivel
 «lectura». Todo corrió en Chrome por CDP, con el pendrive montado.
 
-### Strain: el trazado, y la recta del anillo que NO es pared (2026-09-20)
+### Strain: el trazado, el cálculo, y la recta del anillo que NO es pared (2026-09-20)
 
-Séptima herramienta del visor. **Sólo el trazado**: los dos contornos quedan confirmados con su
-geometría medida y el cálculo del SGL no está implementado — el panel lo dice con todas las
-letras en vez de dejar un hueco que se lea como un número que falta cargar.
+Séptima herramienta del visor: el trazado guiado de dos contornos y el acortamiento que sale de
+ellos. **No escribe nada en el informe** — ver abajo por qué eso es una decisión clínica y no
+una etapa pendiente.
 
 **NO REIMPLEMENTA NADA DE LO QUE YA EXISTE, y no es prolijidad.** La compuerta «2D con escala en
 cm, una sola zona» es `_medAreaValidar`, la misma del área; el eje largo es **`_simpEje`, el
@@ -8172,6 +8172,47 @@ porcentuales**, porque la cuerda se acorta en sístole casi en la misma proporci
 Pero el único corte vivo de esta app sobre el SGL es el **−16 % del HFA-ICOS**, y ahí 0,5 pp
 cruzan el umbral: un −16,2 y un −15,7 son dos bandas distintas de riesgo. **Queda decidido
 guardar las dos y declarar cuál es cuál; qué usa el cálculo es la decisión del próximo paso.**
+
+#### El cálculo, y las tres cosas que NO hace
+
+**`strain = (L_sístole − L_diástole) / L_diástole × 100`, con L = `bordeCm`.** Decisión de
+Maicol (2026-09-20): la cuerda del anillo no entra porque atraviesa la cavidad y no es pared
+miocárdica. Medido en la geometría del caso de prueba, meterla mueve el resultado de **−20,8 %
+a −22,7 %**; sobre contornos con forma de VI la diferencia baja a ~0,5 pp, que sigue alcanzando
+para cruzar el único corte que esta app aplica sobre el SGL.
+
+**EL SIGNO SALE DE LA MEDICIÓN, NO SE FUERZA.** `-Math.abs(pct)` es la tentación —el convenio
+de la app es negativo, así que «nunca sale mal»— y sería esconder el único error que el número
+puede delatar solo: si el borde de sístole sale más largo que el de diástole, o los contornos
+no recorren la misma extensión, o se confirmaron las fases al revés. Forzado a negativo, un par
+invertido da un strain perfectamente presentable. **La mutación que lo fuerza convierte un
++26,2 % en un −26,2 %** y el panel deja de avisar.
+
+**NO SE GRADÚA EN BANDAS, y no es una omisión.** Esta app **borró a propósito** la graduación
+del SGL —convivían tres escalas y el informe firmado se contradecía solo— y lo declara en el
+Laboratorio: «esta app no clasifica el SGL en bandas». Agregar leve/moderado/severo acá sería
+la cuarta escala del mismo dato.
+
+**NO SE APLICA EL CORTE DE −16 %, y éste es el punto clínico del turno.** Ese corte es el único
+vivo del SGL en esta app (HFA-ICOS, cardio-oncología) y está definido para **GLS por speckle
+tracking**. Lo que mide esta herramienta es el **acortamiento de un contorno endocárdico trazado
+a mano en dos cuadros**: emparentado, y no la misma magnitud. Aplicarle el corte sería la cita
+falsa que este archivo persigue desde la nota del NT-proBNP. El panel dice qué es y qué no es.
+
+**NO ESCRIBE EL CAMPO `sgl` DEL INFORME**, por lo mismo: ese campo alimenta el marco HFA-ICOS y
+las decisiones de cardio-oncología. Meter ahí un número obtenido por otro método lo rotularía
+como GLS en un documento que decide conducta. La mutación que lo integra deja `sgl = −20.8` y
+cae por esa condición.
+
+**La banda (−45 %, 0 %) es de PLAUSIBILIDAD, no de severidad.** Un acortamiento fuera de ahí no
+es un hallazgo extremo: es casi siempre que los dos contornos no recorren la misma extensión
+—uno llegó al anillo y el otro no—, que es el modo de falla propio del método manual, como el
+ápex escorzado lo es del de discos. Se declara; no gradúa.
+
+**TC-200 lo fija sin depender del pendrive, y su condición discriminante no es «el número es
+correcto»** —lo sería con las dos convenciones— **sino que sea el del borde abierto y NO el del
+perímetro cerrado**, calculado aparte dentro del propio caso. Con la mutación los dos colapsan
+al mismo valor y el diagnóstico lo imprime: «abierto=−22.70 % cerrado=−22.70 %».
 
 #### El aviso de cambio de cuadro NO se copió de Simpson, a propósito
 

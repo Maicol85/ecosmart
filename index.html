@@ -46331,6 +46331,46 @@ function _strainAceptar(pts) {
   return null;
 }
 
+/* ── EL CÁLCULO ──────────────────────────────────────────────────────────────────────────
+
+   strain = (L_sístole − L_diástole) / L_diástole × 100, con L = **`bordeCm`**, el borde
+   endocárdico. La cuerda del anillo NO entra: atraviesa la cavidad y no es pared miocárdica.
+   Decisión de Maicol (2026-09-20). Medido sobre contornos plausibles, esa cuerda es el 21-22 %
+   del borde y meterla corre el resultado 0,5 puntos porcentuales — poco, y suficiente para
+   cruzar el único corte que esta app aplica sobre el SGL.
+
+   EL SIGNO SALE DE LA MEDICIÓN, NO SE FUERZA. La tentación es `-Math.abs(pct)`, porque el
+   convenio de la app es negativo y así «nunca sale mal». Sería esconder el único error que el
+   número puede delatar solo: si el borde de sístole sale MÁS LARGO que el de diástole, o se
+   trazó mal, o se confirmaron las fases al revés. Forzado a negativo, un par invertido daría
+   un strain perfectamente presentable. Se declara.
+
+   NO SE GRADÚA, y no es una omisión. Esta app **borró a propósito** la graduación del SGL
+   —convivían tres escalas y el informe firmado se contradecía solo—; el único corte vivo es el
+   **−16 % del marco HFA-ICOS**, y ese corte está definido para **GLS por speckle tracking**,
+   que NO es esto. Esto es el acortamiento del borde endocárdico entre dos contornos trazados a
+   mano: emparentado, y no la misma magnitud. Aplicarle el corte sería la cita falsa que este
+   archivo persigue desde la nota del NT-proBNP. El panel dice qué es y qué no es, y el número
+   lo interpreta el médico.
+
+   LA BANDA ES DE PLAUSIBILIDAD, NO DE SEVERIDAD. Un acortamiento fuera de (−45 %, 0 %) no es
+   un hallazgo extremo: es casi siempre que los dos contornos no recorren la misma extensión
+   —uno llegó al anillo y el otro no—, que es el modo de falla propio del método manual, como
+   el ápex escorzado lo es del de discos. Se declara y no se esconde. */
+function _strainCalcular() {
+  if (!_strainCompleto()) return null;
+  const D = _strain.pares.d, S = _strain.pares.s;
+  if (!(D.bordeCm > 0) || !(S.bordeCm > 0)) return null;
+  const pct = (S.bordeCm - D.bordeCm) / D.bordeCm * 100;
+  return {
+    Ld: D.bordeCm, Ls: S.bordeCm, pct,
+    mismaImagen: !!(D.imagen && S.imagen && D.imagen === S.imagen),
+    invertido: pct >= 0,
+    plausible: pct < 0 && pct > -45
+  };
+}
+window._strainCalcular = _strainCalcular;
+
 function medStrainConfirmar() {
   if (!_strain || !_strain.pendiente) {
     alert('Trazá primero el contorno: mantené apretado y recorré el borde del ventrículo, del anillo mitral septal, por el ápex, hasta el anillo mitral lateral.');
@@ -46390,17 +46430,39 @@ function _strainPanel() {
           : '') +
       '</div></div>';
   } else {
-    paso = '<div style="font-size:12px;line-height:1.6;margin-top:7px;">' +
-      '<b style="color:#22d36a;">Trazados listos — calculando strain…</b>' +
-      '<div style="font-size:10px;color:var(--text2);margin-top:3px;">' +
-        'Los dos contornos quedaron confirmados con su escala. El cálculo del strain no está ' +
-        'implementado todavía: esta herramienta por ahora sólo mide y muestra los trazados, y ' +
-        '<b>no va al informe ni al PDF</b>.' +
-        (D && S && D.imagen && S.imagen && D.imagen === S.imagen
-          ? ''
-          : '<br><b style="color:#fbbf24;">⚠️ Los dos trazados salieron de imágenes distintas.</b> ' +
+    const R = _strainCalcular();
+    const col = (R && R.plausible) ? '#22d36a' : '#fbbf24';
+    paso = '<div style="font-size:13px;line-height:1.7;margin-top:8px;">' +
+      (R
+        ? 'Acortamiento del borde endocárdico<br>' +
+          'L diástole <b>' + R.Ld.toFixed(1) + ' cm</b> → L sístole <b>' + R.Ls.toFixed(1) + ' cm</b><br>' +
+          '<b style="font-size:18px;color:' + col + ';">' + R.pct.toFixed(1) + ' %</b>'
+        : '<b style="color:#fbbf24;">No se pudo calcular con esos trazados.</b>') +
+      '<div style="font-size:10px;color:var(--text2);margin-top:5px;line-height:1.55;">' +
+        /* Qué es y qué NO es. Sin esto, un número con signo negativo al lado de la palabra
+           «strain» se lee como un GLS, y el GLS de esta app tiene un corte que decide
+           conducta en cardio-oncología. */
+        'Se mide sobre el <b>borde endocárdico</b>, sin la recta que cierra el contorno: esa ' +
+        'recta atraviesa la cavidad y no es pared. ' +
+        '<b>No es un GLS por speckle tracking.</b> Es el acortamiento de un contorno trazado a ' +
+        'mano en dos cuadros; está emparentado con el GLS y no es la misma magnitud, así que el ' +
+        'corte de −16 % que esta app aplica en Cardio-Oncología —definido para speckle ' +
+        'tracking— <b>no corresponde acá</b>. Esta app tampoco clasifica el SGL en bandas. ' +
+        '<b>No va al informe ni al PDF.</b>' +
+        (R && R.invertido
+          ? '<br><b style="color:#f87171;">⚠️ El borde de sístole salió MÁS LARGO que el de diástole.</b> ' +
+            'O los contornos no recorren la misma extensión, o se confirmaron las fases al revés. ' +
+            'Revisá los trazados antes de usar este número.'
+          : (R && !R.plausible
+              ? '<br><b style="color:#fbbf24;">⚠️ Un acortamiento de esta magnitud casi nunca es real.</b> ' +
+                'Lo habitual es que los dos contornos no recorran la misma extensión —uno llegó al ' +
+                'anillo y el otro no—. Es la limitación propia del método manual.'
+              : '')) +
+        (R && !R.mismaImagen
+          ? '<br><b style="color:#fbbf24;">⚠️ Los dos trazados salieron de imágenes distintas.</b> ' +
             'El strain compara el MISMO ventrículo en dos momentos del ciclo: diástole y sístole ' +
-            'tienen que salir del mismo cineloop, en dos cuadros.') +
+            'tienen que salir del mismo cineloop, en dos cuadros.'
+          : '') +
       '</div></div>';
   }
 
@@ -63009,8 +63071,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260920-1016';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789910166383;                 /* eco-build-ms */
+const ECO_BUILD    = '20260920-1024';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789910681033;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -63096,7 +63158,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1016</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1024</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
