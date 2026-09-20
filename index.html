@@ -46431,8 +46431,14 @@ const _STR_VISTAS = [
     paredes:['Inferoseptal', 'Anterolateral'] },
   { k:'a2c', rot:'A2C — apical 2 cámaras',  orden:'del anillo INFERIOR, por el ápex, al anillo ANTERIOR',
     paredes:['Inferior', 'Anterior'] },
-  { k:'a3c', rot:'A3C — apical eje largo',  orden:'del anillo INFEROLATERAL, por el ápex, al anillo ANTEROSEPTAL',
-    paredes:['Inferolateral', 'Anteroseptal'] }
+  /* ⚠️ LA A3C ESTABA INVERTIDA (corregido 2026-09-20). Trazaba del inferolateral al
+     anteroseptal, así que `paredes[0]` era el inferolateral: el médico marcaba primero el
+     anillo que el panel llamaba inferolateral y el arco A —el primero— se publicaba con ese
+     rótulo. El orden anatómico es del ANTEROSEPTAL al INFEROLATERAL, como las otras dos
+     vistas, que ya estaban bien. Invertir el rótulo sin invertir el trazado deja las dos
+     paredes intercambiadas, así que las dos cosas se mueven juntas: `orden` y `paredes`. */
+  { k:'a3c', rot:'A3C — apical eje largo',  orden:'del anillo ANTEROSEPTAL, por el ápex, al anillo INFEROLATERAL',
+    paredes:['Anteroseptal', 'Inferolateral'] }
 ];
 const _strVista = k => _STR_VISTAS.filter(v => v.k === k)[0];
 
@@ -46712,6 +46718,11 @@ function _strainPanel() {
         '<div style="font-size:10px;color:var(--text2);margin-top:5px;line-height:1.5;">' +
           'Cada vista aporta <b>dos territorios</b> —las dos paredes, partidas en el ápex—, que son ' +
           'los únicos puntos que los dos contornos comparten como referencia anatómica. ' +
+          'La diana tiene la forma de 17 segmentos del modelo AHA, pero el color sale del ' +
+          '<b>territorio</b>: los segmentos de una misma pared llevan el mismo color y el ' +
+          'número sale <b>una sola vez</b>, porque es una sola medición. El ápex (17) queda ' +
+          'siempre gris —este método no lo mide— y el septal apical (14) y el lateral apical ' +
+          '(16) sólo se pintan cuando están las dos paredes que los comparten, con el promedio. ' +
           '<b>No son los 6/12/17 segmentos del modelo AHA:</b> partir el trazo en más tramos de ' +
           'igual longitud devuelve el mismo número en todos, porque dividir cada contorno en ' +
           'partes iguales de su propia longitud da el global otra vez. Dos contornos libres no ' +
@@ -47208,55 +47219,77 @@ function _strCtrlEn(p) {
    graduación del SGL, y el único corte que aplica —el −16 % del HFA-ICOS— está definido para
    speckle tracking, que no es este método.
 
-   TAMPOCO PUBLICA ATRIBUCIÓN CORONARIA. El método resuelve la pared ENTERA de cada sextante,
-   no basal/medio/apical, y un mismo sextante puede repartirse entre dos arterias según la
-   dominancia y la longitud de la DA —el anteroseptal es DA, el inferoseptal suele ser CD, y el
-   ápex depende de hasta dónde llegue la DA—. Con dos contornos no hay forma de separarlo. El
-   diagrama muestra los territorios y la atribución la hace el médico. Decisión de Maicol
-   (2026-09-20).
+   TAMPOCO PUBLICA ATRIBUCIÓN CORONARIA, y la forma de 17 segmentos lo hace MÁS importante de
+   declarar, no menos: la diana se ve igual que la del informe —que sí trae territorio por
+   segmento en `EE_SEGS`— y eso invita a leerle una atribución que este método no sostiene. Lo
+   que se mide es la pared ENTERA, no basal/medio/apical: los tres segmentos de un territorio
+   llevan el MISMO número porque es una sola medición repartida, no tres. Y un mismo segmento
+   puede repartirse entre dos arterias según la dominancia y la longitud de la DA. El diagrama
+   muestra los territorios y la atribución la hace el médico. Decisión de Maicol (2026-09-20).
 
    UN SOLO DIBUJANTE para la pantalla y para la captura, parametrizado por tamaño. Con dos
    —uno en SVG y otro en canvas— se desincronizan, que es lo que el donut de la CIA resolvió
    compartiendo la geometría. Acá se dibuja siempre en canvas con la API 2D: es el camino que
    `bullseyeDataURL` ya usa, y `html2canvas` no existe en este proyecto. */
 
-/* SEIS SEXTANTES FIJOS, en la orientación del bull's eye anatómico —anterior arriba, septo a
-   la izquierda, lateral a la derecha— y en grados con 0 = arriba, sentido horario.
+/* LA DIANA DE 17 SEGMENTOS DEL MODELO AHA, coloreada POR TERRITORIO.
 
-   SON SIEMPRE SEIS, tengan dato o no: los que no lo tienen van en GRIS. Repartir el disco en
-   tantos sectores como territorios haya —media pantalla cada pared con una vista sola— dibuja
-   un ventrículo completo sobre media medición y no deja ver lo que falta. */
-const _STR_SEXT = [
-  { k:'anterior',      rot:'Anterior',      a:[330,390] },
-  { k:'anterolateral', rot:'Anterolateral', a:[30,90]   },
-  { k:'inferolateral', rot:'Inferolateral', a:[90,150]  },
-  { k:'inferior',      rot:'Inferior',      a:[150,210] },
-  { k:'inferoseptal',  rot:'Inferoseptal',  a:[210,270] },
-  { k:'anteroseptal',  rot:'Anteroseptal',  a:[270,330] }
+   Cuatro anillos, en la orientación estándar —anterior arriba, septo a la izquierda, lateral a
+   la derecha— y en grados con 0 = arriba, sentido horario:
+     · basal   (1-6)   — seis sectores de 60°
+     · medio   (7-12)  — seis sectores de 60°, mismo reparto angular
+     · apical  (13-16) — CUATRO sectores de 90°, no seis
+     · ápex    (17)    — el círculo del centro
+
+   ⚠️ LA NUMERACIÓN SALE DE `EE_SEGS`, QUE YA EXISTE EN ESTE ARCHIVO y es la que usa el bull's
+   eye del INFORME. El pedido traía los dos septales y los dos laterales cruzados —inferoseptal
+   2/8 y anteroseptal 3/9, cuando `EE_SEGS` dice 2 «Anteroseptal basal» y 3 «Inferoseptal
+   basal»—. Aplicado así, el mismo PDF podía llevar dos dianas de 17 segmentos donde el
+   segmento 2 se llama anteroseptal en una y se pinta como inferoseptal en la otra. Decisión de
+   Maicol (2026-09-20): manda `EE_SEGS`. Es además la asignación con la que ya coincide la
+   corrección de vistas→paredes del mismo día. */
+const _STR_ANILLOS = [
+  /* r0/r1 son fracciones del radio; `a` es [desde, hasta] en grados. */
+  { seg:1,  r0:0.72, r1:1.00, a:[330, 390] }, { seg:6,  r0:0.72, r1:1.00, a:[30, 90] },
+  { seg:5,  r0:0.72, r1:1.00, a:[90, 150] },  { seg:4,  r0:0.72, r1:1.00, a:[150, 210] },
+  { seg:3,  r0:0.72, r1:1.00, a:[210, 270] }, { seg:2,  r0:0.72, r1:1.00, a:[270, 330] },
+  { seg:7,  r0:0.47, r1:0.72, a:[330, 390] }, { seg:12, r0:0.47, r1:0.72, a:[30, 90] },
+  { seg:11, r0:0.47, r1:0.72, a:[90, 150] },  { seg:10, r0:0.47, r1:0.72, a:[150, 210] },
+  { seg:9,  r0:0.47, r1:0.72, a:[210, 270] }, { seg:8,  r0:0.47, r1:0.72, a:[270, 330] },
+  { seg:13, r0:0.24, r1:0.47, a:[315, 405] }, { seg:16, r0:0.24, r1:0.47, a:[45, 135] },
+  { seg:15, r0:0.24, r1:0.47, a:[135, 225] }, { seg:14, r0:0.24, r1:0.47, a:[225, 315] },
+  { seg:17, r0:0.00, r1:0.24, a:[0, 360] }
 ];
 
-/* De qué territorio toma su valor cada sextante. CORRESPONDENCIA 1:1 — cada vista aporta DOS
-   sextantes y sólo ésos; tres vistas completan los seis.
+/* De qué territorio toma su color cada segmento. Un territorio pinta VARIOS segmentos con el
+   MISMO color —es el mismo valor medido— y el número se imprime UNA sola vez, en el segmento
+   del anillo MEDIO, que es el que todos los territorios tienen.
 
-   ⚠️ ESTO CAMBIÓ EL 2026-09-20 Y NO ES COSMÉTICO. Antes la A4C declaraba «Septal» y «Lateral»,
-   paredes ANCHAS que se hacían cargo de dos sextantes cada una: con la A4C sola el diagrama
-   pintaba CUATRO sextantes, dos de ellos con un número que no se había medido ahí sino
-   heredado de la pared vecina. Hoy la A4C es inferoseptal + anterolateral —la asignación del
-   modelo de 17 segmentos, corregida por Maicol—, así que con una sola vista quedan DOS
-   pintados y cuatro en gris: exactamente lo que se midió.
-
-   Es un cambio hacia mostrar MENOS: el anteroseptal lo aporta la A3C y el anterior la A2C, y
-   sin esas vistas el diagrama no los inventa. La lista de fuentes es de un solo elemento a
-   propósito —sigue siendo una lista para que el día que alguien necesite una herencia la
-   agregue acá y no en el dibujante—. */
-const _STR_FUENTE = {
-  anterior:      ['Anterior'],
-  anterolateral: ['Anterolateral'],
-  inferolateral: ['Inferolateral'],
-  inferior:      ['Inferior'],
-  inferoseptal:  ['Inferoseptal'],
-  anteroseptal:  ['Anteroseptal']
+   Los tres casos que no son de una sola pared:
+     · 14 (septal apical) lo comparten anteroseptal e inferoseptal
+     · 16 (lateral apical) lo comparten anterolateral e inferolateral
+     · 17 (ápex) no es de ninguna pared
+   Los dos primeros se pintan con el PROMEDIO y sólo si las DOS paredes tienen valor; el ápex
+   queda SIEMPRE gris, porque este método no lo mide. Decisión de Maicol (2026-09-20).
+   Pintarlos con una sola pared sería publicar sobre un segmento que esa vista no resuelve —es
+   la herencia de «pared ancha» que este mismo diagrama sacó horas antes, por la puerta de al
+   lado—. */
+const _STR_SEG_FUENTE = {
+  1:['Anterior'],      7:['Anterior'],       13:['Anterior'],
+  2:['Anteroseptal'],  8:['Anteroseptal'],
+  3:['Inferoseptal'],  9:['Inferoseptal'],
+  4:['Inferior'],     10:['Inferior'],       15:['Inferior'],
+  5:['Inferolateral'],11:['Inferolateral'],
+  6:['Anterolateral'],12:['Anterolateral'],
+  14:['Anteroseptal', 'Inferoseptal'],       // promedio, y sólo con las dos
+  16:['Anterolateral', 'Inferolateral'],     // idem
+  17:[]                                      // el ápex no se pinta nunca
 };
+
+/* El segmento del anillo MEDIO de cada territorio: ahí va el número, una sola vez. */
+const _STR_SEG_ROTULO = { Anterior:7, Anterolateral:12, Inferolateral:11,
+                          Inferior:10, Inferoseptal:9, Anteroseptal:8 };
+
 const _STR_GRIS = '#9E9E9E';
 
 /* Intensidad por MAGNITUD del acortamiento. 0 % → casi blanco, 30 % o más → teal oscuro.
@@ -47269,7 +47302,12 @@ function _strTono(pct) {
 
 /* Dibuja el diagrama completo en un contexto 2D. `S` es el tamaño del lado. */
 function _strBullsDibujar(cx2, S, R, conTitulo) {
-  const cx = S / 2, cy = S * (conTitulo ? 0.55 : 0.5), r = S * (conTitulo ? 0.33 : 0.40);
+  /* La diana se achicó al pasar de 6 sextantes a 17 segmentos: abajo van ahora el SGL, la
+     línea del ápex y la leyenda, y en la captura además las dos del descargo. Con el radio
+     anterior la leyenda caía FUERA del canvas — y un canvas no avisa: recorta en silencio y
+     el descargo desaparece de la imagen que va al PDF. Los valores están medidos, no
+     estimados: ver la condición «nada se recorta» de TC-201. */
+  const cx = S / 2, cy = S * 0.42, r = S * (conTitulo ? 0.27 : 0.335);
   const rad = g => (g - 90) * Math.PI / 180;
   cx2.clearRect(0, 0, S, S);
   cx2.fillStyle = '#ffffff'; cx2.fillRect(0, 0, S, S);   // base blanca, como el resto de las imágenes
@@ -47283,73 +47321,86 @@ function _strBullsDibujar(cx2, S, R, conTitulo) {
 
   const porPared = {};
   if (R) R.terr.forEach(t => { porPared[t.pared] = t; });
-  const deSextante = k => {
-    const fuentes = _STR_FUENTE[k] || [];
-    for (let i = 0; i < fuentes.length; i++) if (porPared[fuentes[i]]) return porPared[fuentes[i]];
-    return null;
+  /* Valor de un SEGMENTO: una sola pared lo toma directo; dos paredes exigen que las DOS
+     tengan valor y devuelven el promedio. Con una sola, `null` — gris. */
+  const deSegmento = n => {
+    const f = _STR_SEG_FUENTE[n] || [];
+    if (!f.length) return null;                       // el ápex
+    const vs = f.map(w => porPared[w]).filter(Boolean);
+    if (vs.length !== f.length) return null;          // falta alguna de las que lo comparten
+    if (vs.length === 1) return { pct: vs[0].pct, prom: false };
+    let acc = 0; for (let k2 = 0; k2 < vs.length; k2++) acc += vs[k2].pct;
+    return { pct: acc / vs.length, prom: true };
   };
 
-  _STR_SEXT.forEach(S6 => {
-    const a = S6.a, t = deSextante(S6.k);
+  /* Un sector de anillo: arco externo, arco interno al revés, y cierre. Con r0 = 0 degenera en
+     el círculo del centro, así que el ápex entra por el mismo camino y no hay un segundo
+     dibujante que se pueda desincronizar. */
+  const sector = (r0, r1, a0, a1) => {
     cx2.beginPath();
-    cx2.moveTo(cx, cy);
-    cx2.arc(cx, cy, r, rad(a[0]), rad(a[1]));
+    if (r0 <= 0) { cx2.arc(cx, cy, r1, 0, 6.2832); cx2.closePath(); return; }
+    cx2.arc(cx, cy, r1, rad(a0), rad(a1));
+    cx2.arc(cx, cy, r0, rad(a1), rad(a0), true);
     cx2.closePath();
-    cx2.fillStyle = t ? _strTono(t.pct) : _STR_GRIS;
+  };
+
+  _STR_ANILLOS.forEach(SG => {
+    const v = deSegmento(SG.seg);
+    sector(r * SG.r0, r * SG.r1, SG.a[0], SG.a[1]);
+    cx2.fillStyle = v ? _strTono(v.pct) : _STR_GRIS;
     cx2.fill();
     cx2.strokeStyle = '#cfd6e6'; cx2.lineWidth = 1.2 * esc; cx2.stroke();
-    /* Rótulo y número, a media distancia del radio. */
-    const am = rad((a[0] + a[1]) / 2), rr = r * 0.66;
+  });
+
+  /* EL NÚMERO VA UNA VEZ POR TERRITORIO, en su segmento del anillo medio. Repetirlo en los
+     tres segmentos de una pared los haría leer como tres mediciones que dieron igual — que es
+     exactamente lo que el diagrama de sextantes ya había tenido que declarar. */
+  Object.keys(_STR_SEG_ROTULO).forEach(pared => {
+    const t = porPared[pared];
+    const SG = _STR_ANILLOS.filter(x => x.seg === _STR_SEG_ROTULO[pared])[0];
+    if (!SG) return;
+    const am = rad((SG.a[0] + SG.a[1]) / 2), rr = r * (SG.r0 + SG.r1) / 2;
     const px = cx + Math.cos(am) * rr, py = cy + Math.sin(am) * rr;
     cx2.textAlign = 'center';
     cx2.fillStyle = '#111827';
-    cx2.font = Math.round(9 * esc) + 'px system-ui, sans-serif';
-    cx2.fillText(S6.rot, px, py - 5 * esc);
+    cx2.font = Math.round(7.5 * esc) + 'px system-ui, sans-serif';
+    cx2.fillText(pared, px, py - 4 * esc);
     if (t) {
-      cx2.font = 'bold ' + Math.round(13 * esc) + 'px system-ui, sans-serif';
-      cx2.fillText(t.pct.toFixed(1) + ' %', px, py + 10 * esc);
-      /* Si el valor NO se midió en este sextante sino heredado de una pared que abarca dos, se
-         marca: dos sextantes con el mismo número se leen como dos mediciones independientes
-         que dieron igual.
-         HOY ES INALCANZABLE y se deja a propósito: desde que `_STR_FUENTE` es 1:1, `t.pared`
-         siempre coincide con el rótulo del sextante. Queda porque fija el CONTRATO — el día
-         que alguien vuelva a agregar una herencia a esa tabla, el número heredado tiene que
-         salir marcado, y si el rótulo no estuviera se publicaría como medición propia. */
-      if (t.pared !== S6.rot) {
-        cx2.font = Math.round(7.5 * esc) + 'px system-ui, sans-serif';
-        cx2.fillStyle = '#4b5563';
-        cx2.fillText('(pared ' + t.pared.toLowerCase() + ')', px, py + 20 * esc);
-      }
+      cx2.font = 'bold ' + Math.round(11 * esc) + 'px system-ui, sans-serif';
+      cx2.fillText(t.pct.toFixed(1) + ' %', px, py + 8 * esc);
     } else {
-      cx2.font = Math.round(9 * esc) + 'px system-ui, sans-serif';
+      cx2.font = Math.round(7.5 * esc) + 'px system-ui, sans-serif';
       cx2.fillStyle = '#4b5563';
-      cx2.fillText('Sin datos', px, py + 10 * esc);
+      cx2.fillText('sin datos', px, py + 7 * esc);
     }
   });
 
-  /* Centro: el SGL y cuántas vistas lo sostienen. */
-  const rc = r * 0.30;
-  cx2.beginPath(); cx2.arc(cx, cy, rc, 0, 6.2832);
-  cx2.fillStyle = '#ffffff'; cx2.fill();
-  cx2.strokeStyle = '#cfd6e6'; cx2.lineWidth = 1.2 * esc; cx2.stroke();
-  cx2.textAlign = 'center'; cx2.fillStyle = '#111827';
+  /* El SGL YA NO VA EN EL CENTRO: ese círculo es el segmento 17, el ápex, y tiene que quedar
+     gris como cualquier segmento sin dato. Escribir el SGL encima lo haría leer como el valor
+     medido del ápex — un número sobre el único segmento que este método declara no medir.
+     Baja debajo de la diana, con las vistas que lo sostienen. */
+  cx2.textAlign = 'center';
+  cx2.fillStyle = '#4b5563';
+  cx2.font = Math.round(7 * esc) + 'px system-ui, sans-serif';
+  cx2.fillText('17', cx, cy + 2.5 * esc);
   if (R) {
-    cx2.font = 'bold ' + Math.round(16 * esc) + 'px system-ui, sans-serif';
-    cx2.fillText(R.sgl.toFixed(1) + '%', cx, cy + 1 * esc);
+    cx2.fillStyle = '#111827';
+    cx2.font = 'bold ' + Math.round(14 * esc) + 'px system-ui, sans-serif';
+    cx2.fillText('SGL ' + R.sgl.toFixed(1) + ' %', cx, cy + r + 15 * esc);
+    cx2.fillStyle = '#4b5563';
     cx2.font = Math.round(8.5 * esc) + 'px system-ui, sans-serif';
-    cx2.fillStyle = '#4b5563';
-    cx2.fillText('SGL', cx, cy - 11 * esc);
-    cx2.fillText(R.nVistas + (R.nVistas === 1 ? ' vista' : ' vistas'), cx, cy + 13 * esc);
+    cx2.fillText(R.nVistas + (R.nVistas === 1 ? ' vista' : ' vistas') +
+                 ' · el ápex (17) no lo mide este método', cx, cy + r + 26 * esc);
   } else {
-    cx2.font = Math.round(9 * esc) + 'px system-ui, sans-serif';
     cx2.fillStyle = '#4b5563';
-    cx2.fillText('sin datos', cx, cy + 3 * esc);
+    cx2.font = Math.round(9 * esc) + 'px system-ui, sans-serif';
+    cx2.fillText('sin datos', cx, cy + r + 15 * esc);
   }
 
   /* Leyenda: rampa de intensidad. Dice qué codifica el color —magnitud— y qué NO —severidad—,
      porque una rampa de color al lado de un número se lee como una escala clínica si nadie
      aclara que no lo es. */
-  const ly = cy + r + 22 * esc, lw = S * 0.46, lx = cx - lw / 2;
+  const ly = cy + r + 34 * esc, lw = S * 0.46, lx = cx - lw / 2;
   for (let i = 0; i <= 40; i++) {
     cx2.fillStyle = _strTono(30 * i / 40);
     cx2.fillRect(lx + lw * i / 41, ly, lw / 40 + 1, 9 * esc);
@@ -64838,8 +64889,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260920-1410';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789924222016;                 /* eco-build-ms */
+const ECO_BUILD    = '20260920-1426';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789925201614;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -64925,7 +64976,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1410</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1426</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

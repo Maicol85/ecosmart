@@ -6,6 +6,82 @@ ninguna es evidente leyendo el código alrededor.
 
 
 
+
+## La diana de 17 segmentos del visor, y la A3C que trazaba al revés (2026-09-20)
+
+### Tarea 1 — de las tres vistas, sólo la A3C estaba invertida
+
+A4C (inferoseptal → anterolateral) y A2C (inferior → anterior) **ya estaban en el orden
+pedido**. La **A3C** trazaba del **inferolateral** al **anteroseptal**, o sea al revés: el
+médico marcaba primero el anillo que el panel llamaba inferolateral, y el arco A —el primero—
+se publicaba con ese rótulo.
+
+`orden` y `paredes` se mueven **juntos**. Invertir el rótulo sin invertir el trazado deja las
+dos paredes intercambiadas, que es el defecto que este archivo cerró el mismo día.
+
+### Tarea 2 — LOS NÚMEROS DEL PEDIDO ESTABAN CRUZADOS, y la referencia vive en el archivo
+
+El pedido traía Inferoseptal 2/8/14 y Anteroseptal 3/9/17. **`EE_SEGS` —la lista de 17
+segmentos que ya usa el bull's eye del INFORME— dice lo contrario**: 2 «Anteroseptal basal»,
+3 «Inferoseptal basal», 8/9 ídem en el medio, 5/11 inferolateral y 6/12 anterolateral.
+Anterior e inferior sí coincidían.
+
+Aplicado tal cual, el mismo PDF podía llevar **dos dianas de 17 segmentos donde el segmento 2
+se llama anteroseptal en una y se pinta como inferoseptal en la otra**. Decisión de Maicol:
+manda `EE_SEGS`, que además es la asignación con la que ya coincidía la corrección de
+vistas→paredes del mismo día.
+
+**Antes de implementar un mapeo anatómico, buscar si el archivo ya tiene uno.** Acá estaba a
+37.000 líneas de distancia y es el que firma el informe.
+
+### Los tres segmentos que no son de una sola pared
+
+| segmento | quién lo comparte | qué se hace |
+|---|---|---|
+| **14** septal apical | anteroseptal + inferoseptal | promedio, **y sólo con las dos** |
+| **16** lateral apical | anterolateral + inferolateral | promedio, **y sólo con las dos** |
+| **17** ápex | ninguna | **gris siempre** — este método no lo mide |
+
+Pintarlos con una sola pared sería la herencia de «pared ancha» que este mismo diagrama sacó
+horas antes, por la puerta de al lado. La condición que lo fija es que el color del 14 **no
+coincida con ninguna** de las dos paredes que lo forman: si coincidiera, estaría heredando en
+vez de promediando.
+
+**El SGL salió del centro.** Ese círculo ES el segmento 17, y escribir el SGL encima lo hacía
+leer como el valor medido del ápex — un número sobre el único segmento que el método declara no
+medir. Bajó debajo de la diana.
+
+### Cuánto se pinta, que es el invariante que vale
+
+| | segmentos pintados |
+|---|---|
+| 1 vista (A4C) | **4** — 3, 6, 9, 12 |
+| 2 vistas (+A2C) | **10** — suma 1, 4, 7, 10, 13, 15 |
+| 3 vistas | **16** — sólo el 17 queda gris |
+
+Las condiciones comparan la **lista de segmentos**, no un conteo: con un conteo, la mutación
+que cruza los septales pasa en verde porque sigue pintando cuatro.
+
+### Lo que costó
+
+**LA DIANA SE SALÍA DEL CANVAS.** Al pasar de 6 sextantes a 17 segmentos hay dos líneas más
+abajo (SGL y ápex), y en la captura otras dos del descargo. Con el radio anterior la leyenda
+caía **fuera** — y un canvas **no avisa**: recorta en silencio, así que el descargo habría
+desaparecido del PNG que va al PDF y la imagen se vería perfectamente bien. Se midió buscando
+la última fila con algo dibujado: hoy quedan ~10 px de margen en los dos tamaños (300 y 640).
+
+**El muestreo va al 22 % del sector, no a su centro.** El rótulo y el número de cada territorio
+van centrados en su segmento del anillo medio, así que muestrear el centro devuelve el color de
+una letra. Ya había pasado con los sextantes y lo volví a hacer.
+
+**«UNA vez por territorio» se cuenta interceptando `fillText`**, no leyendo el canvas: un número
+son píxeles. Y el filtro tuvo que acotarse a los valores **con decimal** — los rótulos de la
+leyenda («0 %», «−30 %») también llevan `%` y hacían contar 4 sobre un dibujo con 2 territorios.
+
+**TC-203 volvió a ponerse en rojo por pinar un literal**, esta vez `INFEROLATERAL` en la A3C.
+Se reapuntó a derivar de `_STR_VISTAS`, igual que TC-208. Un caso que fija texto hay que
+tocarlo cada vez que el texto cambia a propósito; uno que fija el invariante, no.
+
 ## Territorios del strain: la A4C es INFEROSEPTAL + ANTEROLATERAL (2026-09-20)
 
 Corrección de Maicol. Reemplaza lo que decía la entrada anterior sobre la «pared ancha»: ese

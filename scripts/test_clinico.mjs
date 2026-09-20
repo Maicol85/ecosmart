@@ -13855,7 +13855,7 @@ caso('TC-200', 'Strain: SGL por territorios de pared con 1, 2 y 3 vistas, sin to
    dice donde cayo el gris.
 
    NO DEPENDE DEL PENDRIVE.                                                                    */
-caso('TC-201', 'Bull.s eye del visor: sextantes grises donde faltan vistas, y NO toca el del informe', `
+caso('TC-201', 'Bull.s eye del visor: 17 segmentos AHA coloreados por territorio, y NO toca el del informe', `
   return (async () => {
     const R = {};
     const alertOrig = window.alert; window.alert = () => {};
@@ -13916,40 +13916,65 @@ caso('TC-201', 'Bull.s eye del visor: sextantes grises donde faltan vistas, y NO
       R.hayCanvas = !!document.getElementById('cine-str-be');
       R.tituloPanel = /Strain por territorios \\(método manual\\)/.test(document.getElementById('cine-med-barra').innerHTML);
 
-      /* Se lee el PIXEL en el medio de cada sextante. 0 = arriba, horario. */
+      /* Se lee el PIXEL de cada uno de los 17 SEGMENTOS, con la misma geometria que el
+         dibujante. 0 = arriba, horario.
+         SE MUESTREA AL 22 % DEL SECTOR, no en su centro angular: el rotulo y el numero de
+         cada territorio van centrados en su segmento del anillo MEDIO, asi que muestrear el
+         centro devuelve el color de una letra. Ya me paso una vez con los sextantes. */
       const leer = () => {
         const c = document.getElementById('cine-str-be');
-        const g = c.getContext('2d'), S = c.width, cx0 = S/2, cy0 = S/2, r0 = S*0.40;
+        const g = c.getContext('2d'), S = c.width, cx0 = S/2, cy0 = S*0.42, r0 = S*0.335;
         const out = {};
-        _STR_SEXT.forEach(s6 => {
-          const am = ((s6.a[0]+s6.a[1])/2 - 90) * Math.PI/180;
-          /* Se muestrea ENTRE el circulo central (0,30 r) y los rotulos (0,66 r y sus tres
-             lineas de texto). Afuera de esa banda el pixel cae sobre una letra y el color
-             leido es el del texto, no el del sector -- me paso, y la condicion de que la
-             pared ancha pinte igual sus dos sextantes daba false sobre un dibujo correcto. */
-          const rr = r0 * 0.46;
-          const px = Math.round(cx0 + Math.cos(am)*rr), py = Math.round(cy0 + Math.sin(am)*rr);
+        _STR_ANILLOS.forEach(SG => {
+          let px, py;
+          if (SG.r0 <= 0) {                       // el apex: al costado del rotulo "17"
+            px = Math.round(cx0 + r0 * 0.12); py = Math.round(cy0 + r0 * 0.12);
+          } else {
+            const am = ((SG.a[0] + (SG.a[1]-SG.a[0]) * 0.22) - 90) * Math.PI/180;
+            const rr = r0 * (SG.r0 + SG.r1) / 2;
+            px = Math.round(cx0 + Math.cos(am)*rr); py = Math.round(cy0 + Math.sin(am)*rr);
+          }
           const d = g.getImageData(px,py,1,1).data;
-          out[s6.k] = 'rgb(' + d[0] + ',' + d[1] + ',' + d[2] + ')';
+          out[SG.seg] = 'rgb(' + d[0] + ',' + d[1] + ',' + d[2] + ')';
         });
         return out;
       };
+      /* Los numeros que el dibujante imprime, capturados en la frontera de la API: contar
+         cuantas veces sale un porcentaje es la unica forma de fijar «UNA vez por territorio».
+         Leer el canvas no sirve -- un numero es pixeles. */
+      const numerosDibujados = () => {
+        const vistos = [];
+        const fo = CanvasRenderingContext2D.prototype.fillText;
+        CanvasRenderingContext2D.prototype.fillText = function (t) {
+          const str = String(t);
+          /* Solo los VALORES de territorio: llevan decimal. Se excluyen los rotulos de la
+             leyenda («0 %», «−30 %») y el SGL, que no son valores por territorio -- contarlos
+             hacia que la condicion diera 4 sobre un dibujo con 2 territorios. */
+          if (str.indexOf('%') >= 0 && str.indexOf('.') >= 0 && str.indexOf('SGL') < 0) vistos.push(str);
+          return fo.apply(this, arguments); };
+        _strBullsRepintar();
+        CanvasRenderingContext2D.prototype.fillText = fo;
+        return vistos;
+      };
       const GRIS = 'rgb(158,158,158)';
+      const pint = o => Object.keys(o).filter(k => o[k] !== GRIS).map(Number).sort((x,y)=>x-y);
       const p1 = leer();
-      R.px1 = JSON.stringify(p1);
-      R.g1_anterior = p1.anterior === GRIS;
-      R.g1_inferior = p1.inferior === GRIS;
-      /* La A4C aporta inferoseptal y anterolateral, y SOLO esos dos. Antes declaraba paredes
-         anchas -«Septal», «Lateral»- que se hacian cargo de dos sextantes cada una, asi que
-         con una sola vista se pintaban CUATRO y dos llevaban un numero heredado. */
-      R.c1_septo    = p1.inferoseptal   !== GRIS;
-      R.c1_lateral  = p1.anterolateral  !== GRIS;
-      R.g1_anteroseptal  = p1.anteroseptal  === GRIS;
-      R.g1_inferolateral = p1.inferolateral === GRIS;
-      R.pintados1 = Object.keys(p1).filter(k => p1[k] !== GRIS).length;
-      /* La pared ancha pinta SUS DOS sextantes con el mismo valor. */
-      R.septoIgual   = p1.inferoseptal === p1.anteroseptal;
-      R.lateralIgual = p1.anterolateral === p1.inferolateral;
+      R.px1 = JSON.stringify(pint(p1));
+      /* LA A4C APORTA INFEROSEPTAL (3, 9) Y ANTEROLATERAL (6, 12), segun EE_SEGS -- la misma
+         lista de 17 segmentos que usa el bulls eye del INFORME. El pedido los traia cruzados
+         (inferoseptal 2/8); con eso el mismo PDF llevaria dos dianas que nombran distinto el
+         mismo segmento. */
+      R.seg1 = pint(p1).join(',');
+      R.a4cPintaSus4 = R.seg1 === '3,6,9,12';
+      R.apex1Gris = p1[17] === GRIS;
+      /* 14 y 16 los comparten DOS paredes: con una sola vista no alcanzan. */
+      R.g1_sep14 = p1[14] === GRIS;
+      R.g1_lat16 = p1[16] === GRIS;
+      /* Un territorio pinta TODOS sus segmentos del MISMO color: es un solo valor medido. */
+      R.mismoColorSepto   = p1[3] === p1[9];
+      R.mismoColorLateral = p1[6] === p1[12];
+      R.nums1 = numerosDibujados();
+      R.unaVezPorTerr1 = R.nums1.length === 2;
       /* Y NO usa la paleta GE: el rojo de "normal" de aquel no puede aparecer aca. */
       R.sinRojoGE = Object.keys(p1).every(k => p1[k] !== 'rgb(220,38,38)');
       R.sinAzulGE = Object.keys(p1).every(k => p1[k] !== 'rgb(29,78,216)');
@@ -13958,23 +13983,33 @@ caso('TC-201', 'Bull.s eye del visor: sextantes grises donde faltan vistas, y NO
       medStrainVistaSiguiente(); await new Promise(r=>setTimeout(r,110));
       await parEn('a2c.dcm',100,100,300,70,78,250);
       const p2 = leer();
-      R.g2_anteriorYaNo = p2.anterior !== GRIS;
-      R.g2_inferiorYaNo = p2.inferior !== GRIS;
-      R.pintados2 = Object.keys(p2).filter(k => p2[k] !== GRIS).length;
-      /* Con DOS vistas quedan dos en gris -anteroseptal e inferolateral, que aporta la A3C-.
-         Antes no quedaba ninguno, porque las paredes anchas los cubrian con valor heredado. */
-      R.g2_anteroseptal  = p2.anteroseptal  === GRIS;
-      R.g2_inferolateral = p2.inferolateral === GRIS;
+      R.seg2 = pint(p2).join(',');
+      /* +A2C: anterior (1,7,13) e inferior (4,10,15). 14, 16 y 17 siguen grises. */
+      R.a2cSuma6 = R.seg2 === '1,3,4,6,7,9,10,12,13,15';
+      R.g2_sep14 = p2[14] === GRIS;
+      R.g2_lat16 = p2[16] === GRIS;
+      R.apex2Gris = p2[17] === GRIS;
+      R.nums2 = numerosDibujados();
+      R.unaVezPorTerr2 = R.nums2.length === 4;
 
       /* ── 3 · TRES vistas: anteroseptal e inferolateral toman valor PROPIO ── */
       medStrainVistaSiguiente(); await new Promise(r=>setTimeout(r,110));
       await parEn('a3c.dcm',100,100,300,40,95,255);
       const p3 = leer();
-      R.septoYaNoIgual   = p3.inferoseptal !== p3.anteroseptal;
-      R.lateralYaNoIgual = p3.anterolateral !== p3.inferolateral;
-      R.pintados3 = Object.keys(p3).filter(k => p3[k] !== GRIS).length;
-      R.sinGrisEn3 = R.pintados3 === 6;
-      R.px3 = JSON.stringify(p3);
+      R.seg3 = pint(p3).join(',');
+      /* Con las TRES: los seis territorios, y ahi recien 14 y 16 se pintan -- por PROMEDIO de
+         las dos paredes que los comparten. El 17 queda gris SIEMPRE: el metodo no lo mide. */
+      R.sinGrisEn3 = R.seg3 === '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16';
+      R.apex3Gris  = p3[17] === GRIS;
+      R.septoYaNoIgual   = p3[3] !== p3[2];
+      R.lateralYaNoIgual = p3[6] !== p3[5];
+      R.nums3 = numerosDibujados();
+      R.unaVezPorTerr3 = R.nums3.length === 6;
+      /* El promedio no puede coincidir con ninguna de las dos paredes que lo forman -- si
+         coincidiera, estaria heredando de una en vez de promediar. */
+      R.p14Promedia = p3[14] !== p3[2] && p3[14] !== p3[3];
+      R.p16Promedia = p3[16] !== p3[5] && p3[16] !== p3[6];
+      R.px3 = JSON.stringify(pint(p3));
 
       /* ── 4 · intensidad = magnitud: mas acortamiento, mas oscuro ── */
       const lum = c => { const m = c.match(/\\d+/g); return (+m[0]) + (+m[1]) + (+m[2]); };
@@ -13984,8 +14019,8 @@ caso('TC-201', 'Bull.s eye del visor: sextantes grises donde faltan vistas, y NO
       R.magnitudes = 'anteroseptal ' + porPared['Anteroseptal'].toFixed(1) +
                      ' vs inferolateral ' + porPared['Inferolateral'].toFixed(1);
       R.masOscuroElMasCorto = masCorto
-        ? lum(p3.anteroseptal) < lum(p3.inferolateral)
-        : lum(p3.inferolateral) < lum(p3.anteroseptal);
+        ? lum(p3[2]) < lum(p3[5])
+        : lum(p3[5]) < lum(p3[2]);
 
       /* ── 5 · captura al slot, con el descargo QUEMADO en la imagen ── */
       const slotsAntes = imgSlots.filter(Boolean).length;
@@ -14012,21 +14047,25 @@ caso('TC-201', 'Bull.s eye del visor: sextantes grises donde faltan vistas, y NO
     return { extra: [
       ['el bull.s eye del informe usa ROJO = normal (denominador)', R.geNormalEsRojo && R.geUltimoEsAzul, R.geNormalEsRojo],
       ['el canvas del visor existe y se rotula',     R.hayCanvas && R.tituloPanel, R.hayCanvas],
-      ['1 vista: anterior en GRIS',                  R.g1_anterior, R.px1],
-      ['1 vista: inferior en GRIS',                  R.g1_inferior, R.g1_inferior],
-      ['1 vista: el inferoseptal pintado',           R.c1_septo, R.c1_septo],
-      ['1 vista: el anterolateral pintado',          R.c1_lateral, R.c1_lateral],
-      ['1 VISTA PINTA DOS SEXTANTES, NO CUATRO',     R.pintados1 === 2, R.pintados1 + ' pintados'],
-      ['y el anteroseptal NO se hereda del septo',   R.g1_anteroseptal, R.px1],
-      ['ni el inferolateral del lateral',            R.g1_inferolateral, R.g1_inferolateral],
+      /* 1 vista · la A4C resuelve inferoseptal (3,9) y anterolateral (6,12) -- los numeros de
+         EE_SEGS, que es la lista que usa el bulls eye del informe. */
+      ['1 vista: se pintan los segmentos 3,6,9,12',  R.a4cPintaSus4, R.seg1],
+      ['los del mismo territorio, del MISMO color',  R.mismoColorSepto && R.mismoColorLateral, R.mismoColorSepto],
+      ['el valor sale UNA vez por territorio',       R.unaVezPorTerr1, R.nums1.join(' ')],
+      ['14 y 16 grises: los comparten DOS paredes',  R.g1_sep14 && R.g1_lat16, R.g1_sep14],
+      ['el apex (17) gris: el metodo no lo mide',    R.apex1Gris, R.apex1Gris],
       ['NO aparece el rojo de la paleta GE',         R.sinRojoGE, R.sinRojoGE],
       ['ni su azul',                                 R.sinAzulGE, R.sinAzulGE],
-      ['2 vistas: anterior deja de ser gris',        R.g2_anteriorYaNo, R.g2_anteriorYaNo],
-      ['2 vistas: inferior deja de ser gris',        R.g2_inferiorYaNo, R.g2_inferiorYaNo],
-      ['2 VISTAS PINTAN CUATRO, y quedan dos grises', R.pintados2 === 4 && R.g2_anteroseptal && R.g2_inferolateral, R.pintados2 + ' pintados'],
+      /* 2 vistas */
+      ['2 vistas: suma anterior (1,7,13) e inferior (4,10,15)', R.a2cSuma6, R.seg2],
+      ['con dos, 14 y 16 SIGUEN grises',             R.g2_sep14 && R.g2_lat16 && R.apex2Gris, R.g2_sep14],
+      ['y el valor sigue una vez por territorio',    R.unaVezPorTerr2, R.nums2.join(' ')],
+      /* 3 vistas */
       ['3 vistas: el anteroseptal toma valor propio', R.septoYaNoIgual, R.px3],
       ['3 vistas: el inferolateral tambien',         R.lateralYaNoIgual, R.lateralYaNoIgual],
-      ['SOLO con TRES vistas se completan los seis',  R.sinGrisEn3, R.pintados3 + ' pintados'],
+      ['SOLO con TRES se pintan los 16, y 17 gris',  R.sinGrisEn3 && R.apex3Gris, R.seg3],
+      ['14 y 16 PROMEDIAN sus dos paredes',          R.p14Promedia && R.p16Promedia, R.p14Promedia + '/' + R.p16Promedia],
+      ['y los seis valores, una vez cada uno',       R.unaVezPorTerr3, R.nums3.join(' ')],
       ['mas acortamiento = mas oscuro',              R.masOscuroElMasCorto, R.magnitudes],
       ['capturar manda la imagen al slot',           R.capturoAlSlot, R.slotsAntes + ' -> ' + R.slotsDespues],
       ['la imagen lleva el titulo quemado',          R.imgTieneTitulo, R.imgTieneTitulo],
@@ -15378,10 +15417,17 @@ caso('TC-208', 'Strain: barra lateral por grupos, rotulos de pared por vista y b
       const C = _strainCalcular();
       R.terr[k] = C ? C.terr.map(t => t.pared).join('/') : '(null)';
     }
-    R.p3PorVista = R.p3.a4c.indexOf('SEPTAL') >= 0 && R.p3.a2c.indexOf('INFERIOR') >= 0 &&
-                   R.p3.a3c.indexOf('INFEROLATERAL') >= 0;
-    R.p3NoCableado = R.p3.a2c.indexOf('SEPTAL') < 0 && R.p3.a3c.indexOf('SEPTAL') < 0;
-    R.ordenPorVista = R.orden.a2c.indexOf('INFERIOR') >= 0 && R.orden.a3c.indexOf('INFEROLATERAL') >= 0;
+    /* EL ORDEN ANATOMICO: cada vista arranca en SU primer anillo. La A3C estaba invertida
+       -trazaba del inferolateral al anteroseptal- y se corrigio el 2026-09-20; A4C y A2C ya
+       estaban bien. Se deriva de _STR_VISTAS en vez de pinar literales: un literal obliga a
+       tocar el caso cada vez que cambia una redaccion, y ya paso con TC-203. */
+    R.p3PorVista = ['a4c','a2c','a3c'].every(k =>
+      R.p3[k].toUpperCase().indexOf(_strVista(k).paredes[0].toUpperCase()) >= 0);
+    /* Y no estan CABLEADOS: si lo estuvieran, los tres dirian lo mismo. */
+    R.p3NoCableado = new Set(['a4c','a2c','a3c'].map(k => R.p3[k])).size === 3;
+    R.a3cArrancaAnteroseptal = R.p3.a3c.indexOf('ANTEROSEPTAL') >= 0;
+    R.ordenPorVista = ['a4c','a2c','a3c'].every(k =>
+      R.orden[k].toUpperCase().indexOf(_strVista(k).paredes[0].toUpperCase()) >= 0);
     /* el punto 1 que se marca y la pared que se publica son EL MISMO */
     R.pideLoQuePublica = ['a4c','a2c','a3c'].every(k =>
       R.p3[k].toUpperCase().indexOf(R.terr[k].split('/')[0].toUpperCase()) >= 0);
@@ -15482,7 +15528,8 @@ caso('TC-208', 'Strain: barra lateral por grupos, rotulos de pared por vista y b
       ['LEGIBLE EN LOS DOS TEMAS',                    R.legibleEnAmbos, 'peor osc ' + R.peorOsc + ' / claro ' + R.peorCla],
       /* 2 · rotulos por vista */
       ['los 3 puntos se nombran por la VISTA',        R.p3PorVista, JSON.stringify(R.p3)],
-      ['y NO con las paredes de la A4C',              R.p3NoCableado, R.p3.a2c],
+      ['y NO con las paredes de la A4C',              R.p3NoCableado, JSON.stringify(R.p3)],
+      ['la A3C arranca en el ANTEROSEPTAL',           R.a3cArrancaAnteroseptal, R.p3.a3c],
       ['el aviso de orden tambien sigue a la vista',  R.ordenPorVista, R.orden.a2c],
       ['lo que se PIDE marcar es lo que se PUBLICA',  R.pideLoQuePublica, JSON.stringify(R.terr)],
       /* 3 · botones */
