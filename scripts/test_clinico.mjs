@@ -15775,6 +15775,184 @@ caso('TC-209', 'Laboratorio: strain manual, comparacion con el automatico y Blan
   })();
 `);
 
+
+/* ══ TC-210 · Selector de imágenes del PPT ════════════════════════════════════════════════════
+   OJO CON LA PREMISA: el PPT individual YA tenia diapositivas de imagenes -`_pptAgregarImagenes`
+   con `_pptLeerImgs`, en grilla de hasta SEIS-. No las lee de `imgSlots` sino de IndexedDB, que
+   es por lo que un grep de `imgSlots` sobre la funcion da cero y parece que no existian.
+   Lo que se agrega es el SELECTOR y el layout; el defecto a evitar es que el selector y el
+   generador indexen listas distintas, porque ahi el medico tilda la imagen 3 y al PPT va otra
+   -y las dos son imagenes validas del estudio, asi que nada lo delata-.
+   NO DEPENDE DEL PENDRIVE.                                                                    */
+caso('TC-210', 'PPT: selector de imagenes, orden, layout de 1/2/3/4 y sin seleccion sin diapositiva', `
+  return (async () => {
+    const R = {};
+    const alertOrig = window.alert; window.alert = () => {};
+    let id = null;
+    try {
+      /* ── cinco imagenes distinguibles por su color ── */
+      const mkPng = (r2,g2,b2) => { const c = document.createElement('canvas'); c.width=40; c.height=30;
+        const g = c.getContext('2d'); g.fillStyle='rgb('+r2+','+g2+','+b2+')'; g.fillRect(0,0,40,30);
+        return c.toDataURL('image/png'); };
+      const COL = [[220,10,10],[10,220,10],[10,10,220],[220,220,10],[220,10,220]];
+      const imgs = COL.map((c,i2) => ({ dataURL: mkPng(c[0],c[1],c[2]), ampliada:false,
+                                        calidad:'media', origen: (i2 >= 3 ? 'visor' : 'estudio') }));
+      __t.limpiar();
+      document.getElementById('nombre').value = 'Paciente PPT';
+      document.getElementById('informe_texto').value = 'Informe de prueba para el PPT.';
+      const gr = await __t.guardar();
+      id = gr.estudioId ? null : null;
+      const lista = CeiboStore.getLocal();
+      const est = lista[lista.length - 1];
+      id = est.id;
+      est.campos = est.campos || {};
+      est.campos.informe_texto = 'Informe de prueba para el PPT.';
+      CeiboStore.setLocal(lista);
+      R.uuid = est.uuid || '';
+      R.hayUuid = !!R.uuid;
+      if (!R.hayUuid) return { extra: [['el estudio guardado tiene uuid', false, 'sin uuid']] };
+      const ok = await CeiboImg.guardar(est.uuid, imgs);
+      R.guardoImgs = !!ok;
+      const leidas = await CeiboImg.leer(est.uuid);
+      R.leidas = leidas ? leidas.length : 0;
+      /* EL ORIGEN SOBREVIVE AL GUARDADO: sin esto el selector veria cero capturas del visor en
+         todo estudio reabierto, que es el flujo normal para exportar. */
+      R.origenPersiste = !!leidas && leidas.filter(x => x.origen === 'visor').length === 2;
+
+      /* ── el panel ── */
+      const desde = await _pptImgsDeEstudio(est);
+      R.nPanel = desde ? desde.length : -1;
+      R.panelLee5 = R.nPanel === 5;
+      R.panelSepara = !!desde && desde.filter(o => o.origen === 'visor').length === 2 &&
+                                 desde.filter(o => o.origen === 'estudio').length === 3;
+      let elec = null;
+      _pptElegirImagenes(desde, e => { elec = e; });
+      await new Promise(r=>setTimeout(r,150));
+      const modal = document.querySelector('[data-ppt-img-modal]');
+      R.hayModal = !!modal;
+      R.miniaturas = modal ? modal.querySelectorAll('[data-ppt-idx]').length : 0;
+      R.todasTildadas = modal ? Array.prototype.every.call(
+        modal.querySelectorAll('[data-ppt-chk-img]'), c => c.checked) : false;
+      R.dosSecciones = modal ? modal.querySelectorAll('[data-ppt-grid]').length === 2 : false;
+      /* layout por defecto = 2 */
+      const btn2 = modal.querySelector('[data-ppt-lay="2"]');
+      R.layoutDefecto2 = getComputedStyle(btn2).backgroundColor !== 'rgba(0, 0, 0, 0)';
+      /* deseleccionar todas y volver a seleccionar */
+      modal.querySelector('[data-ppt-act="ninguna"]').click();
+      R.trasNinguna = Array.prototype.filter.call(
+        modal.querySelectorAll('[data-ppt-chk-img]'), c => c.checked).length;
+      modal.querySelector('[data-ppt-act="todas"]').click();
+      R.trasTodas = Array.prototype.filter.call(
+        modal.querySelectorAll('[data-ppt-chk-img]'), c => c.checked).length;
+      /* destildar la 0 y la 4, layout 3 */
+      modal.querySelector('[data-ppt-chk-img="0"]').checked = false;
+      modal.querySelector('[data-ppt-chk-img="0"]').dispatchEvent(new Event('change'));
+      modal.querySelector('[data-ppt-chk-img="4"]').checked = false;
+      modal.querySelector('[data-ppt-chk-img="4"]').dispatchEvent(new Event('change'));
+      modal.querySelector('[data-ppt-lay="3"]').click();
+      modal.querySelector('[data-ppt-act="generar"]').click();
+      await new Promise(r=>setTimeout(r,120));
+      R.elec = elec ? JSON.stringify(elec) : '(no volvio)';
+      R.eligio3 = !!elec && elec.sel.length === 3 && elec.layout === 3;
+      R.modalCerrado = !document.querySelector('[data-ppt-img-modal]');
+
+      /* ── generar el mazo interceptando addImage por diapositiva ── */
+      const correr = async (sel, layout) => {
+        _pptImgSel = { sel: sel, layout: layout };
+        const hojas = [];
+        const P0 = PptxGenJS;
+        const orig = P0.prototype.addSlide;
+        P0.prototype.addSlide = function () {
+          const sl = orig.apply(this, arguments);
+          const reg = { imgs: [] };
+          hojas.push(reg);
+          const ai = sl.addImage.bind(sl);
+          sl.addImage = function (o) { if (o && typeof o.data === 'string' &&
+            o.data.indexOf('data:image/png') === 0 && o.sizing) reg.imgs.push(o.data.slice(0,60));
+            return ai.apply(null, arguments); };
+          return sl;
+        };
+        let arch = null;
+        const dl = window._pptxDescargarSaneado;
+        window._pptxDescargarSaneado = function (P, nm) { arch = nm; return Promise.resolve(true); };
+        await new Promise(res => { pdfDeInformeGuardado(id, inf2 => {
+          _pptDesdeFormulario(inf2, 'clasico', 'Dr. Prueba'); setTimeout(res, 2200); }, 'PPT'); });
+        P0.prototype.addSlide = orig;
+        window._pptxDescargarSaneado = dl;
+        const conImg = hojas.filter(h2 => h2.imgs.length);
+        return { hojas: conImg.length, porHoja: conImg.map(h2 => h2.imgs.length), arch: arch };
+      };
+
+      R.xLay = {};
+      for (const L of [1,2,3,4]) {
+        const r2 = await correr([0,1,2,3,4], L);
+        R.xLay[L] = r2.hojas + ' hojas ' + JSON.stringify(r2.porHoja);
+      }
+      R.lay1 = R.xLay[1] === '5 hojas [1,1,1,1,1]';
+      R.lay2 = R.xLay[2] === '3 hojas [2,2,1]';
+      R.lay3 = R.xLay[3] === '2 hojas [3,2]';
+      R.lay4 = R.xLay[4] === '2 hojas [4,1]';
+
+      /* solo tres seleccionadas */
+      const r3 = await correr([1,2,3], 2);
+      R.tresSel = r3.hojas + ' hojas ' + JSON.stringify(r3.porHoja);
+      R.soloLasTildadas = R.tresSel === '2 hojas [2,1]';
+
+      /* SIN seleccion -> sin diapositiva de imagenes */
+      const r0 = await correr([], 2);
+      R.sinSel = r0.hojas;
+      R.sinSelSinHoja = r0.hojas === 0 && !!r0.arch;
+
+      /* SIN SELECTOR -> comportamiento de siempre: todas, de a SEIS.
+         NO se pone la variable en null a mano: eso es justamente lo que tiene que haber hecho
+         el generador al terminar la corrida anterior -que dejo una seleccion VACIA-. Poniendolo
+         yo, la mutacion que no limpia sobrevivia: la condicion leia un null que habia escrito
+         el propio caso. Asi, si no se limpia, esta corrida hereda la seleccion vacia de arriba
+         y sale sin ninguna hoja de imagenes. */
+      R.selLimpiaTrasGenerar = _pptImgSel === null;
+      const hojas2 = [];
+      const P0 = PptxGenJS; const orig2 = P0.prototype.addSlide;
+      P0.prototype.addSlide = function () { const sl = orig2.apply(this, arguments);
+        const reg = { imgs: [] }; hojas2.push(reg); const ai = sl.addImage.bind(sl);
+        sl.addImage = function (o) { if (o && typeof o.data === 'string' &&
+          o.data.indexOf('data:image/png') === 0 && o.sizing) reg.imgs.push(1);
+          return ai.apply(null, arguments); }; return sl; };
+      const dl2 = window._pptxDescargarSaneado;
+      window._pptxDescargarSaneado = function () { return Promise.resolve(true); };
+      await new Promise(res => { pdfDeInformeGuardado(id, inf2 => {
+        _pptDesdeFormulario(inf2, 'clasico', 'Dr. Prueba'); setTimeout(res, 2200); }, 'PPT'); });
+      P0.prototype.addSlide = orig2; window._pptxDescargarSaneado = dl2;
+      const c2 = hojas2.filter(h2 => h2.imgs.length);
+      R.legacy = c2.length + ' hojas ' + JSON.stringify(c2.map(h2 => h2.imgs.length));
+      R.legacyIgualQueAntes = R.legacy === '1 hojas [5]';
+      R.selLimpia = R.selLimpiaTrasGenerar;
+    } finally {
+      window.alert = alertOrig;
+      try { if (id !== null) { const L = CeiboStore.getLocal();
+        CeiboStore.setLocal(L.filter(x => x.id !== id)); } } catch (e) {}
+    }
+    return { extra: [
+      ['las 5 imagenes se guardan y se leen',        R.guardoImgs && R.leidas === 5, R.leidas],
+      ['EL ORIGEN SOBREVIVE AL GUARDADO',            R.origenPersiste, R.origenPersiste],
+      ['el panel lee del ESTUDIO, no de imgSlots',   R.panelLee5, R.nPanel + ' leidas'],
+      ['y separa visor de estudio',                  R.panelSepara && R.dosSecciones, R.panelSepara],
+      ['miniatura y checkbox por imagen, todas tildadas', R.miniaturas === 5 && R.todasTildadas, R.miniaturas],
+      ['el layout arranca en 2',                     R.layoutDefecto2, R.layoutDefecto2],
+      ['deseleccionar y seleccionar todas',          R.trasNinguna === 0 && R.trasTodas === 5, R.trasNinguna + '/' + R.trasTodas],
+      ['el panel devuelve lo elegido',               R.eligio3 && R.modalCerrado, R.elec],
+      ['LAYOUT 1 por diapositiva',                   R.lay1, R.xLay[1]],
+      ['LAYOUT 2 por diapositiva',                   R.lay2, R.xLay[2]],
+      ['LAYOUT 3 por diapositiva',                   R.lay3, R.xLay[3]],
+      ['LAYOUT 4 por diapositiva',                   R.lay4, R.xLay[4]],
+      ['solo entran las tildadas',                   R.soloLasTildadas, R.tresSel],
+      ['SIN SELECCION no hay diapositiva de imagenes', R.sinSelSinHoja, R.sinSel + ' hojas con imagen'],
+      ['y el archivo se genera igual',               R.sinSelSinHoja, R.sinSelSinHoja],
+      ['sin selector, el PPT sale como antes (6/hoja)', R.legacyIgualQueAntes, R.legacy],
+      ['LA SELECCION NO SE HEREDA al PPT siguiente', R.selLimpia && R.legacyIgualQueAntes, R.selLimpia + ' / ' + R.legacy]
+    ] };
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];

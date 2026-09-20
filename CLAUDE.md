@@ -8,6 +8,68 @@ ninguna es evidente leyendo el código alrededor.
 
 
 
+
+## Selector de imágenes del PPT — y una premisa que verifiqué MAL (2026-09-20)
+
+### Lo primero: mi propia verificación estaba equivocada
+
+Reporté que «el PPT individual no lleva ninguna imagen del estudio» porque `imgSlots` tiene
+**cero** apariciones en `_pptDesdeFormulario`. Es cierto y **no significa eso**: las
+diapositivas de imágenes existen desde antes —`_pptAgregarImagenes`, en grilla de hasta SEIS—
+y leen de **IndexedDB** por `_pptLeerImgs`, no del array en memoria. La premisa del pedido era
+correcta y la desmentí.
+
+**Un grep que no encuentra el nombre que uno esperaba NO prueba la ausencia de la
+funcionalidad.** Hay que buscar el EFECTO —acá, `addImage` con `sizing`— y no la variable que
+uno supone que la alimenta. Es el mismo error que este archivo documenta con «grepear
+declaraciones no encuentra lo que se exporta desde un IIFE», por la otra punta.
+
+### Dónde estaba el riesgo real: dos listas con índices distintos
+
+El panel corre **antes** de `pdfDeInformeGuardado`, y en ese momento `imgSlots` tiene las
+imágenes del estudio **ABIERTO**, que puede no ser el que se exporta —`generarPPT(id)` se
+dispara desde la lista de Guardados, sobre cualquier estudio—. Por eso el selector lee por
+`CeiboImg.leer(inf.uuid)` con el **mismo filtro `_imgSrcOK`** que usa el generador: misma
+fuente, mismo filtro, mismos índices.
+
+Con dos criterios, el médico tilda la imagen 3 y al PPT va otra — **y nada lo delata**, porque
+las dos son imágenes válidas del mismo estudio. Es el modo de falla más caro de esta tarea y no
+lo habría mostrado ninguna prueba que sólo contara diapositivas.
+
+### `origen` y por qué entra a la lista blanca de persistencia
+
+Las capturas del visor —mediciones, bull's eye, cuadro de cineloop— entran por
+`imgCompressLoad`, **la misma puerta que una foto**, y el slot no guardaba procedencia: eran
+indistinguibles. Las tres capturas (`cineCapturar`, `medStrainCapturar`,
+`medCapturarConMedicion`) pasan ahora `'visor'`.
+
+**Y `origen` entra a la lista blanca de `CeiboImg.guardar`.** Sin eso la marca muere al guardar,
+y reabrir un estudio para exportarlo **es el flujo normal**: el selector vería cero capturas del
+visor en todo estudio que no se acabara de medir. Son ~16 bytes por imagen. La mutación que lo
+devuelve a `'estudio'` cae por dos condiciones.
+
+### Lo demás
+
+- **Sin `_pptImgSel` el mazo sale como siempre** —todas, de a seis—, que es el camino de
+  cualquier otro llamador de `_pptDesdeFormulario` y lo que hace verificable «el PPT existente
+  sigue funcionando igual».
+- **`_pptGrilla` ya daba las grillas de 1/2/3/4** (`[1,1]`, `[2,1]`, `[3,1]`, `[2,2]`): el
+  layout sólo cambia el tamaño del bloque, no hubo que escribir geometría nueva.
+- **Deseleccionar todas genera el mazo sin esa diapositiva**, que es el punto 5 del pedido.
+- **El dataURL no se interpola nunca en HTML**: va por `.src`, y el panel se arma con
+  `createElement`/`textContent`.
+
+### La mutación que sobrevivió, y por qué
+
+«No limpiar `_pptImgSel` al terminar» pasaba en verde: mi condición leía que la variable fuera
+null **después de que el propio caso la pusiera en null**. El invariante real es que **el PPT
+siguiente no herede la selección del anterior**, y se prueba dejando que lo limpie el generador
+y generando otra vez sin tocar nada. Es «si el valor lo pusiste vos, no probaste nada» aplicado
+a una variable de módulo.
+
+**Backtick dentro del cuerpo de un caso: van VEINTITRÉS**, otra vez en el comentario que
+acababa de escribir para explicar la trampa de arriba.
+
 ## Strain manual en el Laboratorio: el signo, y lo que NO entra a la estadística (TC-209)
 
 Tarjeta «💚 Strain Manual» al final de la subtab **Mediciones**, debajo de Estadística

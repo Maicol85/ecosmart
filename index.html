@@ -37121,7 +37121,13 @@ const CeiboImg = (function () {
          `calidad` sí se persiste: es el estado del selector, no la imagen. */
       const limpias = (imgs || []).filter(s => s && _imgSrcOK(s.dataURL))
                                   .map(s => ({ dataURL: s.dataURL, ampliada: !!s.ampliada,
-                                               calidad: (typeof s.calidad === 'string' ? s.calidad : 'media') }));
+                                               calidad: (typeof s.calidad === 'string' ? s.calidad : 'media'),
+                                               /* `origen` entra a la lista blanca porque si no
+                                                  la marca muere al guardar — y reabrir un
+                                                  estudio para exportarlo es el flujo normal,
+                                                  así que el selector vería CERO capturas del
+                                                  visor. Son ~16 bytes por imagen. */
+                                               origen: (s.origen === 'visor' ? 'visor' : 'estudio') }));
       /* `.then(r => r)` y no `.then(() => true)`: descartar el resultado del borrado hacía que
          «quitar todas las imágenes y guardar» cantara éxito aunque el delete fallara, y las
          imágenes que el médico había descartado reaparecían al reabrir el estudio. */
@@ -42149,8 +42155,19 @@ function generarPPT(id){
        existía y mezclarlas obligaría a rehacerla. Cancelar en cualquiera de los dos NO genera
        el archivo. */
     _pptElegirPresentador(inf, quien => {
-      // Se carga el estudio en el formulario y se restaura después: ver la nota de abajo.
-      pdfDeInformeGuardado(id, inf2 => _pptDesdeFormulario(inf2, tema, quien), 'PPT');
+      /* Y por último QUÉ IMÁGENES. Va al final de la cadena porque es la única de las tres que
+         necesita leer de IndexedDB: preguntarla primero haría esperar antes del primer modal.
+         Sin imágenes en el estudio no se muestra ningún panel y el mazo sale como siempre. */
+      _pptImgsDeEstudio(inf).then(imgs => {
+        if (imgs === null && typeof toast === 'function') {
+          toast('⚠️ No se pudieron leer las imágenes de este estudio — el PPT sale sin ellas');
+        }
+        _pptElegirImagenes(imgs || [], elec => {
+          _pptImgSel = elec;
+          // Se carga el estudio en el formulario y se restaura después: ver la nota de abajo.
+          pdfDeInformeGuardado(id, inf2 => _pptDesdeFormulario(inf2, tema, quien), 'PPT');
+        });
+      });
     });
   });
 }
@@ -42315,6 +42332,206 @@ function _pptElegirTema(cb){
   document.addEventListener('keydown', onEsc);
   document.body.appendChild(ov);
 }
+
+
+/* ══ SELECTOR DE IMÁGENES DEL PPT ══════════════════════════════════════════════════════════
+   ⚠️ EL PPT INDIVIDUAL NO TENÍA NINGUNA DIAPOSITIVA DE IMÁGENES. `imgSlots` tenía CERO
+   apariciones en `_pptDesdeFormulario`: sus únicas tres imágenes eran el logo del centro, un
+   ícono de leyenda y el bull's eye de contractilidad. O sea que esto no filtra lo que ya
+   salía — construye esas diapositivas por primera vez, con el selector delante.
+
+   ⚠️ DE DÓNDE SALEN LAS MINIATURAS, que es lo que hace que el selector no mienta. El panel
+   corre ANTES de `pdfDeInformeGuardado`, y en ese momento `imgSlots` tiene las imágenes del
+   estudio ABIERTO, que puede no ser el que se está exportando —`generarPPT(id)` se dispara
+   desde la lista de Guardados, sobre cualquier estudio—. Se lee por `CeiboImg.leer(uuid)`, la
+   MISMA fuente que después usa `_pdfImgsEstudio` para repoblar `imgSlots`, y con el MISMO
+   filtro `_imgSrcOK`. Con dos fuentes, el médico tilda la imagen 3 y al PPT va otra. */
+
+const _PPT_IMG_LAYOUTS = [1, 2, 3, 4];
+const _PPT_IMG_LAYOUT_DEF = 2;
+
+/* Lee las imágenes del estudio a exportar. Devuelve `null` si NO se pudieron leer —distinto de
+   `[]`, que es «este estudio no tiene»—: con un solo valor, un fallo transitorio de IndexedDB
+   se traduciría en «no hay imágenes» y el mazo saldría sin ellas sin decir por qué. Es la misma
+   distinción que ya hace `CeiboImg.leer`. */
+function _pptImgsDeEstudio(inf) {
+  if (typeof CeiboImg === 'undefined' || !inf || !_uuidValido(inf.uuid)) return Promise.resolve([]);
+  return CeiboImg.leer(inf.uuid).then(imgs => {
+    if (imgs === null) return null;
+    return imgs.filter(s => s && _imgSrcOK(s.dataURL))
+               .map((s, i) => ({ i: i, dataURL: s.dataURL,
+                                 origen: (s.origen === 'visor' ? 'visor' : 'estudio') }));
+  }).catch(() => null);
+}
+
+/* El panel. `createElement` + `textContent` para todo lo que no sea marcado fijo, y la imagen
+   por `.src`: el dataURL no se interpola nunca dentro de una cadena de HTML. */
+function _pptElegirImagenes(imgs, cb) {
+  /* Sin imágenes no se pregunta nada: se genera como hasta hoy. Es el punto 5, y además un
+     modal vacío obliga a un clic para no elegir nada. */
+  if (!imgs || !imgs.length) { cb({ sel: [], layout: _PPT_IMG_LAYOUT_DEF }); return; }
+
+  /* El ORDEN es el del panel, no el de los slots: arrastrar reordena esta lista y el mazo la
+     respeta. Se arranca con el orden de los slots y todas tildadas. */
+  let orden = imgs.map(o => o.i);
+  const marcadas = {};
+  imgs.forEach(o => { marcadas[o.i] = true; });
+  let layout = _PPT_IMG_LAYOUT_DEF;
+
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;' +
+                     'align-items:center;justify-content:center;padding:20px;';
+  const caja = document.createElement('div');
+  caja.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:12px;' +
+                       'max-width:720px;width:100%;max-height:88vh;overflow:auto;padding:20px;' +
+                       'box-shadow:0 10px 40px rgba(0,0,0,0.5);';
+  const h = document.createElement('div');
+  h.style.cssText = 'font-size:15px;font-weight:700;color:var(--accent2);margin-bottom:4px;';
+  h.textContent = '🖼️ ¿Qué incluir en la presentación?';
+  caja.appendChild(h);
+  const sub = document.createElement('p');
+  sub.style.cssText = 'font-size:12px;color:var(--text2);margin:0 0 12px;';
+  sub.textContent = 'Arrastrá las miniaturas para cambiar el orden en que salen.';
+  caja.appendChild(sub);
+
+  const grillas = {};
+  const seccion = (titulo, clave) => {
+    const cont = document.createElement('div');
+    cont.style.cssText = 'margin-bottom:12px;';
+    const t = document.createElement('div');
+    t.style.cssText = 'font-size:.74rem;font-weight:700;color:var(--text2);text-transform:uppercase;' +
+                      'letter-spacing:.4px;margin-bottom:6px;';
+    t.textContent = titulo;
+    cont.appendChild(t);
+    const g = document.createElement('div');
+    g.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;';
+    g.setAttribute('data-ppt-grid', clave);
+    cont.appendChild(g);
+    caja.appendChild(cont);
+    grillas[clave] = { cont: cont, grid: g, tit: t };
+    return g;
+  };
+  seccion('Imágenes del estudio', 'estudio');
+  seccion('Imágenes del visor (mediciones, bull’s eye)', 'visor');
+
+  let arrastrando = null;
+  const pintar = () => {
+    ['estudio', 'visor'].forEach(k => { grillas[k].grid.textContent = ''; });
+    const cuenta = { estudio: 0, visor: 0 };
+    orden.forEach(idx => {
+      const o = imgs.filter(x => x.i === idx)[0];
+      if (!o) return;
+      cuenta[o.origen]++;
+      const cel = document.createElement('label');
+      cel.setAttribute('draggable', 'true');
+      cel.setAttribute('data-ppt-idx', String(o.i));
+      cel.style.cssText = 'position:relative;width:104px;border:2px solid ' +
+        (marcadas[o.i] ? 'var(--accent)' : 'var(--border)') + ';border-radius:8px;padding:4px;' +
+        'cursor:grab;background:var(--bg3);display:block;';
+      const im = document.createElement('img');
+      im.src = o.dataURL;                    // por propiedad, nunca interpolado en HTML
+      im.alt = '';
+      im.style.cssText = 'width:100%;height:68px;object-fit:cover;border-radius:5px;display:block;' +
+                         'pointer-events:none;';
+      cel.appendChild(im);
+      const fila = document.createElement('div');
+      fila.style.cssText = 'display:flex;align-items:center;gap:4px;margin-top:3px;font-size:10px;color:var(--text2);';
+      const ch = document.createElement('input');
+      ch.type = 'checkbox'; ch.checked = !!marcadas[o.i];
+      ch.setAttribute('data-ppt-chk-img', String(o.i));
+      ch.onchange = () => { marcadas[o.i] = ch.checked; pintar(); };
+      fila.appendChild(ch);
+      const num = document.createElement('span');
+      num.textContent = '#' + (orden.indexOf(o.i) + 1);
+      fila.appendChild(num);
+      cel.appendChild(fila);
+      cel.ondragstart = ev => { arrastrando = o.i; try { ev.dataTransfer.effectAllowed = 'move'; } catch (e) {} };
+      cel.ondragover = ev => { ev.preventDefault(); };
+      cel.ondrop = ev => {
+        ev.preventDefault();
+        if (arrastrando === null || arrastrando === o.i) return;
+        const de = orden.indexOf(arrastrando);
+        if (de < 0) return;
+        orden.splice(de, 1);
+        orden.splice(orden.indexOf(o.i), 0, arrastrando);
+        arrastrando = null;
+        pintar();
+      };
+      grillas[o.origen].grid.appendChild(cel);
+    });
+    /* Una sección sin ninguna imagen se OCULTA en vez de quedar como un título vacío, que se
+       lee como «acá debería haber algo y falta». */
+    ['estudio', 'visor'].forEach(k => {
+      grillas[k].cont.style.display = cuenta[k] ? '' : 'none';
+    });
+    cuentaTxt.textContent = orden.filter(i => marcadas[i]).length + ' de ' + orden.length +
+      ' seleccionada(s) · ' + Math.ceil(orden.filter(i => marcadas[i]).length / layout) +
+      ' diapositiva(s) de imágenes';
+  };
+
+  /* Layout */
+  const lay = document.createElement('div');
+  lay.style.cssText = 'margin:10px 0 6px;font-size:12px;color:var(--text2);';
+  lay.textContent = 'Imágenes por diapositiva:';
+  caja.appendChild(lay);
+  const layBtns = document.createElement('div');
+  layBtns.style.cssText = 'display:flex;gap:6px;margin-bottom:8px;';
+  const botonesLay = [];
+  _PPT_IMG_LAYOUTS.forEach(n => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'btn btn-ghost';
+    b.style.cssText = 'padding:5px 14px;font-size:12px;';
+    b.textContent = String(n);
+    b.setAttribute('data-ppt-lay', String(n));
+    b.onclick = () => { layout = n; pintarLay(); pintar(); };
+    layBtns.appendChild(b); botonesLay.push(b);
+  });
+  const pintarLay = () => botonesLay.forEach(b => {
+    const act = +b.getAttribute('data-ppt-lay') === layout;
+    b.style.background = act ? 'var(--accent)' : '';
+    b.style.color = act ? '#fff' : '';
+  });
+  caja.appendChild(layBtns);
+
+  const cuentaTxt = document.createElement('div');
+  cuentaTxt.style.cssText = 'font-size:11px;color:var(--text2);margin-bottom:10px;';
+  caja.appendChild(cuentaTxt);
+
+  const pie = document.createElement('div');
+  pie.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:6px;';
+  const mkBtn = (txt, cls, fn, id) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'btn ' + cls;
+    b.style.cssText = 'padding:7px 14px;font-size:12px;';
+    b.textContent = txt;
+    if (id) b.setAttribute('data-ppt-act', id);
+    b.onclick = fn;
+    return b;
+  };
+  pie.appendChild(mkBtn('Seleccionar todas', 'btn-ghost',
+    () => { orden.forEach(i => marcadas[i] = true); pintar(); }, 'todas'));
+  pie.appendChild(mkBtn('Deseleccionar todas', 'btn-ghost',
+    () => { orden.forEach(i => marcadas[i] = false); pintar(); }, 'ninguna'));
+  const cerrar = () => { try { document.body.removeChild(ov); } catch (e) {} };
+  pie.appendChild(mkBtn('Cancelar', 'btn-ghost', () => { cerrar(); }, 'cancelar'));
+  pie.appendChild(mkBtn('Generar PPT', 'btn-primary', () => {
+    const sel = orden.filter(i => marcadas[i]);
+    cerrar();
+    cb({ sel: sel, layout: layout });
+  }, 'generar'));
+  caja.appendChild(pie);
+
+  ov.appendChild(caja);
+  ov.setAttribute('data-ppt-img-modal', '1');
+  document.body.appendChild(ov);
+  pintarLay(); pintar();
+}
+
+/* Lo que el selector decidió, leído por `_pptDesdeFormulario`. Variable de módulo y no un
+   parámetro más porque el llamador del medio es `pdfDeInformeGuardado`, que no lo pasaría. Se
+   limpia en el `finally` del generador: si sobreviviera, el PPT siguiente saldría con la
+   selección del anterior. */
+let _pptImgSel = null;
 
 function _pptDesdeFormulario(inf, tema, presentador){
   /* PPT_C local sombrea al global: todo el cuerpo de la función sigue escrito contra
@@ -43498,13 +43715,36 @@ function _pptDesdeFormulario(inf, tema, presentador){
        del try/catch de cada addImage, con el mensaje genérico que culpa a la conexión—. Es la
        misma política que la app ya aplica al logo y al src de la grilla. */
     const total = (imgs || []).length;
-    const buenas = (imgs || []).filter(s => s && _imgSrcOK(s.dataURL));
+    let buenas = (imgs || []).filter(s => s && _imgSrcOK(s.dataURL));
     /* El descarte no puede ser mudo: son imágenes clínicas que el médico cree que van. */
     if (total > buenas.length) {
       _pptAvisos.push('⚠️ ' + (total - buenas.length) + ' de ' + total +
                       ' imagen(es) no se pudieron incluir en el PPT (formato no admitido)');
     }
     if (!buenas.length) return 0;
+    /* ── LA SELECCIÓN DEL MÉDICO ──────────────────────────────────────────────────────────
+       `_pptImgSel.sel` son índices sobre ESTA lista `buenas`, y eso se sostiene porque el
+       selector lee por `CeiboImg.leer(inf.uuid)` y filtra con el MISMO `_imgSrcOK`: misma
+       fuente, mismo filtro, mismos índices. Con dos criterios, el médico tilda la imagen 3 y
+       al PPT va otra — y nada lo delataría, porque las dos son imágenes válidas del estudio.
+       El ORDEN es el del panel, no el de los slots: arrastrar reordena y el mazo lo respeta.
+       Sin selección (`_pptImgSel` en null) se comporta como siempre: todas, de a seis. Es el
+       camino de cualquier otro llamador de `_pptDesdeFormulario`. */
+    let porHoja = 6;
+    if (_pptImgSel && Object.prototype.toString.call(_pptImgSel.sel) === '[object Array]') {
+      const sel = _pptImgSel.sel;
+      const elegidas = sel.map(i => buenas[i]).filter(Boolean);
+      /* Deseleccionar TODAS genera el mazo sin diapositiva de imágenes, que es el punto 5 y
+         además el comportamiento que tenía el PPT antes de que hubiera imágenes. */
+      if (!elegidas.length) return 0;
+      if (buenas.length > elegidas.length) {
+        _pptAvisos.push('ℹ️ ' + elegidas.length + ' de ' + buenas.length +
+                        ' imagen(es) incluidas — las demás quedaron sin tildar en el selector');
+      }
+      buenas = elegidas;
+      const L = +_pptImgSel.layout;
+      if (_PPT_IMG_LAYOUTS.indexOf(L) >= 0) porHoja = L;
+    }
     /* La grilla reserva la banda del pie (0,62") en vez de ir a sangre hasta H. Estas eran las
        ÚNICAS diapositivas sin disclaimer: usaban P.addSlide() crudo y no llamaban conPie, con
        lo cual rompían el invariante que declara el comentario de arriba —«va en TODAS las
@@ -43512,8 +43752,8 @@ function _pptDesdeFormulario(inf, tema, presentador){
        Son además las más propensas a circular solas: una captura de una ecografía se reenvía
        sin el resto del set. Cuesta un 11% de alto y `contain` reparte el resto sin recortar. */
     const HB = H - 0.62;
-    for (let i = 0; i < buenas.length; i += 6) {
-      const bloque = buenas.slice(i, i + 6);
+    for (let i = 0; i < buenas.length; i += porHoja) {
+      const bloque = buenas.slice(i, i + porHoja);
       const [cols, rows] = _pptGrilla(bloque.length);
       const cw = W / cols, ch = HB / rows;
       const s = nueva();
@@ -43589,7 +43829,8 @@ function _pptDesdeFormulario(inf, tema, presentador){
        slideMaster por diapositiva en `[Content_Types].xml` y embarca uno solo, y PowerPoint pide
        reparar el archivo. Este exportador arrastraba el mismo defecto desde que tiene más de una
        diapositiva; se descubrió al diagnosticar el del Laboratorio. */
-    .then(imgs => { _pptAgregarImagenes(imgs); _pptEnSuma(); _pptCierre(); return _pptxDescargarSaneado(P, nombreArch); })
+    .then(imgs => { try { _pptAgregarImagenes(imgs); } finally { _pptImgSel = null; }
+                    _pptEnSuma(); _pptCierre(); return _pptxDescargarSaneado(P, nombreArch); })
     .then(() => {
       if (typeof toast !== 'function') return;
       /* Los avisos ganan sobre el ✅: si algo puede haber quedado fuera del marco, eso es lo
@@ -45018,7 +45259,12 @@ function imgSetCalidad(idx, cal){
 }
 window.imgSetCalidad = imgSetCalidad;
 
-function imgCompressLoad(file, idx){
+/* `origen` ('visor' | 'estudio') distingue una CAPTURA del visor —mediciones, bull's eye, un
+   cuadro del cineloop— de una foto que el médico eligió a mano. Hasta hoy el slot no guardaba
+   procedencia y las dos eran indistinguibles: entran por esta misma puerta, que es lo que hace
+   que el selector de calidad, el `_orig` y la persistencia funcionen igual para las dos. Lo
+   necesita el selector de imágenes del PPT para separarlas en dos secciones. */
+function imgCompressLoad(file, idx, origen){
   const reader = new FileReader();
   reader.onload = function(){
     const original = reader.result;
@@ -45032,7 +45278,8 @@ function imgCompressLoad(file, idx){
         target = t;
       }
       // `_orig` sólo en memoria. `calidad` arranca en media, que es el defecto pedido.
-      imgSlots[target] = { dataURL: url, ampliada:false, calidad: IMG_CAL_DEF, _orig: original };
+      imgSlots[target] = { dataURL: url, ampliada:false, calidad: IMG_CAL_DEF, _orig: original,
+                           origen: (origen === 'visor' ? 'visor' : 'estudio') };
       imgMarcarEditado();
       imgRender();
     }).catch(() => { if (typeof toast === 'function') toast('❌ No se pudo procesar la imagen'); });
@@ -45966,7 +46213,7 @@ function cineCapturar() {
   const jpeg = L.d.frags[n];
   if (!jpeg || !(jpeg[0] === 0xFF && jpeg[1] === 0xD8)) { toast('❌ Ese cuadro no se pudo leer'); return; }
   const idx = _dcmImgReservar(1)[0];
-  imgCompressLoad(new Blob([jpeg], { type:'image/jpeg' }), idx);
+  imgCompressLoad(new Blob([jpeg], { type:'image/jpeg' }), idx, 'visor');
   toast('✅ Cuadro ' + (n + 1) + ' de ' + L.cuadros + ' agregado a las imágenes del estudio');
 }
 
@@ -47487,7 +47734,7 @@ function medStrainCapturar() {
   cv.toBlob(b => {
     if (!b) { toast('❌ No se pudo generar la imagen'); return; }
     const idx = _dcmImgReservar(1)[0];
-    imgCompressLoad(b, idx);
+    imgCompressLoad(b, idx, 'visor');
     toast('✅ Diagrama de territorios agregado a las imágenes del estudio');
   }, 'image/jpeg', 0.92);
 }
@@ -48039,7 +48286,7 @@ function medCapturarConMedicion() {
   cv.toBlob(b => {
     if (!b) { toast('❌ No se pudo generar la imagen'); return; }
     const idx = _dcmImgReservar(1)[0];
-    imgCompressLoad(b, idx);
+    imgCompressLoad(b, idx, 'visor');
     toast('✅ Cuadro con las mediciones agregado' + (etiq ? ' — ' + etiq : ''));
   }, 'image/jpeg', 0.92);
 }
@@ -65326,8 +65573,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260920-1603';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789931031414;                 /* eco-build-ms */
+const ECO_BUILD    = '20260920-1832';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789939943463;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -65413,7 +65660,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1603</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1832</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
