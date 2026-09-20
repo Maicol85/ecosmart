@@ -7844,9 +7844,30 @@ junto**, no sólo el visor.
 > significantly related to gender, age, or body size… EF in the range of 53% to 73% should be
 > classified as normal"* — un rango **único**, en tensión con su propia Tabla 4 por sexo.
 
+**FLUJO FLEXIBLE (2026-09-20).** Con **un par** —diástole y sístole de la misma vista— ya sale
+**FEVI monoplanar**; agregando la segunda vista se recalcula **biplano**. Antes exigía las cuatro
+y era un problema real: con una sola vista buena no se podía medir nada.
+
+**Monoplano y biplano no son lo mismo, y la interfaz lo dice.** La guía recomienda el biplano
+para el VI —*"the biplane method of disks summation… is the recommended 2D echocardiographic
+method by consensus of this committee"*— y **no describe un monoplano para el ventrículo**: sus
+pasajes de *"single-plane"* son de la **aurícula**. Además los valores normales se midieron
+*"using the biplane method of disks"*, así que clasificar un monoplano con esos cortes es una
+extrapolación. El panel lo dice en lugar de disimularlo.
+
+**Integrar al informe: SÓLO el biplano, y no es capricho.** El campo `fevi_met` de la app tiene
+exactamente tres opciones — «Simpson biplano», «Teicholz», «Visual»—. **No hay monoplano.**
+Integrarlo lo rotularía «Simpson biplano» en un documento firmado, que es nombrar mal el método.
+El panel explica por qué en vez de sólo no ofrecer el botón. Al integrar se escribe `fevi` y se
+fuerza `fevi_met`, y **no se pisa un valor ya cargado sin preguntar** — mismo criterio que el
+importador DICOM con su «Este estudio ya tiene X guardado».
+
 **Simpson es la única medición que NO se borra al cambiar de cuadro**, y tiene que serlo: la
 diástole y la sístole están en cuadros distintos, así que borrar lo confirmado haría imposible
-completar los cuatro pasos. Se descarta sólo el trazado sin confirmar, y se avisa.
+completar la medición. Lo que sí pasa al reproducir o mover el slider es que **se deja de
+dibujar** (`_simp.ocultar`): un contorno de diástole encima de un cuadro de sístole invita a
+creer que se trazó sobre esa imagen. **Ocultar no es borrar** — sigue contando para el cálculo, y
+hay una mutación que lo verifica (borrar de verdad pone el caso en rojo).
 
 **Se rechaza si los píxeles no son cuadrados.** Los diámetros de los discos se miden en
 direcciones cualesquiera y un solo factor no alcanza con `dx ≠ dy`. Ninguna región real es así;

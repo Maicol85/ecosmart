@@ -11731,29 +11731,50 @@ caso('TC-190', 'Simpson biplano: FEVI contra un volumen calculable a mano, y L l
       await new Promise(r => setTimeout(r, 90));
       R.herrSimpson = _medHerr === 'simpson';
       R.panel1 = (document.getElementById('cine-med-barra').textContent || '');
-      R.dicePaso1 = R.panel1.indexOf('Paso 1/4') > -1;
+      /* El flujo dejo de tener cuatro pasos fijos: ahora pide diastole de la vista que haya.
+         La condicion vieja exigia "Paso 1/4" y describia un flujo que ya no existe. */
+      R.dicePaso1 = R.panel1.indexOf('DIÁSTOLE') > -1;
       R.pideAnillo = R.panel1.indexOf('anillo mitral') > -1;
 
       const cx0 = Math.round((reg.x0 + reg.x1) / 2);
       const yb  = Math.round(Math.min(reg.y1 - 10, reg.y0 + 380));
-      const W4d = 200, W2d = 180, W4s = 120, W2s = 108, H = 300;
+      /* Los anchos se eligen para que MONOPLANO Y BIPLANO DEN DISTINTO. Con 108 en la sistole
+         de la segunda vista los dos daban 64 % y el caso no distinguia un modo del otro.
+         Hoy: mono = 1 - (120/200)^2 = 64 % · bi = 1 - (120x126)/(200x180) = 58 %. */
+      const W4d = 200, W4s = 120, W2d = 180, W2s = 126, H = 300;
 
-      /* ── los cuatro pasos ── */
+      /* ── UN PAR: monoplanar ── */
       await trazar(tri(cx0, yb, W4d, H));
       R.pendienteTrasTrazar = !!_simp.pendiente;
       medSimpsonConfirmar();
-      R.paso2 = _simp.paso === 1;
+      R.faseSistole = _simp.fase === 's';
+      R.sinResultadoConUno = !_simp.res;
       await trazar(tri(cx0, yb, W4s, H));
       medSimpsonConfirmar();
+      R.hayMono = !!_simp.res && _simp.res.bi === false;
+      if (_simp.res) {
+        R.feviMono = _simp.res.fevi;
+        R.feviMonoEsperada = (1 - (W4s*W4s)/(W4d*W4d)) * 100;
+        R.monoCerca = Math.abs(R.feviMono - R.feviMonoEsperada) < 1.5;
+        R.panelMono = (document.getElementById('cine-med-barra').textContent || '');
+        R.diceMonoplanar = R.panelMono.indexOf('monoplanar') > -1;
+        R.ofreceSegundaVista = !!document.getElementById('cine-simp-2v');
+        R.noOfreceIntegrarMono = !document.getElementById('cine-simp-integ');
+      }
+
+      /* ── segunda vista: biplano ── */
+      medSimpsonSegundaVista();
+      R.paso4 = _simp.vista === 1 && _simp.fase === 'd';
       await trazar(tri(cx0, yb, W2d, H));
       medSimpsonConfirmar();
-      R.paso4 = _simp.paso === 3;
       await trazar(tri(cx0, yb, W2s, H));
       medSimpsonConfirmar();
-      R.hayResultado = !!_simp.res;
+      R.hayResultado = !!_simp.res && _simp.res.bi === true;
 
       if (_simp.res) {
-        const T = _simp.trazos, cmPx = T['4cd'].cmPorPx;
+        const T = { '4cd':_simp.pares[0].d, '4cs':_simp.pares[0].s,
+                    '2cd':_simp.pares[1].d, '2cs':_simp.pares[1].s };
+        const cmPx = T['4cd'].cmPorPx;
         /* (a) LA FORMULA, exacta contra los diametros realmente guardados */
         const vol = (c4, c2) => { const L = Math.max(c4.eje.L, c2.eje.L);
           let s = 0; for (let i = 0; i < SIMP_N; i++) s += (c4.diam[i]*cmPx) * (c2.diam[i]*cmPx);
@@ -11771,6 +11792,11 @@ caso('TC-190', 'Simpson biplano: FEVI contra un volumen calculable a mano, y L l
         /* (c) LA FEVI CONOCIDA: 1 - (120x108)/(200x180) = 64 % */
         R.fevi = _simp.res.fevi; R.feviEsperada = (1 - (W4s*W2s)/(W4d*W2d)) * 100;
         R.feviCerca = Math.abs(R.fevi - R.feviEsperada) < 1.5;
+        /* Y que el biplano NO sea el monoplano: si dieran lo mismo, nada distinguiria los
+           dos caminos y las dos condiciones de arriba serian una sola. */
+        R.biDistintoDeMono = Math.abs(R.fevi - R.feviMono) > 3;
+        R.panelBi = (document.getElementById('cine-med-barra').textContent || '');
+        R.diceBiplano = R.panelBi.indexOf('biplano') > -1;
         /* (d) la clasificacion es LA DE LA APP, no la de la guia */
         const c = _simpClasificar(_simp.res.fevi);
         R.clasif = c.txt;
@@ -11778,7 +11804,9 @@ caso('TC-190', 'Simpson biplano: FEVI contra un volumen calculable a mano, y L l
           : _simp.res.fevi >= 40 ? 'levemente reducida'
           : _simp.res.fevi >= 30 ? 'moderadamente reducida' : 'severamente reducida');
         R.panelRes = (document.getElementById('cine-med-barra').textContent || '');
-        R.panelDiceNoPDF = R.panelRes.indexOf('NO va al PDF') > -1 || R.panelRes.indexOf('no va al PDF') > -1;
+        /* Ya no dice "no va al PDF" a secas, porque el biplano SI se puede integrar. Lo que
+           tiene que decir es que todavia NO esta en el informe. */
+        R.panelDiceNoPDF = R.panelRes.indexOf('NO está en el informe') > -1;
         R.panelAvisaApex = R.panelRes.indexOf('escorzado') > -1;
       }
 
@@ -11792,11 +11820,13 @@ caso('TC-190', 'Simpson biplano: FEVI contra un volumen calculable a mano, y L l
          no se habia calculado nada. Por eso ahora se afirma PRIMERO que hubo resultado. */
       await trazar(tri(cx0, yb, W4d, 250)); medSimpsonConfirmar();
       await trazar(tri(cx0, yb, W4s, 250)); medSimpsonConfirmar();
+      medSimpsonSegundaVista();
       await trazar(tri(cx0, yb, W2d, 330)); medSimpsonConfirmar();
       await trazar(tri(cx0, yb, W2s, 250)); medSimpsonConfirmar();
-      R.serieLHecha = !!_simp.res;
+      R.serieLHecha = !!_simp.res && _simp.res.bi === true;
       if (_simp.res) {
-        const T = _simp.trazos, cmPx = T['4cd'].cmPorPx;
+        const T = { '4cd':_simp.pares[0].d, '2cd':_simp.pares[1].d };
+        const cmPx = T['4cd'].cmPorPx;
         let s = 0; for (let i = 0; i < SIMP_N; i++) s += (T['4cd'].diam[i]*cmPx) * (T['2cd'].diam[i]*cmPx);
         const Lmax = Math.max(T['4cd'].eje.L, T['2cd'].eje.L) * cmPx;
         const Lprom = (T['4cd'].eje.L + T['2cd'].eje.L) / 2 * cmPx;
@@ -11810,14 +11840,15 @@ caso('TC-190', 'Simpson biplano: FEVI contra un volumen calculable a mano, y L l
          Es la unica medicion que no se borra, y tiene que serlo: diastole y sistole estan en
          cuadros distintos, asi que borrar al cambiar haria imposible completar los 4 pasos. */
       medSimpsonReiniciar();
+      const nConf = () => _simp.pares.reduce((n,p) => n + (p.d?1:0) + (p.s?1:0), 0);
       await trazar(tri(cx0, yb, W4d, H));
       medSimpsonConfirmar();
-      R.confirmadosAntes = Object.keys(_simp.trazos).length;
+      R.confirmadosAntes = nConf();
       await trazar(tri(cx0, yb, W4s, H));        // queda SIN confirmar
       R.pendienteAntes = !!_simp.pendiente;
       await cineIr(Math.min(6, _cineDatos.loops[0].cuadros - 1));
       await new Promise(r => setTimeout(r, 350));
-      R.confirmadosDespues = Object.keys(_simp.trazos).length;
+      R.confirmadosDespues = nConf();
       R.pendienteDespues = !!_simp.pendiente;
       R.avisoCuadro = (document.getElementById('cine-med-barra').textContent || '').indexOf('Cambiaste de cuadro') > -1;
 
@@ -11857,22 +11888,30 @@ caso('TC-190', 'Simpson biplano: FEVI contra un volumen calculable a mano, y L l
 
     return { extra: [
       ['la herramienta Simpson se activa',               R.herrSimpson, R.herrSimpson],
-      ['el panel guia paso 1 de 4',                      R.dicePaso1, R.panel1.slice(0,60)],
+      ['el panel pide la diastole primero',              R.dicePaso1, R.panel1.slice(0,60)],
       ['y pide empezar y terminar en el anillo mitral',  R.pideAnillo, R.pideAnillo],
       ['un trazado queda pendiente de confirmacion',     R.pendienteTrasTrazar, R.pendienteTrasTrazar],
-      ['confirmar avanza al paso siguiente',             R.paso2, R.paso2],
-      ['y llega al paso 4',                              R.paso4, R.paso4],
-      ['al confirmar el cuarto sale el resultado',       R.hayResultado, R.hayResultado],
+      ['confirmar la diastole pide la sistole',          R.faseSistole, R.faseSistole],
+      ['con un solo trazado todavia no hay resultado',   R.sinResultadoConUno, R.sinResultadoConUno],
+      ['CON UN PAR YA SALE FEVI MONOPLANAR',             R.hayMono, R.hayMono],
+      ['y da el 64 % calculado a mano',                  R.monoCerca, (R.feviMono||0).toFixed(1) + ' % vs ' + (R.feviMonoEsperada||0).toFixed(1) + ' %'],
+      ['el panel dice que es monoplanar',                R.diceMonoplanar, R.diceMonoplanar],
+      ['ofrece agregar la otra vista',                   R.ofreceSegundaVista, R.ofreceSegundaVista],
+      ['y NO ofrece integrar un monoplanar al informe',  R.noOfreceIntegrarMono, R.noOfreceIntegrarMono],
+      ['la segunda vista arranca en diastole',           R.paso4, R.paso4],
+      ['con los dos pares el resultado pasa a biplano',  R.hayResultado, R.hayResultado],
+      ['y el panel lo dice',                             R.diceBiplano, R.diceBiplano],
       ['VFD es exactamente la formula de discos',        R.vfdExacto, R.vfd],
       ['VFS tambien',                                    R.vfsExacto, R.vfs],
       ['FEVI es exactamente (VFD-VFS)/VFD',              R.feviExacta, R.fevi],
       ['VFD coincide con el volumen analitico del triangulo', R.vfdCerca, (R.vfd||0).toFixed(1) + ' vs ' + (R.vfdAnalitico||0).toFixed(1) + ' mL'],
       ['VFS tambien',                                    R.vfsCerca, (R.vfs||0).toFixed(1) + ' vs ' + (R.vfsAnalitico||0).toFixed(1) + ' mL'],
-      ['LA FEVI DA EL 64 % CALCULADO A MANO',            R.feviCerca, (R.fevi||0).toFixed(1) + ' % vs ' + (R.feviEsperada||0).toFixed(1) + ' %'],
+      ['LA FEVI BIPLANO DA EL 58 % CALCULADO A MANO',    R.feviCerca, (R.fevi||0).toFixed(1) + ' % vs ' + (R.feviEsperada||0).toFixed(1) + ' %'],
+      ['y es DISTINTA del monoplanar',                   R.biDistintoDeMono, (R.feviMono||0).toFixed(1) + ' → ' + (R.fevi||0).toFixed(1)],
       ['la clasificacion es la misma cascada del informe', R.clasifCoincide, R.clasif],
       ['y en la franja 50-51,9 dice lo MISMO que el informe', R.franjaComoLaApp,
         'umbral=' + R.umbralApp + ' · 50→' + R.cl50 + ' · 49,9→' + R.cl49_9],
-      ['el panel dice que NO va al PDF',                 R.panelDiceNoPDF, R.panelDiceNoPDF],
+      ['el panel avisa que todavia NO esta en el informe', R.panelDiceNoPDF, R.panelDiceNoPDF],
       ['y avisa del apice escorzado',                    R.panelAvisaApex, R.panelAvisaApex],
       ['la serie con vistas de distinto largo se completo', R.serieLHecha, R.serieLHecha],
       ['L es la MAS LARGA de las dos vistas',            R.usaLaMasLarga, (R.conMax||0).toFixed(1) + ' mL'],
@@ -11882,6 +11921,159 @@ caso('TC-190', 'Simpson biplano: FEVI contra un volumen calculable a mano, y L l
       ['y se avisa del cambio de cuadro',                R.avisoCuadro, R.avisoCuadro],
       ['la regla sigue funcionando',                     R.reglaSigue, R.reglaSigue],
       ['y el area tambien',                              R.areaSigue, R.areaSigue]
+    ] };
+  })();
+`);
+
+/* ══ TC-191 · Simpson: integrar al informe y borrado visual al reproducir ════════════════════
+   Estas dos son las que tocan el mundo de afuera del visor.
+
+   INTEGRAR escribe en el campo FEVI, que alimenta el INFORME FIRMADO. Lo que hay que fijar:
+   que escriba el numero y el metodo, que NO pise un valor cargado sin preguntar, y que el
+   monoplanar NO se pueda integrar -- el campo Metodo solo tiene «Simpson biplano», «Teicholz»
+   y «Visual», asi que un monoplanar saldria rotulado biplano en un documento clinico.
+
+   BORRADO VISUAL: al reproducir o mover el slider, el trazado confirmado deja de dibujarse
+   pero SIGUE CONTANDO. Un contorno de diastole encima de un cuadro de sistole invita a creer
+   que se trazo sobre esa imagen; borrarlo de verdad haria imposible completar la medicion.   */
+caso('TC-191', 'Simpson: integra al informe solo el biplano, y el trazado se oculta al reproducir', `
+  return (async () => {
+    const P = ${JSON.stringify(PENDRIVE)};
+    if (!P.loop) return { extra: [[
+      'hace falta un cineloop real del pendrive', false, 'no se encontro: quedo SIN verificar']] };
+    const bytes = x => { const b = atob(x.b64); const a = new Uint8Array(b.length);
+      for (let i=0;i<b.length;i++) a[i] = b.charCodeAt(i); return a; };
+    const esperar = async (c, n) => { for (let i=0;i<(n||60);i++) { if (c()) return true; await new Promise(r=>setTimeout(r,60)); } return c(); };
+    const alertOrig = window.alert, confirmOrig = window.confirm;
+    const dichos = []; window.alert = m => dichos.push(String(m));
+    let confResp = true, confTxt = '';
+    window.confirm = m => { confTxt = String(m); return confResp; };
+    const R = {};
+    try {
+      const u = bytes(P.loop);
+      const d0 = _dcmImgLeer(u.buffer);
+      const reg = (d0.regiones || []).filter(_dcmImgRegionMedible)[0];
+      if (!reg) return { extra: [['la imagen declara region medible', false, 'no la declara']] };
+
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      await dcmImgImportar([new File([u], P.loop.nombre)]);
+      await esperar(() => !!_cineDatos, 80);
+      medToggle();
+      const cv = document.getElementById('cine-med');
+      const ac = (x, y) => { const r = cv.getBoundingClientRect();
+        return { clientX: r.left + x * (r.width / cv.width), clientY: r.top + y * (r.height / cv.height) }; };
+      const trazar = async (pts) => {
+        cv.dispatchEvent(new MouseEvent('mousedown', Object.assign({ bubbles:true }, ac(pts[0].x, pts[0].y))));
+        for (let i = 1; i < pts.length; i++)
+          cv.dispatchEvent(new MouseEvent('mousemove', Object.assign({ bubbles:true }, ac(pts[i].x, pts[i].y))));
+        document.dispatchEvent(new MouseEvent('mouseup', { bubbles:true }));
+        const z = pts[pts.length-1];
+        cv.dispatchEvent(new MouseEvent('click', Object.assign({ bubbles:true }, ac(z.x, z.y))));
+        await new Promise(r => setTimeout(r, 130)); };
+      const tri = (cx, yb, W, H) => { const p=[], x0=cx-W/2, x1=cx+W/2, ya=yb-H;
+        const n1 = Math.ceil(Math.hypot(W/2,H)/12);
+        for (let i=0;i<=n1;i++) p.push({x:Math.round(x0+(cx-x0)*i/n1), y:Math.round(yb+(ya-yb)*i/n1)});
+        for (let i=1;i<=n1;i++) p.push({x:Math.round(cx+(x1-cx)*i/n1), y:Math.round(ya+(yb-ya)*i/n1)});
+        return p; };
+      const cx0 = Math.round((reg.x0+reg.x1)/2), yb = Math.round(Math.min(reg.y1-10, reg.y0+380));
+
+      document.getElementById('cine-med-simp').click();
+      await new Promise(r => setTimeout(r, 90));
+
+      /* ── monoplanar ── */
+      await trazar(tri(cx0, yb, 200, 300)); medSimpsonConfirmar();
+      await trazar(tri(cx0, yb, 120, 300)); medSimpsonConfirmar();
+      R.mono = !!_simp.res && !_simp.res.bi;
+      /* integrar un monoplanar no tiene que hacer NADA */
+      const feviEl = document.getElementById('fevi');
+      feviEl.value = ''; feviEl.dispatchEvent(new Event('input',{bubbles:true}));
+      medSimpsonIntegrar();
+      await new Promise(r => setTimeout(r, 120));
+      R.monoNoIntegra = String(feviEl.value || '') === '';
+      R.monoExplicaPorQue = (document.getElementById('cine-med-barra').textContent || '').indexOf('Método') > -1;
+
+      /* ── EL BORRADO VISUAL AL REPRODUCIR ──
+         Se compara el canvas: con el trazado dibujado hay pixeles pintados; al mover de cuadro
+         tiene que quedar limpio, PERO el trazado sigue contando (el resultado no cambia). */
+      const pintados = () => { const c = cv.getContext('2d').getImageData(0,0,cv.width,cv.height).data;
+        let n = 0; for (let i = 3; i < c.length; i += 4) if (c[i] > 8) n++; return n; };
+      await trazar(tri(cx0, yb, 180, 300));      // deja un pendiente dibujado
+      R.antesDeMover = pintados();
+      R.resAntes = _simp.res ? _simp.res.fevi : null;
+      await cineIr(Math.min(5, _cineDatos.loops[0].cuadros - 1));
+      await new Promise(r => setTimeout(r, 320));
+      R.despuesDeMover = pintados();
+      R.seOculto = R.antesDeMover > 0 && R.despuesDeMover === 0;
+      R.ocultarPuesto = !!_simp.ocultar;
+      R.resDespues = _simp.res ? _simp.res.fevi : null;
+      R.sigueContando = R.resAntes !== null && R.resDespues === R.resAntes;
+      R.confirmadosSiguen = _simp.pares.reduce((n,p)=>n+(p.d?1:0)+(p.s?1:0),0) === 2;
+      /* y al empezar un trazado nuevo se vuelve a ver */
+      cv.dispatchEvent(new MouseEvent('mousedown', Object.assign({ bubbles:true }, ac(cx0, yb))));
+      document.dispatchEvent(new MouseEvent('mouseup', { bubbles:true }));
+      await new Promise(r => setTimeout(r, 120));
+      R.dejaDeOcultar = !_simp.ocultar;
+
+      /* ── biplano e integracion ── */
+      medSimpsonSegundaVista();
+      await trazar(tri(cx0, yb, 180, 300)); medSimpsonConfirmar();
+      await trazar(tri(cx0, yb, 126, 300)); medSimpsonConfirmar();
+      R.bi = !!_simp.res && _simp.res.bi === true;
+      R.feviBi = _simp.res ? _simp.res.fevi : null;
+
+      feviEl.value = ''; feviEl.dispatchEvent(new Event('input',{bubbles:true}));
+      const met = document.getElementById('fevi_met');
+      /* Se deja el metodo en OTRA cosa antes de integrar. «Simpson biplano» es la primera
+         opcion del select, o sea el valor por defecto: sin esto, la condicion pasaba igual
+         aunque el codigo no escribiera el metodo -- probaba el default, no la escritura.
+         Lo delato una mutacion que sobrevivia. */
+      if (met) { met.value = 'Visual'; met.dispatchEvent(new Event('change',{bubbles:true})); }
+      R.metodoPrevio = met ? met.value : '';
+      medSimpsonIntegrar();
+      await new Promise(r => setTimeout(r, 150));
+      R.integro = String(feviEl.value || '') === _simp.res.fevi.toFixed(0);
+      R.metodo = met ? met.value : '';
+      R.metodoBiplano = R.metodo === 'Simpson biplano';
+      R.marcada = !!_simp.integrada;
+      R.panelDiceIntegrada = (document.getElementById('cine-med-barra').textContent || '').indexOf('Ya está en el campo FEVI') > -1;
+
+      /* ── NO pisa un valor cargado sin preguntar ── */
+      feviEl.value = '38'; feviEl.dispatchEvent(new Event('input',{bubbles:true}));
+      confResp = false; confTxt = '';
+      medSimpsonIntegrar();
+      await new Promise(r => setTimeout(r, 120));
+      R.preguntoAntesDePisar = confTxt.indexOf('38') > -1;
+      R.respetoElNo = String(feviEl.value) === '38';
+      confResp = true;
+      medSimpsonIntegrar();
+      await new Promise(r => setTimeout(r, 120));
+      R.conSiPisa = String(feviEl.value) === _simp.res.fevi.toFixed(0);
+      feviEl.value = ''; feviEl.dispatchEvent(new Event('input',{bubbles:true}));
+    } finally {
+      window.alert = alertOrig; window.confirm = confirmOrig;
+      try { const f = document.getElementById('fevi'); if (f) { f.value=''; f.dispatchEvent(new Event('input',{bubbles:true})); } } catch(e){}
+      try { medApagar(); cineCerrar(); __t.limpiar(); } catch (e) {}
+    }
+
+    return { extra: [
+      ['un par de trazados da monoplanar',               R.mono, R.mono],
+      ['integrar un MONOPLANAR no escribe nada',         R.monoNoIntegra, R.monoNoIntegra],
+      ['y el panel explica que es por el campo Metodo',  R.monoExplicaPorQue, R.monoExplicaPorQue],
+      ['habia trazado dibujado antes de mover',          R.antesDeMover > 0, R.antesDeMover + ' px'],
+      ['AL CAMBIAR DE CUADRO EL TRAZADO SE OCULTA',      R.seOculto, R.antesDeMover + ' → ' + R.despuesDeMover + ' px'],
+      ['la bandera de ocultar queda puesta',             R.ocultarPuesto, R.ocultarPuesto],
+      ['pero lo confirmado SIGUE contando',              R.confirmadosSiguen, R.confirmadosSiguen],
+      ['y el resultado no cambia',                       R.sigueContando, R.resAntes + ' → ' + R.resDespues],
+      ['al empezar otro trazado se vuelve a ver',        R.dejaDeOcultar, R.dejaDeOcultar],
+      ['la segunda vista da biplano',                    R.bi, R.bi],
+      ['integrar el biplano escribe el campo FEVI',      R.integro, (R.feviBi||0).toFixed(1) + ' %'],
+      ['el metodo estaba en otra cosa (denominador)',    R.metodoPrevio === 'Visual', R.metodoPrevio],
+      ['y integrar lo deja en Simpson biplano',          R.metodoBiplano, R.metodo],
+      ['queda marcada como integrada',                   R.marcada && R.panelDiceIntegrada, R.marcada],
+      ['NO pisa un valor cargado sin preguntar',         R.preguntoAntesDePisar, confTxt.slice(0,60)],
+      ['y si se dice que no, no lo pisa',                R.respetoElNo, R.respetoElNo],
+      ['y si se dice que si, lo reemplaza',              R.conSiPisa, R.conSiPisa]
     ] };
   })();
 `);

@@ -45777,6 +45777,7 @@ function _medAreaDown(ev) {
   const p = _medPuntoCanvas(ev);
   if (!p) return;
   ev.preventDefault();
+  if (_simp) { _simp.ocultar = false; _simp.avisoCuadro = false; }
   _medTrazo = [p];
 }
 
@@ -45847,17 +45848,26 @@ function _medAreaUp() {
    app. Si alguna vez se adopta la de la guía, se cambia la constante y cambia TODO junto.  */
 
 const SIMP_N = 20;                       // discos
-const SIMP_PASOS = [
-  { k:'4cd', vista:'4C', fase:'diástole', txt:'Trazá el contorno del VI en DIÁSTOLE, vista apical 4 cámaras' },
-  { k:'4cs', vista:'4C', fase:'sístole',  txt:'Ahora el mismo contorno en SÍSTOLE, vista apical 4 cámaras' },
-  { k:'2cd', vista:'2C', fase:'diástole', txt:'Trazá el contorno del VI en DIÁSTOLE, vista apical 2 cámaras' },
-  { k:'2cs', vista:'2C', fase:'sístole',  txt:'Ahora el mismo contorno en SÍSTOLE, vista apical 2 cámaras' }
-];
-let _simp = null;                        // { paso, trazos:{}, pendiente, res }
+
+/* FLUJO FLEXIBLE (2026-09-20). Antes exigía las cuatro vistas y era un problema real: si el
+   médico sólo tiene una vista buena, no podía medir nada. Ahora con UN par —diástole y
+   sístole de la misma vista— sale FEVI monoplanar, y si agrega la segunda vista se recalcula
+   biplano.
+
+   MONOPLANO Y BIPLANO NO SON LO MISMO, y la interfaz lo dice. La guía (Lang 2015) recomienda
+   el biplano para el VI: «the biplane method of disks summation (modified Simpson's rule),
+   which is the recommended 2D echocardiographic method by consensus of this committee». El
+   monoplano NO es un método que la guía describa para el ventrículo —sus pasajes de
+   "single-plane" son de la AURÍCULA— y los valores normales de la Tabla 2 se midieron
+   «using the biplane method of disks». O sea que un monoplano se clasifica contra cortes
+   obtenidos con otro método: es una aproximación útil, no una equivalencia. */
+let _simp = null;
 
 function _simpIniciar() {
-  _simp = { paso:0, trazos:{}, pendiente:null, res:null, avisoCuadro:false };
+  _simp = { vista:0, fase:'d', pares:[{d:null,s:null},{d:null,s:null}],
+            pendiente:null, res:null, avisoCuadro:false, ocultar:false, integrada:false };
 }
+const _simpParCompleto = i => !!(_simp && _simp.pares[i] && _simp.pares[i].d && _simp.pares[i].s);
 
 /* Eje largo según la guía: recta que cierra el anillo mitral (primer punto ↔ último),
    su punto medio, y el punto del contorno más lejano a ese medio. */
@@ -45903,17 +45913,20 @@ function _simpVolumenML(a4, a2, Lcm, cmPorPx) {
 }
 
 function _simpCalcular() {
-  const T = _simp.trazos;
-  if (!T['4cd'] || !T['4cs'] || !T['2cd'] || !T['2cs']) return null;
-  const cmPorPx = T['4cd'].cmPorPx;
-  const vol = (c4, c2) => {
-    const Lpx = Math.max(c4.eje.L, c2.eje.L);        // la MÁS LARGA, no el promedio
-    return { ml: _simpVolumenML(c4.diam, c2.diam, Lpx * cmPorPx, cmPorPx), Lcm: Lpx * cmPorPx };
+  if (!_simpParCompleto(0)) return null;
+  const bi = _simpParCompleto(1);
+  const A = _simp.pares[0], B = _simp.pares[1];
+  const cmPorPx = A.d.cmPorPx;
+  /* Monoplano: el disco se asume CIRCULAR, o sea b_i = a_i. Biplano: b_i sale de la segunda
+     vista y L es la más larga de las dos, textual de la guía. */
+  const vol = (fase) => {
+    const c1 = A[fase], c2 = bi ? B[fase] : A[fase];
+    const Lpx = bi ? Math.max(c1.eje.L, c2.eje.L) : c1.eje.L;
+    return { ml: _simpVolumenML(c1.diam, c2.diam, Lpx * cmPorPx, cmPorPx), Lcm: Lpx * cmPorPx };
   };
-  const d = vol(T['4cd'], T['2cd']), s = vol(T['4cs'], T['2cs']);
+  const d = vol('d'), s = vol('s');
   if (!(d.ml > 0)) return null;
-  const fevi = (d.ml - s.ml) / d.ml * 100;
-  return { vfd:d.ml, vfs:s.ml, fevi, Ld:d.Lcm, Ls:s.Lcm };
+  return { vfd:d.ml, vfs:s.ml, fevi:(d.ml - s.ml) / d.ml * 100, Ld:d.Lcm, Ls:s.Lcm, bi };
 }
 
 /* MISMA cascada que el informe: `UMBRAL_FEVI_NORMAL` y 40/30. Ver la nota de arriba. */
@@ -45943,13 +45956,48 @@ function _simpAceptar(pts) {
 
 function medSimpsonConfirmar() {
   if (!_simp || !_simp.pendiente) { alert('Trazá primero el contorno: mantené apretado y recorré el borde del ventrículo, de un lado del anillo mitral al otro.'); return; }
-  _simp.trazos[SIMP_PASOS[_simp.paso].k] = _simp.pendiente;
+  _simp.pares[_simp.vista][_simp.fase] = _simp.pendiente;
   _simp.pendiente = null;
-  _simp.paso = Math.min(_simp.paso + 1, SIMP_PASOS.length);
-  _simp.avisoCuadro = false;
-  if (_simp.paso >= SIMP_PASOS.length) _simp.res = _simpCalcular();
+  _simp.avisoCuadro = false; _simp.ocultar = false;
+  _simp.fase = (_simp.fase === 'd') ? 's' : 'd';
+  _simp.res = _simpCalcular();
+  /* Al pasar de monoplano a biplano el número cambia, así que una integración anterior deja
+     de corresponder: se marca como no integrada para que el botón vuelva a ofrecerse. */
+  if (_simp.res && _simp.res.bi) _simp.integrada = false;
   _medPintar(); _medEstado();
 }
+
+function medSimpsonSegundaVista() {
+  if (!_simp || !_simpParCompleto(0)) return;
+  _simp.vista = 1; _simp.fase = 'd'; _simp.pendiente = null;
+  _medPintar(); _medEstado();
+}
+window.medSimpsonSegundaVista = medSimpsonSegundaVista;
+
+/* Integra la FEVI al formulario. SÓLO biplano, y no es una limitación arbitraria: el campo
+   «Método» de la app ofrece «Simpson biplano», «Teicholz» y «Visual» — no hay monoplano. Un
+   monoplano integrado saldría en el informe firmado rotulado «Simpson biplano», que es
+   nombrar mal el método en un documento clínico. */
+function medSimpsonIntegrar() {
+  if (!_simp || !_simp.res || !_simp.res.bi) return;
+  const el = document.getElementById('fevi');
+  if (!el) { toast('❌ No se encontró el campo FEVI'); return; }
+  const nuevo = _simp.res.fevi.toFixed(0);
+  const previo = String(el.value || '').trim();
+  /* No se pisa un valor cargado sin avisar: es el mismo criterio que usa el importador DICOM
+     con «Este estudio ya tiene X guardado». */
+  if (previo && previo !== nuevo &&
+      !confirm('El campo FEVI ya tiene ' + previo + ' %.\n\n¿Reemplazarlo por ' + nuevo + ' % (Simpson biplano)?')) return;
+  el.value = nuevo;
+  el.dispatchEvent(new Event('input', { bubbles:true }));
+  el.dispatchEvent(new Event('change', { bubbles:true }));
+  const met = document.getElementById('fevi_met');
+  if (met) { met.value = 'Simpson biplano'; met.dispatchEvent(new Event('change', { bubbles:true })); }
+  _simp.integrada = true;
+  _medEstado();
+  toast('✅ FEVI ' + nuevo + ' % integrada al informe (Simpson biplano)');
+}
+window.medSimpsonIntegrar = medSimpsonIntegrar;
 window.medSimpsonConfirmar = medSimpsonConfirmar;
 
 function medSimpsonReiniciar() {
@@ -46037,8 +46085,12 @@ function _medPintar() {
      si el eje quedó torcido o el ápex escorzado, se ve en cómo caen las rayas. Un numero
      solo no deja revisar nada. */
   if (_medHerr === 'simpson' && _simp) {
-    const tr = _simp.pendiente ||
-      (_simp.paso > 0 && !_simp.res ? _simp.trazos[SIMP_PASOS[_simp.paso - 1].k] : null);
+    /* `ocultar` lo pone el cambio de cuadro: el trazado confirmado SIGUE GUARDADO, pero deja
+       de dibujarse para no confundirlo con el contorno del cuadro que se está viendo ahora.
+       Un contorno de diástole superpuesto a un cuadro de sístole invita a creer que el
+       trazado se hizo sobre esa imagen. */
+    const ultimo = _simp.pares[_simp.vista][_simp.fase === 'd' ? 's' : 'd'];
+    const tr = _simp.pendiente || (_simp.ocultar ? null : ultimo);
     if (tr) {
       const col = _simp.pendiente ? '#fbbf24' : '#22d36a';
       cx.strokeStyle = col; cx.fillStyle = col;
@@ -46086,37 +46138,82 @@ function _medBarra(html) {
    del archivo son la escala y las coordenadas, y salen por toFixed. */
 function _simpPanel() {
   if (!_simp) return '';
-  const bts = '<button type="button" class="btn btn-primary" id="cine-simp-conf" style="padding:3px 10px;font-size:11px;">Confirmar trazado</button>' +
-              '<button type="button" class="btn btn-ghost" id="cine-simp-reset" style="padding:3px 9px;font-size:11px;margin-left:6px;">Empezar de nuevo</button>';
-  if (_simp.res) {
-    const c = _simpClasificar(_simp.res.fevi);
-    return '<div style="font-size:13px;line-height:1.7;">' +
-      '<b>Simpson biplano</b> · 20 discos<br>' +
-      'VFD <b>' + _simp.res.vfd.toFixed(1) + ' mL</b> · VFS <b>' + _simp.res.vfs.toFixed(1) + ' mL</b><br>' +
-      'FEVI <b style="font-size:17px;color:' + c.col + ';">' + _simp.res.fevi.toFixed(1) + ' %</b> — ' +
+  const b = (id, cls, txt, extra) => '<button type="button" class="btn ' + cls + '" id="' + id +
+    '" style="padding:3px 10px;font-size:11px;' + (extra || '') + '">' + txt + '</button>';
+  const conf  = b('cine-simp-conf', 'btn-primary', 'Confirmar trazado');
+  const reset = b('cine-simp-reset', 'btn-ghost', 'Empezar de nuevo', 'margin-left:6px;');
+  const R = _simp.res;
+
+  /* ── Resultado ── */
+  let cab = '';
+  if (R) {
+    const c = _simpClasificar(R.fevi);
+    const modo = R.bi ? 'biplano' : 'monoplanar';
+    cab = '<div style="font-size:13px;line-height:1.7;">' +
+      '<b>Simpson ' + modo + '</b> · 20 discos' + (R.bi ? ' · dos vistas' : ' · una vista') + '<br>' +
+      'VFD <b>' + R.vfd.toFixed(1) + ' mL</b> · VFS <b>' + R.vfs.toFixed(1) + ' mL</b><br>' +
+      'FEVI <b style="font-size:17px;color:' + c.col + ';">' + R.fevi.toFixed(1) + ' %</b> — ' +
       '<b style="color:' + c.col + ';">' + c.txt + '</b></div>' +
       '<div style="font-size:10px;color:var(--text2);margin-top:5px;line-height:1.5;">' +
-      'Eje largo: ' + _simp.res.Ld.toFixed(1) + ' cm en diástole y ' + _simp.res.Ls.toFixed(1) + ' cm en sístole ' +
-      '(se usa el más largo de las dos vistas, ASE/EACVI 2015). ' +
-      'La clasificación es la misma que usa el informe. <b>Este valor NO va al PDF</b>: si lo querés en el informe, ' +
-      'cargalo a mano en el campo FEVI.<br>' +
-      '⚠️ El método supone que el ápex está bien visualizado. Un ápex escorzado subestima los volúmenes; ' +
-      'la guía lo lista como su limitación principal.</div>' +
-      '<div style="margin-top:6px;">' + bts + '</div>';
+      'Eje largo: ' + R.Ld.toFixed(1) + ' cm en diástole y ' + R.Ls.toFixed(1) + ' cm en sístole' +
+      (R.bi ? ' (el más largo de las dos vistas, ASE/EACVI 2015)' : '') + '. ' +
+      'La clasificación es la misma que usa el informe. ' +
+      /* Que el numero exista no significa que este en el informe. Antes el panel decia
+         «NO va al PDF» y era cierto siempre; ahora el biplano SI se puede integrar, asi que
+         lo que hay que decir es que no esta hasta que se integre. */
+      (R.bi
+        ? (_simp.integrada
+            ? '<b>Ya está en el campo FEVI del informe.</b>'
+            : '<b>Todavía NO está en el informe:</b> se integra con el botón de abajo.')
+        : '<b>No está en el informe</b> ni va al PDF.') +
+      (R.bi
+        ? ''
+        : /* El monoplano no es lo mismo, y decirlo no es un detalle: la guía recomienda el
+             biplano para el VI y los valores normales se midieron con biplano. */
+          ' <b>Es monoplanar:</b> asume que el ventrículo es circular en el corte transversal. ' +
+          'La guía recomienda el biplano, y los valores normales con los que se clasifica salen ' +
+          'de biplano — tomalo como una aproximación. Agregá la otra vista para el biplano.') +
+      '<br>⚠️ El método supone que el ápex está bien visualizado. Un ápex escorzado subestima ' +
+      'los volúmenes; la guía lo lista como su limitación principal.</div>';
   }
-  const P = SIMP_PASOS[_simp.paso];
-  const hechos = SIMP_PASOS.slice(0, _simp.paso).map(x => '✅ ' + x.vista + ' ' + x.fase).join(' · ');
-  return '<div style="font-size:12px;line-height:1.6;">' +
-    '<b>Paso ' + (_simp.paso + 1) + '/4</b> — ' + P.txt + '.' +
-    '<div style="font-size:10px;color:var(--text2);margin-top:3px;">' +
-      'Empezá en un lado del anillo mitral y terminá en el otro: esa recta define el eje largo. ' +
-      (_simp.pendiente
-        ? '<b style="color:#fbbf24;">Trazado listo — apretá «Confirmar trazado».</b>'
-        : 'Mantené apretado y recorré el borde del ventrículo.') +
-      (hechos ? '<br>' + hechos : '') +
-      (_simp.avisoCuadro ? '<br><b style="color:#fbbf24;">Cambiaste de cuadro.</b> Los trazados que ya confirmaste siguen valiendo; el que estaba sin confirmar se borró.' : '') +
-    '</div></div>' +
-    '<div style="margin-top:6px;">' + bts + '</div>';
+
+  /* ── Botones de acción sobre el resultado ── */
+  let acc = '';
+  if (R && R.bi) {
+    acc = _simp.integrada
+      ? '<span style="font-size:11px;color:#22d36a;">✅ Integrada al campo FEVI del informe.</span>' +
+        b('cine-simp-integ', 'btn-ghost', 'Integrar de nuevo', 'margin-left:8px;')
+      : b('cine-simp-integ', 'btn-primary', '¿Integrás la FEVI biplano al informe?');
+  } else if (R && !R.bi) {
+    acc = b('cine-simp-2v', 'btn-primary', '➕ Agregar la otra vista (biplano)') +
+      /* Sin botón de integrar: el campo «Método» de la app sólo tiene «Simpson biplano»,
+         «Teicholz» y «Visual». Integrar un monoplano lo rotularía como biplano en el informe
+         firmado, que es nombrar mal el método. Se dice, no se esconde. */
+      '<div style="font-size:10px;color:var(--text2);margin-top:5px;">' +
+      'El monoplanar no se integra al informe: el campo «Método» sólo tiene Simpson biplano, ' +
+      'Teicholz y Visual, y rotularlo «biplano» sería nombrar mal el método. Si lo querés igual, ' +
+      'cargalo a mano y elegí el método que corresponda.</div>';
+  }
+
+  /* ── Paso en curso ── */
+  const faseTxt = (_simp.fase === 'd') ? 'DIÁSTOLE' : 'SÍSTOLE';
+  const vistaTxt = (_simp.vista === 0) ? 'la vista que estés usando' : 'la SEGUNDA vista (la otra apical)';
+  const falta = !_simpParCompleto(_simp.vista) || (_simp.vista === 1 && !_simpParCompleto(1));
+  let paso = '';
+  if (falta) {
+    paso = '<div style="font-size:12px;line-height:1.6;' + (R ? 'margin-top:8px;' : '') + '">' +
+      '<b>Trazá ' + faseTxt + '</b> en ' + vistaTxt + '.' +
+      '<div style="font-size:10px;color:var(--text2);margin-top:3px;">' +
+        'Empezá en un lado del anillo mitral y terminá en el otro: esa recta define el eje largo. ' +
+        (_simp.pendiente
+          ? '<b style="color:#fbbf24;">Trazado listo — apretá «Confirmar trazado».</b>'
+          : 'Mantené apretado y recorré el borde del ventrículo.') +
+        (_simp.avisoCuadro
+          ? '<br><b style="color:#fbbf24;">Cambiaste de cuadro.</b> Lo que confirmaste sigue valiendo y sigue contando para el cálculo; se dejó de dibujar para no confundirlo con este cuadro. El trazado sin confirmar se descartó.'
+          : '') +
+      '</div></div>';
+  }
+  return cab + paso + '<div style="margin-top:6px;">' + conf + reset + (acc ? ' ' + acc : '') + '</div>';
 }
 
 const _medComo = () => (_medHerr === 'area')
@@ -46171,6 +46268,9 @@ function _medEstado() {
   const sc = _medEl('cine-simp-conf'), sr = _medEl('cine-simp-reset');
   if (sc) sc.onclick = medSimpsonConfirmar;
   if (sr) sr.onclick = medSimpsonReiniciar;
+  const s2 = _medEl('cine-simp-2v'), si = _medEl('cine-simp-integ');
+  if (s2) s2.onclick = medSimpsonSegundaVista;
+  if (si) si.onclick = medSimpsonIntegrar;
 }
 
 function _medClic(ev) {
@@ -46303,6 +46403,8 @@ function medReset() {
      acaba de dejar— y se avisa, para que no parezca que se perdió algo. */
   if (_simp) {
     if (_simp.pendiente) { _simp.pendiente = null; _simp.avisoCuadro = true; }
+    /* Y lo confirmado se OCULTA, no se borra: sigue contando para el cálculo. */
+    _simp.ocultar = true;
   }
   if (_medOn) { _medPintar(); _medEstado(); }
 }
@@ -61948,8 +62050,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260920-0053';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789876391060;                 /* eco-build-ms */
+const ECO_BUILD    = '20260920-0123';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789878191712;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -62035,7 +62137,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-0053</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-0123</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
