@@ -11670,6 +11670,222 @@ caso('TC-189', 'Area: Shoelace exacto sobre figura conocida, y las zonas donde n
   })();
 `);
 
+/* ══ TC-190 · Simpson biplano ════════════════════════════════════════════════════════════════
+   UNA FEVI ES UN NUMERO QUE EL MEDICO PUEDE USAR PARA DECIDIR, asi que no alcanza con que la
+   herramienta "ande": hay que verificar el valor contra algo calculable a mano.
+
+   Se trazan TRIANGULOS, que tienen volumen de Simpson analitico. Con el apice justo encima del
+   medio del anillo, el eje queda vertical y el diametro del disco i vale W(1-(i+0.5)/20), asi
+   que Sigma(a_i b_i) = W4 x W2 x 6,6625 --la constante sale de Sigma(i+0,5)^2 = 2665 sobre
+   400-- y el volumen es pi/4 x eso x L/20.
+
+   La condicion que importa: con 4C 200x300 y 2C 180x300 en diastole, y 120 / 108 en sistole,
+   la FEVI da EXACTAMENTE 64 % --1 menos 12.960/36.000-- y eso solo sale bien si a_i y b_i se
+   MULTIPLICAN. Sumarlos o promediarlos da otro numero, igual de prolijo.                     */
+caso('TC-190', 'Simpson biplano: FEVI contra un volumen calculable a mano, y L la mas larga', `
+  return (async () => {
+    const P = ${JSON.stringify(PENDRIVE)};
+    if (!P.loop) return { extra: [[
+      'hace falta un cineloop real del pendrive', false, 'no se encontro: quedo SIN verificar']] };
+    const bytes = x => { const b = atob(x.b64); const a = new Uint8Array(b.length);
+      for (let i=0;i<b.length;i++) a[i] = b.charCodeAt(i); return a; };
+    const esperar = async (c, n) => { for (let i=0;i<(n||60);i++) { if (c()) return true; await new Promise(r=>setTimeout(r,60)); } return c(); };
+    const alertOrig = window.alert; const dichos = [];
+    window.alert = m => dichos.push(String(m));
+    const R = {};
+    try {
+      const u = bytes(P.loop);
+      const d0 = _dcmImgLeer(u.buffer);
+      const reg = (d0.regiones || []).filter(_dcmImgRegionMedible)[0];
+      if (!reg) return { extra: [['la imagen declara region medible', false, 'no la declara']] };
+
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      await dcmImgImportar([new File([u], P.loop.nombre)]);
+      await esperar(() => !!_cineDatos, 80);
+      medToggle();
+      const cv = document.getElementById('cine-med');
+      const ac = (x, y) => { const r = cv.getBoundingClientRect();
+        return { clientX: r.left + x * (r.width / cv.width), clientY: r.top + y * (r.height / cv.height) }; };
+      const trazar = async (pts) => {
+        cv.dispatchEvent(new MouseEvent('mousedown', Object.assign({ bubbles:true }, ac(pts[0].x, pts[0].y))));
+        for (let i = 1; i < pts.length; i++)
+          cv.dispatchEvent(new MouseEvent('mousemove', Object.assign({ bubbles:true }, ac(pts[i].x, pts[i].y))));
+        document.dispatchEvent(new MouseEvent('mouseup', { bubbles:true }));
+        const z = pts[pts.length-1];
+        cv.dispatchEvent(new MouseEvent('click', Object.assign({ bubbles:true }, ac(z.x, z.y))));
+        await new Promise(r => setTimeout(r, 130));
+      };
+      /* Triangulo isosceles: base en y=yb de ancho W, apice arriba en el medio. El trazado
+         ARRANCA y TERMINA en los extremos de la base, que es lo que pide la guia. */
+      const tri = (cx, yb, W, H, paso) => {
+        const p = []; paso = paso || 12;
+        const x0 = cx - W/2, x1 = cx + W/2, ya = yb - H;
+        const n1 = Math.ceil(Math.hypot(W/2, H) / paso);
+        for (let i = 0; i <= n1; i++) p.push({ x: x0 + (cx-x0)*i/n1, y: yb + (ya-yb)*i/n1 });
+        for (let i = 1; i <= n1; i++) p.push({ x: cx + (x1-cx)*i/n1, y: ya + (yb-ya)*i/n1 });
+        return p.map(q => ({ x: Math.round(q.x), y: Math.round(q.y) }));
+      };
+
+      document.getElementById('cine-med-simp').click();
+      await new Promise(r => setTimeout(r, 90));
+      R.herrSimpson = _medHerr === 'simpson';
+      R.panel1 = (document.getElementById('cine-med-barra').textContent || '');
+      R.dicePaso1 = R.panel1.indexOf('Paso 1/4') > -1;
+      R.pideAnillo = R.panel1.indexOf('anillo mitral') > -1;
+
+      const cx0 = Math.round((reg.x0 + reg.x1) / 2);
+      const yb  = Math.round(Math.min(reg.y1 - 10, reg.y0 + 380));
+      const W4d = 200, W2d = 180, W4s = 120, W2s = 108, H = 300;
+
+      /* ── los cuatro pasos ── */
+      await trazar(tri(cx0, yb, W4d, H));
+      R.pendienteTrasTrazar = !!_simp.pendiente;
+      medSimpsonConfirmar();
+      R.paso2 = _simp.paso === 1;
+      await trazar(tri(cx0, yb, W4s, H));
+      medSimpsonConfirmar();
+      await trazar(tri(cx0, yb, W2d, H));
+      medSimpsonConfirmar();
+      R.paso4 = _simp.paso === 3;
+      await trazar(tri(cx0, yb, W2s, H));
+      medSimpsonConfirmar();
+      R.hayResultado = !!_simp.res;
+
+      if (_simp.res) {
+        const T = _simp.trazos, cmPx = T['4cd'].cmPorPx;
+        /* (a) LA FORMULA, exacta contra los diametros realmente guardados */
+        const vol = (c4, c2) => { const L = Math.max(c4.eje.L, c2.eje.L);
+          let s = 0; for (let i = 0; i < SIMP_N; i++) s += (c4.diam[i]*cmPx) * (c2.diam[i]*cmPx);
+          return Math.PI/4 * s * (L*cmPx/SIMP_N); };
+        R.vfdExacto = Math.abs(_simp.res.vfd - vol(T['4cd'], T['2cd'])) < 1e-9;
+        R.vfsExacto = Math.abs(_simp.res.vfs - vol(T['4cs'], T['2cs'])) < 1e-9;
+        R.feviExacta = Math.abs(_simp.res.fevi - (_simp.res.vfd - _simp.res.vfs)/_simp.res.vfd*100) < 1e-9;
+        /* (b) LA GEOMETRIA, contra el valor analitico del triangulo */
+        const K = 2665/400;                                  // Sigma (1-(i+0,5)/20)^2
+        const analit = (w4, w2) => Math.PI/4 * (w4*cmPx)*(w2*cmPx)*K * (H*cmPx/SIMP_N);
+        R.vfd = _simp.res.vfd; R.vfdAnalitico = analit(W4d, W2d);
+        R.vfs = _simp.res.vfs; R.vfsAnalitico = analit(W4s, W2s);
+        R.vfdCerca = Math.abs(R.vfd - R.vfdAnalitico) / R.vfdAnalitico < 0.04;
+        R.vfsCerca = Math.abs(R.vfs - R.vfsAnalitico) / R.vfsAnalitico < 0.05;
+        /* (c) LA FEVI CONOCIDA: 1 - (120x108)/(200x180) = 64 % */
+        R.fevi = _simp.res.fevi; R.feviEsperada = (1 - (W4s*W2s)/(W4d*W2d)) * 100;
+        R.feviCerca = Math.abs(R.fevi - R.feviEsperada) < 1.5;
+        /* (d) la clasificacion es LA DE LA APP, no la de la guia */
+        const c = _simpClasificar(_simp.res.fevi);
+        R.clasif = c.txt;
+        R.clasifCoincide = c.txt === (_simp.res.fevi >= UMBRAL_FEVI_NORMAL ? 'normal'
+          : _simp.res.fevi >= 40 ? 'levemente reducida'
+          : _simp.res.fevi >= 30 ? 'moderadamente reducida' : 'severamente reducida');
+        R.panelRes = (document.getElementById('cine-med-barra').textContent || '');
+        R.panelDiceNoPDF = R.panelRes.indexOf('NO va al PDF') > -1 || R.panelRes.indexOf('no va al PDF') > -1;
+        R.panelAvisaApex = R.panelRes.indexOf('escorzado') > -1;
+      }
+
+      /* ── L ES LA MAS LARGA, NO EL PROMEDIO ──
+         Se rehace la diastole con el 2C mas largo (H=400 contra 300). Si se promediara, el
+         volumen usaria 350 y saldria un 12,5 % mas chico. */
+      medSimpsonReiniciar();
+      /* Alturas que ENTRAN en la region: con H=400 el apice se salia por arriba, el trazado
+         se rechazaba y los cuatro pasos nunca se completaban -- la condicion daba 0,0 y
+         "0,0 distinto de 0,0" es falso, asi que se veia como un fallo de L cuando en realidad
+         no se habia calculado nada. Por eso ahora se afirma PRIMERO que hubo resultado. */
+      await trazar(tri(cx0, yb, W4d, 250)); medSimpsonConfirmar();
+      await trazar(tri(cx0, yb, W4s, 250)); medSimpsonConfirmar();
+      await trazar(tri(cx0, yb, W2d, 330)); medSimpsonConfirmar();
+      await trazar(tri(cx0, yb, W2s, 250)); medSimpsonConfirmar();
+      R.serieLHecha = !!_simp.res;
+      if (_simp.res) {
+        const T = _simp.trazos, cmPx = T['4cd'].cmPorPx;
+        let s = 0; for (let i = 0; i < SIMP_N; i++) s += (T['4cd'].diam[i]*cmPx) * (T['2cd'].diam[i]*cmPx);
+        const Lmax = Math.max(T['4cd'].eje.L, T['2cd'].eje.L) * cmPx;
+        const Lprom = (T['4cd'].eje.L + T['2cd'].eje.L) / 2 * cmPx;
+        R.conMax  = Math.PI/4 * s * (Lmax/SIMP_N);
+        R.conProm = Math.PI/4 * s * (Lprom/SIMP_N);
+        R.usaLaMasLarga = Math.abs(_simp.res.vfd - R.conMax) < 1e-9;
+        R.noUsaElPromedio = Math.abs(_simp.res.vfd - R.conProm) > 0.5;
+      }
+
+      /* ── cambio de cuadro: lo confirmado SOBREVIVE ──
+         Es la unica medicion que no se borra, y tiene que serlo: diastole y sistole estan en
+         cuadros distintos, asi que borrar al cambiar haria imposible completar los 4 pasos. */
+      medSimpsonReiniciar();
+      await trazar(tri(cx0, yb, W4d, H));
+      medSimpsonConfirmar();
+      R.confirmadosAntes = Object.keys(_simp.trazos).length;
+      await trazar(tri(cx0, yb, W4s, H));        // queda SIN confirmar
+      R.pendienteAntes = !!_simp.pendiente;
+      await cineIr(Math.min(6, _cineDatos.loops[0].cuadros - 1));
+      await new Promise(r => setTimeout(r, 350));
+      R.confirmadosDespues = Object.keys(_simp.trazos).length;
+      R.pendienteDespues = !!_simp.pendiente;
+      R.avisoCuadro = (document.getElementById('cine-med-barra').textContent || '').indexOf('Cambiaste de cuadro') > -1;
+
+      /* ── LA FRANJA DONDE LA DECISION IMPORTA ──
+         La FEVI trazada arriba da 64 %, que es "normal" con el umbral de la app (50) Y con el
+         de la guia (52): esa condicion no distingue nada. La decision fue usar los umbrales de
+         la app para que el visor y el informe firmado nunca se contradigan, y eso solo se ve
+         entre 50 y 51,9. Se prueba la funcion directo, que es pura.
+         Si algun dia se adopta la Tabla 4 de Lang 2015 --52-72 en hombres, 54-74 en mujeres--
+         hay que cambiar UMBRAL_FEVI_NORMAL y cambia TODO junto, no solo el visor. */
+      R.cl50   = _simpClasificar(50).txt;
+      R.cl51_9 = _simpClasificar(51.9).txt;
+      R.cl49_9 = _simpClasificar(49.9).txt;
+      R.cl39_9 = _simpClasificar(39.9).txt;
+      R.cl29_9 = _simpClasificar(29.9).txt;
+      R.franjaComoLaApp = R.cl50 === 'normal' && R.cl51_9 === 'normal' &&
+                          R.cl49_9 === 'levemente reducida' && R.cl39_9 === 'moderadamente reducida' &&
+                          R.cl29_9 === 'severamente reducida';
+      R.umbralApp = UMBRAL_FEVI_NORMAL;
+
+      /* ── las otras herramientas siguen intactas ── */
+      document.getElementById('cine-med-dist').click();
+      await new Promise(r => setTimeout(r, 80));
+      const clic = (x, y) => cv.dispatchEvent(new MouseEvent('click', Object.assign({ bubbles:true }, ac(x, y))));
+      clic(Math.round(reg.x0+20), Math.round(reg.y0+20));
+      clic(Math.round(reg.x0+170), Math.round(reg.y0+20));
+      await new Promise(r => setTimeout(r, 120));
+      R.reglaSigue = _medLineas.filter(l => !l.calibracion).length === 1;
+      document.getElementById('cine-med-area').click();
+      await new Promise(r => setTimeout(r, 80));
+      await trazar([{x:cx0-60,y:yb-60},{x:cx0+60,y:yb-60},{x:cx0+60,y:yb},{x:cx0-60,y:yb}]);
+      R.areaSigue = _medAreas.length === 1;
+    } finally {
+      window.alert = alertOrig;
+      try { medApagar(); cineCerrar(); } catch (e) {}
+    }
+
+    return { extra: [
+      ['la herramienta Simpson se activa',               R.herrSimpson, R.herrSimpson],
+      ['el panel guia paso 1 de 4',                      R.dicePaso1, R.panel1.slice(0,60)],
+      ['y pide empezar y terminar en el anillo mitral',  R.pideAnillo, R.pideAnillo],
+      ['un trazado queda pendiente de confirmacion',     R.pendienteTrasTrazar, R.pendienteTrasTrazar],
+      ['confirmar avanza al paso siguiente',             R.paso2, R.paso2],
+      ['y llega al paso 4',                              R.paso4, R.paso4],
+      ['al confirmar el cuarto sale el resultado',       R.hayResultado, R.hayResultado],
+      ['VFD es exactamente la formula de discos',        R.vfdExacto, R.vfd],
+      ['VFS tambien',                                    R.vfsExacto, R.vfs],
+      ['FEVI es exactamente (VFD-VFS)/VFD',              R.feviExacta, R.fevi],
+      ['VFD coincide con el volumen analitico del triangulo', R.vfdCerca, (R.vfd||0).toFixed(1) + ' vs ' + (R.vfdAnalitico||0).toFixed(1) + ' mL'],
+      ['VFS tambien',                                    R.vfsCerca, (R.vfs||0).toFixed(1) + ' vs ' + (R.vfsAnalitico||0).toFixed(1) + ' mL'],
+      ['LA FEVI DA EL 64 % CALCULADO A MANO',            R.feviCerca, (R.fevi||0).toFixed(1) + ' % vs ' + (R.feviEsperada||0).toFixed(1) + ' %'],
+      ['la clasificacion es la misma cascada del informe', R.clasifCoincide, R.clasif],
+      ['y en la franja 50-51,9 dice lo MISMO que el informe', R.franjaComoLaApp,
+        'umbral=' + R.umbralApp + ' · 50→' + R.cl50 + ' · 49,9→' + R.cl49_9],
+      ['el panel dice que NO va al PDF',                 R.panelDiceNoPDF, R.panelDiceNoPDF],
+      ['y avisa del apice escorzado',                    R.panelAvisaApex, R.panelAvisaApex],
+      ['la serie con vistas de distinto largo se completo', R.serieLHecha, R.serieLHecha],
+      ['L es la MAS LARGA de las dos vistas',            R.usaLaMasLarga, (R.conMax||0).toFixed(1) + ' mL'],
+      ['y NO el promedio',                               R.noUsaElPromedio, 'promedio daria ' + (R.conProm||0).toFixed(1) + ' mL'],
+      ['al cambiar de cuadro lo confirmado sobrevive',   R.confirmadosAntes === 1 && R.confirmadosDespues === 1, R.confirmadosAntes + '→' + R.confirmadosDespues],
+      ['lo NO confirmado se descarta',                   R.pendienteAntes && !R.pendienteDespues, R.pendienteAntes + '→' + R.pendienteDespues],
+      ['y se avisa del cambio de cuadro',                R.avisoCuadro, R.avisoCuadro],
+      ['la regla sigue funcionando',                     R.reglaSigue, R.reglaSigue],
+      ['y el area tambien',                              R.areaSigue, R.areaSigue]
+    ] };
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];

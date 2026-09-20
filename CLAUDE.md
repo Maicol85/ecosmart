@@ -7814,6 +7814,54 @@ superpuesto y se entera de los cambios observando `#cine-num` (cuadro), `#cine-c
 cineloop) y el `display` de `#cine-ov` (cierre). Al cambiar de cuadro se borran las mediciones
 pero **se conserva la calibración manual**: es una propiedad de la imagen, no del cuadro.
 
+### Simpson biplano en el visor (2026-09-20)
+Tercera herramienta: cuatro trazados guiados (4C diástole, 4C sístole, 2C diástole, 2C sístole)
+→ VFD, VFS y FEVI. **No va al PDF.**
+
+**Fuente: Lang et al., ASE/EACVI 2015** (J Am Soc Echocardiogr 2015;28:1-39). Se leyó el PDF
+completo. **Tres cosas del pedido contradecían la guía:**
+
+| Pedido | Lang 2015, textual |
+|---|---|
+| «L = eje largo **promedio**» | *"The use of the **longer** LV length between the apical two- and four-chamber views is recommended."* |
+| «**Detectar** el eje largo (punto más apical)» | *"At the mitral valve level, the contour is closed by connecting the two opposite sections of the mitral ring with a straight line. LV length is defined as the distance between the **bisector of this line** and the apical point of the LV contour, which is most distant to it."* |
+| «Leve 41-51» para ambos sexos | Tabla 4: hombres 41-51, **mujeres 41-53**. Con el corte del pedido, una mujer con 52-53 % queda **sin categoría** |
+
+El ápex **se deriva** de la recta del anillo mitral, no se adivina: por eso el trazado tiene que
+empezar y terminar en el anillo. Con la cuerda más larga del contorno, un VI dilatado o un trazo
+descuidado eligen un eje que no es el ápex-base y el volumen sale mal **sin síntoma**. La guía
+además lista *"Apex frequently foreshortened"* como la limitación propia del método, y el panel
+lo dice.
+
+**LA CLASIFICACIÓN USA `UMBRAL_FEVI_NORMAL` (50), NO LA TABLA 4, Y ES A PROPÓSITO.** Esa
+constante gobierna el informe firmado. Con los cortes de la guía, un hombre con 51 % sería
+«leve» en el visor y «normal» en el informe **sobre el mismo número** — el defecto que ya pagó
+la PSAP y que documenta la nota de `UMBRAL_PSAP_ELEVADA`. Decisión de Maicol (2026-09-20): una
+sola clasificación. Si algún día se adopta la de la guía, **se cambia la constante y cambia todo
+junto**, no sólo el visor.
+
+> Dato para esa discusión, del propio documento: el texto principal dice *"EF is not
+> significantly related to gender, age, or body size… EF in the range of 53% to 73% should be
+> classified as normal"* — un rango **único**, en tensión con su propia Tabla 4 por sexo.
+
+**Simpson es la única medición que NO se borra al cambiar de cuadro**, y tiene que serlo: la
+diástole y la sístole están en cuadros distintos, así que borrar lo confirmado haría imposible
+completar los cuatro pasos. Se descarta sólo el trazado sin confirmar, y se avisa.
+
+**Se rechaza si los píxeles no son cuadrados.** Los diámetros de los discos se miden en
+direcciones cualesquiera y un solo factor no alcanza con `dx ≠ dy`. Ninguna región real es así;
+ante una que lo sea, es preferible no calcular que calcular mal.
+
+**Cómo se probó un número clínico:** triángulos, que tienen volumen de Simpson **analítico**
+—`Σ(a_i·b_i) = W4·W2·6,6625`, con la constante saliendo de `Σ(i+0,5)² = 2665/400`—. Con 4C
+200×300 y 2C 180×300 en diástole y 120/108 en sístole, la **FEVI da exactamente 64 %**
+(`1 − 12.960/36.000`), y eso sólo sale si `a_i` y `b_i` se **multiplican**. Dos trampas del test:
+la serie para probar «L la más larga» usaba H=400 y el ápex **se salía de la región** —el
+trazado se rechazaba, no se calculaba nada y la condición daba «0,0 ≠ 0,0», que se leía como un
+fallo de L; hoy se afirma primero que hubo resultado—. Y la condición de clasificación **no
+distinguía nada**: la FEVI trazada es 64 %, «normal» con 50 y con 52. La franja que importa es
+**50–51,9** y se prueba llamando a la función directo.
+
 ### Área por trazado libre (2026-09-20)
 Selector **📏 Distancia / ✏️ Área** en la barra de medición. Con Área, se mantiene apretado y se
 recorre el borde: al soltar, el contorno **se cierra solo** y sale el área en cm². Mismas reglas

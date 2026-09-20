@@ -45773,7 +45773,7 @@ function _medPuntoCanvas(ev) {
 }
 
 function _medAreaDown(ev) {
-  if (_medHerr !== 'area' || _medCalibrando) return;
+  if ((_medHerr !== 'area' && _medHerr !== 'simpson') || _medCalibrando) return;
   const p = _medPuntoCanvas(ev);
   if (!p) return;
   ev.preventDefault();
@@ -45797,6 +45797,14 @@ function _medAreaUp() {
   if (!_medTrazo) return;
   const pts = _medTrazo;
   _medTrazo = null;
+  /* En Simpson el trazado NO se cierra como área: queda pendiente de confirmación, y el
+     contorno se cierra con la recta del anillo mitral, que es lo que define el eje largo. */
+  if (_medHerr === 'simpson') {
+    const motivo = _simpAceptar(pts);
+    if (motivo) { alert(motivo); _simp.pendiente = null; }
+    _medPintar(); _medEstado();
+    return;
+  }
   /* El contorno se cierra solo: el médico recorre el borde y suelta, no tiene que volver
      exactamente al punto de partida. */
   const v = _medAreaValidar(pts);
@@ -45807,16 +45815,162 @@ function _medAreaUp() {
   _medPintar(); _medEstado();
 }
 
+/* ══════════════════════════════════════════════════════════════════════════════════════
+   SIMPSON BIPLANO
+   ══════════════════════════════════════════════════════════════════════════════════════
+
+   Fuente: Lang et al., «Recommendations for Cardiac Chamber Quantification by
+   Echocardiography in Adults», ASE/EACVI 2015 (J Am Soc Echocardiogr 2015;28:1-39).
+   Tres cosas salen TEXTUALES de ahí y dos de ellas contradicen lo que se pidió:
+
+   · EL EJE LARGO NO SE ADIVINA. «At the mitral valve level, the contour is closed by
+     connecting the two opposite sections of the mitral ring with a straight line. LV length
+     is defined as the distance between the bisector of this line and the apical point of the
+     LV contour, which is most distant to it.» O sea: el operador traza de un lado del anillo
+     al otro, y el ápex se DERIVA de esa recta. «Detectar el punto más apical» sin la línea
+     del anillo no está definido — en un VI dilatado o en un trazado descuidado, la cuerda
+     más larga no es el eje ápex-base, y el volumen sale mal sin ningún síntoma.
+
+   · L ES LA MÁS LARGA DE LAS DOS VISTAS, NO EL PROMEDIO. «The use of the longer LV length
+     between the apical two- and four-chamber views is recommended.» El pedido decía
+     promedio. Con un VI escorzado en una vista, promediar arrastra el error a las dos.
+
+   · «Apex frequently foreshortened» está listado por la propia guía como la limitación del
+     método. Por eso el panel lo dice: ningún cálculo arregla un ápex cortado.
+
+   LA CLASIFICACIÓN USA LOS UMBRALES DE LA APP, no los de la guía, y es a propósito.
+   `UMBRAL_FEVI_NORMAL` (50) gobierna el informe firmado. La Tabla 4 de Lang 2015 dice
+   52-72 / 41-51 / 30-40 / <30 en hombres y 54-74 / 41-53 / 30-40 / <30 en mujeres — o sea
+   que un hombre con 51 % sería «leve» acá y «normal» en el informe, sobre el mismo número.
+   Es exactamente el defecto que ya pagó la PSAP y que documenta la nota de
+   `UMBRAL_PSAP_ELEVADA`. Decisión de Maicol (2026-09-20): una sola clasificación, la de la
+   app. Si alguna vez se adopta la de la guía, se cambia la constante y cambia TODO junto.  */
+
+const SIMP_N = 20;                       // discos
+const SIMP_PASOS = [
+  { k:'4cd', vista:'4C', fase:'diástole', txt:'Trazá el contorno del VI en DIÁSTOLE, vista apical 4 cámaras' },
+  { k:'4cs', vista:'4C', fase:'sístole',  txt:'Ahora el mismo contorno en SÍSTOLE, vista apical 4 cámaras' },
+  { k:'2cd', vista:'2C', fase:'diástole', txt:'Trazá el contorno del VI en DIÁSTOLE, vista apical 2 cámaras' },
+  { k:'2cs', vista:'2C', fase:'sístole',  txt:'Ahora el mismo contorno en SÍSTOLE, vista apical 2 cámaras' }
+];
+let _simp = null;                        // { paso, trazos:{}, pendiente, res }
+
+function _simpIniciar() {
+  _simp = { paso:0, trazos:{}, pendiente:null, res:null, avisoCuadro:false };
+}
+
+/* Eje largo según la guía: recta que cierra el anillo mitral (primer punto ↔ último),
+   su punto medio, y el punto del contorno más lejano a ese medio. */
+function _simpEje(pts) {
+  const a = pts[0], b = pts[pts.length - 1];
+  const M = { x:(a.x + b.x) / 2, y:(a.y + b.y) / 2 };
+  let apex = a, d2 = -1;
+  pts.forEach(p => { const q = (p.x-M.x)*(p.x-M.x) + (p.y-M.y)*(p.y-M.y); if (q > d2) { d2 = q; apex = p; } });
+  const L = Math.sqrt(d2);
+  if (!(L > 0)) return null;
+  return { M, apex, L, ux:(apex.x - M.x) / L, uy:(apex.y - M.y) / L };
+}
+
+/* Diámetro de cada disco: se pasa el contorno a coordenadas del eje (u a lo largo, v
+   perpendicular), se corta a la altura de cada disco y se toma la cuerda entre los cruces
+   extremos. Tomar el primer par de cruces daría mal en un contorno con una escotadura. */
+function _simpDiametros(pts, eje, n) {
+  const P = pts.map(p => { const dx = p.x - eje.M.x, dy = p.y - eje.M.y;
+    return { u: dx*eje.ux + dy*eje.uy, v: -dx*eje.uy + dy*eje.ux }; });
+  const cerr = P.concat([P[0]]);                    // cerrado por la recta del anillo
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const u = eje.L * (i + 0.5) / n;
+    let lo = Infinity, hi = -Infinity;
+    for (let k = 0; k + 1 < cerr.length; k++) {
+      const p1 = cerr[k], p2 = cerr[k + 1];
+      if (p1.u === p2.u) continue;
+      if ((p1.u - u) * (p2.u - u) > 0) continue;     // el segmento no cruza esa altura
+      const v = p1.v + (u - p1.u) / (p2.u - p1.u) * (p2.v - p1.v);
+      if (v < lo) lo = v;
+      if (v > hi) hi = v;
+    }
+    out.push(hi > lo ? (hi - lo) : 0);
+  }
+  return out;
+}
+
+/* V = (π/4) · Σ(a_i · b_i) · (L/20), con a_i del 4C, b_i del 2C y L la MÁS LARGA. */
+function _simpVolumenML(a4, a2, Lcm, cmPorPx) {
+  let s = 0;
+  for (let i = 0; i < SIMP_N; i++) s += (a4[i] * cmPorPx) * (a2[i] * cmPorPx);
+  return Math.PI / 4 * s * (Lcm / SIMP_N);
+}
+
+function _simpCalcular() {
+  const T = _simp.trazos;
+  if (!T['4cd'] || !T['4cs'] || !T['2cd'] || !T['2cs']) return null;
+  const cmPorPx = T['4cd'].cmPorPx;
+  const vol = (c4, c2) => {
+    const Lpx = Math.max(c4.eje.L, c2.eje.L);        // la MÁS LARGA, no el promedio
+    return { ml: _simpVolumenML(c4.diam, c2.diam, Lpx * cmPorPx, cmPorPx), Lcm: Lpx * cmPorPx };
+  };
+  const d = vol(T['4cd'], T['2cd']), s = vol(T['4cs'], T['2cs']);
+  if (!(d.ml > 0)) return null;
+  const fevi = (d.ml - s.ml) / d.ml * 100;
+  return { vfd:d.ml, vfs:s.ml, fevi, Ld:d.Lcm, Ls:s.Lcm };
+}
+
+/* MISMA cascada que el informe: `UMBRAL_FEVI_NORMAL` y 40/30. Ver la nota de arriba. */
+function _simpClasificar(fevi) {
+  if (fevi >= UMBRAL_FEVI_NORMAL) return { txt:'normal', col:'#22d36a' };
+  if (fevi >= 40) return { txt:'levemente reducida', col:'#fbbf24' };
+  if (fevi >= 30) return { txt:'moderadamente reducida', col:'#fb923c' };
+  return { txt:'severamente reducida', col:'#f87171' };
+}
+
+/* Cierra el trazado en curso como paso de Simpson. Devuelve el motivo del rechazo, o null. */
+function _simpAceptar(pts) {
+  const v = _medAreaValidar(pts);
+  if (!v.ok) return v.motivo;
+  /* Simpson supone píxeles cuadrados: los diámetros de los discos se miden en direcciones
+     cualesquiera y un solo factor no alcanza si dx ≠ dy. En los 296 archivos del pendrive
+     todas las regiones medibles son isotrópicas, así que esto no bloquea nada real — y ante
+     una que no lo sea, es preferible no calcular que calcular mal. */
+  if (Math.abs(v.esc.mmPorPx - v.esc.mmPorPxY) > 1e-12)
+    return 'Esta imagen tiene píxeles no cuadrados y el método de discos necesita una sola escala. No se puede calcular Simpson acá.';
+  const eje = _simpEje(pts);
+  if (!eje) return 'No se pudo determinar el eje largo del ventrículo con ese trazado.';
+  if (eje.L < 20) return 'El trazado es demasiado chico para medir un ventrículo.';
+  _simp.pendiente = { pts, eje, diam:_simpDiametros(pts, eje, SIMP_N), cmPorPx: v.esc.mmPorPx / 10 };
+  return null;
+}
+
+function medSimpsonConfirmar() {
+  if (!_simp || !_simp.pendiente) { alert('Trazá primero el contorno: mantené apretado y recorré el borde del ventrículo, de un lado del anillo mitral al otro.'); return; }
+  _simp.trazos[SIMP_PASOS[_simp.paso].k] = _simp.pendiente;
+  _simp.pendiente = null;
+  _simp.paso = Math.min(_simp.paso + 1, SIMP_PASOS.length);
+  _simp.avisoCuadro = false;
+  if (_simp.paso >= SIMP_PASOS.length) _simp.res = _simpCalcular();
+  _medPintar(); _medEstado();
+}
+window.medSimpsonConfirmar = medSimpsonConfirmar;
+
+function medSimpsonReiniciar() {
+  _simpIniciar();
+  _medPintar(); _medEstado();
+}
+window.medSimpsonReiniciar = medSimpsonReiniciar;
+
 function medHerramienta(h) {
-  _medHerr = (h === 'area') ? 'area' : 'dist';
+  _medHerr = (h === 'area' || h === 'simpson') ? h : 'dist';
   _medTrazo = null; _medPuntos = [];
+  /* Simpson arranca de cero cada vez que se entra: los cuatro trazados son de UNA medición,
+     y mezclar dos series daría una FEVI hecha con diástole de un lado y sístole del otro. */
+  if (_medHerr === 'simpson' && !_simp) _simpIniciar();
   const cv = _medEl('cine-med');
   if (cv) {
-    /* Las dos herramientas no pueden escuchar a la vez: el `mouseup` de un arrastre dispara
-       también un `click`, así que con las dos vivas cada contorno dejaba además un punto de
-       regla suelto. */
+    /* Las herramientas no pueden escuchar a la vez: el `mouseup` de un arrastre dispara
+       también un `click`, así que con la regla viva cada contorno dejaba además un punto
+       suelto. */
     cv.onclick = (_medHerr === 'dist') ? _medClic : null;
-    cv.style.cursor = (_medHerr === 'area') ? 'crosshair' : 'crosshair';
+    cv.style.cursor = 'crosshair';
   }
   _medPintar(); _medEstado();
 }
@@ -45878,6 +46032,41 @@ function _medPintar() {
   _medAreas.forEach(a => contorno(a, true, '#22d36a'));
   if (_medTrazo && _medTrazo.length > 1) contorno({ pts:_medTrazo, cm2:null }, false, '#fbbf24');
 
+  /* ── Simpson: contorno + recta del anillo + eje + discos ──
+     Se dibujan los discos porque son lo que hay que mirar para saber si el trazado sirve:
+     si el eje quedó torcido o el ápex escorzado, se ve en cómo caen las rayas. Un numero
+     solo no deja revisar nada. */
+  if (_medHerr === 'simpson' && _simp) {
+    const tr = _simp.pendiente ||
+      (_simp.paso > 0 && !_simp.res ? _simp.trazos[SIMP_PASOS[_simp.paso - 1].k] : null);
+    if (tr) {
+      const col = _simp.pendiente ? '#fbbf24' : '#22d36a';
+      cx.strokeStyle = col; cx.fillStyle = col;
+      cx.beginPath(); cx.moveTo(tr.pts[0].x, tr.pts[0].y);
+      for (let i = 1; i < tr.pts.length; i++) cx.lineTo(tr.pts[i].x, tr.pts[i].y);
+      cx.stroke();
+      const u = tr.pts[0], w = tr.pts[tr.pts.length - 1];
+      cx.setLineDash([6*esc, 4*esc]);
+      cx.beginPath(); cx.moveTo(u.x, u.y); cx.lineTo(w.x, w.y); cx.stroke();        // anillo
+      cx.beginPath(); cx.moveTo(tr.eje.M.x, tr.eje.M.y); cx.lineTo(tr.eje.apex.x, tr.eje.apex.y); cx.stroke();
+      cx.setLineDash([]);
+      cx.globalAlpha = 0.5; cx.lineWidth = 1 * esc;
+      for (let i = 0; i < SIMP_N; i++) {
+        const d = tr.diam[i]; if (!d) continue;
+        const uu = tr.eje.L * (i + 0.5) / SIMP_N;
+        const cxp = tr.eje.M.x + tr.eje.ux * uu, cyp = tr.eje.M.y + tr.eje.uy * uu;
+        const px = -tr.eje.uy, py = tr.eje.ux;
+        cx.beginPath();
+        cx.moveTo(cxp - px * d / 2, cyp - py * d / 2);
+        cx.lineTo(cxp + px * d / 2, cyp + py * d / 2);
+        cx.stroke();
+      }
+      cx.globalAlpha = 1; cx.lineWidth = 2 * esc;
+      [[u.x,u.y],[w.x,w.y],[tr.eje.apex.x,tr.eje.apex.y]].forEach(([x,y]) => {
+        cx.beginPath(); cx.arc(x, y, 4*esc, 0, 6.2832); cx.fill(); });
+    }
+  }
+
   _medLineas.forEach(l => dibujar(l, l.calibracion ? '#fbbf24' : '#22d36a'));
   if (_medPuntos.length === 1) {
     const p = _medPuntos[0];
@@ -45891,6 +46080,43 @@ function _medBarra(html) {
   if (!b) return;
   b.style.display = _medOn ? '' : 'none';
   if (_medOn) b.innerHTML = html;
+}
+
+/* Panel de Simpson. Todo lo que se muestra lo escribe la app; los únicos números que vienen
+   del archivo son la escala y las coordenadas, y salen por toFixed. */
+function _simpPanel() {
+  if (!_simp) return '';
+  const bts = '<button type="button" class="btn btn-primary" id="cine-simp-conf" style="padding:3px 10px;font-size:11px;">Confirmar trazado</button>' +
+              '<button type="button" class="btn btn-ghost" id="cine-simp-reset" style="padding:3px 9px;font-size:11px;margin-left:6px;">Empezar de nuevo</button>';
+  if (_simp.res) {
+    const c = _simpClasificar(_simp.res.fevi);
+    return '<div style="font-size:13px;line-height:1.7;">' +
+      '<b>Simpson biplano</b> · 20 discos<br>' +
+      'VFD <b>' + _simp.res.vfd.toFixed(1) + ' mL</b> · VFS <b>' + _simp.res.vfs.toFixed(1) + ' mL</b><br>' +
+      'FEVI <b style="font-size:17px;color:' + c.col + ';">' + _simp.res.fevi.toFixed(1) + ' %</b> — ' +
+      '<b style="color:' + c.col + ';">' + c.txt + '</b></div>' +
+      '<div style="font-size:10px;color:var(--text2);margin-top:5px;line-height:1.5;">' +
+      'Eje largo: ' + _simp.res.Ld.toFixed(1) + ' cm en diástole y ' + _simp.res.Ls.toFixed(1) + ' cm en sístole ' +
+      '(se usa el más largo de las dos vistas, ASE/EACVI 2015). ' +
+      'La clasificación es la misma que usa el informe. <b>Este valor NO va al PDF</b>: si lo querés en el informe, ' +
+      'cargalo a mano en el campo FEVI.<br>' +
+      '⚠️ El método supone que el ápex está bien visualizado. Un ápex escorzado subestima los volúmenes; ' +
+      'la guía lo lista como su limitación principal.</div>' +
+      '<div style="margin-top:6px;">' + bts + '</div>';
+  }
+  const P = SIMP_PASOS[_simp.paso];
+  const hechos = SIMP_PASOS.slice(0, _simp.paso).map(x => '✅ ' + x.vista + ' ' + x.fase).join(' · ');
+  return '<div style="font-size:12px;line-height:1.6;">' +
+    '<b>Paso ' + (_simp.paso + 1) + '/4</b> — ' + P.txt + '.' +
+    '<div style="font-size:10px;color:var(--text2);margin-top:3px;">' +
+      'Empezá en un lado del anillo mitral y terminá en el otro: esa recta define el eje largo. ' +
+      (_simp.pendiente
+        ? '<b style="color:#fbbf24;">Trazado listo — apretá «Confirmar trazado».</b>'
+        : 'Mantené apretado y recorré el borde del ventrículo.') +
+      (hechos ? '<br>' + hechos : '') +
+      (_simp.avisoCuadro ? '<br><b style="color:#fbbf24;">Cambiaste de cuadro.</b> Los trazados que ya confirmaste siguen valiendo; el que estaba sin confirmar se borró.' : '') +
+    '</div></div>' +
+    '<div style="margin-top:6px;">' + bts + '</div>';
 }
 
 const _medComo = () => (_medHerr === 'area')
@@ -45909,7 +46135,9 @@ function _medEstado() {
   const sel = '<button type="button" class="btn btn-ghost" id="cine-med-dist" style="padding:3px 9px;font-size:11px;' +
                 (_medHerr === 'dist' ? act : '') + '">📏 Distancia</button>' +
               '<button type="button" class="btn btn-ghost" id="cine-med-area" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
-                (_medHerr === 'area' ? act : '') + '">✏️ Área</button>';
+                (_medHerr === 'area' ? act : '') + '">✏️ Área</button>' +
+              '<button type="button" class="btn btn-ghost" id="cine-med-simp" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
+                (_medHerr === 'simpson' ? act : '') + '">🫀 Simpson</button>';
   const bot = sel +
               '<button type="button" class="btn btn-ghost" id="cine-med-recal" style="padding:3px 9px;font-size:11px;margin-left:14px;">Recalibrar</button>' +
               '<button type="button" class="btn btn-ghost" id="cine-med-borrar" style="padding:3px 9px;font-size:11px;margin-left:6px;">Borrar mediciones</button>';
@@ -45930,7 +46158,7 @@ function _medEstado() {
           'referencia conocida y decí cuánto mide.';
   }
   const n = _medLineas.filter(l => !l.calibracion).length + _medAreas.length;
-  _medBarra(txt + (n ? '  ·  <b>' + n + '</b> medición(es) en pantalla.' : '') +
+  _medBarra((_medHerr === 'simpson' ? _simpPanel() : txt + (n ? '  ·  <b>' + n + '</b> medición(es) en pantalla.' : '')) +
             '<div style="margin-top:6px;">' + bot + '</div>');
   const rc = _medEl('cine-med-recal'), bb = _medEl('cine-med-borrar');
   const bd = _medEl('cine-med-dist'), ba = _medEl('cine-med-area');
@@ -45938,6 +46166,11 @@ function _medEstado() {
   if (bb) bb.onclick = medBorrar;
   if (bd) bd.onclick = () => medHerramienta('dist');
   if (ba) ba.onclick = () => medHerramienta('area');
+  const bs = _medEl('cine-med-simp');
+  if (bs) bs.onclick = () => medHerramienta('simpson');
+  const sc = _medEl('cine-simp-conf'), sr = _medEl('cine-simp-reset');
+  if (sc) sc.onclick = medSimpsonConfirmar;
+  if (sr) sr.onclick = medSimpsonReiniciar;
 }
 
 function _medClic(ev) {
@@ -46063,6 +46296,14 @@ window.medRecalibrar = medRecalibrar;
 function medReset() {
   _medPuntos = []; _medLineas = _medLineas.filter(l => l.calibracion);
   _medAreas = []; _medTrazo = null;
+  /* SIMPSON NO SE BORRA AL CAMBIAR DE CUADRO, y es la única medición que no.
+     El método EXIGE cambiar de cuadro: la diástole y la sístole están en cuadros distintos,
+     así que borrar los trazados confirmados haría imposible completar los cuatro pasos.
+     Lo que sí se descarta es el trazado sin confirmar — ese sí pertenece al cuadro que se
+     acaba de dejar— y se avisa, para que no parezca que se perdió algo. */
+  if (_simp) {
+    if (_simp.pendiente) { _simp.pendiente = null; _simp.avisoCuadro = true; }
+  }
   if (_medOn) { _medPintar(); _medEstado(); }
 }
 window.medReset = medReset;
@@ -46071,6 +46312,7 @@ window.medReset = medReset;
 function medApagar() {
   _medOn = false; _medCalibrando = false; _medCalib = null;
   _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null; _medHerr = 'dist';
+  _simp = null;                      // otra imagen: los cuatro trazados no aplican
   const cv = _medEl('cine-med'), b = _medEl('cine-medir');
   if (cv) { cv.style.display = 'none'; cv.onclick = null; cv.onmousedown = null; cv.onmousemove = null; }
   document.removeEventListener('mouseup', _medAreaUp);
@@ -61706,8 +61948,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260920-0024';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789874681579;                 /* eco-build-ms */
+const ECO_BUILD    = '20260920-0053';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789876391060;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -61793,7 +62035,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-0024</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-0053</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
