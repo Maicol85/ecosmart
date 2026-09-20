@@ -8056,7 +8056,145 @@ literales). Al mutar, ojo con una trampa: cambiar `cols`/`filas` **no** sirve co
 «abrir el slot en vez del original», porque `cineIr` redimensiona el canvas según el bitmap
 decodificado y pisa el metadato. La mutación fiel tiene que pasarle los bytes del slot.
 
+### El visor es un conjunto de VISTAS, no un singleton (2026-09-20)
+
+Reemplaza al panel B de sólo visualización de la entrada de abajo, que se conserva porque sus
+lecciones sobre la sincronización siguen valiendo. Hoy hay dos instancias completas: cada una
+con su imagen, su canvas de medición, su reproductor y **las seis herramientas**.
+
+**CÓMO SE HIZO SIN REESCRIBIR 2.000 LÍNEAS.** El módulo tenía trece `let` de nivel superior
+—`_medPuntos`, `_simp`, `_cineDatos`…— leídos y **escritos** desde unas cincuenta funciones.
+Renombrarlos a `V.algo` en cada sitio es el barrido masivo que este archivo ya documenta
+habiendo costado tres campos ajenos con el `_vel` → `_veloc`. En su lugar los nombres viejos
+pasaron a ser **propiedades de acceso** que resuelven contra la vista activa (`_V`): el cuerpo
+de esas cincuenta funciones no cambió **ni un carácter** y sigue diciendo `_medPuntos.push(p)`.
+Es la sombra de `tgaConclusion` escalada — o toda la función lee de la vista, o no compila.
+**Los ids de la vista A siguen sin prefijo** (`cine-cv`, `cine-med`, `cine-num`) a propósito:
+así «una sola vista se comporta igual que antes» es verificable hasta en el DOM, y los 209
+casos que ya apuntaban ahí siguieron midiendo lo mismo. La segunda vista lleva `b-`.
+
+**`_V` ES AMBIENTE, Y ÉSA ES LA ÚNICA TRAMPA QUE IMPORTA.** Tres formas de pisarla, y las tres
+hay que respetarlas al tocar esto:
+
+1. **`async`.** Una función que hace `await` puede despertarse con otra vista activa. `cineIr`
+   captura `const V = _V` **antes** del `await` y usa `V.` después. Sin eso, el decodificado de
+   la B vuelve mientras la A está activa y se dibuja el cuadro de una en el canvas de la otra
+   — que se ve como un eco raro, no como un error.
+2. **`setInterval` y `MutationObserver`.** Corren fuera de todo contexto: los dispara el
+   navegador, no un clic. Van envueltos en `_vCon(V, …)`.
+3. **Los manejadores del canvas, y ésta la cazó el caso, no la lectura.** Atar
+   `cv.onclick = _medManejador()` parece correcto —el manejador cuelga del canvas de esta
+   vista— y no lo es: `_medClic` resuelve su canvas y su estado contra la vista activa **en el
+   momento del clic**, que por omisión es la A. Medido: un clic sobre la vista B escribía la
+   regla en la A, con el número calculado con la escala de la A, y desde la pantalla se veía
+   como que el clic «no hizo nada». Van con `_vBind(V, …)`.
+
+**EL `mouseup` DEL DOCUMENTO SE INSTALA UNA SOLA VEZ.** Se escucha en el documento porque al
+recorrer un borde se suelta el botón fuera de la imagen todo el tiempo; y el documento es
+**uno** para las dos vistas. Con `addEventListener` de la misma función desde las dos,
+apagar la medición en una lo quitaba para las **dos** y el área de la otra quedaba muerta sin
+ningún síntoma. Hoy hay un oyente único que despacha a `_vArrastre`, la vista que empezó el
+arrastre — sin esa marca, soltar sobre la B cerraría el contorno de la A.
+
+**EL BIPLANO ENTRE VISTAS NO REIMPLEMENTA NADA.** `_vBiplanoDatos` toma el par de cada
+instancia y llama a `_simpVolumenML` y `_simpClasificar`, las mismas de una sola vista. Y
+`_simpEscribirFEVI` se extrajo para que las **dos** vías de integración —la sesión de una
+vista y el cruce A × B— compartan la regla de no pisar un valor cargado sin preguntar: con dos
+copias, una podría pisarlo y la otra no, sobre el mismo campo del informe firmado.
+
+**`_simp.trazos` NO EXISTE.** La estructura real es `_simp.pares[vista][fase]`. Escribí
+`_vBiplanoDatos` contra el nombre inventado y habría devuelto `null` para siempre, en
+silencio: nunca habría salido un biplano y no habría habido error que mirar. Lo cazó ir a leer
+la estructura antes de confiar en ella. **Un campo inventado no falla, calla** — por enésima
+vez, y acá con la agravante de que el modo de falla era «la función que acabás de escribir
+nunca hace nada».
+
+**LO QUE EL BIPLANO ENTRE VISTAS AGREGA ES VERLAS JUNTAS, no hacer posible lo imposible.** La
+sesión de Simpson sobrevive al cambio de imagen desde antes, así que el biplano ya se podía
+completar con una sola vista cambiando de cineloop. Conviene saberlo antes de estimar el valor
+de una refactorización de este tamaño.
+
+**MUTACIONES: cinco verificadas, tres NO.** Caen donde les toca el manejador atado sin su
+vista (hay que sacar `_vBind` de los DOS sitios —`medToggle` y `medHerramienta`— porque
+revertir uno solo es un no-op, igual que la guarda duplicada de la sincronización), el biplano
+con una sola escala para los cuatro trazados, la sincronización copiando el índice, la
+etiqueta volviendo al cm/s con signo, y la calibración ignorando la línea de base.
+**Quedaron sin verificar** las de «cerrar la vista B no saca su panel», «el observador de la B
+corre en la A» y «se ofrece calibrar aunque el archivo traiga escala»: el pendrive se desmontó
+a mitad de sesión y sin él los casos que dependen de archivos reales reportan «sin verificar»
+—el primer intento de la de cerrar la vista B dio rojo **por el fixture ausente y no por la
+mutación**, que es el falso positivo contra el que este archivo ya advierte—. Se completan
+volviendo a montar `/Volumes/DISK_IMG`.
+
+Lo de la calibración sobre modo M igual tiene evidencia más fuerte que una mutación: **el
+defecto ocurrió de verdad** durante el desarrollo —la condición amplia era mi primera versión—
+y TC-193 se puso en rojo solo.
+
+**Sin verificar en Safari**, como todo el módulo DICOM: el navegador está concedido a nivel
+«lectura». Todo corrió en Chrome por CDP, con el pendrive montado.
+
+### Velocidad: la escala del archivo estaba bien, y el respaldo es para los 15 sin región (2026-09-20)
+
+**EL REPORTE DECÍA «las velocidades dan −403 cm/s, la escala del archivo no se lee bien». La
+escala se lee bien.** Medido sobre los 301 archivos del pendrive, antes de tocar una línea:
+
+| | |
+|---|---|
+| regiones de velocidad **superpuestas** | 0 — no hay ambigüedad al elegir región |
+| `ReferencePixelPhysicalValueY` ≠ 0 | 0 — el cero siempre es el píxel de referencia |
+| `PhysicalDeltaY` positivo | 0 — las 132 declaran arriba-positivo |
+| regiones donde −403 cm/s cae **dentro** del recuadro | 26 de 132 |
+| archivos **sin ninguna región** | 15 de 301 |
+
+−403 cm/s son **−4,03 m/s**, una velocidad de chorro normal, y el signo lo declara el archivo.
+En **65 de 132** regiones la línea de base cae **fuera** del recuadro visible —un trazo CW
+dibujado entero hacia abajo— así que ahí *todo* lo que se clickee da negativo, correctamente.
+Y el gradiente salía bien desde siempre, porque 4V² eleva al cuadrado: −4,03 → 65 mmHg.
+
+**Lo que se arregló es la PRESENTACIÓN.** Se muestra la magnitud en m/s con la dirección al
+lado (↑ hacia el transductor, ↓ alejándose), que es como se reporta y como están los campos de
+la app —`vmax_it`, `vmax_ao` son positivos—. Decisión de Maicol. El signo del archivo se sigue
+usando: es de donde sale la flecha.
+
+**LA CALIBRACIÓN MANUAL NECESITA DOS COSAS Y NO UNA**, y eso la separa de la de distancia: el
+**cero** —dónde está la línea de base— y la **escala**. Una distancia sólo necesita el factor;
+una velocidad no es la diferencia entre dos puntos marcados sino la altura de **uno** sobre la
+base. Por eso el trazo va de la línea de base a una marca conocida, y `_medVelCalEn` es
+`(y0 − y) · cmsPorPx`: la dirección sale de la geometría, no se supone.
+
+**SE OFRECE SOLA SÓLO SI LA IMAGEN NO DECLARA NINGUNA REGIÓN, y la condición amplia era una
+regresión peligrosa.** La primera versión entraba con «no hay región de VELOCIDAD» — y de las
+157 regiones espectrales del pendrive, **25 tienen el eje Y en centímetros**: son trazos de
+**modo M**, distancia contra tiempo. Con esa condición, elegir la herramienta sobre un modo M
+ofrecía calibrar una escala de velocidad sobre un eje de **distancia**, y el número habría
+salido plausible. Ahí la respuesta correcta es el aviso que explica qué es ese trazo.
+**Lo cazó TC-193, que ya vigilaba ese aviso** — un caso viejo poniéndose en rojo es la señal,
+no el problema.
+
+**Pisar la escala del archivo es una decisión explícita** («Recalibrar velocidad») y la barra
+lo **declara** mientras esté pisada. Un número de velocidad sin saber de dónde salió la escala
+no se puede auditar, y acá conviven dos fuentes.
+
+**Al probar: separar la aritmética del clic.** `MouseEvent.clientY` es **entero por
+especificación**, así que el viaje imagen → pantalla → imagen pierde subpíxeles: pedir y=400
+sobre un canvas escalado por CSS deja y=402,43. La primera versión de TC-197 comparaba contra
+los píxeles que yo *quise* clickear y daba rojo por esa cuantización, que un clic real también
+tiene. Hoy la conversión se verifica **contra el estado registrado** y es exacta a 1e−12, y el
+mapeo del clic se mide aparte con la tolerancia derivada del escalado real. Es la misma
+corrección que ya se le hizo a TC-187.
+
+**Y `medToggle` ALTERNA.** Llamarlo en un caso con la medición ya encendida la **apaga**, y
+entonces el canvas queda con `display:none` y sin manejadores: los clics no llegan a ningún
+lado y se ve como si la herramienta no anduviera. Me costó una vuelta de diagnóstico en este
+mismo caso. En los casos, `if (!_medOn) medToggle();`.
+
+**Backtick dentro del cuerpo de un caso: van VEINTIUNO**, y otra vez en un comentario recién
+escrito — el que explicaba justamente la trampa de arriba.
+
 ### Panel B: segunda vista, SÓLO de visualización (2026-09-20)
+> **SUPERADO por la entrada de arriba (mismo día).** El panel B pasó a ser una instancia
+> completa con sus seis herramientas. Lo que sigue vale para la sincronización —que no cambió—
+> y para el censo de lo que costaba la refactorización, que era el argumento para no hacerla.
 `➕ Agregar vista` abre un segundo reproductor al lado del A, con su propio play/pausa/slider, y
 `🔗 Sincronizar` hace que **A mande y B siga**. Las herramientas de medición siguen viviendo en el
 panel A. Decisión de Maicol: el panel doble era el paso que quedaba pendiente del arreglo del

@@ -45209,6 +45209,27 @@ function _dcmImgVelocidadEn(r, y) {
   return (r.rvy || 0) + (y - r.ry0) * r.dy;
 }
 
+/* ── CALIBRACIÓN MANUAL DE VELOCIDAD ─────────────────────────────────────────────────────
+
+   ES UN RESPALDO, NO UN REEMPLAZO, y la diferencia importa. Medido sobre los 301 archivos
+   del pendrive: 132 regiones declaran la escala de velocidad, ninguna con el valor físico
+   del píxel de referencia distinto de cero, ninguna con `PhysicalDeltaY` positivo y ninguna
+   superpuesta con otra — o sea que cuando el archivo la trae, la trae bien. Lo que NO tiene
+   escala son los **15 archivos sin ninguna región**, más los de otras marcas y las capturas
+   de pantalla. Ahí, o se calibra a mano o no se mide.
+
+   Trazar sobre una escala a pulso son ~±2 px, que sobre una marca de 1 m/s a ~100 px son un
+   2 % — aceptable como respaldo y peor que el archivo. Por eso sólo se ofrece sola cuando no
+   hay región, y pisarla es una decisión explícita («Recalibrar velocidad»).
+
+   NECESITA DOS COSAS Y NO UNA, que es lo que la separa de la calibración de distancia: el
+   CERO —dónde está la línea de base— y la ESCALA. Una distancia sólo necesita el factor; una
+   velocidad sin el cero no se puede calcular, porque no es una diferencia entre dos puntos
+   marcados sino la altura de UN punto sobre la base. */
+function _medVelCalEn(cal, y) {
+  return (cal.y0 - y) * cal.cmsPorPx;
+}
+
 /* La región que contiene al punto, en píxeles de la imagen. Si hay varias superpuestas gana
    la ÚLTIMA declarada, que es la más específica en la práctica (el 2D suele venir primero y
    los recuadros de Doppler después). */
@@ -45537,7 +45558,79 @@ window.dcmImgImportar = dcmImgImportar;
    (1016×708), contra un presupuesto de 17,9 ms en el loop más rápido del pendrive.
    Predecodificar los 172 cuadros a RGBA serían ~495 MB para no ganar nada. */
 
-let _cineDatos = null;   // { loops, i, cuadro, timer, bmp }
+/* ══════════════════════════════════════════════════════════════════════════════════════
+   EL VISOR ES UN CONJUNTO DE VISTAS, NO UN SINGLETON
+   ══════════════════════════════════════════════════════════════════════════════════════
+
+   Cada vista tiene su imagen, su canvas de medición, su reproductor y su estado de
+   medición completo. Eso es lo que permite dos cineloops en paralelo MIDIENDO en los dos
+   —4C y 2C a la vez, o reposo y esfuerzo— en vez del panel B de sólo visualización.
+
+   CÓMO SE HIZO SIN REESCRIBIR 2.000 LÍNEAS, que es la parte que importa entender antes de
+   tocar esto. El módulo tenía trece `let` de nivel superior (`_medPuntos`, `_simp`,
+   `_cineDatos`…) leídos y ESCRITOS desde ~50 funciones. Renombrarlos a `V.algo` en cada
+   sitio es el barrido masivo que este archivo ya documenta habiendo costado tres campos
+   ajenos. En su lugar, los nombres viejos pasan a ser **propiedades de acceso** que
+   resuelven contra la vista activa (`_V`): el cuerpo de las ~50 funciones no cambia ni un
+   carácter y sigue diciendo `_medPuntos.push(p)`. Es el mismo recurso que la sombra de
+   `tgaConclusion`, escalado: o toda la función lee de la vista, o no compila.
+
+   ⚠️ LA TRAMPA, Y ES LA ÚNICA QUE IMPORTA: `_V` es AMBIENTE. Una función `async` que hace
+   `await` en el medio puede despertarse con otra vista activa y escribirle a la equivocada
+   —el cruce silencioso de siempre—. Por eso toda función que espere algo captura
+   `const V = _V` ANTES del `await` y usa `V.` explícitamente después. Lo mismo los
+   `setInterval` y los MutationObserver, que corren fuera de todo contexto.
+   Si agregás un `await` a una función del visor, capturá la vista primero.
+
+   LOS IDS DE LA VISTA A NO LLEVAN PREFIJO, a propósito: `cine-cv`, `cine-med`, `cine-num`
+   siguen siendo esos. Así «una sola vista se comporta igual que antes» es verificable hasta
+   en el DOM, y los casos que ya apuntaban a esos ids siguen midiendo lo mismo. La segunda
+   vista lleva `b-`. */
+
+function _vNueva(pfx, rot) {
+  return {
+    pfx, rot,
+    datos: null,           // { loops, i, cuadro, timer }
+    gen: 0,                // token anti-carrera del decodificado
+    medOn: false, medPuntos: [], medLineas: [], medHerr: 'dist', medAreas: [],
+    medTrazo: null, medVels: [], medTiempos: [], medCalib: null, medCalibrando: false,
+    medCalibVel: null, medCalibrandoVel: false,
+    medUltimoCuadro: '', simp: null, obsPuesto: false
+  };
+}
+
+let _vistaA = _vNueva('', 'A');
+let _vistaB = null;
+let _V = _vistaA;
+
+const _vTodas = () => _vistaB ? [_vistaA, _vistaB] : [_vistaA];
+
+/* Corre `fn` con `V` como vista activa y repone la anterior pase lo que pase. Es el patrón
+   `_pcCon` del pericardio: sin el `finally`, una excepción a mitad de camino deja la vista
+   equivocada activa y el siguiente clic escribe en la otra imagen. */
+function _vCon(V, fn) {
+  const prev = _V; _V = V;
+  try { return fn(); } finally { _V = prev; }
+}
+/* Envuelve un manejador de evento para que corra en su vista. */
+const _vBind = (V, fn) => function () { const a = arguments; return _vCon(V, () => fn.apply(null, a)); };
+
+/* Los nombres viejos, resolviendo contra la vista activa. */
+(function () {
+  const MAPA = {
+    _cineDatos:'datos', _cineGen:'gen', _simp:'simp', _medObsPuesto:'obsPuesto',
+    _medOn:'medOn', _medPuntos:'medPuntos', _medLineas:'medLineas', _medHerr:'medHerr',
+    _medAreas:'medAreas', _medTrazo:'medTrazo', _medVels:'medVels', _medTiempos:'medTiempos',
+    _medCalib:'medCalib', _medCalibrando:'medCalibrando', _medUltimoCuadro:'medUltimoCuadro',
+    _medCalibVel:'medCalibVel', _medCalibrandoVel:'medCalibrandoVel'
+  };
+  for (const g in MAPA) {
+    const k = MAPA[g];
+    Object.defineProperty(window, g, {
+      get() { return _V[k]; }, set(v) { _V[k] = v; }, configurable: true
+    });
+  }
+})();
 
 function _cineFps(d) {
   /* El archivo manda. FrameTime está en ms por cuadro; RecommendedDisplayFrameRate, en
@@ -45548,7 +45641,72 @@ function _cineFps(d) {
   return { fps: 25, ms: 40, fuente: 'por omisión — el archivo no la declara' };
 }
 
+/* Marcado de UNA vista. Las dos salen de acá: con dos bloques de HTML paralelos, agregar un
+   control a la vista A y olvidarse de la B da un panel que se ve bien y al que le falta un
+   botón — el modo de falla mudo de siempre. */
+function _vPanelHTML(p, esB) {
+  const btn = (id, cls, txt, extra) => '<button type="button" class="btn ' + cls + '" id="' + p + id +
+    '" style="padding:4px 10px;font-size:11px;' + (extra || '') + '">' + txt + '</button>';
+  return '<div id="' + p + 'cine-panel" style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;">' +
+      '<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">' +
+        '<b style="font-size:12px;color:var(--text2);">Vista ' + (esB ? 'B' : 'A') + '</b>' +
+        '<span id="' + p + 'cine-cual" style="font-size:11px;color:var(--text2);"></span>' +
+        (esB ? btn('cine-cerrar-v', 'btn-ghost', '✕ Cerrar vista', 'margin-left:auto;') : '') +
+      '</div>' +
+      /* El canvas de medición va ENCIMA, con su propio elemento. Dibujar las reglas sobre
+         el canvas de la imagen obligaría a que el reproductor las repinte en cada cuadro
+         —o sea, a tocarlo— y un repintado las borraría a mitad de una medición. */
+      '<div id="' + p + 'cine-lienzo" style="position:relative;background:#000;border-radius:9px;' +
+        'display:flex;align-items:center;justify-content:center;min-height:210px;">' +
+        '<canvas id="' + p + 'cine-cv" style="max-width:100%;max-height:52vh;display:block;"></canvas>' +
+        '<canvas id="' + p + 'cine-med" style="position:absolute;display:none;cursor:crosshair;"></canvas>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+        btn('cine-play', 'btn-ghost', '▶ Reproducir', 'min-width:96px;') +
+        '<input type="range" id="' + p + 'cine-slider" min="0" value="0" style="flex:1;min-width:110px;">' +
+        '<span id="' + p + 'cine-num" style="font-size:11px;color:var(--text2);' +
+          'font-variant-numeric:tabular-nums;white-space:nowrap;"></span>' +
+      '</div>' +
+      '<div id="' + p + 'cine-ayuda" style="font-size:10px;color:var(--text2);line-height:1.5;"></div>' +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
+        btn('cine-prev', 'btn-ghost', '‹ Anterior') + btn('cine-next', 'btn-ghost', 'Siguiente ›') +
+        btn('cine-medir', 'btn-ghost', '📏 Medir') +
+        btn('cine-guardar', 'btn-ghost', '💾 Guardar') +
+        btn('cine-cap', 'btn-primary', '📸 Capturar cuadro') +
+      '</div>' +
+      '<div id="' + p + 'cine-med-barra" style="display:none;font-size:11px;line-height:1.5;' +
+        'padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);"></div>' +
+    '</div>';
+}
+
+/* Engancha los controles de UNA vista. Cada manejador corre con SU vista activa: sin eso,
+   apretar «Reproducir» en la B movería la A, que es el cruce que este modelo viene a
+   evitar. */
+/* Cuelga el marcado de una vista del contenedor. Pasa por un div intermedio en vez de
+   `insertAdjacentHTML` para no sumar un hallazgo de Semgrep: lo que se inserta sale entero de
+   `_vPanelHTML`, que son literales y el prefijo, pero la regla es sintáctica. */
+function _vMontarPanel(cont, pfx) {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = _vPanelHTML(pfx, pfx !== '');
+  while (tmp.firstChild) cont.appendChild(tmp.firstChild);
+}
+
+function _vCablear(V) {
+  const q = id => document.getElementById(V.pfx + id);
+  const on = (id, fn) => { const e = q(id); if (e) e.onclick = _vBind(V, fn); };
+  on('cine-play',    cineToggle);
+  on('cine-medir',   medToggle);
+  on('cine-guardar', cineGuardarActual);
+  on('cine-cap',     cineCapturar);
+  on('cine-prev',    () => cineLoop(-1));
+  on('cine-next',    () => cineLoop(1));
+  const sl = q('cine-slider');
+  if (sl) sl.oninput = _vBind(V, () => { _cineDetener(); cineIr(+sl.value); });
+  if (V !== _vistaA) on('cine-cerrar-v', vistaBCerrar);
+}
+
 function _cineAbrir(loops) {
+  _V = _vistaA;
   _cineDetener();
   _cineDatos = { loops, i: 0, cuadro: 0, timer: null };
   let ov = document.getElementById('cine-ov');
@@ -45560,94 +45718,55 @@ function _cineAbrir(loops) {
     /* Chrome estático por innerHTML; TODO lo que viene del archivo se escribe después con
        textContent. Nada del DICOM se interpola como HTML. */
     ov.innerHTML =
-      '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:900px;width:100%;max-height:92vh;overflow:auto;padding:16px;">' +
-        '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px;">' +
-          '<h3 style="margin:0;font-size:15px;">🎞️ Cineloop</h3>' +
-          '<span id="cine-cual" style="font-size:12px;color:var(--text2);"></span></div>' +
-        '<div id="cine-ayuda" style="font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.5;"></div>' +
-        /* El canvas de medición va ENCIMA, con su propio elemento. Dibujar las reglas sobre
-           `#cine-cv` obligaría a que el reproductor las repinte en cada cuadro —o sea, a
-           tocarlo—, y además un repintado las borraría a mitad de una medición. */
-        /* Los dos paneles. El B arranca oculto; al abrirse, los dos van al 50 %. El canvas
-           de medición sigue colgando del lienzo A y nada del módulo de medición cambia:
-           el panel B es SÓLO visualización. */
-        '<div id="cine-paneles" style="display:flex;gap:10px;align-items:stretch;">' +
-          '<div id="cine-lienzo" style="flex:1;min-width:0;position:relative;background:#000;border-radius:9px;display:flex;align-items:center;justify-content:center;min-height:220px;">' +
-            '<canvas id="cine-cv" style="max-width:100%;max-height:58vh;display:block;"></canvas>' +
-            '<canvas id="cine-med" style="position:absolute;display:none;cursor:crosshair;"></canvas></div>' +
-          '<div id="cine-panel-b" style="flex:1;min-width:0;display:none;flex-direction:column;gap:6px;">' +
-            '<div id="cine-lienzo-b" style="position:relative;background:#000;border-radius:9px;display:flex;align-items:center;justify-content:center;min-height:220px;flex:1;">' +
-              '<canvas id="cine-cv-b" style="max-width:100%;max-height:58vh;display:block;"></canvas></div>' +
-            '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
-              '<button type="button" class="btn btn-ghost" id="cine-play-b" style="padding:4px 10px;font-size:11px;min-width:84px;">▶ Vista B</button>' +
-              '<input type="range" id="cine-slider-b" min="0" value="0" style="flex:1;min-width:110px;">' +
-              '<span id="cine-num-b" style="font-size:11px;color:var(--text2);font-variant-numeric:tabular-nums;white-space:nowrap;"></span>' +
-              '<button type="button" class="btn btn-ghost" id="cine-cerrar-b" style="padding:4px 9px;font-size:11px;">✕ Cerrar vista B</button>' +
-            '</div>' +
-            '<div id="cine-cual-b" style="font-size:10px;color:var(--text2);"></div>' +
-          '</div>' +
+      '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:1180px;width:100%;max-height:94vh;overflow:auto;padding:16px;">' +
+        '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px;">' +
+          '<h3 style="margin:0;font-size:15px;">🎞️ Cineloop</h3></div>' +
+        '<div id="cine-paneles" style="display:flex;gap:12px;align-items:flex-start;">' +
+          _vPanelHTML('', false) +
         '</div>' +
-        '<div id="cine-med-barra" style="display:none;font-size:11px;line-height:1.5;margin-top:8px;' +
-          'padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);"></div>' +
-        '<div style="display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap;">' +
-          '<button type="button" class="btn btn-ghost" id="cine-play" style="padding:5px 14px;min-width:92px;">▶ Reproducir</button>' +
-          '<button type="button" class="btn btn-ghost" id="cine-add-b" style="padding:5px 12px;">➕ Agregar vista</button>' +
-          '<button type="button" class="btn btn-ghost" id="cine-sync" style="padding:5px 12px;display:none;">🔗 Sincronizar</button>' +
-          '<input type="range" id="cine-slider" min="0" value="0" style="flex:1;min-width:160px;">' +
-          '<span id="cine-num" style="font-size:12px;color:var(--text2);font-variant-numeric:tabular-nums;white-space:nowrap;"></span>' +
-        '</div>' +
+        /* El resultado biplano va ENTRE las dos vistas y no dentro de una: sale de las dos, y
+           colgarlo de la A sugeriría que es de la A. */
+        '<div id="cine-biplano" style="display:none;margin-top:10px;padding:9px 11px;border-radius:9px;' +
+          'border:1px solid var(--border);background:var(--bg3);font-size:12px;line-height:1.6;"></div>' +
         '<div style="display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:12px;flex-wrap:wrap;">' +
-          '<div style="display:flex;gap:8px;">' +
-            '<button type="button" class="btn btn-ghost" id="cine-prev" style="padding:5px 12px;">‹ Anterior</button>' +
-            '<button type="button" class="btn btn-ghost" id="cine-next" style="padding:5px 12px;">Siguiente ›</button></div>' +
-          '<div style="display:flex;gap:8px;">' +
-            /* ÚNICO agregado al reproductor de ad8d48d, y es aditivo: sin un disparador no hay
-               forma de guardar un cineloop cuyas condiciones no se cumplían al importarlo
-               —toggle apagado, o estudio todavía sin guardar—, y obligar a reimportar el
-               archivo del pendrive para eso sería exactamente lo que esta tarea viene a evitar. */
-            '<button type="button" class="btn btn-ghost" id="cine-medir" style="padding:5px 12px;">📏 Medir</button>' +
-            '<button type="button" class="btn btn-ghost" id="cine-guardar" style="padding:5px 12px;">💾 Guardar en el estudio</button>' +
-            '<button type="button" class="btn btn-primary" id="cine-cap" style="padding:5px 14px;">📸 Capturar cuadro</button>' +
-            '<button type="button" class="btn btn-ghost" id="cine-cerrar" style="padding:5px 12px;">Cerrar</button></div>' +
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+            '<button type="button" class="btn btn-ghost" id="cine-add-b" style="padding:5px 12px;">➕ Vista</button>' +
+            '<button type="button" class="btn btn-ghost" id="cine-sync" style="padding:5px 12px;display:none;">🔗 Sincronizar</button>' +
+          '</div>' +
+          '<button type="button" class="btn btn-ghost" id="cine-cerrar" style="padding:5px 12px;">Cerrar</button>' +
         '</div>' +
       '</div>';
     document.body.appendChild(ov);
-    ov.querySelector('#cine-play').onclick   = cineToggle;
-    ov.querySelector('#cine-medir').onclick  = medToggle;
-    ov.querySelector('#cine-guardar').onclick = cineGuardarActual;
-    ov.querySelector('#cine-cap').onclick    = cineCapturar;
     ov.querySelector('#cine-cerrar').onclick = cineCerrar;
-    ov.querySelector('#cine-prev').onclick   = () => cineLoop(-1);
-    ov.querySelector('#cine-next').onclick   = () => cineLoop(1);
-    ov.querySelector('#cine-slider').oninput = (e) => { _cineDetener(); cineIr(+e.target.value); };
-    ov.querySelector('#cine-add-b').onclick     = cineBElegir;
-    ov.querySelector('#cine-sync').onclick      = cineSyncToggle;
-    ov.querySelector('#cine-play-b').onclick    = cineBToggle;
-    ov.querySelector('#cine-cerrar-b').onclick  = cineBCerrar;
-    ov.querySelector('#cine-slider-b').oninput  = (ev2) => { _cineBDetener(); cineBIr(+ev2.target.value); };
+    ov.querySelector('#cine-add-b').onclick  = vistaBAbrir;
+    ov.querySelector('#cine-sync').onclick   = vistaSyncToggle;
+    _vCablear(_vistaA);
   }
   ov.style.display = 'flex';
   _cineCargarLoop();
 }
 
 function _cineCargarLoop() {
-  const D = _cineDatos; if (!D) return;
+  const V = _V, D = V.datos; if (!D) return;
   const L = D.loops[D.i];
   const v = _cineFps(L.d);
   D.cuadro = 0;
-  const ov = document.getElementById('cine-ov');
-  const cv = ov.querySelector('#cine-cv');
+  const q = id => document.getElementById(V.pfx + id);
+  const cv = q('cine-cv'); if (!cv) return;
   cv.width = L.d.cols || 640; cv.height = L.d.filas || 480;
-  const sl = ov.querySelector('#cine-slider');
-  sl.max = String(L.cuadros - 1); sl.value = '0';
-  ov.querySelector('#cine-cual').textContent =
+  const sl = q('cine-slider');
+  if (sl) { sl.max = String(L.cuadros - 1); sl.value = '0'; }
+  const cual = q('cine-cual');
+  if (cual) cual.textContent =
     (D.loops.length > 1 ? 'Cineloop ' + (D.i + 1) + ' de ' + D.loops.length + '  ·  ' : '') + L.nombre;
-  ov.querySelector('#cine-ayuda').textContent =
+  const ay = q('cine-ayuda');
+  if (ay) ay.textContent =
     L.cuadros + ' cuadros — navegá y capturá el cuadro que querés incluir en el informe. ' +
     'Arranca en pausa. Sólo el cuadro que captures va al PDF; el cineloop no se guarda. ' +
     'Velocidad: ' + v.fps.toFixed(1) + ' cuadros/s (' + v.fuente + ').';
-  ov.querySelector('#cine-prev').style.display = D.loops.length > 1 ? '' : 'none';
-  ov.querySelector('#cine-next').style.display = D.loops.length > 1 ? '' : 'none';
+  const pv = q('cine-prev'), nx = q('cine-next');
+  if (pv) pv.style.display = D.loops.length > 1 ? '' : 'none';
+  if (nx) nx.style.display = D.loops.length > 1 ? '' : 'none';
   cineIr(0);
 }
 
@@ -45658,45 +45777,55 @@ function cineLoop(paso) {
   _cineCargarLoop();
 }
 
-/* Dibuja un cuadro. `_cineGen` evita que un decodificado que llega tarde pise al cuadro que
-   el médico ya eligió: con el slider arrastrado rápido se disparan decenas de decodificados
-   y el último en terminar no es el último en pedirse. */
-let _cineGen = 0;
+/* Dibuja un cuadro. `V.gen` evita que un decodificado que llega tarde pise al cuadro que el
+   médico ya eligió: con el slider arrastrado rápido se disparan decenas de decodificados y
+   el último en terminar no es el último en pedirse.
+
+   ⚠️ `const V = _V` ANTES del `await`, y de ahí en adelante `V.` y no los nombres ambiente.
+   Con dos vistas, el decodificado de la B puede volver mientras la A está activa: leyendo
+   `_cineDatos` después del await se dibujaría el cuadro de una en el canvas de la otra, y
+   eso se ve como un eco raro, no como un error. */
 async function cineIr(n) {
-  const D = _cineDatos; if (!D) return;
+  const V = _V, D = V.datos; if (!D) return;
   const L = D.loops[D.i];
   n = Math.max(0, Math.min(L.cuadros - 1, n | 0));
   D.cuadro = n;
-  const ov = document.getElementById('cine-ov'); if (!ov) return;
-  ov.querySelector('#cine-num').textContent = (n + 1) + ' / ' + L.cuadros;
-  ov.querySelector('#cine-slider').value = String(n);
-  const gen = ++_cineGen;
+  const num = document.getElementById(V.pfx + 'cine-num');
+  const sl  = document.getElementById(V.pfx + 'cine-slider');
+  if (!num) return;
+  num.textContent = (n + 1) + ' / ' + L.cuadros;
+  if (sl) sl.value = String(n);
+  if (V === _vistaA) _vSyncAplicar();
+  const gen = ++V.gen;
   let bmp;
   try { bmp = await createImageBitmap(new Blob([L.d.frags[n]], { type:'image/jpeg' })); }
   catch (e) { return; }
-  if (gen !== _cineGen || !_cineDatos) { bmp.close(); return; }
-  const cv = ov.querySelector('#cine-cv');
+  if (gen !== V.gen || !V.datos) { bmp.close(); return; }
+  const cv = document.getElementById(V.pfx + 'cine-cv');
+  if (!cv) { bmp.close(); return; }
   if (cv.width !== bmp.width || cv.height !== bmp.height) { cv.width = bmp.width; cv.height = bmp.height; }
   cv.getContext('2d').drawImage(bmp, 0, 0);
   bmp.close();
 }
 
 function _cineDetener() {
-  if (_cineDatos && _cineDatos.timer) { clearInterval(_cineDatos.timer); _cineDatos.timer = null; }
-  const b = document.getElementById('cine-play');
+  const V = _V;
+  if (V.datos && V.datos.timer) { clearInterval(V.datos.timer); V.datos.timer = null; }
+  const b = document.getElementById(V.pfx + 'cine-play');
   if (b) b.textContent = '▶ Reproducir';
 }
 
 function cineToggle() {
-  const D = _cineDatos; if (!D) return;
+  const V = _V, D = V.datos; if (!D) return;
   if (D.timer) { _cineDetener(); return; }
   const L = D.loops[D.i];
   const v = _cineFps(L.d);
+  /* El intervalo corre fuera de todo contexto: se le devuelve el suyo con `_vCon`. */
   D.timer = setInterval(() => {
-    if (!_cineDatos) return;
-    cineIr((_cineDatos.cuadro + 1) % L.cuadros);
+    if (!V.datos) return;
+    _vCon(V, () => cineIr((V.datos.cuadro + 1) % L.cuadros));
   }, Math.max(20, Math.round(v.ms)));
-  const b = document.getElementById('cine-play');
+  const b = document.getElementById(V.pfx + 'cine-play');
   if (b) b.textContent = '⏸ Pausa';
 }
 
@@ -45717,15 +45846,15 @@ function cineCapturar() {
 }
 
 function cineCerrar() {
-  _cineDetener();
-  /* El panel B se va con el visor: si sobreviviera, el próximo cineloop abriría con la vista
-     B del paciente anterior al lado. */
-  try { cineBCerrar(); } catch (e) {}
+  /* Las DOS vistas se detienen, cada una en su contexto. */
+  _vTodas().forEach(V => _vCon(V, _cineDetener));
+  try { vistaBCerrar(); } catch (e) {}
   const ov = document.getElementById('cine-ov');
   if (ov) ov.style.display = 'none';
   /* Se suelta la referencia a los fragmentos. Son vistas sobre el ArrayBuffer del archivo
-     entero, así que mientras `_cineDatos` viva, los 17 MB del cineloop viven con él. */
-  _cineDatos = null;
+     entero, así que mientras `datos` viva, los 17 MB del cineloop viven con él. */
+  _vistaA.datos = null;
+  _V = _vistaA;
 }
 window.cineToggle = cineToggle; window.cineCapturar = cineCapturar;
 window.cineCerrar = cineCerrar; window.cineIr = cineIr; window.cineLoop = cineLoop;
@@ -45755,19 +45884,19 @@ window.cineCerrar = cineCerrar; window.cineIr = cineIr; window.cineLoop = cineLo
    medición. El cambio de cuadro se detecta observando el texto de `#cine-num`, el mismo
    truco que usa la tira con `#img-grid`: ninguna función del reproductor se modifica. */
 
-let _medOn = false;            // modo medición activo
-let _medPuntos = [];           // clics sueltos a la espera del segundo punto
-let _medLineas = [];           // [{ax,ay,bx,by,mm,aviso}] en píxeles de la IMAGEN
-let _medHerr = 'dist';         // 'dist' | 'area'
-let _medAreas = [];            // [{pts:[{x,y}], cm2}] en píxeles de la IMAGEN
-let _medTrazo = null;          // trazo en curso mientras se arrastra
-let _medVels = [];             // [{x,y,cms,mmHg,region}] en píxeles de la IMAGEN
-let _medTiempos = [];          // [{ax,ay,bx,ms,lpm}] — lpm sólo con la herramienta FC
-let _medCalib = null;          // { mmPorPx } de la calibración manual, si se hizo
-let _medCalibrando = false;
-let _medUltimoCuadro = '';
+/* TODO EL ESTADO DE MEDICIÓN VIVE EN LA VISTA (ver el modelo de instancias, arriba):
+   medOn, medPuntos, medLineas, medHerr, medAreas, medTrazo, medVels, medTiempos, medCalib,
+   medCalibrando, medUltimoCuadro. Los nombres `_medX` de acá abajo son las propiedades de
+   acceso que resuelven contra la vista activa, así que el cuerpo de las funciones no sabe
+   —ni necesita saber— que hay más de una. */
 
-const _medEl = id => document.getElementById(id);
+/* Resuelve un id DENTRO de la vista activa. Los de la lista son del modal, no de una vista:
+   prefijarlos los partiría en dos y habría dos overlays, dos botones de cerrar y dos tiras.
+   Un id nuevo que sea del modal y no esté acá se busca con el prefijo de la vista B y
+   devuelve null — sin error, sólo un botón que deja de responder. */
+const _CINE_COMPARTIDOS = { 'cine-ov':1, 'cine-paneles':1, 'cine-cerrar':1,
+  'cine-add-b':1, 'cine-sync':1, 'cine-strip':1, 'cine-biplano':1 };
+const _medEl = id => document.getElementById(_CINE_COMPARTIDOS[id] ? id : _V.pfx + id);
 
 /* Píxeles de la IMAGEN a partir de un clic. El canvas se muestra escalado por CSS
    (`max-width:100%`), así que `offsetX` está en píxeles de PANTALLA: usarlo directo da una
@@ -45858,8 +45987,27 @@ function _medPuntoCanvas(ev) {
   return cv ? _medPunto(ev, cv) : null;
 }
 
+/* Qué vista está arrastrando. El `mouseup` se escucha en el DOCUMENTO —si el médico suelta
+   con el puntero afuera de la imagen, que al recorrer un borde pasa seguido, el canvas no lo
+   recibe y el trazo queda abierto siguiendo al mouse— y el documento es UNO para las dos
+   vistas. Sin esta marca, soltar sobre la vista B cerraría el contorno de la A.
+   Y el oyente se instala una sola vez: con `addEventListener` de la misma función desde las
+   dos vistas, apagar la medición en una lo quitaba para las DOS y el área de la otra quedaba
+   muerta sin ningún síntoma. */
+let _vArrastre = null;
+let _vUpPuesto = false;
+function _vMontarUp() {
+  if (_vUpPuesto) return;
+  document.addEventListener('mouseup', ev => {
+    const V = _vArrastre; _vArrastre = null;
+    if (V) _vCon(V, () => _medAreaUp(ev));
+  });
+  _vUpPuesto = true;
+}
+
 function _medAreaDown(ev) {
   if ((_medHerr !== 'area' && _medHerr !== 'simpson') || _medCalibrando) return;
+  _vArrastre = _V;
   const p = _medPuntoCanvas(ev);
   if (!p) return;
   ev.preventDefault();
@@ -45947,7 +46095,7 @@ const SIMP_N = 20;                       // discos
    "single-plane" son de la AURÍCULA— y los valores normales de la Tabla 2 se midieron
    «using the biplane method of disks». O sea que un monoplano se clasifica contra cortes
    obtenidos con otro método: es una aproximación útil, no una equivalencia. */
-let _simp = null;
+/* `_simp` vive en la vista: cada una lleva SU sesión de Simpson. */
 
 function _simpIniciar() {
   _simp = { vista:0, fase:'d', pares:[{d:null,s:null},{d:null,s:null}],
@@ -46065,6 +46213,7 @@ function medSimpsonConfirmar() {
      de corresponder: se marca como no integrada para que el botón vuelva a ofrecerse. */
   if (_simp.res && _simp.res.bi) _simp.integrada = false;
   _medPintar(); _medEstado();
+  _vBiplanoPintar();          // el par de esta vista puede haber completado el cruce A × B
 }
 
 function medSimpsonSegundaVista() {
@@ -46078,24 +46227,33 @@ window.medSimpsonSegundaVista = medSimpsonSegundaVista;
    «Método» de la app ofrece «Simpson biplano», «Teicholz» y «Visual» — no hay monoplano. Un
    monoplano integrado saldría en el informe firmado rotulado «Simpson biplano», que es
    nombrar mal el método en un documento clínico. */
-function medSimpsonIntegrar() {
-  if (!_simp || !_simp.res || !_simp.res.bi) return;
+/* Escribe la FEVI en el formulario. UNA sola implementación para las dos vías que pueden
+   integrar un biplano —la sesión de una vista, y el cruce entre las dos vistas—: con dos
+   copias, una podría pisar un valor cargado sin preguntar y la otra no, sobre el mismo
+   campo del informe firmado. Devuelve true si escribió. */
+function _simpEscribirFEVI(fevi) {
   const el = document.getElementById('fevi');
-  if (!el) { toast('❌ No se encontró el campo FEVI'); return; }
-  const nuevo = _simp.res.fevi.toFixed(0);
+  if (!el) { toast('❌ No se encontró el campo FEVI'); return false; }
+  const nuevo = fevi.toFixed(0);
   const previo = String(el.value || '').trim();
   /* No se pisa un valor cargado sin avisar: es el mismo criterio que usa el importador DICOM
      con «Este estudio ya tiene X guardado». */
   if (previo && previo !== nuevo &&
-      !confirm('El campo FEVI ya tiene ' + previo + ' %.\n\n¿Reemplazarlo por ' + nuevo + ' % (Simpson biplano)?')) return;
+      !confirm('El campo FEVI ya tiene ' + previo + ' %.\n\n¿Reemplazarlo por ' + nuevo + ' % (Simpson biplano)?')) return false;
   el.value = nuevo;
   el.dispatchEvent(new Event('input', { bubbles:true }));
   el.dispatchEvent(new Event('change', { bubbles:true }));
   const met = document.getElementById('fevi_met');
   if (met) { met.value = 'Simpson biplano'; met.dispatchEvent(new Event('change', { bubbles:true })); }
+  toast('✅ FEVI ' + nuevo + ' % integrada al informe (Simpson biplano)');
+  return true;
+}
+
+function medSimpsonIntegrar() {
+  if (!_simp || !_simp.res || !_simp.res.bi) return;
+  if (!_simpEscribirFEVI(_simp.res.fevi)) return;
   _simp.integrada = true;
   _medEstado();
-  toast('✅ FEVI ' + nuevo + ' % integrada al informe (Simpson biplano)');
 }
 window.medSimpsonIntegrar = medSimpsonIntegrar;
 window.medSimpsonConfirmar = medSimpsonConfirmar;
@@ -46103,6 +46261,7 @@ window.medSimpsonConfirmar = medSimpsonConfirmar;
 function medSimpsonReiniciar() {
   _simpIniciar();
   _medPintar(); _medEstado();
+  _vBiplanoPintar();
 }
 window.medSimpsonReiniciar = medSimpsonReiniciar;
 
@@ -46123,12 +46282,24 @@ function medHerramienta(h) {
   /* Simpson arranca de cero cada vez que se entra: los cuatro trazados son de UNA medición,
      y mezclar dos series daría una FEVI hecha con diástole de un lado y sístole del otro. */
   if (_medHerr === 'simpson' && !_simp) _simpIniciar();
+  /* Se entra sola SÓLO si la imagen no declara NINGUNA región — los 15 archivos de 301 que
+     no traen ninguna, más otras marcas y las capturas de pantalla.
+
+     ⚠️ NO alcanza con «no hay región de VELOCIDAD», y la diferencia no es teórica: de las 157
+     regiones espectrales del pendrive, **25 tienen el eje Y en centímetros** —son trazos de
+     modo M, distancia contra tiempo—. Con la condición amplia, elegir la herramienta sobre un
+     modo M ofrecía calibrar una escala de velocidad sobre un eje de DISTANCIA, y el número
+     habría salido plausible. Ahí la respuesta correcta es el aviso que explica qué es ese
+     trazo, no una calibración. Lo cazó TC-193, que ya vigilaba ese aviso. */
+  if (_medHerr === 'vel' && !_medCalibVel && !_medRegs().length) _medCalibrandoVel = true;
+  if (_medHerr !== 'vel') _medCalibrandoVel = false;
   const cv = _medEl('cine-med');
   if (cv) {
     /* Las herramientas no pueden escuchar a la vez: el `mouseup` de un arrastre dispara
        también un `click`, así que con la regla viva cada contorno dejaba además un punto
        suelto. */
-    cv.onclick = _medManejador();
+    const V = _V;
+    cv.onclick = _vBind(V, function (ev) { const h2 = _medManejador(); if (h2) h2(ev); });
     cv.style.cursor = 'crosshair';
   }
   _medPintar(); _medEstado();
@@ -46243,7 +46414,15 @@ function _medPintar() {
     cx.setLineDash([4*esc, 4*esc]); cx.globalAlpha = .6;
     cx.beginPath(); cx.moveTo(v.x, v.y); cx.lineTo(v.x, v.ry0); cx.stroke();
     cx.setLineDash([]); cx.globalAlpha = 1;
-    const txt = v.cms.toFixed(0) + ' cm/s · ' + Math.abs(v.mmHg).toFixed(1) + ' mmHg';
+    /* MAGNITUD, y la dirección en palabras al lado. El archivo declara el signo —`dy` es
+       negativo en las 132 regiones del pendrive, o sea que abajo de la línea de base es
+       negativo— y el signo es información real: dice si el flujo se acerca o se aleja. Pero
+       un informe reporta «Vmax 4,03 m/s», no «−4,03», y los campos de la app (`vmax_it`,
+       `vmax_ao`) son positivos: dejar el número con signo hacía que el médico leyera un
+       −403 cm/s perfectamente correcto como si la escala estuviera rota. Se muestra el
+       módulo y se nombra la dirección. */
+    const txt = Math.abs(v.ms).toFixed(2) + ' m/s ' + (v.cms < 0 ? '↓' : '↑') +
+                ' · ' + Math.abs(v.mmHg).toFixed(1) + ' mmHg';
     const w = cx.measureText(txt).width;
     cx.fillStyle = 'rgba(0,0,0,.7)';
     cx.fillRect(v.x + 9*esc, v.y - 16*esc, w + 8*esc, 18*esc);
@@ -46415,7 +46594,10 @@ function _medEstado() {
               '<button type="button" class="btn btn-ghost" id="cine-med-simp" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
                 (_medHerr === 'simpson' ? act : '') + '">🫀 Simpson</button>';
   const bot = sel +
-              '<button type="button" class="btn btn-ghost" id="cine-med-recal" style="padding:3px 9px;font-size:11px;margin-left:14px;">Recalibrar</button>' +
+              (_medHerr === 'vel'
+                ? '<button type="button" class="btn btn-ghost" id="cine-med-calvel" style="padding:3px 9px;font-size:11px;margin-left:14px;">' +
+                  (_medCalibVel ? 'Recalibrar velocidad' : 'Calibrar velocidad') + '</button>'
+                : '<button type="button" class="btn btn-ghost" id="cine-med-recal" style="padding:3px 9px;font-size:11px;margin-left:14px;">Recalibrar</button>') +
               '<button type="button" class="btn btn-ghost" id="cine-med-borrar" style="padding:3px 9px;font-size:11px;margin-left:6px;">Borrar mediciones</button>';
   let txt;
   if (_medCalibrando) {
@@ -46443,14 +46625,33 @@ function _medEstado() {
   } else if (_medHerr === 'vel') {
     const vr = regs.filter(_dcmImgRegionVelocidad);
     const mm = regs.filter(r => !_dcmImgRegionVelocidad(r) && r.uy === DCMIMG_UNI_CM && r.ux !== DCMIMG_UNI_CM).length;
-    txt = vr.length
-      ? 'Escala de velocidad <b>tomada del archivo</b>: ' +
+    /* Qué escala manda y por qué, dicho siempre. Un número de velocidad sin saber de dónde
+       salió la escala no se puede auditar, y acá conviven dos fuentes. */
+    if (_medCalibrandoVel) {
+      txt = '<b>Calibrando la velocidad:</b> marcá primero la <b>línea de base</b> (velocidad cero) ' +
+            'y después una <b>marca conocida</b> de la escala lateral. Después escribís cuánto vale.' +
+            (_medPuntos.length ? ' <b style="color:#fbbf24;">Base marcada — ahora la marca conocida.</b>' : '');
+    } else if (_medCalibVel) {
+      txt = 'Escala de velocidad <b>calibrada a mano</b>: ' + _medCalibVel.cmsPorPx.toFixed(4) +
+            ' cm/s por píxel, con el cero en y=' + _medCalibVel.y0.toFixed(0) + '. ' + _medComo() +
+            (vr.length ? ' <b style="color:#fbbf24;">Está pisando la escala que trae el archivo.</b>' : '');
+    } else if (vr.length) {
+      txt = 'Escala de velocidad <b>tomada del archivo</b>: ' +
         vr.map(r => Math.abs(r.dy).toFixed(3)).filter((v,k,a)=>a.indexOf(v)===k).join(' y ') + ' cm/s por píxel. ' + _medComo() +
-        (mm ? ' Hay además un trazo de modo M, con el eje en cm: ahí no se mide velocidad.' : '')
-      : 'Esta imagen <b>no tiene ningún trazo con el eje en cm/s</b>, así que no hay velocidad para medir acá.';
+        (mm ? ' Hay además un trazo de modo M, con el eje en cm: ahí no se mide velocidad.' : '');
+    } else {
+      txt = 'Esta imagen <b>no trae escala de velocidad</b>. Calibrá a mano: marcá la línea de base ' +
+            'y una marca conocida de la escala.';
+    }
+    txt += '<div style="font-size:10px;color:var(--text2);margin-top:4px;">' +
+      'La velocidad se muestra en módulo con la dirección al lado (↑ hacia el transductor, ↓ alejándose): ' +
+      'el archivo declara el signo y un jet que se aleja da negativo, pero un informe reporta la magnitud. ' +
+      'El gradiente no depende del signo (ΔP = 4·V²).</div>';
   }
   _medBarra((_medHerr === 'simpson' ? _simpPanel() : txt + (n ? '  ·  <b>' + n + '</b> medición(es) en pantalla.' : '')) +
             '<div style="margin-top:6px;">' + bot + '</div>');
+  const cvl = _medEl('cine-med-calvel');
+  if (cvl) cvl.onclick = medCalibrarVelocidad;
   const rc = _medEl('cine-med-recal'), bb = _medEl('cine-med-borrar');
   const bd = _medEl('cine-med-dist'), ba = _medEl('cine-med-area');
   if (rc) rc.onclick = medRecalibrar;
@@ -46480,10 +46681,45 @@ function _medVelClic(ev) {
   const cv = _medEl('cine-med');
   const p = _medPunto(ev, cv);
   if (!p) return;
+
+  /* ── Calibrando: primer clic la línea de base, segundo la marca conocida ── */
+  if (_medCalibrandoVel) {
+    if (!_medPuntos.length) { _medPuntos.push(p); _medPintar(); _medEstado(); return; }
+    const a0 = _medPuntos[0]; _medPuntos = [];
+    const dy = Math.abs(p.y - a0.y);
+    if (dy < 5) {
+      alert('Los dos puntos están casi a la misma altura: no se puede sacar una escala de ahí.\n\nMarcá primero la línea de base (velocidad cero) y después una marca conocida de la escala.');
+      _medPintar(); _medEstado(); return;
+    }
+    const txt = prompt('¿Cuánto vale esa marca?\n\nEscribí el valor en cm/s (por ejemplo 100 para 1 m/s).\nSe toma como magnitud: la dirección la da el lado de la línea de base.', '100');
+    if (txt === null) { _medPintar(); _medEstado(); return; }
+    const val = parseFloat(String(txt).replace(',', '.'));
+    if (!(val > 0) || !isFinite(val)) {
+      alert('Ese valor no se entiende. Escribí un número en cm/s, por ejemplo 100.');
+      _medPintar(); _medEstado(); return;
+    }
+    _medCalibVel = { y0: a0.y, cmsPorPx: val / dy };
+    _medCalibrandoVel = false;
+    _medPintar(); _medEstado();
+    return;
+  }
+
   const regs = _medRegs();
   const r = _dcmImgRegionEn(regs, p.x, p.y);
+
+  /* La calibración manual MANDA cuando existe: o la hizo el médico porque el archivo no
+     traía escala, o la forzó a propósito con «Recalibrar velocidad». */
+  if (_medCalibVel) {
+    const cmsM = _medVelCalEn(_medCalibVel, p.y);
+    const msM = cmsM / 100;
+    _medVels.push({ x:p.x, y:p.y, cms:cmsM, ms:msM, mmHg: 4 * msM * msM,
+                    ry0: _medCalibVel.y0, manual: true });
+    _medPintar(); _medEstado();
+    return;
+  }
+
   if (!r) {
-    alert('Ese punto cae fuera de las zonas que el equipo declara, así que no hay escala de velocidad.');
+    alert('Ese punto cae fuera de las zonas que el equipo declara, así que no hay escala de velocidad.\n\nSi este archivo no trae escala, usá «Calibrar velocidad».');
     return;
   }
   if (!_dcmImgRegionVelocidad(r)) {
@@ -46597,20 +46833,26 @@ function _medClic(ev) {
    · `#cine-cual` cambia al pasar a otro cineloop → es otra imagen → se apaga todo;
    · `#cine-ov` cambia su `display` al cerrar → se apaga todo.
    Se montan una sola vez, cuando el modal ya existe. */
-let _medObsPuesto = false;
+/* `_medObsPuesto` vive en la vista: los observadores se montan una vez POR vista. */
 function _medObservar() {
   if (_medObsPuesto || typeof MutationObserver === 'undefined') return;
+  /* ⚠️ La vista se captura ACÁ. Los callbacks de un observador corren fuera de todo
+     contexto —los dispara el navegador, no un clic—, así que sin `_vCon` el observador de
+     la vista B llamaría a `medReset()` con la A activa y le borraría las mediciones a la
+     imagen equivocada. */
+  const V = _V;
   const num = _medEl('cine-num'), cual = _medEl('cine-cual'), ov = _medEl('cine-ov');
   if (!num || !cual || !ov) return;
   _medUltimoCuadro = num.textContent || '';
-  new MutationObserver(() => {
+  new MutationObserver(() => _vCon(V, () => {
     const t = num.textContent || '';
     if (t !== _medUltimoCuadro) { _medUltimoCuadro = t; medReset(); }
-  }).observe(num, { childList:true, characterData:true, subtree:true });
-  /* Cambió el cineloop del visor: NO se apaga la medición, se cambia de imagen. */
-  new MutationObserver(() => medCambioDeImagen())
+  })).observe(num, { childList:true, characterData:true, subtree:true });
+  /* Cambió el cineloop de ESTA vista: NO se apaga la medición, se cambia de imagen. */
+  new MutationObserver(() => _vCon(V, medCambioDeImagen))
     .observe(cual, { childList:true, characterData:true, subtree:true });
-  new MutationObserver(() => { if (ov.style.display === 'none') medApagar(); })
+  /* El overlay es compartido: al cerrarlo se apagan las dos. */
+  new MutationObserver(() => { if (ov.style.display === 'none') _vCon(V, medApagar); })
     .observe(ov, { attributes:true, attributeFilter:['style'] });
   _medObsPuesto = true;
 }
@@ -46627,19 +46869,22 @@ function medToggle() {
     /* Se pausa: medir sobre un cineloop corriendo es marcar un punto en un cuadro y el otro
        en el siguiente. */
     _cineDetener();
-    cv.onclick = _medManejador();
-    cv.onmousedown = _medAreaDown;
-    cv.onmousemove = _medAreaMove;
-    /* El `mouseup` se escucha en el DOCUMENTO y no en el canvas: si el médico suelta el
-       botón con el puntero afuera de la imagen —que al recorrer un borde pasa seguido—, el
-       canvas no lo recibe y el trazo quedaba abierto para siempre, siguiendo al mouse. */
-    document.addEventListener('mouseup', _medAreaUp);
+    /* ⚠️ CADA MANEJADOR CORRE EN SU VISTA. Atarlos pelados parece correcto —el manejador
+       cuelga del canvas de esta vista— y no lo es: `_medClic` resuelve su canvas y su estado
+       contra la vista ACTIVA en el momento del clic, que por omisión es la A. Medido: un
+       clic sobre la vista B escribía la regla en la A, con el número calculado con la escala
+       de la A. Se ve como que el clic «no hizo nada». */
+    const V = _V;
+    cv.onclick     = _vBind(V, function (ev) { const h = _medManejador(); if (h) h(ev); });
+    cv.onmousedown = _vBind(V, _medAreaDown);
+    cv.onmousemove = _vBind(V, _medAreaMove);
+    _vMontarUp();
     const regs = _medRegs();
     if (!regs.filter(_dcmImgRegionMedible).length && !_medCalib) _medCalibrando = true;
     _medPintar(); _medEstado();
   } else {
     cv.onclick = null; cv.onmousedown = null; cv.onmousemove = null;
-    document.removeEventListener('mouseup', _medAreaUp);
+    if (_vArrastre === _V) _vArrastre = null;
     _medTrazo = null;
     _medBarra('');
   }
@@ -46653,6 +46898,17 @@ function medBorrar() {
   _medPintar(); _medEstado();
 }
 window.medBorrar = medBorrar;
+
+/* Entra en modo calibración de velocidad. Se ofrece siempre con la herramienta de velocidad
+   activa —no sólo cuando falta la escala— porque el médico puede ver que la del archivo está
+   mal; pero sólo se ACTIVA sola cuando el archivo no trae ninguna. */
+function medCalibrarVelocidad() {
+  _medCalibVel = null; _medCalibrandoVel = true;
+  _medPuntos = [];
+  _medVels = [];              // las velocidades medidas con la escala anterior ya no valen
+  _medPintar(); _medEstado();
+}
+window.medCalibrarVelocidad = medCalibrarVelocidad;
 
 function medRecalibrar() {
   _medCalib = null; _medCalibrando = true;
@@ -46695,6 +46951,7 @@ window.medReset = medReset;
 function medCambioDeImagen() {
   _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null; _medVels = []; _medTiempos = [];
   _medCalib = null; _medCalibrando = false;        // la calibración es de la imagen que se deja
+  _medCalibVel = null; _medCalibrandoVel = false;  // ídem la de velocidad
   if (_simp) {
     _simp.pendiente = null;                        // el trazado sin confirmar era de la otra imagen
     _simp.ocultar = false;
@@ -46707,172 +46964,176 @@ window.medCambioDeImagen = medCambioDeImagen;
 /* Al CERRAR el visor se va todo, Simpson incluido: se terminó la medición. */
 function medApagar() {
   _medOn = false; _medCalibrando = false; _medCalib = null;
+  _medCalibVel = null; _medCalibrandoVel = false;
   _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null; _medVels = []; _medTiempos = []; _medHerr = 'dist';
   _simp = null;                      // otra imagen: los cuatro trazados no aplican
   const cv = _medEl('cine-med'), b = _medEl('cine-medir');
   if (cv) { cv.style.display = 'none'; cv.onclick = null; cv.onmousedown = null; cv.onmousemove = null; }
-  document.removeEventListener('mouseup', _medAreaUp);
+  if (_vArrastre === _V) _vArrastre = null;   // el oyente es compartido: no se quita, se desmarca
   if (b) b.textContent = '📏 Medir';
   _medBarra('');
 }
 window.medApagar = medApagar;
 
 /* ══════════════════════════════════════════════════════════════════════════════════════
-   SEGUNDO PANEL — SÓLO VISUALIZACIÓN
+   SEGUNDA VISTA
    ══════════════════════════════════════════════════════════════════════════════════════
 
-   Sirve para ver dos adquisiciones a la vez y para comparar reposo/esfuerzo con los dos
-   cineloops en el mismo cuadro.
+   Es una instancia más, no un panel especial: mismo marcado, mismo cableado, mismas seis
+   herramientas. Lo único que la distingue de la A son el prefijo de sus ids (`b-`) y que se
+   puede cerrar. Para qué sirve: trazar Simpson sobre la 4C y la 2C viéndolas juntas, y
+   comparar reposo contra esfuerzo.
 
-   POR QUÉ NO MIDE. Las herramientas siguen viviendo en el panel A. Ponerlas también acá
-   obliga a convertir en instancias 19 estados globales y 21 ids fijos del visor, más los dos
-   observadores y el `mouseup` del documento — o sea a refactorizar el módulo que hoy sostiene
-   regla, área, Simpson, velocidad, tiempo y FC, todo andando. Y el motivo clínico que originó
-   el pedido —Simpson biplano con la 4C y la 2C— **ya está resuelto** desde que la sesión
-   sobrevive al cambio de imagen: no hace falta verlas juntas para medirlas. Decisión de
-   Maicol (2026-09-20).
+   EL BIPLANO YA FUNCIONABA CON UNA SOLA VISTA —la sesión de Simpson sobrevive al cambio de
+   imagen desde el 2026-09-20— así que lo que esto agrega es verlas a la vez, no hacer
+   posible lo imposible. Con dos vistas hay además una segunda forma de completarlo: un par
+   en cada una, que es la que `_vBiplano` resuelve. */
 
-   SU ESTADO ES PROPIO Y NO TOCA EL DE A. `_cineB` tiene su cuadro, su timer y su token; el
-   panel A no se entera de que existe salvo por la sincronización, que va en una sola
-   dirección: A manda, B sigue. */
+let _vSync = false;
 
-let _cineB = null;             // { loop, cuadro, timer }
-let _cineBGen = 0;
-let _cineSync = false;
-
-const _cineBEl = id => document.getElementById(id);
-
-function _cineBFrags(r) { return _cineDesdeRegistro(r); }
-
-/* Elegir qué va en el panel B: se listan los DICOM guardados del estudio, que es la misma
-   tira de abajo. Un `prompt` numerado y no un modal propio: el visor ya es un overlay y
-   apilarle otro encima tapa justamente lo que se quiere comparar. */
-async function cineBElegir() {
-  let recs = [];
-  try { recs = await CeiboCine.listar(_imgUuidActual); } catch (e) { recs = []; }
-  recs = recs.filter(r => r && _uuidValido(r.id));
-  if (!recs.length) {
-    alert('No hay ningún DICOM guardado en este estudio para poner en la segunda vista.\n\n' +
-          'Se eligen de la tira de abajo de la tab Imágenes, y para que aparezcan ahí hay que ' +
-          'tener activado «Guardar imágenes con los estudios» y el estudio guardado.');
-    return;
-  }
-  const lista = recs.map((r, i) => (i + 1) + ') ' + (r.cuadros > 1 ? r.cuadros + ' cuadros' : 'imagen fija') +
-                                   ' — ' + (r.nombre || '')).join('\n');
-  const resp = prompt('¿Qué poner en la segunda vista?\n\n' + lista + '\n\nEscribí el número:', '1');
-  if (resp === null) return;
-  const i = parseInt(String(resp).trim(), 10) - 1;
-  if (!(i >= 0 && i < recs.length)) { alert('Ese número no está en la lista.'); return; }
-  const r = await CeiboCine.leer(recs[i].id);
-  if (!r) { toast('❌ No se pudo leer esa imagen'); return; }
-  cineBAbrir(_cineBFrags(r));
-}
-window.cineBElegir = cineBElegir;
-
-/* Observador PROPIO, no el de la medición: aquel sólo existe si se activó el modo medir, y
-   la sincronización tiene que andar sin haber medido nada. Se monta una sola vez. */
-let _cineBObsPuesto = false;
-function _cineBObservar() {
-  if (_cineBObsPuesto || typeof MutationObserver === 'undefined') return;
-  const num = _cineBEl('cine-num');
-  if (!num) return;
-  new MutationObserver(() => { if (_cineSync) _cineSyncAplicar(); })
-    .observe(num, { childList:true, characterData:true, subtree:true });
-  _cineBObsPuesto = true;
+/* Elegir qué cineloop va en una vista: se listan los DICOM guardados del estudio, que es la
+   misma fuente de la tira. */
+async function _vElegirLoop(V) {
+  const uuid = (typeof _imgUuidActual !== 'undefined' && _imgUuidActual) || null;
+  if (!uuid) { alert('Guardá el estudio antes de abrir una segunda vista: los cineloops se listan por estudio.'); return false; }
+  let lista = [];
+  try { lista = await CeiboCine.listar(uuid); } catch (e) { lista = []; }
+  lista = (lista || []).filter(r => r && r.tipo !== 'fija');
+  if (!lista.length) { alert('Este estudio no tiene cineloops guardados para abrir en la segunda vista.'); return false; }
+  const menu = lista.map((r, i) => (i + 1) + ') ' + (r.nombre || 'Cineloop') + ' — ' + (r.cuadros || '?') + ' cuadros').join('\n');
+  const eleg = prompt('¿Qué cineloop va en la vista ' + V.rot + '?\n\n' + menu + '\n\nEscribí el número:', '1');
+  if (eleg === null) return false;
+  const k = parseInt(eleg, 10);
+  if (!(k >= 1 && k <= lista.length)) { alert('Ese número no está en la lista.'); return false; }
+  const loops = _cineDesdeRegistro(lista[k - 1]);
+  if (!loops || !loops.length) { alert('Ese cineloop no se pudo leer del disco.'); return false; }
+  _vCon(V, () => {
+    V.datos = { loops, i: 0, cuadro: 0, timer: null };
+    _cineCargarLoop();
+  });
+  return true;
 }
 
-function cineBAbrir(loop) {
-  _cineBObservar();
-  _cineBDetener();
-  _cineB = { loop, cuadro: 0, timer: null };
-  const pb = _cineBEl('cine-panel-b');
-  if (pb) pb.style.display = 'flex';
-  const sy = _cineBEl('cine-sync');
+async function vistaBAbrir() {
+  if (_vistaB) { await _vElegirLoop(_vistaB); return; }
+  const cont = document.getElementById('cine-paneles');
+  if (!cont) return;
+  const V = _vNueva('b-', 'B');
+  _vMontarPanel(cont, 'b-');
+  _vistaB = V;
+  _vCablear(V);
+  const ok = await _vElegirLoop(V);
+  if (!ok) { vistaBCerrar(); return; }
+  const sy = document.getElementById('cine-sync');
   if (sy) sy.style.display = '';
-  const sl = _cineBEl('cine-slider-b');
-  if (sl) { sl.max = String(Math.max(0, loop.cuadros - 1)); sl.value = '0'; }
-  const cu = _cineBEl('cine-cual-b');
-  if (cu) cu.textContent = loop.nombre || '';
-  cineBIr(0);
-  /* El canvas de medición se recalza: el panel A cambió de ancho al abrirse el B, así que su
-     caja es otra. Sin esto las reglas quedan corridas respecto de la imagen. */
-  if (_medOn) setTimeout(_medPintar, 60);
+  _vBiplanoPintar();
 }
-window.cineBAbrir = cineBAbrir;
+window.vistaBAbrir = vistaBAbrir;
 
-function cineBCerrar() {
-  _cineBDetener();
-  _cineB = null; _cineSync = false;
-  const pb = _cineBEl('cine-panel-b');
-  if (pb) pb.style.display = 'none';
-  const sy = _cineBEl('cine-sync');
+function vistaBCerrar() {
+  const V = _vistaB;
+  if (V) {
+    _vCon(V, () => { _cineDetener(); medApagar(); });
+    const p = document.getElementById('b-cine-panel');
+    if (p && p.parentNode) p.parentNode.removeChild(p);
+  }
+  _vistaB = null;
+  _vSync = false;
+  if (_V !== _vistaA) _V = _vistaA;
+  const sy = document.getElementById('cine-sync');
   if (sy) { sy.style.display = 'none'; sy.textContent = '🔗 Sincronizar'; }
-  if (_medOn) setTimeout(_medPintar, 60);
+  _vBiplanoPintar();
 }
-window.cineBCerrar = cineBCerrar;
+window.vistaBCerrar = vistaBCerrar;
 
-async function cineBIr(n) {
-  const B = _cineB; if (!B) return;
-  n = Math.max(0, Math.min(B.loop.cuadros - 1, n | 0));
-  B.cuadro = n;
-  const sl = _cineBEl('cine-slider-b'), nu = _cineBEl('cine-num-b');
-  if (sl) sl.value = String(n);
-  if (nu) nu.textContent = (n + 1) + ' / ' + B.loop.cuadros;
-  const gen = ++_cineBGen;
-  let bmp;
-  try { bmp = await createImageBitmap(new Blob([B.loop.d.frags[n]], { type:'image/jpeg' })); }
-  catch (e) { return; }
-  if (gen !== _cineBGen || !_cineB) { bmp.close(); return; }
-  const cv = _cineBEl('cine-cv-b');
-  if (!cv) { bmp.close(); return; }
-  if (cv.width !== bmp.width || cv.height !== bmp.height) { cv.width = bmp.width; cv.height = bmp.height; }
-  cv.getContext('2d').drawImage(bmp, 0, 0);
-  bmp.close();
+function vistaSyncToggle() {
+  if (!_vistaB) return;
+  _vSync = !_vSync;
+  const b = document.getElementById('cine-sync');
+  if (b) b.textContent = _vSync ? '🔗 Sincronizada' : '🔗 Sincronizar';
+  if (_vSync) _vSyncAplicar();
 }
-window.cineBIr = cineBIr;
-
-function _cineBDetener() {
-  if (_cineB && _cineB.timer) { clearInterval(_cineB.timer); _cineB.timer = null; }
-  const b = _cineBEl('cine-play-b');
-  if (b) b.textContent = '▶ Vista B';
-}
-
-function cineBToggle() {
-  const B = _cineB; if (!B) return;
-  if (B.timer) { _cineBDetener(); return; }
-  const v = _cineFps(B.loop.d);
-  B.timer = setInterval(() => {
-    if (!_cineB) return;
-    cineBIr((_cineB.cuadro + 1) % B.loop.cuadros);
-  }, Math.max(20, Math.round(v.ms)));
-  const b = _cineBEl('cine-play-b');
-  if (b) b.textContent = '⏸ Vista B';
-}
-window.cineBToggle = cineBToggle;
-
-/* Sincronización: A manda, B sigue. En UNA sola dirección a propósito — con las dos
-   empujándose se realimentan y quedan peleando por el cuadro.
-   Se engancha al texto de `#cine-num`, que el reproductor actualiza en cada `cineIr`: el
-   mismo truco que usa la medición, y así ninguna función del panel A se modifica. */
-function cineSyncToggle() {
-  if (!_cineB) return;
-  _cineSync = !_cineSync;
-  const b = _cineBEl('cine-sync');
-  if (b) b.textContent = _cineSync ? '🔗 Sincronizado' : '🔗 Sincronizar';
-  if (_cineSync) { _cineBDetener(); _cineSyncAplicar(); }
-}
-window.cineSyncToggle = cineSyncToggle;
+window.vistaSyncToggle = vistaSyncToggle;
 
 /* Los dos loops pueden tener distinta cantidad de cuadros. Se sigue por POSICIÓN RELATIVA y
-   no por índice: con 41 cuadros de un lado y 172 del otro, copiar el índice deja al panel B
-   clavado en el primer cuarto del ciclo. */
-function _cineSyncAplicar() {
-  if (!_cineSync || !_cineB || !_cineDatos) return;
-  const A = _cineDatos.loops[_cineDatos.i];
-  if (!A || A.cuadros < 1) return;
-  const frac = (A.cuadros > 1) ? (_cineDatos.cuadro / (A.cuadros - 1)) : 0;
-  cineBIr(Math.round(frac * (_cineB.loop.cuadros - 1)));
+   no por índice: con 41 cuadros de un lado y 172 del otro, copiar el índice deja la vista B
+   clavada en el primer cuarto del ciclo y el que mira cree estar comparando la misma fase
+   del latido.
+
+   VA EN UN SOLO SENTIDO —A manda, B sigue— y además corta cuando B ya está donde tiene que
+   estar. Sin ese corte, hacer bidireccional la sincronización realimenta: A mueve a B, B
+   mueve a A, y como todo el camino es `await`, no vuelve nunca. */
+function _vSyncAplicar() {
+  if (!_vSync || !_vistaB || !_vistaA.datos || !_vistaB.datos) return;
+  const dA = _vistaA.datos, dB = _vistaB.datos;
+  const A = dA.loops[dA.i], B = dB.loops[dB.i];
+  if (!A || !B || A.cuadros < 1 || B.cuadros < 1) return;
+  const frac = (A.cuadros > 1) ? (dA.cuadro / (A.cuadros - 1)) : 0;
+  const n = Math.round(frac * (B.cuadros - 1));
+  if (dB.cuadro === n) return;
+  _vCon(_vistaB, () => cineIr(n));
 }
+
+/* ── SIMPSON BIPLANO ENTRE LAS DOS VISTAS ────────────────────────────────────────────────
+   Con un par confirmado en cada vista —diástole y sístole— sale la FEVI biplano sin que el
+   médico tenga que pasar los cuatro trazados por una sola sesión.
+
+   CADA TRAZADO LLEVA LA ESCALA DE SU IMAGEN, que es lo que permite cruzar dos cineloops con
+   profundidades distintas: en el pendrive la escala 2D va de 0,046 a 0,926 mm/píxel. Un
+   factor único para los cuatro daría un volumen plausible y equivocado.
+
+   NO SE REIMPLEMENTA NADA: los volúmenes salen de `_simpVolumenML` y la clasificación de
+   `_simpClasificar`, las mismas que usa una sola vista. */
+function _vBiplanoDatos() {
+  if (!_vistaB) return null;
+  const sa = _vistaA.simp, sb = _vistaB.simp;
+  if (!sa || !sb) return null;
+  /* La estructura real es `pares[vista][fase]` — la de la sesión de UNA vista, que ya
+     contempla dos vistas internas. Acá se usa el par 0 de cada instancia: el de la vista A
+     hace de 4C y el de la B de 2C, que es lo que el médico está viendo lado a lado. */
+  const pa = sa.pares && sa.pares[0], pb = sb.pares && sb.pares[0];
+  if (!pa || !pb || !pa.d || !pa.s || !pb.d || !pb.s) return null;
+  const Ld = Math.max(pa.d.Lcm, pb.d.Lcm), Ls = Math.max(pa.s.Lcm, pb.s.Lcm);
+  const vfd = _simpVolumenML(pa.d.diamCm, pb.d.diamCm, Ld);
+  const vfs = _simpVolumenML(pa.s.diamCm, pb.s.diamCm, Ls);
+  if (!(vfd > 0) || !(vfs >= 0) || vfs > vfd) return null;
+  return { vfd, vfs, fevi: (vfd - vfs) / vfd * 100, Ld, Ls };
+}
+
+function _vBiplanoPintar() {
+  const c = document.getElementById('cine-biplano');
+  if (!c) return;
+  const R = _vBiplanoDatos();
+  if (!R) { c.style.display = 'none'; c.innerHTML = ''; return; }
+  const k = _simpClasificar(R.fevi);
+  c.style.display = '';
+  /* Se arma y se asigna en un paso: `innerHTML = a + b + c` es lo que matchea
+     `ceibo-xss-innerhtml-concat`, y la regla de la casa es no sumar warnings. Acá todo lo
+     interpolado son números con toFixed y literales —nada del archivo DICOM llega a este
+     marcado— pero la regla es sintáctica y triagear de nuevo cuesta más que escribirlo bien. */
+  const html =
+    '<b>Simpson biplano — vista A × vista B</b> · 20 discos<br>' +
+    'VFD <b>' + R.vfd.toFixed(1) + ' mL</b> · VFS <b>' + R.vfs.toFixed(1) + ' mL</b> · ' +
+    'FEVI <b style="font-size:17px;color:' + k.col + ';">' + R.fevi.toFixed(1) + ' %</b> — ' +
+    '<b style="color:' + k.col + ';">' + k.txt + '</b>' +
+    '<div style="font-size:10px;color:var(--text2);margin-top:4px;line-height:1.5;">' +
+      'Eje largo ' + R.Ld.toFixed(1) + ' cm en diástole y ' + R.Ls.toFixed(1) + ' cm en sístole ' +
+      '(el más largo de las dos vistas, ASE/EACVI 2015). Cada trazado usa la escala de SU imagen. ' +
+      'La clasificación es la misma que usa el informe. ' +
+      '<b>Todavía NO está en el informe:</b> se integra con el botón.' +
+    '</div>' +
+    '<button type="button" class="btn btn-primary" id="cine-biplano-integ" ' +
+      'style="margin-top:7px;padding:4px 11px;font-size:11px;">¿Integrás la FEVI biplano al informe?</button>';
+  c.innerHTML = html;
+  const b = document.getElementById('cine-biplano-integ');
+  if (b) b.onclick = () => {
+    const D = _vBiplanoDatos();
+    if (!D) return;
+    _simpEscribirFEVI(D.fevi);
+    _vBiplanoPintar();
+  };
+}
+window._vBiplanoPintar = _vBiplanoPintar;
 
 /* ══════════════════════════════════════════════════════════════════════════════════════
    MEDIR SOBRE UNA IMAGEN FIJA
@@ -62501,8 +62762,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260920-0259';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789883982248;                 /* eco-build-ms */
+const ECO_BUILD    = '20260920-0946';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789908394358;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -62588,7 +62849,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-0259</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-0946</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

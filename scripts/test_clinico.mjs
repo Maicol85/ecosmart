@@ -12683,167 +12683,559 @@ caso('TC-194', 'Tiempo y FC: ms desde el eje X, 60.000/RR, y el modo M SI cuenta
   })();
 `);
 
-/* ══ TC-195 · Segundo panel de visualizacion ═════════════════════════════════════════════════
+/* ══ TC-195 · Dos vistas: reproductores, sincronizacion y cierre ══════════════════════════
    Lo que importa fijar:
    · los dos reproductores son INDEPENDIENTES -- mover uno no mueve al otro;
    · con la sincronizacion activa, A manda y B sigue POR POSICION RELATIVA. Copiar el indice
-     seria lo obvio y esta mal: con 41 cuadros de un lado y 172 del otro, el panel B quedaria
-     clavado en el primer cuarto del ciclo y el que mira creeria que esta comparando la misma
-     fase;
-   · la medicion sigue viviendo en el panel A y no se rompe al abrir y cerrar el B, que es lo
-     unico que este panel podria haber roto.                                                  */
-caso('TC-195', 'Panel B: reproductores independientes y sincronizacion por posicion relativa', `
+     seria lo obvio y esta mal: con 41 cuadros de un lado y 172 del otro, la vista B quedaria
+     clavada en el primer cuarto del ciclo y el que mira creeria comparar la misma fase;
+   · y la sincronizacion NO realimenta -- B no arrastra a A.                                */
+caso('TC-195', 'Dos vistas: reproductores independientes y sincronizacion por posicion relativa', `
   return (async () => {
     const P = ${JSON.stringify(PENDRIVE)};
     if (!P.loop) return { extra: [[
       'hace falta un cineloop real del pendrive', false, 'no se encontro: quedo SIN verificar']] };
     const bytes = x => { const b = atob(x.b64); const a = new Uint8Array(b.length);
       for (let i=0;i<b.length;i++) a[i] = b.charCodeAt(i); return a; };
-    const esperar = async (c, n) => { for (let i=0;i<(n||60);i++) { if (c()) return true; await new Promise(r=>setTimeout(r,60)); } return c(); };
     const alertOrig = window.alert; window.alert = () => {};
     const R = {};
     try {
       const u = bytes(P.loop);
       const d0 = _dcmImgLeer(u.buffer);
-      const reg = (d0.regiones || []).filter(_dcmImgRegionMedible)[0];
 
       __t.limpiar(); imgVaciar();
       localStorage.setItem('cfg-guardar-imagenes','0');
-      _cineAbrir([{ nombre:'vista-A', cuadros: d0.frags.length,
-        d: { frags: d0.frags, cols:d0.cols, filas:d0.filas, msCuadro:d0.msCuadro, regiones:d0.regiones } }]);
-      await new Promise(r => setTimeout(r, 250));
-      R.cuadrosA = _cineDatos.loops[0].cuadros;
+      const mkLoop = (nom, n) => ({ nombre:nom, cuadros:n,
+        d: { frags: d0.frags.slice(0, n), cols:d0.cols, filas:d0.filas,
+             msCuadro:d0.msCuadro, regiones:d0.regiones } });
 
-      /* El panel B con un loop de DISTINTA cantidad de cuadros: la mitad. Es lo que hace que
-         copiar el indice se note. */
-      const mitad = Math.max(3, Math.floor(R.cuadrosA / 2));
-      cineBAbrir({ nombre:'vista-B', cuadros: mitad,
-        d: { frags: d0.frags.slice(0, mitad), cols:d0.cols, filas:d0.filas, msCuadro:d0.msCuadro, regiones:d0.regiones } });
+      _cineAbrir([ mkLoop('vista-A', d0.frags.length) ]);
       await new Promise(r => setTimeout(r, 250));
-      R.abrio = !!_cineB;
-      R.panelVisible = document.getElementById('cine-panel-b').style.display !== 'none';
-      R.cuadrosB = _cineB.loop.cuadros;
-      R.distintosCuadros = R.cuadrosB !== R.cuadrosA;      // denominador de lo de abajo
-      R.sliderB = +document.getElementById('cine-slider-b').max === R.cuadrosB - 1;
-      R.botonSyncVisible = document.getElementById('cine-sync').style.display !== 'none';
+      R.cuadrosA = _vistaA.datos.loops[0].cuadros;
+
+      /* La vista B con DISTINTA cantidad de cuadros: la mitad. Es lo que hace que copiar el
+         indice se note -- con las dos iguales, indice y posicion relativa coinciden y la
+         condicion no distingue nada. */
+      const mitad = Math.max(3, Math.floor(R.cuadrosA / 2));
+      _vistaB = _vNueva('b-', 'B');
+      _vMontarPanel(document.getElementById('cine-paneles'), 'b-');
+      _vCablear(_vistaB);
+      _vCon(_vistaB, () => { _vistaB.datos = { loops:[ mkLoop('vista-B', mitad) ], i:0, cuadro:0, timer:null };
+                             _cineCargarLoop(); });
+      document.getElementById('cine-sync').style.display = '';
+      await new Promise(r => setTimeout(r, 250));
+
+      R.abrio = !!_vistaB;
+      R.panelExiste = !!document.getElementById('b-cine-panel');
+      R.cuadrosB = _vistaB.datos.loops[0].cuadros;
+      R.distintosCuadros = R.cuadrosB !== R.cuadrosA;          // denominador de todo lo de abajo
+      R.sliderB = +document.getElementById('b-cine-slider').max === R.cuadrosB - 1;
+      /* La vista A no puede haber cambiado de tamano al aparecer la B. */
+      R.sliderA = +document.getElementById('cine-slider').max === R.cuadrosA - 1;
+
+      const irA = async n => { await _vCon(_vistaA, () => cineIr(n)); await new Promise(r=>setTimeout(r,180)); };
+      const irB = async n => { await _vCon(_vistaB, () => cineIr(n)); await new Promise(r=>setTimeout(r,180)); };
 
       /* ── INDEPENDIENTES ── */
-      await cineIr(4);
-      await new Promise(r => setTimeout(r, 200));
-      R.bNoSeMovio = _cineB.cuadro === 0;
-      await cineBIr(2);
-      await new Promise(r => setTimeout(r, 200));
-      R.aNoSeMovio = _cineDatos.cuadro === 4;
-      R.bSeMovio = _cineB.cuadro === 2;
+      await irA(4);
+      R.bNoSeMovio = _vistaB.datos.cuadro === 0;
+      await irB(2);
+      R.aNoSeMovio = _vistaA.datos.cuadro === 4;
+      R.bSeMovio = _vistaB.datos.cuadro === 2;
+      /* Y cada uno escribe SU contador, no el del otro. */
+      R.numA = document.getElementById('cine-num').textContent;
+      R.numB = document.getElementById('b-cine-num').textContent;
+      R.contadoresPropios = R.numA === '5 / ' + R.cuadrosA && R.numB === '3 / ' + R.cuadrosB;
 
-      /* ── SINCRONIZADO: A manda, por posicion relativa ── */
-      cineSyncToggle();
-      R.syncOn = _cineSync;
+      /* ── SINCRONIZADA: A manda, por posicion relativa ── */
+      vistaSyncToggle();
+      R.syncOn = _vSync;
       R.botonDice = document.getElementById('cine-sync').textContent;
       await new Promise(r => setTimeout(r, 200));
-      /* al activarlo se alinea de inmediato */
       const esperado = n => Math.round((n / (R.cuadrosA - 1)) * (R.cuadrosB - 1));
-      R.alAlinear = _cineB.cuadro === esperado(4);
-      await cineIr(R.cuadrosA - 1);                         // ultimo cuadro de A
-      await new Promise(r => setTimeout(r, 300));
-      R.bAlFinal = _cineB.cuadro;
-      R.sigueElFinal = _cineB.cuadro === R.cuadrosB - 1;    // relativo: ultimo con ultimo
-      R.noCopiaIndice = R.cuadrosA - 1 !== R.cuadrosB - 1;  // denominador
-      await cineIr(0);
-      await new Promise(r => setTimeout(r, 300));
-      R.bAlInicio = _cineB.cuadro === 0;
-      const medio = Math.floor((R.cuadrosA - 1) / 2);
-      await cineIr(medio);
-      await new Promise(r => setTimeout(r, 300));
-      R.bAlMedio = _cineB.cuadro === esperado(medio);
-
-      /* ── B NO arrastra a A: la sincronizacion va en una sola direccion ── */
-      const aAntes = _cineDatos.cuadro;
-      await cineBIr(1);
+      await irA(R.cuadrosA - 1);
       await new Promise(r => setTimeout(r, 200));
-      R.bNoArrastraA = _cineDatos.cuadro === aAntes;
+      R.bAlFinal = _vistaB.datos.cuadro;
+      R.sigueElFinal = _vistaB.datos.cuadro === R.cuadrosB - 1;   // relativo: ultimo con ultimo
+      R.noCopiaIndice = R.cuadrosA - 1 !== R.cuadrosB - 1;        // denominador
+      await irA(0);
+      await new Promise(r => setTimeout(r, 200));
+      R.bAlInicio = _vistaB.datos.cuadro === 0;
+      const medio = Math.floor((R.cuadrosA - 1) / 2);
+      await irA(medio);
+      await new Promise(r => setTimeout(r, 200));
+      R.bAlMedio = _vistaB.datos.cuadro === esperado(medio);
+
+      /* ── NO REALIMENTA: B no arrastra a A ── */
+      const aAntes = _vistaA.datos.cuadro;
+      await irB(1);
+      R.bNoArrastraA = _vistaA.datos.cuadro === aAntes;
 
       /* ── apagar la sincronizacion ──
-         B se manda al ULTIMO cuadro a proposito. Antes se lo dejaba donde hubiera quedado --el
-         cuadro 1-- y ahi esperado(2) tambien daba 1: la condicion se cumplia sola y sobrevivia
-         la mutacion que saca la guarda de _cineSyncAplicar. El ultimo cuadro no lo puede
-         producir la sincronizacion desde el cuadro 2 de A, asi que ahora distingue. */
-      cineSyncToggle();
-      R.syncOff = !_cineSync;
-      await cineBIr(R.cuadrosB - 1);
+         B se manda al ULTIMO cuadro a proposito: si se lo dejara donde quedo, esperado(2)
+         podria dar ese mismo numero y la condicion se cumpliria sola. El ultimo cuadro no lo
+         puede producir la sincronizacion desde el cuadro 2 de A. */
+      vistaSyncToggle();
+      R.syncOff = !_vSync;
+      await irB(R.cuadrosB - 1);
+      const bAntes = _vistaB.datos.cuadro;
+      R.denomApagado = bAntes !== esperado(2);
+      await irA(2);
       await new Promise(r => setTimeout(r, 200));
-      const bAntes = _cineB.cuadro;
-      R.denomApagado = bAntes !== esperado(2);   // si coincidieran, la condicion no probaria nada
-      await cineIr(2);
-      await new Promise(r => setTimeout(r, 250));
-      R.apagadoNoSigue = _cineB.cuadro === bAntes;
+      R.apagadoNoSigue = _vistaB.datos.cuadro === bAntes;
 
-      /* ── la medicion del panel A sigue andando con el B abierto ── */
-      if (reg) {
-        medToggle();
-        await new Promise(r => setTimeout(r, 150));
-        const cv = document.getElementById('cine-med');
-        const clic = (x,y) => { const r = cv.getBoundingClientRect();
-          cv.dispatchEvent(new MouseEvent('click', { bubbles:true,
-            clientX: r.left + x*(r.width/cv.width), clientY: r.top + y*(r.height/cv.height) })); };
-        clic(Math.round(reg.x0+20), Math.round(reg.y0+20));
-        clic(Math.round(reg.x0+170), Math.round(reg.y0+20));
-        await new Promise(r => setTimeout(r, 150));
-        R.midioConBAbierto = _medLineas.filter(l => !l.calibracion).length === 1;
-        R.medEnA = !!document.getElementById('cine-med') && !document.getElementById('cine-med-b');
-      }
-
-      /* ── cerrar el panel B ──
-         Se vuelve a ENCENDER la sincronizacion antes de cerrar: si no, la condicion de que
-         cerrar la apaga se cumple sola --ya estaba apagada del paso anterior-- y no prueba
-         nada. Lo delato una mutacion que sobrevivia. */
-      cineSyncToggle();
-      R.syncEncendidoAntesDeCerrar = _cineSync;
-      cineBCerrar();
+      /* ── cerrar la vista B ── */
+      vistaSyncToggle();                       // encendida, para que cerrar tenga que apagarla
+      R.syncEncendidoAntesDeCerrar = _vSync;
+      vistaBCerrar();
       await new Promise(r => setTimeout(r, 150));
-      R.cerro = _cineB === null;
-      R.panelOculto = document.getElementById('cine-panel-b').style.display === 'none';
-      R.syncApagadoAlCerrar = !_cineSync;
-      R.aSigueVivo = !!_cineDatos;
-      if (reg) R.medicionSobrevive = _medLineas.filter(l => !l.calibracion).length === 1;
+      R.cerro = _vistaB === null;
+      R.panelSeFue = !document.getElementById('b-cine-panel');
+      R.syncApagadoAlCerrar = !_vSync;
+      R.vActivaVuelveA = _V === _vistaA;
+      R.aSigueVivo = !!(_vistaA.datos && _vistaA.datos.loops.length);
+      R.botonSyncOculto = document.getElementById('cine-sync').style.display === 'none';
 
-      /* ── cerrar el VISOR se lleva el panel B ── */
-      cineBAbrir({ nombre:'vista-B2', cuadros: mitad,
-        d: { frags: d0.frags.slice(0, mitad), cols:d0.cols, filas:d0.filas, msCuadro:d0.msCuadro, regiones:[] } });
-      await new Promise(r => setTimeout(r, 200));
-      R.reabrio = !!_cineB;
       cineCerrar();
-      await new Promise(r => setTimeout(r, 200));
-      R.cerrarVisorCierraB = _cineB === null;
-    } finally {
-      window.alert = alertOrig;
-      try { medApagar(); cineBCerrar(); cineCerrar(); } catch (e) {}
-    }
+    } finally { window.alert = alertOrig; }
 
     return { extra: [
-      ['el panel B se abre y se ve',                     R.abrio && R.panelVisible, R.panelVisible],
-      ['con su propio slider dimensionado a SUS cuadros', R.sliderB, R.cuadrosB + ' cuadros'],
-      ['los dos loops tienen distinta cantidad (denominador)', R.distintosCuadros, R.cuadrosA + ' vs ' + R.cuadrosB],
-      ['aparece el boton de sincronizar',                R.botonSyncVisible, R.botonSyncVisible],
-      ['mover A no mueve B',                             R.bNoSeMovio, R.bNoSeMovio],
-      ['mover B no mueve A',                             R.aNoSeMovio && R.bSeMovio, R.aNoSeMovio],
-      ['sincronizar se activa y lo dice',                R.syncOn && /Sincronizado/.test(R.botonDice), R.botonDice],
-      ['y alinea de inmediato',                          R.alAlinear, R.alAlinear],
-      ['el ULTIMO de A lleva al ULTIMO de B',            R.sigueElFinal, R.bAlFinal + ' de ' + (R.cuadrosB-1)],
-      ['y no es copiar el indice (denominador)',         R.noCopiaIndice, (R.cuadrosA-1) + ' != ' + (R.cuadrosB-1)],
-      ['el primero con el primero',                      R.bAlInicio, R.bAlInicio],
-      ['y el medio con el medio',                        R.bAlMedio, R.bAlMedio],
-      ['B no arrastra a A: la sincronizacion es en un sentido', R.bNoArrastraA, R.bNoArrastraA],
+      ['la vista B se abre con su propio panel',        R.abrio && R.panelExiste, R.panelExiste],
+      ['los dos loops tienen distinto largo (denominador)', R.distintosCuadros, R.cuadrosA + ' vs ' + R.cuadrosB],
+      ['cada slider se dimensiona con SUS cuadros',     R.sliderA && R.sliderB, 'A:' + R.sliderA + ' B:' + R.sliderB],
+      ['mover A no mueve B',                            R.bNoSeMovio, R.bNoSeMovio],
+      ['mover B no mueve A',                            R.aNoSeMovio && R.bSeMovio, R.aNoSeMovio],
+      ['cada vista escribe SU contador',                R.contadoresPropios, 'A=' + R.numA + ' B=' + R.numB],
+      ['sincronizar se enciende y lo dice',             R.syncOn && /Sincronizada/.test(R.botonDice||''), R.botonDice],
+      ['los indices no coinciden (denominador)',        R.noCopiaIndice, R.noCopiaIndice],
+      ['el ultimo de A lleva al ultimo de B',           R.sigueElFinal, 'B quedo en ' + R.bAlFinal + ' de ' + (R.cuadrosB-1)],
+      ['el primero de A lleva al primero de B',         R.bAlInicio, R.bAlInicio],
+      ['el medio de A lleva al medio RELATIVO de B',    R.bAlMedio, R.bAlMedio],
+      ['B no arrastra a A (no realimenta)',             R.bNoArrastraA, R.bNoArrastraA],
       ['el cuadro de B no lo puede producir la sync (denominador)', R.denomApagado, R.denomApagado],
-      ['apagar la sincronizacion la apaga de verdad',    R.syncOff && R.apagadoNoSigue, R.apagadoNoSigue],
-      ['se puede medir en A con el B abierto',           R.midioConBAbierto, R.midioConBAbierto],
-      ['y el panel B NO tiene canvas de medicion',       R.medEnA, R.medEnA],
-      ['cerrar el panel B lo oculta',                    R.cerro && R.panelOculto, R.panelOculto],
+      ['apagar la sincronizacion la apaga de verdad',   R.syncOff && R.apagadoNoSigue, R.apagadoNoSigue],
       ['la sincronizacion estaba encendida (denominador)', R.syncEncendidoAntesDeCerrar, R.syncEncendidoAntesDeCerrar],
-      ['y cerrar la apaga',                              R.syncApagadoAlCerrar, R.syncApagadoAlCerrar],
-      ['el panel A sigue vivo',                          R.aSigueVivo, R.aSigueVivo],
-      ['y la medicion no se perdio',                     R.medicionSobrevive, R.medicionSobrevive],
-      ['cerrar el VISOR se lleva el panel B',            R.reabrio && R.cerrarVisorCierraB, R.cerrarVisorCierraB]
+      ['cerrar la vista B saca su panel del DOM',       R.cerro && R.panelSeFue, R.panelSeFue],
+      ['y apaga la sincronizacion',                     R.syncApagadoAlCerrar, R.syncApagadoAlCerrar],
+      ['y deja la vista A como activa',                 R.vActivaVuelveA, R.vActivaVuelveA],
+      ['la vista A sigue viva',                         R.aSigueVivo, R.aSigueVivo],
+      ['y el boton de sincronizar se esconde',          R.botonSyncOculto, R.botonSyncOculto]
+    ] };
+  })();
+`);
+
+
+/* ══ TC-196 · Las herramientas viven en CADA vista ═══════════════════════════════════════════
+   Es la capacidad que la refactorizacion a instancias vino a dar, y por eso lo que hay que
+   fijar no es que "la vista B tiene botones" sino que los dos estados son AJENOS: medir en
+   una no escribe en la otra, cada una elige su herramienta, y cada canvas de medicion es el
+   suyo. Con un solo estado global compartido todo esto pasaria igual de "ver" bien en
+   pantalla y estaria mezclando las dos imagenes.
+
+   Y el cruce que importa clinicamente: un par de Simpson en cada vista -4C en una, 2C en la
+   otra- da la FEVI biplano, con la escala de SU imagen cada trazado. La segunda imagen lleva
+   el DOBLE de escala a proposito: con un solo factor para los cuatro el volumen sale mal y el
+   numero sigue pareciendo razonable.                                                          */
+caso('TC-196', 'Dos vistas: seis herramientas por vista, estados ajenos y Simpson biplano A x B', `
+  return (async () => {
+    const P = ${JSON.stringify(PENDRIVE)};
+    if (!P.loop) return { extra: [[
+      'hace falta un cineloop real del pendrive', false, 'no se encontro: quedo SIN verificar']] };
+    const bytes = x => { const b = atob(x.b64); const a = new Uint8Array(b.length);
+      for (let i=0;i<b.length;i++) a[i] = b.charCodeAt(i); return a; };
+    const alertOrig = window.alert; const dichos = [];
+    window.alert = m => dichos.push(String(m));
+    const R = {};
+    try {
+      const u = bytes(P.loop);
+      const d0 = _dcmImgLeer(u.buffer);
+      const reg = (d0.regiones || []).filter(_dcmImgRegionMedible)[0];
+      if (!reg) return { extra: [['la imagen declara region medible', false, 'no la declara']] };
+
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      const loopCon = (nom, factor) => {
+        const rg = Object.assign({}, reg, { dx: reg.dx * factor, dy: reg.dy * factor });
+        return { nombre:nom, cuadros:d0.frags.length,
+                 d: { frags:d0.frags, cols:d0.cols, filas:d0.filas, msCuadro:d0.msCuadro, regiones:[rg] } };
+      };
+
+      _cineAbrir([ loopCon('apical-4c.dcm', 1) ]);
+      await new Promise(r => setTimeout(r, 250));
+
+      /* La vista B, con el DOBLE de escala. */
+      _vistaB = _vNueva('b-', 'B');
+      _vMontarPanel(document.getElementById('cine-paneles'), 'b-');
+      _vCablear(_vistaB);
+      _vCon(_vistaB, () => { _vistaB.datos = { loops:[ loopCon('apical-2c.dcm', 2) ], i:0, cuadro:0, timer:null };
+                             _cineCargarLoop(); });
+      await new Promise(r => setTimeout(r, 250));
+
+      R.dosCanvas = !!document.getElementById('cine-med') && !!document.getElementById('b-cine-med');
+      R.canvasDistintos = document.getElementById('cine-med') !== document.getElementById('b-cine-med');
+
+      /* ── Medir se enciende en CADA vista por separado ── */
+      _vCon(_vistaA, medToggle);
+      await new Promise(r => setTimeout(r, 120));
+      R.aMide = _vistaA.medOn;
+      R.bNoMideTodavia = !_vistaB.medOn;                       // denominador del de abajo
+      _vCon(_vistaB, medToggle);
+      await new Promise(r => setTimeout(r, 120));
+      R.bMide = _vistaB.medOn;
+      R.lasDosMiden = _vistaA.medOn && _vistaB.medOn;
+      R.barraA = document.getElementById('cine-med-barra').style.display !== 'none';
+      R.barraB = document.getElementById('b-cine-med-barra').style.display !== 'none';
+
+      /* ── Herramienta propia por vista ── */
+      _vCon(_vistaA, () => medHerramienta('area'));
+      _vCon(_vistaB, () => medHerramienta('vel'));
+      R.herrA = _vistaA.medHerr; R.herrB = _vistaB.medHerr;
+      R.herrIndependiente = R.herrA === 'area' && R.herrB === 'vel';
+
+      /* ── Una regla en A no aparece en B ── */
+      _vCon(_vistaA, () => medHerramienta('dist'));
+      _vCon(_vistaB, () => medHerramienta('dist'));
+      const cvDe = p => document.getElementById(p + 'cine-med');
+      const acDe = (p, x, y) => { const c = cvDe(p), r = c.getBoundingClientRect();
+        return { clientX: r.left + x * (r.width / c.width), clientY: r.top + y * (r.height / c.height) }; };
+      const clicEn = (p, x, y) => cvDe(p).dispatchEvent(
+        new MouseEvent('click', Object.assign({ bubbles:true }, acDe(p, x, y))));
+      clicEn('', Math.round(reg.x0+20), Math.round(reg.y0+20));
+      clicEn('', Math.round(reg.x0+160), Math.round(reg.y0+20));
+      await new Promise(r => setTimeout(r, 140));
+      R.lineasA = _vistaA.medLineas.length;
+      R.lineasB = _vistaB.medLineas.length;
+      R.reglaSoloEnA = R.lineasA === 1 && R.lineasB === 0;
+      /* Y la misma medicion en B da OTRO numero, porque su escala es el doble. */
+      clicEn('b-', Math.round(reg.x0+20), Math.round(reg.y0+20));
+      clicEn('b-', Math.round(reg.x0+160), Math.round(reg.y0+20));
+      await new Promise(r => setTimeout(r, 140));
+      R.mmA = _vistaA.medLineas[0] && _vistaA.medLineas[0].mm;
+      R.mmB = _vistaB.medLineas[0] && _vistaB.medLineas[0].mm;
+      R.escalaPropia = !!(R.mmA && R.mmB) && Math.abs(R.mmB - 2*R.mmA) < 1e-6;
+
+      /* ── Borrar en una no borra la otra ── */
+      _vCon(_vistaA, medBorrar);
+      await new Promise(r => setTimeout(r, 100));
+      R.borroA = _vistaA.medLineas.length === 0;
+      R.bIntacta = _vistaB.medLineas.length === 1;
+
+      /* ── SIMPSON: un par en cada vista ── */
+      const trazarEn = async (p, pts) => { const c = cvDe(p);
+        c.dispatchEvent(new MouseEvent('mousedown', Object.assign({ bubbles:true }, acDe(p, pts[0].x, pts[0].y))));
+        for (let i = 1; i < pts.length; i++)
+          c.dispatchEvent(new MouseEvent('mousemove', Object.assign({ bubbles:true }, acDe(p, pts[i].x, pts[i].y))));
+        document.dispatchEvent(new MouseEvent('mouseup', { bubbles:true }));
+        const z = pts[pts.length-1];
+        c.dispatchEvent(new MouseEvent('click', Object.assign({ bubbles:true }, acDe(p, z.x, z.y))));
+        await new Promise(r => setTimeout(r, 130)); };
+      const tri = (cx, yb, W, H) => { const p=[], x0=cx-W/2, x1=cx+W/2, ya=yb-H;
+        const n1 = Math.ceil(Math.hypot(W/2,H)/12);
+        for (let i=0;i<=n1;i++) p.push({x:Math.round(x0+(cx-x0)*i/n1), y:Math.round(yb+(ya-yb)*i/n1)});
+        for (let i=1;i<=n1;i++) p.push({x:Math.round(cx+(x1-cx)*i/n1), y:Math.round(ya+(yb-ya)*i/n1)});
+        return p; };
+      const cx0 = Math.round((reg.x0+reg.x1)/2), yb = Math.round(Math.min(reg.y1-10, reg.y0+380));
+
+      _vCon(_vistaA, () => medHerramienta('simpson'));
+      await _vCon(_vistaA, () => trazarEn('', tri(cx0, yb, 200, 300)));
+      _vCon(_vistaA, medSimpsonConfirmar);
+      await _vCon(_vistaA, () => trazarEn('', tri(cx0, yb, 120, 300)));
+      _vCon(_vistaA, medSimpsonConfirmar);
+      R.parEnA = !!(_vistaA.simp && _vistaA.simp.pares[0].d && _vistaA.simp.pares[0].s);
+      R.sinBiplanoTodavia = _vBiplanoDatos() === null;   // denominador: con un solo par no hay cruce
+
+      _vCon(_vistaB, () => medHerramienta('simpson'));
+      await _vCon(_vistaB, () => trazarEn('b-', tri(cx0, yb, 180, 300)));
+      _vCon(_vistaB, medSimpsonConfirmar);
+      await _vCon(_vistaB, () => trazarEn('b-', tri(cx0, yb, 100, 300)));
+      _vCon(_vistaB, medSimpsonConfirmar);
+      R.parEnB = !!(_vistaB.simp && _vistaB.simp.pares[0].d && _vistaB.simp.pares[0].s);
+
+      const BP = _vBiplanoDatos();
+      R.hayBiplano = !!BP;
+      R.panelBiplano = document.getElementById('cine-biplano').style.display !== 'none';
+
+      if (BP) {
+        /* La aritmetica, contra el mismo _simpVolumenML pero armada aca con los trazados
+           reales. Si _vBiplanoDatos tomara UNA sola escala, esto no daria. */
+        const pa = _vistaA.simp.pares[0], pb = _vistaB.simp.pares[0];
+        const Ld = Math.max(pa.d.Lcm, pb.d.Lcm), Ls = Math.max(pa.s.Lcm, pb.s.Lcm);
+        const vfd = _simpVolumenML(pa.d.diamCm, pb.d.diamCm, Ld);
+        const vfs = _simpVolumenML(pa.s.diamCm, pb.s.diamCm, Ls);
+        R.vfdOk = Math.abs(BP.vfd - vfd) < 1e-9;
+        R.vfsOk = Math.abs(BP.vfs - vfs) < 1e-9;
+        R.feviOk = Math.abs(BP.fevi - (vfd - vfs) / vfd * 100) < 1e-9;
+        /* Las escalas SON distintas: sin esto, "cada trazado con su escala" no prueba nada. */
+        R.escalasDistintas = Math.abs(pa.d.cmPorPx - pb.d.cmPorPx) > 1e-9;
+        R.fevi = BP.fevi;
+      }
+
+      /* ── Integrar escribe el campo del informe ── */
+      document.getElementById('fevi').value = '';
+      const bi = document.getElementById('cine-biplano-integ');
+      R.hayBotonIntegrar = !!bi;
+      if (bi) { bi.click(); await new Promise(r => setTimeout(r, 120)); }
+      R.feviCampo = document.getElementById('fevi').value;
+      R.metodo = (document.getElementById('fevi_met')||{}).value;
+      R.integro = BP ? R.feviCampo === BP.fevi.toFixed(0) : false;
+
+      /* ── Cerrar la vista B se lleva SU medicion y deja la de A ── */
+      vistaBCerrar();
+      await new Promise(r => setTimeout(r, 120));
+      R.aSigueMidiendo = _vistaA.medOn;
+      R.simpDeASigue = !!(_vistaA.simp && _vistaA.simp.pares[0].d);
+      R.biplanoSeFue = document.getElementById('cine-biplano').style.display === 'none';
+
+      cineCerrar();
+      await new Promise(r => setTimeout(r, 120));
+      R.cerrarApagaA = !_vistaA.medOn && _vistaA.simp === null;
+    } finally { window.alert = alertOrig; }
+
+    return { extra: [
+      ['cada vista tiene SU canvas de medicion',        R.dosCanvas && R.canvasDistintos, R.canvasDistintos],
+      ['B no medía antes de encenderla (denominador)',  R.bNoMideTodavia, R.bNoMideTodavia],
+      ['se puede medir en las DOS a la vez',            R.lasDosMiden, 'A:' + R.aMide + ' B:' + R.bMide],
+      ['cada vista muestra SU barra de medicion',       R.barraA && R.barraB, 'A:' + R.barraA + ' B:' + R.barraB],
+      ['cada vista elige su herramienta',               R.herrIndependiente, 'A=' + R.herrA + ' B=' + R.herrB],
+      ['una regla en A no aparece en B',                R.reglaSoloEnA, 'A=' + R.lineasA + ' B=' + R.lineasB],
+      ['y cada una mide con la escala de SU imagen',    R.escalaPropia, 'A=' + R.mmA + ' B=' + R.mmB],
+      ['borrar en A no borra B',                        R.borroA && R.bIntacta, 'A=' + R.borroA + ' B=' + R.bIntacta],
+      ['Simpson: un par confirmado en cada vista',      R.parEnA && R.parEnB, 'A:' + R.parEnA + ' B:' + R.parEnB],
+      ['con un solo par NO hay biplano (denominador)',  R.sinBiplanoTodavia, R.sinBiplanoTodavia],
+      ['con los dos pares sale la FEVI biplano',        R.hayBiplano, R.fevi],
+      ['y se muestra entre las dos vistas',             R.panelBiplano, R.panelBiplano],
+      ['las dos escalas difieren (denominador)',        R.escalasDistintas, R.escalasDistintas],
+      ['VFD sale de los dos trazados con SU escala',    R.vfdOk, R.vfdOk],
+      ['VFS tambien',                                   R.vfsOk, R.vfsOk],
+      ['y la FEVI es (VFD-VFS)/VFD',                    R.feviOk, R.feviOk],
+      ['integrar escribe el campo FEVI',                R.hayBotonIntegrar && R.integro, R.feviCampo],
+      ['y lo rotula Simpson biplano',                   R.metodo === 'Simpson biplano', R.metodo],
+      ['cerrar la vista B deja viva la medicion de A',  R.aSigueMidiendo && R.simpDeASigue, R.aSigueMidiendo],
+      ['y retira el resultado biplano',                 R.biplanoSeFue, R.biplanoSeFue],
+      ['cerrar el visor apaga la medicion de A',        R.cerrarApagaA, R.cerrarApagaA]
+    ] };
+  })();
+`);
+
+
+/* ══ TC-197 · Velocidad: magnitud + direccion, y calibracion manual de RESPALDO ══════════════
+   EL REPORTE DECIA «las velocidades dan valores incorrectos (-403 cm/s), la escala del archivo
+   no se lee bien». Medido sobre los 301 archivos del pendrive, la escala del archivo se lee
+   BIEN: cero regiones de velocidad superpuestas, cero con el valor fisico del pixel de
+   referencia distinto de cero, cero con PhysicalDeltaY positivo. -403 cm/s son -4,03 m/s, una
+   velocidad de chorro normal, y el signo lo declara el archivo: en 65 de 132 regiones la linea
+   de base cae FUERA del recuadro visible --un trazo CW dibujado entero hacia abajo-- asi que
+   ahi todo lo que se clickee da negativo, correctamente.
+
+   Lo que se arregla es la PRESENTACION --se muestra la magnitud con la direccion al lado, que
+   es como se reporta-- y lo que se agrega es el RESPALDO para los 15 archivos sin ninguna
+   region. La calibracion manual no se activa sola cuando el archivo trae escala: pisarla es
+   una decision explicita.                                                                     */
+caso('TC-197', 'Velocidad: el signo del archivo es correcto, se muestra magnitud, y la calibracion manual es respaldo', `
+  return (async () => {
+    const P = ${JSON.stringify(PENDRIVE)};
+    if (!P.loop) return { extra: [[
+      'hace falta un cineloop real del pendrive', false, 'no se encontro: quedo SIN verificar']] };
+    const bytes = x => { const b = atob(x.b64); const a = new Uint8Array(b.length);
+      for (let i=0;i<b.length;i++) a[i] = b.charCodeAt(i); return a; };
+    const alertOrig = window.alert, promptOrig = window.prompt;
+    const dichos = []; window.alert = m => dichos.push(String(m));
+    const R = {};
+    try {
+      const u = bytes(P.loop);
+      const d0 = _dcmImgLeer(u.buffer);
+      const base2d = (d0.regiones || []).filter(_dcmImgRegionMedible)[0];
+      if (!base2d) return { extra: [['la imagen declara region medible', false, 'no la declara']] };
+
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','0');
+
+      /* Region espectral SINTETICA con los numeros de un archivo real del pendrive: linea de
+         base en y=56, escala -1,34607 cm/s por pixel, recuadro 217..659. Con esos valores el
+         borde inferior da -811,7 cm/s y el superior -216,7: es uno de los 26 archivos donde
+         -403 cae dentro del recuadro. Sirve para probar que el numero NO esta roto. */
+      const espectral = { tipo:1, x0:base2d.x0, x1:base2d.x1, y0:217, y1:659,
+                          ux:4, uy:7, dx:0.004632, dy:-1.34607, rx0:base2d.x0, ry0:56, rvx:0, rvy:0 };
+      const montar = (nom, regs) => {
+        _cineAbrir([{ nombre:nom, cuadros:d0.frags.length,
+          d:{ frags:d0.frags, cols:d0.cols, filas:d0.filas, msCuadro:d0.msCuadro, regiones:regs } }]);
+      };
+
+      /* ── 1 · LA ESCALA DEL ARCHIVO ── */
+      montar('espectral.dcm', [espectral]);
+      await new Promise(r => setTimeout(r, 250));
+      /* medToggle ALTERNA. Llamarlo con la medicion ya encendida la APAGA, y entonces el
+         canvas queda con display:none y sin manejadores: los clics no llegan a ningun lado y
+         se ve como si la herramienta no anduviera. Paso en este mismo caso. */
+      const encender = async () => { if (!_medOn) medToggle(); await new Promise(r => setTimeout(r, 120)); };
+      await encender();
+      document.getElementById('cine-med-vel').click();
+      await new Promise(r => setTimeout(r, 120));
+      R.noEntroSolo = !_medCalibrandoVel;        // con escala del archivo NO se ofrece sola
+      R.barraDiceArchivo = /tomada del archivo/.test(document.getElementById('cine-med-barra').innerHTML);
+
+      const cv = () => document.getElementById('cine-med');
+      const clic = (x,y) => { const c = cv(), r = c.getBoundingClientRect();
+        c.dispatchEvent(new MouseEvent('click', { bubbles:true,
+          clientX: r.left + x * (r.width / c.width), clientY: r.top + y * (r.height / c.height) })); };
+      const cxm = Math.round((espectral.x0 + espectral.x1) / 2);
+
+      /* En el PIXEL DE REFERENCIA la velocidad tiene que dar exactamente cero. Es la unica
+         verificacion que no depende de leer la escala dibujada. */
+      R.enElCero = _dcmImgVelocidadEn(espectral, espectral.ry0);
+      /* Y a N pixeles, exactamente N * dy. */
+      R.a300px = _dcmImgVelocidadEn(espectral, espectral.ry0 + 300);
+      R.a300ok = Math.abs(R.a300px - 300 * espectral.dy) < 1e-9;
+      /* El -403 del reporte es alcanzable y es correcto: esta DENTRO del recuadro visible. */
+      const yDe403 = espectral.ry0 + (-403 / espectral.dy);
+      R.y403Dentro = yDe403 > espectral.y0 && yDe403 < espectral.y1;
+      R.v403 = _dcmImgVelocidadEn(espectral, Math.round(yDe403));
+
+      clic(cxm, Math.round(yDe403));
+      await new Promise(r => setTimeout(r, 140));
+      R.hayMedicion = _medVels.length === 1;
+      R.cmsMedido = _medVels[0] && _medVels[0].cms;
+      R.negativo = R.cmsMedido < 0;                       // el archivo lo declara asi
+      R.mmHgPositivo = _medVels[0] && _medVels[0].mmHg > 0;
+      /* El gradiente no depende del signo: 4V2 con V en m/s. */
+      R.mmHgOk = _medVels[0] && Math.abs(_medVels[0].mmHg - 4*Math.pow(R.cmsMedido/100,2)) < 1e-9;
+
+      /* La ETIQUETA dibujada: magnitud + flecha, nunca el cm/s con signo. */
+      const textos = [];
+      const cxo = CanvasRenderingContext2D.prototype.fillText;
+      CanvasRenderingContext2D.prototype.fillText = function (t) { textos.push(String(t)); return cxo.apply(this, arguments); };
+      _medPintar();
+      CanvasRenderingContext2D.prototype.fillText = cxo;
+      R.etiquetas = textos.join(' | ');
+      R.etiquetaMagnitud = /\\d+\\.\\d\\d m\\/s [↑↓]/.test(R.etiquetas);
+      R.etiquetaSinSignoCrudo = !/-\\d+ cm\\/s/.test(R.etiquetas);
+      R.flechaAbajo = /↓/.test(R.etiquetas);              // negativo => se aleja
+
+      /* ── 2 · SIN ESCALA EN EL ARCHIVO: la calibracion se ofrece sola ── */
+      medHerramienta('dist');
+      /* Primero el caso que NO tiene que ofrecer calibracion: una imagen con region 2D pero
+         sin region de velocidad. Ahi la respuesta correcta es el aviso que explica que ese
+         eje es distancia --de las 157 regiones espectrales del pendrive, 25 son modo M-- y no
+         calibrar una escala de velocidad sobre un eje de distancia. */
+      medHerramienta('dist');
+      montar('solo-2d.dcm', [base2d]);
+      await new Promise(r => setTimeout(r, 250));
+      await encender();
+      document.getElementById('cine-med-vel').click();
+      await new Promise(r => setTimeout(r, 140));
+      R.con2dNoOfrece = !_medCalibrandoVel;
+
+      /* Ahora SI: una imagen sin NINGUNA region, que son 15 de los 301 del pendrive. */
+      medHerramienta('dist');
+      montar('sin-escala.dcm', []);
+      await new Promise(r => setTimeout(r, 250));
+      await encender();
+      document.getElementById('cine-med-vel').click();
+      await new Promise(r => setTimeout(r, 140));
+      R.entroSolo = _medCalibrandoVel;
+      R.barraDiceCalibrar = /Calibrando la velocidad/.test(document.getElementById('cine-med-barra').innerHTML);
+
+      /* Calibrar: base en y=400, marca conocida 100 px mas arriba = 100 cm/s. */
+      window.prompt = () => '100';
+      const yBase = 400, yMarca = 300;
+      clic(cxm, yBase);
+      await new Promise(r => setTimeout(r, 120));
+      R.baseMarcada = _medPuntos.length === 1;
+      clic(cxm, yMarca);
+      await new Promise(r => setTimeout(r, 160));
+      R.calibro = !!_medCalibVel;
+      R.factor = _medCalibVel && _medCalibVel.cmsPorPx;
+      R.factorOk = Math.abs(R.factor - 1) < 1e-9;         // 100 cm/s en 100 px = 1 cm/s por px
+      R.ceroOk = _medCalibVel && _medCalibVel.y0 === yBase;
+      R.yaNoCalibra = !_medCalibrandoVel;
+
+      /* La aritmetica, contra los puntos que se marcaron. Guardada: si la calibracion no se
+         completo, la condicion tiene que poder REPORTARLO en vez de reventar y llevarse el
+         diagnostico de todas las demas. */
+      /* ⚠️ LA ARITMETICA SE VERIFICA CONTRA EL ESTADO REGISTRADO, NO CONTRA LOS PIXELES QUE
+         YO QUISE CLICKEAR. MouseEvent.clientY es ENTERO por especificacion, asi que el viaje
+         imagen -> pantalla -> imagen pierde subpixeles: con el canvas escalado por CSS, pedir
+         y=400 deja y=402,43. Comparar contra 400 daba rojo por la cuantizacion, que un clic
+         real tambien tiene. La conversion es exacta; lo que tiene tolerancia es el clic. */
+      if (_medCalibVel) {
+        const cal = _medCalibVel;
+        R.velEnBase = _medVelCalEn(cal, cal.y0);
+        R.calBaseCero = Math.abs(R.velEnBase) < 1e-12;
+        R.velArriba100 = _medVelCalEn(cal, cal.y0 - 100 / cal.cmsPorPx);
+        R.calMarca100 = Math.abs(R.velArriba100 - 100) < 1e-9;
+        /* Debajo de la base da NEGATIVO: la direccion sale de la geometria, no se supone. */
+        R.velDebajo = _medVelCalEn(cal, cal.y0 + 50);
+        R.debajoNegativo = R.velDebajo < 0 && Math.abs(R.velDebajo + 50 * cal.cmsPorPx) < 1e-9;
+        /* Y el CLIC, aparte y con la tolerancia derivada del escalado real del canvas. */
+        const c2 = cv(), rr = c2.getBoundingClientRect();
+        const tol = 2 * (c2.height / rr.height);
+        R.escalaPantalla = (c2.height / rr.height).toFixed(3);
+        R.clicBaseOk = Math.abs(cal.y0 - yBase) <= tol;
+        R.clicFactorOk = Math.abs(cal.cmsPorPx - 1) <= (2 * tol / 100) + 0.05;
+      }
+      R.diag = 'medOn=' + _medOn + ' puntos=' + _medPuntos.length + ' calibrando=' + _medCalibrandoVel +
+               ' herr=' + _medHerr + ' vels=' + _medVels.length +
+               ' alerts=' + JSON.stringify(dichos.slice(-2));
+
+      /* Y una medicion real con la escala manual. */
+      clic(cxm, yMarca);
+      await new Promise(r => setTimeout(r, 140));
+      R.midioManual = _medVels.length === 1 && _medCalibVel &&
+        Math.abs(_medVels[0].cms - _medVelCalEn(_medCalibVel, _medVels[0].y)) < 1e-12 &&
+        Math.abs(_medVels[0].cms - 100) < 5;      // el clic, con su cuantizacion
+      R.marcadaManual = !!(_medVels[0] && _medVels[0].manual);
+      R.barraDiceManual = /calibrada a mano/.test(document.getElementById('cine-med-barra').innerHTML);
+
+      /* ── 3 · CON escala del archivo, pisarla es EXPLICITO ── */
+      medHerramienta('dist');
+      montar('espectral2.dcm', [espectral]);
+      await new Promise(r => setTimeout(r, 250));
+      await encender();
+      document.getElementById('cine-med-vel').click();
+      await new Promise(r => setTimeout(r, 140));
+      R.calibVelLimpiaAlCambiar = !_medCalibVel;          // cambiar de imagen la borra
+      R.sigueSinOfrecerse = !_medCalibrandoVel;
+      const bcal = document.getElementById('cine-med-calvel');
+      R.hayBotonCalibrar = !!bcal;
+      R.botonDice = bcal && bcal.textContent;
+      bcal.click();
+      await new Promise(r => setTimeout(r, 140));
+      R.forzoCalibrar = _medCalibrandoVel;
+      window.prompt = () => '50';
+      clic(cxm, 400); await new Promise(r => setTimeout(r, 110));
+      clic(cxm, 300); await new Promise(r => setTimeout(r, 160));
+      R.avisaQuePisa = /pisando la escala que trae el archivo/.test(document.getElementById('cine-med-barra').innerHTML);
+      R.botonRecalibrar = (document.getElementById('cine-med-calvel')||{}).textContent;
+
+      cineCerrar();
+    } finally { window.alert = alertOrig; window.prompt = promptOrig; }
+
+    return { extra: [
+      ['en el pixel de referencia la velocidad es CERO', Math.abs(R.enElCero) < 1e-12, R.enElCero],
+      ['y a N pixeles es exactamente N x dy',           R.a300ok, R.a300px],
+      ['-403 cm/s cae DENTRO del recuadro (no esta roto)', R.y403Dentro, R.v403],
+      ['un clic ahi mide y el valor es negativo',       R.hayMedicion && R.negativo, R.cmsMedido],
+      ['el gradiente es 4V2 y es positivo',             R.mmHgOk && R.mmHgPositivo, R.mmHgOk],
+      ['la etiqueta muestra MAGNITUD en m/s con flecha', R.etiquetaMagnitud, R.etiquetas],
+      ['y no muestra el cm/s con signo crudo',          R.etiquetaSinSignoCrudo, R.etiquetas],
+      ['negativo se dibuja como ↓ (se aleja)',          R.flechaAbajo, R.flechaAbajo],
+      ['con escala del archivo NO se ofrece calibrar',  R.noEntroSolo && R.barraDiceArchivo, R.noEntroSolo],
+      ['con region 2D pero sin velocidad NO se ofrece', R.con2dNoOfrece, R.con2dNoOfrece],
+      ['sin NINGUNA region, se ofrece sola',            R.entroSolo && R.barraDiceCalibrar, R.entroSolo],
+      ['el primer clic marca la linea de base',         R.baseMarcada, R.diag],
+      ['el segundo mas el valor deja la escala',        R.calibro && R.yaNoCalibra, R.diag],
+      ['en la base la velocidad calibrada es 0 (exacto)', R.calBaseCero, R.velEnBase],
+      ['a la altura de la marca da el valor escrito (exacto)', R.calMarca100, R.velArriba100],
+      ['debajo de la base da negativo (exacto)',        R.debajoNegativo, R.velDebajo],
+      ['el clic cae donde se pidio, dentro de la cuantizacion', R.clicBaseOk, 'y0=' + R.factor + ' esc=' + R.escalaPantalla],
+      ['y 100 cm/s en ~100 px dan ~1 cm/s por pixel',   R.clicFactorOk, R.factor],
+      ['y una medicion real usa la escala manual',      R.midioManual && R.marcadaManual, R.midioManual],
+      ['la barra declara que es manual',                R.barraDiceManual, R.barraDiceManual],
+      ['cambiar de imagen borra la calibracion manual', R.calibVelLimpiaAlCambiar, R.calibVelLimpiaAlCambiar],
+      ['con escala del archivo sigue sin ofrecerse',    R.sigueSinOfrecerse, R.sigueSinOfrecerse],
+      ['pero hay boton para forzarla',                  R.hayBotonCalibrar && R.forzoCalibrar, R.botonDice],
+      ['y al pisarla la barra lo DECLARA',              R.avisaQuePisa, R.avisaQuePisa],
+      ['el boton pasa a decir Recalibrar velocidad',    /Recalibrar velocidad/.test(R.botonRecalibrar||''), R.botonRecalibrar]
     ] };
   })();
 `);
