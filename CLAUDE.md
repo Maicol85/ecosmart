@@ -8133,7 +8133,7 @@ y TC-193 se puso en rojo solo.
 **Sin verificar en Safari**, como todo el módulo DICOM: el navegador está concedido a nivel
 «lectura». Todo corrió en Chrome por CDP, con el pendrive montado.
 
-### Strain: el trazado, el cálculo, y la recta del anillo que NO es pared (2026-09-20)
+### Strain: trazado, SGL por territorios, y las dos cosas que el método NO puede (2026-09-20)
 
 Séptima herramienta del visor: el trazado guiado de dos contornos y el acortamiento que sale de
 ellos. **No escribe nada en el informe** — ver abajo por qué eso es una decisión clínica y no
@@ -8213,6 +8213,46 @@ es un hallazgo extremo: es casi siempre que los dos contornos no recorren la mis
 correcto»** —lo sería con las dos convenciones— **sino que sea el del borde abierto y NO el del
 perímetro cerrado**, calculado aparte dentro del propio caso. Con la mutación los dos colapsan
 al mismo valor y el diagnóstico lo imprime: «abierto=−22.70 % cerrado=−22.70 %».
+
+#### Dos contornos libres NO resuelven 6/12/17 segmentos — medido antes de implementar
+
+El pedido traía `strain_i = (L_sist_i − L_diast_i)/L_diast_i` sobre la grilla del modelo AHA:
+6 segmentos con A4C, 12 con A4C+A2C, 17 con las tres. **No se puede, y el motivo es aritmético.**
+Partir cada contorno en *k* tramos de igual longitud de arco da
+`(L_s/k − L_d/k)/(L_d/k)` = `(L_s − L_d)/L_d` — **el global, para todo i**. Medido antes de
+escribir una línea, sobre media elipse con interpolación exacta:
+
+| partición | dispersión entre segmentos | qué es |
+|---|---|---|
+| arco igual, 6 · 12 · 17 | **exactamente 0,00** | el SGL global repetido k veces |
+| fracción del eje largo | 0,8 pp | sobre una pared que se acorta **uniforme** → artefacto del corte |
+
+La primera publica 17 números idénticos bajo el rótulo «strain por segmento», que un médico
+lee como *«strain uniforme, sin disfunción regional»* — una conclusión clínica que el método no
+puede sostener. La segunda es peor: **no es degenerada, así que parece señal**, y no lo es.
+Y las dos caerían sobre los **mismos segmentos del bull's eye que la app ya tiene**
+(`strainEstado`, que va al PDF), o sea una segunda fuente del mismo dato por otro método.
+
+**Lo que dos trazados libres SÍ resuelven son las dos PAREDES.** El ápex —que ya deriva
+`_simpEje`— y los dos extremos del anillo son los únicos puntos que los dos contornos comparten
+como referencia anatómica. De ahí salen **2 territorios por vista: 2 / 4 / 6**, y ésos sí se
+distinguen entre sí. Decisión de Maicol (2026-09-20). **TC-200 lo vuelve a medir en vivo**: su
+condición «los territorios se distinguen entre sí» cae con la mutación que los parte por arco
+igual, con el diagnóstico imprimiendo «difieren 0.0 pp».
+
+**El rótulo de la pared depende de la DIRECCIÓN en que se traza y no hay forma de deducirla**
+—la orientación de la imagen varía entre equipos y entre presets—. El panel dice en qué orden
+trazar cada vista, los rótulos suponen ese orden, y **eso se declara**: un rótulo de pared
+equivocado es peor que no rotular.
+
+**El SGL es el PROMEDIO de los territorios, no el cociente de las longitudes sumadas.** Con
+paredes de largo distinto los dos números difieren, y el que corresponde es el promedio —es
+como se define el GLS sobre los segmentos, cada uno pesando igual—. La mutación que lo cambia a
+longitudes sumadas cae por dos condiciones.
+
+**El disclaimer va PEGADO al resultado, no al pie.** Lo que se lee primero es el número; un
+descargo tres bloques abajo llega tarde. La mutación que lo saca cae por tres condiciones, una
+por cada superficie donde tiene que estar —una vista, tres vistas, y el caso implausible—.
 
 #### El aviso de cambio de cuadro NO se copió de Simpson, a propósito
 

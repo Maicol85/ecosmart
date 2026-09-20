@@ -46288,12 +46288,37 @@ window.medSimpsonIntegrar = medSimpsonIntegrar;
    `cuerdaCm`— para que el cálculo que venga después use la que corresponda y para que la
    diferencia sea visible en vez de quedar escondida adentro de un perímetro. */
 
+/* Las tres vistas apicales y QUE PARED es cada arco del trazado.
+
+   ⚠️ EL RÓTULO DE LA PARED DEPENDE DE LA DIRECCIÓN EN QUE SE TRAZA, y no hay forma de
+   deducirla: la orientación de la imagen varía entre equipos y entre presets. El panel dice
+   en qué orden trazar, los rótulos suponen ese orden, y eso se DECLARA — un rótulo de pared
+   equivocado es peor que no rotular. */
+const _STR_VISTAS = [
+  { k:'a4c', rot:'A4C — apical 4 cámaras',  orden:'del anillo SEPTAL, por el ápex, al anillo LATERAL',
+    paredes:['Septal', 'Lateral'] },
+  { k:'a2c', rot:'A2C — apical 2 cámaras',  orden:'del anillo INFERIOR, por el ápex, al anillo ANTERIOR',
+    paredes:['Inferior', 'Anterior'] },
+  { k:'a3c', rot:'A3C — apical eje largo',  orden:'del anillo INFEROLATERAL, por el ápex, al anillo ANTEROSEPTAL',
+    paredes:['Inferolateral', 'Anteroseptal'] }
+];
+const _strVista = k => _STR_VISTAS.filter(v => v.k === k)[0];
+
 function _strainIniciar() {
-  _strain = { fase:'d', pares:{ d:null, s:null }, pendiente:null,
-              ocultar:false, avisoCuadro:false, descartoPend:false, avisoImagen:false };
+  _strain = { vista:'a4c', fase:'d',
+              vistas: { a4c:{d:null,s:null}, a2c:{d:null,s:null}, a3c:{d:null,s:null} },
+              pendiente:null, ocultar:false, avisoCuadro:false, descartoPend:false,
+              avisoImagen:false };
+  /* `pares` es la vista que se está trazando. Se expone como propiedad para que el dibujo y
+     la limpieza —que sólo miran la vista en curso— no tengan que saber que hay tres. */
+  Object.defineProperty(_strain, 'pares', {
+    get() { return this.vistas[this.vista]; }, configurable:true
+  });
 }
 
 const _strainCompleto = () => !!(_strain && _strain.pares.d && _strain.pares.s);
+const _strainVistasListas = () => _strain
+  ? _STR_VISTAS.filter(v => _strain.vistas[v.k].d && _strain.vistas[v.k].s) : [];
 
 /* Largo del trazo ABIERTO, en píxeles: la suma de los segmentos tal como se recorrió. No
    incluye el cierre — ver la nota de arriba. */
@@ -46321,10 +46346,20 @@ function _strainAceptar(pts) {
   const cmPorPx = v.esc.mmPorPx / 10;
   const a = pts[0], b = pts[pts.length - 1];
   const cuerdaPx = Math.sqrt((b.x-a.x)*(b.x-a.x) + (b.y-a.y)*(b.y-a.y));
+  /* LOS DOS ARCOS, partidos en el ÁPEX. Es la única partición que dos trazados libres
+     admiten: el ápex y los dos extremos del anillo son los únicos puntos que los dos
+     contornos comparten como referencia anatómica. Partir por arco igual en más tramos da
+     —medido, dispersión exactamente cero— el mismo número en todos, porque dividir cada
+     contorno en k partes iguales DE SU PROPIA longitud devuelve el global k veces. */
+  const iap = pts.indexOf(eje.apex);
+  const arcoA = (iap > 0) ? _strainLargoPx(pts.slice(0, iap + 1)) : 0;
+  const arcoB = (iap >= 0 && iap < pts.length - 1) ? _strainLargoPx(pts.slice(iap)) : 0;
   _strain.pendiente = {
     pts, eje, cmPorPx,
     Lcm: eje.L * cmPorPx,                        // eje largo, anillo → ápex (Lang 2015)
     bordeCm: _strainLargoPx(pts) * cmPorPx,      // borde endocárdico: el trazo ABIERTO
+    arcoAcm: arcoA * cmPorPx,                    // primera pared: inicio → ápex
+    arcoBcm: arcoB * cmPorPx,                    // segunda pared: ápex → final
     cuerdaCm: cuerdaPx * cmPorPx,                // la recta que cierra, que NO es pared
     imagen: (_cineDatos && _cineDatos.loops[_cineDatos.i].nombre) || ''
   };
@@ -46358,15 +46393,38 @@ function _strainAceptar(pts) {
    —uno llegó al anillo y el otro no—, que es el modo de falla propio del método manual, como
    el ápex escorzado lo es del de discos. Se declara y no se esconde. */
 function _strainCalcular() {
-  if (!_strainCompleto()) return null;
-  const D = _strain.pares.d, S = _strain.pares.s;
-  if (!(D.bordeCm > 0) || !(S.bordeCm > 0)) return null;
-  const pct = (S.bordeCm - D.bordeCm) / D.bordeCm * 100;
+  if (!_strain) return null;
+  const listas = _strainVistasListas();
+  if (!listas.length) return null;
+  const terr = [];
+  let mismaImagen = true;
+  listas.forEach(V => {
+    const P = _strain.vistas[V.k], D = P.d, S = P.s;
+    if (D.imagen && S.imagen && D.imagen !== S.imagen) mismaImagen = false;
+    [['arcoAcm', 0], ['arcoBcm', 1]].forEach(([campo, i]) => {
+      const ld = D[campo], ls = S[campo];
+      if (!(ld > 0) || !(ls > 0)) return;
+      const pct = (ls - ld) / ld * 100;
+      terr.push({ vista:V.k, vistaRot:V.rot, pared:V.paredes[i], ld, ls, pct,
+                  invertido: pct >= 0, plausible: pct < 0 && pct > -45 });
+    });
+  });
+  if (!terr.length) return null;
+  /* SGL = promedio de los territorios disponibles, cada uno pesando igual — que es como se
+     define el GLS sobre los segmentos. NO es el cociente de las longitudes sumadas: con
+     paredes de largo distinto los dos números difieren, y el que corresponde es el promedio. */
+  const sgl = terr.reduce((a, t) => a + t.pct, 0) / terr.length;
+  const NIV = { 1:{ rot:'orientativo', det:'1 vista' },
+                2:{ rot:'aproximado',  det:'2 vistas' },
+                3:{ rot:'con cobertura estándar', det:'3 vistas' } }[listas.length];
   return {
-    Ld: D.bordeCm, Ls: S.bordeCm, pct,
-    mismaImagen: !!(D.imagen && S.imagen && D.imagen === S.imagen),
-    invertido: pct >= 0,
-    plausible: pct < 0 && pct > -45
+    sgl, terr, vistas: listas.map(v => v.k), nVistas: listas.length,
+    nivel: NIV.rot, nivelDet: NIV.det,
+    etiqueta: 'SGL ' + NIV.rot + ' — ' + NIV.det + ' (' +
+              listas.map(v => v.k.toUpperCase()).join(' + ') + ')',
+    mismaImagen,
+    invertido: terr.some(t => t.invertido),
+    plausible: terr.every(t => t.plausible)
   };
 }
 window._strainCalcular = _strainCalcular;
@@ -46392,32 +46450,58 @@ window.medStrainReiniciar = medStrainReiniciar;
 
 /* Panel guiado. Todo lo que se muestra lo escribe la app: lo único que viene del archivo es
    el nombre de la imagen, y va escapado. */
+/* EL DISCLAIMER ES OBLIGATORIO Y VA SIEMPRE, junto al resultado y no al pie: lo que se lee
+   primero es el número, y un descargo tres bloques abajo llega tarde. */
+const _STR_DISCLAIMER =
+  '<div style="margin-top:7px;padding:7px 9px;border-radius:7px;border-left:3px solid #fbbf24;' +
+    'background:rgba(251,191,36,.07);font-size:10px;line-height:1.55;color:var(--text2);">' +
+    '<b>Calculado por método de dos contornos manuales.</b> No equivalente al speckle tracking ' +
+    'automático. Usar como orientación clínica. <b>No se integra al informe firmado.</b>' +
+    '<div style="margin-top:4px;">Para mayor precisión:<br>' +
+    '— <b>Diástole (ED):</b> trazá al inicio del QRS — la válvula mitral acaba de cerrarse<br>' +
+    '— <b>Sístole (ES):</b> trazá al final de la onda T — la válvula mitral está a punto de abrirse' +
+    '</div></div>';
+
+/* Panel guiado. Todo lo que se muestra lo escribe la app: lo único que viene del archivo es
+   el nombre de la imagen, y va escapado. */
 function _strainPanel() {
   if (!_strain) return '';
   const E = (typeof escHtml === 'function') ? escHtml : (x => String(x == null ? '' : x));
   const b = (id, cls, txt, extra) => '<button type="button" class="btn ' + cls + '" id="' + id +
     '" style="padding:3px 10px;font-size:11px;' + (extra || '') + '">' + txt + '</button>';
-  const D = _strain.pares.d, S = _strain.pares.s;
+  const VA = _strVista(_strain.vista);
+  const listas = _strainVistasListas();
 
-  const fila = (rot, T) => T
-    ? '<div style="font-size:11px;line-height:1.6;">✅ <b>' + rot + '</b> — borde <b>' +
-      T.bordeCm.toFixed(1) + ' cm</b> · eje largo ' + T.Lcm.toFixed(1) + ' cm' +
-      (T.imagen ? ' · <span style="color:var(--text2);">' + E(T.imagen) + '</span>' : '') + '</div>'
-    : '<div style="font-size:11px;line-height:1.6;color:var(--text2);">⬜ ' + rot + ' — sin trazar</div>';
+  /* ── Estado de las tres vistas ── */
+  const fila = V => {
+    const P = _strain.vistas[V.k];
+    const hecha = P.d && P.s;
+    const marca = hecha ? '✅' : (V.k === _strain.vista ? '▶️' : '⬜');
+    const det = hecha
+      ? ' — ' + P.d.bordeCm.toFixed(1) + ' → ' + P.s.bordeCm.toFixed(1) + ' cm' +
+        (P.d.imagen ? ' · <span style="opacity:.75;">' + E(P.d.imagen) + '</span>' : '')
+      : (P.d ? ' — diástole trazada' : '');
+    return '<div style="font-size:11px;line-height:1.6;' + (hecha ? '' : 'color:var(--text2);') + '">' +
+           marca + ' <b>' + V.k.toUpperCase() + '</b> ' + V.rot.replace(/^[^—]*— /, '') + det + '</div>';
+  };
+  let cab = _STR_VISTAS.map(fila).join('');
 
-  let cab = fila('Diástole', D) + fila('Sístole', S);
-
-  /* ── Paso en curso, o el cierre ── */
+  /* ── Paso en curso ── */
   let paso = '';
   if (!_strainCompleto()) {
     const esD = _strain.fase === 'd';
+    const nvista = _STR_VISTAS.indexOf(VA) + 1;
+    const obligatoria = VA.k === 'a4c';
     paso = '<div style="font-size:12px;line-height:1.6;margin-top:7px;">' +
-      '<b>Paso ' + (esD ? '1 — pausá en DIÁSTOLE' : '2 — pausá en SÍSTOLE') + '.</b> ' +
-      'Trazá el contorno completo del VI desde el anillo mitral <b>septal</b>, por el <b>ápex</b>, ' +
-      'hasta el anillo mitral <b>lateral</b>.' +
+      '<b>Paso ' + nvista + ' — ' + VA.rot + (obligatoria ? ' (obligatoria)' : ' (opcional)') + '</b><br>' +
+      (obligatoria
+        ? 'Abrí la vista apical 4 cámaras. '
+        : 'Si tenés esta vista, abrila. Si no, calculá con lo que tengas. ') +
+      'Pausá en <b>' + (esD ? 'DIÁSTOLE' : 'SÍSTOLE') + '</b> y trazá ' + VA.orden + '.' +
       '<div style="font-size:10px;color:var(--text2);margin-top:3px;">' +
-        'Mantené apretado y recorré el borde; al soltar se cierra solo. Se puede rehacer las ' +
-        'veces que haga falta antes de confirmar. ' +
+        'Mantené apretado y recorré el borde; al soltar se cierra solo. Se puede rehacer antes ' +
+        'de confirmar. <b>El orden importa:</b> los rótulos de pared suponen que trazaste en esa ' +
+        'dirección — al revés quedan intercambiadas. ' +
         (_strain.pendiente
           ? '<b style="color:#fbbf24;">Trazado listo — apretá «Confirmar ' + (esD ? 'diástole' : 'sístole') + '».</b>'
           : '') +
@@ -46429,47 +46513,76 @@ function _strainPanel() {
           ? '<br><b style="color:#22d36a;">Cambiaste de imagen y lo confirmado sigue ahí.</b> Cada trazado guarda la escala de su propia imagen.'
           : '') +
       '</div></div>';
-  } else {
-    const R = _strainCalcular();
-    const col = (R && R.plausible) ? '#22d36a' : '#fbbf24';
-    paso = '<div style="font-size:13px;line-height:1.7;margin-top:8px;">' +
-      (R
-        ? 'Acortamiento del borde endocárdico<br>' +
-          'L diástole <b>' + R.Ld.toFixed(1) + ' cm</b> → L sístole <b>' + R.Ls.toFixed(1) + ' cm</b><br>' +
-          '<b style="font-size:18px;color:' + col + ';">' + R.pct.toFixed(1) + ' %</b>'
-        : '<b style="color:#fbbf24;">No se pudo calcular con esos trazados.</b>') +
-      '<div style="font-size:10px;color:var(--text2);margin-top:5px;line-height:1.55;">' +
-        /* Qué es y qué NO es. Sin esto, un número con signo negativo al lado de la palabra
-           «strain» se lee como un GLS, y el GLS de esta app tiene un corte que decide
-           conducta en cardio-oncología. */
-        'Se mide sobre el <b>borde endocárdico</b>, sin la recta que cierra el contorno: esa ' +
-        'recta atraviesa la cavidad y no es pared. ' +
-        '<b>No es un GLS por speckle tracking.</b> Es el acortamiento de un contorno trazado a ' +
-        'mano en dos cuadros; está emparentado con el GLS y no es la misma magnitud, así que el ' +
-        'corte de −16 % que esta app aplica en Cardio-Oncología —definido para speckle ' +
-        'tracking— <b>no corresponde acá</b>. Esta app tampoco clasifica el SGL en bandas. ' +
-        '<b>No va al informe ni al PDF.</b>' +
-        (R && R.invertido
-          ? '<br><b style="color:#f87171;">⚠️ El borde de sístole salió MÁS LARGO que el de diástole.</b> ' +
-            'O los contornos no recorren la misma extensión, o se confirmaron las fases al revés. ' +
-            'Revisá los trazados antes de usar este número.'
-          : (R && !R.plausible
-              ? '<br><b style="color:#fbbf24;">⚠️ Un acortamiento de esta magnitud casi nunca es real.</b> ' +
-                'Lo habitual es que los dos contornos no recorran la misma extensión —uno llegó al ' +
-                'anillo y el otro no—. Es la limitación propia del método manual.'
-              : '')) +
-        (R && !R.mismaImagen
-          ? '<br><b style="color:#fbbf24;">⚠️ Los dos trazados salieron de imágenes distintas.</b> ' +
-            'El strain compara el MISMO ventrículo en dos momentos del ciclo: diástole y sístole ' +
-            'tienen que salir del mismo cineloop, en dos cuadros.'
-          : '') +
-      '</div></div>';
   }
 
+  /* ── Resultado, en cuanto haya UNA vista completa ── */
+  let res = '';
+  const R = listas.length ? _strainCalcular() : null;
+  if (R) {
+    const col = R.plausible ? '#22d36a' : '#fbbf24';
+    const lista = R.terr.map(t =>
+      '<div style="display:flex;gap:8px;font-size:11px;line-height:1.7;">' +
+        '<span style="flex:1;">' + t.vista.toUpperCase() + ' · ' + t.pared + '</span>' +
+        '<span style="opacity:.7;font-variant-numeric:tabular-nums;">' + t.ld.toFixed(1) + ' → ' + t.ls.toFixed(1) + ' cm</span>' +
+        '<span style="min-width:62px;text-align:right;font-variant-numeric:tabular-nums;color:' +
+          (t.plausible ? 'inherit' : '#fbbf24') + ';"><b>' + t.pct.toFixed(1) + ' %</b></span>' +
+      '</div>').join('');
+    res = '<div style="margin-top:9px;padding-top:8px;border-top:1px solid var(--border);">' +
+      '<div style="font-size:13px;line-height:1.6;">SGL <b style="font-size:19px;color:' + col + ';">' +
+        R.sgl.toFixed(1) + ' %</b></div>' +
+      '<div style="font-size:11px;color:var(--text2);">' + E(R.etiqueta) + ' · ' +
+        R.terr.length + ' territorio(s)</div>' +
+      '<details style="margin-top:6px;"><summary style="font-size:11px;cursor:pointer;">Ver por territorio</summary>' +
+        '<div style="margin-top:5px;">' + lista + '</div>' +
+        '<div style="font-size:10px;color:var(--text2);margin-top:5px;line-height:1.5;">' +
+          'Cada vista aporta <b>dos territorios</b> —las dos paredes, partidas en el ápex—, que son ' +
+          'los únicos puntos que los dos contornos comparten como referencia anatómica. ' +
+          '<b>No son los 6/12/17 segmentos del modelo AHA:</b> partir el trazo en más tramos de ' +
+          'igual longitud devuelve el mismo número en todos, porque dividir cada contorno en ' +
+          'partes iguales de su propia longitud da el global otra vez. Dos contornos libres no ' +
+          'tienen correspondencia punto a punto.' +
+        '</div></details>' +
+      (R.invertido
+        ? '<div style="font-size:10px;color:#f87171;margin-top:5px;line-height:1.5;"><b>⚠️ Algún territorio salió POSITIVO</b> ' +
+          '(el borde de sístole más largo que el de diástole). O los contornos no recorren la misma ' +
+          'extensión, o se confirmaron las fases al revés.</div>'
+        : (!R.plausible
+            ? '<div style="font-size:10px;color:#fbbf24;margin-top:5px;line-height:1.5;"><b>⚠️ Algún territorio cae fuera de −45 % a 0 %.</b> ' +
+              'Lo habitual es que los dos contornos no recorran la misma extensión — es la limitación ' +
+              'propia del método manual.</div>'
+            : '')) +
+      (!R.mismaImagen
+        ? '<div style="font-size:10px;color:#fbbf24;margin-top:5px;line-height:1.5;"><b>⚠️ Alguna vista tiene diástole y sístole en imágenes distintas.</b> ' +
+          'Las dos fases de una misma vista tienen que salir del mismo cineloop, en dos cuadros.</div>'
+        : '') +
+      _STR_DISCLAIMER +
+      '</div>';
+  }
+
+  /* ── Botones ── */
   const conf  = b('cine-str-conf', 'btn-primary', 'Confirmar ' + (_strain.fase === 'd' ? 'diástole' : 'sístole'));
   const reset = b('cine-str-reset', 'btn-ghost', 'Empezar de nuevo', 'margin-left:6px;');
-  return cab + paso + '<div style="margin-top:6px;">' + (_strainCompleto() ? '' : conf + ' ') + reset + '</div>';
+  /* «Continuar» aparece sólo con la vista en curso terminada y otra por delante: es la
+     decisión de agregar vistas, y calcular ya está hecho — el resultado está arriba. */
+  const idx = _STR_VISTAS.indexOf(VA);
+  const sig = _strainCompleto() && idx < _STR_VISTAS.length - 1 ? _STR_VISTAS[idx + 1] : null;
+  const seguir = sig ? b('cine-str-mas', 'btn-primary', '➕ Agregar ' + sig.k.toUpperCase(), 'margin-right:6px;') : '';
+  return cab + paso + res +
+    '<div style="margin-top:7px;">' + seguir + (_strainCompleto() ? '' : conf + ' ') + reset + '</div>';
 }
+
+/* Pasa a la vista siguiente. No borra nada: las anteriores siguen contando. */
+function medStrainVistaSiguiente() {
+  if (!_strain || !_strainCompleto()) return;
+  const i = _STR_VISTAS.indexOf(_strVista(_strain.vista));
+  if (i < 0 || i >= _STR_VISTAS.length - 1) return;
+  _strain.vista = _STR_VISTAS[i + 1].k;
+  _strain.fase = 'd';
+  _strain.pendiente = null;
+  _strain.ocultar = false; _strain.avisoCuadro = false; _strain.avisoImagen = false;
+  _medPintar(); _medEstado();
+}
+window.medStrainVistaSiguiente = medStrainVistaSiguiente;
 window.medSimpsonConfirmar = medSimpsonConfirmar;
 
 function medSimpsonReiniciar() {
@@ -46924,8 +47037,10 @@ function _medEstado() {
   const bst = _medEl('cine-med-str');
   if (bst) bst.onclick = () => medHerramienta('strain');
   const sxc = _medEl('cine-str-conf'), sxr = _medEl('cine-str-reset');
+  const sxm = _medEl('cine-str-mas');
   if (sxc) sxc.onclick = medStrainConfirmar;
   if (sxr) sxr.onclick = medStrainReiniciar;
+  if (sxm) sxm.onclick = medStrainVistaSiguiente;
   if (bs) bs.onclick = () => medHerramienta('simpson');
   if (bv) bv.onclick = () => medHerramienta('vel');
   const bt = _medEl('cine-med-t'), bf = _medEl('cine-med-fc');
@@ -63071,8 +63186,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260920-1024';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789910681033;                 /* eco-build-ms */
+const ECO_BUILD    = '20260920-1039';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789911598533;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -63158,7 +63273,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1024</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1039</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
