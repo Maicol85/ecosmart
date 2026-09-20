@@ -45594,7 +45594,7 @@ function _vNueva(pfx, rot) {
     gen: 0,                // token anti-carrera del decodificado
     medOn: false, medPuntos: [], medLineas: [], medHerr: 'dist', medAreas: [],
     medTrazo: null, medVels: [], medTiempos: [], medCalib: null, medCalibrando: false,
-    medCalibVel: null, medCalibrandoVel: false, medEtiqueta: '',
+    medCalibVel: null, medCalibrandoVel: false, medEtiqueta: '', medGrupo: '2d', lars: null,
     medUltimoCuadro: '', simp: null, strain: null, obsPuesto: false
   };
 }
@@ -45623,7 +45623,7 @@ const _vBind = (V, fn) => function () { const a = arguments; return _vCon(V, () 
     _medAreas:'medAreas', _medTrazo:'medTrazo', _medVels:'medVels', _medTiempos:'medTiempos',
     _medCalib:'medCalib', _medCalibrando:'medCalibrando', _medUltimoCuadro:'medUltimoCuadro',
     _medCalibVel:'medCalibVel', _medCalibrandoVel:'medCalibrandoVel', _strain:'strain',
-    _medEtiqueta:'medEtiqueta'
+    _medEtiqueta:'medEtiqueta', _medGrupo:'medGrupo', _lars:'lars'
   };
   for (const g in MAPA) {
     const k = MAPA[g];
@@ -46007,7 +46007,8 @@ function _vMontarUp() {
 }
 
 function _medAreaDown(ev) {
-  if ((_medHerr !== 'area' && _medHerr !== 'simpson' && _medHerr !== 'strain') || _medCalibrando) return;
+  if ((_medHerr !== 'area' && _medHerr !== 'simpson' && _medHerr !== 'strain' &&
+       _medHerr !== 'lars') || _medCalibrando) return;
   /* En modo 3 puntos el arrastre mueve un punto de CONTROL, no dibuja un contorno nuevo. */
   if (_medHerr === 'strain' && _strain && _strain.modo === '3pt') {
     const q = _medPuntoCanvas(ev);
@@ -46025,6 +46026,7 @@ function _medAreaDown(ev) {
   ev.preventDefault();
   if (_simp) { _simp.ocultar = false; _simp.avisoCuadro = false; }
   if (_strain) { _strain.ocultar = false; _strain.avisoCuadro = false; }
+  if (_lars) { _lars.ocultar = false; _lars.avisoCuadro = false; }
   _medTrazo = [p];
 }
 
@@ -46068,6 +46070,12 @@ function _medAreaUp() {
   }
   /* Strain: igual que Simpson, el trazado queda PENDIENTE de confirmación y no se guarda
      como área. El cierre se dibuja pero no se mide — ver la nota del módulo. */
+  if (_medHerr === 'lars') {
+    const motivo = _larsAceptar(pts);
+    if (motivo) { alert(motivo); _lars.pendiente = null; }
+    _medPintar(); _medEstado();
+    return;
+  }
   if (_medHerr === 'strain') {
     const motivo = _strainAceptar(pts);
     if (motivo) { alert(motivo); _strain.pendiente = null; }
@@ -46488,6 +46496,26 @@ window.medStrainReiniciar = medStrainReiniciar;
    el nombre de la imagen, y va escapado. */
 /* EL DISCLAIMER ES OBLIGATORIO Y VA SIEMPRE, junto al resultado y no al pie: lo que se lee
    primero es el número, y un descargo tres bloques abajo llega tarde. */
+/* Cuándo trazar cada fase. Va ANTES del trazado, que es cuando sirve: después de trazar, el
+   médico ya eligió el cuadro. Los tres renglones son tres caminos al MISMO instante —el ECG,
+   la válvula, el volumen— porque no siempre hay ECG en la imagen. */
+const _STR_MOMENTO = {
+  d: '<div style="margin-top:5px;padding:6px 8px;border-radius:6px;border-left:3px solid #22d36a;' +
+       'background:rgba(34,211,106,.07);font-size:10px;line-height:1.55;">' +
+       '<b>📍 Momento correcto para diástole:</b><br>' +
+       '— Buscá el <b>inicio del QRS</b> en el ECG<br>' +
+       '— O cuando la <b>válvula mitral acaba de cerrarse</b><br>' +
+       '— Es el momento de <b>mayor volumen</b> del VI' +
+     '</div>',
+  s: '<div style="margin-top:5px;padding:6px 8px;border-radius:6px;border-left:3px solid #60a5fa;' +
+       'background:rgba(96,165,250,.07);font-size:10px;line-height:1.55;">' +
+       '<b>📍 Momento correcto para sístole:</b><br>' +
+       '— Buscá el <b>final de la onda T</b> en el ECG<br>' +
+       '— O cuando la <b>válvula mitral está a punto de abrirse</b><br>' +
+       '— Es el momento de <b>menor volumen</b> del VI' +
+     '</div>'
+};
+
 const _STR_DISCLAIMER =
   '<div style="margin-top:7px;padding:7px 9px;border-radius:7px;border-left:3px solid #fbbf24;' +
     'background:rgba(251,191,36,.07);font-size:10px;line-height:1.55;color:var(--text2);">' +
@@ -46545,6 +46573,10 @@ function _strainPanel() {
         ? 'Abrí la vista apical 4 cámaras. '
         : 'Si tenés esta vista, abrila. Si no, calculá con lo que tengas. ') +
       'Pausá en <b>' + (esD ? 'DIÁSTOLE' : 'SÍSTOLE') + '</b> y trazá ' + VA.orden + '.' +
+      /* Guía del momento del ciclo. Es informativa: no bloquea ni valida nada — la app no
+         tiene ECG ni forma de saber en qué fase está el cuadro, y fingir que sí lo sabe
+         sería peor que no decir nada. */
+      _STR_MOMENTO[esD ? 'd' : 's'] +
       '<div style="font-size:10px;color:var(--text2);margin-top:3px;">' +
         (_strain.modo === '3pt'
           ? (_strain.ctrl && _strain.ctrl.length
@@ -47019,6 +47051,201 @@ function medStrainCapturar() {
   }, 'image/jpeg', 0.92);
 }
 window.medStrainCapturar = medStrainCapturar;
+/* ══ LARS — STRAIN AURICULAR IZQUIERDO ═══════════════════════════════════════════════════════
+
+   Mismo método que el strain del VI —contornos manuales— sobre la pared de la AI en TRES
+   momentos del ciclo. Fuente de la referencia: ASE 2025 diastólica (Nagueh, JASE 2025;38(7):
+   537-569), reservorio normal ≥18 %.
+
+   LAS FÓRMULAS, Y EL SIGNO. Con L1 = AI mínima (referencia, inicio del QRS), L2 = AI máxima
+   (fin de sístole) y L3 = pre-contracción auricular:
+
+       reservorio  = (L2 − L1) / L1 × 100
+       conducto    = (L2 − L3) / L1 × 100
+       contracción = (L3 − L1) / L1 × 100
+
+   Los tres salen POSITIVOS y cumplen **reservorio = conducto + contracción**, que es una
+   verificación interna gratis y se muestra. ⚠️ La ASE publica conducto y contracción con signo
+   NEGATIVO (−22 %, −18 % donde acá dice 22 % y 18 %): son las mismas magnitudes con el signo
+   invertido, y eso se DECLARA — un informe de speckle tracking al lado va a mostrarlos
+   negativos, y este archivo ya pagó dos veces el costo de un signo que nadie explicó.
+
+   SÓLO EL RESERVORIO TIENE CORTE PUBLICADO. Conducto y contracción se muestran sin referencia:
+   inventarles una sería la cuarta escala del mismo dato, que es lo que esta app viene evitando
+   desde que borró la graduación del SGL. */
+
+const LARS_RESERVORIO_NORMAL = 18;       // % — ASE 2025
+const _LARS_PASOS = [
+  { k:'min', rot:'AI mínima',
+    tit:'Trazado 1 — AI en su tamaño MÍNIMO',
+    guia:'Buscá el <b>inicio del QRS</b> en el ECG, o cuando la aurícula izquierda se ve <b>más pequeña</b>.' },
+  { k:'max', rot:'AI máxima',
+    tit:'Trazado 2 — AI en su tamaño MÁXIMO',
+    guia:'Avanzá hasta el <b>final de la sístole</b> — cuando la AI se ve <b>más grande</b>, justo antes de que la válvula mitral se abra.' },
+  { k:'preA', rot:'Pre-contracción',
+    tit:'Trazado 3 — apertura mitral',
+    guia:'Avanzá hasta que la <b>válvula mitral esté abierta</b> —llenado pasivo del VI—, al final de la diástasis, <b>justo antes de la contracción auricular</b> (onda P).' }
+];
+
+function _larsIniciar() {
+  _lars = { paso:0, trazos:{ min:null, max:null, preA:null }, pendiente:null,
+            ocultar:false, avisoCuadro:false, avisoImagen:false };
+}
+const _larsCompleto = () => !!(_lars && _lars.trazos.min && _lars.trazos.max && _lars.trazos.preA);
+
+/* Acepta el contorno en curso. Reusa `_medAreaValidar` —la compuerta 2D, la misma del área y
+   del strain del VI— y `_strainLargoPx`. No se reimplementa ninguna de las dos. */
+function _larsAceptar(pts) {
+  const v = _medAreaValidar(pts);
+  if (!v.ok) return v.motivo;
+  if (Math.abs(v.esc.mmPorPx - v.esc.mmPorPxY) > 1e-12)
+    return 'Esta imagen tiene píxeles no cuadrados y el trazado necesita una sola escala. No se puede medir acá.';
+  const cmPorPx = v.esc.mmPorPx / 10;
+  const borde = _strainLargoPx(pts) * cmPorPx;
+  if (!(borde > 0)) return 'El trazado es demasiado chico para medir la aurícula.';
+  _lars.pendiente = { pts, cmPorPx, bordeCm: borde,
+                      imagen: (_cineDatos && _cineDatos.loops[_cineDatos.i].nombre) || '' };
+  return null;
+}
+
+function medLarsConfirmar() {
+  if (!_lars || !_lars.pendiente) {
+    alert('Trazá primero el contorno interno de la aurícula izquierda: mantené apretado y recorré la pared.');
+    return;
+  }
+  _lars.trazos[_LARS_PASOS[_lars.paso].k] = _lars.pendiente;
+  _lars.pendiente = null;
+  _lars.avisoCuadro = false; _lars.ocultar = false;
+  if (_lars.paso < _LARS_PASOS.length - 1) _lars.paso++;
+  _medPintar(); _medEstado();
+}
+window.medLarsConfirmar = medLarsConfirmar;
+
+function medLarsReiniciar() { _larsIniciar(); _medPintar(); _medEstado(); }
+window.medLarsReiniciar = medLarsReiniciar;
+
+function _larsCalcular() {
+  if (!_larsCompleto()) return null;
+  const T = _lars.trazos;
+  const L1 = T.min.bordeCm, L2 = T.max.bordeCm, L3 = T.preA.bordeCm;
+  if (!(L1 > 0)) return null;
+  const res = (L2 - L1) / L1 * 100;
+  const cond = (L2 - L3) / L1 * 100;
+  const ctr = (L3 - L1) / L1 * 100;
+  const imgs = [T.min.imagen, T.max.imagen, T.preA.imagen].filter(Boolean);
+  return {
+    L1, L2, L3, res, cond, ctr,
+    normal: res >= LARS_RESERVORIO_NORMAL,
+    /* Banda de PLAUSIBILIDAD, no de severidad: fuera de ahí lo habitual es que los tres
+       contornos no recorran la misma extensión de pared, o que los cuadros elegidos no sean
+       los del ciclo que se pidió. */
+    plausible: res > 0 && res < 80,
+    /* Orden esperado: la mínima es la más chica y la máxima la más grande. Si no se cumple,
+       los cuadros están cambiados de lugar y el número no significa lo que dice. */
+    ordenOk: L2 > L1 && L3 >= L1 && L3 <= L2,
+    /* Verificación interna gratis: reservorio = conducto + contracción, por construcción. */
+    identidad: Math.abs(res - (cond + ctr)) < 1e-9,
+    mismaImagen: imgs.length === 3 && imgs[0] === imgs[1] && imgs[1] === imgs[2]
+  };
+}
+window._larsCalcular = _larsCalcular;
+
+const _LARS_DISCLAIMER =
+  '<div style="margin-top:7px;padding:7px 9px;border-radius:7px;border-left:3px solid #fbbf24;' +
+    'background:rgba(251,191,36,.07);font-size:10px;line-height:1.55;color:var(--text2);">' +
+    '<b>Calculado por método de tres contornos manuales</b> en momentos clave del ciclo. ' +
+    'No equivalente al speckle tracking automático. <b>Sólo el reservorio tiene valor de ' +
+    'referencia publicado (≥18 %, ASE 2025).</b> Usar como orientación clínica. ' +
+    '<b>No se integra al informe firmado.</b>' +
+  '</div>';
+
+function _larsPanel() {
+  if (!_lars) return '';
+  const E = (typeof escHtml === 'function') ? escHtml : (x => String(x == null ? '' : x));
+  const b = (id, cls, txt, extra) => '<button type="button" class="btn ' + cls + '" id="' + _V.pfx + id +
+    '" style="padding:3px 10px;font-size:11px;' + (extra || '') + '">' + txt + '</button>';
+
+  let cab = '<div style="font-size:10px;color:var(--text2);line-height:1.5;margin-bottom:6px;">' +
+    'El <b>strain auricular izquierdo (LARS)</b> mide la deformación de la pared de la aurícula ' +
+    'izquierda en tres momentos del ciclo. Hay que trazar el <b>contorno interno de la AI</b> en ' +
+    'tres cuadros distintos.</div>';
+  cab += _LARS_PASOS.map((P, i) => {
+    const T = _lars.trazos[P.k];
+    const marca = T ? '✅' : (i === _lars.paso ? '▶️' : '⬜');
+    return '<div style="font-size:11px;line-height:1.6;' + (T ? '' : 'color:var(--text2);') + '">' +
+      marca + ' <b>' + P.rot + '</b>' +
+      (T ? ' — ' + T.bordeCm.toFixed(1) + ' cm' +
+           (T.imagen ? ' · <span style="opacity:.75;">' + E(T.imagen) + '</span>' : '') : '') +
+    '</div>';
+  }).join('');
+
+  let paso = '';
+  if (!_larsCompleto()) {
+    const P = _LARS_PASOS[_lars.paso];
+    paso = '<div style="font-size:12px;line-height:1.6;margin-top:7px;">' +
+      '<b>📍 ' + P.tit + '</b>' +
+      '<div style="margin-top:4px;padding:6px 8px;border-radius:6px;border-left:3px solid #a78bfa;' +
+        'background:rgba(167,139,250,.07);font-size:10px;line-height:1.55;">' + P.guia +
+        '<br>Trazá el contorno interno de la AI.</div>' +
+      '<div style="font-size:10px;color:var(--text2);margin-top:3px;">' +
+        'Mantené apretado y recorré la pared; al soltar se cierra solo. ' +
+        (_lars.pendiente ? '<b style="color:#fbbf24;">Trazado listo — apretá «Confirmar».</b>' : '') +
+        (_lars.avisoCuadro
+          ? '<br><b style="color:#fbbf24;">Cambiaste de cuadro.</b> Lo confirmado <b>sigue guardado</b>; se dejó de dibujar. Cambiar de cuadro es parte del método.'
+          : '') +
+        (_lars.avisoImagen
+          ? '<br><b style="color:#22d36a;">Cambiaste de imagen y lo confirmado sigue ahí.</b>'
+          : '') +
+      '</div></div>';
+  }
+
+  let res = '';
+  const R = _larsCalcular();
+  if (R) {
+    const col = R.plausible ? (R.normal ? '#22d36a' : '#fbbf24') : '#fbbf24';
+    const fila = (rot, val, ref) =>
+      '<div style="display:flex;gap:8px;font-size:12px;line-height:1.8;">' +
+        '<span style="flex:1;">' + rot + '</span>' +
+        '<span style="min-width:70px;text-align:right;font-variant-numeric:tabular-nums;"><b>' +
+          val.toFixed(1) + ' %</b></span>' +
+        '<span style="min-width:120px;font-size:10px;color:var(--text2);">' + ref + '</span>' +
+      '</div>';
+    res = '<div style="margin-top:9px;padding-top:8px;border-top:1px solid var(--border);">' +
+      '<div style="font-size:13px;">LARS reservorio <b style="font-size:19px;color:' + col + ';">' +
+        R.res.toFixed(1) + ' %</b></div>' +
+      fila('Reservorio', R.res, 'normal ≥ ' + LARS_RESERVORIO_NORMAL + ' % (ASE 2025)') +
+      fila('Conducto', R.cond, 'sin corte publicado') +
+      fila('Contracción', R.ctr, 'sin corte publicado') +
+      '<div style="font-size:10px;color:var(--text2);margin-top:5px;line-height:1.5;">' +
+        'Perímetros: mínima ' + R.L1.toFixed(1) + ' → máxima ' + R.L2.toFixed(1) +
+        ' → pre-contracción ' + R.L3.toFixed(1) + ' cm. ' +
+        'Reservorio = conducto + contracción' + (R.identidad ? ' ✓' : ' <b style="color:#f87171;">✗</b>') + '. ' +
+        '<b>Conducto y contracción se muestran como MAGNITUD;</b> la ASE los publica con signo ' +
+        'negativo (−' + R.cond.toFixed(1) + ' % y −' + R.ctr.toFixed(1) + ' %). Son los mismos valores.' +
+      '</div>' +
+      (!R.ordenOk
+        ? '<div style="font-size:10px;color:#f87171;margin-top:5px;line-height:1.5;"><b>⚠️ Los tres perímetros no están en el orden esperado</b> ' +
+          '(mínima &lt; pre-contracción &lt; máxima). Revisá qué cuadro corresponde a cada paso.</div>'
+        : '') +
+      (!R.plausible
+        ? '<div style="font-size:10px;color:#fbbf24;margin-top:5px;line-height:1.5;"><b>⚠️ Un reservorio fuera de 0-80 % casi nunca es real.</b> ' +
+          'Lo habitual es que los tres contornos no recorran la misma extensión de pared.</div>'
+        : '') +
+      (!R.mismaImagen
+        ? '<div style="font-size:10px;color:#fbbf24;margin-top:5px;line-height:1.5;"><b>⚠️ Los tres trazados no salieron de la misma imagen.</b> ' +
+          'El LARS compara la MISMA aurícula en tres momentos del ciclo: los tres cuadros tienen que ser del mismo cineloop.</div>'
+        : '') +
+      '<div style="font-size:10px;color:var(--text2);margin-top:5px;">Se puede capturar con ' +
+        '<b>📸 Capturar con medición</b>, con la etiqueta <b>LARS</b>.</div>' +
+      _LARS_DISCLAIMER +
+    '</div>';
+  }
+
+  const conf = _larsCompleto() ? '' : b('cine-lars-conf', 'btn-primary', 'Confirmar ' + _LARS_PASOS[_lars.paso].rot);
+  const reset = b('cine-lars-reset', 'btn-ghost', 'Empezar de nuevo', conf ? 'margin-left:6px;' : '');
+  return cab + paso + res + '<div style="margin-top:7px;">' + conf + reset + '</div>';
+}
+
 /* ══ CAPTURA CON LAS MEDICIONES DIBUJADAS ════════════════════════════════════════════════════
 
    El botón de siempre —«📸 Capturar cuadro»— captura el JPEG del archivo a resolución plena y
@@ -47104,13 +47331,16 @@ function _medManejador() {
 }
 
 function medHerramienta(h) {
-  _medHerr = (h === 'area' || h === 'simpson' || h === 'strain' || h === 'vel' ||
-              h === 'tiempo' || h === 'fc') ? h : 'dist';
+  _medHerr = (h === 'area' || h === 'simpson' || h === 'strain' || h === 'lars' ||
+              h === 'vel' || h === 'tiempo' || h === 'fc') ? h : 'dist';
   _medTrazo = null; _medPuntos = [];
   /* Simpson arranca de cero cada vez que se entra: los cuatro trazados son de UNA medición,
      y mezclar dos series daría una FEVI hecha con diástole de un lado y sístole del otro. */
   if (_medHerr === 'simpson' && !_simp) _simpIniciar();
+  /* La herramienta elegida abre SU grupo: así queda visible la que se está usando. */
+  if (_MED_GRUPO_DE[_medHerr]) _medGrupo = _MED_GRUPO_DE[_medHerr];
   if (_medHerr === 'strain' && !_strain) _strainIniciar();
+  if (_medHerr === 'lars' && !_lars) _larsIniciar();
   /* Se entra sola SÓLO si la imagen no declara NINGUNA región — los 15 archivos de 301 que
      no traen ninguna, más otras marcas y las capturas de pantalla.
 
@@ -47313,6 +47543,33 @@ function _medPintar() {
     }
   }
 
+  /* ── LARS: los contornos auriculares confirmados y el que está en curso ── */
+  if (_medHerr === 'lars' && _lars) {
+    const COLS = { min:'#22d36a', max:'#60a5fa', preA:'#a78bfa' };
+    const dibujarAI = (T, col, rot) => {
+      if (!T) return;
+      cx.strokeStyle = col; cx.fillStyle = col; cx.lineWidth = 2 * esc;
+      cx.beginPath(); cx.moveTo(T.pts[0].x, T.pts[0].y);
+      for (let i = 1; i < T.pts.length; i++) cx.lineTo(T.pts[i].x, T.pts[i].y);
+      cx.closePath(); cx.stroke();
+      if (rot) {
+        const t2 = rot + '  ' + T.bordeCm.toFixed(1) + ' cm';
+        const w2 = cx.measureText(t2).width;
+        const q = T.pts[0];
+        cx.fillStyle = 'rgba(0,0,0,.7)';
+        cx.fillRect(q.x + 7*esc, q.y - 16*esc, w2 + 8*esc, 18*esc);
+        cx.fillStyle = col;
+        cx.fillText(t2, q.x + 11*esc, q.y - 2*esc);
+      }
+    };
+    if (!_lars.ocultar) {
+      dibujarAI(_lars.trazos.min,  COLS.min,  'AI mín.');
+      dibujarAI(_lars.trazos.max,  COLS.max,  'AI máx.');
+      dibujarAI(_lars.trazos.preA, COLS.preA, 'pre-A');
+    }
+    if (_lars.pendiente) dibujarAI(_lars.pendiente, '#fbbf24', null);
+  }
+
   /* Velocidades: cruz en el punto, línea punteada hasta la base y la etiqueta. La línea
      hasta el cero es lo que deja VER de dónde sale el número: en la mitad de las regiones
      medidas el cero cae fuera del recuadro visible, así que sin la línea el valor parece
@@ -47485,6 +47742,7 @@ const _MED_COMO = {
   tiempo: 'Dos clics sobre el eje temporal y sale el intervalo en ms (TDE, TRIV, tiempo de aceleración). Sólo cuenta la separación horizontal.',
   fc:     'Dos clics sobre la MISMA onda de dos latidos seguidos: sale el intervalo RR y la frecuencia (60.000 / RR).',
   strain: 'Mantené apretado y recorré el borde del VI, del anillo mitral septal al lateral pasando por el ápex. Se traza en diástole y en sístole.',
+  lars:   'Mantené apretado y recorré el contorno interno de la aurícula izquierda. Se traza en tres momentos del ciclo.',
   dist:   'Hacé clic en dos puntos para medir.'
 };
 const _medComo = () => _MED_COMO[_medHerr] || _MED_COMO.dist;
@@ -47492,26 +47750,70 @@ const _medComo = () => _MED_COMO[_medHerr] || _MED_COMO.dist;
 /* Todo lo que se muestra acá lo escribe la app: los únicos números que vienen del archivo
    son la escala y las coordenadas, y salen formateados con toFixed. Nada del DICOM se
    interpola como HTML. */
+/* A qué grupo pertenece cada herramienta, y cuál está abierto. El estado vive en la VISTA
+   —`medGrupo`— así que las dos vistas tienen su propio acordeón; y se repone al de fábrica al
+   cerrar el visor, porque `medApagar` limpia la vista entera. */
+const _MED_GRUPO_DE = { dist:'2d', area:'2d', simpson:'2d',
+                        vel:'dop', tiempo:'dop', fc:'dop',
+                        strain:'def', lars:'def' };
+const _MED_GRUPO_DEF = '2d';
+
+/* UNO solo abierto a la vez. Cuál, lo decide el médico — y al ELEGIR una herramienta se abre
+   el grupo de esa herramienta, que es lo que hace que «la activa mantenga su grupo abierto».
+
+   ⚠️ NO alcanza con «el grupo de la herramienta activa manda siempre»: fue mi primera versión
+   y dejaba la función MUERTA. Siempre hay una herramienta activa —de fábrica, Distancia—, así
+   que su grupo ganaba sobre la elección del médico y los otros dos no se podían abrir nunca.
+   Lo cazó el caso al no encontrar el botón de Strain después de abrir su grupo. */
+function _medGrupoAbierto() { return _medGrupo || null; }
+
+function medGrupoToggle(g) {
+  if (_medGrupo === g) {
+    /* Colapsar el grupo de la herramienta activa la dejaría fuera de la vista: la barra
+       diría una cosa y el canvas haría otra. Ahí el clic no hace nada. */
+    if (_MED_GRUPO_DE[_medHerr] === g) return;
+    _medGrupo = null;
+  } else _medGrupo = g;
+  _medEstado();
+}
+window.medGrupoToggle = medGrupoToggle;
+
 function _medEstado() {
   const regs = _medRegs();
   const medibles = regs.filter(_dcmImgRegionMedible);
   /* El selector de herramienta va en la barra y no al lado del boton del modal: ahi el
      estado esta junto a lo que explica como usarlo, y el modal no se toca. */
   const act = 'background:var(--accent);color:#fff;';
-  const sel = '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-med-dist" style="padding:3px 9px;font-size:11px;' +
-                (_medHerr === 'dist' ? act : '') + '">📏 Distancia</button>' +
-              '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-med-area" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
-                (_medHerr === 'area' ? act : '') + '">✏️ Área</button>' +
-              '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-med-vel" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
-                (_medHerr === 'vel' ? act : '') + '">〰️ Velocidad</button>' +
-              '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-med-t" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
-                (_medHerr === 'tiempo' ? act : '') + '">⏱️ Tiempo</button>' +
-              '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-med-fc" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
-                (_medHerr === 'fc' ? act : '') + '">💓 FC</button>' +
-              '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-med-simp" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
-                (_medHerr === 'simpson' ? act : '') + '">🫀 Simpson</button>' +
-              '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-med-str" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
-                (_medHerr === 'strain' ? act : '') + '">💚 Strain</button>';
+  /* Las herramientas, en tres grupos colapsables. Con siete botones en una fila —y más por
+     venir— la barra dejaba de leerse. El grupo de la herramienta ACTIVA se fuerza abierto:
+     si el médico está midiendo con una y su grupo se cerrara, el botón encendido quedaría
+     escondido y la barra diría una cosa mientras el canvas hace otra. */
+  const abierto = _medGrupoAbierto();
+  const grupo = (g, tit, botones) => {
+    const ab = abierto === g;
+    return '<div style="margin-bottom:' + (ab ? '6px' : '3px') + ';">' +
+      '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-g-' + g + '" ' +
+        'style="padding:3px 8px;font-size:11px;width:100%;text-align:left;' +
+        (ab ? 'background:var(--bg3);' : '') + '">' +
+        (ab ? '▾ ' : '▸ ') + tit + '</button>' +
+      (ab ? '<div style="margin-top:4px;padding-left:4px;">' + botones + '</div>' : '') +
+    '</div>';
+  };
+  const btH = (id, herr, txt, prim) => '<button type="button" class="btn btn-ghost" id="' + _V.pfx + id +
+    '" style="padding:3px 9px;font-size:11px;' + (prim ? '' : 'margin-left:6px;') +
+    (_medHerr === herr ? act : '') + '">' + txt + '</button>';
+  const sel =
+    grupo('2d', '📐 Medición 2D',
+      btH('cine-med-dist', 'dist', '📏 Distancia', true) +
+      btH('cine-med-area', 'area', '✏️ Área') +
+      btH('cine-med-simp', 'simpson', '🫀 Simpson')) +
+    grupo('dop', '〰️ Doppler',
+      btH('cine-med-vel', 'vel', '〰️ Velocidad', true) +
+      btH('cine-med-t', 'tiempo', '⏱️ Tiempo') +
+      btH('cine-med-fc', 'fc', '💓 FC')) +
+    grupo('def', '💚 Deformación',
+      btH('cine-med-str', 'strain', '💚 Strain VI', true) +
+      btH('cine-med-lars', 'lars', '🫧 LARS'));
   const bot = sel +
               (_medHerr === 'vel'
                 ? '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-med-calvel" style="padding:3px 9px;font-size:11px;margin-left:14px;">' +
@@ -47580,7 +47882,8 @@ function _medEstado() {
       'El gradiente no depende del signo (ΔP = 4·V²).</div>';
   }
   _medBarra((_medHerr === 'simpson' ? _simpPanel()
-             : _medHerr === 'strain' ? _strainPanel() : txt + (n ? '  ·  <b>' + n + '</b> medición(es) en pantalla.' : '')) +
+             : _medHerr === 'strain' ? _strainPanel()
+             : _medHerr === 'lars' ? _larsPanel() : txt + (n ? '  ·  <b>' + n + '</b> medición(es) en pantalla.' : '')) +
             '<div style="margin-top:6px;">' + bot + '</div>');
   /* ⚠️ TODOS los controles de la barra se atan A SU VISTA. Atados pelados corren con la vista
      ACTIVA al momento del clic —la A por omisión—, así que un clic en la barra de la B movía
@@ -47606,6 +47909,10 @@ function _medEstado() {
   if (cet) cet.oninput = _vBind(_V, function () { _medEtiqueta = cet.value; });
   _on(cbt, medCapturarConMedicion);
   const sxm = _medEl('cine-str-mas'), sxb = _medEl('cine-str-cap');
+  ['2d','dop','def'].forEach(g2 => _on(_medEl('cine-g-' + g2), () => medGrupoToggle(g2)));
+  _on(_medEl('cine-med-lars'), () => medHerramienta('lars'));
+  _on(_medEl('cine-lars-conf'),  medLarsConfirmar);
+  _on(_medEl('cine-lars-reset'), medLarsReiniciar);
   _on(_medEl('cine-str-m-libre'), () => medStrainModo('libre'));
   _on(_medEl('cine-str-m-3pt'),   () => medStrainModo('3pt'));
   _on(_medEl('cine-str-3conf'), medStrain3Confirmar);
@@ -47897,6 +48204,13 @@ function medReset() {
      fuerte: el método EXIGE dos cuadros —diástole y sístole—, así que borrar lo confirmado
      haría imposible completar la medición. Se oculta el dibujo y se descarta lo pendiente,
      que sí pertenecía al cuadro que se deja. */
+  /* El LARS EXIGE tres cuadros distintos, así que cambiar de cuadro es parte del método:
+     lo confirmado se oculta y sigue guardado, igual que el strain del VI. */
+  if (_lars) {
+    if (_lars.pendiente) _lars.pendiente = null;
+    if (_lars.trazos.min || _lars.trazos.max || _lars.trazos.preA) _lars.avisoCuadro = true;
+    _lars.ocultar = true;
+  }
   if (_strain) {
     /* ⚠️ ACÁ EL AVISO NO SE COPIA DE SIMPSON, y la diferencia importa. Simpson avisa sólo si
        había un trazado sin confirmar. En strain, CAMBIAR DE CUADRO ES PARTE DEL MÉTODO —el
@@ -47938,6 +48252,7 @@ function medCambioDeImagen() {
     _strain.ocultar = false;
     _strain.avisoImagen = true;
   }
+  if (_lars) { _lars.pendiente = null; _lars.ocultar = false; _lars.avisoImagen = true; }
   if (_medOn) { _medPintar(); _medEstado(); }
 }
 window.medCambioDeImagen = medCambioDeImagen;
@@ -47946,9 +48261,10 @@ window.medCambioDeImagen = medCambioDeImagen;
 function medApagar() {
   _medOn = false; _medCalibrando = false; _medCalib = null;
   _medCalibVel = null; _medCalibrandoVel = false;
+  _medGrupo = _MED_GRUPO_DEF;        // los grupos vuelven al estado por omisión
   _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null; _medVels = []; _medTiempos = []; _medHerr = 'dist';
   _simp = null;                      // otra imagen: los cuatro trazados no aplican
-  _strain = null;
+  _strain = null; _lars = null;
   const cv = _medEl('cine-med'), b = _medEl('cine-medir');
   if (cv) { cv.style.display = 'none'; cv.onclick = null; cv.onmousedown = null; cv.onmousemove = null; }
   if (_vArrastre === _V) _vArrastre = null;   // el oyente es compartido: no se quita, se desmarca
@@ -63763,8 +64079,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260920-1129';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789914552269;                 /* eco-build-ms */
+const ECO_BUILD    = '20260920-1139';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789915162499;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -63850,7 +64166,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1129</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1139</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

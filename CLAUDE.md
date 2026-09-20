@@ -8133,6 +8133,62 @@ y TC-193 se puso en rojo solo.
 **Sin verificar en Safari**, como todo el módulo DICOM: el navegador está concedido a nivel
 «lectura». Todo corrió en Chrome por CDP, con el pendrive montado.
 
+### Grupos colapsables, guía del ciclo y LARS (2026-09-20)
+
+Tres cambios del mismo panel. Lo que hay que saber antes de tocarlo:
+
+#### «El grupo de la herramienta activa manda» deja la función MUERTA
+
+Fue mi primera versión de `_medGrupoAbierto`, y parece lo correcto —«la herramienta activa
+mantiene su grupo abierto»—. Pero **siempre hay una herramienta activa** —de fábrica,
+Distancia— así que su grupo ganaba sobre la elección del médico y **los otros dos no se podían
+abrir nunca**. La función habría nacido inservible.
+
+Lo correcto es al revés: el grupo abierto lo decide el médico (`medGrupo`, por VISTA), y
+**elegir una herramienta abre SU grupo** — eso es lo que hace que la activa quede visible. Lo
+único que no se puede es colapsar el grupo de la activa, porque dejaría el botón encendido
+escondido y la barra diría una cosa mientras el canvas hace otra.
+**Lo cazó el caso al no encontrar el botón de Strain después de abrir su grupo**, no la
+relectura.
+
+**Y los casos que clickean un botón de herramienta tuvieron que aprender los grupos.** Los de
+Doppler y Deformación **no están en el DOM** con su grupo cerrado, así que un caso que clickea
+directo revienta con «null.click» y parece que la herramienta desapareció. Está resuelto con
+`__t.herr(id, pfx)` en el preludio, que abre el grupo y después clickea — 21 sitios.
+
+#### La guía del momento del ciclo es informativa, y tiene que serlo
+
+La app **no tiene ECG ni forma de saber en qué fase está el cuadro**. Fingir que valida el
+momento sería peor que no decir nada. Los tres renglones de cada fase son tres caminos al mismo
+instante —el ECG, la válvula, el volumen— porque no siempre hay ECG en la imagen.
+
+#### LARS: las fórmulas, y el signo que la ASE publica al revés
+
+Con L1 = AI mínima (referencia, inicio del QRS), L2 = máxima, L3 = pre-contracción:
+`reservorio = (L2−L1)/L1`, `conducto = (L2−L3)/L1`, `contracción = (L3−L1)/L1`. Los tres salen
+**positivos** y cumplen **reservorio = conducto + contracción** — una verificación interna
+gratis, que se muestra y que fija un caso.
+
+**⚠️ La ASE publica conducto y contracción con signo NEGATIVO** (−22 % y −18 % donde acá dice
+22 % y 18 %). Son las mismas magnitudes con el signo invertido, y **se declara en el panel**:
+un informe de speckle tracking al lado los va a mostrar negativos, y este archivo ya pagó dos
+veces el costo de un signo que nadie explicó.
+
+**Sólo el reservorio tiene corte publicado** (≥18 %, ASE 2025). Conducto y contracción se
+muestran sin referencia: inventarles una sería la cuarta escala del mismo dato.
+
+**Reusa `_medAreaValidar` y `_strainLargoPx`** — la compuerta 2D y el largo del trazo son los
+mismos del área y del strain del VI. Y como el método exige **tres cuadros distintos**, cambiar
+de cuadro oculta lo confirmado y no lo borra, igual que el strain del VI.
+
+#### Verificar contra «la geometría conocida» mide también la RASTERIZACIÓN del propio caso
+
+TC-204 traza circunferencias, cuyo perímetro es proporcional al radio, así que el reservorio
+esperado es `(R2−R1)/R1` — independiente de π y de la escala. Con r=60 daba **37,81 % contra
+40 %**: −2,2 pp. Medido aparte, el redondeo a píxeles enteros explica sólo −0,3 pp; el resto es
+**la cuantización del clic en pantalla**, y el efecto es RELATIVO al radio. Con r=120 cae a la
+mitad. La tolerancia sale de esa medición, no de buscar un número que haga pasar el caso.
+
 ### Contorno sugerido por 3 puntos, y el sesgo que aparece al MEZCLAR métodos (2026-09-20)
 
 Alternativa al trazado libre: se marcan anillo septal, ápex y anillo lateral, la app propone un

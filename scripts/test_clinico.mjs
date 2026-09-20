@@ -126,6 +126,20 @@ const casoAbierto = (id, nombre, motivo, fn) => CASOS.push({ id, nombre, fn, abi
    dispara ningun evento, que es la trampa numero uno de esta app. */
 const PRELUDIO = `
   window.__t = {
+    /* Los botones de herramienta del visor viven en GRUPOS COLAPSABLES: los de Doppler y los
+       de Deformacion no estan en el DOM si su grupo esta cerrado. Este helper abre el grupo
+       que corresponde y despues clickea, que es lo que hace el medico. Sin el, un caso que
+       clickea el boton directo revienta con "null.click" y parece que la herramienta
+       desaparecio. */
+    herr(id, pfx) {
+      const G = { 'cine-med-dist':'2d', 'cine-med-area':'2d', 'cine-med-simp':'2d',
+                  'cine-med-vel':'dop', 'cine-med-t':'dop', 'cine-med-fc':'dop',
+                  'cine-med-str':'def', 'cine-med-lars':'def' };
+      if (G[id]) { _medGrupo = G[id]; _medEstado(); }
+      const b = document.getElementById((pfx || '') + id);
+      if (!b) return 'NO EXISTE ' + (pfx || '') + id;
+      b.click(); return 1;
+    },
     set(id, val) { const e = document.getElementById(id); if (!e) return 'NO EXISTE ' + id;
       e.value = val;
       e.dispatchEvent(new Event('input', { bubbles: true }));
@@ -11500,7 +11514,7 @@ caso('TC-189', 'Area: Shoelace exacto sobre figura conocida, y las zonas donde n
       /* ── herramienta: arranca en distancia ── */
       R.arrancaEnDistancia = _medHerr === 'dist';
       R.hayBotones = !!document.getElementById('cine-med-area') && !!document.getElementById('cine-med-dist');
-      document.getElementById('cine-med-area').click();
+      __t.herr('cine-med-area');
       await new Promise(r => setTimeout(r, 80));
       R.cambioAArea = _medHerr === 'area';
       R.instructivo = (document.getElementById('cine-med-barra').textContent || '');
@@ -11569,7 +11583,7 @@ caso('TC-189', 'Area: Shoelace exacto sobre figura conocida, y las zonas donde n
       R.clicSueltoNoCuenta = _medAreas.length === 0;
 
       /* ── la regla sigue andando al volver a Distancia ── */
-      document.getElementById('cine-med-dist').click();
+      __t.herr('cine-med-dist');
       await new Promise(r => setTimeout(r, 80));
       const clic = (x, y) => { const c = aCliente(x, y);
         cv.dispatchEvent(new MouseEvent('click', Object.assign({ bubbles:true }, c))); };
@@ -11589,7 +11603,7 @@ caso('TC-189', 'Area: Shoelace exacto sobre figura conocida, y las zonas donde n
         d:{ frags:d0.frags.slice(0,1), cols:d0.cols, filas:d0.filas, msCuadro:0, regiones:[anis] } }]);
       await new Promise(r => setTimeout(r, 250));
       medToggle();
-      document.getElementById('cine-med-area').click();
+      __t.herr('cine-med-area');
       const cv2 = document.getElementById('cine-med');
       const aCliente2 = (x, y) => { const r = cv2.getBoundingClientRect();
         return { clientX: r.left + x * (r.width / cv2.width), clientY: r.top + y * (r.height / cv2.height) }; };
@@ -11619,7 +11633,7 @@ caso('TC-189', 'Area: Shoelace exacto sobre figura conocida, y las zonas donde n
         d:{ frags:d0.frags.slice(0,1), cols:d0.cols, filas:d0.filas, msCuadro:0, regiones:[noMed, siMed] } }]);
       await new Promise(r => setTimeout(r, 250));
       medToggle();
-      document.getElementById('cine-med-area').click();
+      __t.herr('cine-med-area');
       const cv3 = document.getElementById('cine-med');
       const trazar3 = async (pts) => { const ac = (x,y) => { const r = cv3.getBoundingClientRect();
           return { clientX: r.left + x*(r.width/cv3.width), clientY: r.top + y*(r.height/cv3.height) }; };
@@ -11727,7 +11741,7 @@ caso('TC-190', 'Simpson biplano: FEVI contra un volumen calculable a mano, y L l
         return p.map(q => ({ x: Math.round(q.x), y: Math.round(q.y) }));
       };
 
-      document.getElementById('cine-med-simp').click();
+      __t.herr('cine-med-simp');
       await new Promise(r => setTimeout(r, 90));
       R.herrSimpson = _medHerr === 'simpson';
       R.panel1 = (document.getElementById('cine-med-barra').textContent || '');
@@ -11870,14 +11884,14 @@ caso('TC-190', 'Simpson biplano: FEVI contra un volumen calculable a mano, y L l
       R.umbralApp = UMBRAL_FEVI_NORMAL;
 
       /* ── las otras herramientas siguen intactas ── */
-      document.getElementById('cine-med-dist').click();
+      __t.herr('cine-med-dist');
       await new Promise(r => setTimeout(r, 80));
       const clic = (x, y) => cv.dispatchEvent(new MouseEvent('click', Object.assign({ bubbles:true }, ac(x, y))));
       clic(Math.round(reg.x0+20), Math.round(reg.y0+20));
       clic(Math.round(reg.x0+170), Math.round(reg.y0+20));
       await new Promise(r => setTimeout(r, 120));
       R.reglaSigue = _medLineas.filter(l => !l.calibracion).length === 1;
-      document.getElementById('cine-med-area').click();
+      __t.herr('cine-med-area');
       await new Promise(r => setTimeout(r, 80));
       await trazar([{x:cx0-60,y:yb-60},{x:cx0+60,y:yb-60},{x:cx0+60,y:yb},{x:cx0-60,y:yb}]);
       R.areaSigue = _medAreas.length === 1;
@@ -11978,7 +11992,7 @@ caso('TC-191', 'Simpson: integra al informe solo el biplano, y el trazado se ocu
         return p; };
       const cx0 = Math.round((reg.x0+reg.x1)/2), yb = Math.round(Math.min(reg.y1-10, reg.y0+380));
 
-      document.getElementById('cine-med-simp').click();
+      __t.herr('cine-med-simp');
       await new Promise(r => setTimeout(r, 90));
 
       /* ── monoplanar ── */
@@ -12139,7 +12153,7 @@ caso('TC-192', 'Simpson cruzando dos imagenes: la sesion sobrevive y cada trazad
         return p; };
       const cx0 = Math.round((reg.x0+reg.x1)/2), yb = Math.round(Math.min(reg.y1-10, reg.y0+380));
 
-      document.getElementById('cine-med-simp').click();
+      __t.herr('cine-med-simp');
       await new Promise(r => setTimeout(r, 90));
 
       /* ── par 1 en la imagen A ── */
@@ -12154,7 +12168,7 @@ caso('TC-192', 'Simpson cruzando dos imagenes: la sesion sobrevive y cada trazad
       clic(Math.round(reg.x0+160), Math.round(reg.y0+20));
       await new Promise(r => setTimeout(r, 120));
       R.habiaRegla = _medLineas.filter(l => !l.calibracion).length === 1;
-      document.getElementById('cine-med-simp').click();
+      __t.herr('cine-med-simp');
       await new Promise(r => setTimeout(r, 80));
 
       /* ── CAMBIO DE IMAGEN ── */
@@ -12342,7 +12356,7 @@ caso('TC-193', 'Velocidad: cero en el pixel de referencia, 4V2, y no mide sobre 
              cols: d0.cols, filas: d0.filas, msCuadro: 0, regiones: d0.regiones } }]);
       await new Promise(r => setTimeout(r, 250));
       medToggle();
-      document.getElementById('cine-med-vel').click();
+      __t.herr('cine-med-vel');
       await new Promise(r => setTimeout(r, 90));
       R.herrVel = _medHerr === 'vel';
       R.barra = (document.getElementById('cine-med-barra').textContent || '');
@@ -12410,7 +12424,7 @@ caso('TC-193', 'Velocidad: cero en el pixel de referencia, 4V2, y no mide sobre 
              cols: d0.cols, filas: d0.filas, msCuadro:0, regiones:[mm] } }]);
       await new Promise(r => setTimeout(r, 250));
       medToggle();
-      document.getElementById('cine-med-vel').click();
+      __t.herr('cine-med-vel');
       await new Promise(r => setTimeout(r, 90));
       R.mmNoEsVelocidad = !_dcmImgRegionVelocidad(mm);
       const cv2 = document.getElementById('cine-med');
@@ -12531,7 +12545,7 @@ caso('TC-194', 'Tiempo y FC: ms desde el eje X, 60.000/RR, y el modo M SI cuenta
       const yv = Math.round((tr.y0 + tr.y1) / 2);
 
       /* ── TIEMPO ── */
-      document.getElementById('cine-med-t').click();
+      __t.herr('cine-med-t');
       await new Promise(r => setTimeout(r, 90));
       R.herrTiempo = _medHerr === 'tiempo';
       R.barraT = (document.getElementById('cine-med-barra').textContent || '');
@@ -12559,7 +12573,7 @@ caso('TC-194', 'Tiempo y FC: ms desde el eje X, 60.000/RR, y el modo M SI cuenta
 
       /* ── FC: mismo par de clics ── */
       medBorrar();
-      document.getElementById('cine-med-fc').click();
+      __t.herr('cine-med-fc');
       await new Promise(r => setTimeout(r, 90));
       R.herrFc = _medHerr === 'fc';
       clic(xa, yv); clic(xb, yv);
@@ -12578,7 +12592,7 @@ caso('TC-194', 'Tiempo y FC: ms desde el eje X, 60.000/RR, y el modo M SI cuenta
          que la distancia euclidea y la horizontal coinciden y usar la equivocada no cambiaba
          nada. Con una diferencia de altura grande, la euclidea daria bastante mas. */
       medBorrar();
-      document.getElementById('cine-med-t').click();
+      __t.herr('cine-med-t');
       await new Promise(r => setTimeout(r, 80));
       clic(xa, yv - 120); clic(xb, yv + 120);
       await new Promise(r => setTimeout(r, 120));
@@ -13069,7 +13083,7 @@ caso('TC-197', 'Velocidad: el signo del archivo es correcto, se muestra magnitud
          se ve como si la herramienta no anduviera. Paso en este mismo caso. */
       const encender = async () => { if (!_medOn) medToggle(); await new Promise(r => setTimeout(r, 120)); };
       await encender();
-      document.getElementById('cine-med-vel').click();
+      __t.herr('cine-med-vel');
       await new Promise(r => setTimeout(r, 120));
       R.noEntroSolo = !_medCalibrandoVel;        // con escala del archivo NO se ofrece sola
       R.barraDiceArchivo = /tomada del archivo/.test(document.getElementById('cine-med-barra').innerHTML);
@@ -13121,7 +13135,7 @@ caso('TC-197', 'Velocidad: el signo del archivo es correcto, se muestra magnitud
       montar('solo-2d.dcm', [base2d]);
       await new Promise(r => setTimeout(r, 250));
       await encender();
-      document.getElementById('cine-med-vel').click();
+      __t.herr('cine-med-vel');
       await new Promise(r => setTimeout(r, 140));
       R.con2dNoOfrece = !_medCalibrandoVel;
 
@@ -13130,7 +13144,7 @@ caso('TC-197', 'Velocidad: el signo del archivo es correcto, se muestra magnitud
       montar('sin-escala.dcm', []);
       await new Promise(r => setTimeout(r, 250));
       await encender();
-      document.getElementById('cine-med-vel').click();
+      __t.herr('cine-med-vel');
       await new Promise(r => setTimeout(r, 140));
       R.entroSolo = _medCalibrandoVel;
       R.barraDiceCalibrar = /Calibrando la velocidad/.test(document.getElementById('cine-med-barra').innerHTML);
@@ -13191,7 +13205,7 @@ caso('TC-197', 'Velocidad: el signo del archivo es correcto, se muestra magnitud
       montar('espectral2.dcm', [espectral]);
       await new Promise(r => setTimeout(r, 250));
       await encender();
-      document.getElementById('cine-med-vel').click();
+      __t.herr('cine-med-vel');
       await new Promise(r => setTimeout(r, 140));
       R.calibVelLimpiaAlCambiar = !_medCalibVel;          // cambiar de imagen la borra
       R.sigueSinOfrecerse = !_medCalibrandoVel;
@@ -13426,7 +13440,12 @@ caso('TC-199', 'Strain: trazado guiado, eje largo compartido con Simpson, y el b
       if (!_medOn) medToggle();
       await new Promise(r => setTimeout(r, 140));
 
-      /* ── el boton existe y selecciona la herramienta ── */
+      /* ── el boton existe y selecciona la herramienta ──
+         Vive en el grupo colapsable "Deformacion", que arranca CERRADO: hay que abrirlo para
+         que el boton exista en el DOM. Eso es el flujo real, no una concesion del caso. */
+      R.grupoCerradoAlPrincipio = !document.getElementById('cine-med-str');
+      _medGrupo = 'def'; _medEstado();
+      await new Promise(r => setTimeout(r, 110));
       const bstr = document.getElementById('cine-med-str');
       R.hayBoton = !!bstr;
       R.rotulo = bstr && bstr.textContent;
@@ -13535,7 +13554,7 @@ caso('TC-199', 'Strain: trazado guiado, eje largo compartido con Simpson, y el b
       await new Promise(r => setTimeout(r, 220));
       if (!_medOn) medToggle();
       await new Promise(r => setTimeout(r, 140));
-      document.getElementById('cine-med-str').click();
+      __t.herr('cine-med-str');
       await new Promise(r => setTimeout(r, 140));
       dichos.length = 0;
       await trazarEn('', tri(CX, YB, Wd, Hd));
@@ -13578,7 +13597,8 @@ caso('TC-199', 'Strain: trazado guiado, eje largo compartido con Simpson, y el b
     } finally { window.alert = alertOrig; }
 
     return { extra: [
-      ['el boton 💚 Strain esta en el selector',       R.hayBoton && /Strain/.test(R.rotulo||''), R.rotulo],
+      ['el grupo Deformacion arranca cerrado',        R.grupoCerradoAlPrincipio, R.grupoCerradoAlPrincipio],
+      ['el boton 💚 Strain esta en su grupo',          R.hayBoton && /Strain/.test(R.rotulo||''), R.rotulo],
       ['lo selecciona y arranca la sesion en diastole', R.herr === 'strain' && R.arrancoSesion, R.herr],
       ['el panel guia el paso 1',                      R.panelPaso1, R.panelPaso1],
       ['el trazado queda pendiente de confirmacion',   R.hayPendiente && R.panelDicePendiente, R.hayPendiente],
@@ -14190,7 +14210,7 @@ caso('TC-202', 'Capturar con mediciones: la capa se compone, la etiqueta va en s
       _vistaA.medHerr = 'dist'; _vistaB.medHerr = 'dist';
       _vCon(_vistaB, _medEstado);
       await new Promise(r => setTimeout(r, 110));
-      document.getElementById('b-cine-med-area').click();
+      __t.herr('cine-med-area', 'b-');
       await new Promise(r => setTimeout(r, 140));
       R.herrA = _vistaA.medHerr; R.herrB = _vistaB.medHerr;
       R.botonViejoDeBafectaB = _vistaB.medHerr === 'area' && _vistaA.medHerr === 'dist';
@@ -14477,6 +14497,216 @@ caso('TC-203', 'Strain por 3 puntos: spline ajustable, misma puerta que el traza
       ['y el panel lo declara',                      R.panelDeclaraMezcla, R.panelDeclaraMezcla],
       ['sin mezcla NO avisa (denominador)',          R.sinMezclaNoAvisa, R.sinMezclaNoAvisa],
       ['el trazado libre sigue funcionando',         R.libreSigue, R.libreSigue]
+    ] };
+  })();
+`);
+
+
+/* ══ TC-204 · Grupos colapsables, guia del ciclo y LARS ══════════════════════════════════════
+   Tres cosas de un mismo panel. Lo que mas importa fijar:
+   · que se pueda ABRIR un grupo que no sea el de la herramienta activa -mi primera version de
+     la logica hacia ganar siempre al de la activa y dejaba la funcion muerta, porque SIEMPRE
+     hay una activa-;
+   · que el LARS cumpla reservorio = conducto + contraccion, que es una verificacion interna
+     gratis, y que use bordeCm de los tres contornos;
+   · y que el disclaimer y el corte de 18 % esten visibles.
+   NO DEPENDE DEL PENDRIVE.                                                                    */
+caso('TC-204', 'Visor: grupos colapsables, guia del momento del ciclo y LARS por tres contornos', `
+  return (async () => {
+    const R = {};
+    const alertOrig = window.alert; const dichos = [];
+    window.alert = m => dichos.push(String(m));
+    try {
+      const mkJpeg = () => {
+        const c = document.createElement('canvas'); c.width = 600; c.height = 500;
+        const g = c.getContext('2d'); g.fillStyle = '#223'; g.fillRect(0,0,600,500);
+        const b64 = c.toDataURL('image/jpeg').split(',')[1];
+        const bin = atob(b64); const u = new Uint8Array(bin.length);
+        for (let i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i);
+        return u;
+      };
+      const jpeg = mkJpeg();
+      const DX = 0.05;
+      const reg2d = { tipo:1, x0:20, y0:20, x1:580, y1:480, ux:3, uy:3, dx:DX, dy:DX,
+                      rx0:20, ry0:20, rvx:0, rvy:0 };
+      const regDop = { tipo:1, x0:20, y0:20, x1:580, y1:480, ux:4, uy:7, dx:0.004, dy:-1.3,
+                       rx0:20, ry0:100, rvx:0, rvy:0 };
+      const mkLoop = (nom, regs) => ({ nombre:nom, cuadros:4,
+        d:{ frags:[jpeg,jpeg,jpeg,jpeg], cols:600, filas:500, msCuadro:40, regiones:regs } });
+      const cvm = () => document.getElementById('cine-med');
+      const ac = (x,y) => { const c = cvm(), r = c.getBoundingClientRect();
+        return { clientX: r.left + x*(r.width/c.width), clientY: r.top + y*(r.height/c.height) }; };
+      const trazar = async pts => { const c = cvm();
+        c.dispatchEvent(new MouseEvent('mousedown', Object.assign({bubbles:true}, ac(pts[0].x,pts[0].y))));
+        for (let i=1;i<pts.length;i++)
+          c.dispatchEvent(new MouseEvent('mousemove', Object.assign({bubbles:true}, ac(pts[i].x,pts[i].y))));
+        document.dispatchEvent(new MouseEvent('mouseup', {bubbles:true}));
+        await new Promise(r=>setTimeout(r,130)); };
+      /* Un "contorno auricular": circunferencia de radio r, perimetro 2*pi*r. */
+      const circ = (cx0,cy0,rr,n) => { const p=[]; n=n||48;
+        for (let i=0;i<=n;i++){ const t=2*Math.PI*i/n; p.push({x:Math.round(cx0+rr*Math.cos(t)), y:Math.round(cy0+rr*Math.sin(t))}); }
+        return p; };
+      const barra = () => document.getElementById('cine-med-barra').innerHTML;
+      const montar = async (nom, regs) => { _cineAbrir([ mkLoop(nom, regs||[reg2d]) ]);
+        await new Promise(r=>setTimeout(r,210));
+        if (!_medOn) medToggle(); await new Promise(r=>setTimeout(r,130)); };
+
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      await montar('ai.dcm');
+
+      /* ── 1 · GRUPOS ── */
+      R.g2dAbierto = !!document.getElementById('cine-med-dist');
+      R.gDopCerrado = !document.getElementById('cine-med-vel');
+      R.gDefCerrado = !document.getElementById('cine-med-str');
+      R.hayCabeceras = !!document.getElementById('cine-g-2d') && !!document.getElementById('cine-g-dop') &&
+                       !!document.getElementById('cine-g-def');
+      /* Abrir Doppler cierra 2D: uno solo a la vez. Y ESTO es lo que la logica rota impedia. */
+      document.getElementById('cine-g-dop').click();
+      await new Promise(r=>setTimeout(r,120));
+      R.dopSeAbre = !!document.getElementById('cine-med-vel');
+      R.dosDSeCierra = !document.getElementById('cine-med-dist');
+      R.unoSoloALaVez = R.dopSeAbre && R.dosDSeCierra;
+      /* Elegir una herramienta abre SU grupo. */
+      __t.herr('cine-med-simp');
+      await new Promise(r=>setTimeout(r,130));
+      R.herrAbreSuGrupo = _medHerr === 'simpson' && !!document.getElementById('cine-med-simp');
+      /* Y el grupo de la activa no se puede colapsar: dejaria el boton encendido escondido. */
+      document.getElementById('cine-g-2d').click();
+      await new Promise(r=>setTimeout(r,120));
+      R.activaNoSeColapsa = !!document.getElementById('cine-med-simp');
+
+      /* ── 2 · GUIA DEL MOMENTO DEL CICLO ── */
+      __t.herr('cine-med-str');
+      await new Promise(r=>setTimeout(r,140));
+      R.guiaDiastole = /Momento correcto para diástole/.test(barra()) &&
+                       /inicio del QRS/.test(barra()) && /mayor volumen/.test(barra());
+      R.noGuiaSistoleAun = !/Momento correcto para sístole/.test(barra());
+      const tri = (cx0,yb,Wi,Wd,H) => { const p=[], ya=yb-H;
+        const n1=Math.ceil(Math.hypot(Wi,H)/10), n2=Math.ceil(Math.hypot(Wd,H)/10);
+        for(let i=0;i<=n1;i++)p.push({x:Math.round(cx0-Wi+Wi*i/n1),y:Math.round(yb+(ya-yb)*i/n1)});
+        for(let i=1;i<=n2;i++)p.push({x:Math.round(cx0+Wd*i/n2),y:Math.round(ya+(yb-ya)*i/n2)});
+        return p; };
+      await trazar(tri(300,440,100,100,300));
+      medStrainConfirmar();
+      await new Promise(r=>setTimeout(r,140));
+      R.guiaSistole = /Momento correcto para sístole/.test(barra()) &&
+                      /final de la onda T/.test(barra()) && /menor volumen/.test(barra());
+      R.yaNoGuiaDiastole = !/Momento correcto para diástole/.test(barra());
+
+      /* ── 3 · LARS ── */
+      await montar('lars.dcm');
+      __t.herr('cine-med-lars');
+      await new Promise(r=>setTimeout(r,140));
+      R.larsEnDeformacion = !!document.getElementById('cine-med-lars') &&
+                            !!document.getElementById('cine-med-str');
+      R.herrLars = _medHerr === 'lars';
+      R.explicaLars = /deformación de la pared de la aurícula izquierda/.test(barra());
+      R.pide1 = /AI en su tamaño MÍNIMO/.test(barra()) && /inicio del QRS/.test(barra());
+
+      /* Tres circunferencias: perimetros 2*pi*r exactos y crecientes segun el ciclo. */
+      /* Radios GRANDES a proposito: el contorno se traza clickeando en coordenadas de pantalla
+         -clientX es entero- y despues se redondea a pixeles de imagen, asi que el perimetro
+         medido queda algo inflado, y el efecto es RELATIVO al radio. Con r=60 el sesgo llegaba
+         a -2,2 pp contra la geometria; con r=120 cae a la mitad. La tolerancia de abajo sale
+         de esa medicion, no esta elegida para que pase. */
+      const R1=120, R2=168, R3=144;
+      await trazar(circ(300,250,R1)); medLarsConfirmar(); await new Promise(r=>setTimeout(r,120));
+      R.pide2 = /AI en su tamaño MÁXIMO/.test(barra()) && /final de la sístole/.test(barra());
+      await trazar(circ(300,250,R2)); medLarsConfirmar(); await new Promise(r=>setTimeout(r,120));
+      R.pide3 = /apertura mitral/.test(barra()) && /contracción auricular/.test(barra());
+      await trazar(circ(300,250,R3)); medLarsConfirmar(); await new Promise(r=>setTimeout(r,160));
+
+      const L = _larsCalcular();
+      R.hayLars = !!L;
+      if (L) {
+        R.L1=L.L1; R.L2=L.L2; R.L3=L.L3;
+        /* Usa bordeCm de cada contorno, exacto contra lo registrado. */
+        const T=_lars.trazos;
+        R.usaBorde = Math.abs(L.L1-T.min.bordeCm)<1e-12 && Math.abs(L.L2-T.max.bordeCm)<1e-12 &&
+                     Math.abs(L.L3-T.preA.bordeCm)<1e-12;
+        R.resOk  = Math.abs(L.res  - (L.L2-L.L1)/L.L1*100) < 1e-12;
+        R.condOk = Math.abs(L.cond - (L.L2-L.L3)/L.L1*100) < 1e-12;
+        R.ctrOk  = Math.abs(L.ctr  - (L.L3-L.L1)/L.L1*100) < 1e-12;
+        R.identidad = L.identidad === true;
+        R.ordenOk = L.ordenOk === true;
+        R.res = L.res; R.cond = L.cond; R.ctr = L.ctr;
+        /* Contra la geometria conocida: perimetros proporcionales a los radios, asi que el
+           reservorio es (R2-R1)/R1 -- independiente de pi y de la escala. */
+        R.esperado = (R2-R1)/R1*100;
+        R.coincideConGeometria = Math.abs(L.res - R.esperado) < 1.5;
+        R.normal = L.normal === (L.res >= 18);
+      }
+      R.disc = /tres contornos manuales/.test(barra()) && /No se integra al informe firmado/.test(barra());
+      R.corte18 = /≥ ?18 ?%/.test(barra()) || /≥18 ?%/.test(barra());
+      R.declaraSigno = /la ASE los publica con signo/.test(barra());
+      R.sugiereEtiqueta = /Capturar con medición/.test(barra());
+      /* No escribe ningun campo del informe. */
+      R.sglVacio = (document.getElementById('sgl')||{}).value === '';
+
+      /* ── 4 · plausibilidad y orden ── */
+      medLarsReiniciar(); await new Promise(r=>setTimeout(r,110));
+      await trazar(circ(300,250,60));  medLarsConfirmar(); await new Promise(r=>setTimeout(r,110));
+      await trazar(circ(300,250,150)); medLarsConfirmar(); await new Promise(r=>setTimeout(r,110));
+      await trazar(circ(300,250,140)); medLarsConfirmar(); await new Promise(r=>setTimeout(r,150));
+      const Lx = _larsCalcular();
+      R.xRes = Lx && Lx.res;
+      R.xNoPlausible = !!(Lx && Lx.plausible === false);
+      R.xAvisa = /casi nunca es real/.test(barra());
+      R.xDisc = /tres contornos manuales/.test(barra());
+
+      /* ── 5 · no se traza sobre Doppler ── */
+      medLarsReiniciar();
+      await montar('dop.dcm', [regDop]);
+      __t.herr('cine-med-lars');
+      await new Promise(r=>setTimeout(r,140));
+      dichos.length = 0;
+      await trazar(circ(300,250,60));
+      R.dopRechaza = !_lars.pendiente;
+      R.dopAvisa = /TIEMPO|Doppler/i.test(dichos.join(' '));
+
+      /* ── 6 · el strain del VI sigue andando ── */
+      await montar('vi.dcm');
+      __t.herr('cine-med-str');
+      await new Promise(r=>setTimeout(r,140));
+      await trazar(tri(300,440,100,100,300));
+      R.strainSigue = !!(_strain && _strain.pendiente && _strain.pendiente.bordeCm > 0);
+
+      cineCerrar();
+      await new Promise(r=>setTimeout(r,120));
+      R.cerrarVuelveGrupo = _vistaA.medGrupo === '2d' && _vistaA.lars === null;
+    } finally { window.alert = alertOrig; }
+
+    return { extra: [
+      ['los tres grupos tienen cabecera',            R.hayCabeceras, R.hayCabeceras],
+      ['2D abierto por defecto, los otros cerrados', R.g2dAbierto && R.gDopCerrado && R.gDefCerrado, R.g2dAbierto],
+      ['SE PUEDE ABRIR OTRO GRUPO',                  R.dopSeAbre, R.dopSeAbre],
+      ['y al abrirlo se cierra el anterior',         R.unoSoloALaVez, R.dosDSeCierra],
+      ['elegir una herramienta abre SU grupo',       R.herrAbreSuGrupo, R.herrAbreSuGrupo],
+      ['el grupo de la activa no se colapsa',        R.activaNoSeColapsa, R.activaNoSeColapsa],
+      ['antes de diastole sale su guia del ciclo',   R.guiaDiastole && R.noGuiaSistoleAun, R.guiaDiastole],
+      ['y antes de sistole, la suya',                R.guiaSistole && R.yaNoGuiaDiastole, R.guiaSistole],
+      ['LARS vive en el grupo Deformacion',          R.larsEnDeformacion && R.herrLars, R.herrLars],
+      ['explica el metodo al activarse',             R.explicaLars, R.explicaLars],
+      ['guia los tres pasos del ciclo',              R.pide1 && R.pide2 && R.pide3, R.pide1 + '/' + R.pide2 + '/' + R.pide3],
+      ['con los tres contornos sale el calculo',     R.hayLars, R.res],
+      ['usa bordeCm de los tres (exacto)',           R.usaBorde, 'L1=' + R.L1 + ' L2=' + R.L2 + ' L3=' + R.L3],
+      ['reservorio (L2-L1)/L1',                      R.resOk, R.res],
+      ['conducto (L2-L3)/L1',                        R.condOk, R.cond],
+      ['contraccion (L3-L1)/L1',                     R.ctrOk, R.ctr],
+      ['reservorio = conducto + contraccion',        R.identidad, R.identidad],
+      ['coincide con la geometria conocida',         R.coincideConGeometria, 'medido ' + (R.res||0).toFixed(2) + ' esperado ' + (R.esperado||0).toFixed(2)],
+      ['el orden de los tres perimetros es correcto', R.ordenOk, R.ordenOk],
+      ['compara contra el corte de 18 %',            R.corte18 && R.normal, R.corte18],
+      ['el disclaimer esta visible',                 R.disc, R.disc],
+      ['y declara el signo de la convencion ASE',    R.declaraSigno, R.declaraSigno],
+      ['sugiere capturar con medicion',              R.sugiereEtiqueta, R.sugiereEtiqueta],
+      ['NO escribe el campo sgl',                    R.sglVacio, R.sglVacio],
+      ['un reservorio imposible se declara',         R.xNoPlausible && R.xAvisa, R.xRes],
+      ['y el disclaimer sigue ahi',                  R.xDisc, R.xDisc],
+      ['sobre Doppler no se traza',                  R.dopRechaza && R.dopAvisa, R.dopRechaza],
+      ['el strain del VI sigue funcionando',         R.strainSigue, R.strainSigue],
+      ['cerrar el visor repone el grupo y limpia LARS', R.cerrarVuelveGrupo, R.cerrarVuelveGrupo]
     ] };
   })();
 `);
