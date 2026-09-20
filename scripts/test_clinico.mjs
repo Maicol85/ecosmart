@@ -10686,6 +10686,176 @@ caso('TC-184', 'Cineloop guardado: sin cabecera DICOM, gateado por el toggle, y 
   })();
 `);
 
+/* ══ TC-185 · La tira al reabrir un estudio desde Guardados ══════════════════════════════════
+   EL DEFECTO QUE CIERRA: con la tab Imagenes YA ABIERTA, abrir un estudio desde Guardados no
+   actualizaba la tira. La clase del panel no cambia, el observador de la tab no dispara, y
+   quedaba pintado lo del estudio anterior -- o nada. Entrando a la tab despues si funcionaba,
+   que es por lo que el defecto se veia intermitente.
+
+   Se recorre el flujo REAL y no atajos: `imgVaciar()` para «Nuevo estudio» (limpiarCampos NO
+   vacia las imagenes, lo dice su propio comentario) y `cargarEstudioPorId` para abrir. Un
+   atajo que no pase por ahi no reproduce nada: la primera version de esta prueba usaba
+   __t.limpiar() y no distinguia el arreglo de la falla.
+
+   Las dos caras del mismo defecto, y la segunda es la grave:
+   · no aparece el cineloop del estudio que se abre;
+   · queda en pantalla el del estudio ANTERIOR, debajo del nombre del paciente nuevo.        */
+caso('TC-185', 'Cineloops al reabrir desde Guardados, con la tab Imagenes ya abierta', `
+  return (async () => {
+    const P = ${JSON.stringify(PENDRIVE)};
+    if (!P.loop) return { extra: [[
+      'hace falta un cineloop real del pendrive', false, 'no se encontro: quedo SIN verificar']] };
+    const bin = atob(P.loop.b64); const u = new Uint8Array(bin.length);
+    for (let i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i);
+    const TOG = 'cfg-guardar-imagenes'; const prev = localStorage.getItem(TOG);
+    const alertOrig = window.alert, confirmOrig = window.confirm;
+    window.alert = () => {}; window.confirm = () => true;
+    const R = {};
+    const tira = () => (document.getElementById('cine-strip').innerHTML || '');
+    const esperar = async (cond, ms) => { for (let i=0;i<(ms||60);i++) { if (cond()) return true; await new Promise(r=>setTimeout(r,50)); } return cond(); };
+    try {
+      localStorage.setItem(TOG, '1');
+
+      /* ── estudio A, con cineloop ── */
+      imgVaciar(); __t.limpiar();
+      __t.set('nombre','CINE-A'); __t.set('ci','7171717-1'); __t.set('edad','51');
+      const gA = await __t.guardar();
+      const infA = getInformes().find(i => i.estudioId === gA.estudioId);
+      R.hayA = !!infA;
+      await imgRestaurar(infA.uuid);
+      await dcmImgImportar([new File([u], P.loop.nombre)]);
+      cineCerrar();
+      R.guardadosA = (await CeiboCine.listar(infA.uuid)).length;
+
+      /* ── estudio B, sin cineloop ── */
+      imgVaciar(); __t.limpiar();
+      __t.set('nombre','CINE-B'); __t.set('ci','7272727-2'); __t.set('edad','52');
+      const gB = await __t.guardar();
+      const infB = getInformes().find(i => i.estudioId === gB.estudioId);
+
+      /* ── la tab Imagenes queda ABIERTA a partir de aca: es la condicion del defecto ── */
+      const btn = [...document.querySelectorAll('button, .tab, [onclick]')].find(b => /Im.genes/.test(b.textContent || ''));
+      if (btn) btn.click();
+      await new Promise(r => setTimeout(r, 400));
+      R.tabAbierta = document.getElementById('tab-imagenes').classList.contains('active');
+
+      /* ── «Nuevo estudio»: la tira tiene que QUEDAR VACIA ── */
+      imgVaciar();
+      await esperar(() => tira() === '', 40);
+      R.limpiaEnNuevo = tira() === '';
+      R.uuidEnNuevo = String(_imgUuidActual);
+
+      /* ── LA CARRERA, que es el defecto de verdad ──
+         cargarEstudioPorId termina con showTab('datos'), asi que la app se va a la tab
+         Paciente y el medico entra a Imagenes DESPUES. Pero imgRestaurar se dispara SIN
+         esperarse: si se entra a Imagenes antes de que IndexedDB resuelva, _imgUuidActual
+         todavia es null y la tira se pintaba vacia... y no se volvia a pintar nunca.
+         Eso explica exacto el sintoma reportado: las imagenes fijas SI vuelven --imgRender
+         corre dentro del .then(), cuando la lectura llega-- y los cineloops no.
+         Aca se entra a la tab EN EL MISMO TICK, sin esperar nada, que es el peor caso. */
+      cargarEstudioPorId(gA.estudioId);
+      const btnIm = [...document.querySelectorAll('button, .tab, [onclick]')].find(b => /Im.genes/.test(b.textContent || ''));
+      if (btnIm) btnIm.click();
+      R.uuidAlEntrar = String(_imgUuidActual);          // tipicamente null: la lectura no llego
+      R.tabTrasCargar = document.getElementById('tab-imagenes').classList.contains('active');
+      await esperar(() => tira().indexOf('▶️') > -1, 100);
+      R.tiraTrasReabrirA = tira();
+      R.apareceA = R.tiraTrasReabrirA.indexOf('▶️') > -1;
+      R.uuidA = _imgUuidActual === infA.uuid;
+      const cardA = document.querySelector('#cine-strip [data-cine-id]');
+      R.esElLoopDeA = !!cardA && (await CeiboCine.leer(cardA.getAttribute('data-cine-id'))).uuid === infA.uuid;
+
+      /* ── ahora B, que NO tiene cineloops: la tira NO puede quedar con el de A ── */
+      cargarEstudioPorId(gB.estudioId);
+      await esperar(() => tira() === '', 80);
+      R.tiraTrasB = tira();
+      R.bSinLoopDeA = R.tiraTrasB === '';
+      R.uuidB = _imgUuidActual === infB.uuid;
+
+      /* ── y volver a A otra vez: no es un arreglo de una sola vez ── */
+      cargarEstudioPorId(gA.estudioId);
+      await esperar(() => tira().indexOf('▶️') > -1, 80);
+      R.vuelveA = tira().indexOf('▶️') > -1;
+
+      /* ── «Nuevo estudio» CON LA TIRA LLENA ──
+         Hubo que agregarlo por mutacion: la condicion de mas arriba probaba el vaciado con la
+         tira YA vacia, asi que sacar el limpiado no la ponia en rojo. La guarda solo se
+         ejercita si antes habia algo pintado. */
+      R.tiraLlenaAntesDeVaciar = tira().indexOf('▶️') > -1;
+      imgVaciar();
+      await esperar(() => tira() === '', 60);
+      R.limpiaConTiraLlena = tira() === '';
+
+      /* ── DOS APERTURAS ENCADENADAS ──
+         Tambien por mutacion: sin esto el token de generacion no se ejercitaba nunca. Se
+         abren A y B en el MISMO tick; la lectura de A resuelve despues de la de B y, sin
+         token, aterriza encima -- la tira terminaria mostrando el cineloop de A con B en el
+         formulario. Es el mismo modo de falla que ya cerro _imgGen del lado de las imagenes. */
+      cargarEstudioPorId(gA.estudioId);
+      cargarEstudioPorId(gB.estudioId);
+      await new Promise(r => setTimeout(r, 1500));
+      R.tiraTrasDobleApertura = tira();
+      R.dobleAperturaGanaElUltimo = tira() === '' && _imgUuidActual === infB.uuid;
+
+      /* ── EL TOKEN DE GENERACION, ejercitado directamente ──
+         Por cargarEstudioPorId esta carrera NO llega: imgRestaurar ya descarta su propia
+         lectura tardia con _imgGen, asi que la de A nunca setea el uuid ni repinta. El token
+         de la tira es defensa en profundidad para las OTRAS puertas que llaman a
+         cineStripRender --activar la tab, guardar, borrar--, donde no hay nadie aguas arriba
+         filtrando. Se prueba pidiendo un render y envejeciendolo antes de que resuelva, que
+         es exactamente lo que pasa cuando otro estudio arranca el suyo. */
+      imgVaciar();
+      await esperar(() => tira() === '', 40);
+      _imgUuidActual = infA.uuid;
+      const pendiente = cineStripRender();
+      _cineStripGen++;                       // otro render arranco mientras este esperaba
+      await pendiente;
+      R.tokenFrena = tira() === '';
+
+      /* ── las imagenes fijas siguen su camino de siempre ── */
+      imgVaciar(); __t.limpiar();
+      __t.set('nombre','CINE-C'); __t.set('ci','7373737-3'); __t.set('edad','53');
+      const gC = await __t.guardar();
+      const infC = getInformes().find(i => i.estudioId === gC.estudioId);
+      await imgRestaurar(infC.uuid);
+      const fija = (()=>{ const b=atob(P.fijas[0].b64); const a=new Uint8Array(b.length);
+        for(let i=0;i<b.length;i++) a[i]=b.charCodeAt(i); return a; })();
+      await dcmImgImportar([new File([fija], P.fijas[0].nombre)]);
+      await esperar(() => imgSlots.some(s => s && s.dataURL), 80);
+      await imgPersistir(infC.uuid);
+      imgVaciar();
+      R.slotsVacios = imgSlots.filter(s => s && s.dataURL).length === 0;
+      cargarEstudioPorId(gC.estudioId);
+      await esperar(() => imgSlots.some(s => s && s.dataURL), 80);
+      R.fijasVuelven = imgSlots.some(s => s && s.dataURL && _imgSrcOK(s.dataURL));
+      R.tiraEnC = tira() === '';          // C no tiene cineloops
+    } finally {
+      window.alert = alertOrig; window.confirm = confirmOrig;
+      if (prev === null) localStorage.removeItem(TOG); else localStorage.setItem(TOG, prev);
+      try { cineCerrar(); } catch (e) {}
+    }
+    return { extra: [
+      ['se preparo el estudio A con su cineloop',        R.hayA && R.guardadosA === 1, R.guardadosA],
+      ['la tab Imagenes esta abierta (condicion del defecto)', R.tabAbierta, R.tabAbierta],
+      ['«Nuevo estudio» deja la tira vacia',             R.limpiaEnNuevo, R.uuidEnNuevo],
+      ['AL REABRIR A CON LA TAB ABIERTA, LA TIRA APARECE', R.apareceA, R.tiraTrasReabrirA.slice(0,70)],
+      ['se entro a Imagenes antes de que resolviera la lectura', R.tabTrasCargar, 'uuid al entrar: ' + R.uuidAlEntrar],
+      ['el uuid en pantalla es el de A',                 R.uuidA, R.uuidA],
+      ['y el cineloop que muestra es el de A',           R.esElLoopDeA, R.esElLoopDeA],
+      ['abrir B NO deja el cineloop de A en pantalla',   R.bSinLoopDeA, R.tiraTrasB.slice(0,70)],
+      ['el uuid pasa a ser el de B',                     R.uuidB, R.uuidB],
+      ['volver a A lo muestra otra vez',                 R.vuelveA, R.vuelveA],
+      ['habia algo pintado antes de vaciar (denominador)', R.tiraLlenaAntesDeVaciar, R.tiraLlenaAntesDeVaciar],
+      ['«Nuevo estudio» limpia una tira LLENA',          R.limpiaConTiraLlena, R.limpiaConTiraLlena],
+      ['dos aperturas encadenadas: gana la ultima',      R.dobleAperturaGanaElUltimo, R.tiraTrasDobleApertura.slice(0,60)],
+      ['una lectura que llega tarde NO pinta',           R.tokenFrena, R.tokenFrena],
+      ['las imagenes fijas se vacian con «Nuevo estudio»', R.slotsVacios, R.slotsVacios],
+      ['y vuelven al reabrir, como siempre',             R.fijasVuelven, R.fijasVuelven],
+      ['un estudio sin cineloops no muestra tira',       R.tiraEnC, R.tiraEnC]
+    ] };
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];

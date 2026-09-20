@@ -45731,12 +45731,26 @@ window.cineBorrarGuardado = cineBorrarGuardado;
 
 /* Dibuja la tira. Todo lo que viene del archivo pasa por escHtml; el poster es un dataURL
    producido por el canvas de la app, y aun así se valida con `_imgSrcOK` antes de usarlo. */
+/* Qué estudio está pintado en la tira, y un token de generación.
+   El token es el mismo patrón que `_imgGen`: `listar` es asíncrono, así que dos aperturas
+   seguidas pueden resolver fuera de orden y la lectura del estudio ANTERIOR aterrizaría
+   encima de la del actual — la tira mostraría el video de otro paciente, que es peor que no
+   mostrar nada. */
+let _cineStripUuid = null, _cineStripGen = 0;
+
 async function cineStripRender() {
   const cont = document.getElementById('cine-strip');
   if (!cont || typeof CeiboCine === 'undefined') return;
+  const gen = ++_cineStripGen;
+  const uuid = _imgUuidActual;
+  _cineStripUuid = uuid;
   const E = (typeof escHtml === 'function') ? escHtml : (s => String(s == null ? '' : s));
+  /* Sin estudio abierto no hay tira. Se limpia en vez de dejar lo anterior: un formulario en
+     blanco con el cineloop del paciente previo abajo es exactamente lo que no puede pasar. */
+  if (!_uuidValido(uuid)) { cont.innerHTML = ''; return; }
   let recs = [];
-  try { recs = await CeiboCine.listar(_imgUuidActual); } catch (e) { recs = []; }
+  try { recs = await CeiboCine.listar(uuid); } catch (e) { recs = []; }
+  if (gen !== _cineStripGen) return;                  // llegó tarde: ya hay otro estudio abierto
   recs = recs.filter(r => r && _uuidValido(r.id));    // guarda de borde: ver la nota de `tarjeta`
   if (!recs.length) { cont.innerHTML = ''; return; }
   const total = recs.reduce((a, r) => a + (r.bytes || 0), 0);
@@ -45824,9 +45838,28 @@ function cineRecolectarHuerfanos() {
 }
 window.cineRecolectarHuerfanos = cineRecolectarHuerfanos;
 
-/* La tira se redibuja al ENTRAR a la tab Imágenes. Se observa la clase del panel en vez de
-   engancharse al cambio de tab o a `imgRestaurar`: las dos cosas viven en módulos que este
-   trabajo no toca, y sin refresco la tira mostraría los cineloops del estudio anterior. */
+/* Redibuja SÓLO si cambió el estudio. Se llama seguido —cada vez que se repinta la grilla—
+   y volver a leer IndexedDB en cada repintado sería trabajo al pedo. */
+function cineStripSync() {
+  if (_imgUuidActual !== _cineStripUuid) cineStripRender();
+}
+window.cineStripSync = cineStripSync;
+
+/* ── CÓMO SE ENTERA LA TIRA DE QUE CAMBIÓ EL ESTUDIO ─────────────────────────────────────
+   Con sólo observar la activación de la tab, la tira no se actualizaba al abrir un estudio
+   desde Guardados **con la tab Imágenes ya abierta**: la clase no cambia, el observador no
+   dispara y queda pintado lo de antes. Ese era el defecto.
+
+   El enganche que sí llega es `#img-grid`. `imgRestaurar` pone `_imgUuidActual = uuid` y
+   RECIÉN DESPUÉS llama a `imgRender()`, así que cuando la grilla muta el uuid ya es el nuevo;
+   y lo llama también cuando el estudio no tiene ninguna imagen fija —`CeiboImg.leer` devuelve
+   `[]`, que es distinto de `null`—, que es justo el caso de un estudio con cineloop y sin
+   fotos. «Nuevo estudio» entra por `imgVaciar`, que nulea el uuid y repinta igual, así que la
+   tira se limpia sola por el mismo camino.
+
+   No se engancha a `imgRestaurar` directamente porque vive en otro módulo y `cargarEstudioPorId`
+   la llama por su nombre léxico: envolver `window.imgRestaurar` no interceptaría nada, y
+   fallaría en silencio. */
 document.addEventListener('DOMContentLoaded', function () {
   const tab = document.getElementById('tab-imagenes');
   if (!tab || typeof MutationObserver === 'undefined') return;
@@ -45837,6 +45870,10 @@ document.addEventListener('DOMContentLoaded', function () {
     if (ahora && !activa) alEntrar();
     activa = ahora;
   }).observe(tab, { attributes:true, attributeFilter:['class'] });
+
+  const grid = document.getElementById('img-grid');
+  if (grid) new MutationObserver(cineStripSync).observe(grid, { childList:true });
+
   if (activa) alEntrar();
 });
 
@@ -60915,8 +60952,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260919-2058';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789862288592;                 /* eco-build-ms */
+const ECO_BUILD    = '20260919-2219';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789867171091;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -61002,7 +61039,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-2058</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-2219</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

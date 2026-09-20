@@ -7806,6 +7806,40 @@ probar sin depender de cuántos estudios haya — la primera versión de TC-184 
 **pasaba con `--solo` y fallaba dentro del suite**, donde los casos anteriores ya habían guardado
 estudios. El caso no fijaba su propio denominador.
 
+**La tira se sincroniza contra `#img-grid`, no sólo contra la activación de la tab
+(2026-09-20).** El defecto: al abrir un estudio desde Guardados, los cineloops no volvían —las
+imágenes fijas sí—. La causa no era la que parecía. `cargarEstudioPorId` termina con
+`showTab('datos')`, así que el médico entra a Imágenes **después**; pero llama a
+`imgRestaurar(inf.uuid)` **sin esperarla**. Si se entra a la tab antes de que IndexedDB
+resuelva, `_imgUuidActual` todavía es `null`, la tira se pintaba vacía **y no se volvía a
+pintar nunca**. Las fijas sí volvían porque `imgRender()` corre *dentro* del `.then()`, cuando
+la lectura llega. Eso explica exactamente la asimetría del síntoma.
+
+El enganche que sí llega a tiempo es la grilla: `imgRestaurar` pone `_imgUuidActual = uuid` y
+**recién después** llama a `imgRender()`, y lo llama también cuando el estudio no tiene ninguna
+imagen fija —`CeiboImg.leer` devuelve `[]`, que no es `null`—, que es justo el caso de un
+estudio con cineloop y sin fotos. «Nuevo estudio» entra por `imgVaciar`, que nulea el uuid y
+repinta igual, así que la tira se limpia sola por el mismo camino.
+**No se engancha a `imgRestaurar`:** vive en otro módulo y `cargarEstudioPorId` la llama por su
+nombre léxico, así que envolver `window.imgRestaurar` no interceptaría nada — y fallaría en
+silencio.
+
+Dos cosas sobre las pruebas de esto, porque las dos costaron una vuelta:
+- **`limpiarCampos` NO vacía las imágenes**; lo hace `imgVaciar()`, y sólo desde «Nuevo
+  estudio» (lo dice su propio comentario). Una prueba que use `__t.limpiar()` como si fuera
+  «paciente nuevo» no reproduce nada: `_imgUuidActual` queda con el estudio anterior y no se
+  distingue el arreglo de la falla. Hay que llamar a `imgVaciar()`.
+- **Probar el vaciado con la tira ya vacía no prueba el vaciado.** La primera versión de TC-185
+  lo hacía y sacar el limpiado no la ponía en rojo. La condición útil exige que antes hubiera
+  algo pintado.
+
+**El token `_cineStripGen` es defensa en profundidad y su carrera NO es alcanzable por
+`cargarEstudioPorId`:** `imgRestaurar` ya descarta su propia lectura tardía con `_imgGen`, así
+que la del estudio anterior nunca setea el uuid ni repinta. El token cubre las **otras** puertas
+que llaman a `cineStripRender` —activar la tab, guardar, borrar—, donde no hay nadie aguas
+arriba filtrando. Se prueba pidiendo un render y envejeciéndolo antes de que resuelva. Si algún
+día alguien lo borra «porque no hace falta», esa condición se pone en rojo.
+
 **El id NO se interpola dentro de un `onclick`.** Va por `data-cine-id` y el manejador se ata
 desde JS. Escapar no alcanza en un atributo de evento: el parser decodifica la entidad **antes**
 de compilar el handler — es el mismo agujero que documenta la entrada de CardioSalud. Lo cazó
