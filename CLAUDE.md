@@ -10,6 +10,65 @@ ninguna es evidente leyendo el código alrededor.
 
 
 
+
+## Video MP4 en los slots — sólo documentación (TC-212)
+
+Videos del celular u otra fuente. Base **aparte** (`ceibomed_video`, `CeiboVideo`), como
+`CeiboCine` y por el motivo que `CeiboImg` ya documenta: agregar un store a `ceibomed_img`
+exige subir `DB_VER`, y con **dos pestañas abiertas** el upgrade se bloquea y la tienda de
+IMÁGENES cae a modo respaldo.
+
+### EL VIDEO NO SALE EN EL PDF, y eso sostiene todo lo demás
+
+El slot lleva el **primer cuadro** como miniatura. Sin el filtro `!s.videoId`, el informe
+**firmado** saldría con un cuadro que el médico **no eligió** —el primero del archivo— y el
+botón «capturar frame» no tendría sentido. Lo que sale es el cuadro que captura a mano, que
+ocupa **otro** slot como imagen normal (no reemplaza al video: se pueden querer varios).
+
+`videoId` viaja en la lista blanca de `CeiboImg.guardar` **y** en la repoblación de
+`imgRestaurar`. Sin cualquiera de las dos el slot vuelve como **foto**: se imprime en el PDF y
+el reproductor desaparece.
+
+### Sin mediciones: no hacía falta compuerta, hacía falta el MOTIVO
+
+`medFijaClic` exige `slot._dcmId`, que un video no tiene, así que ya caía en el rechazo. Lo que
+se agregó es el mensaje correcto: el genérico habla de «una foto o una captura de pantalla»,
+que sobre un video suena a que le falta un dato y no a que **el método no aplica**. Escribir una
+compuerta nueva habría sido un resguardo que no se puede hacer fallar.
+
+### Lo que costó, y es la cuarta vez
+
+**LA MUTACIÓN QUE DEVUELVE EL VIDEO AL PDF SOBREVIVIÓ.** Mi condición hacía el filtro de
+`imgSlots` **dentro del caso** — o sea una COPIA de la regla que venía a probar. Es «un caso que
+reimplementa la regla prueba su propia copia», cuarta vez en esta sesión.
+
+Al corregirlo apareció lo siguiente: **`generarPDFReal` no se deja manejar desde el harness**
+—devuelve temprano y dibuja cero imágenes, incluso con nombre e informe cargados— así que no hay
+forma de ejercer ese camino de punta a punta. Se resolvió con **verificación sobre el FUENTE**,
+que es el recurso que TC-98 ya usa para `TEER_CRIT` por el mismo motivo, y **declarado como
+tal**: la condición lee la línea del filtro y exige `!s.videoId`, más que sea el **único** filtro
+de slots hacia el PDF —si aparece un segundo, este caso dejaría de cubrirlo y hay que
+enterarse—. Queda anotado que el camino completo **no** está ejercido.
+
+**Backticks dentro del cuerpo de un caso: van VEINTISÉIS**, tres en este turno, las tres en
+comentarios recién escritos — uno de ellos explicando justamente esta trampa.
+
+### Detalles que no son obvios
+
+- **Detección por `ftyp` en los bytes 4-7** (MP4 y MOV son ISO-BMFF). El MIME entra como
+  segunda vía pero **no alcanza solo**: `file.type` sale de la extensión en varios navegadores,
+  que es lo que el pedido pide no usar.
+- **El póster necesita un `seek`**: sin `currentTime = 0.05`, Chrome y Safari entregan
+  `loadeddata` con el cuadro en negro.
+- **Si el navegador no puede decodificar el video, se rechaza el archivo** en vez de dejar un
+  slot con un hueco: un `ftyp` válido puede ser un códec que este navegador no trae.
+- **Los blobs viven en `_videoBlobs`, no dentro del slot**: `CeiboImg.guardar` serializa el slot
+  y ahí entrarían 50 MB de video en la tienda de imágenes.
+- **El aviso obligatorio va como `alert` una vez por sesión** y como toast después. Es una
+  limitación del MÉTODO —no se puede medir— así que tiene que interrumpir la primera vez.
+- **El caso graba su propio video con `MediaRecorder`** desde un canvas: sin binarios en el repo
+  y sin PHI.
+
 ## Barra de memoria: umbrales, contadores y avisos (TC-211)
 
 Cuatro tramos (🟢 <60 · 🟡 60-79 · 🟠 80-89 · 🔴 ≥90), contadores debajo y aviso con botón de

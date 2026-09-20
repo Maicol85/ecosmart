@@ -25120,6 +25120,10 @@ function imgPersistir(uuid) {
   if (!imgGuardadoActivo()) return Promise.resolve(false);
   _imgUuidActual = uuid;   // el estudio en pantalla es éste
   if (!vivas.length && !_imgEditado) return Promise.resolve(false);   // ver _imgEditado
+  /* Los videos van a su propia base, en paralelo. No se encadena al `then` de las imágenes:
+     que falle uno no tiene por qué impedir el otro, y `imgPersistir` ya resuelve su booleano
+     sobre las imágenes, que es lo que miran sus llamadores. */
+  videoPersistir(uuid);
   return CeiboImg.guardar(uuid, vivas).then(ok => {
     if (!ok && typeof toast === 'function') {
       toast('⚠️ El estudio se guardó, pero no se pudieron guardar las imágenes');
@@ -25170,8 +25174,17 @@ function imgRestaurar(uuid) {
     /* Sin `_orig`: el original no se persiste, así que al reabrir un estudio sólo se puede
        BAJAR de calidad desde lo guardado. El selector lo refleja deshabilitando lo que
        requeriría más información de la que hay. */
+    /* Los blobs de video se repueblan por uuid: el slot vuelve con su `videoId` desde la
+       tienda de imágenes, pero los bytes viven en `ceibomed_video`. Sin esto el reproductor
+       avisa que el video no está en esta sesión sobre un estudio que sí lo tiene guardado. */
+    videoRestaurar(uuid);
     buenas.forEach(s => imgSlots.push({ dataURL: s.dataURL, ampliada: !!s.ampliada,
-                                        calidad: (typeof s.calidad === 'string' ? s.calidad : 'media') }));
+                                        calidad: (typeof s.calidad === 'string' ? s.calidad : 'media'),
+                                        /* `videoId` tiene que viajar o el slot vuelve como FOTO:
+                                           se imprimiría en el PDF —con un cuadro que nadie
+                                           eligió— y el reproductor desaparecería. */
+                                        videoId: (s.videoId || undefined),
+                                        videoNombre: (s.videoNombre || undefined) }));
     while (imgSlots.length < 2) imgSlots.push(null);
     imgSlotCount = imgSlots.length;
     _imgEditado = false;                // arranca limpio para este estudio
@@ -28290,7 +28303,10 @@ function generarPDFReal(_aj) {
   // IMÁGENES ADJUNTAS — página(s) adicional(es) al final
   // ════════════════════════════════════════════════════════════
   if (typeof imgSlots !== 'undefined') {
-    const _loaded = imgSlots.filter(s => s && s.dataURL);
+    /* `!s.videoId`: el slot de un VIDEO lleva su primer cuadro como miniatura, y sin este
+       filtro el informe firmado saldría con un cuadro que el médico NO eligió —el primero del
+       archivo—. Lo que sale es el cuadro que captura a mano, que ocupa otro slot como imagen. */
+    const _loaded = imgSlots.filter(s => s && s.dataURL && !s.videoId);
     if (_loaded.length) {
       // _bot usa el MISMO presupuesto dinámico que checkPage: la banda de firma
       // cambia de alto según cuántas filas tenga, y con un valor fijo una imagen
@@ -37224,7 +37240,13 @@ const CeiboImg = (function () {
                                                   estudio para exportarlo es el flujo normal,
                                                   así que el selector vería CERO capturas del
                                                   visor. Son ~16 bytes por imagen. */
-                                               origen: (s.origen === 'visor' ? 'visor' : 'estudio') }));
+                                               origen: (s.origen === 'visor' ? 'visor' : 'estudio'),
+                                               /* `videoId` marca que este slot es un VIDEO: sin
+                                                  él vuelve como foto, se imprime en el PDF y el
+                                                  reproductor desaparece. Los bytes viven en
+                                                  `ceibomed_video`, no acá. */
+                                               videoId: (s.videoId || undefined),
+                                               videoNombre: (s.videoNombre || undefined) }));
       /* `.then(r => r)` y no `.then(() => true)`: descartar el resultado del borrado hacía que
          «quitar todas las imágenes y guardar» cantara éxito aunque el delete fallara, y las
          imágenes que el médico había descartado reaparecían al reabrir el estudio. */
@@ -45155,6 +45177,13 @@ function imgRender(){
       cell.innerHTML =
         '<img src="'+(_imgSrcOK(slot.dataURL)?slot.dataURL:'')+'" loading="lazy" style="max-width:100%;max-height:220px;display:block;pointer-events:none;" alt="'+(_imgSrcOK(slot.dataURL)?('imagen '+(idx+1)):'Imagen '+(idx+1)+' no se puede mostrar: formato no admitido')+'" title="'+(_imgSrcOK(slot.dataURL)?'':'Formato de imagen no admitido')+'">'
         + (amp ? '<span style="position:absolute;top:6px;left:6px;background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;pointer-events:none;">AMPLIADA</span>' : '')
+        /* Badge de VIDEO. El slot muestra el primer cuadro; sin la marca se ve igual que una
+           foto y nadie sabe que hay un reproductor detrás. Dice además que no sale en el PDF,
+           que es lo que lo distingue de todo lo demás que ocupa un slot. */
+        + (slot.videoId ? '<span data-video-badge="' + idx + '" style="position:absolute;inset:0;' +
+            'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;' +
+            'background:rgba(0,0,0,0.30);color:#fff;font-size:11px;font-weight:700;cursor:pointer;">' +
+            '<span style="font-size:30px;line-height:1;">▶️</span>VIDEO · no sale en el PDF</span>' : '')
         + '<button type="button" title="Eliminar" onclick="imgRemove(event,'+idx+')" style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1;">✕</button>'
         + _imgSelectorCalidad(slot, idx);
     } else {
@@ -45163,6 +45192,21 @@ function imgRender(){
     _imgAttach(cell, idx);
     grid.appendChild(cell);
   });
+  /* Un solo listener DELEGADO en la grilla. `imgRender` rearma el grid entero en cada llamada,
+     así que enganchar por celda acumularía un listener por repintado. Es el patrón del donut de
+     la CIA y del modo medición sobre slots, que ya cuelga de este mismo contenedor. */
+  if (!grid._videoDelegado) {
+    grid._videoDelegado = true;
+    grid.addEventListener('click', ev => {
+      const b = ev.target && ev.target.closest ? ev.target.closest('[data-video-badge]') : null;
+      if (!b) return;
+      /* Con el modo medición encendido manda `medFijaClic`, que explica por qué un video no se
+         mide. Abrir el reproductor ahí se leería como que la medición arrancó. */
+      if (typeof _medFijaOn !== 'undefined' && _medFijaOn) return;
+      ev.preventDefault(); ev.stopPropagation();
+      videoAbrir(parseInt(b.getAttribute('data-video-badge'), 10));
+    });
+  }
 }
 
 /* Selector de calidad, debajo de cada imagen.
@@ -45767,7 +45811,15 @@ async function imgFileElegido(ev) {
     const cab = new Uint8Array(await f.slice(0, 132).arrayBuffer());
     esDicom = cab.length >= 132 && _dcmImgAscii(cab, 128, 4) === 'DICM';
   } catch (e) { esDicom = false; }
-  if (!esDicom) { imgFileChosen(ev); return; }    // flujo de siempre, intacto
+  /* VIDEO antes de caer al flujo de foto: un MP4 no es una imagen y `imgCompressLoad` lo
+     mandaría al compresor, que devuelve un canvas vacío. Se mira `ftyp` en los bytes 4-7 —los
+     MP4 y los MOV son ISO-BMFF— y el MIME sólo como segunda vía. */
+  if (!esDicom) {
+    let cab2 = null;
+    try { cab2 = new Uint8Array(await f.slice(0, 16).arrayBuffer()); } catch (e) { cab2 = null; }
+    if (_esVideoSoportado(cab2, f)) { ev.target.value = ''; await videoCargarEnSlot(f, destino); return; }
+    imgFileChosen(ev); return;                   // flujo de siempre, intacto
+  }
   ev.target.value = '';
   await dcmImgImportar([f], destino);
 }
@@ -49743,6 +49795,18 @@ function medFijaClic(ev) {
   const slot = imgSlots[idx];
   if (!slot || !slot.dataURL) return;                     // slot vacío: se ignora
   ev.preventDefault(); ev.stopPropagation();
+  /* SIN MEDICIONES SOBRE VIDEO, y no hace falta una compuerta nueva: `_medFijaDe` exige
+     `slot._dcmId`, que un video no tiene, así que ya caía en el rechazo genérico. Lo que se
+     agrega es el MOTIVO correcto — «una foto no dice cuántos milímetros mide un píxel» sobre un
+     video suena a que le falta un dato, y lo que pasa es que el método no aplica. */
+  if (slot.videoId) {
+    alert('Un video MP4 no se puede medir.\n\n' +
+          'Los videos son sólo para documentación: no traen escala ni metadatos del ecógrafo. ' +
+          'Las mediciones clínicas requieren archivos DICOM.\n\n' +
+          'Si necesitás medir sobre esa imagen, capturá el cuadro desde el reproductor y usá un ' +
+          'DICOM del mismo plano.');
+    return;
+  }
   const fija = _medFijaDe(slot);
   if (!fija) {
     alert('Esta imagen no tiene datos de escala DICOM.\n\n' +
@@ -49794,6 +49858,300 @@ document.addEventListener('DOMContentLoaded', function () {
 
    UN REGISTRO POR CINELOOP, con índice por estudio. Con un registro por estudio, abrir un
    loop cargaría TODOS los del estudio a memoria —50 MB para mirar 4—. */
+
+/* ══ VIDEO MP4 EN LOS SLOTS ════════════════════════════════════════════════════════════════
+   Videos del celular u otra fuente, SÓLO para documentación. Sin mediciones — y eso no hace
+   falta gatearlo: `medFijaClic` exige `slot._dcmId`, que un video no tiene, así que el modo
+   medición ya lo rechaza por construcción. Lo que sí se agrega es el MOTIVO correcto en ese
+   rechazo: el mensaje genérico habla de «una foto o una captura de pantalla», que sobre un
+   video suena a que le falta un dato y no a que el método no aplica.
+
+   ⚠️ BASE APARTE, como `CeiboCine`. Agregar un store a `ceibomed_img` exige subir `DB_VER`, y
+   `_abrir()` resuelve `null` ante `onblocked`: con DOS PESTAÑAS abiertas —que es lo habitual—
+   el upgrade se bloquea y la tienda de IMÁGENES cae a modo respaldo. Una base nueva no versiona
+   la vieja. Está escrito en el comentario de `CeiboImg` y se respeta.
+
+   ⚠️ EL VIDEO NO SALE EN EL PDF, y es la decisión que sostiene todo lo demás. Si el slot de
+   video imprimiera su póster, el informe firmado llevaría un cuadro que el médico NO eligió
+   —el primero del archivo— y el botón «capturar frame» no tendría sentido. Sale el frame que
+   el médico captura, que ocupa OTRO slot como imagen normal. */
+const VIDEO_AVISO_MB = 50;      // igual que CINE_AVISO_MB, y por el mismo motivo: son archivos
+                                // grandes que el navegador puede desalojar. Constante propia y
+                                // no compartida: son dos almacenamientos distintos y el día que
+                                // uno cambie no tiene por qué arrastrar al otro.
+const VIDEO_TIPOS = ['video/mp4', 'video/quicktime'];
+
+const CeiboVideo = (function () {
+  const DB_NAME = 'ceibomed_video', DB_VER = 1, STORE = 'videos';
+  let _intento = null;
+  function _abrir() {
+    if (_intento) return _intento;
+    _intento = new Promise(resolve => {
+      let listo = false;
+      const fin = v => { if (!listo) { listo = true; resolve(v); } };
+      let req;
+      try {
+        if (!window.indexedDB) return fin(null);
+        req = indexedDB.open(DB_NAME, DB_VER);
+      } catch (e) { return fin(null); }
+      req.onupgradeneeded = ev => {
+        const db = ev.target.result;
+        if (!db.objectStoreNames.contains(STORE)) {
+          const os = db.createObjectStore(STORE, { keyPath: 'id' });
+          os.createIndex('uuid', 'uuid', { unique: false });
+        }
+      };
+      req.onsuccess = () => fin(req.result);
+      req.onerror = () => fin(null);
+      req.onblocked = () => fin(null);
+      setTimeout(() => fin(null), 3000);
+    });
+    return _intento;
+  }
+  function _tx(modo, fn) {
+    return _abrir().then(db => new Promise(resolve => {
+      if (!db) return resolve({ ok:false, err:'no se pudo abrir el almacenamiento del navegador' });
+      let tx;
+      try { tx = db.transaction(STORE, modo); } catch (e) { return resolve({ ok:false, err:String(e && e.message || e) }); }
+      let val = null;
+      tx.oncomplete = () => resolve({ ok:true, val:val });
+      tx.onerror = () => resolve({ ok:false, err:String((tx.error && tx.error.name) || 'error') });
+      tx.onabort = () => resolve({ ok:false, err:String((tx.error && tx.error.name) || 'abortada') });
+      try { fn(tx.objectStore(STORE), v => { val = v; }); }
+      catch (e) { resolve({ ok:false, err:String(e && e.message || e) }); }
+    })).catch(e => ({ ok:false, err:String(e && e.message || e) }));
+  }
+  return {
+    disponible() { return _abrir().then(db => !!db); },
+    /* Reemplaza TODOS los videos del estudio: es el mismo criterio que `CeiboImg.guardar`, así
+       que quitar un video y volver a guardar limpia de verdad. */
+    guardar(uuid, vids) {
+      return _tx('readwrite', (os, ok) => {
+        const idx = os.index('uuid');
+        const q = idx.getAllKeys(uuid);
+        q.onsuccess = () => {
+          (q.result || []).forEach(k => os.delete(k));
+          (vids || []).forEach(v => {
+            if (!v || !v.blob) return;
+            os.put({ id: v.id, uuid: uuid, nombre: String(v.nombre || ''),
+                     tipo: String(v.tipo || ''), bytes: v.bytes || 0, blob: v.blob });
+          });
+          ok(true);
+        };
+      }).then(r => !!(r.ok && r.val));
+    },
+    /* `null` = no se pudo leer · `[]` = este estudio no tiene. Un solo valor haría que un fallo
+       transitorio se tradujera en «no hay video» y, aguas abajo, en un borrado. */
+    leer(uuid) {
+      return _tx('readonly', (os, ok) => {
+        const q = os.index('uuid').getAll(uuid);
+        q.onsuccess = () => ok(q.result || []);
+      }).then(r => (r.ok && r.val) ? r.val : null);
+    },
+    borrarTodo() {
+      return _tx('readwrite', (os, ok) => { os.clear(); ok(true); }).then(r => !!(r.ok && r.val));
+    },
+    uso() {
+      return _tx('readonly', (os, ok) => {
+        const q = os.getAll();
+        q.onsuccess = () => ok({ n:(q.result||[]).length,
+                                 bytes:(q.result||[]).reduce((a,r) => a + (r.bytes||0), 0) });
+      }).then(r => (r.ok && r.val) ? r.val : { n:0, bytes:0 });
+    }
+  };
+})();
+window.CeiboVideo = CeiboVideo;
+
+/* Los blobs viven en memoria mientras dura la sesión, indexados por el id que lleva el slot.
+   No se guardan DENTRO del slot para que `CeiboImg.guardar` —que serializa el slot— no intente
+   meter 50 MB de video en la tienda de imágenes. */
+let _videoBlobs = {};
+const _videoNuevoId = () => 'vid-' + Date.now().toString(36) + '-' +
+  Math.floor(Math.random() * 1e6).toString(36);
+
+/* Detección por CONTENIDO, nunca por extensión. Los MP4 y los MOV son ISO-BMFF: los bytes 4-7
+   dicen `ftyp`. El MIME se acepta como segunda vía —un archivo del celular suele traerlo— pero
+   NO alcanza solo: `type` sale de la extensión en varios navegadores, que es exactamente lo que
+   el pedido pide no usar. */
+function _esVideoSoportado(cab, file) {
+  const ftyp = cab && cab.length >= 12 &&
+    String.fromCharCode(cab[4], cab[5], cab[6], cab[7]) === 'ftyp';
+  if (ftyp) return true;
+  return !!(file && VIDEO_TIPOS.indexOf(String(file.type || '').toLowerCase()) >= 0);
+}
+
+/* Primer cuadro del video, para la miniatura del slot. Devuelve `null` si el navegador no puede
+   decodificarlo —un ftyp puede ser un códec que este navegador no trae— y ahí el archivo se
+   rechaza en vez de dejar un slot con un hueco. */
+function _videoPoster(blob) {
+  return new Promise(resolve => {
+    let url = null, v = null, listo = false;
+    const fin = r => { if (listo) return; listo = true;
+      try { if (v) { v.pause(); v.removeAttribute('src'); v.load(); } } catch (e) {}
+      try { if (url) URL.revokeObjectURL(url); } catch (e) {}
+      resolve(r); };
+    try {
+      url = URL.createObjectURL(blob);
+      v = document.createElement('video');
+      v.muted = true; v.playsInline = true; v.preload = 'metadata';
+      v.onloadeddata = () => {
+        try {
+          const c = document.createElement('canvas');
+          c.width = v.videoWidth || 320; c.height = v.videoHeight || 240;
+          if (!v.videoWidth) return fin(null);
+          c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+          fin({ poster: c.toDataURL('image/jpeg', 0.7), dur: v.duration || 0,
+                w: v.videoWidth, h: v.videoHeight });
+        } catch (e) { fin(null); }
+      };
+      v.onerror = () => fin(null);
+      /* Sin el seek, Safari y Chrome entregan `loadeddata` con el cuadro en negro. */
+      v.onloadedmetadata = () => { try { v.currentTime = 0.05; } catch (e) {} };
+      v.src = url;
+      setTimeout(() => fin(null), 8000);
+    } catch (e) { fin(null); }
+  });
+}
+
+/* El aviso obligatorio. UNA vez por sesión, como el de la barra de memoria y por el mismo
+   motivo: repetirlo en cada carga se vuelve ruido y se deja de leer. Va como `alert` y no como
+   toast porque es una limitación del MÉTODO —no se puede medir— y tiene que interrumpir. */
+const _VIDEO_AVISO_KEY = 'ett_video_aviso';
+const VIDEO_AVISO_TXT = 'Video MP4 — solo para documentación. Las mediciones clínicas ' +
+                        'requieren archivos DICOM.';
+function _videoAvisar() {
+  let visto = false;
+  try { visto = sessionStorage.getItem(_VIDEO_AVISO_KEY) === '1'; } catch (e) { visto = false; }
+  if (visto) { if (typeof toast === 'function') toast('🎬 ' + VIDEO_AVISO_TXT); return; }
+  try { sessionStorage.setItem(_VIDEO_AVISO_KEY, '1'); } catch (e) {}
+  alert(VIDEO_AVISO_TXT);
+}
+
+/* Carga un video en un slot. Devuelve el índice ocupado, o -1. */
+async function videoCargarEnSlot(file, destino) {
+  const mb = file.size / 1048576;
+  if (mb > VIDEO_AVISO_MB &&
+      !confirm('Este video pesa ' + mb.toFixed(1) + ' MB.\n\n' +
+               'Los videos ocupan mucho almacenamiento y el navegador puede desalojarlos si el ' +
+               'disco se llena. ¿Guardarlo igual?')) return -1;
+  const info = await _videoPoster(file);
+  if (!info) {
+    alert('No se pudo leer este video.\n\nEl archivo tiene la marca de un MP4/MOV pero este ' +
+          'navegador no puede decodificarlo — puede ser el códec. Probá convertirlo a H.264.');
+    return -1;
+  }
+  const idx = (typeof _dcmImgReservar === 'function')
+    ? _dcmImgReservar(1, destino)[0]
+    : destino;
+  if (idx === undefined || idx === null || idx < 0) return -1;
+  const id = _videoNuevoId();
+  _videoBlobs[id] = { id: id, blob: file, nombre: file.name || 'video.mp4',
+                      tipo: file.type || 'video/mp4', bytes: file.size || 0 };
+  imgSlots[idx] = { dataURL: info.poster, ampliada: false, calidad: IMG_CAL_DEF,
+                    origen: 'estudio', videoId: id, videoDur: info.dur || 0,
+                    videoNombre: file.name || 'video.mp4' };
+  if (typeof imgMarcarEditado === 'function') imgMarcarEditado();
+  imgRender();
+  _videoAvisar();
+  return idx;
+}
+window.videoCargarEnSlot = videoCargarEnSlot;
+
+
+/* Reproductor en modal, con el <video> NATIVO del navegador: controles, teclado y accesibilidad
+   salen gratis y no hay un segundo reproductor que mantener. */
+function videoAbrir(idx) {
+  const slot = imgSlots[idx];
+  if (!slot || !slot.videoId) return;
+  const rec = _videoBlobs[slot.videoId];
+  if (!rec || !rec.blob) {
+    alert('El video de este slot no está cargado en esta sesión.\n\n' +
+          'Se guarda con el estudio, pero para reproducirlo hay que reabrir el estudio: al ' +
+          'volver se lee del almacenamiento del navegador.');
+    return;
+  }
+  const url = URL.createObjectURL(rec.blob);
+  const ov = document.createElement('div');
+  ov.setAttribute('data-video-modal', '1');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:99999;display:flex;' +
+                     'align-items:center;justify-content:center;padding:18px;flex-direction:column;gap:10px;';
+  const v = document.createElement('video');
+  v.src = url; v.controls = true; v.playsInline = true;
+  v.setAttribute('data-video-player', '1');
+  v.style.cssText = 'max-width:100%;max-height:72vh;border-radius:10px;background:#000;';
+  ov.appendChild(v);
+
+  const nota = document.createElement('div');
+  nota.style.cssText = 'font-size:11.5px;color:#e5e7eb;text-align:center;max-width:620px;line-height:1.5;';
+  nota.textContent = '🎬 ' + VIDEO_AVISO_TXT + ' Pausá en el cuadro que quieras y capturalo: ' +
+                     'el video NO sale en el PDF, el cuadro capturado sí.';
+  ov.appendChild(nota);
+
+  const pie = document.createElement('div');
+  pie.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;justify-content:center;';
+  const mk = (txt, cls, fn, id) => { const b = document.createElement('button');
+    b.type = 'button'; b.className = 'btn ' + cls;
+    b.style.cssText = 'padding:7px 14px;font-size:12px;';
+    b.textContent = txt; if (id) b.setAttribute('data-video-act', id);
+    b.onclick = fn; return b; };
+  const cerrar = () => { try { v.pause(); } catch (e) {}
+    try { URL.revokeObjectURL(url); } catch (e) {}
+    try { document.body.removeChild(ov); } catch (e) {} };
+  pie.appendChild(mk('📸 Capturar frame', 'btn-primary', () => videoCapturarFrame(v), 'capturar'));
+  pie.appendChild(mk('Cerrar', 'btn-ghost', cerrar, 'cerrar'));
+  ov.appendChild(pie);
+  ov.onclick = ev => { if (ev.target === ov) cerrar(); };
+  document.body.appendChild(ov);
+}
+window.videoAbrir = videoAbrir;
+
+/* El cuadro capturado va a OTRO slot, como imagen fija. No reemplaza al video: el médico puede
+   querer varios cuadros del mismo video, y perder el video al capturar el primero sería una
+   sorpresa cara. Entra por `imgCompressLoad`, la misma puerta que una foto, así que hereda el
+   selector de calidad, la persistencia y la salida al PDF sin una segunda implementación. */
+function videoCapturarFrame(v) {
+  if (!v || !v.videoWidth) { toast('❌ El video todavía no cargó'); return; }
+  let blob = null;
+  try {
+    const c = document.createElement('canvas');
+    c.width = v.videoWidth; c.height = v.videoHeight;
+    c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+    c.toBlob(b => {
+      if (!b) { toast('❌ No se pudo capturar el cuadro'); return; }
+      const idx = _dcmImgReservar(1)[0];
+      imgCompressLoad(b, idx);
+      toast('📸 Cuadro capturado — va al informe como imagen');
+    }, 'image/jpeg', 0.9);
+  } catch (e) { toast('❌ No se pudo capturar el cuadro'); }
+  return blob;
+}
+window.videoCapturarFrame = videoCapturarFrame;
+
+/* Persistencia: se llama desde `imgPersistir`, que ya sabe cuándo corresponde escribir —toggle
+   encendido, uuid válido, y no durante la reimpresión—. Acá NO se repiten esas guardas: con dos
+   copias, una podría escribir donde la otra se abstiene. */
+function videoPersistir(uuid) {
+  if (typeof CeiboVideo === 'undefined') return Promise.resolve(false);
+  const vids = (typeof imgSlots !== 'undefined' ? imgSlots : [])
+    .filter(s => s && s.videoId && _videoBlobs[s.videoId])
+    .map(s => _videoBlobs[s.videoId]);
+  return CeiboVideo.guardar(uuid, vids).catch(() => false);
+}
+window.videoPersistir = videoPersistir;
+
+/* Restauración: repuebla `_videoBlobs` para los slots que volvieron con `videoId`. Sin esto el
+   slot vuelve con su póster y el reproductor dice que el video no está en esta sesión. */
+function videoRestaurar(uuid) {
+  if (typeof CeiboVideo === 'undefined' || !_uuidValido(uuid)) return Promise.resolve(0);
+  return CeiboVideo.leer(uuid).then(rs => {
+    if (!rs) return 0;                      // no se pudo leer: se deja lo que haya en memoria
+    rs.forEach(r => { if (r && r.id && r.blob)
+      _videoBlobs[r.id] = { id:r.id, blob:r.blob, nombre:r.nombre, tipo:r.tipo, bytes:r.bytes }; });
+    return rs.length;
+  }).catch(() => 0);
+}
+window.videoRestaurar = videoRestaurar;
+
 const CeiboCine = (function () {
   const DB_NAME = 'ceibomed_cine', DB_VER = 1, STORE = 'cineloops';
   let _intento = null;
@@ -65674,8 +66032,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260920-1901';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789941661280;                 /* eco-build-ms */
+const ECO_BUILD    = '20260920-1915';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789942551431;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -65761,7 +66119,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1901</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1915</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

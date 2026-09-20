@@ -16103,6 +16103,201 @@ caso('TC-211', 'Guardados: barra de memoria con umbrales, contadores y aviso por
   })();
 `);
 
+
+/* ══ TC-212 · Video MP4 en los slots ═════════════════════════════════════════════════════════
+   LO QUE MAS IMPORTA: EL VIDEO NO SALE EN EL PDF. El slot lleva el PRIMER cuadro como
+   miniatura, asi que sin el filtro el informe FIRMADO saldria con un cuadro que el medico no
+   eligio -y se veria perfectamente normal-. Lo que sale es el cuadro que captura a mano.
+   Y sin mediciones sobre video: no hace falta compuerta nueva -`_medFijaDe` exige `_dcmId`-
+   pero si el MOTIVO correcto en el rechazo.
+   El MP4 se graba con MediaRecorder en la propia pagina: sin binarios en el repo y sin PHI.
+   NO DEPENDE DEL PENDRIVE.                                                                    */
+caso('TC-212', 'Slots: video MP4 para documentacion, con captura de cuadro y sin mediciones', `
+  return (async () => {
+    const R = {};
+    const alertOrig = window.alert, confOrig = window.confirm, toastOrig = window.toast;
+    const dichos = []; const tostadas = [];
+    window.alert = m => { dichos.push(String(m)); };
+    window.confirm = () => true;
+    window.toast = m => { tostadas.push(String(m)); };
+    try {
+      __t.limpiar(); imgVaciar();
+      try { sessionStorage.removeItem('ett_video_aviso'); } catch (e) {}
+
+      /* ── un video real, grabado del canvas ── */
+      const cv = document.createElement('canvas'); cv.width = 160; cv.height = 120;
+      const g = cv.getContext('2d');
+      const st = cv.captureStream(20);
+      let mime = '';
+      ['video/mp4', 'video/webm;codecs=vp8', 'video/webm'].forEach(t => {
+        if (!mime && window.MediaRecorder && MediaRecorder.isTypeSupported(t)) mime = t; });
+      R.mime = mime;
+      if (!mime) return { extra: [['el navegador puede grabar un video de prueba', false, 'sin MediaRecorder']] };
+      const trozos = [];
+      const mr = new MediaRecorder(st, { mimeType: mime });
+      mr.ondataavailable = e => { if (e.data && e.data.size) trozos.push(e.data); };
+      mr.start();
+      for (let k = 0; k < 14; k++) {
+        g.fillStyle = k < 7 ? 'rgb(240,20,20)' : 'rgb(20,20,240)';   // rojo y despues azul
+        g.fillRect(0,0,160,120);
+        await new Promise(r=>setTimeout(r,45));
+      }
+      await new Promise(res => { mr.onstop = res; mr.stop(); });
+      const blob = new Blob(trozos, { type: mime });
+      R.bytes = blob.size;
+      const file = new File([blob], 'eco.mp4', { type: mime });
+
+      /* ── 1 · deteccion por BYTES, no por extension ── */
+      const cab = new Uint8Array(await file.slice(0,16).arrayBuffer());
+      R.ftyp = String.fromCharCode(cab[4],cab[5],cab[6],cab[7]);
+      R.detecta = _esVideoSoportado(cab, file);
+      /* un archivo con extension .mp4 y contenido de texto NO se acepta por la extension */
+      const falso = new File([new Blob(['no soy un video'], {type:'text/plain'})], 'falso.mp4', {type:'text/plain'});
+      const cabF = new Uint8Array(await falso.slice(0,16).arrayBuffer());
+      R.rechazaFalso = _esVideoSoportado(cabF, falso) === false;
+
+      /* ── 2 · carga en el slot ── */
+      dichos.length = 0;
+      const idx = await videoCargarEnSlot(file, 0);
+      R.idx = idx;
+      R.cargo = idx >= 0 && !!imgSlots[idx] && !!imgSlots[idx].videoId;
+      R.tienePoster = !!imgSlots[idx] && _imgSrcOK(imgSlots[idx].dataURL);
+      R.avisoObligatorio = dichos.filter(m => /solo para documentaci.n/i.test(m) &&
+                                              /requieren archivos DICOM/i.test(m)).length === 1;
+      /* la segunda carga NO repite el alert: va por toast */
+      dichos.length = 0; tostadas.length = 0;
+      const idx2 = await videoCargarEnSlot(file, 1);
+      R.avisoUnaVez = dichos.length === 0 && tostadas.filter(m => /documentaci.n/i.test(m)).length === 1;
+      imgRemove({ stopPropagation(){} }, idx2);
+
+      /* ── 3 · el badge y el reproductor ── */
+      imgRender();
+      await new Promise(r=>setTimeout(r,120));
+      const badge = document.querySelector('[data-video-badge]');
+      R.hayBadge = !!badge && badge.textContent.indexOf('▶️') >= 0;
+      R.badgeAvisaPDF = !!badge && /no sale en el PDF/.test(badge.textContent);
+      badge.click();
+      await new Promise(r=>setTimeout(r,260));
+      const modal = document.querySelector('[data-video-modal]');
+      R.hayModal = !!modal;
+      const vid = modal ? modal.querySelector('[data-video-player]') : null;
+      R.hayPlayer = !!vid && vid.tagName === 'VIDEO' && vid.controls === true;
+
+      /* ── 4 · capturar cuadro -> slot -> PDF ── */
+      const antes = imgSlots.filter(Boolean).length;
+      /* se espera a que el <video> tenga pixeles antes de capturar */
+      await new Promise(res => { let n2 = 0;
+        const t = setInterval(() => { if ((vid && vid.videoWidth) || ++n2 > 40) { clearInterval(t); res(); } }, 60); });
+      R.playerAncho = vid ? vid.videoWidth : 0;
+      try { vid.currentTime = 0.02; } catch (e) {}
+      await new Promise(r=>setTimeout(r,260));
+      modal.querySelector('[data-video-act="capturar"]').click();
+      await new Promise(r=>setTimeout(r,700));
+      R.slotsDespues = imgSlots.filter(Boolean).length;
+      R.capturoUnSlot = R.slotsDespues === antes + 1;
+      R.videoSigue = !!imgSlots[idx] && !!imgSlots[idx].videoId;
+      const cuadro = imgSlots.filter(s => s && !s.videoId)[0];
+      R.cuadroEsImagen = !!cuadro && _imgSrcOK(cuadro.dataURL);
+      modal.querySelector('[data-video-act="cerrar"]').click();
+      await new Promise(r=>setTimeout(r,120));
+      R.modalCerrado = !document.querySelector('[data-video-modal]');
+
+      /* ── 5 · EL VIDEO NO SALE EN EL PDF ──
+         VERIFICACION SOBRE EL FUENTE, y esta declarado como tal. El generador del PDF no se deja
+         manejar desde el harness -sale por una rama temprana y dibuja cero imagenes-, asi que
+         no hay forma de ejercer el camino de punta a punta aca. Es el mismo recurso y el mismo
+         motivo que TC-98 con TEER_CRIT: un invariante que es «esta condicion esta en el filtro»
+         y que no se alcanza corriendo la app.
+         LA PRIMERA VERSION RECALCULABA EL FILTRO DENTRO DEL CASO -una copia de la regla que
+         venia a probar- y la mutacion que devuelve el video al PDF pasaba en VERDE.
+         Nota: el nombre del filtro se busca literal, sin comillas invertidas en este comentario
+         porque el cuerpo del caso es un template literal. */
+      const src = await (await fetch(location.href, { cache:'no-store' })).text();
+      R.fuenteLeido = src.length > 100000;
+      const iFil = src.indexOf('const _loaded = imgSlots.filter(');
+      R.hayFiltro = iFil >= 0;
+      const lineaFiltro = iFil >= 0 ? src.slice(iFil, src.indexOf(';', iFil)) : '';
+      R.lineaFiltro = lineaFiltro.slice(0, 120);
+      R.filtroExcluyeVideo = lineaFiltro.indexOf('!s.videoId') >= 0;
+      /* y que sea el UNICO filtro de slots hacia el PDF: si aparece un segundo, este caso
+         dejaria de cubrirlo y hay que enterarse. */
+      R.unSoloFiltro = src.split('const _loaded = imgSlots.filter(').length === 2;
+      /* En runtime: el slot de video TIENE dataURL, o sea que sin el filtro entraria. Es el
+         denominador de lo de arriba -sin dataURL, excluirlo seria gratis-. */
+      R.videoTienePosterIgual = !!imgSlots[idx].dataURL;
+      R.alPdf = imgSlots.filter(s => s && s.dataURL).length;
+
+      /* ── 6 · SIN MEDICIONES sobre video ── */
+      dichos.length = 0;
+      if (!_medFijaOn) medFijaToggle();
+      await new Promise(r=>setTimeout(r,90));
+      const celda = document.querySelector('#img-grid > div[data-idx="' + idx + '"]');
+      medFijaClic({ target: celda, preventDefault(){}, stopPropagation(){} });
+      R.rechazoMedicion = dichos.filter(m => /no se puede medir/i.test(m) &&
+                                             /requieren archivos DICOM/i.test(m)).length === 1;
+      R.noAbrioVisor = document.getElementById('cine-ov') === null ||
+                       getComputedStyle(document.getElementById('cine-ov')).display === 'none';
+      medFijaToggle();
+
+      /* ── 7 · persistencia ── */
+      const uuid = 'vid-test-' + Date.now();
+      R.persistio = await videoPersistir(uuid);
+      const leidos = await CeiboVideo.leer(uuid);
+      R.leidos = leidos ? leidos.length : -1;
+      R.guardaBytes = !!leidos && leidos.length === 1 && leidos[0].bytes === blob.size;
+      /* y la marca viaja en la lista blanca de CeiboImg */
+      const vivas = imgSlots.filter(s => s && s.dataURL);
+      await CeiboImg.guardar(uuid, vivas);
+      const imgsLeidas = await CeiboImg.leer(uuid);
+      R.marcaPersiste = !!imgsLeidas && imgsLeidas.filter(s => s.videoId).length === 1;
+      await CeiboVideo.borrarTodo();
+      try { const L = CeiboStore.getLocal(); CeiboStore.setLocal(L); } catch (e) {}
+
+      /* ── 8 · fotos y DICOM siguen igual ── */
+      const png = (() => { const c = document.createElement('canvas'); c.width=20; c.height=20;
+        c.getContext('2d').fillStyle='#0f0'; c.getContext('2d').fillRect(0,0,20,20);
+        return c.toDataURL('image/png'); })();
+      const b64 = png.split(',')[1]; const bin = atob(b64);
+      const u = new Uint8Array(bin.length); for (let i2=0;i2<bin.length;i2++) u[i2]=bin.charCodeAt(i2);
+      const foto = new File([u], 'foto.png', { type:'image/png' });
+      const cabFoto = new Uint8Array(await foto.slice(0,16).arrayBuffer());
+      R.fotoNoEsVideo = _esVideoSoportado(cabFoto, foto) === false;
+      const nAntes = imgSlots.filter(Boolean).length;
+      imgActiveSlot = _dcmImgReservar(1)[0];
+      await imgFileElegido({ target: { files: [foto], value: '' } });
+      await new Promise(r=>setTimeout(r,700));
+      R.fotoEntro = imgSlots.filter(Boolean).length === nAntes + 1;
+      R.fotoSinVideoId = imgSlots.filter(s => s && s.dataURL && !s.videoId).length === 2;
+    } finally {
+      window.alert = alertOrig; window.confirm = confOrig; window.toast = toastOrig;
+      try { sessionStorage.removeItem('ett_video_aviso'); } catch (e) {}
+      try { if (_medFijaOn) medFijaToggle(); } catch (e) {}
+      try { imgVaciar(); } catch (e) {}
+    }
+    return { extra: [
+      ['se grabo un video de prueba',               R.bytes > 0, R.mime + ' · ' + R.bytes + ' bytes'],
+      ['DETECCION POR BYTES (ftyp), no por extension', R.detecta && R.rechazaFalso, 'ftyp=' + R.ftyp + ' falso=' + R.rechazaFalso],
+      ['una foto NO se confunde con video',         R.fotoNoEsVideo, R.fotoNoEsVideo],
+      ['el video ocupa un slot con su primer cuadro', R.cargo && R.tienePoster, 'slot ' + R.idx],
+      ['AVISO OBLIGATORIO al cargar',               R.avisoObligatorio, R.avisoObligatorio],
+      ['y una sola vez por sesion',                 R.avisoUnaVez, R.avisoUnaVez],
+      ['badge ▶️ que avisa que no sale en el PDF',   R.hayBadge && R.badgeAvisaPDF, R.hayBadge],
+      ['el clic abre el reproductor NATIVO',        R.hayModal && R.hayPlayer, R.hayPlayer],
+      ['capturar el cuadro ocupa OTRO slot',        R.capturoUnSlot && R.videoSigue, R.slotsDespues + ' slots'],
+      ['y entra como imagen normal',                R.cuadroEsImagen, R.cuadroEsImagen],
+      ['el modal cierra',                           R.modalCerrado, R.modalCerrado],
+      ['el fuente se pudo leer y hay UN filtro de slots', R.fuenteLeido && R.hayFiltro && R.unSoloFiltro, R.hayFiltro],
+      ['EL VIDEO NO SALE EN EL PDF (sobre el fuente)', R.filtroExcluyeVideo, R.lineaFiltro],
+      ['aunque el slot TIENE poster (denominador)', R.videoTienePosterIgual, R.videoTienePosterIgual],
+      ['SIN MEDICIONES sobre video, con el motivo', R.rechazoMedicion, R.rechazoMedicion],
+      ['y no abre el visor',                        R.noAbrioVisor, R.noAbrioVisor],
+      ['el MP4 se guarda en IndexedDB',             R.persistio && R.guardaBytes, R.leidos + ' leido(s)'],
+      ['y la marca de video viaja con el slot',     R.marcaPersiste, R.marcaPersiste],
+      ['las fotos siguen entrando igual',           R.fotoEntro && R.fotoSinVideoId, R.fotoEntro]
+    ] };
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];
