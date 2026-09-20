@@ -4,6 +4,81 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+
+## Strain: la barra lateral, el rótulo que no seguía a la vista, y los botones (TC-208)
+
+### El defecto clínico: el panel PEDÍA marcar una pared que en esa vista no se ve
+
+Reportado como «con A2C se mostraban los territorios de la A3C». **Medido antes de tocar nada,
+esa parte es falsa**: `_strainCalcular` toma `V.paredes[i]` de `_STR_VISTAS` filtrado por clave,
+así que A2C publica Inferior/Anterior y A3C Inferolateral/Anteroseptal, siempre. La guía del
+trazado libre también salía bien en las tres.
+
+**Lo que sí estaba cableado a la A4C eran los rótulos de lo que hay que MARCAR.** El modo de
+3 puntos pedía «1. anillo mitral SEPTAL / 2. ÁPEX / 3. anillo mitral LATERAL» en las tres
+vistas, y el aviso de «el orden importa» decía «suponen que marcaste del septal al lateral»
+igual. En A2C eso nombra una pared que **en esa vista no se ve**.
+
+**Por qué es peor que un rótulo feo:** el médico marca donde se le pide. Si en A2C se le pide
+el anillo septal, marca el que tiene más cerca, el contorno queda recorrido al revés, y el
+resultado publica **las dos paredes intercambiadas** — que es exactamente lo que ese aviso
+existe para evitar. El cálculo no puede detectarlo: los dos arcos son igual de válidos, sólo
+cambia cuál es cuál. El síntoma reportado —paredes que no corresponden a la vista— es
+compatible con esto, aunque el mecanismo no fuera el que el reporte suponía.
+
+Hoy los tres puntos salen de `_strPuntos3(V)`, que los deriva de `paredes`, **la misma lista que
+rotula los territorios**. Con dos fuentes, el punto que se marca y la pared que se publica
+pueden dejar de corresponderse — y la condición que lo fija no es «los rótulos son correctos»
+sino **«lo que se PIDE marcar es lo que se PUBLICA»**, cruzando las dos. La mutación que los
+vuelve a cablear cae por tres condiciones.
+
+### Los botones: hay DOS `return` en el panel y hay que medir los dos
+
+«Confirmar diástole» y «Empezar de nuevo» quedaban **debajo** del bull's eye de 300 px: el
+médico termina de trazar, mira la imagen, y el botón que cierra ese gesto está fuera de la
+pantalla. Suben a continuación del panel guía.
+
+**LA MUTACIÓN SOBREVIVIÓ A LA PRIMERA VERSIÓN DEL CASO.** `_strainPanel` tiene dos salidas —la
+rama de «¿agregás otra vista?», con el par completo, y la de **trazado**— y yo había medido
+sólo la primera. La mutación tocaba la segunda, que es donde el médico pasa el tiempo. La
+condición nueva completa una vista y traza en la siguiente: recién ahí coexisten el bull's eye
+y el botón de confirmar.
+
+### La barra lateral, y el blanco sobre verde que no se leía
+
+Los tres grupos pasan a 12,5 px / 700 con filete de 4 px **de su propio color** —`--accent`,
+`--purple`, `--green`— y el abierto va relleno; los subítems quedan en un cajón sangrado, a
+10 px / 400, colgado del grupo por un filete del mismo color.
+
+**El color va en `_MED_GRUPOS`, la misma lista que ya tiene rótulo y tooltip.** Con una tabla
+aparte, agregar un grupo da un botón sin color y el `undefined` entra al atributo `style` **sin
+dar error**: el filete no se dibuja y parece una decisión de diseño.
+
+**EL TEXTO SOBRE EL RELLENO SE DERIVA DE LA LUMINANCIA, NO SE CABLEA A BLANCO.** Medido: blanco
+sobre `--green` da **2,0:1** —ilegible— y justo en el grupo ABIERTO y en la herramienta
+SELECCIONADA, que son los dos elementos que más hay que poder leer. Es `.grado-3` del módulo de
+amiloidosis otra vez: la caja se ve de color y las palabras no. `_medTextoSobre` resuelve la
+variable y elige el que más contrasta; con eso el mínimo pasa de **2,0 a 4,7:1** y sirve en los
+dos temas y con cualquier color que se agregue.
+
+**El contraste se mide en los DOS temas y el caso exige que DIFIERAN.** Mi primera sonda
+conmutaba con un `setTheme` que no existe, así que midió dos veces el mismo tema y devolvió
+números idénticos — que se leen como «anda igual en los dos». El tema real es
+`html.light-mode`. Es la trampa de TC-114, y el denominador es una condición propia.
+
+### Lo que costó
+
+**Un `assert` que corta el script se lleva TODAS las ediciones de ese script.** El que agregaba
+los colores falló, y con él se perdió la mitad del mismo archivo que reescribía la barra
+lateral. Reapliqué sólo la mitad que recordaba y la sonda lo delató: los grupos seguían en
+11 px con el borde genérico. **Después de un script con varios cambios y un assert que falló,
+reaplicar TODOS, no el que se tiene en la cabeza.**
+
+**Y el `\d` se lo comió el template literal**, en la sonda del contraste: `[\d.]+` llegó como
+`[d.]+`, no matcheó ningún dígito y el caso reventó con `null.slice`. Es la misma familia que
+el `\s` que este archivo documenta nueve veces. Se resolvió con `indexOf`/`split`, que es lo
+que la propia entrada recomienda desde la quinta vez.
+
 ## Strain VI — el selector de cineloop y vista (TC-207)
 
 El flujo arranca en **miniaturas**, no en una vista impuesta: el médico toca el cineloop, EcoSmart

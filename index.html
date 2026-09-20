@@ -45724,20 +45724,35 @@ function _medSideRender() {
   const cont = _medEl('cine-side');
   if (!cont) return;
   const ab = _medGrupoAbierto();
-  const act = 'background:var(--accent);color:#fff;';
   let html = '';
   _MED_GRUPOS.forEach(G => {
     const abierto = ab === G.g;
+    const cv = 'var(' + G.col + ')';
+    /* El grupo abierto va RELLENO con su color; el cerrado lleva el mismo color sólo en el
+       filete y el texto. Así los tres se leen como una familia y como el nivel de arriba, sin
+       que el cerrado grite igual que el abierto. */
     html += '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-g-' + G.g + '" ' +
-      'title="' + escHtml(G.tip) + '" style="padding:4px 7px;font-size:11px;text-align:left;' +
-      (abierto ? 'background:var(--bg3);font-weight:600;' : '') + '">' +
+      'title="' + escHtml(G.tip) + '" style="padding:7px 9px;font-size:12.5px;font-weight:700;' +
+      'letter-spacing:.2px;text-align:left;border-radius:7px;border:1px solid ' + cv + ';' +
+      'border-left-width:4px;' +
+      (abierto ? 'background:' + cv + ';color:' + _medTextoSobre(G.col) + ';'
+               : 'background:transparent;color:' + cv + ';') + '">' +
       (abierto ? '▾ ' : '▸ ') + G.rot + '</button>';
     if (abierto) {
-      html += '<div style="display:flex;flex-direction:column;gap:2px;padding:2px 0 4px 8px;">';
+      /* El submenú es un CAJÓN: sangrado, con fondo propio y colgado del grupo por un filete
+         de su color, para que se lea como subordinado y no como tres botones más de la misma
+         lista. */
+      html += '<div style="display:flex;flex-direction:column;gap:1px;margin:3px 0 7px 12px;' +
+        'padding:4px 3px;background:var(--bg3);border-left:2px solid ' + cv + ';' +
+        'border-radius:0 6px 6px 0;">';
       _MED_HERRS.filter(t => t.g === G.g).forEach(t => {
+        const sel = _medHerr === t.h;
         html += '<button type="button" class="btn btn-ghost" id="' + _V.pfx + t.id + '" ' +
-          'title="' + escHtml(t.tip) + '" style="padding:3px 7px;font-size:10.5px;text-align:left;' +
-          (_medHerr === t.h ? act : '') + '">' + (_medHerr === t.h ? '● ' : '· ') + t.rot + '</button>';
+          'title="' + escHtml(t.tip) + '" style="padding:3px 6px;font-size:10px;font-weight:' +
+          (sel ? '600' : '400') + ';text-align:left;border:none;border-radius:4px;' +
+          (sel ? 'background:' + cv + ';color:' + _medTextoSobre(G.col) + ';'
+               : 'background:transparent;color:var(--text2);') + '">' +
+          (sel ? '● ' : '· ') + t.rot + '</button>';
       });
       html += '</div>';
     }
@@ -46421,6 +46436,21 @@ const _STR_VISTAS = [
 ];
 const _strVista = k => _STR_VISTAS.filter(v => v.k === k)[0];
 
+/* Los tres puntos del modo guiado se NOMBRAN POR LA VISTA, no con un literal.
+   Estaban cableados a «anillo mitral SEPTAL / ápex / anillo mitral LATERAL», que son las
+   paredes de la A4C: en A2C el panel pedía marcar el anillo septal —que en esa vista no se
+   ve— y en A3C lo mismo. El médico marca donde se le pide, así que un rótulo equivocado no
+   da un error: da un contorno trazado al revés y DOS PAREDES INTERCAMBIADAS en el resultado,
+   que es exactamente lo que el aviso de «el orden importa» existe para evitar.
+   Salen de `paredes`, la misma lista que rotula los territorios — con dos fuentes, el punto
+   que se marca y la pared que se publica pueden dejar de corresponderse. */
+function _strPuntos3(V) {
+  const P = (V && V.paredes) || ['Septal', 'Lateral'];
+  return ['1. anillo mitral ' + P[0].toUpperCase(),
+          '2. ÁPEX del VI',
+          '3. anillo mitral ' + P[1].toUpperCase()];
+}
+
 function _strainIniciar() {
   _strain = { vista:null, loopListo:false, fase:'d', modo:'libre', pts3:[], ctrl:[], arrastrando:null,
               vistas: { a4c:{d:null,s:null}, a2c:{d:null,s:null}, a3c:{d:null,s:null} },
@@ -46569,7 +46599,9 @@ function medStrainConfirmar() {
     return;
   }
   if (!_strain.pendiente) {
-    alert('Trazá primero el contorno: mantené apretado y recorré el borde del ventrículo, del anillo mitral septal, por el ápex, hasta el anillo mitral lateral.');
+    alert('Trazá primero el contorno: mantené apretado y recorré el borde del ventrículo, ' +
+          ((_strain && _strVista(_strain.vista) && _strVista(_strain.vista).orden) ||
+           'del anillo SEPTAL, por el ápex, al anillo LATERAL') + '.');
     return;
   }
   _strain.pares[_strain.fase] = _strain.pendiente;
@@ -46811,11 +46843,11 @@ function _strainPanel() {
                 'para ajustarlo al borde y después confirmá. Es una <b>sugerencia</b>, no una ' +
                 'medición del borde: medido, la longitud sale 4-6 % corta, aunque el strain —que ' +
                 'es un cociente— apenas se mueve porque el desvío se cancela entre las dos fases.'
-              : 'Marcá tres puntos: <b>' + [ '1. anillo mitral SEPTAL', '2. ÁPEX del VI', '3. anillo mitral LATERAL' ][(_strain.pts3||[]).length] + '</b>.')
+              : 'Marcá tres puntos: <b>' + _strPuntos3(VA)[(_strain.pts3||[]).length] + '</b>.')
           : 'Mantené apretado y recorré el borde; al soltar se cierra solo. Se puede rehacer antes ' +
             'de confirmar.') +
-        ' <b>El orden importa:</b> los rótulos de pared suponen que marcaste del septal al lateral ' +
-        '— al revés quedan intercambiadas. ' +
+        ' <b>El orden importa:</b> los rótulos de pared suponen que marcaste ' + VA.orden +
+        ' — al revés quedan intercambiadas. ' +
         (_strain.pendiente
           ? '<b style="color:#fbbf24;">Trazado listo — apretá «Confirmar ' + (esD ? 'diástole' : 'sístole') + '».</b>'
           : '') +
@@ -46833,7 +46865,9 @@ function _strainPanel() {
   /* Con el par de ESTA vista completo se pregunta si agrega otra: es el paso 5 del flujo, y
      vuelve al selector de cineloop sin tocar lo ya confirmado. */
   if (_strainCompleto()) {
-    return cab + res +
+    /* La pregunta y sus botones van ANTES del resultado: son la acción, y el bull's eye
+       empujaba los botones fuera de la pantalla justo cuando hay algo que decidir. */
+    return cab +
       '<div style="font-size:12px;line-height:1.6;margin-top:7px;">' +
         '<b>¿Agregás otra vista?</b>' +
         '<div style="font-size:10px;color:var(--text2);margin-top:3px;">' +
@@ -46843,7 +46877,7 @@ function _strainPanel() {
           b('cine-str-otro', 'btn-primary', '➕ Sí, agregar otra vista') + ' ' +
           b('cine-str-reset', 'btn-ghost', 'Empezar de nuevo', 'margin-left:6px;') +
         '</div>' +
-      '</div>';
+      '</div>' + res;
   }
   const fase = (_strain.fase === 'd') ? 'diástole' : 'sístole';
   /* En modo 3 puntos el confirmar es el del contorno sugerido, y aparece sólo cuando hay
@@ -46858,8 +46892,12 @@ function _strainPanel() {
   const idx = _STR_VISTAS.indexOf(VA);
   const sig = _strainCompleto() && idx < _STR_VISTAS.length - 1 ? _STR_VISTAS[idx + 1] : null;
   const seguir = sig ? b('cine-str-mas', 'btn-primary', '➕ Agregar ' + sig.k.toUpperCase(), 'margin-right:6px;') : '';
-  return cab + paso + res +
-    '<div style="margin-top:7px;">' + seguir + (_strainCompleto() ? '' : conf + ' ') + reset + '</div>';
+  /* Los botones van pegados al panel guía y ANTES del resultado. Con el bull's eye en el
+     medio, «Confirmar diástole» quedaba debajo de un diagrama de 300 px: el médico acaba de
+     trazar, mira la imagen, y el botón que cierra ese gesto estaba fuera de la pantalla. */
+  return cab + paso +
+    '<div style="margin-top:7px;">' + seguir + (_strainCompleto() ? '' : conf + ' ') + reset + '</div>' +
+    res;
 }
 
 /* Pasa a la vista siguiente. No borra nada: las anteriores siguen contando. */
@@ -48426,11 +48464,39 @@ const _MED_HERRS = [
   { h:'vd',      g:'def', id:'cine-med-vd',   rot:'Strain VD',
     tip:'Deformación de la pared libre del VD. El septo no se incluye.' }
 ];
+/* El COLOR va en esta misma lista, no en una tabla aparte: con dos listas, agregar un grupo
+   da un botón sin color y el `undefined` entra al atributo `style` sin dar error — el filete
+   simplemente no se dibuja y parece una decisión de diseño. Salen de variables del tema
+   porque el visor se ve en los dos, y un hex fijo se vuelve ilegible en uno de ellos. */
 const _MED_GRUPOS = [
-  { g:'2d',  rot:'2D',           tip:'Mediciones sobre la imagen bidimensional.' },
-  { g:'dop', rot:'Doppler / M',  tip:'Mediciones sobre un trazo espectral o de modo M.' },
-  { g:'def', rot:'Deformación',  tip:'Strain por contornos manuales.' }
+  { g:'2d',  col:'--accent', rot:'2D',           tip:'Mediciones sobre la imagen bidimensional.' },
+  { g:'dop', col:'--purple', rot:'Doppler / M',  tip:'Mediciones sobre un trazo espectral o de modo M.' },
+  { g:'def', col:'--green',  rot:'Deformación',  tip:'Strain por contornos manuales.' }
 ];
+
+/* Sobre un relleno de color, el texto se elige por la LUMINANCIA del relleno, no se cablea a
+   blanco. Medido: blanco sobre `--green` da 2,0:1 —ilegible— y justo en el grupo ABIERTO y en
+   la herramienta SELECCIONADA, que son los dos elementos que más hay que poder leer. Es el
+   defecto de `.grado-3` del módulo de amiloidosis: la caja se ve de color y las palabras no.
+   Derivarlo en vez de elegirlo a mano hace que sirva en los dos temas y con cualquier color
+   que se agregue mañana. */
+function _medTextoSobre(varName) {
+  let c = '';
+  try { c = getComputedStyle(document.documentElement).getPropertyValue(varName).trim(); } catch (e) { c = ''; }
+  const m = /^#?([0-9a-f]{6})$/i.exec(c) ? c.replace('#', '')
+          : (c.indexOf('(') >= 0 ? null : null);
+  let r, g2, b2;
+  if (m) { r = parseInt(m.slice(0,2),16); g2 = parseInt(m.slice(2,4),16); b2 = parseInt(m.slice(4,6),16); }
+  else {
+    const n = c.slice(c.indexOf('(') + 1, c.lastIndexOf(')')).split(',').map(x => parseFloat(x));
+    if (!(n.length >= 3) || !isFinite(n[0])) return '#fff';   // sin poder medir, el default de antes
+    r = n[0]; g2 = n[1]; b2 = n[2];
+  }
+  const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  const L = 0.2126 * f(r) + 0.7152 * f(g2) + 0.0722 * f(b2);
+  /* Se elige el que MÁS contrasta, comparando los dos cocientes de WCAG. */
+  return ((L + 0.05) / 0.05) >= (1.05 / (L + 0.05)) ? '#0b0f1a' : '#fff';
+}
 const _MED_GRUPO_DE = (function () {
   const m = {}; _MED_HERRS.forEach(t => { m[t.h] = t.g; }); return m;
 })();
@@ -64757,8 +64823,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260920-1328';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789921701961;                 /* eco-build-ms */
+const ECO_BUILD    = '20260920-1400';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789923608607;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -64844,7 +64910,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1328</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1400</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

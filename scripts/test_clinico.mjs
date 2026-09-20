@@ -15290,6 +15290,184 @@ caso('TC-207', 'Strain VI: miniaturas de los cineloops abiertos y guardados, y s
   })();
 `);
 
+
+/* ══ TC-208 · Las tres correcciones del panel de strain ═══════════════════════════════════════
+   1) Barra lateral: los tres grupos prominentes, con color propio y subitems subordinados.
+   2) Los rotulos de pared salen de la VISTA. Estaban cableados a los de la A4C, asi que en
+      A2C el panel pedia marcar el anillo SEPTAL -que en esa vista no se ve-. No da error:
+      da un contorno trazado al reves y las dos paredes INTERCAMBIADAS en el resultado.
+      OJO: los territorios de _strainCalcular SIEMPRE estuvieron bien; lo que estaba mal era
+      lo que el panel le PEDIA al medico. Hay una condicion que fija las dos mitades.
+   3) Confirmar y Empezar de nuevo van pegados al panel guia, ANTES del bulls eye.
+   El contraste se mide en los DOS temas y se exige que difieran: con un solo tema medido dos
+   veces, el numero sale igual y no prueba nada.
+   NO DEPENDE DEL PENDRIVE.                                                                    */
+caso('TC-208', 'Strain: barra lateral por grupos, rotulos de pared por vista y botones junto a la imagen', `
+  return (async () => {
+    const R = {};
+    const mkJpeg = () => { const c = document.createElement('canvas'); c.width = 600; c.height = 500;
+      const g = c.getContext('2d'); g.fillStyle = 'rgb(40,40,60)'; g.fillRect(0,0,600,500);
+      const b = atob(c.toDataURL('image/jpeg').split(',')[1]); const u = new Uint8Array(b.length);
+      for (let i=0;i<b.length;i++) u[i] = b.charCodeAt(i); return u; };
+    const reg = { tipo:1, x0:20, y0:20, x1:580, y1:480, ux:3, uy:3, dx:0.05, dy:0.05,
+                  rx0:20, ry0:20, rvx:0, rvy:0 };
+    const barra = () => document.getElementById('cine-med-barra').innerHTML;
+    const cvm = () => document.getElementById('cine-med');
+    const ac = (x,y) => { const c = cvm(), r = c.getBoundingClientRect();
+      return { clientX: r.left + x*(r.width/c.width), clientY: r.top + y*(r.height/c.height) }; };
+    const trazar = async pts => { const c = cvm();
+      c.dispatchEvent(new MouseEvent('mousedown', Object.assign({bubbles:true}, ac(pts[0].x,pts[0].y))));
+      for (let i=1;i<pts.length;i++)
+        c.dispatchEvent(new MouseEvent('mousemove', Object.assign({bubbles:true}, ac(pts[i].x,pts[i].y))));
+      document.dispatchEvent(new MouseEvent('mouseup', {bubbles:true}));
+      await new Promise(r=>setTimeout(r,130)); };
+    const tri = (cx0,yb,Wi,Wd,H) => { const p=[], ya=yb-H;
+      const n1=Math.ceil(Math.hypot(Wi,H)/10), n2=Math.ceil(Math.hypot(Wd,H)/10);
+      for(let i=0;i<=n1;i++)p.push({x:Math.round(cx0-Wi+Wi*i/n1),y:Math.round(yb+(ya-yb)*i/n1)});
+      for(let i=1;i<=n2;i++)p.push({x:Math.round(cx0+Wd*i/n2),y:Math.round(ya+(yb-ya)*i/n2)});
+      return p; };
+
+    __t.limpiar(); imgVaciar();
+    _cineAbrir([{ nombre:'x.dcm', cuadros:2,
+      d:{ frags:[mkJpeg(),mkJpeg()], cols:600, filas:500, msCuadro:40, regiones:[reg] } }]);
+    await new Promise(r=>setTimeout(r,230));
+    if (!_medOn) medToggle();
+    await new Promise(r=>setTimeout(r,140));
+    __t.herr('cine-med-str');
+    await new Promise(r=>setTimeout(r,200));
+
+    /* ── 2 · los rotulos de pared siguen a la vista, en los DOS modos ── */
+    R.p3 = {}; R.orden = {}; R.terr = {};
+    for (const k of ['a4c','a2c','a3c']) {
+      medStrainReiniciar(); medStrainModo('3pt'); __t.strVista(k);
+      await new Promise(r=>setTimeout(r,130));
+      R.p3[k]    = (barra().match(/Marcá tres puntos: <b>([^<]*)/) || [])[1] || '(no)';
+      R.orden[k] = (barra().match(/suponen que marcaste ([^<—]*)/) || [])[1] || '(no)';
+      /* y lo que el panel pide tiene que ser lo que el resultado publica */
+      medStrainReiniciar(); medStrainModo('libre'); __t.strVista(k);
+      await new Promise(r=>setTimeout(r,120));
+      await trazar(tri(300,440,100,100,300)); medStrainConfirmar(); await new Promise(r=>setTimeout(r,110));
+      await trazar(tri(300,440,70,78,250));   medStrainConfirmar(); await new Promise(r=>setTimeout(r,150));
+      const C = _strainCalcular();
+      R.terr[k] = C ? C.terr.map(t => t.pared).join('/') : '(null)';
+    }
+    R.p3PorVista = R.p3.a4c.indexOf('SEPTAL') >= 0 && R.p3.a2c.indexOf('INFERIOR') >= 0 &&
+                   R.p3.a3c.indexOf('INFEROLATERAL') >= 0;
+    R.p3NoCableado = R.p3.a2c.indexOf('SEPTAL') < 0 && R.p3.a3c.indexOf('SEPTAL') < 0;
+    R.ordenPorVista = R.orden.a2c.indexOf('INFERIOR') >= 0 && R.orden.a3c.indexOf('INFEROLATERAL') >= 0;
+    /* el punto 1 que se marca y la pared que se publica son EL MISMO */
+    R.pideLoQuePublica = ['a4c','a2c','a3c'].every(k =>
+      R.p3[k].toUpperCase().indexOf(R.terr[k].split('/')[0].toUpperCase()) >= 0);
+
+    /* ── 3 · los botones van ANTES del bulls eye ── */
+    medStrainReiniciar(); medStrainModo('libre'); __t.strVista('a4c');
+    await new Promise(r=>setTimeout(r,120));
+    await trazar(tri(300,440,100,100,300));
+    await new Promise(r=>setTimeout(r,120));
+    const b1 = barra();
+    R.confirmarPresente = b1.indexOf('Confirmar diástole') >= 0;
+    medStrainConfirmar(); await new Promise(r=>setTimeout(r,110));
+    await trazar(tri(300,440,70,78,250)); medStrainConfirmar();
+    await new Promise(r=>setTimeout(r,170));
+    const b2 = barra();
+    R.iBE    = b2.indexOf('cine-str-be');
+    R.iOtra  = b2.indexOf('Sí, agregar otra vista');
+    R.iReset = b2.indexOf('Empezar de nuevo');
+    R.hayBE  = R.iBE >= 0;
+    R.botonesAntesDelBE = R.hayBE && R.iOtra >= 0 && R.iOtra < R.iBE && R.iReset < R.iBE;
+
+    /* El panel tiene DOS return distintos y hay que medir los dos: el de arriba es la rama de
+       «¿agregas otra vista?», y esta es la de TRAZADO -con una vista ya completa, el bulls eye
+       aparece mientras se traza la siguiente-. Medir una sola dejaba viva la mutacion que
+       devuelve los botones debajo del diagrama en la rama de trazado, que es donde el medico
+       pasa el tiempo. */
+    __t.strVista('a2c');
+    await new Promise(r=>setTimeout(r,130));
+    await trazar(tri(300,440,96,96,296));
+    await new Promise(r=>setTimeout(r,130));
+    const b3 = barra();
+    R.iBEt   = b3.indexOf('cine-str-be');
+    R.iConfT = b3.indexOf('Confirmar diástole');
+    R.iResT  = b3.indexOf('Empezar de nuevo');
+    R.trazandoConBE = R.iBEt >= 0 && R.iConfT >= 0;
+    R.botonesAntesAlTrazar = R.trazandoConBE && R.iConfT < R.iBEt && R.iResT < R.iBEt;
+
+    /* ── 1 · la barra lateral ── */
+    const side = document.getElementById('cine-side');
+    const gr   = side.querySelectorAll('[id^="cine-g-"]');
+    const subs = side.querySelectorAll('[id^="cine-med-"]');
+    R.nGrupos = gr.length; R.nSub = subs.length;
+    const fsG = Array.prototype.map.call(gr,   e => parseFloat(getComputedStyle(e).fontSize));
+    const fwG = Array.prototype.map.call(gr,   e => parseInt(getComputedStyle(e).fontWeight, 10));
+    const fsS = Array.prototype.map.call(subs, e => parseFloat(getComputedStyle(e).fontSize));
+    const blG = Array.prototype.map.call(gr,   e => parseFloat(getComputedStyle(e).borderLeftWidth));
+    const colG = Array.prototype.map.call(gr,  e => getComputedStyle(e).borderLeftColor);
+    R.fsG = fsG.join(','); R.fsS = fsS.join(',');
+    R.grupoMasGrande = Math.min.apply(null, fsG) > Math.max.apply(null, fsS);
+    R.grupoMasPesado = Math.min.apply(null, fwG) >= 700;
+    R.grupoConFilete = Math.min.apply(null, blG) >= 3;
+    R.coloresDistintos = new Set(colG).size === 3;
+    /* subordinacion: los subitems arrancan mas a la derecha que su grupo */
+    R.sangrado = Math.round(subs[0].getBoundingClientRect().left - gr[0].getBoundingClientRect().left);
+    R.tactil = Math.min.apply(null, Array.prototype.map.call(gr,
+      e => Math.round(e.getBoundingClientRect().height))) >= 44;
+
+    /* contraste en los DOS temas — sin regex: el template literal se come el escape */
+    const lum = c => { const n = c.slice(c.indexOf('(')+1, c.lastIndexOf(')')).split(',')
+                        .slice(0,3).map(x => parseFloat(x));
+      const f = v => { v/=255; return v<=0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); };
+      return 0.2126*f(n[0]) + 0.7152*f(n[1]) + 0.0722*f(n[2]); };
+    const fondoDe = el => { let n = el;
+      while (n && n !== document.documentElement) {
+        const bg = getComputedStyle(n).backgroundColor;
+        if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') return bg;
+        n = n.parentElement; }
+      return 'rgb(255, 255, 255)'; };
+    const contrasteDelTema = () => {
+      const todos = [].concat(Array.prototype.slice.call(side.querySelectorAll('[id^="cine-g-"]')),
+                              Array.prototype.slice.call(side.querySelectorAll('[id^="cine-med-"]')));
+      return todos.map(e => { const L1 = lum(getComputedStyle(e).color), L2 = lum(fondoDe(e));
+        return (Math.max(L1,L2) + 0.05) / (Math.min(L1,L2) + 0.05); }); };
+    const eraClaro = document.documentElement.classList.contains('light-mode');
+    document.documentElement.classList.remove('light-mode'); _medSideRender();
+    await new Promise(r=>setTimeout(r,90));
+    const cOsc = contrasteDelTema();
+    const bgOsc = getComputedStyle(document.body).backgroundColor;
+    document.documentElement.classList.add('light-mode'); _medSideRender();
+    await new Promise(r=>setTimeout(r,90));
+    const cCla = contrasteDelTema();
+    const bgCla = getComputedStyle(document.body).backgroundColor;
+    document.documentElement.classList.toggle('light-mode', eraClaro); _medSideRender();
+    R.temasDifieren = bgOsc !== bgCla;                 // denominador: se midieron DOS temas
+    R.peorOsc = +Math.min.apply(null, cOsc).toFixed(2);
+    R.peorCla = +Math.min.apply(null, cCla).toFixed(2);
+    R.legibleEnAmbos = R.temasDifieren && R.peorOsc >= 4.5 && R.peorCla >= 4.5;
+
+    cineCerrar();
+    return { extra: [
+      /* 1 · barra lateral */
+      ['los tres grupos estan y llevan color propio', R.nGrupos === 3 && R.coloresDistintos, R.nGrupos + ' grupos'],
+      ['el grupo es mas grande que sus subitems',     R.grupoMasGrande, 'grupo ' + R.fsG + ' vs sub ' + R.fsS],
+      ['y mas pesado, con filete de su color',        R.grupoMasPesado && R.grupoConFilete, R.grupoMasPesado],
+      ['los subitems quedan sangrados debajo',        R.sangrado >= 8, R.sangrado + ' px'],
+      ['el area tactil sigue en 44 px',               R.tactil, R.tactil],
+      ['se midieron DOS temas (denominador)',         R.temasDifieren, R.temasDifieren],
+      ['LEGIBLE EN LOS DOS TEMAS',                    R.legibleEnAmbos, 'peor osc ' + R.peorOsc + ' / claro ' + R.peorCla],
+      /* 2 · rotulos por vista */
+      ['los 3 puntos se nombran por la VISTA',        R.p3PorVista, JSON.stringify(R.p3)],
+      ['y NO con las paredes de la A4C',              R.p3NoCableado, R.p3.a2c],
+      ['el aviso de orden tambien sigue a la vista',  R.ordenPorVista, R.orden.a2c],
+      ['lo que se PIDE marcar es lo que se PUBLICA',  R.pideLoQuePublica, JSON.stringify(R.terr)],
+      /* 3 · botones */
+      ['el confirmar aparece con el trazo listo',     R.confirmarPresente, R.confirmarPresente],
+      ['hay bulls eye con el par completo',           R.hayBE, R.iBE],
+      ['LOS BOTONES VAN ANTES DEL BULLS EYE',         R.botonesAntesDelBE, 'otra=' + R.iOtra + ' reset=' + R.iReset + ' be=' + R.iBE],
+      ['y tambien en la rama de TRAZADO (denominador)', R.trazandoConBE, R.iBEt + '/' + R.iConfT],
+      ['CONFIRMAR ANTES DEL BULLS EYE AL TRAZAR',     R.botonesAntesAlTrazar, 'conf=' + R.iConfT + ' reset=' + R.iResT + ' be=' + R.iBEt]
+    ] };
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];
