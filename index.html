@@ -46008,6 +46008,17 @@ function _vMontarUp() {
 
 function _medAreaDown(ev) {
   if ((_medHerr !== 'area' && _medHerr !== 'simpson' && _medHerr !== 'strain') || _medCalibrando) return;
+  /* En modo 3 puntos el arrastre mueve un punto de CONTROL, no dibuja un contorno nuevo. */
+  if (_medHerr === 'strain' && _strain && _strain.modo === '3pt') {
+    const q = _medPuntoCanvas(ev);
+    if (!q) return;
+    const i = _strCtrlEn(q);
+    if (i < 0) return;
+    ev.preventDefault();
+    _strain.arrastrando = i;
+    _vArrastre = _V;
+    return;
+  }
   _vArrastre = _V;
   const p = _medPuntoCanvas(ev);
   if (!p) return;
@@ -46018,6 +46029,14 @@ function _medAreaDown(ev) {
 }
 
 function _medAreaMove(ev) {
+  /* Ajuste en tiempo real del contorno sugerido. */
+  if (_strain && _strain.arrastrando != null) {
+    const q = _medPuntoCanvas(ev);
+    if (!q) return;
+    _strain.ctrl[_strain.arrastrando] = { x:q.x, y:q.y };
+    _medPintar();
+    return;
+  }
   if (!_medTrazo) return;
   const p = _medPuntoCanvas(ev);
   if (!p) return;
@@ -46031,6 +46050,11 @@ function _medAreaMove(ev) {
 }
 
 function _medAreaUp() {
+  if (_strain && _strain.arrastrando != null) {
+    _strain.arrastrando = null;
+    _medPintar(); _medEstado();
+    return;
+  }
   if (!_medTrazo) return;
   const pts = _medTrazo;
   _medTrazo = null;
@@ -46306,7 +46330,7 @@ const _STR_VISTAS = [
 const _strVista = k => _STR_VISTAS.filter(v => v.k === k)[0];
 
 function _strainIniciar() {
-  _strain = { vista:'a4c', fase:'d',
+  _strain = { vista:'a4c', fase:'d', modo:'libre', pts3:[], ctrl:[], arrastrando:null,
               vistas: { a4c:{d:null,s:null}, a2c:{d:null,s:null}, a3c:{d:null,s:null} },
               pendiente:null, ocultar:false, avisoCuadro:false, descartoPend:false,
               avisoImagen:false };
@@ -46362,6 +46386,9 @@ function _strainAceptar(pts) {
     arcoAcm: arcoA * cmPorPx,                    // primera pared: inicio → ápex
     arcoBcm: arcoB * cmPorPx,                    // segunda pared: ápex → final
     cuerdaCm: cuerdaPx * cmPorPx,                // la recta que cierra, que NO es pared
+    /* Con QUE metodo se obtuvo. Mezclar trazado libre en una fase y 3 puntos en la otra mete
+       ±4 pp en el strain —medido—, veinte veces el sesgo de usar el mismo en las dos. */
+    metodo: (_strain && _strain.modo === '3pt') ? '3pt' : 'libre',
     imagen: (_cineDatos && _cineDatos.loops[_cineDatos.i].nombre) || ''
   };
   return null;
@@ -46424,6 +46451,14 @@ function _strainCalcular() {
     etiqueta: 'SGL ' + NIV.rot + ' — ' + NIV.det + ' (' +
               listas.map(v => v.k.toUpperCase()).join(' + ') + ')',
     mismaImagen,
+    /* ¿Alguna vista tiene sus dos fases trazadas con métodos DISTINTOS? Medido: mezclar
+       trazado libre con 3 puntos mete ±3,7 a ±4,4 pp, veinte veces el sesgo de usar el mismo
+       en las dos, y alcanza para dar vuelta la impresión clínica. No bloquea —hay razones
+       legítimas para trazar una fase a mano y la otra no— pero se declara. */
+    mezclaMetodo: listas.some(V => {
+      const P = _strain.vistas[V.k];
+      return P.d && P.s && P.d.metodo && P.s.metodo && P.d.metodo !== P.s.metodo;
+    }),
     invertido: terr.some(t => t.invertido),
     plausible: terr.every(t => t.plausible)
   };
@@ -46488,6 +46523,16 @@ function _strainPanel() {
   };
   let cab = _STR_VISTAS.map(fila).join('');
 
+  /* Selector de método. Va arriba de todo: decide cómo se traza, así que elegirlo después de
+     empezar sería rehacer. */
+  const act3 = 'background:var(--accent);color:#fff;';
+  cab = '<div style="margin-bottom:6px;">' +
+    '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-str-m-libre" style="padding:3px 9px;font-size:11px;' +
+      (_strain.modo !== '3pt' ? act3 : '') + '">✏️ Trazado libre</button>' +
+    '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-str-m-3pt" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
+      (_strain.modo === '3pt' ? act3 : '') + '">📍 3 puntos</button>' +
+    '</div>' + cab;
+
   /* ── Paso en curso ── */
   let paso = '';
   if (!_strainCompleto()) {
@@ -46501,9 +46546,17 @@ function _strainPanel() {
         : 'Si tenés esta vista, abrila. Si no, calculá con lo que tengas. ') +
       'Pausá en <b>' + (esD ? 'DIÁSTOLE' : 'SÍSTOLE') + '</b> y trazá ' + VA.orden + '.' +
       '<div style="font-size:10px;color:var(--text2);margin-top:3px;">' +
-        'Mantené apretado y recorré el borde; al soltar se cierra solo. Se puede rehacer antes ' +
-        'de confirmar. <b>El orden importa:</b> los rótulos de pared suponen que trazaste en esa ' +
-        'dirección — al revés quedan intercambiadas. ' +
+        (_strain.modo === '3pt'
+          ? (_strain.ctrl && _strain.ctrl.length
+              ? '<b style="color:#a78bfa;">Contorno sugerido.</b> Arrastrá los puntos de control ' +
+                'para ajustarlo al borde y después confirmá. Es una <b>sugerencia</b>, no una ' +
+                'medición del borde: medido, la longitud sale 4-6 % corta, aunque el strain —que ' +
+                'es un cociente— apenas se mueve porque el desvío se cancela entre las dos fases.'
+              : 'Marcá tres puntos: <b>' + [ '1. anillo mitral SEPTAL', '2. ÁPEX del VI', '3. anillo mitral LATERAL' ][(_strain.pts3||[]).length] + '</b>.')
+          : 'Mantené apretado y recorré el borde; al soltar se cierra solo. Se puede rehacer antes ' +
+            'de confirmar.') +
+        ' <b>El orden importa:</b> los rótulos de pared suponen que marcaste del septal al lateral ' +
+        '— al revés quedan intercambiadas. ' +
         (_strain.pendiente
           ? '<b style="color:#fbbf24;">Trazado listo — apretá «Confirmar ' + (esD ? 'diástole' : 'sístole') + '».</b>'
           : '') +
@@ -46557,6 +46610,13 @@ function _strainPanel() {
         ? '<div style="font-size:10px;color:#fbbf24;margin-top:5px;line-height:1.5;"><b>⚠️ Alguna vista tiene diástole y sístole en imágenes distintas.</b> ' +
           'Las dos fases de una misma vista tienen que salir del mismo cineloop, en dos cuadros.</div>'
         : '') +
+      (R.mezclaMetodo
+        ? '<div style="font-size:10px;color:#fbbf24;margin-top:5px;line-height:1.5;"><b>⚠️ Alguna vista mezcla trazado libre con contorno de 3 puntos.</b> ' +
+          'Medido sobre contornos plausibles, mezclar los métodos entre diástole y sístole corre ' +
+          'el resultado unos <b>4 puntos porcentuales</b> —veinte veces lo que corre usar el mismo ' +
+          'método en las dos—, porque el desvío del contorno sugerido deja de cancelarse. ' +
+          'Conviene trazar las dos fases igual.</div>'
+        : '') +
       /* El diagrama va DESPUÉS del desglose y ANTES del descargo: se mira, y el descargo
          sigue pegado al resultado. El canvas se pinta aparte —`_strBullsRepintar`— porque la
          barra se reconstruye por innerHTML y el contexto 2D se va con ella. */
@@ -46571,7 +46631,14 @@ function _strainPanel() {
   }
 
   /* ── Botones ── */
-  const conf  = b('cine-str-conf', 'btn-primary', 'Confirmar ' + (_strain.fase === 'd' ? 'diástole' : 'sístole'));
+  const fase = (_strain.fase === 'd') ? 'diástole' : 'sístole';
+  /* En modo 3 puntos el confirmar es el del contorno sugerido, y aparece sólo cuando hay
+     contorno. «Rehacer» vuelve a los tres puntos sin tocar lo ya confirmado. */
+  const hay3 = _strain.modo === '3pt' && _strain.ctrl && _strain.ctrl.length >= 2;
+  const conf = (_strain.modo === '3pt')
+    ? (hay3 ? b('cine-str-3conf', 'btn-primary', 'Confirmar ' + fase) +
+              b('cine-str-3re', 'btn-ghost', 'Rehacer los 3 puntos', 'margin-left:6px;') : '')
+    : b('cine-str-conf', 'btn-primary', 'Confirmar ' + fase);
   const reset = b('cine-str-reset', 'btn-ghost', 'Empezar de nuevo', 'margin-left:6px;');
   /* «Continuar» aparece sólo con la vista en curso terminada y otra por delante: es la
      decisión de agregar vistas, y calcular ya está hecho — el resultado está arriba. */
@@ -46590,10 +46657,162 @@ function medStrainVistaSiguiente() {
   _strain.vista = _STR_VISTAS[i + 1].k;
   _strain.fase = 'd';
   _strain.pendiente = null;
+  _strain.pts3 = []; _strain.ctrl = []; _strain.arrastrando = null;
   _strain.ocultar = false; _strain.avisoCuadro = false; _strain.avisoImagen = false;
   _medPintar(); _medEstado();
 }
 window.medStrainVistaSiguiente = medStrainVistaSiguiente;
+/* ══ CONTORNO SUGERIDO POR 3 PUNTOS ══════════════════════════════════════════════════════════
+
+   Alternativa al trazado libre: el médico marca anillo septal, ápex y anillo lateral, y la app
+   propone un contorno que después se ajusta arrastrando puntos de control. El resto del flujo
+   es el MISMO —`_strainAceptar`, los mismos cálculos, el mismo bull's eye, la misma captura—
+   porque lo que se entrega es una lista de puntos igual que la del trazado libre.
+
+   CUÁNTO SE PIERDE POR NO TRAZAR EL BORDE, medido antes de implementar sobre contornos
+   superelípticos —a propósito NO elipses, para que el modelo no se mida contra sí mismo—:
+
+     · la LONGITUD sale 4-6 % corta: un spline por tres puntos es más recto que el endocardio;
+     · el STRAIN, que es un COCIENTE, sale con **0,02 a 0,21 pp** de sesgo, porque el
+       subregistro se cancela entre diástole y sístole.
+
+   O sea: sirve para strain aunque sea un mal contorno absoluto. Por eso el panel dice que es
+   un contorno SUGERIDO y no una medición del borde.
+
+   ⚠️ LO QUE SÍ ROMPE ESA CANCELACIÓN ES MEZCLAR LOS MÉTODOS ENTRE LAS DOS FASES. Medido:
+   diástole a mano con sístole por 3 puntos —o al revés— da **±3,7 a ±4,4 pp**, veinte veces el
+   sesgo de usar el mismo método en las dos, y alcanza para dar vuelta la impresión clínica
+   (−5,1 % contra −9,4 % en el ventrículo dilatado). Por eso cada trazado guarda con qué método
+   se hizo y el panel lo DECLARA cuando no coinciden. No se bloquea: hay razones legítimas para
+   trazar una fase a mano y la otra no. */
+
+/* Catmull-Rom por una lista de puntos, con los extremos reflejados para que la curva pase por
+   el primero y el último. Devuelve la poligonal densa. */
+function _strSpline(P, porTramo) {
+  if (!P || P.length < 2) return (P || []).slice();
+  const n = porTramo || 24;
+  const ext = [{ x: 2*P[0].x - P[1].x, y: 2*P[0].y - P[1].y }].concat(P,
+              [{ x: 2*P[P.length-1].x - P[P.length-2].x, y: 2*P[P.length-1].y - P[P.length-2].y }]);
+  const out = [];
+  for (let k = 1; k + 2 < ext.length; k++) {
+    const a = ext[k-1], b = ext[k], c = ext[k+1], d = ext[k+2];
+    for (let i = 0; i < n; i++) {
+      const t = i / n, t2 = t*t, t3 = t2*t;
+      out.push({
+        x: 0.5*((2*b.x) + (-a.x+c.x)*t + (2*a.x-5*b.x+4*c.x-d.x)*t2 + (-a.x+3*b.x-3*c.x+d.x)*t3),
+        y: 0.5*((2*b.y) + (-a.y+c.y)*t + (2*a.y-5*b.y+4*c.y-d.y)*t2 + (-a.y+3*b.y-3*c.y+d.y)*t3)
+      });
+    }
+  }
+  out.push({ x: P[P.length-1].x, y: P[P.length-1].y });
+  return out;
+}
+
+const _STR_NCTRL = 7;          // ≥5 como pide el flujo, e impar para que el del medio sea el ápex
+
+/* UNA sola densidad para dibujar y para medir. Estaban en 20 y 26: la curva que el médico
+   aprobaba en pantalla no era exactamente la que se medía al confirmar —la poligonal de una
+   curva depende de en cuántos tramos se la parte—. La diferencia era de milímetros, y es
+   exactamente «si se mide un alto y se dibuja otro» que este archivo ya documenta. */
+const _STR_DENS = 26;
+
+/* Con los tres puntos marcados se arma la curva inicial y de ella se sacan los puntos de
+   control, repartidos por LONGITUD DE ARCO. Por parámetro quedarían amontonados cerca del
+   ápex —ahí la curva se dobla— y el médico tendría cinco controles para ajustar la punta y
+   ninguno para las paredes. */
+function _strCtrlIniciales(p3) {
+  const curva = _strSpline(p3, 64);
+  const ac = [0];
+  for (let i = 1; i < curva.length; i++)
+    ac.push(ac[i-1] + Math.hypot(curva[i].x - curva[i-1].x, curva[i].y - curva[i-1].y));
+  const L = ac[ac.length-1];
+  const out = [];
+  for (let k = 0; k < _STR_NCTRL; k++) {
+    const meta = L * k / (_STR_NCTRL - 1);
+    let i = 1; while (i < ac.length - 1 && ac[i] < meta) i++;
+    const t = (ac[i] - ac[i-1]) > 0 ? (meta - ac[i-1]) / (ac[i] - ac[i-1]) : 0;
+    out.push({ x: curva[i-1].x + (curva[i].x - curva[i-1].x) * t,
+               y: curva[i-1].y + (curva[i].y - curva[i-1].y) * t });
+  }
+  /* Los extremos son EXACTAMENTE los dos puntos del anillo que marcó el médico: son los que
+     definen la recta que da el eje largo, y moverlos un píxel mueve el ápex derivado.
+
+     HOY ESTAS DOS LÍNEAS SON REDUNDANTES y se conservan a propósito: con `meta = 0` y
+     `meta = L` el remuestreo por arco ya aterriza exacto en el primero y el último punto de
+     la curva, que Catmull-Rom hace pasar por los extremos. Verificado por mutación —sacarlas
+     no mueve nada, y con la condición comparando contra el punto REGISTRADO sigue dando cero—.
+     Quedan porque fijan el CONTRATO: el día que cambie el remuestreo, `_STR_NCTRL` o el tipo
+     de spline, los extremos tienen que seguir siendo los puntos marcados. */
+  out[0] = { x: p3[0].x, y: p3[0].y };
+  out[out.length-1] = { x: p3[2].x, y: p3[2].y };
+  return out;
+}
+
+const _strCurva = () => (_strain && _strain.ctrl && _strain.ctrl.length >= 2)
+  ? _strSpline(_strain.ctrl, _STR_DENS) : null;
+
+function medStrainModo(m) {
+  if (!_strain) _strainIniciar();
+  _strain.modo = (m === '3pt') ? '3pt' : 'libre';
+  _strain.pts3 = []; _strain.ctrl = []; _strain.arrastrando = null;
+  _strain.pendiente = null;
+  _medTrazo = null;
+  _medPintar(); _medEstado();
+}
+window.medStrainModo = medStrainModo;
+
+function medStrain3Rehacer() {
+  if (!_strain) return;
+  _strain.pts3 = []; _strain.ctrl = []; _strain.arrastrando = null;
+  _strain.pendiente = null;
+  _medPintar(); _medEstado();
+}
+window.medStrain3Rehacer = medStrain3Rehacer;
+
+/* Clic en modo 3 puntos: marca uno de los tres y, con el tercero, propone el contorno. */
+function _strain3Clic(ev) {
+  if (!_strain || _strain.modo !== '3pt') return;
+  if (_strain.pts3.length >= 3) return;                 // ya está propuesto: se ajusta, no se agrega
+  const cv = _medEl('cine-med');
+  const p = _medPunto(ev, cv);
+  if (!p) return;
+  /* La compuerta 2D se aplica en el BORDE, punto por punto: si el primero cae sobre Doppler,
+     decirlo ahí es mejor que dejar marcar tres y rechazar al final. */
+  const e = _medEscalaEn(p);
+  if (!e.ok) { alert(e.motivo); return; }
+  _strain.pts3.push({ x:p.x, y:p.y });
+  if (_strain.pts3.length === 3) _strain.ctrl = _strCtrlIniciales(_strain.pts3);
+  _medPintar(); _medEstado();
+}
+
+/* Confirma el contorno propuesto: se densifica la curva y entra por la MISMA puerta que el
+   trazado libre, así que de acá en adelante los dos métodos son indistinguibles. */
+function medStrain3Confirmar() {
+  if (!_strain || !_strain.ctrl || _strain.ctrl.length < 2) return;
+  const pts = _strSpline(_strain.ctrl, _STR_DENS);    // la MISMA curva que se está viendo
+  const motivo = _strainAceptar(pts);
+  if (motivo) { alert(motivo); _strain.pendiente = null; _medPintar(); _medEstado(); return; }
+  medStrainConfirmar();
+  _strain.pts3 = []; _strain.ctrl = []; _strain.arrastrando = null;
+  _medPintar(); _medEstado();
+}
+window.medStrain3Confirmar = medStrain3Confirmar;
+
+/* ¿El punto cae sobre un control? Devuelve su índice o −1. El radio va en píxeles de IMAGEN y
+   escala con el ancho: en una imagen de 1000 px un radio de 8 es la mitad de lo agarrable que
+   en una de 500. */
+function _strCtrlEn(p) {
+  if (!_strain || !_strain.ctrl) return -1;
+  const cv = _medEl('cine-cv');
+  const r = Math.max(9, (cv ? cv.width : 600) / 55);
+  let mejor = -1, d2 = r * r;
+  _strain.ctrl.forEach((c, i) => {
+    const q = (c.x - p.x) * (c.x - p.x) + (c.y - p.y) * (c.y - p.y);
+    if (q <= d2) { d2 = q; mejor = i; }
+  });
+  return mejor;
+}
+
 /* ══ BULL'S EYE DE TERRITORIOS — DEL VISOR, NO DEL INFORME ═══════════════════════════════════
 
    ⚠️ NO TOCA `strainEstado` NI `#sgl-svg-bullseye`. Aquél es el bull's eye de 17 segmentos del
@@ -46878,6 +47097,9 @@ function _medManejador() {
   if (_medHerr === 'dist') return _medClic;
   if (_medHerr === 'vel') return _medVelClic;
   if (_medHerr === 'tiempo' || _medHerr === 'fc') return _medTiempoClic;
+  /* En modo 3 puntos el strain SI escucha clics; en trazado libre sigue siendo una
+     herramienta de arrastre y devuelve null, como el area. */
+  if (_medHerr === 'strain' && _strain && _strain.modo === '3pt') return _strain3Clic;
   return null;
 }
 
@@ -47048,6 +47270,47 @@ function _medPintar() {
       dibujarTr(_strain.pares.s, COL.s, 'Sístole');
     }
     if (_strain.pendiente) dibujarTr(_strain.pendiente, '#fbbf24', null);
+
+    /* ── Modo 3 puntos: los anatómicos, la curva propuesta y sus controles ── */
+    if (_strain.modo === '3pt') {
+      const ROT3 = ['anillo septal', 'ápex', 'anillo lateral'];
+      (_strain.pts3 || []).forEach((q, i) => {
+        cx.strokeStyle = '#fbbf24'; cx.fillStyle = '#fbbf24'; cx.lineWidth = 2 * esc;
+        cx.beginPath(); cx.arc(q.x, q.y, 6 * esc, 0, 6.2832); cx.stroke();
+        cx.beginPath(); cx.arc(q.x, q.y, 2.5 * esc, 0, 6.2832); cx.fill();
+        const t3 = (i + 1) + '. ' + ROT3[i];
+        const w3 = cx.measureText(t3).width;
+        cx.fillStyle = 'rgba(0,0,0,.7)';
+        cx.fillRect(q.x + 9 * esc, q.y - 16 * esc, w3 + 8 * esc, 18 * esc);
+        cx.fillStyle = '#fbbf24';
+        cx.fillText(t3, q.x + 13 * esc, q.y - 2 * esc);
+      });
+      const curva = _strCurva();
+      if (curva && curva.length > 1) {
+        cx.strokeStyle = '#a78bfa'; cx.lineWidth = 2 * esc;
+        cx.beginPath(); cx.moveTo(curva[0].x, curva[0].y);
+        for (let i = 1; i < curva.length; i++) cx.lineTo(curva[i].x, curva[i].y);
+        cx.stroke();
+        /* La recta del anillo, punteada: define el eje y NO es pared. Mismo idioma que el
+           trazado confirmado. */
+        cx.save();
+        cx.strokeStyle = 'rgba(160,160,170,.85)'; cx.lineWidth = 1.2 * esc;
+        cx.setLineDash([5 * esc, 4 * esc]);
+        cx.beginPath();
+        cx.moveTo(curva[0].x, curva[0].y);
+        cx.lineTo(curva[curva.length-1].x, curva[curva.length-1].y);
+        cx.stroke();
+        cx.restore();
+        /* Los controles: huecos, para que se vean como algo que se agarra y no como una
+           medición. El que se está arrastrando, relleno. */
+        _strain.ctrl.forEach((c, i) => {
+          cx.strokeStyle = '#a78bfa'; cx.fillStyle = (_strain.arrastrando === i) ? '#a78bfa' : '#ffffff';
+          cx.lineWidth = 2 * esc;
+          cx.beginPath(); cx.arc(c.x, c.y, 5 * esc, 0, 6.2832);
+          cx.fill(); cx.stroke();
+        });
+      }
+    }
   }
 
   /* Velocidades: cruz en el punto, línea punteada hasta la base y la etiqueta. La línea
@@ -47343,6 +47606,10 @@ function _medEstado() {
   if (cet) cet.oninput = _vBind(_V, function () { _medEtiqueta = cet.value; });
   _on(cbt, medCapturarConMedicion);
   const sxm = _medEl('cine-str-mas'), sxb = _medEl('cine-str-cap');
+  _on(_medEl('cine-str-m-libre'), () => medStrainModo('libre'));
+  _on(_medEl('cine-str-m-3pt'),   () => medStrainModo('3pt'));
+  _on(_medEl('cine-str-3conf'), medStrain3Confirmar);
+  _on(_medEl('cine-str-3re'),   medStrain3Rehacer);
   _on(sxc, medStrainConfirmar);
   _on(sxr, medStrainReiniciar);
   _on(sxm, medStrainVistaSiguiente);
@@ -47637,8 +47904,8 @@ function medReset() {
        contorno confirmado desaparece de la pantalla es el momento en que la app le dijo que
        lo hiciera. Sin una palabra ahí, se lee como que se perdió el trabajo. Se avisa siempre
        que haya algo que se deje de dibujar, y se distingue si además se descartó lo pendiente. */
-    const habia = !!_strain.pendiente;
-    if (habia) _strain.pendiente = null;
+    const habia = !!(_strain.pendiente || (_strain.ctrl && _strain.ctrl.length));
+    if (habia) { _strain.pendiente = null; _strain.pts3 = []; _strain.ctrl = []; _strain.arrastrando = null; }
     _strain.descartoPend = habia;
     if (habia || _strain.pares.d || _strain.pares.s) _strain.avisoCuadro = true;
     _strain.ocultar = true;
@@ -47667,6 +47934,7 @@ function medCambioDeImagen() {
   }
   if (_strain) {
     _strain.pendiente = null;
+    _strain.pts3 = []; _strain.ctrl = []; _strain.arrastrando = null;
     _strain.ocultar = false;
     _strain.avisoImagen = true;
   }
@@ -63495,8 +63763,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260920-1116';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789913777881;                 /* eco-build-ms */
+const ECO_BUILD    = '20260920-1129';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789914552269;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -63582,7 +63850,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1116</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1129</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

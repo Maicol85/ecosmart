@@ -8133,6 +8133,61 @@ y TC-193 se puso en rojo solo.
 **Sin verificar en Safari**, como todo el módulo DICOM: el navegador está concedido a nivel
 «lectura». Todo corrió en Chrome por CDP, con el pendrive montado.
 
+### Contorno sugerido por 3 puntos, y el sesgo que aparece al MEZCLAR métodos (2026-09-20)
+
+Alternativa al trazado libre: se marcan anillo septal, ápex y anillo lateral, la app propone un
+contorno con Catmull-Rom y el médico lo ajusta arrastrando siete puntos de control. Confirmado,
+entra por **`_strainAceptar`, la misma puerta**, así que de ahí en adelante los dos métodos son
+indistinguibles — mismos arcos por pared, mismo bull's eye, misma captura.
+
+**CUÁNTO SE PIERDE POR NO TRAZAR EL BORDE, medido antes de implementar** sobre contornos
+superelípticos —a propósito NO elipses: la primera medición usó una media elipse como «verdad»
+y midió un modelo de media elipse contra ella, que es «ida y vuelta exacto no prueba nada»—:
+
+| | longitud | strain |
+|---|---|---|
+| spline por 3 puntos | **4-6 % corta** | sesgo **0,02 a 0,21 pp** |
+
+O sea: **sirve para strain aunque sea un mal contorno absoluto**, porque el subregistro se
+cancela en el cociente. Eso es lo que hace legítimo el método, y está dicho en el panel.
+
+**⚠️ LO QUE ROMPE LA CANCELACIÓN ES MEZCLAR LOS MÉTODOS ENTRE LAS DOS FASES.** Medido:
+diástole a mano con sístole por 3 puntos —o al revés— da **±3,7 a ±4,4 pp**, veinte veces el
+sesgo de usar el mismo método en las dos, y alcanza para dar vuelta la impresión clínica
+(−5,1 % contra −9,4 % en el ventrículo dilatado). Cada trazado guarda su `metodo` y el panel lo
+**declara**; no se bloquea, porque hay razones legítimas para trazar una fase a mano y la otra
+no. El pedido no lo mencionaba.
+
+**UNA SOLA DENSIDAD PARA DIBUJAR Y PARA MEDIR.** Estaban en 20 y 26 tramos por segmento: la
+curva que el médico aprobaba en pantalla no era la que se medía al confirmar, porque la
+poligonal de una curva depende de en cuántos tramos se la parta. Lo encontró la condición que
+exige que el borde confirmado sea el de la curva dibujada. Es «si se mide un alto y se dibuja
+otro», otra vez.
+
+**Los controles se reparten por LONGITUD DE ARCO, no por parámetro.** Por parámetro quedan
+amontonados cerca del ápex —ahí la curva se dobla— y el médico tendría cinco controles para
+ajustar la punta y ninguno para las paredes.
+
+#### Dos mutaciones que SOBREVIVIERON, y qué significa cada una
+
+- **Fijar los extremos a los puntos marcados es REDUNDANTE hoy.** Con `meta = 0` y `meta = L`
+  el remuestreo por arco ya aterriza exacto en el primero y el último punto de la curva, que
+  Catmull-Rom hace pasar por los extremos. Las dos líneas quedan porque fijan el **contrato**:
+  el día que cambie el remuestreo, `_STR_NCTRL` o el tipo de spline, los extremos tienen que
+  seguir siendo los puntos marcados. Se declara en el código que es redundante, en vez de
+  dejarla pasar como si la mutación la hubiera cazado.
+- **Confirmar la poligonal cruda en vez del spline sobrevivía a la primera versión del caso**,
+  porque la condición de «misma puerta» alimentaba los puntos a mano y salteaba
+  `medStrain3Confirmar`. Un caso que le pasa los datos a la función no prueba el camino que los
+  arma — la misma lección que el botón de la barra el turno pasado.
+
+**Y la trampa del clic, por segunda vez en dos turnos.** La condición «la curva pasa por los
+puntos del anillo» comparaba contra **los píxeles que yo quise clickear**, y `clientX` es entero
+por especificación: el viaje imagen → pantalla → imagen pierde ~1 px, así que medía la
+cuantización del clic y no el spline. Con tolerancia de 2 px una mutación sobrevivía; con
+tolerancia exacta fallaba el código sano. Se compara contra el punto **registrado** —exacto— y
+el clic se mide aparte. **Ya estaba escrito en este archivo para TC-197 y lo volví a hacer.**
+
 ### Capturar con las mediciones, y LOS BOTONES MUERTOS DE LA VISTA B (2026-09-20)
 
 Segundo botón de captura: compone el canvas de la imagen con el de medición y agrega una

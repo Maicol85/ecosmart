@@ -14226,6 +14226,261 @@ caso('TC-202', 'Capturar con mediciones: la capa se compone, la etiqueta va en s
   })();
 `);
 
+
+/* ══ TC-203 · Contorno sugerido por 3 puntos ═════════════════════════════════════════════════
+   LA CONDICION QUE MAS VALE no es "se dibuja una curva" sino que, una vez confirmado, el
+   contorno de 3 puntos entre por LA MISMA puerta que el trazado libre: mismo _strainAceptar,
+   mismos arcos por pared, mismo calculo. Se verifica alimentando a mano la MISMA lista de
+   puntos por las dos vias y exigiendo geometria identica al bit.
+
+   Y la que mas costaria no tener: mezclar trazado libre en una fase con 3 puntos en la otra
+   corre el strain ~4 pp -medido antes de implementar, veinte veces el sesgo de usar el mismo
+   metodo en las dos-. Cada trazado recuerda su metodo y el panel lo declara.
+   NO DEPENDE DEL PENDRIVE.                                                                    */
+caso('TC-203', 'Strain por 3 puntos: spline ajustable, misma puerta que el trazado libre, y la mezcla se declara', `
+  return (async () => {
+    const R = {};
+    const alertOrig = window.alert; const dichos = [];
+    window.alert = m => dichos.push(String(m));
+    try {
+      const mkJpeg = () => {
+        const c = document.createElement('canvas'); c.width = 600; c.height = 500;
+        const g = c.getContext('2d'); g.fillStyle = '#223'; g.fillRect(0,0,600,500);
+        const b64 = c.toDataURL('image/jpeg').split(',')[1];
+        const bin = atob(b64); const u = new Uint8Array(bin.length);
+        for (let i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i);
+        return u;
+      };
+      const jpeg = mkJpeg();
+      const DX = 0.05;
+      const reg2d = { tipo:1, x0:20, y0:20, x1:580, y1:480, ux:3, uy:3, dx:DX, dy:DX,
+                      rx0:20, ry0:20, rvx:0, rvy:0 };
+      const regDop = { tipo:1, x0:20, y0:20, x1:580, y1:480, ux:4, uy:7, dx:0.004, dy:-1.3,
+                       rx0:20, ry0:100, rvx:0, rvy:0 };
+      const mkLoop = (nom, regs) => ({ nombre:nom, cuadros:4,
+        d:{ frags:[jpeg,jpeg,jpeg,jpeg], cols:600, filas:500, msCuadro:40, regiones:regs } });
+      const cvm = () => document.getElementById('cine-med');
+      const ac = (x,y) => { const c = cvm(), r = c.getBoundingClientRect();
+        return { clientX: r.left + x*(r.width/c.width), clientY: r.top + y*(r.height/c.height) }; };
+      const clic = (x,y) => cvm().dispatchEvent(new MouseEvent('click', Object.assign({bubbles:true}, ac(x,y))));
+      const montar = async (nom, regs) => { _cineAbrir([ mkLoop(nom, regs||[reg2d]) ]);
+        await new Promise(r=>setTimeout(r,210));
+        if (!_medOn) medToggle(); await new Promise(r=>setTimeout(r,130)); };
+
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      await montar('a4c.dcm');
+      medHerramienta('strain'); medStrainReiniciar();
+      await new Promise(r=>setTimeout(r,120));
+
+      /* ── 1 · el selector existe y arranca en trazado libre ── */
+      R.hayLibre = !!document.getElementById('cine-str-m-libre');
+      R.hay3pt   = !!document.getElementById('cine-str-m-3pt');
+      R.modoInicial = _strain.modo;
+      document.getElementById('cine-str-m-3pt').click();
+      await new Promise(r=>setTimeout(r,130));
+      R.modo3 = _strain.modo === '3pt';
+      R.panelPide1 = /anillo mitral SEPTAL/.test(document.getElementById('cine-med-barra').innerHTML);
+
+      /* ── 2 · los tres puntos generan el contorno ── */
+      const SEP = [180, 400], APX = [300, 120], LAT = [420, 400];
+      clic(SEP[0], SEP[1]); await new Promise(r=>setTimeout(r,110));
+      R.tras1 = _strain.pts3.length; R.sinCurva1 = !_strCurva();
+      R.panelPide2 = /ÁPEX del VI/.test(document.getElementById('cine-med-barra').innerHTML);
+      clic(APX[0], APX[1]); await new Promise(r=>setTimeout(r,110));
+      R.tras2 = _strain.pts3.length;
+      clic(LAT[0], LAT[1]); await new Promise(r=>setTimeout(r,140));
+      R.tras3 = _strain.pts3.length;
+      R.nCtrl = _strain.ctrl.length;
+      R.min5 = _strain.ctrl.length >= 5;
+      const curva = _strCurva();
+      R.hayCurva = !!(curva && curva.length > 20);
+      if (curva) {
+        /* PASA POR LOS EXTREMOS marcados: son los que definen la recta del anillo y de ahi el
+           eje largo. Un spline que no los toque mueve el eje. */
+        /* ⚠️ CONTRA EL PUNTO REGISTRADO, no contra el pixel que yo quise clickear. clientX es
+           ENTERO por especificacion, asi que el viaje imagen -> pantalla -> imagen pierde ~1 px:
+           comparar contra SEP/LAT mide la cuantizacion del clic, no el spline. Ya me paso en
+           TC-197 y lo volvi a hacer aca. La curva tiene que pasar EXACTO por pts3, porque los
+           extremos se fijan a proposito -- son los que definen la recta del anillo y de ahi el
+           eje largo-- y sin esa fijacion el remuestreo por arco los corre. */
+        const P0 = _strain.pts3[0], P2 = _strain.pts3[2];
+        const d0 = Math.hypot(curva[0].x-P0.x, curva[0].y-P0.y);
+        const dn = Math.hypot(curva[curva.length-1].x-P2.x, curva[curva.length-1].y-P2.y);
+        R.extremos = d0 < 1e-9 && dn < 1e-9;
+        R.drift = d0.toExponential(2) + ' / ' + dn.toExponential(2);
+        /* Y el clic, aparte y con la tolerancia de la cuantizacion. */
+        R.clicCerca = Math.hypot(P0.x-SEP[0], P0.y-SEP[1]) < 3 &&
+                      Math.hypot(P2.x-LAT[0], P2.y-LAT[1]) < 3;
+        /* Y es SUAVE: sin saltos de angulo grandes entre segmentos consecutivos. */
+        let peor = 0;
+        for (let i=1;i+1<curva.length;i++) {
+          const a1=Math.atan2(curva[i].y-curva[i-1].y, curva[i].x-curva[i-1].x);
+          const a2=Math.atan2(curva[i+1].y-curva[i].y, curva[i+1].x-curva[i].x);
+          let d=Math.abs(a2-a1); if (d>Math.PI) d=2*Math.PI-d;
+          peor=Math.max(peor,d);
+        }
+        R.peorAngulo = (peor*180/Math.PI).toFixed(1);
+        R.suave = peor < 0.5;          // < ~29 grados entre segmentos
+        /* Pasa cerca del apex marcado. */
+        let dAp = 1e9; curva.forEach(q => { dAp = Math.min(dAp, Math.hypot(q.x-APX[0], q.y-APX[1])); });
+        R.pasaPorApex = dAp < 4; R.dApex = dAp.toFixed(2);
+      }
+
+      /* ── 3 · AJUSTE EN TIEMPO REAL ── */
+      const iMid = Math.floor(_strain.ctrl.length/2);
+      const antes = JSON.stringify(_strCurva().slice(0,5));
+      const c0 = _strain.ctrl[iMid];
+      const cv = cvm();
+      cv.dispatchEvent(new MouseEvent('mousedown', Object.assign({bubbles:true}, ac(c0.x, c0.y))));
+      R.agarro = _strain.arrastrando === iMid;
+      cv.dispatchEvent(new MouseEvent('mousemove', Object.assign({bubbles:true}, ac(c0.x-45, c0.y+35))));
+      await new Promise(r=>setTimeout(r,90));
+      R.curvaCambioEnVivo = JSON.stringify(_strCurva().slice(0,5)) !== antes ||
+                            Math.hypot(_strain.ctrl[iMid].x-c0.x, _strain.ctrl[iMid].y-c0.y) > 10;
+      R.ctrlSeMovio = Math.hypot(_strain.ctrl[iMid].x-c0.x, _strain.ctrl[iMid].y-c0.y) > 10;
+      document.dispatchEvent(new MouseEvent('mouseup', { bubbles:true }));
+      await new Promise(r=>setTimeout(r,110));
+      R.solto = _strain.arrastrando === null;
+      /* Un mousedown LEJOS de todo control no arrastra nada ni empieza un trazo libre. */
+      cv.dispatchEvent(new MouseEvent('mousedown', Object.assign({bubbles:true}, ac(560, 60))));
+      R.lejosNoArrastra = _strain.arrastrando === null && !_medTrazo;
+      document.dispatchEvent(new MouseEvent('mouseup', { bubbles:true }));
+      await new Promise(r=>setTimeout(r,90));
+
+      /* ── 3b · CONFIRMAR usa el SPLINE, no la poligonal de los controles ──
+         Sin esto, confirmar la poligonal cruda pasa todas las demas condiciones: el calculo
+         corre igual y el contorno queda anguloso. La poligonal es MAS CORTA que la curva que
+         se ve en pantalla, asi que el borde confirmado no seria el que el medico aprobo. */
+      const ctrlAhora = _strain.ctrl.map(q => ({x:q.x, y:q.y}));
+      const largoDe = L => { let t=0; for (let i=1;i<L.length;i++) t+=Math.hypot(L[i].x-L[i-1].x, L[i].y-L[i-1].y); return t; };
+      const largoPoli = largoDe(ctrlAhora), largoCurva = largoDe(_strCurva());
+      R.curvaMasLargaQuePoli = largoCurva > largoPoli * 1.001;    // denominador: se distinguen
+      R.poliVsCurva = largoPoli.toFixed(1) + ' vs ' + largoCurva.toFixed(1) + ' px';
+      medStrain3Confirmar();
+      await new Promise(r=>setTimeout(r,150));
+      const conf3 = _strain.vistas.a4c.d;
+      R.confirmo3 = !!conf3;
+      if (conf3) {
+        const escCm = conf3.cmPorPx;
+        R.bordeConf = conf3.bordeCm;
+        R.confEsCurva = Math.abs(conf3.bordeCm - largoCurva*escCm) < 1e-6;
+        R.confNoEsPoli = Math.abs(conf3.bordeCm - largoPoli*escCm) > 1e-3;
+        R.confMuchosPuntos = conf3.pts.length > 50;
+        R.confMetodo = conf3.metodo;
+      }
+      /* y "Rehacer" limpia los tres puntos sin tocar lo confirmado */
+      medStrainModo('3pt');
+      clic(SEP[0], SEP[1]); await new Promise(r=>setTimeout(r,100));
+      medStrain3Rehacer(); await new Promise(r=>setTimeout(r,100));
+      R.rehacerLimpia = _strain.pts3.length === 0 && _strain.ctrl.length === 0 &&
+                        !!_strain.vistas.a4c.d;
+      medStrainReiniciar(); medStrainModo('3pt');
+      clic(SEP[0],SEP[1]); clic(APX[0],APX[1]); clic(LAT[0],LAT[1]);
+      await new Promise(r=>setTimeout(r,150));
+
+      /* ── 4 · MISMA PUERTA: la misma lista de puntos por las dos vias da lo mismo ── */
+      const pts = _strSpline(_strain.ctrl, 26).map(q => ({x:q.x, y:q.y}));
+      medStrainModo('3pt');
+      _strain.ctrl = pts.filter((q,i) => i % 26 === 0);       // controles cualesquiera
+      const g3 = (function(){ _strain.pendiente = null; _strainAceptar(pts); return _strain.pendiente; })();
+      medStrainModo('libre');
+      const gL = (function(){ _strain.pendiente = null; _strainAceptar(pts); return _strain.pendiente; })();
+      R.mismaGeometria = !!(g3 && gL) &&
+        Math.abs(g3.bordeCm - gL.bordeCm) < 1e-12 && Math.abs(g3.Lcm - gL.Lcm) < 1e-12 &&
+        Math.abs(g3.arcoAcm - gL.arcoAcm) < 1e-12 && Math.abs(g3.arcoBcm - gL.arcoBcm) < 1e-12;
+      R.metodoRegistrado = !!(g3 && gL) && g3.metodo === '3pt' && gL.metodo === 'libre';
+      R.borde = g3 ? g3.bordeCm.toFixed(3) : '';
+
+      /* ── 5 · NO se traza sobre Doppler ── */
+      medStrainReiniciar(); medStrainModo('3pt');
+      await montar('dop.dcm', [regDop]);
+      medHerramienta('strain'); medStrainModo('3pt');
+      await new Promise(r=>setTimeout(r,130));
+      dichos.length = 0;
+      clic(300, 300);
+      await new Promise(r=>setTimeout(r,130));
+      R.dopRechaza = _strain.pts3.length === 0;
+      R.dopAvisa = /TIEMPO|Doppler/i.test(dichos.join(' '));
+
+      /* ── 6 · LA MEZCLA SE DECLARA ── */
+      await montar('mix.dcm');
+      medHerramienta('strain'); medStrainReiniciar();
+      await new Promise(r=>setTimeout(r,120));
+      const tri = (cx,yb,Wi,Wd,H) => { const p=[], ya=yb-H;
+        const n1=Math.ceil(Math.hypot(Wi,H)/10), n2=Math.ceil(Math.hypot(Wd,H)/10);
+        for(let i=0;i<=n1;i++)p.push({x:Math.round(cx-Wi+Wi*i/n1),y:Math.round(yb+(ya-yb)*i/n1)});
+        for(let i=1;i<=n2;i++)p.push({x:Math.round(cx+Wd*i/n2),y:Math.round(ya+(yb-ya)*i/n2)});
+        return p; };
+      /* diastole por 3 puntos, sistole a mano */
+      medStrainModo('3pt');
+      _strain.pendiente = null; _strainAceptar(tri(300,440,100,100,300)); medStrainConfirmar();
+      await new Promise(r=>setTimeout(r,110));
+      medStrainModo('libre');
+      _strain.pendiente = null; _strainAceptar(tri(300,440,70,78,250)); medStrainConfirmar();
+      await new Promise(r=>setTimeout(r,140));
+      R.metD = _strain.vistas.a4c.d.metodo; R.metS = _strain.vistas.a4c.s.metodo;
+      const Rm = _strainCalcular();
+      R.detectaMezcla = !!(Rm && Rm.mezclaMetodo === true);
+      R.panelDeclaraMezcla = /mezcla trazado libre con contorno de 3 puntos/.test(document.getElementById('cine-med-barra').innerHTML);
+      /* Y con los DOS del mismo metodo, NO avisa: sin esto la condicion de arriba pasaria
+         con un aviso que sale siempre. */
+      medStrainReiniciar(); medStrainModo('libre');
+      _strain.pendiente = null; _strainAceptar(tri(300,440,100,100,300)); medStrainConfirmar();
+      await new Promise(r=>setTimeout(r,100));
+      _strain.pendiente = null; _strainAceptar(tri(300,440,70,78,250)); medStrainConfirmar();
+      await new Promise(r=>setTimeout(r,140));
+      const Ru = _strainCalcular();
+      R.sinMezclaNoAvisa = !!(Ru && Ru.mezclaMetodo === false) &&
+        !/mezcla trazado libre/.test(document.getElementById('cine-med-barra').innerHTML);
+
+      /* ── 7 · el trazado LIBRE sigue andando ── */
+      medStrainReiniciar(); medStrainModo('libre');
+      await new Promise(r=>setTimeout(r,110));
+      const trazar = async pts2 => { const c = cvm();
+        c.dispatchEvent(new MouseEvent('mousedown', Object.assign({bubbles:true}, ac(pts2[0].x,pts2[0].y))));
+        for (let i=1;i<pts2.length;i++)
+          c.dispatchEvent(new MouseEvent('mousemove', Object.assign({bubbles:true}, ac(pts2[i].x,pts2[i].y))));
+        document.dispatchEvent(new MouseEvent('mouseup', {bubbles:true}));
+        await new Promise(r=>setTimeout(r,130)); };
+      await trazar(tri(300,440,100,100,300));
+      R.libreSigue = !!(_strain.pendiente && _strain.pendiente.metodo === 'libre' && _strain.pendiente.bordeCm > 0);
+
+      cineCerrar();
+    } finally { window.alert = alertOrig; }
+
+    return { extra: [
+      ['el selector tiene los dos modos',            R.hayLibre && R.hay3pt, R.hayLibre],
+      ['arranca en trazado libre',                   R.modoInicial === 'libre', R.modoInicial],
+      ['3 puntos se activa y pide el septal',        R.modo3 && R.panelPide1, R.modo3],
+      ['el primer clic marca 1 y no hay curva aun',  R.tras1 === 1 && R.sinCurva1, R.tras1],
+      ['y pide el apex',                             R.panelPide2, R.panelPide2],
+      ['el tercero genera el contorno',              R.tras3 === 3 && R.hayCurva, R.tras3],
+      ['con al menos 5 puntos de control',           R.min5, R.nCtrl],
+      ['la curva pasa EXACTO por los puntos registrados', R.extremos, R.drift],
+      ['y el clic cayo donde se pidio (cuantizacion)',  R.clicCerca, R.clicCerca],
+      ['y cerca del apex marcado',                   R.pasaPorApex, 'dist ' + R.dApex],
+      ['la curva es SUAVE',                          R.suave, 'peor angulo ' + R.peorAngulo + '°'],
+      ['agarrar un control lo toma',                 R.agarro, R.agarro],
+      ['arrastrarlo mueve la curva EN VIVO',         R.ctrlSeMovio && R.curvaCambioEnVivo, R.ctrlSeMovio],
+      ['soltar lo libera',                           R.solto, R.solto],
+      ['un arrastre lejos no dibuja un trazo libre', R.lejosNoArrastra, R.lejosNoArrastra],
+      ['la curva y la poligonal se distinguen (denominador)', R.curvaMasLargaQuePoli, R.poliVsCurva],
+      ['confirmar toma el SPLINE, no la poligonal',  R.confirmo3 && R.confEsCurva && R.confNoEsPoli, R.bordeConf],
+      ['y el contorno confirmado es denso',          R.confMuchosPuntos, R.confMuchosPuntos],
+      ['queda registrado como metodo 3pt',           R.confMetodo === '3pt', R.confMetodo],
+      ['«Rehacer» limpia los 3 puntos y deja lo confirmado', R.rehacerLimpia, R.rehacerLimpia],
+      ['LA MISMA LISTA POR LAS DOS VIAS DA LO MISMO', R.mismaGeometria, 'borde ' + R.borde + ' cm'],
+      ['y cada una registra su metodo',              R.metodoRegistrado, R.metodoRegistrado],
+      ['sobre Doppler no se marca ningun punto',     R.dopRechaza && R.dopAvisa, R.dopRechaza],
+      ['mezclar metodos entre fases se detecta',     R.detectaMezcla, R.metD + ' / ' + R.metS],
+      ['y el panel lo declara',                      R.panelDeclaraMezcla, R.panelDeclaraMezcla],
+      ['sin mezcla NO avisa (denominador)',          R.sinMezclaNoAvisa, R.sinMezclaNoAvisa],
+      ['el trazado libre sigue funcionando',         R.libreSigue, R.libreSigue]
+    ] };
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];
