@@ -45082,6 +45082,82 @@ function _dcmImgSaltarSQ(dv, u8, q, fin) {
   return q;
 }
 
+/* ── Regiones de ultrasonido (0018,6011) ─────────────────────────────────────────────────
+   Cada ítem describe un rectángulo de la imagen y CON QUÉ ESCALA se mide adentro. Lo que
+   hay que saber, medido sobre los 296 archivos del pendrive:
+
+   · 281 regiones son `cm × cm` —tejido 2D y color— con `PhysicalDeltaX == PhysicalDeltaY`:
+     ahí una línea SÍ es una distancia, y la escala la escribió el equipo.
+   · 157 son `seg × cm/s` o `seg × cm` —Doppler espectral—: el eje horizontal es TIEMPO. Una
+     «distancia en mm» sobre eso es un número sin significado, y no se distingue de uno bueno.
+   · 142 archivos traen 2 o 7 regiones, cada una con su escala. La escala 2D va de 0,046 a
+     0,926 mm/píxel según la profundidad: no es una constante del equipo, cambia por imagen.
+
+   Por eso la medición pregunta SIEMPRE en qué región cayó el clic, en vez de guardar un
+   factor por imagen. */
+const DCMIMG_UNI_CM = 3;            // (0018,6024) Physical Units X/Y: 3 = cm
+
+function _dcmImgRegiones(dv, u8, ini, fin) {
+  const regs = [];
+  let q = ini;
+  while (q + 8 <= fin) {
+    const tg = dv.getUint16(q, true), te = dv.getUint16(q + 2, true);
+    const fl = dv.getUint32(q + 4, true);
+    if (tg !== 0xFFFE || te !== 0xE000) break;                 // fin de la secuencia
+    const sub = (fl === 0xFFFFFFFF) ? fin : Math.min(fin, q + 8 + fl);
+    const r = {};
+    let o = q + 8;
+    while (o + 8 <= sub) {
+      const g = dv.getUint16(o, true), e = dv.getUint16(o + 2, true);
+      if (g === 0xFFFE) break;                                  // delimitador del ítem
+      const vr = _dcmImgAscii(u8, o + 4, 2);
+      if (!/^[A-Z]{2}$/.test(vr)) break;
+      const ln  = _DCMIMG_VR4[vr] ? dv.getUint32(o + 8, true) : dv.getUint16(o + 6, true);
+      const val = _DCMIMG_VR4[vr] ? o + 12 : o + 8;
+      if (val + ln > sub) break;
+      const num = () => (vr === 'FD') ? dv.getFloat64(val, true)
+                     : (vr === 'FL') ? dv.getFloat32(val, true)
+                     : (vr === 'UL' || vr === 'SL') ? dv.getUint32(val, true)
+                     : dv.getUint16(val, true);
+      if (g === 0x0018) {
+        if (e === 0x6014) r.tipo = num();
+        else if (e === 0x6018) r.x0 = num();
+        else if (e === 0x601A) r.y0 = num();
+        else if (e === 0x601C) r.x1 = num();
+        else if (e === 0x601E) r.y1 = num();
+        else if (e === 0x6024) r.ux = num();
+        else if (e === 0x6026) r.uy = num();
+        else if (e === 0x602C) r.dx = num();
+        else if (e === 0x602E) r.dy = num();
+      }
+      o = val + ln;
+    }
+    if (r.dx || r.x1) regs.push(r);
+    if (fl === 0xFFFFFFFF) break;                               // ítem sin largo: no se puede avanzar
+    q += 8 + fl;
+  }
+  return regs;
+}
+
+/* ¿Se puede medir una DISTANCIA en esta región? Sólo si los dos ejes son centímetros y la
+   escala existe. Si X es tiempo —Doppler espectral— la respuesta es no, por más que el
+   número salga igual de prolijo. */
+function _dcmImgRegionMedible(r) {
+  return !!(r && r.dx > 0 && r.dy > 0 && r.ux === DCMIMG_UNI_CM && r.uy === DCMIMG_UNI_CM);
+}
+
+/* La región que contiene al punto, en píxeles de la imagen. Si hay varias superpuestas gana
+   la ÚLTIMA declarada, que es la más específica en la práctica (el 2D suele venir primero y
+   los recuadros de Doppler después). */
+function _dcmImgRegionEn(regs, x, y) {
+  let hit = null;
+  (regs || []).forEach(r => {
+    if (r.x0 == null || r.x1 == null) return;
+    if (x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1) hit = r;
+  });
+  return hit;
+}
+
 /* Lector PLANO y mínimo, a propósito separado de `_dcmLeerP10` del importador de
    mediciones: aquel arma el árbol recursivo de un SR con sus secuencias, y acá hacen falta
    ocho tags sueltos y los fragmentos del pixel data. Son trabajos distintos, y además ese
@@ -45142,6 +45218,14 @@ function _dcmImgLeer(buf) {
         q += 8 + fl;
       }
       break;
+    }
+    /* (0018,6011) Sequence of Ultrasound Regions. ACÁ VIVE LA ESCALA de un eco, y no en
+       (0028,0030) PixelSpacing, que en estos archivos está ausente. Se lee en vez de
+       saltearse la secuencia como todas las demás. */
+    if (g === 0x0018 && e === 0x6011) {
+      const finSQ = (ln === 0xFFFFFFFF) ? _dcmImgSaltarSQ(dv, u8, val, buf.byteLength) : (val + ln);
+      try { d.regiones = _dcmImgRegiones(dv, u8, val, finSQ); } catch (e2) { d.regiones = []; }
+      o = finSQ; continue;
     }
     if (ln === 0xFFFFFFFF) { o = _dcmImgSaltarSQ(dv, u8, val, buf.byteLength); continue; }
     if (g === 0x0008 && e === 0x0070) d.fabricante = _dcmImgAscii(u8, val, ln);
@@ -45401,8 +45485,14 @@ function _cineAbrir(loops) {
           '<h3 style="margin:0;font-size:15px;">🎞️ Cineloop</h3>' +
           '<span id="cine-cual" style="font-size:12px;color:var(--text2);"></span></div>' +
         '<div id="cine-ayuda" style="font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.5;"></div>' +
-        '<div style="background:#000;border-radius:9px;display:flex;align-items:center;justify-content:center;min-height:220px;">' +
-          '<canvas id="cine-cv" style="max-width:100%;max-height:58vh;display:block;"></canvas></div>' +
+        /* El canvas de medición va ENCIMA, con su propio elemento. Dibujar las reglas sobre
+           `#cine-cv` obligaría a que el reproductor las repinte en cada cuadro —o sea, a
+           tocarlo—, y además un repintado las borraría a mitad de una medición. */
+        '<div id="cine-lienzo" style="position:relative;background:#000;border-radius:9px;display:flex;align-items:center;justify-content:center;min-height:220px;">' +
+          '<canvas id="cine-cv" style="max-width:100%;max-height:58vh;display:block;"></canvas>' +
+          '<canvas id="cine-med" style="position:absolute;display:none;cursor:crosshair;"></canvas></div>' +
+        '<div id="cine-med-barra" style="display:none;font-size:11px;line-height:1.5;margin-top:8px;' +
+          'padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);"></div>' +
         '<div style="display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap;">' +
           '<button type="button" class="btn btn-ghost" id="cine-play" style="padding:5px 14px;min-width:92px;">▶ Reproducir</button>' +
           '<input type="range" id="cine-slider" min="0" value="0" style="flex:1;min-width:160px;">' +
@@ -45417,6 +45507,7 @@ function _cineAbrir(loops) {
                forma de guardar un cineloop cuyas condiciones no se cumplían al importarlo
                —toggle apagado, o estudio todavía sin guardar—, y obligar a reimportar el
                archivo del pendrive para eso sería exactamente lo que esta tarea viene a evitar. */
+            '<button type="button" class="btn btn-ghost" id="cine-medir" style="padding:5px 12px;">📏 Medir</button>' +
             '<button type="button" class="btn btn-ghost" id="cine-guardar" style="padding:5px 12px;">💾 Guardar en el estudio</button>' +
             '<button type="button" class="btn btn-primary" id="cine-cap" style="padding:5px 14px;">📸 Capturar cuadro</button>' +
             '<button type="button" class="btn btn-ghost" id="cine-cerrar" style="padding:5px 12px;">Cerrar</button></div>' +
@@ -45424,6 +45515,7 @@ function _cineAbrir(loops) {
       '</div>';
     document.body.appendChild(ov);
     ov.querySelector('#cine-play').onclick   = cineToggle;
+    ov.querySelector('#cine-medir').onclick  = medToggle;
     ov.querySelector('#cine-guardar').onclick = cineGuardarActual;
     ov.querySelector('#cine-cap').onclick    = cineCapturar;
     ov.querySelector('#cine-cerrar').onclick = cineCerrar;
@@ -45531,6 +45623,276 @@ function cineCerrar() {
 }
 window.cineToggle = cineToggle; window.cineCapturar = cineCapturar;
 window.cineCerrar = cineCerrar; window.cineIr = cineIr; window.cineLoop = cineLoop;
+
+/* ══════════════════════════════════════════════════════════════════════════════════════
+   REGLA SOBRE LA IMAGEN
+   ══════════════════════════════════════════════════════════════════════════════════════
+
+   SOLO PARA VER EN PANTALLA. Las mediciones no se guardan, no viajan al estudio y NO SALEN
+   EN EL PDF: son una ayuda para mirar, y el médico decide qué hacer con el número.
+
+   DE DÓNDE SALE LA ESCALA. Del archivo, región por región (ver `_dcmImgRegiones`). No se
+   calibra a mano cuando el equipo ya lo dejó escrito: en los 296 archivos del pendrive la
+   escala 2D va de 0,046 a 0,926 mm/píxel según la profundidad, así que ni siquiera es una
+   constante por equipo. Dibujar una referencia de 1 cm sobre una escala de ~37 px/cm con
+   ±2 px de pulso son ~5 % de error — ±2 mm en una raíz aórtica de 40. La calibración manual
+   queda como RESPALDO para los archivos que no traen región (15 de 296) y para otras marcas,
+   y como override con «Recalibrar».
+
+   DÓNDE NO SE MIDE. Sobre una región de Doppler espectral el eje horizontal es TIEMPO y el
+   vertical velocidad: una línea ahí no es una distancia. Se avisa y no se dibuja. Tampoco se
+   mide cruzando dos regiones, porque cada una tiene su escala y el resultado sería incorrecto
+   con calibración perfecta.
+
+   POR QUÉ UN CANVAS APARTE. Dibujar sobre `#cine-cv` obligaría a que el reproductor repinte
+   las reglas en cada cuadro —o sea, a tocarlo— y un repintado las borraría a mitad de una
+   medición. El cambio de cuadro se detecta observando el texto de `#cine-num`, el mismo
+   truco que usa la tira con `#img-grid`: ninguna función del reproductor se modifica. */
+
+let _medOn = false;            // modo medición activo
+let _medPuntos = [];           // clics sueltos a la espera del segundo punto
+let _medLineas = [];           // [{ax,ay,bx,by,mm,aviso}] en píxeles de la IMAGEN
+let _medCalib = null;          // { mmPorPx } de la calibración manual, si se hizo
+let _medCalibrando = false;
+let _medUltimoCuadro = '';
+
+const _medEl = id => document.getElementById(id);
+
+/* Píxeles de la IMAGEN a partir de un clic. El canvas se muestra escalado por CSS
+   (`max-width:100%`), así que `offsetX` está en píxeles de PANTALLA: usarlo directo da una
+   medición que cambia con el tamaño de la ventana. Se divide por la relación real. */
+function _medPunto(ev, cv) {
+  const r = cv.getBoundingClientRect();
+  if (!r.width || !r.height) return null;
+  return { x: (ev.clientX - r.left) * (cv.width / r.width),
+           y: (ev.clientY - r.top)  * (cv.height / r.height) };
+}
+
+function _medRegs() {
+  const D = _cineDatos;
+  return (D && D.loops[D.i] && D.loops[D.i].d.regiones) || [];
+}
+
+/* mm por píxel en el punto pedido, o el motivo por el que ahí no se mide. */
+function _medEscalaEn(p) {
+  const regs = _medRegs();
+  const r = _dcmImgRegionEn(regs, p.x, p.y);
+  if (r) {
+    if (!_dcmImgRegionMedible(r)) {
+      /* El caso que importa nombrar: Doppler espectral. Decir «no se puede» sin el motivo
+         deja pensando que la herramienta falló. */
+      const esTiempo = r.ux !== DCMIMG_UNI_CM;
+      return { ok:false, motivo: esTiempo
+        ? 'Acá el eje horizontal es TIEMPO, no distancia: es un trazo Doppler. Una medición en mm sobre esta zona no significaría nada.'
+        : 'Esta zona de la imagen no declara una escala en centímetros, así que no se puede medir una distancia.' };
+    }
+    return { ok:true, mmPorPx: r.dx * 10, region: r, fuente:'del archivo' };
+  }
+  /* Fuera de toda región declarada: sólo se mide si hay calibración manual, que el médico
+     hizo a sabiendas. Inventar una escala acá sería el peor de los dos mundos. */
+  if (_medCalib) return { ok:true, mmPorPx: _medCalib.mmPorPx, region:null, fuente:'calibración manual' };
+  if (regs.length) return { ok:false, motivo:'Ese punto cae fuera del área de imagen que el equipo declara. Usá «Recalibrar» si querés medir igual.' };
+  return { ok:false, motivo:'Este archivo no trae la escala, así que hay que calibrar a mano primero.' };
+}
+
+function _medPintar() {
+  const cv = _medEl('cine-med'), base = _medEl('cine-cv');
+  if (!cv || !base) return;
+  /* El overlay se calza EXACTO sobre la imagen mostrada, no sobre el contenedor: el canvas
+     va centrado y con `max-height`, así que su caja no coincide con la del div. */
+  const r = base.getBoundingClientRect(), rp = base.parentElement.getBoundingClientRect();
+  cv.style.left = (r.left - rp.left) + 'px';
+  cv.style.top  = (r.top  - rp.top)  + 'px';
+  cv.style.width = r.width + 'px'; cv.style.height = r.height + 'px';
+  cv.width = base.width; cv.height = base.height;
+  const cx = cv.getContext('2d');
+  cx.clearRect(0, 0, cv.width, cv.height);
+  const esc = Math.max(1, cv.width / 900);
+  cx.lineWidth = 2 * esc; cx.font = (13 * esc) + 'px system-ui, sans-serif';
+  cx.textBaseline = 'bottom';
+  const dibujar = (l, color) => {
+    cx.strokeStyle = color; cx.fillStyle = color;
+    cx.beginPath(); cx.moveTo(l.ax, l.ay); cx.lineTo(l.bx, l.by); cx.stroke();
+    [[l.ax,l.ay],[l.bx,l.by]].forEach(([x,y]) => { cx.beginPath(); cx.arc(x, y, 3.5*esc, 0, 6.2832); cx.fill(); });
+    if (l.mm == null) return;
+    const txt = l.mm.toFixed(1) + ' mm';
+    const mx = (l.ax + l.bx) / 2, my = (l.ay + l.by) / 2;
+    const w = cx.measureText(txt).width;
+    cx.fillStyle = 'rgba(0,0,0,.65)';
+    cx.fillRect(mx + 6*esc, my - 15*esc, w + 8*esc, 18*esc);
+    cx.fillStyle = color;
+    cx.fillText(txt, mx + 10*esc, my);
+  };
+  _medLineas.forEach(l => dibujar(l, l.calibracion ? '#fbbf24' : '#22d36a'));
+  if (_medPuntos.length === 1) {
+    const p = _medPuntos[0];
+    cx.fillStyle = _medCalibrando ? '#fbbf24' : '#22d36a';
+    cx.beginPath(); cx.arc(p.x, p.y, 4*esc, 0, 6.2832); cx.fill();
+  }
+}
+
+function _medBarra(html) {
+  const b = _medEl('cine-med-barra');
+  if (!b) return;
+  b.style.display = _medOn ? '' : 'none';
+  if (_medOn) b.innerHTML = html;
+}
+
+/* Todo lo que se muestra acá lo escribe la app: los únicos números que vienen del archivo
+   son la escala y las coordenadas, y salen formateados con toFixed. Nada del DICOM se
+   interpola como HTML. */
+function _medEstado() {
+  const regs = _medRegs();
+  const medibles = regs.filter(_dcmImgRegionMedible);
+  const bot = '<button type="button" class="btn btn-ghost" id="cine-med-recal" style="padding:3px 9px;font-size:11px;">Recalibrar</button>' +
+              '<button type="button" class="btn btn-ghost" id="cine-med-borrar" style="padding:3px 9px;font-size:11px;margin-left:6px;">Borrar mediciones</button>';
+  let txt;
+  if (_medCalibrando) {
+    txt = '<b>Calibración:</b> dibujá una línea sobre una referencia conocida de la imagen ' +
+          '(por ejemplo 1 cm de la escala lateral) y después escribí cuánto mide.';
+  } else if (_medCalib) {
+    txt = 'Escala <b>calibrada a mano</b>: ' + (_medCalib.mmPorPx).toFixed(4) + ' mm por píxel. ' +
+          'Hacé clic en dos puntos para medir.';
+  } else if (medibles.length) {
+    const e = medibles.map(r => (r.dx * 10).toFixed(4)).filter((v, i, a) => a.indexOf(v) === i);
+    txt = 'Escala <b>tomada del archivo</b>: ' + e.join(' y ') + ' mm por píxel' +
+          (medibles.length > 1 ? ' (' + medibles.length + ' zonas con escalas propias)' : '') +
+          '. Hacé clic en dos puntos para medir.' +
+          (regs.length > medibles.length ? ' Las zonas de Doppler no se pueden medir: ahí el eje horizontal es tiempo.' : '');
+  } else {
+    txt = 'Este archivo <b>no trae la escala</b>. Calibrá a mano: dibujá una línea sobre una ' +
+          'referencia conocida y decí cuánto mide.';
+  }
+  const n = _medLineas.filter(l => !l.calibracion).length;
+  _medBarra(txt + (n ? '  ·  <b>' + n + '</b> medición(es) en pantalla.' : '') +
+            '<div style="margin-top:6px;">' + bot + '</div>');
+  const rc = _medEl('cine-med-recal'), bb = _medEl('cine-med-borrar');
+  if (rc) rc.onclick = medRecalibrar;
+  if (bb) bb.onclick = medBorrar;
+}
+
+function _medClic(ev) {
+  const cv = _medEl('cine-med');
+  const p = _medPunto(ev, cv);
+  if (!p) return;
+  if (_medPuntos.length === 0) { _medPuntos.push(p); _medPintar(); return; }
+  const a = _medPuntos[0]; _medPuntos = [];
+  const dpx = Math.sqrt((p.x - a.x) * (p.x - a.x) + (p.y - a.y) * (p.y - a.y));
+  if (dpx < 2) { _medPintar(); return; }                  // dos clics en el mismo lugar
+
+  if (_medCalibrando) {
+    const resp = prompt('¿Cuánto mide esa línea, en milímetros?', '10');
+    if (resp === null) { _medPintar(); return; }
+    const mm = parseFloat(String(resp).replace(',', '.'));
+    if (!isFinite(mm) || mm <= 0) { alert('Escribí un número de milímetros mayor que cero.'); _medPintar(); return; }
+    _medCalib = { mmPorPx: mm / dpx };
+    _medCalibrando = false;
+    _medLineas.push({ ax:a.x, ay:a.y, bx:p.x, by:p.y, mm, calibracion:true });
+    _medPintar(); _medEstado();
+    return;
+  }
+
+  /* La escala se resuelve en LOS DOS extremos. Con una sola punta, una línea que arranca en
+     el 2D y termina en el trazo Doppler de abajo daría un número prolijo y equivocado. */
+  const ea = _medEscalaEn(a), eb = _medEscalaEn(p);
+  if (!ea.ok) { alert(ea.motivo); _medPintar(); return; }
+  if (!eb.ok) { alert(eb.motivo); _medPintar(); return; }
+  /* Se comparan las ESCALAS, no la identidad de las regiones. Comparar identidad parecía lo
+     prolijo y bloqueaba una medición legítima y frecuente: en los 296 archivos del pendrive
+     el recuadro de color se superpone al 2D CON LA MISMA ESCALA —ni uno solo tiene dos zonas
+     medibles con escalas distintas—, así que medir «del 2D al color» es perfectamente válido
+     y quedaba rechazado. Lo que hay que impedir es que los milímetros de una punta valgan
+     distinto que los de la otra. */
+  if (Math.abs(ea.mmPorPx - eb.mmPorPx) > 1e-12) {
+    alert('Los dos extremos caen en zonas con escalas distintas (' +
+          ea.mmPorPx.toFixed(4) + ' y ' + eb.mmPorPx.toFixed(4) + ' mm por píxel). ' +
+          'La medición no sería válida: marcá los dos puntos dentro de la misma zona.');
+    _medPintar(); return;
+  }
+  _medLineas.push({ ax:a.x, ay:a.y, bx:p.x, by:p.y, mm: dpx * ea.mmPorPx });
+  _medPintar(); _medEstado();
+}
+
+/* Los tres avisos que necesita la regla, y ninguno toca una función del reproductor:
+   · `#cine-num` cambia en cada `cineIr` → cambió el cuadro → se borran las mediciones;
+   · `#cine-cual` cambia al pasar a otro cineloop → es otra imagen → se apaga todo;
+   · `#cine-ov` cambia su `display` al cerrar → se apaga todo.
+   Se montan una sola vez, cuando el modal ya existe. */
+let _medObsPuesto = false;
+function _medObservar() {
+  if (_medObsPuesto || typeof MutationObserver === 'undefined') return;
+  const num = _medEl('cine-num'), cual = _medEl('cine-cual'), ov = _medEl('cine-ov');
+  if (!num || !cual || !ov) return;
+  _medUltimoCuadro = num.textContent || '';
+  new MutationObserver(() => {
+    const t = num.textContent || '';
+    if (t !== _medUltimoCuadro) { _medUltimoCuadro = t; medReset(); }
+  }).observe(num, { childList:true, characterData:true, subtree:true });
+  new MutationObserver(() => medApagar())
+    .observe(cual, { childList:true, characterData:true, subtree:true });
+  new MutationObserver(() => { if (ov.style.display === 'none') medApagar(); })
+    .observe(ov, { attributes:true, attributeFilter:['style'] });
+  _medObsPuesto = true;
+}
+
+function medToggle() {
+  if (!_cineDatos) return;
+  _medObservar();
+  _medOn = !_medOn;
+  const cv = _medEl('cine-med'), b = _medEl('cine-medir');
+  if (!cv) return;
+  cv.style.display = _medOn ? '' : 'none';
+  if (b) b.textContent = _medOn ? '📏 Medir (activo)' : '📏 Medir';
+  if (_medOn) {
+    /* Se pausa: medir sobre un cineloop corriendo es marcar un punto en un cuadro y el otro
+       en el siguiente. */
+    _cineDetener();
+    cv.onclick = _medClic;
+    const regs = _medRegs();
+    if (!regs.filter(_dcmImgRegionMedible).length && !_medCalib) _medCalibrando = true;
+    _medPintar(); _medEstado();
+  } else {
+    cv.onclick = null;
+    _medBarra('');
+  }
+}
+window.medToggle = medToggle;
+
+function medBorrar() {
+  _medLineas = _medLineas.filter(l => l.calibracion);   // la de calibración no es una medición
+  _medPuntos = [];
+  _medPintar(); _medEstado();
+}
+window.medBorrar = medBorrar;
+
+function medRecalibrar() {
+  _medCalib = null; _medCalibrando = true;
+  _medPuntos = [];
+  _medLineas = _medLineas.filter(l => !l.calibracion);
+  _medPintar(); _medEstado();
+}
+window.medRecalibrar = medRecalibrar;
+
+/* Al cambiar de cuadro las mediciones se van: el cuadro es otro y la línea ya no cae sobre
+   lo que se midió. La calibración manual SÍ se conserva — es una propiedad de la imagen, no
+   del cuadro, y hacerla de nuevo en cada avance sería insufrible.
+   Se detecta observando `#cine-num`, que el reproductor actualiza en cada `cineIr`. */
+function medReset() {
+  _medPuntos = []; _medLineas = _medLineas.filter(l => l.calibracion);
+  if (_medOn) { _medPintar(); _medEstado(); }
+}
+window.medReset = medReset;
+
+/* Al cerrar o cambiar de cineloop se va TODO, calibración incluida: es otra imagen. */
+function medApagar() {
+  _medOn = false; _medCalibrando = false; _medCalib = null;
+  _medPuntos = []; _medLineas = [];
+  const cv = _medEl('cine-med'), b = _medEl('cine-medir');
+  if (cv) { cv.style.display = 'none'; cv.onclick = null; }
+  if (b) b.textContent = '📏 Medir';
+  _medBarra('');
+}
+window.medApagar = medApagar;
 
 /* ══════════════════════════════════════════════════════════════════════════════════════
    PERSISTENCIA DEL CINELOOP
@@ -45669,6 +46031,11 @@ function _cineRegistro(uuid, loop, poster) {
     id: (typeof _uuidNuevo === 'function' ? _uuidNuevo() : String(Date.now()) + Math.random()),
     uuid, nombre: loop.nombre, cuadros: loop.cuadros,
     ms: loop.d.msCuadro || 0, cols: loop.d.cols || 0, filas: loop.d.filas || 0,
+    /* Las regiones viajan con el cineloop: son números, no llevan nada del paciente, y sin
+       ellas un loop reabierto desde el disco no se podría medir — habría que recalibrar a
+       mano algo que el equipo ya dejó escrito. */
+    regiones: (loop.d.regiones || []).map(r => ({ tipo:r.tipo, x0:r.x0, y0:r.y0, x1:r.x1, y1:r.y1,
+                                                  ux:r.ux, uy:r.uy, dx:r.dx, dy:r.dy })),
     poster: poster || '', datos, offs, bytes: total, ts: new Date().toISOString()
   };
 }
@@ -45682,7 +46049,8 @@ function _cineDesdeRegistro(r) {
     frags.push(r.datos.subarray(r.offs[i], fin));
   }
   return { nombre: r.nombre, cuadros: r.cuadros,
-           d: { frags, cols: r.cols, filas: r.filas, msCuadro: r.ms, fabricante:'', modelo:'' } };
+           d: { frags, cols: r.cols, filas: r.filas, msCuadro: r.ms, fabricante:'', modelo:'',
+                regiones: Array.isArray(r.regiones) ? r.regiones : [] } };
 }
 
 /* Las DOS condiciones para que guardar signifique algo, explicadas por separado: el toggle
@@ -60991,8 +61359,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260919-2251';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789869074279;                 /* eco-build-ms */
+const ECO_BUILD    = '20260919-2330';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789871456335;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -61078,7 +61446,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-2251</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-2330</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

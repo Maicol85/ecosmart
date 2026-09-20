@@ -10962,6 +10962,293 @@ caso('TC-186', 'El «+» de un slot: foto normal igual que siempre, DICOM detect
   })();
 `);
 
+/* ══ TC-187 · Regla sobre la imagen ══════════════════════════════════════════════════════════
+   La condicion central es aritmetica: una linea de N pixeles dentro de una region que declara
+   PhysicalDeltaX tiene que dar EXACTAMENTE N * dx * 10 milimetros. Si eso se desvia, el numero
+   sigue saliendo prolijo en pantalla y nadie se entera -- es el modo de falla de toda
+   herramienta de medicion.
+
+   Las otras dos que importan:
+   · sobre un trazo Doppler NO se mide, porque ahi el eje horizontal es tiempo;
+   · el clic llega en pixeles de PANTALLA y el canvas se muestra escalado por CSS, asi que la
+     medicion tiene que dar lo mismo con la ventana chica que con la ventana grande. Usar
+     offsetX directo es el error clasico y da un numero que cambia con el tamaño de la
+     ventana.                                                                                 */
+const DOPPLER = await (async () => {
+  const { readdir, stat } = await import('node:fs/promises');
+  const raiz = process.env.ECO_PENDRIVE || '/Volumes/DISK_IMG';
+  async function hojas(dir, prof) {
+    if (prof > 5) return [];
+    let ns = [];
+    try { ns = await readdir(dir, { withFileTypes: true }); } catch (e) { return []; }
+    const r = [];
+    for (const n of ns) { if (n.name.startsWith('.')) continue;
+      const p = join(dir, n.name);
+      if (n.isDirectory()) r.push(...await hojas(p, prof + 1)); else r.push(p); }
+    return r;
+  }
+  const todos = await hojas(join(raiz, 'GEMS_IMG'), 0);
+  const conTam = [];
+  for (const p of todos) { try { conTam.push({ p, n: (await stat(p)).size }); } catch (e) {} }
+  conTam.sort((a, b) => a.n - b.n);
+  /* Se busca uno que declare unidades de SEGUNDOS en X: eso es un trazo espectral, la region
+     sobre la que medir una distancia no tiene sentido. El 3 de (0018,6024) es cm. */
+  for (const { p } of conTam) {
+    const b = await readFile(p);
+    if (b.slice(128,132).toString('ascii') !== 'DICM') continue;
+    // (0018,6024) US con valor 4 = seconds  -> 18 00 24 60 'US' 02 00 04 00
+    const pat = Buffer.from([0x18,0x00,0x24,0x60,0x55,0x53,0x02,0x00,0x04,0x00]);
+    if (b.indexOf(pat) > -1) return { nombre: p.split('/').pop(), b64: b.toString('base64') };
+  }
+  return null;
+})();
+
+caso('TC-187', 'Regla: escala del archivo, aritmetica exacta y las zonas donde NO se mide', `
+  return (async () => {
+    const P = ${JSON.stringify(PENDRIVE)};
+    const DOP = ${JSON.stringify(DOPPLER)};
+    if (!P.loop) return { extra: [[
+      'hace falta un cineloop real del pendrive', false, 'no se encontro: quedo SIN verificar']] };
+    const bytes = x => { const b = atob(x.b64); const a = new Uint8Array(b.length);
+      for (let i=0;i<b.length;i++) a[i] = b.charCodeAt(i); return a; };
+    const esperar = async (c, n) => { for (let i=0;i<(n||60);i++) { if (c()) return true; await new Promise(r=>setTimeout(r,60)); } return c(); };
+    const alertOrig = window.alert, promptOrig = window.prompt, confirmOrig = window.confirm;
+    const dichos = []; window.alert = m => dichos.push(String(m)); window.confirm = () => true;
+    const R = {};
+    try {
+      const u = bytes(P.loop);
+      const d0 = _dcmImgLeer(u.buffer);
+      R.hayRegiones = (d0.regiones || []).length > 0;
+      const medibles = (d0.regiones || []).filter(_dcmImgRegionMedible);
+      R.hayMedible = medibles.length > 0;
+      R.dx = medibles.length ? medibles[0].dx : 0;
+      R.unidadesCm = medibles.length ? (medibles[0].ux === DCMIMG_UNI_CM && medibles[0].uy === DCMIMG_UNI_CM) : false;
+
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      await dcmImgImportar([new File([u], P.loop.nombre)]);
+      await esperar(() => !!_cineDatos, 80);
+      R.abrio = !!_cineDatos;
+
+      medToggle();
+      R.modoActivo = _medOn;
+      R.pausoAlMedir = !!_cineDatos && !_cineDatos.timer;
+      const cv = document.getElementById('cine-med');
+      R.lienzoVisible = !!cv && cv.style.display !== 'none';
+      R.barra = (document.getElementById('cine-med-barra').textContent || '');
+      R.barraDiceDelArchivo = R.barra.indexOf('del archivo') > -1;
+
+      /* clic en pixeles de IMAGEN, pasando por clientX/clientY como un clic de verdad */
+      const clic = (x, y) => { const r = cv.getBoundingClientRect();
+        cv.dispatchEvent(new MouseEvent('click', { bubbles:true,
+          clientX: r.left + x * (r.width / cv.width), clientY: r.top + y * (r.height / cv.height) })); };
+
+      /* ── ARITMETICA: dos puntos dentro de la region medible, a 200 px exactos ── */
+      const reg = medibles[0];
+      const ax = Math.round(reg.x0 + 20), ay = Math.round(reg.y0 + 20);
+      dichos.length = 0;
+      clic(ax, ay); clic(ax + 200, ay);
+      await new Promise(r => setTimeout(r, 120));
+      const lin = _medLineas.filter(l => !l.calibracion);
+      R.midio = lin.length === 1;
+      R.mm = lin.length ? lin[0].mm : null;
+      /* La aritmetica se verifica contra la linea REALMENTE dibujada, no contra los 200 px
+         que quise marcar. clientX es un entero por especificacion, asi que el viaje
+         imagen -> pantalla -> imagen pierde subpixeles: con el canvas mostrado a ~0,4x, un
+         pixel de pantalla son ~2,4 de imagen. Esa cuantizacion la tiene tambien un clic de
+         verdad; no es un defecto de la herramienta y mezclarla con la aritmetica tapaba las
+         dos cosas. Se miden por separado. */
+      const largoPx = lin.length ? Math.hypot(lin[0].bx - lin[0].ax, lin[0].by - lin[0].ay) : 0;
+      R.esperado = largoPx * reg.dx * 10;
+      R.exacta = lin.length ? Math.abs(lin[0].mm - R.esperado) < 1e-9 : false;
+      /* Y el mapeo del clic, aparte: tiene que caer donde se apunto con menos de un pixel de
+         PANTALLA de error en cada punta. */
+      const rr = cv.getBoundingClientRect();
+      const pxPantalla = cv.width / rr.width;          // pixeles de imagen por pixel de pantalla
+      R.mapeoOK = lin.length ? Math.abs(largoPx - 200) <= 2 * pxPantalla : false;
+      R.largoPx = largoPx; R.tolPx = 2 * pxPantalla;
+      R.sinAviso = dichos.length === 0;
+
+      /* ── LA TRAMPA DEL ESCALADO CSS: la misma linea con el canvas mostrado mas chico ── */
+      const base = document.getElementById('cine-cv');
+      const anchoPrevio = base.style.maxWidth;
+      base.style.maxWidth = '240px';
+      await new Promise(r => setTimeout(r, 80));
+      _medPintar();
+      medBorrar();
+      clic(ax, ay); clic(ax + 200, ay);
+      await new Promise(r => setTimeout(r, 120));
+      const lin2 = _medLineas.filter(l => !l.calibracion);
+      R.mmChico = lin2.length ? lin2[0].mm : null;
+      /* La tolerancia sale de la cuantizacion, no de un numero elegido a dedo: con el canvas
+         a 240 px de ancho, un pixel de pantalla son ~4,2 de imagen, o sea ~1,15 mm por punta.
+         Lo que se descarta es el error GRANDE: usar offsetX sin dividir por la escala daria
+         aca ~2,4x el valor correcto, no un 2%. */
+      const rr2 = cv.getBoundingClientRect();
+      const tol2 = 2.5 * (cv.width / rr2.width) * reg.dx * 10;
+      R.tol2 = tol2;
+      R.mismaConVentanaChica = lin2.length ? Math.abs(lin2[0].mm - R.esperado) < tol2 : false;
+      base.style.maxWidth = anchoPrevio;
+      await new Promise(r => setTimeout(r, 60));
+      _medPintar();
+
+      /* ── BORRAR ── */
+      medBorrar();
+      R.borro = _medLineas.filter(l => !l.calibracion).length === 0;
+
+      /* ── CAMBIO DE CUADRO: se borran las mediciones ── */
+      clic(ax, ay); clic(ax + 100, ay);
+      await new Promise(r => setTimeout(r, 120));
+      R.antesDelCuadro = _medLineas.filter(l => !l.calibracion).length;
+      await cineIr(Math.min(5, _cineDatos.loops[0].cuadros - 1));
+      await new Promise(r => setTimeout(r, 300));
+      R.trasCambiarCuadro = _medLineas.filter(l => !l.calibracion).length;
+
+      /* ── CALIBRACION MANUAL: se fuerza un archivo sin regiones ── */
+      const regsReales = _cineDatos.loops[0].d.regiones;
+      _cineDatos.loops[0].d.regiones = [];
+      medRecalibrar();
+      R.entraEnCalibracion = _medCalibrando;
+      window.prompt = () => '10';                 // la linea de 200 px mide 10 mm
+      clic(ax, ay); clic(ax + 200, ay);
+      await new Promise(r => setTimeout(r, 120));
+      R.calibro = !!_medCalib;
+      R.factorManual = _medCalib ? _medCalib.mmPorPx : 0;
+      /* Igual que arriba: contra la linea de calibracion REAL, no contra los 200 px de la
+         intencion. El factor tiene que ser exactamente 10 mm dividido ese largo. */
+      const lcal = _medLineas.filter(l => l.calibracion)[0];
+      const largoCal = lcal ? Math.hypot(lcal.bx - lcal.ax, lcal.by - lcal.ay) : 0;
+      R.factorCorrecto = !!_medCalib && largoCal > 0 && Math.abs(_medCalib.mmPorPx - 10/largoCal) < 1e-12;
+      /* y ahora mide con ESA escala */
+      clic(ax, ay); clic(ax + 100, ay);
+      await new Promise(r => setTimeout(r, 120));
+      const lm = _medLineas.filter(l => !l.calibracion);
+      const largoM = lm.length ? Math.hypot(lm[0].bx - lm[0].ax, lm[0].by - lm[0].ay) : 0;
+      R.mideConManual = lm.length === 1 && Math.abs(lm[0].mm - largoM * _medCalib.mmPorPx) < 1e-9;
+      _cineDatos.loops[0].d.regiones = regsReales;
+
+      /* ── DOPPLER: no se mide, y se dice por que ── */
+      if (DOP) {
+        medApagar(); cineCerrar();
+        const ud = bytes(DOP);
+        const dd = _dcmImgLeer(ud.buffer);
+        const noMed = (dd.regiones || []).filter(r => !_dcmImgRegionMedible(r));
+        const siMed = (dd.regiones || []).filter(_dcmImgRegionMedible);
+        R.dopTieneAmbas = noMed.length > 0;
+        R.dopEjeTiempo = noMed.length ? noMed[0].ux !== DCMIMG_UNI_CM : false;
+        /* se monta ese archivo en el reproductor para clickear de verdad */
+        _cineAbrir([{ nombre: DOP.nombre, cuadros: 1,
+          d: { frags: dd.frags.length ? dd.frags : [new Uint8Array([255,216])], cols: dd.cols, filas: dd.filas,
+               msCuadro: 0, regiones: dd.regiones } }]);
+        await new Promise(r => setTimeout(r, 250));
+        medToggle();
+        const cv2 = document.getElementById('cine-med');
+        const clic2 = (x, y) => { const r = cv2.getBoundingClientRect();
+          cv2.dispatchEvent(new MouseEvent('click', { bubbles:true,
+            clientX: r.left + x * (r.width / cv2.width), clientY: r.top + y * (r.height / cv2.height) })); };
+        const rd = noMed[0];
+        dichos.length = 0;
+        clic2(Math.round(rd.x0 + 10), Math.round(rd.y0 + 10));
+        clic2(Math.round(rd.x0 + 60), Math.round(rd.y0 + 10));
+        await new Promise(r => setTimeout(r, 120));
+        R.dopNoMidio = _medLineas.filter(l => !l.calibracion).length === 0;
+        R.dopAviso = dichos.join(' ');
+        R.dopDiceTiempo = /TIEMPO/i.test(R.dopAviso);
+
+      }
+
+      /* ── CRUZAR DOS ESCALAS DISTINTAS ──
+         Se arma a mano porque NINGUNO de los 296 archivos del pendrive tiene dos zonas
+         medibles con escalas distintas: el recuadro de color se superpone al 2D con la misma
+         escala. El estandar lo permite igual, y la guarda existe para eso. De paso queda
+         fijado lo contrario, que es lo comun: dos zonas con la MISMA escala SI se pueden
+         cruzar -- comparar identidad de region en vez de escala bloqueaba esa medicion. */
+      {
+        medApagar(); cineCerrar();
+        const dd2 = _dcmImgLeer(u.buffer);
+        const base0 = (dd2.regiones || []).filter(_dcmImgRegionMedible)[0];
+        const mitad = { tipo:1, ux:DCMIMG_UNI_CM, uy:DCMIMG_UNI_CM,
+                        x0: base0.x0, y0: base0.y0, x1: Math.round((base0.x0 + base0.x1) / 2), y1: base0.y1,
+                        dx: base0.dx, dy: base0.dy };
+        const otra  = Object.assign({}, mitad, { x0: mitad.x1 + 1, x1: base0.x1, dx: base0.dx * 2, dy: base0.dy * 2 });
+        const igual = Object.assign({}, otra, { dx: base0.dx, dy: base0.dy });
+        const montar = (regiones) => { _cineAbrir([{ nombre:'sintetico', cuadros:1,
+          d: { frags: dd2.frags, cols: dd2.cols, filas: dd2.filas, msCuadro: 0, regiones } }]); };
+
+        montar([mitad, otra]);
+        await new Promise(r => setTimeout(r, 250));
+        medToggle();
+        const cv3 = document.getElementById('cine-med');
+        const clic3 = (x, y) => { const r = cv3.getBoundingClientRect();
+          cv3.dispatchEvent(new MouseEvent('click', { bubbles:true,
+            clientX: r.left + x * (r.width / cv3.width), clientY: r.top + y * (r.height / cv3.height) })); };
+        dichos.length = 0;
+        clic3(Math.round(mitad.x0 + 10), Math.round(mitad.y0 + 20));
+        clic3(Math.round(otra.x0 + 10),  Math.round(otra.y0 + 20));
+        await new Promise(r => setTimeout(r, 140));
+        R.cruceNoMidio = _medLineas.filter(l => !l.calibracion).length === 0;
+        R.cruceAviso = dichos.join(' ');
+        medApagar(); cineCerrar();
+
+        montar([mitad, igual]);
+        await new Promise(r => setTimeout(r, 250));
+        medToggle();
+        const cv4 = document.getElementById('cine-med');
+        const clic4 = (x, y) => { const r = cv4.getBoundingClientRect();
+          cv4.dispatchEvent(new MouseEvent('click', { bubbles:true,
+            clientX: r.left + x * (r.width / cv4.width), clientY: r.top + y * (r.height / cv4.height) })); };
+        dichos.length = 0;
+        clic4(Math.round(mitad.x0 + 10), Math.round(mitad.y0 + 20));
+        clic4(Math.round(igual.x0 + 10), Math.round(igual.y0 + 20));
+        await new Promise(r => setTimeout(r, 140));
+        R.mismaEscalaSiMide = _medLineas.filter(l => !l.calibracion).length === 1;
+        R.mismaEscalaAviso = dichos.join(' ');
+        medApagar(); cineCerrar();
+      }
+
+      /* ── capturar sigue andando con el modo medicion prendido ── */
+      medApagar(); cineCerrar();
+      __t.limpiar(); imgVaciar();
+      imgSlots.length = 0; imgSlots.push(null, null); imgSlotCount = 2;
+      await dcmImgImportar([new File([u], P.loop.nombre)]);
+      await esperar(() => !!_cineDatos, 80);
+      medToggle();
+      cineCapturar();
+      await esperar(() => imgSlots.some(s => s && s.dataURL), 90);
+      R.capturaSigue = imgSlots.some(s => s && s.dataURL && _imgSrcOK(s.dataURL));
+    } finally {
+      window.alert = alertOrig; window.prompt = promptOrig; window.confirm = confirmOrig;
+      try { medApagar(); cineCerrar(); } catch (e) {}
+    }
+
+    return { extra: [
+      ['el archivo declara regiones de ultrasonido',     R.hayRegiones, (R.hayRegiones ? 'si' : 'no')],
+      ['y al menos una es medible en cm',                R.hayMedible && R.unidadesCm, 'dx=' + R.dx],
+      ['el modo medicion se activa y pausa el loop',     R.modoActivo && R.pausoAlMedir, R.modoActivo + '/' + R.pausoAlMedir],
+      ['el lienzo de medicion aparece',                  R.lienzoVisible, R.lienzoVisible],
+      ['la barra dice que la escala sale del archivo',   R.barraDiceDelArchivo, R.barra.slice(0,80)],
+      ['dos clics dejan UNA medicion',                   R.midio, R.midio],
+      ['sin ningun aviso de zona no medible',            R.sinAviso, R.sinAviso],
+      ['los mm son EXACTAMENTE largo x dx x 10',         R.exacta, R.mm + ' vs ' + R.esperado],
+      ['el clic cae donde se apunto (menos de 1 px de pantalla)', R.mapeoOK, R.largoPx.toFixed(2) + ' px, tolerancia ' + R.tolPx.toFixed(2)],
+      ['y la misma linea da lo mismo con la ventana chica', R.mismaConVentanaChica, R.mmChico + ' vs ' + R.esperado + ' (tol ' + (R.tol2||0).toFixed(2) + ')'],
+      ['«Borrar mediciones» las limpia',                 R.borro, R.borro],
+      ['habia una medicion antes de cambiar de cuadro',  R.antesDelCuadro === 1, R.antesDelCuadro],
+      ['al cambiar de cuadro se borran',                 R.trasCambiarCuadro === 0, R.trasCambiarCuadro],
+      ['«Recalibrar» entra en modo calibracion',         R.entraEnCalibracion, R.entraEnCalibracion],
+      ['la calibracion manual guarda el factor correcto', R.factorCorrecto, R.factorManual],
+      ['y despues mide con esa escala',                  R.mideConManual, R.mideConManual],
+      ['el archivo Doppler trae una zona NO medible',    !DOP || R.dopTieneAmbas, DOP ? R.dopTieneAmbas : 'sin archivo Doppler'],
+      ['su eje horizontal no esta en cm',                !DOP || R.dopEjeTiempo, R.dopEjeTiempo],
+      ['sobre el trazo Doppler NO se mide',              !DOP || R.dopNoMidio, R.dopNoMidio],
+      ['y el aviso dice que el eje es TIEMPO',           !DOP || R.dopDiceTiempo, (R.dopAviso || '').slice(0,90)],
+      ['cruzar dos zonas con escalas DISTINTAS no mide', R.cruceNoMidio, (R.cruceAviso || '').slice(0,90)],
+      ['pero dos zonas con la MISMA escala si se cruzan', R.mismaEscalaSiMide, (R.mismaEscalaAviso || '(sin avisos)').slice(0,80)],
+      ['«Capturar cuadro» sigue funcionando',            R.capturaSigue, R.capturaSigue]
+    ] };
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];

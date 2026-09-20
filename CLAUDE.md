@@ -7767,6 +7767,58 @@ arriba a la izquierda: en un eco eso es fondo negro, el cuadro 0 y el del medio 
 y la condición «no se quedó en el cuadro 0» pasaba sin probar nada. Hoy muestrea el centro **y
 además afirma que los dos cuadros comparados son distintos**, que es el denominador.
 
+### Regla sobre la imagen (2026-09-20)
+Botón **📏 Medir** en el visor. Las mediciones son **sólo para ver en pantalla**: no se guardan,
+no viajan al estudio y **no salen en el PDF**.
+
+**LA ESCALA SALE DEL ARCHIVO, y la premisa del pedido era falsa donde importaba.** Decía que el
+Vivid no trae escala porque `PixelSpacing` (0028,0030) está ausente — y es cierto que ese tag no
+está, pero en ecografía la escala **nunca** va ahí: va en **(0018,6011) Sequence of Ultrasound
+Regions**. Medido sobre los 296 archivos del pendrive:
+
+| | |
+|---|---|
+| **281 regiones `cm × cm`** (tejido 2D y color), con `PhysicalDeltaX == PhysicalDeltaY` | ahí una línea SÍ es una distancia, y la escala la escribió el equipo |
+| **157 regiones `seg × cm/s`** o `seg × cm` (Doppler espectral) | el eje horizontal es **tiempo**: una «distancia en mm» ahí no significa nada |
+| **142 archivos con 2 o 7 regiones** | cada una con su rectángulo y su escala |
+| escala 2D de **0,046 a 0,926 mm/píxel**, 33 valores distintos | **no es una constante del equipo**: cambia con la profundidad de cada adquisición |
+
+Calibrar a mano sobre una escala de ~37 px/cm con ±2 px de pulso son ~5 % — **±2 mm en una raíz
+aórtica de 40**. Por eso la calibración manual quedó como **respaldo** (15 archivos sin región, y
+otras marcas) y como override con «Recalibrar», no como camino principal. Decisión de Maicol
+(2026-09-20). La barra dice siempre cuál de las dos escalas está usando.
+
+**Dónde NO se mide:** sobre una región de Doppler espectral se avisa que el eje horizontal es
+tiempo y no se dibuja nada; y no se mide entre dos puntos con **escalas distintas**.
+
+> **Ojo con esa guarda: compara ESCALAS, no identidad de regiones.** La primera versión comparaba
+> identidad y parecía lo prolijo — hasta que se midió: en los 296 archivos **ninguno** tiene dos
+> zonas medibles con escalas distintas, porque el recuadro de color se superpone al 2D **con la
+> misma escala**. O sea que comparar identidad bloqueaba «medir del 2D al color», que es
+> frecuente y perfectamente válido, y no prevenía nada real. Hay una condición para cada lado.
+
+**El clic llega en píxeles de PANTALLA.** El canvas se muestra escalado por CSS (`max-width:100%`),
+así que usar `offsetX` directo da una medición **que cambia con el tamaño de la ventana**: un
+número prolijo y equivocado. Se divide por `cv.width / rect.width`. Está fijado con una condición
+que mide la misma línea con el canvas a 240 px y a tamaño completo.
+
+**Al probar: separar la aritmética del clic.** `MouseEvent.clientX` es **entero por
+especificación**, así que el viaje imagen → pantalla → imagen pierde subpíxeles (~0,2 % con el
+canvas a 0,4×). La primera versión de TC-187 comparaba los milímetros contra los 200 px que
+*quería* marcar y daba rojo por esa cuantización, que un clic real también tiene. Hoy la
+aritmética se verifica **contra la línea realmente dibujada** —exacta a 1e-9— y el mapeo del clic
+se mide aparte, con la tolerancia derivada de la escala, no elegida a dedo.
+
+**Nada del reproductor se modificó** salvo agregarle el botón: la regla vive en su propio canvas
+superpuesto y se entera de los cambios observando `#cine-num` (cuadro), `#cine-cual` (otro
+cineloop) y el `display` de `#cine-ov` (cierre). Al cambiar de cuadro se borran las mediciones
+pero **se conserva la calibración manual**: es una propiedad de la imagen, no del cuadro.
+
+**Falta:** medir sobre una **imagen fija** no está — las fijas van a un slot y ese JPEG está
+recomprimido y **redimensionado**, así que la geometría del DICOM ya no aplica; medir ahí con la
+escala original daría un número equivocado en silencio. Para cubrirlo hay que poder abrir una
+fija en el visor, que es una decisión aparte.
+
 ### Cineloop — persistencia (2026-09-19)
 Los cineloops se guardan en **`ceibomed_cine`**, una base aparte de `ceibomed_img`, un registro
 por loop con índice por estudio. Aparte y no un store nuevo en la base de imágenes porque eso
