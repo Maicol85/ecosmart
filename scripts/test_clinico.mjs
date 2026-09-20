@@ -12683,6 +12683,171 @@ caso('TC-194', 'Tiempo y FC: ms desde el eje X, 60.000/RR, y el modo M SI cuenta
   })();
 `);
 
+/* ══ TC-195 · Segundo panel de visualizacion ═════════════════════════════════════════════════
+   Lo que importa fijar:
+   · los dos reproductores son INDEPENDIENTES -- mover uno no mueve al otro;
+   · con la sincronizacion activa, A manda y B sigue POR POSICION RELATIVA. Copiar el indice
+     seria lo obvio y esta mal: con 41 cuadros de un lado y 172 del otro, el panel B quedaria
+     clavado en el primer cuarto del ciclo y el que mira creeria que esta comparando la misma
+     fase;
+   · la medicion sigue viviendo en el panel A y no se rompe al abrir y cerrar el B, que es lo
+     unico que este panel podria haber roto.                                                  */
+caso('TC-195', 'Panel B: reproductores independientes y sincronizacion por posicion relativa', `
+  return (async () => {
+    const P = ${JSON.stringify(PENDRIVE)};
+    if (!P.loop) return { extra: [[
+      'hace falta un cineloop real del pendrive', false, 'no se encontro: quedo SIN verificar']] };
+    const bytes = x => { const b = atob(x.b64); const a = new Uint8Array(b.length);
+      for (let i=0;i<b.length;i++) a[i] = b.charCodeAt(i); return a; };
+    const esperar = async (c, n) => { for (let i=0;i<(n||60);i++) { if (c()) return true; await new Promise(r=>setTimeout(r,60)); } return c(); };
+    const alertOrig = window.alert; window.alert = () => {};
+    const R = {};
+    try {
+      const u = bytes(P.loop);
+      const d0 = _dcmImgLeer(u.buffer);
+      const reg = (d0.regiones || []).filter(_dcmImgRegionMedible)[0];
+
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      _cineAbrir([{ nombre:'vista-A', cuadros: d0.frags.length,
+        d: { frags: d0.frags, cols:d0.cols, filas:d0.filas, msCuadro:d0.msCuadro, regiones:d0.regiones } }]);
+      await new Promise(r => setTimeout(r, 250));
+      R.cuadrosA = _cineDatos.loops[0].cuadros;
+
+      /* El panel B con un loop de DISTINTA cantidad de cuadros: la mitad. Es lo que hace que
+         copiar el indice se note. */
+      const mitad = Math.max(3, Math.floor(R.cuadrosA / 2));
+      cineBAbrir({ nombre:'vista-B', cuadros: mitad,
+        d: { frags: d0.frags.slice(0, mitad), cols:d0.cols, filas:d0.filas, msCuadro:d0.msCuadro, regiones:d0.regiones } });
+      await new Promise(r => setTimeout(r, 250));
+      R.abrio = !!_cineB;
+      R.panelVisible = document.getElementById('cine-panel-b').style.display !== 'none';
+      R.cuadrosB = _cineB.loop.cuadros;
+      R.distintosCuadros = R.cuadrosB !== R.cuadrosA;      // denominador de lo de abajo
+      R.sliderB = +document.getElementById('cine-slider-b').max === R.cuadrosB - 1;
+      R.botonSyncVisible = document.getElementById('cine-sync').style.display !== 'none';
+
+      /* ── INDEPENDIENTES ── */
+      await cineIr(4);
+      await new Promise(r => setTimeout(r, 200));
+      R.bNoSeMovio = _cineB.cuadro === 0;
+      await cineBIr(2);
+      await new Promise(r => setTimeout(r, 200));
+      R.aNoSeMovio = _cineDatos.cuadro === 4;
+      R.bSeMovio = _cineB.cuadro === 2;
+
+      /* ── SINCRONIZADO: A manda, por posicion relativa ── */
+      cineSyncToggle();
+      R.syncOn = _cineSync;
+      R.botonDice = document.getElementById('cine-sync').textContent;
+      await new Promise(r => setTimeout(r, 200));
+      /* al activarlo se alinea de inmediato */
+      const esperado = n => Math.round((n / (R.cuadrosA - 1)) * (R.cuadrosB - 1));
+      R.alAlinear = _cineB.cuadro === esperado(4);
+      await cineIr(R.cuadrosA - 1);                         // ultimo cuadro de A
+      await new Promise(r => setTimeout(r, 300));
+      R.bAlFinal = _cineB.cuadro;
+      R.sigueElFinal = _cineB.cuadro === R.cuadrosB - 1;    // relativo: ultimo con ultimo
+      R.noCopiaIndice = R.cuadrosA - 1 !== R.cuadrosB - 1;  // denominador
+      await cineIr(0);
+      await new Promise(r => setTimeout(r, 300));
+      R.bAlInicio = _cineB.cuadro === 0;
+      const medio = Math.floor((R.cuadrosA - 1) / 2);
+      await cineIr(medio);
+      await new Promise(r => setTimeout(r, 300));
+      R.bAlMedio = _cineB.cuadro === esperado(medio);
+
+      /* ── B NO arrastra a A: la sincronizacion va en una sola direccion ── */
+      const aAntes = _cineDatos.cuadro;
+      await cineBIr(1);
+      await new Promise(r => setTimeout(r, 200));
+      R.bNoArrastraA = _cineDatos.cuadro === aAntes;
+
+      /* ── apagar la sincronizacion ──
+         B se manda al ULTIMO cuadro a proposito. Antes se lo dejaba donde hubiera quedado --el
+         cuadro 1-- y ahi esperado(2) tambien daba 1: la condicion se cumplia sola y sobrevivia
+         la mutacion que saca la guarda de _cineSyncAplicar. El ultimo cuadro no lo puede
+         producir la sincronizacion desde el cuadro 2 de A, asi que ahora distingue. */
+      cineSyncToggle();
+      R.syncOff = !_cineSync;
+      await cineBIr(R.cuadrosB - 1);
+      await new Promise(r => setTimeout(r, 200));
+      const bAntes = _cineB.cuadro;
+      R.denomApagado = bAntes !== esperado(2);   // si coincidieran, la condicion no probaria nada
+      await cineIr(2);
+      await new Promise(r => setTimeout(r, 250));
+      R.apagadoNoSigue = _cineB.cuadro === bAntes;
+
+      /* ── la medicion del panel A sigue andando con el B abierto ── */
+      if (reg) {
+        medToggle();
+        await new Promise(r => setTimeout(r, 150));
+        const cv = document.getElementById('cine-med');
+        const clic = (x,y) => { const r = cv.getBoundingClientRect();
+          cv.dispatchEvent(new MouseEvent('click', { bubbles:true,
+            clientX: r.left + x*(r.width/cv.width), clientY: r.top + y*(r.height/cv.height) })); };
+        clic(Math.round(reg.x0+20), Math.round(reg.y0+20));
+        clic(Math.round(reg.x0+170), Math.round(reg.y0+20));
+        await new Promise(r => setTimeout(r, 150));
+        R.midioConBAbierto = _medLineas.filter(l => !l.calibracion).length === 1;
+        R.medEnA = !!document.getElementById('cine-med') && !document.getElementById('cine-med-b');
+      }
+
+      /* ── cerrar el panel B ──
+         Se vuelve a ENCENDER la sincronizacion antes de cerrar: si no, la condicion de que
+         cerrar la apaga se cumple sola --ya estaba apagada del paso anterior-- y no prueba
+         nada. Lo delato una mutacion que sobrevivia. */
+      cineSyncToggle();
+      R.syncEncendidoAntesDeCerrar = _cineSync;
+      cineBCerrar();
+      await new Promise(r => setTimeout(r, 150));
+      R.cerro = _cineB === null;
+      R.panelOculto = document.getElementById('cine-panel-b').style.display === 'none';
+      R.syncApagadoAlCerrar = !_cineSync;
+      R.aSigueVivo = !!_cineDatos;
+      if (reg) R.medicionSobrevive = _medLineas.filter(l => !l.calibracion).length === 1;
+
+      /* ── cerrar el VISOR se lleva el panel B ── */
+      cineBAbrir({ nombre:'vista-B2', cuadros: mitad,
+        d: { frags: d0.frags.slice(0, mitad), cols:d0.cols, filas:d0.filas, msCuadro:d0.msCuadro, regiones:[] } });
+      await new Promise(r => setTimeout(r, 200));
+      R.reabrio = !!_cineB;
+      cineCerrar();
+      await new Promise(r => setTimeout(r, 200));
+      R.cerrarVisorCierraB = _cineB === null;
+    } finally {
+      window.alert = alertOrig;
+      try { medApagar(); cineBCerrar(); cineCerrar(); } catch (e) {}
+    }
+
+    return { extra: [
+      ['el panel B se abre y se ve',                     R.abrio && R.panelVisible, R.panelVisible],
+      ['con su propio slider dimensionado a SUS cuadros', R.sliderB, R.cuadrosB + ' cuadros'],
+      ['los dos loops tienen distinta cantidad (denominador)', R.distintosCuadros, R.cuadrosA + ' vs ' + R.cuadrosB],
+      ['aparece el boton de sincronizar',                R.botonSyncVisible, R.botonSyncVisible],
+      ['mover A no mueve B',                             R.bNoSeMovio, R.bNoSeMovio],
+      ['mover B no mueve A',                             R.aNoSeMovio && R.bSeMovio, R.aNoSeMovio],
+      ['sincronizar se activa y lo dice',                R.syncOn && /Sincronizado/.test(R.botonDice), R.botonDice],
+      ['y alinea de inmediato',                          R.alAlinear, R.alAlinear],
+      ['el ULTIMO de A lleva al ULTIMO de B',            R.sigueElFinal, R.bAlFinal + ' de ' + (R.cuadrosB-1)],
+      ['y no es copiar el indice (denominador)',         R.noCopiaIndice, (R.cuadrosA-1) + ' != ' + (R.cuadrosB-1)],
+      ['el primero con el primero',                      R.bAlInicio, R.bAlInicio],
+      ['y el medio con el medio',                        R.bAlMedio, R.bAlMedio],
+      ['B no arrastra a A: la sincronizacion es en un sentido', R.bNoArrastraA, R.bNoArrastraA],
+      ['el cuadro de B no lo puede producir la sync (denominador)', R.denomApagado, R.denomApagado],
+      ['apagar la sincronizacion la apaga de verdad',    R.syncOff && R.apagadoNoSigue, R.apagadoNoSigue],
+      ['se puede medir en A con el B abierto',           R.midioConBAbierto, R.midioConBAbierto],
+      ['y el panel B NO tiene canvas de medicion',       R.medEnA, R.medEnA],
+      ['cerrar el panel B lo oculta',                    R.cerro && R.panelOculto, R.panelOculto],
+      ['la sincronizacion estaba encendida (denominador)', R.syncEncendidoAntesDeCerrar, R.syncEncendidoAntesDeCerrar],
+      ['y cerrar la apaga',                              R.syncApagadoAlCerrar, R.syncApagadoAlCerrar],
+      ['el panel A sigue vivo',                          R.aSigueVivo, R.aSigueVivo],
+      ['y la medicion no se perdio',                     R.medicionSobrevive, R.medicionSobrevive],
+      ['cerrar el VISOR se lleva el panel B',            R.reabrio && R.cerrarVisorCierraB, R.cerrarVisorCierraB]
+    ] };
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];

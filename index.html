@@ -45568,13 +45568,31 @@ function _cineAbrir(loops) {
         /* El canvas de medición va ENCIMA, con su propio elemento. Dibujar las reglas sobre
            `#cine-cv` obligaría a que el reproductor las repinte en cada cuadro —o sea, a
            tocarlo—, y además un repintado las borraría a mitad de una medición. */
-        '<div id="cine-lienzo" style="position:relative;background:#000;border-radius:9px;display:flex;align-items:center;justify-content:center;min-height:220px;">' +
-          '<canvas id="cine-cv" style="max-width:100%;max-height:58vh;display:block;"></canvas>' +
-          '<canvas id="cine-med" style="position:absolute;display:none;cursor:crosshair;"></canvas></div>' +
+        /* Los dos paneles. El B arranca oculto; al abrirse, los dos van al 50 %. El canvas
+           de medición sigue colgando del lienzo A y nada del módulo de medición cambia:
+           el panel B es SÓLO visualización. */
+        '<div id="cine-paneles" style="display:flex;gap:10px;align-items:stretch;">' +
+          '<div id="cine-lienzo" style="flex:1;min-width:0;position:relative;background:#000;border-radius:9px;display:flex;align-items:center;justify-content:center;min-height:220px;">' +
+            '<canvas id="cine-cv" style="max-width:100%;max-height:58vh;display:block;"></canvas>' +
+            '<canvas id="cine-med" style="position:absolute;display:none;cursor:crosshair;"></canvas></div>' +
+          '<div id="cine-panel-b" style="flex:1;min-width:0;display:none;flex-direction:column;gap:6px;">' +
+            '<div id="cine-lienzo-b" style="position:relative;background:#000;border-radius:9px;display:flex;align-items:center;justify-content:center;min-height:220px;flex:1;">' +
+              '<canvas id="cine-cv-b" style="max-width:100%;max-height:58vh;display:block;"></canvas></div>' +
+            '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+              '<button type="button" class="btn btn-ghost" id="cine-play-b" style="padding:4px 10px;font-size:11px;min-width:84px;">▶ Vista B</button>' +
+              '<input type="range" id="cine-slider-b" min="0" value="0" style="flex:1;min-width:110px;">' +
+              '<span id="cine-num-b" style="font-size:11px;color:var(--text2);font-variant-numeric:tabular-nums;white-space:nowrap;"></span>' +
+              '<button type="button" class="btn btn-ghost" id="cine-cerrar-b" style="padding:4px 9px;font-size:11px;">✕ Cerrar vista B</button>' +
+            '</div>' +
+            '<div id="cine-cual-b" style="font-size:10px;color:var(--text2);"></div>' +
+          '</div>' +
+        '</div>' +
         '<div id="cine-med-barra" style="display:none;font-size:11px;line-height:1.5;margin-top:8px;' +
           'padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);"></div>' +
         '<div style="display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap;">' +
           '<button type="button" class="btn btn-ghost" id="cine-play" style="padding:5px 14px;min-width:92px;">▶ Reproducir</button>' +
+          '<button type="button" class="btn btn-ghost" id="cine-add-b" style="padding:5px 12px;">➕ Agregar vista</button>' +
+          '<button type="button" class="btn btn-ghost" id="cine-sync" style="padding:5px 12px;display:none;">🔗 Sincronizar</button>' +
           '<input type="range" id="cine-slider" min="0" value="0" style="flex:1;min-width:160px;">' +
           '<span id="cine-num" style="font-size:12px;color:var(--text2);font-variant-numeric:tabular-nums;white-space:nowrap;"></span>' +
         '</div>' +
@@ -45602,6 +45620,11 @@ function _cineAbrir(loops) {
     ov.querySelector('#cine-prev').onclick   = () => cineLoop(-1);
     ov.querySelector('#cine-next').onclick   = () => cineLoop(1);
     ov.querySelector('#cine-slider').oninput = (e) => { _cineDetener(); cineIr(+e.target.value); };
+    ov.querySelector('#cine-add-b').onclick     = cineBElegir;
+    ov.querySelector('#cine-sync').onclick      = cineSyncToggle;
+    ov.querySelector('#cine-play-b').onclick    = cineBToggle;
+    ov.querySelector('#cine-cerrar-b').onclick  = cineBCerrar;
+    ov.querySelector('#cine-slider-b').oninput  = (ev2) => { _cineBDetener(); cineBIr(+ev2.target.value); };
   }
   ov.style.display = 'flex';
   _cineCargarLoop();
@@ -45695,6 +45718,9 @@ function cineCapturar() {
 
 function cineCerrar() {
   _cineDetener();
+  /* El panel B se va con el visor: si sobreviviera, el próximo cineloop abriría con la vista
+     B del paciente anterior al lado. */
+  try { cineBCerrar(); } catch (e) {}
   const ov = document.getElementById('cine-ov');
   if (ov) ov.style.display = 'none';
   /* Se suelta la referencia a los fragmentos. Son vistas sobre el ArrayBuffer del archivo
@@ -46690,6 +46716,163 @@ function medApagar() {
   _medBarra('');
 }
 window.medApagar = medApagar;
+
+/* ══════════════════════════════════════════════════════════════════════════════════════
+   SEGUNDO PANEL — SÓLO VISUALIZACIÓN
+   ══════════════════════════════════════════════════════════════════════════════════════
+
+   Sirve para ver dos adquisiciones a la vez y para comparar reposo/esfuerzo con los dos
+   cineloops en el mismo cuadro.
+
+   POR QUÉ NO MIDE. Las herramientas siguen viviendo en el panel A. Ponerlas también acá
+   obliga a convertir en instancias 19 estados globales y 21 ids fijos del visor, más los dos
+   observadores y el `mouseup` del documento — o sea a refactorizar el módulo que hoy sostiene
+   regla, área, Simpson, velocidad, tiempo y FC, todo andando. Y el motivo clínico que originó
+   el pedido —Simpson biplano con la 4C y la 2C— **ya está resuelto** desde que la sesión
+   sobrevive al cambio de imagen: no hace falta verlas juntas para medirlas. Decisión de
+   Maicol (2026-09-20).
+
+   SU ESTADO ES PROPIO Y NO TOCA EL DE A. `_cineB` tiene su cuadro, su timer y su token; el
+   panel A no se entera de que existe salvo por la sincronización, que va en una sola
+   dirección: A manda, B sigue. */
+
+let _cineB = null;             // { loop, cuadro, timer }
+let _cineBGen = 0;
+let _cineSync = false;
+
+const _cineBEl = id => document.getElementById(id);
+
+function _cineBFrags(r) { return _cineDesdeRegistro(r); }
+
+/* Elegir qué va en el panel B: se listan los DICOM guardados del estudio, que es la misma
+   tira de abajo. Un `prompt` numerado y no un modal propio: el visor ya es un overlay y
+   apilarle otro encima tapa justamente lo que se quiere comparar. */
+async function cineBElegir() {
+  let recs = [];
+  try { recs = await CeiboCine.listar(_imgUuidActual); } catch (e) { recs = []; }
+  recs = recs.filter(r => r && _uuidValido(r.id));
+  if (!recs.length) {
+    alert('No hay ningún DICOM guardado en este estudio para poner en la segunda vista.\n\n' +
+          'Se eligen de la tira de abajo de la tab Imágenes, y para que aparezcan ahí hay que ' +
+          'tener activado «Guardar imágenes con los estudios» y el estudio guardado.');
+    return;
+  }
+  const lista = recs.map((r, i) => (i + 1) + ') ' + (r.cuadros > 1 ? r.cuadros + ' cuadros' : 'imagen fija') +
+                                   ' — ' + (r.nombre || '')).join('\n');
+  const resp = prompt('¿Qué poner en la segunda vista?\n\n' + lista + '\n\nEscribí el número:', '1');
+  if (resp === null) return;
+  const i = parseInt(String(resp).trim(), 10) - 1;
+  if (!(i >= 0 && i < recs.length)) { alert('Ese número no está en la lista.'); return; }
+  const r = await CeiboCine.leer(recs[i].id);
+  if (!r) { toast('❌ No se pudo leer esa imagen'); return; }
+  cineBAbrir(_cineBFrags(r));
+}
+window.cineBElegir = cineBElegir;
+
+/* Observador PROPIO, no el de la medición: aquel sólo existe si se activó el modo medir, y
+   la sincronización tiene que andar sin haber medido nada. Se monta una sola vez. */
+let _cineBObsPuesto = false;
+function _cineBObservar() {
+  if (_cineBObsPuesto || typeof MutationObserver === 'undefined') return;
+  const num = _cineBEl('cine-num');
+  if (!num) return;
+  new MutationObserver(() => { if (_cineSync) _cineSyncAplicar(); })
+    .observe(num, { childList:true, characterData:true, subtree:true });
+  _cineBObsPuesto = true;
+}
+
+function cineBAbrir(loop) {
+  _cineBObservar();
+  _cineBDetener();
+  _cineB = { loop, cuadro: 0, timer: null };
+  const pb = _cineBEl('cine-panel-b');
+  if (pb) pb.style.display = 'flex';
+  const sy = _cineBEl('cine-sync');
+  if (sy) sy.style.display = '';
+  const sl = _cineBEl('cine-slider-b');
+  if (sl) { sl.max = String(Math.max(0, loop.cuadros - 1)); sl.value = '0'; }
+  const cu = _cineBEl('cine-cual-b');
+  if (cu) cu.textContent = loop.nombre || '';
+  cineBIr(0);
+  /* El canvas de medición se recalza: el panel A cambió de ancho al abrirse el B, así que su
+     caja es otra. Sin esto las reglas quedan corridas respecto de la imagen. */
+  if (_medOn) setTimeout(_medPintar, 60);
+}
+window.cineBAbrir = cineBAbrir;
+
+function cineBCerrar() {
+  _cineBDetener();
+  _cineB = null; _cineSync = false;
+  const pb = _cineBEl('cine-panel-b');
+  if (pb) pb.style.display = 'none';
+  const sy = _cineBEl('cine-sync');
+  if (sy) { sy.style.display = 'none'; sy.textContent = '🔗 Sincronizar'; }
+  if (_medOn) setTimeout(_medPintar, 60);
+}
+window.cineBCerrar = cineBCerrar;
+
+async function cineBIr(n) {
+  const B = _cineB; if (!B) return;
+  n = Math.max(0, Math.min(B.loop.cuadros - 1, n | 0));
+  B.cuadro = n;
+  const sl = _cineBEl('cine-slider-b'), nu = _cineBEl('cine-num-b');
+  if (sl) sl.value = String(n);
+  if (nu) nu.textContent = (n + 1) + ' / ' + B.loop.cuadros;
+  const gen = ++_cineBGen;
+  let bmp;
+  try { bmp = await createImageBitmap(new Blob([B.loop.d.frags[n]], { type:'image/jpeg' })); }
+  catch (e) { return; }
+  if (gen !== _cineBGen || !_cineB) { bmp.close(); return; }
+  const cv = _cineBEl('cine-cv-b');
+  if (!cv) { bmp.close(); return; }
+  if (cv.width !== bmp.width || cv.height !== bmp.height) { cv.width = bmp.width; cv.height = bmp.height; }
+  cv.getContext('2d').drawImage(bmp, 0, 0);
+  bmp.close();
+}
+window.cineBIr = cineBIr;
+
+function _cineBDetener() {
+  if (_cineB && _cineB.timer) { clearInterval(_cineB.timer); _cineB.timer = null; }
+  const b = _cineBEl('cine-play-b');
+  if (b) b.textContent = '▶ Vista B';
+}
+
+function cineBToggle() {
+  const B = _cineB; if (!B) return;
+  if (B.timer) { _cineBDetener(); return; }
+  const v = _cineFps(B.loop.d);
+  B.timer = setInterval(() => {
+    if (!_cineB) return;
+    cineBIr((_cineB.cuadro + 1) % B.loop.cuadros);
+  }, Math.max(20, Math.round(v.ms)));
+  const b = _cineBEl('cine-play-b');
+  if (b) b.textContent = '⏸ Vista B';
+}
+window.cineBToggle = cineBToggle;
+
+/* Sincronización: A manda, B sigue. En UNA sola dirección a propósito — con las dos
+   empujándose se realimentan y quedan peleando por el cuadro.
+   Se engancha al texto de `#cine-num`, que el reproductor actualiza en cada `cineIr`: el
+   mismo truco que usa la medición, y así ninguna función del panel A se modifica. */
+function cineSyncToggle() {
+  if (!_cineB) return;
+  _cineSync = !_cineSync;
+  const b = _cineBEl('cine-sync');
+  if (b) b.textContent = _cineSync ? '🔗 Sincronizado' : '🔗 Sincronizar';
+  if (_cineSync) { _cineBDetener(); _cineSyncAplicar(); }
+}
+window.cineSyncToggle = cineSyncToggle;
+
+/* Los dos loops pueden tener distinta cantidad de cuadros. Se sigue por POSICIÓN RELATIVA y
+   no por índice: con 41 cuadros de un lado y 172 del otro, copiar el índice deja al panel B
+   clavado en el primer cuarto del ciclo. */
+function _cineSyncAplicar() {
+  if (!_cineSync || !_cineB || !_cineDatos) return;
+  const A = _cineDatos.loops[_cineDatos.i];
+  if (!A || A.cuadros < 1) return;
+  const frac = (A.cuadros > 1) ? (_cineDatos.cuadro / (A.cuadros - 1)) : 0;
+  cineBIr(Math.round(frac * (_cineB.loop.cuadros - 1)));
+}
 
 /* ══════════════════════════════════════════════════════════════════════════════════════
    MEDIR SOBRE UNA IMAGEN FIJA
@@ -62318,8 +62501,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260920-0200';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789880429175;                 /* eco-build-ms */
+const ECO_BUILD    = '20260920-0259';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789883982248;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -62405,7 +62588,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-0200</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-0259</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

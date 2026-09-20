@@ -8056,6 +8056,52 @@ literales). Al mutar, ojo con una trampa: cambiar `cols`/`filas` **no** sirve co
 «abrir el slot en vez del original», porque `cineIr` redimensiona el canvas según el bitmap
 decodificado y pisa el metadato. La mutación fiel tiene que pasarle los bytes del slot.
 
+### Panel B: segunda vista, SÓLO de visualización (2026-09-20)
+`➕ Agregar vista` abre un segundo reproductor al lado del A, con su propio play/pausa/slider, y
+`🔗 Sincronizar` hace que **A mande y B siga**. Las herramientas de medición siguen viviendo en el
+panel A. Decisión de Maicol: el panel doble era el paso que quedaba pendiente del arreglo del
+Simpson biplano, y darle herramientas propias exige la refactorización a instancias que esa misma
+entrada declara —19 globales y 21 ids fijos—, que es otra tarea.
+
+**LA SINCRONIZACIÓN ES POR POSICIÓN RELATIVA, NO POR ÍNDICE.** Copiar el índice es lo obvio y está
+mal: los dos loops tienen distinta cantidad de cuadros —en el pendrive van de 41 a 172— así que con
+A en el cuadro 100 el B se quedaría **clavado en el primer cuarto de su ciclo**, y el que mira
+creería estar comparando la misma fase del latido. Se calcula la fracción `cuadro/(n−1)` de A y se
+aplica sobre los cuadros de B.
+
+**Va en UN solo sentido, y si alguna vez se hace bidireccional hay que cortar el lazo.** Hoy
+`cineBIr` no llama a `cineIr`, así que no hay realimentación. La mutación que la agrega
+—`cineBIr` moviendo a A— **cuelga la suite**: `cineBIr → cineIr → observador de `#cine-num` →
+`_cineSyncAplicar` → `cineBIr` → …, y como todo el camino es `await`, el caso no vuelve nunca. Es
+«un test que se cuelga no es un test lento» otra vez, con la diferencia de que acá el cuelgue **es**
+el síntoma. Queda distinguible de un verde, pero no se lee como un rojo: si se vuelve a tocar, la
+guarda va antes de la refactorización, no después.
+
+**La guarda de la sincronización está DUPLICADA, y por eso ninguna mutación de un solo sitio la
+mata.** `if (_cineSync)` está en el observador **y** al principio de `_cineSyncAplicar`. Saqué
+primero la de afuera —sobrevivió— y después la de adentro —sobrevivió también—, y las dos veces
+empecé a buscar el hueco en el caso. No había hueco: es defensa en profundidad funcionando, y la
+mutación fiel tiene que sacar **las dos**. Con las dos afuera, el caso cae.
+**Al mutar un predicado, contar cuántas veces está escrito antes de leer el resultado.**
+
+**`cineCerrar()` cierra el panel B primero.** Sin eso la vista del paciente anterior sobrevive al
+cierre del visor y reaparece en el loop siguiente.
+
+**DOS CONDICIONES DE TC-195 NACIERON SIN DENOMINADOR, las dos del mismo tipo:**
+- **«cerrar B apaga la sincronización»** se comprobaba después del paso que ya la había apagado, así
+  que se cumplía sola. Hoy se vuelve a encender antes de cerrar, y hay una condición que lo afirma.
+- **«apagada, B no sigue a A»** dejaba a B en el cuadro 1 y movía A al 2 — y `esperado(2)` también
+  daba 1, así que la condición pasaba con la sincronización forzada a andar siempre. Hoy B se manda
+  al **último** cuadro, que la sincronización desde el cuadro 2 de A no puede producir, con una
+  condición que verifica justamente eso.
+
+Las dos las delataron mutaciones que sobrevivían, no la relectura. Cinco de las seis mutaciones caen
+donde les toca (índice en vez de posición relativa, slider de B dimensionado con los cuadros de A,
+cerrar B sin apagar la sync, cerrar el visor sin cerrar B, y la guarda con los dos sitios sacados).
+
+**Safari sigue sin verificarse**, como todo el módulo DICOM: el navegador está concedido a nivel
+«lectura» y no se puede manejar. Todo lo de acá corre en Chrome por CDP.
+
 ### Cineloop — persistencia (2026-09-19)
 Los cineloops se guardan en **`ceibomed_cine`**, una base aparte de `ceibomed_img`, un registro
 por loop con índice por estudio. Aparte y no un store nuevo en la base de imágenes porque eso
