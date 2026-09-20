@@ -16,6 +16,15 @@ tests/casos_ete_ficticios.json
 tests/paciente_ficticio_completo.json
 tests/ecosmart_demo_*.json
 
+# Almacén de un servidor Orthanc que quedó DENTRO de la carpeta del repo.
+# NO son datos de prueba: son DICOM de pacientes reales —34 MB con su índice
+# SQLite— y este repo es PÚBLICO. Un `git add .` los publicaría en GitHub Pages y
+# en el historial para siempre; y del historial de un repo público no se borran
+# de verdad: hay que reescribirlo y asumir que ya fueron clonados.
+# Acá sólo se los mantiene fuera de git, no se toca ningún archivo. Si Orthanc ya
+# no se usa, conviene mover la carpeta afuera del repo en vez de dejarla adentro.
+OrthancStorage/
+
 # version.json vive en la RAÍZ, no acá: el banner de versión hace
 # fetch('version.json') a ruta relativa. Una copia en tests/ es una sobra de un
 # movimiento en lote y no debe volver al repo.
