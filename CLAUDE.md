@@ -8133,6 +8133,65 @@ y TC-193 se puso en rojo solo.
 **Sin verificar en Safari**, como todo el módulo DICOM: el navegador está concedido a nivel
 «lectura». Todo corrió en Chrome por CDP, con el pendrive montado.
 
+### Strain: el trazado, y la recta del anillo que NO es pared (2026-09-20)
+
+Séptima herramienta del visor. **Sólo el trazado**: los dos contornos quedan confirmados con su
+geometría medida y el cálculo del SGL no está implementado — el panel lo dice con todas las
+letras en vez de dejar un hueco que se lea como un número que falta cargar.
+
+**NO REIMPLEMENTA NADA DE LO QUE YA EXISTE, y no es prolijidad.** La compuerta «2D con escala en
+cm, una sola zona» es `_medAreaValidar`, la misma del área; el eje largo es **`_simpEje`, el
+mismo de Simpson**. El pedido decía «igual que Simpson — Lang 2015», y la forma de que sea igual
+es que sea **el mismo**, no uno escrito al lado que mañana diverge sobre el mismo ventrículo en
+el mismo informe.
+**La mutación que lo demuestra es la más instructiva de la tanda:** reimplementar el eje como
+«la cuerda más larga del contorno» —que es lo que uno escribiría sin leer la guía— da **315,8 px
+donde el correcto da 300**. Un 5 % de error, en un número que se ve perfectamente plausible. Es
+exactamente lo que el comentario de Simpson advierte: sin la recta del anillo, «el punto más
+apical» no está definido.
+
+#### La decisión que condiciona el cálculo: qué longitud es el borde
+
+El flujo cierra el contorno al soltar, como se pidió. Pero **«cerrado» sirve para DEFINIR el eje
+y no para medir**: la recta que une los dos extremos del anillo atraviesa la cavidad y **no es
+pared**. Meterla en la longitud mete en el strain un segmento que no es miocardio.
+
+Se guardan las dos por separado —`bordeCm` (el trazo ABIERTO) y `cuerdaCm` (la recta)— para que
+el cálculo use la que corresponda y para que la diferencia sea visible en vez de quedar
+escondida adentro de un perímetro. Medido sobre contornos plausibles (media elipse, anillo
+30-44 mm, eje 64-95 mm):
+
+| | anillo | borde | perímetro cerrado | cuerda / borde |
+|---|---|---|---|---|
+| diástole normal | 36 mm | 169,7 | 205,7 | **21,2 %** |
+| sístole normal | 30 mm | 136,3 | 166,3 | **22,0 %** |
+
+**Sobre el SGL la diferencia es más chica de lo que parece — y no es despreciable.** Con el
+borde abierto da **−19,7 %** y con el perímetro cerrado **−19,2 %**: **0,5 puntos
+porcentuales**, porque la cuerda se acorta en sístole casi en la misma proporción que el borde.
+Pero el único corte vivo de esta app sobre el SGL es el **−16 % del HFA-ICOS**, y ahí 0,5 pp
+cruzan el umbral: un −16,2 y un −15,7 son dos bandas distintas de riesgo. **Queda decidido
+guardar las dos y declarar cuál es cuál; qué usa el cálculo es la decisión del próximo paso.**
+
+#### El aviso de cambio de cuadro NO se copió de Simpson, a propósito
+
+Simpson avisa sólo si había un trazado **sin confirmar**. En strain, **cambiar de cuadro es
+parte del método** —el panel le pide al médico ir de diástole a sístole—, así que el momento en
+que el contorno confirmado desaparece de la pantalla es el momento en que la app le dijo que lo
+hiciera. Sin una palabra ahí se lee como que se perdió el trabajo. Se avisa siempre que haya
+algo que se deje de dibujar, y se distingue aparte si además se descartó lo pendiente.
+Copiar el comportamiento de Simpson habría sido lo cómodo; **lo cazó TC-199**, que esperaba el
+aviso y lo encontró mudo.
+
+**Las dos vistas salen gratis** del modelo de instancias: `strain` es una clave más en `_vNueva`
+y una entrada más en el mapa de accesores. Cero líneas específicas para la vista B — que era
+todo el punto de aquella refactorización.
+
+**TC-199 no depende del pendrive**: cuadros generados con un canvas y regiones sintéticas, 2D y
+espectral. Cuatro mutaciones, las cuatro cazadas. Y el triángulo del caso tiene eje largo
+**exactamente** igual a su altura, así que el eje se verifica contra un número cerrado y no
+contra una tolerancia elegida a dedo.
+
 ### La guarda de reentrada de la sincronización — y el bucle que no existía (2026-09-20)
 
 **EL REPORTE DESCRIBÍA `cineBIr → cineIr → observador → cineBIr`. Ninguna de las tres flechas

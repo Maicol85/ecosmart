@@ -13379,6 +13379,226 @@ caso('TC-198', 'Sincronizacion: la guarda corta la reentrada y A -> B sigue anda
   })();
 `);
 
+
+/* ══ TC-199 · Trazado de strain ══════════════════════════════════════════════════════════════
+   NO DEPENDE DEL PENDRIVE: los cuadros se generan con un canvas y la region 2D es sintetica.
+   Es lo mismo que hace TC-198 y por el mismo motivo -- atar una invariante de geometria a un
+   disco montado la vuelve inverificable justo cuando hace falta.
+
+   QUE FIJA, en orden de lo que costaria mas si se rompiera:
+   · el eje largo es EL MISMO de Simpson -- no una segunda copia que puede divergir;
+   · el borde que se mide es el TRAZO ABIERTO, no el perimetro cerrado: la recta que cierra
+     el contorno atraviesa la cavidad y no es pared, asi que meterla en la longitud mete en el
+     strain un segmento que no es miocardio;
+   · al cambiar de cuadro se OCULTA pero NO se borra -- el metodo exige dos cuadros, asi que
+     borrarlo haria imposible completar la medicion;
+   · no se traza sobre Doppler;
+   · y funciona en las DOS vistas de forma independiente.                                     */
+caso('TC-199', 'Strain: trazado guiado, eje largo compartido con Simpson, y el borde es el trazo ABIERTO', `
+  return (async () => {
+    const R = {};
+    const alertOrig = window.alert; const dichos = [];
+    window.alert = m => dichos.push(String(m));
+    try {
+      const mkJpeg = () => {
+        const c = document.createElement('canvas'); c.width = 600; c.height = 500;
+        const g = c.getContext('2d'); g.fillStyle = '#223'; g.fillRect(0,0,600,500);
+        const b64 = c.toDataURL('image/jpeg').split(',')[1];
+        const bin = atob(b64); const u = new Uint8Array(bin.length);
+        for (let i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i);
+        return u;
+      };
+      const jpeg = mkJpeg();
+      /* Region 2D isotropica: 0,05 cm por pixel en los dos ejes (ux=uy=3 => centimetros). */
+      const DX = 0.05;
+      const reg2d = { tipo:1, x0:20, y0:20, x1:580, y1:480, ux:3, uy:3, dx:DX, dy:DX,
+                      rx0:20, ry0:20, rvx:0, rvy:0 };
+      /* Y una espectral, para probar que ahi NO se traza. */
+      const regDop = { tipo:1, x0:20, y0:20, x1:580, y1:480, ux:4, uy:7, dx:0.004, dy:-1.3,
+                       rx0:20, ry0:100, rvx:0, rvy:0 };
+      const mkLoop = (nom, regs) => ({ nombre:nom, cuadros:4,
+        d: { frags:[jpeg,jpeg,jpeg,jpeg], cols:600, filas:500, msCuadro:40, regiones:regs } });
+
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      _cineAbrir([ mkLoop('2d.dcm', [reg2d]) ]);
+      await new Promise(r => setTimeout(r, 200));
+      if (!_medOn) medToggle();
+      await new Promise(r => setTimeout(r, 140));
+
+      /* ── el boton existe y selecciona la herramienta ── */
+      const bstr = document.getElementById('cine-med-str');
+      R.hayBoton = !!bstr;
+      R.rotulo = bstr && bstr.textContent;
+      bstr.click();
+      await new Promise(r => setTimeout(r, 140));
+      R.herr = _medHerr;
+      R.arrancoSesion = !!_strain && _strain.fase === 'd';
+      R.panelPaso1 = /Paso 1/.test(document.getElementById('cine-med-barra').innerHTML);
+
+      /* ── trazado: mismo gesto que area y Simpson ── */
+      const cvDe = p => document.getElementById(p + 'cine-med');
+      const acDe = (p,x,y) => { const c = cvDe(p), r = c.getBoundingClientRect();
+        return { clientX: r.left + x*(r.width/c.width), clientY: r.top + y*(r.height/c.height) }; };
+      const trazarEn = async (p, pts) => { const c = cvDe(p);
+        c.dispatchEvent(new MouseEvent('mousedown', Object.assign({bubbles:true}, acDe(p,pts[0].x,pts[0].y))));
+        for (let i=1;i<pts.length;i++)
+          c.dispatchEvent(new MouseEvent('mousemove', Object.assign({bubbles:true}, acDe(p,pts[i].x,pts[i].y))));
+        document.dispatchEvent(new MouseEvent('mouseup', { bubbles:true }));
+        await new Promise(r => setTimeout(r, 130)); };
+      /* Un "ventriculo" triangular: arranca en un lado del anillo, sube al apex, baja al otro.
+         Con base W y altura H, los dos lados miden cada uno hypot(W/2,H) y el eje largo es H
+         EXACTAMENTE -- el bisector del anillo esta en el medio de la base. */
+      const tri = (cx, yb, W, H) => { const p=[], x0=cx-W/2, x1=cx+W/2, ya=yb-H;
+        const n1 = Math.ceil(Math.hypot(W/2,H)/10);
+        for (let i=0;i<=n1;i++) p.push({x:Math.round(x0+(cx-x0)*i/n1), y:Math.round(yb+(ya-yb)*i/n1)});
+        for (let i=1;i<=n1;i++) p.push({x:Math.round(cx+(x1-cx)*i/n1), y:Math.round(ya+(yb-ya)*i/n1)});
+        return p; };
+      const CX = 300, YB = 440, Wd = 200, Hd = 300;
+
+      await trazarEn('', tri(CX, YB, Wd, Hd));
+      R.hayPendiente = !!(_strain && _strain.pendiente);
+      R.panelDicePendiente = /Confirmar diástole/.test(document.getElementById('cine-med-barra').innerHTML);
+
+      if (_strain && _strain.pendiente) {
+        const T = _strain.pendiente;
+        /* EL EJE LARGO: para este triangulo es exactamente H pixeles. */
+        R.ejePx = T.eje.L;
+        R.ejeOk = Math.abs(T.eje.L - Hd) < 1.5;                 // el trazo va por puntos enteros
+        R.ejeCm = T.Lcm;
+        R.ejeCmOk = Math.abs(T.Lcm - Hd * DX) < 0.1;
+        /* Y es EL MISMO que calcula Simpson: no una copia. */
+        const ejeSimp = _simpEje(T.pts);
+        R.mismoEjeQueSimpson = Math.abs(ejeSimp.L - T.eje.L) < 1e-12;
+        /* EL BORDE es el trazo ABIERTO: los dos lados del triangulo, sin la base. */
+        R.bordeCm = T.bordeCm;
+        const ladosPx = 2 * Math.hypot(Wd/2, Hd);
+        R.bordeOk = Math.abs(T.bordeCm - ladosPx * DX) < 0.25;
+        /* Y la cuerda que cierra es la BASE, guardada aparte. */
+        R.cuerdaCm = T.cuerdaCm;
+        R.cuerdaOk = Math.abs(T.cuerdaCm - Wd * DX) < 0.1;
+        /* La diferencia entre medir el borde y medir el perimetro cerrado, en numeros. */
+        R.perimetroCm = T.bordeCm + T.cuerdaCm;
+        R.difPct = (T.cuerdaCm / T.bordeCm) * 100;
+      }
+
+      /* ── rehacer antes de confirmar: el segundo trazado reemplaza al primero ── */
+      await trazarEn('', tri(CX, YB, 160, Hd));
+      R.rehizo = !!(_strain.pendiente) && Math.abs(_strain.pendiente.cuerdaCm - 160*DX) < 0.1;
+      R.unSoloPendiente = !!_strain.pendiente && !_strain.pares.d;
+
+      /* ── confirmar diastole ── */
+      document.getElementById('cine-str-conf').click();
+      await new Promise(r => setTimeout(r, 140));
+      R.confirmoD = !!_strain.pares.d;
+      R.pasoASistole = _strain.fase === 's';
+      R.panelPaso2 = /Paso 2/.test(document.getElementById('cine-med-barra').innerHTML);
+
+      /* ── cambiar de cuadro: se OCULTA pero NO se borra ── */
+      await _vCon(_vistaA, () => cineIr(2));
+      await new Promise(r => setTimeout(r, 200));
+      R.sigueGuardado = !!_strain.pares.d;
+      R.ocultado = _strain.ocultar === true;
+      R.avisaCuadro = /Cambiaste de cuadro/.test(document.getElementById('cine-med-barra').innerHTML);
+      /* Y "oculto" es de verdad: no se dibuja nada. Se cuenta cuanto dibuja el pintor. */
+      const trazos = [];
+      const so = CanvasRenderingContext2D.prototype.stroke;
+      CanvasRenderingContext2D.prototype.stroke = function () { trazos.push(1); return so.apply(this, arguments); };
+      _medPintar();
+      const conOculto = trazos.length;
+      trazos.length = 0;
+      _strain.ocultar = false; _medPintar();
+      const conVisible = trazos.length;
+      CanvasRenderingContext2D.prototype.stroke = so;
+      _strain.ocultar = true;
+      R.dibujaOculto = conOculto; R.dibujaVisible = conVisible;
+      R.ocultarNoDibuja = conOculto === 0 && conVisible > 0;
+
+      /* ── confirmar sistole: contorno mas chico, mismo cuadro-loop ── */
+      await trazarEn('', tri(CX, YB, 140, 240));
+      document.getElementById('cine-str-conf').click();
+      await new Promise(r => setTimeout(r, 140));
+      R.confirmoS = !!_strain.pares.s;
+      R.panelListo = /Trazados listos/.test(document.getElementById('cine-med-barra').innerHTML);
+      R.sistoleMasCorta = !!(_strain.pares.s && _strain.pares.d) &&
+                          _strain.pares.s.bordeCm < _strain.pares.d.bordeCm;
+
+      /* ── NO se traza sobre Doppler ── */
+      medHerramienta('dist');
+      _cineAbrir([ mkLoop('doppler.dcm', [regDop]) ]);
+      await new Promise(r => setTimeout(r, 220));
+      if (!_medOn) medToggle();
+      await new Promise(r => setTimeout(r, 140));
+      document.getElementById('cine-med-str').click();
+      await new Promise(r => setTimeout(r, 140));
+      dichos.length = 0;
+      await trazarEn('', tri(CX, YB, Wd, Hd));
+      R.rechazoDoppler = !_strain.pendiente;
+      R.avisoDoppler = dichos.join(' | ');
+      R.avisoNombraTiempo = /TIEMPO|Doppler/i.test(R.avisoDoppler);
+
+      /* ── LAS DOS VISTAS, independientes ── */
+      medHerramienta('dist');
+      _cineAbrir([ mkLoop('vistaA-2d.dcm', [reg2d]) ]);
+      await new Promise(r => setTimeout(r, 220));
+      _vistaB = _vNueva('b-', 'B');
+      _vMontarPanel(document.getElementById('cine-paneles'), 'b-');
+      _vCablear(_vistaB);
+      _vCon(_vistaB, () => { _vistaB.datos = { loops:[ mkLoop('vistaB-2d.dcm', [reg2d]) ], i:0, cuadro:0, timer:null };
+                             _cineCargarLoop(); });
+      await new Promise(r => setTimeout(r, 220));
+      _vCon(_vistaA, () => { if (!_medOn) medToggle(); });
+      _vCon(_vistaB, () => { if (!_medOn) medToggle(); });
+      await new Promise(r => setTimeout(r, 160));
+      _vCon(_vistaA, () => medHerramienta('strain'));
+      _vCon(_vistaB, () => medHerramienta('strain'));
+      await new Promise(r => setTimeout(r, 140));
+      R.dosBarras = !!document.getElementById('cine-med-barra') && !!document.getElementById('b-cine-med-barra');
+      await _vCon(_vistaA, () => trazarEn('', tri(CX, YB, 200, 300)));
+      R.aTrazo = !!(_vistaA.strain && _vistaA.strain.pendiente);
+      R.bVacia = !(_vistaB.strain && _vistaB.strain.pendiente);      // el trazo de A no aparece en B
+      await _vCon(_vistaB, () => trazarEn('b-', tri(CX, YB, 120, 300)));
+      R.bTrazo = !!(_vistaB.strain && _vistaB.strain.pendiente);
+      R.cuerdaA = _vistaA.strain.pendiente.cuerdaCm;
+      R.cuerdaB = _vistaB.strain.pendiente.cuerdaCm;
+      R.ajenos = Math.abs(R.cuerdaA - 200*DX) < 0.1 && Math.abs(R.cuerdaB - 120*DX) < 0.1;
+      _vCon(_vistaA, medStrainConfirmar);
+      R.confirmarAnoTocaB = !!_vistaA.strain.pares.d && !_vistaB.strain.pares.d;
+
+      vistaBCerrar();
+      cineCerrar();
+      await new Promise(r => setTimeout(r, 120));
+      R.cerrarLimpia = _vistaA.strain === null;
+    } finally { window.alert = alertOrig; }
+
+    return { extra: [
+      ['el boton 💚 Strain esta en el selector',       R.hayBoton && /Strain/.test(R.rotulo||''), R.rotulo],
+      ['lo selecciona y arranca la sesion en diastole', R.herr === 'strain' && R.arrancoSesion, R.herr],
+      ['el panel guia el paso 1',                      R.panelPaso1, R.panelPaso1],
+      ['el trazado queda pendiente de confirmacion',   R.hayPendiente && R.panelDicePendiente, R.hayPendiente],
+      ['el eje largo es la altura del trazado',        R.ejeOk, R.ejePx],
+      ['y en cm sale con la escala de la region',      R.ejeCmOk, R.ejeCm],
+      ['es EL MISMO eje que calcula Simpson',          R.mismoEjeQueSimpson, R.mismoEjeQueSimpson],
+      ['el borde medido es el trazo ABIERTO',          R.bordeOk, R.bordeCm],
+      ['y la recta que cierra se guarda APARTE',       R.cuerdaOk, R.cuerdaCm],
+      ['se puede rehacer antes de confirmar',          R.rehizo && R.unSoloPendiente, R.rehizo],
+      ['confirmar diastole pasa al paso 2',            R.confirmoD && R.pasoASistole && R.panelPaso2, R.pasoASistole],
+      ['cambiar de cuadro NO borra lo confirmado',     R.sigueGuardado, R.sigueGuardado],
+      ['pero lo oculta y lo avisa',                    R.ocultado && R.avisaCuadro, R.ocultado],
+      ['y oculto no dibuja nada (denominador al lado)', R.ocultarNoDibuja, 'oculto=' + R.dibujaOculto + ' visible=' + R.dibujaVisible],
+      ['confirmar sistole cierra el flujo',            R.confirmoS && R.panelListo, R.panelListo],
+      ['la sistole da un borde mas corto',             R.sistoleMasCorta, R.sistoleMasCorta],
+      ['sobre Doppler NO se traza',                    R.rechazoDoppler, R.rechazoDoppler],
+      ['y el aviso dice por que',                      R.avisoNombraTiempo, (R.avisoDoppler||'').slice(0,80)],
+      ['las dos vistas tienen su barra',               R.dosBarras, R.dosBarras],
+      ['trazar en A no escribe en B',                  R.aTrazo && R.bVacia, 'A:' + R.aTrazo + ' B vacia:' + R.bVacia],
+      ['cada vista guarda SU trazado',                 R.bTrazo && R.ajenos, 'A=' + R.cuerdaA + ' B=' + R.cuerdaB],
+      ['confirmar en A no confirma en B',              R.confirmarAnoTocaB, R.confirmarAnoTocaB],
+      ['cerrar el visor limpia la sesion',             R.cerrarLimpia, R.cerrarLimpia]
+    ] };
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];
