@@ -45176,10 +45176,31 @@ function _dcmImgRegionMedible(r) {
    · Y la escala del eje, que además trae el SIGNO: `PhysicalDeltaY` es negativo en las 132,
      o sea que arriba de la línea es positivo. Eso NO se asume — sale del archivo. */
 const DCMIMG_UNI_CMS = 7;           // (0018,6024/6026) Physical Units: 7 = cm/s
+const DCMIMG_UNI_SEG = 4;           // 4 = segundos
 
 function _dcmImgRegionVelocidad(r) {
   return !!(r && r.uy === DCMIMG_UNI_CMS && r.dy && isFinite(r.dy) && r.dy !== 0 &&
             r.ry0 != null && isFinite(r.ry0));
+}
+
+/* ¿Se puede medir un TIEMPO en esta región? Alcanza con que el eje X esté en segundos.
+
+   LA COMPUERTA ES LA UNIDAD, NO EL TIPO DE REGIÓN, y acá se ve por qué: de las 157 regiones
+   con eje X en segundos del pendrive, **19 están declaradas «tissue 2D» y 6 «color flow»**.
+   Son tiras de modo M y de modo M color — el `RegionDataType` dice qué se está imaginando,
+   las UNIDADES dicen qué son los ejes. Filtrando por tipo se perderían 25 regiones donde el
+   tiempo se mide perfectamente.
+
+   Y al revés que la velocidad: sobre un modo M NO se mide velocidad —su eje Y son
+   centímetros— pero SÍ se mide tiempo, porque su eje X son segundos. Son dos ejes distintos
+   y cada uno tiene su propia respuesta. */
+function _dcmImgRegionTiempo(r) {
+  return !!(r && r.ux === DCMIMG_UNI_SEG && r.dx && isFinite(r.dx) && r.dx > 0);
+}
+
+/* PhysicalDeltaX está en SEGUNDOS por píxel, no en milisegundos. */
+function _dcmImgMsEntre(r, x1, x2) {
+  return Math.abs(x2 - x1) * r.dx * 1000;
 }
 
 /* cm/s en el punto, según la propia región. `rvy` es el valor físico en el píxel de
@@ -45715,6 +45736,7 @@ let _medHerr = 'dist';         // 'dist' | 'area'
 let _medAreas = [];            // [{pts:[{x,y}], cm2}] en píxeles de la IMAGEN
 let _medTrazo = null;          // trazo en curso mientras se arrastra
 let _medVels = [];             // [{x,y,cms,mmHg,region}] en píxeles de la IMAGEN
+let _medTiempos = [];          // [{ax,ay,bx,ms,lpm}] — lpm sólo con la herramienta FC
 let _medCalib = null;          // { mmPorPx } de la calibración manual, si se hizo
 let _medCalibrando = false;
 let _medUltimoCuadro = '';
@@ -46058,8 +46080,19 @@ function medSimpsonReiniciar() {
 }
 window.medSimpsonReiniciar = medSimpsonReiniciar;
 
+/* UN solo lugar decide qué escucha el canvas. Estaba duplicado en `medToggle` y en
+   `medHerramienta`, y con cuatro herramientas de clic esa copia era una bomba de tiempo:
+   agregar una y olvidarse de la otra deja la herramienta muerta desde una de las dos puertas
+   y viva desde la otra. */
+function _medManejador() {
+  if (_medHerr === 'dist') return _medClic;
+  if (_medHerr === 'vel') return _medVelClic;
+  if (_medHerr === 'tiempo' || _medHerr === 'fc') return _medTiempoClic;
+  return null;
+}
+
 function medHerramienta(h) {
-  _medHerr = (h === 'area' || h === 'simpson' || h === 'vel') ? h : 'dist';
+  _medHerr = (h === 'area' || h === 'simpson' || h === 'vel' || h === 'tiempo' || h === 'fc') ? h : 'dist';
   _medTrazo = null; _medPuntos = [];
   /* Simpson arranca de cero cada vez que se entra: los cuatro trazados son de UNA medición,
      y mezclar dos series daría una FEVI hecha con diástole de un lado y sístole del otro. */
@@ -46069,7 +46102,7 @@ function medHerramienta(h) {
     /* Las herramientas no pueden escuchar a la vez: el `mouseup` de un arrastre dispara
        también un `click`, así que con la regla viva cada contorno dejaba además un punto
        suelto. */
-    cv.onclick = (_medHerr === 'dist') ? _medClic : (_medHerr === 'vel' ? _medVelClic : null);
+    cv.onclick = _medManejador();
     cv.style.cursor = 'crosshair';
   }
   _medPintar(); _medEstado();
@@ -46192,8 +46225,32 @@ function _medPintar() {
     cx.fillText(txt, v.x + 13*esc, v.y - 1*esc);
   });
 
+  /* Tiempos: LLAVE HORIZONTAL, no una recta entre los clics. Sólo cuenta la distancia
+     horizontal, y una línea inclinada sugeriría que la altura participa. */
+  _medTiempos.forEach(t => {
+    const col = '#c084fc';
+    cx.strokeStyle = col; cx.fillStyle = col;
+    const y = t.ay, h2 = 6 * esc;
+    cx.beginPath();
+    cx.moveTo(t.ax, y - h2); cx.lineTo(t.ax, y + h2);
+    cx.moveTo(t.ax, y); cx.lineTo(t.bx, y);
+    cx.moveTo(t.bx, y - h2); cx.lineTo(t.bx, y + h2);
+    cx.stroke();
+    const txt = t.ms.toFixed(0) + ' ms' + (t.lpm != null ? ' · ' + t.lpm.toFixed(0) + ' lpm' : '');
+    const w = cx.measureText(txt).width, mx = (t.ax + t.bx) / 2;
+    cx.fillStyle = 'rgba(0,0,0,.7)';
+    cx.fillRect(mx - w/2 - 4*esc, y - 22*esc, w + 8*esc, 18*esc);
+    cx.fillStyle = col;
+    cx.fillText(txt, mx - w/2, y - 7*esc);
+  });
+  if (_medPuntos.length === 1 && (_medHerr === 'tiempo' || _medHerr === 'fc')) {
+    const p0 = _medPuntos[0];
+    cx.strokeStyle = '#c084fc';
+    cx.beginPath(); cx.moveTo(p0.x, p0.y - 6*esc); cx.lineTo(p0.x, p0.y + 6*esc); cx.stroke();
+  }
+
   _medLineas.forEach(l => dibujar(l, l.calibracion ? '#fbbf24' : '#22d36a'));
-  if (_medPuntos.length === 1) {
+  if (_medPuntos.length === 1 && _medHerr !== 'tiempo' && _medHerr !== 'fc') {
     const p = _medPuntos[0];
     cx.fillStyle = _medCalibrando ? '#fbbf24' : '#22d36a';
     cx.beginPath(); cx.arc(p.x, p.y, 4*esc, 0, 6.2832); cx.fill();
@@ -46299,11 +46356,16 @@ function _simpPanel() {
   return cab + paso + '<div style="margin-top:6px;">' + conf + reset + (acc ? ' ' + acc : '') + '</div>';
 }
 
-const _medComo = () => (_medHerr === 'area')
-  ? 'Mantené apretado y recorré el borde: al soltar, el contorno se cierra solo y sale el área en cm².'
-  : (_medHerr === 'vel')
-    ? 'Hacé clic en el pico del trazo espectral: sale la velocidad y el gradiente (ΔP = 4·V²). Sólo funciona sobre Doppler con el eje en cm/s.'
-    : 'Hacé clic en dos puntos para medir.';
+/* Tabla y no ternario anidado: con cinco herramientas la cadena ya no se leía, y meter una
+   sexta en el lugar equivocado del anidamiento es un error que no da error. */
+const _MED_COMO = {
+  area:   'Mantené apretado y recorré el borde: al soltar, el contorno se cierra solo y sale el área en cm².',
+  vel:    'Hacé clic en el pico del trazo espectral: sale la velocidad y el gradiente (ΔP = 4·V²). Sólo funciona sobre Doppler con el eje en cm/s.',
+  tiempo: 'Dos clics sobre el eje temporal y sale el intervalo en ms (TDE, TRIV, tiempo de aceleración). Sólo cuenta la separación horizontal.',
+  fc:     'Dos clics sobre la MISMA onda de dos latidos seguidos: sale el intervalo RR y la frecuencia (60.000 / RR).',
+  dist:   'Hacé clic en dos puntos para medir.'
+};
+const _medComo = () => _MED_COMO[_medHerr] || _MED_COMO.dist;
 
 /* Todo lo que se muestra acá lo escribe la app: los únicos números que vienen del archivo
    son la escala y las coordenadas, y salen formateados con toFixed. Nada del DICOM se
@@ -46320,6 +46382,10 @@ function _medEstado() {
                 (_medHerr === 'area' ? act : '') + '">✏️ Área</button>' +
               '<button type="button" class="btn btn-ghost" id="cine-med-vel" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
                 (_medHerr === 'vel' ? act : '') + '">〰️ Velocidad</button>' +
+              '<button type="button" class="btn btn-ghost" id="cine-med-t" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
+                (_medHerr === 'tiempo' ? act : '') + '">⏱️ Tiempo</button>' +
+              '<button type="button" class="btn btn-ghost" id="cine-med-fc" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
+                (_medHerr === 'fc' ? act : '') + '">💓 FC</button>' +
               '<button type="button" class="btn btn-ghost" id="cine-med-simp" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
                 (_medHerr === 'simpson' ? act : '') + '">🫀 Simpson</button>';
   const bot = sel +
@@ -46341,8 +46407,14 @@ function _medEstado() {
     txt = 'Este archivo <b>no trae la escala</b>. Calibrá a mano: dibujá una línea sobre una ' +
           'referencia conocida y decí cuánto mide.';
   }
-  const n = _medLineas.filter(l => !l.calibracion).length + _medAreas.length + _medVels.length;
-  if (_medHerr === 'vel') {
+  const n = _medLineas.filter(l => !l.calibracion).length + _medAreas.length + _medVels.length + _medTiempos.length;
+  if (_medHerr === 'tiempo' || _medHerr === 'fc') {
+    const tr = regs.filter(_dcmImgRegionTiempo);
+    txt = tr.length
+      ? 'Escala de tiempo <b>tomada del archivo</b>: ' +
+        tr.map(r => (r.dx * 1000).toFixed(2)).filter((v,k2,a2)=>a2.indexOf(v)===k2).join(' y ') + ' ms por píxel. ' + _medComo()
+      : 'Esta imagen <b>no tiene ningún trazo con el eje horizontal en tiempo</b>. Se mide sobre un Doppler espectral o un modo M.';
+  } else if (_medHerr === 'vel') {
     const vr = regs.filter(_dcmImgRegionVelocidad);
     const mm = regs.filter(r => !_dcmImgRegionVelocidad(r) && r.uy === DCMIMG_UNI_CM && r.ux !== DCMIMG_UNI_CM).length;
     txt = vr.length
@@ -46362,6 +46434,9 @@ function _medEstado() {
   const bs = _medEl('cine-med-simp'), bv = _medEl('cine-med-vel');
   if (bs) bs.onclick = () => medHerramienta('simpson');
   if (bv) bv.onclick = () => medHerramienta('vel');
+  const bt = _medEl('cine-med-t'), bf = _medEl('cine-med-fc');
+  if (bt) bt.onclick = () => medHerramienta('tiempo');
+  if (bf) bf.onclick = () => medHerramienta('fc');
   const sc = _medEl('cine-simp-conf'), sr = _medEl('cine-simp-reset');
   if (sc) sc.onclick = medSimpsonConfirmar;
   if (sr) sr.onclick = medSimpsonReiniciar;
@@ -46400,6 +46475,47 @@ function _medVelClic(ev) {
   const cms = _dcmImgVelocidadEn(r, p.y);
   const ms = cms / 100;
   _medVels.push({ x:p.x, y:p.y, cms, ms, mmHg: 4 * ms * ms, ry0: r.ry0 });
+  _medPintar(); _medEstado();
+}
+
+/* ── TIEMPO Y FRECUENCIA CARDÍACA ────────────────────────────────────────────────────────
+   Son LA MISMA medición con dos lecturas: un intervalo sobre el eje X. Por eso son dos
+   herramientas y no una que adivine: mostrar «FC 227 lpm» al lado de un TDE de 264 ms sería
+   ruido, y esconder la FC con una heurística de plausibilidad sería peor, porque 264 ms cae
+   de lleno en el rango de un RR creíble. La intención la declara el médico eligiendo la
+   herramienta; la app no la supone.
+
+   SÓLO CUENTA LA DISTANCIA HORIZONTAL, y por eso se dibuja como una llave horizontal y no
+   como una recta entre los dos clics: una línea inclinada sugeriría que la altura participa,
+   y no participa. */
+function _medTiempoClic(ev) {
+  const cv = _medEl('cine-med');
+  const p = _medPunto(ev, cv);
+  if (!p) return;
+  const regs = _medRegs();
+  const r = _dcmImgRegionEn(regs, p.x, p.y);
+  if (!r || !_dcmImgRegionTiempo(r)) {
+    _medPuntos = [];
+    alert(!r
+      ? 'Ese punto cae fuera de las zonas que el equipo declara, así que no hay escala de tiempo.'
+      : 'Acá el eje horizontal NO es tiempo: esta zona mide distancia en los dos ejes.\n\n' +
+        'El tiempo se mide sobre un trazo espectral o un modo M, donde el eje horizontal son segundos.');
+    _medPintar();
+    return;
+  }
+  if (!_medPuntos.length) { _medPuntos.push({ x:p.x, y:p.y, r }); _medPintar(); return; }
+  const a = _medPuntos[0]; _medPuntos = [];
+  if (a.r !== r || Math.abs(a.r.dx - r.dx) > 1e-15) {
+    alert('Los dos puntos caen en zonas con escalas de tiempo distintas, así que el intervalo no sería válido. Marcalos dentro de la misma zona.');
+    _medPintar(); return;
+  }
+  const ms = _dcmImgMsEntre(r, a.x, p.x);
+  if (ms <= 0 || Math.abs(p.x - a.x) < 2) { _medPintar(); return; }   // dos clics en la misma vertical
+  /* La FC sale del mismo intervalo: 60.000 ms en un minuto. Se muestra SIEMPRE junto al
+     intervalo que la produjo — en el pendrive hay trazos de 56 ms de ancho, donde no entra
+     ningún RR, y con el intervalo a la vista un valor imposible se nota. */
+  _medTiempos.push({ ax:a.x, ay:a.y, bx:p.x, ms,
+                     lpm: (_medHerr === 'fc') ? 60000 / ms : null });
   _medPintar(); _medEstado();
 }
 
@@ -46485,7 +46601,7 @@ function medToggle() {
     /* Se pausa: medir sobre un cineloop corriendo es marcar un punto en un cuadro y el otro
        en el siguiente. */
     _cineDetener();
-    cv.onclick = (_medHerr === 'dist') ? _medClic : (_medHerr === 'vel' ? _medVelClic : null);
+    cv.onclick = _medManejador();
     cv.onmousedown = _medAreaDown;
     cv.onmousemove = _medAreaMove;
     /* El `mouseup` se escucha en el DOCUMENTO y no en el canvas: si el médico suelta el
@@ -46506,7 +46622,7 @@ window.medToggle = medToggle;
 
 function medBorrar() {
   _medLineas = _medLineas.filter(l => l.calibracion);   // la de calibración no es una medición
-  _medAreas = []; _medTrazo = null; _medVels = [];
+  _medAreas = []; _medTrazo = null; _medVels = []; _medTiempos = [];
   _medPuntos = [];
   _medPintar(); _medEstado();
 }
@@ -46526,7 +46642,7 @@ window.medRecalibrar = medRecalibrar;
    Se detecta observando `#cine-num`, que el reproductor actualiza en cada `cineIr`. */
 function medReset() {
   _medPuntos = []; _medLineas = _medLineas.filter(l => l.calibracion);
-  _medAreas = []; _medTrazo = null; _medVels = [];
+  _medAreas = []; _medTrazo = null; _medVels = []; _medTiempos = [];
   /* SIMPSON NO SE BORRA AL CAMBIAR DE CUADRO, y es la única medición que no.
      El método EXIGE cambiar de cuadro: la diástole y la sístole están en cuadros distintos,
      así que borrar los trazados confirmados haría imposible completar los cuatro pasos.
@@ -46551,7 +46667,7 @@ window.medReset = medReset;
    Cada trazado lleva la escala de SU imagen, así que mezclar dos loops con profundidades
    distintas sigue dando bien. */
 function medCambioDeImagen() {
-  _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null; _medVels = [];
+  _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null; _medVels = []; _medTiempos = [];
   _medCalib = null; _medCalibrando = false;        // la calibración es de la imagen que se deja
   if (_simp) {
     _simp.pendiente = null;                        // el trazado sin confirmar era de la otra imagen
@@ -46565,7 +46681,7 @@ window.medCambioDeImagen = medCambioDeImagen;
 /* Al CERRAR el visor se va todo, Simpson incluido: se terminó la medición. */
 function medApagar() {
   _medOn = false; _medCalibrando = false; _medCalib = null;
-  _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null; _medVels = []; _medHerr = 'dist';
+  _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null; _medVels = []; _medTiempos = []; _medHerr = 'dist';
   _simp = null;                      // otra imagen: los cuatro trazados no aplican
   const cv = _medEl('cine-med'), b = _medEl('cine-medir');
   if (cv) { cv.style.display = 'none'; cv.onclick = null; cv.onmousedown = null; cv.onmousemove = null; }
@@ -62202,8 +62318,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260920-0150';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789879803683;                 /* eco-build-ms */
+const ECO_BUILD    = '20260920-0200';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789880429175;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -62289,7 +62405,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-0150</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-0200</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

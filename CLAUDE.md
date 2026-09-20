@@ -7814,6 +7814,42 @@ superpuesto y se entera de los cambios observando `#cine-num` (cuadro), `#cine-c
 cineloop) y el `display` de `#cine-ov` (cierre). Al cambiar de cuadro se borran las mediciones
 pero **se conserva la calibración manual**: es una propiedad de la imagen, no del cuadro.
 
+### Tiempo y frecuencia cardíaca (2026-09-20)
+Dos herramientas más: **⏱️ Tiempo** (intervalo en ms — TDE, TRIV, tiempo de aceleración) y
+**💓 FC** (RR en ms + `60.000/RR` en lpm).
+
+**Son la misma medición con dos lecturas, y por eso son DOS herramientas y no una que adivine.**
+Mostrar «FC 227 lpm» al lado de un TDE de 264 ms sería ruido; y esconder la FC con una
+heurística de plausibilidad sería peor, porque **264 ms cae de lleno en el rango de un RR
+creíble**. La intención la declara el médico eligiendo la herramienta.
+
+**La compuerta del tiempo NO es la de la velocidad**, y la asimetría es real:
+
+| | eje X | eje Y | velocidad | tiempo |
+|---|---|---|---|---|
+| Doppler espectral | segundos | cm/s | **sí** | **sí** |
+| Modo M | segundos | **cm** | no | **sí** |
+| 2D / color | cm | cm | no | no |
+
+**El tipo de región no sirve como filtro.** De las 157 regiones con eje X en segundos del
+pendrive, **19 están declaradas «tissue 2D» y 6 «color flow»** — son tiras de modo M y de modo
+M color. El `RegionDataType` dice qué se está imaginando; las **unidades** dicen qué son los
+ejes. Filtrar por tipo perdería 25 regiones donde el tiempo se mide perfectamente.
+
+**Sólo cuenta la separación horizontal**, y por eso se dibuja como **llave horizontal** y no
+como una recta entre los dos clics: una línea inclinada sugeriría que la altura participa.
+
+**El ancho temporal del trazo va de 56 a 3997 ms.** En una tira de 56 ms no entra ningún RR,
+así que la FC se muestra **siempre junto al intervalo que la produjo**: con el intervalo a la
+vista, un valor imposible se nota.
+
+> **Tres condiciones nacieron sin valor acá, todas por el mismo motivo — el denominador.**
+> La de «sólo cuenta lo horizontal» clicaba los dos puntos a la **misma altura**, así que la
+> distancia euclídea y la horizontal coincidían. La del filtro por unidades usaba una región
+> sintética que **heredaba el tipo espectral**, o sea justo el caso que el filtro por tipo
+> acepta igual. Y la del punto colgado rechazaba el **primer** clic, con la lista ya vacía.
+> Las tres las delataron mutaciones que sobrevivían.
+
 ### Velocidad sobre Doppler espectral (2026-09-20)
 Cuarta herramienta. Clic en el pico → velocidad en cm/s y m/s, y gradiente por Bernoulli
 simplificada **ΔP = 4·V²** con V en m/s. Es lo inverso de la regla: ahí el Doppler se bloquea,

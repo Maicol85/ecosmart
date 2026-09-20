@@ -12486,6 +12486,203 @@ caso('TC-193', 'Velocidad: cero en el pixel de referencia, 4V2, y no mide sobre 
   })();
 `);
 
+/* ══ TC-194 · Tiempo y frecuencia cardiaca ═══════════════════════════════════════════════════
+   Son LA MISMA medicion con dos lecturas, y el caso lo fija: el mismo par de clics tiene que
+   dar el mismo intervalo con las dos herramientas, y la FC tiene que ser exactamente
+   60.000/ms. Si alguna vez se separan, una de las dos esta mal.
+
+   Lo otro que se fija es la compuerta, que NO es la misma que la de velocidad: el tiempo se
+   mide donde el eje X son SEGUNDOS, y eso incluye el modo M --donde la velocidad no se puede
+   medir, porque su eje Y son centimetros--. Son dos ejes distintos y cada uno tiene su
+   respuesta. Medido: de las 157 regiones con eje X en segundos, 19 estan declaradas
+   "tissue 2D" y 6 "color flow", asi que filtrar por TIPO perderia 25 regiones validas.        */
+caso('TC-194', 'Tiempo y FC: ms desde el eje X, 60.000/RR, y el modo M SI cuenta', `
+  return (async () => {
+    const D = ${JSON.stringify(DOP_VEL)};
+    if (!D) return { extra: [[
+      'hace falta un archivo con trazo espectral', false, 'no se encontro: quedo SIN verificar']] };
+    const bin = atob(D.b64); const u = new Uint8Array(bin.length);
+    for (let i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i);
+    const d0 = _dcmImgLeer(u.buffer);
+    const tr = (d0.regiones || []).filter(_dcmImgRegionTiempo)[0];
+    if (!tr) return { extra: [['el archivo declara region con eje X en tiempo', false, 'no la declara']] };
+    const alertOrig = window.alert; const dichos = [];
+    window.alert = m => dichos.push(String(m));
+    const R = {};
+    try {
+      R.ux = tr.ux; R.dx = tr.dx;
+      R.ejeEnSegundos = tr.ux === DCMIMG_UNI_SEG;
+      R.msPorPx = tr.dx * 1000;
+
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      _cineAbrir([{ nombre: D.nombre, cuadros: 1,
+        d: { frags: d0.frags.length ? d0.frags : [new Uint8Array([255,216])],
+             cols: d0.cols, filas: d0.filas, msCuadro: 0, regiones: d0.regiones } }]);
+      await new Promise(r => setTimeout(r, 250));
+      medToggle();
+      const cv = () => document.getElementById('cine-med');
+      const clic = (x, y) => { const c = cv(), r = c.getBoundingClientRect();
+        c.dispatchEvent(new MouseEvent('click', { bubbles:true,
+          clientX: r.left + x * (r.width / c.width), clientY: r.top + y * (r.height / c.height) })); };
+
+      const r2dPre = (d0.regiones || []).filter(_dcmImgRegionMedible)[0];
+      const xa = Math.round(tr.x0 + 30), xb = Math.round(tr.x0 + 230);
+      const yv = Math.round((tr.y0 + tr.y1) / 2);
+
+      /* ── TIEMPO ── */
+      document.getElementById('cine-med-t').click();
+      await new Promise(r => setTimeout(r, 90));
+      R.herrTiempo = _medHerr === 'tiempo';
+      R.barraT = (document.getElementById('cine-med-barra').textContent || '');
+      R.barraDiceMs = R.barraT.indexOf('ms por píxel') > -1;
+      dichos.length = 0;
+      clic(xa, yv);
+      R.unClicNoMide = _medTiempos.length === 0 && _medPuntos.length === 1;
+      clic(xb, yv);
+      await new Promise(r => setTimeout(r, 120));
+      R.midioT = _medTiempos.length === 1;
+      if (_medTiempos.length) {
+        const t = _medTiempos[0];
+        /* EXACTO contra la separacion realmente guardada, no contra los 200 px de la
+           intencion: clientX es entero y el viaje imagen->pantalla->imagen pierde subpixeles.
+           Es la misma separacion que TC-187 hace entre aritmetica y cuantizacion. */
+        R.msExacto = Math.abs(t.ms - Math.abs(t.bx - t.ax) * tr.dx * 1000) < 1e-9;
+        R.msT = t.ms;
+        R.sinLpmEnTiempo = t.lpm === null;
+        R.sinAvisoT = dichos.length === 0;
+        /* y la separacion cae donde se apunto, con la tolerancia de la cuantizacion */
+        const c = cv(), rr = c.getBoundingClientRect(), q = c.width / rr.width;
+        R.separacion = Math.abs(t.bx - t.ax);
+        R.mapeoOK = Math.abs(R.separacion - 200) <= 2 * q;
+      }
+
+      /* ── FC: mismo par de clics ── */
+      medBorrar();
+      document.getElementById('cine-med-fc').click();
+      await new Promise(r => setTimeout(r, 90));
+      R.herrFc = _medHerr === 'fc';
+      clic(xa, yv); clic(xb, yv);
+      await new Promise(r => setTimeout(r, 120));
+      R.midioFc = _medTiempos.length === 1;
+      if (_medTiempos.length) {
+        const t = _medTiempos[0];
+        R.msFc = t.ms; R.lpm = t.lpm;
+        R.mismoIntervalo = Math.abs(t.ms - R.msT) < 1e-9;      // la misma medicion, otra lectura
+        R.lpmExacta = Math.abs(t.lpm - 60000 / t.ms) < 1e-9;
+        /* comprobacion a mano: 1000 ms de RR son 60 lpm */
+        R.mil = Math.abs(60000 / 1000 - 60) < 1e-12;
+      }
+      /* ── SOLO CUENTA LO HORIZONTAL ──
+         Hubo que agregarlo por mutacion: los dos clics de arriba estan a la MISMA altura, asi
+         que la distancia euclidea y la horizontal coinciden y usar la equivocada no cambiaba
+         nada. Con una diferencia de altura grande, la euclidea daria bastante mas. */
+      medBorrar();
+      document.getElementById('cine-med-t').click();
+      await new Promise(r => setTimeout(r, 80));
+      clic(xa, yv - 120); clic(xb, yv + 120);
+      await new Promise(r => setTimeout(r, 120));
+      R.oblicuo = _medTiempos.length === 1 ? _medTiempos[0].ms : null;
+      R.soloHorizontal = R.oblicuo !== null && Math.abs(R.oblicuo - R.msT) < 0.5;
+      R.euclideaDaria = R.oblicuo !== null
+        ? Math.hypot(Math.abs(_medTiempos[0].bx - _medTiempos[0].ax), 240) * tr.dx * 1000 : 0;
+      R.euclideaEsOtra = Math.abs(R.euclideaDaria - (R.msT || 0)) > 5;
+
+      /* dos clics en la misma vertical no miden */
+      medBorrar();
+      clic(xa, yv); clic(xa, yv - 40);
+      await new Promise(r => setTimeout(r, 120));
+      R.mismaVerticalNoMide = _medTiempos.length === 0;
+
+      /* ── EL RECHAZO NO PUEDE DEJAR UN PUNTO COLGADO ──
+         Tambien por mutacion: arriba el clic rechazado es el PRIMERO, y con la lista ya vacia
+         sacar el limpiado no se notaba. Lo que hay que probar es un primer punto valido y un
+         SEGUNDO clic afuera: si el pendiente sobrevive, el proximo clic bueno mide contra un
+         punto de otra zona. */
+      medBorrar();
+      clic(xa, yv);
+      R.pendienteAntes = _medPuntos.length === 1;
+      if (r2dPre) {
+        dichos.length = 0;
+        clic(Math.round((r2dPre.x0+r2dPre.x1)/2), Math.round(r2dPre.y0 + 15));
+        await new Promise(r => setTimeout(r, 120));
+        R.pendienteDescartado = _medPuntos.length === 0;
+        R.noMidioAlRechazar = _medTiempos.length === 0;
+      }
+
+      /* ── sobre una zona 2D no se mide tiempo, y el mensaje lo explica ── */
+      const r2d = r2dPre;
+      if (r2d) {
+        medBorrar(); dichos.length = 0;
+        clic(Math.round((r2d.x0+r2d.x1)/2), Math.round(r2d.y0 + 15));
+        await new Promise(r => setTimeout(r, 120));
+        R.en2dNoMide = _medTiempos.length === 0;
+        R.aviso2d = dichos.join(' ');
+        R.explica2d = /no es tiempo/i.test(R.aviso2d);
+        R.noQuedaPendiente = _medPuntos.length === 0;
+      }
+
+      /* ── EL MODO M: velocidad NO, tiempo SI ──
+         Es la asimetria que justifica que las dos compuertas sean distintas. */
+      /* tipo 1 = "tissue 2D": es lo que declaran 19 de las regiones REALES con eje X en
+         segundos del pendrive. Heredando el tipo espectral de la region base, un filtro por TIPO la
+         aceptaba igual y la mutacion sobrevivia -- justo el caso que el filtro por tipo
+         pierde. */
+      const mm = Object.assign({}, tr, { tipo: 1, uy: DCMIMG_UNI_CM, ux: DCMIMG_UNI_SEG, dy: Math.abs(tr.dy || 0.5) });
+      R.mmSinVelocidad = !_dcmImgRegionVelocidad(mm);
+      R.mmConTiempo = _dcmImgRegionTiempo(mm);
+      /* y una region 2D no tiene ninguna de las dos */
+      R.dosDSinTiempo = r2d ? !_dcmImgRegionTiempo(r2d) : true;
+
+      /* ── borrar y las otras herramientas ── */
+      medBorrar();
+      clic(xa, yv); clic(xb, yv);
+      await new Promise(r => setTimeout(r, 120));
+      R.antesDeBorrar = _medTiempos.length;
+      medBorrar();
+      R.borro = _medTiempos.length === 0;
+      medHerramienta('vel');
+      const yvel = Math.round((Math.max(tr.y0, Math.min(tr.y1, tr.ry0)) + tr.y1) / 2);
+      clic(Math.round((tr.x0+tr.x1)/2), yvel);
+      await new Promise(r => setTimeout(r, 120));
+      R.velSigue = _medVels.length === 1;
+    } finally {
+      window.alert = alertOrig;
+      try { medApagar(); cineCerrar(); } catch (e) {}
+    }
+
+    return { extra: [
+      ['la region declara el eje X en segundos',         R.ejeEnSegundos, 'ux=' + R.ux],
+      ['la herramienta Tiempo se activa',                R.herrTiempo, R.herrTiempo],
+      ['y la barra muestra los ms por pixel del archivo', R.barraDiceMs, (R.msPorPx||0).toFixed(3) + ' ms/px'],
+      ['un solo clic todavia no mide',                   R.unClicNoMide, R.unClicNoMide],
+      ['dos clics dan un intervalo',                     R.midioT, R.midioT],
+      ['sin ningun aviso',                               R.sinAvisoT, R.sinAvisoT],
+      ['ms = separacion x dx x 1000, EXACTO',            R.msExacto, (R.msT||0).toFixed(1) + ' ms'],
+      ['y los clics caen donde se apunto',               R.mapeoOK, (R.separacion||0).toFixed(1) + ' px de 200'],
+      ['la herramienta Tiempo NO muestra lpm',           R.sinLpmEnTiempo, R.sinLpmEnTiempo],
+      ['la herramienta FC se activa',                    R.herrFc, R.herrFc],
+      ['y mide EL MISMO intervalo con los mismos clics', R.mismoIntervalo, (R.msFc||0).toFixed(1) + ' vs ' + (R.msT||0).toFixed(1)],
+      ['FC = 60.000 / RR, EXACTO',                       R.lpmExacta, (R.lpm||0).toFixed(1) + ' lpm'],
+      ['1.000 ms son 60 lpm (comprobacion a mano)',      R.mil, R.mil],
+      ['dos clics en la misma vertical no miden',        R.mismaVerticalNoMide, R.mismaVerticalNoMide],
+      ['con los clics a distinta altura mide LO MISMO',  R.soloHorizontal, (R.oblicuo||0).toFixed(1) + ' vs ' + (R.msT||0).toFixed(1)],
+      ['y la distancia euclidea daria otra cosa (denominador)', R.euclideaEsOtra, (R.euclideaDaria||0).toFixed(1) + ' ms'],
+      ['habia un punto pendiente antes del rechazo',     R.pendienteAntes, R.pendienteAntes],
+      ['un rechazo DESCARTA el punto pendiente',         R.pendienteDescartado, R.pendienteDescartado],
+      ['y no mide nada',                                 R.noMidioAlRechazar, R.noMidioAlRechazar],
+      ['sobre una zona 2D no se mide tiempo',            R.en2dNoMide, R.en2dNoMide],
+      ['y el aviso explica que ahi el eje X no es tiempo', R.explica2d, (R.aviso2d||'').slice(0,70)],
+      ['MODO M: no se mide velocidad',                   R.mmSinVelocidad, R.mmSinVelocidad],
+      ['MODO M: SI se mide tiempo',                      R.mmConTiempo, R.mmConTiempo],
+      ['una zona 2D no admite ninguna de las dos',       R.dosDSinTiempo, R.dosDSinTiempo],
+      ['habia intervalos antes de borrar',               R.antesDeBorrar > 0, R.antesDeBorrar],
+      ['«Borrar mediciones» tambien los limpia',         R.borro, R.borro],
+      ['la velocidad sigue funcionando',                 R.velSigue, R.velSigue]
+    ] };
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];
