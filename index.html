@@ -47039,6 +47039,7 @@ function vistaBCerrar() {
   }
   _vistaB = null;
   _vSync = false;
+  _vSincronizando = false;
   if (_V !== _vistaA) _V = _vistaA;
   const sy = document.getElementById('cine-sync');
   if (sy) { sy.style.display = 'none'; sy.textContent = '🔗 Sincronizar'; }
@@ -47060,10 +47061,26 @@ window.vistaSyncToggle = vistaSyncToggle;
    clavada en el primer cuarto del ciclo y el que mira cree estar comparando la misma fase
    del latido.
 
-   VA EN UN SOLO SENTIDO —A manda, B sigue— y además corta cuando B ya está donde tiene que
-   estar. Sin ese corte, hacer bidireccional la sincronización realimenta: A mueve a B, B
-   mueve a A, y como todo el camino es `await`, no vuelve nunca. */
+   VA EN UN SOLO SENTIDO —A manda, B sigue—, y eso está garantizado por construcción: el único
+   llamador es `cineIr` y sólo cuando la vista es la A, así que el `cineIr` de la B no puede
+   volver a entrar acá. Hay además dos cortes más, y conviene saber qué cubre cada uno porque
+   NO son redundantes entre sí:
+
+   · `dB.cuadro === n` corta el régimen ESTACIONARIO — B ya está donde tiene que estar.
+   · `_vSincronizando` corta la REENTRADA, que es el modo de falla que aparecería el día que
+     alguien haga la sincronización bidireccional: A mueve a B, B mueve a A, A mueve a B…
+     Todo ese camino es síncrono hasta el primer `await` de `cineIr`, así que un flag síncrono
+     lo corta; y como una función `async` nunca lanza de forma síncrona —una excepción en su
+     cuerpo vuelve como promesa rechazada, no como throw—, el flag no se puede quedar trabado
+     ni sin el `finally`. El `finally` va igual: es barato y no depende de ese razonamiento.
+
+   ⚠️ El flag cubre la reentrada SÍNCRONA. Si algún día la vuelta B→A se dispara DESPUÉS de un
+   `await`, este flag ya estará liberado y no la va a cortar: ahí hay que sostenerlo hasta que
+   el `cineIr` de la B termine, o poner el corte del lado de la vuelta. */
+let _vSincronizando = false;
+
 function _vSyncAplicar() {
+  if (_vSincronizando) return;
   if (!_vSync || !_vistaB || !_vistaA.datos || !_vistaB.datos) return;
   const dA = _vistaA.datos, dB = _vistaB.datos;
   const A = dA.loops[dA.i], B = dB.loops[dB.i];
@@ -47071,7 +47088,9 @@ function _vSyncAplicar() {
   const frac = (A.cuadros > 1) ? (dA.cuadro / (A.cuadros - 1)) : 0;
   const n = Math.round(frac * (B.cuadros - 1));
   if (dB.cuadro === n) return;
-  _vCon(_vistaB, () => cineIr(n));
+  _vSincronizando = true;
+  try { _vCon(_vistaB, () => cineIr(n)); }
+  finally { _vSincronizando = false; }
 }
 
 /* ── SIMPSON BIPLANO ENTRE LAS DOS VISTAS ────────────────────────────────────────────────
@@ -62762,8 +62781,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260920-0946';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789908394358;                 /* eco-build-ms */
+const ECO_BUILD    = '20260920-1003';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789909403524;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -62849,7 +62868,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-0946</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1003</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

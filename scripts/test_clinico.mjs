@@ -13240,6 +13240,145 @@ caso('TC-197', 'Velocidad: el signo del archivo es correcto, se muestra magnitud
   })();
 `);
 
+
+/* ══ TC-198 · La guarda de reentrada de la sincronizacion ════════════════════════════════════
+   NO DEPENDE DEL PENDRIVE: los cuadros se generan en la pagina con un canvas. Es una
+   invariante de logica pura --cuando A mueve a B, no se puede volver a entrar-- y atarla a un
+   disco montado la vuelve inverificable justo cuando hace falta.
+
+   QUE CUBRE. Hoy la sincronizacion va en un solo sentido POR CONSTRUCCION: el unico llamador
+   de _vSyncAplicar es cineIr y solo cuando la vista es la A, asi que el cineIr de la B no
+   puede volver a entrar. El flag es la red para el dia que alguien la haga bidireccional: ahi
+   A mueve a B, B mueve a A, y como el camino es async no vuelve nunca --medido: con esa
+   mutacion la suite se cuelga, no da rojo--.
+
+   LO QUE HACE FALSIFICABLE AL FLAG, y no un adorno que se lee como proteccion: se comprueba
+   que este PUESTO mientras corre el cineIr de la B --que es la ventana donde ocurriria la
+   reentrada-- y que se libere despues. Sacar la linea que lo pone deja la primera condicion
+   en rojo.                                                                                    */
+caso('TC-198', 'Sincronizacion: la guarda corta la reentrada y A -> B sigue andando', `
+  return (async () => {
+    const R = {};
+    const alertOrig = window.alert; window.alert = () => {};
+    try {
+      /* Un JPEG de verdad, hecho aca: createImageBitmap tiene que poder decodificarlo. */
+      const mkJpeg = (tono) => {
+        const c = document.createElement('canvas'); c.width = 40; c.height = 30;
+        const g = c.getContext('2d');
+        g.fillStyle = 'rgb(' + tono + ',' + tono + ',' + tono + ')';
+        g.fillRect(0, 0, 40, 30);
+        const b64 = c.toDataURL('image/jpeg').split(',')[1];
+        const bin = atob(b64); const u = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+        return u;
+      };
+      const mkLoop = (nom, n) => {
+        const frags = [];
+        for (let i = 0; i < n; i++) frags.push(mkJpeg(20 + i * 3));
+        return { nombre:nom, cuadros:n,
+                 d: { frags, cols:40, filas:30, msCuadro:40, regiones:[] } };
+      };
+
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','0');
+
+      /* Cantidades DISTINTAS a proposito: con las dos iguales, indice y posicion relativa
+         coinciden y la condicion de A -> B no distinguiria nada. */
+      const NA = 21, NB = 11;
+      _cineAbrir([ mkLoop('vista-A', NA) ]);
+      await new Promise(r => setTimeout(r, 200));
+      R.abrioA = !!(_vistaA.datos && _vistaA.datos.loops[0].cuadros === NA);
+
+      _vistaB = _vNueva('b-', 'B');
+      _vMontarPanel(document.getElementById('cine-paneles'), 'b-');
+      _vCablear(_vistaB);
+      _vCon(_vistaB, () => { _vistaB.datos = { loops:[ mkLoop('vista-B', NB) ], i:0, cuadro:0, timer:null };
+                             _cineCargarLoop(); });
+      document.getElementById('cine-sync').style.display = '';
+      await new Promise(r => setTimeout(r, 200));
+      R.abrioB = !!(_vistaB.datos && _vistaB.datos.loops[0].cuadros === NB);
+      R.distintos = NA !== NB;                                  // denominador
+
+      const irA = async n => { await _vCon(_vistaA, () => cineIr(n)); await new Promise(r=>setTimeout(r,120)); };
+      const esperado = n => Math.round((n / (NA - 1)) * (NB - 1));
+
+      /* ── 1 · A -> B sigue andando despues del fix (lo que el pedido pide verificar) ── */
+      vistaSyncToggle();
+      R.syncOn = _vSync;
+      await irA(NA - 1);
+      R.bFinal = _vistaB.datos.cuadro;
+      R.sigueElFinal = R.bFinal === NB - 1;
+      await irA(0);
+      R.bInicio = _vistaB.datos.cuadro === 0;
+      const medio = Math.floor((NA - 1) / 2);
+      await irA(medio);
+      R.bMedio = _vistaB.datos.cuadro;
+      R.bMedioOk = R.bMedio === esperado(medio);
+      R.noEsIndice = esperado(medio) !== medio;                 // denominador de lo anterior
+      R.flagLibreDespues = _vSincronizando === false;
+
+      /* ── 2 · El flag ESTA PUESTO mientras corre el cineIr de la B ──
+         Es la ventana en la que ocurriria la reentrada. Se observa interceptando el segundo
+         acceso a datos.loops: el primero lo hace _vSyncAplicar antes de poner el flag, el
+         segundo lo hace el cineIr de la B, ya adentro. */
+      let veces = 0, flagAdentro = null;
+      const realLoops = _vistaB.datos.loops;
+      Object.defineProperty(_vistaB.datos, 'loops', {
+        get() { veces++; if (veces > 1 && flagAdentro === null) flagAdentro = _vSincronizando; return realLoops; },
+        configurable: true
+      });
+      await irA(2);
+      delete _vistaB.datos.loops;
+      _vistaB.datos.loops = realLoops;
+      R.accesos = veces;
+      R.flagAdentro = flagAdentro;
+      R.flagPuestoDurante = flagAdentro === true;
+      R.flagLibreAlSalir = _vSincronizando === false;
+
+      /* ── 3 · Con el flag puesto, _vSyncAplicar NO mueve nada ──
+         Es exactamente lo que corta el bucle: la llamada de vuelta se encuentra el flag y sale. */
+      await irA(0);
+      const bAntes = _vistaB.datos.cuadro;
+      _vistaA.datos.cuadro = NA - 1;             // A "se movio" al otro extremo
+      R.aLejos = esperado(NA - 1) !== bAntes;    // denominador: sin la guarda B TIENE que moverse
+      _vSincronizando = true;
+      _vSyncAplicar();
+      await new Promise(r => setTimeout(r, 120));
+      R.bQuietoConFlag = _vistaB.datos.cuadro === bAntes;
+      _vSincronizando = false;
+      /* Y sin el flag, la MISMA llamada si mueve: si no, la condicion de arriba no prueba nada. */
+      _vSyncAplicar();
+      await new Promise(r => setTimeout(r, 150));
+      R.bSeMueveSinFlag = _vistaB.datos.cuadro === esperado(NA - 1);
+
+      /* ── 4 · cerrar la vista B deja el flag limpio ── */
+      _vSincronizando = true;
+      vistaBCerrar();
+      R.flagLimpioAlCerrar = _vSincronizando === false;
+
+      cineCerrar();
+    } finally { window.alert = alertOrig; }
+
+    return { extra: [
+      ['las dos vistas abren con cuadros sinteticos', R.abrioA && R.abrioB, 'A:' + R.abrioA + ' B:' + R.abrioB],
+      ['los loops tienen distinto largo (denominador)', R.distintos, R.distintos],
+      ['sincronizar se enciende',                     R.syncOn, R.syncOn],
+      ['A -> B: el ultimo lleva al ultimo',           R.sigueElFinal, R.bFinal],
+      ['A -> B: el primero lleva al primero',         R.bInicio, R.bInicio],
+      ['A -> B: el medio lleva al medio RELATIVO',    R.bMedioOk, R.bMedio],
+      ['y ese medio NO es el indice (denominador)',   R.noEsIndice, R.noEsIndice],
+      ['el flag queda libre despues de sincronizar',  R.flagLibreDespues, R.flagLibreDespues],
+      ['hubo mas de un acceso a loops (denominador)', R.accesos > 1, R.accesos],
+      ['el flag esta PUESTO mientras corre el cineIr de B', R.flagPuestoDurante, R.flagAdentro],
+      ['y libre al salir',                            R.flagLibreAlSalir, R.flagLibreAlSalir],
+      ['sin la guarda B tendria que moverse (denominador)', R.aLejos, R.aLejos],
+      ['con el flag puesto, sincronizar NO mueve a B', R.bQuietoConFlag, R.bQuietoConFlag],
+      ['y sin el flag la misma llamada SI mueve',     R.bSeMueveSinFlag, R.bSeMueveSinFlag],
+      ['cerrar la vista B deja el flag limpio',       R.flagLimpioAlCerrar, R.flagLimpioAlCerrar]
+    ] };
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];

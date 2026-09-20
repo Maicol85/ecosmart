@@ -8133,6 +8133,47 @@ y TC-193 se puso en rojo solo.
 **Sin verificar en Safari**, como todo el módulo DICOM: el navegador está concedido a nivel
 «lectura». Todo corrió en Chrome por CDP, con el pendrive montado.
 
+### La guarda de reentrada de la sincronización — y el bucle que no existía (2026-09-20)
+
+**EL REPORTE DESCRIBÍA `cineBIr → cineIr → observador → cineBIr`. Ninguna de las tres flechas
+existe.** `cineBIr` tiene **cero** ocurrencias desde la refactorización a instancias, el
+observador dejó de manejar la sincronización —hoy sale directo de `cineIr`— y la vuelta B→A
+nunca existió: `_vSyncAplicar` sólo llama a `cineIr` sobre la vista B, y `cineIr` sólo llama a
+`_vSyncAplicar` cuando la vista es la A.
+
+**De dónde salió: es la mutación B6 de este mismo archivo.** La entrada del panel B dice «la
+mutación que la vuelve bidireccional **cuelga la suite**» — o sea la describe como un hecho
+medido, porque lo es, pero de un defecto **introducido a propósito para probar el caso**, no
+de uno vivo. Leída fuera de contexto se lee como un bug abierto.
+**Regla que queda: al documentar una mutación, decir que es una mutación en la misma oración**,
+no sólo en el párrafo que la encuadra. Media sesión de diagnóstico depende de eso.
+
+**LA GUARDA SE AGREGÓ IGUAL, y no es un adorno.** Este archivo ya la dejaba recomendada («si se
+vuelve a tocar, la guarda va antes de la refactorización»). `_vSincronizando` corta la
+**reentrada**; el `dB.cuadro === n` que ya estaba corta el **régimen estacionario**. No son
+redundantes: cubren dos cosas distintas y conviene no borrar ninguna creyendo que sobra.
+
+**QUÉ CUBRE Y QUÉ NO, con precisión.** Todo el camino A→B es síncrono hasta el primer `await`
+de `cineIr`, así que un flag síncrono corta la recursión. **Si algún día la vuelta B→A se
+dispara DESPUÉS de un `await`, este flag ya estará liberado y no la va a cortar** — ahí hay que
+sostenerlo hasta que termine el `cineIr` de la B, o poner el corte del lado de la vuelta. Está
+escrito arriba de la función para que no se descubra colgando la app.
+
+**El `finally` va, aunque el flag no se pueda trabar.** Una función `async` **no lanza de forma
+síncrona** —una excepción en su cuerpo vuelve como promesa rechazada—, así que el flag se
+libera igual. Se pone por barato, no porque el razonamiento de arriba sea frágil.
+
+**LA MUTACIÓN QUE MÁS VALE ES LA DEL `finally`.** Un flag que se pone y **nunca se libera** no
+rompe nada visible al instante: mata la sincronización **a partir del segundo movimiento**, en
+silencio. Es el defecto clásico de este patrón y lo caza TC-198 por tres condiciones a la vez.
+Las otras dos mutaciones —no poner el flag, y ponerlo sin consultarlo— caen cada una en la suya.
+
+**TC-198 NO DEPENDE DEL PENDRIVE: los cuadros se generan en la página con un canvas.** Es una
+invariante de lógica pura y atarla a un disco montado la vuelve inverificable justo cuando hace
+falta — que es exactamente lo que pasó en esta sesión, con el pendrive desmontado a mitad de
+camino y quince casos reportando «sin verificar». **Un caso que no necesita PHI no debería
+pedirla.**
+
 ### Velocidad: la escala del archivo estaba bien, y el respaldo es para los 15 sin región (2026-09-20)
 
 **EL REPORTE DECÍA «las velocidades dan −403 cm/s, la escala del archivo no se lee bien». La
