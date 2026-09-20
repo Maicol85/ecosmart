@@ -8133,6 +8133,60 @@ y TC-193 se puso en rojo solo.
 **Sin verificar en Safari**, como todo el módulo DICOM: el navegador está concedido a nivel
 «lectura». Todo corrió en Chrome por CDP, con el pendrive montado.
 
+### Capturar con las mediciones, y LOS BOTONES MUERTOS DE LA VISTA B (2026-09-20)
+
+Segundo botón de captura: compone el canvas de la imagen con el de medición y agrega una
+etiqueta opcional. El de siempre —«📸 Capturar cuadro»— no se tocó: sigue sacando el JPEG del
+archivo a resolución plena, sin mediciones.
+
+**ACÁ SÍ SE COMPONE DESDE EL CANVAS, y no contradice la regla del módulo.** Capturar desde el
+JPEG original existe para no reencodear; para superponer dos capas el reencodeado es
+inevitable. Y no cuesta calidad: `cineIr` dibuja el bitmap **1:1** en un canvas del tamaño
+exacto del bitmap —sin remuestreo— y `_medPintar` pone el de medición en ESE mismo tamaño, así
+que componerlos es una copia de píxeles. Se llama a `_medPintar()` antes: el overlay conserva
+lo último dibujado y, si el cuadro cambió y nadie repintó, se compondría el overlay de otro
+cuadro sobre esta imagen.
+
+**El overlay sólo se compone si mide EXACTAMENTE lo mismo.** Escalarlo para que entre movería
+cada medición de lugar respecto de la anatomía que describe.
+
+**LA ETIQUETA SE ESCAPA EN EL ATRIBUTO, NO EN EL CANVAS.** `fillText` no interpreta marcado —
+el canvas no tiene superficie de inyección—. El sink real es el `value="…"` del input, que se
+**reemite en cada repintado de la barra**: sin `escHtml`, una comilla lo cierra y lo que sigue
+se parsea como marcado, y ahí un `on*` **se compila** — que es donde escapar después ya no
+sirve. La mutación que lo saca deja el atributo de evento puesto y cae por tres condiciones.
+Y el valor vive en la vista (`medEtiqueta`), porque la barra se reconstruye por `innerHTML` en
+cada medición y un input adentro nace vacío si no se repone.
+
+#### El defecto que destapó: la barra de la vista B emitía los ids SIN prefijo
+
+Los once botones de herramienta y los de los paneles de Simpson y strain salían con el id
+cableado —`cine-med-dist`, `cine-simp-conf`…— sin el prefijo de la vista. Consecuencia sobre
+la vista B: **el documento quedaba con ids duplicados**, `getElementById` devolvía siempre el
+de A, el cableado `if (bd) bd.onclick = …` se saltaba en silencio y **los botones de B se
+dibujaban y no respondían**. Se veían perfectos.
+
+Y el cableado, además, ataba los manejadores **pelados**: aun con el id correcto habrían
+corrido contra la vista ACTIVA —la A por omisión—, así que un clic en la barra de B movía la
+herramienta de A. Es la misma trampa del contexto ambiente que ya se había cerrado para los
+manejadores del canvas; **la barra quedó afuera aquella vez y nadie se enteró porque TC-196
+ejercía `medHerramienta` por `_vCon` y nunca clickeaba el botón**.
+
+**La lección es del caso, no del código: un caso que llama a la función no prueba el botón.**
+Hoy TC-202 hace **clic real** sobre el botón de la barra de B y exige que mueva a B y no a A;
+la mutación que revierte el atado imprime `A=area B=dist`.
+
+**Cómo se verifica que una capa se compuso: por PÍXELES, contra la captura sin ella.** Dos
+trampas propias al escribirlo, las dos de muestreo:
+- **La fila exacta de la línea cae en el borde antialias.** Muestrear `y=60` sobre una línea de
+  2 px daba 59 de diferencia contra un umbral de 60, sobre una composición perfecta. Se toma el
+  máximo en una ventana vertical.
+- **La columna del medio cae sobre la caja negra de la etiqueta de la regla**, que sobre un
+  fondo ya oscuro casi no cambia el píxel: 83 contra 264 de las columnas de línea desnuda. Se
+  muestrea donde la línea está sola.
+Y el denominador: **lejos de la línea las dos imágenes tienen que ser casi iguales**; si no,
+«difieren sobre la línea» no probaría que se compuso nada.
+
 ### Strain: trazado, SGL por territorios, y las dos cosas que el método NO puede (2026-09-20)
 
 Séptima herramienta del visor: el trazado guiado de dos contornos y el acortamiento que sale de

@@ -13978,6 +13978,254 @@ caso('TC-201', 'Bull.s eye del visor: sextantes grises donde faltan vistas, y NO
   })();
 `);
 
+
+/* ══ TC-202 · Captura con las mediciones dibujadas y etiqueta ════════════════════════════════
+   Lo que fija, y por que cada cosa:
+   · la imagen capturada tiene ENCIMA lo que estaba dibujado -se compara pixel a pixel contra
+     la captura sin mediciones, que es el unico modo de saber que la capa se compuso-;
+   · la etiqueta se dibuja en una franja BLANCA debajo, no sobre el eco;
+   · el boton de siempre sigue capturando SIN mediciones;
+   · y funciona en las DOS vistas, con CLIC REAL sobre el boton de cada barra -no llamando a
+     la funcion con _vCon, que es lo que hacia TC-196 y por eso no ejercia este camino-.
+   NO DEPENDE DEL PENDRIVE.                                                                    */
+caso('TC-202', 'Capturar con mediciones: la capa se compone, la etiqueta va en su franja, y anda en las dos vistas', `
+  return (async () => {
+    const R = {};
+    const alertOrig = window.alert; window.alert = () => {};
+    try {
+      const mkJpeg = () => {
+        const c = document.createElement('canvas'); c.width = 400; c.height = 320;
+        const g = c.getContext('2d'); g.fillStyle = '#1b2430'; g.fillRect(0,0,400,320);
+        const b64 = c.toDataURL('image/jpeg').split(',')[1];
+        const bin = atob(b64); const u = new Uint8Array(bin.length);
+        for (let i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i);
+        return u;
+      };
+      const jpeg = mkJpeg();
+      const DX = 0.05;
+      const reg2d = { tipo:1, x0:10, y0:10, x1:390, y1:310, ux:3, uy:3, dx:DX, dy:DX,
+                      rx0:10, ry0:10, rvx:0, rvy:0 };
+      const mkLoop = nom => ({ nombre:nom, cuadros:3,
+        d:{ frags:[jpeg,jpeg,jpeg], cols:400, filas:320, msCuadro:40, regiones:[reg2d] } });
+
+      /* Se intercepta imgCompressLoad para quedarse con el blob SIN tocar el modulo de
+         imagenes: lo que se quiere medir son los pixeles que se generaron. */
+      const capturado = [];
+      const origLoad = window.imgCompressLoad;
+      window.imgCompressLoad = function (blob, idx) { capturado.push({ blob, idx }); };
+      const aCanvas = async blob => {
+        const bmp = await createImageBitmap(blob);
+        const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+        c.getContext('2d').drawImage(bmp, 0, 0); bmp.close(); return c;
+      };
+
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      _cineAbrir([ mkLoop('a.dcm') ]);
+      await new Promise(r => setTimeout(r, 220));
+      if (!_medOn) medToggle();
+      await new Promise(r => setTimeout(r, 140));
+      medHerramienta('dist');
+      await new Promise(r => setTimeout(r, 110));
+
+      const cvm = () => document.getElementById('cine-med');
+      const clic = (x,y) => { const c = cvm(), r = c.getBoundingClientRect();
+        c.dispatchEvent(new MouseEvent('click', { bubbles:true,
+          clientX: r.left + x*(r.width/c.width), clientY: r.top + y*(r.height/c.height) })); };
+
+      /* ── 1 · captura SIN mediciones: el boton de siempre ── */
+      capturado.length = 0;
+      cineCapturar();
+      await new Promise(r => setTimeout(r, 200));
+      R.sinMedCapturo = capturado.length === 1;
+      const cSin = capturado.length ? await aCanvas(capturado[0].blob) : null;
+      R.dimSin = cSin ? (cSin.width + 'x' + cSin.height) : '';
+
+      /* ── 2 · se mide algo: una regla bien visible ── */
+      clic(40, 60); clic(340, 60);
+      await new Promise(r => setTimeout(r, 160));
+      R.hayLinea = _medLineas.filter(l => !l.calibracion).length === 1;
+
+      /* ── 3 · etiqueta + captura CON mediciones, por CLIC REAL en el boton de la barra ── */
+      const inp = document.getElementById('cine-cap-etiq');
+      R.hayInput = !!inp;
+      inp.value = 'TAPSE';
+      inp.dispatchEvent(new Event('input', { bubbles:true }));
+      await new Promise(r => setTimeout(r, 90));
+      R.guardoEtiqueta = _vistaA.medEtiqueta === 'TAPSE';
+      /* y sobrevive a que la barra se reconstruya */
+      _medEstado();
+      await new Promise(r => setTimeout(r, 90));
+      R.etiquetaSobrevive = (document.getElementById('cine-cap-etiq')||{}).value === 'TAPSE';
+
+      capturado.length = 0;
+      document.getElementById('cine-med-cap').click();
+      await new Promise(r => setTimeout(r, 300));
+      R.conMedCapturo = capturado.length === 1;
+      const cCon = capturado.length ? await aCanvas(capturado[0].blob) : null;
+      R.dimCon = cCon ? (cCon.width + 'x' + cCon.height) : '';
+
+      if (cSin && cCon) {
+        /* La franja: la capturada CON etiqueta es MAS ALTA y del mismo ancho. */
+        R.mismoAncho = cCon.width === cSin.width;
+        R.masAlta = cCon.height > cSin.height;
+        const gc = cCon.getContext('2d'), gs = cSin.getContext('2d');
+        const px = (g,x,y) => { const d = g.getImageData(x,y,1,1).data; return [d[0],d[1],d[2]]; };
+        const dist = (a,b) => Math.abs(a[0]-b[0]) + Math.abs(a[1]-b[1]) + Math.abs(a[2]-b[2]);
+        /* SOBRE LA LINEA: los dos difieren. Es lo unico que prueba que la capa se compuso.
+           Se toma el MAXIMO en una ventana vertical y no el pixel exacto de y=60: la linea
+           mide 2 px y tiene bordes antialias, asi que muestrear la fila justa cae a veces
+           sobre el borde y devuelve una diferencia chica sobre una capa perfectamente
+           compuesta. Me paso: daba 59 contra un umbral de 60. */
+        const maxEnCol = x => { let m = 0;
+          for (let y = 54; y <= 66; y++) m = Math.max(m, dist(px(gc,x,y), px(gs,x,y)));
+          return m; };
+        /* Columnas de linea DESNUDA. La regla dibuja su etiqueta en una caja negra
+           semitransparente centrada en el punto medio -x=190 en adelante- y sobre un fondo ya
+           oscuro esa caja casi no cambia el pixel: muestrear ahi da una diferencia chica sobre
+           una composicion correcta. Me paso con x=200, que dio 83 contra 264 de las otras. */
+        const enLinea = [80, 140, 300].map(maxEnCol);
+        R.enLinea = enLinea.join(',');
+        R.capaCompuesta = enLinea.every(d => d > 100);
+        /* LEJOS de la linea los dos son casi iguales: si no, no estaria comparando la misma
+           imagen y "difieren sobre la linea" no probaria nada. */
+        const lejos = [[120,250],[300,250],[60,160]].map(p => dist(px(gc,p[0],p[1]), px(gs,p[0],p[1])));
+        R.lejos = lejos.join(',');
+        R.mismaImagenDeBase = lejos.every(d => d < 40);
+        /* LA FRANJA es blanca y tiene texto oscuro. */
+        const yF = cSin.height + (cCon.height - cSin.height) / 2;
+        let blancos = 0, oscuros = 0;
+        for (let x = 4; x < cCon.width; x += 3) {
+          const c = px(gc, x, Math.round(yF));
+          if (c[0] > 240 && c[1] > 240 && c[2] > 240) blancos++;
+          if (c[0] < 90 && c[1] < 90 && c[2] < 90) oscuros++;
+        }
+        R.franjaBlancos = blancos; R.franjaOscuros = oscuros;
+        R.franjaBlanca = blancos > 40;
+        R.franjaConTexto = oscuros > 3;
+        /* Y la franja esta DEBAJO del eco: la ultima fila del eco no es blanca. */
+        const ultEco = px(gc, Math.round(cCon.width/2), cSin.height - 3);
+        R.ecoNoBlanco = !(ultEco[0] > 240 && ultEco[1] > 240 && ultEco[2] > 240);
+      }
+
+      /* ── 4 · sin etiqueta no hay franja ── */
+      const inp2 = document.getElementById('cine-cap-etiq');
+      inp2.value = ''; inp2.dispatchEvent(new Event('input', { bubbles:true }));
+      await new Promise(r => setTimeout(r, 90));
+      capturado.length = 0;
+      document.getElementById('cine-med-cap').click();
+      await new Promise(r => setTimeout(r, 300));
+      const cNo = capturado.length ? await aCanvas(capturado[0].blob) : null;
+      R.sinEtiquetaMismaAltura = !!(cNo && cSin && cNo.height === cSin.height);
+
+      /* ── 4b · LA ETIQUETA SE ESCAPA. El canvas no interpreta marcado, asi que el sink real
+         no es fillText sino el ATRIBUTO value, que se reemite en cada repintado de la barra:
+         sin escapar, una comilla lo cierra y lo que sigue se parsea como marcado -- y ahi un
+         on* se compila, que es donde escapar despues no sirve. */
+      const VENENO = '\" onmouseover=\"window.__xss=1\" x=\"';
+      window.__xss = 0;
+      const inpV = document.getElementById('cine-cap-etiq');
+      inpV.value = VENENO; inpV.dispatchEvent(new Event('input', { bubbles:true }));
+      _medEstado();
+      await new Promise(r => setTimeout(r, 140));
+      const barraHTML = document.getElementById('cine-med-barra').innerHTML;
+      const inpV2 = document.getElementById('cine-cap-etiq');
+      R.venenoVuelveLiteral = !!inpV2 && inpV2.value === VENENO;
+      R.sinAtributoDeEvento = !document.querySelector('#cine-med-barra [onmouseover]');
+      R.xssNoCorrio = window.__xss === 0;
+      /* Y se ve escapado en el marcado, no crudo. */
+      R.escapadoEnHTML = barraHTML.indexOf('&quot;') >= 0 && barraHTML.indexOf('onmouseover=\"window') < 0;
+      /* Tambien el caso HTML clasico. */
+      inpV2.value = '<img src=x onerror=1>';
+      inpV2.dispatchEvent(new Event('input', { bubbles:true }));
+      _medEstado();
+      await new Promise(r => setTimeout(r, 120));
+      R.sinImgInyectada = !document.querySelector('#cine-med-barra img');
+      /* Y en el canvas se dibuja como texto literal. */
+      let dibujadoV = '';
+      const fo2 = CanvasRenderingContext2D.prototype.fillText;
+      CanvasRenderingContext2D.prototype.fillText = function (t) { dibujadoV += ' ' + t; return fo2.apply(this, arguments); };
+      capturado.length = 0;
+      document.getElementById('cine-med-cap').click();
+      CanvasRenderingContext2D.prototype.fillText = fo2;
+      await new Promise(r => setTimeout(r, 260));
+      R.canvasLiteral = dibujadoV.indexOf('<img src=x onerror=1>') >= 0;
+      /* se limpia para no arrastrar el veneno al resto del caso */
+      const inpV3 = document.getElementById('cine-cap-etiq');
+      inpV3.value = ''; inpV3.dispatchEvent(new Event('input', { bubbles:true }));
+      await new Promise(r => setTimeout(r, 90));
+
+      /* ── 5 · LAS DOS VISTAS, con CLIC REAL en la barra de cada una ── */
+      _vistaB = _vNueva('b-', 'B');
+      _vMontarPanel(document.getElementById('cine-paneles'), 'b-');
+      _vCablear(_vistaB);
+      _vCon(_vistaB, () => { _vistaB.datos = { loops:[ mkLoop('b.dcm') ], i:0, cuadro:0, timer:null };
+                             _cineCargarLoop(); });
+      await new Promise(r => setTimeout(r, 220));
+      _vCon(_vistaB, () => { if (!_medOn) medToggle(); });
+      await new Promise(r => setTimeout(r, 160));
+      R.hayInputB = !!document.getElementById('b-cine-cap-etiq');
+      R.hayBotonB = !!document.getElementById('b-cine-med-cap');
+
+      /* La etiqueta de B se escribe en B y NO en A. */
+      const inpB = document.getElementById('b-cine-cap-etiq');
+      inpB.value = 'Vmax IT'; inpB.dispatchEvent(new Event('input', { bubbles:true }));
+      await new Promise(r => setTimeout(r, 110));
+      R.etiqB = _vistaB.medEtiqueta; R.etiqA = _vistaA.medEtiqueta;
+      R.etiquetasAjenas = _vistaB.medEtiqueta === 'Vmax IT' && _vistaA.medEtiqueta !== 'Vmax IT';
+
+      /* Y el boton de B captura DE B: su loop se llama b.dcm y mide 400x320 igual, asi que lo
+         que distingue es el SLOT reservado y que no reviente -- se mide el indice devuelto. */
+      capturado.length = 0;
+      document.getElementById('b-cine-med-cap').click();
+      await new Promise(r => setTimeout(r, 320));
+      R.bCapturo = capturado.length === 1;
+      const cB = capturado.length ? await aCanvas(capturado[0].blob) : null;
+      R.bTieneFranja = !!(cB && cSin && cB.height > cSin.height);
+
+      /* ── 6 · UN CLIC REAL EN UN BOTON VIEJO DE LA BARRA DE B ──
+         Los botones de herramienta de la barra se ataban pelados, asi que al hacer clic
+         resolvian contra la vista ACTIVA -la A- y no contra la suya. */
+      _V = _vistaA;                                   // como queda tras cualquier accion en A
+      _vistaA.medHerr = 'dist'; _vistaB.medHerr = 'dist';
+      _vCon(_vistaB, _medEstado);
+      await new Promise(r => setTimeout(r, 110));
+      document.getElementById('b-cine-med-area').click();
+      await new Promise(r => setTimeout(r, 140));
+      R.herrA = _vistaA.medHerr; R.herrB = _vistaB.medHerr;
+      R.botonViejoDeBafectaB = _vistaB.medHerr === 'area' && _vistaA.medHerr === 'dist';
+
+      window.imgCompressLoad = origLoad;
+      cineCerrar();
+    } finally { window.alert = alertOrig; }
+
+    return { extra: [
+      ['el boton de siempre captura sin mediciones', R.sinMedCapturo, R.dimSin],
+      ['se dibujo una regla (denominador)',          R.hayLinea, R.hayLinea],
+      ['hay campo de etiqueta',                      R.hayInput, R.hayInput],
+      ['la etiqueta se guarda en la vista',          R.guardoEtiqueta, R.guardoEtiqueta],
+      ['y sobrevive a que la barra se reconstruya',  R.etiquetaSobrevive, R.etiquetaSobrevive],
+      ['capturar con medicion genera una imagen',    R.conMedCapturo, R.dimCon],
+      ['del mismo ancho y mas alta',                 R.mismoAncho && R.masAlta, R.dimSin + ' -> ' + R.dimCon],
+      ['LA CAPA DE MEDICION SE COMPUSO',             R.capaCompuesta, 'diferencia sobre la linea: ' + R.enLinea],
+      ['y es la misma imagen de base (denominador)', R.mismaImagenDeBase, 'lejos de la linea: ' + R.lejos],
+      ['la franja es blanca',                        R.franjaBlanca, R.franjaBlancos],
+      ['y tiene texto oscuro',                       R.franjaConTexto, R.franjaOscuros],
+      ['la franja esta DEBAJO del eco',              R.ecoNoBlanco, R.ecoNoBlanco],
+      ['sin etiqueta no se agrega franja',           R.sinEtiquetaMismaAltura, R.sinEtiquetaMismaAltura],
+      ['la etiqueta envenenada vuelve LITERAL',      R.venenoVuelveLiteral, R.venenoVuelveLiteral],
+      ['no queda ningun atributo de evento',         R.sinAtributoDeEvento && R.xssNoCorrio, R.sinAtributoDeEvento],
+      ['y en el marcado se ve escapada',             R.escapadoEnHTML, R.escapadoEnHTML],
+      ['ningun <img> inyectado',                     R.sinImgInyectada, R.sinImgInyectada],
+      ['el canvas la dibuja como texto literal',     R.canvasLiteral, R.canvasLiteral],
+      ['la vista B tiene su campo y su boton',       R.hayInputB && R.hayBotonB, R.hayBotonB],
+      ['las etiquetas de las dos vistas son ajenas', R.etiquetasAjenas, 'A=' + R.etiqA + ' B=' + R.etiqB],
+      ['el boton de B captura y arma su franja',     R.bCapturo && R.bTieneFranja, R.bCapturo],
+      ['un boton VIEJO de la barra de B afecta a B', R.botonViejoDeBafectaB, 'A=' + R.herrA + ' B=' + R.herrB]
+    ] };
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];

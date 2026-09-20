@@ -45594,7 +45594,7 @@ function _vNueva(pfx, rot) {
     gen: 0,                // token anti-carrera del decodificado
     medOn: false, medPuntos: [], medLineas: [], medHerr: 'dist', medAreas: [],
     medTrazo: null, medVels: [], medTiempos: [], medCalib: null, medCalibrando: false,
-    medCalibVel: null, medCalibrandoVel: false,
+    medCalibVel: null, medCalibrandoVel: false, medEtiqueta: '',
     medUltimoCuadro: '', simp: null, strain: null, obsPuesto: false
   };
 }
@@ -45622,7 +45622,8 @@ const _vBind = (V, fn) => function () { const a = arguments; return _vCon(V, () 
     _medOn:'medOn', _medPuntos:'medPuntos', _medLineas:'medLineas', _medHerr:'medHerr',
     _medAreas:'medAreas', _medTrazo:'medTrazo', _medVels:'medVels', _medTiempos:'medTiempos',
     _medCalib:'medCalib', _medCalibrando:'medCalibrando', _medUltimoCuadro:'medUltimoCuadro',
-    _medCalibVel:'medCalibVel', _medCalibrandoVel:'medCalibrandoVel', _strain:'strain'
+    _medCalibVel:'medCalibVel', _medCalibrandoVel:'medCalibrandoVel', _strain:'strain',
+    _medEtiqueta:'medEtiqueta'
   };
   for (const g in MAPA) {
     const k = MAPA[g];
@@ -46467,7 +46468,8 @@ const _STR_DISCLAIMER =
 function _strainPanel() {
   if (!_strain) return '';
   const E = (typeof escHtml === 'function') ? escHtml : (x => String(x == null ? '' : x));
-  const b = (id, cls, txt, extra) => '<button type="button" class="btn ' + cls + '" id="' + id +
+  /* Ídem: el prefijo va acá, no en cada llamada. */
+  const b = (id, cls, txt, extra) => '<button type="button" class="btn ' + cls + '" id="' + _V.pfx + id +
     '" style="padding:3px 10px;font-size:11px;' + (extra || '') + '">' + txt + '</button>';
   const VA = _strVista(_strain.vista);
   const listas = _strainVistasListas();
@@ -46798,6 +46800,66 @@ function medStrainCapturar() {
   }, 'image/jpeg', 0.92);
 }
 window.medStrainCapturar = medStrainCapturar;
+/* ══ CAPTURA CON LAS MEDICIONES DIBUJADAS ════════════════════════════════════════════════════
+
+   El botón de siempre —«📸 Capturar cuadro»— captura el JPEG del archivo a resolución plena y
+   NO se toca: quien no quiera las mediciones encima sigue teniendo esa puerta.
+
+   POR QUÉ ACÁ SÍ SE COMPONE DESDE EL CANVAS. La regla del módulo es capturar desde el JPEG
+   original y no reencodear lo dibujado; acá hay que superponer dos capas, así que el
+   reencodeado es inevitable. Y no cuesta calidad: `cineIr` dibuja el bitmap 1:1 en un canvas
+   del tamaño exacto del bitmap —sin remuestreo— y `_medPintar` pone el canvas de medición en
+   ESE mismo tamaño, así que componer los dos es una copia de píxeles, no una reducción.
+
+   SE REPINTA ANTES DE COMPONER. El canvas de medición conserva lo último que se dibujó; si el
+   cuadro cambió y nadie repintó, se compondría el overlay de otro cuadro sobre esta imagen.
+   `_medPintar()` lo regenera del estado actual y, de paso, garantiza que los dos canvas midan
+   lo mismo.
+
+   LA ETIQUETA VA EN UNA FRANJA BLANCA DEBAJO, no encima del eco: sobre la imagen taparía
+   justamente lo que se quiso mostrar, y en una esquina compite con los números de las
+   mediciones. Se dibuja con `fillText`, que no interpreta marcado — el canvas no tiene
+   superficie de inyección. Lo que SÍ la tiene es el input, que se reemite en cada repintado
+   de la barra: ahí va escapado. */
+
+const _CAP_ETIQ_MAX = 80;
+
+function medCapturarConMedicion() {
+  const D = _cineDatos; if (!D) { toast('❌ No hay ningún cineloop abierto'); return; }
+  const base = _medEl('cine-cv');
+  if (!base || !base.width) { toast('❌ No hay imagen para capturar'); return; }
+  _medPintar();                                   // overlay al día y del mismo tamaño
+  const med = _medEl('cine-med');
+  const w = base.width, h = base.height;
+  const etiq = String(_medEtiqueta || '').trim().slice(0, _CAP_ETIQ_MAX);
+  const esc = Math.max(1, w / 900);
+  const franja = etiq ? Math.round(34 * esc) : 0;
+
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = h + franja;
+  const g = cv.getContext('2d');
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, cv.width, cv.height);
+  g.drawImage(base, 0, 0);
+  /* El overlay sólo se compone si mide EXACTAMENTE lo mismo. Escalarlo para que entre
+     movería cada medición de lugar respecto de la anatomía que describe. */
+  if (med && med.width === w && med.height === h) g.drawImage(med, 0, 0);
+
+  if (etiq) {
+    g.fillStyle = '#111827';
+    g.font = 'bold ' + Math.round(19 * esc) + 'px system-ui, sans-serif';
+    g.textAlign = 'left'; g.textBaseline = 'middle';
+    g.fillText(etiq, Math.round(10 * esc), h + franja / 2);
+  }
+
+  cv.toBlob(b => {
+    if (!b) { toast('❌ No se pudo generar la imagen'); return; }
+    const idx = _dcmImgReservar(1)[0];
+    imgCompressLoad(b, idx);
+    toast('✅ Cuadro con las mediciones agregado' + (etiq ? ' — ' + etiq : ''));
+  }, 'image/jpeg', 0.92);
+}
+window.medCapturarConMedicion = medCapturarConMedicion;
+
 
 window.medSimpsonConfirmar = medSimpsonConfirmar;
 
@@ -47061,7 +47123,11 @@ function _medBarra(html) {
 function _simpPanel() {
   if (!_simp) return '';
   const E = (typeof escHtml === 'function') ? escHtml : (x => String(x == null ? '' : x));
-  const b = (id, cls, txt, extra) => '<button type="button" class="btn ' + cls + '" id="' + id +
+  /* El id SE PREFIJA ACA, que es el único sitio por el que salen los botones de este panel.
+     Sin prefijo, la barra de la vista B emite los MISMOS ids que la de la A: el documento
+     queda con ids duplicados, `getElementById` devuelve siempre el de A, y los botones de B
+     se dibujan y no responden. Se veían perfectos. */
+  const b = (id, cls, txt, extra) => '<button type="button" class="btn ' + cls + '" id="' + _V.pfx + id +
     '" style="padding:3px 10px;font-size:11px;' + (extra || '') + '">' + txt + '</button>';
   const conf  = b('cine-simp-conf', 'btn-primary', 'Confirmar trazado');
   const reset = b('cine-simp-reset', 'btn-ghost', 'Empezar de nuevo', 'margin-left:6px;');
@@ -47169,26 +47235,38 @@ function _medEstado() {
   /* El selector de herramienta va en la barra y no al lado del boton del modal: ahi el
      estado esta junto a lo que explica como usarlo, y el modal no se toca. */
   const act = 'background:var(--accent);color:#fff;';
-  const sel = '<button type="button" class="btn btn-ghost" id="cine-med-dist" style="padding:3px 9px;font-size:11px;' +
+  const sel = '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-med-dist" style="padding:3px 9px;font-size:11px;' +
                 (_medHerr === 'dist' ? act : '') + '">📏 Distancia</button>' +
-              '<button type="button" class="btn btn-ghost" id="cine-med-area" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
+              '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-med-area" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
                 (_medHerr === 'area' ? act : '') + '">✏️ Área</button>' +
-              '<button type="button" class="btn btn-ghost" id="cine-med-vel" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
+              '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-med-vel" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
                 (_medHerr === 'vel' ? act : '') + '">〰️ Velocidad</button>' +
-              '<button type="button" class="btn btn-ghost" id="cine-med-t" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
+              '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-med-t" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
                 (_medHerr === 'tiempo' ? act : '') + '">⏱️ Tiempo</button>' +
-              '<button type="button" class="btn btn-ghost" id="cine-med-fc" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
+              '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-med-fc" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
                 (_medHerr === 'fc' ? act : '') + '">💓 FC</button>' +
-              '<button type="button" class="btn btn-ghost" id="cine-med-simp" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
+              '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-med-simp" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
                 (_medHerr === 'simpson' ? act : '') + '">🫀 Simpson</button>' +
-              '<button type="button" class="btn btn-ghost" id="cine-med-str" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
+              '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-med-str" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
                 (_medHerr === 'strain' ? act : '') + '">💚 Strain</button>';
   const bot = sel +
               (_medHerr === 'vel'
-                ? '<button type="button" class="btn btn-ghost" id="cine-med-calvel" style="padding:3px 9px;font-size:11px;margin-left:14px;">' +
+                ? '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-med-calvel" style="padding:3px 9px;font-size:11px;margin-left:14px;">' +
                   (_medCalibVel ? 'Recalibrar velocidad' : 'Calibrar velocidad') + '</button>'
-                : '<button type="button" class="btn btn-ghost" id="cine-med-recal" style="padding:3px 9px;font-size:11px;margin-left:14px;">Recalibrar</button>') +
-              '<button type="button" class="btn btn-ghost" id="cine-med-borrar" style="padding:3px 9px;font-size:11px;margin-left:6px;">Borrar mediciones</button>';
+                : '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-med-recal" style="padding:3px 9px;font-size:11px;margin-left:14px;">Recalibrar</button>') +
+              '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-med-borrar" style="padding:3px 9px;font-size:11px;margin-left:6px;">Borrar mediciones</button>' +
+              /* El valor se REEMITE escapado: la barra se reconstruye por innerHTML en cada
+                 medición, así que el input es nuevo cada vez y nace vacío si no se repone. Y
+                 va por `value="..."`, que es un atributo — sin `escHtml` una comilla lo cierra
+                 y lo que siga se parsea como marcado. */
+              '<span style="display:inline-flex;align-items:center;gap:5px;margin-left:14px;">' +
+                '<label for="' + _V.pfx + 'cine-cap-etiq" style="font-size:11px;color:var(--text2);">Etiqueta:</label>' +
+                '<input type="text" id="' + _V.pfx + 'cine-cap-etiq" maxlength="' + _CAP_ETIQ_MAX + '" ' +
+                  'placeholder="TAPSE, DDVI, Área AI…" value="' + escHtml(_medEtiqueta || '') + '" ' +
+                  'style="font-size:11px;padding:3px 6px;width:150px;border-radius:5px;' +
+                  'border:1px solid var(--border);background:var(--bg3);color:var(--text);">' +
+              '</span>' +
+              '<button type="button" class="btn btn-primary" id="' + _V.pfx + 'cine-med-cap" style="padding:3px 9px;font-size:11px;margin-left:8px;">📸 Capturar con medición</button>';
   let txt;
   if (_medCalibrando) {
     txt = '<b>Calibración:</b> dibujá una línea sobre una referencia conocida de la imagen ' +
@@ -47241,37 +47319,48 @@ function _medEstado() {
   _medBarra((_medHerr === 'simpson' ? _simpPanel()
              : _medHerr === 'strain' ? _strainPanel() : txt + (n ? '  ·  <b>' + n + '</b> medición(es) en pantalla.' : '')) +
             '<div style="margin-top:6px;">' + bot + '</div>');
+  /* ⚠️ TODOS los controles de la barra se atan A SU VISTA. Atados pelados corren con la vista
+     ACTIVA al momento del clic —la A por omisión—, así que un clic en la barra de la B movía
+     la herramienta de la A. Es la misma trampa del contexto ambiente que ya se cerró para los
+     manejadores del canvas; la barra quedó afuera aquella vez porque el caso ejercía
+     `medHerramienta` por `_vCon` y nunca clickeaba el botón. */
+  const _V0 = _V, _on = (el, fn) => { if (el) el.onclick = _vBind(_V0, fn); };
   const cvl = _medEl('cine-med-calvel');
-  if (cvl) cvl.onclick = medCalibrarVelocidad;
+  _on(cvl, medCalibrarVelocidad);
   const rc = _medEl('cine-med-recal'), bb = _medEl('cine-med-borrar');
   const bd = _medEl('cine-med-dist'), ba = _medEl('cine-med-area');
-  if (rc) rc.onclick = medRecalibrar;
-  if (bb) bb.onclick = medBorrar;
-  if (bd) bd.onclick = () => medHerramienta('dist');
-  if (ba) ba.onclick = () => medHerramienta('area');
+  _on(rc, medRecalibrar);
+  _on(bb, medBorrar);
+  _on(bd, () => medHerramienta('dist'));
+  _on(ba, () => medHerramienta('area'));
   const bs = _medEl('cine-med-simp'), bv = _medEl('cine-med-vel');
   const bst = _medEl('cine-med-str');
-  if (bst) bst.onclick = () => medHerramienta('strain');
+  _on(bst, () => medHerramienta('strain'));
   const sxc = _medEl('cine-str-conf'), sxr = _medEl('cine-str-reset');
+  /* El input de etiqueta guarda y NO repinta: repintar en cada tecla reconstruye la barra y
+     el foco se pierde en la primera letra. */
+  const cet = _medEl('cine-cap-etiq'), cbt = _medEl('cine-med-cap');
+  if (cet) cet.oninput = _vBind(_V, function () { _medEtiqueta = cet.value; });
+  _on(cbt, medCapturarConMedicion);
   const sxm = _medEl('cine-str-mas'), sxb = _medEl('cine-str-cap');
-  if (sxc) sxc.onclick = medStrainConfirmar;
-  if (sxr) sxr.onclick = medStrainReiniciar;
-  if (sxm) sxm.onclick = medStrainVistaSiguiente;
-  if (sxb) sxb.onclick = medStrainCapturar;
+  _on(sxc, medStrainConfirmar);
+  _on(sxr, medStrainReiniciar);
+  _on(sxm, medStrainVistaSiguiente);
+  _on(sxb, medStrainCapturar);
   /* El canvas del diagrama se repinta DESPUÉS de reconstruida la barra: el elemento es nuevo
      en cada pasada y nace en blanco. */
   if (_medHerr === 'strain') _strBullsRepintar();
-  if (bs) bs.onclick = () => medHerramienta('simpson');
-  if (bv) bv.onclick = () => medHerramienta('vel');
+  _on(bs, () => medHerramienta('simpson'));
+  _on(bv, () => medHerramienta('vel'));
   const bt = _medEl('cine-med-t'), bf = _medEl('cine-med-fc');
-  if (bt) bt.onclick = () => medHerramienta('tiempo');
-  if (bf) bf.onclick = () => medHerramienta('fc');
+  _on(bt, () => medHerramienta('tiempo'));
+  _on(bf, () => medHerramienta('fc'));
   const sc = _medEl('cine-simp-conf'), sr = _medEl('cine-simp-reset');
-  if (sc) sc.onclick = medSimpsonConfirmar;
-  if (sr) sr.onclick = medSimpsonReiniciar;
+  _on(sc, medSimpsonConfirmar);
+  _on(sr, medSimpsonReiniciar);
   const s2 = _medEl('cine-simp-2v'), si = _medEl('cine-simp-integ');
-  if (s2) s2.onclick = medSimpsonSegundaVista;
-  if (si) si.onclick = medSimpsonIntegrar;
+  _on(s2, medSimpsonSegundaVista);
+  _on(si, medSimpsonIntegrar);
 }
 
 /* ── VELOCIDAD SOBRE UN TRAZO ESPECTRAL ──────────────────────────────────────────────────
@@ -63406,8 +63495,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260920-1103';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789912982624;                 /* eco-build-ms */
+const ECO_BUILD    = '20260920-1116';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789913777881;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -63493,7 +63582,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1103</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1116</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
