@@ -5,6 +5,66 @@ ninguna es evidente leyendo el código alrededor.
 
 
 
+
+## Territorios del strain: la A4C es INFEROSEPTAL + ANTEROLATERAL (2026-09-20)
+
+Corrección de Maicol. Reemplaza lo que decía la entrada anterior sobre la «pared ancha»: ese
+párrafo describía el modelo viejo y **ya no aplica**.
+
+| vista | territorios |
+|---|---|
+| **A4C** | Inferoseptal + Anterolateral |
+| **A2C** | Anterior + Inferior |
+| **A3C** | Anteroseptal + Inferolateral |
+
+A2C y A3C ya nombraban esos pares. Lo que cambió es la **A4C**, que declaraba «Septal» y
+«Lateral» — paredes ANCHAS que se hacían cargo de **dos sextantes cada una**.
+
+### El cambio es hacia mostrar MENOS, y ése es el punto
+
+`_STR_FUENTE` pasa a ser **1:1**: cada vista aporta dos sextantes y sólo ésos.
+
+| | antes | ahora |
+|---|---|---|
+| 1 vista (A4C) | **4 sextantes pintados** — dos con un número heredado de la pared vecina | **2 pintados**, cuatro en gris |
+| 2 vistas | 6 pintados, ninguno gris | **4 pintados**, dos en gris |
+| 3 vistas | 6, cada uno propio | 6, cada uno propio |
+
+Con el modelo viejo, un médico que sólo tenía la A4C veía **medio bull's eye pintado sobre dos
+mediciones**: el anteroseptal mostraba el número del inferoseptal porque «la pared septal abarca
+los dos». Hoy el diagrama pinta lo que se midió y deja gris lo que no. El anteroseptal lo aporta
+la A3C y el anterior la A2C; sin esas vistas no se inventan.
+
+**La condición que lo fija no es «los rótulos son correctos» sino el CONTEO por vista**:
+«1 vista pinta DOS sextantes, no cuatro» y «sólo con TRES vistas se completan los seis». Las
+tres mutaciones —devolver una herencia a la tabla, devolver las paredes anchas a la A4C, y
+cruzar inferoseptal con anteroseptal— caen ahí. Una condición que sólo mirara los nombres pasa
+con el modelo viejo reintroducido.
+
+**El rótulo «(pared X)» del dibujante queda INALCANZABLE y se deja a propósito**, declarado como
+tal en el código: fija el contrato de que un número heredado tiene que salir marcado. Es el
+mismo criterio que los extremos redundantes del contorno de 3 puntos.
+
+### Dos casos se pusieron en rojo y los dos tenían razón
+
+- **TC-201** fijaba el modelo viejo entero («los dos sextantes septales pintados», «la pared
+  ancha pinta sus dos sextantes igual», «2 vistas: no queda ningún gris»). Reapuntado al conteo.
+- **TC-203** pinaba el literal `/anillo mitral SEPTAL/`. La A4C hoy pide el **INFEROSEPTAL**, y
+  el regex anclado en «anillo mitral » deja de matchear — la colisión de substring al revés: no
+  es que matchee de más, es que el ancla impide que matchee. Pasó a derivar el rótulo de
+  `_strVista(...).paredes[0]`, o sea a pinar el invariante y no el texto.
+
+### Lo que NO se cambió, y hay que decidirlo
+
+**El ORDEN de trazado de A2C y A3C quedó como estaba.** La corrección listó los pares como
+«Anterior + Inferior» y «Anteroseptal + Inferolateral», mientras el código traza
+`['Inferior','Anterior']` y `['Inferolateral','Anteroseptal']`. En A4C el orden de la corrección
+**sí** coincide con el del código (septal primero). El orden no es cosmético: define qué anillo
+se le pide marcar primero al médico, y si se invierte sin invertir el trazado, las dos paredes
+salen **intercambiadas** — que es exactamente el defecto que se cerró horas antes. Se
+interpretó la lista como enumeración del par, no como orden de trazado. **Si el orden tiene que
+invertirse en esas dos vistas, es un cambio aparte y hay que decirlo.**
+
 ## Strain: la barra lateral, el rótulo que no seguía a la vista, y los botones (TC-208)
 
 ### El defecto clínico: el panel PEDÍA marcar una pared que en esa vista no se ve

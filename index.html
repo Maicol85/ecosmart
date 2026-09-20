@@ -46427,8 +46427,8 @@ window.medSimpsonIntegrar = medSimpsonIntegrar;
    en qué orden trazar, los rótulos suponen ese orden, y eso se DECLARA — un rótulo de pared
    equivocado es peor que no rotular. */
 const _STR_VISTAS = [
-  { k:'a4c', rot:'A4C — apical 4 cámaras',  orden:'del anillo SEPTAL, por el ápex, al anillo LATERAL',
-    paredes:['Septal', 'Lateral'] },
+  { k:'a4c', rot:'A4C — apical 4 cámaras',  orden:'del anillo INFEROSEPTAL, por el ápex, al anillo ANTEROLATERAL',
+    paredes:['Inferoseptal', 'Anterolateral'] },
   { k:'a2c', rot:'A2C — apical 2 cámaras',  orden:'del anillo INFERIOR, por el ápex, al anillo ANTERIOR',
     paredes:['Inferior', 'Anterior'] },
   { k:'a3c', rot:'A3C — apical eje largo',  orden:'del anillo INFEROLATERAL, por el ápex, al anillo ANTEROSEPTAL',
@@ -46445,7 +46445,7 @@ const _strVista = k => _STR_VISTAS.filter(v => v.k === k)[0];
    Salen de `paredes`, la misma lista que rotula los territorios — con dos fuentes, el punto
    que se marca y la pared que se publica pueden dejar de corresponderse. */
 function _strPuntos3(V) {
-  const P = (V && V.paredes) || ['Septal', 'Lateral'];
+  const P = (V && V.paredes) || ['Inferoseptal', 'Anterolateral'];
   return ['1. anillo mitral ' + P[0].toUpperCase(),
           '2. ÁPEX del VI',
           '3. anillo mitral ' + P[1].toUpperCase()];
@@ -46601,7 +46601,7 @@ function medStrainConfirmar() {
   if (!_strain.pendiente) {
     alert('Trazá primero el contorno: mantené apretado y recorré el borde del ventrículo, ' +
           ((_strain && _strVista(_strain.vista) && _strVista(_strain.vista).orden) ||
-           'del anillo SEPTAL, por el ápex, al anillo LATERAL') + '.');
+           'del anillo INFEROSEPTAL, por el ápex, al anillo ANTEROLATERAL') + '.');
     return;
   }
   _strain.pares[_strain.fase] = _strain.pendiente;
@@ -47208,10 +47208,12 @@ function _strCtrlEn(p) {
    graduación del SGL, y el único corte que aplica —el −16 % del HFA-ICOS— está definido para
    speckle tracking, que no es este método.
 
-   TAMPOCO PUBLICA ATRIBUCIÓN CORONARIA. El método resuelve PAREDES ENTERAS, no basal/medio/
-   apical: la pared septal de la A4C abarca anteroseptal (DA) e inferoseptal (CD), que son
-   arterias distintas, y no hay forma de separarlas con dos contornos. El diagrama muestra los
-   territorios y la atribución la hace el médico. Decisión de Maicol (2026-09-20).
+   TAMPOCO PUBLICA ATRIBUCIÓN CORONARIA. El método resuelve la pared ENTERA de cada sextante,
+   no basal/medio/apical, y un mismo sextante puede repartirse entre dos arterias según la
+   dominancia y la longitud de la DA —el anteroseptal es DA, el inferoseptal suele ser CD, y el
+   ápex depende de hasta dónde llegue la DA—. Con dos contornos no hay forma de separarlo. El
+   diagrama muestra los territorios y la atribución la hace el médico. Decisión de Maicol
+   (2026-09-20).
 
    UN SOLO DIBUJANTE para la pantalla y para la captura, parametrizado por tamaño. Con dos
    —uno en SVG y otro en canvas— se desincronizan, que es lo que el donut de la CIA resolvió
@@ -47233,18 +47235,27 @@ const _STR_SEXT = [
   { k:'anteroseptal',  rot:'Anteroseptal',  a:[270,330] }
 ];
 
-/* De qué territorio toma su valor cada sextante, el específico primero y la pared ancha
-   después. Es lo que hace anatómicamente correcto el caso de una sola vista: la «pared
-   septal» de la A4C abarca anteroseptal e inferoseptal —por eso no se le puede atribuir una
-   sola coronaria—, así que pinta los DOS sextantes con el mismo número hasta que la A3C
-   aporte el anteroseptal por separado. Ídem la lateral. */
+/* De qué territorio toma su valor cada sextante. CORRESPONDENCIA 1:1 — cada vista aporta DOS
+   sextantes y sólo ésos; tres vistas completan los seis.
+
+   ⚠️ ESTO CAMBIÓ EL 2026-09-20 Y NO ES COSMÉTICO. Antes la A4C declaraba «Septal» y «Lateral»,
+   paredes ANCHAS que se hacían cargo de dos sextantes cada una: con la A4C sola el diagrama
+   pintaba CUATRO sextantes, dos de ellos con un número que no se había medido ahí sino
+   heredado de la pared vecina. Hoy la A4C es inferoseptal + anterolateral —la asignación del
+   modelo de 17 segmentos, corregida por Maicol—, así que con una sola vista quedan DOS
+   pintados y cuatro en gris: exactamente lo que se midió.
+
+   Es un cambio hacia mostrar MENOS: el anteroseptal lo aporta la A3C y el anterior la A2C, y
+   sin esas vistas el diagrama no los inventa. La lista de fuentes es de un solo elemento a
+   propósito —sigue siendo una lista para que el día que alguien necesite una herencia la
+   agregue acá y no en el dibujante—. */
 const _STR_FUENTE = {
   anterior:      ['Anterior'],
-  anterolateral: ['Lateral'],
-  inferolateral: ['Inferolateral', 'Lateral'],
+  anterolateral: ['Anterolateral'],
+  inferolateral: ['Inferolateral'],
   inferior:      ['Inferior'],
-  inferoseptal:  ['Septal'],
-  anteroseptal:  ['Anteroseptal', 'Septal']
+  inferoseptal:  ['Inferoseptal'],
+  anteroseptal:  ['Anteroseptal']
 };
 const _STR_GRIS = '#9E9E9E';
 
@@ -47297,9 +47308,13 @@ function _strBullsDibujar(cx2, S, R, conTitulo) {
     if (t) {
       cx2.font = 'bold ' + Math.round(13 * esc) + 'px system-ui, sans-serif';
       cx2.fillText(t.pct.toFixed(1) + ' %', px, py + 10 * esc);
-      /* Si el valor viene de una pared ANCHA —la septal o la lateral de la A4C, que abarcan
-         dos sextantes— se marca: si no, dos sextantes con el mismo número se leen como dos
-         mediciones independientes que dieron igual. */
+      /* Si el valor NO se midió en este sextante sino heredado de una pared que abarca dos, se
+         marca: dos sextantes con el mismo número se leen como dos mediciones independientes
+         que dieron igual.
+         HOY ES INALCANZABLE y se deja a propósito: desde que `_STR_FUENTE` es 1:1, `t.pared`
+         siempre coincide con el rótulo del sextante. Queda porque fija el CONTRATO — el día
+         que alguien vuelva a agregar una herencia a esa tabla, el número heredado tiene que
+         salir marcado, y si el rótulo no estuviera se publicaría como medición propia. */
       if (t.pared !== S6.rot) {
         cx2.font = Math.round(7.5 * esc) + 'px system-ui, sans-serif';
         cx2.fillStyle = '#4b5563';
@@ -64823,8 +64838,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260920-1400';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789923608607;                 /* eco-build-ms */
+const ECO_BUILD    = '20260920-1410';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789924222016;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -64910,7 +64925,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1400</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1410</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

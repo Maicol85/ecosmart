@@ -13810,7 +13810,10 @@ caso('TC-200', 'Strain: SGL por territorios de pared con 1, 2 y 3 vistas, sin to
     return { extra: [
       ['arranca pidiendo el cineloop, no una vista fija', R.pideCineloop && R.arrancaEnA4C, R.pideCineloop],
       ['1 vista da 2 territorios',                  R.n1 === 2 && R.v1 === 1, R.n1],
-      ['rotulados por pared',                       R.rot1 === 'Septal + Lateral', R.rot1],
+      /* La A4C aporta inferoseptal y anterolateral, que es la asignacion del modelo de 17
+         segmentos. Antes decia «Septal + Lateral», paredes anchas que se hacian cargo de dos
+         sextantes cada una — ver la entrada de CLAUDE.md del 2026-09-20. */
+      ['rotulados por pared',                       R.rot1 === 'Inferoseptal + Anterolateral', R.rot1],
       ['cada territorio sale de SU arco (exacto)',  R.terrExacto, R.terrExacto],
       ['los dos arcos suman el borde',              R.arcosSumanBorde, R.arcosSumanBorde],
       ['y no incluyen la cuerda del anillo',        R.sinCuerda, R.sinCuerda],
@@ -13936,8 +13939,14 @@ caso('TC-201', 'Bull.s eye del visor: sextantes grises donde faltan vistas, y NO
       R.px1 = JSON.stringify(p1);
       R.g1_anterior = p1.anterior === GRIS;
       R.g1_inferior = p1.inferior === GRIS;
-      R.c1_septo    = p1.inferoseptal !== GRIS && p1.anteroseptal !== GRIS;
-      R.c1_lateral  = p1.anterolateral !== GRIS && p1.inferolateral !== GRIS;
+      /* La A4C aporta inferoseptal y anterolateral, y SOLO esos dos. Antes declaraba paredes
+         anchas -«Septal», «Lateral»- que se hacian cargo de dos sextantes cada una, asi que
+         con una sola vista se pintaban CUATRO y dos llevaban un numero heredado. */
+      R.c1_septo    = p1.inferoseptal   !== GRIS;
+      R.c1_lateral  = p1.anterolateral  !== GRIS;
+      R.g1_anteroseptal  = p1.anteroseptal  === GRIS;
+      R.g1_inferolateral = p1.inferolateral === GRIS;
+      R.pintados1 = Object.keys(p1).filter(k => p1[k] !== GRIS).length;
       /* La pared ancha pinta SUS DOS sextantes con el mismo valor. */
       R.septoIgual   = p1.inferoseptal === p1.anteroseptal;
       R.lateralIgual = p1.anterolateral === p1.inferolateral;
@@ -13951,7 +13960,11 @@ caso('TC-201', 'Bull.s eye del visor: sextantes grises donde faltan vistas, y NO
       const p2 = leer();
       R.g2_anteriorYaNo = p2.anterior !== GRIS;
       R.g2_inferiorYaNo = p2.inferior !== GRIS;
-      R.sinGrisEn2 = Object.keys(p2).every(k => p2[k] !== GRIS);
+      R.pintados2 = Object.keys(p2).filter(k => p2[k] !== GRIS).length;
+      /* Con DOS vistas quedan dos en gris -anteroseptal e inferolateral, que aporta la A3C-.
+         Antes no quedaba ninguno, porque las paredes anchas los cubrian con valor heredado. */
+      R.g2_anteroseptal  = p2.anteroseptal  === GRIS;
+      R.g2_inferolateral = p2.inferolateral === GRIS;
 
       /* ── 3 · TRES vistas: anteroseptal e inferolateral toman valor PROPIO ── */
       medStrainVistaSiguiente(); await new Promise(r=>setTimeout(r,110));
@@ -13959,6 +13972,8 @@ caso('TC-201', 'Bull.s eye del visor: sextantes grises donde faltan vistas, y NO
       const p3 = leer();
       R.septoYaNoIgual   = p3.inferoseptal !== p3.anteroseptal;
       R.lateralYaNoIgual = p3.anterolateral !== p3.inferolateral;
+      R.pintados3 = Object.keys(p3).filter(k => p3[k] !== GRIS).length;
+      R.sinGrisEn3 = R.pintados3 === 6;
       R.px3 = JSON.stringify(p3);
 
       /* ── 4 · intensidad = magnitud: mas acortamiento, mas oscuro ── */
@@ -13999,16 +14014,19 @@ caso('TC-201', 'Bull.s eye del visor: sextantes grises donde faltan vistas, y NO
       ['el canvas del visor existe y se rotula',     R.hayCanvas && R.tituloPanel, R.hayCanvas],
       ['1 vista: anterior en GRIS',                  R.g1_anterior, R.px1],
       ['1 vista: inferior en GRIS',                  R.g1_inferior, R.g1_inferior],
-      ['1 vista: los dos sextantes septales pintados', R.c1_septo, R.c1_septo],
-      ['1 vista: los dos laterales pintados',        R.c1_lateral, R.c1_lateral],
-      ['la pared ancha pinta sus DOS sextantes igual', R.septoIgual && R.lateralIgual, R.septoIgual],
+      ['1 vista: el inferoseptal pintado',           R.c1_septo, R.c1_septo],
+      ['1 vista: el anterolateral pintado',          R.c1_lateral, R.c1_lateral],
+      ['1 VISTA PINTA DOS SEXTANTES, NO CUATRO',     R.pintados1 === 2, R.pintados1 + ' pintados'],
+      ['y el anteroseptal NO se hereda del septo',   R.g1_anteroseptal, R.px1],
+      ['ni el inferolateral del lateral',            R.g1_inferolateral, R.g1_inferolateral],
       ['NO aparece el rojo de la paleta GE',         R.sinRojoGE, R.sinRojoGE],
       ['ni su azul',                                 R.sinAzulGE, R.sinAzulGE],
       ['2 vistas: anterior deja de ser gris',        R.g2_anteriorYaNo, R.g2_anteriorYaNo],
       ['2 vistas: inferior deja de ser gris',        R.g2_inferiorYaNo, R.g2_inferiorYaNo],
-      ['2 vistas: no queda ningun sextante gris',    R.sinGrisEn2, R.sinGrisEn2],
+      ['2 VISTAS PINTAN CUATRO, y quedan dos grises', R.pintados2 === 4 && R.g2_anteroseptal && R.g2_inferolateral, R.pintados2 + ' pintados'],
       ['3 vistas: el anteroseptal toma valor propio', R.septoYaNoIgual, R.px3],
       ['3 vistas: el inferolateral tambien',         R.lateralYaNoIgual, R.lateralYaNoIgual],
+      ['SOLO con TRES vistas se completan los seis',  R.sinGrisEn3, R.pintados3 + ' pintados'],
       ['mas acortamiento = mas oscuro',              R.masOscuroElMasCorto, R.magnitudes],
       ['capturar manda la imagen al slot',           R.capturoAlSlot, R.slotsAntes + ' -> ' + R.slotsDespues],
       ['la imagen lleva el titulo quemado',          R.imgTieneTitulo, R.imgTieneTitulo],
@@ -14334,7 +14352,16 @@ caso('TC-203', 'Strain por 3 puntos: spline ajustable, misma puerta que el traza
       document.getElementById('cine-str-m-3pt').click();
       await new Promise(r=>setTimeout(r,130));
       R.modo3 = _strain.modo === '3pt';
-      R.panelPide1 = /anillo mitral SEPTAL/.test(document.getElementById('cine-med-barra').innerHTML);
+      /* Pina el INVARIANTE -el panel pide el punto 1 de la vista ACTIVA- y no el literal.
+         Decia /anillo mitral SEPTAL/, que era el rotulo cableado a la A4C; hoy esa vista pide
+         el INFEROSEPTAL y el regex anclado en «anillo mitral » deja de matchear. El rotulo
+         por vista lo cubre TC-208; aca lo que importa es que el modo 3 puntos arranque. */
+      R.panelPide1 = (function () {
+        const V = (typeof _strVista === 'function' && _strain) ? _strVista(_strain.vista) : null;
+        const p1 = (V && V.paredes) ? V.paredes[0].toUpperCase() : 'INFEROSEPTAL';
+        const bb = document.getElementById('cine-med-barra').innerHTML;
+        return bb.indexOf('anillo mitral ' + p1) >= 0;
+      })();
 
       /* ── 2 · los tres puntos generan el contorno ── */
       const SEP = [180, 400], APX = [300, 120], LAT = [420, 400];
