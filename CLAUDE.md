@@ -7814,10 +7814,44 @@ superpuesto y se entera de los cambios observando `#cine-num` (cuadro), `#cine-c
 cineloop) y el `display` de `#cine-ov` (cierre). Al cambiar de cuadro se borran las mediciones
 pero **se conserva la calibración manual**: es una propiedad de la imagen, no del cuadro.
 
-**Falta:** medir sobre una **imagen fija** no está — las fijas van a un slot y ese JPEG está
-recomprimido y **redimensionado**, así que la geometría del DICOM ya no aplica; medir ahí con la
-escala original daría un número equivocado en silencio. Para cubrirlo hay que poder abrir una
-fija en el visor, que es una decisión aparte.
+### Medir una imagen fija (2026-09-20)
+Botón **📏 Medir** en la tab Imágenes. Con el modo activo, tocar un slot con una imagen
+importada de un DICOM la abre **en el visor, con el original**; una foto común avisa que no
+tiene escala; un slot vacío se ignora.
+
+**Por qué no se mide sobre el slot:** ese JPEG está recomprimido **y redimensionado**
+(800×600 en calidad media), así que `PhysicalDeltaX` ya no le aplica. Medir ahí daría un número
+equivocado **sin ningún síntoma**. TC-188 lo fija comparando las dimensiones de lo que abre el
+visor contra las que declara el archivo, y muere si alguien lo cambia para abrir el slot.
+
+**Qué se guarda, y por qué NO el archivo entero como pedía el punto 4.** Medido sobre las 274
+fijas del pendrive: **el JPEG es el 3,1 % del archivo** — 143 KB contra 4,5 MB de media.
+Guardar los `.dcm` completos serían **1.223 MB contra 38 MB**, 32 veces más para exactamente la
+misma capacidad de medir, y volvería a poner en disco el `PatientName`, el `PatientID` y la
+institución en claro, que es lo que se sacó el 2026-09-19. Se guarda el cuadro y las regiones,
+en `CeiboCine` con `tipo:'fija'` — misma base, mismo recolector de huérfanos, misma cuota.
+
+**Cómo se ata al slot, y qué NO sobrevive.** El id vive **dentro** del objeto del slot
+(`_dcmId`), no en una estructura paralela indexada por posición: `imgSwap` intercambia objetos
+enteros y `imgRemove` anula el slot, así que un paralelo terminaría abriendo el original de
+**otra** imagen. Es la misma razón por la que `_orig` vive ahí.
+Pero `CeiboImg.guardar` persiste una lista blanca explícita —`{dataURL, ampliada, calidad}`— y
+ese diseño es deliberado, así que **el vínculo con el slot NO sobrevive a reabrir el estudio**.
+Lo que sí sobrevive es la imagen: aparece en la tira marcada como «imagen fija» y se mide desde
+ahí. Decisión de Maicol (2026-09-20). Si alguna vez se quiere que el slot siga andando tras
+reabrir, alcanza con sumar `_dcmId` a esa lista blanca — es una palabra y no viola su motivo,
+que es el tamaño.
+
+**Nada de `imgRender` se tocó.** El realce y el cursor salen de una regla CSS colgada de una
+clase en `#img-grid`, y el clic se escucha **por delegación** en el contenedor, que sobrevive a
+los repintados — las celdas no. El id se ata al slot desde el mismo `MutationObserver` de
+`#img-grid` que ya sincroniza la tira, porque `imgCompressLoad` crea el slot dentro de su
+`.then()` y no existe cuando se reserva el índice.
+
+**Semgrep: la línea base pasó de 125 a 126** (el `innerHTML` del aviso del modo medición, todo
+literales). Al mutar, ojo con una trampa: cambiar `cols`/`filas` **no** sirve como mutación de
+«abrir el slot en vez del original», porque `cineIr` redimensiona el canvas según el bitmap
+decodificado y pisa el metadato. La mutación fiel tiene que pasarle los bytes del slot.
 
 ### Cineloop — persistencia (2026-09-19)
 Los cineloops se guardan en **`ceibomed_cine`**, una base aparte de `ceibomed_img`, un registro

@@ -11803,10 +11803,15 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
         <span style="font-size:12px;color:var(--text2);font-weight:600;">Cantidad de slots:</span>
         <div id="img-count-btns" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
-        <button type="button" class="btn btn-ghost" style="padding:5px 12px;margin-left:auto;"
+        <button type="button" class="btn btn-ghost" id="med-fija-btn" style="padding:5px 12px;margin-left:auto;"
+                title="Medir sobre una imagen DICOM, con la escala que trae el archivo"
+                onclick="medFijaToggle()">📏 Medir</button>
+        <button type="button" class="btn btn-ghost" style="padding:5px 12px;"
                 title="Importar imágenes del ecógrafo. Los archivos del pendrive del GE Vivid no tienen extensión (carpeta GEMS_IMG): elegilos igual, el formato se reconoce por el contenido."
                 onclick="dcmImgPick()">🩻 Importar DICOM</button>
       </div>
+      <div id="med-fija-aviso" style="display:none;font-size:11px;line-height:1.5;margin-bottom:10px;
+           padding:8px 10px;border-radius:8px;border:1px solid var(--accent);background:var(--bg2);"></div>
       <div id="img-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"></div>
       <!-- Los cineloops van en su PROPIA tira y no adentro de la grilla. Dos razones: la grilla
            la reconstruye imgRender() en cada redibujo —que este trabajo no toca— y, sobre todo,
@@ -45386,7 +45391,24 @@ async function dcmImgImportar(fileList, slotPreferido) {
       /* Entra por la MISMA puerta que una foto elegida a mano. El Blob lleva su tipo para
          que el `data:` que produce FileReader salga como image/jpeg y pase `_imgSrcOK`. */
       imgCompressLoad(new Blob([x.jpeg], { type:'image/jpeg' }), idxs[i]);
+      /* Y aparte se conserva el ORIGINAL para poder medir: el JPEG del slot sale
+         recomprimido y redimensionado, así que la escala del DICOM ya no le aplica.
+         El id se ata al objeto del slot en cuanto exista — ver `_medFlushPendientes`. */
+      const id = _medFijaRegistrar(x.nombre, { frags:[x.jpeg], cols:x.d.cols, filas:x.d.filas,
+        fabricante:x.d.fabricante, modelo:x.d.modelo, regiones:x.d.regiones || [] });
+      _medPendientes.push({ idx: idxs[i], id });
+      x._medId = id;
     });
+    _medFlushPendientes();
+    /* Si además se puede guardar, la fija queda en disco y reaparece en la tira al reabrir
+       el estudio — que es el único camino que sobrevive, porque el `_dcmId` del slot no se
+       persiste (ver la nota del módulo). */
+    if (_cinePuedeGuardar().ok) {
+      for (const x of listos) {
+        try { await medFijaGuardar(_medFijas[x._medId]); } catch (e) {}
+      }
+      await cineStripRender();
+    }
   }
 
   /* Un solo aviso al final, con el denominador a la vista: «se importaron 3» sin decir que
@@ -45895,6 +45917,137 @@ function medApagar() {
 window.medApagar = medApagar;
 
 /* ══════════════════════════════════════════════════════════════════════════════════════
+   MEDIR SOBRE UNA IMAGEN FIJA
+   ══════════════════════════════════════════════════════════════════════════════════════
+
+   EL PROBLEMA: el JPEG del slot está recomprimido Y REDIMENSIONADO (800×600 en calidad
+   media), así que la escala del DICOM ya no aplica. Medir ahí con `PhysicalDeltaX` daría un
+   número equivocado sin ningún síntoma. Por eso se abre el ORIGINAL en el visor.
+
+   QUÉ SE GUARDA, y por qué NO el archivo entero como pedía el punto 4: medido sobre las 274
+   fijas del pendrive, **el JPEG es el 3,1 % del archivo** —143 KB contra 4,5 MB de media—.
+   Guardar los `.dcm` completos serían 1.223 MB contra 38 MB, 32 veces más, para exactamente
+   la misma capacidad de medir; y volvería a poner en disco el `PatientName`, el `PatientID`
+   y la institución en claro, que es lo que se decidió sacar el 2026-09-19. Se guarda el
+   cuadro y las regiones, igual que un cineloop de un solo cuadro.
+
+   CÓMO SE ATA AL SLOT. El id vive DENTRO del objeto del slot (`_dcmId`), no en una
+   estructura paralela indexada por posición: `imgSwap` intercambia objetos enteros y
+   `imgRemove` anula el slot, así que un paralelo se desincronizaría en cada movimiento y
+   terminaría abriendo el original de OTRA imagen. Es la misma razón por la que `_orig` vive
+   ahí, y está documentada en el módulo de imágenes.
+
+   QUÉ PASA AL REABRIR EL ESTUDIO. `CeiboImg.guardar` persiste una lista blanca explícita
+   —`{dataURL, ampliada, calidad}`— y ese diseño es deliberado: existe para que el original
+   de megabytes no llegue al disco. Agregarle `_dcmId` sería tocar otro módulo, cosa que este
+   trabajo tiene prohibida, así que el vínculo con el slot NO sobrevive a reabrir. Lo que sí
+   sobrevive es la imagen: aparece en la tira de abajo marcada como «fija» y se mide desde
+   ahí. Decisión de Maicol (2026-09-20). */
+
+const _medFijas = Object.create(null);     // id → lo que consume el visor
+let _medFijaOn = false;
+let _medPendientes = [];                   // [{idx, id}] esperando que el slot exista
+
+/* Registra el original de una fija y devuelve su id. En memoria SIEMPRE: medir no puede
+   depender del toggle de guardado, que es una preferencia sobre el disco. */
+function _medFijaRegistrar(nombre, d) {
+  const id = (typeof _uuidNuevo === 'function') ? _uuidNuevo() : String(Date.now()) + Math.random();
+  _medFijas[id] = { nombre: nombre + ' · imagen fija', cuadros: 1,
+    d: { frags: d.frags, cols: d.cols, filas: d.filas, msCuadro: 0,
+         fabricante: d.fabricante, modelo: d.modelo, regiones: d.regiones || [] } };
+  return id;
+}
+
+/* El slot lo crea `imgCompressLoad` dentro de su `.then()`, así que no existe todavía cuando
+   se reserva el índice. En vez de encuestar cada 50 ms, se engancha al MISMO repintado de
+   `#img-grid` que ya observa la tira: `imgCompressLoad` termina llamando a `imgRender`. */
+function _medFlushPendientes() {
+  if (!_medPendientes.length) return;
+  _medPendientes = _medPendientes.filter(p => {
+    const s = imgSlots[p.idx];
+    if (s && s.dataURL) { s._dcmId = p.id; return false; }
+    return true;
+  });
+}
+
+function _medFijaDe(slot) {
+  return (slot && slot._dcmId && _medFijas[slot._dcmId]) || null;
+}
+
+/* ── Modo medición sobre los slots ──────────────────────────────────────────────────────
+   Ni `imgRender` ni las celdas se tocan. El realce y el cursor salen de una regla CSS
+   colgada de una clase en `#img-grid`, y el clic se escucha por DELEGACIÓN en el contenedor,
+   que sobrevive a los repintados —las celdas no—. */
+function _medFijaEstilos() {
+  if (document.getElementById('med-fija-css')) return;
+  const st = document.createElement('style');
+  st.id = 'med-fija-css';
+  st.textContent =
+    '#img-grid.med-on > div { cursor: zoom-in; }' +
+    '#img-grid.med-on > div[data-idx] { outline: 2px dashed var(--accent); outline-offset: -4px; }';
+  document.head.appendChild(st);
+}
+
+function medFijaToggle() {
+  _medFijaEstilos();
+  const grid = document.getElementById('img-grid');
+  const btn = document.getElementById('med-fija-btn');
+  const av = document.getElementById('med-fija-aviso');
+  if (!grid) return;
+  _medFijaOn = !_medFijaOn;
+  grid.classList.toggle('med-on', _medFijaOn);
+  if (btn) btn.textContent = _medFijaOn ? '📏 Medir (activo)' : '📏 Medir';
+  if (av) {
+    av.style.display = _medFijaOn ? '' : 'none';
+    if (_medFijaOn) av.innerHTML =
+      '📏 <b>Modo medición.</b> Tocá una imagen importada de un DICOM y se abre en el visor, ' +
+      'con la escala que trae el archivo. Las fotos comunes no se pueden medir: no tienen escala. ' +
+      'Las mediciones son sólo para ver en pantalla — <b>no salen en el PDF</b>.';
+  }
+  return _medFijaOn;
+}
+window.medFijaToggle = medFijaToggle;
+
+function medFijaClic(ev) {
+  if (!_medFijaOn) return;
+  const cell = ev.target && ev.target.closest ? ev.target.closest('#img-grid > div') : null;
+  if (!cell) return;
+  const idx = parseInt(cell.dataset.idx, 10);
+  if (!isFinite(idx)) return;
+  const slot = imgSlots[idx];
+  if (!slot || !slot.dataURL) return;                     // slot vacío: se ignora
+  ev.preventDefault(); ev.stopPropagation();
+  const fija = _medFijaDe(slot);
+  if (!fija) {
+    alert('Esta imagen no tiene datos de escala DICOM.\n\n' +
+          'Sólo se puede medir sobre imágenes importadas de un archivo del ecógrafo, que traen ' +
+          'la escala adentro. Una foto o una captura de pantalla no dice cuántos milímetros ' +
+          'mide un píxel, así que cualquier número sería inventado.');
+    return;
+  }
+  if (!(fija.d.regiones || []).filter(_dcmImgRegionMedible).length) {
+    alert('Esta imagen viene de un DICOM pero el archivo no declara la escala.\n\n' +
+          'Se abre igual: en el visor podés calibrar a mano con «Recalibrar».');
+  }
+  _cineAbrir([fija]);
+}
+
+/* Abre una fija guardada, desde la tira. */
+async function medFijaAbrirGuardada(id) {
+  const r = await CeiboCine.leer(id);
+  if (!r) { toast('❌ No se pudo leer la imagen guardada'); return; }
+  const l = _cineDesdeRegistro(r);
+  l.nombre = (r.nombre || '') ;
+  _cineAbrir([l]);
+}
+window.medFijaAbrirGuardada = medFijaAbrirGuardada;
+
+document.addEventListener('DOMContentLoaded', function () {
+  const grid = document.getElementById('img-grid');
+  if (grid) grid.addEventListener('click', medFijaClic, true);
+});
+
+/* ══════════════════════════════════════════════════════════════════════════════════════
    PERSISTENCIA DEL CINELOOP
    ══════════════════════════════════════════════════════════════════════════════════════
 
@@ -46030,6 +46183,7 @@ function _cineRegistro(uuid, loop, poster) {
   return {
     id: (typeof _uuidNuevo === 'function' ? _uuidNuevo() : String(Date.now()) + Math.random()),
     uuid, nombre: loop.nombre, cuadros: loop.cuadros,
+    tipo: (loop.cuadros > 1 ? 'loop' : 'fija'),
     ms: loop.d.msCuadro || 0, cols: loop.d.cols || 0, filas: loop.d.filas || 0,
     /* Las regiones viajan con el cineloop: son números, no llevan nada del paciente, y sin
        ellas un loop reabierto desde el disco no se podría medir — habría que recalibrar a
@@ -46118,6 +46272,32 @@ async function cineGuardarActual() {
 }
 window.cineGuardarActual = cineGuardarActual;
 
+/* Guarda una imagen fija con la misma forma que un cineloop de un cuadro. Comparte la base,
+   el recolector de huérfanos y la cuota: no hay un segundo almacén que se pueda desincronizar
+   ni un segundo lugar donde revisar el espacio. Se devuelve false en silencio ante un fallo:
+   medir sigue andando en memoria, y llenar la pantalla de avisos por cada imagen de un lote
+   sería peor que el problema. */
+async function medFijaGuardar(fija) {
+  if (!fija || !_cinePuedeGuardar().ok) return false;
+  const bytes = fija.d.frags.reduce((a, f) => a + f.length, 0);
+  try {
+    const c = await CeiboImg.cuota();
+    if (c.total && (c.usado + bytes) > c.total * 0.95) return false;
+  } catch (e) {}
+  let poster = '';
+  try {
+    const url = await new Promise(r => { const fr = new FileReader();
+      fr.onload = () => r(fr.result); fr.onerror = () => r('');
+      fr.readAsDataURL(new Blob([fija.d.frags[0]], { type:'image/jpeg' })); });
+    if (url) poster = await _imgComprimir(url, 'mini');
+  } catch (e) { poster = ''; }
+  const rec = _cineRegistro(_imgUuidActual, fija, poster);
+  const r = await CeiboCine.guardar(rec);
+  if (r.ok) _cinePersistir();
+  return r.ok;
+}
+window.medFijaGuardar = medFijaGuardar;
+
 async function cineAbrirGuardado(id) {
   const r = await CeiboCine.leer(id);
   if (!r) { toast('❌ No se pudo leer el cineloop guardado'); return; }
@@ -46174,13 +46354,13 @@ async function cineStripRender() {
     return '<div data-cine-id="' + E(r.id) + '" style="position:relative;border:1.5px solid var(--border);' +
       'border-radius:10px;background:var(--bg2);overflow:hidden;width:150px;flex:0 0 auto;">' +
       '<div class="cine-abrir" style="position:relative;cursor:pointer;" title="Abrir el reproductor">' +
-        (src ? '<img src="' + E(src) + '" loading="lazy" alt="Cineloop de ' + E(r.cuadros) + ' cuadros" style="width:100%;display:block;">'
+        (src ? '<img src="' + E(src) + '" loading="lazy" alt="' + (r.cuadros > 1 ? 'Cineloop de ' + E(r.cuadros) + ' cuadros' : 'Imagen fija DICOM') + '" style="width:100%;display:block;">'
              : '<div style="height:96px;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:11px;">sin miniatura</div>') +
         '<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px;' +
-        'text-shadow:0 1px 6px rgba(0,0,0,.8);pointer-events:none;">▶️</span></div>' +
+        'text-shadow:0 1px 6px rgba(0,0,0,.8);pointer-events:none;">' + (r.cuadros > 1 ? '▶️' : '📏') + '</span></div>' +
       '<div style="padding:5px 7px;font-size:10px;color:var(--text2);line-height:1.45;">' +
-        '<b>' + E(r.cuadros) + ' cuadros</b> · ' + E(_cineMB(r.bytes || 0)) + '<br>' +
-        E(r.nombre || '') + '</div>' +
+        '<b>' + (r.cuadros > 1 ? E(r.cuadros) + ' cuadros' : 'imagen fija') + '</b> · ' +
+        E(_cineMB(r.bytes || 0)) + '<br>' + E(r.nombre || '') + '</div>' +
       '<button type="button" class="cine-borrar" title="Eliminar este cineloop" ' +
         'style="position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:50%;border:none;' +
         'background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1;">✕</button>' +
@@ -46188,11 +46368,12 @@ async function cineStripRender() {
   };
   cont.innerHTML =
     '<div style="font-size:12px;color:var(--text2);font-weight:600;margin-bottom:6px;">' +
-      '🎞️ Cineloops guardados en este estudio · ' + E(_cineMB(total)) + '</div>' +
+      '🎞️ DICOM guardados en este estudio · ' + E(_cineMB(total)) + '</div>' +
     '<div style="font-size:11px;color:var(--text2);margin-bottom:8px;line-height:1.5;">' +
-      'Se guardan en este dispositivo, asociados al estudio, y <b>no salen en el PDF</b>: lo que sale es el ' +
-      'cuadro que captures desde el reproductor. Tampoco viajan en el backup ni en el export. ' +
-      'Del archivo se guardan sólo los cuadros — el nombre y el documento que trae la cabecera DICOM se descartan.</div>' +
+      'Cineloops y las imágenes fijas que se pueden medir. Se guardan en este dispositivo, asociados al ' +
+      'estudio, y <b>no salen en el PDF</b>: lo que sale es el cuadro que captures. Tampoco viajan en el ' +
+      'backup ni en el export. Del archivo se guardan sólo los cuadros — el nombre y el documento que ' +
+      'trae la cabecera DICOM se descartan.</div>' +
     '<div style="display:flex;gap:10px;flex-wrap:wrap;">' + recs.map(tarjeta).join('') + '</div>';
   /* Los manejadores se ENGANCHAN acá, contra el `data-cine-id` de la tarjeta. Es el mismo
      patrón que ya usa la app en `verEvolucionEl(this)`: ningún dato entra al HTML de un
@@ -46279,7 +46460,10 @@ document.addEventListener('DOMContentLoaded', function () {
   }).observe(tab, { attributes:true, attributeFilter:['class'] });
 
   const grid = document.getElementById('img-grid');
-  if (grid) new MutationObserver(cineStripSync).observe(grid, { childList:true });
+  /* El mismo repintado sirve para dos cosas: sincronizar la tira y atar el original de una
+     fija al slot que `imgCompressLoad` acaba de crear. */
+  if (grid) new MutationObserver(() => { _medFlushPendientes(); cineStripSync(); })
+    .observe(grid, { childList:true });
 
   if (activa) alEntrar();
 });
@@ -61359,8 +61543,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260919-2330';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789871456335;                 /* eco-build-ms */
+const ECO_BUILD    = '20260919-2356';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789872988604;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -61446,7 +61630,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-2330</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-2356</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

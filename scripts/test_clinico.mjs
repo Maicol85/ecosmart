@@ -10828,7 +10828,21 @@ caso('TC-185', 'Cineloops al reabrir desde Guardados, con la tab Imagenes ya abi
       cargarEstudioPorId(gC.estudioId);
       await esperar(() => imgSlots.some(s => s && s.dataURL), 80);
       R.fijasVuelven = imgSlots.some(s => s && s.dataURL && _imgSrcOK(s.dataURL));
-      R.tiraEnC = tira() === '';          // C no tiene cineloops
+      /* C importo una imagen FIJA, y desde 2026-09-20 las fijas tambien se guardan para poder
+         medirlas. Asi que la tira NO esta vacia: muestra la fija y NO un cineloop. Antes esta
+         condicion afirmaba que quedaba vacia; relajarla a "lo que sea" habria tapado el
+         cambio, asi que se afirma la verdad nueva, que es mas fuerte. */
+      await esperar(() => tira() !== '', 60);
+      /* Se afirma sobre el REGISTRO y sobre la etiqueta de la tarjeta, no buscando palabras
+         sueltas en el HTML: la primera version exigia que no apareciera «cuadros» en toda la
+         tira, y esa palabra esta en el texto explicativo («se guardan solo los cuadros»), asi
+         que daba rojo sobre una tira perfecta. Olfatear cadenas en el HTML entero prueba
+         cualquier cosa menos lo que dice probar. */
+      R.tiraRaw = tira(); R.uuidC = (_imgUuidActual === infC.uuid);
+      const recsC = await CeiboCine.listar(infC.uuid);
+      R.tipos = recsC.map(x => x.tipo + ':' + x.cuadros).join(',');
+      R.tiraEnC = recsC.length === 1 && R.tipos === 'fija:1' &&
+                  tira().indexOf('imagen fija') > -1;
     } finally {
       window.alert = alertOrig; window.confirm = confirmOrig;
       if (prev === null) localStorage.removeItem(TOG); else localStorage.setItem(TOG, prev);
@@ -10851,7 +10865,7 @@ caso('TC-185', 'Cineloops al reabrir desde Guardados, con la tab Imagenes ya abi
       ['una lectura que llega tarde NO pinta',           R.tokenFrena, R.tokenFrena],
       ['las imagenes fijas se vacian con «Nuevo estudio»', R.slotsVacios, R.slotsVacios],
       ['y vuelven al reabrir, como siempre',             R.fijasVuelven, R.fijasVuelven],
-      ['un estudio sin cineloops no muestra tira',       R.tiraEnC, R.tiraEnC]
+      ['una imagen fija guardada aparece en la tira, marcada como tal', R.tiraEnC, (R.tipos || '(sin registros)')]
     ] };
   })();
 `);
@@ -11245,6 +11259,180 @@ caso('TC-187', 'Regla: escala del archivo, aritmetica exacta y las zonas donde N
       ['cruzar dos zonas con escalas DISTINTAS no mide', R.cruceNoMidio, (R.cruceAviso || '').slice(0,90)],
       ['pero dos zonas con la MISMA escala si se cruzan', R.mismaEscalaSiMide, (R.mismaEscalaAviso || '(sin avisos)').slice(0,80)],
       ['«Capturar cuadro» sigue funcionando',            R.capturaSigue, R.capturaSigue]
+    ] };
+  })();
+`);
+
+/* ══ TC-188 · Medir una imagen FIJA desde la tab ═════════════════════════════════════════════
+   LA RAZON DE SER de todo esto, y la condicion que la fija: el JPEG del slot esta recomprimido
+   Y REDIMENSIONADO (800x600 en calidad media), asi que la escala del DICOM no le aplica. Se
+   verifica que lo que abre el visor sea el ORIGINAL -- mismas dimensiones que declara el
+   archivo, distintas de las del slot-- y que los milimetros salgan de la escala del archivo.
+   Si alguien cambiara esto para medir sobre el slot, el numero seguiria saliendo prolijo.     */
+/* La fija mas chica que DECLARA escala en centimetros. Las del fixture PENDRIVE son las mas
+   chicas a secas, y resultaron ser capturas sin region de ultrasonido: sin escala no se puede
+   probar la aritmetica, que es lo que este caso existe para fijar. */
+const FIJA_ESC = await (async () => {
+  const { readdir, stat } = await import('node:fs/promises');
+  const raiz = process.env.ECO_PENDRIVE || '/Volumes/DISK_IMG';
+  async function hojas(dir, prof) {
+    if (prof > 5) return [];
+    let ns = [];
+    try { ns = await readdir(dir, { withFileTypes: true }); } catch (e) { return []; }
+    const r = [];
+    for (const n of ns) { if (n.name.startsWith('.')) continue;
+      const p = join(dir, n.name);
+      if (n.isDirectory()) r.push(...await hojas(p, prof + 1)); else r.push(p); }
+    return r;
+  }
+  const todos = await hojas(join(raiz, 'GEMS_IMG'), 0);
+  const conTam = [];
+  for (const p of todos) { try { conTam.push({ p, n: (await stat(p)).size }); } catch (e) {} }
+  conTam.sort((a, b) => a.n - b.n);
+  // (0018,6024) US con valor 3 = cm  ->  18 00 24 60 'U' 'S' 02 00 03 00
+  const pat = Buffer.from([0x18,0x00,0x24,0x60,0x55,0x53,0x02,0x00,0x03,0x00]);
+  for (const { p } of conTam) {
+    const b = await readFile(p);
+    if (b.slice(128,132).toString('ascii') !== 'DICM') continue;
+    if (b.indexOf(Buffer.from('1.2.840.10008.5.1.4.1.1.3.1')) > -1) continue;   // multi-frame, no
+    if (b.indexOf(pat) === -1) continue;
+    return { nombre: p.split('/').pop(), b64: b.toString('base64') };
+  }
+  return null;
+})();
+
+caso('TC-188', 'Imagen fija: se mide sobre el original, no sobre el JPEG recomprimido del slot', `
+  return (async () => {
+    const P = ${JSON.stringify(PENDRIVE)};
+    if (!P.fijas.length) return { extra: [[
+      'hacen falta imagenes fijas del pendrive', false, 'no se encontraron: quedo SIN verificar']] };
+    const bytes = x => { const b = atob(x.b64); const a = new Uint8Array(b.length);
+      for (let i=0;i<b.length;i++) a[i] = b.charCodeAt(i); return a; };
+    const esperar = async (c, n) => { for (let i=0;i<(n||80);i++) { if (c()) return true; await new Promise(r=>setTimeout(r,60)); } return c(); };
+    const JPG = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,219,0,67,0,8,6,6,7,6,5,8,7,7,7,9,9,8,10,12,20,13,12,11,11,12,25,18,19,15,20,29,26,31,30,29,26,28,28,32,36,46,39,32,34,44,35,28,28,40,55,41,44,48,49,52,52,52,31,39,57,61,56,50,60,46,51,52,50,255,192,0,11,8,0,1,0,1,1,1,17,0,255,196,0,20,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,255,196,0,20,16,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,218,0,8,1,1,0,0,63,0,42,159,255,217]);
+
+    const F = ${JSON.stringify(FIJA_ESC)};
+    if (!F) return { extra: [[
+      'hace falta una fija con escala declarada', false, 'no se encontro ninguna en el pendrive']] };
+    const elegida = F, dEleg = _dcmImgLeer(bytes(F).buffer);
+    if (!(dEleg.regiones || []).filter(_dcmImgRegionMedible).length) return { extra: [[
+      'la fija elegida declara region medible', false, 'no la declara']] };
+
+    const alertOrig = window.alert; const dichos = [];
+    window.alert = m => dichos.push(String(m));
+    const R = {};
+    try {
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','0');    // medir NO puede depender del toggle
+      imgSlots.length = 0; imgSlots.push(null, null, null); imgSlotCount = 3;
+
+      /* una foto comun en el slot 0 y la fija DICOM en el 1 */
+      await new Promise(r => { imgCompressLoad(new Blob([JPG],{type:'image/jpeg'}), 0);
+        const t=setInterval(()=>{ if (imgSlots[0]) { clearInterval(t); r(); } },50); setTimeout(()=>{clearInterval(t);r();},5000); });
+      await dcmImgImportar([new File([bytes(elegida)], elegida.nombre)], 1);
+      await esperar(() => !!(imgSlots[1] && imgSlots[1].dataURL));
+      R.entroEnElSlot = !!(imgSlots[1] && imgSlots[1].dataURL);
+      R.seAtoAlSlot = !!(imgSlots[1] && imgSlots[1]._dcmId);
+
+      /* EL SLOT ESTA REDIMENSIONADO: es lo que hace inservible medir sobre el */
+      const dimSlot = await new Promise(r => { const im = new Image();
+        im.onload = () => r({ w:im.width, h:im.height }); im.onerror = () => r(null); im.src = imgSlots[1].dataURL; });
+      R.slotChico = !!dimSlot && (dimSlot.w !== dEleg.cols || dimSlot.h !== dEleg.filas);
+      R.dimSlot = dimSlot ? (dimSlot.w + 'x' + dimSlot.h) : '?';
+      R.dimOrig = dEleg.cols + 'x' + dEleg.filas;
+
+      /* ── modo medicion ── */
+      R.modo = medFijaToggle();
+      const grid = document.getElementById('img-grid');
+      R.gridMarcado = grid.classList.contains('med-on');
+      R.hayEstilo = !!document.getElementById('med-fija-css');
+      R.avisoVisible = document.getElementById('med-fija-aviso').style.display !== 'none';
+
+      const tocar = (i) => { const c = grid.querySelector('[data-idx="' + i + '"]');
+        if (c) c.dispatchEvent(new MouseEvent('click', { bubbles:true })); };
+
+      /* slot con FOTO COMUN: mensaje claro, no se abre nada */
+      dichos.length = 0;
+      tocar(0);
+      await new Promise(r => setTimeout(r, 150));
+      R.fotoAvisa = dichos.length === 1 && dichos[0].indexOf('escala DICOM') > -1;
+      R.fotoNoAbre = !_cineDatos;
+
+      /* slot VACIO: se ignora en silencio */
+      dichos.length = 0;
+      tocar(2);
+      await new Promise(r => setTimeout(r, 150));
+      R.vacioIgnora = dichos.length === 0 && !_cineDatos;
+
+      /* slot DICOM: abre el visor con el ORIGINAL */
+      dichos.length = 0;
+      tocar(1);
+      await esperar(() => !!_cineDatos, 60);
+      R.abrio = !!_cineDatos;
+      const cv = document.getElementById('cine-cv');
+      await esperar(() => cv.width === dEleg.cols, 60);
+      R.visorEnOriginal = cv.width === dEleg.cols && cv.height === dEleg.filas;
+      R.tituloDiceFija = (document.getElementById('cine-cual').textContent || '').indexOf('imagen fija') > -1;
+      R.unSoloCuadro = _cineDatos.loops[0].cuadros === 1;
+
+      /* ── la regla mide con la escala DEL ARCHIVO ── */
+      medToggle();
+      const reg = (dEleg.regiones || []).filter(_dcmImgRegionMedible)[0];
+      const med = document.getElementById('cine-med');
+      const clic = (x, y) => { const r = med.getBoundingClientRect();
+        med.dispatchEvent(new MouseEvent('click', { bubbles:true,
+          clientX: r.left + x * (r.width / med.width), clientY: r.top + y * (r.height / med.height) })); };
+      const ax = Math.round(reg.x0 + 15), ay = Math.round(reg.y0 + 15);
+      clic(ax, ay); clic(ax + 150, ay);
+      await new Promise(r => setTimeout(r, 150));
+      const lin = _medLineas.filter(l => !l.calibracion);
+      R.midio = lin.length === 1;
+      if (lin.length) {
+        const largo = Math.hypot(lin[0].bx - lin[0].ax, lin[0].by - lin[0].ay);
+        R.exacta = Math.abs(lin[0].mm - largo * reg.dx * 10) < 1e-9;
+        R.mm = lin[0].mm;
+        /* Y la prueba de que NO se midio sobre el slot: si se hubiera usado el JPEG
+           redimensionado, la misma linea en pixeles daria otra distancia real. */
+        R.factorSlot = dimSlot ? (dEleg.cols / dimSlot.w) : 1;
+        R.distintoDelSlot = R.factorSlot > 1.05;
+      }
+
+      /* apagar el modo deja los slots como estaban */
+      medApagar(); cineCerrar();
+      medFijaToggle();
+      R.modoApagado = !grid.classList.contains('med-on') &&
+                      document.getElementById('med-fija-aviso').style.display === 'none';
+      dichos.length = 0;
+      tocar(1);
+      await new Promise(r => setTimeout(r, 150));
+      R.fueraDeModoNoAbre = !_cineDatos && dichos.length === 0;
+      R.slotsIntactos = !!(imgSlots[0] && imgSlots[0].dataURL) && !!(imgSlots[1] && imgSlots[1].dataURL);
+    } finally {
+      window.alert = alertOrig;
+      try { medApagar(); cineCerrar(); } catch (e) {}
+      try { if (document.getElementById('img-grid').classList.contains('med-on')) medFijaToggle(); } catch (e) {}
+    }
+
+    return { extra: [
+      ['la fija entra al slot como siempre',              R.entroEnElSlot, R.entroEnElSlot],
+      ['y queda atada a su original',                     R.seAtoAlSlot, R.seAtoAlSlot],
+      ['el JPEG del slot esta REDIMENSIONADO',            R.slotChico, R.dimSlot + ' vs original ' + R.dimOrig],
+      ['el boton activa el modo medicion',                R.modo === true, R.modo],
+      ['la grilla queda marcada y hay regla de cursor',   R.gridMarcado && R.hayEstilo, R.gridMarcado + '/' + R.hayEstilo],
+      ['se explica que las mediciones no van al PDF',     R.avisoVisible, R.avisoVisible],
+      ['una foto comun avisa que no tiene escala DICOM',  R.fotoAvisa, (R.fotoAvisa ? 'si' : 'no')],
+      ['y no abre el visor',                              R.fotoNoAbre, R.fotoNoAbre],
+      ['un slot vacio se ignora sin avisos',              R.vacioIgnora, R.vacioIgnora],
+      ['tocar la fija abre el visor',                     R.abrio, R.abrio],
+      ['CON EL ORIGINAL, no con el JPEG del slot',        R.visorEnOriginal, R.dimOrig],
+      ['el titulo dice que es una imagen fija',           R.tituloDiceFija, R.tituloDiceFija],
+      ['y el visor la trata como un solo cuadro',         R.unSoloCuadro, R.unSoloCuadro],
+      ['la regla mide sobre ella',                        R.midio, R.midio],
+      ['con los mm exactos de la escala del archivo',     R.exacta, R.mm],
+      ['medir sobre el slot habria dado otra cosa',       R.distintoDelSlot, 'el original es ' + (R.factorSlot||0).toFixed(2) + 'x el slot'],
+      ['apagar el modo lo deja todo como estaba',         R.modoApagado, R.modoApagado],
+      ['y fuera del modo tocar un slot no abre nada',     R.fueraDeModoNoAbre, R.fueraDeModoNoAbre],
+      ['los slots siguen con sus imagenes',               R.slotsIntactos, R.slotsIntactos]
     ] };
   })();
 `);
