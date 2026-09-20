@@ -3,6 +3,46 @@
 Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cada una;
 ninguna es evidente leyendo el código alrededor.
 
+
+## Strain VI — el selector de cineloop y vista (TC-207)
+
+El flujo arranca en **miniaturas**, no en una vista impuesta: el médico toca el cineloop, EcoSmart
+pregunta *«¿Qué vista es este cineloop?»* con A4C/A2C/A3C, recién ahí se traza, y al cerrar el par
+ofrece *«¿Agregás otra vista?»*, que vuelve al selector marcando lo ya usado.
+
+**La premisa del pedido estaba incompleta y por eso el selector mira DOS orígenes.** «Los cineloops
+guardados en el estudio» sugiere leer sólo IndexedDB, y con eso el selector quedaba **vacío justo
+cuando se lo necesita**: `imgGuardadoActivo()` lee `cfg-guardar-imagenes` de `localStorage`, que **no
+existe por omisión** —el guardado viene apagado de fábrica— y además guardar exige uuid de estudio.
+Mientras tanto el flujo habitual es importar del pendrive y medir sobre lo recién importado, que vive
+en `_cineDatos.loops` y nunca tocó el disco. `_strainLoopsDisponibles()` une abiertos + guardados y
+deduplica por nombre. TC-207 fija el guardado **apagado** a propósito: es el denominador bajo el cual
+un selector que mirara sólo lo guardado no tendría nada que mostrar.
+
+**El mismo cineloop sirve para dos vistas** —lo decide el médico, es el punto 6 del pedido—. Se
+permite, y el aviso de «salieron de la misma imagen» se conserva, porque una adquisición es una vista.
+`medStrainVistaSiguiente` deja `loopListo = true` por eso mismo: sigue en la misma adquisición, no hay
+que volver a elegirla.
+
+**Trampa que costó dos vueltas: un caso que se muere no diagnostica.** Las primeras dos mutaciones
+—listar sólo lo guardado, y fijar la vista sola— ponían TC-207 en rojo con una **excepción**
+(`.click()` sobre `undefined`, después `.imagen` sobre `null`), no con una condición. Rojo es rojo,
+pero el mensaje no decía *qué* se rompió, y peor: las condiciones que existen para declarar ese
+defecto nunca llegaban a evaluarse. Con un `clk(el)` que devuelve `false` si el elemento no está, y
+lecturas guardadas, cada mutación cae ahora en **su** condición:
+- listar sólo los guardados → «LISTA LOS ABIERTOS, no solo los guardados»
+- elegir loop fija la vista sola → «no fija la vista sola»
+- no revocar los blob URL → «cerrar el visor revoca las miniaturas»
+- prohibir reusar un cineloop → «EL MISMO cineloop sirve para otra vista»
+
+**Las miniaturas de los abiertos son blob URL** (`URL.createObjectURL` sobre el fragmento JPEG); se
+revocan en cada redibujo del selector y al cerrar el visor. Las de los guardados usan el `poster` que
+ya trae el registro.
+
+**`medStrainConfirmar` exige vista.** El getter `pares` devolvía `undefined` con `vista === null`, así
+que un confirmar prematuro escribía sobre un objeto descartable y la medición se perdía en silencio.
+Ahora el getter cae en `{d:null, s:null}` y el confirmar avisa y corta.
+
 ## Arquitectura
 
 - **Un solo archivo**, **1,75 MB / 31.233 líneas** (medido 2026-09-08). HTML + CSS + JS

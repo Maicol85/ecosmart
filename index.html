@@ -46422,14 +46422,18 @@ const _STR_VISTAS = [
 const _strVista = k => _STR_VISTAS.filter(v => v.k === k)[0];
 
 function _strainIniciar() {
-  _strain = { vista:'a4c', fase:'d', modo:'libre', pts3:[], ctrl:[], arrastrando:null,
+  _strain = { vista:null, loopListo:false, fase:'d', modo:'libre', pts3:[], ctrl:[], arrastrando:null,
               vistas: { a4c:{d:null,s:null}, a2c:{d:null,s:null}, a3c:{d:null,s:null} },
               pendiente:null, ocultar:false, avisoCuadro:false, descartoPend:false,
               avisoImagen:false };
   /* `pares` es la vista que se está trazando. Se expone como propiedad para que el dibujo y
      la limpieza —que sólo miran la vista en curso— no tengan que saber que hay tres. */
   Object.defineProperty(_strain, 'pares', {
-    get() { return this.vistas[this.vista]; }, configurable:true
+    /* Con el flujo nuevo la vista se ELIGE, así que hasta que el médico la elija `vista` es
+       null y esto devolvería `undefined` — y `_strainCompleto()` reventaría al leerle `.d`.
+       Devuelve un par vacío. ⚠️ Ese par es DESCARTABLE: escribirle no guarda nada, por eso
+       `medStrainConfirmar` exige que haya vista elegida antes de asignar. */
+    get() { return this.vistas[this.vista] || { d:null, s:null }; }, configurable:true
   });
 }
 
@@ -46558,7 +46562,13 @@ function _strainCalcular() {
 window._strainCalcular = _strainCalcular;
 
 function medStrainConfirmar() {
-  if (!_strain || !_strain.pendiente) {
+  /* Sin vista elegida, `pares` es el objeto descartable del getter: asignarle sería un
+     guardado que no guarda nada, en silencio. */
+  if (!_strain || !_strain.vista) {
+    alert('Elegí primero el cineloop y decí qué vista es.');
+    return;
+  }
+  if (!_strain.pendiente) {
     alert('Trazá primero el contorno: mantené apretado y recorré el borde del ventrículo, del anillo mitral septal, por el ápex, hasta el anillo mitral lateral.');
     return;
   }
@@ -46572,6 +46582,7 @@ window.medStrainConfirmar = medStrainConfirmar;
 
 function medStrainReiniciar() {
   _strainIniciar();
+  _strainRecs = null; _strainCargarRecs();
   _medPintar(); _medEstado();
 }
 window.medStrainReiniciar = medStrainReiniciar;
@@ -46645,48 +46656,9 @@ function _strainPanel() {
       (_strain.modo === '3pt' ? act3 : '') + '">📍 3 puntos</button>' +
     '</div>' + cab;
 
-  /* ── Paso en curso ── */
-  let paso = '';
-  if (!_strainCompleto()) {
-    const esD = _strain.fase === 'd';
-    const nvista = _STR_VISTAS.indexOf(VA) + 1;
-    const obligatoria = VA.k === 'a4c';
-    paso = '<div style="font-size:12px;line-height:1.6;margin-top:7px;">' +
-      '<b>Paso ' + nvista + ' — ' + VA.rot + (obligatoria ? ' (obligatoria)' : ' (opcional)') + '</b><br>' +
-      (obligatoria
-        ? 'Abrí la vista apical 4 cámaras. '
-        : 'Si tenés esta vista, abrila. Si no, calculá con lo que tengas. ') +
-      'Pausá en <b>' + (esD ? 'DIÁSTOLE' : 'SÍSTOLE') + '</b> y trazá ' + VA.orden + '.' +
-      /* Guía del momento del ciclo. Es informativa: no bloquea ni valida nada — la app no
-         tiene ECG ni forma de saber en qué fase está el cuadro, y fingir que sí lo sabe
-         sería peor que no decir nada. */
-      _STR_MOMENTO[esD ? 'd' : 's'] +
-      '<div style="font-size:10px;color:var(--text2);margin-top:3px;">' +
-        (_strain.modo === '3pt'
-          ? (_strain.ctrl && _strain.ctrl.length
-              ? '<b style="color:#a78bfa;">Contorno sugerido.</b> Arrastrá los puntos de control ' +
-                'para ajustarlo al borde y después confirmá. Es una <b>sugerencia</b>, no una ' +
-                'medición del borde: medido, la longitud sale 4-6 % corta, aunque el strain —que ' +
-                'es un cociente— apenas se mueve porque el desvío se cancela entre las dos fases.'
-              : 'Marcá tres puntos: <b>' + [ '1. anillo mitral SEPTAL', '2. ÁPEX del VI', '3. anillo mitral LATERAL' ][(_strain.pts3||[]).length] + '</b>.')
-          : 'Mantené apretado y recorré el borde; al soltar se cierra solo. Se puede rehacer antes ' +
-            'de confirmar.') +
-        ' <b>El orden importa:</b> los rótulos de pared suponen que marcaste del septal al lateral ' +
-        '— al revés quedan intercambiadas. ' +
-        (_strain.pendiente
-          ? '<b style="color:#fbbf24;">Trazado listo — apretá «Confirmar ' + (esD ? 'diástole' : 'sístole') + '».</b>'
-          : '') +
-        (_strain.avisoCuadro
-          ? '<br><b style="color:#fbbf24;">Cambiaste de cuadro.</b> Lo confirmado <b>sigue guardado</b>; se dejó de dibujar para no confundirlo con este cuadro.' +
-            (_strain.descartoPend ? ' El trazado sin confirmar se descartó.' : '')
-          : '') +
-        (_strain.avisoImagen
-          ? '<br><b style="color:#22d36a;">Cambiaste de imagen y lo confirmado sigue ahí.</b> Cada trazado guarda la escala de su propia imagen.'
-          : '') +
-      '</div></div>';
-  }
-
-  /* ── Resultado, en cuanto haya UNA vista completa ── */
+  /* ── Resultado, en cuanto haya UNA vista completa ──
+     Se arma ARRIBA porque los pasos de selección también lo muestran: el médico tiene que
+     poder ver lo que ya midió mientras elige el cineloop siguiente. */
   let res = '';
   const R = listas.length ? _strainCalcular() : null;
   if (R) {
@@ -46746,7 +46718,133 @@ function _strainPanel() {
       '</div>';
   }
 
+  const reset = b('cine-str-reset', 'btn-ghost', 'Empezar de nuevo', 'margin-left:6px;');
+
+  /* ── Paso 1: elegir el cineloop ── */
+  const etapa = _strainPaso();
+  if (etapa === 'loop') {
+    _strainRevocarThumbs();
+    const ops = _strainLoopsDisponibles();
+    let mini = '';
+    if (!ops.length) {
+      mini = '<div style="font-size:10px;color:var(--text2);">No hay ningún cineloop abierto ni ' +
+             'guardado en este estudio. Importá un DICOM o abrí uno de la tira.</div>';
+    } else {
+      mini = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px;">' +
+        ops.map(o => {
+          const src = _strainThumbSrc(o);
+          const usada = Object.keys(_strain.vistas).filter(k2 => {
+            const P = _strain.vistas[k2];
+            return P.d && P.d.imagen === o.nombre;
+          });
+          return '<div data-str-loop="' + E(o.k) + '" title="' + E(o.nombre) + '" ' +
+            'style="width:104px;flex:0 0 auto;cursor:pointer;border:1.5px solid ' +
+            (o.actual ? 'var(--accent)' : 'var(--border)') + ';border-radius:8px;overflow:hidden;' +
+            'background:var(--bg3);">' +
+            (src ? '<img src="' + E(src) + '" loading="lazy" alt="Cineloop ' + E(o.nombre) + '" ' +
+                   'style="width:100%;height:62px;object-fit:cover;display:block;">'
+                 : '<div style="height:62px;display:flex;align-items:center;justify-content:center;' +
+                   'font-size:9px;color:var(--text2);">sin vista previa</div>') +
+            '<div style="padding:3px 4px;font-size:9px;line-height:1.35;">' +
+              '<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + E(o.nombre) + '</div>' +
+              '<div style="color:var(--text2);">' + E(o.cuadros) + ' cuadros' +
+                (o.tipo === 'guardado' ? ' · guardado' : '') + '</div>' +
+              (usada.length ? '<div style="color:#22d36a;">ya usado: ' + usada.map(x => x.toUpperCase()).join(', ') + '</div>' : '') +
+            '</div></div>';
+        }).join('') + '</div>';
+    }
+    const listas0 = _strainVistasListas();
+    return cab +
+      '<div style="font-size:12px;line-height:1.6;margin-top:7px;">' +
+        '<b>📍 Elegí el cineloop</b> sobre el que vas a trazar.' +
+        '<div style="font-size:10px;color:var(--text2);margin-top:3px;">' +
+          'Se listan los que están abiertos en el visor y los guardados en el estudio. ' +
+          'Podés usar el mismo para vistas distintas si así lo decidís — el panel avisa si pasa, ' +
+          'porque una adquisición es una vista y usarla dos veces casi siempre es un error.' +
+        '</div>' + mini +
+      '</div>' + res +
+      '<div style="margin-top:7px;">' + reset + '</div>';
+  }
+
+  /* ── Paso 2: decir qué vista es ── */
+  if (etapa === 'vista') {
+    const bot = _STR_VISTAS.map(V => {
+      const hecha = _strain.vistas[V.k].d && _strain.vistas[V.k].s;
+      return '<button type="button" class="btn ' + (hecha ? 'btn-ghost' : 'btn-primary') + '" ' +
+        'data-str-vista="' + V.k + '" title="' + E(V.rot) + '" ' +
+        'style="padding:4px 12px;font-size:11px;margin-right:6px;">' + V.k.toUpperCase() +
+        (hecha ? ' ✓' : '') + '</button>';
+    }).join('');
+    return cab +
+      '<div style="font-size:12px;line-height:1.6;margin-top:7px;">' +
+        '<b>📍 ¿Qué vista es este cineloop?</b>' +
+        '<div style="font-size:10px;color:var(--text2);margin-top:3px;">' +
+          'La app no puede saberlo mirando la imagen: lo sabe quien la adquirió. ' +
+          'Las marcadas con ✓ ya tienen su par trazado — elegirlas lo reemplaza.' +
+        '</div>' +
+        '<div style="margin-top:6px;">' + bot + '</div>' +
+      '</div>' + res +
+      '<div style="margin-top:7px;">' +
+        b('cine-str-otro', 'btn-ghost', '‹ Elegir otro cineloop') + ' ' + reset + '</div>';
+  }
+
+  /* ── Paso 3: trazar ── */
+  let paso = '';
+  if (!_strainCompleto()) {
+    const esD = _strain.fase === 'd';
+    const nvista = _STR_VISTAS.indexOf(VA) + 1;
+    const obligatoria = VA.k === 'a4c';
+    paso = '<div style="font-size:12px;line-height:1.6;margin-top:7px;">' +
+      '<b>Paso ' + nvista + ' — ' + VA.rot + (obligatoria ? ' (obligatoria)' : ' (opcional)') + '</b><br>' +
+      (obligatoria
+        ? 'Abrí la vista apical 4 cámaras. '
+        : 'Si tenés esta vista, abrila. Si no, calculá con lo que tengas. ') +
+      'Pausá en <b>' + (esD ? 'DIÁSTOLE' : 'SÍSTOLE') + '</b> y trazá ' + VA.orden + '.' +
+      /* Guía del momento del ciclo. Es informativa: no bloquea ni valida nada — la app no
+         tiene ECG ni forma de saber en qué fase está el cuadro, y fingir que sí lo sabe
+         sería peor que no decir nada. */
+      _STR_MOMENTO[esD ? 'd' : 's'] +
+      '<div style="font-size:10px;color:var(--text2);margin-top:3px;">' +
+        (_strain.modo === '3pt'
+          ? (_strain.ctrl && _strain.ctrl.length
+              ? '<b style="color:#a78bfa;">Contorno sugerido.</b> Arrastrá los puntos de control ' +
+                'para ajustarlo al borde y después confirmá. Es una <b>sugerencia</b>, no una ' +
+                'medición del borde: medido, la longitud sale 4-6 % corta, aunque el strain —que ' +
+                'es un cociente— apenas se mueve porque el desvío se cancela entre las dos fases.'
+              : 'Marcá tres puntos: <b>' + [ '1. anillo mitral SEPTAL', '2. ÁPEX del VI', '3. anillo mitral LATERAL' ][(_strain.pts3||[]).length] + '</b>.')
+          : 'Mantené apretado y recorré el borde; al soltar se cierra solo. Se puede rehacer antes ' +
+            'de confirmar.') +
+        ' <b>El orden importa:</b> los rótulos de pared suponen que marcaste del septal al lateral ' +
+        '— al revés quedan intercambiadas. ' +
+        (_strain.pendiente
+          ? '<b style="color:#fbbf24;">Trazado listo — apretá «Confirmar ' + (esD ? 'diástole' : 'sístole') + '».</b>'
+          : '') +
+        (_strain.avisoCuadro
+          ? '<br><b style="color:#fbbf24;">Cambiaste de cuadro.</b> Lo confirmado <b>sigue guardado</b>; se dejó de dibujar para no confundirlo con este cuadro.' +
+            (_strain.descartoPend ? ' El trazado sin confirmar se descartó.' : '')
+          : '') +
+        (_strain.avisoImagen
+          ? '<br><b style="color:#22d36a;">Cambiaste de imagen y lo confirmado sigue ahí.</b> Cada trazado guarda la escala de su propia imagen.'
+          : '') +
+      '</div></div>';
+  }
+
   /* ── Botones ── */
+  /* Con el par de ESTA vista completo se pregunta si agrega otra: es el paso 5 del flujo, y
+     vuelve al selector de cineloop sin tocar lo ya confirmado. */
+  if (_strainCompleto()) {
+    return cab + res +
+      '<div style="font-size:12px;line-height:1.6;margin-top:7px;">' +
+        '<b>¿Agregás otra vista?</b>' +
+        '<div style="font-size:10px;color:var(--text2);margin-top:3px;">' +
+          'Con más vistas el SGL cubre más territorios. Con lo que hay ya está calculado arriba.' +
+        '</div>' +
+        '<div style="margin-top:6px;">' +
+          b('cine-str-otro', 'btn-primary', '➕ Sí, agregar otra vista') + ' ' +
+          b('cine-str-reset', 'btn-ghost', 'Empezar de nuevo', 'margin-left:6px;') +
+        '</div>' +
+      '</div>';
+  }
   const fase = (_strain.fase === 'd') ? 'diástole' : 'sístole';
   /* En modo 3 puntos el confirmar es el del contorno sugerido, y aparece sólo cuando hay
      contorno. «Rehacer» vuelve a los tres puntos sin tocar lo ya confirmado. */
@@ -46755,7 +46853,6 @@ function _strainPanel() {
     ? (hay3 ? b('cine-str-3conf', 'btn-primary', 'Confirmar ' + fase) +
               b('cine-str-3re', 'btn-ghost', 'Rehacer los 3 puntos', 'margin-left:6px;') : '')
     : b('cine-str-conf', 'btn-primary', 'Confirmar ' + fase);
-  const reset = b('cine-str-reset', 'btn-ghost', 'Empezar de nuevo', 'margin-left:6px;');
   /* «Continuar» aparece sólo con la vista en curso terminada y otra por delante: es la
      decisión de agregar vistas, y calcular ya está hecho — el resultado está arriba. */
   const idx = _STR_VISTAS.indexOf(VA);
@@ -46771,6 +46868,9 @@ function medStrainVistaSiguiente() {
   const i = _STR_VISTAS.indexOf(_strVista(_strain.vista));
   if (i < 0 || i >= _STR_VISTAS.length - 1) return;
   _strain.vista = _STR_VISTAS[i + 1].k;
+  /* Sigue en el MISMO cineloop —es el caso del punto 6: una adquisición usada para dos
+     vistas, que el médico puede decidir— así que no hay que volver a elegirlo. */
+  _strain.loopListo = true;
   _strain.fase = 'd';
   _strain.pendiente = null;
   _strain.pts3 = []; _strain.ctrl = []; _strain.arrastrando = null;
@@ -46778,6 +46878,127 @@ function medStrainVistaSiguiente() {
   _medPintar(); _medEstado();
 }
 window.medStrainVistaSiguiente = medStrainVistaSiguiente;
+/* ══ SELECTOR DE CINELOOP Y VISTA PARA EL STRAIN DEL VI ══════════════════════════════════════
+
+   Reemplaza al flujo secuencial «A4C → A2C → A3C» por uno donde el médico ELIGE: toca la
+   miniatura del cineloop, dice qué vista es, traza, y al terminar decide si agrega otra.
+
+   ⚠️ LAS MINIATURAS SALEN DE DOS ORÍGENES, y no es un agregado: son los cineloops ABIERTOS en
+   el visor **más** los guardados del estudio. Listar sólo los guardados dejaba el selector
+   vacío justo cuando se lo necesita — `imgGuardadoActivo()` lee una clave de `localStorage`
+   que **no existe por omisión**, así que el guardado está APAGADO salvo que alguien lo
+   encienda, y encima exige que el estudio ya tenga uuid. Y el flujo habitual es importar del
+   pendrive y medir sobre lo recién importado, que vive en `_cineDatos.loops` y no en
+   IndexedDB. Con un solo origen, el médico abría el selector y no veía el cineloop que tenía
+   delante.
+
+   EL MISMO CINELOOP SE PUEDE USAR PARA DOS VISTAS —lo decide el médico— y el aviso de que los
+   trazados salieron de la misma imagen SE CONSERVA: una adquisición es una vista, así que
+   usarla como 4C y como 2C casi siempre es un error, y el panel lo dice sin impedirlo. */
+
+function _strainLoopsDisponibles() {
+  const out = [];
+  const D = _cineDatos;
+  if (D && D.loops) D.loops.forEach((L, i) => {
+    out.push({ k:'a' + i, tipo:'abierto', idx:i, nombre:L.nombre || ('Cineloop ' + (i + 1)),
+               cuadros:L.cuadros, frag:(L.d && L.d.frags && L.d.frags[0]) || null,
+               actual: i === D.i });
+  });
+  (_strainRecs || []).forEach((r, i) => {
+    /* Los ya abiertos no se repiten: se comparan por nombre, que es lo que el médico ve. */
+    if (out.some(o => o.nombre === r.nombre)) return;
+    out.push({ k:'g' + i, tipo:'guardado', rec:r, nombre:r.nombre || 'Cineloop guardado',
+               cuadros:r.cuadros, poster:r.poster || '', actual:false });
+  });
+  return out;
+}
+
+/* Los guardados se piden una vez por sesión de strain y se cachean: `CeiboCine.listar` es
+   asíncrono y el panel se repinta en cada medición. */
+let _strainRecs = null;
+let _strainRecsGen = 0;
+async function _strainCargarRecs() {
+  const gen = ++_strainRecsGen;
+  let recs = [];
+  try {
+    const uuid = (typeof _imgUuidActual !== 'undefined') ? _imgUuidActual : null;
+    if (typeof CeiboCine !== 'undefined' && _uuidValido && _uuidValido(uuid))
+      recs = await CeiboCine.listar(uuid);
+  } catch (e) { recs = []; }
+  if (gen !== _strainRecsGen) return;                 // llegó tarde
+  _strainRecs = (recs || []).filter(r => r && r.tipo !== 'fija');
+  _medEstado();
+}
+
+/* Las miniaturas de los cineloops abiertos se dibujan desde el primer JPEG del propio loop.
+   Los blob URL se revocan al rearmar el selector: sin eso, repintar el panel en cada medición
+   deja un objeto por miniatura y por repintado. */
+let _strainThumbs = [];
+function _strainRevocarThumbs() {
+  _strainThumbs.forEach(u => { try { URL.revokeObjectURL(u); } catch (e) {} });
+  _strainThumbs = [];
+}
+function _strainThumbSrc(o) {
+  if (o.tipo === 'guardado') return _imgSrcOK(o.poster) ? o.poster : '';
+  if (!o.frag) return '';
+  try {
+    const u = URL.createObjectURL(new Blob([o.frag], { type:'image/jpeg' }));
+    _strainThumbs.push(u);
+    return u;
+  } catch (e) { return ''; }
+}
+
+/* Paso del flujo: elegir loop → elegir vista → trazar. */
+function _strainPaso() {
+  if (!_strain) return 'loop';
+  if (!_strain.loopListo) return 'loop';
+  if (!_strain.vista) return 'vista';
+  return 'trazar';
+}
+
+function medStrainElegirLoop(k) {
+  if (!_strain) return;
+  const o = _strainLoopsDisponibles().filter(x => x.k === k)[0];
+  if (!o) return;
+  if (o.tipo === 'abierto') {
+    if (_cineDatos && _cineDatos.i !== o.idx) { _cineDetener(); _cineDatos.i = o.idx; _cineCargarLoop(); }
+  } else {
+    const L = _cineDesdeRegistro(o.rec);
+    if (!L) { alert('Ese cineloop no se pudo leer del disco.'); return; }
+    /* Se AGREGA a los abiertos en vez de reemplazarlos: el médico puede querer volver al que
+       tenía, y reemplazar la lista perdería los demás sin avisar. */
+    _cineDetener();
+    _cineDatos.loops.push(L);
+    _cineDatos.i = _cineDatos.loops.length - 1;
+    _cineCargarLoop();
+  }
+  _strain.loopListo = true;
+  _strain.vista = null;                 // ahora se pregunta qué vista es
+  _strain.pendiente = null; _strain.pts3 = []; _strain.ctrl = [];
+  _medPintar(); _medEstado();
+}
+window.medStrainElegirLoop = medStrainElegirLoop;
+
+function medStrainElegirVista(v) {
+  if (!_strain || !_strVista(v)) return;
+  _strain.vista = v;
+  _strain.fase = (_strain.vistas[v].d && !_strain.vistas[v].s) ? 's' : 'd';
+  _strain.pendiente = null; _strain.pts3 = []; _strain.ctrl = [];
+  _strain.avisoCuadro = false; _strain.avisoImagen = false; _strain.ocultar = false;
+  _medPintar(); _medEstado();
+}
+window.medStrainElegirVista = medStrainElegirVista;
+
+/* «¿Agregás otra vista?» → vuelve al selector de cineloop, sin tocar lo ya confirmado. */
+function medStrainOtroLoop() {
+  if (!_strain) return;
+  _strain.loopListo = false;
+  _strain.vista = null;
+  _strain.pendiente = null; _strain.pts3 = []; _strain.ctrl = [];
+  _medPintar(); _medEstado();
+}
+window.medStrainOtroLoop = medStrainOtroLoop;
+
 /* ══ CONTORNO SUGERIDO POR 3 PUNTOS ══════════════════════════════════════════════════════════
 
    Alternativa al trazado libre: el médico marca anillo septal, ápex y anillo lateral, y la app
@@ -47727,7 +47948,7 @@ function medHerramienta(h) {
      Antes las herramientas sólo existían dentro de la barra, que aparecía con la medición ya
      encendida, así que el caso no era alcanzable. */
   if (!_medOn && _cineDatos) medToggle();
-  if (_medHerr === 'strain' && !_strain) _strainIniciar();
+  if (_medHerr === 'strain' && !_strain) { _strainIniciar(); _strainCargarRecs(); }
   if (_medHerr === 'lars' && !_lars) _larsIniciar();
   if (_medHerr === 'vd' && !_vd) _vdIniciar();
   /* Se entra sola SÓLO si la imagen no declara NINGUNA región — los 15 archivos de 301 que
@@ -48354,6 +48575,20 @@ function _medEstado() {
   _on(_medEl('cine-vd-reset'), medVdReiniciar);
   _on(_medEl('cine-str-m-libre'), () => medStrainModo('libre'));
   _on(_medEl('cine-str-m-3pt'),   () => medStrainModo('3pt'));
+  _on(_medEl('cine-str-otro'), medStrainOtroLoop);
+  /* Miniaturas y botones de vista: por `data-*` y listener delegado, NUNCA con el valor
+     interpolado dentro de un `onclick`. Ahí el parser decodifica la entidad ANTES de compilar
+     el handler, así que escapar no protege — es el agujero que documenta la entrada de
+     CardioSalud y el que cazó Semgrep en la tira de cineloops. */
+  const _barra = _medEl('cine-med-barra');
+  if (_barra) {
+    _barra.querySelectorAll('[data-str-loop]').forEach(el => {
+      el.onclick = _vBind(_V0, () => medStrainElegirLoop(el.getAttribute('data-str-loop')));
+    });
+    _barra.querySelectorAll('[data-str-vista]').forEach(el => {
+      el.onclick = _vBind(_V0, () => medStrainElegirVista(el.getAttribute('data-str-vista')));
+    });
+  }
   _on(_medEl('cine-str-3conf'), medStrain3Confirmar);
   _on(_medEl('cine-str-3re'),   medStrain3Rehacer);
   _on(sxc, medStrainConfirmar);
@@ -48706,6 +48941,7 @@ function medApagar() {
   _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null; _medVels = []; _medTiempos = []; _medHerr = 'dist';
   _simp = null;                      // otra imagen: los cuatro trazados no aplican
   _strain = null; _lars = null; _vd = null;
+  _strainRecs = null; _strainRevocarThumbs();
   const cv = _medEl('cine-med'), b = _medEl('cine-medir');
   if (cv) { cv.style.display = 'none'; cv.onclick = null; cv.onmousedown = null; cv.onmousemove = null; }
   if (_vArrastre === _V) _vArrastre = null;   // el oyente es compartido: no se quita, se desmarca
@@ -64521,8 +64757,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260920-1303';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789920201902;                 /* eco-build-ms */
+const ECO_BUILD    = '20260920-1328';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789921701961;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -64608,7 +64844,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1303</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1328</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

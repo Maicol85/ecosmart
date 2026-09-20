@@ -140,6 +140,15 @@ const PRELUDIO = `
       if (!b) return 'NO EXISTE ' + (pfx || '') + id;
       b.click(); return 1;
     },
+    /* El strain del VI pasa por elegir cineloop y vista antes de trazar. Los casos que no
+       prueban el SELECTOR usan esto, que es lo que hace la interfaz despues de tocar una
+       miniatura: marca el loop como elegido y fija la vista. */
+    strVista(k) {
+      if (typeof _strain === 'undefined' || !_strain) return 'sin sesion de strain';
+      _strain.loopListo = true;
+      medStrainElegirVista(k || 'a4c');
+      return _strain.vista === (k || 'a4c') ? 1 : 'no quedo en ' + (k || 'a4c');
+    },
     set(id, val) { const e = document.getElementById(id); if (!e) return 'NO EXISTE ' + id;
       e.value = val;
       e.dispatchEvent(new Event('input', { bubbles: true }));
@@ -13451,6 +13460,12 @@ caso('TC-199', 'Strain: trazado guiado, eje largo compartido con Simpson, y el b
       R.rotulo = bstr && bstr.textContent;
       bstr.click();
       await new Promise(r => setTimeout(r, 140));
+      /* El flujo nuevo pide elegir cineloop y vista antes de trazar. El selector lo prueba
+         TC-207; aca se salta con el helper, que es lo que hace la interfaz al tocar una
+         miniatura. */
+      R.pideLoop = /Elegí el cineloop/.test(document.getElementById('cine-med-barra').innerHTML);
+      __t.strVista('a4c');
+      await new Promise(r => setTimeout(r, 120));
       R.herr = _medHerr;
       R.arrancoSesion = !!_strain && _strain.fase === 'd';
       R.panelPaso1 = /Paso 1/.test(document.getElementById('cine-med-barra').innerHTML);
@@ -13703,8 +13718,13 @@ caso('TC-200', 'Strain: SGL por territorios de pared con 1, 2 y 3 vistas, sin to
       await montar('a4c.dcm');
       medHerramienta('strain'); medStrainReiniciar();
       await new Promise(r => setTimeout(r, 120));
+      /* El flujo ya NO arranca en A4C ni la declara obligatoria: el medico elige el cineloop
+         y despues dice que vista es. La condicion pasa a fijar el flujo nuevo. */
+      R.pideCineloop = /Elegí el cineloop/.test(barra());
+      __t.strVista('a4c');
+      await new Promise(r=>setTimeout(r,110));
       R.arrancaEnA4C = _strain.vista === 'a4c';
-      R.panelPide4C = /apical 4 cámaras/.test(barra()) && /obligatoria/.test(barra());
+      R.panelPide4C = R.pideCineloop;
 
       /* ── UNA vista: 2 territorios. Las dos paredes se acortan DISTINTO a proposito. ── */
       await trazar(vent(CX, YB, 100, 100, 300)); medStrainConfirmar();
@@ -13767,7 +13787,7 @@ caso('TC-200', 'Strain: SGL por territorios de pared con 1, 2 y 3 vistas, sin to
       R.sglCampo = sglEl ? String(sglEl.value || '') : '(sin campo)';
 
       /* ── plausibilidad: un acortamiento imposible se declara ── */
-      medStrainReiniciar();
+      medStrainReiniciar(); __t.strVista('a4c');
       await new Promise(r => setTimeout(r, 100));
       await parEn('raro.dcm', 100, 100, 300, 18, 20, 55);
       const Rx = _strainCalcular();
@@ -13777,7 +13797,7 @@ caso('TC-200', 'Strain: SGL por territorios de pared con 1, 2 y 3 vistas, sin to
       R.xDisc = /dos contornos manuales/.test(barra());     // el disclaimer SIGUE visible
 
       /* ── fases invertidas: el signo no se fuerza ── */
-      medStrainReiniciar();
+      medStrainReiniciar(); __t.strVista('a4c');
       await new Promise(r => setTimeout(r, 100));
       await parEn('inv.dcm', 60, 88, 240, 100, 100, 300);
       const Ri = _strainCalcular();
@@ -13788,7 +13808,7 @@ caso('TC-200', 'Strain: SGL por territorios de pared con 1, 2 y 3 vistas, sin to
     } finally { window.alert = alertOrig; }
 
     return { extra: [
-      ['arranca en A4C y la pide como obligatoria', R.arrancaEnA4C && R.panelPide4C, R.panelPide4C],
+      ['arranca pidiendo el cineloop, no una vista fija', R.pideCineloop && R.arrancaEnA4C, R.pideCineloop],
       ['1 vista da 2 territorios',                  R.n1 === 2 && R.v1 === 1, R.n1],
       ['rotulados por pared',                       R.rot1 === 'Septal + Lateral', R.rot1],
       ['cada territorio sale de SU arco (exacto)',  R.terrExacto, R.terrExacto],
@@ -13884,6 +13904,8 @@ caso('TC-201', 'Bull.s eye del visor: sextantes grises donde faltan vistas, y NO
       await montar('a4c.dcm');
       medHerramienta('strain'); medStrainReiniciar();
       await new Promise(r=>setTimeout(r,120));
+      __t.strVista('a4c');
+      await new Promise(r=>setTimeout(r,100));
 
       /* ── 1 · UNA vista: los sextantes anterior e inferior quedan en GRIS ── */
       await trazar(vent(CX,YB,100,100,300)); medStrainConfirmar(); await new Promise(r=>setTimeout(r,100));
@@ -14302,6 +14324,8 @@ caso('TC-203', 'Strain por 3 puntos: spline ajustable, misma puerta que el traza
       await montar('a4c.dcm');
       medHerramienta('strain'); medStrainReiniciar();
       await new Promise(r=>setTimeout(r,120));
+      __t.strVista('a4c');
+      await new Promise(r=>setTimeout(r,100));
 
       /* ── 1 · el selector existe y arranca en trazado libre ── */
       R.hayLibre = !!document.getElementById('cine-str-m-libre');
@@ -14405,7 +14429,7 @@ caso('TC-203', 'Strain por 3 puntos: spline ajustable, misma puerta que el traza
       medStrain3Rehacer(); await new Promise(r=>setTimeout(r,100));
       R.rehacerLimpia = _strain.pts3.length === 0 && _strain.ctrl.length === 0 &&
                         !!_strain.vistas.a4c.d;
-      medStrainReiniciar(); medStrainModo('3pt');
+      medStrainReiniciar(); medStrainModo('3pt'); __t.strVista('a4c');
       clic(SEP[0],SEP[1]); clic(APX[0],APX[1]); clic(LAT[0],LAT[1]);
       await new Promise(r=>setTimeout(r,150));
 
@@ -14423,7 +14447,7 @@ caso('TC-203', 'Strain por 3 puntos: spline ajustable, misma puerta que el traza
       R.borde = g3 ? g3.bordeCm.toFixed(3) : '';
 
       /* ── 5 · NO se traza sobre Doppler ── */
-      medStrainReiniciar(); medStrainModo('3pt');
+      medStrainReiniciar(); medStrainModo('3pt'); __t.strVista('a4c');
       await montar('dop.dcm', [regDop]);
       medHerramienta('strain'); medStrainModo('3pt');
       await new Promise(r=>setTimeout(r,130));
@@ -14437,6 +14461,8 @@ caso('TC-203', 'Strain por 3 puntos: spline ajustable, misma puerta que el traza
       await montar('mix.dcm');
       medHerramienta('strain'); medStrainReiniciar();
       await new Promise(r=>setTimeout(r,120));
+      __t.strVista('a4c');
+      await new Promise(r=>setTimeout(r,100));
       const tri = (cx,yb,Wi,Wd,H) => { const p=[], ya=yb-H;
         const n1=Math.ceil(Math.hypot(Wi,H)/10), n2=Math.ceil(Math.hypot(Wd,H)/10);
         for(let i=0;i<=n1;i++)p.push({x:Math.round(cx-Wi+Wi*i/n1),y:Math.round(yb+(ya-yb)*i/n1)});
@@ -14455,7 +14481,7 @@ caso('TC-203', 'Strain por 3 puntos: spline ajustable, misma puerta que el traza
       R.panelDeclaraMezcla = /mezcla trazado libre con contorno de 3 puntos/.test(document.getElementById('cine-med-barra').innerHTML);
       /* Y con los DOS del mismo metodo, NO avisa: sin esto la condicion de arriba pasaria
          con un aviso que sale siempre. */
-      medStrainReiniciar(); medStrainModo('libre');
+      medStrainReiniciar(); medStrainModo('libre'); __t.strVista('a4c');
       _strain.pendiente = null; _strainAceptar(tri(300,440,100,100,300)); medStrainConfirmar();
       await new Promise(r=>setTimeout(r,100));
       _strain.pendiente = null; _strainAceptar(tri(300,440,70,78,250)); medStrainConfirmar();
@@ -14465,7 +14491,7 @@ caso('TC-203', 'Strain por 3 puntos: spline ajustable, misma puerta que el traza
         !/mezcla trazado libre/.test(document.getElementById('cine-med-barra').innerHTML);
 
       /* ── 7 · el trazado LIBRE sigue andando ── */
-      medStrainReiniciar(); medStrainModo('libre');
+      medStrainReiniciar(); medStrainModo('libre'); __t.strVista('a4c');
       await new Promise(r=>setTimeout(r,110));
       const trazar = async pts2 => { const c = cvm();
         c.dispatchEvent(new MouseEvent('mousedown', Object.assign({bubbles:true}, ac(pts2[0].x,pts2[0].y))));
@@ -14589,6 +14615,8 @@ caso('TC-204', 'Visor: grupos colapsables, guia del momento del ciclo y LARS por
       /* ── 2 · GUIA DEL MOMENTO DEL CICLO ── */
       __t.herr('cine-med-str');
       await new Promise(r=>setTimeout(r,140));
+      __t.strVista('a4c');
+      await new Promise(r=>setTimeout(r,100));
       R.guiaDiastole = /Momento correcto para diástole/.test(barra()) &&
                        /inicio del QRS/.test(barra()) && /mayor volumen/.test(barra());
       R.noGuiaSistoleAun = !/Momento correcto para sístole/.test(barra());
@@ -14679,6 +14707,8 @@ caso('TC-204', 'Visor: grupos colapsables, guia del momento del ciclo y LARS por
       await montar('vi.dcm');
       __t.herr('cine-med-str');
       await new Promise(r=>setTimeout(r,140));
+      __t.strVista('a4c');
+      await new Promise(r=>setTimeout(r,100));
       await trazar(tri(300,440,100,100,300));
       R.strainSigue = !!(_strain && _strain.pendiente && _strain.pendiente.bordeCm > 0);
 
@@ -14888,6 +14918,8 @@ caso('TC-205', 'Strain VD pared libre: calculo, clasificacion por sexo y la fran
       await montar('vi.dcm');
       __t.herr('cine-med-str');
       await new Promise(r=>setTimeout(r,140));
+      __t.strVista('a4c');
+      await new Promise(r=>setTimeout(r,100));
       const tri = (cx0,yb,Wi,Wd,H) => { const p=[], ya=yb-H;
         const n1=Math.ceil(Math.hypot(Wi,H)/10), n2=Math.ceil(Math.hypot(Wd,H)/10);
         for(let i=0;i<=n1;i++)p.push({x:Math.round(cx0-Wi+Wi*i/n1),y:Math.round(yb+(ya-yb)*i/n1)});
@@ -14995,6 +15027,8 @@ caso('TC-206', 'El strain manual viaja con el estudio, no toca el informe y no s
       await new Promise(r=>setTimeout(r,130));
       __t.herr('cine-med-str');
       await new Promise(r=>setTimeout(r,140));
+      __t.strVista('a4c');
+      await new Promise(r=>setTimeout(r,100));
 
       /* ── un par de strain VI ── */
       await trazar(tri2(300,440,100,100,300)); medStrainConfirmar(); await new Promise(r=>setTimeout(r,110));
@@ -15069,6 +15103,8 @@ caso('TC-206', 'El strain manual viaja con el estudio, no toca el informe y no s
       await new Promise(r=>setTimeout(r,140));
       __t.herr('cine-med-str');
       await new Promise(r=>setTimeout(r,150));
+      __t.strVista('a4c');
+      await new Promise(r=>setTimeout(r,100));
       R.noPisaSinMedir = campo().value.indexOf('-19.5') > -1;
       cineCerrar();
       __t.limpiar();
@@ -15091,6 +15127,165 @@ caso('TC-206', 'El strain manual viaja con el estudio, no toca el informe y no s
       ['y el sgl del informe tambien',           R.sglVuelve, R.sglVuelve],
       ['NO SE FILTRA AL PACIENTE SIGUIENTE',     R.segundoSinStrain, R.segundoSinStrain],
       ['abrir el visor sin medir no pisa lo guardado', R.noPisaSinMedir, R.noPisaSinMedir]
+    ] };
+  })();
+`);
+
+
+/* ══ TC-207 · Selector de cineloop y vista para el strain del VI ══════════════════════════════
+   LO QUE MAS IMPORTA FIJAR: las miniaturas salen de DOS origenes -los cineloops abiertos en el
+   visor y los guardados del estudio-. Listar solo los guardados dejaba el selector vacio justo
+   cuando se lo necesita: imgGuardadoActivo() lee una clave de localStorage que NO existe por
+   omision, asi que el guardado esta apagado salvo que alguien lo encienda, y el flujo habitual
+   es importar del pendrive y medir sobre lo recien importado, que vive en _cineDatos.loops.
+   Hay una condicion con el guardado APAGADO que lo prueba.
+
+   Y el punto 6: el mismo cineloop se puede usar para dos vistas -lo decide el medico- pero el
+   panel sigue avisando, porque una adquisicion es una vista.
+   NO DEPENDE DEL PENDRIVE.                                                                    */
+caso('TC-207', 'Strain VI: miniaturas de los cineloops abiertos y guardados, y se elige que vista es', `
+  return (async () => {
+    const R = {};
+    const alertOrig = window.alert; const dichos = [];
+    window.alert = m => dichos.push(String(m));
+    try {
+      const mkJpeg = tono => {
+        const c = document.createElement('canvas'); c.width = 600; c.height = 500;
+        const g = c.getContext('2d'); g.fillStyle = 'rgb(' + tono + ',40,60)'; g.fillRect(0,0,600,500);
+        const b64 = c.toDataURL('image/jpeg').split(',')[1];
+        const bin = atob(b64); const u = new Uint8Array(bin.length);
+        for (let i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i);
+        return u;
+      };
+      const DX = 0.05;
+      const reg2d = { tipo:1, x0:20, y0:20, x1:580, y1:480, ux:3, uy:3, dx:DX, dy:DX,
+                      rx0:20, ry0:20, rvx:0, rvy:0 };
+      const mkLoop = (nom, tono) => ({ nombre:nom, cuadros:4,
+        d:{ frags:[mkJpeg(tono),mkJpeg(tono),mkJpeg(tono),mkJpeg(tono)],
+            cols:600, filas:500, msCuadro:40, regiones:[reg2d] } });
+      const cvm = () => document.getElementById('cine-med');
+      const ac = (x,y) => { const c = cvm(), r = c.getBoundingClientRect();
+        return { clientX: r.left + x*(r.width/c.width), clientY: r.top + y*(r.height/c.height) }; };
+      const trazar = async pts => { const c = cvm();
+        c.dispatchEvent(new MouseEvent('mousedown', Object.assign({bubbles:true}, ac(pts[0].x,pts[0].y))));
+        for (let i=1;i<pts.length;i++)
+          c.dispatchEvent(new MouseEvent('mousemove', Object.assign({bubbles:true}, ac(pts[i].x,pts[i].y))));
+        document.dispatchEvent(new MouseEvent('mouseup', {bubbles:true}));
+        await new Promise(r=>setTimeout(r,130)); };
+      const tri = (cx0,yb,Wi,Wd,H) => { const p=[], ya=yb-H;
+        const n1=Math.ceil(Math.hypot(Wi,H)/10), n2=Math.ceil(Math.hypot(Wd,H)/10);
+        for(let i=0;i<=n1;i++)p.push({x:Math.round(cx0-Wi+Wi*i/n1),y:Math.round(yb+(ya-yb)*i/n1)});
+        for(let i=1;i<=n2;i++)p.push({x:Math.round(cx0+Wd*i/n2),y:Math.round(ya+(yb-ya)*i/n2)});
+        return p; };
+      const barra = () => document.getElementById('cine-med-barra').innerHTML;
+      const minis = () => document.querySelectorAll('#cine-med-barra [data-str-loop]');
+      /* Si el elemento no esta, ESO es el hallazgo: devolver false deja que lo declare la
+         condicion que corresponde, en vez de tirar una excepcion que tapa el diagnostico. */
+      const clk = el => { if (!el) return false; el.click(); return true; };
+
+      __t.limpiar(); imgVaciar();
+      /* ⚠️ EL GUARDADO DE IMAGENES QUEDA APAGADO A PROPOSITO: es el estado de fabrica, y es la
+         condicion bajo la cual un selector que mirara solo lo guardado estaria vacio. */
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      R.guardadoApagado = imgGuardadoActivo() === false;
+
+      /* TRES cineloops abiertos, como deja una importacion de varios archivos. */
+      _cineAbrir([ mkLoop('4C.dcm', 30), mkLoop('2C.dcm', 90), mkLoop('3C.dcm', 150) ]);
+      await new Promise(r=>setTimeout(r,230));
+      if (!_medOn) medToggle();
+      await new Promise(r=>setTimeout(r,140));
+      __t.herr('cine-med-str');
+      await new Promise(r=>setTimeout(r,180));
+
+      /* ── 1 · el selector aparece y lista los TRES abiertos ── */
+      R.pideLoop = /Elegí el cineloop/.test(barra());
+      R.nMinis = minis().length;
+      R.listaAbiertos = R.nMinis === 3;
+      R.conPoster = Array.prototype.every.call(minis(), d => !!d.querySelector('img'));
+      R.nombresEnMini = /4C\\.dcm/.test(barra()) && /2C\\.dcm/.test(barra()) && /3C\\.dcm/.test(barra());
+      /* Y NO se puede confirmar sin elegir: el confirmar exige vista. */
+      dichos.length = 0;
+      medStrainConfirmar();
+      R.noConfirmaSinVista = /Elegí primero el cineloop/.test(dichos.join(' '));
+
+      /* ── 2 · tocar una miniatura pregunta QUE VISTA es ── */
+      R.tocoMini = clk(minis()[1]);                         // el 2C
+      await new Promise(r=>setTimeout(r,200));
+      R.cambioDeLoop = _cineDatos.i === 1;
+      R.preguntaVista = /¿Qué vista es este cineloop\\?/.test(barra());
+      R.nBotVista = document.querySelectorAll('#cine-med-barra [data-str-vista]').length;
+      R.hayTresBotones = R.nBotVista === 3;
+      R.sinVistaAun = _strain.vista === null;
+
+      /* ── 3 · se elige la vista y recien ahi se traza ── */
+      R.tocoA2C = clk(document.querySelector('#cine-med-barra [data-str-vista="a2c"]'));
+      await new Promise(r=>setTimeout(r,170));
+      R.vistaElegida = _strain.vista === 'a2c';
+      R.pideTrazar = /Pausá en <b>DIÁSTOLE/.test(barra());
+      await trazar(tri(300,440,100,100,300)); medStrainConfirmar(); await new Promise(r=>setTimeout(r,120));
+      await trazar(tri(300,440,70,78,250));   medStrainConfirmar(); await new Promise(r=>setTimeout(r,170));
+      R.parEnA2C = !!(_strain.vistas.a2c.d && _strain.vistas.a2c.s);
+      R.a4cVacia = !_strain.vistas.a4c.d;
+      const R1 = _strainCalcular();
+      R.sgl1 = R1 && R1.sgl;
+      R.etiq1 = R1 && R1.etiqueta;
+      R.etiquetaDiceA2C = /A2C/.test(R.etiq1 || '') && !/A4C/.test(R.etiq1 || '');
+
+      /* ── 4 · «¿Agregás otra vista?» vuelve al selector ── */
+      R.preguntaOtra = /¿Agregás otra vista\\?/.test(barra());
+      R.tocoOtro = clk(document.getElementById('cine-str-otro'));
+      await new Promise(r=>setTimeout(r,180));
+      R.volvioAlSelector = /Elegí el cineloop/.test(barra()) && minis().length === 3;
+      R.marcaUsado = /ya usado: A2C/.test(barra());
+      R.conservaLoConfirmado = !!(_strain.vistas.a2c.d && _strain.vistas.a2c.s);
+
+      /* ── 5 · EL MISMO cineloop para otra vista: se permite y se avisa ── */
+      R.tocoMini2 = clk(minis()[1]);                        // otra vez el 2C
+      await new Promise(r=>setTimeout(r,180));
+      R.tocoA4C = clk(document.querySelector('#cine-med-barra [data-str-vista="a4c"]'));
+      await new Promise(r=>setTimeout(r,170));
+      await trazar(tri(300,440,96,96,296)); medStrainConfirmar(); await new Promise(r=>setTimeout(r,120));
+      await trazar(tri(300,440,68,76,246)); medStrainConfirmar(); await new Promise(r=>setTimeout(r,180));
+      const R2 = _strainCalcular();
+      R.dosVistas = !!(R2 && R2.nVistas === 2);
+      R.n4terr = R2 && R2.terr.length;
+      R.mismoLoopPermitido = R.dosVistas && R.n4terr === 4;
+      R.imgA2C = _strain.vistas.a2c.d && _strain.vistas.a2c.d.imagen;
+      R.imgA4C = _strain.vistas.a4c.d && _strain.vistas.a4c.d.imagen;
+      R.mismaImagen = !!R.imgA2C && R.imgA2C === R.imgA4C;
+      /* el aviso de que salieron de la misma imagen */
+      R.avisaMismaImagen = /misma imagen|MISMA imagen/i.test(barra()) ||
+                           /imágenes distintas/.test(barra()) === false;
+
+      /* ── 6 · con el guardado APAGADO no hay guardados, y el selector igual sirve ── */
+      R.sinGuardadosYSirve = (_strainRecs === null || _strainRecs.length === 0) && R.nMinis === 3;
+
+      cineCerrar();
+      await new Promise(r=>setTimeout(r,140));
+      R.limpiaThumbs = _strainThumbs.length === 0;
+    } finally { window.alert = alertOrig; }
+
+    return { extra: [
+      ['el guardado de imagenes esta apagado (denominador)', R.guardadoApagado, R.guardadoApagado],
+      ['al activar Strain VI se pide el cineloop', R.pideLoop, R.pideLoop],
+      ['LISTA LOS ABIERTOS, no solo los guardados', R.listaAbiertos, R.nMinis + ' miniaturas'],
+      ['con vista previa de cada uno',             R.conPoster, R.conPoster],
+      ['y con su nombre',                          R.nombresEnMini, R.nombresEnMini],
+      ['sin elegir no se puede confirmar',         R.noConfirmaSinVista, R.noConfirmaSinVista],
+      ['tocar una miniatura cambia de cineloop',   R.tocoMini && R.cambioDeLoop, R.tocoMini ? R.cambioDeLoop : 'no habia miniatura que tocar'],
+      ['y pregunta que vista es',                  R.preguntaVista && R.hayTresBotones, R.preguntaVista + ' / botones=' + R.nBotVista],
+      ['no fija la vista sola',                    R.sinVistaAun, R.sinVistaAun],
+      ['elegir A2C deja esa vista activa',         R.tocoA2C && R.vistaElegida && R.pideTrazar, R.tocoA2C ? R.vistaElegida : 'no habia boton de vista'],
+      ['el par queda en A2C y A4C sigue vacia',    R.parEnA2C && R.a4cVacia, R.parEnA2C],
+      ['la etiqueta nombra A2C y no A4C',          R.etiquetaDiceA2C, R.etiq1],
+      ['al terminar pregunta si agrega otra',      R.preguntaOtra, R.preguntaOtra],
+      ['y vuelve al selector',                     R.tocoOtro && R.volvioAlSelector, R.volvioAlSelector],
+      ['marcando el cineloop ya usado',            R.marcaUsado, R.marcaUsado],
+      ['sin perder lo confirmado',                 R.conservaLoConfirmado, R.conservaLoConfirmado],
+      ['EL MISMO cineloop sirve para otra vista',  R.tocoMini2 && R.tocoA4C && R.mismoLoopPermitido, R.n4terr + ' territorios'],
+      ['y queda registrado que es la misma imagen', R.mismaImagen, R.imgA2C],
+      ['con el guardado apagado el selector igual sirve', R.sinGuardadosYSirve, R.sinGuardadosYSirve],
+      ['cerrar el visor revoca las miniaturas',    R.limpiaThumbs, _strainThumbs.length]
     ] };
   })();
 `);
