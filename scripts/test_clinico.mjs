@@ -10856,6 +10856,112 @@ caso('TC-185', 'Cineloops al reabrir desde Guardados, con la tab Imagenes ya abi
   })();
 `);
 
+/* ══ TC-186 · El «+» de un slot tambien abre DICOM ═══════════════════════════════════════════
+   Se ejercita el INPUT REAL con un DataTransfer y un evento change, no la funcion suelta: lo
+   que hay que fijar incluye el cableado, porque el defecto mas probable aca es que el onchange
+   quede apuntando a la funcion vieja y todo lo demas este perfecto.
+
+   Tres cosas que importan y una que se mide aparte:
+   · una foto comun sigue por el camino de siempre -- se verifica que el slot tenga `_orig`,
+     que solo lo pone imgCompressLoad, o sea que paso por imgFileChosen de verdad;
+   · un DICOM fijo cae en EL SLOT QUE SE APRETO, no en el primer hueco de la grilla;
+   · un cineloop abre el reproductor y NO ocupa slot;
+   · la deteccion es por BYTES: un archivo llamado .dcm que no es DICOM no se trata como tal.   */
+caso('TC-186', 'El «+» de un slot: foto normal igual que siempre, DICOM detectado por sus bytes', `
+  return (async () => {
+    const P = ${JSON.stringify(PENDRIVE)};
+    if (!P.fijas.length) return { extra: [[
+      'hacen falta archivos del pendrive', false, 'no se encontraron: quedo SIN verificar']] };
+    const bytes = x => { const b = atob(x.b64); const a = new Uint8Array(b.length);
+      for (let i=0;i<b.length;i++) a[i] = b.charCodeAt(i); return a; };
+    const JPG = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,219,0,67,0,8,6,6,7,6,5,8,7,7,7,9,9,8,10,12,20,13,12,11,11,12,25,18,19,15,20,29,26,31,30,29,26,28,28,32,36,46,39,32,34,44,35,28,28,40,55,41,44,48,49,52,52,52,31,39,57,61,56,50,60,46,51,52,50,255,192,0,11,8,0,1,0,1,1,1,17,0,255,196,0,20,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,255,196,0,20,16,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,218,0,8,1,1,0,0,63,0,42,159,255,217]);
+
+    const inp = document.getElementById('img-file-input');
+    const R = {};
+    R.sinAccept = !!inp && !inp.getAttribute('accept');
+    R.cableado = !!inp && String(inp.getAttribute('onchange') || '').indexOf('imgFileElegido') > -1;
+
+    /* Dispara el input REAL, como lo haria el selector del sistema. */
+    const elegir = async (file, slot) => {
+      imgActiveSlot = slot;
+      const dt = new DataTransfer(); dt.items.add(file);
+      inp.files = dt.files;
+      inp.dispatchEvent(new Event('change', { bubbles:true }));
+      await new Promise(r => setTimeout(r, 120));
+    };
+    const esperar = async (cond, n) => { for (let i=0;i<(n||80);i++) { if (cond()) return true; await new Promise(r=>setTimeout(r,60)); } return cond(); };
+    const llenos = () => imgSlots.filter(s => s && s.dataURL).length;
+
+    const alertOrig = window.alert, confirmOrig = window.confirm;
+    window.alert = () => {}; window.confirm = () => true;
+    const TOG = 'cfg-guardar-imagenes'; const prevTog = localStorage.getItem(TOG);
+    try {
+      localStorage.setItem(TOG, '0');       // sin persistencia: este caso mira la grilla, no el disco
+
+      /* ── 1. foto comun desde el «+» del slot 3, con el 0 y el 1 libres ── */
+      __t.limpiar(); imgVaciar();
+      imgSlots.length = 0; imgSlots.push(null, null, null, null); imgSlotCount = 4;
+      await elegir(new File([JPG], 'foto.jpg', { type:'image/jpeg' }), 3);
+      await esperar(() => llenos() > 0);
+      R.fotoEnElSlotApretado = !!(imgSlots[3] && imgSlots[3].dataURL);
+      /* El campo _orig lo pone imgCompressLoad y NADIE mas: si esta, la foto paso por el camino de
+         siempre y no por una copia paralela. */
+      R.fotoPorElCaminoDeSiempre = !!(imgSlots[3] && imgSlots[3]._orig);
+      R.fotoNoPiso = llenos() === 1;
+
+      /* ── 2. DICOM FIJO desde el «+» del slot 2, con el 0 y el 1 libres ── */
+      __t.limpiar(); imgVaciar();
+      imgSlots.length = 0; imgSlots.push(null, null, null, null); imgSlotCount = 4;
+      await elegir(new File([bytes(P.fijas[0])], P.fijas[0].nombre), 2);
+      await esperar(() => llenos() > 0);
+      R.dicomEntro = llenos() === 1;
+      R.dicomEnElSlotApretado = !!(imgSlots[2] && imgSlots[2].dataURL);
+      R.dicomNoEnElPrimerHueco = !imgSlots[0] && !imgSlots[1];
+      R.dicomSeVe = !!(imgSlots[2] && _imgSrcOK(imgSlots[2].dataURL));
+
+      /* ── 3. un archivo LLAMADO .dcm que NO es DICOM va por el camino de imagen ── */
+      __t.limpiar(); imgVaciar();
+      imgSlots.length = 0; imgSlots.push(null, null); imgSlotCount = 2;
+      await elegir(new File([JPG], 'mentiroso.dcm'), 0);
+      await esperar(() => llenos() > 0);
+      R.porBytesNoPorNombre = !!(imgSlots[0] && imgSlots[0].dataURL && imgSlots[0]._orig);
+
+      /* ── 4. CINELOOP desde el «+»: abre el reproductor y NO ocupa slot ── */
+      if (P.loop) {
+        __t.limpiar(); imgVaciar();
+        imgSlots.length = 0; imgSlots.push(null, null); imgSlotCount = 2;
+        await elegir(new File([bytes(P.loop)], P.loop.nombre), 0);
+        await esperar(() => !!_cineDatos, 100);
+        const ov = document.getElementById('cine-ov');
+        R.loopAbreReproductor = !!_cineDatos && !!ov && ov.style.display !== 'none';
+        R.loopNoOcupaSlot = llenos() === 0;
+        R.loopEnPausa = !!_cineDatos && !_cineDatos.timer;
+        cineCerrar();
+      }
+    } finally {
+      window.alert = alertOrig; window.confirm = confirmOrig;
+      if (prevTog === null) localStorage.removeItem(TOG); else localStorage.setItem(TOG, prevTog);
+      try { cineCerrar(); } catch (e) {}
+    }
+
+    return { extra: [
+      ['el input del + ya no filtra por extension',      R.sinAccept, 'accept=' + (inp ? inp.getAttribute('accept') : 'sin input')],
+      ['y su onchange pasa por la deteccion',            R.cableado, R.cableado],
+      ['una foto comun entra en el slot que se apreto',  R.fotoEnElSlotApretado, R.fotoEnElSlotApretado],
+      ['y por el camino de siempre (tiene _orig)',       R.fotoPorElCaminoDeSiempre, R.fotoPorElCaminoDeSiempre],
+      ['sin ocupar ningun otro slot',                    R.fotoNoPiso, R.fotoNoPiso],
+      ['un DICOM fijo entra desde el +',                 R.dicomEntro, R.dicomEntro],
+      ['EN EL SLOT QUE SE APRETO',                       R.dicomEnElSlotApretado, R.dicomEnElSlotApretado],
+      ['y no en el primer hueco de la grilla',           R.dicomNoEnElPrimerHueco, R.dicomNoEnElPrimerHueco],
+      ['y se puede mostrar',                             R.dicomSeVe, R.dicomSeVe],
+      ['un .dcm que NO es DICOM va por el camino de imagen', R.porBytesNoPorNombre, R.porBytesNoPorNombre],
+      ['un cineloop desde el + abre el reproductor',     !P.loop || R.loopAbreReproductor, R.loopAbreReproductor],
+      ['y NO ocupa un slot',                             !P.loop || R.loopNoOcupaSlot, R.loopNoOcupaSlot],
+      ['y arranca en pausa',                             !P.loop || R.loopEnPausa, R.loopEnPausa]
+    ] };
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];

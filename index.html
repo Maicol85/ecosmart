@@ -11813,7 +11813,12 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
            un slot es «lo que sale en el PDF». El cineloop NO sale; sale el cuadro que se captura.
            Mezclarlos rompería el único significado que hoy tienen los slots. -->
       <div id="cine-strip" style="margin-top:14px;"></div>
-      <input type="file" id="img-file-input" accept="image/jpeg,image/png,image/webp,image/*" style="display:none" onchange="imgFileChosen(event)">
+      <!-- SIN `accept`, igual que el input de «Importar DICOM» y por la misma razón: el filtro
+           del selector es por tipo MIME derivado de la EXTENSIÓN, y los archivos del pendrive
+           del GE Vivid no tienen ninguna (GEMS_IMG/…/Q9JGCGT0). Con `image/*` quedaban en gris
+           y no se podían elegir, así que la detección por bytes de más abajo habría sido código
+           inalcanzable. El costo es que al agregar una foto el selector ya no prefiltra. -->
+      <input type="file" id="img-file-input" style="display:none" onchange="imgFileElegido(event)">
       <!-- SIN `accept`, a propósito. El GE Vivid escribe los archivos del pendrive SIN NINGUNA
            extensión (GEMS_IMG/…/Q9JGCGT0), así que `accept=".dcm"` los mostraba en gris y no se
            podían elegir: el filtro del selector es por extensión y estos no tienen. El formato
@@ -45163,9 +45168,14 @@ function _dcmImgLeer(buf) {
    `imgCompressLoad` elige slot dentro de su `.then()`, así que sin reservar antes el orden
    en que aparecen las imágenes depende de cuál termine de comprimirse primero — y ese es
    el orden en que salen en el PDF. */
-function _dcmImgReservar(n) {
+/* `preferido` es el slot cuyo «+» se apretó. Va PRIMERO aunque haya libres antes: el médico
+   señaló ese lugar, y mandar la imagen a otro —el primer hueco de la grilla— es moverle la
+   foto adonde no la puso. Se ignora si está ocupado o fuera de rango. */
+function _dcmImgReservar(n, preferido) {
   const idxs = [];
-  for (let i = 0; i < imgSlots.length && idxs.length < n; i++) if (!imgSlots[i]) idxs.push(i);
+  if (typeof preferido === 'number' && preferido >= 0 && preferido < imgSlots.length && !imgSlots[preferido])
+    idxs.push(preferido);
+  for (let i = 0; i < imgSlots.length && idxs.length < n; i++) if (!imgSlots[i] && idxs.indexOf(i) < 0) idxs.push(i);
   while (idxs.length < n) { imgSlots.push(null); idxs.push(imgSlots.length - 1); }
   imgSlotCount = imgSlots.length;
   imgEnsureLen();
@@ -45179,7 +45189,36 @@ function _dcmImgReservar(n) {
 function dcmImgPick(){ const inp = document.getElementById('dcmimg-file-input'); if (inp) { inp.value=''; inp.click(); } }
 window.dcmImgPick = dcmImgPick;
 
-async function dcmImgImportar(fileList) {
+/* ── El «+» de un slot también abre DICOM ────────────────────────────────────────────────
+   Se mira la MARCA del archivo, nunca la extensión: los del pendrive del GE Vivid no tienen
+   ninguna, y un `.dcm` puede ser cualquier cosa. Se leen 132 bytes; si no dicen «DICM», el
+   archivo sigue por el camino de siempre.
+
+   `imgFileChosen` NO se toca ni se duplica: se la llama tal cual con el mismo evento, así
+   que para una foto común el comportamiento es idéntico al de antes —mismo compresor, mismo
+   `_orig`, mismo slot— y no hay una segunda implementación que pueda desviarse.
+
+   Un cineloop elegido desde el «+» abre el reproductor y NO ocupa el slot, igual que desde
+   el botón de importar: el slot es lo que sale en el PDF, y lo que sale de un cineloop es el
+   cuadro que se captura, no el video. */
+async function imgFileElegido(ev) {
+  const f = ev.target && ev.target.files && ev.target.files[0];
+  if (!f) return;
+  const destino = imgActiveSlot;          // el «+» que se apretó, antes de cualquier await
+  let esDicom = false;
+  try {
+    const cab = new Uint8Array(await f.slice(0, 132).arrayBuffer());
+    esDicom = cab.length >= 132 && _dcmImgAscii(cab, 128, 4) === 'DICM';
+  } catch (e) { esDicom = false; }
+  if (!esDicom) { imgFileChosen(ev); return; }    // flujo de siempre, intacto
+  ev.target.value = '';
+  await dcmImgImportar([f], destino);
+}
+window.imgFileElegido = imgFileElegido;
+
+/* `slotPreferido` sólo lo manda el «+» de un slot puntual; el botón «Importar DICOM»
+   importa un lote y no tiene un destino elegido, así que lo deja sin pasar. */
+async function dcmImgImportar(fileList, slotPreferido) {
   const files = [...fileList];
   const listos = [], fallos = [], loops = [];
   for (const f of files) {
@@ -45258,7 +45297,7 @@ async function dcmImgImportar(fileList) {
   }
 
   if (listos.length) {
-    const idxs = _dcmImgReservar(listos.length);
+    const idxs = _dcmImgReservar(listos.length, slotPreferido);
     listos.forEach((x, i) => {
       /* Entra por la MISMA puerta que una foto elegida a mano. El Blob lleva su tipo para
          que el `data:` que produce FileReader salga como image/jpeg y pase `_imgSrcOK`. */
@@ -60952,8 +60991,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260919-2219';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789867171091;                 /* eco-build-ms */
+const ECO_BUILD    = '20260919-2251';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789869074279;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -61039,7 +61078,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-2219</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-2251</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

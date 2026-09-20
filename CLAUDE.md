@@ -7863,6 +7863,24 @@ interpola un dato del DICOM ahí, deja de ser falso positivo — la regla es amp
 > importado sólo las imágenes fijas. La lección: *la base de datos de un visor no es el export del
 > ecógrafo* — mirar el origen, no la copia.
 
+**El «+» de cada slot también abre DICOM (2026-09-20).** Se miran 132 bytes: si dicen `DICM`,
+va por el importador; si no, se llama a **`imgFileChosen` tal cual**, con el mismo evento — no
+hay una segunda implementación del camino de la foto que pueda desviarse. Un cineloop elegido
+desde el «+» abre el reproductor y **no ocupa el slot**, igual que desde el botón.
+
+- **Hubo que sacarle el `accept` al `#img-file-input` también**, y el pedido decía no tocarlo.
+  El filtro es por MIME derivado de la **extensión** y los archivos del Vivid no tienen ninguna:
+  con `image/*` quedaban en gris y la detección por bytes habría sido **código inalcanzable**.
+  No hay otra puerta — los `drop` de los slots sólo reordenan (`text/plain` con el índice), no
+  aceptan archivos del sistema. Decisión de Maicol (2026-09-20). El costo es que al agregar una
+  foto el selector ya no prefiltra a imágenes.
+- **`_dcmImgReservar` toma un slot preferido.** El «+» señala un lugar; mandar la imagen al
+  primer hueco de la grilla sería moverle la foto adonde el médico no la puso. El botón de
+  importar no lo pasa: importa un lote y no tiene destino elegido.
+- Al tocar esto: el defecto más probable es que el `onchange` quede apuntando a `imgFileChosen`
+  y **todo lo demás esté perfecto**. TC-186 dispara el input real con un `DataTransfer` para
+  cubrir el cableado, no sólo la función.
+
 **Sin el filtro del selector (2026-09-19).** El input **no lleva `accept`**, y es a propósito: el
 Vivid escribe los 296 archivos del pendrive **sin ninguna extensión** (`GEMS_IMG/…/Q9JGCGT0`), así
 que `accept=".dcm"` los mostraba en gris y no se podían elegir — el filtro del selector es por
