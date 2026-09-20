@@ -9,6 +9,65 @@ ninguna es evidente leyendo el código alrededor.
 
 
 
+
+## Barra de memoria: umbrales, contadores y avisos (TC-211)
+
+Cuatro tramos (🟢 <60 · 🟡 60-79 · 🟠 80-89 · 🔴 ≥90), contadores debajo y aviso con botón de
+exportar. **El corte anterior era uno solo, en 85 %, y se reemplaza**: con dos escalas sobre el
+mismo porcentaje, la barra se pone roja en un umbral y el aviso habla de otro — el defecto de
+«tres agendas» que este archivo ya pagó.
+
+**EL COLOR Y EL TEXTO SALEN DEL MISMO `_IG_TRAMOS`**, y la condición que lo fija cruza los dos
+en los **bordes exactos** (59/60, 79/80, 89/90). Una condición que sólo mirara que hay cuatro
+colores pasa con la tabla del aviso desalineada.
+
+### El aviso: el toast va una vez, el BLOQUE se queda
+
+`sessionStorage` y no `localStorage`: el pedido dice «no repetir en cada recarga», no «no
+repetir nunca» — con `localStorage`, cruzar el 90 % una vez silenciaría el aviso **para
+siempre**, que es justo cuando hay que verlo. Y cruzar el umbral **siguiente** vuelve a avisar.
+
+**El bloque con el botón de exportar se muestra SIEMPRE por encima del 60 %.** Esconderlo
+porque ya se mostró una vez se lleva puesto el botón justo cuando hace falta. Lo que va una vez
+por sesión es el toast, que es la parte que interrumpe. La mutación que esconde el bloque cae
+por dos condiciones.
+
+⚠️ **`sessionStorage` no es «cerrar el navegador»**: se copia al duplicar la pestaña y lo repone
+la restauración de sesión, así que el aviso puede saltearse alguna vez. Aceptable para un
+recordatorio; **no lo sería para una compuerta**.
+
+### Los contadores
+
+- **`CeiboImg.uso()` no devolvía el conteo de imágenes**, sólo de ESTUDIOS con imágenes. Se
+  agregó `imgs` —aditivo, los consumidores existentes leen `estudios` y `bytes`—. La mutación
+  que muestra `estudios` bajo el rótulo «imágenes» cae.
+- **Los estudios con strain manual se cuentan con `_labStrainDeEstudio`**, el MISMO lector del
+  Laboratorio. Con una segunda implementación, las dos pantallas informarían números distintos
+  sobre la misma base.
+- **Las lecturas fallan a cero POR SEPARADO.** Con un `Promise.all` pelado, que IndexedDB no
+  responda para los cineloops borraría también el conteo de imágenes y la barra diría
+  «0 imágenes» sobre un disco lleno.
+- **Sin cuota informada no se inventa denominador**: se dice que el navegador no la informa, en
+  vez de imprimir «de 0.0 MB disponibles». Es la misma regla que ya tenía la barra.
+
+### Lo que NO cambió, a propósito
+
+**Con el guardado de imágenes APAGADO la barra sigue vaciándose**, contadores incluidos. Es el
+comportamiento que ya tenía —la barra afirmaría un consumo sobre una función que la app no está
+usando— y el toggle viene apagado de fábrica, así que **en una instalación limpia no se ve
+nada**. Queda declarado: si algún día se quiere el contador de strain visible siempre, hay que
+sacarlo de esa compuerta, que no es gratis.
+
+**El botón abre `igIOToggle('exp')`, el desplegable de exportar que ya vive en esa cabecera.**
+No se escribió un exportador nuevo: con dos, el backup de un botón y el del otro pueden
+divergir.
+
+### Una mutación que era un no-op
+
+La primera versión de M2 fue `if (x) { } else if (!x) {`, que es **lo mismo** que `if (!x)`.
+Dio verde y por un momento pareció un superviviente. **Antes de creerle a una mutación que
+sobrevive, leerla como código**: si es equivalente al original, no probó nada.
+
 ## Selector de imágenes del PPT — y una premisa que verifiqué MAL (2026-09-20)
 
 ### Lo primero: mi propia verificación estaba equivocada

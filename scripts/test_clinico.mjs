@@ -15953,6 +15953,152 @@ caso('TC-210', 'PPT: selector de imagenes, orden, layout de 1/2/3/4 y sin selecc
   })();
 `);
 
+
+/* ══ TC-211 · Barra de memoria: umbrales, contadores y avisos ════════════════════════════════
+   El color y el texto del aviso salen del MISMO tramo: con dos tablas, la barra se pone naranja
+   en un umbral y el aviso habla de otro -el defecto de «tres agendas»-. Hay una condicion que
+   cruza los dos por los CUATRO tramos, y en los bordes exactos (59/60, 79/80, 89/90).
+   El aviso interruptivo va UNA VEZ POR SESION; el BLOQUE con el boton de exportar se muestra
+   siempre que se pase el 60 %, porque esconderlo se lleva el boton justo cuando hace falta.
+   NO DEPENDE DEL PENDRIVE.                                                                    */
+caso('TC-211', 'Guardados: barra de memoria con umbrales, contadores y aviso por sesion', `
+  return (async () => {
+    const R = {};
+    const usoOrig = CeiboImg.uso, cuotaOrig = CeiboImg.cuota;
+    const cineOrig = (typeof CeiboCine !== 'undefined') ? CeiboCine.uso : null;
+    const toastOrig = window.toast;
+    const tostadas = [];
+    window.toast = m => { tostadas.push(String(m)); };
+    try {
+      /* el guardado de imagenes tiene que estar ENCENDIDO o la barra sale temprano y vacia */
+      localStorage.setItem('cfg-guardar-imagenes','1');
+      R.guardadoOn = imgGuardadoActivo() === true;
+      try { sessionStorage.removeItem('ett_stor_aviso'); } catch (e) {}
+
+      const TOT = 1000 * 1048576;                       // 1000 MB de cuota
+      const sembrar = pct => {
+        CeiboImg.uso   = () => Promise.resolve({ estudios: 7, imgs: 23, bytes: TOT * pct / 100 });
+        CeiboImg.cuota = () => Promise.resolve({ usado: TOT * pct / 100, total: TOT });
+        if (typeof CeiboCine !== 'undefined') CeiboCine.uso = () => Promise.resolve({ n: 4, bytes: 1000 });
+      };
+      const pintar = async pct => { sembrar(pct); imgStorageRender();
+        await new Promise(r=>setTimeout(r,170));
+        return document.getElementById('ig-img-storage'); };
+
+      /* ── 1 · color por tramo, en los BORDES ── */
+      const colorDe = el => { const b = el.querySelector('span[style*="color"]');
+        return b ? getComputedStyle(b).color : ''; };
+      const puntos = [10, 59, 60, 79, 80, 89, 90, 100];
+      R.colores = {};
+      for (const p of puntos) { const el = await pintar(p); R.colores[p] = colorDe(el); }
+      const distintos = new Set(Object.keys(R.colores).map(k => R.colores[k]));
+      R.cuatroColores = distintos.size === 4;
+      R.verdeHasta59  = R.colores[10] === R.colores[59];
+      R.cambiaEn60    = R.colores[59] !== R.colores[60];
+      R.amarilloHasta79 = R.colores[60] === R.colores[79];
+      R.cambiaEn80    = R.colores[79] !== R.colores[80];
+      R.naranjaHasta89 = R.colores[80] === R.colores[89];
+      R.cambiaEn90    = R.colores[89] !== R.colores[90];
+      R.rojoHasta100  = R.colores[90] === R.colores[100];
+
+      /* ── 2 · contadores ── */
+      const el50 = await pintar(50);
+      const t50 = el50.textContent.replace(/\\s+/g,' ');
+      R.txt50 = t50.slice(0, 200);
+      R.cuentaImgs   = t50.indexOf('📷 23 imagen') >= 0;
+      R.cuentaCine   = t50.indexOf('🎬 4 cineloop') >= 0;
+      R.cuentaStrain = /📊 \\d+ estudio\\(s\\) con strain manual/.test(t50);
+      R.cuentaMB     = t50.indexOf('500.0 MB usados de 1000.0 MB disponibles') >= 0;
+      /* por debajo del 60 no hay aviso ni boton */
+      R.sinAvisoEn50 = !el50.querySelector('[data-ig-aviso]') && !el50.querySelector('[data-ig-exportar]');
+
+      /* ── 3 · el color y el TEXTO del aviso salen del mismo tramo ── */
+      const esperado = { 60:'al 60%', 80:'al 80%', 90:'casi lleno (90%)' };
+      R.coincide = {};
+      for (const p of [60, 80, 90]) {
+        const el = await pintar(p);
+        const av = el.querySelector('[data-ig-aviso]');
+        R.coincide[p] = !!av && av.getAttribute('data-ig-aviso') === String(p) &&
+                        av.textContent.indexOf(esperado[p]) >= 0 &&
+                        getComputedStyle(av).borderLeftColor === R.colores[p];
+      }
+      R.textoYColorCoinciden = R.coincide[60] && R.coincide[80] && R.coincide[90];
+
+      /* ── 4 · el boton de exportar abre el desplegable que YA existe ── */
+      const el90 = await pintar(90);
+      const btn = el90.querySelector('[data-ig-exportar]');
+      R.hayBoton = !!btn;
+      let abrio = false;
+      const ioOrig = window.igIOToggle;
+      window.igIOToggle = k => { if (k === 'exp') abrio = true; };
+      if (btn) btn.click();
+      window.igIOToggle = ioOrig;
+      R.botonAbreExportar = abrio;
+
+      /* ── 5 · el toast va UNA VEZ POR SESION, el BLOQUE se queda ── */
+      try { sessionStorage.removeItem('ett_stor_aviso'); } catch (e) {}
+      tostadas.length = 0;
+      const a1 = await pintar(85);
+      R.toast1 = tostadas.filter(m => m.indexOf('al 80%') >= 0).length;
+      const a2 = await pintar(85);
+      const a3 = await pintar(85);
+      R.toast3 = tostadas.filter(m => m.indexOf('al 80%') >= 0).length;
+      R.unaVezPorSesion = R.toast1 === 1 && R.toast3 === 1;
+      R.bloqueSigue = !!a3.querySelector('[data-ig-aviso]') && !!a3.querySelector('[data-ig-exportar]');
+      /* cruzar el umbral siguiente SI vuelve a avisar */
+      const a4 = await pintar(95);
+      R.toast90 = tostadas.filter(m => m.indexOf('casi lleno (90%)') >= 0).length;
+      R.avisaElNuevoUmbral = R.toast90 === 1;
+
+      /* ── 6 · la barra existente no se rompe ── */
+      const elN = await pintar(30);
+      R.hayBloques = /[█░]/.test(elN.textContent);
+      R.diezBloques = (elN.textContent.match(/[█░]/g) || []).length === 10;
+      R.diceUsado = elN.textContent.indexOf('usado') >= 0;
+      /* con el guardado APAGADO la barra se vacia, como antes */
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      imgStorageRender();
+      await new Promise(r=>setTimeout(r,160));
+      R.vaciaConToggleOff = document.getElementById('ig-img-storage').textContent === '';
+      localStorage.setItem('cfg-guardar-imagenes','1');
+      /* sin cuota informada no se inventa denominador */
+      CeiboImg.uso   = () => Promise.resolve({ estudios: 2, imgs: 5, bytes: 3 * 1048576 });
+      CeiboImg.cuota = () => Promise.resolve({ usado: 3 * 1048576, total: 0 });
+      imgStorageRender(); await new Promise(r=>setTimeout(r,170));
+      const sinQ = document.getElementById('ig-img-storage').textContent;
+      R.sinCuota = sinQ.indexOf('no informa la cuota') >= 0 && sinQ.indexOf('disponibles') < 0;
+    } finally {
+      CeiboImg.uso = usoOrig; CeiboImg.cuota = cuotaOrig;
+      if (cineOrig) CeiboCine.uso = cineOrig;
+      window.toast = toastOrig;
+      try { sessionStorage.removeItem('ett_stor_aviso'); } catch (e) {}
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      try { imgStorageRender(); } catch (e) {}
+    }
+    return { extra: [
+      ['el guardado de imagenes esta encendido (denominador)', R.guardadoOn, R.guardadoOn],
+      ['CUATRO colores distintos, uno por tramo',   R.cuatroColores, JSON.stringify(R.colores)],
+      ['verde hasta 59 y cambia en 60',             R.verdeHasta59 && R.cambiaEn60, R.colores[59] + ' -> ' + R.colores[60]],
+      ['amarillo hasta 79 y cambia en 80',          R.amarilloHasta79 && R.cambiaEn80, R.colores[79] + ' -> ' + R.colores[80]],
+      ['naranja hasta 89 y cambia en 90',           R.naranjaHasta89 && R.cambiaEn90, R.colores[89] + ' -> ' + R.colores[90]],
+      ['rojo del 90 al 100',                        R.rojoHasta100, R.colores[100]],
+      ['contador de imagenes',                      R.cuentaImgs, R.txt50],
+      ['contador de cineloops',                     R.cuentaCine, R.cuentaCine],
+      ['contador de estudios con strain manual',    R.cuentaStrain, R.cuentaStrain],
+      ['MB usados de MB disponibles',               R.cuentaMB, R.cuentaMB],
+      ['por debajo del 60 no hay aviso ni boton',   R.sinAvisoEn50, R.sinAvisoEn50],
+      ['EL COLOR Y EL TEXTO SALEN DEL MISMO TRAMO', R.textoYColorCoinciden, JSON.stringify(R.coincide)],
+      ['el boton abre el exportador que ya existe', R.hayBoton && R.botonAbreExportar, R.botonAbreExportar],
+      ['el toast va UNA VEZ por sesion',            R.unaVezPorSesion, R.toast1 + ' -> ' + R.toast3],
+      ['pero el bloque y el boton se quedan',       R.bloqueSigue, R.bloqueSigue],
+      ['cruzar el umbral siguiente SI vuelve a avisar', R.avisaElNuevoUmbral, R.toast90],
+      ['la barra de bloques sigue igual',           R.hayBloques && R.diezBloques && R.diceUsado, R.diezBloques],
+      ['con el guardado apagado se vacia, como antes', R.vaciaConToggleOff, R.vaciaConToggleOff],
+      ['sin cuota informada no inventa denominador', R.sinCuota, R.sinCuota]
+    ] };
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];

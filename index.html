@@ -25239,6 +25239,64 @@ const _fmtMB = b => (b / 1048576) >= 1 ? (b / 1048576).toFixed(1) + ' MB' : Math
    devolviendo `{usado, total}` en bytes, esta función no cambia. Lo que sí hay que revisar ese
    día es el texto: «del navegador usado» pasa a ser «de tu espacio usado», y el caso «cuota no
    informada» deja de existir porque el backend siempre la conoce. */
+
+/* ══ BARRA DE MEMORIA: umbrales, contadores y avisos ═══════════════════════════════════════
+   Los cuatro tramos del pedido. El corte anterior era uno solo (85 %) y se reemplaza: con dos
+   escalas sobre el mismo porcentaje, la barra se pondría roja en un umbral y el aviso hablaría
+   de otro, que es el defecto de «tres agendas» que este archivo ya pagó. */
+const _IG_TRAMOS = [
+  { min: 90, col: 'var(--red)',    emoji: '🔴',
+    txt: '⚠️ Almacenamiento casi lleno (90%). Exportá estudios urgente para evitar perder datos.' },
+  { min: 80, col: 'var(--orange)', emoji: '🟠',
+    txt: 'Tu almacenamiento está al 80%. Exportá estudios para liberar espacio pronto.' },
+  { min: 60, col: 'var(--yellow)', emoji: '🟡',
+    txt: 'Tu almacenamiento está al 60%. Considerá exportar estudios antiguos para liberar espacio.' },
+  { min: 0,  col: 'var(--green)',  emoji: '🟢', txt: '' }
+];
+const _igTramo = pct => _IG_TRAMOS.filter(t => pct >= t.min)[0] || _IG_TRAMOS[_IG_TRAMOS.length - 1];
+
+/* Una vez por SESIÓN y por umbral. En `sessionStorage` y no en `localStorage`: el pedido dice
+   «no repetir en cada recarga», no «no repetir nunca» — con `localStorage`, cruzar el 90 % una
+   vez silenciaría el aviso para siempre, que es justo cuando hay que verlo.
+   ⚠️ `sessionStorage` NO es «cerrar el navegador»: se copia al duplicar la pestaña y lo repone
+   la restauración de sesión, así que el aviso puede saltearse alguna vez. Es aceptable para un
+   recordatorio; NO lo sería para una compuerta. */
+const _IG_AVISO_KEY = 'ett_stor_aviso';
+function _igAvisoYaVisto(min) {
+  try {
+    const v = sessionStorage.getItem(_IG_AVISO_KEY) || '';
+    return v.split(',').indexOf(String(min)) >= 0;
+  } catch (e) { return true; }   // sin sessionStorage no se insiste en cada repintado
+}
+function _igMarcarAviso(min) {
+  try {
+    const v = (sessionStorage.getItem(_IG_AVISO_KEY) || '').split(',').filter(Boolean);
+    if (v.indexOf(String(min)) < 0) v.push(String(min));
+    sessionStorage.setItem(_IG_AVISO_KEY, v.join(','));
+  } catch (e) {}
+}
+
+/* Los contadores. Las tres lecturas van en paralelo y cada una FALLA A CERO por su cuenta: con
+   un `Promise.all` pelado, que IndexedDB no responda para los cineloops borraría también el
+   conteo de imágenes, y la barra quedaría diciendo «0 imágenes» sobre un disco lleno. */
+function _igContadores() {
+  const cero = { n: 0, bytes: 0 };
+  const pCine = (typeof CeiboCine !== 'undefined' && CeiboCine.uso)
+    ? CeiboCine.uso().catch(() => cero) : Promise.resolve(cero);
+  return pCine.then(cine => {
+    /* Estudios con strain manual: se cuenta con `_labStrainDeEstudio`, el MISMO lector que usa
+       el Laboratorio. Con una segunda implementación, las dos pantallas informarían números
+       distintos sobre la misma base. */
+    let strain = 0;
+    try {
+      if (typeof _labStrainDeEstudio === 'function' && typeof getInformes === 'function') {
+        strain = getInformes().filter(i => _labStrainDeEstudio(i)).length;
+      }
+    } catch (e) { strain = 0; }
+    return { cine: cine, strain: strain };
+  });
+}
+
 function imgStorageRender() {
   const cont = document.getElementById('ig-img-storage');
   if (!cont || typeof CeiboImg === 'undefined') return;
@@ -25246,12 +25304,15 @@ function imgStorageRender() {
      función que la app no está usando. Se vacía en vez de ocultarse con display:none para que
      la fila del título no cambie de alto al encender y apagar el toggle. */
   if (typeof imgGuardadoActivo === 'function' && !imgGuardadoActivo()) { cont.textContent = ''; return; }
-  Promise.all([CeiboImg.uso(), CeiboImg.cuota()]).then(([uso, q]) => {
+  Promise.all([CeiboImg.uso(), CeiboImg.cuota(), _igContadores()]).then(([uso, q, extra]) => {
     const total = q.total || 0;
     const pct = total ? Math.min(100, (q.usado / total) * 100) : 0;
     const llenos = total ? Math.max(uso.estudios ? 1 : 0, Math.round(pct / 10)) : 0;
     const barra = '█'.repeat(llenos) + '░'.repeat(10 - llenos);
-    const col = pct >= 85 ? 'var(--red)' : 'var(--accent2)';
+    /* El color sale del MISMO tramo que decide el texto del aviso: con dos tablas, la barra se
+       pone naranja en un umbral y el aviso habla de otro. */
+    const tramo = _igTramo(pct);
+    const col = tramo.col;
     /* Se arma por DOM y no con innerHTML. Todo lo interpolado acá es numérico —barra de bloques,
        MB, conteo, porcentaje— así que un innerHTML sería seguro, pero deja un hallazgo más en
        una pila de 69 falsos positivos que hay que triagear a mano cada vez. Con textContent el
@@ -25272,6 +25333,46 @@ function imgStorageRender() {
     fila.appendChild(mk('span', 'font-size:11px;color:var(--text2);',
       pctTxt + _fmtMB(uso.bytes) + ' usado'));
     cont.appendChild(fila);
+
+    /* ── Contadores, debajo de la barra ── */
+    const det = mk('div', 'display:block;font-size:10.5px;color:var(--text2);line-height:1.65;margin-top:3px;');
+    det.appendChild(mk('div', '', '📷 ' + uso.imgs + ' imagen(es) guardada(s)'));
+    det.appendChild(mk('div', '', '🎬 ' + extra.cine.n + ' cineloop(s) guardado(s)'));
+    det.appendChild(mk('div', '', '📊 ' + extra.strain + ' estudio(s) con strain manual'));
+    /* «de Y disponibles» sólo si el navegador informa la cuota. Sin ella se dice que no se
+       puede estimar, en vez de inventar un denominador — es la misma regla que ya aplica la
+       barra, que no se dibuja sin `total`. */
+    det.appendChild(mk('div', '', '💾 ' + _fmtMB(q.usado || 0) +
+      (total ? ' usados de ' + _fmtMB(total) + ' disponibles'
+             : ' usados · el navegador no informa la cuota')));
+    cont.appendChild(det);
+
+    /* ── Aviso por umbral ──
+       El BLOQUE se muestra siempre que se pase el 60 %: es un estado, y esconderlo porque ya se
+       mostró una vez se lleva puesto el botón de exportar justo cuando hace falta. Lo que va
+       UNA VEZ POR SESIÓN es el toast, que es la parte que interrumpe. */
+    if (tramo.txt) {
+      const av = mk('div', 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px;' +
+        'padding:6px 9px;border-radius:7px;border-left:3px solid ' + tramo.col + ';' +
+        'background:var(--bg3);font-size:11px;line-height:1.5;');
+      av.setAttribute('data-ig-aviso', String(tramo.min));
+      av.appendChild(mk('span', 'flex:1;min-width:190px;', tramo.emoji + ' ' + tramo.txt));
+      const b2 = document.createElement('button');
+      b2.type = 'button'; b2.className = 'btn btn-ghost';
+      b2.style.cssText = 'padding:4px 10px;font-size:11px;white-space:nowrap;';
+      b2.textContent = '📤 Exportar estudios antiguos';
+      b2.setAttribute('data-ig-exportar', '1');
+      /* Abre el desplegable de exportar que YA existe en esta misma cabecera. No se escribe un
+         exportador nuevo: con dos, el backup de un botón y el del otro pueden divergir. */
+      b2.onclick = ev => { ev.stopPropagation();
+        if (typeof igIOToggle === 'function') igIOToggle('exp'); };
+      av.appendChild(b2);
+      cont.appendChild(av);
+      if (!_igAvisoYaVisto(tramo.min)) {
+        _igMarcarAviso(tramo.min);
+        if (typeof toast === 'function') toast(tramo.emoji + ' ' + tramo.txt);
+      }
+    }
   }).catch(() => {});
 }
 window.imgStorageRender = imgStorageRender;
@@ -37178,10 +37279,14 @@ const CeiboImg = (function () {
         const q = os.getAll();
         q.onsuccess = () => {
           const rs = q.result || [];
+          /* `imgs` es el CONTEO de imágenes, distinto de `estudios`: un estudio puede tener
+             varias. Es aditivo —los consumidores existentes leen `estudios` y `bytes`— y lo
+             necesita el contador de la barra de memoria. */
           ok({ estudios: rs.length,
+               imgs: rs.reduce((n, r) => n + ((r.imgs || []).length), 0),
                bytes: rs.reduce((n, r) => n + (typeof r.bytes === 'number' ? r.bytes : _bytes(r.imgs || [])), 0) });
         };
-      }).then(r => r || { estudios: 0, bytes: 0 });
+      }).then(r => r || { estudios: 0, imgs: 0, bytes: 0 });
     },
     // Cuota del ORIGEN, no sólo de esta base: es lo que le importa al médico.
     cuota() {
@@ -65573,8 +65678,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260920-1832';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789939943463;                 /* eco-build-ms */
+const ECO_BUILD    = '20260920-1844';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789940673853;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -65660,7 +65765,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1832</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1844</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
