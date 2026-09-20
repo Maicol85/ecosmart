@@ -8133,6 +8133,79 @@ y TC-193 se puso en rojo solo.
 **Sin verificar en Safari**, como todo el módulo DICOM: el navegador está concedido a nivel
 «lectura». Todo corrió en Chrome por CDP, con el pendrive montado.
 
+### El visor en cinco zonas, y el strain que NO se guardaba en ninguna parte (2026-09-20)
+
+Dos trabajos en un commit porque quedaron entrelazados en el mismo archivo: el rediseño de la
+interfaz del visor y la persistencia del strain manual.
+
+#### TIEMPO Y FC NO VAN EN «2D» — las compuertas son mutuamente excluyentes
+
+El diseño pedía Distancia, Área, Simpson, **Tiempo y FC** bajo «2D», y Velocidad sola en
+Doppler. `_dcmImgRegionMedible` exige `ux === 3` (cm) y `_dcmImgRegionTiempo` exige `ux === 4`
+(segundos): **el mismo campo no puede valer las dos cosas**. Bajo «2D», Tiempo y FC devolverían
+«esta imagen no tiene ningún trazo con el eje horizontal en tiempo» sobre TODA imagen 2D — el
+menú prometiendo lo que la herramienta no puede hacer ahí. En el censo del pendrive son 281
+regiones 2D contra 157 con el eje X en segundos, **sin un solo solapamiento**. Los tres van
+juntos en «Doppler / M». Decisión de Maicol.
+
+**`_MED_HERRS` es la fuente única** —rótulo, grupo, tooltip e id— y la barra lateral se genera
+de ahí. Con dos listas, agregar una herramienta a una vista y no a la otra es cuestión de
+tiempo.
+
+#### Dos controles que nacían muertos, y el caso no los veía
+
+- **La barra lateral se pintaba sólo desde `_medEstado`**, que únicamente corre con la medición
+  encendida: la zona 2 nacía vacía y las nueve herramientas eran inalcanzables hasta apretar
+  «Medir». Se pinta también al cablear.
+- **Y un botón de herramienta con la medición apagada no hacía nada.** Antes no era alcanzable
+  —las herramientas vivían dentro de la barra, que aparecía con la medición ya encendida— y con
+  la lateral siempre visible pasa a serlo. Elegir una herramienta **enciende** la medición.
+  «Visible, clicable, sin ningún efecto» es como este archivo describe los siete acordeones
+  rotos de Congénitas.
+
+#### Mover el input de etiqueta ELIMINÓ un sink en vez de mitigarlo
+
+Estaba dentro de la barra, que se reconstruye por `innerHTML` en cada medición, así que su
+valor se reemitía por un **atributo** y había que escaparlo —y se perdía el foco a mitad de una
+palabra—. Ahora es estático y su valor se lee y escribe como **propiedad**: el atributo ya no
+existe. **TC-202 se puso en rojo y ésa es la señal**: su condición verificaba que en el marcado
+apareciera `&quot;`, o sea el mecanismo de escape, no el invariante. Hoy fija lo más fuerte —el
+veneno no aparece en el marcado **en ninguna forma**— y sigue cazando la regresión de volver a
+interpolarlo.
+
+#### El strain manual no se guardaba en NINGUNA parte
+
+El pedido del módulo de Laboratorio partía de «los valores de strain manual viven en los
+estudios guardados en IndexedDB». **Falso, y de forma terminante**: `_strain`, `_lars` y `_vd`
+son propiedades en memoria de la vista, `medApagar` las pone en `null` al cerrar el visor, y no
+había **una sola** escritura a `campos`, a `CeiboStore` ni a IndexedDB. Lo decía el propio
+módulo desde la primera herramienta —«no se guardan, no viajan al estudio»— y lo verifican
+condiciones de TC-204 y TC-205. (`campos['strain_sgl']` es el bull's eye de 17 segmentos **del
+informe**, otra cosa.) Construido tal cual, el módulo habría sido una tabla sin filas, un
+Bland-Altman que nunca llega a diez puntos y un Excel con encabezados y nada debajo.
+
+**Se guardan SÓLO LOS RESULTADOS**, unos veinte números, no los contornos. Decisión de Maicol:
+alcanza para la tabla, el Bland-Altman y el Excel; las listas de puntos serían decenas de KB de
+anatomía del paciente en el registro y en cada backup para redibujar algo que ya se decidió no
+reabrir.
+
+**Vive en `campos['strain_manual']` vía un `<input type="hidden">`** — el patrón de
+`co_serie_json` y `hfaicos_manual`: viaja con el estudio porque `guardarInforme` barre
+`input[id]`, y lo repone la restauración sin una línea nueva.
+
+**⚠️ Y SE LIMPIA A MANO.** El barrido de `limpiarCampos` toma `input[type=text]` e
+`input[type=number]`: un `hidden` no entra. Sin esa línea, las mediciones del paciente anterior
+quedan DENTRO del estudio del siguiente — es la fuga de `ete_tavi_jet_horas`, y la mutación que
+la reintroduce cae por dos condiciones de TC-206.
+
+**Guardar no es integrar.** El strain manual sigue sin tocar `sgl`, sin salir en el PDF y sin
+aparecer en el documento firmado: se guarda como MEDICIÓN del estudio. Los tres paneles siguen
+diciendo «no se integra al informe firmado» porque sigue siendo cierto, y hay una mutación —la
+persistencia escribiendo además `sgl`— que lo vigila.
+
+**Si no hay mediciones NO se pisa lo guardado**: abrir el visor sin medir no puede borrar el
+strain de otra sesión. Es una condición propia, porque el modo de falla sería mudo.
+
 ### Strain de pared libre del VD, y el caso que probaba su propia copia (2026-09-20)
 
 Tercera variante del método de contornos manuales. Fuente: ASE 2025 corazón derecho

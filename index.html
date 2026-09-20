@@ -11813,6 +11813,11 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       <div id="med-fija-aviso" style="display:none;font-size:11px;line-height:1.5;margin-bottom:10px;
            padding:8px 10px;border-radius:8px;border:1px solid var(--accent);background:var(--bg2);"></div>
       <div id="img-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"></div>
+      <!-- Resultados del strain manual del visor, en JSON. Oculto y no editable a mano: lo
+           escribe el propio visor al confirmar un trazado, y viaja con el estudio porque
+           `guardarInforme` barre `input[id]`. NO es el informe: el strain manual sigue sin
+           integrarse al documento firmado, y este campo no alimenta `sgl`. -->
+      <input type="hidden" id="strain_manual" value="">
       <!-- Los cineloops van en su PROPIA tira y no adentro de la grilla. Dos razones: la grilla
            la reconstruye imgRender() en cada redibujo —que este trabajo no toca— y, sobre todo,
            un slot es «lo que sale en el PDF». El cineloop NO sale; sale el cuadro que se captura.
@@ -34945,6 +34950,10 @@ function eteShuntTaviReset(){
   const jh=document.getElementById('ete_tavi_jet_horas'); if(jh) jh.value='';
   const csj=document.getElementById('co_serie_json'); if(csj) csj.value='';
   const hfm=document.getElementById('hfaicos_manual'); if(hfm) hfm.value='';
+  /* Y el strain manual del visor. Es un `hidden`, así que el barrido de `.value` NO lo alcanza
+     —lo dice la entrada de este archivo sobre `ete_tavi_jet_horas`— y sin esta línea las
+     mediciones del paciente anterior quedarían DENTRO del estudio del siguiente. */
+  const stm=document.getElementById('strain_manual'); if(stm) stm.value='';
   /* Y la CÁPSULA de la calculadora HFA-ICOS: sus filas las escribe `calcHFAICOS` sin `id` en los
      spans y su banda es un `.badge` sin `id`, así que no la alcanza ni el barrido de
      `.calc-row span[id]` ni el de `[id$="-badge"]`. Sin esto el paciente nuevo arrancaba viendo
@@ -45647,38 +45656,93 @@ function _cineFps(d) {
    control a la vista A y olvidarse de la B da un panel que se ve bien y al que le falta un
    botón — el modo de falla mudo de siempre. */
 function _vPanelHTML(p, esB) {
-  const btn = (id, cls, txt, extra) => '<button type="button" class="btn ' + cls + '" id="' + p + id +
-    '" style="padding:4px 10px;font-size:11px;' + (extra || '') + '">' + txt + '</button>';
-  return '<div id="' + p + 'cine-panel" style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;">' +
+  const btn = (id, cls, txt, extra, tip) => '<button type="button" class="btn ' + cls + '" id="' + p + id +
+    '" style="padding:3px 9px;font-size:10.5px;' + (extra || '') + '"' +
+    (tip ? ' title="' + escHtml(tip) + '"' : '') + '>' + txt + '</button>';
+  /* CINCO ZONAS. La imagen se lleva el espacio; todo lo demás va chico, que es lo que el
+     rediseño vino a conseguir. La barra lateral NO se colapsa: es la única vía a las nueve
+     herramientas y esconderla detrás de un toggle repite el problema que este cambio cierra. */
+  return '<div id="' + p + 'cine-panel" style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;">' +
+      /* Encabezado */
       '<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">' +
-        '<b style="font-size:12px;color:var(--text2);">Vista ' + (esB ? 'B' : 'A') + '</b>' +
-        '<span id="' + p + 'cine-cual" style="font-size:11px;color:var(--text2);"></span>' +
+        '<b style="font-size:11px;color:var(--text2);">Vista ' + (esB ? 'B' : 'A') + '</b>' +
+        '<span id="' + p + 'cine-cual" style="font-size:10.5px;color:var(--text2);"></span>' +
         (esB ? btn('cine-cerrar-v', 'btn-ghost', '✕ Cerrar vista', 'margin-left:auto;') : '') +
       '</div>' +
-      /* El canvas de medición va ENCIMA, con su propio elemento. Dibujar las reglas sobre
-         el canvas de la imagen obligaría a que el reproductor las repinte en cada cuadro
-         —o sea, a tocarlo— y un repintado las borraría a mitad de una medición. */
-      '<div id="' + p + 'cine-lienzo" style="position:relative;background:#000;border-radius:9px;' +
-        'display:flex;align-items:center;justify-content:center;min-height:210px;">' +
-        '<canvas id="' + p + 'cine-cv" style="max-width:100%;max-height:52vh;display:block;"></canvas>' +
-        '<canvas id="' + p + 'cine-med" style="position:absolute;display:none;cursor:crosshair;"></canvas>' +
+      /* ZONA 2 (lateral) + ZONA 1 (imagen) + ZONA 3 (reproductor) */
+      '<div style="display:flex;gap:6px;align-items:flex-start;">' +
+        '<div id="' + p + 'cine-side" style="flex:0 0 118px;display:flex;flex-direction:column;gap:3px;"></div>' +
+        '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;">' +
+          '<div id="' + p + 'cine-lienzo" style="position:relative;background:#000;border-radius:8px;' +
+            'display:flex;align-items:center;justify-content:center;min-height:200px;">' +
+            '<canvas id="' + p + 'cine-cv" style="max-width:100%;max-height:56vh;display:block;"></canvas>' +
+            '<canvas id="' + p + 'cine-med" style="position:absolute;display:none;cursor:crosshair;"></canvas>' +
+          '</div>' +
+          '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
+            btn('cine-play', 'btn-ghost', '▶ Reproducir', 'min-width:88px;', 'Reproduce el cineloop a la velocidad que declara el archivo.') +
+            '<input type="range" id="' + p + 'cine-slider" min="0" value="0" style="flex:1;min-width:100px;">' +
+            '<span id="' + p + 'cine-num" style="font-size:10.5px;color:var(--text2);' +
+              'font-variant-numeric:tabular-nums;white-space:nowrap;"></span>' +
+            btn('cine-prev', 'btn-ghost', '‹', '', 'Cineloop anterior de la importación.') +
+            btn('cine-next', 'btn-ghost', '›', '', 'Cineloop siguiente.') +
+          '</div>' +
+          '<div id="' + p + 'cine-ayuda" style="font-size:9.5px;color:var(--text2);line-height:1.45;"></div>' +
+        '</div>' +
       '</div>' +
-      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
-        btn('cine-play', 'btn-ghost', '▶ Reproducir', 'min-width:96px;') +
-        '<input type="range" id="' + p + 'cine-slider" min="0" value="0" style="flex:1;min-width:110px;">' +
-        '<span id="' + p + 'cine-num" style="font-size:11px;color:var(--text2);' +
-          'font-variant-numeric:tabular-nums;white-space:nowrap;"></span>' +
+      /* ZONA 4 — panel guía a la izquierda, botones fijos a la derecha */
+      '<div style="display:flex;gap:8px;align-items:flex-start;">' +
+        '<div id="' + p + 'cine-med-barra" style="display:none;flex:1;min-width:0;font-size:10.5px;' +
+          'line-height:1.5;padding:7px 9px;border-radius:7px;border:1px solid var(--border);' +
+          'background:var(--bg2);"></div>' +
+        '<div style="flex:0 0 auto;display:flex;flex-direction:column;gap:4px;align-items:flex-end;">' +
+          '<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">' +
+            btn('cine-medir', 'btn-ghost', '📏 Medir', '', 'Enciende o apaga el modo medición sobre esta vista.') +
+            btn('cine-med-recal', 'btn-ghost', 'Recalibrar', '', 'Vuelve a fijar la escala a mano sobre una referencia conocida.') +
+            btn('cine-med-borrar', 'btn-ghost', 'Borrar', '', 'Borra las mediciones de esta vista. La calibración manual se conserva.') +
+          '</div>' +
+          '<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">' +
+            btn('cine-guardar', 'btn-ghost', '💾 Guardar', '', 'Guarda este cineloop en el estudio.') +
+            btn('cine-cap', 'btn-ghost', '📸 Capturar', '', 'Captura el cuadro, a resolución plena y SIN las mediciones.') +
+            btn('cine-med-cap', 'btn-primary', '📸 Capturar+Med', '', 'Captura el cuadro CON las mediciones dibujadas y la etiqueta.') +
+          '</div>' +
+          '<div style="display:flex;align-items:center;gap:5px;">' +
+            '<label for="' + p + 'cine-cap-etiq" style="font-size:10.5px;color:var(--text2);">Etiqueta:</label>' +
+            '<input type="text" id="' + p + 'cine-cap-etiq" maxlength="' + _CAP_ETIQ_MAX + '" ' +
+              'placeholder="TAPSE, DDVI, LARS…" ' +
+              'title="Se dibuja en una franja blanca debajo de la imagen capturada." ' +
+              'style="font-size:10.5px;padding:3px 6px;width:150px;border-radius:5px;' +
+              'border:1px solid var(--border);background:var(--bg3);color:var(--text);">' +
+          '</div>' +
+        '</div>' +
       '</div>' +
-      '<div id="' + p + 'cine-ayuda" style="font-size:10px;color:var(--text2);line-height:1.5;"></div>' +
-      '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
-        btn('cine-prev', 'btn-ghost', '‹ Anterior') + btn('cine-next', 'btn-ghost', 'Siguiente ›') +
-        btn('cine-medir', 'btn-ghost', '📏 Medir') +
-        btn('cine-guardar', 'btn-ghost', '💾 Guardar') +
-        btn('cine-cap', 'btn-primary', '📸 Capturar cuadro') +
-      '</div>' +
-      '<div id="' + p + 'cine-med-barra" style="display:none;font-size:11px;line-height:1.5;' +
-        'padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);"></div>' +
     '</div>';
+}
+
+/* La barra lateral: tres grupos, uno abierto, y el submenú debajo del suyo. Se pinta aparte
+   del panel guía porque son dos zonas distintas y el guía se reescribe en cada medición. */
+function _medSideRender() {
+  const cont = _medEl('cine-side');
+  if (!cont) return;
+  const ab = _medGrupoAbierto();
+  const act = 'background:var(--accent);color:#fff;';
+  let html = '';
+  _MED_GRUPOS.forEach(G => {
+    const abierto = ab === G.g;
+    html += '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-g-' + G.g + '" ' +
+      'title="' + escHtml(G.tip) + '" style="padding:4px 7px;font-size:11px;text-align:left;' +
+      (abierto ? 'background:var(--bg3);font-weight:600;' : '') + '">' +
+      (abierto ? '▾ ' : '▸ ') + G.rot + '</button>';
+    if (abierto) {
+      html += '<div style="display:flex;flex-direction:column;gap:2px;padding:2px 0 4px 8px;">';
+      _MED_HERRS.filter(t => t.g === G.g).forEach(t => {
+        html += '<button type="button" class="btn btn-ghost" id="' + _V.pfx + t.id + '" ' +
+          'title="' + escHtml(t.tip) + '" style="padding:3px 7px;font-size:10.5px;text-align:left;' +
+          (_medHerr === t.h ? act : '') + '">' + (_medHerr === t.h ? '● ' : '· ') + t.rot + '</button>';
+      });
+      html += '</div>';
+    }
+  });
+  cont.innerHTML = html;
 }
 
 /* Engancha los controles de UNA vista. Cada manejador corre con SU vista activa: sin eso,
@@ -45705,6 +45769,18 @@ function _vCablear(V) {
   const sl = q('cine-slider');
   if (sl) sl.oninput = _vBind(V, () => { _cineDetener(); cineIr(+sl.value); });
   if (V !== _vistaA) on('cine-cerrar-v', vistaBCerrar);
+  /* Los fijos de la ZONA 4 son estáticos: se cablean una sola vez, acá. Antes vivían dentro
+     de la barra —que se reconstruye en cada medición— y había que volver a atarlos siempre. */
+  on('cine-med-recal',  () => (_medHerr === 'vel') ? medCalibrarVelocidad() : medRecalibrar());
+  on('cine-med-borrar', medBorrar);
+  on('cine-med-cap',    medCapturarConMedicion);
+  const et = q('cine-cap-etiq');
+  if (et) et.oninput = _vBind(V, () => { _medEtiqueta = et.value; });
+  /* La barra lateral se pinta ACÁ, al cablear, y no sólo desde `_medEstado`: el pedido la
+     quiere SIEMPRE visible, y `_medEstado` únicamente corre con la medición encendida. Sin
+     esto la zona 2 nacía vacía y las nueve herramientas eran inalcanzables hasta apretar
+     «Medir» — un panel que se ve armado y no lleva a ninguna parte. */
+  _vCon(V, _medSideRender);
 }
 
 function _cineAbrir(loops) {
@@ -47197,6 +47273,98 @@ window.medVdConfirmar = medVdConfirmar;
 
 function medVdReiniciar() { _vdIniciar(); _medPintar(); _medEstado(); }
 window.medVdReiniciar = medVdReiniciar;
+/* ══ PERSISTENCIA DEL STRAIN MANUAL ══════════════════════════════════════════════════════════
+
+   QUÉ SE GUARDA: **sólo los resultados** —unos veinte números— y no los contornos. Decisión de
+   Maicol (2026-09-20). Alcanza para la tabla del Laboratorio, el Bland-Altman y el Excel; las
+   listas de puntos serían cientos por contorno y hasta once contornos por estudio, decenas de
+   KB de anatomía del paciente en el registro y en cada backup, para poder redibujar algo que
+   ya se decidió no reabrir.
+
+   DÓNDE: en `campos['strain_manual']`, vía un `<input type="hidden">`. Es el patrón que esta
+   app ya usa para `co_serie_json` y `hfaicos_manual`: viaja con el estudio porque
+   `guardarInforme` barre `input[id]`, y lo repone la restauración sin una línea nueva.
+
+   ⚠️ UN `hidden` NO LO ALCANZA EL BARRIDO DE `limpiarCampos`, que toma `input[type=text]` e
+   `input[type=number]`. Se limpia A MANO, y sin esa línea las mediciones del paciente anterior
+   quedan DENTRO del estudio del siguiente — es exactamente la fuga que este archivo documenta
+   con `ete_tavi_jet_horas` y `co_serie_json`.
+
+   ESTO NO ES INTEGRAR AL INFORME. El strain manual sigue sin tocar `sgl`, sin salir en el PDF y
+   sin aparecer en el documento firmado: se guarda como MEDICIÓN del estudio, que es otra cosa.
+   Los tres paneles siguen diciendo «no se integra al informe firmado» porque sigue siendo
+   cierto.
+
+   SE RECORREN LAS DOS VISTAS. Cada una tiene su sesión, así que un estudio puede legítimamente
+   tener un strain de VI en la A y un LARS en la B. Guardar sólo la activa perdería la otra sin
+   avisar; guardar «la que tenga algo» elegiría por su cuenta. Se guardan las dos, rotuladas. */
+
+const _STRAIN_PERSIST_VER = 1;
+
+function _strainResumenDeVista(V) {
+  return _vCon(V, () => {
+    const out = {};
+    /* VI: el SGL y sus territorios, con el método de cada trazado — mezclar métodos entre
+       fases corre el resultado ~4 pp y el Laboratorio tiene que poder verlo. */
+    const R = (typeof _strainCalcular === 'function') ? _strainCalcular() : null;
+    if (R) {
+      out.vi = {
+        sgl: +R.sgl.toFixed(2), nVistas: R.nVistas, vistas: R.vistas.slice(),
+        etiqueta: R.etiqueta, mezclaMetodo: !!R.mezclaMetodo,
+        plausible: !!R.plausible, invertido: !!R.invertido,
+        terr: R.terr.map(t => ({ vista:t.vista, pared:t.pared,
+                                 pct:+t.pct.toFixed(2), ld:+t.ld.toFixed(2), ls:+t.ls.toFixed(2) })),
+        metodos: (function () {
+          const m = {};
+          (R.vistas || []).forEach(k => {
+            const P = _strain && _strain.vistas[k];
+            if (P && P.d && P.s) m[k] = { d:P.d.metodo || 'libre', s:P.s.metodo || 'libre' };
+          });
+          return m;
+        })()
+      };
+    }
+    const L = (typeof _larsCalcular === 'function') ? _larsCalcular() : null;
+    if (L) out.lars = { res:+L.res.toFixed(2), cond:+L.cond.toFixed(2), ctr:+L.ctr.toFixed(2),
+                        L1:+L.L1.toFixed(2), L2:+L.L2.toFixed(2), L3:+L.L3.toFixed(2),
+                        plausible: !!L.plausible, ordenOk: !!L.ordenOk };
+    const D = (typeof _vdCalcular === 'function') ? _vdCalcular() : null;
+    if (D) out.vd = { pct:+D.pct.toFixed(2), ld:+D.Ld.toFixed(2), ls:+D.Ls.toFixed(2),
+                      sexo:D.sexo, umbral:D.umbral, normal:D.normal,
+                      plausible: !!D.plausible, invertido: !!D.invertido };
+    return (out.vi || out.lars || out.vd) ? out : null;
+  });
+}
+
+/* El resumen completo del estudio, o `null` si no hay ninguna medición en ninguna vista. */
+function _strainResumen() {
+  const vistas = {};
+  const A = _strainResumenDeVista(_vistaA);
+  if (A) vistas.A = A;
+  if (_vistaB) { const B = _strainResumenDeVista(_vistaB); if (B) vistas.B = B; }
+  const bi = (typeof _vBiplanoDatos === 'function') ? _vBiplanoDatos() : null;
+  if (!Object.keys(vistas).length && !bi) return null;
+  const R = { v: _STRAIN_PERSIST_VER, ts: new Date().toISOString(), vistas: vistas };
+  if (bi) R.biplanoAB = { fevi:+bi.fevi.toFixed(2), vfd:+bi.vfd.toFixed(2), vfs:+bi.vfs.toFixed(2) };
+  return R;
+}
+window._strainResumen = _strainResumen;
+
+/* Vuelca el resumen al campo oculto. Se llama en cada repintado del panel: es barato —veinte
+   números— y evita el modo de falla de «guardar al cerrar», que pierde todo si el médico cierra
+   el visor con la cruz o recarga la página. */
+function _strainPersistir() {
+  const el = document.getElementById('strain_manual');
+  if (!el) return;
+  let R = null;
+  try { R = _strainResumen(); } catch (e) { R = null; }
+  /* Si NO hay mediciones no se pisa lo que ya estaba: el estudio puede traer un strain
+     guardado en otra sesión y abrir el visor sin medir nada no puede borrarlo. */
+  if (!R) return;
+  el.value = JSON.stringify(R);
+}
+window._strainPersistir = _strainPersistir;
+
 
 /* El sexo del estudio. Devuelve 'M', 'F' o null — y `null` es una respuesta, no un default. */
 function _vdSexo() {
@@ -47553,6 +47721,12 @@ function medHerramienta(h) {
   if (_medHerr === 'simpson' && !_simp) _simpIniciar();
   /* La herramienta elegida abre SU grupo: así queda visible la que se está usando. */
   if (_MED_GRUPO_DE[_medHerr]) _medGrupo = _MED_GRUPO_DE[_medHerr];
+  /* Y ENCIENDE la medición si estaba apagada. Con la barra lateral siempre visible, un botón
+     de herramienta que no hace nada es un control muerto —«visible, clicable, sin ningún
+     efecto», que es como este archivo describe los siete acordeones rotos de Congénitas—.
+     Antes las herramientas sólo existían dentro de la barra, que aparecía con la medición ya
+     encendida, así que el caso no era alcanzable. */
+  if (!_medOn && _cineDatos) medToggle();
   if (_medHerr === 'strain' && !_strain) _strainIniciar();
   if (_medHerr === 'lars' && !_lars) _larsIniciar();
   if (_medHerr === 'vd' && !_vd) _vdIniciar();
@@ -48000,9 +48174,45 @@ const _medComo = () => _MED_COMO[_medHerr] || _MED_COMO.dist;
 /* A qué grupo pertenece cada herramienta, y cuál está abierto. El estado vive en la VISTA
    —`medGrupo`— así que las dos vistas tienen su propio acordeón; y se repone al de fábrica al
    cerrar el visor, porque `medApagar` limpia la vista entera. */
-const _MED_GRUPO_DE = { dist:'2d', area:'2d', simpson:'2d',
-                        vel:'dop', tiempo:'dop', fc:'dop',
-                        strain:'def', lars:'def', vd:'def' };
+/* LAS HERRAMIENTAS, EN UN SOLO LUGAR: rótulo, grupo, tooltip e id del botón. La barra lateral
+   se genera de acá, así que las dos vistas no pueden divergir y agregar una herramienta es
+   agregar una fila.
+
+   ⚠️ TIEMPO Y FC VAN CON VELOCIDAD, NO EN 2D, y no es una preferencia: sus compuertas son
+   mutuamente excluyentes por construcción. `_dcmImgRegionMedible` exige `ux === 3` (cm) y
+   `_dcmImgRegionTiempo` exige `ux === 4` (segundos) — el mismo campo no puede valer las dos
+   cosas. Puestas bajo «2D», devolverían «esta imagen no tiene ningún trazo con el eje
+   horizontal en tiempo» sobre TODA imagen 2D: el menú prometería lo que la herramienta no
+   puede hacer ahí. En el censo del pendrive son 281 regiones 2D contra 157 con el eje X en
+   segundos, sin un solo solapamiento. Decisión de Maicol (2026-09-20). */
+const _MED_HERRS = [
+  { h:'dist',    g:'2d',  id:'cine-med-dist', rot:'Distancia',
+    tip:'Dos clics sobre la imagen 2D y sale la distancia en mm, con la escala del archivo.' },
+  { h:'area',    g:'2d',  id:'cine-med-area', rot:'Área',
+    tip:'Mantené apretado y recorré el borde: al soltar se cierra solo y sale el área en cm².' },
+  { h:'simpson', g:'2d',  id:'cine-med-simp', rot:'Simpson',
+    tip:'FEVI por método de discos. Se traza del anillo mitral al otro lado, pasando por el ápex.' },
+  { h:'vel',     g:'dop', id:'cine-med-vel',  rot:'Velocidad',
+    tip:'Clic en el pico del trazo espectral: velocidad y gradiente (ΔP = 4·V²). Necesita el eje en cm/s.' },
+  { h:'tiempo',  g:'dop', id:'cine-med-t',    rot:'Tiempo',
+    tip:'Dos clics sobre el eje temporal: intervalo en ms (TDE, TRIV). Necesita el eje X en segundos — Doppler espectral o modo M.' },
+  { h:'fc',      g:'dop', id:'cine-med-fc',   rot:'FC',
+    tip:'Dos clics sobre la misma onda de dos latidos: intervalo RR y frecuencia (60.000 / RR).' },
+  { h:'strain',  g:'def', id:'cine-med-str',  rot:'Strain VI',
+    tip:'Deformación del VI por dos contornos manuales, en diástole y en sístole.' },
+  { h:'lars',    g:'def', id:'cine-med-lars', rot:'LARS',
+    tip:'Strain auricular izquierdo: tres contornos de la AI en tres momentos del ciclo.' },
+  { h:'vd',      g:'def', id:'cine-med-vd',   rot:'Strain VD',
+    tip:'Deformación de la pared libre del VD. El septo no se incluye.' }
+];
+const _MED_GRUPOS = [
+  { g:'2d',  rot:'2D',           tip:'Mediciones sobre la imagen bidimensional.' },
+  { g:'dop', rot:'Doppler / M',  tip:'Mediciones sobre un trazo espectral o de modo M.' },
+  { g:'def', rot:'Deformación',  tip:'Strain por contornos manuales.' }
+];
+const _MED_GRUPO_DE = (function () {
+  const m = {}; _MED_HERRS.forEach(t => { m[t.h] = t.g; }); return m;
+})();
 const _MED_GRUPO_DEF = '2d';
 
 /* UNO solo abierto a la vez. Cuál, lo decide el médico — y al ELEGIR una herramienta se abre
@@ -48025,61 +48235,39 @@ function medGrupoToggle(g) {
 }
 window.medGrupoToggle = medGrupoToggle;
 
+/* Rótulos de los botones fijos que dependen del estado. Se cambia el TEXTO, no se regenera el
+   botón: así el foco y los manejadores sobreviven. */
+function _medFijosSync() {
+  const rc = _medEl('cine-med-recal');
+  if (rc) {
+    rc.textContent = (_medHerr === 'vel')
+      ? (_medCalibVel ? 'Recalibrar vel.' : 'Calibrar vel.')
+      : 'Recalibrar';
+    rc.title = (_medHerr === 'vel')
+      ? 'Fija a mano la escala de VELOCIDAD, marcando la línea de base y una marca conocida.'
+      : 'Vuelve a fijar la escala de distancia sobre una referencia conocida.';
+  }
+  const b2 = _medEl('cine-medir');
+  if (b2) b2.textContent = _medOn ? '📏 Medir (on)' : '📏 Medir';
+  const et = _medEl('cine-cap-etiq');
+  if (et && et.value !== (_medEtiqueta || '') && document.activeElement !== et) et.value = _medEtiqueta || '';
+}
+
 function _medEstado() {
   const regs = _medRegs();
   const medibles = regs.filter(_dcmImgRegionMedible);
   /* El selector de herramienta va en la barra y no al lado del boton del modal: ahi el
      estado esta junto a lo que explica como usarlo, y el modal no se toca. */
-  const act = 'background:var(--accent);color:#fff;';
-  /* Las herramientas, en tres grupos colapsables. Con siete botones en una fila —y más por
-     venir— la barra dejaba de leerse. El grupo de la herramienta ACTIVA se fuerza abierto:
-     si el médico está midiendo con una y su grupo se cerrara, el botón encendido quedaría
-     escondido y la barra diría una cosa mientras el canvas hace otra. */
-  const abierto = _medGrupoAbierto();
-  const grupo = (g, tit, botones) => {
-    const ab = abierto === g;
-    return '<div style="margin-bottom:' + (ab ? '6px' : '3px') + ';">' +
-      '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-g-' + g + '" ' +
-        'style="padding:3px 8px;font-size:11px;width:100%;text-align:left;' +
-        (ab ? 'background:var(--bg3);' : '') + '">' +
-        (ab ? '▾ ' : '▸ ') + tit + '</button>' +
-      (ab ? '<div style="margin-top:4px;padding-left:4px;">' + botones + '</div>' : '') +
-    '</div>';
-  };
-  const btH = (id, herr, txt, prim) => '<button type="button" class="btn btn-ghost" id="' + _V.pfx + id +
-    '" style="padding:3px 9px;font-size:11px;' + (prim ? '' : 'margin-left:6px;') +
-    (_medHerr === herr ? act : '') + '">' + txt + '</button>';
-  const sel =
-    grupo('2d', '📐 Medición 2D',
-      btH('cine-med-dist', 'dist', '📏 Distancia', true) +
-      btH('cine-med-area', 'area', '✏️ Área') +
-      btH('cine-med-simp', 'simpson', '🫀 Simpson')) +
-    grupo('dop', '〰️ Doppler',
-      btH('cine-med-vel', 'vel', '〰️ Velocidad', true) +
-      btH('cine-med-t', 'tiempo', '⏱️ Tiempo') +
-      btH('cine-med-fc', 'fc', '💓 FC')) +
-    grupo('def', '💚 Deformación',
-      btH('cine-med-str', 'strain', '💚 Strain VI', true) +
-      btH('cine-med-lars', 'lars', '🫧 LARS') +
-      btH('cine-med-vd', 'vd', '🫀 Strain VD'));
-  const bot = sel +
-              (_medHerr === 'vel'
-                ? '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-med-calvel" style="padding:3px 9px;font-size:11px;margin-left:14px;">' +
-                  (_medCalibVel ? 'Recalibrar velocidad' : 'Calibrar velocidad') + '</button>'
-                : '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-med-recal" style="padding:3px 9px;font-size:11px;margin-left:14px;">Recalibrar</button>') +
-              '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-med-borrar" style="padding:3px 9px;font-size:11px;margin-left:6px;">Borrar mediciones</button>' +
-              /* El valor se REEMITE escapado: la barra se reconstruye por innerHTML en cada
-                 medición, así que el input es nuevo cada vez y nace vacío si no se repone. Y
-                 va por `value="..."`, que es un atributo — sin `escHtml` una comilla lo cierra
-                 y lo que siga se parsea como marcado. */
-              '<span style="display:inline-flex;align-items:center;gap:5px;margin-left:14px;">' +
-                '<label for="' + _V.pfx + 'cine-cap-etiq" style="font-size:11px;color:var(--text2);">Etiqueta:</label>' +
-                '<input type="text" id="' + _V.pfx + 'cine-cap-etiq" maxlength="' + _CAP_ETIQ_MAX + '" ' +
-                  'placeholder="TAPSE, DDVI, Área AI…" value="' + escHtml(_medEtiqueta || '') + '" ' +
-                  'style="font-size:11px;padding:3px 6px;width:150px;border-radius:5px;' +
-                  'border:1px solid var(--border);background:var(--bg3);color:var(--text);">' +
-              '</span>' +
-              '<button type="button" class="btn btn-primary" id="' + _V.pfx + 'cine-med-cap" style="padding:3px 9px;font-size:11px;margin-left:8px;">📸 Capturar con medición</button>';
+  /* Los botones de HERRAMIENTA los emite `_medSideRender` en la barra lateral, y los FIJOS
+     —Medir, Recalibrar, Borrar, Guardar, Capturar, Capturar+Med y la etiqueta— viven en el
+     marcado del panel y se cablean una sola vez. Acá sólo se arma el TEXTO del panel guía.
+
+     QUE LA ETIQUETA HAYA DEJADO DE REEMITIRSE ARREGLA UN DEFECTO REAL: estaba dentro de la
+     barra, que se reconstruye por innerHTML en cada medición, así que el input era nuevo cada
+     vez y se perdía el foco a mitad de una palabra. Ahora es estático y su valor vive donde
+     siempre estuvo, en la vista. Sigue sin interpolarse en ningún atributo.
+     */
+  const bot = '';
   let txt;
   if (_medCalibrando) {
     txt = '<b>Calibración:</b> dibujá una línea sobre una referencia conocida de la imagen ' +
@@ -48129,28 +48317,29 @@ function _medEstado() {
       'el archivo declara el signo y un jet que se aleja da negativo, pero un informe reporta la magnitud. ' +
       'El gradiente no depende del signo (ΔP = 4·V²).</div>';
   }
+  _strainPersistir();                    // el resumen viaja con el estudio
+  _medSideRender();                      // ZONA 2 — barra lateral
+  _medFijosSync();                       // rótulos de los botones fijos
   _medBarra((_medHerr === 'simpson' ? _simpPanel()
              : _medHerr === 'strain' ? _strainPanel()
              : _medHerr === 'lars' ? _larsPanel()
              : _medHerr === 'vd' ? _vdPanel() : txt + (n ? '  ·  <b>' + n + '</b> medición(es) en pantalla.' : '')) +
-            '<div style="margin-top:6px;">' + bot + '</div>');
+            (bot ? '<div style="margin-top:6px;">' + bot + '</div>' : ''));
   /* ⚠️ TODOS los controles de la barra se atan A SU VISTA. Atados pelados corren con la vista
      ACTIVA al momento del clic —la A por omisión—, así que un clic en la barra de la B movía
      la herramienta de la A. Es la misma trampa del contexto ambiente que ya se cerró para los
      manejadores del canvas; la barra quedó afuera aquella vez porque el caso ejercía
      `medHerramienta` por `_vCon` y nunca clickeaba el botón. */
   const _V0 = _V, _on = (el, fn) => { if (el) el.onclick = _vBind(_V0, fn); };
-  const cvl = _medEl('cine-med-calvel');
-  _on(cvl, medCalibrarVelocidad);
   const rc = _medEl('cine-med-recal'), bb = _medEl('cine-med-borrar');
-  const bd = _medEl('cine-med-dist'), ba = _medEl('cine-med-area');
-  _on(rc, medRecalibrar);
+  _MED_HERRS.forEach(t => _on(_medEl(t.id), () => medHerramienta(t.h)));
+  const bd = null, ba = null;
+  /* UN solo botón de recalibrar, que cambia de significado con la herramienta: con Velocidad
+     calibra la escala de VELOCIDAD y con las demás la de distancia. Dos botones fijos —uno
+     siempre inerte— serían un control que a veces no hace nada. El rótulo lo pone
+     `_medFijosSync`, que es quien sabe en qué herramienta estamos. */
+  _on(rc, () => (_medHerr === 'vel') ? medCalibrarVelocidad() : medRecalibrar());
   _on(bb, medBorrar);
-  _on(bd, () => medHerramienta('dist'));
-  _on(ba, () => medHerramienta('area'));
-  const bs = _medEl('cine-med-simp'), bv = _medEl('cine-med-vel');
-  const bst = _medEl('cine-med-str');
-  _on(bst, () => medHerramienta('strain'));
   const sxc = _medEl('cine-str-conf'), sxr = _medEl('cine-str-reset');
   /* El input de etiqueta guarda y NO repinta: repintar en cada tecla reconstruye la barra y
      el foco se pierde en la primera letra. */
@@ -48159,10 +48348,8 @@ function _medEstado() {
   _on(cbt, medCapturarConMedicion);
   const sxm = _medEl('cine-str-mas'), sxb = _medEl('cine-str-cap');
   ['2d','dop','def'].forEach(g2 => _on(_medEl('cine-g-' + g2), () => medGrupoToggle(g2)));
-  _on(_medEl('cine-med-lars'), () => medHerramienta('lars'));
   _on(_medEl('cine-lars-conf'),  medLarsConfirmar);
   _on(_medEl('cine-lars-reset'), medLarsReiniciar);
-  _on(_medEl('cine-med-vd'), () => medHerramienta('vd'));
   _on(_medEl('cine-vd-conf'),  medVdConfirmar);
   _on(_medEl('cine-vd-reset'), medVdReiniciar);
   _on(_medEl('cine-str-m-libre'), () => medStrainModo('libre'));
@@ -48176,11 +48363,6 @@ function _medEstado() {
   /* El canvas del diagrama se repinta DESPUÉS de reconstruida la barra: el elemento es nuevo
      en cada pasada y nace en blanco. */
   if (_medHerr === 'strain') _strBullsRepintar();
-  _on(bs, () => medHerramienta('simpson'));
-  _on(bv, () => medHerramienta('vel'));
-  const bt = _medEl('cine-med-t'), bf = _medEl('cine-med-fc');
-  _on(bt, () => medHerramienta('tiempo'));
-  _on(bf, () => medHerramienta('fc'));
   const sc = _medEl('cine-simp-conf'), sr = _medEl('cine-simp-reset');
   _on(sc, medSimpsonConfirmar);
   _on(sr, medSimpsonReiniciar);
@@ -48528,6 +48710,7 @@ function medApagar() {
   if (cv) { cv.style.display = 'none'; cv.onclick = null; cv.onmousedown = null; cv.onmousemove = null; }
   if (_vArrastre === _V) _vArrastre = null;   // el oyente es compartido: no se quita, se desmarca
   if (b) b.textContent = '📏 Medir';
+  _medSideRender();                          // sin esto queda resaltada la herramienta de antes
   _medBarra('');
 }
 window.medApagar = medApagar;
@@ -64338,8 +64521,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260920-1220';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789917617303;                 /* eco-build-ms */
+const ECO_BUILD    = '20260920-1303';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789920201902;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -64425,7 +64608,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1220</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1303</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

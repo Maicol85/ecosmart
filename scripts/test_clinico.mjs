@@ -14151,16 +14151,26 @@ caso('TC-202', 'Capturar con mediciones: la capa se compone, la etiqueta va en s
       const barraHTML = document.getElementById('cine-med-barra').innerHTML;
       const inpV2 = document.getElementById('cine-cap-etiq');
       R.venenoVuelveLiteral = !!inpV2 && inpV2.value === VENENO;
-      R.sinAtributoDeEvento = !document.querySelector('#cine-med-barra [onmouseover]');
+      R.sinAtributoDeEvento = !document.querySelector('#cine-panel [onmouseover]');
       R.xssNoCorrio = window.__xss === 0;
-      /* Y se ve escapado en el marcado, no crudo. */
-      R.escapadoEnHTML = barraHTML.indexOf('&quot;') >= 0 && barraHTML.indexOf('onmouseover=\"window') < 0;
+      /* ⚠️ ESTA CONDICION CAMBIO A PROPOSITO. Antes el input se REEMITIA por innerHTML en cada
+         repintado de la barra, asi que el valor viajaba por un atributo y habia que escaparlo;
+         se verificaba que en el marcado apareciera &quot;. Con el rediseno de zonas el input
+         pasa a ser ESTATICO y su valor se lee y escribe como PROPIEDAD: el sink desaparecio,
+         que es mas fuerte que escaparlo. La condicion pasa a fijar eso -- el veneno no aparece
+         en el marcado en NINGUNA forma, ni cruda ni escapada- y sigue cazando la regresion de
+         volver a interpolarlo. */
+      const panelHTML = (document.getElementById('cine-panel') || {}).innerHTML || '';
+      R.venenoNoEnMarcado = panelHTML.indexOf('onmouseover') === -1 &&
+                            panelHTML.indexOf('window.__xss') === -1;
+      R.valorEsPropiedad = !!inpV2 && inpV2.value === VENENO;
+      R.escapadoEnHTML = R.venenoNoEnMarcado && R.valorEsPropiedad;
       /* Tambien el caso HTML clasico. */
       inpV2.value = '<img src=x onerror=1>';
       inpV2.dispatchEvent(new Event('input', { bubbles:true }));
       _medEstado();
       await new Promise(r => setTimeout(r, 120));
-      R.sinImgInyectada = !document.querySelector('#cine-med-barra img');
+      R.sinImgInyectada = !document.querySelector('#cine-panel img');
       /* Y en el canvas se dibuja como texto literal. */
       let dibujadoV = '';
       const fo2 = CanvasRenderingContext2D.prototype.fillText;
@@ -14235,7 +14245,7 @@ caso('TC-202', 'Capturar con mediciones: la capa se compone, la etiqueta va en s
       ['sin etiqueta no se agrega franja',           R.sinEtiquetaMismaAltura, R.sinEtiquetaMismaAltura],
       ['la etiqueta envenenada vuelve LITERAL',      R.venenoVuelveLiteral, R.venenoVuelveLiteral],
       ['no queda ningun atributo de evento',         R.sinAtributoDeEvento && R.xssNoCorrio, R.sinAtributoDeEvento],
-      ['y en el marcado se ve escapada',             R.escapadoEnHTML, R.escapadoEnHTML],
+      ['y NO llega al marcado en ninguna forma',     R.escapadoEnHTML, 'enMarcado=' + (!R.venenoNoEnMarcado) + ' propiedad=' + R.valorEsPropiedad],
       ['ningun <img> inyectado',                     R.sinImgInyectada, R.sinImgInyectada],
       ['el canvas la dibuja como texto literal',     R.canvasLiteral, R.canvasLiteral],
       ['la vista B tiene su campo y su boton',       R.hayInputB && R.hayBotonB, R.hayBotonB],
@@ -14923,6 +14933,164 @@ caso('TC-205', 'Strain VD pared libre: calculo, clasificacion por sexo y la fran
       ['el strain del VI sigue funcionando',        R.viSigue, R.viSigue],
       ['y el LARS tambien',                         R.larsSigue, R.larsSigue],
       ['cerrar el visor limpia la sesion',          R.cerrarLimpia, R.cerrarLimpia]
+    ] };
+  })();
+`);
+
+
+/* ══ TC-206 · El strain manual VIAJA con el estudio ══════════════════════════════════════════
+   LO QUE ESTE CASO EXISTE PARA IMPEDIR es la fuga entre pacientes. strain_manual es un
+   input[type=hidden], y el barrido de limpiarCampos toma input[type=text] e input[type=number]:
+   sin la linea explicita, las mediciones del paciente anterior quedan DENTRO del estudio del
+   siguiente. Es la fuga que este archivo ya documenta con ete_tavi_jet_horas y co_serie_json.
+
+   Y lo que NO tiene que pasar: que esto se convierta en integrar al informe. El campo sgl
+   sigue intacto -hay una condicion que lo verifica- y el strain sigue sin salir en el PDF.
+   NO DEPENDE DEL PENDRIVE.                                                                    */
+caso('TC-206', 'El strain manual viaja con el estudio, no toca el informe y no se filtra al paciente siguiente', `
+  return (async () => {
+    const R = {};
+    const alertOrig = window.alert; window.alert = () => {};
+    try {
+      const mkJpeg = () => {
+        const c = document.createElement('canvas'); c.width = 600; c.height = 500;
+        const g = c.getContext('2d'); g.fillStyle = '#223'; g.fillRect(0,0,600,500);
+        const b64 = c.toDataURL('image/jpeg').split(',')[1];
+        const bin = atob(b64); const u = new Uint8Array(bin.length);
+        for (let i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i);
+        return u;
+      };
+      const jpeg = mkJpeg();
+      const DX = 0.05;
+      const reg2d = { tipo:1, x0:20, y0:20, x1:580, y1:480, ux:3, uy:3, dx:DX, dy:DX,
+                      rx0:20, ry0:20, rvx:0, rvy:0 };
+      const mkLoop = nom => ({ nombre:nom, cuadros:4,
+        d:{ frags:[jpeg,jpeg,jpeg,jpeg], cols:600, filas:500, msCuadro:40, regiones:[reg2d] } });
+      const cvm = () => document.getElementById('cine-med');
+      const ac = (x,y) => { const c = cvm(), r = c.getBoundingClientRect();
+        return { clientX: r.left + x*(r.width/c.width), clientY: r.top + y*(r.height/c.height) }; };
+      const trazar = async pts => { const c = cvm();
+        c.dispatchEvent(new MouseEvent('mousedown', Object.assign({bubbles:true}, ac(pts[0].x,pts[0].y))));
+        for (let i=1;i<pts.length;i++)
+          c.dispatchEvent(new MouseEvent('mousemove', Object.assign({bubbles:true}, ac(pts[i].x,pts[i].y))));
+        document.dispatchEvent(new MouseEvent('mouseup', {bubbles:true}));
+        await new Promise(r=>setTimeout(r,130)); };
+      const tri2 = (cx0,yb,Wi,Wd,H) => { const p=[], ya=yb-H;
+        const n1=Math.ceil(Math.hypot(Wi,H)/10), n2=Math.ceil(Math.hypot(Wd,H)/10);
+        for(let i=0;i<=n1;i++)p.push({x:Math.round(cx0-Wi+Wi*i/n1),y:Math.round(yb+(ya-yb)*i/n1)});
+        for(let i=1;i<=n2;i++)p.push({x:Math.round(cx0+Wd*i/n2),y:Math.round(ya+(yb-ya)*i/n2)});
+        return p; };
+      const campo = () => document.getElementById('strain_manual');
+
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      R.existeCampo = !!campo();
+      R.arrancaVacio = campo().value === '';
+      const sglEl = document.getElementById('sgl');
+      if (sglEl) sglEl.value = '-18';                 // "strain automatico" ya cargado
+
+      _cineAbrir([ mkLoop('a4c.dcm') ]);
+      await new Promise(r=>setTimeout(r,210));
+      if (!_medOn) medToggle();
+      await new Promise(r=>setTimeout(r,130));
+      __t.herr('cine-med-str');
+      await new Promise(r=>setTimeout(r,140));
+
+      /* ── un par de strain VI ── */
+      await trazar(tri2(300,440,100,100,300)); medStrainConfirmar(); await new Promise(r=>setTimeout(r,110));
+      await trazar(tri2(300,440,70,78,250));   medStrainConfirmar(); await new Promise(r=>setTimeout(r,160));
+      const Rvi = _strainCalcular();
+      R.hayVi = !!Rvi;
+      R.campoEscrito = campo().value !== '';
+      let J = null; try { J = JSON.parse(campo().value); } catch (e) {}
+      R.json = !!J;
+      if (J) {
+        R.ver = J.v;
+        R.tieneVistaA = !!(J.vistas && J.vistas.A && J.vistas.A.vi);
+        R.sglGuardado = J.vistas.A.vi.sgl;
+        R.sglCoincide = Math.abs(J.vistas.A.vi.sgl - Rvi.sgl) < 0.01;
+        R.nTerr = J.vistas.A.vi.terr.length;
+        R.terrCoincide = J.vistas.A.vi.terr.length === Rvi.terr.length;
+        R.guardaMetodos = !!J.vistas.A.vi.metodos && !!J.vistas.A.vi.metodos.a4c;
+        /* NO guarda los contornos: eso fue la decision. */
+        R.sinContornos = JSON.stringify(J).indexOf('"pts"') === -1;
+        R.pesoBytes = campo().value.length;
+        R.liviano = campo().value.length < 4000;
+      }
+
+      /* ── NO toca el informe ── */
+      R.sglIntacto = (document.getElementById('sgl')||{}).value === '-18';
+
+      /* ── VIAJA con el estudio: guardar y reabrir ── */
+      __t.set('nombre', 'Paciente Strain');
+      __t.set('ci', '5550001');
+      const g = await __t.guardar();
+      R.guardo = !!(g && g.ok);
+      const idEst = g && g.estudioId;
+      cineCerrar();
+      await new Promise(r=>setTimeout(r,140));
+      /* cerrar el visor limpia la sesion en memoria, pero el campo YA tiene el resumen */
+      R.sesionLimpia = _vistaA.strain === null;
+      R.campoSobrevive = campo().value !== '';
+
+      __t.limpiar();
+      await new Promise(r=>setTimeout(r,120));
+      /* ── ⚠️ LA FUGA: tras «Nuevo estudio» el campo tiene que estar VACIO ── */
+      R.limpiaAlNuevoEstudio = campo().value === '';
+
+      await __t.reabrir(idEst);
+      await new Promise(r=>setTimeout(r,200));
+      R.volvio = campo().value !== '';
+      let J2 = null; try { J2 = JSON.parse(campo().value); } catch (e) {}
+      R.vuelveIgual = !!(J2 && J && Math.abs(J2.vistas.A.vi.sgl - J.vistas.A.vi.sgl) < 1e-9 &&
+                          J2.vistas.A.vi.terr.length === J.vistas.A.vi.terr.length);
+      R.sglVuelve = (document.getElementById('sgl')||{}).value === '-18';
+
+      /* ── y no se filtra al paciente siguiente ── */
+      __t.limpiar();
+      await new Promise(r=>setTimeout(r,120));
+      __t.set('nombre', 'Paciente Sin Strain');
+      __t.set('ci', '5550002');
+      const g2 = await __t.guardar();
+      const id2 = g2 && g2.estudioId;
+      __t.limpiar();
+      await __t.reabrir(id2);
+      await new Promise(r=>setTimeout(r,180));
+      R.segundoSinStrain = campo().value === '';
+      try { await __t.borrar(idEst); } catch (e) {}
+      try { await __t.borrar(id2); } catch (e) {}
+
+      /* ── abrir el visor sin medir NO borra lo guardado ── */
+      __t.limpiar();
+      campo().value = '{"v":1,"ts":"x","vistas":{"A":{"vi":{"sgl":-19.5,"nVistas":1,"vistas":["a4c"],"terr":[]}}}}';
+      _cineAbrir([ mkLoop('otro.dcm') ]);
+      await new Promise(r=>setTimeout(r,210));
+      if (!_medOn) medToggle();
+      await new Promise(r=>setTimeout(r,140));
+      __t.herr('cine-med-str');
+      await new Promise(r=>setTimeout(r,150));
+      R.noPisaSinMedir = campo().value.indexOf('-19.5') > -1;
+      cineCerrar();
+      __t.limpiar();
+    } finally { window.alert = alertOrig; }
+
+    return { extra: [
+      ['existe el campo y arranca vacio',        R.existeCampo && R.arrancaVacio, R.arrancaVacio],
+      ['medir escribe el resumen',               R.hayVi && R.campoEscrito && R.json, R.campoEscrito],
+      ['con version y la vista A',               R.ver === 1 && R.tieneVistaA, R.ver],
+      ['el SGL guardado es el calculado',        R.sglCoincide, R.sglGuardado],
+      ['y sus territorios',                      R.terrCoincide, R.nTerr],
+      ['guarda con que metodo se trazo',         R.guardaMetodos, R.guardaMetodos],
+      ['NO guarda los contornos',                R.sinContornos, R.sinContornos],
+      ['y pesa poco',                            R.liviano, R.pesoBytes + ' bytes'],
+      ['NO toca el campo sgl del informe',       R.sglIntacto, R.sglIntacto],
+      ['cerrar el visor limpia la sesion',       R.sesionLimpia, R.sesionLimpia],
+      ['pero el resumen sobrevive al cierre',    R.campoSobrevive, R.campoSobrevive],
+      ['«Nuevo estudio» LIMPIA el campo',        R.limpiaAlNuevoEstudio, R.limpiaAlNuevoEstudio],
+      ['reabrir el estudio devuelve el resumen', R.volvio && R.vuelveIgual, R.vuelveIgual],
+      ['y el sgl del informe tambien',           R.sglVuelve, R.sglVuelve],
+      ['NO SE FILTRA AL PACIENTE SIGUIENTE',     R.segundoSinStrain, R.segundoSinStrain],
+      ['abrir el visor sin medir no pisa lo guardado', R.noPisaSinMedir, R.noPisaSinMedir]
     ] };
   })();
 `);
