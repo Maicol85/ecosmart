@@ -7814,6 +7814,40 @@ superpuesto y se entera de los cambios observando `#cine-num` (cuadro), `#cine-c
 cineloop) y el `display` de `#cine-ov` (cierre). Al cambiar de cuadro se borran las mediciones
 pero **se conserva la calibración manual**: es una propiedad de la imagen, no del cuadro.
 
+### Área por trazado libre (2026-09-20)
+Selector **📏 Distancia / ✏️ Área** en la barra de medición. Con Área, se mantiene apretado y se
+recorre el borde: al soltar, el contorno **se cierra solo** y sale el área en cm². Mismas reglas
+que la regla — escala del archivo, nada sobre Doppler, nada cruzando escalas — y lo mismo al
+cambiar de cuadro: se borra.
+
+**El área usa `dx × dy`, no `dx²`.** Hoy da idéntico —las 281 regiones medibles del pendrive son
+isotrópicas— pero el estándar permite píxeles anisotrópicos y entonces `dx²` estaría mal. Por la
+misma razón la **distancia** pasó a calcularse por componente. Las dos cosas están pinneadas con
+una región anisotrópica armada a mano, porque no hay ningún archivo así con qué probarlo.
+
+**Cuatro trampas de esta herramienta, todas encontradas por mutación y todas silenciosas:**
+
+- **Sin `Math.abs`, Shoelace devuelve el área con SIGNO** según el sentido del trazado. Un
+  contorno recorrido al revés mostraría «−14,83 cm²». El primer test trazaba el rectángulo en un
+  solo sentido y no lo cazaba; hoy traza los dos.
+- **Una tolerancia sin fundamento es un agujero.** La condición geométrica usaba una tolerancia
+  18× mayor que el error real —176 px² sobre 20.000, medido— y por eso dejaba pasar una mutación
+  que se comía el último lado del polígono (error ~1.940 px², casi 10 %). Hoy la tolerancia es
+  `q × perímetro`, derivada de la cuantización, no elegida a dedo.
+- **Un `mouseup` sintético NO genera `click`.** El navegador sólo emite `click` para secuencias
+  de entrada reales, así que un arrastre simulado sin `click` explícito **no se parece al de
+  verdad** y dejaba sin probar la guarda que apaga la regla en modo Área. Sin esa guarda, cada
+  contorno deja además un punto de regla fantasma, porque el `mouseup` de un arrastre dispara un
+  `click`.
+- **El `mouseup` se escucha en el `document`, no en el canvas.** Al recorrer un borde se suelta el
+  botón fuera de la imagen todo el tiempo; enganchado al canvas, el trazo quedaba abierto siguiendo
+  al mouse para siempre.
+
+**Lo que NO se detecta, y conviene saberlo:** un contorno que **se cruza a sí mismo**. Shoelace le
+resta las partes solapadas, así que una figura en ocho devuelve **menos** área que la real, sin
+ningún síntoma. En la práctica el error de un trazo a mano son slivers despreciables, pero si
+alguna vez hay que medir un contorno complicado, es lo primero a revisar.
+
 ### Medir una imagen fija (2026-09-20)
 Botón **📏 Medir** en la tab Imágenes. Con el modo activo, tocar un slot con una imagen
 importada de un DICOM la abre **en el visor, con el original**; una foto común avisa que no

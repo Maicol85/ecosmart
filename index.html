@@ -45674,6 +45674,9 @@ window.cineCerrar = cineCerrar; window.cineIr = cineIr; window.cineLoop = cineLo
 let _medOn = false;            // modo medición activo
 let _medPuntos = [];           // clics sueltos a la espera del segundo punto
 let _medLineas = [];           // [{ax,ay,bx,by,mm,aviso}] en píxeles de la IMAGEN
+let _medHerr = 'dist';         // 'dist' | 'area'
+let _medAreas = [];            // [{pts:[{x,y}], cm2}] en píxeles de la IMAGEN
+let _medTrazo = null;          // trazo en curso mientras se arrastra
 let _medCalib = null;          // { mmPorPx } de la calibración manual, si se hizo
 let _medCalibrando = false;
 let _medUltimoCuadro = '';
@@ -45708,14 +45711,116 @@ function _medEscalaEn(p) {
         ? 'Acá el eje horizontal es TIEMPO, no distancia: es un trazo Doppler. Una medición en mm sobre esta zona no significaría nada.'
         : 'Esta zona de la imagen no declara una escala en centímetros, así que no se puede medir una distancia.' };
     }
-    return { ok:true, mmPorPx: r.dx * 10, region: r, fuente:'del archivo' };
+    /* Se devuelven las DOS escalas. Hoy son iguales en las 281 regiones medibles del
+       pendrive, pero el estándar permite píxeles anisotrópicos y el área los necesita
+       igual: cm² = píxeles² × dx × dy, no × dx². Con dx == dy da exactamente lo mismo, así
+       que no cuesta nada tenerlo bien. */
+    return { ok:true, mmPorPx: r.dx * 10, mmPorPxY: r.dy * 10, region: r, fuente:'del archivo' };
   }
   /* Fuera de toda región declarada: sólo se mide si hay calibración manual, que el médico
      hizo a sabiendas. Inventar una escala acá sería el peor de los dos mundos. */
-  if (_medCalib) return { ok:true, mmPorPx: _medCalib.mmPorPx, region:null, fuente:'calibración manual' };
+  if (_medCalib) return { ok:true, mmPorPx: _medCalib.mmPorPx, mmPorPxY: _medCalib.mmPorPx, region:null, fuente:'calibración manual' };
   if (regs.length) return { ok:false, motivo:'Ese punto cae fuera del área de imagen que el equipo declara. Usá «Recalibrar» si querés medir igual.' };
   return { ok:false, motivo:'Este archivo no trae la escala, así que hay que calibrar a mano primero.' };
 }
+
+/* ── ÁREA ────────────────────────────────────────────────────────────────────────────────
+   Shoelace (fórmula del cordón) sobre el contorno cerrado. Se toma el VALOR ABSOLUTO: el
+   signo sólo dice si el trazado se hizo en sentido horario o antihorario, y eso no es un
+   dato clínico.
+
+   OJO CON UN TRAZADO QUE SE CRUZA A SÍ MISMO: Shoelace le resta las partes que se solapan,
+   así que un contorno en forma de ocho devuelve MENOS área que la real, sin ningún síntoma.
+   No se detecta —ver la nota de CLAUDE.md—: en la práctica el error de un contorno a mano
+   alzada son slivers de área despreciable, pero si alguna vez hay que medir un contorno
+   complicado, esto es lo primero a revisar. */
+function _medShoelacePx(pts) {
+  let s = 0;
+  for (let i = 0, n = pts.length; i < n; i++) {
+    const a = pts[i], b = pts[(i + 1) % n];
+    s += a.x * b.y - b.x * a.y;
+  }
+  return Math.abs(s) / 2;
+}
+
+/* Un contorno sólo vale si TODOS sus vértices caen en la MISMA zona medible. Alcanza con que
+   un tramo se meta en el trazo Doppler de abajo para que los centímetros cuadrados dejen de
+   significar algo, y el número saldría igual de prolijo. */
+function _medAreaValidar(pts) {
+  if (pts.length < 3) return { ok:false, motivo:'El contorno necesita al menos tres puntos. Mantené el botón apretado y recorré el borde.' };
+  const e0 = _medEscalaEn(pts[0]);
+  if (!e0.ok) return { ok:false, motivo:e0.motivo };
+  for (let i = 1; i < pts.length; i++) {
+    const e = _medEscalaEn(pts[i]);
+    if (!e.ok) return { ok:false, motivo:'Parte del contorno sale de la zona que se puede medir.\n\n' + e.motivo };
+    if (e.region !== e0.region ||
+        Math.abs(e.mmPorPx - e0.mmPorPx) > 1e-12 || Math.abs(e.mmPorPxY - e0.mmPorPxY) > 1e-12) {
+      return { ok:false, motivo:'El contorno cruza zonas de la imagen con escalas distintas, así que el área no sería válida. Trazalo dentro de una sola zona.' };
+    }
+  }
+  return { ok:true, esc:e0 };
+}
+
+/* cm² a partir de los píxeles. `mmPorPx` está en milímetros: se pasa a centímetros en cada
+   eje (÷10) y se multiplican los DOS, que es lo que hace exacto el caso anisotrópico. */
+function _medAreaCm2(pts, esc) {
+  return _medShoelacePx(pts) * (esc.mmPorPx / 10) * (esc.mmPorPxY / 10);
+}
+
+function _medPuntoCanvas(ev) {
+  const cv = _medEl('cine-med');
+  return cv ? _medPunto(ev, cv) : null;
+}
+
+function _medAreaDown(ev) {
+  if (_medHerr !== 'area' || _medCalibrando) return;
+  const p = _medPuntoCanvas(ev);
+  if (!p) return;
+  ev.preventDefault();
+  _medTrazo = [p];
+}
+
+function _medAreaMove(ev) {
+  if (!_medTrazo) return;
+  const p = _medPuntoCanvas(ev);
+  if (!p) return;
+  /* Se decima: un arrastre suelta cientos de eventos y guardar cada uno no agrega ni un
+     milímetro cuadrado de precisión, sólo trabajo de dibujo. 2 px de imagen es menos que el
+     grosor de la línea. */
+  const u = _medTrazo[_medTrazo.length - 1];
+  if (Math.abs(p.x - u.x) < 2 && Math.abs(p.y - u.y) < 2) return;
+  _medTrazo.push(p);
+  _medPintar();
+}
+
+function _medAreaUp() {
+  if (!_medTrazo) return;
+  const pts = _medTrazo;
+  _medTrazo = null;
+  /* El contorno se cierra solo: el médico recorre el borde y suelta, no tiene que volver
+     exactamente al punto de partida. */
+  const v = _medAreaValidar(pts);
+  if (!v.ok) { alert(v.motivo); _medPintar(); return; }
+  const px2 = _medShoelacePx(pts);
+  if (px2 < 9) { _medPintar(); return; }       // un clic suelto o un temblor: no es un contorno
+  _medAreas.push({ pts, cm2: _medAreaCm2(pts, v.esc) });
+  _medPintar(); _medEstado();
+}
+
+function medHerramienta(h) {
+  _medHerr = (h === 'area') ? 'area' : 'dist';
+  _medTrazo = null; _medPuntos = [];
+  const cv = _medEl('cine-med');
+  if (cv) {
+    /* Las dos herramientas no pueden escuchar a la vez: el `mouseup` de un arrastre dispara
+       también un `click`, así que con las dos vivas cada contorno dejaba además un punto de
+       regla suelto. */
+    cv.onclick = (_medHerr === 'dist') ? _medClic : null;
+    cv.style.cursor = (_medHerr === 'area') ? 'crosshair' : 'crosshair';
+  }
+  _medPintar(); _medEstado();
+}
+window.medHerramienta = medHerramienta;
 
 function _medPintar() {
   const cv = _medEl('cine-med'), base = _medEl('cine-cv');
@@ -45745,6 +45850,34 @@ function _medPintar() {
     cx.fillStyle = color;
     cx.fillText(txt, mx + 10*esc, my);
   };
+  /* Los contornos van PRIMERO: el sombreado es semitransparente y, dibujado encima, apagaba
+     las reglas que quedaran debajo. */
+  const contorno = (a, cerrado, color) => {
+    if (!a.pts.length) return;
+    cx.beginPath();
+    cx.moveTo(a.pts[0].x, a.pts[0].y);
+    for (let i = 1; i < a.pts.length; i++) cx.lineTo(a.pts[i].x, a.pts[i].y);
+    if (cerrado) {
+      cx.closePath();
+      cx.fillStyle = 'rgba(34,211,106,.18)';
+      cx.fill();
+    }
+    cx.strokeStyle = color; cx.stroke();
+    if (a.cm2 == null) return;
+    /* La etiqueta va arriba del punto más alto, no en el centroide: sobre un contorno con
+       forma de riñón el centroide cae fuera de la figura y el número queda flotando. */
+    let ax = a.pts[0].x, ay = a.pts[0].y;
+    a.pts.forEach(p => { if (p.y < ay) { ay = p.y; ax = p.x; } });
+    const txt = a.cm2.toFixed(2) + ' cm²';
+    const w = cx.measureText(txt).width;
+    cx.fillStyle = 'rgba(0,0,0,.65)';
+    cx.fillRect(ax + 6*esc, ay - 20*esc, w + 8*esc, 18*esc);
+    cx.fillStyle = color;
+    cx.fillText(txt, ax + 10*esc, ay - 5*esc);
+  };
+  _medAreas.forEach(a => contorno(a, true, '#22d36a'));
+  if (_medTrazo && _medTrazo.length > 1) contorno({ pts:_medTrazo, cm2:null }, false, '#fbbf24');
+
   _medLineas.forEach(l => dibujar(l, l.calibracion ? '#fbbf24' : '#22d36a'));
   if (_medPuntos.length === 1) {
     const p = _medPuntos[0];
@@ -45760,37 +45893,51 @@ function _medBarra(html) {
   if (_medOn) b.innerHTML = html;
 }
 
+const _medComo = () => (_medHerr === 'area')
+  ? 'Mantené apretado y recorré el borde: al soltar, el contorno se cierra solo y sale el área en cm².'
+  : 'Hacé clic en dos puntos para medir.';
+
 /* Todo lo que se muestra acá lo escribe la app: los únicos números que vienen del archivo
    son la escala y las coordenadas, y salen formateados con toFixed. Nada del DICOM se
    interpola como HTML. */
 function _medEstado() {
   const regs = _medRegs();
   const medibles = regs.filter(_dcmImgRegionMedible);
-  const bot = '<button type="button" class="btn btn-ghost" id="cine-med-recal" style="padding:3px 9px;font-size:11px;">Recalibrar</button>' +
+  /* El selector de herramienta va en la barra y no al lado del boton del modal: ahi el
+     estado esta junto a lo que explica como usarlo, y el modal no se toca. */
+  const act = 'background:var(--accent);color:#fff;';
+  const sel = '<button type="button" class="btn btn-ghost" id="cine-med-dist" style="padding:3px 9px;font-size:11px;' +
+                (_medHerr === 'dist' ? act : '') + '">📏 Distancia</button>' +
+              '<button type="button" class="btn btn-ghost" id="cine-med-area" style="padding:3px 9px;font-size:11px;margin-left:6px;' +
+                (_medHerr === 'area' ? act : '') + '">✏️ Área</button>';
+  const bot = sel +
+              '<button type="button" class="btn btn-ghost" id="cine-med-recal" style="padding:3px 9px;font-size:11px;margin-left:14px;">Recalibrar</button>' +
               '<button type="button" class="btn btn-ghost" id="cine-med-borrar" style="padding:3px 9px;font-size:11px;margin-left:6px;">Borrar mediciones</button>';
   let txt;
   if (_medCalibrando) {
     txt = '<b>Calibración:</b> dibujá una línea sobre una referencia conocida de la imagen ' +
           '(por ejemplo 1 cm de la escala lateral) y después escribí cuánto mide.';
   } else if (_medCalib) {
-    txt = 'Escala <b>calibrada a mano</b>: ' + (_medCalib.mmPorPx).toFixed(4) + ' mm por píxel. ' +
-          'Hacé clic en dos puntos para medir.';
+    txt = 'Escala <b>calibrada a mano</b>: ' + (_medCalib.mmPorPx).toFixed(4) + ' mm por píxel. ' + _medComo();
   } else if (medibles.length) {
     const e = medibles.map(r => (r.dx * 10).toFixed(4)).filter((v, i, a) => a.indexOf(v) === i);
     txt = 'Escala <b>tomada del archivo</b>: ' + e.join(' y ') + ' mm por píxel' +
           (medibles.length > 1 ? ' (' + medibles.length + ' zonas con escalas propias)' : '') +
-          '. Hacé clic en dos puntos para medir.' +
+          '. ' + _medComo() +
           (regs.length > medibles.length ? ' Las zonas de Doppler no se pueden medir: ahí el eje horizontal es tiempo.' : '');
   } else {
     txt = 'Este archivo <b>no trae la escala</b>. Calibrá a mano: dibujá una línea sobre una ' +
           'referencia conocida y decí cuánto mide.';
   }
-  const n = _medLineas.filter(l => !l.calibracion).length;
+  const n = _medLineas.filter(l => !l.calibracion).length + _medAreas.length;
   _medBarra(txt + (n ? '  ·  <b>' + n + '</b> medición(es) en pantalla.' : '') +
             '<div style="margin-top:6px;">' + bot + '</div>');
   const rc = _medEl('cine-med-recal'), bb = _medEl('cine-med-borrar');
+  const bd = _medEl('cine-med-dist'), ba = _medEl('cine-med-area');
   if (rc) rc.onclick = medRecalibrar;
   if (bb) bb.onclick = medBorrar;
+  if (bd) bd.onclick = () => medHerramienta('dist');
+  if (ba) ba.onclick = () => medHerramienta('area');
 }
 
 function _medClic(ev) {
@@ -45831,7 +45978,12 @@ function _medClic(ev) {
           'La medición no sería válida: marcá los dos puntos dentro de la misma zona.');
     _medPintar(); return;
   }
-  _medLineas.push({ ax:a.x, ay:a.y, bx:p.x, by:p.y, mm: dpx * ea.mmPorPx });
+  /* Por componente y no `dpx * mmPorPx`: con píxeles anisotrópicos —que el estándar
+     permite— el factor no es el mismo en los dos ejes. En las 281 regiones medibles del
+     pendrive dx == dy y las dos fórmulas dan idéntico, así que esto no cambia nada hoy y
+     queda bien para el día que llegue un equipo que no sea isotrópico. */
+  const mm = Math.sqrt(Math.pow((p.x - a.x) * ea.mmPorPx, 2) + Math.pow((p.y - a.y) * ea.mmPorPxY, 2));
+  _medLineas.push({ ax:a.x, ay:a.y, bx:p.x, by:p.y, mm });
   _medPintar(); _medEstado();
 }
 
@@ -45869,12 +46021,20 @@ function medToggle() {
     /* Se pausa: medir sobre un cineloop corriendo es marcar un punto en un cuadro y el otro
        en el siguiente. */
     _cineDetener();
-    cv.onclick = _medClic;
+    cv.onclick = (_medHerr === 'dist') ? _medClic : null;
+    cv.onmousedown = _medAreaDown;
+    cv.onmousemove = _medAreaMove;
+    /* El `mouseup` se escucha en el DOCUMENTO y no en el canvas: si el médico suelta el
+       botón con el puntero afuera de la imagen —que al recorrer un borde pasa seguido—, el
+       canvas no lo recibe y el trazo quedaba abierto para siempre, siguiendo al mouse. */
+    document.addEventListener('mouseup', _medAreaUp);
     const regs = _medRegs();
     if (!regs.filter(_dcmImgRegionMedible).length && !_medCalib) _medCalibrando = true;
     _medPintar(); _medEstado();
   } else {
-    cv.onclick = null;
+    cv.onclick = null; cv.onmousedown = null; cv.onmousemove = null;
+    document.removeEventListener('mouseup', _medAreaUp);
+    _medTrazo = null;
     _medBarra('');
   }
 }
@@ -45882,6 +46042,7 @@ window.medToggle = medToggle;
 
 function medBorrar() {
   _medLineas = _medLineas.filter(l => l.calibracion);   // la de calibración no es una medición
+  _medAreas = []; _medTrazo = null;
   _medPuntos = [];
   _medPintar(); _medEstado();
 }
@@ -45901,6 +46062,7 @@ window.medRecalibrar = medRecalibrar;
    Se detecta observando `#cine-num`, que el reproductor actualiza en cada `cineIr`. */
 function medReset() {
   _medPuntos = []; _medLineas = _medLineas.filter(l => l.calibracion);
+  _medAreas = []; _medTrazo = null;
   if (_medOn) { _medPintar(); _medEstado(); }
 }
 window.medReset = medReset;
@@ -45908,9 +46070,10 @@ window.medReset = medReset;
 /* Al cerrar o cambiar de cineloop se va TODO, calibración incluida: es otra imagen. */
 function medApagar() {
   _medOn = false; _medCalibrando = false; _medCalib = null;
-  _medPuntos = []; _medLineas = [];
+  _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null; _medHerr = 'dist';
   const cv = _medEl('cine-med'), b = _medEl('cine-medir');
-  if (cv) { cv.style.display = 'none'; cv.onclick = null; }
+  if (cv) { cv.style.display = 'none'; cv.onclick = null; cv.onmousedown = null; cv.onmousemove = null; }
+  document.removeEventListener('mouseup', _medAreaUp);
   if (b) b.textContent = '📏 Medir';
   _medBarra('');
 }
@@ -61543,8 +61706,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260919-2356';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789872988604;                 /* eco-build-ms */
+const ECO_BUILD    = '20260920-0024';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789874681579;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -61630,7 +61793,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260919-2356</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-0024</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

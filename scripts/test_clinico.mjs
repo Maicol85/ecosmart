@@ -11437,6 +11437,239 @@ caso('TC-188', 'Imagen fija: se mide sobre el original, no sobre el JPEG recompr
   })();
 `);
 
+/* ══ TC-189 · Area por trazado libre ═════════════════════════════════════════════════════════
+   Dos condiciones sostienen esto y el resto es interfaz:
+   · SHOELACE SOBRE UNA FIGURA DE AREA CONOCIDA. Se traza un rectangulo de 200x100 px: el area
+     tiene que dar 20.000 px^2, y en cm^2 exactamente 20.000 x dx x dy. Una formula de area mal
+     escrita --dividir por 2 de mas, olvidar el valor absoluto, usar dx^2 en vez de dx*dy--
+     sigue devolviendo un numero prolijo, y nadie lo mira dos veces.
+   · ANISOTROPIA. Con dx != dy el area es px^2 x dx x dy, no x dx^2. No hay ningun archivo asi
+     en el pendrive, asi que la region se arma a mano: el estandar lo permite y la formula
+     tiene que estar bien igual.                                                              */
+caso('TC-189', 'Area: Shoelace exacto sobre figura conocida, y las zonas donde no se calcula', `
+  return (async () => {
+    const P = ${JSON.stringify(PENDRIVE)};
+    if (!P.loop) return { extra: [[
+      'hace falta un cineloop real del pendrive', false, 'no se encontro: quedo SIN verificar']] };
+    const bytes = x => { const b = atob(x.b64); const a = new Uint8Array(b.length);
+      for (let i=0;i<b.length;i++) a[i] = b.charCodeAt(i); return a; };
+    const esperar = async (c, n) => { for (let i=0;i<(n||60);i++) { if (c()) return true; await new Promise(r=>setTimeout(r,60)); } return c(); };
+    const alertOrig = window.alert; const dichos = [];
+    window.alert = m => dichos.push(String(m));
+    const R = {};
+    try {
+      const u = bytes(P.loop);
+      const d0 = _dcmImgLeer(u.buffer);
+      const reg = (d0.regiones || []).filter(_dcmImgRegionMedible)[0];
+      if (!reg) return { extra: [['la imagen declara region medible', false, 'no la declara']] };
+
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      await dcmImgImportar([new File([u], P.loop.nombre)]);
+      await esperar(() => !!_cineDatos, 80);
+      medToggle();
+      const cv = document.getElementById('cine-med');
+
+      /* Arrastre real: mousedown en el canvas, mousemove, mouseup en el documento. */
+      const aCliente = (x, y) => { const r = cv.getBoundingClientRect();
+        return { clientX: r.left + x * (r.width / cv.width), clientY: r.top + y * (r.height / cv.height) }; };
+      const trazar = async (pts) => {
+        cv.dispatchEvent(new MouseEvent('mousedown', Object.assign({ bubbles:true }, aCliente(pts[0].x, pts[0].y))));
+        for (let i = 1; i < pts.length; i++)
+          cv.dispatchEvent(new MouseEvent('mousemove', Object.assign({ bubbles:true }, aCliente(pts[i].x, pts[i].y))));
+        document.dispatchEvent(new MouseEvent('mouseup', { bubbles:true }));
+        /* Y EL CLICK. Un mouseup SINTETICO no genera click --el navegador solo lo emite para
+           secuencias de entrada reales-- asi que sin esto el arrastre simulado no se parecia
+           al de verdad y dejaba sin probar la guarda que apaga la regla en modo Area.
+           Lo delato una mutacion que sobrevivia. */
+        const u = pts[pts.length - 1];
+        cv.dispatchEvent(new MouseEvent('click', Object.assign({ bubbles:true }, aCliente(u.x, u.y))));
+        await new Promise(r => setTimeout(r, 120));
+      };
+      /* Rectangulo con puntos intermedios, como un trazo a mano. Se CIERRA solo: el ultimo
+         punto no vuelve al primero, que es justo lo que tiene que resolver la herramienta. */
+      const rect = (x0, y0, w, h, paso) => {
+        const p = []; paso = paso || 20;
+        for (let x = x0; x <= x0 + w; x += paso) p.push({ x, y: y0 });
+        for (let y = y0 + paso; y <= y0 + h; y += paso) p.push({ x: x0 + w, y });
+        for (let x = x0 + w - paso; x >= x0; x -= paso) p.push({ x, y: y0 + h });
+        for (let y = y0 + h - paso; y > y0; y -= paso) p.push({ x: x0, y });
+        return p;
+      };
+
+      /* ── herramienta: arranca en distancia ── */
+      R.arrancaEnDistancia = _medHerr === 'dist';
+      R.hayBotones = !!document.getElementById('cine-med-area') && !!document.getElementById('cine-med-dist');
+      document.getElementById('cine-med-area').click();
+      await new Promise(r => setTimeout(r, 80));
+      R.cambioAArea = _medHerr === 'area';
+      R.instructivo = (document.getElementById('cine-med-barra').textContent || '');
+      R.instructivoArea = R.instructivo.indexOf('recorré el borde') > -1 || R.instructivo.indexOf('recorre el borde') > -1;
+
+      /* ── ARITMETICA sobre un rectangulo de 200 x 100 ── */
+      const x0 = Math.round(reg.x0 + 25), y0 = Math.round(reg.y0 + 25);
+      await trazar(rect(x0, y0, 200, 100));
+      R.trazo = _medAreas.length;
+      if (_medAreas.length) {
+        const a = _medAreas[0];
+        const px2 = _medShoelacePx(a.pts);
+        /* exactitud de la FORMULA, contra los puntos realmente guardados */
+        R.exacta = Math.abs(a.cm2 - px2 * (reg.dx) * (reg.dy)) < 1e-12;
+        /* y la GEOMETRIA: el rectangulo trazado tiene que rondar los 20.000 px^2.
+           La tolerancia sale de la cuantizacion de clientX, igual que en TC-187. */
+        const rr = cv.getBoundingClientRect();
+        const q = cv.width / rr.width;                       // px de imagen por px de pantalla
+        /* Tolerancia = q x perimetro. Medido: el error real de este trazado es 176 px2 sobre
+           20.000 (0,88%), y q x 300 da ~780 -- cuatro veces el error observado, que alcanza
+           para no ser flaky. La primera version usaba el doble de eso y dejaba pasar una
+           mutacion que se comia el ultimo lado del poligono (error ~1.940 px2, casi 10%).
+           Una tolerancia sin fundamento no es una tolerancia, es un agujero. */
+        R.px2 = px2; R.tolPx2 = q * (200 + 100);
+        R.geometria = Math.abs(px2 - 20000) < R.tolPx2;
+        R.cm2 = a.cm2;
+        R.cm2Esperado = 20000 * reg.dx * reg.dy;
+      }
+
+      /* ── EL MISMO RECTANGULO AL REVES ──
+         Shoelace devuelve area con SIGNO segun el sentido del trazado, y el sentido no es un
+         dato clinico. Sin el valor absoluto, un contorno recorrido al reves da negativo y en
+         pantalla sale "-14.83 cm2". Hubo que agregarlo por mutacion: el rectangulo de arriba
+         se traza en un solo sentido y sacar el Math.abs no lo ponia en rojo. */
+      medBorrar();
+      const alReves = rect(x0, y0, 200, 100).slice().reverse();
+      await trazar(alReves);
+      R.alRevesMide = _medAreas.length === 1;
+      R.alRevesPositivo = _medAreas.length === 1 && _medAreas[0].cm2 > 0;
+      R.alRevesIgual = _medAreas.length === 1 && Math.abs(_medAreas[0].cm2 - (R.cm2 || 0)) < 0.05;
+      /* y en modo Area un arrastre NO puede dejar ademas un punto de regla suelto: el mouseup
+         dispara tambien un click, asi que con las dos herramientas escuchando a la vez cada
+         contorno ensuciaba la pantalla con una medicion fantasma. */
+      R.areaSinReglaSuelta = _medLineas.filter(l => !l.calibracion).length === 0 && _medPuntos.length === 0;
+      medBorrar();
+
+      /* ── varios trazados en la misma imagen ── */
+      await trazar(rect(x0, y0, 200, 100));
+      await trazar(rect(x0, y0 + 140, 100, 60));
+      R.dosTrazados = _medAreas.length === 2;
+
+      /* ── borrar ── */
+      medBorrar();
+      R.borro = _medAreas.length === 0;
+
+      /* ── cambio de cuadro: se borran ── */
+      await trazar(rect(x0, y0, 120, 80));
+      R.antesDelCuadro = _medAreas.length;
+      await cineIr(Math.min(4, _cineDatos.loops[0].cuadros - 1));
+      await new Promise(r => setTimeout(r, 300));
+      R.trasCuadro = _medAreas.length;
+
+      /* ── un clic suelto NO es un contorno ── */
+      dichos.length = 0;
+      await trazar([{ x:x0, y:y0 }, { x:x0+1, y:y0 }]);
+      R.clicSueltoNoCuenta = _medAreas.length === 0;
+
+      /* ── la regla sigue andando al volver a Distancia ── */
+      document.getElementById('cine-med-dist').click();
+      await new Promise(r => setTimeout(r, 80));
+      const clic = (x, y) => { const c = aCliente(x, y);
+        cv.dispatchEvent(new MouseEvent('click', Object.assign({ bubbles:true }, c))); };
+      clic(x0, y0); clic(x0 + 150, y0);
+      await new Promise(r => setTimeout(r, 120));
+      R.reglaSigue = _medLineas.filter(l => !l.calibracion).length === 1;
+      /* y un arrastre en modo Distancia NO deja contornos */
+      await trazar(rect(x0, y0 + 200, 80, 50));
+      R.areaNoEnDistancia = _medAreas.length === 0;
+      medBorrar();
+
+      /* ── ANISOTROPIA: region armada a mano con dy = 2 dx ── */
+      medApagar(); cineCerrar();
+      const anis = { tipo:1, ux:DCMIMG_UNI_CM, uy:DCMIMG_UNI_CM,
+                     x0:reg.x0, y0:reg.y0, x1:reg.x1, y1:reg.y1, dx:reg.dx, dy:reg.dx * 2 };
+      _cineAbrir([{ nombre:'anisotropico', cuadros:1,
+        d:{ frags:d0.frags.slice(0,1), cols:d0.cols, filas:d0.filas, msCuadro:0, regiones:[anis] } }]);
+      await new Promise(r => setTimeout(r, 250));
+      medToggle();
+      document.getElementById('cine-med-area').click();
+      const cv2 = document.getElementById('cine-med');
+      const aCliente2 = (x, y) => { const r = cv2.getBoundingClientRect();
+        return { clientX: r.left + x * (r.width / cv2.width), clientY: r.top + y * (r.height / cv2.height) }; };
+      const trazar2 = async (pts) => {
+        cv2.dispatchEvent(new MouseEvent('mousedown', Object.assign({ bubbles:true }, aCliente2(pts[0].x, pts[0].y))));
+        for (let i = 1; i < pts.length; i++)
+          cv2.dispatchEvent(new MouseEvent('mousemove', Object.assign({ bubbles:true }, aCliente2(pts[i].x, pts[i].y))));
+        document.dispatchEvent(new MouseEvent('mouseup', { bubbles:true }));
+        await new Promise(r => setTimeout(r, 120));
+      };
+      await trazar2(rect(x0, y0, 200, 100));
+      if (_medAreas.length) {
+        const a = _medAreas[0];
+        const px2 = _medShoelacePx(a.pts);
+        R.anisExacta = Math.abs(a.cm2 - px2 * anis.dx * anis.dy) < 1e-12;
+        /* y NO es lo que daria usar dx al cuadrado */
+        R.anisNoEsDxCuadrado = Math.abs(a.cm2 - px2 * anis.dx * anis.dx) > 1e-6;
+      }
+
+      /* ── DOPPLER y cruce de escalas ── */
+      medApagar(); cineCerrar();
+      const noMed = { tipo:3, ux:4, uy:7, x0:reg.x0, y0:reg.y0,
+                      x1:Math.round((reg.x0+reg.x1)/2), y1:reg.y1, dx:0.01, dy:0.01 };
+      const siMed = { tipo:1, ux:DCMIMG_UNI_CM, uy:DCMIMG_UNI_CM,
+                      x0:noMed.x1+1, y0:reg.y0, x1:reg.x1, y1:reg.y1, dx:reg.dx, dy:reg.dy };
+      _cineAbrir([{ nombre:'mixto', cuadros:1,
+        d:{ frags:d0.frags.slice(0,1), cols:d0.cols, filas:d0.filas, msCuadro:0, regiones:[noMed, siMed] } }]);
+      await new Promise(r => setTimeout(r, 250));
+      medToggle();
+      document.getElementById('cine-med-area').click();
+      const cv3 = document.getElementById('cine-med');
+      const trazar3 = async (pts) => { const ac = (x,y) => { const r = cv3.getBoundingClientRect();
+          return { clientX: r.left + x*(r.width/cv3.width), clientY: r.top + y*(r.height/cv3.height) }; };
+        cv3.dispatchEvent(new MouseEvent('mousedown', Object.assign({ bubbles:true }, ac(pts[0].x, pts[0].y))));
+        for (let i=1;i<pts.length;i++) cv3.dispatchEvent(new MouseEvent('mousemove', Object.assign({ bubbles:true }, ac(pts[i].x, pts[i].y))));
+        document.dispatchEvent(new MouseEvent('mouseup', { bubbles:true }));
+        await new Promise(r => setTimeout(r, 140)); };
+      dichos.length = 0;
+      await trazar3(rect(Math.round(noMed.x0 + 20), Math.round(noMed.y0 + 20), 120, 80));
+      R.dopplerNoCalcula = _medAreas.length === 0;
+      R.dopplerAviso = dichos.join(' ');
+      R.dopplerDiceTiempo = /TIEMPO/i.test(R.dopplerAviso);
+      /* un contorno que CRUZA de una zona a la otra */
+      dichos.length = 0; medBorrar();
+      await trazar3(rect(Math.round(noMed.x1 - 60), Math.round(reg.y0 + 20), 140, 80));
+      R.cruceNoCalcula = _medAreas.length === 0;
+      R.cruceAviso = dichos.join(' ');
+    } finally {
+      window.alert = alertOrig;
+      try { medApagar(); cineCerrar(); } catch (e) {}
+    }
+
+    return { extra: [
+      ['la herramienta arranca en Distancia',            R.arrancaEnDistancia, R.arrancaEnDistancia],
+      ['hay selector de Distancia y Area',               R.hayBotones, R.hayBotones],
+      ['se puede cambiar a Area',                        R.cambioAArea, R.cambioAArea],
+      ['y el instructivo cambia con la herramienta',     R.instructivoArea, R.instructivo.slice(-70)],
+      ['un arrastre deja UN contorno cerrado',           R.trazo === 1, R.trazo],
+      ['SHOELACE EXACTO: cm2 = px2 x dx x dy',           R.exacta, R.cm2 + ' vs ' + R.cm2Esperado],
+      ['y la figura trazada mide los 20.000 px2',        R.geometria, (R.px2||0).toFixed(0) + ' px2 · error ' + Math.abs((R.px2||0)-20000).toFixed(0) + ' · tolerancia ' + (R.tolPx2||0).toFixed(0)],
+      ['el mismo contorno al reves tambien mide',        R.alRevesMide, R.alRevesMide],
+      ['y da POSITIVO, no negativo',                     R.alRevesPositivo, R.alRevesPositivo],
+      ['y el mismo valor que en el otro sentido',        R.alRevesIgual, R.alRevesIgual],
+      ['un arrastre no deja ademas una regla suelta',    R.areaSinReglaSuelta, R.areaSinReglaSuelta],
+      ['se pueden hacer varios trazados',                R.dosTrazados, R.dosTrazados],
+      ['«Borrar mediciones» los limpia',                 R.borro, R.borro],
+      ['habia un contorno antes de cambiar de cuadro',   R.antesDelCuadro === 1, R.antesDelCuadro],
+      ['al cambiar de cuadro se borran',                 R.trasCuadro === 0, R.trasCuadro],
+      ['un clic suelto no cuenta como contorno',         R.clicSueltoNoCuenta, R.clicSueltoNoCuenta],
+      ['la regla sigue funcionando al volver a Distancia', R.reglaSigue, R.reglaSigue],
+      ['y en modo Distancia un arrastre no deja area',   R.areaNoEnDistancia, R.areaNoEnDistancia],
+      ['anisotropia: el area usa dx x dy',               R.anisExacta, R.anisExacta],
+      ['y NO dx al cuadrado',                            R.anisNoEsDxCuadrado, R.anisNoEsDxCuadrado],
+      ['sobre Doppler NO se calcula area',               R.dopplerNoCalcula, R.dopplerNoCalcula],
+      ['y el aviso dice que el eje es TIEMPO',           R.dopplerDiceTiempo, (R.dopplerAviso||'').slice(0,80)],
+      ['un contorno que cruza zonas tampoco',            R.cruceNoCalcula, (R.cruceAviso||'').slice(0,80)]
+    ] };
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];
