@@ -7844,6 +7844,38 @@ junto**, no sólo el visor.
 > significantly related to gender, age, or body size… EF in the range of 53% to 73% should be
 > classified as normal"* — un rango **único**, en tensión con su propia Tabla 4 por sexo.
 
+**EL BIPLANO ERA INALCANZABLE, y se arregló el 2026-09-20 (segundo pase).** La apical 4C y la
+2C son **adquisiciones distintas**, o sea cineloops distintos: el médico tiene que cambiar de
+imagen entre el primer par y el segundo. Y al cambiar, el observador de `#cine-cual` llamaba a
+`medApagar()`, que dejaba `_simp` en `null` — se perdían los dos trazados confirmados y los
+cuatro pasos no se completaban **nunca**. O sea: el biplano estaba escrito, probado… y no se
+podía usar. Hoy hay dos funciones distintas:
+
+- **`medCambioDeImagen()`** — otro cineloop en el mismo visor. Borra reglas, áreas y la
+  calibración manual (son de la imagen que se deja) y **conserva la sesión de Simpson**.
+- **`medApagar()`** — se cerró el visor. Ahí sí se va todo, `_simp` incluido.
+
+> Lección: una función puede estar completa, testeada y con sus mutaciones en rojo, y aun así
+> ser **inalcanzable por el flujo real**. Los tests de Simpson trazaban las cuatro vistas sobre
+> el mismo cineloop, que es lo único que se podía hacer en un test — y eso es justamente lo que
+> nunca pasa en la práctica.
+
+**Cada trazado lleva la escala de SU imagen.** Segundo defecto, que sólo se volvió alcanzable al
+arreglar el primero: `_simpCalcular` usaba un solo `cmPorPx` —el del primer trazado— para los
+cuatro. Mientras las dos vistas estaban obligadas a compartir cineloop daba igual; con dos loops
+de profundidades distintas, no. Medido: la escala 2D del pendrive va de **0,046 a 0,926 mm/píxel**.
+Hoy se guarda `diamCm` y `Lcm` por trazado. `diam` en píxeles queda sólo para dibujar.
+
+**Si los cuatro trazados salen de la misma imagen, se avisa.** La app no sabe distinguir una 4C
+de una 2C —eso lo sabe el médico— pero sí sabe si el archivo es el mismo, y eso es casi siempre
+un monoplanar trazado dos veces.
+
+**Pendiente: la vista en paralelo.** Dos cineloops lado a lado con reproductores y herramientas
+independientes exige convertir en instancias **13 estados globales, 18 referencias a ids fijos,
+2 MutationObservers y el listener de `mouseup` en `document`**. Es una refactorización del visor,
+no un agregado. Decisión de Maicol (2026-09-20): primero este arreglo, que desbloquea el biplano
+hoy; el panel doble y la sincronización van sobre una base que ya funciona.
+
 **FLUJO FLEXIBLE (2026-09-20).** Con **un par** —diástole y sístole de la misma vista— ya sale
 **FEVI monoplanar**; agregando la segunda vista se recalcula **biplano**. Antes exigía las cuatro
 y era un problema real: con una sola vista buena no se podía medir nada.

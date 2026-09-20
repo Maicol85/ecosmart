@@ -45906,9 +45906,9 @@ function _simpDiametros(pts, eje, n) {
 }
 
 /* V = (π/4) · Σ(a_i · b_i) · (L/20), con a_i del 4C, b_i del 2C y L la MÁS LARGA. */
-function _simpVolumenML(a4, a2, Lcm, cmPorPx) {
+function _simpVolumenML(a4cm, a2cm, Lcm) {
   let s = 0;
-  for (let i = 0; i < SIMP_N; i++) s += (a4[i] * cmPorPx) * (a2[i] * cmPorPx);
+  for (let i = 0; i < SIMP_N; i++) s += a4cm[i] * a2cm[i];
   return Math.PI / 4 * s * (Lcm / SIMP_N);
 }
 
@@ -45916,17 +45916,20 @@ function _simpCalcular() {
   if (!_simpParCompleto(0)) return null;
   const bi = _simpParCompleto(1);
   const A = _simp.pares[0], B = _simp.pares[1];
-  const cmPorPx = A.d.cmPorPx;
   /* Monoplano: el disco se asume CIRCULAR, o sea b_i = a_i. Biplano: b_i sale de la segunda
-     vista y L es la más larga de las dos, textual de la guía. */
+     vista y L es la más larga de las dos, textual de la guía.
+     TODO en centímetros y cada trazado con la escala de su propia imagen — ver la nota de
+     `_simpAceptar`. */
   const vol = (fase) => {
     const c1 = A[fase], c2 = bi ? B[fase] : A[fase];
-    const Lpx = bi ? Math.max(c1.eje.L, c2.eje.L) : c1.eje.L;
-    return { ml: _simpVolumenML(c1.diam, c2.diam, Lpx * cmPorPx, cmPorPx), Lcm: Lpx * cmPorPx };
+    const Lcm = bi ? Math.max(c1.Lcm, c2.Lcm) : c1.Lcm;
+    return { ml: _simpVolumenML(c1.diamCm, c2.diamCm, Lcm), Lcm };
   };
   const d = vol('d'), s = vol('s');
   if (!(d.ml > 0)) return null;
-  return { vfd:d.ml, vfs:s.ml, fevi:(d.ml - s.ml) / d.ml * 100, Ld:d.Lcm, Ls:s.Lcm, bi };
+  const imgs = [...new Set([A.d, A.s, bi ? B.d : null, bi ? B.s : null]
+    .filter(Boolean).map(x => x.imagen).filter(Boolean))];
+  return { vfd:d.ml, vfs:s.ml, fevi:(d.ml - s.ml) / d.ml * 100, Ld:d.Lcm, Ls:s.Lcm, bi, imgs };
 }
 
 /* MISMA cascada que el informe: `UMBRAL_FEVI_NORMAL` y 40/30. Ver la nota de arriba. */
@@ -45950,7 +45953,18 @@ function _simpAceptar(pts) {
   const eje = _simpEje(pts);
   if (!eje) return 'No se pudo determinar el eje largo del ventrículo con ese trazado.';
   if (eje.L < 20) return 'El trazado es demasiado chico para medir un ventrículo.';
-  _simp.pendiente = { pts, eje, diam:_simpDiametros(pts, eje, SIMP_N), cmPorPx: v.esc.mmPorPx / 10 };
+  const cmPorPx = v.esc.mmPorPx / 10;
+  const diam = _simpDiametros(pts, eje, SIMP_N);
+  /* Los diámetros y el eje se guardan YA EN CENTÍMETROS, cada trazado con la escala de SU
+     imagen. Antes `_simpCalcular` tomaba un solo `cmPorPx` —el del primer trazado— y lo
+     aplicaba a los cuatro. Mientras las dos vistas tenían que estar en el mismo cineloop eso
+     daba igual; desde que la sesión sobrevive al cambio de imagen, la 4C y la 2C son
+     adquisiciones distintas y su escala también: medido en el pendrive, la escala 2D va de
+     0,046 a 0,926 mm/píxel según la profundidad. Con una sola escala el volumen salía mal y
+     el número seguía pareciendo razonable. Se conserva `diam` en píxeles sólo para dibujar. */
+  _simp.pendiente = { pts, eje, diam, cmPorPx,
+                      diamCm: diam.map(d => d * cmPorPx), Lcm: eje.L * cmPorPx,
+                      imagen: (_cineDatos && _cineDatos.loops[_cineDatos.i].nombre) || '' };
   return null;
 }
 
@@ -46138,6 +46152,7 @@ function _medBarra(html) {
    del archivo son la escala y las coordenadas, y salen por toFixed. */
 function _simpPanel() {
   if (!_simp) return '';
+  const E = (typeof escHtml === 'function') ? escHtml : (x => String(x == null ? '' : x));
   const b = (id, cls, txt, extra) => '<button type="button" class="btn ' + cls + '" id="' + id +
     '" style="padding:3px 10px;font-size:11px;' + (extra || '') + '">' + txt + '</button>';
   const conf  = b('cine-simp-conf', 'btn-primary', 'Confirmar trazado');
@@ -46157,6 +46172,12 @@ function _simpPanel() {
       '<div style="font-size:10px;color:var(--text2);margin-top:5px;line-height:1.5;">' +
       'Eje largo: ' + R.Ld.toFixed(1) + ' cm en diástole y ' + R.Ls.toFixed(1) + ' cm en sístole' +
       (R.bi ? ' (el más largo de las dos vistas, ASE/EACVI 2015)' : '') + '. ' +
+      /* De qué imagen salió cada par. La app no sabe distinguir una 4C de una 2C —eso lo sabe
+         el médico—, pero sí sabe si los dos pares salieron del MISMO archivo, y eso es casi
+         siempre un error: serían dos trazados de la misma vista, no un biplano. */
+      (R.bi && R.imgs.length === 1
+        ? '<b style="color:#fbbf24;">⚠️ Los cuatro trazados salieron de la MISMA imagen.</b> Un biplano necesita dos vistas distintas (apical 4C y 2C); si no, esto es un monoplanar trazado dos veces. '
+        : (R.bi && R.imgs.length > 1 ? 'Vistas: ' + R.imgs.map(E).join(' y ') + '. ' : '')) +
       'La clasificación es la misma que usa el informe. ' +
       /* Que el numero exista no significa que este en el informe. Antes el panel decia
          «NO va al PDF» y era cierto siempre; ahora el biplano SI se puede integrar, asi que
@@ -46210,6 +46231,9 @@ function _simpPanel() {
           : 'Mantené apretado y recorré el borde del ventrículo.') +
         (_simp.avisoCuadro
           ? '<br><b style="color:#fbbf24;">Cambiaste de cuadro.</b> Lo que confirmaste sigue valiendo y sigue contando para el cálculo; se dejó de dibujar para no confundirlo con este cuadro. El trazado sin confirmar se descartó.'
+          : '') +
+        (_simp.avisoImagen
+          ? '<br><b style="color:#22d36a;">Cambiaste de imagen y los trazados confirmados siguen ahí.</b> Es lo que hace falta para el biplano: la 4C y la 2C son adquisiciones distintas. Cada trazado guarda la escala de su propia imagen.'
           : '') +
       '</div></div>';
   }
@@ -46335,7 +46359,8 @@ function _medObservar() {
     const t = num.textContent || '';
     if (t !== _medUltimoCuadro) { _medUltimoCuadro = t; medReset(); }
   }).observe(num, { childList:true, characterData:true, subtree:true });
-  new MutationObserver(() => medApagar())
+  /* Cambió el cineloop del visor: NO se apaga la medición, se cambia de imagen. */
+  new MutationObserver(() => medCambioDeImagen())
     .observe(cual, { childList:true, characterData:true, subtree:true });
   new MutationObserver(() => { if (ov.style.display === 'none') medApagar(); })
     .observe(ov, { attributes:true, attributeFilter:['style'] });
@@ -46410,7 +46435,28 @@ function medReset() {
 }
 window.medReset = medReset;
 
-/* Al cerrar o cambiar de cineloop se va TODO, calibración incluida: es otra imagen. */
+/* CAMBIO DE IMAGEN dentro del visor — NO es lo mismo que cerrar.
+   Se borra todo lo que pertenece a la imagen que se deja: reglas, áreas y la calibración
+   manual. Pero la SESIÓN DE SIMPSON SOBREVIVE, y sin eso el biplano era inalcanzable: la
+   apical 4C y la 2C son adquisiciones distintas, o sea cineloops distintos, así que el
+   médico tiene que cambiar de imagen entre el primer par y el segundo. Hasta este cambio,
+   abrir el segundo loop llamaba a `medApagar` y dejaba `_simp` en null — se perdían los dos
+   trazados ya confirmados y el biplano no se podía completar nunca.
+   Cada trazado lleva la escala de SU imagen, así que mezclar dos loops con profundidades
+   distintas sigue dando bien. */
+function medCambioDeImagen() {
+  _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null;
+  _medCalib = null; _medCalibrando = false;        // la calibración es de la imagen que se deja
+  if (_simp) {
+    _simp.pendiente = null;                        // el trazado sin confirmar era de la otra imagen
+    _simp.ocultar = false;
+    _simp.avisoImagen = true;
+  }
+  if (_medOn) { _medPintar(); _medEstado(); }
+}
+window.medCambioDeImagen = medCambioDeImagen;
+
+/* Al CERRAR el visor se va todo, Simpson incluido: se terminó la medición. */
 function medApagar() {
   _medOn = false; _medCalibrando = false; _medCalib = null;
   _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null; _medHerr = 'dist';
@@ -62050,8 +62096,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260920-0123';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789878191712;                 /* eco-build-ms */
+const ECO_BUILD    = '20260920-0136';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789878997481;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -62137,7 +62183,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-0123</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-0136</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

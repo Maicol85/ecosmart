@@ -12078,6 +12078,161 @@ caso('TC-191', 'Simpson: integra al informe solo el biplano, y el trazado se ocu
   })();
 `);
 
+/* ══ TC-192 · Simpson a traves de DOS imagenes ═══════════════════════════════════════════════
+   EL DEFECTO QUE CIERRA: hasta 1e08023 el biplano era INALCANZABLE. La apical 4C y la 2C son
+   adquisiciones distintas --cineloops distintos-- asi que el medico tiene que cambiar de
+   imagen entre el primer par y el segundo; y al cambiar, el observador de #cine-cual llamaba
+   a medApagar(), que dejaba _simp en null. Los dos trazados confirmados se perdian y los
+   cuatro pasos no se completaban nunca.
+
+   Y EL SEGUNDO DEFECTO, que solo se vuelve alcanzable con el primero arreglado: _simpCalcular
+   usaba UNA sola escala --la del primer trazado-- para los cuatro. Mientras las dos vistas
+   tenian que estar en el mismo loop daba igual; con dos loops de profundidades distintas, no.
+   Medido en el pendrive, la escala 2D va de 0,046 a 0,926 mm/pixel. La segunda imagen de este
+   caso lleva el DOBLE de escala a proposito, y se verifica que el volumen sea el de las
+   escalas por trazado y NO el de una sola.                                                   */
+caso('TC-192', 'Simpson cruzando dos imagenes: la sesion sobrevive y cada trazado lleva SU escala', `
+  return (async () => {
+    const P = ${JSON.stringify(PENDRIVE)};
+    if (!P.loop) return { extra: [[
+      'hace falta un cineloop real del pendrive', false, 'no se encontro: quedo SIN verificar']] };
+    const bytes = x => { const b = atob(x.b64); const a = new Uint8Array(b.length);
+      for (let i=0;i<b.length;i++) a[i] = b.charCodeAt(i); return a; };
+    const esperar = async (c, n) => { for (let i=0;i<(n||60);i++) { if (c()) return true; await new Promise(r=>setTimeout(r,60)); } return c(); };
+    const alertOrig = window.alert; const dichos = [];
+    window.alert = m => dichos.push(String(m));
+    const R = {};
+    try {
+      const u = bytes(P.loop);
+      const d0 = _dcmImgLeer(u.buffer);
+      const reg = (d0.regiones || []).filter(_dcmImgRegionMedible)[0];
+      if (!reg) return { extra: [['la imagen declara region medible', false, 'no la declara']] };
+
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      /* Dos "imagenes" con NOMBRE y ESCALA distintos, montadas por la misma puerta que usa el
+         flujo real (_cineAbrir). El observador de #cine-cual no distingue si el loop vino de
+         un archivo o de aca: lo que mira es que cambio el nombre. */
+      const montar = (nombre, factor) => {
+        const rg = Object.assign({}, reg, { dx: reg.dx * factor, dy: reg.dy * factor });
+        _cineAbrir([{ nombre, cuadros: d0.frags.length,
+          d: { frags: d0.frags, cols: d0.cols, filas: d0.filas, msCuadro: d0.msCuadro, regiones: [rg] } }]);
+      };
+      montar('vista-A.dcm', 1);
+      await new Promise(r => setTimeout(r, 250));
+      medToggle();
+      const cv = () => document.getElementById('cine-med');
+      const ac = (x, y) => { const c = cv(), r = c.getBoundingClientRect();
+        return { clientX: r.left + x * (r.width / c.width), clientY: r.top + y * (r.height / c.height) }; };
+      const trazar = async (pts) => { const c = cv();
+        c.dispatchEvent(new MouseEvent('mousedown', Object.assign({ bubbles:true }, ac(pts[0].x, pts[0].y))));
+        for (let i = 1; i < pts.length; i++)
+          c.dispatchEvent(new MouseEvent('mousemove', Object.assign({ bubbles:true }, ac(pts[i].x, pts[i].y))));
+        document.dispatchEvent(new MouseEvent('mouseup', { bubbles:true }));
+        const z = pts[pts.length-1];
+        c.dispatchEvent(new MouseEvent('click', Object.assign({ bubbles:true }, ac(z.x, z.y))));
+        await new Promise(r => setTimeout(r, 130)); };
+      const tri = (cx, yb, W, H) => { const p=[], x0=cx-W/2, x1=cx+W/2, ya=yb-H;
+        const n1 = Math.ceil(Math.hypot(W/2,H)/12);
+        for (let i=0;i<=n1;i++) p.push({x:Math.round(x0+(cx-x0)*i/n1), y:Math.round(yb+(ya-yb)*i/n1)});
+        for (let i=1;i<=n1;i++) p.push({x:Math.round(cx+(x1-cx)*i/n1), y:Math.round(ya+(yb-ya)*i/n1)});
+        return p; };
+      const cx0 = Math.round((reg.x0+reg.x1)/2), yb = Math.round(Math.min(reg.y1-10, reg.y0+380));
+
+      document.getElementById('cine-med-simp').click();
+      await new Promise(r => setTimeout(r, 90));
+
+      /* ── par 1 en la imagen A ── */
+      await trazar(tri(cx0, yb, 200, 300)); medSimpsonConfirmar();
+      await trazar(tri(cx0, yb, 120, 300)); medSimpsonConfirmar();
+      R.monoEnA = !!_simp.res && !_simp.res.bi;
+      R.imagenDeA = _simp.pares[0].d.imagen;
+      /* ademas se deja una regla y un area, que SI tienen que borrarse al cambiar de imagen */
+      medHerramienta('dist');
+      const clic = (x,y) => cv().dispatchEvent(new MouseEvent('click', Object.assign({ bubbles:true }, ac(x,y))));
+      clic(Math.round(reg.x0+20), Math.round(reg.y0+20));
+      clic(Math.round(reg.x0+160), Math.round(reg.y0+20));
+      await new Promise(r => setTimeout(r, 120));
+      R.habiaRegla = _medLineas.filter(l => !l.calibracion).length === 1;
+      document.getElementById('cine-med-simp').click();
+      await new Promise(r => setTimeout(r, 80));
+
+      /* ── CAMBIO DE IMAGEN ── */
+      medSimpsonSegundaVista();
+      montar('vista-B.dcm', 2);            // el DOBLE de escala
+      await new Promise(r => setTimeout(r, 350));
+      R.simpSobrevive = !!_simp;
+      R.confirmadosTrasCambio = _simp ? _simp.pares.reduce((n,p)=>n+(p.d?1:0)+(p.s?1:0),0) : -1;
+      R.reglaBorrada = _medLineas.filter(l => !l.calibracion).length === 0;
+      R.avisoImagen = !!_simp && _simp.avisoImagen;
+      R.panelAvisa = (document.getElementById('cine-med-barra').textContent || '').indexOf('Cambiaste de imagen') > -1;
+
+      /* ── par 2 en la imagen B ── */
+      await trazar(tri(cx0, yb, 180, 300)); medSimpsonConfirmar();
+      await trazar(tri(cx0, yb, 126, 300)); medSimpsonConfirmar();
+      R.bi = !!_simp.res && _simp.res.bi === true;
+
+      if (_simp.res) {
+        const A = _simp.pares[0], B = _simp.pares[1];
+        R.escalaA = A.d.cmPorPx; R.escalaB = B.d.cmPorPx;
+        R.escalasDistintas = Math.abs(R.escalaB - R.escalaA * 2) < 1e-12;
+        /* (a) lo correcto: cada trazado con SU escala */
+        const bien = (f) => { const c1 = A[f], c2 = B[f];
+          const L = Math.max(c1.Lcm, c2.Lcm);
+          let s = 0; for (let i=0;i<SIMP_N;i++) s += c1.diamCm[i] * c2.diamCm[i];
+          return Math.PI/4 * s * (L/SIMP_N); };
+        /* (b) el defecto viejo: una sola escala, la del primer trazado */
+        const mal = (f) => { const c1 = A[f], c2 = B[f];
+          const L = Math.max(c1.eje.L, c2.eje.L) * A.d.cmPorPx;
+          let s = 0; for (let i=0;i<SIMP_N;i++) s += (c1.diam[i]*A.d.cmPorPx) * (c2.diam[i]*A.d.cmPorPx);
+          return Math.PI/4 * s * (L/SIMP_N); };
+        R.vfd = _simp.res.vfd;
+        R.vfdBien = bien('d'); R.vfdMal = mal('d');
+        R.usaEscalaPorTrazado = Math.abs(R.vfd - R.vfdBien) < 1e-9;
+        R.noUsaUnaSola = Math.abs(R.vfd - R.vfdMal) > 1;
+        R.dosImagenes = (_simp.res.imgs || []).length === 2;
+        R.panelNombra = (document.getElementById('cine-med-barra').textContent || '').indexOf('vista-B.dcm') > -1;
+      }
+
+      /* ── los cuatro de la MISMA imagen: se avisa ── */
+      medSimpsonReiniciar();
+      await trazar(tri(cx0, yb, 200, 300)); medSimpsonConfirmar();
+      await trazar(tri(cx0, yb, 120, 300)); medSimpsonConfirmar();
+      medSimpsonSegundaVista();
+      await trazar(tri(cx0, yb, 180, 300)); medSimpsonConfirmar();
+      await trazar(tri(cx0, yb, 126, 300)); medSimpsonConfirmar();
+      R.mismaImagen = (_simp.res.imgs || []).length === 1;
+      R.avisaMismaImagen = (document.getElementById('cine-med-barra').textContent || '').indexOf('MISMA imagen') > -1;
+
+      /* ── CERRAR sí borra todo ── */
+      cineCerrar();
+      await new Promise(r => setTimeout(r, 200));
+      R.cerrarBorra = _simp === null;
+    } finally {
+      window.alert = alertOrig;
+      try { medApagar(); cineCerrar(); } catch (e) {}
+    }
+
+    return { extra: [
+      ['el par 1 da monoplanar en la imagen A',          R.monoEnA, R.imagenDeA],
+      ['habia una regla dibujada antes de cambiar',      R.habiaRegla, R.habiaRegla],
+      ['AL CAMBIAR DE IMAGEN LA SESION DE SIMPSON SOBREVIVE', R.simpSobrevive, R.simpSobrevive],
+      ['con sus dos trazados confirmados',               R.confirmadosTrasCambio === 2, R.confirmadosTrasCambio],
+      ['pero la regla SI se borra (es de la otra imagen)', R.reglaBorrada, R.reglaBorrada],
+      ['y se avisa de que los trazados siguen',          R.avisoImagen && R.panelAvisa, R.panelAvisa],
+      ['el segundo par completa el biplano',             R.bi, R.bi],
+      ['las dos imagenes tienen escalas distintas (denominador)', R.escalasDistintas, (R.escalaA||0).toFixed(5) + ' vs ' + (R.escalaB||0).toFixed(5)],
+      ['CADA TRAZADO USA LA ESCALA DE SU IMAGEN',        R.usaEscalaPorTrazado, (R.vfd||0).toFixed(1) + ' mL'],
+      ['y NO una sola escala para los cuatro',           R.noUsaUnaSola, 'con una sola daria ' + (R.vfdMal||0).toFixed(1) + ' mL'],
+      ['el resultado registra las dos imagenes',         R.dosImagenes, R.dosImagenes],
+      ['y el panel las nombra',                          R.panelNombra, R.panelNombra],
+      ['cuatro trazados de la misma imagen se detectan', R.mismaImagen, R.mismaImagen],
+      ['y se avisa de que eso no es un biplano',         R.avisaMismaImagen, R.avisaMismaImagen],
+      ['cerrar el visor SI borra la sesion',             R.cerrarBorra, R.cerrarBorra]
+    ] };
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];
