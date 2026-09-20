@@ -6126,12 +6126,19 @@ caso('TC-153', 'Laboratorio: casilla PPT en cada tarjeta, persistida, y SGL sin 
     ['ninguna tarjeta del Laboratorio queda sin declarar',
       mudas.length === 0, mudas.map(function(c){ var h=c.querySelector('.lab-card-hdr'); return h?(h.textContent||'').trim().slice(0,30):'?'; }).join(' // ')],
     ['y las claves no se repiten', dup.length === 0, dup.join(',')],
-    ['las dos exceptuadas declaran su motivo',
-      exceptuadas.length === 2 && exceptuadas.every(function(c){ return (c.getAttribute('data-ppt-no') || '').length > 10; }),
+    /* Pinaba el literal 2 y que las dos vivieran en la subtab Informe. Eso no es el
+       invariante: es el inventario del dia que se escribio, y da rojo con el registro
+       perfectamente sano en cuanto se agrega una tarjeta que no es una diapositiva -paso con
+       «Strain Manual», que es una tabla de investigacion con su propio exportador-. Es el
+       mismo defecto que ya se les corrigio a TC-155 y TC-156 con el literal 53.
+       Lo que SI tiene que valer: que haya al menos una, que TODAS declaren un motivo legible,
+       y -lo que de verdad importa- que NINGUNA sea muda, que lo fija la condicion de arriba. */
+    ['toda exceptuada declara su motivo',
+      exceptuadas.length >= 1 && exceptuadas.every(function(c){ return (c.getAttribute('data-ppt-no') || '').length > 10; }),
       exceptuadas.map(function(c){ return c.getAttribute('data-ppt-no'); }).join(' // ')],
-    ['y son las de la subtab Informe, que son los exportadores',
-      exceptuadas.every(function(c){ return c.closest('#lab-sub-informe') !== null; }),
-      String(exceptuadas.length)],
+    ['ninguna exceptuada reclama una diapositiva',
+      exceptuadas.every(function(c){ return !c.getAttribute('data-ppt'); }),
+      String(exceptuadas.length) + ' exceptuadas'],
 
     // 2 - LA CASILLA
     ['cada tarjeta con clave tiene su casilla',
@@ -15538,6 +15545,232 @@ caso('TC-208', 'Strain: barra lateral por grupos, rotulos de pared por vista y b
       ['LOS BOTONES VAN ANTES DEL BULLS EYE',         R.botonesAntesDelBE, 'otra=' + R.iOtra + ' reset=' + R.iReset + ' be=' + R.iBE],
       ['y tambien en la rama de TRAZADO (denominador)', R.trazandoConBE, R.iBEt + '/' + R.iConfT],
       ['CONFIRMAR ANTES DEL BULLS EYE AL TRAZAR',     R.botonesAntesAlTrazar, 'conf=' + R.iConfT + ' reset=' + R.iResT + ' be=' + R.iBEt]
+    ] };
+  })();
+`);
+
+
+/* ══ TC-209 · Módulo de strain manual en el Laboratorio ═══════════════════════════════════════
+   LO QUE MAS IMPORTA FIJAR: EL SIGNO. El campo `sgl` del informe acepta las DOS convenciones
+   -no tiene min ni max, y `_labSglResumen` lo consume con Math.abs- y el manual sale siempre
+   negativo. Restarlos crudos da un -19 contra 18 = -37, que se lee como discrepancia enorme y
+   es un artefacto de tipeo. La cohorte de este caso tiene a proposito el automatico cargado
+   con los DOS signos: sin normalizar, el sesgo se va a las nubes y los limites de acuerdo
+   dejan de significar nada.
+   Y el manual implausible NO entra a la estadistica pero SI a la tabla.
+   NO DEPENDE DEL PENDRIVE.                                                                    */
+caso('TC-209', 'Laboratorio: strain manual, comparacion con el automatico y Bland-Altman', `
+  return (async () => {
+    const R = {};
+    const alertOrig = window.alert, confOrig = window.confirm;
+    window.alert = () => {}; window.confirm = () => true;
+    const ids = [];
+    try {
+      __t.limpiar();
+      /* ── cohorte sembrada: 12 con manual, de los cuales 11 con automatico ──
+         El automatico va alternando POSITIVO y NEGATIVO a proposito. */
+      const mkStrain = (sgl, nV, etq, plaus, inv, lars, vd) => JSON.stringify({
+        v:1, ts:'2026-03-01T10:00:00.000Z',
+        vistas:{ A:{
+          vi:{ sgl:sgl, nVistas:nV, vistas:['a4c','a2c','a3c'].slice(0,nV), etiqueta:etq,
+               mezclaMetodo:false, plausible:plaus, invertido:inv, terr:[], metodos:{} },
+          lars: lars ? { res:lars[0], cond:lars[1], ctr:lars[2], L1:4, L2:5, L3:4.5,
+                         plausible:true, ordenOk:true } : undefined,
+          vd: vd !== null ? { pct:vd, ld:6, ls:4.8, sexo:'M', umbral:-20, normal:true,
+                              plausible:true, invertido:false } : undefined } } });
+      const base = (n, fecha, man, auto, nV, plaus, inv) => {
+        const c = { nombre:'Paciente ' + n, ci:'CI' + n, fecha_estudio:fecha,
+                    strain_manual: mkStrain(man, nV, ['A4C','A4C + A2C','A4C + A2C + A3C'][nV-1],
+                                            plaus, inv, [38+n*0.3, 20+n*0.2, 18+n*0.1], -21 - n*0.2) };
+        if (auto !== null) c.sgl = auto;
+        return c;
+      };
+      /* 11 pares plausibles; el automatico alterna de signo. */
+      const cohorte = [];
+      for (let k = 1; k <= 11; k++) {
+        const man = -(16 + k * 0.4);                       // -16.4 .. -20.4
+        const autoMag = 16 + k * 0.4 + (k % 3 === 0 ? 1.2 : -0.6);
+        const auto = (k % 2 === 0) ? autoMag : -autoMag;   // ← la mitad POSITIVOS
+        cohorte.push(base(k, '2026-03-' + String(k + 1).padStart(2,'0'), man, auto, (k % 3) + 1, true, false));
+      }
+      /* 12º: manual INVERTIDO (positivo) con automatico. Va a la tabla y NO a la estadistica. */
+      cohorte.push(base(12, '2026-03-20', 26.4, -18.0, 1, false, true));
+      /* 13º: SIN strain manual — no tiene que aparecer en ninguna fila. */
+      cohorte.push({ nombre:'Sin strain', ci:'CIX', fecha_estudio:'2026-03-21', sgl:-19 });
+
+      for (const c of cohorte) {
+        const est = { nombre:c.nombre, ci:c.ci, fecha_estudio:c.fecha_estudio,
+                      fecha_guardado:new Date().toISOString(), campos:{} };
+        Object.keys(c).forEach(k2 => { if (['nombre','ci','fecha_estudio'].indexOf(k2) < 0) est.campos[k2] = c[k2]; });
+        est.campos.nombre = c.nombre; est.campos.ci = c.ci;
+        est.id = Date.now() + Math.floor(Math.random()*100000) + ids.length;
+        const L = CeiboStore.getLocal(); L.push(est); CeiboStore.setLocal(L);
+        ids.push(est.id);
+      }
+      /* denominador del Laboratorio: periodo amplio y sin cohorte */
+      const per = document.getElementById('lab-periodo');
+      if (per) { per.value = '0'; per.dispatchEvent(new Event('change')); }
+      if (typeof _LAB_COHORTE !== 'undefined') _LAB_COHORTE = null;
+      showTab('lab'); await new Promise(r=>setTimeout(r,260));
+      /* Se CLICKEA el boton real: labSubTab(id, el) necesita el elemento -sin el revienta con
+         null.classList- y ademas asi se prueba el camino del medico y no solo la funcion. */
+      const btnMed = Array.prototype.filter.call(
+        document.querySelectorAll('#tab-lab .lab-subtab'),
+        b2 => (b2.getAttribute('onclick')||'').indexOf("'mediciones'") >= 0)[0];
+      if (!btnMed) return { extra: [['no se encontro la subtab Mediciones', false, 'sin boton']] };
+      btnMed.click(); await new Promise(r=>setTimeout(r,320));
+
+      R.sembrados = ids.length;
+      const filasTodas = _labStrainFilas(labGetInformes());
+      R.nFilas = filasTodas.length;
+      R.leeSoloConStrain = filasTodas.length === 12 &&
+                           filasTodas.every(f => f.nombre.indexOf('Sin strain') < 0);
+
+      /* ── 1 · EL SIGNO ── */
+      const S = _labStrainStats(filasTodas);
+      R.autosNegativos = filasTodas.filter(f => f.auto !== null).every(f => f.auto < 0);
+      R.manualCrudo    = filasTodas.filter(f => f.man !== null && f.manOk).every(f => f.man < 0);
+      /* EL MANUAL NO SE NORMALIZA, y esta es la condicion que lo distingue: el estudio 12 se
+         sembro con las fases al reves (+26.4). Si alguien le aplicara -Math.abs como al
+         automatico, el numero saldria -26.4 y la tabla se veria perfectamente sana -- se
+         estaria tapando el UNICO error que ese valor delata solo.
+         Mirar la tabla no alcanza: «-26.4» CONTIENE «26.4», asi que buscar el texto pasa con
+         el signo dado vuelta. Se mira el dato. */
+      const inv12 = filasTodas.filter(f => String(f.nombre).indexOf('Paciente 12') >= 0)[0];
+      R.invSiguePositivo = !!inv12 && inv12.man > 0;
+      R.invManVal = inv12 ? inv12.man : '(no esta)';
+      R.bias = S.bias; R.sdd = S.dif.sd;
+      /* Con los signos normalizados el sesgo tiene que ser CHICO -son el mismo valor con ruido-.
+         Sin normalizar rondaria los -20 pp, que es el doble del valor medido. */
+      R.biasChico = S.bias !== null && Math.abs(S.bias) < 3;
+      R.invertidoFueraDeStats = S.nComparables === 11 && S.nAmbos === 12 && S.nExcluidos === 1;
+      R.limites = (S.loA !== null && S.loB !== null && S.loA < S.bias && S.bias < S.loB);
+
+      /* ── 2 · la tabla ── */
+      const tab = document.getElementById('lab-str-tabla');
+      R.tablaFilas = tab.querySelectorAll('tbody tr').length;
+      R.tablaTieneInvertido = tab.innerHTML.indexOf('26.4') >= 0;
+      R.avisaInvertido = tab.innerHTML.indexOf('⚠') >= 0;
+      R.hayLars = tab.innerHTML.indexOf('38.3') >= 0 || tab.innerHTML.indexOf('38.6') >= 0;
+      R.filasClicables = tab.querySelectorAll('tr[data-str-eid]').length;
+      /* sin onclick inline con el id interpolado */
+      R.sinOnclickInline = tab.innerHTML.indexOf('onclick') < 0;
+
+      /* ── 3 · estadisticas ── */
+      const st = document.getElementById('lab-str-stats').textContent;
+      R.stats = st.replace(/\\s+/g, ' ').slice(0, 260);
+      R.diceComparables = st.indexOf('comparables') >= 0;
+      R.diceSesgo = st.indexOf('sesgo') >= 0;
+
+      /* ── 4 · Bland-Altman ── */
+      const ba = document.getElementById('lab-str-ba');
+      R.hayBA = ba.innerHTML.indexOf('<svg') >= 0;
+      R.puntosBA = ba.querySelectorAll('circle[data-str-eid]').length;
+      R.baConLimites = ba.innerHTML.indexOf('1,96 DE') >= 0 && ba.innerHTML.indexOf('sesgo') >= 0;
+
+      /* ── 5 · filtros ── */
+      document.getElementById('lab-str-desde').value = '2026-03-10';
+      document.getElementById('lab-str-desde').dispatchEvent(new Event('change'));
+      await new Promise(r=>setTimeout(r,150));
+      R.trasFecha = document.getElementById('lab-str-tabla').querySelectorAll('tbody tr').length;
+      R.filtraFecha = R.trasFecha > 0 && R.trasFecha < R.tablaFilas;
+      /* con menos de 10 pares el grafico se reemplaza por el mensaje con el conteo */
+      const baTxt = document.getElementById('lab-str-ba').textContent;
+      R.mensajeBA = /al menos 10 estudios/.test(baTxt) && /Ten.s \\d+ hasta ahora/.test(baTxt);
+      document.getElementById('lab-str-limpiar').click();
+      await new Promise(r=>setTimeout(r,150));
+      R.limpiaFiltros = document.getElementById('lab-str-tabla').querySelectorAll('tbody tr').length === R.tablaFilas;
+      document.getElementById('lab-str-ambos').checked = true;
+      document.getElementById('lab-str-ambos').dispatchEvent(new Event('change'));
+      await new Promise(r=>setTimeout(r,150));
+      R.trasAmbos = document.getElementById('lab-str-tabla').querySelectorAll('tbody tr').length;
+      R.filtraAmbos = R.trasAmbos === 12;
+      document.getElementById('lab-str-limpiar').click();
+      await new Promise(r=>setTimeout(r,150));
+
+      /* ── 6 · Excel con TRES hojas, interceptando writeFile ── */
+      R.xlsxListo = typeof XLSX !== 'undefined';
+      if (R.xlsxListo) {
+        let libro = null, nombreArch = '';
+        const wf = XLSX.writeFile;
+        XLSX.writeFile = function (wb, nm) { libro = wb; nombreArch = nm; };
+        labStrainExportar();
+        await new Promise(r=>setTimeout(r,120));
+        const ov = Array.prototype.filter.call(document.querySelectorAll('div'),
+          d => d.textContent.indexOf('Incluir el nombre de los pacientes') >= 0);
+        const btns = ov.length ? ov[ov.length-1].querySelectorAll('button') : [];
+        for (let b = 0; b < btns.length; b++)
+          if (/Sin nombres|An.nimo|No/i.test(btns[b].textContent)) { btns[b].click(); break; }
+        await new Promise(r=>setTimeout(r,320));
+        XLSX.writeFile = wf;
+        R.hojas = libro ? libro.SheetNames.join(',') : '(no se genero)';
+        R.tresHojas = !!libro && libro.SheetNames.length === 3 &&
+                      R.hojas === 'Datos,Bland-Altman,Estadísticas';
+        R.nombreArch = nombreArch;
+        R.nombreOk = /^EcoSmart_Strain_\\d{4}-\\d{2}-\\d{2}\\.xlsx$/.test(nombreArch || '');
+        if (libro) {
+          const d1 = XLSX.utils.sheet_to_json(libro.Sheets['Datos'], {header:1});
+          const d2 = XLSX.utils.sheet_to_json(libro.Sheets['Bland-Altman'], {header:1});
+          const d3 = XLSX.utils.sheet_to_json(libro.Sheets['Estadísticas'], {header:1});
+          R.h1Filas = d1.length - 1; R.h2Filas = d2.length - 1;
+          R.h1Cols = (d1[0]||[]).join('|');
+          R.h2Cols = (d2[0]||[]).join('|');
+          R.h2SoloComparables = R.h2Filas === 11;
+          R.h3TieneSesgo = d3.some(r2 => String(r2[0]||'').indexOf('Sesgo') >= 0);
+          R.h3TieneLimites = d3.some(r2 => String(r2[0]||'').indexOf('Límite de acuerdo') >= 0);
+          R.anonimo = d1.slice(1).every(r2 => String(r2[1]) === 'Paciente anónimo');
+        }
+      }
+
+      /* ── 7 · el Laboratorio existente NO se toca ── */
+      R.descSigue = !!document.getElementById('lab-desc-stats') &&
+                    document.getElementById('lab-desc-stats').innerHTML.length > 50;
+      R.sglCardSigue = _labSglResumen(labGetInformes()).n > 0;
+
+      /* ── 8 · sin ningun estudio con strain, el mensaje exacto ── */
+      ids.forEach(id => { const L = CeiboStore.getLocal();
+        CeiboStore.setLocal(L.filter(x => x.id !== id)); });
+      ids.length = 0;
+      labStrainRender();
+      await new Promise(r=>setTimeout(r,120));
+      const vacio = document.getElementById('lab-str-tabla').textContent;
+      R.vacioTxt = vacio.replace(/\\s+/g,' ').trim().slice(0,140);
+      R.mensajeVacio = /Todav.a no hay estudios con strain manual calculado/.test(vacio) &&
+                       /Abr. un cineloop en el visor y traz. el contorno del VI/.test(vacio);
+      R.vacioSinBA = document.getElementById('lab-str-ba').innerHTML === '';
+    } finally {
+      window.alert = alertOrig; window.confirm = confOrig;
+      ids.forEach(id => { try { const L = CeiboStore.getLocal();
+        CeiboStore.setLocal(L.filter(x => x.id !== id)); } catch (e) {} });
+    }
+
+    return { extra: [
+      ['lee strain_manual y solo de quien lo tiene', R.leeSoloConStrain, R.nFilas + ' filas de ' + R.sembrados],
+      ['EL AUTOMATICO SE NORMALIZA A NEGATIVO',     R.autosNegativos, R.autosNegativos],
+      ['y el manual se deja como se midio',         R.manualCrudo, R.manualCrudo],
+      ['UN MANUAL INVERTIDO SIGUE POSITIVO',        R.invSiguePositivo, 'manual ' + R.invManVal],
+      ['el sesgo queda chico, no arrastra el signo', R.biasChico, 'sesgo ' + (R.bias===null?'—':R.bias.toFixed(2)) + ' DE ' + (R.sdd===null?'—':R.sdd.toFixed(2))],
+      ['limites de acuerdo a los dos lados',        R.limites, R.limites],
+      ['el manual invertido NO entra a la estadistica', R.invertidoFueraDeStats, 'comparables ' + R.nFilas],
+      ['pero SI aparece en la tabla, marcado',      R.tablaTieneInvertido && R.avisaInvertido, R.tablaTieneInvertido],
+      ['la tabla trae LARS y es clicable por fila', R.hayLars && R.filasClicables === 12, R.filasClicables + ' filas'],
+      ['sin onclick inline con el id',              R.sinOnclickInline, R.sinOnclickInline],
+      ['las estadisticas nombran comparables y sesgo', R.diceComparables && R.diceSesgo, R.stats],
+      ['Bland-Altman con >=10 pares',               R.hayBA && R.puntosBA === 11, R.puntosBA + ' puntos'],
+      ['con linea de sesgo y limites',              R.baConLimites, R.baConLimites],
+      ['el filtro de fecha recorta',                R.filtraFecha, R.tablaFilas + ' -> ' + R.trasFecha],
+      ['y con <10 pares sale el mensaje con el conteo', R.mensajeBA, R.mensajeBA],
+      ['limpiar filtros restituye',                 R.limpiaFiltros, R.limpiaFiltros],
+      ['el filtro «solo con ambos» recorta',        R.filtraAmbos, R.trasAmbos],
+      ['Excel con las TRES hojas',                  R.tresHojas, R.hojas],
+      ['nombrado EcoSmart_Strain_[fecha].xlsx',     R.nombreOk, R.nombreArch],
+      ['hoja Datos con todas las columnas',         (R.h1Cols||'').indexOf('LARS reservorio') >= 0 && R.h1Filas === 12, R.h1Cols],
+      ['hoja Bland-Altman solo con los comparables', R.h2SoloComparables, R.h2Filas + ' filas · ' + R.h2Cols],
+      ['hoja Estadisticas con sesgo y limites',     R.h3TieneSesgo && R.h3TieneLimites, R.h3TieneSesgo],
+      ['el anonimato del exportador se respeta',    R.anonimo, R.anonimo],
+      ['el Laboratorio existente sigue intacto',    R.descSigue && R.sglCardSigue, R.descSigue],
+      ['SIN DATOS: el mensaje exacto',              R.mensajeVacio, R.vacioTxt],
+      ['y sin grafico colgado',                     R.vacioSinBA, R.vacioSinBA]
     ] };
   })();
 `);

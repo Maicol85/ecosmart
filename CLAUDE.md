@@ -7,6 +7,80 @@ ninguna es evidente leyendo el código alrededor.
 
 
 
+
+## Strain manual en el Laboratorio: el signo, y lo que NO entra a la estadística (TC-209)
+
+Tarjeta «💚 Strain Manual» al final de la subtab **Mediciones**, debajo de Estadística
+descriptiva. Lee `campos['strain_manual']` —lo que persiste `_strainResumen`— y **no recalcula
+nada**: con una segunda implementación, el Laboratorio publicaría números distintos de los que
+el médico vio en el visor.
+
+### EL SIGNO, que es lo único que puede arruinar el Bland-Altman en silencio
+
+`sgl` **acepta las dos convenciones**: no tiene `min` ni `max`, y el resto del Laboratorio lo
+consume con `Math.abs` (`_labSglResumen`). El manual sale **siempre negativo** de
+`_strainCalcular`. Restarlos crudos da, sobre un −19 manual contra un 18 automático tipeado en
+positivo, una diferencia de **−37** — que se lee como una discrepancia enorme entre métodos y es
+un artefacto de tipeo.
+
+- **El automático se normaliza a negativo en el borde** (`-Math.abs`).
+- **El manual se deja como se midió.** Ahí el signo **es información**: un manual positivo
+  significa que las fases se confirmaron al revés, y taparlo con `Math.abs` escondería el único
+  error que ese número delata solo. Es la misma razón por la que `_strainCalcular` no fuerza el
+  signo.
+
+La cohorte de TC-209 tiene el automático sembrado **alternando los dos signos**, a propósito.
+Sin normalizar, el sesgo se va de ~0 a ~−20 pp. Y la condición que separa las dos decisiones es
+**«un manual invertido sigue positivo»**: mirar la tabla no alcanza —`-26.4` **contiene**
+`26.4`, así que buscar el texto pasa con el signo dado vuelta— y hay que mirar el dato. La
+mutación que normaliza también el manual sobrevivió a la primera versión del caso por eso.
+
+### Los implausibles se listan y NO votan
+
+Un manual invertido o fuera de (−45 %, 0 %) corre el sesgo y ensancha los límites de acuerdo
+hasta volverlos inútiles. Van **a la tabla marcados con ⚠** —el médico tiene que verlos— y
+**fuera** de la estadística, del Bland-Altman y de la hoja 2 del Excel. Se declara cuántos
+quedaron afuera, en pantalla y en la hoja de Estadísticas.
+
+### Decisiones que no estaban en el pedido
+
+- **Dos vistas abiertas (A y B) son dos strains.** Se toma la que sostiene **más vistas
+  apicales**; con empate, la A. Promediarlas mezclaría dos mediciones independientes bajo un
+  solo número.
+- **`data-ppt-no` con el motivo.** `_labPptAssertClaves()` exige uno de los dos atributos en
+  toda `.lab-card`; una tarjeta sin ninguno **no da error**, da una casilla que el médico tilda
+  y no produce nada. Ésta es una tabla de investigación con su propio exportador, no una
+  diapositiva — el mismo caso que los dos exportadores de la subtab Informe.
+- **El clic abre `verDetalleInforme`, no `editarInforme`.** Aquél carga el estudio EN EL
+  FORMULARIO y pisaría lo que el médico tenga cargado; desde una tabla de investigación se
+  quiere mirar, no editar.
+- **El export pasa por `_labPreguntarAnonimo`**, como los demás: es el único camino por el que
+  los datos salen de la máquina.
+- **DE muestral (n−1), y `null` con n < 2.** Un cero se lee como «no hay dispersión», que es una
+  afirmación sobre una muestra de uno.
+
+### Lo que costó
+
+**SEMGREP SUBIÓ DE 126 A 131 Y LOS CINCO ERAN MÍOS**, todos `ceibo-xss-innerhtml-concat`
+—`innerHTML = a + b`—. Se arma la cadena y se asigna una vez: de vuelta en 126. Es lo mismo que
+ya se hizo con `popConclSync` y con el render del Forrester.
+
+**Y el primer diff de Semgrep dio «HEAD 0», que es el denominador roto que este archivo ya
+documenta:** sin `--max-target-bytes 20000000` el escáner saltea el archivo en silencio y
+devuelve cero hallazgos, que se lee igual que «no había nada». La invocación correcta hay que
+copiarla de `scan.py`, no reconstruirla.
+
+**TC-153 se puso en rojo y tenía razón a medias.** Pinaba que las tarjetas exceptuadas fueran
+**exactamente dos** y vivieran en la subtab Informe — el inventario del día que se escribió, no
+el invariante. Con una tarjeta nueva que legítimamente no es una diapositiva, daba rojo sobre un
+registro sano. Es el literal 53 otra vez. Reapuntado a «toda exceptuada declara su motivo» y
+«ninguna reclama diapositiva»; lo que de verdad importa —que ninguna sea muda— ya lo fijaba otra
+condición.
+
+**`labSubTab(id, el)` necesita el elemento**: llamarla con un solo argumento revienta con
+`null.classList`. En los casos, **clickear el botón real** — además prueba el camino del médico
+y no sólo la función.
+
 ## La diana de 17 segmentos del visor, y la A3C que trazaba al revés (2026-09-20)
 
 ### Tarea 1 — de las tres vistas, sólo la A3C estaba invertida
