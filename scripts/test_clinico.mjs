@@ -16007,7 +16007,11 @@ caso('TC-211', 'Guardados: barra de memoria con umbrales, contadores y aviso por
       R.txt50 = t50.slice(0, 200);
       R.cuentaImgs   = t50.indexOf('📷 23 imagen') >= 0;
       R.cuentaCine   = t50.indexOf('🎬 4 cineloop') >= 0;
-      R.cuentaStrain = /📊 \\d+ estudio\\(s\\) con strain manual/.test(t50);
+      /* LA BARRA MIDE ALMACENAMIENTO, no contenido clinico. El contador de «estudios con
+         strain manual» estuvo aca y se saco: el strain tiene su seccion en el Laboratorio.
+         La condicion pasa a fijar su AUSENCIA -si vuelve, se pone en rojo- y de paso que la
+         barra no lea getInformes(), o sea que no dependa de que el bloque del Lab parsee. */
+      R.sinContadorStrain = t50.indexOf('strain') < 0;
       R.cuentaMB     = t50.indexOf('500.0 MB usados de 1000.0 MB disponibles') >= 0;
       /* por debajo del 60 no hay aviso ni boton */
       R.sinAvisoEn50 = !el50.querySelector('[data-ig-aviso]') && !el50.querySelector('[data-ig-exportar]');
@@ -16084,7 +16088,7 @@ caso('TC-211', 'Guardados: barra de memoria con umbrales, contadores y aviso por
       ['rojo del 90 al 100',                        R.rojoHasta100, R.colores[100]],
       ['contador de imagenes',                      R.cuentaImgs, R.txt50],
       ['contador de cineloops',                     R.cuentaCine, R.cuentaCine],
-      ['contador de estudios con strain manual',    R.cuentaStrain, R.cuentaStrain],
+      ['la barra NO cuenta strain: eso es del Laboratorio', R.sinContadorStrain, R.txt50],
       ['MB usados de MB disponibles',               R.cuentaMB, R.cuentaMB],
       ['por debajo del 60 no hay aviso ni boton',   R.sinAvisoEn50, R.sinAvisoEn50],
       ['EL COLOR Y EL TEXTO SALEN DEL MISMO TRAMO', R.textoYColorCoinciden, JSON.stringify(R.coincide)],

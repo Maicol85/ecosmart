@@ -25276,25 +25276,22 @@ function _igMarcarAviso(min) {
   } catch (e) {}
 }
 
-/* Los contadores. Las tres lecturas van en paralelo y cada una FALLA A CERO por su cuenta: con
-   un `Promise.all` pelado, que IndexedDB no responda para los cineloops borraría también el
-   conteo de imágenes, y la barra quedaría diciendo «0 imágenes» sobre un disco lleno. */
+/* Uso de los cineloops, para el contador. FALLA A CERO por su cuenta y no dentro del
+   `Promise.all` de la barra: colgado de aquél, que IndexedDB no responda para los cineloops
+   borraría también el conteo de imágenes y el espacio, y la barra quedaría diciendo
+   «0 imágenes» sobre un disco lleno.
+
+   LA BARRA MIDE ALMACENAMIENTO, no contenido clínico. Acá vivió un contador de «estudios con
+   strain manual» y se sacó (decisión de Maicol, 2026-09-20): el strain tiene su propia sección
+   en el Laboratorio, que es donde se lo va a buscar. Con eso la barra dejó además de leer
+   `getInformes()` y de depender de `_labStrainDeEstudio` — o sea de que el bloque del
+   Laboratorio parsee. Un contador de almacenamiento no tiene por qué caerse con el módulo de
+   estadística; si vuelve a aparecer la tentación, ése es el motivo para no hacerlo. */
 function _igContadores() {
   const cero = { n: 0, bytes: 0 };
   const pCine = (typeof CeiboCine !== 'undefined' && CeiboCine.uso)
     ? CeiboCine.uso().catch(() => cero) : Promise.resolve(cero);
-  return pCine.then(cine => {
-    /* Estudios con strain manual: se cuenta con `_labStrainDeEstudio`, el MISMO lector que usa
-       el Laboratorio. Con una segunda implementación, las dos pantallas informarían números
-       distintos sobre la misma base. */
-    let strain = 0;
-    try {
-      if (typeof _labStrainDeEstudio === 'function' && typeof getInformes === 'function') {
-        strain = getInformes().filter(i => _labStrainDeEstudio(i)).length;
-      }
-    } catch (e) { strain = 0; }
-    return { cine: cine, strain: strain };
-  });
+  return pCine.then(cine => ({ cine: cine }));
 }
 
 function imgStorageRender() {
@@ -25338,7 +25335,6 @@ function imgStorageRender() {
     const det = mk('div', 'display:block;font-size:10.5px;color:var(--text2);line-height:1.65;margin-top:3px;');
     det.appendChild(mk('div', '', '📷 ' + uso.imgs + ' imagen(es) guardada(s)'));
     det.appendChild(mk('div', '', '🎬 ' + extra.cine.n + ' cineloop(s) guardado(s)'));
-    det.appendChild(mk('div', '', '📊 ' + extra.strain + ' estudio(s) con strain manual'));
     /* «de Y disponibles» sólo si el navegador informa la cuota. Sin ella se dice que no se
        puede estimar, en vez de inventar un denominador — es la misma regla que ya aplica la
        barra, que no se dibuja sin `total`. */
@@ -65678,8 +65674,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260920-1844';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789940673853;                 /* eco-build-ms */
+const ECO_BUILD    = '20260920-1901';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789941661280;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -65765,7 +65761,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1844</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1901</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

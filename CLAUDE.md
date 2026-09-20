@@ -41,22 +41,33 @@ recordatorio; **no lo sería para una compuerta**.
 - **`CeiboImg.uso()` no devolvía el conteo de imágenes**, sólo de ESTUDIOS con imágenes. Se
   agregó `imgs` —aditivo, los consumidores existentes leen `estudios` y `bytes`—. La mutación
   que muestra `estudios` bajo el rótulo «imágenes» cae.
-- **Los estudios con strain manual se cuentan con `_labStrainDeEstudio`**, el MISMO lector del
-  Laboratorio. Con una segunda implementación, las dos pantallas informarían números distintos
-  sobre la misma base.
 - **Las lecturas fallan a cero POR SEPARADO.** Con un `Promise.all` pelado, que IndexedDB no
   responda para los cineloops borraría también el conteo de imágenes y la barra diría
   «0 imágenes» sobre un disco lleno.
 - **Sin cuota informada no se inventa denominador**: se dice que el navegador no la informa, en
   vez de imprimir «de 0.0 MB disponibles». Es la misma regla que ya tenía la barra.
 
+### La barra mide ALMACENAMIENTO, no contenido clínico
+
+Muestra **imágenes, cineloops y espacio usado**. Acá vivió un contador de «estudios con strain
+manual» y **se sacó el mismo día** (decisión de Maicol): el strain tiene su propia sección en el
+Laboratorio, que es donde se lo va a buscar, y un dato clínico en una barra de disco invita a
+agregarle el siguiente.
+
+Lo que se ganó además de la claridad: la barra **dejó de leer `getInformes()`** y de depender de
+`_labStrainDeEstudio`, o sea de que el bloque del Laboratorio parsee. Un contador de
+almacenamiento no tiene por qué caerse con el módulo de estadística — este archivo ya documenta
+dos veces que un bloque dejó de parsear y se llevó puesto todo lo que colgaba de él. **Si vuelve
+la tentación de poner un conteo clínico acá, ése es el motivo para no hacerlo**, y TC-211 lo fija
+por AUSENCIA: la mutación que devuelve el contador lo pone en rojo.
+
 ### Lo que NO cambió, a propósito
 
-**Con el guardado de imágenes APAGADO la barra sigue vaciándose**, contadores incluidos. Es el
-comportamiento que ya tenía —la barra afirmaría un consumo sobre una función que la app no está
-usando— y el toggle viene apagado de fábrica, así que **en una instalación limpia no se ve
-nada**. Queda declarado: si algún día se quiere el contador de strain visible siempre, hay que
-sacarlo de esa compuerta, que no es gratis.
+**Con el guardado de imágenes APAGADO la barra sigue vaciándose.** Es el comportamiento que ya
+tenía —afirmaría un consumo sobre una función que la app no está usando— y el toggle viene
+apagado de fábrica, así que en una instalación limpia no se ve nada. Con el contador de strain
+afuera esto dejó de importar: lo que la barra muestra ahora **sólo existe si el guardado está
+encendido**.
 
 **El botón abre `igIOToggle('exp')`, el desplegable de exportar que ya vive en esa cabecera.**
 No se escribió un exportador nuevo: con dos, el backup de un botón y el del otro pueden
