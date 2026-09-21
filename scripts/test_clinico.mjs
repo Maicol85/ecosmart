@@ -17893,6 +17893,162 @@ caso('TC-220', 'Config/Orthanc: puerto y AET leidos de /system, y CORS no se con
 `);
 
 
+/* == TC-221 · Orthanc: como hacer que arranque solo =========================================
+   LO QUE ESTE CASO EXISTE PARA FIJAR es que el bloque de Windows NO mande a elegir nada. El
+   pedido decia «durante la instalacion elegi Install as a Windows Service» y esa opcion NO
+   EXISTE: el instalador oficial ya registra el servicio -verificado en la pagina de descarga
+   y en el quickstart del proyecto-. Imprimir eso manda al medico a buscar una casilla
+   inexistente y a concluir que hizo algo mal, con Orthanc ya arrancando solo.
+
+   Y el boton esta SIEMPRE, ademas de desplegarse la primera vez. El pedido ofrecia «una cosa
+   o la otra»; mostrarlo una sola vez y sin boton lo vuelve inalcanzable despues, que es el
+   defecto que la barra de memoria ya documenta haber evitado con el aviso de cuota.
+
+   NO DEPENDE DEL PENDRIVE NI DE UN ORTHANC REAL.                                            */
+caso('TC-221', 'Orthanc: instrucciones de arranque automatico, y Windows no manda a elegir nada', `
+  return (async () => {
+    const R = {};
+    const soOrig = window._orthSO, toastOrig = window.toast;
+    const howOrig = localStorage.getItem('ett_orthanc_howto_visto');
+    window.toast = () => {};
+    const D   = () => document.getElementById('cfg-orthanc-datos');
+    const pan = () => document.getElementById('cfg-orthanc-arranque');
+    const btn = () => { const d = D(); if (!d) return null;
+      return Array.from(d.querySelectorAll('button'))
+               .filter(b => b.textContent.indexOf('arranque solo') >= 0)[0] || null; };
+    const txt = () => { const p = pan(); return p ? p.textContent.replace(/\\s+/g,' ') : ''; };
+    /* clk() devuelve false si el boton no esta, en vez de reventar. La mutacion que lo dibuja
+       SOLO la primera vez mataba el caso con «Cannot read properties of null» y la condicion
+       que existe para declarar ese defecto -«el boton sigue»- nunca llegaba a evaluarse.
+       Es la leccion de TC-207: un caso que se muere no diagnostica. */
+    const clk = () => { const b = btn(); if (!b) return false; b.click(); return true; };
+    const cmds = () => Array.from((D() || document).querySelectorAll('[data-orth-copiar]'))
+                         .map(b => b.getAttribute('data-orth-copiar'));
+    try {
+      if (typeof showTab === 'function') showTab('config');
+      if (typeof cfgOnShow === 'function') cfgOnShow();
+      await new Promise(r=>setTimeout(r,120));
+      const SYS = { Version:'1.12.4', DicomPort:4242, DicomAet:'ORTHANC' };
+
+      /* -- 0 · DENOMINADOR -- */
+      try { localStorage.removeItem('ett_orthanc_howto_visto'); } catch (e) {}
+      window._orthSO = () => 'mac';
+      _orthPintarDatos('http://localhost:8042', SYS);
+      R.existe = !!D() && !!btn() && !!pan();
+      if (!R.existe) return { extra: [['el bloque de arranque se dibuja', false, 'falta']] };
+
+      /* -- 1 · la PRIMERA vez se despliega solo; despues NO, pero el boton queda -- */
+      R.primeraDesplegada = pan().style.display !== 'none';
+      _orthPintarDatos('http://localhost:8042', SYS);
+      R.segundaColapsada = pan().style.display === 'none';
+      R.botonSigueEstando = !!btn();
+      R.pudoClickear = clk();
+      R.elBotonLoAbre = R.pudoClickear && !!pan() && pan().style.display !== 'none';
+      clk();
+      R.elBotonLoCierra = !!pan() && pan().style.display === 'none';
+      clk();
+
+      /* -- 2 · WINDOWS: dice que YA ESTA y no manda a elegir ninguna opcion -- */
+      window._orthSO = () => 'win';
+      try { localStorage.setItem('ett_orthanc_howto_visto','1'); } catch (e) {}
+      _orthPintarDatos('http://localhost:8042', SYS);
+      clk();
+      const tw = txt();
+      R.winTxt = tw.slice(0, 190);
+      R.winDiceYaEsta   = tw.indexOf('ya está hecho') >= 0 &&
+                          tw.indexOf('No hay ninguna opción que elegir') >= 0;
+      /* la condicion que separa este caso de uno decorativo: NO se nombra la opcion inventada */
+      R.winNoMandaAElegir = tw.indexOf('Install as a Windows Service') < 0 &&
+                            tw.indexOf('Instalar como servicio') < 0 &&
+                            tw.indexOf('Durante la instalación') < 0;
+      R.winDaComoComprobar = tw.indexOf('Servicios') >= 0;
+      R.winSinMac = tw.indexOf('macOS') < 0;
+
+      /* -- 3 · MAC: declara que NO es documentacion oficial, y los dos caminos -- */
+      window._orthSO = () => 'mac';
+      _orthPintarDatos('http://localhost:8042', SYS);
+      clk();
+      const tm = txt();
+      R.macDeclaraNoOficial = tm.indexOf('no publica un instalador') >= 0 &&
+                              tm.indexOf('NO salen de la documentación oficial') >= 0;
+      R.macDosCaminos = tm.indexOf('Con Docker') >= 0 && tm.indexOf('LaunchAgent') >= 0;
+      R.macSinWin = tm.indexOf('Windows — ya está hecho') < 0;
+      const cm = cmds();
+      const dk = cm.filter(c => c.indexOf('docker run') >= 0)[0] || '';
+      const pl = cm.filter(c => c.indexOf('LaunchAgents') >= 0)[0] || '';
+      R.hayDocker = !!dk; R.hayPlist = !!pl;
+      /* el volumen NO es cosmetico: sin el, reiniciar el contenedor borra los estudios */
+      R.dockerConVolumen = dk.indexOf('-v orthanc-db:') >= 0;
+      R.dockerSinRm      = dk.indexOf('--rm') < 0;
+      R.dockerReinicia   = dk.indexOf('--restart unless-stopped') >= 0;
+      /* y la imagen tiene que ser la que soporta ARM64, que es lo que traen los Mac de hoy */
+      R.dockerImagenArm  = dk.indexOf('orthancteam/orthanc') >= 0 &&
+                           dk.indexOf('jodogne/orthanc') < 0;
+      /* el plist: las dos rutas marcadas, y la sintaxis moderna de launchctl */
+      R.plistDosRutas = (pl.match(/\\/RUTA\\/A\\//g) || []).length === 2;
+      R.plistBootstrap = pl.indexOf('launchctl bootstrap gui/$(id -u)') >= 0;
+      R.plistAvisaReemplazar = tm.indexOf('Reemplazá las DOS rutas') >= 0;
+      R.plistDaComoComprobar = tm.indexOf('launchctl list | grep orthanc') >= 0;
+
+      /* -- 4 · NO se afirma haber DETECTADO que ya corre como servicio -- */
+      R.noAfirmaDeteccion = tm.indexOf('no puede saberlo desde acá') >= 0;
+
+      /* -- 5 · con una direccion de LAN, Orthanc esta en OTRA maquina: los DOS sistemas -- */
+      window._orthSO = () => 'mac';
+      _orthPintarDatos('http://192.168.1.50:8042', { Version:'1.12.4', DicomPort:11112, DicomAet:'MIPACS' });
+      clk();
+      const tl = txt();
+      R.lanLosDos = tl.indexOf('Windows — ya está hecho') >= 0 &&
+                    tl.indexOf('macOS — hay que configurarlo') >= 0;
+      R.lanAvisaOtraMaquina = tl.indexOf('OTRA computadora') >= 0 &&
+                              tl.indexOf('192.168.1.50') >= 0;
+
+      /* -- 6 · sistema desconocido: se muestran los dos en vez de elegir mal -- */
+      window._orthSO = () => 'otro';
+      _orthPintarDatos('http://localhost:8042', SYS);
+      clk();
+      const to = txt();
+      R.otroLosDos = to.indexOf('Windows — ya está hecho') >= 0 &&
+                     to.indexOf('macOS — hay que configurarlo') >= 0;
+
+      /* -- 7 · el bloque vive DENTRO de los datos: sin conexion no se muestra -- */
+      _orthDatosOcultar();
+      R.sinConexionNoSeMuestra = !pan() && !btn();
+    } finally {
+      window._orthSO = soOrig; window.toast = toastOrig;
+      try { if (howOrig === null) localStorage.removeItem('ett_orthanc_howto_visto');
+            else localStorage.setItem('ett_orthanc_howto_visto', howOrig); } catch (e) {}
+      try { _orthDatosOcultar(); orthancRender(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: el bloque y su boton se dibujan',   R.existe, R.existe],
+      ['la PRIMERA vez se despliega solo',               R.primeraDesplegada, R.primeraDesplegada],
+      ['despues queda colapsado PERO EL BOTON SIGUE',    R.segundaColapsada && R.botonSigueEstando, R.botonSigueEstando],
+      ['y el boton lo abre y lo cierra',                 R.elBotonLoAbre && R.elBotonLoCierra, R.elBotonLoAbre],
+      ['WINDOWS: dice que YA ESTA hecho',                R.winDiceYaEsta, R.winTxt],
+      ['Y NO MANDA A ELEGIR UNA OPCION QUE NO EXISTE',   R.winNoMandaAElegir, R.winTxt],
+      ['da como comprobarlo en Servicios',               R.winDaComoComprobar, R.winDaComoComprobar],
+      ['en Windows no se mezcla el bloque de Mac',       R.winSinMac, R.winSinMac],
+      ['MAC: declara que la receta NO es oficial',       R.macDeclaraNoOficial, R.macDeclaraNoOficial],
+      ['ofrece Docker y LaunchAgent',                    R.macDosCaminos && R.hayDocker && R.hayPlist, R.macDosCaminos],
+      ['el docker lleva VOLUMEN y no --rm (o se pierden los estudios)',
+        R.dockerConVolumen && R.dockerSinRm, 'vol=' + R.dockerConVolumen + ' rm=' + !R.dockerSinRm],
+      ['y se reinicia solo',                             R.dockerReinicia, R.dockerReinicia],
+      ['con la imagen que soporta ARM64',                R.dockerImagenArm, R.dockerImagenArm],
+      ['el plist marca las DOS rutas a reemplazar',      R.plistDosRutas && R.plistAvisaReemplazar, R.plistDosRutas],
+      ['usa launchctl bootstrap, no el load deprecado',  R.plistBootstrap, R.plistBootstrap],
+      ['y dice como comprobar que cargo',                R.plistDaComoComprobar, R.plistDaComoComprobar],
+      ['NO afirma haber detectado que ya es un servicio', R.noAfirmaDeteccion, R.noAfirmaDeteccion],
+      ['con direccion de LAN muestra LOS DOS sistemas',  R.lanLosDos, R.lanLosDos],
+      ['y avisa que los pasos van en la OTRA maquina',   R.lanAvisaOtraMaquina, R.lanAvisaOtraMaquina],
+      ['sistema desconocido: los dos, en vez de elegir mal', R.otroLosDos, R.otroLosDos],
+      ['sin conexion verificada no se muestra',          R.sinConexionNoSeMuestra, R.sinConexionNoSeMuestra]
+    ] };
+  })();
+`);
+
+
+
 
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {

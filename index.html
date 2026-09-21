@@ -67788,8 +67788,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260921-0907';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789992437412;                 /* eco-build-ms */
+const ECO_BUILD    = '20260921-0918';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789993084444;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -67875,7 +67875,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-0907</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-0918</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -68495,6 +68495,9 @@ function _orthPintarDatos(base, sys) {
             puerto ? 'Informado por Orthanc.' : 'Orthanc no lo informó: es el valor por defecto.');
   _orthFila(d, 'AE Title:', aet || _ORTH_AET_DEF,
             aet ? 'Informado por Orthanc.' : 'Orthanc no lo informó: es el valor por defecto.');
+  /* Va DESPUÉS de los datos del ecógrafo y dentro del mismo bloque, así que aparece sólo con
+     la conexión verificada —que es cuando el pedido lo pide— y desaparece con ella. */
+  _orthPintarArranque(d, base);
 }
 
 /* Copiar: un solo listener delegado, registrado UNA vez. El panel se reconstruye en cada
@@ -68534,6 +68537,195 @@ if (!window._orthCopiarCableado) {
         .catch(function () { if (porTextarea()) ok(); else falla(); });
     } else if (porTextarea()) { ok(); } else { falla(); }
   });
+}
+
+/* ══ Arranque automático de Orthanc ═══════════════════════════════════════════════════════
+   ⚠️ LA PREMISA DE WINDOWS DEL PEDIDO ERA FALSA, y es la que más costaba. Decía «durante la
+   instalación elegí "Install as a Windows Service"». **Esa opción no existe**: el instalador
+   oficial ya registra el servicio. Verificado en dos páginas del proyecto:
+
+     · descarga: «The official Windows installers include a Windows service that automatically
+       starts Orthanc during the startup of Microsoft Windows.»
+     · quickstart: «Orthanc is running as a Windows Service, which means that it will
+       automatically start whenever your computer starts.»
+
+   Imprimir los tres pasos del pedido mandaba al médico a buscar una casilla inexistente y a
+   concluir que hizo algo mal, con Orthanc ya arrancando solo. Se dice lo contrario: ya está, y
+   se da cómo COMPROBARLO.
+
+   ⚠️ Y EL COMANDO DE MAC NO EXISTE. El pedido lo dejaba como «[comando LaunchAgent de
+   Orthanc]». Medido: no hay fórmula ni cask en Homebrew (`brew info orthanc` → «No available
+   formula»), la distribución de macOS son **binarios sueltos** y el proyecto **no publica**
+   ninguna integración de servicio para Mac. Así que no hay un comando que citar: hay que
+   escribir el LaunchAgent, y se declara que no sale del proyecto.
+
+   Dos apartamientos de los ejemplos oficiales de Docker, los dos deliberados:
+   · **`orthancteam/orthanc` y no `jodogne/orthanc`**: la doc dice que aquélla soporta ARM64 y
+     los Mac de hoy son ARM.
+   · **con `-v` y sin `--rm`**: los ejemplos de la doc son para probar. Sin volumen, reiniciar
+     el contenedor **borra los estudios** — en una app clínica eso no es un detalle. */
+var _ORTH_HOWTO = 'ett_orthanc_howto_visto';
+
+/* Devuelve el sistema del NAVEGADOR. Sólo sirve si Orthanc corre en esta misma máquina: con
+   una dirección de LAN el servidor está en OTRA computadora y este dato no dice nada de ella
+   —por eso el llamador muestra los dos casos cuando la dirección no es loopback—. */
+function _orthSO() {
+  var p = '';
+  try { p = (navigator.userAgentData && navigator.userAgentData.platform) || ''; } catch (e) {}
+  if (!p) { try { p = navigator.userAgent || ''; } catch (e) {} }
+  p = String(p).toLowerCase();
+  if (p.indexOf('win') >= 0) return 'win';
+  if (p.indexOf('mac') >= 0 || p.indexOf('darwin') >= 0) return 'mac';
+  return 'otro';
+}
+
+var _ORTH_MAC_DOCKER =
+  'docker run -d --restart unless-stopped --name orthanc \\\n' +
+  '  -p 4242:4242 -p 8042:8042 \\\n' +
+  '  -v orthanc-db:/var/lib/orthanc/db \\\n' +
+  '  orthancteam/orthanc';
+
+var _ORTH_MAC_PLIST =
+  'mkdir -p ~/Library/LaunchAgents\n' +
+  "cat > ~/Library/LaunchAgents/com.orthanc.server.plist <<'EOF'\n" +
+  '<?xml version="1.0" encoding="UTF-8"?>\n' +
+  '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n' +
+  '<plist version="1.0"><dict>\n' +
+  '  <key>Label</key><string>com.orthanc.server</string>\n' +
+  '  <key>ProgramArguments</key><array>\n' +
+  '    <string>/RUTA/A/Orthanc</string>\n' +
+  '    <string>/RUTA/A/orthanc.json</string>\n' +
+  '  </array>\n' +
+  '  <key>RunAtLoad</key><true/>\n' +
+  '  <key>KeepAlive</key><true/>\n' +
+  '</dict></plist>\n' +
+  'EOF\n' +
+  'launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.orthanc.server.plist';
+
+/* Bloque de texto con título, párrafos y —si hay— un comando copiable. Todo por textContent. */
+function _orthBloque(cont, titulo, lineas, comando, pie) {
+  var b = document.createElement('div');
+  b.style.cssText = 'margin-bottom:11px;';
+  var h = document.createElement('div');
+  h.style.cssText = 'font-size:12px;font-weight:600;margin-bottom:4px;';
+  h.textContent = titulo;
+  b.appendChild(h);
+  lineas.forEach(function (t) {
+    var p = document.createElement('div');
+    p.style.cssText = 'font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:3px;';
+    p.textContent = t;
+    b.appendChild(p);
+  });
+  if (comando) {
+    var fila = document.createElement('div');
+    fila.style.cssText = 'display:flex;align-items:flex-start;gap:7px;margin:5px 0 3px;';
+    var pre = document.createElement('pre');
+    pre.style.cssText = 'flex:1;min-width:0;margin:0;padding:6px 8px;border-radius:6px;' +
+      'background:var(--bg2);font-size:10.5px;line-height:1.45;overflow-x:auto;white-space:pre;';
+    pre.textContent = comando;
+    fila.appendChild(pre);
+    var bt = document.createElement('button');
+    bt.type = 'button'; bt.className = 'btn btn-ghost';
+    bt.style.cssText = 'padding:3px 9px;font-size:11px;flex:0 0 auto;';
+    bt.textContent = 'Copiar';
+    bt.setAttribute('data-orth-copiar', comando);
+    fila.appendChild(bt);
+    b.appendChild(fila);
+  }
+  if (pie) {
+    var f = document.createElement('div');
+    f.style.cssText = 'font-size:10.5px;color:var(--text2);line-height:1.45;';
+    f.textContent = pie;
+    b.appendChild(f);
+  }
+  cont.appendChild(b);
+}
+
+function _orthArranqueWin(cont) {
+  _orthBloque(cont, '🪟 Windows — ya está hecho', [
+    'El instalador oficial registra un servicio de Windows que arranca Orthanc solo al ' +
+    'encender la computadora. No hay ninguna opción que elegir durante la instalación.',
+    'Para comprobarlo: tecla Windows → buscá «Servicios» → tiene que figurar «Orthanc».'
+  ], null,
+    'Si no aparece, reinstalá con el instalador oficial de orthanc-server.com.');
+}
+
+function _orthArranqueMac(cont) {
+  _orthBloque(cont, '🍎 macOS — hay que configurarlo a mano', [
+    'Orthanc no publica un instalador para Mac: la descarga son binarios sueltos y el ' +
+    'proyecto no incluye ninguna integración de servicio. Estas dos recetas NO salen de la ' +
+    'documentación oficial.'
+  ], null, null);
+  _orthBloque(cont, 'A · Con Docker (lo que el proyecto sí documenta)', [
+    'Arranca solo cada vez que arranca Docker Desktop. Poné Docker Desktop en «Open at login».'
+  ], _ORTH_MAC_DOCKER,
+    'orthancteam/orthanc y no jodogne/orthanc: aquélla soporta ARM64, que es lo que traen los ' +
+    'Mac de hoy. El -v guarda la base fuera del contenedor: sin eso, reiniciarlo borra los ' +
+    'estudios.');
+  _orthBloque(cont, 'B · Con los binarios descargados (LaunchAgent)', [
+    'Reemplazá las DOS rutas /RUTA/A/… por las tuyas antes de ejecutarlo.'
+  ], _ORTH_MAC_PLIST,
+    'Comprobalo con: launchctl list | grep orthanc — si no lista nada, el LaunchAgent no ' +
+    'cargó, y casi siempre es que alguna de las dos rutas está mal.');
+}
+
+/* El botón está SIEMPRE; el panel se despliega solo la PRIMERA vez que se conecta. El pedido
+   ofrecía «una cosa o la otra» y se hacen las dos a propósito: mostrarlo una sola vez y sin
+   botón lo vuelve inalcanzable después, que es exactamente el defecto que la barra de memoria
+   ya documenta haber evitado con el aviso de cuota. */
+function _orthPintarArranque(cont, base) {
+  var wrap = document.createElement('div');
+  wrap.style.cssText = 'margin-top:11px;border-top:1px solid var(--bg3);padding-top:9px;';
+  var primera = false;
+  try { primera = localStorage.getItem(_ORTH_HOWTO) !== '1'; } catch (e) {}
+
+  var bt = document.createElement('button');
+  bt.type = 'button'; bt.className = 'btn btn-ghost';
+  bt.style.cssText = 'padding:4px 11px;font-size:11.5px;';
+  bt.textContent = '¿Cómo hago que arranque solo?';
+  wrap.appendChild(bt);
+
+  var panel = document.createElement('div');
+  panel.id = 'cfg-orthanc-arranque';
+  panel.style.cssText = 'margin-top:9px;';
+  panel.style.display = primera ? '' : 'none';
+  bt.setAttribute('aria-expanded', primera ? 'true' : 'false');
+
+  var intro = document.createElement('div');
+  intro.style.cssText = 'font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:9px;';
+  /* NO se afirma que Orthanc ya esté como servicio: eso NO se puede saber desde el navegador
+     —/system no lo informa— así que se dice en condicional en vez de darlo por detectado. */
+  intro.textContent = 'Si ya lo instalaste como servicio, no tenés que hacer nada: funciona ' +
+    'solo. EcoSmart no puede saberlo desde acá, así que fijate con los pasos de abajo.';
+  panel.appendChild(intro);
+
+  var enEstaMaquina = _orthEsLoopback(base);
+  var so = _orthSO();
+  if (!enEstaMaquina) {
+    /* Con una dirección de LAN, Orthanc corre en OTRA computadora y el sistema de ESTE
+       navegador no dice nada de aquélla: se muestran los dos y se explica por qué. */
+    var n = document.createElement('div');
+    n.style.cssText = 'font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:9px;';
+    n.textContent = 'Ojo: configuraste Orthanc en ' + _orthHost(base) + ', o sea en OTRA ' +
+      'computadora. Los pasos van en ESA máquina, no en ésta — por eso se muestran los dos ' +
+      'sistemas.';
+    panel.appendChild(n);
+    _orthArranqueWin(panel); _orthArranqueMac(panel);
+  } else if (so === 'win') { _orthArranqueWin(panel); }
+  else if (so === 'mac')   { _orthArranqueMac(panel); }
+  else { _orthArranqueWin(panel); _orthArranqueMac(panel); }
+
+  bt.addEventListener('click', function (ev) {
+    ev.preventDefault();
+    var abrir = panel.style.display === 'none';
+    panel.style.display = abrir ? '' : 'none';
+    bt.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+    if (abrir) { try { localStorage.setItem(_ORTH_HOWTO, '1'); } catch (e) {} }
+  });
+  if (primera) { try { localStorage.setItem(_ORTH_HOWTO, '1'); } catch (e) {} }
+
+  wrap.appendChild(panel);
+  cont.appendChild(wrap);
 }
 
 async function orthancVerificar() {

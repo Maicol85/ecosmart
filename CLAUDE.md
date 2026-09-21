@@ -77,6 +77,76 @@ cablea pasaría en verde.
 envía a **Orthanc** y EcoSmart lee de Orthanc. Dicho al revés, manda al médico a buscar
 EcoSmart en la lista de destinos del ecógrafo, donde no está.
 
+### Arranque automático: la premisa de Windows era la más cara (TC-221)
+
+El pedido decía: *«Durante la instalación elegí "Install as a Windows Service"»*. **Esa opción
+no existe.** Verificado en dos páginas del proyecto:
+
+> *«The official Windows installers include a Windows service that automatically starts Orthanc
+> during the startup of Microsoft Windows.»* — página de descarga
+> *«Orthanc is running as a Windows Service, which means that it will automatically start
+> whenever your computer starts.»* — quickstart de Windows
+
+O sea que **ya está hecho**. Imprimir esos tres pasos mandaba al médico a abrir el instalador a
+buscar una casilla inexistente y a concluir que había hecho algo mal, **con Orthanc ya
+arrancando solo**. Hoy el bloque dice que ya está y da cómo **comprobarlo** (`services.msc`).
+La mutación que restaura el texto del pedido imprime la frase completa en el diagnóstico.
+
+### Y el comando de Mac no existía: el pedido lo dejaba como placeholder
+
+`[comando LaunchAgent de Orthanc]`. Medido antes de inventarlo:
+
+| | |
+|---|---|
+| `brew info orthanc` | **«No available formula»** — tampoco como cask |
+| distribución de macOS | **binarios sueltos**, sin instalador |
+| integración de servicio oficial para Mac | **ninguna** |
+
+Así que no hay comando que citar: hay que **escribir el LaunchAgent**, y el panel **declara que
+esa receta no sale del proyecto**. Se ofrecen dos caminos: Docker —que el proyecto sí
+documenta— y el LaunchAgent para los binarios.
+
+**Dos apartamientos deliberados de los ejemplos oficiales de Docker**, porque aquéllos son para
+probar y esto es para una app clínica:
+
+- **`orthancteam/orthanc` y no `jodogne/orthanc`**: la doc dice que aquélla soporta **ARM64**,
+  que es lo que traen los Mac de hoy.
+- **con `-v` y sin `--rm`**: los ejemplos de la doc usan `--rm` y ningún volumen. Sin volumen,
+  **reiniciar el contenedor borra los estudios**. La mutación que copia el ejemplo oficial cae
+  por tres condiciones.
+
+**El comando se verificó ejecutándolo de verdad**, con `HOME` redirigido a un sandbox: produce
+un plist que `plutil -lint` acepta y cuyas claves lee launchd. **No se corrió
+`launchctl bootstrap`** — registrar un servicio en la máquina del usuario no es algo que haga
+una verificación. Y se usa `bootstrap` y no `load`, que en macOS 26 está deprecado
+(«Recommended alternatives: bootstrap | enable»).
+
+### El botón está SIEMPRE, además de desplegarse la primera vez
+
+El pedido ofrecía «una cosa **o** la otra». Se hacen las dos: mostrarlo una sola vez y sin
+botón lo vuelve **inalcanzable** después, que es exactamente el defecto que la barra de memoria
+documenta haber evitado con el aviso de cuota.
+
+### No se afirma haber DETECTADO que Orthanc ya es un servicio
+
+`/system` no informa nada de eso, así que la frase va en condicional —«si ya lo instalaste como
+servicio…, EcoSmart no puede saberlo desde acá»— en vez de darlo por detectado. La mutación que
+lo afirma cae por su condición.
+
+### El sistema del navegador no es el del servidor
+
+Con una dirección de LAN, Orthanc corre en **otra computadora** y el sistema de ESTE navegador
+no dice nada de aquélla: ahí se muestran **los dos** y se avisa que los pasos van en la otra
+máquina. Con `localhost` sí coinciden y se muestra uno solo. Sistema desconocido → los dos.
+
+### Y la mutación que mataba el caso en vez de hacerlo fallar
+
+Dibujar el botón sólo la primera vez reventaba TC-221 con
+`Cannot read properties of null (reading 'click')`, así que **la condición que existe para
+declarar ese defecto nunca se evaluaba**. Es la lección de TC-207: rojo es rojo, pero un caso
+que se muere no diagnostica. Con un `clk()` que devuelve `false` si el botón no está, la
+mutación cae en «el botón sigue» con un mensaje legible.
+
 ### Los ids van con prefijo `cfg-`, y no es estilo
 
 `guardarInforme` barre `input[id]` de **todo el documento** y `_noEsDelEstudio()` excluye por
