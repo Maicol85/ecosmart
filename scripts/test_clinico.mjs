@@ -15295,9 +15295,16 @@ caso('TC-207', 'Strain VI: miniaturas de los cineloops abiertos y guardados, y s
       R.tocoMini = clk(minis()[1]);                         // el 2C
       await new Promise(r=>setTimeout(r,200));
       R.cambioDeLoop = _cineDatos.i === 1;
-      R.preguntaVista = /¿Qué vista es este cineloop\\?/.test(barra());
+      /* La pantalla dedicada «¿Que vista es este cineloop?» YA NO ES UN PASO QUE BLOQUEA: el
+         selector de ventana vive ahora dentro del panel de trazado, para poder declararla
+         antes o despues de medir. El invariante que vale -y que esta condicion pasa a fijar-
+         no es el texto de aquella pantalla sino que, elegido el cineloop, SE OFREZCAN LAS
+         TRES VENTANAS y el flujo no quede trabado. */
       R.nBotVista = document.querySelectorAll('#cine-med-barra [data-str-vista]').length;
       R.hayTresBotones = R.nBotVista === 3;
+      R.ofreceDeclarar = /Ventana:/.test(barra());
+      R.noQuedaTrabado = _strainPaso() === 'trazar';
+      R.preguntaVista = R.ofreceDeclarar && R.noQuedaTrabado;
       R.sinVistaAun = _strain.vista === null;
 
       /* ── 3 · se elige la vista y recien ahi se traza ── */
@@ -15356,7 +15363,7 @@ caso('TC-207', 'Strain VI: miniaturas de los cineloops abiertos y guardados, y s
       ['y con su nombre',                          R.nombresEnMini, R.nombresEnMini],
       ['sin elegir no se puede confirmar',         R.noConfirmaSinVista, R.noConfirmaSinVista],
       ['tocar una miniatura cambia de cineloop',   R.tocoMini && R.cambioDeLoop, R.tocoMini ? R.cambioDeLoop : 'no habia miniatura que tocar'],
-      ['y pregunta que vista es',                  R.preguntaVista && R.hayTresBotones, R.preguntaVista + ' / botones=' + R.nBotVista],
+      ['y ofrece las tres ventanas, sin trabarse', R.preguntaVista && R.hayTresBotones, 'ofrece=' + R.ofreceDeclarar + ' trabado=' + !R.noQuedaTrabado + ' botones=' + R.nBotVista],
       ['no fija la vista sola',                    R.sinVistaAun, R.sinVistaAun],
       ['elegir A2C deja esa vista activa',         R.tocoA2C && R.vistaElegida && R.pideTrazar, R.tocoA2C ? R.vistaElegida : 'no habia boton de vista'],
       ['el par queda en A2C y A4C sigue vacia',    R.parEnA2C && R.a4cVacia, R.parEnA2C],
@@ -18864,6 +18871,215 @@ caso('TC-225', 'Guardados: «Editar» sale de la lista y pasa al detalle, separa
     ] };
   })();
 `);
+
+
+/* == TC-226 · Los dos bugs del flujo de medicion ============================================
+   BUG 2 -real-: no se podia confirmar sin declarar la ventana. La compuerta existia por un
+   motivo: sin vista, el getter `pares` devolvia un literal NUEVO en cada lectura, asi que
+   asignarle era un guardado que no guardaba nada. El arreglo NO es sacar la compuerta -eso
+   reintroduce la perdida silenciosa- sino darle un casillero REAL donde parquear el trazado
+   hasta que se declare la ventana, y mudarlo al declararla.
+
+   BUG 1 -premisa FALSA-: «al cambiar de imagen el visor no recalibra». Medido: la escala del
+   archivo SE RELEE SOLA (0,05 -> 0,20 mm/px al cambiar de loop) y en las 286 de 301 imagenes
+   del pendrive que traen regiones se mide sin calibrar nada. Lo unico que quedaba trabado son
+   las 15 SIN escala: ahi la calibracion manual se borra -correctamente, porque es de la
+   imagen que se deja- y NADIE llevaba al medico a calibrar de nuevo, porque esa regla vivia
+   solo en medToggle. Ese era el paso extra.
+
+   ⚠️ LO QUE NO SE HACE, Y ES LA CONDICION MAS IMPORTANTE DE ESTE CASO: NO se arrastra la
+   calibracion de la imagen anterior. La escala va de 0,046 a 0,926 mm/px entre archivos, asi
+   que reusarla daria un numero plausible y equivocado, sin ningun sintoma.
+
+   Y un tercer defecto que aparecio al reproducir: cambiar de imagen NO borraba la ventana
+   declarada, asi que el contorno de la imagen nueva se guardaba en el casillero de la vieja,
+   pisandolo. Decision de Maicol (2026-09-21): se borra.
+   NO DEPENDE DEL PENDRIVE: las regiones se fabrican.                                        */
+caso('TC-226', 'Visor: confirmar sin declarar ventana, y recalibrar al cambiar de imagen', `
+  return (async () => {
+    const R = {};
+    const aOrig = window.alert, cOrig = window.confirm;
+    const cineOrig = window._cineDatos;
+    window.alert = () => {};
+    const reg = dx => ([{ x0:0,y0:0,x1:600,y1:400, dx:dx,dy:dx, ux:3,uy:3,
+                          tipo:1, rx0:0,ry0:0,rvy:0 }]);
+    /* Trazo con los campos REALES de los DOS consumidores, que son distintos y los dos
+       muerden si faltan:
+         · _strainCalcular lee arcoAcm/arcoBcm -no bordeCm-, y sin ellos el SGL sale null y el
+           caso mide sobre nada;
+         · dibujarTr lee pts[0], pts[ultimo] y eje.M / eje.apex, y sin eso revienta con
+           «Cannot read properties of undefined» — pero SOLO cuando hay canvas, o sea que con
+           --solo pasaba y en el suite completo, con el visor ya abierto por un caso anterior,
+           se caía. El denominador otra vez. */
+    const tr = (a,b,img) => ({ bordeCm:a+b, cuerdaCm:2, arcoAcm:a, arcoBcm:b,
+                               pts:[{x:10,y:10},{x:50,y:80},{x:90,y:10}],
+                               eje:{ M:{x:50,y:10}, apex:{x:50,y:80} },
+                               metodo:'libre', imagen:img || 'IMG1' });
+    try {
+      window._cineDatos = { i:0, loops:[
+        { nombre:'A4C',       d:{ regiones:reg(0.05), cols:600, filas:400 }, frames:[], ms:40 },
+        { nombre:'A2C',       d:{ regiones:reg(0.20), cols:600, filas:400 }, frames:[], ms:40 },
+        { nombre:'SIN-ESCALA',d:{ regiones:[],        cols:600, filas:400 }, frames:[], ms:40 }
+      ]};
+      window.confirm = () => true;
+
+      /* -- 0 · DENOMINADOR: la sesion de strain arranca -- */
+      medHerramienta('strain');
+      R.haySesion = typeof _strain !== 'undefined' && !!_strain;
+      if (!R.haySesion) return { extra: [['la sesion de strain arranca', false, 'sin _strain']] };
+      _strain.loopListo = true; _strain.vista = null;
+      _strain.vistas = { a4c:{d:null,s:null}, a2c:{d:null,s:null}, a3c:{d:null,s:null} };
+      _strain.sinVista = { d:null, s:null };
+
+      /* -- 1 · BUG 2: se puede trazar y CONFIRMAR sin declarar la ventana -- */
+      R.pasoSinVista = _strainPaso();
+      R.noBloquea = R.pasoSinVista === 'trazar';
+      const avisos = [];
+      window.alert = m => avisos.push(String(m));
+      _strain.pendiente = tr(9,9);
+      medStrainConfirmar();
+      window.alert = () => {};
+      R.sinAlerta = avisos.length === 0;
+      /* LO QUE IMPORTA: se guardo DE VERDAD, no en un objeto descartable */
+      R.guardoDeVerdad = !!(_strain.sinVista.d && _strain.sinVista.d.arcoAcm === 9);
+      R.faseAvanzo = _strain.fase === 's';
+      _strain.pendiente = tr(7.5,7.5);
+      medStrainConfirmar();
+      R.parCompletoSinDeclarar = !!(_strain.sinVista.d && _strain.sinVista.s);
+      /* con el par completo y sin declarar, el panel PREGUNTA: sin vista no hay territorio */
+      R.pideDeclarar = _strainPaso() === 'vista';
+      /* y todavia NO cuenta para el SGL: no se le puede atribuir una pared */
+      R.noCuentaSinDeclarar = _strainCalcular() === null;
+
+      /* -- 2 · declarar DESPUES lo muda -- */
+      medStrainElegirVista('a4c');
+      R.trasDeclarar = {
+        vista: _strain.vista,
+        enLaVista: !!(_strain.vistas.a4c.d && _strain.vistas.a4c.s),
+        parqueoVacio: !_strain.sinVista.d && !_strain.sinVista.s,
+        arco: _strain.vistas.a4c.d ? _strain.vistas.a4c.d.arcoAcm : null
+      };
+      R.muda = R.trasDeclarar.enLaVista && R.trasDeclarar.parqueoVacio &&
+               R.trasDeclarar.arco === 9;
+      const R1 = _strainCalcular();
+      R.sglTrasDeclarar = R1 ? +R1.sgl.toFixed(2) : null;
+      /* (7,5-9)/9 = -16,67 % : el numero tiene que ser el del trazado parqueado */
+      R.sglCorrecto = R.sglTrasDeclarar === -16.67;
+
+      /* -- 3 · declarar sobre una vista OCUPADA pregunta, y el «no» no pisa -- */
+      let pregunto = false;
+      window.confirm = () => { pregunto = true; return false; };
+      _strain.vista = null;
+      _strain.sinVista = { d: tr(5,5), s: tr(4,4) };
+      medStrainElegirVista('a4c');
+      window.confirm = () => true;
+      R.preguntaAntesDePisar = pregunto;
+      R.noPisaSiDiceQueNo = _strain.vistas.a4c.d.arcoAcm === 9 && _strain.vista === null &&
+                            !!_strain.sinVista.d;
+      _strain.sinVista = { d:null, s:null };
+
+      /* -- 4 · FLUJO VIEJO: declarar primero y trazar despues, igual que siempre -- */
+      _strain.vista = null;
+      medStrainElegirVista('a2c');
+      R.viejoDeclara = _strain.vista === 'a2c';
+      _strain.pendiente = tr(10,10); medStrainConfirmar();
+      _strain.pendiente = tr(8,8);   medStrainConfirmar();
+      R.viejoPar = !!(_strain.vistas.a2c.d && _strain.vistas.a2c.s);
+      R.viejoNoUsaParqueo = !_strain.sinVista.d && !_strain.sinVista.s;
+      const R2 = _strainCalcular();
+      R.sglDosVistas = R2 ? +R2.sgl.toFixed(2) : null;
+      R.dosVistasOk = R.sglDosVistas === -18.33 && R2 && R2.terr.length === 4;
+
+      /* -- 5 · BUG 1: la escala se relee del archivo NUEVO -- */
+      _cineDatos.i = 0;
+      const e0 = _medEscalaEn({ x:100, y:100 });
+      _cineDatos.i = 1;
+      const e1 = _medEscalaEn({ x:100, y:100 });
+      R.releeEscala = !!(e0.ok && e1.ok && e0.mmPorPx !== e1.mmPorPx);
+      R.escalas = (e0.mmPorPx || '?') + ' -> ' + (e1.mmPorPx || '?');
+      R.fuenteArchivo = e1.fuente === 'del archivo';
+
+      /* -- 6 · imagen SIN escala: entra SOLO en calibrar, y NO arrastra la anterior -- */
+      window._medOn = true;
+      window._medCalib = { mmPorPx: 0.5 };      // calibrada a mano en la imagen anterior
+      window._medCalibrando = false;
+      _cineDatos.i = 2;
+      medCambioDeImagen();
+      R.entraACalibrar = _medCalibrando === true;
+      /* LA CONDICION QUE MAS IMPORTA: la calibracion vieja NO se arrastra */
+      R.noArrastraCalib = _medCalib === null;
+      /* y con una imagen que SI trae escala no molesta */
+      window._medCalib = null; window._medCalibrando = false;
+      _cineDatos.i = 1;
+      medCambioDeImagen();
+      R.conEscalaNoPide = _medCalibrando === false;
+
+      /* -- 7 · cambiar de imagen CONSERVA la ventana declarada, y esa es la decision --
+         Se intento borrarla: parecia que dejar 'a4c' puesta al pasar a la imagen de A2C haria
+         que el contorno nuevo pisara el casillero viejo. REPRODUCIDO, es al reves: el flujo
+         DECLARA LA VENTANA ANTES DE ABRIR SU IMAGEN -medStrainVistaSiguiente() y recien
+         despues se carga el cineloop de esa vista- asi que borrarla la borra justo cuando el
+         medico acaba de elegirla. Con el borrado puesto, el SGL salia con UNA vista en vez de
+         tres y seis casos de strain se ponian en rojo. */
+      _strain.vista = 'a2c'; _strain.loopListo = true;
+      const antesA2C = _strain.vistas.a2c.d.arcoAcm;
+      medCambioDeImagen();
+      R.ventanaSobrevive = _strain.vista === 'a2c';
+      R.conservaConfirmado = _strain.vistas.a2c.d.arcoAcm === antesA2C &&
+                             !!_strain.vistas.a2c.s;
+      R.loopListoSigue = _strain.loopListo === true;
+      R.sigueTrazable = _strainPaso() === 'trazar';
+      /* Y LA CONTAMINACION ENTRE IMAGENES LA CUBRE OTRO GUARD, que es el que hace que borrar
+         la ventana no haga falta: cada trazado guarda SU IMAGEN y el calculo compara la de
+         diastole contra la de sistole. */
+      _strain.vistas.a3c = { d: tr(9,9,'IMG-A'), s: tr(7,7,'IMG-B') };
+      const Rm = _strainCalcular();
+      R.declaraMezcla = !!(Rm && Rm.mismaImagen === false);
+      _strain.vistas.a3c = { d:null, s:null };
+      const Rok = _strainCalcular();
+      R.sinMezclaNoAvisa = !!(Rok && Rok.mismaImagen === true);
+
+      /* -- 8 · el panel dibuja sin ventana y NO nombra paredes que no puede saber -- */
+      _strain.vista = null; _strain.sinVista = { d:null, s:null };
+      let html = '';
+      try { html = _strainPanel(); } catch (e) { R.errPanel = String(e); }
+      R.panelDibuja = html.length > 200 && !R.errPanel;
+      R.panelTraeSelector = html.indexOf('data-str-vista="a4c"') >= 0;
+      R.panelOfreceDespues = html.indexOf('declararla después') >= 0;
+      R.panelSinParedes = html.indexOf('un anillo mitral, por el ápex') >= 0;
+    } finally {
+      window.alert = aOrig; window.confirm = cOrig;
+      try { window._medCalib = null; window._medCalibrando = false; window._medOn = false; } catch (e) {}
+      try { medApagar(); } catch (e) {}
+      try { window._cineDatos = cineOrig; } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: la sesion de strain arranca',   R.haySesion, R.haySesion],
+      ['BUG 2: sin ventana declarada NO se bloquea', R.noBloquea && R.sinAlerta, R.pasoSinVista],
+      ['Y EL TRAZADO SE GUARDA DE VERDAD',           R.guardoDeVerdad, R.guardoDeVerdad],
+      ['la fase avanza como siempre',                R.faseAvanzo, _strain ? '' : ''],
+      ['con el par completo PIDE declarar la ventana', R.parCompletoSinDeclarar && R.pideDeclarar, R.pideDeclarar],
+      ['y sin declarar NO cuenta para el SGL',        R.noCuentaSinDeclarar, R.noCuentaSinDeclarar],
+      ['declarar despues LO MUDA a esa ventana',      R.muda, JSON.stringify(R.trasDeclarar)],
+      ['y el SGL sale del trazado parqueado',         R.sglCorrecto, R.sglTrasDeclarar],
+      ['sobre una ventana ocupada PREGUNTA',          R.preguntaAntesDePisar, R.preguntaAntesDePisar],
+      ['y si dice que no, no pisa y sigue parqueado', R.noPisaSiDiceQueNo, R.noPisaSiDiceQueNo],
+      ['FLUJO VIEJO: declarar y trazar sigue igual',  R.viejoDeclara && R.viejoPar && R.viejoNoUsaParqueo, R.viejoPar],
+      ['con dos vistas el SGL promedia cuatro territorios', R.dosVistasOk, R.sglDosVistas],
+      ['BUG 1: la escala se RELEE del archivo nuevo', R.releeEscala && R.fuenteArchivo, R.escalas],
+      ['sin escala entra SOLO en modo calibrar',      R.entraACalibrar, R.entraACalibrar],
+      ['NO SE ARRASTRA la calibracion de la otra imagen', R.noArrastraCalib, R.noArrastraCalib],
+      ['con escala del archivo no pide calibrar',     R.conEscalaNoPide, R.conEscalaNoPide],
+      ['cambiar de imagen CONSERVA la ventana declarada', R.ventanaSobrevive, R.ventanaSobrevive],
+      ['y lo ya confirmado, y se sigue pudiendo trazar', R.conservaConfirmado && R.loopListoSigue && R.sigueTrazable, R.conservaConfirmado],
+      ['la MEZCLA de imagenes entre fases se declara', R.declaraMezcla && R.sinMezclaNoAvisa, 'mezcla=' + R.declaraMezcla + ' limpia=' + R.sinMezclaNoAvisa],
+      ['el panel dibuja sin ventana, con su selector', R.panelDibuja && R.panelTraeSelector, R.errPanel || R.panelDibuja],
+      ['ofrece declararla despues',                   R.panelOfreceDespues, R.panelOfreceDespues],
+      ['y NO nombra paredes que todavia no sabe',     R.panelSinParedes, R.panelSinParedes]
+    ] };
+  })();
+`);
+
 
 
 

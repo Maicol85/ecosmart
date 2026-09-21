@@ -48083,16 +48083,21 @@ function _strPuntos3(V) {
 function _strainIniciar() {
   _strain = { vista:null, loopListo:false, fase:'d', modo:'libre', pts3:[], ctrl:[], arrastrando:null,
               vistas: { a4c:{d:null,s:null}, a2c:{d:null,s:null}, a3c:{d:null,s:null} },
+              /* Donde viven los trazados CONFIRMADOS todavia sin ventana declarada. Es un
+                 objeto REAL y no el descartable del getter: confirmar sin declarar tiene que
+                 guardar de verdad, que es todo el punto de poder declarar despues. */
+              sinVista: { d:null, s:null },
               pendiente:null, ocultar:false, avisoCuadro:false, descartoPend:false,
               avisoImagen:false };
   /* `pares` es la vista que se está trazando. Se expone como propiedad para que el dibujo y
      la limpieza —que sólo miran la vista en curso— no tengan que saber que hay tres. */
   Object.defineProperty(_strain, 'pares', {
-    /* Con el flujo nuevo la vista se ELIGE, así que hasta que el médico la elija `vista` es
-       null y esto devolvería `undefined` — y `_strainCompleto()` reventaría al leerle `.d`.
-       Devuelve un par vacío. ⚠️ Ese par es DESCARTABLE: escribirle no guarda nada, por eso
-       `medStrainConfirmar` exige que haya vista elegida antes de asignar. */
-    get() { return this.vistas[this.vista] || { d:null, s:null }; }, configurable:true
+    /* Sin vista declarada cae en `sinVista`, que es un objeto REAL y PERSISTE. Antes caia en
+       un literal nuevo en cada lectura —descartable— y por eso `medStrainConfirmar` tenia que
+       exigir vista: asignarle era un guardado que no guardaba nada, en silencio. Con un
+       casillero de verdad, el medico traza primero y declara despues, y `medStrainElegirVista`
+       lo muda a la vista que elija. */
+    get() { return this.vistas[this.vista] || this.sinVista; }, configurable:true
   });
 }
 
@@ -48221,10 +48226,11 @@ function _strainCalcular() {
 window._strainCalcular = _strainCalcular;
 
 function medStrainConfirmar() {
-  /* Sin vista elegida, `pares` es el objeto descartable del getter: asignarle sería un
-     guardado que no guarda nada, en silencio. */
-  if (!_strain || !_strain.vista) {
-    alert('Elegí primero el cineloop y decí qué vista es.');
+  /* Ya NO se exige vista: sin ella el trazado se guarda en `sinVista` y se muda al declararla.
+     Lo que sigue siendo obligatorio es haber elegido el cineloop —sin imagen no hay escala— y
+     haber trazado algo. */
+  if (!_strain || !_strain.loopListo) {
+    alert('Elegí primero el cineloop.');
     return;
   }
   if (!_strain.pendiente) {
@@ -48458,14 +48464,43 @@ function _strainPanel() {
   let paso = '';
   if (!_strainCompleto()) {
     const esD = _strain.fase === 'd';
-    const nvista = _STR_VISTAS.indexOf(VA) + 1;
-    const obligatoria = VA.k === 'a4c';
-    paso = '<div style="font-size:12px;line-height:1.6;margin-top:7px;">' +
-      '<b>Paso ' + nvista + ' — ' + VA.rot + (obligatoria ? ' (obligatoria)' : ' (opcional)') + '</b><br>' +
-      (obligatoria
-        ? 'Abrí la vista apical 4 cámaras. '
-        : 'Si tenés esta vista, abrila. Si no, calculá con lo que tengas. ') +
-      'Pausá en <b>' + (esD ? 'DIÁSTOLE' : 'SÍSTOLE') + '</b> y trazá ' + VA.orden + '.' +
+    /* ⚠️ VA ES null MIENTRAS NO SE DECLARE LA VENTANA, y este bloque lo usaba en seis lugares.
+       Se puede trazar sin declararla -se guarda en `sinVista` y se muda al declarar- asi que
+       todo lo que depende de la vista cae a una redaccion generica. El ORDEN del trazado no
+       se puede dar sin saber la vista: la GEOMETRIA es la misma -de un anillo, por el apex, al
+       otro- pero QUE PARED es cual lo decide la vista, asi que se dice eso en vez de nombrar
+       paredes que todavia no se sabe cuales son. */
+    const sinV = !VA;
+    const orden = sinV
+      ? 'de un anillo mitral, por el ápex, hasta el anillo del otro lado'
+      : VA.orden;
+    /* Selector de ventana SIEMPRE visible mientras se traza: es lo que permite declararla
+       antes o despues de medir, sin que sea un paso que bloquea. */
+    const selV = '<div style="margin:5px 0 6px;">' +
+      '<span style="font-size:11px;color:var(--text2);">Ventana:</span> ' +
+      _STR_VISTAS.map(function (V2) {
+        const hecha2 = _strain.vistas[V2.k].d && _strain.vistas[V2.k].s;
+        return '<button type="button" class="btn btn-ghost" data-str-vista="' + V2.k + '" ' +
+          'title="' + E(V2.rot) + '" style="padding:3px 9px;font-size:11px;margin-right:5px;' +
+          (V2.k === _strain.vista ? 'background:var(--accent);color:#fff;' : '') + '">' +
+          V2.k.toUpperCase() + (hecha2 ? ' ✓' : '') + '</button>';
+      }).join('') +
+      (sinV ? '<div style="font-size:10px;color:var(--text2);margin-top:3px;">' +
+        'Podés trazar ahora y declararla después: lo que confirmes se guarda y se muda a la ' +
+        'ventana que elijas. <b>Los rótulos de pared se asignan al declararla</b>, según el ' +
+        'orden en que la trazaste.</div>' : '') +
+      '</div>';
+    const nvista = sinV ? 0 : _STR_VISTAS.indexOf(VA) + 1;
+    const obligatoria = !sinV && VA.k === 'a4c';
+    paso = '<div style="font-size:12px;line-height:1.6;margin-top:7px;">' + selV +
+      '<b>' + (sinV ? 'Trazá el contorno' : 'Paso ' + nvista + ' — ' + VA.rot +
+                      (obligatoria ? ' (obligatoria)' : ' (opcional)')) + '</b><br>' +
+      (sinV
+        ? 'La vista apical 4 cámaras es la obligatoria; las otras dos suman territorios. '
+        : (obligatoria
+            ? 'Abrí la vista apical 4 cámaras. '
+            : 'Si tenés esta vista, abrila. Si no, calculá con lo que tengas. ')) +
+      'Pausá en <b>' + (esD ? 'DIÁSTOLE' : 'SÍSTOLE') + '</b> y trazá ' + orden + '.' +
       /* Guía del momento del ciclo. Es informativa: no bloquea ni valida nada — la app no
          tiene ECG ni forma de saber en qué fase está el cuadro, y fingir que sí lo sabe
          sería peor que no decir nada. */
@@ -48477,10 +48512,12 @@ function _strainPanel() {
                 'para ajustarlo al borde y después confirmá. Es una <b>sugerencia</b>, no una ' +
                 'medición del borde: medido, la longitud sale 4-6 % corta, aunque el strain —que ' +
                 'es un cociente— apenas se mueve porque el desvío se cancela entre las dos fases.'
-              : 'Marcá tres puntos: <b>' + _strPuntos3(VA)[(_strain.pts3||[]).length] + '</b>.')
+              : 'Marcá tres puntos: <b>' +
+                (sinV ? ['un anillo mitral','el ÁPEX','el anillo del otro lado'][(_strain.pts3||[]).length]
+                      : _strPuntos3(VA)[(_strain.pts3||[]).length]) + '</b>.')
           : 'Mantené apretado y recorré el borde; al soltar se cierra solo. Se puede rehacer antes ' +
             'de confirmar.') +
-        ' <b>El orden importa:</b> los rótulos de pared suponen que marcaste ' + VA.orden +
+        ' <b>El orden importa:</b> los rótulos de pared suponen que marcaste ' + orden +
         ' — al revés quedan intercambiadas. ' +
         (_strain.pendiente
           ? '<b style="color:#fbbf24;">Trazado listo — apretá «Confirmar ' + (esD ? 'diástole' : 'sístole') + '».</b>'
@@ -48620,11 +48657,15 @@ function _strainThumbSrc(o) {
   } catch (e) { return ''; }
 }
 
-/* Paso del flujo: elegir loop → elegir vista → trazar. */
+/* Paso del flujo: elegir loop → trazar. La vista YA NO ES UN PASO QUE BLOQUEA: se declara
+   cuando el medico quiera, antes o despues de trazar, desde el selector que el propio panel de
+   trazado lleva arriba. El paso 'vista' se conserva para el unico caso en que preguntar es lo
+   correcto: ya hay un par CONFIRMADO sin declarar, y sin saber de que vista es no se puede
+   atribuir a ningun territorio. */
 function _strainPaso() {
   if (!_strain) return 'loop';
   if (!_strain.loopListo) return 'loop';
-  if (!_strain.vista) return 'vista';
+  if (!_strain.vista && _strain.sinVista.d && _strain.sinVista.s) return 'vista';
   return 'trazar';
 }
 
@@ -48653,6 +48694,19 @@ window.medStrainElegirLoop = medStrainElegirLoop;
 
 function medStrainElegirVista(v) {
   if (!_strain || !_strVista(v)) return;
+  /* Lo trazado SIN declarar se muda a la vista que se elige: es lo que hace que «confirmar
+     ahora y declarar despues» guarde de verdad. Si esa vista YA tenia par, se PREGUNTA antes
+     de pisarlo -es un trazado confirmado del medico- y si dice que no, no se cambia de vista:
+     lo parqueado sigue parqueado y puede elegir otra. */
+  var S = _strain.sinVista;
+  if (S.d || S.s) {
+    var T = _strain.vistas[v];
+    var pisa = (S.d && T.d) || (S.s && T.s);
+    if (pisa && !confirm('La vista ' + v.toUpperCase() + ' ya tiene un contorno guardado. ' +
+                         '¿Reemplazarlo por el que acabás de trazar?')) return;
+    if (S.d) { T.d = S.d; S.d = null; }
+    if (S.s) { T.s = S.s; S.s = null; }
+  }
   _strain.vista = v;
   _strain.fase = (_strain.vistas[v].d && !_strain.vistas[v].s) ? 's' : 'd';
   _strain.pendiente = null; _strain.pts3 = []; _strain.ctrl = [];
@@ -50853,6 +50907,24 @@ window.medReset = medReset;
    trazados ya confirmados y el biplano no se podía completar nunca.
    Cada trazado lleva la escala de SU imagen, así que mezclar dos loops con profundidades
    distintas sigue dando bien. */
+/* Si la imagen que quedo activa NO trae escala y no hay calibracion, se entra SOLO en modo
+   calibrar. La regla vivia unicamente en `medToggle` -o sea al ENCENDER la medicion- asi que
+   al cambiar de imagen con la medicion ya prendida el medico quedaba sin escala y sin nadie
+   que lo llevara a calibrar: ese era el «paso extra» del reporte.
+   ⚠️ NO se arrastra la calibracion de la imagen anterior, y no es pereza: medido sobre el
+   pendrive, la escala va de 0,046 a 0,926 mm/px entre archivos. Reusarla daria un numero
+   plausible y equivocado, sin ningun sintoma. Se pide una nueva. */
+function _medAutoCalibrar() {
+  /* ⚠️ LA CONDICION ES «EL ARCHIVO NO TRAE NINGUNA REGION», y es MAS ESTRICTA que la de
+     `medToggle`, que pregunta si no hay ninguna region MEDIBLE. La diferencia importa: una
+     imagen Doppler TIENE regiones —espectrales— aunque ninguna sea 2D, y con la condicion
+     amplia cambiar a un Doppler abria el modo calibrar, tapando el mensaje que explica que
+     ahi el eje horizontal es TIEMPO. Medido: puso en rojo TC-199, TC-204 y TC-205.
+     Con regiones presentes, cada herramienta ya da su propio rechazo explicado; el modo
+     calibrar sobra. Sin ninguna region no hay escala por ningun lado y ahi si corresponde. */
+  if (!_medRegs().length && !_medCalib) _medCalibrando = true;
+}
+
 function medCambioDeImagen() {
   _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null; _medVels = []; _medTiempos = []; _medVtis = [];
   _medCalib = null; _medCalibrando = false;        // la calibración es de la imagen que se deja
@@ -50867,10 +50939,18 @@ function medCambioDeImagen() {
     _strain.pts3 = []; _strain.ctrl = []; _strain.arrastrando = null;
     _strain.ocultar = false;
     _strain.avisoImagen = true;
+    /* ⚠️ LA VENTANA DECLARADA **NO** SE BORRA ACA, y se intento: parecia que dejar 'a4c'
+       puesta al pasar a la imagen de A2C haria que el contorno nuevo pisara el casillero
+       viejo. REPRODUCIDO, es al reves: el flujo DECLARA LA VENTANA ANTES DE ABRIR SU IMAGEN
+       -medStrainVistaSiguiente() y recien despues se carga el cineloop de esa vista- asi que
+       borrarla aca la borra justo cuando el medico acaba de elegirla. Medido: el SGL salia
+       con UNA vista en vez de tres y seis casos de strain se pusieron en rojo.
+       La contaminacion entre imagenes YA esta cubierta por otro lado: cada trazado guarda su
+       `imagen` y `_strainCalcular` compara la de diastole contra la de sistole y lo declara. */
   }
   if (_lars) { _lars.pendiente = null; _lars.ocultar = false; _lars.avisoImagen = true; }
   if (_vd) { _vd.pendiente = null; _vd.ocultar = false; _vd.avisoImagen = true; }
-  if (_medOn) { _medPintar(); _medEstado(); }
+  if (_medOn) { _medAutoCalibrar(); _medPintar(); _medEstado(); }
 }
 window.medCambioDeImagen = medCambioDeImagen;
 
@@ -68011,8 +68091,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260921-1134';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790001292517;                 /* eco-build-ms */
+const ECO_BUILD    = '20260921-1213';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790003590108;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -68098,7 +68178,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-1134</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-1213</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

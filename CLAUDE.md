@@ -4,6 +4,111 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Los dos bugs del flujo de medición — y uno era una premisa falsa (TC-226)
+
+### ⚠️ BUG 1: «al cambiar de imagen el visor no recalibra» — MEDIDO, ES FALSO
+
+La escala **se relee sola del archivo nuevo**. `_medRegs()` lee
+`_cineDatos.loops[i].d.regiones` en vivo, no cacheada. Medido con dos loops de escalas
+distintas:
+
+| | |
+|---|---|
+| loop 0 | `dx = 0,05` |
+| tras cambiar a loop 1 | `dx = 0,20` |
+| `_medEscalaEn()` en la nueva | `ok:true · fuente: "del archivo"` |
+
+O sea que en las **286 de 301** imágenes del pendrive que declaran regiones **no hay nada que
+recalibrar**: se mide de una.
+
+**Lo que sí estaba trabado son las 15 sin escala.** Ahí hace falta calibración manual, y
+`medCambioDeImagen` la borra —**correctamente**, es de la imagen que se deja— pero **nadie
+llevaba al médico a calibrar de nuevo**: esa regla vivía sólo en `medToggle`, o sea **al
+ENCENDER la medición**, no al cambiar de imagen con la medición ya prendida. Ése era el «paso
+extra» del reporte. Hoy la regla está en `_medAutoCalibrar()` y la llaman **las dos**.
+
+**⚠️ Y LO QUE NO SE HACE: arrastrar la calibración de la imagen anterior.** Es la lectura
+literal de «recalibrar automáticamente» y es **peligrosa**: la escala va de **0,046 a 0,926
+mm/px** entre archivos, así que reusarla daría un número plausible y equivocado **sin ningún
+síntoma**. La mutación que la conserva cae por dos condiciones. Decisión de Maicol
+(2026-09-21).
+
+### BUG 2: la compuerta existía por un motivo, y el arreglo no es sacarla
+
+`medStrainConfirmar` exigía ventana declarada porque sin ella el getter `pares` devolvía **un
+literal nuevo en cada lectura**: asignarle era un guardado que **no guardaba nada, en
+silencio**. Sacar la compuerta sola reintroduce exactamente esa pérdida — y hay una mutación
+que lo demuestra.
+
+El arreglo es **darle un casillero real**: `_strain.sinVista = {d,s}`, al que cae el getter
+mientras no haya ventana. Confirmar guarda de verdad, y `medStrainElegirVista` **muda** lo
+parqueado a la ventana que se elija. Si esa ventana ya tenía par, **se pregunta** antes de
+pisarlo, y con un «no» **no se cambia de ventana**: lo parqueado sigue parqueado y se puede
+elegir otra.
+
+**Un par completo sin declarar SÍ detiene el flujo**, y eso se conserva a propósito: sin saber
+de qué vista es, no se le puede atribuir ningún territorio. Hasta declararlo **no cuenta para
+el SGL** — hay una condición que lo fija.
+
+### ⚠️ EL TERCER «DEFECTO» ERA MÍO, Y HUBO QUE REVERTIRLO
+
+Propuse —y Maicol aprobó sobre mi descripción— **borrar la ventana declarada al cambiar de
+imagen**: pasar de A4C a A2C dejaba `'a4c'` puesta y el contorno de la imagen nueva se
+guardaría en el casillero de la vieja. **Reproducido, es al revés:** el flujo **declara la
+ventana ANTES de abrir su imagen** —`medStrainVistaSiguiente()` y recién después se carga el
+cineloop de esa vista— así que borrarla la borra **justo cuando el médico acaba de elegirla**.
+
+Medido con el borrado puesto: el SGL salía con **una vista en vez de tres** y **seis casos de
+strain** se pusieron en rojo (TC-199, 200, 201, 204, 205, 207) — todos verdes contra HEAD, o
+sea regresión mía y no expectativas viejas.
+
+**Y la contaminación que yo quería evitar ya estaba cubierta**: cada trazado guarda su imagen y
+`_strainCalcular` compara la de diástole contra la de sístole (`mismaImagen`). Revertido, con
+una condición que fija ese guard en su lugar.
+
+La lección es la de siempre, aplicada a mi propia propuesta: **una hipótesis sobre el flujo no
+vale hasta reproducirla**. La aprobación de Maicol se dio sobre mi descripción, que era falsa.
+
+### Y la segunda regresión: «ninguna región MEDIBLE» no es «ninguna región»
+
+`_medAutoCalibrar` nació copiando la condición de `medToggle` —*no hay ninguna región
+medible*— y con eso **cambiar a una imagen Doppler abría el modo calibrar**, tapando el mensaje
+que explica que ahí el eje horizontal es **tiempo**. Una imagen Doppler **tiene** regiones,
+sólo que ninguna es 2D. Puso en rojo TC-199, TC-204 y TC-205.
+
+La condición correcta para el cambio de imagen es más estricta: **el archivo no trae NINGUNA
+región**. Con regiones presentes, cada herramienta ya da su propio rechazo explicado y el modo
+calibrar sobra. `medToggle` quedó **byte por byte como estaba**: no se le cambia el
+comportamiento a una función que no se vino a tocar.
+
+### El panel tuvo que aprender a no saber la vista
+
+`VA = _strVista(_strain.vista)` es `null` mientras no se declare, y el paso de trazado lo usaba
+en **seis** lugares. Todo lo que depende de la vista cae a una redacción genérica — y el
+**orden del trazado no se puede dar sin saberla**: la geometría es la misma —de un anillo, por
+el ápex, al otro— pero **qué pared es cuál lo decide la vista**. Así que se dice eso, y que los
+rótulos se asignan al declararla, en vez de nombrar paredes que todavía no se sabe cuáles son.
+El selector de ventana va **siempre visible** mientras se traza: es lo que hace que declararla
+sea un acto y no un paso que bloquea.
+
+### Dos trampas propias
+
+- **`grep` de la llamada no encuentra lo que se pasa por REFERENCIA.** Busqué
+  `medCambioDeImagen()` con paréntesis y di por hecho que **no tenía llamadores** —iba a
+  reportarlo como hallazgo grave—. Se pasa como referencia dentro de un `MutationObserver`:
+  `_vCon(V, medCambioDeImagen)`. Es la misma lección que «grepear declaraciones no encuentra lo
+  que se exporta desde un IIFE», por la otra punta.
+- **Backticks dentro del cuerpo de un caso: van TREINTA Y OCHO**, otra vez en el comentario
+  recién escrito para explicar la reversión de arriba.
+- **Un trazo falso tiene DOS consumidores con campos distintos, y los dos muerden.**
+  `_strainCalcular` lee `arcoAcm`/`arcoBcm` —no `bordeCm`—: con la forma equivocada el SGL
+  sale `null` y parece que el cambio rompió el cálculo. Y `dibujarTr` lee `pts[0]`, el último
+  punto y `eje.M`/`eje.apex`: sin eso revienta con «Cannot read properties of undefined»…
+  **pero sólo cuando hay canvas**, o sea que con `--solo` pasaba y en el suite completo —con
+  el visor ya abierto por un caso anterior— se caía. Es «los nombres de campo exactos» **más**
+  el denominador, juntos.
+
+
 ## «Editar» se mudó de la lista al detalle (TC-225)
 
 La fila de Guardados tenía **seis** controles —⭐ · nota · Evol · PDF · Editar · 🗑️ · ···— y el
