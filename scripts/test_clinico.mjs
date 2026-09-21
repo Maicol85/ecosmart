@@ -18048,6 +18048,240 @@ caso('TC-221', 'Orthanc: instrucciones de arranque automatico, y Windows no mand
 `);
 
 
+/* == TC-222 · Panel de estudios de Orthanc ==================================================
+   TRES CONDICIONES HACEN EL CASO, el resto es plomeria:
+
+   1 · «NUEVO» SE DECIDE POR CONJUNTO DE IDS, NO POR MARCA DE TIEMPO. La fecha la pone Orthanc
+       y la marca la pondria este navegador: son DOS RELOJES, y Orthanc puede correr en otra
+       maquina. El escenario tiene un estudio ANTIQUISIMO sin ver -que TIENE que salir nuevo-
+       y uno del futuro ya visto -que NO-. Una implementacion por timestamp los da vuelta los
+       dos; una por conjunto acierta. Con estudios de fechas normales las dos coinciden, asi
+       que sin este escenario la condicion no distingue nada.
+
+   2 · CON UN ORTHANC VIEJO NO SE INVENTAN LA MODALIDAD NI EL CONTEO. Esos dos salen de tags
+       computados que existen desde 1.11 y vuelven en una seccion RequestedTags APARTE. Si no
+       vinieron se imprime «—» y se DICE por que, en vez de dejar dos columnas vacias.
+
+   3 · EN localStorage SOLO VAN IDS OPACOS. La lista lleva NOMBRES DE PACIENTE y se queda en
+       memoria: persistirla seria dato clinico en disco sin cifrar, contra la regla de la casa.
+
+   NO DEPENDE DEL PENDRIVE NI DE UN ORTHANC REAL: se sustituye fetch.                        */
+caso('TC-222', 'Orthanc: panel de estudios, nuevos por conjunto de ids y sin inventar lo que falta', `
+  return (async () => {
+    const R = {};
+    const fetchOrig = window.fetch, toastOrig = window.toast;
+    const onOrig = localStorage.getItem('ett_orthanc_on');
+    const urlOrig = localStorage.getItem('ett_orthanc_url');
+    const vistosOrig = localStorage.getItem('ett_orthanc_vistos');
+    window.toast = () => {};
+    const btn   = () => document.getElementById('orth-buscar-btn');
+    const filas = () => Array.from(document.querySelectorAll('[data-orth-estudio]'));
+    const est   = () => { const e = document.getElementById('orth-panel-estado');
+                          return e ? e.textContent.replace(/\\s+/g,' ') : ''; };
+    const nuevas = () => filas().filter(f => f.textContent.indexOf('NUEVO') >= 0)
+                            .map(f => f.getAttribute('data-orth-estudio'));
+    const mk = (id, ap, fecha, hora, last, extra) => {
+      const e = { ID:id, Type:'Study', LastUpdate:last,
+        MainDicomTags:{ StudyDate:fecha, StudyTime:hora, StudyDescription:'Eco',
+                        InstitutionName:'Sanatorio Artigas' },
+        PatientMainDicomTags:{ PatientName: ap + '^JUAN^^^' },
+        Series:['a','b','c'] };
+      if (extra) e.RequestedTags = { ModalitiesInStudy:'US', NumberOfStudyRelatedInstances:'42' };
+      return e;
+    };
+    /* ANTIGUO sin ver + FUTURO ya visto: el par que separa conjunto de marca de tiempo */
+    const DATOS = [
+      mk('id-hoy',    'PEREZ',  '20260921','143012','20260921T090000', true),
+      mk('id-viejo',  'GOMEZ',  '19990102','091500','19990102T091500', true),
+      mk('id-futuro', 'SILVA',  '20991231','235959','20991231T235959', true)
+    ];
+    const simular = (modo) => {
+      window.fetch = (url, opts) => {
+        const esFind = String(url).indexOf('/tools/find') >= 0;
+        const esPost = !!(opts && opts.method === 'POST');
+        if (modo === 'viejo' && esFind && esPost)
+          return Promise.resolve({ ok:false, status:400, json:()=>Promise.resolve({}) });
+        if (modo === 'muerto') return Promise.reject(new TypeError('Failed to fetch'));
+        const datos = (modo === 'viejo')
+          ? DATOS.map(d => { const c = JSON.parse(JSON.stringify(d)); delete c.RequestedTags; return c; })
+          : DATOS;
+        return Promise.resolve({ ok:true, status:200, json:()=>Promise.resolve(datos) });
+      };
+    };
+    try {
+      localStorage.setItem('ett_orthanc_url','localhost:8042');
+
+      /* -- 1 · el boton depende de la preferencia de Config -- */
+      localStorage.setItem('ett_orthanc_on','0');
+      if (typeof showTab === 'function') showTab('imagenes');
+      await new Promise(r=>setTimeout(r,140));
+      R.hayBoton = !!btn();
+      if (!R.hayBoton) return { extra: [['el boton existe en la tab Imagenes', false, 'falta']] };
+      R.ocultoApagado = getComputedStyle(btn()).display === 'none';
+      orthancToggle(true);
+      await new Promise(r=>setTimeout(r,80));
+      R.visibleEncendido = getComputedStyle(btn()).display !== 'none';
+      /* y «Importar DICOM» sigue en su lugar, intacto */
+      R.importarDicomSigue = Array.from(document.querySelectorAll('#tab-imagenes button'))
+        .filter(b => b.textContent.indexOf('Importar DICOM') >= 0).length === 1;
+
+      /* -- 2 · PRIMERA busqueda: nada se marca como nuevo -- */
+      localStorage.removeItem('ett_orthanc_vistos');
+      simular('completo');
+      await orthancBuscar(true);
+      await new Promise(r=>setTimeout(r,250));
+      R.listo = filas().length === 3;
+      R.primeraSinNuevos = nuevas().length === 0;
+      R.diceQueEsLaPrimera = est().indexOf('Primera búsqueda') >= 0;
+      /* orden por fecha DESCENDENTE */
+      R.orden = filas().map(f => f.getAttribute('data-orth-estudio'));
+      R.ordenDesc = R.orden.join(',') === 'id-futuro,id-hoy,id-viejo';
+      /* los computados salen de RequestedTags, no de MainDicomTags */
+      const t0 = filas().filter(f => f.getAttribute('data-orth-estudio') === 'id-hoy')[0].textContent;
+      R.leeComputados = t0.indexOf('US') >= 0 && t0.indexOf('42 imagen') >= 0;
+
+      /* -- 3 · LA CONDICION QUE VALE: nuevo por CONJUNTO, no por fecha -- */
+      localStorage.setItem('ett_orthanc_vistos', JSON.stringify(['id-futuro']));
+      await orthancBuscar(true);
+      await new Promise(r=>setTimeout(r,250));
+      const n = nuevas();
+      R.nuevosVistos = n.slice();
+      /* el ANTIQUISIMO sin ver TIENE que salir nuevo: por timestamp saldria viejo */
+      R.viejoSinVerEsNuevo = n.indexOf('id-viejo') >= 0;
+      /* y el del FUTURO ya visto NO: por timestamp saldria nuevo */
+      R.futuroVistoNoEsNuevo = n.indexOf('id-futuro') < 0;
+      R.cuentaEnElCartel = est().indexOf('2 nuevo(s)') >= 0;
+      /* volver a buscar los apaga: la busqueda anterior paso a ser la linea base */
+      await orthancBuscar(true);
+      await new Promise(r=>setTimeout(r,250));
+      R.segundaPasadaLosApaga = nuevas().length === 0;
+      /* el resaltado NO es solo color: lleva la palabra, para quien no distingue el verde */
+      localStorage.setItem('ett_orthanc_vistos', JSON.stringify([]));
+      await orthancBuscar(true);
+      await new Promise(r=>setTimeout(r,250));
+      R.resaltadoConPalabra = nuevas().length === 3;
+
+      /* -- 4 · SEGURIDAD: en disco SOLO ids, ningun nombre de paciente -- */
+      let enDisco = '';
+      try { for (let i = 0; i < localStorage.length; i++) {
+              const k = localStorage.key(i); enDisco += k + '=' + localStorage.getItem(k) + ' | ';
+            } } catch (e) {}
+      R.sinNombresEnDisco = enDisco.indexOf('PEREZ') < 0 && enDisco.indexOf('GOMEZ') < 0 &&
+                            enDisco.indexOf('SILVA') < 0;
+      R.idsSiEnDisco = (localStorage.getItem('ett_orthanc_vistos') || '').indexOf('id-hoy') >= 0;
+
+      /* -- 5 · filtros, y la fecha SIN correrse un dia -- */
+      const fn = document.getElementById('orth-f-nombre');
+      const fd = document.getElementById('orth-f-desde');
+      const fh = document.getElementById('orth-f-hasta');
+      fn.value = 'gomez'; orthancFiltrar();
+      R.filtraNombre = filas().length === 1 &&
+                       filas()[0].getAttribute('data-orth-estudio') === 'id-viejo';
+      fn.value = ''; fd.value = '2026-09-21'; fh.value = '2026-09-21'; orthancFiltrar();
+      R.filtraFecha = filas().length === 1 &&
+                      filas()[0].getAttribute('data-orth-estudio') === 'id-hoy';
+      /* el 21 de septiembre tiene que LEERSE 21, no 20: new Date(yyyy-mm-dd) es UTC y en
+         Uruguay devuelve el dia anterior -este archivo ya lo pago con _pptFechaLarga- */
+      R.fechaNoSeCorre = filas()[0].textContent.indexOf('21/09/2026') >= 0;
+      fd.value = ''; fh.value = ''; fn.value = 'zzz'; orthancFiltrar();
+      R.sinCoincidencias = document.getElementById('orth-panel-lista')
+                             .textContent.indexOf('Ningún estudio coincide') >= 0;
+      fn.value = ''; orthancFiltrar();
+
+      /* -- 6 · ORTHANC VIEJO: no se inventan modalidad ni conteo -- */
+      simular('viejo');
+      await orthancBuscar(true);
+      await new Promise(r=>setTimeout(r,250));
+      R.viejoLista = filas().length === 3;
+      R.viejoDeclara = est().indexOf('no informó modalidad ni cantidad') >= 0;
+      const tv = filas()[0].textContent;
+      R.viejoNoInventa = tv.indexOf('42 imagen') < 0 && tv.indexOf('US') < 0 &&
+                         tv.indexOf('—') >= 0;
+      R.viejoConservaSeries = tv.indexOf('serie(s)') >= 0;
+
+      /* -- 7 · sin respuesta: no se dice «no hay estudios» -- */
+      simular('muerto');
+      await orthancBuscar(true);
+      await new Promise(r=>setTimeout(r,250));
+      R.muertoAvisa = est().indexOf('No se pudo consultar') >= 0 ||
+                      est().indexOf('no me deja leerlo') >= 0;
+      R.muertoNoDiceVacio = est().indexOf('no tiene estudios') < 0;
+
+      /* -- 8 · XSS: el nombre con marcado queda como TEXTO -- */
+      window.fetch = () => Promise.resolve({ ok:true, status:200, json:()=>Promise.resolve([
+        { ID:'id-x', Type:'Study', LastUpdate:'20260921T090000',
+          MainDicomTags:{ StudyDate:'20260921', StudyTime:'120000',
+                          InstitutionName:'X"><img src=x onerror=alert(1)>' },
+          PatientMainDicomTags:{ PatientName:"O'BRIEN & <b>BOOM</b>^ANA^^^" }, Series:['a'] }]) });
+      await orthancBuscar(true);
+      await new Promise(r=>setTimeout(r,250));
+      const cont = document.getElementById('orth-panel-lista');
+      R.venenoComoTexto = cont.textContent.indexOf('<b>BOOM</b>') >= 0 &&
+                          cont.textContent.indexOf('onerror=alert(1)') >= 0;
+      R.sinInyeccion = cont.querySelectorAll('b, img').length === 0;
+      const conHandler = Array.from(cont.querySelectorAll('*'))
+        .filter(el => Array.from(el.attributes || []).some(a => /^on/i.test(a.name)));
+      R.sinHandlers = conHandler.length === 0;
+
+      /* -- 9 · elegir cierra el panel y delega en el seam -- */
+      let recibido = null;
+      window.orthancImportarEstudio = id => { recibido = id; };
+      filas()[0].click();
+      await new Promise(r=>setTimeout(r,120));
+      R.delegaEnElSeam = recibido === 'id-x';
+      R.cierraElPanel = getComputedStyle(document.getElementById('orth-panel-overlay')).display === 'none';
+      delete window.orthancImportarEstudio;
+      /* y SIN el seam avisa en vez de quedarse mudo */
+      const tost = []; const to2 = window.toast; window.toast = m => tost.push(String(m));
+      orthancElegirEstudio('id-x');
+      window.toast = to2;
+      R.sinSeamAvisa = tost.join(' ').indexOf('todavía no está implementada') >= 0;
+    } finally {
+      window.fetch = fetchOrig; window.toast = toastOrig;
+      try { delete window.orthancImportarEstudio; } catch (e) {}
+      try { orthancPanelCerrar(); } catch (e) {}
+      try {
+        if (onOrig === null) localStorage.removeItem('ett_orthanc_on');
+        else localStorage.setItem('ett_orthanc_on', onOrig);
+        if (urlOrig === null) localStorage.removeItem('ett_orthanc_url');
+        else localStorage.setItem('ett_orthanc_url', urlOrig);
+        if (vistosOrig === null) localStorage.removeItem('ett_orthanc_vistos');
+        else localStorage.setItem('ett_orthanc_vistos', vistosOrig);
+      } catch (e) {}
+      try { orthancBotonSync(); orthancRender(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: el boton existe y la lista se dibuja', R.hayBoton && R.listo, R.hayBoton + '/' + R.listo],
+      ['oculto con Orthanc apagado, visible con encendido', R.ocultoApagado && R.visibleEncendido, R.ocultoApagado + '/' + R.visibleEncendido],
+      ['«Importar DICOM» sigue intacto',            R.importarDicomSigue, R.importarDicomSigue],
+      ['ordenados por fecha DESCENDENTE',           R.ordenDesc, R.orden.join(',')],
+      ['modalidad y conteo salen de RequestedTags', R.leeComputados, R.leeComputados],
+      ['la PRIMERA busqueda no marca nada como nuevo', R.primeraSinNuevos && R.diceQueEsLaPrimera, R.primeraSinNuevos],
+      ['NUEVO = id NO VISTO, aunque el estudio sea viejisimo', R.viejoSinVerEsNuevo, JSON.stringify(R.nuevosVistos)],
+      ['y un estudio del FUTURO ya visto NO es nuevo', R.futuroVistoNoEsNuevo, JSON.stringify(R.nuevosVistos)],
+      ['el cartel cuenta los nuevos',               R.cuentaEnElCartel, R.cuentaEnElCartel],
+      ['volver a buscar los apaga',                 R.segundaPasadaLosApaga, R.segundaPasadaLosApaga],
+      ['el resaltado lleva la PALABRA, no solo color', R.resaltadoConPalabra, R.resaltadoConPalabra],
+      ['SEGURIDAD: en disco NO hay nombres de paciente', R.sinNombresEnDisco, R.sinNombresEnDisco],
+      ['pero si los ids, que es lo que compara',    R.idsSiEnDisco, R.idsSiEnDisco],
+      ['filtra por nombre y por rango de fechas',   R.filtraNombre && R.filtraFecha, R.filtraNombre + '/' + R.filtraFecha],
+      ['la fecha NO se corre un dia',               R.fechaNoSeCorre, R.fechaNoSeCorre],
+      ['sin coincidencias lo dice',                 R.sinCoincidencias, R.sinCoincidencias],
+      ['ORTHANC VIEJO: lista igual',                R.viejoLista, R.viejoLista],
+      ['y NO INVENTA modalidad ni conteo',          R.viejoNoInventa, R.viejoNoInventa],
+      ['declara por que faltan',                    R.viejoDeclara, R.viejoDeclara],
+      ['conservando las series, que si vinieron',   R.viejoConservaSeries, R.viejoConservaSeries],
+      ['sin respuesta NO dice «no tiene estudios»', R.muertoAvisa && R.muertoNoDiceVacio, R.muertoNoDiceVacio],
+      ['XSS: el marcado queda como texto',          R.venenoComoTexto && R.sinInyeccion, R.venenoComoTexto],
+      ['cero handlers on* en la lista',             R.sinHandlers, R.sinHandlers],
+      ['elegir cierra el panel y delega en el seam', R.delegaEnElSeam && R.cierraElPanel, R.delegaEnElSeam],
+      ['y sin el seam avisa en vez de quedarse mudo', R.sinSeamAvisa, R.sinSeamAvisa]
+    ] };
+  })();
+`);
+
+
+
 
 
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────

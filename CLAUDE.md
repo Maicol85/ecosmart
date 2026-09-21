@@ -4,6 +4,114 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Panel de estudios de Orthanc en la tab Imágenes (TC-222)
+
+Botón «🔍 Buscar en Orthanc» junto a «Importar DICOM», visible sólo con Orthanc activado, y un
+panel propio **dentro de EcoSmart** — no se abre la interfaz de Orthanc.
+
+### ⚠️ VERIFICADO CONTRA EL ORTHANC REAL, y confirmó la decisión del Prompt 1
+
+Apareció un Orthanc de verdad corriendo en la máquina (`lsof -iTCP:8042` → `Orthanc`), así que
+por primera vez se pudo verificar contra el servidor y no contra un doble. Lo que dio:
+
+| | |
+|---|---|
+| `curl http://localhost:8042/system` | **HTTP 200** |
+| cabeceras `Access-Control-*` | **ninguna** |
+| el panel, desde el navegador | *«Hay un servidor … pero el navegador no me deja leerlo. Casi siempre es CORS»* |
+
+O sea: **Orthanc anda perfecto y el navegador lo bloquea igual.** Una implementación con el
+mensaje único del pedido original —«¿está instalado y corriendo?»— habría mandado al médico a
+revisar un servidor que acababa de instalar y que funciona. El sondeo `no-cors` que distingue
+los dos casos **no era una precaución teórica**: es el caso real de una instalación nueva.
+
+### Dos cosas que el Orthanc real desmintió o resolvió
+
+- **`Version` es la cadena `"mainline"`, no un semver.** Una detección de capacidades por
+  comparación de versión —«¿es ≥ 1.11?»— habría sido frágil. Acá se **prueba el endpoint y se
+  cae al respaldo**, que es lo que corresponde y quedó validado por accidente.
+- **`Level: "Study"` es el valor correcto.** La documentación muestra `"Study"` en un ejemplo y
+  `"Studies"` en otro; el servidor real acepta `"Study"` y devuelve lista.
+
+### La API: tres cosas que no son obvias y rompen MUDAS
+
+1. **`Modality` NO está a nivel estudio, está a nivel SERIE.** `/studies?expand` no la trae.
+2. **La cantidad de imágenes tampoco**: hay que pedir los tags **computados**
+   `ModalitiesInStudy` y `NumberOfStudyRelatedInstances`…
+3. …**y vuelven en una sección `RequestedTags` APARTE**, no dentro de `MainDicomTags`. Leerlos
+   de ahí devuelve `undefined` en silencio. La mutación que lo hace cae por su condición.
+
+`InstitutionName` **sí** está en los tags principales del estudio.
+
+**`RequestedTags` existe desde Orthanc 1.11**, así que hay un respaldo por `/studies?expand`
+que anda en toda versión y da todo menos esos dos. Ahí se imprime **«—» y se DICE por qué**, en
+vez de dejar dos columnas vacías. La mutación que inventa los valores cae.
+
+### ⚠️ «NUEVO» SE DECIDE POR CONJUNTO DE IDS, NUNCA POR MARCA DE TIEMPO
+
+La fecha la pone **Orthanc** y la marca la pondría **este navegador**: son **dos relojes**, y
+Orthanc puede correr en otra máquina. Es la misma razón por la que el banner de versión compara
+**sello contra sello y no contra `Last-Modified`**.
+
+**Y la condición que lo fija necesita un escenario incómodo**, porque con estudios de fechas
+normales las dos implementaciones coinciden: hay un estudio **de 1999 sin ver** —que tiene que
+salir NUEVO— y uno **de 2099 ya visto** —que no—. La mutación por timestamp los da vuelta los
+dos y el diagnóstico imprime `["id-futuro","id-hoy"]`.
+
+**La primera búsqueda NO marca nada como nuevo.** Con todo resaltado, el resaltado no distingue
+nada y encima entrena a ignorarlo; esa pasada fija la línea base.
+
+**El resaltado lleva la PALABRA «NUEVO», no sólo el borde verde**: un color solo no lo ve quien
+no distingue el verde y no sobrevive a una captura en gris.
+
+### SEGURIDAD: en disco sólo van los ids
+
+La lista lleva **nombres de paciente** y vive **sólo en memoria** (`_orthEstudios`). Lo único
+que se persiste son los **ids opacos** de Orthanc, que es lo que necesita la comparación.
+Persistir la lista sería dato clínico en disco sin cifrar, contra la regla de la casa — y hay
+una condición que recorre `localStorage` entero buscando los nombres del escenario. La mutación
+que cachea la lista cae ahí.
+
+**«Sólo localhost» se implementó como un AVISO y no como un bloqueo.** La sección de Config ya
+admite una dirección de LAN a propósito —Orthanc puede correr en otra máquina de la clínica— así
+que bloquear rompería lo que ya existe. Lo que se detecta es una dirección **pública**: loopback,
+RFC1918, CGNAT y link-local pasan; una IP enrutable avisa que la API podría ser alcanzable desde
+internet. Un dominio **no se adivina**.
+
+### Detalles
+
+- **La fecha se parte a mano.** `new Date('yyyy-mm-dd')` es UTC y en Uruguay devuelve el **día
+  anterior** — este archivo ya lo pagó con `_pptFechaLarga`. Y el orden es por la **cadena**
+  `StudyDate+StudyTime`, donde el orden lexicográfico ES el cronológico.
+- **El nombre DICOM viene `APELLIDO^NOMBRE^^^`** y se colapsan los separadores vacíos.
+- **El id del estudio va por `data-orth-estudio` con listener delegado**, nunca interpolado en
+  un `onclick`: la lista se reconstruye en cada tecla del filtro, así que enganchar por fila
+  acumularía un listener por pulsación.
+- **El botón nace OCULTO y lo enciende `orthancBotonSync()`.** Al revés, un bloque que dejara
+  de parsear lo dejaría prendido prometiendo una búsqueda que no existe.
+- **Se repinta al entrar a la tab**, porque la preferencia puede haberse movido en **otra
+  pestaña** del navegador, donde este documento no se entera.
+- **El tope es 500 y se DECLARA cuánto quedó afuera** — sin eso, un recorte silencioso se lee
+  como «esto es todo lo que hay».
+- **Sin respuesta NO se dice «no tiene estudios»**: son cosas distintas y hay una condición que
+  lo separa.
+
+### El seam de la importación, que todavía no existe
+
+Elegir un estudio cierra el panel y delega en `window.orthancImportarEstudio(id)` **si está
+definida**; si no, lo **dice**. Un clic que cierra el panel y no hace nada más se lee como que
+la app se colgó — es el defecto de los controles mudos que este archivo documenta con los siete
+acordeones de Congénitas.
+
+### Lo que NO se pudo verificar
+
+El Orthanc real **no tiene ningún estudio todavía**, así que la forma de un estudio POBLADO
+—nombres exactos de los campos, formato de `ModalitiesInStudy` con varias modalidades— sigue
+verificada sólo contra el doble, cuya forma sale de la documentación. **No se le subió un
+estudio de prueba**: escribir en el servidor clínico de alguien no es algo que haga una
+verificación. Se cierra en cuanto el ecógrafo mande el primero.
+
+
 ## Orthanc en Config — cuatro premisas medidas, y ninguna daba lo que el pedido suponía (TC-220)
 
 Sección «🔌 Orthanc / DICOM en red» en ⚙️ Config: interruptor, dirección, «Verificar conexión»
