@@ -4,6 +4,105 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Origen del SGL: no es una etiqueta, cambia QUIÉN entra al Bland-Altman (TC-224)
+
+Dos botones bajo el campo SGL —🤖 Automático · ✋ Manual— y cinco variables clínicas más en el
+Excel de strain.
+
+### ⚠️ EL SELECTOR CONTAMINA UNA CONCORDANCIA QUE YA EXISTÍA
+
+El exportador de strain existe para medir acuerdo **entre métodos**: manual del visor contra el
+automático del equipo. Y `_labStrainFilas` toma el campo `sgl` como automático **sin
+condición**: `auto = -Math.abs(_labGls(inf))`. Desde que el médico puede declarar ese valor como
+**Manual**, el Bland-Altman pasaría a comparar **manual contra manual** — concordancia
+espuriamente buena, y son los números que se citan en un paper.
+
+Decisión de Maicol (2026-09-21): esos estudios **no entran** a la concordancia ni al promedio
+del «SGL del informe», siguen en la hoja Datos con su origen, y la hoja Estadísticas los cuenta
+aparte. La mutación que ignora el origen deja `n=4` donde deben ser 3.
+
+**Y UN ORIGEN VACÍO SÍ ENTRA.** El campo es opcional: no declararlo **no es** declararlo
+manual. Sin esa segunda condición, una implementación que excluyera todo lo no marcado como
+«auto» pasaba igual — la mutación `origen !== 'auto'` existe para eso.
+
+### El estado vive en un DESPLEGABLE OCULTO, y eso es lo que evita tocar otros módulos
+
+Los botones son sólo la pintura. El valor vive en un `select` con `display:none`, así que
+hereda **las tres columnas gratis**: `guardarInforme` barre `select[id]` —viaja con el
+estudio—, las rutas de restauración lo repueblan con el barrido genérico, y `limpiarCampos` lo
+resetea con su `selectedIndex = 0`.
+
+Un `input[type=hidden]` habría hecho las dos primeras y **no la tercera**: ese barrido toma
+`input[type=text]` e `input[type=number]`, y este archivo ya pagó esa fuga entre pacientes con
+`ete_tavi_jet_horas` y `co_serie_json`.
+
+Lo único que sí necesitó las dos columnas es **repintar los botones** (`sglOrigenSync` en
+`RECALC_MODULOS` **y** al final de `limpiarCampos`): el desplegable oculto no se ve, así que la
+única superficie que puede mentir es el botón. La mutación que le pone default «auto» cae por
+dos condiciones.
+
+**Un segundo clic en el botón activo lo desmarca.** El campo es opcional, así que tiene que
+haber forma de volver a «no declarado» sin recargar; si no, marcar por error deja una
+afirmación pegada al estudio.
+
+### ⚠️ EL RITMO NO SE EXPORTA CRUDO
+
+`hf_ritmo` viene de fábrica en **`auto`**, que significa «deducilo de la Diastólica» y **no es
+un ritmo**; y el resolutor de la app (`_hfSrcCampos().ritmo()`) **cae a sinusal** cuando no hay
+nada. Exportar eso afirmaría ritmo sinusal en todo estudio donde nadie lo miró — en un dataset
+eso es fabricar el dato. Sólo se emite lo **consignado**:
+
+| | |
+|---|---|
+| `hf_ritmo` = `rs` / `fa` | alguien lo eligió → se emite |
+| `diast_ritmo` = `fa` | alguien lo eligió → se emite (su opción 0 es «sinusal», o sea que un «sinusal» ahí puede ser el default intacto) |
+| cualquier otra cosa | **vacío** |
+
+La mutación que devuelve «Sinusal» por omisión cae por su condición.
+
+### Dos premisas del pedido que no se sostuvieron
+
+- **«Diagnóstico principal» no existe.** No hay `diagnostico` ni equivalente estructurado.
+  Decisión de Maicol: **no se exporta columna** y la hoja Estadísticas dice por qué —una
+  columna vacía en todas las filas se lee como dato faltante y no como campo inexistente—. El
+  texto del informe tampoco: el exportador tiene modo anónimo y el EN SUMA puede llevar nombres
+  escritos a mano, así que exportarlo lo rompería.
+- **«SGL manual del visor» ya era una columna** (`SGL manual (%)`), igual que «SGL del informe».
+
+### El encabezado dejó de afirmar
+
+`SGL automático (%)` pasó a **`SGL del informe (%)`**: desde que el origen se declara, aquel
+rótulo sería una afirmación que el propio dato puede contradecir. El origen va en su columna al
+lado, y hay una más —**«Entra al Bland-Altman»**— que dice **fila por fila** si el par entró,
+para que quien analiza no tenga que reconstruir el criterio desde la hoja de Estadísticas.
+
+### ⚠️ Y «las hojas 2 y 3 no se tocan» era INCOMPATIBLE con la decisión
+
+El pedido lo pedía como verificación. Excluir del Bland-Altman **necesariamente** saca filas de
+la hoja 2 y agrega el contador y las notas a la hoja 3. Gana la decisión; lo que sí se conserva
+byte por byte son **las columnas** de la hoja 2, y hay una condición que las fija.
+
+### Tres trampas del propio caso
+
+- **La forma de `strain_manual` es `{vistas:{A:{vi:{…}}}}`**, no `{vi:{…}}`. Mi primera sonda
+  usó la forma de adentro y el exportador salió por su «no hay estudios con strain manual»: el
+  caso medía sobre cero filas. Es «los nombres de campo exactos» otra vez.
+- **Un regex con paréntesis escapados dentro del cuerpo de un caso NO matchea nunca.** El
+  template literal se come la barra invertida y `\(` queda como **grupo**, así que
+  `/Comparables \(entran…\)/` daba `false` sobre una hoja correcta. Se resuelve con `indexOf`,
+  que es lo que este archivo recomienda desde la quinta vez.
+- **Escribir el nombre de una etiqueta dentro de un comentario rompe el conteo de balance.**
+  Puse la palabra literal en la explicación y el balance de `select` pasó de 51 a 52 sin que el
+  marcado hubiera cambiado. En los comentarios, describir.
+
+### Y un comentario que quedó explicando la función equivocada
+
+Al insertar los helpers justo antes de `_labStrainFilas`, su comentario de cabecera —«una fila
+por estudio con strain manual»— quedó describiendo **mis** helpers. Es el mismo defecto que el
+reordenamiento de tarjetas del Laboratorio ya documenta: **la unidad que se mueve es "lo que
+precede + la función"**. Se repuso pegado a la suya.
+
+
 ## Importar un estudio desde Orthanc — y el PatientID que NO es la cédula (TC-223)
 
 Elegir un estudio en el panel baja sus instancias y las mete **por las puertas que ya existen**:

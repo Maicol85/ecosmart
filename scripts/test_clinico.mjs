@@ -18550,6 +18550,192 @@ caso('TC-223', 'Orthanc: importa el estudio por las puertas de siempre, y el Pat
 `);
 
 
+/* == TC-224 · Origen del SGL y variables clinicas en el dataset de strain ===================
+   LA CONDICION QUE HACE EL CASO: un estudio cuyo SGL del informe se declara MANUAL NO entra
+   al Bland-Altman. Ese grafico mide concordancia ENTRE METODOS -manual del visor contra el
+   automatico del equipo- y toma el campo `sgl` como automatico SIN CONDICION. Si el valor del
+   informe tambien se midio a mano, la comparacion es manual contra manual y devuelve una
+   concordancia espuriamente buena, que son los numeros que se citan en un paper.
+   Decision de Maicol (2026-09-21).
+
+   Y UN ORIGEN VACIO SI ENTRA: el campo es opcional y no declararlo NO es declararlo manual.
+   Sin esa segunda condicion, una implementacion que excluyera todo lo no marcado como
+   «auto» pasaria igual.
+
+   EL RITMO NO SE EXPORTA CRUDO: hf_ritmo viene de fabrica en «auto» -que significa deducirlo-
+   y el resolutor de la app cae a SINUSAL. Exportar eso afirmaria ritmo sinusal en todo
+   estudio donde nadie lo miro. NO DEPENDE DEL PENDRIVE.                                     */
+caso('TC-224', 'SGL: selector de origen, y el declarado manual NO entra al Bland-Altman', `
+  return (async () => {
+    const R = {};
+    const sel  = () => document.getElementById('sgl_origen');
+    const btns = () => Array.from(document.querySelectorAll('[data-sgl-origen]'));
+    const marcados = () => btns().filter(b => b.className.indexOf('btn-primary') >= 0)
+                             .map(b => b.getAttribute('data-sgl-origen'));
+    const clic = v => { const b = btns().filter(x => x.getAttribute('data-sgl-origen') === v)[0];
+                        if (b) { b.click(); return true; } return false; };
+    const prev = CeiboStore.getLocal();
+    const wOrig = (typeof XLSX !== 'undefined') ? XLSX.writeFile : null;
+    const pOrig = window._labPreguntarAnonimo;
+    let guardado = null;
+    try {
+      /* -- 1 · el selector existe y NO trae default -- */
+      __t.limpiar();
+      await new Promise(r=>setTimeout(r,150));
+      R.existe = !!sel() && btns().length === 2;
+      if (!R.existe) return { extra: [['el selector de origen existe', false, 'falta']] };
+      R.sinDefault = sel().value === '' && marcados().length === 0;
+
+      /* -- 2 · marcar, desmarcar y cambiar -- */
+      clic('manual');
+      R.marcaManual = sel().value === 'manual' && marcados().join() === 'manual';
+      clic('manual');
+      R.segundoClicDesmarca = sel().value === '' && marcados().length === 0;
+      clic('auto'); clic('manual');
+      R.cambia = sel().value === 'manual' && marcados().length === 1;
+
+      /* -- 3 · VIAJA CON EL ESTUDIO -- */
+      document.getElementById('nombre').value = 'Origen SGL';
+      document.getElementById('ci').value = '55443322';
+      __t.set('sgl', '-18.4');
+      clic('manual');                      // queda en '' tras el paso anterior? se fija abajo
+      if (sel().value !== 'manual') { sel().value = 'manual'; sglOrigenSync(); }
+      const g = await __t.guardar();
+      guardado = g && g.estudioId ? g.estudioId : null;
+      R.seGuardo = !!guardado;
+      /* «Nuevo estudio» tiene que limpiarlo Y repintar los botones: un desplegable oculto no
+         se ve, asi que la unica superficie que miente es el boton. */
+      __t.limpiar();
+      await new Promise(r=>setTimeout(r,180));
+      R.limpiaAlNuevoEstudio = sel().value === '' && marcados().length === 0;
+      if (guardado) {
+        await __t.reabrir(guardado);
+        await new Promise(r=>setTimeout(r,350));
+      }
+      R.vuelveAlReabrir = sel().value === 'manual';
+      R.botonRepintadoAlReabrir = marcados().join() === 'manual';
+      /* y quedo DENTRO de campos, no suelto */
+      let claves = [];
+      if (guardado) {
+        const lista = getInformes();
+        const inf = lista.filter(x => x && x.estudioId === guardado)[0];
+        claves = (inf && inf.campos) ? Object.keys(inf.campos) : [];
+        R.enCampos = claves.indexOf('sgl_origen') >= 0 &&
+                     String(inf.campos['sgl_origen']) === 'manual';
+      }
+      if (guardado) await __t.borrar(guardado);
+      __t.limpiar();
+      await new Promise(r=>setTimeout(r,150));
+
+      /* -- 4 · EL EXPORTADOR -- */
+      R.hayXLSX = typeof XLSX !== 'undefined';
+      if (!R.hayXLSX) { R.saltado = 'sin XLSX'; }
+      else {
+        const mk = s => JSON.stringify({ vistas:{ A:{ vi:{ sgl:s, plausible:true, invertido:false,
+                                                           nVistas:2, etiqueta:'A4C+A2C' } } } });
+        const est = (id,fecha,man,auto,origen,extra) => ({
+          id:id, estudioId:'e'+id, uuid:'u'+id, nombre:'P'+id, ci:'', fecha_estudio:fecha,
+          campos: Object.assign({ strain_manual: mk(man), sgl:String(auto), sgl_origen:origen,
+                                  edad:'62', sexo:'M', fevi:'55', hemo_fc:'72', hf_ritmo:'fa' },
+                                extra || {}) });
+        CeiboStore.setLocal([
+          est(901,'2026-09-01',-18.2,-19.0,''),                     // sin declarar -> ENTRA
+          est(902,'2026-09-02',-17.5,-18.1,'auto'),                 // auto         -> ENTRA
+          est(903,'2026-09-03',-16.8,-16.9,'manual'),               // MANUAL       -> NO
+          est(904,'2026-09-04',-20.1,-21.0,'auto',
+              { hf_ritmo:'auto', diast_ritmo:'sinusal',
+                edad:'', sexo:'', fevi:'', hemo_fc:'' })            // clinicas VACIAS
+        ]);
+        const selP = document.getElementById('lab-periodo'); if (selP) selP.value = '0';
+        let wb = null;
+        XLSX.writeFile = b => { wb = b; };
+        window._labPreguntarAnonimo = cb => cb(false);
+        try { labStrainExportar(); } catch (e) { R.errorExport = String(e); }
+        await new Promise(r=>setTimeout(r,450));
+        XLSX.writeFile = wOrig; window._labPreguntarAnonimo = pOrig;
+        R.exporto = !!wb;
+        if (wb) {
+          const hoja = n => XLSX.utils.sheet_to_json(wb.Sheets[n], { header:1 });
+          R.hojas = wb.SheetNames.join(',');
+          R.tresHojas = R.hojas === 'Datos,Bland-Altman,Estadísticas';
+          const d = hoja('Datos');
+          const cab = d[0].map(String);
+          R.cab = cab.join(' | ');
+          R.clinicas = ['Edad (años)','Sexo','FEVI (%)','Ritmo','FC (lpm)']
+                         .every(h => cab.indexOf(h) >= 0);
+          R.colOrigen = cab.indexOf('Origen SGL informe') >= 0;
+          R.colEntra  = cab.indexOf('Entra al Bland-Altman') >= 0;
+          /* el encabezado ya no AFIRMA que el valor del informe sea automatico */
+          R.noDiceAutomatico = cab.indexOf('SGL automático (%)') < 0 &&
+                               cab.indexOf('SGL del informe (%)') >= 0;
+          R.sinColDiagnostico = !cab.some(h => /[Dd]iagn/.test(h));
+          const iFecha = cab.indexOf('Fecha'), iOrig = cab.indexOf('Origen SGL informe'),
+                iEntra = cab.indexOf('Entra al Bland-Altman'), iRit = cab.indexOf('Ritmo'),
+                iEdad = cab.indexOf('Edad (años)');
+          const fila = fe => d.slice(1).filter(r => String(r[iFecha]) === fe)[0] || [];
+          const f901 = fila('2026-09-01'), f903 = fila('2026-09-03'), f904 = fila('2026-09-04');
+          R.origenSeEscribe = String(f903[iOrig]) === 'Manual' && String(f901[iOrig] || '') === '';
+          R.marcaNoEntra    = String(f903[iEntra]) === 'No' && String(f901[iEntra]) === 'Sí';
+          /* clinicas vacias NO rompen: celda vacia */
+          R.vaciasNoRompen  = (f904[iEdad] === undefined || String(f904[iEdad]) === '');
+          /* RITMO: auto + diast sinusal -> VACIO, no «Sinusal» */
+          R.ritmoNoInventa  = (f904[iRit] === undefined || String(f904[iRit]) === '');
+          R.ritmoConsignado = String(fila('2026-09-02')[iRit]) === 'FA';
+          /* Bland-Altman: el manual declarado NO esta */
+          const b = hoja('Bland-Altman');
+          R.cabBland = b[0].join(',');
+          R.bland2Intacta = R.cabBland === 'Fecha,SGL_manual,SGL_auto,promedio,diferencia';
+          const fechasB = b.slice(1).map(r => String(r[0]));
+          R.blandSinManual = fechasB.indexOf('2026-09-03') < 0;
+          R.blandConVacio  = fechasB.indexOf('2026-09-01') >= 0;
+          R.blandN = fechasB.length;
+          const e3 = hoja('Estadísticas').map(r => (r || []).map(x => x === undefined ? '' : x).join(' :: '));
+          /* indexOf y NO regex: dentro del template literal del caso la barra invertida se
+             pierde, asi que los parentesis escapados quedaban como GRUPO y no matcheaban
+             nunca -daba false sobre una hoja correcta-. Es la trampa que este archivo
+             documenta desde la quinta vez. */
+          R.contador = e3.some(x => x.indexOf('declaró MANUAL :: 1') >= 0);
+          R.comparables3 = e3.some(x => x.indexOf('Comparables (entran al Bland-Altman) :: 3') >= 0);
+          R.notaManual = e3.some(x => /manual contra manual/.test(x));
+          R.notaVacio  = e3.some(x => /NO se asume automático/.test(x));
+          R.notaRitmo  = e3.some(x => /sale VACÍO en vez de decir sinusal/.test(x));
+          R.notaDiag   = e3.some(x => /campo estructurado/.test(x));
+        }
+      }
+    } finally {
+      try { if (wOrig) XLSX.writeFile = wOrig; } catch (e) {}
+      try { window._labPreguntarAnonimo = pOrig; } catch (e) {}
+      try { CeiboStore.setLocal(prev); } catch (e) {}
+      try { __t.limpiar(); } catch (e) {}
+    }
+    const X = v => R.hayXLSX ? v : true;   // sin CDN no se finge cobertura: ver la condicion
+    return { extra: [
+      ['el selector existe y NO trae default',      R.existe && R.sinDefault, R.sinDefault],
+      ['marca, desmarca con el segundo clic y cambia', R.marcaManual && R.segundoClicDesmarca && R.cambia, R.marcaManual + '/' + R.segundoClicDesmarca + '/' + R.cambia],
+      ['VIAJA CON EL ESTUDIO y vuelve al reabrir',  R.seGuardo && R.vuelveAlReabrir, R.vuelveAlReabrir],
+      ['y repinta el boton al reabrir',             R.botonRepintadoAlReabrir, R.botonRepintadoAlReabrir],
+      ['queda dentro de campos',                    R.enCampos, R.enCampos],
+      ['«Nuevo estudio» lo limpia y apaga el boton', R.limpiaAlNuevoEstudio, R.limpiaAlNuevoEstudio],
+      ['DENOMINADOR: el Excel se genero',           X(R.exporto), R.hayXLSX ? R.exporto : 'sin XLSX (CDN)'],
+      ['siguen siendo TRES hojas, con sus nombres', X(R.tresHojas), R.hojas],
+      ['estan las cinco variables clinicas',        X(R.clinicas), R.cab],
+      ['y las columnas de origen y de entrada',     X(R.colOrigen && R.colEntra), R.colOrigen + '/' + R.colEntra],
+      ['el encabezado ya no afirma «automatico»',   X(R.noDiceAutomatico), R.noDiceAutomatico],
+      ['NO hay columna de diagnostico',             X(R.sinColDiagnostico), R.sinColDiagnostico],
+      ['el origen se escribe, y vacio sale vacio',  X(R.origenSeEscribe), R.origenSeEscribe],
+      ['EL DECLARADO MANUAL NO ENTRA AL BLAND-ALTMAN', X(R.blandSinManual && R.marcaNoEntra), 'n=' + R.blandN + ' marca=' + R.marcaNoEntra],
+      ['pero un origen VACIO SI entra',             X(R.blandConVacio), R.blandConVacio],
+      ['el contador lo declara en Estadisticas',    X(R.contador && R.comparables3), R.contador + '/' + R.comparables3],
+      ['clinicas vacias no rompen el export',       X(R.vaciasNoRompen), R.vaciasNoRompen],
+      ['RITMO: no consignado sale VACIO, no «Sinusal»', X(R.ritmoNoInventa && R.ritmoConsignado), 'vacio=' + R.ritmoNoInventa + ' fa=' + R.ritmoConsignado],
+      ['la hoja Bland-Altman conserva sus columnas', X(R.bland2Intacta), R.cabBland],
+      ['las cuatro notas nuevas estan',             X(R.notaManual && R.notaVacio && R.notaRitmo && R.notaDiag), [R.notaManual,R.notaVacio,R.notaRitmo,R.notaDiag].join(',')]
+    ] };
+  })();
+`);
+
+
+
 
 
 

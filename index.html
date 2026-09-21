@@ -2364,6 +2364,33 @@ window.cerrarSesion = cerrarSesion;
         <div class="fg">
           <label>SGL (%, negativo)</label>
           <input type="number" id="sgl" placeholder="%" oninput="calcSGL()">
+          <!-- ══ Origen del SGL ═══════════════════════════════════════════════════════════
+               EL ESTADO VIVE EN UN DESPLEGABLE OCULTO, no en una variable ni en un data-*, y
+               eso es lo que hace que no haga falta tocar nada más: `guardarInforme` barre
+               `select[id]` —así viaja con el estudio—, las rutas de restauración lo repueblan
+               con el barrido genérico, y `limpiarCampos` lo resetea con su
+               `selectedIndex = 0`. Un `input[type=hidden]` habría hecho las dos primeras y
+               NO la tercera: este archivo ya pagó esa fuga entre pacientes con
+               `ete_tavi_jet_horas` y `co_serie_json`, que hay que limpiar a mano.
+
+               Los botones son sólo la pintura; `sglOrigenSync()` los repinta desde el select,
+               porque asignar `.value` no dispara ningún evento.
+
+               NO es obligatorio y no tiene default: la opción 0 es vacía. Un default aquí
+               sería una afirmación sobre de dónde salió una medición que nadie declaró. -->
+          <select id="sgl_origen" style="display:none;" onchange="sglOrigenSync()">
+            <option value=""></option>
+            <option value="auto">Automático</option>
+            <option value="manual">Manual</option>
+          </select>
+          <div id="sgl-origen-btns" style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;">
+            <button type="button" class="btn btn-ghost" data-sgl-origen="auto"
+                    style="padding:4px 10px;font-size:11px;"
+                    title="El valor lo calculó el equipo por speckle tracking">🤖 Automático</button>
+            <button type="button" class="btn btn-ghost" data-sgl-origen="manual"
+                    style="padding:4px 10px;font-size:11px;"
+                    title="El valor se midió a mano">✋ Manual</button>
+          </div>
         </div>
         <div class="fg">
           <label>Vol latido (ml)</label>
@@ -15952,6 +15979,62 @@ function calcVI() {
 }
 
 // ══ SGL ══
+/* ══ Origen del SGL ═══════════════════════════════════════════════════════════════════════
+   Declara si el SGL del informe lo calculó el equipo (speckle tracking) o se midió a mano.
+   NO es obligatorio y no tiene valor por omisión: la opción 0 del desplegable es vacía. Un
+   default acá sería una afirmación sobre de dónde salió una medición que nadie declaró — es
+   la regla de los tres selects del TEER y la de `coa_diast_anterogrado`.
+
+   ⚠️ NO ES SÓLO UNA ETIQUETA: el Laboratorio de strain compara el SGL del informe contra el
+   manual del visor y llama «automático» al primero SIN CONDICIÓN. Marcarlo «Manual» convierte
+   ese Bland-Altman en manual contra manual, o sea una concordancia espuriamente buena en un
+   dataset para un paper. Por eso `_labStrainFilas` ahora mira este campo y esos estudios NO
+   entran a la concordancia. Decisión de Maicol (2026-09-21). */
+function sglOrigenValor() {
+  var el = document.getElementById('sgl_origen');
+  return el ? String(el.value || '') : '';
+}
+window.sglOrigenValor = sglOrigenValor;
+
+/* Repinta los botones desde el desplegable. Hace falta en las DOS columnas de siempre porque
+   las rutas de restauración reponen asignando `.value`, que no dispara ningún evento, y
+   `limpiarCampos` resetea el desplegable sin pasar por ese embudo. */
+function sglOrigenSync() {
+  var v = sglOrigenValor();
+  var cont = document.getElementById('sgl-origen-btns');
+  if (!cont) return;
+  Array.prototype.forEach.call(cont.querySelectorAll('[data-sgl-origen]'), function (b) {
+    var act = b.getAttribute('data-sgl-origen') === v && v !== '';
+    b.className = 'btn ' + (act ? 'btn-primary' : 'btn-ghost');
+    b.setAttribute('aria-pressed', act ? 'true' : 'false');
+  });
+}
+window.sglOrigenSync = sglOrigenSync;
+
+/* Un segundo clic en el botón ya activo lo DESMARCA: el campo es opcional, así que tiene que
+   haber forma de volver a «no declarado» sin recargar. Sin esto, marcar por error deja una
+   afirmación pegada al estudio. */
+function sglOrigenElegir(v) {
+  var el = document.getElementById('sgl_origen');
+  if (!el) return;
+  el.value = (String(el.value || '') === v) ? '' : v;
+  sglOrigenSync();
+}
+window.sglOrigenElegir = sglOrigenElegir;
+
+/* Listener delegado y registrado UNA vez, con `data-` en vez de `onclick`: la regla táctil
+   global matchea por el ATRIBUTO y estos botones ya son `.btn`, así que un `onclick` no
+   agregaría nada y sí un sink. */
+if (!window._sglOrigenCableado) {
+  window._sglOrigenCableado = true;
+  document.addEventListener('click', function (ev) {
+    var b = ev.target && ev.target.closest ? ev.target.closest('[data-sgl-origen]') : null;
+    if (!b) return;
+    ev.preventDefault();
+    sglOrigenElegir(b.getAttribute('data-sgl-origen'));
+  });
+}
+
 function calcSGL() {
   /* Copia #sgl → #sgl_gls. NO es bidireccional aunque lo diga el nombre de la pestaña: la
      vuelta la hace el `oninput` inline de #sgl_gls, que no dispara al asignar `.value` por
@@ -24835,7 +24918,7 @@ function RECALC_MODULOS() {
          veredicto sí contaba esos criterios;
        · `calcOAI` reconstruye la marca de «área derivada» (ver ahí), sin la cual corregir el
          diámetro en un estudio reabierto dejaba el área vieja. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccIntegrarSync','vpSync','popSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccIntegrarSync','vpSync','popSync','sglOrigenSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -25059,6 +25142,10 @@ function limpiarCampos(silencioso) {
   if (typeof vpSync === 'function') { try { vpSync(); } catch (e) {} }
   if (typeof dptSync === 'function') { try { dptSync(); } catch (e) {} }
   if (typeof cvrSync === 'function') { try { cvrSync(); } catch (e) {} }
+  /* El desplegable del origen del SGL lo resetea solo el barrido de `select`; lo que no se
+     repinta solo son los BOTONES, que son la única superficie que el médico ve. Sin esta
+     línea quedaba «✋ Manual» encendido sobre el estudio siguiente. */
+  if (typeof sglOrigenSync === 'function') { try { sglOrigenSync(); } catch (e) {} }
   /* Los botones se repintan desde el ESTADO REAL, no a `false` fijo. Las claves del bull's eye
      no se borran a propósito (ver la nota de arriba: son preferencia del médico, no dato del
      paciente), así que pintarlos apagados los dejaba MINTIENDO: el médico veía el botón gris,
@@ -53574,6 +53661,46 @@ function _labStrainDeEstudio(inf) {
 
 const _labStrNum = x => (typeof x === 'number' && isFinite(x)) ? x : null;
 
+/* ══ Variables clínicas y origen del SGL, para el dataset ═════════════════════════════════
+   Todo sale de lo que el estudio GUARDÓ. Lo que no esté, sale vacío: es un dataset de
+   investigación y una celda inventada es peor que una vacía. */
+function _labStrOrigen(inf) {
+  var v = String((inf && inf.campos && inf.campos['sgl_origen']) || '').trim();
+  return (v === 'auto' || v === 'manual') ? v : '';
+}
+var _LAB_STR_ORIGEN_TXT = { auto: 'Automático', manual: 'Manual' };
+
+/* ⚠️ EL RITMO NO SE EXPORTA CRUDO. `hf_ritmo` viene de fábrica en «auto» —que significa
+   «deducilo de la Diastólica», no un ritmo— y el resolutor de la app cae a SINUSAL cuando no
+   hay nada consignado. Exportar eso afirmaría ritmo sinusal en todo estudio donde nadie lo
+   miró, que en un dataset es fabricar el dato. Sólo se emite lo CONSIGNADO:
+     · `hf_ritmo` = rs | fa            → lo eligió alguien
+     · `diast_ritmo` = fa              → lo eligió alguien (su opción 0 es «sinusal», o sea
+                                          que un «sinusal» ahí puede ser el default intacto)
+   Cualquier otra combinación sale VACÍA. */
+function _labStrRitmo(inf) {
+  var c = (inf && inf.campos) || {};
+  var h = String(c['hf_ritmo'] || '').trim();
+  if (h === 'rs') return 'Sinusal';
+  if (h === 'fa') return 'FA';
+  if (String(c['diast_ritmo'] || '').trim() === 'fa') return 'FA';
+  return '';
+}
+function _labStrClinicas(inf) {
+  var c = (inf && inf.campos) || {};
+  var txt = function (k) { var v = c[k]; return (v === undefined || v === null) ? '' : String(v).trim(); };
+  var sx = txt('sexo');
+  return {
+    edad: _labStrNum(_labNum ? _labNum(inf, 'edad') : null),
+    /* El select de sexo tiene M / F y la opción vacía: cualquier otra cosa sale vacía. */
+    sexo: (sx === 'M' || sx === 'F') ? sx : '',
+    /* `_labFevi` resuelve el alias `fevi_simpson`, que es como lo guardan los importados. */
+    fevi: _labStrNum(typeof _labFevi === 'function' ? _labFevi(inf) : null),
+    ritmo: _labStrRitmo(inf),
+    fc: _labStrNum(_labNum ? _labNum(inf, 'hemo_fc') : null)
+  };
+}
+
 /* Una fila por estudio con strain manual. `infs` ya viene filtrado por período, centros y
    cohorte —sale de `labGetInformes()`—, así que esta sección hereda los filtros del
    Laboratorio como todas las demás. */
@@ -53598,6 +53725,10 @@ function _labStrainFilas(infs) {
       man: man, auto: auto,
       dif: (man !== null && auto !== null) ? +(man - auto).toFixed(2) : null,
       manOk: !!okMan,
+      /* Origen DECLARADO del SGL del informe. Vacío = el médico no lo marcó, que NO es lo
+         mismo que «automático»: el campo es opcional a propósito. */
+      origen: _labStrOrigen(inf),
+      clin: _labStrClinicas(inf),
       mezcla: !!(vi && vi.mezclaMetodo),
       larsRes: la ? _labStrNum(la.res) : null,
       larsCond: la ? _labStrNum(la.cond) : null,
@@ -53641,17 +53772,28 @@ const _LAB_BA_MIN = 10;   // mínimo de pares para dibujar el Bland-Altman
 function _labStrainStats(filas) {
   const conMan  = filas.filter(f => f.man !== null);
   const conAuto = filas.filter(f => f.auto !== null);
-  /* SÓLO los manuales plausibles entran a la estadística y al Bland-Altman. */
-  const pares = filas.filter(f => f.man !== null && f.auto !== null && f.manOk);
+  /* SÓLO los manuales plausibles entran a la estadística y al Bland-Altman.
+     ⚠️ Y TAMPOCO ENTRAN LOS QUE DECLARAN EL SGL DEL INFORME COMO «MANUAL». Esta comparación
+     existe para medir concordancia ENTRE MÉTODOS: si el valor del informe también se midió a
+     mano, el Bland-Altman compara manual contra manual y devuelve una concordancia
+     espuriamente buena — y son los números que se citan en un paper. Un origen VACÍO sí
+     entra: el campo es opcional y no declararlo no es declararlo manual.
+     Decisión de Maicol (2026-09-21). */
+  const esManualDeclarado = f => f.origen === 'manual';
+  const pares = filas.filter(f => f.man !== null && f.auto !== null && f.manOk && !esManualDeclarado(f));
   const paresTodos = filas.filter(f => f.man !== null && f.auto !== null);
+  const nOrigenManual = paresTodos.filter(esManualDeclarado).length;
   const eMan  = _labStrMeanSD(conMan.filter(f => f.manOk).map(f => f.man));
-  const eAuto = _labStrMeanSD(conAuto.map(f => f.auto));
+  /* El promedio del «automático» excluye los declarados manuales por lo mismo: la fila se
+     llama «SGL automático» y publicar ahí un valor medido a mano la haría mentir. */
+  const eAuto = _labStrMeanSD(conAuto.filter(f => !esManualDeclarado(f)).map(f => f.auto));
   const eDif  = _labStrMeanSD(pares.map(f => f.dif));
   const bias = eDif.mean, sdd = eDif.sd;
   return {
     nMan: conMan.length, nAuto: conAuto.length,
     nAmbos: paresTodos.length, nComparables: pares.length,
     nExcluidos: paresTodos.length - pares.length,
+    nOrigenManual: nOrigenManual,
     man: eMan, auto: eAuto, dif: eDif,
     bias: bias,
     loA: (bias !== null && sdd !== null) ? bias - 1.96 * sdd : null,
@@ -53871,13 +54013,26 @@ function labStrainExportar() {
     const nul = v => (v === null || v === undefined || !isFinite(v)) ? '' : v;
 
     /* Hoja 1 — Datos */
-    const h1 = ['Fecha', 'Paciente', 'Vistas', 'SGL manual (%)', 'SGL automático (%)',
-                'Diferencia (manual - auto)', 'LARS reservorio (%)', 'LARS conducto (%)',
-                'LARS contracción (%)', 'Strain VD (%)', 'Manual plausible', 'Mezcla de métodos'];
+    /* «SGL del informe» y no «SGL automático»: desde que el médico puede declarar el origen,
+       ese encabezado sería una afirmación que el propio dato puede contradecir. El origen va
+       en su columna, al lado. NO hay columna de diagnóstico: la app no tiene un campo
+       estructurado para eso y una columna vacía en todas las filas se lee como dato faltante
+       en vez de como campo inexistente — se declara en la hoja Estadísticas. */
+    const h1 = ['Fecha', 'Paciente', 'Edad (años)', 'Sexo', 'FEVI (%)', 'Ritmo', 'FC (lpm)',
+                'Vistas', 'SGL manual del visor (%)', 'SGL del informe (%)', 'Origen SGL informe',
+                'Diferencia (manual - informe)', 'LARS reservorio (%)', 'LARS conducto (%)',
+                'LARS contracción (%)', 'Strain VD (%)', 'Manual plausible', 'Mezcla de métodos',
+                'Entra al Bland-Altman'];
     const a1 = [h1].concat(filas.map(f => [
-      f.fecha, nom(f), f.vistas, nul(f.man), nul(f.auto), nul(f.dif),
+      f.fecha, nom(f),
+      nul(f.clin.edad), f.clin.sexo, nul(f.clin.fevi), f.clin.ritmo, nul(f.clin.fc),
+      f.vistas, nul(f.man), nul(f.auto), (_LAB_STR_ORIGEN_TXT[f.origen] || ''), nul(f.dif),
       nul(f.larsRes), nul(f.larsCond), nul(f.larsCtr), nul(f.vd),
-      f.man === null ? '' : (f.manOk ? 'Sí' : 'No'), f.mezcla ? 'Sí' : 'No']));
+      f.man === null ? '' : (f.manOk ? 'Sí' : 'No'), f.mezcla ? 'Sí' : 'No',
+      /* Se dice FILA POR FILA si el par entró a la concordancia, para que el que analiza no
+         tenga que reconstruir el criterio desde la hoja de Estadísticas. */
+      (f.man !== null && f.auto !== null)
+        ? ((f.manOk && f.origen !== 'manual') ? 'Sí' : 'No') : '']));
     const ws1 = XLSX.utils.aoa_to_sheet(a1);
     ws1['!cols'] = h1.map(h => ({ wch: Math.min(28, Math.max(11, h.length + 2)) }));
 
@@ -53895,8 +54050,9 @@ function labStrainExportar() {
       ['Estudios con strain manual', S.nMan],
       ['Estudios con SGL automático', S.nAuto],
       ['Estudios con los dos valores', S.nAmbos],
-      ['Comparables (manual plausible)', S.nComparables],
-      ['Excluidos por manual implausible o invertido', S.nExcluidos],
+      ['Comparables (entran al Bland-Altman)', S.nComparables],
+      ['Excluidos por manual implausible o invertido', S.nExcluidos - S.nOrigenManual],
+      ['Excluidos porque el SGL del informe se declaró MANUAL', S.nOrigenManual],
       [],
       ['SGL manual — n', S.man.n],
       ['SGL manual — media (%)', nul(S.man.mean)],
@@ -53916,6 +54072,18 @@ function labStrainExportar() {
                'la hoja Datos y NO entran en estas medidas ni en Bland-Altman.'],
       ['NOTA', 'Strain por dos contornos manuales: NO es equivalente al speckle tracking ' +
                'automático. Orientativo, requiere correlación clínica.'],
+      ['NOTA', 'Los estudios en que el SGL del informe se declaró MANUAL quedan fuera de la ' +
+               'concordancia y de la media del SGL del informe: esta comparación mide acuerdo ' +
+               'ENTRE métodos, y ahí serían manual contra manual. Siguen en la hoja Datos, con ' +
+               'su origen y su columna «Entra al Bland-Altman».'],
+      ['NOTA', 'Origen SGL vacío = el médico no lo declaró. NO se asume automático: el campo ' +
+               'es opcional y esos estudios SÍ entran a la concordancia.'],
+      ['NOTA', 'Ritmo: se emite sólo lo consignado. El campo viene de fábrica en «automático» ' +
+               '(que significa deducirlo) y el resolutor de la app cae a sinusal, así que un ' +
+               'ritmo no consignado sale VACÍO en vez de decir sinusal.'],
+      ['NOTA', 'No hay columna de diagnóstico: EcoSmart no tiene un campo estructurado de ' +
+               'diagnóstico principal. El texto del informe no se exporta porque rompería el ' +
+               'modo anónimo si lleva nombres escritos a mano.'],
       ['Población', _labPobTxt ? _labPobTxt() : ''],
       ['Generado', new Date().toISOString().slice(0, 10)]
     ];
@@ -67828,8 +67996,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260921-1011';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789996310372;                 /* eco-build-ms */
+const ECO_BUILD    = '20260921-1114';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790000069758;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -67915,7 +68083,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-1011</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-1114</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
