@@ -1934,7 +1934,7 @@ window.cerrarSesion = cerrarSesion;
           <input type="checkbox" id="cfg-guardar-imagenes" onchange="cfgToggleGuardarImagenes(this.checked)" style="width:16px;height:16px;cursor:pointer">
           <span style="font-size:12.5px;color:var(--text)"><b>💾 Guardar imágenes con los estudios</b> — quedan en este dispositivo</span>
         </label>
-        <p style="font-size:11px;color:var(--text2);margin-top:6px;">Apagado, las imágenes viven sólo en la sesión (comportamiento de siempre). Encendido, se guardan al guardar el estudio y vuelven al reabrirlo. <b>No viajan en el backup JSON ni en el export.</b></p>
+        <p style="font-size:11px;color:var(--text2);margin-top:6px;">Apagado, las imágenes viven sólo en la sesión (comportamiento de siempre). Encendido, se guardan al guardar el estudio y vuelven al reabrirlo. <b>Viajan en el backup sólo si elegís el nivel «Informes + imágenes» o «Backup completo» al exportar</b> — el backup de informes no las lleva.</p>
         <!-- La barra de almacenamiento se mudó a la cabecera de Informes Guardados: ahí es
              donde el médico está cuando el espacio le importa (viendo la lista que lo ocupa),
              y en Config quedaba enterrada bajo una preferencia que se toca una vez. Config
@@ -11799,7 +11799,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   <div class="card">
     <h2 class="card-head">🖼️ Imágenes del estudio</h2>
     <div class="card-body">
-      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;">Cargá imágenes por archivo, cámara o pegando con Ctrl/Cmd+V. Doble click (PC) o tap prolongado (mobile) sobre una imagen para <b>ampliarla</b> (ancho completo y media página en el PDF). Reordená arrastrando (PC) o con tap-para-intercambiar (mobile). El selector de cada imagen elige con qué calidad sale en el PDF. Si activás «Guardar imágenes con los estudios» en ⚙️ Config, además quedan guardadas en este dispositivo y vuelven al reabrir el estudio; si no, viven sólo en esta sesión. <b>Nunca viajan en el backup ni en el export.</b></p>
+      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;">Cargá imágenes por archivo, cámara o pegando con Ctrl/Cmd+V. Doble click (PC) o tap prolongado (mobile) sobre una imagen para <b>ampliarla</b> (ancho completo y media página en el PDF). Reordená arrastrando (PC) o con tap-para-intercambiar (mobile). El selector de cada imagen elige con qué calidad sale en el PDF. Si activás «Guardar imágenes con los estudios» en ⚙️ Config, además quedan guardadas en este dispositivo y vuelven al reabrir el estudio; si no, viven sólo en esta sesión. <b>Al exportar podés elegir si van</b>: el nivel «Informes + imágenes» las incluye y el «Backup completo» suma además cineloops y videos.</p>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
         <span style="font-size:12px;color:var(--text2);font-weight:600;">Cantidad de slots:</span>
         <div id="img-count-btns" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
@@ -25218,13 +25218,16 @@ window.cfgToggleGuardarImagenes = cfgToggleGuardarImagenes;
    confirmación. El commit anterior afirmaba que sí borraba y el código no lo hacía — el
    interruptor mentía sobre el disco. Se resuelve al revés: el toggle es prospectivo (deja de
    guardar) y el borrado es esta acción explícita, que dice cuánto va a destruir y avisa que no
-   hay backup posible porque las imágenes no viajan en el export. */
+   había backup posible: hasta 2026-09-21 las imágenes no viajaban en el export. Hoy el backup
+   tiene niveles y sí pueden viajar, así que el aviso manda a exportar antes en vez de decir que
+   no hay forma. */
 function cfgBorrarTodasImagenes() {
   if (typeof CeiboImg === 'undefined') return;
   CeiboImg.uso().then(u => {
     if (!u.estudios) { if (typeof toast === 'function') toast('No hay imágenes guardadas'); return; }
     if (!confirm('¿Borrar las imágenes guardadas de ' + u.estudios + ' estudio(s)?\n\n' +
-                 'Las imágenes NO están en el backup JSON ni en el export: esto no se puede deshacer.\n' +
+                 'Esto no se puede deshacer. Si querés conservarlas, exportá antes un backup con el nivel\n' +
+                 '«Informes + imágenes» o «Backup completo».\n' +
                  'Los estudios y sus datos no se tocan.')) return;
     CeiboImg.borrarTodo().then(ok => {
       if (typeof toast === 'function') toast(ok ? '🗑️ Imágenes guardadas eliminadas' : '❌ No se pudieron borrar las imágenes');
@@ -38534,7 +38537,7 @@ function imgRecolectarHuerfanas() {
      deja la caché con los 2 estudios de localStorage mientras IndexedDB tiene 60. Ahí
      `vivos.length === 2`, la guarda vieja ni se evaluaba, y borrar UNO de esos dos recolectaba
      las imágenes de los otros 58 — que no están en ningún backup, porque el propio toggle
-     avisa que las imágenes no viajan en el export.
+     avisa que las imágenes sólo viajan si se elige el nivel que las incluye.
 
      Ahora la condición es sobre el ESTADO DEL STORE, no sobre el largo de la lista. */
   if (!CeiboStore.lista() || CeiboStore.modo() !== 'indexedDB') return Promise.resolve(0);
@@ -38644,24 +38647,354 @@ function exportRangoCount() { const el = document.getElementById('exp-rango-coun
 function exportCentroCount() { const el = document.getElementById('exp-centro-count'); if (el) el.textContent = _expFiltrados().list.length + ' estudios en el centro'; }
 function exportSelAll(el) { document.querySelectorAll('.exp-sel-item').forEach(c => c.checked = el.checked); }
 function _sanitizeFN(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'export'; }
-function exportEjecutar() {
+/* El botón «Exportar» del modal de filtros ya no baja el archivo: abre el selector de NIVEL,
+   que es donde se decide qué se lleva. El filtro de estudios y el nivel son dos preguntas
+   distintas —cuáles y cuánto de cada uno— y mezclarlas en un solo panel haría el modal
+   ilegible. */
+async function exportEjecutar() {
   const { list, desc } = _expFiltrados();
   if (!list.length) { toast('⚠️ No hay estudios que coincidan con la selección'); return; }
-  const fecha = new Date().toISOString().split('T')[0];
-  const blob = new Blob([JSON.stringify(list, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'ecosmart_' + fecha + '_' + _sanitizeFN(desc) + '.json';
-  a.click();
-  URL.revokeObjectURL(a.href);
   exportCerrar();
-  toast('✅ ' + list.length + ' estudios exportados');
+  _bkProgAbrir('📐 Calculando el tamaño de cada opción');
+  let med = null;
+  try { med = await _bkMedir(list, (n, t) => _bkProg(n, t, 'Revisando estudio')); }
+  catch (e) { console.warn('[backup] medicion', e); }
+  _bkProgCerrar();
+  if (!med) { toast('❌ No se pudo calcular el tamaño del backup'); return; }
+  _bkPanelNivel(list, desc, med);
 }
+
+/* Selector de nivel. Cada opción declara QUÉ se lleva y CUÁNTO va a pesar; el tamaño se calcula
+   antes de elegir, que es el punto — sin el número, «backup completo» es una apuesta. */
+function _bkPanelNivel(list, desc, med) {
+  const ov = document.createElement('div');
+  ov.setAttribute('data-bk-nivel', '1');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:100000;display:flex;' +
+                     'align-items:center;justify-content:center;padding:20px;';
+  const caja = document.createElement('div');
+  caja.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:12px;' +
+                       'max-width:560px;width:100%;max-height:88vh;overflow:auto;padding:20px;' +
+                       'box-shadow:0 10px 40px rgba(0,0,0,0.5);';
+  const h = document.createElement('div');
+  h.style.cssText = 'font-size:15px;font-weight:700;color:var(--accent2);margin-bottom:4px;';
+  h.textContent = '💾 ¿Qué incluir en el backup?';
+  caja.appendChild(h);
+  const sub = document.createElement('p');
+  sub.style.cssText = 'font-size:12px;color:var(--text2);margin:0 0 12px;';
+  sub.textContent = med.estudios + ' estudio(s) seleccionado(s). El archivo se descarga a esta ' +
+                    'computadora y no se manda a ningún lado.';
+  caja.appendChild(sub);
+
+  let nivel = 'informes';
+  const OPC = [
+    { k:'informes', ico:'📄', tit:'Solo informes',
+      des:'Solo datos clínicos. Sin imágenes ni videos.', peso: med.pesoInformes,
+      det:'Es el backup que la app venía haciendo hasta ahora.' },
+    { k:'imagenes', ico:'🖼️', tit:'Informes + imágenes',
+      des:'Datos clínicos e imágenes fijas. Sin cineloops ni videos MP4.', peso: med.pesoImagenes,
+      det: med.img.n + ' imagen(es) guardada(s) en los estudios elegidos.' },
+    { k:'completo', ico:'💾', tit:'Backup completo',
+      des:'Todo — datos, imágenes, cineloops y videos MP4.', peso: med.pesoCompleto,
+      det: med.cine.n + ' cineloop(s) y ' + med.video.n + ' video(s), que entran codificados y ' +
+           'ocupan un tercio más que en disco.' }
+  ];
+  const botones = [];
+  OPC.forEach(o => {
+    const excede = o.peso > BK_TOPE_BYTES;
+    const fila = document.createElement('label');
+    fila.setAttribute('data-bk-op', o.k);
+    fila.style.cssText = 'display:block;border:2px solid var(--border);border-radius:10px;padding:10px 12px;' +
+                         'margin-bottom:8px;cursor:pointer;background:var(--bg3);';
+    const t1 = document.createElement('div');
+    t1.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--text);';
+    const r = document.createElement('input');
+    r.type = 'radio'; r.name = 'bk-nivel'; r.value = o.k; r.checked = (o.k === 'informes');
+    r.style.cssText = 'width:auto;margin:0;';
+    r.setAttribute('data-bk-radio', o.k);
+    r.onchange = () => { nivel = o.k; pintar(); };
+    t1.appendChild(r);
+    const et = document.createElement('span');
+    et.textContent = o.ico + ' ' + o.tit;
+    t1.appendChild(et);
+    const pz = document.createElement('span');
+    pz.setAttribute('data-bk-peso', o.k);
+    pz.style.cssText = 'margin-left:auto;font-size:12px;font-weight:700;color:var(--accent2);';
+    pz.textContent = '≈ ' + _bkMB(o.peso);
+    t1.appendChild(pz);
+    fila.appendChild(t1);
+    const d1 = document.createElement('div');
+    d1.style.cssText = 'font-size:11.5px;color:var(--text2);margin:4px 0 0 24px;';
+    d1.textContent = o.des;
+    fila.appendChild(d1);
+    const d2 = document.createElement('div');
+    d2.style.cssText = 'font-size:10.5px;color:var(--text2);margin:2px 0 0 24px;';
+    d2.textContent = o.det;
+    fila.appendChild(d2);
+    if (excede) {
+      const w = document.createElement('div');
+      w.setAttribute('data-bk-excede', o.k);
+      w.style.cssText = 'font-size:11px;color:var(--orange);margin:6px 0 0 24px;font-weight:600;';
+      w.textContent = '⚠️ Supera el máximo que el navegador puede volver a leer (' +
+                      _bkMB(BK_TOPE_BYTES) + '). Exportá por rango de fechas o por selección.';
+      fila.appendChild(w);
+      r.disabled = true;
+      fila.style.opacity = '.55';
+      fila.style.cursor = 'not-allowed';
+    }
+    caja.appendChild(fila);
+    botones.push({ o: o, fila: fila, radio: r, excede: excede });
+  });
+  const pintar = () => botones.forEach(b => {
+    b.fila.style.borderColor = (b.o.k === nivel && !b.excede) ? 'var(--accent)' : 'var(--border)';
+  });
+
+  const nota = document.createElement('p');
+  nota.style.cssText = 'font-size:10.5px;color:var(--text2);margin:6px 0 0;';
+  nota.textContent = 'El máximo no es una preferencia: un JSON se lee como una sola cadena de ' +
+                     'texto y el navegador no admite más de ' + _bkMB(536870888) + '. Un archivo ' +
+                     'más grande se escribiría y no se podría restaurar nunca.';
+  caja.appendChild(nota);
+
+  const pie = document.createElement('div');
+  pie.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;margin-top:14px;';
+  const cerrar = () => { try { document.body.removeChild(ov); } catch (e) {} };
+  const mk = (txt, cls, fn, id) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'btn ' + cls;
+    b.style.cssText = 'padding:7px 14px;font-size:12px;';
+    b.textContent = txt;
+    if (id) b.setAttribute('data-bk-act', id);
+    b.onclick = fn; return b;
+  };
+  pie.appendChild(mk('Cancelar', 'btn-ghost', cerrar, 'cancelar'));
+  pie.appendChild(mk('Exportar', 'btn-primary', async () => {
+    const o = OPC.filter(x => x.k === nivel)[0];
+    if (!o || o.peso > BK_TOPE_BYTES) {
+      toast('⚠️ Esa opción supera el máximo que se puede volver a leer — exportá por rango o selección');
+      return;
+    }
+    cerrar();
+    _bkProgAbrir('💾 Generando el backup');
+    let c = null;
+    try { c = await _bkExportar(list, nivel, desc); }
+    catch (e) { console.warn('[backup]', e); }
+    _bkProgCerrar();
+    if (!c) { toast('❌ No se pudo generar el backup'); return; }
+    let msg = '✅ ' + c.estudios + ' estudios exportados';
+    if (c.img) msg += ' · ' + c.img + ' imágenes';
+    if (c.cine) msg += ' · ' + c.cine + ' cineloops';
+    if (c.video) msg += ' · ' + c.video + ' videos';
+    toast(msg);
+  }, 'exportar'));
+  caja.appendChild(pie);
+  ov.appendChild(caja);
+  ov.addEventListener('click', ev => { if (ev.target === ov) cerrar(); });
+  document.body.appendChild(ov);
+  pintar();
+}
+
+/* ══ BACKUP POR NIVELES ═══════════════════════════════════════════════════════════════════════
+   Hasta acá el backup era UNO solo: `JSON.stringify(list)` con los estudios y nada más. Las
+   imágenes viven en `ceibomed_img`, los cineloops en `ceibomed_cine` y los videos en
+   `ceibomed_video`, y **ninguno viajaba** — la app lo prometía en cuatro superficies visibles,
+   incluido el manual y el `confirm()` de «borrar todas las imágenes», que justificaba el «esto
+   no se puede deshacer» justamente en que no había backup posible. Las cuatro se actualizaron
+   con este cambio: un aviso que quedó describiendo el estado anterior es peor que no tenerlo.
+
+   ⚠️ EL TECHO NO ES UNA PREFERENCIA, ES EL MOTOR. Un JSON se arma y se lee como UNA CADENA:
+   `JSON.stringify` para escribirlo y `readAsText` + `JSON.parse` para leerlo. Medido en este
+   Chrome, el máximo de una cadena de V8 es **536.870.888 caracteres** —`'a'.repeat(2**29)` tira
+   «Invalid string length»— y base64 infla 4/3, así que el tope real de medios son ~384 MB.
+   Un backup más grande se escribiría y **no se podría restaurar nunca**: el peor modo de falla
+   que puede tener un backup. Por eso, pasado el tope, no se exporta — se dice cuánto pesa y se
+   manda a usar el filtro por rango o por selección que este mismo modal ya tiene.
+   Decisión de Maicol (2026-09-21). */
+const BK_FORMATO = 2;                        // versión del sobre
+const BK_TOPE_BYTES = 460 * 1048576;         // margen bajo los 512 MiB del motor
+const _BK_B64 = b => Math.ceil(b / 3) * 4;   // lo que ocupa un binario codificado
+
+/* Cuánto pesa cada nivel para ESTA selección de estudios. No se puede estimar desde los totales
+   de `uso()`: la exportación se filtra por rango, centro o selección manual, y escalar el total
+   por la fracción de estudios sería un número plausible y falso. Se lee por uuid y se suma.
+   Los registros se descartan en el acto —se usa sólo `bytes` y el largo del dataURL— así que la
+   pasada no retiene nada. */
+async function _bkMedir(list, onProg) {
+  const R = { estudios: list.length, img: { n: 0, bytes: 0 }, cine: { n: 0, bytes: 0 },
+              video: { n: 0, bytes: 0 } };
+  R.jsonBytes = JSON.stringify(list).length;
+  for (let i = 0; i < list.length; i++) {
+    const u = list[i] && list[i].uuid;
+    if (typeof onProg === 'function') onProg(i + 1, list.length);
+    if (!_uuidValido(u)) continue;
+    if (typeof CeiboImg !== 'undefined') {
+      const im = await CeiboImg.leer(u).catch(() => null);
+      (im || []).forEach(s2 => { if (s2 && s2.dataURL) { R.img.n++; R.img.bytes += s2.dataURL.length; } });
+    }
+    if (typeof CeiboCine !== 'undefined') {
+      const cs = await CeiboCine.listar(u).catch(() => []);
+      (cs || []).forEach(r => { R.cine.n++; R.cine.bytes += (r.bytes || 0) + (r.offs ? r.offs.length * 4 : 0) +
+                                                            (r.poster ? r.poster.length : 0); });
+    }
+    if (typeof CeiboVideo !== 'undefined') {
+      const vs = await CeiboVideo.leer(u).catch(() => null);
+      (vs || []).forEach(v => { R.video.n++; R.video.bytes += (v.bytes || (v.blob && v.blob.size) || 0); });
+    }
+    if (i % 5 === 4) await new Promise(r => setTimeout(r, 0));   // no bloquear la interfaz
+  }
+  /* Lo que va a pesar el ARCHIVO en cada nivel. Las imágenes ya son dataURL —texto— así que no
+     se re-codifican; los cineloops y los videos son binarios y entran en base64. */
+  R.pesoInformes = R.jsonBytes;
+  R.pesoImagenes = R.jsonBytes + R.img.bytes;
+  R.pesoCompleto = R.pesoImagenes + _BK_B64(R.cine.bytes) + _BK_B64(R.video.bytes);
+  return R;
+}
+
+const _bkMB = b => b < 1048576 ? (b / 1024).toFixed(0) + ' KB'
+                               : (b / 1048576).toFixed(b < 10485760 ? 1 : 0) + ' MB';
+
+/* Binario → base64 en trozos: `String.fromCharCode.apply` con 17 MB de golpe revienta la pila. */
+function _bkB64De(u8) {
+  let s2 = '';
+  const N = 0x8000;
+  for (let i = 0; i < u8.length; i += N) s2 += String.fromCharCode.apply(null, u8.subarray(i, i + N));
+  return btoa(s2);
+}
+function _bkDeB64(b64) {
+  const bin = atob(String(b64 || ''));
+  const u = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  return u;
+}
+
+/* ── Progreso ──────────────────────────────────────────────────────────────────────────────
+   Overlay propio y no un toast: la exportación completa tarda lo que tarde leer cientos de MB
+   de IndexedDB, y un toast que se va a los tres segundos deja al médico mirando una pantalla
+   quieta sin saber si la app se colgó. `createElement`/`textContent`, nunca innerHTML. */
+let _bkProgOv = null;
+function _bkProgAbrir(titulo) {
+  _bkProgCerrar();
+  const ov = document.createElement('div');
+  ov.setAttribute('data-bk-prog', '1');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:100001;display:flex;' +
+                     'align-items:center;justify-content:center;padding:20px;';
+  const caja = document.createElement('div');
+  caja.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:12px;' +
+                       'max-width:420px;width:100%;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,0.5);';
+  const h = document.createElement('div');
+  h.style.cssText = 'font-size:14px;font-weight:700;color:var(--accent2);margin-bottom:10px;';
+  h.textContent = titulo;
+  caja.appendChild(h);
+  const txt = document.createElement('div');
+  txt.setAttribute('data-bk-prog-txt', '1');
+  txt.style.cssText = 'font-size:12px;color:var(--text2);margin-bottom:8px;';
+  caja.appendChild(txt);
+  const riel = document.createElement('div');
+  riel.style.cssText = 'height:8px;background:var(--bg3);border-radius:5px;overflow:hidden;';
+  const barra = document.createElement('div');
+  barra.setAttribute('data-bk-prog-bar', '1');
+  barra.style.cssText = 'height:100%;width:0%;background:var(--accent);transition:width .15s;';
+  riel.appendChild(barra); caja.appendChild(riel);
+  ov.appendChild(caja); document.body.appendChild(ov);
+  _bkProgOv = ov;
+}
+function _bkProg(n, total, rotulo) {
+  if (!_bkProgOv) return;
+  const t = _bkProgOv.querySelector('[data-bk-prog-txt]');
+  const b = _bkProgOv.querySelector('[data-bk-prog-bar]');
+  if (t) t.textContent = (rotulo || 'Procesando') + ' ' + n + ' de ' + total + '…';
+  if (b) b.style.width = (total ? Math.round(100 * n / total) : 0) + '%';
+}
+function _bkProgCerrar() {
+  try { if (_bkProgOv) _bkProgOv.remove(); } catch (e) {}
+  _bkProgOv = null;
+}
+
+/* ── Exportación ───────────────────────────────────────────────────────────────────────────
+   NIVEL «informes» EMITE EL MISMO ARRAY PELADO DE SIEMPRE, no un sobre. Así «el backup actual
+   sigue funcionando igual» es verificable byte a byte, y un archivo exportado hoy se sigue
+   abriendo con cualquier versión anterior de la app. Los otros dos niveles van en sobre.
+
+   El archivo se arma por PARTES y se colapsa en Blobs cada tanto: concatenar un string de
+   cientos de MB choca con el mismo límite del motor que impone el tope. */
+async function _bkExportar(list, nivel, desc) {
+  const fecha = new Date().toISOString().split('T')[0];
+  const bajar = (blob, sufijo) => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'ecosmart_' + fecha + '_' + _sanitizeFN(desc) + sufijo + '.json';
+    a.click();
+    setTimeout(() => { try { URL.revokeObjectURL(a.href); } catch (e) {} }, 4000);
+  };
+  if (nivel === 'informes') {
+    bajar(new Blob([JSON.stringify(list, null, 2)], { type: 'application/json' }), '');
+    return { estudios: list.length, img: 0, cine: 0, video: 0 };
+  }
+  const cuenta = { estudios: list.length, img: 0, cine: 0, video: 0 };
+  let partes = [], blobs = [];
+  const put = t => { partes.push(t); if (partes.length > 300) { blobs.push(new Blob(partes)); partes = []; } };
+  put('{"_ecosmart_backup":' + BK_FORMATO + ',"nivel":' + JSON.stringify(nivel) +
+      ',"app":"EcoSmart","fecha":' + JSON.stringify(new Date().toISOString()) +
+      ',"estudios":' + JSON.stringify(list) + ',"medios":{');
+  let primero = true;
+  for (let i = 0; i < list.length; i++) {
+    const u = list[i] && list[i].uuid;
+    _bkProg(i + 1, list.length, 'Exportando estudio');
+    await new Promise(r => setTimeout(r, 0));
+    if (!_uuidValido(u)) continue;
+    const bloque = {};
+    if (typeof CeiboImg !== 'undefined') {
+      const im = await CeiboImg.leer(u).catch(() => null);
+      const buenas = (im || []).filter(x => x && x.dataURL);
+      if (buenas.length) { bloque.img = buenas; cuenta.img += buenas.length; }
+    }
+    if (nivel === 'completo') {
+      if (typeof CeiboCine !== 'undefined') {
+        const cs = await CeiboCine.listar(u).catch(() => []);
+        if (cs && cs.length) {
+          bloque.cine = cs.map(r => ({
+            id: r.id, nombre: r.nombre, cuadros: r.cuadros, tipo: r.tipo, ms: r.ms,
+            cols: r.cols, filas: r.filas, regiones: r.regiones || [], poster: r.poster || '',
+            bytes: r.bytes || 0, ts: r.ts || '',
+            datos: _bkB64De(new Uint8Array(r.datos.buffer || r.datos, r.datos.byteOffset || 0, r.datos.length)),
+            offs: Array.prototype.slice.call(r.offs)
+          }));
+          cuenta.cine += cs.length;
+        }
+      }
+      if (typeof CeiboVideo !== 'undefined') {
+        const vs = await CeiboVideo.leer(u).catch(() => null);
+        if (vs && vs.length) {
+          bloque.video = [];
+          for (const v of vs) {
+            if (!v || !v.blob) continue;
+            const u8 = new Uint8Array(await v.blob.arrayBuffer());
+            bloque.video.push({ id: v.id, nombre: v.nombre, tipo: v.tipo || 'video/mp4',
+                                bytes: v.bytes || u8.length, datos: _bkB64De(u8) });
+            cuenta.video++;
+          }
+          if (!bloque.video.length) delete bloque.video;
+        }
+      }
+    }
+    if (!Object.keys(bloque).length) continue;
+    put((primero ? '' : ',') + JSON.stringify(u) + ':' + JSON.stringify(bloque));
+    primero = false;
+  }
+  put('}}');
+  blobs.push(new Blob(partes));
+  bajar(new Blob(blobs, { type: 'application/json' }), '_' + nivel);
+  return cuenta;
+}
+
 window.exportarInformesJSON = exportarInformesJSON; window.exportCerrar = exportCerrar; window.exportModoChange = exportModoChange;
 window.exportRangoCount = exportRangoCount; window.exportCentroCount = exportCentroCount; window.exportSelAll = exportSelAll; window.exportEjecutar = exportEjecutar;
 
 // ══════════════ IMPORT de estudios — preview + manejo de duplicados ══════════════
 let _impDatos = null;   // estudios validados del archivo, en espera de confirmación
+/* Medios del sobre, por uuid del ARCHIVO. Viven aparte de `_impDatos` porque no son campos del
+   estudio: `validarInformeImportado` rechaza el informe entero ante una clave desconocida, así
+   que meterlos adentro haría irrecuperable todo backup con medios. */
+let _impMedios = null, _impNivel = 'informes';
 /* Identidad de un estudio para deduplicar. ÚNICA para las tres vías de importación —JSON,
    Excel y DICOM—: si cada una usa la suya, mezclarlas duplica.
 
@@ -38841,9 +39174,18 @@ function _eidValido(v) { return typeof v === 'string' && v.trim() !== '' && v.le
 function importarInformesJSON(file) {
   const reader = new FileReader();
   reader.onload = function(e) {
-    let nuevos;
-    try { nuevos = JSON.parse(e.target.result); } catch(err) { toast('❌ Error al leer el archivo JSON'); return; }
+    let crudo;
+    try { crudo = JSON.parse(e.target.result); } catch(err) { toast('❌ Error al leer el archivo JSON'); return; }
+    /* EL NIVEL SE DETECTA DEL ARCHIVO, no se pregunta. Un backup «solo informes» es un ARRAY
+       pelado —el formato de siempre, y por eso sigue entrando sin tocar nada— y los otros dos
+       vienen en un sobre con los estudios y los medios por uuid. */
+    let nuevos = crudo, sobre = null;
+    if (crudo && !Array.isArray(crudo) && crudo._ecosmart_backup && Array.isArray(crudo.estudios)) {
+      sobre = crudo; nuevos = crudo.estudios;
+    }
     if (!Array.isArray(nuevos)) { toast('❌ Archivo inválido'); return; }
+    _impMedios = (sobre && sobre.medios && typeof sobre.medios === 'object') ? sobre.medios : null;
+    _impNivel = sobre ? String(sobre.nivel || 'informes') : 'informes';
     const invalido = nuevos.findIndex(inf => !validarInformeImportado(inf));
     if (invalido !== -1) { toast('❌ Archivo rechazado: el estudio #' + (invalido + 1) + ' tiene un formato inválido'); return; }
     if (!nuevos.length) { toast('⚠️ El archivo no contiene estudios'); return; }
@@ -38854,9 +39196,24 @@ function importarInformesJSON(file) {
        "sin duplicados" y termina con la base duplicada. */
     const _idx = _dupIndice(existentes);
     const dups = nuevos.filter(i => _dupBuscar(_idx, i) !== -1).length;
+    /* Se cuentan los medios del sobre para decirlo ANTES de importar: un backup completo puede
+       tardar y escribir cientos de MB, y eso no puede ser una sorpresa. */
+    let _nImg = 0, _nCine = 0, _nVid = 0;
+    if (_impMedios) {
+      Object.keys(_impMedios).forEach(k => {
+        const b = _impMedios[k] || {};
+        _nImg  += Array.isArray(b.img) ? b.img.length : 0;
+        _nCine += Array.isArray(b.cine) ? b.cine.length : 0;
+        _nVid  += Array.isArray(b.video) ? b.video.length : 0;
+      });
+    }
+    const _nivelTxt = _impMedios
+      ? ('<br><span style="color:var(--accent2)">Backup ' + escHtml(_impNivel) + ': ' +
+         _nImg + ' imagen(es), ' + _nCine + ' cineloop(s) y ' + _nVid + ' video(s).</span>')
+      : '<br><span style="color:var(--text2)">Backup de informes: sin imágenes ni videos.</span>';
     document.getElementById('imp-info').innerHTML =
       'Se encontraron <strong>' + nuevos.length + '</strong> estudios en el archivo.<br>' +
-      'Ya tenés <strong>' + existentes.length + '</strong> estudios guardados.' +
+      'Ya tenés <strong>' + existentes.length + '</strong> estudios guardados.' + _nivelTxt +
       (dups ? '<br><span style="color:var(--warn,#e0a800);">' + dups + ' coinciden con estudios existentes (duplicados).</span>' : '<br><span style="color:var(--text2)">Sin duplicados detectados.</span>');
     const prev = nuevos.slice(0, 10).map(i => {
       const centro = (i.campos && i.campos.centro_nombre) ? i.campos.centro_nombre : '—';
@@ -38894,6 +39251,7 @@ async function importEjecutar() {
   /* Índices ya sobreescritos en esta pasada: un estudio guardado no puede ser el destino de
      dos registros del archivo. Ver el comentario de _dupBuscarClave. */
   const yaPisados = new Set();
+  const _mapaUuid = Object.create(null);   // uuid del archivo → uuid con el que quedó la ficha
   let importados = 0, omitidos = 0, sobreescritos = 0;
   _impDatos.forEach(inf => {
     const idx = _dupBuscar(keyToIdx, inf, modo === 'sobre' ? yaPisados : null);
@@ -38919,6 +39277,11 @@ async function importEjecutar() {
                       : (_eidValido(inf.estudioId) && !eidsUsados.has(inf.estudioId)
                           ? inf.estudioId : _nuevoEstudioId());
       existentes[idx] = { ...inf, id: existentes[idx].id, uuid: uuidPrevio, estudioId: eidPrevio };
+      /* EL uuid PUEDE CAMBIAR, y los medios del sobre están indexados por el del ARCHIVO. Sin
+         este mapa, restaurar un backup sobre una base que ya tiene esos estudios escribiría las
+         imágenes bajo un uuid que no es el de ninguna ficha: quedarían huérfanas y el
+         recolector las borraría en el arranque siguiente. */
+      if (_uuidValido(inf.uuid)) _mapaUuid[inf.uuid] = uuidPrevio;
       uuidsUsados.add(uuidPrevio);
       eidsUsados.add(eidPrevio);
       /* Se re-registra con los datos NUEVOS: la ficha acaba de cambiar de nombre/CI/fecha,
@@ -38942,20 +39305,119 @@ async function importEjecutar() {
     if (!_eidValido(neid) || eidsUsados.has(neid)) neid = _nuevoEstudioId();
     eidsUsados.add(neid);
     const nuevo = { ...inf, id: nid, uuid: nuuid, estudioId: neid };
+    if (_uuidValido(inf.uuid)) _mapaUuid[inf.uuid] = nuuid;
     existentes.push(nuevo);
     // Se registra el objeto INSERTADO, igual que las otras dos vías, no el entrante.
     _dupRegistrar(keyToIdx, nuevo, existentes.length - 1);
     importados++;
   });
   const _pImp = (typeof guardarInformesSeguro === 'function') ? guardarInformesSeguro(existentes) : CeiboStore.setLocal(existentes);
+  const medios = _impMedios;                 // se captura ANTES de que importCerrar lo limpie
   importCerrar();
   const ok = await _pImp;              // no anunciar la importación sin confirmarla
   if (ok === false) return;
   if (typeof renderInformesGuardados === 'function') renderInformesGuardados();
+  /* Los medios van DESPUÉS de que los estudios estén guardados: si la escritura de la lista
+     falla, no se escriben cientos de MB de imágenes bajo uuid de fichas que no existen. */
+  const rest = medios ? await _bkRestaurarMedios(medios, _mapaUuid) : null;
   let msg = '✅ Importados: ' + (importados + sobreescritos);
   if (sobreescritos) msg += ' · Sobreescritos: ' + sobreescritos;
   if (omitidos) msg += ' · Omitidos: ' + omitidos + ' duplicados';
+  if (rest) {
+    msg += ' · ' + rest.img + ' imágenes · ' + rest.cine + ' cineloops · ' + rest.video + ' videos';
+  }
   toast(msg);
+  if (rest && (rest.img || rest.cine || rest.video)) _bkAvisarToggle(rest);
+}
+
+/* ── Restauración de medios ────────────────────────────────────────────────────────────────
+   Se escribe en las MISMAS tres bases de las que salió cada cosa: imágenes en `ceibomed_img`,
+   cineloops en `ceibomed_cine`, videos en `ceibomed_video`. Nada de esto toca el estudio: los
+   medios se enganchan por `uuid`, que es la clave estable —el `id` lo reescribe `_sanearIds`—.
+
+   ⚠️ EL uuid DE DESTINO SALE DEL MAPA, no del archivo. Al importar, un uuid inválido o ya usado
+   se reasigna; escribir bajo el del archivo dejaría los medios colgados de una ficha inexistente
+   y el recolector de huérfanos los borraría en el arranque siguiente. */
+async function _bkRestaurarMedios(medios, mapa) {
+  const R = { img: 0, cine: 0, video: 0, saltados: 0 };
+  const claves = Object.keys(medios);
+  _bkProgAbrir('📥 Restaurando imágenes y videos');
+  try {
+    for (let i = 0; i < claves.length; i++) {
+      const uOrig = claves[i];
+      _bkProg(i + 1, claves.length, 'Restaurando estudio');
+      await new Promise(r => setTimeout(r, 0));
+      const destino = mapa[uOrig];
+      /* Un estudio omitido por duplicado no está en el mapa: sus medios NO se escriben. Con el
+         uuid del archivo irían a parar a una ficha que no se importó. */
+      if (!destino || !_uuidValido(destino)) { R.saltados++; continue; }
+      const b = medios[uOrig] || {};
+      if (Array.isArray(b.img) && b.img.length && typeof CeiboImg !== 'undefined') {
+        const limpias = b.img.filter(x => x && typeof x.dataURL === 'string' && _imgSrcOK(x.dataURL));
+        if (limpias.length) {
+          const ok = await CeiboImg.guardar(destino, limpias).catch(() => false);
+          if (ok) R.img += limpias.length;
+        }
+      }
+      if (Array.isArray(b.cine) && b.cine.length && typeof CeiboCine !== 'undefined') {
+        for (const r of b.cine) {
+          if (!r || typeof r.datos !== 'string' || !Array.isArray(r.offs)) continue;
+          /* El id se CONSERVA cuando el estudio mantuvo su uuid —así reimportar el mismo backup
+             sobreescribe los mismos registros en vez de duplicarlos— y se acuña uno nuevo cuando
+             el uuid cambió, o el segundo import pisaría los cineloops del primero. */
+          const nid = (destino === uOrig && r.id) ? r.id
+                    : ((typeof _uuidNuevo === 'function') ? _uuidNuevo() : String(Date.now()) + Math.random());
+          let datos;
+          try { datos = _bkDeB64(r.datos); } catch (e) { continue; }
+          const rec = { id: nid, uuid: destino, nombre: String(r.nombre || 'cineloop'),
+                        cuadros: r.cuadros || 0, tipo: r.tipo || 'loop', ms: r.ms || 0,
+                        cols: r.cols || 0, filas: r.filas || 0,
+                        regiones: Array.isArray(r.regiones) ? r.regiones : [],
+                        poster: String(r.poster || ''), datos: datos,
+                        offs: new Int32Array(r.offs), bytes: datos.length,
+                        ts: String(r.ts || new Date().toISOString()) };
+          const res = await CeiboCine.guardar(rec).catch(() => ({ ok: false }));
+          if (res && res.ok) R.cine++;
+        }
+      }
+      if (Array.isArray(b.video) && b.video.length && typeof CeiboVideo !== 'undefined') {
+        const vids = [];
+        for (const v of b.video) {
+          if (!v || typeof v.datos !== 'string') continue;
+          let u8; try { u8 = _bkDeB64(v.datos); } catch (e) { continue; }
+          const tipo = String(v.tipo || 'video/mp4');
+          vids.push({ id: (destino === uOrig && v.id) ? v.id
+                        : ((typeof _videoNuevoId === 'function') ? _videoNuevoId() : 'vid-' + Date.now()),
+                      blob: new Blob([u8], { type: tipo }), nombre: String(v.nombre || 'video.mp4'),
+                      tipo: tipo, bytes: u8.length });
+        }
+        if (vids.length) {
+          const ok = await CeiboVideo.guardar(destino, vids).catch(() => false);
+          if (ok) R.video += vids.length;
+        }
+      }
+    }
+  } finally { _bkProgCerrar(); }
+  return R;
+}
+
+/* ⚠️ RESTAURAR NO ALCANZA SI EL INTERRUPTOR ESTÁ APAGADO. `imgRestaurar` corta antes de leer con
+   «Guardar imágenes con los estudios» en off —que es el estado de FÁBRICA—, así que el médico
+   restaura cientos de MB y al abrir el estudio no ve nada. Se dice, y se OFRECE encenderlo: la
+   app no cambia una preferencia de la máquina por su cuenta. Decisión de Maicol (2026-09-21). */
+function _bkAvisarToggle(rest) {
+  if (typeof imgGuardadoActivo === 'function' && imgGuardadoActivo()) return;
+  const txt = 'Se restauraron ' + rest.img + ' imagen(es), ' + rest.cine + ' cineloop(s) y ' +
+              rest.video + ' video(s), pero «Guardar imágenes con los estudios» está APAGADO, ' +
+              'así que la app no los va a leer al abrir los estudios.\n\n¿Lo encendemos ahora?';
+  if (confirm(txt)) {
+    if (typeof cfgToggleGuardarImagenes === 'function') cfgToggleGuardarImagenes(true);
+    const chk = document.getElementById('cfg-guardar-imagenes');
+    if (chk) chk.checked = true;
+    if (typeof toast === 'function') toast('✅ Guardado de imágenes encendido — reabrí el estudio para verlas');
+  } else if (typeof toast === 'function') {
+    toast('ℹ️ Los medios quedaron guardados. Encendé «Guardar imágenes con los estudios» en ⚙️ Config para verlos.');
+  }
 }
 window.importarInformesJSON = importarInformesJSON; window.importCerrar = importCerrar; window.importEjecutar = importEjecutar;
 
@@ -66707,8 +67169,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260921-0048';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789962535547;                 /* eco-build-ms */
+const ECO_BUILD    = '20260921-0653';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789984403026;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -66794,7 +67256,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-0048</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-0653</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -67469,7 +67931,7 @@ const ECO_AYUDA = [
 
 <div class="mSub">🖼️ Imágenes</div>
 <p class="mP">Se pegan con <span class="mKbd">Ctrl/Cmd + V</span> o se cargan por archivo, y se imprimen en el PDF.</p>
-<div class="mBox mAviso"><b>De fábrica las imágenes NO se guardan.</b> Viven mientras el estudio está abierto y se pierden al cerrar. Para que sobrevivan hay que encender el interruptor en ⚙️ Config; ahí se guardan en la base del navegador (IndexedDB), no en el archivo del estudio, y no viajan en el backup JSON.</div>
+<div class="mBox mAviso"><b>De fábrica las imágenes NO se guardan.</b> Viven mientras el estudio está abierto y se pierden al cerrar. Para que sobrevivan hay que encender el interruptor en ⚙️ Config; ahí se guardan en la base del navegador (IndexedDB), no en el archivo del estudio. <b>Al exportar el backup se elige el nivel</b>: «Solo informes» no las lleva, «Informes + imágenes» sí, y «Backup completo» suma cineloops y videos MP4.</div>
 <div class="mBox mAviso"><b>La calidad sólo puede bajar.</b> Una vez guardada en miniatura, el original ya no está en memoria y no se recupera: hay que volver a cargar la imagen. Apagar el interruptor <b>no borra</b> lo ya guardado — para eso está el botón de borrado en Config, que dice a cuántos estudios afecta.</div>
 
 <div class="mSub">🧠 Módulos avanzados</div>

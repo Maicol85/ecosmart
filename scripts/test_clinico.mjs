@@ -16769,6 +16769,253 @@ caso('TC-214', 'Video del slot: sobrevive al reabrir, avisa si no se guarda y nu
   })();
 `);
 
+
+/* == TC-215 - Backup por niveles ============================================================
+   OJO CON LA PREMISA: el backup de hasta hoy era SOLO INFORMES -JSON.stringify(list) y nada
+   mas-. Las imagenes NUNCA viajaban, y la app lo prometia en cuatro superficies visibles.
+   Asi que «informes + imagenes» no es «igual que hoy»: es capacidad NUEVA.
+   EL TOPE NO ES UNA PREFERENCIA: un JSON se lee como UNA cadena y V8 no admite mas de
+   536.870.888 caracteres, asi que un backup mas grande se escribe y NO se puede restaurar.
+   La condicion que vale para «el backup actual sigue funcionando igual» es byte por byte.
+   NO DEPENDE DEL PENDRIVE.                                                                  */
+caso('TC-215', 'Backup por niveles: informes / + imagenes / completo, con ida y vuelta', `
+  return (async () => {
+    const R = {};
+    const confOrig = window.confirm, toastOrig = window.toast, alertOrig = window.alert;
+    const tostadas = [];
+    window.toast = m => { tostadas.push(String(m)); };
+    window.alert = () => {}; window.confirm = () => false;   // NO encender el toggle
+    const origCreate = URL.createObjectURL;
+    const origClick = HTMLAnchorElement.prototype.click;
+    const ids = [];
+    const capturar = async (list, nivel) => {
+      let cap = null;
+      URL.createObjectURL = function (b) { cap = b; return 'blob:x'; };
+      HTMLAnchorElement.prototype.click = function () {};
+      let cuenta = null;
+      try { cuenta = await _bkExportar(list, nivel, 'test'); }
+      finally { URL.createObjectURL = origCreate; HTMLAnchorElement.prototype.click = origClick; }
+      return { cuenta: cuenta, texto: cap ? await cap.text() : null, bytes: cap ? cap.size : -1 };
+    };
+    try {
+      localStorage.setItem('cfg-guardar-imagenes','1');
+      /* -- fixture: un estudio con imagen, cineloop y video -- */
+      const c = document.createElement('canvas'); c.width=40; c.height=30;
+      const g = c.getContext('2d'); g.fillStyle='rgb(200,30,30)'; g.fillRect(0,0,40,30);
+      const png = c.toDataURL('image/png');
+      const c2 = document.createElement('canvas'); c2.width=60; c2.height=45;
+      const g2 = c2.getContext('2d'); const frags = [];
+      for (let k=0;k<6;k++){ g2.fillStyle='rgb(10,'+(k*30)+',60)'; g2.fillRect(0,0,60,45);
+        const b = await new Promise(r=>c2.toBlob(r,'image/jpeg',0.8));
+        frags.push(new Uint8Array(await b.arrayBuffer())); }
+      let tot=0; frags.forEach(f=>tot+=f.length);
+      const datos=new Uint8Array(tot), offs=new Int32Array(frags.length);
+      let pp=0; frags.forEach((f,i)=>{offs[i]=pp;datos.set(f,pp);pp+=f.length;});
+      const VIDBYTES = new Uint8Array([1,2,3,4,5,6,7,8]);
+
+      const uuid = _uuidNuevo();
+      const est = { id: 991001, uuid: uuid, estudioId: 'e-991001', nombre:'Paciente Backup',
+                    ci:'99001234', fecha_estudio:'2026-09-21',
+                    fecha_guardado:new Date().toISOString(),
+                    campos:{ informe_texto:'Informe backup.' } };
+      ids.push(est.id);
+      const L0 = CeiboStore.getLocal().filter(x=>x.id!==est.id); L0.push(est);
+      await CeiboStore.setLocal(L0);
+      await CeiboImg.guardar(uuid, [{dataURL:png, ampliada:false, calidad:'media', origen:'estudio'}]);
+      const rc = await CeiboCine.guardar({ id:'cine-bk1', uuid:uuid, nombre:'A4C.dcm', cuadros:6,
+        tipo:'loop', ms:40, cols:60, filas:45, regiones:[], poster:png, datos, offs, bytes:tot,
+        ts:new Date().toISOString() });
+      await CeiboVideo.guardar(uuid, [{ id:'vid-bk1', blob:new Blob([VIDBYTES],{type:'video/mp4'}),
+        nombre:'v.mp4', tipo:'video/mp4', bytes:8 }]);
+      R.sembrado = !!(rc && rc.ok) && ((await CeiboCine.listar(uuid))||[]).length === 1;
+
+      /* -- 1 - MEDICION: los tres niveles y sus tamanos -- */
+      const med = await _bkMedir([est]);
+      R.med = med.pesoInformes + '/' + med.pesoImagenes + '/' + med.pesoCompleto;
+      R.crecen = med.pesoInformes < med.pesoImagenes && med.pesoImagenes < med.pesoCompleto;
+      R.cuentaMedios = med.img.n === 1 && med.cine.n === 1 && med.video.n === 1;
+      /* el peso del nivel imagenes tiene que ser el JSON mas el dataURL, exacto */
+      R.pesoImgExacto = med.pesoImagenes === med.jsonBytes + med.img.bytes;
+
+      /* -- 2 - el PANEL muestra las tres opciones con su tamano -- */
+      _bkPanelNivel([est], 'test', med);
+      await new Promise(r=>setTimeout(r,150));
+      const pan = document.querySelector('[data-bk-nivel]');
+      R.hayPanel = !!pan;
+      R.tresOpciones = pan ? pan.querySelectorAll('[data-bk-op]').length === 3 : false;
+      R.muestraTamanos = pan ? Array.prototype.every.call(pan.querySelectorAll('[data-bk-peso]'),
+                                 e2 => e2.textContent.indexOf('KB') >= 0 || e2.textContent.indexOf('MB') >= 0) : false;
+      R.arrancaEnInformes = pan ? pan.querySelector('[data-bk-radio=\\'informes\\']').checked : false;
+      if (pan) pan.querySelector('[data-bk-act=\\'cancelar\\']').click();
+      R.panelCierra = !document.querySelector('[data-bk-nivel]');
+
+      /* -- 3 - NIVEL INFORMES: el array pelado de SIEMPRE, byte por byte -- */
+      const rInf = await capturar([est], 'informes');
+      R.infEsArray = Array.isArray(JSON.parse(rInf.texto));
+      R.infIgualQueAntes = rInf.texto === JSON.stringify([est], null, 2);
+
+      /* -- 4 - NIVEL IMAGENES: lleva imagenes y NO cineloops ni videos -- */
+      const rImg = await capturar([est], 'imagenes');
+      const sImg = JSON.parse(rImg.texto);
+      const bImg = sImg.medios[uuid] || {};
+      R.imgLleva = (bImg.img||[]).length === 1;
+      R.imgNoLlevaPesados = !bImg.cine && !bImg.video;
+
+      /* -- 5 - NIVEL COMPLETO: los tres -- */
+      const rCom = await capturar([est], 'completo');
+      const sCom = JSON.parse(rCom.texto);
+      R.formato = sCom._ecosmart_backup;
+      const bCom = sCom.medios[uuid] || {};
+      R.comLleva = (bCom.img||[]).length === 1 && (bCom.cine||[]).length === 1 &&
+                   (bCom.video||[]).length === 1;
+      R.cineEnB64 = !!(bCom.cine && typeof bCom.cine[0].datos === 'string' &&
+                       Array.isArray(bCom.cine[0].offs) && bCom.cine[0].offs.length === 6);
+      R.estimacionCerca = Math.abs(rCom.bytes - med.pesoCompleto) / rCom.bytes < 0.15;
+
+      /* -- 6 - IMPORTACION: detecta el nivel y restaura en las TRES bases -- */
+      await CeiboStore.setLocal(CeiboStore.getLocal().filter(x => x.id !== est.id));
+      await CeiboImg.guardar(uuid, []);
+      await CeiboCine.borrar('cine-bk1');
+      await CeiboVideo.guardar(uuid, []);
+      R.vaciado = ((await CeiboImg.leer(uuid))||[]).length === 0 &&
+                  ((await CeiboCine.listar(uuid))||[]).length === 0 &&
+                  ((await CeiboVideo.leer(uuid))||[]).length === 0;
+      tostadas.length = 0;
+      importarInformesJSON(new File([rCom.texto], 'b.json', { type:'application/json' }));
+      await new Promise(r=>setTimeout(r,400));
+      R.modalDeclaraNivel = (document.getElementById('imp-info')||{}).textContent
+                              .indexOf('Backup completo') >= 0;
+      document.getElementById('imp-btn').click();
+      await new Promise(r=>setTimeout(r,2500));
+      const l1 = CeiboStore.getLocal().filter(x => x.nombre === 'Paciente Backup');
+      const u1 = l1[0] ? l1[0].uuid : null;
+      if (l1[0]) ids.push(l1[0].id);
+      R.uuidConservado = u1 === uuid;
+      R.restImg = ((await CeiboImg.leer(u1))||[]).length;
+      const cs1 = await CeiboCine.listar(u1);
+      R.restCine = (cs1||[]).length;
+      R.cineIntegro = !!(cs1 && cs1[0] && cs1[0].cuadros === 6 && cs1[0].datos &&
+                         cs1[0].datos.length === tot && cs1[0].offs && cs1[0].offs.length === 6);
+      const vs1 = await CeiboVideo.leer(u1);
+      R.restVideo = (vs1||[]).length;
+      R.videoIntegro = !!(vs1 && vs1[0] && vs1[0].blob && vs1[0].blob.size === 8);
+      R.resumen = tostadas.filter(t => t.indexOf('imágenes') >= 0 && t.indexOf('cineloops') >= 0 &&
+                                       t.indexOf('videos') >= 0).length === 1;
+      R.avisaToggleApagado = false;   // el toggle esta ENCENDIDO en este tramo
+
+      /* -- 7 - EL uuid REASIGNADO: importar de nuevo en modo TODOS -- */
+      importarInformesJSON(new File([rCom.texto], 'b.json', { type:'application/json' }));
+      await new Promise(r=>setTimeout(r,400));
+      const rt = document.querySelector('input[name=\\'imp-dup\\'][value=\\'todos\\']');
+      if (rt) rt.checked = true;
+      document.getElementById('imp-btn').click();
+      await new Promise(r=>setTimeout(r,2500));
+      const l2 = CeiboStore.getLocal().filter(x => x.nombre === 'Paciente Backup');
+      l2.forEach(x => { if (ids.indexOf(x.id) < 0) ids.push(x.id); });
+      R.dosFichas = l2.length === 2;
+      const uNuevo = l2.map(x => x.uuid).filter(u => u !== uuid)[0] || null;
+      R.uuidNuevoDistinto = !!uNuevo && uNuevo !== uuid;
+      R.mediosAlUuidNuevo = uNuevo ? ((await CeiboCine.listar(uNuevo))||[]).length === 1 : false;
+      R.mediosViejosIntactos = ((await CeiboCine.listar(uuid))||[]).length === 1;
+
+      /* -- 8 - EL TOPE: una estimacion por encima deshabilita la opcion -- */
+      const medGrande = Object.assign({}, med, { pesoCompleto: BK_TOPE_BYTES + 1 });
+      _bkPanelNivel([est], 'test', medGrande);
+      await new Promise(r=>setTimeout(r,150));
+      const pan2 = document.querySelector('[data-bk-nivel]');
+      const rCompleto = pan2 ? pan2.querySelector('[data-bk-radio=\\'completo\\']') : null;
+      R.topeDeshabilita = !!rCompleto && rCompleto.disabled === true;
+      R.topeExplica = !!pan2 && !!pan2.querySelector('[data-bk-excede=\\'completo\\']') &&
+                      pan2.textContent.indexOf('rango de fechas') >= 0;
+      /* DOS LINEAS DE DEFENSA Y HAY QUE PROBAR LAS DOS. El radio deshabilitado es la primera;
+         la segunda es la guarda del boton, y para ejercerla hay que SALTEAR la primera —si no,
+         el nivel se queda en «informes» y exportar ESO es correcto, que fue como esta condicion
+         nacio dando rojo sobre codigo sano—. */
+      let exporto = null;
+      const expOrig = window._bkExportar;
+      window._bkExportar = (l, n) => { exporto = n; return Promise.resolve(null); };
+      if (rCompleto) { rCompleto.checked = true; rCompleto.dispatchEvent(new Event('change')); }
+      if (pan2) pan2.querySelector('[data-bk-act=\\'exportar\\']').click();
+      await new Promise(r=>setTimeout(r,250));
+      window._bkExportar = expOrig;
+      R.topeNoExporta = exporto === null;
+      R.topeAvisa = tostadas.filter(t => t.indexOf('supera el máximo') >= 0).length > 0;
+      const pan3 = document.querySelector('[data-bk-nivel]');
+      if (pan3) pan3.querySelector('[data-bk-act=\\'cancelar\\']').click();
+
+      /* -- 9 - AVISO cuando el toggle esta APAGADO -- */
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      let pregunto = null;
+      window.confirm = m => { pregunto = String(m); return false; };
+      _bkAvisarToggle({ img: 3, cine: 1, video: 1 });
+      window.confirm = () => false;
+      R.avisaApagado = !!pregunto && pregunto.indexOf('APAGADO') >= 0 &&
+                       pregunto.indexOf('encendemos') >= 0;
+      localStorage.setItem('cfg-guardar-imagenes','1');
+      let pregunto2 = null;
+      window.confirm = m => { pregunto2 = String(m); return false; };
+      _bkAvisarToggle({ img: 3, cine: 1, video: 1 });
+      window.confirm = () => false;
+      R.noAvisaEncendido = pregunto2 === null;
+
+      /* -- 10 - PROGRESO -- */
+      _bkProgAbrir('prueba');
+      _bkProg(3, 10, 'Exportando estudio');
+      const pv = document.querySelector('[data-bk-prog]');
+      R.hayProgreso = !!pv &&
+        pv.querySelector('[data-bk-prog-txt]').textContent.indexOf('Exportando estudio 3 de 10') >= 0 &&
+        pv.querySelector('[data-bk-prog-bar]').style.width === '30%';
+      _bkProgCerrar();
+      R.progCierra = !document.querySelector('[data-bk-prog]');
+    } catch (e) { R.excepcion = String(e && e.message || e); }
+    finally {
+      window.confirm = confOrig; window.toast = toastOrig; window.alert = alertOrig;
+      URL.createObjectURL = origCreate; HTMLAnchorElement.prototype.click = origClick;
+      try { const p2 = document.querySelector('[data-bk-nivel]'); if (p2) p2.remove(); } catch (e) {}
+      try { _bkProgCerrar(); } catch (e) {}
+      try { importCerrar(); } catch (e) {}
+      try {
+        const L2 = CeiboStore.getLocal();
+        const vivos = L2.filter(x => ids.indexOf(x.id) < 0);
+        for (const x of L2) if (ids.indexOf(x.id) >= 0 && _uuidValido(x.uuid)) {
+          await CeiboImg.guardar(x.uuid, []);
+          const cc = await CeiboCine.listar(x.uuid);
+          for (const r of (cc||[])) await CeiboCine.borrar(r.id);
+          await CeiboVideo.guardar(x.uuid, []);
+        }
+        await CeiboStore.setLocal(vivos);
+      } catch (e) {}
+      localStorage.setItem('cfg-guardar-imagenes','0');
+    }
+    return { extra: [
+      ['el fixture quedo sembrado (denominador)',    R.sembrado, R.sembrado],
+      ['los tres niveles CRECEN de tamano',          R.crecen && R.cuentaMedios, R.med],
+      ['y el de imagenes es JSON + dataURL exacto',  R.pesoImgExacto, R.pesoImgExacto],
+      ['el panel ofrece TRES opciones con su tamano', R.hayPanel && R.tresOpciones && R.muestraTamanos, R.tresOpciones],
+      ['arranca en «solo informes» y cierra',        R.arrancaEnInformes && R.panelCierra, R.arrancaEnInformes],
+      ['NIVEL INFORMES: el array pelado de siempre, BYTE POR BYTE', R.infEsArray && R.infIgualQueAntes, R.infIgualQueAntes],
+      ['NIVEL IMAGENES: lleva imagenes y NO pesados', R.imgLleva && R.imgNoLlevaPesados, R.imgLleva + '/' + R.imgNoLlevaPesados],
+      ['NIVEL COMPLETO: imagen + cineloop + video',  R.comLleva && R.formato === 2, R.comLleva],
+      ['el cineloop viaja en base64 con su tabla',   R.cineEnB64, R.cineEnB64],
+      ['la estimacion se acerca al archivo real',    R.estimacionCerca, R.estimacionCerca],
+      ['las tres bases quedaron vacias (denominador)', R.vaciado, R.vaciado],
+      ['el modal DECLARA el nivel del archivo',      R.modalDeclaraNivel, R.modalDeclaraNivel],
+      ['RESTAURA en las tres bases',                 R.restImg === 1 && R.restCine === 1 && R.restVideo === 1,
+                                                     R.restImg + '/' + R.restCine + '/' + R.restVideo],
+      ['y el cineloop y el video vuelven INTEGROS',  R.cineIntegro && R.videoIntegro, R.cineIntegro + '/' + R.videoIntegro],
+      ['el resumen cuenta estudios, imagenes, cineloops y videos', R.resumen, tostadas.join(' | ').slice(0,90)],
+      ['EL uuid REASIGNADO se sigue: los medios van al nuevo', R.dosFichas && R.uuidNuevoDistinto && R.mediosAlUuidNuevo,
+                                                     R.dosFichas + '/' + R.mediosAlUuidNuevo],
+      ['y no pisa los del estudio original',         R.mediosViejosIntactos, R.mediosViejosIntactos],
+      ['EL TOPE deshabilita la opcion y la explica', R.topeDeshabilita && R.topeExplica, R.topeDeshabilita],
+      ['y AUNQUE se fuerce el nivel, no exporta',   R.topeNoExporta && R.topeAvisa, R.topeNoExporta + '/' + R.topeAvisa],
+      ['AVISA si el toggle esta apagado al restaurar', R.avisaApagado, R.avisaApagado],
+      ['y NO molesta si esta encendido',             R.noAvisaEncendido, R.noAvisaEncendido],
+      ['barra de progreso con el estudio y el porcentaje', R.hayProgreso && R.progCierra, R.hayProgreso]
+    ] };
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];

@@ -11,6 +11,92 @@ ninguna es evidente leyendo el código alrededor.
 
 
 
+## Backup por niveles, y el techo que lo impone el MOTOR (TC-215)
+
+Tres niveles al exportar: **📄 Solo informes · 🖼️ Informes + imágenes · 💾 Backup completo**, con
+el tamaño de cada uno calculado antes de elegir.
+
+### La premisa del pedido: «informes + imágenes (igual que hoy)» — NO era igual que hoy
+
+El backup de hasta ayer era `JSON.stringify(list)` y **nada más**. Las imágenes viven en
+`ceibomed_img`, los cineloops en `ceibomed_cine` y los videos en `ceibomed_video`, y **ninguno
+viajaba**. O sea que el nivel 1 del pedido ES lo de hoy, y el nivel 2 es **capacidad nueva**.
+
+**Y la app lo PROMETÍA en seis superficies, cuatro visibles al médico**: el párrafo de Config bajo
+el interruptor, el de la tab Imágenes, **el manual**, y —la peor— el `confirm()` de «borrar todas
+las imágenes», que justificaba su «esto no se puede deshacer» en que **no había backup posible**.
+Esa frase mandaba a borrar algo que a partir de ahora sí es recuperable. Las seis se actualizaron
+en el mismo commit: es «el rótulo vive en cuatro superficies y el manual es la que se pudre» más
+«un aviso que quedó describiendo el estado anterior es peor que no tenerlo».
+
+### ⚠️ EL TECHO NO ES UNA PREFERENCIA: son 512 MiB, y los pone V8
+
+Un JSON se arma y se lee **como UNA cadena**: `JSON.stringify` para escribirlo, `readAsText` +
+`JSON.parse` para leerlo. **Medido en este Chrome: el máximo de una cadena es 536.870.888
+caracteres** — `'a'.repeat(2**29)` tira «Invalid string length». Y base64 infla 4/3, así que el
+tope real de medios son **~384 MB**.
+
+El pedido decía «⚠️ Puede ser varios GB». Un archivo así **se escribiría y no se podría restaurar
+nunca** — el peor modo de falla que puede tener un backup, porque se descubre el día que hace
+falta. Decisión de Maicol (2026-09-21): **pasado el tope no se exporta**; se dice cuánto pesa,
+cuál es el límite, y se manda a usar el filtro **por rango de fechas o por selección que este
+mismo modal ya tenía**. `BK_TOPE_BYTES` deja margen (460 MB) bajo el límite del motor.
+
+**Hay dos líneas de defensa y el caso prueba las dos**: el radio deshabilitado, y la guarda del
+botón. Ejercer la segunda exige **saltear la primera** con un `dispatchEvent` — si no, el nivel se
+queda en «informes» y exportar ESO es correcto. Así nació esa condición: **en rojo sobre código
+sano**.
+
+### El nivel «informes» emite el ARRAY PELADO, no un sobre
+
+Los otros dos van en sobre (`{_ecosmart_backup:2, nivel, estudios, medios}`); «informes» sigue
+siendo el array de siempre. Dos motivos: un archivo exportado hoy se abre con cualquier versión
+anterior, y **«el backup actual sigue funcionando igual» se vuelve verificable BYTE POR BYTE** —
+la condición compara contra `JSON.stringify(list, null, 2)`, que es literalmente el exportador
+anterior. La mutación que lo mete en un sobre cae ahí.
+
+### Lo que puede salir mal en la restauración, y no es obvio
+
+**EL uuid PUEDE CAMBIAR AL IMPORTAR.** `importEjecutar` reasigna el uuid si es inválido o si ya
+está en uso —pasa al importar dos veces el mismo backup en modo «todos»—, y los medios del sobre
+están indexados por el uuid **del archivo**. Escribirlos bajo ése los dejaría colgados de una
+ficha inexistente, y **el recolector de huérfanos los borraría en el arranque siguiente**: el
+médico restaura 300 MB y al día siguiente no están. Hoy `importEjecutar` arma un mapa
+`uuid del archivo → uuid final` en sus **dos** ramas y la restauración escribe por ahí. Un estudio
+omitido por duplicado no está en el mapa, así que sus medios **no se escriben**.
+
+**El `id` de un cineloop se conserva sólo si el uuid no cambió.** Con el uuid igual, reimportar el
+mismo backup sobreescribe los mismos registros y es idempotente; con el uuid nuevo hay que acuñar
+otro `id`, o el segundo import **pisa los cineloops del primero**.
+
+**Los medios van DESPUÉS de guardar la lista de estudios.** Si esa escritura falla, no se escriben
+cientos de MB bajo uuid de fichas que no existen.
+
+**Y los medios NO entran en `campos`.** `validarInformeImportado` rechaza el informe **entero** ante
+una clave desconocida, así que meterlos adentro haría irrecuperable todo backup con medios.
+
+### Restaurar no alcanza si el interruptor está apagado
+
+`imgRestaurar` corta antes de leer con «Guardar imágenes con los estudios» en off —el estado de
+**fábrica**—, así que el médico restaura y **no ve nada**. Se dice y se **ofrece encenderlo**; la
+app no cambia una preferencia de la máquina por su cuenta. Decisión de Maicol (2026-09-21).
+
+### Detalles de implementación que no son adorno
+
+- **La estimación se lee por uuid, no se escala desde `uso()`.** La exportación se filtra por
+  rango, centro o selección: escalar el total por la fracción de estudios daría un número
+  plausible y falso. Medido contra el archivo real, la estimación queda dentro del 15 %.
+- **El archivo se arma por PARTES y se colapsa en Blobs cada 300.** Concatenar un string de
+  cientos de MB choca con el mismo límite del motor que impone el tope.
+- **Base64 en trozos de 32 KB**: `String.fromCharCode.apply` con 17 MB de golpe revienta la pila.
+- **El progreso es un overlay, no un toast.** La exportación completa tarda lo que tarde leer
+  cientos de MB de IndexedDB, y un toast que se va a los tres segundos deja al médico mirando una
+  pantalla quieta sin saber si la app se colgó. Se cede el hilo con `setTimeout(0)` entre estudios.
+
+**Seis mutaciones, las seis en su condición:** el nivel «informes» metido en un sobre, el nivel
+«imágenes» llevándose los pesados, la restauración usando el uuid del archivo, el tope que no
+frena, el aviso del interruptor, y el cineloop restaurado sin su tabla de offsets.
+
 ## La franja negra del PPT era la MATRIZ DE ROTACIÓN, y el video que «no persiste» (TC-213/214)
 
 Dos reportes del mismo turno. Los dos se reprodujeron midiendo, y ninguno era lo que decía el título.
