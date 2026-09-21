@@ -24403,8 +24403,19 @@ function showTabById(id) {
    de hoy—. `fcg-` se agregó 2026-09-09: medido sobre un estudio real, de los 493 campos que
    viajan el único colado era `fcg-valve-select`, el desplegable de válvula del fonocardiograma,
    que es un control del visor y no una medición. */
+/* ⚠️ `cine-` LLEVA `(?:b-)?` Y NO ES ADORNO: EL VISOR TIENE DOS VISTAS.
+   La segunda se monta con `_vNueva('b-', 'B')`, así que sus controles son `b-cine-cap-etiq` y
+   `b-cine-slider`. Con un `cine-` pelado la regex está anclada en `^` y deja pasar la mitad
+   —medido: el barrido ve CUATRO controles, no dos— y la fuga seguiría por la vista B sin que
+   nada lo delate. `b-` sólo lo acuña ese constructor, así que la alternativa no se lleva nada
+   ajeno por delante.
+
+   Los dos son controles del VISOR, no mediciones: la etiqueta de la captura y el índice de
+   cuadro no describen al paciente. Es el mismo caso que `fcg-valve-select`, que entró a esta
+   lista el 2026-09-09 por el mismo motivo. Y `cineCerrar()` sólo pone `display:none`, así que
+   el input sobrevive en el DOM con su valor — y este barrido no mira visibilidad. */
 function _noEsDelEstudio(id) {
-  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-)/.test(id);
+  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|(?:b-)?cine-)/.test(id);
 }
 
 /* ══ Repintado de módulos al cargar un estudio ═══════════════════════════════════════════
@@ -68276,8 +68287,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260921-1431';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790011905192;                 /* eco-build-ms */
+const ECO_BUILD    = '20260921-1444';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790012685833;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -68363,7 +68374,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-1431</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-1444</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

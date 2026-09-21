@@ -4,6 +4,51 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Los controles del visor no viajan dentro del estudio (TC-229)
+
+`cine-cap-etiq` (la etiqueta de la captura) y `cine-slider` (el índice de cuadro) entraban en
+`campos` de **cada estudio guardado**. Son controles del visor, no mediciones: no describen al
+paciente. `_noEsDelEstudio` los excluye ahora por prefijo — el mismo arreglo que recibió
+`fcg-valve-select` el 2026-09-09, y por el mismo motivo.
+
+Tres cosas hacían que se viera poco: `cineCerrar()` sólo pone `display:none`, así que el input
+**sobrevive en el DOM con su valor**; el barrido de `guardarInforme` **no mira visibilidad**; y
+antes del autocompletado la etiqueta casi siempre estaba vacía, así que la clave viajaba con
+cadena vacía y no llamaba la atención.
+
+### ⚠️ SON CUATRO CONTROLES, NO DOS: LA SEGUNDA VISTA DUPLICA CADA UNO
+
+Es lo único que separa el arreglo del arreglo a medias. La vista B se monta con
+`_vNueva('b-', 'B')`, así que sus ids son **`b-cine-cap-etiq`** y **`b-cine-slider`** — y la
+regex está anclada en `^`. Un `cine-` pelado deja pasar la mitad:
+
+| | con `cine-` pelado | con `(?:b-)?cine-` |
+|---|---|---|
+| `cine-cap-etiq` · `cine-slider` | excluidos | excluidos |
+| `b-cine-cap-etiq` · `b-cine-slider` | **siguen viajando** | excluidos |
+
+La mutación que lo deja a medias imprime exactamente `b-cine-slider, b-cine-cap-etiq`. Medido
+antes de tocar nada: el barrido ve **cuatro**. `b-` sólo lo acuña ese constructor, así que la
+alternativa no se lleva nada ajeno.
+
+### Se prueba GUARDANDO un estudio, no testeando la regex
+
+Es la regla que este archivo ya fija para el prefijo `cfg-` de Orthanc. TC-229 guarda por
+`__t.guardar()` —o sea `guardarInforme` de verdad, con su card de severidades— y mira las claves
+de `campos`. Con el **denominador declarado**: que al guardar los cuatro controles **existan y
+tengan valor**, porque sobre un visor cerrado o un input vacío «no aparece la clave» se cumple
+sin probar nada. Lleva además control negativo —el nombre y la FEVI **sí** viajan—, que es lo
+que caza una regex demasiado amplia: la mutación que le agrega `fevi` cae ahí.
+
+### Lo que el arreglo NO cambia, y se verificó
+
+- **Nadie leía esas claves**: cero consumidores de `campos['cine-…']`, y no están en
+  `LAB_XLS_MAP`, así que no había Excel ni PDF colgando de ellas.
+- **`limpiarCampos` sigue limpiando el input**: su barrido de texto **no** usa esta regex (sólo
+  el de checkboxes, y el visor no tiene ninguno). Excluirlo del estudio no es borrarlo de la
+  pantalla, y hay una condición que lo fija.
+- **El autocompletado sigue andando** — su propia condición, con su mutación.
+
 ## La etiqueta dice DE DÓNDE viene el valor (TC-228)
 
 Reemplaza a la primera versión de esta entrada, que rotulaba sólo la ventana. Hoy la etiqueta

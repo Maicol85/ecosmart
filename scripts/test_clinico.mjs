@@ -19339,6 +19339,134 @@ caso('TC-227', 'Visor: el resultado se quema en la captura con su metodo, y la d
    El rotulo se DERIVA de _STR_VISTAS y no se escribe literal: un caso que fija el texto hay
    que tocarlo cada vez que el texto cambia a proposito; uno que fija el invariante, no.
    NO DEPENDE DEL PENDRIVE.                                                                  */
+/* == TC-229 - Los controles del VISOR no viajan dentro del estudio =========================
+   `guardarInforme` barre input[id] de TODO el documento y solo saltea lo que `_noEsDelEstudio`
+   excluye por prefijo. El visor tiene DOS controles que ese barrido ve -la etiqueta de la
+   captura y el indice de cuadro- y ninguno describe al paciente: son controles, no mediciones.
+   Peor: `cineCerrar()` solo pone display:none, asi que sobreviven en el DOM con su valor, y el
+   barrido NO mira visibilidad. Precedente exacto: `fcg-valve-select` entro a esa lista el
+   2026-09-09 por lo mismo.
+
+   ⚠️ SON CUATRO, NO DOS: LA SEGUNDA VISTA DUPLICA CADA UNO. Se monta con _vNueva('b-','B'),
+   asi que sus ids son b-cine-cap-etiq y b-cine-slider, y la regex esta anclada en ^: un
+   `cine-` pelado deja pasar la mitad y la fuga sigue por la vista B sin que nada lo delate.
+   Esa es la condicion que separa el arreglo completo del arreglo a medias.
+
+   Y SE PRUEBA GUARDANDO UN ESTUDIO DE VERDAD, no testeando la regex: lo que importa es que la
+   clave no aparezca en `campos`, que es el invariante. Con el denominador declarado -que al
+   guardar los cuatro controles EXISTAN y tengan valor-, porque sobre un visor cerrado o un
+   input vacio «no aparece la clave» se cumple sin probar nada.
+   NO DEPENDE DEL PENDRIVE.                                                                  */
+caso('TC-229', 'Los controles del visor no se guardan dentro del estudio, ni los de la segunda vista', `
+  return (async () => {
+    const R = {};
+    const cineOrig = window._cineDatos;
+    const toastOrig = window.toast, alertOrig = window.alert;
+    window.toast = () => {}; window.alert = () => {};
+    let estudioId = null;
+    try {
+      __t.limpiar();
+      /* -- visor abierto, con las DOS vistas montadas -- */
+      const W = 600;
+      const c = document.createElement('canvas'); c.width = W; c.height = 400;
+      const g = c.getContext('2d'); g.fillStyle = '#123'; g.fillRect(0, 0, W, 400);
+      const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.9));
+      const jpeg = new Uint8Array(await blob.arrayBuffer());
+      const reg = [{ x0:0,y0:0,x1:W,y1:400, dx:0.05,dy:0.05, ux:3,uy:3,
+                     tipo:1, rx0:0,ry0:0,rvy:0 }];
+      const loop = n => ({ nombre:n, d:{ regiones:reg, cols:W, filas:400 },
+                           frames:[jpeg], ms:40 });
+      _cineAbrir([loop('A4C.dcm'), loop('A2C.dcm')]);
+      await new Promise(r=>setTimeout(r,500));
+      const cont = document.getElementById('cine-paneles');
+      if (cont && !document.getElementById('b-cine-cap-etiq')) _vMontarPanel(cont, 'b-');
+      await new Promise(r=>setTimeout(r,250));
+
+      /* -- DENOMINADOR: los cuatro existen y llevan un valor RECONOCIBLE al guardar -- */
+      const marca = 'MARCA-DEL-VISOR-229';
+      const ids = ['cine-cap-etiq', 'cine-slider', 'b-cine-cap-etiq', 'b-cine-slider'];
+      const puestos = ids.map(id => {
+        const e = document.getElementById(id);
+        if (!e) return id + ':NO EXISTE';
+        if (e.type === 'range') { e.max = '9'; e.value = '7'; }
+        else { e.value = marca; }
+        return id + ':' + e.value;
+      });
+      R.puestos = puestos.join(' | ');
+      R.losCuatroEstan = ids.every(id => !!document.getElementById(id));
+      R.conValor = ids.every(id => { const e = document.getElementById(id);
+                                     return e && String(e.value).length > 0; });
+
+      /* -- el autocompletado sigue andando: es lo que este arreglo no puede romper -- */
+      const tr = (a,b) => ({ bordeCm:a+b, cuerdaCm:2, arcoAcm:a, arcoBcm:b,
+                             pts:[{x:10,y:10},{x:50,y:80},{x:90,y:10}],
+                             eje:{ M:{x:50,y:10}, apex:{x:50,y:80} },
+                             metodo:'libre', imagen:'IMG1' });
+      medHerramienta('strain');
+      _strain.loopListo = true; _strain.vista = 'a4c';
+      _strain.vistas.a4c = { d:tr(9,9), s:tr(7.5,7.5) };
+      _strain.vistas.a2c = { d:tr(10,10), s:tr(8,8) };
+      window._medEtiqueta = ''; window._medEtiqAuto = '';
+      _medEtiqAutoPoner();
+      R.autocompleta = window._medEtiqueta;
+      R.autocompletaOk = R.autocompleta.indexOf('A4C') >= 0 &&
+                         R.autocompleta.indexOf('A2C') >= 0 &&
+                         R.autocompleta.indexOf('SGL') >= 0;
+
+      /* -- GUARDAR DE VERDAD y mirar las claves -- */
+      __t.set('nombre', 'Paciente TC229');
+      __t.set('ci', '5556667');
+      __t.set('fevi', '58');
+      const gr = await __t.guardar();
+      estudioId = gr.estudioId;
+      R.guardo = gr.ok === true && !!estudioId;
+      const inf = getInformes().find(i => i.estudioId === estudioId);
+      const campos = (inf && inf.campos) ? inf.campos : {};
+      R.nClaves = Object.keys(campos).length;
+      R.hayEstudio = !!inf && R.nClaves > 50;
+
+      const conCine = Object.keys(campos).filter(k => k.indexOf('cine') >= 0);
+      R.clavesConCine = conCine.join(', ');
+      R.ningunaClaveDelVisor = conCine.length === 0;
+      R.niLaDeLaVistaB = !Object.keys(campos).some(k => k.indexOf('b-cine') >= 0);
+      /* y la MARCA no aparece por ninguna otra puerta */
+      R.marcaNoViaja = !Object.keys(campos).some(k =>
+        String(campos[k] === undefined ? '' : campos[k]).indexOf(marca) >= 0);
+
+      /* -- CONTROL NEGATIVO: los campos reales del estudio SI viajan -- */
+      R.nombreViaja = campos['nombre'] === 'Paciente TC229';
+      R.feviViaja   = String(campos['fevi']) === '58';
+
+      /* -- y el valor NO se pierde de la pantalla: excluirlo del estudio no es borrarlo -- */
+      const et = document.getElementById('cine-cap-etiq');
+      R.sigueEnPantalla = !!et && String(et.value).length > 0;
+      R.valorEnPantalla = et ? et.value : '';
+    } catch (e) {
+      R.err = String((e && e.message) || e).slice(0, 140);
+    } finally {
+      try { if (estudioId) await __t.borrar(estudioId); } catch (e) {}
+      try { if (typeof cineCerrar === 'function') cineCerrar(); } catch (e) {}
+      try { window._cineDatos = cineOrig; } catch (e) {}
+      try { window._medEtiqueta = ''; window._medEtiqAuto = ''; } catch (e) {}
+      try { window.toast = toastOrig; window.alert = alertOrig; } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                             !R.err, R.err],
+      ['DENOMINADOR: los CUATRO controles existen',   R.losCuatroEstan, R.puestos],
+      ['DENOMINADOR: y llevan valor al guardar',      R.conValor, R.puestos],
+      ['DENOMINADOR: el estudio se guardo con campos', R.guardo && R.hayEstudio,
+        'ok=' + R.guardo + ' claves=' + R.nClaves],
+      ['NINGUN control del visor viaja en campos',    R.ningunaClaveDelVisor, R.clavesConCine],
+      ['NI LOS DE LA SEGUNDA VISTA',                  R.niLaDeLaVistaB, R.clavesConCine],
+      ['y su valor no entra por ninguna otra clave',  R.marcaNoViaja, R.clavesConCine],
+      ['CONTROL NEGATIVO: el nombre si viaja',        R.nombreViaja, 'claves=' + R.nClaves],
+      ['CONTROL NEGATIVO: la FEVI si viaja',          R.feviViaja, 'claves=' + R.nClaves],
+      ['el autocompletado sigue andando',             R.autocompletaOk, R.autocompleta],
+      ['excluirlo del estudio NO lo borra de pantalla', R.sigueEnPantalla, R.valorEnPantalla]
+    ] };
+  })();
+`);
+
 caso('TC-228', 'Visor: la etiqueta dice DE DONDE viene el valor, y el numero queda quemado siempre', `
   return (async () => {
     const R = {};
