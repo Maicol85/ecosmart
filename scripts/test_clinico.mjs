@@ -17154,6 +17154,146 @@ caso('TC-216', 'Slots DICOM: medir tras reabrir el estudio, y el cartel cuando n
   })();
 `);
 
+
+/* == TC-217 - Boton CC: atajo para integrar las secciones de cardiopatia congenita ===========
+   NO ES UN CUARTO ESTILO, y se decidio midiendo: `estiloPick(c,e,n)` elige entre tres
+   REDACCIONES de la misma frase en 21 sitios, no reordena ni agrega secciones — y las secciones
+   de CC ya bajan al informe con su anatomia, su hemodinamica y su conclusion. Lo que falta es
+   tildar diecinueve casillas una por una, y eso es lo que el boton hace.
+   Va en el grupo de ACCIONES y no entre las pastillas: el propio marcado documenta que mezclar
+   una accion con el selector de estado hizo que «Frases» se leyera como un cuarto estilo.
+   Los predicados son los de `_CC_SECS`, los mismos del Laboratorio y del filtro de cohorte.
+   NO DEPENDE DEL PENDRIVE.                                                                   */
+caso('TC-217', 'Boton CC: aparece con datos, integra las secciones y no toca los estilos', `
+  return (async () => {
+    const R = {};
+    const toastOrig = window.toast; const tost = [];
+    window.toast = m => { tost.push(String(m)); };
+    try {
+      __t.limpiar();
+      await new Promise(r=>setTimeout(r,300));
+      /* -- 1 - el boton existe, arranca OCULTO y todas sus casillas existen -- */
+      const b = document.getElementById('cc-integrar-btn');
+      R.existe = !!b;
+      if (!b) return { extra: [['el boton existe', false, 'no esta en el DOM']] };
+      R.faltanChks = _ccAssertChks().join(',');
+      R.chksExisten = R.faltanChks === '';
+      R.ocultoSinDatos = b.hidden === true && ccSeccionesConDatos().length === 0;
+      /* y no vive entre las pastillas de estilo: es una ACCION, no un estado */
+      R.noEsPastilla = !b.classList.contains('estilo-pill') && !b.getAttribute('data-estilo');
+
+      /* -- 2 - COLOR: no puede quedar sin relleno, y el texto tiene que contrastar en los DOS
+         temas. --purple se INVIERTE entre temas: blanco da 3,18:1 sobre el oscuro. -- */
+      const lum = css => { const m = css.match(/[0-9.]+/g) || [0,0,0];
+        const f = c => { c = +c/255; return c <= 0.04045 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4); };
+        return 0.2126*f(m[0]) + 0.7152*f(m[1]) + 0.0722*f(m[2]); };
+      const contraste = () => { const cs = getComputedStyle(b);
+        const a = lum(cs.backgroundColor), c2 = lum(cs.color);
+        return { bg: cs.backgroundColor, r: (Math.max(a,c2)+0.05)/(Math.min(a,c2)+0.05) }; };
+      const eraClaro = document.documentElement.classList.contains('light-mode');
+      document.documentElement.classList.remove('light-mode');
+      const cOsc = contraste();
+      document.documentElement.classList.add('light-mode');
+      const cCla = contraste();
+      if (!eraClaro) document.documentElement.classList.remove('light-mode');
+      R.contrastes = cOsc.r.toFixed(2) + ' / ' + cCla.r.toFixed(2);
+      R.tieneColor = cOsc.bg !== 'rgba(0, 0, 0, 0)' && cCla.bg !== 'rgba(0, 0, 0, 0)';
+      R.temasDifieren = cOsc.bg !== cCla.bg;          // sin esto estaria midiendo dos veces lo mismo
+      R.legibleEnAmbos = cOsc.r >= 4.5 && cCla.r >= 4.5;
+
+      /* -- 3 - aparece con datos de CC. LOS TOKENS SALEN DEL <option> REAL -- */
+      const selVal = (id, i) => { const e2 = document.getElementById(id);
+        if (!e2 || !e2.options || e2.options.length <= i) return false;
+        e2.value = e2.options[i].value; return e2.value !== ''; };
+      R.tokenCia = selVal('ete_cia_tipo', 1);
+      R.tokenCiv = selVal('ete_civ_tipo', 1);
+      document.getElementById('coa_istmo').value = '8';
+      document.getElementById('mch_espesor').value = '18';
+      ccIntegrarSync();
+      R.visible = b.hidden === false;
+      const secs = ccSeccionesConDatos();
+      R.claves = secs.map(x => x.k).join(',');
+      R.detectaCuatro = R.claves === 'cia,civ,coa,mch';
+      /* las EXCEPCIONES de nombre resueltas: ductus/coart y la casilla COMPARTIDA de cia/civ */
+      R.mapa = secs.map(x => x.k + '->' + x.chk).join(' ');
+      R.excepciones = _ccChkId('dap') === 'ductus_incluir_chk' &&
+                      _ccChkId('coa') === 'coart_incluir_chk' &&
+                      _ccChkId('cia') === _ccChkId('civ') &&
+                      _ccChkId('mch') === 'mch_incluir_chk';
+
+      /* -- 4 - INTEGRA: tilda las de las secciones CON datos y no las otras -- */
+      const conDatos = ['ete_shunt_incluir_chk','coart_incluir_chk','mch_incluir_chk'];
+      const sinDatos = ['tga_incluir_chk','fop_incluir_chk','vab_incluir_chk'];
+      R.antes = conDatos.map(i => document.getElementById(i).checked).join(',');
+      /* EL CONTRATO DEL change: hoy ninguna casilla tiene manejador propio, asi que sin esto
+         la mutacion que quita el dispatchEvent sobrevive —y el resguardo se leeria como
+         proteccion sin serlo-. Se engancha uno de prueba y se exige que el boton lo dispare. */
+      let disparo = 0;
+      const espia = () => { disparo++; };
+      document.getElementById('mch_incluir_chk').addEventListener('change', espia);
+      tost.length = 0;
+      ccIntegrarTodas();
+      await new Promise(r=>setTimeout(r,600));
+      R.despues = conDatos.map(i => document.getElementById(i).checked).join(',');
+      document.getElementById('mch_incluir_chk').removeEventListener('change', espia);
+      R.despachoChange = disparo === 1;
+      R.tildoLasConDatos = R.despues === 'true,true,true' && R.antes === 'false,false,false';
+      R.noTocoLasOtras = sinDatos.every(i => document.getElementById(i).checked === false);
+      /* CIA y CIV COMPARTEN casilla: el resumen no puede contar dos secciones por un tilde */
+      R.resumen = tost.filter(t => t.indexOf('CC integradas') >= 0)[0] || '(sin toast)';
+      /* Contar «3 secciones» NO distingue: sin el dedupe, la CIV encuentra la casilla ya
+         tildada por la CIA y cae en «ya estaban» — el conteo sigue dando 3 y la mutacion
+         sobrevive. Lo que delata la doble cuenta es que el resumen mencione «ya estaban» en la
+         PRIMERA pasada, sobre un estudio recien limpiado donde nada estaba integrado. */
+      R.noCuentaDoble = R.resumen.indexOf('3 secci') >= 0 && R.resumen.indexOf('ya estaban') < 0;
+      R.informeSalio = document.getElementById('informe_texto').value.length > 0;
+
+      /* -- 5 - segunda pasada: ya estaban, y no vuelve a anunciar -- */
+      tost.length = 0;
+      ccIntegrarTodas();
+      await new Promise(r=>setTimeout(r,400));
+      R.segunda = tost.filter(t => t.indexOf('ya estaban integradas') >= 0).length === 1 &&
+                  tost.filter(t => t.indexOf('CC integradas') >= 0).length === 0;
+
+      /* -- 6 - los tres botones de ESTILO siguen andando -- */
+      setEstiloInforme('conciso');
+      const act = e2 => document.querySelector('[data-estilo=\\"' + e2 + '\\"]').classList.contains('btn-primary');
+      R.estiloConciso = act('conciso') && !act('estandar') && !act('narrativo');
+      setEstiloInforme('narrativo');
+      R.estiloNarrativo = act('narrativo') && !act('conciso');
+      setEstiloInforme('estandar');
+      R.estiloVuelve = act('estandar');
+
+      /* -- 7 - NUEVO ESTUDIO esconde el boton -- */
+      __t.limpiar();
+      await new Promise(r=>setTimeout(r,350));
+      R.ocultoTrasLimpiar = document.getElementById('cc-integrar-btn').hidden === true;
+    } catch (e) { R.excepcion = String(e && e.message || e); }
+    finally {
+      window.toast = toastOrig;
+      try { __t.limpiar(); } catch (e) {}
+    }
+    return { extra: [
+      ['el boton existe y NO es una pastilla de estilo', R.existe && R.noEsPastilla, R.noEsPastilla],
+      ['todas las casillas de integracion existen',  R.chksExisten, R.faltanChks || 'ninguna falta'],
+      ['arranca OCULTO sin datos de CC',             R.ocultoSinDatos, R.ocultoSinDatos],
+      ['tiene relleno propio en los dos temas',      R.tieneColor && R.temasDifieren, R.temasDifieren],
+      ['y el texto CONTRASTA en los dos',            R.legibleEnAmbos, R.contrastes],
+      ['los tokens de los select son los reales (denominador)', R.tokenCia && R.tokenCiv, R.tokenCia + '/' + R.tokenCiv],
+      ['APARECE con datos de CC y detecta las cuatro', R.visible && R.detectaCuatro, R.claves],
+      ['resuelve las casillas con nombre distinto',  R.excepciones, R.mapa],
+      ['INTEGRA las secciones con datos',            R.tildoLasConDatos, R.antes + ' -> ' + R.despues],
+      ['y no toca las que no tienen datos',          R.noTocoLasOtras, R.noTocoLasOtras],
+      ['despacha change en la casilla que tilda',  R.despachoChange, R.despachoChange],
+      ['CIA y CIV comparten casilla: no cuenta doble', R.noCuentaDoble, R.resumen],
+      ['el informe se regenera',                     R.informeSalio, R.informeSalio],
+      ['la segunda pasada dice «ya estaban»',        R.segunda, R.segunda],
+      ['los tres botones de ESTILO siguen andando',  R.estiloConciso && R.estiloNarrativo && R.estiloVuelve, R.estiloConciso],
+      ['«Nuevo estudio» lo esconde',                 R.ocultoTrasLimpiar, R.ocultoTrasLimpiar]
+    ] };
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];

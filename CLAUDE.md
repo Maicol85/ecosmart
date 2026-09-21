@@ -11,6 +11,68 @@ ninguna es evidente leyendo el código alrededor.
 
 
 
+## Botón 🫀 CC: no es un estilo, es un atajo de integración (TC-217)
+
+### La premisa: «estilo CC» no encaja en el mecanismo, y las secciones ya bajan al informe
+
+`estiloPick(c, e, n)` elige entre **tres redacciones de la misma frase**, en 21 sitios. No
+reordena ni agrega secciones. Y las 12 fichas de CC **ya emiten** anatomía, hemodinámica y
+conclusión cuando el médico integra cada sección. La «anatomía segmentaria» (situs, conexiones AV
+y VA) la app **no la recoge** — un cuarto estilo que la prometiera estaría inventando datos.
+
+Lo que falta no es un generador: es **tildar diecinueve casillas una por una**. Eso hace el botón.
+Decisión de Maicol (2026-09-21).
+
+### VA EN EL GRUPO DE ACCIONES, y el propio marcado explica por qué
+
+El pedido decía «junto a Conciso/Estándar/Narrativo». El comentario que ya estaba ahí dice:
+*«Mezcladas en la misma fila, "Frases" se leía como un cuarto estilo de informe»* — y por eso las
+acciones se separaron con `margin-left:auto`. Poner el botón entre las pastillas repetiría el
+defecto que ese comentario documenta haber corregido. TC-217 lo fija: el botón **no** lleva
+`estilo-pill` ni `data-estilo`.
+
+### ⚠️ `--purple` INVIERTE su contraste entre temas
+
+Medido: blanco da **3,18:1** sobre `#9b7fe8` (tema oscuro, el de fábrica) y **5,32:1** sobre
+`#7457c9` (claro); el casi-negro da 5,93 y 3,55. **Cablear un solo color de texto —como hace
+`.btn-primary` con el blanco— deja el botón ilegible en uno de los dos temas.** Son dos reglas:
+`.btn-purple` con `#0f1117` y `html.light-mode .btn-purple` con `#fff`. Es el blanco sobre
+`--green` de la barra lateral del visor, otra vez. El caso mide en los dos temas **y exige que
+difieran** — si dieran lo mismo estaría midiendo dos veces el mismo tema, que es la trampa de
+TC-114. La mutación que vuelve al blanco fijo imprime `3.18 / 5.32`.
+
+### Los predicados son los de `_CC_SECS`, y el formulario se lee con un Proxy
+
+Esa lista ya define «este estudio tiene una CIA» para el Laboratorio y para el filtro de cohorte;
+una segunda definición haría que el botón aparezca sobre un estudio que el Laboratorio no cuenta.
+Como los predicados reciben un **estudio guardado** (`_labCampoRaw(inf, id)`) y acá hay que mirar
+el **formulario**, se les pasa un `{campos}` que es un **Proxy leyendo del DOM** —replicando el
+sufijo `__chk` de las casillas—. Una sola definición, dos fuentes.
+
+**Las casillas NO siguen todas `<k>_incluir_chk`.** Tres excepciones reales: el ductus es
+`ductus_incluir_chk`, la coartación `coart_incluir_chk`, y **CIA y CIV comparten una sola**
+(`ete_shunt_incluir_chk`) porque son un bloque. `_ccAssertChks()` corre al arrancar: un id
+inexistente no da error, da una sección que el botón dice integrar y que nunca se integra.
+
+**Y la casilla compartida no puede contar doble.** La condición que lo fija **no es el conteo**:
+sin el dedupe, la CIV encuentra la casilla ya tildada por la CIA y cae en «ya estaban», así que
+el total sigue dando 3 y la mutación sobrevive —pasó—. Lo que delata la doble cuenta es que el
+resumen mencione **«ya estaban» en la primera pasada**, sobre un estudio recién limpiado.
+
+### El `change` es redundante HOY, y por eso está probado
+
+Ninguna casilla tiene manejador propio: son `input` ocultos que mueve el botón «📎 Integrar» de
+cada sección. Así que el `dispatchEvent('change')` no hace nada — y un resguardo que no se puede
+hacer fallar **se lee como protección sin serlo**, que es por lo que se borró el «deshacer» de
+`calcET`. Se conserva porque fija el contrato para la sección que mañana le cuelgue un manejador,
+y el contrato **está probado**: el caso engancha un listener de prueba y exige que el botón lo
+dispare. Sin esa condición la mutación sobrevivía.
+
+**Las dos columnas de siempre**: `ccIntegrarSync` va en `RECALC_MODULOS` **y** al final de
+`limpiarCampos` —que no pasa por ese embudo—, más el debounce de `input`/`change` que ya usaba
+el botón de Indicaciones. Se comparte ese debounce en vez de agregar un segundo par de listeners
+con `capture` sobre el documento.
+
 ## Medir desde el slot tras reabrir — y el arreglo «de una palabra» que NO alcanzaba (TC-216)
 
 ### La premisa del pedido estaba INVERTIDA

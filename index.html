@@ -286,6 +286,14 @@
   .btn-ghost { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
   .btn-danger { background: var(--red); color: #fff; }
   .btn-green { background: var(--green); color: #0f1117; }
+  /* 🫀 CC. EL COLOR DEL TEXTO SE PARTE POR TEMA, y no es prolijidad: `--purple` vale #9b7fe8 en
+     oscuro y #7457c9 en claro, y los contrastes se INVIERTEN. Medido: blanco da 3,18:1 sobre el
+     violeta oscuro —ilegible, y el oscuro es el tema por omisión— y 5,32:1 sobre el claro; el
+     casi-negro da 5,93:1 y 3,55:1. Cablear uno solo, como hace `.btn-primary` con el blanco,
+     deja el botón ilegible en uno de los dos temas. Es el blanco sobre `--green` de la barra
+     lateral del visor, otra vez. */
+  .btn-purple { background: var(--purple); color: #0f1117; }
+  html.light-mode .btn-purple { color: #fff; }
   /* Botones "Integrar al informe" — un solo estilo para los de toda la app.
      Gris = el módulo NO está en el informe; verde con tilde = sí lo está.
      Hay DOS pintores, según de dónde salga el estado: amiloSyncBotones() para los
@@ -13015,6 +13023,15 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
             <button type="button" class="btn btn-ghost" id="indic-btn" hidden
                     onclick="indicAbrir()" aria-haspopup="dialog" aria-controls="indic-overlay"
                     title="Indicaciones según guías — sólo pantalla, no va al informe">📋 Indicaciones</button>
+            <!-- 🫀 CC. Va en el grupo de ACCIONES y NO entre las tres pastillas, a pesar de que
+                 el pedido decía «junto a Conciso/Estándar/Narrativo»: el comentario de arriba
+                 documenta que mezclar una acción con el selector de estado ya hizo que «Frases»
+                 se leyera como un cuarto estilo, y esto integra secciones — no cambia redacción.
+                 Color propio (`btn-purple`) para que se distinga de las dos acciones vecinas.
+                 `hidden` como el de Indicaciones, y por el mismo motivo del `min-height:44px`. -->
+            <button type="button" class="btn btn-purple" id="cc-integrar-btn" hidden
+                    onclick="ccIntegrarTodas()"
+                    title="Integra al informe todas las secciones de cardiopatía congénita que tengan datos">🫀 CC</button>
           </span>
         </div>
       </div>
@@ -24700,7 +24717,7 @@ function RECALC_MODULOS() {
          veredicto sí contaba esos criterios;
        · `calcOAI` reconstruye la marca de «área derivada» (ver ahí), sin la cual corregir el
          diámetro en un estudio reabierto dejaba el área vieja. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','vpSync','popSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccIntegrarSync','vpSync','popSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -24999,6 +25016,11 @@ function limpiarCampos(silencioso) {
      anterior, y abrirlo mostraba el mensaje de «sin criterios» sobre un botón que afirmaba que
      los había. Es el patrón `gradoGamma`/`protMonoc` — la columna que falta es siempre ésta. */
   if (typeof indicSyncBoton === 'function') { try { indicSyncBoton(); } catch (e) {} }
+  /* Las DOS columnas, como manda este archivo: `RECALC_MODULOS` cubre las rutas de restauración
+     —que reponen asignando `.value` y no disparan `input`— y `limpiarCampos` NO pasa por ese
+     embudo. Sin esta línea, «Nuevo estudio» dejaba el botón 🫀 CC visible con los datos del
+     paciente anterior. */
+  if (typeof ccIntegrarSync === 'function') { try { ccIntegrarSync(); } catch (e) {} }
   if (!silencioso) toast('🗑 Formulario limpiado');
 }
 
@@ -33392,7 +33414,16 @@ function indicSyncBoton(){
    sobre el documento, como ya hace el autoguardado: así alcanza a los campos que se pueblan por
    código y despachan el evento a mano (las frases rápidas, sin ir más lejos). */
 var _indBtnTimer = null;
-function _indSyncDebounced(){ clearTimeout(_indBtnTimer); _indBtnTimer = setTimeout(indicSyncBoton, 400); }
+/* El mismo debounce enciende los DOS botones condicionales de esa fila. Uno solo y no dos
+   listeners: recorrer `_CC_SECS` es barato, pero dos pares de listeners sobre el documento con
+   `capture` es exactamente como se duplican los manejadores en esta app. */
+function _indSyncDebounced(){
+  clearTimeout(_indBtnTimer);
+  _indBtnTimer = setTimeout(() => {
+    try { indicSyncBoton(); } catch (e) {}
+    if (typeof ccIntegrarSync === 'function') { try { ccIntegrarSync(); } catch (e) {} }
+  }, 400);
+}
 
 (function indicBotonArranque(){
   const init = () => {
@@ -61642,6 +61673,111 @@ const _CC_SEC_POR_K = Object.create(null);
 _CC_SECS.forEach(s => { _CC_SEC_POR_K[s.k] = s; });
 function _ccSecPred(k) { const s = _CC_SEC_POR_K[k]; return s ? s.pred : null; }
 
+/* ══ BOTÓN 🫀 CC — atajo para integrar las secciones de cardiopatía congénita ═════════════════
+   NO es un cuarto estilo de informe, y eso se decidió midiendo: `estiloPick(c, e, n)` elige
+   entre tres REDACCIONES de la misma frase en 21 sitios, no reordena ni agrega secciones. Y las
+   secciones de CC **ya bajan al informe** con su anatomía, su hemodinámica y su conclusión —lo
+   que falta no es un generador, es tildar diecinueve casillas una por una—. Lo que este botón
+   hace es ese gesto: tilda de una vez las secciones de CC QUE TIENEN DATOS.
+   Decisión de Maicol (2026-09-21).
+
+   LOS PREDICADOS SON LOS DE `_CC_SECS`, no una copia. Esa lista ya define «este estudio tiene
+   una CIA» para el Laboratorio y para el panel de cohorte; una segunda definición haría que el
+   botón aparezca sobre un estudio que el Laboratorio no cuenta, y nada lo delataría. Como los
+   predicados reciben un ESTUDIO GUARDADO (`_labCampoRaw(inf, id)`) y acá hay que mirar el
+   FORMULARIO, se les pasa un estudio cuyo `campos` lee del DOM. */
+function _ccFormComoEstudio() {
+  return { campos: new Proxy({}, {
+    has() { return true; },
+    get(_t, id) {
+      if (typeof id !== 'string') return undefined;
+      /* En `campos`, un checkbox vive como `<id>__chk` con '1'/'0'. Se replica para que un
+         predicado que mire una casilla funcione igual sobre el formulario. */
+      const chk = id.length > 5 && id.slice(-5) === '__chk';
+      const el = document.getElementById(chk ? id.slice(0, -5) : id);
+      if (!el) return undefined;
+      if (el.type === 'checkbox') return el.checked ? '1' : '0';
+      return el.value;
+    }
+  }) };
+}
+
+/* La casilla de integración de cada sección. Dieciséis de las diecinueve siguen `<k>_incluir_chk`;
+   las excepciones son reales y están acá en vez de desperdigadas: el ductus y la coartación
+   nombran su casilla con el nombre largo, y CIA y CIV **comparten una sola** —son un bloque. */
+const _CC_CHK_EXCEP = { cia:'ete_shunt_incluir_chk', civ:'ete_shunt_incluir_chk',
+                        dap:'ductus_incluir_chk',    coa:'coart_incluir_chk' };
+const _ccChkId = k => _CC_CHK_EXCEP[k] || (k + '_incluir_chk');
+
+/* Un id de casilla que no exista no da error: da una sección que el botón dice integrar y que
+   nunca se integra — la casilla muda de siempre. Corre al arrancar, como `_labXlsAssertVocab`. */
+function _ccAssertChks() {
+  const faltan = _CC_SECS.map(s => s.k).filter(k => !document.getElementById(_ccChkId(k)));
+  if (faltan.length) console.error('[cc] casillas de integración inexistentes:', faltan.join(', '));
+  return faltan;
+}
+
+/* Las secciones de CC con datos EN EL FORMULARIO. */
+function ccSeccionesConDatos() {
+  const inf = _ccFormComoEstudio();
+  return _CC_SECS.filter(s => { try { return !!s.pred(inf); } catch (e) { return false; } })
+                 .map(s => ({ k: s.k, lbl: s.lbl, chk: _ccChkId(s.k) }));
+}
+
+/* El botón aparece SÓLO si hay datos de CC. Falla hacia VISIBLE: si un predicado lanza, es
+   preferible un botón de más que esconder el atajo justo en el estudio que lo necesita — es el
+   mismo criterio que `indicSyncBoton`. */
+function ccIntegrarSync() {
+  const b = document.getElementById('cc-integrar-btn');
+  if (!b) return;
+  let hay = true;
+  try { hay = ccSeccionesConDatos().length > 0; } catch (e) { hay = true; }
+  b.hidden = !hay;
+}
+window.ccIntegrarSync = ccIntegrarSync;
+
+/* Tilda las casillas y REGENERA. No se toca ninguna otra cosa del informe: lo que cambia es
+   qué secciones se emiten, que es exactamente lo que esas casillas deciden. */
+function ccIntegrarTodas() {
+  const secs = ccSeccionesConDatos();
+  if (!secs.length) { if (typeof toast === 'function') toast('⚠️ No hay secciones de cardiopatía congénita con datos'); return; }
+  const puestas = [], yaEstaban = [], sinCasilla = [];
+  const vistas = Object.create(null);
+  secs.forEach(s => {
+    const c = document.getElementById(s.chk);
+    if (!c) { sinCasilla.push(s.lbl); return; }
+    /* CIA y CIV comparten casilla: se cuenta UNA vez o el resumen dice dos secciones sobre un
+       solo tilde. */
+    if (vistas[s.chk]) return;
+    vistas[s.chk] = true;
+    if (c.checked) { yaEstaban.push(s.lbl); return; }
+    c.checked = true;
+    /* ⚠️ HOY NINGUNA CASILLA TIENE MANEJADOR PROPIO —son `input` ocultos que mueve el botón
+       «📎 Integrar» de cada sección— así que este `change` es REDUNDANTE, y se dice en vez de
+       dejarlo pareciendo una protección: es lo que este archivo ya documenta con el «deshacer»
+       de `calcET`. Se conserva porque fija el CONTRATO para la sección que mañana le cuelgue un
+       manejador, y el contrato está PROBADO: TC-217 engancha un listener de prueba y exige que
+       el botón lo dispare, así que la mutación que lo quita cae. */
+    try { c.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
+    puestas.push(s.lbl);
+  });
+  if (typeof eteInclSync === 'function') { try { eteInclSync(); } catch (e) {} }
+  if (typeof generarInforme === 'function') { try { generarInforme(); } catch (e) {} }
+  ccIntegrarSync();
+  if (typeof toast !== 'function') return;
+  if (!puestas.length && yaEstaban.length) {
+    toast('✓ Las ' + yaEstaban.length + ' sección(es) de CC con datos ya estaban integradas');
+  } else {
+    let m = '🫀 ' + puestas.length + ' sección(es) de CC integradas al informe: ' + puestas.join(', ');
+    if (yaEstaban.length) m += ' · ' + yaEstaban.length + ' ya estaban';
+    if (sinCasilla.length) m += ' · ⚠️ sin casilla: ' + sinCasilla.join(', ');
+    toast(m);
+  }
+}
+window.ccIntegrarTodas = ccIntegrarTodas;
+window.ccSeccionesConDatos = ccSeccionesConDatos;
+setTimeout(() => { try { _ccAssertChks(); ccIntegrarSync(); } catch (e) {} }, 400);
+
 /* ── ETE: los tres predicados que el panel de filtros necesita ──
    `_labEsEte` es la casilla «Es un ETE» que el médico DECLARA; labEteRender ya la usa como
    población de trabajo y la nota de esa subtab explica por qué es un piso y no un total. */
@@ -67237,8 +67373,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260921-0708';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789985288461;                 /* eco-build-ms */
+const ECO_BUILD    = '20260921-0719';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789985940475;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -67324,7 +67460,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-0708</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-0719</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
