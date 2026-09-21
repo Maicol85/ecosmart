@@ -4,6 +4,65 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## «Editar» se mudó de la lista al detalle (TC-225)
+
+La fila de Guardados tenía **seis** controles —⭐ · nota · Evol · PDF · Editar · 🗑️ · ···— y el
+que abre el estudio para corregirlo compartía tamaño y peso visual con el que lo borra. Editar
+pasa al detalle; la fila queda sin él y sin su separador.
+
+### ⚠️ UN COMENTARIO CON ACENTOS GRAVES ME ROMPIÓ EL BLOQUE 8
+
+El marcado del detalle se arma dentro de un **template literal**, así que los backticks del
+comentario que escribí para explicar el cambio **cerraron la cadena** y se llevaron el bloque
+`<script>` entero — el 8, que es **donde vive `CeiboStore`**. Lo cazó el chequeo de sintaxis
+comparado contra HEAD: pasó de fallar 2 bloques (los del extractor, que fallan siempre) a
+fallar 3, con `Unexpected identifier 'margin'`.
+
+Este archivo ya documenta «un comentario mío rompió el bloque `<script>` entero» y la cuenta de
+backticks dentro del cuerpo de un caso va en 36 — pero **ésta es la primera vez que pasa en
+`index.html` y no en el suite**. La regla es la misma y ahora vale para los dos lados: dentro
+de un template literal, **describir sin acentos graves**. Quedó dicho en el propio comentario.
+
+### El contraste descartó la clase que parecía natural
+
+El botón necesitaba una clase al mudarse. `btn-primary` es la que sugiere «acción principal» y
+**falla AA en el tema oscuro**. Medido sobre los dos temas:
+
+| clase | oscuro | claro | |
+|---|---|---|---|
+| **`btn-primary`** | **3,21** | 4,70 | ✗ cablea el blanco |
+| `btn-ghost` | 13,2 | 14,05 | ✓ |
+| `btn-green` | 9,45 | 5,48 | ✓ |
+| `btn-save` | 4,86 | 4,86 | ✓ |
+
+Es el mismo defecto que este archivo documenta para `--purple` en el botón CC: **cablear un
+solo color de texto deja el botón ilegible en uno de los dos temas**. `.btn-primary` ya se usa
+en otros lados —eso es preexistente y fuera de alcance— pero **no se agrega una instancia
+nueva**. Queda `btn-ghost`, la misma clase que el botón ya tenía: **cambia de lugar, no de
+apariencia**, y la prominencia sale de ir primero.
+
+La condición del caso exige AA en los **dos** temas **y que las dos lecturas DIFIERAN** — si
+dieran lo mismo estaría midiendo dos veces el mismo tema, que es la trampa de TC-114.
+
+### «Eliminar» se separa con `margin-left:auto`, no con un margen fijo
+
+Con `flex-wrap`, un margen fijo lo deja **pegado al siguiente** en cuanto la fila envuelve, que
+es justo lo que pasa en móvil. La condición contempla las dos formas de estar separado —hueco
+grande en la misma línea, o en otro renglón— y además exige que **los otros tres sigan juntos
+entre sí**, que es lo que le da sentido al hueco. La mutación que saca el `margin-left` imprime
+`hueco=8 gap=8`.
+
+### Lo que un chequeo de marcado NO ve
+
+Mover un botón es barato de escribir y caro de verificar: lo que puede romperse no es que no
+aparezca —eso se ve— sino que **aparezca y no haga lo mismo**. Los cuatro se **clickean de
+verdad** y se comprueba a qué función llama cada uno. La mutación que le cambia el destino al
+botón de Editar cae ahí, con la lista de llamadas en el diagnóstico.
+
+**Y el suite no dependía del botón**: sus dos usuarios llaman `editarInforme(id)` directo, y
+`__t.reabrir` va por `cargarEstudioPorId`. Se verificó antes de mover, no después.
+
+
 ## Origen del SGL: no es una etiqueta, cambia QUIÉN entra al Bland-Altman (TC-224)
 
 Dos botones bajo el campo SGL —🤖 Automático · ✋ Manual— y cinco variables clínicas más en el

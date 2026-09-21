@@ -38576,7 +38576,6 @@ function igItemHTML(inf, nro) {
         <button class="btn btn-ghost ig-btn ig-nota-ind${notaVal?'':' sin-nota'}" id="ig-nota-ind-${inf.id}" style="display:${esCaso?'inline-flex':'none'};" onclick="igNotaPop(${inf.id}, this)" aria-haspopup="dialog" aria-expanded="false" title="${notaVal?'Ver o editar la nota del caso':'Agregar una nota al caso'}" aria-label="${notaVal?'Ver o editar la nota del caso':'Agregar una nota al caso'}">${notaVal?'📝':'●'}</button>
         <button data-nombre="${escHtml(inf.nombre)}" data-ci="${escHtml(inf.ci)}" onclick="verEvolucionEl(this)" class="btn btn-ghost ig-btn" title="Ver evolución temporal del paciente">Evol</button>${sep}
         <button class="btn btn-ghost ig-btn" onclick="pdfDeInformeGuardado(${inf.id})" title="Generar PDF del estudio">PDF</button>${sep}
-        <button class="btn btn-ghost ig-btn" onclick="editarInforme(${inf.id})" title="Editar el estudio">Editar</button>${sep}
         <button class="btn btn-danger ig-btn" onclick="eliminarInforme(${inf.id})" title="Eliminar el estudio" aria-label="Eliminar el estudio">🗑️</button>
         <button class="btn btn-ghost ig-btn ig-mas" onclick="igMas(this)" title="Más acciones" aria-label="Más acciones" aria-expanded="false">···</button>
       </div>
@@ -42791,10 +42790,26 @@ function verDetalleInforme(id) {
         ${medNombre ? `<span class="badge badge-green">🩺 ${escHtml(medNombre)}</span>` : ''}
         ${medLugar  ? `<span class="badge badge-gray">📍 ${escHtml(medLugar)}</span>` : ''}
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <!-- «Editar» vive acá y ya no en cada fila de la lista: allá eran seis controles por
+           renglón y el que abre el estudio para corregirlo compartía tamaño y peso visual con
+           el que lo borra.
+           ⚠️ «Eliminar informe» se separa con margin-left auto —el mismo recurso que el
+           encabezado del Laboratorio usa para despegar las acciones de las pastillas de
+           estilo— y NO con un margen fijo: al envolver la fila, un margen fijo lo deja pegado
+           al siguiente, que es justo lo que pasa en móvil.
+           Conserva btn-ghost, la clase que ya tenia en la lista: cambia de lugar, no de
+           apariencia, y la prominencia sale de ir primero. Se probo btn-primary y se
+           DESCARTO por contraste -medido: 3,21:1 sobre el tema oscuro, por debajo de AA,
+           porque cablea el blanco-. Es el mismo defecto que este archivo documenta para
+           --purple en el boton CC; no se agrega una instancia nueva.
+           SIN ACENTOS GRAVES EN ESTE COMENTARIO: todo este marcado vive dentro de un template
+           literal, asi que uno solo cierra la cadena y se lleva el bloque entero -- que es
+           donde vive CeiboStore. Ya paso al escribir esta misma nota. -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button class="btn btn-ghost" onclick="editarInforme(${id})" title="Abrir el estudio en el formulario para corregirlo">✏️ Editar</button>
         <button class="btn btn-green" onclick="pdfDeInformeGuardado(${id})">📄 Ver PDF</button>
-        <button class="btn btn-danger" onclick="eliminarInformeYVolver(${id})">🗑️ Eliminar informe</button>
         <button class="btn" style="background:#334155;border-color:#475569;color:#E6EDF3;" onclick="generarPPT(${id})" title="Exportar este estudio a PowerPoint">📊 PPT</button>
+        <button class="btn btn-danger" style="margin-left:auto;" onclick="eliminarInformeYVolver(${id})">🗑️ Eliminar informe</button>
       </div>
     </div>
   </div>`;
@@ -67996,8 +68011,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260921-1114';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790000069758;                 /* eco-build-ms */
+const ECO_BUILD    = '20260921-1134';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790001292517;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -68083,7 +68098,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-1114</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-1134</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -18735,6 +18735,138 @@ caso('TC-224', 'SGL: selector de origen, y el declarado manual NO entra al Bland
 `);
 
 
+/* == TC-225 · «Editar» se muda de la lista al detalle ========================================
+   Mover un boton es barato de escribir y caro de verificar: lo que puede romperse no es que
+   no aparezca -eso se ve- sino que aparezca y NO HAGA LO MISMO. Por eso cada uno de los
+   cuatro se clickea de verdad y se comprueba a que funcion llama, en vez de mirar el marcado.
+
+   Y hay una condicion de CONTRASTE en los dos temas: el boton que se movio necesitaba una
+   clase, y la que parecia natural -btn-primary- da 3,21:1 sobre el tema oscuro porque cablea
+   el blanco. Es el defecto que este archivo ya documenta para --purple en el boton CC. La
+   condicion exige AA en los DOS temas Y que las dos lecturas DIFIERAN: si dieran lo mismo
+   estaria midiendo dos veces el mismo tema, que es la trampa de TC-114.
+   NO DEPENDE DEL PENDRIVE.                                                                  */
+caso('TC-225', 'Guardados: «Editar» sale de la lista y pasa al detalle, separado de Eliminar', `
+  return (async () => {
+    const R = {};
+    const prev = CeiboStore.getLocal();
+    /* Se guardan para restaurar POR ASIGNACION. El operador delete no funciona sobre una
+       declaracion de funcion de nivel superior -propiedad no configurable-, y eso ya dejo un
+       espia vivo para el caso siguiente una vez. */
+    const oEd = window.editarInforme, oPdf = window.pdfDeInformeGuardado,
+          oPpt = window.generarPPT,   oDel = window.eliminarInformeYVolver;
+    try {
+      const ID = 777225;
+      CeiboStore.setLocal([{ id:ID, estudioId:'e'+ID, uuid:'u'+ID, nombre:'Prueba Mover',
+                             ci:'12345678', doc_tipo:'CI', fecha_estudio:'2026-09-20',
+                             fecha_guardado:'2026-09-20T10:00:00', campos:{ fevi:'55' } }]);
+      if (typeof showTab === 'function') showTab('guardados');
+      if (typeof volverAListaInformes === 'function') volverAListaInformes();
+      renderInformesGuardados();
+      await new Promise(r=>setTimeout(r,320));
+
+      /* -- 1 · LA LISTA: Editar se fue, el resto se queda -- */
+      const fila = document.querySelector('.ig-item');
+      R.hayFila = !!fila;
+      if (!R.hayFila) return { extra: [['DENOMINADOR: la lista pinto una fila', false, 'sin filas']] };
+      const txtL = Array.from(fila.querySelectorAll('button')).map(b => b.textContent.trim());
+      R.lista = txtL.join(' ');
+      R.listaSinEditar = txtL.every(t => t.indexOf('Editar') < 0);
+      R.listaConserva = txtL.indexOf('Evol') >= 0 && txtL.indexOf('PDF') >= 0 &&
+                        txtL.some(t => t.indexOf('🗑') >= 0);
+      /* y NO queda ningun llamador de editarInforme colgando en la fila */
+      R.listaSinHandler = fila.innerHTML.indexOf('editarInforme') < 0;
+
+      /* -- 2 · EL DETALLE: los cuatro, en orden -- */
+      verDetalleInforme(ID);
+      await new Promise(r=>setTimeout(r,320));
+      const det = document.getElementById('ig-detalle-view');
+      R.detalleVisible = !!det && getComputedStyle(det).display !== 'none';
+      const bs = Array.from(det.querySelectorAll('button'))
+                   .filter(b => /Editar|Ver PDF|PPT|Eliminar informe/.test(b.textContent));
+      R.orden = bs.map(b => b.textContent.trim().replace(/^[^A-Za-z]+/,''));
+      R.cuatro = bs.length === 4;
+      R.ordenOk = R.orden.join('|') === 'Editar|Ver PDF|PPT|Eliminar informe';
+
+      /* -- 3 · DENOMINADOR de geometria y SEPARACION de Eliminar -- */
+      const rc = b => b.getBoundingClientRect();
+      R.hayGeometria = bs.length === 4 && bs.every(b => rc(b).width > 0 && rc(b).height > 0);
+      if (R.hayGeometria) {
+        const [ed, pdf, ppt, del] = bs;
+        const mismaLinea = Math.abs(rc(del).top - rc(ppt).top) < 4;
+        const huecoAntes = rc(del).left - rc(ppt).right;
+        const gapNormal  = rc(ppt).left - rc(pdf).right;
+        R.mismaLinea = mismaLinea; R.huecoAntes = Math.round(huecoAntes);
+        R.gapNormal = Math.round(gapNormal);
+        /* separado = o bien un hueco MUCHO mayor que el gap normal en la misma linea, o bien
+           quedo en otro renglon -que al envolver es lo que hace margin-left auto-. */
+        R.separado = mismaLinea ? (huecoAntes > gapNormal * 2 + 8) : true;
+        /* y los otros tres SI estan pegados entre si, que es lo que da sentido al hueco */
+        R.otrosJuntos = Math.abs((rc(pdf).left - rc(ed).right) - gapNormal) < 3;
+      }
+
+      /* -- 4 · CADA BOTON LLAMA A LO SUYO. Es lo que un chequeo de marcado no ve -- */
+      const llamadas = [];
+      window.editarInforme          = id => { llamadas.push('editar:' + id); };
+      window.pdfDeInformeGuardado   = id => { llamadas.push('pdf:' + id); };
+      window.generarPPT             = id => { llamadas.push('ppt:' + id); };
+      window.eliminarInformeYVolver = id => { llamadas.push('del:' + id); };
+      bs.forEach(b => b.click());
+      await new Promise(r=>setTimeout(r,120));
+      window.editarInforme = oEd; window.pdfDeInformeGuardado = oPdf;
+      window.generarPPT = oPpt;   window.eliminarInformeYVolver = oDel;
+      R.llamadas = llamadas.join(' ');
+      R.cableadoOk = llamadas.join('|') ===
+        ['editar:' + ID, 'pdf:' + ID, 'ppt:' + ID, 'del:' + ID].join('|');
+
+      /* -- 5 · CONTRASTE en los DOS temas -- */
+      const lum = c => { const m = (String(c).match(/[0-9]+/g) || [0,0,0]).slice(0,3).map(Number)
+          .map(v => { v /= 255; return v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); });
+        return 0.2126*m[0] + 0.7152*m[1] + 0.0722*m[2]; };
+      const ratio = (a,b) => { const l1 = lum(a), l2 = lum(b);
+        const hi = Math.max(l1,l2), lo = Math.min(l1,l2);
+        return +((hi + 0.05) / (lo + 0.05)).toFixed(2); };
+      const edBtn = bs[0];
+      const medir = () => { const cs = getComputedStyle(edBtn);
+                            return ratio(cs.color, cs.backgroundColor); };
+      const eraClaro = document.documentElement.classList.contains('light-mode');
+      document.documentElement.classList.remove('light-mode');
+      await new Promise(r=>setTimeout(r,60));
+      R.cOscuro = medir();
+      document.documentElement.classList.add('light-mode');
+      await new Promise(r=>setTimeout(r,60));
+      R.cClaro = medir();
+      if (!eraClaro) document.documentElement.classList.remove('light-mode');
+      R.aaLosDos = R.cOscuro >= 4.5 && R.cClaro >= 4.5;
+      /* si las dos lecturas COINCIDEN es que se midio dos veces el mismo tema: TC-114 */
+      R.temasDifieren = R.cOscuro !== R.cClaro;
+    } finally {
+      window.editarInforme = oEd; window.pdfDeInformeGuardado = oPdf;
+      window.generarPPT = oPpt;   window.eliminarInformeYVolver = oDel;
+      try { document.documentElement.classList.remove('light-mode'); } catch (e) {}
+      try { CeiboStore.setLocal(prev); } catch (e) {}
+      try { if (typeof volverAListaInformes === 'function') volverAListaInformes(); } catch (e) {}
+      try { renderInformesGuardados(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: la lista pinto una fila',       R.hayFila, R.hayFila],
+      ['«Editar» YA NO esta en la fila de la lista', R.listaSinEditar, R.lista],
+      ['ni queda su handler colgando',               R.listaSinHandler, R.listaSinHandler],
+      ['y la fila conserva Evol, PDF y borrar',      R.listaConserva, R.lista],
+      ['el detalle abre y trae los CUATRO botones',  R.detalleVisible && R.cuatro, R.orden.join('|')],
+      ['en el orden Editar · Ver PDF · PPT · Eliminar', R.ordenOk, R.orden.join('|')],
+      ['DENOMINADOR: los cuatro tienen geometria',   R.hayGeometria, R.hayGeometria],
+      ['ELIMINAR QUEDA SEPARADO de los otros tres',  R.separado, 'hueco=' + R.huecoAntes + ' gap=' + R.gapNormal + ' mismaLinea=' + R.mismaLinea],
+      ['y los otros tres siguen juntos entre si',    R.otrosJuntos, R.otrosJuntos],
+      ['CADA BOTON SIGUE LLAMANDO A LO SUYO',        R.cableadoOk, R.llamadas],
+      ['el boton movido cumple AA en los DOS temas', R.aaLosDos, 'oscuro=' + R.cOscuro + ' claro=' + R.cClaro],
+      ['y las dos lecturas DIFIEREN (no es el mismo tema)', R.temasDifieren, R.cOscuro + ' vs ' + R.cClaro]
+    ] };
+  })();
+`);
+
+
+
 
 
 
