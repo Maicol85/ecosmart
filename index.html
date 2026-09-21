@@ -49105,8 +49105,23 @@ function _strBullsRepintar() {
   const cv = _medEl('cine-str-be');
   if (!cv) return;
   const S = 300;
-  if (cv.width !== S) { cv.width = S; cv.height = S; }
-  _strBullsDibujar(cv.getContext('2d'), S, _strainCalcular(), false);
+  /* ⚠️ EL BACKING STORE VA EN PIXELES DE DISPOSITIVO, NO EN CSS. El canvas nacia con 300x300
+     y se mostraba a 300 px de CSS: en una pantalla Retina -medido, devicePixelRatio 2 en este
+     mismo Chrome- el navegador estira esos 300 al doble y TODO sale borroso. Lo que mas se
+     nota son los rotulos de pared, que a esta escala salen en 7 px.
+     Se dibuja a S*dpr y se fija el tamano CSS en S, con el contexto escalado: el dibujante
+     sigue razonando en las mismas coordenadas de siempre -no se le toca una linea- y el texto
+     rasteriza a resolucion nativa.
+     Se acota a 3 para no inflar el canvas en pantallas de dpr alto por nada. */
+  const dpr = Math.min(3, Math.max(1, window.devicePixelRatio || 1));
+  const px = Math.round(S * dpr);
+  if (cv.width !== px) { cv.width = px; cv.height = px; }
+  /* El tamano CSS se fija explicito: sin esto el canvas mediria `px` y en dpr 2 saldria del
+     doble de grande. `max-width:100%` del marcado lo sigue achicando en pantallas angostas. */
+  cv.style.width = S + 'px'; cv.style.height = S + 'px';
+  const c2 = cv.getContext('2d');
+  c2.setTransform(dpr, 0, 0, dpr, 0, 0);
+  _strBullsDibujar(c2, S, _strainCalcular(), false);
 }
 
 /* Captura: MISMO dibujante, al doble de tamaño, con el título y el descargo QUEMADOS en la
@@ -49654,6 +49669,44 @@ function _larsPanel() {
 
 const _CAP_ETIQ_MAX = 80;
 
+/* Resultado que corresponde QUEMAR en la captura, o cadena vacía si no hay ninguno.
+
+   ⚠️ EL NUMERO NUNCA VA SOLO: va con su METODO. Un PNG que dice «FEVI 58 %» o «SGL -18 %» y
+   termina en el PDF es indistinguible de una medición del equipo, y este archivo ya documenta
+   exactamente ese costo para el bull's eye —«sin el descargo quemado nadie que lo mire después
+   sabe con qué método salió»—. Acá vale igual o más, porque la captura es la imagen del
+   paciente.
+
+   Y NO SE GRADUA. `_simpClasificar` existe y se usa en el panel, pero la captura publica el
+   NUMERO y el metodo, no una banda: esta app borro la graduacion del SGL a proposito y el
+   Simpson monoplano no tiene cortes propios -los valores normales de la guia se midieron por
+   biplano-. Lo que si se dice es CUAL de los dos es, porque no son la misma medicion. */
+function _medResultadoParaCaptura() {
+  /* ⚠️ MANDA LA HERRAMIENTA ACTIVA, no el primero que tenga datos. Las sesiones de Simpson y
+     de strain conviven -las dos sobreviven al cambio de imagen- asi que preguntar «¿hay un
+     Simpson?» primero quemaria una FEVI vieja en la captura de un strain, y al reves. Lo que
+     el medico esta midiendo es lo que corresponde publicar. */
+  try {
+    if (_medHerr === 'simpson' && typeof _simpCalcular === 'function' && _simp) {
+      const R = _simpCalcular();
+      if (R && isFinite(R.fevi)) {
+        /* Biplano y monoplano NO son la misma medicion: la guia recomienda el biplano y sus
+           valores normales se midieron asi. Se dice cual es. */
+        return 'FEVI ' + R.fevi.toFixed(1) + ' % · Simpson ' + (R.bi ? 'biplano' : 'monoplano') +
+               ' por trazado manual';
+      }
+    }
+    if (_medHerr === 'strain' && typeof _strainCalcular === 'function' && _strain) {
+      const R = _strainCalcular();
+      if (R && isFinite(R.sgl)) {
+        return 'SGL ' + R.sgl.toFixed(1) + ' % · ' + R.etiqueta +
+               ' · contornos manuales, no speckle tracking';
+      }
+    }
+  } catch (e) {}
+  return '';
+}
+
 function medCapturarConMedicion() {
   const D = _cineDatos; if (!D) { toast('❌ No hay ningún cineloop abierto'); return; }
   const base = _medEl('cine-cv');
@@ -49663,7 +49716,11 @@ function medCapturarConMedicion() {
   const w = base.width, h = base.height;
   const etiq = String(_medEtiqueta || '').trim().slice(0, _CAP_ETIQ_MAX);
   const esc = Math.max(1, w / 900);
-  const franja = etiq ? Math.round(34 * esc) : 0;
+  /* El resultado va en su propio renglón de la franja: hasta ahora la captura llevaba las
+     líneas de la medición y NO el número, así que el PNG mostraba un trazado sin decir qué
+     dio. */
+  const res = _medResultadoParaCaptura();
+  const franja = (etiq || res) ? Math.round((etiq && res ? 56 : 34) * esc) : 0;
 
   const cv = document.createElement('canvas');
   cv.width = w; cv.height = h + franja;
@@ -49674,18 +49731,29 @@ function medCapturarConMedicion() {
      movería cada medición de lugar respecto de la anatomía que describe. */
   if (med && med.width === w && med.height === h) g.drawImage(med, 0, 0);
 
-  if (etiq) {
-    g.fillStyle = '#111827';
-    g.font = 'bold ' + Math.round(19 * esc) + 'px system-ui, sans-serif';
+  if (etiq || res) {
     g.textAlign = 'left'; g.textBaseline = 'middle';
-    g.fillText(etiq, Math.round(10 * esc), h + franja / 2);
+    const x = Math.round(10 * esc);
+    if (etiq && res) {
+      g.fillStyle = '#111827';
+      g.font = 'bold ' + Math.round(19 * esc) + 'px system-ui, sans-serif';
+      g.fillText(etiq, x, h + Math.round(17 * esc));
+      g.fillStyle = '#374151';
+      g.font = 'bold ' + Math.round(15 * esc) + 'px system-ui, sans-serif';
+      g.fillText(res, x, h + Math.round(40 * esc));
+    } else {
+      g.fillStyle = '#111827';
+      g.font = 'bold ' + Math.round(etiq ? 19 * esc : 15 * esc) + 'px system-ui, sans-serif';
+      g.fillText(etiq || res, x, h + franja / 2);
+    }
   }
 
   cv.toBlob(b => {
     if (!b) { toast('❌ No se pudo generar la imagen'); return; }
     const idx = _dcmImgReservar(1)[0];
     imgCompressLoad(b, idx, 'visor');
-    toast('✅ Cuadro con las mediciones agregado' + (etiq ? ' — ' + etiq : ''));
+    toast('✅ Cuadro con las mediciones agregado' + (etiq ? ' — ' + etiq : '') +
+          (res ? ' · ' + res.split(' · ')[0] : ''));
   }, 'image/jpeg', 0.92);
 }
 window.medCapturarConMedicion = medCapturarConMedicion;
@@ -68091,8 +68159,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260921-1213';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790003590108;                 /* eco-build-ms */
+const ECO_BUILD    = '20260921-1237';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790005047733;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -68178,7 +68246,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-1213</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-1237</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

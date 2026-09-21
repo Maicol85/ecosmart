@@ -4,6 +4,90 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## El resultado en la captura, y la diana borrosa (TC-227)
+
+### BUG 3: la captura llevaba las LÍNEAS y no el NÚMERO
+
+`medCapturarConMedicion` componía imagen + overlay + franja de etiqueta. El resultado —FEVI o
+SGL— no estaba en ninguno de los tres: **vive en el panel, no en el canvas**. El PNG que llega
+al PDF mostraba un trazado sin decir qué dio.
+
+**⚠️ Y EL NÚMERO NUNCA VA SOLO: va con su MÉTODO.** Un PNG que dice «FEVI 58 %» o «SGL −18 %»
+es indistinguible de una medición del equipo, y este archivo ya documenta ese costo exacto para
+el bull's eye —*«sin el descargo quemado nadie que lo mire después sabe con qué método
+salió»*—. Acá vale más, porque es la imagen del paciente. Se quema
+`FEVI 51,4 % · Simpson biplano por trazado manual` y
+`SGL −16,7 % · … · contornos manuales, no speckle tracking`.
+
+**Biplano y monoplano se distinguen**, porque no son la misma medición: la guía recomienda el
+biplano y sus valores normales se midieron así. Y **no se gradúa**: esta app borró la
+graduación del SGL a propósito y el monoplano no tiene cortes propios.
+
+**⚠️ MANDA LA HERRAMIENTA ACTIVA, no el primero que tenga datos.** Las sesiones de Simpson y de
+strain **conviven** —las dos sobreviven al cambio de imagen— así que preguntar «¿hay un
+Simpson?» primero quemaría una **FEVI vieja** en la captura de un strain. Lo tuve mal en la
+primera versión y lo delató la sonda. El escenario del caso siembra **las dos a la vez**, que
+es lo único que distingue una implementación de la otra.
+
+### BUG 4: no era el tamaño de la letra, era el backing store
+
+El canvas de la diana nacía con `width="300"` y se mostraba a 300 px de CSS. Medido:
+**`devicePixelRatio` es 2** en este mismo Chrome, así que el navegador estira esos 300 al doble
+y **todo** sale borroso — lo que más se nota son los rótulos de pared, que a esa escala salen
+en **7 px** (`esc = S/320`, `round(7.5 × 0,9375)`).
+
+Se dibuja a `S × dpr` con el tamaño CSS fijado en `S` y el contexto escalado: **el dibujante no
+cambia una línea** —sigue razonando en las mismas coordenadas— y el texto rasteriza a
+resolución nativa. Acotado a 3 para no inflar el canvas por nada.
+
+**No se tocaron los tamaños de fuente**, y es deliberado: este archivo documenta que la diana
+ya se salió del canvas una vez y que *un canvas no avisa, recorta en silencio*. El reporte dice
+«borrosas», no «chicas».
+
+### Dos mutaciones que SOBREVIVIERON, y las dos eran huecos del caso
+
+- **`dpr = 1` sobrevivía porque en el harness `devicePixelRatio` VALE 1.** La condición
+  `backing === 300 × dpr` se cumple igual sin el arreglo: era **vacua** en ese entorno. Hoy el
+  caso **fuerza** `devicePixelRatio` a 2 con `Object.defineProperty` y declara si pudo. La
+  lección es la de siempre con otra cara: *una condición que depende del entorno hay que
+  fijarla, no heredarla*.
+- **Borrar el renglón del resultado sobrevivía porque mutaba OTRA RAMA.** El dibujo tiene dos:
+  un renglón (sólo etiqueta o sólo resultado) y **dos** (etiqueta + resultado). Mi escenario
+  sólo ejercía la primera. Hoy captura con las dos combinaciones y cuenta tinta **arriba y
+  abajo**; la mutación imprime `arriba=725 abajo=0`.
+
+### Y la forma del fixture, TRES veces en la misma sesión
+
+Un trazado tiene **dos consumidores con campos distintos**, y los dos muerden:
+
+| | lee | si falta |
+|---|---|---|
+| `_simpCalcular` | `diamCm` —un **ARRAY de 20 discos**, no un escalar— y `Lcm` | volumen `NaN` → `null`, la captura sale sin FEVI y parece que el arreglo no anda |
+| `_medPintar` | `pts[]` para dibujar el contorno | `Cannot read properties of undefined`… **sólo si hay canvas** |
+
+Y no eran dos campos sino **siete**: `_medPintar` lee además `eje.M`, `eje.apex`, `eje.L`,
+`eje.ux`, `eje.uy` y `diam[]` —otro array, en **píxeles**, distinto de `diamCm`—. Los fui
+descubriendo **de a uno por corrida**, que es la forma más cara posible.
+
+Ese «sólo si hay canvas» es lo que lo vuelve traicionero: con `--solo` no hay visor abierto y
+el caso **pasa**; en el suite completo, con el visor que dejó un caso anterior, **revienta**.
+Es «pasa con --solo y falla en el suite» por **sexta** vez.
+
+**LA SALIDA NO ERA ADIVINAR MEJOR, ERA DEJAR DE ADIVINAR.** El trazado se arma ahora con los
+**constructores de la app** —`_simpEje` y `_simpDiametros` sobre un contorno de puntos
+reales—, así que todos los campos salen coherentes entre sí y de la misma fuente que los de
+verdad; la forma exacta la fija `_simpAceptar`. **Al fabricar una estructura que la app
+construye, usar su constructor y no una copia a mano** — y si hace falta mirarlo, está en el
+sitio donde la app la crea, no en el que la consume.
+
+Verificado con aritmética cerrada: 20 discos de 4 cm y L = 8 dan `π/4 · 128 = 100,5 ml`.
+
+**Y un `assert` del script de parcheo lo frenó a tiempo**, otra vez: el reemplazo de los
+fixtures no matcheó —las dos entradas estaban partidas en dos líneas— y el archivo **no se
+escribió**. Sin esa guarda habría corrido el caso creyendo que lo había arreglado, porque el
+`--solo` da verde con el fixture viejo. Es lo que separa «no se aplicó» de «se aplicó mal».
+
+
 ## Los dos bugs del flujo de medición — y uno era una premisa falsa (TC-226)
 
 ### ⚠️ BUG 1: «al cambiar de imagen el visor no recalibra» — MEDIDO, ES FALSO

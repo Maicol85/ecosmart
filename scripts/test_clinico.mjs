@@ -19081,6 +19081,242 @@ caso('TC-226', 'Visor: confirmar sin declarar ventana, y recalibrar al cambiar d
 `);
 
 
+/* == TC-227 · El resultado en la captura, y la diana nitida =================================
+   BUG 3: la captura del cuadro llevaba las LINEAS de la medicion y no el NUMERO, asi que el
+   PNG que va al PDF mostraba un trazado sin decir que dio. Se quema el resultado.
+
+   ⚠️ Y NUNCA VA SOLO: va con su METODO. Un PNG que dice «FEVI 58 %» o «SGL -18 %» es
+   indistinguible de una medicion del equipo, y este archivo ya documenta ese costo para el
+   bull's eye -«sin el descargo quemado nadie que lo mire despues sabe con que metodo salio»-.
+   Ademas Simpson BIPLANO y MONOPLANO no son la misma medicion -la guia recomienda el biplano
+   y sus valores normales se midieron asi- asi que se dice cual es.
+
+   ⚠️ Y MANDA LA HERRAMIENTA ACTIVA, no el primero que tenga datos: las sesiones de Simpson y
+   de strain conviven, asi que preguntar por Simpson primero quemaria una FEVI vieja en la
+   captura de un strain. El escenario siembra LAS DOS a la vez, que es lo unico que distingue
+   una implementacion de la otra.
+
+   BUG 4: el canvas de la diana nacia con backing store de 300 y se mostraba a 300 px de CSS.
+   Medido, devicePixelRatio 2 en este mismo Chrome: el navegador estira esos 300 al doble y el
+   texto sale borroso -los rotulos de pared son de 7 px a esa escala-. Se dibuja a S*dpr.
+   NO DEPENDE DEL PENDRIVE.                                                                  */
+caso('TC-227', 'Visor: el resultado se quema en la captura con su metodo, y la diana va en pixeles reales', `
+  return (async () => {
+    const R = {};
+    const cineOrig = window._cineDatos, herrOrig = window._medHerr;
+    const loadOrig = window.imgCompressLoad, resOrig = window._dcmImgReservar;
+    const toastOrig = window.toast, alertOrig = window.alert;
+    window.toast = () => {}; window.alert = () => {};
+    /* ⚠️ EL TRAZADO SE ARMA CON LOS CONSTRUCTORES DE LA APP, no a mano. Fabricarlo campo por
+       campo fallo TRES veces seguidas, cada una por un campo distinto: _simpCalcular lee
+       diamCm -un ARRAY de SIMP_N discos, no un escalar- y Lcm; _medPintar lee pts[], eje.M,
+       eje.apex, eje.L, eje.ux, eje.uy y diam[] -en PIXELES, otro array-. Y lo de _medPintar
+       revienta SOLO cuando hay canvas, o sea que con --solo pasaba y en el suite completo
+       -con el visor que dejo abierto un caso anterior- se caia.
+       Con _simpEje y _simpDiametros todos los campos salen coherentes entre si y de la misma
+       fuente que los de verdad; la forma exacta la fija _simpAceptar. */
+    const contorno = (cx0, yBase, semi, alto) => {
+      const P = [];
+      for (let i = 0; i <= 40; i++) {
+        const t = Math.PI * (i / 40);                 // media elipse: anillo -> apex -> anillo
+        P.push({ x: cx0 - semi * Math.cos(t), y: yBase + alto * Math.sin(t) });
+      }
+      return P;
+    };
+    const sp = (semi, alto, img) => {
+      const pts = contorno(300, 60, semi, alto);
+      const eje = _simpEje(pts);
+      const diam = _simpDiametros(pts, eje, SIMP_N);
+      const cmPorPx = 0.05;                           // la escala de la region sembrada
+      return { pts, eje, diam, cmPorPx, imagen:img,
+               diamCm: diam.map(d => d * cmPorPx), Lcm: eje.L * cmPorPx };
+    };
+    const tr = (a,b) => ({ bordeCm:a+b, cuerdaCm:2, arcoAcm:a, arcoBcm:b,
+                           pts:[{x:10,y:10},{x:50,y:80},{x:90,y:10}],
+                           eje:{ M:{x:50,y:10}, apex:{x:50,y:80} },
+                           metodo:'libre', imagen:'IMG1' });
+    /* Se intercepta la puerta de salida y se DECODIFICA el blob: mirar el codigo no dice si
+       el texto quedo en los pixeles. Es la tecnica de TC-202. */
+    let capturado = null;
+    window._dcmImgReservar = () => [0];
+    window.imgCompressLoad = (blob) => { capturado = blob; };
+    const leer = async (blob) => {
+      const bmp = await createImageBitmap(blob);
+      const c = document.createElement('canvas');
+      c.width = bmp.width; c.height = bmp.height;
+      c.getContext('2d').drawImage(bmp, 0, 0);
+      return { w:bmp.width, h:bmp.height, ctx:c.getContext('2d') };
+    };
+    const tintaEn = (im, y0, y1) => {
+      const d = im.ctx.getImageData(0, y0, im.w, Math.max(1, y1 - y0)).data;
+      let n = 0;
+      for (let i = 0; i < d.length; i += 4) if (d[i] < 200 && d[i+1] < 200 && d[i+2] < 200) n++;
+      return n;
+    };
+    try {
+      const reg = dx => ([{ x0:0,y0:0,x1:600,y1:400, dx:dx,dy:dx, ux:3,uy:3,
+                            tipo:1, rx0:0,ry0:0,rvy:0 }]);
+      window._cineDatos = { i:0, loops:[{ nombre:'A4C',
+        d:{ regiones:reg(0.05), cols:600, filas:400 }, frames:[], ms:40 }]};
+      /* canvas base de la imagen, que es lo que la captura compone */
+      let cv = document.getElementById('cine-cv');
+      if (!cv) { cv = document.createElement('canvas'); cv.id = 'cine-cv';
+                 document.body.appendChild(cv); }
+      cv.width = 600; cv.height = 400;
+      const gg = cv.getContext('2d');
+      gg.fillStyle = '#8899aa'; gg.fillRect(0, 0, 600, 400);
+
+      /* -- 0 · DENOMINADOR: las dos sesiones existen y calculan -- */
+      medHerramienta('strain');
+      _strain.loopListo = true; _strain.vista = 'a4c';
+      _strain.vistas.a4c = { d:tr(9,9), s:tr(7.5,7.5) };
+      const Rs = _strainCalcular();
+      medHerramienta('simpson');
+      _simp.pares = [{ d:sp(80, 240, 'A'), s:sp(56, 232, 'A') }, { d:null, s:null }];
+      const Rm = _simpCalcular();
+      R.lasDosCalculan = !!(Rs && isFinite(Rs.sgl) && Rm && isFinite(Rm.fevi));
+      if (!R.lasDosCalculan) return { extra: [['DENOMINADOR: las dos sesiones calculan', false,
+                                               'sgl=' + (Rs && Rs.sgl) + ' fevi=' + (Rm && Rm.fevi)]] };
+
+      /* -- 1 · el texto: numero + METODO, y monoplano distinto de biplano -- */
+      R.txtMono = _medResultadoParaCaptura();
+      _simp.pares[1] = { d:sp(72, 250, 'B'), s:sp(50, 244, 'B') };
+      R.txtBi = _medResultadoParaCaptura();
+      R.traeFevi   = R.txtMono.indexOf('FEVI') >= 0 && R.txtBi.indexOf('FEVI') >= 0;
+      R.diceMetodo = R.txtMono.indexOf('monoplano') >= 0 && R.txtBi.indexOf('biplano') >= 0;
+      R.distingue  = R.txtMono.indexOf('biplano') < 0;
+      R.diceManual = R.txtBi.indexOf('trazado manual') >= 0;
+      /* y NO gradua: esta app borro la graduacion a proposito */
+      R.noGradua = !/normal|leve|moderad|sever|deprimid|conservad/i.test(R.txtBi);
+
+      /* -- 2 · LA HERRAMIENTA ACTIVA MANDA, con las dos sesiones vivas -- */
+      medHerramienta('strain');
+      R.conStrain = _medResultadoParaCaptura();
+      R.strainDaSGL = R.conStrain.indexOf('SGL') >= 0 && R.conStrain.indexOf('FEVI') < 0;
+      R.strainDiceMetodo = R.conStrain.indexOf('no speckle tracking') >= 0;
+      medHerramienta('simpson');
+      R.simpsonDaFEVI = _medResultadoParaCaptura().indexOf('FEVI') >= 0;
+      medHerramienta('dist');
+      R.distanciaNoInventa = _medResultadoParaCaptura() === '';
+
+      /* -- 3 · SE QUEMA DE VERDAD: se decodifica el JPEG y se cuenta tinta -- */
+      medHerramienta('simpson');
+      window._medEtiqueta = '';
+      capturado = null;
+      medCapturarConMedicion();
+      await new Promise(r=>setTimeout(r,450));
+      R.huboBlob = !!capturado;
+      if (capturado) {
+        const im = await leer(capturado);
+        R.altoConRes = im.h;
+        R.creceLaFranja = im.h > 400;
+        R.tintaEnLaFranja = tintaEn(im, 402, im.h);
+        R.escribeElResultado = R.tintaEnLaFranja > 150;
+      }
+      /* con ETIQUETA ademas del resultado son DOS renglones, y es OTRA rama del dibujo: sin
+         ejercerla, la mutacion que borra el renglon del resultado sobrevivia -paso-. */
+      medHerramienta('simpson');
+      window._medEtiqueta = 'A4C sistole';
+      capturado = null;
+      medCapturarConMedicion();
+      await new Promise(r=>setTimeout(r,450));
+      if (capturado) {
+        const im3 = await leer(capturado);
+        R.altoDosRenglones = im3.h;
+        /* la franja de dos renglones es mas alta que la de uno */
+        R.franjaMasAlta = im3.h > R.altoConRes;
+        /* y hay tinta en LOS DOS: arriba la etiqueta, abajo el resultado */
+        R.tintaArriba = tintaEn(im3, 402, 400 + Math.round(28 * Math.max(1, 600/900)));
+        R.tintaAbajo  = tintaEn(im3, 400 + Math.round(30 * Math.max(1, 600/900)), im3.h);
+        R.dosRenglonesConTinta = R.tintaArriba > 100 && R.tintaAbajo > 100;
+      }
+      window._medEtiqueta = '';
+
+      /* control: sin resultado y sin etiqueta la captura queda como siempre */
+      medHerramienta('dist');
+      window._medEtiqueta = '';
+      capturado = null;
+      medCapturarConMedicion();
+      await new Promise(r=>setTimeout(r,450));
+      if (capturado) {
+        const im2 = await leer(capturado);
+        R.altoSinNada = im2.h;
+        R.sinFranjaSinNada = im2.h === 400;
+      }
+
+      /* -- 4 · BUG 4: la diana en pixeles de dispositivo -- */
+      medHerramienta('strain');
+      _strain.loopListo = true; _strain.vista = 'a4c';
+      _strain.vistas.a4c = { d:tr(9,9), s:tr(7.5,7.5) };
+      let barra = document.getElementById('cine-med-barra');
+      if (!barra) { barra = document.createElement('div'); barra.id = 'cine-med-barra';
+                    document.body.appendChild(barra); }
+      barra.innerHTML = _strainPanel();
+      _strBullsRepintar();
+      await new Promise(r=>setTimeout(r,160));
+      const be = document.getElementById('cine-str-be');
+      R.hayDiana = !!be;
+      if (be) {
+        R.dprReal = window.devicePixelRatio;
+        /* ⚠️ SE FUERZA UN dpr DE 2. En este Chrome headless devicePixelRatio vale 1, asi que
+           «backing === 300 * dpr» se cumple tambien SIN el arreglo: la condicion era vacua y
+           la mutacion que fija dpr en 1 sobrevivia -paso-. Forzandolo, la condicion distingue
+           las dos implementaciones en cualquier entorno. */
+        let forzado = false;
+        try {
+          Object.defineProperty(window, 'devicePixelRatio', { value:2, configurable:true });
+          forzado = window.devicePixelRatio === 2;
+        } catch (e) {}
+        R.pudoForzar = forzado;
+        _strBullsRepintar();
+        await new Promise(r=>setTimeout(r,120));
+        const dpr = 2;
+        R.dpr = dpr;
+        R.backing = be.width;
+        R.css = parseFloat(be.style.width || '0');
+        R.escalaConDpr = forzado && be.width === Math.round(300 * dpr) && R.css === 300;
+        /* DENOMINADOR: si el canvas esta en blanco, «nitido» no significa nada */
+        const g2 = be.getContext('2d');
+        const dd = g2.getImageData(0, 0, be.width, be.height).data;
+        let ink = 0;
+        for (let i = 0; i < dd.length; i += 4) if (dd[i] < 240 || dd[i+1] < 240 || dd[i+2] < 240) ink++;
+        R.dianaDibuja = ink > 500;
+      }
+    } finally {
+      window.imgCompressLoad = loadOrig; window._dcmImgReservar = resOrig;
+      window.toast = toastOrig; window.alert = alertOrig;
+      window._medHerr = herrOrig;
+      try { medApagar(); } catch (e) {}
+      try { window._cineDatos = cineOrig; } catch (e) {}
+      try { const b = document.getElementById('cine-med-barra'); if (b) b.innerHTML = ''; } catch (e) {}
+      try { delete window.devicePixelRatio; } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: las dos sesiones calculan',     R.lasDosCalculan, R.lasDosCalculan],
+      ['el resultado trae la FEVI',                  R.traeFevi, R.txtBi],
+      ['Y SIEMPRE CON SU METODO',                    R.diceMetodo && R.diceManual, R.txtMono],
+      ['monoplano y biplano se distinguen',          R.distingue, R.txtMono + ' || ' + R.txtBi],
+      ['y NO gradua en bandas',                      R.noGradua, R.txtBi],
+      ['LA HERRAMIENTA ACTIVA MANDA: strain da SGL', R.strainDaSGL, R.conStrain],
+      ['con su metodo tambien',                      R.strainDiceMetodo, R.strainDiceMetodo],
+      ['y Simpson da FEVI',                          R.simpsonDaFEVI, R.simpsonDaFEVI],
+      ['sin herramienta de resultado no inventa nada', R.distanciaNoInventa, R.distanciaNoInventa],
+      ['DENOMINADOR: la captura produjo una imagen', R.huboBlob, R.huboBlob],
+      ['la franja crece para el resultado',          R.creceLaFranja, R.altoConRes],
+      ['Y EL RESULTADO QUEDA EN LOS PIXELES',        R.escribeElResultado, 'tinta=' + R.tintaEnLaFranja],
+      ['con etiqueta Y resultado hay tinta en LOS DOS renglones',
+        R.franjaMasAlta && R.dosRenglonesConTinta, 'alto=' + R.altoDosRenglones +
+        ' arriba=' + R.tintaArriba + ' abajo=' + R.tintaAbajo],
+      ['sin resultado ni etiqueta la captura no cambia', R.sinFranjaSinNada, R.altoSinNada],
+      ['DENOMINADOR: la diana se dibuja',            R.hayDiana && R.dianaDibuja, R.dianaDibuja],
+      ['DENOMINADOR: se pudo forzar un dpr de 2',    R.pudoForzar, 'real=' + R.dprReal],
+      ['LA DIANA VA EN PIXELES DE DISPOSITIVO',      R.escalaConDpr, 'backing=' + R.backing + ' css=' + R.css + ' dpr=' + R.dpr]
+    ] };
+  })();
+`);
+
+
+
 
 
 
