@@ -11,6 +11,88 @@ ninguna es evidente leyendo el código alrededor.
 
 
 
+## La franja negra del PPT era la MATRIZ DE ROTACIÓN, y el video que «no persiste» (TC-213/214)
+
+Dos reportes del mismo turno. Los dos se reprodujeron midiendo, y ninguno era lo que decía el título.
+
+### 1 · PowerPoint NO APLICA LA MATRIZ DE ROTACIÓN
+
+Reportado como «el video muestra contenido sólo en la mitad derecha; el póster no está centrado».
+**No es el póster.** Medido sobre el clip real: el póster sale completo y bien orientado
+(576×1024, cuartos de luminancia 90/121/126/95), y el PPT que el médico generó lleva el marco ya
+en 1,95"×3,47" (relación 0,562), o sea **con el arreglo de aspecto puesto**.
+
+Lo que pasa es que un clip grabado con el celular en vertical se codifica **APAISADO** —el `tkhd`
+declara 1024×576— más una **matriz de rotación de 90°**. Chrome la aplica: `videoWidth/Height`
+dan 576×1024 y `drawImage` dibuja la imagen derecha. **PowerPoint la ignora y dibuja los cuadros
+crudos.** Verificado en PowerPoint con el archivo real: el video sale como una franja acostada
+contra el borde derecho y el resto del marco queda negro.
+
+**Ninguna geometría arregla eso.** Con el marco vertical sale la franja; con el marco apaisado
+saldría proporcionado pero **girado 90°**, o sea un eco acostado. **El archivo hay que
+NORMALIZARLO**: se re-codifica dibujando los cuadros ya rotados en un canvas, que es exactamente
+lo que `_cineAMp4` hace con un cineloop. Medido sobre el clip del médico: `tkhd` pasa de 1024×576
+a **576×1024**, deja de declarar rotación, 1,90 MB → 1,48 MB en 12,6 s.
+
+**Verificado en PowerPoint, que es el único oráculo:** un MP4 vertical **sin** matriz de rotación
+llena el marco entero, con la banda «ARRIBA» arriba y «ABAJO» abajo y **cero franjas negras**.
+
+**Sólo se normaliza si el archivo declara rotación** —cuesta una generación de pérdida y el tiempo
+del clip—. La decisión sale de comparar el `tkhd` con lo que entrega el elemento `<video>`:
+`_videoTkhdWH` lee el box en los primeros y los últimos 256 KB, porque el `moov` puede estar en
+cualquiera de los dos extremos, y exige que el box mida 92 o 104 bytes para no confundirse con
+esos cuatro caracteres apareciendo dentro de los datos.
+
+#### ⚠️ Y la primera implementación no funcionaba en segundo plano
+
+Reproducía el `<video>` y copiaba cada cuadro con **`requestVideoFrameCallback`**, que **no
+dispara en una pestaña oculta** — misma familia que el `requestAnimationFrame` que ya colgó
+`labGenerarPDF`. Medido: 16,4 s esperando y un blob **vacío**. Hoy avanza por **seeks**, que no
+dependen de que el navegador presente cuadros: anda con la pestaña de fondo y se puede verificar
+en el harness. El clip conserva su duración —o sea su velocidad— y queda remuestreado a 25 fps
+(+1,8 % de duración medido, por el remuestreo y la cola).
+
+### 2 · El video «que no persiste»: el videoId SÍ viaja
+
+Medido con el archivo real: en disco quedan el slot **con su `videoId`** (claves
+`dataURL,ampliada,calidad,origen,videoId,videoNombre`) y el registro en `ceibomed_video` con sus
+1.901.480 bytes; al reabrir por Guardados → Editar → «Cargar datos», el slot vuelve con el mismo
+`videoId`, el blob se repuebla y el badge se dibuja. **La lista blanca y la restauración están
+bien.**
+
+**Lo que faltaba es el caso del TOGGLE APAGADO, que es el estado de FÁBRICA.** Ahí el video se
+carga, se ve, se reproduce y se puede capturar — y al reabrir **desaparece sin una palabra**:
+`imgPersistir` corta antes de escribir e `imgRestaurar` corta antes de leer. Medido: 0 slots y 0
+videos en disco, y la reapertura ni siquiera intenta la lectura. El **cineloop ya avisaba esto
+mismo** con `_cinePuedeGuardar()`, distinguiendo los dos motivos; el video del slot no. Es «el
+interruptor mentía sobre el disco» otra vez.
+
+**Y `videoPersistir` podía BORRAR.** `CeiboVideo.guardar` **reemplaza** todos los videos del
+estudio, y los bytes viven en `_videoBlobs`, que es memoria de sesión repoblada por
+`videoRestaurar` de forma **asíncrona y sin que nadie la espere**. Si se guarda con esa lectura
+en vuelo —o si falló— la lista sale vacía y el video guardado se destruye. Hoy **falla cerrado**:
+un slot con `videoId` cuyo blob no está en memoria **aborta la escritura entera**. Es la misma
+regla que `imgPersistir` ya aplica con `_imgEditado`.
+
+### Lo que costó, y son todas lecciones repetidas
+
+- **Mi sonda no clickeaba el modal de `editarInforme`.** Daba «0 slots restaurados» y parecía el
+  defecto reportado. `editarInforme` abre un modal con `#edit-ok`; sin apretarlo no carga nada.
+  **Antes de creerle a una restauración que no restaura, confirmar que la carga ocurrió** — el
+  campo `nombre` vacío lo gritaba.
+- **La condición de la rotación SOBREVIVIÓ a su mutación.** Probaba `_videoTkhdWH` y la
+  comparación **por su cuenta**, así que el generador ignorando la decisión pasaba en verde. Es
+  «un caso que reimplementa la regla prueba su propia copia», **sexta vez**. Hoy el fixture se
+  guarda con el `tkhd` **cruzado a mano** —MediaRecorder no produce la matriz, hay que fabricar
+  el caso— y la condición mira **los bytes que embebe el generador**: con la mutación imprime
+  `4564 vs 4564 guardados`.
+- **TC-214 pasaba con `--solo` y fallaba en el suite.** `imgPersistir` **aborta mientras dura una
+  reimpresión** —es deliberado— y TC-213 deja esa bandera en vuelo. El caso espera a que baje y
+  **lo declara como condición**. Es el denominador otra vez.
+- **Backticks dentro del cuerpo de un caso: van TREINTA**, seis en este turno, todos en
+  comentarios recién escritos.
+- **El archivo del paciente no entró al repo**: se copió al directorio servido, se usó y se borró.
+
 ## «El video no aparece en el PPT»: estaba, y eran el MARCO y el PÓSTER (2026-09-21)
 
 Reportado como «el selector detecta el video (1 de 1, 1.8 MB) pero al generar el PPT el video no

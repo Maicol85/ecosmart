@@ -44109,11 +44109,32 @@ function _pptDesdeFormulario(inf, tema, presentador){
         }
         dataURL = await _blobADataURL(blob);
       } else {
-        dataURL = await _blobADataURL(v.blob);
+        /* ¿EL ARCHIVO DECLARA ROTACIÓN? Si el `tkhd` trae las dimensiones intercambiadas respecto
+           de las que entrega el elemento `<video>`, hay una rotación de 90° que PowerPoint NO
+           aplica — y el video sale acostado contra un borde con el resto del marco en negro.
+           Se re-codifica con los cuadros ya derechos. Si no se puede, se embebe el original y se
+           DICE: un video torcido es mejor que ningún video, pero callarlo no. */
+        let fuente = v.blob;
+        const tk = await _videoTkhdWH(v.blob);
+        const rotado = !!(tk && v.w > 0 && v.h > 0 && (tk.w > tk.h) !== (v.w > v.h));
+        if (rotado) {
+          if (typeof toast === 'function') {
+            toast('🎬 «' + v.nombre + '» está grabado en vertical: se está corrigiendo la ' +
+                  'rotación (' + Math.round(v.dur || 0) + ' s)…');
+          }
+          const norm = await _videoNormalizarMp4(v.blob, v.w, v.h);
+          if (norm) { fuente = norm; }
+          else {
+            _pptAvisos.push('⚠️ «' + v.nombre + '» está grabado en vertical y no se pudo corregir ' +
+                            'la rotación en este navegador: PowerPoint lo va a mostrar acostado.');
+          }
+        }
+        dataURL = await _blobADataURL(fuente);
         /* Un .mov es ISO-BMFF igual que un .mp4, pero PowerPoint decide por la EXTENSIÓN de la
            parte embebida: escribirlo como `.mp4` sería mentirle sobre el contenedor. Va con su
-           extensión y con la salvedad, que es lo verificable. */
-        if (String(v.tipo || '').toLowerCase() === 'video/quicktime') {
+           extensión y con la salvedad, que es lo verificable. Si se re-codificó, lo que se
+           embebe YA es un MP4 y la salvedad no corresponde. */
+        if (fuente === v.blob && String(v.tipo || '').toLowerCase() === 'video/quicktime') {
           extn = 'mov';
           _pptAvisos.push('ℹ️ «' + v.nombre + '» es un .mov: se incrusta igual, pero PowerPoint ' +
                           'en Windows puede no reproducirlo. Convertirlo a MP4 es lo más seguro.');
@@ -50168,6 +50189,11 @@ const VIDEO_AVISO_MB = 50;      // igual que CINE_AVISO_MB, y por el mismo motiv
                                 // no compartida: son dos almacenamientos distintos y el día que
                                 // uno cambie no tiene por qué arrastrar al otro.
 const VIDEO_TIPOS = ['video/mp4', 'video/quicktime'];
+/* Remuestreo de la normalización de rotación. La duración se conserva —o sea la velocidad—; lo
+   que cambia es la cadencia. El tope de cuadros es una red contra un clip largo: a 25/s son
+   120 s, y más que eso no es un clip de documentación sino un archivo que no debería ir al PPT. */
+const VIDEO_NORM_FPS = 25;
+const VIDEO_NORM_MAX_CUADROS = 3000;
 
 const CeiboVideo = (function () {
   const DB_NAME = 'ceibomed_video', DB_VER = 1, STORE = 'videos';
@@ -50389,7 +50415,32 @@ async function videoCargarEnSlot(file, destino) {
   if (typeof imgMarcarEditado === 'function') imgMarcarEditado();
   imgRender();
   _videoAvisar();
+  _videoAvisarPersistencia();
   return idx;
+}
+
+/* ⚠️ SI EL VIDEO NO SE VA A GUARDAR, HAY QUE DECIRLO AL CARGARLO. Con «Guardar imágenes con los
+   estudios» apagado —que es el estado de FÁBRICA— el video se ve en el slot, se puede reproducir
+   y capturar, y al reabrir el estudio DESAPARECE sin una palabra: `imgPersistir` corta antes de
+   escribir e `imgRestaurar` corta antes de leer. Medido: 0 slots y 0 videos en disco, y la
+   reapertura ni siquiera intenta la lectura.
+
+   El cineloop ya avisa esto mismo con `_cinePuedeGuardar()`, distinguiendo los dos motivos —el
+   toggle y la falta de uuid— porque «no se guardó» sin decir cuál de los dos falta no se puede
+   accionar. El video del slot no lo hacía: es la misma asimetría que este archivo documenta con
+   «el interruptor mentía sobre el disco». Va como toast y no como alert: el archivo SÍ se cargó
+   y se puede usar en esta sesión; lo que no va a hacer es sobrevivir. */
+function _videoAvisarPersistencia() {
+  if (typeof toast !== 'function') return;
+  const hayToggle = typeof imgGuardadoActivo === 'function' && imgGuardadoActivo();
+  if (!hayToggle) {
+    toast('⚠️ Este video NO se va a guardar: «Guardar imágenes con los estudios» está apagado ' +
+          'en ⚙️ Config. Se ve en esta sesión y desaparece al reabrir el estudio.');
+    return;
+  }
+  if (typeof _uuidValido === 'function' && !_uuidValido(_imgUuidActual)) {
+    toast('💾 Guardá el estudio para que el video quede guardado: por ahora vive sólo en esta sesión.');
+  }
 }
 window.videoCargarEnSlot = videoCargarEnSlot;
 
@@ -50466,8 +50517,21 @@ window.videoCapturarFrame = videoCapturarFrame;
 /* Persistencia: se llama desde `imgPersistir`, que ya sabe cuándo corresponde escribir —toggle
    encendido, uuid válido, y no durante la reimpresión—. Acá NO se repiten esas guardas: con dos
    copias, una podría escribir donde la otra se abstiene. */
+/* ⚠️ `CeiboVideo.guardar` REEMPLAZA todos los videos del estudio, así que esta función puede
+   BORRAR. Los bytes viven en `_videoBlobs`, que es memoria de la sesión y lo repuebla
+   `videoRestaurar` de forma ASÍNCRONA y sin que nadie la espere: si se guarda mientras esa
+   lectura está en vuelo —o si falló— la lista sale vacía y el video guardado se destruye.
+   Por eso FALLA CERRADO: un slot que dice ser un video (`videoId`) y cuyo blob no está en
+   memoria ABORTA la escritura entera, en vez de borrar. Es la misma regla que `imgPersistir` ya
+   aplica con `_imgEditado` — «no borra por omisión». */
 function videoPersistir(uuid) {
   if (typeof CeiboVideo === 'undefined') return Promise.resolve(false);
+  const huerfanos = (typeof imgSlots !== 'undefined' ? imgSlots : [])
+    .filter(s => s && s.videoId && !_videoBlobs[s.videoId]).length;
+  if (huerfanos) {
+    console.warn('[video] no se persiste: ' + huerfanos + ' slot(s) con video sin blob en memoria');
+    return Promise.resolve(false);
+  }
   const vids = (typeof imgSlots !== 'undefined' ? imgSlots : [])
     .filter(s => s && s.videoId && _videoBlobs[s.videoId])
     .map(s => _videoBlobs[s.videoId]);
@@ -50702,6 +50766,138 @@ function _pptPosterPng(dataURL) {
       setTimeout(() => fin(''), 5000);
     } catch (e) { resolve(''); }
   });
+}
+
+/* ══ ROTACIÓN: POWERPOINT NO LA APLICA, Y ÉSE ES TODO EL PROBLEMA ═════════════════════════════
+   Un clip grabado con el celular en vertical se codifica APAISADO —1024×576— más una matriz de
+   rotación de 90° en el `tkhd`. Chrome la aplica: `videoWidth`/`videoHeight` dan 576×1024 y
+   `drawImage` dibuja la imagen derecha. **PowerPoint la ignora**: dibuja los cuadros crudos.
+
+   Medido en PowerPoint con el clip real: con el marco vertical —el que corresponde a lo que uno
+   ve en el navegador— el video sale como una franja acostada contra el borde derecho y el resto
+   del marco queda NEGRO. Con el marco apaisado saldría proporcionado pero **girado 90°**, o sea
+   un eco acostado. Ninguna de las dos geometrías arregla nada: el archivo hay que NORMALIZARLO.
+
+   Se re-codifica dibujando los cuadros YA ROTADOS en un canvas, que es exactamente lo que hace
+   `_cineAMp4` con un cineloop. Cuesta una generación de pérdida y tarda lo que dura el clip, así
+   que se hace SÓLO si el archivo declara rotación. */
+
+/* Dimensiones declaradas en el `tkhd`. Se comparan contra las que entrega el elemento `<video>`:
+   si están intercambiadas, hay rotación de 90° o 270°. Se lee el principio Y el final del
+   archivo porque el `moov` puede estar en cualquiera de los dos extremos. Devuelve `null` si no
+   se encontró — y ahí NO se normaliza, que es el lado conservador: se embebe como hasta hoy. */
+async function _videoTkhdWH(blob) {
+  const trozos = [];
+  try {
+    trozos.push(new Uint8Array(await blob.slice(0, Math.min(blob.size, 262144)).arrayBuffer()));
+    if (blob.size > 262144) {
+      trozos.push(new Uint8Array(await blob.slice(Math.max(0, blob.size - 262144)).arrayBuffer()));
+    }
+  } catch (e) { return null; }
+  for (let t = 0; t < trozos.length; t++) {
+    const u = trozos[t];
+    for (let i = 0; i + 8 < u.length; i++) {
+      if (u[i] !== 0x74 || u[i+1] !== 0x6B || u[i+2] !== 0x68 || u[i+3] !== 0x64) continue;  // 'tkhd'
+      const ini = i - 4;
+      if (ini < 0) continue;
+      const dv = new DataView(u.buffer, u.byteOffset, u.byteLength);
+      const sz = dv.getUint32(ini);
+      /* Un `tkhd` mide 92 (versión 0) o 104 (versión 1) bytes. Cualquier otra cosa es una
+         coincidencia de los cuatro caracteres dentro de datos, no un box. */
+      if (sz !== 92 && sz !== 104) continue;
+      const fin = ini + sz;
+      if (fin > u.length) continue;
+      /* Ancho y alto son los últimos ocho bytes, en 16.16 de coma fija. */
+      const w = dv.getUint32(fin - 8) / 65536, h = dv.getUint32(fin - 4) / 65536;
+      if (w > 0 && h > 0) return { w: Math.round(w), h: Math.round(h) };
+    }
+  }
+  return null;
+}
+
+/* Re-codifica el video con los cuadros ya rotados. Devuelve `null` si no se pudo —sin soporte de
+   MP4, sin `requestFrame`, o el codificador falló— y ahí el llamador decide: hoy embebe el
+   original y lo declara, que es mejor que no poner el video. */
+async function _videoNormalizarMp4(blob, w, h, onProg) {
+  const mime = _cinePptMime();
+  if (!mime || !(w > 0) || !(h > 0)) return null;
+  let url = null, v = null;
+  const limpiar = () => {
+    try { if (v) { v.pause(); v.removeAttribute('src'); v.load(); } } catch (e) {}
+    try { if (url) URL.revokeObjectURL(url); } catch (e) {}
+  };
+  try {
+    url = URL.createObjectURL(blob);
+    v = document.createElement('video');
+    v.muted = true; v.playsInline = true; v.preload = 'auto'; v.src = url;
+    /* `loadeddata` alcanza: con seeks no hace falta tener el clip entero en buffer, y esperar
+       `canplaythrough` en un archivo grande agrega segundos por nada. */
+    const listo = await new Promise(r => {
+      v.onloadeddata = () => r(true); v.onerror = () => r(false);
+      setTimeout(() => r(!!v.videoWidth), 20000);
+    });
+    if (!listo || !v.videoWidth) { limpiar(); return null; }
+    const cv = document.createElement('canvas');
+    /* H.264 exige dimensiones pares. */
+    cv.width = Math.max(2, (v.videoWidth || w) & ~1);
+    cv.height = Math.max(2, (v.videoHeight || h) & ~1);
+    const ctx = cv.getContext('2d');
+    let stream, track, mr;
+    try {
+      stream = cv.captureStream(0);
+      track = stream.getVideoTracks()[0];
+      if (!track || typeof track.requestFrame !== 'function') { limpiar(); return null; }
+      mr = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: CINE_PPT_BPS });
+    } catch (e) { limpiar(); return null; }
+    const trozos = [];
+    const fin = new Promise(resolve => {
+      mr.ondataavailable = ev => { if (ev.data && ev.data.size) trozos.push(ev.data); };
+      mr.onstop  = () => resolve(trozos.length ? new Blob(trozos, { type: 'video/mp4' }) : null);
+      mr.onerror = () => resolve(null);
+    });
+    /* ⚠️ SE AVANZA POR SEEKS, NO REPRODUCIENDO. La primera versión reproducía el `<video>` y
+       copiaba cada cuadro con `requestVideoFrameCallback`: **en una pestaña oculta eso no dispara
+       nunca** —es la misma familia que el `requestAnimationFrame` que ya colgó `labGenerarPDF`—
+       y la re-codificación devolvía cero bytes después de esperar todo el clip. Medido: 16,4 s y
+       un blob vacío. Con seeks no depende de que el navegador PRESENTE cuadros, así que anda con
+       la pestaña de fondo y se puede verificar en el harness.
+
+       `drawImage` aplica la matriz de rotación, así que lo que entra al canvas —y por lo tanto al
+       MP4 nuevo— ya está derecho. El clip conserva su DURACIÓN, o sea su velocidad; lo que cambia
+       es que queda remuestreado a `VIDEO_NORM_FPS`. */
+    const dur = (isFinite(v.duration) && v.duration > 0) ? v.duration : 0;
+    if (!dur) { limpiar(); return null; }
+    const paso = 1 / VIDEO_NORM_FPS;
+    const total = Math.max(1, Math.min(VIDEO_NORM_MAX_CUADROS, Math.floor(dur * VIDEO_NORM_FPS)));
+    const buscar = t => new Promise(res => {
+      let hecho = false;
+      const ok = () => { if (hecho) return; hecho = true; v.onseeked = null; res(true); };
+      v.onseeked = ok;
+      setTimeout(() => { if (!hecho) { hecho = true; v.onseeked = null; res(false); } }, 3000);
+      try { v.currentTime = Math.min(t, dur - 0.01); } catch (e) { ok(); }
+    });
+    mr.start();
+    const t0 = performance.now();
+    let dibujados = 0;
+    for (let k = 0; k < total; k++) {
+      const ok = await buscar(k * paso);
+      if (ok) {
+        try { ctx.drawImage(v, 0, 0, cv.width, cv.height); dibujados++; } catch (e) {}
+      }
+      try { track.requestFrame(); } catch (e) {}
+      if (typeof onProg === 'function' && k % 25 === 0) { try { onProg(k, total); } catch (e) {} }
+      /* Ritmo contra el reloj ABSOLUTO: MediaRecorder sella los cuadros por reloj de pared, así
+         que es esto lo que fija la velocidad del clip resultante. */
+      const espera = t0 + (k + 1) * paso * 1000 - performance.now();
+      if (espera > 0) await new Promise(r => setTimeout(r, espera));
+    }
+    await new Promise(r => setTimeout(r, paso * 1000));
+    try { mr.stop(); } catch (e) {}
+    try { track.stop(); } catch (e) {}
+    const out = await fin;
+    limpiar();
+    return out;
+  } catch (e) { limpiar(); return null; }
 }
 
 /* Blob → dataURL. `addMedia` de PptxGenJS exige que el `data` traiga el encabezado base64. */
@@ -66511,8 +66707,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260921-0016';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789960584755;                 /* eco-build-ms */
+const ECO_BUILD    = '20260921-0048';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789962535547;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -66598,7 +66794,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-0016</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-0048</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

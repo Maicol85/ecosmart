@@ -16355,6 +16355,28 @@ caso('TC-213', 'PPT: videos del estudio, MP4 embebido y cineloop DICOM convertid
       await new Promise(res => { mr.onstop = res; mr.stop(); });
       const mp4 = new Blob(tr, { type: 'video/mp4' });
       R.mp4Bytes = mp4.size;
+      /* COPIA CON EL tkhd CRUZADO: ancho y alto intercambiados, que es como se ve un clip
+         grabado en vertical -el contenedor declara apaisado mas una matriz de rotacion-.
+         MediaRecorder no produce esa matriz, asi que hay que fabricar el caso. El decodificador
+         usa el SPS, no el tkhd, de modo que videoWidth/videoHeight siguen dando la orientacion
+         real y la comparacion detecta la discrepancia, que es lo que decide normalizar. */
+      const bruto = new Uint8Array(await mp4.arrayBuffer());
+      let posTk = -1;
+      {
+        const dv0 = new DataView(bruto.buffer, bruto.byteOffset, bruto.byteLength);
+        for (let i = 4; i + 8 < bruto.length; i++) {
+          if (bruto[i]===0x74 && bruto[i+1]===0x6B && bruto[i+2]===0x68 && bruto[i+3]===0x64) {
+            const sz = dv0.getUint32(i-4);
+            if (sz === 92 || sz === 104) { posTk = (i-4) + sz; break; }
+          }
+        }
+        if (posTk > 0) {
+          const w0 = dv0.getUint32(posTk-8), h0 = dv0.getUint32(posTk-4);
+          dv0.setUint32(posTk-8, h0); dv0.setUint32(posTk-4, w0);
+        }
+      }
+      R.hallado = posTk > 0;
+      const mp4Rotado = new Blob([bruto], { type: 'video/mp4' });
 
       const c2 = document.createElement('canvas'); c2.width = 120; c2.height = 90;
       const g2 = c2.getContext('2d');
@@ -16399,8 +16421,11 @@ caso('TC-213', 'PPT: videos del estudio, MP4 embebido y cineloop DICOM convertid
       ]);
       const leidas = await CeiboImg.leer(uuid);
       R.slotsGuardados = leidas ? leidas.length : 0;          // DENOMINADOR: tienen que ser 2
+      /* se guarda el ROTADO: es el caso que el usuario tiene, y el unico que ejerce la
+         normalizacion de punta a punta */
       R.okVideo = await CeiboVideo.guardar(uuid, [
-        { id:'vid-t213', blob: mp4, nombre:'eco_apical.mp4', tipo:'video/mp4', bytes: mp4.size }
+        { id:'vid-t213', blob: mp4Rotado, nombre:'eco_apical.mp4', tipo:'video/mp4',
+          bytes: mp4Rotado.size }
       ]);
       const rc = await CeiboCine.guardar({ id:'cine-t213', uuid: uuid, nombre:'A4C_loop.dcm',
         cuadros: frags.length, tipo:'loop', ms: 50, cols:120, filas:90, regiones:[],
@@ -16432,6 +16457,17 @@ caso('TC-213', 'PPT: videos del estudio, MP4 embebido y cineloop DICOM convertid
         for (let i = 0; i < d.length; i += 4) acc += 0.2126*d[i] + 0.7152*d[i+1] + 0.0722*d[i+2];
         return Math.round(acc / (d.length/4));
       };
+      /* -- ROTACION -- POWERPOINT NO APLICA LA MATRIZ, asi que un clip grabado en vertical
+         sale acostado contra un borde con el resto del marco en NEGRO. Se detecta comparando
+         el tkhd con lo que entrega el elemento video, y se re-codifica con los cuadros ya
+         derechos. LA CONDICION QUE VALE MIRA LOS BYTES QUE EMBEBE EL GENERADOR: una que mida
+         los helpers por su cuenta pasa con el generador ignorando la decision -paso-. */
+      const tkGuardado = await _videoTkhdWH(mp4Rotado);
+      R.tkhdGuardado = tkGuardado ? (tkGuardado.w + 'x' + tkGuardado.h) : '(no se leyo)';
+      R.elemWH = vMp4 ? (vMp4.w + 'x' + vMp4.h) : '(no)';
+      R.detectaRotado = !!(tkGuardado && vMp4 &&
+                           (tkGuardado.w > tkGuardado.h) !== (vMp4.w > vMp4.h));
+      R.bytesGuardados = mp4Rotado.size;
       R.lumPoster = await lumDe(vMp4 ? vMp4.poster : '');
       R.posterConContenido = R.lumPoster > 20;
       /* LA RELACION SALE DEL VIDEO. El fixture es vertical: w/h < 1. */
@@ -16547,6 +16583,13 @@ caso('TC-213', 'PPT: videos del estudio, MP4 embebido y cineloop DICOM convertid
       R.marcoVertical = !!geo && geo.h > geo.w &&
                         Math.abs((geo.w / geo.h) - R.arVid) < 0.01;
       R.avisaClic = conMedia[0].txt.some(t => t.indexOf('Clic sobre la imagen') >= 0);
+      /* LOS BYTES QUE DE VERDAD ENTRARON AL MAZO. Si el generador ignorara la rotacion,
+         embeberia el blob guardado tal cual y los tamanos coincidirian. */
+      const bEmb = b64bytes(conMedia[0].media[0].data);
+      R.bytesEmbebidos = bEmb.length;
+      R.ftypEmbebido = marca4(bEmb);
+      R.embebidoEsMp4 = R.ftypEmbebido === 'ftyp';
+      R.normalizoAlEmbeber = bEmb.length !== R.bytesGuardados && R.embebidoEsMp4;
       const hCine = conMedia[1];
       const bCine = b64bytes(hCine.media[0].data);
       R.cineFtyp = marca4(bCine);
@@ -16591,6 +16634,11 @@ caso('TC-213', 'PPT: videos del estudio, MP4 embebido y cineloop DICOM convertid
       ['el mazo se genera de punta a punta',         R.llegoAlFinal, R.llegoAlFinal],
       ['UNA DIAPOSITIVA POR VIDEO, sin imagenes',    R.unaPorVideo, R.hojasConVideo + ' hoja(s) con video'],
       ['titulada Video - nombre del estudio',        R.tituloOk, JSON.stringify(R.titulos)],
+      ['el fixture declara rotacion (denominador)', R.hallado && R.detectaRotado,
+                                                    R.tkhdGuardado + ' vs ' + R.elemWH],
+      ['EL GENERADOR NORMALIZA: no embebe los bytes guardados', R.normalizoAlEmbeber,
+                                                    R.bytesEmbebidos + ' vs ' + R.bytesGuardados + ' guardados'],
+      ['y lo embebido SIGUE siendo un MP4',         R.embebidoEsMp4, R.ftypEmbebido],
       ['EL POSTER NO ES NEGRO (busca un cuadro con contenido)', R.posterConContenido, 'luminancia ' + R.lumPoster],
       ['el video lleva sus dimensiones reales',      R.llevaDimensiones, R.wVid + 'x' + R.hVid],
       ['EL MARCO RESPETA LA RELACION DEL VIDEO',     R.marcoVertical, R.geoMp4 + ' vs ar ' + (R.arVid||0).toFixed(3)],
@@ -16601,6 +16649,122 @@ caso('TC-213', 'PPT: videos del estudio, MP4 embebido y cineloop DICOM convertid
       ['y el subtitulo declara la velocidad del archivo', R.subDeclaraVel, R.subCine],
       ['LA SELECCION NO SE HEREDA al PPT siguiente', R.selLimpia && R.sinVideosSinHoja, R.selLimpia + ' / ' + R.hojasConVideo2],
       ['sin videos, el PPT sale como siempre',       R.pptSinVideosIgual, R.imgsSinSelector + ' imagen(es)']
+    ] };
+  })();
+`);
+
+
+/* == TC-214 - El video del slot sobrevive al reabrir, y si NO va a sobrevivir se dice ========
+   REPORTADO como «el videoId no viaja». Medido: el videoId SI viaja y el blob tambien -en
+   disco quedan el slot con su videoId y el registro en ceibomed_video-. Lo que faltaba era el
+   caso del TOGGLE APAGADO, que es el estado de FABRICA: ahi el video se carga, se ve, se puede
+   reproducir, y al reabrir desaparece SIN UNA PALABRA. El cineloop ya avisaba eso mismo.
+   Y `videoPersistir` podia BORRAR: `CeiboVideo.guardar` reemplaza todos los videos del estudio,
+   asi que guardar con `_videoBlobs` a medio repoblar destruia lo guardado.
+   NO DEPENDE DEL PENDRIVE.                                                                  */
+caso('TC-214', 'Video del slot: sobrevive al reabrir, avisa si no se guarda y nunca borra a ciegas', `
+  return (async () => {
+    const R = { tost: [] };
+    const toastOrig = window.toast, alertOrig = window.alert, confOrig = window.confirm;
+    window.toast = m => { R.tost.push(String(m)); };
+    window.alert = () => {}; window.confirm = () => true;
+    let id = null, uuid = null;
+    try {
+      /* DENOMINADOR: imgPersistir ABORTA mientras dura una reimpresion -es deliberado: ahi el
+         formulario tiene los datos de otro estudio-. El caso anterior genera PPTs, asi que hay
+         que esperar a que esa bandera baje o este caso mide sobre un guardado que nunca ocurrio.
+         Con --solo pasaba y en el suite completo daba rojo, que es como se ve este error. */
+      let espera = 0;
+      while (typeof _pdfGuardadoEnCurso !== 'undefined' && _pdfGuardadoEnCurso && espera < 120) {
+        await new Promise(r=>setTimeout(r,150)); espera++;
+      }
+      R.pdfLibre = !(typeof _pdfGuardadoEnCurso !== 'undefined' && _pdfGuardadoEnCurso);
+      R.mime = _cinePptMime();
+      /* un MP4 chico, grabado en la pagina: sin binarios en el repo y sin PHI */
+      const cv = document.createElement('canvas'); cv.width = 160; cv.height = 120;
+      const g = cv.getContext('2d');
+      const mr = new MediaRecorder(cv.captureStream(15), { mimeType: R.mime || 'video/webm' });
+      const tr = []; mr.ondataavailable = e => { if (e.data && e.data.size) tr.push(e.data); };
+      mr.start();
+      for (let k = 0; k < 8; k++) { g.fillStyle = 'rgb(' + (30+k*25) + ',70,120)';
+        g.fillRect(0,0,160,120); await new Promise(r=>setTimeout(r,45)); }
+      await new Promise(res => { mr.onstop = res; mr.stop(); });
+      const blob = new Blob(tr, { type: 'video/mp4' });
+      const mkFile = () => new File([blob], 'eco.MP4', { type:'video/mp4' });
+
+      /* -- 1 - CON EL TOGGLE APAGADO se AVISA que el video no se va a guardar -- */
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      __t.limpiar(); imgVaciar();
+      try { sessionStorage.removeItem('ett_video_aviso'); } catch (e) {}
+      R.tost.length = 0;
+      await videoCargarEnSlot(mkFile(), 0);
+      R.avisaApagado = R.tost.some(t => t.indexOf('NO se va a guardar') >= 0 &&
+                                        t.indexOf('Config') >= 0);
+
+      /* -- 2 - ida y vuelta COMPLETO con el toggle encendido -- */
+      localStorage.setItem('cfg-guardar-imagenes','1');
+      __t.limpiar(); imgVaciar();
+      const idx = await videoCargarEnSlot(mkFile(), 0);
+      R.vidIdAntes = (imgSlots[idx] && imgSlots[idx].videoId) || '(no)';
+      R.cargo = idx >= 0 && R.vidIdAntes !== '(no)';
+      document.getElementById('nombre').value = 'Paciente Persist';
+      document.getElementById('informe_texto').value = 'Informe.';
+      const gg = await __t.guardar();
+      await new Promise(r=>setTimeout(r,800));
+      const L = CeiboStore.getLocal();
+      const est = L.filter(x => x.estudioId === gg.estudioId)[0];
+      id = est ? est.id : null; uuid = est ? est.uuid : null;
+      R.tieneUuid = !!uuid;
+      if (!R.tieneUuid) return { extra: [['el estudio guardado tiene uuid', false, 'sin uuid']] };
+
+      const enDisco = await CeiboImg.leer(uuid);
+      R.videoIdEnDisco = (enDisco && enDisco[0] && enDisco[0].videoId) || '(SIN videoId)';
+      R.idViaja = R.videoIdEnDisco === R.vidIdAntes;
+      const vs = await CeiboVideo.leer(uuid);
+      R.blobEnDisco = !!(vs && vs.length === 1 && vs[0].bytes > 0);
+
+      /* vaciar TODO -incluida la memoria de blobs, que es lo que pasa al recargar la pagina- */
+      __t.limpiar(); imgVaciar(); _videoBlobs = {};
+      R.vacio = imgSlots.filter(s => s && s.dataURL).length === 0;
+      /* reabrir por el camino del medico: Guardados -> Editar -> «Cargar datos» */
+      editarInforme(id);
+      await new Promise(r=>setTimeout(r,250));
+      const okBtn = document.getElementById('edit-ok');
+      R.hayModal = !!okBtn;
+      if (okBtn) okBtn.click();
+      await new Promise(r=>setTimeout(r,1800));
+      R.vidIdDespues = (imgSlots[0] && imgSlots[0].videoId) || '(SIN videoId)';
+      R.vuelve = R.vidIdDespues === R.vidIdAntes;
+      R.blobRepoblado = !!(imgSlots[0] && _videoBlobs[imgSlots[0].videoId]);
+      imgRender(); await new Promise(r=>setTimeout(r,200));
+      R.hayBadge = !!document.querySelector('[data-video-badge]');
+
+      /* -- 3 - videoPersistir NO BORRA lo guardado si el blob no esta en memoria -- */
+      _videoBlobs = {};                      // restauracion en vuelo, o fallida
+      await videoPersistir(uuid);
+      const tras = await CeiboVideo.leer(uuid);
+      R.sobrevive = !!(tras && tras.length === 1);
+    } catch (e) { R.excepcion = String(e && e.message || e); }
+    finally {
+      window.toast = toastOrig; window.alert = alertOrig; window.confirm = confOrig;
+      try { const m = document.getElementById('edit-ok'); if (m) m.parentNode.parentNode.remove(); } catch (e) {}
+      try { if (uuid) await CeiboVideo.guardar(uuid, [{ id:'x', blob:null }]); } catch (e) {}
+      try { if (id !== null) { const L2 = CeiboStore.getLocal();
+        await CeiboStore.setLocal(L2.filter(x => x.id !== id)); } } catch (e) {}
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      _videoBlobs = {};
+    }
+    return { extra: [
+      ['no hay una reimpresion en vuelo (denominador)', R.pdfLibre, R.pdfLibre],
+      ['TOGGLE APAGADO: avisa que el video NO se va a guardar', R.avisaApagado, R.avisaApagado],
+      ['el video se carga en el slot',              R.cargo, R.vidIdAntes],
+      ['EL videoId VIAJA al disco',                 R.idViaja, R.videoIdEnDisco],
+      ['y el blob queda en ceibomed_video',         R.blobEnDisco, R.blobEnDisco],
+      ['el formulario queda vacio (denominador)',   R.vacio && R.hayModal, R.vacio + '/' + R.hayModal],
+      ['AL REABRIR vuelve con su videoId',          R.vuelve, R.vidIdDespues],
+      ['y el blob se repuebla en memoria',          R.blobRepoblado, R.blobRepoblado],
+      ['y el slot se dibuja como VIDEO',            R.hayBadge, R.hayBadge],
+      ['NUNCA BORRA a ciegas: sin blob en memoria no persiste', R.sobrevive, R.sobrevive]
     ] };
   })();
 `);
