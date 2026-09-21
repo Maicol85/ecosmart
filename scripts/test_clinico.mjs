@@ -16337,15 +16337,20 @@ caso('TC-213', 'PPT: videos del estudio, MP4 embebido y cineloop DICOM convertid
       localStorage.setItem('cfg-guardar-imagenes','1');
 
       /* -- 1 - fixtures: un MP4 real y un cineloop sintetico -- */
-      const cv = document.createElement('canvas'); cv.width = 160; cv.height = 120;
+      /* EL FIXTURE ES VERTICAL Y ARRANCA EN NEGRO, que es el caso real medido sobre el clip del
+         usuario: 576x1024 y el primer cuadro con luminancia media 1. Un fixture apaisado y
+         luminoso pasa con las dos mutaciones. */
+      const cv = document.createElement('canvas'); cv.width = 180; cv.height = 320;
       const g = cv.getContext('2d');
       const mr = new MediaRecorder(cv.captureStream(15), { mimeType: R.mime });
       const tr = [];
       mr.ondataavailable = e => { if (e.data && e.data.size) tr.push(e.data); };
       mr.start();
-      for (let k = 0; k < 10; k++) {
-        g.fillStyle = 'rgb(' + (k * 22) + ',30,80)'; g.fillRect(0,0,160,120);
-        await new Promise(r=>setTimeout(r,45));
+      for (let k = 0; k < 24; k++) {
+        /* los primeros 14 cuadros NEGROS, despues con contenido */
+        g.fillStyle = k < 14 ? '#000' : 'rgb(210,' + (80 + k*4) + ',60)';
+        g.fillRect(0,0,180,320);
+        await new Promise(r=>setTimeout(r,55));
       }
       await new Promise(res => { mr.onstop = res; mr.stop(); });
       const mp4 = new Blob(tr, { type: 'video/mp4' });
@@ -16414,6 +16419,25 @@ caso('TC-213', 'PPT: videos del estudio, MP4 embebido y cineloop DICOM convertid
       const vMp4  = vids.filter(v => v.clase === 'mp4')[0]  || null;
       const vCine = vids.filter(v => v.clase === 'cine')[0] || null;
       R.dosOrigenes = !!vMp4 && !!vCine;
+      /* EL POSTER NO PUEDE SER NEGRO. Se mide igual que se midio el clip real. */
+      const lumDe = async (durl) => {
+        if (!durl) return -1;
+        const im = new Image();
+        await new Promise(r => { im.onload = r; im.onerror = r; im.src = durl; });
+        if (!im.naturalWidth) return -1;
+        const c = document.createElement('canvas'); c.width = 48; c.height = 48;
+        c.getContext('2d').drawImage(im, 0, 0, 48, 48);
+        const d = c.getContext('2d').getImageData(0,0,48,48).data;
+        let acc = 0;
+        for (let i = 0; i < d.length; i += 4) acc += 0.2126*d[i] + 0.7152*d[i+1] + 0.0722*d[i+2];
+        return Math.round(acc / (d.length/4));
+      };
+      R.lumPoster = await lumDe(vMp4 ? vMp4.poster : '');
+      R.posterConContenido = R.lumPoster > 20;
+      /* LA RELACION SALE DEL VIDEO. El fixture es vertical: w/h < 1. */
+      R.wVid = vMp4 ? vMp4.w : 0; R.hVid = vMp4 ? vMp4.h : 0;
+      R.arVid = (R.wVid && R.hVid) ? R.wVid / R.hVid : 0;
+      R.llevaDimensiones = R.wVid > 0 && R.hVid > 0 && R.arVid < 1;
       R.cineCuadros = vCine ? vCine.cuadros : 0;
       R.cineMs = vCine ? vCine.ms : 0;
       /* La VELOCIDAD sale del archivo: 10 cuadros a 50 ms son 0,5 s, y el clip repite el loop
@@ -16484,6 +16508,7 @@ caso('TC-213', 'PPT: videos del estudio, MP4 embebido y cineloop DICOM convertid
           sl.addImage = function (o) { if (o && o.sizing) reg.imgs++; return ai.apply(null, arguments); };
           sl.addMedia = function (o) {
             reg.media.push({ type:o.type, extn:o.extn, data:o.data, cover:o.cover || '' });
+            reg.geo = { x:o.x, y:o.y, w:o.w, h:o.h };
             return am.apply(null, arguments);
           };
           return sl;
@@ -16514,6 +16539,14 @@ caso('TC-213', 'PPT: videos del estudio, MP4 embebido y cineloop DICOM convertid
       R.coverPng = conMedia.every(h => String(h.media[0].cover).indexOf('data:image/png') === 0);
       /* EL CINELOOP SE CONVIRTIO: la hoja que lo lleva es la segunda, y sus bytes tienen que
          ser un MP4 -marca ftyp- y NO el JPEG guardado -marca JFIF/Exif, FFD8 al inicio-. */
+      /* EL MARCO RESPETA LA RELACION DEL VIDEO. Con el fixture vertical tiene que salir mas alto
+         que ancho: con el 4:3 cableado salia 2,4 veces mas ancho de lo que le corresponde y
+         PowerPoint dibujaba el poster estirado — un rectangulo que se lee como vacio. */
+      const geo = conMedia[0].geo;
+      R.geoMp4 = geo ? (geo.w.toFixed(2) + 'x' + geo.h.toFixed(2)) : '(sin geo)';
+      R.marcoVertical = !!geo && geo.h > geo.w &&
+                        Math.abs((geo.w / geo.h) - R.arVid) < 0.01;
+      R.avisaClic = conMedia[0].txt.some(t => t.indexOf('Clic sobre la imagen') >= 0);
       const hCine = conMedia[1];
       const bCine = b64bytes(hCine.media[0].data);
       R.cineFtyp = marca4(bCine);
@@ -16558,6 +16591,10 @@ caso('TC-213', 'PPT: videos del estudio, MP4 embebido y cineloop DICOM convertid
       ['el mazo se genera de punta a punta',         R.llegoAlFinal, R.llegoAlFinal],
       ['UNA DIAPOSITIVA POR VIDEO, sin imagenes',    R.unaPorVideo, R.hojasConVideo + ' hoja(s) con video'],
       ['titulada Video - nombre del estudio',        R.tituloOk, JSON.stringify(R.titulos)],
+      ['EL POSTER NO ES NEGRO (busca un cuadro con contenido)', R.posterConContenido, 'luminancia ' + R.lumPoster],
+      ['el video lleva sus dimensiones reales',      R.llevaDimensiones, R.wVid + 'x' + R.hVid],
+      ['EL MARCO RESPETA LA RELACION DEL VIDEO',     R.marcoVertical, R.geoMp4 + ' vs ar ' + (R.arVid||0).toFixed(3)],
+      ['y la hoja avisa que hay que clickear',       R.avisaClic, R.avisaClic],
       ['los dos se embeben como MP4',                R.todosMp4, R.todosMp4],
       ['con su poster en PNG',                       R.coverPng, R.coverPng],
       ['EL CINELOOP SE CONVIRTIO A VIDEO, no es el JPEG', R.cineConvertido, R.cineFtyp + ' / ' + R.cineBytes + ' bytes'],

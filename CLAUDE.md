@@ -11,6 +11,86 @@ ninguna es evidente leyendo el código alrededor.
 
 
 
+## «El video no aparece en el PPT»: estaba, y eran el MARCO y el PÓSTER (2026-09-21)
+
+Reportado como «el selector detecta el video (1 de 1, 1.8 MB) pero al generar el PPT el video no
+aparece». **El video aparecía.** Verificado con el archivo real del médico, de punta a punta:
+
+| | |
+|---|---|
+| `CeiboVideo.leer` | devuelve el registro con sus **1.901.480 bytes exactos** |
+| `_blobADataURL` | 2.535.330 caracteres, `data:video/mp4;base64,AAAAGGZ0…` |
+| la parte del `.pptx` | `ppt/media/media-3-1.mp4`, **byte por byte idéntica al original** |
+| PowerPoint | abre **sin pedir reparación**, muestra «Formato de vídeo» / «Reproducir», y **el video se reproduce** |
+
+**Lo que el médico veía era un rectángulo, y por dos defectos que se sumaban:**
+
+### 1 · La relación de aspecto estaba CABLEADA en 4:3
+
+`_pptAgregarVideos` usaba `cols/filas` para el cineloop y **4:3 fijo para los MP4**. El primer clip
+real que entró es **vertical**: `videoWidth/videoHeight` = **576×1024, relación 0,563**. O sea que
+el marco salía **2,4 veces más ancho** de lo que le corresponde, y PowerPoint dibuja el póster
+**estirado** dentro del rectángulo que se le da.
+
+⚠️ **El `tkhd` del archivo declara 1024×576 y una matriz de rotación**: leer el encabezado da la
+relación **INVERTIDA**. Lo único que sirve es `videoWidth`/`videoHeight` del elemento `<video>`,
+que vienen **ya rotados** — y `_videoPoster` **ya los devolvía**: los tiré al armar la lista. El
+4:3 queda sólo como último recurso.
+
+### 2 · El póster era NEGRO ENTERO, y eso es lo normal en un eco
+
+Medido sobre ese clip: a 0,05 s la **luminancia media es 1** y el **100 % de los píxeles** está por
+debajo de 25. No es una rareza — un cineloop de ecocardiografía arranca antes de que entre la
+imagen. Y PowerPoint **dibuja el póster** y no pone ningún adorno encima hasta que se selecciona el
+objeto: **la diapositiva se ve como un rectángulo negro vacío**, y el médico concluye que el video
+no se incluyó.
+
+`_videoPoster` prueba ahora cuatro instantes y gana el primero con contenido; si todos salen negros
+devuelve el primero igual —el video entra, aunque su portada sea negra—. Medido sobre el mismo
+archivo: **luminancia 1 → 108**, píxeles casi negros **100 % → 1 %**, en 211 ms.
+
+**⚠️ Los instantes van en SEGUNDOS ABSOLUTOS, no como fracción de la duración**, y esto lo
+descubrió el caso: **un blob de `MediaRecorder` declara `duration = Infinity`** hasta que se lo
+busca hasta el final, así que con fracciones el bucle **no avanzaba nunca** y el póster salía negro
+igual. Con absolutos anda sin saber cuánto dura — y además el patrón real es una ventana de
+arranque, no una proporción.
+
+**Se escucha `seeked` y no `loadeddata`:** aquél dispara una vez y acá hay que capturar después de
+cada salto.
+
+### 3 · Y la hoja no decía que había que clickear
+
+Se agregó **«▶ Clic sobre la imagen para reproducir · el video no arranca solo»** debajo del marco.
+Lo segundo es una limitación real: **PptxGenJS 3.12 no expone autoplay**, así que en la
+presentación el clip queda quieto hasta que alguien lo toca. Callarlo es lo que hace que un
+rectángulo con el primer cuadro se lea como un error de la app.
+
+### Lo que este episodio enseña sobre el caso de prueba
+
+**TC-213 pasaba y el defecto estaba ahí, porque el fixture lo escondía por partida doble**: era
+**apaisado** —así que el 4:3 cableado no se notaba— y **luminoso desde el primer cuadro** —así que
+el póster negro no podía aparecer—. Hoy el fixture es **vertical y arranca en negro**, que es lo
+que midió el archivo real. *Un fixture cómodo no prueba el caso incómodo.*
+
+**Y TC-213 nunca ejerció `generarPPT`**, que es el único llamador de producción: ponía `_pptImgSel`
+a mano. Eso no era lo que fallaba —la sonda que sí lo ejerció pasó— pero es el hueco que habría
+dejado pasar un defecto en la cadena de los tres modales.
+
+**Cuatro mutaciones nuevas, las cuatro en su condición:** la relación de vuelta a 4:3 (el
+diagnóstico imprime `4.63x3.47` contra un video de `0.563`), el póster quedándose con el primer
+cuadro, las dimensiones sin viajar, y la hoja sin la línea de aviso.
+
+### Cómo se diagnosticó, que es lo que conviene repetir
+
+**No se adivinó: se corrió el archivo del médico por el camino real.** Estaba en `~/Downloads` —lo
+encontró un `find`— y se pasó por `videoCargarEnSlot` → `guardarInforme` → `CeiboVideo` →
+`_pptVideosDeEstudio` → `_pptAgregarVideos` → `.pptx`, midiendo cada paso. Todo daba bien, y eso es
+lo que apuntó al **renderizado** en vez de al camino de datos. Después se abrió en PowerPoint —que
+es el único oráculo— y ahí se vio el marco apaisado con el contenido corrido.
+
+**El archivo del paciente NO entró al repo**: se copió al directorio servido, se usó y se borró en
+la misma sesión. Lo único versionado es el fixture sintético.
+
 ## Videos en el PPT: el MP4 se embebe, el cineloop hay que CODIFICARLO (TC-213)
 
 Sección «🎬 Videos del estudio» en el selector del PPT, y una diapositiva por video.

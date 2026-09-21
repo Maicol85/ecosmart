@@ -42538,15 +42538,20 @@ function _pptVideosDeEstudio(inf) {
          quien lo va a reproducir es PowerPoint. Se muestra sin miniatura y se dice. */
       let pos = null;
       try { pos = await _videoPoster(v.blob); } catch (e) { pos = null; }
+      /* `w`/`h` viajan: son lo ÚNICO que da la relación de aspecto del marco de la diapositiva.
+         Tirarlos obligaba a cablear 4:3, y un clip vertical salía en un marco 2,4 veces más
+         ancho de lo que le corresponde. */
       out.push({ k: 'mp4:' + v.id, clase: 'mp4', nombre: String(v.nombre || 'video.mp4'),
                  tipo: String(v.tipo || 'video/mp4'), bytes: v.bytes || (v.blob && v.blob.size) || 0,
-                 dur: (pos && pos.dur) || 0, poster: (pos && pos.poster) || '', blob: v.blob });
+                 dur: (pos && pos.dur) || 0, poster: (pos && pos.poster) || '',
+                 w: (pos && pos.w) || 0, h: (pos && pos.h) || 0, blob: v.blob });
     }
     cines.forEach(r => {
       if (!r || !r.datos || !r.offs || !(r.cuadros > 1)) return;   // una fija no es un cineloop
       out.push({ k: 'cine:' + r.id, clase: 'cine', nombre: String(r.nombre || 'cineloop'),
                  tipo: 'dicom', bytes: _cinePptBytesEst(r), cuadros: r.cuadros, ms: r.ms || 0,
-                 dur: _cinePptSegundos(r), poster: String(r.poster || ''), rec: r });
+                 dur: _cinePptSegundos(r), poster: String(r.poster || ''),
+                 w: r.cols || 0, h: r.filas || 0, rec: r });
     });
     return out;
   }).catch(() => []);
@@ -44127,11 +44132,18 @@ function _pptDesdeFormulario(inf, tema, presentador){
           (v.ms ? ', ' + (1000 / v.ms).toFixed(1).replace('.0', '') + ' cuadros/s (del archivo)' : '')
         : _pptTxt(v.nombre) + '  ·  video MP4' + (v.dur ? ', ' + v.dur.toFixed(1) + ' s' : '');
       s.addText(sub, { x:0.5, y:0.9, w:W-1, h:0.24, fontSize:11, color:PPT_C.txt2, fontFace:PPT_FONT });
-      /* Marco disponible: desde debajo del subtítulo hasta la banda del pie. El video se centra
-         conservando su relación de aspecto — estirarlo deformaría una imagen con mediciones. */
-      const MX = 0.5, MY = 1.22, MW = W - 1, MH = (H - 0.68) - MY;
-      const ar = (v.poster && v.clase === 'cine' && v.rec && v.rec.cols && v.rec.filas)
-        ? (v.rec.cols / v.rec.filas) : (4 / 3);
+      /* Marco disponible: desde debajo del subtítulo hasta la línea de «clic para reproducir».
+         El video se centra conservando su relación de aspecto — estirarlo deformaría una imagen
+         con mediciones.
+
+         ⚠️ LA RELACIÓN SALE DEL VIDEO, NUNCA CABLEADA. Estaba en 4:3 fijo para los MP4, y el
+         primer clip real que entró era VERTICAL (576×1024, relación 0,563): el marco salía 2,4
+         veces más ancho de lo que le corresponde y PowerPoint dibujaba el póster estirado dentro.
+         `_videoPoster` devuelve `videoWidth`/`videoHeight`, que vienen YA ROTADOS — el `tkhd` de
+         ese archivo declara 1024×576 más una matriz de rotación, así que leer el encabezado daría
+         la relación INVERTIDA. El 4:3 queda sólo como último recurso. */
+      const MX = 0.5, MY = 1.22, MW = W - 1, MH = (H - 0.94) - MY;
+      const ar = (v.w > 0 && v.h > 0) ? (v.w / v.h) : (4 / 3);
       let vw = MW, vh = MW / ar;
       if (vh > MH) { vh = MH; vw = MH * ar; }
       let cover = '';
@@ -44139,7 +44151,16 @@ function _pptDesdeFormulario(inf, tema, presentador){
       const op = { type: 'video', data: dataURL, extn: extn,
                    x: MX + (MW - vw) / 2, y: MY + (MH - vh) / 2, w: vw, h: vh };
       if (cover) op.cover = cover;
-      try { s.addMedia(op); n++; }
+      try {
+        s.addMedia(op); n++;
+        /* QUE SE VEA QUE ES UN VIDEO. PowerPoint dibuja el póster y no pone ningún adorno encima
+           hasta que se selecciona el objeto: con el póster de un eco —que arranca en negro— la
+           diapositiva se lee como un rectángulo vacío y el médico concluye que el video no entró.
+           La línea lo dice, y de paso avisa que no arranca solo: la librería no expone autoplay. */
+        s.addText('▶ Clic sobre la imagen para reproducir · el video no arranca solo',
+          { x:0.5, y:H-0.92, w:W-1, h:0.24, fontSize:10, italic:true,
+            color:PPT_C.txt2, align:'center', fontFace:PPT_FONT });
+      }
       catch (e) {
         console.warn('[PPT] video omitido', e);
         _pptAvisos.push('⚠️ «' + v.nombre + '» no se pudo incrustar en el PPT');
@@ -50247,35 +50268,83 @@ function _esVideoSoportado(cab, file) {
   return !!(file && VIDEO_TIPOS.indexOf(String(file.type || '').toLowerCase()) >= 0);
 }
 
-/* Primer cuadro del video, para la miniatura del slot. Devuelve `null` si el navegador no puede
-   decodificarlo —un ftyp puede ser un códec que este navegador no trae— y ahí el archivo se
-   rechaza en vez de dejar un slot con un hueco. */
+/* ¿Este cuadro es prácticamente negro? Se muestrea en 48×48 en vez de leer el cuadro entero:
+   sobre 1080p son 8 MB de RGBA por intento, y lo que se quiere saber es si hay ALGO, no cuánto. */
+function _cuadroCasiNegro(video) {
+  try {
+    const c = document.createElement('canvas');
+    c.width = 48; c.height = 48;
+    const cx = c.getContext('2d');
+    cx.drawImage(video, 0, 0, 48, 48);
+    const d = cx.getImageData(0, 0, 48, 48).data;
+    let suma = 0;
+    for (let i = 0; i < d.length; i += 4) suma += 0.2126*d[i] + 0.7152*d[i+1] + 0.0722*d[i+2];
+    return (suma / (d.length / 4)) < 8;
+  } catch (e) { return false; }   // ante la duda, el cuadro sirve: no se descarta lo único que hay
+}
+
+/* Instantes a probar, en SEGUNDOS ABSOLUTOS y no como fracción de la duración. Dos motivos, el
+   segundo medido: el patrón real es «el clip arranca en negro y la imagen entra al rato», que es
+   una ventana de arranque y no una proporción; y **un blob de `MediaRecorder` declara
+   `duration = Infinity`** hasta que se lo busca hasta el final, así que con fracciones el bucle
+   no avanzaba nunca y el póster salía negro igual. Con absolutos anda sin saber cuánto dura. */
+const _VIDEO_POSTER_T = [0.05, 0.4, 1.0, 2.5];
+
+/* Póster del video, para la miniatura del slot y para la portada de la diapositiva del PPT.
+   Devuelve `null` si el navegador no puede decodificarlo —un ftyp puede ser un códec que este
+   navegador no trae— y ahí el archivo se rechaza en vez de dejar un slot con un hueco.
+
+   ⚠️ NO SE QUEDA CON EL PRIMER CUADRO: BUSCA UNO CON CONTENIDO. Medido sobre un clip real de
+   eco: a 0,05 s la luminancia media es **1** y el **100 %** de los píxeles está por debajo de 25
+   — el cuadro es negro entero, porque el clip arranca antes de que entre la imagen. Eso no es
+   una rareza en ecocardiografía, es lo habitual. Un póster negro se ve como una miniatura rota
+   en el slot y, peor, como un **rectángulo negro sin nada** en la diapositiva del PPT: PowerPoint
+   dibuja el póster hasta que alguien aprieta play, así que el médico concluye que el video no se
+   incluyó. Se prueban cuatro instantes y gana el primero con contenido; si todos salen negros se
+   devuelve el primero igual —el video se incluye, aunque su portada sea negra—. */
 function _videoPoster(blob) {
   return new Promise(resolve => {
-    let url = null, v = null, listo = false;
+    let url = null, v = null, listo = false, paso = 0, mejor = null;
     const fin = r => { if (listo) return; listo = true;
       try { if (v) { v.pause(); v.removeAttribute('src'); v.load(); } } catch (e) {}
       try { if (url) URL.revokeObjectURL(url); } catch (e) {}
       resolve(r); };
+    const capturar = () => {
+      try {
+        if (!v.videoWidth) return fin(mejor);
+        const c = document.createElement('canvas');
+        /* `videoWidth`/`videoHeight` vienen YA ROTADOS: un clip grabado en vertical declara
+           1024×576 en su `tkhd` y una matriz de rotación, y el elemento entrega 576×1024. Es la
+           única medida que sirve para dar la relación de aspecto del marco. */
+        c.width = v.videoWidth; c.height = v.videoHeight;
+        c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+        const cuadro = { poster: c.toDataURL('image/jpeg', 0.7), dur: v.duration || 0,
+                         w: v.videoWidth, h: v.videoHeight };
+        if (!mejor) mejor = cuadro;                  // respaldo: el primero que se pudo dibujar
+        if (!_cuadroCasiNegro(v)) return fin(cuadro);
+        paso++;
+        if (paso >= _VIDEO_POSTER_T.length) return fin(mejor);
+        const dur = v.duration;
+        let t = _VIDEO_POSTER_T[paso];
+        /* Con duración conocida no se pide un instante que no existe; sin ella —el caso de un
+           blob de MediaRecorder— se pide igual y, si no hay cuadro, el `seeked` no llega y corta
+           el respaldo de los 8 s con lo mejor que se haya conseguido. */
+        if (isFinite(dur) && dur > 0) { if (t >= dur) return fin(mejor); t = Math.min(t, dur - 0.02); }
+        v.currentTime = t;
+      } catch (e) { fin(mejor); }
+    };
     try {
       url = URL.createObjectURL(blob);
       v = document.createElement('video');
       v.muted = true; v.playsInline = true; v.preload = 'metadata';
-      v.onloadeddata = () => {
-        try {
-          const c = document.createElement('canvas');
-          c.width = v.videoWidth || 320; c.height = v.videoHeight || 240;
-          if (!v.videoWidth) return fin(null);
-          c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
-          fin({ poster: c.toDataURL('image/jpeg', 0.7), dur: v.duration || 0,
-                w: v.videoWidth, h: v.videoHeight });
-        } catch (e) { fin(null); }
-      };
-      v.onerror = () => fin(null);
-      /* Sin el seek, Safari y Chrome entregan `loadeddata` con el cuadro en negro. */
-      v.onloadedmetadata = () => { try { v.currentTime = 0.05; } catch (e) {} };
+      /* Se escucha `seeked` y no `loadeddata`: aquél dispara UNA vez y acá hay que capturar
+         después de cada salto. El primer `seeked` es el del 0,05 s de abajo. */
+      v.onseeked = capturar;
+      v.onerror = () => fin(mejor);
+      /* Sin el seek, Safari y Chrome entregan el cuadro en negro. */
+      v.onloadedmetadata = () => { try { v.currentTime = 0.05; } catch (e) { capturar(); } };
       v.src = url;
-      setTimeout(() => fin(null), 8000);
+      setTimeout(() => fin(mejor), 8000);
     } catch (e) { fin(null); }
   });
 }
@@ -66442,8 +66511,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260920-2309';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789956582003;                 /* eco-build-ms */
+const ECO_BUILD    = '20260921-0016';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789960584755;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -66529,7 +66598,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-2309</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-0016</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
