@@ -161,6 +161,28 @@
   .ig-acc-panel{background:#3a3f52;border:1px solid #4a5068;border-radius:8px}
   html.light-mode .ig-filtro-btn{background:#e8eaf0;border-color:#cdd0da;color:#5b6478}
   html.light-mode .ig-acc-panel{background:#e8eaf0;border-color:#cdd0da}
+  /* ── Barra de memoria: el DETALLE se despliega ──────────────────────────────────────────
+     Los tres contadores (imágenes, cineloops, espacio) ocupaban tres renglones fijos en la
+     cabecera de Guardados. Se muestran al pasar por encima o al tocar la barra.
+
+     EL HOVER VA POR CSS Y NO POR JS, y no es preferencia: `imgStorageRender` repinta el
+     contenedor entero —la llama `renderInformesGuardados` y cada cambio de la lista—, así que
+     un `mouseenter` guardado en una variable se pierde en el primer repintado y el detalle se
+     cierra solo con el puntero encima. El navegador reevalúa `:hover` sobre el nodo nuevo sin
+     que nadie se acuerde. Lo que sí necesita estado es el clic, que es el único camino en
+     táctil: la clase `abierta` se repone en cada pintada desde `_igDetalleAbierto`.
+
+     EL AVISO DE UMBRAL NO ESTÁ ACÁ ADENTRO, a propósito: vive fuera del detalle y se sigue
+     mostrando siempre por encima del 60 %. Esconderlo detrás de un hover se llevaría puesto el
+     botón de exportar justo cuando hace falta —y en táctil no hay hover—, que es exactamente
+     lo que la entrada de TC-211 documenta haber evitado. */
+  .ig-stor-det{display:none}
+  .ig-stor:hover .ig-stor-det,
+  .ig-stor:focus-within .ig-stor-det,
+  .ig-stor.abierta .ig-stor-det{display:block}
+  .ig-stor-tr{cursor:pointer;border-radius:6px;padding:1px 4px;margin:-1px -4px}
+  .ig-stor-tr:hover,.ig-stor.abierta .ig-stor-tr{background:var(--bg3)}
+  .ig-stor-tr:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   /* ── Desplegables de datos (Exportar ▾ / Importar ▾) en Guardados ──
      Discretos a propósito: son la puerta a operaciones que reescriben la base
      (importar) o la sacan del equipo (exportar), y estaban repartidos entre el menú ⋮
@@ -1959,6 +1981,57 @@ window.cerrarSesion = cerrarSesion;
         </div>
         <div style="font-size:11.5px;color:var(--text2);margin-bottom:12px;line-height:1.5;">Básico muestra solo el estudio principal (fila 1). Avanzado suma módulos especiales y herramientas — elegí cuáles ver.</div>
         <div id="cfg-modulos" style="display:none;"></div>
+      </section>
+
+      <!-- ══ Orthanc / DICOM en red ══════════════════════════════════════════════════════
+           Orthanc es un servidor DICOM que el médico instala en SU máquina; el ecógrafo le
+           envía los estudios y EcoSmart lee su API REST. Los datos no salen de la red local.
+
+           TODOS LOS ids VAN CON PREFIJO `cfg-`, y no es estilo: `guardarInforme` barre
+           `input[id]` de TODO el documento y `_noEsDelEstudio()` excluye por prefijo. Sin él,
+           la dirección de Orthanc y la casilla se guardarían dentro de `campos` de CADA
+           estudio, viajarían al Excel y las contaría `detectar_huerfanos` — es la regla que ya
+           documentan los paneles de referencia de Marfan y Fontan.
+
+           La casilla va con `onchange` y NUNCA con `onclick`: la regla táctil global matchea
+           por el ATRIBUTO (`[onclick]{min-height:44px}`) e inflaría la casilla a tres veces el
+           alto de su fila.
+
+           El estado lo pinta `orthancRender()` desde localStorage al abrir Config, porque
+           `limpiarCampos` vacía `input[type=text]` de todo el documento sin mirar prefijo —es
+           lo que ya le pasa a `firma-nombre`—. La fuente de verdad es localStorage, no el
+           campo; y como `limpiarCampos` asigna `.value` sin disparar `input`, vaciarlo NO
+           borra lo guardado. -->
+      <section class="cfg-card">
+        <div class="cfg-sec-title">🔌 Orthanc / DICOM en red</div>
+        <p style="font-size:11px;color:var(--text2);margin:0 0 10px;line-height:1.5;">
+          <b>Orthanc</b> es un servidor DICOM gratuito que se instala en esta computadora. El
+          ecógrafo le envía los estudios y EcoSmart los lee de ahí. Todo ocurre en tu red: los
+          datos no salen a internet.
+          <a href="https://www.orthanc-server.com" target="_blank" rel="noopener noreferrer"
+             style="color:var(--accent);">Descargar Orthanc ↗</a>
+        </p>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;margin-bottom:9px;cursor:pointer;">
+          <input type="checkbox" id="cfg-orthanc-on" onchange="orthancToggle(this.checked)">
+          <span>Activar conexión con Orthanc</span>
+        </label>
+        <div id="cfg-orthanc-cuerpo">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+            <span style="font-size:12px;color:var(--text2);">Dirección:</span>
+            <input type="text" id="cfg-orthanc-url" placeholder="localhost:8042"
+                   autocomplete="off" spellcheck="false"
+                   oninput="orthancGuardarUrl(this.value)"
+                   style="flex:1;min-width:150px;font-size:12px;">
+            <button class="btn btn-ghost" style="font-size:11.5px;padding:5px 11px;"
+                    onclick="orthancVerificar()">Verificar conexión</button>
+          </div>
+          <div id="cfg-orthanc-estado" style="font-size:11.5px;line-height:1.55;"></div>
+          <!-- Los datos para el ecógrafo salen de lo que INFORMA Orthanc (`DicomAet`,
+               `DicomPort` de /system), no de constantes: 4242 y ORTHANC son los valores por
+               omisión y son configurables, así que cablearlos haría que el médico copie datos
+               equivocados al ecógrafo sin ningún síntoma hasta que el envío falle. -->
+          <div id="cfg-orthanc-datos" style="display:none;margin-top:10px;"></div>
+        </div>
       </section>
 
       <!-- Soporte y contacto — va ÚLTIMO y discreto: no interrumpe el flujo de configuración.
@@ -13122,7 +13195,12 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <span>📋 Informes Guardados <span id="ig-titulo-count" style="font-weight:400;color:var(--text2);"></span></span>
         <!-- `text-transform:none` y `letter-spacing:normal`: card-head los fuerza en mayúsculas
              y espaciado, y una medición sale como «186 KB USADO», que grita y se lee peor. -->
-        <span id="ig-img-storage" style="cursor:pointer;font-weight:400;text-transform:none;letter-spacing:normal;" onclick="imgStorageDetalle()" title="Tocar para ver el detalle"></span>
+        <!-- SIN `onclick`: el disparador del detalle es la FILA de la barra, que lo cablea
+             `imgStorageRender` con addEventListener. El atributo tenía dos problemas: mostraba
+             el mismo detalle como TOAST —dos presentaciones del mismo dato, y la de arriba se
+             va sola a los tres segundos— y la regla táctil global matchea por el ATRIBUTO
+             (`[onclick]{min-height:44px}`), así que inflaba esta línea de la cabecera. -->
+        <span id="ig-img-storage" style="font-weight:400;text-transform:none;letter-spacing:normal;"></span>
       </h2>
       <div class="card-body">
         <!-- Fila: disparadores de filtros (izquierda) · acciones de datos (derecha) -->
@@ -25338,6 +25416,47 @@ function _igContadores() {
   return pCine.then(cine => ({ cine: cine }));
 }
 
+/* ── Estado del detalle desplegable de la barra ─────────────────────────────────────────────
+   Vive a nivel de módulo y NO dentro de `imgStorageRender` porque esa función repinta el
+   contenedor entero varias veces por sesión —la llaman `renderInformesGuardados`, el guardado,
+   el borrado y cada cambio de la lista—. Con el estado adentro, el detalle se cerraría solo en
+   el primer repintado, con el dedo todavía encima.
+
+   NO se persiste, y es deliberado: es la posición de un desplegable de la sesión, no una
+   preferencia del médico. `sessionStorage` acá sería el ruido que este archivo ya documenta
+   —se copia al duplicar la pestaña y lo repone la restauración de sesión— para algo que
+   cuesta un toque reabrir. */
+let _igDetalleAbierto = false;
+
+/* El puntero lo maneja el CSS (`:hover`); esto es el camino del CLIC, que es el ÚNICO que hay
+   en táctil. `forzar` permite cerrarlo sin togglear (clic afuera, Escape). */
+function _igDetalleToggle(forzar) {
+  const abrir = (forzar === undefined) ? !_igDetalleAbierto : !!forzar;
+  if (abrir === _igDetalleAbierto) return;
+  _igDetalleAbierto = abrir;
+  const cont = document.getElementById('ig-img-storage');
+  if (!cont) return;
+  cont.classList.toggle('abierta', abrir);
+  const tr = cont.querySelector('.ig-stor-tr');
+  if (tr) tr.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+}
+
+/* Clic afuera y Escape, registrados UNA sola vez y sobre el documento —no sobre el contenedor,
+   que `imgStorageRender` reemplaza entero—. Salen temprano cuando está cerrado, así que no
+   cuestan nada en el caso normal. */
+if (!window._igDetalleCableado) {
+  window._igDetalleCableado = true;
+  document.addEventListener('click', ev => {
+    if (!_igDetalleAbierto) return;
+    const cont = document.getElementById('ig-img-storage');
+    if (cont && cont.contains(ev.target)) return;   // adentro: lo maneja la fila
+    _igDetalleToggle(false);
+  });
+  document.addEventListener('keydown', ev => {
+    if (_igDetalleAbierto && ev.key === 'Escape') _igDetalleToggle(false);
+  });
+}
+
 function imgStorageRender() {
   const cont = document.getElementById('ig-img-storage');
   if (!cont || typeof CeiboImg === 'undefined') return;
@@ -25361,7 +25480,18 @@ function imgStorageRender() {
     const mk = (tag, css, txt) => { const e = document.createElement(tag); e.style.cssText = css;
                                     if (txt != null) e.textContent = txt; return e; };
     cont.textContent = '';
+    /* La clase vive en el CONTENEDOR: es el ancestro común de la fila y del detalle, así que un
+       solo `:hover` los relaciona sin envolver nada en un div nuevo. */
+    cont.classList.add('ig-stor');
+    /* REDUNDANTE HOY, y queda a proposito: `cont.textContent=''` vacia los HIJOS pero el
+       contenedor no se recrea, asi que la clase sobrevive al repintado por su cuenta —una
+       mutacion que borre esta linea NO pone nada en rojo, verificado—. Fija el contrato para
+       el dia en que la cabecera se repinte por innerHTML o alguien mueva `_igDetalleAbierto`
+       desde otro camino. Lo que NO es redundante es el `aria-expanded` de abajo: la fila SI se
+       recrea en cada pintada. */
+    cont.classList.toggle('abierta', _igDetalleAbierto);
     const fila = mk('span', 'display:inline-flex;align-items:baseline;gap:7px;white-space:nowrap;');
+    fila.className = 'ig-stor-tr';
     const bloques = mk('span', 'font-family:monospace;font-size:13px;letter-spacing:1px;');
     bloques.appendChild(mk('span', 'color:' + col, barra.slice(0, llenos)));
     bloques.appendChild(mk('span', 'color:var(--green)', barra.slice(llenos)));
@@ -25373,10 +25503,29 @@ function imgStorageRender() {
     const pctTxt = !total ? '' : (pct > 0 && pct < 0.5 ? '<1% · ' : pct.toFixed(0) + '% · ');
     fila.appendChild(mk('span', 'font-size:11px;color:var(--text2);',
       pctTxt + _fmtMB(uso.bytes) + ' usado'));
+    /* Alcanzable por teclado y anunciado: sin esto el detalle sólo existe para quien tiene
+       puntero. `addEventListener` y NO un atributo `onclick`: la regla táctil global matchea
+       por el ATRIBUTO (`[onclick]{min-height:44px}`) e inflaría la fila a 44 px de alto. */
+    fila.setAttribute('role', 'button');
+    fila.setAttribute('tabindex', '0');
+    fila.setAttribute('aria-controls', 'ig-stor-det');
+    fila.setAttribute('aria-expanded', _igDetalleAbierto ? 'true' : 'false');
+    fila.title = 'Ver el detalle del almacenamiento';
+    fila.addEventListener('click', ev => { ev.stopPropagation(); _igDetalleToggle(); });
+    fila.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'Spacebar') {
+        ev.preventDefault(); _igDetalleToggle();
+      } else if (ev.key === 'Escape' && _igDetalleAbierto) { _igDetalleToggle(false); }
+    });
     cont.appendChild(fila);
 
-    /* ── Contadores, debajo de la barra ── */
-    const det = mk('div', 'display:block;font-size:10.5px;color:var(--text2);line-height:1.65;margin-top:3px;');
+    /* ── Contadores, debajo de la barra. COLAPSADOS: los muestra el CSS al pasar por encima o
+       con la clase `abierta`, que pone el clic. No lleva `display` en línea —lo pone la hoja de
+       estilos— porque un `display` inline le gana a la regla y el detalle quedaría siempre
+       visible: es el conflicto que este archivo ya pagó con `[hidden]` y el banner de versión. */
+    const det = mk('div', 'font-size:10.5px;color:var(--text2);line-height:1.65;margin-top:3px;');
+    det.className = 'ig-stor-det';
+    det.id = 'ig-stor-det';
     det.appendChild(mk('div', '', '📷 ' + uso.imgs + ' imagen(es) guardada(s)'));
     det.appendChild(mk('div', '', '🎬 ' + extra.cine.n + ' cineloop(s) guardado(s)'));
     /* «de Y disponibles» sólo si el navegador informa la cuota. Sin ella se dice que no se
@@ -25417,18 +25566,11 @@ function imgStorageRender() {
 }
 window.imgStorageRender = imgStorageRender;
 
-function imgStorageDetalle() {
-  if (typeof CeiboImg === 'undefined') return;
-  Promise.all([CeiboImg.uso(), CeiboImg.cuota()]).then(([uso, q]) => {
-    const pct = q.total ? ((q.usado / q.total) * 100).toFixed(2) + '%' : 'no informada';
-    if (typeof toast === 'function') {
-      toast('🖼️ ' + uso.estudios + ' estudio(s) con imágenes · ' + _fmtMB(uso.bytes) +
-            ' · ocupación del navegador: ' + pct +
-            (q.total ? ' (' + _fmtMB(q.usado) + ' de ' + _fmtMB(q.total) + ')' : ''));
-    }
-  }).catch(() => {});
-}
-window.imgStorageDetalle = imgStorageDetalle;
+/* `imgStorageDetalle()` VIVIÓ ACÁ y se borró al hacer desplegable el detalle (2026-09-21).
+   Mostraba lo mismo —estudios, MB, porcentaje— como toast, y su único llamador era el
+   `onclick` del span de la cabecera. Dejarla habría sido una segunda presentación del mismo
+   dato esperando a que alguien la volviera a enganchar, con el agravante de que un toast se va
+   a los tres segundos y el panel se queda. */
 
 function imgVaciar() {
   if (typeof imgSlots === 'undefined') return;
@@ -67646,8 +67788,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260921-0734';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789986850693;                 /* eco-build-ms */
+const ECO_BUILD    = '20260921-0907';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789992437412;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -67733,7 +67875,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-0734</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-0907</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -68164,13 +68306,330 @@ window.cfgSoporteRender = cfgSoporteRender;
 
 function eeQrEnabled(){ return localStorage.getItem('ett_qr_enabled') !== '0'; } // por defecto activado
 function cfgToggleQr(on){ try { localStorage.setItem('ett_qr_enabled', on ? '1' : '0'); } catch(e){} }
+/* ══ Orthanc / DICOM en red ═══════════════════════════════════════════════════════════════
+   Orthanc corre en la máquina del médico y expone una API REST. EcoSmart sólo la CONSULTA:
+   no se envía un dato a ningún servidor ajeno y la dirección nunca sale de localStorage.
+
+   ⚠️ CUATRO COSAS MEDIDAS que condicionan todo lo de abajo (2026-09-21):
+
+   1 · LA IP DE LA MÁQUINA NO SE PUEDE DETECTAR DESDE EL NAVEGADOR. La vía histórica eran los
+       candidatos ICE de WebRTC, y Chrome los ofusca con mDNS desde la v80: medido en este
+       Chrome, el único candidato es `<uuid>.local` y hay CERO IPs numéricas. Por eso la IP se
+       DERIVA de la dirección que el médico tipeó, y con `localhost` se dice que no se puede y
+       se da el comando — en vez de un botón «Detectar» que no puede funcionar.
+
+   2 · ORTHANC NO MANDA CABECERAS CORS POR OMISIÓN, así que el primer «Verificar» de una
+       instalación nueva FALLA aunque Orthanc esté perfecto. Y `fetch` no distingue: medido,
+       «CORS lo bloqueó» y «no hay nadie escuchando» dan los dos el mismo
+       `TypeError: Failed to fetch`. Decir «¿está instalado y corriendo?» ahí manda al médico a
+       revisar lo que NO está roto.
+
+   3 · UN SONDEO `no-cors` SÍ LOS DISTINGUE: medido, con el servidor vivo la respuesta opaca
+       RESUELVE y con el puerto muerto RECHAZA. Es lo que separa los dos mensajes.
+
+   4 · DESDE HTTPS, CHROME BLOQUEA EL ACCESO A LOOPBACK. Medido sobre
+       https://ecosmart.ceibomed.com: «Permission was denied for this request to access the
+       `loopback` address space». Está gateado por un permiso del navegador, así que el fallo
+       NO prueba que Orthanc falte. Ahí el sondeo del punto 3 también rechaza, o sea que deja
+       de discriminar: por eso el mensaje de HTTPS nombra las dos causas en vez de elegir una.
+       ⚠️ EL CAMINO CON EL PERMISO CONCEDIDO NO ESTÁ VERIFICADO — no se puede reproducir en
+       headless. Queda como deuda declarada. */
+var _ORTH_ON = 'ett_orthanc_on', _ORTH_URL = 'ett_orthanc_url';
+var _ORTH_DICOM_PORT_DEF = 4242, _ORTH_AET_DEF = 'ORTHANC';
+var _orthVerificando = false;
+
+function _orthLS(k, v) {
+  try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); }
+  catch (e) { return null; }
+}
+function orthancActivo() { return _orthLS(_ORTH_ON) === '1'; }
+
+/* Normaliza lo que el médico tipeó a un origen. Devuelve null para lo que no se puede leer,
+   NUNCA una suposición: con una dirección inventada el fetch fallaría y el mensaje culparía a
+   Orthanc de un error de tipeo. Sólo http/https — un `javascript:` o un `file:` acá no tienen
+   ningún significado y sí un modo de falla. */
+function _orthBase(raw) {
+  var t = String(raw == null ? '' : raw).trim();
+  if (!t) return null;
+  /* Un esquema explícito que NO sea http/https se RECHAZA, no se reescribe. Sin esto,
+     `file:///etc/passwd` salía como `http://file:8042`: no es un agujero —ese host no
+     resuelve— pero mangle en silencio lo que el médico tipeó, y después el mensaje de error
+     habla de una dirección que nadie escribió. El `://` es lo que distingue un esquema de un
+     `host:puerto`: `localhost:8042` no lo lleva y sigue entrando. */
+  if (/^[a-z][a-z0-9+.\-]*:\/\//i.test(t) && !/^https?:\/\//i.test(t)) return null;
+  if (!/^https?:\/\//i.test(t)) t = 'http://' + t;
+  var u;
+  try { u = new URL(t); } catch (e) { return null; }
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+  if (!u.hostname) return null;
+  if (!u.port && u.protocol === 'http:') u.port = '8042';   // el puerto REST por omisión
+  /* Se reconstruye con protocolo + host + puerto y nada más, así que un `usuario:clave@` que
+     alguien pegue se DESCARTA en vez de viajar en cada fetch y de quedar impreso en el cartel
+     de estado. EcoSmart no maneja la autenticación de Orthanc —lo dice la rama del 401—. */
+  return u.protocol + '//' + u.hostname + (u.port ? ':' + u.port : '');
+}
+function _orthEsLoopback(base) {
+  var h = '';
+  try { h = new URL(base).hostname.toLowerCase(); } catch (e) { return true; }
+  return h === 'localhost' || h === '127.0.0.1' || h === '::1' || h === '[::1]' ||
+         /\.localhost$/.test(h);
+}
+function _orthHost(base) { try { return new URL(base).hostname; } catch (e) { return ''; } }
+
+/* ¿Hay algo escuchando? Respuesta OPACA = sí. Es la única forma de separar «CORS» de «no hay
+   nadie», porque las dos fallan con el mismo TypeError. Desde HTTPS a loopback rechaza
+   siempre, así que el llamador no le cree en ese caso. */
+function _orthHayAlguien(base) {
+  return new Promise(function (res) {
+    var ctl = null, t = null;
+    try { ctl = new AbortController(); t = setTimeout(function(){ ctl.abort(); }, 4000); } catch(e){}
+    fetch(base + '/system', { mode: 'no-cors', cache: 'no-store',
+                              signal: ctl ? ctl.signal : undefined })
+      .then(function(){ if (t) clearTimeout(t); res(true); })
+      .catch(function(){ if (t) clearTimeout(t); res(false); });
+  });
+}
+
+function orthancToggle(on) {
+  _orthLS(_ORTH_ON, on ? '1' : '0');
+  orthancRender();
+  if (typeof toast === 'function') toast(on ? '🔌 Conexión con Orthanc activada' : 'Conexión con Orthanc desactivada');
+}
+window.orthancToggle = orthancToggle;
+
+/* Se persiste en cada tecla. `limpiarCampos` asigna `.value` sin disparar `input`, así que
+   vaciar el campo con «Nuevo estudio» NO borra lo guardado: la fuente de verdad es
+   localStorage y `orthancRender()` la repone al abrir Config. */
+function orthancGuardarUrl(v) { _orthLS(_ORTH_URL, String(v == null ? '' : v)); }
+window.orthancGuardarUrl = orthancGuardarUrl;
+
+function _orthPintarEstado(txt, color) {
+  var e = document.getElementById('cfg-orthanc-estado');
+  if (!e) return;
+  e.textContent = '';
+  if (!txt) return;
+  var d = document.createElement('div');
+  d.style.cssText = 'padding:6px 9px;border-radius:7px;background:var(--bg3);border-left:3px solid ' +
+                    (color || 'var(--text2)') + ';white-space:pre-line;';
+  d.textContent = txt;                       // textContent: nada de lo que viene de la red se parsea
+  e.appendChild(d);
+}
+
+function orthancRender() {
+  var on  = orthancActivo();
+  var chk = document.getElementById('cfg-orthanc-on');
+  var inp = document.getElementById('cfg-orthanc-url');
+  var cue = document.getElementById('cfg-orthanc-cuerpo');
+  if (chk) chk.checked = on;
+  if (inp) inp.value = _orthLS(_ORTH_URL) || '';
+  if (cue) cue.style.display = on ? '' : 'none';
+  if (!on) { _orthPintarEstado(''); _orthDatosOcultar(); }
+}
+window.orthancRender = orthancRender;
+
+function _orthDatosOcultar() {
+  var d = document.getElementById('cfg-orthanc-datos');
+  if (d) { d.textContent = ''; d.style.display = 'none'; }
+}
+
+/* Fila «rótulo · valor · Copiar». El valor va por `data-orth-copiar` y el manejador se ata por
+   DELEGACIÓN, nunca interpolado dentro de un `onclick`: ahí el escape NO protege, porque el
+   parser decodifica la entidad ANTES de compilar el handler. Y estos valores vienen de la red
+   —del Orthanc del médico—, o sea que no son literales del archivo. */
+function _orthFila(cont, rotulo, valor, nota) {
+  var f = document.createElement('div');
+  f.style.cssText = 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;';
+  var r = document.createElement('span');
+  r.style.cssText = 'font-size:11.5px;color:var(--text2);min-width:118px;';
+  r.textContent = rotulo;
+  f.appendChild(r);
+  var v = document.createElement('code');
+  v.style.cssText = 'font-size:12.5px;font-weight:600;padding:2px 7px;border-radius:5px;background:var(--bg2);';
+  v.textContent = valor;
+  f.appendChild(v);
+  if (valor) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'btn btn-ghost';
+    b.style.cssText = 'padding:3px 9px;font-size:11px;';
+    b.textContent = 'Copiar';
+    b.setAttribute('data-orth-copiar', valor);
+    f.appendChild(b);
+  }
+  if (nota) {
+    var n = document.createElement('span');
+    n.style.cssText = 'font-size:10.5px;color:var(--text2);flex-basis:100%;line-height:1.45;';
+    n.textContent = nota;
+    f.appendChild(n);
+  }
+  cont.appendChild(f);
+}
+
+function _orthPintarDatos(base, sys) {
+  var d = document.getElementById('cfg-orthanc-datos');
+  if (!d) return;
+  d.textContent = ''; d.style.display = '';
+  var t = document.createElement('p');
+  t.style.cssText = 'font-size:11.5px;margin:0 0 8px;line-height:1.5;';
+  /* «a EcoSmart» sería falso: el ecógrafo envía a ORTHANC, y EcoSmart lee de Orthanc. Decirlo
+     al revés manda al médico a buscar por qué EcoSmart no aparece en la lista del ecógrafo. */
+  t.textContent = 'Para que tu ecógrafo envíe los estudios a Orthanc, configuralo en su menú ' +
+                  'DICOM con estos datos:';
+  d.appendChild(t);
+
+  var host = _orthHost(base);
+  if (_orthEsLoopback(base)) {
+    /* No se inventa una IP. El navegador no puede leerla —medido— y publicar una equivocada
+       haría que el médico la copie al ecógrafo y el envío falle sin ninguna pista. */
+    _orthFila(d, 'IP de esta máquina:', '',
+      'No se puede detectar desde el navegador: la dirección dice «' + host + '», que es esta ' +
+      'misma computadora. Averiguala con «ipconfig» (Windows) o «ifconfig | grep inet» ' +
+      '(Mac/Linux), o escribila acá arriba en lugar de localhost y vuelve a verificar.');
+  } else {
+    _orthFila(d, 'IP de esta máquina:', host,
+      'Derivada de la dirección que configuraste arriba.');
+  }
+
+  var puerto = (sys && (sys.DicomPort || sys.DicomPort === 0)) ? String(sys.DicomPort) : '';
+  var aet    = (sys && sys.DicomAet) ? String(sys.DicomAet) : '';
+  _orthFila(d, 'Puerto DICOM:', puerto || String(_ORTH_DICOM_PORT_DEF),
+            puerto ? 'Informado por Orthanc.' : 'Orthanc no lo informó: es el valor por defecto.');
+  _orthFila(d, 'AE Title:', aet || _ORTH_AET_DEF,
+            aet ? 'Informado por Orthanc.' : 'Orthanc no lo informó: es el valor por defecto.');
+}
+
+/* Copiar: un solo listener delegado, registrado UNA vez. El panel se reconstruye en cada
+   verificación, así que enganchar por botón acumularía uno por pasada. */
+if (!window._orthCopiarCableado) {
+  window._orthCopiarCableado = true;
+  document.addEventListener('click', function (ev) {
+    var b = ev.target && ev.target.closest ? ev.target.closest('[data-orth-copiar]') : null;
+    if (!b) return;
+    ev.preventDefault();
+    var txt = b.getAttribute('data-orth-copiar') || '';
+    var ok = function () { if (typeof toast === 'function') toast('📋 Copiado: ' + txt); };
+    var falla = function () {
+      /* Se DICE que no se pudo, y se deja el valor seleccionable. Un «Copiar» que no copia y
+         no avisa hace que el médico pegue en el ecógrafo lo que tenía antes en el portapapeles. */
+      if (typeof toast === 'function') toast('⚠️ El navegador no dejó copiar. Seleccioná el valor a mano.');
+    };
+    /* DOS vías, y la segunda no es adorno: `navigator.clipboard` exige contexto seguro Y
+       activación de usuario, así que falla en más casos de los que parece. `execCommand` está
+       deprecado y sigue siendo el que anda cuando aquél se niega. Sólo si fallan las dos se
+       avisa. */
+    var porTextarea = function () {
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = txt;
+        ta.setAttribute('readonly', '');
+        ta.style.cssText = 'position:fixed;top:-2000px;left:-2000px;opacity:0;';
+        document.body.appendChild(ta);
+        ta.select(); ta.setSelectionRange(0, txt.length);
+        var bien = document.execCommand && document.execCommand('copy');
+        document.body.removeChild(ta);
+        return !!bien;
+      } catch (e) { return false; }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(ok)
+        .catch(function () { if (porTextarea()) ok(); else falla(); });
+    } else if (porTextarea()) { ok(); } else { falla(); }
+  });
+}
+
+async function orthancVerificar() {
+  if (_orthVerificando) return;              // sin guarda, dos clics = dos sondeos en vuelo
+  var inp  = document.getElementById('cfg-orthanc-url');
+  var base = _orthBase(inp ? inp.value : '');
+  if (!base) {
+    _orthPintarEstado('⚠️ No entiendo esa dirección. Escribí algo como «localhost:8042» o ' +
+                      '«192.168.1.50:8042».', 'var(--orange)');
+    _orthDatosOcultar(); return;
+  }
+  _orthVerificando = true;
+  _orthPintarEstado('⏳ Buscando Orthanc en ' + base + '…');
+  _orthDatosOcultar();
+  try {
+    var r = null, ctl = null, t = null;
+    try { ctl = new AbortController(); t = setTimeout(function(){ ctl.abort(); }, 6000); } catch(e){}
+    try { r = await fetch(base + '/system', { cache: 'no-store',
+                                              signal: ctl ? ctl.signal : undefined }); }
+    catch (e) { r = null; }
+    if (t) clearTimeout(t);
+
+    if (r && r.ok) {
+      var sys = null;
+      try { sys = await r.json(); } catch (e) { sys = null; }
+      if (!sys || typeof sys !== 'object') {
+        _orthPintarEstado('⚠️ Algo respondió en ' + base + ', pero no con la respuesta de ' +
+                          'Orthanc. ¿Hay otro programa usando ese puerto?', 'var(--orange)');
+        return;
+      }
+      var v = sys.Version ? String(sys.Version) : '(versión no informada)';
+      var nom = sys.Name ? ' · ' + String(sys.Name) : '';
+      _orthPintarEstado('✅ Orthanc conectado — v ' + v + nom, 'var(--green)');
+      _orthPintarDatos(base, sys);
+      return;
+    }
+    if (r && r.status === 401) {
+      _orthPintarEstado('🔒 Orthanc respondió, pero pide usuario y contraseña. EcoSmart todavía ' +
+                        'no los maneja: para probar, poné «"AuthenticationEnabled" : false» en ' +
+                        'orthanc.json (sólo si Orthanc escucha en esta máquina).', 'var(--orange)');
+      return;
+    }
+    if (r) {
+      _orthPintarEstado('⚠️ ' + base + ' respondió con el código ' + r.status +
+                        '. ¿Es realmente un Orthanc?', 'var(--orange)');
+      return;
+    }
+
+    /* No hubo respuesta legible. Antes de acusar a Orthanc de faltar, se mira si hay ALGO. */
+    var httpsAloopback = (location.protocol === 'https:') && /^http:/.test(base);
+    var vivo = await _orthHayAlguien(base);
+    if (httpsAloopback) {
+      /* Acá el sondeo no discrimina —medido: el bloqueo de red local rechaza las dos vías— así
+         que se nombran las dos causas en vez de elegir una y mandar a revisar lo que anda. */
+      _orthPintarEstado(
+        '❌ No se pudo leer Orthanc desde ' + location.origin + '.\n\n' +
+        'Dos causas posibles, y las dos son de configuración, no de Orthanc:\n' +
+        '1) El navegador bloquea que una página de internet toque tu red local. Fijate si ' +
+        'apareció un pedido de permiso y concedelo.\n' +
+        '2) Orthanc no está enviando cabeceras CORS. Agregá esto a orthanc.json y reinicialo:\n' +
+        '     "HttpHeaders" : { "Access-Control-Allow-Origin" : "' + location.origin + '" }\n\n' +
+        'Poné el origen exacto y no «*»: con un asterisco, CUALQUIER página que abras podría ' +
+        'leer los estudios de tu Orthanc.', 'var(--orange)');
+      return;
+    }
+    if (vivo) {
+      _orthPintarEstado(
+        '⚠️ Hay un servidor respondiendo en ' + base + ', pero el navegador no me deja leerlo.\n' +
+        'Casi siempre es que Orthanc no envía cabeceras CORS —viene así de fábrica—. Agregá ' +
+        'esto a orthanc.json y reinicialo:\n' +
+        '     "HttpHeaders" : { "Access-Control-Allow-Origin" : "' + location.origin + '" }\n\n' +
+        'Poné el origen exacto y no «*»: con un asterisco, CUALQUIER página que abras podría ' +
+        'leer los estudios de tu Orthanc.', 'var(--orange)');
+      return;
+    }
+    _orthPintarEstado('❌ No se encontró Orthanc en ' + base + '. ¿Está instalado y corriendo?\n' +
+                      'Se descarga de orthanc-server.com. Si lo instalaste en otro puerto, ' +
+                      'corregí la dirección de arriba.', 'var(--red)');
+  } finally {
+    _orthVerificando = false;
+  }
+}
+window.orthancVerificar = orthancVerificar;
+
 function cfgOnShow(){ cfgRenderModulos(); cfgSoporteRender(); cfgLoadMed(); if(typeof cfgRenderCentros==='function')cfgRenderCentros(); if(typeof cfgRenderMedicos==='function')cfgRenderMedicos(); if(typeof initPdfPlantillas==='function')initPdfPlantillas(); var q=document.getElementById('cfg-qr'); if(q) q.checked = eeQrEnabled(); var mi=document.getElementById('cfg-modo-inst'); if(mi) mi.checked=(localStorage.getItem('ett_modo_institucional')==='1');
   var gi=document.getElementById('cfg-guardar-imagenes'); if(gi && typeof imgGuardadoActivo==='function') gi.checked=imgGuardadoActivo();
   /* La fila del logo se repinta al abrir Config, como todo lo demás de este panel. Los cuatro
      escritores de `logo_centro_*` ya la repintan, así que dentro de una pestaña esto es
      redundante; sirve para la SEGUNDA pestaña: sin listener de `storage`, borrar el logo en una
      dejaba a la otra mostrando la miniatura y el botón Eliminar sobre algo que ya no existe. */
-  if(typeof renderLogoCentro==='function') renderLogoCentro(); }
+  if(typeof renderLogoCentro==='function') renderLogoCentro();
+  /* Orthanc se repinta acá y no en un listener: `limpiarCampos` vacía `input[type=text]` de
+     TODO el documento sin mirar prefijo —es lo que ya le pasa a `firma-nombre`— así que el
+     campo puede estar en blanco con la dirección bien guardada en disco. La fuente de verdad
+     es localStorage; esto la repone. */
+  if(typeof orthancRender==='function') orthancRender(); }
 /* Botón "🏥 Centro": ya no edita inline — los centros se gestionan en ⚙️ Config. */
 function ecoCentroBtn(){
   if(typeof hdrIrAConfig==='function') hdrIrAConfig();

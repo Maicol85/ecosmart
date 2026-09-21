@@ -4,6 +4,257 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Orthanc en Config — cuatro premisas medidas, y ninguna daba lo que el pedido suponía (TC-220)
+
+Sección «🔌 Orthanc / DICOM en red» en ⚙️ Config: interruptor, dirección, «Verificar conexión»
+y los datos para configurar el ecógrafo. EcoSmart sólo **consulta** la API REST de Orthanc.
+
+### 1 · ⚠️ LA IP DE LA MÁQUINA NO SE PUEDE DETECTAR DESDE EL NAVEGADOR
+
+El pedido decía «La IP se detecta automáticamente». **No se puede.** La vía histórica eran los
+candidatos ICE de WebRTC y Chrome los ofusca con mDNS desde la v80. Medido en este Chrome:
+
+| | |
+|---|---|
+| candidatos ICE | **1** |
+| IPs numéricas | **0** |
+| el único candidato | `22ceee99-…-c14953d2fd8e.local` |
+
+Un botón «Detectar automáticamente» habría sido un control que **no puede funcionar nunca**.
+Decisión de Maicol (2026-09-21): la IP se **deriva de la dirección que el médico tipeó**, y con
+`localhost` se dice que no se puede y se da el comando (`ipconfig` / `ifconfig`). **No se
+inventa una IP**: publicar una equivocada hace que el médico la copie al ecógrafo y el envío
+falle sin ninguna pista. La mutación que la inventa cae por dos condiciones.
+
+### 2 · ⚠️ ORTHANC NO MANDA CORS DE FÁBRICA, Y EL FALLO ES INDISTINGUIBLE DE «NO ESTÁ»
+
+El pedido daba un solo mensaje de error: *«No se encontró Orthanc. ¿Está instalado y
+corriendo?»*. Ése es **el mensaje equivocado en el caso más probable**: Orthanc viene sin
+cabeceras CORS, así que el primer «Verificar» de toda instalación nueva falla con Orthanc
+perfecto. Y medido, los dos fallos son el MISMO error:
+
+| | |
+|---|---|
+| CORS bloqueado | `TypeError: Failed to fetch` |
+| puerto sin nadie | `TypeError: Failed to fetch` |
+
+**Un sondeo `no-cors` SÍ los distingue** — medido: con el servidor vivo la respuesta **opaca
+resuelve** (`status 0`, `type:"opaque"`) y con el puerto muerto **rechaza**. De ahí salen los
+dos mensajes. La mutación que salta el sondeo imprime «❌ No se encontró Orthanc» sobre un
+Orthanc que está ahí.
+
+**La receta que se imprime lleva el ORIGEN EXACTO y no `"*"`**, y eso es clínico: con el
+comodín, **cualquier página** que el médico abra en otra pestaña podría leer los estudios de su
+Orthanc. Hay una condición que lo fija.
+
+### 3 · ⚠️ DESDE HTTPS, CHROME BLOQUEA EL ACCESO A LOOPBACK
+
+Medido sobre `https://ecosmart.ceibomed.com` con Chrome real por CDP:
+
+> *«Access to fetch at 'http://localhost:8042/system' … has been blocked by CORS policy:
+> Permission was denied for this request to access the `loopback` address space»*
+
+Falla igual `127.0.0.1`, y **también falla el sondeo `no-cors`** — o sea que ahí el
+discriminador del punto 2 deja de discriminar. Por eso el mensaje de HTTPS **nombra las dos
+causas** en vez de elegir una. Está gateado por un permiso del navegador, así que el fallo **no
+prueba que Orthanc falte**.
+
+**⚠️ DEUDA DECLARADA: el camino CON el permiso concedido NO está verificado.** No se puede
+reproducir en headless (no hay diálogo) y correr Chrome con esa protección desactivada lo
+bloqueó el clasificador. Queda para probar a mano con Orthanc corriendo. **En `http://localhost`
+sí está verificado de punta a punta.**
+
+### 4 · El puerto DICOM y el AE Title salen de `/system`, NO de constantes
+
+El pedido los fijaba en `4242` y `ORTHANC`. Son los valores **por omisión de Orthanc** y son
+**configurables**: `/system` publica `DicomPort` y `DicomAet`. Cablearlos haría que el médico
+copie datos equivocados al ecógrafo, sin ningún síntoma hasta que el envío falle. Se leen del
+servidor y, si no vienen, se cae al defecto **rotulándolo** «valor por defecto». El escenario
+del caso usa `11112` y `MIPACS` a propósito — con los valores de fábrica, la mutación que
+cablea pasaría en verde.
+
+**Y el texto decía «para que tu ecógrafo envíe estudios a EcoSmart».** Es falso: el ecógrafo
+envía a **Orthanc** y EcoSmart lee de Orthanc. Dicho al revés, manda al médico a buscar
+EcoSmart en la lista de destinos del ecógrafo, donde no está.
+
+### Los ids van con prefijo `cfg-`, y no es estilo
+
+`guardarInforme` barre `input[id]` de **todo el documento** y `_noEsDelEstudio()` excluye por
+prefijo. Sin él, la dirección de Orthanc y el interruptor se guardarían en `campos` de **cada
+estudio**, viajarían al Excel y los contaría `detectar_huerfanos` — la misma regla que los
+paneles de referencia de Marfan y Fontan. **El caso lo prueba guardando un estudio de verdad y
+mirando las claves**, no testeando la regex.
+
+### El campo sobrevive a «Nuevo estudio» porque la fuente de verdad es localStorage
+
+`limpiarCampos` vacía `input[type=text]` de todo el documento **sin mirar prefijo** —es lo que
+ya le pasa a `firma-nombre`— así que el campo puede quedar en blanco con la dirección bien
+guardada. `orthancRender()` la repone desde `cfgOnShow`, que es el embudo de repoblado de
+Config. Y como `limpiarCampos` asigna `.value` **sin disparar `input`**, vaciarlo NO borra lo
+guardado.
+
+### Detalles que no son adorno
+
+- **Un esquema ajeno se RECHAZA, no se reescribe.** `file:///etc/passwd` salía como
+  `http://file:8042`: no es un agujero —ese host no resuelve— pero mangle en silencio lo que el
+  médico tipeó y después el error habla de una dirección que nadie escribió. El `://` distingue
+  un esquema de un `host:puerto`, así que `localhost:8042` sigue entrando.
+- **`usuario:clave@` se descarta** al reconstruir el origen: no viaja en cada fetch ni queda
+  impreso en el cartel de estado.
+- **El valor a copiar va en `data-orth-copiar` con listener delegado**, nunca interpolado en un
+  `onclick`: ahí el escape no protege porque el parser decodifica la entidad ANTES de compilar
+  el handler. Y estos valores vienen de la red, no son literales del archivo.
+- **El «Copiar» tiene dos vías y avisa si fallan las dos.** `navigator.clipboard` exige contexto
+  seguro Y activación de usuario; `execCommand` es el respaldo. Un «Copiar» que no copia y no
+  avisa hace que el médico pegue en el ecógrafo lo que tenía antes en el portapapeles.
+  **NO SE PUDO VERIFICAR EN HEADLESS**: un `.click()` sintético no da activación de usuario y
+  las dos vías se niegan. Queda para la prueba a mano.
+- **El 401 no se confunde con ausencia.** Orthanc con autenticación responde, y decir «no está
+  instalado» ahí es falso.
+
+### Tres trampas del propio caso
+
+- **TC-219 pasaba con `--solo` y fallaba en el suite**, por tercera vez en este archivo — y
+  **mis dos primeras hipótesis fueron falsas**. Supuse overlays del visor: agregué un cierre
+  defensivo y siguió fallando. Supuse el plazo del render —`imgStorageRender` es asíncrona— y
+  puse un sondeo en vez de los 170 ms fijos: siguió fallando. Cada hipótesis costó una corrida
+  completa del suite.
+
+  Lo resolvió **hacer que el caso recorriera la cadena de ancestros y nombrara el culpable**:
+
+  > `ig-img-storage d=block h=0 < H2[card-head] d=flex h=0 < DIV[card] h=0 ov=hidden <`
+  > **`ig-lista-view d=none h=0`** `< tab-guardados[active] d=block h=516`
+
+  La pestaña Guardados tiene **DOS SUB-VISTAS** —lista y detalle— y algún caso anterior la
+  deja en la de detalle, así que `ig-lista-view` queda en `display:none` y **todo lo que cuelga
+  de ella mide cero**, con la pestaña perfectamente activa. Se vuelve a la lista por
+  `volverAListaInformes()`, que es el camino real.
+
+  **La lección operativa: un diagnóstico que nombra el valor medido cuesta UNA corrida; una
+  hipótesis cuesta varias y puede errar dos veces seguidas.** La condición de denominador hizo
+  su trabajo —declaró que la medición no valía en vez de reportar un fallo falso del colapso—
+  pero decía *qué* fallaba y no *dónde*.
+- **Buscar el texto `on…=` en el `innerHTML` da falso positivo.** El payload viaja **escapado**
+  dentro de `data-orth-copiar`, así que al serializar aparece como texto de atributo y el regex
+  lo matchea sobre un panel perfectamente sano. El invariante es que **ningún elemento tenga un
+  atributo de evento** — se recorre `el.attributes`.
+- **Backticks dentro del cuerpo de un caso: van TREINTA Y CUATRO** —tres en este turno— y las
+  tres en comentarios recién escritos, uno de ellos explicando justamente esta trampa.
+
+### TC-161 se puso en rojo con 8/8, y ésa es la señal
+
+Fijaba `cards.length === 7` — el **inventario del día** en que se escribió, no el invariante: dio
+rojo sobre un Config perfectamente sano apenas apareció la tarjeta de Orthanc. Es el literal 53
+otra vez. Y un conteo además es **débil**: 7 sigue dando 7 si alguien borra una tarjeta y agrega
+otra. Reapuntado a **las siete por TÍTULO**: borrar una cae siempre y además **dice cuál**
+—verificado por mutación, el diagnóstico imprime «Médicos»—, y agregar una no molesta a nadie.
+
+### Y el suite se colgó, que no es lo mismo que ir lento
+
+Una corrida quedó **56 minutos al 0,0 % de CPU** — idle, esperando una promesa que no resuelve.
+Peor: la lancé con `| tail -40`, que **bufferiza toda la salida**, así que no se podía saber en
+qué caso quedó. **Para una corrida larga, redirigir a un archivo y no pasarla por `tail`.**
+
+
+## La barra de memoria despliega el detalle — y el `onclick` que la tenía en 44 px (TC-219)
+
+Los tres contadores (📷 imágenes · 🎬 cineloops · 💾 espacio) pasan a mostrarse al pasar por
+encima o al tocar la barra. Por defecto queda sólo la barra de color con el porcentaje.
+
+### ⚠️ EL AVISO DE CUOTA NO ENTRA AL COLAPSO, y es lo único que este caso existe para fijar
+
+El pedido decía «el detalle (imágenes, cineloops, espacio usado)» — o sea **los tres
+contadores**, que es exactamente lo que se colapsó. El **bloque de aviso con el botón
+«📤 Exportar estudios antiguos» queda afuera**, porque la entrada de TC-211 ya lo decidió:
+
+> *«El BLOQUE se muestra SIEMPRE por encima del 60 %: es un estado, y esconderlo porque ya se
+> mostró una vez se lleva puesto el botón justo cuando hace falta.»*
+
+Y en táctil no hay hover, así que meterlo adentro lo volvería **inalcanzable** en el celular.
+La condición que separa un caso útil de uno decorativo es **aviso VISIBLE con el detalle
+CERRADO**: la mutación que mueve el `av.appendChild` de `cont` a `det` cae ahí y sólo ahí.
+
+### EL HOVER VA POR CSS Y NO POR JS, y el motivo es el repintado
+
+`imgStorageRender` repinta el contenedor entero —la llaman `renderInformesGuardados`, el
+guardado, el borrado y cada cambio de la lista—, así que un `mouseenter` guardado en una
+variable se pierde en el primer repintado y el detalle **se cierra solo con el puntero
+encima**. El navegador reevalúa `:hover` sobre el nodo nuevo sin que nadie se acuerde.
+Lo que sí necesita estado es el **clic**, que es el único camino en táctil.
+
+**El hover no se ejerce en el caso**, y está declarado: `getComputedStyle` no resuelve
+pseudo-clases sin puntero real —este archivo ya documenta que mutar una regla `:hover` no pone
+nada en rojo—. Se verifica que la **regla exista** en `document.styleSheets`, que es
+verificación sobre el fuente, el mismo recurso que TC-98 usa para `TEER_CRIT`.
+
+### El `display` del detalle NO puede ir en línea
+
+`mk()` arma todo con `style.cssText`, y un `display:block` inline **le gana** a
+`.ig-stor-det{display:none}` de la hoja: el detalle quedaría siempre visible. Es el conflicto
+que este archivo ya pagó con `[hidden]` y el banner de versión.
+
+### ⚠️ LA PREMISA QUE FALTABA: ya había un «clic para ver el detalle», y era un TOAST
+
+El contenedor traía `onclick="imgStorageDetalle()"` con `title="Tocar para ver el detalle"`, y
+esa función mostraba **el mismo dato** —estudios, MB, porcentaje— como toast. El pedido no la
+menciona. Con el detalle desplegable, un clic habría disparado **las dos presentaciones del
+mismo dato**, y la de arriba se va sola a los tres segundos mientras el panel se queda. Se
+borró `imgStorageDetalle` —su único llamador era ese atributo— en vez de dejarla esperando a
+que alguien la volviera a enganchar.
+
+### Y sacar ese atributo cerró un defecto de layout PREEXISTENTE
+
+La regla táctil global matchea por el **atributo** (`[onclick]{min-height:44px;min-width:44px}`),
+y el contenedor es un **hijo de flex sin `flex-grow`**: con `min-width:44px` se encogía a
+**44 px de ancho** y todo el contenido se envolvía dentro de esa columna. Medido en el mismo
+layout, HEAD contra hoy:
+
+| | HEAD | hoy |
+|---|---|---|
+| `min-width` del contenedor | **44px** | `auto` |
+| ancho real | 44 px | 212 px |
+| bloque de aviso | **44×114** — el texto y el botón en una columna de 44 px | 212×114 |
+| detalle | 44×225, siempre visible | 0×0 cerrado |
+
+O sea que el aviso de cuota y su botón se venían dibujando en una tira de 44 px de ancho. Es
+«un `onclick` inline infla el elemento a 44×44» otra vez, con la cara del `min-width`.
+
+El disparador nuevo lleva `role="button"`, que matchea la **misma** regla y le da a la fila sus
+44 px de alto — ahí sí es lo correcto: pasó a ser un objetivo táctil de verdad.
+
+### ⚠️ INVENTÉ EL ID DEL CONTENEDOR, y habría fallado en silencio
+
+Escribí `document.getElementById('img-storage-info')`. El real es **`ig-img-storage`**. Las dos
+funciones nuevas salían por su `if (!cont) return` y el clic no habría hecho **nada**, sin
+error. Lo cazó ir a leer TC-211, que ya lo nombraba. **Un id inventado no falla, calla** —
+enésima vez, y acá el modo de falla era «la función que acabás de escribir nunca hace nada».
+
+### Dos mutaciones que enseñaron algo
+
+- **`_igDetalleAbierto = true` SOBREVIVÍA, y el caso era vacuo.** Mi condición llamaba a
+  `cerrar()` y **después** comprobaba que estuviera cerrado — o sea comprobaba lo que el propio
+  caso acababa de hacer. Es «si el valor lo pusiste vos, no probaste nada» aplicado al estado
+  inicial de un módulo. Sacado el `cerrar()`, la mutación cae por **cinco** condiciones.
+- **`cont.classList.toggle('abierta', …)` en el render es REDUNDANTE hoy y queda a propósito.**
+  `cont.textContent = ''` vacía los **hijos**; el contenedor no se recrea, así que la clase
+  sobrevive al repintado sola. Está declarado en el código en vez de dejar creer que la
+  mutación la caza. Lo que **no** es redundante es el `aria-expanded`: la fila **sí** se recrea
+  en cada pintada, y su mutación cae por «ABIERTO SOBREVIVE A UN REPINTADO».
+
+### El denominador de un caso que mide ALTO es que la pestaña esté abierta
+
+Las dos primeras condiciones de geometría dieron rojo sobre código sano: en `display:none`
+**todo mide 0**, así que el alto dejaba de distinguir «colapsado» de «la pestaña está cerrada».
+El caso llama `showTab('guardados')` y **declara** que hay geometría antes de medir nada.
+
+### Y el preview headless NO sirve para medir píxeles absolutos acá
+
+`window.innerWidth` devuelve **0** y el `h2.card-head` mide **28 px de ancho**: la página se
+maqueta a ancho degenerado. Las comparaciones **relativas** en la misma sesión sí valen —es
+como se midió la tabla de arriba— pero cualquier número citado como «a 1280 px» sería falso.
+Para absolutos, el harness, que maneja un Chrome de verdad.
+
+
 
 
 

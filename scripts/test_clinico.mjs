@@ -7979,7 +7979,7 @@ caso('TC-160', 'El color del header manda en todo el PDF y las plantillas no lo 
    se comio dos bloques asi al repartir Congenitas.
    Por eso el caso enumera los CONTROLES, no las tarjetas: contar siete no distingue una tarjeta
    completa de una vaciada que conserva su titulo. */
-caso('TC-161', 'Config conserva sus siete secciones y todos sus controles', `
+caso('TC-161', 'Config no pierde ninguna de sus secciones ni sus controles', `
   return (async () => {
     const tab = document.getElementById('tab-config');
     const cards = Array.from(document.querySelectorAll('#tab-config .cfg-card'));
@@ -8003,9 +8003,19 @@ caso('TC-161', 'Config conserva sus siete secciones y todos sus controles', `
     const pg = document.getElementById('pltz-grid');
     const opciones = pg ? pg.querySelectorAll('[data-pltz]').length : 0;
     const fmt = document.getElementById('pdf-fmt-sel');
+    /* LAS SIETE QUE YA ESTABAN, por TITULO y no por conteo. Esta condicion nacio como
+       «cards.length === 7» y se puso en rojo con 8/8 -o sea sobre un Config perfectamente
+       sano- el dia que se agrego la tarjeta de Orthanc: fijaba el INVENTARIO del dia en que se
+       escribio, que es el literal 53 otra vez. Y un conteo ademas es DEBIL: 7 sigue dando 7 si
+       alguien borra una tarjeta y agrega otra. Por nombre, borrar una cae siempre y agregar
+       una no molesta a nadie. */
+    const YA_ESTABAN = ['Institución y firma','Centros de trabajo','Médicos',
+      'Diseño del informe PDF','Imágenes del estudio','Modo de visualización','Soporte y contacto'];
+    const perdidas = YA_ESTABAN.filter(t => !titulos.some(x => x.indexOf(t) > -1));
     return { extra: [
       ['la grilla de Config existe',                    !!grid],
-      ['hay siete tarjetas',                            cards.length === 7, cards.length],
+      ['no se perdio ninguna de las siete secciones',   perdidas.length === 0, perdidas.join(', ') || titulos.join(' | ')],
+      ['y cada tarjeta del DOM es una seccion de verdad', cards.length >= YA_ESTABAN.length, cards.length],
       ['cada una tiene su titulo',                      titulos.every(t => t.length > 0), titulos.join(' | ')],
       ['ninguna quedo vacia',                           vacias === 0, vacias],
       ['Medicos sigue teniendo tarjeta propia',         titulos.some(t => t.indexOf('Médicos') > -1), titulos.join(' | ')],
@@ -17456,6 +17466,433 @@ caso('TC-218', 'VTI en el visor: integral exacta, y el Qp/Qs con la formula del 
     ] };
   })();
 `);
+
+
+/* == TC-219 · Barra de memoria: el DETALLE se despliega, el AVISO no ========================
+   Lo que se colapsa son los TRES CONTADORES. El bloque de aviso con el boton de exportar
+   queda FUERA del colapso a proposito: TC-211 ya fija que ese bloque se muestra siempre por
+   encima del 60 % porque esconderlo se lleva el boton justo cuando hace falta -y en tactil no
+   hay hover, asi que meterlo adentro lo volveria inalcanzable-. La condicion que separa un
+   caso util de uno decorativo es justamente esa: aviso VISIBLE con el detalle CERRADO.
+
+   EL HOVER NO SE EJERCE. getComputedStyle no resuelve pseudo-clases sin puntero real, y este
+   archivo ya documenta que mutar una regla :hover no pone nada en rojo. Se verifica que la
+   REGLA EXISTA en la hoja de estilos, declarado como verificacion sobre el fuente -el mismo
+   recurso que TC-98 usa para TEER_CRIT-. Lo que si se ejerce entero es el camino del CLIC,
+   que es el unico que existe en tactil.
+   NO DEPENDE DEL PENDRIVE.                                                                  */
+caso('TC-219', 'Guardados: el detalle de la barra se despliega y el aviso de cuota no se esconde', `
+  return (async () => {
+    const R = {};
+    const usoOrig = CeiboImg.uso, cuotaOrig = CeiboImg.cuota;
+    const cineOrig = (typeof CeiboCine !== 'undefined') ? CeiboCine.uso : null;
+    const toastOrig = window.toast;
+    const tostadas = [];
+    window.toast = m => { tostadas.push(String(m)); };
+    const cont = () => document.getElementById('ig-img-storage');
+    const det  = () => document.getElementById('ig-stor-det');
+    const fila = () => cont() && cont().querySelector('.ig-stor-tr');
+    const verDet = () => { const d = det(); return !!d && getComputedStyle(d).display !== 'none'; };
+    try {
+      localStorage.setItem('cfg-guardar-imagenes','1');
+      try { sessionStorage.removeItem('ett_stor_aviso'); } catch (e) {}
+      /* LA PESTANA TIENE QUE ESTAR ABIERTA o no hay geometria: en display:none todo mide 0 y
+         el alto deja de distinguir «colapsado» de «la pestana esta cerrada». Este caso mide
+         ALTO a proposito -el pedido es que el detalle deje de ocupar lugar-.
+
+         ⚠️ CON --solo PASABA Y EN EL SUITE NO, y la causa NO era lo que supuse. Dos vueltas se
+         fueron en hipotesis -overlays del visor, el plazo del render- y las dos erraron. El
+         recorrido de ancestros lo dijo en una: la tab Guardados tiene DOS SUB-VISTAS y algun
+         caso anterior la deja en la de DETALLE, asi que ig-lista-view queda en display:none y
+         TODO lo que cuelga de ella mide cero. Se vuelve a la lista por el camino real. */
+      if (typeof volverAListaInformes === 'function') volverAListaInformes();
+      const btnG = document.getElementById('floatBtnGuardados');
+      if (btnG) btnG.click(); else if (typeof showTab === 'function') showTab('guardados');
+      await new Promise(r=>setTimeout(r,200));
+      const TOT = 1000 * 1048576;
+      /* Se ESPERA a que la barra tenga contenido en vez de dormir un plazo fijo.
+         imgStorageRender es asincrona -lee IndexedDB- y con un timeout fijo el caso medía un
+         contenedor todavia vacio: en el suite completo daba contH=0 y en --solo pasaba,
+         porque ahi nada mas competia por el hilo. Es el denominador otra vez. */
+      const pintar = async pct => {
+        CeiboImg.uso   = () => Promise.resolve({ estudios: 7, imgs: 23, bytes: TOT * pct / 100 });
+        CeiboImg.cuota = () => Promise.resolve({ usado: TOT * pct / 100, total: TOT });
+        if (typeof CeiboCine !== 'undefined') CeiboCine.uso = () => Promise.resolve({ n: 4, bytes: 1000 });
+        imgStorageRender();
+        for (var i = 0; i < 60; i++) {
+          await new Promise(r=>setTimeout(r,50));
+          var c = cont();
+          if (c && /[█░]/.test(c.textContent)) break;
+        }
+        return cont();
+      };
+      const cerrar = () => { document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})); };
+
+      /* -- 0 · DENOMINADOR: la barra pinto de verdad -- */
+      const el = await pintar(30);
+      R.pinto = !!el && /[█░]/.test(el.textContent);
+      R.hayFila = !!fila();
+      R.hayDet  = !!det();
+      /* sin esto, todas las condiciones de alto pasarian a medir la pestana y no el colapso */
+      R.hayGeometria = !!fila() && fila().getBoundingClientRect().height > 0;
+      if (!R.hayGeometria) {
+        /* SE RECORRE LA CADENA DE ANCESTROS. Dos corridas se fueron en hipotesis -overlays,
+           el plazo del render- y las dos erraron. El dato que hace falta es CUAL ancestro mide
+           cero, asi que el caso lo dice en vez de dejarlo a la proxima conjetura. */
+        var cad = [], n = cont();
+        while (n && n !== document.body) {
+          var cs = getComputedStyle(n), b = n.getBoundingClientRect();
+          cad.push((n.id || n.tagName) + '[' + (n.className || '').toString().slice(0,22) + ']' +
+                   ' d=' + cs.display + ' h=' + Math.round(b.height) +
+                   (cs.maxHeight !== 'none' ? ' maxH=' + cs.maxHeight : '') +
+                   (cs.overflow !== 'visible' ? ' ov=' + cs.overflow : ''));
+          n = n.parentElement;
+        }
+        R.porQueNo = 'barraPintada=' + (cont() ? /[█░]/.test(cont().textContent) : '-') +
+                     ' filaExiste=' + !!fila() + ' || ' + cad.join('  <  ');
+      }
+
+      /* -- 1 · por defecto SOLO la barra con el porcentaje --
+         SIN cerrarlo antes: la primera version llamaba cerrar() aca y despues comprobaba que
+         estuviera cerrado, o sea comprobaba lo que el propio caso acababa de hacer. La
+         mutacion que arranca el detalle ABIERTO pasaba en verde. Se lee el estado con que
+         nacio el modulo, que es lo que la condicion dice medir. */
+      R.cerradoPorDefecto = !verDet();
+      R.filaVisible = !!fila() && getComputedStyle(fila()).display !== 'none';
+      R.filaDicePct = !!fila() && fila().textContent.indexOf('%') >= 0 &&
+                      fila().textContent.indexOf('usado') >= 0;
+      /* el detalle esta en el DOM (textContent lo sigue viendo) pero no ocupa lugar */
+      R.detEnDom = !!det() && det().textContent.indexOf('imagen(es) guardada(s)') >= 0;
+      R.detSinAlto = !!det() && det().getBoundingClientRect().height === 0;
+      /* los contadores NO se ven con el detalle cerrado */
+      R.contadoresOcultos = !verDet();
+
+      /* -- 2 · el CLIC lo abre, y no dispara el toast viejo -- */
+      tostadas.length = 0;
+      fila().click();
+      R.abreConClic = verDet();
+      R.detConAlto  = !!det() && det().getBoundingClientRect().height > 0;
+      R.sinToastViejo = tostadas.filter(m => m.indexOf('ocupacion del navegador') >= 0 ||
+                                             m.indexOf('ocupación del navegador') >= 0).length === 0;
+      R.ariaAbierto = fila().getAttribute('aria-expanded') === 'true';
+
+      /* -- 3 · sobrevive a un REPINTADO: es lo que rompe un estado guardado adentro -- */
+      await pintar(30);
+      R.sigueAbiertoTrasRepintar = verDet();
+      R.ariaTrasRepintar = !!fila() && fila().getAttribute('aria-expanded') === 'true';
+
+      /* -- 4 · clic AFUERA lo cierra -- */
+      document.body.click();
+      R.cierraClicAfuera = !verDet();
+      R.ariaCerrado = fila().getAttribute('aria-expanded') === 'false';
+
+      /* -- 5 · el clic sobre la fila TOGGLEA (segundo clic cierra) -- */
+      fila().click();
+      const tras1 = verDet();
+      fila().click();
+      const tras2 = verDet();
+      R.togglea = tras1 === true && tras2 === false;
+
+      /* -- 6 · Escape lo cierra -- */
+      fila().click();
+      const antesEsc = verDet();
+      cerrar();
+      R.cierraEscape = antesEsc === true && verDet() === false;
+
+      /* -- 7 · TECLADO: es alcanzable sin puntero -- */
+      fila().dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
+      R.abreConEnter = verDet();
+      cerrar();
+      R.esTabulable = fila().getAttribute('tabindex') === '0' &&
+                      fila().getAttribute('role') === 'button';
+
+      /* -- 8 · EL AVISO NO SE COLAPSA. Es la condicion que protege la decision de TC-211 -- */
+      const el90 = await pintar(90);
+      cerrar();
+      R.detCerradoEn90 = !verDet();
+      const av  = el90.querySelector('[data-ig-aviso]');
+      const btn = el90.querySelector('[data-ig-exportar]');
+      R.avisoFueraDelDetalle = !!av && !!det() && !det().contains(av);
+      R.avisoVisibleCerrado  = !!av && getComputedStyle(av).display !== 'none' &&
+                               av.getBoundingClientRect().height > 0;
+      R.botonVisibleCerrado  = !!btn && getComputedStyle(btn).display !== 'none' &&
+                               btn.getBoundingClientRect().height > 0;
+
+      /* -- 9 · la regla de HOVER existe (verificacion sobre el FUENTE, ver cabecera) -- */
+      let reglaHover = false, reglaBase = false;
+      for (const hoja of Array.from(document.styleSheets)) {
+        let reglas = null;
+        try { reglas = hoja.cssRules; } catch (e) { continue; }
+        if (!reglas) continue;
+        for (const r of Array.from(reglas)) {
+          const sel = r.selectorText || '';
+          if (sel.indexOf('.ig-stor:hover .ig-stor-det') >= 0 &&
+              (r.style && r.style.display === 'block')) reglaHover = true;
+          if (sel.trim() === '.ig-stor-det' && (r.style && r.style.display === 'none')) reglaBase = true;
+        }
+      }
+      R.reglaHover = reglaHover;
+      R.reglaBase  = reglaBase;
+    } finally {
+      CeiboImg.uso = usoOrig; CeiboImg.cuota = cuotaOrig;
+      if (cineOrig) CeiboCine.uso = cineOrig;
+      window.toast = toastOrig;
+      try { document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})); } catch (e) {}
+      try { sessionStorage.removeItem('ett_stor_aviso'); } catch (e) {}
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      try { imgStorageRender(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: la barra pinto, con su fila y su detalle', R.pinto && R.hayFila && R.hayDet, R.pinto + '/' + R.hayFila + '/' + R.hayDet],
+      ['DENOMINADOR: la pestana esta abierta y hay geometria', R.hayGeometria, R.porQueNo || R.hayGeometria],
+      ['POR DEFECTO solo se ve la barra con el porcentaje', R.cerradoPorDefecto && R.filaVisible && R.filaDicePct, 'det=' + R.cerradoPorDefecto + ' fila=' + R.filaDicePct],
+      ['el detalle no ocupa alto estando cerrado',  R.detSinAlto && R.contadoresOcultos, R.detSinAlto],
+      ['sigue en el DOM (TC-211 lo lee por textContent)', R.detEnDom, R.detEnDom],
+      ['el CLIC sobre la barra lo abre',            R.abreConClic && R.detConAlto, R.abreConClic],
+      ['y NO dispara el toast de detalle que habia', R.sinToastViejo, R.sinToastViejo],
+      ['aria-expanded sigue el estado',             R.ariaAbierto && R.ariaCerrado, R.ariaAbierto + '/' + R.ariaCerrado],
+      ['ABIERTO SOBREVIVE A UN REPINTADO',          R.sigueAbiertoTrasRepintar && R.ariaTrasRepintar, R.sigueAbiertoTrasRepintar],
+      ['clic AFUERA lo cierra',                     R.cierraClicAfuera, R.cierraClicAfuera],
+      ['el clic sobre la fila TOGGLEA',             R.togglea, R.togglea],
+      ['Escape lo cierra',                          R.cierraEscape, R.cierraEscape],
+      ['alcanzable por TECLADO (Enter, tabindex, role)', R.abreConEnter && R.esTabulable, R.abreConEnter + '/' + R.esTabulable],
+      ['EL AVISO DE CUOTA QUEDA FUERA DEL COLAPSO', R.avisoFueraDelDetalle, R.avisoFueraDelDetalle],
+      ['Y SE VE CON EL DETALLE CERRADO, con su boton', R.detCerradoEn90 && R.avisoVisibleCerrado && R.botonVisibleCerrado, 'aviso=' + R.avisoVisibleCerrado + ' boton=' + R.botonVisibleCerrado],
+      ['la regla de hover existe (sobre el fuente)', R.reglaHover && R.reglaBase, R.reglaHover + '/' + R.reglaBase]
+    ] };
+  })();
+`);
+
+
+/* == TC-220 · Orthanc en Config: lee de /system y NO cablea nada ============================
+   Lo que este caso existe para fijar son tres cosas que se rompen MUDAS:
+
+   1 · EL PUERTO DICOM Y EL AE TITLE SALEN DE /system, no de constantes. 4242 y ORTHANC son
+       los valores por omision y son CONFIGURABLES: cablearlos haria que el medico copie datos
+       equivocados al ecografo y el envio falle sin ninguna pista. El escenario usa 11112 y
+       MIPACS a proposito -si alguien vuelve a cablear, esas dos condiciones caen-.
+   2 · CON localhost NO SE INVENTA UNA IP. El navegador no puede detectarla -medido: Chrome
+       ofusca los candidatos ICE con mDNS- asi que se dice que no se puede y se da el comando.
+       Publicar una IP equivocada es peor que no publicar ninguna.
+   3 · «CORS lo bloqueo» Y «no hay nadie» DAN EL MISMO TypeError, y se distinguen con un sondeo
+       no-cors. Sin eso el cartel manda al medico a revisar si Orthanc esta instalado cuando lo
+       que falta es una linea en orthanc.json.
+
+   Y la condicion de seguridad: los ids van con prefijo `cfg-`, asi que NO entran en `campos`
+   de cada estudio. Se prueba guardando un estudio de verdad y mirando las claves.
+   NO DEPENDE DEL PENDRIVE NI DE UN ORTHANC REAL: se sustituye `fetch`.                      */
+caso('TC-220', 'Config/Orthanc: puerto y AET leidos de /system, y CORS no se confunde con ausencia', `
+  return (async () => {
+    const R = {};
+    const fetchOrig = window.fetch, toastOrig = window.toast;
+    const onOrig = localStorage.getItem('ett_orthanc_on');
+    const urlOrig = localStorage.getItem('ett_orthanc_url');
+    window.toast = () => {};
+    const est = () => { const e = document.getElementById('cfg-orthanc-estado');
+                        return e ? e.textContent.replace(/\\s+/g,' ').trim() : ''; };
+    const datVis = () => { const d = document.getElementById('cfg-orthanc-datos');
+                           return !!d && getComputedStyle(d).display !== 'none'; };
+    const copiables = () => Array.from(document.querySelectorAll('#cfg-orthanc-datos [data-orth-copiar]'))
+                              .map(b => b.getAttribute('data-orth-copiar'));
+    /* escenarios: 'ok' responde /system · 'cors' rechaza el GET y resuelve el sondeo opaco
+       (o sea: hay alguien y el navegador no deja leerlo) · 'muerto' rechaza las dos vias */
+    const simular = (modo, cuerpo) => {
+      window.fetch = (url, opts) => {
+        const esSondeo = !!(opts && opts.mode === 'no-cors');
+        if (modo === 'muerto') return Promise.reject(new TypeError('Failed to fetch'));
+        if (modo === 'cors')   return esSondeo
+          ? Promise.resolve({ ok:false, status:0, type:'opaque' })
+          : Promise.reject(new TypeError('Failed to fetch'));
+        if (modo === '401')    return Promise.resolve({ ok:false, status:401 });
+        return Promise.resolve({ ok:true, status:200,
+                                 json: () => Promise.resolve(cuerpo) });
+      };
+    };
+    try {
+      if (typeof showTab === 'function') showTab('config');
+      if (typeof cfgOnShow === 'function') cfgOnShow();
+      await new Promise(r=>setTimeout(r,120));
+
+      /* -- 0 · DENOMINADOR: la seccion existe -- */
+      const chk = document.getElementById('cfg-orthanc-on');
+      const inp = document.getElementById('cfg-orthanc-url');
+      const cue = document.getElementById('cfg-orthanc-cuerpo');
+      R.existe = !!chk && !!inp && !!cue;
+      if (!R.existe) return { extra: [['la seccion de Orthanc existe en Config', false, 'falta']] };
+
+      /* -- 1 · apagado de fabrica y persistencia -- */
+      localStorage.removeItem('ett_orthanc_on'); localStorage.removeItem('ett_orthanc_url');
+      orthancRender();
+      R.apagadoDeFabrica = chk.checked === false && getComputedStyle(cue).display === 'none';
+      orthancToggle(true);
+      R.guardaEncendido = localStorage.getItem('ett_orthanc_on') === '1' &&
+                          getComputedStyle(cue).display !== 'none';
+      orthancGuardarUrl('192.168.1.50:8042');
+      R.guardaUrl = localStorage.getItem('ett_orthanc_url') === '192.168.1.50:8042';
+      /* y vuelve del disco tras un repintado, que es lo que la hace sobrevivir a limpiarCampos */
+      inp.value = '';
+      orthancRender();
+      R.reponeDelDisco = inp.value === '192.168.1.50:8042';
+
+      /* -- 2 · normalizacion de la direccion -- */
+      R.base = {
+        hostPuerto : _orthBase('localhost:8042'),
+        soloHost   : _orthBase('localhost'),
+        lan        : _orthBase('192.168.1.50:8042'),
+        vacio      : _orthBase('   '),
+        js         : _orthBase('javascript:alert(1)'),
+        file       : _orthBase('file:///etc/passwd'),
+        credencial : _orthBase('http://juan:secreto@192.168.1.50:8042')
+      };
+      R.normalizaBien = R.base.hostPuerto === 'http://localhost:8042' &&
+                        R.base.soloHost   === 'http://localhost:8042' &&
+                        R.base.lan        === 'http://192.168.1.50:8042';
+      R.rechazaRaro   = R.base.vacio === null && R.base.js === null && R.base.file === null;
+      /* las credenciales NO viajan ni se imprimen */
+      R.descartaCredencial = R.base.credencial === 'http://192.168.1.50:8042';
+
+      /* -- 3 · EXITO: el puerto y el AET salen de /system, NO de 4242/ORTHANC -- */
+      simular('ok', { Version:'1.12.4', Name:'MiOrthanc', DicomPort:11112, DicomAet:'MIPACS' });
+      inp.value = '192.168.1.50:8042';
+      await orthancVerificar();
+      await new Promise(r=>setTimeout(r,80));
+      R.exitoTxt = est().slice(0,120);
+      R.diceConectado = est().indexOf('Orthanc conectado') >= 0 && est().indexOf('1.12.4') >= 0;
+      const c1 = copiables();
+      R.copiaDeSystem = c1.indexOf('11112') >= 0 && c1.indexOf('MIPACS') >= 0;
+      R.noCablea      = c1.indexOf('4242') < 0 && c1.indexOf('ORTHANC') < 0;
+      R.ipDerivada    = c1.indexOf('192.168.1.50') >= 0;
+      R.datosVisibles = datVis();
+      /* el texto dice que el ecografo envia a ORTHANC, no «a EcoSmart» */
+      const dTxt = document.getElementById('cfg-orthanc-datos').textContent;
+      R.destinoCorrecto = dTxt.indexOf('a Orthanc') >= 0 && dTxt.indexOf('a EcoSmart') < 0;
+
+      /* -- 4 · Orthanc que NO informa puerto/AET: cae al defecto y LO ROTULA -- */
+      simular('ok', { Version:'1.12.4' });
+      await orthancVerificar(); await new Promise(r=>setTimeout(r,80));
+      const c2 = copiables();
+      R.caeAlDefecto = c2.indexOf('4242') >= 0 && c2.indexOf('ORTHANC') >= 0;
+      R.rotulaDefecto = document.getElementById('cfg-orthanc-datos')
+                          .textContent.indexOf('valor por defecto') >= 0;
+
+      /* -- 5 · LOOPBACK: no se inventa una IP -- */
+      simular('ok', { Version:'1.12.4', DicomPort:4242, DicomAet:'ORTHANC' });
+      inp.value = 'localhost:8042';
+      await orthancVerificar(); await new Promise(r=>setTimeout(r,80));
+      const dLoop = document.getElementById('cfg-orthanc-datos').textContent;
+      const c3 = copiables();
+      R.noInventaIp = c3.indexOf('localhost') < 0 && c3.indexOf('127.0.0.1') < 0;
+      R.diceQueNoPuede = dLoop.indexOf('No se puede detectar') >= 0;
+      R.daElComando = dLoop.indexOf('ipconfig') >= 0;
+
+      /* -- 6 · CORS: hay alguien, y NO se acusa de ausencia -- */
+      simular('cors');
+      inp.value = 'localhost:8042';
+      await orthancVerificar(); await new Promise(r=>setTimeout(r,80));
+      R.corsTxt = est().slice(0,150);
+      R.corsCulpaCORS = est().indexOf('CORS') >= 0;
+      R.corsNoCulpaAusencia = est().indexOf('No se encontro') < 0 &&
+                              est().indexOf('No se encontró') < 0;
+      R.corsDaElOrigen = est().indexOf(location.origin) >= 0;
+      /* NO se recomienda el comodin: con «*» cualquier pagina leeria los estudios */
+      R.corsNoRecomiendaComodin = est().indexOf('origen exacto') >= 0;
+      R.corsOcultaDatos = !datVis();
+
+      /* -- 7 · MUERTO: ahi si se dice que falta, y NO se culpa a CORS -- */
+      simular('muerto');
+      await orthancVerificar(); await new Promise(r=>setTimeout(r,80));
+      R.muertoTxt = est().slice(0,120);
+      R.muertoDiceAusencia = est().indexOf('No se encontr') >= 0;
+      R.muertoNoCulpaCORS  = est().indexOf('CORS') < 0;
+
+      /* -- 8 · 401: Orthanc con clave no es Orthanc ausente -- */
+      simular('401');
+      await orthancVerificar(); await new Promise(r=>setTimeout(r,80));
+      R.p401 = est().indexOf('usuario y contrase') >= 0 && est().indexOf('No se encontr') < 0;
+
+      /* -- 9 · direccion ilegible: se dice, no se sale a la red -- */
+      let hubo = 0;
+      window.fetch = () => { hubo++; return Promise.reject(new TypeError('x')); };
+      inp.value = 'basura ::: ???';
+      await orthancVerificar(); await new Promise(r=>setTimeout(r,60));
+      R.invalidaAvisa = est().indexOf('No entiendo esa') >= 0;
+      R.invalidaNoPega = hubo === 0;
+
+      /* -- 10 · SIN datos de usuario dentro de un atributo on* -- */
+      simular('ok', { Version:'1.12.4', DicomPort:11112, DicomAet:'MI"><img src=x onerror=alert(1)>' });
+      inp.value = '192.168.1.50:8042';
+      await orthancVerificar(); await new Promise(r=>setTimeout(r,80));
+      /* NO se busca el TEXTO «onerror=» en el innerHTML: el payload viaja escapado dentro de
+         data-orth-copiar, asi que al serializar aparece como texto de atributo y un regex lo
+         matchea sobre un panel perfectamente sano -paso-. El invariante es que NINGUN elemento
+         tenga un atributo de EVENTO, que es lo que el navegador compila. */
+      const nodos = Array.from(document.querySelectorAll('#cfg-orthanc-datos, #cfg-orthanc-datos *'));
+      const conHandler = nodos.filter(el => Array.from(el.attributes || [])
+                                     .some(a => /^on/i.test(a.name)));
+      R.sinHandlers = conHandler.length === 0;
+      R.handlersVistos = conHandler.map(el => el.tagName + ':' +
+                           Array.from(el.attributes).map(a => a.name).join(','));
+      R.sinScriptInyectado = document.querySelectorAll('#cfg-orthanc-datos img[onerror]').length === 0;
+      R.venenoComoTexto = document.getElementById('cfg-orthanc-datos')
+                            .textContent.indexOf('onerror=alert(1)') >= 0;
+
+      /* -- 11 · SEGURIDAD: los campos NO entran en el estudio -- */
+      R.fueraDelEstudio = typeof _noEsDelEstudio === 'function' &&
+                          _noEsDelEstudio('cfg-orthanc-on') && _noEsDelEstudio('cfg-orthanc-url');
+      window.fetch = fetchOrig;
+      document.getElementById('nombre').value = 'Prueba Orthanc';
+      document.getElementById('ci').value = '99887766';
+      const g = await __t.guardar();
+      let claves = [];
+      if (g && g.estudioId) {
+        const lista = (typeof getInformes === 'function') ? getInformes() : [];
+        const inf = lista.filter(x => x && x.estudioId === g.estudioId)[0];
+        claves = inf && inf.campos ? Object.keys(inf.campos) : [];
+      }
+      R.seGuardo = claves.length > 0;
+      R.sinOrthancEnCampos = claves.filter(k => k.indexOf('orthanc') >= 0).length === 0;
+      R.clavesOrthanc = claves.filter(k => k.indexOf('orthanc') >= 0);
+      if (g && g.estudioId) await __t.borrar(g.estudioId);
+    } finally {
+      window.fetch = fetchOrig; window.toast = toastOrig;
+      try { if (onOrig === null) localStorage.removeItem('ett_orthanc_on');
+            else localStorage.setItem('ett_orthanc_on', onOrig);
+            if (urlOrig === null) localStorage.removeItem('ett_orthanc_url');
+            else localStorage.setItem('ett_orthanc_url', urlOrig); } catch (e) {}
+      try { orthancRender(); } catch (e) {}
+      try { limpiarCampos(true); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: la seccion existe en Config',   R.existe, R.existe],
+      ['apagada de fabrica, con el cuerpo oculto',   R.apagadoDeFabrica, R.apagadoDeFabrica],
+      ['persiste el interruptor y la direccion',     R.guardaEncendido && R.guardaUrl, R.guardaUrl],
+      ['y la repone del disco al repintar',          R.reponeDelDisco, R.reponeDelDisco],
+      ['normaliza host, host:puerto y LAN',          R.normalizaBien, JSON.stringify(R.base)],
+      ['rechaza lo ilegible y los esquemas ajenos',  R.rechazaRaro, JSON.stringify(R.base)],
+      ['descarta usuario:clave de la direccion',     R.descartaCredencial, R.base.credencial],
+      ['conecta y publica la version',               R.diceConectado, R.exitoTxt],
+      ['EL PUERTO Y EL AET SALEN DE /system',        R.copiaDeSystem, JSON.stringify(R.base) + ' :: ' + R.exitoTxt],
+      ['y NO se cablean 4242 / ORTHANC',             R.noCablea, R.noCablea],
+      ['la IP se deriva de la direccion tipeada',    R.ipDerivada, R.ipDerivada],
+      ['el texto dice que el ecografo envia a ORTHANC', R.destinoCorrecto, R.destinoCorrecto],
+      ['sin esos campos cae al defecto Y LO ROTULA', R.caeAlDefecto && R.rotulaDefecto, R.rotulaDefecto],
+      ['CON localhost NO SE INVENTA UNA IP',         R.noInventaIp && R.diceQueNoPuede, R.noInventaIp],
+      ['y da el comando para averiguarla',           R.daElComando, R.daElComando],
+      ['CORS: culpa a CORS y NO a que falte Orthanc', R.corsCulpaCORS && R.corsNoCulpaAusencia, R.corsTxt],
+      ['la receta lleva el origen exacto, no un comodin', R.corsDaElOrigen && R.corsNoRecomiendaComodin, R.corsDaElOrigen],
+      ['con CORS no se muestran datos del ecografo', R.corsOcultaDatos, R.corsOcultaDatos],
+      ['MUERTO: dice que falta y no culpa a CORS',   R.muertoDiceAusencia && R.muertoNoCulpaCORS, R.muertoTxt],
+      ['401 no se confunde con ausencia',            R.p401, R.p401],
+      ['direccion ilegible: avisa y no sale a la red', R.invalidaAvisa && R.invalidaNoPega, R.invalidaNoPega],
+      ['cero handlers on* y cero inyeccion',         R.sinHandlers && R.sinScriptInyectado && R.venenoComoTexto,
+        'handlers=' + JSON.stringify(R.handlersVistos) + ' img=' + R.sinScriptInyectado + ' texto=' + R.venenoComoTexto],
+      ['SEGURIDAD: los ids quedan fuera del estudio', R.fueraDelEstudio, R.fueraDelEstudio],
+      ['y no aparecen en campos de un estudio guardado', R.seGuardo && R.sinOrthancEnCampos, JSON.stringify(R.clavesOrthanc)]
+    ] };
+  })();
+`);
+
+
 
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
